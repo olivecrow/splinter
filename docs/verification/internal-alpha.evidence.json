@@ -1,0 +1,345 @@
+{
+  "schemaVersion": "1.0",
+  "verifiedDate": "2026-09-21",
+  "environment": {
+    "storage": "git-checkout",
+    "workerModel": "gpt-5.6-luna",
+    "workerReasoning": "low",
+    "os": "Windows",
+    "privateColdLibrary": true,
+    "coplay": "10.2.0",
+    "unity": "6000.3.22f1"
+  },
+  "fixtureBaseRevision": "9fa59f9ed081336faa639d162b5c7c8f29913c33",
+  "fixtureIntegratedRevision": "83c9e26b514586350f77df7732dcec8de7551aa9",
+  "build": {
+    "failed": 0,
+    "command": "pwsh ./scripts/build.ps1",
+    "passed": 46,
+    "trxSha256": "2b235d3fd912b372b7b9508b6f42bbcb1d350ce6736b137183678d688b186c86",
+    "outcome": "Completed",
+    "total": 46
+  },
+  "workers": [
+    {
+      "finalProcessId": 51472,
+      "key": "luna-worker-a",
+      "initialProcessId": 42768,
+      "phase": "released",
+      "crossTurnEnsureRequestId": "4dfe555ae16d4c40ae9f836c7f9048c2",
+      "id": "33a67b2e55f7345aee71631f",
+      "restartedProcessId": 47516,
+      "resultReachable": true,
+      "resultRevision": "f4bf33ecb6d44bb59f360086b1086dff59a35253",
+      "integratedRevision": "06d010846546ec3bbe730d2760a35821fb43f1bb",
+      "pathRemoved": true,
+      "validatedFingerprint": "51a795188e90f2adb679bfa9108ac4f73d63ad8fd6a762abc05c3854c80931a8"
+    },
+    {
+      "finalProcessId": 52644,
+      "key": "luna-worker-b",
+      "initialProcessId": 31980,
+      "phase": "released",
+      "crossTurnEnsureRequestId": "06f193b91dbe4c299d46de01d8368a70",
+      "id": "e3884dc6bfce44f7535bb5e1",
+      "restartedProcessId": 43936,
+      "resultReachable": true,
+      "resultRevision": "e87c1e1adda58f28ab9ec5e1e84beed5f552934e",
+      "integratedRevision": "83c9e26b514586350f77df7732dcec8de7551aa9",
+      "pathRemoved": true,
+      "validatedFingerprint": "1f78f92f3c9d4a176bab3483ef79783463ee2ce565dd844524ba86d0d9790036"
+    }
+  ],
+  "compileIsolation": [
+    {
+      "aScriptPresent": false,
+      "headUnchanged": true,
+      "assemblySha256Before": "a50c5fb2b2e4c74bb25e51b6c3a7121f29f48212383b0dcf958d6c1564d88bec",
+      "assemblyHashUnchanged": true,
+      "assemblyWriteBefore": "2026-09-20T15:22:00.9894579Z",
+      "assemblyWriteAfter": "2026-09-20T15:22:00.9894579Z",
+      "project": "original",
+      "assemblyWriteUnchanged": true
+    },
+    {
+      "aScriptPresent": false,
+      "headUnchanged": true,
+      "assemblySha256Before": "dea6a06d3d5d9faa683e2a767b3d748b97e4b3a387d72a8a09c11bf86a4ed812",
+      "assemblyHashUnchanged": true,
+      "assemblyWriteBefore": "2026-09-20T16:33:10.9312549Z",
+      "assemblyWriteAfter": "2026-09-20T16:33:10.9312549Z",
+      "project": "b",
+      "assemblyWriteUnchanged": true
+    }
+  ],
+  "concurrentFailureAndSuccess": {
+    "aErrorCode": "CS0103",
+    "bValidationSucceeded": true,
+    "bValidationRequestId": "3c462d23b9dd4ac4a57b02fb8b9ed85b",
+    "aErrorStillPresent": true,
+    "bFingerprint": "41e6ff7aa2dad57efc1858e1364cd0aabcbd2fa4e66e90e5f09946cdfe57cb3b",
+    "aValidationRequestId": "3651b01533614594967d11819705fe81",
+    "aValidationSucceeded": false
+  },
+  "releasedWorkers": {
+    "at": "2026-09-20T17:09:07.7547563Z",
+    "remainingFixtureWorktrees": 1,
+    "originalEditorAlive": true,
+    "workerAAlive": false,
+    "workerBAlive": false,
+    "recordsRetained": true,
+    "resultBranchesRetained": true
+  },
+  "originalValidation": {
+    "scriptCompilerErrors": 0,
+    "increment3": 4,
+    "source": "83c9e26b514586350f77df7732dcec8de7551aa9",
+    "double3": 6,
+    "knownConsoleErrors": 3,
+    "at": "2026-09-20T17:17:57.8019355Z",
+    "consoleCleared": false,
+    "compiling": false,
+    "domainReloadAfterUnixMs": 1789924371474
+  },
+  "notValidated": [
+    "ReFS CoW",
+    "shared cache performance",
+    "Play",
+    "Unity Test Framework tests",
+    "scene and prefab editing",
+    "automatic Codex runner",
+    "daemon and SQLite recovery",
+    "public 48 scenarios"
+  ],
+  "localEvidenceHashes": [
+    {
+      "file": "after-workers-released.json",
+      "sha256": "09db8a000427d0830214694f425aafe02b7f3ea67c1db5bbc51628f534019e7b"
+    },
+    {
+      "file": "b-during-a-error.json",
+      "sha256": "13cd0e07fb15742f04de964fdf64840c7ecdd495c12b23b310ca703f39e50208"
+    },
+    {
+      "file": "concurrent-error-and-success.json",
+      "sha256": "fd8c5232ba275d831c0e54d41707c9dbb7c03ad60c1838e75e14e3a53ead488f"
+    },
+    {
+      "file": "coplay-guard-proof.json",
+      "sha256": "9ed7b898e7c039dac28d51effef171e60c44d48f3656a5a47d95e7f50c996354"
+    },
+    {
+      "file": "final-workspace-list.json",
+      "sha256": "0e8dfe586a25a451e33145e5cb2c2874fb3c1391a41536bd3beb0ab5a4220c55"
+    },
+    {
+      "file": "isolation-before-error.json",
+      "sha256": "36776b838251dd2381cfb1aa63bc82d685e2e4dce5b5ad3a3c5ba6bf90e60e0b"
+    },
+    {
+      "file": "isolation-during-error.json",
+      "sha256": "e01d53f02de10e19dcd3e531e801c9f9461d040b1c35940445c1824d5cfe4082"
+    },
+    {
+      "file": "original-before.json",
+      "sha256": "7174cd0bc512f6c3809fcbfadc4a07789b8e293ed6e0538b8f4c5bdde5a8fb44"
+    },
+    {
+      "file": "original-mcp-inspect.json",
+      "sha256": "f2d27bd4abd20c18252b97029506cf0e7ea79e4900ecf6eb338dbdda33753589"
+    },
+    {
+      "file": "original-mcp-refresh.json",
+      "sha256": "b9cf64c56306f3aa0f9a538d6b65f33178134f587af2da6627d94baf8367d35c"
+    },
+    {
+      "file": "original-mcp-values.json",
+      "sha256": "bfd6f8c4635d7b515fce72089177f2bbfbe32f9362fa41a333172724512f3776"
+    },
+    {
+      "file": "worker-a-checkpoint.json",
+      "sha256": "efd510dda4a1aa756dd598d9556d2dfb82a7fe9f9d7b45ab142fb2f6e7efc726"
+    },
+    {
+      "file": "worker-a-ensure.json",
+      "sha256": "f7c4db0f63f3ad4a25d5670f27d0df3dc27a1b4884269913844802a6e43e2fe8"
+    },
+    {
+      "file": "worker-a-final-ready.json",
+      "sha256": "bb83d88e1e9aacb682d40d55277f753d22849cd47969e7439dec5e3e040877fc"
+    },
+    {
+      "file": "worker-a-integration-release.json",
+      "sha256": "ddc08c887824aa10ba72e80b382993d8c4bcdb24618f6d491d57e6e8ae0d5b20"
+    },
+    {
+      "file": "worker-a-intentional-error.json",
+      "sha256": "1a28f14b9fbbb3315905cc682c4e2e942bdf1e861c8ae44d45423997cf205228"
+    },
+    {
+      "file": "worker-a-next-turn.json",
+      "sha256": "637f4cf089fc150b4f773e7b44e0bb15c5caa82be733682dc23b43e07ae1b41d"
+    },
+    {
+      "file": "worker-a-recovered.json",
+      "sha256": "e5d48a3b7ffd149b6012d702efc704951b49fb5a6561086aa6966492f4a64a62"
+    },
+    {
+      "file": "worker-a-release-retry.json",
+      "sha256": "0674df6042a27e54ec05878359e8b4aeaddda8892f728ca4b947b0bc5f6d575d"
+    },
+    {
+      "file": "worker-a-restarted-success.json",
+      "sha256": "a106f72d490c67a0ad7aee79f2088b7cdf0b141f536dcd95762b752495de0850"
+    },
+    {
+      "file": "worker-a-resume-failure.json",
+      "sha256": "70ffe924b16c982b89680af5028702d705a441bcce7df4f551c439e6513f6ee9"
+    },
+    {
+      "file": "worker-a-status.json",
+      "sha256": "b004c49f9ca5dd78ad16858b493d16917b746a1fd298ac924590c6394758d6f3"
+    },
+    {
+      "file": "worker-a-success.json",
+      "sha256": "91825bb21cdb31448dc2358b35aad26eb9353901bb44607d8056787799da7cca"
+    },
+    {
+      "file": "worker-b-checkpoint-retry.json",
+      "sha256": "59551c47038a66290f72d0c0c3e4bd51d5b9ba60ec355f5216c98b3751beff70"
+    },
+    {
+      "file": "worker-b-checkpoint.json",
+      "sha256": "f00f667db1b666609ade2abef9139a7b00ee05d94c48ef8e549b6180166b3bc8"
+    },
+    {
+      "file": "worker-b-during-a-error-success.json",
+      "sha256": "a3991b247774ceee3d5bfc021d55a4fbb05771aafc3dffa4809669eef93a48eb"
+    },
+    {
+      "file": "worker-b-ensure.json",
+      "sha256": "6277d6d6a37f2a5e9d8c1ba83b1976d017bf79bd5c6f740fb09ba3b993dc3372"
+    },
+    {
+      "file": "worker-b-final-ready.json",
+      "sha256": "f04bfb831bc2f0b7dca6b05d1792cdbb99b2f364748d0fa2ab4114346d928e42"
+    },
+    {
+      "file": "worker-b-integrate-retry.json",
+      "sha256": "882210cd9ee5a616d32e3ef8a5fab7c5d0f349659fa63a430817538fca27ce66"
+    },
+    {
+      "file": "worker-b-integrate.json",
+      "sha256": "458e23d5fbd82ce825e81ef52d5260350973a65e8dc5c81c1a6fda7e5b92e060"
+    },
+    {
+      "file": "worker-b-refresh-2.json",
+      "sha256": "9ff401f47474c2d867373cca29bb3b52dda2e60f2ff2a46346ce77c8a40b405e"
+    },
+    {
+      "file": "worker-b-refresh-during-a-error.json",
+      "sha256": "c120e161dad608f8ba56524234c66d8cd27c02cc29af2e7544e2e8ea694f4f30"
+    },
+    {
+      "file": "worker-b-refresh-final.json",
+      "sha256": "3b02d393c38cb24cd1c2de0582fd3b6551f3446af2606cbde4da8411f5c96eb8"
+    },
+    {
+      "file": "worker-b-refresh-restarted.json",
+      "sha256": "a03dabb91f648a80c7837aba3fa310409bac4f6facc352bb44238be0e2f4a088"
+    },
+    {
+      "file": "worker-b-refresh.json",
+      "sha256": "285be571e74b106eb5a5ab50d3678ffb31e7c3b6d429bd13dd7ea7201cd59700"
+    },
+    {
+      "file": "worker-b-release.json",
+      "sha256": "f2ada2400f3e3512c22b77c2cb6360a93a45854bc353a5dd78a41bc9a38dbdaf"
+    },
+    {
+      "file": "worker-b-restarted-success.json",
+      "sha256": "65fa22ca94d7e1a7d96f9107bf7bf3f4cc41ed1edf955785dda3e5f0f806ff5d"
+    },
+    {
+      "file": "worker-b-resume.json",
+      "sha256": "2a3fc9ce59de0b620fc6a72209b37eb977146aad155c17722b4a2e899eddc7c0"
+    },
+    {
+      "file": "worker-b-start-final.json",
+      "sha256": "49d1b71fcd0a4115709d3624d8ce9f1e1df4679d84559882d20cae15a1b43ec4"
+    },
+    {
+      "file": "worker-b-start.json",
+      "sha256": "a993257a7245f4e3ccf40e3a18ecca7380ef00a3f8d8132ae9d505875f60c7a4"
+    },
+    {
+      "file": "worker-b-status-1.json",
+      "sha256": "f8853712bc18558fd68caaddd85fa8a77da73ecc6fa3a5b70ddb6c1df7e88ec7"
+    },
+    {
+      "file": "worker-b-status-2.json",
+      "sha256": "ef078b262d5ff35ac0e3c8f3ec248ebd6efd38a0fce9e207d1de75faa63a9b80"
+    },
+    {
+      "file": "worker-b-status-3.json",
+      "sha256": "1c57a649afae707c32c6f46c983555e2cbfadbf917c81347f7eccf65baca7756"
+    },
+    {
+      "file": "worker-b-status-4.json",
+      "sha256": "831cadf37e5138eeaa17de3583fad648c169f66464996072beb96b9d12b7ef80"
+    },
+    {
+      "file": "worker-b-status-5.json",
+      "sha256": "b86c0f40d2b9b94752062e4f3173e2ed367e7858f86ff1ffe179510d41241f87"
+    },
+    {
+      "file": "worker-b-status-6.json",
+      "sha256": "b2da380e2378ef384a701488125c4acd5308f682b485d8a6843527e5170491cc"
+    },
+    {
+      "file": "worker-b-status-7.json",
+      "sha256": "8f3bef95bfd00ee784e855deb174b50386bc16939b6642531a7cc13bf3dcedba"
+    },
+    {
+      "file": "worker-b-status-8.json",
+      "sha256": "5d472a30909083c5b4e1d78adc32b1288d992a77edb66a12799f8478bf9c8a39"
+    },
+    {
+      "file": "worker-b-status-9.json",
+      "sha256": "fecce3d70180ee77b53fc7312bcde5e88a2525a97141e5004af4ae661b95f9ba"
+    },
+    {
+      "file": "worker-b-status-final-start.json",
+      "sha256": "5d04e1ad450772ba13e8ca3162bb6d0ad941a17ac07191f5ad6cb6eab8e303b0"
+    },
+    {
+      "file": "worker-b-status-restarted.json",
+      "sha256": "d62753117ac37c93df60d5b66d8bf0fbae4410cc63bc1e982762f9e81ca1e4e9"
+    },
+    {
+      "file": "worker-b-stop-final.json",
+      "sha256": "38c87ecb4a3c009cf442641f71dbec7b35f9dac7d3f5ee7bbc7c0a028ca4a9bc"
+    },
+    {
+      "file": "worker-b-stop.json",
+      "sha256": "b2643a02dc90ab25f625d4029440428fa4a6f735ff591d6101f4f311b360bc98"
+    }
+  ],
+  "coplayShutdownGuard": {
+    "releaseStatus": "Succeeded",
+    "ready": true,
+    "sourceChanged": false,
+    "stopStatus": "Succeeded",
+    "workerStillAlive": false,
+    "remainingFixtureWorktreeCount": 1,
+    "phase": "released",
+    "guardEnabled": true,
+    "baseRevision": "83c9e26b514586350f77df7732dcec8de7551aa9",
+    "workspaceId": "0eca6b307c77a6969574fc74",
+    "workspacePathExists": false,
+    "serverPidAfter": 19096,
+    "editorProcessId": 28196,
+    "originalEditorStillAlive": true,
+    "serverPidBefore": 19096
+  }
+}

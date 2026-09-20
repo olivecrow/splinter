@@ -1,0 +1,242 @@
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Runtime.InteropServices;
+using System.Text.Json;
+using Splinter.Core;
+
+namespace Splinter.Application.Unity;
+
+public sealed class UnityWorkspaceProvider : IApplicationWorkspaceProvider
+{
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    public string[] ManagedPaths => ["Assets/__Splinter__", "Assets/__Splinter__.meta", "Library", "Temp", "Logs", "UserSettings", "obj", ".vs", ".idea", "*.csproj", "*.sln", "*.slnx"];
+
+    public async Task<ApplicationLease> StartAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
+    {
+        string root = ValidateRoot(workspace.Path);
+        PlainPath(controlPath);
+        Directory.CreateDirectory(controlPath);
+        var prior = await Read<ApplicationLease>(controlPath, "launch-receipt.json", ct);
+        if (prior is not null && OwnedProcess(prior)) return prior;
+        if (prior is null && File.Exists(Path.Combine(controlPath, "launch-intent.json")))
+            throw new WorkspaceException("LaunchUncertain", "A launch intent has no receipt. Preserve it and inspect the process before starting another Editor.");
+        string version = File.ReadLines(Path.Combine(root, "ProjectSettings", "ProjectVersion.txt"))
+            .FirstOrDefault(line => line.StartsWith("m_EditorVersion:", StringComparison.Ordinal))?.Split(':', 2)[1].Trim()
+            ?? throw new WorkspaceException("UnityVersionMissing", "ProjectVersion.txt has no Editor version.");
+        string executable = ResolveEditor(version);
+        string infrastructure = Path.Combine(root, "Assets", "__Splinter__");
+        string markerPath = Path.Combine(infrastructure, "workspace.marker");
+        if (Directory.Exists(infrastructure)) VerifyInfrastructure(workspace, infrastructure);
+        else if (File.Exists(infrastructure) || File.Exists(infrastructure + ".meta"))
+            throw new WorkspaceException("ManagedPathConflict", "The reserved bridge path already exists.");
+        Directory.CreateDirectory(Path.Combine(infrastructure, "Editor"));
+        using Stream resource = typeof(UnityWorkspaceProvider).Assembly.GetManifestResourceStream("Splinter.Editor.WorkspaceBridge.cs")
+            ?? throw new WorkspaceException("BridgeMissing", "The embedded Unity bridge is missing.");
+        using var reader = new StreamReader(resource);
+        string code = await reader.ReadToEndAsync(ct);
+        await File.WriteAllTextAsync(Path.Combine(infrastructure, "Editor", "WorkspaceBridge.cs"), code, ct);
+        await File.WriteAllTextAsync(markerPath, JsonSerializer.Serialize(new InfrastructureMarker(workspace.Id, Hash(code)), Json), ct);
+        string token = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
+        await Atomic(controlPath, "launch-intent.json", new { workspace.Id, token, executable, projectPath = root }, ct);
+        foreach (string name in new[] { "heartbeat.json", "stop-request.json", "stop-result.json", "validation-request.json", "pending.json", "validation.json" })
+        {
+            string path = Path.Combine(controlPath, name);
+            PlainPath(path);
+            if (File.Exists(path)) File.Delete(path);
+        }
+        var start = new ProcessStartInfo(executable) { WorkingDirectory = root, UseShellExecute = false };
+        foreach (string argument in new[] { "-projectPath", root, "-logFile", Path.Combine(controlPath, "editor.log"),
+            "-splinterControlPath", Path.GetFullPath(controlPath), "-splinterToken", token }) start.ArgumentList.Add(argument);
+        using var process = Process.Start(start) ?? throw new WorkspaceException("EditorLaunchFailed", "Unity did not start.");
+        var lease = new ApplicationLease(process.Id, process.StartTime.ToUniversalTime().Ticks, token, executable);
+        // Persist even if the caller cancels immediately after Process.Start.
+        await Atomic(controlPath, "launch-receipt.json", lease, CancellationToken.None);
+        return lease;
+    }
+
+    public async Task<ApplicationState> ObserveAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
+    {
+        var lease = await Read<ApplicationLease>(controlPath, "launch-receipt.json", ct);
+        if (lease is null) return new(false, false, File.Exists(Path.Combine(controlPath, "launch-intent.json")) ? "launch-uncertain" : "not-started");
+        if (!OwnedProcess(lease)) return new(false, false, "exited", lease);
+        var heartbeat = await Read<Heartbeat>(controlPath, "heartbeat.json", ct);
+        bool valid = heartbeat is not null && heartbeat.Token == lease.Token && heartbeat.Pid == lease.ProcessId &&
+            heartbeat.StartTimeUtcTicks == lease.StartTimeUtcTicks && SamePath(heartbeat.ProjectPath, workspace.Path) &&
+            DateTimeOffset.UtcNow - heartbeat.ObservedAt < TimeSpan.FromSeconds(15);
+        return valid ? new(true, heartbeat!.Ready, heartbeat.Phase, lease, ToValidation(heartbeat.Validation))
+            : new(true, false, "starting-or-unresponsive; inspect editor.log", lease);
+    }
+
+    public async Task RequestValidationAsync(WorkspaceRecord workspace, string controlPath, string requestId, string fingerprint, CancellationToken ct = default)
+    {
+        var lease = await Read<ApplicationLease>(controlPath, "launch-receipt.json", ct);
+        if (lease is null || !OwnedProcess(lease)) throw new WorkspaceException("EditorNotRunning", "Start the workspace Editor first.");
+        FocusEditor(lease);
+        await Atomic(controlPath, "validation-request.json", new { requestId, fingerprint, token = lease.Token }, ct);
+    }
+
+    public async Task StopAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
+    {
+        var lease = await Read<ApplicationLease>(controlPath, "launch-receipt.json", ct);
+        if (lease is null)
+        {
+            if (File.Exists(Path.Combine(controlPath, "launch-intent.json")))
+                throw new WorkspaceException("LaunchUncertain", "Cannot prove the launch is stopped; preserve the workspace.");
+            return;
+        }
+        if (!OwnedProcess(lease)) return;
+        string requestId = Guid.NewGuid().ToString("N");
+        await Atomic(controlPath, "stop-request.json", new { requestId, token = lease.Token }, ct);
+        for (int attempt = 0; attempt < 120; attempt++)
+        {
+            if (!OwnedProcess(lease)) return;
+            var refusal = await Read<StopResult>(controlPath, "stop-result.json", ct);
+            if (refusal?.RequestId == requestId)
+                throw new WorkspaceException("EditorStopBlocked", refusal.Error);
+            await Task.Delay(250, ct);
+        }
+        throw new WorkspaceException("EditorStopTimeout", "Owned Editor did not exit. Worktree and results are retained; inspect its log before retrying.");
+    }
+
+    public async Task RemoveInfrastructureAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
+    {
+        if ((await ObserveAsync(workspace, controlPath, ct)).Running)
+            throw new WorkspaceException("EditorStillRunning", "Stop the Editor before releasing its files.");
+        PlainPath(workspace.Path);
+        string infrastructure = Path.Combine(workspace.Path, "Assets", "__Splinter__");
+        if (!Directory.Exists(infrastructure)) return;
+        VerifyInfrastructure(workspace, infrastructure);
+        string lockFile = Path.Combine(workspace.Path, "Temp", "UnityLockfile");
+        if (File.Exists(lockFile))
+        {
+            try { using var probe = new FileStream(lockFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None); }
+            catch (IOException) { throw new WorkspaceException("EditorLockHeld", "An Editor still holds the workspace lock."); }
+        }
+        // VerifyInfrastructure checks the exact target and every descendant before deletion.
+        Directory.Delete(infrastructure, recursive: true);
+        string meta = infrastructure + ".meta";
+        PlainPath(meta);
+        if (File.Exists(meta)) File.Delete(meta);
+    }
+
+    private static void VerifyInfrastructure(WorkspaceRecord workspace, string path)
+    {
+        string expected = Path.GetFullPath(Path.Combine(workspace.Path, "Assets", "__Splinter__"));
+        if (!SamePath(path, expected)) throw new WorkspaceException("UnsafePath", "Infrastructure path mismatch.");
+        PlainPath(path);
+        string markerPath = Path.Combine(path, "workspace.marker");
+        PlainPath(markerPath);
+        if (!File.Exists(markerPath)) throw new WorkspaceException("ManagedPathConflict", "Existing bridge directory has no ownership marker.");
+        var marker = JsonSerializer.Deserialize<InfrastructureMarker>(File.ReadAllText(markerPath), Json);
+        string bridge = Path.Combine(path, "Editor", "WorkspaceBridge.cs");
+        PlainPath(bridge);
+        if (marker?.WorkspaceId != workspace.Id || !File.Exists(bridge) || marker.CodeHash != Hash(File.ReadAllText(bridge)))
+            throw new WorkspaceException("ManagedFilesChanged", "Bridge ownership or code changed; preserve it for inspection.");
+        var allowed = new HashSet<string>(StringComparer.Ordinal)
+        { "workspace.marker", "workspace.marker.meta", "Editor.meta", "Editor/WorkspaceBridge.cs", "Editor/WorkspaceBridge.cs.meta" };
+        var pending = new Stack<string>(); pending.Push(path);
+        while (pending.Count != 0)
+        {
+            string directory = pending.Pop();
+            foreach (string entry in Directory.EnumerateFileSystemEntries(directory))
+            {
+                if ((File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0)
+                    throw new WorkspaceException("UnsafePath", "Infrastructure contains a reparse point.");
+                string relative = Path.GetRelativePath(path, entry).Replace('\\', '/');
+                if (Directory.Exists(entry))
+                {
+                    if (relative != "Editor") throw new WorkspaceException("ManagedFilesChanged", "Unexpected bridge directory: " + relative);
+                    pending.Push(entry);
+                }
+                else if (!allowed.Contains(relative)) throw new WorkspaceException("ManagedFilesChanged", "Unexpected bridge file: " + relative);
+            }
+        }
+    }
+
+    private static string ValidateRoot(string path)
+    {
+        string full = Path.GetFullPath(path); PlainPath(full);
+        if (!Directory.Exists(Path.Combine(full, "Assets")) || !File.Exists(Path.Combine(full, "ProjectSettings", "ProjectVersion.txt")))
+            throw new WorkspaceException("InvalidUnityProject", "The workspace is not a Unity project root.");
+        return full;
+    }
+    private static string ResolveEditor(string version)
+    {
+        string? configured = Environment.GetEnvironmentVariable("SPLINTER_UNITY_EDITOR");
+        string executable = configured ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Unity", "Hub", "Editor", version, "Editor", "Unity.exe");
+        executable = Path.GetFullPath(executable);
+        if (!File.Exists(executable) || Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(executable))) != version)
+            throw new WorkspaceException("UnityEditorMissing", "Exact Unity patch " + version + " was not found. Set SPLINTER_UNITY_EDITOR to its executable.");
+        return executable;
+    }
+    private static bool OwnedProcess(ApplicationLease lease)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(lease.ProcessId);
+            if (process.HasExited || process.StartTime.ToUniversalTime().Ticks != lease.StartTimeUtcTicks) return false;
+            if (!SamePath(process.MainModule?.FileName ?? "", lease.ExecutablePath))
+                throw new WorkspaceException("ProcessOwnershipMismatch", "Process executable no longer matches its lease.");
+            return true;
+        }
+        catch (ArgumentException) { return false; }
+        catch (InvalidOperationException) { return false; }
+        catch (Win32Exception ex) { throw new WorkspaceException("ProcessOwnershipUnknown", ex.Message); }
+    }
+    private static void FocusEditor(ApplicationLease lease)
+    {
+        if (!OperatingSystem.IsWindows())
+            throw new WorkspaceException("UnsupportedPlatform", "Interactive Editor validation currently supports Windows only.");
+        using var process = Process.GetProcessById(lease.ProcessId);
+        nint window = process.MainWindowHandle;
+        if (window == 0 || (!SetForegroundWindow(window) && GetForegroundWindow() != window))
+            throw new WorkspaceException("EditorFocusRequired", "Windows did not activate this Editor. Activate its project window and retry unity refresh.");
+    }
+    [DllImport("user32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(nint window);
+    [DllImport("user32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern nint GetForegroundWindow();
+    private static bool SamePath(string left, string right) => string.Equals(Path.GetFullPath(left).TrimEnd(Path.DirectorySeparatorChar),
+        Path.GetFullPath(right).TrimEnd(Path.DirectorySeparatorChar), OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+    private static string Hash(string code) => Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(code)));
+    private static void PlainPath(string path)
+    {
+        for (string? p = Path.GetFullPath(path); p is not null; p = Path.GetDirectoryName(p))
+            if ((File.Exists(p) || Directory.Exists(p)) && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0)
+                throw new WorkspaceException("UnsafePath", "Reparse point: " + p);
+    }
+    private static async Task<T?> Read<T>(string root, string name, CancellationToken ct) where T : class
+    {
+        string path = Path.Combine(root, name); PlainPath(path);
+        if (!File.Exists(path)) return null;
+        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        return await JsonSerializer.DeserializeAsync<T>(stream, Json, ct);
+    }
+    private static async Task Atomic(string root, string name, object value, CancellationToken ct)
+    {
+        string path = Path.Combine(root, name); PlainPath(path);
+        string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(value, Json), ct);
+        File.Move(temporary, path, overwrite: true);
+    }
+    private sealed record InfrastructureMarker(string WorkspaceId, string CodeHash);
+    private sealed record Heartbeat(string Token, int Pid, long StartTimeUtcTicks, string ProjectPath,
+        string Phase, bool Ready, DateTimeOffset ObservedAt, ValidationWire? Validation);
+    // Unity JsonUtility writes a default nested object for a null serializable class.
+    // No request ID means no evidence; an empty completion timestamp is not a date.
+    private static ApplicationValidation? ToValidation(ValidationWire? value)
+    {
+        if (value is null || string.IsNullOrEmpty(value.RequestId)) return null;
+        if (string.IsNullOrEmpty(value.Fingerprint) || value.Errors is null ||
+            !DateTimeOffset.TryParse(value.CompletedAt, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.RoundtripKind, out var completed))
+            throw new WorkspaceException("BridgeProtocolInvalid", "Validation evidence is incomplete; inspect the workspace Editor log.");
+        return new(value.RequestId, value.Fingerprint, value.Success, completed, value.Errors);
+    }
+    private sealed record ValidationWire(string? RequestId, string? Fingerprint, bool Success, string? CompletedAt, string[]? Errors);
+    private sealed record StopResult(string RequestId, string Error);
+}

@@ -163,6 +163,7 @@
         "dependencies": {
           "Splinter.Application.Unity": "[0.1.0-dev, )",
           "Splinter.Host": "[0.1.0-dev, )",
+          "Splinter.Runtime": "[0.1.0-dev, )",
           "Splinter.SourceControl.Git": "[0.1.0-dev, )",
           "System.CommandLine": "[2.0.12, )"
         }
@@ -187,6 +188,12 @@
         "type": "Project",
         "dependencies": {
           "JsonSchema.Net": "[9.4.0, )"
+        }
+      },
+      "splinter.runtime": {
+        "type": "Project",
+        "dependencies": {
+          "Splinter.Core": "[0.1.0-dev, )"
         }
       },
       "splinter.sourcecontrol.git": {

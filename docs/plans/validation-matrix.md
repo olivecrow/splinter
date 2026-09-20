@@ -1,6 +1,6 @@
 # 구현 계획 검증 추적표
 
-작성일: 2026-09-20. 상태: **아래 원본 48개와 FD-01~10의 전체 통과 조건은 모두 NotRun**. 일부 기반 코드의 자동 시험은 별도로 존재하며 전체 제품 시나리오의 통과로 집계하지 않는다.
+작성일: 2026-09-20. 상태: **원본 48개와 FD-01~10의 전체 통과 조건은 모두 NotRun**. 내부 알파의 실제 두 GUI Editor·재시작·compile/reload 검증은 아래 AA 항목으로 별도 집계한다. 이 좁은 범위의 성공을 공개 제품 시나리오 전체의 통과로 확대하지 않는다.
 
 기준은 [기획서 14절](../../plan.html#section-14)의 필수 48개 시나리오다. 구현 순서는 [구현 계획](implementation-plan.md)의 P0~P7을 따른다. P0의 작은 실험 성공만으로 아래 시나리오 전체가 통과한 것으로 기록하지 않는다.
 
@@ -82,6 +82,23 @@
 | FD-08 | cleanup 계획 후 경로/소유권 변경 | P2/P6 | digest/정규 경로/볼륨/reparse 재검사로 잘못된 삭제 거부 |
 | FD-09 | 통합 검증 후 원본 HEAD 또는 dirty 상태 변경 | P6 | 적용 거부, 후보 branch·검증 증거 보존 |
 | FD-10 | 손실된 callback·이전 run XML·누락 artifact | P5 | 실제 완료/새 증거를 확인할 수 없으면 성공 차단 |
+
+## 내부 알파 검증
+
+환경과 실제 실행 증거는 [알파 검증 보고서](../verification/internal-alpha.md)를 따른다. `git-checkout`, 작업별 새 Library, Unity `6000.3.22f1`, Coplay `10.2.0`, Windows 로컬에서 검증했다.
+
+| ID | 검증 대상 | 상태 | 실제 근거 |
+| --- | --- | --- | --- |
+| AA-01 | Luna low 작업자가 필요 시 독립 GUI Editor 두 개 확보 | Passed | 별도 ID·경로·Git index·Library·PID로 동시 실행 |
+| AA-02 | A의 소스 변경·컴파일 실패가 B와 원본에 전파되지 않음 | Passed | A CS0103 중 B/원본 HEAD·assembly hash·수정 시각 유지 |
+| AA-03 | A 오류 중 B가 새 수정 내용을 컴파일 | Passed | A 오류가 남은 시점 B의 새 fingerprint validation 성공 |
+| AA-04 | 다른 대화와 CLI에서 동일 작업 재개 | Passed | 동일 project/key의 ensure가 같은 작업공간·살아 있는 PID 반환 |
+| AA-05 | Editor stop/start 후 같은 소스로 재검증 | Passed | 새 PID, 동일 workspace와 소스, 양쪽 validation 성공 |
+| AA-06 | 검증된 결과를 development에 순차 통합 | Passed | A/B 결과 commit이 통합 HEAD의 조상이며 원본 checkout 유지 |
+| AA-07 | 완료 시 명시적 Editor 종료와 worktree 회수 | Passed | 작업 PID 종료, 두 경로와 Git 등록 제거, 결과 branch/기록 유지 |
+| AA-08 | 통합한 원본 Editor 새로고침·동작 확인 | Passed | 포커스·refresh·domain reload 후 원본 어셈블리에서 Increment(3)=4, Double(3)=6 |
+| AA-09 | 긴 경로·중단된 회수·변경된 잔여 파일 보존 | Passed | 실제 A 부분 회수 재개, B 정상 회수, 46개 자동 시험에 경계 포함 |
+| AA-10 | 작업 Editor 종료가 원본 Coplay 서버를 종료하지 않음 | Passed | 정상 원본 서버를 둔 별도 작업의 start/stop/release 전후 PID 유지, 이후 원본 MCP 호출 성공 |
 
 ## 공개 시 필요한 결과 묶음
 

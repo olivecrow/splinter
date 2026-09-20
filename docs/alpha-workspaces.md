@@ -1,0 +1,64 @@
+# 병렬 Unity 스크립트 알파
+
+AI 작업자는 Editor가 필요한 시점에 이 CLI로 자신의 프로젝트와 Editor를 확보한다. 작업 도중 대화나 CLI가 끝나도 작업공간과 Editor는 남는다. 같은 `--home`, `--project`, `--key`로 다시 접속한다. 완료 후 명시적으로 커밋·통합·회수한다.
+
+현재 지원 범위는 Windows의 간단한 C# 스크립트 편집과 컴파일이다. 일반 Git checkout과 작업별 새 Library를 사용한다. `--storage git-checkout`은 필수이며 ReFS CoW 지원을 의미하지 않는다. 원본은 최초 커밋이 있고 깨끗한 Git 저장소 루트의 Unity 프로젝트여야 한다. 해당 Unity 패치가 Hub 기본 경로에 설치되어 있어야 하며 다른 위치는 `SPLINTER_UNITY_EDITOR`로 지정한다.
+
+## 에이전트의 기본 흐름
+
+빌드 후 저장소 루트에서 `pwsh ./scripts/splinter.ps1`을 실행 접두사로 쓴다. 아래 예시의 `splinter`를 이 접두사로 바꾼다. `--home`은 모든 작업자가 공유하는 지속 상태 디렉터리이며 대상 Unity 저장소 **밖**에 둔다. 생략하면 `SPLINTER_HOME`, 없으면 사용자 LocalApplicationData/Splinter다.
+
+```text
+splinter workspace ensure --project <Unity 저장소> --key <안정된 작업 이름> --storage git-checkout --base development --editor --home <상태 경로>
+splinter workspace status --id <응답의 workspace.id> --home <상태 경로>
+```
+
+`data.application.ready=true`가 될 때까지 10초 정도 간격을 두고 status를 조회한다. 최초 실행은 패키지 해석과 새 Library 임포트에 수 분이 걸릴 수 있다. `running=true`와 로그 진행이 유지되면 짧은 대기만으로 실패로 판정하지 않는다. **반환된 `data.workspace.path`에서만** 수정한다. 원본 경로나 다른 작업자의 경로를 수정하지 않는다. Editor가 필요하지 않으면 `--editor`를 생략하고 나중에 `unity start --id`로 연다.
+
+fixture의 Unity `6000.3.22f1`은 C# 9 문법을 사용한다. 예를 들어 file-scoped namespace 대신 `namespace Example { ... }`를 쓴다. 다른 Unity 패치의 실행 검증은 별도다.
+
+```text
+splinter unity refresh --id <id> --home <상태 경로>
+splinter workspace status --id <id> --home <상태 경로>
+```
+
+refresh는 대상 Editor를 활성화하고 명시적 AssetDatabase refresh와 전체 스크립트 컴파일을 요청한다. `Accepted`는 접수다. status의 `workspace.validation.success=true`와 현재 source fingerprint 일치가 검증 성공이다. 오류는 `workspace.validation.errors`에 있다. 수정 후 refresh를 다시 실행한다. Unity가 새 `.meta`를 만들면 fingerprint가 바뀌어 첫 검증이 거부될 수 있으므로, 파일이 안정된 뒤 재검증한다. Play와 저장하지 않은 씬은 검증·종료를 차단한다.
+
+작업을 다음 대화에서 이어가려면 같은 ensure 또는 `workspace list --project`와 status를 사용한다. `unity stop`은 Editor만 종료한다. 작업이 끝났을 때:
+
+```text
+splinter workspace checkpoint --id <id> --message <결과 설명> --home <상태 경로>
+splinter workspace integrate --id <id> --target development --home <상태 경로>
+splinter workspace release --id <id> --home <상태 경로>
+```
+
+checkpoint는 검증한 소스만 커밋한다. integrate는 작업 Editor를 종료하고 원본의 현재 브랜치에 merge한다. 원본이 요청한 브랜치에 있고 깨끗해야 한다. 충돌은 이 명령이 시작한 merge만 중단하고 결과 worktree를 남긴다. 여러 결과의 통합은 저장소별로 직렬화한다. 통합한 원본은 원본 Editor에서 별도로 새로고침·검증한다. release는 결과가 회수된 깨끗한 worktree만 삭제하며 기록·로그·결과 브랜치는 유지한다. 자동 타임아웃 삭제는 없다.
+
+Windows Git 호출에는 `core.longpaths=true`를 명령별로 적용한다. 사용자나 저장소 설정은 바꾸지 않는다. Git이 등록만 해제하고 폴더 일부를 남긴 경우에도 같은 release를 재시도할 수 있다. 저장된 회수 intent, 결과 브랜치와 통합 포함 여부를 확인하고, 남은 소스 파일은 Git blob과 일치해야 삭제한다. 관리 캐시 밖의 알 수 없는 파일이나 변경된 소스, reparse point는 보존하고 실패를 반환한다. 이 복구는 손상되거나 임의로 옮긴 작업공간 전체의 자동 복원을 뜻하지 않는다.
+
+## 상태와 복구
+
+| 관측 | 행동 |
+| --- | --- |
+| `Accepted`, `editor-starting`, `validating` | status 조회. 아직 성공으로 기록하지 않는다. |
+| `validation-failed`, `ValidationRequired`, `SourceChanged` | 오류와 현재 소스 확인 → 수정 → refresh → status. |
+| `EditorFocusRequired` | Windows가 활성화를 거부했다. 해당 프로젝트 Editor를 활성화한 뒤 refresh 재시도. |
+| `WorkspaceBusy`, `EditorNotReady` | 같은 명령 또는 status 재조회. |
+| `UncollectedChanges`, `GitDirtyWorktree` | 변경을 보존하고 검증·checkpoint·integrate를 완료한다. |
+| `IntegrationConflict` | 원본과 결과를 보존해 충돌을 해결한 새 작업을 진행한다. |
+| `LaunchUncertain`, `EditorStopTimeout`, `ProcessOwnershipUnknown` | `controlPath/editor.log`와 해당 PID/시작 시각을 조사한다. 강제 종료·강제 회수하지 않는다. |
+| `released` | 종료된 작업이다. 새 편집에는 새 key를 쓴다. |
+
+`workspace list`는 저장된 상태이며 status가 실제 파일과 프로세스를 다시 관측한다. JSON 응답에 프로세스 제어 토큰을 노출하지 않는다. 권한이 필요한 환경에서는 대상 저장소와 상태 경로에 대한 정상 파일·프로세스 권한으로 실행한다.
+
+## 구현 경계
+
+`Splinter.Runtime`은 짧게 실행되는 명령 조정 계층이다. `WorkspaceStore`가 atomic JSON 교체와 프로세스 간 파일 잠금으로 상태를 유지한다. intent를 저장한 뒤 어댑터 부작용을 실행한다. daemon·SQLite는 없다. 생성 직후의 불확실한 프로세스 실행은 자동 중복 실행 대신 보존 오류를 반환한다.
+
+Git 어댑터는 독립 worktree/index를 사용하고 Unity 어댑터는 별도 프로젝트·Library·프로세스·제어 디렉터리를 사용한다. PID·시작 시각·실행 파일·토큰·프로젝트 경로를 확인한다. `Assets/__Splinter__`의 소유 브리지는 컴파일 이벤트와 domain reload를 관측한다. 해당 경로는 사용자 편집 대상이 아니며 결과 커밋에서 제외한다.
+
+Coplay `10.2.0`은 HTTP 서버 소유 정보를 전역 EditorPrefs에서 읽어 작업 Editor 종료가 원본 서버를 종료할 수 있다. 소유 브리지는 해당 버전의 `McpEditorShutdownCleanup.OnEditorQuitting` 콜백을 **작업 프로세스 안에서만** 해제한다. 패키지 파일과 전역 설정은 수정하지 않는다. 작업 Editor에서는 Coplay 서버를 시작하지 않고 Splinter의 전용 브리지를 사용한다. 이 호환 처리는 최초 초기화와 domain reload마다 적용되며 heartbeat의 `coplayShutdownGuard`에 기록한다. 다른 패키지 버전의 호환성은 별도 검증 대상이다.
+
+Editor가 종료하면서 기존 에셋의 직렬화 형식을 갱신하면 파일은 보존되고 기존 검증 hash가 무효화된다. 바뀐 파일을 검토한 뒤 다시 검증한다. 이번 fixture의 Mobile URP 에셋이 이 경로에 해당한다. CLI 실행 접두사는 .NET 도구 상태 경로를 제품 저장소 기준 절대 경로로 정규화하여 Unity 작업공간에 도구 sentinel 파일을 생성하지 않게 한다.
+
+사용자 전역 EditorPrefs, 라이선스, CPU/GPU, 외부 서비스는 공유된다. 보안 샌드박스가 아니며 다른 작업공간 접근을 OS 수준에서 금지하지 않는다. 씬·프리팹 편집, Play, 테스트 실행, 빌드, ReFS, 공유 캐시, DAG 실행과 자동 에이전트 시작은 미구현이다. 외부 오케스트레이터가 에이전트를 시작하고 각 에이전트가 CLI를 사용한다. 하나의 대상 저장소에는 하나의 공통 `--home`을 사용한다.

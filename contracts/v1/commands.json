@@ -40,6 +40,96 @@
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "none",
       "retry": "safe-read"
+    },
+    {
+      "id": "workspace.ensure",
+      "description": "Create or resume a durable isolated Git worktree; optionally start its private Editor.",
+      "cliUsage": "splinter workspace ensure --project <directory> --key <task-key> --storage git-checkout [--base development] [--editor] [--home <state-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:workspace-ensure-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-worktree-and-optional-editor",
+      "retry": "same-project-and-task-key"
+    },
+    {
+      "id": "workspace.list",
+      "description": "List persisted task workspaces, including released results.",
+      "cliUsage": "splinter workspace list [--project <directory>] [--home <state-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:workspace-list-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "read-only-local-state",
+      "retry": "safe-read"
+    },
+    {
+      "id": "workspace.status",
+      "description": "Reconcile live Editor and validation evidence with persisted source state.",
+      "cliUsage": "splinter workspace status --id <id> [--home <state-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:workspace-status-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "reconcile-owned-state",
+      "retry": "safe-read"
+    },
+    {
+      "id": "workspace.checkpoint",
+      "description": "Commit only source matching successful Unity compilation evidence.",
+      "cliUsage": "splinter workspace checkpoint --id <id> --message <message> [--home <state-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:workspace-checkpoint-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-source-commit",
+      "retry": "same-workspace-and-source"
+    },
+    {
+      "id": "workspace.integrate",
+      "description": "Stop owned Editor and merge collected source into a clean checked-out target branch.",
+      "cliUsage": "splinter workspace integrate --id <id> [--target development] [--home <state-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:workspace-integrate-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "original-target-merge",
+      "retry": "same-workspace-and-target"
+    },
+    {
+      "id": "workspace.release",
+      "description": "Stop owned Editor and remove a clean integrated worktree; preserve records and result commits.",
+      "cliUsage": "splinter workspace release --id <id> [--home <state-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:workspace-release-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-editor-and-worktree-removal",
+      "retry": "idempotent-release"
+    },
+    {
+      "id": "unity.start",
+      "description": "Start or reconnect to this workspace private Editor using its exact patch version.",
+      "cliUsage": "splinter unity start --id <id> [--home <state-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:unity-start-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-editor-start",
+      "retry": "same-workspace"
+    },
+    {
+      "id": "unity.refresh",
+      "description": "Request compilation of an exact source fingerprint; poll workspace status for completion.",
+      "cliUsage": "splinter unity refresh --id <id> [--home <state-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:unity-refresh-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-editor-compile",
+      "retry": "same-pending-request"
+    },
+    {
+      "id": "unity.stop",
+      "description": "Stop only the owned Editor while retaining source and workspace for later turns.",
+      "cliUsage": "splinter unity stop --id <id> [--home <state-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:unity-stop-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-editor-stop",
+      "retry": "idempotent-stop"
     }
   ]
 }

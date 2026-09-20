@@ -27,11 +27,12 @@
     "status": {
       "enum": [
         "Succeeded",
-        "Failed"
+        "Failed",
+        "Accepted"
       ]
     },
     "terminal": {
-      "const": true
+      "type": "boolean"
     },
     "retryDisposition": {
       "enum": [
@@ -93,7 +94,10 @@
       "if": {
         "properties": {
           "status": {
-            "const": "Succeeded"
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
           }
         }
       },
@@ -198,6 +202,247 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "Accepted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "terminal": {
+            "const": false
+          },
+          "nextActions": {
+            "minItems": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "terminal": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "workspace.ensure"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/workspaceView"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "workspace.list"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "workspaces",
+              "observation"
+            ],
+            "properties": {
+              "workspaces": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/workspaceSummary"
+                }
+              },
+              "observation": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "workspace.status"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/workspaceView"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "workspace.checkpoint"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/workspaceView"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "workspace.integrate"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/workspaceView"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "workspace.release"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/workspaceView"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "unity.start"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/workspaceView"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "unity.refresh"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/workspaceView"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "unity.stop"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/workspaceView"
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -246,11 +491,29 @@
         "sideEffects": {
           "enum": [
             "none",
-            "read-only-local-process"
+            "read-only-local-process",
+            "owned-worktree-and-optional-editor",
+            "read-only-local-state",
+            "reconcile-owned-state",
+            "owned-source-commit",
+            "original-target-merge",
+            "owned-editor-and-worktree-removal",
+            "owned-editor-start",
+            "owned-editor-compile",
+            "owned-editor-stop"
           ]
         },
         "retry": {
-          "const": "safe-read"
+          "enum": [
+            "safe-read",
+            "same-project-and-task-key",
+            "same-workspace-and-source",
+            "same-workspace-and-target",
+            "idempotent-release",
+            "same-workspace",
+            "same-pending-request",
+            "idempotent-stop"
+          ]
         }
       }
     },
@@ -328,11 +591,14 @@
         "implementationStage",
         "commands",
         "unavailable",
-        "persistentHost"
+        "persistentHost",
+        "persistentState",
+        "stateBackend",
+        "storageModes"
       ],
       "properties": {
         "implementationStage": {
-          "const": "foundation"
+          "const": "internal-alpha"
         },
         "commands": {
           "type": "array",
@@ -349,6 +615,18 @@
         },
         "persistentHost": {
           "const": false
+        },
+        "persistentState": {
+          "const": true
+        },
+        "stateBackend": {
+          "const": "atomic-json-with-operation-locks"
+        },
+        "storageModes": {
+          "type": "array",
+          "items": {
+            "const": "git-checkout"
+          }
         }
       }
     },
@@ -454,6 +732,255 @@
           "items": {
             "type": "string",
             "minLength": 1
+          }
+        }
+      }
+    },
+    "workspaceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "requestKey",
+        "projectPath",
+        "path",
+        "sourceReference",
+        "baseReference",
+        "phase",
+        "createdAt",
+        "updatedAt",
+        "storageMode"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{24}$"
+        },
+        "requestKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projectPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceReference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "baseReference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "baseRevision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "createdAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "updatedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pendingValidationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resultRevision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "integratedRevision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lastError": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storageMode": {
+          "const": "git-checkout"
+        },
+        "processId": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requestId",
+            "fingerprint",
+            "success",
+            "completedAt",
+            "errors",
+            "errorCount"
+          ],
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fingerprint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "success": {
+              "type": "boolean"
+            },
+            "completedAt": {
+              "type": "string",
+              "minLength": 1
+            },
+            "errors": {
+              "type": "array",
+              "maxItems": 50,
+              "items": {
+                "type": "string"
+              }
+            },
+            "errorCount": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "workspaceView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspace",
+        "controlPath",
+        "nextCommand",
+        "isolation"
+      ],
+      "properties": {
+        "workspace": {
+          "$ref": "#/$defs/workspaceSummary"
+        },
+        "controlPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nextCommand": {
+          "type": "string",
+          "minLength": 1
+        },
+        "isolation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "revision",
+            "fingerprint",
+            "hasChanges",
+            "changedPaths",
+            "changedPathCount"
+          ],
+          "properties": {
+            "revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fingerprint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "hasChanges": {
+              "type": "boolean"
+            },
+            "changedPaths": {
+              "type": "array",
+              "maxItems": 100,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "changedPathCount": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "application": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "running",
+            "ready",
+            "phase"
+          ],
+          "properties": {
+            "running": {
+              "type": "boolean"
+            },
+            "ready": {
+              "type": "boolean"
+            },
+            "phase": {
+              "type": "string",
+              "minLength": 1
+            },
+            "processId": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "validation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "requestId",
+                "fingerprint",
+                "success",
+                "completedAt",
+                "errors",
+                "errorCount"
+              ],
+              "properties": {
+                "requestId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "fingerprint": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "completedAt": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "errors": {
+                  "type": "array",
+                  "maxItems": 50,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "errorCount": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
           }
         }
       }

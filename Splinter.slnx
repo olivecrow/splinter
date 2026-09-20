@@ -5,6 +5,7 @@
     <Project Path="src/Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj" />
     <Project Path="src/Splinter.Application.Unity/Splinter.Application.Unity.csproj" />
     <Project Path="src/Splinter.Host/Splinter.Host.csproj" />
+    <Project Path="src/Splinter.Runtime/Splinter.Runtime.csproj" />
     <Project Path="src/Splinter.Cli/Splinter.Cli.csproj" />
   </Folder>
   <Folder Name="/tests/">

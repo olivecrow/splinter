@@ -1,37 +1,41 @@
 # 현재 기반
 
-Splinter의 현재 실행 범위는 **명령 발견 → 계약 조회 → 저장소 진단 → 계획 검증**이다. 모든 제품 명령은 읽기 전용이며, 작업 실행·환경 생성·원본 적용을 수행하지 않는다. 실제 지원 상태는 `capabilities`가 반환한다.
+Splinter의 현재 실행 범위는 내부 알파의 **작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release**와 기존 계약·진단·계획 검증이다. `git-checkout`만 지원하며 작업별 새 Library/Temp를 사용한다. 두 Luna low 작업자의 실제 Unity 편집·컴파일·재개 증거는 [알파 검증 보고서](verification/internal-alpha.md)에 기록한다. 공개 ReFS CoW, daemon/SQLite Host, 외부 `agent.start`는 구현하지 않았다.
 
 ## 구조와 의존성
 
 | 프로젝트 | 현재 책임 | 참조 |
 | --- | --- | --- |
-| `Splinter.Core` | 앱/VCS 탐지 ports, DAG 오류 검증과 실행 가능 계층 계산 | .NET 기본 라이브러리 |
+| `Splinter.Core` | 탐지·작업공간 VCS/application ports, 상태·검증 기록, DAG 검사 | .NET 기본 라이브러리 |
 | `Splinter.Protocol` | 응답 DTO, 명령 descriptor, 내장 JSON Schema와 검증 | JsonSchema.Net |
 | `Splinter.Host` | 읽기 전용 명령 조합과 결과 작성 | Core, Protocol |
-| `Splinter.SourceControl.Git` | Git 루트·HEAD·common dir·linked worktree 조회 | Core |
-| `Splinter.Application.Unity` | Unity 프로젝트·버전·패키지의 파일 기반 탐지 | Core |
-| `Splinter.Cli` | 파싱, 어댑터 조립, 오류를 JSON으로 변환, 종료 코드 | Host, 두 어댑터, System.CommandLine |
+| `Splinter.Runtime` | 작업공간 생성·재개·검증·회수 조정, atomic JSON 저장과 작업/저장소 잠금 | Core |
+| `Splinter.SourceControl.Git` | 저장소 조회, 실제 worktree 생성·fingerprint·커밋·통합·회수 | Core |
+| `Splinter.Application.Unity` | 메타데이터 탐지, 정확한 버전 Editor 실행·활성화·검증 요청·종료 | Core |
+| `Splinter.Cli` | 파싱, 어댑터 조립, Runtime/Host 호출, JSON 응답과 종료 코드 | Runtime, Host, 두 어댑터, System.CommandLine |
+| `unity/Splinter.Editor` | 작업별 Editor 안에서 refresh·컴파일·domain reload 관측과 종료 요청 처리 | Unity Editor API; 독립 소스 |
 | `Splinter.Tests` | 계약, CLI, DAG, fake 공급자와 실제 임시 Git 시험 | CLI, xUnit v3, MTP |
 
 ```mermaid
 flowchart LR
     CLI[CLI 조합 지점] --> Host[읽기 전용 Host]
-    CLI --> Git[Git Inspector]
-    CLI --> Unity[Unity Inspector]
+    CLI --> Runtime[지속 상태를 사용하는 Runtime]
+    Runtime --> Core
+    CLI --> Git[Git Inspector / Workspace Provider]
+    CLI --> Unity[Unity Inspector / Workspace Provider]
     Host --> Protocol[Protocol / JSON Schema]
     Host --> Core[Core / 공급자 계약]
     Git --> Core
     Unity --> Core
 ```
 
-현재 Host는 CLI 프로세스에서 호출하는 라이브러리다. daemon·IPC·SQLite·복구 저널은 아직 없다. 어댑터 객체 조립은 CLI에 있지만 Git 명령과 Unity 파일 해석은 각각의 어댑터가 맡는다. 향후 persistent Host로 옮길 때 조합 지점을 이동하고 CLI에는 transport client만 남긴다.
+Host는 CLI 프로세스의 읽기 전용 라이브러리다. 변경 작업은 별도 Runtime이 Core ports를 통해 어댑터에 위임한다. daemon·SQLite는 없다. Runtime은 CLI가 종료되어도 남는 `workspace.json`, intent/event 기록과 프로세스 간 파일 잠금을 사용하며, Unity 어댑터는 작업별 파일 IPC를 사용한다. 어댑터 객체는 CLI에서 조립한다. 목표의 persistent Host와 현재 구현을 구별한다.
 
-제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. Unity Editor 브리지는 이후 별도 UPM 패키지로 만든다. 비Git·비Unity fake inspector를 사용하는 Host 시험으로 현재 경계의 공급자 독립성을 확인한다. 이것은 전체 fake 실행 수명주기 시험의 일부만 다룬다.
+제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. 작은 Editor 브리지 소스를 소유 작업공간의 `Assets/__Splinter__`에 넣으며 원본이나 결과 커밋에는 포함하지 않는다. 비Git·비Unity fake로 Runtime 수명주기와 검증의 경계를 시험한다. 전체 DAG/runner/storage 적합성은 미구현이다.
 
 ## 에이전트용 명령 계약
 
-개발 빌드의 실행 접두사는 `dotnet ./src/Splinter.Cli/bin/Release/net10.0/splinter.dll`이다. 아래 표의 `splinter` 대신 사용한다.
+개발 빌드의 실행 접두사는 `pwsh ./scripts/splinter.ps1`이다. 아래 표의 `splinter` 대신 사용한다. 스크립트는 빌드된 CLI를 호출하며 자동 빌드를 하지 않는다.
 
 | 명령 | 입력 | 결과 |
 | --- | --- | --- |
@@ -39,10 +43,15 @@ flowchart LR
 | `splinter schema <command>` | 예: `plan.validate` | descriptor, 입력 schema, 출력 schema |
 | `splinter doctor --project <directory>` | 존재하는 로컬 디렉터리 | Git/Unity 메타데이터, commit 유무, 누락 조건, 미실행 검사 |
 | `splinter plan validate --input <plan.json>` | 최대 1 MiB JSON 파일 | 스키마·의존성 오류 또는 실행 가능 계층 |
+| `splinter workspace ensure/list/status` | 프로젝트·작업 key 또는 workspace ID | 지속 작업공간 생성/재접속과 현재 상태 |
+| `splinter unity start/refresh/stop` | workspace ID | 소유 Editor의 실행·검증 요청·종료 |
+| `splinter workspace checkpoint/integrate/release` | ID, 커밋 설명/통합 대상 | 검증한 소스 커밋·원본 적용·안전한 회수 |
+
+필수 인자와 재개·복구 절차는 [알파 작업공간](alpha-workspaces.md)을 따른다. 입력 schema와 `capabilities`가 기계용 계약이다.
 
 인자 없는 실행과 `--help`는 capabilities를 반환한다. `plan`만 호출하면 `plan.validate` schema를 반환한다. 기본 출력은 stdout의 JSON 한 줄이다. `--json`과 `--non-interactive`는 기본 동작을 명시한다. `--human`은 동일 응답에 들여쓰기만 추가하며 `--json`과 함께 사용할 수 없다. 현재 명령은 입력 프롬프트를 띄우지 않는다.
 
-공통 envelope는 `schemaVersion`, `requestId`, `command`, `status`, `terminal`, `retryDisposition`, `data` 또는 `error`, `nextActions`다. 현재 명령은 단기 조회이므로 `status`는 `Succeeded`/`Failed`, `terminal`은 항상 true다. `requestId`는 응답 상관관계 ID이며 중복 실행 방지 키가 아니다. 장기 operation·이벤트·requestKey 계약은 아직 노출하지 않는다.
+공통 envelope는 `schemaVersion`, `requestId`, `command`, `status`, `terminal`, `retryDisposition`, `data` 또는 `error`, `nextActions`다. 비동기 실행·컴파일 접수는 `Accepted`, `terminal=false`이며 완료 증거는 status로 조회한다. `Succeeded`는 해당 명령의 처리가 완료됐다는 뜻이다. 실제 컴파일 성공은 현재 fingerprint와 일치하는 `workspace.validation.success`로 판단한다. `requestId`는 응답 상관관계 ID이며 중복 방지 키가 아니다. ensure의 프로젝트+key가 지속 작업공간을 식별한다.
 
 실패에는 안정된 `error.code`와 설명이 있다. 입력 수정은 `correct-request`, 중지된 조회·Git 조회 타임아웃은 `safe-to-retry`, 권한·Git 설치 문제는 `requires-user-action`으로 분류한다. 가능한 경우 `nextActions`에 다음 명령과 인자를 넣는다. 에이전트는 메시지 문자열보다 코드와 schema를 기준으로 처리한다.
 
@@ -56,7 +65,7 @@ flowchart LR
 | 7 | 사용자/호출자의 조회 취소 |
 | 9 | Git 실행 불가 또는 미구현 명령의 schema 요청 |
 
-파싱 오류도 JSON 한 개로 반환한다. 현재 `schema`는 미래 API를 나열하지 않는다. `capabilities.unavailable`에 있는 `plan.submit`, `workspace.create/release`, `storage.cow`, `unity.execute`, `agent.start`는 실행할 수 없다.
+파싱 오류도 JSON 한 개로 반환한다. `schema`는 구현된 API를 나열한다. `capabilities.unavailable`의 `plan.submit`, `storage.cow`, `unity.execute`, `unity.play`, `unity.tests`, `agent.start`는 실행할 수 없다.
 
 ### 진단의 의미
 
@@ -87,7 +96,7 @@ Core는 중복 ID, 없는 의존성, 중복 의존성, 순환을 거부한다. �
 
 .NET 10의 Microsoft.Testing.Platform 모드와 xUnit v3를 사용한다. TRX는 `artifacts/test-results/`에 쓴다. 실행기 선택은 [Microsoft 문서](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-with-dotnet-test), TRX 옵션은 [공식 패키지](https://www.nuget.org/packages/Microsoft.Testing.Extensions.TrxReport/2.4.0)를 따른다.
 
-현재 시험은 JSON stdout·입출력 schema·허위 실행 준비 방지·그래프 실패·비Git 공급자·Unity 메타데이터·실제 임시 Git 저장소의 staged/unstaged 보존을 다룬다. Windows 로컬 실행이 검증 대상이다. `.github/workflows/ci.yml`에 Windows/Ubuntu 빌드 작업을 두었으며 원격 CI와 Ubuntu 실행 증거는 아직 없다.
+자동 시험은 JSON/schema·그래프·inspector와 fake 수명주기, 새 조정 인스턴스 재접속, 검증 hash 불일치 거부, 실제 Git 격리·결과 통합·충돌 보존·긴 경로 회수·부분 삭제 복구를 다룬다. Windows 로컬에서 46개 시험이 통과했다. `.github/workflows/ci.yml`의 원격 CI와 Ubuntu 실행 증거는 아직 없다. 실제 GUI Unity 시험은 자동 .NET 시험과 별도로 기록한다.
 
 ### 실제 저장소의 Git 수명주기 시험
 
@@ -109,4 +118,4 @@ pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository .
 
 ## 다음 구현 경계
 
-현재 범위는 F01과 F02의 단기 계약, F03의 DAG 검사 부분이다. 다음 작업은 [계획](plans/implementation-plan.md)의 S1~S4 실제 실험 및 F03~F06의 상태 전이·저널·지속 Host·fake 수명주기다. 생성·실행 API는 소유권과 재시작 복구가 연결되기 전까지 지원 목록에 올리지 않는다.
+현재 내부 알파는 일반 Git checkout과 스크립트 컴파일의 좁은 수명주기를 제공한다. [공개 구현 계획](plans/implementation-plan.md)의 ReFS·지속 Host·전력 장애 복구·DAG 실행·agent runner·Play/테스트/저작 기능을 완료한 것으로 집계하지 않는다. 상태와 다음 명령은 CLI 프로세스 밖에 남으며 대화 종료 시 자동 회수하지 않는다.

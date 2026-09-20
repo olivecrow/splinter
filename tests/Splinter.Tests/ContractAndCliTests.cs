@@ -22,6 +22,17 @@ public sealed class ContractAndCliTests
         var plan = response.GetProperty("data").GetProperty("commands").EnumerateArray()
             .Single(item => item.GetProperty("id").GetString() == "plan.validate");
         Assert.Equal("splinter plan validate --input <plan.json>", plan.GetProperty("cliUsage").GetString());
+        foreach (var descriptor in response.GetProperty("data").GetProperty("commands").EnumerateArray())
+            Assert.Contains(descriptor.GetProperty("sideEffects").GetString(), contracts.Commands.Select(x => x.SideEffects));
+    }
+
+    [Fact]
+    public void AcceptedWorkspaceResponseMatchesContract()
+    {
+        using var document = JsonDocument.Parse("""
+        {"schemaVersion":"1.0","requestId":"00000000000000000000000000000000","command":"workspace.ensure","status":"Accepted","terminal":false,"retryDisposition":"not-needed","nextActions":[{"command":"workspace.status","arguments":{"id":"aaaaaaaaaaaaaaaaaaaaaaaa"},"requiresUserAction":false}],"data":{"workspace":{"id":"aaaaaaaaaaaaaaaaaaaaaaaa","requestKey":"task","projectPath":"C:/project","path":"C:/workspace","sourceReference":"development","baseReference":"development","phase":"creating","createdAt":"2026-09-21T00:00:00Z","updatedAt":"2026-09-21T00:00:00Z","storageMode":"git-checkout"},"controlPath":"C:/control","nextCommand":"workspace.status","isolation":"private"}}
+        """);
+        Assert.True(contracts.Validate("urn:splinter:v1:response", document.RootElement).IsValid);
     }
 
     [Theory]

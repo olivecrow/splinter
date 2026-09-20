@@ -49,6 +49,12 @@
           "JsonSchema.Net": "[9.4.0, )"
         }
       },
+      "splinter.runtime": {
+        "type": "Project",
+        "dependencies": {
+          "Splinter.Core": "[0.1.0-dev, )"
+        }
+      },
       "splinter.sourcecontrol.git": {
         "type": "Project",
         "dependencies": {

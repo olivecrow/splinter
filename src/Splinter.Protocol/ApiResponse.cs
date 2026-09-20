@@ -32,8 +32,8 @@ public sealed record ApiResponse(
         IReadOnlyList<NextAction>? nextActions = null) => new(
         "1.0", Guid.NewGuid().ToString("N"), command, "Failed", true, code switch
         {
-            "GitInspectionTimeout" or "Cancelled" => "safe-to-retry",
-            "AccessDenied" or "GitUnavailable" => "requires-user-action",
+            "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "ValidationInProgress" => "safe-to-retry",
+            "AccessDenied" or "GitUnavailable" or "EditorFocusRequired" => "requires-user-action",
             _ => "correct-request"
         }, null,
         new(code, message, details), nextActions ?? []);

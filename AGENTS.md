@@ -28,3 +28,5 @@
 - After each feature change, append a CHANGE LOG row with the project-docs-bootstrap `manage_feature_changelog.py` script, then prune old rows when the configured limit is exceeded.
 - Before final reporting after documentation edits, validate UTF-8 encoding with the project-docs-bootstrap `check_utf8_docs.py` script.
 <!-- project-docs-bootstrap:end -->
+
+현재 내부 알파는 `Splinter.Runtime`의 지속 상태·잠금·수명주기 조정, `Splinter.SourceControl.Git`의 worktree·결과 통합·회수, `Splinter.Application.Unity`와 `unity/Splinter.Editor`의 소유 Editor 실행·컴파일 증거로 구성된다. 에이전트는 `scripts/splinter.ps1`을 사용하며 재개와 명시적 회수 계약은 `docs/alpha-workspaces.md`를 따른다. 실제 검증 범위는 `docs/verification/internal-alpha.md`와 추적표의 AA 항목이다. 이 증거를 ReFS나 공개 시나리오 전체 통과로 확대하지 않는다.

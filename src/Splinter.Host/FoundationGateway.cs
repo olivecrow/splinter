@@ -4,8 +4,8 @@ using Splinter.Protocol;
 
 namespace Splinter.Host;
 
-// Only read-only services are hosted in-process in this foundation milestone.
-// Persistent operations will require the planned daemon and journal before exposure.
+// Discovery and inspection remain read-only. Runtime mutations are composed by
+// the separate durable workspace coordinator, never by this inspection gateway.
 public sealed class FoundationGateway(
     ContractCatalog contracts,
     IRepositoryInspector repositories,
@@ -13,10 +13,13 @@ public sealed class FoundationGateway(
 {
     public ApiResponse Capabilities() => ApiResponse.Success("capabilities", new
     {
-        implementationStage = "foundation",
+        implementationStage = "internal-alpha",
         commands = contracts.Commands,
-        unavailable = new[] { "plan.submit", "workspace.create", "workspace.release", "storage.cow", "unity.execute", "agent.start" },
-        persistentHost = false
+        unavailable = new[] { "plan.submit", "storage.cow", "unity.execute", "unity.play", "unity.tests", "agent.start" },
+        persistentHost = false,
+        persistentState = true,
+        stateBackend = "atomic-json-with-operation-locks",
+        storageModes = new[] { "git-checkout" }
     });
 
     public ApiResponse Schema(string command)

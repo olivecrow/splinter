@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="../Splinter.Core/Splinter.Core.csproj" />
+    <EmbeddedResource Include="../../unity/Splinter.Editor/Editor/WorkspaceBridge.cs" LogicalName="Splinter.Editor.WorkspaceBridge.cs" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,8 @@
 # Splinter 기반 구현 계획
 
-작성일: 2026-09-20. 상태: **F01 및 F02 일부 구현, 나머지 목표 구조**. 기준: [기획서 개정 2판](../../plan.html). 실제 실행 가능한 범위는 [현재 기반](../foundation.md)에서 확인한다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
+현재 내부 알파 runtime은 [알파 작업공간](../alpha-workspaces.md)의 git-checkout/Unity 흐름을 기준으로 한다. 실제 두 Editor와 Luna low 작업자의 증거는 [알파 검증](../verification/internal-alpha.md)에 기록한다. ReFS CoW와 daemon/SQLite Host는 목표이며 이 계획의 공개 단계와 혼동하지 않는다.
+
+작성일: 2026-09-20. 상태: **기반 및 Git checkout/Unity 스크립트 내부 알파 구현, 공개 목표 구조는 미완료**. 기준: [기획서 개정 2판](../../plan.html). 실제 실행 가능한 범위는 [현재 기반](../foundation.md)에서 확인한다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
 
 ## 1. 설계 결론과 첫 완료 지점
 
@@ -10,18 +12,18 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 
 첫 개발 목표는 전체 기능을 수평으로 구현하는 것이 아니라 다음 흐름을 작은 fixture에서 끝까지 연결하는 것이다.
 
-> 한 조정 에이전트의 계획 → 실제 worktree A/B 생성 → 각 작업자의 소스 수정 → A 컴파일 오류 중 B 실행 지속 → 수정 후 Unity 검증 → 로컬 결과 보존 → Host 재시작 후 조회 → worktree와 전용 상태 회수.
+> 한 조정 에이전트의 계획 → 실제 worktree A/B 생성 → 각 작업자의 소스 수정 → A 컴파일 오류 중 B 실행 지속 → 수정 후 Unity 검증 → 로컬 결과 보존 → 새 CLI/대화와 Editor 재시작 후 재접속 → development 통합과 worktree 회수.
 
-이 내부 알파 이후 에셋 저작·실제 Play·테스트·미커밋 원본·통합·설치까지 확장한다. **공개 v0의 완료 범위는 기획서의 전체 필수 루프와 48개 시나리오**다. 내부 알파를 공개 v0로 간주하지 않는다.
+이 내부 알파 이후 에셋 저작·실제 Play·테스트·미커밋 원본·통합 후보의 자동 검증·설치까지 확장한다. **공개 v0의 완료 범위는 기획서의 전체 필수 루프와 48개 시나리오**다. 내부 알파를 공개 v0로 간주하지 않는다.
 
 ### 현재 확인한 것
 
 - 제품과 형제 `../splinter-unity`를 별도 Git 저장소로 관리한다. Unity fixture는 submodule이 아니며 Assets·Packages·ProjectSettings를 추적하고 캐시는 제외한다.
-- SDK `10.0.112` 및 패키지 버전·lock 파일을 고정했다. 6개 제품 프로젝트와 시험 프로젝트를 `Splinter.slnx`에서 빌드한다.
-- `capabilities`, `schema`, 읽기 전용 `doctor`, `plan validate`를 구현했다. Host는 아직 in-process 라이브러리이며 지속 daemon/IPC/SQLite는 미구현이다.
-- 실제 fixture는 Unity `6000.3.22f1`, URP `17.3.0`, UTF `1.6.0`이다. 버전과 패키지는 파일에서 확인했으며 Editor 실행 증거는 아니다.
-- 설치된 Codex의 `exec --help`에서 `--cd`, `--json`, `--output-schema`, `--sandbox`와 세션 재개 명령을 확인했다. 실제 작업자 실행·인증·IPC 접근은 아직 시험하지 않았다.
-- ReFS 적합성, 동시 Unity 실행, 캐시 재사용 성능, 설치·자동 발견성은 모두 미검증이다.
+- SDK `10.0.112` 및 패키지 버전·lock 파일을 고정했다. 7개 제품 프로젝트와 시험 프로젝트를 `Splinter.slnx`에서 빌드한다.
+- `capabilities`, `schema`, 읽기 전용 `doctor`, `plan validate`와 9개 workspace/Unity 명령을 구현했다. 읽기 전용 Host와 별도의 Runtime을 CLI에서 조합한다. Runtime은 atomic JSON과 작업/저장소 잠금을 사용하고 Unity에는 작업별 파일 IPC로 요청한다. 지속 daemon/SQLite는 미구현이다.
+- 실제 fixture는 Unity `6000.3.22f1`, URP `17.3.0`, UTF `1.6.0`이다. 두 독립 GUI Editor의 동시 실행·컴파일 격리·재시작을 검증했다. Play와 Unity Test Framework 시험은 실행하지 않았다.
+- 설치된 Codex의 `exec --help`에서 `--cd`, `--json`, `--output-schema`, `--sandbox`와 세션 재개 명령을 확인했다. 실제 알파에서는 외부 조정자의 Luna low 하위 작업자가 CLI를 사용했다. 제품의 Codex runner 실행·인증·세션 재접속은 미구현이다.
+- ReFS 적합성, 캐시 재사용 성능, 설치·자동 발견성은 미검증이다.
 - 기존 Unity 협업 기록의 작성자 소유권·리로드·검증 경계 경험은 실패 시나리오 설계에만 참고한다. 그 프로젝트의 단일 Editor 운영 규칙을 이 제품의 여러 독립 Editor 구조에 적용하지 않는다.
 
 ## 2. AI 사용성을 먼저 고정한다
@@ -80,7 +82,7 @@ flowchart TD
     Unity --> Bridge[작업공간별 Unity Bridge]
 ```
 
-그림은 목표 실행 관계다. 최종 코드 의존성은 `Host → Core + adapters`, `adapters → Core의 ports`, `CLI → Protocol + transport client`로 제한한다. 현재는 읽기 전용 Host를 CLI 프로세스에서 호출하고 어댑터 조합도 CLI가 수행한다. Core는 구체 어댑터를 참조하지 않고, Git 명령은 Git 어댑터에만 있다. 지속 Host 도입 시 조합 지점을 옮긴다.
+그림은 목표 실행 관계다. 최종 코드 의존성은 `Host → Core + adapters`, `adapters → Core의 ports`, `CLI → Protocol + transport client`로 제한한다. 현재는 읽기 전용 Host와 변경 작업 Runtime을 CLI에서 호출하고 어댑터도 조합한다. Core는 구체 어댑터를 참조하지 않고 Git 명령은 Git 어댑터에만 있다. 지속 Host 도입 시 조합 지점을 옮긴다.
 
 ### 프로젝트 배치
 
@@ -441,7 +443,7 @@ P0를 장기 기술 조사로 만들지 않는다. 각각 한 질문에 답하�
 | F07 | Windows 세션 실행기·Git/CoW S1 실험을 실제 ports에 연결 | 실제 작업공간 생성/쓰기/결과 고정/회수 |
 | F08 | Unity/Codex S2/S3 실험을 같은 operation과 증거에 연결 | 첫 실제 알파에 필요한 연결 완성 |
 
-현재 F01은 실행 가능하며, F02는 4개 단기 명령의 descriptor·입출력·오류·계획 schema까지 구현했다. F03은 DAG 검사 부분만 있다. F02의 operation/event/workspace, F03의 소유권·상태, F04~F08은 남아 있다. Git-only smoke는 S1의 사전 점검이며 ReFS 결합을 통과한 것이 아니다.
+현재 F01과 13개 명령의 F02 계약, F03의 DAG 검사 및 좁은 workspace 상태를 구현했다. 내부 알파는 atomic JSON 저장, 비Git·비Unity fake 수명주기, 실제 Git checkout 어댑터와 Unity 컴파일 브리지를 사용한다. F04의 daemon/SQLite, F05 전체 복구, F06 전체 plan 루프, F07 ReFS, F08 Codex runner 연결은 미완료다. Git-only smoke와 일반 checkout Editor 실행은 S1의 ReFS 결합 통과가 아니다.
 
 F01/F02의 최소 골격은 P0에 만들고 F03~F06은 P1에서 완성한다. F07은 P2, F08은 P3에 속한다. 생성/회수와 검증에 필요한 계약만 먼저 고정하고, 아직 쓰지 않는 앱 capability를 미리 대량 설계하지 않는다.
 
@@ -453,7 +455,7 @@ F01/F02의 최소 골격은 P0에 만들고 F03~F06은 P1에서 완성한다. F0
 
 ## 12. 검증·성능·공개 준비
 
-원본의 필수 시나리오를 하나도 축소하지 않고 [검증 추적표](validation-matrix.md)에서 담당 단계와 증거를 연결한다. `Passed / Failed / NotRun / Unsupported`를 구분하며 이 계획 작성 시점은 전부 `NotRun`이다.
+원본의 필수 시나리오를 하나도 축소하지 않고 [검증 추적표](validation-matrix.md)에서 담당 단계와 증거를 연결한다. `Passed / Failed / NotRun / Unsupported`를 구분한다. 원본 48개와 FD 항목의 전체 조건은 아직 `NotRun`이며, 실제 내부 알파에서 통과한 좁은 범위는 별도의 AA 항목으로 기록한다.
 
 시험 계층은 네 가지다.
 
@@ -486,4 +488,4 @@ AI 사용성은 정상 흐름의 호출 수·기본 응답 바이트·불필요�
 | 분리된 작업공간과 필요한 자원만 예약 | 동시 Editor·메모리·디스크 예산 및 단계별 timeout |
 | 결과 보존 후 회수, 최신 통합 후보에서 검증 | 설치 서명·최소 환경·공개 라이선스 |
 
-현재는 **F01/F02 일부와 Git-only 사전 시험**이 있는 초기 골격이다. 다음 범위는 S1~S4의 재현 가능한 실험과 F03~F06이다. 실행 기반의 완료 판정은 명령이 존재한다는 사실이 아니라, 동일 요청·장애·재시작을 겪어도 소유권과 결과가 유지되는 실제 두 작업공간 루프로 내린다.
+현재 내부 알파의 좁은 범위는 [알파 작업공간](../alpha-workspaces.md)에 고정한다. 이후 공개 목표를 위해 ReFS 저장소, 지속 Host와 복구, DAG/runner, Unity 저작·Play·테스트를 단계별로 확장한다. 완료 판정은 명령 존재가 아니라 해당 범위의 실행 증거로 내린다.

@@ -28,7 +28,7 @@ public static class Program
         {
             var contracts = new ContractCatalog();
             var gateway = new FoundationGateway(contracts, new GitRepositoryInspector(), new UnityProjectInspector());
-            var root = new RootCommand("Splinter agent-first workspace runtime (foundation).");
+            var root = new RootCommand("Splinter agent-first workspace runtime (internal alpha).");
             root.Options.Clear();
             var help = new Option<bool>("--help", "-h") { Recursive = true, Description = "List implemented command contracts." };
             var humanOption = new Option<bool>("--human") { Recursive = true, Description = "Pretty-print JSON for people." };
@@ -81,6 +81,8 @@ public static class Program
             plan.SetAction(_ => { commandId = "schema"; result = gateway.Schema("plan.validate"); });
             root.Subcommands.Add(plan);
 
+            WorkspaceCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken);
+
             var parsed = root.Parse(args);
             human = parsed.GetValue(humanOption);
             if (human && parsed.GetValue(json))
@@ -102,7 +104,9 @@ public static class Program
             }
         }
         catch (InspectionException ex) { response = ApiResponse.Failure(commandId, ex.Code, ex.Message); }
-        catch (OperationCanceledException) { response = ApiResponse.Failure(commandId, "Cancelled", "Inspection was cancelled."); }
+        catch (WorkspaceException ex) { response = ApiResponse.Failure(commandId, ex.Code, ex.Message,
+            nextActions: [new("workspace.list", new { })]); }
+        catch (OperationCanceledException) { response = ApiResponse.Failure(commandId, "Cancelled", "Command cancelled; persisted workspaces and Editor processes are retained. Query status before retrying."); }
         catch (JsonException ex) { response = ApiResponse.Failure(commandId, "InvalidJson", ex.Message); }
         catch (UnauthorizedAccessException ex) { response = ApiResponse.Failure(commandId, "AccessDenied", ex.Message); }
         catch (IOException ex) { response = ApiResponse.Failure(commandId, "InputUnavailable", ex.Message); }

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:workspace-list-request",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": []
+}
