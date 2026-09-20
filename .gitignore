@@ -1,0 +1,18 @@
+# Local tooling, generated output and private machine state
+.local/
+artifacts/
+**/bin/
+**/obj/
+TestResults/
+.vs/
+.idea/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+
+# The Unity fixture is an independent sibling repository.
+splinter-unity/

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:schema-request",
+  "type": "object",
+  "required": ["command"],
+  "properties": { "command": { "type": "string", "minLength": 1, "maxLength": 128 } },
+  "additionalProperties": false
+}

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "commands": [
+    {
+      "id": "capabilities",
+      "description": "List implemented commands and unavailable runtime capabilities.",
+      "cliUsage": "splinter capabilities",
+      "inputTransport": "none",
+      "inputSchema": "urn:splinter:v1:empty-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "none",
+      "retry": "safe-read"
+    },
+    {
+      "id": "schema",
+      "description": "Read one implemented command's input, output and effect contract.",
+      "cliUsage": "splinter schema <command>",
+      "inputTransport": "positional-arguments",
+      "inputSchema": "urn:splinter:v1:schema-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "none",
+      "retry": "safe-read"
+    },
+    {
+      "id": "doctor",
+      "description": "Inspect a local Git/Unity project without starting or changing it.",
+      "cliUsage": "splinter doctor --project <directory>",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:doctor-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "read-only-local-process",
+      "retry": "safe-read"
+    },
+    {
+      "id": "plan.validate",
+      "description": "Validate plan syntax and dependency graph without executing or authorizing it.",
+      "cliUsage": "splinter plan validate --input <plan.json>",
+      "inputTransport": "json-file",
+      "inputSchema": "urn:splinter:v1:plan-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "none",
+      "retry": "safe-read"
+    }
+  ]
+}

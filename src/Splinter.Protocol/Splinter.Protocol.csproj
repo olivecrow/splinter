@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="JsonSchema.Net" />
+    <EmbeddedResource Include="../../contracts/v1/**/*.json" Link="Contracts/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

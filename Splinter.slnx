@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Splinter.Core/Splinter.Core.csproj" />
+    <Project Path="src/Splinter.Protocol/Splinter.Protocol.csproj" />
+    <Project Path="src/Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj" />
+    <Project Path="src/Splinter.Application.Unity/Splinter.Application.Unity.csproj" />
+    <Project Path="src/Splinter.Host/Splinter.Host.csproj" />
+    <Project Path="src/Splinter.Cli/Splinter.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Splinter.Tests/Splinter.Tests.csproj" />
+  </Folder>
+</Solution>

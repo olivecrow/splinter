@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
+    <ProjectReference Include="../../src/Splinter.Cli/Splinter.Cli.csproj" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../contracts/examples/parallel-plan.json" Link="parallel-plan.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

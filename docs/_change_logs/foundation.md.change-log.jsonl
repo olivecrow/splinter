@@ -1,0 +1,1 @@
+{"date":"2026-09-21","doc":"foundation.md","change_type":"added","summary":"에이전트용 JSON CLI, 읽기 전용 진단, 계획 검증, Git 워크트리 시험 기반 추가","intent":"Unity 실행과 영속 수명주기를 연결하기 전에 재현 가능한 빌드와 기계용 계약을 확립한다.","related_files":["src/Splinter.Cli/Program.cs","contracts/v1/commands.json","scripts/test-worktree-lifecycle.ps1"]}

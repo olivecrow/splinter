@@ -1,0 +1,462 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "requestId",
+    "command",
+    "status",
+    "terminal",
+    "retryDisposition",
+    "nextActions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "requestId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "command": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "Succeeded",
+        "Failed"
+      ]
+    },
+    "terminal": {
+      "const": true
+    },
+    "retryDisposition": {
+      "enum": [
+        "not-needed",
+        "correct-request",
+        "safe-to-retry",
+        "requires-user-action"
+      ]
+    },
+    "data": {
+      "type": "object"
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {}
+      }
+    },
+    "nextActions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "command",
+          "arguments",
+          "requiresUserAction"
+        ],
+        "properties": {
+          "command": {
+            "type": "string",
+            "minLength": 1
+          },
+          "arguments": {
+            "type": "object"
+          },
+          "requiresUserAction": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "Succeeded"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "required": [
+            "error"
+          ]
+        },
+        "properties": {
+          "retryDisposition": {
+            "const": "not-needed"
+          }
+        }
+      },
+      "else": {
+        "required": [
+          "error"
+        ],
+        "not": {
+          "required": [
+            "data"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "capabilities"
+          },
+          "status": {
+            "const": "Succeeded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/capabilitiesData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "schema"
+          },
+          "status": {
+            "const": "Succeeded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/schemaData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "doctor"
+          },
+          "status": {
+            "const": "Succeeded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/doctorData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "plan.validate"
+          },
+          "status": {
+            "const": "Succeeded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/planData"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "cliUsage",
+        "inputTransport",
+        "inputSchema",
+        "outputSchema",
+        "sideEffects",
+        "retry"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cliUsage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputTransport": {
+          "enum": [
+            "none",
+            "positional-arguments",
+            "options",
+            "json-file"
+          ]
+        },
+        "inputSchema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outputSchema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sideEffects": {
+          "enum": [
+            "none",
+            "read-only-local-process"
+          ]
+        },
+        "retry": {
+          "const": "safe-read"
+        }
+      }
+    },
+    "providerDetails": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "rootPath",
+        "repositoryId",
+        "details"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rootPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repositoryId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {
+          "$ref": "#/$defs/providerDetails"
+        }
+      }
+    },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "rootPath",
+        "version",
+        "details"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rootPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {
+          "$ref": "#/$defs/providerDetails"
+        }
+      }
+    },
+    "capabilitiesData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementationStage",
+        "commands",
+        "unavailable",
+        "persistentHost"
+      ],
+      "properties": {
+        "implementationStage": {
+          "const": "foundation"
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/descriptor"
+          }
+        },
+        "unavailable": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "persistentHost": {
+          "const": false
+        }
+      }
+    },
+    "schemaData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "descriptor",
+        "input",
+        "output"
+      ],
+      "properties": {
+        "descriptor": {
+          "$ref": "#/$defs/descriptor"
+        },
+        "input": {
+          "type": "object"
+        },
+        "output": {
+          "type": "object"
+        }
+      }
+    },
+    "doctorData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "hasCommit",
+        "readyForExecution",
+        "checksNotRun",
+        "missingPrerequisites"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository": {
+          "$ref": "#/$defs/repository"
+        },
+        "application": {
+          "$ref": "#/$defs/application"
+        },
+        "hasCommit": {
+          "type": "boolean"
+        },
+        "readyForExecution": {
+          "const": false
+        },
+        "checksNotRun": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "missingPrerequisites": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "planData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskCount",
+        "executionLayers",
+        "validationScope",
+        "readyForExecution",
+        "checksNotRun"
+      ],
+      "properties": {
+        "taskCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128
+        },
+        "executionLayers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "validationScope": {
+          "const": "schema-and-dependency-graph"
+        },
+        "readyForExecution": {
+          "const": false
+        },
+        "checksNotRun": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
