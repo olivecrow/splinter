@@ -10,6 +10,8 @@ AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실
 
 제품과 테스트 프로젝트는 별도 Git 저장소다. 형제 `../splinter-unity`는 Unity `6000.3.22f1` 프로젝트이며 submodule이 아니다. Library와 생성 파일은 그 저장소의 Git 추적에서 제외한다.
 
+`main`은 출시용, `development`는 개발용 브랜치다. 일반 개발은 `development`에서 진행한다. Unity 테스트 저장소의 브랜치와 시험 상태는 에이전트가 필요에 맞게 관리한다. 자세한 기준은 [저장소와 브랜치 운영](docs/foundation.md#저장소와-브랜치-운영)을 따른다.
+
 ## 시작
 
 .NET SDK `10.0.112` 호환 패치, Git, PowerShell 7.2 이상이 필요하다. 저장소 루트에서:

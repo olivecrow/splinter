@@ -74,6 +74,13 @@ Core는 중복 ID, 없는 의존성, 중복 의존성, 순환을 거부한다. �
 
 성공의 범위는 `schema-and-dependency-graph`다. 정책 승인, snapshot 존재, 실행 capability, 실제 자원 예산은 확인하지 않는다. 입력 경로의 접근 권한·탈출 검사도 실행을 구현할 단계의 별도 책임이다. `readyForExecution`은 항상 false이며 계획 제출이나 실행을 대체하지 않는다.
 
+## 저장소와 브랜치 운영
+
+- 제품 저장소의 `main`은 출시용, `development`는 개발용이다. 일반 개발과 통합은 `development`를 기준으로 하며, 필요한 작업 브랜치도 여기에서 분기한다. 출시할 개발 결과를 `main`에 반영한다.
+- 형제 `../splinter-unity`는 Splinter 검증을 위한 독립 fixture다. 이 저장소의 `development`에는 MCP와 재사용할 테스트 기본 설정을 유지한다.
+- 에이전트가 시험 목적에 맞춰 Unity fixture의 브랜치·워크트리·시험용 커밋과 미커밋 변경·충돌 등의 상태를 자율적으로 구성하고 관리한다. 재현과 회수를 위해 기준 커밋과 만든 시험 상태를 기록한다.
+- Unity 파일이 달라지는 checkout이나 시험 변경 후에는 해당 Editor에 포커스를 맞추고 컴파일·새로고침 완료를 확인한다. Editor 연결과 검증 절차는 Unity 저장소의 `Docs/AI/UnityMcp.md`를 따른다.
+
 ## 빌드와 시험
 
 저장소 루트에서 `pwsh ./scripts/build.ps1`을 실행한다. SDK는 global.json, 패키지는 Directory.Packages.props와 프로젝트별 packages.lock.json에 고정한다. 스크립트는 locked restore → 경고를 오류로 처리한 Release 빌드 → 시험 순서로 실행하고, 실패 시 중단한다. 첫 restore에는 nuget.org 접근이 필요하다. 다운로드와 도구 상태는 무시된 `.local/`에 둔다.
