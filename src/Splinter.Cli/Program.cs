@@ -23,6 +23,7 @@ public static class Program
     {
         string commandId = "cli";
         bool human = false;
+        NextAction[] recoveryActions = [new("workspace.list", new { })];
         ApiResponse response;
         try
         {
@@ -81,7 +82,7 @@ public static class Program
             plan.SetAction(_ => { commandId = "schema"; result = gateway.Schema("plan.validate"); });
             root.Subcommands.Add(plan);
 
-            WorkspaceCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken);
+            WorkspaceCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken, actions => recoveryActions = actions);
             OverlayExperimentCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken);
 
             var parsed = root.Parse(args);
@@ -105,8 +106,9 @@ public static class Program
             }
         }
         catch (InspectionException ex) { response = ApiResponse.Failure(commandId, ex.Code, ex.Message); }
-        catch (WorkspaceException ex) { response = ApiResponse.Failure(commandId, ex.Code, ex.Message,
-            nextActions: [new("workspace.list", new { })]); }
+        catch (WorkspaceException ex) { response = ApiResponse.Failure(commandId, ex.Code, ex.Message, ex.Details,
+            nextActions: ex.RecoveryActions?.Select(action => new NextAction(action.Command, action.Arguments, action.RequiresUserAction)).ToArray()
+                ?? recoveryActions); }
         catch (OperationCanceledException) { response = ApiResponse.Failure(commandId, "Cancelled", "Command cancelled; persisted workspaces and Editor processes are retained. Query status before retrying."); }
         catch (JsonException ex) { response = ApiResponse.Failure(commandId, "InvalidJson", ex.Message); }
         catch (UnauthorizedAccessException ex) { response = ApiResponse.Failure(commandId, "AccessDenied", ex.Message); }

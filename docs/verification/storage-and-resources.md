@@ -57,4 +57,4 @@ A/B의 종료 결과는 `ownershipVerified=true`, `rootRunning=false`, `activePr
 
 이 시험 종료 시점에는 최초 기준본 하나와 작은 기록·로그·결과 ref를 디스크에 유지했다. 이후 사용자의 정리 요청에 따라 기준본과 시험 VHDX를 회수한 현재 상태는 [정리 기록](storage-cleanup.md)에 있다. 기준본 자체에는 상주 프로세스가 없다. 캐시 삭제는 `baseline release`의 독립 계약이다. 실행 과정에서 만들어진 파생 파일을 사용자 결과와 함께 강제로 정리하지 않는다.
 
-다음 작업은 [NTFS 스냅샷·변경분 검증](../plans/ntfs-snapshot-overlay-spike.md)의 SO-01~06이다. 기존 clone/seal 복구 확장보다 최초 전체 복제 없는 저장소와 원본 동시 수정의 증거를 우선한다. SR 결과는 실행 당시의 좁은 범위로 보존한다.
+제품 NTFS의 범위 저장·원본/A/B Unity·재연결·실패 보호 증거와 실제 dirty 원본 통합 차단·완료한 최종 VSS 회수은 [NI 검증](ntfs-workspace-integration.md)에 있다. SO-01~06은 별도 fixture 증거로 유지한다. SR 결과는 실행 당시의 좁은 범위로 보존한다.

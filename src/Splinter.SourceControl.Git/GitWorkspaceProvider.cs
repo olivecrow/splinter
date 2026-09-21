@@ -7,7 +7,7 @@ using Splinter.Core;
 
 namespace Splinter.SourceControl.Git;
 
-public sealed class GitWorkspaceProvider(IWorkspaceStorageProvider? storage = null, IWorkspaceBaselineReader? baselines = null) : ISourceWorkspaceProvider
+public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? storage = null, IWorkspaceBaselineReader? baselines = null) : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public Task<string> ResolveRevisionAsync(string project, string reference, CancellationToken ct = default) =>
@@ -86,6 +86,7 @@ public sealed class GitWorkspaceProvider(IWorkspaceStorageProvider? storage = nu
 
     public async Task<string> CommitAsync(WorkspaceRecord workspace, string message, CancellationToken ct = default)
     {
+        if (workspace.StorageMode == "ntfs-snapshot") await CheckSnapshotGitFiles(workspace.Path, ct);
         SourceState before = await InspectAsync(workspace, ct);
         if (workspace.Validation is not { Success: true } validation || validation.Fingerprint != before.Fingerprint)
             throw Error("ValidationRequired", "Only the exact successfully validated source can be collected.");
@@ -100,6 +101,7 @@ public sealed class GitWorkspaceProvider(IWorkspaceStorageProvider? storage = nu
             .Select(path => ":(exclude,literal)" + path).ToArray();
         await Required(workspace.Path, ["add", "-A", "--", ".", .. exclusions], ct);
         var stagedPaths = SplitZero(await Required(workspace.Path, ["ls-files", "--cached", "-z"], ct));
+        if (workspace.StorageMode == "ntfs-snapshot") await CheckSnapshotGitFiles(workspace.Path, ct);
         if (stagedPaths.Any(path => Managed(path, workspace.ManagedPaths)))
             throw Error("ManagedPathTracked", "Generated files changed while staging. No commit was made; preserve and unstage them before retrying.");
         SourceState staged = await InspectAsync(workspace, ct);
@@ -253,7 +255,7 @@ public sealed class GitWorkspaceProvider(IWorkspaceStorageProvider? storage = nu
             string full = Path.GetFullPath(Path.Combine(workspace.Path, relative));
             if (!full.StartsWith(Path.TrimEndingDirectorySeparator(workspace.Path) + Path.DirectorySeparatorChar, Comparison))
                 throw Error("GitUnsafePath", "Source path escapes the workspace.");
-            PlainPath(full);
+            PlainPath(full, OwnedMountRoot(workspace));
             if (!File.Exists(full)) continue;
             byte[] name = Encoding.UTF8.GetBytes(relative);
             hash.AppendData(BitConverter.GetBytes(name.Length)); hash.AppendData(name);
@@ -280,11 +282,21 @@ public sealed class GitWorkspaceProvider(IWorkspaceStorageProvider? storage = nu
             throw Error("GitInvalidPath", "Independent absolute project and workspace paths are required.");
         if (Path.GetFullPath(workspace.ProjectPath).StartsWith(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace.Path)) + Path.DirectorySeparatorChar, Comparison))
             throw Error("GitInvalidPath", "The workspace must not contain the original repository.");
-        PlainPath(workspace.ProjectPath); PlainPath(workspace.Path);
+        PlainPath(workspace.ProjectPath); PlainPath(workspace.Path, OwnedMountRoot(workspace));
     }
-    private static void PlainPath(string path)
+    private static string? OwnedMountRoot(WorkspaceRecord workspace) =>
+        workspace.StorageMode == "ntfs-snapshot" &&
+        workspace.Snapshot is { Reference: { } snapshot, Mount: { } mount,
+            Observation: { SnapshotAvailable: true, Mounted: true, ProviderAlive: true, OwnershipVerified: true } } &&
+        mount.Id == workspace.Id && mount.Snapshot == snapshot && SamePath(mount.Path, workspace.Path)
+            ? workspace.Path : null;
+    private static void PlainPath(string path, string? ownedMountRoot = null)
     {
         for (string? p = Path.GetFullPath(path); p is not null; p = Path.GetDirectoryName(p))
+            // A directory-mounted filesystem is itself a reparse point. Only
+            // its observed, identity-bound root is allowed; ancestors and
+            // source entries inside it still must be plain paths.
+            if (ownedMountRoot is null || !SamePath(p, ownedMountRoot))
             if ((File.Exists(p) || Directory.Exists(p)) && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0)
                 throw Error("GitSymlinkRejected", "Source path contains a reparse point: " + p);
     }

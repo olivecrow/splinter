@@ -13,17 +13,19 @@ namespace Splinter.Cli;
 internal static class WorkspaceCommands
 {
     public static void Add(RootCommand root, ContractCatalog contracts, Action<string> select, Action<ApiResponse> respond,
-        CancellationToken ct)
+        CancellationToken ct, Action<NextAction[]> selectRecovery)
     {
         var home = new Option<string>("--home") { Recursive = true, Description = "Durable Splinter state root; defaults to SPLINTER_HOME or local application data/Splinter." };
         root.Options.Add(home);
-        string Home(ParseResult parse) => parse.GetValue(home) ?? Environment.GetEnvironmentVariable("SPLINTER_HOME")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Splinter");
+        string Home(ParseResult parse) => Path.GetFullPath(parse.GetValue(home) ?? Environment.GetEnvironmentVariable("SPLINTER_HOME")
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Splinter"));
         WorkspaceCoordinator Runtime(ParseResult parse)
         {
+            selectRecovery([new("workspace.list", new { home = Home(parse) })]);
             var store = new WorkspaceStore(Home(parse)); var storageProvider = new RefsWorkspaceStorageProvider();
             return new(store, new GitWorkspaceProvider(storageProvider, store),
-                new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners"))), storageProvider);
+                new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners"))), storageProvider,
+                new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners")));
         }
 
         var workspace = new Command("workspace", "Create, resume, collect, integrate and release durable isolated workspaces.");
@@ -37,20 +39,22 @@ internal static class WorkspaceCommands
         var project = new Option<string>("--project") { Required = true };
         var key = new Option<string>("--key") { Required = true, Description = "Stable unique task key; reuse to resume across turns." };
         var basis = new Option<string>("--base") { Description = "Source branch/ref; default development." };
-        var storage = new Option<string>("--storage") { Required = true, Description = "refs-cow uses a sealed baseline. git-checkout is a cold diagnostic mode." };
+        var storage = new Option<string>("--storage") { Required = true, Description = "ntfs-snapshot uses an immutable source snapshot and range delta. refs-cow requires a baseline; git-checkout is diagnostic." };
+        var journalBudget = new Option<long?>("--max-journal-bytes") { Description = "Immutable NTFS delta budget; defaults to 16 GiB. A changed limit requires a new task key." };
         var baselineOption = new Option<string>("--baseline") { Description = "Sealed baseline id required for refs-cow." };
         var editor = new Option<bool>("--editor") { Description = "Also start the private Editor when this task needs it." };
-        ensure.Options.Add(project); ensure.Options.Add(key); ensure.Options.Add(basis); ensure.Options.Add(storage); ensure.Options.Add(editor); ensure.Options.Add(baselineOption);
+        ensure.Options.Add(project); ensure.Options.Add(key); ensure.Options.Add(basis); ensure.Options.Add(storage); ensure.Options.Add(editor); ensure.Options.Add(baselineOption); ensure.Options.Add(journalBudget);
         workspace.Subcommands.Add(ensure);
         ensure.SetAction(async parse =>
         {
             const string command = "workspace.ensure";
             select(command);
             string baseReference = parse.GetValue(basis) ?? "development";
-            var input = new { project = parse.GetValue(project), key = parse.GetValue(key), baseReference, storage = parse.GetValue(storage), editor = parse.GetValue(editor), baseline = parse.GetValue(baselineOption) };
+            var input = new { project = parse.GetValue(project), key = parse.GetValue(key), baseReference, storage = parse.GetValue(storage), editor = parse.GetValue(editor), baseline = parse.GetValue(baselineOption), maxJournalBytes = parse.GetValue(journalBudget) };
             if (!Validate(command, input)) return;
-            var view = await Runtime(parse).EnsureAsync(input.project!, input.key!, baseReference, input.storage!, input.editor, ct, input.baseline);
-            respond(Result(command, view, input.editor && view.Application is { Running: true, Ready: false }));
+            var view = await Runtime(parse).EnsureAsync(input.project!, input.key!, baseReference, input.storage!, input.editor, ct, input.baseline,
+                maxJournalBytes: input.maxJournalBytes ?? SnapshotWorkspaceState.DefaultJournalBytes);
+            respond(Result(command, view, input.editor && view.Application is { Running: true, Ready: false }, Home(parse)));
         });
         var list = new Command("list", contracts.Find("workspace.list")!.Description);
         var filter = new Option<string>("--project"); list.Options.Add(filter); workspace.Subcommands.Add(list);
@@ -88,7 +92,7 @@ internal static class WorkspaceCommands
             var input = new { project = parse.GetValue(baselineProject)!, baseReference = parse.GetValue(baselineBase) ?? "development" };
             if (!Validate("baseline.prepare", input)) return;
             var view = await Runtime(parse).PrepareBaselineAsync(input.project, input.baseReference, ct);
-            respond(Result("baseline.prepare", view, view.Application is { Ready: false }));
+            respond(Result("baseline.prepare", view, view.Application is { Ready: false }, Home(parse)));
         });
         foreach (string name in new[] { "seal", "release" })
         {
@@ -128,7 +132,7 @@ internal static class WorkspaceCommands
                 var view = await action(Runtime(parse), id, value);
                 bool accepted = commandId == "unity.refresh" && view.Workspace.PendingValidationId is not null ||
                     commandId == "unity.start" && view.Application is { Running: true, Ready: false };
-                respond(Result(commandId, view, accepted));
+                respond(Result(commandId, view, accepted, Home(parse)));
             });
             group.Subcommands.Add(command);
         }
@@ -143,7 +147,7 @@ internal static class WorkspaceCommands
         }
     }
 
-    private static ApiResponse Result(string command, WorkspaceView view, bool accepted)
+    private static ApiResponse Result(string command, WorkspaceView view, bool accepted, string home)
     {
         object data = new
         {
@@ -163,12 +167,16 @@ internal static class WorkspaceCommands
         };
         var response = ApiResponse.Success(command, data);
         string nextCommand = accepted ? "workspace.status" : view.NextCommand.Split(" --", 2)[0].Replace(' ', '.');
+        object nextArguments = nextCommand == "workspace.ensure"
+            ? new { project = view.Workspace.ProjectPath, key = view.Workspace.RequestKey, baseReference = view.Workspace.BaseReference,
+                storage = view.Workspace.StorageMode, baseline = view.Workspace.BaselineId, maxJournalBytes = view.Workspace.Snapshot?.MaxJournalBytes, home }
+            : nextCommand == "workspace.list" ? new { home } : (object)new { id = view.Workspace.Id, home };
         return response with
         {
             Status = accepted ? "Accepted" : "Succeeded", Terminal = !accepted,
             NextActions = view.Workspace.Purpose == "baseline" && view.Workspace.Phase == "released"
                 ? [new("schema", new { command = "workspace.ensure" })]
-                : [new(nextCommand, nextCommand == "workspace.list" ? new { } : (object)new { id = view.Workspace.Id })]
+                : [new(nextCommand, nextArguments)]
         };
     }
 
@@ -176,6 +184,7 @@ internal static class WorkspaceCommands
     {
         record.Id, record.RequestKey, record.ProjectPath, record.Path, record.SourceReference, record.BaseReference,
         record.BaseRevision, record.Phase, record.CreatedAt, record.UpdatedAt, record.StorageMode, record.Purpose, record.BaselineId, record.CloneMetrics, record.ReleasedResources,
+        record.RequestDigest, record.Snapshot,
         processId = record.Application?.ProcessId, record.PendingValidationId,
         validation = ValidationSummary(record.Validation),
         record.ResultRevision, record.IntegratedRevision, record.LastError

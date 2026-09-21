@@ -1,0 +1,254 @@
+using Splinter.Core;
+using Splinter.Runtime;
+
+namespace Splinter.Tests;
+
+public sealed class SnapshotWorkspaceCoordinatorTests
+{
+    [Fact]
+    public async Task ConcurrentRequestsAndFreshCoordinatorReuseExactlyOneIdentity()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var views = await Task.WhenAll(f.Ensure(ct), f.Ensure(ct));
+        Assert.Equal(views[0].Workspace.Id, views[1].Workspace.Id);
+        Assert.Equal(1, f.Backend.Captures); Assert.Equal(1, f.Source.Registers);
+        Assert.Equal("ready", views[1].Workspace.Phase);
+        var conflict = await Assert.ThrowsAsync<WorkspaceException>(() => f.New().EnsureAsync(f.Project, "task", "changed", "ntfs-snapshot", false, ct));
+        Assert.Equal("RequestKeyConflict", conflict.Code);
+    }
+
+    [Fact]
+    public async Task CaptureResponseLossReconcilesReceiptWithoutRecapture()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        f.Backend.LoseCaptureReply = true;
+        await Assert.ThrowsAsync<WorkspaceException>(() => f.Ensure(ct));
+        var resumed = await f.Ensure(ct);
+        Assert.Equal(1, f.Backend.Captures); Assert.Equal("ready", resumed.Workspace.Phase);
+    }
+
+    [Fact]
+    public async Task MissingSnapshotNeverRecapturesOrStartsApplication()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var view = await f.Ensure(ct); f.Backend.Available = false;
+        Assert.Equal("SnapshotMissing", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Ensure(ct))).Code);
+        var status = await f.New().StatusAsync(view.Workspace.Id, ct);
+        Assert.Null(status.Source); Assert.False(status.Workspace.Snapshot!.Observation!.SnapshotAvailable);
+        Assert.Equal(1, f.Backend.Captures); Assert.Equal(0, f.App.Starts);
+        Assert.Equal("SnapshotMissing", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(view.Workspace.Id, ct))).Code);
+        Assert.False(f.Backend.DeltaRemoved);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MissingBaseReleasesOnlyAnUnchangedIndependentResult(bool lateWrite)
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        await f.New().CheckpointAsync(id, "independent result", ct);
+        f.Backend.Available = false; f.Source.LoseReply = "inspect"; f.Backend.WriteDuringUnmount = lateWrite;
+        if (lateWrite)
+        {
+            Assert.Equal("DeltaChangedAfterCollection", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
+            Assert.False(f.Backend.DeltaRemoved); Assert.NotNull(new WorkspaceStore(f.Home).Get(id).Snapshot!.Result);
+        }
+        else Assert.Equal("released", (await f.New().ReleaseAsync(id, ct)).Workspace.Phase);
+        Assert.Equal("inspect", f.Source.LoseReply); Assert.Equal(1, f.Backend.Captures);
+    }
+
+    [Fact]
+    public async Task ProviderReconnectPreservesBasisButRefusesLiveApplication()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var view = await f.Ensure(ct); f.Backend.Mounted = false; f.App.Running = true;
+        Assert.Equal("OverlayClientsRemain", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Ensure(ct))).Code);
+        f.App.Running = false; var resumed = await f.Ensure(ct);
+        Assert.Equal(view.Workspace.Snapshot!.Reference, resumed.Workspace.Snapshot!.Reference);
+        Assert.True(f.Backend.Mounted); Assert.Equal(1, f.Backend.Captures);
+    }
+
+    [Fact]
+    public async Task IndependentCheckpointCanReleaseWithoutMergingAndReleasedKeyStaysReleased()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var view = await f.Ensure(ct); string id = view.Workspace.Id;
+        await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        f.Source.Dirty = true;
+        // A change after validation must be rejected before source collection.
+        f.Source.Fingerprint = "changed";
+        Assert.Equal("ValidationRequired", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CheckpointAsync(id, "result", ct))).Code);
+        await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        var collected = await f.New().CheckpointAsync(id, "result", ct);
+        Assert.True(collected.Workspace.Snapshot!.Result!.IndependentOfSnapshot);
+        var released = await f.New().ReleaseAsync(id, ct);
+        Assert.Equal("released", released.Workspace.Phase); Assert.Null(released.Workspace.IntegratedRevision);
+        Assert.True(f.Backend.DeltaRemoved); Assert.True(f.Backend.SnapshotReleased);
+        Assert.Equal("released", (await f.Ensure(ct)).Workspace.Phase); Assert.Equal(1, f.Backend.Captures);
+    }
+
+    [Fact]
+    public async Task UncollectedSourceAndSurvivingChildrenPreventDeletion()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id; f.Source.Dirty = true;
+        Assert.Equal("UncollectedChanges", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
+        f.Source.Dirty = false; f.App.Children = 1;
+        Assert.Equal("ProcessCleanupIncomplete", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
+        Assert.False(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased);
+    }
+
+    [Fact]
+    public async Task LateWriteAfterCollectionKeepsDeltaAndResult()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id; f.Backend.WriteDuringUnmount = true;
+        Assert.Equal("DeltaChangedAfterCollection", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
+        Assert.False(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased);
+        Assert.NotNull(new WorkspaceStore(f.Home).Get(id).Snapshot!.Result);
+    }
+
+    [Fact]
+    public async Task PartialDeltaRemovalResumesAndMissingResourceEvidenceNeverMeansZero()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id; f.Backend.UnknownResources = true;
+        Assert.Equal("OverlayCleanupIncomplete", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
+        Assert.False(f.Backend.DeltaRemoved); f.Backend.UnknownResources = false; f.Backend.LoseRemoveReply = true;
+        await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct));
+        Assert.True(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased);
+        Assert.Equal("released", (await f.New().ReleaseAsync(id, ct)).Workspace.Phase);
+    }
+
+    [Theory]
+    [InlineData("register")]
+    [InlineData("mount")]
+    [InlineData("attach")]
+    public async Task PreparationResponseLossResumesTheOriginalCapture(string boundary)
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        f.Source.LoseReply = boundary; f.Backend.LoseMountReply = boundary == "mount";
+        await Assert.ThrowsAsync<WorkspaceException>(() => f.Ensure(ct));
+        var resumed = await f.Ensure(ct);
+        Assert.True(resumed.Workspace.Snapshot!.Attached);
+        Assert.Equal(1, f.Backend.Captures); Assert.Equal(1, f.Source.Registers);
+    }
+
+    [Fact]
+    public async Task CheckpointPreservationResponseLossRepairsTheIndependentManifest()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        f.Source.LoseReply = "preserve";
+        await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CheckpointAsync(id, "result", ct));
+        var recovered = await f.New().CheckpointAsync(id, "result", ct);
+        Assert.Equal("collected", recovered.Workspace.Phase);
+        Assert.True(recovered.Workspace.Snapshot!.Result!.IndependentOfSnapshot);
+    }
+
+    [Theory]
+    [InlineData("unmount")]
+    [InlineData("unregister")]
+    [InlineData("snapshot-release")]
+    public async Task ReleaseResponseLossResumesWithoutRecreatingTheWorkspace(string boundary)
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        f.Source.LoseReply = boundary; f.Backend.LoseReleaseReply = boundary;
+        await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct));
+        Assert.Equal("released", (await f.New().ReleaseAsync(id, ct)).Workspace.Phase);
+        Assert.Equal(1, f.Backend.Captures); Assert.True(f.Backend.DeltaRemoved);
+    }
+
+    [Fact]
+    public async Task ARemainingSnapshotDependentPreventsSnapshotDeletion()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var first = await f.Ensure(ct); var store = new WorkspaceStore(f.Home);
+        string otherId = WorkspaceStore.Key("other-workspace");
+        var other = new WorkspaceRecord { Id = otherId, RequestKey = "other", ProjectPath = f.Project, Path = store.WorkPath(otherId),
+            BaseReference = "base", SourceReference = "other", Phase = "ready", StorageMode = "ntfs-snapshot",
+            Snapshot = new() { Reference = first.Workspace.Snapshot!.Reference, Attached = true, Step = "ready" } };
+        store.Save(other, "fixture-dependency");
+        Assert.Equal("SnapshotInUse", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(first.Workspace.Id, ct))).Code);
+        Assert.False(f.Backend.SnapshotReleased);
+        other.Phase = "released"; store.Save(other, "fixture-dependent-finished");
+        Assert.Equal("released", (await f.New().ReleaseAsync(first.Workspace.Id, ct)).Workspace.Phase);
+    }
+
+    private sealed class Fixture : IDisposable
+    {
+        private readonly TestDirectory directory = new();
+        public string Home => Path.Combine(directory.Path, "home");
+        public string Project => Path.Combine(directory.Path, "source");
+        public Backend Backend { get; } = new();
+        public Source Source { get; } = new();
+        public App App { get; } = new();
+        public Fixture() { Directory.CreateDirectory(Project); }
+        public WorkspaceCoordinator New() => new(new(Home), Source, App, snapshots: Backend);
+        public Task<WorkspaceView> Ensure(CancellationToken ct) => New().EnsureAsync(Project, "task", "base", "ntfs-snapshot", false, ct);
+        public void Dispose() => directory.Dispose();
+    }
+    private sealed class Backend : ISnapshotWorkspaceBackend
+    {
+        public int Captures; public bool LoseCaptureReply, LoseMountReply, Mounted, DeltaRemoved, SnapshotReleased, WriteDuringUnmount, UnknownResources, LoseRemoveReply;
+        public bool Available = true;
+        public string? LoseReleaseReply;
+        private void FailOnce(string boundary) { if (LoseReleaseReply == boundary) { LoseReleaseReply = null; throw new WorkspaceException("ReplyLost", boundary); } }
+        private SnapshotReference? receipt;
+        private long sequence = 1;
+        public Task<SnapshotReference> CaptureAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        {
+            if (receipt is null) { Captures++; receipt = new("opaque", "fake", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "fake"); }
+            if (LoseCaptureReply) { LoseCaptureReply = false; throw new WorkspaceException("ReplyLost", "after capture"); }
+            return Task.FromResult(receipt);
+        }
+        public Task<OverlayMount> ConnectAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        { Mounted = true; Directory.CreateDirectory(w.Path); if (LoseMountReply) { LoseMountReply = false; throw new WorkspaceException("ReplyLost", "after mount"); }
+            return Task.FromResult(new OverlayMount(w.Id, w.Path, "delta", w.Snapshot!.Reference!, 123, 1)); }
+        public Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) =>
+            Task.FromResult(new SnapshotWorkspaceObservation(Available, Mounted, Mounted, true, UnknownResources ? null : 0,
+                UnknownResources ? null : 0, UnknownResources ? null : 0, DeltaPresent: !DeltaRemoved));
+        public Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.FromResult(new SnapshotDeltaSeal(sequence, 100, "hash" + sequence));
+        public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        { Mounted = false; if (Directory.Exists(w.Path)) Directory.Delete(w.Path); if (WriteDuringUnmount) sequence++; FailOnce("unmount"); return Task.CompletedTask; }
+        public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        { DeltaRemoved = true; if (LoseRemoveReply) { LoseRemoveReply = false; throw new WorkspaceException("ReplyLost", "after removal"); } return Task.CompletedTask; }
+        public Task ReleaseSnapshotAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { SnapshotReleased = true; Available = false; FailOnce("snapshot-release"); return Task.CompletedTask; }
+    }
+    private sealed class Source : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider
+    {
+        public int Registers; public bool Dirty; public string Fingerprint = "source"; private bool registered;
+        public string? LoseReply;
+        private void FailOnce(string boundary) { if (LoseReply == boundary) { LoseReply = null; throw new WorkspaceException("ReplyLost", boundary); } }
+        public Task<string> PreflightAsync(WorkspaceRecord w, CancellationToken ct = default) => Task.FromResult("base");
+        public Task RegisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { if (!registered) { Registers++; registered = true; } FailOnce("register"); return Task.CompletedTask; }
+        public Task AttachAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("attach"); return Task.CompletedTask; }
+        public Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("preserve"); return Task.FromResult("result-ref"); }
+        public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.CompletedTask;
+        public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("unregister"); return Task.CompletedTask; }
+        public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(r);
+        public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => Task.FromResult(r);
+        public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new InvalidOperationException("No clone/checkout fallback");
+        public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)
+        { FailOnce("inspect"); return Task.FromResult(new SourceState(w.ResultRevision ?? "base", Fingerprint, Dirty, [])); }
+        public Task<string> CommitAsync(WorkspaceRecord w, string message, CancellationToken ct = default) { Dirty = false; return Task.FromResult("result"); }
+        public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string target, CancellationToken ct = default) => throw new InvalidOperationException("Do not force integration");
+        public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new InvalidOperationException("Do not use checkout deletion");
+    }
+    private sealed class App : IApplicationWorkspaceProvider
+    {
+        public int Starts, Children; public bool Running; private ApplicationValidation? validation;
+        public string[] ManagedPaths => []; public string[] CacheInputs => [];
+        public string CompatibilityKey(string project) => "fake";
+        public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { Starts++; Running = true; return Task.FromResult(new ApplicationLease(1, 1, "fake", "fake")); }
+        public Task<ApplicationState> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.FromResult(new ApplicationState(Running, Running, "fake", Validation: validation,
+            Resources: new(true, Running, Children + (Running ? 1 : 0), Children, Children)));
+        public Task RequestValidationAsync(WorkspaceRecord w, string c, string id, string fp, CancellationToken ct = default) { validation = new(id, fp, true, DateTimeOffset.UtcNow, []); return Task.CompletedTask; }
+        public Task StopAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { Running = false; return Task.CompletedTask; }
+        public Task RemoveInfrastructureAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.CompletedTask;
+    }
+}

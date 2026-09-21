@@ -53,8 +53,8 @@
     },
     {
       "id": "workspace.ensure",
-      "description": "Create or resume a task using a sealed CoW baseline; explicit git-checkout is diagnostic.",
-      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <refs-cow|git-checkout> [--baseline <id>] [--base development] [--editor] [--home <state-root>]",
+      "description": "Create or reconnect an owned NTFS snapshot/delta or explicitly selected legacy workspace.",
+      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <ntfs-snapshot|refs-cow|git-checkout> [--baseline <id>] [--base development] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-ensure-request",
       "outputSchema": "urn:splinter:v1:response",

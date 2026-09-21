@@ -18,12 +18,25 @@ public static class WinFspOverlayClient
     public static async Task<JsonElement> ObserveAsync(OverlayServeRequest request, CancellationToken ct = default)
     {
         JsonElement state = await WindowsProcessWorkspaceProvider.ReadAsync<JsonElement>(Path.Combine(request.ControlPath, "state.json"), ct);
-        if (state.ValueKind == JsonValueKind.Undefined) return JsonSerializer.SerializeToElement(new { phase = "not-started", processAlive = false }, Json);
+        var launch = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderLaunch>(Path.Combine(request.ControlPath, "provider-launch-receipt.json"), ct);
+        var intent = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderIntent>(Path.Combine(request.ControlPath, "provider-launch-intent.json"), ct);
+        if (launch is not null && launch.Token != request.Token || intent is not null && (intent.Token != request.Token || intent.Id != request.Identity.Id))
+            throw new WorkspaceException("OverlayOwnerMismatch", "Provider launch records belong to another overlay.");
+        bool launchAlive = launch is not null && WindowsProcessGroup.IdentityAlive(launch.ProcessId, launch.StartTimeUtcTicks);
+        bool knownLaunch = intent is null && launch is null || launch is not null && intent?.Generation == launch.Generation;
+        if (state.ValueKind == JsonValueKind.Undefined)
+        {
+            return JsonSerializer.SerializeToElement(new { phase = launchAlive ? "starting" : !knownLaunch ? "launch-uncertain" : "not-started",
+                processAlive = launchAlive, ownershipVerified = knownLaunch }, Json);
+        }
         if (state.GetProperty("token").GetString() != request.Token || state.GetProperty("id").GetString() != request.Identity.Id ||
             state.GetProperty("snapshotId").GetString() != request.Identity.Snapshot.Id)
             throw new WorkspaceException("OverlayOwnerMismatch", "State does not belong to this immutable request.");
         bool alive = state.TryGetProperty("processStartTimeUtcTicks", out var ticks) &&
             WindowsProcessGroup.IdentityAlive(state.GetProperty("processId").GetInt32(), ticks.GetInt64());
+        if (!knownLaunch || launchAlive && (state.GetProperty("processId").GetInt32() != launch!.ProcessId ||
+            ticks.ValueKind == JsonValueKind.Undefined || ticks.GetInt64() != launch.StartTimeUtcTicks))
+            return JsonSerializer.SerializeToElement(new { phase = "launch-uncertain", processAlive = alive || launchAlive, ownershipVerified = false }, Json);
         bool available = Directory.Exists(request.Identity.Snapshot.RootPath);
         string? phase = state.GetProperty("phase").GetString();
         return JsonSerializer.SerializeToElement(new { phase = alive && !available ? "snapshot-missing" : phase, processAlive = alive,
@@ -57,7 +70,7 @@ public static class WinFspOverlayClient
         for (int i = 0; i < 150; i++)
         {
             var current = await ObserveAsync(request, ct);
-            if (current.GetProperty("processAlive").GetBoolean() && current.GetProperty("state").GetProperty("processId").GetInt32() == process.Id)
+            if (current.GetProperty("processAlive").GetBoolean() && current.TryGetProperty("state", out var currentState) && currentState.GetProperty("processId").GetInt32() == process.Id)
                 return current;
             if (process.HasExited) throw new WorkspaceException("OverlayStartFailed", "Provider exited. Inspect state.json; delta is preserved.");
             await Task.Delay(100, ct);
@@ -70,7 +83,8 @@ public static class WinFspOverlayClient
         for (int i = 0; i < 150; i++)
         {
             var state = await ObserveAsync(request, ct);
-            if (!state.GetProperty("processAlive").GetBoolean() && !Directory.Exists(request.MountPath)) return state;
+            if (!state.GetProperty("processAlive").GetBoolean() && !Directory.Exists(request.MountPath) &&
+                (!state.TryGetProperty("ownershipVerified", out var known) || known.GetBoolean())) return state;
             await Task.Delay(100, ct);
         }
         throw new WorkspaceException("OverlayStopPending", "Clients or provider remain; files and snapshot are retained. Query status and close owned clients.");

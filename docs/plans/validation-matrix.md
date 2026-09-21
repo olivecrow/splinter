@@ -4,7 +4,7 @@
 
 기준은 [기획서 14절](../../plan.html#section-14)의 필수 48개 시나리오다. 구현 순서는 [구현 계획](implementation-plan.md)의 P0~P7을 따른다. P0의 작은 실험 성공만으로 아래 시나리오 전체가 통과한 것으로 기록하지 않는다.
 
-현재 시험 경계와 재현 명령은 [현재 기반](../foundation.md#빌드와-시험)에 있다. .NET 시험은 `artifacts/test-results/`의 TRX, 실제 저장소 Git 시험은 `artifacts/worktree-smoke/<runId>/result.json`에 결과를 남긴다. JSON/DAG/inspector 및 일반 checkout worktree 시험으로 CLI-01·GT-01·EX-01 등의 전체 조건을 통과했다고 보고하지 않는다. Unity/CoW 성공 경로의 실제 근거는 SR에 한정하며 지속 Host 시나리오는 미실행이다.
+현재 시험 경계와 재현 명령은 [현재 기반](../foundation.md#빌드와-시험)에 있다. .NET 시험은 `artifacts/test-results/`의 TRX, 실제 저장소 Git 시험은 `artifacts/worktree-smoke/<runId>/result.json`에 결과를 남긴다. JSON/DAG/inspector 및 일반 checkout worktree 시험으로 CLI-01·GT-01·EX-01 등의 전체 조건을 통과했다고 보고하지 않는다. Unity/CoW 성공 경로의 실제 근거는 SR/SO/NI에서 저장소 방식과 fixture 범위를 구분하며 지속 Host 시나리오는 미실행이다.
 
 ## 결과와 증거 규칙
 
@@ -135,3 +135,18 @@
 | SO-06 | 기준/변경분 재연결·결과 보존·소유 자원 회수 | PassedFixture: provider/저널/quota/snapshot 소실·독립 결과·소유 자원 0. 재부팅/전원/모든 명령 경계 NotRun |
 
 SO의 실제 원시 증거와 측정 제한은 [실행 기록](../verification/snapshot-overlay.md)을 따른다.
+
+## NTFS workspace 1차 통합 검증
+
+[이번 작업 범위](ntfs-workspace-integration.md)의 완료 기준이다. **일반 제품 CLI에서 실제 NTFS/Git/Unity·범위 저장·재연결·실패 보호를 검증하고 소유 VSS까지 자원 회수를 완료했다.** 실제 dirty 원본 통합 차단까지 확인해 NI-01~08의 이번 fixture 범위를 완료했다. 상세 근거는 [NI 기록](../verification/ntfs-workspace-integration.md)을 따른다. SO, AA/SR, 공개 48개와 별도 집계한다.
+
+| ID | 검증 대상 | 상태 | 반드시 남길 증거 |
+| --- | --- | --- | --- |
+| NI-01 | 공통 계약·지속 상태·기계용 CLI | Passed: 자동/fixture | snapshot/delta/mount fake, schema/capabilities, 권한·미지원 입력 nextActions, 실제 capture→Ready |
+| NI-02 | 같은 요청·중복 CLI·부분 실행 재개 | Passed: 자동/대표 재개 | fake의 동일 요청·충돌·단계별 응답 유실, 실제 새 CLI/제공자 재연결과 released key 동시 재호출·입력 충돌. 모든 실제 I/O 경계는 후속 |
+| NI-03 | 제품 CLI의 NTFS 저장 계약 | Passed: 합성 fixture | 최초 payload·읽기 hydration 0, 비희소 3개 크기의 동일 4KiB 쓰기, 실제 할당·저널·VSS·Git 비용 구분 |
+| NI-04 | 원본/A/B 독립 편집·Unity 검증 | Passed: 스크립트 fixture | 원본 33, A 오류 중 B 203, 최종 A 104/B 204, 다른 .meta 변경 시 validation 무효, 원본/MCP 보존. 긴 패키지 경로 제한 별도 |
+| NI-05 | 새 CLI·Editor·제공자 재연결 | Passed: 대표 fixture | 동일 snapshot/delta/fingerprint, provider 종료 후 재연결, Editor 새 PID/domain의 실제 코드. 재부팅 NotRun |
+| NI-06 | 결과 독립성·snapshot 의존성·공간 보호 | Passed: 자동/fixture | result ref/tree/seal 독립성, 미보존 결과 거부, quota/소실 보호, 실제 dirty 원본 통합 시 GitDirtyWorktree와 HEAD/index/diff/result ref 보존 |
+| NI-07 | 실제 회수·부분 회수 재시도 | Passed: fixture | 열린 핸들 실패 후 재개, 앱/자식/제공자·메모리·핸들 0, mount/경로/Git/delta/소유 VSS 부재, 독립 결과·원본·기존 복원 지점 보존 |
+| NI-08 | 최종 통합 후보 검증·증거·문서 | Passed: 이번 내부 알파 범위 | build.ps1 97 passed/0 failed/1 ReFS skip, 같은 source hash의 실제 run·추가 통합 차단·회수 증거, schema·fake·현재 계약/사용법·UTF-8 동기화 |

@@ -33,21 +33,34 @@ try {
         $volumeRoot = [IO.Path]::GetPathRoot($source)
         $volume = Get-CimInstance Win32_Volume | Where-Object { $_.Name -eq $volumeRoot }
         if ($null -eq $volume -or $volume.FileSystem -ne 'NTFS') { throw 'NtfsVolumeRequired' }
-        $storage = @(Get-CimInstance Win32_ShadowStorage | Where-Object { $_.Volume.DeviceID -eq $volume.DeviceID })
-        if ($storage.Count -ne 1 -or ($storage[0].MaxSpace - $storage[0].UsedSpace) -lt 8GB) { throw 'SnapshotHeadroomRequired: retain at least 8 GiB before capturing; no configuration changes were made.' }
-        if (Test-Path (Join-Path $receiptRoot 'capture-intent.json')) { throw 'CaptureReconcileRequired: an earlier intent has no receipt; inspect snapshot IDs before retrying.' }
-        $previous = @(Get-CimInstance Win32_ShadowCopy | Select-Object -ExpandProperty ID)
-        Save-Json (Join-Path $receiptRoot 'capture-intent.json') ([ordered]@{ownerId=$OwnerId; sourcePath=$source; previousSnapshotIds=$previous; before=(Measure-Storage); startedAt=[DateTimeOffset]::UtcNow})
-        $watch = [Diagnostics.Stopwatch]::StartNew()
-        $created = Invoke-CimMethod -ClassName Win32_ShadowCopy -MethodName Create -Arguments @{ Volume=$volumeRoot; Context='ClientAccessible' }
-        Save-Json (Join-Path $receiptRoot 'capture-return.json') ([ordered]@{returnValue=$created.ReturnValue; shadowId=$created.ShadowID; elapsedMilliseconds=$watch.ElapsedMilliseconds})
+        $intentPath = Join-Path $receiptRoot 'capture-intent.json'
+        $returnPath = Join-Path $receiptRoot 'capture-return.json'
+        if (Test-Path -LiteralPath $intentPath) {
+            $intent = Get-Content -LiteralPath $intentPath -Raw | ConvertFrom-Json
+            if ($intent.ownerId -ne $OwnerId -or $intent.sourcePath -ne $source) { throw 'SnapshotOwnerMismatch' }
+            if (-not (Test-Path -LiteralPath $returnPath)) { throw 'CaptureReconcileRequired: capture intent has no returned ID; preserve and inspect instead of creating another snapshot.' }
+            $created = Get-Content -LiteralPath $returnPath -Raw | ConvertFrom-Json
+            $previous = @($intent.previousSnapshotIds)
+            $elapsed = $created.elapsedMilliseconds
+            if ($previous -contains $created.shadowId) { throw 'SnapshotOwnerMismatch' }
+        } else {
+            $storage = @(Get-CimInstance Win32_ShadowStorage | Where-Object { $_.Volume.DeviceID -eq $volume.DeviceID })
+            if ($storage.Count -ne 1 -or ($storage[0].MaxSpace - $storage[0].UsedSpace) -lt 8GB) { throw 'SnapshotHeadroomRequired: retain at least 8 GiB before capturing; no configuration changes were made.' }
+            $previous = @(Get-CimInstance Win32_ShadowCopy | Select-Object -ExpandProperty ID)
+            Save-Json $intentPath ([ordered]@{ownerId=$OwnerId; sourcePath=$source; previousSnapshotIds=$previous; before=(Measure-Storage); startedAt=[DateTimeOffset]::UtcNow})
+            $watch = [Diagnostics.Stopwatch]::StartNew()
+            $created = Invoke-CimMethod -ClassName Win32_ShadowCopy -MethodName Create -Arguments @{ Volume=$volumeRoot; Context='ClientAccessible' }
+            $elapsed = $watch.ElapsedMilliseconds
+            Save-Json $returnPath ([ordered]@{returnValue=$created.ReturnValue; shadowId=$created.ShadowID; elapsedMilliseconds=$elapsed})
+        }
         if ($created.ReturnValue -ne 0) { throw "SnapshotCaptureFailed: $($created.ReturnValue)" }
         $shadow = Get-CimInstance Win32_ShadowCopy | Where-Object ID -eq $created.ShadowID
+        if ($null -eq $shadow) { throw 'SnapshotMissing: the captured ID is gone; do not recapture this request.' }
         # Write the owned ID before validating so an unsupported result can be
         # reclaimed by exact receipt instead of a dangerous global delete.
         $relative = $source.Substring($volumeRoot.Length)
         $snapshot = [ordered]@{ id=$shadow.ID; provider='windows-vss-system'; sourcePath=$source; rootPath=($shadow.DeviceObject + '\' + $relative); capturedAt=([DateTimeOffset]$shadow.InstallDate); persistent=[bool]$shadow.Persistent; differential=[bool]$shadow.Differential; consistency='filesystem-crash-consistent-no-application-writer' }
-        $receipt = [ordered]@{version=1; ownerId=$OwnerId; snapshot=$snapshot; nativeProviderId=$shadow.ProviderID; noAutoRelease=$shadow.NoAutoRelease; initialPayloadCopiedBytes=0; elapsedMilliseconds=$watch.ElapsedMilliseconds; beforeSnapshotIds=$previous; after=(Measure-Storage); released=$false}
+        $receipt = [ordered]@{version=1; ownerId=$OwnerId; snapshot=$snapshot; nativeProviderId=$shadow.ProviderID; noAutoRelease=$shadow.NoAutoRelease; initialPayloadCopiedBytes=0; elapsedMilliseconds=$elapsed; beforeSnapshotIds=$previous; after=(Measure-Storage); released=$false}
         Save-Json $receiptPath $receipt
         if ($shadow.ProviderID -ne $systemProvider -or -not $shadow.Differential -or -not $shadow.Persistent -or -not $shadow.NoAutoRelease) { throw 'SnapshotProviderUnsupported: preserve the receipt and release only this owned ID.' }
     }
@@ -74,5 +87,9 @@ try {
     $available = $null -ne (Get-CimInstance Win32_ShadowCopy | Where-Object ID -eq $receipt.snapshot.id)
     $observation = [ordered]@{snapshot=$receipt.snapshot; available=$available; released=$receipt.released; observedAt=[DateTimeOffset]::UtcNow; storage=(Measure-Storage)}
     Save-Json (Join-Path $receiptRoot 'observation.json') $observation
+    Save-Json (Join-Path $receiptRoot 'operation-result.json') ([ordered]@{action=$Action; success=$true; completedAt=[DateTimeOffset]::UtcNow})
     $observation | ConvertTo-Json -Depth 7
+} catch {
+    Save-Json (Join-Path $receiptRoot 'operation-result.json') ([ordered]@{action=$Action; success=$false; error=$_.Exception.Message; completedAt=[DateTimeOffset]::UtcNow})
+    throw
 } finally { $lock.Dispose() }

@@ -83,7 +83,14 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
             ?? throw new WorkspaceException("StateCorrupt", "Workspace record is empty; preserve the directory for recovery.");
         if (record.Version != 1 || record.Id != id || !SamePath(record.Path, WorkPath(id)))
             throw new WorkspaceException("StateCorrupt", "Workspace identity/path/version does not match its registry.");
-        EnsurePlainPath(record.Path);
+        if (record.StorageMode == "ntfs-snapshot" && (record.Snapshot is null ||
+            record.Snapshot.Attached && record.Snapshot.Reference is null ||
+            record.Snapshot.Mount is { } mount && (mount.Id != id || !SamePath(mount.Path, record.Path) || mount.Snapshot != record.Snapshot.Reference)))
+            throw new WorkspaceException("SnapshotStateMissing", "Preserve this workspace: snapshot identities do not match its durable record.");
+        // Reading durable metadata must also work while an overlay is mounted
+        // or a mount reply was lost. The backend verifies the root's live
+        // ownership before any source access; all registry ancestors stay plain.
+        EnsurePlainPath(record.StorageMode == "ntfs-snapshot" ? Path.GetDirectoryName(record.Path)! : record.Path);
         return record;
     }
 

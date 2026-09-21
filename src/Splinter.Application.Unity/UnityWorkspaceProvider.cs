@@ -22,7 +22,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
 
     public async Task<ApplicationLease> StartAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
     {
-        string root = ValidateRoot(workspace.Path);
+        string root = ValidateRoot(workspace);
         PlainPath(controlPath);
         Directory.CreateDirectory(controlPath);
         var prior = await Read<ApplicationLease>(controlPath, "launch-receipt.json", ct);
@@ -37,6 +37,19 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
             .FirstOrDefault(line => line.StartsWith("m_EditorVersion:", StringComparison.Ordinal))?.Split(':', 2)[1].Trim()
             ?? throw new WorkspaceException("UnityVersionMissing", "ProjectVersion.txt has no Editor version.");
         string executable = ResolveEditor(version);
+        if (workspace.StorageMode == "ntfs-snapshot")
+        {
+            // Remove only captured process addresses in the private overlay.
+            // Unity may otherwise terminate the original compiler helper.
+            foreach (string relative in new[] { "Library/ilpp.pid", "Library/Pipeline/.unity-pipeline-port" })
+            {
+                string file = Path.Combine(root, relative); PlainPath(file, workspace);
+                if (File.Exists(file)) File.Delete(file);
+            }
+            string runState = Path.Combine(root, "Library", "MCPForUnity", "RunState"); PlainPath(runState, workspace);
+            if (Directory.Exists(runState))
+                foreach (string file in Directory.EnumerateFiles(runState, "mcp_http_*.pid")) { PlainPath(file, workspace); File.Delete(file); }
+        }
         string infrastructure = Path.Combine(root, "Assets", "__Splinter__");
         string markerPath = Path.Combine(infrastructure, "workspace.marker");
         if (Directory.Exists(infrastructure)) VerifyInfrastructure(workspace, infrastructure);
@@ -59,7 +72,8 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         }
         return await Processes.StartAsync(new ProcessLaunch(executable,
             ["-projectPath", root, "-logFile", Path.Combine(controlPath, "editor.log"),
-             "-splinterControlPath", Path.GetFullPath(controlPath), "-splinterToken", token], root, token), controlPath, ct);
+             "-splinterControlPath", Path.GetFullPath(controlPath), "-splinterToken", token,
+             .. (workspace.StorageMode == "ntfs-snapshot" ? new[] { "-splinterIncrementalCompilation", "1" } : [])], root, token), controlPath, ct);
     }
 
     public async Task<ApplicationState> ObserveAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
@@ -116,7 +130,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         var state = await ObserveAsync(workspace, controlPath, ct);
         if (state.Running || state.Resources is not { OwnershipVerified: true, ActiveProcesses: 0 })
             throw new WorkspaceException("EditorStillRunning", "Stop the Editor before releasing its files.");
-        PlainPath(workspace.Path);
+        PlainPath(workspace.Path, workspace);
         string infrastructure = Path.Combine(workspace.Path, "Assets", "__Splinter__");
         if (!Directory.Exists(infrastructure)) return;
         VerifyInfrastructure(workspace, infrastructure);
@@ -129,7 +143,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         // VerifyInfrastructure checks the exact target and every descendant before deletion.
         Directory.Delete(infrastructure, recursive: true);
         string meta = infrastructure + ".meta";
-        PlainPath(meta);
+        PlainPath(meta, workspace);
         if (File.Exists(meta)) File.Delete(meta);
     }
 
@@ -137,13 +151,13 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
     {
         string expected = Path.GetFullPath(Path.Combine(workspace.Path, "Assets", "__Splinter__"));
         if (!SamePath(path, expected)) throw new WorkspaceException("UnsafePath", "Infrastructure path mismatch.");
-        PlainPath(path);
+        PlainPath(path, workspace);
         string markerPath = Path.Combine(path, "workspace.marker");
-        PlainPath(markerPath);
+        PlainPath(markerPath, workspace);
         if (!File.Exists(markerPath)) throw new WorkspaceException("ManagedPathConflict", "Existing bridge directory has no ownership marker.");
         var marker = JsonSerializer.Deserialize<InfrastructureMarker>(File.ReadAllText(markerPath), Json);
         string bridge = Path.Combine(path, "Editor", "WorkspaceBridge.cs");
-        PlainPath(bridge);
+        PlainPath(bridge, workspace);
         if (marker?.WorkspaceId != workspace.Id || !File.Exists(bridge) || marker.CodeHash != Hash(File.ReadAllText(bridge)))
             throw new WorkspaceException("ManagedFilesChanged", "Bridge ownership or code changed; preserve it for inspection.");
         var allowed = new HashSet<string>(StringComparer.Ordinal)
@@ -167,9 +181,9 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         }
     }
 
-    private static string ValidateRoot(string path)
+    private static string ValidateRoot(WorkspaceRecord workspace)
     {
-        string full = Path.GetFullPath(path); PlainPath(full);
+        string full = Path.GetFullPath(workspace.Path); PlainPath(full, workspace);
         if (!Directory.Exists(Path.Combine(full, "Assets")) || !File.Exists(Path.Combine(full, "ProjectSettings", "ProjectVersion.txt")))
             throw new WorkspaceException("InvalidUnityProject", "The workspace is not a Unity project root.");
         return full;
@@ -217,9 +231,15 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
     private static bool SamePath(string left, string right) => string.Equals(Path.GetFullPath(left).TrimEnd(Path.DirectorySeparatorChar),
         Path.GetFullPath(right).TrimEnd(Path.DirectorySeparatorChar), OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
     private static string Hash(string code) => Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(code)));
-    private static void PlainPath(string path)
+    private static void PlainPath(string path, WorkspaceRecord? workspace = null)
     {
+        string? ownedMountRoot = workspace?.StorageMode == "ntfs-snapshot" &&
+            workspace.Snapshot is { Reference: { } snapshot, Mount: { } mount,
+                Observation: { SnapshotAvailable: true, Mounted: true, ProviderAlive: true, OwnershipVerified: true } } &&
+            mount.Id == workspace.Id && mount.Snapshot == snapshot && SamePath(mount.Path, workspace.Path)
+                ? workspace.Path : null;
         for (string? p = Path.GetFullPath(path); p is not null; p = Path.GetDirectoryName(p))
+            if (ownedMountRoot is null || !SamePath(p, ownedMountRoot))
             if ((File.Exists(p) || Directory.Exists(p)) && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0)
                 throw new WorkspaceException("UnsafePath", "Reparse point: " + p);
     }

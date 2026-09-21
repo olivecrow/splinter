@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../../scripts/vss-snapshot.ps1" LogicalName="Splinter.VssSnapshot.ps1" />
     <ProjectReference Include="../Splinter.Core/Splinter.Core.csproj" />
     <ProjectReference Include="../Splinter.Runtime/Splinter.Runtime.csproj" />
     <PackageReference Include="WinFsp.Net" />

@@ -1,6 +1,6 @@
 # NTFS 스냅샷과 범위 저장 실험
 
-**독립 저장소 실험**이며 `workspace ensure --storage`의 제품 backend는 아니다. Windows/NTFS 한 환경에서 SO-01~06의 실제 fixture 증거를 확보했다. 정확한 범위·비용·제한은 [검증 기록](verification/snapshot-overlay.md)을 따른다. ReFS 준비나 원본 이동을 요구하지 않는다.
+**독립 저장소 실험 진입점**의 계약이다. 같은 VSS/WinFsp/저널 구현을 사용하는 일반 제품 backend는 [NTFS 작업공간](ntfs-workspaces.md)에 별도로 연결되어 있다. Windows/NTFS 한 환경의 SO-01~06 fixture 증거는 [SO 기록](verification/snapshot-overlay.md), 제품 NI 상태는 [NI 기록](verification/ntfs-workspace-integration.md)으로 구분한다. ReFS 준비나 원본 이동은 요구하지 않는다.
 
 ## 구성과 저장 계약
 
@@ -13,7 +13,7 @@
 | WinFspOverlayClient.cs / WinFspOverlayMountProvider.cs | 공통 mount port, immutable runner, PID/시작 시각·launch generation, 같은 snapshot/delta 재연결, flush/unmount |
 | GitOverlayRegistration.cs | no-checkout linked worktree, 독립 index, 결과 commit/ref, 정확한 소유 등록 회수 |
 | OverlayExperimentCommands.cs | snapshot-spike JSON CLI의 schema 검증 및 Git/Unity/Windows 조립 |
-| scripts/vss-snapshot.ps1 | 관리자 capture/observe/owned-ID release 어댑터. C# snapshot lifecycle port의 제품 coordinator 연결은 미구현 |
+| scripts/vss-snapshot.ps1 | 관리자 capture/observe/owned-ID release helper. VssSnapshotProvider가 제품용 영수증·권한 재개 경계로 연결 |
 
 생성 시 source payload를 복사하지 않는다. 읽기는 snapshot과 기존 저널 범위를 합성하며 영구 캐시를 만들지 않는다. 일부 쓰기는 해당 범위만 저장한다. 승인한 프레임은 Flush(true)한다. 재생은 불완전한 마지막 프레임만 제거한다. 완결 프레임의 checksum 오류는 저널을 보존하고 DeltaCorrupt로 실패한다. 임의 손상 복원·자동 재캡처·전체 복사 fallback은 없다.
 
@@ -34,7 +34,7 @@
 | preserve | 앱 종료 후 Git source 결과 commit와 refs/splinter/snapshot-results/overlay-id 보존. bridge·생성 cache 제외 |
 | git-release | mount 부재와 보존 revision 일치 후 정확한 Git 등록만 제거. 결과 ref와 branch 유지 |
 
-control/state.json의 phase는 mounted, snapshot-missing, unmounted, failed다. CLI는 processAlive, snapshotAvailable, mountPresent를 함께 반환한다. launch intent와 receipt generation이 다르면 OverlayStartUncertain으로 중복 실행을 막는다. stop.json과 flush.json은 같은 token을 요구한다. unmounted 뒤에도 실제 프로세스와 경로 부재를 확인한다.
+control/state.json의 phase는 mounted, snapshot-missing, unmounted, failed다. CLI는 processAlive, snapshotAvailable, mountPresent를 함께 반환한다. launch intent와 receipt generation이 다르거나 오래된 state가 새 실행을 설명하지 못하면 OverlayStartUncertain으로 중복 실행을 막는다. 누락된 자원 관측은 unknown으로 유지하고 회수의 0으로 사용하지 않는다. stop.json과 flush.json은 같은 token을 요구한다. unmounted 뒤에도 실제 프로세스와 경로 부재를 확인한다.
 
 WinFsp Cleanup에서 사용자 핸들 종료를 집계한다. 커널 retainedFileContexts는 Close까지 남을 수 있어 별도로 관측한다. 정상 unmount 뒤 제공자가 종료되면 그 메모리도 회수된다. 열린 사용자 핸들이 있으면 unmount를 강행하지 않는다.
 

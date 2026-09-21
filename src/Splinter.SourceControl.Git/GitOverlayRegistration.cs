@@ -11,21 +11,47 @@ public static class GitOverlayRegistration
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static Task<string> Git(string cwd, string[] args, CancellationToken ct) => GitWorkspaceProvider.Required(cwd, args, ct);
-    public static async Task<OverlayGitReceipt> PrepareAsync(string project, string path, string branch, string revision, string ownerId, string receiptPath, CancellationToken ct)
+    public static async Task<OverlayGitReceipt> PrepareAsync(string project, string path, string branch, string revision, string ownerId, string receiptPath, CancellationToken ct, bool capturedSource = false)
     {
         if (File.Exists(receiptPath))
         {
             var prior = await ReadAsync(receiptPath, ct);
             if (prior.OwnerId != ownerId || !Same(prior.Path, path) || !Same(prior.Project, project) || prior.Branch != branch || prior.Revision != revision)
                 throw new WorkspaceException("GitOverlayIdentityMismatch", "Reuse the exact registration request.");
-            await VerifyAsync(prior, ct); return prior;
+            await VerifyAsync(prior, ct);
+            // A response may have been lost after the receipt but before the
+            // pointer-only staging directory was removed.
+            await FinishPreparation(prior, ct); return prior;
         }
-        if (File.Exists(receiptPath + ".intent")) throw new WorkspaceException("GitOverlayReconcileRequired", "A prior registration intent has no receipt; inspect the exact worktree before retrying.");
+        if (File.Exists(receiptPath + ".intent"))
+        {
+            using var intent = JsonDocument.Parse(await File.ReadAllTextAsync(receiptPath + ".intent", ct));
+            var i = intent.RootElement;
+            if (i.GetProperty("ownerId").GetString() != ownerId || i.GetProperty("branch").GetString() != branch || i.GetProperty("revision").GetString() != revision ||
+                !Same(i.GetProperty("project").GetString()!, project) || !Same(i.GetProperty("path").GetString()!, path))
+                throw new WorkspaceException("GitOverlayIdentityMismatch", "Registration intent belongs to different inputs.");
+            string common = await Git(project, ["rev-parse", "--path-format=absolute", "--git-common-dir"], ct);
+            string registrations = Path.Combine(common, "worktrees");
+            foreach (string directory in Directory.Exists(registrations) ? Directory.EnumerateDirectories(registrations) : [])
+            {
+                Plain(directory);
+                string pointerFile = Path.Combine(directory, "gitdir");
+                if (!File.Exists(pointerFile) || !Same((await File.ReadAllTextAsync(pointerFile, ct)).Trim(), Path.Combine(path, ".git"))) continue;
+                var recovered = new OverlayGitReceipt(ownerId, project, path, branch, revision, directory, "gitdir: " + directory.Replace('\\', '/') + "\n");
+                await VerifyAsync(recovered, ct);
+                if (await Git(project, ["rev-parse", "refs/heads/" + branch], ct) != revision)
+                    throw new WorkspaceException("GitOverlayReconcileRequired", "Registered branch changed during creation; preserve it.");
+                if (File.Exists(Path.Combine(path, ".git"))) recovered = recovered with { Pointer = await File.ReadAllTextAsync(Path.Combine(path, ".git"), ct) };
+                await Save(receiptPath, recovered, ct); await FinishPreparation(recovered, ct); return recovered;
+            }
+            if (Directory.Exists(path) || File.Exists(path))
+                throw new WorkspaceException("GitOverlayReconcileRequired", "Unregistered files remain after creation; preserve them.");
+        }
         Plain(project); Plain(path); Plain(receiptPath);
         if (Directory.Exists(path) || File.Exists(path) || !Path.IsPathFullyQualified(path) || Same(project, path))
             throw new WorkspaceException("GitOverlayPathExists", "Register at a new absolute path separate from the source.");
         if (!Same(await Git(project, ["rev-parse", "--show-toplevel"], ct), project)) throw new WorkspaceException("GitProjectRootMismatch", "Use the repository root.");
-        if ((await Git(project, ["status", "--porcelain"], ct)).Length != 0) throw new WorkspaceException("GitSourceDirty", "Prepare a recorded source checkpoint first.");
+        if (!capturedSource && (await Git(project, ["status", "--porcelain"], ct)).Length != 0) throw new WorkspaceException("GitSourceDirty", "Prepare a recorded source checkpoint first.");
         Directory.CreateDirectory(Path.GetDirectoryName(receiptPath)!);
         await Save(receiptPath + ".intent", new { project, path, branch, revision, ownerId }, ct);
         await Git(project, ["worktree", "add", "--no-checkout", "-b", branch, path, revision], ct);
@@ -33,12 +59,24 @@ public static class GitOverlayRegistration
         string gitDirectory = await Git(path, ["rev-parse", "--path-format=absolute", "--git-dir"], ct);
         var receipt = new OverlayGitReceipt(ownerId, project, path, branch, revision, gitDirectory, pointer);
         await Save(receiptPath, receipt, ct);
-        await Git(project, ["worktree", "lock", "--reason", "Splinter overlay " + ownerId, path], ct);
+        await FinishPreparation(receipt, ct);
+        return receipt;
+    }
+    private static async Task FinishPreparation(OverlayGitReceipt receipt, CancellationToken ct)
+    {
+        string project = receipt.Project, path = receipt.Path;
+        if (!File.Exists(Path.Combine(receipt.GitDirectory, "locked")))
+            await Git(project, ["worktree", "lock", "--reason", "Splinter overlay " + receipt.OwnerId, path], ct);
         // The only file created by --no-checkout is the Git pointer. Never
         // recursively delete a mount or source tree when preparing this path.
-        if (Directory.EnumerateFileSystemEntries(path).Count() != 1) throw new WorkspaceException("GitOverlayPathChanged", "Unexpected files appeared; preserve them.");
+        if (!Directory.Exists(path)) return;
+        if (Directory.EnumerateFileSystemEntries(path).Count() > 1) return;
+        // An already mounted overlay must never be inspected as preparation.
+        if (!File.Exists(System.IO.Path.Combine(path, ".git")) || Directory.EnumerateFileSystemEntries(path).Count() != 1)
+            throw new WorkspaceException("GitOverlayPathChanged", "Unexpected files appeared; preserve them.");
+        if (await File.ReadAllTextAsync(System.IO.Path.Combine(path, ".git"), ct) != receipt.Pointer)
+            throw new WorkspaceException("GitOverlayPointerMismatch", "Preparation pointer changed.");
         File.Delete(System.IO.Path.Combine(path, ".git")); Directory.Delete(path, false);
-        return receipt;
     }
     public static async Task<OverlayGitReceipt> ReadAsync(string path, CancellationToken ct) =>
         JsonSerializer.Deserialize<OverlayGitReceipt>(await File.ReadAllTextAsync(path, ct), Json) ?? throw new WorkspaceException("GitOverlayReceiptMissing", path);

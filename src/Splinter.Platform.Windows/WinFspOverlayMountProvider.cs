@@ -41,7 +41,12 @@ public sealed class WinFspOverlayMountProvider(string requestPath, string runner
         var request = await Request(mount, cancellationToken);
         var result = await WinFspOverlayClient.ObserveAsync(request, cancellationToken);
         bool alive = result.GetProperty("processAlive").GetBoolean(), present = Directory.Exists(mount.Path);
-        if (!result.TryGetProperty("state", out _)) return new(present, !present, 0, 0, 0, "OverlayNotStarted");
+        if (!result.TryGetProperty("state", out _))
+        {
+            bool known = result.GetProperty("ownershipVerified").GetBoolean() && !alive && !present;
+            return new(present, known, known ? 0 : null, known ? 0 : null, known ? 0 : null,
+                known ? "OverlayNotStarted" : "OverlayStartUncertain");
+        }
         var state = result.GetProperty("state");
         if (alive && (state.GetProperty("processId").GetInt32() != mount.ProviderProcessId || state.GetProperty("processStartTimeUtcTicks").GetInt64() != mount.ProviderStartTimeUtcTicks))
             throw new WorkspaceException("OverlayLeaseStale", "Reconnect to the current provider generation before controlling it.");
@@ -54,7 +59,7 @@ public sealed class WinFspOverlayMountProvider(string requestPath, string runner
             catch (ArgumentException) { alive = false; }
             catch (InvalidOperationException) { alive = false; }
         }
-        return new(present, !alive && !present || alive, alive && state.TryGetProperty("openHandles", out var handles) ? handles.GetInt32() : 0,
+        return new(present, !alive && !present || alive, alive ? state.TryGetProperty("openHandles", out var handles) ? handles.GetInt32() : null : 0,
             working, memory,
             state.TryGetProperty("error", out var error) ? error.GetString() : result.GetProperty("failureCode").GetString());
     }

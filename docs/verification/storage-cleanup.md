@@ -18,6 +18,6 @@
 
 ## 다음 세션
 
-S: 시험 디스크와 ReFS 기준본은 더 이상 존재하지 않는다. 새 작업이 이를 재생성하거나 cold baseline을 다시 만드는 것을 기본으로 삼지 않는다. [NTFS 스냅샷·변경분 계획](../plans/ntfs-snapshot-overlay-spike.md)의 SO-01~06을 수행한다.
+S: 시험 디스크와 ReFS 기준본은 더 이상 존재하지 않는다. 새 작업이 이를 재생성하거나 cold baseline을 다시 만드는 것을 기본으로 삼지 않는다. [NTFS workspace 통합](ntfs-workspace-integration.md)은 실제 저장·Unity·실패 보호를 검증했고 소유 VSS까지 회수했다. 기존 run과 추가 원본 통합 차단 시험은 released 상태이며 NI-01~08의 fixture 증거와 후속 지원 경계는 NI 기록을 따른다. SO fixture의 종료된 자원을 다시 사용하지 않는다.
 
 별도 Codex worktree에서는 `../splinter-unity`가 실제 fixture가 아닐 수 있다. 실제 fixture는 `C:/Users/olive/Desktop/Development/splinter-unity`이며 그 저장소 지침과 상태를 확인한 뒤 사용한다. 실제 1TB 사용자 프로젝트는 시험 대상으로 자동 선택하지 않는다.

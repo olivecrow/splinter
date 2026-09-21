@@ -20,6 +20,7 @@ public static class WinFspOverlayServer
         Directory.CreateDirectory(request.ControlPath);
         string statePath = Path.Combine(request.ControlPath, "state.json");
         int failures = 0;
+        string? lastFailureCode = null;
         using var self = Process.GetCurrentProcess();
         try
         {
@@ -44,9 +45,10 @@ public static class WinFspOverlayServer
             var fileSystem = new WinFspOverlayFileSystem(store, ex =>
             {
                 int count = Interlocked.Increment(ref failures);
+                if (ex is WorkspaceException failure) Volatile.Write(ref lastFailureCode, failure.Code);
                 if (count <= 100)
                     lock (Json) File.AppendAllText(Path.Combine(request.ControlPath, "io-errors.jsonl"),
-                        JsonSerializer.Serialize(new { at = DateTimeOffset.UtcNow, type = ex.GetType().Name, ex.Message }, Json) + "\n");
+                        JsonSerializer.Serialize(new { at = DateTimeOffset.UtcNow, type = ex.GetType().Name, code = (ex as WorkspaceException)?.Code, ex.Message }, Json) + "\n");
             });
             using (var host = new FileSystemHost(fileSystem))
             {
@@ -64,7 +66,7 @@ public static class WinFspOverlayServer
                         processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks,
                         openHandles = fileSystem.OpenHandles, retainedFileContexts = fileSystem.RetainedFileContexts,
                         workingSetBytes = self.WorkingSet64, privateBytes = self.PrivateMemorySize64,
-                        ioFailures = Volatile.Read(ref failures), storage = store.Observe()
+                        ioFailures = Volatile.Read(ref failures), lastFailureCode = Volatile.Read(ref lastFailureCode), storage = store.Observe()
                     });
                     var stop = await WindowsProcessWorkspaceProvider.ReadAsync<StopRequest>(Path.Combine(request.ControlPath, "stop.json"));
                     if (stop?.Token == request.Token)

@@ -750,6 +750,7 @@
           "type": "array",
           "items": {
             "enum": [
+              "ntfs-snapshot",
               "refs-cow",
               "git-checkout"
             ]
@@ -758,16 +759,45 @@
         "snapshotOverlay": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["stage", "integratedWorkspaceMode", "sourceSnapshot", "deltaStore", "requestSchema", "observationSchema", "entrypoints", "qualification"],
+          "required": [
+            "stage",
+            "integratedWorkspaceMode",
+            "sourceSnapshot",
+            "deltaStore",
+            "requestSchema",
+            "observationSchema",
+            "entrypoints",
+            "qualification"
+          ],
           "properties": {
-            "stage": {"const": "experimental-storage-spike"},
-            "integratedWorkspaceMode": {"const": false},
-            "sourceSnapshot": {"const": "windows-vss-system"},
-            "deltaStore": {"const": "bounded-checksummed-range-journal"},
-            "requestSchema": {"const": "urn:splinter:v1:overlay-serve-request"},
-            "observationSchema": {"const": "urn:splinter:v1:overlay-observation"},
-            "entrypoints": {"type": "array", "items": {"type": "string"}},
-            "qualification": {"type": "string", "minLength": 1}
+            "stage": {
+              "const": "workspace-internal-alpha"
+            },
+            "integratedWorkspaceMode": {
+              "const": true
+            },
+            "sourceSnapshot": {
+              "const": "windows-vss-system"
+            },
+            "deltaStore": {
+              "const": "bounded-checksummed-range-journal"
+            },
+            "requestSchema": {
+              "const": "urn:splinter:v1:overlay-serve-request"
+            },
+            "observationSchema": {
+              "const": "urn:splinter:v1:overlay-observation"
+            },
+            "entrypoints": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "qualification": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       }
@@ -952,6 +982,7 @@
         },
         "storageMode": {
           "enum": [
+            "ntfs-snapshot",
             "refs-cow",
             "git-checkout"
           ]
@@ -1015,8 +1046,35 @@
         },
         "releasedResources": {
           "$ref": "#/$defs/processResources"
+        },
+        "requestDigest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "snapshot": {
+          "$ref": "#/$defs/snapshotWorkspace"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "storageMode": {
+                "const": "ntfs-snapshot"
+              }
+            },
+            "required": [
+              "storageMode"
+            ]
+          },
+          "then": {
+            "required": [
+              "snapshot",
+              "requestDigest"
+            ]
+          }
+        }
+      ]
     },
     "workspaceView": {
       "type": "object",
@@ -1285,6 +1343,373 @@
           "minLength": 1
         }
       }
+    },
+    "overlayStorage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "snapshotId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initialPayloadCopiedBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "journalBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "payloadBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metadataBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "readBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "readCacheBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxTransferBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "indexedNodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "durableSequence": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "id",
+        "snapshotId",
+        "initialPayloadCopiedBytes",
+        "journalBytes",
+        "payloadBytes",
+        "metadataBytes",
+        "readBytes",
+        "readCacheBytes",
+        "maxTransferBytes",
+        "indexedNodes",
+        "durableSequence"
+      ]
+    },
+    "snapshotWorkspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxJournalBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sourcePath": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rootPath": {
+              "type": "string",
+              "minLength": 1
+            },
+            "capturedAt": {
+              "type": "string",
+              "minLength": 1
+            },
+            "persistent": {
+              "type": "boolean"
+            },
+            "differential": {
+              "type": "boolean"
+            },
+            "consistency": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "id",
+            "provider",
+            "sourcePath",
+            "rootPath",
+            "capturedAt",
+            "persistent",
+            "differential",
+            "consistency"
+          ]
+        },
+        "mount": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "deltaPath": {
+              "type": "string",
+              "minLength": 1
+            },
+            "snapshot": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "provider": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sourcePath": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "rootPath": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "capturedAt": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "persistent": {
+                  "type": "boolean"
+                },
+                "differential": {
+                  "type": "boolean"
+                },
+                "consistency": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id",
+                "provider",
+                "sourcePath",
+                "rootPath",
+                "capturedAt",
+                "persistent",
+                "differential",
+                "consistency"
+              ]
+            },
+            "providerProcessId": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "providerStartTimeUtcTicks": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "id",
+            "path",
+            "deltaPath",
+            "snapshot",
+            "providerProcessId",
+            "providerStartTimeUtcTicks"
+          ]
+        },
+        "attached": {
+          "type": "boolean"
+        },
+        "step": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "snapshotAvailable": {
+              "type": "boolean"
+            },
+            "mounted": {
+              "type": "boolean"
+            },
+            "providerAlive": {
+              "type": "boolean"
+            },
+            "ownershipVerified": {
+              "type": "boolean"
+            },
+            "openHandles": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "workingSetBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "privateBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "storage": {
+              "$ref": "#/$defs/overlayStorage"
+            },
+            "failureCode": {
+              "type": "string",
+              "minLength": 1
+            },
+            "hostFreeBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "journalRemainingBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "snapshotStorage": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "available"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "available": {
+                  "type": "boolean"
+                },
+                "failureCode": {
+                  "type": "string"
+                },
+                "preservedBytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "allocatedBytes": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "deltaPresent": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "snapshotAvailable",
+            "mounted",
+            "providerAlive",
+            "ownershipVerified"
+          ]
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "snapshotId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fingerprint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "resultReference": {
+              "type": "string",
+              "minLength": 1
+            },
+            "seal": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "durableSequence": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "journalBytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "journalHash": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "durableSequence",
+                "journalBytes",
+                "journalHash"
+              ]
+            },
+            "independentOfSnapshot": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "snapshotId",
+            "revision",
+            "fingerprint",
+            "resultReference",
+            "seal",
+            "independentOfSnapshot"
+          ]
+        }
+      },
+      "required": [
+        "maxJournalBytes",
+        "attached",
+        "step"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "attached": {
+                "const": true
+              }
+            },
+            "required": [
+              "attached"
+            ]
+          },
+          "then": {
+            "required": [
+              "reference"
+            ]
+          }
+        }
+      ]
     }
   }
 }

@@ -4,6 +4,9 @@
 
 | 문서 | 읽을 때 |
 | --- | --- |
+| [NTFS 작업공간](ntfs-workspaces.md) | 일반 CLI의 ntfs-snapshot 생성·권한 경계·재개·독립 결과·회수와 현재 제한을 확인할 때 |
+| [NI 통합 검증](verification/ntfs-workspace-integration.md) | 실제 NTFS/Git/Unity·범위 저장·장애 보호 증거, 원본 통합 차단·최종 자원 회수와 긴 경로 제한을 확인할 때 |
+| [NTFS workspace 1차 통합 범위](plans/ntfs-workspace-integration.md) | SO 실험 이후 이번 구현에 포함할 계약·CLI·복구·결과·회수와 NI 완료 기준, 필요한 시험 자원을 확인할 때 |
 | [NTFS snapshot-overlay 실험](snapshot-overlay.md) | VSS·WinFsp·범위 저널의 현재 실험 계약, 실행·재연결과 비용 제한을 확인할 때 |
 | [SO 실제 실행 기록](verification/snapshot-overlay.md) | SO-01~06의 현재 상태와 원시 증거, 무효 처리된 측정을 확인할 때 |
 | [NTFS 실험 계획과 통합 조건](plans/ntfs-snapshot-overlay-spike.md) | SO-01~06의 의도·완료 조건과 제품 통합 전에 남은 검증을 확인할 때 |
@@ -13,7 +16,7 @@
 | [자원 검증](verification/storage-and-resources.md) | 실제 Windows/ReFS/Unity 증거와 다음 검증 관문을 확인할 때 |
 | [ReFS 시험 자원 정리](verification/storage-cleanup.md) | 시험 디스크·기준본 회수와 보존한 증거, 새 세션의 실제 fixture 경로를 확인할 때 |
 | [실제 알파 검증](verification/internal-alpha.md) | Luna low 두 작업자의 GUI Editor 격리·재개·통합·회수 증거와 검증 한계를 확인할 때 |
-| [원본 기획서](../plan.html) | 개정 4판의 제품 요구사항, 현재 구현·SO 검증 범위, 다음 통합 우선순위를 확인할 때 |
+| [원본 기획서](../plan.html) | 개정 4판의 제품 요구사항, 현재 구현·SO/NI 완료 범위, 후속 검증·구현 우선순위를 확인할 때 |
 | [구현 계획](plans/implementation-plan.md) | 기술 선택, 모듈 책임, CLI·상태 계약, 단계별 구현 작업을 확인할 때 |
 | [검증 추적표](plans/validation-matrix.md) | 기획 요구사항의 구현 단계와 필요한 검증 증거를 확인할 때 |
 

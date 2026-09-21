@@ -8,6 +8,23 @@ namespace Splinter.Tests;
 public sealed class OverlayMountObservationTests
 {
     [Fact]
+    public async Task MissingStateAfterLaunchIntentIsUnknownNotZero()
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows process observation.");
+        using var d = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
+        var snapshot = new SnapshotReference("snapshot", "windows-vss-system", d.Path, Path.Combine(d.Path, "base"), DateTimeOffset.UtcNow, true, true, "test");
+        var request = new OverlayServeRequest(new(1, "overlay", snapshot, 65536, 4096), Path.Combine(d.Path, "delta"), Path.Combine(d.Path, "mount"), d.Path, "token");
+        string requestPath = Path.Combine(d.Path, "request.json"); var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        await File.WriteAllTextAsync(requestPath, JsonSerializer.Serialize(request, json), ct);
+        await File.WriteAllTextAsync(Path.Combine(d.Path, "provider-launch-intent.json"),
+            JsonSerializer.Serialize(new { request.Token, id = "overlay", generation = "unreconciled", requestedAt = DateTimeOffset.UtcNow }, json), ct);
+        var observed = await new WinFspOverlayMountProvider(requestPath, d.Path).ObserveAsync(new("overlay", request.MountPath, request.DeltaPath, snapshot, 0, 0), ct);
+        Assert.False(observed.OwnershipVerified); Assert.Null(observed.OpenHandles); Assert.Null(observed.PrivateBytes);
+        Assert.Equal("OverlayStartUncertain", observed.FailureCode);
+        Assert.Equal("OverlayStartUncertain", (await Assert.ThrowsAsync<WorkspaceException>(() => WinFspOverlayClient.StartAsync(requestPath, d.Path, ct))).Code);
+    }
+
+    [Fact]
     public async Task FailedProviderWithoutMemoryFieldsCannotPassReclamationGateWhileAlive()
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows process observation.");

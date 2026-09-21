@@ -1,10 +1,10 @@
 # 병렬 Unity 스크립트 알파
 
-> 현재 실행 가능한 ReFS 내부 알파와 제품 목표를 구분한다. 최초 전체 복제 없는 NTFS 원본 스냅샷·범위별 변경 저장, 원본의 계속된 수정은 아직 미구현이며 다음 작업은 [SO-01~06](plans/ntfs-snapshot-overlay-spike.md)이다. 아래 명령을 새 저장소 요구사항의 지원 증거로 사용하지 않는다.
+> 공통 Unity 작업 흐름과 기존 ReFS 예시를 설명한다. 일반 CLI에 연결한 `ntfs-snapshot`의 생성·권한·독립 결과·회수 차이는 [NTFS 작업공간](ntfs-workspaces.md)을 따른다. 실제 VSS/Unity 관문은 [NI 검증](verification/ntfs-workspace-integration.md)에 별도로 기록하며 기존 ReFS 성공으로 대체하지 않는다.
 
-AI 작업자는 Editor가 필요한 시점에 이 CLI로 자신의 프로젝트와 Editor를 확보한다. 작업 도중 대화나 CLI가 끝나도 작업공간과 Editor는 남는다. 같은 `--home`, `--project`, `--key`로 다시 접속한다. 완료 후 명시적으로 커밋·통합·회수한다.
+AI 작업자는 Editor가 필요한 시점에 이 CLI로 자신의 프로젝트와 Editor를 확보한다. 작업 도중 대화나 CLI가 끝나도 작업공간과 Editor는 남는다. 같은 `--home`, `--project`, `--key`로 다시 접속한다. 완료 후 명시적으로 결과를 보존하고 필요한 통합과 회수를 수행한다.
 
-현재 범위는 Windows의 간단한 C# 스크립트 편집과 컴파일이다. 반복 작업에는 [예열 기준본과 ReFS CoW](storage-and-resources.md)를 사용한다. 명시적인 `git-checkout`은 새 Library를 만드는 진단 모드다. 원본은 최초 커밋이 있고 깨끗한 Git 저장소 루트의 Unity 프로젝트여야 한다. 해당 Unity 패치가 Hub 기본 경로에 설치되어 있어야 하며 다른 위치는 `SPLINTER_UNITY_EDITOR`로 지정한다. 실제 환경별 지원 증거는 [자원 검증](verification/storage-and-resources.md)을 확인한다.
+현재 범위는 Windows의 간단한 C# 스크립트 편집과 컴파일이다. NTFS에는 [불변 snapshot 모드](ntfs-workspaces.md)를, 선택적 ReFS에는 [예열 기준본과 CoW](storage-and-resources.md)를 사용한다. 명시적인 `git-checkout`은 새 Library를 만드는 진단 모드다. 원본은 최초 커밋이 있고 깨끗한 Git 저장소 루트의 Unity 프로젝트여야 한다. 해당 Unity 패치가 Hub 기본 경로에 설치되어 있어야 하며 다른 위치는 `SPLINTER_UNITY_EDITOR`로 지정한다. 실제 환경별 지원 증거는 [자원 검증](verification/storage-and-resources.md)을 확인한다.
 
 ## 에이전트의 기본 흐름
 
@@ -24,7 +24,7 @@ splinter unity refresh --id <id> --home <상태 경로>
 splinter workspace status --id <id> --home <상태 경로>
 ```
 
-refresh는 대상 Editor를 활성화하고 명시적 AssetDatabase refresh와 전체 스크립트 컴파일을 요청한다. `Accepted`는 접수다. status의 `workspace.validation.success=true`와 현재 source fingerprint 일치가 검증 성공이다. 오류는 `workspace.validation.errors`에 있다. 수정 후 refresh를 다시 실행한다. Unity가 새 `.meta`를 만들면 fingerprint가 바뀌어 첫 검증이 거부될 수 있으므로, 파일이 안정된 뒤 재검증한다. Play와 저장하지 않은 씬은 검증·종료를 차단한다.
+refresh는 대상 Editor를 활성화하고 명시적 AssetDatabase refresh와 스크립트 컴파일을 요청한다. ReFS/진단 모드는 clean compilation, NTFS는 incremental compilation을 사용한다. `Accepted`는 접수다. status의 `workspace.validation.success=true`와 현재 source fingerprint 일치가 검증 성공이다. 오류는 `workspace.validation.errors`에 있다. 수정 후 refresh를 다시 실행한다. Unity가 새 `.meta`를 만들면 fingerprint가 바뀌어 첫 검증이 거부될 수 있으므로, 파일이 안정된 뒤 재검증한다. Play와 저장하지 않은 씬은 검증·종료를 차단한다.
 
 작업을 다음 대화에서 이어가려면 같은 ensure 또는 `workspace list --project`와 status를 사용한다. `unity stop`은 Editor만 종료한다. 작업이 끝났을 때:
 
@@ -34,7 +34,7 @@ splinter workspace integrate --id <id> --target development --home <상태 경�
 splinter workspace release --id <id> --home <상태 경로>
 ```
 
-checkpoint는 검증한 소스만 커밋한다. integrate는 작업 Editor를 종료하고 원본의 현재 브랜치에 merge한다. 원본이 요청한 브랜치에 있고 깨끗해야 한다. 충돌은 이 명령이 시작한 merge만 중단하고 결과 worktree를 남긴다. 여러 결과의 통합은 저장소별로 직렬화한다. 통합한 원본은 원본 Editor에서 별도로 새로고침·검증한다. release는 결과가 회수된 깨끗한 worktree만 삭제하며 기록·로그·결과 브랜치는 유지한다. 자동 타임아웃 삭제는 없다.
+checkpoint는 검증한 소스만 커밋한다. NTFS는 앱/자식 종료를 먼저 확인하고 독립 result ref/manifest까지 남기며 원본 통합 없이 release할 수 있다. integrate는 작업 Editor를 종료하고 원본의 현재 브랜치에 merge한다. 원본이 요청한 브랜치에 있고 깨끗해야 한다. 충돌은 이 명령이 시작한 merge만 중단하고 결과 worktree를 남긴다. 여러 결과의 통합은 저장소별로 직렬화한다. 통합한 원본은 원본 Editor에서 별도로 새로고침·검증한다. release는 결과가 회수된 깨끗한 worktree만 삭제하며 기록·로그·결과 브랜치는 유지한다. 자동 타임아웃 삭제는 없다.
 
 release 완료에는 Editor뿐 아니라 자식과 감시 프로세스의 종료 증거가 필요하다. `workspace.releasedResources`의 소유 프로세스 수·working set·private bytes가 모두 0이며 실제 worktree 경로도 제거되어야 한다. 재사용 기준본은 별도 디스크 캐시로 유지되며 `baseline release`로 명시적으로 회수한다.
 
@@ -48,7 +48,7 @@ Windows Git 호출에는 `core.longpaths=true`를 명령별로 적용한다. 사
 | `validation-failed`, `ValidationRequired`, `SourceChanged` | 오류와 현재 소스 확인 → 수정 → refresh → status. |
 | `EditorFocusRequired` | Windows가 활성화를 거부했다. 해당 프로젝트 Editor를 활성화한 뒤 refresh 재시도. |
 | `WorkspaceBusy`, `EditorNotReady` | 같은 명령 또는 status 재조회. |
-| `UncollectedChanges`, `GitDirtyWorktree` | 변경을 보존하고 검증·checkpoint·integrate를 완료한다. |
+| `UncollectedChanges`, `GitDirtyWorktree` | 변경을 보존하고 검증·checkpoint를 완료한다. ReFS/진단 경로는 integrate도 필요하다. |
 | `IntegrationConflict` | 원본과 결과를 보존해 충돌을 해결한 새 작업을 진행한다. |
 | `LaunchUncertain`, `EditorStopTimeout`, `ProcessOwnershipUnknown` | `controlPath/editor.log`와 해당 PID/시작 시각을 조사한다. 강제 종료·강제 회수하지 않는다. |
 | `released` | 종료된 작업이다. 새 편집에는 새 key를 쓴다. |

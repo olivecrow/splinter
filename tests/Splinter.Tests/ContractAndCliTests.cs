@@ -2,6 +2,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Splinter.Cli;
 using Splinter.Protocol;
+using Splinter.Core;
+using Splinter.Runtime;
 
 namespace Splinter.Tests;
 
@@ -33,6 +35,50 @@ public sealed class ContractAndCliTests
         {"schemaVersion":"1.0","requestId":"00000000000000000000000000000000","command":"workspace.ensure","status":"Accepted","terminal":false,"retryDisposition":"not-needed","nextActions":[{"command":"workspace.status","arguments":{"id":"aaaaaaaaaaaaaaaaaaaaaaaa"},"requiresUserAction":false}],"data":{"workspace":{"id":"aaaaaaaaaaaaaaaaaaaaaaaa","requestKey":"task","projectPath":"C:/project","path":"C:/workspace","sourceReference":"development","baseReference":"development","phase":"creating","createdAt":"2026-09-21T00:00:00Z","updatedAt":"2026-09-21T00:00:00Z","storageMode":"git-checkout"},"controlPath":"C:/control","nextCommand":"workspace.status","isolation":"private"}}
         """);
         Assert.True(contracts.Validate("urn:splinter:v1:response", document.RootElement).IsValid);
+    }
+
+    [Fact]
+    public void SnapshotSchemaRequiresIdentityAndKeepsUnknownCountersAbsent()
+    {
+        var node = JsonSerializer.SerializeToNode(ApiResponse.Success("workspace.status", new
+        {
+            workspace = new { id = "aaaaaaaaaaaaaaaaaaaaaaaa", requestKey = "task", projectPath = "C:/project", path = "C:/work",
+                sourceReference = "task", baseReference = "development", phase = "creating", createdAt = DateTimeOffset.UtcNow,
+                updatedAt = DateTimeOffset.UtcNow, storageMode = "ntfs-snapshot", requestDigest = "aaaaaaaaaaaaaaaaaaaaaaaa",
+                snapshot = new SnapshotWorkspaceState { Observation = new(false, false, false, false, null, null, null, FailureCode: "OverlayStartUncertain") } },
+            controlPath = "C:/control", nextCommand = "workspace.ensure", isolation = "private"
+        }), ApiJson.Options)!;
+        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        Assert.Null(node["data"]!["workspace"]!["snapshot"]!["observation"]!["privateBytes"]);
+        node["data"]!["workspace"]!.AsObject().Remove("snapshot");
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+    }
+
+    [Theory]
+    [InlineData("ntfs-snapshot", 4096, true)]
+    [InlineData("ntfs-snapshot", 4095, false)]
+    [InlineData("ntfs-snapshot", 1099511627777, false)]
+    [InlineData("git-checkout", 4096, false)]
+    public void JournalBudgetBelongsOnlyToSnapshotRequests(string storage, long maxJournalBytes, bool valid)
+    {
+        Assert.Equal(valid, contracts.Validate("urn:splinter:v1:workspace-ensure-request",
+            JsonSerializer.SerializeToElement(new { project = "C:/project", key = "task", storage, maxJournalBytes })).IsValid);
+    }
+
+    [Fact]
+    public async Task PendingSnapshotStatusReturnsAnAbsoluteResumeHomeAndNoInventedStorage()
+    {
+        using var d = new TestDirectory(); var store = new WorkspaceStore(d.Path);
+        string id = WorkspaceStore.Key("pending-snapshot");
+        store.Save(new WorkspaceRecord { Id = id, RequestKey = "task", RequestDigest = id, ProjectPath = Path.Combine(d.Path, "source"),
+            Path = store.WorkPath(id), BaseReference = "development", SourceReference = "splinter/task", StorageMode = "ntfs-snapshot", Snapshot = new() }, "fixture-pending");
+        var (exit, response) = await Run("workspace", "status", "--id", id, "--home", Path.GetRelativePath(Environment.CurrentDirectory, d.Path));
+        Assert.Equal(0, exit);
+        Assert.Equal(d.Path, response.GetProperty("nextActions")[0].GetProperty("arguments").GetProperty("home").GetString());
+        var observation = response.GetProperty("data").GetProperty("workspace").GetProperty("snapshot").GetProperty("observation");
+        Assert.False(observation.GetProperty("snapshotAvailable").GetBoolean());
+        Assert.False(observation.GetProperty("deltaPresent").GetBoolean());
+        Assert.False(observation.TryGetProperty("storage", out _));
     }
 
     [Theory]

@@ -57,7 +57,7 @@ public interface IWorkspaceDeltaStore : IDisposable
 public sealed record OverlayMount(string Id, string Path, string DeltaPath, SnapshotReference Snapshot,
     int ProviderProcessId, long ProviderStartTimeUtcTicks);
 public sealed record OverlayMountObservation(bool Mounted, bool OwnershipVerified,
-    int OpenHandles, long WorkingSetBytes, long PrivateBytes, string? FailureCode);
+    int? OpenHandles, long? WorkingSetBytes, long? PrivateBytes, string? FailureCode);
 
 public interface IOverlayMountProvider
 {

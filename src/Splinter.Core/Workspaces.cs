@@ -28,6 +28,8 @@ public sealed class WorkspaceRecord
     public string? BaselineId { get; set; }
     public CloneStatistics? CloneMetrics { get; set; }
     public ProcessResources? ReleasedResources { get; set; }
+    public string? RequestDigest { get; set; }
+    public SnapshotWorkspaceState? Snapshot { get; set; }
 }
 
 public sealed record SourceWorkspace(string Path, string Reference, string BaseRevision, CloneStatistics? CloneMetrics = null);
@@ -64,7 +66,11 @@ public interface IApplicationWorkspaceProvider
     Task RemoveInfrastructureAsync(WorkspaceRecord workspace, string controlPath, CancellationToken cancellationToken = default);
 }
 
-public sealed class WorkspaceException(string code, string message) : Exception(message)
+public sealed record WorkspaceRecoveryAction(string Command, object Arguments, bool RequiresUserAction = false);
+public sealed class WorkspaceException(string code, string message, object? details = null,
+    WorkspaceRecoveryAction[]? recoveryActions = null) : Exception(message)
 {
     public string Code { get; } = code;
+    public object? Details { get; } = details;
+    public WorkspaceRecoveryAction[]? RecoveryActions { get; } = recoveryActions;
 }

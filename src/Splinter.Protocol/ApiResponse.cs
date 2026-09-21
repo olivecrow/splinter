@@ -33,7 +33,9 @@ public sealed record ApiResponse(
         "1.0", Guid.NewGuid().ToString("N"), command, "Failed", true, code switch
         {
             "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "ValidationInProgress" => "safe-to-retry",
-            "CoWUnsupported" or "LegacyProcessOwnership" or "ProcessOwnershipUnknown" => "requires-user-action",
+            "CoWUnsupported" or "LegacyProcessOwnership" or "ProcessOwnershipUnknown" or "SnapshotPrivilegeRequired" or
+            "SnapshotHeadroomRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or "DeltaChangedAfterCollection" or
+            "OverlayStartUncertain" or "SnapshotStateMissing" or "SnapshotCheckpointMismatch" or "SnapshotPreparationIncomplete" or "SnapshotOperationIncomplete" => "requires-user-action",
             "AccessDenied" or "GitUnavailable" or "EditorFocusRequired" => "requires-user-action",
             _ => "correct-request"
         }, null,
