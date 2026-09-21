@@ -15,11 +15,11 @@ public sealed class FoundationGateway(
     {
         implementationStage = "internal-alpha",
         commands = contracts.Commands,
-        unavailable = new[] { "plan.submit", "storage.cow", "unity.execute", "unity.play", "unity.tests", "agent.start" },
+        unavailable = new[] { "plan.submit", "unity.execute", "unity.play", "unity.tests", "agent.start" },
         persistentHost = false,
         persistentState = true,
         stateBackend = "atomic-json-with-operation-locks",
-        storageModes = new[] { "git-checkout" }
+        storageModes = new[] { "refs-cow", "git-checkout" }
     });
 
     public ApiResponse Schema(string command)

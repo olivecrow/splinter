@@ -6,6 +6,7 @@ using Splinter.Core;
 using Splinter.Protocol;
 using Splinter.Runtime;
 using Splinter.SourceControl.Git;
+using Splinter.Platform.Windows;
 
 namespace Splinter.Cli;
 
@@ -16,10 +17,14 @@ internal static class WorkspaceCommands
     {
         var home = new Option<string>("--home") { Recursive = true, Description = "Durable Splinter state root; defaults to SPLINTER_HOME or local application data/Splinter." };
         root.Options.Add(home);
-        WorkspaceCoordinator Runtime(ParseResult parse) => new(new WorkspaceStore(parse.GetValue(home)
-            ?? Environment.GetEnvironmentVariable("SPLINTER_HOME")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Splinter")),
-            new GitWorkspaceProvider(), new UnityWorkspaceProvider());
+        string Home(ParseResult parse) => parse.GetValue(home) ?? Environment.GetEnvironmentVariable("SPLINTER_HOME")
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Splinter");
+        WorkspaceCoordinator Runtime(ParseResult parse)
+        {
+            var store = new WorkspaceStore(Home(parse)); var storageProvider = new RefsWorkspaceStorageProvider();
+            return new(store, new GitWorkspaceProvider(storageProvider, store),
+                new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners"))), storageProvider);
+        }
 
         var workspace = new Command("workspace", "Create, resume, collect, integrate and release durable isolated workspaces.");
         var unity = new Command("unity", "Start, refresh and stop only the selected workspace's private Unity Editor.");
@@ -32,18 +37,19 @@ internal static class WorkspaceCommands
         var project = new Option<string>("--project") { Required = true };
         var key = new Option<string>("--key") { Required = true, Description = "Stable unique task key; reuse to resume across turns." };
         var basis = new Option<string>("--base") { Description = "Source branch/ref; default development." };
-        var storage = new Option<string>("--storage") { Required = true, Description = "Explicit backend: git-checkout (independent cold Library, no CoW)." };
+        var storage = new Option<string>("--storage") { Required = true, Description = "refs-cow uses a sealed baseline. git-checkout is a cold diagnostic mode." };
+        var baselineOption = new Option<string>("--baseline") { Description = "Sealed baseline id required for refs-cow." };
         var editor = new Option<bool>("--editor") { Description = "Also start the private Editor when this task needs it." };
-        ensure.Options.Add(project); ensure.Options.Add(key); ensure.Options.Add(basis); ensure.Options.Add(storage); ensure.Options.Add(editor);
+        ensure.Options.Add(project); ensure.Options.Add(key); ensure.Options.Add(basis); ensure.Options.Add(storage); ensure.Options.Add(editor); ensure.Options.Add(baselineOption);
         workspace.Subcommands.Add(ensure);
         ensure.SetAction(async parse =>
         {
             const string command = "workspace.ensure";
             select(command);
             string baseReference = parse.GetValue(basis) ?? "development";
-            var input = new { project = parse.GetValue(project), key = parse.GetValue(key), baseReference, storage = parse.GetValue(storage), editor = parse.GetValue(editor) };
+            var input = new { project = parse.GetValue(project), key = parse.GetValue(key), baseReference, storage = parse.GetValue(storage), editor = parse.GetValue(editor), baseline = parse.GetValue(baselineOption) };
             if (!Validate(command, input)) return;
-            var view = await Runtime(parse).EnsureAsync(input.project!, input.key!, baseReference, input.storage!, input.editor, ct);
+            var view = await Runtime(parse).EnsureAsync(input.project!, input.key!, baseReference, input.storage!, input.editor, ct, input.baseline);
             respond(Result(command, view, input.editor && view.Application is { Running: true, Ready: false }));
         });
         var list = new Command("list", contracts.Find("workspace.list")!.Description);
@@ -64,6 +70,40 @@ internal static class WorkspaceCommands
         Bind(unity, "start", null, (runtime, id, _) => runtime.StartAsync(id, ct));
         Bind(unity, "refresh", null, (runtime, id, _) => runtime.RefreshAsync(id, ct));
         Bind(unity, "stop", null, (runtime, id, _) => runtime.StopAsync(id, ct));
+
+        var storageGroup = new Command("storage", "Inspect a candidate CoW volume."); root.Subcommands.Add(storageGroup);
+        var probe = new Command("probe", contracts.Find("storage.probe")!.Description);
+        var pathOption = new Option<string>("--path") { Required = true }; probe.Options.Add(pathOption); storageGroup.Subcommands.Add(probe);
+        probe.SetAction(parse => { select("storage.probe"); var input = new { path = parse.GetValue(pathOption)! };
+            if (Validate("storage.probe", input)) respond(ApiResponse.Success("storage.probe", new { storage = new RefsWorkspaceStorageProvider().Probe(input.path) })); });
+        var baselineGroup = new Command("baseline", "Warm once, seal and explicitly reclaim a reusable cache."); root.Subcommands.Add(baselineGroup);
+        foreach (var group in new[] { storageGroup, baselineGroup })
+            group.SetAction(_ => { select("cli"); respond(ApiResponse.Failure("cli", "InvalidArguments", "Select a subcommand; use capabilities.")); });
+        var prepare = new Command("prepare", contracts.Find("baseline.prepare")!.Description);
+        var baselineProject = new Option<string>("--project") { Required = true }; var baselineBase = new Option<string>("--base");
+        prepare.Options.Add(baselineProject); prepare.Options.Add(baselineBase); baselineGroup.Subcommands.Add(prepare);
+        prepare.SetAction(async parse =>
+        {
+            select("baseline.prepare");
+            var input = new { project = parse.GetValue(baselineProject)!, baseReference = parse.GetValue(baselineBase) ?? "development" };
+            if (!Validate("baseline.prepare", input)) return;
+            var view = await Runtime(parse).PrepareBaselineAsync(input.project, input.baseReference, ct);
+            respond(Result("baseline.prepare", view, view.Application is { Ready: false }));
+        });
+        foreach (string name in new[] { "seal", "release" })
+        {
+            string commandId = "baseline." + name;
+            var command = new Command(name, contracts.Find(commandId)!.Description); var idOption = new Option<string>("--id") { Required = true };
+            command.Options.Add(idOption); baselineGroup.Subcommands.Add(command);
+            command.SetAction(async parse =>
+            {
+                select(commandId); string id = parse.GetValue(idOption)!;
+                if (!Validate(commandId, new { id })) return;
+                if (name == "seal") respond(ApiResponse.Success(commandId, new { baseline = await Runtime(parse).SealBaselineAsync(id, ct) }) with
+                    { NextActions = [new("schema", new { command = "workspace.ensure" })] });
+                else { await Runtime(parse).ReleaseBaselineAsync(id, ct); respond(ApiResponse.Success(commandId, new { id, phase = "released" })); }
+            });
+        }
 
         void Bind(Command group, string name, string? extraName, Func<WorkspaceCoordinator, string, string?, Task<WorkspaceView>> action)
         {
@@ -116,7 +156,7 @@ internal static class WorkspaceCommands
             application = view.Application is null ? null : new
             {
                 view.Application.Running, view.Application.Ready, view.Application.Phase,
-                processId = view.Application.Lease?.ProcessId, validation = ValidationSummary(view.Application.Validation)
+                processId = view.Application.Lease?.ProcessId, validation = ValidationSummary(view.Application.Validation), view.Application.Resources
             },
             view.ControlPath, view.NextCommand,
             isolation = "private-project-and-library; shared user preferences and external services are not sandboxed"
@@ -126,14 +166,16 @@ internal static class WorkspaceCommands
         return response with
         {
             Status = accepted ? "Accepted" : "Succeeded", Terminal = !accepted,
-            NextActions = [new(nextCommand, nextCommand == "workspace.list" ? new { } : (object)new { id = view.Workspace.Id })]
+            NextActions = view.Workspace.Purpose == "baseline" && view.Workspace.Phase == "released"
+                ? [new("schema", new { command = "workspace.ensure" })]
+                : [new(nextCommand, nextCommand == "workspace.list" ? new { } : (object)new { id = view.Workspace.Id })]
         };
     }
 
     private static object Summary(WorkspaceRecord record) => new
     {
         record.Id, record.RequestKey, record.ProjectPath, record.Path, record.SourceReference, record.BaseReference,
-        record.BaseRevision, record.Phase, record.CreatedAt, record.UpdatedAt, record.StorageMode,
+        record.BaseRevision, record.Phase, record.CreatedAt, record.UpdatedAt, record.StorageMode, record.Purpose, record.BaselineId, record.CloneMetrics, record.ReleasedResources,
         processId = record.Application?.ProcessId, record.PendingValidationId,
         validation = ValidationSummary(record.Validation),
         record.ResultRevision, record.IntegratedRevision, record.LastError

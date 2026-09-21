@@ -1,6 +1,6 @@
 # Splinter 기반 구현 계획
 
-현재 내부 알파 runtime은 [알파 작업공간](../alpha-workspaces.md)의 git-checkout/Unity 흐름을 기준으로 한다. 실제 두 Editor와 Luna low 작업자의 증거는 [알파 검증](../verification/internal-alpha.md)에 기록한다. ReFS CoW와 daemon/SQLite Host는 목표이며 이 계획의 공개 단계와 혼동하지 않는다.
+현재 내부 알파 runtime은 [알파 작업공간](../alpha-workspaces.md)과 [저장소·자원 관리](../storage-and-resources.md)의 기준본/CoW/Unity 흐름을 구현한다. 일반 checkout의 두 작업자 증거는 [알파 검증](../verification/internal-alpha.md), ReFS와 프로세스 회수의 실제 범위는 [자원 검증](../verification/storage-and-resources.md)에 기록한다. daemon/SQLite Host와 공개 단계 전체 완료로 해석하지 않는다.
 
 작성일: 2026-09-20. 상태: **기반 및 Git checkout/Unity 스크립트 내부 알파 구현, 공개 목표 구조는 미완료**. 기준: [기획서 개정 2판](../../plan.html). 실제 실행 가능한 범위는 [현재 기반](../foundation.md)에서 확인한다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
 
@@ -19,11 +19,12 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 ### 현재 확인한 것
 
 - 제품과 형제 `../splinter-unity`를 별도 Git 저장소로 관리한다. Unity fixture는 submodule이 아니며 Assets·Packages·ProjectSettings를 추적하고 캐시는 제외한다.
-- SDK `10.0.112` 및 패키지 버전·lock 파일을 고정했다. 7개 제품 프로젝트와 시험 프로젝트를 `Splinter.slnx`에서 빌드한다.
+- SDK `10.0.112` 및 패키지 버전·lock 파일을 고정했다. 8개 제품 프로젝트와 시험 프로젝트를 `Splinter.slnx`에서 빌드한다.
 - `capabilities`, `schema`, 읽기 전용 `doctor`, `plan validate`와 9개 workspace/Unity 명령을 구현했다. 읽기 전용 Host와 별도의 Runtime을 CLI에서 조합한다. Runtime은 atomic JSON과 작업/저장소 잠금을 사용하고 Unity에는 작업별 파일 IPC로 요청한다. 지속 daemon/SQLite는 미구현이다.
 - 실제 fixture는 Unity `6000.3.22f1`, URP `17.3.0`, UTF `1.6.0`이다. 두 독립 GUI Editor의 동시 실행·컴파일 격리·재시작을 검증했다. Play와 Unity Test Framework 시험은 실행하지 않았다.
 - 설치된 Codex의 `exec --help`에서 `--cd`, `--json`, `--output-schema`, `--sandbox`와 세션 재개 명령을 확인했다. 실제 알파에서는 외부 조정자의 Luna low 하위 작업자가 CLI를 사용했다. 제품의 Codex runner 실행·인증·세션 재접속은 미구현이다.
-- ReFS 적합성, 캐시 재사용 성능, 설치·자동 발견성은 미검증이다.
+- ReFS 어댑터·예열 기준본·작업별 Windows 프로세스 감시를 추가했다. `storage probe`, `baseline prepare/seal/release`까지 17개 명령이 있다. 실제 지원은 자원 검증의 SR 항목에 한정하며, 공개 설치·자동 발견성과 대형 프로젝트 지원은 미완료다.
+- 새 소스 커밋의 기준본은 동일 `Packages`·`ProjectSettings` snapshot과 앱 호환 키의 캐시에서 CoW로 시작하고, Git의 변경 소스만 갱신한다. 호환 캐시가 없을 때만 cold 준비를 사용한다. 원본의 실행 중인 Library는 복사하지 않는다.
 - 기존 Unity 협업 기록의 작성자 소유권·리로드·검증 경계 경험은 실패 시나리오 설계에만 참고한다. 그 프로젝트의 단일 Editor 운영 규칙을 이 제품의 여러 독립 Editor 구조에 적용하지 않는다.
 
 ## 2. AI 사용성을 먼저 고정한다
@@ -443,9 +444,23 @@ P0를 장기 기술 조사로 만들지 않는다. 각각 한 질문에 답하�
 | F07 | Windows 세션 실행기·Git/CoW S1 실험을 실제 ports에 연결 | 실제 작업공간 생성/쓰기/결과 고정/회수 |
 | F08 | Unity/Codex S2/S3 실험을 같은 operation과 증거에 연결 | 첫 실제 알파에 필요한 연결 완성 |
 
-현재 F01과 13개 명령의 F02 계약, F03의 DAG 검사 및 좁은 workspace 상태를 구현했다. 내부 알파는 atomic JSON 저장, 비Git·비Unity fake 수명주기, 실제 Git checkout 어댑터와 Unity 컴파일 브리지를 사용한다. F04의 daemon/SQLite, F05 전체 복구, F06 전체 plan 루프, F07 ReFS, F08 Codex runner 연결은 미완료다. Git-only smoke와 일반 checkout Editor 실행은 S1의 ReFS 결합 통과가 아니다.
+현재 F01과 17개 명령의 F02 계약, F03의 DAG 검사 및 좁은 workspace 상태를 구현했다. 내부 알파는 atomic JSON 저장, fake 적합성, Git·Unity·ReFS·프로세스 그룹 어댑터를 연결한다. F07의 일부 성공 경로와 실제 검증 범위는 SR 항목으로 구분한다. F04의 daemon/SQLite, F05 전체 복구, F06 전체 plan 루프, F07 중단 지점별 복구·광범위한 파일 지원, F08 Codex runner 연결은 미완료다. Git-only smoke와 일반 checkout Editor 실행은 S1의 ReFS 결합 통과가 아니다.
 
 F01/F02의 최소 골격은 P0에 만들고 F03~F06은 P1에서 완성한다. F07은 P2, F08은 P3에 속한다. 생성/회수와 검증에 필요한 계약만 먼저 고정하고, 아직 쓰지 않는 앱 capability를 미리 대량 설계하지 않는다.
+
+### 내부 알파의 다음 작업: 중단된 자원 작업 복구
+
+정상 흐름의 저장소 절감·전체 프로세스 회수는 SR 증거로 유지하고, 다음 변경은 아래 장애 경계에 한정한다. daemon이나 DAG를 동시에 도입하지 않는다.
+
+| 순서 | 변경 대상 | 완료 조건 |
+| --- | --- | --- |
+| 1 | Runtime의 생성·clone·seal·회수 단계 기록과 복구 응답 schema | 같은 key 재호출에 새 branch/Editor가 생기지 않고, 안전한 재개와 사용자 변경 보존을 기계가 구분 |
+| 2 | Git 등록 직후·파일 복제 도중·완성 영수증 직전 중단 | 정확한 경로·볼륨·baseline hash·소유권을 재검사. 확인된 파생 파일만 재개하며 모르는 파일/변경 소스는 그대로 보존 |
+| 3 | 캐시 봉인 도중·봉인 후 Git 회수 도중 중단 | 불완전 캐시를 작업에 제공하지 않고, 완성 캐시는 다시 예열하지 않음. 재시도 후 worktree/소유 프로세스 0 |
+| 4 | 감시 프로세스 비정상 종료·종료 증거 누락 | 살아 있는 원본/다른 작업자 무변경, 소유권을 확인하지 못하면 회수 성공을 반환하지 않음 |
+| 5 | 실제 ReFS + Unity에서 장애 주입 재현 | 각 중단 위치의 재접속·결과 보존·0 프로세스 증거, 현 SR 정상 경로 회귀 통과 |
+
+구현 순서는 Core/응답 계약과 fake 장애 주입 → Runtime 저널 → Git/Windows 재조정 → 실제 fixture다. 그다음 작업으로는 대형 프로젝트의 manifest/작은 파일 비용과 캐시 보유 정책을 측정한다. LFS·filter·외부 링크·다른 Unity 패치는 지원표와 독립 검증 없이 지원으로 추가하지 않는다.
 
 ### 향후 병렬 개발의 경계
 
@@ -455,7 +470,7 @@ F01/F02의 최소 골격은 P0에 만들고 F03~F06은 P1에서 완성한다. F0
 
 ## 12. 검증·성능·공개 준비
 
-원본의 필수 시나리오를 하나도 축소하지 않고 [검증 추적표](validation-matrix.md)에서 담당 단계와 증거를 연결한다. `Passed / Failed / NotRun / Unsupported`를 구분한다. 원본 48개와 FD 항목의 전체 조건은 아직 `NotRun`이며, 실제 내부 알파에서 통과한 좁은 범위는 별도의 AA 항목으로 기록한다.
+원본의 필수 시나리오를 하나도 축소하지 않고 [검증 추적표](validation-matrix.md)에서 담당 단계와 증거를 연결한다. `Passed / Failed / NotRun / Unsupported`를 구분한다. 원본 48개와 FD 항목의 전체 조건은 아직 `NotRun`이며, 실제 내부 알파에서 통과한 좁은 범위는 별도의 AA·SR 항목으로 기록한다.
 
 시험 계층은 네 가지다.
 

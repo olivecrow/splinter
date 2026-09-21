@@ -7,6 +7,17 @@ namespace Splinter.Tests;
 
 public sealed class UnityWorkspaceProviderTests
 {
+    [Fact]
+    public async Task CompatibilityIgnoresCheckoutLineEndings()
+    {
+        var ct = TestContext.Current.CancellationToken; using var directory = new TestDirectory();
+        string settings = Path.Combine(directory.Path, "ProjectSettings"); Directory.CreateDirectory(settings);
+        string version = Path.Combine(settings, "ProjectVersion.txt");
+        await File.WriteAllTextAsync(version, "m_EditorVersion: 6000.3.22f1\r\nm_EditorVersionWithRevision: 6000.3.22f1 (id)\r\n", ct);
+        var provider = new UnityWorkspaceProvider(); string original = provider.CompatibilityKey(directory.Path);
+        await File.WriteAllTextAsync(version, "m_EditorVersion: 6000.3.22f1\nm_EditorVersionWithRevision: 6000.3.22f1 (id)\n", ct);
+        Assert.Equal(original, provider.CompatibilityKey(directory.Path));
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

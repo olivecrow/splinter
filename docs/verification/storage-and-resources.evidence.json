@@ -1,0 +1,912 @@
+{
+  "schemaVersion": "1.0",
+  "scope": "2026-09-21 internal resource alpha; not all public scenarios or a performance SLA",
+  "source": {
+    "baseCommit": "a18a976b126705b2a0f667f18627705b07508e6f",
+    "branch": "development",
+    "inputDigestAlgorithm": "SHA256 of sorted UTF-8 path + NUL + SHA256(LF-normalized file bytes) + LF",
+    "inputDigest": "bd2a197cf2ab2d85c0b12b50a8bf0c96b85969eca22fc7a33f45fbb9fd4bac06",
+    "inputFiles": {
+      "Directory.Build.props": "c362ad12393ebaf538a5ff8565e909fa70f85eaa142bf933ab65ab6c53f8c9be",
+      "Directory.Packages.props": "084c55778622ae00867af741a3aa6d9bbd02182e75453e422c5cbb549ec40eeb",
+      "Splinter.slnx": "eef8ff317735b46032fa786e1cdee3bfdbd1ec3fe4a4e4e650e49c2a815fb422",
+      "contracts/examples/parallel-plan.json": "356c69c1f2c6f5ebb72aa252884387b911a483b4f0559246745f8d60d053b9d8",
+      "contracts/v1/baseline-prepare-request.schema.json": "2105225af675aa552625383e13bc262dbfdbb9750be8bbcf8ead1555e3d1f1b4",
+      "contracts/v1/baseline-release-request.schema.json": "b9dc116a7e0fafb498a25b35ec7807a1f334a0a57d5848b919368adcebf8588a",
+      "contracts/v1/baseline-seal-request.schema.json": "4054e55dd813d5a89c5f9065644e75fe43634bd0ad6392b9aacccf1f9ab1366b",
+      "contracts/v1/commands.json": "018cca2ca00c2ad40088a71d7f94300ef464a1112f7b593f46cde26837e91a08",
+      "contracts/v1/doctor-request.schema.json": "3f632cb0d89292b5ee8e84704143aece5d41a807f05564d7805c39f499ed45ee",
+      "contracts/v1/empty-request.schema.json": "7f81bded3622303f1adc598bd2e96299c7c6040d76907c3815f8fee4b7f299a9",
+      "contracts/v1/plan-request.schema.json": "956f3c2af6982116df80e1f9bb980111b3ba5f5d98794009fb2e52ec9afe5a63",
+      "contracts/v1/response.schema.json": "683d67ba0efd08bb3b6f7162ef511b0c10b1e5554cfc32b4769003cc701905ba",
+      "contracts/v1/schema-request.schema.json": "59cf1955dcfc896ecb02555f931b81d1e257bca89b57a8d628f0a97487fc8ee3",
+      "contracts/v1/storage-probe-request.schema.json": "97692cf0fc6f28e10305d24e4d205a556c6de19b14e2ac536ea6fdc41713e6bd",
+      "contracts/v1/unity-refresh-request.schema.json": "8624f129e3881b2e20bf623a3dfb4baf79a215d6194f4a637c68d4455ee6f32d",
+      "contracts/v1/unity-start-request.schema.json": "1708d8d987c45ef732c62f765c12a8b19806e969393b09d11943ddf448bf18e9",
+      "contracts/v1/unity-stop-request.schema.json": "796cfc965e667fd4a52b53429d4a455ab48ad45dbb6120a6ec23a37576cf4747",
+      "contracts/v1/workspace-checkpoint-request.schema.json": "2b962d1b5fc16808f6030b737f32dda258aa2d6d649d486b506d85ec04e4ad23",
+      "contracts/v1/workspace-ensure-request.schema.json": "9caf5958a0860d28f86e9e0c6777d7d36dce79a19a1f64f516906b01ba0874a9",
+      "contracts/v1/workspace-integrate-request.schema.json": "a47fc4f3400fd12ffa549e2348d28099895dedbe2bf148c1d61e0089ca96633b",
+      "contracts/v1/workspace-list-request.schema.json": "eec68e7e5979c34c39f343a383285a96b737beb06ecf92543ccfc07c7ac151fe",
+      "contracts/v1/workspace-release-request.schema.json": "1f3d54dfe136c52b5c988d9e4ed10caaeb36078ccbbeaa56e42540238f10b08a",
+      "contracts/v1/workspace-status-request.schema.json": "b1668f43caa17476f9526899142a5943b893d79462527c68563d02b906c03569",
+      "global.json": "1e69f16d2941c26965e21e4fb70fb17739bb26030ba38cbabc1dc59012da6cbf",
+      "scripts/build.ps1": "f0898180090bbd648f60cbeb2675ceae83f4addbbfc0d791ee14f19eadab7d39",
+      "scripts/setup-dev-drive.ps1": "db1f3b7bb8bbc743b6a5ba00dea32e523e5747e474024bc5224e68b87eb48a76",
+      "scripts/splinter.ps1": "3d89e86e16c70adf56108db2595a10de3ec76fcbf9e0ee566a374210b6817c92",
+      "scripts/test-worktree-lifecycle.ps1": "b0c41113dac63f5b056b3d0d717007be5e19ac3051df5aab8f75f2a10c372832",
+      "src/Splinter.Application.Unity/Splinter.Application.Unity.csproj": "1f89bd46df6bea137b7d5314f413d547839e2b02e1f8d45fb3840e36625d3582",
+      "src/Splinter.Application.Unity/UnityProjectInspector.cs": "1a4115491b10bb3dba17b5c4a68c76f217fa770057db41811fcb3019fbc28ae9",
+      "src/Splinter.Application.Unity/UnityWorkspaceProvider.cs": "646ea5b50e4dd67069ef5b7f78d3277ace888f8dc8107721a136febae10904de",
+      "src/Splinter.Application.Unity/packages.lock.json": "dc1c5c5e013c389f94e1929c758cf723ef22f5f3e6800795c0a18fd17a66cbd3",
+      "src/Splinter.Cli/Program.cs": "ac7924e676ee93eeb650ace706bc927e7ad32e31c80ce0b8be8d95529b777369",
+      "src/Splinter.Cli/Splinter.Cli.csproj": "5bcdaf0c22f52ada353e251d88c4d59138b4681c6f5aca95737d46415d6f6354",
+      "src/Splinter.Cli/WorkspaceCommands.cs": "160f5ef13c19d91d045a930cacc52dc9b885870fc33cc00e282d2c80b73fbb84",
+      "src/Splinter.Cli/packages.lock.json": "dbc5ff9af0d69cc690d0635be563310b5a2c5956cc52cc8759732c9b72b45c5d",
+      "src/Splinter.Core/Inspection.cs": "5edc2322b698e8a9b45fea033cadffe7706ab16fe5aa220e4f6263cdae4e2d30",
+      "src/Splinter.Core/PlanGraph.cs": "66cd87459d6805b9e66a85687cad39c8471acfaf2b15d4643e07d6f34e7d948f",
+      "src/Splinter.Core/Resources.cs": "9bd64d53acdd3ef9959bddf83e609fb4eaa2c182d41fc17b4676aeed69b0589e",
+      "src/Splinter.Core/Splinter.Core.csproj": "8d654c44b7bebb6b31a9f2f606927f45b5072193adc4eef8cce3f3cf3b278df3",
+      "src/Splinter.Core/Workspaces.cs": "75855e4aaf56fdc29edc8b6b7c33d0b582bc022dfdaa559500e2d167f7a9debd",
+      "src/Splinter.Core/packages.lock.json": "03eeadc5ef377c17f787ab65f41fb4c8a9c936bb7f7f4171111fdeec8a81cb46",
+      "src/Splinter.Host/FoundationGateway.cs": "2ac493c7df8b3a334ea81622d78ae319cc62ad842da6aeb7d2b6ca5b41594263",
+      "src/Splinter.Host/Splinter.Host.csproj": "b4d02b6af35be38987e54da0d2c9c13ea08e218315102cef5ca56e3635d103e8",
+      "src/Splinter.Host/packages.lock.json": "1b3c2560fe596ec4c4bf0b2b96eb53500634d87ca90946d2cbe22bbe63a4fada",
+      "src/Splinter.Platform.Windows/Program.cs": "48522aecfc26dac04450df54ce9fe262e3d5be937943d37d207df2cc56a4617c",
+      "src/Splinter.Platform.Windows/RefsWorkspaceStorageProvider.cs": "b56867b09341f77a5e539d202b72fe42810cca6bf2333c2e3df54c65ba9d2cd8",
+      "src/Splinter.Platform.Windows/Splinter.Platform.Windows.csproj": "2c24038a7abef3c5e62a8d798e5ebabc4554087fe096b2ce755cad06ea7534c3",
+      "src/Splinter.Platform.Windows/WindowsProcessGroup.cs": "ead09b7fefb06238c18ef2e938b8c94265b04698a30d5319cf8db9150f7f3404",
+      "src/Splinter.Platform.Windows/WindowsProcessWorkspaceProvider.cs": "6d3c2187c264eaaeab4a6f220023db57fb2745106261de370a0ea6599dc9625c",
+      "src/Splinter.Platform.Windows/packages.lock.json": "dc1c5c5e013c389f94e1929c758cf723ef22f5f3e6800795c0a18fd17a66cbd3",
+      "src/Splinter.Protocol/ApiResponse.cs": "9820f84a19901858bd17b39cc74018ec6e68840091ec37353f9d80c9fcf6444c",
+      "src/Splinter.Protocol/ContractCatalog.cs": "8d80550ea337293963a6a74270e8b2e68b569a776c96ca82ddb60f52da3de2b7",
+      "src/Splinter.Protocol/Splinter.Protocol.csproj": "36c3b656c4e59573d8bf62593d175aef85510e33950077608087f275f416c11f",
+      "src/Splinter.Protocol/packages.lock.json": "b5a1ed920d53dce2e5777d7c6b1209a256d24e19307b68844452d16afc2b82ab",
+      "src/Splinter.Runtime/Baselines.cs": "c046497586c280d6f1f9ab2729771d7b794ef5944d6af5d6d3bbff17f72b7498",
+      "src/Splinter.Runtime/Splinter.Runtime.csproj": "35117335f5d0a91370c99017a947e59328badf1b1917722d430bc587d1bfb3f1",
+      "src/Splinter.Runtime/WorkspaceCoordinator.cs": "d97a4a91343e24290d73812c4ec9ade139fb4d453aa5e26d21e3f3f0b2a8bf2a",
+      "src/Splinter.Runtime/WorkspaceStore.cs": "5af47d02a9b0c0309e97ad3719a15618b9b4e6e844c5cc19b79bf460279529e5",
+      "src/Splinter.Runtime/packages.lock.json": "dc1c5c5e013c389f94e1929c758cf723ef22f5f3e6800795c0a18fd17a66cbd3",
+      "src/Splinter.SourceControl.Git/GitRepositoryInspector.cs": "10b867d00a3da0b02c62e8d7483e8426716d9120c73774e3d84f416d9c599fc5",
+      "src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs": "a2280494269da3b328b7c7b7f246b62eb73658f1051939ed26ba138a85be15cf",
+      "src/Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj": "35117335f5d0a91370c99017a947e59328badf1b1917722d430bc587d1bfb3f1",
+      "src/Splinter.SourceControl.Git/packages.lock.json": "dc1c5c5e013c389f94e1929c758cf723ef22f5f3e6800795c0a18fd17a66cbd3",
+      "tests/Splinter.Tests/ContractAndCliTests.cs": "37dabe1735eb14a44389f26b8f4c1f00fab3d25fdf0e893931ca9ecb6bcc1f76",
+      "tests/Splinter.Tests/GitWorkspaceProviderTests.cs": "acb32b1afccc20abae0fc53d7f4e8b2b4f89a88a7b799fc541a0d274b834c6bf",
+      "tests/Splinter.Tests/InspectionTests.cs": "2c061ec68f862e273cb8aca41fb4ec54798c9a6937d5555a1b1d70c8421eb071",
+      "tests/Splinter.Tests/PlanGraphTests.cs": "d4c5be918b3b7341a95b528dce059d780e3c83338a6f206cdd572879b67bbe9a",
+      "tests/Splinter.Tests/RefsStorageTests.cs": "6ce55d44b610430d95bb2f7479d14975891413abdcde90eaa46aea0ebfecc02c",
+      "tests/Splinter.Tests/Splinter.Tests.csproj": "58553729c1d66c5386de1d6be9dcf344fdc3add21cc75a47bceaaeb09c603bc2",
+      "tests/Splinter.Tests/TestDirectory.cs": "b5dfa6129871ee5d9e93249f9e90ecb9fc90b4846a3129a0f0cb020da50d7406",
+      "tests/Splinter.Tests/UnityWorkspaceProviderTests.cs": "9ab2e5134ae95cbee9c747813bccb159fcd09f73717a40300478ec877c053235",
+      "tests/Splinter.Tests/WindowsProcessTests.cs": "4cf805de6460e122648c9fae80a0081739877d5b5f5aaa9fdb083796c45ffae6",
+      "tests/Splinter.Tests/WorkspaceCoordinatorTests.cs": "79545d0c163fe83710fc4a7547b8048e492737f923878260b341d00bc46fedce",
+      "tests/Splinter.Tests/packages.lock.json": "7f63635f530e175ad8329b78b2431b1cf9bc52eb05ef56ce4bb486939bc05261",
+      "unity/Splinter.Editor/Editor/WorkspaceBridge.cs": "eeb7bd922dc051a04f78c893eeb4767e15d1fe11223fe676036021cbb6e57b48"
+    },
+    "testedBinarySha256": {
+      "splinter.dll": "fc6ed601ed9016d5206c03b927a63e9cebc6b74a3eda3cb046f0a71acd18ecae",
+      "Splinter.Core.dll": "6a0e171735012591ef1309d00a5e23b8e1b10a932b89545202bf5b8c3a725466",
+      "Splinter.Runtime.dll": "5bb63fc3ef7b81284e90d0b45fb097db6cc23725abbd52a2d8e2f549175efca2",
+      "Splinter.SourceControl.Git.dll": "61ef47a7cc1a6687ef947a9c80333301087d8e14fd80ab208203e8864fcccf05",
+      "Splinter.Application.Unity.dll": "e9783f8ba8c907d4ed3587bc6ad93cff1d3e72a4d63e06dc5d3e5d0537a9fde5",
+      "Splinter.Platform.Windows.dll": "375fcfc0b6e97f6de94188ee437099285b33b445521136faa0f6a15a5374cef8"
+    }
+  },
+  "environment": {
+    "windows": "Windows 11 Home 26200",
+    "dotnetSdk": "10.0.112",
+    "git": "git version 2.45.1.windows.1",
+    "unity": "6000.3.22f1",
+    "coplay": "10.2.0",
+    "originalRepositoryFileSystem": "NTFS",
+    "storage": {
+      "mode": "refs-cow",
+      "volume": "\\\\?\\Volume{a0313d84-6bad-4197-ae4f-3b4332975223}\\",
+      "fileSystem": "ReFS",
+      "clusterBytes": 4096
+    },
+    "devDrive": {
+      "action": "create-new-dynamic-dev-drive",
+      "image": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\dev-drive\\splinter.vhdx",
+      "maximumBytes": 68719476736,
+      "drive": "S:",
+      "fileSystem": "ReFS",
+      "requiresAdministrator": true,
+      "formatsExistingVolume": false,
+      "automaticStartupMount": false,
+      "createdAt": "2026-09-21T00:27:42.6640942Z",
+      "diskNumber": 4,
+      "volumePath": "\\\\?\\Volume{a0313d84-6bad-4197-ae4f-3b4332975223}\\"
+    }
+  },
+  "automatedTests": {
+    "entrypoint": "SPLINTER_TEST_REFS_ROOT=S:\\splinter-tests; pwsh ./scripts/build.ps1",
+    "runId": "4154f6c6-c7bb-441c-835e-974ed1e0bc32",
+    "times": {
+      "creation": "2026-09-21T01:09:02.7098084Z",
+      "queuing": "2026-09-21T01:09:02.7098084Z",
+      "start": "2026-09-21T01:09:02.7098084Z",
+      "finish": "2026-09-21T01:10:21.6512844Z"
+    },
+    "counters": {
+      "total": 56,
+      "executed": 56,
+      "passed": 56,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "trxSha256": "9a516223022b6fdc9e3d407a81dc748d5a69353231799bfdb3c827c88020ca68"
+  },
+  "syntheticClone": {
+    "quietSample": {
+      "observedAt": "2026-09-21T00:34:18.8916724+00:00",
+      "first": {
+        "logicalBytes": 536879107,
+        "clonedBytes": 536875008,
+        "copiedBytes": 4099,
+        "files": 3,
+        "elapsedMilliseconds": 46
+      },
+      "second": {
+        "logicalBytes": 536879107,
+        "clonedBytes": 536875008,
+        "copiedBytes": 4099,
+        "files": 3,
+        "elapsedMilliseconds": 23
+      },
+      "freeAfterSource": 66398388224,
+      "freeAfterClones": 66397831168,
+      "cloneAllocationBytes": 557056,
+      "freeAfterRelease": 66397827072,
+      "isolatedWrites": true,
+      "sourceAndSiblingHashesEqual": true,
+      "filesReleased": true
+    },
+    "finalBuildSample": {
+      "observedAt": "2026-09-21T01:09:39.8776735+00:00",
+      "first": {
+        "logicalBytes": 536879107,
+        "clonedBytes": 536875008,
+        "copiedBytes": 4099,
+        "files": 3,
+        "elapsedMilliseconds": 87
+      },
+      "second": {
+        "logicalBytes": 536879107,
+        "clonedBytes": 536875008,
+        "copiedBytes": 4099,
+        "files": 3,
+        "elapsedMilliseconds": 36
+      },
+      "freeAfterSource": 63674290176,
+      "freeAfterClones": 63673339904,
+      "cloneAllocationBytes": 950272,
+      "freeAfterRelease": 63688134656,
+      "isolatedWrites": true,
+      "sourceAndSiblingHashesEqual": true,
+      "filesReleased": true
+    },
+    "note": "Quiet sample is allocation evidence from an earlier run of the same clone strategy. Final run includes preflight in elapsed time; other Editor was idle. Free-space deltas include metadata and deferred frees."
+  },
+  "baseline": {
+    "id": "51f7ee1d3abfc7c859cee60b",
+    "projectPath": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity",
+    "baseRevision": "66820470038c85319bc4d47d1ff2859cab82e928",
+    "compatibilityKey": "9507c2e3ead4ea4cba85c583b92c934d94aba98f0f624cda038971ea4b9e31d8",
+    "path": "S:\\splinter-resource-alpha\\baselines\\51f7ee1d3abfc7c859cee60b\\tree",
+    "sealedAt": "2026-09-21T00:46:22.273988+00:00",
+    "cloneMetrics": {
+      "logicalBytes": 2017545775,
+      "clonedBytes": 1963737088,
+      "copiedBytes": 53808687,
+      "files": 41604,
+      "elapsedMilliseconds": 248744
+    },
+    "manifestHash": "ec53deb2bda3e9a8f1e18c571ea3bf56c2452fe51e64c15f56da2c617598c81a"
+  },
+  "experimentalCompatibilityKeyCorrection": {
+    "baselineId": "51f7ee1d3abfc7c859cee60b",
+    "oldKeyVerifiedAgainstExactBridgeAndVersion": true,
+    "oldKey": "b97ad2db07626a97de820ed137d1c27f9fbf6267fda0a2510c5aed5bd6b31f8a",
+    "canonicalKey": "9507c2e3ead4ea4cba85c583b92c934d94aba98f0f624cda038971ea4b9e31d8",
+    "treeUnchanged": true
+  },
+  "workers": {
+    "a": {
+      "created": {
+        "id": "46aacd578024a678d97fd1c6",
+        "requestKey": "resource-cow-a",
+        "projectPath": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity",
+        "path": "S:\\splinter-resource-alpha\\workspaces\\46aacd578024a678d97fd1c6",
+        "sourceReference": "splinter/46aacd578024a678d97fd1c6",
+        "baseReference": "66820470038c85319bc4d47d1ff2859cab82e928",
+        "baseRevision": "66820470038c85319bc4d47d1ff2859cab82e928",
+        "phase": "ready",
+        "createdAt": "2026-09-21T01:00:39.2287575+00:00",
+        "updatedAt": "2026-09-21T01:01:44.8992652+00:00",
+        "storageMode": "refs-cow",
+        "purpose": "task",
+        "baselineId": "51f7ee1d3abfc7c859cee60b",
+        "cloneMetrics": {
+          "logicalBytes": 2017545775,
+          "clonedBytes": 1963737088,
+          "copiedBytes": 53808687,
+          "files": 41604,
+          "elapsedMilliseconds": 51741
+        }
+      },
+      "createTimingAndVolumeSample": {
+        "elapsedMs": 78885,
+        "freeBefore": 64791519232,
+        "freeAfter": 64480501760
+      },
+      "volumeSampleConfoundedByOtherEditorStartup": false,
+      "startResponseMilliseconds": 1979,
+      "validated": {
+        "workspace": {
+          "id": "46aacd578024a678d97fd1c6",
+          "requestKey": "resource-cow-a",
+          "projectPath": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity",
+          "path": "S:\\splinter-resource-alpha\\workspaces\\46aacd578024a678d97fd1c6",
+          "sourceReference": "splinter/46aacd578024a678d97fd1c6",
+          "baseReference": "66820470038c85319bc4d47d1ff2859cab82e928",
+          "baseRevision": "66820470038c85319bc4d47d1ff2859cab82e928",
+          "phase": "validated",
+          "createdAt": "2026-09-21T01:00:39.2287575+00:00",
+          "updatedAt": "2026-09-21T01:15:07.1357383+00:00",
+          "storageMode": "refs-cow",
+          "purpose": "task",
+          "baselineId": "51f7ee1d3abfc7c859cee60b",
+          "cloneMetrics": {
+            "logicalBytes": 2017545775,
+            "clonedBytes": 1963737088,
+            "copiedBytes": 53808687,
+            "files": 41604,
+            "elapsedMilliseconds": 51741
+          },
+          "processId": 17140,
+          "validation": {
+            "requestId": "978c6e357ce246b9b5f6a32a41adc223",
+            "fingerprint": "f9ab8985f691aa16ee42c33533ba9fc5e141614891ba02119c8f9fcddad756f0",
+            "success": true,
+            "completedAt": "2026-09-21T01:15:02.7546508+00:00",
+            "errors": [],
+            "errorCount": 0
+          }
+        },
+        "source": {
+          "revision": "66820470038c85319bc4d47d1ff2859cab82e928",
+          "fingerprint": "f9ab8985f691aa16ee42c33533ba9fc5e141614891ba02119c8f9fcddad756f0",
+          "hasChanges": false,
+          "changedPaths": [],
+          "changedPathCount": 0
+        },
+        "application": {
+          "running": true,
+          "ready": true,
+          "phase": "ready",
+          "processId": 17140,
+          "validation": {
+            "requestId": "978c6e357ce246b9b5f6a32a41adc223",
+            "fingerprint": "f9ab8985f691aa16ee42c33533ba9fc5e141614891ba02119c8f9fcddad756f0",
+            "success": true,
+            "completedAt": "2026-09-21T01:15:02.7546508+00:00",
+            "errors": [],
+            "errorCount": 0
+          },
+          "resources": {
+            "ownershipVerified": true,
+            "rootRunning": true,
+            "activeProcesses": 21,
+            "workingSetBytes": 7357833216,
+            "privateBytes": 8227696640
+          }
+        },
+        "controlPath": "S:\\splinter-resource-alpha\\records\\46aacd578024a678d97fd1c6",
+        "nextCommand": "workspace checkpoint --id 46aacd578024a678d97fd1c6",
+        "isolation": "private-project-and-library; shared user preferences and external services are not sandboxed"
+      },
+      "released": {
+        "id": "46aacd578024a678d97fd1c6",
+        "requestKey": "resource-cow-a",
+        "projectPath": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity",
+        "path": "S:\\splinter-resource-alpha\\workspaces\\46aacd578024a678d97fd1c6",
+        "sourceReference": "splinter/46aacd578024a678d97fd1c6",
+        "baseReference": "66820470038c85319bc4d47d1ff2859cab82e928",
+        "baseRevision": "66820470038c85319bc4d47d1ff2859cab82e928",
+        "phase": "released",
+        "createdAt": "2026-09-21T01:00:39.2287575+00:00",
+        "updatedAt": "2026-09-21T01:15:53.7757765+00:00",
+        "storageMode": "refs-cow",
+        "purpose": "task",
+        "baselineId": "51f7ee1d3abfc7c859cee60b",
+        "cloneMetrics": {
+          "logicalBytes": 2017545775,
+          "clonedBytes": 1963737088,
+          "copiedBytes": 53808687,
+          "files": 41604,
+          "elapsedMilliseconds": 51741
+        },
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "processId": 17140,
+        "validation": {
+          "requestId": "978c6e357ce246b9b5f6a32a41adc223",
+          "fingerprint": "f9ab8985f691aa16ee42c33533ba9fc5e141614891ba02119c8f9fcddad756f0",
+          "success": true,
+          "completedAt": "2026-09-21T01:15:02.7546508+00:00",
+          "errors": [],
+          "errorCount": 0
+        }
+      },
+      "releaseMilliseconds": 13395
+    },
+    "b": {
+      "created": {
+        "id": "2466f6de8e22efeda3b170bf",
+        "requestKey": "resource-cow-b",
+        "projectPath": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity",
+        "path": "S:\\splinter-resource-alpha\\workspaces\\2466f6de8e22efeda3b170bf",
+        "sourceReference": "splinter/2466f6de8e22efeda3b170bf",
+        "baseReference": "66820470038c85319bc4d47d1ff2859cab82e928",
+        "baseRevision": "66820470038c85319bc4d47d1ff2859cab82e928",
+        "phase": "ready",
+        "createdAt": "2026-09-21T01:05:28.4682381+00:00",
+        "updatedAt": "2026-09-21T01:06:46.1985125+00:00",
+        "storageMode": "refs-cow",
+        "purpose": "task",
+        "baselineId": "51f7ee1d3abfc7c859cee60b",
+        "cloneMetrics": {
+          "logicalBytes": 2017545775,
+          "clonedBytes": 1963737088,
+          "copiedBytes": 53808687,
+          "files": 41604,
+          "elapsedMilliseconds": 63199
+        }
+      },
+      "createTimingAndVolumeSample": {
+        "freeBefore": 64524308480,
+        "freeAfter": 64144510976,
+        "elapsedMs": 91113
+      },
+      "volumeSampleConfoundedByOtherEditorStartup": true,
+      "startResponseMilliseconds": 2054,
+      "validated": {
+        "workspace": {
+          "id": "2466f6de8e22efeda3b170bf",
+          "requestKey": "resource-cow-b",
+          "projectPath": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity",
+          "path": "S:\\splinter-resource-alpha\\workspaces\\2466f6de8e22efeda3b170bf",
+          "sourceReference": "splinter/2466f6de8e22efeda3b170bf",
+          "baseReference": "66820470038c85319bc4d47d1ff2859cab82e928",
+          "baseRevision": "66820470038c85319bc4d47d1ff2859cab82e928",
+          "phase": "validated",
+          "createdAt": "2026-09-21T01:05:28.4682381+00:00",
+          "updatedAt": "2026-09-21T01:14:18.8229931+00:00",
+          "storageMode": "refs-cow",
+          "purpose": "task",
+          "baselineId": "51f7ee1d3abfc7c859cee60b",
+          "cloneMetrics": {
+            "logicalBytes": 2017545775,
+            "clonedBytes": 1963737088,
+            "copiedBytes": 53808687,
+            "files": 41604,
+            "elapsedMilliseconds": 63199
+          },
+          "processId": 36252,
+          "validation": {
+            "requestId": "7ceff962cd594d02a2b1fc30de5a515f",
+            "fingerprint": "f9ab8985f691aa16ee42c33533ba9fc5e141614891ba02119c8f9fcddad756f0",
+            "success": true,
+            "completedAt": "2026-09-21T01:14:11.6674624+00:00",
+            "errors": [],
+            "errorCount": 0
+          }
+        },
+        "source": {
+          "revision": "66820470038c85319bc4d47d1ff2859cab82e928",
+          "fingerprint": "f9ab8985f691aa16ee42c33533ba9fc5e141614891ba02119c8f9fcddad756f0",
+          "hasChanges": false,
+          "changedPaths": [],
+          "changedPathCount": 0
+        },
+        "application": {
+          "running": true,
+          "ready": true,
+          "phase": "ready",
+          "processId": 36252,
+          "validation": {
+            "requestId": "7ceff962cd594d02a2b1fc30de5a515f",
+            "fingerprint": "f9ab8985f691aa16ee42c33533ba9fc5e141614891ba02119c8f9fcddad756f0",
+            "success": true,
+            "completedAt": "2026-09-21T01:14:11.6674624+00:00",
+            "errors": [],
+            "errorCount": 0
+          },
+          "resources": {
+            "ownershipVerified": true,
+            "rootRunning": true,
+            "activeProcesses": 19,
+            "workingSetBytes": 5519134720,
+            "privateBytes": 6358241280
+          }
+        },
+        "controlPath": "S:\\splinter-resource-alpha\\records\\2466f6de8e22efeda3b170bf",
+        "nextCommand": "workspace checkpoint --id 2466f6de8e22efeda3b170bf",
+        "isolation": "private-project-and-library; shared user preferences and external services are not sandboxed"
+      },
+      "released": {
+        "id": "2466f6de8e22efeda3b170bf",
+        "requestKey": "resource-cow-b",
+        "projectPath": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity",
+        "path": "S:\\splinter-resource-alpha\\workspaces\\2466f6de8e22efeda3b170bf",
+        "sourceReference": "splinter/2466f6de8e22efeda3b170bf",
+        "baseReference": "66820470038c85319bc4d47d1ff2859cab82e928",
+        "baseRevision": "66820470038c85319bc4d47d1ff2859cab82e928",
+        "phase": "released",
+        "createdAt": "2026-09-21T01:05:28.4682381+00:00",
+        "updatedAt": "2026-09-21T01:16:06.011977+00:00",
+        "storageMode": "refs-cow",
+        "purpose": "task",
+        "baselineId": "51f7ee1d3abfc7c859cee60b",
+        "cloneMetrics": {
+          "logicalBytes": 2017545775,
+          "clonedBytes": 1963737088,
+          "copiedBytes": 53808687,
+          "files": 41604,
+          "elapsedMilliseconds": 63199
+        },
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "processId": 36252,
+        "validation": {
+          "requestId": "7ceff962cd594d02a2b1fc30de5a515f",
+          "fingerprint": "f9ab8985f691aa16ee42c33533ba9fc5e141614891ba02119c8f9fcddad756f0",
+          "success": true,
+          "completedAt": "2026-09-21T01:14:11.6674624+00:00",
+          "errors": [],
+          "errorCount": 0
+        }
+      },
+      "releaseMilliseconds": 12226
+    }
+  },
+  "guiWindows": [
+    {
+      "id": "46aacd578024a678d97fd1c6",
+      "pid": 17140,
+      "supervisor": 39856,
+      "title": "46aacd578024a678d97fd1c6 - Untitled - Windows, Mac, Linux - Unity 6.3 LTS (6000.3.22f1) <DX12>",
+      "windowHandle": 25497596
+    },
+    {
+      "id": "2466f6de8e22efeda3b170bf",
+      "pid": 36252,
+      "supervisor": 6780,
+      "title": "2466f6de8e22efeda3b170bf - Untitled - Windows, Mac, Linux - Unity 6.3 LTS (6000.3.22f1) <DX12>",
+      "windowHandle": 8786338
+    }
+  ],
+  "isolation": {
+    "before": {
+      "originalSource": "51a954c289b91aa51a1b1956be7e17143be0b28ec1f16004f1501c83f46d7eb5",
+      "bSource": "51a954c289b91aa51a1b1956be7e17143be0b28ec1f16004f1501c83f46d7eb5",
+      "baselineSource": "51a954c289b91aa51a1b1956be7e17143be0b28ec1f16004f1501c83f46d7eb5",
+      "originalAssembly": "b20ab0b1cc4272c0afc51a9ef0c4cb5b2c0c31aaa72a9a261b802eb9ae211a36",
+      "bAssembly": "d297d54208485b20eb5ad10e863eed7ce1f1f55688a1fa9265aedbcaf64e0fc6"
+    },
+    "modifiedA": "4b5a0bbf3c53814f8e0ecfadedb162b57621b69fd345a3b4f251be3646e3b13a",
+    "after": {
+      "originalSource": "51a954c289b91aa51a1b1956be7e17143be0b28ec1f16004f1501c83f46d7eb5",
+      "bSource": "51a954c289b91aa51a1b1956be7e17143be0b28ec1f16004f1501c83f46d7eb5",
+      "baselineSource": "51a954c289b91aa51a1b1956be7e17143be0b28ec1f16004f1501c83f46d7eb5",
+      "originalAssembly": "b20ab0b1cc4272c0afc51a9ef0c4cb5b2c0c31aaa72a9a261b802eb9ae211a36",
+      "bAssembly": "d297d54208485b20eb5ad10e863eed7ce1f1f55688a1fa9265aedbcaf64e0fc6"
+    },
+    "isolated": true
+  },
+  "independentProcessCheck": {
+    "at": "2026-09-21T01:17:10.8964513Z",
+    "observedOwnedProcesses": 40,
+    "remainingOwnedProcesses": 0,
+    "remaining": [],
+    "removedA": true,
+    "removedB": true,
+    "worktrees": [
+      "worktree C:/Users/olive/Desktop/Development/splinter-unity",
+      "HEAD 66820470038c85319bc4d47d1ff2859cab82e928",
+      "branch refs/heads/development",
+      ""
+    ],
+    "originalEditorAlive": true,
+    "originalMcpAlive": true,
+    "fixtureHead": "66820470038c85319bc4d47d1ff2859cab82e928",
+    "fixtureStatus": []
+  },
+  "incrementalBaseline": {
+    "sourceCommit": {
+      "originalHead": "66820470038c85319bc4d47d1ff2859cab82e928",
+      "changedPaths": [
+        "Assets/SplinterAlphaA.cs"
+      ],
+      "sourceBlob": "f90c3f738af467674a0d6cf6e62b5a3a4076ebb1",
+      "revision": "79a367c27c3419d37758af67d454652f901dc58c",
+      "originalStatus": [],
+      "branch": "splinter/resource-cache-seed",
+      "parent": "66820470038c85319bc4d47d1ff2859cab82e928"
+    },
+    "prepared": {
+      "workspace": {
+        "id": "b285120ac7846a909ecc09c7",
+        "requestKey": "baseline-e65b7c4cf73e97b77f84c48a-0",
+        "projectPath": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity",
+        "path": "S:\\splinter-resource-alpha\\workspaces\\b285120ac7846a909ecc09c7",
+        "sourceReference": "splinter/b285120ac7846a909ecc09c7",
+        "baseReference": "79a367c27c3419d37758af67d454652f901dc58c",
+        "baseRevision": "79a367c27c3419d37758af67d454652f901dc58c",
+        "phase": "editor-starting",
+        "createdAt": "2026-09-21T01:17:37.4884947+00:00",
+        "updatedAt": "2026-09-21T01:18:46.9785635+00:00",
+        "storageMode": "refs-cow",
+        "purpose": "baseline",
+        "baselineId": "51f7ee1d3abfc7c859cee60b",
+        "cloneMetrics": {
+          "logicalBytes": 2017545775,
+          "clonedBytes": 1963737088,
+          "copiedBytes": 53808687,
+          "files": 41604,
+          "elapsedMilliseconds": 53910
+        },
+        "processId": 56940
+      },
+      "source": {
+        "revision": "79a367c27c3419d37758af67d454652f901dc58c",
+        "fingerprint": "90eefc7f7fd71a0850dfd9a9c11eeb6afa903a0cc0a9bfb2ac89561dc3a245ba",
+        "hasChanges": false,
+        "changedPaths": [],
+        "changedPathCount": 0
+      },
+      "application": {
+        "running": true,
+        "ready": false,
+        "phase": "starting-or-unresponsive; inspect editor.log",
+        "processId": 56940,
+        "resources": {
+          "ownershipVerified": true,
+          "rootRunning": true,
+          "activeProcesses": 6,
+          "workingSetBytes": 278605824,
+          "privateBytes": 340283392
+        }
+      },
+      "controlPath": "S:\\splinter-resource-alpha\\records\\b285120ac7846a909ecc09c7",
+      "nextCommand": "workspace status --id b285120ac7846a909ecc09c7",
+      "isolation": "private-project-and-library; shared user preferences and external services are not sandboxed"
+    },
+    "validation": {
+      "workspace": {
+        "id": "b285120ac7846a909ecc09c7",
+        "requestKey": "baseline-e65b7c4cf73e97b77f84c48a-0",
+        "projectPath": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity",
+        "path": "S:\\splinter-resource-alpha\\workspaces\\b285120ac7846a909ecc09c7",
+        "sourceReference": "splinter/b285120ac7846a909ecc09c7",
+        "baseReference": "79a367c27c3419d37758af67d454652f901dc58c",
+        "baseRevision": "79a367c27c3419d37758af67d454652f901dc58c",
+        "phase": "validated",
+        "createdAt": "2026-09-21T01:17:37.4884947+00:00",
+        "updatedAt": "2026-09-21T01:20:33.9565435+00:00",
+        "storageMode": "refs-cow",
+        "purpose": "baseline",
+        "baselineId": "51f7ee1d3abfc7c859cee60b",
+        "cloneMetrics": {
+          "logicalBytes": 2017545775,
+          "clonedBytes": 1963737088,
+          "copiedBytes": 53808687,
+          "files": 41604,
+          "elapsedMilliseconds": 53910
+        },
+        "processId": 56940,
+        "validation": {
+          "requestId": "c59a88a959474d3eb2dbadbdd8371bc0",
+          "fingerprint": "90eefc7f7fd71a0850dfd9a9c11eeb6afa903a0cc0a9bfb2ac89561dc3a245ba",
+          "success": true,
+          "completedAt": "2026-09-21T01:20:33.8416657+00:00",
+          "errors": [],
+          "errorCount": 0
+        }
+      },
+      "source": {
+        "revision": "79a367c27c3419d37758af67d454652f901dc58c",
+        "fingerprint": "90eefc7f7fd71a0850dfd9a9c11eeb6afa903a0cc0a9bfb2ac89561dc3a245ba",
+        "hasChanges": false,
+        "changedPaths": [],
+        "changedPathCount": 0
+      },
+      "application": {
+        "running": true,
+        "ready": true,
+        "phase": "ready",
+        "processId": 56940,
+        "validation": {
+          "requestId": "c59a88a959474d3eb2dbadbdd8371bc0",
+          "fingerprint": "90eefc7f7fd71a0850dfd9a9c11eeb6afa903a0cc0a9bfb2ac89561dc3a245ba",
+          "success": true,
+          "completedAt": "2026-09-21T01:20:33.8416657+00:00",
+          "errors": [],
+          "errorCount": 0
+        },
+        "resources": {
+          "ownershipVerified": true,
+          "rootRunning": true,
+          "activeProcesses": 21,
+          "workingSetBytes": 7380914176,
+          "privateBytes": 8433913856
+        }
+      },
+      "controlPath": "S:\\splinter-resource-alpha\\records\\b285120ac7846a909ecc09c7",
+      "nextCommand": "baseline seal --id b285120ac7846a909ecc09c7",
+      "isolation": "private-project-and-library; shared user preferences and external services are not sandboxed"
+    },
+    "inUseReleaseError": "BaselineInUse",
+    "sealed": {
+      "id": "b285120ac7846a909ecc09c7",
+      "projectPath": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity",
+      "baseRevision": "79a367c27c3419d37758af67d454652f901dc58c",
+      "compatibilityKey": "9507c2e3ead4ea4cba85c583b92c934d94aba98f0f624cda038971ea4b9e31d8",
+      "path": "S:\\splinter-resource-alpha\\baselines\\b285120ac7846a909ecc09c7\\tree",
+      "sealedAt": "2026-09-21T01:21:32.6216505+00:00",
+      "cloneMetrics": {
+        "logicalBytes": 2017548802,
+        "clonedBytes": 1963737088,
+        "copiedBytes": 53811714,
+        "files": 41610,
+        "elapsedMilliseconds": 51657
+      },
+      "manifestHash": "08de3c15256f76bc2282e231571bc9ac792f349de6e42a75ed0672e13ffa7c66"
+    },
+    "sealMilliseconds": 106946,
+    "released": {
+      "id": "b285120ac7846a909ecc09c7",
+      "requestKey": "baseline-e65b7c4cf73e97b77f84c48a-0",
+      "projectPath": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity",
+      "path": "S:\\splinter-resource-alpha\\workspaces\\b285120ac7846a909ecc09c7",
+      "sourceReference": "splinter/b285120ac7846a909ecc09c7",
+      "baseReference": "79a367c27c3419d37758af67d454652f901dc58c",
+      "baseRevision": "79a367c27c3419d37758af67d454652f901dc58c",
+      "phase": "released",
+      "createdAt": "2026-09-21T01:17:37.4884947+00:00",
+      "updatedAt": "2026-09-21T01:22:20.9703774+00:00",
+      "storageMode": "refs-cow",
+      "purpose": "baseline",
+      "baselineId": "51f7ee1d3abfc7c859cee60b",
+      "cloneMetrics": {
+        "logicalBytes": 2017545775,
+        "clonedBytes": 1963737088,
+        "copiedBytes": 53808687,
+        "files": 41604,
+        "elapsedMilliseconds": 53910
+      },
+      "releasedResources": {
+        "ownershipVerified": true,
+        "rootRunning": false,
+        "activeProcesses": 0,
+        "workingSetBytes": 0,
+        "privateBytes": 0
+      },
+      "processId": 56940,
+      "validation": {
+        "requestId": "c59a88a959474d3eb2dbadbdd8371bc0",
+        "fingerprint": "90eefc7f7fd71a0850dfd9a9c11eeb6afa903a0cc0a9bfb2ac89561dc3a245ba",
+        "success": true,
+        "completedAt": "2026-09-21T01:20:33.8416657+00:00",
+        "errors": [],
+        "errorCount": 0
+      }
+    },
+    "cacheRelease": {
+      "id": "b285120ac7846a909ecc09c7",
+      "phase": "released"
+    },
+    "reusedOriginalBaseline": "51f7ee1d3abfc7c859cee60b"
+  },
+  "finalCleanup": {
+    "at": "2026-09-21T01:24:35.3950082Z",
+    "workspaces": [
+      {
+        "id": "51f7ee1d3abfc7c859cee60b",
+        "phase": "released",
+        "pathAbsent": true,
+        "rootPid": 42048,
+        "supervisorPid": 26016,
+        "rootAlive": false,
+        "supervisorAlive": false,
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "exitProof": {
+          "observedAt": "2026-09-21T09:42:12.8565058+09:00",
+          "rootExitCode": 0,
+          "activeJobProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        }
+      },
+      {
+        "id": "46aacd578024a678d97fd1c6",
+        "phase": "released",
+        "pathAbsent": true,
+        "rootPid": 17140,
+        "supervisorPid": 39856,
+        "rootAlive": false,
+        "supervisorAlive": false,
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "exitProof": {
+          "observedAt": "2026-09-21T10:15:46.1425+09:00",
+          "rootExitCode": 0,
+          "activeJobProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        }
+      },
+      {
+        "id": "2466f6de8e22efeda3b170bf",
+        "phase": "released",
+        "pathAbsent": true,
+        "rootPid": 36252,
+        "supervisorPid": 6780,
+        "rootAlive": false,
+        "supervisorAlive": false,
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "exitProof": {
+          "observedAt": "2026-09-21T10:15:57.3526543+09:00",
+          "rootExitCode": 0,
+          "activeJobProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        }
+      },
+      {
+        "id": "b285120ac7846a909ecc09c7",
+        "phase": "released",
+        "pathAbsent": true,
+        "rootPid": 56940,
+        "supervisorPid": 57396,
+        "rootAlive": false,
+        "supervisorAlive": false,
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "exitProof": {
+          "observedAt": "2026-09-21T10:20:40.1719785+09:00",
+          "rootExitCode": 0,
+          "activeJobProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        }
+      }
+    ],
+    "scopedProcesses": [],
+    "worktreeDirectories": [],
+    "cacheTrees": [
+      "51f7ee1d3abfc7c859cee60b"
+    ],
+    "worktrees": [
+      "worktree C:/Users/olive/Desktop/Development/splinter-unity",
+      "HEAD 66820470038c85319bc4d47d1ff2859cab82e928",
+      "branch refs/heads/development",
+      ""
+    ],
+    "fixtureHead": "66820470038c85319bc4d47d1ff2859cab82e928",
+    "fixtureMain": "9849d8a8523aa1a215b8202ed9a0250d9c3fac2d",
+    "fixtureStatus": [],
+    "productMain": "d9ed6eefe6d4dbc61d2eca54efbdbcb46f9a16df",
+    "originalEditorAlive": true,
+    "originalMcpAlive": true,
+    "originalValues": {
+      "increment": 4,
+      "doubled": 6,
+      "compiling": false,
+      "project": "C:/Users/olive/Desktop/Development/splinter-unity/Assets"
+    }
+  },
+  "rawArtifactSha256": {
+    "a-create-metrics.json": "b7101671219d238e1aae5e02550b53605acafaf62601dfc6351a6c05e0eacccb",
+    "a-created.json": "f8ca81f5b0a15efd35cc7e3d195e4ed10c16810f981aafd3a21f0f2b27f2115b",
+    "a-modified-refresh.json": "3262547c969069f2cde191547a8cdf48a978848711e6bba74f3851df79e5f883",
+    "a-modified-validated.json": "d085e0de514128f93e1c45f2ea7d464b27c3afabf0709fc05586916f5ad55aaa",
+    "a-ready.json": "c774cc5f729ef02070fdede8d68fd022a176019b40b7326cee981b886fdc66dd",
+    "a-release-metrics.json": "a10a802f18cb60b96eebafde6eeb397afac52f1daa52348e9afeb5cf1619a1b1",
+    "a-released.json": "ed0544c2d4afff6431c59989663f122e7c2bfd078e8fdf1219087f27df289436",
+    "a-restored-refresh.json": "bfad0b3104317c94efdb309a9dc7523400788740959829419dfb625c45241597",
+    "a-restored-validated.json": "d24533f5f5399b60dea75a100883370ccefe98ee0554c420448415464995dd47",
+    "a-start-before-fix-metrics.json": "515358918228b6c7ccea6b8a06a4300db95ef1863ad155971ecd766e1827024d",
+    "a-start-before-fix.json": "5a13342cb95d66bfb313e7bb630059159575c20c8c29aba25f85727b9138932a",
+    "a-start-metrics.json": "8e5d72ee295190dbeea0c4599795988bb99f1804f569b821d8163102ca325239",
+    "a-start.json": "689d7847ea364810808089a23952d205ce5373049e5e2537118e7067e2a5e1a7",
+    "a-status.json": "9b6c7adc14a8efcec3750d598d7b63a7f398a1e52eb8f8fa36a0da5895084b35",
+    "a-stop-before-restart.json": "4f0d8826418cc995dfb660a78bd2ecddc228482cbd977ea39097b55979ea2a00",
+    "b-create-metrics.json": "449fb5556eef7c739f464ac6af352f0979b41fc2fc905971789c7c57fd728ebe",
+    "b-created.json": "eb6a6b023045d7660bccf56c5b47d3fad6f6f16939e56daf469347b94fd008cb",
+    "b-ready.json": "bf947b1ad5def892937f536e39d38a7352f848bf75adfc2e48ce33b94ae11409",
+    "b-refresh.json": "66908de663877985a76e0b495fdbdb4a80f528765ed717e1eb4cfc55fec4a8af",
+    "b-release-metrics.json": "969e9b7d547258658623d0513b38e70773f1dcc0e653aece779ee588844d6c40",
+    "b-released.json": "d4d33de23fe82043267d5ab2843dbc005be9fb604a31face514c89983cc82597",
+    "b-start-metrics.json": "cb8d5803cd6395aab5f074c9f3e16a2ade94d66da24e2be6d144dac1351d5174",
+    "b-start.json": "4521030e66ab421b8203c30cc978960aaca470c482486290bb6a0a1c6f51b950",
+    "b-validated.json": "4ceb4e3487f4ae06ba73f5d74269faadb9d396ba09ec677da9c444997d5ba975",
+    "baseline-in-use.json": "8d64371546958840893744a8b8c9d9d1cc688a81807ca5dd849d9c1d177fc81c",
+    "baseline-prepare.json": "0e601cbf875184593d1cee8e92c2d2bcf6fd1bdfd00d505a6926652370c98edb",
+    "baseline-refresh.json": "78c10ef7a3ec937f2ae852c9da24f088139f1073232656518bba9c4e49b4dde2",
+    "baseline-released.json": "0c2f73ceec14864d7a4f7ed5d5996c13e6961bf50e30a27dfe41a8b1449a51a2",
+    "baseline-reused.json": "437ec1716ea1fafeb1bc244cf4e66b455106a7c5500ddae2dc5ce0c107e11c84",
+    "baseline-seal-metrics.json": "116acd8f00bc963ce88eafd42b298512367abba312c552bbe29e0e626d827299",
+    "baseline-seal.json": "94140040b254a86ba9d7946a0478a8b2bcd676988cd8241bab252e3810b74858",
+    "baseline-status.json": "9ac37f2bf0858fd61681ecfeaa47eda77abace326920370ffc7d4e8d023b3b4a",
+    "baseline-validated.json": "0a2cb8d77b4fd00d8f475aee20df67aab8c1819037c0694d5173dbd24cb87079",
+    "final-cleanup.json": "fd927019f12f611feaddea3757afb38ee5685c08f13d8b396eb1a23b82fbf078",
+    "gui-windows.json": "2fc7606089e11d39463a9d3f30b72f4601ecb891f0b7f6a36ea78e894d0faeb1",
+    "isolation-before.json": "9862e7fc189e2e89b43791a5882eccf43ab62eed83b906ecac485b96950f5b3c",
+    "isolation.json": "64e33100a6c741732a20fef0e10bc4503016d0d396b6466c98768922847f8101",
+    "key-normalization.json": "804d835ebcbbffed7b57556117b77f361802901a4527e2909515341f2fee5575",
+    "original-after-workers.json": "20d473affbd2603808f0c803d549f35324a527bb34e47d5235c86dbee7ab9cb1",
+    "original-before-workers.json": "648e2629624733c01e5120b249691f567b3c88f63850605b555b32da5ec8972d",
+    "original-final.json": "157b4f8104cc9a2a5ae8cd9793d2e1a2385ef572c3fe9c0d2053fa4060a79794",
+    "owned-processes-before-release.json": "672a56165a099535a500ba49d0f451cfca4f0561be0ae37ebf7d426215163d65",
+    "refs-clone-current.json": "18b9258e106d957849168c10e66bf3f74ec9893094f980c5e9647866554a16d6",
+    "refs-clone.json": "a30b5768ef3bc79de95d238c65e6078430806aedc08da0b60ba64d6cdd098d26",
+    "seed-cache-released.json": "aeed1e533760db200a5f19995df6bc35c9bc05b08881b7943b5fb960138ac55d",
+    "seed-commit.json": "e058fc801ce78acb688d6f63b00ae6c5a204c695a3229651b8834fbbd5e18a67",
+    "seed-prepare-metrics.json": "86c585e89e8ba4b69e590e8ce10e464c75ae5f4a5d5f71e257119dd56e2c1e9a",
+    "seed-prepare.json": "88c71eb55ba29812bd574138d253aaf68fb7424d37d19a3e6d44c1986fd9b965",
+    "seed-ready.json": "bcfa7c717223ef311091b0ef3265fc262ef33b2f1babad03288845217e5318cd",
+    "seed-refresh.json": "9dd06b573c651da6751f8d718a1a406b7fbf6859712a20c38d4a06ce724d1951",
+    "seed-released.json": "e4fe615c44f6bc659f11416866d4c3aaa4973533da1e262a782ab54767713cf9",
+    "seed-seal-metrics.json": "744235510b1d14b697e10ec334e7e54322274ee715233e73452fa25598fbf034",
+    "seed-seal.json": "771917b3d559bcf690fba0f636e8728399ddb6cfbd272e86c251241090f5459b",
+    "seed-validated.json": "dfa302e3a47fb4f2c1079e50d44a77d0dc7ae47a3174e4bffc0264bc3acb7fc3",
+    "storage-probe.json": "2df6eda0b45bf820189fec7dab684d2c0fcab9f44e8d18f576aca2f838c6caef",
+    "workers-cleaned.json": "de1075172f53d2cbc703da21d4b8a2672b79708f2d5fb8e31909edd9cb75a9f4"
+  }
+}

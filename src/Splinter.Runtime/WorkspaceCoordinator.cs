@@ -5,34 +5,46 @@ namespace Splinter.Runtime;
 public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Source, ApplicationState? Application,
     string ControlPath, string NextCommand);
 
-public sealed class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceProvider sources, IApplicationWorkspaceProvider applications)
+public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceProvider sources, IApplicationWorkspaceProvider applications,
+    IWorkspaceStorageProvider? storage = null)
 {
     public IReadOnlyList<WorkspaceRecord> List(string? project) => store.List(project is null ? null : WorkspaceStore.CanonicalProject(project));
 
     public async Task<WorkspaceView> EnsureAsync(string project, string requestKey, string baseReference, string storageMode,
-        bool editor, CancellationToken ct = default)
+        bool editor, CancellationToken ct = default, string? baselineId = null, string purpose = "task")
     {
         if (string.IsNullOrWhiteSpace(requestKey) || requestKey.Length > 128)
             throw new WorkspaceException("InvalidRequestKey", "Use a stable task key between 1 and 128 characters; reuse it across turns.");
-        if (storageMode != "git-checkout")
-            throw new WorkspaceException("UnsupportedStorageMode", "This internal alpha supports explicit git-checkout only; ReFS CoW is not implemented.");
+        if (storageMode is not ("git-checkout" or "refs-cow"))
+            throw new WorkspaceException("UnsupportedStorageMode", "Choose refs-cow, or explicit git-checkout for a cold diagnostic workspace.");
+        if (storageMode == "refs-cow" && baselineId is null || storageMode == "git-checkout" && baselineId is not null)
+            throw new WorkspaceException("BaselineRequired", "refs-cow requires a sealed baseline; git-checkout does not consume one.");
         project = WorkspaceStore.CanonicalProject(project);
         if (!Directory.Exists(project)) throw new WorkspaceException("ProjectPathNotFound", "Project directory does not exist.");
         if (WorkspaceStore.SamePath(store.Root, project) || store.Root.StartsWith(project + Path.DirectorySeparatorChar, PathComparison))
             throw new WorkspaceException("UnsafeStateRoot", "State and workspaces must live outside the project being edited.");
         string id = WorkspaceStore.Key(WorkspaceStore.ProjectKey(project) + "\n" + requestKey);
         using var gate = await store.LockAsync(id, ct);
+        using var baselineGate = baselineId is null ? null : await store.LockAsync(WorkspaceStore.Key("baseline:" + baselineId), ct);
         var record = store.Find(id);
+        if (record is null && baselineId is not null)
+        {
+            Storage.Probe(store.Root);
+            var baseline = store.GetBaseline(baselineId);
+            if (!WorkspaceStore.SamePath(project, baseline.ProjectPath) || applications.CompatibilityKey(project) != baseline.CompatibilityKey)
+                throw new WorkspaceException("BaselineMismatch", "Baseline belongs to another project or application configuration.");
+        }
         if (record is null)
         {
             record = new WorkspaceRecord
             {
                 Id = id, RequestKey = requestKey, ProjectPath = project, Path = store.WorkPath(id),
-                SourceReference = "splinter/" + id, BaseReference = baseReference, ManagedPaths = applications.ManagedPaths
+                SourceReference = "splinter/" + id, BaseReference = baseReference, ManagedPaths = applications.ManagedPaths,
+                StorageMode = storageMode, BaselineId = baselineId, Purpose = purpose
             };
             store.Save(record, "create-intent");
         }
-        else if (record.BaseReference != baseReference || record.StorageMode != storageMode)
+        else if (record.BaseReference != baseReference || record.StorageMode != storageMode || record.BaselineId != baselineId || record.Purpose != purpose)
             throw new WorkspaceException("RequestKeyConflict", "This key already belongs to another request. Reuse its original parameters or choose a new task key.");
         if (record.Phase == "released") return new(record, null, null, store.ControlPath(id), "workspace list");
         try
@@ -42,6 +54,7 @@ public sealed class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceP
                 using var repositoryGate = await store.LockAsync(WorkspaceStore.ProjectKey(project), ct);
                 SourceWorkspace created = await sources.CreateAsync(record, ct);
                 record.BaseRevision = created.BaseRevision;
+                record.CloneMetrics = created.CloneMetrics;
                 record.Phase = "ready";
                 record.LastError = null;
                 store.Save(record, "created");
@@ -197,9 +210,15 @@ public sealed class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceP
         try
         {
             await applications.StopAsync(record, store.ControlPath(id), ct);
+            var stopped = await applications.ObserveAsync(record, store.ControlPath(id), ct);
+            if (stopped.Running || stopped.Resources is not { OwnershipVerified: true, ActiveProcesses: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
+                throw new WorkspaceException("ProcessCleanupIncomplete", "Workspace deletion requires verified zero owned processes and memory.");
+            record.ReleasedResources = stopped.Resources;
             if (Directory.Exists(record.Path)) await applications.RemoveInfrastructureAsync(record, store.ControlPath(id), ct);
             using var repositoryGate = await store.LockAsync(WorkspaceStore.ProjectKey(record.ProjectPath), ct);
             await sources.ReleaseAsync(record, ct);
+            if (Directory.Exists(record.Path) || File.Exists(record.Path))
+                throw new WorkspaceException("WorkspaceCleanupIncomplete", "The source provider left workspace files; retry release after inspecting the failure.");
             record.Phase = "released";
             record.LastError = null;
             store.Save(record, "released");
@@ -234,7 +253,8 @@ public sealed class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceP
         }
         if (record.Phase == "editor-starting" && app.Ready) { record.Phase = "active"; changed = true; }
         if (changed) store.Save(record, "observed");
-        string next = record.IntegratedRevision is not null ? "workspace release" : record.ResultRevision is not null ? "workspace integrate" :
+        string next = record.Purpose == "baseline" && record.Validation?.Success == true ? "baseline seal" :
+            record.IntegratedRevision is not null ? "workspace release" : record.ResultRevision is not null ? "workspace integrate" :
             record.PendingValidationId is not null ? "workspace status" : record.Validation?.Success == true ? "workspace checkpoint" :
             app.Ready ? "unity refresh" : app.Running ? "workspace status" : "unity start";
         return new(record, source, app, store.ControlPath(record.Id), next + " --id " + record.Id);

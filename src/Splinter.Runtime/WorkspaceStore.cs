@@ -8,7 +8,7 @@ namespace Splinter.Runtime;
 
 // One short-lived CLI owns one operation lock. Editor and record lifetimes are
 // independent of that CLI, so closing a conversation never releases its workspace.
-public sealed partial class WorkspaceStore
+public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     public string Root { get; }
@@ -18,7 +18,7 @@ public sealed partial class WorkspaceStore
         Root = Path.GetFullPath(root);
         EnsurePlainPath(Root);
         Directory.CreateDirectory(Root);
-        foreach (string name in new[] { "records", "workspaces", "locks" })
+        foreach (string name in new[] { "records", "workspaces", "locks", "baselines" })
         {
             string path = Path.Combine(Root, name);
             EnsurePlainPath(path);
@@ -36,6 +36,28 @@ public sealed partial class WorkspaceStore
     public static string ProjectKey(string project) => Key(OperatingSystem.IsWindows() ? project.ToUpperInvariant() : project);
     public string WorkPath(string id) { CheckId(id); return Path.Combine(Root, "workspaces", id); }
     public string ControlPath(string id) { CheckId(id); return Path.Combine(Root, "records", id); }
+    public string BaselinePath(string id) { CheckId(id); return Path.Combine(Root, "baselines", id, "tree"); }
+    public WorkspaceBaseline GetBaseline(string id)
+    {
+        string path = Path.Combine(Path.GetDirectoryName(BaselinePath(id))!, "baseline.json"); EnsurePlainPath(path);
+        if (!File.Exists(path)) throw new WorkspaceException("BaselineNotReady", "Prepare, validate and seal this baseline first.");
+        var record = JsonSerializer.Deserialize<WorkspaceBaseline>(File.ReadAllText(path), Json)
+            ?? throw new WorkspaceException("StateCorrupt", "Empty baseline record.");
+        if (record.Id != id || !SamePath(record.Path, BaselinePath(id))) throw new WorkspaceException("StateCorrupt", "Baseline path/identity mismatch.");
+        EnsurePlainPath(record.Path);
+        if (!Directory.Exists(record.Path)) throw new WorkspaceException("BaselineNotReady", "Baseline files are unavailable.");
+        if (BaselineManifest.Hash(record.Path) != record.ManifestHash) throw new WorkspaceException("BaselineChanged", "Sealed baseline files changed. Preserve them and prepare a new baseline.");
+        return record;
+    }
+    public void SaveBaseline(WorkspaceBaseline record)
+    {
+        if (!SamePath(record.Path, BaselinePath(record.Id))) throw new WorkspaceException("StateCorrupt", "Invalid baseline path.");
+        string file = Path.Combine(Path.GetDirectoryName(record.Path)!, "baseline.json"); EnsurePlainPath(file);
+        string temporary = file + ".tmp"; EnsurePlainPath(temporary);
+        using (var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
+        { JsonSerializer.Serialize(stream, record, Json); stream.Flush(true); }
+        File.Move(temporary, file, true);
+    }
 
     public async Task<FileStream> LockAsync(string key, CancellationToken cancellationToken = default)
     {

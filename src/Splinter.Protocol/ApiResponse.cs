@@ -33,6 +33,7 @@ public sealed record ApiResponse(
         "1.0", Guid.NewGuid().ToString("N"), command, "Failed", true, code switch
         {
             "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "ValidationInProgress" => "safe-to-retry",
+            "CoWUnsupported" or "LegacyProcessOwnership" or "ProcessOwnershipUnknown" => "requires-user-action",
             "AccessDenied" or "GitUnavailable" or "EditorFocusRequired" => "requires-user-action",
             _ => "correct-request"
         }, null,

@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Splinter.Core/Splinter.Core.csproj" />
+    <Project Path="src/Splinter.Platform.Windows/Splinter.Platform.Windows.csproj" />
     <Project Path="src/Splinter.Protocol/Splinter.Protocol.csproj" />
     <Project Path="src/Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj" />
     <Project Path="src/Splinter.Application.Unity/Splinter.Application.Unity.csproj" />

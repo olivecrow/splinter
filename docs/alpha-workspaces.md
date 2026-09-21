@@ -2,18 +2,18 @@
 
 AI 작업자는 Editor가 필요한 시점에 이 CLI로 자신의 프로젝트와 Editor를 확보한다. 작업 도중 대화나 CLI가 끝나도 작업공간과 Editor는 남는다. 같은 `--home`, `--project`, `--key`로 다시 접속한다. 완료 후 명시적으로 커밋·통합·회수한다.
 
-현재 지원 범위는 Windows의 간단한 C# 스크립트 편집과 컴파일이다. 일반 Git checkout과 작업별 새 Library를 사용한다. `--storage git-checkout`은 필수이며 ReFS CoW 지원을 의미하지 않는다. 원본은 최초 커밋이 있고 깨끗한 Git 저장소 루트의 Unity 프로젝트여야 한다. 해당 Unity 패치가 Hub 기본 경로에 설치되어 있어야 하며 다른 위치는 `SPLINTER_UNITY_EDITOR`로 지정한다.
+현재 범위는 Windows의 간단한 C# 스크립트 편집과 컴파일이다. 반복 작업에는 [예열 기준본과 ReFS CoW](storage-and-resources.md)를 사용한다. 명시적인 `git-checkout`은 새 Library를 만드는 진단 모드다. 원본은 최초 커밋이 있고 깨끗한 Git 저장소 루트의 Unity 프로젝트여야 한다. 해당 Unity 패치가 Hub 기본 경로에 설치되어 있어야 하며 다른 위치는 `SPLINTER_UNITY_EDITOR`로 지정한다. 실제 환경별 지원 증거는 [자원 검증](verification/storage-and-resources.md)을 확인한다.
 
 ## 에이전트의 기본 흐름
 
 빌드 후 저장소 루트에서 `pwsh ./scripts/splinter.ps1`을 실행 접두사로 쓴다. 아래 예시의 `splinter`를 이 접두사로 바꾼다. `--home`은 모든 작업자가 공유하는 지속 상태 디렉터리이며 대상 Unity 저장소 **밖**에 둔다. 생략하면 `SPLINTER_HOME`, 없으면 사용자 LocalApplicationData/Splinter다.
 
 ```text
-splinter workspace ensure --project <Unity 저장소> --key <안정된 작업 이름> --storage git-checkout --base development --editor --home <상태 경로>
+splinter workspace ensure --project <Unity 저장소> --key <안정된 작업 이름> --storage refs-cow --baseline <봉인된 기준본 ID> --base <기준본 커밋> --editor --home <ReFS 상태 경로>
 splinter workspace status --id <응답의 workspace.id> --home <상태 경로>
 ```
 
-`data.application.ready=true`가 될 때까지 10초 정도 간격을 두고 status를 조회한다. 최초 실행은 패키지 해석과 새 Library 임포트에 수 분이 걸릴 수 있다. `running=true`와 로그 진행이 유지되면 짧은 대기만으로 실패로 판정하지 않는다. **반환된 `data.workspace.path`에서만** 수정한다. 원본 경로나 다른 작업자의 경로를 수정하지 않는다. Editor가 필요하지 않으면 `--editor`를 생략하고 나중에 `unity start --id`로 연다.
+`data.application.ready=true`가 될 때까지 10초 정도 간격을 두고 status를 조회한다. 최초 기준본의 cold 준비는 패키지 해석과 새 Library 임포트에 수 분이 걸릴 수 있다. CoW 작업도 경로 변경과 소유 브리지 추가에 따른 갱신이 필요하다. `running=true`와 로그 진행이 유지되면 짧은 대기만으로 실패로 판정하지 않는다. **반환된 `data.workspace.path`에서만** 수정한다. 원본 경로나 다른 작업자의 경로를 수정하지 않는다. Editor가 필요하지 않으면 `--editor`를 생략하고 나중에 `unity start --id`로 연다.
 
 fixture의 Unity `6000.3.22f1`은 C# 9 문법을 사용한다. 예를 들어 file-scoped namespace 대신 `namespace Example { ... }`를 쓴다. 다른 Unity 패치의 실행 검증은 별도다.
 
@@ -33,6 +33,8 @@ splinter workspace release --id <id> --home <상태 경로>
 ```
 
 checkpoint는 검증한 소스만 커밋한다. integrate는 작업 Editor를 종료하고 원본의 현재 브랜치에 merge한다. 원본이 요청한 브랜치에 있고 깨끗해야 한다. 충돌은 이 명령이 시작한 merge만 중단하고 결과 worktree를 남긴다. 여러 결과의 통합은 저장소별로 직렬화한다. 통합한 원본은 원본 Editor에서 별도로 새로고침·검증한다. release는 결과가 회수된 깨끗한 worktree만 삭제하며 기록·로그·결과 브랜치는 유지한다. 자동 타임아웃 삭제는 없다.
+
+release 완료에는 Editor뿐 아니라 자식과 감시 프로세스의 종료 증거가 필요하다. `workspace.releasedResources`의 소유 프로세스 수·working set·private bytes가 모두 0이며 실제 worktree 경로도 제거되어야 한다. 재사용 기준본은 별도 디스크 캐시로 유지되며 `baseline release`로 명시적으로 회수한다.
 
 Windows Git 호출에는 `core.longpaths=true`를 명령별로 적용한다. 사용자나 저장소 설정은 바꾸지 않는다. Git이 등록만 해제하고 폴더 일부를 남긴 경우에도 같은 release를 재시도할 수 있다. 저장된 회수 intent, 결과 브랜치와 통합 포함 여부를 확인하고, 남은 소스 파일은 Git blob과 일치해야 삭제한다. 관리 캐시 밖의 알 수 없는 파일이나 변경된 소스, reparse point는 보존하고 실패를 반환한다. 이 복구는 손상되거나 임의로 옮긴 작업공간 전체의 자동 복원을 뜻하지 않는다.
 
@@ -61,4 +63,4 @@ Coplay `10.2.0`은 HTTP 서버 소유 정보를 전역 EditorPrefs에서 읽어 
 
 Editor가 종료하면서 기존 에셋의 직렬화 형식을 갱신하면 파일은 보존되고 기존 검증 hash가 무효화된다. 바뀐 파일을 검토한 뒤 다시 검증한다. 이번 fixture의 Mobile URP 에셋이 이 경로에 해당한다. CLI 실행 접두사는 .NET 도구 상태 경로를 제품 저장소 기준 절대 경로로 정규화하여 Unity 작업공간에 도구 sentinel 파일을 생성하지 않게 한다.
 
-사용자 전역 EditorPrefs, 라이선스, CPU/GPU, 외부 서비스는 공유된다. 보안 샌드박스가 아니며 다른 작업공간 접근을 OS 수준에서 금지하지 않는다. 씬·프리팹 편집, Play, 테스트 실행, 빌드, ReFS, 공유 캐시, DAG 실행과 자동 에이전트 시작은 미구현이다. 외부 오케스트레이터가 에이전트를 시작하고 각 에이전트가 CLI를 사용한다. 하나의 대상 저장소에는 하나의 공통 `--home`을 사용한다.
+사용자 전역 EditorPrefs, 라이선스, CPU/GPU, 외부 서비스는 공유된다. 보안 샌드박스가 아니며 다른 작업공간 접근을 OS 수준에서 금지하지 않는다. 씬·프리팹 편집, Play, 테스트 실행, 빌드, DAG 실행과 자동 에이전트 시작은 미구현이다. 저장소와 프로세스 그룹의 지원 범위·실제 증거는 [저장소·자원 관리](storage-and-resources.md)를 따른다. 외부 오케스트레이터가 에이전트를 시작하고 각 에이전트가 CLI를 사용한다. 하나의 대상 저장소에는 하나의 공통 `--home`을 사용한다.

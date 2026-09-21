@@ -2,12 +2,18 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Splinter.Core;
 
 namespace Splinter.SourceControl.Git;
 
-public sealed class GitWorkspaceProvider : ISourceWorkspaceProvider
+public sealed class GitWorkspaceProvider(IWorkspaceStorageProvider? storage = null, IWorkspaceBaselineReader? baselines = null) : ISourceWorkspaceProvider
 {
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    public Task<string> ResolveRevisionAsync(string project, string reference, CancellationToken ct = default) =>
+        Required(project, ["rev-parse", "--verify", "--end-of-options", reference + "^{commit}"], ct);
+    public async Task<string> SnapshotKeyAsync(string project, string revision, string[] paths, CancellationToken ct = default) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(await Required(project, ["ls-tree", "-r", "-z", revision, "--", .. paths], ct))));
     public async Task<SourceWorkspace> CreateAsync(WorkspaceRecord workspace, CancellationToken ct = default)
     {
         CheckPaths(workspace);
@@ -19,7 +25,8 @@ public sealed class GitWorkspaceProvider : ISourceWorkspaceProvider
         {
             await EnsureRegistered(workspace, ct);
             string head = await Required(workspace.Path, ["rev-parse", "HEAD"], ct);
-            return new(workspace.Path, workspace.SourceReference, workspace.BaseRevision ?? head);
+            var clone = workspace.StorageMode == "refs-cow" ? await ReadCloneReceipt(workspace, head, ct) : null;
+            return new(workspace.Path, workspace.SourceReference, workspace.BaseRevision ?? head, clone);
         }
         await EnsureClean(workspace.ProjectPath, ct);
         if (Directory.Exists(workspace.Path) || File.Exists(workspace.Path))
@@ -28,9 +35,45 @@ public sealed class GitWorkspaceProvider : ISourceWorkspaceProvider
             throw Error("GitWorkspaceMismatch", "The task branch is already checked out elsewhere.");
         string revision = workspace.BaseRevision ?? await Required(workspace.ProjectPath,
             ["rev-parse", "--verify", "--end-of-options", workspace.BaseReference + "^{commit}"], ct);
+        WorkspaceBaseline? baseline = null;
+        if (workspace.StorageMode == "refs-cow")
+        {
+            if (storage is null || baselines is null || workspace.BaselineId is null) throw Error("CoWUnsupported", "Missing CoW provider or baseline.");
+            storage.Probe(workspace.Path);
+            baseline = baselines.GetBaseline(workspace.BaselineId);
+            if (baseline.BaseRevision != revision && workspace.Purpose != "baseline" || !SamePath(baseline.ProjectPath, workspace.ProjectPath))
+                throw Error("BaselineMismatch", "Baseline must match the exact source revision and original repository.");
+        }
         Directory.CreateDirectory(Path.GetDirectoryName(workspace.Path)!);
-        await Required(workspace.ProjectPath, ["worktree", "add", "-b", workspace.SourceReference, workspace.Path, revision], ct);
-        return new(workspace.Path, workspace.SourceReference, revision);
+        string[] flags = baseline is null ? [] : ["--no-checkout"];
+        await Required(workspace.ProjectPath, ["worktree", "add", .. flags, "-b", workspace.SourceReference, workspace.Path, revision], ct);
+        CloneStatistics? statistics = null;
+        if (baseline is not null)
+        {
+            statistics = await storage!.CloneAsync(baseline.Path, workspace.Path, [".git"], ct);
+            // Populate the independent index without rewriting any large files.
+            await Required(workspace.Path, ["read-tree", baseline.BaseRevision], ct);
+            await Required(workspace.Path, ["update-index", "--refresh"], ct);
+            if (baseline.BaseRevision != revision)
+                await Required(workspace.Path, ["read-tree", "-m", "-u", baseline.BaseRevision, revision], ct);
+            if ((await InspectAsync(workspace, ct)).HasChanges) throw Error("CloneSourceMismatch", "Cloned source differs from its Git revision. Preserve it for inspection.");
+            string receipt = await CloneReceiptPath(workspace, ct);
+            await File.WriteAllTextAsync(receipt, JsonSerializer.Serialize(new CloneReceipt(baseline.Id, revision, statistics), Json), CancellationToken.None);
+        }
+        return new(workspace.Path, workspace.SourceReference, revision, statistics);
+    }
+
+    private sealed record CloneReceipt(string BaselineId, string Revision, CloneStatistics Statistics);
+    private static async Task<string> CloneReceiptPath(WorkspaceRecord w, CancellationToken ct) =>
+        Path.Combine(await Required(w.Path, ["rev-parse", "--path-format=absolute", "--git-dir"], ct), "splinter-clone.json");
+    private static async Task<CloneStatistics> ReadCloneReceipt(WorkspaceRecord w, string head, CancellationToken ct)
+    {
+        string path = await CloneReceiptPath(w, ct);
+        if (!File.Exists(path)) throw Error("CloneIncomplete", "A registered workspace has no completed clone receipt. Preserve it for recovery; no full checkout fallback is allowed.");
+        var receipt = JsonSerializer.Deserialize<CloneReceipt>(await File.ReadAllTextAsync(path, ct), Json);
+        if (receipt is null || receipt.BaselineId != w.BaselineId || receipt.Revision != head)
+            throw Error("CloneIncomplete", "Clone receipt does not match the registered workspace.");
+        return receipt.Statistics;
     }
 
     public async Task<SourceState> InspectAsync(WorkspaceRecord workspace, CancellationToken ct = default)

@@ -7,10 +7,18 @@ using Splinter.Core;
 
 namespace Splinter.Application.Unity;
 
-public sealed class UnityWorkspaceProvider : IApplicationWorkspaceProvider
+public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes = null) : IApplicationWorkspaceProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public string[] ManagedPaths => ["Assets/__Splinter__", "Assets/__Splinter__.meta", "Library", "Temp", "Logs", "UserSettings", "obj", ".vs", ".idea", "*.csproj", "*.sln", "*.slnx"];
+    public string[] CacheInputs => ["Packages", "ProjectSettings"];
+    public string CompatibilityKey(string project)
+    {
+        using var resource = typeof(UnityWorkspaceProvider).Assembly.GetManifestResourceStream("Splinter.Editor.WorkspaceBridge.cs")!;
+        using var reader = new StreamReader(resource);
+        string version = string.Join('\n', File.ReadAllLines(Path.Combine(project, "ProjectSettings", "ProjectVersion.txt")).Select(line => line.Trim()));
+        return Hash(version + "\n" + reader.ReadToEnd().Replace("\r\n", "\n", StringComparison.Ordinal) + "\nWindows");
+    }
 
     public async Task<ApplicationLease> StartAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
     {
@@ -18,7 +26,11 @@ public sealed class UnityWorkspaceProvider : IApplicationWorkspaceProvider
         PlainPath(controlPath);
         Directory.CreateDirectory(controlPath);
         var prior = await Read<ApplicationLease>(controlPath, "launch-receipt.json", ct);
-        if (prior is not null && OwnedProcess(prior)) return prior;
+        if (prior is not null)
+        {
+            if (OwnedProcess(prior)) return prior;
+            await Processes.WaitForExitAsync(prior, ct);
+        }
         if (prior is null && File.Exists(Path.Combine(controlPath, "launch-intent.json")))
             throw new WorkspaceException("LaunchUncertain", "A launch intent has no receipt. Preserve it and inspect the process before starting another Editor.");
         string version = File.ReadLines(Path.Combine(root, "ProjectSettings", "ProjectVersion.txt"))
@@ -45,27 +57,27 @@ public sealed class UnityWorkspaceProvider : IApplicationWorkspaceProvider
             PlainPath(path);
             if (File.Exists(path)) File.Delete(path);
         }
-        var start = new ProcessStartInfo(executable) { WorkingDirectory = root, UseShellExecute = false };
-        foreach (string argument in new[] { "-projectPath", root, "-logFile", Path.Combine(controlPath, "editor.log"),
-            "-splinterControlPath", Path.GetFullPath(controlPath), "-splinterToken", token }) start.ArgumentList.Add(argument);
-        using var process = Process.Start(start) ?? throw new WorkspaceException("EditorLaunchFailed", "Unity did not start.");
-        var lease = new ApplicationLease(process.Id, process.StartTime.ToUniversalTime().Ticks, token, executable);
-        // Persist even if the caller cancels immediately after Process.Start.
-        await Atomic(controlPath, "launch-receipt.json", lease, CancellationToken.None);
-        return lease;
+        return await Processes.StartAsync(new ProcessLaunch(executable,
+            ["-projectPath", root, "-logFile", Path.Combine(controlPath, "editor.log"),
+             "-splinterControlPath", Path.GetFullPath(controlPath), "-splinterToken", token], root, token), controlPath, ct);
     }
 
     public async Task<ApplicationState> ObserveAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
     {
         var lease = await Read<ApplicationLease>(controlPath, "launch-receipt.json", ct);
-        if (lease is null) return new(false, false, File.Exists(Path.Combine(controlPath, "launch-intent.json")) ? "launch-uncertain" : "not-started");
-        if (!OwnedProcess(lease)) return new(false, false, "exited", lease);
+        if (lease is null)
+        {
+            bool uncertain = File.Exists(Path.Combine(controlPath, "launch-intent.json"));
+            return new(false, false, uncertain ? "launch-uncertain" : "not-started", Resources: new(!uncertain, false, 0, 0, 0));
+        }
+        var resources = processes is null ? new ProcessResources(false, OwnedProcess(lease), 0, 0, 0) : await processes.ObserveAsync(lease, ct);
+        if (!OwnedProcess(lease)) return new(false, false, resources.ActiveProcesses > 0 ? "draining" : "exited", lease, Resources: resources);
         var heartbeat = await Read<Heartbeat>(controlPath, "heartbeat.json", ct);
         bool valid = heartbeat is not null && heartbeat.Token == lease.Token && heartbeat.Pid == lease.ProcessId &&
             heartbeat.StartTimeUtcTicks == lease.StartTimeUtcTicks && SamePath(heartbeat.ProjectPath, workspace.Path) &&
             DateTimeOffset.UtcNow - heartbeat.ObservedAt < TimeSpan.FromSeconds(15);
-        return valid ? new(true, heartbeat!.Ready, heartbeat.Phase, lease, ToValidation(heartbeat.Validation))
-            : new(true, false, "starting-or-unresponsive; inspect editor.log", lease);
+        return valid ? new(true, heartbeat!.Ready, heartbeat.Phase, lease, ToValidation(heartbeat.Validation), resources)
+            : new(true, false, "starting-or-unresponsive; inspect editor.log", lease, Resources: resources);
     }
 
     public async Task RequestValidationAsync(WorkspaceRecord workspace, string controlPath, string requestId, string fingerprint, CancellationToken ct = default)
@@ -85,12 +97,12 @@ public sealed class UnityWorkspaceProvider : IApplicationWorkspaceProvider
                 throw new WorkspaceException("LaunchUncertain", "Cannot prove the launch is stopped; preserve the workspace.");
             return;
         }
-        if (!OwnedProcess(lease)) return;
+        if (!OwnedProcess(lease)) { await Processes.WaitForExitAsync(lease, ct); return; }
         string requestId = Guid.NewGuid().ToString("N");
         await Atomic(controlPath, "stop-request.json", new { requestId, token = lease.Token }, ct);
         for (int attempt = 0; attempt < 120; attempt++)
         {
-            if (!OwnedProcess(lease)) return;
+            if (!OwnedProcess(lease)) { await Processes.WaitForExitAsync(lease, ct); return; }
             var refusal = await Read<StopResult>(controlPath, "stop-result.json", ct);
             if (refusal?.RequestId == requestId)
                 throw new WorkspaceException("EditorStopBlocked", refusal.Error);
@@ -101,7 +113,8 @@ public sealed class UnityWorkspaceProvider : IApplicationWorkspaceProvider
 
     public async Task RemoveInfrastructureAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
     {
-        if ((await ObserveAsync(workspace, controlPath, ct)).Running)
+        var state = await ObserveAsync(workspace, controlPath, ct);
+        if (state.Running || state.Resources is not { OwnershipVerified: true, ActiveProcesses: 0 })
             throw new WorkspaceException("EditorStillRunning", "Stop the Editor before releasing its files.");
         PlainPath(workspace.Path);
         string infrastructure = Path.Combine(workspace.Path, "Assets", "__Splinter__");
@@ -161,6 +174,7 @@ public sealed class UnityWorkspaceProvider : IApplicationWorkspaceProvider
             throw new WorkspaceException("InvalidUnityProject", "The workspace is not a Unity project root.");
         return full;
     }
+    private IProcessWorkspaceProvider Processes => processes ?? throw new WorkspaceException("ProcessProviderMissing", "Compose a process ownership provider before launching Unity.");
     private static string ResolveEditor(string version)
     {
         string? configured = Environment.GetEnvironmentVariable("SPLINTER_UNITY_EDITOR");

@@ -16,6 +16,7 @@ public sealed class WorkspaceRecord
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     public string StorageMode { get; set; } = "git-checkout";
+    public string Purpose { get; set; } = "task";
     public string[] ManagedPaths { get; set; } = [];
     public ApplicationLease? Application { get; set; }
     public string? PendingValidationId { get; set; }
@@ -24,19 +25,25 @@ public sealed class WorkspaceRecord
     public string? ResultRevision { get; set; }
     public string? IntegratedRevision { get; set; }
     public string? LastError { get; set; }
+    public string? BaselineId { get; set; }
+    public CloneStatistics? CloneMetrics { get; set; }
+    public ProcessResources? ReleasedResources { get; set; }
 }
 
-public sealed record SourceWorkspace(string Path, string Reference, string BaseRevision);
+public sealed record SourceWorkspace(string Path, string Reference, string BaseRevision, CloneStatistics? CloneMetrics = null);
 public sealed record SourceState(string Revision, string Fingerprint, bool HasChanges, string[] ChangedPaths);
 public sealed record IntegrationResult(string Revision, bool AlreadyIntegrated);
-public sealed record ApplicationLease(int ProcessId, long StartTimeUtcTicks, string Token, string ExecutablePath);
+public sealed record ApplicationLease(int ProcessId, long StartTimeUtcTicks, string Token, string ExecutablePath,
+    ProcessGroupLease? Group = null);
 public sealed record ApplicationValidation(string RequestId, string Fingerprint, bool Success,
     DateTimeOffset CompletedAt, string[] Errors);
 public sealed record ApplicationState(bool Running, bool Ready, string Phase,
-    ApplicationLease? Lease = null, ApplicationValidation? Validation = null);
+    ApplicationLease? Lease = null, ApplicationValidation? Validation = null, ProcessResources? Resources = null);
 
 public interface ISourceWorkspaceProvider
 {
+    Task<string> ResolveRevisionAsync(string project, string reference, CancellationToken cancellationToken = default);
+    Task<string> SnapshotKeyAsync(string project, string revision, string[] paths, CancellationToken cancellationToken = default);
     Task<SourceWorkspace> CreateAsync(WorkspaceRecord workspace, CancellationToken cancellationToken = default);
     Task<SourceState> InspectAsync(WorkspaceRecord workspace, CancellationToken cancellationToken = default);
     Task<string> CommitAsync(WorkspaceRecord workspace, string message, CancellationToken cancellationToken = default);
@@ -47,6 +54,8 @@ public interface ISourceWorkspaceProvider
 public interface IApplicationWorkspaceProvider
 {
     string[] ManagedPaths { get; }
+    string[] CacheInputs { get; }
+    string CompatibilityKey(string project);
     Task<ApplicationLease> StartAsync(WorkspaceRecord workspace, string controlPath, CancellationToken cancellationToken = default);
     Task<ApplicationState> ObserveAsync(WorkspaceRecord workspace, string controlPath, CancellationToken cancellationToken = default);
     Task RequestValidationAsync(WorkspaceRecord workspace, string controlPath, string requestId, string fingerprint,

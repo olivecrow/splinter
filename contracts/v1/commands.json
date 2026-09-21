@@ -43,8 +43,8 @@
     },
     {
       "id": "workspace.ensure",
-      "description": "Create or resume a durable isolated Git worktree; optionally start its private Editor.",
-      "cliUsage": "splinter workspace ensure --project <directory> --key <task-key> --storage git-checkout [--base development] [--editor] [--home <state-root>]",
+      "description": "Create or resume a task using a sealed CoW baseline; explicit git-checkout is diagnostic.",
+      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <refs-cow|git-checkout> [--baseline <id>] [--base development] [--editor] [--home <state-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-ensure-request",
       "outputSchema": "urn:splinter:v1:response",
@@ -130,6 +130,46 @@
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-editor-stop",
       "retry": "idempotent-stop"
+    },
+    {
+      "id": "storage.probe",
+      "description": "Check ReFS volume and cluster geometry without copying files.",
+      "cliUsage": "splinter storage probe --path <directory>",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:storage-probe-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "read-only-local-process",
+      "retry": "safe-read"
+    },
+    {
+      "id": "baseline.prepare",
+      "description": "Create or reconnect to one exact-revision baseline preparation Editor.",
+      "cliUsage": "splinter baseline prepare --project <repository> [--base development] [--home <ReFS-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:baseline-prepare-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-worktree-and-optional-editor",
+      "retry": "same-project-and-task-key"
+    },
+    {
+      "id": "baseline.seal",
+      "description": "Stop a validated preparation Editor, seal source and Library, then release its worktree.",
+      "cliUsage": "splinter baseline seal --id <id> [--home <ReFS-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:baseline-seal-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-baseline-cache",
+      "retry": "same-workspace"
+    },
+    {
+      "id": "baseline.release",
+      "description": "Reclaim a sealed cache only after every consumer is released.",
+      "cliUsage": "splinter baseline release --id <id> [--home <ReFS-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:baseline-release-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-baseline-removal",
+      "retry": "idempotent-release"
     }
   ]
 }

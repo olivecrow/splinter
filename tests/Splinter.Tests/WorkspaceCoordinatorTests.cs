@@ -94,21 +94,81 @@ public sealed class WorkspaceCoordinatorTests
     }
 
     private static string Project(TestDirectory d) { var p = System.IO.Path.Combine(d.Path, "project"); Directory.CreateDirectory(p); return p; }
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 0)]
+    public async Task ReleaseCannotDeleteWhenDescendantsRemainOrOwnershipIsUnknown(bool verified, int children)
+    {
+        var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory();
+        var sources = new FakeSources(); var apps = new FakeApplications { OwnershipVerified = verified, SurvivingChildren = children };
+        var runtime = New(d, sources, apps);
+        var view = await runtime.EnsureAsync(Project(d), "resources", "main", "git-checkout", false, ct);
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() => runtime.ReleaseAsync(view.Workspace.Id, ct));
+        Assert.Equal("ProcessCleanupIncomplete", error.Code); Assert.Equal(0, sources.ReleaseCalls);
+        Assert.True(Directory.Exists(view.Workspace.Path));
+        apps.OwnershipVerified = true; apps.SurvivingChildren = 0;
+        var released = await runtime.ReleaseAsync(view.Workspace.Id, ct);
+        Assert.Equal(new ProcessResources(true, false, 0, 0, 0), released.Workspace.ReleasedResources);
+    }
+
+    [Fact]
+    public async Task UnsupportedCoWIsRejectedBeforeGitCreationAndNeverFallsBack()
+    {
+        var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); var sources = new FakeSources();
+        var store = new WorkspaceStore(Path.Combine(d.Path, "state"));
+        var runtime = new WorkspaceCoordinator(store, sources, new FakeApplications(), new FakeStorage { Unsupported = true });
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() => runtime.PrepareBaselineAsync(Project(d), "main", ct));
+        Assert.Equal("CoWUnsupported", error.Code); Assert.Equal(0, sources.CreateCalls); Assert.Empty(store.List());
+    }
+
+    [Fact]
+    public async Task BaselineSealsOnlyAfterValidationAndRejectsMutationAndActiveConsumerRemoval()
+    {
+        var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); var sources = new FakeSources { Revision = "base" };
+        var apps = new FakeApplications { EmitValidation = true }; var storage = new FakeStorage();
+        var store = new WorkspaceStore(Path.Combine(d.Path, "state")); var runtime = new WorkspaceCoordinator(store, sources, apps, storage);
+        string project = Project(d);
+        var prepared = await runtime.PrepareBaselineAsync(project, "main", ct); string id = prepared.Workspace.Id;
+        await Assert.ThrowsAsync<WorkspaceException>(() => runtime.SealBaselineAsync(id, ct));
+        string library = Path.Combine(prepared.Workspace.Path, "Library"); Directory.CreateDirectory(library);
+        await File.WriteAllTextAsync(Path.Combine(library, "cache"), "warmed once", ct);
+        await runtime.RefreshAsync(id, ct); await runtime.StatusAsync(id, ct);
+        var baseline = await runtime.SealBaselineAsync(id, ct);
+        Assert.False(Directory.Exists(prepared.Workspace.Path)); Assert.Equal(1, storage.CloneCalls);
+        Assert.Equal(id, (await runtime.PrepareBaselineAsync(project, "main", ct)).Workspace.Id);
+        Assert.Equal(1, sources.CreateCalls);
+        var consumer = await runtime.EnsureAsync(project, "consumer", "main", "refs-cow", false, ct, id);
+        var busy = await Assert.ThrowsAsync<WorkspaceException>(() => runtime.ReleaseBaselineAsync(id, ct));
+        Assert.Equal("BaselineInUse", busy.Code);
+        await runtime.ReleaseAsync(consumer.Workspace.Id, ct);
+        await File.WriteAllTextAsync(Path.Combine(baseline.Path, "Library", "cache"), "unexpected change", ct);
+        var changed = await Assert.ThrowsAsync<WorkspaceException>(() => runtime.ReleaseBaselineAsync(id, ct));
+        Assert.Equal("BaselineChanged", changed.Code); Assert.True(Directory.Exists(baseline.Path));
+        await File.WriteAllTextAsync(Path.Combine(baseline.Path, "Library", "cache"), "warmed once", ct);
+        await runtime.ReleaseBaselineAsync(id, ct); Assert.False(Directory.Exists(baseline.Path));
+        Assert.NotEqual(id, (await runtime.PrepareBaselineAsync(project, "main", ct)).Workspace.Id);
+    }
     private static WorkspaceCoordinator New(TestDirectory d, FakeSources s, FakeApplications a) => new(new WorkspaceStore(System.IO.Path.Combine(d.Path, "state")), s, a);
 
     private sealed class FakeSources : ISourceWorkspaceProvider
     {
+        public string ResolvedRevision = "base";
+        public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(ResolvedRevision);
+        public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => Task.FromResult("fake-cache");
         public int CreateCalls, CommitCalls, ReleaseCalls; public string Fingerprint = "initial"; public string Revision = "rev"; public TimeSpan CreateDelay; public bool DeleteAndThrowOnRelease, LeaveDirectoryOnRelease, Unregistered;
-        public async Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) { Interlocked.Increment(ref CreateCalls); await Task.Delay(CreateDelay, ct); Directory.CreateDirectory(w.Path); return new(w.Path, w.SourceReference, "base"); }
+        public async Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) { Interlocked.Increment(ref CreateCalls); await Task.Delay(CreateDelay, ct); Directory.CreateDirectory(w.Path); return new(w.Path, w.SourceReference, ResolvedRevision); }
         public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default) => Directory.Exists(w.Path) && !Unregistered
             ? Task.FromResult(new SourceState(Revision, Fingerprint, false, [])) : throw new DirectoryNotFoundException(w.Path);
         public Task<string> CommitAsync(WorkspaceRecord w, string m, CancellationToken ct = default) { Interlocked.Increment(ref CommitCalls); Revision = "result"; return Task.FromResult(Revision); }
         public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string t, CancellationToken ct = default) => Task.FromResult(new IntegrationResult("result", false));
-        public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) { Interlocked.Increment(ref ReleaseCalls); if (DeleteAndThrowOnRelease) { DeleteAndThrowOnRelease = false; Unregistered = true; if (!LeaveDirectoryOnRelease) Directory.Delete(w.Path); throw new IOException("simulated interrupted release"); } return Task.CompletedTask; }
+        public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) { Interlocked.Increment(ref ReleaseCalls); if (DeleteAndThrowOnRelease) { DeleteAndThrowOnRelease = false; Unregistered = true; if (!LeaveDirectoryOnRelease) Directory.Delete(w.Path); throw new IOException("simulated interrupted release"); } if (Directory.Exists(w.Path)) Directory.Delete(w.Path, true); return Task.CompletedTask; }
     }
     private sealed class FakeApplications : IApplicationWorkspaceProvider
     {
+        public string CompatibilityKey(string project) => "fake-application";
+        public string[] CacheInputs => ["configuration"];
         public string[] ManagedPaths => ["Library", "Temp"]; public bool Running; public bool EmitValidation; public int RemoveCalls;
+        public bool OwnershipVerified = true; public int SurvivingChildren;
         private ApplicationValidation? validation;
         private (string Id, string Fingerprint)? pending;
         public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { Running = true; return Task.FromResult(new ApplicationLease(1, 1, "token", "fake")); }
@@ -119,10 +179,27 @@ public sealed class WorkspaceCoordinatorTests
                 validation = new(request.Id, request.Fingerprint, true, DateTimeOffset.UtcNow, []);
                 pending = null;
             }
-            return Task.FromResult(new ApplicationState(Running, Running, Running ? "ready" : "stopped", null, validation));
+            return Task.FromResult(new ApplicationState(Running, Running, Running ? "ready" : "stopped", null, validation,
+                new(OwnershipVerified, Running, (Running ? 1 : 0) + SurvivingChildren, Running || SurvivingChildren != 0 ? 1024 : 0, Running || SurvivingChildren != 0 ? 1024 : 0)));
         }
         public Task RequestValidationAsync(WorkspaceRecord w, string p, string id, string fp, CancellationToken ct = default) { pending = (id, fp); return Task.CompletedTask; }
         public Task StopAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { Running = false; return Task.CompletedTask; }
         public Task RemoveInfrastructureAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { RemoveCalls++; return Task.CompletedTask; }
+    }
+    private sealed class FakeStorage : IWorkspaceStorageProvider
+    {
+        public bool Unsupported; public int CloneCalls;
+        public StorageProbe Probe(string d) => Unsupported ? throw new WorkspaceException("CoWUnsupported", "fake unsupported volume") : new("fake", "fake", "fake", 4096);
+        public Task<CloneStatistics> CloneAsync(string source, string destination, string[] excluded, CancellationToken ct = default)
+        {
+            CloneCalls++; long bytes = 0; int count = 0; Directory.CreateDirectory(destination);
+            foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+            {
+                string relative = Path.GetRelativePath(source, file); if (excluded.Contains(relative.Split(Path.DirectorySeparatorChar)[0])) continue;
+                string target = Path.Combine(destination, relative); Directory.CreateDirectory(Path.GetDirectoryName(target)!); File.Copy(file, target);
+                bytes += new FileInfo(file).Length; count++;
+            }
+            return Task.FromResult(new CloneStatistics(bytes, 0, bytes, count, 0));
+        }
     }
 }

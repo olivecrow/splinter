@@ -162,6 +162,65 @@ public sealed class GitWorkspaceProviderTests
     }
 
     private static WorkspaceRecord Record(string repo, string path, string branch) => new() { Id = Guid.NewGuid().ToString(), RequestKey = Guid.NewGuid().ToString(), ProjectPath = repo, Path = path, SourceReference = branch, BaseReference = "main" };
+    [Fact]
+    public async Task CoWGitPathPopulatesIndexWithoutCheckoutAndPreservesIndependentEdits()
+    {
+        var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); string repo = await Repo(d.Path, ct);
+        string revision = await TestDirectory.Git(repo, "rev-parse", "HEAD");
+        string baselinePath = Path.Combine(d.Path, "baseline"); Directory.CreateDirectory(baselinePath);
+        File.Copy(Path.Combine(repo, "file.txt"), Path.Combine(baselinePath, "file.txt"));
+        var baseline = new WorkspaceBaseline(new string('b', 24), repo, revision, "fake", baselinePath, DateTimeOffset.UtcNow,
+            new(4, 0, 4, 1, 0), "fake");
+        var storage = new FakeCloneStorage(); var provider = new GitWorkspaceProvider(storage, new FakeBaselineReader(baseline));
+        var a = Record(repo, Path.Combine(d.Path, "a"), "splinter/cow-a"); a.StorageMode = "refs-cow"; a.BaselineId = baseline.Id;
+        var b = Record(repo, Path.Combine(d.Path, "b"), "splinter/cow-b"); b.StorageMode = "refs-cow"; b.BaselineId = baseline.Id;
+        a.BaseRevision = (await provider.CreateAsync(a, ct)).BaseRevision; b.BaseRevision = (await provider.CreateAsync(b, ct)).BaseRevision;
+        Assert.Equal(2, storage.Calls);
+        Assert.False((await provider.InspectAsync(a, ct)).HasChanges); Assert.False((await provider.InspectAsync(b, ct)).HasChanges);
+        Assert.NotNull((await provider.CreateAsync(a, ct)).CloneMetrics); Assert.Equal(2, storage.Calls);
+        await File.WriteAllTextAsync(Path.Combine(a.Path, "file.txt"), "private change", ct);
+        Assert.Equal("base", await File.ReadAllTextAsync(Path.Combine(b.Path, "file.txt"), ct));
+        Assert.Equal("base", await File.ReadAllTextAsync(Path.Combine(baselinePath, "file.txt"), ct));
+        Assert.Equal("GitDirtyWorktree", (await Assert.ThrowsAsync<WorkspaceException>(() => provider.ReleaseAsync(a, ct))).Code);
+        await File.WriteAllTextAsync(Path.Combine(a.Path, "file.txt"), "base", ct);
+        await provider.ReleaseAsync(a, ct); await provider.ReleaseAsync(b, ct);
+        Assert.False(Directory.Exists(a.Path)); Assert.False(Directory.Exists(b.Path));
+    }
+    [Fact]
+    public async Task NewBaselineReusesSeedAndChecksOutOnlyNewRevisionChanges()
+    {
+        var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); string repo = await Repo(d.Path, ct);
+        string oldRevision = await TestDirectory.Git(repo, "rev-parse", "HEAD");
+        string path = Path.Combine(d.Path, "baseline"); Directory.CreateDirectory(path); File.Copy(Path.Combine(repo, "file.txt"), Path.Combine(path, "file.txt"));
+        await File.WriteAllTextAsync(Path.Combine(repo, "file.txt"), "new revision", ct); await TestDirectory.Git(repo, "add", "file.txt");
+        await TestDirectory.Git(repo, "commit", "-m", "new source"); string revision = await TestDirectory.Git(repo, "rev-parse", "HEAD");
+        var baseline = new WorkspaceBaseline(new string('c', 24), repo, oldRevision, "fake", path, DateTimeOffset.UtcNow, new(4, 0, 4, 1, 0), "fake");
+        var storage = new FakeCloneStorage(); var provider = new GitWorkspaceProvider(storage, new FakeBaselineReader(baseline));
+        var workspace = Record(repo, Path.Combine(d.Path, "new-base"), "splinter/new-baseline");
+        workspace.StorageMode = "refs-cow"; workspace.BaselineId = baseline.Id; workspace.Purpose = "baseline";
+        workspace.BaseRevision = (await provider.CreateAsync(workspace, ct)).BaseRevision;
+        Assert.Equal(revision, workspace.BaseRevision); Assert.Equal(1, storage.Calls);
+        Assert.Equal("new revision", await File.ReadAllTextAsync(Path.Combine(workspace.Path, "file.txt"), ct));
+        Assert.Equal("base", await File.ReadAllTextAsync(Path.Combine(path, "file.txt"), ct));
+        Assert.False((await provider.InspectAsync(workspace, ct)).HasChanges);
+        await provider.ReleaseAsync(workspace, ct);
+    }
+    private sealed class FakeBaselineReader(WorkspaceBaseline baseline) : IWorkspaceBaselineReader
+    {
+        public WorkspaceBaseline GetBaseline(string id) => id == baseline.Id ? baseline : throw new InvalidOperationException();
+    }
+    private sealed class FakeCloneStorage : IWorkspaceStorageProvider
+    {
+        public int Calls;
+        public StorageProbe Probe(string p) => new("fake", "fake", "fake", 4096);
+        public Task<CloneStatistics> CloneAsync(string s, string d, string[] excluded, CancellationToken ct = default)
+        {
+            // This assertion detects accidentally restoring a full Git checkout.
+            Assert.Equal([".git"], Directory.EnumerateFileSystemEntries(d).Select(Path.GetFileName));
+            Calls++; File.Copy(Path.Combine(s, "file.txt"), Path.Combine(d, "file.txt"));
+            return Task.FromResult(new CloneStatistics(4, 0, 4, 1, 0));
+        }
+    }
     private static async Task<string> Repo(string root, CancellationToken ct)
     {
         root = System.IO.Path.Combine(root, "repository"); Directory.CreateDirectory(root);

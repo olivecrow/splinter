@@ -29,4 +29,4 @@
 - Before final reporting after documentation edits, validate UTF-8 encoding with the project-docs-bootstrap `check_utf8_docs.py` script.
 <!-- project-docs-bootstrap:end -->
 
-현재 내부 알파는 `Splinter.Runtime`의 지속 상태·잠금·수명주기 조정, `Splinter.SourceControl.Git`의 worktree·결과 통합·회수, `Splinter.Application.Unity`와 `unity/Splinter.Editor`의 소유 Editor 실행·컴파일 증거로 구성된다. 에이전트는 `scripts/splinter.ps1`을 사용하며 재개와 명시적 회수 계약은 `docs/alpha-workspaces.md`를 따른다. 실제 검증 범위는 `docs/verification/internal-alpha.md`와 추적표의 AA 항목이다. 이 증거를 ReFS나 공개 시나리오 전체 통과로 확대하지 않는다.
+현재 내부 알파는 Runtime/Git/Unity에 `Splinter.Platform.Windows`의 ReFS 블록 복제와 작업별 프로세스 감시를 연결한다. 에이전트는 `scripts/splinter.ps1`을 사용한다. 재개·통합은 `docs/alpha-workspaces.md`, 기준본/CoW/메모리 회수는 `docs/storage-and-resources.md`를 따른다. 큰 파일의 반복 복사를 기본값으로 만들거나 CoW 실패를 전체 복사로 대체하지 않는다. release는 소유 프로세스와 메모리 0, 실제 경로·Git 등록 회수를 확인해야 한다. `scripts/setup-dev-drive.ps1`은 기본 read-only 계획이며 `-Create`는 승인된 새 가상디스크의 관리자 설정용이다. 실제 검증은 `docs/verification/`와 추적표의 AA/SR 항목을 따르고 공개 시나리오 전체 통과로 확대하지 않는다.

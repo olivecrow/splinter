@@ -6,7 +6,7 @@ AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실
 
 ## 현재 상태
 
-현재는 **간단한 Unity 스크립트 병렬 편집을 위한 내부 알파**다. .NET 10 CLI가 atomic JSON 상태와 operation lock을 사용해 명시적 `git-checkout` 작업공간과 작업별 새 Unity Library/Temp를 운영한다. 두 Luna low 작업자가 실제 GUI Editor에서 독립적으로 편집·컴파일하고 다음 대화에서 재개하는 흐름을 검증했다. 검증 범위와 결과는 [실제 알파 검증](docs/verification/internal-alpha.md)에 기록한다. 공개 ReFS CoW와 daemon/SQLite Host는 지원하지 않는다.
+현재는 **간단한 Unity 스크립트 병렬 편집을 위한 내부 알파**다. .NET 10 CLI가 atomic JSON 상태와 operation lock을 사용한다. 저장소 절감을 위해 예열 기준본·ReFS CoW·무-checkout Git index를 연결하고, 작업별 Windows 프로세스 그룹으로 Editor와 자식의 수명을 관리한다. 코드와 실제 환경별 검증 범위는 [저장소·자원 관리](docs/storage-and-resources.md)와 [자원 검증](docs/verification/storage-and-resources.md)을 따른다. 기존 두 작업자의 일반 checkout 편집·컴파일·재개 증거는 [알파 검증](docs/verification/internal-alpha.md)에 있다. daemon/SQLite Host는 미구현이다.
 
 제품과 테스트 프로젝트는 별도 Git 저장소다. 형제 `../splinter-unity`는 Unity `6000.3.22f1` 프로젝트이며 submodule이 아니다. Library와 생성 파일은 그 저장소의 Git 추적에서 제외한다.
 
@@ -21,10 +21,11 @@ pwsh ./scripts/build.ps1
 pwsh ./scripts/splinter.ps1 capabilities
 pwsh ./scripts/splinter.ps1 schema workspace.ensure
 pwsh ./scripts/splinter.ps1 doctor --project ../splinter-unity
-pwsh ./scripts/splinter.ps1 workspace ensure --project ../splinter-unity --key example-task --storage git-checkout --base development --editor
+pwsh ./scripts/splinter.ps1 storage probe --path <ReFS-home>
+pwsh ./scripts/splinter.ps1 baseline prepare --project ../splinter-unity --base development --home <ReFS-home>
 ```
 
-CLI는 기본적으로 비대화형이며 stdout에 JSON 응답 하나를 출력한다. `--help`도 명령 계약을 JSON으로 반환한다. `--human`은 들여쓰기 옵션이다. 진단과 계획 검증의 성공은 실제 작업 실행 준비 완료를 뜻하지 않는다. ensure 뒤에는 반환된 ID로 status를 조회하고 **반환된 작업공간 경로에서만** 편집한다. 재개·검증·통합·회수는 [알파 작업공간 사용법](docs/alpha-workspaces.md)을 따른다. 대화나 CLI 종료만으로 Editor와 작업공간을 회수하지 않는다.
+CLI는 기본적으로 비대화형이며 stdout에 JSON 응답 하나를 출력한다. `--help`도 명령 계약을 JSON으로 반환한다. 기준본은 한 번 검증·봉인한 뒤 작업마다 `workspace ensure --storage refs-cow --baseline <id>`로 재사용한다. [기준본 준비 절차](docs/storage-and-resources.md)를 먼저 따른다. 진단 성공은 실행 준비 완료를 뜻하지 않는다. 작업은 **반환된 작업공간 경로에서만** 편집한다. 재개·검증·통합·회수는 [알파 작업공간 사용법](docs/alpha-workspaces.md)을 따른다. 대화나 CLI 종료만으로 Editor와 작업공간을 회수하지 않는다.
 
 Git 수명주기 시험은 최초 커밋이 있는 저장소에 실행한다.
 

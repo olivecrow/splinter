@@ -1,10 +1,10 @@
 # 구현 계획 검증 추적표
 
-작성일: 2026-09-20. 상태: **원본 48개와 FD-01~10의 전체 통과 조건은 모두 NotRun**. 내부 알파의 실제 두 GUI Editor·재시작·compile/reload 검증은 아래 AA 항목으로 별도 집계한다. 이 좁은 범위의 성공을 공개 제품 시나리오 전체의 통과로 확대하지 않는다.
+상태: **원본 48개와 FD-01~10의 전체 통과 조건은 모두 NotRun**. 내부 알파의 실제 두 GUI Editor·재시작·compile/reload 검증은 아래 AA 항목, ReFS·기준본·자원 회수는 SR 항목으로 별도 집계한다. 이 좁은 범위의 성공을 공개 제품 시나리오 전체의 통과로 확대하지 않는다.
 
 기준은 [기획서 14절](../../plan.html#section-14)의 필수 48개 시나리오다. 구현 순서는 [구현 계획](implementation-plan.md)의 P0~P7을 따른다. P0의 작은 실험 성공만으로 아래 시나리오 전체가 통과한 것으로 기록하지 않는다.
 
-현재 시험 경계와 재현 명령은 [현재 기반](../foundation.md#빌드와-시험)에 있다. .NET 시험은 `artifacts/test-results/`의 TRX, 실제 저장소 Git 시험은 `artifacts/worktree-smoke/<runId>/result.json`에 결과를 남긴다. JSON/DAG/inspector 및 일반 checkout worktree 시험으로 CLI-01·GT-01·EX-01 등의 전체 조건을 통과했다고 보고하지 않는다. Unity/CoW/지속 Host 시나리오는 아직 실행하지 않았다.
+현재 시험 경계와 재현 명령은 [현재 기반](../foundation.md#빌드와-시험)에 있다. .NET 시험은 `artifacts/test-results/`의 TRX, 실제 저장소 Git 시험은 `artifacts/worktree-smoke/<runId>/result.json`에 결과를 남긴다. JSON/DAG/inspector 및 일반 checkout worktree 시험으로 CLI-01·GT-01·EX-01 등의 전체 조건을 통과했다고 보고하지 않는다. Unity/CoW 성공 경로의 실제 근거는 SR에 한정하며 지속 Host 시나리오는 미실행이다.
 
 ## 결과와 증거 규칙
 
@@ -99,6 +99,23 @@
 | AA-08 | 통합한 원본 Editor 새로고침·동작 확인 | Passed | 포커스·refresh·domain reload 후 원본 어셈블리에서 Increment(3)=4, Double(3)=6 |
 | AA-09 | 긴 경로·중단된 회수·변경된 잔여 파일 보존 | Passed | 실제 A 부분 회수 재개, B 정상 회수, 46개 자동 시험에 경계 포함 |
 | AA-10 | 작업 Editor 종료가 원본 Coplay 서버를 종료하지 않음 | Passed | 정상 원본 서버를 둔 별도 작업의 start/stop/release 전후 PID 유지, 이후 원본 MCP 호출 성공 |
+
+## 저장소·프로세스 내부 알파 검증
+
+2026-09-21의 [자원 검증 보고서](../verification/storage-and-resources.md)와 [기계용 증거](../verification/storage-and-resources.evidence.json)를 따른다. 실제 ReFS는 승인된 S: Dev Drive, Unity는 동일 fixture의 `6000.3.22f1`이다. SR은 아래 경계만 집계하며 FS/GT/WS/FD 전체 조건을 대신하지 않는다.
+
+| ID | 검증 대상 | 상태 | 증거 범위 |
+| --- | --- | --- | --- |
+| SR-01 | 루트보다 오래 사는 자식의 종료와 원본 보존 | Passed | 실제 Windows Job Object·64MiB 자식·sentinel |
+| SR-02 | 프로세스 잔류·소유권 불명 시 회수 차단 | Passed | fake Runtime과 상태/파일 검사 |
+| SR-03 | CoW 불가 시 전체 복사 fallback 금지 | Passed | NTFS probe, Git 생성 전 거부 |
+| SR-04 | 무-checkout·독립 index·변경 소스만 checkout | Passed | 실제 Git + fake clone |
+| SR-05 | 검증된 기준본·변경 감지·소비자 보호 | Passed | fake 경계와 실제 활성 기준본 삭제 거부 |
+| SR-06 | 실제 512MiB clone·중첩 clone·쓰기 격리 | Passed | ReFS extent API, 내용 hash와 볼륨 할당 표본 |
+| SR-07 | CoW Library를 사용한 GUI Editor 두 개 | Passed | 실제 A/B 동시 실행·변경 격리·각각 compile 성공 |
+| SR-08 | Unity 자식·감시·worktree 전체 회수 | Passed | 관측한 40개 소유 프로세스 종료, 자원 0, 경로·등록 제거, 원본 MCP 호출 |
+| SR-09 | 다음 소스 커밋의 캐시 재사용·봉인·GC | Passed | 실제 소스 한 파일 변경, refs-cow 준비·검증, 새 캐시 삭제·기존 캐시 재사용 |
+| SR-10 | CLI가 살아 있는 Editor의 출력 핸들을 기다리지 않음 | Passed | 실제 CLI 응답 및 Windows 익명 pipe 회귀 시험 |
 
 ## 공개 시 필요한 결과 묶음
 

@@ -163,6 +163,7 @@
         "dependencies": {
           "Splinter.Application.Unity": "[0.1.0-dev, )",
           "Splinter.Host": "[0.1.0-dev, )",
+          "Splinter.Platform.Windows": "[0.1.0-dev, )",
           "Splinter.Runtime": "[0.1.0-dev, )",
           "Splinter.SourceControl.Git": "[0.1.0-dev, )",
           "System.CommandLine": "[2.0.12, )"
@@ -182,6 +183,12 @@
         "dependencies": {
           "Splinter.Core": "[0.1.0-dev, )",
           "Splinter.Protocol": "[0.1.0-dev, )"
+        }
+      },
+      "splinter.platform.windows": {
+        "type": "Project",
+        "dependencies": {
+          "Splinter.Core": "[0.1.0-dev, )"
         }
       },
       "splinter.protocol": {
