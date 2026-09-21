@@ -1,10 +1,12 @@
 # Splinter
 
-AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실행·검증·결과 회수까지 운영하는 로컬 프로그램이다. 첫 지원 목표는 Windows + ReFS + Git + Unity이며, CLI가 기본 인터페이스다.
+AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실행·검증·결과 회수까지 운영하는 로컬 프로그램이다. 첫 지원 목표는 **기존 Windows/NTFS + Git + Unity**이며, CLI가 기본 인터페이스다. 원본 이동·최초 전체 복제 없이 작업 시작 시점의 스냅샷과 작업별 변경분을 사용한다. 원본은 병렬 작업 중에도 계속 수정할 수 있어야 한다.
 
 주 사용자는 **AI 에이전트**다. 사람은 개발 목표와 최초 운영 정책을 정하고, 반복적인 작업공간·프로세스·검증·정리는 프로그램과 에이전트가 처리하도록 설계한다.
 
 ## 현재 상태
+
+**현재 ReFS 내부 알파는 위 저장소 요구사항을 아직 충족하지 않는다.** 최초 전체 기준본 준비를 요구하며 약 297MiB는 준비 이후 작업공간 하나의 증가량이다. 다음 작업은 [NTFS 스냅샷·변경분 검증](docs/plans/ntfs-snapshot-overlay-spike.md)의 SO-01~06이다. ReFS는 선택적 최적화 후보이며 필수 설치·원본 이관 경로가 아니다.
 
 현재는 **간단한 Unity 스크립트 병렬 편집을 위한 내부 알파**다. .NET 10 CLI가 atomic JSON 상태와 operation lock을 사용한다. 저장소 절감을 위해 예열 기준본·ReFS CoW·무-checkout Git index를 연결하고, 작업별 Windows 프로세스 그룹으로 Editor와 자식의 수명을 관리한다. 코드와 실제 환경별 검증 범위는 [저장소·자원 관리](docs/storage-and-resources.md)와 [자원 검증](docs/verification/storage-and-resources.md)을 따른다. 기존 두 작업자의 일반 checkout 편집·컴파일·재개 증거는 [알파 검증](docs/verification/internal-alpha.md)에 있다. daemon/SQLite Host는 미구현이다.
 
@@ -12,7 +14,7 @@ AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실
 
 `main`은 출시용, `development`는 개발용 브랜치다. 일반 개발은 `development`에서 진행한다. Unity 테스트 저장소의 브랜치와 시험 상태는 에이전트가 필요에 맞게 관리한다. 자세한 기준은 [저장소와 브랜치 운영](docs/foundation.md#저장소와-브랜치-운영)을 따른다.
 
-## 시작
+## 현재 ReFS 알파의 진단 명령
 
 .NET SDK `10.0.112` 호환 패치, Git, PowerShell 7.2 이상이 필요하다. 저장소 루트에서:
 

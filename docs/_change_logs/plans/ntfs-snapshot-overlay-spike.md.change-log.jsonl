@@ -1,0 +1,1 @@
+{"date":"2026-09-21","doc":"plans/ntfs-snapshot-overlay-spike.md","change_type":"added","summary":"NTFS 원본의 불변 시작 스냅샷과 범위별 변경 저장을 위한 SO-01~06 관문을 고정했다.","intent":"원본은 계속 수정하면서 최초 대용량 기준본과 읽기 복제 없이 병렬 작업을 시작하도록 제품 전제를 바로잡는다.","related_files":["plan.html","AGENTS.md","docs/plans/implementation-plan.md","docs/plans/validation-matrix.md","docs/verification/storage-cleanup.md"]}

@@ -3,6 +3,8 @@
 - 먼저 `README.md`와 `docs/README.md`를 읽고 해당 작업의 문서만 이어서 읽는다.
 - `main`은 출시용, `development`는 개발용 브랜치다. 일반 개발과 통합은 `development`를 기준으로 수행한다.
 - 주 사용자는 AI 에이전트다. 기계용 계약, 적은 호출 수, 명시적 상태·복구 행동, 재시작 후 지속성을 기준으로 설계한다.
+- 저장소의 필수 요구사항은 NTFS 원본 위치·파일시스템 유지, 최초 전체 데이터 복제와 읽기 hydration 금지, 큰 파일의 범위별 변경 저장이다. 원본은 작업 중 계속 수정 가능하며 각 작업은 시작 시점의 불변 스냅샷을 참조한다. 작업 기간 전체의 원본 쓰기 차단을 대체안으로 삼지 않는다.
+- 다음 작업은 `docs/plans/ntfs-snapshot-overlay-spike.md`의 SO-01~06이다. WinFsp/VSS는 검증 후보다. 기존 ReFS 경로는 선택적 백엔드의 증거로 유지하고 필수 준비·이관·전체 복사 fallback으로 사용하지 않는다.
 - `plan.html`은 제품 요구사항의 원본이다. `docs/plans/`는 목표 구조와 남은 작업이며, 실제 구현은 `docs/foundation.md`를 확인한다.
 - 작업 요청이 계획 수립이면 계획과 문서를 작성한다. 구현·설치·Git 초기화·외부 프로젝트 변경을 계획 수립에 포함시키지 않는다.
 - 공통 계약과 fake 적합성 시험부터 연결한다. Core에 Unity·Win32·Git·Codex 전용 API를 넣지 않는다. 현재 Host는 읽기 전용 in-process 조합 계층이며 daemon이나 DB writer가 아니다.
@@ -29,4 +31,4 @@
 - Before final reporting after documentation edits, validate UTF-8 encoding with the project-docs-bootstrap `check_utf8_docs.py` script.
 <!-- project-docs-bootstrap:end -->
 
-현재 내부 알파는 Runtime/Git/Unity에 `Splinter.Platform.Windows`의 ReFS 블록 복제와 작업별 프로세스 감시를 연결한다. 에이전트는 `scripts/splinter.ps1`을 사용한다. 재개·통합은 `docs/alpha-workspaces.md`, 기준본/CoW/메모리 회수는 `docs/storage-and-resources.md`를 따른다. 큰 파일의 반복 복사를 기본값으로 만들거나 CoW 실패를 전체 복사로 대체하지 않는다. release는 소유 프로세스와 메모리 0, 실제 경로·Git 등록 회수를 확인해야 한다. `scripts/setup-dev-drive.ps1`은 기본 read-only 계획이며 `-Create`는 승인된 새 가상디스크의 관리자 설정용이다. 실제 검증은 `docs/verification/`와 추적표의 AA/SR 항목을 따르고 공개 시나리오 전체 통과로 확대하지 않는다.
+현재 내부 알파는 Runtime/Git/Unity에 `Splinter.Platform.Windows`의 ReFS 블록 복제와 작업별 프로세스 감시를 연결한다. 에이전트는 `scripts/splinter.ps1`을 사용한다. 재개·통합은 `docs/alpha-workspaces.md`, 기준본/CoW/메모리 회수는 `docs/storage-and-resources.md`를 따른다. 최초 전체 복제 금지 요구는 아직 미구현이다. 기존 ReFS 경로의 정상 동작을 SO 관문 통과로 집계하지 않는다. 큰 파일의 반복 복사를 기본값으로 만들거나 실패를 전체 복사로 대체하지 않는다. release는 소유 프로세스와 메모리 0, 실제 경로·Git 등록 회수를 확인해야 한다. `scripts/setup-dev-drive.ps1`은 기본 read-only 계획이며 `-Create`는 승인된 새 가상디스크의 관리자 설정용이다. 실제 검증은 `docs/verification/`와 추적표의 AA/SR 항목을 따르고 공개 시나리오 전체 통과로 확대하지 않는다.

@@ -1,5 +1,7 @@
 # 병렬 Unity 스크립트 알파
 
+> 현재 실행 가능한 ReFS 내부 알파와 제품 목표를 구분한다. 최초 전체 복제 없는 NTFS 원본 스냅샷·범위별 변경 저장, 원본의 계속된 수정은 아직 미구현이며 다음 작업은 [SO-01~06](plans/ntfs-snapshot-overlay-spike.md)이다. 아래 명령을 새 저장소 요구사항의 지원 증거로 사용하지 않는다.
+
 AI 작업자는 Editor가 필요한 시점에 이 CLI로 자신의 프로젝트와 Editor를 확보한다. 작업 도중 대화나 CLI가 끝나도 작업공간과 Editor는 남는다. 같은 `--home`, `--project`, `--key`로 다시 접속한다. 완료 후 명시적으로 커밋·통합·회수한다.
 
 현재 범위는 Windows의 간단한 C# 스크립트 편집과 컴파일이다. 반복 작업에는 [예열 기준본과 ReFS CoW](storage-and-resources.md)를 사용한다. 명시적인 `git-checkout`은 새 Library를 만드는 진단 모드다. 원본은 최초 커밋이 있고 깨끗한 Git 저장소 루트의 Unity 프로젝트여야 한다. 해당 Unity 패치가 Hub 기본 경로에 설치되어 있어야 하며 다른 위치는 `SPLINTER_UNITY_EDITOR`로 지정한다. 실제 환경별 지원 증거는 [자원 검증](verification/storage-and-resources.md)을 확인한다.

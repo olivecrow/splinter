@@ -1,5 +1,7 @@
 # 현재 기반
 
+> 현재 실행 가능한 ReFS 내부 알파와 제품 목표를 구분한다. 최초 전체 복제 없는 NTFS 원본 스냅샷·범위별 변경 저장, 원본의 계속된 수정은 아직 미구현이며 다음 작업은 [SO-01~06](plans/ntfs-snapshot-overlay-spike.md)이다. 아래 명령을 새 저장소 요구사항의 지원 증거로 사용하지 않는다.
+
 Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release**와 계약·진단·계획 검증이다. ReFS CoW와 무-checkout index를 연결하고, Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 실제 실행한 조합은 [자원 검증](verification/storage-and-resources.md), 기존 두 Luna low 작업자의 일반 checkout 증거는 [알파 검증](verification/internal-alpha.md)을 따른다. daemon/SQLite Host와 외부 `agent.start`는 미구현이다.
 
 ## 구조와 의존성
@@ -123,4 +125,4 @@ pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository .
 
 ## 다음 구현 경계
 
-현재 내부 알파의 저장소·프로세스 구현과 증거는 [저장소·자원 관리](storage-and-resources.md)에 고정한다. [공개 구현 계획](plans/implementation-plan.md)의 ReFS 전체 지원표·지속 Host·전력 장애 복구·DAG 실행·agent runner·Play/테스트/저작 기능을 완료한 것으로 집계하지 않는다. 다음 우선순위는 clone/seal 중단의 안전한 재개와 실제 대형 프로젝트 성능이다. 상태와 다음 명령은 CLI 프로세스 밖에 남으며 대화 종료 시 자동 회수하지 않는다.
+현재 내부 알파의 저장소·프로세스 구현과 증거는 [저장소·자원 관리](storage-and-resources.md)에 고정한다. [공개 구현 계획](plans/implementation-plan.md)의 ReFS 전체 지원표·지속 Host·전력 장애 복구·DAG 실행·agent runner·Play/테스트/저작 기능을 완료한 것으로 집계하지 않는다. 다음 우선순위는 [SO-01~06](plans/ntfs-snapshot-overlay-spike.md)의 NTFS 최초 복제 없음·원본 동시 수정 스냅샷·범위별 저장과 중단/회수 검증이다. 상태와 다음 명령은 CLI 프로세스 밖에 남으며 대화 종료 시 자동 회수하지 않는다.
