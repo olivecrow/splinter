@@ -60,6 +60,47 @@ public sealed class SnapshotWorkspaceCoordinatorTests
     }
 
     [Fact]
+    public async Task UnknownSnapshotPreservesIdentityAndDeltaUntilObservationRecovers()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var first = await f.Ensure(ct);
+        f.Backend.Available = null;
+        var status = await f.New().StatusAsync(first.Workspace.Id, ct);
+        Assert.Null(status.Source);
+        Assert.Equal("unknown", status.Workspace.Snapshot!.Observation!.SnapshotAvailability);
+        Assert.Equal(new SnapshotRecoveryDecision("observe", "SnapshotObservationUnknown", "workspace.status"), status.Recovery);
+        foreach (var operation in new Func<Task<WorkspaceView>>[] { () => f.Ensure(ct), () => f.New().ReleaseAsync(first.Workspace.Id, ct) })
+        {
+            var failure = await Assert.ThrowsAsync<WorkspaceException>(operation);
+            Assert.Equal("SnapshotObservationUnknown", failure.Code);
+            Assert.Equal("workspace.status", Assert.Single(failure.RecoveryActions!).Command);
+        }
+        Assert.False(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased);
+        f.Backend.Available = true;
+        var resumed = await f.Ensure(ct);
+        Assert.Equal(first.Workspace.Snapshot!.Reference, resumed.Workspace.Snapshot!.Reference);
+        Assert.Equal(1, f.Backend.Captures); Assert.Equal("ready", resumed.Recovery!.Disposition);
+    }
+
+    [Fact]
+    public async Task FinalSnapshotReleaseCanRefreshUnknownEvidenceButStillRequiresVerifiedAbsence()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        f.Backend.LoseReleaseReply = "snapshot-release";
+        Assert.Equal("ReplyLost", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
+        Assert.True(f.Backend.DeltaRemoved); Assert.True(f.Backend.SnapshotReleased);
+        f.Backend.Available = null;
+        Assert.Equal("resume-release", (await f.New().StatusAsync(id, ct)).Recovery!.Disposition);
+        f.Backend.KeepReleaseUnknown = true;
+        Assert.Equal("SnapshotReleaseIncomplete", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
+        Assert.Equal("releasing", new WorkspaceStore(f.Home).Get(id).Phase);
+        f.Backend.KeepReleaseUnknown = false;
+        Assert.Equal("released", (await f.New().ReleaseAsync(id, ct)).Workspace.Phase);
+        Assert.Equal(1, f.Backend.Captures);
+    }
+
+    [Fact]
     public async Task ProviderReconnectPreservesBasisButRefusesLiveApplication()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
@@ -194,8 +235,8 @@ public sealed class SnapshotWorkspaceCoordinatorTests
     }
     private sealed class Backend : ISnapshotWorkspaceBackend
     {
-        public int Captures; public bool LoseCaptureReply, LoseMountReply, Mounted, DeltaRemoved, SnapshotReleased, WriteDuringUnmount, UnknownResources, LoseRemoveReply;
-        public bool Available = true;
+        public int Captures; public bool LoseCaptureReply, LoseMountReply, Mounted, DeltaRemoved, SnapshotReleased, WriteDuringUnmount, UnknownResources, LoseRemoveReply, KeepReleaseUnknown;
+        public bool? Available = true;
         public string? LoseReleaseReply;
         private void FailOnce(string boundary) { if (LoseReleaseReply == boundary) { LoseReleaseReply = null; throw new WorkspaceException("ReplyLost", boundary); } }
         private SnapshotReference? receipt;
@@ -217,7 +258,7 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         { Mounted = false; if (Directory.Exists(w.Path)) Directory.Delete(w.Path); if (WriteDuringUnmount) sequence++; FailOnce("unmount"); return Task.CompletedTask; }
         public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { DeltaRemoved = true; if (LoseRemoveReply) { LoseRemoveReply = false; throw new WorkspaceException("ReplyLost", "after removal"); } return Task.CompletedTask; }
-        public Task ReleaseSnapshotAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { SnapshotReleased = true; Available = false; FailOnce("snapshot-release"); return Task.CompletedTask; }
+        public Task ReleaseSnapshotAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { SnapshotReleased = true; Available = KeepReleaseUnknown ? null : false; FailOnce("snapshot-release"); return Task.CompletedTask; }
     }
     private sealed class Source : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider
     {

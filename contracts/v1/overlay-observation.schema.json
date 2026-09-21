@@ -5,7 +5,8 @@
   "required": ["version", "token", "id", "phase", "observedAt", "processId", "snapshotId"],
   "properties": {
     "version": { "const": 1 }, "token": {"type":"string"}, "id":{"type":"string"},
-    "phase":{"enum":["mounted","snapshot-missing","unmounted","failed"]}, "observedAt":{"type":"string","format":"date-time"},
+    "phase":{"enum":["mounted","snapshot-missing","snapshot-unknown","unmounted","failed"]}, "observedAt":{"type":"string","format":"date-time"},
+    "snapshotAvailability":{"enum":["available","missing","unknown"]}, "snapshotFailureCode":{"type":["string","null"]},
     "processId":{"type":"integer","minimum":1}, "snapshotId":{"type":"string"},
     "openHandles":{"type":"integer","minimum":0}, "workingSetBytes":{"type":"integer","minimum":0},
     "privateBytes":{"type":"integer","minimum":0},
@@ -18,5 +19,10 @@
         "durableSequence":{"type":"integer","minimum":0}
       }
     }
-  }
+  },
+  "allOf": [
+    { "if": { "required": ["snapshotAvailability"], "properties": { "snapshotAvailability": { "const": "available" } } }, "then": { "properties": { "phase": { "const": "mounted" } } } },
+    { "if": { "required": ["snapshotAvailability"], "properties": { "snapshotAvailability": { "const": "missing" } } }, "then": { "properties": { "phase": { "const": "snapshot-missing" } } } },
+    { "if": { "required": ["snapshotAvailability"], "properties": { "snapshotAvailability": { "const": "unknown" } } }, "then": { "properties": { "phase": { "const": "snapshot-unknown" } } } }
+  ]
 }

@@ -77,7 +77,7 @@
 - 초기 대량 import·metadata 탐색 최적화, 저널 compaction, 대형 실프로젝트 성능 보장.
 - daemon/SQLite Host, 설치·업데이트·제거, Codex Runner, DAG/자원 예약, 자동 통합 후보 검증, 다른 OS와 공개 48개 전체 통과.
 
-이 항목들은 [NTFS 제품 통합의 남은 조건](ntfs-snapshot-overlay-spike.md#제품-통합-전에-남은-조건)과 공개 로드맵에 유지한다. 1차 통합이 끝나도 일반 NTFS/Unity 지원 완료로 표시하지 않는다.
+이 중 다음 작업은 [NTFS 내부 알파 2차: 복구와 파일 지원 경계](ntfs-recovery-and-support.md)의 NR-01~08로 구체화했다. NR-01의 공통 복구 계약을 부분 구현했고 VIVOBOOK에 fixture를 복사해 필수 도구를 준비 중이다. 실제 재부팅·공간 장애는 아직 미실행이며 [NR 기록](../verification/ntfs-recovery.md)을 따른다. 나머지는 [NTFS 제품 통합의 남은 조건](ntfs-snapshot-overlay-spike.md#제품-통합-전에-남은-조건)과 공개 로드맵에 유지한다. 1차 통합이 끝나도 일반 NTFS/Unity 지원 완료로 표시하지 않는다.
 
 ## 테스트 자원
 

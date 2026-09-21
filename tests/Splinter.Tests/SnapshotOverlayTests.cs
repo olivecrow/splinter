@@ -1,4 +1,6 @@
+using System.Buffers.Binary;
 using System.Security.Cryptography;
+using System.Text.Json.Nodes;
 using Splinter.Core;
 using Splinter.Runtime;
 
@@ -121,6 +123,47 @@ public sealed class SnapshotOverlayTests
         using (var store = New(d, tree)) Assert.Throws<IOException>(() => New(d, tree));
         tree.Snapshot = tree.Snapshot with { Id = "new-time" };
         Assert.Equal("OverlayIdentityMismatch", Assert.Throws<WorkspaceException>(() => New(d, tree)).Code);
+    }
+
+    [Theory]
+    [InlineData("json")]
+    [InlineData("entry")]
+    [InlineData("path")]
+    [InlineData("range")]
+    public void CompleteInvalidMetadataPreservesTheJournalAndReturnsCorruption(string fault)
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
+        using (var store = New(d, tree)) store.Write(store.Stat("file")!.Id, 0, new byte[] { 9 });
+        string journal = Path.Combine(d.Path, "delta", "delta.journal");
+        byte[] frame = File.ReadAllBytes(journal);
+        int metadataLength = BinaryPrimitives.ReadInt32LittleEndian(frame);
+        var metadata = JsonNode.Parse(frame.AsSpan(8, metadataLength))!;
+        switch (fault)
+        {
+            case "entry": metadata["Entry"] = null; break;
+            case "path": metadata["Entry"]!["Path"] = "../outside"; break;
+            case "range": metadata["Offset"] = long.MaxValue; break;
+        }
+        byte[] encoded = fault == "json" ? "{"u8.ToArray() : System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(metadata);
+        byte[] replacement = new byte[8 + encoded.Length + 1 + 32];
+        BinaryPrimitives.WriteInt32LittleEndian(replacement, encoded.Length);
+        BinaryPrimitives.WriteInt32LittleEndian(replacement.AsSpan(4), 1);
+        encoded.CopyTo(replacement, 8); replacement[8 + encoded.Length] = 9;
+        SHA256.HashData(replacement.AsSpan(0, replacement.Length - 32), replacement.AsSpan(replacement.Length - 32));
+        File.WriteAllBytes(journal, replacement);
+        Assert.Equal("DeltaCorrupt", Assert.Throws<WorkspaceException>(() => New(d, tree)).Code);
+        Assert.Equal(replacement, File.ReadAllBytes(journal)); Assert.Equal(new byte[] { 1, 2 }, tree.Files["file"]);
+    }
+
+    [Fact]
+    public void CorruptIdentityReturnsStableFailureWithoutChangingEitherFile()
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
+        using (var store = New(d, tree)) store.Write(store.Stat("file")!.Id, 0, new byte[] { 9 });
+        string identity = Path.Combine(d.Path, "delta", "identity.json"), journal = Path.Combine(d.Path, "delta", "delta.journal");
+        byte[] bytes = File.ReadAllBytes(journal); File.WriteAllText(identity, "{\"Version\":");
+        Assert.Equal("DeltaCorrupt", Assert.Throws<WorkspaceException>(() => New(d, tree)).Code);
+        Assert.Equal("{\"Version\":", File.ReadAllText(identity)); Assert.Equal(bytes, File.ReadAllBytes(journal));
     }
 
     [Fact]

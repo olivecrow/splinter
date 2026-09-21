@@ -31,8 +31,7 @@ public static class SnapshotInputChecks
     public static void Verify(string path)
     {
         FileAttributes attrs = File.GetAttributes(path);
-        if ((attrs & (FileAttributes.ReparsePoint | FileAttributes.Encrypted | FileAttributes.Compressed | FileAttributes.SparseFile)) != 0)
-            throw Unsupported(path, "Reparse, EFS, compressed and sparse inputs require separate qualification.");
+        RejectUnsupportedAttributes((uint)attrs, path);
         string native = path.StartsWith(@"\\?\", StringComparison.Ordinal) ? path : @"\\?\" + Path.GetFullPath(path);
         nint search = FindFirstStreamW(native, 0, out var stream, 0);
         if (search == -1)
@@ -54,8 +53,18 @@ public static class SnapshotInputChecks
         // reads and following an unexpected link during live-source preflight.
         using var handle = CreateFileW(native, 0x80, 7, 0, 3, 0x00200000, 0);
         if (handle.IsInvalid || !GetFileInformationByHandle(handle, out var info)) throw Native(path);
-        if ((info.Attributes & (uint)FileAttributes.ReparsePoint) != 0 || info.Links != 1)
+        RejectUnsupportedAttributes(info.Attributes, path);
+        if (info.Links != 1)
             throw Unsupported(path, "Hard links and reparse points are not supported.");
+    }
+    // The same metadata policy applies to admission, immutable reads and live
+    // overlay mutations. Check before writing a journal record or truncating.
+    public static void RejectUnsupportedAttributes(uint attributes, string? path = null)
+    {
+        const FileAttributes unsupported = FileAttributes.ReparsePoint | FileAttributes.Encrypted |
+            FileAttributes.Compressed | FileAttributes.SparseFile;
+        if ((attributes & (uint)unsupported) != 0)
+            throw new WorkspaceException("SnapshotFileUnsupported", "Reparse, EFS, compressed and sparse files require separate qualification.", new { path, attributes });
     }
     private static WorkspaceException Unsupported(string path, string message) => new("SnapshotFileUnsupported", message, new { path });
     private static WorkspaceException Native(string path) => new("SnapshotInputProbeFailed", new Win32Exception(Marshal.GetLastWin32Error()).Message, new { path });

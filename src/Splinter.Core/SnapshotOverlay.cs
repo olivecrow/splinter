@@ -5,8 +5,11 @@ public sealed record SnapshotReference(string Id, string Provider, string Source
     string RootPath, DateTimeOffset CapturedAt, bool Persistent, bool Differential,
     string Consistency);
 public sealed record SnapshotCapture(string SourcePath, string OwnerId, string ReceiptDirectory);
-public sealed record SnapshotObservation(string Id, bool Available, string? FailureCode,
-    long? PreservedBytes, long? AllocatedBytes);
+public sealed record SnapshotObservation(string Id, bool? Available, string? FailureCode,
+    long? PreservedBytes, long? AllocatedBytes)
+{
+    public string Availability => Available switch { true => "available", false => "missing", null => "unknown" };
+}
 
 public interface ISourceSnapshotProvider
 {

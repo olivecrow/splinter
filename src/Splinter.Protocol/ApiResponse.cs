@@ -35,7 +35,9 @@ public sealed record ApiResponse(
             "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "ValidationInProgress" => "safe-to-retry",
             "CoWUnsupported" or "LegacyProcessOwnership" or "ProcessOwnershipUnknown" or "SnapshotPrivilegeRequired" or
             "SnapshotHeadroomRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or "DeltaChangedAfterCollection" or
-            "OverlayStartUncertain" or "SnapshotStateMissing" or "SnapshotCheckpointMismatch" or "SnapshotPreparationIncomplete" or "SnapshotOperationIncomplete" => "requires-user-action",
+            "OverlayStartUncertain" or "SnapshotStateMissing" or "SnapshotCheckpointMismatch" or "SnapshotPreparationIncomplete" or "SnapshotOperationIncomplete" or
+            "SnapshotObservationUnknown" or "StateCorrupt" or "StateRecoveryRequired" or "StateReadUnavailable" or "StateWriteIncomplete" or
+            "DeltaCorrupt" or "DeltaReconnectRequired" or "OverlayIdentityMissing" or "OverlayIdentityMismatch" or "SnapshotIdentityMismatch" => "requires-user-action",
             "AccessDenied" or "GitUnavailable" or "EditorFocusRequired" => "requires-user-action",
             _ => "correct-request"
         }, null,

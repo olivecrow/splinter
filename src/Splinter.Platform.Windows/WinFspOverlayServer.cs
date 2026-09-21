@@ -58,10 +58,13 @@ public static class WinFspOverlayServer
                 while (true)
                 {
                     self.Refresh();
+                    var snapshotObservation = SnapshotAvailabilityProbe.Observe(request.Identity.Snapshot);
                     await WindowsProcessWorkspaceProvider.WriteAsync(statePath, new
                     {
                         version = 1, request.Token, request.Identity.Id,
-                        phase = Directory.Exists(request.Identity.Snapshot.RootPath) ? "mounted" : "snapshot-missing", observedAt = DateTimeOffset.UtcNow,
+                        phase = snapshotObservation.Available switch { true => "mounted", false => "snapshot-missing", null => "snapshot-unknown" },
+                        snapshotAvailability = snapshotObservation.Availability, snapshotFailureCode = snapshotObservation.FailureCode,
+                        observedAt = DateTimeOffset.UtcNow,
                         snapshotId = request.Identity.Snapshot.Id, mountPath, deltaPath,
                         processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks,
                         openHandles = fileSystem.OpenHandles, retainedFileContexts = fileSystem.RetainedFileContexts,

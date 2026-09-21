@@ -1097,6 +1097,16 @@
           "type": "string",
           "minLength": 1
         },
+        "recovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["disposition", "reasonCode", "nextCommand"],
+          "properties": {
+            "disposition": { "enum": ["ready", "observe", "preserve", "resume-ensure", "resume-release", "released"] },
+            "reasonCode": { "type": "string", "minLength": 1 },
+            "nextCommand": { "enum": ["workspace.status", "workspace.ensure", "workspace.release", "workspace.list"] }
+          }
+        },
         "isolation": {
           "type": "string",
           "minLength": 1
@@ -1555,6 +1565,9 @@
             "snapshotAvailable": {
               "type": "boolean"
             },
+            "snapshotAvailability": {
+              "enum": ["available", "missing", "unknown"]
+            },
             "mounted": {
               "type": "boolean"
             },
@@ -1596,7 +1609,7 @@
               "additionalProperties": false,
               "required": [
                 "id",
-                "available"
+                "availability"
               ],
               "properties": {
                 "id": {
@@ -1604,6 +1617,9 @@
                 },
                 "available": {
                   "type": "boolean"
+                },
+                "availability": {
+                  "enum": ["available", "missing", "unknown"]
                 },
                 "failureCode": {
                   "type": "string"
@@ -1616,17 +1632,27 @@
                   "type": "integer",
                   "minimum": 0
                 }
-              }
+              },
+              "oneOf": [
+                { "properties": { "availability": { "const": "available" }, "available": { "const": true } }, "required": ["available"] },
+                { "properties": { "availability": { "const": "missing" }, "available": { "const": false } }, "required": ["available"] },
+                { "properties": { "availability": { "const": "unknown" } }, "not": { "required": ["available"] } }
+              ]
             },
             "deltaPresent": {
               "type": "boolean"
             }
           },
           "required": [
-            "snapshotAvailable",
+            "snapshotAvailability",
             "mounted",
             "providerAlive",
             "ownershipVerified"
+          ],
+          "oneOf": [
+            { "properties": { "snapshotAvailability": { "const": "available" }, "snapshotAvailable": { "const": true } }, "required": ["snapshotAvailable"] },
+            { "properties": { "snapshotAvailability": { "const": "missing" }, "snapshotAvailable": { "const": false } }, "required": ["snapshotAvailable"] },
+            { "properties": { "snapshotAvailability": { "const": "unknown" } }, "not": { "required": ["snapshotAvailable"] } }
           ]
         },
         "result": {

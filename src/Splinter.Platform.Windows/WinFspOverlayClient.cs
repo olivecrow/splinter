@@ -37,10 +37,10 @@ public static class WinFspOverlayClient
         if (!knownLaunch || launchAlive && (state.GetProperty("processId").GetInt32() != launch!.ProcessId ||
             ticks.ValueKind == JsonValueKind.Undefined || ticks.GetInt64() != launch.StartTimeUtcTicks))
             return JsonSerializer.SerializeToElement(new { phase = "launch-uncertain", processAlive = alive || launchAlive, ownershipVerified = false }, Json);
-        bool available = Directory.Exists(request.Identity.Snapshot.RootPath);
+        var snapshot = SnapshotAvailabilityProbe.Observe(request.Identity.Snapshot);
         string? phase = state.GetProperty("phase").GetString();
-        return JsonSerializer.SerializeToElement(new { phase = alive && !available ? "snapshot-missing" : phase, processAlive = alive,
-            snapshotAvailable = available, failureCode = available ? null : "SnapshotMissing",
+        return JsonSerializer.SerializeToElement(new { phase = alive && snapshot.Available != true ? "snapshot-" + snapshot.Availability : phase, processAlive = alive,
+            snapshotAvailable = snapshot.Available, snapshotAvailability = snapshot.Availability, failureCode = snapshot.FailureCode,
             mountPresent = Directory.Exists(request.MountPath), state }, Json);
     }
     public static async Task<JsonElement> StartAsync(string requestPath, string runnerCache, CancellationToken ct = default)

@@ -15,7 +15,7 @@
 | OverlayExperimentCommands.cs | snapshot-spike JSON CLI의 schema 검증 및 Git/Unity/Windows 조립 |
 | scripts/vss-snapshot.ps1 | 관리자 capture/observe/owned-ID release helper. VssSnapshotProvider가 제품용 영수증·권한 재개 경계로 연결 |
 
-생성 시 source payload를 복사하지 않는다. 읽기는 snapshot과 기존 저널 범위를 합성하며 영구 캐시를 만들지 않는다. 일부 쓰기는 해당 범위만 저장한다. 승인한 프레임은 Flush(true)한다. 재생은 불완전한 마지막 프레임만 제거한다. 완결 프레임의 checksum 오류는 저널을 보존하고 DeltaCorrupt로 실패한다. 임의 손상 복원·자동 재캡처·전체 복사 fallback은 없다.
+생성 시 source payload를 복사하지 않는다. 읽기는 snapshot과 기존 저널 범위를 합성하며 영구 캐시를 만들지 않는다. 일부 쓰기는 해당 범위만 저장한다. 승인한 프레임은 Flush(true)한다. 재생은 불완전한 마지막 프레임만 제거한다. 완결 프레임의 checksum·sequence·JSON·경로/범위 메타데이터 오류와 identity JSON 손상은 파일을 보존하고 DeltaCorrupt로 실패한다. 임의 손상 복원·자동 재캡처·전체 복사 fallback은 없다.
 
 원본은 작업 중 계속 쓸 수 있다. VSS ClientAccessible은 writer 없는 filesystem crash consistency이며 미저장 Unity 메모리까지 포착하지 않는다. 동일한 캡처 시점의 Library를 공유하고 작업별 실제 쓰기만 저널에 남긴다. snapshot ID와 device 경로를 고정하며 재연결 중 새 캡처로 바꾸지 않는다.
 
@@ -34,7 +34,7 @@
 | preserve | 앱 종료 후 Git source 결과 commit와 refs/splinter/snapshot-results/overlay-id 보존. bridge·생성 cache 제외 |
 | git-release | mount 부재와 보존 revision 일치 후 정확한 Git 등록만 제거. 결과 ref와 branch 유지 |
 
-control/state.json의 phase는 mounted, snapshot-missing, unmounted, failed다. CLI는 processAlive, snapshotAvailable, mountPresent를 함께 반환한다. launch intent와 receipt generation이 다르거나 오래된 state가 새 실행을 설명하지 못하면 OverlayStartUncertain으로 중복 실행을 막는다. 누락된 자원 관측은 unknown으로 유지하고 회수의 0으로 사용하지 않는다. stop.json과 flush.json은 같은 token을 요구한다. unmounted 뒤에도 실제 프로세스와 경로 부재를 확인한다.
+control/state.json의 phase는 mounted, snapshot-missing, snapshot-unknown, unmounted, failed다. 실행 중 provider와 CLI는 같은 snapshot probe를 사용한다. snapshotAvailability는 available/missing/unknown이며 unknown을 snapshot-missing으로 저장하지 않는다. CLI는 processAlive, snapshotAvailable, mountPresent를 함께 반환하고 unknown boolean은 null이다. launch intent와 receipt generation이 다르거나 오래된 state가 새 실행을 설명하지 못하면 OverlayStartUncertain으로 중복 실행을 막는다. 누락된 자원 관측은 unknown으로 유지하고 회수의 0으로 사용하지 않는다. stop.json과 flush.json은 같은 token을 요구한다. unmounted 뒤에도 실제 프로세스와 경로 부재를 확인한다.
 
 WinFsp Cleanup에서 사용자 핸들 종료를 집계한다. 커널 retainedFileContexts는 Close까지 남을 수 있어 별도로 관측한다. 정상 unmount 뒤 제공자가 종료되면 그 메모리도 회수된다. 열린 사용자 핸들이 있으면 unmount를 강행하지 않는다.
 
@@ -78,4 +78,4 @@ journal 한도는 maxJournalBytes, node 250,000개, extent 1,000,000개, whiteou
 
 initialPayloadCopiedBytes, journalBytes, payloadBytes, metadataBytes, readBytes, readCacheBytes는 엔진 계수다. measure-overlay-journal.py는 실제 요청 경로별 Library/Temp/Logs 등의 승인 쓰기를 집계한다. 실제 file-data allocation은 FILE_STANDARD_INFO.AllocationSize다. MFT·디렉터리 전체 비용은 포함하지 않으며 볼륨 free space·VSS 사용/할당량도 함께 본다. 공유 OS cache를 작업별 영구 복제나 소유 프로세스 메모리로 계산하지 않는다.
 
-ADS, hardlink identity, reparse/EFS, 개별 ACL 변경, 일반 dirty/LFS checkpoint, 전원 손실, 재부팅 후 snapshot identity 검증은 미지원 또는 미검증이다. host 물리 디스크 고갈은 하지 않았고 quota로 Windows disk-full 112를 검증했다. snapshot은 프로젝트 밖 쓰기와 기존 복원 지점 비용도 포함한다. 이 실험은 보안 sandbox가 아니다.
+ADS, hardlink identity, reparse/EFS/압축/희소, 개별 ACL 변경, 일반 dirty/LFS checkpoint, 전원 손실, 재부팅 후 snapshot identity 검증은 미지원 또는 미검증이다. reparse/EFS/압축/희소 속성은 기준 읽기와 create/overwrite/속성 callback에서 변경 전에 거부한다. callback 자동 시험은 실제 mount의 전체 파일 API 지원 증거가 아니다. host 물리 디스크 고갈은 하지 않았고 quota로 Windows disk-full 112를 검증했다. snapshot은 프로젝트 밖 쓰기와 기존 복원 지점 비용도 포함한다. 이 실험은 보안 sandbox가 아니다.

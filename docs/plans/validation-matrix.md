@@ -150,3 +150,22 @@ SO의 실제 원시 증거와 측정 제한은 [실행 기록](../verification/s
 | NI-06 | 결과 독립성·snapshot 의존성·공간 보호 | Passed: 자동/fixture | result ref/tree/seal 독립성, 미보존 결과 거부, quota/소실 보호, 실제 dirty 원본 통합 시 GitDirtyWorktree와 HEAD/index/diff/result ref 보존 |
 | NI-07 | 실제 회수·부분 회수 재시도 | Passed: fixture | 열린 핸들 실패 후 재개, 앱/자식/제공자·메모리·핸들 0, mount/경로/Git/delta/소유 VSS 부재, 독립 결과·원본·기존 복원 지점 보존 |
 | NI-08 | 최종 통합 후보 검증·증거·문서 | Passed: 이번 내부 알파 범위 | build.ps1 97 passed/0 failed/1 ReFS skip, 같은 source hash의 실제 run·추가 통합 차단·회수 증거, schema·fake·현재 계약/사용법·UTF-8 동기화 |
+
+## NTFS 내부 알파 2차: 복구와 파일 지원 경계
+
+[현재 작업 계획](ntfs-recovery-and-support.md)의 NR-01~08이다. **NR-01/03/05/07을 부분 구현했고 최신 후보의 로컬·VIVOBOOK 자동 시험 각각 139개 통과, 합성 입력의 실제 WinFsp 기본 I/O·파일 API 5개 거부·회수, 제품 VSS workspace의 정상 생성·77개 파일 읽기를 확인했다. 읽기 시험의 소유 자원은 모두 회수됐다. 마지막 상태가 releasing에 남는 결함도 수정본의 동일 workspace 재개로 released까지 복구했다. canonical x64 Unity 준비는 완료했으며 제품 Unity·나머지 파일 특성·장애 시험은 별도 관문이다.** 실행 근거와 미실행 조건은 [NR 기록](../verification/ntfs-recovery.md)을 따른다. NI/SO/AA/SR의 성공을 NR 통과로 승계하지 않는다.
+
+| ID | 검증 대상 | 상태 | 반드시 남길 증거 |
+| --- | --- | --- | --- |
+| NR-01 | 복구 상태·identity·영속 기록·기계용 응답 | InProgress: 공통 응답·상태 보존 자동 통과 | unknown/소실/경로 불일치 구분, 복구 분류/schema/fake, 손상 JSON·잠긴 기록·고아 임시 파일 보존. 전체 중단 단계의 오류/행동과 VSS identity 대조는 남음 |
+| NR-02 | 준비 단계의 실제 중단과 중복 요청 | NotRun | capture/반환 ID·Git 등록·delta 생성·mount·index·Ready의 부작용 전후 중단, 같은 key 동시 재개에 중복 자원 없음 |
+| NR-03 | 저널·flush·승인 쓰기의 지속성 | InProgress: 손상 보존 자동 통과, fake 기준의 실제 journal 자식 종료·ACK 보존 3건 통과 | 정상/불완전 tail/완전 레코드 손상 구분, 승인 쓰기와 flushed mmap 보존, rename/replace/truncate, 초기 payload/hydration 0과 범위 할당. 실제 WinFsp/VSS와 명시적 내부 중단 지점은 남음 |
+| NR-04 | 정상 재부팅·강제 전원 종료 후 같은 작업 | NotRun | Ready/미수집 변경·checkpoint 완료·회수 도중의 전후 boot 식별, 같은 snapshot/delta/key, 새 원본과 시점 격리. 유효 기준은 실제 재개, 소실/손상은 보존/차단 |
+| NR-05 | 파일 특성·ACL·경로 지원/거부 | InProgress: 속성 callback 자동 통과, ARM64 실제 WinFsp 기본 I/O·5개 API 거부·회수 통과 | fake 불변 트리의 실제 mount에서 ADS/hardlink/희소/압축/mount-point reparse 거부와 일반 NTFS 양성 대조 확인. VSS 입력·EFS·ACL 전제·다른 reparse 종류·한글/공백/긴 경로는 별도 검증 |
+| NR-06 | 실제 공간 고갈·offline·snapshot 소실 | NotRun | VSS·delta/상태·Git 결과 공간을 나눈 격리 볼륨 시험, quota와 구분, unknown 보존, 늦은 쓰기·미보존 결과 보호, 다른 작업·기존 복원 지점 보존 |
+| NR-07 | 부분 준비·결과·회수의 재조정 | InProgress: 마지막 VSS 해제 관측 자동 통과, 원격 동일 workspace의 released 복구·소유 자원0 확인 | 사용자 쓰기 없는 부분 준비 회수 조건, commit/ref/manifest/seal 중단, unmount/Git/delta/VSS 해제 응답 유실, 결과 독립성과 실제 자원 0/부재 |
+| NR-08 | 최종 후보·Unity 회귀·문서 | InProgress: ARM Windows/x64 Unity 단일 작업의 검증 2건·결과 보존·workspace 회수 통과 | 원격 workspace 소유 자원0과 canonical Editor/MCP 세션 정상 종료 확인. 같은 후보의 단일 정상 회귀이며 ARM Windows 원본/A/B·재부팅 후 loaded-code·fingerprint·validation·dirty 통합 차단과 전체 NR 완료는 남음 |
+
+NR-01~03/05/07의 계약·프로세스 시험을 먼저 수행하고 NR-04/06의 격리 환경 검증, NR-08의 최종 후보로 이어 간다. 실제 장애 경계 목록과 데이터 지속성 oracle은 계획에 정의한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
+
+미지원 특성의 안전한 거부는 거부 계약의 Passed이며 그 특성 지원의 Passed가 아니다. VM 강제 전원 종료를 모든 물리 장치 장애 지원으로 확대하지 않는다. Unity 없는 재부팅 시험과 다른 머신의 Editor stop/start를 합쳐 재부팅 후 Unity 지원으로 집계하지 않는다. 필수 하위 사례가 남으면 NR 전체 완료로 표시하지 않는다.

@@ -61,7 +61,9 @@ public sealed partial class WorkspaceCoordinator
             throw new WorkspaceException("SnapshotNotReady", "Resume ensure or the pending release first.");
         var before = await Snapshots.ObserveAsync(w, store.ControlPath(w.Id), ct);
         state.Observation = before;
-        if (!before.SnapshotAvailable) throw new WorkspaceException("SnapshotMissing", "The original snapshot is unavailable. Preserve the delta; never recapture this key.");
+        RequireSnapshotObservation(w, before);
+        if (before.SnapshotAvailable == false) throw new WorkspaceException("SnapshotMissing", "The original snapshot is unavailable. Preserve the delta; never recapture this key.",
+            recoveryActions: [new("workspace.status", new { id = w.Id, home = store.Root }, true)]);
         if (!before.ProviderAlive)
         {
             var app = await applications.ObserveAsync(w, store.ControlPath(w.Id), ct);
@@ -87,7 +89,8 @@ public sealed partial class WorkspaceCoordinator
                 await applications.StopAsync(w, control, ct);
                 await RequireStopped(w, ct);
                 state.Observation = await Snapshots.ObserveAsync(w, control, ct);
-                if (!state.Observation.SnapshotAvailable)
+                RequireSnapshotObservation(w, state.Observation);
+                if (state.Observation.SnapshotAvailable == false)
                 {
                     if (state.Result is not { IndependentOfSnapshot: true })
                         throw new WorkspaceException("SnapshotMissing", "The snapshot is gone and no independent result exists. Preserve the delta.");
@@ -123,6 +126,10 @@ public sealed partial class WorkspaceCoordinator
                 SnapshotStep(w, "release-registration");
             }
             state.Observation = await Snapshots.ObserveAsync(w, control, ct);
+            // At this final step the delta and Git registration are already
+            // reclaimed. Let the exact release adapter refresh privileged
+            // absence evidence; unknown still cannot pass the final gate.
+            if (state.Step != "release-snapshot") RequireSnapshotObservation(w, state.Observation);
             if (state.Observation is not { Mounted: false, ProviderAlive: false, OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
                 throw new WorkspaceException("OverlayCleanupIncomplete", "Owned provider, handles, mount and memory must be observed absent.");
             if (state.Step == "release-registration")
@@ -157,11 +164,19 @@ public sealed partial class WorkspaceCoordinator
         catch (Exception ex)
         {
             RecordFailure(w, ex);
-            if (ex is WorkspaceException { RecoveryActions: not null } failure)
+            if (ex is WorkspaceException { Code: "SnapshotPrivilegeRequired", RecoveryActions: not null } failure)
                 throw new WorkspaceException(failure.Code, failure.Message, failure.Details,
                     [.. failure.RecoveryActions, new("workspace.release", new { id = w.Id, home = store.Root })]);
             throw;
         }
+    }
+
+    private void RequireSnapshotObservation(WorkspaceRecord w, SnapshotWorkspaceObservation observation)
+    {
+        if (observation.SnapshotAvailable is null)
+            throw new WorkspaceException("SnapshotObservationUnknown", "Snapshot availability could not be observed. Preserve the existing identity and delta; restore access before resuming.",
+                new { id = w.Id, observation.FailureCode },
+                [new("workspace.status", new { id = w.Id, home = store.Root }, true)]);
     }
 
     private async Task CollectSnapshotResultAsync(WorkspaceRecord w, CancellationToken ct)

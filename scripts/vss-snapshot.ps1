@@ -85,7 +85,10 @@ try {
         Save-Json $receiptPath $receipt
     }
     $available = $null -ne (Get-CimInstance Win32_ShadowCopy | Where-Object ID -eq $receipt.snapshot.id)
-    $observation = [ordered]@{snapshot=$receipt.snapshot; available=$available; released=$receipt.released; observedAt=[DateTimeOffset]::UtcNow; storage=(Measure-Storage)}
+    # Bind an absence proof to this OS boot. The normal caller cannot query VSS
+    # without elevation, but can compare the read-only OS boot timestamp.
+    $bootTime = (Get-CimInstance Win32_OperatingSystem -Property LastBootUpTime).LastBootUpTime.ToUniversalTime()
+    $observation = [ordered]@{ownerId=$receipt.ownerId; snapshot=$receipt.snapshot; available=$available; released=$receipt.released; bootTimeUtc=$bootTime; observedAt=[DateTimeOffset]::UtcNow; storage=(Measure-Storage)}
     Save-Json (Join-Path $receiptRoot 'observation.json') $observation
     Save-Json (Join-Path $receiptRoot 'operation-result.json') ([ordered]@{action=$Action; success=$true; completedAt=[DateTimeOffset]::UtcNow})
     $observation | ConvertTo-Json -Depth 7

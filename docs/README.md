@@ -6,7 +6,9 @@
 | --- | --- |
 | [NTFS 작업공간](ntfs-workspaces.md) | 일반 CLI의 ntfs-snapshot 생성·권한 경계·재개·독립 결과·회수와 현재 제한을 확인할 때 |
 | [NI 통합 검증](verification/ntfs-workspace-integration.md) | 실제 NTFS/Git/Unity·범위 저장·장애 보호 증거, 원본 통합 차단·최종 자원 회수와 긴 경로 제한을 확인할 때 |
-| [NTFS workspace 1차 통합 범위](plans/ntfs-workspace-integration.md) | SO 실험 이후 이번 구현에 포함할 계약·CLI·복구·결과·회수와 NI 완료 기준, 필요한 시험 자원을 확인할 때 |
+| [NTFS workspace 1차 통합 범위](plans/ntfs-workspace-integration.md) | 완료한 NI-01~08의 계약·CLI·복구·결과·회수 범위와 완료 기준을 확인할 때 |
+| [NTFS 내부 알파 2차 계획](plans/ntfs-recovery-and-support.md) | 다음 NR-01~08의 복구·재부팅·파일 지원 경계, 격리 Windows 시험 자원과 이후 에셋·Play·테스트 순서를 확인할 때 |
+| [NR 복구 검증 기록](verification/ntfs-recovery.md) | 복구 계약의 자동 증거, VIVOBOOK VSS 회수 재개·실제 mount의 파일 API 거부·x64 Unity 단일 회귀와 남은 장애 조건을 확인할 때 |
 | [NTFS snapshot-overlay 실험](snapshot-overlay.md) | VSS·WinFsp·범위 저널의 현재 실험 계약, 실행·재연결과 비용 제한을 확인할 때 |
 | [SO 실제 실행 기록](verification/snapshot-overlay.md) | SO-01~06의 현재 상태와 원시 증거, 무효 처리된 측정을 확인할 때 |
 | [NTFS 실험 계획과 통합 조건](plans/ntfs-snapshot-overlay-spike.md) | SO-01~06의 의도·완료 조건과 제품 통합 전에 남은 검증을 확인할 때 |

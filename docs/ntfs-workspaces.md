@@ -7,11 +7,14 @@
 - Windows의 기존 NTFS, 설치된 WinFsp, 저장된 clean Git repository root를 대상으로 한다. 첫 Unity 검증 대상은 별도 `splinter-unity` fixture다. 원본의 현재 HEAD와 `--base`가 같아야 하며 `.git` 디렉터리가 원본 안에 있어야 한다.
 - dirty/staged/untracked 변경, skip-worktree/assume-unchanged, submodule/symlink, LFS·사용자 filter·working-tree-encoding은 거부한다. 필터는 checkpoint와 결과 보존 시에도 검사한다. 원본을 stash/reset하거나 임의로 커밋하지 않는다.
 - 원본과 불변 스냅샷의 메타데이터를 검사하여 ADS, hardlink, reparse, EFS, 압축·희소 파일을 `SnapshotFileUnsupported`로 거부한다. `.git`은 기준 트리에서 제외한다. 이 검사는 파일 payload를 읽거나 복제하지 않는다. 개별 ACL 변경은 지원하지 않으며 overlay가 원본의 모든 ACL 의미를 재현한다고 주장하지 않는다.
+- reparse/EFS/압축/희소 속성은 기준 트리의 지연 읽기와 WinFsp create/overwrite/속성 변경에도 같은 규칙으로 거부한다. overwrite는 기존 길이를 줄이기 전에 검사한다. 거부된 callback은 바이트·메타데이터·저널 sequence를 유지하며 OS에는 `STATUS_NOT_SUPPORTED`를 반환한다. ARM64 실제 mount에서는 ADS·hardlink·희소·압축·mount-point reparse 요청 5개의 거부를 일반 NTFS 양성 대조와 함께 확인했다. 불변 입력은 fake이며 VSS 입력·EFS·ACL·특수 FSCTL의 전체 검증은 남아 있다. 실행 범위는 [NR 기록](verification/ntfs-recovery.md)을 따른다.
 - 캡처 직전 호출자는 원본 Unity가 저장된 상태이고 import/compile/Play 중이 아닌지 확인한다. 캡처는 application writer 없는 filesystem crash consistency다. 미저장 메모리를 포함하지 않는다. 캡처 후에는 원본을 계속 수정할 수 있다.
 - `--home`은 짧은 경로를 사용한다. NI의 깊은 시험 경로에서는 Unity 패키지 DLL 전체 경로가 270자일 때 초기 로드 예외가 관측됐다. 스크립트 검증과 실행은 통과했지만 긴 패키지 경로와 일반 에셋 로드를 지원으로 확정하지 않는다. 초기 임포트 시간의 SLA도 없다.
 - 생성/재연결에는 상태 볼륨의 여유 2 GiB, 새 캡처에는 기존 VSS diff-area 상한의 여유 8 GiB가 필요하다. 설치·볼륨·상한 설정은 자동 변경하지 않는다. 프로젝트 밖 쓰기도 VSS 공간을 사용한다.
 
 VSS capture/release만 관리자 권한이 필요하다. 일반 CLI는 자동 승격하지 않고 `SnapshotPrivilegeRequired`와 정확한 helper 경로·argument list, 그 뒤 재시도할 workspace 명령을 `nextActions`에 반환한다. 승인된 helper만 관리자 권한으로 실행한 뒤 원래 명령을 다시 호출한다. Unity와 일반 CLI를 관리자 계정으로 계속 실행하는 구조가 아니다. helper의 `operation-result.json`에는 성공 또는 진단이 남는다.
+
+`SnapshotPrivilegeRequired` 응답은 helper 실행이 필요하다는 뜻이며 UAC 창 표시나 snapshot 생성의 증거가 아니다. 외부 실행자가 승격을 요청했다면 그 소유 프로세스의 종료 상태와 `capture-intent.json`·`capture-return.json`·`snapshot.json`·`operation-result.json`을 대조한다. 사용자에게 창이 보이지 않으면 대기 상태만으로 확인 버튼을 반복 요청하지 않는다. 기존 helper가 아직 실행 중이거나 캡처 부작용을 판정할 수 없을 때는 중복 helper/새 캡처를 시작하지 않고 기존 기록을 보존한다.
 
 ## 일반 CLI 흐름
 
@@ -57,6 +60,16 @@ WinFsp의 디렉터리 mount root 자체는 reparse point다. 상태 저장소�
 
 provider가 끝나면 앱/자식이 남지 않았음을 확인한 후 같은 ensure로 기존 snapshot/delta에 재연결한다. 실행 intent만 있고 영수증을 확인할 수 없거나 이전 state와 새 실행 세대가 다르면 중복 실행 대신 `OverlayStartUncertain`으로 보존한다. 재부팅·전원 손실 복구는 미검증이다. 캡처와 실제 파일 내용의 불일치 등으로 준비를 완료할 수 없는 작업의 자동 폐기는 제공하지 않는다. `SnapshotPreparationIncomplete` 상태와 해당 영수증을 보존해 조사한다.
 
+NTFS 응답의 `data.recovery`는 `disposition`, `reasonCode`, `nextCommand`를 반환한다. `ready`는 기존 다음 작업을 진행할 수 있음을, `resume-ensure`/`resume-release`는 같은 identity의 해당 단계를 재개할 수 있음을 나타낸다. `observe`는 관측 복구 후 status를 다시 조회하고, `preserve`는 데이터·영수증을 보존하며 원인을 해결해야 한다. `released`의 다음 행동은 list다. 실제 호출 인자는 `nextActions`에 있으며 `data.nextCommand`와 같은 명령을 가리킨다. 복구 분류 자체가 자원 삭제 승인은 아니며 각 명령에서 소유권·결과·회수 조건을 다시 검사한다.
+
+스냅샷 접근 실패는 `SnapshotObservationUnknown`이다. `snapshotAvailability`와 `snapshotStorage.availability`는 `available`/`missing`/`unknown` 중 하나이며 unknown에서는 기존 boolean 필드를 생략한다. 일반 ensure와 회수 전 단계는 관측 복구까지 보존한다. 관측한 부재와 접근 오류를 구분하며, 경로가 파일로 바뀌면 `SnapshotIdentityMismatch`로 보존한다. 현재 경로·볼륨 접근 관측은 재부팅 뒤 살아 있는 VSS 공급자·볼륨 ID 대조를 대신하지 않는다.
+
+마지막 `release-snapshot` 단계에서는 독립 결과를 다시 검증하고 앱/provider·mount·Git 등록·delta 회수를 확인한 뒤 정확한 VSS helper의 관측을 갱신할 수 있다. 삭제된 장치 경로가 Win32 21을 반환해도 오류만으로 부재로 바꾸지 않는다. 같은 owner와 snapshot의 `released` 영수증, helper가 VSS ID의 부재를 확인한 `observation.json`, 현재 OS의 `LastBootUpTime` 일치가 있어야 모호한 경로 관측을 해소한다. 부팅 정보가 없거나 달라진 이전 영수증은 삭제 없는 `-Action Observe` 관리자 helper와 동일 release 재시도를 반환한다. CLI 자체를 관리자 실행하지 않는다. 부팅 정보 조회 실패는 unknown으로 남고, 회수 완료를 저장할 때도 모든 자원 부재를 검사한다. 이미 해제된 장치 경로가 다른 디렉터리로 재사용되면 identity 불일치로 보존한다.
+
+provider의 `state.json`도 같은 probe를 사용하며 관측 불가를 `snapshot-unknown`으로 기록한다. 완결 저널 프레임의 checksum·sequence·JSON·경로/범위 메타데이터가 잘못됐거나 identity JSON이 손상되면 `DeltaCorrupt`로 실패하고 파일을 그대로 보존한다. 불완전한 마지막 프레임만 기존 계약대로 재생에서 제거하며 완결 손상을 잘라내지 않는다.
+
+손상된 workspace JSON은 `StateCorrupt`, 기존 control/workspace 경로 옆의 누락된 JSON은 `StateRecoveryRequired`, 읽을 수 없는 JSON은 `StateReadUnavailable`이다. 같은 key로 새 작업을 만들지 않는다. 상태 기록 실패는 `StateWriteIncomplete`이며 이전 기록과 임시 파일을 보존한다. 작업 실패 기록마저 저장할 수 없으면 원래 오류 코드를 details에 포함한다. 이 계약은 파일 잠금·중단된 임시 파일로 검증했고 실제 디스크 고갈/전원 중단 검증은 남아 있다.
+
 ## 회수와 관측
 
 회수 순서는 앱/자식 종료 → 현재 source와 독립 결과 확인 → 소유 브리지 제거 → 저널 flush/seal → unmount와 provider 종료 → Git 등록 회수 → delta 회수 → 마지막 의존성이 없는 소유 VSS ID 해제다. 관리 캐시 밖의 ignored 파일, 미보존 변경, 다른 의존 작업이 있으면 중단한다. 중간 쓰기로 저널 seal이 바뀌어도 삭제하지 않는다. delta 회수 중 응답이 유실되면 기존 삭제 intent와 남은 파일을 검증하고 이어 간다. VSS 해제 helper는 정확한 소유 ID만 받으며 전역 삭제를 하지 않는다.
@@ -82,4 +95,4 @@ snapshot이 소실된 뒤에는 기존 checkpoint의 독립 결과가 있고 Git
 
 Core의 `ISnapshotWorkspaceBackend`와 `ISnapshotSourceWorkspaceProvider`는 Windows나 Git API를 노출하지 않는다. Runtime은 단계·잠금·결과/의존성 정책, Git 어댑터는 등록·index·결과 ref, Windows 어댑터는 VSS helper·특수 파일 검사·WinFsp·저널 관측/회수를 맡는다. CLI가 이들을 조립하며 Host는 읽기 전용 in-process 계층을 유지한다.
 
-기존 [ReFS 기준본](storage-and-resources.md)은 선택적 경로다. NTFS 실패를 ReFS 이관·전체 checkout·파일 전체 copy-up으로 바꾸지 않는다. 자동 시험의 fake/Git/Windows 메타데이터 증거와 실제 mount/Unity 실행 근거는 NI 기록에서 구분한다. 재부팅, 특수 파일 지원 확대, 긴 경로·일반 에셋/패키지, 대형 프로젝트 성능과 공개 제품 전체는 [후속 범위](plans/ntfs-workspace-integration.md)에 남긴다. 구매 에셋은 이번 NI 시험에 필요하지 않다.
+기존 [ReFS 기준본](storage-and-resources.md)은 선택적 경로다. NTFS 실패를 ReFS 이관·전체 checkout·파일 전체 copy-up으로 바꾸지 않는다. 자동 시험의 fake/Git/Windows 메타데이터 증거와 실제 mount/Unity 실행 근거는 NI 기록에서 구분한다. [NR-01~08 계획](plans/ntfs-recovery-and-support.md)의 공통 복구 응답과 상태 파일 보존은 부분 구현·자동 검증했고, 실제 재부팅·공간 장애·파일 지원/거부는 [NR 기록](verification/ntfs-recovery.md)의 미완료 조건이다. 특수 파일 지원 확대, 일반 에셋/패키지, 대형 프로젝트 성능과 공개 제품 전체는 이후 범위로 남긴다. 구매 에셋은 NI 및 다음 NR 시험에 필요하지 않다.

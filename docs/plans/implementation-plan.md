@@ -2,7 +2,7 @@
 
 현재 내부 알파 runtime은 [알파 작업공간](../alpha-workspaces.md)과 [저장소·자원 관리](../storage-and-resources.md)의 기준본/CoW/Unity 흐름을 구현한다. 일반 checkout의 두 작업자 증거는 [알파 검증](../verification/internal-alpha.md), ReFS와 프로세스 회수의 실제 범위는 [자원 검증](../verification/storage-and-resources.md)에 기록한다. daemon/SQLite Host와 공개 단계 전체 완료로 해석하지 않는다.
 
-갱신일: 2026-09-21. 상태: **NTFS workspace 1차 내부 알파 NI-01~08 구현·fixture 검증·회수 완료, 공개 목표 미완료**. 기준: [기획서 개정 4판](../../plan.html). 실제 실행 범위는 [현재 기반](../foundation.md), 제품 NTFS 실행 수치·장애·회수는 [NI 검증](../verification/ntfs-workspace-integration.md), 독립 실험은 [SO 검증](../verification/snapshot-overlay.md)을 따른다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
+갱신일: 2026-09-22. 상태: **NTFS workspace 1차 내부 알파 NI-01~08 완료, 2차 NR-01/03/05/07 부분 구현·자동 검증, 원격 VSS 회수 복구·파일 API 거부 5건·NR-08 ARM Windows/x64 Unity 단일 회귀 및 회수 확인, 공개 목표 미완료**. 기준: [기획서 개정 4판](../../plan.html). 실제 실행 범위는 [현재 기반](../foundation.md), 제품 NTFS 실행 수치·장애·회수는 [NI 검증](../verification/ntfs-workspace-integration.md), 독립 실험은 [SO 검증](../verification/snapshot-overlay.md)을 따른다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
 
 ## 1. 설계 결론과 첫 완료 지점
 
@@ -28,16 +28,17 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 - 기존 Unity 협업 기록의 작성자 소유권·리로드·검증 경계 경험은 실패 시나리오 설계에만 참고한다. 그 프로젝트의 단일 Editor 운영 규칙을 이 제품의 여러 독립 Editor 구조에 적용하지 않는다.
 - 별도 `snapshot-spike`에서 VSS 불변 기준·WinFsp 범위 저널·실제 no-checkout Git/Unity를 연결하고 SO-01~06 fixture 증거를 확보했다. 최초 payload·읽기 hydration 0, 큰 파일 4KiB 쓰기, 원본/A/B 코드 실행, 같은 기준 재연결, 독립 결과와 소유 자원 회수를 검증했다.
 - 일반 `workspace ensure --storage ntfs-snapshot`으로 최초 payload/hydration 0, 범위 쓰기, 원본/A/B 컴파일·loaded-code, 같은 기준 재연결, 독립 결과·quota·snapshot 소실 보호를 검증했다. 앱/provider·mount·Git 등록·delta·소유 VSS를 모두 회수했고 독립 결과와 기존 복원 지점은 보존했다. 실제 dirty 원본 통합 요청은 GitDirtyWorktree로 거부됐고 원본 HEAD·인덱스·변경 내용과 독립 결과를 보존했다.
-- 자동 검증은 98개 중 97 통과·선택적 ReFS 1개 skip이다. 재부팅·전원 손실·물리 볼륨 고갈, 긴 Unity 패키지 경로·일반 dirty/LFS·에셋/패키지·Play/Unity 테스트는 별도 남은 조건이다. 공개 48개 시나리오 전체 완료로 집계하지 않는다.
+- NR 복구 행동·상태 보존·저널 의미 검증·미지원 속성의 변경 전 거부와 마지막 VSS release 재개를 구현했다. fake 불변 트리의 자식 프로세스 강제 종료 3회, 실제 WinFsp mount의 API 거부 5건, 실제 VSS 읽기·회수 재개를 확인했다. ARM Windows의 기존 x64 Unity 단일 workspace는 기본/변경 코드 검증 2건과 독립 결과·released·소유 자원 0을 확인했다. NR 전체 완료와 구분한다.
+- 현재 동일 후보의 로컬·VIVOBOOK 자동 검증은 각각 140개 중 139 통과·0 실패·선택적 ReFS 1개 skip이다. 재부팅·전원 손실·물리 볼륨 고갈, 긴 Unity 패키지 경로·일반 dirty/LFS·에셋/패키지·Play/Unity 테스트는 별도 남은 조건이다. 공개 48개 시나리오 전체 완료로 집계하지 않는다.
 
 ### 다음 구현 우선순위
 
-[NTFS workspace 1차 통합 범위](ntfs-workspace-integration.md)의 NI-01~08은 내부 알파 fixture 범위에서 완료했다. 실제 회수·released key 재호출·dirty 원본 통합 차단을 회귀 기준으로 유지한다. 종료된 NI/SO 자원이나 결과를 임의로 재생성·삭제하지 않는다. 아래는 이번 작업과 구분하는 후속 범위다.
+[NTFS workspace 1차 통합 범위](ntfs-workspace-integration.md)의 NI-01~08은 내부 알파 fixture 범위에서 완료했다. 실제 회수·released key 재호출·dirty 원본 통합 차단을 회귀 기준으로 유지한다. 종료된 NI/SO 자원이나 결과를 임의로 재생성·삭제하지 않는다. 다음 구현 단위는 [NTFS 내부 알파 2차](ntfs-recovery-and-support.md)의 NR-01~08이며 [NR 기록](../verification/ntfs-recovery.md)에 공통 복구 계약의 부분 구현과 원격 VSS·파일 API·단일 Unity 회귀 증거를 기록했다. 이번 원격 시험 세션은 종료했고 프로젝트·독립 결과·원시 증거는 후속 시험용으로 보존한다.
 
-1. 재부팅과 모든 명령 경계 중단, 통제된 물리 공간 고갈·전원 손실, 파일 특성별 지원/거부를 검증한다. 새 캡처·원본 fallback·전체 복사로 복구를 대체하지 않는다.
-2. 전체 소스 fingerprint와 loaded-code 증거를 유지하며 에셋/패키지·dirty/LFS 입력의 일반 Unity 검증으로 확대한다. 긴 경로와 패키지 DLL 로딩을 별도로 검증한다.
-3. 초기 import·metadata 탐색·전체 Git 읽기·누적 저널 비용을 개선하고 실제 프로젝트의 반복 측정으로 성능을 확인한다.
-4. 상주 Host·설치·Codex Runner·DAG/자원 예약, 에셋 저작·Play·Unity 테스트·통합 후보 검증을 공개 제품 루프로 연결한다. 공개 48개 완료는 별도이며 상세 기준은 기획서 15절과 [NTFS 통합 조건](ntfs-snapshot-overlay-spike.md)을 따른다.
+1. **이번 NR 단위:** 공통 복구 계약/fake → 명시한 외부 부작용 경계 중단·파일 지원/거부 → 격리 Windows 환경의 재부팅·물리 공간 고갈·강제 전원 종료 → 실제 Unity 회귀. VIVOBOOK의 ARM Windows와 기존 x64 Unity에서 단일 정상 회귀를 확인했다. 살아 있는 VSS 식별 재검증·나머지 중단 경계와 ARM A/B·재부팅 후 Unity 회귀는 남아 있다. 물리 공간 고갈용 격리 볼륨은 아직 준비하지 않았다. 새 캡처·원본 fallback·전체 복사로 복구를 대체하지 않는다.
+2. **그 다음 Unity 단위:** 자체 제작 에셋과 로컬 시험 패키지로 compile/import·저장/재개방·실제 Play·EditMode/PlayMode 테스트·결과/회수를 연결한다. 전체 fingerprint·loaded-code·실행 세대와 실패/0개 선택/취소/stale 증거를 구분한다. 구매 에셋은 필요하지 않다.
+3. **Git 입력·통합과 성능 확대:** dirty/LFS·linked-worktree 입력, clean 통합·충돌·최신 통합 후보 재검증을 별도 범위로 닫는다. 대표 에셋/프로젝트는 필요한 종류·규모를 정해 요청하고 초기 import·metadata·전체 Git 읽기·누적 저널 비용을 측정해 개선한다.
+4. **공개 운영:** 상주 Host·설치·Codex Runner·DAG/자원 예약과 위 Unity/통합 검증을 공개 제품 루프로 연결한다. 공개 48개 완료는 별도이며 상세 기준은 기획서 15절과 [NTFS 통합 조건](ntfs-snapshot-overlay-spike.md)을 따른다.
 
 ## 2. AI 사용성을 먼저 고정한다
 

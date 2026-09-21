@@ -3,7 +3,10 @@ using Splinter.Core;
 namespace Splinter.Runtime;
 
 public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Source, ApplicationState? Application,
-    string ControlPath, string NextCommand);
+    string ControlPath, string NextCommand)
+{
+    public SnapshotRecoveryDecision? Recovery => Workspace.StorageMode == "ntfs-snapshot" ? SnapshotRecoveryDecision.For(Workspace) : null;
+}
 
 public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceProvider sources, IApplicationWorkspaceProvider applications,
     IWorkspaceStorageProvider? storage = null, ISnapshotWorkspaceBackend? snapshots = null)
@@ -75,7 +78,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         catch (Exception ex)
         {
             RecordFailure(record, ex);
-            if (ex is WorkspaceException { RecoveryActions: not null } failure)
+            if (ex is WorkspaceException { Code: "SnapshotPrivilegeRequired", RecoveryActions: not null } failure)
                 throw new WorkspaceException(failure.Code, failure.Message, failure.Details,
                     [.. failure.RecoveryActions, new("workspace.ensure", new { project, key = requestKey, baseReference, storage = storageMode,
                         baseline = baselineId, maxJournalBytes = record.Snapshot?.MaxJournalBytes, editor, home = store.Root })]);
@@ -275,7 +278,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         {
             var state = RequireSnapshot(record);
             state.Observation = await Snapshots.ObserveAsync(record, store.ControlPath(record.Id), ct);
-            if (!state.Attached || !state.Observation.SnapshotAvailable || !state.Observation.Mounted || !state.Observation.ProviderAlive || !state.Observation.OwnershipVerified ||
+            if (!state.Attached || state.Observation.SnapshotAvailable != true || !state.Observation.Mounted || !state.Observation.ProviderAlive || !state.Observation.OwnershipVerified ||
                 state.Step.StartsWith("release-", StringComparison.Ordinal))
             {
                 var unavailableApp = await applications.ObserveAsync(record, store.ControlPath(record.Id), ct);
@@ -316,7 +319,12 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     private void RecordFailure(WorkspaceRecord record, Exception ex)
     {
         record.LastError = ex is WorkspaceException failure ? failure.Code + ": " + failure.Message : ex.Message;
-        store.Save(record, "operation-failed");
+        try { store.Save(record, "operation-failed"); }
+        catch (WorkspaceException stateError) when (stateError.Code == "StateWriteIncomplete")
+        {
+            throw new WorkspaceException(stateError.Code, stateError.Message,
+                new { operationError = (ex as WorkspaceException)?.Code ?? ex.GetType().Name, stateError.Details }, stateError.RecoveryActions);
+        }
     }
     private static void RequireLive(WorkspaceRecord record)
     {

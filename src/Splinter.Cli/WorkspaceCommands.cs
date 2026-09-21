@@ -149,6 +149,8 @@ internal static class WorkspaceCommands
 
     private static ApiResponse Result(string command, WorkspaceView view, bool accepted, string home)
     {
+        string nextCommand = accepted ? "workspace.status" : view.NextCommand.Split(" --", 2)[0].Replace(' ', '.');
+        if (!accepted && view.Recovery is { Disposition: not "ready" } recovery) nextCommand = recovery.NextCommand;
         object data = new
         {
             workspace = Summary(view.Workspace),
@@ -162,11 +164,10 @@ internal static class WorkspaceCommands
                 view.Application.Running, view.Application.Ready, view.Application.Phase,
                 processId = view.Application.Lease?.ProcessId, validation = ValidationSummary(view.Application.Validation), view.Application.Resources
             },
-            view.ControlPath, view.NextCommand,
+            view.ControlPath, nextCommand, view.Recovery,
             isolation = "private-project-and-library; shared user preferences and external services are not sandboxed"
         };
         var response = ApiResponse.Success(command, data);
-        string nextCommand = accepted ? "workspace.status" : view.NextCommand.Split(" --", 2)[0].Replace(' ', '.');
         object nextArguments = nextCommand == "workspace.ensure"
             ? new { project = view.Workspace.ProjectPath, key = view.Workspace.RequestKey, baseReference = view.Workspace.BaseReference,
                 storage = view.Workspace.StorageMode, baseline = view.Workspace.BaselineId, maxJournalBytes = view.Workspace.Snapshot?.MaxJournalBytes, home }
@@ -176,7 +177,7 @@ internal static class WorkspaceCommands
             Status = accepted ? "Accepted" : "Succeeded", Terminal = !accepted,
             NextActions = view.Workspace.Purpose == "baseline" && view.Workspace.Phase == "released"
                 ? [new("schema", new { command = "workspace.ensure" })]
-                : [new(nextCommand, nextArguments)]
+                : [new(nextCommand, nextArguments, view.Recovery is { Disposition: "observe" or "preserve" })]
         };
     }
 

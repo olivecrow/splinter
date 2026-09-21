@@ -56,7 +56,7 @@ Core 계약은 기준 확보/유지/해제, mount/reconnect/flush/unmount, 변�
 
 ## 제품 통합 전에 남은 조건
 
-이 조건 중 다음 구현 단위는 [NTFS workspace 1차 통합 범위](ntfs-workspace-integration.md)에 확정했다. coordinator·결과·공간 보호와 제한된 복구를 NI-01~08로 검증하고, 재부팅·범용 파일/Unity 지원의 나머지 조건은 아래에 유지한다.
+[NTFS workspace 1차 통합](ntfs-workspace-integration.md)의 coordinator·결과·공간 보호와 제한된 복구는 NI-01~08로 검증했다. 현재 [NTFS 내부 알파 2차](ntfs-recovery-and-support.md)의 NR-01 공통 복구 응답·상태 보존을 부분 구현했고 원격 fixture를 준비했다. [NR 기록](../verification/ntfs-recovery.md)의 재부팅·외부 부작용 경계 중단·격리된 공간 장애·파일 지원/거부 실제 검증은 남아 있다. 범용 Unity·Git 입력·성능과 공개 제품 조건은 계속 아래에 유지한다.
 
 1. workspace coordinator의 durable operation·snapshot 의존성/lease·result manifest는 1차 코드에 연결했다. NI의 실제 생성·재개·범위 저장·Unity·실패 보호를 검증했다. 실제 dirty 원본 통합 차단과 최종 소유 VSS 회수까지 확인해 이번 NI 범위를 완료했다. 일반 지원을 확정하지 않으며 후속 조건은 아래와 NI 기록을 따른다.
 2. snapshot 보존 공간의 admission/압박 정책, VSS 재부팅 후 동일 identity 검증과 임의 명령 경계 중단 시험을 보강한다. 물리 볼륨 고갈·전원 손실은 별도 통제 환경에서 수행한다.

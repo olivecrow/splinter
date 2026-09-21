@@ -37,21 +37,51 @@ public sealed class ContractAndCliTests
         Assert.True(contracts.Validate("urn:splinter:v1:response", document.RootElement).IsValid);
     }
 
-    [Fact]
-    public void SnapshotSchemaRequiresIdentityAndKeepsUnknownCountersAbsent()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [InlineData(null)]
+    public void SnapshotSchemaRequiresIdentityAndKeepsUnknownCountersAbsent(bool? available)
     {
         var node = JsonSerializer.SerializeToNode(ApiResponse.Success("workspace.status", new
         {
             workspace = new { id = "aaaaaaaaaaaaaaaaaaaaaaaa", requestKey = "task", projectPath = "C:/project", path = "C:/work",
                 sourceReference = "task", baseReference = "development", phase = "creating", createdAt = DateTimeOffset.UtcNow,
                 updatedAt = DateTimeOffset.UtcNow, storageMode = "ntfs-snapshot", requestDigest = "aaaaaaaaaaaaaaaaaaaaaaaa",
-                snapshot = new SnapshotWorkspaceState { Observation = new(false, false, false, false, null, null, null, FailureCode: "OverlayStartUncertain") } },
-            controlPath = "C:/control", nextCommand = "workspace.ensure", isolation = "private"
+                snapshot = new SnapshotWorkspaceState { Observation = new(available, false, false, false, null, null, null,
+                    FailureCode: "OverlayStartUncertain", SnapshotStorage: new("snapshot", available, null, null, null)) } },
+            controlPath = "C:/control", nextCommand = "workspace.status", isolation = "private",
+            recovery = new SnapshotRecoveryDecision("preserve", "OverlayStartUncertain", "workspace.status")
         }), ApiJson.Options)!;
         Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
         Assert.Null(node["data"]!["workspace"]!["snapshot"]!["observation"]!["privateBytes"]);
+        var observation = node["data"]!["workspace"]!["snapshot"]!["observation"]!;
+        if (available is null)
+        {
+            Assert.Null(observation["snapshotAvailable"]);
+            observation["snapshotAvailable"] = false;
+            Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+            observation.AsObject().Remove("snapshotAvailable");
+        }
         node["data"]!["workspace"]!.AsObject().Remove("snapshot");
         Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+    }
+
+    [Theory]
+    [InlineData("mounted", "available", true)]
+    [InlineData("snapshot-missing", "missing", true)]
+    [InlineData("snapshot-unknown", "unknown", true)]
+    [InlineData("mounted", "unknown", false)]
+    [InlineData("snapshot-missing", "unknown", false)]
+    [InlineData("snapshot-unknown", "missing", false)]
+    public void OverlayStateCannotReportUnknownSnapshotAsMountedOrMissing(string phase, string availability, bool valid)
+    {
+        var observation = JsonSerializer.SerializeToElement(new
+        {
+            version = 1, token = "test", id = "test", phase, observedAt = DateTimeOffset.UtcNow,
+            processId = 1, snapshotId = "snapshot", snapshotAvailability = availability
+        });
+        Assert.Equal(valid, contracts.Validate("urn:splinter:v1:overlay-observation", observation).IsValid);
     }
 
     [Theory]
@@ -79,6 +109,8 @@ public sealed class ContractAndCliTests
         Assert.False(observation.GetProperty("snapshotAvailable").GetBoolean());
         Assert.False(observation.GetProperty("deltaPresent").GetBoolean());
         Assert.False(observation.TryGetProperty("storage", out _));
+        Assert.Equal("resume-ensure", response.GetProperty("data").GetProperty("recovery").GetProperty("disposition").GetString());
+        Assert.Equal(response.GetProperty("data").GetProperty("nextCommand").GetString(), response.GetProperty("nextActions")[0].GetProperty("command").GetString());
     }
 
     [Theory]

@@ -27,7 +27,9 @@ public sealed class VssSnapshotTree : ISnapshotTree, IDisposable
     }
     public void EnsureAvailable()
     {
-        if (!Directory.Exists(root + "\\")) throw new WorkspaceException("SnapshotMissing", "The original snapshot device disappeared; preserve the delta and do not recapture.");
+        var observation = SnapshotAvailabilityProbe.Observe(Snapshot);
+        if (observation.Available != true)
+            throw new WorkspaceException(observation.FailureCode ?? "SnapshotObservationUnknown", "The original snapshot cannot be read. Preserve the delta and do not recapture.");
     }
     public SnapshotEntry? Stat(string relativePath)
     {
@@ -106,7 +108,6 @@ public sealed class VssSnapshotTree : ISnapshotTree, IDisposable
     }
     private static void Reject(FileAttributes attributes)
     {
-        if ((attributes & (FileAttributes.ReparsePoint | FileAttributes.Encrypted)) != 0)
-            throw new WorkspaceException("SnapshotFileUnsupported", "Reparse points and encrypted files require a separately verified adapter.");
+        SnapshotInputChecks.RejectUnsupportedAttributes((uint)attributes);
     }
 }

@@ -53,7 +53,8 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
             UnauthorizedAccessException => STATUS_ACCESS_DENIED,
             ArgumentException => STATUS_OBJECT_NAME_INVALID,
             WorkspaceException { Code: "DeltaFull" or "OverlayMetadataLimit" } => STATUS_DISK_FULL,
-            WorkspaceException { Code: "SnapshotMissing" or "SnapshotReadFailed" } => STATUS_DEVICE_NOT_READY,
+            WorkspaceException { Code: "SnapshotMissing" or "SnapshotReadFailed" or "SnapshotObservationUnknown" or "SnapshotIdentityMismatch" } => STATUS_DEVICE_NOT_READY,
+            WorkspaceException { Code: "SnapshotFileUnsupported" } => STATUS_NOT_SUPPORTED,
             _ => base.ExceptionHandler(ex)
         };
     }
@@ -88,6 +89,7 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     {
         lock (mutationGate)
         {
+            SnapshotInputChecks.RejectUnsupportedAttributes(fileAttributes, fileName);
             if (store.Stat(fileName) is not null)
             {
                 fileNode = fileDesc = null!; fileInfo = default; normalizedName = null!;
@@ -111,8 +113,11 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     {
         lock (mutationGate)
         {
-            var id = (Guid)fileNode; var old = store.Get(id); store.SetLength(id, 0);
-            store.SetMetadata(id, replaceFileAttributes ? fileAttributes : old.Attributes | fileAttributes,
+            var id = (Guid)fileNode; var old = store.Get(id);
+            uint attributes = replaceFileAttributes ? fileAttributes : old.Attributes | fileAttributes;
+            SnapshotInputChecks.RejectUnsupportedAttributes(attributes, old.Path);
+            store.SetLength(id, 0);
+            store.SetMetadata(id, attributes,
                 old.CreationTime, old.LastAccessTime, DateTime.UtcNow.ToFileTimeUtc());
             fileInfo = Info(id); return STATUS_SUCCESS;
         }
@@ -175,7 +180,9 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
         lock (mutationGate)
         {
             Guid id = (Guid)fileNode; var old = store.Get(id);
-            store.SetMetadata(id, attributes == uint.MaxValue ? old.Attributes : attributes,
+            uint updated = attributes == uint.MaxValue ? old.Attributes : attributes;
+            SnapshotInputChecks.RejectUnsupportedAttributes(updated, old.Path);
+            store.SetMetadata(id, updated,
                 creation == 0 ? old.CreationTime : (long)creation, access == 0 ? old.LastAccessTime : (long)access,
                 write == 0 ? old.LastWriteTime : (long)write); fileInfo = Info(id); return STATUS_SUCCESS;
         }

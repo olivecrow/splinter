@@ -53,7 +53,9 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
         {
             if (File.Exists(identityPath))
             {
-                var saved = JsonSerializer.Deserialize<OverlayIdentity>(File.ReadAllText(identityPath));
+                OverlayIdentity? saved;
+                try { saved = JsonSerializer.Deserialize<OverlayIdentity>(File.ReadAllText(identityPath)); }
+                catch (JsonException) { throw new WorkspaceException("DeltaCorrupt", "Delta identity JSON is corrupt; preserve the identity and journal."); }
                 if (JsonSerializer.Serialize(saved) != JsonSerializer.Serialize(identity))
                     throw new WorkspaceException("OverlayIdentityMismatch", "Delta identity and limits cannot change on reconnect.");
             }
@@ -321,13 +323,41 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
             ReadExactly(cursor + frameLength - 32, expectedHash);
             if (!CryptographicOperations.FixedTimeEquals(digest.GetHashAndReset(), expectedHash))
                 throw new WorkspaceException("DeltaCorrupt", "Journal checksum mismatch; automatic discard is forbidden.");
-            var mutation = JsonSerializer.Deserialize<Mutation>(metadata) ?? throw new WorkspaceException("DeltaCorrupt", "Missing mutation.");
+            var mutation = DecodeMutation(metadata, dataLength);
             if (mutation.Sequence != sequence + 1) throw new WorkspaceException("DeltaCorrupt", "Journal sequence mismatch.");
             Apply(mutation, cursor + 8 + metadataLength, dataLength); cursor += frameLength;
         }
         // Only an incomplete trailing transaction is unacknowledged. Corrupt
         // complete transactions above fail closed and remain byte-for-byte intact.
         if (cursor != journal.Length) { journal.SetLength(cursor); journal.Flush(true); }
+    }
+    private static Mutation DecodeMutation(byte[] metadata, int payloadLength)
+    {
+        Mutation? mutation;
+        try { mutation = JsonSerializer.Deserialize<Mutation>(metadata); }
+        catch (JsonException) { throw new WorkspaceException("DeltaCorrupt", "Journal metadata JSON is corrupt; preserve the complete frame."); }
+        static WorkspaceException Invalid() => new("DeltaCorrupt", "Journal mutation metadata is invalid; preserve the complete frame.");
+        if (mutation?.Entry is not { } entry || entry.Id == Guid.Empty || entry.Path is null ||
+            entry.Length < 0 || entry.BaseLength < 0 || entry.BaseLength > entry.Length ||
+            entry.BasePath is null && entry.BaseLength != 0 || entry.Directory && entry.Length != 0)
+            throw Invalid();
+        try
+        {
+            if (Normalize(entry.Path) != entry.Path || entry.BasePath is not null && Normalize(entry.BasePath) != entry.BasePath)
+                throw Invalid();
+            if (mutation.Operation == "rename" && (mutation.Destination is null ||
+                mutation.Destination.Length == 0 || Normalize(mutation.Destination) != mutation.Destination ||
+                entry.Path.Length == 0 || IsChild(mutation.Destination, entry.Path))) throw Invalid();
+        }
+        catch (ArgumentException) { throw Invalid(); }
+        if (mutation.Operation == "write")
+        {
+            if (entry.Directory || mutation.Offset < 0 || payloadLength == 0 ||
+                mutation.Offset > entry.Length - payloadLength) throw Invalid();
+        }
+        else if (payloadLength != 0 || mutation.Operation is not ("create" or "resize" or "metadata" or "delete" or "rename"))
+            throw Invalid();
+        return mutation;
     }
     private void Apply(Mutation mutation, long payloadOffset, int payloadLength)
     {

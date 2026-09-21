@@ -77,10 +77,30 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
     {
         string path = Path.Combine(ControlPath(id), "workspace.json");
         EnsurePlainPath(path);
-        if (!File.Exists(path)) return null;
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        var record = JsonSerializer.Deserialize<WorkspaceRecord>(stream, Json)
-            ?? throw new WorkspaceException("StateCorrupt", "Workspace record is empty; preserve the directory for recovery.");
+        WorkspaceRecord record;
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            record = JsonSerializer.Deserialize<WorkspaceRecord>(stream, Json)
+                ?? throw new WorkspaceException("StateCorrupt", "Workspace record is empty; preserve the directory for recovery.");
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // A missing record alongside prior preparation is not a new key.
+            // Never replace an interrupted write or orphaned external resources.
+            try
+            {
+                if (PathPresent(ControlPath(id)) || PathPresent(WorkPath(id)))
+                    throw new WorkspaceException("StateRecoveryRequired", "Workspace state is missing alongside existing preparation. Preserve its files and reconcile this identity.");
+                return null;
+            }
+            catch (Exception accessError) when (accessError is IOException or UnauthorizedAccessException)
+            { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be inspected. Restore access before retrying the same key."); }
+        }
+        catch (JsonException)
+        { throw new WorkspaceException("StateCorrupt", "Workspace JSON is invalid or incomplete. Preserve its record and temporary files for recovery."); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be read. Restore access before retrying the same key."); }
         if (record.Version != 1 || record.Id != id || !SamePath(record.Path, WorkPath(id)))
             throw new WorkspaceException("StateCorrupt", "Workspace identity/path/version does not match its registry.");
         if (record.StorageMode == "ntfs-snapshot" && (record.Snapshot is null ||
@@ -94,9 +114,25 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         return record;
     }
 
+    private static bool PathPresent(string path)
+    {
+        try { _ = File.GetAttributes(path); return true; }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { return false; }
+    }
+
     public WorkspaceRecord Get(string id) => Find(id) ?? throw new WorkspaceException("WorkspaceNotFound", $"No workspace '{id}' in this state root.");
 
     public void Save(WorkspaceRecord workspace, string action)
+    {
+        try { SaveCore(workspace, action); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new WorkspaceException("StateWriteIncomplete", "Workspace state could not be fully persisted. Preserve records and temporary files; restore access or space before observing the same identity.",
+                new { id = workspace.Id, action }, [new("workspace.status", new { id = workspace.Id, home = Root }, true)]);
+        }
+    }
+
+    private void SaveCore(WorkspaceRecord workspace, string action)
     {
         string control = ControlPath(workspace.Id);
         EnsurePlainPath(control);
