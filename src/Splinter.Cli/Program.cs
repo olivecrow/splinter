@@ -82,6 +82,7 @@ public static class Program
             root.Subcommands.Add(plan);
 
             WorkspaceCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken);
+            OverlayExperimentCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken);
 
             var parsed = root.Parse(args);
             human = parsed.GetValue(humanOption);

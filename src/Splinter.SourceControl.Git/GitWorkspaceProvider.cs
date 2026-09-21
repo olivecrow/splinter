@@ -315,7 +315,7 @@ public sealed class GitWorkspaceProvider(IWorkspaceStorageProvider? storage = nu
         }
         return result;
     }
-    private static async Task<string> Required(string cwd, string[] args, CancellationToken ct)
+    internal static async Task<string> Required(string cwd, string[] args, CancellationToken ct)
     {
         var result = await Run(cwd, args, ct);
         if (result.ExitCode != 0) throw Error("GitCommandFailed", result.Error.Trim());

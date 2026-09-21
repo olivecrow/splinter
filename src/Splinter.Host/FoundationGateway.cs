@@ -19,7 +19,27 @@ public sealed class FoundationGateway(
         persistentHost = false,
         persistentState = true,
         stateBackend = "atomic-json-with-operation-locks",
-        storageModes = new[] { "refs-cow", "git-checkout" }
+        storageModes = new[] { "refs-cow", "git-checkout" },
+        snapshotOverlay = new
+        {
+            stage = "experimental-storage-spike",
+            integratedWorkspaceMode = false,
+            sourceSnapshot = "windows-vss-system",
+            deltaStore = "bounded-checksummed-range-journal",
+            requestSchema = "urn:splinter:v1:overlay-serve-request",
+            observationSchema = "urn:splinter:v1:overlay-observation",
+            entrypoints = new[] { "scripts/setup-snapshot-overlay.ps1", "scripts/vss-snapshot.ps1",
+                "dotnet Splinter.Platform.Windows.dll overlay-serve <request.json>",
+                "scripts/test-snapshot-overlay-io.ps1", "scripts/test-snapshot-overlay-concurrency.ps1",
+                "scripts/measure-overlay-small-writes.ps1", "scripts/invoke-snapshot-spike.ps1",
+                "scripts/measure-snapshot-overlay.ps1", "scripts/test-snapshot-overlay-faults.ps1",
+                "scripts/prepare-snapshot-overlay-test.ps1", "scripts/test-snapshot-overlay-compatibility.ps1",
+                "scripts/test-overlay-journal-recovery.ps1", "scripts/test-owned-snapshot-loss.ps1",
+                "scripts/preserve-snapshot-test-results.ps1", "scripts/measure-overlay-journal.py",
+                "scripts/preserve-snapshot-overlay-unity.ps1",
+                "scripts/reclaim-snapshot-overlay-test.ps1", "scripts/release-snapshot-overlay-test.ps1" },
+            qualification = "Experimental fixture evidence is recorded in docs/verification/snapshot-overlay.md; workspace integration and reboot recovery are not qualified"
+        }
     });
 
     public ApiResponse Schema(string command)

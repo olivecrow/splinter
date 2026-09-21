@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:snapshot-spike-request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "overlayRequestPath"],
+  "properties": {
+    "action": {"enum": ["mount", "status", "unmount", "git-prepare", "git-attach", "git-release", "unity-start", "unity-status", "unity-refresh", "unity-stop", "preserve"]},
+    "overlayRequestPath": {"type": "string", "minLength": 1},
+    "receiptPath": {"type": "string", "minLength": 1},
+    "branch": {"type": "string", "pattern": "^codex/[A-Za-z0-9/_-]+$"},
+    "revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+  }
+}

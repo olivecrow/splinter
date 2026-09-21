@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:overlay-observation",
+  "type": "object",
+  "required": ["version", "token", "id", "phase", "observedAt", "processId", "snapshotId"],
+  "properties": {
+    "version": { "const": 1 }, "token": {"type":"string"}, "id":{"type":"string"},
+    "phase":{"enum":["mounted","snapshot-missing","unmounted","failed"]}, "observedAt":{"type":"string","format":"date-time"},
+    "processId":{"type":"integer","minimum":1}, "snapshotId":{"type":"string"},
+    "openHandles":{"type":"integer","minimum":0}, "workingSetBytes":{"type":"integer","minimum":0},
+    "privateBytes":{"type":"integer","minimum":0},
+    "storage": {
+      "type":"object", "required":["initialPayloadCopiedBytes","journalBytes","payloadBytes","metadataBytes","readBytes","readCacheBytes","durableSequence"],
+      "properties": {
+        "initialPayloadCopiedBytes":{"const":0}, "readCacheBytes":{"const":0},
+        "journalBytes":{"type":"integer","minimum":0}, "payloadBytes":{"type":"integer","minimum":0},
+        "metadataBytes":{"type":"integer","minimum":0}, "readBytes":{"type":"integer","minimum":0},
+        "durableSequence":{"type":"integer","minimum":0}
+      }
+    }
+  }
+}

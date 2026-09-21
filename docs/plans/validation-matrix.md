@@ -127,9 +127,11 @@
 
 | ID | 조건 | 상태 |
 | --- | --- | --- |
-| SO-01 | NTFS 원본 이동·최초 전체 복제 없이 생성 | NotRun |
-| SO-02 | 전체 읽기에 따른 작업별 영구 복제 없음 | NotRun |
-| SO-03 | 큰 파일 일부 쓰기의 범위별 저장 | NotRun |
-| SO-04 | 원본 계속 수정 + A/B 시작 시점 스냅샷 유지 | NotRun |
-| SO-05 | 실제 Unity mmap·잠금·알림·컴파일과 증가량 설명 | NotRun |
-| SO-06 | 기준/변경분 재연결·결과 보존·소유 자원 회수 | NotRun |
+| SO-01 | NTFS 원본 이동·최초 전체 복제 없이 생성 | PassedFixture: VSS·초기 payload 0·볼륨 계수·실제 독립 Git HEAD/index |
+| SO-02 | 전체 읽기에 따른 작업별 영구 복제 없음 | PassedFixture: 반복 hash·delta allocation 불변·read cache 0 |
+| SO-03 | 큰 파일 일부 쓰기의 범위별 저장 | PassedFixture: 3개 크기 4KiB·mmap·truncate·rename·replace·저널 비용 |
+| SO-04 | 원본 계속 수정 + A/B 시작 시점 스냅샷 유지 | PassedFixture: t0/t1 분리·원본/A/B 코드 33/103/203 실행 |
+| SO-05 | 실제 Unity mmap·잠금·알림·컴파일과 증가량 설명 | PassedFixture: 추가 컴파일 104/204·세대/MVID·잠금 32/33·알림·Library/RAM/할당 |
+| SO-06 | 기준/변경분 재연결·결과 보존·소유 자원 회수 | PassedFixture: provider/저널/quota/snapshot 소실·독립 결과·소유 자원 0. 재부팅/전원/모든 명령 경계 NotRun |
+
+SO의 실제 원시 증거와 측정 제한은 [실행 기록](../verification/snapshot-overlay.md)을 따른다.

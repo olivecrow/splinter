@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:overlay-serve-request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["identity", "deltaPath", "mountPath", "controlPath", "token"],
+  "properties": {
+    "identity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "id", "snapshot", "maxJournalBytes", "maxTransferBytes"],
+      "properties": {
+        "version": { "const": 1 },
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "maxJournalBytes": { "type": "integer", "minimum": 4096 },
+        "maxTransferBytes": { "type": "integer", "minimum": 4096, "maximum": 1048576 },
+        "excludedTopLevel": { "type": ["array", "null"], "items": {"type":"string", "pattern":"^[^/\\\\:]+$"}, "uniqueItems": true },
+        "snapshot": {
+          "type": "object", "additionalProperties": false,
+          "required": ["id", "provider", "sourcePath", "rootPath", "capturedAt", "persistent", "differential", "consistency"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "provider": { "const": "windows-vss-system" },
+            "sourcePath": { "type": "string", "minLength": 1 },
+            "rootPath": { "type": "string", "minLength": 1 },
+            "capturedAt": { "type": "string", "format": "date-time" },
+            "persistent": { "const": true }, "differential": { "const": true },
+            "consistency": { "const": "filesystem-crash-consistent-no-application-writer" }
+          }
+        }
+      }
+    },
+    "deltaPath": { "type": "string", "minLength": 1 },
+    "mountPath": { "type": "string", "minLength": 1 },
+    "controlPath": { "type": "string", "minLength": 1 },
+    "token": { "type": "string", "pattern": "^[0-9a-f]{32}$" }
+  }
+}

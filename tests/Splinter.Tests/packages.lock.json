@@ -85,6 +85,11 @@
         "resolved": "5.0.0",
         "contentHash": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg=="
       },
+      "System.IO.FileSystem.AccessControl": {
+        "type": "Transitive",
+        "resolved": "5.0.0",
+        "contentHash": "SxHB3nuNrpptVk+vZ/F+7OHEpoHUIKKMl02bUmYHQr1r+glbZQxs7pRtsf4ENO29TVm2TH3AEeep2fJcy92oYw=="
+      },
       "System.Security.AccessControl": {
         "type": "Transitive",
         "resolved": "6.0.1",
@@ -188,7 +193,9 @@
       "splinter.platform.windows": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Core": "[0.1.0-dev, )"
+          "Splinter.Core": "[0.1.0-dev, )",
+          "Splinter.Runtime": "[0.1.0-dev, )",
+          "WinFsp.Net": "[2.2.26215, )"
         }
       },
       "splinter.protocol": {
@@ -223,6 +230,15 @@
         "requested": "[2.0.12, )",
         "resolved": "2.0.12",
         "contentHash": "FpW672e6qqrTd1EfKqsvUtFZaJWlTlszUR1o8tdakXhkzKbnEZVndtpfd4K3fUPCFcIs9UmcswMyYGJP1zp/rg=="
+      },
+      "winfsp.net": {
+        "type": "CentralTransitive",
+        "requested": "[2.2.26215, )",
+        "resolved": "2.2.26215",
+        "contentHash": "h1jJSIUo5i+chxSo20zx3k/b6hIk1Cr/yF95nstn0YOkgZKXoDmN3/L090QsKDsUKoT4ec1buj0ZRnACkbI1BQ==",
+        "dependencies": {
+          "System.IO.FileSystem.AccessControl": "5.0.0"
+        }
       }
     }
   }

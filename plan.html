@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<meta content="AI 코딩 도구의 병렬 개발을 위한 CLI 중심 범용 작업공간 런타임. Windows·Unity·Git 첫 구현, CoW와 실제 Git worktree 수명주기, 자동 준비·관찰·검증·회수 계획." name="description"/>
+<meta content="Splinter 프로젝트 기획·구현 계획서. ReFS 내부 알파와 NTFS VSS/WinFsp 실험의 구현·검증 현황, 제품 작업공간 통합과 자동 준비·관찰·검증·회수 계획." name="description"/>
 <title>AI 에이전트용 범용 병렬 개발 도구 — 프로젝트 기획·구현 계획서</title>
 <style>
 :root { color-scheme: light; --ink: #222; --muted: #595959; --rule: #d5d7da; --link: #195c8c; }
@@ -89,13 +89,14 @@ p code, li code, td code { display: inline-block; max-width: 100%; vertical-alig
 <main>
 <h1 id="top">AI 에이전트용 범용 병렬 개발 도구</h1>
 <p class="subtitle">프로젝트 기획·구현 계획서 · 첫 지원 조합: Windows + Unity + Git</p><p><strong>목적:</strong> Codex 같은 AI 코딩 도구가 대형 프로젝트의 동시 실행 제약과 반복 복사 비용에 막히지 않도록, 독립 작업공간의 생성·실행·검증·회수를 자동화한다. 사용자는 설치·최초 연결 후 개발할 내용만 지시하고, AI는 CLI로 병렬 작업을 운영한다.</p>
-<p><strong>문서 상태:</strong> 구현 전 설계안 · 개정 3판 · <strong>개정·추가 조사 기준일:</strong> 2026년 9월 20일<br/>
+<p><strong>문서 상태:</strong> 내부 알파·NTFS 실험 구현 반영 · 개정 4판 · <strong>구현 현황 기준일:</strong> 2026년 9월 21일<br/>
 <strong>대상 독자:</strong> 구현 개발자, AI 코딩 에이전트, 새로운 OS·개발환경 지원을 추가할 기여자<br/>
 <strong>제품 방향:</strong> 범용 코어를 직접 구축하고 Windows·Unity·Git·Codex 연결을 첫 번째 완결된 사용 경로로 제공한다. <code>unity-workspace-storage</code> 등 기존 관리 도구에 의존하지 않는다.</p>
-<p>문서의 <code>pw</code>는 가칭 CLI이며 명령·상태·경로·스키마는 <strong>구현할 계약의 제안</strong>이다. 설치 가능한 제품이나 측정된 성능을 뜻하지 않는다. 실제 Windows/Unity 실행 시험은 아직 수행하지 않았다.</p>
+<p>실제 개발 CLI는 <code>pwsh scripts/splinter.ps1</code>이다. 본문의 <code>pw</code>와 공개 제품의 명령·상태·경로·스키마 예시는 <strong>목표 계약의 제안</strong>이며, 구현된 계약은 <a href="docs/foundation.md">현재 기반</a>과 <code>capabilities</code>를 따른다. Windows/Git/Unity 내부 알파와 NTFS 독립 실험은 실제 실행했으며, 아래 현재 상태와 향후 제품 목표를 구분한다.</p>
 <nav aria-label="목차" id="toc">
 <p class="toc-title">목차</p>
 <ul class="toc-list">
+<li><a href="#implementation-status">현재 구현·검증 상태와 다음 우선순위</a></li>
 <li><a href="#section-1">1. 제품 목적과 변경할 수 없는 요구사항</a></li>
 <li><a href="#section-2">2. 설치 후 작업 지시만으로 동작하는 사용 흐름</a></li>
 <li><a href="#section-3">3. 범용 모듈 경계와 프로그램·AI의 책임</a></li>
@@ -113,6 +114,20 @@ p code, li code, td code { display: inline-block; max-width: 100%; vertical-alig
 <li><a href="#section-15">15. 구현 순서와 AI에게 나눠 줄 작업 단위</a></li>
 <li><a href="#section-16">16. 여러 OS·개발환경으로 확장할 기반</a></li>
 <li><a href="#section-17">17. 공식 참고 자료</a></li></ul></nav>
+<h2 id="implementation-status">현재 구현·검증 상태와 다음 우선순위</h2>
+<p><strong>NTFS 원본을 이동하거나 최초 전체 사본을 만들지 않고, 원본을 계속 편집하면서 작업별 불변 기준과 범위 저장을 사용하는 최소 경로를 검증했다.</strong> 현재 제품 workspace는 ReFS 내부 알파이며, NTFS 경로는 별도 <code>snapshot-spike</code> 실험이다. 이 둘을 하나의 완성된 제품 backend로 표시하지 않는다.</p>
+<div aria-label="현재 구현과 제품 지원 경계 표" class="table-wrap" role="region" tabindex="0">
+<table><colgroup><col style="width:23%"/><col style="width:43%"/><col style="width:34%"/></colgroup><thead><tr><th scope="col">영역</th><th scope="col">현재 구현·확인</th><th scope="col">남은 제품 범위</th></tr></thead><tbody>
+<tr><td>Core·CLI·Runtime</td><td>.NET 10, 기계용 JSON/schema, 플랫폼 중립 계약·fake, atomic JSON 상태와 operation lock, CLI 종료 뒤 재접속</td><td>Host는 읽기 전용 in-process 조합 계층이다. 상주 daemon/SQLite와 전체 DAG 실행은 미구현</td></tr>
+<tr><td>기존 ReFS 내부 알파</td><td>예열 기준본 재사용, 블록 복제, no-checkout Git index, Unity 시작·컴파일·결과 보존, Job Object 회수</td><td>최초 전체 기준본이 필요하다. NTFS 요구사항의 대체 경로가 아닌 선택적 backend 증거</td></tr>
+<tr><td>NTFS 독립 실험</td><td>VSS 불변 기준, WinFsp 합성 파일 I/O, 범위·메타데이터 저널, 실제 Git/Unity와 SO-01~06 fixture 증거</td><td><code>workspace ensure</code> 미통합. 캡처·설치·회수는 명시적 실험 요청과 관리자 절차</td></tr>
+<tr><td>Unity 실행과 검증</td><td>원본/A/B 독립 코드 실행, 추가 컴파일 후 A=104/B=204, 새 domain과 assembly MVID 확인</td><td>현재 NTFS fingerprint는 probe 한 파일이다. 일반 에셋·패키지, Play, Unity Test Framework 루프는 미검증</td></tr>
+<tr><td>복구·결과·자원</td><td>같은 snapshot/delta 재연결, 제공자 종료·저널 손상·quota disk-full·snapshot 소실, 독립 결과 보존 후 소유 자원 회수</td><td>재부팅·전원 손실·물리 볼륨 고갈과 모든 명령 경계 중단의 보장은 미검증</td></tr>
+</tbody></table></div>
+<p><strong>실행 증거:</strong> Windows 11 Home/NTFS, Unity 6000.3.22f1, WinFsp 2.2.26215 Beta4에서 확인했다. 실제 난수 16MiB·256MiB·1GiB의 최초 payload 복사와 읽기 hydration은 0이다. 각 파일의 4KiB 쓰기는 저널 4,521·4,525·4,529 bytes 증가로 설명된다. Unity에서는 독립 Git 결과를 보존한 뒤 모든 시험 mount·delta·소유 프로세스를 회수했고, 시험 snapshot 3개를 없애면서 기존 복원 지점 4개를 유지했다. .NET 검증은 69개 중 68 통과·선택적 ReFS 1개 skip이다.</p>
+<p><strong>비용 해석:</strong> 약 1.96GB 논리 데이터의 Unity fixture에서 Git 연결 직후 작업별 delta allocation은 4,688 bytes였고, 두 차례 Editor 실행·컴파일·반복 로그 뒤 최종 journal은 A 약 603MB/B 약 620MB였다. 실행 중 앱 Job working set은 각각 약 5.5GB/5.4GB로 관측했다. snapshot의 볼륨 단위 보존 비용, Unity의 실제 재작성, 공유 OS cache와 독립 결과 저장을 포함해야 한다. 빠른 시작·추가 공간 0·재임포트 없음·일반 프로젝트의 성능 우위를 주장하지 않는다.</p>
+<p><strong>다음 우선순위:</strong> 검증된 snapshot/delta/mount 계약을 제품 workspace coordinator에 연결하고, 결과 manifest·의존성 수명·공간 정책·중단 재조정을 하나의 지속 상태로 관리한다. 이어 일반 Unity 변경의 검증과 초기 임포트 비용을 개선하고, 상주 Host·Codex Runner·설치·저작·Play·테스트의 공개 제품 루프를 완성한다. 구체적인 순서와 완료 조건은 <a href="#section-15">15절</a>을 따른다.</p>
+<p>현재 계약은 <a href="docs/snapshot-overlay.md">NTFS 실험 계약</a>, 실제 수치·장애·회수·NotRun은 <a href="docs/verification/snapshot-overlay.md">SO 실행 기록</a>, 전체 공개 기준과의 대응은 <a href="docs/plans/validation-matrix.md">검증 추적표</a>에 있다. <strong>SO fixture 통과와 아래 공개 시나리오 48개 완료는 별개다.</strong></p>
 <h2 id="section-1">1. 제품 목적과 변경할 수 없는 요구사항</h2>
 <h3 id="section-1-1">1.1 해결하려는 문제</h3>
 <p><strong>Codex 같은 AI 코딩 도구에 개발 작업을 맡길 때, 동일 프로젝트의 동시 실행 제약 때문에 막히는 병렬 작업을 유연하게 수행하도록 하는 도구를 만든다.</strong> Unity 프로젝트는 코드 외에도 많은 에셋과 큰 임포트 캐시를 포함하므로, 작업마다 프로젝트 전체를 일반 복사하고 삭제하는 방식은 반복 비용이 크다. AI의 작업 분할 능력을 실제 독립 작업공간과 프로그램 실행으로 연결하는 것이 제품의 목적이다.</p>
@@ -123,8 +138,8 @@ p code, li code, td code { display: inline-block; max-width: 100%; vertical-alig
 <table class=""><colgroup><col style="width:23%"/><col style="width:77%"/></colgroup><thead><tr><th scope="col">요구사항</th><th scope="col">구현상 의미</th></tr></thead><tbody><tr><td>AI 개발 작업의 병렬화</td><td>AI가 코드·테스트·에셋 작업을 독립적으로 수행한다. 사용자가 복제 폴더와 Editor 연결을 직접 관리하지 않는다.</td></tr><tr><td>범용 코어, 첫 구현은 Windows·Unity</td><td>OS·파일시스템·애플리케이션·버전관리·에이전트 연결을 교체 가능한 계약으로 분리한다. 다른 환경의 실제 구현은 포크와 기여로 확장할 수 있게 한다.</td></tr><tr><td>CLI가 제품의 기본 인터페이스</td><td>설치·연결 후 사용자는 자연어로 작업만 지시한다. 실제 명령 실행, 상태 확인, 실패 복구, 결과 회수는 AI와 Host가 CLI로 처리한다. GUI 대시보드나 MCP를 필수로 만들지 않는다.</td></tr><tr><td>실제 Git worktree와 수명주기 결합</td><td>작업용 브랜치와 linked worktree를 생성하고, 같은 작업 루트에 CoW 소스·전용 Unity 상태를 제공한다. worktree 생성부터 회수까지 하나의 관리 절차로 취급한다. 독립 Git 저장소 복제를 기본 경로로 사용하지 않는다.</td></tr></tbody></table></div>
 <h3 id="section-1-3">1.3 첫 공개 버전의 범위</h3>
 <div aria-label="1.3 첫 공개 버전의 범위 표" class="table-wrap" role="region" tabindex="0">
-<table class=""><colgroup><col style="width:23%"/><col style="width:77%"/></colgroup><thead><tr><th scope="col">항목</th><th scope="col">첫 버전의 결정</th></tr></thead><tbody><tr><td>제품 구성</td><td>설치/부트스트랩, CLI, 사용자 세션 Host, Git 어댑터, 스냅샷·변경분 저장 백엔드, Unity 외부 어댑터와 내부 브리지, Codex 연결을 제공한다. 기존 ReFS 내부 알파와 미구현 목표를 구분한다.</td></tr><tr><td>Windows 저장소</td><td>기존 Windows/NTFS 원본 + 작업 시작 시점의 불변 스냅샷 + 범위별 변경 저장. 최초 전체 복제·읽기 hydration·필수 ReFS 이관 없이 SO-01~06으로 검증한다. VSS/WinFsp는 후보이며 지원을 미리 확정하지 않는다.</td></tr><tr><td>기존 NTFS 프로젝트</td><td>원본 위치·파일시스템을 유지하고 최초 전체 기준본도 만들지 않는다. 원본은 작업 중 계속 수정 가능하며 각 작업은 시작 시점의 스냅샷을 유지한다. 작업 기간 전체의 원본 쓰기 차단은 금지한다.</td></tr><tr><td>Git 지원</td><td>일반 저장소와 기존 linked worktree에서 프로젝트를 자동 탐지한다. 새 작업은 고유 브랜치 + 실제 linked worktree로 생성한다. 일반 Git 연동은 선택 부가기능이 아니라 첫 제품의 필수 범위다.</td></tr><tr><td>Unity 지원</td><td>실사용 프로젝트의 정확한 Editor 패치 버전부터 검증한다. 최신 버전 자동 선택이나 프로젝트 자동 업그레이드는 하지 않는다. API 설계 참고는 Unity 6.0·Test Framework 1.4다.</td></tr><tr><td>필수 Unity 기능</td><td>코드·테스트 작성 후 컴파일·리로드 복구, 에셋 생성·수정·임포트, 실제 Play 진입·정지·관찰, EditMode/PlayMode 테스트 발견·실행·결과 회수.</td></tr><tr><td>병렬 범위</td><td>작업공간 간 병렬, 같은 Editor의 변경 명령은 직렬. 에이전트·Editor·컴파일·GPU·외부 상태의 동시 사용 수를 각각 제한한다.</td></tr><tr><td>첫 버전에서 제외</td><td>자체 커널 파일시스템 드라이버, 전역 싱글 인스턴스 강제 우회, 완전한 보안 샌드박스, 다른 OS/엔진의 실제 구현, 무중단 핫리로드, 의미적 무충돌 병합 보장.</td></tr></tbody></table></div>
-<p><strong>최초 전체 복제 없이 시작하고 변경한 범위에 필요한 공간만 사용한다.</strong> 소스·리소스·Library를 모두 같은 계약으로 다룬다. 스냅샷 보존 블록·메타데이터·신규 데이터·결과 저장 비용은 남고 전체 합계에 포함한다. 현재 ReFS 알파는 최초 기준본을 요구하므로 이 목표를 아직 충족하지 않는다. 다음 관문은 <a href="docs/plans/ntfs-snapshot-overlay-spike.md">SO-01~06</a>이다.</p>
+<table class=""><colgroup><col style="width:23%"/><col style="width:77%"/></colgroup><thead><tr><th scope="col">항목</th><th scope="col">첫 버전의 결정</th></tr></thead><tbody><tr><td>제품 구성</td><td>설치/부트스트랩, CLI, 사용자 세션 Host, Git 어댑터, 스냅샷·변경분 저장 백엔드, Unity 외부 어댑터와 내부 브리지, Codex 연결을 제공한다. 기존 ReFS 내부 알파와 미구현 목표를 구분한다.</td></tr><tr><td>Windows 저장소</td><td>기존 Windows/NTFS 원본 + 작업 시작 시점의 불변 스냅샷 + 범위별 변경 저장. 최초 전체 복제·읽기 hydration·필수 ReFS 이관 없이 SO-01~06으로 검증한다. VSS/WinFsp는 SO fixture를 검증한 우선 후보이며 제품 통합·일반 지원은 미완료다.</td></tr><tr><td>기존 NTFS 프로젝트</td><td>원본 위치·파일시스템을 유지하고 최초 전체 기준본도 만들지 않는다. 원본은 작업 중 계속 수정 가능하며 각 작업은 시작 시점의 스냅샷을 유지한다. 작업 기간 전체의 원본 쓰기 차단은 금지한다.</td></tr><tr><td>Git 지원</td><td>일반 저장소와 기존 linked worktree에서 프로젝트를 자동 탐지한다. 새 작업은 고유 브랜치 + 실제 linked worktree로 생성한다. 일반 Git 연동은 선택 부가기능이 아니라 첫 제품의 필수 범위다.</td></tr><tr><td>Unity 지원</td><td>실사용 프로젝트의 정확한 Editor 패치 버전부터 검증한다. 최신 버전 자동 선택이나 프로젝트 자동 업그레이드는 하지 않는다. API 설계 참고는 Unity 6.0·Test Framework 1.4다.</td></tr><tr><td>필수 Unity 기능</td><td>코드·테스트 작성 후 컴파일·리로드 복구, 에셋 생성·수정·임포트, 실제 Play 진입·정지·관찰, EditMode/PlayMode 테스트 발견·실행·결과 회수.</td></tr><tr><td>병렬 범위</td><td>작업공간 간 병렬, 같은 Editor의 변경 명령은 직렬. 에이전트·Editor·컴파일·GPU·외부 상태의 동시 사용 수를 각각 제한한다.</td></tr><tr><td>첫 버전에서 제외</td><td>자체 커널 파일시스템 드라이버, 전역 싱글 인스턴스 강제 우회, 완전한 보안 샌드박스, 다른 OS/엔진의 실제 구현, 무중단 핫리로드, 의미적 무충돌 병합 보장.</td></tr></tbody></table></div>
+<p><strong>최초 전체 복제 없이 시작하고 변경한 범위에 필요한 공간만 사용한다.</strong> 소스·리소스·Library를 모두 같은 계약으로 다룬다. 스냅샷 보존 블록·메타데이터·신규 데이터·결과 저장 비용은 남고 전체 합계에 포함한다. ReFS 알파는 최초 기준본을 요구하므로 이 목표를 충족하지 않는다. NTFS 독립 실험은 SO-01~06 fixture 증거를 확보했으며 다음 관문은 <a href="docs/plans/ntfs-snapshot-overlay-spike.md">제품 workspace 통합과 지원 조건</a>이다.</p>
 <h3 id="section-1-4">1.4 설계 불변 조건</h3>
 <p><strong>하나의 관리 worktree에는 하나의 논리 작업공간과 하나의 작성자 예약이 대응한다.</strong> 현재 활성 Editor나 전역 작업 폴더에 의존하지 않는다. 브랜치·작업 경로·Unity 인스턴스·에이전트 세션·검증 결과의 연결을 명시적으로 기록한다. AI가 수정할 파일을 틀리게 예측해도 해당 작업공간의 정상 쓰기는 다른 사본에 반영되지 않아야 한다.</p>
 <p>원본 보호의 검사 대상은 사용자의 소스·현재 체크아웃·staged 변경·미저장 편집 상태다. linked worktree 생성과 결과 커밋에 따른 <strong>공유 Git 관리 정보의 정상 추가까지 “원본 변경 금지”로 오해하지 않는다.</strong> 동시에 Git 공유 구조와 일반 사용자 권한 코드를 완전한 보안 격리라고 표현하지 않는다.</p>
@@ -186,7 +201,7 @@ fixtures/unity/             직접 만든 최소 프로젝트 · Git/LFS 시험 
 <p>최초 전체 복제, 읽기에 따른 영구 hydration, 큰 파일의 첫 쓰기에 따른 전체 copy-up을 금지한다. 일부 쓰기는 블록/범위별로 저장하고 삭제·rename·truncate·확장은 메타데이터와 변경 범위로 표현한다. mmap·자식 프로세스·원자적 파일 교체·잠금·변경 알림을 포함한다. 파일 감시 후 복사나 writable hardlink/junction을 쓰기 격리 수단으로 사용하지 않는다.</p>
 <p>원본 변경 후에도 이전 작업의 기준은 유지돼야 한다. 새 작업의 기준 시점과 공유 여부를 명시한다. 공급자 수명·공간 압박·외부 스냅샷 소실은 명시적 실패/복구 상태로 드러내며 현재 원본으로 조용히 전환하지 않는다.</p>
 <h3 id="section-4-3">4.3 Windows 후보와 확장성</h3>
-<p>VSS 시스템 CoW 스냅샷 + WinFsp + 범위별 변경 저장소를 우선 실험한다. VSS의 볼륨 전체 diff 비용·권한·보존·재연결과 Unity 일관성은 별도 관문이다. 최초 full-copy 공급자는 허용하지 않는다. WinFsp는 overlay 정책을 대신 구현하지 않는다. 두 기술 모두 SO 시험 전에는 지원으로 표시하지 않는다.</p>
+<p>현재 우선 후보는 SO fixture를 통과한 VSS 시스템 CoW + WinFsp + 범위별 저널이다. 실제 Windows 11 Home/NTFS에서 원본의 계속된 수정, 기준 시점 유지, 작은 쓰기와 복구·회수를 확인했다. VSS 볼륨 전체 diff 비용·권한·보존 정책과 Unity 일반 호환성은 제품 통합에서 계속 검증한다. 최초 full-copy 공급자는 허용하지 않으며 WinFsp가 overlay 저장 정책을 대신 구현하지 않는다.</p>
 <p>공통 스냅샷/변경 저장 계약과 OS 파일시스템·프로세스 어댑터를 분리한다. Linux/macOS의 FUSE 계열 확장은 후속 실제 구현이며 현재 지원으로 표시하지 않는다. ReFS는 기존 호환 볼륨에 대한 선택적 백엔드다. NTFS 데이터를 ReFS VHDX에 한 번 복사하는 경로는 정상 제품 경로가 아니다.</p>
 <h3 id="section-4-4">4.4 Git 연동</h3>
 <p>작업자가 사용하는 가상 경로 자체를 실제 linked worktree로 연결한다. Git 어댑터가 common directory·HEAD·독립 index를 관리한다. 원본 .git을 복제하지 않는다. 소스 기준과 저장된 상속 변경, 도구 overlay, 작업 결과를 구분하며 원본 HEAD/staged 상태를 변경하지 않는다.</p>
@@ -194,11 +209,11 @@ fixtures/unity/             직접 만든 최소 프로젝트 · Git/LFS 시험 
 <ol><li>프로젝트·Git·앱 호환성과 스냅샷/마운트 지원·예산을 검사한다.</li><li>일관된 시작 시점 스냅샷과 소스 provenance를 확보하고 원본의 계속된 수정을 허용한다.</li><li>작업 ID·경로·브랜치·저널을 예약한다.</li><li>no-checkout Git 등록과 가상 파일시스템 마운트를 조정한다. .git 연결은 작업별로 제공하고 파일을 전체 전개하지 않는다.</li><li>파일을 다시 쓰지 않는 index 초기화, 기준/변경분 연결과 접근 검사를 완료한 뒤 WorkspaceReady를 발행한다.</li><li>전용 변경 저장소에서 Unity를 시작하고 필요한 임포트/컴파일과 준비 완료를 확인한다.</li></ol>
 <p>생성 단계마다 중단 후 동일 ID로 재조정해야 한다. Git 등록·마운트의 실제 순서와 호환성은 실험으로 고정한다. LFS/filter/CRLF 비용과 실패를 숨기지 않는다.</p>
 <h3 id="section-4-6">4.6 공동 수명주기</h3>
-<p>작업공간·Git 등록·마운트는 대응 관계를 유지한다. Editor 종료만으로 작업 결과를 삭제하지 않는다. 결과 보존 → 소유 프로세스 정지·flush → 열린 핸들/마운트 해제 → Git/변경 저장소 회수 → 마지막 의존성이 없는 스냅샷 해제 순서의 정합성을 검증한다. 결과가 여전히 기준 블록에 의존하면 기준을 먼저 삭제하지 않는다. 임대 만료·시간 초과·디스크 압박만으로 유일한 결과를 삭제하지 않는다.</p>
+<p>작업공간·Git 등록·마운트는 대응 관계를 유지한다. 해당 작업의 새 쓰기 중지·소유 앱과 자식 종료 → flush·현재 결과를 기준 스냅샷과 독립적으로 보존 → 열린 핸들/마운트 해제 → Git 등록/변경 저장소 회수 → 마지막 의존성이 없는 스냅샷 해제 순서로 정합성을 확인한다. 원본 Editor의 쓰기를 작업 기간 동안 막지 않는다. 결과가 여전히 기준 블록에 의존하면 기준을 먼저 삭제하지 않는다. 임대 만료·시간 초과·디스크 압박만으로 유일한 결과를 삭제하지 않는다.</p>
 <h3 id="section-4-7">4.7 외부 도구와 관찰</h3>
 <p>에이전트는 반환된 작업 경로를 사용한다. 외부에서 만든 worktree는 소유권·소스·실행 상태를 검사해 연결하며 이미 발생한 전체 checkout 비용을 절감 성과로 보고하지 않는다. 작업공간 밖 원본을 임의 수정하는 코드까지 차단하는 보안 샌드박스로 표현하지 않는다.</p>
 <h3 id="section-4-8">4.8 증거와 지원 경계</h3>
-<p>첫 관문은 <a href="docs/plans/ntfs-snapshot-overlay-spike.md">SO-01~06</a>이다. 전체 읽기, 작은 쓰기, 원본/A/B 동시 변경, Git·Unity·mmap과 중단/회수를 실제 환경에서 검증한다. logical bytes와 physical allocation을 구분하고 snapshot 보존·delta·메타데이터·캐시·Git/LFS 결과 비용을 모두 기록한다. 큰 논리 크기의 sparse 파일만으로 공간 절감을 입증하지 않는다.</p>
+<p><a href="docs/verification/snapshot-overlay.md">SO-01~06 fixture 증거</a>는 전체·반복 읽기, 작은 쓰기, 원본/A/B 시점 격리, Git·Unity·mmap·잠금·알림과 장애/회수를 포함한다. 재부팅·전원 손실·실제 물리 볼륨 고갈·모든 명령 경계 중단은 NotRun이다. logical bytes와 file-data allocation을 구분하며 snapshot 보존·delta·메타데이터·캐시·Git/LFS 결과 비용을 모두 기록한다. 초기 measurement-v1-invalid의 물리 수치는 사용하지 않으며 실제 1TB 데이터셋 시험으로 확대하지 않는다.</p>
 <h2 id="section-5">5. Unity 스냅샷 확보와 파일 분류</h2>
 <h3 id="section-5-1">5.1 시작 시점 확보</h3>
 <ol><li>원본 HEAD·staged/unstaged/untracked·에셋과 .meta·Unity/패키지/설정·외부 의존성을 기록한다.</li><li>저장·임포트·캐시 쓰기의 일관된 체크포인트를 확인한다. 미저장 상태를 캡처했다고 간주하지 않는다.</li><li>원본 데이터와 Library의 시작 시점 스냅샷을 확보한다. 전체 준비 worktree나 필수 cold import를 만들지 않는다.</li><li>원본은 계속 편집할 수 있게 유지하고 작업은 고정 snapshot ID와 소스 provenance를 사용한다.</li><li>도구 브리지와 작업의 수정은 전용 변경 저장소에 기록한다. 작업 기여를 시작 시점/상속 변경/도구 변경과 구분한다.</li><li>실제 Unity 실행·임포트·컴파일로 캐시 호환성을 검증한다. 필요한 재작성 비용만 작업별로 기록한다.</li></ol>
@@ -253,11 +268,13 @@ fixtures/unity/             직접 만든 최소 프로젝트 · Git/LFS 시험 
 </table></div>
 <p>Git 연동은 첫 제품의 정상 경로에 포함한다. 버전관리와 무관한 Core 단위 시험은 fake 어댑터로 수행하되, 제품이 이를 독립 Git 복제본이나 무관리 폴더로 몰래 대체하지 않는다. 원본의 에셋/코드와 Git의 common directory는 역할이 다르며, .git을 기준본에 넣어 파일 복사로 작업 트리를 만들지 않는다.</p>
 <h3 id="section-5-3">5.3 브리지 설치가 사용자 변경을 숨기지 않도록</h3>
+<p><strong>현재 실험에서 고정한 실행 준비:</strong> 캡처된 <code>Library/ilpp.pid</code>, <code>Library/Pipeline/.unity-pipeline-port</code>, MCP 실행 PID 파일은 원본 프로세스의 주소를 담는다. 작업 전용 overlay에서 이 ephemeral 항목만 whiteout해 원본 compiler helper 간섭을 막는다. 재사용 가능한 Library와 원본 파일은 유지한다. 브리지의 도구 소유 경로·hash를 검증하고 최종 Git source 결과에서는 제외한다.</p>
 <p>도구 설치 전 소스 상태와 도구 설치 후 실행 기준본을 별도 식별자로 기록한다. <code>Packages/manifest.json</code>과 잠금 파일에 도구 의존성을 추가했다면 <strong>해당 JSON 변경만</strong> 나중에 제거한다. 패키지 파일 전체를 결과에서 제외하면 AI가 의도한 다른 패키지 변경까지 잃는다.</p>
 <p>권장 첫 배치는 작업공간에 포함되는 버전 고정 UPM 패키지다. 외부 절대 경로에 의존하는 링크보다 이동과 포크에 유리하다. 기본 브리지는 Editor 전용으로 두고, 런타임 관찰 코드는 필요할 때만 별도 모듈로 사용한다. 일반 Player 빌드에 개발 브리지가 포함되지 않는지도 자동 시험한다.</p>
 <p>도구 overlay 때문에 발생한 Git 차이는 <code>changes inspect</code>에서 별도 항목으로 드러낸다. <code>skip-worktree</code>나 광범위한 ignore로 Packages 전체를 숨기지 않는다. 사용자 프로젝트에 정식 채택한 브리지는 정상 소스로 관리할 수 있지만, 실행용 주입은 결과 커밋 전 정확히 분리한다. 소스 스냅샷 작성·필터 적용·상속 변경 회수는 Git 어댑터 적합성 시험에 포함한다.</p>
 <h2 id="section-6">6. 외부 Host와 Unity 브리지</h2>
 <h3 id="section-6-1">6.1 외부 프로세스를 제어의 중심으로 둔다</h3>
+<p><strong>구현 경계:</strong> 아래는 상주 Host의 목표다. 현재 <code>Splinter.Host</code>는 읽기 전용 in-process 조합 계층이고, Runtime의 atomic JSON과 별도 Windows supervisor가 상태·프로세스 수명을 유지한다. daemon/SQLite writer로 기술하지 않는다.</p>
 <p>Host는 사용자의 로그인 세션에서 일반 권한으로 실행한다. v0에서 GUI Editor를 Windows 서비스의 비대화형 실행 환경에 넣는 구성을 시도하지 않는다. Unity 실행 파일은 사용자가 등록한 설치 경로 또는 검증된 탐지 결과로 정하고, 프로젝트의 정확한 버전과 대조한다.</p>
 <p>상주 GUI 실행에는 프로젝트 경로와 작업별 로그 경로를 지정한다. 같은 프로젝트를 별도 batch Editor로 동시에 열 수 없으므로, 열린 작업공간의 테스트는 내부 브리지로 실행하거나 해당 Editor를 닫고 batch 경로로 전환한다. 원본 프로젝트의 잠금 파일을 삭제해 중복 실행을 강제하지 않는다. <a aria-label="참고 자료 5" class="source-ref" href="#source-5">[5]</a></p>
 <p>Windows 실행기는 자신이 시작한 프로세스를 Job Object 등으로 추적한다. 자식 프로세스가 기본적으로 job에 포함되지만 breakaway 예외가 있으므로 종료 시험으로 확인한다. 프로세스 이름이 <code>Unity.exe</code>라는 이유만으로 다른 사용자의 에디터를 종료하지 않는다. 라이선스·Hub 같은 공용 프로세스도 일괄 종료 대상이 아니다. <a aria-label="참고 자료 33" class="source-ref" href="#source-33">[33]</a></p>
@@ -328,6 +345,7 @@ fixtures/unity/             직접 만든 최소 프로젝트 · Git/LFS 시험 
 </ol>
 <p><code>RequestScriptCompilation</code>은 변경 여부를 검사해 필요한 스크립트를 재컴파일하고, 성공 후 어셈블리를 다시 로드한다. 따라서 “함수에서 반환됨”, “컴파일이 멈춤”, “새 타입을 사용할 수 있음”을 동일한 시점으로 취급하지 않는다. <a aria-label="참고 자료 8" class="source-ref" href="#source-8">[8]</a></p>
 <h3 id="section-7-3">7.3 완료 판정과 오류 복구</h3>
+<p><strong>현재 NTFS 증거:</strong> <code>unity-refresh</code>의 요청 접수와 같은 ID/fingerprint의 validation 완료를 구분한다. 초기 callback 보고서는 후속 reload에서 오래된 값으로 남을 수 있으므로 ready Editor에서 현재 로드된 함수를 직접 호출하고 domain generation·assembly MVID를 확인한다. probe 한 파일에서 확보한 이 증거를 일반 프로젝트 전체 검증으로 확대하지 않는다.</p>
 <p>완료 응답에는 <code>sourceRevision</code>, <code>compiledRevision</code>, <code>domainEpoch</code>, 컴파일 진단, 실제 변경 반영 범위를 포함한다. 검증 중 파일이 다시 바뀌면 결과를 재사용하지 않는다. 컴파일이 필요 없었던 경우에도 왜 기존 성공 상태를 재사용할 수 있는지 기록한다.</p>
 <p>컴파일 오류가 나면 <code>Blocked:CompilationFailed</code>로 전환하되 작업공간은 유지한다. 살아 있는 브리지가 있으면 진단을 제공하고, 없다면 Host가 <code>Editor.log</code>와 종료 상태를 수집해 AI가 파일을 수정하게 한다. 이후 재시작 또는 재동기화로 회복한다. 로그 파서는 Unity 버전별로 시험하고, 파싱 실패 시 원문과 불확실 상태를 반환한다.</p>
 <p><strong>깨진 프로젝트의 최초 실행은 별도 시험 항목이다.</strong> Safe Mode에서는 브리지도 실행되지 않을 수 있고, batch 모드에서는 컴파일 오류 시 종료한다. 이 경우 내부 복구 명령을 기다리지 않고 외부 수정·재시작 경로를 사용한다. <code>-ignoreCompilerErrors</code>를 정상 작업 경로의 해결책으로 사용하지 않는다. <a aria-label="참고 자료 12" class="source-ref" href="#source-12">[12]</a></p>
@@ -672,6 +690,7 @@ CLI/Host: 실제 Play·테스트 → 결과 회수 → Git 변경과 증거 연�
 <p>회수 성공 판정에는 해당 Git worktree 등록의 제거, 작업 전용 디렉터리·캐시 정리, 작업자/Editor 종료, 영속 결과의 존재를 모두 포함한다. 커밋/브랜치/보고서의 보존 기간은 복사본의 실행 수명과 별개다. 외부 worktree 변경과 볼륨 분리는 4.7절의 재조정으로 처리하며 관리 대상 전체를 무차별 삭제하지 않는다.</p>
 <h2 id="section-14">14. 필수 검증 시나리오와 합격 기준</h2>
 <h3 id="section-14-1">14.1 시험 환경</h3>
+<p><strong>현재 집계:</strong> SO-01~06은 독립 NTFS fixture로 통과했고 .NET 자동 검증은 68 통과·ReFS 전용 1개 skip이다. 이 숫자는 서로 다른 시험 집합이며 아래 공개 제품 48개 전체 통과를 뜻하지 않는다. ReFS 알파·NTFS fixture·공개 시나리오의 현재 상태는 <a href="docs/plans/validation-matrix.md">검증 추적표</a>에서 각각 관리한다.</p>
 <p><strong>필수 시나리오 48개.</strong> 기존 Unity 기능 검증에 설치·AI 발견성·CLI 운영·Git worktree 수명주기 시험을 추가한다. 기능이 코드에 존재하는 것과 사용자가 지시만으로 사용할 수 있는 것을 별도 기준으로 판정한다.</p>
 <p>직접 만든 최소 Unity fixture와 실제 사용 프로젝트를 분리한다. fixture는 작은 runtime 어셈블리, Editor 도구, EditMode/PlayMode 테스트, 씬, 프리팹, ScriptableObject, 텍스처를 포함한다. 대형 저장소 시험은 별도 합성 파일 집합으로 수행하고 유료 에셋이나 개인 프로젝트 데이터를 공개 저장소에 넣지 않는다.</p>
 <p>Core 단위 시험과 프로토콜 적합성 시험은 Unity 없이 실행 가능하게 한다. 실제 Unity 통합 시험은 정상 활성화된 Windows 테스트 머신에서 실행한다. 필수 스냅샷/파일시스템 공급자가 없는 CI는 SO 시험을 조용히 통과시키지 말고 구체적인 <code>NotRun</code> 이유를 보고한다. 선택적 ReFS 시험은 별도로 집계한다. 공개 릴리스의 지원 표시는 실제 환경 시험 결과가 있어야 한다.</p>
@@ -868,9 +887,20 @@ CLI/Host: 실제 Play·테스트 → 결과 회수 → Git 변경과 증거 연�
 <p>전체 소스 해시 계산과 파일 트리 순회에도 비용이 있으므로 복제 시간에서 숨기지 않는다. 안정적인 snapshot 식별과 콘텐츠 검증 기록을 재사용하고, 도구가 추적한 변경은 증분 계산하되 최종 회수에서 실제 파일을 재검증한다. 외부에서 변경했거나 추적 신뢰성이 깨진 경우 보수적으로 다시 스캔한다. 저장 계약 확인은 최초 준비·전체 읽기·일부 쓰기의 물리 증가량, 원본/A/B의 시점 격리와 회수 증거를 함께 사용한다.</p>
 <p>“항상 즉시 복제”, “추가 공간 0”, “재임포트 없음” 같은 성능 문구를 목표로 삼지 않는다. 실제 프로젝트에서 최초 전체 복제 없이 스냅샷과 변경 저장이 동작하는지 확인하고, 그렇지 않은 원인을 파일 수·경로 종속 캐시·대형 재생성 파일별로 분해한다.</p>
 <h2 id="section-15">15. 구현 순서와 AI에게 나눠 줄 작업 단위</h2>
-<p>우선 검증할 위험은 <strong>NTFS 시작 시점 스냅샷 + 범위별 변경 저장 + 실제 Git worktree의 결합</strong>, <strong>Unity의 컴파일·리로드·Play·테스트 제어</strong>, <strong>설치된 AI가 CLI로 작업자를 자동 운용하는 경로</strong>다. CLI·Git·사용성을 마지막에 붙이는 구조로 개발하지 않는다. P0에서 작은 각 경로를 확인하고 P1부터 같은 계약으로 통합한다.</p>
+<p>NTFS 스냅샷·범위 저장·실제 Git/Unity의 최소 결합은 독립 실험으로 검증했다. 다음 구현은 이를 <strong>일반 workspace 명령의 지속 수명주기</strong>에 연결하는 것이다. 공개 P0의 Play·테스트·Codex 자동 실행까지 완료한 것은 아니므로, 구현된 모듈을 재사용하면서 아래 순서로 남은 조건을 닫는다.</p>
+<h3 id="section-15-1">15.1 바로 이어서 진행할 통합 순서</h3>
+<div aria-label="다음 제품 통합 단계와 완료 조건 표" class="table-wrap" role="region" tabindex="0">
+<table><colgroup><col style="width:23%"/><col style="width:39%"/><col style="width:38%"/></colgroup><thead><tr><th scope="col">우선순위</th><th scope="col">구현할 내용</th><th scope="col">완료 조건</th></tr></thead><tbody>
+<tr><td>1. NTFS workspace 통합</td><td>Core snapshot/delta/mount ports를 coordinator에 연결. snapshot ID·delta identity·Git 등록·process lease·result manifest를 하나의 durable 작업 상태로 관리</td><td>일반 workspace 생성/조회/재개/회수에서 최초 전체 복사 없이 동작. schema·fake·적합성 시험을 먼저 연결하고 실제 Git/Unity에서 확인</td></tr>
+<tr><td>2. 결과와 공간 정책</td><td>독립 결과 확정, 마지막 snapshot 의존성 계산, VSS 공간 사전 검사와 압박 상태, 중복 요청·부분 회수 재조정</td><td>기존 복원 지점·다른 작업·유일한 결과 보존. 작업 앱·제공자 메모리 0, 핸들·mount·Git 등록·delta 부재를 실제 조회로 확인</td></tr>
+<tr><td>3. 복구·파일 지원 관문</td><td>재부팅 후 같은 snapshot ID 확인, 모든 mount/flush/결과/회수 경계의 중단, 통제된 물리 disk-full·전원 손실 시험. ACL/ADS/hardlink/reparse/EFS 지원·거부 정책</td><td>유효한 같은 기준으로 재연결하거나 보존 상태로 명시 실패. 새 캡처·원본 읽기·전체 복사로 우회하지 않음</td></tr>
+<tr><td>4. 일반 Unity 변경과 성능</td><td>probe 한 파일 fingerprint를 프로젝트 전체로 확대. 에셋·패키지·dirty/LFS checkpoint, PID/port 격리, 초기 import·metadata 탐색·누적 저널 비용 개선</td><td>새 코드·에셋의 실제 실행 증거와 파일별 재작성 비용. 원본 Editor 유지, Library 전체 삭제·전체 준비 복사 없이 검증</td></tr>
+<tr><td>5. 공개 제품 루프</td><td>상주 Host·설치·Codex Runner/세션 재개·DAG/자원 예약을 연결하고 저작·Play·테스트·통합 후보 검증 확장</td><td>자연어 요청에서 실제 작업자 A/B, 컴파일 오류 수정, 에셋 저작·Play·테스트, 결과와 회수까지 공개 48개 기준으로 확인</td></tr>
+</tbody></table></div>
+<p>1~4의 상세 계약과 미검증 항목은 <a href="docs/plans/ntfs-snapshot-overlay-spike.md">NTFS 실험의 통합 조건</a>을 따른다. VSS의 프로젝트 밖 쓰기 비용과 Unity 재임포트 지연을 분리해서 측정하며, SO 성공을 근거로 성능 목표를 생략하지 않는다. ReFS 경로는 선택적 회귀 증거로 유지한다.</p>
+<h3 id="section-15-2">15.2 공개 제품의 전체 단계와 현재 진척</h3>
 <div aria-label="15. 구현 순서와 AI에게 나눠 줄 작업 단위 표" class="table-wrap" role="region" tabindex="0">
-<table class=""><colgroup><col style="width:22%"/><col style="width:39%"/><col style="width:39%"/></colgroup><thead><tr><th scope="col">단계</th><th scope="col">구현 범위</th><th scope="col">완료 조건·증거</th></tr></thead><tbody><tr><td>P0 — 핵심 경로 실험</td><td>SO-01~06 스냅샷·변경 저장 + no-checkout worktree/index 실험, 일반 fixture의 Unity 전체 수정-검증 루프, Codex CLI의 지정 CWD·이벤트 수집 실험</td><td>FS-01/02, GT-01/02/04의 최소 사례, CP-01/02/03, PL-01, TS-01/02. 미검증 조합과 실제 비용 기록</td></tr><tr><td>P1 — Core·CLI·계약</td><td>작업 그래프, worktree-작업공간 대응, operation/lease/정책/증거, 저널, JSON/JSONL, schema/help, fake 앱·VCS·Runner</td><td>CLI-01/02/03, EX-01/02. Unity 없이 생성/조회/재개/실패/회수 전체 상태 시험</td></tr><tr><td>P2 — Git·CoW 수명주기</td><td>프로젝트 자동 탐지, 소스 기준/dirty 스냅샷, 실제 worktree 생성, 스냅샷·범위별 변경 저장·마운트, LFS/속성, attach/reconcile/회수</td><td>FS/GT 시험. 원본 HEAD/staged 내용 보존과 반복 작업공간 생성·회수 검증</td></tr><tr><td>P3 — 설치·에이전트·Unity 실행</td><td>Windows 설치/부트스트랩, 스킬·기존 설정 보존, Codex Runner, 세션/CWD 바인딩, Unity 브리지·정확한 버전·sync</td><td>UX-01/02/03, CLI-04, WS/CP. 자연어 요청에서 두 작업자와 올바른 Editor 연결까지 자동 진행</td></tr><tr><td>P4 — 에셋 저작·실제 Play</td><td>새 타입·프리팹·씬·ScriptableObject, 임포트, 실제 Play/프레임/입력/화면·프로젝트 훅</td><td>AS/PL 전체. 새 코드로 새 에셋을 만들고 저장 후 실제 게임 실행</td></tr><tr><td>P5 — 테스트 실행·증거</td><td>발견·필터·실행·취소·XML/JSON, reload 콜백, batch 대체 경로, 필수 검증 정책</td><td>TS 전체. 실패·0개·중단·오래된 결과를 정확히 차단</td></tr><tr><td>P6 — 자동 병렬 운영·통합</td><td>리소스 예약, 지속 관찰, 작업자 재개, 결과 커밋·통합 worktree 검증·승인 범위 내 적용·동반 회수</td><td>UX-04/05, IS/RC/MG/PK, GT-08. 사용자 수동 운영 없이 전체 루프와 실패 보존</td></tr><tr><td>P7 — 공개·확장 기반</td><td>업데이트/제거, 적합성 시험·지원 표·실제 성능/개입 보고, 모듈 템플릿·포크 문서</td><td>UX-06 및 전체 필수 시나리오 실행 결과. 미지원/미실행은 명시하고 공개 릴리스 조건을 충족</td></tr></tbody></table></div>
+<table class=""><colgroup><col style="width:22%"/><col style="width:39%"/><col style="width:39%"/></colgroup><thead><tr><th scope="col">단계</th><th scope="col">구현 범위</th><th scope="col">완료 조건·증거</th></tr></thead><tbody><tr><td>P0 — 핵심 경로 실험<br/><small>NTFS fixture 완료, 전체 Unity/Runner 루프 미완료</small></td><td>SO-01~06 스냅샷·변경 저장 + no-checkout worktree/index 실험, 일반 fixture의 Unity 전체 수정-검증 루프, Codex CLI의 지정 CWD·이벤트 수집 실험</td><td>FS-01/02, GT-01/02/04의 최소 사례, CP-01/02/03, PL-01, TS-01/02. 미검증 조합과 실제 비용 기록</td></tr><tr><td>P1 — Core·CLI·계약<br/><small>기반 구현, 상주 Host·전체 DAG 미구현</small></td><td>작업 그래프, worktree-작업공간 대응, operation/lease/정책/증거, 저널, JSON/JSONL, schema/help, fake 앱·VCS·Runner</td><td>CLI-01/02/03, EX-01/02. Unity 없이 생성/조회/재개/실패/회수 전체 상태 시험</td></tr><tr><td>P2 — Git·CoW 수명주기<br/><small>ReFS 알파·NTFS 실험 구현, 제품 통합 우선</small></td><td>프로젝트 자동 탐지, 소스 기준/dirty 스냅샷, 실제 worktree 생성, 스냅샷·범위별 변경 저장·마운트, LFS/속성, attach/reconcile/회수</td><td>FS/GT 시험. 원본 HEAD/staged 내용 보존과 반복 작업공간 생성·회수 검증</td></tr><tr><td>P3 — 설치·에이전트·Unity 실행<br/><small>Unity 실행 일부 구현, 설치·Runner 미완료</small></td><td>Windows 설치/부트스트랩, 스킬·기존 설정 보존, Codex Runner, 세션/CWD 바인딩, Unity 브리지·정확한 버전·sync</td><td>UX-01/02/03, CLI-04, WS/CP. 자연어 요청에서 두 작업자와 올바른 Editor 연결까지 자동 진행</td></tr><tr><td>P4 — 에셋 저작·실제 Play<br/><small>미완료</small></td><td>새 타입·프리팹·씬·ScriptableObject, 임포트, 실제 Play/프레임/입력/화면·프로젝트 훅</td><td>AS/PL 전체. 새 코드로 새 에셋을 만들고 저장 후 실제 게임 실행</td></tr><tr><td>P5 — 테스트 실행·증거<br/><small>Unity 테스트 제품 경로 미완료</small></td><td>발견·필터·실행·취소·XML/JSON, reload 콜백, batch 대체 경로, 필수 검증 정책</td><td>TS 전체. 실패·0개·중단·오래된 결과를 정확히 차단</td></tr><tr><td>P6 — 자동 병렬 운영·통합<br/><small>로컬 결과·회수 일부 구현, 자동 운영 미완료</small></td><td>리소스 예약, 지속 관찰, 작업자 재개, 결과 커밋·통합 worktree 검증·승인 범위 내 적용·동반 회수</td><td>UX-04/05, IS/RC/MG/PK, GT-08. 사용자 수동 운영 없이 전체 루프와 실패 보존</td></tr><tr><td>P7 — 공개·확장 기반<br/><small>미완료</small></td><td>업데이트/제거, 적합성 시험·지원 표·실제 성능/개입 보고, 모듈 템플릿·포크 문서</td><td>UX-06 및 전체 필수 시나리오 실행 결과. 미지원/미실행은 명시하고 공개 릴리스 조건을 충족</td></tr></tbody></table></div>
 <p>AI 구현 작업 하나의 납품에는 담당 모듈·계약·전제조건·정상/실패 시험·실행 명령·증거 위치·미해결 제약을 포함한다. “코드를 작성함”만으로 다음 단계에 가지 않는다. 계약 변경은 CLI schema·fake·적합성 시험·문서를 함께 변경하게 한다.</p>
 <p>인터페이스가 고정된 뒤 저장소·Unity·CLI/Runner 작업은 병렬 개발할 수 있다. 실제 Editor·GPU·테스트 머신 사용권은 공통 예약에 따른다. 각 모듈이 자체 worktree 생성기나 삭제 루틴을 따로 구현하지 않도록 Code Ownership와 공통 계약 시험을 둔다.</p>
 <p><strong>첫 공개 릴리스 기준:</strong> 설치·최초 승인 후 일반 자연어 요청만으로 AI가 실제 worktree A/B를 준비하고, 코드·테스트를 추가하고, 컴파일 오류를 수정하고, 새 에셋·씬을 만들고, 실제 Play·테스트를 실행한 뒤, 검증된 로컬 결과 브랜치와 보고서를 남기고 작업용 worktree/사본을 함께 회수해야 한다. 원본 소스·staged 변경 보존, 올바른 인스턴스 라우팅, 중단 후 결과 보존도 동시에 확인한다.</p>
@@ -940,7 +970,7 @@ CLI/Host: 실제 Play·테스트 → 결과 회수 → Git 변경과 증거 연�
 <li id="source-48"><a href="https://developers.openai.com/codex/skills/" rel="noreferrer">OpenAI — Agent skills</a><span class="reference-note">스킬의 발견·명시/암묵적 호출·로컬 지침 배치.</span></li>
 <li id="source-49"><a href="https://developers.openai.com/codex/guides/agents-md/" rel="noreferrer">OpenAI — AGENTS.md</a><span class="reference-note">프로젝트 지침 발견과 계층적 적용.</span></li></ol></div>
 <footer>
-<p>구현 전 설계안 · 개정 3판 · 개정·추가 조사 기준: 2026년 9월 20일 · 실제 Windows/Unity 실행 검증은 미수행.</p>
+<p>개정 4판 · 구현 현황 기준: 2026년 9월 21일 · ReFS 내부 알파와 NTFS SO fixture 검증 완료 범위를 반영. 공개 제품 전체 지원은 미완료. 공식 API 조사 기준은 2026년 9월 20일이며 구현 시 설치 버전에서 재확인한다.</p>
 <p><a href="#top">문서 처음으로</a></p></footer>
 </main>
 </body>

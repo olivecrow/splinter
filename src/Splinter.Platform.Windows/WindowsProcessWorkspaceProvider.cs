@@ -79,14 +79,14 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
         }
         File.Move(temporary, path, true);
     }
-    private static string PrepareRunner(string cache)
+    public static string PrepareRunner(string cache)
     {
         // A running helper must not lock the development build output. Reuse one
         // small immutable bundle per binary version across all workspace Editors.
         string assembly = typeof(WindowsProcessWorkspaceProvider).Assembly.Location;
         string directory = Path.GetDirectoryName(assembly)!;
         string[] names = ["Splinter.Platform.Windows.dll", "Splinter.Platform.Windows.deps.json",
-            "Splinter.Platform.Windows.runtimeconfig.json", "Splinter.Core.dll"];
+            "Splinter.Platform.Windows.runtimeconfig.json", "Splinter.Core.dll", "Splinter.Runtime.dll", "winfsp-msil.dll"];
         var contents = names.ToDictionary(name => name, name => File.ReadAllBytes(Path.Combine(directory, name)));
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         foreach (string name in names) hash.AppendData(SHA256.HashData(contents[name]));

@@ -27,6 +27,11 @@
           "Json.More.Net": "3.0.1"
         }
       },
+      "System.IO.FileSystem.AccessControl": {
+        "type": "Transitive",
+        "resolved": "5.0.0",
+        "contentHash": "SxHB3nuNrpptVk+vZ/F+7OHEpoHUIKKMl02bUmYHQr1r+glbZQxs7pRtsf4ENO29TVm2TH3AEeep2fJcy92oYw=="
+      },
       "splinter.application.unity": {
         "type": "Project",
         "dependencies": {
@@ -46,7 +51,9 @@
       "splinter.platform.windows": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Core": "[0.1.0-dev, )"
+          "Splinter.Core": "[0.1.0-dev, )",
+          "Splinter.Runtime": "[0.1.0-dev, )",
+          "WinFsp.Net": "[2.2.26215, )"
         }
       },
       "splinter.protocol": {
@@ -74,6 +81,15 @@
         "contentHash": "muE4nPuzbD9x5XA1mkXJNqX4mhz47oF3EY8qFLY1pyUY7lhXFKq65t/dSKIHeNSLBV17zwZuq24MD1em90rMNg==",
         "dependencies": {
           "JsonPointer.Net": "7.0.2"
+        }
+      },
+      "winfsp.net": {
+        "type": "CentralTransitive",
+        "requested": "[2.2.26215, )",
+        "resolved": "2.2.26215",
+        "contentHash": "h1jJSIUo5i+chxSo20zx3k/b6hIk1Cr/yF95nstn0YOkgZKXoDmN3/L090QsKDsUKoT4ec1buj0ZRnACkbI1BQ==",
+        "dependencies": {
+          "System.IO.FileSystem.AccessControl": "5.0.0"
         }
       }
     }

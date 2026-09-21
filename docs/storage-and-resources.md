@@ -1,6 +1,6 @@
 # 저장소 복제와 실행 자원 회수
 
-이 문서는 **현재 구현된 ReFS 내부 알파**의 계약이다. NTFS 원본 유지·최초 전체 복제 없음·원본 동시 수정과 불변 스냅샷·작업별 범위 저장은 아직 미구현이다. 다음 작업은 [SO 계획](plans/ntfs-snapshot-overlay-spike.md)을 따른다. 아래 최초 기준본 준비는 기존 알파 재현 절차이며 정상 제품 경로로 채택하지 않는다.
+이 문서는 **현재 구현된 ReFS 내부 알파**의 계약이다. NTFS 원본 유지·최초 전체 복제 없음·원본 동시 수정과 불변 스냅샷·범위 저장은 [독립 실험](snapshot-overlay.md)에서 SO fixture 증거를 확보했으며 제품 workspace에는 미통합이다. 수치·제한은 [SO 검증](verification/snapshot-overlay.md), 다음 조건은 [SO 계획](plans/ntfs-snapshot-overlay-spike.md)을 따른다. 아래 최초 기준본 준비는 기존 알파 재현 절차이며 정상 제품 경로로 채택하지 않는다.
 
 반복 작업에는 `refs-cow`를 사용한다. 동일 기준본의 큰 파일은 ReFS 블록을 공유하고 수정한 블록만 별도로 할당한다. `git-checkout`은 최초 기준본 준비와 명시적인 진단용이다. CoW 실패를 일반 checkout이나 전체 파일 복사로 바꾸는 fallback은 없다.
 

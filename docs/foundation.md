@@ -1,10 +1,12 @@
 # 현재 기반
 
-> 현재 실행 가능한 ReFS 내부 알파와 제품 목표를 구분한다. 최초 전체 복제 없는 NTFS 원본 스냅샷·범위별 변경 저장, 원본의 계속된 수정은 아직 미구현이며 다음 작업은 [SO-01~06](plans/ntfs-snapshot-overlay-spike.md)이다. 아래 명령을 새 저장소 요구사항의 지원 증거로 사용하지 않는다.
+> 제품 workspace는 ReFS 내부 알파다. 최초 전체 복제 없는 NTFS 스냅샷·범위 저장과 원본의 계속된 수정은 [SO 독립 실험](snapshot-overlay.md)에서 구현·검증했으며 workspace에는 미통합이다. 일반 알파 명령의 성공을 NTFS 지원 증거로 사용하지 않는다.
 
 Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release**와 계약·진단·계획 검증이다. ReFS CoW와 무-checkout index를 연결하고, Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 실제 실행한 조합은 [자원 검증](verification/storage-and-resources.md), 기존 두 Luna low 작업자의 일반 checkout 증거는 [알파 검증](verification/internal-alpha.md)을 따른다. daemon/SQLite Host와 외부 `agent.start`는 미구현이다.
 
 ## 구조와 의존성
+
+[NTFS snapshot-overlay 실험](snapshot-overlay.md)은 Core의 별도 ports, Runtime의 범위 저널, Windows의 VSS 읽기/WinFsp 제공 프로세스로 구성한다. Windows 모듈은 이 실험을 위해 Runtime과 WinFsp.Net도 참조한다. 기존 workspace 명령은 여전히 아래 ReFS/Git 알파 경로를 사용한다.
 
 | 프로젝트 | 현재 책임 | 참조 |
 | --- | --- | --- |
@@ -14,7 +16,7 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 | `Splinter.Runtime` | 작업공간 생성·재개·검증·회수 조정, atomic JSON 저장과 작업/저장소 잠금 | Core |
 | `Splinter.SourceControl.Git` | 저장소 조회, 실제 worktree 생성·fingerprint·커밋·통합·회수 | Core |
 | `Splinter.Application.Unity` | 메타데이터 탐지, 정확한 버전 Editor 실행·활성화·검증 요청·종료 | Core |
-| `Splinter.Platform.Windows` | ReFS probe/블록 복제, Job Object, 작업별 감시 프로세스와 자원 관측 | Core; Win32 |
+| `Splinter.Platform.Windows` | ReFS 블록 복제, Job Object, VSS 기준 읽기·WinFsp mount/client/관측 | Core, Runtime, WinFsp.Net; Win32 |
 | `Splinter.Cli` | 파싱, 어댑터 조립, Runtime/Host 호출, JSON 응답과 종료 코드 | Runtime, Host, Git/Unity/Windows 어댑터, System.CommandLine |
 | `unity/Splinter.Editor` | 작업별 Editor 안에서 refresh·컴파일·domain reload 관측과 종료 요청 처리 | Unity Editor API; 독립 소스 |
 | `Splinter.Tests` | 계약, CLI, DAG, fake 공급자, 실제 Git·Windows 자식 회수·선택적 ReFS 시험 | CLI, xUnit v3, MTP |
@@ -28,6 +30,7 @@ flowchart LR
     CLI --> Unity[Unity Inspector / Workspace Provider]
     CLI --> Windows[ReFS / 프로세스 그룹]
     Windows --> Core
+    Windows --> Runtime
     Host --> Protocol[Protocol / JSON Schema]
     Host --> Core[Core / 공급자 계약]
     Git --> Core
@@ -48,6 +51,7 @@ Host는 CLI 프로세스의 읽기 전용 라이브러리다. 변경 작업은 �
 | `splinter schema <command>` | 예: `plan.validate` | descriptor, 입력 schema, 출력 schema |
 | `splinter doctor --project <directory>` | 존재하는 로컬 디렉터리 | Git/Unity 메타데이터, commit 유무, 누락 조건, 미실행 검사 |
 | `splinter plan validate --input <plan.json>` | 최대 1 MiB JSON 파일 | 스키마·의존성 오류 또는 실행 가능 계층 |
+| `splinter snapshot-spike --input <request.json>` | 명시적으로 준비한 overlay 요청과 action | 독립 실험의 mount/status/Git/Unity/보존/회수; [전용 절차](snapshot-overlay.md) |
 | `splinter workspace ensure/list/status` | 프로젝트·작업 key 또는 workspace ID | 지속 작업공간 생성/재접속과 현재 상태 |
 | `splinter unity start/refresh/stop` | workspace ID | 소유 Editor의 실행·검증 요청·종료 |
 | `splinter workspace checkpoint/integrate/release` | ID, 커밋 설명/통합 대상 | 검증한 소스 커밋·원본 적용·안전한 회수 |
@@ -125,4 +129,4 @@ pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository .
 
 ## 다음 구현 경계
 
-현재 내부 알파의 저장소·프로세스 구현과 증거는 [저장소·자원 관리](storage-and-resources.md)에 고정한다. [공개 구현 계획](plans/implementation-plan.md)의 ReFS 전체 지원표·지속 Host·전력 장애 복구·DAG 실행·agent runner·Play/테스트/저작 기능을 완료한 것으로 집계하지 않는다. 다음 우선순위는 [SO-01~06](plans/ntfs-snapshot-overlay-spike.md)의 NTFS 최초 복제 없음·원본 동시 수정 스냅샷·범위별 저장과 중단/회수 검증이다. 상태와 다음 명령은 CLI 프로세스 밖에 남으며 대화 종료 시 자동 회수하지 않는다.
+현재 내부 알파의 저장소·프로세스 구현과 증거는 [저장소·자원 관리](storage-and-resources.md)에 고정한다. [공개 구현 계획](plans/implementation-plan.md)의 ReFS 전체 지원표·지속 Host·전력 장애 복구·DAG 실행·agent runner·Play/테스트/저작 기능을 완료한 것으로 집계하지 않는다. SO fixture를 통과한 NTFS 경로의 제품 통합 조건은 [실험 계획](plans/ntfs-snapshot-overlay-spike.md)을 따른다. 상태와 다음 명령은 CLI 프로세스 밖에 남으며 대화 종료 시 자동 회수하지 않는다.

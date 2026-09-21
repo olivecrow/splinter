@@ -1,6 +1,6 @@
 # NTFS 스냅샷과 변경분 작업공간 검증 계획
 
-상태: **승인된 다음 작업. SO-01~06은 모두 NotRun이며 실제 지원을 뜻하지 않는다.** `f0239bb`의 구현과 시험은 [ReFS 내부 알파 계약](../storage-and-resources.md)과 [SR 검증](../verification/storage-and-resources.md)에 남긴다. 이 계획은 최초 전체 기준본 준비를 정상 제품 경로에서 제거한다.
+상태: **SO-01~06의 실제 fixture 증거 확보와 회수 완료. 제품 workspace backend에는 미통합이다.** 현재 구현은 [실험 계약](../snapshot-overlay.md), 수치·장애·NotRun 범위는 [SO 실행 기록](../verification/snapshot-overlay.md)을 따른다. ReFS의 별도 증거는 [내부 알파 계약](../storage-and-resources.md)과 [SR 검증](../verification/storage-and-resources.md)에 남긴다. 이 계획은 최초 전체 기준본 준비를 정상 제품 경로에서 제거한다.
 
 ## 고정된 요구사항
 
@@ -53,6 +53,13 @@ Core 계약은 기준 확보/유지/해제, mount/reconnect/flush/unmount, 변�
 전체 원본 해시를 매 호출 반복하지 않는다. 안정적인 snapshot 식별과 변경 기록을 활용하되 시험의 독립 hash 검증은 생략하지 않는다. 파일 감시 이벤트만으로 이전 내용 복구나 쓰기 격리를 보장하지 않는다.
 
 납품물은 실험 코드·계약/fake, 실행 증거, 여섯 상태, 플랫폼/앱 제약, 회수 결과와 통합 판단이다. 기존 56개 시험과 약 297MiB 관측은 ReFS 반복 생성에 대한 별도 증거이며 SO 통과로 재사용하지 않는다.
+
+## 제품 통합 전에 남은 조건
+
+1. 실험 명령을 workspace coordinator의 durable operation·정확한 snapshot 의존성/lease·result manifest에 연결한다. 현재의 명시적 JSON/관리자 스크립트 경계를 자동 제품 지원으로 확대하지 않는다.
+2. snapshot 보존 공간의 admission/압박 정책, VSS 재부팅 후 동일 identity 검증과 임의 명령 경계 중단 시험을 보강한다. 물리 볼륨 고갈·전원 손실은 별도 통제 환경에서 수행한다.
+3. Unity의 초기 대량 임포트·전체 metadata 계측 지연·누적 저널 쓰기 비용을 개선하고, 패키지/에셋 변경·dirty/LFS checkpoint·지원 파일 특성을 확대 검증한다. PID/port whiteout과 실제 loaded-code 관측을 유지한다.
+4. 파일시스템을 일반 지원으로 배포하기 전에 driver 버전 정책, ACL/ADS/hardlink/reparse의 명시적 거부·지원 계약, 일반 프로젝트 전체 fingerprint/validation을 정한다. Library 전체 삭제나 복사로 우회하지 않는다.
 
 ## 근거
 

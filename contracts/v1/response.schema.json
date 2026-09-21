@@ -622,7 +622,8 @@
             "owned-editor-compile",
             "owned-editor-stop",
             "owned-baseline-cache",
-            "owned-baseline-removal"
+            "owned-baseline-removal",
+            "owned-experimental-mount-git-and-editor"
           ]
         },
         "retry": {
@@ -634,7 +635,8 @@
             "idempotent-release",
             "same-workspace",
             "same-pending-request",
-            "idempotent-stop"
+            "idempotent-stop",
+            "same-persisted-overlay-and-git-receipts; inspect-uncertain-intents"
           ]
         }
       }
@@ -751,6 +753,21 @@
               "refs-cow",
               "git-checkout"
             ]
+          }
+        },
+        "snapshotOverlay": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stage", "integratedWorkspaceMode", "sourceSnapshot", "deltaStore", "requestSchema", "observationSchema", "entrypoints", "qualification"],
+          "properties": {
+            "stage": {"const": "experimental-storage-spike"},
+            "integratedWorkspaceMode": {"const": false},
+            "sourceSnapshot": {"const": "windows-vss-system"},
+            "deltaStore": {"const": "bounded-checksummed-range-journal"},
+            "requestSchema": {"const": "urn:splinter:v1:overlay-serve-request"},
+            "observationSchema": {"const": "urn:splinter:v1:overlay-observation"},
+            "entrypoints": {"type": "array", "items": {"type": "string"}},
+            "qualification": {"type": "string", "minLength": 1}
           }
         }
       }

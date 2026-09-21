@@ -2,7 +2,7 @@
 
 현재 내부 알파 runtime은 [알파 작업공간](../alpha-workspaces.md)과 [저장소·자원 관리](../storage-and-resources.md)의 기준본/CoW/Unity 흐름을 구현한다. 일반 checkout의 두 작업자 증거는 [알파 검증](../verification/internal-alpha.md), ReFS와 프로세스 회수의 실제 범위는 [자원 검증](../verification/storage-and-resources.md)에 기록한다. daemon/SQLite Host와 공개 단계 전체 완료로 해석하지 않는다.
 
-작성일: 2026-09-20. 상태: **기반 및 Git checkout/Unity 스크립트 내부 알파 구현, 공개 목표 구조는 미완료**. 기준: [기획서 개정 3판](../../plan.html). 실제 실행 가능한 범위는 [현재 기반](../foundation.md)에서 확인한다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
+갱신일: 2026-09-21. 상태: **ReFS 내부 알파와 NTFS SO-01~06 fixture 구현·검증, NTFS 제품 workspace 통합 및 공개 목표는 미완료**. 기준: [기획서 개정 4판](../../plan.html). 실제 실행 범위는 [현재 기반](../foundation.md), NTFS 실행 수치·장애·회수는 [SO 검증](../verification/snapshot-overlay.md)을 따른다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
 
 ## 1. 설계 결론과 첫 완료 지점
 
@@ -23,9 +23,19 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 - `capabilities`, `schema`, 읽기 전용 `doctor`, `plan validate`와 9개 workspace/Unity 명령을 구현했다. 읽기 전용 Host와 별도의 Runtime을 CLI에서 조합한다. Runtime은 atomic JSON과 작업/저장소 잠금을 사용하고 Unity에는 작업별 파일 IPC로 요청한다. 지속 daemon/SQLite는 미구현이다.
 - 실제 fixture는 Unity `6000.3.22f1`, URP `17.3.0`, UTF `1.6.0`이다. 두 독립 GUI Editor의 동시 실행·컴파일 격리·재시작을 검증했다. Play와 Unity Test Framework 시험은 실행하지 않았다.
 - 설치된 Codex의 `exec --help`에서 `--cd`, `--json`, `--output-schema`, `--sandbox`와 세션 재개 명령을 확인했다. 실제 알파에서는 외부 조정자의 Luna low 하위 작업자가 CLI를 사용했다. 제품의 Codex runner 실행·인증·세션 재접속은 미구현이다.
-- ReFS 어댑터·예열 기준본·작업별 Windows 프로세스 감시를 추가했다. `storage probe`, `baseline prepare/seal/release`까지 17개 명령이 있다. 실제 지원은 자원 검증의 SR 항목에 한정하며, 공개 설치·자동 발견성과 대형 프로젝트 지원은 미완료다.
+- ReFS 어댑터·예열 기준본·작업별 Windows 프로세스 감시를 추가했다. `storage probe`, `baseline prepare/seal/release`를 포함한 기존 알파 17개 명령과 별도 NTFS 실험 명령 `snapshot-spike`가 있다. 실제 ReFS 지원은 자원 검증의 SR 항목에 한정하며, 공개 설치·자동 발견성과 대형 프로젝트 지원은 미완료다.
 - 새 소스 커밋의 기준본은 동일 `Packages`·`ProjectSettings` snapshot과 앱 호환 키의 캐시에서 CoW로 시작하고, Git의 변경 소스만 갱신한다. 호환 캐시가 없을 때만 cold 준비를 사용한다. 원본의 실행 중인 Library는 복사하지 않는다.
 - 기존 Unity 협업 기록의 작성자 소유권·리로드·검증 경계 경험은 실패 시나리오 설계에만 참고한다. 그 프로젝트의 단일 Editor 운영 규칙을 이 제품의 여러 독립 Editor 구조에 적용하지 않는다.
+- 별도 `snapshot-spike`에서 VSS 불변 기준·WinFsp 범위 저널·실제 no-checkout Git/Unity를 연결하고 SO-01~06 fixture 증거를 확보했다. 최초 payload·읽기 hydration 0, 큰 파일 4KiB 쓰기, 원본/A/B 코드 실행, 같은 기준 재연결, 독립 결과와 소유 자원 회수를 검증했다.
+- 자동 검증은 69개 중 68 통과·선택적 ReFS 1개 skip이다. NTFS 제품 통합, 재부팅·전원 손실·물리 볼륨 고갈, 일반 dirty/LFS·에셋/패키지·Play/Unity 테스트는 별도 남은 조건이다. 공개 48개 시나리오 전체 완료로 집계하지 않는다.
+
+### 다음 구현 우선순위
+
+1. 공통 snapshot/delta/mount ports와 fake 적합성을 먼저 연결하고, 일반 workspace coordinator의 durable operation에 snapshot·Git 등록·delta·process lease·result manifest를 통합한다.
+2. 결과 독립성과 마지막 snapshot 의존성을 확인하는 회수, VSS 공간 사전 검사·압박 상태, 중복 요청·부분 실행의 재조정을 제품 계약으로 만든다.
+3. 재부팅과 모든 명령 경계 중단, 통제된 물리 공간 고갈·전원 손실, 파일 특성별 지원/거부를 검증한다. 새 캡처·원본 fallback·전체 복사로 복구를 대체하지 않는다.
+4. probe 한 파일의 검증을 일반 Unity 변경으로 확대하고, PID/port 격리를 유지하면서 초기 import·metadata 탐색·누적 저널 비용을 개선한다.
+5. 상주 Host·설치·Codex Runner·DAG/자원 예약, 에셋 저작·Play·Unity 테스트·통합 후보 검증을 공개 제품 루프로 연결한다. 상세 완료 조건은 기획서 15절과 [NTFS 통합 조건](ntfs-snapshot-overlay-spike.md)을 따른다.
 
 ## 2. AI 사용성을 먼저 고정한다
 
@@ -422,9 +432,9 @@ P0를 장기 기술 조사로 만들지 않는다. 각각 한 질문에 답하�
 
 F01/F02의 최소 골격은 P0에 만들고 F03~F06은 P1에서 완성한다. F07은 P2, F08은 P3에 속한다. 생성/회수와 검증에 필요한 계약만 먼저 고정하고, 아직 쓰지 않는 앱 capability를 미리 대량 설계하지 않는다.
 
-### 내부 알파의 다음 작업: NTFS 스냅샷·변경분 검증
+### 내부 알파의 다음 작업: NTFS 스냅샷·변경분 제품 통합
 
-다음 작업은 [SO-01~06](ntfs-snapshot-overlay-spike.md)이다. NTFS 최초 생성 → 전체 읽기 → 작은 범위 쓰기 → 원본/A/B 동시 변경 → Git/Unity 실행 → 중단·재개·회수 순으로 증거를 확보한다. 각 단계의 의도·통과 조건·측정은 해당 계획에 고정한다.
+SO-01~06은 [실제 fixture 증거](../verification/snapshot-overlay.md)를 확보했다. 다음 작업은 [NTFS 실험의 제품 통합 조건](ntfs-snapshot-overlay-spike.md)이다. 제품 coordinator·snapshot 공동 수명과 공간 정책·재부팅/명령 경계 복구·일반 Unity 검증을 연결한다. 독립 실험 완료를 전체 공개 시나리오 완료로 확대하지 않는다.
 
 현재 ReFS clone/seal 복구 확장을 먼저 진행하지 않는다. 기존 Job Object·Git no-checkout/index·CLI/Unity 검증 계약을 재사용하고 변경 저장소의 수명에 맞춰 복구를 검증한다. 전체 준비 사본을 만든 뒤 절감률을 측정하는 시험은 SO 통과가 아니다. 기존 56개 시험과 SR 관측의 유효한 범위는 유지한다.
 ### 향후 병렬 개발의 경계

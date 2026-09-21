@@ -9,6 +9,8 @@ internal static class Program
     // finishes; this is neither the product Host nor a machine-wide daemon.
     public static async Task<int> Main(string[] args)
     {
+        if (OperatingSystem.IsWindows() && args.Length == 2 && args[0] == "overlay-serve")
+            return await WinFspOverlayServer.RunAsync(args[1]);
         if (!OperatingSystem.IsWindows() || args.Length != 2 || args[0] != "supervise") return 2;
         string request = Path.GetFullPath(args[1]); string control = Path.GetDirectoryName(request)!;
         ProcessLaunch? launch = null;

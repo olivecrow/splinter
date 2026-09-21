@@ -2,6 +2,16 @@
   "schemaVersion": "1.0",
   "commands": [
     {
+      "id": "snapshot.spike",
+      "description": "Operate an explicitly prepared NTFS snapshot-overlay experiment; not the workspace backend.",
+      "cliUsage": "splinter snapshot-spike --input <request.json>",
+      "inputTransport": "json-file",
+      "inputSchema": "urn:splinter:v1:snapshot-spike-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-experimental-mount-git-and-editor",
+      "retry": "same-persisted-overlay-and-git-receipts; inspect-uncertain-intents"
+    },
+    {
       "id": "capabilities",
       "description": "List implemented commands and unavailable runtime capabilities.",
       "cliUsage": "splinter capabilities",

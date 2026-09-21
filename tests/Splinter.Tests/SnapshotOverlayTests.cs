@@ -1,0 +1,185 @@
+using System.Security.Cryptography;
+using Splinter.Core;
+using Splinter.Runtime;
+
+namespace Splinter.Tests;
+
+public sealed class SnapshotOverlayTests
+{
+    [Fact]
+    public void RepeatedWholeFileReadsNeverWriteJournalOrHydrate()
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree();
+        byte[] source = RandomNumberGenerator.GetBytes(1024 * 1024); tree.Files["large"] = source;
+        using var store = New(d, tree); var file = store.Stat("large")!;
+        var before = store.Observe(); byte[] actual = new byte[source.Length];
+        for (int i = 0; i < 3; i++) { Assert.Equal(source.Length, store.Read(file.Id, 0, actual)); Assert.Equal(source, actual); }
+        var after = store.Observe();
+        Assert.Equal(before.JournalBytes, after.JournalBytes); Assert.Equal(0, after.PayloadBytes);
+        Assert.Equal(0, after.ReadCacheBytes); Assert.Equal(3L * source.Length, after.ReadBytes);
+    }
+
+    [Theory]
+    [InlineData(1024 * 1024)]
+    [InlineData(16 * 1024 * 1024)]
+    public void SmallBoundaryWritesPersistOnlyTheWrittenRanges(int size)
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree();
+        byte[] source = RandomNumberGenerator.GetBytes(size); tree.Files["file"] = source;
+        byte[] expected = (byte[])source.Clone(), first = RandomNumberGenerator.GetBytes(4096), second = RandomNumberGenerator.GetBytes(4096);
+        Guid id; long payload;
+        using (var store = New(d, tree))
+        {
+            id = store.Stat("file")!.Id; store.Write(id, 4095, first); store.Write(id, 6144, second);
+            first.CopyTo(expected, 4095); second.CopyTo(expected, 6144);
+            var observed = store.Observe(); payload = observed.PayloadBytes;
+            Assert.Equal(8192, payload); Assert.InRange(observed.JournalBytes, 8192, 12000);
+            Assert.Equal(0, tree.ReadBytes); // writing never reads the rest of a file
+        }
+        using var resumed = New(d, tree); byte[] actual = new byte[size];
+        Assert.Equal(id, resumed.Stat("file")!.Id); Assert.Equal(size, resumed.Read(id, 0, actual));
+        Assert.Equal(expected, actual); Assert.Equal(payload, resumed.Observe().PayloadBytes);
+        Assert.Equal(source, tree.Files["file"]);
+    }
+
+    [Fact]
+    public void TruncateThenExtendDoesNotResurrectBaseOrDeltaTail()
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = Enumerable.Repeat((byte)71, 10000).ToArray();
+        using (var store = New(d, tree))
+        {
+            var id = store.Stat("file")!.Id; store.Write(id, 4000, Enumerable.Repeat((byte)99, 2000).ToArray());
+            store.SetLength(id, 4500); store.SetLength(id, 12000);
+        }
+        using var resumed = New(d, tree); byte[] actual = new byte[12000]; resumed.Read(resumed.Stat("file")!.Id, 0, actual);
+        Assert.All(actual[..4000], b => Assert.Equal(71, b)); Assert.All(actual[4000..4500], b => Assert.Equal(99, b));
+        Assert.All(actual[4500..], b => Assert.Equal(0, b));
+    }
+
+    [Fact]
+    public void RenameDirectoriesPreservesLazyBasePathsAndDeletionAcrossReconnect()
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["dir/a"] = [1, 2]; tree.Files["dir/b"] = [3, 4];
+        using (var store = New(d, tree))
+        {
+            store.Delete(store.Stat("dir/a")!.Id); store.Rename(store.Stat("dir")!.Id, "moved", false);
+            Assert.Null(store.Stat("dir")); Assert.Null(store.Stat("moved/a")); Assert.NotNull(store.Stat("moved/b"));
+        }
+        using var resumed = New(d, tree); Assert.Null(resumed.Stat("dir")); Assert.Null(resumed.Stat("moved/a"));
+        byte[] data = new byte[2]; resumed.Read(resumed.Stat("moved/b")!.Id, 0, data); Assert.Equal(new byte[] { 3, 4 }, data);
+        Assert.Single(resumed.List("moved"));
+    }
+
+    [Fact]
+    public void ReplaceDoesNotChangeAnOpenHandleToTheOldFile()
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["original"] = [1, 2];
+        using var store = New(d, tree); var old = store.Stat("original")!;
+        var temp = store.Create("temp", false, 32); store.Write(temp.Id, 0, new byte[] { 7, 8 }); store.Rename(temp.Id, "original", true);
+        byte[] bytes = new byte[2]; store.Read(old.Id, 0, bytes); Assert.Equal(new byte[] { 1, 2 }, bytes);
+        store.Read(store.Stat("original")!.Id, 0, bytes); Assert.Equal(new byte[] { 7, 8 }, bytes);
+        Assert.Null(store.Stat("temp"));
+    }
+
+    [Fact]
+    public void BudgetFailureAndIncompleteAppendKeepAcknowledgedData()
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
+        using (var store = New(d, tree, 4500))
+        {
+            var id = store.Stat("file")!.Id; store.Write(id, 0, new byte[] { 7, 8 });
+            long before = store.Observe().JournalBytes;
+            Assert.Equal("DeltaFull", Assert.Throws<WorkspaceException>(() => store.Write(id, 0, new byte[4096])).Code);
+            Assert.Equal(before, store.Observe().JournalBytes);
+        }
+        string journal = Path.Combine(d.Path, "delta", "delta.journal");
+        using (var append = new FileStream(journal, FileMode.Append)) append.Write(new byte[] { 10, 0, 0 });
+        using var resumed = New(d, tree, 4500); byte[] data = new byte[2]; resumed.Read(resumed.Stat("file")!.Id, 0, data);
+        Assert.Equal(new byte[] { 7, 8 }, data); Assert.Equal(1, resumed.Observe().DurableSequence);
+    }
+
+    [Fact]
+    public void CorruptionAndSnapshotLossFailClosedWithoutDeletingTheDelta()
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
+        using (var store = New(d, tree))
+        {
+            var id = store.Stat("file")!.Id; store.Write(id, 0, new byte[] { 9 }); tree.Available = false;
+            Assert.Equal("SnapshotMissing", Assert.Throws<WorkspaceException>(() => store.Read(id, 0, new byte[2])).Code);
+            store.Flush(); // Preserve acknowledged private bytes even when the base disappears.
+        }
+        tree.Available = true; string path = Path.Combine(d.Path, "delta", "delta.journal");
+        byte[] corrupted = File.ReadAllBytes(path); corrupted[^1] ^= 1; File.WriteAllBytes(path, corrupted);
+        Assert.Equal("DeltaCorrupt", Assert.Throws<WorkspaceException>(() => New(d, tree)).Code);
+        Assert.Equal(corrupted, File.ReadAllBytes(path));
+    }
+
+    [Fact]
+    public void ReconnectRejectsDifferentSnapshotAndConcurrentWriter()
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree();
+        using (var store = New(d, tree)) Assert.Throws<IOException>(() => New(d, tree));
+        tree.Snapshot = tree.Snapshot with { Id = "new-time" };
+        Assert.Equal("OverlayIdentityMismatch", Assert.Throws<WorkspaceException>(() => New(d, tree)).Code);
+    }
+
+    [Fact]
+    public void ExclusionsHideOnlyTheLowerTreeAndPersistByValueOnReconnect()
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files[".git/config"] = [1]; tree.Files["Library/cache"] = [2];
+        OverlayIdentity Identity() => new(1, "excluded", tree.Snapshot, 100000, 4096, [".git", "Temp"]);
+        string delta = Path.Combine(d.Path, "delta");
+        using (var store = new JournalDeltaStore(delta, Identity(), tree))
+        {
+            Assert.Null(store.Stat(".git")); Assert.NotNull(store.Stat("Library/cache"));
+            var pointer = store.Create(".git", false, 32); store.Write(pointer.Id, 0, new byte[] { 9, 8 });
+        }
+        using var resumed = new JournalDeltaStore(delta, Identity(), tree);
+        byte[] bytes = new byte[2]; Assert.Equal(2, resumed.Read(resumed.Stat(".git")!.Id, 0, bytes));
+        Assert.Equal(new byte[] { 9, 8 }, bytes); Assert.Null(resumed.Stat(".git/config"));
+        Assert.Equal(new byte[] { 1 }, tree.Files[".git/config"]);
+    }
+
+    [Fact]
+    public void ReclamationRequiresCurrentIndependentResultAndNoOwnedResourcesOrDependents()
+    {
+        var storage = new OverlayStorageObservation("a", "snapshot", 0, 100, 20, 80, 0, 0, 4096, 1, 3);
+        var receipt = new OverlayResultReceipt("a", "snapshot", 3, "result", "verified-hash", true);
+        var clear = new OverlayMountObservation(false, true, 0, 0, 0, null);
+        Assert.Throws<WorkspaceException>(() => OverlayReleaseGate.RequireSafe(storage, receipt with { DurableSequence = 2 }, clear, 0));
+        Assert.Throws<WorkspaceException>(() => OverlayReleaseGate.RequireSafe(storage, receipt, clear with { OpenHandles = 1 }, 0));
+        Assert.Throws<WorkspaceException>(() => OverlayReleaseGate.RequireSafe(storage, receipt, clear, 1));
+        OverlayReleaseGate.RequireSafe(storage, receipt, clear, 0);
+    }
+
+    private static JournalDeltaStore New(TestDirectory d, FakeSnapshotTree tree, long budget = 100 * 1024 * 1024) =>
+        new(Path.Combine(d.Path, "delta"), new(1, "test", tree.Snapshot, budget, 1024 * 1024), tree);
+
+    private sealed class FakeSnapshotTree : ISnapshotTree
+    {
+        public SnapshotReference Snapshot { get; set; } = new("fake-t0", "fake-memory", "mutable-source", "fake-root", DateTimeOffset.UnixEpoch, true, true, "fixture-only");
+        public Dictionary<string, byte[]> Files { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public bool Available { get; set; } = true;
+        public long ReadBytes { get; private set; }
+        public void EnsureAvailable() { if (!Available) throw new WorkspaceException("SnapshotMissing", "Injected snapshot loss."); }
+        public SnapshotEntry? Stat(string relativePath)
+        {
+            EnsureAvailable(); relativePath = JournalDeltaStore.Normalize(relativePath);
+            if (Files.TryGetValue(relativePath, out var data)) return new(relativePath, false, data.Length, 32, 1, 1, 1);
+            return relativePath == "" || Files.Keys.Any(p => p.StartsWith(relativePath + "/", StringComparison.OrdinalIgnoreCase))
+                ? new(relativePath, true, 0, 16, 1, 1, 1) : null;
+        }
+        public IReadOnlyList<SnapshotEntry> List(string relativeDirectory)
+        {
+            EnsureAvailable(); string prefix = relativeDirectory.Length == 0 ? "" : relativeDirectory + "/";
+            return Files.Keys.Where(p => p.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                .Select(p => prefix + p[prefix.Length..].Split('/')[0]).Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(p => Stat(p)!).ToArray();
+        }
+        public int Read(string relativePath, long offset, Span<byte> destination)
+        {
+            EnsureAvailable(); byte[] data = Files[relativePath]; int count = (int)Math.Min(destination.Length, Math.Max(0, data.Length - offset));
+            data.AsSpan((int)offset, count).CopyTo(destination); ReadBytes += count; return count;
+        }
+    }
+}

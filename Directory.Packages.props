@@ -5,6 +5,7 @@
   <ItemGroup>
     <PackageVersion Include="System.CommandLine" Version="2.0.12" />
     <PackageVersion Include="JsonSchema.Net" Version="9.4.0" />
+    <PackageVersion Include="WinFsp.Net" Version="2.2.26215" />
     <PackageVersion Include="xunit.v3" Version="4.0.1" />
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.4.0" />
   </ItemGroup>
