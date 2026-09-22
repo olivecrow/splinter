@@ -98,7 +98,14 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         var record = store.Get(id);
         RequireLive(record);
         try { await StartCoreAsync(record, ct); return await ViewAsync(record, ct); }
-        catch (Exception ex) { RecordFailure(record, ex); throw; }
+        catch (Exception ex)
+        {
+            RecordFailure(record, ex);
+            if (ex is WorkspaceException { Code: "SnapshotPrivilegeRequired", RecoveryActions: not null } failure)
+                throw new WorkspaceException(failure.Code, failure.Message, failure.Details,
+                    [.. failure.RecoveryActions, new("unity.start", new { id, home = store.Root })]);
+            throw;
+        }
     }
 
     private async Task StartCoreAsync(WorkspaceRecord record, CancellationToken ct)

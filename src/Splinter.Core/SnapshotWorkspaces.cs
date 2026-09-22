@@ -35,14 +35,18 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
         string? retainedFailure = workspace.LastError?.Split(':', 2)[0];
         if (retainedFailure is "DeltaChangedAfterCollection" or "StateCorrupt")
             return new("preserve", retainedFailure, "workspace.status");
-        if (observation?.FailureCode is "DeltaCorrupt" or "OverlayIdentityMismatch" or "SnapshotIdentityMismatch" or "OverlayStartUncertain")
+        if (observation?.FailureCode is "DeltaCorrupt" or "OverlayIdentityMismatch" or "SnapshotIdentityMismatch" or "OverlayStartUncertain" or "SnapshotObservationCorrupt" or "SnapshotObservationIncomplete")
             return new("preserve", observation.FailureCode, "workspace.status");
         if (state.Step == "release-snapshot" && state.Result is { IndependentOfSnapshot: true } &&
             observation is { DeltaPresent: false, Mounted: false, ProviderAlive: false, OwnershipVerified: true,
                 OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
             return new("resume-release", "WorkspaceReleasing", "workspace.release");
         if (state.Reference is not null && observation?.SnapshotAvailable is null)
+        {
+            if (observation?.FailureCode == "SnapshotVerificationRequired" && !state.Step.StartsWith("release-", StringComparison.Ordinal))
+                return new("resume-ensure", "SnapshotVerificationRequired", "workspace.ensure");
             return new("observe", observation?.FailureCode ?? "SnapshotObservationUnknown", "workspace.status");
+        }
         if (observation is { OwnershipVerified: false })
             return new("preserve", observation.FailureCode ?? "OverlayStartUncertain", "workspace.status");
         if (state.Step.StartsWith("release-", StringComparison.Ordinal))
@@ -63,6 +67,7 @@ public sealed record SnapshotResult(string SnapshotId, string Revision, string F
 public interface ISnapshotWorkspaceBackend
 {
     Task<SnapshotReference> CaptureAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
+    Task VerifyConnectionAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task<OverlayMount> ConnectAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);

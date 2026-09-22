@@ -7,7 +7,8 @@ using Splinter.Runtime;
 namespace Splinter.Platform.Windows;
 
 public sealed record OverlayServeRequest(OverlayIdentity Identity, string DeltaPath, string MountPath,
-    string ControlPath, string Token);
+    string ControlPath, string Token, SnapshotReadAccess? ReadAccess = null,
+    string? SnapshotReceiptDirectory = null, string? SnapshotOwnerId = null);
 
 public static class WinFspOverlayServer
 {
@@ -40,7 +41,9 @@ public static class WinFspOverlayServer
             // WinFsp creates the mount directory itself. Passing an existing
             // empty directory returns STATUS_OBJECT_NAME_COLLISION.
             if (Directory.Exists(mountPath)) Directory.Delete(mountPath, false);
-            using var snapshot = new VssSnapshotTree(request.Identity.Snapshot);
+            SnapshotObservation health = await WinFspOverlayClient.ObserveSnapshotAsync(request);
+            if (health.Available != true) throw new WorkspaceException(health.FailureCode ?? "SnapshotObservationUnknown", "Snapshot read access is not verified.");
+            using var snapshot = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess, () => Volatile.Read(ref health));
             using var store = new JournalDeltaStore(deltaPath, request.Identity, snapshot);
             var fileSystem = new WinFspOverlayFileSystem(store, ex =>
             {
@@ -58,7 +61,8 @@ public static class WinFspOverlayServer
                 while (true)
                 {
                     self.Refresh();
-                    var snapshotObservation = SnapshotAvailabilityProbe.Observe(request.Identity.Snapshot);
+                    var snapshotObservation = await WinFspOverlayClient.ObserveSnapshotAsync(request);
+                    Volatile.Write(ref health, snapshotObservation);
                     await WindowsProcessWorkspaceProvider.WriteAsync(statePath, new
                     {
                         version = 1, request.Token, request.Identity.Id,

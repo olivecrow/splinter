@@ -3,11 +3,48 @@ using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using Splinter.Core;
 using Splinter.Runtime;
+using Splinter.Platform.Windows;
 
 namespace Splinter.Tests;
 
 public sealed class SnapshotOverlayTests
 {
+    [Fact]
+    public void VerifiedReadLocationCanMoveWhileJournalIdentityAndAcknowledgedBytesStayFixed()
+    {
+        using var d = new TestDirectory();
+        var snapshot = VssLiveIdentityTests.Snapshot;
+        byte[] source = RandomNumberGenerator.GetBytes(1024 * 1024), patch = RandomNumberGenerator.GetBytes(4096);
+        var locations = new Dictionary<string, byte[]> { [snapshot.RootPath] = source };
+        var first = new FakeSnapshotTree { Snapshot = snapshot };
+        first.Files["file"] = locations[VssSnapshotTree.ResolveReadRoot(snapshot, null)];
+        long sequence;
+        using (var store = New(d, first))
+        {
+            store.Write(store.Stat("file")!.Id, 17, patch); store.Flush();
+            sequence = store.Observe().DurableSequence;
+        }
+        string identity = Path.Combine(d.Path, "delta", "identity.json"), journal = Path.Combine(d.Path, "delta", "delta.journal");
+        byte[] identityBefore = File.ReadAllBytes(identity), journalBefore = File.ReadAllBytes(journal);
+        var access = VssSnapshotVerification.Evaluate(snapshot, "owner", VssLiveIdentityTests.Capture,
+            VssLiveIdentityTests.Request, VssLiveIdentityTests.Live, VssLiveIdentityTests.Request.BootTimeUtc,
+            s => new(s.Id, true, null, null, null)).ReadAccess!;
+        locations.Remove(snapshot.RootPath); locations[access.RootPath] = source;
+        var resumedTree = new FakeSnapshotTree { Snapshot = snapshot };
+        resumedTree.Files["file"] = locations[VssSnapshotTree.ResolveReadRoot(snapshot, access)];
+        using var resumed = New(d, resumedTree);
+        byte[] actual = new byte[source.Length], expected = (byte[])source.Clone(); patch.CopyTo(expected, 17);
+        resumed.Read(resumed.Stat("file")!.Id, 0, actual);
+        Assert.Equal(SHA256.HashData(expected), SHA256.HashData(actual));
+        Assert.Equal(sequence, resumed.Observe().DurableSequence);
+        Assert.Equal(4096, resumed.Observe().PayloadBytes); Assert.Equal(0, resumed.Observe().ReadCacheBytes);
+        resumed.Dispose();
+        Assert.Equal(identityBefore, File.ReadAllBytes(identity)); Assert.Equal(journalBefore, File.ReadAllBytes(journal));
+        Assert.Equal(snapshot, resumedTree.Snapshot);
+        Assert.Equal("SnapshotIdentityMismatch", Assert.Throws<WorkspaceException>(() =>
+            VssSnapshotTree.ResolveReadRoot(snapshot, access with { RootPath = access.RootPath + "\\other" })).Code);
+    }
+
     [Fact]
     public void RepeatedWholeFileReadsNeverWriteJournalOrHydrate()
     {

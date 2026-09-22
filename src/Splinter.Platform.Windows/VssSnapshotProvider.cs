@@ -11,28 +11,37 @@ namespace Splinter.Platform.Windows;
 // The normal caller never self-elevates. A narrow, inspectable helper request
 // is returned when capture/release require an administrator. Its durable receipt
 // lets a fresh unprivileged CLI continue without running Unity as administrator.
-public sealed class VssSnapshotProvider : ISourceSnapshotProvider
+public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
 {
     private readonly string receiptDirectory, ownerId;
     private readonly Func<SnapshotReference, SnapshotObservation> observePath;
     private readonly Func<CancellationToken, Task<DateTimeOffset?>> observeBoot;
+    private readonly Func<string, string, CancellationToken, Task>? runHelper;
     public VssSnapshotProvider(string receiptDirectory, string ownerId)
-        : this(receiptDirectory, ownerId, SnapshotAvailabilityProbe.Observe, ObserveBootAsync) { }
+        : this(receiptDirectory, ownerId, SnapshotAvailabilityProbe.Observe, ct => CurrentBoot.Value.WaitAsync(ct)) { }
+    private static readonly Lazy<Task<DateTimeOffset?>> CurrentBoot = new(() => ObserveBootAsync(CancellationToken.None));
     internal VssSnapshotProvider(string receiptDirectory, string ownerId,
-        Func<SnapshotReference, SnapshotObservation> observePath, Func<CancellationToken, Task<DateTimeOffset?>> observeBoot)
-    { this.receiptDirectory = receiptDirectory; this.ownerId = ownerId; this.observePath = observePath; this.observeBoot = observeBoot; }
+        Func<SnapshotReference, SnapshotObservation> observePath, Func<CancellationToken, Task<DateTimeOffset?>> observeBoot,
+        Func<string, string, CancellationToken, Task>? runHelper = null)
+    { this.receiptDirectory = receiptDirectory; this.ownerId = ownerId; this.observePath = observePath; this.observeBoot = observeBoot; this.runHelper = runHelper; }
     private string ReceiptPath => Path.Combine(receiptDirectory, "snapshot.json");
     public async Task<SnapshotReference> CaptureAsync(SnapshotCapture request, CancellationToken cancellationToken = default)
     {
         if (request.OwnerId != ownerId || Path.GetFullPath(request.ReceiptDirectory) != Path.GetFullPath(receiptDirectory))
             throw new WorkspaceException("SnapshotOwnerMismatch", "Capture must use the persisted owner and receipt directory.");
         var receipt = await Read(cancellationToken);
-        if (receipt is null) { await Run("Capture", request.SourcePath, cancellationToken); receipt = await Read(cancellationToken); }
+        if (receipt is null)
+        {
+            await PrepareVerificationAsync(null, cancellationToken);
+            await Run("Capture", request.SourcePath, cancellationToken);
+            receipt = await Read(cancellationToken);
+        }
         if (receipt is null || receipt.Released || receipt.OwnerId != ownerId ||
             !string.Equals(Path.GetFullPath(receipt.Snapshot.SourcePath), Path.GetFullPath(request.SourcePath), StringComparison.OrdinalIgnoreCase) ||
             !receipt.NoAutoRelease || !string.Equals(receipt.NativeProviderId, "{B5946137-7B9F-4925-AF80-51ABD60B20D5}", StringComparison.OrdinalIgnoreCase))
             throw new WorkspaceException("SnapshotIdentityMismatch", "Capture receipt does not describe the requested persistent system snapshot.");
-        using var tree = new VssSnapshotTree(receipt.Snapshot);
+        var access = await ResolveReadAccessAsync(receipt.Snapshot, null, cancellationToken);
+        using var tree = new VssSnapshotTree(receipt.Snapshot, access);
         return receipt.Snapshot;
     }
     public async Task<SnapshotObservation> ObserveAsync(SnapshotReference snapshot, CancellationToken cancellationToken = default)
@@ -40,9 +49,9 @@ public sealed class VssSnapshotProvider : ISourceSnapshotProvider
         cancellationToken.ThrowIfCancellationRequested();
         var observation = observePath(snapshot);
         var receipt = await Read(cancellationToken);
-        if (receipt is null) return observation;
+        if (receipt is null) return new(snapshot.Id, null, "SnapshotVerificationRequired", null, null);
         if (!Matches(receipt, snapshot)) return new(snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
-        if (!receipt.Released) return observation;
+        if (!receipt.Released) return await ObserveLiveAsync(snapshot, receipt, cancellationToken);
         // A device path can be recycled after deletion. Never call its new tree
         // the original snapshot merely because the old receipt says released.
         if (observation.Available == true || observation.FailureCode == "SnapshotIdentityMismatch")
@@ -106,6 +115,7 @@ public sealed class VssSnapshotProvider : ISourceSnapshotProvider
     private async Task<Receipt?> Read(CancellationToken ct) => await WindowsProcessWorkspaceProvider.ReadAsync<Receipt>(ReceiptPath, ct);
     private async Task Run(string action, string source, CancellationToken ct)
     {
+        if (runHelper is not null) { await runHelper(action, source, ct); return; }
         if (!OperatingSystem.IsWindows()) throw new WorkspaceException("PlatformUnsupported", "The NTFS snapshot backend requires Windows.");
         WindowsProcessWorkspaceProvider.CheckPath(receiptDirectory); Directory.CreateDirectory(receiptDirectory);
         using var resource = typeof(VssSnapshotProvider).Assembly.GetManifestResourceStream("Splinter.VssSnapshot.ps1")!;
@@ -127,9 +137,11 @@ public sealed class VssSnapshotProvider : ISourceSnapshotProvider
         await process.WaitForExitAsync(ct);
         string errors = await error; await output;
         if (process.ExitCode != 0)
-            throw new WorkspaceException(errors.Contains("SnapshotHeadroomRequired", StringComparison.Ordinal) ? "SnapshotHeadroomRequired" : "SnapshotOperationIncomplete",
+            throw new WorkspaceException(new[] { "SnapshotHeadroomRequired", "SnapshotIdentityMismatch", "SnapshotObservationIncomplete" }
+                .FirstOrDefault(code => errors.Contains(code, StringComparison.Ordinal)) ?? "SnapshotOperationIncomplete",
                 "The VSS helper did not complete. Preserve the receipt and inspect its diagnostic.", new { action, receiptDirectory, diagnostic = errors });
     }
-    private sealed record Receipt(string OwnerId, SnapshotReference Snapshot, string NativeProviderId, bool NoAutoRelease, bool Released);
+    private sealed record Receipt(string OwnerId, SnapshotReference Snapshot, string NativeProviderId, bool NoAutoRelease, bool Released,
+        int Version = 1, VssCaptureIdentity? CaptureIdentity = null);
     private sealed record ReleaseObservation(string? OwnerId, SnapshotReference Snapshot, bool? Available, bool Released, DateTimeOffset? BootTimeUtc);
 }

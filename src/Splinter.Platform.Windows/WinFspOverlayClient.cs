@@ -9,6 +9,23 @@ namespace Splinter.Platform.Windows;
 public static class WinFspOverlayClient
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    internal static async Task<string?> ConsumedVerificationAsync(OverlayServeRequest request, CancellationToken ct)
+    {
+        var intent = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderIntent>(Path.Combine(request.ControlPath, "provider-launch-intent.json"), ct);
+        return intent?.VerificationId;
+    }
+    internal static async Task<SnapshotObservation> ObserveSnapshotAsync(OverlayServeRequest request, CancellationToken ct = default)
+    {
+        if (request.SnapshotReceiptDirectory is null && request.SnapshotOwnerId is null && request.ReadAccess is null)
+            return SnapshotAvailabilityProbe.Observe(request.Identity.Snapshot); // Separate legacy experiment contract.
+        if (request.ReadAccess is null || request.SnapshotReceiptDirectory is null || request.SnapshotOwnerId is null)
+            return new(request.Identity.Snapshot.Id, null, "SnapshotVerificationRequired", null, null);
+        request.ReadAccess.RequireMatch(request.Identity.Snapshot);
+        var proof = await new VssSnapshotProvider(request.SnapshotReceiptDirectory, request.SnapshotOwnerId).ObserveAsync(request.Identity.Snapshot, ct);
+        if (proof.Available == true && proof.ReadAccess != request.ReadAccess)
+            return new(request.Identity.Snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
+        return proof;
+    }
     public static async Task<OverlayServeRequest> ReadRequestAsync(string path, CancellationToken ct = default)
     {
         WindowsProcessWorkspaceProvider.CheckPath(path);
@@ -37,7 +54,7 @@ public static class WinFspOverlayClient
         if (!knownLaunch || launchAlive && (state.GetProperty("processId").GetInt32() != launch!.ProcessId ||
             ticks.ValueKind == JsonValueKind.Undefined || ticks.GetInt64() != launch.StartTimeUtcTicks))
             return JsonSerializer.SerializeToElement(new { phase = "launch-uncertain", processAlive = alive || launchAlive, ownershipVerified = false }, Json);
-        var snapshot = SnapshotAvailabilityProbe.Observe(request.Identity.Snapshot);
+        var snapshot = await ObserveSnapshotAsync(request, ct);
         string? phase = state.GetProperty("phase").GetString();
         return JsonSerializer.SerializeToElement(new { phase = alive && snapshot.Available != true ? "snapshot-" + snapshot.Availability : phase, processAlive = alive,
             snapshotAvailable = snapshot.Available, snapshotAvailability = snapshot.Availability, failureCode = snapshot.FailureCode,
@@ -59,12 +76,14 @@ public static class WinFspOverlayClient
             throw new WorkspaceException("OverlayStartUncertain", "A provider launch is not reconciled. Preserve its receipt and inspect that exact process before retrying.");
         if (Directory.Exists(request.MountPath) && (File.GetAttributes(request.MountPath) & FileAttributes.ReparsePoint) != 0)
             throw new WorkspaceException("MountReconcileRequired", "A stale mount remains. Preserve its journal and inspect ownership before reconnecting.");
-        using (var snapshot = new VssSnapshotTree(request.Identity.Snapshot)) snapshot.EnsureAvailable();
+        var verified = await ObserveSnapshotAsync(request, ct);
+        if (verified.Available != true) throw new WorkspaceException(verified.FailureCode ?? "SnapshotObservationUnknown", "Verify snapshot access before starting a provider.");
+        using (var snapshot = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess)) snapshot.EnsureAvailable();
         string stop = Path.Combine(request.ControlPath, "stop.json"); WindowsProcessWorkspaceProvider.CheckPath(stop);
         if (File.Exists(stop)) File.Delete(stop);
         string runner = WindowsProcessWorkspaceProvider.PrepareRunner(runnerCache);
         string generation = Guid.NewGuid().ToString("N");
-        await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, new ProviderIntent(request.Token, request.Identity.Id, generation, DateTimeOffset.UtcNow), ct);
+        await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, new ProviderIntent(request.Token, request.Identity.Id, generation, DateTimeOffset.UtcNow, request.ReadAccess?.VerificationId), ct);
         using var process = WindowsProcessGroup.StartSupervisor("dotnet", [runner, "overlay-serve", Path.GetFullPath(requestPath)], request.ControlPath);
         await WindowsProcessWorkspaceProvider.WriteAsync(receiptPath, new ProviderLaunch(request.Token, process.Id, process.StartTime.ToUniversalTime().Ticks, generation), CancellationToken.None);
         for (int i = 0; i < 150; i++)
@@ -89,6 +108,6 @@ public static class WinFspOverlayClient
         }
         throw new WorkspaceException("OverlayStopPending", "Clients or provider remain; files and snapshot are retained. Query status and close owned clients.");
     }
-    private sealed record ProviderIntent(string Token, string Id, string? Generation, DateTimeOffset RequestedAt);
+    private sealed record ProviderIntent(string Token, string Id, string? Generation, DateTimeOffset RequestedAt, string? VerificationId = null);
     private sealed record ProviderLaunch(string Token, int ProcessId, long StartTimeUtcTicks, string? Generation = null);
 }

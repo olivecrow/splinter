@@ -8,6 +8,8 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 [NTFS snapshot 모드](ntfs-workspaces.md)는 Core의 `ISnapshotWorkspaceBackend`/`ISnapshotSourceWorkspaceProvider`를 통해 기존 coordinator에 연결한다. Runtime은 단계·의존성·결과 manifest를 조정하고 Windows 어댑터가 VSS helper·메타데이터 지원 검사·WinFsp·범위 저널을 관리한다. Windows 모듈은 Runtime과 WinFsp.Net을 참조한다. 같은 저널/mount 구현을 사용하는 [독립 실험 명령](snapshot-overlay.md)은 별도 진입점이다.
 
+NTFS 연결은 `VerifyConnectionAsync`에서 현재 부팅·연결 세대의 정확한 live VSS identity를 확인한다. Core의 `SnapshotReadAccess`는 공급자 중립적인 snapshot ID·읽기 root·검증 ID만 전달하며 VSS provider/volume/CIM 정보는 Windows에 남긴다. 불변 SnapshotReference와 delta identity를 변경하지 않고 검증된 현재 읽기 위치로 재개한다. capability의 `snapshotVerification`/`snapshotReadAccess`와 입력·응답 schema가 이 계약을 노출한다. 세부 계약과 미검증 경계는 [NTFS 작업공간](ntfs-workspaces.md#살아-있는-vss-식별과-읽기-위치), 후보별 시험은 [LV 기록](verification/ntfs-live-vss-identity.md)을 따른다.
+
 | 프로젝트 | 현재 책임 | 참조 |
 | --- | --- | --- |
 | `Splinter.Core` | 탐지·작업공간 VCS/application/storage/process ports, 기준본·자원·검증 기록, DAG 검사 | .NET 기본 라이브러리 |

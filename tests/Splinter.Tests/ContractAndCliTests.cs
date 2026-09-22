@@ -11,6 +11,20 @@ public sealed class ContractAndCliTests
 {
     private readonly ContractCatalog contracts = new();
 
+    [Theory]
+    [InlineData("complete", true)] [InlineData("legacy", true)]
+    [InlineData("no-owner", false)] [InlineData("no-directory", false)] [InlineData("no-access", false)]
+    public void OverlayReadAccessRequiresTheWholeVerificationTuple(string variant, bool valid)
+    {
+        var request = JsonSerializer.SerializeToNode(new Splinter.Platform.Windows.OverlayServeRequest(
+            new(1, "workspace", VssLiveIdentityTests.Snapshot, 1048576, 1048576), "delta", "mount", "control", new string('a', 64),
+            new(VssLiveIdentityTests.Snapshot.Id, VssLiveIdentityTests.Snapshot.RootPath, "verified"), "receipt", "owner"), ApiJson.Options)!;
+        if (variant is "no-owner" or "legacy") request.AsObject().Remove("snapshotOwnerId");
+        if (variant is "no-directory" or "legacy") request.AsObject().Remove("snapshotReceiptDirectory");
+        if (variant is "no-access" or "legacy") request.AsObject().Remove("readAccess");
+        Assert.Equal(valid, contracts.Validate("urn:splinter:v1:overlay-serve-request", JsonSerializer.SerializeToElement(request)).IsValid);
+    }
+
     [Fact]
     public async Task CapabilitiesOnlyAdvertiseImplementedCommands()
     {
@@ -49,7 +63,8 @@ public sealed class ContractAndCliTests
                 sourceReference = "task", baseReference = "development", phase = "creating", createdAt = DateTimeOffset.UtcNow,
                 updatedAt = DateTimeOffset.UtcNow, storageMode = "ntfs-snapshot", requestDigest = "aaaaaaaaaaaaaaaaaaaaaaaa",
                 snapshot = new SnapshotWorkspaceState { Observation = new(available, false, false, false, null, null, null,
-                    FailureCode: "OverlayStartUncertain", SnapshotStorage: new("snapshot", available, null, null, null)) } },
+                    FailureCode: "OverlayStartUncertain", SnapshotStorage: new SnapshotObservation("snapshot", available, null, null, null)
+                    { ReadAccess = available == true ? new("snapshot", "verified-read-root", "verification-id") : null }) } },
             controlPath = "C:/control", nextCommand = "workspace.status", isolation = "private",
             recovery = new SnapshotRecoveryDecision("preserve", "OverlayStartUncertain", "workspace.status")
         }), ApiJson.Options)!;

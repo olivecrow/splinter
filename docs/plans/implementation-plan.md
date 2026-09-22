@@ -33,9 +33,9 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 
 ### 다음 구현 우선순위
 
-[NTFS workspace 1차 통합 범위](ntfs-workspace-integration.md)의 NI-01~08은 내부 알파 fixture 범위에서 완료했다. 실제 회수·released key 재호출·dirty 원본 통합 차단을 회귀 기준으로 유지한다. 종료된 NI/SO 자원이나 결과를 임의로 재생성·삭제하지 않는다. 다음 구현 단위는 [NTFS 내부 알파 2차](ntfs-recovery-and-support.md)의 NR-01~08이며 [NR 기록](../verification/ntfs-recovery.md)에 공통 복구 계약의 부분 구현과 원격 VSS·파일 API·단일 Unity 회귀 증거를 기록했다. 이번 원격 시험 세션은 종료했고 프로젝트·독립 결과·원시 증거는 후속 시험용으로 보존한다.
+[NTFS workspace 1차 통합 범위](ntfs-workspace-integration.md)의 NI-01~08은 내부 알파 fixture 범위에서 완료했다. 실제 회수·released key 재호출·dirty 원본 통합 차단을 회귀 기준으로 유지한다. 종료된 NI/SO 자원이나 결과를 임의로 재생성·삭제하지 않는다. 현재 상위 구현 계획은 [NTFS 내부 알파 2차](ntfs-recovery-and-support.md)의 NR-01~08이며 [NR 기록](../verification/ntfs-recovery.md)에 공통 복구 계약의 부분 구현과 원격 VSS·파일 API·단일 Unity 회귀 증거를 기록했다. 이번 원격 시험 세션은 종료했고 프로젝트·독립 결과·원시 증거는 후속 시험용으로 보존한다.
 
-1. **이번 NR 단위:** 공통 복구 계약/fake → 명시한 외부 부작용 경계 중단·파일 지원/거부 → 격리 Windows 환경의 재부팅·물리 공간 고갈·강제 전원 종료 → 실제 Unity 회귀. VIVOBOOK의 ARM Windows와 기존 x64 Unity에서 단일 정상 회귀를 확인했다. 살아 있는 VSS 식별 재검증·나머지 중단 경계와 ARM A/B·재부팅 후 Unity 회귀는 남아 있다. 물리 공간 고갈용 격리 볼륨은 아직 준비하지 않았다. 새 캡처·원본 fallback·전체 복사로 복구를 대체하지 않는다.
+1. **LV 완료 이후:** [live VSS 식별과 재개](ntfs-live-vss-identity.md)의 캡처/live identity·현재 읽기 경로 분리·비관리자 재개·legacy 보존과 LV-01~08 검증을 완료했다. [새 후보 기록](../verification/ntfs-live-vss-identity.md)은 자동 180 통과·실제 VSS/Git 재연결·단일 Unity 검증 3건·독립 결과·회수를 포함한다. **다음 NR 범위:** 나머지 외부 부작용 중단·파일 지원/거부 → 격리 Windows의 재부팅·물리 공간 고갈·강제 전원 종료 → ARM A/B·실제 재부팅 후 Unity 최종 회귀다. 이전 VIVOBOOK 후보의 증거를 새 후보로 승계하지 않는다. 물리 공간 고갈용 격리 볼륨은 아직 준비하지 않았다.
 2. **그 다음 Unity 단위:** 자체 제작 에셋과 로컬 시험 패키지로 compile/import·저장/재개방·실제 Play·EditMode/PlayMode 테스트·결과/회수를 연결한다. 전체 fingerprint·loaded-code·실행 세대와 실패/0개 선택/취소/stale 증거를 구분한다. 구매 에셋은 필요하지 않다.
 3. **Git 입력·통합과 성능 확대:** dirty/LFS·linked-worktree 입력, clean 통합·충돌·최신 통합 후보 재검증을 별도 범위로 닫는다. 대표 에셋/프로젝트는 필요한 종류·규모를 정해 요청하고 초기 import·metadata·전체 Git 읽기·누적 저널 비용을 측정해 개선한다.
 4. **공개 운영:** 상주 Host·설치·Codex Runner·DAG/자원 예약과 위 Unity/통합 검증을 공개 제품 루프로 연결한다. 공개 48개 완료는 별도이며 상세 기준은 기획서 15절과 [NTFS 통합 조건](ntfs-snapshot-overlay-spike.md)을 따른다.

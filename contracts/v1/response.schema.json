@@ -763,6 +763,8 @@
             "stage",
             "integratedWorkspaceMode",
             "sourceSnapshot",
+            "snapshotVerification",
+            "snapshotReadAccess",
             "deltaStore",
             "requestSchema",
             "observationSchema",
@@ -779,6 +781,8 @@
             "sourceSnapshot": {
               "const": "windows-vss-system"
             },
+            "snapshotVerification": { "const": "exact-live-id-per-connection-with-boot-bound-observe-helper" },
+            "snapshotReadAccess": { "const": "verified-location-separate-from-immutable-delta-identity" },
             "deltaStore": {
               "const": "bounded-checksummed-range-journal"
             },
@@ -1621,6 +1625,15 @@
                 "availability": {
                   "enum": ["available", "missing", "unknown"]
                 },
+                "readAccess": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["snapshotId", "rootPath", "verificationId"],
+                  "properties": {
+                    "snapshotId": {"type":"string", "minLength":1},
+                    "rootPath": {"type":"string", "minLength":1},
+                    "verificationId": {"type":"string", "minLength":1}
+                  }
+                },
                 "failureCode": {
                   "type": "string"
                 },
@@ -1633,6 +1646,7 @@
                   "minimum": 0
                 }
               },
+              "allOf": [{ "if": {"required":["readAccess"]}, "then": {"properties":{"availability":{"const":"available"},"available":{"const":true}}, "required":["available"]} }],
               "oneOf": [
                 { "properties": { "availability": { "const": "available" }, "available": { "const": true } }, "required": ["available"] },
                 { "properties": { "availability": { "const": "missing" }, "available": { "const": false } }, "required": ["available"] },

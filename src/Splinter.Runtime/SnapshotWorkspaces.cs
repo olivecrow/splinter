@@ -59,6 +59,7 @@ public sealed partial class WorkspaceCoordinator
         var state = RequireSnapshot(w);
         if (state.Reference is null || state.Step.StartsWith("release-", StringComparison.Ordinal))
             throw new WorkspaceException("SnapshotNotReady", "Resume ensure or the pending release first.");
+        await Snapshots.VerifyConnectionAsync(w, store.ControlPath(w.Id), ct);
         var before = await Snapshots.ObserveAsync(w, store.ControlPath(w.Id), ct);
         state.Observation = before;
         RequireSnapshotObservation(w, before);
@@ -174,7 +175,7 @@ public sealed partial class WorkspaceCoordinator
     private void RequireSnapshotObservation(WorkspaceRecord w, SnapshotWorkspaceObservation observation)
     {
         if (observation.SnapshotAvailable is null)
-            throw new WorkspaceException("SnapshotObservationUnknown", "Snapshot availability could not be observed. Preserve the existing identity and delta; restore access before resuming.",
+            throw new WorkspaceException(observation.FailureCode ?? "SnapshotObservationUnknown", "Snapshot availability could not be observed. Preserve the existing identity and delta; restore access before resuming.",
                 new { id = w.Id, observation.FailureCode },
                 [new("workspace.status", new { id = w.Id, home = store.Root }, true)]);
     }

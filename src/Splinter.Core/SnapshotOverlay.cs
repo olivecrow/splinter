@@ -5,10 +5,20 @@ public sealed record SnapshotReference(string Id, string Provider, string Source
     string RootPath, DateTimeOffset CapturedAt, bool Persistent, bool Differential,
     string Consistency);
 public sealed record SnapshotCapture(string SourcePath, string OwnerId, string ReceiptDirectory);
+// A verified access location is replaceable; the snapshot and delta identity are not.
+public sealed record SnapshotReadAccess(string SnapshotId, string RootPath, string VerificationId)
+{
+    public void RequireMatch(SnapshotReference snapshot)
+    {
+        if (SnapshotId != snapshot.Id || string.IsNullOrWhiteSpace(RootPath) || string.IsNullOrWhiteSpace(VerificationId))
+            throw new WorkspaceException("SnapshotIdentityMismatch", "Read access must identify the original snapshot and its verification.");
+    }
+}
 public sealed record SnapshotObservation(string Id, bool? Available, string? FailureCode,
     long? PreservedBytes, long? AllocatedBytes)
 {
     public string Availability => Available switch { true => "available", false => "missing", null => "unknown" };
+    public SnapshotReadAccess? ReadAccess { get; init; }
 }
 
 public interface ISourceSnapshotProvider

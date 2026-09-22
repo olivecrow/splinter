@@ -1,10 +1,14 @@
 # NTFS 내부 알파 2차: 복구와 파일 지원 경계
 
-계획일: 2026-09-21. 상태: **NR-01/03/05/07 부분 구현·자동 검증, 원격 VSS workspace 읽기·소유 자원 회수와 마지막 상태 전환 복구 확인**. 현재 실행 범위는 [NR 검증 기록](../verification/ntfs-recovery.md)을 따른다. 사용자가 제공한 VIVOBOOK은 ARM Windows 11, RAM 32GB이며 지정한 `splinter-test-vivobook` 프로젝트를 사용한다. 기존 Unity fixture의 동일 revision·77개 파일 복사와 최신 후보의 로컬·원격 자동 시험 각각 139개 통과를 확인했다. 기존 x64 Unity 6000.3.22f1을 유지하며 ARM64 Editor를 추가하지 않는다. 합성 입력의 실제 WinFsp 기본 I/O·파일 API 5개 거부·회수와 VSS 상한 32GiB 증가를 확인했고 실제 제품 workspace에서 77개 파일 읽기도 통과했다. 읽기 시험의 소유 자원 0과 기존 snapshot 4개 보존을 확인했다. 삭제된 장치 경로 관측 때문에 releasing에 남는 결함을 수정했고 같은 workspace의 비관리자 release/status가 released까지 완료됐다. canonical x64 Unity의 첫 임포트는 180초 안에 완료했고 기존 MCP 연결과 Console 준비도 완료했다. ARM Windows/x64 Unity의 단일 제품 workspace에서 스크립트 검증 2건·독립 결과 보존·회수를 통과했고 남은 소유 workspace 자원은 0이다. canonical Editor/MCP 세션과 임시 전송 서버도 정리해 이번 원격 실행을 완료했다. A/B 동시 회귀·재부팅·공간 고갈·전원 중단은 남은 관문이며 다음 live VSS identity 구현 이후 다시 시험 PC를 사용한다.
+계획일: 2026-09-21. 상태: **NR-01/03/05/07 부분 구현·자동 검증, 원격 VSS workspace 읽기·소유 자원 회수와 마지막 상태 전환 복구 확인**. 현재 실행 범위는 [NR 검증 기록](../verification/ntfs-recovery.md)을 따른다. 사용자가 제공한 VIVOBOOK은 ARM Windows 11, RAM 32GB이며 지정한 `splinter-test-vivobook` 프로젝트를 사용한다. 기존 Unity fixture의 동일 revision·77개 파일 복사와 이전 후보의 로컬·원격 자동 시험 각각 139개 통과를 확인했다. 기존 x64 Unity 6000.3.22f1을 유지하며 ARM64 Editor를 추가하지 않는다. 합성 입력의 실제 WinFsp 기본 I/O·파일 API 5개 거부·회수와 VSS 상한 32GiB 증가를 확인했고 실제 제품 workspace에서 77개 파일 읽기도 통과했다. 읽기 시험의 소유 자원 0과 기존 snapshot 4개 보존을 확인했다. 삭제된 장치 경로 관측 때문에 releasing에 남는 결함을 수정했고 같은 workspace의 비관리자 release/status가 released까지 완료됐다. canonical x64 Unity의 첫 임포트는 180초 안에 완료했고 기존 MCP 연결과 Console 준비도 완료했다. ARM Windows/x64 Unity의 단일 제품 workspace에서 스크립트 검증 2건·독립 결과 보존·회수를 통과했고 남은 소유 workspace 자원은 0이다. canonical Editor/MCP 세션과 임시 전송 서버도 정리해 이번 원격 실행을 완료했다. A/B 동시 회귀·재부팅·공간 고갈·전원 중단은 남은 관문이며 후속 장애 계획에 따라 시험 PC를 다시 사용한다.
 
 목표는 **중단되거나 재부팅된 NTFS 작업을 같은 불변 기준으로 재개하고, 재개할 수 없는 경우에도 결과와 소유권을 보존하며 다음 행동을 명확히 반환하는 것**이다. [기획서 15.1절](../../plan.html#section-15-1)의 복구·파일 지원 관문을 이번 단위로 구체화한다. 일반 에셋·Play·테스트 제품 루프는 그 다음 단위로 분리한다.
 
+2026-09-22의 [live VSS 식별·재개 단위](ntfs-live-vss-identity.md)는 LV-01~08의 정의된 수준에서 완료했다. 새 로컬 후보의 자동 180 통과, 실제 VSS/Git 재연결·범위 쓰기와 단일 Unity 검증 3건·결과·회수는 [LV 기록](../verification/ntfs-live-vss-identity.md)을 따른다. NR-01 전체나 NR-01~08 전체 완료는 아니며 나머지 중단·파일 경계, 정상 재부팅·강제 전원 종료·물리 공간 고갈·ARM A/B를 이어 간다.
+
 ## 출발점과 우선순위의 근거
+
+아래 표는 2차 전체 계획을 처음 수립한 NI 기준이다. 최신 `591d53f`와 121개 소스 hash·139개 통과 기록의 대조는 [후속 계획의 현재 도달점](ntfs-live-vss-identity.md#제품-목표와-현재-도달점)에 있다.
 
 | 항목 | 이번 계획에서 확인한 근거 | 계획에 미치는 영향 |
 | --- | --- | --- |
@@ -32,19 +36,9 @@
 
 기존 공통 계약과 자동 시험은 재사용하고 이번 행렬에서 부족한 상태·장애 사례만 추가한다. 먼저 새로운 상태 체계를 전면 도입하거나 정상 경로를 다시 작성하는 작업으로 확대하지 않는다.
 
-현재 VIVOBOOK에서 완료한 관측 보강은 **삭제된 정확한 snapshot의 현재 부팅 내 부재 확인**이다. 다음 NR-01 구현은 살아 있는 snapshot의 VSS ID·native provider·원본 volume identity를 helper 관측으로 다시 대조하고, 캡처 당시의 불변 identity와 현재 읽기 장치 경로를 구분하는 것이다. device 경로만 같다는 이유로 새 snapshot을 같은 기준으로 인정하지 않는다. 이전 부팅·관측 불가·다른 identity는 기존 delta와 결과를 보존하며, 일반 ensure에서 정확한 읽기 전용 관측 helper와 재시도 행동을 제공한다. 기존 영수증의 필드가 부족하면 추측하여 채우지 않고 명시적인 재검증 또는 보존 경로를 사용한다. 이 계약과 fake/실환경 증거를 확보한 뒤 NR-04/06의 재부팅·offline·공간 고갈로 진행한다.
+VIVOBOOK의 이전 후보는 삭제된 정확한 snapshot의 현재 부팅 내 부재를 확인했다. 새 로컬 후보는 살아 있는 VSS ID·native provider·volume identity 대조, 불변 identity/현재 읽기 위치 분리, 비관리자 재개·legacy 보존까지 구현·검증했다. 캡처와 관측의 현재 계약은 [NTFS 작업공간](../ntfs-workspaces.md), 새 증거는 [LV 기록](../verification/ntfs-live-vss-identity.md)에 있다. 아래의 나머지 중단·파일 조건과 NR-04/06/08은 남아 있다.
 
-이 후속 구현의 변경·검증 단위는 다음과 같다. 현재 후보에 구현됐다는 뜻이 아니며, 원격 Unity 회귀를 통과한 후보와 구분한다.
-
-| 단위 | 계약과 검증 |
-| --- | --- |
-| 캡처 identity 영수증 | 캡처 당시 snapshot ID·공급자·원본 volume identity·상대 경로를 지속 기록한다. 오래된 영수증에 없는 값을 현재 경로에서 추정해 채우지 않는다. |
-| 현재 읽기 위치 | 현재 부팅의 정확한 VSS 관측에서 읽기 위치를 얻되 불변 snapshot/delta identity는 바꾸지 않는다. 같은 장치 경로의 다른 ID·공급자·볼륨은 차단한다. 경로 변경이 정상인 같은 ID는 실제 재개로 검증한다. |
-| 비관리자 재개 | 일반 ensure에서 좁은 읽기 전용 helper와 같은 명령 재시도를 반환한다. helper 조회 실패/이전 부팅/identity 불일치는 보존하고 새 캡처·delta 재생성으로 대체하지 않는다. |
-| 자동·실환경 대조 | 같은 ID의 새 경로, 같은 경로의 다른 ID, 다른 공급자/볼륨, offline/접근 거부, legacy 영수증, 삭제 확인을 fake와 실제 어댑터에서 구분한다. 알려진 부재만 missing이며 조회 실패는 unknown이다. |
-| 재부팅 시험 착수 | 위 계약과 정상 Unity 회귀가 통과한 후보를 고정하고 전후 boot·snapshot·delta·승인 쓰기·독립 결과 oracle과 정확한 재부팅/복귀 절차를 먼저 준비한다. 그 뒤 기존 승인에서 제외된 재부팅·별도 시험 볼륨 설정만 구체적으로 승인받는다. |
-
-현재 `SplinterSnapshotProbe`는 값·generation·PID를 기록하고 assembly MVID는 기록하지 않는다. 재부팅 후 NR-08의 loaded-code 증거에 MVID가 필요하면 fixture 계측을 먼저 확장하고 실제 필드를 확인한다. 준비되지 않은 필드를 관측했다고 보고하지 않는다.
+현재 `SplinterSnapshotProbe`는 값·generation·PID를 기록하고 assembly MVID는 기록하지 않는다. 실제 재부팅 후 NR-08의 loaded-code 증거에 필요한 fixture 계측을 해당 시험 전에 확장하고 실제 필드를 확인한다. 준비되지 않은 필드를 관측했다고 보고하지 않는다.
 
 ### 2. 명령 경계와 데이터 지속성
 

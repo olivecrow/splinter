@@ -25,6 +25,8 @@ public sealed class FoundationGateway(
             stage = "workspace-internal-alpha",
             integratedWorkspaceMode = true,
             sourceSnapshot = "windows-vss-system",
+            snapshotVerification = "exact-live-id-per-connection-with-boot-bound-observe-helper",
+            snapshotReadAccess = "verified-location-separate-from-immutable-delta-identity",
             deltaStore = "bounded-checksummed-range-journal",
             requestSchema = "urn:splinter:v1:overlay-serve-request",
             observationSchema = "urn:splinter:v1:overlay-observation",

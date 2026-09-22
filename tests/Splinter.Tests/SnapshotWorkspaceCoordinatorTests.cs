@@ -6,6 +6,24 @@ namespace Splinter.Tests;
 public sealed class SnapshotWorkspaceCoordinatorTests
 {
     [Fact]
+    public async Task VerificationGatePreservesCaptureAndReturnsExactEnsureRetry()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        f.Backend.VerificationRequired = true;
+        var failure = await Assert.ThrowsAsync<WorkspaceException>(() => f.Ensure(ct));
+        Assert.Equal("SnapshotPrivilegeRequired", failure.Code);
+        Assert.Contains(failure.RecoveryActions!, action => action.Command == "workspace.ensure");
+        Assert.False(f.Backend.Mounted); Assert.Equal(1, f.Backend.Captures);
+        f.Backend.VerificationRequired = false;
+        var ready = await Task.WhenAll(f.Ensure(ct), f.Ensure(ct));
+        Assert.Equal(ready[0].Workspace.Id, ready[1].Workspace.Id);
+        Assert.Equal(1, f.Backend.Captures); Assert.Equal(1, f.Source.Registers);
+        f.Backend.VerificationRequired = true;
+        var start = await Assert.ThrowsAsync<WorkspaceException>(() => f.New().StartAsync(ready[0].Workspace.Id, ct));
+        Assert.Contains(start.RecoveryActions!, action => action.Command == "unity.start");
+        Assert.Equal(0, f.App.Starts);
+    }
+    [Fact]
     public async Task ConcurrentRequestsAndFreshCoordinatorReuseExactlyOneIdentity()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
@@ -235,6 +253,13 @@ public sealed class SnapshotWorkspaceCoordinatorTests
     }
     private sealed class Backend : ISnapshotWorkspaceBackend
     {
+        public bool VerificationRequired;
+        public Task VerifyConnectionAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        {
+            if (VerificationRequired) throw new WorkspaceException("SnapshotPrivilegeRequired", "Observe the exact snapshot first.",
+                recoveryActions: [new("pwsh", new { action = "Observe" }, true)]);
+            return Task.CompletedTask;
+        }
         public int Captures; public bool LoseCaptureReply, LoseMountReply, Mounted, DeltaRemoved, SnapshotReleased, WriteDuringUnmount, UnknownResources, LoseRemoveReply, KeepReleaseUnknown;
         public bool? Available = true;
         public string? LoseReleaseReply;

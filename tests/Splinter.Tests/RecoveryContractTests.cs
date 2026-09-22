@@ -16,6 +16,7 @@ public sealed class RecoveryContractTests
     [InlineData("release-delta", null, true, false, null, true, "observe", "workspace.status")]
     [InlineData("release-unmount", true, true, false, "DeltaCorrupt", true, "preserve", "workspace.status")]
     [InlineData("ready", null, true, false, "SnapshotIdentityMismatch", false, "preserve", "workspace.status")]
+    [InlineData("ready", null, true, false, "SnapshotVerificationRequired", false, "resume-ensure", "workspace.ensure")]
     public void RecoveryDistinguishesObservationPreservationAndResumableOperations(string step, bool? available,
         bool attached, bool mounted, string? failure, bool independentResult, string disposition, string command)
     {

@@ -2,6 +2,10 @@
 
 기준일: 2026-09-22. [NR 계획](../plans/ntfs-recovery-and-support.md)의 실행 기록이다. **NR-01/03/05/07 부분 구현·자동 검증, 원격 VSS 읽기·회수 복구와 5개 파일 API 거부, ARM Windows/x64 Unity 단일 작업공간 회귀·회수 통과**이며 NR 전체 완료가 아니다.
 
+## 새 live VSS 후보
+
+[LV-01~08 기록](ntfs-live-vss-identity.md)은 캡처/live identity와 현재 읽기 위치 분리, 새 연결 세대의 비관리자 Observe/재개·legacy 보존을 검증한다. 새 후보는 자동 180 통과·0 실패·선택적 ReFS 1 skip, 실제 VSS/Git 재연결·4KiB 범위 쓰기·원본 시점 격리, Windows x64 Unity 검증 3건·재연결 후 loaded-code·독립 결과·최종 회수를 통과했다. 77개 원본 파일과 기존 snapshot 3개를 보존했고 소유 자원은 0이다. 다음 절의 139개 통과와 원격 ARM 시험은 이전 후보 기록이며 새 후보의 ARM·실제 재부팅·전원·공간 장애는 NotRun이다.
+
 ## 로컬 코드와 자동 시험
 
 `development`의 기존 NI 후보 위에 아래 계약을 연결했다.
@@ -20,7 +24,7 @@
 | 마지막 회수 관측 | 같은 부팅의 정확한 해제 관측만 unknown 해소, 다른 부팅·identity·조회 실패는 보존, 최종 회수 재개도 unknown이면 완료 차단 | 영수증/fake Passed |
 | 전체 회귀 | locked restore → Release build → 자동 시험, 총 140개 중 139 통과·0 실패·선택적 ReFS 1 skip. 경고/오류 0 | Passed |
 
-현재 후보 증거는 `artifacts/ntfs-recovery/nr07-release-observation-20260921/`의 `final-build.trx`, `source-manifest.json`에 있다. 앞선 128개 시험 후보는 `nr01305-20260921/`, 112개 후보는 `nr01-20260921/`에 따로 보존한다. `RecoveryContractTests`, `SnapshotWorkspaceCoordinatorTests`, `VssReleaseObservationTests`, `ContractAndCliTests`, `SnapshotOverlayTests`, `OverlayFileAttributeTests`가 추가 계약을 검증한다. 기존 journal/Git/Windows 프로세스 시험도 같은 후보에서 실행했다. 파일 잠금에 의한 저장 실패는 실제 볼륨 고갈의 증거가 아니며 callback 직접 호출은 실제 mount의 파일 API 시험이 아니다.
+이전 NR-07 후보 증거는 `artifacts/ntfs-recovery/nr07-release-observation-20260921/`의 `final-build.trx`, `source-manifest.json`에 있다. 앞선 128개 시험 후보는 `nr01305-20260921/`, 112개 후보는 `nr01-20260921/`에 따로 보존한다. `RecoveryContractTests`, `SnapshotWorkspaceCoordinatorTests`, `VssReleaseObservationTests`, `ContractAndCliTests`, `SnapshotOverlayTests`, `OverlayFileAttributeTests`가 추가 계약을 검증한다. 기존 journal/Git/Windows 프로세스 시험도 같은 후보에서 실행했다. 파일 잠금에 의한 저장 실패는 실제 볼륨 고갈의 증거가 아니며 callback 직접 호출은 실제 mount의 파일 API 시험이 아니다.
 
 추가 프로세스 시험은 `artifacts/ntfs-recovery/nr03-process-20260921/`의 개발용 harness와 `trials-2/result.json`에 보존한다. 제품의 동일 `JournalDeltaStore` 바이너리를 사용하되 기준 트리는 결정적 fake다. 최종 ACK sequence 1/8/32가 모두 유지됐고, 재생된 sequence는 1/9/33이었다. ACK를 받기 전 완료된 마지막 레코드가 남을 수 있다는 허용 범위와 일치한다. 초기 payload 복사와 읽기 cache는 0이다. 첫 실행은 종료 직후 공유 위반 32로 중단되어 `trials/`와 실패 설명을 보존했다. 후속 harness는 소유 프로세스 종료 확인 뒤 공유 위반만 최대 5초 재관측하며, 통과한 3건에서 해당 재시도는 0회였다. 이 시험은 WinFsp/VSS·mmap flush·저널 내부 특정 명령어 중단·재부팅/전원 손실의 증거가 아니다.
 

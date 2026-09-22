@@ -14,7 +14,7 @@ public sealed class VssReleaseObservationTests
     [InlineData("wrong-owner", null, "SnapshotObservationUnknown")]
     [InlineData("wrong-snapshot", null, "SnapshotObservationUnknown")]
     [InlineData("still-present", null, "SnapshotObservationUnknown")]
-    [InlineData("not-released", null, "SnapshotObservationUnknown")]
+    [InlineData("not-released", null, "SnapshotVerificationRequired")]
     [InlineData("wrong-provider", null, "SnapshotIdentityMismatch")]
     [InlineData("wrong-receipt-owner", null, "SnapshotIdentityMismatch")]
     public async Task InaccessibleDeviceNeedsExactReleasedIdentityAndCurrentBootProof(string scenario, bool? available, string failure)

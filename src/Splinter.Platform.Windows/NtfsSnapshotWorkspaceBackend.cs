@@ -33,10 +33,36 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
         if (prior is null || prior.SnapshotId != snapshot.Id || prior.Version != 1)
         {
             var watch = Stopwatch.StartNew();
-            int entries = SnapshotInputChecks.VerifyTree(snapshot.RootPath, ct);
+            var access = await Provider(w, control).ResolveReadAccessAsync(snapshot, null, ct);
+            int entries = SnapshotInputChecks.VerifyTree(access.RootPath, ct);
             await WindowsProcessWorkspaceProvider.WriteAsync(probePath, new InputCheck(1, snapshot.Id, entries, watch.ElapsedMilliseconds, 0), ct);
         }
         return snapshot;
+    }
+
+    public async Task VerifyConnectionAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
+    {
+        var request = await Request(w, control, false, ct);
+        var provider = Provider(w, control);
+        var snapshot = w.Snapshot!.Reference!;
+        if (request is not null)
+        {
+            var observed = await WinFspOverlayClient.ObserveAsync(request, ct);
+            if (observed.TryGetProperty("ownershipVerified", out var owned) && !owned.GetBoolean())
+                throw new WorkspaceException("OverlayStartUncertain", "Preserve the unresolved provider launch before verifying a new connection.");
+            if (observed.GetProperty("processAlive").GetBoolean())
+            {
+                var proof = await provider.ObserveAsync(snapshot, ct);
+                if (proof.ReadAccess is null || proof.ReadAccess != request.ReadAccess)
+                    throw new WorkspaceException(proof.FailureCode ?? "SnapshotIdentityMismatch", "Stop the owned application and provider before changing its verified read access.");
+                return;
+            }
+        }
+        string? consumed = request is null ? null : await WinFspOverlayClient.ConsumedVerificationAsync(request, ct);
+        var access = await provider.ResolveReadAccessAsync(snapshot, consumed, ct);
+        request ??= await Request(w, control, true, ct);
+        request = request! with { ReadAccess = access, SnapshotReceiptDirectory = Path.Combine(control, "snapshot"), SnapshotOwnerId = w.Id };
+        await WindowsProcessWorkspaceProvider.WriteAsync(RequestPath(control), request, ct);
     }
 
     public async Task<OverlayMount> ConnectAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
@@ -48,18 +74,19 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
     public async Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
         var snapshotObservation = w.Snapshot?.Reference is { } snapshot ? await Provider(w, control).ObserveAsync(snapshot, ct) : null;
+        SnapshotWorkspaceObservation Finish(SnapshotWorkspaceObservation observation) => WithSpace(observation with { SnapshotStorage = snapshotObservation }, w, control);
         bool? available = snapshotObservation is null ? false : snapshotObservation.Available;
         var request = await Request(w, control, false, ct);
-        if (request is null) return WithSpace(new(available, false, false, true, 0, 0, 0,
-            FailureCode: snapshotObservation?.FailureCode ?? (available == true ? null : "SnapshotNotCaptured")), w, control);
+        if (request is null) return Finish(new(available, false, false, true, 0, 0, 0,
+            FailureCode: snapshotObservation?.FailureCode ?? (available == true ? null : "SnapshotNotCaptured")));
         var observed = await WinFspOverlayClient.ObserveAsync(request, ct);
         bool alive = observed.GetProperty("processAlive").GetBoolean();
         bool mounted = Directory.Exists(w.Path);
         if (!observed.TryGetProperty("state", out var state))
         {
             bool known = observed.GetProperty("ownershipVerified").GetBoolean() && !alive && !mounted;
-            return WithSpace(new(available, mounted, alive, known, known ? 0 : null, known ? 0 : null, known ? 0 : null,
-                FailureCode: snapshotObservation?.FailureCode ?? (known ? "OverlayNotStarted" : "OverlayStartUncertain")), w, control);
+            return Finish(new(available, mounted, alive, known, known ? 0 : null, known ? 0 : null, known ? 0 : null,
+                FailureCode: snapshotObservation?.FailureCode ?? (known ? "OverlayNotStarted" : "OverlayStartUncertain")));
         }
         long? working = 0, memory = 0;
         if (alive)
@@ -73,10 +100,10 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
             catch (InvalidOperationException) { alive = false; }
         }
         bool fresh = !alive || state.TryGetProperty("observedAt", out var timestamp) && DateTimeOffset.UtcNow - timestamp.GetDateTimeOffset() < TimeSpan.FromSeconds(15);
-        return WithSpace(new(available, mounted, alive, fresh && (alive || !mounted), alive ? state.TryGetProperty("openHandles", out var h) ? h.GetInt32() : null : 0,
+        return Finish(new(available, mounted, alive, fresh && (alive || !mounted), alive ? state.TryGetProperty("openHandles", out var h) ? h.GetInt32() : null : 0,
             working, memory, state.TryGetProperty("storage", out var s) ? s.Deserialize<OverlayStorageObservation>(Json) : null,
             snapshotObservation?.FailureCode ?? (!fresh ? "OverlayUnresponsive" : state.TryGetProperty("error", out var e) ? e.GetString() :
-                state.TryGetProperty("lastFailureCode", out var failure) ? failure.GetString() : null)), w, control);
+                state.TryGetProperty("lastFailureCode", out var failure) ? failure.GetString() : null)));
     }
 
     public async Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
@@ -175,8 +202,8 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
             HostFreeBytes = free,
             DeltaPresent = Directory.Exists(DeltaPath(control)) || File.Exists(DeltaPath(control)),
             JournalRemainingBytes = observed.Storage is { } storage ? Math.Max(0, w.Snapshot!.MaxJournalBytes - storage.JournalBytes) : null,
-            SnapshotStorage = w.Snapshot?.Reference is { } snapshot ? new(snapshot.Id, observed.SnapshotAvailable,
-                observed.SnapshotAvailable switch { true => null, false => "SnapshotMissing", null => "SnapshotObservationUnknown" }, null, null) : null,
+            SnapshotStorage = observed.SnapshotStorage ?? (w.Snapshot?.Reference is { } snapshot ? new(snapshot.Id, observed.SnapshotAvailable,
+                observed.SnapshotAvailable switch { true => null, false => "SnapshotMissing", null => "SnapshotObservationUnknown" }, null, null) : null),
             FailureCode = observed.FailureCode ?? (free < 2L * 1024 * 1024 * 1024 ? "SnapshotHeadroomRequired" : null)
         };
     }

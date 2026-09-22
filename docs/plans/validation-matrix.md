@@ -153,18 +153,20 @@ SO의 실제 원시 증거와 측정 제한은 [실행 기록](../verification/s
 
 ## NTFS 내부 알파 2차: 복구와 파일 지원 경계
 
-[현재 작업 계획](ntfs-recovery-and-support.md)의 NR-01~08이다. **NR-01/03/05/07을 부분 구현했고 최신 후보의 로컬·VIVOBOOK 자동 시험 각각 139개 통과, 합성 입력의 실제 WinFsp 기본 I/O·파일 API 5개 거부·회수, 제품 VSS workspace의 정상 생성·77개 파일 읽기를 확인했다. 읽기 시험의 소유 자원은 모두 회수됐다. 마지막 상태가 releasing에 남는 결함도 수정본의 동일 workspace 재개로 released까지 복구했다. canonical x64 Unity 준비는 완료했으며 제품 Unity·나머지 파일 특성·장애 시험은 별도 관문이다.** 실행 근거와 미실행 조건은 [NR 기록](../verification/ntfs-recovery.md)을 따른다. NI/SO/AA/SR의 성공을 NR 통과로 승계하지 않는다.
+[현재 작업 계획](ntfs-recovery-and-support.md)의 NR-01~08이다. **NR-01/03/05/07을 부분 구현했고 이전 후보의 로컬·VIVOBOOK 자동 시험 각각 139개 통과, 합성 입력의 실제 WinFsp 기본 I/O·파일 API 5개 거부·회수, 제품 VSS workspace의 정상 생성·77개 파일 읽기를 확인했다. 읽기 시험의 소유 자원은 모두 회수됐다. 마지막 상태가 releasing에 남는 결함도 수정본의 동일 workspace 재개로 released까지 복구했다. ARM Windows/x64 Unity의 단일 제품 workspace는 스크립트 검증 2건·독립 결과·회수를 통과했다. ARM A/B·재부팅 후 Unity·나머지 파일 특성·장애 시험은 별도 관문이다.** 실행 근거와 미실행 조건은 [NR 기록](../verification/ntfs-recovery.md)을 따른다. NI/SO/AA/SR의 성공을 NR 통과로 승계하지 않는다.
+
+2026-09-22의 [live VSS 식별과 재개](ntfs-live-vss-identity.md) LV-01~08은 정의한 자동/실환경 수준에서 Passed다. [LV 기록](../verification/ntfs-live-vss-identity.md)은 새 로컬 후보의 180개 자동 통과, 실제 VSS 재연결·범위 쓰기, Windows x64 Unity 검증 3건과 최종 회수를 연결한다. 아래 NR 행은 더 넓은 남은 관문 때문에 InProgress/NotRun을 유지한다.
 
 | ID | 검증 대상 | 상태 | 반드시 남길 증거 |
 | --- | --- | --- | --- |
-| NR-01 | 복구 상태·identity·영속 기록·기계용 응답 | InProgress: 공통 응답·상태 보존 자동 통과 | unknown/소실/경로 불일치 구분, 복구 분류/schema/fake, 손상 JSON·잠긴 기록·고아 임시 파일 보존. 전체 중단 단계의 오류/행동과 VSS identity 대조는 남음 |
+| NR-01 | 복구 상태·identity·영속 기록·기계용 응답 | InProgress: 공통 응답·상태 보존과 LV live identity/재개 통과 | unknown/소실/경로 불일치 구분, 복구 분류/schema/fake, 손상 JSON·잠긴 기록·고아 임시 파일 보존. VSS live identity·legacy·연결 세대는 LV 완료. 전체 중단 단계의 오류/행동은 남음 |
 | NR-02 | 준비 단계의 실제 중단과 중복 요청 | NotRun | capture/반환 ID·Git 등록·delta 생성·mount·index·Ready의 부작용 전후 중단, 같은 key 동시 재개에 중복 자원 없음 |
-| NR-03 | 저널·flush·승인 쓰기의 지속성 | InProgress: 손상 보존 자동 통과, fake 기준의 실제 journal 자식 종료·ACK 보존 3건 통과 | 정상/불완전 tail/완전 레코드 손상 구분, 승인 쓰기와 flushed mmap 보존, rename/replace/truncate, 초기 payload/hydration 0과 범위 할당. 실제 WinFsp/VSS와 명시적 내부 중단 지점은 남음 |
+| NR-03 | 저널·flush·승인 쓰기의 지속성 | InProgress: 손상 보존 자동 통과, fake 기준의 실제 journal 자식 종료·ACK 보존 3건 통과 | 정상/불완전 tail/완전 레코드 손상 구분, 승인 쓰기와 flushed mmap 보존, rename/replace/truncate, 초기 payload/hydration 0과 범위 할당. LV의 실제 WinFsp/VSS 4KiB 쓰기·flush·정상 provider 재연결 통과. 강제 중단 지점은 남음 |
 | NR-04 | 정상 재부팅·강제 전원 종료 후 같은 작업 | NotRun | Ready/미수집 변경·checkpoint 완료·회수 도중의 전후 boot 식별, 같은 snapshot/delta/key, 새 원본과 시점 격리. 유효 기준은 실제 재개, 소실/손상은 보존/차단 |
 | NR-05 | 파일 특성·ACL·경로 지원/거부 | InProgress: 속성 callback 자동 통과, ARM64 실제 WinFsp 기본 I/O·5개 API 거부·회수 통과 | fake 불변 트리의 실제 mount에서 ADS/hardlink/희소/압축/mount-point reparse 거부와 일반 NTFS 양성 대조 확인. VSS 입력·EFS·ACL 전제·다른 reparse 종류·한글/공백/긴 경로는 별도 검증 |
 | NR-06 | 실제 공간 고갈·offline·snapshot 소실 | NotRun | VSS·delta/상태·Git 결과 공간을 나눈 격리 볼륨 시험, quota와 구분, unknown 보존, 늦은 쓰기·미보존 결과 보호, 다른 작업·기존 복원 지점 보존 |
-| NR-07 | 부분 준비·결과·회수의 재조정 | InProgress: 마지막 VSS 해제 관측 자동 통과, 원격 동일 workspace의 released 복구·소유 자원0 확인 | 사용자 쓰기 없는 부분 준비 회수 조건, commit/ref/manifest/seal 중단, unmount/Git/delta/VSS 해제 응답 유실, 결과 독립성과 실제 자원 0/부재 |
-| NR-08 | 최종 후보·Unity 회귀·문서 | InProgress: ARM Windows/x64 Unity 단일 작업의 검증 2건·결과 보존·workspace 회수 통과 | 원격 workspace 소유 자원0과 canonical Editor/MCP 세션 정상 종료 확인. 같은 후보의 단일 정상 회귀이며 ARM Windows 원본/A/B·재부팅 후 loaded-code·fingerprint·validation·dirty 통합 차단과 전체 NR 완료는 남음 |
+| NR-07 | 부분 준비·결과·회수의 재조정 | InProgress: 마지막 VSS 해제 관측 자동 통과, 원격 동일 workspace의 released 복구·소유 자원0, LV 독립 결과·최종 회수 확인 | 사용자 쓰기 없는 부분 준비 회수 조건, commit/ref/manifest/seal 중단, unmount/Git/delta/VSS 해제 응답 유실, 결과 독립성과 실제 자원 0/부재 |
+| NR-08 | 최종 후보·Unity 회귀·문서 | InProgress: 이전 ARM/x64 단일 검증 2건, 새 LV Windows x64 단일 검증 3건·재연결·결과·회수 통과 | 원격 workspace 소유 자원0과 canonical Editor/MCP 세션 정상 종료 확인. 같은 후보의 단일 정상 회귀이며 ARM Windows 원본/A/B·재부팅 후 loaded-code·fingerprint·validation·dirty 통합 차단과 전체 NR 완료는 남음 |
 
 NR-01~03/05/07의 계약·프로세스 시험을 먼저 수행하고 NR-04/06의 격리 환경 검증, NR-08의 최종 후보로 이어 간다. 실제 장애 경계 목록과 데이터 지속성 oracle은 계획에 정의한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
 

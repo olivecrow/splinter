@@ -10,24 +10,42 @@ public sealed class VssSnapshotTree : ISnapshotTree, IDisposable
 {
     public SnapshotReference Snapshot { get; }
     private readonly string root;
+    private readonly bool verifiedAccess;
+    private readonly Func<SnapshotObservation>? verifiedHealth;
     private readonly Dictionary<string, SafeFileHandle> handles = new(StringComparer.OrdinalIgnoreCase);
     private readonly Queue<string> handleOrder = new();
     private readonly Dictionary<string, SnapshotEntry?> metadata = new(StringComparer.OrdinalIgnoreCase);
     private readonly Queue<string> metadataOrder = new();
     public const int MaxReadHandles = 32;
     public const int MaxMetadataEntries = 32768;
-    public VssSnapshotTree(SnapshotReference snapshot)
+    public VssSnapshotTree(SnapshotReference snapshot, SnapshotReadAccess? access = null, Func<SnapshotObservation>? verifiedHealth = null)
     {
+        string readRoot = ResolveReadRoot(snapshot, access);
         if (!OperatingSystem.IsWindows() || snapshot.Provider != "windows-vss-system" ||
             !snapshot.Persistent || !snapshot.Differential ||
-            !snapshot.RootPath.StartsWith(@"\\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy", StringComparison.OrdinalIgnoreCase))
+            !VssSnapshotVerification.TryRelative(readRoot, out _))
             throw new WorkspaceException("SnapshotProviderUnsupported", "Only a validated persistent system-provider VSS snapshot is accepted.");
-        Snapshot = snapshot; root = snapshot.RootPath.TrimEnd('\\', '/');
+        Snapshot = snapshot; root = readRoot.TrimEnd('\\', '/'); this.verifiedHealth = verifiedHealth; verifiedAccess = access is not null;
         EnsureAvailable();
+    }
+    internal static string ResolveReadRoot(SnapshotReference snapshot, SnapshotReadAccess? access)
+    {
+        access?.RequireMatch(snapshot);
+        string readRoot = access?.RootPath ?? snapshot.RootPath;
+        if (!VssSnapshotVerification.TryRelative(readRoot, out string relative) ||
+            !VssSnapshotVerification.TryRelative(snapshot.RootPath, out string original) || relative != original)
+            throw new WorkspaceException("SnapshotIdentityMismatch", "Read access must retain the captured source-relative path.");
+        return readRoot;
     }
     public void EnsureAvailable()
     {
-        var observation = SnapshotAvailabilityProbe.Observe(Snapshot);
+        var observation = verifiedHealth?.Invoke();
+        if (observation is null || observation.Available == true)
+        {
+            observation = SnapshotAvailabilityProbe.Observe(Snapshot with { RootPath = root });
+            if (verifiedAccess && observation.Available == false)
+                observation = new(Snapshot.Id, null, "SnapshotObservationUnknown", null, null);
+        }
         if (observation.Available != true)
             throw new WorkspaceException(observation.FailureCode ?? "SnapshotObservationUnknown", "The original snapshot cannot be read. Preserve the delta and do not recapture.");
     }

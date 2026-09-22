@@ -32,6 +32,27 @@
     "deltaPath": { "type": "string", "minLength": 1 },
     "mountPath": { "type": "string", "minLength": 1 },
     "controlPath": { "type": "string", "minLength": 1 },
-    "token": { "type": "string", "pattern": "^[0-9a-f]{32}$" }
-  }
+    "token": { "type": "string", "pattern": "^([0-9a-f]{32}|[0-9a-f]{64})$" },
+    "readAccess": {
+      "type": ["object", "null"], "additionalProperties": false,
+      "required": ["snapshotId", "rootPath", "verificationId"],
+      "properties": {
+        "snapshotId": {"type":"string", "minLength":1},
+        "rootPath": {"type":"string", "minLength":1},
+        "verificationId": {"type":"string", "minLength":1}
+      }
+    },
+    "snapshotReceiptDirectory": {"type":["string","null"], "minLength":1},
+    "snapshotOwnerId": {"type":["string","null"], "minLength":1}
+  },
+  "allOf": [{
+    "if": {"anyOf": [
+      {"required":["readAccess"], "properties":{"readAccess":{"type":"object"}}},
+      {"required":["snapshotReceiptDirectory"], "properties":{"snapshotReceiptDirectory":{"type":"string"}}},
+      {"required":["snapshotOwnerId"], "properties":{"snapshotOwnerId":{"type":"string"}}}
+    ]},
+    "then": {"required":["readAccess","snapshotReceiptDirectory","snapshotOwnerId"], "properties":{
+      "readAccess":{"type":"object"}, "snapshotReceiptDirectory":{"type":"string"}, "snapshotOwnerId":{"type":"string"}
+    }}
+  }]
 }

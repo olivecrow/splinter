@@ -12,7 +12,7 @@
 - `--home`은 짧은 경로를 사용한다. NI의 깊은 시험 경로에서는 Unity 패키지 DLL 전체 경로가 270자일 때 초기 로드 예외가 관측됐다. 스크립트 검증과 실행은 통과했지만 긴 패키지 경로와 일반 에셋 로드를 지원으로 확정하지 않는다. 초기 임포트 시간의 SLA도 없다.
 - 생성/재연결에는 상태 볼륨의 여유 2 GiB, 새 캡처에는 기존 VSS diff-area 상한의 여유 8 GiB가 필요하다. 설치·볼륨·상한 설정은 자동 변경하지 않는다. 프로젝트 밖 쓰기도 VSS 공간을 사용한다.
 
-VSS capture/release만 관리자 권한이 필요하다. 일반 CLI는 자동 승격하지 않고 `SnapshotPrivilegeRequired`와 정확한 helper 경로·argument list, 그 뒤 재시도할 workspace 명령을 `nextActions`에 반환한다. 승인된 helper만 관리자 권한으로 실행한 뒤 원래 명령을 다시 호출한다. Unity와 일반 CLI를 관리자 계정으로 계속 실행하는 구조가 아니다. helper의 `operation-result.json`에는 성공 또는 진단이 남는다.
+VSS capture/release와 정확한 live ID를 확인하는 Observe helper에는 관리자 권한이 필요하다. 일반 CLI는 자동 승격하지 않고 `SnapshotPrivilegeRequired`와 정확한 helper 경로·argument list, 그 뒤 동일 인자로 재시도할 workspace ensure, unity start 또는 workspace release를 `nextActions`에 반환한다. 승인된 helper만 관리자 권한으로 실행한 뒤 원래 명령을 다시 호출한다. Unity와 일반 CLI를 관리자 계정으로 계속 실행하는 구조가 아니다. helper의 `operation-result.json`에는 성공 또는 진단이 남는다.
 
 `SnapshotPrivilegeRequired` 응답은 helper 실행이 필요하다는 뜻이며 UAC 창 표시나 snapshot 생성의 증거가 아니다. 외부 실행자가 승격을 요청했다면 그 소유 프로세스의 종료 상태와 `capture-intent.json`·`capture-return.json`·`snapshot.json`·`operation-result.json`을 대조한다. 사용자에게 창이 보이지 않으면 대기 상태만으로 확인 버튼을 반복 요청하지 않는다. 기존 helper가 아직 실행 중이거나 캡처 부작용을 판정할 수 없을 때는 중복 helper/새 캡처를 시작하지 않고 기존 기록을 보존한다.
 
@@ -35,7 +35,7 @@ splinter workspace checkpoint --id <id> --message <결과 설명> --home <상태
 splinter workspace release --id <id> --home <상태 경로>
 ```
 
-NTFS refresh는 incremental compilation을 요청한다. 일반 제품의 전체 대상 소스 fingerprint를 요청 ID·컴파일 callback·domain reload와 연결한다. 검증 뒤 소스나 `.meta`가 바뀌면 이전 성공은 무효다. `Accepted`는 접수이며 `workspace.validation.success`와 현재 fingerprint 일치가 완료 조건이다. 변경 없는 incremental 요청에서 reload가 없으면 성공을 발행하지 않는다. 현재 실제 실행 관문은 스크립트 변경 후 검증이며 일반 에셋·패키지 검증은 별도다. fixture의 `snapshot-probe.json`은 현재 로드된 코드의 값·MVID·domain 세대를 추가로 기록하며 전체 소스 검증을 대체하지 않는다.
+NTFS refresh는 incremental compilation을 요청한다. 일반 제품의 전체 대상 소스 fingerprint를 요청 ID·컴파일 callback·domain reload와 연결한다. 검증 뒤 소스나 `.meta`가 바뀌면 이전 성공은 무효다. `Accepted`는 접수이며 `workspace.validation.success`와 현재 fingerprint 일치가 완료 조건이다. 변경 없는 incremental 요청에서 reload가 없으면 성공을 발행하지 않는다. 현재 실제 실행 관문은 스크립트 변경 후 검증이며 일반 에셋·패키지 검증은 별도다. fixture의 `snapshot-probe.json`은 현재 로드된 코드의 값·PID·generation을 추가로 기록하며 전체 소스 검증을 대체하지 않는다. fixture 자체 보고에는 MVID가 없다. 제품 WorkspaceBridge의 Ready heartbeat는 같은 파일에 현재 로드된 함수의 값·domain generation·assemblyMvid·PID를 추가 보고한다.
 
 checkpoint는 앱과 자식의 종료를 확인한 뒤 검증한 소스만 커밋하고 `refs/splinter/snapshot-results/<id>`와 `workspace.snapshot.result`를 남긴다. manifest에는 snapshot ID, revision, fingerprint, 결과 ref, 저널 sequence/길이/SHA-256이 있다. 결과 객체가 Git 저장소 안에 있는지 검증한다. 결과 커밋과 기록은 회수 뒤에도 남는다. 새로운 편집에는 새 key를 사용한다.
 
@@ -62,13 +62,21 @@ provider가 끝나면 앱/자식이 남지 않았음을 확인한 후 같은 ens
 
 NTFS 응답의 `data.recovery`는 `disposition`, `reasonCode`, `nextCommand`를 반환한다. `ready`는 기존 다음 작업을 진행할 수 있음을, `resume-ensure`/`resume-release`는 같은 identity의 해당 단계를 재개할 수 있음을 나타낸다. `observe`는 관측 복구 후 status를 다시 조회하고, `preserve`는 데이터·영수증을 보존하며 원인을 해결해야 한다. `released`의 다음 행동은 list다. 실제 호출 인자는 `nextActions`에 있으며 `data.nextCommand`와 같은 명령을 가리킨다. 복구 분류 자체가 자원 삭제 승인은 아니며 각 명령에서 소유권·결과·회수 조건을 다시 검사한다.
 
-스냅샷 접근 실패는 `SnapshotObservationUnknown`이다. `snapshotAvailability`와 `snapshotStorage.availability`는 `available`/`missing`/`unknown` 중 하나이며 unknown에서는 기존 boolean 필드를 생략한다. 일반 ensure와 회수 전 단계는 관측 복구까지 보존한다. 관측한 부재와 접근 오류를 구분하며, 경로가 파일로 바뀌면 `SnapshotIdentityMismatch`로 보존한다. 현재 경로·볼륨 접근 관측은 재부팅 뒤 살아 있는 VSS 공급자·볼륨 ID 대조를 대신하지 않는다.
+스냅샷 접근 실패는 `SnapshotObservationUnknown`이다. `snapshotAvailability`와 `snapshotStorage.availability`는 `available`/`missing`/`unknown` 중 하나이며 unknown에서는 기존 boolean 필드를 생략한다. 일반 ensure와 회수 전 단계는 관측 복구까지 보존한다. 관측한 부재와 접근 오류를 구분하며, 경로가 파일로 바뀌면 `SnapshotIdentityMismatch`로 보존한다. 정확한 ID의 성공한 부재 조회만 missing으로 판정하며 읽기 경로의 소실만으로 VSS 부재를 주장하지 않는다. 새 연결의 live identity 대조는 아래 계약을 따른다.
 
 마지막 `release-snapshot` 단계에서는 독립 결과를 다시 검증하고 앱/provider·mount·Git 등록·delta 회수를 확인한 뒤 정확한 VSS helper의 관측을 갱신할 수 있다. 삭제된 장치 경로가 Win32 21을 반환해도 오류만으로 부재로 바꾸지 않는다. 같은 owner와 snapshot의 `released` 영수증, helper가 VSS ID의 부재를 확인한 `observation.json`, 현재 OS의 `LastBootUpTime` 일치가 있어야 모호한 경로 관측을 해소한다. 부팅 정보가 없거나 달라진 이전 영수증은 삭제 없는 `-Action Observe` 관리자 helper와 동일 release 재시도를 반환한다. CLI 자체를 관리자 실행하지 않는다. 부팅 정보 조회 실패는 unknown으로 남고, 회수 완료를 저장할 때도 모든 자원 부재를 검사한다. 이미 해제된 장치 경로가 다른 디렉터리로 재사용되면 identity 불일치로 보존한다.
 
-provider의 `state.json`도 같은 probe를 사용하며 관측 불가를 `snapshot-unknown`으로 기록한다. 완결 저널 프레임의 checksum·sequence·JSON·경로/범위 메타데이터가 잘못됐거나 identity JSON이 손상되면 `DeltaCorrupt`로 실패하고 파일을 그대로 보존한다. 불완전한 마지막 프레임만 기존 계약대로 재생에서 제거하며 완결 손상을 잘라내지 않는다.
+provider의 `state.json`도 검증된 접근 관측을 사용하며 관측 불가를 `snapshot-unknown`으로 기록한다. 완결 저널 프레임의 checksum·sequence·JSON·경로/범위 메타데이터가 잘못됐거나 identity JSON이 손상되면 `DeltaCorrupt`로 실패하고 파일을 그대로 보존한다. 불완전한 마지막 프레임만 기존 계약대로 재생에서 제거하며 완결 손상을 잘라내지 않는다.
 
 손상된 workspace JSON은 `StateCorrupt`, 기존 control/workspace 경로 옆의 누락된 JSON은 `StateRecoveryRequired`, 읽을 수 없는 JSON은 `StateReadUnavailable`이다. 같은 key로 새 작업을 만들지 않는다. 상태 기록 실패는 `StateWriteIncomplete`이며 이전 기록과 임시 파일을 보존한다. 작업 실패 기록마저 저장할 수 없으면 원래 오류 코드를 details에 포함한다. 이 계약은 파일 잠금·중단된 임시 파일로 검증했고 실제 디스크 고갈/전원 중단 검증은 남아 있다.
+
+## 살아 있는 VSS 식별과 읽기 위치
+
+`snapshot/snapshot.json` version 2의 `captureIdentity`는 원래 snapshot ID·system provider ID·volume GUID 경로·볼륨 내 상대 경로·캡처 시각·persistent/differential/no-auto-release 조건을 고정한다. `verification-request.json`은 owner·원래 ID·요청 세대·현재 boot를, `live-observation.json`은 실제 조회 객체의 identity와 현재 device root·조회 성공/실패를 기록한다. 현재 읽기 위치는 검증된 device root와 고정 상대 경로로만 만든 `SnapshotReadAccess`다. `SnapshotReference.RootPath`, overlay identity와 기존 저널은 캡처 당시 그대로 유지한다. available 응답의 `snapshotStorage.readAccess`는 snapshotId·rootPath·verificationId를 제공한다.
+
+새 provider 연결은 이전 실행이 소비한 verification ID와 다른 현재 부팅의 관측을 요구한다. `SnapshotVerificationRequired`의 재개 명령은 동일 ensure다. 관리자 Observe 뒤 같은 요청 재시도는 준비된 관측을 재사용하며 중복 캡처·등록·provider를 만들지 않는다. Observe는 VSS·원본·볼륨 설정을 변경하지 않고 소유 관측 기록만 저장한다. 정상 status는 같은 연결의 검증을 재사용한다. provider는 주기적으로 관측과 현재 읽기 경로를 확인하며 파일 I/O마다 CIM을 호출하지 않는다. 실행 중 다른 접근 정보로 변경되면 거부하고 새 연결에서만 읽기 경로를 바꾼다. 외부 관리자의 VSS 삭제·대체와 모든 동시 경쟁 조건을 검증했다는 뜻은 아니다.
+
+version 1은 원래 ID를 새로 조회해 기존 owner/provider/시각/조건과 대조한 경우에만 `verified-identity.json`을 별도로 기록한다. provenance는 `legacy-revalidated`이며 원래 영수증을 변경하거나 새 필드를 캡처 당시 증거라고 표시하지 않는다. version 2의 누락된 captureIdentity·지원하지 않는 버전은 손상으로 보존한다. 다른 owner/ID/provider/volume/상대 경로는 `SnapshotIdentityMismatch`, 손상 JSON은 `SnapshotObservationCorrupt`, 중단된 `.new`/관측 요청 `.tmp`는 `SnapshotObservationIncomplete`다. 파일이나 델타를 지우거나 이전 성공으로 대체하지 않는다. 새 boot·연결 세대, 최신 조회 실패, 손상·부분 기록과 접근 불가는 이전 성공의 재사용을 막는다. 실제 재부팅·강제 전원 종료는 별도 미검증 관문이다.
 
 ## 회수와 관측
 
