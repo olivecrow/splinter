@@ -29,16 +29,17 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 - 별도 `snapshot-spike`에서 VSS 불변 기준·WinFsp 범위 저널·실제 no-checkout Git/Unity를 연결하고 SO-01~06 fixture 증거를 확보했다. 최초 payload·읽기 hydration 0, 큰 파일 4KiB 쓰기, 원본/A/B 코드 실행, 같은 기준 재연결, 독립 결과와 소유 자원 회수를 검증했다.
 - 일반 `workspace ensure --storage ntfs-snapshot`으로 최초 payload/hydration 0, 범위 쓰기, 원본/A/B 컴파일·loaded-code, 같은 기준 재연결, 독립 결과·quota·snapshot 소실 보호를 검증했다. 앱/provider·mount·Git 등록·delta·소유 VSS를 모두 회수했고 독립 결과와 기존 복원 지점은 보존했다. 실제 dirty 원본 통합 요청은 GitDirtyWorktree로 거부됐고 원본 HEAD·인덱스·변경 내용과 독립 결과를 보존했다.
 - NR 복구 행동·상태 보존·저널 의미 검증·미지원 속성의 변경 전 거부와 마지막 VSS release 재개를 구현했다. fake 불변 트리의 자식 프로세스 강제 종료 3회, 실제 WinFsp mount의 API 거부 5건, 실제 VSS 읽기·회수 재개를 확인했다. ARM Windows의 기존 x64 Unity 단일 workspace는 기본/변경 코드 검증 2건과 독립 결과·released·소유 자원 0을 확인했다. NR 전체 완료와 구분한다.
-- 현재 동일 후보의 로컬·VIVOBOOK 자동 검증은 각각 140개 중 139 통과·0 실패·선택적 ReFS 1개 skip이다. 재부팅·전원 손실·물리 볼륨 고갈, 긴 Unity 패키지 경로·일반 dirty/LFS·에셋/패키지·Play/Unity 테스트는 별도 남은 조건이다. 공개 48개 시나리오 전체 완료로 집계하지 않는다.
+- 이전 NR 후보의 로컬·VIVOBOOK 자동 검증은 각각 140개 중 139 통과·0 실패·선택적 ReFS 1개 skip이다. 이후 LV와 이번 수정 후보의 증거는 각각 [LV 기록](../verification/ntfs-live-vss-identity.md), [검토 후 수정 검증](../verification/workspace-review-fixes.md)에 분리한다. 재부팅·전원 손실·물리 볼륨 고갈, 긴 Unity 패키지 경로·일반 dirty/LFS·에셋/패키지·Play/Unity 테스트는 별도 남은 조건이다. 공개 48개 시나리오 전체 완료로 집계하지 않는다.
 
 ### 다음 구현 우선순위
 
 [NTFS workspace 1차 통합 범위](ntfs-workspace-integration.md)의 NI-01~08은 내부 알파 fixture 범위에서 완료했다. 실제 회수·released key 재호출·dirty 원본 통합 차단을 회귀 기준으로 유지한다. 종료된 NI/SO 자원이나 결과를 임의로 재생성·삭제하지 않는다. 현재 상위 구현 계획은 [NTFS 내부 알파 2차](ntfs-recovery-and-support.md)의 NR-01~08이며 [NR 기록](../verification/ntfs-recovery.md)에 공통 복구 계약의 부분 구현과 원격 VSS·파일 API·단일 Unity 회귀 증거를 기록했다. 이번 원격 시험 세션은 종료했고 프로젝트·독립 결과·원시 증거는 후속 시험용으로 보존한다.
 
-1. **LV 완료 이후:** [live VSS 식별과 재개](ntfs-live-vss-identity.md)의 캡처/live identity·현재 읽기 경로 분리·비관리자 재개·legacy 보존과 LV-01~08 검증을 완료했다. [새 후보 기록](../verification/ntfs-live-vss-identity.md)은 자동 180 통과·실제 VSS/Git 재연결·단일 Unity 검증 3건·독립 결과·회수를 포함한다. **다음 NR 범위:** 나머지 외부 부작용 중단·파일 지원/거부 → 격리 Windows의 재부팅·물리 공간 고갈·강제 전원 종료 → ARM A/B·실제 재부팅 후 Unity 최종 회귀다. 이전 VIVOBOOK 후보의 증거를 새 후보로 승계하지 않는다. 물리 공간 고갈용 격리 볼륨은 아직 준비하지 않았다.
-2. **그 다음 Unity 단위:** 자체 제작 에셋과 로컬 시험 패키지로 compile/import·저장/재개방·실제 Play·EditMode/PlayMode 테스트·결과/회수를 연결한다. 전체 fingerprint·loaded-code·실행 세대와 실패/0개 선택/취소/stale 증거를 구분한다. 구매 에셋은 필요하지 않다.
-3. **Git 입력·통합과 성능 확대:** dirty/LFS·linked-worktree 입력, clean 통합·충돌·최신 통합 후보 재검증을 별도 범위로 닫는다. 대표 에셋/프로젝트는 필요한 종류·규모를 정해 요청하고 초기 import·metadata·전체 Git 읽기·누적 저널 비용을 측정해 개선한다.
-4. **공개 운영:** 상주 Host·설치·Codex Runner·DAG/자원 예약과 위 Unity/통합 검증을 공개 제품 루프로 연결한다. 공개 48개 완료는 별도이며 상세 기준은 기획서 15절과 [NTFS 통합 조건](ntfs-snapshot-overlay-spike.md)을 따른다.
+1. **LV 완료 이후:** [live VSS 식별과 재개](ntfs-live-vss-identity.md)의 캡처/live identity·현재 읽기 경로 분리·비관리자 재개·legacy 보존과 LV-01~08 검증을 완료했다. [새 후보 기록](../verification/ntfs-live-vss-identity.md)은 자동 180 통과·실제 VSS/Git 재연결·단일 Unity 검증 3건·독립 결과·회수를 포함한다. **지원 확대 전에 남은 NR 범위:** 나머지 외부 부작용 중단·파일 지원/거부 → 격리 Windows의 재부팅·물리 공간 고갈·강제 전원 종료 → ARM A/B·실제 재부팅 후 Unity 최종 회귀다. 이전 VIVOBOOK 후보의 증거를 새 후보로 승계하지 않는다. 물리 공간 고갈용 격리 볼륨은 아직 준비하지 않았다.
+2. **제한된 작업·비용 검증을 먼저 실행:** [PV-01/02](ntfs-recovery-and-support.md#제한된-병렬-작업과-비용-관문)의 실제 AI A/B 스크립트 작업·실패 격리·재접속·독립 결과·회수와 단계별 읽기/시간/저장량을 NR 전체 완료 전에 확인한다. 현재 NotRun이며 다음 실행 단위다. 결과 보존 결함을 먼저 고치고, NR은 지원 확대의 필수 관문으로 유지한다. 선택적 ReFS 확장과 daemon/SQLite 도입은 이 검증의 선행 과제로 두지 않는다.
+3. **일반 Unity 단위:** 자체 제작 에셋과 로컬 시험 패키지로 compile/import·저장/재개방·실제 Play·EditMode/PlayMode 테스트·결과/회수를 연결한다. 전체 fingerprint·loaded-code·실행 세대와 실패/0개 선택/취소/stale 증거를 구분한다. 구매 에셋은 필요하지 않다.
+4. **Git 입력·통합과 성능 확대:** dirty/LFS·linked-worktree 입력, clean 통합·충돌·최신 통합 후보 재검증을 별도 범위로 닫는다. 대표 에셋/프로젝트는 필요한 종류·규모를 정해 요청하고 초기 import·metadata·전체 Git 읽기·누적 저널 비용을 측정해 개선한다.
+5. **공개 운영:** 상주 Host·설치·Codex Runner·DAG/자원 예약과 위 Unity/통합 검증을 공개 제품 루프로 연결한다. 공개 48개 완료는 별도이며 상세 기준은 기획서 15절과 [NTFS 통합 조건](ntfs-snapshot-overlay-spike.md)을 따른다.
 
 ## 2. AI 사용성을 먼저 고정한다
 

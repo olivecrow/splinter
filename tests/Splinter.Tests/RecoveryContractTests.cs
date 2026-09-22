@@ -27,7 +27,7 @@ public sealed class RecoveryContractTests
             Step = step, Attached = attached,
             Reference = new("fixed-snapshot", "fake", "source", "fixed-root", DateTimeOffset.UtcNow, true, true, "fake"),
             Observation = new(available, mounted, mounted, true, 0, 0, 0, FailureCode: failure),
-            Result = independentResult ? new("fixed-snapshot", "commit", "fingerprint", "result-ref", new(1, 100, "hash"), true) : null
+            Result = independentResult ? new("fixed-snapshot", "commit", "fingerprint", "result-ref", new(1, 100, "hash"), true, SnapshotResult.StableJournalProtocol) : null
         };
         var recovery = SnapshotRecoveryDecision.For(record);
         Assert.Equal(disposition, recovery.Disposition);

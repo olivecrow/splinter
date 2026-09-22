@@ -95,6 +95,7 @@ public sealed partial class WorkspaceCoordinator
                 {
                     if (state.Result is not { IndependentOfSnapshot: true })
                         throw new WorkspaceException("SnapshotMissing", "The snapshot is gone and no independent result exists. Preserve the delta.");
+                    RequireStableCollection(state);
                     // A collected result can outlive its base. Do not inspect or
                     // mutate an unavailable tree: unmount first, then require
                     // the entire journal to equal the independently saved seal.
@@ -102,20 +103,15 @@ public sealed partial class WorkspaceCoordinator
                 }
                 else
                 {
-                    var current = await sources.InspectAsync(w, ct);
-                    if (current.HasChanges || w.ResultRevision is not null && current.Revision != w.ResultRevision)
-                        throw new WorkspaceException("UncollectedChanges", "Preserve and checkpoint the current source before release.");
-                    // An untouched source can also be independently preserved. No
-                    // successful validation is invented for that cleanup-only case.
-                    w.ResultRevision ??= current.Revision;
-                    string reference = await SnapshotSources.PreserveAsync(w, control, ct);
+                    // Infrastructure removal legitimately appends to the journal.
+                    // Complete it before the stable source-collection interval.
                     await applications.RemoveInfrastructureAsync(w, control, ct);
-                    var seal = await Snapshots.SealAsync(w, control, ct);
-                    state.Result = new(state.Reference!.Id, current.Revision, current.Fingerprint, reference, seal, true);
+                    await CollectSnapshotResultAsync(w, ct);
                 }
                 w.Phase = "releasing";
                 SnapshotStep(w, "release-unmount");
             }
+            RequireStableCollection(state);
             await RequireStopped(w, ct);
             await SnapshotSources.VerifyResultAsync(w, control, ct);
             if (state.Step == "release-unmount")
@@ -184,10 +180,25 @@ public sealed partial class WorkspaceCoordinator
     {
         await RequireStopped(w, ct);
         string control = store.ControlPath(w.Id);
+        var before = await Snapshots.SealAsync(w, control, ct);
         var source = await sources.InspectAsync(w, ct);
+        if (source.HasChanges || w.ResultRevision is not null && source.Revision != w.ResultRevision)
+            throw new WorkspaceException("UncollectedChanges", "Preserve and checkpoint the current source before collection.");
+        // A clean untouched source may be preserved for cleanup without claiming
+        // validation. No manifest is published until the full interval is stable.
+        w.ResultRevision ??= source.Revision;
         string reference = await SnapshotSources.PreserveAsync(w, control, ct);
         var seal = await Snapshots.SealAsync(w, control, ct);
-        RequireSnapshot(w).Result = new(RequireSnapshot(w).Reference!.Id, source.Revision, source.Fingerprint, reference, seal, true);
+        if (seal != before)
+            throw new WorkspaceException("DeltaChangedAfterCollection", "Writes overlapped result collection. Preserve the journal and recollect from a stable source before deletion.");
+        RequireSnapshot(w).Result = new(RequireSnapshot(w).Reference!.Id, source.Revision, source.Fingerprint, reference, seal, true,
+            SnapshotResult.StableJournalProtocol);
+    }
+
+    private static void RequireStableCollection(SnapshotWorkspaceState state)
+    {
+        if (state.Result is not { IndependentOfSnapshot: true, CollectionProtocol: SnapshotResult.StableJournalProtocol })
+            throw new WorkspaceException("SnapshotResultRevalidationRequired", "This result predates stable journal collection. Preserve its resources; recollect while the original snapshot and mount are available before starting release.");
     }
 
     private async Task RequireStopped(WorkspaceRecord w, CancellationToken ct)

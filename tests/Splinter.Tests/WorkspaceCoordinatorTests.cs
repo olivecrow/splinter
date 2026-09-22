@@ -6,6 +6,53 @@ namespace Splinter.Tests;
 public sealed class WorkspaceCoordinatorTests
 {
     [Fact]
+    public async Task RepeatedStatusDoesNotInspectSourceWhileWaitingOrAfterAResultWasReconciled()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications();
+        string id = (await New(d, sources, apps).EnsureAsync(Project(d), "poll", "main", "git-checkout", true, ct)).Workspace.Id;
+        await New(d, sources, apps).RefreshAsync(id, ct);
+        int before = sources.InspectCalls;
+        for (int i = 0; i < 10; i++) Assert.Null((await New(d, sources, apps).StatusAsync(id, ct)).Source);
+        Assert.Equal(before, sources.InspectCalls);
+        apps.EmitValidation = true;
+        var completed = await New(d, sources, apps).StatusAsync(id, ct);
+        Assert.True(completed.Workspace.Validation!.Success);
+        Assert.Equal("verified", completed.SourceVerification);
+        Assert.True(completed.ValidationCurrent);
+        Assert.Equal("initial", completed.Source!.Fingerprint);
+        Assert.Equal(before + 1, sources.InspectCalls);
+        for (int i = 0; i < 10; i++) Assert.Null((await New(d, sources, apps).StatusAsync(id, ct)).Source);
+        Assert.Equal(before + 1, sources.InspectCalls);
+        sources.Fingerprint = "changed-after-validation";
+        var historical = await New(d, sources, apps).StatusAsync(id, ct);
+        Assert.Equal("not-checked", historical.SourceVerification);
+        Assert.Null(historical.ValidationCurrent);
+        Assert.True(historical.Workspace.Validation!.Success);
+        Assert.Equal("ValidationRequired", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            New(d, sources, apps).CheckpointAsync(id, "stale result", ct))).Code);
+        Assert.Equal(0, sources.CommitCalls);
+    }
+
+    [Fact]
+    public async Task ExplicitSourceVerificationInvalidatesAnOldSuccess()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications { EmitValidation = true };
+        var c = New(d, sources, apps);
+        string id = (await c.EnsureAsync(Project(d), "verify", "main", "git-checkout", true, ct)).Workspace.Id;
+        await c.RefreshAsync(id, ct); await c.StatusAsync(id, ct);
+        sources.Fingerprint = "edited";
+        int before = sources.InspectCalls;
+        var fresh = await New(d, sources, apps).StatusAsync(id, ct, verifySource: true);
+        Assert.Equal(before + 1, sources.InspectCalls);
+        Assert.Equal("edited", fresh.Source!.Fingerprint);
+        Assert.False(fresh.ValidationCurrent);
+        Assert.Null(fresh.Workspace.Validation);
+        Assert.Equal("source-changed", fresh.Workspace.Phase);
+    }
+
+    [Fact]
     public async Task EnsureIsIdempotentAcrossFreshStoreInstancesAndRejectsParameterConflict()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -155,10 +202,14 @@ public sealed class WorkspaceCoordinatorTests
         public string ResolvedRevision = "base";
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(ResolvedRevision);
         public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => Task.FromResult("fake-cache");
-        public int CreateCalls, CommitCalls, ReleaseCalls; public string Fingerprint = "initial"; public string Revision = "rev"; public TimeSpan CreateDelay; public bool DeleteAndThrowOnRelease, LeaveDirectoryOnRelease, Unregistered;
+        public int CreateCalls, CommitCalls, ReleaseCalls, InspectCalls; public string Fingerprint = "initial"; public string Revision = "rev"; public TimeSpan CreateDelay; public bool DeleteAndThrowOnRelease, LeaveDirectoryOnRelease, Unregistered;
         public async Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) { Interlocked.Increment(ref CreateCalls); await Task.Delay(CreateDelay, ct); Directory.CreateDirectory(w.Path); return new(w.Path, w.SourceReference, ResolvedRevision); }
-        public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default) => Directory.Exists(w.Path) && !Unregistered
-            ? Task.FromResult(new SourceState(Revision, Fingerprint, false, [])) : throw new DirectoryNotFoundException(w.Path);
+        public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)
+        {
+            InspectCalls++;
+            return Directory.Exists(w.Path) && !Unregistered
+                ? Task.FromResult(new SourceState(Revision, Fingerprint, false, [])) : throw new DirectoryNotFoundException(w.Path);
+        }
         public Task<string> CommitAsync(WorkspaceRecord w, string m, CancellationToken ct = default) { Interlocked.Increment(ref CommitCalls); Revision = "result"; return Task.FromResult(Revision); }
         public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string t, CancellationToken ct = default) => Task.FromResult(new IntegrationResult("result", false));
         public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) { Interlocked.Increment(ref ReleaseCalls); if (DeleteAndThrowOnRelease) { DeleteAndThrowOnRelease = false; Unregistered = true; if (!LeaveDirectoryOnRelease) Directory.Delete(w.Path); throw new IOException("simulated interrupted release"); } if (Directory.Exists(w.Path)) Directory.Delete(w.Path, true); return Task.CompletedTask; }

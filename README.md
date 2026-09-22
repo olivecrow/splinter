@@ -12,9 +12,9 @@ AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실
 
 완료한 구현 단위는 [NTFS workspace 1차 통합](docs/plans/ntfs-workspace-integration.md)이다. NI-01~08의 1차 내부 알파 범위를 검증했다. 실제 원본의 미커밋 변경이 있으면 통합을 거부하고 HEAD·인덱스·변경 내용·독립 결과를 보존하는 것까지 확인했다. 일반 에셋·재부팅·공개 제품 전체 지원은 후속 범위다. 기존 Unity fixture와 합성 파일을 사용하고 구매 에셋은 요구하지 않는다.
 
-상위 작업은 [NTFS 내부 알파 2차](docs/plans/ntfs-recovery-and-support.md)의 NR-01~08이다. 공통 복구·상태/저널 보존·파일 속성 거부·VSS 해제 관측과 [live VSS 식별·재연결](docs/verification/ntfs-live-vss-identity.md)을 구현했다. 새 로컬 후보의 자동 시험은 180 통과·0 실패·선택적 ReFS 1 skip이다. 이전 VIVOBOOK 후보의 139개 자동 통과·ARM Windows/x64 Unity 단일 작업·5개 파일 API 거부는 [NR 기록](docs/verification/ntfs-recovery.md)에 별도 보존한다.
+상위 작업은 [NTFS 내부 알파 2차](docs/plans/ntfs-recovery-and-support.md)의 NR-01~08이다. 공통 복구·상태/저널 보존·파일 속성 거부·VSS 해제 관측과 [live VSS 식별·재연결](docs/verification/ntfs-live-vss-identity.md)을 구현했다. LV 후보의 자동 시험은 180 통과·0 실패·선택적 ReFS 1 skip이다. 이후 수집 경쟁 조건·반복 status 읽기·공통 mount 접근 규칙을 수정한 현재 후보는 [검토 후 수정 검증](docs/verification/workspace-review-fixes.md)에 기록한다. 이전 VIVOBOOK 후보의 139개 자동 통과·ARM Windows/x64 Unity 단일 작업·5개 파일 API 거부는 [NR 기록](docs/verification/ntfs-recovery.md)에 별도 보존한다.
 
-[살아 있는 VSS 식별과 같은 작업 재개](docs/plans/ntfs-live-vss-identity.md)의 LV-01~08을 정한 시험 수준에서 완료했다. 캡처 identity·현재 읽기 위치 분리, 비관리자 Observe/재개, legacy 보존과 실제 VSS/Git 재연결·범위 쓰기·단일 Unity 검증 3건·독립 결과·최종 회수를 확인했다. 다음은 나머지 중단·파일 경계와 격리 환경의 재부팅·전원·공간 장애, ARM A/B다. NR 전체나 공개 제품 지원 완료가 아니다.
+[살아 있는 VSS 식별과 같은 작업 재개](docs/plans/ntfs-live-vss-identity.md)의 LV-01~08을 정한 시험 수준에서 완료했다. 캡처 identity·현재 읽기 위치 분리, 비관리자 Observe/재개, legacy 보존과 실제 VSS/Git 재연결·범위 쓰기·단일 Unity 검증 3건·독립 결과·최종 회수를 확인했다. 다음 실행 단위는 제한된 fixture의 [실제 AI A/B 작업·비용 관문](docs/plans/ntfs-recovery-and-support.md#제한된-병렬-작업과-비용-관문)이다. 나머지 중단·파일 경계와 격리 환경의 재부팅·전원·공간 장애, ARM A/B는 지원 확대 전에 완료해야 한다. NR 전체나 공개 제품 지원 완료가 아니다.
 
 현재는 **간단한 Unity 스크립트 병렬 편집을 위한 내부 알파**다. .NET 10 CLI가 atomic JSON 상태와 operation lock을 사용한다. NTFS 작업은 불변 기준과 범위 저널을, 선택적 ReFS 작업은 예열 기준본과 블록 복제를 사용한다. 무-checkout Git index와 작업별 Windows 프로세스 그룹으로 소스·Editor·자식 수명을 관리한다. 기존 환경별 증거는 [자원 검증](docs/verification/storage-and-resources.md), 두 작업자의 일반 checkout 증거는 [알파 검증](docs/verification/internal-alpha.md)에 있다. daemon/SQLite Host는 미구현이다.
 

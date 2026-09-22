@@ -168,6 +168,13 @@ SO의 실제 원시 증거와 측정 제한은 [실행 기록](../verification/s
 | NR-07 | 부분 준비·결과·회수의 재조정 | InProgress: 마지막 VSS 해제 관측 자동 통과, 원격 동일 workspace의 released 복구·소유 자원0, LV 독립 결과·최종 회수 확인 | 사용자 쓰기 없는 부분 준비 회수 조건, commit/ref/manifest/seal 중단, unmount/Git/delta/VSS 해제 응답 유실, 결과 독립성과 실제 자원 0/부재 |
 | NR-08 | 최종 후보·Unity 회귀·문서 | InProgress: 이전 ARM/x64 단일 검증 2건, 새 LV Windows x64 단일 검증 3건·재연결·결과·회수 통과 | 원격 workspace 소유 자원0과 canonical Editor/MCP 세션 정상 종료 확인. 같은 후보의 단일 정상 회귀이며 ARM Windows 원본/A/B·재부팅 후 loaded-code·fingerprint·validation·dirty 통합 차단과 전체 NR 완료는 남음 |
 
-NR-01~03/05/07의 계약·프로세스 시험을 먼저 수행하고 NR-04/06의 격리 환경 검증, NR-08의 최종 후보로 이어 간다. 실제 장애 경계 목록과 데이터 지속성 oracle은 계획에 정의한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
+결과 보존 결함·공통 계약을 먼저 수정하고 아래 PV-01/02의 제한된 작업·비용 관문을 다음 실행 단위로 둔다. NR-01~03/05/07의 나머지 계약·프로세스 시험과 NR-04/06 격리 환경 준비를 병행하고 NR-08 최종 지원 회귀로 이어 간다. 실제 장애 경계 목록과 데이터 지속성 oracle은 계획에 정의한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
+
+수집 전후 저널 동일성·이전 manifest 재검증/보존은 NR-01/07, 공통 mount 허용 규칙은 NR-05의 자동 회귀를 보강한다. 일반 status의 소스 읽기 생략과 기계용 freshness 응답은 CLI 계약/Git fixture로 검증한다. 실행 증거는 [검토 후 수정 검증](../verification/workspace-review-fixes.md)이며 NR 행의 전체 완료 상태는 올리지 않는다.
+
+| ID | 제한된 제품 효용 검증 | 상태 | 완료 증거 |
+| --- | --- | --- | --- |
+| PV-01 | 실제 AI A/B 스크립트 작업·오류 격리·재접속·독립 결과·회수 | NotRun | 같은 수정 후보의 원본/A/B, fingerprint·loaded-code·결과 ref·자원 회수, 실제 호출/사용자 개입 수 |
+| PV-02 | 큰 프로젝트 비용의 단계별 분해 | NotRun | 준비·status 반복·명시 확인·refresh·checkpoint·회수의 시간/읽기/저장량, 최초 복제·읽기 hydration 0과 범위 쓰기 비용. 합성 파일과 Unity import 증거 분리 |
 
 미지원 특성의 안전한 거부는 거부 계약의 Passed이며 그 특성 지원의 Passed가 아니다. VM 강제 전원 종료를 모든 물리 장치 장애 지원으로 확대하지 않는다. Unity 없는 재부팅 시험과 다른 머신의 Editor stop/start를 합쳐 재부팅 후 Unity 지원으로 집계하지 않는다. 필수 하위 사례가 남으면 NR 전체 완료로 표시하지 않는다.

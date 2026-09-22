@@ -233,11 +233,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
     private static string Hash(string code) => Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(code)));
     private static void PlainPath(string path, WorkspaceRecord? workspace = null)
     {
-        string? ownedMountRoot = workspace?.StorageMode == "ntfs-snapshot" &&
-            workspace.Snapshot is { Reference: { } snapshot, Mount: { } mount,
-                Observation: { SnapshotAvailable: true, Mounted: true, ProviderAlive: true, OwnershipVerified: true } } &&
-            mount.Id == workspace.Id && mount.Snapshot == snapshot && SamePath(mount.Path, workspace.Path)
-                ? workspace.Path : null;
+        string? ownedMountRoot = WorkspaceMountAccess.ObservedRoot(workspace);
         for (string? p = Path.GetFullPath(path); p is not null; p = Path.GetDirectoryName(p))
             if (ownedMountRoot is null || !SamePath(p, ownedMountRoot))
             if ((File.Exists(p) || Directory.Exists(p)) && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0)

@@ -123,7 +123,10 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
         WindowsProcessWorkspaceProvider.CheckPath(journal);
         await using var stream = new FileStream(journal, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         if (storage is null || stream.Length != storage.JournalBytes) throw new WorkspaceException("DeltaChangedAfterCollection", "Journal length and flush receipt differ; preserve it.");
-        return new(storage.DurableSequence, stream.Length, Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct)));
+        long length = stream.Length;
+        string hash = Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct));
+        if (stream.Length != length) throw new WorkspaceException("DeltaChangedAfterCollection", "Journal grew while sealing; preserve it.");
+        return new(storage.DurableSequence, length, hash);
     }
     public async Task UnmountAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {

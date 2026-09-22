@@ -3,6 +3,8 @@
 - 먼저 `README.md`와 `docs/README.md`를 읽고 해당 작업의 문서만 이어서 읽는다.
 - `main`은 출시용, `development`는 개발용 브랜치다. 일반 개발과 통합은 `development`를 기준으로 수행한다.
 - 주 사용자는 AI 에이전트다. 기계용 계약, 적은 호출 수, 명시적 상태·복구 행동, 재시작 후 지속성을 기준으로 설계한다.
+- 일반 `workspace status`는 새 pending 검증 응답을 조정할 때만 소스를 읽는다. 현재 소스 확인은 `--verify-source`로 요청하고 `sourceVerification`·`validationCurrent`와 validation 성공을 함께 판단한다. `stable-journal-v1` 결과만 회수에 사용하며 수집 전후·unmount 후 seal 불일치는 보존한다. Git/Unity의 mount root 허용은 Core `WorkspaceMountAccess`를 공유한다. 현재 수정 증거는 `docs/verification/workspace-review-fixes.md`다.
+- 다음 실행 단위는 `docs/plans/ntfs-recovery-and-support.md`의 제한된 실제 AI A/B·비용 관문 PV-01/02다. NR 장애·파일 경계는 지원 확대의 필수 관문으로 유지하되, 그 전체 완료를 제한된 fixture의 작업 효용 확인보다 앞세우지 않는다. 선택적 ReFS 신규 확장·daemon/DB 전환은 이 검증의 선행 구현으로 추가하지 않는다.
 - 저장소의 필수 요구사항은 NTFS 원본 위치·파일시스템 유지, 최초 전체 데이터 복제와 읽기 hydration 금지, 큰 파일의 범위별 변경 저장이다. 원본은 작업 중 계속 수정 가능하며 각 작업은 시작 시점의 불변 스냅샷을 참조한다. 작업 기간 전체의 원본 쓰기 차단을 대체안으로 삼지 않는다.
 - NTFS 실험의 SO-01~06 fixture 증거는 `docs/verification/snapshot-overlay.md`에 있다. `docs/snapshot-overlay.md`의 `snapshot-spike`와 준비·측정·장애·보존·회수 스크립트는 독립 실험이며 제품 workspace backend가 아니다. 제품 NTFS backend의 현재 계약은 `docs/ntfs-workspaces.md`, 실제 NI 진행은 `docs/verification/ntfs-workspace-integration.md`다. 기존 ReFS 경로는 선택적 백엔드의 증거로 유지하고 필수 준비·이관·전체 복사 fallback으로 사용하지 않는다.
 - `plan.html`은 제품 요구사항의 원본이다. `docs/plans/`는 목표 구조와 남은 작업이며, 실제 구현은 `docs/foundation.md`를 확인한다.

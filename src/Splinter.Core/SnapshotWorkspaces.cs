@@ -33,8 +33,11 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
         if (state is null) return new("preserve", "SnapshotStateMissing", "workspace.status");
         var observation = state.Observation;
         string? retainedFailure = workspace.LastError?.Split(':', 2)[0];
-        if (retainedFailure is "DeltaChangedAfterCollection" or "StateCorrupt")
+        if (retainedFailure is "DeltaChangedAfterCollection" or "SnapshotResultRevalidationRequired" or "StateCorrupt")
             return new("preserve", retainedFailure, "workspace.status");
+        if ((state.Step.StartsWith("release-", StringComparison.Ordinal) || observation?.SnapshotAvailable == false) &&
+            state.Result is { IndependentOfSnapshot: true, CollectionProtocol: not SnapshotResult.StableJournalProtocol })
+            return new("preserve", "SnapshotResultRevalidationRequired", "workspace.status");
         if (observation?.FailureCode is "DeltaCorrupt" or "OverlayIdentityMismatch" or "SnapshotIdentityMismatch" or "OverlayStartUncertain" or "SnapshotObservationCorrupt" or "SnapshotObservationIncomplete")
             return new("preserve", observation.FailureCode, "workspace.status");
         if (state.Step == "release-snapshot" && state.Result is { IndependentOfSnapshot: true } &&
@@ -62,7 +65,10 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
 }
 public sealed record SnapshotDeltaSeal(long DurableSequence, long JournalBytes, string JournalHash);
 public sealed record SnapshotResult(string SnapshotId, string Revision, string Fingerprint,
-    string ResultReference, SnapshotDeltaSeal Seal, bool IndependentOfSnapshot);
+    string ResultReference, SnapshotDeltaSeal Seal, bool IndependentOfSnapshot, string? CollectionProtocol = null)
+{
+    public const string StableJournalProtocol = "stable-journal-v1";
+}
 
 public interface ISnapshotWorkspaceBackend
 {
@@ -70,6 +76,8 @@ public interface ISnapshotWorkspaceBackend
     Task VerifyConnectionAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task<OverlayMount> ConnectAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
+    // Identical seals must prove no acknowledged overlay mutation between them,
+    // including writes later reverted. Flush and observe; do not mutate source.
     Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task UnmountAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task RemoveDeltaAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);

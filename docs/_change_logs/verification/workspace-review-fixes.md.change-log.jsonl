@@ -1,0 +1,1 @@
+{"date":"2026-09-22","doc":"verification/workspace-review-fixes.md","change_type":"added","summary":"수정 전 재현 4건과 수정 후 회귀·실제 Git 증거, 실환경 미실행 범위 기록","intent":"발견된 결함의 수정과 검증 범위를 추적 가능하게 남긴다","related_files":["tests/Splinter.Tests/WorkspaceCoordinatorTests.cs","tests/Splinter.Tests/GitSnapshotWorkspaceTests.cs","tests/Splinter.Tests/WorkspaceMountAccessTests.cs"]}

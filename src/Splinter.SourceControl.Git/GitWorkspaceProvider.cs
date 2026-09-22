@@ -255,7 +255,7 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
             string full = Path.GetFullPath(Path.Combine(workspace.Path, relative));
             if (!full.StartsWith(Path.TrimEndingDirectorySeparator(workspace.Path) + Path.DirectorySeparatorChar, Comparison))
                 throw Error("GitUnsafePath", "Source path escapes the workspace.");
-            PlainPath(full, OwnedMountRoot(workspace));
+            PlainPath(full, WorkspaceMountAccess.ObservedRoot(workspace));
             if (!File.Exists(full)) continue;
             byte[] name = Encoding.UTF8.GetBytes(relative);
             hash.AppendData(BitConverter.GetBytes(name.Length)); hash.AppendData(name);
@@ -282,14 +282,8 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
             throw Error("GitInvalidPath", "Independent absolute project and workspace paths are required.");
         if (Path.GetFullPath(workspace.ProjectPath).StartsWith(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace.Path)) + Path.DirectorySeparatorChar, Comparison))
             throw Error("GitInvalidPath", "The workspace must not contain the original repository.");
-        PlainPath(workspace.ProjectPath); PlainPath(workspace.Path, OwnedMountRoot(workspace));
+        PlainPath(workspace.ProjectPath); PlainPath(workspace.Path, WorkspaceMountAccess.ObservedRoot(workspace));
     }
-    private static string? OwnedMountRoot(WorkspaceRecord workspace) =>
-        workspace.StorageMode == "ntfs-snapshot" &&
-        workspace.Snapshot is { Reference: { } snapshot, Mount: { } mount,
-            Observation: { SnapshotAvailable: true, Mounted: true, ProviderAlive: true, OwnershipVerified: true } } &&
-        mount.Id == workspace.Id && mount.Snapshot == snapshot && SamePath(mount.Path, workspace.Path)
-            ? workspace.Path : null;
     private static void PlainPath(string path, string? ownedMountRoot = null)
     {
         for (string? p = Path.GetFullPath(path); p is not null; p = Path.GetDirectoryName(p))

@@ -37,7 +37,9 @@ splinter workspace release --id <id> --home <상태 경로>
 
 NTFS refresh는 incremental compilation을 요청한다. 일반 제품의 전체 대상 소스 fingerprint를 요청 ID·컴파일 callback·domain reload와 연결한다. 검증 뒤 소스나 `.meta`가 바뀌면 이전 성공은 무효다. `Accepted`는 접수이며 `workspace.validation.success`와 현재 fingerprint 일치가 완료 조건이다. 변경 없는 incremental 요청에서 reload가 없으면 성공을 발행하지 않는다. 현재 실제 실행 관문은 스크립트 변경 후 검증이며 일반 에셋·패키지 검증은 별도다. fixture의 `snapshot-probe.json`은 현재 로드된 코드의 값·PID·generation을 추가로 기록하며 전체 소스 검증을 대체하지 않는다. fixture 자체 보고에는 MVID가 없다. 제품 WorkspaceBridge의 Ready heartbeat는 같은 파일에 현재 로드된 함수의 값·domain generation·assemblyMvid·PID를 추가 보고한다.
 
-checkpoint는 앱과 자식의 종료를 확인한 뒤 검증한 소스만 커밋하고 `refs/splinter/snapshot-results/<id>`와 `workspace.snapshot.result`를 남긴다. manifest에는 snapshot ID, revision, fingerprint, 결과 ref, 저널 sequence/길이/SHA-256이 있다. 결과 객체가 Git 저장소 안에 있는지 검증한다. 결과 커밋과 기록은 회수 뒤에도 남는다. 새로운 편집에는 새 key를 사용한다.
+일반 status는 앱/provider와 새 검증 응답을 조회하며 매번 프로젝트 파일을 읽지 않는다. 대기 중이던 검증 응답이 도착하면 소스를 한 번 읽어 fingerprint를 대조하고 결과를 저장한다. `data.sourceVerification=verified`인 응답에는 `source`와 `validationCurrent`가 있으며, 검증 성공은 `workspace.validation.success=true`와 `validationCurrent=true`를 함께 확인한다. `not-checked` 응답에는 두 필드를 생략한다. 이때 남아 있는 `workspace.validation`은 이전 증거이며 현재 파일 상태의 보증이 아니다. 현재 소스를 명시적으로 확인하려면 `workspace status --id <id> --verify-source`를 사용한다. checkpoint/integrate의 사전 확인은 항상 소스를 다시 읽는다.
+
+checkpoint는 앱과 자식의 종료를 확인한 뒤 검증한 소스만 커밋하고 `refs/splinter/snapshot-results/<id>`와 `workspace.snapshot.result`를 남긴다. manifest에는 snapshot ID, revision, fingerprint, 결과 ref, 저널 sequence/길이/SHA-256과 `collectionProtocol=stable-journal-v1`이 있다. 소스 검사와 결과 ref 보존 전후의 seal이 같을 때만 manifest를 발행한다. 결과 객체가 Git 저장소 안에 있는지 검증한다. 결과 커밋과 기록은 회수 뒤에도 남는다. 새로운 편집에는 새 key를 사용한다.
 
 원본 반영이 필요할 때만 `workspace integrate --id <id> --target development --home <상태 경로>`를 호출한다. 원본은 요청한 브랜치의 clean 상태여야 한다. 충돌 시 이 명령이 시작한 merge만 중단하고 결과를 보존한다. **독립 결과를 보존한 NTFS 작업은 원본 통합 없이 회수할 수 있다.** 실제 NTFS fixture에서 원본 README에 미커밋 변경을 넣고 통합을 요청하면 `GitDirtyWorktree`로 거부하며 원본 HEAD·인덱스·변경 내용과 결과 ref를 보존하는 것을 확인했다. 실패한 검증이나 미커밋 변경은 자동 삭제하지 않는다. 원본 통합·Editor 조작의 공통 절차는 [알파 작업공간](alpha-workspaces.md)을 따른다.
 
@@ -56,7 +58,7 @@ checkpoint는 앱과 자식의 종료를 확인한 뒤 검증한 소스만 커�
 
 준비 순서는 요청 저장 → 소스 checkpoint 확인 → 캡처 intent/영수증 → no-checkout Git 등록 → mount → 독립 index 연결 → 캡처 내용과 checkpoint 비교다. 비교에 실패하면 Ready로 승격하지 않는다. 부분 등록은 원래 경로/branch/owner 영수증과 Git 관리 영역을 대조한다. 같은 key 재시도는 같은 캡처를 사용하고, 원래 캡처가 사라졌다고 현재 원본으로 대체하지 않는다. CLI 종료만으로 Editor/provider를 종료하거나 작업을 회수하지 않는다.
 
-WinFsp의 디렉터리 mount root 자체는 reparse point다. 상태 저장소는 이 경로가 연결돼 있어도 기록을 읽을 수 있으며, Git/Unity는 backend가 현재 소유권·snapshot·mount identity를 확인한 root만 허용한다. 원본·상위 경로·작업 트리 내부의 일반 링크는 계속 거부한다.
+WinFsp의 디렉터리 mount root 자체는 reparse point다. 상태 저장소는 이 경로가 연결돼 있어도 기록을 읽을 수 있으며, Git/Unity는 Core의 `WorkspaceMountAccess.ObservedRoot`로 같은 접근 규칙을 사용한다. backend 이름 대신 snapshot 가용성·mount/provider 생존·소유권과 workspace ID·snapshot·절대 root 경로의 일치를 요구한다. 원본·상위 경로·작업 트리 내부의 일반 링크는 계속 거부한다. 이 공통 규칙이 새 backend의 제품 지원을 뜻하지는 않는다.
 
 provider가 끝나면 앱/자식이 남지 않았음을 확인한 후 같은 ensure로 기존 snapshot/delta에 재연결한다. 실행 intent만 있고 영수증을 확인할 수 없거나 이전 state와 새 실행 세대가 다르면 중복 실행 대신 `OverlayStartUncertain`으로 보존한다. 재부팅·전원 손실 복구는 미검증이다. 캡처와 실제 파일 내용의 불일치 등으로 준비를 완료할 수 없는 작업의 자동 폐기는 제공하지 않는다. `SnapshotPreparationIncomplete` 상태와 해당 영수증을 보존해 조사한다.
 
@@ -80,9 +82,11 @@ version 1은 원래 ID를 새로 조회해 기존 owner/provider/시각/조건�
 
 ## 회수와 관측
 
-회수 순서는 앱/자식 종료 → 현재 source와 독립 결과 확인 → 소유 브리지 제거 → 저널 flush/seal → unmount와 provider 종료 → Git 등록 회수 → delta 회수 → 마지막 의존성이 없는 소유 VSS ID 해제다. 관리 캐시 밖의 ignored 파일, 미보존 변경, 다른 의존 작업이 있으면 중단한다. 중간 쓰기로 저널 seal이 바뀌어도 삭제하지 않는다. delta 회수 중 응답이 유실되면 기존 삭제 intent와 남은 파일을 검증하고 이어 간다. VSS 해제 helper는 정확한 소유 ID만 받으며 전역 삭제를 하지 않는다.
+회수 순서는 앱/자식 종료 → 소유 브리지 제거 → 수집 전 flush/seal → 현재 source 검사와 독립 결과 ref 보존 → 수집 후 flush/seal 대조 → manifest 저장 → unmount와 provider 종료 → seal 재대조 → Git 등록 회수 → delta 회수 → 마지막 의존성이 없는 소유 VSS ID 해제다. 브리지 제거는 합법적인 저널 변경이므로 수집 구간 전에 마친다. 관리 캐시 밖의 ignored 파일, 미보존 변경, 다른 의존 작업이 있으면 중단한다. 수집 중이나 이후의 쓰기로 seal이 달라지면 `DeltaChangedAfterCollection`로 중단하고 기존 manifest·저널·snapshot을 보존한다. delta 회수 중 응답이 유실되면 기존 삭제 intent와 남은 파일을 검증하고 이어 간다. VSS 해제 helper는 정확한 소유 ID만 받으며 전역 삭제를 하지 않는다.
 
-snapshot이 소실된 뒤에는 기존 checkpoint의 독립 결과가 있고 Git ref/객체와 **저널 전체 seal이 동일한 경우에만** 회수할 수 있다. 사용할 수 없는 원본 트리를 다시 읽거나 수정하지 않고 unmount 후 seal을 비교한다. 독립 결과가 없거나 수집 뒤 쓰기가 있으면 결과와 저널을 보존하고 실패한다. 열린 핸들이 남은 unmount는 `OverlayStopPending`이며 핸들을 닫은 뒤 같은 release를 재시도한다.
+snapshot이 소실된 뒤에는 `stable-journal-v1`로 수집한 독립 결과가 있고 Git ref/객체와 **저널 전체 seal이 동일한 경우에만** 회수할 수 있다. 사용할 수 없는 원본 트리를 다시 읽거나 수정하지 않고 unmount 후 seal을 비교한다. 독립 결과가 없거나 수집 뒤 쓰기가 있으면 결과와 저널을 보존하고 실패한다. 열린 핸들이 남은 unmount는 `OverlayStopPending`이며 핸들을 닫은 뒤 같은 release를 재시도한다.
+
+이 필드가 없는 이전 manifest도 읽을 수 있지만 회수의 증거로 바로 사용하지 않는다. 원래 snapshot과 mount가 살아 있고 아직 회수를 시작하지 않았다면 checkpoint 또는 release가 새 절차로 다시 수집한다. snapshot 소실 또는 이미 시작한 `release-*` 단계에서는 `SnapshotResultRevalidationRequired`와 `preserve`를 반환하고 남은 자원을 보존한다. 기록의 필드나 단계를 수동 수정해 통과시키는 복구는 제공하지 않는다. 소스·저널 전체 해시는 수집 경계에서 여전히 읽으며 증분 해시 최적화나 읽기 비용 0을 주장하지 않는다.
 
 `workspace.snapshot.observation`은 snapshot/mount/provider/delta 존재, 소유권, 핸들·working set·private bytes, host free space, 저널 잔여량을 제공한다. 누락된 자원 값은 unknown이며 0으로 읽으면 안 된다. `storage`의 생성 payload·읽기 cache·저널 payload/metadata·sequence는 provider 계측이다. 저널 길이는 실제 NTFS file-data allocation이나 VSS 사용량이 아니다. `snapshotStorage.preservedBytes/allocatedBytes`는 현재 일반 호출에서 관측하지 못하므로 생략한다. 관리자 helper의 별도 볼륨 관측과 실제 allocation 계측이 필요하다.
 
@@ -98,6 +102,7 @@ snapshot이 소실된 뒤에는 기존 checkpoint의 독립 결과가 있고 Git
 | `OverlayClientsRemain`, `ProcessCleanupIncomplete` | 소유 앱/자식 종료 상태 확인 후 재호출 |
 | `OverlayStartUncertain`, `LaunchUncertain` | 정확한 실행 intent·PID/시작 시각·generation 조사. 중복 실행/강제 회수 없음 |
 | `UncollectedChanges`, `UnownedIgnoredFiles`, `DeltaChangedAfterCollection` | 유일한 변경을 보존하고 검증/결과 정합성 확인 |
+| `SnapshotResultRevalidationRequired` | 이전 수집 증거로 회수를 재개하지 않고 남은 자원·기록 보존. 원래 기준을 사용할 수 있는 수집 전 상태에서만 재수집 |
 
 ## 구현과 검증 경계
 

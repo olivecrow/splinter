@@ -24,7 +24,7 @@ splinter unity refresh --id <id> --home <상태 경로>
 splinter workspace status --id <id> --home <상태 경로>
 ```
 
-refresh는 대상 Editor를 활성화하고 명시적 AssetDatabase refresh와 스크립트 컴파일을 요청한다. ReFS/진단 모드는 clean compilation, NTFS는 incremental compilation을 사용한다. `Accepted`는 접수다. status의 `workspace.validation.success=true`와 현재 source fingerprint 일치가 검증 성공이다. 오류는 `workspace.validation.errors`에 있다. 수정 후 refresh를 다시 실행한다. Unity가 새 `.meta`를 만들면 fingerprint가 바뀌어 첫 검증이 거부될 수 있으므로, 파일이 안정된 뒤 재검증한다. Play와 저장하지 않은 씬은 검증·종료를 차단한다.
+refresh는 대상 Editor를 활성화하고 명시적 AssetDatabase refresh와 스크립트 컴파일을 요청한다. ReFS/진단 모드는 clean compilation, NTFS는 incremental compilation을 사용한다. `Accepted`는 접수다. status는 새 검증 응답이 도착했을 때 소스를 한 번 읽어 확인한다. 이 응답의 `sourceVerification=verified`, `workspace.validation.success=true`, `validationCurrent=true`가 검증 성공의 조건이다. 오류는 `workspace.validation.errors`에 있다. 수정 후 refresh를 다시 실행한다. Unity가 새 `.meta`를 만들면 fingerprint가 바뀌어 첫 검증이 거부될 수 있으므로, 파일이 안정된 뒤 재검증한다. Play와 저장하지 않은 씬은 검증·종료를 차단한다.
 
 작업을 다음 대화에서 이어가려면 같은 ensure 또는 `workspace list --project`와 status를 사용한다. `unity stop`은 Editor만 종료한다. 작업이 끝났을 때:
 
@@ -53,7 +53,7 @@ Windows Git 호출에는 `core.longpaths=true`를 명령별로 적용한다. 사
 | `LaunchUncertain`, `EditorStopTimeout`, `ProcessOwnershipUnknown` | `controlPath/editor.log`와 해당 PID/시작 시각을 조사한다. 강제 종료·강제 회수하지 않는다. |
 | `released` | 종료된 작업이다. 새 편집에는 새 key를 쓴다. |
 
-`workspace list`는 저장된 상태이며 status가 실제 파일과 프로세스를 다시 관측한다. JSON 응답에 프로세스 제어 토큰을 노출하지 않는다. 권한이 필요한 환경에서는 대상 저장소와 상태 경로에 대한 정상 파일·프로세스 권한으로 실행한다.
+`workspace list`는 저장된 상태이며 일반 status는 프로세스와 새 검증 응답을 관측한다. 새 결과가 없는 반복 조회는 프로젝트 파일을 읽지 않고 `sourceVerification=not-checked`를 반환하며 `source`와 `validationCurrent`를 생략한다. 저장된 validation을 현재 파일의 검증으로 해석하지 않는다. 현재 파일까지 다시 확인하려면 `workspace status --id <id> --verify-source --home <상태 경로>`를 쓴다. checkpoint/integrate는 항상 현재 소스를 확인한다. JSON 응답에 프로세스 제어 토큰을 노출하지 않는다. 권한이 필요한 환경에서는 대상 저장소와 상태 경로에 대한 정상 파일·프로세스 권한으로 실행한다.
 
 ## 구현 경계
 

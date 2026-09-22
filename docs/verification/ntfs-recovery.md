@@ -4,6 +4,8 @@
 
 ## 새 live VSS 후보
 
+이후의 수집 경쟁 조건·status 비용·공통 mount 접근 수정은 [별도 검증 기록](workspace-review-fixes.md)을 따른다. 아래 LV·원격 Unity 수치를 그 수정 후보의 실환경 통과로 승계하지 않는다.
+
 [LV-01~08 기록](ntfs-live-vss-identity.md)은 캡처/live identity와 현재 읽기 위치 분리, 새 연결 세대의 비관리자 Observe/재개·legacy 보존을 검증한다. 새 후보는 자동 180 통과·0 실패·선택적 ReFS 1 skip, 실제 VSS/Git 재연결·4KiB 범위 쓰기·원본 시점 격리, Windows x64 Unity 검증 3건·재연결 후 loaded-code·독립 결과·최종 회수를 통과했다. 77개 원본 파일과 기존 snapshot 3개를 보존했고 소유 자원은 0이다. 다음 절의 139개 통과와 원격 ARM 시험은 이전 후보 기록이며 새 후보의 ARM·실제 재부팅·전원·공간 장애는 NotRun이다.
 
 ## 로컬 코드와 자동 시험

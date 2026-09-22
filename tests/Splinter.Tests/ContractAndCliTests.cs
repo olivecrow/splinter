@@ -11,6 +11,67 @@ public sealed class ContractAndCliTests
 {
     private readonly ContractCatalog contracts = new();
 
+    [Fact]
+    public async Task StatusPollDoesNotOpenGitSourceFilesAndExplicitVerificationDetectsEdits()
+    {
+        using var directory = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
+        string project = Path.Combine(directory.Path, "project"), home = Path.Combine(directory.Path, "home");
+        Directory.CreateDirectory(project);
+        await TestDirectory.Git(project, "init", "-b", "development");
+        await TestDirectory.Git(project, "config", "user.name", "Fixture");
+        await TestDirectory.Git(project, "config", "user.email", "fixture@example.invalid");
+        await File.WriteAllTextAsync(Path.Combine(project, "asset.bin"), "original", ct);
+        await TestDirectory.Git(project, "add", "."); await TestDirectory.Git(project, "commit", "-m", "fixture");
+        var (created, response) = await Run("workspace", "ensure", "--project", project, "--key", "poll", "--storage", "git-checkout", "--home", home);
+        Assert.Equal(0, created);
+        string id = response.GetProperty("data").GetProperty("workspace").GetProperty("id").GetString()!;
+        var store = new WorkspaceStore(home); var record = store.Get(id);
+        record.Validation = new("fixture", response.GetProperty("data").GetProperty("source").GetProperty("fingerprint").GetString()!, true, DateTimeOffset.UtcNow, []);
+        store.Save(record, "fixture-validation");
+        string file = Path.Combine(record.Path, "asset.bin");
+        await File.WriteAllTextAsync(file, "edited", ct);
+        // This exclusive handle would make the old polling fingerprint fail.
+        using (var locked = new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            var (polled, status) = await Run("workspace", "status", "--id", id, "--home", home);
+            Assert.Equal(0, polled);
+            Assert.Equal("not-checked", status.GetProperty("data").GetProperty("sourceVerification").GetString());
+            Assert.True(status.GetProperty("data").GetProperty("workspace").GetProperty("validation").GetProperty("success").GetBoolean());
+        }
+        var (verified, fresh) = await Run("workspace", "status", "--id", id, "--home", home, "--verify-source");
+        Assert.Equal(0, verified);
+        Assert.Equal("verified", fresh.GetProperty("data").GetProperty("sourceVerification").GetString());
+        Assert.True(fresh.GetProperty("data").GetProperty("source").GetProperty("hasChanges").GetBoolean());
+        Assert.False(fresh.GetProperty("data").GetProperty("validationCurrent").GetBoolean());
+        Assert.Null(store.Get(id).Validation);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StatusOptionAndSourceFreshnessAreMachineReadable(bool verifySource)
+    {
+        using var directory = new TestDirectory();
+        var store = new WorkspaceStore(directory.Path);
+        string id = WorkspaceStore.Key("status-cli");
+        store.Save(new() { Id = id, RequestKey = "status-cli", ProjectPath = Path.Combine(directory.Path, "project"),
+            Path = store.WorkPath(id), SourceReference = "task", BaseReference = "development" }, "fixture");
+        string[] args = ["workspace", "status", "--id", id, "--home", directory.Path];
+        if (verifySource) args = [.. args, "--verify-source"];
+        var (exitCode, response) = await Run(args);
+        Assert.Equal(0, exitCode);
+        var data = response.GetProperty("data");
+        Assert.Equal("not-checked", data.GetProperty("sourceVerification").GetString());
+        Assert.False(data.TryGetProperty("source", out _));
+        Assert.False(data.TryGetProperty("validationCurrent", out _));
+        var node = JsonNode.Parse(response.GetRawText())!;
+        node["data"]!["validationCurrent"] = true;
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        node["data"]!.AsObject().Remove("validationCurrent");
+        node["data"]!["sourceVerification"] = "verified";
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+    }
+
     [Theory]
     [InlineData("complete", true)] [InlineData("legacy", true)]
     [InlineData("no-owner", false)] [InlineData("no-directory", false)] [InlineData("no-access", false)]
@@ -70,6 +131,14 @@ public sealed class ContractAndCliTests
         }), ApiJson.Options)!;
         Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
         Assert.Null(node["data"]!["workspace"]!["snapshot"]!["observation"]!["privateBytes"]);
+        var snapshot = node["data"]!["workspace"]!["snapshot"]!;
+        snapshot["result"] = JsonSerializer.SerializeToNode(new SnapshotResult("snapshot", "revision", "fingerprint", "result-ref",
+            new(1, 100, "hash"), true, SnapshotResult.StableJournalProtocol), ApiJson.Options);
+        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        snapshot["result"]!["collectionProtocol"] = "unverified";
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        snapshot["result"]!.AsObject().Remove("collectionProtocol");
+        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
         var observation = node["data"]!["workspace"]!["snapshot"]!["observation"]!;
         if (available is null)
         {

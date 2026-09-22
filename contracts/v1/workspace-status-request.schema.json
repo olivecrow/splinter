@@ -4,6 +4,11 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "verifySource": {
+      "type": "boolean",
+      "default": false,
+      "description": "Read source contents to verify the current fingerprint. New validation results are reconciled once even when false."
+    },
     "id": {
       "type": "string",
       "pattern": "^[a-f0-9]{24}$"

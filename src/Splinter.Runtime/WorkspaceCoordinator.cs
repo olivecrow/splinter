@@ -6,6 +6,8 @@ public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Sourc
     string ControlPath, string NextCommand)
 {
     public SnapshotRecoveryDecision? Recovery => Workspace.StorageMode == "ntfs-snapshot" ? SnapshotRecoveryDecision.For(Workspace) : null;
+    public string SourceVerification => Source is null ? "not-checked" : "verified";
+    public bool? ValidationCurrent => Source is null ? null : Workspace.Validation is { } validation && validation.Fingerprint == Source.Fingerprint;
 }
 
 public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceProvider sources, IApplicationWorkspaceProvider applications,
@@ -86,10 +88,10 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         }
     }
 
-    public async Task<WorkspaceView> StatusAsync(string id, CancellationToken ct = default)
+    public async Task<WorkspaceView> StatusAsync(string id, CancellationToken ct = default, bool verifySource = false)
     {
         using var gate = await store.LockAsync(id, ct);
-        return await ViewAsync(store.Get(id), ct);
+        return await ViewAsync(store.Get(id), ct, verifySource);
     }
 
     public async Task<WorkspaceView> StartAsync(string id, CancellationToken ct = default)
@@ -167,11 +169,15 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         RequireSource(current);
         if (record.ResultRevision is not null && current.Source!.Revision == record.ResultRevision && !current.Source.HasChanges)
         {
-            if (record.StorageMode == "ntfs-snapshot" && RequireSnapshot(record).Result is null)
+            if (record.StorageMode == "ntfs-snapshot" && RequireSnapshot(record).Result is not { CollectionProtocol: SnapshotResult.StableJournalProtocol })
             {
-                await CollectSnapshotResultAsync(record, ct);
-                record.Phase = "collected"; record.LastError = null;
-                store.Save(record, "checkpoint-completed");
+                try
+                {
+                    await CollectSnapshotResultAsync(record, ct);
+                    record.Phase = "collected"; record.LastError = null;
+                    store.Save(record, "checkpoint-completed");
+                }
+                catch (Exception ex) { RecordFailure(record, ex); throw; }
             }
             return current;
         }
@@ -278,7 +284,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         catch (Exception ex) { RecordFailure(record, ex); throw; }
     }
 
-    private async Task<WorkspaceView> ViewAsync(WorkspaceRecord record, CancellationToken ct)
+    private async Task<WorkspaceView> ViewAsync(WorkspaceRecord record, CancellationToken ct, bool verifySource = true)
     {
         if (record.Phase == "released") return new(record, null, null, store.ControlPath(record.Id), "workspace list");
         if (record.StorageMode == "ntfs-snapshot")
@@ -294,13 +300,16 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             }
         }
         if (record.BaseRevision is null) return new(record, null, null, store.ControlPath(record.Id), "workspace ensure");
-        var source = await sources.InspectAsync(record, ct);
         var app = await applications.ObserveAsync(record, store.ControlPath(record.Id), ct);
+        bool reconcileValidation = record.PendingValidationId is not null && app.Validation?.RequestId == record.PendingValidationId;
+        // Poll process/provider state without reading project assets. A newly
+        // completed validation still requires exactly one fresh fingerprint.
+        var source = verifySource || reconcileValidation ? await sources.InspectAsync(record, ct) : null;
         bool changed = false;
         if (app.Lease is not null && app.Lease != record.Application) { record.Application = app.Lease; changed = true; }
-        if (record.PendingValidationId is not null && app.Validation?.RequestId == record.PendingValidationId)
+        if (reconcileValidation)
         {
-            record.Validation = app.Validation.Fingerprint == record.PendingFingerprint && app.Validation.Fingerprint == source.Fingerprint
+            record.Validation = app.Validation!.Fingerprint == record.PendingFingerprint && app.Validation.Fingerprint == source!.Fingerprint
                 ? app.Validation : app.Validation with { Success = false, Errors = ["Source changed during validation; refresh again."] };
             record.PendingValidationId = null;
             record.PendingFingerprint = null;
@@ -308,7 +317,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             record.LastError = null;
             changed = true;
         }
-        if (record.Validation is { Success: true } validation && validation.Fingerprint != source.Fingerprint)
+        if (source is not null && record.Validation is { Success: true } validation && validation.Fingerprint != source.Fingerprint)
         {
             record.Validation = null;
             record.Phase = "source-changed";

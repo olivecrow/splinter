@@ -12,7 +12,7 @@ NTFS 연결은 `VerifyConnectionAsync`에서 현재 부팅·연결 세대의 정
 
 | 프로젝트 | 현재 책임 | 참조 |
 | --- | --- | --- |
-| `Splinter.Core` | 탐지·작업공간 VCS/application/storage/process ports, 기준본·자원·검증 기록, DAG 검사 | .NET 기본 라이브러리 |
+| `Splinter.Core` | 탐지·작업공간 VCS/application/storage/process ports, 기준본·자원·검증 기록, DAG 검사, `WorkspaceMountAccess`의 공급자 중립 mount identity 규칙 | .NET 기본 라이브러리 |
 | `Splinter.Protocol` | 응답 DTO, 명령 descriptor, 내장 JSON Schema와 검증 | JsonSchema.Net |
 | `Splinter.Host` | 읽기 전용 명령 조합과 결과 작성 | Core, Protocol |
 | `Splinter.Runtime` | 작업공간 생성·재개·검증·회수 조정, atomic JSON 저장과 작업/저장소 잠금 | Core |
@@ -54,13 +54,15 @@ Host는 CLI 프로세스의 읽기 전용 라이브러리다. 변경 작업은 �
 | `splinter doctor --project <directory>` | 존재하는 로컬 디렉터리 | Git/Unity 메타데이터, commit 유무, 누락 조건, 미실행 검사 |
 | `splinter plan validate --input <plan.json>` | 최대 1 MiB JSON 파일 | 스키마·의존성 오류 또는 실행 가능 계층 |
 | `splinter snapshot-spike --input <request.json>` | 명시적으로 준비한 overlay 요청과 action | 독립 실험의 mount/status/Git/Unity/보존/회수; [전용 절차](snapshot-overlay.md) |
-| `splinter workspace ensure/list/status` | 프로젝트·작업 key/storage 또는 workspace ID; NTFS journal budget | 지속 작업공간 생성/재접속과 snapshot/delta/앱 상태 |
+| `splinter workspace ensure/list/status` | 프로젝트·작업 key/storage 또는 workspace ID; NTFS journal budget; status의 선택적 `--verify-source` | 지속 작업공간 생성/재접속과 snapshot/delta/앱 상태. 일반 poll은 소스 전체 읽기 생략 |
 | `splinter unity start/refresh/stop` | workspace ID | 소유 Editor의 실행·검증 요청·종료 |
 | `splinter workspace checkpoint/integrate/release` | ID, 커밋 설명/통합 대상 | 검증한 소스 커밋·원본 적용·안전한 회수 |
 | `splinter storage probe` | 후보 home 경로 | ReFS 볼륨·클러스터 geometry, 전체 복사 fallback 없음 |
 | `splinter baseline prepare/seal/release` | 프로젝트·기준 ref 또는 준비 ID | 호환 기준본을 우선 재사용해 새 커밋 검증·봉인, 소비 작업 종료 후 명시적 캐시 회수 |
 
 필수 인자와 재개·복구 절차는 [알파 작업공간](alpha-workspaces.md)을 따른다. 입력 schema와 `capabilities`가 기계용 계약이다.
+
+workspace 응답의 `sourceVerification`은 `not-checked` 또는 `verified`다. 일반 status는 새 pending 검증 응답을 한 번 조정하거나 `--verify-source`를 지정한 경우에만 source를 읽는다. 확인한 응답에는 `source`와 검증 fingerprint 일치 여부인 `validationCurrent`가 있다. 성공 판정은 `workspace.validation.success`도 함께 확인한다. NTFS 결과의 `collectionProtocol=stable-journal-v1`은 수집 전후 저널 동일성을 뜻하며 이전 기록의 재검증·보존 절차는 [NTFS 작업공간](ntfs-workspaces.md#회수와-관측)을 따른다. capabilities의 `workspaceStatus`와 `snapshotOverlay.resultCollection`이 두 계약을 표시한다.
 
 인자 없는 실행과 `--help`는 capabilities를 반환한다. `plan`만 호출하면 `plan.validate` schema를 반환한다. 기본 출력은 stdout의 JSON 한 줄이다. `--json`과 `--non-interactive`는 기본 동작을 명시한다. `--human`은 동일 응답에 들여쓰기만 추가하며 `--json`과 함께 사용할 수 없다. 현재 명령은 입력 프롬프트를 띄우지 않는다.
 
@@ -131,4 +133,4 @@ pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository .
 
 ## 다음 구현 경계
 
-현재 내부 알파의 저장소·프로세스 계약은 [NTFS 작업공간](ntfs-workspaces.md)과 [선택적 ReFS/자원 관리](storage-and-resources.md)에 있다. [NI 검증](verification/ntfs-workspace-integration.md)에서 실제 NTFS 범위 저장·Unity A/B·재연결·결과 보호를 확인했다. 실제 dirty 원본에 대한 통합 거부와 원본/결과 보존, 소유 자원과 VSS 회수까지 확인해 NI-01~08의 1차 내부 알파 범위를 완료했다. 진행 중인 [NR-01~08 계획](plans/ntfs-recovery-and-support.md)은 공통 복구 분류·unknown 관측·상태/저널 손상 보존·파일 속성 거부·현재 부팅과 대조하는 VSS 해제 후 관측을 부분 구현했다. 현재 로컬과 VIVOBOOK 자동 시험은 모두 139 통과·0 실패·1 ReFS skip이다. VIVOBOOK에서는 실제 mount의 5개 API 거부와 ARM Windows/x64 Unity 단일 작업의 검증 2건·독립 결과 보존·workspace 회수를 확인했다. 상세 범위와 canonical 준비 세션 정리는 [NR 기록](verification/ntfs-recovery.md)을 따른다. 실제 재부팅·전원·공간 장애 및 긴 패키지 경로·파일 지원 경계는 남아 있다. [공개 구현 계획](plans/implementation-plan.md)의 범용 지원표·지속 Host·전력 장애 일반 지원·DAG 실행·agent runner·Play/테스트/저작 기능은 후속 범위다. 상태와 다음 명령은 CLI 프로세스 밖에 남으며 대화 종료 시 자동 회수하지 않는다.
+현재 내부 알파의 저장소·프로세스 계약은 [NTFS 작업공간](ntfs-workspaces.md)과 [선택적 ReFS/자원 관리](storage-and-resources.md)에 있다. [NI 검증](verification/ntfs-workspace-integration.md)에서 실제 NTFS 범위 저장·Unity A/B·재연결·결과 보호를 확인했다. 실제 dirty 원본에 대한 통합 거부와 원본/결과 보존, 소유 자원과 VSS 회수까지 확인해 NI-01~08의 1차 내부 알파 범위를 완료했다. 진행 중인 [NR-01~08 계획](plans/ntfs-recovery-and-support.md)은 공통 복구 분류·unknown 관측·상태/저널 손상 보존·파일 속성 거부·현재 부팅과 대조하는 VSS 해제 후 관측을 부분 구현했다. 이전 NR 후보의 로컬과 VIVOBOOK 자동 시험은 모두 139 통과·0 실패·1 ReFS skip이다. 이후 [LV 후보](verification/ntfs-live-vss-identity.md)와 [검토 후 수정 후보](verification/workspace-review-fixes.md)의 실행 증거를 따로 기록한다. VIVOBOOK에서는 실제 mount의 5개 API 거부와 ARM Windows/x64 Unity 단일 작업의 검증 2건·독립 결과 보존·workspace 회수를 확인했다. 상세 범위와 canonical 준비 세션 정리는 [NR 기록](verification/ntfs-recovery.md)을 따른다. 실제 재부팅·전원·공간 장애 및 긴 패키지 경로·파일 지원 경계는 남아 있다. [공개 구현 계획](plans/implementation-plan.md)의 범용 지원표·지속 Host·전력 장애 일반 지원·DAG 실행·agent runner·Play/테스트/저작 기능은 후속 범위다. 다음 실행 단위는 제한된 fixture의 [PV-01/02](plans/ntfs-recovery-and-support.md#제한된-병렬-작업과-비용-관문)이며 NR은 지원 확대 관문으로 유지한다. 상태와 다음 명령은 CLI 프로세스 밖에 남으며 대화 종료 시 자동 회수하지 않는다.

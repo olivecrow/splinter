@@ -169,6 +169,87 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         Assert.NotNull(new WorkspaceStore(f.Home).Get(id).Snapshot!.Result);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WriteBetweenSourceInspectionAndSealCannotBecomeAnIndependentResult(bool checkpoint)
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        if (checkpoint)
+        {
+            await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        }
+        f.Source.AfterPreserve = f.Backend.AcknowledgeWrite;
+        var failure = await Assert.ThrowsAsync<WorkspaceException>(() => checkpoint
+            ? f.New().CheckpointAsync(id, "result", ct) : f.New().ReleaseAsync(id, ct));
+        Assert.Equal("DeltaChangedAfterCollection", failure.Code);
+        Assert.False(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased);
+        Assert.Null(new WorkspaceStore(f.Home).Get(id).Snapshot!.Result);
+        Assert.True(f.Backend.Mounted);
+        Assert.Equal("preserve", (await f.New().StatusAsync(id, ct)).Recovery!.Disposition);
+        f.Source.AfterPreserve = null;
+        if (checkpoint)
+            Assert.Equal(SnapshotResult.StableJournalProtocol, (await f.New().CheckpointAsync(id, "retry", ct)).Workspace.Snapshot!.Result!.CollectionProtocol);
+        else Assert.Equal("released", (await f.New().ReleaseAsync(id, ct)).Workspace.Phase);
+    }
+
+    [Fact]
+    public async Task InfrastructureWritesFinishBeforeTheStableCollectionInterval()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        f.App.AfterRemoveInfrastructure = f.Backend.AcknowledgeWrite;
+        var released = await f.New().ReleaseAsync(id, ct);
+        Assert.Equal("released", released.Workspace.Phase);
+        Assert.Equal(2, released.Workspace.Snapshot!.Result!.Seal.DurableSequence);
+    }
+
+    [Theory]
+    [InlineData(true, "ready")]
+    [InlineData(false, "ready")]
+    [InlineData(true, "release-unmount")]
+    [InlineData(true, "release-delta")]
+    public async Task LegacyCollectionMustBeRevalidatedBeforeAnyReclamation(bool available, string step)
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        var collected = await f.New().CheckpointAsync(id, "result", ct);
+        var state = collected.Workspace.Snapshot!;
+        state.Result = state.Result! with { CollectionProtocol = null };
+        state.Step = step;
+        new WorkspaceStore(f.Home).Save(collected.Workspace, "legacy-fixture");
+        f.Backend.Available = available;
+        if (available && step == "ready")
+        {
+            var revalidated = await f.New().CheckpointAsync(id, "legacy retry", ct);
+            Assert.Equal(SnapshotResult.StableJournalProtocol, revalidated.Workspace.Snapshot!.Result!.CollectionProtocol);
+            Assert.Equal("released", (await f.New().ReleaseAsync(id, ct)).Workspace.Phase);
+        }
+        else
+        {
+            Assert.Equal("SnapshotResultRevalidationRequired", (await f.New().StatusAsync(id, ct)).Recovery!.ReasonCode);
+            var failure = await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct));
+            Assert.Equal("SnapshotResultRevalidationRequired", failure.Code);
+            Assert.Equal("requires-user-action", Splinter.Protocol.ApiResponse.Failure("workspace.release", failure.Code, failure.Message).RetryDisposition);
+            Assert.False(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased); Assert.True(f.Backend.Mounted);
+        }
+    }
+
+    [Fact]
+    public async Task FailedRecollectionRetainsThePreviouslySavedManifest()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        var previous = (await f.New().CheckpointAsync(id, "result", ct)).Workspace.Snapshot!.Result;
+        f.Source.AfterPreserve = f.Backend.AcknowledgeWrite;
+        Assert.Equal("DeltaChangedAfterCollection", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
+        Assert.Equal(previous, new WorkspaceStore(f.Home).Get(id).Snapshot!.Result);
+        Assert.False(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased);
+    }
+
     [Fact]
     public async Task PartialDeltaRemovalResumesAndMissingResourceEvidenceNeverMeansZero()
     {
@@ -266,6 +347,7 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         private void FailOnce(string boundary) { if (LoseReleaseReply == boundary) { LoseReleaseReply = null; throw new WorkspaceException("ReplyLost", boundary); } }
         private SnapshotReference? receipt;
         private long sequence = 1;
+        public void AcknowledgeWrite() => sequence++;
         public Task<SnapshotReference> CaptureAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         {
             if (receipt is null) { Captures++; receipt = new("opaque", "fake", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "fake"); }
@@ -289,11 +371,12 @@ public sealed class SnapshotWorkspaceCoordinatorTests
     {
         public int Registers; public bool Dirty; public string Fingerprint = "source"; private bool registered;
         public string? LoseReply;
+        public Action? AfterPreserve;
         private void FailOnce(string boundary) { if (LoseReply == boundary) { LoseReply = null; throw new WorkspaceException("ReplyLost", boundary); } }
         public Task<string> PreflightAsync(WorkspaceRecord w, CancellationToken ct = default) => Task.FromResult("base");
         public Task RegisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { if (!registered) { Registers++; registered = true; } FailOnce("register"); return Task.CompletedTask; }
         public Task AttachAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("attach"); return Task.CompletedTask; }
-        public Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("preserve"); return Task.FromResult("result-ref"); }
+        public Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("preserve"); AfterPreserve?.Invoke(); return Task.FromResult("result-ref"); }
         public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.CompletedTask;
         public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("unregister"); return Task.CompletedTask; }
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(r);
@@ -308,6 +391,7 @@ public sealed class SnapshotWorkspaceCoordinatorTests
     private sealed class App : IApplicationWorkspaceProvider
     {
         public int Starts, Children; public bool Running; private ApplicationValidation? validation;
+        public Action? AfterRemoveInfrastructure;
         public string[] ManagedPaths => []; public string[] CacheInputs => [];
         public string CompatibilityKey(string project) => "fake";
         public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { Starts++; Running = true; return Task.FromResult(new ApplicationLease(1, 1, "fake", "fake")); }
@@ -315,6 +399,6 @@ public sealed class SnapshotWorkspaceCoordinatorTests
             Resources: new(true, Running, Children + (Running ? 1 : 0), Children, Children)));
         public Task RequestValidationAsync(WorkspaceRecord w, string c, string id, string fp, CancellationToken ct = default) { validation = new(id, fp, true, DateTimeOffset.UtcNow, []); return Task.CompletedTask; }
         public Task StopAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { Running = false; return Task.CompletedTask; }
-        public Task RemoveInfrastructureAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.CompletedTask;
+        public Task RemoveInfrastructureAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { AfterRemoveInfrastructure?.Invoke(); return Task.CompletedTask; }
     }
 }

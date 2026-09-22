@@ -73,8 +73,8 @@
     },
     {
       "id": "workspace.status",
-      "description": "Reconcile live Editor and validation evidence with persisted source state.",
-      "cliUsage": "splinter workspace status --id <id> [--home <state-root>]",
+      "description": "Poll process state; inspect source once for new validation evidence or explicitly with --verify-source.",
+      "cliUsage": "splinter workspace status --id <id> [--verify-source] [--home <state-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-status-request",
       "outputSchema": "urn:splinter:v1:response",

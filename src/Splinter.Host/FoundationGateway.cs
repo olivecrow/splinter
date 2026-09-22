@@ -19,6 +19,7 @@ public sealed class FoundationGateway(
         persistentHost = false,
         persistentState = true,
         stateBackend = "atomic-json-with-operation-locks",
+        workspaceStatus = "process-poll; source-on-new-validation-or-verify-source",
         storageModes = new[] { "ntfs-snapshot", "refs-cow", "git-checkout" },
         snapshotOverlay = new
         {
@@ -28,6 +29,7 @@ public sealed class FoundationGateway(
             snapshotVerification = "exact-live-id-per-connection-with-boot-bound-observe-helper",
             snapshotReadAccess = "verified-location-separate-from-immutable-delta-identity",
             deltaStore = "bounded-checksummed-range-journal",
+            resultCollection = SnapshotResult.StableJournalProtocol,
             requestSchema = "urn:splinter:v1:overlay-serve-request",
             observationSchema = "urn:splinter:v1:overlay-observation",
             entrypoints = new[] { "workspace ensure --storage ntfs-snapshot", "workspace list", "workspace status",

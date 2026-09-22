@@ -746,6 +746,7 @@
         "stateBackend": {
           "const": "atomic-json-with-operation-locks"
         },
+        "workspaceStatus": { "const": "process-poll; source-on-new-validation-or-verify-source" },
         "storageModes": {
           "type": "array",
           "items": {
@@ -786,6 +787,7 @@
             "deltaStore": {
               "const": "bounded-checksummed-range-journal"
             },
+            "resultCollection": { "const": "stable-journal-v1" },
             "requestSchema": {
               "const": "urn:splinter:v1:overlay-serve-request"
             },
@@ -1083,6 +1085,14 @@
     "workspaceView": {
       "type": "object",
       "additionalProperties": false,
+      "allOf": [{
+        "if": { "required": ["sourceVerification"] },
+        "then": {
+          "if": { "properties": { "sourceVerification": { "const": "verified" } } },
+          "then": { "required": ["source", "validationCurrent"] },
+          "else": { "not": { "anyOf": [{ "required": ["source"] }, { "required": ["validationCurrent"] }] } }
+        }
+      }],
       "required": [
         "workspace",
         "controlPath",
@@ -1090,6 +1100,8 @@
         "isolation"
       ],
       "properties": {
+        "sourceVerification": { "enum": ["not-checked", "verified"] },
+        "validationCurrent": { "type": "boolean" },
         "workspace": {
           "$ref": "#/$defs/workspaceSummary"
         },
@@ -1714,7 +1726,8 @@
             },
             "independentOfSnapshot": {
               "type": "boolean"
-            }
+            },
+            "collectionProtocol": { "const": "stable-journal-v1" }
           },
           "required": [
             "snapshotId",

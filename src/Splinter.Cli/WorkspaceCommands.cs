@@ -116,6 +116,12 @@ internal static class WorkspaceCommands
             var idOption = new Option<string>("--id") { Required = true };
             command.Options.Add(idOption);
             Option<string>? extra = null;
+            Option<bool>? verifySource = null;
+            if (commandId == "workspace.status")
+            {
+                verifySource = new Option<bool>("--verify-source") { Description = "Read source contents to verify the current fingerprint; ordinary polls only inspect process and validation state." };
+                command.Options.Add(verifySource);
+            }
             if (extraName is not null)
             {
                 extra = new Option<string>(extraName) { Required = extraName == "--message" };
@@ -128,8 +134,11 @@ internal static class WorkspaceCommands
                 string? value = extra is null ? null : parse.GetValue(extra);
                 var parameters = new Dictionary<string, object?> { ["id"] = id };
                 if (extraName is not null) parameters[extraName[2..]] = value ?? "development";
+                if (verifySource is not null) parameters["verifySource"] = parse.GetValue(verifySource);
                 if (!Validate(commandId, parameters)) return;
-                var view = await action(Runtime(parse), id, value);
+                var view = verifySource is not null
+                    ? await Runtime(parse).StatusAsync(id, ct, parse.GetValue(verifySource))
+                    : await action(Runtime(parse), id, value);
                 bool accepted = commandId == "unity.refresh" && view.Workspace.PendingValidationId is not null ||
                     commandId == "unity.start" && view.Application is { Running: true, Ready: false };
                 respond(Result(commandId, view, accepted, Home(parse)));
@@ -164,7 +173,7 @@ internal static class WorkspaceCommands
                 view.Application.Running, view.Application.Ready, view.Application.Phase,
                 processId = view.Application.Lease?.ProcessId, validation = ValidationSummary(view.Application.Validation), view.Application.Resources
             },
-            view.ControlPath, nextCommand, view.Recovery,
+            view.ControlPath, nextCommand, view.Recovery, view.SourceVerification, view.ValidationCurrent,
             isolation = "private-project-and-library; shared user preferences and external services are not sandboxed"
         };
         var response = ApiResponse.Success(command, data);

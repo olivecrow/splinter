@@ -11,6 +11,7 @@
 | [live VSS 식별과 재개 범위](plans/ntfs-live-vss-identity.md) | 이번 NR-01 중심 작업의 계약·순서·LV-01~08 완료 기준과 후속 장애 시험 경계를 확인할 때 |
 | [LV 식별·재연결 검증](verification/ntfs-live-vss-identity.md) | 새 후보의 자동 시험, 실제 VSS/Git 재연결·범위 저장과 단일 Unity 실행·회수 증거를 확인할 때 |
 | [NR 복구 검증 기록](verification/ntfs-recovery.md) | 복구 계약의 자동 증거, VIVOBOOK VSS 회수 재개·실제 mount의 파일 API 거부·x64 Unity 단일 회귀와 남은 장애 조건을 확인할 때 |
+| [검토 후 수정 검증](verification/workspace-review-fixes.md) | 수집 중 쓰기 보존·일반 status의 소스 읽기 생략·Git/Unity 공통 mount 접근 규칙과 자동/Git 시험의 범위를 확인할 때 |
 | [NTFS snapshot-overlay 실험](snapshot-overlay.md) | VSS·WinFsp·범위 저널의 현재 실험 계약, 실행·재연결과 비용 제한을 확인할 때 |
 | [SO 실제 실행 기록](verification/snapshot-overlay.md) | SO-01~06의 현재 상태와 원시 증거, 무효 처리된 측정을 확인할 때 |
 | [NTFS 실험 계획과 통합 조건](plans/ntfs-snapshot-overlay-spike.md) | SO-01~06의 의도·완료 조건과 제품 통합 전에 남은 검증을 확인할 때 |

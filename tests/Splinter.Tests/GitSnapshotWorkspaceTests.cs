@@ -7,8 +7,10 @@ namespace Splinter.Tests;
 
 public sealed class GitSnapshotWorkspaceTests
 {
-    [Fact]
-    public async Task OnlyObservedMountRootMayBeAReparsePoint()
+    [Theory]
+    [InlineData("ntfs-snapshot")]
+    [InlineData("another-snapshot-provider")]
+    public async Task OnlyObservedMountRootMayBeAReparsePoint(string storageMode)
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows directory mount path admission.");
         var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory();
@@ -20,7 +22,7 @@ public sealed class GitSnapshotWorkspaceTests
         await File.WriteAllTextAsync(Path.Combine(source, "Nested", "file.txt"), "original", ct);
         await TestDirectory.Git(source, "add", "."); await TestDirectory.Git(source, "commit", "-m", "fixture");
         var w = new WorkspaceRecord { Id = "mounted", RequestKey = "mounted", ProjectPath = source, Path = Path.Combine(d.Path, "mount"),
-            BaseReference = "development", SourceReference = "codex/mounted", StorageMode = "ntfs-snapshot", Snapshot = new() };
+            BaseReference = "development", SourceReference = "codex/mounted", StorageMode = storageMode, Snapshot = new() };
         var git = new GitWorkspaceProvider(); var unity = new UnityWorkspaceProvider();
         w.BaseRevision = await git.PreflightAsync(w, ct);
         w.Snapshot.Reference = new("snapshot", "fake", source, "immutable", DateTimeOffset.UtcNow, true, true, "fake");
@@ -43,6 +45,7 @@ public sealed class GitSnapshotWorkspaceTests
             await unity.RemoveInfrastructureAsync(w, control, ct);
             w.Snapshot.Observation = w.Snapshot.Observation with { OwnershipVerified = false };
             Assert.Equal("GitSymlinkRejected", (await Assert.ThrowsAsync<WorkspaceException>(() => git.InspectAsync(w, ct))).Code);
+            Assert.Equal("UnsafePath", (await Assert.ThrowsAsync<WorkspaceException>(() => unity.RemoveInfrastructureAsync(w, control, ct))).Code);
             w.Snapshot.Observation = w.Snapshot.Observation with { OwnershipVerified = true };
             Directory.Delete(w.Path, false); rootIsLink = false;
             Directory.Move(tree, w.Path);
