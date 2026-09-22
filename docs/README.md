@@ -21,7 +21,8 @@
 | [자원 검증](verification/storage-and-resources.md) | 실제 Windows/ReFS/Unity 증거와 다음 검증 관문을 확인할 때 |
 | [ReFS 시험 자원 정리](verification/storage-cleanup.md) | 시험 디스크·기준본 회수와 보존한 증거, 새 세션의 실제 fixture 경로를 확인할 때 |
 | [실제 알파 검증](verification/internal-alpha.md) | Luna low 두 작업자의 GUI Editor 격리·재개·통합·회수 증거와 검증 한계를 확인할 때 |
-| [원본 기획서](../plan.html) | 개정 4판의 제품 요구사항, 현재 구현·SO/NI 완료 범위, 후속 검증·구현 우선순위를 확인할 때 |
+| [원본 기획서](../plan.html) | 개정 5판의 대화별 사용·설치·명시적 완료/폐기 요구사항, 현재 구현·SO/NI 완료 범위, 후속 검증·구현 우선순위를 확인할 때 |
+| [대화별 작업·설치 계획](plans/session-workflow-and-installation.md) | 프로젝트용/전역용 설치·Codex 스킬/플러그인 연결, 필요 시 사용·미사용, 독립 대화 재개·반영/보존/폐기와 SW 관문을 확인할 때 |
 | [구현 계획](plans/implementation-plan.md) | 기술 선택, 모듈 책임, CLI·상태 계약, 단계별 구현 작업을 확인할 때 |
 | [검증 추적표](plans/validation-matrix.md) | 기획 요구사항의 구현 단계와 필요한 검증 증거를 확인할 때 |
 

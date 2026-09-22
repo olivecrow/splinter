@@ -1,8 +1,8 @@
 # 구현 계획 검증 추적표
 
-상태: **원본 48개와 FD-01~10의 전체 통과 조건은 모두 NotRun**. 내부 알파의 실제 두 GUI Editor·재시작·compile/reload 검증은 아래 AA 항목, ReFS·기준본·자원 회수는 SR 항목으로 별도 집계한다. 이 좁은 범위의 성공을 공개 제품 시나리오 전체의 통과로 확대하지 않는다.
+상태: **개정 5판의 공개 48개와 필수 FD·SW-01~10의 전체 통과 조건은 모두 NotRun**. FD-04/07은 각각 DAG/DB 확장을 선택할 때 적용하는 조건부 시험이다. 내부 알파의 실제 두 GUI Editor·재시작·compile/reload 검증은 아래 AA 항목, ReFS·기준본·자원 회수는 SR 항목으로 별도 집계한다. 이 좁은 범위의 성공을 공개 제품 시나리오 전체의 통과로 확대하지 않는다.
 
-기준은 [기획서 14절](../../plan.html#section-14)의 필수 48개 시나리오다. 구현 순서는 [구현 계획](implementation-plan.md)의 P0~P7을 따른다. P0의 작은 실험 성공만으로 아래 시나리오 전체가 통과한 것으로 기록하지 않는다.
+설치·필요 시 사용·독립 대화·명시적 완료/폐기의 세부 관문은 [SW-01~10](session-workflow-and-installation.md#사용-흐름-검증-sw-0110)이다. 기존 실행 증거의 범위를 유지하며 개정된 UX 조건을 소급 통과로 표시하지 않는다. 기준은 [기획서 14절](../../plan.html#section-14)의 필수 48개 시나리오다. 구현 순서는 [구현 계획](implementation-plan.md)의 P0~P7을 따른다. P0의 작은 실험 성공만으로 아래 시나리오 전체가 통과한 것으로 기록하지 않는다.
 
 현재 시험 경계와 재현 명령은 [현재 기반](../foundation.md#빌드와-시험)에 있다. .NET 시험은 `artifacts/test-results/`의 TRX, 실제 저장소 Git 시험은 `artifacts/worktree-smoke/<runId>/result.json`에 결과를 남긴다. JSON/DAG/inspector 및 일반 checkout worktree 시험으로 CLI-01·GT-01·EX-01 등의 전체 조건을 통과했다고 보고하지 않는다. Unity/CoW 성공 경로의 실제 근거는 SR/SO/NI에서 저장소 방식과 fixture 범위를 구분하며 지속 Host 시나리오는 미실행이다.
 
@@ -45,16 +45,16 @@
 | RC-02 | Host 재시작·lease 만료·삭제 | P1 fake → P3/P6 실제 | 작업·결과 보존, 다른 Editor 미종료 |
 | MG-01 | 동일 소스/에셋의 두 결과 | P6 | 충돌, 해결 후 최신 통합 후보 revision과 검증 |
 | PK-01 | 도구 overlay 제거 | P2 분리 → P6 통합 | 도구 항목만 제거, 사용자 패키지·테스트·.meta 보존 |
-| UX-01 | 도구 이름 없는 자연어 요청 | P3 → P7 | 새 Codex 세션에서 발견→준비→계획, 수동 연결 0회 |
-| UX-02 | prerequisites·권한·기존 설정 | P3 → P7 | 일회 설정/승인 기록, 반복 승인 없음, 숨은 전체 복사 없음 |
-| UX-03 | 재실행·중복 요청·Host 시작 | P1 → P3 | 동일 요청의 operation/workspace/agent 수 1개 |
-| UX-04 | 실제 작업자 A/B 자동 실행 | P3 → P6 | 독립 CWD/세션, A 오류 중 B Play/테스트 진전 |
-| UX-05 | 자동 완료·결과·정리 | P6 | 자연어 요청→검증 branch/보고서→worktree/Library 회수 |
-| UX-06 | 업데이트·제거·세션 중단 | P7 | 기존 설정/자격증명·미회수 결과 보존, 활성 protocol 유지 |
+| UX-01 | 명시 호출·점유 시 암묵 사용·불필요 시 직접 작업 | P3 → P7 | 사용/사용/미사용 증거, direct의 새 workspace 0, Codex 별도 worktree 0 (SW-03/04) |
+| UX-02 | 프로젝트용/전역용 설치·Codex 연결·권한·설정 | P3 → P7 | 요청 범위 설치·실제 지침 발견, 반복 설치 멱등·미등록 프로젝트 불변 (SW-01/02) |
+| UX-03 | 대화별 binding·여러 차례 수정·중단/중복 요청 재개 | P1 → P3 | 같은 key/workspace·기준/변경분 유지, 경로/권한 검증·stale 작성자 거부 (SW-04/06) |
+| UX-04 | 독립된 두 대화 A/B의 병렬 작업 | P3 → P6 | 별도 조정 AI 없이 A 오류 중 B 진전, A 먼저 완료해도 B 계속 작업 (SW-05/07) |
+| UX-05 | 사용자 의도에 따른 반영·보존·폐기와 회수 | P6 | 최신 원본 검증·통합/보존/명시적 discard 구분, 오류 작업 폐기·중단 재개·타 작업 보존 (SW-07~10) |
+| UX-06 | 업데이트·도구 제거·대화 종료 | P7 | 기존 설정·자격증명·미완료 결과 유지, 대화 종료의 자동 통합/삭제 없음 (SW-02/10) |
 | CLI-01 | JSON/JSONL·오류·schema | P1 | 전체 stdout 파싱, 접수/완료 구분, descriptor/schema 적합성 |
 | CLI-02 | 비대화형·권한 부족 | P1 → P3 | 입력/모달 대기 없음, 필요한 행동 반환, sandbox 유지 |
 | CLI-03 | 이벤트 재접속·관찰 취소 | P1 → P3 | cursor 재생/중복 제거, watch 종료 후 작업 지속 |
-| CLI-04 | 예산·CWD·권한·실행 세대 | P0 S3 → P3/P6 | 제한 적용, 오염 경로/세대 거부, 작업자 종료와 검증 구별 |
+| CLI-04 | 현재 대화의 경로·권한·세대 바인딩 | P0 S3 → P3/P6 | 실제 파일 도구/명령/Editor 경로 일치, 잘못된 작업·세대 거부, 종료와 검증 구분 |
 | GT-01 | 실제 worktree + CoW | P0 S1 → P2 | Git 등록·HEAD/index, .git 미복제, 전체 파일 재전개 없음 |
 | GT-02 | NTFS 원본 + 스냅샷·변경분 root | P0 S1 → P2 | Git 조회/결과/회수, 원본 HEAD/staged 보존 |
 | GT-03 | staged/unstaged/신규 에셋 snapshot | P2 | 일관된 S, .meta 포함, 원본 무변경, 상속 delta 중복 없음 |
@@ -62,8 +62,8 @@
 | GT-05 | 생성/회수 단계별 중단 | P2 | 저널/Git/파일 재조정, 미수집 결과·다른 worktree 보존 |
 | GT-06 | 외부 생성/이동/삭제·볼륨 분리 | P2 | attach/관찰/차단 구별, offline 보존, 관리 밖 경로 무삭제 |
 | GT-07 | linked worktree·하위 Unity·공유 정책 | P2 | common dir/상대 경로, branch 충돌 거부, hook/config 보존 |
-| GT-08 | Editor/worktree/결과의 별도 수명 | P3 → P6 | Editor 정지 후 사본 유지, 회수 후 결과 유지, 원본 강제 변경 없음 |
-| EX-01 | Unity/Windows/Git 없는 Core | P1 | 비Git fake VCS·fake 앱·Runner로 동일 CLI 수명주기 |
+| GT-08 | Editor·작업·결과의 수명과 폐기 | P3 → P6 | Editor 정지 후 작업 유지, 정상 회수 시 독립 결과 유지, 명시 폐기 시 전용 결과만 제거 |
+| EX-01 | Unity/Windows/Git/Codex 없는 Core | P1 | 비Git fake VCS·fake 앱·대화 연결로 수명주기, Runner 없이 검증 |
 | EX-02 | 버전/capability 불일치 | P1 → P3 | 사전 차단, 거짓 Ready/자동 호환 실행 없음 |
 
 ## 기반 구현에서 추가할 회귀 시험
@@ -72,13 +72,13 @@
 
 | ID | 검증 대상 | 단계 | 통과 조건 |
 | --- | --- | --- | --- |
-| FD-01 | 두 CLI의 동시 Host 시작과 동일 요청 접수 | P1 | Host writer 1개, operation/외부 부작용 1개 |
+| FD-01 | 두 CLI의 동일 작업 동시 접수 | P1 | 공통 상태 저장소·잠금, 같은 요청의 외부 부작용 1개. Host 선택 시 시작 중복도 검증 |
 | FD-02 | 같은 requestKey에 다른 입력, 회수 후 키 재사용 | P1 | 명확한 충돌/기존 결과, 보존기간 내 재실행 없음 |
 | FD-03 | lease 만료 후에도 살아 있는 작성자 | P1/P3 | 소유권 확인 전 새 작성자 미배정, stale 세대 명령 거부 |
-| FD-04 | DAG 선행 결과가 후행 작업 입력에 반영 | P1/P6 | B의 입력 snapshot에 A 결과 포함, 오래된 사본 미사용 |
+| FD-04 | 선택적 DAG의 선행 결과 입력 반영 | 확장 선택 시 | B의 입력 snapshot에 A 결과 포함, 오래된 사본 미사용 |
 | FD-05 | 검증 중 외부 파일 변경과 결과 재사용 | P3/P5 | 증거 stale, 새 revision 검증 전 통합 성공 차단 |
-| FD-06 | Host 중단 동안 자식 stdout/종료 결과 | P3 | supervisor 기록 유지, 정확한 세션 재접속, 중복 작업자 없음 |
-| FD-07 | DB migration·일관된 백업·복원 | P1/P7 | 진행 중 operation과 requestKey/결과 참조 보존 |
+| FD-06 | CLI/관리 프로세스 중단 동안 소유 자식 관측 | P3 | supervisor 기록·작업 binding 유지, 정확한 재접속, 중복 앱/provider 없음 |
+| FD-07 | 선택적 DB migration·일관된 백업·복원 | DB 전환 시 | 진행 중 operation과 requestKey/결과 참조 보존 |
 | FD-08 | cleanup 계획 후 경로/소유권 변경 | P2/P6 | digest/정규 경로/볼륨/reparse 재검사로 잘못된 삭제 거부 |
 | FD-09 | 통합 검증 후 원본 HEAD 또는 dirty 상태 변경 | P6 | 적용 거부, 후보 branch·검증 증거 보존 |
 | FD-10 | 손실된 callback·이전 run XML·누락 artifact | P5 | 실제 완료/새 증거를 확인할 수 없으면 성공 차단 |
@@ -119,7 +119,7 @@
 
 ## 공개 시 필요한 결과 묶음
 
-최종 보고서는 48개 필수 시나리오 및 추가 기반 시험의 실제 상태, 실패 이유, 증거 링크, 검증한 환경 조합을 포함한다. CoW 성능, Unity 준비 시간, 자동 발견성과 사용자 개입 횟수는 별도 측정표로 제공한다. 코드가 있는 기능과 실제 지원이 검증된 기능을 구분한다.
+최종 보고서는 개정 5판의 48개 필수 시나리오·SW 하위 사례·적용 가능한 기반 시험의 실제 상태, 실패 이유, 증거 링크, 검증한 환경 조합을 포함한다. CoW 성능, Unity 준비 시간, 자동 발견성과 사용자 개입 횟수는 별도 측정표로 제공한다. 코드가 있는 기능과 실제 지원이 검증된 기능을 구분한다.
 
 ## NTFS 스냅샷·변경분 필수 관문
 
@@ -174,7 +174,7 @@ SO의 실제 원시 증거와 측정 제한은 [실행 기록](../verification/s
 
 | ID | 제한된 제품 효용 검증 | 상태 | 완료 증거 |
 | --- | --- | --- | --- |
-| PV-01 | 실제 AI A/B 스크립트 작업·오류 격리·재접속·독립 결과·회수 | NotRun | 같은 수정 후보의 원본/A/B, fingerprint·loaded-code·결과 ref·자원 회수, 실제 호출/사용자 개입 수 |
+| PV-01 | 독립 대화 A/B의 여러 차례 작업·오류 격리·재개·A 선행 통합/회수·B 지속 | NotRun | 같은 후보의 대화별 binding, 원본/A/B fingerprint·loaded-code·결과·소유 자원, 명령/수동 운영 개입 수 |
 | PV-02 | 큰 프로젝트 비용의 단계별 분해 | NotRun | 준비·status 반복·명시 확인·refresh·checkpoint·회수의 시간/읽기/저장량, 최초 복제·읽기 hydration 0과 범위 쓰기 비용. 합성 파일과 Unity import 증거 분리 |
 
 미지원 특성의 안전한 거부는 거부 계약의 Passed이며 그 특성 지원의 Passed가 아니다. VM 강제 전원 종료를 모든 물리 장치 장애 지원으로 확대하지 않는다. Unity 없는 재부팅 시험과 다른 머신의 Editor stop/start를 합쳐 재부팅 후 Unity 지원으로 집계하지 않는다. 필수 하위 사례가 남으면 NR 전체 완료로 표시하지 않는다.

@@ -2,19 +2,19 @@
 
 현재 내부 알파 runtime은 [알파 작업공간](../alpha-workspaces.md)과 [저장소·자원 관리](../storage-and-resources.md)의 기준본/CoW/Unity 흐름을 구현한다. 일반 checkout의 두 작업자 증거는 [알파 검증](../verification/internal-alpha.md), ReFS와 프로세스 회수의 실제 범위는 [자원 검증](../verification/storage-and-resources.md)에 기록한다. daemon/SQLite Host와 공개 단계 전체 완료로 해석하지 않는다.
 
-갱신일: 2026-09-22. 상태: **NTFS workspace 1차 내부 알파 NI-01~08 완료, 2차 NR-01/03/05/07 부분 구현·자동 검증, 원격 VSS 회수 복구·파일 API 거부 5건·NR-08 ARM Windows/x64 Unity 단일 회귀 및 회수 확인, 공개 목표 미완료**. 기준: [기획서 개정 4판](../../plan.html). 실제 실행 범위는 [현재 기반](../foundation.md), 제품 NTFS 실행 수치·장애·회수는 [NI 검증](../verification/ntfs-workspace-integration.md), 독립 실험은 [SO 검증](../verification/snapshot-overlay.md)을 따른다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
+갱신일: 2026-09-23. 상태: **NTFS workspace 1차 내부 알파 NI-01~08 완료, 2차 NR-01/03/05/07 부분 구현·자동 검증, 원격 VSS 회수 복구·파일 API 거부 5건·NR-08 ARM Windows/x64 Unity 단일 회귀 및 회수 확인, 공개 목표 미완료**. 기준: [기획서 개정 5판](../../plan.html). 실제 실행 범위는 [현재 기반](../foundation.md), 제품 NTFS 실행 수치·장애·회수는 [NI 검증](../verification/ntfs-workspace-integration.md), 독립 실험은 [SO 검증](../verification/snapshot-overlay.md)을 따른다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
 
 ## 1. 설계 결론과 첫 완료 지점
 
-Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원을 사용하는 로컬 실행 기반**으로 만든다. 에이전트는 작업 내용과 검증 조건을 정하고, 프로그램은 그 계획에 맞춰 환경 준비·실행·관찰·복구·회수를 책임진다.
+Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원을 사용하는 로컬 실행 기반**으로 만든다. 각 대화의 에이전트가 작업 내용과 검증 조건을 정하고 필요할 때 자기 작업공간을 직접 사용한다. 프로그램은 지속 상태·소유권·실행·관찰·복구·원본 반영·회수를 책임진다. 프로젝트용/전역용 설치, 사용 판단, 대화 연결과 명시적 완료·폐기의 상세 기준은 [대화별 작업과 설치 계획](session-workflow-and-installation.md)을 따른다.
 
 기획서의 기존 Windows/NTFS + 시작 시점 스냅샷·변경분 저장 + Git + Unity 첫 지원 조합, 실제 linked worktree와 CoW 루트의 일치, CLI 중심 운영을 유지한다. 범용성은 서로 다른 공급자를 연결하는 작은 계약과 적합성 시험으로 확보한다. 다른 OS·엔진 구현은 첫 릴리스에 포함하지 않는다.
 
 첫 개발 목표는 전체 기능을 수평으로 구현하는 것이 아니라 다음 흐름을 작은 fixture에서 끝까지 연결하는 것이다.
 
-> 한 조정 에이전트의 계획 → 실제 worktree A/B 생성 → 각 작업자의 소스 수정 → A 컴파일 오류 중 B 실행 지속 → 수정 후 Unity 검증 → 로컬 결과 보존 → 새 CLI/대화와 Editor 재시작 후 재접속 → development 통합과 worktree 회수.
+> 프로젝트용 또는 전역용 설치·Codex 스킬/플러그인 연결 → 각 대화에서 명시적 병렬 요청 또는 점유 관측에 따라 작업공간 확보 → 여러 차례 수정·검증·재개 → 사용자의 A 완료 요청에 원본 반영·A 회수 → B는 계속 작업 → B의 완료 또는 반영 없는 명시적 폐기. 독립 실행이 필요 없으면 기존 프로젝트에서 직접 작업한다.
 
-이 내부 알파 이후 에셋 저작·실제 Play·테스트·미커밋 원본·통합 후보의 자동 검증·설치까지 확장한다. **공개 v0의 완료 범위는 기획서의 전체 필수 루프와 48개 시나리오**다. 내부 알파를 공개 v0로 간주하지 않는다.
+현재 내부 알파를 바탕으로 설치·대화 연결·명시적 폐기를 우선 연결하고, 에셋 저작·실제 Play·테스트·미커밋 원본·통합 후보 검증으로 확장한다. 별도 조정 AI·Codex Runner·DAG·상주 DB는 첫 공개 사용 흐름의 필수 구성 요소가 아니다. **공개 v0의 완료 범위는 기획서의 전체 필수 루프와 48개 시나리오**다. 내부 알파를 공개 v0로 간주하지 않는다.
 
 ### 현재 확인한 것
 
@@ -36,20 +36,23 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 [NTFS workspace 1차 통합 범위](ntfs-workspace-integration.md)의 NI-01~08은 내부 알파 fixture 범위에서 완료했다. 실제 회수·released key 재호출·dirty 원본 통합 차단을 회귀 기준으로 유지한다. 종료된 NI/SO 자원이나 결과를 임의로 재생성·삭제하지 않는다. 현재 상위 구현 계획은 [NTFS 내부 알파 2차](ntfs-recovery-and-support.md)의 NR-01~08이며 [NR 기록](../verification/ntfs-recovery.md)에 공통 복구 계약의 부분 구현과 원격 VSS·파일 API·단일 Unity 회귀 증거를 기록했다. 이번 원격 시험 세션은 종료했고 프로젝트·독립 결과·원시 증거는 후속 시험용으로 보존한다.
 
 1. **LV 완료 이후:** [live VSS 식별과 재개](ntfs-live-vss-identity.md)의 캡처/live identity·현재 읽기 경로 분리·비관리자 재개·legacy 보존과 LV-01~08 검증을 완료했다. [새 후보 기록](../verification/ntfs-live-vss-identity.md)은 자동 180 통과·실제 VSS/Git 재연결·단일 Unity 검증 3건·독립 결과·회수를 포함한다. **지원 확대 전에 남은 NR 범위:** 나머지 외부 부작용 중단·파일 지원/거부 → 격리 Windows의 재부팅·물리 공간 고갈·강제 전원 종료 → ARM A/B·실제 재부팅 후 Unity 최종 회귀다. 이전 VIVOBOOK 후보의 증거를 새 후보로 승계하지 않는다. 물리 공간 고갈용 격리 볼륨은 아직 준비하지 않았다.
-2. **제한된 작업·비용 검증을 먼저 실행:** [PV-01/02](ntfs-recovery-and-support.md#제한된-병렬-작업과-비용-관문)의 실제 AI A/B 스크립트 작업·실패 격리·재접속·독립 결과·회수와 단계별 읽기/시간/저장량을 NR 전체 완료 전에 확인한다. 현재 NotRun이며 다음 실행 단위다. 결과 보존 결함을 먼저 고치고, NR은 지원 확대의 필수 관문으로 유지한다. 선택적 ReFS 확장과 daemon/SQLite 도입은 이 검증의 선행 과제로 두지 않는다.
-3. **일반 Unity 단위:** 자체 제작 에셋과 로컬 시험 패키지로 compile/import·저장/재개방·실제 Play·EditMode/PlayMode 테스트·결과/회수를 연결한다. 전체 fingerprint·loaded-code·실행 세대와 실패/0개 선택/취소/stale 증거를 구분한다. 구매 에셋은 필요하지 않다.
-4. **Git 입력·통합과 성능 확대:** dirty/LFS·linked-worktree 입력, clean 통합·충돌·최신 통합 후보 재검증을 별도 범위로 닫는다. 대표 에셋/프로젝트는 필요한 종류·규모를 정해 요청하고 초기 import·metadata·전체 Git 읽기·누적 저널 비용을 측정해 개선한다.
-5. **공개 운영:** 상주 Host·설치·Codex Runner·DAG/자원 예약과 위 Unity/통합 검증을 공개 제품 루프로 연결한다. 공개 48개 완료는 별도이며 상세 기준은 기획서 15절과 [NTFS 통합 조건](ntfs-snapshot-overlay-spike.md)을 따른다.
+2. **독립 대화의 작업·비용 검증을 먼저 실행:** [PV-01/02](ntfs-recovery-and-support.md#제한된-병렬-작업과-비용-관문)의 별도 조정 AI 없는 실제 대화 A/B의 여러 차례 스크립트 수정·실패 격리·재접속·A 선행 통합/회수와 B 지속 작업, 단계별 읽기/시간/저장량을 NR 전체 완료 전에 확인한다. 현재 NotRun이며 다음 실행 단위다. 결과 보존 결함을 먼저 고치고, NR은 지원 확대의 필수 관문으로 유지한다. 선택적 ReFS 확장과 daemon/SQLite 도입은 이 검증의 선행 과제로 두지 않는다.
+3. **설치·대화 연결·종료 계약:** [SW-01~10](session-workflow-and-installation.md#사용-흐름-검증-sw-0110)의 프로젝트용/전역용 설치, 명시/암묵 사용과 불필요 시 미사용, 현재 대화의 경로·권한 연결, 반영/보존/폐기를 구현·검증한다. 아직 없는 폐기는 구현 후 시험하며 현재 release의 보존 규칙을 약화하지 않는다.
+4. **일반 Unity 단위:** 자체 제작 에셋과 로컬 시험 패키지로 compile/import·저장/재개방·실제 Play·EditMode/PlayMode 테스트·결과/회수를 연결한다. 전체 fingerprint·loaded-code·실행 세대와 실패/0개 선택/취소/stale 증거를 구분한다. 구매 에셋은 필요하지 않다.
+5. **Git 입력·통합과 성능 확대:** dirty/LFS·linked-worktree 입력, clean 통합·충돌·최신 통합 후보 재검증을 별도 범위로 닫는다. 대표 에셋/프로젝트는 필요한 종류·규모를 정해 요청하고 초기 import·metadata·전체 Git 읽기·누적 저널 비용을 측정해 개선한다.
+6. **공개 운영:** 요청 범위의 설치·업데이트·제거, 대화 연결·공유 자원 제어와 위 Unity/통합·폐기 검증을 공개 제품 루프로 연결한다. Runner·DAG는 선택적 확장이고 상주 Host/DB는 측정된 운영 필요가 있을 때 별도 결정한다. 공개 48개 완료는 별도이며 상세 기준은 기획서 15절과 [NTFS 통합 조건](ntfs-snapshot-overlay-spike.md)을 따른다.
 
 ## 2. AI 사용성을 먼저 고정한다
 
 | 원칙 | 구현 결정 | 검증 방법 |
 | --- | --- | --- |
 | 첫 호출에서 다음 행동을 알 수 있다 | `capabilities`, `doctor`, 명령별 `schema`; 현재 사용 가능 여부와 준비 후 가능 여부를 분리 | 지침을 처음 읽은 에이전트가 필요한 기능·차단 이유를 발견 |
-| 정상 경로의 관리 호출이 적다 | `project ensure`와 `plan submit`이 worktree·작업자·자원·회수를 조합 | 작업자마다 Git/복사/포트/Editor를 수동 관리하는 명령이 0회 |
+| 필요할 때만 사용한다 | 명시 요청 또는 독립 실행 필요를 관측하면 Splinter 사용, 그 외 직접 작업 | direct 사례의 새 workspace/snapshot/Editor 0, 병렬 사례의 Codex 별도 worktree 0 |
+| 정상 경로의 관리 호출이 적다 | 각 대화가 작업 연결을 재사용하고 workspace·Unity·완료 명령을 실행 | 사용자 수동 키 입력·복사·포트/Editor 관리 0회 |
 | 읽을 출력이 작다 | 요약 우선, 변경분 cursor, 페이지 제한, 별도 artifact 조회 | 대형 로그도 기본 응답을 넘치게 하지 않음 |
 | 재시도 판단을 추측하지 않는다 | 안정된 오류 코드, `nextActions`, 재시도 분류, `operationId` | 같은 요청 재전송·응답 유실에도 중복 실행 없음 |
-| 문맥이 끊겨도 재개한다 | 실제 상태는 Host에 저장하고 session manifest로 재접속 | 새 에이전트 세션에서 목표·현재 상태·증거·다음 행동 복원 |
+| 문맥이 끊겨도 재개한다 | Runtime의 영속 작업 상태와 연결 manifest 대조; Codex 세션 locator는 어댑터 소유 | 같은 작업·변경분·경로·증거 복원, 타 대화 오접속·중복 생성 없음 |
+| 대화와 작업의 수명을 구분한다 | 응답/대화 종료에는 유지, 사용자 완료/폐기 의도에만 해당 수명주기 실행 | A만 완료해도 B 지속; 보존/반영/폐기 결과를 구분 |
 | 성공 여부를 프로그램이 판단한다 | 요구된 증거와 소스 revision이 일치해야 검증 성공 | 작업자의 성공 메시지·종료 코드만으로 성공 처리하지 않음 |
 | 사람에게 같은 질문을 반복하지 않는다 | 최초 설정 정책의 범위 안에서 자동 수행; 추가 행동이 꼭 필요할 때만 구조화해 반환 | 정상 반복 실행의 사용자 운영 개입 0회 목표 |
 
@@ -64,9 +67,9 @@ CLI 기본 JSON·비대화형과 `--json`·`--non-interactive`를 구현했다. 
 | 외부 프로그램 | C# / .NET 10 LTS | Windows API와 비동기 프로세스·IPC 구현에 적합하고 Unity와 언어를 공유한다. 배포 크기와 런타임 패치 관리는 감수한다. |
 | 배포 | self-contained `win-x64` 폴더 패키지부터 시작 | 사용자가 .NET SDK를 설치하거나 빌드하지 않게 한다. 초기에는 single-file·Native AOT 최적화를 완료 조건에 넣지 않는다. |
 | CLI 파싱 | `System.CommandLine` | 직접 옵션 파서를 만들지 않는다. 파싱 오류도 공통 JSON 오류로 변환하는 경계를 둔다. |
-| 상태 저장 | `Microsoft.Data.Sqlite` + SQLite | 설치할 DB 서버가 필요 없다. Host만 쓰고 짧은 트랜잭션으로 처리한다. SQLite 네이티브 파일의 배포도 검사한다. |
+| 상태 저장 | 현재 atomic JSON + 작업/저장소 잠금 유지 | 대화 간 지속성과 멱등성을 먼저 완성한다. SQLite/단일 writer는 동시성·조회·운영 비용의 필요를 확인한 뒤 선택하며 전환 시 migration·복구·배포를 검증한다. |
 | JSON | Host는 `System.Text.Json`, 검증은 `JsonSchema.Net` 후보 | JSON Schema를 공개 계약의 기준으로 삼는다. 패키지 지원·라이선스·schema 적합성 확인 후 버전을 고정한다. |
-| 스케줄러 | 작은 명시적 상태 전이 + .NET 채널/동기화 도구 | Core는 실행 가능 노드를 결정한다. 범용 분산 workflow 엔진·Redis·메시지 브로커를 요구하지 않는다. |
+| 공통 조정 | 작업별 명시적 상태 전이 + 잠금·자원 admission | 독립 대화의 명령과 저장소 통합 순서를 제어한다. DAG 실행기는 선택적 확장으로 분리한다. |
 | Git | 설치된 Git CLI 및 Git LFS | 기존 filters·attributes·hooks 동작을 Git에 맡긴다. 명령 인자 배열과 기계용 출력을 사용한다. |
 | 저장소 | 스냅샷 + 범위별 변경 저장 + OS 파일시스템 어댑터 | Windows VSS/WinFsp는 우선 후보. 최초 전체 복제·읽기 hydration·파일 copy-up은 금지하며 실제 호환성과 설치 비용을 검증한다. ReFS는 선택적 최적화다. |
 | 로컬 통신 | Windows named pipe, 버전 있는 JSON 메시지 | 외부 포트 없이 사용자 범위를 제한한다. 전송 계층은 교체할 수 있게 둔다. |
@@ -83,21 +86,20 @@ Rust/Go는 작은 배포와 시스템 구현에 장점이 있으나 첫 구현�
 
 ```mermaid
 flowchart TD
-    Agent[조정 AI / 작업자 AI] --> CLI[Splinter CLI]
-    CLI --> Host[Host: 정책·영속 상태·스케줄링]
-    Host --> Core[Core: 수명주기와 불변 조건]
-    Host --> Git[Git 어댑터]
-    Host --> Storage[스냅샷 / 변경 저장 / 파일시스템 어댑터]
-    Host --> Process[Windows 프로세스 백엔드]
-    Host --> Runner[Codex Runner]
-    Host --> Unity[Unity 외부 어댑터]
-    Host --> DB[(SQLite + 증거 파일)]
-    Runner --> Process
-    Unity --> Process
-    Unity --> Bridge[작업공간별 Unity Bridge]
+    A[현재 대화 A의 AI] --> Link[Codex 스킬 / 연결 어댑터]
+    B[현재 대화 B의 AI] --> Link
+    Link --> CLI[Splinter CLI]
+    CLI --> Runtime[Runtime: 지속 상태·소유권·수명주기]
+    CLI --> Host[Host: 읽기 전용 진단]
+    Runtime --> Core[Core 공급자 중립 계약]
+    Runtime --> Git[Git 어댑터]
+    Runtime --> Storage[스냅샷·범위 저장 / Windows]
+    Runtime --> Unity[Unity 어댑터 / 작업별 Bridge]
+    Runtime --> State[atomic JSON / 잠금 / 증거]
+    Optional[선택적 Runner / DAG] -. 같은 작업 계약 .-> CLI
 ```
 
-그림은 목표 실행 관계다. 최종 코드 의존성은 `Host → Core + adapters`, `adapters → Core의 ports`, `CLI → Protocol + transport client`로 제한한다. 현재는 읽기 전용 Host와 변경 작업 Runtime을 CLI에서 호출하고 어댑터도 조합한다. Core는 구체 어댑터를 참조하지 않고 Git 명령은 Git 어댑터에만 있다. 지속 Host 도입 시 조합 지점을 옮긴다.
+그림은 기본 실행 관계다. Core에는 Codex 세션 API나 Unity/Win32/Git 전용 API를 넣지 않는다. CLI가 현재 Runtime·읽기 전용 Host·어댑터를 조합한다. 스킬/연결 어댑터는 사용 판단과 대화 바인딩, Runtime은 공통 상태·검증·통합·회수 정책을 맡는다. 별도 AI 조정자는 필요하지 않다. 상주 Host와 저장소 변경은 이 책임 경계를 유지한 채 별도 근거로 결정한다.
 
 ### 프로젝트 배치
 
@@ -110,16 +112,18 @@ contracts/v1/                       JSON Schema·명령 descriptor·예제
 src/
   Splinter.Core/                    모델·정책·상태 전이·ports
   Splinter.Protocol/                외부 DTO·검증·직렬화
-  Splinter.Host/                    조합·DB writer·스케줄러·재조정
-  Splinter.Cli/                     명령 파싱·RPC·출력
-  Splinter.Persistence.Sqlite/      migration·저널·조회
+  Splinter.Host/                    현재 읽기 전용 조합·진단
+  Splinter.Runtime/                 지속 상태·작업/저장소 잠금·수명주기
+  Splinter.Cli/                     명령 파싱·어댑터 조합·출력
+  Splinter.Persistence.Sqlite/      선택적 후속 전환: migration·저널·조회
   Splinter.SourceControl.Git/       snapshot·worktree·결과·통합
   Splinter.Storage/                 범위별 변경 저장·읽기 합성·저널
   Splinter.Storage.ReFS/            선택적 네이티브 복제 최적화
   Splinter.Platform.Windows/       snapshot·파일시스템 제공·프로세스·pipe
   Splinter.SessionRunner/           자식 실행·로그 보관용 내부 실행 파일
   Splinter.Application.Unity/      탐지·캐시·브리지·복구
-  Splinter.Agent.Codex/             CLI 연결·작업자 수명·이벤트
+  Splinter.Agent.Codex/             계획: 대화 바인딩·경로/권한·지침 발견
+  Splinter.AgentRunner.Codex/       선택적 후속: 작업자 시작·이벤트
 packages/unity-bridge/
   Editor/                          핵심 연결·메인 스레드 명령 큐
   TestFramework/                   선택적 UTF 연결
@@ -128,11 +132,12 @@ tests/                             .NET 단위·통합·CLI 시험
 conformance/                       fake와 공급자 공통 계약 시험
 ../splinter-unity/                 사용자가 제공한 독립 Git/Unity fixture
 experiments/                       P0의 작은 재현 프로그램
-install/                           설치·설정 등록·제거
+install/                           프로젝트용/전역용 설치·연결·제거
+integrations/codex/                 최소 스킬·선택적 플러그인 배포 원본
 docs/                              계획·현재 계약·운영 문서
 ```
 
-처음부터 위 폴더를 빈 프로젝트로 모두 생성하지 않는다. P0는 실험에 필요한 것만, P1은 Core/Protocol/Host/CLI/Persistence/fake만 만든다. 실제 구현 단계에서 나머지를 추가한다.
+처음부터 위 폴더를 빈 프로젝트로 모두 생성하지 않는다. P0는 실험에 필요한 것만, P1은 기존 Core/Protocol/Runtime/Host/CLI/fake를 우선 사용한다. Persistence/Runner는 필요가 확정된 후속 범위다. 실제 구현 단계에서 나머지를 추가한다.
 
 `IStorageBackend`, `ISourceControlAdapter`, `IProcessBackend`, `IApplicationAdapter`, `IAgentRunner`는 지원 검사, 실행 계획, 부작용 실행, 사후조건 조회를 분리한다. 결과에는 capability, 진단, 증거 ID를 반환한다. 공급자 전용 옵션은 공급자별 schema로 검증한다. Core에 `UnityProject`, `GitBranch`, 드라이브 문자 같은 필수 필드를 넣지 않는다.
 
@@ -147,12 +152,14 @@ v0의 어댑터는 빌드 시 명시적으로 등록한다. 임의 DLL 로더·�
 | Project | `projectId`, 공급자별 locator, 프로젝트 상대 경로, 적용 정책 revision |
 | SourceSnapshot | `sourceSnapshotId`, opaque source revision, 내용 manifest, 상속된 사용자 변경 |
 | Baseline | `baselineId`, snapshot·체크아웃 조건·앱 버전·패키지·타깃·overlay hash, 봉인 상태 |
-| Plan / Task | 목표, 입력 snapshot/선행 결과, 의존성, capability, 허용 범위, 검증과 예산 |
+| Task / ConversationBinding | 일반 작업 ID·안정된 key, 프로젝트·workspace·상태 위치·owner 세대·완료 의도; Codex locator는 연결 모듈 소유 |
+| Plan (선택적) | 여러 작업의 목표·선행 결과·의존성·capability·검증과 예산 |
 | Workspace | `workspaceId`, 공급자의 `sourceWorkspaceId`, 루트, baseline, 작성자 세대, 수명 상태 |
 | Operation / Step / Attempt | 요청키·입력 hash·상태·단계·취소·deadline·실행 시도·복구 분류 |
 | Session / Lease | 역할, 프로세스 시작 정보, 작업공간, 세대, 권한, 만료, 자원 예약 |
 | Artifact / Evidence | 형식·내용 hash·크기·보존 위치, 소스/설정/실행 세대, 검증 결과 |
 | Integration | 입력 결과 목록, 대상 기준, 후보 revision, 검증 묶음, 적용 전제조건 |
+| DiscardIntent (계획) | 명시적 폐기 의도, 정확한 workspace/owner 세대/변경 상태, 공유 의존성, 단계별 회수·폐기 영수증 |
 
 Git commit만으로 검증 대상을 표현하지 않는다. 아직 커밋하지 않은 소스와 에셋까지 manifest로 계산한 `sourceRevision`을 별도로 둔다. Git 쪽 필터 처리 후 객체 ID와 실제 체크아웃 바이트 hash도 구분한다.
 
@@ -163,7 +170,9 @@ Git commit만으로 검증 대상을 표현하지 않는다. 아직 커밋하지
 ```text
 Workspace:
 Requested → Provisioning → Materializing → Ready → Active
-          → Quiescing → Collected → Releasing → Released
+          → Quiescing → Collected → Integrating → Releasing → Released
+보존 회수: Collected → Releasing → Released (독립 결과 유지)
+명시 폐기: Active / RecoveryRequired → DiscardRequested → Discarding → Discarded
 중단 경로: Suspended / RecoveryRequired
 
 Operation:
@@ -177,7 +186,9 @@ Application:
 
 `CancelRequested`는 요청 상태다. 실제 중지가 확인되기 전 `Cancelled`로 끝내지 않는다. 재시도는 새 attempt를 추가하고 이전 실패를 유지한다. 테스트 자체 성공과 최신 소스에 대한 유효성은 분리하여 성공한 과거 결과도 `Stale`이 될 수 있게 한다.
 
-### 단일 Host와 저널
+### 현재 영속 상태와 선택적 Host/DB 전환
+
+대화별 기본 운영은 현재 atomic JSON·작업/저장소 잠금과 supervisor를 재사용한다. 아래 단일 Host/SQLite는 필요가 입증된 경우의 전환 설계이며 설치·세션 연결·폐기나 첫 공개 완료의 선행 요구사항이 아니다.
 
 - 한 사용자 설치에 Host 하나가 상태를 쓴다. 다중 CLI가 동시에 시작해도 OS 소유권 잠금으로 Host 시작을 합친다. DB는 네트워크 드라이브가 아닌 로컬 제어 경로에 둔다.
 - SQLite는 `journal_mode=WAL`, `foreign_keys=ON`, 핵심 상태 기록에 `synchronous=FULL`을 초기값으로 제안하고 migration 버전을 관리한다. 상태 변경과 이벤트 추가는 같은 짧은 DB 트랜잭션에서 처리한다. Git·파일 복제·Unity 대기를 DB 트랜잭션 안에 넣지 않는다.
@@ -199,31 +210,31 @@ lease에는 증가하는 `ownerGeneration`을 넣어 브리지 명령과 Host �
 
 ### 상위 흐름과 세부 제어
 
-조정 AI의 정상 흐름은 `project ensure → plan submit → plan wait → result inspect`다. 계획에 포함된 승인 정책에 따라 결과 수집·통합 검증·작업공간 회수까지 Host가 수행한다. 오류나 의미적 충돌이 생긴 경우에만 세부 명령을 사용한다.
+각 대화의 AI가 직접 자기 workspace를 확보·재개한다. 정상 흐름은 `필요성 판단 → workspace ensure/status → 편집·Unity 검증 반복 → 사용자의 종료 의도 → checkpoint/integrate/release`다. 불필요한 경우 workspace를 만들지 않는다. 반영 없는 폐기는 별도 제안 계약이며 현재 명령이 아니다.
 
 ```text
-splinter capabilities
-splinter schema plan.submit
-splinter project ensure --path <project-path> --request-key <key>
-splinter plan submit --input <plan.json> --request-key <key>
-splinter plan wait --plan <plan-id> --timeout 30s
-splinter result inspect --plan <plan-id>
-
-splinter workspace checkpoint --workspace <id> --sync --wait
-splinter unity tests run --workspace <id> --mode EditMode --filter <name> --wait
-splinter operation get --operation <id>
-splinter events --plan <id> --after <cursor> --limit 100
+# 현재 내부 알파 CLI의 호출 예시. 각 대화는 자기 key/id를 사용한다.
+splinter workspace ensure --project <project> --key <stable-task-key> --storage ntfs-snapshot --base development --home <shared-home>
+splinter unity start --id <workspace-id> --home <shared-home>
+splinter unity refresh --id <workspace-id> --home <shared-home>
+splinter workspace status --id <workspace-id> --home <shared-home>
+# 명시적 완료 요청 뒤 현재 소스 검증을 확인하고 실행
+splinter workspace checkpoint --id <workspace-id> --message <result> --home <shared-home>
+splinter workspace integrate --id <workspace-id> --target development --home <shared-home>
+splinter workspace release --id <workspace-id> --home <shared-home>
 ```
 
-`workspace checkpoint --sync`는 `edit commit + unity sync + 상태 확인`의 합성 명령으로 제안한다. 여기서 edit commit은 편집 구간 확정이며 Git commit이 아니다. 작업자는 Unity 준비가 필요할 때 이 명령을 사용하고, Host가 이후 편집/실행 예약을 전환한다. 디버깅용 `edit begin/commit`도 남긴다.
+위 호출은 현재 사용 가능한 하위 수명주기다. 설치/사용 판단·자동 대화 바인딩·통합 후보 전체 검증·discard는 [대화별 계획](session-workflow-and-installation.md)의 미구현 범위다. 개발 빌드의 `splinter` 접두사는 `pwsh ./scripts/splinter.ps1`이다.
 
-세부 명령은 기획서 11.1의 project/plan/workspace/agent/edit/unity/operation/events/logs/changes/result/integration/reconcile/cleanup 범주를 유지한다. 각 단계에서 실제 제공하는 명령만 capabilities에 공개한다. `cleanup plan/apply`는 대상과 상태 digest를 연결하고 상태가 달라지면 다시 계획한다.
+설치·사용 판단·binding·완료 의도는 필요한 합성 명령으로 설계하되 현재 `checkpoint`의 결과 보존 의미를 변경하지 않는다. `project ensure`, session attach/resolve, workspace finish/discard, integration prepare/validate/apply는 제안 범주이며 정확한 이름·schema는 구현 단위에서 고정한다. `plan submit/wait`와 `agent start/resume`는 선택적 자동 위임용이다. 구현된 명령만 capabilities에 공개한다.
+
+폐기/정리 실행은 명시적 대상과 상태 digest, 소유권·공유 의존성·사용자 의도를 연결한다. 같은 요청의 재시도에 새 결과가 잘못 삭제되지 않아야 한다.
 
 ### 요청·응답 계약
 
 공개 schema는 `contracts/v1/`의 JSON Schema를 기준으로 관리한다. command descriptor가 입력·출력 schema, 부작용, 권한, 요구 capability, 완료 조건, 재시도 분류를 참조한다. `help`, `schema`, 문서의 명령 목록은 같은 descriptor에서 생성한다. Host와 Unity DTO는 동일 예제·실제 출력 적합성 시험을 통과해야 한다.
 
-작업 계획의 최소 예시다. ID·경로·테스트 이름은 예시이며, 이미 승인된 정책을 참조하는 구조로 제안한다.
+선택적 DAG 확장의 작업 계획 예시다. 기본 대화별 작업은 이 제출을 요구하지 않는다. ID·경로·테스트 이름은 예시이며, 이미 승인된 정책을 참조하는 구조로 제안한다.
 
 ```json
 {
@@ -296,7 +307,7 @@ splinter events --plan <id> --after <cursor> --limit 100
 
 초기 pipe 전송은 길이 접두사가 있는 UTF-8 JSON으로 하고, 제어 메시지 상한은 1 MiB로 제안한다. 로그·이미지는 artifact로 전달한다. 동일 사용자 ACL에 더해 작업 역할·허용 capability가 담긴 세션 인증을 검사한다. 프로젝트 경로·PID·시작 시각·workspace·프로토콜·실행 세대를 handshake에서 대조한다.
 
-조정 에이전트, 작업자, Unity 브리지의 권한을 구분한다. 작업자는 자기 작업공간만, 브리지는 해당 Editor의 응답·증거만, 통합은 승인된 조정 정책만 사용한다. 토큰은 argv·로그·Git 결과에 넣지 않는다. 사용자 권한으로 실행되는 임의 프로젝트 코드를 완전히 차단하는 보안 경계로 표현하지 않는다.
+각 대화의 작업 권한과 Unity 브리지 권한을 구분한다. 대화의 에이전트는 자기 작업공간을 편집하고, 브리지는 해당 Editor의 응답·증거를 제공한다. 원본 통합·폐기는 명시적 사용자 의도와 정책을 대조한 Runtime/Git 계약으로 수행한다. 토큰은 argv·로그·Git 결과에 넣지 않는다. 사용자 권한으로 실행되는 임의 프로젝트 코드를 완전히 차단하는 보안 경계로 표현하지 않는다.
 
 ## 7. Git과 스냅샷·변경분 작업공간
 
@@ -341,7 +352,9 @@ Unity Safe Mode는 프로젝트와 패키지의 managed code 실행을 막으므
 - 테스트 연결은 핵심 브리지와 별도 assembly다. 실제 목록 발견 → 선택 manifest → 실행 → callback/XML/JSON 수집 → Edit 복귀를 처리한다. 0개·skip·취소·컴파일 실패를 성공과 구별한다.
 - batch는 Editor가 닫혀 있을 때 별도 경로로 실행한다. GUI 화면·입력 검증을 `-nographics`로 대체하지 않는다. 테스트 callback와 결과 저장은 고정한 UTF 버전에서 검증한다. [TestRunnerApi](https://docs.unity3d.com/Packages/com.unity.test-framework@1.4/api/UnityEditor.TestTools.TestRunner.Api.TestRunnerApi.html).
 
-## 9. 작업 그래프와 Codex Runner
+## 9. 대화 연결과 선택적 작업 그래프·Runner
+
+기본 Codex 연결은 [대화별 작업과 설치 계획](session-workflow-and-installation.md)의 스킬/플러그인 발견, 사용 여부 판단, 현재 대화의 작업 경로·권한·재개와 완료 의도 처리다. 아래 DAG/Runner 설계는 별도 자동 위임을 요청하는 후속 확장이고 P0~P7 필수 경로에서 제외한다. 자원 제한·통합 잠금은 독립 대화 운영에도 필요하므로 Runtime에 남긴다.
 
 ### DAG의 입력까지 관리한다
 
@@ -355,13 +368,13 @@ Unity가 자동으로 시작하는 컴파일·임포트까지 항상 선점 제�
 
 PlayerPrefs·persistentDataPath·EditorPrefs·프로젝트 외부 플러그인 상태는 별도 분류한다. 격리 훅이 있으면 작업별 namespace를 쓰고, 없으면 충돌하는 실행 단계만 직렬화한다. 관리 밖 원본 Play와 충돌할 수 있으면 해당 실행을 차단하고 이유를 반환한다. `isolationLevel=project-operational` 및 미격리 자원을 노출한다.
 
-### 실제 Codex 실행
+### 선택적 Codex 작업자 실행
 
 Runner는 설치된 지원 버전의 `codex exec`를 지정 CWD·JSONL·결과 schema·정책에 맞는 sandbox로 시작한다. 사용자 인증과 모델 설정을 재사용하며 인증 파일을 프로젝트에 복사하지 않는다. 공식 문서는 JSONL, 구조화된 최종 응답, 기존 CLI 인증 재사용, 세션 ID 재개를 설명한다. [Codex 비대화형 실행](https://developers.openai.com/codex/noninteractive/).
 
 작업 입력은 stdin으로 전달하고 session manifest에는 ID·루트·기준 revision·허용 capability·검증 계획·Host 접속 정보를 둔다. 작업자는 소스 편집을, Host는 Git 관리 쓰기를 담당한다. 외부 Git common directory는 읽기/Host proxy 경로를 검사하며 원본 `.git` 전체 쓰기 권한을 작업자에게 부여하지 않는다.
 
-`--cd`만으로 파일 접근 경계가 보장되지는 않는다. 마운트된 worktree 쓰기, 다른 workspace/원본 쓰기 차단, named pipe 접속, 좁은 artifact 경로 접근을 **P0에서 함께 시험**한다. 권한 실패를 sandbox 해제로 해결하지 않는다. 전송·권한의 대체안이 필요하면 이 시점에 계약을 조정한다.
+`--cd`만으로 파일 접근 경계가 보장되지는 않는다. 마운트된 worktree 쓰기, 다른 workspace/원본 쓰기 차단, named pipe 접속, 좁은 artifact 경로 접근을 **Runner 확장 착수 전에 함께 시험**한다. 권한 실패를 sandbox 해제로 해결하지 않는다. 전송·권한의 대체안이 필요하면 이 시점에 계약을 조정한다.
 
 재개는 기록된 정확한 세션 ID를 사용한다. 전역 `--last`는 병렬 작업에 사용하지 않는다. 설치 버전에서 안전한 재개가 불가능하면 `ResumeUnsupported`와 기존 결과를 반환한다. 새 세션으로 이어갈 때에도 기존 프로세스가 종료됐고 작업공간 소유권이 재발급됐는지 확인한다.
 
@@ -369,11 +382,11 @@ Runner는 설치된 지원 버전의 `codex exec`를 지정 CWD·JSONL·결과 s
 
 ## 10. 회수·통합·복구
 
-결과 수집 전 작업자를 정지/대기시키고 Play·테스트·미저장 변경을 처리하여 소스를 고정한다. 소스 manifest와 실제 Git 차이를 대조하고 overlay를 분리한다. 결과 commit/ref, LFS 객체·바이너리, 검증 증거가 살아 있는 참조로 보존된 뒤에만 작업공간을 정리할 수 있다.
+결과 수집 전 작업자를 정지/대기시키고 Play·테스트·미저장 변경을 처리하여 소스를 고정한다. 소스 manifest와 실제 Git 차이를 대조하고 overlay를 분리한다. 보존형 완료에서는 result commit/ref, LFS 객체·바이너리와 검증 증거가 독립적으로 보존된 뒤 회수한다. 명시적 폐기는 아래 별도 경로를 따른다.
 
-별도 통합 worktree에서 최신 대상 기준과 각 작업의 delta를 3-way로 합친다. saved-working-copy snapshot을 사용자 브랜치에 merge하는 방식은 쓰지 않는다. 상속된 사용자 변경이 대상에 없거나 달라서 task delta를 적용할 수 없으면 이를 명시적인 충돌로 반환한다. 소스나 에셋이 충돌하면 조정 AI가 해결하고 후보 전체를 다시 검증한다.
+별도 통합 worktree에서 최신 대상 기준과 각 작업의 delta를 3-way로 합친다. saved-working-copy snapshot을 사용자 브랜치에 merge하는 방식은 쓰지 않는다. 상속된 사용자 변경이 대상에 없거나 달라서 task delta를 적용할 수 없으면 이를 명시적인 충돌로 반환한다. 소스나 에셋이 충돌하면 해당 대화의 AI가 승인된 작업 범위에서 해결하고 후보 전체를 다시 검증한다. A를 먼저 반영해도 B의 시작 기준과 작업 내용을 자동 변경하지 않는다.
 
-`integration prepare → validate → apply`는 후보 hash와 대상의 기대 상태를 연결한다. apply 직전에 대상 HEAD·dirty/staged 상태·열린 Editor·타 worktree의 branch 사용을 재검사한다. 변경됐으면 `IntegrationTargetChanged`로 중단한다. 다른 작업에서 체크아웃 중인 branch를 강제로 ref 업데이트하지 않는다. 기본 산출물은 검증한 로컬 결과 브랜치이며, 원격 push는 별도 정책이다.
+`integration prepare → validate → apply`는 후보 hash와 대상의 기대 상태를 연결한다. apply 직전에 대상 HEAD·dirty/staged 상태·열린 Editor·타 worktree의 branch 사용을 재검사한다. 변경됐으면 `IntegrationTargetChanged`로 중단한다. 다른 작업에서 체크아웃 중인 branch를 강제로 ref 업데이트하지 않는다. 사용자가 원본 반영·종료를 요청한 경우의 완료 기준은 원본 반영 확인과 소유 자원 회수다. 결과만 보존하라는 요청은 별도 완료 방식이며, 원격 push는 별도 정책이다.
 
 | 중단 위치 | 기본 복구 |
 | --- | --- |
@@ -392,6 +405,10 @@ Git이 생성한 연결을 먼저 전체 디렉터리 삭제로 훼손하지 않
 
 도구 주입 파일 때문에 worktree 제거가 거부될 수 있다. 이때 실제 남은 내용을 overlay/임시 파일 manifest와 대조하고 도구 소유분만 처리한다. 설명되지 않은 dirty/untracked 파일이 있으면 `RecoveryRequired`로 보존한다. 전체 `clean`이나 강제 제거로 조용히 통과시키지 않는다.
 
+### 명시적 반영 없는 폐기
+
+사용자가 정확한 작업을 버리라고 요청하면 컴파일 성공·checkpoint·원본 통합 없이도 그 작업의 변경분을 제거할 수 있어야 한다. 이는 현재 미구현이며 release의 보존 조건에 force 옵션을 더해 대체하지 않는다. [폐기 계약](session-workflow-and-installation.md#완료보존폐기)에 따라 intent·owner/상태 검증 → 새 쓰기/소유 프로세스 중지 → 정확한 전용 자원·작업 전용 결과 참조 회수 → 영속 폐기 완료로 진행한다. 공유 snapshot/기준본과 원본/다른 작업을 보호하고, 중단 뒤 같은 intent로 재개한다. 이미 원본에 반영된 변경을 자동 revert하지 않는다. 대화 종료·timeout·공간 압박은 폐기 승인이 아니다.
+
 ## 11. 구현 단계와 통과 조건
 
 P0~P7의 명칭은 기획서와 맞춘다. 다만 첫 알파에서 실제 테스트 발견·실행까지 연결하기 위해 P3에 최소 테스트 경로를 앞당긴다. P5는 테스트 기능의 전체 신뢰성과 대체 경로를 완성한다.
@@ -399,13 +416,13 @@ P0~P7의 명칭은 기획서와 맞춘다. 다만 첫 알파에서 실제 테스
 | 단계 | 구체 산출물 | 다음 단계로 가는 조건 |
 | --- | --- | --- |
 | P0 핵심 위험 실험 | 아래 S0~S4 재현 프로그램·fixture·원시 결과·결정 기록 | 실제 목표 환경에서 핵심 경로 성공. 실패는 이유·대체안·범위 영향 확정 |
-| P1 Core/CLI 기반 | schema·상태 전이·SQLite 저널·Host·CLI·fake·중복 요청·재조정 | Unity 없이 생성→실행→중단→재개→보존→회수와 JSON 계약 통과 |
+| P1 Core/CLI 기반 | schema·상태 전이·영속 기록·Runtime·CLI·fake·중복 요청·재조정 | Unity 없이 생성→실행→중단→재개→보존→회수와 JSON 계약 통과 |
 | P2 Git/CoW 수명주기 | 탐지·clean/dirty snapshot·baseline·실제 worktree·LFS·overlay·attach·안전 회수 | 원본 HEAD/staged 보존, A/B 쓰기 격리, 생성/회수 중단 복구 |
-| P3 첫 실제 알파 | self-contained 개발 패키지·설정 연결·Codex Runner·Unity sync·최소 테스트·로컬 결과 수집 | 자연어 요청으로 두 작업자, A 컴파일 오류 중 B 성공, Host 재시작·회수까지 시연 |
+| P3 설치·대화 연결 | 프로젝트용/전역용 배포·스킬/플러그인 연결·사용 판단·현재 대화 경로/권한·Unity sync | SW-01~06, 독립 대화 A/B의 여러 차례 작업·재개, 불필요한 경우 미사용 |
 | P4 에셋/Play | 새 타입·에셋·프리팹·씬·실제 Play·프레임·입력·캡처·프로젝트 훅 | AS/PL 전체, 저장 후 재개방, reload on/off, 실제 화면·입력 검증 |
 | P5 테스트/증거 | 목록·필터·취소·reload 재연결·XML/JSON·batch·stale 판정 | TS 전체, 실패/0개/skip/중단/이전 XML을 오판하지 않음 |
-| P6 자동 병렬 통합 | DAG 입력 갱신·자원 예약·외부 상태 정책·통합 후보·조건부 적용·동반 회수 | UX-04/05, IS/RC/MG/PK, GT-08 전체 자동 완료 |
-| P7 공개 준비 | 최초 설치·스냅샷/파일시스템 공급자 준비·업데이트/제거·지원표·성능·기여 문서 | 48개 필수 시나리오 + 기반 추가 시험, 실제 대상 조합의 재현 가능한 증거 |
+| P6 대화별 완료·폐기 | 공유 자원 제어·외부 상태 정책·최신 통합 후보·조건부 적용·독립 회수·명시적 discard | SW-07~10 및 UX-04/05, IS/RC/MG/PK, GT-08. A 완료 후 B 지속, 반영/보존/폐기 구분 |
+| P7 공개 준비 | 최초 설치·스냅샷/파일시스템 공급자 준비·업데이트/제거·지원표·성능·기여 문서 | 개정 5판의 48개·SW·적용 가능한 FD, 실제 대상 조합의 재현 가능한 증거 |
 
 ### P0: 결론을 바꿀 수 있는 실험
 
@@ -414,7 +431,7 @@ P0~P7의 명칭은 기획서와 맞춘다. 다만 첫 알파에서 실제 테스
 | S0 | 짧은 계약 골격과 CLI JSON 입출력, 버전·의존성 고정 | 정상/오류 응답 파싱, 재현 명령; 이후 실험은 이 envelope를 사용 |
 | S1 | SO-01~04: NTFS 스냅샷 + 범위별 변경 저장 + no-checkout worktree/index | 격리 hash, Git 상태·원본 index 보존, 최초 payload·snapshot·delta 할당; 결합 실패 시 P2 착수 전 절차 재설계 |
 | S2 | 고정 Unity fixture의 코드 값 변경→compile/reload→신규 타입→Play→Edit/PlayMode 테스트, 최초 오류 복구 | 새 값·세대·결과 XML·Play 프레임; 브리지 없는 실패 복구 불가 시 외부 경로 수정 |
-| S3 | Codex 지정 CWD/sandbox에서 실제 수정·pipe 호출·JSONL·세션 재개 | A/B 바인딩과 권한, 중복 실행 없음; Host/sandbox 통신 불가 시 transport·실행 배치 수정 |
+| S3 | 현재 Codex 대화의 스킬 발견·사용 판단·실제 파일 도구/명령 경로·권한·재개 | 독립 대화 A/B 연결, direct 미사용, 중복 작업 없음. 별도 작업자 생성 없이 지원 여부 판정 |
 | S4 | SO-05~06: 기존 Library 스냅샷과 전용 변경 저장소에서 원본/A/B 동시 실행·복구·회수 | 재임포트·준비 시간·RAM·disk 변화·license/프로세스 제약; 성능 이득 부재 시 캐시 정책 재설계 |
 
 P0를 장기 기술 조사로 만들지 않는다. 각각 한 질문에 답하는 작은 실행 프로그램과 결과를 남기며 성공 경로를 P1 이후 어댑터 시험으로 옮긴다. 필수 스냅샷·마운트/Unity 실행 환경이 없으면 fake 작업은 진행할 수 있지만 그 실험을 통과 처리하거나 해당 지원 조합을 확정하지 않는다.
@@ -426,13 +443,13 @@ P0를 장기 기술 조사로 만들지 않는다. 각각 한 질문에 답하�
 | F01 | solution·SDK/패키지 고정·빌드 규칙·테스트 진입점 | 복원/빌드/단위 시험 한 명령, 제품 코드와 Unity 빌드 분리 |
 | F02 | operation/error/event/capability/plan/workspace schema와 command descriptor | 정상·오류·중복 요청·비호환 버전 예제 검증 |
 | F03 | Core 상태 전이·정책·revision·lease·fake clock | 잘못된 전이/오래된 작성자/오염된 증거 거부 |
-| F04 | SQLite migration·operation steps·events·request keys·artifact 기록 | 같은 요청 동시 접수 시 1개 실행, 중단 위치별 복구 |
-| F05 | Host 시작 잠금·pipe·CLI 출력·wait/cancel/cursor | CLI 재실행·watch 종료·Host 재시작 계약 통과 |
-| F06 | fake VCS/storage/app/runner로 plan 전체 루프 | 특정 앱/OS/Git 용어 없이 동일 Core 실행 |
+| F04 | 현재 atomic JSON 기반 operation steps·request keys·binding/intent·artifact 기록 | 같은 요청 동시 접수 시 1개 실행, 중단 위치별 복구 |
+| F05 | 작업/저장소 잠금·CLI 출력·IPC·관측/취소·재조정 | CLI 재실행·관측 종료·프로세스 재연결의 보존 계약 통과 |
+| F06 | fake VCS/storage/app/대화 연결로 시작·재개·반영·보존·폐기 | 특정 앱/OS/AI 용어 없이 동일 Core 실행, Runner 없이 적합성 검증 |
 | F07 | Windows 세션 실행기·Git/CoW S1 실험을 실제 ports에 연결 | 실제 작업공간 생성/쓰기/결과 고정/회수 |
-| F08 | Unity/Codex S2/S3 실험을 같은 operation과 증거에 연결 | 첫 실제 알파에 필요한 연결 완성 |
+| F08 | 설치·Codex 대화 연결/지침·Unity S2/S3를 같은 operation·증거에 연결 | SW와 실제 여러 대화의 경로·권한·재개 검증 |
 
-현재 F01과 17개 명령의 F02 계약, F03의 DAG 검사 및 좁은 workspace 상태를 구현했다. 내부 알파는 atomic JSON 저장, fake 적합성, Git·Unity·ReFS·프로세스 그룹 어댑터를 연결한다. F07의 일부 성공 경로와 실제 검증 범위는 SR 항목으로 구분한다. F04의 daemon/SQLite, F05 전체 복구, F06 전체 plan 루프, F07 중단 지점별 복구·광범위한 파일 지원, F08 Codex runner 연결은 미완료다. Git-only smoke·기존 ReFS·일반 checkout Editor 실행은 새 S1/SO 관문의 통과가 아니다.
+현재 F01과 17개 명령의 F02 계약, F03의 DAG 검사 및 좁은 workspace 상태를 구현했다. 내부 알파는 atomic JSON 저장, fake 적합성, Git·Unity·ReFS·프로세스 그룹 어댑터를 연결한다. F07의 일부 성공 경로와 실제 검증 범위는 SR 항목으로 구분한다. F04의 전체 operation/binding/discard 기록, F05 전체 복구, F06 대화별 완료/폐기, F07 중단 지점별 복구·광범위한 파일 지원, F08 설치·Codex 대화 연결은 미완료다. daemon/SQLite와 DAG/Runner는 선택적 후속이다. Git-only smoke·기존 ReFS·일반 checkout Editor 실행은 새 S1/SO 관문의 통과가 아니다.
 
 F01/F02의 최소 골격은 P0에 만들고 F03~F06은 P1에서 완성한다. F07은 P2, F08은 P3에 속한다. 생성/회수와 검증에 필요한 계약만 먼저 고정하고, 아직 쓰지 않는 앱 capability를 미리 대량 설계하지 않는다.
 
@@ -443,20 +460,20 @@ SO-01~06은 [실제 fixture 증거](../verification/snapshot-overlay.md)를 확�
 현재 ReFS clone/seal 복구 확장을 먼저 진행하지 않는다. 기존 Job Object·Git no-checkout/index·CLI/Unity 검증 계약을 재사용하고 변경 저장소의 수명에 맞춰 복구를 검증한다. 전체 준비 사본을 만든 뒤 절감률을 측정하는 시험은 SO 통과가 아니다. 기존 56개 시험과 SR 관측의 유효한 범위는 유지한다.
 ### 향후 병렬 개발의 경계
 
-계약이 고정되면 `Git/Storage`, `Host/CLI/Runner`, `Unity`를 독립 작업 단위로 나눌 수 있다. 각 작업은 자기 구현·fixture·문서만 소유하고, 공통 schema·Core 상태 변경은 먼저 합의된 변경으로 처리한다. 실제 Unity/스냅샷·마운트 시험 자원은 예약한다.
+계약이 고정되면 `Git/Storage`, `Runtime/CLI/대화 연결`, `Unity`를 독립 작업 단위로 나눌 수 있다. 각 작업은 자기 구현·fixture·문서만 소유하고, 공통 schema·Core 상태 변경은 먼저 합의된 변경으로 처리한다. 실제 Unity/스냅샷·마운트 시험 자원은 예약한다.
 
 작업 납품 형식은 문제·변경 계약·담당 파일·재현 명령·정상/실패 시험·증거 경로·남은 제약이다. 최신 통합 후보에서의 필수 시험까지 끝나야 완료로 표시한다. 달력 일정은 P0의 실제 import·CI·복구 비용을 얻은 뒤 정하고, 그전에는 완료 조건으로 진도를 관리한다.
 
 ## 12. 검증·성능·공개 준비
 
-원본의 필수 시나리오를 하나도 축소하지 않고 [검증 추적표](validation-matrix.md)에서 담당 단계와 증거를 연결한다. `Passed / Failed / NotRun / Unsupported`를 구분한다. 원본 48개와 FD 항목의 전체 조건은 아직 `NotRun`이며, 실제 내부 알파에서 통과한 좁은 범위는 별도의 AA·SR 항목으로 기록한다.
+개정 5판의 필수 48개를 대화별 사용 모델에 맞춰 유지하고 [검증 추적표](validation-matrix.md)에서 담당 단계와 증거를 연결한다. `Passed / Failed / NotRun / Unsupported`를 구분한다. 공개 48개·필수 FD·SW 항목의 전체 조건은 아직 `NotRun`이며, 실제 내부 알파에서 통과한 좁은 범위는 별도의 AA·SR 항목으로 기록한다.
 
 시험 계층은 네 가지다.
 
-1. 일반 CI: Core 상태·schema·fake·SQLite 복구·CLI 출력. Unity/Win32가 없어도 실행.
+1. 일반 CI: Core 상태·schema·fake·영속 기록 복구·CLI 출력. SQLite 시험은 전환 시 추가한다. Unity/Win32가 없어도 실행.
 2. Windows 통합: 실제 프로세스·pipe·경로·Git·LFS. 임시 저장소에서 원본/staged 보존 확인.
 3. Windows/NTFS + 스냅샷·가상 파일시스템 + Unity 머신: SO-01~06, 캐시·원본/A/B·리로드·Play·테스트·종료. ReFS는 선택적 회귀다.
-4. 실제 에이전트 평가: 도구 이름 없는 새 세션 요청, 명령 오류·재시도·실패 복구·전체 회수.
+4. 실제 에이전트 평가: 프로젝트용/전역용 설치, 명시/암묵 호출과 미사용, 독립 대화의 여러 차례 수정·재개·한쪽 선행 완료·폐기. 목표 전달과 종료 요청은 정상 사용이며 수동 운영 개입과 구분한다.
 
 실행 증거는 도구 commit, 전체 환경 버전, fixture/source hash, 시작/종료 manifest, 명령 이벤트, 단계 시간, 결과 파일·hash를 포함한다. 테스트 자격증명·유료 에셋·개인 프로젝트는 공개 fixture에 넣지 않는다. 실제 프로젝트 검증은 별도 비공개 결과로 보관한다.
 
@@ -466,7 +483,7 @@ SO-01~06은 [실제 fixture 증거](../verification/snapshot-overlay.md)를 확�
 
 AI 사용성은 정상 흐름의 호출 수·기본 응답 바이트·불필요한 로그 조회·잘못된 명령·중복 작업·복구 성공률·사람 개입 횟수로 평가한다. 기본 상태 응답 8 KiB 이하, 로그 상세 조회 기본 100줄을 초기 목표로 두고 실제 작업에서 조정한다. 중요한 오류·필수 조치를 크기 제한 때문에 누락시키지 않는다.
 
-설치는 사용자 범위 CLI/Host/bridge를 먼저 설치하고 등록 변경을 manifest로 기록한다. 필수 ReFS/Dev Drive/VHDX 이관은 없다. 필요한 스냅샷/파일시스템 공급자의 최소 설치와 권한을 검증해 구체적인 영향과 함께 처리한다. 기존 볼륨 포맷이나 보안 설정 해제는 기본 경로에 넣지 않는다. 업데이트는 활성 세션의 protocol/bridge를 유지하고 종료 후 적용한다. 제거는 도구가 추가한 설정만 복원하고 미회수 결과를 보존한다.
+설치는 [프로젝트용/전역용 계약](session-workflow-and-installation.md#프로젝트용전역용-설치)에 따라 CLI/bridge와 스킬 또는 플러그인을 연결하고 등록 변경을 manifest로 기록한다. 필수 ReFS/Dev Drive/VHDX 이관은 없다. 필요한 스냅샷/파일시스템 공급자의 최소 설치와 권한을 검증해 구체적인 영향과 함께 처리한다. 기존 볼륨 포맷이나 보안 설정 해제는 기본 경로에 넣지 않는다. 업데이트는 활성 세션의 protocol/bridge를 유지하고 종료 후 적용한다. 제거는 도구가 추가한 설정만 복원하고 미회수 결과를 보존한다.
 
 공개 전에 `QUICKSTART`, `AGENT_GUIDE`, 현재 아키텍처·수명·프로토콜, CLI/schema, 어댑터 적합성 안내, 지원 조합·실제 성능표, 보안/권한 경계, 기여 방법을 실제 구현에 맞춰 작성한다. 오픈소스 라이선스·배포 서명·지원 Unity 정확한 패치·Codex 버전은 공개 전 결정 항목이며 지금 임의로 지원을 선언하지 않는다.
 
@@ -476,10 +493,10 @@ AI 사용성은 정상 흐름의 호출 수·기본 응답 바이트·불필요�
 | --- | --- |
 | AI 중심 CLI, JSON 기본값, 비대화형 기본값 | 지원 Codex 버전과 sandbox에서 가능한 IPC/재개 방식 |
 | .NET 10 Host와 Unity 브리지 분리 | 정확한 Unity 패치·UTF·Input System 지원 조합 |
-| 단일 Host/SQLite, 영속 operation·idempotency·증거 | 범위 저장·메타데이터·snapshot 보존 비용과 실제 성능 |
+| 현재 Runtime·atomic JSON/잠금, 영속 작업·idempotency·증거 | 범위 저장·메타데이터·snapshot 보존 비용과 실제 성능 |
 | 실제 worktree와 CoW 작업 루트 1:1 | no-checkout/index/필터 결합의 검증된 절차 |
 | 원본·상속 변경·overlay·작업 결과의 분리 | Library 캐시 재사용 키와 새 경로에서의 유효성 |
 | 분리된 작업공간과 필요한 자원만 예약 | 동시 Editor·메모리·디스크 예산 및 단계별 timeout |
-| 결과 보존 후 회수, 최신 통합 후보에서 검증 | 설치 서명·최소 환경·공개 라이선스 |
+| 명시적 반영/보존/폐기 분기, 최신 통합 후보 검증과 안전 회수 | 설치 서명·최소 환경·공개 라이선스 |
 
-현재 내부 알파의 좁은 범위는 [알파 작업공간](../alpha-workspaces.md)에 고정한다. 제품 NTFS의 현재 완료 경계는 [NI 기록](../verification/ntfs-workspace-integration.md)을 따른다. 이후 공개 목표를 위해 재부팅/특수 파일·일반 Unity 검증, 지속 Host와 복구, DAG/runner, Unity 저작·Play·테스트를 단계별로 확장한다. 완료 판정은 명령 존재가 아니라 해당 범위의 실행 증거로 내린다.
+현재 내부 알파의 좁은 범위는 [알파 작업공간](../alpha-workspaces.md)에 고정한다. 제품 NTFS의 현재 완료 경계는 [NI 기록](../verification/ntfs-workspace-integration.md)을 따른다. 이후 공개 목표를 위해 설치·대화 연결·반영/폐기, 재부팅/특수 파일·일반 Unity 검증과 저작·Play·테스트를 단계별로 확장한다. DAG/Runner와 상주 Host/DB는 별도 필요에 따른 선택적 확장이다. 완료 판정은 명령 존재가 아니라 해당 범위의 실행 증거로 내린다.
