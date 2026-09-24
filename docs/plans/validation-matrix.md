@@ -1,5 +1,7 @@
 # 구현 계획 검증 추적표
 
+저장공간 우선 후속 검토(2026-09-24)의 [SF-01~06](storage-priority-and-editor-modes.md#후속-검증과-선택-기준)은 **모두 NotRun**이다. 변경 기반 검증·저널 비용·단일 Editor 후보 전환·독립 결과·대형 입력·실행 방식 선택을 별도로 확인한다. 기존 PV 제한과 NR/SW 관문을 유지하고, 새 계획을 과거 시험의 통과나 대용량 재측정 시작으로 집계하지 않는다.
+
 상태: **개정 5판의 공개 48개와 필수 FD·SW-01~10의 전체 통과 조건은 모두 NotRun**. FD-04/07은 각각 DAG/DB 확장을 선택할 때 적용하는 조건부 시험이다. 내부 알파의 실제 두 GUI Editor·재시작·compile/reload 검증은 아래 AA 항목, ReFS·기준본·자원 회수는 SR 항목으로 별도 집계한다. 이 좁은 범위의 성공을 공개 제품 시나리오 전체의 통과로 확대하지 않는다.
 
 설치·필요 시 사용·독립 대화·명시적 완료/폐기의 세부 관문은 [SW-01~10](session-workflow-and-installation.md#사용-흐름-검증-sw-0110)이다. 기존 실행 증거의 범위를 유지하며 개정된 UX 조건을 소급 통과로 표시하지 않는다. 기준은 [기획서 14절](../../plan.html#section-14)의 필수 48개 시나리오다. 구현 순서는 [구현 계획](implementation-plan.md)의 P0~P7을 따른다. P0의 작은 실험 성공만으로 아래 시나리오 전체가 통과한 것으로 기록하지 않는다.
@@ -168,13 +170,17 @@ SO의 실제 원시 증거와 측정 제한은 [실행 기록](../verification/s
 | NR-07 | 부분 준비·결과·회수의 재조정 | InProgress: 마지막 VSS 해제 관측 자동 통과, 원격 동일 workspace의 released 복구·소유 자원0, LV 독립 결과·최종 회수 확인 | 사용자 쓰기 없는 부분 준비 회수 조건, commit/ref/manifest/seal 중단, unmount/Git/delta/VSS 해제 응답 유실, 결과 독립성과 실제 자원 0/부재 |
 | NR-08 | 최종 후보·Unity 회귀·문서 | InProgress: 이전 ARM/x64 단일 검증 2건, 새 LV Windows x64 단일 검증 3건·재연결·결과·회수 통과 | 원격 workspace 소유 자원0과 canonical Editor/MCP 세션 정상 종료 확인. 같은 후보의 단일 정상 회귀이며 ARM Windows 원본/A/B·재부팅 후 loaded-code·fingerprint·validation·dirty 통합 차단과 전체 NR 완료는 남음 |
 
-결과 보존 결함·공통 계약을 먼저 수정하고 아래 PV-01/02의 제한된 작업·비용 관문을 다음 실행 단위로 둔다. NR-01~03/05/07의 나머지 계약·프로세스 시험과 NR-04/06 격리 환경 준비를 병행하고 NR-08 최종 지원 회귀로 이어 간다. 실제 장애 경계 목록과 데이터 지속성 oracle은 계획에 정의한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
+결과 보존 결함·공통 계약을 먼저 수정하고 아래 PV-01/02의 제한된 작업·비용 관문에서 확보한 증거와 선택 범위 마감 판정을 보존한다. NR-01~03/05/07의 나머지 계약·프로세스 시험과 NR-04/06 격리 환경 준비를 병행하고 NR-08 최종 지원 회귀로 이어 간다. 실제 장애 경계 목록과 데이터 지속성 oracle은 계획에 정의한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
 
 수집 전후 저널 동일성·이전 manifest 재검증/보존은 NR-01/07, 공통 mount 허용 규칙은 NR-05의 자동 회귀를 보강한다. 일반 status의 소스 읽기 생략과 기계용 freshness 응답은 CLI 계약/Git fixture로 검증한다. 실행 증거는 [검토 후 수정 검증](../verification/workspace-review-fixes.md)이며 NR 행의 전체 완료 상태는 올리지 않는다.
 
+## 제한된 병렬 작업과 비용 검증
+
+[확정한 PV 작업 범위](parallel-workflow-qualification.md)에 실행 순서·계측·완료 기준을 정의한다. PV-02는 실제 Codex 기본 worktree C·Coordination 단일 Editor Q·Splinter S와 모델·텍스처를 포함한 대표 프로필을 필수로 한다. PV-01의 S1 대표 수명주기는 복구·운영 개입을 포함해 독립 결과 보존과 마지막 소유 VSS 회수까지 완료했다. C1/S1/Q1과 후속 반복의 실제 증거는 [실행 기록](../verification/parallel-workflow.md)을 따른다. PV-02의 사용자 선택 반복·작은 프로필·합성 저장소 범위는 `scoped-complete-with-limitations`로 마감했다. S4 `FailedInputQualification`, 소수 표본, 과거 S1~S3 전체 팩 raw 동등성 unknown을 유지하며 PV-02 전체 Passed는 아니다. 실제 하위 판정·소유 자원 회수·원본 복원·합성 종료는 [최종 마감 영수증](../../artifacts/parallel-workflow/pv-20260923/final-closeout.json)에 연결한다. 이 증거를 설치/자동 binding/discard나 NR 전체의 통과로 합산하지 않는다. checkpoint는 각 작업의 최종 수집 때만 수행하고, 통합 후 원본 Unity 검증을 사전 통합 후보 검증과 구별한다.
+
 | ID | 제한된 제품 효용 검증 | 상태 | 완료 증거 |
 | --- | --- | --- | --- |
-| PV-01 | 독립 대화 A/B의 여러 차례 작업·오류 격리·재개·A 선행 통합/회수·B 지속 | NotRun | 같은 후보의 대화별 binding, 원본/A/B fingerprint·loaded-code·결과·소유 자원, 명령/수동 운영 개입 수 |
-| PV-02 | 큰 프로젝트 비용의 단계별 분해 | NotRun | 준비·status 반복·명시 확인·refresh·checkpoint·회수의 시간/읽기/저장량, 최초 복제·읽기 hydration 0과 범위 쓰기 비용. 합성 파일과 Unity import 증거 분리 |
+| PV-01 | 독립 대화 A/B의 여러 차례 작업·오류 격리·재개·A 선행 통합/회수·B 지속 | Passed — 정의한 대표 fixture·복구 포함 | S1의 대화별 요청·fingerprint·loaded-code·독립 결과, A 완전 회수 후 B 추가 편집, 최종 원본 검증과 소유 자원 회수를 연결. Git 결함 수정·수집 거부 처리·권한 재시도는 운영 개입으로 보존. 무개입 성공·자동 binding·NR 일반 지원과 구별 |
+| PV-02 | 실제 Codex worktree의 독립 Editor C·Coordination 단일 Editor Q와 Splinter S 비교 | scoped-complete-with-limitations | 실제 수행한 C/S/Q 하위 비교·결과 보존·소유 자원 회수·원본 복원은 [실행 기록](../verification/parallel-workflow.md)과 [최종 마감 영수증](../../artifacts/parallel-workflow/pv-20260923/final-closeout.json)에 연결. S4는 FailedInputQualification; 대표 핵심 C2/C3·S2/S3·Q2/Q3 각각 2회, 작은 프로필은 방식별 1회 관측. 과거 S1~S3 전체 팩 raw 입력 동등성 unknown과 Library·캐시/종료점 차이를 유지하며 PV-02 전체 Passed가 아님. Splinter 최초 복제/읽기 hydration 0의 필수 계약은 유지하고 합성 파일은 별도 보조 근거로 해석 |
 
 미지원 특성의 안전한 거부는 거부 계약의 Passed이며 그 특성 지원의 Passed가 아니다. VM 강제 전원 종료를 모든 물리 장치 장애 지원으로 확대하지 않는다. Unity 없는 재부팅 시험과 다른 머신의 Editor stop/start를 합쳐 재부팅 후 Unity 지원으로 집계하지 않는다. 필수 하위 사례가 남으면 NR 전체 완료로 표시하지 않는다.

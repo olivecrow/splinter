@@ -4,11 +4,14 @@
 
 | 문서 | 읽을 때 |
 | --- | --- |
+| [저장공간 우선 설계와 Editor 방식](plans/storage-priority-and-editor-modes.md) | 용량 1순위·Editor 동시성 2순위의 후속 방향, 저장소 개선 가능성과 단일 Editor 순차 검증 후보, 미실행 SF-01~06을 확인할 때 |
 | [NTFS 작업공간](ntfs-workspaces.md) | 일반 CLI의 ntfs-snapshot 생성·권한 경계·재개·독립 결과·회수와 현재 제한을 확인할 때 |
 | [NI 통합 검증](verification/ntfs-workspace-integration.md) | 실제 NTFS/Git/Unity·범위 저장·장애 보호 증거, 원본 통합 차단·최종 자원 회수와 긴 경로 제한을 확인할 때 |
 | [NTFS workspace 1차 통합 범위](plans/ntfs-workspace-integration.md) | 완료한 NI-01~08의 계약·CLI·복구·결과·회수 범위와 완료 기준을 확인할 때 |
 | [NTFS 내부 알파 2차 계획](plans/ntfs-recovery-and-support.md) | NR-01~08 전체의 복구·재부팅·파일 지원 경계, 격리 Windows 시험 자원과 이후 에셋·Play·테스트 순서를 확인할 때 |
-| [live VSS 식별과 재개 범위](plans/ntfs-live-vss-identity.md) | 이번 NR-01 중심 작업의 계약·순서·LV-01~08 완료 기준과 후속 장애 시험 경계를 확인할 때 |
+| [독립 대화 A/B·비용 범위](plans/parallel-workflow-qualification.md) | PV-01/02의 실행 순서, Codex 기본 worktree 직접 비교·실제 모델/텍스처·Library 비용, checkpoint/통합의 현재 제한과 완료 기준을 확인할 때 |
+| [독립 대화·Codex worktree 비교 기록](verification/parallel-workflow.md) | 독립 Editor C/S와 Coordination 단일 Editor Q의 실제 Unity 작업·에셋·비용 계측, PV-01의 복구 포함 대표 수명주기 완료와 PV-02 선택 범위 마감 및 실패·입력·표본 제한을 확인할 때 |
+| [live VSS 식별과 재개 범위](plans/ntfs-live-vss-identity.md) | 완료한 NR-01 하위 작업의 계약·순서·LV-01~08 완료 기준과 후속 장애 시험 경계를 확인할 때 |
 | [LV 식별·재연결 검증](verification/ntfs-live-vss-identity.md) | 새 후보의 자동 시험, 실제 VSS/Git 재연결·범위 저장과 단일 Unity 실행·회수 증거를 확인할 때 |
 | [NR 복구 검증 기록](verification/ntfs-recovery.md) | 복구 계약의 자동 증거, VIVOBOOK VSS 회수 재개·실제 mount의 파일 API 거부·x64 Unity 단일 회귀와 남은 장애 조건을 확인할 때 |
 | [검토 후 수정 검증](verification/workspace-review-fixes.md) | 수집 중 쓰기 보존·일반 status의 소스 읽기 생략·Git/Unity 공통 mount 접근 규칙과 자동/Git 시험의 범위를 확인할 때 |

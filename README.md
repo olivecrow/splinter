@@ -1,5 +1,7 @@
 # Splinter
 
+후속 설계의 우선순위는 **대형 Unity 프로젝트의 작업공간 용량 부담 해소가 1순위, Editor 동시 실행이 2순위**다. [저장공간 우선 설계 검토](docs/plans/storage-priority-and-editor-modes.md)는 현재 저장소 병목의 개선과 단일 Editor 순차 검증 후보를 평가한다. 기본 실행 방식 변경은 미확정이고, 현재 제품은 아래의 독립 Editor 내부 알파다.
+
 AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실행·검증·결과 회수까지 운영하는 로컬 프로그램이다. 첫 지원 목표는 **기존 Windows/NTFS + Git + Unity**이며, CLI가 기본 인터페이스다. 원본 이동·최초 전체 복제 없이 작업 시작 시점의 스냅샷과 작업별 변경분을 사용한다. 원본은 병렬 작업 중에도 계속 수정할 수 있어야 한다.
 
 주 사용자는 **각 대화의 AI 에이전트**다. 프로젝트용 또는 전역용으로 설치·연결한 뒤, 사용자가 “Splinter로 병렬 작업해줘”라고 요청하거나 다른 작업의 Editor 점유 때문에 독립 실행이 필요하면 자기 작업공간을 사용한다. 필요 없으면 기존 프로젝트에서 직접 작업한다. 여러 대화에 걸쳐 같은 작업을 유지하고, 사용자의 명시적 종료 요청에 원본 반영·정리하거나 명시적 폐기 요청에 반영 없이 제거하는 것이 목표다. 별도 조정 AI나 자동 작업자 실행은 필수가 아니다.
@@ -16,7 +18,9 @@ AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실
 
 상위 작업은 [NTFS 내부 알파 2차](docs/plans/ntfs-recovery-and-support.md)의 NR-01~08이다. 공통 복구·상태/저널 보존·파일 속성 거부·VSS 해제 관측과 [live VSS 식별·재연결](docs/verification/ntfs-live-vss-identity.md)을 구현했다. LV 후보의 자동 시험은 180 통과·0 실패·선택적 ReFS 1 skip이다. 이후 수집 경쟁 조건·반복 status 읽기·공통 mount 접근 규칙을 수정한 현재 후보는 [검토 후 수정 검증](docs/verification/workspace-review-fixes.md)에 기록한다. 이전 VIVOBOOK 후보의 139개 자동 통과·ARM Windows/x64 Unity 단일 작업·5개 파일 API 거부는 [NR 기록](docs/verification/ntfs-recovery.md)에 별도 보존한다.
 
-[살아 있는 VSS 식별과 같은 작업 재개](docs/plans/ntfs-live-vss-identity.md)의 LV-01~08을 정한 시험 수준에서 완료했다. 캡처 identity·현재 읽기 위치 분리, 비관리자 Observe/재개, legacy 보존과 실제 VSS/Git 재연결·범위 쓰기·단일 Unity 검증 3건·독립 결과·최종 회수를 확인했다. 다음 실행 단위는 제한된 fixture의 [실제 AI A/B 작업·비용 관문](docs/plans/ntfs-recovery-and-support.md#제한된-병렬-작업과-비용-관문)이다. 나머지 중단·파일 경계와 격리 환경의 재부팅·전원·공간 장애, ARM A/B는 지원 확대 전에 완료해야 한다. NR 전체나 공개 제품 지원 완료가 아니다.
+[살아 있는 VSS 식별과 같은 작업 재개](docs/plans/ntfs-live-vss-identity.md)의 LV-01~08을 정한 시험 수준에서 완료했다. 캡처 identity·현재 읽기 위치 분리, 비관리자 Observe/재개, legacy 보존과 실제 VSS/Git 재연결·범위 쓰기·단일 Unity 검증 3건·독립 결과·최종 회수를 확인했다. [독립 대화 A/B 작업·비용 검증](docs/plans/parallel-workflow-qualification.md)의 PV-01 대표 fixture 수명주기는 복구·운영 개입을 포함해 완료했다. PV-02는 사용자 선택 범위를 **선택 범위 완료·제한 유지 (`scoped-complete-with-limitations`)**로 마감했다. S4의 `FailedInputQualification`, 소수 표본, 과거 대표 팩 raw 동등성 unknown을 유지하며 PV-02 전체 Passed로 표시하지 않는다. 소유 자원 회수·원본 복원과 실제 하위 판정은 [실행 기록](docs/verification/parallel-workflow.md)과 [최종 마감 영수증](artifacts/parallel-workflow/pv-20260923/final-closeout.json)을 따른다. 나머지 중단·파일 경계와 격리 환경의 재부팅·전원·공간 장애, ARM A/B는 지원 확대 전에 완료해야 한다. NR 전체나 공개 제품 지원 완료가 아니다.
+
+PV-02에서는 실제 Codex 기본 worktree의 독립 Editor C, Codex worktree와 Unity Agent Coordination의 단일 Editor 순차 검증 Q, Splinter S의 관측 결과를 비교했다. 사용자 제공 Medieval village와 작은 프로필에서 수행한 새 작업·재개·코드 수정·제한된 에셋 재임포트·회수, 실패와 복구를 [실행 기록](docs/verification/parallel-workflow.md)에 보존했다. Library 준비·반복 작업·큐 대기·추가 할당을 구분하며 과거 S1~S3 전체 팩 raw 입력 동등성은 unknown이다. Coordination은 별도 Q 비교군에서만 사용한다.
 
 현재는 **간단한 Unity 스크립트 병렬 편집을 위한 내부 알파**다. .NET 10 CLI가 atomic JSON 상태와 operation lock을 사용한다. NTFS 작업은 불변 기준과 범위 저널을, 선택적 ReFS 작업은 예열 기준본과 블록 복제를 사용한다. 무-checkout Git index와 작업별 Windows 프로세스 그룹으로 소스·Editor·자식 수명을 관리한다. 기존 환경별 증거는 [자원 검증](docs/verification/storage-and-resources.md), 두 작업자의 일반 checkout 증거는 [알파 검증](docs/verification/internal-alpha.md)에 있다. daemon/SQLite Host는 미구현이다.
 

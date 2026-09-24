@@ -1,5 +1,7 @@
 # Splinter 기반 구현 계획
 
+후속 우선순위(2026-09-24): **작업공간 용량 부담 해소가 1순위, Editor 동시 실행이 2순위**다. [저장공간 우선 검토와 SF-01~06](storage-priority-and-editor-modes.md)의 공통 저장소 개선·단일 Editor 순차 검증 후보를 다음 설계 판단에 적용한다. 기본 실행 방식 전환은 미확정이며 아래 기존 구현·실행 증거와 SW/NR 지원 관문을 유지한다. PV 대용량 시험의 자동 재개를 뜻하지 않는다.
+
 현재 내부 알파 runtime은 [알파 작업공간](../alpha-workspaces.md)과 [저장소·자원 관리](../storage-and-resources.md)의 기준본/CoW/Unity 흐름을 구현한다. 일반 checkout의 두 작업자 증거는 [알파 검증](../verification/internal-alpha.md), ReFS와 프로세스 회수의 실제 범위는 [자원 검증](../verification/storage-and-resources.md)에 기록한다. daemon/SQLite Host와 공개 단계 전체 완료로 해석하지 않는다.
 
 갱신일: 2026-09-23. 상태: **NTFS workspace 1차 내부 알파 NI-01~08 완료, 2차 NR-01/03/05/07 부분 구현·자동 검증, 원격 VSS 회수 복구·파일 API 거부 5건·NR-08 ARM Windows/x64 Unity 단일 회귀 및 회수 확인, 공개 목표 미완료**. 기준: [기획서 개정 5판](../../plan.html). 실제 실행 범위는 [현재 기반](../foundation.md), 제품 NTFS 실행 수치·장애·회수는 [NI 검증](../verification/ntfs-workspace-integration.md), 독립 실험은 [SO 검증](../verification/snapshot-overlay.md)을 따른다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
@@ -14,7 +16,7 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 
 > 프로젝트용 또는 전역용 설치·Codex 스킬/플러그인 연결 → 각 대화에서 명시적 병렬 요청 또는 점유 관측에 따라 작업공간 확보 → 여러 차례 수정·검증·재개 → 사용자의 A 완료 요청에 원본 반영·A 회수 → B는 계속 작업 → B의 완료 또는 반영 없는 명시적 폐기. 독립 실행이 필요 없으면 기존 프로젝트에서 직접 작업한다.
 
-현재 내부 알파를 바탕으로 설치·대화 연결·명시적 폐기를 우선 연결하고, 에셋 저작·실제 Play·테스트·미커밋 원본·통합 후보 검증으로 확장한다. 별도 조정 AI·Codex Runner·DAG·상주 DB는 첫 공개 사용 흐름의 필수 구성 요소가 아니다. **공개 v0의 완료 범위는 기획서의 전체 필수 루프와 48개 시나리오**다. 내부 알파를 공개 v0로 간주하지 않는다.
+현재 내부 알파의 다음 실행은 [독립 대화 A/B·비용 검증](parallel-workflow-qualification.md)이다. 그 결과를 바탕으로 설치·대화 연결·명시적 폐기를 연결하고, 지원 확대의 NR 관문과 에셋 저작·실제 Play·테스트·미커밋 원본·통합 후보 검증을 이어 간다. 별도 조정 AI·Codex Runner·DAG·상주 DB는 첫 공개 사용 흐름의 필수 구성 요소가 아니다. **공개 v0의 완료 범위는 기획서의 전체 필수 루프와 48개 시나리오**다. 내부 알파를 공개 v0로 간주하지 않는다.
 
 ### 현재 확인한 것
 
@@ -36,11 +38,13 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 [NTFS workspace 1차 통합 범위](ntfs-workspace-integration.md)의 NI-01~08은 내부 알파 fixture 범위에서 완료했다. 실제 회수·released key 재호출·dirty 원본 통합 차단을 회귀 기준으로 유지한다. 종료된 NI/SO 자원이나 결과를 임의로 재생성·삭제하지 않는다. 현재 상위 구현 계획은 [NTFS 내부 알파 2차](ntfs-recovery-and-support.md)의 NR-01~08이며 [NR 기록](../verification/ntfs-recovery.md)에 공통 복구 계약의 부분 구현과 원격 VSS·파일 API·단일 Unity 회귀 증거를 기록했다. 이번 원격 시험 세션은 종료했고 프로젝트·독립 결과·원시 증거는 후속 시험용으로 보존한다.
 
 1. **LV 완료 이후:** [live VSS 식별과 재개](ntfs-live-vss-identity.md)의 캡처/live identity·현재 읽기 경로 분리·비관리자 재개·legacy 보존과 LV-01~08 검증을 완료했다. [새 후보 기록](../verification/ntfs-live-vss-identity.md)은 자동 180 통과·실제 VSS/Git 재연결·단일 Unity 검증 3건·독립 결과·회수를 포함한다. **지원 확대 전에 남은 NR 범위:** 나머지 외부 부작용 중단·파일 지원/거부 → 격리 Windows의 재부팅·물리 공간 고갈·강제 전원 종료 → ARM A/B·실제 재부팅 후 Unity 최종 회귀다. 이전 VIVOBOOK 후보의 증거를 새 후보로 승계하지 않는다. 물리 공간 고갈용 격리 볼륨은 아직 준비하지 않았다.
-2. **독립 대화의 작업·비용 검증을 먼저 실행:** [PV-01/02](ntfs-recovery-and-support.md#제한된-병렬-작업과-비용-관문)의 별도 조정 AI 없는 실제 대화 A/B의 여러 차례 스크립트 수정·실패 격리·재접속·A 선행 통합/회수와 B 지속 작업, 단계별 읽기/시간/저장량을 NR 전체 완료 전에 확인한다. 현재 NotRun이며 다음 실행 단위다. 결과 보존 결함을 먼저 고치고, NR은 지원 확대의 필수 관문으로 유지한다. 선택적 ReFS 확장과 daemon/SQLite 도입은 이 검증의 선행 과제로 두지 않는다.
+2. **독립 대화의 작업·비용 증거:** [PV-01/02](ntfs-recovery-and-support.md#제한된-병렬-작업과-비용-관문)의 별도 조정 AI 없는 실제 대화 A/B의 여러 차례 스크립트 수정·실패 격리·재접속·A 선행 통합/회수와 B 지속 작업, 단계별 읽기/시간/저장량을 NR 전체 완료 전에 관측했다. PV-01 대표 fixture 수명주기는 복구·운영 개입을 포함해 완료했고 PV-02 사용자 선택 범위는 `scoped-complete-with-limitations`로 마감했다. S4 `FailedInputQualification`·소수 표본·과거 전체 팩 raw 동등성 unknown을 유지하며 PV-02 전체 Passed로 올리지 않는다. 실제 Codex worktree C, NTFS S와 Coordination 단일 Editor Q의 관측·실패·제한은 [실행 기록](../verification/parallel-workflow.md)을 따른다. 결과 보존 결함을 먼저 고치고, NR은 지원 확대의 필수 관문으로 유지한다. 선택적 ReFS 확장과 daemon/SQLite 도입은 이 검증의 선행 과제로 두지 않는다.
 3. **설치·대화 연결·종료 계약:** [SW-01~10](session-workflow-and-installation.md#사용-흐름-검증-sw-0110)의 프로젝트용/전역용 설치, 명시/암묵 사용과 불필요 시 미사용, 현재 대화의 경로·권한 연결, 반영/보존/폐기를 구현·검증한다. 아직 없는 폐기는 구현 후 시험하며 현재 release의 보존 규칙을 약화하지 않는다.
 4. **일반 Unity 단위:** 자체 제작 에셋과 로컬 시험 패키지로 compile/import·저장/재개방·실제 Play·EditMode/PlayMode 테스트·결과/회수를 연결한다. 전체 fingerprint·loaded-code·실행 세대와 실패/0개 선택/취소/stale 증거를 구분한다. 구매 에셋은 필요하지 않다.
-5. **Git 입력·통합과 성능 확대:** dirty/LFS·linked-worktree 입력, clean 통합·충돌·최신 통합 후보 재검증을 별도 범위로 닫는다. 대표 에셋/프로젝트는 필요한 종류·규모를 정해 요청하고 초기 import·metadata·전체 Git 읽기·누적 저널 비용을 측정해 개선한다.
+5. **Git 입력·통합과 성능 확대:** dirty/LFS·linked-worktree 입력, clean 통합·충돌·최신 통합 후보 재검증을 별도 범위로 닫는다. PV-02의 대표 모델·텍스처 프로필 밖의 실사용 프로젝트·에셋은 필요한 종류·규모를 정해 요청하고 초기 import·metadata·전체 Git 읽기·누적 저널 비용을 측정해 개선한다.
 6. **공개 운영:** 요청 범위의 설치·업데이트·제거, 대화 연결·공유 자원 제어와 위 Unity/통합·폐기 검증을 공개 제품 루프로 연결한다. Runner·DAG는 선택적 확장이고 상주 Host/DB는 측정된 운영 필요가 있을 때 별도 결정한다. 공개 48개 완료는 별도이며 상세 기준은 기획서 15절과 [NTFS 통합 조건](ntfs-snapshot-overlay-spike.md)을 따른다.
+
+PV-01/02의 [확정 범위](parallel-workflow-qualification.md)는 현재 checkpoint가 최종 결과 수집이라는 제한과 사전 통합 후보 검증의 미구현을 반영한다. 실행 준비 → 여러 차례 편집/재개 → A 선행 완료와 B 지속 → 단계별 비용/회수 보고 순서는 [실행 기록](../verification/parallel-workflow.md)에 보존했고 사용자 선택 범위는 `scoped-complete-with-limitations`로 마감했다. 실제 Codex 기본 worktree와 Splinter의 관측한 새 작업/재개·지정 에셋 재임포트·Library 비용을 구분한다. PV-02 전체 Passed로 올리지 않으며 S4 입력 실패·소수 표본·과거 전체 팩 raw 동등성 unknown을 유지한다. 필요한 계측·결함 수정과 대표 프로필에서 실제 수행한 시험의 증거이며 범용 에셋 지원 완료로 확대하지 않는다.
 
 ## 2. AI 사용성을 먼저 고정한다
 
@@ -500,3 +504,5 @@ AI 사용성은 정상 흐름의 호출 수·기본 응답 바이트·불필요�
 | 명시적 반영/보존/폐기 분기, 최신 통합 후보 검증과 안전 회수 | 설치 서명·최소 환경·공개 라이선스 |
 
 현재 내부 알파의 좁은 범위는 [알파 작업공간](../alpha-workspaces.md)에 고정한다. 제품 NTFS의 현재 완료 경계는 [NI 기록](../verification/ntfs-workspace-integration.md)을 따른다. 이후 공개 목표를 위해 설치·대화 연결·반영/폐기, 재부팅/특수 파일·일반 Unity 검증과 저작·Play·테스트를 단계별로 확장한다. DAG/Runner와 상주 Host/DB는 별도 필요에 따른 선택적 확장이다. 완료 판정은 명령 존재가 아니라 해당 범위의 실행 증거로 내린다.
+
+PV-02의 추가 비교군은 Codex worktree 코드 병렬 작업과 Unity Agent Coordination 단일 Editor 순차 검증이다. 큐 대기·후보 전달·공용 Library와 두 소스 checkout의 비용을 별도로 측정하며 Splinter 실행에는 Coordination을 사용하지 않는다. 상세 조건과 실제 실행 여부는 [PV 범위](parallel-workflow-qualification.md)와 실행 기록을 따른다.

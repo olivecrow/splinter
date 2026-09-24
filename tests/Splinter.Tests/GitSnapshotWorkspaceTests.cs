@@ -8,6 +8,52 @@ namespace Splinter.Tests;
 public sealed class GitSnapshotWorkspaceTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InterruptedAttachRefreshesExistingIndexAndPreservesOutstandingLock(bool hasLock)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var d = new TestDirectory();
+        string source = Path.Combine(d.Path, "source"), mount = Path.Combine(d.Path, "mount");
+        Directory.CreateDirectory(source);
+        await TestDirectory.Git(source, "init", "-b", "development");
+        await TestDirectory.Git(source, "config", "user.name", "Fixture");
+        await TestDirectory.Git(source, "config", "user.email", "fixture@example.invalid");
+        await File.WriteAllTextAsync(Path.Combine(source, "file.txt"), "captured payload\n", ct);
+        await TestDirectory.Git(source, "add", ".");
+        await TestDirectory.Git(source, "commit", "-m", "fixture");
+        string revision = await TestDirectory.Git(source, "rev-parse", "HEAD");
+        var receipt = await GitOverlayRegistration.PrepareAsync(source, mount, "codex/interrupted", revision,
+            "interrupted", Path.Combine(d.Path, "control", "git.json"), ct);
+        // Real Git registration with a fake immutable tree, not WinFsp proof.
+        Directory.CreateDirectory(mount);
+        await File.WriteAllTextAsync(Path.Combine(mount, ".git"), receipt.Pointer, ct);
+        await File.WriteAllTextAsync(Path.Combine(mount, "file.txt"), "captured payload\n", ct);
+        await TestDirectory.Git(mount, "read-tree", revision);
+        string indexPath = Path.Combine(receipt.GitDirectory, "index");
+        byte[] initialIndex = await File.ReadAllBytesAsync(indexPath, ct);
+        if (hasLock)
+        {
+            string lockPath = indexPath + ".lock";
+            await File.WriteAllTextAsync(lockPath, "preserve interrupted writer", ct);
+            Assert.Equal("GitCommandFailed", (await Assert.ThrowsAsync<WorkspaceException>(
+                () => GitOverlayRegistration.AttachAsync(receipt, ct))).Code);
+            Assert.Equal("preserve interrupted writer", await File.ReadAllTextAsync(lockPath, ct));
+            Assert.Equal(initialIndex, await File.ReadAllBytesAsync(indexPath, ct));
+        }
+        else
+        {
+            await GitOverlayRegistration.AttachAsync(receipt, ct);
+            byte[] refreshedIndex = await File.ReadAllBytesAsync(indexPath, ct);
+            Assert.False(initialIndex.AsSpan().SequenceEqual(refreshedIndex));
+            Assert.Equal("", await TestDirectory.Git(mount, "status", "--porcelain"));
+        }
+        Assert.Equal(revision, await TestDirectory.Git(mount, "rev-parse", "HEAD"));
+        Assert.Equal("captured payload\n", await File.ReadAllTextAsync(Path.Combine(mount, "file.txt"), ct));
+        Assert.Equal("captured payload\n", await File.ReadAllTextAsync(Path.Combine(source, "file.txt"), ct));
+    }
+
+    [Theory]
     [InlineData("ntfs-snapshot")]
     [InlineData("another-snapshot-provider")]
     public async Task OnlyObservedMountRootMayBeAReparsePoint(string storageMode)

@@ -1,0 +1,1 @@
+{"date":"2026-09-24","doc":"plans/storage-priority-and-editor-modes.md","change_type":"added","summary":"용량 우선순위와 저장소 개선·단일 Editor 검증 후보 및 SF-01~06 계획 정의","intent":"대형 Unity 프로젝트의 용량 부담을 먼저 줄이고 직렬 Editor 검증의 가능성과 한계를 구현 상태와 구별","related_files":["docs/plans/storage-priority-and-editor-modes.md","README.md","AGENTS.md","plan.html"]}

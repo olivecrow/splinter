@@ -45,6 +45,8 @@ checkpoint는 앱과 자식의 종료를 확인한 뒤 검증한 소스만 커�
 
 ## 지속 상태와 재개
 
+workspace의 Git 명령에는 10분 제한과 호출자 취소가 적용된다. 큰 에셋의 초기 index 확인도 파일 내용을 읽을 수 있다. index 파일이 이미 있어도 중단된 attach의 재시도는 stat cache refresh를 완료한다. `GitCommandTimeout` 뒤에는 상태와 남은 잠금을 조사해야 하며 제품은 `index.lock`을 자동 삭제하지 않는다. 진단용 Git inspector의 10초 제한과 별도다.
+
 ```text
 <home>/records/<id>/workspace.json         identity, 단계, validation, 결과 manifest
 <home>/records/<id>/events.jsonl           작업 intent와 완료·실패

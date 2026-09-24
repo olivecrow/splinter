@@ -94,7 +94,7 @@ LV는 NR의 하위 시험 식별자다. 아래에 정한 수준의 시험은 **�
 
 실환경 최소 관문은 접근 가능한 검증 환경 한 곳의 VSS/WinFsp/Git와 단일 Unity다. VIVOBOOK을 사용하면 기존 ARM Windows + x64 Unity 조합·fixture·설정·증거를 재사용하고 준비·결과 교환은 에이전트가 담당한다. 사용하지 않은 아키텍처는 새 후보에서 NotRun으로 남긴다. 계획 수립 이후 실제 실행에서는 로컬 Windows x64와 기존 설치를 사용했다. 새 후보의 ARM Windows 시험은 NotRun이다. 제품 브리지의 기존 MVID 보고를 활용하며 fixture 자체 계측을 확장하지 않는다. 재부팅 후 loaded-code 검증은 NR-08에 남긴다.
 
-새 증거는 `artifacts/ntfs-recovery/<runId>/`에 source manifest·환경·명령/응답·identity/관측·hash·결과·자원 회수를 저장한다. workspace home은 짧게 유지한다. 실제 실행할 때 현재 자원·공간·프로세스 소유권을 다시 관측하며 이전 보고의 자원 0을 현재 상태로 간주하지 않는다. Unity 조작에는 기존 coordination 절차를 적용한다.
+새 증거는 `artifacts/ntfs-recovery/<runId>/`에 source manifest·환경·명령/응답·identity/관측·hash·결과·자원 회수를 저장한다. workspace home은 짧게 유지한다. 실제 실행할 때 현재 자원·공간·프로세스 소유권을 다시 관측하며 이전 보고의 자원 0을 현재 상태로 간주하지 않는다. 후속 Splinter 검증은 독립 Editor를 경로·PID·시작 시각으로 식별하며 제거한 Unity Agent Coordination을 다시 설치하거나 사용하지 않는다.
 
 **완료 조건:** LV-01~08에 정의한 수준의 자동/실환경 증거가 같은 후보에 연결되고, 문서와 실제 응답이 일치하며, 독립 결과와 원본을 보존한 채 소유 자원 회수가 확인돼야 한다. fake만 통과하거나 실제 재개 대신 preserve만 반환하면 이 구현 단위는 미완료다. 실행 환경이 없으면 해당 사례를 NotRun과 다음 조건으로 남긴다.
 

@@ -21,20 +21,22 @@
 
 근거 파일은 `artifacts/ntfs-workspace/ni-20260921/evidence/source-manifest.json`과 `final-build.trx`다. 이번 조회는 파일·Git·기록을 읽은 결과이며 현재 mount, Editor, VSS의 OS 상태를 새로 검증한 결과가 아니다.
 
-결과 손실과 회수 경계의 결함을 먼저 수정한다. 동시에 저장소 장애표만 확장하다가 실제 병렬 작업의 이익과 운영 비용 확인이 늦어지지 않도록, 제한된 기존 fixture에서 아래 관문을 다음 실행 단위로 둔다. 일반 프로젝트를 투입하거나 재부팅·전원·공간 장애 지원을 선언하려면 해당 NR 관문을 통과해야 한다.
+결과 손실과 회수 경계의 결함을 먼저 수정한다. 동시에 저장소 장애표만 확장하다가 실제 병렬 작업의 이익과 운영 비용 확인이 늦어지지 않도록, 제한된 기존 fixture의 아래 PV 관문에서 확보한 작업·비용 증거와 사용자 선택 범위 마감 판정을 보존한다. 일반 프로젝트를 투입하거나 재부팅·전원·공간 장애 지원을 선언하려면 해당 NR 관문을 통과해야 한다.
 
 ## 제한된 병렬 작업과 비용 관문
 
-범위는 현재 지원하는 짧은 home·clean 저장소 루트·C# 스크립트 변경이다. 서로 독립된 대화 A/B의 AI가 제품 CLI로 자기 workspace를 운영한다. 별도 조정 AI나 하위 작업자 자동 실행을 전제하지 않는다. 여러 차례 수정 요청, 새 CLI/대화 재개, A 선행 통합·회수 후 B 지속 작업을 확인한다. 아직 없는 Codex Runner·daemon·DB·DAG를 이 검증의 선행 구현으로 만들지 않는다. 실패한 작업의 유일한 결과는 보존한다.
+선택 범위를 마감한 PV의 상세 정의는 [독립 대화 A/B의 NTFS 작업과 비용 검증](parallel-workflow-qualification.md)에 보존한다. checkpoint 전 여러 차례 편집·재개, A 선행 통합/회수와 B 지속, 현재 integrate 이후 원본 Unity 확인, 실제 모델·텍스처를 포함한 Codex 기본 worktree 직접 비교와 필요한 결함 수정까지다. PV-01의 대표 fixture 수명주기는 복구·운영 개입을 포함해 완료했고 PV-02 사용자 선택 범위는 `scoped-complete-with-limitations`로 마감했다. S4 `FailedInputQualification`·소수 표본·과거 전체 팩 raw 동등성 unknown을 유지하며 PV-02 전체 Passed로 올리지 않는다. 아래 NR 전체 범위와 구별한다.
 
-| ID | 다음 실행 단위 | 완료 조건 |
+PV-01의 출발점은 현재 지원하는 짧은 home·clean 저장소 루트·C# 스크립트 변경이다. 서로 독립된 대화 A/B의 AI가 제품 CLI로 자기 workspace를 운영한다. PV-02는 실제 모델·텍스처의 임포트와 제한된 변경을 추가하고, 별도 Codex managed worktree 대화 2개의 같은 작업과 비교한다. 이 비교군은 Splinter에 중첩하지 않는다. 별도 조정 AI나 하위 작업자 자동 실행을 전제하지 않는다. 여러 차례 수정 요청, 새 CLI/대화 재개, A 선행 통합·회수 후 B 지속 작업을 확인한다. 아직 없는 Codex Runner·daemon·DB·DAG를 이 검증의 선행 구현으로 만들지 않는다. 실패한 작업의 유일한 결과는 보존한다.
+
+| ID | PV 실행 단위 | 완료 조건 |
 | --- | --- | --- |
 | PV-01 | 독립 대화 A/B의 여러 차례 작업 → A 오류 중 B 검증 지속 → 같은 작업 재접속 → A 먼저 통합·회수 → B 계속 작업 후 완료 | 작업별 요청·소스 fingerprint·loaded-code·결과 ref를 연결. 원본 편집의 지속과 원본 Editor/MCP 보존, 다른 작업 영향 없음, 소유 자원 회수, 대화별 연결·명령 수·수동 운영 개입 수를 기록. 사용자의 수정/종료 지시는 정상 사용으로 분리. 기존 NI/LV 시험을 새 실행으로 합산하지 않음 |
-| PV-02 | 준비·상태 조회·refresh·checkpoint·회수 비용의 분리 측정 | 파일 수·소스/Library 규모, 단계별 시간·읽기 바이트·journal/payload/VSS/Git 증가량, Editor 메모리 기록. 일반 status 반복과 `--verify-source`를 구분하고 최초 전체 payload 복사/읽기 hydration 0 유지. 합성 큰 파일의 4KiB 쓰기는 저장소 시험으로만 분류하고 Unity import 성능으로 확대하지 않음 |
+| PV-02 | 실제 Codex 기본 worktree와 같은 모델·텍스처 포함 Unity 프로젝트의 병렬 2작업 직접 비교 | 새 작업과 기존 작업 재개의 Library 조건, 코드 수정·지정 에셋 재임포트·완료/회수의 시간/읽기/물리 저장/메모리/개입 수, 동일 결과와 보존 증거. 기본·대표 프로필을 실제 실행하며 초기 payload 복사/읽기 hydration 0은 Splinter 필수 계약으로 유지. 합성 파일 시험은 별도 보조 근거 |
 
-현재 PV-01/02는 **NotRun**이다. 설치·자동 binding·반영 없는 폐기는 [대화별 작업 계획](session-workflow-and-installation.md)의 SW-01~10에서 구현 후 검증한다. 기존 CLI로 가능한 PV는 그 전체 구현을 기다리지 않으며, 현재 없는 discard를 강제 삭제나 실패한 release로 대체하지 않는다. 이번 수정의 자동 시험은 수집 중 쓰기 보존과 상태 조회의 파일 읽기 생략을 검증하며 실제 AI A/B나 대형 프로젝트 성능 측정을 대체하지 않는다. 결과에 따라 사용자 작업 루프의 가장 큰 비용부터 개선한다. 선택적 ReFS는 기존 회귀만 유지하고 신규 기능을 늘리지 않는다. 저널 compaction·해시 캐시·상주 Host는 실제 병목과 필요 조건을 확인한 뒤 별도 범위로 결정한다.
+현재 PV-01은 대표 fixture에서 복구·운영 개입을 포함한 전체 수명주기와 마지막 소유 자원 회수를 확인했다. **PV-02 사용자 선택 실행 범위는 `scoped-complete-with-limitations`로 마감했으며 PV-02 전체 Passed나 일반 지원 확정은 아니다.** S4 입력 실패·소수 표본·과거 전체 팩 raw 동등성 unknown, 실제 보존·회수·원본 복원은 [실행 기록](../verification/parallel-workflow.md)과 [최종 마감 영수증](../../artifacts/parallel-workflow/pv-20260923/final-closeout.json)을 따른다. 설치·자동 binding·반영 없는 폐기는 [대화별 작업 계획](session-workflow-and-installation.md)의 SW-01~10에서 구현 후 검증한다. 기존 CLI로 가능한 PV는 그 전체 구현을 기다리지 않으며, 현재 없는 discard를 강제 삭제나 실패한 release로 대체하지 않는다. 자동 시험은 실제 AI A/B나 대형 프로젝트 성능 측정을 대체하지 않는다. 결과에 따라 사용자 작업 루프의 가장 큰 비용부터 개선한다. 선택적 ReFS는 기존 회귀만 유지하고 신규 기능을 늘리지 않는다. 저널 compaction·해시 캐시·상주 Host는 실제 병목과 필요 조건을 확인한 뒤 별도 범위로 결정한다.
 
-## 이번 범위
+## 상위 NR 계획의 전체 범위
 
 ### 1. 공통 복구 계약과 기계용 응답
 
@@ -49,7 +51,7 @@
 
 VIVOBOOK의 이전 후보는 삭제된 정확한 snapshot의 현재 부팅 내 부재를 확인했다. 새 로컬 후보는 살아 있는 VSS ID·native provider·volume identity 대조, 불변 identity/현재 읽기 위치 분리, 비관리자 재개·legacy 보존까지 구현·검증했다. 캡처와 관측의 현재 계약은 [NTFS 작업공간](../ntfs-workspaces.md), 새 증거는 [LV 기록](../verification/ntfs-live-vss-identity.md)에 있다. 아래의 나머지 중단·파일 조건과 NR-04/06/08은 남아 있다.
 
-현재 `SplinterSnapshotProbe`는 값·generation·PID를 기록하고 assembly MVID는 기록하지 않는다. 실제 재부팅 후 NR-08의 loaded-code 증거에 필요한 fixture 계측을 해당 시험 전에 확장하고 실제 필드를 확인한다. 준비되지 않은 필드를 관측했다고 보고하지 않는다.
+현재 `SplinterSnapshotProbe` 자체 callback은 값·generation·PID를 기록하고 assembly MVID는 기록하지 않는다. 제품 WorkspaceBridge의 Ready heartbeat는 현재 로드된 값·generation·assemblyMvid·PID를 보고한다. NR-08과 PV에서는 실제 필드·관측 시각·변경한 함수를 먼저 확인하고 부족한 계측만 보완한다. 이전 callback이나 준비되지 않은 필드를 최신 loaded-code 증거로 보고하지 않는다.
 
 ### 2. 명령 경계와 데이터 지속성
 
@@ -111,7 +113,7 @@ VIVOBOOK의 이전 후보는 삭제된 정확한 snapshot의 현재 부팅 내 �
 
 ## 시험 환경과 필요한 자원
 
-**외부 에셋 구매·다운로드는 필요하지 않다.** 기존 Unity 스크립트와 직접 생성한 비희소·비압축 16MiB/256MiB/1GiB 파일, 작은 파일 트리·파일 특성별 fixture를 사용한다. 대형 난수 파일은 저장소 시험용이며 Unity 임포트 성능의 증거로 사용하지 않는다.
+**NR 장애·파일 경계 시험에는 외부 에셋 구매·다운로드가 필요하지 않다.** 기존 Unity 스크립트와 직접 생성한 비희소·비압축 16MiB/256MiB/1GiB 파일, 작은 파일 트리·파일 특성별 fixture를 사용한다. 별도 PV-02에는 사용 조건을 확인한 실제 모델·텍스처 묶음을 준비하며 구성·규모·예산은 [직접 비교 계획](parallel-workflow-qualification.md)에 따른다. 유료 구매는 전제하지 않는다. 대형 난수 파일은 저장소 시험용이며 실제 에셋 임포트 성능의 증거로 사용하지 않는다.
 
 사용자가 제공한 **VIVOBOOK 테스트 PC**를 다음 조건으로 준비한다. 준비와 두 작업 사이의 결과 전달은 에이전트가 담당한다. Unity fixture는 `splinter-test-vivobook/splinter-unity`, 제품 소스는 그 형제 `splinter`로 전달한다. 최초 fixture/Library 준비와 제품 workspace 생성 비용을 구분한다.
 
@@ -146,7 +148,9 @@ VIVOBOOK의 이전 후보는 삭제된 정확한 snapshot의 현재 부팅 내 �
 | --- | --- | --- |
 | 3차: 일반 Unity 작업 루프 | 직접 만든 ScriptableObject/프리팹/씬/텍스처, asmdef·로컬 시험 패키지 변경 → 정확한 compile/import → 저장·재개방 → 실제 Play → EditMode/PlayMode 테스트 → 독립 결과·회수. 실패·0개 선택·취소·stale 증거 구분 | 기존 fixture를 계획된 시험 소스로 확장. 처음에는 자체 생성 에셋으로 충분 |
 | Git 입력·통합 확대 | staged/unstaged/untracked와 `.meta` 상속, LFS/attributes, linked-worktree·하위 프로젝트, clean 통합 성공·두 NTFS 결과 충돌·최신 통합 후보 재검증 | 별도 Git fixture와 자체 생성 LFS 바이너리. 현재 dirty 원본 거부 증거를 상속 지원으로 바꾸지 않음 |
-| 대표 에셋·성능 | 텍스처/모델/오디오 및 실제 프로젝트의 초기 import·반복 변경·metadata/저널 비용 비교. 일반 작업 루프에서 확인한 병목부터 개선 | 필요 시 사용자 보유 2D/3D·오디오 또는 대표 프로젝트 일부를 종류·규모·허용 범위를 지정해 요청. 유료/개인 데이터는 공개 fixture와 분리 |
+| 대표 에셋·성능 확대 | PV-02의 모델·텍스처 직접 비교 이후 더 다양한 에셋/오디오·실사용 프로젝트의 초기 import·반복 변경·metadata/저널 비용으로 확대. 측정한 병목부터 개선 | 필요 시 사용자 보유 2D/3D·오디오 또는 대표 프로젝트 일부를 종류·규모·허용 범위를 지정해 요청. 유료/개인 데이터는 공개 fixture와 분리 |
 | 공개 운영 | 프로젝트용/전역용 설치·업데이트, 현재 Codex 대화 연결·재개, 필요 시 사용·미사용, 통합 후보·명시적 폐기와 공개 48개/SW 검증 | 독립 대화 시험·공유 자원 정책. Runner/DAG·daemon/DB는 선택적 후속 |
 
 daemon/DB 교체, 임의 에셋 구매·수집, 범용 특수 파일 지원, LFS/dirty 입력 구현, 저널 compaction과 성능 SLA, 다른 OS, 원격 게시·릴리스는 이번 NR 단위에 포함하지 않는다. 공개 v0의 저작·Play·테스트 요구사항은 그대로 유지하며 후속 공개 루프에서 반드시 닫는다.
+
+PV-02의 추가 비교군은 Codex worktree 코드 병렬 작업과 Unity Agent Coordination 단일 Editor 순차 검증이다. 큐 대기·후보 전달·공용 Library와 두 소스 checkout의 비용을 별도로 측정하며 Splinter 실행에는 Coordination을 사용하지 않는다. 상세 조건과 실제 실행 여부는 [PV 범위](parallel-workflow-qualification.md)와 실행 기록을 따른다.

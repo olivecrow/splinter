@@ -345,14 +345,17 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
         using (process)
         {
             Task<string> stdout = process.StandardOutput.ReadToEndAsync(); Task<string> stderr = process.StandardError.ReadToEndAsync();
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromSeconds(30));
+            // Workspace operations can hash multi-GiB assets through an overlay
+            // or create Git objects. Keep a bounded deadline without treating
+            // ordinary large-project work as a hung metadata query.
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromMinutes(10));
             try { await process.WaitForExitAsync(timeout.Token); }
             catch (OperationCanceledException)
             {
                 if (!process.HasExited) process.Kill(entireProcessTree: true);
                 await process.WaitForExitAsync(CancellationToken.None);
                 if (ct.IsCancellationRequested) throw;
-                throw Error("GitCommandTimeout", "Git timed out; inspect the persisted operation before retrying.");
+                throw Error("GitCommandTimeout", "Git exceeded the 10-minute workspace operation limit; inspect the persisted operation and remaining locks before retrying.");
             }
             return new(process.ExitCode, await stdout, await stderr);
         }

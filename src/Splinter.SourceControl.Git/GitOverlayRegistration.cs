@@ -90,8 +90,11 @@ public static class GitOverlayRegistration
         if (!File.Exists(System.IO.Path.Combine(receipt.GitDirectory, "index")))
         {
             await Git(receipt.Path, ["read-tree", receipt.Revision], ct);
-            await Git(receipt.Path, ["update-index", "--refresh"], ct);
         }
+        // read-tree may have finished before an interrupted refresh. An index
+        // existing alone is not evidence that its stat cache was populated.
+        // Git retains any outstanding lock; never remove it automatically.
+        await Git(receipt.Path, ["update-index", "--refresh"], ct);
         return new { receipt, head = await Git(receipt.Path, ["rev-parse", "HEAD"], ct),
             status = await Git(receipt.Path, ["status", "--porcelain"], ct), initialPayloadCopiedBytes = 0 };
     }

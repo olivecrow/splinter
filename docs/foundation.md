@@ -84,6 +84,8 @@ workspace 응답의 `sourceVerification`은 `not-checked` 또는 `verified`다. 
 
 ### 진단의 의미
 
+실제 workspace의 Git 작업은 대형 에셋 확인·객체 저장을 포함하므로 명령별 10분 제한과 호출자 취소를 사용한다. 제한 초과 시 소유 명령 프로세스를 종료하고 상태·남은 잠금을 보존한다. snapshot attach 재시도는 index 존재만으로 초기 확인을 완료했다고 판단하지 않으며 stat cache를 다시 refresh한다. 아래 진단용 inspector의 제한과 구별한다.
+
 Git 어댑터는 인자 배열과 기계용 출력으로 Git을 호출하고, 상속된 `GIT_*` 환경변수의 다른 저장소 지정을 제거한다. 조회별 제한 시간은 10초다. 최초 커밋이 없는 저장소와 linked worktree를 구분하며 index를 변경하지 않는 조회만 수행한다.
 
 현재 `repositoryId`는 정규화한 Git common directory 경로다. 이동에도 유지되는 영속 제품 ID는 아니다. Unity 탐지는 상위 경로의 Assets, ProjectSettings/ProjectVersion.txt, Packages/manifest.json을 검사한다. Unity 버전이나 패키지를 읽었다는 사실은 해당 Editor가 설치되었거나 실행 가능하다는 보장이 아니다.
