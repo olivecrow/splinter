@@ -33,7 +33,10 @@ public sealed class WorkspaceRecord
 }
 
 public sealed record SourceWorkspace(string Path, string Reference, string BaseRevision, CloneStatistics? CloneMetrics = null);
-public sealed record SourceState(string Revision, string Fingerprint, bool HasChanges, string[] ChangedPaths);
+public sealed record SourceState(string Revision, string Fingerprint, bool HasChanges, string[] ChangedPaths)
+{
+    public SourceInspectionMetrics? Inspection { get; init; }
+}
 public sealed record IntegrationResult(string Revision, bool AlreadyIntegrated);
 public sealed record ApplicationLease(int ProcessId, long StartTimeUtcTicks, string Token, string ExecutablePath,
     ProcessGroupLease? Group = null);

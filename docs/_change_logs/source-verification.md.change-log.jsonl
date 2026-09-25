@@ -1,0 +1,1 @@
+{"date":"2026-09-25","doc":"source-verification.md","change_type":"added","summary":"snapshot·epoch·경로 기반 raw/Git hash 재사용과 계측 계약 추가","intent":"현재 구현·실제 증거·실패와 미완료 조건을 일치시킨다.","related_files":["src/Splinter.SourceControl.Git/GitSourceFingerprint.cs","scripts/measure-workspace-storage.ps1","contracts/v1/response.schema.json"]}

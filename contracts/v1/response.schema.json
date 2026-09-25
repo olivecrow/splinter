@@ -746,7 +746,9 @@
         "stateBackend": {
           "const": "atomic-json-with-operation-locks"
         },
-        "workspaceStatus": { "const": "process-poll; source-on-new-validation-or-verify-source" },
+        "workspaceStatus": {
+          "const": "process-poll; source-on-new-validation-or-verify-source"
+        },
         "storageModes": {
           "type": "array",
           "items": {
@@ -782,12 +784,21 @@
             "sourceSnapshot": {
               "const": "windows-vss-system"
             },
-            "snapshotVerification": { "const": "exact-live-id-per-connection-with-boot-bound-observe-helper" },
-            "snapshotReadAccess": { "const": "verified-location-separate-from-immutable-delta-identity" },
+            "snapshotVerification": {
+              "const": "exact-live-id-per-connection-with-boot-bound-observe-helper"
+            },
+            "snapshotReleaseIsolation": {
+              "const": "preserve-when-older-or-unknown-age-same-volume-snapshots-exist; audit-other-ids-after-release; not-a-provider-wide-preservation-guarantee"
+            },
+            "snapshotReadAccess": {
+              "const": "verified-location-separate-from-immutable-delta-identity"
+            },
             "deltaStore": {
               "const": "bounded-checksummed-range-journal"
             },
-            "resultCollection": { "const": "stable-journal-v1" },
+            "resultCollection": {
+              "const": "stable-journal-v1"
+            },
             "requestSchema": {
               "const": "urn:splinter:v1:overlay-serve-request"
             },
@@ -805,6 +816,39 @@
               "minLength": 1
             }
           }
+        },
+        "sourceVerification": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fingerprint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ntfsMode": {
+              "type": "string",
+              "minLength": 1
+            },
+            "audit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cacheTrust": {
+              "type": "string",
+              "minLength": 1
+            },
+            "measurements": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "fingerprint",
+            "ntfsMode",
+            "audit",
+            "cacheTrust",
+            "measurements"
+          ]
         }
       }
     },
@@ -1085,14 +1129,46 @@
     "workspaceView": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{
-        "if": { "required": ["sourceVerification"] },
-        "then": {
-          "if": { "properties": { "sourceVerification": { "const": "verified" } } },
-          "then": { "required": ["source", "validationCurrent"] },
-          "else": { "not": { "anyOf": [{ "required": ["source"] }, { "required": ["validationCurrent"] }] } }
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "sourceVerification"
+            ]
+          },
+          "then": {
+            "if": {
+              "properties": {
+                "sourceVerification": {
+                  "const": "verified"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "source",
+                "validationCurrent"
+              ]
+            },
+            "else": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "source"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "validationCurrent"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
         }
-      }],
+      ],
       "required": [
         "workspace",
         "controlPath",
@@ -1100,8 +1176,15 @@
         "isolation"
       ],
       "properties": {
-        "sourceVerification": { "enum": ["not-checked", "verified"] },
-        "validationCurrent": { "type": "boolean" },
+        "sourceVerification": {
+          "enum": [
+            "not-checked",
+            "verified"
+          ]
+        },
+        "validationCurrent": {
+          "type": "boolean"
+        },
         "workspace": {
           "$ref": "#/$defs/workspaceSummary"
         },
@@ -1116,11 +1199,34 @@
         "recovery": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["disposition", "reasonCode", "nextCommand"],
+          "required": [
+            "disposition",
+            "reasonCode",
+            "nextCommand"
+          ],
           "properties": {
-            "disposition": { "enum": ["ready", "observe", "preserve", "resume-ensure", "resume-release", "released"] },
-            "reasonCode": { "type": "string", "minLength": 1 },
-            "nextCommand": { "enum": ["workspace.status", "workspace.ensure", "workspace.release", "workspace.list"] }
+            "disposition": {
+              "enum": [
+                "ready",
+                "observe",
+                "preserve",
+                "resume-ensure",
+                "resume-release",
+                "released"
+              ]
+            },
+            "reasonCode": {
+              "type": "string",
+              "minLength": 1
+            },
+            "nextCommand": {
+              "enum": [
+                "workspace.status",
+                "workspace.ensure",
+                "workspace.release",
+                "workspace.list"
+              ]
+            }
           }
         },
         "isolation": {
@@ -1160,6 +1266,9 @@
             "changedPathCount": {
               "type": "integer",
               "minimum": 0
+            },
+            "inspection": {
+              "$ref": "#/$defs/sourceInspection"
             }
           }
         },
@@ -1417,6 +1526,9 @@
         "durableSequence": {
           "type": "integer",
           "minimum": 0
+        },
+        "metrics": {
+          "$ref": "#/$defs/overlayIoMetrics"
         }
       },
       "required": [
@@ -1582,7 +1694,11 @@
               "type": "boolean"
             },
             "snapshotAvailability": {
-              "enum": ["available", "missing", "unknown"]
+              "enum": [
+                "available",
+                "missing",
+                "unknown"
+              ]
             },
             "mounted": {
               "type": "boolean"
@@ -1635,15 +1751,33 @@
                   "type": "boolean"
                 },
                 "availability": {
-                  "enum": ["available", "missing", "unknown"]
+                  "enum": [
+                    "available",
+                    "missing",
+                    "unknown"
+                  ]
                 },
                 "readAccess": {
-                  "type": "object", "additionalProperties": false,
-                  "required": ["snapshotId", "rootPath", "verificationId"],
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "snapshotId",
+                    "rootPath",
+                    "verificationId"
+                  ],
                   "properties": {
-                    "snapshotId": {"type":"string", "minLength":1},
-                    "rootPath": {"type":"string", "minLength":1},
-                    "verificationId": {"type":"string", "minLength":1}
+                    "snapshotId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "rootPath": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "verificationId": {
+                      "type": "string",
+                      "minLength": 1
+                    }
                   }
                 },
                 "failureCode": {
@@ -1658,11 +1792,67 @@
                   "minimum": 0
                 }
               },
-              "allOf": [{ "if": {"required":["readAccess"]}, "then": {"properties":{"availability":{"const":"available"},"available":{"const":true}}, "required":["available"]} }],
+              "allOf": [
+                {
+                  "if": {
+                    "required": [
+                      "readAccess"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "availability": {
+                        "const": "available"
+                      },
+                      "available": {
+                        "const": true
+                      }
+                    },
+                    "required": [
+                      "available"
+                    ]
+                  }
+                }
+              ],
               "oneOf": [
-                { "properties": { "availability": { "const": "available" }, "available": { "const": true } }, "required": ["available"] },
-                { "properties": { "availability": { "const": "missing" }, "available": { "const": false } }, "required": ["available"] },
-                { "properties": { "availability": { "const": "unknown" } }, "not": { "required": ["available"] } }
+                {
+                  "properties": {
+                    "availability": {
+                      "const": "available"
+                    },
+                    "available": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "available"
+                  ]
+                },
+                {
+                  "properties": {
+                    "availability": {
+                      "const": "missing"
+                    },
+                    "available": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "available"
+                  ]
+                },
+                {
+                  "properties": {
+                    "availability": {
+                      "const": "unknown"
+                    }
+                  },
+                  "not": {
+                    "required": [
+                      "available"
+                    ]
+                  }
+                }
               ]
             },
             "deltaPresent": {
@@ -1676,9 +1866,44 @@
             "ownershipVerified"
           ],
           "oneOf": [
-            { "properties": { "snapshotAvailability": { "const": "available" }, "snapshotAvailable": { "const": true } }, "required": ["snapshotAvailable"] },
-            { "properties": { "snapshotAvailability": { "const": "missing" }, "snapshotAvailable": { "const": false } }, "required": ["snapshotAvailable"] },
-            { "properties": { "snapshotAvailability": { "const": "unknown" } }, "not": { "required": ["snapshotAvailable"] } }
+            {
+              "properties": {
+                "snapshotAvailability": {
+                  "const": "available"
+                },
+                "snapshotAvailable": {
+                  "const": true
+                }
+              },
+              "required": [
+                "snapshotAvailable"
+              ]
+            },
+            {
+              "properties": {
+                "snapshotAvailability": {
+                  "const": "missing"
+                },
+                "snapshotAvailable": {
+                  "const": false
+                }
+              },
+              "required": [
+                "snapshotAvailable"
+              ]
+            },
+            {
+              "properties": {
+                "snapshotAvailability": {
+                  "const": "unknown"
+                }
+              },
+              "not": {
+                "required": [
+                  "snapshotAvailable"
+                ]
+              }
+            }
           ]
         },
         "result": {
@@ -1727,7 +1952,9 @@
             "independentOfSnapshot": {
               "type": "boolean"
             },
-            "collectionProtocol": { "const": "stable-journal-v1" }
+            "collectionProtocol": {
+              "const": "stable-journal-v1"
+            }
           },
           "required": [
             "snapshotId",
@@ -1762,6 +1989,129 @@
             ]
           }
         }
+      ]
+    },
+    "overlayIoMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lockAcquisitions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lockWaitTicks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "flushCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "flushTicks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "commitCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "journalAppendedBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "replayBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "replayTicks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "journalReadBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseReadBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stopwatchFrequency": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "epoch",
+        "lockAcquisitions",
+        "lockWaitTicks",
+        "flushCount",
+        "flushTicks",
+        "commitCount",
+        "journalAppendedBytes",
+        "replayBytes",
+        "replayTicks",
+        "journalReadBytes",
+        "baseReadBytes",
+        "stopwatchFrequency"
+      ]
+    },
+    "sourceInspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "full",
+            "initial",
+            "incremental",
+            "rebuild",
+            "audit"
+          ]
+        },
+        "payloadBytesHashed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "filesHashed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "filesReused": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "manifestBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "elapsedMilliseconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gitHashInputBytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "mode",
+        "payloadBytesHashed",
+        "filesHashed",
+        "filesReused",
+        "manifestBytes",
+        "elapsedMilliseconds"
       ]
     }
   }

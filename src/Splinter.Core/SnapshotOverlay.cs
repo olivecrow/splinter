@@ -46,7 +46,10 @@ public sealed record OverlayIdentity(int Version, string Id, SnapshotReference S
     long MaxJournalBytes, int MaxTransferBytes, string[]? ExcludedTopLevel = null);
 public sealed record OverlayStorageObservation(string Id, string SnapshotId, long InitialPayloadCopiedBytes,
     long JournalBytes, long PayloadBytes, long MetadataBytes, long ReadBytes,
-    long ReadCacheBytes, int MaxTransferBytes, int IndexedNodes, long DurableSequence);
+    long ReadCacheBytes, int MaxTransferBytes, int IndexedNodes, long DurableSequence)
+{
+    public OverlayIoMetrics? Metrics { get; init; }
+}
 public sealed record DeltaEntry(Guid Id, string Path, bool Directory, long Length, uint Attributes,
     long CreationTime, long LastAccessTime, long LastWriteTime, string? BasePath, long BaseLength,
     bool Deleted = false);

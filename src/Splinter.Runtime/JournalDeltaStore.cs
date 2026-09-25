@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
@@ -31,6 +32,30 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
     private readonly Dictionary<string, Guid> paths = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> hidden = new(StringComparer.OrdinalIgnoreCase);
     private long sequence, payloadBytes, readBytes;
+    private readonly string epoch = Guid.NewGuid().ToString("N");
+    private readonly Dictionary<string, long> pathChanges = new(StringComparer.OrdinalIgnoreCase);
+    private long lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount, appendedBytes;
+    private long replayBytes, replayTicks, journalReadBytes, baseReadBytes;
+    private long expectedJournalBytes;
+    private bool replaying;
+
+    private GateLease EnterGate()
+    {
+        long started = Stopwatch.GetTimestamp();
+        Monitor.Enter(gate);
+        lockWaitTicks += Stopwatch.GetTimestamp() - started; lockAcquisitions++;
+        return new(gate);
+    }
+    private readonly struct GateLease(object gate) : IDisposable
+    {
+        public void Dispose() => Monitor.Exit(gate);
+    }
+    private void DurableFlush()
+    {
+        long started = Stopwatch.GetTimestamp();
+        try { journal.Flush(true); }
+        finally { flushCount++; flushTicks += Stopwatch.GetTimestamp() - started; }
+    }
     private int extentCount;
     private bool poisoned, disposed;
     public OverlayIdentity Identity { get; }
@@ -66,16 +91,21 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
                 JsonSerializer.Serialize(identityFile, identity); identityFile.Flush(true);
             }
             AddBaseNode(snapshot.Stat("") ?? throw new WorkspaceException("SnapshotMissing", "Snapshot root is unavailable."), "");
+            long replayStarted = Stopwatch.GetTimestamp();
+            replaying = true;
             Replay();
+            replaying = false;
+            replayTicks = Stopwatch.GetTimestamp() - replayStarted;
+            expectedJournalBytes = journal.Length;
         }
         catch { journal.Dispose(); throw; }
     }
 
-    public DeltaEntry? Stat(string path) { lock (gate) { Check(); return Lookup(Normalize(path))?.Entry; } }
-    public DeltaEntry Get(Guid id) { lock (gate) { Check(); return Required(id).Entry; } }
+    public DeltaEntry? Stat(string path) { using (EnterGate()) { Check(); return Lookup(Normalize(path))?.Entry; } }
+    public DeltaEntry Get(Guid id) { using (EnterGate()) { Check(); return Required(id).Entry; } }
     public IReadOnlyList<DeltaEntry> List(string directory)
     {
-        lock (gate)
+        using (EnterGate())
         {
             Check(); Node parent = Lookup(Normalize(directory)) ?? throw new DirectoryNotFoundException(directory);
             if (!parent.Entry.Directory) throw new IOException("Not a directory.");
@@ -88,7 +118,7 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
 
     public DeltaEntry Create(string path, bool directory, uint attributes)
     {
-        lock (gate)
+        using (EnterGate())
         {
             Check(); path = Normalize(path);
             if (path.Length == 0 || Lookup(path) is not null) throw new IOException("Path already exists.");
@@ -103,7 +133,7 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
 
     public int Read(Guid id, long offset, Span<byte> destination)
     {
-        lock (gate)
+        using (EnterGate())
         {
             Check(); Node node = RequiredFile(id);
             if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
@@ -127,7 +157,7 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
 
     public void Write(Guid id, long offset, ReadOnlySpan<byte> data)
     {
-        lock (gate)
+        using (EnterGate())
         {
             Check(); Node node = RequiredFile(id);
             if (offset < 0 || data.Length > Identity.MaxTransferBytes) throw new ArgumentOutOfRangeException(nameof(offset));
@@ -140,7 +170,7 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
 
     public void SetLength(Guid id, long length)
     {
-        lock (gate)
+        using (EnterGate())
         {
             Check(); Node node = RequiredFile(id);
             if (length < 0) throw new ArgumentOutOfRangeException(nameof(length));
@@ -153,7 +183,7 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
 
     public void SetMetadata(Guid id, uint attributes, long creationTime, long accessTime, long writeTime)
     {
-        lock (gate)
+        using (EnterGate())
         {
             Check(); var old = Required(id).Entry;
             var entry = old with { Attributes = attributes, CreationTime = creationTime, LastAccessTime = accessTime, LastWriteTime = writeTime };
@@ -163,7 +193,7 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
 
     public void Rename(Guid id, string destination, bool replace)
     {
-        lock (gate)
+        using (EnterGate())
         {
             Check(); Node node = Required(id); destination = Normalize(destination);
             if (node.Entry.Path.Length == 0 || node.Entry.Deleted || destination.Length == 0 || IsChild(destination, node.Entry.Path))
@@ -178,7 +208,7 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
 
     public void Delete(Guid id)
     {
-        lock (gate)
+        using (EnterGate())
         {
             Check(); Node node = Required(id);
             if (node.Entry.Deleted) return;
@@ -190,24 +220,42 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
 
     public void Flush()
     {
-        lock (gate)
+        using (EnterGate())
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (poisoned) throw new WorkspaceException("DeltaReconnectRequired", "Replay the preserved journal after a failed append.");
             // Flushing acknowledged private data does not need a surviving base.
-            journal.Flush(true);
+            DurableFlush();
         }
     }
     public OverlayStorageObservation Observe()
     {
-        lock (gate)
+        using (EnterGate())
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             return new(Identity.Id, Identity.Snapshot.Id, 0, journal.Length, payloadBytes,
-                journal.Length - payloadBytes, readBytes, 0, Identity.MaxTransferBytes, nodes.Count, sequence);
+                journal.Length - payloadBytes, readBytes, 0, Identity.MaxTransferBytes, nodes.Count, sequence)
+            {
+                Metrics = new(epoch, lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount,
+                    appendedBytes, replayBytes, replayTicks, journalReadBytes, baseReadBytes, Stopwatch.Frequency)
+            };
         }
     }
-    public void Dispose() { lock (gate) { if (disposed) return; disposed = true; journal.Dispose(); } }
+    public SourceChangeView ObserveChanges(string[] managedPaths)
+    {
+        using (EnterGate())
+        {
+            Check();
+            // Root mutations can only change directory attributes/timestamps:
+            // create, rename, delete, resize and payload writes reject the root.
+            // They do not change a source file or source membership.
+            var changes = pathChanges.Where(p => p.Key.Length != 0 && !SourcePathPolicy.Managed(p.Key, managedPaths))
+                .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => new SourcePathChange(p.Key, p.Value)).ToArray();
+            return new(Identity.Id, Identity.Snapshot.Id, epoch,
+                changes.Length == 0 ? 0 : changes.Max(p => p.Sequence), changes);
+        }
+    }
+    public void Dispose() { using (EnterGate()) { if (disposed) return; disposed = true; journal.Dispose(); } }
 
     private void ReadBase(Node node, long from, long to, Span<byte> output, long outputOffset)
     {
@@ -218,7 +266,7 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
             int count = (int)Math.Min(to - from, Identity.MaxTransferBytes);
             int read = snapshot.Read(path, from, output.Slice((int)(from - outputOffset), count));
             if (read <= 0 || read > count) throw new WorkspaceException("SnapshotReadFailed", "Immutable base returned an unexpected short file.");
-            from += read;
+            baseReadBytes += read; from += read;
         }
     }
     private void ReadExactly(long offset, Span<byte> output)
@@ -227,6 +275,8 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
         {
             int count = RandomAccess.Read(journal.SafeFileHandle, output, offset);
             if (count == 0) throw new WorkspaceException("DeltaCorrupt", "An acknowledged delta extent is missing.");
+            journalReadBytes += count;
+            if (replaying) replayBytes += count;
             offset += count; output = output[count..];
         }
     }
@@ -234,6 +284,8 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         if (poisoned) throw new WorkspaceException("DeltaReconnectRequired", "A failed append requires closing and replaying the preserved delta.");
+        if (!replaying && journal.Length != expectedJournalBytes)
+            throw new WorkspaceException("DeltaCorrupt", "Journal length changed outside the owned writer; preserve it.");
         snapshot.EnsureAvailable();
     }
     private Node Required(Guid id) => nodes.TryGetValue(id, out var node) ? node : throw new FileNotFoundException("Unknown open file identity.");
@@ -296,9 +348,11 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
         {
             journal.Position = start;
             journal.Write(header); journal.Write(metadata); journal.Write(payload); journal.Write(digest.GetHashAndReset());
-            journal.Flush(true);
+            DurableFlush();
         }
         catch { poisoned = true; throw; }
+        expectedJournalBytes = journal.Length;
+        commitCount++; appendedBytes += required;
         Apply(mutation, start + 8 + metadata.Length, payload.Length);
     }
     private void Replay()
@@ -329,7 +383,7 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
         }
         // Only an incomplete trailing transaction is unacknowledged. Corrupt
         // complete transactions above fail closed and remain byte-for-byte intact.
-        if (cursor != journal.Length) { journal.SetLength(cursor); journal.Flush(true); }
+        if (cursor != journal.Length) { journal.SetLength(cursor); DurableFlush(); }
     }
     private static Mutation DecodeMutation(byte[] metadata, int payloadLength)
     {
@@ -405,10 +459,16 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
                 hidden.Add(old); break;
             default: throw new WorkspaceException("DeltaCorrupt", "Unknown journal operation.");
         }
+        pathChanges[mutation.Entry.Path] = mutation.Sequence;
+        if (mutation.Destination is { } destinationPath) pathChanges[destinationPath] = mutation.Sequence;
         payloadBytes += payloadLength; sequence = mutation.Sequence;
     }
     private void RequireMutationCapacity(Mutation mutation)
     {
+        int newPaths = (pathChanges.ContainsKey(mutation.Entry.Path) ? 0 : 1) +
+            (mutation.Destination is { } destination && !pathChanges.ContainsKey(destination) ? 1 : 0);
+        if (pathChanges.Count > MaxHiddenPaths - newPaths)
+            throw new WorkspaceException("OverlayMetadataLimit", "The bounded change index is full; preserve the delta.");
         // One replacement can split an old extent into two and add one new
         // extent. Reject conservatively before appending an acknowledged frame.
         if (mutation.Operation == "write" && extentCount > MaxIndexedExtents - 2 ||

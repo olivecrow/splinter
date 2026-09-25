@@ -4,7 +4,11 @@
 
 | 문서 | 읽을 때 |
 | --- | --- |
-| [저장공간 우선 설계와 Editor 방식](plans/storage-priority-and-editor-modes.md) | 용량 1순위·Editor 동시성 2순위의 후속 방향, 저장소 개선 가능성과 단일 Editor 순차 검증 후보, 미실행 SF-01~06을 확인할 때 |
+| [공통 저장소 개선 1차](plans/storage-foundation-first-milestone.md) | 확정 범위·완료 조건과 구현 결과, 기존 VSS 보존 실패로 남은 마감 조건을 확인할 때 |
+| [변경 기반 소스 검증과 계측](source-verification.md) | 파일 hash/manifest·provider 세대·audit 복구·계수와 읽기 전용 물리 할당 계측 스크립트를 사용할 때 |
+| [공통 저장소 실제 검증](verification/storage-foundation.md) | SF-01·SF-02 하위 결과, 읽기/공간 장부·Unity A/B·기존 VSS 소실과 자동 해제 차단의 미검증 경계를 확인할 때 |
+| [저장소 실패 재현·보호 검증](verification/storage-recovery.md) | 제어 JSON 게시 충돌 수정, 격리 VSS 연쇄 삭제 재현·비강제 API 대조·실제 삭제 차단과 회수 순서의 제한을 확인할 때 |
+| [저장공간 우선 설계와 Editor 방식](plans/storage-priority-and-editor-modes.md) | 용량 1순위·Editor 동시성 2순위, SF-01의 제한된 검증과 SF-02~06의 남은 조건·단일 Editor 후보를 확인할 때 |
 | [NTFS 작업공간](ntfs-workspaces.md) | 일반 CLI의 ntfs-snapshot 생성·권한 경계·재개·독립 결과·회수와 현재 제한을 확인할 때 |
 | [NI 통합 검증](verification/ntfs-workspace-integration.md) | 실제 NTFS/Git/Unity·범위 저장·장애 보호 증거, 원본 통합 차단·최종 자원 회수와 긴 경로 제한을 확인할 때 |
 | [NTFS workspace 1차 통합 범위](plans/ntfs-workspace-integration.md) | 완료한 NI-01~08의 계약·CLI·복구·결과·회수 범위와 완료 기준을 확인할 때 |

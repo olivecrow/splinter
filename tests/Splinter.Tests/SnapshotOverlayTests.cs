@@ -10,6 +10,55 @@ namespace Splinter.Tests;
 public sealed class SnapshotOverlayTests
 {
     [Fact]
+    public void SourceChangeBarrierIgnoresManagedWritesAndSurvivesJournalReplayWithNewEpoch()
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree();
+        tree.Files["dir/code.cs"] = [1, 2]; tree.Files["Library/cache"] = [3];
+        SourceChangeView beforeReplay;
+        using (var store = New(d, tree))
+        {
+            Assert.Equal(0, store.ObserveChanges(["Library"]).Sequence);
+            var root = store.Stat("")!;
+            store.SetMetadata(root.Id, root.Attributes, root.CreationTime, root.LastAccessTime, root.LastWriteTime + 1);
+            Assert.Equal(0, store.ObserveChanges(["Library"]).Sequence);
+            store.Write(store.Stat("Library/cache")!.Id, 0, new byte[] { 4 });
+            Assert.Equal(0, store.ObserveChanges(["Library"]).Sequence);
+            store.Write(store.Stat("dir/code.cs")!.Id, 0, new byte[] { 5 });
+            store.Rename(store.Stat("dir")!.Id, "moved", false);
+            beforeReplay = store.ObserveChanges(["Library"]);
+            Assert.Equal(4, beforeReplay.Sequence);
+            Assert.Contains(beforeReplay.Changes, p => p.Path == "dir");
+            Assert.Contains(beforeReplay.Changes, p => p.Path == "moved");
+            Assert.DoesNotContain(beforeReplay.Changes, p => p.Path.StartsWith("Library"));
+            var metrics = store.Observe().Metrics!;
+            Assert.Equal(4, metrics.CommitCount); Assert.True(metrics.FlushCount >= 4);
+            Assert.Equal(0, metrics.BaseReadBytes); Assert.Equal(0, metrics.ReplayBytes);
+        }
+        using var resumed = New(d, tree);
+        var current = resumed.ObserveChanges(["Library"]);
+        Assert.NotEqual(beforeReplay.Epoch, current.Epoch);
+        Assert.Equal(beforeReplay.Sequence, current.Sequence); Assert.Equal(beforeReplay.Changes, current.Changes);
+        Assert.True(resumed.Observe().Metrics!.ReplayBytes > 0);
+        Assert.Equal(0, resumed.Observe().Metrics!.CommitCount);
+    }
+
+    [Fact]
+    public void RepeatedWritesRetainJournalAllocationAndCountersDoNotConfuseLiveContentWithHistory()
+    {
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["large"] = new byte[16 * 1024 * 1024];
+        using var store = New(d, tree); var file = store.Stat("large")!;
+        byte[] block = new byte[4096];
+        for (int i = 0; i < 100; i++) { block[0] = (byte)i; store.Write(file.Id, 8192, block); }
+        var before = store.Observe(); Assert.Equal(409600, before.PayloadBytes);
+        Assert.Equal(100, before.Metrics!.CommitCount); Assert.Equal(100, before.Metrics.FlushCount);
+        store.SetLength(file.Id, 4096); store.Delete(file.Id);
+        var after = store.Observe(); Assert.Equal(before.PayloadBytes, after.PayloadBytes);
+        Assert.True(after.JournalBytes > before.JournalBytes); Assert.Equal(0, after.ReadCacheBytes);
+        Assert.Equal(after.JournalBytes, after.Metrics!.JournalAppendedBytes);
+        Assert.True(after.Metrics.LockAcquisitions > 100);
+    }
+
+    [Fact]
     public void VerifiedReadLocationCanMoveWhileJournalIdentityAndAcknowledgedBytesStayFixed()
     {
         using var d = new TestDirectory();

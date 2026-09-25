@@ -137,7 +137,8 @@ public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
         await process.WaitForExitAsync(ct);
         string errors = await error; await output;
         if (process.ExitCode != 0)
-            throw new WorkspaceException(new[] { "SnapshotHeadroomRequired", "SnapshotIdentityMismatch", "SnapshotObservationIncomplete" }
+            throw new WorkspaceException(new[] { "SnapshotHeadroomRequired", "SnapshotIdentityMismatch", "SnapshotObservationIncomplete",
+                "SnapshotReleaseIsolationRequired", "SnapshotCollateralLoss" }
                 .FirstOrDefault(code => errors.Contains(code, StringComparison.Ordinal)) ?? "SnapshotOperationIncomplete",
                 "The VSS helper did not complete. Preserve the receipt and inspect its diagnostic.", new { action, receiptDirectory, diagnostic = errors });
     }

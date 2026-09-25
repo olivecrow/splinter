@@ -7,11 +7,16 @@
     "verifySource": {
       "type": "boolean",
       "default": false,
-      "description": "Read source contents to verify the current fingerprint. New validation results are reconciled once even when false."
+      "description": "Verify current source with authoritative journal changes and reusable file hashes where available; otherwise read all source. New validation results are reconciled once even when false."
     },
     "id": {
       "type": "string",
       "pattern": "^[a-f0-9]{24}$"
+    },
+    "auditSource": {
+      "type": "boolean",
+      "default": false,
+      "description": "Read all source payload and rebuild the fingerprint manifest. Implies verifySource; preserves rejected metadata."
     }
   },
   "required": [

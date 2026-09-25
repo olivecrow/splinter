@@ -56,7 +56,7 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         string temporary = file + ".tmp"; EnsurePlainPath(temporary);
         using (var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
         { JsonSerializer.Serialize(stream, record, Json); stream.Flush(true); }
-        File.Move(temporary, file, true);
+        AtomicFilePublication.Publish(temporary, file);
     }
 
     public async Task<FileStream> LockAsync(string key, CancellationToken cancellationToken = default)
@@ -148,7 +148,7 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
             JsonSerializer.Serialize(stream, workspace, Json);
             stream.Flush(flushToDisk: true);
         }
-        File.Move(temporary, target, overwrite: true);
+        AtomicFilePublication.Publish(temporary, target);
         string journal = Path.Combine(control, "events.jsonl");
         EnsurePlainPath(journal);
         File.AppendAllText(journal, JsonSerializer.Serialize(new

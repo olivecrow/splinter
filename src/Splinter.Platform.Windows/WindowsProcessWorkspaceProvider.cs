@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Splinter.Core;
+using Splinter.Runtime;
 
 namespace Splinter.Platform.Windows;
 
@@ -77,7 +78,13 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
         {
             await JsonSerializer.SerializeAsync(stream, data, Json, ct); stream.Flush(true);
         }
-        File.Move(temporary, path, true);
+        try { AtomicFilePublication.Publish(temporary, path); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ex.Data["publicationPath"] = path;
+            ex.Data["publicationTemporaryPath"] = temporary;
+            throw;
+        }
     }
     public static string PrepareRunner(string cache)
     {

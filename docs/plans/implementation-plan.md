@@ -2,6 +2,8 @@
 
 후속 우선순위(2026-09-24): **작업공간 용량 부담 해소가 1순위, Editor 동시 실행이 2순위**다. [저장공간 우선 검토와 SF-01~06](storage-priority-and-editor-modes.md)의 공통 저장소 개선·단일 Editor 순차 검증 후보를 다음 설계 판단에 적용한다. 기본 실행 방식 전환은 미확정이며 아래 기존 구현·실행 증거와 SW/NR 지원 관문을 유지한다. PV 대용량 시험의 자동 재개를 뜻하지 않는다.
 
+[공통 저장소 개선 1차](storage-foundation-first-milestone.md)의 파일 단위 검증과 계측을 구현했다. SF-01의 정의한 소스 검증은 Passed, SF-02는 계측 하위 범위만 Partial이고 SF-03~06은 NotRun이다. [새 실행 기록](../verification/storage-foundation.md)에서 기존 VSS 보존 실패가 발생해 전체 단위는 FailedPreservation이다. [후속 재현·수정](../verification/storage-recovery.md)에서 제어 JSON 게시 충돌 수정과 격리된 소유 snapshot의 실제 삭제 차단·순차 회수를 확인했다. 일반 비소유 백업 공존은 미검증이다. 다음은 지연 회수 상태·재시도·잔존 공간 비용의 계약이며 압축·flush 정책 변경·단일 Editor 연결은 후속이다.
+
 현재 내부 알파 runtime은 [알파 작업공간](../alpha-workspaces.md)과 [저장소·자원 관리](../storage-and-resources.md)의 기준본/CoW/Unity 흐름을 구현한다. 일반 checkout의 두 작업자 증거는 [알파 검증](../verification/internal-alpha.md), ReFS와 프로세스 회수의 실제 범위는 [자원 검증](../verification/storage-and-resources.md)에 기록한다. daemon/SQLite Host와 공개 단계 전체 완료로 해석하지 않는다.
 
 갱신일: 2026-09-23. 상태: **NTFS workspace 1차 내부 알파 NI-01~08 완료, 2차 NR-01/03/05/07 부분 구현·자동 검증, 원격 VSS 회수 복구·파일 API 거부 5건·NR-08 ARM Windows/x64 Unity 단일 회귀 및 회수 확인, 공개 목표 미완료**. 기준: [기획서 개정 5판](../../plan.html). 실제 실행 범위는 [현재 기반](../foundation.md), 제품 NTFS 실행 수치·장애·회수는 [NI 검증](../verification/ntfs-workspace-integration.md), 독립 실험은 [SO 검증](../verification/snapshot-overlay.md)을 따른다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
@@ -16,7 +18,7 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 
 > 프로젝트용 또는 전역용 설치·Codex 스킬/플러그인 연결 → 각 대화에서 명시적 병렬 요청 또는 점유 관측에 따라 작업공간 확보 → 여러 차례 수정·검증·재개 → 사용자의 A 완료 요청에 원본 반영·A 회수 → B는 계속 작업 → B의 완료 또는 반영 없는 명시적 폐기. 독립 실행이 필요 없으면 기존 프로젝트에서 직접 작업한다.
 
-현재 내부 알파의 다음 실행은 [독립 대화 A/B·비용 검증](parallel-workflow-qualification.md)이다. 그 결과를 바탕으로 설치·대화 연결·명시적 폐기를 연결하고, 지원 확대의 NR 관문과 에셋 저작·실제 Play·테스트·미커밋 원본·통합 후보 검증을 이어 간다. 별도 조정 AI·Codex Runner·DAG·상주 DB는 첫 공개 사용 흐름의 필수 구성 요소가 아니다. **공개 v0의 완료 범위는 기획서의 전체 필수 루프와 48개 시나리오**다. 내부 알파를 공개 v0로 간주하지 않는다.
+[독립 대화 A/B·비용 검증](parallel-workflow-qualification.md)의 사용자 선택 범위는 마감했다. PV-01 대표 fixture의 복구 포함 완료와 PV-02의 실패·입력·표본 제한을 유지한다. 다음은 위 VSS 보존 관문의 해결이며, 이후 저널 최적화와 작은 단일 Editor 후보 검증을 별도 진행한다. 설치·대화 연결·명시적 폐기, 지원 확대의 NR 관문과 에셋 저작·실제 Play·테스트·미커밋 원본·통합 후보 검증은 후속 범위다. 별도 조정 AI·Codex Runner·DAG·상주 DB는 첫 공개 사용 흐름의 필수 구성 요소가 아니다. **공개 v0의 완료 범위는 기획서의 전체 필수 루프와 48개 시나리오**다. 내부 알파를 공개 v0로 간주하지 않는다.
 
 ### 현재 확인한 것
 

@@ -18,7 +18,10 @@ function Save-Json([string]$Path, $Value) {
     $bytes = [Text.Encoding]::UTF8.GetBytes(($Value | ConvertTo-Json -Depth 7))
     $stream = [IO.FileStream]::new(($Path + '.new'), 'Create', 'Write', 'None')
     try { $stream.Write($bytes); $stream.Flush($true) } finally { $stream.Dispose() }
-    [IO.File]::Move(($Path + '.new'), $Path, $true)
+    # Polling readers grant delete sharing; Move(overwrite) still rejects an
+    # open destination on Windows. Replace leaves each old reader intact.
+    if ([IO.File]::Exists($Path)) { [IO.File]::Replace(($Path + '.new'), $Path, [System.Management.Automation.Language.NullString]::Value) }
+    else { [IO.File]::Move(($Path + '.new'), $Path) }
 }
 function Read-LiveIdentity($Shadow, $Receipt) {
     if ($Receipt.snapshot.rootPath -notmatch '^\\\\\?\\GLOBALROOT\\Device\\HarddiskVolumeShadowCopy[0-9]+(?:\\(.*))?$') { throw 'SnapshotIdentityMismatch' }
@@ -59,6 +62,30 @@ function Measure-Storage {
         volumes = @(Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID, FileSystem, FreeSpace, Size)
         shadowStorage = @(Get-CimInstance Win32_ShadowStorage | Select-Object @{Name='volume';Expression={$_.Volume.DeviceID}}, @{Name='diffVolume';Expression={$_.DiffVolume.DeviceID}}, UsedSpace, AllocatedSpace, MaxSpace)
     }
+}
+function Invoke-OwnedSnapshotRemoval($Shadow) {
+    # Exact-ID deletion alone is insufficient: volsnap can reclaim older copies
+    # while processing a later deletion (observed event 95). Never authorize that
+    # operation while another older/unknown-age copy occupies the same volume.
+    $before = @(Get-CimInstance Win32_ShadowCopy -ErrorAction Stop)
+    if (-not $Shadow.VolumeName -or -not $Shadow.InstallDate) { throw 'SnapshotReleaseIsolationRequired' }
+    $others = @($before | Where-Object { $_.ID -ne $Shadow.ID })
+    $blockers = @($others | Where-Object {
+        -not $_.VolumeName -or ($_.VolumeName -eq $Shadow.VolumeName -and
+            (-not $_.InstallDate -or ([DateTimeOffset]$_.InstallDate) -le ([DateTimeOffset]$Shadow.InstallDate)))
+    })
+    $evidence = [ordered]@{snapshotId=$Shadow.ID; observedAt=[DateTimeOffset]::UtcNow;
+        beforeIds=@($before | ForEach-Object ID); blockingIds=@($blockers | ForEach-Object ID);
+        deletionAttempted=$false; missingOtherIds=@()}
+    Save-Json (Join-Path $receiptRoot 'release-isolation.json') $evidence
+    if ($blockers.Count) { throw 'SnapshotReleaseIsolationRequired: preserve older snapshots; do not delete them to bypass this guard. Use an isolated test volume for future captures.' }
+    $evidence.deletionAttempted = $true
+    Save-Json (Join-Path $receiptRoot 'release-isolation.json') $evidence
+    $Shadow | Remove-CimInstance -ErrorAction Stop
+    $afterIds = @(Get-CimInstance Win32_ShadowCopy -ErrorAction Stop | ForEach-Object ID)
+    $evidence.missingOtherIds = @($others | Where-Object { $_.ID -notin $afterIds } | ForEach-Object ID)
+    Save-Json (Join-Path $receiptRoot 'release-isolation.json') $evidence
+    if ($evidence.missingOtherIds.Count) { throw 'SnapshotCollateralLoss: another snapshot disappeared during release; stop and preserve the inventory.' }
 }
 try {
     if ($Action -eq 'Capture' -and -not (Test-Path -LiteralPath $receiptPath)) {
@@ -126,7 +153,7 @@ try {
         if ($gate.snapshotId -ne $receipt.snapshot.id -or $gate.remainingDependents -ne 0 -or -not $gate.resultsPreserved) { throw 'SnapshotReleaseGateInvalid' }
         if ($null -ne $shadow) {
             if ($shadow.ProviderID -ne $receipt.nativeProviderId) { throw 'SnapshotProviderMismatch' }
-            $shadow | Remove-CimInstance
+            Invoke-OwnedSnapshotRemoval $shadow
         }
         if ($null -ne (Get-CimInstance Win32_ShadowCopy | Where-Object ID -eq $receipt.snapshot.id)) { throw 'SnapshotReleaseIncomplete' }
         $receipt.released = $true; $receipt.releasedAt = [DateTimeOffset]::UtcNow; $receipt.afterRelease = Measure-Storage

@@ -6,6 +6,21 @@ namespace Splinter.Tests;
 public sealed class SnapshotWorkspaceCoordinatorTests
 {
     [Fact]
+    public async Task SourceCacheFailureOnEnsureReturnsExactAuditWithoutRecapturing()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var ready = await f.Ensure(ct);
+        f.Source.InspectionError = "SourceCacheRevalidationRequired";
+        var failure = await Assert.ThrowsAsync<WorkspaceException>(() => f.Ensure(ct));
+        var action = Assert.Single(failure.RecoveryActions!);
+        Assert.Equal("workspace.status", action.Command);
+        var arguments = System.Text.Json.JsonSerializer.SerializeToElement(action.Arguments);
+        Assert.Equal(ready.Workspace.Id, arguments.GetProperty("id").GetString());
+        Assert.Equal(f.Home, arguments.GetProperty("home").GetString());
+        Assert.True(arguments.GetProperty("auditSource").GetBoolean());
+        Assert.Equal(1, f.Backend.Captures); Assert.True(f.Backend.Mounted);
+    }
+    [Fact]
     public async Task VerificationGatePreservesCaptureAndReturnsExactEnsureRetry()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
@@ -383,7 +398,9 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => Task.FromResult(r);
         public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new InvalidOperationException("No clone/checkout fallback");
         public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)
-        { FailOnce("inspect"); return Task.FromResult(new SourceState(w.ResultRevision ?? "base", Fingerprint, Dirty, [])); }
+        { if (InspectionError is not null) throw new WorkspaceException(InspectionError, "fixture cache failure");
+            FailOnce("inspect"); return Task.FromResult(new SourceState(w.ResultRevision ?? "base", Fingerprint, Dirty, [])); }
+        public string? InspectionError;
         public Task<string> CommitAsync(WorkspaceRecord w, string message, CancellationToken ct = default) { Dirty = false; return Task.FromResult("result"); }
         public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string target, CancellationToken ct = default) => throw new InvalidOperationException("Do not force integration");
         public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new InvalidOperationException("Do not use checkout deletion");

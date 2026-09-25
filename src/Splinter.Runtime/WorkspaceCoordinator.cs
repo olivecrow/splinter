@@ -80,6 +80,9 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         catch (Exception ex)
         {
             RecordFailure(record, ex);
+            if (ex is WorkspaceException { Code: "SourceCacheRevalidationRequired" } cacheFailure)
+                throw new WorkspaceException(cacheFailure.Code, cacheFailure.Message, cacheFailure.Details,
+                    [new("workspace.status", new { id, home = store.Root, auditSource = true })]);
             if (ex is WorkspaceException { Code: "SnapshotPrivilegeRequired", RecoveryActions: not null } failure)
                 throw new WorkspaceException(failure.Code, failure.Message, failure.Details,
                     [.. failure.RecoveryActions, new("workspace.ensure", new { project, key = requestKey, baseReference, storage = storageMode,

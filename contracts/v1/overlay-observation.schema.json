@@ -2,27 +2,236 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:splinter:v1:overlay-observation",
   "type": "object",
-  "required": ["version", "token", "id", "phase", "observedAt", "processId", "snapshotId"],
+  "required": [
+    "version",
+    "token",
+    "id",
+    "phase",
+    "observedAt",
+    "processId",
+    "snapshotId"
+  ],
   "properties": {
-    "version": { "const": 1 }, "token": {"type":"string"}, "id":{"type":"string"},
-    "phase":{"enum":["mounted","snapshot-missing","snapshot-unknown","unmounted","failed"]}, "observedAt":{"type":"string","format":"date-time"},
-    "snapshotAvailability":{"enum":["available","missing","unknown"]}, "snapshotFailureCode":{"type":["string","null"]},
-    "processId":{"type":"integer","minimum":1}, "snapshotId":{"type":"string"},
-    "openHandles":{"type":"integer","minimum":0}, "workingSetBytes":{"type":"integer","minimum":0},
-    "privateBytes":{"type":"integer","minimum":0},
+    "version": {
+      "const": 1
+    },
+    "token": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "phase": {
+      "enum": [
+        "mounted",
+        "snapshot-missing",
+        "snapshot-unknown",
+        "unmounted",
+        "failed"
+      ]
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "snapshotAvailability": {
+      "enum": [
+        "available",
+        "missing",
+        "unknown"
+      ]
+    },
+    "snapshotFailureCode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "processId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "snapshotId": {
+      "type": "string"
+    },
+    "openHandles": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "workingSetBytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "privateBytes": {
+      "type": "integer",
+      "minimum": 0
+    },
     "storage": {
-      "type":"object", "required":["initialPayloadCopiedBytes","journalBytes","payloadBytes","metadataBytes","readBytes","readCacheBytes","durableSequence"],
+      "type": "object",
+      "required": [
+        "initialPayloadCopiedBytes",
+        "journalBytes",
+        "payloadBytes",
+        "metadataBytes",
+        "readBytes",
+        "readCacheBytes",
+        "durableSequence"
+      ],
       "properties": {
-        "initialPayloadCopiedBytes":{"const":0}, "readCacheBytes":{"const":0},
-        "journalBytes":{"type":"integer","minimum":0}, "payloadBytes":{"type":"integer","minimum":0},
-        "metadataBytes":{"type":"integer","minimum":0}, "readBytes":{"type":"integer","minimum":0},
-        "durableSequence":{"type":"integer","minimum":0}
+        "initialPayloadCopiedBytes": {
+          "const": 0
+        },
+        "readCacheBytes": {
+          "const": 0
+        },
+        "journalBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "payloadBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metadataBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "readBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "durableSequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "epoch": {
+              "type": "string",
+              "minLength": 1
+            },
+            "lockAcquisitions": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "lockWaitTicks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "flushCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "flushTicks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "commitCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "journalAppendedBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "replayBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "replayTicks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "journalReadBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "baseReadBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "stopwatchFrequency": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "epoch",
+            "lockAcquisitions",
+            "lockWaitTicks",
+            "flushCount",
+            "flushTicks",
+            "commitCount",
+            "journalAppendedBytes",
+            "replayBytes",
+            "replayTicks",
+            "journalReadBytes",
+            "baseReadBytes",
+            "stopwatchFrequency"
+          ]
+        }
       }
     }
   },
   "allOf": [
-    { "if": { "required": ["snapshotAvailability"], "properties": { "snapshotAvailability": { "const": "available" } } }, "then": { "properties": { "phase": { "const": "mounted" } } } },
-    { "if": { "required": ["snapshotAvailability"], "properties": { "snapshotAvailability": { "const": "missing" } } }, "then": { "properties": { "phase": { "const": "snapshot-missing" } } } },
-    { "if": { "required": ["snapshotAvailability"], "properties": { "snapshotAvailability": { "const": "unknown" } } }, "then": { "properties": { "phase": { "const": "snapshot-unknown" } } } }
+    {
+      "if": {
+        "required": [
+          "snapshotAvailability"
+        ],
+        "properties": {
+          "snapshotAvailability": {
+            "const": "available"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "phase": {
+            "const": "mounted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "snapshotAvailability"
+        ],
+        "properties": {
+          "snapshotAvailability": {
+            "const": "missing"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "phase": {
+            "const": "snapshot-missing"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "snapshotAvailability"
+        ],
+        "properties": {
+          "snapshotAvailability": {
+            "const": "unknown"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "phase": {
+            "const": "snapshot-unknown"
+          }
+        }
+      }
+    }
   ]
 }

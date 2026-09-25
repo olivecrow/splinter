@@ -124,7 +124,9 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
         await using var stream = new FileStream(journal, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         if (storage is null || stream.Length != storage.JournalBytes) throw new WorkspaceException("DeltaChangedAfterCollection", "Journal length and flush receipt differ; preserve it.");
         long length = stream.Length;
+        var timer = Stopwatch.StartNew();
         string hash = Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct));
+        await RecordRead(control, w, "seal", stream.Position, timer.Elapsed.TotalMilliseconds, ct);
         if (stream.Length != length) throw new WorkspaceException("DeltaChangedAfterCollection", "Journal grew while sealing; preserve it.");
         return new(storage.DurableSequence, length, hash);
     }
@@ -160,8 +162,15 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
         if (File.Exists(journal))
         {
             await using (var stream = File.OpenRead(journal))
-                if (stream.Length != result.Seal.JournalBytes || Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct)) != result.Seal.JournalHash)
+            {
+                if (stream.Length != result.Seal.JournalBytes)
                     throw new WorkspaceException("DeltaChangedAfterCollection", "Remaining journal differs from the deletion intent.");
+                var timer = Stopwatch.StartNew();
+                string hash = Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct));
+                await RecordRead(control, w, "delta-reclaim-verification", stream.Position, timer.Elapsed.TotalMilliseconds, ct);
+                if (hash != result.Seal.JournalHash)
+                    throw new WorkspaceException("DeltaChangedAfterCollection", "Remaining journal differs from the deletion intent.");
+            }
             File.Delete(journal);
         }
         string identity = Path.Combine(delta, "identity.json");
@@ -211,4 +220,14 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
         };
     }
     private sealed record InputCheck(int Version, string SnapshotId, int Entries, long ElapsedMilliseconds, long PayloadBytesRead);
+    // Diagnostic measurements live outside the delta and are never collection
+    // authority. Keep the seal's equality/durability protocol unchanged.
+    private static Task RecordRead(string control, WorkspaceRecord workspace, string operation, long bytes,
+        double elapsedMilliseconds, CancellationToken ct)
+    {
+        string path = Path.Combine(control, "storage-reads.jsonl");
+        WindowsProcessWorkspaceProvider.CheckPath(path);
+        return File.AppendAllTextAsync(path, JsonSerializer.Serialize(new { version = 1, workspaceId = workspace.Id,
+            snapshotId = workspace.Snapshot!.Reference!.Id, operation, bytes, elapsedMilliseconds, measuredAt = DateTimeOffset.UtcNow }, Json) + "\n", ct);
+    }
 }

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:storage-read-measurement",
+  "description": "Diagnostic JSONL row outside the delta. Never collection or reclamation authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "workspaceId", "snapshotId", "operation", "bytes", "elapsedMilliseconds", "measuredAt"],
+  "properties": {
+    "version": { "const": 1 },
+    "workspaceId": { "type": "string", "minLength": 1 },
+    "snapshotId": { "type": "string", "minLength": 1 },
+    "operation": { "enum": ["seal", "delta-reclaim-verification"] },
+    "bytes": { "type": "integer", "minimum": 0 },
+    "elapsedMilliseconds": { "type": "number", "minimum": 0 },
+    "measuredAt": { "type": "string", "format": "date-time" }
+  }
+}

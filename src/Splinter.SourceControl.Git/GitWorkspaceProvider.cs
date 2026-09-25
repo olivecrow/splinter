@@ -7,7 +7,8 @@ using Splinter.Core;
 
 namespace Splinter.SourceControl.Git;
 
-public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? storage = null, IWorkspaceBaselineReader? baselines = null) : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider
+public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? storage = null, IWorkspaceBaselineReader? baselines = null,
+    ISourceChangeProvider? sourceChanges = null, bool auditSource = false) : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public Task<string> ResolveRevisionAsync(string project, string reference, CancellationToken ct = default) =>
@@ -79,9 +80,7 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
     public async Task<SourceState> InspectAsync(WorkspaceRecord workspace, CancellationToken ct = default)
     {
         await EnsureRegistered(workspace, ct);
-        string revision = await Required(workspace.Path, ["rev-parse", "HEAD"], ct);
-        string[] changes = (await ChangedPaths(workspace.Path, ct)).Where(path => !Managed(path, workspace.ManagedPaths)).ToArray();
-        return new(revision, await Fingerprint(workspace, ct), changes.Length != 0, changes);
+        return await InspectSourceAsync(workspace, ct);
     }
 
     public async Task<string> CommitAsync(WorkspaceRecord workspace, string message, CancellationToken ct = default)
@@ -100,6 +99,10 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
         string[] exclusions = (await ChangedPaths(workspace.Path, ct)).Where(path => Managed(path, workspace.ManagedPaths))
             .Select(path => ":(exclude,literal)" + path).ToArray();
         await Required(workspace.Path, ["add", "-A", "--", ".", .. exclusions], ct);
+        if (workspace.StorageMode == "ntfs-snapshot")
+            foreach (string[] batch in before.ChangedPaths.Where(path => tracked.Contains(path, StringComparer.Ordinal) &&
+                File.Exists(Path.Combine(workspace.Path, path))).Select(path => ":(literal)" + path).Chunk(50))
+                await Required(workspace.Path, ["add", "--renormalize", "--", .. batch], ct);
         var stagedPaths = SplitZero(await Required(workspace.Path, ["ls-files", "--cached", "-z"], ct));
         if (workspace.StorageMode == "ntfs-snapshot") await CheckSnapshotGitFiles(workspace.Path, ct);
         if (stagedPaths.Any(path => Managed(path, workspace.ManagedPaths)))
@@ -246,36 +249,7 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
         }
         return changed.Order(StringComparer.Ordinal).ToArray();
     }
-    private static async Task<string> Fingerprint(WorkspaceRecord workspace, CancellationToken ct)
-    {
-        string[] files = SplitZero(await Required(workspace.Path, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], ct));
-        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        foreach (string relative in files.Where(path => !Managed(path, workspace.ManagedPaths)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
-        {
-            string full = Path.GetFullPath(Path.Combine(workspace.Path, relative));
-            if (!full.StartsWith(Path.TrimEndingDirectorySeparator(workspace.Path) + Path.DirectorySeparatorChar, Comparison))
-                throw Error("GitUnsafePath", "Source path escapes the workspace.");
-            PlainPath(full, WorkspaceMountAccess.ObservedRoot(workspace));
-            if (!File.Exists(full)) continue;
-            byte[] name = Encoding.UTF8.GetBytes(relative);
-            hash.AppendData(BitConverter.GetBytes(name.Length)); hash.AppendData(name);
-            bool exists = File.Exists(full);
-            hash.AppendData([exists ? (byte)1 : (byte)0]);
-            if (exists)
-            {
-                await using var stream = File.OpenRead(full);
-                hash.AppendData(await SHA256.HashDataAsync(stream, ct));
-            }
-        }
-        return Convert.ToHexStringLower(hash.GetHashAndReset());
-    }
-    private static bool Managed(string path, string[] roots)
-    {
-        path = path.Replace('\\', '/');
-        return roots.Any(root => root.Contains('*')
-            ? !path.Contains('/') && System.IO.Enumeration.FileSystemName.MatchesSimpleExpression(root, path, OperatingSystem.IsWindows())
-            : path.Equals(root, Comparison) || path.StartsWith(root.TrimEnd('/') + "/", Comparison));
-    }
+    private static bool Managed(string path, string[] roots) => SourcePathPolicy.Managed(path.Replace('\\', '/'), roots);
     private static void CheckPaths(WorkspaceRecord workspace)
     {
         if (!Path.IsPathFullyQualified(workspace.Path) || !Path.IsPathFullyQualified(workspace.ProjectPath) || SamePath(workspace.Path, workspace.ProjectPath))

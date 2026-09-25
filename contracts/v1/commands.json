@@ -73,8 +73,8 @@
     },
     {
       "id": "workspace.status",
-      "description": "Poll process state; inspect source once for new validation evidence or explicitly with --verify-source.",
-      "cliUsage": "splinter workspace status --id <id> [--verify-source] [--home <state-root>]",
+      "description": "Observe owned processes and reconcile a new validation once; --verify-source checks current content, --audit-source reads all content and rebuilds its manifest.",
+      "cliUsage": "splinter workspace status --id <id> [--verify-source] [--home <state-root>] [--audit-source]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-status-request",
       "outputSchema": "urn:splinter:v1:response",

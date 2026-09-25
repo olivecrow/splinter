@@ -20,6 +20,9 @@ public sealed class FoundationGateway(
         persistentState = true,
         stateBackend = "atomic-json-with-operation-locks",
         workspaceStatus = "process-poll; source-on-new-validation-or-verify-source",
+        sourceVerification = new { fingerprint = "source-fingerprint-v1", ntfsMode = "journal-file-manifest-v1",
+            audit = "workspace status --audit-source", cacheTrust = "same-snapshot-provider-epoch-and-source-generation",
+            measurements = "per-inspection-payload-and-manifest; provider-epoch-I/O-counters; storage-reads.jsonl; scripts/measure-workspace-storage.ps1 (read-only development sampler)" },
         storageModes = new[] { "ntfs-snapshot", "refs-cow", "git-checkout" },
         snapshotOverlay = new
         {
@@ -27,6 +30,7 @@ public sealed class FoundationGateway(
             integratedWorkspaceMode = true,
             sourceSnapshot = "windows-vss-system",
             snapshotVerification = "exact-live-id-per-connection-with-boot-bound-observe-helper",
+            snapshotReleaseIsolation = "preserve-when-older-or-unknown-age-same-volume-snapshots-exist; audit-other-ids-after-release; not-a-provider-wide-preservation-guarantee",
             snapshotReadAccess = "verified-location-separate-from-immutable-delta-identity",
             deltaStore = "bounded-checksummed-range-journal",
             resultCollection = SnapshotResult.StableJournalProtocol,

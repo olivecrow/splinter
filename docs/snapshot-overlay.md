@@ -4,6 +4,8 @@
 
 ## 구성과 저장 계약
 
+공유 VSS helper는 같은 볼륨에 다른 오래된/동일 시각/시각 불명 snapshot이 있으면 `SnapshotReleaseIsolationRequired`로 해제를 차단하고 `release-isolation.json`을 남긴다. 정확한 ID만 삭제해도 다른 snapshot이 소실된 [실제 실패](verification/storage-foundation.md)가 있으므로 기존 snapshot을 삭제해 차단을 우회하지 않는다. 현재 guard의 검증은 fake CIM 자동 시험이며 격리 볼륨에서 실제 비소유 ID 보존·회수를 다시 확인해야 한다. 새 소스 변경 세대·저널 I/O 계수는 [공통 소스 검증과 계측](source-verification.md)을 따른다.
+
 | 구성 | 현재 책임 |
 | --- | --- |
 | Splinter.Core/SnapshotOverlay.cs | 플랫폼 중립 snapshot/tree/delta/mount ports, 관측과 독립 결과·의존성 해제 조건 |

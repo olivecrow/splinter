@@ -55,7 +55,7 @@ public static class WinFspOverlayServer
             });
             using (var host = new FileSystemHost(fileSystem))
             {
-                string? lastFlushRequest = null;
+                string? lastFlushRequest = null, lastSourceRequest = null;
                 int status = host.MountEx(mountPath, 8, null, false, 0);
                 if (status < 0) throw new WorkspaceException("OverlayMountFailed", $"WinFsp mount returned 0x{status:x8}.");
                 while (true)
@@ -92,6 +92,18 @@ public static class WinFspOverlayServer
                             new { request.Token, flush.RequestId, observedAt = DateTimeOffset.UtcNow, storage = store.Observe() });
                         lastFlushRequest = flush.RequestId;
                     }
+                    var sourceQuery = await WindowsProcessWorkspaceProvider.ReadAsync<SourceChangeRequest>(Path.Combine(request.ControlPath, "source-query.json"));
+                    if (sourceQuery?.Token == request.Token && sourceQuery.RequestId != lastSourceRequest)
+                    {
+                        SourceChangeView? view = null;
+                        string? sourceError = null;
+                        try { view = store.ObserveChanges(sourceQuery.ManagedPaths); }
+                        catch (WorkspaceException ex) { sourceError = ex.Code; }
+                        await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "source-response.json"),
+                            new SourceChangeResponse(request.Token, sourceQuery.RequestId, self.Id,
+                                self.StartTime.ToUniversalTime().Ticks, view, sourceError));
+                        lastSourceRequest = sourceQuery.RequestId;
+                    }
                     await Task.Delay(1000);
                 }
             }
@@ -113,6 +125,8 @@ public static class WinFspOverlayServer
                 version = 1, request.Token, request.Identity.Id, phase = "failed", observedAt = DateTimeOffset.UtcNow,
                 processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks,
                 error = ex is WorkspaceException w ? w.Code : ex.GetType().Name, ex.Message,
+                errorHResult = $"0x{ex.HResult:x8}", errorStackTrace = ex.StackTrace,
+                publicationPath = ex.Data["publicationPath"], publicationTemporaryPath = ex.Data["publicationTemporaryPath"],
                 preservedDeltaPath = request.DeltaPath, snapshotId = request.Identity.Snapshot.Id
             });
             return 1;

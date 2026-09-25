@@ -66,3 +66,9 @@ Coplay `10.2.0`은 HTTP 서버 소유 정보를 전역 EditorPrefs에서 읽어 
 Editor가 종료하면서 기존 에셋의 직렬화 형식을 갱신하면 파일은 보존되고 기존 검증 hash가 무효화된다. 바뀐 파일을 검토한 뒤 다시 검증한다. 이번 fixture의 Mobile URP 에셋이 이 경로에 해당한다. CLI 실행 접두사는 .NET 도구 상태 경로를 제품 저장소 기준 절대 경로로 정규화하여 Unity 작업공간에 도구 sentinel 파일을 생성하지 않게 한다.
 
 사용자 전역 EditorPrefs, 라이선스, CPU/GPU, 외부 서비스는 공유된다. 보안 샌드박스가 아니며 다른 작업공간 접근을 OS 수준에서 금지하지 않는다. 씬·프리팹 편집, Play, 테스트 실행, 빌드, DAG 실행과 자동 에이전트 시작은 미구현이다. 저장소와 프로세스 그룹의 지원 범위·실제 증거는 [저장소·자원 관리](storage-and-resources.md)를 따른다. 각 대화의 에이전트가 CLI를 직접 사용할 수 있고 별도 조정 AI는 명령의 전제조건이 아니다. 하나의 대상 저장소에는 하나의 공통 `--home`을 사용한다. 제품의 설치·사용 여부 판단·Codex 대화 자동 연결과 반영 없는 discard는 아직 구현하지 않았다. [대화별 작업과 설치 계획](plans/session-workflow-and-installation.md)을 현재 실행 가능한 기능으로 해석하지 않는다.
+
+## 변경 기반 검사와 보존 제한
+
+NTFS의 현재 소스 확인은 `workspace status --verify-source`, 전체 감사와 거부된 manifest 보존/재작성은 `--audit-source`다. `sourceVerification=verified`·`validationCurrent=true`·실제 validation 성공을 함께 확인한다. 파일 hash 재사용은 snapshot/provider epoch/소스 변경 이력에 묶이며 초기·감사·provider 재연결 비용은 남는다. [현재 계약](source-verification.md)을 따른다.
+
+VSS의 정확한 ID 해제 중 기존 다른 snapshot이 소실된 [실행 기록](verification/storage-foundation.md)이 있다. 오래된/시각 불명 동일 볼륨 snapshot이 있으면 현재 helper는 회수를 차단하고 독립 결과를 보존한다. 기존 snapshot을 삭제해 우회하지 않는다. 격리 볼륨에서의 실제 보존 확인 전에는 이 알파를 기존 복구 지점의 보존이 검증된 기능으로 취급하지 않는다.

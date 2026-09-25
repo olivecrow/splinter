@@ -19,11 +19,11 @@ internal static class WorkspaceCommands
         root.Options.Add(home);
         string Home(ParseResult parse) => Path.GetFullPath(parse.GetValue(home) ?? Environment.GetEnvironmentVariable("SPLINTER_HOME")
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Splinter"));
-        WorkspaceCoordinator Runtime(ParseResult parse)
+        WorkspaceCoordinator Runtime(ParseResult parse, bool auditSource = false)
         {
             selectRecovery([new("workspace.list", new { home = Home(parse) })]);
             var store = new WorkspaceStore(Home(parse)); var storageProvider = new RefsWorkspaceStorageProvider();
-            return new(store, new GitWorkspaceProvider(storageProvider, store),
+            return new(store, new GitWorkspaceProvider(storageProvider, store, new WindowsSourceChanges(store.ControlPath), auditSource),
                 new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners"))), storageProvider,
                 new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners")));
         }
@@ -116,11 +116,13 @@ internal static class WorkspaceCommands
             var idOption = new Option<string>("--id") { Required = true };
             command.Options.Add(idOption);
             Option<string>? extra = null;
-            Option<bool>? verifySource = null;
+            Option<bool>? verifySource = null, auditSource = null;
             if (commandId == "workspace.status")
             {
                 verifySource = new Option<bool>("--verify-source") { Description = "Read source contents to verify the current fingerprint; ordinary polls only inspect process and validation state." };
                 command.Options.Add(verifySource);
+                auditSource = new Option<bool>("--audit-source") { Description = "Read all source and rebuild the fingerprint manifest; preserve a corrupt manifest before replacement. Implies --verify-source." };
+                command.Options.Add(auditSource);
             }
             if (extraName is not null)
             {
@@ -135,10 +137,21 @@ internal static class WorkspaceCommands
                 var parameters = new Dictionary<string, object?> { ["id"] = id };
                 if (extraName is not null) parameters[extraName[2..]] = value ?? "development";
                 if (verifySource is not null) parameters["verifySource"] = parse.GetValue(verifySource);
+                if (auditSource is not null) parameters["auditSource"] = parse.GetValue(auditSource);
                 if (!Validate(commandId, parameters)) return;
-                var view = verifySource is not null
-                    ? await Runtime(parse).StatusAsync(id, ct, parse.GetValue(verifySource))
-                    : await action(Runtime(parse), id, value);
+                bool audit = auditSource is not null && parse.GetValue(auditSource);
+                WorkspaceView view;
+                try
+                {
+                    view = verifySource is not null
+                        ? await Runtime(parse, audit).StatusAsync(id, ct, audit || parse.GetValue(verifySource))
+                        : await action(Runtime(parse), id, value);
+                }
+                catch (WorkspaceException ex) when (ex.Code == "SourceCacheRevalidationRequired")
+                {
+                    throw new WorkspaceException(ex.Code, ex.Message, ex.Details,
+                        [new("workspace.status", new { id, home = Home(parse), auditSource = true })]);
+                }
                 bool accepted = commandId == "unity.refresh" && view.Workspace.PendingValidationId is not null ||
                     commandId == "unity.start" && view.Application is { Running: true, Ready: false };
                 respond(Result(commandId, view, accepted, Home(parse)));
@@ -166,7 +179,7 @@ internal static class WorkspaceCommands
             source = view.Source is null ? null : new
             {
                 view.Source.Revision, view.Source.Fingerprint, view.Source.HasChanges,
-                changedPaths = view.Source.ChangedPaths.Take(100).ToArray(), changedPathCount = view.Source.ChangedPaths.Length
+                changedPaths = view.Source.ChangedPaths.Take(100).ToArray(), changedPathCount = view.Source.ChangedPaths.Length, inspection = view.Source.Inspection
             },
             application = view.Application is null ? null : new
             {
