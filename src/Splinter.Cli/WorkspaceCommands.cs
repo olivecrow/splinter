@@ -169,8 +169,9 @@ internal static class WorkspaceCommands
         }
     }
 
-    private static ApiResponse Result(string command, WorkspaceView view, bool accepted, string home)
+    internal static ApiResponse Result(string command, WorkspaceView view, bool accepted, string home)
     {
+        bool deferred = command == "workspace.release" && view.Workspace.Phase == "reclaim-pending";
         string nextCommand = accepted ? "workspace.status" : view.NextCommand.Split(" --", 2)[0].Replace(' ', '.');
         if (!accepted && view.Recovery is { Disposition: not "ready" } recovery) nextCommand = recovery.NextCommand;
         object data = new
@@ -196,10 +197,11 @@ internal static class WorkspaceCommands
             : nextCommand == "workspace.list" ? new { home } : (object)new { id = view.Workspace.Id, home };
         return response with
         {
-            Status = accepted ? "Accepted" : "Succeeded", Terminal = !accepted,
+            Status = deferred || accepted ? "Accepted" : "Succeeded", Terminal = !(deferred || accepted),
+            RetryDisposition = deferred ? "requires-user-action" : "not-needed",
             NextActions = view.Workspace.Purpose == "baseline" && view.Workspace.Phase == "released"
                 ? [new("schema", new { command = "workspace.ensure" })]
-                : [new(nextCommand, nextArguments, view.Recovery is { Disposition: "observe" or "preserve" })]
+                : [new(nextCommand, nextArguments, view.Recovery is { Disposition: "observe" or "preserve" or "deferred-reclamation" })]
         };
     }
 

@@ -6,6 +6,61 @@ namespace Splinter.Tests;
 public sealed class SnapshotWorkspaceCoordinatorTests
 {
     [Fact]
+    public async Task NewerResultWaitsWithoutReleasingOlderWorkspaceAndFreshRetryReclaimsOnlyItsOwnSnapshot()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var older = new Backend { SnapshotId = "older" }; var olderSource = new Source(); var olderApp = new App();
+        WorkspaceCoordinator Older() => new(new(f.Home), olderSource, olderApp, snapshots: older);
+        string a = (await Older().EnsureAsync(f.Project, "older", "base", "ntfs-snapshot", false, ct)).Workspace.Id;
+        string b = (await f.Ensure(ct)).Workspace.Id;
+        f.Backend.Blockers = () => older.Available == true ? ["older"] : [];
+        var pending = await f.New().ReleaseAsync(b, ct);
+        Assert.Equal("reclaim-pending", pending.Workspace.Phase);
+        Assert.Equal("release-snapshot", pending.Workspace.Snapshot!.Step);
+        Assert.True(pending.Workspace.Snapshot.Result!.IndependentOfSnapshot);
+        Assert.Equal("deferred-reclamation", pending.Recovery!.Disposition);
+        Assert.True(f.Backend.DeltaRemoved); Assert.False(f.Backend.Mounted); Assert.False(f.Backend.SnapshotReleased);
+        Assert.True(older.Mounted); Assert.True(older.Available); Assert.False(older.DeltaRemoved);
+        Assert.Equal("source-volume-shared", pending.Workspace.Snapshot.Reclamation!.SharedStorage!.Scope);
+        var saved = new WorkspaceStore(f.Home).Get(b);
+        var attempt = saved.Snapshot!.Reclamation!.AttemptId;
+        f.Source.InspectionError = "SourceMustNotBeRead";
+        Assert.Equal("deferred-reclamation", (await f.New().StatusAsync(b, ct, verifySource: true)).Recovery!.Disposition);
+        Assert.Equal(1, f.Backend.ReleaseAttempts);
+        Assert.Equal(attempt, new WorkspaceStore(f.Home).List().Single(w => w.Id == b).Snapshot!.Reclamation!.AttemptId);
+        Assert.Equal("WorkspaceReleasing", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Ensure(ct))).Code);
+        olderSource.Dirty = true;
+        Assert.True((await Older().StatusAsync(a, ct, verifySource: true)).Source!.HasChanges);
+        olderSource.Dirty = false;
+        Assert.Equal("released", (await Older().ReleaseAsync(a, ct)).Workspace.Phase);
+        Assert.Equal("reclaim-pending", new WorkspaceStore(f.Home).Get(b).Phase);
+        var released = await f.New().ReleaseAsync(b, ct);
+        Assert.Equal("released", released.Workspace.Phase);
+        Assert.Equal("released", released.Workspace.Snapshot!.Reclamation!.Disposition);
+        Assert.Equal(saved.Snapshot.Result, released.Workspace.Snapshot.Result);
+        Assert.Equal(2, f.Backend.ReleaseAttempts); Assert.Equal(1, f.Backend.Captures);
+        Assert.Equal("released", (await f.New().ReleaseAsync(b, ct)).Workspace.Phase);
+        Assert.Equal(2, f.Backend.ReleaseAttempts);
+    }
+
+    [Fact]
+    public async Task DeferredRetryStillRequiresKnownResourcesAndValidPreservedResult()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        f.Backend.Blockers = () => ["older"];
+        await f.New().ReleaseAsync(id, ct);
+        f.Backend.UnknownResources = true;
+        Assert.Equal("OverlayCleanupIncomplete", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
+        Assert.Equal(1, f.Backend.ReleaseAttempts);
+        f.Backend.UnknownResources = false; f.Source.InvalidResult = true;
+        Assert.Equal("ResultMissing", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
+        Assert.Equal(1, f.Backend.ReleaseAttempts); Assert.False(f.Backend.SnapshotReleased);
+        f.Source.InvalidResult = false;
+        Assert.Equal("reclaim-pending", (await f.New().ReleaseAsync(id, ct)).Workspace.Phase);
+        Assert.Equal(2, f.Backend.ReleaseAttempts);
+    }
+    [Fact]
     public async Task SourceCacheFailureOnEnsureReturnsExactAuditWithoutRecapturing()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
@@ -349,6 +404,9 @@ public sealed class SnapshotWorkspaceCoordinatorTests
     }
     private sealed class Backend : ISnapshotWorkspaceBackend
     {
+        public string SnapshotId = "opaque";
+        public Func<string[]> Blockers = () => [];
+        public int ReleaseAttempts;
         public bool VerificationRequired;
         public Task VerifyConnectionAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         {
@@ -365,7 +423,7 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         public void AcknowledgeWrite() => sequence++;
         public Task<SnapshotReference> CaptureAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         {
-            if (receipt is null) { Captures++; receipt = new("opaque", "fake", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "fake"); }
+            if (receipt is null) { Captures++; receipt = new(SnapshotId, "fake", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "fake"); }
             if (LoseCaptureReply) { LoseCaptureReply = false; throw new WorkspaceException("ReplyLost", "after capture"); }
             return Task.FromResult(receipt);
         }
@@ -380,7 +438,15 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         { Mounted = false; if (Directory.Exists(w.Path)) Directory.Delete(w.Path); if (WriteDuringUnmount) sequence++; FailOnce("unmount"); return Task.CompletedTask; }
         public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { DeltaRemoved = true; if (LoseRemoveReply) { LoseRemoveReply = false; throw new WorkspaceException("ReplyLost", "after removal"); } return Task.CompletedTask; }
-        public Task ReleaseSnapshotAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { SnapshotReleased = true; Available = KeepReleaseUnknown ? null : false; FailOnce("snapshot-release"); return Task.CompletedTask; }
+        public Task<SnapshotReclamation> ReleaseSnapshotAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        {
+            ReleaseAttempts++; var blockers = Blockers();
+            if (blockers.Length > 0) return Task.FromResult(new SnapshotReclamation(w.Snapshot!.Reference!.Id,
+                Guid.NewGuid().ToString("N"), "deferred", DateTimeOffset.UtcNow, blockers,
+                new("shared-volume", DateTimeOffset.UtcNow, 1024, 4096, 8192)));
+            SnapshotReleased = true; Available = KeepReleaseUnknown ? null : false; FailOnce("snapshot-release");
+            return Task.FromResult(new SnapshotReclamation(w.Snapshot!.Reference!.Id, Guid.NewGuid().ToString("N"), "released", DateTimeOffset.UtcNow, []));
+        }
     }
     private sealed class Source : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider
     {
@@ -392,7 +458,9 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         public Task RegisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { if (!registered) { Registers++; registered = true; } FailOnce("register"); return Task.CompletedTask; }
         public Task AttachAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("attach"); return Task.CompletedTask; }
         public Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("preserve"); AfterPreserve?.Invoke(); return Task.FromResult("result-ref"); }
-        public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.CompletedTask;
+        public bool InvalidResult;
+        public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        { if (InvalidResult) throw new WorkspaceException("ResultMissing", "Preserved result is unavailable."); return Task.CompletedTask; }
         public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("unregister"); return Task.CompletedTask; }
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(r);
         public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => Task.FromResult(r);

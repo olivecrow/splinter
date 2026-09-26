@@ -14,6 +14,8 @@
 
 VSS capture/release와 정확한 live ID를 확인하는 Observe helper에는 관리자 권한이 필요하다. 일반 CLI는 자동 승격하지 않고 `SnapshotPrivilegeRequired`와 정확한 helper 경로·argument list, 그 뒤 동일 인자로 재시도할 workspace ensure, unity start 또는 workspace release를 `nextActions`에 반환한다. 승인된 helper만 관리자 권한으로 실행한 뒤 원래 명령을 다시 호출한다. Unity와 일반 CLI를 관리자 계정으로 계속 실행하는 구조가 아니다. helper의 `operation-result.json`에는 성공 또는 진단이 남는다.
 
+제품은 아직 VSS helper마다 별도 승격이 필요하다. 정상 반복 작업의 UAC를 없애는 목표는 [저장소 권한 서비스 계획](plans/storage-privilege-service.md)에 있으며 현재 capability가 아니다. 개발용 제한 관리자 세션의 재사용을 제품 서비스 설치/지원 완료로 표시하지 않는다.
+
 `SnapshotPrivilegeRequired` 응답은 helper 실행이 필요하다는 뜻이며 UAC 창 표시나 snapshot 생성의 증거가 아니다. 외부 실행자가 승격을 요청했다면 그 소유 프로세스의 종료 상태와 `capture-intent.json`·`capture-return.json`·`snapshot.json`·`operation-result.json`을 대조한다. 사용자에게 창이 보이지 않으면 대기 상태만으로 확인 버튼을 반복 요청하지 않는다. 기존 helper가 아직 실행 중이거나 캡처 부작용을 판정할 수 없을 때는 중복 helper/새 캡처를 시작하지 않고 기존 기록을 보존한다.
 
 ## 일반 CLI 흐름
@@ -84,9 +86,21 @@ provider 제어 JSON과 workspace 상태는 같은 디렉터리의 임시 파일
 
 version 1은 원래 ID를 새로 조회해 기존 owner/provider/시각/조건과 대조한 경우에만 `verified-identity.json`을 별도로 기록한다. provenance는 `legacy-revalidated`이며 원래 영수증을 변경하거나 새 필드를 캡처 당시 증거라고 표시하지 않는다. version 2의 누락된 captureIdentity·지원하지 않는 버전은 손상으로 보존한다. 다른 owner/ID/provider/volume/상대 경로는 `SnapshotIdentityMismatch`, 손상 JSON은 `SnapshotObservationCorrupt`, 중단된 `.new`/관측 요청 `.tmp`는 `SnapshotObservationIncomplete`다. 파일이나 델타를 지우거나 이전 성공으로 대체하지 않는다. 새 boot·연결 세대, 최신 조회 실패, 손상·부분 기록과 접근 불가는 이전 성공의 재사용을 막는다. 실제 재부팅·강제 전원 종료는 별도 미검증 관문이다.
 
+## 지연 회수와 명시적 재시도
+
+`workspace.snapshot.reclamation`은 `snapshotId`, `attemptId`, `disposition`(`deferred`/`released`), `observedAt`, `blockingSnapshotIds`, 선택적 `sharedStorage`를 제공한다. 독립 결과가 검증되고 앱/provider·메모리·핸들 0, mount/등록/delta 회수가 확인된 뒤에만 대기 상태를 저장한다. `snapshot.step`은 `release-snapshot`, workspace phase는 `reclaim-pending`이다. 결과 ref는 유지하며 작업을 다시 mount하거나 새 snapshot으로 바꾸지 않는다.
+
+대기하는 `workspace release`는 `Accepted`, `terminal=false`, `retryDisposition=requires-user-action`, `recovery.disposition=deferred-reclamation`과 같은 `id/home`의 release를 반환한다. 자동 예약이나 폴링이 아니다. `status/list`는 저장된 대기와 마지막 관측을 보여 주며, 조회 성공을 자원 회수 완료로 읽지 않는다. 차단한 오래된 snapshot의 소유 작업이 별도로 명시적으로 회수된 뒤 같은 release를 재시도한다. 타 작업이나 비소유 snapshot은 대신 삭제하지 않는다. 비관리자 재시도는 필요할 때 정확한 관리자 helper를 `nextActions`로 반환하며 전체 CLI/Editor를 승격하지 않는다.
+
+`release-request.json`과 `release-deferred.json`은 전체 snapshot reference·owner·현재 boot·요청 ID·시각에 묶인다. helper 완료 후 새 CLI는 아직 소비하지 않은 대기 결과를 회수하고, 이미 저장한 시도의 명시적 재시도는 새 요청을 발행한다. helper는 매번 최신 snapshot 목록과 삭제 차단 조건을 확인한다. 서로 다른 Splinter home의 삭제는 전역 release mutex로 직렬화하지만 외부 백업 프로그램의 동시 삭제를 직렬화하지는 못한다. 손상/불일치 증거는 `SnapshotReclamationInvalid` 또는 기존 관측 오류로 보존한다. 자원 unknown, 결과 ref 소실, 잔존 delta는 재시도에서도 회수를 막는다.
+
+`sharedStorage`는 `volumeId/observedAt/usedBytes/allocatedBytes/limitBytes`와 `scope=source-volume-shared`, `workspaceAttribution=unknown`을 제공한다. 수치는 마지막 helper가 관측한 볼륨 전체 VSS 값이다. 같은 볼륨의 작업끼리 합산하거나 해당 작업의 귀속 비용/삭제 시 반환 바이트로 표시하면 안 된다. 관측 실패 시 숫자는 생략하고 `SnapshotStorageUnknown`을 남긴다. 일반 status는 이 값을 새로 측정하지 않는다. released는 snapshot ID와 소유 자원의 부재를 뜻하며 VSS 할당량이나 OS 캐시가 즉시 0이 된다는 보장은 아니다.
+
+범위와 증거는 [지연 회수 계획](plans/deferred-snapshot-reclamation.md)과 [검증 기록](verification/deferred-snapshot-reclamation.md)을 따른다. 자동 sweep, 공유 기준 수명주기와 임의 순서의 즉시 물리 회수는 제공하지 않는다.
+
 ## 회수와 관측
 
-회수 순서는 앱/자식 종료 → 소유 브리지 제거 → 수집 전 flush/seal → 현재 source 검사와 독립 결과 ref 보존 → 수집 후 flush/seal 대조 → manifest 저장 → unmount와 provider 종료 → seal 재대조 → Git 등록 회수 → delta 회수 → 마지막 의존성이 없는 소유 VSS ID 해제다. 브리지 제거는 합법적인 저널 변경이므로 수집 구간 전에 마친다. 관리 캐시 밖의 ignored 파일, 미보존 변경, 다른 의존 작업이 있으면 중단한다. 수집 중이나 이후의 쓰기로 seal이 달라지면 `DeltaChangedAfterCollection`로 중단하고 기존 manifest·저널·snapshot을 보존한다. delta 회수 중 응답이 유실되면 기존 삭제 intent와 남은 파일을 검증하고 이어 간다. VSS 해제 helper는 정확한 소유 ID만 받으며 전역 삭제를 하지 않는다. 다만 정확한 ID 삭제 중에도 provider가 오래된 다른 snapshot을 제거한 [실패 기록](verification/storage-foundation.md)이 있다. 현재는 같은 볼륨의 다른 오래된/동일 시각/시각 불명 snapshot 또는 볼륨 정보 불명이 있으면 `SnapshotReleaseIsolationRequired`로 삭제 전에 차단한다. `release-isolation.json`에 전후 ID와 삭제 시도 여부를 기록하고 다른 ID 소실은 `SnapshotCollateralLoss`다. 기존 snapshot을 지워 우회하지 않는다. 차단과 오래된 순서의 회수는 [격리된 소유 합성 snapshot](verification/storage-recovery.md)에서 실제 검증했으며 provider 전체·일반 비소유 백업 공존의 보존 보장은 아니다. 더 오래된 snapshot이 사용 중이면 나중에 끝난 작업도 마지막 snapshot 회수 단계에서 보존 상태로 남을 수 있다. 자동 지연 회수는 미구현이고 그 상태를 완전한 release 성공으로 표시하지 않는다.
+회수 순서는 앱/자식 종료 → 소유 브리지 제거 → 수집 전 flush/seal → 현재 source 검사와 독립 결과 ref 보존 → 수집 후 flush/seal 대조 → manifest 저장 → unmount와 provider 종료 → seal 재대조 → Git 등록 회수 → delta 회수 → 마지막 의존성이 없는 소유 VSS ID 해제다. 브리지 제거는 합법적인 저널 변경이므로 수집 구간 전에 마친다. 관리 캐시 밖의 ignored 파일, 미보존 변경, 다른 의존 작업이 있으면 중단한다. 수집 중이나 이후의 쓰기로 seal이 달라지면 `DeltaChangedAfterCollection`로 중단하고 기존 manifest·저널·snapshot을 보존한다. delta 회수 중 응답이 유실되면 기존 삭제 intent와 남은 파일을 검증하고 이어 간다. VSS 해제 helper는 정확한 소유 ID만 받으며 전역 삭제를 하지 않는다. 다만 정확한 ID 삭제 중에도 provider가 오래된 다른 snapshot을 제거한 [실패 기록](verification/storage-foundation.md)이 있다. 현재는 같은 볼륨의 다른 오래된/동일 시각/시각 불명 snapshot 또는 볼륨 정보 불명이 있으면 `SnapshotReleaseIsolationRequired`로 삭제 전에 차단한다. `release-isolation.json`에 전후 ID와 삭제 시도 여부를 기록하고 다른 ID 소실은 `SnapshotCollateralLoss`다. 기존 snapshot을 지워 우회하지 않는다. 차단과 오래된 순서의 회수는 [격리된 소유 합성 snapshot](verification/storage-recovery.md)에서 실제 검증했으며 provider 전체·일반 비소유 백업 공존의 보존 보장은 아니다. 더 오래된 snapshot이 사용 중이면 나중에 끝난 작업도 마지막 snapshot 회수 단계의 `reclaim-pending`으로 남는다. 결과 보존과 회수 대기를 구분하고 같은 작업의 명시적 release 재시도로 이어간다. 이 상태는 완전한 release 성공이 아니다.
 
 snapshot이 소실된 뒤에는 `stable-journal-v1`로 수집한 독립 결과가 있고 Git ref/객체와 **저널 전체 seal이 동일한 경우에만** 회수할 수 있다. 사용할 수 없는 원본 트리를 다시 읽거나 수정하지 않고 unmount 후 seal을 비교한다. 독립 결과가 없거나 수집 뒤 쓰기가 있으면 결과와 저널을 보존하고 실패한다. 열린 핸들이 남은 unmount는 `OverlayStopPending`이며 핸들을 닫은 뒤 같은 release를 재시도한다.
 

@@ -1,0 +1,1 @@
+{"date":"2026-09-26","doc":"verification/deferred-snapshot-reclamation.md","change_type":"added","summary":"Record 252 passing tests and bounded live NTFS/Git deferred release","intent":"Separate final automated evidence, live candidate, and unverified support","related_files":["src/Splinter.Core/SnapshotReclamation.cs","src/Splinter.Platform.Windows/VssSnapshotReclamation.cs"]}

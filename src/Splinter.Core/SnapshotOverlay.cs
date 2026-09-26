@@ -25,7 +25,8 @@ public interface ISourceSnapshotProvider
 {
     Task<SnapshotReference> CaptureAsync(SnapshotCapture request, CancellationToken cancellationToken = default);
     Task<SnapshotObservation> ObserveAsync(SnapshotReference snapshot, CancellationToken cancellationToken = default);
-    Task ReleaseAsync(SnapshotReference snapshot, CancellationToken cancellationToken = default);
+    Task<SnapshotReclamation> ReleaseAsync(SnapshotReference snapshot, CancellationToken cancellationToken = default,
+        string? previousAttemptId = null);
 }
 
 public sealed record SnapshotEntry(string Path, bool Directory, long Length, uint Attributes,

@@ -6,6 +6,8 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 ## 구조와 의존성
 
+NTFS 회수는 Core의 `SnapshotReclamation`으로 실제 해제와 지연을 구분한다. 독립 결과와 자원 정리 후 더 오래된 snapshot 때문에 삭제가 차단되면 Runtime이 `reclaim-pending`을 저장하고 같은 workspace의 명시적 release 재시도로 이어간다. Windows의 `VssSnapshotReclamation`은 boot·owner·요청 ID에 묶인 helper 증거를 검증한다. `SnapshotSharedStorage`는 시각이 있는 source volume 전체 관측이며 workspace별 귀속은 unknown이다. 계약과 자동 회수의 경계는 [NTFS 지연 회수](ntfs-workspaces.md#지연-회수와-명시적-재시도)를 따른다.
+
 [NTFS snapshot 모드](ntfs-workspaces.md)는 Core의 `ISnapshotWorkspaceBackend`/`ISnapshotSourceWorkspaceProvider`를 통해 기존 coordinator에 연결한다. Runtime은 단계·의존성·결과 manifest를 조정하고 Windows 어댑터가 VSS helper·메타데이터 지원 검사·WinFsp·범위 저널을 관리한다. Windows 모듈은 Runtime과 WinFsp.Net을 참조한다. 같은 저널/mount 구현을 사용하는 [독립 실험 명령](snapshot-overlay.md)은 별도 진입점이다.
 
 NTFS 연결은 `VerifyConnectionAsync`에서 현재 부팅·연결 세대의 정확한 live VSS identity를 확인한다. Core의 `SnapshotReadAccess`는 공급자 중립적인 snapshot ID·읽기 root·검증 ID만 전달하며 VSS provider/volume/CIM 정보는 Windows에 남긴다. 불변 SnapshotReference와 delta identity를 변경하지 않고 검증된 현재 읽기 위치로 재개한다. capability의 `snapshotVerification`/`snapshotReadAccess`와 입력·응답 schema가 이 계약을 노출한다. 세부 계약과 미검증 경계는 [NTFS 작업공간](ntfs-workspaces.md#살아-있는-vss-식별과-읽기-위치), 후보별 시험은 [LV 기록](verification/ntfs-live-vss-identity.md)을 따른다.

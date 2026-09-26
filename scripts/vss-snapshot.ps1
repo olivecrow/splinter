@@ -63,12 +63,25 @@ function Measure-Storage {
         shadowStorage = @(Get-CimInstance Win32_ShadowStorage | Select-Object @{Name='volume';Expression={$_.Volume.DeviceID}}, @{Name='diffVolume';Expression={$_.DiffVolume.DeviceID}}, UsedSpace, AllocatedSpace, MaxSpace)
     }
 }
+function Measure-ReleaseStorage([string]$VolumeId) {
+    $sample = [ordered]@{volumeId=$VolumeId; observedAt=[DateTimeOffset]::UtcNow;
+        usedBytes=$null; allocatedBytes=$null; limitBytes=$null; failureCode=$null}
+    try {
+        $storage = @(Get-CimInstance Win32_ShadowStorage -ErrorAction Stop | Where-Object { $_.Volume.DeviceID -eq $VolumeId })
+        if ($storage.Count -ne 1 -or $null -eq $storage[0].UsedSpace -or $null -eq $storage[0].AllocatedSpace -or $null -eq $storage[0].MaxSpace) { throw 'IncompleteStorage' }
+        $used = [long]$storage[0].UsedSpace; $allocated = [long]$storage[0].AllocatedSpace; $limit = [long]$storage[0].MaxSpace
+        if ($used -lt 0 -or $allocated -lt 0 -or $limit -lt 0) { throw 'InvalidStorage' }
+        $sample.usedBytes=$used; $sample.allocatedBytes=$allocated; $sample.limitBytes=$limit
+    } catch { $sample.failureCode='SnapshotStorageUnknown' }
+    return $sample
+}
 function Invoke-OwnedSnapshotRemoval($Shadow) {
     # Exact-ID deletion alone is insufficient: volsnap can reclaim older copies
     # while processing a later deletion (observed event 95). Never authorize that
     # operation while another older/unknown-age copy occupies the same volume.
     $before = @(Get-CimInstance Win32_ShadowCopy -ErrorAction Stop)
     if (-not $Shadow.VolumeName -or -not $Shadow.InstallDate) { throw 'SnapshotReleaseIsolationRequired' }
+    if (@($before | Where-Object ID -eq $Shadow.ID).Count -ne 1) { throw 'SnapshotObservationIncomplete: release inventory changed.' }
     $others = @($before | Where-Object { $_.ID -ne $Shadow.ID })
     $blockers = @($others | Where-Object {
         -not $_.VolumeName -or ($_.VolumeName -eq $Shadow.VolumeName -and
@@ -78,7 +91,17 @@ function Invoke-OwnedSnapshotRemoval($Shadow) {
         beforeIds=@($before | ForEach-Object ID); blockingIds=@($blockers | ForEach-Object ID);
         deletionAttempted=$false; missingOtherIds=@()}
     Save-Json (Join-Path $receiptRoot 'release-isolation.json') $evidence
-    if ($blockers.Count) { throw 'SnapshotReleaseIsolationRequired: preserve older snapshots; do not delete them to bypass this guard. Use an isolated test volume for future captures.' }
+    if ($blockers.Count) {
+        if ($null -ne $releaseRequest) {
+            $space = Measure-ReleaseStorage $Shadow.VolumeName
+            Save-Json (Join-Path $receiptRoot 'release-deferred.json') ([ordered]@{version=1;
+                requestId=$releaseRequest.requestId; ownerId=$receipt.ownerId; snapshot=$receipt.snapshot;
+                bootTimeUtc=$bootTime; observedAt=[DateTimeOffset]::UtcNow; disposition='deferred';
+                deletionAttempted=$false; beforeIds=$evidence.beforeIds; blockingIds=$evidence.blockingIds;
+                missingOtherIds=@(); sharedStorage=$space})
+        }
+        throw 'SnapshotReleaseIsolationRequired: preserve older snapshots and retry only this workspace after the blockers are independently released.'
+    }
     $evidence.deletionAttempted = $true
     Save-Json (Join-Path $receiptRoot 'release-isolation.json') $evidence
     $Shadow | Remove-CimInstance -ErrorAction Stop
@@ -141,6 +164,29 @@ try {
     }
     $verification = Get-Content -LiteralPath $verificationPath -Raw | ConvertFrom-Json
     if ($verification.ownerId -ne $receipt.ownerId -or ($verification.snapshotId -and $verification.snapshotId -ne $receipt.snapshot.id)) { throw 'SnapshotIdentityMismatch' }
+    if ($Action -eq 'Release') {
+        # Serialize Splinter's inventories/deletions across homes. This cannot
+        # serialize unrelated backup software; that remains a support boundary.
+        $releaseMutex = [Threading.Mutex]::new($false, 'Global\Splinter.VssSnapshotRelease.v1')
+        $releaseMutexHeld = $false
+        try { $releaseMutexHeld = $releaseMutex.WaitOne(0) }
+        catch [Threading.AbandonedMutexException] { $releaseMutexHeld = $true }
+        if (-not $releaseMutexHeld) { throw 'WorkspaceBusy: another Splinter snapshot release is in progress.' }
+        $releaseRequestPath = Join-Path $receiptRoot 'release-request.json'
+        if (Test-Path -LiteralPath ($releaseRequestPath + '.new')) { throw 'SnapshotObservationIncomplete' }
+        if (-not (Test-Path -LiteralPath $releaseRequestPath)) {
+            Save-Json $releaseRequestPath ([ordered]@{requestId=[Guid]::NewGuid().ToString('N'); ownerId=$receipt.ownerId;
+                snapshot=$receipt.snapshot; requestedAt=[DateTimeOffset]::UtcNow; bootTimeUtc=$bootTime})
+        }
+        $releaseRequest = Get-Content -LiteralPath $releaseRequestPath -Raw | ConvertFrom-Json -AsHashtable
+        if (-not $releaseRequest.requestId -or $releaseRequest.ownerId -ne $receipt.ownerId -or
+            ([DateTimeOffset]$releaseRequest.bootTimeUtc) -ne ([DateTimeOffset]$bootTime) -or
+            -not $releaseRequest.requestedAt -or ([DateTimeOffset]$releaseRequest.requestedAt) -gt [DateTimeOffset]::UtcNow.AddMinutes(1)) { throw 'SnapshotReclamationInvalid' }
+        foreach ($field in @('id','provider','sourcePath','rootPath','persistent','differential','consistency')) {
+            if ($releaseRequest.snapshot[$field] -cne $receipt.snapshot[$field]) { throw 'SnapshotReclamationInvalid' }
+        }
+        if (([DateTimeOffset]$releaseRequest.snapshot.capturedAt) -ne ([DateTimeOffset]$receipt.snapshot.capturedAt)) { throw 'SnapshotReclamationInvalid' }
+    }
     $shadow = Get-CimInstance Win32_ShadowCopy | Where-Object ID -eq $receipt.snapshot.id
     $liveIdentity = if ($null -ne $shadow) { Read-LiveIdentity $shadow $receipt } else { $null }
     if ($Action -eq 'Release') {
@@ -173,7 +219,7 @@ try {
     Save-Json (Join-Path $receiptRoot 'operation-result.json') ([ordered]@{action=$Action; success=$true; completedAt=[DateTimeOffset]::UtcNow})
     $observation | ConvertTo-Json -Depth 7
 } catch {
-    if ($null -ne $verification -and $null -ne $receipt) {
+    if ($null -ne $verification -and $null -ne $receipt -and -not $_.Exception.Message.StartsWith('SnapshotReleaseIsolationRequired:')) {
         $failureCode = if ($_.Exception.Message -eq 'SnapshotIdentityMismatch') { 'SnapshotIdentityMismatch' } else { 'SnapshotObservationUnknown' }
         Save-Json (Join-Path $receiptRoot 'live-observation.json') ([ordered]@{requestId=$verification.requestId; ownerId=$receipt.ownerId;
             snapshotId=$receipt.snapshot.id; bootTimeUtc=$bootTime; observedAt=[DateTimeOffset]::UtcNow; available=$null;
@@ -181,4 +227,8 @@ try {
     }
     Save-Json (Join-Path $receiptRoot 'operation-result.json') ([ordered]@{action=$Action; success=$false; error=$_.Exception.Message; completedAt=[DateTimeOffset]::UtcNow})
     throw
-} finally { $lock.Dispose() }
+} finally {
+    if ($releaseMutexHeld) { $releaseMutex.ReleaseMutex() }
+    if ($null -ne $releaseMutex) { $releaseMutex.Dispose() }
+    $lock.Dispose()
+}

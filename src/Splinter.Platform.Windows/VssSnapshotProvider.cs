@@ -65,12 +65,27 @@ public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
             return new(snapshot.Id, false, "SnapshotMissing", null, null);
         return observation;
     }
-    public async Task ReleaseAsync(SnapshotReference snapshot, CancellationToken cancellationToken = default)
+    public async Task<SnapshotReclamation> ReleaseAsync(SnapshotReference snapshot, CancellationToken cancellationToken = default,
+        string? previousAttemptId = null)
     {
         var receipt = await Read(cancellationToken);
         if (receipt is null || !Matches(receipt, snapshot))
             throw new WorkspaceException("SnapshotIdentityMismatch", "Release must match the original snapshot receipt.");
-        if (!receipt.Released) await Run("Release", snapshot.SourcePath, cancellationToken);
+        VssReleaseRequest? request = null;
+        if (!receipt.Released)
+        {
+            request = await PrepareReleaseAsync(snapshot, previousAttemptId, cancellationToken);
+            // A privileged helper can finish between CLI invocations. Consume
+            // its exact attempt once; the next explicit retry gets a new ID.
+            var deferred = await ReadDeferredReleaseAsync(snapshot, request, cancellationToken);
+            if (deferred is not null) return deferred;
+            try { await Run("Release", snapshot.SourcePath, cancellationToken); }
+            catch (WorkspaceException ex) when (ex.Code == "SnapshotReleaseIsolationRequired")
+            {
+                return await ReadDeferredReleaseAsync(snapshot, request, cancellationToken)
+                    ?? throw new WorkspaceException("SnapshotReclamationInvalid", "The helper did not publish a matching deferred release observation.");
+            }
+        }
         var observation = await ObserveAsync(snapshot, cancellationToken);
         if (observation is { Available: null, FailureCode: "SnapshotObservationUnknown" })
         {
@@ -82,6 +97,7 @@ public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
         if (observation.Available != false)
             throw new WorkspaceException(observation.Available == true ? "SnapshotReleaseIncomplete" : observation.FailureCode ?? "SnapshotObservationUnknown",
                 "The exact owned snapshot must be observed absent before release completes.");
+        return new(snapshot.Id, request?.RequestId ?? Guid.NewGuid().ToString("N"), "released", DateTimeOffset.UtcNow, []);
     }
     private bool Matches(Receipt receipt, SnapshotReference snapshot) => receipt.Snapshot == snapshot && receipt.OwnerId == ownerId &&
         receipt.NoAutoRelease && string.Equals(receipt.NativeProviderId, "{B5946137-7B9F-4925-AF80-51ABD60B20D5}", StringComparison.OrdinalIgnoreCase);
@@ -138,7 +154,7 @@ public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
         string errors = await error; await output;
         if (process.ExitCode != 0)
             throw new WorkspaceException(new[] { "SnapshotHeadroomRequired", "SnapshotIdentityMismatch", "SnapshotObservationIncomplete",
-                "SnapshotReleaseIsolationRequired", "SnapshotCollateralLoss" }
+                "SnapshotReleaseIsolationRequired", "SnapshotReclamationInvalid", "SnapshotCollateralLoss", "WorkspaceBusy" }
                 .FirstOrDefault(code => errors.Contains(code, StringComparison.Ordinal)) ?? "SnapshotOperationIncomplete",
                 "The VSS helper did not complete. Preserve the receipt and inspect its diagnostic.", new { action, receiptDirectory, diagnostic = errors });
     }

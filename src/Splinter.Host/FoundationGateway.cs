@@ -31,6 +31,7 @@ public sealed class FoundationGateway(
             sourceSnapshot = "windows-vss-system",
             snapshotVerification = "exact-live-id-per-connection-with-boot-bound-observe-helper",
             snapshotReleaseIsolation = "preserve-when-older-or-unknown-age-same-volume-snapshots-exist; audit-other-ids-after-release; not-a-provider-wide-preservation-guarantee",
+            snapshotReclamation = "durable-reclaim-pending; explicit-same-workspace-release-retry; boot-and-attempt-bound-helper; source-volume-shared-cost-with-unknown-workspace-attribution; no-background-sweep",
             snapshotReadAccess = "verified-location-separate-from-immutable-delta-identity",
             deltaStore = "bounded-checksummed-range-journal",
             resultCollection = SnapshotResult.StableJournalProtocol,

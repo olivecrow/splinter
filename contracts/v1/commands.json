@@ -103,7 +103,7 @@
     },
     {
       "id": "workspace.release",
-      "description": "Stop owned Editor and remove a clean integrated worktree; preserve records and result commits.",
+      "description": "Preserve the independent result and release owned resources; a blocked snapshot remains reclaim-pending until an explicit retry.",
       "cliUsage": "splinter workspace release --id <id> [--home <state-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-release-request",

@@ -7,6 +7,10 @@
 
 - PV-01/02의 Splinter S와 Codex 독립 Editor C에는 Unity Agent Coordination을 사용하지 않는다. 사용자 요청으로 추가한 Q 비교군에서만 Codex worktree 코드 작업과 Coordination의 단일 Editor 순차 검증을 사용한다. 세 방식의 Editor 수·Library·큐 대기·후보 전환 비용을 구분하며 Q의 스킬/패키지를 S에 적용하지 않는다.
 
+- 스냅샷 지연 회수는 `docs/plans/deferred-snapshot-reclamation.md`의 범위를 따른다. `reclaim-pending`은 독립 결과 보존 뒤 snapshot 회수가 대기 중인 상태이며 release 완료가 아니다. 같은 id/home의 명시적 release 재시도만 수행하고 타 작업/비소유 snapshot 삭제나 자동 sweep으로 우회하지 않는다. 볼륨 공유 VSS 관측을 workspace별 비용으로 귀속하거나 중복 합산하지 않는다. 실제 판정은 `docs/verification/deferred-snapshot-reclamation.md`를 따른다.
+
+- 정상 반복 작업마다 UAC를 요구하지 않는 목표는 `docs/plans/storage-privilege-service.md`를 따른다. 현재 제품은 개별 helper 승격이며 UA-01~04는 NotRun이다. 승인된 개발 검증에서는 소유 ID와 동작이 고정된 제한 관리자 세션을 재사용할 수 있지만 UAC 설정을 끄거나 임의 실행 서비스를 설치하지 않는다.
+
 - 먼저 `README.md`와 `docs/README.md`를 읽고 해당 작업의 문서만 이어서 읽는다.
 - `main`은 출시용, `development`는 개발용 브랜치다. 일반 개발과 통합은 `development`를 기준으로 수행한다.
 - 주 사용자는 각 대화의 AI 에이전트다. `docs/plans/session-workflow-and-installation.md`의 프로젝트용/전역용 설치 → 필요 시 사용 → 같은 작업 지속 → 명시적 반영/보존/폐기를 기본 사용 모델로 삼는다. 별도 조정 AI·Runner·DAG는 필수가 아니다.

@@ -77,3 +77,5 @@ SF-01/02는 두 실행 방식이 공통으로 사용하는 저장소의 개선�
 가장 먼저 비교할 수치는 **원본을 제외한 총 추가 물리 공간과 그 최고치**다. 작업자 delta, 검증 view/Library, VSS diff area, Git 객체·LFS cache, 독립 결과, 임시 압축 공간·로그를 분리한 뒤 누락 없이 보고한다. VSS는 같은 볼륨의 다른 쓰기도 보존할 수 있고 변화가 크면 비용이 증가한다([Microsoft VSS](https://learn.microsoft.com/en-us/windows-server/storage/file-server/volume-shadow-copy-service)). unknown은 0으로 바꾸지 않는다. 읽기·논리 크기·할당 크기와 누적 쓰기를 혼합하지 않는다.
 
 판단 순서는 원본·결과 보존과 입력 적합성 → 전체 복제 없는 공간 사용 → 반복 편집/후보 전환의 실용성 → 메모리 → Editor 동시성이다. 단일 Editor 후보가 이 조건을 충족하면 기본 모드로 채택할 수 있다. 독립 Editor는 병렬 실행의 이익이 추가 RAM·Library 쓰기·운영 비용을 감당하는 경우의 선택지로 유지한다.
+
+[지연 회수 1차](deferred-snapshot-reclamation.md)는 결과 보존과 snapshot 삭제 시점을 분리해 `reclaim-pending`, 같은 작업의 명시적 release 재시도와 공유 VSS 공간 관측을 제공한다. [해당 검증](../verification/deferred-snapshot-reclamation.md)은 SF-02 압축/flush 또는 SF-03 단일 Editor 연결의 실행 증거를 대체하지 않는다. 임의 완료 순서의 즉시 물리 공간 회수는 계속 보장하지 않는다.

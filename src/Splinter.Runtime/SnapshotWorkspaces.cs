@@ -144,8 +144,20 @@ public sealed partial class WorkspaceCoordinator
             {
                 if (store.List().Any(other => other.Id != w.Id && other.Phase != "released" && other.Snapshot?.Step != "release-snapshot" && other.Snapshot?.Reference?.Id == state.Reference.Id))
                     throw new WorkspaceException("SnapshotInUse", "Another workspace still depends on this immutable snapshot.");
-                await Snapshots.ReleaseSnapshotAsync(w, control, ct);
+                var reclamation = await Snapshots.ReleaseSnapshotAsync(w, control, ct);
+                reclamation.RequireMatch(state.Reference);
                 state.Observation = await Snapshots.ObserveAsync(w, control, ct);
+                if (reclamation.Disposition == "deferred")
+                {
+                    if (state.Observation is not { DeltaPresent: false, Mounted: false, ProviderAlive: false,
+                        OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 } ||
+                        Directory.Exists(w.Path) || File.Exists(w.Path))
+                        throw new WorkspaceException("OverlayCleanupIncomplete", "Deferred reclamation requires verified workspace resource cleanup.");
+                    state.Reclamation = reclamation;
+                    w.Phase = "reclaim-pending"; w.LastError = null;
+                    store.Save(w, "snapshot-reclamation-deferred");
+                    return new(w, null, null, control, "workspace release");
+                }
                 if (state.Observation is not { SnapshotAvailable: false, DeltaPresent: false, Mounted: false, ProviderAlive: false,
                     OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
                     throw new WorkspaceException("SnapshotReleaseIncomplete", "Verified snapshot, delta, mount and provider absence is required after release.");
@@ -154,6 +166,7 @@ public sealed partial class WorkspaceCoordinator
                 if (Directory.Exists(w.Path) || File.Exists(w.Path))
                     throw new WorkspaceException("WorkspaceCleanupIncomplete", "Workspace path remains after unmount.");
                 w.Phase = "released"; w.LastError = null;
+                state.Reclamation = reclamation;
                 SnapshotStep(w, "released");
             }
             return new(w, null, null, control, "workspace list");

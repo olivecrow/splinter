@@ -2,7 +2,7 @@
 
 후속 우선순위(2026-09-24): **작업공간 용량 부담 해소가 1순위, Editor 동시 실행이 2순위**다. [저장공간 우선 검토와 SF-01~06](storage-priority-and-editor-modes.md)의 공통 저장소 개선·단일 Editor 순차 검증 후보를 다음 설계 판단에 적용한다. 기본 실행 방식 전환은 미확정이며 아래 기존 구현·실행 증거와 SW/NR 지원 관문을 유지한다. PV 대용량 시험의 자동 재개를 뜻하지 않는다.
 
-[공통 저장소 개선 1차](storage-foundation-first-milestone.md)의 파일 단위 검증과 계측을 구현했다. SF-01의 정의한 소스 검증은 Passed, SF-02는 계측 하위 범위만 Partial이고 SF-03~06은 NotRun이다. [새 실행 기록](../verification/storage-foundation.md)에서 기존 VSS 보존 실패가 발생해 전체 단위는 FailedPreservation이다. [후속 재현·수정](../verification/storage-recovery.md)에서 제어 JSON 게시 충돌 수정과 격리된 소유 snapshot의 실제 삭제 차단·순차 회수를 확인했다. 일반 비소유 백업 공존은 미검증이다. 다음은 지연 회수 상태·재시도·잔존 공간 비용의 계약이며 압축·flush 정책 변경·단일 Editor 연결은 후속이다.
+[공통 저장소 개선 1차](storage-foundation-first-milestone.md)의 파일 단위 검증과 계측을 구현했다. SF-01의 정의한 소스 검증은 Passed, SF-02는 계측 하위 범위만 Partial이고 SF-03~06은 NotRun이다. [새 실행 기록](../verification/storage-foundation.md)에서 기존 VSS 보존 실패가 발생해 전체 단위는 FailedPreservation이다. [후속 재현·수정](../verification/storage-recovery.md)에서 제어 JSON 게시 충돌 수정과 격리된 소유 snapshot의 실제 삭제 차단·순차 회수를 확인했다. 일반 비소유 백업 공존은 미검증이다. [지연 회수 1차](deferred-snapshot-reclamation.md)의 대기 상태·명시적 재시도·공유 공간 관측을 연결했고 [정의한 검증](../verification/deferred-snapshot-reclamation.md)을 따른다. 압축·flush 정책 변경·단일 Editor 연결은 후속이다.
 
 현재 내부 알파 runtime은 [알파 작업공간](../alpha-workspaces.md)과 [저장소·자원 관리](../storage-and-resources.md)의 기준본/CoW/Unity 흐름을 구현한다. 일반 checkout의 두 작업자 증거는 [알파 검증](../verification/internal-alpha.md), ReFS와 프로세스 회수의 실제 범위는 [자원 검증](../verification/storage-and-resources.md)에 기록한다. daemon/SQLite Host와 공개 단계 전체 완료로 해석하지 않는다.
 
@@ -508,3 +508,5 @@ AI 사용성은 정상 흐름의 호출 수·기본 응답 바이트·불필요�
 현재 내부 알파의 좁은 범위는 [알파 작업공간](../alpha-workspaces.md)에 고정한다. 제품 NTFS의 현재 완료 경계는 [NI 기록](../verification/ntfs-workspace-integration.md)을 따른다. 이후 공개 목표를 위해 설치·대화 연결·반영/폐기, 재부팅/특수 파일·일반 Unity 검증과 저작·Play·테스트를 단계별로 확장한다. DAG/Runner와 상주 Host/DB는 별도 필요에 따른 선택적 확장이다. 완료 판정은 명령 존재가 아니라 해당 범위의 실행 증거로 내린다.
 
 PV-02의 추가 비교군은 Codex worktree 코드 병렬 작업과 Unity Agent Coordination 단일 Editor 순차 검증이다. 큐 대기·후보 전달·공용 Library와 두 소스 checkout의 비용을 별도로 측정하며 Splinter 실행에는 Coordination을 사용하지 않는다. 상세 조건과 실제 실행 여부는 [PV 범위](parallel-workflow-qualification.md)와 실행 기록을 따른다.
+
+반복 작업의 UAC 제거는 [저장소 권한 서비스 계획](storage-privilege-service.md)의 UA-01~04로 별도 추적한다. 최초 설치 승인 후 일반 CLI의 반복 요청을 제한 서비스가 처리하는 목표이며 현재 daemon/DB Host나 서비스 설치가 구현됐다는 뜻은 아니다.

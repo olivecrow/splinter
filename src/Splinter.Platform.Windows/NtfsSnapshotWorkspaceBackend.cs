@@ -177,14 +177,14 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
         if (File.Exists(identity)) File.Delete(identity);
         Directory.Delete(delta, false);
     }
-    public async Task ReleaseSnapshotAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
+    public async Task<SnapshotReclamation> ReleaseSnapshotAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
         if (Directory.Exists(DeltaPath(control)) || File.Exists(DeltaPath(control)) || Directory.Exists(w.Path) || File.Exists(w.Path) || w.Snapshot?.Result is not { IndependentOfSnapshot: true })
             throw new WorkspaceException("SnapshotInUse", "Owned delta or mount remains, or independent result is missing.");
         string directory = Path.Combine(control, "snapshot");
         await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(directory, "release-authorized.json"),
             new { snapshotId = w.Snapshot.Reference!.Id, remainingDependents = 0, resultsPreserved = true }, ct);
-        await Provider(w, control).ReleaseAsync(w.Snapshot.Reference, ct);
+        return await Provider(w, control).ReleaseAsync(w.Snapshot.Reference, ct, w.Snapshot.Reclamation?.AttemptId);
     }
     private static async Task<OverlayServeRequest?> Request(WorkspaceRecord w, string control, bool create, CancellationToken ct)
     {

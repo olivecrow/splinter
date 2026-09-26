@@ -4,6 +4,7 @@
     <AssemblyName>splinter</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Splinter.Tests" />
     <ProjectReference Include="../Splinter.Platform.Windows/Splinter.Platform.Windows.csproj" />
     <PackageReference Include="System.CommandLine" />
     <ProjectReference Include="../Splinter.Host/Splinter.Host.csproj" />

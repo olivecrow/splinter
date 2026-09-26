@@ -8,7 +8,7 @@
 
 ## 출발점과 우선순위의 근거
 
-2026-09-25의 [공통 저장소 실행](../verification/storage-foundation.md)에서 정확한 소유 ID의 VSS 해제 중 기존 비소유 snapshot 5개가 소실됐다. 해당 실행은 FailedPreservation이며 기존 원격 보존 성공을 이 환경의 보장으로 확대하지 않는다. NR-06/07의 후속 우선 관문에 격리 볼륨의 다른 snapshot 전후 ID 보존·해제 순서·연쇄 삭제 탐지를 포함한다. [후속 시험](../verification/storage-recovery.md)에서 격리된 소유 snapshot의 삭제 연쇄를 재현했고, 현재 guard의 위험 요청 차단·오래된 순서 회수는 실제 통과했다. 일반 비소유 백업 공존은 미검증이다. 시스템 볼륨의 기존 snapshot 삭제로 우회하지 않는다. B와 같은 flush 결과 게시 오류는 정상 polling reader와 Move(overwrite)의 충돌로 재현해 수정했으며 당시 핸들 소유 프로세스는 미확정이다. 다음은 지연 회수 상태·재시도·잔존 공간 비용의 계약이다.
+2026-09-25의 [공통 저장소 실행](../verification/storage-foundation.md)에서 정확한 소유 ID의 VSS 해제 중 기존 비소유 snapshot 5개가 소실됐다. 해당 실행은 FailedPreservation이며 기존 원격 보존 성공을 이 환경의 보장으로 확대하지 않는다. NR-06/07의 후속 우선 관문에 격리 볼륨의 다른 snapshot 전후 ID 보존·해제 순서·연쇄 삭제 탐지를 포함한다. [후속 시험](../verification/storage-recovery.md)에서 격리된 소유 snapshot의 삭제 연쇄를 재현했고, 현재 guard의 위험 요청 차단·오래된 순서 회수는 실제 통과했다. 일반 비소유 백업 공존은 미검증이다. 시스템 볼륨의 기존 snapshot 삭제로 우회하지 않는다. B와 같은 flush 결과 게시 오류는 정상 polling reader와 Move(overwrite)의 충돌로 재현해 수정했으며 당시 핸들 소유 프로세스는 미확정이다. [지연 회수 범위](deferred-snapshot-reclamation.md)의 대기·명시적 재시도·공유 공간 관측을 연결했고 [별도 검증](../verification/deferred-snapshot-reclamation.md)으로 추적한다.
 
 아래 표는 2차 전체 계획을 처음 수립한 NI 기준이다. 이전 `591d53f` 후보와 121개 소스 hash·139개 통과 기록의 대조는 [후속 계획의 현재 도달점](ntfs-live-vss-identity.md#제품-목표와-현재-도달점)에 있다.
 
@@ -156,3 +156,5 @@ VIVOBOOK의 이전 후보는 삭제된 정확한 snapshot의 현재 부팅 내 �
 daemon/DB 교체, 임의 에셋 구매·수집, 범용 특수 파일 지원, LFS/dirty 입력 구현, 저널 compaction과 성능 SLA, 다른 OS, 원격 게시·릴리스는 이번 NR 단위에 포함하지 않는다. 공개 v0의 저작·Play·테스트 요구사항은 그대로 유지하며 후속 공개 루프에서 반드시 닫는다.
 
 PV-02의 추가 비교군은 Codex worktree 코드 병렬 작업과 Unity Agent Coordination 단일 Editor 순차 검증이다. 큐 대기·후보 전달·공용 Library와 두 소스 checkout의 비용을 별도로 측정하며 Splinter 실행에는 Coordination을 사용하지 않는다. 상세 조건과 실제 실행 여부는 [PV 범위](parallel-workflow-qualification.md)와 실행 기록을 따른다.
+
+지연 회수의 현재 실행 단위는 [별도 범위](deferred-snapshot-reclamation.md)와 [검증](../verification/deferred-snapshot-reclamation.md)을 따른다. `reclaim-pending`·명시적 재시도·공유 볼륨 공간 관측은 NR 전체 완료나 비소유 백업 공존의 보존 보장을 뜻하지 않는다.

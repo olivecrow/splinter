@@ -12,6 +12,35 @@ public sealed class ContractAndCliTests
     private readonly ContractCatalog contracts = new();
 
     [Fact]
+    public void DeferredReleaseIsAcceptedAndNonterminalWhileStatusOnlyReportsItsObservation()
+    {
+        using var d = new TestDirectory(); var store = new WorkspaceStore(d.Path);
+        string id = WorkspaceStore.Key("deferred-contract");
+        var workspace = new WorkspaceRecord { Id = id, RequestKey = "deferred", RequestDigest = id, ProjectPath = d.Path,
+            Path = store.WorkPath(id), BaseReference = "development", SourceReference = "task", StorageMode = "ntfs-snapshot",
+            Phase = "reclaim-pending", Snapshot = new() { Step = "release-snapshot",
+                Result = new("snapshot", "revision", "fingerprint", "result-ref", new(1, 100, "hash"), true, SnapshotResult.StableJournalProtocol),
+                Observation = new(true, false, false, true, 0, 0, 0, DeltaPresent: false),
+                Reclamation = new("snapshot", "attempt", "deferred", DateTimeOffset.UtcNow, ["older"],
+                    new("volume", DateTimeOffset.UtcNow, null, null, null, "SnapshotStorageUnknown")) } };
+        var view = new WorkspaceView(workspace, null, null, store.ControlPath(id), "workspace release");
+        var response = WorkspaceCommands.Result("workspace.release", view, false, d.Path);
+        Assert.Equal("Accepted", response.Status); Assert.False(response.Terminal);
+        Assert.Equal("requires-user-action", response.RetryDisposition);
+        Assert.Equal("workspace.release", Assert.Single(response.NextActions).Command);
+        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(response, ApiJson.Options)).IsValid);
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(response with { Status = "Succeeded", Terminal = true }, ApiJson.Options)).IsValid);
+        var status = WorkspaceCommands.Result("workspace.status", view, false, d.Path);
+        Assert.Equal("Succeeded", status.Status);
+        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(status, ApiJson.Options)).IsValid);
+        var node = JsonSerializer.SerializeToNode(response, ApiJson.Options)!;
+        var shared = node["data"]!["workspace"]!["snapshot"]!["reclamation"]!["sharedStorage"]!;
+        Assert.Null(shared["usedBytes"]);
+        shared["usedBytes"] = 0;
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+    }
+
+    [Fact]
     public async Task StatusPollDoesNotOpenGitSourceFilesAndExplicitVerificationDetectsEdits()
     {
         using var directory = new TestDirectory(); var ct = TestContext.Current.CancellationToken;

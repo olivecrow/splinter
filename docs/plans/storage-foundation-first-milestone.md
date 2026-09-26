@@ -20,7 +20,7 @@ Splinter는 각 대화의 AI가 필요할 때 독립 작업공간을 확보하�
 | PV-02 | 사용자 선택 범위 `scoped-complete-with-limitations`로 마감 | 전체 Passed·성능 우위. S4 `FailedInputQualification`, 소수 표본, 과거 전체 팩 raw 동등성 unknown 유지 |
 | 공개 목표 | 제품 요구사항과 사용 모델·검증 계획 정의 | 공개 48개, SW-01~10, SF-02 전체·SF-03~06의 실행 완료 |
 
-구현 전 검토 기준은 `development`의 `30ce3075bb377e968931a6bc53dde77c4065673f`이며 PV 후보 125개 hash 일치와 저장 TRX의 206 통과·1 skip을 확인했다. 이후 이번 기준 재실행도 206 통과·1 skip이었다. 1차 마감 후보는 [저장소 기록](../verification/storage-foundation.md)의 226 통과·0 실패·1 skip, 후속 현재 후보는 [복구 기록](../verification/storage-recovery.md)의 231 통과·0 실패·1 skip이다. 과거 PV 후보와 동일한 파일 집합이 아니다.
+구현 전 검토 기준은 `development`의 `30ce3075bb377e968931a6bc53dde77c4065673f`이며 PV 후보 125개 hash 일치와 저장 TRX의 206 통과·1 skip을 확인했다. 이후 이번 기준 재실행도 206 통과·1 skip이었다. 1차 마감 후보는 [저장소 기록](../verification/storage-foundation.md)의 226 통과·0 실패·1 skip, 후속 복구 후보는 [복구 기록](../verification/storage-recovery.md)의 231 통과·0 실패·1 skip이다. 현재 지연 회수 후보는 [별도 기록](../verification/deferred-snapshot-reclamation.md)을 따른다. 과거 PV 후보와 동일한 파일 집합이 아니다.
 
 실환경 완료 판단은 [NI](../verification/ntfs-workspace-integration.md), [LV](../verification/ntfs-live-vss-identity.md), [NR](../verification/ntfs-recovery.md), [PV 기록](../verification/parallel-workflow.md)과 [최종 마감 영수증](../../artifacts/parallel-workflow/pv-20260923/final-closeout.json)을 따른다. 영수증의 자원 회수는 당시 관측이며 현재 OS의 mount·VSS·Editor 상태를 새로 확인한 것은 아니다.
 
@@ -82,7 +82,7 @@ Splinter는 각 대화의 AI가 필요할 때 독립 작업공간을 확보하�
 
 | 항목 | 이후 진행 조건 |
 | --- | --- |
-| VSS 보존·회수 | 격리 재현·실제 차단은 정의한 조건에서 완료. 다음은 결과 보존과 snapshot 삭제 시점을 분리하는 상태·재시도·잔존 공간 비용. 기존 snapshot 삭제로 우회하지 않음 |
+| VSS 보존·회수 | 격리 재현·실제 차단은 정의한 조건에서 완료. [지연 회수 1차](deferred-snapshot-reclamation.md)에서 결과 보존과 snapshot 삭제 시점을 분리하는 대기 상태·명시적 재시도·공유 공간 관측을 연결. 기존 snapshot 삭제로 우회하지 않음 |
 | SF-02의 저널 압축·내구성 정책 최적화 | 이번 누적량·지연 기준선으로 대상 선정. 임시 공간·이전 세대 참조·중단 복구의 별도 범위 확정 |
 | SF-03 단일 Editor A/B/A 후보 전환 | 공통 저장소 1차 결과 뒤 작은 후보 실험. 불변 후보·고정 검증 view·원복·Library 정합성·소스 결과 반환 계약부터 정의 |
 | SF-04~06·100GB 실사용·기본 실행 방식 선택 | 앞선 결과와 입력 적합성을 바탕으로 별도 자원/시간 범위 확정. 단일 Editor 채택은 아직 미결정 |
@@ -92,4 +92,4 @@ Splinter는 각 대화의 AI가 필요할 때 독립 작업공간을 확보하�
 
 마감한 PV 대용량 비교, 전체 Medieval 팩 수리·lighting rebake, 새 에셋 구매·100GB 데이터 준비, ReFS 신규 확장, daemon/DB·Runner/DAG 도입은 이 실행 단위에 포함하지 않는다. 기존 결과·원본·타 작업을 보존할 수 없는 문제가 발견되면 성능 목표보다 해당 보존 결함을 먼저 해결한다.
 
-SF-01의 소스 검증 통과와 SF-02의 계측 성과를 전체 실행 성공으로 확대하지 않는다. 해당 실행은 **FailedPreservation**, SF-02 전체는 Partial, SF-03~06은 NotRun이다. 제어 파일 충돌 수정과 VSS 삭제 연쇄 재현·실제 보호 검증의 결과는 [복구 기록](../verification/storage-recovery.md)을 따른다. 다음에는 더 오래된 활성/비소유 snapshot 때문에 회수 대기 중인 공간을 명시하는 계약을 정한다. 자동 지연 회수는 아직 구현하지 않았다.
+SF-01의 소스 검증 통과와 SF-02의 계측 성과를 전체 실행 성공으로 확대하지 않는다. 해당 실행은 **FailedPreservation**, SF-02 전체는 Partial, SF-03~06은 NotRun이다. 제어 파일 충돌 수정과 VSS 삭제 연쇄 재현·실제 보호 검증의 결과는 [복구 기록](../verification/storage-recovery.md)을 따른다. 이후 [지연 회수 범위](deferred-snapshot-reclamation.md)의 `reclaim-pending`·명시적 release 재시도·공유 VSS 공간 관측을 연결했다. 실제 판정은 [지연 회수 검증](../verification/deferred-snapshot-reclamation.md)을 따르며 자동 sweep은 제공하지 않는다.

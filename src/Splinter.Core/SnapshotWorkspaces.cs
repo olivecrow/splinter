@@ -12,6 +12,7 @@ public sealed class SnapshotWorkspaceState
     public string Step { get; set; } = "requested";
     public SnapshotWorkspaceObservation? Observation { get; set; }
     public SnapshotResult? Result { get; set; }
+    public SnapshotReclamation? Reclamation { get; set; }
 }
 
 public sealed record SnapshotWorkspaceObservation(bool? SnapshotAvailable, bool Mounted, bool ProviderAlive,
@@ -33,7 +34,7 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
         if (state is null) return new("preserve", "SnapshotStateMissing", "workspace.status");
         var observation = state.Observation;
         string? retainedFailure = workspace.LastError?.Split(':', 2)[0];
-        if (retainedFailure is "DeltaChangedAfterCollection" or "SnapshotResultRevalidationRequired" or "StateCorrupt")
+        if (retainedFailure is "DeltaChangedAfterCollection" or "SnapshotResultRevalidationRequired" or "StateCorrupt" or "SnapshotReclamationInvalid" or "SnapshotCollateralLoss")
             return new("preserve", retainedFailure, "workspace.status");
         if ((state.Step.StartsWith("release-", StringComparison.Ordinal) || observation?.SnapshotAvailable == false) &&
             state.Result is { IndependentOfSnapshot: true, CollectionProtocol: not SnapshotResult.StableJournalProtocol })
@@ -43,7 +44,11 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
         if (state.Step == "release-snapshot" && state.Result is { IndependentOfSnapshot: true } &&
             observation is { DeltaPresent: false, Mounted: false, ProviderAlive: false, OwnershipVerified: true,
                 OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
+        {
+            if (workspace.Phase == "reclaim-pending" && workspace.LastError is null && state.Reclamation is { Disposition: "deferred" })
+                return new("deferred-reclamation", "SnapshotReleaseIsolationRequired", "workspace.release");
             return new("resume-release", "WorkspaceReleasing", "workspace.release");
+        }
         if (state.Reference is not null && observation?.SnapshotAvailable is null)
         {
             if (observation?.FailureCode == "SnapshotVerificationRequired" && !state.Step.StartsWith("release-", StringComparison.Ordinal))
@@ -81,7 +86,7 @@ public interface ISnapshotWorkspaceBackend
     Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task UnmountAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task RemoveDeltaAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
-    Task ReleaseSnapshotAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
+    Task<SnapshotReclamation> ReleaseSnapshotAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
 }
 
 public interface ISnapshotSourceWorkspaceProvider

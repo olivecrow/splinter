@@ -109,11 +109,6 @@
           "required": [
             "error"
           ]
-        },
-        "properties": {
-          "retryDisposition": {
-            "const": "not-needed"
-          }
         }
       },
       "else": {
@@ -563,6 +558,73 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "command": {
+            "const": "workspace.release"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          },
+          "data": {
+            "required": [
+              "workspace"
+            ],
+            "properties": {
+              "workspace": {
+                "required": [
+                  "phase"
+                ],
+                "properties": {
+                  "phase": {
+                    "const": "reclaim-pending"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "Accepted"
+          },
+          "terminal": {
+            "const": false
+          },
+          "retryDisposition": {
+            "const": "requires-user-action"
+          }
+        }
+      },
+      "else": {
+        "if": {
+          "properties": {
+            "status": {
+              "enum": [
+                "Succeeded",
+                "Accepted"
+              ]
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "retryDisposition": {
+              "const": "not-needed"
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -812,6 +874,10 @@
               }
             },
             "qualification": {
+              "type": "string",
+              "minLength": 1
+            },
+            "snapshotReclamation": {
               "type": "string",
               "minLength": 1
             }
@@ -1212,6 +1278,7 @@
                 "preserve",
                 "resume-ensure",
                 "resume-release",
+                "deferred-reclamation",
                 "released"
               ]
             },
@@ -1964,6 +2031,9 @@
             "seal",
             "independentOfSnapshot"
           ]
+        },
+        "reclamation": {
+          "$ref": "#/$defs/snapshotReclamation"
         }
       },
       "required": [
@@ -2112,6 +2182,145 @@
         "filesReused",
         "manifestBytes",
         "elapsedMilliseconds"
+      ]
+    },
+    "snapshotSharedStorage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "volumeId",
+        "observedAt",
+        "scope",
+        "workspaceAttribution"
+      ],
+      "properties": {
+        "volumeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "const": "source-volume-shared"
+        },
+        "workspaceAttribution": {
+          "const": "unknown"
+        },
+        "usedBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "allocatedBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limitBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failureCode": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "failureCode"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "usedBytes"
+                  ]
+                },
+                {
+                  "required": [
+                    "allocatedBytes"
+                  ]
+                },
+                {
+                  "required": [
+                    "limitBytes"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "snapshotReclamation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshotId",
+        "attemptId",
+        "disposition",
+        "observedAt",
+        "blockingSnapshotIds"
+      ],
+      "properties": {
+        "snapshotId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attemptId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "enum": [
+            "deferred",
+            "released"
+          ]
+        },
+        "observedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blockingSnapshotIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "sharedStorage": {
+          "$ref": "#/$defs/snapshotSharedStorage"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "const": "deferred"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "blockingSnapshotIds": {
+                "minItems": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "blockingSnapshotIds": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
       ]
     }
   }

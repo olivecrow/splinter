@@ -4,6 +4,8 @@
 
 | 문서 | 읽을 때 |
 | --- | --- |
+| [반복 UAC 없는 저장소 권한 경계](plans/storage-privilege-service.md) | 최초 설치 승인 후 일반 CLI의 생성·재연결·회수에서 반복 UAC를 없애는 미구현 서비스 범위와 UA-01~04를 확인할 때 |
+| [스냅샷 지연 회수 1차](plans/deferred-snapshot-reclamation.md) / [검증](verification/deferred-snapshot-reclamation.md) | 결과 보존과 회수 대기, 같은 workspace의 명시적 재시도, helper 응답 재개와 공유 볼륨 공간 관측 범위를 확인할 때 |
 | [공통 저장소 개선 1차](plans/storage-foundation-first-milestone.md) | 확정 범위·완료 조건과 구현 결과, 기존 VSS 보존 실패로 남은 마감 조건을 확인할 때 |
 | [변경 기반 소스 검증과 계측](source-verification.md) | 파일 hash/manifest·provider 세대·audit 복구·계수와 읽기 전용 물리 할당 계측 스크립트를 사용할 때 |
 | [공통 저장소 실제 검증](verification/storage-foundation.md) | SF-01·SF-02 하위 결과, 읽기/공간 장부·Unity A/B·기존 VSS 소실과 자동 해제 차단의 미검증 경계를 확인할 때 |
