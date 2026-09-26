@@ -4,6 +4,7 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Splinter.Core;
 
 namespace Splinter.Runtime;
@@ -11,16 +12,19 @@ namespace Splinter.Runtime;
 // An experimental range overlay. Each acknowledged transaction is checksummed
 // and flushed. Reads only use the snapshot and existing journal extents.
 // The journal is bounded; exhaustion preserves existing results, never copy-ups.
-public sealed class JournalDeltaStore : IWorkspaceDeltaStore
+public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
 {
     private sealed record Extent(long Start, int Length, long JournalOffset);
+    private sealed record CompactionFragment(long Offset, int Length);
     private sealed class Node(DeltaEntry entry)
     {
         public DeltaEntry Entry = entry;
         public List<Extent> Extents = [];
     }
     private sealed record Mutation(long Sequence, string Operation, DeltaEntry Entry,
-        long Offset = 0, string? Destination = null, bool Replace = false);
+        long Offset = 0, string? Destination = null, bool Replace = false,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CompactionFragment[]? Fragments = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? FromSequence = null);
     private const int MaxMetadataBytes = 65536;
     public const int MaxIndexedNodes = 250000;
     public const int MaxIndexedExtents = 1000000;
@@ -61,6 +65,9 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
     public OverlayIdentity Identity { get; }
 
     public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot)
+        : this(directory, identity, snapshot, "delta.journal") { }
+
+    private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName)
     {
         if (identity.Version != 1 || identity.MaxJournalBytes < 4096 || identity.MaxTransferBytes is < 4096 or > 1048576)
             throw new ArgumentException("Invalid overlay version or bounded storage limits.");
@@ -72,7 +79,7 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
         Directory.CreateDirectory(directory);
         string identityPath = System.IO.Path.Combine(directory, "identity.json");
         // FileShare.Read excludes concurrent writers across provider processes.
-        journal = new FileStream(System.IO.Path.Combine(directory, "delta.journal"), FileMode.OpenOrCreate,
+        journal = new FileStream(System.IO.Path.Combine(directory, journalName), FileMode.OpenOrCreate,
             FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.RandomAccess);
         try
         {
@@ -378,7 +385,8 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
             if (!CryptographicOperations.FixedTimeEquals(digest.GetHashAndReset(), expectedHash))
                 throw new WorkspaceException("DeltaCorrupt", "Journal checksum mismatch; automatic discard is forbidden.");
             var mutation = DecodeMutation(metadata, dataLength);
-            if (mutation.Sequence != sequence + 1) throw new WorkspaceException("DeltaCorrupt", "Journal sequence mismatch.");
+            if (mutation.Operation == "skip-range" ? mutation.FromSequence != sequence + 1 : mutation.Sequence != sequence + 1)
+                throw new WorkspaceException("DeltaCorrupt", "Journal sequence mismatch.");
             Apply(mutation, cursor + 8 + metadataLength, dataLength); cursor += frameLength;
         }
         // Only an incomplete trailing transaction is unacknowledged. Corrupt
@@ -406,16 +414,40 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
         catch (ArgumentException) { throw Invalid(); }
         if (mutation.Operation == "write")
         {
-            if (entry.Directory || mutation.Offset < 0 || payloadLength == 0 ||
+            if (mutation.Fragments is not null || mutation.FromSequence is not null || entry.Directory || mutation.Offset < 0 || payloadLength == 0 ||
                 mutation.Offset > entry.Length - payloadLength) throw Invalid();
         }
-        else if (payloadLength != 0 || mutation.Operation is not ("create" or "resize" or "metadata" or "delete" or "rename"))
+        else if (mutation.Operation == "write-compacted")
+        {
+            if (entry.Directory || mutation.FromSequence is not null || mutation.Fragments is not { Length: > 0 } fragments) throw Invalid();
+            long end = -1, total = 0;
+            foreach (var fragment in fragments)
+            {
+                if (fragment.Length <= 0 || fragment.Offset < 0 || fragment.Offset < end ||
+                    fragment.Offset > entry.Length - fragment.Length) throw Invalid();
+                end = fragment.Offset + fragment.Length; total += fragment.Length;
+            }
+            if (total != payloadLength) throw Invalid();
+        }
+        else if (mutation.Operation == "skip-range")
+        {
+            if (mutation.FromSequence is not { } from || from < 1 || from > mutation.Sequence ||
+                mutation.Fragments is not null || payloadLength != 0 || mutation.Destination is not null) throw Invalid();
+        }
+        else if (mutation.FromSequence is not null || mutation.Fragments is not null || payloadLength != 0 ||
+            mutation.Operation is not ("create" or "resize" or "metadata" or "delete" or "rename" or "skip-write"))
             throw Invalid();
         return mutation;
     }
     private void Apply(Mutation mutation, long payloadOffset, int payloadLength)
     {
         RequireMutationCapacity(mutation);
+        if (mutation.Operation is "skip-write" or "skip-range")
+        {
+            pathChanges[mutation.Entry.Path] = mutation.Sequence;
+            sequence = mutation.Sequence;
+            return;
+        }
         if (!nodes.TryGetValue(mutation.Entry.Id, out var node))
         {
             RequireNodeCapacity(); node = new Node(mutation.Entry); nodes.Add(mutation.Entry.Id, node);
@@ -423,9 +455,18 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
         node.Entry = mutation.Entry;
         switch (mutation.Operation)
         {
-            case "write":
+            case "write": case "write-compacted":
                 extentCount -= node.Extents.Count;
-                ReplaceRange(node, new(mutation.Offset, payloadLength, payloadOffset));
+                if (mutation.Operation == "write") ReplaceRange(node, new(mutation.Offset, payloadLength, payloadOffset));
+                else
+                {
+                    long cursor = payloadOffset;
+                    foreach (var fragment in mutation.Fragments!)
+                    {
+                        ReplaceRange(node, new(fragment.Offset, fragment.Length, cursor));
+                        cursor += fragment.Length;
+                    }
+                }
                 extentCount += node.Extents.Count;
                 if (!node.Entry.Deleted) paths[node.Entry.Path] = node.Entry.Id;
                 break;
@@ -471,7 +512,8 @@ public sealed class JournalDeltaStore : IWorkspaceDeltaStore
             throw new WorkspaceException("OverlayMetadataLimit", "The bounded change index is full; preserve the delta.");
         // One replacement can split an old extent into two and add one new
         // extent. Reject conservatively before appending an acknowledged frame.
-        if (mutation.Operation == "write" && extentCount > MaxIndexedExtents - 2 ||
+        if (mutation.Operation is "write" or "write-compacted" &&
+            extentCount > MaxIndexedExtents - 2L * (mutation.Fragments?.Length ?? 1) ||
             mutation.Operation is "delete" or "rename" && !hidden.Contains(mutation.Entry.Path) && hidden.Count >= MaxHiddenPaths)
             throw new WorkspaceException("OverlayMetadataLimit", "The bounded range or whiteout index is full; preserve the delta.");
     }

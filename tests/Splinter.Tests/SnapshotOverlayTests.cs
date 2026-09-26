@@ -1,6 +1,8 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 using Splinter.Core;
 using Splinter.Runtime;
 using Splinter.Platform.Windows;
@@ -56,6 +58,222 @@ public sealed class SnapshotOverlayTests
         Assert.True(after.JournalBytes > before.JournalBytes); Assert.Equal(0, after.ReadCacheBytes);
         Assert.Equal(after.JournalBytes, after.Metrics!.JournalAppendedBytes);
         Assert.True(after.Metrics.LockAcquisitions > 100);
+    }
+
+    [Fact]
+    public void CompactionKeepsCurrentRangesAndMetadataWithoutReadingBasePayload()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree();
+        tree.Files["large"] = new byte[16 * 1024 * 1024]; tree.Files["dir/code.cs"] = [1, 2, 3];
+        var identity = new OverlayIdentity(1, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
+        string delta = Path.Combine(d.Path, "delta");
+        long original;
+        using (var store = new JournalDeltaStore(delta, identity, tree))
+        {
+            var large = store.Stat("large")!;
+            for (int i = 0; i < 100; i++)
+            {
+                byte[] block = new byte[4096]; block[0] = (byte)i;
+                store.Write(large.Id, 8192, block);
+            }
+            var scratch = store.Create("scratch", false, 32);
+            store.Write(scratch.Id, 0, new byte[4096]); store.Delete(scratch.Id);
+            store.Rename(store.Stat("dir")!.Id, "moved", false);
+            original = store.Observe().JournalBytes;
+        }
+        var compacted = JournalDeltaStore.CompactDirectory(delta, identity, tree);
+        Assert.Equal(0, tree.ReadBytes);
+        Assert.True(compacted.After.JournalBytes < original / 10);
+        Assert.Equal(compacted.Before.DurableSequence, compacted.After.DurableSequence);
+        using (var resumed = new JournalDeltaStore(delta, identity, tree))
+        {
+            byte[] actual = new byte[4096];
+            Assert.Equal(4096, resumed.Read(resumed.Stat("large")!.Id, 8192, actual));
+            Assert.Equal(99, actual[0]); Assert.All(actual[1..], x => Assert.Equal(0, x));
+            Assert.Null(resumed.Stat("scratch")); Assert.Null(resumed.Stat("dir"));
+            Assert.NotNull(resumed.Stat("moved/code.cs"));
+            resumed.Write(resumed.Stat("large")!.Id, 16384, [7, 8]);
+        }
+        // A resumed write changes the seal; the previous generation cannot be
+        // discarded until the caller has verified and completed the transition.
+        Assert.Equal("CompactionGenerationMismatch", Assert.Throws<WorkspaceException>(() =>
+            JournalDeltaStore.CompleteCompaction(delta, identity)).Code);
+        Assert.True(File.Exists(Path.Combine(delta, "delta.journal.previous")));
+    }
+
+    [Theory]
+    [InlineData("intent")]
+    [InlineData("candidate-flushed")]
+    [InlineData("prepared")]
+    [InlineData("published")]
+    public void CompactionResumesAcrossEachDurabilityBoundary(string cut)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = new byte[8192];
+        var identity = new OverlayIdentity(1, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
+        string delta = Path.Combine(d.Path, "delta");
+        using (var store = new JournalDeltaStore(delta, identity, tree))
+        {
+            Guid file = store.Stat("file")!.Id;
+            for (int i = 0; i < 10; i++) store.Write(file, 0, [checked((byte)i)]);
+        }
+        Assert.Throws<InvalidOperationException>(() => JournalDeltaStore.CompactDirectory(delta, identity, tree,
+            boundary => { if (boundary == cut) throw new InvalidOperationException("injected interruption"); }));
+        var receipt = JournalDeltaStore.CompactDirectory(delta, identity, tree);
+        Assert.Equal(10, receipt.After.DurableSequence);
+        using (var resumed = new JournalDeltaStore(delta, identity, tree))
+        {
+            byte[] actual = new byte[1]; resumed.Read(resumed.Stat("file")!.Id, 0, actual);
+            Assert.Equal(9, actual[0]);
+        }
+        JournalDeltaStore.CompleteCompaction(delta, identity);
+        Assert.False(File.Exists(Path.Combine(delta, "delta.journal.previous")));
+        Assert.False(File.Exists(Path.Combine(delta, "compaction-intent.json")));
+    }
+
+    [Fact]
+    public void PartialCandidateAndInterruptedPreviousGenerationCleanupRemainRecoverable()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
+        var identity = new OverlayIdentity(1, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
+        string delta = Path.Combine(d.Path, "delta");
+        using (var store = new JournalDeltaStore(delta, identity, tree))
+        {
+            Guid id = store.Stat("file")!.Id;
+            for (int i = 0; i < 10; i++) store.Write(id, 0, [checked((byte)i)]);
+        }
+        byte[] original = File.ReadAllBytes(Path.Combine(delta, "delta.journal"));
+        Assert.Throws<InvalidOperationException>(() => JournalDeltaStore.CompactDirectory(delta, identity, tree,
+            boundary => { if (boundary == "intent") throw new InvalidOperationException("injected interruption"); }));
+        File.WriteAllBytes(Path.Combine(delta, "delta.journal.compacting"), [1, 2, 3]);
+        Assert.Equal(original, File.ReadAllBytes(Path.Combine(delta, "delta.journal")));
+        var published = JournalDeltaStore.CompactDirectory(delta, identity, tree);
+        using (var connected = new JournalDeltaStore(delta, identity, tree))
+        {
+            byte[] value = new byte[1]; connected.Read(connected.Stat("file")!.Id, 0, value);
+            Assert.Equal(9, value[0]);
+        }
+        File.Delete(Path.Combine(delta, "delta.journal.previous")); // interrupted after verified removal
+        var retried = JournalDeltaStore.CompactDirectory(delta, identity, tree);
+        Assert.Equal(published.AttemptId, retried.AttemptId);
+        JournalDeltaStore.CompleteCompaction(delta, identity);
+        Assert.False(File.Exists(Path.Combine(delta, "compaction-intent.json")));
+    }
+
+    [Fact]
+    public void VerifiedGenerationCanBeCompletedWithReconnectedProviderHandleOpen()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
+        var identity = new OverlayIdentity(1, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
+        string delta = Path.Combine(d.Path, "delta");
+        using (var store = new JournalDeltaStore(delta, identity, tree))
+        {
+            Guid id = store.Stat("file")!.Id;
+            for (int i = 0; i < 100; i++)
+            {
+                byte[] block = new byte[4096]; block[0] = checked((byte)i);
+                store.Write(id, 0, block);
+            }
+        }
+        long beforeAllocation = AllocatedBytes(Path.Combine(delta, "delta.journal"));
+        var receipt = JournalDeltaStore.CompactDirectory(delta, identity, tree);
+        using var connected = new JournalDeltaStore(delta, identity, tree);
+        JournalDeltaStore.CompleteCompaction(delta, identity);
+        Assert.Equal(receipt.After.DurableSequence, connected.Observe().DurableSequence);
+        Assert.False(File.Exists(Path.Combine(delta, "delta.journal.previous")));
+        Assert.True(AllocatedBytes(Path.Combine(delta, "delta.journal")) < beforeAllocation);
+    }
+
+    [Fact]
+    public void WholeFileRewritesAndTruncatePreserveOnlyTheLiveFourMegabytes()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree();
+        tree.Files["large"] = new byte[16 * 1024 * 1024]; tree.Files["large.meta"] = [1, 2, 3];
+        var identity = new OverlayIdentity(1, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
+        string delta = Path.Combine(d.Path, "delta");
+        SourceChangeView changes;
+        using (var store = new JournalDeltaStore(delta, identity, tree))
+        {
+            Guid id = store.Stat("large")!.Id;
+            byte[] block = new byte[1024 * 1024];
+            for (int pass = 0; pass < 2; pass++)
+                for (int part = 0; part < 16; part++)
+                {
+                    block[0] = checked((byte)(pass * 16 + part));
+                    store.Write(id, part * block.Length, block);
+                }
+            store.SetLength(id, 4 * 1024 * 1024);
+            store.SetLength(id, 16 * 1024 * 1024);
+            store.Write(store.Stat("large.meta")!.Id, 0, [7]);
+            changes = store.ObserveChanges([]);
+        }
+        long beforeAllocated = AllocatedBytes(Path.Combine(delta, "delta.journal"));
+        var receipt = JournalDeltaStore.CompactDirectory(delta, identity, tree);
+        long afterAllocated = AllocatedBytes(Path.Combine(delta, "delta.journal"));
+        Assert.True(afterAllocated < beforeAllocated / 4,
+            $"Whole-file rewrite and truncate allocation stayed high: {beforeAllocated} -> {afterAllocated}.");
+        Assert.True(receipt.After.JournalBytes < receipt.Before.JournalBytes / 4);
+        using (var resumed = new JournalDeltaStore(delta, identity, tree))
+        {
+            Assert.Equal(changes.Sequence, resumed.ObserveChanges([]).Sequence);
+            Assert.Equal(changes.Changes, resumed.ObserveChanges([]).Changes);
+            byte[] start = new byte[1], tail = new byte[1];
+            Guid id = resumed.Stat("large")!.Id;
+            for (int part = 0; part < 4; part++)
+            {
+                resumed.Read(id, part * 1024 * 1024, start);
+                Assert.Equal(16 + part, start[0]);
+            }
+            resumed.Read(id, 5 * 1024 * 1024, tail);
+            Assert.Equal(0, tail[0]);
+            resumed.Read(resumed.Stat("large.meta")!.Id, 0, start);
+            Assert.Equal(7, start[0]);
+        }
+        JournalDeltaStore.CompleteCompaction(delta, identity);
+        Assert.Equal(0, tree.ReadBytes);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct FileStandardInfo
+    {
+        public long AllocationSize;
+        public long EndOfFile;
+        public uint NumberOfLinks;
+        [MarshalAs(UnmanagedType.Bool)] public bool DeletePending;
+        [MarshalAs(UnmanagedType.Bool)] public bool Directory;
+    }
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetFileInformationByHandleEx(SafeFileHandle file, int fileInformationClass,
+        out FileStandardInfo info, uint bufferSize);
+    private static long AllocatedBytes(string path)
+    {
+        using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        Assert.True(GetFileInformationByHandleEx(handle, 1, out var info, (uint)Marshal.SizeOf<FileStandardInfo>()));
+        return info.AllocationSize;
+    }
+
+    [Fact]
+    public void ChangedPreparedCandidatePreservesTheOriginalJournal()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
+        var identity = new OverlayIdentity(1, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
+        string delta = Path.Combine(d.Path, "delta");
+        using (var store = new JournalDeltaStore(delta, identity, tree)) store.Write(store.Stat("file")!.Id, 0, [7]);
+        byte[] before = File.ReadAllBytes(Path.Combine(delta, "delta.journal"));
+        Assert.Throws<InvalidOperationException>(() => JournalDeltaStore.CompactDirectory(delta, identity, tree,
+            boundary => { if (boundary == "prepared") throw new InvalidOperationException("injected interruption"); }));
+        string candidate = Path.Combine(delta, "delta.journal.compacting");
+        using (var stream = new FileStream(candidate, FileMode.Open, FileAccess.ReadWrite))
+        { stream.Position = 12; int original = stream.ReadByte(); stream.Position = 12; stream.WriteByte((byte)(original ^ 1)); }
+        Assert.Equal("CompactionCandidateMismatch", Assert.Throws<WorkspaceException>(() =>
+            JournalDeltaStore.CompactDirectory(delta, identity, tree)).Code);
+        Assert.Equal(before, File.ReadAllBytes(Path.Combine(delta, "delta.journal")));
     }
 
     [Fact]

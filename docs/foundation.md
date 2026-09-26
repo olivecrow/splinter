@@ -59,12 +59,15 @@ Runtime의 `AtomicFilePublication`은 같은 디렉터리에서 flush한 임시 
 | `splinter plan validate --input <plan.json>` | 최대 1 MiB JSON 파일 | 스키마·의존성 오류 또는 실행 가능 계층 |
 | `splinter snapshot-spike --input <request.json>` | 명시적으로 준비한 overlay 요청과 action | 독립 실험의 mount/status/Git/Unity/보존/회수; [전용 절차](snapshot-overlay.md) |
 | `splinter workspace ensure/list/status` | 프로젝트·작업 key/storage 또는 workspace ID; NTFS journal budget; status의 선택적 `--verify-source`/`--audit-source` | 지속 작업공간 생성/재접속과 snapshot/delta/앱 상태. 일반 poll은 소스 전체 읽기 생략 |
+| `splinter workspace compact` | 결과 수집 전 NTFS workspace ID와 선택적 home | 소유 Editor/핸들 0을 확인한 뒤 죽은 범위·연속 기록을 정리, 새 저널 세대를 검증·재연결; 이전 세대는 확인 전까지 보존 |
 | `splinter unity start/refresh/stop` | workspace ID | 소유 Editor의 실행·검증 요청·종료 |
 | `splinter workspace checkpoint/integrate/release` | ID, 커밋 설명/통합 대상 | 검증한 소스 커밋·원본 적용·안전한 회수 |
 | `splinter storage probe` | 후보 home 경로 | ReFS 볼륨·클러스터 geometry, 전체 복사 fallback 없음 |
 | `splinter baseline prepare/seal/release` | 프로젝트·기준 ref 또는 준비 ID | 호환 기준본을 우선 재사용해 새 커밋 검증·봉인, 소비 작업 종료 후 명시적 캐시 회수 |
 
 필수 인자와 재개·복구 절차는 [알파 작업공간](alpha-workspaces.md)을 따른다. 입력 schema와 `capabilities`가 기계용 계약이다.
+
+`JournalDeltaStore`의 명시적 오프라인 압축은 Core의 snapshot backend port와 Runtime coordinator를 통해 Windows backend에 연결한다. 후보 저널은 원본 저널을 재생한 살아 있는 범위에서 작성하며 `compaction-intent.json`, checksum, 상태 hash, 전후 seal을 대조한다. coordinator는 `compact-unmount` → `compact-write` → `compact-connect`를 저장하고 같은 작업의 재시도를 허용한다. 재연결 뒤 이전 세대를 제거하며 validation은 새로 받아야 한다. [현재 NTFS 계약](ntfs-workspaces.md#일반-cli-흐름)과 [실행 증거](verification/journal-compaction.md)를 따른다.
 
 workspace 응답의 `sourceVerification`은 `not-checked` 또는 `verified`다. 일반 status는 새 pending 검증 응답을 한 번 조정하거나 `--verify-source`를 지정한 경우에만 source를 읽는다. 확인한 응답에는 `source`와 검증 fingerprint 일치 여부인 `validationCurrent`가 있다. 성공 판정은 `workspace.validation.success`도 함께 확인한다. NTFS 결과의 `collectionProtocol=stable-journal-v1`은 수집 전후 저널 동일성을 뜻하며 이전 기록의 재검증·보존 절차는 [NTFS 작업공간](ntfs-workspaces.md#회수와-관측)을 따른다. capabilities의 `workspaceStatus`·`sourceVerification`·`snapshotOverlay.resultCollection`이 계약을 표시한다. NTFS는 정확한 snapshot/provider epoch/소스 변경 경로에 묶인 파일 hash를 재사용하며 같은 크기/mtime을 근거로 성공을 재사용하지 않는다. 감사·손상 manifest 복구는 `--audit-source`다. [소스 검증과 계측](source-verification.md)이 새 Core port·Windows 요청 장벽·Git manifest·개발 할당 계측의 현재 경계를 설명한다.
 

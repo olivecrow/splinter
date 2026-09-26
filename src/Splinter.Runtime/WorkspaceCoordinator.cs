@@ -295,11 +295,11 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             var state = RequireSnapshot(record);
             state.Observation = await Snapshots.ObserveAsync(record, store.ControlPath(record.Id), ct);
             if (!state.Attached || state.Observation.SnapshotAvailable != true || !state.Observation.Mounted || !state.Observation.ProviderAlive || !state.Observation.OwnershipVerified ||
-                state.Step.StartsWith("release-", StringComparison.Ordinal))
+                state.Step.StartsWith("release-", StringComparison.Ordinal) || state.Step.StartsWith("compact-", StringComparison.Ordinal))
             {
                 var unavailableApp = await applications.ObserveAsync(record, store.ControlPath(record.Id), ct);
                 return new(record, null, unavailableApp, store.ControlPath(record.Id), state.Step.StartsWith("release-", StringComparison.Ordinal)
-                    ? "workspace release" : "workspace ensure");
+                    ? "workspace release" : state.Step.StartsWith("compact-", StringComparison.Ordinal) ? "workspace compact" : "workspace ensure");
             }
         }
         if (record.BaseRevision is null) return new(record, null, null, store.ControlPath(record.Id), "workspace ensure");
@@ -349,6 +349,8 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     {
         if (record.Phase == "released") throw new WorkspaceException("WorkspaceReleased", "This task is released. Use a new request key.");
         if (record.BaseRevision is null) throw new WorkspaceException("WorkspaceNotReady", "Resume workspace ensure with the original request key.");
+        if (record.Snapshot?.Step.StartsWith("compact-", StringComparison.Ordinal) == true)
+            throw new WorkspaceException("WorkspaceCompacting", "Resume the same workspace compact request before other operations.");
     }
     private static SourceState RequireSource(WorkspaceView view) => view.Source ?? throw new WorkspaceException(
         view.Workspace.Snapshot?.Observation?.FailureCode ?? "WorkspaceNotReady",

@@ -82,6 +82,16 @@
       "retry": "safe-read"
     },
     {
+      "id": "workspace.compact",
+      "description": "Explicitly compact an idle NTFS workspace journal before result collection, then reconnect the same snapshot and workspace.",
+      "cliUsage": "splinter workspace compact --id <id> [--home <state-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:workspace-compact-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-journal-generation-replacement",
+      "retry": "same-workspace-compaction-intent"
+    },
+    {
       "id": "workspace.checkpoint",
       "description": "Commit only source matching successful Unity compilation evidence.",
       "cliUsage": "splinter workspace checkpoint --id <id> --message <message> [--home <state-root>]",

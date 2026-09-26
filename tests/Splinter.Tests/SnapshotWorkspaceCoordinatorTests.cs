@@ -6,6 +6,31 @@ namespace Splinter.Tests;
 public sealed class SnapshotWorkspaceCoordinatorTests
 {
     [Fact]
+    public async Task CompactionResumesSameWorkspaceWhilePeerRemainsUsable()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var peerBackend = new Backend { SnapshotId = "peer" }; var peerSource = new Source(); var peerApp = new App();
+        WorkspaceCoordinator Peer() => new(new(f.Home), peerSource, peerApp, snapshots: peerBackend);
+        string a = (await Peer().EnsureAsync(f.Project, "peer", "base", "ntfs-snapshot", false, ct)).Workspace.Id;
+        string b = (await f.Ensure(ct)).Workspace.Id;
+        f.Backend.LoseMountReply = true;
+        Assert.Equal("ReplyLost", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CompactAsync(b, ct))).Code);
+        Assert.Equal("compact-connect", new WorkspaceStore(f.Home).Get(b).Snapshot!.Step);
+        Assert.Equal("resume-compaction", (await f.New().StatusAsync(b, ct)).Recovery!.Disposition);
+        Assert.Equal("WorkspaceCompacting", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Ensure(ct))).Code);
+        peerSource.Dirty = true;
+        Assert.True((await Peer().StatusAsync(a, ct, verifySource: true)).Source!.HasChanges);
+        Assert.True(peerBackend.Mounted);
+        var resumed = await f.New().CompactAsync(b, ct);
+        Assert.Equal("ready", resumed.Workspace.Snapshot!.Step);
+        Assert.NotNull(resumed.Workspace.Snapshot.Compaction);
+        Assert.Equal(1, f.Backend.CompactCalls); Assert.True(f.Backend.CompletedCompaction);
+        Assert.Equal(1, f.Backend.Captures); Assert.True(peerBackend.Mounted);
+        await f.New().CompactAsync(b, ct);
+        Assert.Equal(1, f.Backend.CompactCalls);
+    }
+
+    [Fact]
     public async Task NewerResultWaitsWithoutReleasingOlderWorkspaceAndFreshRetryReclaimsOnlyItsOwnSnapshot()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
@@ -415,6 +440,7 @@ public sealed class SnapshotWorkspaceCoordinatorTests
             return Task.CompletedTask;
         }
         public int Captures; public bool LoseCaptureReply, LoseMountReply, Mounted, DeltaRemoved, SnapshotReleased, WriteDuringUnmount, UnknownResources, LoseRemoveReply, KeepReleaseUnknown;
+        public int CompactCalls; public bool Compacted, CompletedCompaction;
         public bool? Available = true;
         public string? LoseReleaseReply;
         private void FailOnce(string boundary) { if (LoseReleaseReply == boundary) { LoseReleaseReply = null; throw new WorkspaceException("ReplyLost", boundary); } }
@@ -433,9 +459,15 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         public Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) =>
             Task.FromResult(new SnapshotWorkspaceObservation(Available, Mounted, Mounted, true, UnknownResources ? null : 0,
                 UnknownResources ? null : 0, UnknownResources ? null : 0, DeltaPresent: !DeltaRemoved));
-        public Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.FromResult(new SnapshotDeltaSeal(sequence, 100, "hash" + sequence));
+        public Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string c, CancellationToken ct = default) =>
+            Task.FromResult(new SnapshotDeltaSeal(sequence, Compacted ? 50 : 100, (Compacted ? "compact" : "hash") + sequence));
         public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { Mounted = false; if (Directory.Exists(w.Path)) Directory.Delete(w.Path); if (WriteDuringUnmount) sequence++; FailOnce("unmount"); return Task.CompletedTask; }
+        public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        { CompactCalls++; Compacted = true; return Task.FromResult(new SnapshotJournalCompaction("attempt", new(sequence, 100, "hash" + sequence),
+            new(sequence, 50, "compact" + sequence), DateTimeOffset.UtcNow, 4096, 2048, 6144)); }
+        public Task CompleteCompactionAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        { CompletedCompaction = true; return Task.CompletedTask; }
         public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { DeltaRemoved = true; if (LoseRemoveReply) { LoseRemoveReply = false; throw new WorkspaceException("ReplyLost", "after removal"); } return Task.CompletedTask; }
         public Task<SnapshotReclamation> ReleaseSnapshotAsync(WorkspaceRecord w, string c, CancellationToken ct = default)

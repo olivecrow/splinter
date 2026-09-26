@@ -628,6 +628,16 @@
     }
   ],
   "$defs": {
+    "compactionSeal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "durableSequence": { "type": "integer", "minimum": 0 },
+        "journalBytes": { "type": "integer", "minimum": 0 },
+        "journalHash": { "type": "string", "minLength": 1 }
+      },
+      "required": ["durableSequence", "journalBytes", "journalHash"]
+    },
     "descriptor": {
       "type": "object",
       "additionalProperties": false,
@@ -685,7 +695,8 @@
             "owned-editor-stop",
             "owned-baseline-cache",
             "owned-baseline-removal",
-            "owned-experimental-mount-git-and-editor"
+            "owned-experimental-mount-git-and-editor",
+            "owned-journal-generation-replacement"
           ]
         },
         "retry": {
@@ -698,7 +709,8 @@
             "same-workspace",
             "same-pending-request",
             "idempotent-stop",
-            "same-persisted-overlay-and-git-receipts; inspect-uncertain-intents"
+            "same-persisted-overlay-and-git-receipts; inspect-uncertain-intents",
+            "same-workspace-compaction-intent"
           ]
         }
       }
@@ -856,7 +868,7 @@
               "const": "verified-location-separate-from-immutable-delta-identity"
             },
             "deltaStore": {
-              "const": "bounded-checksummed-range-journal"
+              "const": "bounded-checksummed-range-journal; explicit-offline-compaction-with-durable-generation-retry"
             },
             "resultCollection": {
               "const": "stable-journal-v1"
@@ -1277,6 +1289,7 @@
                 "observe",
                 "preserve",
                 "resume-ensure",
+                "resume-compaction",
                 "resume-release",
                 "deferred-reclamation",
                 "released"
@@ -1290,6 +1303,7 @@
               "enum": [
                 "workspace.status",
                 "workspace.ensure",
+                "workspace.compact",
                 "workspace.release",
                 "workspace.list"
               ]
@@ -2034,6 +2048,20 @@
         },
         "reclamation": {
           "$ref": "#/$defs/snapshotReclamation"
+        },
+        "compaction": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "attemptId": { "type": "string", "minLength": 1 },
+            "before": { "$ref": "#/$defs/compactionSeal" },
+            "after": { "$ref": "#/$defs/compactionSeal" },
+            "startedAt": { "type": "string", "format": "date-time" },
+            "beforeAllocatedBytes": { "type": "integer", "minimum": 0 },
+            "afterAllocatedBytes": { "type": "integer", "minimum": 0 },
+            "peakTemporaryAllocatedBytes": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["attemptId", "before", "after", "startedAt"]
         }
       },
       "required": [

@@ -33,11 +33,11 @@ public sealed class FoundationGateway(
             snapshotReleaseIsolation = "preserve-when-older-or-unknown-age-same-volume-snapshots-exist; audit-other-ids-after-release; not-a-provider-wide-preservation-guarantee",
             snapshotReclamation = "durable-reclaim-pending; explicit-same-workspace-release-retry; boot-and-attempt-bound-helper; source-volume-shared-cost-with-unknown-workspace-attribution; no-background-sweep",
             snapshotReadAccess = "verified-location-separate-from-immutable-delta-identity",
-            deltaStore = "bounded-checksummed-range-journal",
+            deltaStore = "bounded-checksummed-range-journal; explicit-offline-compaction-with-durable-generation-retry",
             resultCollection = SnapshotResult.StableJournalProtocol,
             requestSchema = "urn:splinter:v1:overlay-serve-request",
             observationSchema = "urn:splinter:v1:overlay-observation",
-            entrypoints = new[] { "workspace ensure --storage ntfs-snapshot", "workspace list", "workspace status",
+            entrypoints = new[] { "workspace ensure --storage ntfs-snapshot", "workspace list", "workspace status", "workspace compact",
                 "unity start", "unity refresh", "unity stop", "workspace checkpoint", "workspace integrate", "workspace release" },
             qualification = "Automated contract/Git and live NTFS/Git/Unity fixture evidence, limitations and remaining NI gates are tracked in docs/verification/ntfs-workspace-integration.md. SO evidence is separate; long Unity package paths, reboot, power loss and general Unity assets are not qualified."
         }

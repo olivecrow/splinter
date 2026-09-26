@@ -12,7 +12,7 @@
 - `--home`은 짧은 경로를 사용한다. NI의 깊은 시험 경로에서는 Unity 패키지 DLL 전체 경로가 270자일 때 초기 로드 예외가 관측됐다. 스크립트 검증과 실행은 통과했지만 긴 패키지 경로와 일반 에셋 로드를 지원으로 확정하지 않는다. 초기 임포트 시간의 SLA도 없다.
 - 생성/재연결에는 상태 볼륨의 여유 2 GiB, 새 캡처에는 기존 VSS diff-area 상한의 여유 8 GiB가 필요하다. 설치·볼륨·상한 설정은 자동 변경하지 않는다. 프로젝트 밖 쓰기도 VSS 공간을 사용한다.
 
-VSS capture/release와 정확한 live ID를 확인하는 Observe helper에는 관리자 권한이 필요하다. 일반 CLI는 자동 승격하지 않고 `SnapshotPrivilegeRequired`와 정확한 helper 경로·argument list, 그 뒤 동일 인자로 재시도할 workspace ensure, unity start 또는 workspace release를 `nextActions`에 반환한다. 승인된 helper만 관리자 권한으로 실행한 뒤 원래 명령을 다시 호출한다. Unity와 일반 CLI를 관리자 계정으로 계속 실행하는 구조가 아니다. helper의 `operation-result.json`에는 성공 또는 진단이 남는다.
+VSS capture/release와 정확한 live ID를 확인하는 Observe helper에는 관리자 권한이 필요하다. 일반 CLI는 자동 승격하지 않고 `SnapshotPrivilegeRequired`와 정확한 helper 경로·argument list, 그 뒤 동일 인자로 재시도할 workspace ensure, compact, unity start 또는 workspace release를 `nextActions`에 반환한다. 승인된 helper만 관리자 권한으로 실행한 뒤 원래 명령을 다시 호출한다. Unity와 일반 CLI를 관리자 계정으로 계속 실행하는 구조가 아니다. helper의 `operation-result.json`에는 성공 또는 진단이 남는다.
 
 제품은 아직 VSS helper마다 별도 승격이 필요하다. 정상 반복 작업의 UAC를 없애는 목표는 [저장소 권한 서비스 계획](plans/storage-privilege-service.md)에 있으며 현재 capability가 아니다. 개발용 제한 관리자 세션의 재사용을 제품 서비스 설치/지원 완료로 표시하지 않는다.
 
@@ -33,11 +33,18 @@ splinter unity start --id <id> --home <상태 경로>
 ```text
 splinter unity refresh --id <id> --home <상태 경로>
 splinter workspace status --id <id> --home <상태 경로>
+splinter workspace compact --id <id> --home <상태 경로>
 splinter workspace checkpoint --id <id> --message <결과 설명> --home <상태 경로>
 splinter workspace release --id <id> --home <상태 경로>
 ```
 
 NTFS refresh는 incremental compilation을 요청한다. 일반 제품의 전체 대상 소스 fingerprint를 요청 ID·컴파일 callback·domain reload와 연결한다. 검증 뒤 소스나 `.meta`가 바뀌면 이전 성공은 무효다. `Accepted`는 접수이며 `workspace.validation.success`와 현재 fingerprint 일치가 완료 조건이다. 변경 없는 incremental 요청에서 reload가 없으면 성공을 발행하지 않는다. 현재 실제 실행 관문은 스크립트 변경 후 검증이며 일반 에셋·패키지 검증은 별도다. fixture의 `snapshot-probe.json`은 현재 로드된 코드의 값·PID·generation을 추가로 기록하며 전체 소스 검증을 대체하지 않는다. fixture 자체 보고에는 MVID가 없다. 제품 WorkspaceBridge의 Ready heartbeat는 같은 파일에 현재 로드된 함수의 값·domain generation·assemblyMvid·PID를 추가 보고한다.
+
+`workspace compact`는 **최종 결과 수집 전**의 연결된 NTFS 작업공간 하나에서 명시적으로 실행한다. 소유 Editor와 자식 프로세스가 종료되고 mount의 열린 핸들이 0이며 snapshot 가용성과 소유권이 확인돼야 한다. 같은 workspace의 다른 수명주기 명령은 `compact-*` 단계 동안 거부한다. provider를 멈춘 뒤 unmount 전후 저널 seal을 대조하고, 원래 snapshot·작업 ID·Git 등록을 그대로 사용해 새 저널 세대를 검증·발행·재연결한다. 새 결과를 수집하기 전에 기존 validation을 무효화하므로 `sourceVerification`과 새 validation을 다시 확인한다. 이미 완료한 세대의 같은 명령 재시도는 seal이 같을 때 읽기 전용 결과를 반환하며, 이후 새 쓰기가 있으면 다시 명시적으로 압축할 수 있다. `checkpoint`를 중간 압축용으로 사용하지 않는다.
+
+압축은 살아 있는 범위만 chunk 단위로 다시 기록하고 연속된 무효 쓰기의 기록을 하나의 sequence 구간으로 묶는다. whiteout·rename·truncate·`.meta`와 변경 경로를 재생 대조하며 파일 전체를 copy-up하거나 기준 파일을 읽어 채우지 않는다. 새 후보는 같은 디렉터리에 flush하고 checksum·전체 재생 상태를 확인한 뒤 원자적으로 게시한다. `delta.journal.previous`는 새 세대의 mount 재연결과 seal이 확인될 때까지 남긴다. `compaction-intent.json`과 후보/이전 세대의 소유·hash가 맞지 않거나 내용이 손상되면 파일을 보존하고 `preserve`로 중단한다. 준비·게시·재연결 중 끊기면 같은 ID/home의 `workspace compact`로 `resume-compaction`을 진행한다. 자동 sweep이나 다른 workspace·snapshot 회수와 연결하지 않는다.
+
+`snapshot.compaction`에는 attempt, 전후 sequence/길이/SHA-256 seal, 전후 NTFS 파일 할당과 두 저널 세대가 함께 있던 전환 지점의 할당 합계를 기록한다. 이 합계는 control/identity/Git/Library와 표본 사이 임시 최고치를 포함한 전체 작업공간 peak가 아니다. 후보를 쓸 여유와 재연결의 2 GiB 하한이 없거나 계산한 후보가 journal budget을 넘으면 기존 세대를 보존한다. VSS 사용량은 볼륨 공유 관측이며 작업별 절감으로 귀속하지 않는다. 현재 구현은 범위 재기록이며 일반 목적 payload 압축이나 쓰기마다 수행하는 flush 정책 변경이 아니다. [실행 범위와 수치](verification/journal-compaction.md)를 따른다.
 
 일반 status는 앱/provider와 새 검증 응답을 조회하며 매번 프로젝트 파일을 읽지 않는다. 대기 중이던 검증 응답이 도착하면 소스를 한 번 읽어 fingerprint를 대조하고 결과를 저장한다. `data.sourceVerification=verified`인 응답에는 `source`와 `validationCurrent`가 있으며, 검증 성공은 `workspace.validation.success=true`와 `validationCurrent=true`를 함께 확인한다. `not-checked` 응답에는 두 필드를 생략한다. 이때 남아 있는 `workspace.validation`은 이전 증거이며 현재 파일 상태의 보증이 아니다. 현재 소스를 명시적으로 확인하려면 `workspace status --id <id> --verify-source`를 사용한다. checkpoint/integrate의 사전 확인은 항상 소스를 다시 읽는다.
 
@@ -55,7 +62,7 @@ workspace의 Git 명령에는 10분 제한과 호출자 취소가 적용된다. 
 <home>/records/<id>/snapshot/              소유 VSS 영수증, helper, 입력 검사, 해제 허가
 <home>/records/<id>/git-overlay.json       no-checkout 등록과 전용 .git pointer
 <home>/records/<id>/overlay/               provider 요청·실행·flush/stop 관측
-<home>/records/<id>/delta/                 identity.json, delta.journal
+<home>/records/<id>/delta/                 identity.json, delta.journal; 압축 중에는 compaction-intent.json, delta.journal.compacting/previous
 <home>/records/<id>/delta-reclaim.json     정확한 독립 결과와 저널의 삭제 intent
 <home>/workspaces/<id>/                   WinFsp가 제공하는 작업 트리
 ```
@@ -66,7 +73,7 @@ WinFsp의 디렉터리 mount root 자체는 reparse point다. 상태 저장소�
 
 provider가 끝나면 앱/자식이 남지 않았음을 확인한 후 같은 ensure로 기존 snapshot/delta에 재연결한다. 실행 intent만 있고 영수증을 확인할 수 없거나 이전 state와 새 실행 세대가 다르면 중복 실행 대신 `OverlayStartUncertain`으로 보존한다. 재부팅·전원 손실 복구는 미검증이다. 캡처와 실제 파일 내용의 불일치 등으로 준비를 완료할 수 없는 작업의 자동 폐기는 제공하지 않는다. `SnapshotPreparationIncomplete` 상태와 해당 영수증을 보존해 조사한다.
 
-NTFS 응답의 `data.recovery`는 `disposition`, `reasonCode`, `nextCommand`를 반환한다. `ready`는 기존 다음 작업을 진행할 수 있음을, `resume-ensure`/`resume-release`는 같은 identity의 해당 단계를 재개할 수 있음을 나타낸다. `observe`는 관측 복구 후 status를 다시 조회하고, `preserve`는 데이터·영수증을 보존하며 원인을 해결해야 한다. `released`의 다음 행동은 list다. 실제 호출 인자는 `nextActions`에 있으며 `data.nextCommand`와 같은 명령을 가리킨다. 복구 분류 자체가 자원 삭제 승인은 아니며 각 명령에서 소유권·결과·회수 조건을 다시 검사한다.
+NTFS 응답의 `data.recovery`는 `disposition`, `reasonCode`, `nextCommand`를 반환한다. `ready`는 기존 다음 작업을 진행할 수 있음을, `resume-ensure`/`resume-compaction`/`resume-release`는 같은 identity의 해당 단계를 재개할 수 있음을 나타낸다. `observe`는 관측 복구 후 status를 다시 조회하고, `preserve`는 데이터·영수증을 보존하며 원인을 해결해야 한다. `released`의 다음 행동은 list다. 실제 호출 인자는 `nextActions`에 있으며 `data.nextCommand`와 같은 명령을 가리킨다. 복구 분류 자체가 자원 삭제 승인은 아니며 각 명령에서 소유권·결과·회수 조건을 다시 검사한다.
 
 스냅샷 접근 실패는 `SnapshotObservationUnknown`이다. `snapshotAvailability`와 `snapshotStorage.availability`는 `available`/`missing`/`unknown` 중 하나이며 unknown에서는 기존 boolean 필드를 생략한다. 일반 ensure와 회수 전 단계는 관측 복구까지 보존한다. 관측한 부재와 접근 오류를 구분하며, 경로가 파일로 바뀌면 `SnapshotIdentityMismatch`로 보존한다. 정확한 ID의 성공한 부재 조회만 missing으로 판정하며 읽기 경로의 소실만으로 VSS 부재를 주장하지 않는다. 새 연결의 live identity 대조는 아래 계약을 따른다.
 
@@ -117,6 +124,8 @@ snapshot이 소실된 뒤에는 `stable-journal-v1`로 수집한 독립 결과�
 | `SnapshotMissing`, `SnapshotIdentityMismatch` | 새 원본으로 대체하지 않음. 소실된 snapshot은 기존 독립 결과와 저널 seal이 일치할 때만 release 가능 |
 | `SnapshotFileUnsupported`, `SnapshotFilterUnsupported` | 지원하지 않는 입력을 별도 검증 대상으로 유지 |
 | `SnapshotHeadroomRequired`, `DeltaFull` | 기존 결과를 보존하고 공간/한도와 helper 관측 확인. 자동 삭제·전체 복사 없음 |
+| `CompactionClientsRemain`, `CompactionProviderNotStopped` | 소유 Editor·프로세스와 mount 핸들 관측을 해결한 뒤 같은 `workspace compact` 재시도 |
+| `CompactionHeadroomRequired`, `CompactionGenerationMismatch`, `CompactionStateMismatch`, `CompactionCandidateMismatch` | 세대·intent·여유 공간을 보존하고 정확한 원인을 확인. snapshot이나 이전 저널을 먼저 삭제하지 않음 |
 | `OverlayClientsRemain`, `ProcessCleanupIncomplete` | 소유 앱/자식 종료 상태 확인 후 재호출 |
 | `OverlayStartUncertain`, `LaunchUncertain` | 정확한 실행 intent·PID/시작 시각·generation 조사. 중복 실행/강제 회수 없음 |
 | `UncollectedChanges`, `UnownedIgnoredFiles`, `DeltaChangedAfterCollection` | 유일한 변경을 보존하고 검증/결과 정합성 확인 |

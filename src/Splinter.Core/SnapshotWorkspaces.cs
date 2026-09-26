@@ -13,7 +13,12 @@ public sealed class SnapshotWorkspaceState
     public SnapshotWorkspaceObservation? Observation { get; set; }
     public SnapshotResult? Result { get; set; }
     public SnapshotReclamation? Reclamation { get; set; }
+    public SnapshotJournalCompaction? Compaction { get; set; }
 }
+
+public sealed record SnapshotJournalCompaction(string AttemptId, SnapshotDeltaSeal Before, SnapshotDeltaSeal After,
+    DateTimeOffset StartedAt, long? BeforeAllocatedBytes = null, long? AfterAllocatedBytes = null,
+    long? PeakTemporaryAllocatedBytes = null);
 
 public sealed record SnapshotWorkspaceObservation(bool? SnapshotAvailable, bool Mounted, bool ProviderAlive,
     bool OwnershipVerified, int? OpenHandles, long? WorkingSetBytes, long? PrivateBytes,
@@ -34,8 +39,11 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
         if (state is null) return new("preserve", "SnapshotStateMissing", "workspace.status");
         var observation = state.Observation;
         string? retainedFailure = workspace.LastError?.Split(':', 2)[0];
-        if (retainedFailure is "DeltaChangedAfterCollection" or "SnapshotResultRevalidationRequired" or "StateCorrupt" or "SnapshotReclamationInvalid" or "SnapshotCollateralLoss")
+        if (retainedFailure is "DeltaChangedAfterCollection" or "SnapshotResultRevalidationRequired" or "StateCorrupt" or "SnapshotReclamationInvalid" or "SnapshotCollateralLoss" or
+            "CompactionGenerationMismatch" or "CompactionStateMismatch" or "CompactionCandidateMismatch" or "CompactionIntentCorrupt" or "CompactionIntentMismatch")
             return new("preserve", retainedFailure, "workspace.status");
+        if (state.Step.StartsWith("compact-", StringComparison.Ordinal))
+            return new("resume-compaction", "WorkspaceCompacting", "workspace.compact");
         if ((state.Step.StartsWith("release-", StringComparison.Ordinal) || observation?.SnapshotAvailable == false) &&
             state.Result is { IndependentOfSnapshot: true, CollectionProtocol: not SnapshotResult.StableJournalProtocol })
             return new("preserve", "SnapshotResultRevalidationRequired", "workspace.status");
@@ -85,6 +93,8 @@ public interface ISnapshotWorkspaceBackend
     // including writes later reverted. Flush and observe; do not mutate source.
     Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task UnmountAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
+    Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
+    Task CompleteCompactionAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task RemoveDeltaAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task<SnapshotReclamation> ReleaseSnapshotAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
 }

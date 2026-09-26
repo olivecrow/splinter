@@ -68,6 +68,7 @@ internal static class WorkspaceCommands
             }));
         });
         Bind(workspace, "status", null, (runtime, id, _) => runtime.StatusAsync(id, ct));
+        Bind(workspace, "compact", null, (runtime, id, _) => runtime.CompactAsync(id, ct));
         Bind(workspace, "checkpoint", "--message", (runtime, id, extra) => runtime.CheckpointAsync(id, extra!, ct));
         Bind(workspace, "integrate", "--target", (runtime, id, extra) => runtime.IntegrateAsync(id, extra ?? "development", ct));
         Bind(workspace, "release", null, (runtime, id, _) => runtime.ReleaseAsync(id, ct));

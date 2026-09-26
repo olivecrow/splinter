@@ -1,8 +1,11 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 using Microsoft.Win32;
 using Splinter.Core;
+using Splinter.Runtime;
 
 namespace Splinter.Platform.Windows;
 
@@ -134,6 +137,59 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
     {
         var request = await Request(w, control, false, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "No owned mount request.");
         await WinFspOverlayClient.StopAsync(request, ct);
+    }
+    public async Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
+    {
+        var observed = await ObserveAsync(w, control, ct);
+        if (observed is not { SnapshotAvailable: true, Mounted: false, ProviderAlive: false,
+            OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
+            throw new WorkspaceException("CompactionProviderNotStopped", "Only an observed stopped provider can compact its journal.");
+        var request = await Request(w, control, false, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Preserve the missing provider request.");
+        var health = await Provider(w, control).ObserveAsync(w.Snapshot!.Reference!, ct);
+        if (health.Available != true || request.ReadAccess is null)
+            throw new WorkspaceException(health.FailureCode ?? "SnapshotVerificationRequired", "Verify the original snapshot read access before compaction.");
+        using var tree = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess, () => health);
+        string delta = DeltaPath(control);
+        WindowsProcessWorkspaceProvider.CheckPath(delta);
+        var result = JournalDeltaStore.CompactDirectory(delta, request.Identity, tree);
+        string journal = Path.Combine(delta, "delta.journal"), previous = Path.Combine(delta, "delta.journal.previous");
+        long? oldAllocation = Allocation(previous), newAllocation = Allocation(journal);
+        return result with { BeforeAllocatedBytes = oldAllocation, AfterAllocatedBytes = newAllocation,
+            PeakTemporaryAllocatedBytes = oldAllocation is not null && newAllocation is not null ? oldAllocation + newAllocation : null };
+    }
+    public async Task CompleteCompactionAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
+    {
+        var expected = w.Snapshot?.Compaction?.After ?? throw new WorkspaceException("CompactionIntentMissing", "The prepared compaction receipt is missing.");
+        var observed = await ObserveAsync(w, control, ct);
+        if (observed is not { SnapshotAvailable: true, Mounted: true, ProviderAlive: true, OwnershipVerified: true, OpenHandles: 0 })
+            throw new WorkspaceException("CompactionReconnectIncomplete", "Verify the same mounted provider with no open handles before removing the previous generation.");
+        if (await SealAsync(w, control, ct) != expected)
+            throw new WorkspaceException("CompactionGenerationMismatch", "The reconnected journal differs from the compacted generation.");
+        var request = await Request(w, control, false, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "The provider request is missing.");
+        string delta = DeltaPath(control);
+        if (File.Exists(Path.Combine(delta, "compaction-intent.json")))
+            JournalDeltaStore.CompleteCompaction(delta, request.Identity);
+        else if (File.Exists(Path.Combine(delta, "delta.journal.previous")))
+            throw new WorkspaceException("CompactionIntentMissing", "A previous generation remains without its intent.");
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct FileStandardInfo
+    {
+        public long AllocationSize;
+        public long EndOfFile;
+        public uint NumberOfLinks;
+        [MarshalAs(UnmanagedType.Bool)] public bool DeletePending;
+        [MarshalAs(UnmanagedType.Bool)] public bool Directory;
+    }
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetFileInformationByHandleEx(SafeFileHandle file, int fileInformationClass,
+        out FileStandardInfo info, uint bufferSize);
+    private static long? Allocation(string path)
+    {
+        if (!File.Exists(path)) return null;
+        using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        return GetFileInformationByHandleEx(handle, 1, out var info, (uint)Marshal.SizeOf<FileStandardInfo>()) ? info.AllocationSize : null;
     }
     public async Task RemoveDeltaAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {

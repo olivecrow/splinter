@@ -18,6 +18,8 @@ public sealed partial class WorkspaceCoordinator
         if (state.MaxJournalBytes is < 4096 or > 1099511627776) throw new WorkspaceException("InvalidJournalBudget", "Journal budget must be between 4096 bytes and 1 TiB.");
         if (state.Step.StartsWith("release-", StringComparison.Ordinal))
             throw new WorkspaceException("WorkspaceReleasing", "Resume workspace release; do not remount a collected workspace.");
+        if (state.Step.StartsWith("compact-", StringComparison.Ordinal))
+            throw new WorkspaceException("WorkspaceCompacting", "Resume the same workspace compact request before other operations.");
         string control = store.ControlPath(w.Id);
         if (w.BaseRevision is null)
         {
@@ -81,6 +83,8 @@ public sealed partial class WorkspaceCoordinator
     private async Task<WorkspaceView> ReleaseSnapshotWorkspaceAsync(WorkspaceRecord w, CancellationToken ct)
     {
         var state = RequireSnapshot(w);
+        if (state.Step.StartsWith("compact-", StringComparison.Ordinal))
+            throw new WorkspaceException("WorkspaceCompacting", "Resume workspace compact before release.");
         string control = store.ControlPath(w.Id);
         try
         {
@@ -220,5 +224,68 @@ public sealed partial class WorkspaceCoordinator
         if (app.Running || app.Resources is not { OwnershipVerified: true, ActiveProcesses: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
             throw new WorkspaceException("ProcessCleanupIncomplete", "Verified zero owned application processes and memory are required.");
         w.ReleasedResources = app.Resources;
+    }
+
+    public async Task<WorkspaceView> CompactAsync(string id, CancellationToken ct = default)
+    {
+        using var gate = await store.LockAsync(id, ct);
+        var w = store.Get(id);
+        if (w.StorageMode != "ntfs-snapshot")
+            throw new WorkspaceException("CompactionUnsupported", "Only an NTFS snapshot workspace has a range journal.");
+        var state = RequireSnapshot(w);
+        if (w.Phase is "released" or "reclaim-pending" || state.Step.StartsWith("release-", StringComparison.Ordinal) ||
+            w.ResultRevision is not null || state.Result is not null || !state.Attached)
+            throw new WorkspaceException("CompactionUnavailable", "Compact only an attached workspace before final result collection.");
+        string control = store.ControlPath(id);
+        try
+        {
+            if (!state.Step.StartsWith("compact-", StringComparison.Ordinal))
+            {
+                if (w.PendingValidationId is not null)
+                    throw new WorkspaceException("ValidationInProgress", "Wait for the active validation before compacting.");
+                await RequireStopped(w, ct);
+                state.Observation = await Snapshots.ObserveAsync(w, control, ct);
+                RequireSnapshotObservation(w, state.Observation);
+                if (state.Observation is not { SnapshotAvailable: true, Mounted: true, ProviderAlive: true,
+                    OwnershipVerified: true, OpenHandles: 0 })
+                    throw new WorkspaceException("CompactionClientsRemain", "Verify the owned provider and close all mount handles before compaction.");
+                // A repeated CLI request for the completed generation is a
+                // read-only retry. New writes change the seal and allow a later
+                // explicit compaction of the same workspace.
+                if (state.Compaction is { } completed &&
+                    await Snapshots.SealAsync(w, control, ct) == completed.After)
+                    return await ViewAsync(w, ct);
+                SnapshotStep(w, "compact-unmount");
+            }
+            if (state.Step == "compact-unmount")
+            {
+                await RequireStopped(w, ct);
+                var before = await Snapshots.SealAsync(w, control, ct);
+                await Snapshots.UnmountAsync(w, control, ct);
+                if (await Snapshots.SealAsync(w, control, ct) != before)
+                    throw new WorkspaceException("DeltaChangedAfterCollection", "Journal changed while stopping for compaction; preserve it.");
+                state.Observation = await Snapshots.ObserveAsync(w, control, ct);
+                if (state.Observation is not { SnapshotAvailable: true, Mounted: false, ProviderAlive: false,
+                    OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
+                    throw new WorkspaceException("CompactionProviderNotStopped", "The provider is not observed stopped; preserve the journal.");
+                SnapshotStep(w, "compact-write");
+            }
+            if (state.Step == "compact-write")
+            {
+                await Snapshots.VerifyConnectionAsync(w, control, ct);
+                state.Compaction = await Snapshots.CompactAsync(w, control, ct);
+                SnapshotStep(w, "compact-connect");
+            }
+            if (state.Step == "compact-connect")
+            {
+                await ConnectSnapshotAsync(w, ct);
+                await Snapshots.CompleteCompactionAsync(w, control, ct);
+                w.Validation = null; w.PendingValidationId = null; w.PendingFingerprint = null;
+                w.Phase = "ready"; w.LastError = null;
+                SnapshotStep(w, "ready");
+            }
+            return await ViewAsync(w, ct);
+        }
+        catch (Exception ex) { RecordFailure(w, ex); throw; }
     }
 }
