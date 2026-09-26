@@ -40,10 +40,18 @@ Git 어댑터는 다음 순서로 검사한다.
 | `storage.metrics` | provider epoch, lock 횟수/대기 tick, flush 횟수/tick, commit/append bytes, replay bytes/tick, base/journal read bytes | 현재 provider 프로세스의 누적 계수다. 재시작 뒤 다른 epoch끼리 단순 차감하지 않는다. tick은 `stopwatchFrequency`로 환산한다 |
 | `storage-reads.jsonl` | seal과 최종 delta 삭제 전 확인의 실제 stream bytes와 해시 시간 | delta 밖의 진단 기록이다. seal 값·삭제 권한의 근거를 대신하지 않는다 |
 | `scripts/measure-workspace-storage.ps1` | FILE_STANDARD_INFO 파일 할당, 논리 길이, root별 분류, VSS 볼륨 관측 | 읽기 전용 개발 도구다. mount를 순회하거나 논리 트리를 실제 복제량으로 합산하지 않는다 |
+| `scripts/measure-overlay-journal.py` | 정지한 저널의 frame checksum·SHA-256·sequence, 기록 경로별 누적/유효/대체 payload, 현재 경로별 유효 payload | 제품 replay·seal로 확인한 입력의 개발 장부다. 정리된 `write-compacted`·`skip-range`도 처리하며, 물리 할당·제품 검증을 대체하지 않는다 |
 
 ```powershell
 pwsh ./scripts/measure-workspace-storage.ps1 -HomePath <home> -Project <original> -OutputPath <evidence.json> -Label after-edit
+python ./scripts/measure-overlay-journal.py <stopped-delta.journal> --output <new-accounting.json>
 ```
+
+할당 계측은 현재 저널·정리 후보·이전 세대를 별도 category로 나눈다. 선택적 `-EvidencePath <run-directory>`는 검증 자료를 `verification-evidence` root(`scope=measurement-overhead`)로 따로 관측한다. 이를 제품 작업공간 공간에 합산하지 않고 여러 작업이 공유하는 자료는 한 번만 센다. 표본 파일 자신이 기록되기 전의 관측이므로 마지막 표본 파일까지 포함한 절대 상한은 아니다.
+
+저널 장부는 Windows에서 읽기 전용 핸들에 read sharing만 허용해 살아 있는 writer와 파일 삭제를 거부한다. payload를 한 frame씩 읽어 checksum·전체 hash를 계산하며 원본 snapshot 데이터는 읽지 않는다. 불완전한 tail·손상·sequence 불일치에서 입력을 고치지 않고 실패한다. 출력은 기존 파일을 덮어쓰지 않는다. 현재 경로 비교는 ASCII 대소문자 무시만 검증했고 비ASCII 경로는 명시적으로 거부한다. `unclassifiedBytes=0`은 저널의 payload/프레임 바이트 장부가 맞는다는 뜻이며 MFT·볼륨의 미계측 공간이 0이라는 뜻이 아니다.
+
+`groups`는 기록 당시 경로군별 누적 쓰기와 그중 아직 참조되는 payload를, `livePayloadByCurrentGroup`은 rename 후 현재 경로군의 유효 payload를 나타낸다. 두 분류를 더하지 않는다. `obsoletePayloadBytes`에는 더 이상 참조하지 않는 payload가 들어가지만, 정리 형식의 metadata 비용·범위 수 제한 때문에 그 전부가 실제 할당 절감으로 이어진다고 보장하지 않는다. 장부의 hash·sequence를 같은 경계의 제품 seal과 대조한다. 계측기의 독립 기대값·손상 보존·Windows writer 거부 시험은 `python -m unittest discover -s tests/scripts -p test_measure_overlay_journal.py -v`다.
 
 동일 단계의 원본 Library·공유 Git 기준선을 빼고 추가량을 비교한다. Library 쓰기는 delta 안에 이미 들어 있으므로 이중 합산하지 않는다. 접근 불가·reparse 경로는 unknown으로 기록하고 subtotal만 남긴다. 일반 권한에서 VSS를 읽지 못하면 unknown이며 관리자 볼륨 관측을 별도로 확보한다. VSS의 작업별 귀속과 MFT/OS cache 등은 전체 절감률로 추정하지 않는다. 로그·임시 파일·결과 객체도 공간 장부에 포함해야 한다. 단계 표본의 최고치는 실제 순간 최고치를 보장하지 않는다.
 

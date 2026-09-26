@@ -4,6 +4,8 @@
 
 ## 실행한 저장소 검증과 남은 판단
 
+[BQ-01~05 중첩량 예산의 제품 검증과 반복 저장량 판단](journal-budget-and-growth-qualification.md)은 [정의한 범위에서 완료](../verification/journal-budget-and-growth-qualification.md)했다. 마지막 유효 payload 약 1.839GB 중 Library가 약 1.829GB이고 대체 payload는 약 21.4MB였다. 다음 공간 절감 후보는 SF-03의 불변 후보·고정 검증 view·단일 Library A/B/A 최소 단위 하나로 선정했다. 재증가의 대체 기록보다 유지해야 하는 Library의 절대량이 큰 것이 근거다. SF-03 구현·실행은 NotRun이며 기본 모드 채택과 Coordination 제품 연결은 아직 확정하지 않았다.
+
 2026-09-25의 [공통 저장소 개선 1차](storage-foundation-first-milestone.md)를 실행했다. 반복 대형 파일 재해시 0·저장 계측·작은 Unity A/B 결과를 확인했으나 기존 VSS 5개가 회수 중 소실됐다. [후속 재현·수정](../verification/storage-recovery.md)은 제어 파일 게시 충돌을 해결했고, 격리 VSS에서도 최신/중간 삭제 시 다른 오래된 복사본이 제거됨을 확인했다. 비강제 직접 API도 동일하며 제품 guard의 위험 요청 차단·오래된 순서 회수는 실제 통과했다. [지연 회수 1차](deferred-snapshot-reclamation.md)는 독립 결과 보존과 snapshot 삭제 가능 시점을 분리했고 정의한 범위에서 검증했다. 임의 완료 순서의 즉시 회수는 보장하지 못한다. [SF-02 명시적 저널 공간 정리](journal-compaction-first-milestone.md)는 대체된 범위의 할당 회수와 제한된 중단 복구를 구현했고 [실행 기록](../verification/journal-compaction.md)을 따른다. 후속 [작은 Unity 로드·전체 공간·정리 비용 검증](journal-compaction-qualification-and-cost.md)은 [정의한 fixture에서 실행](../verification/journal-compaction-qualification-and-cost.md)했다. 재개 후 실제 코드 로드와 결과 회수는 통과했지만, 공간 장부 일부는 unknown이고 정리 중 두 저널 세대가 겹쳐 추가 공간이 커졌다. [선택적 중첩량 예산](journal-compaction-peak-admission.md)은 예상 저널 길이의 두 세대 중첩량을 후보 작성 전에 검사한다. 전체 물리 peak 감소나 대형 Unity 적합성의 증거는 아니며, flush 정책 변경과 SF-03 단일 Editor 연결은 각각 별도 후속 범위다.
 
 ## 현재 근거와 개선 가능성

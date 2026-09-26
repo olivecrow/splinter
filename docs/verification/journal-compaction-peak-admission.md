@@ -1,6 +1,6 @@
 # SF-02 명시적 정리의 예상 저널 중첩량 예산 검증
 
-실행일: 2026-09-26. 기준은 [PB-01~04 범위](../plans/journal-compaction-peak-admission.md), 작업 시작점은 `development`의 `6d29deb`다. QJ-01~04의 이전 Unity·VSS 결과는 [별도 기록](journal-compaction-qualification-and-cost.md)으로 유지한다.
+실행일: 2026-09-26. 기준은 [PB-01~04 범위](../plans/journal-compaction-peak-admission.md), 작업 시작점은 `development`의 `6d29deb`다. QJ-01~04의 이전 Unity·VSS 결과는 [별도 기록](journal-compaction-qualification-and-cost.md)으로 유지한다. 아래 PB 실행 당시 NotRun이었던 실제 제품 경로는 이후 [BQ-01~05의 정의한 범위](journal-budget-and-growth-qualification.md)에서 검증했다. 두 실행의 후보·범위·운영 제한을 합치지 않는다.
 
 | 단위 | 이번 판정 |
 | --- | --- |

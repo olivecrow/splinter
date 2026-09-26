@@ -1,8 +1,10 @@
 # Splinter 기반 구현 계획
 
+[BQ-01~05 중첩량 예산의 제품 검증과 반복 저장량 판단](journal-budget-and-growth-qualification.md)을 정의한 작은 범위에서 마쳤다. [실행 기록](../verification/journal-budget-and-growth-qualification.md)은 실제 예산 거부·재시도, 같은 snapshot에서 Unity 수정 3회·독립 결과·원본 보존·회수와 저장량 분해를 연결한다. 다음 공간 절감 후보는 SF-03의 불변 후보·고정 검증 view·단일 Library A/B/A 최소 범위 하나이며 아직 구현·실행하지 않았다.
+
 후속 우선순위(2026-09-24): **작업공간 용량 부담 해소가 1순위, Editor 동시 실행이 2순위**다. [저장공간 우선 검토와 SF-01~06](storage-priority-and-editor-modes.md)의 공통 저장소 개선·단일 Editor 순차 검증 후보를 다음 설계 판단에 적용한다. 기본 실행 방식 전환은 미확정이며 아래 기존 구현·실행 증거와 SW/NR 지원 관문을 유지한다. PV 대용량 시험의 자동 재개를 뜻하지 않는다.
 
-[공통 저장소 개선 1차](storage-foundation-first-milestone.md)의 파일 단위 검증과 계측을 구현했다. SF-01의 정의한 소스 검증은 Passed, SF-02는 계측·명시적 저널 정리 하위 범위만 Partial이고 SF-03~06은 NotRun이다. [공통 저장소 1차 실행](../verification/storage-foundation.md)에서 기존 VSS 보존 실패가 발생해 해당 단위는 FailedPreservation이다. [후속 재현·수정](../verification/storage-recovery.md)에서 제어 JSON 게시 충돌 수정과 격리된 소유 snapshot의 실제 삭제 차단·순차 회수를 확인했다. 일반 비소유 백업 공존은 미검증이다. [지연 회수 1차](deferred-snapshot-reclamation.md)의 대기 상태·명시적 재시도·공유 공간 관측을 연결했고 [정의한 검증](../verification/deferred-snapshot-reclamation.md)을 따른다. [SF-02 명시적 저널 정리](journal-compaction-first-milestone.md)의 제품 명령과 제한된 중단 재개·할당 회수는 [실행 기록](../verification/journal-compaction.md)을 따른다. [작은 Unity·전체 공간 비용 검증](../verification/journal-compaction-qualification-and-cost.md)은 실제 재개·로드 코드와 단계별 비용을 확인했으나 공간 장부 일부는 unknown이고 두 세대 겹침의 최고 공간이 컸다. [선택적 예상 저널 중첩량 예산](journal-compaction-peak-admission.md)은 정의한 자동 시험에서 후보 작성 전 거부·명시적 재시도를 확인했으며 실제 제품 VSS/Unity는 아직 NotRun이다. flush 정책 변경·단일 Editor 연결은 별도 후속 작업이다.
+[공통 저장소 개선 1차](storage-foundation-first-milestone.md)의 파일 단위 검증과 계측을 구현했다. SF-01의 정의한 소스 검증은 Passed, SF-02는 계측·명시적 저널 정리 하위 범위만 Partial이고 SF-03~06은 NotRun이다. [공통 저장소 1차 실행](../verification/storage-foundation.md)에서 기존 VSS 보존 실패가 발생해 해당 단위는 FailedPreservation이다. [후속 재현·수정](../verification/storage-recovery.md)에서 제어 JSON 게시 충돌 수정과 격리된 소유 snapshot의 실제 삭제 차단·순차 회수를 확인했다. 일반 비소유 백업 공존은 미검증이다. [지연 회수 1차](deferred-snapshot-reclamation.md)의 대기 상태·명시적 재시도·공유 공간 관측을 연결했고 [정의한 검증](../verification/deferred-snapshot-reclamation.md)을 따른다. [SF-02 명시적 저널 정리](journal-compaction-first-milestone.md)의 제품 명령과 제한된 중단 재개·할당 회수는 [실행 기록](../verification/journal-compaction.md)을 따른다. [작은 Unity·전체 공간 비용 검증](../verification/journal-compaction-qualification-and-cost.md)은 실제 재개·로드 코드와 단계별 비용을 확인했으나 공간 장부 일부는 unknown이고 두 세대 겹침의 최고 공간이 컸다. [선택적 예상 저널 중첩량 예산](journal-compaction-peak-admission.md)은 정의한 자동 시험에서 후보 작성 전 거부·명시적 재시도를 확인했으며 후속 BQ에서 정의한 실제 제품 VSS/Unity 경로를 운영 재시도와 함께 검증했다. flush 정책 변경·단일 Editor 연결은 별도 후속 작업이다.
 
 현재 내부 알파 runtime은 [알파 작업공간](../alpha-workspaces.md)과 [저장소·자원 관리](../storage-and-resources.md)의 기준본/CoW/Unity 흐름을 구현한다. 일반 checkout의 두 작업자 증거는 [알파 검증](../verification/internal-alpha.md), ReFS와 프로세스 회수의 실제 범위는 [자원 검증](../verification/storage-and-resources.md)에 기록한다. daemon/SQLite Host와 공개 단계 전체 완료로 해석하지 않는다.
 
@@ -18,7 +20,7 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 
 > 프로젝트용 또는 전역용 설치·Codex 스킬/플러그인 연결 → 각 대화에서 명시적 병렬 요청 또는 점유 관측에 따라 작업공간 확보 → 여러 차례 수정·검증·재개 → 사용자의 A 완료 요청에 원본 반영·A 회수 → B는 계속 작업 → B의 완료 또는 반영 없는 명시적 폐기. 독립 실행이 필요 없으면 기존 프로젝트에서 직접 작업한다.
 
-[독립 대화 A/B·비용 검증](parallel-workflow-qualification.md)의 사용자 선택 범위는 마감했다. PV-01 대표 fixture의 복구 포함 완료와 PV-02의 실패·입력·표본 제한을 유지한다. VSS 보존 후속은 정의한 소유 격리 범위에서 검증했고 공통 저장소 1차의 기존 FailedPreservation은 유지한다. 명시적 저널 정리 다음에는 [Unity 로드 관문·전체 공간 비용](journal-compaction-qualification-and-cost.md)을 검증하고, flush 정책과 작은 단일 Editor 후보 검증을 별도로 진행한다. 설치·대화 연결·명시적 폐기, 지원 확대의 NR 관문과 에셋 저작·실제 Play·테스트·미커밋 원본·통합 후보 검증은 후속 범위다. 별도 조정 AI·Codex Runner·DAG·상주 DB는 첫 공개 사용 흐름의 필수 구성 요소가 아니다. **공개 v0의 완료 범위는 기획서의 전체 필수 루프와 48개 시나리오**다. 내부 알파를 공개 v0로 간주하지 않는다.
+[독립 대화 A/B·비용 검증](parallel-workflow-qualification.md)의 사용자 선택 범위는 마감했다. PV-01 대표 fixture의 복구 포함 완료와 PV-02의 실패·입력·표본 제한을 유지한다. VSS 보존 후속은 정의한 소유 격리 범위에서 검증했고 공통 저장소 1차의 기존 FailedPreservation은 유지한다. [Unity 로드 관문·전체 공간 비용](../verification/journal-compaction-qualification-and-cost.md)은 정의한 작은 fixture에서 실행했고 공간 장부 일부 unknown과 재증가를 확인했다. [PB 예산](../verification/journal-compaction-peak-admission.md)의 자동 범위에 이어 BQ-01~05에서 제품 경로와 반복 저장량을 확인했다. 다음은 유효 Library의 큰 비중에 근거한 SF-03 최소 후보 검증 범위이며 NotRun이다. flush 정책은 별도 후속이다. 설치·대화 연결·명시적 폐기, 지원 확대의 NR 관문과 에셋 저작·실제 Play·테스트·미커밋 원본·통합 후보 검증은 후속 범위다. 별도 조정 AI·Codex Runner·DAG·상주 DB는 첫 공개 사용 흐름의 필수 구성 요소가 아니다. **공개 v0의 완료 범위는 기획서의 전체 필수 루프와 48개 시나리오**다. 내부 알파를 공개 v0로 간주하지 않는다.
 
 ### 현재 확인한 것
 
@@ -36,6 +38,8 @@ Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원�
 - 이전 NR 후보의 로컬·VIVOBOOK 자동 검증은 각각 140개 중 139 통과·0 실패·선택적 ReFS 1개 skip이다. 이후 LV와 이번 수정 후보의 증거는 각각 [LV 기록](../verification/ntfs-live-vss-identity.md), [검토 후 수정 검증](../verification/workspace-review-fixes.md)에 분리한다. 재부팅·전원 손실·물리 볼륨 고갈, 긴 Unity 패키지 경로·일반 dirty/LFS·에셋/패키지·Play/Unity 테스트는 별도 남은 조건이다. 공개 48개 시나리오 전체 완료로 집계하지 않는다.
 
 ### 다음 구현 우선순위
+
+BQ-01~05의 제한된 실행은 마감했다. 다음 후보는 SF-03 최소 A/B/A 범위의 설계·검증이며 아직 실행하지 않았다. 아래 NR/SW와 공개 기능 순서는 지원 확대 로드맵으로 유지한다.
 
 [NTFS workspace 1차 통합 범위](ntfs-workspace-integration.md)의 NI-01~08은 내부 알파 fixture 범위에서 완료했다. 실제 회수·released key 재호출·dirty 원본 통합 차단을 회귀 기준으로 유지한다. 종료된 NI/SO 자원이나 결과를 임의로 재생성·삭제하지 않는다. 현재 상위 구현 계획은 [NTFS 내부 알파 2차](ntfs-recovery-and-support.md)의 NR-01~08이며 [NR 기록](../verification/ntfs-recovery.md)에 공통 복구 계약의 부분 구현과 원격 VSS·파일 API·단일 Unity 회귀 증거를 기록했다. 이번 원격 시험 세션은 종료했고 프로젝트·독립 결과·원시 증거는 후속 시험용으로 보존한다.
 

@@ -4,6 +4,7 @@
 
 | 문서 | 읽을 때 |
 | --- | --- |
+| [SF-02 예산 제품 검증·반복 저장량 범위](plans/journal-budget-and-growth-qualification.md) · [실행 결과](verification/journal-budget-and-growth-qualification.md) | BQ-01~05의 실제 예산 거부·같은 작업 재시도·Unity 수정 3회와 보존/회수, 유효·대체 기록 및 별도 파일 할당 장부, 다음 SF-03 후보 선정 근거를 확인할 때. 정의한 범위 완료·운영 개입/공간 미계측 제한 유지 |
 | [반복 UAC 없는 저장소 권한 경계](plans/storage-privilege-service.md) | 최초 설치 승인 후 일반 CLI의 생성·재연결·회수에서 반복 UAC를 없애는 미구현 서비스 범위와 UA-01~04를 확인할 때 |
 | [스냅샷 지연 회수 1차](plans/deferred-snapshot-reclamation.md) / [검증](verification/deferred-snapshot-reclamation.md) | 결과 보존과 회수 대기, 같은 workspace의 명시적 재시도, helper 응답 재개와 공유 볼륨 공간 관측 범위를 확인할 때 |
 | [SF-02 저널 공간 정리 1차](plans/journal-compaction-first-milestone.md) / [검증](verification/journal-compaction.md) | 명시적 NTFS 저널 정리의 확정 범위, 자동 중단 재개·실제 할당·Unity 제한 회귀와 남은 지원 경계를 확인할 때 |

@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory)][string]$HomePath,
     [Parameter(Mandatory)][string]$Project,
     [Parameter(Mandatory)][string]$OutputPath,
-    [Parameter(Mandatory)][string]$Label
+    [Parameter(Mandatory)][string]$Label,
+    [string]$EvidencePath
 )
 $ErrorActionPreference = 'Stop'
 # Read-only file allocation sampling. Never traverse a workspace mount or count
@@ -45,6 +46,9 @@ $gitCommon = (& git -C $sourceRoot rev-parse --path-format=absolute --git-common
 if ($LASTEXITCODE -ne 0) { throw 'Git common directory observation failed' }
 $roots.Add(@{name='git-common';path=$gitCommon;scope='shared-including-results';baselineExcluded=$true})
 $roots.Add(@{name='original-library';path=(Join-Path $sourceRoot 'Library');scope='original';baselineExcluded=$true})
+if ($EvidencePath) {
+    $roots.Add(@{name='verification-evidence';path=[IO.Path]::GetFullPath($EvidencePath);scope='measurement-overhead';baselineExcluded=$false})
+}
 $rows = foreach ($root in $roots) {
     $errorsSeen = [Collections.Generic.List[string]]::new()
     $fileCount = 0L; $logical = 0L; $allocated = 0L
@@ -60,7 +64,12 @@ $rows = foreach ($root in $roots) {
                     try {
                         $size = [SplinterAllocationProbe]::Get($item.FullName)
                         $logical += $item.Length; $allocated += $size; $fileCount++
-                        $category = if ($item.Name -eq 'delta.journal') { 'delta-journal-including-Library-writes' } elseif ($item.Name -like 'source-fingerprint.json*') { 'source-manifests' } else { 'other' }
+                        $category = switch ($item.Name) {
+                            'delta.journal' { 'delta-journal-including-Library-writes' }
+                            'delta.journal.compacting' { 'delta-compaction-candidate' }
+                            'delta.journal.previous' { 'delta-compaction-previous' }
+                            default { if ($item.Name -like 'source-fingerprint.json*') { 'source-manifests' } else { 'other' } }
+                        }
                         if (-not $categories.ContainsKey($category)) { $categories[$category] = @{logicalBytes=0L;allocatedBytes=0L;files=0L} }
                         $categories[$category].logicalBytes += $item.Length; $categories[$category].allocatedBytes += $size; $categories[$category].files++
                     } catch { $errorsSeen.Add($item.FullName + ': ' + $_.Exception.Message) }
@@ -81,7 +90,8 @@ $report = [ordered]@{version=1;label=$Label;atUtc=[DateTimeOffset]::UtcNow;home=
         'VSS is volume-wide and may include unrelated original writes. No per-workspace attribution or total savings claim.',
         'File allocations exclude MFT/directory metadata and kernel/OS caches. Stage samples can miss peaks.',
         'Original Library baseline is excluded. Workspace Library writes are already inside the delta journal.',
-        'Logs outside these roots and this measurement output require a separate evidence allocation entry.')}
+        'Logs outside these roots and this measurement output require a separate evidence allocation entry.',
+        'Optional verification-evidence is measurement overhead, not product workspace allocation; count a shared evidence root only once.')}
 $destination = [IO.Path]::GetFullPath($OutputPath)
 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
 $report | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $destination -Encoding utf8
