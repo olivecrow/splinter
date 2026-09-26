@@ -80,7 +80,7 @@ public static class GitOverlayRegistration
     }
     public static async Task<OverlayGitReceipt> ReadAsync(string path, CancellationToken ct) =>
         JsonSerializer.Deserialize<OverlayGitReceipt>(await File.ReadAllTextAsync(path, ct), Json) ?? throw new WorkspaceException("GitOverlayReceiptMissing", path);
-    public static async Task<object> AttachAsync(OverlayGitReceipt receipt, CancellationToken ct)
+    public static async Task<object> AttachAsync(OverlayGitReceipt receipt, CancellationToken ct, bool allowSourceChanges = false)
     {
         await VerifyAsync(receipt, ct);
         string pointerPath = System.IO.Path.Combine(receipt.Path, ".git");
@@ -94,7 +94,10 @@ public static class GitOverlayRegistration
         // read-tree may have finished before an interrupted refresh. An index
         // existing alone is not evidence that its stat cache was populated.
         // Git retains any outstanding lock; never remove it automatically.
-        await Git(receipt.Path, ["update-index", "--refresh"], ct);
+        string indexLock = Path.Combine(receipt.GitDirectory, "index.lock");
+        if (File.Exists(indexLock)) throw new WorkspaceException("GitCommandFailed", "Preserve the outstanding Git index lock.");
+        await GitWorkspaceProvider.RefreshOverlayIndex(receipt.Path, allowSourceChanges, ct);
+        if (File.Exists(indexLock)) throw new WorkspaceException("GitCommandFailed", "A concurrent Git index writer remains; preserve its lock.");
         return new { receipt, head = await Git(receipt.Path, ["rev-parse", "HEAD"], ct),
             status = await Git(receipt.Path, ["status", "--porcelain"], ct), initialPayloadCopiedBytes = 0 };
     }

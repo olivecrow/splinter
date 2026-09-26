@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:validation-candidate",
+  "type": "object", "additionalProperties": false,
+  "required": ["version", "id", "identity", "sourceSeal", "seal", "createdAt", "creationTicks", "stopwatchFrequency"],
+  "properties": {
+    "version": {"const":1},
+    "id": {"type":"string", "minLength":1},
+    "identity": {"type":"object", "required":["version","id","snapshot","maxJournalBytes","maxTransferBytes"],
+      "properties": {
+        "version":{"const":1}, "id":{"type":"string","minLength":1},
+        "snapshot":{"type":"object", "required":["id","provider","sourcePath","rootPath","capturedAt","persistent","differential","consistency"],
+          "properties":{"persistent":{"const":true},"differential":{"const":true}}},
+        "maxJournalBytes":{"type":"integer","minimum":4096},
+        "maxTransferBytes":{"type":"integer","minimum":4096,"maximum":1048576}
+      }
+    },
+    "sourceSeal": {"$ref":"#/$defs/seal"}, "seal": {"$ref":"#/$defs/seal"},
+    "createdAt": {"type":"string", "format":"date-time"},
+    "creationTicks": {"type":"integer", "minimum":0},
+    "stopwatchFrequency": {"type":"integer", "minimum":1}
+  },
+  "$defs": {"seal": {
+    "type":"object", "additionalProperties":false,
+    "required":["durableSequence","journalBytes","journalHash"],
+    "properties": {
+      "durableSequence":{"type":"integer","minimum":0}, "journalBytes":{"type":"integer","minimum":0},
+      "journalHash":{"type":"string","pattern":"^[a-f0-9]{64}$"}
+    }
+  }}
+}

@@ -24,6 +24,11 @@ public sealed class FoundationGateway(
             audit = "workspace status --audit-source", cacheTrust = "same-snapshot-provider-epoch-and-source-generation",
             measurements = "per-inspection-payload-and-manifest; provider-epoch-I/O-counters; storage-reads.jsonl; scripts/measure-workspace-storage.ps1 (read-only development sampler)" },
         storageModes = new[] { "ntfs-snapshot", "refs-cow", "git-checkout" },
+        validationViewExperiment = new { stage = "development-spike", integratedWorkspaceMode = false,
+            candidate = "snapshot-spike candidate-export; stopped-editorless-worker; immutable-live-ranges",
+            switching = "same-path-offline-remount; separate-source-generations-and-single-writer-cache",
+            result = "snapshot-dependent-until-independent-collection; no-worker-return-merge-or-queue",
+            measurements = "worker-ready; candidate-publication; cold-ready; repeated-stop-remount-restart-ready; bytes-and-time-separate" },
         snapshotOverlay = new
         {
             stage = "workspace-internal-alpha",

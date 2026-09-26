@@ -301,6 +301,14 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
         if (result.ExitCode != 0) throw Error("GitCommandFailed", result.Error.Trim());
         return result.Output.TrimEnd('\r', '\n');
     }
+    internal static async Task RefreshOverlayIndex(string cwd, bool allowSourceChanges, CancellationToken ct)
+    {
+        var result = await Run(cwd, ["update-index", "--refresh"], ct);
+        // Exit 1 with no diagnostic means tracked files need update. A sealed
+        // validation candidate intentionally differs from its baseline index.
+        if (result.ExitCode != 0 && !(allowSourceChanges && result.ExitCode == 1 && result.Error.Length == 0))
+            throw Error("GitCommandFailed", result.Error.Trim());
+    }
     private static async Task<CommandResult> Run(string cwd, string[] args, CancellationToken ct)
     {
         var start = new ProcessStartInfo("git") { WorkingDirectory = cwd, UseShellExecute = false,

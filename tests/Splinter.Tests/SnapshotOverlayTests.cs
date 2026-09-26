@@ -550,7 +550,7 @@ public sealed class SnapshotOverlayTests
     private static JournalDeltaStore New(TestDirectory d, FakeSnapshotTree tree, long budget = 100 * 1024 * 1024) =>
         new(Path.Combine(d.Path, "delta"), new(1, "test", tree.Snapshot, budget, 1024 * 1024), tree);
 
-    private sealed class FakeSnapshotTree : ISnapshotTree
+    internal sealed class FakeSnapshotTree : ISnapshotTree
     {
         public SnapshotReference Snapshot { get; set; } = new("fake-t0", "fake-memory", "mutable-source", "fake-root", DateTimeOffset.UnixEpoch, true, true, "fixture-only");
         public Dictionary<string, byte[]> Files { get; } = new(StringComparer.OrdinalIgnoreCase);

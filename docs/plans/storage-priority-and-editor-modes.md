@@ -1,10 +1,10 @@
 # 저장공간 우선 설계와 Editor 실행 방식 검토
 
-검토일: 2026-09-26. **확정된 우선순위는 대형 Unity 프로젝트의 작업공간 용량 부담 해소가 1순위, Editor 동시 실행이 2순위다.** 단일 Editor 순차 검증은 유력한 후속 설계 후보이며, 기본 실행 방식으로의 채택과 구현은 아직 확정하지 않았다. SF-01의 파일 단위 소스 검증과 SF-02 계측·명시적 저널 정리 하위 범위는 구현했지만 [공통 저장소 1차 실행](../verification/storage-foundation.md)은 기존 VSS 보존 실패로 마감하지 못했다. SF-02 전체는 Partial, SF-03~06은 NotRun이다. 현재 제품은 작업별 독립 Editor 방식이며 새 큐·후보 전환은 미구현이다.
+검토일: 2026-09-27. **대형 Unity 프로젝트의 작업공간 용량과 복사본 생성·편집 준비·재개 시간을 함께 평가하고, Editor 동시 실행은 그 뒤에 둔다.** 단일 Editor 순차 검증은 후속 설계 후보이며 기본 방식 채택은 확정하지 않았다. SF-01의 파일 단위 소스 검증과 SF-02 계측·명시적 저널 정리 하위 범위는 구현했지만 [공통 저장소 1차 실행](../verification/storage-foundation.md)은 기존 VSS 보존 실패를 유지한다. SF-02 전체는 Partial, SF-03의 [VC 개발용 하위 범위](immutable-validation-view-first-milestone.md)는 제한을 포함해 마감했으며 전체 SF-03은 Partial, SF-04~06은 NotRun이다. 현재 제품은 작업별 독립 Editor 방식이며 새 큐·후보 전환의 제품 연결은 미구현이다.
 
 ## 실행한 저장소 검증과 남은 판단
 
-[BQ-01~05 중첩량 예산의 제품 검증과 반복 저장량 판단](journal-budget-and-growth-qualification.md)은 [정의한 범위에서 완료](../verification/journal-budget-and-growth-qualification.md)했다. 마지막 유효 payload 약 1.839GB 중 Library가 약 1.829GB이고 대체 payload는 약 21.4MB였다. 다음 공간 절감 후보는 SF-03의 불변 후보·고정 검증 view·단일 Library A/B/A 최소 단위 하나로 선정했다. 재증가의 대체 기록보다 유지해야 하는 Library의 절대량이 큰 것이 근거다. SF-03 구현·실행은 NotRun이며 기본 모드 채택과 Coordination 제품 연결은 아직 확정하지 않았다.
+[BQ-01~05 중첩량 예산의 제품 검증과 반복 저장량 판단](journal-budget-and-growth-qualification.md)은 [정의한 범위에서 완료](../verification/journal-budget-and-growth-qualification.md)했다. 마지막 유효 payload 약 1.839GB 중 Library가 약 1.829GB이고 대체 payload는 약 21.4MB였다. 다음 공간 절감 후보는 SF-03의 불변 후보·고정 검증 view·단일 Library A/B/A 최소 단위 하나로 선정했다. 재증가의 대체 기록보다 유지해야 하는 Library의 절대량이 큰 것이 근거다. SF-03의 개발용 [불변 후보·고정 view](../validation-view.md)를 구현하고 [VC 검증](../verification/immutable-validation-view.md)을 제한을 포함해 마감했다. 작은 후보 게시 약 1.3초와 달리 반복 cache replay 21~29초, Editor ready 75~84초, 정상 stop 31~33초가 관측됐다. 첫 import는 수정·강제 종료 후 재개했고 첫 A 미리보기는 빈 화면이었다. 파일 할당 관측 최고 약 2.345GB와 생성 직전 Git 기준 unknown을 유지하며 정상 cold import/첫 렌더 및 반복 재연결 계측을 다음 후보로 둔다. 기본 모드 채택과 Coordination 제품 연결은 미구현이다.
 
 2026-09-25의 [공통 저장소 개선 1차](storage-foundation-first-milestone.md)를 실행했다. 반복 대형 파일 재해시 0·저장 계측·작은 Unity A/B 결과를 확인했으나 기존 VSS 5개가 회수 중 소실됐다. [후속 재현·수정](../verification/storage-recovery.md)은 제어 파일 게시 충돌을 해결했고, 격리 VSS에서도 최신/중간 삭제 시 다른 오래된 복사본이 제거됨을 확인했다. 비강제 직접 API도 동일하며 제품 guard의 위험 요청 차단·오래된 순서 회수는 실제 통과했다. [지연 회수 1차](deferred-snapshot-reclamation.md)는 독립 결과 보존과 snapshot 삭제 가능 시점을 분리했고 정의한 범위에서 검증했다. 임의 완료 순서의 즉시 회수는 보장하지 못한다. [SF-02 명시적 저널 공간 정리](journal-compaction-first-milestone.md)는 대체된 범위의 할당 회수와 제한된 중단 복구를 구현했고 [실행 기록](../verification/journal-compaction.md)을 따른다. 후속 [작은 Unity 로드·전체 공간·정리 비용 검증](journal-compaction-qualification-and-cost.md)은 [정의한 fixture에서 실행](../verification/journal-compaction-qualification-and-cost.md)했다. 재개 후 실제 코드 로드와 결과 회수는 통과했지만, 공간 장부 일부는 unknown이고 정리 중 두 저널 세대가 겹쳐 추가 공간이 커졌다. [선택적 중첩량 예산](journal-compaction-peak-admission.md)은 예상 저널 길이의 두 세대 중첩량을 후보 작성 전에 검사한다. 전체 물리 peak 감소나 대형 Unity 적합성의 증거는 아니며, flush 정책 변경과 SF-03 단일 Editor 연결은 각각 별도 후속 범위다.
 
@@ -69,12 +69,12 @@
 | --- | --- | --- | --- |
 | SF-01 | 불변 기준·변경 기반 검증 | 코드 한 파일 수정 시 변경 없는 대형 소스 payload 재해시 0. 결과 identity·.meta·rename/delete·재시작·손상·동시 쓰기의 올바른 판정. 초기/감사 읽기와 일반 반복 비용 분리 | Passed: 정의한 소스 검증. 전체 보존 실패 별도 |
 | SF-02 | 범위 저장 성능·누적량 | 작은 범위 쓰기·전체 재쓰기·동일 영역 반복 쓰기의 실제 할당과 flush 지연, 저널 정리의 임시 공간·중단 복구를 검증. 최초 전체 복제·읽기 hydration 0 유지 | Partial: 계측·명시적 정리와 제한된 중단 복구 확인. flush 정책·실제 장애 범위 미완료 |
-| SF-03 | 단일 Editor A/B/A 후보 검증 | 작업자 Editor 0, 검증 Editor 1. 전체 Assets checkout 없이 후보 전환·원복, 코드/에셋/.meta 결과·캐시 정합성, 임대 중단 복구 및 원본 보존 | NotRun |
+| SF-03 | 단일 Editor A/B/A 후보 검증 | 작업자 Editor 0, 검증 Editor 1. 전체 Assets checkout 없이 후보 전환·원복, 코드/에셋/.meta 결과·캐시 정합성, 임대 중단 복구 및 원본 보존 | Partial: VC 개발용 하위 범위의 [실행 기록](../verification/immutable-validation-view.md). 제품 연결·일반 임대 복구·source 반환 병합 미구현 |
 | SF-04 | 작업 재개와 독립 결과 | 후보 검증 뒤 작업 계속 가능, 최종 결과는 snapshot과 독립 보존. VSS 소실·새 CLI·해제 재시도·외부 원본 변경에서 기존 보존 계약 유지 | NotRun |
 | SF-05 | 대형 실사용 입력 적합성 | 목표 프로젝트의 파일 수·에셋·LFS/filter·패키지 조건을 명시. 지원하지 않는 입력은 실행 전 구분. 필수 NR 장애·파일 지원 관문과 연결 | NotRun |
 | SF-06 | 저장량 중심의 실행 방식 선택 | 같은 입력과 작업으로 신규/재개/누적 편집/정리의 용량·시간·메모리 비교. 기본 모드와 독립 Editor 선택 조건을 결과로 결정 | NotRun |
 
-SF-01/02는 두 실행 방식이 공통으로 사용하는 저장소의 개선이다. [SF-02 후속 검증](../verification/journal-compaction-qualification-and-cost.md)은 Unity 로드 장애와 작업공간 전체 파일 할당의 관측 최고치·정리 단계별 비용을 기록했으며 공간 장부는 Partial이다. SF-03은 작은 소스·이미 확보한 에셋으로 후보 전환 정합성부터 검증할 후속 단위다. 합성 범위 저장을 100GB Unity 지원 증거로 대체하지 않는다. 지금까지의 실행은 기존 작은 fixture와 합성 범위로 한정했고 100GB 데이터·대용량 PV 비교를 시작하지 않았다.
+SF-01/02는 두 실행 방식이 공통으로 사용하는 저장소의 개선이다. [SF-02 후속 검증](../verification/journal-compaction-qualification-and-cost.md)은 Unity 로드 장애와 작업공간 전체 파일 할당의 관측 최고치·정리 단계별 비용을 기록했으며 공간 장부는 Partial이다. SF-03의 VC는 작은 소스·이미 확보한 에셋으로 코드·에셋 전환 정합성을 검증했으나 정상 cold import/첫 렌더·일반 임대 복구·제품 연결은 남아 있다. 합성 범위 저장을 100GB Unity 지원 증거로 대체하지 않는다. 지금까지의 실행은 기존 작은 fixture와 합성 범위로 한정했고 100GB 데이터·대용량 PV 비교를 시작하지 않았다.
 
 가장 먼저 비교할 수치는 **원본을 제외한 총 추가 물리 공간과 그 최고치**다. 작업자 delta, 검증 view/Library, VSS diff area, Git 객체·LFS cache, 독립 결과, 임시 압축 공간·로그를 분리한 뒤 누락 없이 보고한다. VSS는 같은 볼륨의 다른 쓰기도 보존할 수 있고 변화가 크면 비용이 증가한다([Microsoft VSS](https://learn.microsoft.com/en-us/windows-server/storage/file-server/volume-shadow-copy-service)). unknown은 0으로 바꾸지 않는다. 읽기·논리 크기·할당 크기와 누적 쓰기를 혼합하지 않는다.
 

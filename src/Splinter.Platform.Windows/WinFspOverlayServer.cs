@@ -8,7 +8,8 @@ namespace Splinter.Platform.Windows;
 
 public sealed record OverlayServeRequest(OverlayIdentity Identity, string DeltaPath, string MountPath,
     string ControlPath, string Token, SnapshotReadAccess? ReadAccess = null,
-    string? SnapshotReceiptDirectory = null, string? SnapshotOwnerId = null);
+    string? SnapshotReceiptDirectory = null, string? SnapshotOwnerId = null,
+    ValidationViewSelection? ValidationView = null);
 
 public static class WinFspOverlayServer
 {
@@ -44,7 +45,24 @@ public static class WinFspOverlayServer
             SnapshotObservation health = await WinFspOverlayClient.ObserveSnapshotAsync(request);
             if (health.Available != true) throw new WorkspaceException(health.FailureCode ?? "SnapshotObservationUnknown", "Snapshot read access is not verified.");
             using var snapshot = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess, () => Volatile.Read(ref health));
-            using var store = new JournalDeltaStore(deltaPath, request.Identity, snapshot);
+            if (request.ValidationView is { } selection)
+            {
+                foreach (string path in new[] { selection.CandidatePath, selection.CacheDeltaPath })
+                {
+                    WindowsProcessWorkspaceProvider.CheckPath(path);
+                    foreach (string other in new[] { mountPath, deltaPath, request.ControlPath, request.Identity.Snapshot.SourcePath })
+                    {
+                        string a = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+                        string b = Path.TrimEndingDirectorySeparator(Path.GetFullPath(other));
+                        if (a.Equals(b, StringComparison.OrdinalIgnoreCase) || a.StartsWith(b + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+                            b.StartsWith(a + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                            throw new WorkspaceException("UnsafePath", "Candidate, cache, source, mount and control trees must be separate.");
+                    }
+                }
+            }
+            using IWorkspaceDeltaStore store = request.ValidationView is { } selectedView
+                ? new ValidationViewDeltaStore(deltaPath, request.Identity, snapshot, selectedView)
+                : new JournalDeltaStore(deltaPath, request.Identity, snapshot);
             var fileSystem = new WinFspOverlayFileSystem(store, ex =>
             {
                 int count = Interlocked.Increment(ref failures);
@@ -73,7 +91,8 @@ public static class WinFspOverlayServer
                         processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks,
                         openHandles = fileSystem.OpenHandles, retainedFileContexts = fileSystem.RetainedFileContexts,
                         workingSetBytes = self.WorkingSet64, privateBytes = self.PrivateMemorySize64,
-                        ioFailures = Volatile.Read(ref failures), lastFailureCode = Volatile.Read(ref lastFailureCode), storage = store.Observe()
+                        ioFailures = Volatile.Read(ref failures), lastFailureCode = Volatile.Read(ref lastFailureCode), storage = store.Observe(),
+                        validationView = (store as ValidationViewDeltaStore)?.ObservePartitions()
                     });
                     var stop = await WindowsProcessWorkspaceProvider.ReadAsync<StopRequest>(Path.Combine(request.ControlPath, "stop.json"));
                     if (stop?.Token == request.Token)
@@ -97,7 +116,8 @@ public static class WinFspOverlayServer
                     {
                         SourceChangeView? view = null;
                         string? sourceError = null;
-                        try { view = store.ObserveChanges(sourceQuery.ManagedPaths); }
+                        try { view = store is ValidationViewDeltaStore selected ? selected.ObserveChanges(sourceQuery.ManagedPaths)
+                            : ((JournalDeltaStore)store).ObserveChanges(sourceQuery.ManagedPaths); }
                         catch (WorkspaceException ex) { sourceError = ex.Code; }
                         await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "source-response.json"),
                             new SourceChangeResponse(request.Token, sourceQuery.RequestId, self.Id,

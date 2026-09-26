@@ -62,12 +62,13 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     }
     private int extentCount;
     private bool poisoned, disposed;
+    private readonly bool readOnly;
     public OverlayIdentity Identity { get; }
 
     public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot)
         : this(directory, identity, snapshot, "delta.journal") { }
 
-    private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName)
+    private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName, bool readOnly = false)
     {
         if (identity.Version != 1 || identity.MaxJournalBytes < 4096 || identity.MaxTransferBytes is < 4096 or > 1048576)
             throw new ArgumentException("Invalid overlay version or bounded storage limits.");
@@ -75,12 +76,13 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             throw new WorkspaceException("SnapshotIdentityMismatch", "Reconnect requires the exact persistent differential snapshot reference.");
         snapshot.EnsureAvailable();
         this.snapshot = snapshot;
+        this.readOnly = readOnly;
         Identity = identity;
-        Directory.CreateDirectory(directory);
+        if (!readOnly) Directory.CreateDirectory(directory);
         string identityPath = System.IO.Path.Combine(directory, "identity.json");
         // FileShare.Read excludes concurrent writers across provider processes.
-        journal = new FileStream(System.IO.Path.Combine(directory, journalName), FileMode.OpenOrCreate,
-            FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.RandomAccess);
+        journal = new FileStream(System.IO.Path.Combine(directory, journalName), readOnly ? FileMode.Open : FileMode.OpenOrCreate,
+            readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.RandomAccess);
         try
         {
             if (File.Exists(identityPath))
@@ -93,6 +95,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             }
             else
             {
+                if (readOnly) throw new WorkspaceException("OverlayIdentityMissing", "An immutable candidate requires its saved identity.");
                 if (journal.Length != 0) throw new WorkspaceException("OverlayIdentityMissing", "A nonempty journal has no identity; preserve it for recovery.");
                 using var identityFile = new FileStream(identityPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
                 JsonSerializer.Serialize(identityFile, identity); identityFile.Flush(true);
@@ -232,7 +235,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             ObjectDisposedException.ThrowIf(disposed, this);
             if (poisoned) throw new WorkspaceException("DeltaReconnectRequired", "Replay the preserved journal after a failed append.");
             // Flushing acknowledged private data does not need a surviving base.
-            DurableFlush();
+            if (!readOnly) DurableFlush();
         }
     }
     public OverlayStorageObservation Observe()
@@ -340,6 +343,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
 
     private void Commit(Mutation mutation, ReadOnlySpan<byte> payload)
     {
+        if (readOnly) throw new WorkspaceException("CandidateReadOnly", "A published candidate cannot be edited.");
         RequireMutationCapacity(mutation);
         byte[] metadata = JsonSerializer.SerializeToUtf8Bytes(mutation);
         if (metadata.Length > MaxMetadataBytes) throw new WorkspaceException("OverlayMetadataLimit", "Mutation metadata exceeds the transaction limit.");
@@ -391,7 +395,11 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         }
         // Only an incomplete trailing transaction is unacknowledged. Corrupt
         // complete transactions above fail closed and remain byte-for-byte intact.
-        if (cursor != journal.Length) { journal.SetLength(cursor); DurableFlush(); }
+        if (cursor != journal.Length)
+        {
+            if (readOnly) throw new WorkspaceException("CandidateIncomplete", "Preserve an incomplete immutable journal without truncation.");
+            journal.SetLength(cursor); DurableFlush();
+        }
     }
     private static Mutation DecodeMutation(byte[] metadata, int payloadLength)
     {

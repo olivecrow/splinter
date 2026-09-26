@@ -1,5 +1,14 @@
 # 구현 계획 검증 추적표
 
+[VC-01~04](immutable-validation-view-first-milestone.md)는 [정의한 합성·작은 Unity 범위](../verification/immutable-validation-view.md)를 `scoped-complete-with-limitations`로 마감했다. SF-03 전체는 Partial이다.
+
+| 하위 관문 | 범위 | 판정 |
+| --- | --- | --- |
+| VC-01 | 유효 범위 후보·worker 후속 편집·불변 seal | Passed, 정의한 자동/작은 fixture |
+| VC-02 | 공통 cache·세대별 source·private extent 이동 복구 | Passed, 정의한 자동/작은 fixture. 중단 5개 지점은 합성 |
+| VC-03 | 실제 코드·에셋 A/B/A·독립 결과·원본 보존·회수 | Passed, 첫 import 수정·운영 개입 포함. 첫 A 렌더 미리보기는 빈 화면으로 전체 렌더 통과 아님 |
+| VC-04 | 단계별 시간·논리 저널·파일 할당·공유 VSS 장부 | 정의한 계측 완료. 정상 cold import·생성 직전 Git 할당·미관측 peak·절감률은 미확인 |
+
 [BQ-01~05](journal-budget-and-growth-qualification.md)의 예산 제품 경로와 반복 저장량 판단을 [정의한 범위에서 완료](../verification/journal-budget-and-growth-qualification.md)했다. 운영 재시도·합성 결과 보존 경로·공간 미계측 제한과 기존 SF/NR/PV의 별도 판정을 유지한다.
 
 | 하위 관문 | 범위 | 상태 |
@@ -10,7 +19,7 @@
 | BQ-04 | 반복 작업의 논리 유효/대체 기록 분류와 별도 물리 공간 장부 | Passed, 정의한 BQ 범위·제한은 실행 기록 참조 |
 | BQ-05 | 독립 결과·원본 보존·소유 자원 회수와 다음 공간 절감 작업 선택 | Passed, 정의한 BQ 범위·제한은 실행 기록 참조 |
 
-[SF-01~06](storage-priority-and-editor-modes.md#후속-검증과-선택-기준) 중 SF-01의 정의한 파일 단위 소스 검증은 Passed, SF-02 계측·명시적 저널 정리 하위 범위는 Partial, SF-03~06은 NotRun이다. [실제 실행](../verification/storage-foundation.md)에서 기존 비소유 VSS 5개가 해제 중 소실돼 공통 저장소 1차 전체는 **FailedPreservation**이다. 소유 결과 보존·자원 회수와 이 실패를 구분한다.
+[SF-01~06](storage-priority-and-editor-modes.md#후속-검증과-선택-기준) 중 SF-01의 정의한 파일 단위 소스 검증은 Passed, SF-02 계측·명시적 저널 정리 하위 범위와 SF-03 전체는 Partial이며 SF-04~06은 NotRun이다. [실제 실행](../verification/storage-foundation.md)에서 기존 비소유 VSS 5개가 해제 중 소실돼 공통 저장소 1차 전체는 **FailedPreservation**이다. 소유 결과 보존·자원 회수와 이 실패를 구분한다.
 
 새 VSS 해제 차단은 자동 9개 사례와 [격리 볼륨의 정의한 실제 시험](../verification/storage-recovery.md)을 통과했다. 최신·중간 요청 2건 차단과 오래된 순서 12개 회수에서 다른 ID·생존 파일을 보존했다. sentinel은 모두 소유 시험 snapshot이며 일반 비소유 백업·외부 동시 삭제·재부팅 지원으로 확대하지 않는다. 제어 파일 게시 충돌도 재현·수정했고 [지연 회수 검증](../verification/deferred-snapshot-reclamation.md)의 당시 자동 시험은 252 통과·0 실패·선택적 ReFS 1 skip이다. 임의 순서의 즉시 회수·자동 지연 회수는 미구현이다. [SF-02 명시적 저널 정리](journal-compaction-first-milestone.md)는 대체 범위의 제품 명령·세대 복구를 구현했고 [격리 실행](../verification/journal-compaction.md)에서 실제 할당 감소를 측정했다. [QJ-01~04 검증](../verification/journal-compaction-qualification-and-cost.md)은 빈 하위 폴더의 WinFsp 열거 수정과 작은 Unity 재개·로드 코드·정상 stop/결과/회수, 공간 peak·직접 정리 비용을 기록했다. 합성 생성 직전 Git 할당은 unknown이고 정리 중 최고 공간과 재개 후 재증가로 대형 프로젝트 용량 목표는 미달성이다. [PB 중첩량 예산](../verification/journal-compaction-peak-admission.md)은 자동·로컬 저널에서 후보 작성 전 거부와 같은 작업 재시도를 확인했고 후속 BQ의 실제 제품 VSS/Unity 경로는 운영 재시도를 포함해 검증했다. 쓰기별 flush 정책 변경과 재부팅·전원·공간 장애의 전체 지원은 미완료다. 기존 PV 제한과 NR/SW 관문을 유지한다.
 

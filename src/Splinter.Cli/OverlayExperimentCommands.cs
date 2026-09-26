@@ -5,6 +5,7 @@ using Splinter.Application.Unity;
 using Splinter.Core;
 using Splinter.Platform.Windows;
 using Splinter.Protocol;
+using Splinter.Runtime;
 using Splinter.SourceControl.Git;
 
 namespace Splinter.Cli;
@@ -44,6 +45,36 @@ internal static class OverlayExperimentCommands
             BaseReference = input.Revision ?? "", SourceReference = input.Branch ?? "", StorageMode = "snapshot-overlay-spike" };
         switch (input.Action)
         {
+            case "candidate-export":
+                if (overlay.ValidationView is not null)
+                    throw new WorkspaceException("CandidateSourceRequired", "Export an editorless worker, not a validation output generation.");
+                string destination = Path.GetFullPath(input.CandidatePath ??
+                    throw new WorkspaceException("CandidatePathRequired", "Use a new candidate directory."));
+                for (string? part = destination; part is not null; part = Path.GetDirectoryName(part))
+                    if ((File.Exists(part) || Directory.Exists(part)) && (File.GetAttributes(part) & FileAttributes.ReparsePoint) != 0)
+                        throw new WorkspaceException("UnsafePath", "Candidate publication cannot traverse a reparse point.");
+                foreach (string path in new[] { overlay.Identity.Snapshot.SourcePath, overlay.DeltaPath, overlay.MountPath, overlay.ControlPath })
+                {
+                    string other = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+                    if (destination.Equals(other, StringComparison.OrdinalIgnoreCase) ||
+                        destination.StartsWith(other + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+                        other.StartsWith(Path.TrimEndingDirectorySeparator(destination) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                        throw new WorkspaceException("UnsafePath", "Publish a candidate in a separate tree from source, worker, mount and control.");
+                }
+                var state = await WinFspOverlayClient.ObserveAsync(overlay, ct);
+                if (state.GetProperty("processAlive").GetBoolean() || Directory.Exists(overlay.MountPath) ||
+                    state.TryGetProperty("ownershipVerified", out var ownership) && !ownership.GetBoolean())
+                    throw new WorkspaceException("CandidateSourceBusy", "Stop and unmount the owned worker before publishing a candidate.");
+                if (Directory.Exists(control))
+                {
+                    var sourceApp = await unity.ObserveAsync(workspace, control, ct);
+                    if (sourceApp.Running || sourceApp.Resources is not { OwnershipVerified: true, ActiveProcesses: 0 })
+                        throw new WorkspaceException("ApplicationStillRunning", "The candidate source must have no live application resources.");
+                }
+                using (var tree = new VssSnapshotTree(overlay.Identity.Snapshot, overlay.ReadAccess))
+                    return JournalDeltaStore.ExportCandidate(overlay.DeltaPath, overlay.Identity, tree,
+                        destination,
+                        Guid.NewGuid().ToString("N"), [".git", "Library", "Temp", "Logs", "UserSettings", "obj"]);
             case "mount":
                 IOverlayMountProvider mountProvider = new WinFspOverlayMountProvider(input.OverlayRequestPath, Path.Combine(overlay.ControlPath, "runners"));
                 await mountProvider.MountAsync(overlay.Identity, overlay.DeltaPath, overlay.MountPath, ct);
@@ -72,7 +103,7 @@ internal static class OverlayExperimentCommands
             throw new WorkspaceException("OverlayNotReady", "A fresh owned mount is required.");
         switch (input.Action)
         {
-            case "git-attach": return await GitOverlayRegistration.AttachAsync(await Receipt(input, overlay, ct), ct);
+            case "git-attach": return await GitOverlayRegistration.AttachAsync(await Receipt(input, overlay, ct), ct, allowSourceChanges: true);
             case "unity-start":
                 var prior = await unity.ObserveAsync(workspace, control, ct);
                 if (prior.Running) return prior;
@@ -145,5 +176,6 @@ internal static class OverlayExperimentCommands
             throw new WorkspaceException("GitSourceMetadataVisible", "The lower .git directory must be excluded.");
         return r;
     }
-    private sealed record SpikeRequest(string Action, string OverlayRequestPath, string? ReceiptPath, string? Branch, string? Revision);
+    private sealed record SpikeRequest(string Action, string OverlayRequestPath, string? ReceiptPath, string? Branch, string? Revision,
+        string? CandidatePath);
 }

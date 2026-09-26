@@ -5,7 +5,8 @@
   "additionalProperties": false,
   "required": ["action", "overlayRequestPath"],
   "properties": {
-    "action": {"enum": ["mount", "status", "unmount", "git-prepare", "git-attach", "git-release", "unity-start", "unity-status", "unity-refresh", "unity-stop", "preserve"]},
+    "action": {"enum": ["mount", "status", "unmount", "git-prepare", "git-attach", "git-release", "unity-start", "unity-status", "unity-refresh", "unity-stop", "preserve", "candidate-export"]},
+    "candidatePath": {"type": "string", "minLength": 1},
     "overlayRequestPath": {"type": "string", "minLength": 1},
     "receiptPath": {"type": "string", "minLength": 1},
     "branch": {"type": "string", "pattern": "^codex/[A-Za-z0-9/_-]+$"},

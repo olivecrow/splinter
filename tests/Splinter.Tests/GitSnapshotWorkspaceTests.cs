@@ -10,6 +10,44 @@ public sealed class GitSnapshotWorkspaceTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task CandidateAttachAllowsChangedSourcesButPreservesIndexLock(bool hasLock)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var d = new TestDirectory();
+        string source = Path.Combine(d.Path, "source"), mount = Path.Combine(d.Path, "mount");
+        Directory.CreateDirectory(source);
+        await TestDirectory.Git(source, "init", "-b", "development");
+        await TestDirectory.Git(source, "config", "user.name", "Fixture");
+        await TestDirectory.Git(source, "config", "user.email", "fixture@example.invalid");
+        await File.WriteAllTextAsync(Path.Combine(source, "file.txt"), "baseline\n", ct);
+        await TestDirectory.Git(source, "add", "."); await TestDirectory.Git(source, "commit", "-m", "fixture");
+        string revision = await TestDirectory.Git(source, "rev-parse", "HEAD");
+        var receipt = await GitOverlayRegistration.PrepareAsync(source, mount, "codex/candidate", revision,
+            "candidate", Path.Combine(d.Path, "receipt.json"), ct);
+        Directory.CreateDirectory(mount);
+        await File.WriteAllTextAsync(Path.Combine(mount, ".git"), receipt.Pointer, ct);
+        await File.WriteAllTextAsync(Path.Combine(mount, "file.txt"), "candidate\n", ct);
+        await TestDirectory.Git(mount, "read-tree", revision);
+        string lockPath = Path.Combine(receipt.GitDirectory, "index.lock");
+        if (hasLock)
+        {
+            await File.WriteAllTextAsync(lockPath, "owned-lock", ct);
+            Assert.Equal("GitCommandFailed", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+                GitOverlayRegistration.AttachAsync(receipt, ct, allowSourceChanges: true))).Code);
+            Assert.Equal("owned-lock", await File.ReadAllTextAsync(lockPath, ct));
+        }
+        else
+        {
+            await GitOverlayRegistration.AttachAsync(receipt, ct, allowSourceChanges: true);
+            Assert.Contains("file.txt", await TestDirectory.Git(mount, "status", "--porcelain"));
+        }
+        Assert.Equal("candidate\n", await File.ReadAllTextAsync(Path.Combine(mount, "file.txt"), ct));
+        Assert.Equal("baseline\n", await File.ReadAllTextAsync(Path.Combine(source, "file.txt"), ct));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task InterruptedAttachRefreshesExistingIndexAndPreservesOutstandingLock(bool hasLock)
     {
         var ct = TestContext.Current.CancellationToken;

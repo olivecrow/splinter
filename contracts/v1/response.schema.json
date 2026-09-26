@@ -855,6 +855,16 @@
             ]
           }
         },
+        "validationViewExperiment": {
+          "type": "object", "additionalProperties": false,
+          "required": ["stage", "integratedWorkspaceMode", "candidate", "switching", "result", "measurements"],
+          "properties": {
+            "stage": {"const":"development-spike"},
+            "integratedWorkspaceMode": {"const":false},
+            "candidate": {"type":"string"}, "switching": {"type":"string"},
+            "result": {"type":"string"}, "measurements": {"type":"string"}
+          }
+        },
         "snapshotOverlay": {
           "type": "object",
           "additionalProperties": false,
