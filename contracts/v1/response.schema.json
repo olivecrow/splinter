@@ -2108,6 +2108,10 @@
             }
           },
           "required": ["attemptId", "before", "after", "startedAt"]
+        },
+        "pendingCompactionMaxEstimatedJournalOverlapBytes": {
+          "type": "integer",
+          "minimum": 1
         }
       },
       "required": [

@@ -109,6 +109,47 @@ public sealed class SnapshotOverlayTests
         Assert.True(File.Exists(Path.Combine(delta, "delta.journal.previous")));
     }
 
+    [Fact]
+    public void OverlapBudgetRejectsBeforeCandidateAndPreservesExactJournalForRetry()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = new byte[4096];
+        var identity = new OverlayIdentity(1, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
+        string delta = Path.Combine(d.Path, "delta");
+        long sequence;
+        using (var store = new JournalDeltaStore(delta, identity, tree))
+        {
+            Guid file = store.Stat("file")!.Id;
+            for (int i = 0; i < 10; i++) store.Write(file, 0, [checked((byte)i)]);
+            sequence = store.Observe().DurableSequence;
+        }
+        string journal = Path.Combine(delta, "delta.journal");
+        byte[] before = File.ReadAllBytes(journal);
+        var denied = Assert.Throws<WorkspaceException>(() => JournalDeltaStore.CompactDirectory(delta, identity, tree,
+            maxEstimatedJournalOverlapBytes: before.Length));
+        Assert.Equal("CompactionOverlapBudgetExceeded", denied.Code);
+        var details = System.Text.Json.JsonSerializer.SerializeToElement(denied.Details);
+        Assert.Equal(before.Length, details.GetProperty("beforeJournalBytes").GetInt64());
+        Assert.True(details.GetProperty("candidateEstimatedJournalBytes").GetInt64() > 0);
+        Assert.True(details.GetProperty("projectedJournalOverlapBytes").GetInt64() > before.Length);
+        Assert.Equal(before, File.ReadAllBytes(journal));
+        Assert.False(File.Exists(Path.Combine(delta, "compaction-intent.json")));
+        Assert.False(File.Exists(Path.Combine(delta, "delta.journal.compacting")));
+        Assert.False(File.Exists(Path.Combine(delta, "delta.journal.previous")));
+        using (var unchanged = new JournalDeltaStore(delta, identity, tree))
+            Assert.Equal(sequence, unchanged.Observe().DurableSequence);
+
+        var compacted = JournalDeltaStore.CompactDirectory(delta, identity, tree,
+            maxEstimatedJournalOverlapBytes: before.Length * 2L);
+        Assert.Equal(sequence, compacted.After.DurableSequence);
+        using (var resumed = new JournalDeltaStore(delta, identity, tree))
+        {
+            byte[] actual = new byte[1]; resumed.Read(resumed.Stat("file")!.Id, 0, actual);
+            Assert.Equal(9, actual[0]);
+        }
+        JournalDeltaStore.CompleteCompaction(delta, identity);
+    }
+
     [Theory]
     [InlineData("intent")]
     [InlineData("candidate-flushed")]

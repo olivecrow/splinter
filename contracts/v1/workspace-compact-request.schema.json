@@ -7,6 +7,10 @@
     "id": {
       "type": "string",
       "pattern": "^[a-f0-9]{24}$"
+    },
+    "maxEstimatedJournalOverlapBytes": {
+      "type": "integer",
+      "minimum": 1
     }
   },
   "required": ["id"]

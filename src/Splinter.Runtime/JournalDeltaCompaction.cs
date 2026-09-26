@@ -49,8 +49,10 @@ public sealed partial class JournalDeltaStore
     }
 
     public static SnapshotJournalCompaction CompactDirectory(string directory, OverlayIdentity identity, ISnapshotTree snapshot,
-        Action<string>? boundary = null)
+        Action<string>? boundary = null, long? maxEstimatedJournalOverlapBytes = null)
     {
+        if (maxEstimatedJournalOverlapBytes is <= 0)
+            throw new WorkspaceException("InvalidCompactionBudget", "The estimated journal overlap budget must be positive.");
         long totalStarted = Stopwatch.GetTimestamp();
         var cost = new CompactionCostBuilder();
         string current = Path.Combine(directory, "delta.journal"), candidate = Path.Combine(directory, CandidateName);
@@ -78,21 +80,37 @@ public sealed partial class JournalDeltaStore
         {
             cost.Add("source-replay", Stopwatch.GetTimestamp() - replayStarted, old.replayBytes);
             var before = cost.Measure("before-seal", old, old.SealCurrent, directReadBytes: _ => old.journal.Length);
+            string stateHash = cost.Measure("before-state-hash", old, old.StateHash);
+            if (intent is not null && (before != intent.Before || stateHash != intent.StateHash))
+                throw new WorkspaceException("CompactionGenerationMismatch", "The source journal changed since compaction started.");
+            List<LiveRange>? live = null;
+            long estimated = 0;
+            if (intent?.Candidate is null)
+            {
+                live = cost.Measure("live-range-index", old, old.LiveRanges);
+                estimated = cost.Measure("candidate-scan", old, () => old.WalkFrames(live, null));
+                if (estimated > identity.MaxJournalBytes)
+                    throw new WorkspaceException("DeltaFull", "The compacted generation exceeds this workspace journal budget.");
+                long projected = checked(old.journal.Length + estimated);
+                if (maxEstimatedJournalOverlapBytes is { } budget && projected > budget)
+                    throw new WorkspaceException("CompactionOverlapBudgetExceeded",
+                        "The estimated overlap of the old and candidate journals exceeds the requested budget; preserve the old journal and retry this workspace with an explicit budget.",
+                        new { beforeJournalBytes = old.journal.Length, candidateEstimatedJournalBytes = estimated,
+                            projectedJournalOverlapBytes = projected, maxEstimatedJournalOverlapBytes = budget });
+            }
             if (intent is null)
             {
                 intent = new(1, identity.Id, identity.Snapshot.Id, Guid.NewGuid().ToString("N"),
-                    DateTimeOffset.UtcNow, before, cost.Measure("before-state-hash", old, old.StateHash));
+                    DateTimeOffset.UtcNow, before, stateHash);
                 cost.Measure("intent-publication", null, () => WriteIntent(intentPath, intent), flushCount: 1);
                 boundary?.Invoke("intent");
             }
-            else if (before != intent.Before || cost.Measure("before-state-hash", old, old.StateHash) != intent.StateHash)
-                throw new WorkspaceException("CompactionGenerationMismatch", "The source journal changed since compaction started.");
             if (intent.Candidate is null)
             {
                 // The unfinished candidate was never published. The authoritative
                 // journal and its seal have been verified before replacing it.
                 if (File.Exists(candidate)) File.Delete(candidate);
-                old.WriteCompactedCandidate(candidate, before, cost);
+                old.WriteCompactedCandidate(candidate, before, live!, estimated, cost);
                 boundary?.Invoke("candidate-flushed");
                 long candidateReplayStarted = Stopwatch.GetTimestamp();
                 using var check = new JournalDeltaStore(directory, identity, snapshot, CandidateName);
@@ -233,12 +251,9 @@ public sealed partial class JournalDeltaStore
         return live;
     }
 
-    private void WriteCompactedCandidate(string path, SnapshotDeltaSeal originalSeal, CompactionCostBuilder cost)
+    private void WriteCompactedCandidate(string path, SnapshotDeltaSeal originalSeal, List<LiveRange> live,
+        long estimated, CompactionCostBuilder cost)
     {
-        var live = cost.Measure("live-range-index", this, LiveRanges);
-        long estimated = cost.Measure("candidate-scan", this, () => WalkFrames(live, null));
-        if (estimated > Identity.MaxJournalBytes)
-            throw new WorkspaceException("DeltaFull", "The compacted generation exceeds this workspace journal budget.");
         string root = Path.GetPathRoot(Path.GetFullPath(path))!;
         // ConnectAsync also requires 2 GiB after the candidate is written.
         // Keep that mount headroom before switching generations.

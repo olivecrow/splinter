@@ -1,0 +1,1 @@
+{"date":"2026-09-26","doc":"verification/journal-compaction-peak-admission.md","change_type":"added","summary":"Record journal overlap budget automatic evidence","intent":"Preserve denial, retry and remaining real-path boundaries","related_files":["tests/Splinter.Tests/SnapshotOverlayTests.cs"]}

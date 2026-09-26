@@ -68,7 +68,30 @@ internal static class WorkspaceCommands
             }));
         });
         Bind(workspace, "status", null, (runtime, id, _) => runtime.StatusAsync(id, ct));
-        Bind(workspace, "compact", null, (runtime, id, _) => runtime.CompactAsync(id, ct));
+        var compact = new Command("compact", contracts.Find("workspace.compact")!.Description);
+        var compactId = new Option<string>("--id") { Required = true };
+        var maxEstimatedJournalOverlapBytes = new Option<long?>("--max-estimated-journal-overlap-bytes")
+        {
+            Description = "Optional ceiling for the estimated sum of old and candidate journal lengths; this is not a physical workspace peak limit."
+        };
+        compact.Options.Add(compactId); compact.Options.Add(maxEstimatedJournalOverlapBytes);
+        workspace.Subcommands.Add(compact);
+        compact.SetAction(async parse =>
+        {
+            const string command = "workspace.compact";
+            select(command);
+            string id = parse.GetValue(compactId)!;
+            long? budget = parse.GetValue(maxEstimatedJournalOverlapBytes);
+            if (!Validate(command, new { id, maxEstimatedJournalOverlapBytes = budget })) return;
+            WorkspaceView view;
+            try { view = await Runtime(parse).CompactAsync(id, ct, budget); }
+            catch (WorkspaceException ex) when (ex.Code == "CompactionOverlapBudgetExceeded")
+            {
+                throw new WorkspaceException(ex.Code, ex.Message, ex.Details,
+                    [new("workspace.status", new { id, home = Home(parse) })]);
+            }
+            respond(Result(command, view, false, Home(parse)));
+        });
         Bind(workspace, "checkpoint", "--message", (runtime, id, extra) => runtime.CheckpointAsync(id, extra!, ct));
         Bind(workspace, "integrate", "--target", (runtime, id, extra) => runtime.IntegrateAsync(id, extra ?? "development", ct));
         Bind(workspace, "release", null, (runtime, id, _) => runtime.ReleaseAsync(id, ct));

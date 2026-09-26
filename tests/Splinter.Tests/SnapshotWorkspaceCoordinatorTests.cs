@@ -22,15 +22,38 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         peerSource.Dirty = true;
         Assert.True((await Peer().StatusAsync(a, ct, verifySource: true)).Source!.HasChanges);
         Assert.True(peerBackend.Mounted);
-        var resumed = await f.New().CompactAsync(b, ct);
+        var resumed = await f.New().CompactAsync(b, ct, 1);
         Assert.Equal("ready", resumed.Workspace.Snapshot!.Step);
         Assert.NotNull(resumed.Workspace.Snapshot.Compaction);
         Assert.Contains(resumed.Workspace.Snapshot.Compaction.Cost!.Stages, stage => stage.Stage == "provider-reconnect");
         Assert.Contains(resumed.Workspace.Snapshot.Compaction.Cost!.Stages, stage => stage.Stage == "previous-generation-cleanup");
         Assert.Equal(1, f.Backend.CompactCalls); Assert.True(f.Backend.CompletedCompaction);
+        Assert.Equal([null], f.Backend.SeenOverlapBudgets);
         Assert.Equal(1, f.Backend.Captures); Assert.True(peerBackend.Mounted);
         await f.New().CompactAsync(b, ct);
         Assert.Equal(1, f.Backend.CompactCalls);
+    }
+
+    [Fact]
+    public async Task CompactionRetryKeepsBudgetUntilCallerExplicitlyRaisesIt()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        f.Backend.MinimumOverlap = 200;
+        Assert.Equal("CompactionOverlapBudgetExceeded", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            f.New().CompactAsync(id, ct, 120))).Code);
+        var pending = new WorkspaceStore(f.Home).Get(id).Snapshot!;
+        Assert.Equal("compact-write", pending.Step);
+        Assert.Equal(120, pending.PendingCompactionMaxEstimatedJournalOverlapBytes);
+        Assert.Equal("resume-compaction", (await f.New().StatusAsync(id, ct)).Recovery!.Disposition);
+        Assert.Equal("CompactionOverlapBudgetExceeded", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            f.New().CompactAsync(id, ct))).Code);
+        Assert.Equal([120L, 120L], f.Backend.SeenOverlapBudgets);
+
+        var completed = await f.New().CompactAsync(id, ct, 200);
+        Assert.Equal("ready", completed.Workspace.Snapshot!.Step);
+        Assert.Null(completed.Workspace.Snapshot.PendingCompactionMaxEstimatedJournalOverlapBytes);
+        Assert.Equal([120L, 120L, 200L], f.Backend.SeenOverlapBudgets);
     }
 
     [Fact]
@@ -444,6 +467,8 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         }
         public int Captures; public bool LoseCaptureReply, LoseMountReply, Mounted, DeltaRemoved, SnapshotReleased, WriteDuringUnmount, UnknownResources, LoseRemoveReply, KeepReleaseUnknown;
         public int CompactCalls; public bool Compacted, CompletedCompaction;
+        public long? MinimumOverlap;
+        public List<long?> SeenOverlapBudgets = [];
         public bool? Available = true;
         public string? LoseReleaseReply;
         private void FailOnce(string boundary) { if (LoseReleaseReply == boundary) { LoseReleaseReply = null; throw new WorkspaceException("ReplyLost", boundary); } }
@@ -466,8 +491,12 @@ public sealed class SnapshotWorkspaceCoordinatorTests
             Task.FromResult(new SnapshotDeltaSeal(sequence, Compacted ? 50 : 100, (Compacted ? "compact" : "hash") + sequence));
         public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { Mounted = false; if (Directory.Exists(w.Path)) Directory.Delete(w.Path); if (WriteDuringUnmount) sequence++; FailOnce("unmount"); return Task.CompletedTask; }
-        public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
-        { CompactCalls++; Compacted = true; return Task.FromResult(new SnapshotJournalCompaction("attempt", new(sequence, 100, "hash" + sequence),
+        public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default,
+            long? maxEstimatedJournalOverlapBytes = null)
+        { CompactCalls++; SeenOverlapBudgets.Add(maxEstimatedJournalOverlapBytes);
+          if (MinimumOverlap is { } minimum && maxEstimatedJournalOverlapBytes is { } budget && budget < minimum)
+              throw new WorkspaceException("CompactionOverlapBudgetExceeded", "Fake overlap budget exceeded.");
+          Compacted = true; return Task.FromResult(new SnapshotJournalCompaction("attempt", new(sequence, 100, "hash" + sequence),
             new(sequence, 50, "compact" + sequence), DateTimeOffset.UtcNow, 4096, 2048, 6144,
             new(Stopwatch.Frequency, 20, [new("candidate-scan", 10, 100, 0, 0)]))); }
         public Task CompleteCompactionAsync(WorkspaceRecord w, string c, CancellationToken ct = default)

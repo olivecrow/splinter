@@ -14,6 +14,7 @@ public sealed class SnapshotWorkspaceState
     public SnapshotResult? Result { get; set; }
     public SnapshotReclamation? Reclamation { get; set; }
     public SnapshotJournalCompaction? Compaction { get; set; }
+    public long? PendingCompactionMaxEstimatedJournalOverlapBytes { get; set; }
 }
 
 public sealed record SnapshotJournalCompaction(string AttemptId, SnapshotDeltaSeal Before, SnapshotDeltaSeal After,
@@ -100,7 +101,8 @@ public interface ISnapshotWorkspaceBackend
     // including writes later reverted. Flush and observe; do not mutate source.
     Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task UnmountAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
-    Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
+    Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default,
+        long? maxEstimatedJournalOverlapBytes = null);
     Task CompleteCompactionAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task RemoveDeltaAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task<SnapshotReclamation> ReleaseSnapshotAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);

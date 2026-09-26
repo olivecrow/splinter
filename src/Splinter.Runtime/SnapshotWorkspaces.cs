@@ -227,8 +227,11 @@ public sealed partial class WorkspaceCoordinator
         w.ReleasedResources = app.Resources;
     }
 
-    public async Task<WorkspaceView> CompactAsync(string id, CancellationToken ct = default)
+    public async Task<WorkspaceView> CompactAsync(string id, CancellationToken ct = default,
+        long? maxEstimatedJournalOverlapBytes = null)
     {
+        if (maxEstimatedJournalOverlapBytes is <= 0)
+            throw new WorkspaceException("InvalidCompactionBudget", "The estimated journal overlap budget must be positive.");
         using var gate = await store.LockAsync(id, ct);
         var w = store.Get(id);
         if (w.StorageMode != "ntfs-snapshot")
@@ -256,7 +259,16 @@ public sealed partial class WorkspaceCoordinator
                 if (state.Compaction is { } completed &&
                     await Snapshots.SealAsync(w, control, ct) == completed.After)
                     return await ViewAsync(w, ct);
+                state.PendingCompactionMaxEstimatedJournalOverlapBytes = maxEstimatedJournalOverlapBytes;
                 SnapshotStep(w, "compact-unmount");
+            }
+            else if (state.Step == "compact-unmount" || state.Step == "compact-write")
+            {
+                if (maxEstimatedJournalOverlapBytes is not null)
+                {
+                    state.PendingCompactionMaxEstimatedJournalOverlapBytes = maxEstimatedJournalOverlapBytes;
+                    SnapshotStep(w, state.Step);
+                }
             }
             if (state.Step == "compact-unmount")
             {
@@ -274,7 +286,8 @@ public sealed partial class WorkspaceCoordinator
             if (state.Step == "compact-write")
             {
                 await Snapshots.VerifyConnectionAsync(w, control, ct);
-                state.Compaction = await Snapshots.CompactAsync(w, control, ct);
+                state.Compaction = await Snapshots.CompactAsync(w, control, ct,
+                    state.PendingCompactionMaxEstimatedJournalOverlapBytes);
                 SnapshotStep(w, "compact-connect");
             }
             if (state.Step == "compact-connect")
@@ -291,6 +304,7 @@ public sealed partial class WorkspaceCoordinator
                             state.Observation?.Storage?.Metrics?.ReplayBytes ?? 0, 0, 0),
                         new("previous-generation-cleanup", cleanupTicks, 0, 0, 0)] } };
                 w.Validation = null; w.PendingValidationId = null; w.PendingFingerprint = null;
+                state.PendingCompactionMaxEstimatedJournalOverlapBytes = null;
                 w.Phase = "ready"; w.LastError = null;
                 SnapshotStep(w, "ready");
             }

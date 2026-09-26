@@ -8,6 +8,7 @@
 | [스냅샷 지연 회수 1차](plans/deferred-snapshot-reclamation.md) / [검증](verification/deferred-snapshot-reclamation.md) | 결과 보존과 회수 대기, 같은 workspace의 명시적 재시도, helper 응답 재개와 공유 볼륨 공간 관측 범위를 확인할 때 |
 | [SF-02 저널 공간 정리 1차](plans/journal-compaction-first-milestone.md) / [검증](verification/journal-compaction.md) | 명시적 NTFS 저널 정리의 확정 범위, 자동 중단 재개·실제 할당·Unity 제한 회귀와 남은 지원 경계를 확인할 때 |
 | [SF-02 Unity·전체 공간 비용 범위](plans/journal-compaction-qualification-and-cost.md) / [검증](verification/journal-compaction-qualification-and-cost.md) | 빈 폴더 WinFsp 열거와 작은 Unity 재개·로드 코드, 추가 공간 peak·단계별 비용·결과 회수의 실제 판정과 제한을 확인할 때 |
+| [SF-02 명시적 정리 중첩량 예산](plans/journal-compaction-peak-admission.md) / [검증](verification/journal-compaction-peak-admission.md) | 후보 쓰기 전 예상 저널 중첩량 예산과 거부·같은 작업 재시도 계약, 물리 peak와의 경계를 확인할 때 |
 | [공통 저장소 개선 1차](plans/storage-foundation-first-milestone.md) | 확정 범위·완료 조건과 구현 결과, 기존 VSS 보존 실패로 남은 마감 조건을 확인할 때 |
 | [변경 기반 소스 검증과 계측](source-verification.md) | 파일 hash/manifest·provider 세대·audit 복구·계수와 읽기 전용 물리 할당 계측 스크립트를 사용할 때 |
 | [공통 저장소 실제 검증](verification/storage-foundation.md) | SF-01·SF-02 하위 결과, 읽기/공간 장부·Unity A/B·기존 VSS 소실과 자동 해제 차단의 미검증 경계를 확인할 때 |

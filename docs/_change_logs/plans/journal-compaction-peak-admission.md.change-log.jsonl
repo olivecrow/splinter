@@ -1,0 +1,1 @@
+{"date":"2026-09-26","doc":"plans/journal-compaction-peak-admission.md","change_type":"added","summary":"Define bounded journal overlap admission milestone","intent":"Control two-generation space before a candidate is written","related_files":["docs/verification/journal-compaction-qualification-and-cost.md"]}

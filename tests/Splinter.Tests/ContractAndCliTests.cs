@@ -362,9 +362,34 @@ public sealed class ContractAndCliTests
         using (var valid = JsonDocument.Parse(response.ToJsonString()))
             Assert.True(contracts.Validate("urn:splinter:v1:response", valid.RootElement).IsValid);
 
+        var snapshot = response["data"]!["workspace"]!["snapshot"]!;
+        snapshot["step"] = "compact-write";
+        snapshot["pendingCompactionMaxEstimatedJournalOverlapBytes"] = 1024;
+        using (var pending = JsonDocument.Parse(response.ToJsonString()))
+            Assert.True(contracts.Validate("urn:splinter:v1:response", pending.RootElement).IsValid);
+        snapshot["pendingCompactionMaxEstimatedJournalOverlapBytes"] = 0;
+        using (var invalidPending = JsonDocument.Parse(response.ToJsonString()))
+            Assert.False(contracts.Validate("urn:splinter:v1:response", invalidPending.RootElement).IsValid);
+        snapshot["pendingCompactionMaxEstimatedJournalOverlapBytes"] = 1024;
         response["data"]!["workspace"]!["snapshot"]!["compaction"]!["cost"]!["stages"]![0]!["readBytes"] = -1;
         using var invalid = JsonDocument.Parse(response.ToJsonString());
         Assert.False(contracts.Validate("urn:splinter:v1:response", invalid.RootElement).IsValid);
+    }
+
+    [Fact]
+    public async Task CompactCliValidatesEstimatedOverlapBudgetBeforeOpeningWorkspace()
+    {
+        const string id = "000000000000000000000000";
+        using var directory = new TestDirectory();
+        var (invalidExit, invalid) = await Run("workspace", "compact", "--id", id,
+            "--max-estimated-journal-overlap-bytes", "0", "--home", directory.Path);
+        Assert.Equal(2, invalidExit);
+        Assert.Equal("SchemaValidationFailed", invalid.GetProperty("error").GetProperty("code").GetString());
+
+        var (validExit, valid) = await Run("workspace", "compact", "--id", id,
+            "--max-estimated-journal-overlap-bytes", "12345", "--home", directory.Path);
+        Assert.Equal(2, validExit);
+        Assert.NotEqual("SchemaValidationFailed", valid.GetProperty("error").GetProperty("code").GetString());
     }
 
     private async Task<(int ExitCode, JsonElement Response)> Run(params string[] args)
