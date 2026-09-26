@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Splinter.Core;
 
 namespace Splinter.Runtime;
@@ -278,8 +279,17 @@ public sealed partial class WorkspaceCoordinator
             }
             if (state.Step == "compact-connect")
             {
+                long reconnectStarted = Stopwatch.GetTimestamp();
                 await ConnectSnapshotAsync(w, ct);
+                long reconnectTicks = Stopwatch.GetTimestamp() - reconnectStarted;
+                long cleanupStarted = Stopwatch.GetTimestamp();
                 await Snapshots.CompleteCompactionAsync(w, control, ct);
+                long cleanupTicks = Stopwatch.GetTimestamp() - cleanupStarted;
+                if (state.Compaction?.Cost is { } cost)
+                    state.Compaction = state.Compaction with { Cost = cost with { Stages = [.. cost.Stages,
+                        new("provider-reconnect", reconnectTicks,
+                            state.Observation?.Storage?.Metrics?.ReplayBytes ?? 0, 0, 0),
+                        new("previous-generation-cleanup", cleanupTicks, 0, 0, 0)] } };
                 w.Validation = null; w.PendingValidationId = null; w.PendingFingerprint = null;
                 w.Phase = "ready"; w.LastError = null;
                 SnapshotStep(w, "ready");

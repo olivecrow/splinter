@@ -20,6 +20,7 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     private int handles;
     private int contexts;
     private sealed class HandleContext { public int Cleaned; }
+    private sealed record DirectoryListingItem(string Name, DeltaEntry Entry);
     public int OpenHandles => Volatile.Read(ref handles);
     public int RetainedFileContexts => Volatile.Read(ref contexts);
     public WinFspOverlayFileSystem(IWorkspaceDeltaStore store, Action<Exception>? report = null)
@@ -206,21 +207,38 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     public override bool ReadDirectoryEntry(object fileNode, object fileDesc, string pattern, string marker,
         ref object context, out string fileName, out FileInfo fileInfo)
     {
-        if (context is not IEnumerator<DeltaEntry> iterator)
+        if (context is not IEnumerator<DirectoryListingItem> iterator)
         {
             var entry = store.Get((Guid)fileNode);
-            iterator = store.List(entry.Path).Where(e => marker is null || StringComparer.OrdinalIgnoreCase.Compare(Name(e.Path), marker) > 0).GetEnumerator();
+            var listing = new List<DirectoryListingItem>();
+            if (entry.Path.Length != 0)
+            {
+                string parentPath = Parent(entry.Path);
+                listing.Add(new(".", entry));
+                listing.Add(new("..", store.Stat(parentPath)!));
+            }
+            listing.AddRange(store.List(entry.Path).Select(child => new DirectoryListingItem(Name(child.Path), child)));
+            iterator = listing.Where(item => marker is null || StringComparer.OrdinalIgnoreCase.Compare(item.Name, marker) > 0)
+                .GetEnumerator();
             context = iterator;
         }
-        if (iterator.MoveNext()) { fileName = Name(iterator.Current.Path); fileInfo = Info(iterator.Current); return true; }
+        if (iterator.MoveNext()) { fileName = iterator.Current.Name; fileInfo = Info(iterator.Current.Entry); return true; }
         fileName = null!; fileInfo = default; return false;
     }
     public override int GetDirInfoByName(object fileNode, object fileDesc, string fileName, out string normalizedName, out FileInfo fileInfo)
     {
-        var parent = store.Get((Guid)fileNode); var entry = store.Stat(parent.Path + "/" + fileName);
+        var parent = store.Get((Guid)fileNode);
+        var entry = fileName switch
+        {
+            "." when parent.Path.Length != 0 => parent,
+            ".." when parent.Path.Length != 0 => store.Stat(Parent(parent.Path)),
+            _ => store.Stat(parent.Path + "/" + fileName)
+        };
         normalizedName = fileName; fileInfo = default;
         if (entry is null) return STATUS_OBJECT_NAME_NOT_FOUND;
-        normalizedName = Name(entry.Path); fileInfo = Info(entry); return STATUS_SUCCESS;
+        normalizedName = fileName is "." or ".." ? fileName : Name(entry.Path);
+        fileInfo = Info(entry); return STATUS_SUCCESS;
     }
+    private static string Parent(string path) => path[..Math.Max(0, path.LastIndexOf('/'))];
     private static string Name(string path) => path[(path.LastIndexOf('/') + 1)..];
 }

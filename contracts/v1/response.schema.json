@@ -311,6 +311,28 @@
       "if": {
         "properties": {
           "command": {
+            "const": "workspace.compact"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/workspaceView"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
             "const": "workspace.checkpoint"
           },
           "status": {
@@ -2059,7 +2081,31 @@
             "startedAt": { "type": "string", "format": "date-time" },
             "beforeAllocatedBytes": { "type": "integer", "minimum": 0 },
             "afterAllocatedBytes": { "type": "integer", "minimum": 0 },
-            "peakTemporaryAllocatedBytes": { "type": "integer", "minimum": 0 }
+            "peakTemporaryAllocatedBytes": { "type": "integer", "minimum": 0 },
+            "cost": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "stopwatchFrequency": { "type": "integer", "minimum": 1 },
+                "totalTicks": { "type": "integer", "minimum": 0 },
+                "stages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "stage": { "type": "string", "minLength": 1 },
+                      "elapsedTicks": { "type": "integer", "minimum": 0 },
+                      "readBytes": { "type": "integer", "minimum": 0 },
+                      "writtenBytes": { "type": "integer", "minimum": 0 },
+                      "flushCount": { "type": "integer", "minimum": 0 }
+                    },
+                    "required": ["stage", "elapsedTicks", "readBytes", "writtenBytes", "flushCount"]
+                  }
+                }
+              },
+              "required": ["stopwatchFrequency", "totalTicks", "stages"]
+            }
           },
           "required": ["attemptId", "before", "after", "startedAt"]
         }

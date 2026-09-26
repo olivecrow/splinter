@@ -86,6 +86,13 @@ public sealed class SnapshotOverlayTests
         Assert.Equal(0, tree.ReadBytes);
         Assert.True(compacted.After.JournalBytes < original / 10);
         Assert.Equal(compacted.Before.DurableSequence, compacted.After.DurableSequence);
+        Assert.NotNull(compacted.Cost);
+        Assert.True(compacted.Cost.TotalTicks > 0);
+        Assert.Contains(compacted.Cost.Stages, stage => stage.Stage == "candidate-scan" && stage.ReadBytes > 0);
+        Assert.Contains(compacted.Cost.Stages, stage => stage.Stage == "candidate-write" &&
+            stage.WrittenBytes == compacted.After.JournalBytes);
+        Assert.Contains(compacted.Cost.Stages, stage => stage.Stage == "candidate-flush" && stage.FlushCount == 1);
+        Assert.Contains(compacted.Cost.Stages, stage => stage.Stage == "candidate-replay" && stage.ReadBytes > 0);
         using (var resumed = new JournalDeltaStore(delta, identity, tree))
         {
             byte[] actual = new byte[4096];

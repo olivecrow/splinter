@@ -18,6 +18,8 @@ VSS capture/release와 정확한 live ID를 확인하는 Observe helper에는 �
 
 `SnapshotPrivilegeRequired` 응답은 helper 실행이 필요하다는 뜻이며 UAC 창 표시나 snapshot 생성의 증거가 아니다. 외부 실행자가 승격을 요청했다면 그 소유 프로세스의 종료 상태와 `capture-intent.json`·`capture-return.json`·`snapshot.json`·`operation-result.json`을 대조한다. 사용자에게 창이 보이지 않으면 대기 상태만으로 확인 버튼을 반복 요청하지 않는다. 기존 helper가 아직 실행 중이거나 캡처 부작용을 판정할 수 없을 때는 중복 helper/새 캡처를 시작하지 않고 기존 기록을 보존한다.
 
+WinFsp 디렉터리 열거는 루트 이외의 디렉터리에 실제 디렉터리 정보와 함께 `.`·`..` 항목 및 marker 기반 재개 순서를 제공한다. 빈 하위 디렉터리도 Win32 `FindFirstFileW(<dir>\*)`로 열거할 수 있다. 이 항목은 overlay의 파일이나 저널 기록이 아니다. [작은 Unity 실환경 회귀](verification/journal-compaction-qualification-and-cost.md)는 수정 전 빈 폴더 열거 실패와 수정 후 성공을 대조했다.
+
 ## 일반 CLI 흐름
 
 아래 `splinter`는 제품 저장소에서 `pwsh ./scripts/splinter.ps1`이다. 빌드는 `pwsh ./scripts/build.ps1`로 한다. `--home`은 원본 프로젝트 밖의 같은 지속 상태 경로를 모든 작업자가 공유한다.
@@ -44,7 +46,7 @@ NTFS refresh는 incremental compilation을 요청한다. 일반 제품의 전체
 
 압축은 살아 있는 범위만 chunk 단위로 다시 기록하고 연속된 무효 쓰기의 기록을 하나의 sequence 구간으로 묶는다. whiteout·rename·truncate·`.meta`와 변경 경로를 재생 대조하며 파일 전체를 copy-up하거나 기준 파일을 읽어 채우지 않는다. 새 후보는 같은 디렉터리에 flush하고 checksum·전체 재생 상태를 확인한 뒤 원자적으로 게시한다. `delta.journal.previous`는 새 세대의 mount 재연결과 seal이 확인될 때까지 남긴다. `compaction-intent.json`과 후보/이전 세대의 소유·hash가 맞지 않거나 내용이 손상되면 파일을 보존하고 `preserve`로 중단한다. 준비·게시·재연결 중 끊기면 같은 ID/home의 `workspace compact`로 `resume-compaction`을 진행한다. 자동 sweep이나 다른 workspace·snapshot 회수와 연결하지 않는다.
 
-`snapshot.compaction`에는 attempt, 전후 sequence/길이/SHA-256 seal, 전후 NTFS 파일 할당과 두 저널 세대가 함께 있던 전환 지점의 할당 합계를 기록한다. 이 합계는 control/identity/Git/Library와 표본 사이 임시 최고치를 포함한 전체 작업공간 peak가 아니다. 후보를 쓸 여유와 재연결의 2 GiB 하한이 없거나 계산한 후보가 journal budget을 넘으면 기존 세대를 보존한다. VSS 사용량은 볼륨 공유 관측이며 작업별 절감으로 귀속하지 않는다. 현재 구현은 범위 재기록이며 일반 목적 payload 압축이나 쓰기마다 수행하는 flush 정책 변경이 아니다. [실행 범위와 수치](verification/journal-compaction.md)를 따른다.
+`snapshot.compaction`에는 attempt, 전후 sequence/길이/SHA-256 seal, 전후 NTFS 파일 할당과 두 저널 세대가 함께 있던 전환 지점의 할당 합계를 기록한다. 새 시도의 `cost`는 `stopwatchFrequency`·`totalTicks`와 stage별 `elapsedTicks`·`readBytes`·`writtenBytes`·`flushCount`를 제공한다. stage에는 원본 replay/seal/상태 hash, 후보 scan/write/flush/replay/seal, 세대 게시·검증, provider 재연결·이전 세대 정리가 들어간다. `totalTicks`는 오프라인 저널 정리 호출만 재며 재연결·이전 세대 정리는 별도 stage다. 이미 게시된 세대를 확인만 하는 재시도에는 `cost`가 없을 수 있고, 누락은 0 비용이 아니다. 두 세대 할당 합계와 stage 표본은 control/identity/Git/Library를 포함한 전체 작업공간 peak가 아니다. 후보를 쓸 여유와 재연결의 2 GiB 하한이 없거나 계산한 후보가 journal budget을 넘으면 기존 세대를 보존한다. VSS 사용량은 볼륨 공유 관측이며 작업별 절감으로 귀속하지 않는다. 현재 구현은 범위 재기록이며 일반 목적 payload 압축이나 쓰기마다 수행하는 flush 정책 변경이 아니다. [정리 1차](verification/journal-compaction.md)와 [Unity 재개·공간 비용](verification/journal-compaction-qualification-and-cost.md)을 따른다.
 
 일반 status는 앱/provider와 새 검증 응답을 조회하며 매번 프로젝트 파일을 읽지 않는다. 대기 중이던 검증 응답이 도착하면 소스를 한 번 읽어 fingerprint를 대조하고 결과를 저장한다. `data.sourceVerification=verified`인 응답에는 `source`와 `validationCurrent`가 있으며, 검증 성공은 `workspace.validation.success=true`와 `validationCurrent=true`를 함께 확인한다. `not-checked` 응답에는 두 필드를 생략한다. 이때 남아 있는 `workspace.validation`은 이전 증거이며 현재 파일 상태의 보증이 아니다. 현재 소스를 명시적으로 확인하려면 `workspace status --id <id> --verify-source`를 사용한다. checkpoint/integrate의 사전 확인은 항상 소스를 다시 읽는다.
 

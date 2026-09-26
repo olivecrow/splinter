@@ -83,7 +83,7 @@ Splinter는 각 대화의 AI가 필요할 때 독립 작업공간을 확보하�
 | 항목 | 이후 진행 조건 |
 | --- | --- |
 | VSS 보존·회수 | 격리 재현·실제 차단은 정의한 조건에서 완료. [지연 회수 1차](deferred-snapshot-reclamation.md)에서 결과 보존과 snapshot 삭제 시점을 분리하는 대기 상태·명시적 재시도·공유 공간 관측을 연결. 기존 snapshot 삭제로 우회하지 않음 |
-| SF-02의 저널 공간 정리·내구성 정책 최적화 | [다음 범위](journal-compaction-first-milestone.md)는 누적량·지연 기준선으로 대체된 범위의 할당 회수, 임시 공간·이전 세대·중단 복구를 검증. flush 정책 변경은 별도 후속 |
+| SF-02의 저널 공간 정리·내구성 정책 최적화 | [명시적 정리](journal-compaction-first-milestone.md)를 구현하고 [작은 Unity 재개·공간 비용](../verification/journal-compaction-qualification-and-cost.md)을 검증했다. 두 세대 겹침과 후속 쓰기 때문에 전체 공간 목표는 미달; flush 정책 변경은 별도 후속 |
 | SF-03 단일 Editor A/B/A 후보 전환 | 공통 저장소 1차 결과 뒤 작은 후보 실험. 불변 후보·고정 검증 view·원복·Library 정합성·소스 결과 반환 계약부터 정의 |
 | SF-04~06·100GB 실사용·기본 실행 방식 선택 | 앞선 결과와 입력 적합성을 바탕으로 별도 자원/시간 범위 확정. 단일 Editor 채택은 아직 미결정 |
 | SW-01~10 설치·자동 binding·명시적 discard | 저장소/실행 계약 판단 후 별도 구현. 보존형 release와 구별 |

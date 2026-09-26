@@ -1,6 +1,6 @@
 # SF-02 저널 정리의 Unity 관문과 전체 공간 비용 검증
 
-상태: **범위 확정, 구현·실행 NotRun**. 우선순위는 대형 Unity 프로젝트의 작업공간 용량 부담 확인이다. 이 계획은 [명시적 저널 정리 1차](journal-compaction-first-milestone.md)의 남은 검증만 좁혀 다룬다. [기존 실행](../verification/journal-compaction.md)은 합성 저널 할당을 454,656B에서 49,152B로, 작은 Unity 저널 할당을 2,347,147,264B에서 1,721,651,200B로 줄였다. 둘 다 같은 `durable sequence`를 유지했다. Unity에서는 `Library/ScriptAssemblies`의 `FileNotFoundException`으로 브리지 준비와 스크립트 검증이 실패했고, 전체 작업공간 최고 물리 할당과 저널 단계별 비용은 측정하지 못했다. SF-02 전체는 계속 Partial이다.
+상태: **정의한 작은 fixture의 실행 완료, 제한 유지**. 실제 QJ-01~04 판정과 원시 증거는 [검증 기록](../verification/journal-compaction-qualification-and-cost.md)을 따른다. 우선순위는 대형 Unity 프로젝트의 작업공간 용량 부담 확인이다. 이 계획은 [명시적 저널 정리 1차](journal-compaction-first-milestone.md)의 남은 검증만 좁혀 다룬다. [기존 실행](../verification/journal-compaction.md)은 합성 저널 할당을 454,656B에서 49,152B로, 작은 Unity 저널 할당을 2,347,147,264B에서 1,721,651,200B로 줄였다. 둘 다 같은 `durable sequence`를 유지했다. 당시 Unity에서는 `Library/ScriptAssemblies`의 `FileNotFoundException`으로 브리지 준비와 스크립트 검증이 실패했고, 전체 작업공간 최고 물리 할당과 저널 단계별 비용은 측정하지 못했다. SF-02 전체는 계속 Partial이다.
 
 ## 이번 실행의 범위
 

@@ -339,6 +339,34 @@ public sealed class ContractAndCliTests
         Assert.False(contracts.Validate("urn:splinter:v1:response", invalid.RootElement).IsValid);
     }
 
+    [Fact]
+    public void CompactResponseCostMustMatchTheWorkspaceContract()
+    {
+        var response = JsonNode.Parse("""
+            {"schemaVersion":"1.0","requestId":"00000000000000000000000000000000",
+             "command":"workspace.compact","status":"Succeeded","terminal":true,
+             "retryDisposition":"not-needed","nextActions":[],
+             "data":{"workspace":{"id":"000000000000000000000000","requestKey":"test",
+                 "projectPath":"P:","path":"W:","sourceReference":"development",
+                 "baseReference":"development","phase":"ready","createdAt":"2026-09-26T00:00:00Z",
+                 "updatedAt":"2026-09-26T00:00:00Z","storageMode":"ntfs-snapshot","requestDigest":"test",
+                 "snapshot":{"maxJournalBytes":4096,"attached":false,"step":"ready",
+                     "compaction":{"attemptId":"test","startedAt":"2026-09-26T00:00:00Z",
+                         "before":{"durableSequence":1,"journalBytes":4096,"journalHash":"before"},
+                         "after":{"durableSequence":1,"journalBytes":2048,"journalHash":"after"},
+                         "cost":{"stopwatchFrequency":10000000,"totalTicks":100,
+                             "stages":[{"stage":"candidate-write","elapsedTicks":50,
+                                 "readBytes":4096,"writtenBytes":2048,"flushCount":0}]}}}},
+                 "controlPath":"control","nextCommand":"workspace.status","isolation":"snapshot"}}
+            """)!;
+        using (var valid = JsonDocument.Parse(response.ToJsonString()))
+            Assert.True(contracts.Validate("urn:splinter:v1:response", valid.RootElement).IsValid);
+
+        response["data"]!["workspace"]!["snapshot"]!["compaction"]!["cost"]!["stages"]![0]!["readBytes"] = -1;
+        using var invalid = JsonDocument.Parse(response.ToJsonString());
+        Assert.False(contracts.Validate("urn:splinter:v1:response", invalid.RootElement).IsValid);
+    }
+
     private async Task<(int ExitCode, JsonElement Response)> Run(params string[] args)
     {
         using var output = new StringWriter();

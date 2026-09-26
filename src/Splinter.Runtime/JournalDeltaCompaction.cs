@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -19,9 +20,39 @@ public sealed partial class JournalDeltaStore
     private const string BackupName = "delta.journal.previous";
     private const string IntentName = "compaction-intent.json";
 
+    private sealed class CompactionCostBuilder
+    {
+        private readonly List<SnapshotCompactionStageCost> stages = [];
+        public void Add(string stage, long elapsedTicks, long readBytes = 0, long writtenBytes = 0, int flushCount = 0) =>
+            stages.Add(new(stage, elapsedTicks, readBytes, writtenBytes, flushCount));
+        public T Measure<T>(string stage, JournalDeltaStore? reader, Func<T> action,
+            Func<T, long>? directReadBytes = null, Func<T, long>? writtenBytes = null, int flushCount = 0)
+        {
+            long beforeRead = reader?.journalReadBytes ?? 0;
+            long started = Stopwatch.GetTimestamp();
+            T result = action();
+            Add(stage, Stopwatch.GetTimestamp() - started,
+                (reader?.journalReadBytes ?? 0) - beforeRead + (directReadBytes?.Invoke(result) ?? 0),
+                writtenBytes?.Invoke(result) ?? 0, flushCount);
+            return result;
+        }
+        public void Measure(string stage, JournalDeltaStore? reader, Action action,
+            long directReadBytes = 0, int flushCount = 0)
+        {
+            long beforeRead = reader?.journalReadBytes ?? 0;
+            long started = Stopwatch.GetTimestamp();
+            action();
+            Add(stage, Stopwatch.GetTimestamp() - started,
+                (reader?.journalReadBytes ?? 0) - beforeRead + directReadBytes, 0, flushCount);
+        }
+        public SnapshotCompactionCost Build(long totalTicks) => new(Stopwatch.Frequency, totalTicks, [.. stages]);
+    }
+
     public static SnapshotJournalCompaction CompactDirectory(string directory, OverlayIdentity identity, ISnapshotTree snapshot,
         Action<string>? boundary = null)
     {
+        long totalStarted = Stopwatch.GetTimestamp();
+        var cost = new CompactionCostBuilder();
         string current = Path.Combine(directory, "delta.journal"), candidate = Path.Combine(directory, CandidateName);
         string backup = Path.Combine(directory, BackupName), intentPath = Path.Combine(directory, IntentName);
         if (!File.Exists(current)) throw new WorkspaceException("DeltaMissing", "Preserve the workspace: its journal is missing.");
@@ -42,40 +73,48 @@ public sealed partial class JournalDeltaStore
             throw new WorkspaceException("CompactionGenerationMismatch", "The active journal differs from its compaction intent; preserve every generation.");
         if (File.Exists(backup))
             throw new WorkspaceException("CompactionGenerationMismatch", "An unverified previous journal exists; preserve it.");
+        long replayStarted = Stopwatch.GetTimestamp();
         using (var old = new JournalDeltaStore(directory, identity, snapshot))
         {
-            var before = old.SealCurrent();
+            cost.Add("source-replay", Stopwatch.GetTimestamp() - replayStarted, old.replayBytes);
+            var before = cost.Measure("before-seal", old, old.SealCurrent, directReadBytes: _ => old.journal.Length);
             if (intent is null)
             {
                 intent = new(1, identity.Id, identity.Snapshot.Id, Guid.NewGuid().ToString("N"),
-                    DateTimeOffset.UtcNow, before, old.StateHash());
-                WriteIntent(intentPath, intent);
+                    DateTimeOffset.UtcNow, before, cost.Measure("before-state-hash", old, old.StateHash));
+                cost.Measure("intent-publication", null, () => WriteIntent(intentPath, intent), flushCount: 1);
                 boundary?.Invoke("intent");
             }
-            else if (before != intent.Before || old.StateHash() != intent.StateHash)
+            else if (before != intent.Before || cost.Measure("before-state-hash", old, old.StateHash) != intent.StateHash)
                 throw new WorkspaceException("CompactionGenerationMismatch", "The source journal changed since compaction started.");
             if (intent.Candidate is null)
             {
                 // The unfinished candidate was never published. The authoritative
                 // journal and its seal have been verified before replacing it.
                 if (File.Exists(candidate)) File.Delete(candidate);
-                old.WriteCompactedCandidate(candidate, before);
+                old.WriteCompactedCandidate(candidate, before, cost);
                 boundary?.Invoke("candidate-flushed");
+                long candidateReplayStarted = Stopwatch.GetTimestamp();
                 using var check = new JournalDeltaStore(directory, identity, snapshot, CandidateName);
-                if (check.StateHash() != intent.StateHash || check.sequence != old.sequence)
+                cost.Add("candidate-replay", Stopwatch.GetTimestamp() - candidateReplayStarted, check.replayBytes);
+                if (cost.Measure("candidate-state-hash", check, check.StateHash) != intent.StateHash || check.sequence != old.sequence)
                     throw new WorkspaceException("CompactionStateMismatch", "Candidate replay differs from the active journal; preserve both.");
-                intent = intent with { Candidate = check.SealCurrent() };
-                WriteIntent(intentPath, intent);
+                intent = intent with { Candidate = cost.Measure("candidate-seal", check, check.SealCurrent,
+                    directReadBytes: _ => check.journal.Length) };
+                cost.Measure("prepared-intent-publication", null, () => WriteIntent(intentPath, intent), flushCount: 1);
                 boundary?.Invoke("prepared");
             }
         }
         if (intent.Candidate is not { } proposed || !Matches(candidate, proposed))
             throw new WorkspaceException("CompactionCandidateMismatch", "The prepared candidate is missing or changed; preserve the original journal.");
-        File.Replace(candidate, current, backup);
+        cost.Measure("generation-publication", null, () => File.Replace(candidate, current, backup));
         boundary?.Invoke("published");
-        if (!Matches(current, proposed) || !Matches(backup, intent.Before))
+        bool publishedMatches = cost.Measure("published-generation-verify", null,
+            () => Matches(current, proposed) && Matches(backup, intent.Before),
+            directReadBytes: _ => proposed.JournalBytes + intent.Before.JournalBytes);
+        if (!publishedMatches)
             throw new WorkspaceException("CompactionGenerationMismatch", "The generation switch is uncertain; preserve all remaining files.");
-        return Receipt(intent);
+        return Receipt(intent) with { Cost = cost.Build(Stopwatch.GetTimestamp() - totalStarted) };
     }
 
     public static void CompleteCompaction(string directory, OverlayIdentity identity)
@@ -194,10 +233,10 @@ public sealed partial class JournalDeltaStore
         return live;
     }
 
-    private void WriteCompactedCandidate(string path, SnapshotDeltaSeal originalSeal)
+    private void WriteCompactedCandidate(string path, SnapshotDeltaSeal originalSeal, CompactionCostBuilder cost)
     {
-        var live = LiveRanges();
-        long estimated = WalkFrames(live, null);
+        var live = cost.Measure("live-range-index", this, LiveRanges);
+        long estimated = cost.Measure("candidate-scan", this, () => WalkFrames(live, null));
         if (estimated > Identity.MaxJournalBytes)
             throw new WorkspaceException("DeltaFull", "The compacted generation exceeds this workspace journal budget.");
         string root = Path.GetPathRoot(Path.GetFullPath(path))!;
@@ -208,12 +247,12 @@ public sealed partial class JournalDeltaStore
             throw new WorkspaceException("CompactionHeadroomRequired", "Free space cannot hold the compacted generation and safety headroom.");
         using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536))
         {
-            long actual = WalkFrames(live, output);
+            long actual = cost.Measure("candidate-write", this, () => WalkFrames(live, output), writtenBytes: bytes => bytes);
             if (actual != estimated || output.Length != actual)
                 throw new WorkspaceException("CompactionCandidateMismatch", "Candidate length changed during compaction.");
-            output.Flush(true);
+            cost.Measure("candidate-flush", null, () => output.Flush(true), flushCount: 1);
         }
-        if (SealCurrent() != originalSeal)
+        if (cost.Measure("after-source-seal", this, SealCurrent, directReadBytes: _ => journal.Length) != originalSeal)
             throw new WorkspaceException("CompactionGenerationMismatch", "The original journal changed during compaction.");
     }
 

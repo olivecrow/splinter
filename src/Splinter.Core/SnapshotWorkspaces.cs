@@ -18,7 +18,14 @@ public sealed class SnapshotWorkspaceState
 
 public sealed record SnapshotJournalCompaction(string AttemptId, SnapshotDeltaSeal Before, SnapshotDeltaSeal After,
     DateTimeOffset StartedAt, long? BeforeAllocatedBytes = null, long? AfterAllocatedBytes = null,
-    long? PeakTemporaryAllocatedBytes = null);
+    long? PeakTemporaryAllocatedBytes = null, SnapshotCompactionCost? Cost = null);
+
+// Direct per-attempt measurements. A retry that only verifies an already
+// published generation may have no cost receipt; absence is not zero work.
+public sealed record SnapshotCompactionCost(long StopwatchFrequency, long TotalTicks,
+    SnapshotCompactionStageCost[] Stages);
+public sealed record SnapshotCompactionStageCost(string Stage, long ElapsedTicks,
+    long ReadBytes, long WrittenBytes, int FlushCount);
 
 public sealed record SnapshotWorkspaceObservation(bool? SnapshotAvailable, bool Mounted, bool ProviderAlive,
     bool OwnershipVerified, int? OpenHandles, long? WorkingSetBytes, long? PrivateBytes,

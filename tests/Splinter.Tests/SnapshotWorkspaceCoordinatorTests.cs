@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Splinter.Core;
 using Splinter.Runtime;
 
@@ -24,6 +25,8 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         var resumed = await f.New().CompactAsync(b, ct);
         Assert.Equal("ready", resumed.Workspace.Snapshot!.Step);
         Assert.NotNull(resumed.Workspace.Snapshot.Compaction);
+        Assert.Contains(resumed.Workspace.Snapshot.Compaction.Cost!.Stages, stage => stage.Stage == "provider-reconnect");
+        Assert.Contains(resumed.Workspace.Snapshot.Compaction.Cost!.Stages, stage => stage.Stage == "previous-generation-cleanup");
         Assert.Equal(1, f.Backend.CompactCalls); Assert.True(f.Backend.CompletedCompaction);
         Assert.Equal(1, f.Backend.Captures); Assert.True(peerBackend.Mounted);
         await f.New().CompactAsync(b, ct);
@@ -465,7 +468,8 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         { Mounted = false; if (Directory.Exists(w.Path)) Directory.Delete(w.Path); if (WriteDuringUnmount) sequence++; FailOnce("unmount"); return Task.CompletedTask; }
         public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { CompactCalls++; Compacted = true; return Task.FromResult(new SnapshotJournalCompaction("attempt", new(sequence, 100, "hash" + sequence),
-            new(sequence, 50, "compact" + sequence), DateTimeOffset.UtcNow, 4096, 2048, 6144)); }
+            new(sequence, 50, "compact" + sequence), DateTimeOffset.UtcNow, 4096, 2048, 6144,
+            new(Stopwatch.Frequency, 20, [new("candidate-scan", 10, 100, 0, 0)]))); }
         public Task CompleteCompactionAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { CompletedCompaction = true; return Task.CompletedTask; }
         public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default)

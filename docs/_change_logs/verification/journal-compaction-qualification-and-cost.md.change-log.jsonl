@@ -1,0 +1,1 @@
+{"date":"2026-09-26","doc":"verification/journal-compaction-qualification-and-cost.md","change_type":"added","summary":"Record QJ Unity, storage and cost evidence","intent":"Preserve pass, partial and recovery receipts for this run","related_files":["contracts/v1/response.schema.json"]}

@@ -47,7 +47,7 @@ pwsh ./scripts/measure-workspace-storage.ps1 -HomePath <home> -Project <original
 
 동일 단계의 원본 Library·공유 Git 기준선을 빼고 추가량을 비교한다. Library 쓰기는 delta 안에 이미 들어 있으므로 이중 합산하지 않는다. 접근 불가·reparse 경로는 unknown으로 기록하고 subtotal만 남긴다. 일반 권한에서 VSS를 읽지 못하면 unknown이며 관리자 볼륨 관측을 별도로 확보한다. VSS의 작업별 귀속과 MFT/OS cache 등은 전체 절감률로 추정하지 않는다. 로그·임시 파일·결과 객체도 공간 장부에 포함해야 한다. 단계 표본의 최고치는 실제 순간 최고치를 보장하지 않는다.
 
-같은 영역 반복 쓰기와 삭제/truncate 후에도 기존 journal 할당은 남는다. 압축·flush 묶음 처리·기본 실행 방식 전환은 구현하지 않았다. 범위와 검증 수준은 [공통 저장소 1차 계획](plans/storage-foundation-first-milestone.md), 실제 판정과 VSS 보존 실패는 [검증 기록](verification/storage-foundation.md), 현재 회수 차단/지원 경계는 [NTFS 작업공간](ntfs-workspaces.md)을 따른다.
+같은 영역 반복 쓰기와 삭제/truncate 후에도 실행 중인 기존 journal 할당은 남는다. 결과 수집 전 정지한 NTFS 작업공간에는 명시적 저널 정리를 구현했으며, [작은 Unity 재개·공간 계측](verification/journal-compaction-qualification-and-cost.md)에서 정리 직후 할당 감소와 두 세대가 겹친 관측 최고치를 확인했다. flush 묶음 처리와 기본 실행 방식 전환은 구현하지 않았다. 범위와 검증 수준은 [공통 저장소 1차 계획](plans/storage-foundation-first-milestone.md), 실제 판정과 VSS 보존 실패는 [검증 기록](verification/storage-foundation.md), 현재 회수 차단/지원 경계는 [NTFS 작업공간](ntfs-workspaces.md)을 따른다.
 
 ## 계약과 진입점
 
