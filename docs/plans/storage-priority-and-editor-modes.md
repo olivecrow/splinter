@@ -4,7 +4,7 @@
 
 ## 확정한 다음 실행 단위
 
-2026-09-25의 [공통 저장소 개선 1차](storage-foundation-first-milestone.md)를 실행했다. 반복 대형 파일 재해시 0·저장 계측·작은 Unity A/B 결과를 확인했으나 기존 VSS 5개가 회수 중 소실됐다. [후속 재현·수정](../verification/storage-recovery.md)은 제어 파일 게시 충돌을 해결했고, 격리 VSS에서도 최신/중간 삭제 시 다른 오래된 복사본이 제거됨을 확인했다. 비강제 직접 API도 동일하며 제품 guard의 위험 요청 차단·오래된 순서 회수는 실제 통과했다. [지연 회수 1차](deferred-snapshot-reclamation.md)는 독립 결과 보존과 snapshot 삭제 가능 시점을 분리했고 정의한 범위에서 검증했다. 임의 완료 순서의 즉시 회수는 보장하지 못한다. [SF-02 명시적 저널 공간 정리](journal-compaction-first-milestone.md)는 대체된 범위의 할당 회수와 제한된 중단 복구를 구현했고 [실행 기록](../verification/journal-compaction.md)을 따른다. flush 정책 변경과 SF-03 단일 Editor 연결은 별도 후속 범위다.
+2026-09-25의 [공통 저장소 개선 1차](storage-foundation-first-milestone.md)를 실행했다. 반복 대형 파일 재해시 0·저장 계측·작은 Unity A/B 결과를 확인했으나 기존 VSS 5개가 회수 중 소실됐다. [후속 재현·수정](../verification/storage-recovery.md)은 제어 파일 게시 충돌을 해결했고, 격리 VSS에서도 최신/중간 삭제 시 다른 오래된 복사본이 제거됨을 확인했다. 비강제 직접 API도 동일하며 제품 guard의 위험 요청 차단·오래된 순서 회수는 실제 통과했다. [지연 회수 1차](deferred-snapshot-reclamation.md)는 독립 결과 보존과 snapshot 삭제 가능 시점을 분리했고 정의한 범위에서 검증했다. 임의 완료 순서의 즉시 회수는 보장하지 못한다. [SF-02 명시적 저널 공간 정리](journal-compaction-first-milestone.md)는 대체된 범위의 할당 회수와 제한된 중단 복구를 구현했고 [실행 기록](../verification/journal-compaction.md)을 따른다. **다음 실행 단위**는 [작은 Unity 로드 장애와 전체 공간·정리 비용 검증](journal-compaction-qualification-and-cost.md)이며 현재 NotRun이다. 그 판정 뒤 flush 정책 변경과 SF-03 단일 Editor 연결을 별도 계획한다.
 
 ## 현재 근거와 개선 가능성
 
@@ -72,7 +72,7 @@
 | SF-05 | 대형 실사용 입력 적합성 | 목표 프로젝트의 파일 수·에셋·LFS/filter·패키지 조건을 명시. 지원하지 않는 입력은 실행 전 구분. 필수 NR 장애·파일 지원 관문과 연결 | NotRun |
 | SF-06 | 저장량 중심의 실행 방식 선택 | 같은 입력과 작업으로 신규/재개/누적 편집/정리의 용량·시간·메모리 비교. 기본 모드와 독립 Editor 선택 조건을 결과로 결정 | NotRun |
 
-SF-01/02는 두 실행 방식이 공통으로 사용하는 저장소의 개선이다. SF-03은 작은 소스·이미 확보한 에셋으로 후보 전환 정합성부터 검증할 후속 단위다. 그 뒤 필요한 규모와 시간 예산을 정해 확장한다. 합성 범위 저장을 100GB Unity 지원 증거로 대체하지 않는다. 이번 실행은 기존 작은 fixture와 합성 범위로 한정했고 100GB 데이터·대용량 PV 비교를 시작하지 않았다.
+SF-01/02는 두 실행 방식이 공통으로 사용하는 저장소의 개선이다. [다음 SF-02 검증](journal-compaction-qualification-and-cost.md)은 Unity 로드 장애와 작업공간 전체 물리 공간·정리 단계별 비용을 먼저 판정한다. SF-03은 그 뒤 작은 소스·이미 확보한 에셋으로 후보 전환 정합성부터 검증할 후속 단위다. 합성 범위 저장을 100GB Unity 지원 증거로 대체하지 않는다. 지금까지의 실행은 기존 작은 fixture와 합성 범위로 한정했고 100GB 데이터·대용량 PV 비교를 시작하지 않았다.
 
 가장 먼저 비교할 수치는 **원본을 제외한 총 추가 물리 공간과 그 최고치**다. 작업자 delta, 검증 view/Library, VSS diff area, Git 객체·LFS cache, 독립 결과, 임시 압축 공간·로그를 분리한 뒤 누락 없이 보고한다. VSS는 같은 볼륨의 다른 쓰기도 보존할 수 있고 변화가 크면 비용이 증가한다([Microsoft VSS](https://learn.microsoft.com/en-us/windows-server/storage/file-server/volume-shadow-copy-service)). unknown은 0으로 바꾸지 않는다. 읽기·논리 크기·할당 크기와 누적 쓰기를 혼합하지 않는다.
 
