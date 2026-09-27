@@ -2189,6 +2189,12 @@
           "type": "integer",
           "minimum": 0
         },
+        "replayFrames": {"type":["integer","null"], "minimum":0},
+        "replayReadCalls": {"type":["integer","null"], "minimum":0},
+        "replayReadTicks": {"type":["integer","null"], "minimum":0},
+        "replayValidationTicks": {"type":["integer","null"], "minimum":0},
+        "replayIndexTicks": {"type":["integer","null"], "minimum":0},
+        "replayBufferBytes": {"type":["integer","null"], "minimum":0},
         "journalReadBytes": {
           "type": "integer",
           "minimum": 0

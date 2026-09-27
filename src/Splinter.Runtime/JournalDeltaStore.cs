@@ -40,6 +40,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private readonly Dictionary<string, long> pathChanges = new(StringComparer.OrdinalIgnoreCase);
     private long lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount, appendedBytes;
     private long replayBytes, replayTicks, journalReadBytes, baseReadBytes;
+    private long replayFrames, replayReadCalls, replayReadTicks, replayValidationTicks, replayIndexTicks;
     private long expectedJournalBytes;
     private bool replaying;
 
@@ -247,7 +248,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 journal.Length - payloadBytes, readBytes, 0, Identity.MaxTransferBytes, nodes.Count, sequence)
             {
                 Metrics = new(epoch, lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount,
-                    appendedBytes, replayBytes, replayTicks, journalReadBytes, baseReadBytes, Stopwatch.Frequency)
+                    appendedBytes, replayBytes, replayTicks, journalReadBytes, baseReadBytes, Stopwatch.Frequency,
+                    replayFrames, replayReadCalls, replayReadTicks, replayValidationTicks, replayIndexTicks, ReplayReadBufferBytes)
             };
         }
     }
@@ -369,33 +371,46 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private void Replay()
     {
         long cursor = 0;
+        long length = journal.Length;
+        using var reader = new ReplayReader(this, length);
+        using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         byte[] header = new byte[8], expectedHash = new byte[32];
-        while (cursor < journal.Length)
+        while (cursor < length)
         {
-            if (journal.Length - cursor < 8) break;
-            ReadExactly(cursor, header);
+            if (length - cursor < 8) break;
+            reader.ReadExactly(header);
             int metadataLength = BinaryPrimitives.ReadInt32LittleEndian(header), dataLength = BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(4));
             if (metadataLength is < 1 or > MaxMetadataBytes || dataLength < 0 || dataLength > Identity.MaxTransferBytes)
                 throw new WorkspaceException("DeltaCorrupt", "Invalid journal frame; preserve evidence without truncation.");
             long frameLength = 8L + metadataLength + dataLength + 32;
-            if (journal.Length - cursor < frameLength) break;
-            byte[] metadata = new byte[metadataLength]; ReadExactly(cursor + 8, metadata);
-            using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            digest.AppendData(header); digest.AppendData(metadata);
+            if (length - cursor < frameLength) break;
+            byte[] metadata = new byte[metadataLength]; reader.ReadExactly(metadata);
             byte[] data = ArrayPool<byte>.Shared.Rent(Math.Max(1, dataLength));
-            try { ReadExactly(cursor + 8 + metadataLength, data.AsSpan(0, dataLength)); digest.AppendData(data.AsSpan(0, dataLength)); }
+            Mutation mutation;
+            try
+            {
+                reader.ReadExactly(data.AsSpan(0, dataLength)); reader.ReadExactly(expectedHash);
+                long started = Stopwatch.GetTimestamp();
+                try
+                {
+                    digest.AppendData(header); digest.AppendData(metadata); digest.AppendData(data.AsSpan(0, dataLength));
+                    if (!CryptographicOperations.FixedTimeEquals(digest.GetHashAndReset(), expectedHash))
+                        throw new WorkspaceException("DeltaCorrupt", "Journal checksum mismatch; automatic discard is forbidden.");
+                    mutation = DecodeMutation(metadata, dataLength);
+                    if (mutation.Operation == "skip-range" ? mutation.FromSequence != sequence + 1 : mutation.Sequence != sequence + 1)
+                        throw new WorkspaceException("DeltaCorrupt", "Journal sequence mismatch.");
+                }
+                finally { replayValidationTicks += Stopwatch.GetTimestamp() - started; }
+            }
             finally { ArrayPool<byte>.Shared.Return(data); }
-            ReadExactly(cursor + frameLength - 32, expectedHash);
-            if (!CryptographicOperations.FixedTimeEquals(digest.GetHashAndReset(), expectedHash))
-                throw new WorkspaceException("DeltaCorrupt", "Journal checksum mismatch; automatic discard is forbidden.");
-            var mutation = DecodeMutation(metadata, dataLength);
-            if (mutation.Operation == "skip-range" ? mutation.FromSequence != sequence + 1 : mutation.Sequence != sequence + 1)
-                throw new WorkspaceException("DeltaCorrupt", "Journal sequence mismatch.");
-            Apply(mutation, cursor + 8 + metadataLength, dataLength); cursor += frameLength;
+            long indexStarted = Stopwatch.GetTimestamp();
+            try { Apply(mutation, cursor + 8 + metadataLength, dataLength); }
+            finally { replayIndexTicks += Stopwatch.GetTimestamp() - indexStarted; }
+            replayFrames++; cursor += frameLength;
         }
         // Only an incomplete trailing transaction is unacknowledged. Corrupt
         // complete transactions above fail closed and remain byte-for-byte intact.
-        if (cursor != journal.Length)
+        if (cursor != length)
         {
             if (readOnly) throw new WorkspaceException("CandidateIncomplete", "Preserve an incomplete immutable journal without truncation.");
             journal.SetLength(cursor); DurableFlush();

@@ -51,9 +51,11 @@ public static class WinFspOverlayClient
             throw new WorkspaceException("OverlayOwnerMismatch", "State does not belong to this immutable request.");
         bool alive = state.TryGetProperty("processStartTimeUtcTicks", out var ticks) &&
             WindowsProcessGroup.IdentityAlive(state.GetProperty("processId").GetInt32(), ticks.GetInt64());
-        if (!knownLaunch || launchAlive && (state.GetProperty("processId").GetInt32() != launch!.ProcessId ||
-            ticks.ValueKind == JsonValueKind.Undefined || ticks.GetInt64() != launch.StartTimeUtcTicks))
+        if (!knownLaunch)
             return JsonSerializer.SerializeToElement(new { phase = "launch-uncertain", processAlive = alive || launchAlive, ownershipVerified = false }, Json);
+        if (launchAlive && (state.GetProperty("processId").GetInt32() != launch!.ProcessId ||
+            ticks.ValueKind == JsonValueKind.Undefined || ticks.GetInt64() != launch.StartTimeUtcTicks))
+            return JsonSerializer.SerializeToElement(new { phase = "starting", processAlive = true, ownershipVerified = true }, Json);
         var snapshot = await ObserveSnapshotAsync(request, ct);
         string? phase = state.GetProperty("phase").GetString();
         return JsonSerializer.SerializeToElement(new { phase = alive && snapshot.Available != true ? "snapshot-" + snapshot.Availability : phase, processAlive = alive,
@@ -66,11 +68,17 @@ public static class WinFspOverlayClient
         WindowsProcessWorkspaceProvider.CheckPath(request.ControlPath); Directory.CreateDirectory(request.ControlPath);
         using var operation = new FileStream(Path.Combine(request.ControlPath, "client.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         var before = await ObserveAsync(request, ct);
-        if (before.GetProperty("processAlive").GetBoolean()) return before;
         string intentPath = Path.Combine(request.ControlPath, "provider-launch-intent.json");
         string receiptPath = Path.Combine(request.ControlPath, "provider-launch-receipt.json");
         var priorLaunch = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderLaunch>(receiptPath, ct);
         var priorIntent = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderIntent>(intentPath, ct);
+        if (before.GetProperty("processAlive").GetBoolean())
+        {
+            if (priorLaunch is null || priorIntent?.Generation != priorLaunch.Generation)
+                throw new WorkspaceException("OverlayStartUncertain", "Preserve the live provider without a matching launch receipt.");
+            return await AwaitMountedAsync(() => ObserveAsync(request, ct), priorLaunch.ProcessId,
+                priorLaunch.StartTimeUtcTicks, TimeSpan.FromMinutes(2), ct);
+        }
         if ((priorIntent is not null && (priorLaunch is null || priorIntent.Generation != priorLaunch.Generation)) || priorLaunch is not null &&
             WindowsProcessGroup.IdentityAlive(priorLaunch.ProcessId, priorLaunch.StartTimeUtcTicks))
             throw new WorkspaceException("OverlayStartUncertain", "A provider launch is not reconciled. Preserve its receipt and inspect that exact process before retrying.");
@@ -86,15 +94,42 @@ public static class WinFspOverlayClient
         await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, new ProviderIntent(request.Token, request.Identity.Id, generation, DateTimeOffset.UtcNow, request.ReadAccess?.VerificationId), ct);
         using var process = WindowsProcessGroup.StartSupervisor("dotnet", [runner, "overlay-serve", Path.GetFullPath(requestPath)], request.ControlPath);
         await WindowsProcessWorkspaceProvider.WriteAsync(receiptPath, new ProviderLaunch(request.Token, process.Id, process.StartTime.ToUniversalTime().Ticks, generation), CancellationToken.None);
-        for (int i = 0; i < 150; i++)
+        return await AwaitMountedAsync(() => ObserveAsync(request, ct), process.Id,
+            process.StartTime.ToUniversalTime().Ticks, TimeSpan.FromMinutes(2), ct);
+    }
+
+    internal static async Task<JsonElement> AwaitMountedAsync(Func<Task<JsonElement>> observe, int processId,
+        long startTimeUtcTicks, TimeSpan timeout, CancellationToken ct)
+    {
+        long started = Stopwatch.GetTimestamp();
+        while (true)
         {
-            var current = await ObserveAsync(request, ct);
-            if (current.GetProperty("processAlive").GetBoolean() && current.TryGetProperty("state", out var currentState) && currentState.GetProperty("processId").GetInt32() == process.Id)
-                return current;
-            if (process.HasExited) throw new WorkspaceException("OverlayStartFailed", "Provider exited. Inspect state.json; delta is preserved.");
+            ct.ThrowIfCancellationRequested();
+            var current = await observe();
+            if (current.TryGetProperty("ownershipVerified", out var ownership) && !ownership.GetBoolean())
+                throw new WorkspaceException("OverlayStartUncertain", "Provider ownership is unresolved; preserve the existing launch.");
+            if (current.TryGetProperty("state", out var state))
+            {
+                // State from an exited preceding generation may still be on disk
+                // before the new process publishes its first state.
+                bool sameProcess = state.TryGetProperty("processId", out var pid) && pid.GetInt32() == processId &&
+                    state.TryGetProperty("processStartTimeUtcTicks", out var ticks) && ticks.GetInt64() == startTimeUtcTicks;
+                if (!sameProcess) throw new WorkspaceException("OverlayStartUncertain", "The observed provider generation changed; preserve both receipts.");
+                string? phase = current.GetProperty("phase").GetString();
+                if (phase == "failed")
+                    throw new WorkspaceException(state.TryGetProperty("error", out var error) ? error.GetString() ?? "OverlayStartFailed" : "OverlayStartFailed",
+                        "Provider failed before readiness. Inspect its state; journal and launch records are preserved.");
+                if (phase == "mounted" && current.GetProperty("processAlive").GetBoolean() &&
+                    current.TryGetProperty("mountPresent", out var mount) && mount.GetBoolean() &&
+                    state.TryGetProperty("observedAt", out var at) &&
+                    DateTimeOffset.UtcNow - at.GetDateTimeOffset() is { TotalSeconds: >= -1 and <= 5 }) return current;
+            }
+            if (!current.GetProperty("processAlive").GetBoolean())
+                throw new WorkspaceException("OverlayStartFailed", "Provider exited before readiness. Preserve its state and journal.");
+            if (Stopwatch.GetElapsedTime(started) >= timeout)
+                throw new WorkspaceException("OverlayStartUncertain", "Provider is still preparing or its mount is unconfirmed. Preserve it and retry this same request.");
             await Task.Delay(100, ct);
         }
-        throw new WorkspaceException("OverlayStartUncertain", "Query the persisted state before retrying.");
     }
     public static async Task<JsonElement> StopAsync(OverlayServeRequest request, CancellationToken ct = default)
     {

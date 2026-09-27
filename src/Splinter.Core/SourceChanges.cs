@@ -20,7 +20,9 @@ public sealed record SourceInspectionMetrics(string Mode, long PayloadBytesHashe
 // are separate; retained allocation must be measured by the platform adapter.
 public sealed record OverlayIoMetrics(string Epoch, long LockAcquisitions, long LockWaitTicks,
     long FlushCount, long FlushTicks, long CommitCount, long JournalAppendedBytes,
-    long ReplayBytes, long ReplayTicks, long JournalReadBytes, long BaseReadBytes, long StopwatchFrequency);
+    long ReplayBytes, long ReplayTicks, long JournalReadBytes, long BaseReadBytes, long StopwatchFrequency,
+    long? ReplayFrames = null, long? ReplayReadCalls = null, long? ReplayReadTicks = null,
+    long? ReplayValidationTicks = null, long? ReplayIndexTicks = null, int? ReplayBufferBytes = null);
 
 public static class SourcePathPolicy
 {

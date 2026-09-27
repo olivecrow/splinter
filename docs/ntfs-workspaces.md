@@ -32,6 +32,8 @@ splinter unity start --id <id> --home <상태 경로>
 
 첫 ensure는 권한 경계에서 멈출 수 있다. 반환된 helper 실행 후 **같은 입력**으로 ensure를 재호출한다. `--editor`를 주면 준비 후 Editor 실행도 요청한다. Editor의 준비는 `application.ready`로 확인하고, 편집은 반환된 `workspace.path` 안에서만 한다. 작업 key는 프로젝트와 함께 identity를 결정하며 입력 hash, snapshot, delta, 등록, 실행 영수증은 `home`에 남는다. `--max-journal-bytes`는 기본 16 GiB, 최소 4096, 최대 1 TiB이며 작업 생성 뒤 변경할 수 없다.
 
+공통 WinFsp mount/reconnect는 실행 중인 정확한 provider의 실제 mount와 최신 `mounted` 상태를 최대 2분 기다린다. `starting`/`replaying`은 준비 완료가 아니며 한도 초과나 취소로 provider·저널을 삭제하지 않는다. 같은 요청 재시도는 그 provider를 이어서 확인한다. 저널은 64KiB 수명 한정 버퍼로 읽되 모든 frame 검증을 유지하며 새 replay 단계 계수의 의미는 [계측 계약](source-verification.md#계측의-의미)을 따른다. 이것이 새 Unity 실행 모드나 기본 방식 전환을 뜻하지 않는다.
+
 ```text
 splinter unity refresh --id <id> --home <상태 경로>
 splinter workspace status --id <id> --home <상태 경로>

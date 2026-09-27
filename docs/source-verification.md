@@ -37,7 +37,7 @@ Git 어댑터는 다음 순서로 검사한다.
 | 위치 | 측정 항목 | 해석 경계 |
 | --- | --- | --- |
 | `source.inspection`, `source-inspections.jsonl` | mode, raw payload bytes, 해시/재사용 파일 수, manifest bytes, 시간, epoch/sequence, `gitHashInputBytes` | Git 값은 내용 hash에 넘긴 파일의 raw 논리 길이다. Git 전체 I/O·물리 디스크 읽기량과 다르다. 초기/감사/재개 비용도 기록한다 |
-| `storage.metrics` | provider epoch, lock 횟수/대기 tick, flush 횟수/tick, commit/append bytes, replay bytes/tick, base/journal read bytes | 현재 provider 프로세스의 누적 계수다. 재시작 뒤 다른 epoch끼리 단순 차감하지 않는다. tick은 `stopwatchFrequency`로 환산한다 |
+| `storage.metrics` | provider epoch, lock 횟수/대기 tick, flush 횟수/tick, commit/append bytes, replay bytes/tick·프레임·읽기 호출·단계별 tick, base/journal read bytes | 현재 provider 프로세스의 누적 계수다. 재시작 뒤 다른 epoch끼리 단순 차감하지 않는다. tick은 `stopwatchFrequency`로 환산한다 |
 | `storage-reads.jsonl` | seal과 최종 delta 삭제 전 확인의 실제 stream bytes와 해시 시간 | delta 밖의 진단 기록이다. seal 값·삭제 권한의 근거를 대신하지 않는다 |
 | `scripts/measure-workspace-storage.ps1` | FILE_STANDARD_INFO 파일 할당, 논리 길이, root별 분류, VSS 볼륨 관측 | 읽기 전용 개발 도구다. mount를 순회하거나 논리 트리를 실제 복제량으로 합산하지 않는다 |
 | `scripts/measure-overlay-journal.py` | 정지한 저널의 frame checksum·SHA-256·sequence, 기록 경로별 누적/유효/대체 payload, 현재 경로별 유효 payload | 제품 replay·seal로 확인한 입력의 개발 장부다. 정리된 `write-compacted`·`skip-range`도 처리하며, 물리 할당·제품 검증을 대체하지 않는다 |
@@ -53,10 +53,12 @@ python ./scripts/measure-overlay-journal.py <stopped-delta.journal> --output <ne
 
 `groups`는 기록 당시 경로군별 누적 쓰기와 그중 아직 참조되는 payload를, `livePayloadByCurrentGroup`은 rename 후 현재 경로군의 유효 payload를 나타낸다. 두 분류를 더하지 않는다. `obsoletePayloadBytes`에는 더 이상 참조하지 않는 payload가 들어가지만, 정리 형식의 metadata 비용·범위 수 제한 때문에 그 전부가 실제 할당 절감으로 이어진다고 보장하지 않는다. 장부의 hash·sequence를 같은 경계의 제품 seal과 대조한다. 계측기의 독립 기대값·손상 보존·Windows writer 거부 시험은 `python -m unittest discover -s tests/scripts -p test_measure_overlay_journal.py -v`다.
 
+Runtime의 replay는 수명 한정 64KiB 버퍼로 저널만 순차 읽는다. 완결 frame의 SHA-256·메타데이터·sequence 검증을 생략하지 않고 payload나 원본을 별도 파일에 hydration하지 않는다. `replayReadCalls`/`replayReadTicks`는 실제 journal 파일 읽기 호출, `replayValidationTicks`는 checksum·decode·sequence 확인, `replayIndexTicks`는 메모리 index 적용, `replayFrames`는 적용한 frame 수다. `replayTicks`에는 버퍼 복사·기타 루프 비용도 포함하므로 세 단계 합과 같지 않다. OS cache를 거친 파일 API 읽기량이며 물리 디스크 I/O가 아니다. 이전 기록에서 새 계수가 없으면 null/unknown이며 0으로 소급하지 않는다. 쓰기 flush와 불완전 tail·완결 손상 보존 계약은 기존과 같다.
+
 동일 단계의 원본 Library·공유 Git 기준선을 빼고 추가량을 비교한다. Library 쓰기는 delta 안에 이미 들어 있으므로 이중 합산하지 않는다. 접근 불가·reparse 경로는 unknown으로 기록하고 subtotal만 남긴다. 일반 권한에서 VSS를 읽지 못하면 unknown이며 관리자 볼륨 관측을 별도로 확보한다. VSS의 작업별 귀속과 MFT/OS cache 등은 전체 절감률로 추정하지 않는다. 로그·임시 파일·결과 객체도 공간 장부에 포함해야 한다. 단계 표본의 최고치는 실제 순간 최고치를 보장하지 않는다.
 
 같은 영역 반복 쓰기와 삭제/truncate 후에도 실행 중인 기존 journal 할당은 남는다. 결과 수집 전 정지한 NTFS 작업공간에는 명시적 저널 정리를 구현했으며, [작은 Unity 재개·공간 계측](verification/journal-compaction-qualification-and-cost.md)에서 정리 직후 할당 감소와 두 세대가 겹친 관측 최고치를 확인했다. flush 묶음 처리와 기본 실행 방식 전환은 구현하지 않았다. 범위와 검증 수준은 [공통 저장소 1차 계획](plans/storage-foundation-first-milestone.md), 실제 판정과 VSS 보존 실패는 [검증 기록](verification/storage-foundation.md), 현재 회수 차단/지원 경계는 [NTFS 작업공간](ntfs-workspaces.md)을 따른다.
 
 ## 계약과 진입점
 
-`contracts/v1/source-change-{request,response,view}.schema.json`, `workspace-status-request.schema.json`, `response.schema.json`, `storage-read-measurement.schema.json`이 입력·출력·계측 계약이다. `capabilities.sourceVerification`에 현재 방식과 감사 명령·계측 위치가 있다. 구현은 `Core/SourceChanges.cs`, `Runtime/JournalDeltaStore.cs`, `SourceControl.Git/GitSourceFingerprint.cs`, `Platform.Windows/WindowsSourceChanges.cs`와 `NtfsSnapshotWorkspaceBackend.cs`에 나뉜다.
+`contracts/v1/source-change-{request,response,view}.schema.json`, `workspace-status-request.schema.json`, `response.schema.json`, `overlay-observation.schema.json`, `storage-read-measurement.schema.json`이 입력·출력·계측 계약이다. `capabilities.sourceVerification`에 현재 방식과 감사 명령·계측 위치가 있다. 구현은 `Core/SourceChanges.cs`, `Runtime/JournalDeltaStore.cs`, `SourceControl.Git/GitSourceFingerprint.cs`, `Platform.Windows/WindowsSourceChanges.cs`와 `NtfsSnapshotWorkspaceBackend.cs`에 나뉜다.

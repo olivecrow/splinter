@@ -1,5 +1,14 @@
 # 구현 계획 검증 추적표
 
+[VR-01~04](validation-view-readiness-and-replay.md)는 [작은 Unity 실행](../verification/validation-view-readiness-and-replay.md)을 제한을 포함해 마감했다. 현재 자동 시험은 296 통과·0 실패·선택적 ReFS 1 skip이다.
+
+| 하위 관문 | 범위 | 판정 |
+| --- | --- | --- |
+| VR-01 | 64KiB replay 읽기·단계별 계수·손상/미완료 tail 보존 | Passed, 정의한 자동/작은 fixture |
+| VR-02 | 같은 launch의 실제 mount·최신 mounted 준비 응답 | Passed, 정의한 자동 및 실제 재연결 3건 |
+| VR-03 | 빈 cache 첫 import·compile·실제 코드/에셋·첫 렌더 | Partial. 정상 import/stop 완료, focus 재시도 1회. 첫 PNG는 빈 화면, 동일 Editor 두 번째 PNG는 모델 표시, 원인 미확정 |
+| VR-04 | 동일 저널 기존/새 3회씩 비교·파일 할당·독립 결과·회수 | Passed, warm OS cache·고정 순서의 제한된 관측. 원본·기존 다른 snapshot 보존과 소유 자원 회수 완료 |
+
 [VC-01~04](immutable-validation-view-first-milestone.md)는 [정의한 합성·작은 Unity 범위](../verification/immutable-validation-view.md)를 `scoped-complete-with-limitations`로 마감했다. SF-03 전체는 Partial이다.
 
 | 하위 관문 | 범위 | 판정 |

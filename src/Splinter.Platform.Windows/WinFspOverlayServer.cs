@@ -60,9 +60,17 @@ public static class WinFspOverlayServer
                     }
                 }
             }
+            await WindowsProcessWorkspaceProvider.WriteAsync(statePath, new
+            {
+                version = 1, request.Token, request.Identity.Id, phase = "replaying", observedAt = DateTimeOffset.UtcNow,
+                snapshotId = request.Identity.Snapshot.Id, mountPath, deltaPath,
+                processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks
+            });
+            long replayStarted = Stopwatch.GetTimestamp();
             using IWorkspaceDeltaStore store = request.ValidationView is { } selectedView
                 ? new ValidationViewDeltaStore(deltaPath, request.Identity, snapshot, selectedView)
                 : new JournalDeltaStore(deltaPath, request.Identity, snapshot);
+            long storeReadyTicks = Stopwatch.GetTimestamp() - replayStarted;
             var fileSystem = new WinFspOverlayFileSystem(store, ex =>
             {
                 int count = Interlocked.Increment(ref failures);
@@ -92,7 +100,8 @@ public static class WinFspOverlayServer
                         openHandles = fileSystem.OpenHandles, retainedFileContexts = fileSystem.RetainedFileContexts,
                         workingSetBytes = self.WorkingSet64, privateBytes = self.PrivateMemorySize64,
                         ioFailures = Volatile.Read(ref failures), lastFailureCode = Volatile.Read(ref lastFailureCode), storage = store.Observe(),
-                        validationView = (store as ValidationViewDeltaStore)?.ObservePartitions()
+                        validationView = (store as ValidationViewDeltaStore)?.ObservePartitions(),
+                        preparation = new { storeReadyTicks, stopwatchFrequency = Stopwatch.Frequency }
                     });
                     var stop = await WindowsProcessWorkspaceProvider.ReadAsync<StopRequest>(Path.Combine(request.ControlPath, "stop.json"));
                     if (stop?.Token == request.Token)

@@ -53,8 +53,12 @@ Unity가 새 임시 파일을 다른 partition으로 rename할 때는 원본에�
 
 전환 순서는 `unity-stop` → 소유 application 자원 0 → `unmount` → provider 종료·mount 부재 → 다음 후보 `mount` → `unity-start` → 명시적 `unity-refresh`와 실제 code/asset 확인이다. `checkpoint`를 검증 후보로 재사용하지 않는다. 열린 Editor 아래 root 교체, 자동 임대/FIFO, 작업자에 생성 소스를 병합하는 명령은 없다. source delta의 출력은 독립 Git 결과로 수집한 후에 회수한다. release·TTL·디스크 압박에 의한 자동 후보 삭제도 없다.
 
+provider는 저널을 여는 동안 `replaying` 상태를 게시한다. mount/reconnect는 같은 launch의 PID·시작 시각을 유지하며 최대 2분 동안 실제 mount와 5초 이내의 `mounted` 관측을 기다린다. 프로세스 시작이나 replay 상태만으로 준비 완료를 반환하지 않는다. 한도 초과·취소에는 저널과 실행 중인 provider를 보존하며 같은 요청의 다음 호출이 그 provider를 기다린다. 기록과 launch 소유권이 맞지 않으면 불확실 상태를 유지하고 중복 실행하지 않는다. `state.preparation.storeReadyTicks`는 후보 확인과 source/cache 열기를 합친 내부 시간이며 전체 CLI 준비 시간과 구별한다.
+
 ## 시간과 공간의 판정
 
 후보의 `creationTicks / stopwatchFrequency`는 저널 준비·검증을 마친 뒤 최종 receipt 게시 직전까지다. 전체 후보 게시 시간은 CLI 반환까지의 별도 wall-clock으로 잰다. snapshot 캡처, Git 준비, 최초 mount, 기존 worker 재개, 후보 게시, 첫 Unity import/ready, 반복 stop/remount/replay/restart/ready, 검증·결과 수집·회수를 각각 기록한다. 사용자 작업 가능 시점까지 걸리는 시간을 작은 내부 함수 수치로 대체하지 않는다.
 
 디렉터리별 논리 길이와 `FILE_STANDARD_INFO.AllocationSize`를 구분하고 공유 VSS는 볼륨 관측으로 둔다. 측정 증거·로그도 별도 비용이며 첫 import와 반복 전환을 분리한다. 작은 Editor 없는 delta의 준비 시간을 전체 제품 `workspace ensure`나 대형 프로젝트 준비 시간으로 일반화하지 않는다. 최초 source 검증 비용, 긴 저널 replay, Unity 버전·package·platform 변경, 일반 임대 중단 복구와 source 반환 병합은 별도 검증이 필요하다.
+
+재생 읽기 버퍼와 단계별 계수는 [소스 검증·계측](source-verification.md), 실제 지원 범위와 시간은 [VR 실행](verification/validation-view-readiness-and-replay.md)을 따른다. mount 준비·compile 성공·에셋 로드 성공만으로 최초 렌더 성공을 보장하지 않는다. 첫 미리보기 자체를 확인해야 하며 첫 렌더의 초기화 문제는 미해결이다. 제품 기본 모드와 일반 Unity 지원은 별도 검증 대상이다.

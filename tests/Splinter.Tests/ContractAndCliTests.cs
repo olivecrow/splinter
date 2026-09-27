@@ -197,6 +197,33 @@ public sealed class ContractAndCliTests
         Assert.Equal(valid, contracts.Validate("urn:splinter:v1:overlay-observation", observation).IsValid);
     }
 
+    [Fact]
+    public void OverlayReplayStateAndMetricsMatchThePublishedObservationContract()
+    {
+        using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        var identity = new OverlayIdentity(1, "replay-contract", tree.Snapshot, 65536, 4096);
+        using var store = new JournalDeltaStore(Path.Combine(dir.Path, "delta"), identity, tree);
+        var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var node = JsonSerializer.SerializeToNode(new
+        {
+            version = 1, token = "test", id = identity.Id, phase = "replaying", observedAt = DateTimeOffset.UtcNow,
+            processId = 1, snapshotId = tree.Snapshot.Id
+        }, json)!;
+        bool Valid() => contracts.Validate("urn:splinter:v1:overlay-observation", JsonSerializer.SerializeToElement(node)).IsValid;
+        Assert.True(Valid());
+        node["phase"] = "mounted";
+        node["preparation"] = JsonSerializer.SerializeToNode(new { storeReadyTicks = 1, stopwatchFrequency = 1000 });
+        node["storage"] = JsonSerializer.SerializeToNode(store.Observe(), json);
+        Assert.True(Valid());
+        node["storage"]!["metrics"]!["replayReadCalls"] = -1;
+        Assert.False(Valid());
+        foreach (string field in new[] { "replayFrames", "replayReadCalls", "replayReadTicks", "replayValidationTicks", "replayIndexTicks", "replayBufferBytes" })
+            node["storage"]!["metrics"]!.AsObject().Remove(field);
+        Assert.True(Valid()); // Legacy observations keep the breakdown unknown.
+        node["preparation"]!["storeReadyTicks"] = -1;
+        Assert.False(Valid());
+    }
+
     [Theory]
     [InlineData("ntfs-snapshot", 4096, true)]
     [InlineData("ntfs-snapshot", 4095, false)]

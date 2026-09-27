@@ -1,5 +1,7 @@
 # Splinter
 
+[첫 준비·재연결 검증](docs/verification/validation-view-readiness-and-replay.md)의 작은 Unity 범위를 제한을 포함해 마감했다. 저널 replay의 읽기를 64KiB로 묶고 실제 mount 준비를 기다리도록 수정했으며, 동일 cache 3회씩의 replay 중앙값은 19.46초에서 14.90초로 줄었다. 정상 첫 import는 약 17분 8초, 파일 할당 관측 최고는 약 2.281GB였다. 첫 미리보기는 빈 화면이고 같은 Editor의 두 번째 렌더는 정상이어서 첫 렌더 문제는 남아 있다. 독립 결과·원본 보존·소유 자원 회수를 확인했으며 자동 시험은 296 통과·선택적 ReFS 1 skip이다.
+
 [불변 후보·공통 Library 실험](docs/validation-view.md)의 [작은 Unity A/B/A 검증](docs/verification/immutable-validation-view.md)을 제한을 포함해 마감했다. 후보 게시 약 1.3초, 반복 cache replay 21~29초·Editor 준비 75~84초·정상 종료 31~33초, 소유 파일 할당 관측 최고 약 2.345GB를 확인했다. 최초 import 복구와 첫 A의 빈 미리보기·미계측 기준을 유지한다. 제품 기본 모드나 대형 프로젝트 적합성의 완료가 아니다.
 
 후속 설계는 **대형 Unity 프로젝트의 작업공간 용량과 복사본 생성·편집 준비·재개 시간을 함께 평가하고, Editor 동시 실행은 그 뒤에 둔다**. [저장공간 우선 설계 검토](docs/plans/storage-priority-and-editor-modes.md)는 현재 저장소 병목의 개선과 단일 Editor 순차 검증 후보를 평가한다. 기본 실행 방식 변경은 미확정이고, 현재 제품은 아래의 독립 Editor 내부 알파다.
@@ -22,7 +24,7 @@ AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실
 
 완료한 구현 단위는 [NTFS workspace 1차 통합](docs/plans/ntfs-workspace-integration.md)이다. NI-01~08의 1차 내부 알파 범위를 검증했다. 실제 원본의 미커밋 변경이 있으면 통합을 거부하고 HEAD·인덱스·변경 내용·독립 결과를 보존하는 것까지 확인했다. 일반 에셋·재부팅·공개 제품 전체 지원은 후속 범위다. 기존 Unity fixture와 합성 파일을 사용하고 구매 에셋은 요구하지 않는다.
 
-상위 작업은 [NTFS 내부 알파 2차](docs/plans/ntfs-recovery-and-support.md)의 NR-01~08이다. 공통 복구·unknown 보존·상태/저널 손상 보호·일부 파일 속성 거부와 [live VSS 재연결](docs/verification/ntfs-live-vss-identity.md)을 구현했다. 현재 후보의 locked restore·빌드·자동 시험은 [중첩량 예산 검증](docs/verification/journal-compaction-peak-admission.md)의 267 통과·0 실패·선택적 ReFS 1 skip이다. VSS 해제 차단은 격리된 소유 합성 snapshot에서 실제 검증했으며 일반 비소유 백업·외부 동시 삭제의 보존 보장은 아니다. 이전 [LV](docs/verification/ntfs-live-vss-identity.md), [검토 수정](docs/verification/workspace-review-fixes.md), [PV](docs/verification/parallel-workflow.md), [VIVOBOOK/NR](docs/verification/ntfs-recovery.md) 증거는 각각의 범위로 유지한다.
+상위 작업은 [NTFS 내부 알파 2차](docs/plans/ntfs-recovery-and-support.md)의 NR-01~08이다. 공통 복구·unknown 보존·상태/저널 손상 보호·일부 파일 속성 거부와 [live VSS 재연결](docs/verification/ntfs-live-vss-identity.md)을 구현했다. 현재 후보의 locked restore·빌드·자동 시험은 [첫 준비·재연결 검증](docs/verification/validation-view-readiness-and-replay.md)의 296 통과·0 실패·선택적 ReFS 1 skip이다. VSS 해제 차단은 격리된 소유 합성 snapshot에서 실제 검증했으며 일반 비소유 백업·외부 동시 삭제의 보존 보장은 아니다. 이전 [LV](docs/verification/ntfs-live-vss-identity.md), [검토 수정](docs/verification/workspace-review-fixes.md), [PV](docs/verification/parallel-workflow.md), [VIVOBOOK/NR](docs/verification/ntfs-recovery.md) 증거는 각각의 범위로 유지한다.
 
 [살아 있는 VSS 식별과 같은 작업 재개](docs/plans/ntfs-live-vss-identity.md)의 LV-01~08을 정한 시험 수준에서 완료했다. 캡처 identity·현재 읽기 위치 분리, 비관리자 Observe/재개, legacy 보존과 실제 VSS/Git 재연결·범위 쓰기·단일 Unity 검증 3건·독립 결과·최종 회수를 확인했다. [독립 대화 A/B 작업·비용 검증](docs/plans/parallel-workflow-qualification.md)의 PV-01 대표 fixture 수명주기는 복구·운영 개입을 포함해 완료했다. PV-02는 사용자 선택 범위를 **선택 범위 완료·제한 유지 (`scoped-complete-with-limitations`)**로 마감했다. S4의 `FailedInputQualification`, 소수 표본, 과거 대표 팩 raw 동등성 unknown을 유지하며 PV-02 전체 Passed로 표시하지 않는다. 소유 자원 회수·원본 복원과 실제 하위 판정은 [실행 기록](docs/verification/parallel-workflow.md)과 [최종 마감 영수증](artifacts/parallel-workflow/pv-20260923/final-closeout.json)을 따른다. 나머지 중단·파일 경계와 격리 환경의 재부팅·전원·공간 장애, ARM A/B는 지원 확대 전에 완료해야 한다. NR 전체나 공개 제품 지원 완료가 아니다.
 

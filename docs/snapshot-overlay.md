@@ -38,7 +38,7 @@
 | preserve | 앱 종료 후 Git source 결과 commit와 refs/splinter/snapshot-results/overlay-id 보존. bridge·생성 cache 제외 |
 | git-release | mount 부재와 보존 revision 일치 후 정확한 Git 등록만 제거. 결과 ref와 branch 유지 |
 
-control/state.json의 phase는 mounted, snapshot-missing, snapshot-unknown, unmounted, failed다. 실행 중 provider와 CLI는 같은 snapshot probe를 사용한다. snapshotAvailability는 available/missing/unknown이며 unknown을 snapshot-missing으로 저장하지 않는다. CLI는 processAlive, snapshotAvailable, mountPresent를 함께 반환하고 unknown boolean은 null이다. launch intent와 receipt generation이 다르거나 오래된 state가 새 실행을 설명하지 못하면 OverlayStartUncertain으로 중복 실행을 막는다. 누락된 자원 관측은 unknown으로 유지하고 회수의 0으로 사용하지 않는다. stop.json과 flush.json은 같은 token을 요구한다. unmounted 뒤에도 실제 프로세스와 경로 부재를 확인한다.
+control/state.json의 phase는 replaying, mounted, snapshot-missing, snapshot-unknown, unmounted, failed다. 실행 중 provider와 CLI는 같은 snapshot probe를 사용한다. snapshotAvailability는 available/missing/unknown이며 unknown을 snapshot-missing으로 저장하지 않는다. CLI는 processAlive, snapshotAvailable, mountPresent를 함께 반환하고 unknown boolean은 null이다. launch intent와 receipt generation이 다르면 OverlayStartUncertain으로 중복 실행을 막는다. 일치하는 새 launch가 살아 있지만 이전 세대 state만 남아 있으면 starting으로 관측하며 자원 수치를 0으로 추정하지 않는다. mount/reconnect는 정확한 PID·시작 시각, 실제 mount, 5초 이내 mounted 상태를 최대 2분 기다린다. 한도 초과·취소 뒤에도 같은 provider와 저널을 보존한다. stop.json과 flush.json은 같은 token을 요구한다. unmounted 뒤에도 실제 프로세스와 경로 부재를 확인한다.
 
 WinFsp Cleanup에서 사용자 핸들 종료를 집계한다. 커널 retainedFileContexts는 Close까지 남을 수 있어 별도로 관측한다. 정상 unmount 뒤 제공자가 종료되면 그 메모리도 회수된다. 열린 사용자 핸들이 있으면 unmount를 강행하지 않는다.
 

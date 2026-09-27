@@ -4,6 +4,7 @@
 
 | 문서 | 읽을 때 |
 | --- | --- |
+| [첫 준비·재연결 시간 범위](plans/validation-view-readiness-and-replay.md) · [검증](verification/validation-view-readiness-and-replay.md) | 정상 첫 import/렌더, 같은 저널의 재생 읽기·검증·index 시간, 실제 mount 준비 응답과 저장량 기준을 확인할 때. 이전 VC와 구분하는 작은 후속 범위 |
 | [불변 후보·고정 검증 view](validation-view.md) · [VC 범위](plans/immutable-validation-view-first-milestone.md) · [검증](verification/immutable-validation-view.md) | Editor 없는 worker의 범위 후보, 같은 경로·Library의 정상 stop/remount/restart A/B/A, 생성·재개·전환 시간과 저장량을 확인할 때. 작은 범위 마감·첫 import 복구/첫 A 미리보기/긴 replay 제한 유지. 개발용 spike이며 제품 모드·source 반환 병합·큐 연결은 미구현 |
 | [SF-02 예산 제품 검증·반복 저장량 범위](plans/journal-budget-and-growth-qualification.md) · [실행 결과](verification/journal-budget-and-growth-qualification.md) | BQ-01~05의 실제 예산 거부·같은 작업 재시도·Unity 수정 3회와 보존/회수, 유효·대체 기록 및 별도 파일 할당 장부, 다음 SF-03 후보 선정 근거를 확인할 때. 정의한 범위 완료·운영 개입/공간 미계측 제한 유지 |
 | [반복 UAC 없는 저장소 권한 경계](plans/storage-privilege-service.md) | 최초 설치 승인 후 일반 CLI의 생성·재연결·회수에서 반복 UAC를 없애는 미구현 서비스 범위와 UA-01~04를 확인할 때 |

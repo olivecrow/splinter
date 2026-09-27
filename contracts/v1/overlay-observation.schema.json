@@ -23,6 +23,7 @@
     },
     "phase": {
       "enum": [
+        "replaying",
         "mounted",
         "snapshot-missing",
         "snapshot-unknown",
@@ -53,6 +54,15 @@
     },
     "snapshotId": {
       "type": "string"
+    },
+    "preparation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["storeReadyTicks", "stopwatchFrequency"],
+      "properties": {
+        "storeReadyTicks": {"type":"integer", "minimum":0},
+        "stopwatchFrequency": {"type":"integer", "minimum":1}
+      }
     },
     "openHandles": {
       "type": "integer",
@@ -144,6 +154,12 @@
               "type": "integer",
               "minimum": 0
             },
+            "replayFrames": {"type":["integer","null"], "minimum":0},
+            "replayReadCalls": {"type":["integer","null"], "minimum":0},
+            "replayReadTicks": {"type":["integer","null"], "minimum":0},
+            "replayValidationTicks": {"type":["integer","null"], "minimum":0},
+            "replayIndexTicks": {"type":["integer","null"], "minimum":0},
+            "replayBufferBytes": {"type":["integer","null"], "minimum":0},
             "journalReadBytes": {
               "type": "integer",
               "minimum": 0
