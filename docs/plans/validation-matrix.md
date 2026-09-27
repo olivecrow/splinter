@@ -1,5 +1,14 @@
 # 구현 계획 검증 추적표
 
+| ID | JW 최초 준비 쓰기 비용 | 상태 |
+| --- | --- | --- |
+| JW-01 | 고정 연산별 commit 비용·mutation 대기, nullable 계약·fake 기반 회귀 | Passed, 자동 303 통과·0 실패·선택적 ReFS 1 skip |
+| JW-02 | 고정 live WriteProbe 3종·기준/계측 각 3회·내용/replay·파일 할당 | Passed, 공통 probe·18회 출력/replay/hash 보존; 작은 표본 |
+| JW-03 | 새 작은 Unity 첫 준비·후속 수정·실제 로드·닫힌 저널 재연결 | Passed, 정의한 관측. 첫 PNG와 후속 reload 뒤 첫 PNG는 빈 화면 |
+| JW-04 | 단계별 비용·독립 결과·원본/ref/타 snapshot·소유 자원 회수 | Passed, 원본 90개 파일/기존 ref 23개·타 snapshot·독립 결과 보존, VHD 분리 확인. 순간 peak/외부 gate 대기 unknown |
+
+범위와 완료 기준은 [JW 계획](live-journal-write-cost.md), 실제 판정은 [JW 실행 기록](../verification/live-journal-write-cost.md)을 따른다. 선택한 범위는 `scoped-complete-with-limitations`다. Windows callback의 선행 직렬화 때문에 Runtime 단독 group flush는 미선정이며 대기 호출 수를 group commit 크기나 성능 개선률로 환산하지 않는다.
+
 [WI-01~05](cumulative-write-range-index.md)는 [누적 write 범위 index의 합성·새 작은 Unity 실행](../verification/cumulative-write-range-index.md)을 `scoped-complete-with-limitations`로 마감했다. 표준 빌드의 자동 시험은 301 통과·0 실패·선택적 ReFS 1 skip이다. 같은 닫힌 저널 mount 개선과 전체 Editor 재개·Library 물리 절감을 구분한다.
 
 | 하위 관문 | 범위 | 판정 |

@@ -4,6 +4,9 @@
 
 | 문서 | 읽을 때 |
 | --- | --- |
+| [Live 쓰기 probe](write-profiling.md) | 새 디렉터리의 고정 합성 쓰기·metadata·4-thread 입력과 연산별 비용·대기 계수를 해석할 때 |
+| [Live journal 쓰기 비용 범위](plans/live-journal-write-cost.md) | JW-01~04의 연산별 쓰기·flush 비용과 mutation 대기, 고정 합성·새 작은 Unity 실행의 완료 기준을 확인할 때 |
+| [Live journal 쓰기 비용 검증](verification/live-journal-write-cost.md) | JW의 자동·합성·작은 Unity 실행 상태와 연산별 비용, 동시성 경계·독립 결과·회수 증거를 확인할 때 |
 | [누적 write 범위 index 범위](plans/cumulative-write-range-index.md) · [실행 기록](verification/cumulative-write-range-index.md) | WI-01~05의 고정 합성 원인 분해·국소 index 변경과 새 작은 Unity 저널의 동일 입력 비교, 실제 Editor·파일 할당·결과 보존/회수를 확인할 때 |
 | [작은 Unity 재개 비교](plans/unity-replay-comparison.md) · [실행 기록](verification/unity-replay-comparison.md) | 작은 Unity의 동일 journal mount·누적 입력 Editor 각 3회 비교와 파일 할당·독립 결과·회수. 전체 Editor 개선 미입증·첫 렌더/운영 재시도 제한을 확인할 때 |
 | [Offline replay 계측](replay-profiling.md) · [RI 범위](plans/replay-index-cost.md) · [검증](verification/replay-index-cost.md) | 연산별 index 비용과 고정 합성 입력의 시간·관리 메모리 할당·동일 상태를 비교할 때. 실제 Unity·VSS 경로와 구분하는 개발용 도구 |

@@ -1,5 +1,7 @@
 # Splinter 기반 구현 계획
 
+[JW-01~04](live-journal-write-cost.md)는 WI 다음의 SF-02 계측 하위 범위이며 [실행 기록](../verification/live-journal-write-cost.md)을 `scoped-complete-with-limitations`로 마감했다. 고정 합성 18회와 새 작은 Unity에서 연산별 live commit·flush·mutation 대기, 독립 결과·원본 보존·소유 자원 회수·VHD 분리 뒤 결과를 확인했다. Windows callback이 먼저 직렬화되므로 Runtime 단독 group flush 구현은 선정하지 않았다. callback 원자성·대기/완료 경계와 acknowledged write 내구성 정책 검토는 별도 범위로 유지한다.
+
 [BQ-01~05 중첩량 예산의 제품 검증과 반복 저장량 판단](journal-budget-and-growth-qualification.md)을 정의한 작은 범위에서 마쳤다. [실행 기록](../verification/journal-budget-and-growth-qualification.md)은 실제 예산 거부·재시도, 같은 snapshot에서 Unity 수정 3회·독립 결과·원본 보존·회수와 저장량 분해를 연결한다. 이어진 SF-03의 불변 후보·고정 검증 view·단일 Library A/B/A 개발용 범위는 [VC 실행](../verification/immutable-validation-view.md)에서 제한을 포함해 마감했다.
 
 후속 우선순위(2026-09-24): **작업공간 용량 부담 해소가 1순위, Editor 동시 실행이 2순위**다. [저장공간 우선 검토와 SF-01~06](storage-priority-and-editor-modes.md)의 공통 저장소 개선·단일 Editor 순차 검증 후보를 다음 설계 판단에 적용한다. 기본 실행 방식 전환은 미확정이며 아래 기존 구현·실행 증거와 SW/NR 지원 관문을 유지한다. PV 대용량 시험의 자동 재개를 뜻하지 않는다.

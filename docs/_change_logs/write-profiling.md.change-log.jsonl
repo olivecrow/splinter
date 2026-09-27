@@ -1,0 +1,1 @@
+{"date":"2026-09-27","doc":"write-profiling.md","change_type":"added","summary":"새 경로의 고정 serial·parallel·metadata 쓰기 probe와 측정 경계 문서화","intent":"합성 출력·읽기 전용 replay·관리 할당·파일 할당을 분리","related_files":["tools/Splinter.WriteProbe/Program.cs","tools/Splinter.WriteProbe/Splinter.WriteProbe.csproj","tools/Splinter.WriteProbe/packages.lock.json"]}

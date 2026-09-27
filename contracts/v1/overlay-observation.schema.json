@@ -191,6 +191,38 @@
                 }
               }
             },
+            "liveJournalWrites": {
+              "type": ["object", "null"], "additionalProperties": false,
+              "required": ["mutationGateCalls", "mutationGateWaitTicks", "operations"],
+              "properties": {
+                "mutationGateCalls": {"type":"integer", "minimum":0},
+                "mutationGateWaitTicks": {"type":"integer", "minimum":0},
+                "operations": {
+                  "type":"array", "maxItems":6,
+                  "items": {
+                    "type":"object", "additionalProperties":false,
+                    "required":["operation","attempts","durableCommits","failedCalls","payloadBytes","journalBytes","prepareTicks","appendTicks","flushTicks","applyTicks","totalTicks","flushCalls","maxWaitingMutations","waitingMutationsAtFlushStart","waitingMutationsAtFlushEnd"],
+                    "properties": {
+                      "operation": {"enum":["create","write","resize","metadata","rename","delete"]},
+                      "attempts": {"type":"integer", "minimum":0},
+                      "durableCommits": {"type":"integer", "minimum":0},
+                      "failedCalls": {"type":"integer", "minimum":0},
+                      "payloadBytes": {"type":"integer", "minimum":0},
+                      "journalBytes": {"type":"integer", "minimum":0},
+                      "prepareTicks": {"type":"integer", "minimum":0},
+                      "appendTicks": {"type":"integer", "minimum":0},
+                      "flushTicks": {"type":"integer", "minimum":0},
+                      "applyTicks": {"type":"integer", "minimum":0},
+                      "totalTicks": {"type":"integer", "minimum":0},
+                      "flushCalls": {"type":"integer", "minimum":0},
+                      "maxWaitingMutations": {"type":"integer", "minimum":0},
+                      "waitingMutationsAtFlushStart": {"type":"array", "minItems":5, "maxItems":5, "items":{"type":"integer","minimum":0}},
+                      "waitingMutationsAtFlushEnd": {"type":"array", "minItems":5, "maxItems":5, "items":{"type":"integer","minimum":0}}
+                    }
+                  }
+                }
+              }
+            },
             "journalReadBytes": {
               "type": "integer",
               "minimum": 0

@@ -33,6 +33,10 @@ public sealed class FoundationGateway(
             inputs = "bounded synthetic append, overlap, file-renames, write-append-4096, write-append-16384, write-overwrite-16384, and write-distributed-16384; not a Unity or VSS qualification",
             writes = "generate requires a new directory; run holds a read-only journal; no automatic cleanup",
             measurements = "per-operation replay index time and write-range extent/cost aggregates; managed allocation distinct from peak working set; verified output and input hashes" },
+        developmentWriteProbe = new { entrypoint = "dotnet run --project tools/Splinter.WriteProbe --configuration Release --no-build --",
+            inputs = "fixed synthetic serial-1024, parallel-4x256, and metadata-1024; 16 MiB journal limit per new directory",
+            writes = "new directory only; retains journals; no automatic cleanup; not a workspace or Unity qualification",
+            measurements = "per-operation live commit stages and waiting mutation samples; output bytes and read-only replay verified; no batching policy change" },
         snapshotOverlay = new
         {
             stage = "workspace-internal-alpha",

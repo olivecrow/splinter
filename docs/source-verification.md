@@ -65,6 +65,16 @@ Runtime의 replay는 수명 한정 64KiB 버퍼로 저널만 순차 읽는다. �
 
 rename의 index 적용은 기존의 경로·whiteout 순회를 유지하며 같은 하위 경로 접두사를 rename당 한 번 만들어 재사용한다. 범위 index·저널 형식·지속 cache를 추가하지 않는다. [Offline probe](replay-profiling.md)로 합성 비용을 구분하며, 그 결과를 실제 Unity 준비 시간에 곧바로 적용하지 않는다.
 
+## Live write 비용
+
+`liveJournalWrites`는 현재 provider에서 발생한 쓰기 계측이다. `mutationGateCalls`와 `mutationGateWaitTicks`는 중첩되지 않은 변경 API 호출과 해당 gate 대기의 누적값이며 no-op·입력 거부도 포함한다. 읽기 호출과 replay는 제외한다. `operations`는 `create/write/resize/metadata/rename/delete`의 최대 6개 집계다. `attempts`는 commit 진입, `durableCommits`는 durable flush 뒤 기록한 commit, `failedCalls`는 commit 내부 예외 수다. gate 내부의 사전 거부처럼 commit에 들어오지 않은 실패는 여기에 포함하지 않는다.
+
+연산별 `prepareTicks/appendTicks/flushTicks/applyTicks/totalTicks`는 입장 검사·직렬화·checksum, journal append, durable flush, index 적용, 전체 commit 호출의 누적 시간이다. `payloadBytes/journalBytes`는 durable commit의 기록량이고 `flushCalls`는 해당 commit의 flush 시도 수다. 명시적 Flush나 incomplete tail 복구 flush는 전체 flush 계수에만 들어간다. `waitingMutationsAtFlushStart/End`의 고정 5칸은 다른 mutation 대기 호출 0, 1, 2~3, 4~7, 8개 이상이며 `maxWaitingMutations`는 이 두 시점 표본의 최댓값이다. no-op/거부될 호출을 포함할 수 있고 gate 밖의 OS/WinFsp 대기는 측정하지 않는다. 묶을 수 있는 transaction 수나 실현 가능한 절감률을 뜻하지 않는다.
+
+관측은 같은 epoch의 차이로 비교하며 배열을 바꿔도 내부 계수는 변하지 않는다. 이전 누락/null은 unknown이다. 호출별 대기 시간은 겹칠 수 있어 벽시계와 합산하지 않는다. 현재 durable flush 정책은 동일하며 개발용 합성 실행은 [WriteProbe](write-profiling.md)를 따른다.
+
+Windows 어댑터의 `WinFspOverlayFileSystem.mutationGate`는 변경 callback 전체를 먼저 직렬화한다. Runtime의 0 대기 표본은 그 바깥의 callback/OS queue가 비었다는 증거가 아니다. append offset·constrained I/O·resize 등의 복합 검사가 이 잠금 안에 있으므로, flush 묶음을 검토할 때는 해당 원자성 경계도 별도로 다뤄야 한다.
+
 ## 계약과 진입점
 
-`contracts/v1/source-change-{request,response,view}.schema.json`, `workspace-status-request.schema.json`, `response.schema.json`, `overlay-observation.schema.json`, `storage-read-measurement.schema.json`이 입력·출력·계측 계약이다. `capabilities.sourceVerification`에 현재 방식과 감사 명령·계측 위치가 있다. 구현은 `Core/SourceChanges.cs`, `Runtime/JournalDeltaStore.cs`, `SourceControl.Git/GitSourceFingerprint.cs`, `Platform.Windows/WindowsSourceChanges.cs`와 `NtfsSnapshotWorkspaceBackend.cs`에 나뉜다.
+`contracts/v1/source-change-{request,response,view}.schema.json`, `workspace-status-request.schema.json`, `response.schema.json`, `overlay-observation.schema.json`, `storage-read-measurement.schema.json`이 입력·출력·계측 계약이다. `capabilities.sourceVerification`에 현재 방식과 감사 명령·계측 위치가 있다. 구현은 `Core/SourceChanges.cs`, `Runtime/JournalDeltaStore.cs`·`JournalWriteMetrics.cs`, `SourceControl.Git/GitSourceFingerprint.cs`, `Platform.Windows/WindowsSourceChanges.cs`와 `NtfsSnapshotWorkspaceBackend.cs`에 나뉜다.

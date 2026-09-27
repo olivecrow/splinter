@@ -13,7 +13,7 @@ public sealed class JournalReplayTests
             """{"Epoch":"old","LockAcquisitions":0,"LockWaitTicks":0,"FlushCount":0,"FlushTicks":0,"CommitCount":0,"JournalAppendedBytes":0,"ReplayBytes":12,"ReplayTicks":34,"JournalReadBytes":12,"BaseReadBytes":0,"StopwatchFrequency":10000000}""")!;
         Assert.Null(old.ReplayFrames); Assert.Null(old.ReplayReadCalls); Assert.Null(old.ReplayReadTicks);
         Assert.Null(old.ReplayValidationTicks); Assert.Null(old.ReplayIndexTicks); Assert.Null(old.ReplayBufferBytes);
-        Assert.Null(old.ReplayIndexOperations); Assert.Null(old.ReplayWriteRangeIndex);
+        Assert.Null(old.ReplayIndexOperations); Assert.Null(old.ReplayWriteRangeIndex); Assert.Null(old.LiveJournalWrites);
     }
 
     [Theory]

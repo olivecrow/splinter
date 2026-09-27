@@ -24,6 +24,15 @@ public sealed record ReplayWriteRangeIndexMetrics(long ReplaceCalls, long PriorE
     int MaxPriorExtents, long VisitedExtents, long CopiedExtents,
     long LocateAndReplaceTicks, long SortTicks, long[] PriorExtentBuckets);
 
+// Flush waiter buckets are 0, 1, 2-3, 4-7, and 8 or more other mutation calls.
+// Waiting calls may later be no-ops or fail admission; they are not batch sizes.
+public sealed record LiveCommitOperationMetrics(string Operation, long Attempts, long DurableCommits,
+    long FailedCalls, long PayloadBytes, long JournalBytes, long PrepareTicks, long AppendTicks,
+    long FlushTicks, long ApplyTicks, long TotalTicks, long FlushCalls, int MaxWaitingMutations,
+    long[] WaitingMutationsAtFlushStart, long[] WaitingMutationsAtFlushEnd);
+public sealed record LiveJournalWriteMetrics(long MutationGateCalls, long MutationGateWaitTicks,
+    LiveCommitOperationMetrics[] Operations);
+
 // Monotonic counters for this provider process only. Replay and current writes
 // are separate; retained allocation must be measured by the platform adapter.
 public sealed record OverlayIoMetrics(string Epoch, long LockAcquisitions, long LockWaitTicks,
@@ -32,7 +41,8 @@ public sealed record OverlayIoMetrics(string Epoch, long LockAcquisitions, long 
     long? ReplayFrames = null, long? ReplayReadCalls = null, long? ReplayReadTicks = null,
     long? ReplayValidationTicks = null, long? ReplayIndexTicks = null, int? ReplayBufferBytes = null,
     ReplayIndexOperationMetrics[]? ReplayIndexOperations = null,
-    ReplayWriteRangeIndexMetrics? ReplayWriteRangeIndex = null);
+    ReplayWriteRangeIndexMetrics? ReplayWriteRangeIndex = null,
+    LiveJournalWriteMetrics? LiveJournalWrites = null);
 
 public static class SourcePathPolicy
 {

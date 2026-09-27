@@ -203,6 +203,7 @@ public sealed class ContractAndCliTests
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(1, "replay-contract", tree.Snapshot, 65536, 4096);
         using var store = new JournalDeltaStore(Path.Combine(dir.Path, "delta"), identity, tree);
+        store.Create("live-cost-contract", false, 32);
         var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         var node = JsonSerializer.SerializeToNode(new
         {
@@ -225,6 +226,15 @@ public sealed class ContractAndCliTests
         var rangeResponseSchema = contracts.GetSchema("urn:splinter:v1:response").GetProperty("$defs")
             .GetProperty("overlayIoMetrics").GetProperty("properties").GetProperty("replayWriteRangeIndex");
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse(rangeSchema.GetRawText()), JsonNode.Parse(rangeResponseSchema.GetRawText())));
+        var liveSchema = contracts.GetSchema("urn:splinter:v1:overlay-observation").GetProperty("properties")
+            .GetProperty("storage").GetProperty("properties").GetProperty("metrics").GetProperty("properties").GetProperty("liveJournalWrites");
+        var liveResponseSchema = contracts.GetSchema("urn:splinter:v1:response").GetProperty("$defs")
+            .GetProperty("overlayIoMetrics").GetProperty("properties").GetProperty("liveJournalWrites");
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(liveSchema.GetRawText()), JsonNode.Parse(liveResponseSchema.GetRawText())));
+        node["storage"]!["metrics"]!["liveJournalWrites"]!["operations"]![0]!["waitingMutationsAtFlushStart"]![0] = -1;
+        Assert.False(Valid());
+        node["storage"]!["metrics"]!["liveJournalWrites"]!["operations"]![0]!["waitingMutationsAtFlushStart"]![0] = 1;
+        Assert.True(Valid());
         node["storage"]!["metrics"]!["replayWriteRangeIndex"]!["priorExtentBuckets"]![0] = -1;
         Assert.False(Valid());
         node["storage"]!["metrics"]!["replayWriteRangeIndex"]!["priorExtentBuckets"]![0] = 0;
@@ -240,7 +250,7 @@ public sealed class ContractAndCliTests
         Assert.True(Valid());
         node["storage"]!["metrics"]!["replayReadCalls"] = -1;
         Assert.False(Valid());
-        foreach (string field in new[] { "replayFrames", "replayReadCalls", "replayReadTicks", "replayValidationTicks", "replayIndexTicks", "replayBufferBytes", "replayIndexOperations", "replayWriteRangeIndex" })
+        foreach (string field in new[] { "replayFrames", "replayReadCalls", "replayReadTicks", "replayValidationTicks", "replayIndexTicks", "replayBufferBytes", "replayIndexOperations", "replayWriteRangeIndex", "liveJournalWrites" })
             node["storage"]!["metrics"]!.AsObject().Remove(field);
         Assert.True(Valid()); // Legacy observations keep the breakdown unknown.
         node["preparation"]!["storeReadyTicks"] = -1;

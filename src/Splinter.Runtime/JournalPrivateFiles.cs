@@ -34,7 +34,7 @@ public sealed partial class JournalDeltaStore
 
     internal void CreatePrivateTransferTarget(PrivateFile file, string staging)
     {
-        using (EnterGate())
+        using (EnterGate(mutation: true))
         {
             Check(); staging = Normalize(staging);
             if (nodes.TryGetValue(file.Entry.Id, out var prior) && !prior.Entry.Deleted || Lookup(staging) is not null)
@@ -46,7 +46,7 @@ public sealed partial class JournalDeltaStore
 
     internal void FillPrivateTransferTarget(PrivateFile file)
     {
-        using (EnterGate())
+        using (EnterGate(mutation: true))
         {
             Check(); SetLength(file.Entry.Id, 0); SetLength(file.Entry.Id, file.Entry.Length);
             foreach (var range in file.Ranges)

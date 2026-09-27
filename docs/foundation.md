@@ -1,5 +1,9 @@
 # 현재 기반
 
+개발용 [WriteProbe](write-profiling.md)는 새 synthetic 디렉터리에서 고정 단일/동시 쓰기와 metadata 변경을 실행하고 내용과 읽기 전용 replay를 검증한다. `capabilities.developmentWriteProbe`에 입력·쓰기 경계가 있으며 제품 workspace 생성이나 Unity 검증을 대신하지 않는다. `OverlayIoMetrics.liveJournalWrites`는 고정 6개 연산별 live commit 단계와 flush 전후 다른 mutation 대기 호출을 집계한다. Runtime은 기존처럼 각 durable flush를 마친 뒤 commit을 적용한다.
+
+Windows 어댑터는 변경 callback 전체를 별도의 `mutationGate`로 직렬화한다. Runtime의 대기 표본에는 이 바깥의 대기와 OS queue가 포함되지 않으므로 직접 Runtime을 호출하는 합성 입력과 실제 Unity의 동시성 조건을 구분한다. 검증 범위와 group flush의 후속 판단은 [JW 실행 기록](verification/live-journal-write-cost.md)을 따른다.
+
 > 제품 workspace에 [NTFS snapshot 모드](ntfs-workspaces.md)를 연결했다. 자동 계약/Git/NTFS 메타데이터 시험과 실제 VSS/Unity 통합 자격은 구분하며 [NI 기록](verification/ntfs-workspace-integration.md)을 따른다. SO 독립 실험과 기존 ReFS 성공을 NI 통과로 합산하지 않는다.
 
 Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release**와 계약·진단·계획 검증이다. ReFS CoW와 무-checkout index를 연결하고, Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 실제 실행한 조합은 [자원 검증](verification/storage-and-resources.md), 기존 두 Luna low 작업자의 일반 checkout 증거는 [알파 검증](verification/internal-alpha.md)을 따른다. daemon/SQLite Host와 외부 `agent.start`는 미구현이다.
@@ -31,6 +35,7 @@ NTFS 연결은 `VerifyConnectionAsync`에서 현재 부팅·연결 세대의 정
 | `unity/Splinter.Editor` | 작업별 Editor 안에서 refresh·컴파일·domain reload 관측과 종료 요청 처리 | Unity Editor API; 독립 소스 |
 | `Splinter.Tests` | 계약, CLI, DAG, fake 공급자, 실제 Git·Windows 자식 회수·선택적 ReFS 시험 | CLI, xUnit v3, MTP |
 | `tools/Splinter.ReplayProbe` | 제한된 합성 저널 생성·읽기 전용 replay·출력/hash 검증과 비용 계측 | Runtime; 개발용 console |
+| `tools/Splinter.WriteProbe` | 고정 합성 live 쓰기·metadata·동시 호출과 read-only replay·내용/hash 검증 | Runtime; 개발용 console |
 
 ```mermaid
 flowchart LR

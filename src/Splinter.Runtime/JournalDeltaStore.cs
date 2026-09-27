@@ -49,11 +49,16 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private long expectedJournalBytes;
     private bool replaying;
 
-    private GateLease EnterGate()
+    private GateLease EnterGate(bool mutation = false)
     {
         long started = Stopwatch.GetTimestamp();
-        Monitor.Enter(gate);
-        lockWaitTicks += Stopwatch.GetTimestamp() - started; lockAcquisitions++;
+        bool trackedMutation = mutation && !Monitor.IsEntered(gate);
+        if (trackedMutation) Interlocked.Increment(ref waitingMutationCalls);
+        try { Monitor.Enter(gate); }
+        finally { if (trackedMutation) Interlocked.Decrement(ref waitingMutationCalls); }
+        long waited = Stopwatch.GetTimestamp() - started;
+        lockWaitTicks += waited; lockAcquisitions++;
+        if (trackedMutation) { mutationGateCalls++; mutationGateWaitTicks += waited; }
         return new(gate);
     }
     private readonly struct GateLease(object gate) : IDisposable
@@ -134,7 +139,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
 
     public DeltaEntry Create(string path, bool directory, uint attributes)
     {
-        using (EnterGate())
+        using (EnterGate(mutation: true))
         {
             Check(); path = Normalize(path);
             if (path.Length == 0 || Lookup(path) is not null) throw new IOException("Path already exists.");
@@ -173,7 +178,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
 
     public void Write(Guid id, long offset, ReadOnlySpan<byte> data)
     {
-        using (EnterGate())
+        using (EnterGate(mutation: true))
         {
             Check(); Node node = RequiredFile(id);
             if (offset < 0 || data.Length > Identity.MaxTransferBytes) throw new ArgumentOutOfRangeException(nameof(offset));
@@ -186,7 +191,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
 
     public void SetLength(Guid id, long length)
     {
-        using (EnterGate())
+        using (EnterGate(mutation: true))
         {
             Check(); Node node = RequiredFile(id);
             if (length < 0) throw new ArgumentOutOfRangeException(nameof(length));
@@ -199,7 +204,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
 
     public void SetMetadata(Guid id, uint attributes, long creationTime, long accessTime, long writeTime)
     {
-        using (EnterGate())
+        using (EnterGate(mutation: true))
         {
             Check(); var old = Required(id).Entry;
             var entry = old with { Attributes = attributes, CreationTime = creationTime, LastAccessTime = accessTime, LastWriteTime = writeTime };
@@ -209,7 +214,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
 
     public void Rename(Guid id, string destination, bool replace)
     {
-        using (EnterGate())
+        using (EnterGate(mutation: true))
         {
             Check(); Node node = Required(id); destination = Normalize(destination);
             if (node.Entry.Path.Length == 0 || node.Entry.Deleted || destination.Length == 0 || IsChild(destination, node.Entry.Path))
@@ -224,7 +229,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
 
     public void Delete(Guid id)
     {
-        using (EnterGate())
+        using (EnterGate(mutation: true))
         {
             Check(); Node node = Required(id);
             if (node.Entry.Deleted) return;
@@ -260,7 +265,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     new ReplayWriteRangeIndexMetrics(replayRangeReplaceCalls, replayRangePriorExtents,
                         replayRangeMaxPriorExtents, replayRangeVisitedExtents, replayRangeCopiedExtents,
                         replayRangeLocateAndReplaceTicks, 0,
-                        (long[])replayRangePriorExtentBuckets.Clone()))
+                        (long[])replayRangePriorExtentBuckets.Clone()), ObserveLiveWrites())
             };
         }
     }
@@ -356,28 +361,59 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
 
     private void Commit(Mutation mutation, ReadOnlySpan<byte> payload)
     {
-        if (readOnly) throw new WorkspaceException("CandidateReadOnly", "A published candidate cannot be edited.");
-        RequireMutationCapacity(mutation);
-        byte[] metadata = JsonSerializer.SerializeToUtf8Bytes(mutation);
-        if (metadata.Length > MaxMetadataBytes) throw new WorkspaceException("OverlayMetadataLimit", "Mutation metadata exceeds the transaction limit.");
-        long start = journal.Length, required = 8L + metadata.Length + payload.Length + 32;
-        if (start > Identity.MaxJournalBytes - required)
-            throw new WorkspaceException("DeltaFull", "The delta journal budget is exhausted. Existing data remains intact; no automatic deletion or full-copy fallback.");
+        // Operation names are fixed by the mutation entrypoints; no path or unbounded label is retained.
+        if (!liveCommitOperations.TryGetValue(mutation.Operation, out var cost))
+            liveCommitOperations[mutation.Operation] = cost = new();
+        long started = Stopwatch.GetTimestamp(); cost.Attempts++;
         Span<byte> header = stackalloc byte[8];
-        BinaryPrimitives.WriteInt32LittleEndian(header, metadata.Length);
-        BinaryPrimitives.WriteInt32LittleEndian(header[4..], payload.Length);
-        using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        digest.AppendData(header); digest.AppendData(metadata); digest.AppendData(payload);
         try
         {
-            journal.Position = start;
-            journal.Write(header); journal.Write(metadata); journal.Write(payload); journal.Write(digest.GetHashAndReset());
-            DurableFlush();
+            byte[] metadata, checksum;
+            long start, required, stage = Stopwatch.GetTimestamp();
+            try
+            {
+                if (readOnly) throw new WorkspaceException("CandidateReadOnly", "A published candidate cannot be edited.");
+                RequireMutationCapacity(mutation);
+                metadata = JsonSerializer.SerializeToUtf8Bytes(mutation);
+                if (metadata.Length > MaxMetadataBytes) throw new WorkspaceException("OverlayMetadataLimit", "Mutation metadata exceeds the transaction limit.");
+                start = journal.Length; required = 8L + metadata.Length + payload.Length + 32;
+                if (start > Identity.MaxJournalBytes - required)
+                    throw new WorkspaceException("DeltaFull", "The delta journal budget is exhausted. Existing data remains intact; no automatic deletion or full-copy fallback.");
+                BinaryPrimitives.WriteInt32LittleEndian(header, metadata.Length);
+                BinaryPrimitives.WriteInt32LittleEndian(header[4..], payload.Length);
+                using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                digest.AppendData(header); digest.AppendData(metadata); digest.AppendData(payload);
+                checksum = digest.GetHashAndReset();
+            }
+            finally { cost.PrepareTicks += Stopwatch.GetTimestamp() - stage; }
+            try
+            {
+                stage = Stopwatch.GetTimestamp();
+                try
+                {
+                    journal.Position = start;
+                    journal.Write(header); journal.Write(metadata); journal.Write(payload); journal.Write(checksum);
+                }
+                finally { cost.AppendTicks += Stopwatch.GetTimestamp() - stage; }
+                long beforeFlush = flushTicks;
+                SampleWaitingMutations(cost, cost.WaitingAtStart); cost.FlushCalls++;
+                try { DurableFlush(); }
+                finally
+                {
+                    cost.FlushTicks += flushTicks - beforeFlush;
+                    SampleWaitingMutations(cost, cost.WaitingAtEnd);
+                }
+            }
+            catch { poisoned = true; throw; }
+            expectedJournalBytes = journal.Length;
+            commitCount++; appendedBytes += required;
+            cost.DurableCommits++; cost.PayloadBytes += payload.Length; cost.JournalBytes += required;
+            stage = Stopwatch.GetTimestamp();
+            try { Apply(mutation, start + 8 + metadata.Length, payload.Length); }
+            finally { cost.ApplyTicks += Stopwatch.GetTimestamp() - stage; }
         }
-        catch { poisoned = true; throw; }
-        expectedJournalBytes = journal.Length;
-        commitCount++; appendedBytes += required;
-        Apply(mutation, start + 8 + metadata.Length, payload.Length);
+        catch { cost.FailedCalls++; throw; }
+        finally { cost.TotalTicks += Stopwatch.GetTimestamp() - started; }
     }
     private void Replay()
     {
