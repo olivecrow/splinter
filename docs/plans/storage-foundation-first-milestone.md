@@ -92,4 +92,4 @@ Splinter는 각 대화의 AI가 필요할 때 독립 작업공간을 확보하�
 
 마감한 PV 대용량 비교, 전체 Medieval 팩 수리·lighting rebake, 새 에셋 구매·100GB 데이터 준비, ReFS 신규 확장, daemon/DB·Runner/DAG 도입은 이 실행 단위에 포함하지 않는다. 기존 결과·원본·타 작업을 보존할 수 없는 문제가 발견되면 성능 목표보다 해당 보존 결함을 먼저 해결한다.
 
-SF-01의 소스 검증 통과와 SF-02의 계측 성과를 전체 실행 성공으로 확대하지 않는다. 해당 실행은 **FailedPreservation**, SF-02 전체는 Partial, SF-03~06은 NotRun이다. 제어 파일 충돌 수정과 VSS 삭제 연쇄 재현·실제 보호 검증의 결과는 [복구 기록](../verification/storage-recovery.md)을 따른다. 이후 [지연 회수 범위](deferred-snapshot-reclamation.md)의 `reclaim-pending`·명시적 release 재시도·공유 VSS 공간 관측을 연결했다. 실제 판정은 [지연 회수 검증](../verification/deferred-snapshot-reclamation.md)을 따르며 자동 sweep은 제공하지 않는다.
+SF-01의 소스 검증 통과와 SF-02의 계측 성과를 전체 실행 성공으로 확대하지 않는다. 해당 실행은 **FailedPreservation**, SF-02 전체는 Partial이었고 SF-03~06은 당시 NotRun이었다. 제어 파일 충돌 수정과 VSS 삭제 연쇄 재현·실제 보호 검증의 결과는 [복구 기록](../verification/storage-recovery.md)을 따른다. 이후 [지연 회수 범위](deferred-snapshot-reclamation.md)의 `reclaim-pending`·명시적 release 재시도·공유 VSS 공간 관측을 연결했다. 실제 판정은 [지연 회수 검증](../verification/deferred-snapshot-reclamation.md)을 따르며 자동 sweep은 제공하지 않는다. 후속 SF-03 개발용 범위의 판정은 [VC 실행](../verification/immutable-validation-view.md)을 따른다.

@@ -13,6 +13,7 @@ internal static class Program
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     private const long Budget = 128 * 1024 * 1024;
+    private const long RangeProfileBudget = 32 * 1024 * 1024;
     private sealed record ExpectedFile(string Path, int Length, string Sha256);
     private sealed record Receipt(int Version, string Profile, OverlayIdentity Identity, long Frames,
         string JournalSha256, ExpectedFile[] Files, string[] Absent, double GenerationSeconds);
@@ -25,7 +26,7 @@ internal static class Program
         {
             if (args.Length == 3 && args[0] == "generate") Generate(args[1], Path.GetFullPath(args[2]));
             else if (args.Length == 2 && args[0] == "run") Run(Path.GetFullPath(args[1]));
-            else throw new ArgumentException("Usage: generate <append|overlap|file-renames> <new-directory> | run <sealed-synthetic-directory>");
+            else throw new ArgumentException("Usage: generate <append|overlap|file-renames|write-append-4096|write-append-16384|write-overwrite-16384|write-distributed-16384> <new-directory> | run <sealed-synthetic-directory>");
             return 0;
         }
         catch (Exception error)
@@ -38,10 +39,13 @@ internal static class Program
 
     private static SnapshotReference Snapshot(string profile) => new("probe-" + profile, "synthetic-replay-probe",
         "no-live-source", "empty-synthetic-root", DateTimeOffset.UnixEpoch, true, true, "synthetic-only");
+    private static bool IsRangeProfile(string profile) => profile is
+        "write-append-4096" or "write-append-16384" or "write-overwrite-16384" or "write-distributed-16384";
+    private static bool IsProfile(string profile) => profile is "append" or "overlap" or "file-renames" || IsRangeProfile(profile);
 
     private static void Generate(string profile, string directory)
     {
-        if (profile is not ("append" or "overlap" or "file-renames")) throw new ArgumentException("Unknown bounded profile.");
+        if (!IsProfile(profile)) throw new ArgumentException("Unknown bounded profile.");
         if (Directory.Exists(directory) || File.Exists(directory)) throw new IOException("Preserve the existing input; use a new directory.");
         long started = Stopwatch.GetTimestamp();
         Directory.CreateDirectory(directory);
@@ -57,7 +61,8 @@ internal static class Program
             void Append(string operation, DeltaEntry entry, ReadOnlySpan<byte> payload, long offset = 0, string? destination = null)
             {
                 byte[] metadata = JsonSerializer.SerializeToUtf8Bytes(new Mutation(++sequence, operation, entry, offset, destination));
-                if (journal.Position + 40L + metadata.Length + payload.Length > Budget) throw new IOException("Synthetic input budget exceeded.");
+                if (journal.Position + 40L + metadata.Length + payload.Length > (IsRangeProfile(profile) ? RangeProfileBudget : Budget))
+                    throw new IOException("Synthetic input budget exceeded.");
                 Span<byte> header = stackalloc byte[8];
                 BinaryPrimitives.WriteInt32LittleEndian(header, metadata.Length);
                 BinaryPrimitives.WriteInt32LittleEndian(header[4..], payload.Length);
@@ -83,6 +88,28 @@ internal static class Program
                 }
                 string emptyHash = Convert.ToHexStringLower(SHA256.HashData([]));
                 expected.AddRange(entries.Select(e => new ExpectedFile(e.Path, 0, emptyHash)));
+            }
+            else if (IsRangeProfile(profile))
+            {
+                int writes = profile == "write-append-4096" ? 4096 : 16384;
+                int files = profile == "write-distributed-16384" ? 128 : 1;
+                int writesPerFile = writes / files;
+                byte[] payload = new byte[1024];
+                for (int fileIndex = 0; fileIndex < files; fileIndex++)
+                {
+                    var entry = Create(files == 1 ? "Library/ranges" : $"Library/ranges-{fileIndex:D3}");
+                    int size = profile == "write-overwrite-16384" ? 1024 : writesPerFile * 1024;
+                    byte[] reference = new byte[size];
+                    for (int i = 0; i < writesPerFile; i++)
+                    {
+                        int offset = profile == "write-overwrite-16384" ? 0 : i * 1024;
+                        Array.Fill(payload, (byte)((fileIndex * 31 + i) % 251 + 1));
+                        entry = entry with { Length = Math.Max(entry.Length, offset + payload.Length) };
+                        Append("write", entry, payload, offset);
+                        payload.CopyTo(reference, offset);
+                    }
+                    expected.Add(new(entry.Path, reference.Length, Convert.ToHexStringLower(SHA256.HashData(reference))));
+                }
             }
             else
             {
@@ -128,11 +155,12 @@ internal static class Program
     {
         var receipt = JsonSerializer.Deserialize<Receipt>(File.ReadAllText(Path.Combine(directory, "probe.json")), Json)
             ?? throw new InvalidDataException("Synthetic receipt required.");
-        if (receipt.Version != 1 || receipt.Profile is not ("append" or "overlap" or "file-renames") ||
+        if (receipt.Version != 1 || !IsProfile(receipt.Profile) ||
             receipt.Identity != new OverlayIdentity(1, "probe-" + receipt.Profile, Snapshot(receipt.Profile), Budget, 1024 * 1024))
             throw new InvalidDataException("Only this tool's synthetic identities are accepted.");
         string journalPath = Path.Combine(directory, "delta.journal");
-        if (new FileInfo(journalPath).Length > Budget || HashFile(journalPath) != receipt.JournalSha256)
+        if (new FileInfo(journalPath).Length > (IsRangeProfile(receipt.Profile) ? RangeProfileBudget : Budget) ||
+            HashFile(journalPath) != receipt.JournalSha256)
             throw new InvalidDataException("Preserve the changed input.");
         var tree = new EmptyTree(receipt.Identity.Snapshot);
         // The fixed read-only constructor also exists in d48b3b0. Reflection keeps

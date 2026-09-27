@@ -1,6 +1,6 @@
 # SF-02 중첩량 예산의 제품 검증과 반복 저장량 판단
 
-확정일·실행일: 2026-09-26. 상태: **BQ-01~05 정의한 범위 완료, scoped-complete-with-limitations**. [실행 기록](../verification/journal-budget-and-growth-qualification.md)에 후보·장부·운영 재시도·결과/회수 증거를 남겼다. 예산의 실제 거부·같은 작업 재시도와 작은 Unity 수정 3회를 확인했고, 다음 공간 절감 후보는 **SF-03의 불변 후보·고정 검증 view·단일 Library A/B/A 최소 범위** 하나로 선정했다. SF-02 전체는 Partial, SF-03~06은 NotRun이며 대형 용량 목표는 미달성이다.
+확정일·실행일: 2026-09-26. 상태: **BQ-01~05 정의한 범위 완료, scoped-complete-with-limitations**. [실행 기록](../verification/journal-budget-and-growth-qualification.md)에 후보·장부·운영 재시도·결과/회수 증거를 남겼다. 예산의 실제 거부·같은 작업 재시도와 작은 Unity 수정 3회를 확인했고, 다음 공간 절감 후보는 **SF-03의 불변 후보·고정 검증 view·단일 Library A/B/A 최소 범위** 하나로 선정했다. 이 BQ 실행 당시 SF-02 전체는 Partial, SF-03~06은 NotRun이었으며 대형 용량 목표는 미달성이다. 후속 SF-03 개발용 범위의 판정은 [VC 실행](../verification/immutable-validation-view.md)을 따른다.
 
 ## 목표와 현재 근거
 

@@ -18,6 +18,12 @@ public sealed record SourceInspectionMetrics(string Mode, long PayloadBytesHashe
 
 public sealed record ReplayIndexOperationMetrics(string Operation, long Frames, long ApplyTicks);
 
+// Bounded replay-only distribution of prior extents on each write range replacement.
+// Buckets are 0, 1-8, 9-64, 65-512, 513-4096, and above 4096.
+public sealed record ReplayWriteRangeIndexMetrics(long ReplaceCalls, long PriorExtents,
+    int MaxPriorExtents, long VisitedExtents, long CopiedExtents,
+    long LocateAndReplaceTicks, long SortTicks, long[] PriorExtentBuckets);
+
 // Monotonic counters for this provider process only. Replay and current writes
 // are separate; retained allocation must be measured by the platform adapter.
 public sealed record OverlayIoMetrics(string Epoch, long LockAcquisitions, long LockWaitTicks,
@@ -25,7 +31,8 @@ public sealed record OverlayIoMetrics(string Epoch, long LockAcquisitions, long 
     long ReplayBytes, long ReplayTicks, long JournalReadBytes, long BaseReadBytes, long StopwatchFrequency,
     long? ReplayFrames = null, long? ReplayReadCalls = null, long? ReplayReadTicks = null,
     long? ReplayValidationTicks = null, long? ReplayIndexTicks = null, int? ReplayBufferBytes = null,
-    ReplayIndexOperationMetrics[]? ReplayIndexOperations = null);
+    ReplayIndexOperationMetrics[]? ReplayIndexOperations = null,
+    ReplayWriteRangeIndexMetrics? ReplayWriteRangeIndex = null);
 
 public static class SourcePathPolicy
 {

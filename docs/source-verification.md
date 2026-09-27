@@ -61,6 +61,8 @@ Runtime의 replay는 수명 한정 64KiB 버퍼로 저널만 순차 읽는다. �
 
 `replayIndexOperations`는 관측된 연산별 `operation`·`frames`·`applyTicks` 배열이며 최대 9개다. `create`, `metadata`, `resize`, `write`, `write-compacted`, `rename`, `delete`, `skip-write`, `skip-range`만 허용한다. 합계는 각각 `replayFrames`와 `replayIndexTicks`에 대응하고 현재 provider의 신규 쓰기는 포함하지 않는다. `skip-range`도 한 frame이므로 frame 수는 durable sequence 증가량과 다를 수 있다. 새 provider의 빈 배열은 replay한 frame이 없음을 뜻하며, 과거 누락/null은 unknown이다. 반환 배열 수정은 내부 계수에 영향을 주지 않는다.
 
+`replayWriteRangeIndex`는 재생 중 일반 `write` frame이 범위 index를 교체한 횟수(`replaceCalls`), 교체 직전 extent 수의 누적값/최댓값(`priorExtents`/`maxPriorExtents`), 탐색 방문/목록 이동 extent 수(`visitedExtents`/`copiedExtents`), 범위 탐색과 교체 시간(`locateAndReplaceTicks`), 정렬 시간(`sortTicks`)을 집계한다. 한 frame에 여러 fragment가 있는 `write-compacted`는 이 계수에서 제외하고 `replayIndexOperations`에 별도로 남긴다. `priorExtentBuckets`의 고정 6칸은 0, 1~8, 9~64, 65~512, 513~4096, 4097개 이상이다. 경로명·파일별 목록은 노출하지 않으며 새 provider의 현재 쓰기는 포함하지 않는다. 전체 `write` 비용에는 frame 자체와 다른 index 적용도 있어 위 시간의 합과 같지 않다. 현재 정렬된 국소 교체 구현의 `sortTicks`는 0이다. 이전 기록에서 이 객체가 누락되거나 null이면 unknown이며 0으로 소급하지 않는다.
+
 rename의 index 적용은 기존의 경로·whiteout 순회를 유지하며 같은 하위 경로 접두사를 rename당 한 번 만들어 재사용한다. 범위 index·저널 형식·지속 cache를 추가하지 않는다. [Offline probe](replay-profiling.md)로 합성 비용을 구분하며, 그 결과를 실제 Unity 준비 시간에 곧바로 적용하지 않는다.
 
 ## 계약과 진입점

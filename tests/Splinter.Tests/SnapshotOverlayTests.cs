@@ -77,6 +77,9 @@ public sealed class SnapshotOverlayTests
                 byte[] block = new byte[4096]; block[0] = (byte)i;
                 store.Write(large.Id, 8192, block);
             }
+            var fragmented = store.Create("fragmented", false, 32);
+            store.Write(fragmented.Id, 0, Enumerable.Repeat((byte)1, 8192).ToArray());
+            store.Write(fragmented.Id, 2048, Enumerable.Repeat((byte)2, 4096).ToArray());
             var scratch = store.Create("scratch", false, 32);
             store.Write(scratch.Id, 0, new byte[4096]); store.Delete(scratch.Id);
             store.Rename(store.Stat("dir")!.Id, "moved", false);
@@ -95,9 +98,18 @@ public sealed class SnapshotOverlayTests
         Assert.Contains(compacted.Cost.Stages, stage => stage.Stage == "candidate-replay" && stage.ReadBytes > 0);
         using (var resumed = new JournalDeltaStore(delta, identity, tree))
         {
+            var replayMetrics = resumed.Observe().Metrics!;
+            Assert.Equal(Assert.Single(replayMetrics.ReplayIndexOperations!, x => x.Operation == "write").Frames,
+                replayMetrics.ReplayWriteRangeIndex!.ReplaceCalls);
+            Assert.Contains(replayMetrics.ReplayIndexOperations!, x => x.Operation == "write-compacted" && x.Frames > 0);
             byte[] actual = new byte[4096];
             Assert.Equal(4096, resumed.Read(resumed.Stat("large")!.Id, 8192, actual));
             Assert.Equal(99, actual[0]); Assert.All(actual[1..], x => Assert.Equal(0, x));
+            byte[] fragments = new byte[8192];
+            Assert.Equal(fragments.Length, resumed.Read(resumed.Stat("fragmented")!.Id, 0, fragments));
+            Assert.All(fragments[..2048], x => Assert.Equal(1, x));
+            Assert.All(fragments[2048..6144], x => Assert.Equal(2, x));
+            Assert.All(fragments[6144..], x => Assert.Equal(1, x));
             Assert.Null(resumed.Stat("scratch")); Assert.Null(resumed.Stat("dir"));
             Assert.NotNull(resumed.Stat("moved/code.cs"));
             resumed.Write(resumed.Stat("large")!.Id, 16384, [7, 8]);

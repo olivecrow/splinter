@@ -30,9 +30,9 @@ public sealed class FoundationGateway(
             result = "snapshot-dependent-until-independent-collection; no-worker-return-merge-or-queue",
             measurements = "worker-ready; candidate-publication; cold-ready; repeated-stop-remount-restart-ready; bytes-and-time-separate" },
         developmentReplayProbe = new { entrypoint = "dotnet run --project tools/Splinter.ReplayProbe --configuration Release --no-build --",
-            inputs = "bounded synthetic append, overlap, and file-renames; not a Unity or VSS qualification",
+            inputs = "bounded synthetic append, overlap, file-renames, write-append-4096, write-append-16384, write-overwrite-16384, and write-distributed-16384; not a Unity or VSS qualification",
             writes = "generate requires a new directory; run holds a read-only journal; no automatic cleanup",
-            measurements = "per-operation replay index time; managed allocation distinct from peak working set; verified output and input hashes" },
+            measurements = "per-operation replay index time and write-range extent/cost aggregates; managed allocation distinct from peak working set; verified output and input hashes" },
         snapshotOverlay = new
         {
             stage = "workspace-internal-alpha",

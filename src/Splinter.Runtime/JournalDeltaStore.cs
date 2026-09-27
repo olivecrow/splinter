@@ -42,6 +42,10 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private long replayBytes, replayTicks, journalReadBytes, baseReadBytes;
     private long replayFrames, replayReadCalls, replayReadTicks, replayValidationTicks, replayIndexTicks;
     private readonly Dictionary<string, (long Frames, long ApplyTicks)> replayIndexOperations = [];
+    private long replayRangeReplaceCalls, replayRangePriorExtents, replayRangeVisitedExtents;
+    private long replayRangeCopiedExtents, replayRangeLocateAndReplaceTicks;
+    private int replayRangeMaxPriorExtents;
+    private readonly long[] replayRangePriorExtentBuckets = new long[6];
     private long expectedJournalBytes;
     private bool replaying;
 
@@ -252,7 +256,11 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     appendedBytes, replayBytes, replayTicks, journalReadBytes, baseReadBytes, Stopwatch.Frequency,
                     replayFrames, replayReadCalls, replayReadTicks, replayValidationTicks, replayIndexTicks, ReplayReadBufferBytes,
                     replayIndexOperations.OrderBy(pair => pair.Key, StringComparer.Ordinal)
-                        .Select(pair => new ReplayIndexOperationMetrics(pair.Key, pair.Value.Frames, pair.Value.ApplyTicks)).ToArray())
+                        .Select(pair => new ReplayIndexOperationMetrics(pair.Key, pair.Value.Frames, pair.Value.ApplyTicks)).ToArray(),
+                    new ReplayWriteRangeIndexMetrics(replayRangeReplaceCalls, replayRangePriorExtents,
+                        replayRangeMaxPriorExtents, replayRangeVisitedExtents, replayRangeCopiedExtents,
+                        replayRangeLocateAndReplaceTicks, 0,
+                        (long[])replayRangePriorExtentBuckets.Clone()))
             };
         }
     }
@@ -490,13 +498,13 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         {
             case "write": case "write-compacted":
                 extentCount -= node.Extents.Count;
-                if (mutation.Operation == "write") ReplaceRange(node, new(mutation.Offset, payloadLength, payloadOffset));
+                if (mutation.Operation == "write") ReplaceRange(node, new(mutation.Offset, payloadLength, payloadOffset), true);
                 else
                 {
                     long cursor = payloadOffset;
                     foreach (var fragment in mutation.Fragments!)
                     {
-                        ReplaceRange(node, new(fragment.Offset, fragment.Length, cursor));
+                        ReplaceRange(node, new(fragment.Offset, fragment.Length, cursor), false);
                         cursor += fragment.Length;
                     }
                 }
@@ -553,17 +561,86 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             mutation.Operation is "delete" or "rename" && !hidden.Contains(mutation.Entry.Path) && hidden.Count >= MaxHiddenPaths)
             throw new WorkspaceException("OverlayMetadataLimit", "The bounded range or whiteout index is full; preserve the delta.");
     }
-    private static void ReplaceRange(Node node, Extent replacement)
+    private void ReplaceRange(Node node, Extent replacement, bool measureWriteFrame)
     {
+        int priorCount = node.Extents.Count;
+        long started = replaying && measureWriteFrame ? Stopwatch.GetTimestamp() : 0;
         long end = replacement.Start + replacement.Length;
-        var next = new List<Extent>(node.Extents.Count + 1);
-        foreach (var extent in node.Extents)
+        // Most Unity cache writes append to a file. The index is already sorted
+        // and non-overlapping, so appending needs neither a copy nor a sort.
+        if (priorCount == 0 || node.Extents[^1].Start + node.Extents[^1].Length <= replacement.Start)
         {
-            long priorEnd = extent.Start + extent.Length;
-            if (priorEnd <= replacement.Start || extent.Start >= end) { next.Add(extent); continue; }
-            if (extent.Start < replacement.Start) next.Add(extent with { Length = (int)(replacement.Start - extent.Start) });
-            if (priorEnd > end) next.Add(new(end, (int)(priorEnd - end), extent.JournalOffset + end - extent.Start));
+            node.Extents.Add(replacement);
+            if (measureWriteFrame) RecordRangeReplay(priorCount, priorCount == 0 ? 0 : 1, 0, started);
+            return;
         }
-        next.Add(replacement); next.Sort((a, b) => a.Start.CompareTo(b.Start)); node.Extents = next;
+
+        // Find only the extents that can overlap. A sorted splice preserves the
+        // exact left/right fragments and journal offsets of the old full sort.
+        var extents = node.Extents;
+        int visited = 1, low = 0, high = priorCount;
+        while (low < high)
+        {
+            int middle = low + (high - low) / 2;
+            visited++;
+            if (extents[middle].Start + extents[middle].Length <= replacement.Start) low = middle + 1;
+            else high = middle;
+        }
+        int first = low;
+        high = priorCount;
+        while (low < high)
+        {
+            int middle = low + (high - low) / 2;
+            visited++;
+            if (extents[middle].Start < end) low = middle + 1;
+            else high = middle;
+        }
+        int after = low;
+        Extent? left = null, right = null;
+        if (first < after)
+        {
+            var firstExtent = extents[first];
+            if (firstExtent.Start < replacement.Start)
+                left = firstExtent with { Length = (int)(replacement.Start - firstExtent.Start) };
+            var lastExtent = extents[after - 1];
+            long lastEnd = lastExtent.Start + lastExtent.Length;
+            if (lastEnd > end)
+                right = new(end, (int)(lastEnd - end), lastExtent.JournalOffset + end - lastExtent.Start);
+        }
+        var pieces = new Extent[1 + (left is null ? 0 : 1) + (right is null ? 0 : 1)];
+        int index = 0;
+        if (left is not null) pieces[index++] = left;
+        pieces[index++] = replacement;
+        if (right is not null) pieces[index] = right;
+
+        // Allocate before changing the durable in-memory state. InsertRange on
+        // an array cannot grow the list after EnsureCapacity succeeds.
+        extents.EnsureCapacity(priorCount - (after - first) + pieces.Length);
+        extents.RemoveRange(first, after - first);
+        extents.InsertRange(first, pieces);
+        long moved = priorCount - after;
+        if (after > first) moved += priorCount - after;
+        if (measureWriteFrame) RecordRangeReplay(priorCount, visited, moved, started);
+    }
+
+    private void RecordRangeReplay(int priorCount, int visited, long copied, long started)
+    {
+        if (!replaying) return;
+        replayRangeReplaceCalls++;
+        replayRangePriorExtents += priorCount;
+        replayRangeMaxPriorExtents = Math.Max(replayRangeMaxPriorExtents, priorCount);
+        replayRangeVisitedExtents += visited;
+        replayRangeCopiedExtents += copied;
+        replayRangeLocateAndReplaceTicks += Stopwatch.GetTimestamp() - started;
+        int bucket = priorCount switch
+        {
+            0 => 0,
+            <= 8 => 1,
+            <= 64 => 2,
+            <= 512 => 3,
+            <= 4096 => 4,
+            _ => 5
+        };
+        replayRangePriorExtentBuckets[bucket]++;
     }
 }

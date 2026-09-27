@@ -6,7 +6,7 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 ## 구조와 의존성
 
-개발용 `Splinter.ReplayProbe`는 고정 synthetic identity의 작은 저널 생성과 read-only Runtime replay를 제공한다. `OverlayIoMetrics.replayIndexOperations`로 연산별 비용을 구분하고 내용·state/input hash와 관리 메모리 할당을 확인한다. 제품 workspace나 Unity 검증이 아니며 사용법은 [offline replay 계측](replay-profiling.md), 실제 결과는 [RI 기록](verification/replay-index-cost.md)을 따른다.
+개발용 `Splinter.ReplayProbe`는 고정 synthetic identity의 작은 저널 생성과 read-only Runtime replay를 제공한다. `OverlayIoMetrics.replayIndexOperations`로 연산별 비용, `replayWriteRangeIndex`로 write 직전 extent 분포·탐색/이동/정렬 비용을 구분하고 내용·state/input hash와 관리 메모리 할당을 확인한다. Runtime의 범위 index는 정렬된 extent에서 겹치는 구간만 교체하며 끝에 추가할 때는 전체 목록 복사와 정렬을 하지 않는다. 제품 workspace나 Unity 검증이 아니며 사용법은 [offline replay 계측](replay-profiling.md), 제한된 결과는 [RI 기록](verification/replay-index-cost.md)과 [WI 기록](verification/cumulative-write-range-index.md)을 따른다.
 
 [불변 검증 후보·고정 view](validation-view.md)는 개발용 `snapshot-spike` 확장이다. Core의 `ValidationCandidate`/`ValidationViewSelection`, Runtime의 읽기 전용 봉인 후보와 분리된 source/cache 저널, Windows의 WinFsp 조합을 사용한다. 제품 workspace coordinator나 기본 실행 모드에는 연결되지 않았다. 후보는 최종 checkpoint와 구별되며 별도 독립 결과 수집이 필요하다. Host의 capability는 `validationViewExperiment.integratedWorkspaceMode=false`로 경계를 표시한다.
 

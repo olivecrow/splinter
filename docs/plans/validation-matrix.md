@@ -1,5 +1,15 @@
 # 구현 계획 검증 추적표
 
+[WI-01~05](cumulative-write-range-index.md)는 [누적 write 범위 index의 합성·새 작은 Unity 실행](../verification/cumulative-write-range-index.md)을 `scoped-complete-with-limitations`로 마감했다. 표준 빌드의 자동 시험은 301 통과·0 실패·선택적 ReFS 1 skip이다. 같은 닫힌 저널 mount 개선과 전체 Editor 재개·Library 물리 절감을 구분한다.
+
+| 하위 관문 | 범위 | 판정 |
+| --- | --- | --- |
+| WI-01 | 일반 write의 직전 extent 분포·탐색/이동/정렬 비용, nullable 계약 | Passed, 연산/frame 합계·압축 frame 분리·기존 계수 unknown 확인 |
+| WI-02 | 고정 합성 4종의 병목 판별과 입력/상태/hash | Passed, 세 구현×각 3회, warm cache·소수 표본 제한 |
+| WI-03 | 정렬된 extent의 영향 구간 국소 교체 | Passed, 겹침·hole·truncate·압축 fragment 재연결과 자동 회귀 |
+| WI-04 | 새 작은 Unity 닫힌 저널 mount 각 3회·후보 Editor 1회 | Passed, 정의한 관측. 전체 Editor 개선 미입증, 첫 PNG 빈 화면·stop 재확인 유지 |
+| WI-05 | 최초/반복 시간·파일 할당/VSS 분리·독립 결과/회수 | Passed, 원본 90개 파일/기존 ref 21개 보존·VHD 분리 뒤 결과 검증. 최초 delta 표본 일부·순간 peak unknown |
+
 [RU-01~04](unity-replay-comparison.md)는 [작은 Unity의 기존/개선 비교](../verification/unity-replay-comparison.md)를 `scoped-complete-with-limitations`로 마감했다. 제품 코드 변경 없이 같은 RI 소스의 자동 300/0/1 증거를 재사용했다.
 
 | 하위 관문 | 범위 | 판정 |
@@ -9,7 +19,7 @@
 | RU-03 | 동일 journal mount와 누적 입력 Editor 각 3회 | Passed, 정의한 관측. 전체 Editor 개선률 미입증·focus 복구/종료 재시도 포함 |
 | RU-04 | 독립 결과·원본/기존 ref/타 볼륨 snapshot·회수 | Passed, 소유 자원 0·VHD 분리 후 독립 결과 fsck/내용 확인 |
 
-[RI-01~04](replay-index-cost.md)는 [연산별 index 계측·rename 할당 개선과 offline 합성 비교](../verification/replay-index-cost.md)의 정의한 범위다. 현재 자동 시험은 300 통과·0 실패·선택적 ReFS 1 skip이다. 실제 Unity 재연결의 후속 관측은 RU 기록을 따르며 RI의 합성 관측과 구분한다.
+[RI-01~04](replay-index-cost.md)는 [연산별 index 계측·rename 할당 개선과 offline 합성 비교](../verification/replay-index-cost.md)의 정의한 범위다. 당시 자동 시험은 300 통과·0 실패·선택적 ReFS 1 skip이었다. 실제 Unity 재연결의 후속 관측은 RU 기록을 따르며 RI의 합성 관측과 구분한다.
 
 | 하위 관문 | 범위 | 판정 |
 | --- | --- | --- |

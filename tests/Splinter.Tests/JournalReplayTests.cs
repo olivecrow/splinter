@@ -13,7 +13,7 @@ public sealed class JournalReplayTests
             """{"Epoch":"old","LockAcquisitions":0,"LockWaitTicks":0,"FlushCount":0,"FlushTicks":0,"CommitCount":0,"JournalAppendedBytes":0,"ReplayBytes":12,"ReplayTicks":34,"JournalReadBytes":12,"BaseReadBytes":0,"StopwatchFrequency":10000000}""")!;
         Assert.Null(old.ReplayFrames); Assert.Null(old.ReplayReadCalls); Assert.Null(old.ReplayReadTicks);
         Assert.Null(old.ReplayValidationTicks); Assert.Null(old.ReplayIndexTicks); Assert.Null(old.ReplayBufferBytes);
-        Assert.Null(old.ReplayIndexOperations);
+        Assert.Null(old.ReplayIndexOperations); Assert.Null(old.ReplayWriteRangeIndex);
     }
 
     [Theory]
@@ -47,6 +47,15 @@ public sealed class JournalReplayTests
         Assert.Equal(metrics.ReplayFrames, indexCosts.Sum(x => x.Frames));
         Assert.Equal(metrics.ReplayIndexTicks, indexCosts.Sum(x => x.ApplyTicks));
         Assert.Equal(300, Assert.Single(indexCosts, x => x.Operation == "write").Frames);
+        var ranges = metrics.ReplayWriteRangeIndex!;
+        Assert.Equal(300, ranges.ReplaceCalls);
+        Assert.Equal(Enumerable.Range(0, 300).Sum(i => (long)i), ranges.PriorExtents);
+        Assert.Equal(299, ranges.MaxPriorExtents);
+        Assert.Equal(299, ranges.VisitedExtents);
+        Assert.Equal(0, ranges.CopiedExtents);
+        Assert.Equal(ranges.ReplaceCalls, ranges.PriorExtentBuckets.Sum());
+        Assert.True(ranges.LocateAndReplaceTicks + ranges.SortTicks <=
+            Assert.Single(indexCosts, x => x.Operation == "write").ApplyTicks);
         Assert.InRange(metrics.ReplayReadCalls!.Value, 1, 30);
         Assert.True(metrics.ReplayReadTicks + metrics.ReplayValidationTicks + metrics.ReplayIndexTicks <= metrics.ReplayTicks);
         Assert.Equal(0, metrics.CommitCount); Assert.Equal(0, metrics.FlushCount); Assert.Equal(0, metrics.BaseReadBytes);
@@ -55,6 +64,44 @@ public sealed class JournalReplayTests
         { resumed.Read(id, offset, result); Assert.Equal(block, result); }
         resumed.Dispose();
         Assert.Equal(SHA256.HashData(bytes), SHA256.HashData(File.ReadAllBytes(journal)));
+    }
+
+    [Fact]
+    public void OrderedRangeSplicePreservesRandomOverlapsHolesAndReconnectBytes()
+    {
+        using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        var identity = new OverlayIdentity(1, "range-splice", tree.Snapshot, 1_000_000, 4096);
+        string delta = Path.Combine(dir.Path, "delta"), journal = Path.Combine(delta, "delta.journal");
+        byte[] expected = new byte[4096]; var random = new Random(27);
+        Guid id;
+        using (var store = new JournalDeltaStore(delta, identity, tree))
+        {
+            id = store.Create("private", false, 32).Id;
+            store.SetLength(id, expected.Length);
+            for (int i = 0; i < 240; i++)
+            {
+                int size = random.Next(1, 97), offset = random.Next(0, expected.Length - size + 1);
+                byte[] bytes = new byte[size]; random.NextBytes(bytes);
+                store.Write(id, offset, bytes); bytes.CopyTo(expected, offset);
+                if (i % 30 == 29)
+                {
+                    byte[] actual = new byte[expected.Length];
+                    Assert.Equal(actual.Length, store.Read(id, 0, actual));
+                    Assert.Equal(expected, actual);
+                }
+            }
+            store.SetLength(id, 2048); Array.Clear(expected, 2048, 2048);
+            store.SetLength(id, 4096);
+            store.Write(id, 4095, [0x5a]); expected[4095] = 0x5a;
+        }
+        byte[] before = SHA256.HashData(File.ReadAllBytes(journal));
+        using var resumed = new JournalDeltaStore(delta, identity, tree);
+        byte[] replayed = new byte[expected.Length];
+        Assert.Equal(replayed.Length, resumed.Read(id, 0, replayed));
+        Assert.Equal(expected, replayed);
+        Assert.Equal(241, resumed.Observe().Metrics!.ReplayWriteRangeIndex!.ReplaceCalls);
+        resumed.Dispose();
+        Assert.Equal(before, SHA256.HashData(File.ReadAllBytes(journal)));
     }
 
     [Fact]
@@ -77,8 +124,12 @@ public sealed class JournalReplayTests
         Assert.All(costs, x => { Assert.Equal(1, x.Frames); Assert.True(x.ApplyTicks >= 0); });
         Assert.Equal(metrics.ReplayFrames, costs.Sum(x => x.Frames));
         Assert.Equal(metrics.ReplayIndexTicks, costs.Sum(x => x.ApplyTicks));
+        Assert.Equal(1, metrics.ReplayWriteRangeIndex!.ReplaceCalls);
+        Assert.Equal(new long[] { 1, 0, 0, 0, 0, 0 }, metrics.ReplayWriteRangeIndex.PriorExtentBuckets);
         costs[0] = new("changed", 99, 99);
         Assert.Equal("create", resumed.Observe().Metrics!.ReplayIndexOperations![0].Operation);
+        metrics.ReplayWriteRangeIndex.PriorExtentBuckets[0] = 99;
+        Assert.Equal(1, resumed.Observe().Metrics!.ReplayWriteRangeIndex!.PriorExtentBuckets[0]);
         resumed.Create("new-live-write", false, 32);
         Assert.Equal(6, resumed.Observe().Metrics!.ReplayFrames);
     }

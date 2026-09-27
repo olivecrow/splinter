@@ -172,6 +172,25 @@
                 }
               }
             },
+            "replayWriteRangeIndex": {
+              "type": ["object", "null"],
+              "additionalProperties": false,
+              "required": ["replaceCalls", "priorExtents", "maxPriorExtents", "visitedExtents",
+                "copiedExtents", "locateAndReplaceTicks", "sortTicks", "priorExtentBuckets"],
+              "properties": {
+                "replaceCalls": {"type":"integer", "minimum":0},
+                "priorExtents": {"type":"integer", "minimum":0},
+                "maxPriorExtents": {"type":"integer", "minimum":0},
+                "visitedExtents": {"type":"integer", "minimum":0},
+                "copiedExtents": {"type":"integer", "minimum":0},
+                "locateAndReplaceTicks": {"type":"integer", "minimum":0},
+                "sortTicks": {"type":"integer", "minimum":0},
+                "priorExtentBuckets": {
+                  "type":"array", "minItems":6, "maxItems":6,
+                  "items":{"type":"integer", "minimum":0}
+                }
+              }
+            },
             "journalReadBytes": {
               "type": "integer",
               "minimum": 0

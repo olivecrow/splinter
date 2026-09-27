@@ -4,6 +4,7 @@
 
 | 문서 | 읽을 때 |
 | --- | --- |
+| [누적 write 범위 index 범위](plans/cumulative-write-range-index.md) · [실행 기록](verification/cumulative-write-range-index.md) | WI-01~05의 고정 합성 원인 분해·국소 index 변경과 새 작은 Unity 저널의 동일 입력 비교, 실제 Editor·파일 할당·결과 보존/회수를 확인할 때 |
 | [작은 Unity 재개 비교](plans/unity-replay-comparison.md) · [실행 기록](verification/unity-replay-comparison.md) | 작은 Unity의 동일 journal mount·누적 입력 Editor 각 3회 비교와 파일 할당·독립 결과·회수. 전체 Editor 개선 미입증·첫 렌더/운영 재시도 제한을 확인할 때 |
 | [Offline replay 계측](replay-profiling.md) · [RI 범위](plans/replay-index-cost.md) · [검증](verification/replay-index-cost.md) | 연산별 index 비용과 고정 합성 입력의 시간·관리 메모리 할당·동일 상태를 비교할 때. 실제 Unity·VSS 경로와 구분하는 개발용 도구 |
 | [첫 준비·재연결 시간 범위](plans/validation-view-readiness-and-replay.md) · [검증](verification/validation-view-readiness-and-replay.md) | 정상 첫 import/렌더, 같은 저널의 재생 읽기·검증·index 시간, 실제 mount 준비 응답과 저장량 기준을 확인할 때. 이전 VC와 구분하는 작은 후속 범위 |
