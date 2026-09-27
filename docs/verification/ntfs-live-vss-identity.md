@@ -1,6 +1,6 @@
 # Live VSS 식별·재연결 검증
 
-기준일: 2026-09-22. [LV 계획](../plans/ntfs-live-vss-identity.md)의 실행 기록이다. NR 전체, 실제 재부팅·전원 종료·공간 고갈·ARM A/B의 통과를 의미하지 않는다.
+기준일: 2026-09-22. [LV 계획](../ntfs-workspaces.md)의 실행 기록이다. NR 전체, 실제 재부팅·전원 종료·공간 고갈·ARM A/B의 통과를 의미하지 않는다.
 
 ## 후보와 자동 검증
 
@@ -14,7 +14,7 @@
 | LV-02 | 다른 ID/owner/provider/volume/시각/flags/device와 상대 경로 탈출 거부 | 자동 Passed |
 | LV-03 | 검증된 새 읽기 root를 선택해 실제 JournalDeltaStore를 재개, 부분 쓰기 hash·sequence·identity/저널 바이트 보존 | fake/실제 저널 Passed |
 | LV-04 | 이전 boot·오래된 요청·실패/불완전 조회·경로 접근 불가·정확한 ID 부재·손상 기록 구분 | 자동 Passed |
-| LV-05 | legacy 별도 재검증·입증 불가 보존, version 2 필수 정보, 동일 key 동시 ensure, `.new`/요청 `.tmp` 보존 | 자동 Passed |
+| LV-05 | 입증 불가 보존, version 2 필수 정보, 동일 key 동시 ensure, `.new`/요청 `.tmp` 보존 | 자동 Passed |
 | LV-06 | 실제 제품 workspace의 범위 쓰기·flush·provider 종료·관리자 Observe·비관리자 동일 key 재연결 | Passed |
 | LV-07 | binary 독립 결과 보존·제품 release·최종 소유 VSS 부재; Unity checkpoint/회수 | Passed |
 | LV-08 | 동일 후보의 Windows x64 / Unity 6000.3.22f1 단일 workspace, 검증 3건·재연결·결과·회수 | Passed |

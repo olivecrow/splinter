@@ -5,7 +5,6 @@ namespace Splinter.Platform.Windows;
 
 public sealed partial class VssSnapshotProvider
 {
-    private sealed record VerifiedIdentity(string OwnerId, SnapshotReference Snapshot, VssCaptureIdentity Identity);
     private string VerificationPath(string name) => Path.Combine(receiptDirectory, name);
 
     private async Task<T?> ReadVerificationAsync<T>(string name, CancellationToken ct)
@@ -27,19 +26,11 @@ public sealed partial class VssSnapshotProvider
     {
         try
         {
-            if (receipt.Version is not (1 or 2) || receipt.Version == 2 && receipt.CaptureIdentity is null)
+            if (!CurrentFormat(receipt))
                 return new(snapshot.Id, null, "SnapshotObservationCorrupt", null, null);
             var request = await ReadVerificationAsync<VssVerificationRequest>("verification-request.json", ct);
             var live = await ReadVerificationAsync<VssLiveObservation>("live-observation.json", ct);
-            var captured = receipt.CaptureIdentity;
-            if (captured is null)
-            {
-                var legacy = await ReadVerificationAsync<VerifiedIdentity>("verified-identity.json", ct);
-                if (legacy is not null && (legacy.OwnerId != ownerId || legacy.Snapshot != snapshot))
-                    return new(snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
-                captured = legacy?.Identity;
-            }
-            return VssSnapshotVerification.Evaluate(snapshot, ownerId, captured, request, live, await observeBoot(ct), observePath);
+            return VssSnapshotVerification.Evaluate(snapshot, ownerId, receipt.CaptureIdentity, request, live, await observeBoot(ct), observePath);
         }
         catch (WorkspaceException ex) { return new(snapshot.Id, null, ex.Code, null, null); }
     }
@@ -62,6 +53,7 @@ public sealed partial class VssSnapshotProvider
         var receipt = await Read(ct);
         if (receipt is null || !Matches(receipt, snapshot) || receipt.Released)
             throw new WorkspaceException("SnapshotIdentityMismatch", "Read access requires the exact owned, unreleased capture receipt.");
+        RequireCurrentFormat(receipt);
         Directory.CreateDirectory(receiptDirectory);
         using var operation = new FileStream(VerificationPath("verification.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         var observed = await ObserveLiveAsync(snapshot, receipt, ct);

@@ -53,7 +53,7 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
             return new("resume-compaction", "WorkspaceCompacting", "workspace.compact");
         if ((state.Step.StartsWith("release-", StringComparison.Ordinal) || observation?.SnapshotAvailable == false) &&
             state.Result is { IndependentOfSnapshot: true, CollectionProtocol: not SnapshotResult.StableJournalProtocol })
-            return new("preserve", "SnapshotResultRevalidationRequired", "workspace.status");
+            return new("preserve", "SnapshotResultInvalid", "workspace.status");
         if (observation?.FailureCode is "DeltaCorrupt" or "OverlayIdentityMismatch" or "SnapshotIdentityMismatch" or "OverlayStartUncertain" or "SnapshotObservationCorrupt" or "SnapshotObservationIncomplete")
             return new("preserve", observation.FailureCode, "workspace.status");
         if (state.Step == "release-snapshot" && state.Result is { IndependentOfSnapshot: true } &&
@@ -85,7 +85,8 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
 }
 public sealed record SnapshotDeltaSeal(long DurableSequence, long JournalBytes, string JournalHash);
 public sealed record SnapshotResult(string SnapshotId, string Revision, string Fingerprint,
-    string ResultReference, SnapshotDeltaSeal Seal, bool IndependentOfSnapshot, string? CollectionProtocol = null)
+    string ResultReference, SnapshotDeltaSeal Seal, bool IndependentOfSnapshot,
+    [property: System.Text.Json.Serialization.JsonRequired] string CollectionProtocol)
 {
     public const string StableJournalProtocol = "stable-journal-v1";
 }

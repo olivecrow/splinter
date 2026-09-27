@@ -1,42 +1,6 @@
-# NTFS 내부 알파 2차: 복구와 파일 지원 경계
+# NTFS 복구와 지원 확대
 
-계획일: 2026-09-21. 상태: **NR-01/03/05/07 부분 구현·자동 검증, 원격 VSS workspace 읽기·소유 자원 회수와 마지막 상태 전환 복구 확인**. 현재 실행 범위는 [NR 검증 기록](../verification/ntfs-recovery.md)을 따른다. 사용자가 제공한 VIVOBOOK은 ARM Windows 11, RAM 32GB이며 지정한 `splinter-test-vivobook` 프로젝트를 사용한다. 기존 Unity fixture의 동일 revision·77개 파일 복사와 이전 후보의 로컬·원격 자동 시험 각각 139개 통과를 확인했다. 기존 x64 Unity 6000.3.22f1을 유지하며 ARM64 Editor를 추가하지 않는다. 합성 입력의 실제 WinFsp 기본 I/O·파일 API 5개 거부·회수와 VSS 상한 32GiB 증가를 확인했고 실제 제품 workspace에서 77개 파일 읽기도 통과했다. 읽기 시험의 소유 자원 0과 기존 snapshot 4개 보존을 확인했다. 삭제된 장치 경로 관측 때문에 releasing에 남는 결함을 수정했고 같은 workspace의 비관리자 release/status가 released까지 완료됐다. canonical x64 Unity의 첫 임포트는 180초 안에 완료했고 기존 MCP 연결과 Console 준비도 완료했다. ARM Windows/x64 Unity의 단일 제품 workspace에서 스크립트 검증 2건·독립 결과 보존·회수를 통과했고 남은 소유 workspace 자원은 0이다. canonical Editor/MCP 세션과 임시 전송 서버도 정리해 이번 원격 실행을 완료했다. A/B 동시 회귀·재부팅·공간 고갈·전원 중단은 남은 관문이며 후속 장애 계획에 따라 시험 PC를 다시 사용한다.
-
-목표는 **중단되거나 재부팅된 NTFS 작업을 같은 불변 기준으로 재개하고, 재개할 수 없는 경우에도 결과와 소유권을 보존하며 다음 행동을 명확히 반환하는 것**이다. [기획서 15.1절](../../plan.html#section-15-1)의 복구·파일 지원 관문을 이번 단위로 구체화한다. 제한된 fixture의 실제 A/B 작업과 비용 관측은 NR 전체 완료를 기다리지 않고 아래 관문으로 먼저 확인한다. 일반 프로젝트·에셋·Play·테스트의 지원 확대 조건은 유지한다.
-
-2026-09-22의 [live VSS 식별·재개 단위](ntfs-live-vss-identity.md)는 LV-01~08의 정의된 수준에서 완료했다. 새 로컬 후보의 자동 180 통과, 실제 VSS/Git 재연결·범위 쓰기와 단일 Unity 검증 3건·결과·회수는 [LV 기록](../verification/ntfs-live-vss-identity.md)을 따른다. NR-01 전체나 NR-01~08 전체 완료는 아니며 나머지 중단·파일 경계, 정상 재부팅·강제 전원 종료·물리 공간 고갈·ARM A/B를 이어 간다.
-
-## 출발점과 우선순위의 근거
-
-2026-09-25의 [공통 저장소 실행](../verification/storage-foundation.md)에서 정확한 소유 ID의 VSS 해제 중 기존 비소유 snapshot 5개가 소실됐다. 해당 실행은 FailedPreservation이며 기존 원격 보존 성공을 이 환경의 보장으로 확대하지 않는다. NR-06/07의 후속 우선 관문에 격리 볼륨의 다른 snapshot 전후 ID 보존·해제 순서·연쇄 삭제 탐지를 포함한다. [후속 시험](../verification/storage-recovery.md)에서 격리된 소유 snapshot의 삭제 연쇄를 재현했고, 현재 guard의 위험 요청 차단·오래된 순서 회수는 실제 통과했다. 일반 비소유 백업 공존은 미검증이다. 시스템 볼륨의 기존 snapshot 삭제로 우회하지 않는다. B와 같은 flush 결과 게시 오류는 정상 polling reader와 Move(overwrite)의 충돌로 재현해 수정했으며 당시 핸들 소유 프로세스는 미확정이다. [지연 회수 범위](deferred-snapshot-reclamation.md)의 대기·명시적 재시도·공유 공간 관측을 연결했고 [별도 검증](../verification/deferred-snapshot-reclamation.md)으로 추적한다.
-
-아래 표는 2차 전체 계획을 처음 수립한 NI 기준이다. 이전 `591d53f` 후보와 121개 소스 hash·139개 통과 기록의 대조는 [후속 계획의 현재 도달점](ntfs-live-vss-identity.md#제품-목표와-현재-도달점)에 있다.
-
-| 항목 | 이번 계획에서 확인한 근거 | 계획에 미치는 영향 |
-| --- | --- | --- |
-| 제품 checkout | `development`, `2bae9c461a86f74880ab10da473101b3ca68f12b`, 검토 시작 시 clean | 이 후보를 회귀 기준으로 삼고 기존 NI/SO 자원을 재생성하지 않는다 |
-| 기존 실행 증거 | [NI-01~08](../verification/ntfs-workspace-integration.md)의 생성·범위 저장·원본/A/B 스크립트·재연결·독립 결과·dirty 원본 통합 차단·회수 완료 | 이미 증명한 정상 수명주기 위에 복구를 보강한다 |
-| 자동 시험 | 기존 `final-build.trx`: 총 98, passed 97, failed 0, 선택적 ReFS 1 skip. 기록된 소스 117개를 현재 파일 hash와 대조해 모두 일치 | 이번 계획에서 빌드나 실행 시험을 다시 했다는 뜻은 아니다 |
-| Unity fixture | 형제 `splinter-unity`, clean `development`, `46e7f4dbdb219e4afa602f3598a3de9ff4070fae`; Unity `6000.3.22f1`, URP `17.3.0`, UTF `1.6.0` | 버전 업그레이드 없이 기존 스크립트 fixture를 회귀에 사용한다 |
-| 아직 없는 증거 | OS 재부팅·강제 전원 종료·물리 공간 고갈·모든 외부 부작용 경계의 실제 중단 | provider 종료 재연결과 quota 시험을 이 증거로 대신하지 않는다 |
-| 파일·경로 제한 | ADS/hardlink/reparse/EFS/압축/희소 입력 거부, ACL 재현 미지원. NI에서 270자 패키지 DLL 경로의 초기 오류 관측 | 새 파일 형식을 지원하기 전에 검사·거부·경로 진단을 확정한다 |
-
-근거 파일은 `artifacts/ntfs-workspace/ni-20260921/evidence/source-manifest.json`과 `final-build.trx`다. 이번 조회는 파일·Git·기록을 읽은 결과이며 현재 mount, Editor, VSS의 OS 상태를 새로 검증한 결과가 아니다.
-
-결과 손실과 회수 경계의 결함을 먼저 수정한다. 동시에 저장소 장애표만 확장하다가 실제 병렬 작업의 이익과 운영 비용 확인이 늦어지지 않도록, 제한된 기존 fixture의 아래 PV 관문에서 확보한 작업·비용 증거와 사용자 선택 범위 마감 판정을 보존한다. 일반 프로젝트를 투입하거나 재부팅·전원·공간 장애 지원을 선언하려면 해당 NR 관문을 통과해야 한다.
-
-## 제한된 병렬 작업과 비용 관문
-
-선택 범위를 마감한 PV의 상세 정의는 [독립 대화 A/B의 NTFS 작업과 비용 검증](parallel-workflow-qualification.md)에 보존한다. checkpoint 전 여러 차례 편집·재개, A 선행 통합/회수와 B 지속, 현재 integrate 이후 원본 Unity 확인, 실제 모델·텍스처를 포함한 Codex 기본 worktree 직접 비교와 필요한 결함 수정까지다. PV-01의 대표 fixture 수명주기는 복구·운영 개입을 포함해 완료했고 PV-02 사용자 선택 범위는 `scoped-complete-with-limitations`로 마감했다. S4 `FailedInputQualification`·소수 표본·과거 전체 팩 raw 동등성 unknown을 유지하며 PV-02 전체 Passed로 올리지 않는다. 아래 NR 전체 범위와 구별한다.
-
-PV-01의 출발점은 현재 지원하는 짧은 home·clean 저장소 루트·C# 스크립트 변경이다. 서로 독립된 대화 A/B의 AI가 제품 CLI로 자기 workspace를 운영한다. PV-02는 실제 모델·텍스처의 임포트와 제한된 변경을 추가하고, 별도 Codex managed worktree 대화 2개의 같은 작업과 비교한다. 이 비교군은 Splinter에 중첩하지 않는다. 별도 조정 AI나 하위 작업자 자동 실행을 전제하지 않는다. 여러 차례 수정 요청, 새 CLI/대화 재개, A 선행 통합·회수 후 B 지속 작업을 확인한다. 아직 없는 Codex Runner·daemon·DB·DAG를 이 검증의 선행 구현으로 만들지 않는다. 실패한 작업의 유일한 결과는 보존한다.
-
-| ID | PV 실행 단위 | 완료 조건 |
-| --- | --- | --- |
-| PV-01 | 독립 대화 A/B의 여러 차례 작업 → A 오류 중 B 검증 지속 → 같은 작업 재접속 → A 먼저 통합·회수 → B 계속 작업 후 완료 | 작업별 요청·소스 fingerprint·loaded-code·결과 ref를 연결. 원본 편집의 지속과 원본 Editor/MCP 보존, 다른 작업 영향 없음, 소유 자원 회수, 대화별 연결·명령 수·수동 운영 개입 수를 기록. 사용자의 수정/종료 지시는 정상 사용으로 분리. 기존 NI/LV 시험을 새 실행으로 합산하지 않음 |
-| PV-02 | 실제 Codex 기본 worktree와 같은 모델·텍스처 포함 Unity 프로젝트의 병렬 2작업 직접 비교 | 새 작업과 기존 작업 재개의 Library 조건, 코드 수정·지정 에셋 재임포트·완료/회수의 시간/읽기/물리 저장/메모리/개입 수, 동일 결과와 보존 증거. 기본·대표 프로필을 실제 실행하며 초기 payload 복사/읽기 hydration 0은 Splinter 필수 계약으로 유지. 합성 파일 시험은 별도 보조 근거 |
-
-현재 PV-01은 대표 fixture에서 복구·운영 개입을 포함한 전체 수명주기와 마지막 소유 자원 회수를 확인했다. **PV-02 사용자 선택 실행 범위는 `scoped-complete-with-limitations`로 마감했으며 PV-02 전체 Passed나 일반 지원 확정은 아니다.** S4 입력 실패·소수 표본·과거 전체 팩 raw 동등성 unknown, 실제 보존·회수·원본 복원은 [실행 기록](../verification/parallel-workflow.md)과 [최종 마감 영수증](../../artifacts/parallel-workflow/pv-20260923/final-closeout.json)을 따른다. 설치·자동 binding·반영 없는 폐기는 [대화별 작업 계획](session-workflow-and-installation.md)의 SW-01~10에서 구현 후 검증한다. 기존 CLI로 가능한 PV는 그 전체 구현을 기다리지 않으며, 현재 없는 discard를 강제 삭제나 실패한 release로 대체하지 않는다. 자동 시험은 실제 AI A/B나 대형 프로젝트 성능 측정을 대체하지 않는다. 결과에 따라 사용자 작업 루프의 가장 큰 비용부터 개선한다. 선택적 ReFS는 기존 회귀만 유지하고 신규 기능을 늘리지 않는다. 저널 compaction·해시 캐시·상주 Host는 실제 병목과 필요 조건을 확인한 뒤 별도 범위로 결정한다.
+현재 NR-01/03/05/07은 부분 구현이다. 나머지 명령 경계·일반 파일 지원·실제 재부팅·전원·물리 공간 장애·ARM A/B는 미완료다. 현재 계약은 [NTFS](../ntfs-workspaces.md), 확인한 범위는 [검증 안내](../verification/README.md)를 따른다.
 
 ## 상위 NR 계획의 전체 범위
 
@@ -51,7 +15,7 @@ PV-01의 출발점은 현재 지원하는 짧은 home·clean 저장소 루트·C
 
 기존 공통 계약과 자동 시험은 재사용하고 이번 행렬에서 부족한 상태·장애 사례만 추가한다. 먼저 새로운 상태 체계를 전면 도입하거나 정상 경로를 다시 작성하는 작업으로 확대하지 않는다.
 
-VIVOBOOK의 이전 후보는 삭제된 정확한 snapshot의 현재 부팅 내 부재를 확인했다. 새 로컬 후보는 살아 있는 VSS ID·native provider·volume identity 대조, 불변 identity/현재 읽기 위치 분리, 비관리자 재개·legacy 보존까지 구현·검증했다. 캡처와 관측의 현재 계약은 [NTFS 작업공간](../ntfs-workspaces.md), 새 증거는 [LV 기록](../verification/ntfs-live-vss-identity.md)에 있다. 아래의 나머지 중단·파일 조건과 NR-04/06/08은 남아 있다.
+현재 VSS 계약은 capture identity와 현재 읽기 위치를 분리하고, current boot·native provider·volume·소유권을 확인한다. [NTFS 계약](../ntfs-workspaces.md)을 따르며 아래의 나머지 중단·파일 조건과 NR-04/06/08은 미완료다.
 
 현재 `SplinterSnapshotProbe` 자체 callback은 값·generation·PID를 기록하고 assembly MVID는 기록하지 않는다. 제품 WorkspaceBridge heartbeat는 프로젝트/fixture 코드를 실행하지 않는다. NR-08과 PV의 loaded-code 증거는 공통 Qualification fixture의 새 `inspect` 응답에서 같은 요청 ID·PID·경로·generation·assemblyMvid·시각과 실제 바꾼 함수의 실행 값을 확인한다. 이전 callback이나 준비되지 않은 필드를 최신 증거로 보고하지 않는다.
 
@@ -96,7 +60,7 @@ VIVOBOOK의 이전 후보는 삭제된 정확한 snapshot의 현재 부팅 내 �
 
 ## 구현 단위와 담당 경계
 
-검증 상태의 원본은 [NR 추적표](validation-matrix.md#ntfs-내부-알파-2차-복구와-파일-지원-경계)다. 아래 파일은 우선 조사·변경할 기존 경계이며 모든 파일을 수정하라는 뜻은 아니다.
+검증 상태의 원본은 [NR 추적표](validation-matrix.md#ntfs-지원-확대-관문)다. 아래 파일은 우선 조사·변경할 기존 경계이며 모든 파일을 수정하라는 뜻은 아니다.
 
 | 순서 / ID | 작업과 주요 파일 | 완료 조건 |
 | --- | --- | --- |
@@ -157,4 +121,4 @@ daemon/DB 교체, 임의 에셋 구매·수집, 범용 특수 파일 지원, LFS
 
 PV-02의 추가 비교군은 Codex worktree 코드 병렬 작업과 Unity Agent Coordination 단일 Editor 순차 검증이다. 큐 대기·후보 전달·공용 Library와 두 소스 checkout의 비용을 별도로 측정하며 Splinter 실행에는 Coordination을 사용하지 않는다. 상세 조건과 실제 실행 여부는 [PV 범위](parallel-workflow-qualification.md)와 실행 기록을 따른다.
 
-지연 회수의 현재 실행 단위는 [별도 범위](deferred-snapshot-reclamation.md)와 [검증](../verification/deferred-snapshot-reclamation.md)을 따른다. `reclaim-pending`·명시적 재시도·공유 볼륨 공간 관측은 NR 전체 완료나 비소유 백업 공존의 보존 보장을 뜻하지 않는다.
+지연 회수의 현재 실행 단위는 [별도 범위](../ntfs-workspaces.md)와 [검증](../verification/deferred-snapshot-reclamation.md)을 따른다. `reclaim-pending`·명시적 재시도·공유 볼륨 공간 관측은 NR 전체 완료나 비소유 백업 공존의 보존 보장을 뜻하지 않는다.

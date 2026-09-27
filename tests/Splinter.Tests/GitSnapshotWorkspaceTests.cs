@@ -189,7 +189,7 @@ public sealed class GitSnapshotWorkspaceTests
         w.Validation = new("request", state.Fingerprint, true, DateTimeOffset.UtcNow, []);
         w.ResultRevision = await git.CommitAsync(w, "result", ct);
         string reference = await git.PreserveAsync(w, control, ct);
-        w.Snapshot.Result = new("snapshot", w.ResultRevision, state.Fingerprint, reference, new(1, 100, "fake"), true);
+        w.Snapshot.Result = new("snapshot", w.ResultRevision, state.Fingerprint, reference, new(1, 100, "fake"), true, SnapshotResult.StableJournalProtocol);
         await git.VerifyResultAsync(w, control, ct);
         File.Delete(Path.Combine(w.Path, "README.md")); File.Delete(Path.Combine(w.Path, ".git")); Directory.Delete(w.Path);
         await git.UnregisterAsync(w, control, ct); await git.UnregisterAsync(w, control, ct);

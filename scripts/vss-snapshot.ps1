@@ -37,24 +37,11 @@ function Read-LiveIdentity($Shadow, $Receipt) {
         sourceRelativePath=$relativePath; capturedAt=([DateTimeOffset]$Shadow.InstallDate); persistent=[bool]$Shadow.Persistent;
         differential=[bool]$Shadow.Differential; noAutoRelease=[bool]$Shadow.NoAutoRelease; provenance='live'}
     $captured = $Receipt.captureIdentity
-    $verifiedPath = Join-Path $receiptRoot 'verified-identity.json'
-    if ($null -eq $captured -and (Test-Path -LiteralPath $verifiedPath)) {
-        $verified = Get-Content -LiteralPath $verifiedPath -Raw | ConvertFrom-Json -AsHashtable
-        if ($verified.ownerId -ne $Receipt.ownerId -or $verified.snapshot.id -ne $Receipt.snapshot.id -or
-            $verified.snapshot.rootPath -cne $Receipt.snapshot.rootPath -or $verified.snapshot.sourcePath -cne $Receipt.snapshot.sourcePath) { throw 'SnapshotIdentityMismatch' }
-        $captured = $verified.identity
+    if ($null -eq $captured) { throw 'SnapshotIdentityMismatch' }
+    foreach ($field in @('snapshotId','nativeProviderId','sourceVolume','sourceRelativePath','persistent','differential','noAutoRelease')) {
+        if ($captured[$field] -ne $liveIdentity[$field]) { throw 'SnapshotIdentityMismatch' }
     }
-    if ($null -ne $captured) {
-        foreach ($field in @('snapshotId','nativeProviderId','sourceVolume','sourceRelativePath','persistent','differential','noAutoRelease')) {
-            if ($captured[$field] -ne $liveIdentity[$field]) { throw 'SnapshotIdentityMismatch' }
-        }
-        if (([DateTimeOffset]$captured.capturedAt) -ne $liveIdentity.capturedAt) { throw 'SnapshotIdentityMismatch' }
-    } else {
-        # Preserve the legacy capture receipt. These values are verified now,
-        # from the exact original ID, never inferred from the mutable source.
-        $liveIdentity.provenance = 'legacy-revalidated'
-        Save-Json $verifiedPath ([ordered]@{ownerId=$Receipt.ownerId; snapshot=$Receipt.snapshot; identity=$liveIdentity})
-    }
+    if (([DateTimeOffset]$captured.capturedAt) -ne $liveIdentity.capturedAt) { throw 'SnapshotIdentityMismatch' }
     return $liveIdentity
 }
 function Measure-Storage {
@@ -155,7 +142,7 @@ try {
     if (-not (Test-Path -LiteralPath $receiptPath)) { throw 'SnapshotReceiptRequired' }
     $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json -AsHashtable
     if ($OwnerId -and $receipt.ownerId -ne $OwnerId) { throw 'SnapshotOwnerMismatch' }
-    if (($receipt.version -and $receipt.version -notin @(1,2)) -or ($receipt.version -eq 2 -and $null -eq $receipt.captureIdentity)) { throw 'SnapshotIdentityMismatch' }
+    if ($receipt.version -ne 2 -or $null -eq $receipt.captureIdentity) { throw 'SnapshotIdentityMismatch' }
     $bootTime = (Get-CimInstance Win32_OperatingSystem -Property LastBootUpTime).LastBootUpTime.ToUniversalTime()
     $verificationPath = Join-Path $receiptRoot 'verification-request.json'
     if (-not (Test-Path -LiteralPath $verificationPath)) {

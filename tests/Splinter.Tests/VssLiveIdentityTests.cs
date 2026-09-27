@@ -113,27 +113,10 @@ public sealed class VssLiveIdentityTests
         Assert.Equal(original, File.ReadAllBytes(Path.Combine(directory.Path, "snapshot.json")));
     }
 
-    [Fact]
-    public async Task LegacyReceiptIsPreservedAndRequiresExplicitRevalidatedIdentity()
-    {
-        using var directory = new TestDirectory();
-        Write(directory.Path, "snapshot.json", new { version = 1, ownerId = "owner", snapshot = Snapshot,
-            nativeProviderId = Capture.NativeProviderId, noAutoRelease = true, released = false });
-        Write(directory.Path, "verification-request.json", Request);
-        Write(directory.Path, "live-observation.json", Live);
-        byte[] original = File.ReadAllBytes(Path.Combine(directory.Path, "snapshot.json"));
-        var provider = Provider(directory.Path, (_, _, _) =>
-        {
-            Write(directory.Path, "verified-identity.json", new { ownerId = "owner", snapshot = Snapshot, identity = Capture with { Provenance = "legacy-revalidated" } });
-            return Task.CompletedTask;
-        });
-        Assert.Equal("SnapshotVerificationRequired", (await provider.ObserveAsync(Snapshot, TestContext.Current.CancellationToken)).FailureCode);
-        Assert.NotNull(await provider.ResolveReadAccessAsync(Snapshot, null, TestContext.Current.CancellationToken));
-        Assert.Equal(original, File.ReadAllBytes(Path.Combine(directory.Path, "snapshot.json")));
-    }
-
     [Theory]
-    [InlineData(1, "SnapshotObservationUnknown")]
+    [InlineData(0, "SnapshotObservationCorrupt")]
+    [InlineData(1, "SnapshotObservationCorrupt")]
+    [InlineData(3, "SnapshotObservationCorrupt")]
     [InlineData(2, "SnapshotObservationCorrupt")]
     public async Task UnprovableIdentityPreservesTheOriginalReceipt(int version, string code)
     {
@@ -141,11 +124,12 @@ public sealed class VssLiveIdentityTests
         Write(directory.Path, "snapshot.json", new { version, ownerId = "owner", snapshot = Snapshot,
             nativeProviderId = Capture.NativeProviderId, noAutoRelease = true, released = false });
         byte[] original = File.ReadAllBytes(Path.Combine(directory.Path, "snapshot.json"));
-        var provider = Provider(directory.Path, (_, _, _) => throw new WorkspaceException("SnapshotObservationUnknown", "Query unavailable."));
+        var provider = Provider(directory.Path, (_, _, _) => throw new InvalidOperationException("Invalid receipts must not invoke a helper."));
         var failure = await Assert.ThrowsAsync<WorkspaceException>(() => provider.ResolveReadAccessAsync(Snapshot, null, TestContext.Current.CancellationToken));
         Assert.Equal(code, failure.Code);
         Assert.Equal(original, File.ReadAllBytes(Path.Combine(directory.Path, "snapshot.json")));
-        Assert.False(File.Exists(Path.Combine(directory.Path, "verified-identity.json")));
+        Assert.Equal("SnapshotObservationCorrupt", (await provider.ObserveAsync(Snapshot, TestContext.Current.CancellationToken)).FailureCode);
+        Assert.Equal("SnapshotObservationCorrupt", (await Assert.ThrowsAsync<WorkspaceException>(() => provider.ReleaseAsync(Snapshot, TestContext.Current.CancellationToken))).Code);
     }
 
     [Theory]

@@ -58,7 +58,8 @@ public sealed class OverlayReadinessTests
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows process identity.");
         using var d = new TestDirectory(); using var process = Process.GetCurrentProcess();
         var snapshot = new SnapshotReference("snapshot", "windows-vss-system", d.Path, Path.Combine(d.Path, "base"), DateTimeOffset.UtcNow, true, true, "test");
-        var request = new OverlayServeRequest(new(1, "overlay", snapshot, 65536, 4096), Path.Combine(d.Path, "delta"), Path.Combine(d.Path, "mount"), d.Path, "token");
+        var request = new OverlayServeRequest(new(1, "overlay", snapshot, 65536, 4096), Path.Combine(d.Path, "delta"), Path.Combine(d.Path, "mount"), d.Path, "token",
+            new(snapshot.Id, snapshot.RootPath, "verified"), Path.Combine(d.Path, "receipt"), "owner");
         var json = new JsonSerializerOptions(JsonSerializerDefaults.Web); var ct = TestContext.Current.CancellationToken;
         await File.WriteAllTextAsync(Path.Combine(d.Path, "provider-launch-intent.json"), JsonSerializer.Serialize(new { request.Token, id = "overlay", generation = "new" }, json), ct);
         await File.WriteAllTextAsync(Path.Combine(d.Path, "provider-launch-receipt.json"), JsonSerializer.Serialize(new { request.Token, processId = process.Id, startTimeUtcTicks = process.StartTime.ToUniversalTime().Ticks, generation = "new" }, json), ct);

@@ -172,7 +172,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         RequireSource(current);
         if (record.ResultRevision is not null && current.Source!.Revision == record.ResultRevision && !current.Source.HasChanges)
         {
-            if (record.StorageMode == "ntfs-snapshot" && RequireSnapshot(record).Result is not { CollectionProtocol: SnapshotResult.StableJournalProtocol })
+            if (record.StorageMode == "ntfs-snapshot" && RequireSnapshot(record).Result is null)
             {
                 try
                 {

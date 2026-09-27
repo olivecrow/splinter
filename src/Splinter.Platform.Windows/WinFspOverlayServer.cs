@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Fsp;
 using Splinter.Core;
 using Splinter.Runtime;
@@ -7,8 +8,8 @@ using Splinter.Runtime;
 namespace Splinter.Platform.Windows;
 
 public sealed record OverlayServeRequest(OverlayIdentity Identity, string DeltaPath, string MountPath,
-    string ControlPath, string Token, SnapshotReadAccess? ReadAccess = null,
-    string? SnapshotReceiptDirectory = null, string? SnapshotOwnerId = null,
+    string ControlPath, string Token, [property: JsonRequired] SnapshotReadAccess ReadAccess,
+    [property: JsonRequired] string SnapshotReceiptDirectory, [property: JsonRequired] string SnapshotOwnerId,
     ValidationViewSelection? ValidationView = null);
 
 public static class WinFspOverlayServer

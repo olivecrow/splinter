@@ -1,6 +1,6 @@
 # 스냅샷 지연 회수 검증
 
-실행 범위는 [지연 회수 1차](../plans/deferred-snapshot-reclamation.md)다. 기준 커밋은 `79f77ab`이고 후보는 development의 작업 중 변경이다. 증거 루트는 `artifacts/storage-foundation/deferred-20260926/`다.
+실행 범위는 [지연 회수 1차](../ntfs-workspaces.md)다. 기준 커밋은 `79f77ab`이고 후보는 development의 작업 중 변경이다. 증거 루트는 `artifacts/storage-foundation/deferred-20260926/`다.
 
 정의한 지연 회수의 자동 계약/fake/실제 helper 함수와 실제 격리 NTFS/Git 경로를 검증했다. Unity 실행이나 NR 전체 지원으로 확대하지 않는다.
 

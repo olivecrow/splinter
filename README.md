@@ -1,56 +1,22 @@
 # Splinter
 
-[코드 품질 검토의 다섯 수정](docs/verification/code-quality-review-fixes.md)은 빈 private 파일 왕복·정리 오류 보존 계약·제품 heartbeat의 fixture 의존성을 바로잡고, Git hash 배치와 범위 읽기 탐색을 개선한다. 현재 후보의 자동 회귀와 실환경 미실행 경계는 해당 기록을 따른다. 아래 FR/JW/WI 등 실행 수치는 각 당시 후보의 증거다.
+AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실행·검증·결과 보존·회수를 수행하는 로컬 프로그램이다. 첫 지원 목표는 **Windows/NTFS + Git + Unity**다. 원본 이동·최초 전체 복제·읽기 hydration 없이 불변 snapshot과 작업별 범위 변경분을 사용하며, 원본은 작업 중 계속 수정할 수 있다.
 
-[첫 미리보기 검사](docs/verification/first-render-qualification.md)의 FR-01~04를 작은 URP fixture 범위에서 제한을 포함해 마감했다. 한 요청에서 최대 두 번 중 첫 유효 화면을 채택하고 요청별 PNG·해시·픽셀 계수를 확인한다. 새 Library·코드 reload·Editor 재시작의 첫 검사 3건과 빈 화면·누락 참조·출력 충돌의 실패/복구 3종을 통과했다. 독립 결과 2개·원본/ref/타 snapshot 보존·소유 자원 회수·VHD 분리 뒤 결과 검증을 완료했으며 제품 자동 시험은 303 통과·0 실패·선택적 ReFS 1 skip이다. 진단 화면의 중간 육안 판독 정정과 정상 stop timeout 2건의 재확인을 기록한다. Unity 내부 첫 draw 원인은 미확정이며 [현재 검사 계약](docs/unity-render-qualification.md)은 제품 workspace validation API와 구별한다.
+각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 
-[Live journal 쓰기 비용 검증](docs/verification/live-journal-write-cost.md)의 JW-01~04를 제한을 포함해 마감했다. 고정 연산별 commit 단계와 mutation 대기를 계측하고 [WriteProbe](docs/write-profiling.md)의 합성 18회·새 작은 Unity를 검증했다. 첫 준비 1,186.16초, commit 내부 848.16초 중 flush 828.38초, 후속 수정 검증 32.32초와 소유 파일 할당 관측 최고 약 2.286GB를 확인했다. Windows callback의 선행 직렬화 때문에 Runtime 단독 group flush 구현은 선정하지 않았다. 개별 acknowledged write의 내구성 정책을 유지하며 첫 PNG·후속 reload 뒤 첫 PNG의 빈 화면과 물리 절감 미입증을 기록한다. 독립 결과·원본/ref/타 snapshot 보존·소유 자원 회수·VHD 분리 뒤 결과 검증을 완료했고 자동 시험은 303 통과·0 실패·선택적 ReFS 1 skip이다.
+## 현재 제공하는 기능
 
-[누적 write 범위 index 검증](docs/verification/cumulative-write-range-index.md)의 WI-01~05를 제한을 포함해 마감했다. 한 파일 순차 쓰기의 전체 목록 복사·정렬 병목을 계측하고 정렬된 extent의 영향 구간만 교체하도록 수정했다. 새 작은 Unity의 같은 닫힌 저널에서 mount 중앙값은 10.96→5.62초, write index는 5.73→0.13초였고 delta 파일 할당은 같았다. 실제 후보 Editor의 compile·로드 코드·에셋과 독립 결과·원본/ref 보존·소유 자원 회수·VHD 분리 뒤 결과 읽기를 확인했다. 첫 PNG 빈 화면과 stop 재확인, 전체 Editor 재개 개선·Library 물리 절감 미입증을 유지한다. 당시 표준 빌드는 경고/오류 0, 자동 301 통과·선택적 ReFS 1 skip이었다.
+- .NET CLI, atomic JSON 상태와 작업 잠금, 공통 Core 계약 및 fake 적합성 시험.
+- `ntfs-snapshot` workspace의 VSS·WinFsp 범위 저널, Git 등록, 작업별 프로세스 그룹과 Unity 검증, 독립 결과 보존과 명시적 회수.
+- 변경 기반 소스 검증, 명시적 저널 정리와 선택적 중첩량 예산, snapshot 지연 회수.
+- 선택적 ReFS 블록 복제 backend. 최초 기준본 복사가 필요하므로 NTFS의 전체 복제 금지 요구를 충족하는 대체 경로는 아니다.
+- 불변 후보·공통 Library 검증 view와 replay/write probe는 개발 도구다. 제품 기본 모드나 자동 조정 기능이 아니다.
 
-앞선 [작은 Unity의 기존/개선 재개 비교](docs/verification/unity-replay-comparison.md)에서는 같은 저널 mount 중앙값 33.84→23.70초를 관측했다. 당시 누적 입력의 실제 Editor 재개 개선은 입증하지 못했고, 첫 ready 1,495.67초·소유 파일 할당 최고 약 2.389GB와 stop/focus·첫 렌더 제한을 기록했다. WI는 새 소유 저널을 사용했으며 두 실행의 입력·시각을 동일한 비교로 합치지 않는다.
+현재 지원은 작은 fixture의 내부 알파 범위다. 일반 에셋·파일 지원, 실제 재부팅·전원·공간 장애, ARM A/B와 대형 프로젝트의 용량 목표는 미완료다. 설치·대화 자동 연결·명시적 discard·권한 서비스·daemon/DB는 미구현이다. 현재 계약은 [기반 구조](docs/foundation.md), 지원 경계와 다음 검증은 [검증 안내](docs/verification/README.md)를 따른다.
 
-[Replay index 비용 계측과 개선](docs/verification/replay-index-cost.md)을 제한된 offline 합성 범위에서 검증했다. 연산별 frame·시간 계수를 추가하고 rename의 반복 경로 접두사 할당을 줄였다. 작은 실행 파일 묶음과 공통 입력으로 시간·메모리·파일 할당을 비교하며 [개발용 probe](docs/replay-profiling.md)를 제공한다. 당시 자동 시험은 300 통과·선택적 ReFS 1 skip이었다. 실제 작은 Unity의 후속 비교는 [RU 실행](docs/verification/unity-replay-comparison.md), 후속 fixture의 미리보기 성공 계약은 [FR 실행](docs/verification/first-render-qualification.md)을 따른다. Unity 내부 첫 draw 원인과 대형 프로젝트 용량 목표는 남아 있다.
+## 실행
 
-[첫 준비·재연결 검증](docs/verification/validation-view-readiness-and-replay.md)의 작은 Unity 범위를 제한을 포함해 마감했다. 저널 replay의 읽기를 64KiB로 묶고 실제 mount 준비를 기다리도록 수정했으며, 동일 cache 3회씩의 replay 중앙값은 19.46초에서 14.90초로 줄었다. 정상 첫 import는 약 17분 8초, 파일 할당 관측 최고는 약 2.281GB였다. 첫 미리보기는 빈 화면이고 같은 Editor의 두 번째 렌더는 정상이어서 첫 렌더 문제는 남아 있다. 독립 결과·원본 보존·소유 자원 회수를 확인했으며 당시 자동 시험은 296 통과·선택적 ReFS 1 skip이었다.
-
-[불변 후보·공통 Library 실험](docs/validation-view.md)의 [작은 Unity A/B/A 검증](docs/verification/immutable-validation-view.md)을 제한을 포함해 마감했다. 후보 게시 약 1.3초, 반복 cache replay 21~29초·Editor 준비 75~84초·정상 종료 31~33초, 소유 파일 할당 관측 최고 약 2.345GB를 확인했다. 최초 import 복구와 첫 A의 빈 미리보기·미계측 기준을 유지한다. 제품 기본 모드나 대형 프로젝트 적합성의 완료가 아니다.
-
-후속 설계는 **대형 Unity 프로젝트의 작업공간 용량과 복사본 생성·편집 준비·재개 시간을 함께 평가하고, Editor 동시 실행은 그 뒤에 둔다**. [저장공간 우선 설계 검토](docs/plans/storage-priority-and-editor-modes.md)는 현재 저장소 병목의 개선과 단일 Editor 순차 검증 후보를 평가한다. 기본 실행 방식 변경은 미확정이고, 현재 제품은 아래의 독립 Editor 내부 알파다.
-
-[BQ-01~05 예산 제품 경로·반복 저장량 검증](docs/verification/journal-budget-and-growth-qualification.md)을 합성 1개·작은 Unity 1개·수정 3회의 범위에서 완료했다. 실제 예산 거부·같은 작업 재시도·정리 후 재개·독립 결과·원본 보존·소유 자원 회수를 확인했다. 유효 payload의 약 99.5%가 Library이고 정리 중 소유 추가 파일 할당 관측 최고는 4,251,098,528B였다. SF-03의 불변 후보·고정 검증 view·공통 Library 하위 범위는 [VC 계획](docs/plans/immutable-validation-view-first-milestone.md)과 [실행 기록](docs/verification/immutable-validation-view.md)을 따른다. 복사본 생성·편집 준비·재개·전환 시간도 용량과 함께 평가한다. 운영 재시도와 미계측 공간의 제한은 검증 기록을 따른다.
-
-[공통 저장소 개선 1차](docs/plans/storage-foundation-first-milestone.md)의 파일 단위 변경 검증(SF-01)과 SF-02 계측 하위 범위를 구현했다. [실제 검증](docs/verification/storage-foundation.md)에서 반복 대형 파일 재해시 0과 Unity A/B 결과 보존을 확인했으나, 기존 VSS 5개가 회수 중 소실돼 해당 실행 단위는 **FailedPreservation**이다. [후속 재현·수정](docs/verification/storage-recovery.md)에서 제어 JSON의 읽기/게시 충돌을 수정했고, VSS의 최신·중간 삭제 연쇄를 격리 재현해 실제 삭제 차단·오래된 순서의 보존 회수를 확인했다. [지연 회수](docs/plans/deferred-snapshot-reclamation.md)는 독립 결과 보존 뒤 `reclaim-pending`과 같은 작업의 명시적 재시도, 시각이 있는 공유 VSS 공간 관측을 제공한다. 임의 순서의 즉시 공간 회수는 보장하지 않는다. [SF-02 명시적 저널 정리](docs/plans/journal-compaction-first-milestone.md)는 결과 수집 전 NTFS 작업공간의 대체된 범위를 정리하고 같은 snapshot으로 재개하는 명령을 구현했다. [1차 검증](docs/verification/journal-compaction.md)에 이어 [Unity·전체 공간 비용 검증](docs/verification/journal-compaction-qualification-and-cost.md)에서 빈 폴더의 WinFsp 열거 수정, Unity 실제 로드 코드와 독립 결과·회수, 정리 중 작업공간 전체의 관측 최고치를 확인했다. 정리 중 두 세대가 겹치는 비용을 호출자가 제한하는 [선택적 예상 저널 중첩량 예산](docs/plans/journal-compaction-peak-admission.md)을 추가했다. 이는 전체 물리 공간의 상한이 아니며, 작은 Unity fixture는 재개 작업 후 다시 늘어 대형 프로젝트의 용량 목표 달성으로 보지 않는다. SF-02 전체는 Partial이다. flush 정책 변경·단일 Editor 연결·설치/binding/discard는 별도 작업이며 SF-03의 개발용 VC 하위 범위는 제한을 포함해 마감했고 전체 SF-03은 Partial, SF-04~06은 NotRun이다.
-
-AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실행·검증·결과 회수까지 운영하는 로컬 프로그램이다. 첫 지원 목표는 **기존 Windows/NTFS + Git + Unity**이며, CLI가 기본 인터페이스다. 원본 이동·최초 전체 복제 없이 작업 시작 시점의 스냅샷과 작업별 변경분을 사용한다. 원본은 병렬 작업 중에도 계속 수정할 수 있어야 한다.
-
-주 사용자는 **각 대화의 AI 에이전트**다. 프로젝트용 또는 전역용으로 설치·연결한 뒤, 사용자가 “Splinter로 병렬 작업해줘”라고 요청하거나 다른 작업의 Editor 점유 때문에 독립 실행이 필요하면 자기 작업공간을 사용한다. 필요 없으면 기존 프로젝트에서 직접 작업한다. 여러 대화에 걸쳐 같은 작업을 유지하고, 사용자의 명시적 종료 요청에 원본 반영·정리하거나 명시적 폐기 요청에 반영 없이 제거하는 것이 목표다. 별도 조정 AI나 자동 작업자 실행은 필수가 아니다.
-
-이 사용 모델과 남은 설치·대화 연결·폐기 구현은 [대화별 작업과 설치 계획](docs/plans/session-workflow-and-installation.md)에 정의한다. 현재 제공하는 workspace 명령과 아직 없는 자동 연결/discard 기능을 구분한다. 최초 설치 승인 후 반복 UAC를 없애는 [저장소 권한 서비스](docs/plans/storage-privilege-service.md)는 후속 목표이며 아직 미구현이다.
-
-## 현재 상태
-
-일반 `workspace ensure --storage ntfs-snapshot`에 VSS 스냅샷·WinFsp 범위 저널·Git 등록·독립 결과 보존·회수를 연결했다. [NTFS 사용법](docs/ntfs-workspaces.md)과 [NI 검증 기록](docs/verification/ntfs-workspace-integration.md)을 따른다. 실제 NTFS 생성·저장량·두 Unity Editor의 격리·재연결·실패 보호를 검증했다. 작업 프로세스·mount·Git 등록·delta·소유 VSS까지 회수를 완료했다.
-
-별도 [SO 실행 기록](docs/verification/snapshot-overlay.md)에는 SO-01~06의 합성 파일·실제 Git/Unity·장애·회수 증거가 있다. 이 실험의 최초 payload 복사·읽기 hydration 0과 원본/A/B 격리는 제품 NI 통과로 승계하지 않는다. **ReFS 경로는 최초 전체 기준본 준비를 요구하므로 위 저장소 요구사항을 충족하지 않으며**, 선택적 경로로 유지한다. NTFS 실패의 이관·전체 복사 fallback이 아니다.
-
-완료한 구현 단위는 [NTFS workspace 1차 통합](docs/plans/ntfs-workspace-integration.md)이다. NI-01~08의 1차 내부 알파 범위를 검증했다. 실제 원본의 미커밋 변경이 있으면 통합을 거부하고 HEAD·인덱스·변경 내용·독립 결과를 보존하는 것까지 확인했다. 일반 에셋·재부팅·공개 제품 전체 지원은 후속 범위다. 기존 Unity fixture와 합성 파일을 사용하고 구매 에셋은 요구하지 않는다.
-
-상위 작업은 [NTFS 내부 알파 2차](docs/plans/ntfs-recovery-and-support.md)의 NR-01~08이다. 공통 복구·unknown 보존·상태/저널 손상 보호·일부 파일 속성 거부와 [live VSS 재연결](docs/verification/ntfs-live-vss-identity.md)을 구현했다. 현재 후보의 locked restore·빌드·자동 시험은 [첫 미리보기 검증](docs/verification/first-render-qualification.md)의 303 통과·0 실패·선택적 ReFS 1 skip이다. VSS 해제 차단은 격리된 소유 합성 snapshot에서 실제 검증했으며 일반 비소유 백업·외부 동시 삭제의 보존 보장은 아니다. 이전 [LV](docs/verification/ntfs-live-vss-identity.md), [검토 수정](docs/verification/workspace-review-fixes.md), [PV](docs/verification/parallel-workflow.md), [VIVOBOOK/NR](docs/verification/ntfs-recovery.md) 증거는 각각의 범위로 유지한다.
-
-[살아 있는 VSS 식별과 같은 작업 재개](docs/plans/ntfs-live-vss-identity.md)의 LV-01~08을 정한 시험 수준에서 완료했다. 캡처 identity·현재 읽기 위치 분리, 비관리자 Observe/재개, legacy 보존과 실제 VSS/Git 재연결·범위 쓰기·단일 Unity 검증 3건·독립 결과·최종 회수를 확인했다. [독립 대화 A/B 작업·비용 검증](docs/plans/parallel-workflow-qualification.md)의 PV-01 대표 fixture 수명주기는 복구·운영 개입을 포함해 완료했다. PV-02는 사용자 선택 범위를 **선택 범위 완료·제한 유지 (`scoped-complete-with-limitations`)**로 마감했다. S4의 `FailedInputQualification`, 소수 표본, 과거 대표 팩 raw 동등성 unknown을 유지하며 PV-02 전체 Passed로 표시하지 않는다. 소유 자원 회수·원본 복원과 실제 하위 판정은 [실행 기록](docs/verification/parallel-workflow.md)과 [최종 마감 영수증](artifacts/parallel-workflow/pv-20260923/final-closeout.json)을 따른다. 나머지 중단·파일 경계와 격리 환경의 재부팅·전원·공간 장애, ARM A/B는 지원 확대 전에 완료해야 한다. NR 전체나 공개 제품 지원 완료가 아니다.
-
-PV-02에서는 실제 Codex 기본 worktree의 독립 Editor C, Codex worktree와 Unity Agent Coordination의 단일 Editor 순차 검증 Q, Splinter S의 관측 결과를 비교했다. 사용자 제공 Medieval village와 작은 프로필에서 수행한 새 작업·재개·코드 수정·제한된 에셋 재임포트·회수, 실패와 복구를 [실행 기록](docs/verification/parallel-workflow.md)에 보존했다. Library 준비·반복 작업·큐 대기·추가 할당을 구분하며 과거 S1~S3 전체 팩 raw 입력 동등성은 unknown이다. Coordination은 별도 Q 비교군에서만 사용한다.
-
-현재는 **간단한 Unity 스크립트 병렬 편집을 위한 내부 알파**다. .NET 10 CLI가 atomic JSON 상태와 operation lock을 사용한다. NTFS 작업은 불변 기준과 범위 저널을, 선택적 ReFS 작업은 예열 기준본과 블록 복제를 사용한다. 무-checkout Git index와 작업별 Windows 프로세스 그룹으로 소스·Editor·자식 수명을 관리한다. 기존 환경별 증거는 [자원 검증](docs/verification/storage-and-resources.md), 두 작업자의 일반 checkout 증거는 [알파 검증](docs/verification/internal-alpha.md)에 있다. daemon/SQLite Host는 미구현이다.
-
-제품과 테스트 프로젝트는 별도 Git 저장소다. 형제 `../splinter-unity`는 Unity `6000.3.22f1` 프로젝트이며 submodule이 아니다. Library와 생성 파일은 그 저장소의 Git 추적에서 제외한다.
-
-`main`은 출시용, `development`는 개발용 브랜치다. 일반 개발은 `development`에서 진행한다. Unity 테스트 저장소의 브랜치와 시험 상태는 에이전트가 필요에 맞게 관리한다. 자세한 기준은 [저장소와 브랜치 운영](docs/foundation.md#저장소와-브랜치-운영)을 따른다.
-
-## 진단과 NTFS 진입점
-
-.NET SDK `10.0.112` 호환 패치, Git, PowerShell 7.2 이상이 필요하다. 저장소 루트에서:
+.NET SDK `10.0.112` 호환 패치, Git, PowerShell 7.2 이상이 필요하다. 저장소 루트에서 실행한다.
 
 ```powershell
 pwsh ./scripts/build.ps1
@@ -60,22 +26,16 @@ pwsh ./scripts/splinter.ps1 doctor --project ../splinter-unity
 pwsh ./scripts/splinter.ps1 workspace ensure --project ../splinter-unity --key <task-key> --storage ntfs-snapshot --base development --home <NTFS-home>
 ```
 
-CLI는 기본적으로 비대화형이며 stdout에 JSON 응답 하나를 출력한다. `--help`도 명령 계약을 JSON으로 반환한다. NTFS 캡처/해제에 권한이 부족하면 정확한 관리자 helper와 재시도 행동을 반환한다. [NTFS 절차](docs/ntfs-workspaces.md)를 먼저 따른다. ReFS를 명시적으로 사용할 때만 [기준본 준비](docs/storage-and-resources.md)가 필요하다. 진단 성공은 실행 준비 완료를 뜻하지 않는다. 작업은 **반환된 작업공간 경로에서만** 편집한다. 대화나 CLI 종료만으로 Editor와 작업공간을 회수하지 않는다.
+CLI는 stdout에 JSON 응답 하나를 반환한다. 권한이 필요한 VSS 작업은 정확한 helper와 같은 작업의 재시도 절차를 반환한다. [NTFS 사용법](docs/ntfs-workspaces.md)을 먼저 읽고 반환된 작업공간 경로에서 편집한다. 일반 CLI·Git·Unity 전체를 관리자 권한으로 실행하지 않는다.
 
-Git 수명주기 시험은 최초 커밋이 있는 저장소에 실행한다.
+`main`은 출시용, `development`는 개발용이다. 형제 `../splinter-unity`는 별도 Git 저장소이며 submodule이 아니다. 실제 Git 등록 시험은 `pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository ../splinter-unity`로 실행한다. 이 시험은 Unity Editor·CoW 시험과 구별한다.
 
-```powershell
-pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository ../splinter-unity
-```
+## 문서
 
-이 개발용 스크립트는 실제 worktree 두 개의 등록·변경 격리·회수를 검사한다. 일반 Git checkout을 사용하며 Unity Editor와 CoW는 실행하지 않는다. 생성되는 증거는 `artifacts/`에 보관한다.
+- [문서 지도](docs/README.md): 현재 기능별 계약과 사용법.
+- [제품 요구사항](plan.html): 제품이 달성해야 할 목표.
+- [구현 계획](docs/plans/implementation-plan.md): 목표 구조와 남은 작업.
+- [저장공간 우선 설계](docs/plans/storage-priority-and-editor-modes.md): 용량·준비·재개 비용과 Editor 실행 방식의 판단 기준.
+- [검증 추적표](docs/plans/validation-matrix.md): 필수 시나리오와 미완료 관문.
 
-## 읽는 순서
-
-1. [현재 기반](docs/foundation.md): 구현된 모듈·명령·계약·검증 방법과 제한.
-2. [원본 기획서](plan.html): 제품 요구사항과 첫 공개 버전의 범위.
-3. [구현 계획](docs/plans/implementation-plan.md): 목표 구조와 단계별 구현 작업.
-4. [검증 추적표](docs/plans/validation-matrix.md): 기획서의 필수 시나리오 48개와 추가 기반 검증의 담당 단계·증거.
-5. [문서 지도](docs/README.md): 기능별 문서 진입점.
-
-계획 문서는 `docs/plans/`에 두며, 구현된 기능의 현재 계약과 구별한다. 지원 여부는 해당 환경에서 확보한 실행 증거를 근거로 기록한다.
+배포 전에는 현재 데이터 계약만 지원한다. 지원하지 않는 형식은 원본과 결과를 보존한 채 명시적으로 거부하며 자동 이관하지 않는다. 변경 이력은 Git에서 확인한다.

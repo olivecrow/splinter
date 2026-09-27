@@ -1,1 +1,0 @@
-{"date":"2026-09-26","doc":"plans/deferred-snapshot-reclamation.md","change_type":"added","summary":"Define deferred reclamation scope and completion gates","intent":"Preserve independent results while older snapshots block deletion","related_files":["src/Splinter.Core/SnapshotReclamation.cs","src/Splinter.Platform.Windows/VssSnapshotReclamation.cs"]}

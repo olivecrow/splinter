@@ -1,6 +1,6 @@
 # 첫 미리보기 검사 검증
 
-[FR-01~04 확정 범위](../plans/first-render-qualification.md)를 **선택 범위 완료·제한 유지 (`scoped-complete-with-limitations`)**로 마감했다. 원시 증거는 `artifacts/storage-foundation/fr-20260927/`, 집계는 `qualification-summary.json`, 보존·회수와 VHD 분리 후 재검증은 `closeout.json`·`final-environment-check.json`에 있다. 작은 URP fixture의 검사 성공 계약을 닫았으며 Unity 내부의 첫 draw 차이 원인은 미확정이다.
+[FR-01~04 확정 범위](../unity-render-qualification.md)를 **선택 범위 완료·제한 유지 (`scoped-complete-with-limitations`)**로 마감했다. 원시 증거는 `artifacts/storage-foundation/fr-20260927/`, 집계는 `qualification-summary.json`, 보존·회수와 VHD 분리 후 재검증은 `closeout.json`·`final-environment-check.json`에 있다. 작은 URP fixture의 검사 성공 계약을 닫았으며 Unity 내부의 첫 draw 차이 원인은 미확정이다.
 
 | ID | 상태 | 증거 |
 | --- | --- | --- |

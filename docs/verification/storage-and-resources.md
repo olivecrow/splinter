@@ -27,7 +27,7 @@
 | SR-09 | 소스 변경 커밋의 기준본 재사용·봉인·명시적 GC | Passed | 실제 변경 소스 커밋을 refs-cow로 준비·compile·봉인. 준비 Editor/폴더 회수와 새 캐시 삭제, 기존 기준본 재요청 시 재예열 없음 |
 | SR-10 | Editor가 살아 있는 동안 CLI 종료·출력 완료 | Passed | 최종 감시 구현의 A/B start 응답 1,979/2,054ms. 상속 가능한 익명 pipe를 닫는 실제 Windows 회귀 시험 포함 |
 
-`SPLINTER_TEST_REFS_ROOT=S:\splinter-tests`로 실행한 `pwsh ./scripts/build.ps1`은 locked restore, 경고/오류 0, **56 passed / 0 failed / 0 skipped**다. ReFS 경로를 생략한 실행은 SR-06을 Skipped로 처리한다. 실제 GUI 검증은 이 자동 시험 수에 포함하지 않는다. 이전 일반 checkout의 [AA 검증](internal-alpha.md)과 이번 CoW 증거도 구분한다.
+`SPLINTER_TEST_REFS_ROOT=S:\splinter-tests`로 실행한 `pwsh ./scripts/build.ps1`은 locked restore, 경고/오류 0, **56 passed / 0 failed / 0 skipped**다. ReFS 경로를 생략한 실행은 SR-06을 Skipped로 처리한다. 실제 GUI 검증은 이 자동 시험 수에 포함하지 않는다. 이전 일반 checkout의 [AA 검증](README.md)과 이번 CoW 증거도 구분한다.
 
 ## 저장소 측정
 
@@ -55,6 +55,6 @@ A/B의 종료 결과는 `ownershipVerified=true`, `rootRunning=false`, `activePr
 
 최초 준비, A/B, 증분 준비의 네 worktree가 모두 `released`이며 모든 경로와 소유 root/supervisor가 사라졌다. 최종 home의 workspaces는 비어 있고 원본만 Git에 등록돼 있다. 증분 기준본 `b285120ac7846a909ecc09c7`의 캐시도 명시적으로 삭제했다. 최초 기준본 재요청은 기존 ID를 반환했다.
 
-이 시험 종료 시점에는 최초 기준본 하나와 작은 기록·로그·결과 ref를 디스크에 유지했다. 이후 사용자의 정리 요청에 따라 기준본과 시험 VHDX를 회수한 현재 상태는 [정리 기록](storage-cleanup.md)에 있다. 기준본 자체에는 상주 프로세스가 없다. 캐시 삭제는 `baseline release`의 독립 계약이다. 실행 과정에서 만들어진 파생 파일을 사용자 결과와 함께 강제로 정리하지 않는다.
+이 시험 종료 시점에는 최초 기준본 하나와 작은 기록·로그·결과 ref를 디스크에 유지했다. 이후 사용자의 정리 요청에 따라 기준본과 시험 VHDX를 회수한 현재 상태는 [정리 기록](README.md)에 있다. 기준본 자체에는 상주 프로세스가 없다. 캐시 삭제는 `baseline release`의 독립 계약이다. 실행 과정에서 만들어진 파생 파일을 사용자 결과와 함께 강제로 정리하지 않는다.
 
 제품 NTFS의 범위 저장·원본/A/B Unity·재연결·실패 보호 증거와 실제 dirty 원본 통합 차단·완료한 최종 VSS 회수은 [NI 검증](ntfs-workspace-integration.md)에 있다. SO-01~06은 별도 fixture 증거로 유지한다. SR 결과는 실행 당시의 좁은 범위로 보존한다.

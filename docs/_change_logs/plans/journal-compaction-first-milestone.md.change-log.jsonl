@@ -1,2 +1,0 @@
-{"date":"2026-09-26","doc":"plans/journal-compaction-first-milestone.md","change_type":"added","summary":"Define the next SF-02 journal compaction milestone","intent":"Set scope and completion gates before implementation","related_files":["docs/verification/storage-foundation.md"]}
-{"date":"2026-09-26","doc":"plans/journal-compaction-first-milestone.md","change_type":"changed","summary":"Record limited SF-02 compaction milestone outcome","intent":"Keep current contracts, scope and execution evidence aligned","related_files":["src/Splinter.Runtime/JournalDeltaCompaction.cs"]}

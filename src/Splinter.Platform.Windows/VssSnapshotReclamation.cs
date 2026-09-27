@@ -38,7 +38,7 @@ public sealed partial class VssSnapshotProvider
             proof.MissingOtherIds is not { Length: 0 })
             throw new WorkspaceException("SnapshotReclamationInvalid", "The deferred release evidence does not match its request or preservation gates.");
         var receipt = (await Read(ct))!;
-        var identity = receipt.CaptureIdentity ?? (await ReadVerificationAsync<VerifiedIdentity>("verified-identity.json", ct))?.Identity;
+        var identity = receipt.CaptureIdentity;
         if (identity is null || !string.Equals(identity.SourceVolume, proof.SharedStorage.VolumeId, StringComparison.OrdinalIgnoreCase))
             throw new WorkspaceException("SnapshotReclamationInvalid", "Shared storage must describe the captured source volume.");
         var result = new SnapshotReclamation(snapshot.Id, request.RequestId, "deferred", proof.ObservedAt, proof.BlockingIds, proof.SharedStorage);

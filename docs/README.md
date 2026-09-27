@@ -1,55 +1,34 @@
 # 문서 지도
 
-현재 문서는 내부 알파 runtime과 초기 기반을 함께 설명한다. 실행 작업공간은 [알파 작업공간](alpha-workspaces.md), 구조와 계약은 [현재 기반](foundation.md), 목표와 미완료 검증은 계획 문서에서 확인한다.
+현재 구현은 아래 기능 문서에서, 미구현 목표는 계획 문서에서 확인한다. 검증 기록은 지정한 입력·후보의 근거이며 현재 코드의 자동 통과 선언이 아니다.
 
-| 문서 | 읽을 때 |
+## 현재 계약과 사용법
+
+| 문서 | 소유하는 내용 |
 | --- | --- |
-| [코드 품질 검토의 다섯 결함 수정](verification/code-quality-review-fixes.md) | 빈 private 파일 왕복·정리 오류 보존 정책·heartbeat fixture 분리·Git 배치 해시·범위 읽기 탐색의 자동 회귀와 실환경 미실행 경계를 확인할 때 |
-| [Unity 미리보기 검사](unity-render-qualification.md) | 공통 fixture의 요청별 PNG·실제 화면 성공 조건·오류와 자원 복원·제품 validation 경계를 확인할 때 |
-| [첫 미리보기 검사 범위](plans/first-render-qualification.md) · [실행 기록](verification/first-render-qualification.md) | FR-01~04의 첫 PNG 재현·단일 요청의 유효 화면/명시 실패·새 cold/재시작/reload와 실패 복구, 독립 결과·회수 및 진단 판독 정정·native 원인 미확정의 제한을 확인할 때 |
-| [Live 쓰기 probe](write-profiling.md) | 새 디렉터리의 고정 합성 쓰기·metadata·4-thread 입력과 연산별 비용·대기 계수를 해석할 때 |
-| [Live journal 쓰기 비용 범위](plans/live-journal-write-cost.md) | JW-01~04의 연산별 쓰기·flush 비용과 mutation 대기, 고정 합성·새 작은 Unity 실행의 완료 기준을 확인할 때 |
-| [Live journal 쓰기 비용 검증](verification/live-journal-write-cost.md) | JW의 자동·합성·작은 Unity 실행 상태와 연산별 비용, 동시성 경계·독립 결과·회수 증거를 확인할 때 |
-| [누적 write 범위 index 범위](plans/cumulative-write-range-index.md) · [실행 기록](verification/cumulative-write-range-index.md) | WI-01~05의 고정 합성 원인 분해·국소 index 변경과 새 작은 Unity 저널의 동일 입력 비교, 실제 Editor·파일 할당·결과 보존/회수를 확인할 때 |
-| [작은 Unity 재개 비교](plans/unity-replay-comparison.md) · [실행 기록](verification/unity-replay-comparison.md) | 작은 Unity의 동일 journal mount·누적 입력 Editor 각 3회 비교와 파일 할당·독립 결과·회수. 전체 Editor 개선 미입증·첫 렌더/운영 재시도 제한을 확인할 때 |
-| [Offline replay 계측](replay-profiling.md) · [RI 범위](plans/replay-index-cost.md) · [검증](verification/replay-index-cost.md) | 연산별 index 비용과 고정 합성 입력의 시간·관리 메모리 할당·동일 상태를 비교할 때. 실제 Unity·VSS 경로와 구분하는 개발용 도구 |
-| [첫 준비·재연결 시간 범위](plans/validation-view-readiness-and-replay.md) · [검증](verification/validation-view-readiness-and-replay.md) | 정상 첫 import/렌더, 같은 저널의 재생 읽기·검증·index 시간, 실제 mount 준비 응답과 저장량 기준을 확인할 때. 이전 VC와 구분하는 작은 후속 범위 |
-| [불변 후보·고정 검증 view](validation-view.md) · [VC 범위](plans/immutable-validation-view-first-milestone.md) · [검증](verification/immutable-validation-view.md) | Editor 없는 worker의 범위 후보, 같은 경로·Library의 정상 stop/remount/restart A/B/A, 생성·재개·전환 시간과 저장량을 확인할 때. 작은 범위 마감·첫 import 복구/첫 A 미리보기/긴 replay 제한 유지. 개발용 spike이며 제품 모드·source 반환 병합·큐 연결은 미구현 |
-| [SF-02 예산 제품 검증·반복 저장량 범위](plans/journal-budget-and-growth-qualification.md) · [실행 결과](verification/journal-budget-and-growth-qualification.md) | BQ-01~05의 실제 예산 거부·같은 작업 재시도·Unity 수정 3회와 보존/회수, 유효·대체 기록 및 별도 파일 할당 장부, 다음 SF-03 후보 선정 근거를 확인할 때. 정의한 범위 완료·운영 개입/공간 미계측 제한 유지 |
-| [반복 UAC 없는 저장소 권한 경계](plans/storage-privilege-service.md) | 최초 설치 승인 후 일반 CLI의 생성·재연결·회수에서 반복 UAC를 없애는 미구현 서비스 범위와 UA-01~04를 확인할 때 |
-| [스냅샷 지연 회수 1차](plans/deferred-snapshot-reclamation.md) / [검증](verification/deferred-snapshot-reclamation.md) | 결과 보존과 회수 대기, 같은 workspace의 명시적 재시도, helper 응답 재개와 공유 볼륨 공간 관측 범위를 확인할 때 |
-| [SF-02 저널 공간 정리 1차](plans/journal-compaction-first-milestone.md) / [검증](verification/journal-compaction.md) | 명시적 NTFS 저널 정리의 확정 범위, 자동 중단 재개·실제 할당·Unity 제한 회귀와 남은 지원 경계를 확인할 때 |
-| [SF-02 Unity·전체 공간 비용 범위](plans/journal-compaction-qualification-and-cost.md) / [검증](verification/journal-compaction-qualification-and-cost.md) | 빈 폴더 WinFsp 열거와 작은 Unity 재개·로드 코드, 추가 공간 peak·단계별 비용·결과 회수의 실제 판정과 제한을 확인할 때 |
-| [SF-02 명시적 정리 중첩량 예산](plans/journal-compaction-peak-admission.md) / [검증](verification/journal-compaction-peak-admission.md) | 후보 쓰기 전 예상 저널 중첩량 예산과 거부·같은 작업 재시도 계약, 물리 peak와의 경계를 확인할 때 |
-| [공통 저장소 개선 1차](plans/storage-foundation-first-milestone.md) | 확정 범위·완료 조건과 구현 결과, 기존 VSS 보존 실패로 남은 마감 조건을 확인할 때 |
-| [변경 기반 소스 검증과 계측](source-verification.md) | 파일 hash/manifest·provider 세대·audit 복구·계수와 읽기 전용 물리 할당 계측 스크립트를 사용할 때 |
-| [공통 저장소 실제 검증](verification/storage-foundation.md) | SF-01·SF-02 하위 결과, 읽기/공간 장부·Unity A/B·기존 VSS 소실과 자동 해제 차단의 미검증 경계를 확인할 때 |
-| [저장소 실패 재현·보호 검증](verification/storage-recovery.md) | 제어 JSON 게시 충돌 수정, 격리 VSS 연쇄 삭제 재현·비강제 API 대조·실제 삭제 차단과 회수 순서의 제한을 확인할 때 |
-| [저장공간 우선 설계와 Editor 방식](plans/storage-priority-and-editor-modes.md) | 용량 1순위·Editor 동시성 2순위, SF-01의 제한된 검증과 SF-02~06의 남은 조건·단일 Editor 후보를 확인할 때 |
-| [NTFS 작업공간](ntfs-workspaces.md) | 일반 CLI의 ntfs-snapshot 생성·권한 경계·재개·독립 결과·회수와 현재 제한을 확인할 때 |
-| [NI 통합 검증](verification/ntfs-workspace-integration.md) | 실제 NTFS/Git/Unity·범위 저장·장애 보호 증거, 원본 통합 차단·최종 자원 회수와 긴 경로 제한을 확인할 때 |
-| [NTFS workspace 1차 통합 범위](plans/ntfs-workspace-integration.md) | 완료한 NI-01~08의 계약·CLI·복구·결과·회수 범위와 완료 기준을 확인할 때 |
-| [NTFS 내부 알파 2차 계획](plans/ntfs-recovery-and-support.md) | NR-01~08 전체의 복구·재부팅·파일 지원 경계, 격리 Windows 시험 자원과 이후 에셋·Play·테스트 순서를 확인할 때 |
-| [독립 대화 A/B·비용 범위](plans/parallel-workflow-qualification.md) | PV-01/02의 실행 순서, Codex 기본 worktree 직접 비교·실제 모델/텍스처·Library 비용, checkpoint/통합의 현재 제한과 완료 기준을 확인할 때 |
-| [독립 대화·Codex worktree 비교 기록](verification/parallel-workflow.md) | 독립 Editor C/S와 Coordination 단일 Editor Q의 실제 Unity 작업·에셋·비용 계측, PV-01의 복구 포함 대표 수명주기 완료와 PV-02 선택 범위 마감 및 실패·입력·표본 제한을 확인할 때 |
-| [live VSS 식별과 재개 범위](plans/ntfs-live-vss-identity.md) | 완료한 NR-01 하위 작업의 계약·순서·LV-01~08 완료 기준과 후속 장애 시험 경계를 확인할 때 |
-| [LV 식별·재연결 검증](verification/ntfs-live-vss-identity.md) | 새 후보의 자동 시험, 실제 VSS/Git 재연결·범위 저장과 단일 Unity 실행·회수 증거를 확인할 때 |
-| [NR 복구 검증 기록](verification/ntfs-recovery.md) | 복구 계약의 자동 증거, VIVOBOOK VSS 회수 재개·실제 mount의 파일 API 거부·x64 Unity 단일 회귀와 남은 장애 조건을 확인할 때 |
-| [검토 후 수정 검증](verification/workspace-review-fixes.md) | 수집 중 쓰기 보존·일반 status의 소스 읽기 생략·Git/Unity 공통 mount 접근 규칙과 자동/Git 시험의 범위를 확인할 때 |
-| [NTFS snapshot-overlay 실험](snapshot-overlay.md) | VSS·WinFsp·범위 저널의 현재 실험 계약, 실행·재연결과 비용 제한을 확인할 때 |
-| [SO 실제 실행 기록](verification/snapshot-overlay.md) | SO-01~06의 현재 상태와 원시 증거, 무효 처리된 측정을 확인할 때 |
-| [NTFS 실험 계획과 통합 조건](plans/ntfs-snapshot-overlay-spike.md) | SO-01~06의 의도·완료 조건과 제품 통합 전에 남은 검증을 확인할 때 |
-| [현재 기반](foundation.md) | 실제 코드 구조, 구현된 CLI 계약, 브랜치 운영, 빌드·시험 방법과 제한을 확인할 때 |
-| [알파 작업공간](alpha-workspaces.md) | Unity 작업공간 편집·검증·통합·회수와 복구 흐름을 사용할 때 |
-| [저장소·자원 관리](storage-and-resources.md) | 기준본 예열·ReFS CoW·clone/copy 바이트·프로세스 그룹·메모리 회수 계약을 확인할 때 |
-| [자원 검증](verification/storage-and-resources.md) | 실제 Windows/ReFS/Unity 증거와 다음 검증 관문을 확인할 때 |
-| [ReFS 시험 자원 정리](verification/storage-cleanup.md) | 시험 디스크·기준본 회수와 보존한 증거, 새 세션의 실제 fixture 경로를 확인할 때 |
-| [실제 알파 검증](verification/internal-alpha.md) | Luna low 두 작업자의 GUI Editor 격리·재개·통합·회수 증거와 검증 한계를 확인할 때 |
-| [원본 기획서](../plan.html) | 개정 5판의 대화별 사용·설치·명시적 완료/폐기 요구사항, 현재 구현·SO/NI 완료 범위, 후속 검증·구현 우선순위를 확인할 때 |
-| [대화별 작업·설치 계획](plans/session-workflow-and-installation.md) | 프로젝트용/전역용 설치·Codex 스킬/플러그인 연결, 필요 시 사용·미사용, 독립 대화 재개·반영/보존/폐기와 SW 관문을 확인할 때 |
-| [구현 계획](plans/implementation-plan.md) | 기술 선택, 모듈 책임, CLI·상태 계약, 단계별 구현 작업을 확인할 때 |
-| [검증 추적표](plans/validation-matrix.md) | 기획 요구사항의 구현 단계와 필요한 검증 증거를 확인할 때 |
+| [현재 기반](foundation.md) | 모듈·의존성·명령·빌드와 시험 |
+| [NTFS 작업공간](ntfs-workspaces.md) | VSS identity·범위 저널·Git·권한·복구·결과 보존·회수 |
+| [Unity 알파 작업공간](alpha-workspaces.md) | 여러 차례 편집·검증·재개·통합과 Editor 수명 |
+| [저장소와 자원](storage-and-resources.md) | 선택적 ReFS 기준본·프로세스 그룹·자원 관측 |
+| [소스 검증](source-verification.md) | 변경 경로·hash cache·status freshness·현재 계측 형식 |
+| [불변 후보와 검증 view](validation-view.md) | 개발용 candidate-export·고정 view·공통 Library |
+| [Unity 미리보기](unity-render-qualification.md) | fixture의 요청별 PNG·픽셀·해시·실패/복구 조건 |
+| [Snapshot overlay 시험](snapshot-overlay.md) | 개발용 준비·mount·파일 API·장애·결과·회수 스크립트 |
+| [Replay probe](replay-profiling.md) | 고정 합성 입력의 replay 비용 |
+| [Write probe](write-profiling.md) | 고정 합성 쓰기·flush·대기 비용 |
+| [검증 안내](verification/README.md) | 지원 경계, 검증 진입점, 보존한 실측 근거 |
 
-새 모듈이 생기면 현재 계약 문서를 추가하고 이 표에서 연결한다. 계획의 제안과 구현된 동작이 다르면 둘을 함께 갱신하고 상태를 명시한다.
+## 남은 설계와 검증
 
-`_change_logs/`에는 실제 기능 변경 이력을 JSONL로 기록한다.
+| 문서 | 용도 |
+| --- | --- |
+| [제품 요구사항](../plan.html) | 제품이 달성할 목표 |
+| [구현 계획](plans/implementation-plan.md) | 목표 구조·책임·단계별 작업 |
+| [검증 추적표](plans/validation-matrix.md) | 필수 48개 시나리오와 남은 지원 관문 |
+| [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | 중단·재부팅·전원·공간·파일 경계의 완료 기준 |
+| [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·단일 Editor 후보와 비교 기준 |
+| [대화별 설치·사용](plans/session-workflow-and-installation.md) | 설치·binding·명시적 discard의 SW-01~10 |
+| [저장소 권한 서비스](plans/storage-privilege-service.md) | 반복 UAC 없는 제한 서비스의 UA-01~04 |
+| [병렬 비교 방법](plans/parallel-workflow-qualification.md) | C/S/Q 입력·작업·비용 비교를 재사용할 때 |
+
+변경 이력은 Git에서 확인한다. 완료한 단계별 계획을 다시 유지하지 않는다. 후속 성능·지원 판단에 필요한 실측은 verification에 보존하며 README·AGENTS에 복제하지 않는다.

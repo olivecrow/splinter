@@ -1,12 +1,12 @@
 # Live journal 쓰기 비용 검증
 
-`jw-20260927`은 [JW-01~04 범위](../plans/live-journal-write-cost.md)를 **scoped-complete-with-limitations**로 마감한 실행 기록이다. 자동·고정 합성 18회와 새 작은 Unity의 첫 import·후속 수정·닫힌 journal 재연결·독립 결과·원본 보존·회수·VHD 분리 뒤 결과 검증을 완료했다. 이번 변경은 계측이며 acknowledged write의 개별 durable flush, 저널 형식과 범위 index 동작을 유지한다. Runtime에만 동시 group flush를 추가하는 후속 구현은 선정하지 않았다.
+`jw-20260927`은 [JW-01~04 범위](../write-profiling.md)를 **scoped-complete-with-limitations**로 마감한 실행 기록이다. 자동·고정 합성 18회와 새 작은 Unity의 첫 import·후속 수정·닫힌 journal 재연결·독립 결과·원본 보존·회수·VHD 분리 뒤 결과 검증을 완료했다. 이번 변경은 계측이며 acknowledged write의 개별 durable flush, 저널 형식과 범위 index 동작을 유지한다. Runtime에만 동시 group flush를 추가하는 후속 구현은 선정하지 않았다.
 
 ## 계측 계약과 자동 시험
 
 `liveJournalWrites`는 `create/write/resize/metadata/rename/delete`의 최대 6개 연산별 commit 진입·durable commit·실패, payload/저널 바이트, 준비·append·flush·index 적용·전체 호출 시간을 집계한다. 중첩을 제외한 mutation gate 호출/대기와 flush 시작/끝의 다른 대기 mutation 호출 수를 기록한다. histogram의 5칸은 0, 1, 2~3, 4~7, 8개 이상이다. 관측 배열은 복사본이고 과거 누락/null은 unknown이다. no-op와 commit 이전 거부는 mutation 호출에는 포함될 수 있으나 commit 시도에는 포함되지 않는다. 명시적 Flush와 tail 복구 flush는 전체 flush 계수에만 들어간다.
 
-표준 `pwsh ./scripts/build.ps1`의 locked restore·Release 빌드는 경고/오류 0, 자동 **303 통과·0 실패·선택적 ReFS 1 skip**이다. 여섯 연산·no-op·사전 거부·명시적 Flush 구분, 반환 배열 격리, 예산 거부 뒤 journal hash와 재연결, legacy 계수 누락, 두 schema의 일치와 음수 histogram 거부를 확인했다. `evidence/build-instrumentation.log`와 `evidence/tests-303-passed.trx`가 해당 실행의 증거다.
+표준 `pwsh ./scripts/build.ps1`의 locked restore·Release 빌드는 경고/오류 0, 자동 **303 통과·0 실패·선택적 ReFS 1 skip**이다. 여섯 연산·no-op·사전 거부·명시적 Flush 구분, 반환 배열 격리, 예산 거부 뒤 journal hash와 재연결, 두 schema의 일치와 음수 histogram 거부를 확인했다. `evidence/build-instrumentation.log`와 `evidence/tests-303-passed.trx`가 해당 실행의 증거다.
 
 ## 고정 합성 쓰기 18회
 
@@ -103,7 +103,7 @@ C:의 bundle과 외부 alternates 없는 bare 저장소에서 같은 revision·�
 
 | ID | 판정 | 제한 |
 | --- | --- | --- |
-| JW-01 | Passed | 고정 연산 계수·schema·예산 거부/legacy 호환; 과거 누락 unknown |
+| JW-01 | Passed | 고정 연산 계수·schema·예산 거부 |
 | JW-02 | Passed | 고정 합성 18회, 직접 Runtime 호출, warm cache·3회 소수 표본 |
 | JW-03 | Passed, 제한된 관측 | 최초 import·현재 compile/로드 코드·후속 수정·정상 stop·동일 journal 재연결. 첫 PNG와 후속 reload 뒤 첫 PNG는 빈 화면, 첫 렌더 원인 미확정 |
 | JW-04 | Passed, 제한된 관측 | 독립 결과·원본 90개 파일/기존 ref 23개/타 snapshot 보존·회수·VHD 분리 확인. 순간 peak·어댑터/OS 대기 unknown, Runtime 단독 group flush 미선정 |

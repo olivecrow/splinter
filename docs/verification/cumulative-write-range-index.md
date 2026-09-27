@@ -1,6 +1,6 @@
 # 누적 write 범위 index 검증
 
-`wi-20260927`은 [WI-01~05 범위](../plans/cumulative-write-range-index.md)를 **scoped-complete-with-limitations**로 마감한 실행 기록이다. 기준 구현은 `2cfcad0`의 무계측 Runtime, 계측 구현은 전체 목록 복사·정렬을 유지한 Runtime, 최종 후보는 정렬된 extent의 영향 구간만 교체하는 Runtime이다. 고정 합성·새 작은 Unity 저널·실제 Editor·독립 결과와 회수까지 확인했다. 전체 Editor 재개 개선과 Library 물리 절감은 입증하지 않았다.
+`wi-20260927`은 [WI-01~05 범위](cumulative-write-range-index.md)를 **scoped-complete-with-limitations**로 마감한 실행 기록이다. 기준 구현은 `2cfcad0`의 무계측 Runtime, 계측 구현은 전체 목록 복사·정렬을 유지한 Runtime, 최종 후보는 정렬된 extent의 영향 구간만 교체하는 Runtime이다. 고정 합성·새 작은 Unity 저널·실제 Editor·독립 결과와 회수까지 확인했다. 전체 Editor 재개 개선과 Library 물리 절감은 입증하지 않았다.
 
 ## 합성 원인 판별과 회귀
 

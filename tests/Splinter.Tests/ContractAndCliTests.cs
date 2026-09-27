@@ -79,10 +79,10 @@ public sealed class ContractAndCliTests
         inspection["gitHashProcesses"] = -1;
         Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
         inspection["gitHashProcesses"] = null;
-        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
         inspection.AsObject().Remove("gitHashProcesses");
-        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
-        Assert.Null(inspection.Deserialize<SourceInspectionMetrics>(ApiJson.Options)!.GitHashProcesses);
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        Assert.Throws<JsonException>(() => inspection.Deserialize<SourceInspectionMetrics>(ApiJson.Options));
     }
 
     [Theory]
@@ -112,16 +112,16 @@ public sealed class ContractAndCliTests
     }
 
     [Theory]
-    [InlineData("complete", true)] [InlineData("legacy", true)]
+    [InlineData("complete", true)] [InlineData("missing-tuple", false)]
     [InlineData("no-owner", false)] [InlineData("no-directory", false)] [InlineData("no-access", false)]
     public void OverlayReadAccessRequiresTheWholeVerificationTuple(string variant, bool valid)
     {
         var request = JsonSerializer.SerializeToNode(new Splinter.Platform.Windows.OverlayServeRequest(
             new(1, "workspace", VssLiveIdentityTests.Snapshot, 1048576, 1048576), "delta", "mount", "control", new string('a', 64),
             new(VssLiveIdentityTests.Snapshot.Id, VssLiveIdentityTests.Snapshot.RootPath, "verified"), "receipt", "owner"), ApiJson.Options)!;
-        if (variant is "no-owner" or "legacy") request.AsObject().Remove("snapshotOwnerId");
-        if (variant is "no-directory" or "legacy") request.AsObject().Remove("snapshotReceiptDirectory");
-        if (variant is "no-access" or "legacy") request.AsObject().Remove("readAccess");
+        if (variant is "no-owner" or "missing-tuple") request.AsObject().Remove("snapshotOwnerId");
+        if (variant is "no-directory" or "missing-tuple") request.AsObject().Remove("snapshotReceiptDirectory");
+        if (variant is "no-access" or "missing-tuple") request.AsObject().Remove("readAccess");
         Assert.Equal(valid, contracts.Validate("urn:splinter:v1:overlay-serve-request", JsonSerializer.SerializeToElement(request)).IsValid);
     }
 
@@ -177,7 +177,9 @@ public sealed class ContractAndCliTests
         snapshot["result"]!["collectionProtocol"] = "unverified";
         Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
         snapshot["result"]!.AsObject().Remove("collectionProtocol");
-        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        Assert.Throws<JsonException>(() => snapshot["result"]!.Deserialize<SnapshotResult>(ApiJson.Options));
+        snapshot["result"]!["collectionProtocol"] = SnapshotResult.StableJournalProtocol;
         var observation = node["data"]!["workspace"]!["snapshot"]!["observation"]!;
         if (available is null)
         {
@@ -251,7 +253,8 @@ public sealed class ContractAndCliTests
         node["storage"]!["metrics"]!["readRangeIndex"]!["searchProbes"] = 0;
         Assert.True(Valid());
         node["storage"]!["metrics"]!["readRangeIndex"] = null;
-        Assert.True(Valid());
+        Assert.False(Valid());
+        node["storage"]!["metrics"]!["readRangeIndex"] = JsonSerializer.SerializeToNode(store.Observe().Metrics!.ReadRangeIndex, json);
         node["storage"]!["metrics"]!["liveJournalWrites"]!["operations"]![0]!["waitingMutationsAtFlushStart"]![0] = -1;
         Assert.False(Valid());
         node["storage"]!["metrics"]!["liveJournalWrites"]!["operations"]![0]!["waitingMutationsAtFlushStart"]![0] = 1;
@@ -268,12 +271,20 @@ public sealed class ContractAndCliTests
         node["storage"]!["metrics"]!["replayIndexOperations"]![0]!["frames"] = 0;
         Assert.False(Valid());
         node["storage"]!["metrics"]!["replayIndexOperations"] = null;
-        Assert.True(Valid());
+        Assert.False(Valid());
+        node["storage"]!["metrics"]!["replayIndexOperations"] = new JsonArray();
         node["storage"]!["metrics"]!["replayReadCalls"] = -1;
         Assert.False(Valid());
+        node["storage"]!["metrics"] = JsonSerializer.SerializeToNode(store.Observe().Metrics, json);
         foreach (string field in new[] { "replayFrames", "replayReadCalls", "replayReadTicks", "replayValidationTicks", "replayIndexTicks", "replayBufferBytes", "replayIndexOperations", "replayWriteRangeIndex", "liveJournalWrites", "readRangeIndex" })
+        {
+            var complete = node["storage"]!["metrics"]!.DeepClone();
             node["storage"]!["metrics"]!.AsObject().Remove(field);
-        Assert.True(Valid()); // Legacy observations keep the breakdown unknown.
+            Assert.False(Valid());
+            Assert.Throws<JsonException>(() => node["storage"]!["metrics"]!.Deserialize<OverlayIoMetrics>(json));
+            node["storage"]!["metrics"] = complete;
+        }
+        Assert.True(Valid());
         node["preparation"]!["storeReadyTicks"] = -1;
         Assert.False(Valid());
     }

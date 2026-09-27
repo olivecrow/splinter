@@ -1,6 +1,6 @@
 # SF-02 예산 제품 경로와 반복 저장량 검증
 
-실행일: 2026-09-26. 상태: **BQ-01~05 정의한 범위 완료, scoped-complete-with-limitations**. [확정 범위](../plans/journal-budget-and-growth-qualification.md)를 따르며 증거는 `artifacts/storage-foundation/bq-20260926/`에 보존한다. 제품 후보는 `c56d065`, Windows x64, 기존 격리 16GiB NTFS VHD와 작은 Unity `6000.3.22f1` 입력이다. 기존 원본·결과는 재사용/보존하고 새 home `V:\bq26\s`, `V:\bq26\u`와 새 작업 ID를 사용했다. 다음 공간 절감 후보는 **SF-03의 불변 후보·고정 검증 view·단일 Library A/B/A 최소 범위**로 선정했으며 아직 실행하지 않았다.
+실행일: 2026-09-26. 상태: **BQ-01~05 정의한 범위 완료, scoped-complete-with-limitations**. [확정 범위](journal-budget-and-growth-qualification.md)를 따르며 증거는 `artifacts/storage-foundation/bq-20260926/`에 보존한다. 제품 후보는 `c56d065`, Windows x64, 기존 격리 16GiB NTFS VHD와 작은 Unity `6000.3.22f1` 입력이다. 기존 원본·결과는 재사용/보존하고 새 home `V:\bq26\s`, `V:\bq26\u`와 새 작업 ID를 사용했다. 다음 공간 절감 후보는 **SF-03의 불변 후보·고정 검증 view·단일 Library A/B/A 최소 범위**로 선정했으며 아직 실행하지 않았다.
 
 | 관문 | 현재 판정 |
 | --- | --- |

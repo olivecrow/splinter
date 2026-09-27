@@ -6,17 +6,6 @@ namespace Splinter.Tests;
 
 public sealed class JournalReplayTests
 {
-    [Fact]
-    public void OlderMetricsKeepUnmeasuredReplayBreakdownUnknown()
-    {
-        var old = System.Text.Json.JsonSerializer.Deserialize<OverlayIoMetrics>(
-            """{"Epoch":"old","LockAcquisitions":0,"LockWaitTicks":0,"FlushCount":0,"FlushTicks":0,"CommitCount":0,"JournalAppendedBytes":0,"ReplayBytes":12,"ReplayTicks":34,"JournalReadBytes":12,"BaseReadBytes":0,"StopwatchFrequency":10000000}""")!;
-        Assert.Null(old.ReplayFrames); Assert.Null(old.ReplayReadCalls); Assert.Null(old.ReplayReadTicks);
-        Assert.Null(old.ReplayValidationTicks); Assert.Null(old.ReplayIndexTicks); Assert.Null(old.ReplayBufferBytes);
-        Assert.Null(old.ReplayIndexOperations); Assert.Null(old.ReplayWriteRangeIndex); Assert.Null(old.LiveJournalWrites);
-        Assert.Null(old.ReadRangeIndex);
-    }
-
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -94,7 +83,7 @@ public sealed class JournalReplayTests
         Assert.Equal(ranges.ReplaceCalls, ranges.PriorExtentBuckets.Sum());
         Assert.True(ranges.LocateAndReplaceTicks + ranges.SortTicks <=
             Assert.Single(indexCosts, x => x.Operation == "write").ApplyTicks);
-        Assert.InRange(metrics.ReplayReadCalls!.Value, 1, 30);
+        Assert.InRange(metrics.ReplayReadCalls, 1, 30);
         Assert.True(metrics.ReplayReadTicks + metrics.ReplayValidationTicks + metrics.ReplayIndexTicks <= metrics.ReplayTicks);
         Assert.Equal(0, metrics.CommitCount); Assert.Equal(0, metrics.FlushCount); Assert.Equal(0, metrics.BaseReadBytes);
         byte[] result = new byte[block.Length]; var id = resumed.Stat("private")!.Id;

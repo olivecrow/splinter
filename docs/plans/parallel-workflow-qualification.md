@@ -1,29 +1,18 @@
-# 이번 작업 범위: 독립 대화 A/B의 NTFS 작업과 비용 검증
+# 병렬 작업과 비용 비교 방법
 
-계획일: 2026-09-23. 현재 상태: **PV-01의 정의한 대표 fixture 완료(복구·운영 개입 포함), PV-02 사용자 선택 범위 완료·제한 유지 (`scoped-complete-with-limitations`)**. [사용자 범위 결정](../../artifacts/parallel-workflow/pv-20260923/s4-failed-input-scope-decision.json)에 따라 추가 대용량 반복 없이 마감했다. S4는 `FailedInputQualification`이며 핵심 반복은 C2/C3·S2/S3·Q2/Q3 각각 2회 관측, 과거 S1~S3 전체 팩 raw 입력 동등성은 unknown이다. 방식별 3회 이상 목표와 PV-02 전체 Passed 조건은 아래에 그대로 유지하며 전체 Passed로 올리지 않는다. 실제 하위 판정·소유 자원 회수·원본 복원·합성 종료는 [실행 기록](../verification/parallel-workflow.md)과 [최종 마감 영수증](../../artifacts/parallel-workflow/pv-20260923/final-closeout.json)을 따른다.
+이 문서는 후속 비교에서 입력·C/S/Q 조건·작업·계측을 맞추기 위한 방법을 보존한다. 사용자 선택 실행은 마감했으며 새 실행 지시가 아니다. 판정과 남은 한계는 [검증 안내](../verification/README.md)를 따른다.
 
 ## 확정한 목표
 
 **현재 NTFS 내부 알파로 독립 대화 A/B가 여러 차례 스크립트를 수정·검증·재개하고, A를 먼저 원본에 반영·회수한 뒤에도 B가 같은 작업을 계속할 수 있는지 확인한다. 실제 3D 모델·텍스처를 포함한 같은 Unity 프로젝트에서 Codex 기본 Git worktree의 독립 Editor 방식 및 Coordination을 통한 단일 Editor 순차 검증 방식과 각각 비교하고, 시간·읽기·저장·메모리·호출·운영 개입 비용으로 다음 개선 대상을 결정한다.**
 
-[기획서](../../plan.html#section-15-1)의 PV 실행 범위와 [상위 NR 계획의 PV-01/02](ntfs-recovery-and-support.md#제한된-병렬-작업과-비용-관문)를 구체화한다. NR 전체의 장애 시험이나 [SW 설치·대화 연결·폐기](session-workflow-and-installation.md) 전체 구현을 이 단위의 선행 조건으로 추가하지 않는다. 이번 결과가 통과해도 공개 제품 지원이나 NR/SW 전체 완료로 올리지 않는다.
+[기획서](../../plan.html#section-15-1)의 PV 실행 범위와 [상위 NR 계획의 PV-01/02](ntfs-recovery-and-support.md)를 구체화한다. NR 전체의 장애 시험이나 [SW 설치·대화 연결·폐기](session-workflow-and-installation.md) 전체 구현을 이 단위의 선행 조건으로 추가하지 않는다. 이번 결과가 통과해도 공개 제품 지원이나 NR/SW 전체 완료로 올리지 않는다.
 
 ## 제품 목표·구조와 현재 도달점
 
 제품 목표는 각 대화의 AI가 필요할 때 자기 개발 환경을 확보하고 같은 작업을 지속하는 것이다. Windows/NTFS 원본의 위치와 파일시스템을 유지하고, 시작 시점의 불변 스냅샷과 작업별 범위 변경분을 사용한다. 최초 전체 데이터 복제·읽기 hydration·파일 전체 copy-up fallback 없이 원본은 작업 중에도 계속 수정할 수 있어야 한다. 명시적 반영·보존·폐기는 서로 다른 사용자 의도다.
 
 현재 구조는 **CLI → Runtime → Core의 공급자 계약 → Git/Unity/Windows 어댑터**다. CLI가 구현체를 조립하고 Runtime이 atomic JSON·작업/저장소 잠금·결과/회수를 조정한다. Core에는 Unity·Win32·Git·Codex 전용 API를 넣지 않는다. Host는 읽기 전용 in-process 계층이며, 제품 .NET 어셈블리 대신 작은 Editor 브리지가 작업별 Unity와 통신한다. 이번에도 이 경계를 유지한다. 실제 프로젝트 참조와 책임은 [현재 기반](../foundation.md#구조와-의존성)에 있다.
-
-| 구분 | 현재 근거 | 이번 범위에 미치는 영향 |
-| --- | --- | --- |
-| 제품 기준 | `development`, `f6b123b2d47abed0be7d4717384c351512db97ab`; 조회 시작 시 clean | 계획의 기준이다. 실행 착수 시 최종 소스 manifest와 실제 사용 바이너리를 다시 연결 |
-| 최신 수정 | `85d65bb`의 안정된 결과 수집, 일반 status의 불필요한 소스 읽기 제거, 공통 mount 접근 규칙 | 이 후보의 live VSS/WinFsp/Unity A/B와 회수 회귀를 확인 |
-| 자동 증거 | [검토 후 수정 기록](../verification/workspace-review-fixes.md)의 204 통과·0 실패·선택적 ReFS 1 skip. 이번에 기존 manifest의 125개 파일 hash가 현재 파일과 모두 일치함을 확인 | 기존 시험 재사용이며 새 빌드/시험 실행이 아님. 코드 변경 시 `pwsh ./scripts/build.ps1`과 변경 경계의 실환경 검증 필요 |
-| NTFS 수명주기 | NI-01~08 fixture와 LV-01~08의 정의한 범위 완료 | 생성·재접속·검증·결과 보존·회수 기반을 재사용. 이전 후보의 성공을 새 PV 통과로 합산하지 않음 |
-| Unity fixture | 형제 `splinter-unity`, 계획 수립 시 clean `development`, `46e7f4dbdb219e4afa602f3598a3de9ff4070fae`, Unity `6000.3.22f1` | 기존 스크립트·패키지를 기준으로 후속 실행에서 모델·텍스처가 있는 비교용 fixture를 구성. 버전 업그레이드·유료 에셋 구매 불필요 |
-| 후속 기능 | 설치·자동 binding·명시적 discard, 범용 에셋 저작/Play/테스트, 나머지 NR 장애·파일 지원은 미완료 | 이번 대표 에셋의 임포트·제한된 변경 시험과 범용 제품 지원을 구별 |
-
-위 표는 소스·문서·저장된 증거를 읽은 결과다. 현재 Editor/MCP·mount·VSS·RAM/디스크 상태를 새로 조회하거나 실행 준비를 확인한 결과는 아니다.
 
 ## 포함하는 작업
 
@@ -145,7 +134,7 @@ PV-01의 같은 Splinter 후보에 관측을 붙이고, C/S 공통 구간과 제
 3. PV-02는 기본/대표 에셋 프로필에서 실제 Codex worktree의 독립 Editor C, Coordination 단일 Editor Q, Splinter S의 새 작업·반복 작업·완료/회수를 직접 비교하고, 대표 프로필에서는 지정 텍스처/모델 변경도 비교한다. Splinter의 필수 저장 계약과 양쪽 단계별 시간·읽기·저장·메모리·호출/개입 수, 같은 결과를 원시 증거에 연결한다. 비교군·대표 에셋·필수 값이 빠지면 PV-02 전체 Passed로 표시하지 않고 관측한 하위 사례와 unknown/미실행을 나눈다.
 4. A/B의 독립 결과를 보존하고 소유 프로세스·메모리·핸들 0, mount·Git 등록·delta·마지막 소유 snapshot 부재를 실제 확인한다. A의 회수 시점에는 B와 공유 의존성을 유지한다. unknown은 0이 아니다.
 5. 원본 Editor/MCP·비소유 작업·기존 snapshot과 사용자의 변경을 보존한다. 재시도는 기존 identity/영수증을 사용하고, 실패를 임의 강제 삭제나 새 캡처로 덮지 않는다.
-6. 코드가 바뀌면 표준 build와 관련 실환경 회귀를 완료하고, 검증 추적표·문서 지도·관련 현재 계약·CHANGE LOG·UTF-8을 동기화한다. 문서만 바뀌면 문서 검증으로 구분한다.
+6. 코드가 바뀌면 표준 build와 관련 실환경 회귀를 완료하고, 검증 추적표·문서 지도·관련 현재 계약·UTF-8을 동기화한다. 문서만 바뀌면 문서 검증으로 구분한다.
 
 PV-01과 PV-02는 독립 판정한다. 한쪽 통과로 다른 쪽의 누락을 해소하지 않는다. 다음 개선 제안은 측정된 병목·운영 개입과 그 근거를 제시하며, 이번 작업을 끝없이 최적화하는 단계로 바꾸지 않는다.
 

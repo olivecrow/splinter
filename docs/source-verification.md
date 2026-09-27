@@ -34,9 +34,11 @@ Git 어댑터는 다음 순서로 검사한다.
 
 ## 계측의 의미
 
+`source.inspection.gitHashProcesses`와 `storage.metrics` 안의 replay·범위 index·live write 계수는 현재 형식에서 필수다. provider가 아직 계측을 제공하지 못한 경우 `metrics` 객체 자체의 부재는 가능하지만, 존재하는 객체의 필드 누락을 구형 형식으로 수용하지 않는다. OS·공유 저장소의 실제 관측 불가 값은 계속 unknown이다.
+
 | 위치 | 측정 항목 | 해석 경계 |
 | --- | --- | --- |
-| `source.inspection`, `source-inspections.jsonl` | mode, raw payload bytes, 해시/재사용 파일 수, manifest bytes, 시간, epoch/sequence, `gitHashInputBytes`, `gitHashProcesses` | Git 바이트는 내용 hash에 넘긴 파일의 raw 논리 길이이며 프로세스 수는 해당 검사의 hash-object 호출 수다. 전체 Git 명령 수·I/O·물리 디스크 읽기량과 다르다. 초기/감사/재개 비용도 기록하고 이전 프로세스 수 누락/null은 unknown으로 둔다 |
+| `source.inspection`, `source-inspections.jsonl` | mode, raw payload bytes, 해시/재사용 파일 수, manifest bytes, 시간, epoch/sequence, `gitHashInputBytes`, `gitHashProcesses` | Git 바이트는 내용 hash에 넘긴 파일의 raw 논리 길이이며 프로세스 수는 해당 검사의 hash-object 호출 수다. 전체 Git 명령 수·I/O·물리 디스크 읽기량과 다르다. 초기/감사/재개 비용도 기록하며 현재 계측 객체의 프로세스 수는 필수다 |
 | `storage.metrics` | provider epoch, lock 횟수/대기 tick, flush 횟수/tick, commit/append bytes, replay bytes/tick·프레임·읽기 호출·단계별 tick, base/journal read bytes | 현재 provider 프로세스의 누적 계수다. 재시작 뒤 다른 epoch끼리 단순 차감하지 않는다. tick은 `stopwatchFrequency`로 환산한다 |
 | `storage-reads.jsonl` | seal과 최종 delta 삭제 전 확인의 실제 stream bytes와 해시 시간 | delta 밖의 진단 기록이다. seal 값·삭제 권한의 근거를 대신하지 않는다 |
 | `scripts/measure-workspace-storage.ps1` | FILE_STANDARD_INFO 파일 할당, 논리 길이, root별 분류, VSS 볼륨 관측 | 읽기 전용 개발 도구다. mount를 순회하거나 논리 트리를 실제 복제량으로 합산하지 않는다 |
@@ -53,19 +55,19 @@ python ./scripts/measure-overlay-journal.py <stopped-delta.journal> --output <ne
 
 `groups`는 기록 당시 경로군별 누적 쓰기와 그중 아직 참조되는 payload를, `livePayloadByCurrentGroup`은 rename 후 현재 경로군의 유효 payload를 나타낸다. 두 분류를 더하지 않는다. `obsoletePayloadBytes`에는 더 이상 참조하지 않는 payload가 들어가지만, 정리 형식의 metadata 비용·범위 수 제한 때문에 그 전부가 실제 할당 절감으로 이어진다고 보장하지 않는다. 장부의 hash·sequence를 같은 경계의 제품 seal과 대조한다. 계측기의 독립 기대값·손상 보존·Windows writer 거부 시험은 `python -m unittest discover -s tests/scripts -p test_measure_overlay_journal.py -v`다.
 
-Runtime의 replay는 수명 한정 64KiB 버퍼로 저널만 순차 읽는다. 완결 frame의 SHA-256·메타데이터·sequence 검증을 생략하지 않고 payload나 원본을 별도 파일에 hydration하지 않는다. `replayReadCalls`/`replayReadTicks`는 실제 journal 파일 읽기 호출, `replayValidationTicks`는 checksum·decode·sequence 확인, `replayIndexTicks`는 메모리 index 적용, `replayFrames`는 적용한 frame 수다. `replayTicks`에는 버퍼 복사·기타 루프 비용도 포함하므로 세 단계 합과 같지 않다. OS cache를 거친 파일 API 읽기량이며 물리 디스크 I/O가 아니다. 이전 기록에서 새 계수가 없으면 null/unknown이며 0으로 소급하지 않는다. 쓰기 flush와 불완전 tail·완결 손상 보존 계약은 기존과 같다.
+Runtime의 replay는 수명 한정 64KiB 버퍼로 저널만 순차 읽는다. 완결 frame의 SHA-256·메타데이터·sequence 검증을 생략하지 않고 payload나 원본을 별도 파일에 hydration하지 않는다. `replayReadCalls`/`replayReadTicks`는 실제 journal 파일 읽기 호출, `replayValidationTicks`는 checksum·decode·sequence 확인, `replayIndexTicks`는 메모리 index 적용, `replayFrames`는 적용한 frame 수다. `replayTicks`에는 버퍼 복사·기타 루프 비용도 포함하므로 세 단계 합과 같지 않다. OS cache를 거친 파일 API 읽기량이며 물리 디스크 I/O가 아니다. 쓰기 flush와 불완전 tail·완결 손상 보존 계약은 기존과 같다.
 
 동일 단계의 원본 Library·공유 Git 기준선을 빼고 추가량을 비교한다. Library 쓰기는 delta 안에 이미 들어 있으므로 이중 합산하지 않는다. 접근 불가·reparse 경로는 unknown으로 기록하고 subtotal만 남긴다. 일반 권한에서 VSS를 읽지 못하면 unknown이며 관리자 볼륨 관측을 별도로 확보한다. VSS의 작업별 귀속과 MFT/OS cache 등은 전체 절감률로 추정하지 않는다. 로그·임시 파일·결과 객체도 공간 장부에 포함해야 한다. 단계 표본의 최고치는 실제 순간 최고치를 보장하지 않는다.
 
-같은 영역 반복 쓰기와 삭제/truncate 후에도 실행 중인 기존 journal 할당은 남는다. 결과 수집 전 정지한 NTFS 작업공간에는 명시적 저널 정리를 구현했으며, [작은 Unity 재개·공간 계측](verification/journal-compaction-qualification-and-cost.md)에서 정리 직후 할당 감소와 두 세대가 겹친 관측 최고치를 확인했다. flush 묶음 처리와 기본 실행 방식 전환은 구현하지 않았다. 범위와 검증 수준은 [공통 저장소 1차 계획](plans/storage-foundation-first-milestone.md), 실제 판정과 VSS 보존 실패는 [검증 기록](verification/storage-foundation.md), 현재 회수 차단/지원 경계는 [NTFS 작업공간](ntfs-workspaces.md)을 따른다.
+같은 영역 반복 쓰기와 삭제/truncate 후에도 실행 중인 기존 journal 할당은 남는다. 결과 수집 전 정지한 NTFS 작업공간에는 명시적 저널 정리를 구현했으며, [작은 Unity 재개·공간 계측](verification/journal-compaction-qualification-and-cost.md)에서 정리 직후 할당 감소와 두 세대가 겹친 관측 최고치를 확인했다. flush 묶음 처리와 기본 실행 방식 전환은 구현하지 않았다. 범위와 검증 수준은 [공통 저장소 1차 계획](plans/storage-priority-and-editor-modes.md), 실제 판정과 VSS 보존 실패는 [검증 기록](verification/storage-foundation.md), 현재 회수 차단/지원 경계는 [NTFS 작업공간](ntfs-workspaces.md)을 따른다.
 
-`replayIndexOperations`는 관측된 연산별 `operation`·`frames`·`applyTicks` 배열이며 최대 9개다. `create`, `metadata`, `resize`, `write`, `write-compacted`, `rename`, `delete`, `skip-write`, `skip-range`만 허용한다. 합계는 각각 `replayFrames`와 `replayIndexTicks`에 대응하고 현재 provider의 신규 쓰기는 포함하지 않는다. `skip-range`도 한 frame이므로 frame 수는 durable sequence 증가량과 다를 수 있다. 새 provider의 빈 배열은 replay한 frame이 없음을 뜻하며, 과거 누락/null은 unknown이다. 반환 배열 수정은 내부 계수에 영향을 주지 않는다.
+`replayIndexOperations`는 관측된 연산별 `operation`·`frames`·`applyTicks` 배열이며 최대 9개다. `create`, `metadata`, `resize`, `write`, `write-compacted`, `rename`, `delete`, `skip-write`, `skip-range`만 허용한다. 합계는 각각 `replayFrames`와 `replayIndexTicks`에 대응하고 현재 provider의 신규 쓰기는 포함하지 않는다. `skip-range`도 한 frame이므로 frame 수는 durable sequence 증가량과 다를 수 있다. 현재 provider의 빈 배열은 replay한 frame이 없음을 뜻한다.  반환 배열 수정은 내부 계수에 영향을 주지 않는다.
 
-`replayWriteRangeIndex`는 재생 중 일반 `write` frame이 범위 index를 교체한 횟수(`replaceCalls`), 교체 직전 extent 수의 누적값/최댓값(`priorExtents`/`maxPriorExtents`), 탐색 방문/목록 이동 extent 수(`visitedExtents`/`copiedExtents`), 범위 탐색과 교체 시간(`locateAndReplaceTicks`), 정렬 시간(`sortTicks`)을 집계한다. 한 frame에 여러 fragment가 있는 `write-compacted`는 이 계수에서 제외하고 `replayIndexOperations`에 별도로 남긴다. `priorExtentBuckets`의 고정 6칸은 0, 1~8, 9~64, 65~512, 513~4096, 4097개 이상이다. 경로명·파일별 목록은 노출하지 않으며 새 provider의 현재 쓰기는 포함하지 않는다. 전체 `write` 비용에는 frame 자체와 다른 index 적용도 있어 위 시간의 합과 같지 않다. 현재 정렬된 국소 교체 구현의 `sortTicks`는 0이다. 이전 기록에서 이 객체가 누락되거나 null이면 unknown이며 0으로 소급하지 않는다.
+`replayWriteRangeIndex`는 재생 중 일반 `write` frame이 범위 index를 교체한 횟수(`replaceCalls`), 교체 직전 extent 수의 누적값/최댓값(`priorExtents`/`maxPriorExtents`), 탐색 방문/목록 이동 extent 수(`visitedExtents`/`copiedExtents`), 범위 탐색과 교체 시간(`locateAndReplaceTicks`), 정렬 시간(`sortTicks`)을 집계한다. 한 frame에 여러 fragment가 있는 `write-compacted`는 이 계수에서 제외하고 `replayIndexOperations`에 별도로 남긴다. `priorExtentBuckets`의 고정 6칸은 0, 1~8, 9~64, 65~512, 513~4096, 4097개 이상이다. 경로명·파일별 목록은 노출하지 않으며 새 provider의 현재 쓰기는 포함하지 않는다. 전체 `write` 비용에는 frame 자체와 다른 index 적용도 있어 위 시간의 합과 같지 않다. 현재 정렬된 국소 교체 구현의 `sortTicks`는 0이다.
 
 rename의 index 적용은 기존의 경로·whiteout 순회를 유지하며 같은 하위 경로 접두사를 rename당 한 번 만들어 재사용한다. 범위 index·저널 형식·지속 cache를 추가하지 않는다. [Offline probe](replay-profiling.md)로 합성 비용을 구분하며, 그 결과를 실제 Unity 준비 시간에 곧바로 적용하지 않는다.
 
-일반 `Read`는 정렬되고 겹치지 않는 extent에서 끝이 요청 offset보다 큰 첫 항목을 이진 탐색하고, 요청 끝에 도달하면 순회를 멈춘다. 빈 읽기·EOF는 탐색하지 않는다. base hole과 truncate 후 zero-fill은 기존 계약을 유지한다. `storage.metrics.readRangeIndex`는 현재 provider의 `readCalls`, 이진 탐색 비교 수 `searchProbes`, 순회한 항목 수 `visitedExtents`를 집계한다. 마지막 종료 조건을 확인한 항목도 방문 수에 포함하며 읽은 바이트 수나 실제 디스크 I/O가 아니다. 이전 누락/null은 unknown이다. 내용·재연결과 범위 탐색량 검증은 [검토 후 결함 수정](verification/code-quality-review-fixes.md)을 따른다.
+일반 `Read`는 정렬되고 겹치지 않는 extent에서 끝이 요청 offset보다 큰 첫 항목을 이진 탐색하고, 요청 끝에 도달하면 순회를 멈춘다. 빈 읽기·EOF는 탐색하지 않는다. base hole과 truncate 후 zero-fill은 기존 계약을 유지한다. `storage.metrics.readRangeIndex`는 현재 provider의 `readCalls`, 이진 탐색 비교 수 `searchProbes`, 순회한 항목 수 `visitedExtents`를 집계한다. 마지막 종료 조건을 확인한 항목도 방문 수에 포함하며 읽은 바이트 수나 실제 디스크 I/O가 아니다.  내용·재연결과 범위 탐색량 검증은 [검토 후 결함 수정](verification/README.md)을 따른다.
 
 ## Live write 비용
 
@@ -73,7 +75,7 @@ rename의 index 적용은 기존의 경로·whiteout 순회를 유지하며 같�
 
 연산별 `prepareTicks/appendTicks/flushTicks/applyTicks/totalTicks`는 입장 검사·직렬화·checksum, journal append, durable flush, index 적용, 전체 commit 호출의 누적 시간이다. `payloadBytes/journalBytes`는 durable commit의 기록량이고 `flushCalls`는 해당 commit의 flush 시도 수다. 명시적 Flush나 incomplete tail 복구 flush는 전체 flush 계수에만 들어간다. `waitingMutationsAtFlushStart/End`의 고정 5칸은 다른 mutation 대기 호출 0, 1, 2~3, 4~7, 8개 이상이며 `maxWaitingMutations`는 이 두 시점 표본의 최댓값이다. no-op/거부될 호출을 포함할 수 있고 gate 밖의 OS/WinFsp 대기는 측정하지 않는다. 묶을 수 있는 transaction 수나 실현 가능한 절감률을 뜻하지 않는다.
 
-관측은 같은 epoch의 차이로 비교하며 배열을 바꿔도 내부 계수는 변하지 않는다. 이전 누락/null은 unknown이다. 호출별 대기 시간은 겹칠 수 있어 벽시계와 합산하지 않는다. 현재 durable flush 정책은 동일하며 개발용 합성 실행은 [WriteProbe](write-profiling.md)를 따른다.
+관측은 같은 epoch의 차이로 비교하며 배열을 바꿔도 내부 계수는 변하지 않는다.  호출별 대기 시간은 겹칠 수 있어 벽시계와 합산하지 않는다. 현재 durable flush 정책은 동일하며 개발용 합성 실행은 [WriteProbe](write-profiling.md)를 따른다.
 
 Windows 어댑터의 `WinFspOverlayFileSystem.mutationGate`는 변경 callback 전체를 먼저 직렬화한다. Runtime의 0 대기 표본은 그 바깥의 callback/OS queue가 비었다는 증거가 아니다. append offset·constrained I/O·resize 등의 복합 검사가 이 잠금 안에 있으므로, flush 묶음을 검토할 때는 해당 원자성 경계도 별도로 다뤄야 한다.
 

@@ -1,8 +1,9 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$RunDirectory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'snapshot-overlay-request.ps1')
 $faultRoot=[IO.Path]::GetFullPath($RunDirectory)
-$snapshot=(Get-Content -LiteralPath (Join-Path $faultRoot 'snapshot-t1/snapshot.json') -Raw | ConvertFrom-Json).snapshot
+$snapshotReceipt=Join-Path $faultRoot 'snapshot-t1/snapshot.json'
 $invoke=Join-Path $PSScriptRoot 'invoke-snapshot-spike.ps1'
 function Call-Overlay([string]$RequestPath,[string]$Action) {
     $output=& $invoke -OverlayRequestPath $RequestPath -Action $Action
@@ -13,8 +14,9 @@ function Call-Overlay([string]$RequestPath,[string]$Action) {
 function Make-Overlay([string]$Name,[long]$Limit) {
     $control=Join-Path $faultRoot ('control-' + $Name); $requestPath=Join-Path $control 'request.json'
     if (Test-Path -LiteralPath $requestPath) { throw ('FaultTestAlreadyPrepared: ' + $requestPath) }
+    $request=New-SnapshotOverlayRequest -SnapshotReceipt $snapshotReceipt -Identity @{version=1;id=('so-' + $Name);maxJournalBytes=$Limit;maxTransferBytes=65536} -DeltaPath (Join-Path $faultRoot ('delta-' + $Name)) -MountPath (Join-Path $faultRoot ('mount-' + $Name)) -ControlPath $control
     New-Item -ItemType Directory -Path $control | Out-Null
-    [ordered]@{identity=[ordered]@{version=1;id=('so-' + $Name);snapshot=$snapshot;maxJournalBytes=$Limit;maxTransferBytes=65536};deltaPath=(Join-Path $faultRoot ('delta-' + $Name));mountPath=(Join-Path $faultRoot ('mount-' + $Name));controlPath=$control;token=[Guid]::NewGuid().ToString('N')} | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $requestPath -Encoding utf8
+    $request | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $requestPath -Encoding utf8
     return $requestPath
 }
 function Save([string]$Name,$Value) { $Value | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $faultRoot ($Name + '.json')) -Encoding utf8 }

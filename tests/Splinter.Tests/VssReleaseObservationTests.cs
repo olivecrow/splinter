@@ -8,7 +8,7 @@ public sealed class VssReleaseObservationTests
 {
     [Theory]
     [InlineData("valid", false, "SnapshotMissing")]
-    [InlineData("legacy", null, "SnapshotObservationUnknown")]
+    [InlineData("missing-boot", null, "SnapshotObservationUnknown")]
     [InlineData("old-boot", null, "SnapshotObservationUnknown")]
     [InlineData("unknown-boot", null, "SnapshotObservationUnknown")]
     [InlineData("wrong-owner", null, "SnapshotObservationUnknown")]
@@ -29,7 +29,7 @@ public sealed class VssReleaseObservationTests
             snapshot = scenario == "wrong-snapshot" ? snapshot with { Id = "another-id" } : snapshot,
             available = scenario == "still-present",
             released = true,
-            bootTimeUtc = scenario == "legacy" ? (DateTimeOffset?)null : scenario == "old-boot" ? boot.AddDays(-1) : boot
+            bootTimeUtc = scenario == "missing-boot" ? (DateTimeOffset?)null : scenario == "old-boot" ? boot.AddDays(-1) : boot
         }, Json));
         var provider = new VssSnapshotProvider(d.Path, "owner", s => new(s.Id, null, "SnapshotObservationUnknown", null, null),
             _ => Task.FromResult(scenario == "unknown-boot" ? (DateTimeOffset?)null : boot));
@@ -59,6 +59,7 @@ public sealed class VssReleaseObservationTests
     private static void WriteReceipt(string path, SnapshotReference snapshot, string scenario) =>
         File.WriteAllText(Path.Combine(path, "snapshot.json"), JsonSerializer.Serialize(new
         {
+            version = 2, captureIdentity = VssLiveIdentityTests.Capture,
             ownerId = scenario == "wrong-receipt-owner" ? "other-owner" : "owner", snapshot,
             nativeProviderId = scenario == "wrong-provider" ? "another-provider" : "{B5946137-7B9F-4925-AF80-51ABD60B20D5}",
             noAutoRelease = true, released = scenario != "not-released"

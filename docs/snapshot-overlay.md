@@ -6,7 +6,7 @@
 
 `candidate-export`와 `overlay-serve-request.validationView`의 불변 후보·분리된 source/cache 저널은 [고정 검증 view 계약](validation-view.md)을 따른다. 정상 Editor 종료·provider 종료 뒤 같은 경로에서 후보를 바꾸는 개발용 실험이며 제품 workspace 모드로 표시하지 않는다. 정의한 A/B/A와 생성·재개·전환 비용의 실행 증거는 [VC 기록](verification/immutable-validation-view.md)에 분리한다.
 
-공유 VSS helper는 같은 볼륨에 다른 오래된/동일 시각/시각 불명 snapshot이 있으면 `SnapshotReleaseIsolationRequired`로 해제를 차단하고 `release-isolation.json`을 남긴다. 정확한 ID만 삭제해도 다른 snapshot이 소실된 [실제 실패](verification/storage-foundation.md)가 있으므로 기존 snapshot을 삭제해 차단을 우회하지 않는다. 현재 guard의 검증은 fake CIM 자동 시험이며 격리 볼륨에서 실제 비소유 ID 보존·회수를 다시 확인해야 한다. 새 소스 변경 세대·저널 I/O 계수는 [공통 소스 검증과 계측](source-verification.md)을 따른다.
+공유 VSS helper는 같은 볼륨에 다른 오래된/동일 시각/시각 불명 snapshot이 있으면 `SnapshotReleaseIsolationRequired`로 해제를 차단하고 `release-isolation.json`을 남긴다. 정확한 ID만 삭제해도 다른 snapshot이 소실된 [실제 실패](verification/storage-foundation.md)가 있으므로 기존 snapshot을 삭제해 차단을 우회하지 않는다. 현재 guard는 [격리된 소유 snapshot](verification/storage-recovery.md)에서 검증했다. 일반 비소유 백업 공존·외부 동시 삭제의 보존 보장은 미완료다. 새 소스 변경 세대·저널 I/O 계수는 [공통 소스 검증과 계측](source-verification.md)을 따른다.
 
 | 구성 | 현재 책임 |
 | --- | --- |
@@ -85,3 +85,7 @@ journal 한도는 maxJournalBytes, node 250,000개, extent 1,000,000개, whiteou
 initialPayloadCopiedBytes, journalBytes, payloadBytes, metadataBytes, readBytes, readCacheBytes는 엔진 계수다. measure-overlay-journal.py는 실제 요청 경로별 Library/Temp/Logs 등의 승인 쓰기를 집계한다. 실제 file-data allocation은 FILE_STANDARD_INFO.AllocationSize다. MFT·디렉터리 전체 비용은 포함하지 않으며 볼륨 free space·VSS 사용/할당량도 함께 본다. 공유 OS cache를 작업별 영구 복제나 소유 프로세스 메모리로 계산하지 않는다.
 
 ADS, hardlink identity, reparse/EFS/압축/희소, 개별 ACL 변경, 일반 dirty/LFS checkpoint, 전원 손실, 재부팅 후 snapshot identity 검증은 미지원 또는 미검증이다. reparse/EFS/압축/희소 속성은 기준 읽기와 create/overwrite/속성 callback에서 변경 전에 거부한다. callback 자동 시험은 실제 mount의 전체 파일 API 지원 증거가 아니다. host 물리 디스크 고갈은 하지 않았고 quota로 Windows disk-full 112를 검증했다. snapshot은 프로젝트 밖 쓰기와 기존 복원 지점 비용도 포함한다. 이 실험은 보안 sandbox가 아니다.
+
+## 개발 요청의 필수 증거
+
+`prepare-snapshot-overlay-test.ps1`, `test-snapshot-overlay-faults.ps1`, `test-snapshot-overlay-compatibility.ps1`은 `scripts/snapshot-overlay-request.ps1`의 공통 생성 함수를 사용한다. 현재 v2 capture receipt와 같은 요청의 live observation으로 `readAccess`, `snapshotReceiptDirectory`, `snapshotOwnerId`를 모두 채운다. mount는 제품과 같은 VSS identity·현재 boot·소유권 검증을 수행하며 경로 존재 확인만으로 우회하지 않는다. 새 조회가 필요하면 정확한 receipt의 `vss-snapshot.ps1 -Action Observe` 절차를 먼저 수행한다. 요청 생성은 capture·mount·원본 변경을 수행하지 않는다.

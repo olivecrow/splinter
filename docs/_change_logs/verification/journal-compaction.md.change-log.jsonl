@@ -1,1 +1,0 @@
-{"date":"2026-09-26","doc":"verification/journal-compaction.md","change_type":"added","summary":"Record automatic and isolated NTFS Unity compaction evidence","intent":"Keep current contracts, scope and execution evidence aligned","related_files":["src/Splinter.Runtime/JournalDeltaCompaction.cs"]}

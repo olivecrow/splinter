@@ -16,8 +16,6 @@ public static class WinFspOverlayClient
     }
     internal static async Task<SnapshotObservation> ObserveSnapshotAsync(OverlayServeRequest request, CancellationToken ct = default)
     {
-        if (request.SnapshotReceiptDirectory is null && request.SnapshotOwnerId is null && request.ReadAccess is null)
-            return SnapshotAvailabilityProbe.Observe(request.Identity.Snapshot); // Separate legacy experiment contract.
         if (request.ReadAccess is null || request.SnapshotReceiptDirectory is null || request.SnapshotOwnerId is null)
             return new(request.Identity.Snapshot.Id, null, "SnapshotVerificationRequired", null, null);
         request.ReadAccess.RequireMatch(request.Identity.Snapshot);

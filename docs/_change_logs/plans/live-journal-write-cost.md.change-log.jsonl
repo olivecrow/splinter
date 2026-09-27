@@ -1,1 +1,0 @@
-{"date":"2026-09-27","doc":"plans/live-journal-write-cost.md","change_type":"added","summary":"JW-01~04 계측·고정 합성·작은 Unity·독립 결과/회수 범위와 판정 확정","intent":"개별 acknowledged write 내구성을 유지하며 후속 group flush 판단을 제한","related_files":["docs/verification/live-journal-write-cost.md","docs/plans/storage-priority-and-editor-modes.md"]}

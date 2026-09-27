@@ -101,4 +101,4 @@ B의 첫 release는 `OverlayFlushUncertain`으로 실패했다. provider의 `Una
 
 기준 합성·변경 합성·최종 초기 비용·Unity A/B의 5개 workspace는 모두 released이며 독립 ref는 읽을 수 있다. 제품 영수증에서 소유 프로세스/메모리/핸들 0, mount·delta·소유 snapshot 부재를 확인했다. [OS 종료 확인](../../artifacts/storage-foundation/sf-20260925/process-closeout.json)은 소유 Editor/provider 및 계측 helper의 종료를 확인한다. 두 시험 원본은 clean이고 worktree 등록은 원본 하나씩이다. 형제 canonical Unity 저장소도 변경하지 않았다. **이 소유 자원 회수 성공과 기존 비소유 VSS 보존 실패는 별개 판정이다.**
 
-현재 계약은 [변경 기반 소스 검증](../source-verification.md), 남은 범위는 [공통 저장소 1차](../plans/storage-foundation-first-milestone.md)와 [NR 지원 관문](../plans/ntfs-recovery-and-support.md)을 따른다.
+현재 계약은 [변경 기반 소스 검증](../source-verification.md), 남은 범위는 [공통 저장소 1차](../plans/storage-priority-and-editor-modes.md)와 [NR 지원 관문](../plans/ntfs-recovery-and-support.md)을 따른다.

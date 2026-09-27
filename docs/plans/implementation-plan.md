@@ -1,58 +1,8 @@
-# Splinter 기반 구현 계획
+# Splinter 목표 구조와 구현 계획
 
-[JW-01~04](live-journal-write-cost.md)는 WI 다음의 SF-02 계측 하위 범위이며 [실행 기록](../verification/live-journal-write-cost.md)을 `scoped-complete-with-limitations`로 마감했다. 고정 합성 18회와 새 작은 Unity에서 연산별 live commit·flush·mutation 대기, 독립 결과·원본 보존·소유 자원 회수·VHD 분리 뒤 결과를 확인했다. Windows callback이 먼저 직렬화되므로 Runtime 단독 group flush 구현은 선정하지 않았다. callback 원자성·대기/완료 경계와 acknowledged write 내구성 정책 검토는 별도 범위로 유지한다.
+제품 요구사항은 [plan.html](../../plan.html), 현재 구현은 [foundation](../foundation.md)에서 확인한다. 이 문서는 목표 구조와 남은 작업이며 아래 제안 API·Host·DB·단계를 모두 구현된 기능으로 해석하지 않는다.
 
-[BQ-01~05 중첩량 예산의 제품 검증과 반복 저장량 판단](journal-budget-and-growth-qualification.md)을 정의한 작은 범위에서 마쳤다. [실행 기록](../verification/journal-budget-and-growth-qualification.md)은 실제 예산 거부·재시도, 같은 snapshot에서 Unity 수정 3회·독립 결과·원본 보존·회수와 저장량 분해를 연결한다. 이어진 SF-03의 불변 후보·고정 검증 view·단일 Library A/B/A 개발용 범위는 [VC 실행](../verification/immutable-validation-view.md)에서 제한을 포함해 마감했다.
-
-후속 우선순위(2026-09-24): **작업공간 용량 부담 해소가 1순위, Editor 동시 실행이 2순위**다. [저장공간 우선 검토와 SF-01~06](storage-priority-and-editor-modes.md)의 공통 저장소 개선·단일 Editor 순차 검증 후보를 다음 설계 판단에 적용한다. 기본 실행 방식 전환은 미확정이며 아래 기존 구현·실행 증거와 SW/NR 지원 관문을 유지한다. PV 대용량 시험의 자동 재개를 뜻하지 않는다.
-
-[공통 저장소 개선 1차](storage-foundation-first-milestone.md)의 파일 단위 검증과 계측을 구현했다. SF-01의 정의한 소스 검증은 Passed, SF-02는 계측·명시적 저널 정리 하위 범위만 Partial이다. SF-03의 VC/VR 개발용 하위 범위는 제한을 포함해 마감했고 전체 SF-03은 Partial, SF-04~06은 NotRun이다. [공통 저장소 1차 실행](../verification/storage-foundation.md)에서 기존 VSS 보존 실패가 발생해 해당 단위는 FailedPreservation이다. [후속 재현·수정](../verification/storage-recovery.md)에서 제어 JSON 게시 충돌 수정과 격리된 소유 snapshot의 실제 삭제 차단·순차 회수를 확인했다. 일반 비소유 백업 공존은 미검증이다. [지연 회수 1차](deferred-snapshot-reclamation.md)의 대기 상태·명시적 재시도·공유 공간 관측을 연결했고 [정의한 검증](../verification/deferred-snapshot-reclamation.md)을 따른다. [SF-02 명시적 저널 정리](journal-compaction-first-milestone.md)의 제품 명령과 제한된 중단 재개·할당 회수는 [실행 기록](../verification/journal-compaction.md)을 따른다. [작은 Unity·전체 공간 비용 검증](../verification/journal-compaction-qualification-and-cost.md)은 실제 재개·로드 코드와 단계별 비용을 확인했으나 공간 장부 일부는 unknown이고 두 세대 겹침의 최고 공간이 컸다. [선택적 예상 저널 중첩량 예산](journal-compaction-peak-admission.md)은 정의한 자동 시험에서 후보 작성 전 거부·명시적 재시도를 확인했으며 후속 BQ에서 정의한 실제 제품 VSS/Unity 경로를 운영 재시도와 함께 검증했다. flush 정책 변경·단일 Editor 연결은 별도 후속 작업이다.
-
-현재 내부 알파 runtime은 [알파 작업공간](../alpha-workspaces.md)과 [저장소·자원 관리](../storage-and-resources.md)의 기준본/CoW/Unity 흐름을 구현한다. 일반 checkout의 두 작업자 증거는 [알파 검증](../verification/internal-alpha.md), ReFS와 프로세스 회수의 실제 범위는 [자원 검증](../verification/storage-and-resources.md)에 기록한다. daemon/SQLite Host와 공개 단계 전체 완료로 해석하지 않는다.
-
-갱신일: 2026-09-23. 상태: **NTFS workspace 1차 내부 알파 NI-01~08 완료, 2차 NR-01/03/05/07 부분 구현·자동 검증, 원격 VSS 회수 복구·파일 API 거부 5건·NR-08 ARM Windows/x64 Unity 단일 회귀 및 회수 확인, 공개 목표 미완료**. 기준: [기획서 개정 5판](../../plan.html). 실제 실행 범위는 [현재 기반](../foundation.md), 제품 NTFS 실행 수치·장애·회수는 [NI 검증](../verification/ntfs-workspace-integration.md), 독립 실험은 [SO 검증](../verification/snapshot-overlay.md)을 따른다. 아래 전체 구조·상태·명령 목록을 이미 구현된 제품 API로 해석하지 않는다.
-
-## 1. 설계 결론과 첫 완료 지점
-
-Splinter를 **AI 에이전트가 독립 작업공간과 제한된 실행 자원을 사용하는 로컬 실행 기반**으로 만든다. 각 대화의 에이전트가 작업 내용과 검증 조건을 정하고 필요할 때 자기 작업공간을 직접 사용한다. 프로그램은 지속 상태·소유권·실행·관찰·복구·원본 반영·회수를 책임진다. 프로젝트용/전역용 설치, 사용 판단, 대화 연결과 명시적 완료·폐기의 상세 기준은 [대화별 작업과 설치 계획](session-workflow-and-installation.md)을 따른다.
-
-기획서의 기존 Windows/NTFS + 시작 시점 스냅샷·변경분 저장 + Git + Unity 첫 지원 조합, 실제 linked worktree와 CoW 루트의 일치, CLI 중심 운영을 유지한다. 범용성은 서로 다른 공급자를 연결하는 작은 계약과 적합성 시험으로 확보한다. 다른 OS·엔진 구현은 첫 릴리스에 포함하지 않는다.
-
-첫 개발 목표는 전체 기능을 수평으로 구현하는 것이 아니라 다음 흐름을 작은 fixture에서 끝까지 연결하는 것이다.
-
-> 프로젝트용 또는 전역용 설치·Codex 스킬/플러그인 연결 → 각 대화에서 명시적 병렬 요청 또는 점유 관측에 따라 작업공간 확보 → 여러 차례 수정·검증·재개 → 사용자의 A 완료 요청에 원본 반영·A 회수 → B는 계속 작업 → B의 완료 또는 반영 없는 명시적 폐기. 독립 실행이 필요 없으면 기존 프로젝트에서 직접 작업한다.
-
-[독립 대화 A/B·비용 검증](parallel-workflow-qualification.md)의 사용자 선택 범위는 마감했다. PV-01 대표 fixture의 복구 포함 완료와 PV-02의 실패·입력·표본 제한을 유지한다. VSS 보존 후속은 정의한 소유 격리 범위에서 검증했고 공통 저장소 1차의 기존 FailedPreservation은 유지한다. [Unity 로드 관문·전체 공간 비용](../verification/journal-compaction-qualification-and-cost.md)은 정의한 작은 fixture에서 실행했고 공간 장부 일부 unknown과 재증가를 확인했다. [PB 예산](../verification/journal-compaction-peak-admission.md)의 자동 범위에 이어 BQ-01~05에서 제품 경로와 반복 저장량을 확인했다. SF-03의 VC/VR 개발용 범위와 후속 RI/RU는 각각 제한을 포함해 마감했다. [WI 실행](../verification/cumulative-write-range-index.md)은 누적 write index의 한정 개선과 새 작은 Unity 동일 저널 비교를 제한을 포함해 마감했다. flush 정책은 별도 후속이다. 설치·대화 연결·명시적 폐기, 지원 확대의 NR 관문과 에셋 저작·실제 Play·테스트·미커밋 원본·통합 후보 검증은 후속 범위다. 별도 조정 AI·Codex Runner·DAG·상주 DB는 첫 공개 사용 흐름의 필수 구성 요소가 아니다. **공개 v0의 완료 범위는 기획서의 전체 필수 루프와 48개 시나리오**다. 내부 알파를 공개 v0로 간주하지 않는다.
-
-### 현재 확인한 것
-
-- 제품과 형제 `../splinter-unity`를 별도 Git 저장소로 관리한다. Unity fixture는 submodule이 아니며 Assets·Packages·ProjectSettings를 추적하고 캐시는 제외한다.
-- SDK `10.0.112` 및 패키지 버전·lock 파일을 고정했다. 8개 제품 프로젝트와 시험 프로젝트를 `Splinter.slnx`에서 빌드한다.
-- `capabilities`, `schema`, 읽기 전용 `doctor`, `plan validate`와 9개 workspace/Unity 명령을 구현했다. 읽기 전용 Host와 별도의 Runtime을 CLI에서 조합한다. Runtime은 atomic JSON과 작업/저장소 잠금을 사용하고 Unity에는 작업별 파일 IPC로 요청한다. 지속 daemon/SQLite는 미구현이다.
-- 실제 fixture는 Unity `6000.3.22f1`, URP `17.3.0`, UTF `1.6.0`이다. 두 독립 GUI Editor의 동시 실행·컴파일 격리·재시작을 검증했다. Play와 Unity Test Framework 시험은 실행하지 않았다.
-- 설치된 Codex의 `exec --help`에서 `--cd`, `--json`, `--output-schema`, `--sandbox`와 세션 재개 명령을 확인했다. 실제 알파에서는 외부 조정자의 Luna low 하위 작업자가 CLI를 사용했다. 제품의 Codex runner 실행·인증·세션 재접속은 미구현이다.
-- ReFS 어댑터·예열 기준본·작업별 Windows 프로세스 감시를 추가했다. `storage probe`, `baseline prepare/seal/release`를 포함한 기존 알파 17개 명령과 별도 NTFS 실험 명령 `snapshot-spike`가 있다. 실제 ReFS 지원은 자원 검증의 SR 항목에 한정하며, 공개 설치·자동 발견성과 대형 프로젝트 지원은 미완료다.
-- 새 소스 커밋의 기준본은 동일 `Packages`·`ProjectSettings` snapshot과 앱 호환 키의 캐시에서 CoW로 시작하고, Git의 변경 소스만 갱신한다. 호환 캐시가 없을 때만 cold 준비를 사용한다. 원본의 실행 중인 Library는 복사하지 않는다.
-- 기존 Unity 협업 기록의 작성자 소유권·리로드·검증 경계 경험은 실패 시나리오 설계에만 참고한다. 그 프로젝트의 단일 Editor 운영 규칙을 이 제품의 여러 독립 Editor 구조에 적용하지 않는다.
-- 별도 `snapshot-spike`에서 VSS 불변 기준·WinFsp 범위 저널·실제 no-checkout Git/Unity를 연결하고 SO-01~06 fixture 증거를 확보했다. 최초 payload·읽기 hydration 0, 큰 파일 4KiB 쓰기, 원본/A/B 코드 실행, 같은 기준 재연결, 독립 결과와 소유 자원 회수를 검증했다.
-- 일반 `workspace ensure --storage ntfs-snapshot`으로 최초 payload/hydration 0, 범위 쓰기, 원본/A/B 컴파일·loaded-code, 같은 기준 재연결, 독립 결과·quota·snapshot 소실 보호를 검증했다. 앱/provider·mount·Git 등록·delta·소유 VSS를 모두 회수했고 독립 결과와 기존 복원 지점은 보존했다. 실제 dirty 원본 통합 요청은 GitDirtyWorktree로 거부됐고 원본 HEAD·인덱스·변경 내용과 독립 결과를 보존했다.
-- NR 복구 행동·상태 보존·저널 의미 검증·미지원 속성의 변경 전 거부와 마지막 VSS release 재개를 구현했다. fake 불변 트리의 자식 프로세스 강제 종료 3회, 실제 WinFsp mount의 API 거부 5건, 실제 VSS 읽기·회수 재개를 확인했다. ARM Windows의 기존 x64 Unity 단일 workspace는 기본/변경 코드 검증 2건과 독립 결과·released·소유 자원 0을 확인했다. NR 전체 완료와 구분한다.
-- 이전 NR 후보의 로컬·VIVOBOOK 자동 검증은 각각 140개 중 139 통과·0 실패·선택적 ReFS 1개 skip이다. 이후 LV와 이번 수정 후보의 증거는 각각 [LV 기록](../verification/ntfs-live-vss-identity.md), [검토 후 수정 검증](../verification/workspace-review-fixes.md)에 분리한다. 재부팅·전원 손실·물리 볼륨 고갈, 긴 Unity 패키지 경로·일반 dirty/LFS·에셋/패키지·Play/Unity 테스트는 별도 남은 조건이다. 공개 48개 시나리오 전체 완료로 집계하지 않는다.
-
-### 다음 구현 우선순위
-
-BQ·VC·VR·RI·RU와 [WI-01~05 누적 write 범위 index](../verification/cumulative-write-range-index.md)의 정의한 작은 범위는 각각의 제한을 유지해 마감했다. 용량 장부와 재개 시간을 함께 보고, 전체 SF-02/03 완료나 대형 PV 재개로 확대하지 않는다. 아래 NR/SW와 공개 기능 순서는 지원 확대 로드맵으로 유지한다.
-
-[NTFS workspace 1차 통합 범위](ntfs-workspace-integration.md)의 NI-01~08은 내부 알파 fixture 범위에서 완료했다. 실제 회수·released key 재호출·dirty 원본 통합 차단을 회귀 기준으로 유지한다. 종료된 NI/SO 자원이나 결과를 임의로 재생성·삭제하지 않는다. 현재 상위 구현 계획은 [NTFS 내부 알파 2차](ntfs-recovery-and-support.md)의 NR-01~08이며 [NR 기록](../verification/ntfs-recovery.md)에 공통 복구 계약의 부분 구현과 원격 VSS·파일 API·단일 Unity 회귀 증거를 기록했다. 이번 원격 시험 세션은 종료했고 프로젝트·독립 결과·원시 증거는 후속 시험용으로 보존한다.
-
-1. **LV 완료 이후:** [live VSS 식별과 재개](ntfs-live-vss-identity.md)의 캡처/live identity·현재 읽기 경로 분리·비관리자 재개·legacy 보존과 LV-01~08 검증을 완료했다. [새 후보 기록](../verification/ntfs-live-vss-identity.md)은 자동 180 통과·실제 VSS/Git 재연결·단일 Unity 검증 3건·독립 결과·회수를 포함한다. **지원 확대 전에 남은 NR 범위:** 나머지 외부 부작용 중단·파일 지원/거부 → 격리 Windows의 재부팅·물리 공간 고갈·강제 전원 종료 → ARM A/B·실제 재부팅 후 Unity 최종 회귀다. 이전 VIVOBOOK 후보의 증거를 새 후보로 승계하지 않는다. 물리 공간 고갈용 격리 볼륨은 아직 준비하지 않았다.
-2. **독립 대화의 작업·비용 증거:** [PV-01/02](ntfs-recovery-and-support.md#제한된-병렬-작업과-비용-관문)의 별도 조정 AI 없는 실제 대화 A/B의 여러 차례 스크립트 수정·실패 격리·재접속·A 선행 통합/회수와 B 지속 작업, 단계별 읽기/시간/저장량을 NR 전체 완료 전에 관측했다. PV-01 대표 fixture 수명주기는 복구·운영 개입을 포함해 완료했고 PV-02 사용자 선택 범위는 `scoped-complete-with-limitations`로 마감했다. S4 `FailedInputQualification`·소수 표본·과거 전체 팩 raw 동등성 unknown을 유지하며 PV-02 전체 Passed로 올리지 않는다. 실제 Codex worktree C, NTFS S와 Coordination 단일 Editor Q의 관측·실패·제한은 [실행 기록](../verification/parallel-workflow.md)을 따른다. 결과 보존 결함을 먼저 고치고, NR은 지원 확대의 필수 관문으로 유지한다. 선택적 ReFS 확장과 daemon/SQLite 도입은 이 검증의 선행 과제로 두지 않는다.
-3. **설치·대화 연결·종료 계약:** [SW-01~10](session-workflow-and-installation.md#사용-흐름-검증-sw-0110)의 프로젝트용/전역용 설치, 명시/암묵 사용과 불필요 시 미사용, 현재 대화의 경로·권한 연결, 반영/보존/폐기를 구현·검증한다. 아직 없는 폐기는 구현 후 시험하며 현재 release의 보존 규칙을 약화하지 않는다.
-4. **일반 Unity 단위:** 자체 제작 에셋과 로컬 시험 패키지로 compile/import·저장/재개방·실제 Play·EditMode/PlayMode 테스트·결과/회수를 연결한다. 전체 fingerprint·loaded-code·실행 세대와 실패/0개 선택/취소/stale 증거를 구분한다. 구매 에셋은 필요하지 않다.
-5. **Git 입력·통합과 성능 확대:** dirty/LFS·linked-worktree 입력, clean 통합·충돌·최신 통합 후보 재검증을 별도 범위로 닫는다. PV-02의 대표 모델·텍스처 프로필 밖의 실사용 프로젝트·에셋은 필요한 종류·규모를 정해 요청하고 초기 import·metadata·전체 Git 읽기·누적 저널 비용을 측정해 개선한다.
-6. **공개 운영:** 요청 범위의 설치·업데이트·제거, 대화 연결·공유 자원 제어와 위 Unity/통합·폐기 검증을 공개 제품 루프로 연결한다. Runner·DAG는 선택적 확장이고 상주 Host/DB는 측정된 운영 필요가 있을 때 별도 결정한다. 공개 48개 완료는 별도이며 상세 기준은 기획서 15절과 [NTFS 통합 조건](ntfs-snapshot-overlay-spike.md)을 따른다.
-
-PV-01/02의 [확정 범위](parallel-workflow-qualification.md)는 현재 checkpoint가 최종 결과 수집이라는 제한과 사전 통합 후보 검증의 미구현을 반영한다. 실행 준비 → 여러 차례 편집/재개 → A 선행 완료와 B 지속 → 단계별 비용/회수 보고 순서는 [실행 기록](../verification/parallel-workflow.md)에 보존했고 사용자 선택 범위는 `scoped-complete-with-limitations`로 마감했다. 실제 Codex 기본 worktree와 Splinter의 관측한 새 작업/재개·지정 에셋 재임포트·Library 비용을 구분한다. PV-02 전체 Passed로 올리지 않으며 S4 입력 실패·소수 표본·과거 전체 팩 raw 동등성 unknown을 유지한다. 필요한 계측·결함 수정과 대표 프로필에서 실제 수행한 시험의 증거이며 범용 에셋 지원 완료로 확대하지 않는다.
+현재 우선순위는 [저장공간·준비·재개 비용](storage-priority-and-editor-modes.md), [NR 지원 관문](ntfs-recovery-and-support.md), [설치·대화 연결·폐기](session-workflow-and-installation.md), [권한 서비스](storage-privilege-service.md)다. 내부 알파 성공은 전체 필수 48개 공개 시나리오의 완료가 아니다.
 
 ## 2. AI 사용성을 먼저 고정한다
 
@@ -323,7 +273,7 @@ splinter workspace release --id <workspace-id> --home <shared-home>
 
 ## 7. Git과 스냅샷·변경분 작업공간
 
-필수 저장 계약과 다음 구현의 상세 기준은 [NTFS 스냅샷·변경분 검증 계획](ntfs-snapshot-overlay-spike.md)이다. 원본은 기존 NTFS 위치에서 계속 수정할 수 있고 각 작업은 시작 시점의 불변 스냅샷을 참조한다. 전체 기준본 준비와 작업 기간의 원본 쓰기 차단은 정상 경로가 아니다.
+필수 저장 계약과 다음 구현의 상세 기준은 [NTFS 스냅샷·변경분 검증 계획](../snapshot-overlay.md)이다. 원본은 기존 NTFS 위치에서 계속 수정할 수 있고 각 작업은 시작 시점의 불변 스냅샷을 참조한다. 전체 기준본 준비와 작업 기간의 원본 쓰기 차단은 정상 경로가 아니다.
 
 1. Git root/common directory, 소스 provenance, 앱/패키지/설정 및 스냅샷·파일시스템 공급자 지원을 검사한다.
 2. 일관된 캡처 순간과 snapshot ID를 확보한다. 소스·Library 전체를 별도 전개하거나 필수 cold import하지 않는다.
@@ -467,9 +417,9 @@ F01/F02의 최소 골격은 P0에 만들고 F03~F06은 P1에서 완성한다. F0
 
 ### 내부 알파의 진행 작업: NTFS 스냅샷·변경분 제품 통합
 
-SO-01~06은 [실제 fixture 증거](../verification/snapshot-overlay.md)를 확보했다. [1차 통합](ntfs-workspace-integration.md)의 coordinator·독립 결과·제한된 복구·공간 보호를 코드와 자동 시험에 연결했다. [NI 기록](../verification/ntfs-workspace-integration.md)에서 일반 CLI의 실제 NTFS/Git/Unity·장애 보호와 VSS까지의 회수를 확인했다. 실제 dirty 원본 통합 차단과 원본/결과 보존까지 확인해 이번 NI-01~08 범위를 완료했다. 재부팅과 일반 파일/Unity 지원의 나머지 조건은 [SO 계획](ntfs-snapshot-overlay-spike.md)에 유지한다. 자동 시험·독립 실험 완료를 공개 시나리오 전체 완료로 확대하지 않는다.
+SO-01~06은 [실제 fixture 증거](../verification/snapshot-overlay.md)를 확보했다. [1차 통합](../ntfs-workspaces.md)의 coordinator·독립 결과·제한된 복구·공간 보호를 코드와 자동 시험에 연결했다. [NI 기록](../verification/ntfs-workspace-integration.md)에서 일반 CLI의 실제 NTFS/Git/Unity·장애 보호와 VSS까지의 회수를 확인했다. 실제 dirty 원본 통합 차단과 원본/결과 보존까지 확인해 이번 NI-01~08 범위를 완료했다. 재부팅과 일반 파일/Unity 지원의 나머지 조건은 [SO 계획](../snapshot-overlay.md)에 유지한다. 자동 시험·독립 실험 완료를 공개 시나리오 전체 완료로 확대하지 않는다.
 
-현재 ReFS clone/seal 복구 확장을 먼저 진행하지 않는다. 기존 Job Object·Git no-checkout/index·CLI/Unity 검증 계약을 재사용하고 변경 저장소의 수명에 맞춰 복구를 검증한다. 전체 준비 사본을 만든 뒤 절감률을 측정하는 시험은 SO 통과가 아니다. 기존 56개 시험과 SR 관측의 유효한 범위는 유지한다.
+현재 ReFS clone/seal 복구 확장을 먼저 진행하지 않는다. 기존 Job Object·Git no-checkout/index·CLI/Unity 검증 계약을 재사용하고 변경 저장소의 수명에 맞춰 복구를 검증한다. 전체 준비 사본을 만든 뒤 절감률을 측정하는 시험은 SO 통과가 아니다. 선택적 backend의 검증 범위는 [검증 안내](../verification/README.md)를 따른다.
 ### 향후 병렬 개발의 경계
 
 계약이 고정되면 `Git/Storage`, `Runtime/CLI/대화 연결`, `Unity`를 독립 작업 단위로 나눌 수 있다. 각 작업은 자기 구현·fixture·문서만 소유하고, 공통 schema·Core 상태 변경은 먼저 합의된 변경으로 처리한다. 실제 Unity/스냅샷·마운트 시험 자원은 예약한다.

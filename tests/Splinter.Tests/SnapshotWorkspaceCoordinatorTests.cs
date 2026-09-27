@@ -355,31 +355,24 @@ public sealed class SnapshotWorkspaceCoordinatorTests
     [InlineData(false, "ready")]
     [InlineData(true, "release-unmount")]
     [InlineData(true, "release-delta")]
-    public async Task LegacyCollectionMustBeRevalidatedBeforeAnyReclamation(bool available, string step)
+    public async Task InvalidCollectionProtocolIsRejectedWithoutRecollectionOrReclamation(bool available, string step)
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         string id = (await f.Ensure(ct)).Workspace.Id;
         await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
         var collected = await f.New().CheckpointAsync(id, "result", ct);
-        var state = collected.Workspace.Snapshot!;
-        state.Result = state.Result! with { CollectionProtocol = null };
-        state.Step = step;
-        new WorkspaceStore(f.Home).Save(collected.Workspace, "legacy-fixture");
+        collected.Workspace.Snapshot!.Result = collected.Workspace.Snapshot.Result! with { CollectionProtocol = "unsupported" };
+        collected.Workspace.Snapshot.Step = step;
+        var store = new WorkspaceStore(f.Home);
+        store.Save(collected.Workspace, "invalid-protocol-fixture");
+        string path = Path.Combine(store.ControlPath(id), "workspace.json");
+        byte[] original = File.ReadAllBytes(path);
         f.Backend.Available = available;
-        if (available && step == "ready")
-        {
-            var revalidated = await f.New().CheckpointAsync(id, "legacy retry", ct);
-            Assert.Equal(SnapshotResult.StableJournalProtocol, revalidated.Workspace.Snapshot!.Result!.CollectionProtocol);
-            Assert.Equal("released", (await f.New().ReleaseAsync(id, ct)).Workspace.Phase);
-        }
-        else
-        {
-            Assert.Equal("SnapshotResultRevalidationRequired", (await f.New().StatusAsync(id, ct)).Recovery!.ReasonCode);
-            var failure = await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct));
-            Assert.Equal("SnapshotResultRevalidationRequired", failure.Code);
-            Assert.Equal("requires-user-action", Splinter.Protocol.ApiResponse.Failure("workspace.release", failure.Code, failure.Message).RetryDisposition);
-            Assert.False(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased); Assert.True(f.Backend.Mounted);
-        }
+        Assert.Equal("StateCorrupt", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().StatusAsync(id, ct))).Code);
+        Assert.Equal("StateCorrupt", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CheckpointAsync(id, "retry", ct))).Code);
+        Assert.Equal("StateCorrupt", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
+        Assert.Equal(original, File.ReadAllBytes(path));
+        Assert.False(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased); Assert.True(f.Backend.Mounted);
     }
 
     [Fact]

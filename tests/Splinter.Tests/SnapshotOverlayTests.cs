@@ -344,7 +344,7 @@ public sealed class SnapshotOverlayTests
         byte[] source = RandomNumberGenerator.GetBytes(1024 * 1024), patch = RandomNumberGenerator.GetBytes(4096);
         var locations = new Dictionary<string, byte[]> { [snapshot.RootPath] = source };
         var first = new FakeSnapshotTree { Snapshot = snapshot };
-        first.Files["file"] = locations[VssSnapshotTree.ResolveReadRoot(snapshot, null)];
+        first.Files["file"] = locations[VssSnapshotTree.ResolveReadRoot(snapshot, new(snapshot.Id, snapshot.RootPath, "initial"))];
         long sequence;
         using (var store = New(d, first))
         {

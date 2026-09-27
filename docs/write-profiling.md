@@ -1,6 +1,6 @@
 # Live journal 쓰기 계측
 
-`tools/Splinter.WriteProbe`는 Runtime의 고정 작은 합성 쓰기 비용을 비교하는 개발용 도구다. 제품 workspace·VSS·Unity를 만들지 않으며 범위는 [JW 계획](plans/live-journal-write-cost.md)을 따른다.
+`tools/Splinter.WriteProbe`는 Runtime의 고정 작은 합성 쓰기 비용을 비교하는 개발용 도구다. 제품 workspace·VSS·Unity를 만들지 않으며 범위는 [JW 계획](write-profiling.md)을 따른다.
 
 ## 고정 입력과 사용법
 

@@ -1,12 +1,13 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$RunDirectory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'snapshot-overlay-request.ps1')
 $root=[IO.Path]::GetFullPath($RunDirectory)
 $control=Join-Path $root 'control-compat'; $requestPath=Join-Path $control 'request.json'
 if(Test-Path -LiteralPath $requestPath){throw 'CompatibilityExperimentAlreadyPrepared'}
-$snapshot=(Get-Content "$root/snapshot-t0/snapshot.json" -Raw|ConvertFrom-Json).snapshot
+$request=New-SnapshotOverlayRequest -SnapshotReceipt "$root/snapshot-t0/snapshot.json" -Identity @{version=1;id='so-compat';maxJournalBytes=16777216;maxTransferBytes=65536} -DeltaPath "$root/delta-compat" -MountPath "$root/mount-compat" -ControlPath $control
 New-Item -ItemType Directory -Path $control | Out-Null
-$request=@{identity=@{version=1;id='so-compat';snapshot=$snapshot;maxJournalBytes=16777216;maxTransferBytes=65536};deltaPath="$root/delta-compat";mountPath="$root/mount-compat";controlPath=$control;token=[Guid]::NewGuid().ToString('N')}
+$snapshot=$request.identity.snapshot
 $request|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $requestPath -Encoding utf8
 $invoke=Join-Path $PSScriptRoot 'invoke-snapshot-spike.ps1'
 & $invoke -OverlayRequestPath $requestPath -Action mount | Out-Null

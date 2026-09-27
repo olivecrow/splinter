@@ -1,1 +1,0 @@
-{"date":"2026-09-26","doc":"plans/storage-privilege-service.md","change_type":"added","summary":"Plan narrowly scoped service and UA-01 through UA-04 NotRun","intent":"Avoid repeated UAC while retaining ordinary CLI and Editor privileges","related_files":["src/Splinter.Core/SnapshotReclamation.cs","src/Splinter.Platform.Windows/VssSnapshotReclamation.cs"]}

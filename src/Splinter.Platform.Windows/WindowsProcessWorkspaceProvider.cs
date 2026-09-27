@@ -60,7 +60,7 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
     }
     public async Task WaitForExitAsync(ApplicationLease lease, CancellationToken ct = default)
     {
-        if (lease.Group is null) throw new WorkspaceException("LegacyProcessOwnership", "This older launch has no process group. Inspect its descendants before migrating; cleanup is not proven.");
+        if (lease.Group is null) throw new WorkspaceException("ProcessOwnershipUnknown", "The launch has no owned process group. Preserve its processes until ownership can be proven.");
         for (int attempt = 0; attempt < 120; attempt++)
         {
             var state = await ObserveAsync(lease, ct);

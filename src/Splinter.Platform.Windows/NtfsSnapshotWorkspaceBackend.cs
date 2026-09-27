@@ -45,7 +45,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
 
     public async Task VerifyConnectionAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
-        var request = await Request(w, control, false, ct);
+        var request = await Request(w, control, ct);
         var provider = Provider(w, control);
         var snapshot = w.Snapshot!.Reference!;
         if (request is not null)
@@ -63,15 +63,19 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
         }
         string? consumed = request is null ? null : await WinFspOverlayClient.ConsumedVerificationAsync(request, ct);
         var access = await provider.ResolveReadAccessAsync(snapshot, consumed, ct);
-        request ??= await Request(w, control, true, ct);
-        request = request! with { ReadAccess = access, SnapshotReceiptDirectory = Path.Combine(control, "snapshot"), SnapshotOwnerId = w.Id };
+        request = request is null
+            ? new(Identity(w), DeltaPath(control), w.Path, OverlayControl(control), Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32)),
+                access, Path.Combine(control, "snapshot"), w.Id)
+            : request with { ReadAccess = access, SnapshotReceiptDirectory = Path.Combine(control, "snapshot"), SnapshotOwnerId = w.Id };
+        Directory.CreateDirectory(OverlayControl(control));
         await WindowsProcessWorkspaceProvider.WriteAsync(RequestPath(control), request, ct);
     }
 
     public async Task<OverlayMount> ConnectAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
         CheckSpace(control);
-        var request = await Request(w, control, true, ct);
+        var request = await Request(w, control, ct)
+            ?? throw new WorkspaceException("SnapshotVerificationRequired", "Verify the connection before mounting its persisted request.");
         return await MountProvider(control).MountAsync(request!.Identity, request.DeltaPath, request.MountPath, ct);
     }
     public async Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
@@ -79,7 +83,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
         var snapshotObservation = w.Snapshot?.Reference is { } snapshot ? await Provider(w, control).ObserveAsync(snapshot, ct) : null;
         SnapshotWorkspaceObservation Finish(SnapshotWorkspaceObservation observation) => WithSpace(observation with { SnapshotStorage = snapshotObservation }, w, control);
         bool? available = snapshotObservation is null ? false : snapshotObservation.Available;
-        var request = await Request(w, control, false, ct);
+        var request = await Request(w, control, ct);
         if (request is null) return Finish(new(available, false, false, true, 0, 0, 0,
             FailureCode: snapshotObservation?.FailureCode ?? (available == true ? null : "SnapshotNotCaptured")));
         var observed = await WinFspOverlayClient.ObserveAsync(request, ct);
@@ -111,7 +115,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
 
     public async Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
-        var request = await Request(w, control, false, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Preserve the delta without a request.");
+        var request = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Preserve the delta without a request.");
         var observed = await WinFspOverlayClient.ObserveAsync(request, ct);
         OverlayStorageObservation? storage;
         if (observed.GetProperty("processAlive").GetBoolean())
@@ -135,7 +139,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
     }
     public async Task UnmountAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
-        var request = await Request(w, control, false, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "No owned mount request.");
+        var request = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "No owned mount request.");
         await WinFspOverlayClient.StopAsync(request, ct);
     }
     public async Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string control, CancellationToken ct = default,
@@ -145,7 +149,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
         if (observed is not { SnapshotAvailable: true, Mounted: false, ProviderAlive: false,
             OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
             throw new WorkspaceException("CompactionProviderNotStopped", "Only an observed stopped provider can compact its journal.");
-        var request = await Request(w, control, false, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Preserve the missing provider request.");
+        var request = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Preserve the missing provider request.");
         var health = await Provider(w, control).ObserveAsync(w.Snapshot!.Reference!, ct);
         if (health.Available != true || request.ReadAccess is null)
             throw new WorkspaceException(health.FailureCode ?? "SnapshotVerificationRequired", "Verify the original snapshot read access before compaction.");
@@ -167,7 +171,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
             throw new WorkspaceException("CompactionReconnectIncomplete", "Verify the same mounted provider with no open handles before removing the previous generation.");
         if (await SealAsync(w, control, ct) != expected)
             throw new WorkspaceException("CompactionGenerationMismatch", "The reconnected journal differs from the compacted generation.");
-        var request = await Request(w, control, false, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "The provider request is missing.");
+        var request = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "The provider request is missing.");
         string delta = DeltaPath(control);
         if (File.Exists(Path.Combine(delta, "compaction-intent.json")))
             JournalDeltaStore.CompleteCompaction(delta, request.Identity);
@@ -244,16 +248,10 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
             new { snapshotId = w.Snapshot.Reference!.Id, remainingDependents = 0, resultsPreserved = true }, ct);
         return await Provider(w, control).ReleaseAsync(w.Snapshot.Reference, ct, w.Snapshot.Reclamation?.AttemptId);
     }
-    private static async Task<OverlayServeRequest?> Request(WorkspaceRecord w, string control, bool create, CancellationToken ct)
+    private static async Task<OverlayServeRequest?> Request(WorkspaceRecord w, string control, CancellationToken ct)
     {
         string path = RequestPath(control);
         var request = await WindowsProcessWorkspaceProvider.ReadAsync<OverlayServeRequest>(path, ct);
-        if (request is null && create)
-        {
-            Directory.CreateDirectory(OverlayControl(control));
-            request = new(Identity(w), DeltaPath(control), w.Path, OverlayControl(control), Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32)));
-            await WindowsProcessWorkspaceProvider.WriteAsync(path, request, ct);
-        }
         if (request is not null && (JsonSerializer.Serialize(request.Identity) != JsonSerializer.Serialize(Identity(w)) ||
             request.DeltaPath != DeltaPath(control) || request.MountPath != w.Path || request.ControlPath != OverlayControl(control)))
             throw new WorkspaceException("OverlayIdentityMismatch", "Persisted provider request differs from the workspace.");

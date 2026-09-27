@@ -1,6 +1,6 @@
 # SF-02 Unity 재개와 작업공간 공간·정리 비용 검증
 
-실행일: 2026-09-26. 범위와 판정 기준은 [QJ-01~04 계획](../plans/journal-compaction-qualification-and-cost.md)을 따른다. Windows x64, NTFS 격리 16GiB VHD, Unity `6000.3.22f1`, 실제 VSS/WinFsp/Git 제품 경로에서 작은 Unity fixture와 1MiB 합성 fixture를 사용했다. 소유 ID는 Unity `7610f94472b806a477ac8b53`, 합성 `19e0131aff5bda4ffad7e911`이다. 두 결과를 원본 브랜치에 통합하지 않았다. 기존 [SF-02 1차 기록](journal-compaction.md)과 [공통 저장소 FailedPreservation](storage-foundation.md)의 판정은 유지한다.
+실행일: 2026-09-26. 범위와 판정 기준은 [QJ-01~04 계획](journal-compaction-qualification-and-cost.md)을 따른다. Windows x64, NTFS 격리 16GiB VHD, Unity `6000.3.22f1`, 실제 VSS/WinFsp/Git 제품 경로에서 작은 Unity fixture와 1MiB 합성 fixture를 사용했다. 소유 ID는 Unity `7610f94472b806a477ac8b53`, 합성 `19e0131aff5bda4ffad7e911`이다. 두 결과를 원본 브랜치에 통합하지 않았다. 기존 [SF-02 1차 기록](journal-compaction.md)과 [공통 저장소 FailedPreservation](storage-foundation.md)의 판정은 유지한다.
 
 | 관문 | 이번 실행의 판정 |
 | --- | --- |

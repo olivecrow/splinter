@@ -3,7 +3,7 @@
   "$id": "urn:splinter:v1:overlay-serve-request",
   "type": "object",
   "additionalProperties": false,
-  "required": ["identity", "deltaPath", "mountPath", "controlPath", "token"],
+  "required": ["identity", "deltaPath", "mountPath", "controlPath", "token", "readAccess", "snapshotReceiptDirectory", "snapshotOwnerId"],
   "properties": {
     "identity": {
       "type": "object", "additionalProperties": false,
@@ -34,7 +34,7 @@
     "controlPath": { "type": "string", "minLength": 1 },
     "token": { "type": "string", "pattern": "^([0-9a-f]{32}|[0-9a-f]{64})$" },
     "readAccess": {
-      "type": ["object", "null"], "additionalProperties": false,
+      "type": "object", "additionalProperties": false,
       "required": ["snapshotId", "rootPath", "verificationId"],
       "properties": {
         "snapshotId": {"type":"string", "minLength":1},
@@ -42,8 +42,8 @@
         "verificationId": {"type":"string", "minLength":1}
       }
     },
-    "snapshotReceiptDirectory": {"type":["string","null"], "minLength":1},
-    "snapshotOwnerId": {"type":["string","null"], "minLength":1},
+    "snapshotReceiptDirectory": {"type":"string", "minLength":1},
+    "snapshotOwnerId": {"type":"string", "minLength":1},
     "validationView": {
       "type": ["object", "null"], "additionalProperties": false,
       "required": ["candidatePath", "cacheDeltaPath", "cacheTopLevel"],
@@ -54,15 +54,5 @@
           "items":{"enum":["Library","Temp","Logs","UserSettings","obj"]}}
       }
     }
-  },
-  "allOf": [{
-    "if": {"anyOf": [
-      {"required":["readAccess"], "properties":{"readAccess":{"type":"object"}}},
-      {"required":["snapshotReceiptDirectory"], "properties":{"snapshotReceiptDirectory":{"type":"string"}}},
-      {"required":["snapshotOwnerId"], "properties":{"snapshotOwnerId":{"type":"string"}}}
-    ]},
-    "then": {"required":["readAccess","snapshotReceiptDirectory","snapshotOwnerId"], "properties":{
-      "readAccess":{"type":"object"}, "snapshotReceiptDirectory":{"type":"string"}, "snapshotOwnerId":{"type":"string"}
-    }}
-  }]
+  }
 }

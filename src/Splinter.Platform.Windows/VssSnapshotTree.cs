@@ -10,7 +10,6 @@ public sealed class VssSnapshotTree : ISnapshotTree, IDisposable
 {
     public SnapshotReference Snapshot { get; }
     private readonly string root;
-    private readonly bool verifiedAccess;
     private readonly Func<SnapshotObservation>? verifiedHealth;
     private readonly Dictionary<string, SafeFileHandle> handles = new(StringComparer.OrdinalIgnoreCase);
     private readonly Queue<string> handleOrder = new();
@@ -18,20 +17,21 @@ public sealed class VssSnapshotTree : ISnapshotTree, IDisposable
     private readonly Queue<string> metadataOrder = new();
     public const int MaxReadHandles = 32;
     public const int MaxMetadataEntries = 32768;
-    public VssSnapshotTree(SnapshotReference snapshot, SnapshotReadAccess? access = null, Func<SnapshotObservation>? verifiedHealth = null)
+    public VssSnapshotTree(SnapshotReference snapshot, SnapshotReadAccess access, Func<SnapshotObservation>? verifiedHealth = null)
     {
         string readRoot = ResolveReadRoot(snapshot, access);
         if (!OperatingSystem.IsWindows() || snapshot.Provider != "windows-vss-system" ||
             !snapshot.Persistent || !snapshot.Differential ||
             !VssSnapshotVerification.TryRelative(readRoot, out _))
             throw new WorkspaceException("SnapshotProviderUnsupported", "Only a validated persistent system-provider VSS snapshot is accepted.");
-        Snapshot = snapshot; root = readRoot.TrimEnd('\\', '/'); this.verifiedHealth = verifiedHealth; verifiedAccess = access is not null;
+        Snapshot = snapshot; root = readRoot.TrimEnd('\\', '/'); this.verifiedHealth = verifiedHealth;
         EnsureAvailable();
     }
-    internal static string ResolveReadRoot(SnapshotReference snapshot, SnapshotReadAccess? access)
+    internal static string ResolveReadRoot(SnapshotReference snapshot, SnapshotReadAccess access)
     {
-        access?.RequireMatch(snapshot);
-        string readRoot = access?.RootPath ?? snapshot.RootPath;
+        if (access is null) throw new WorkspaceException("SnapshotVerificationRequired", "Verified read access is required.");
+        access.RequireMatch(snapshot);
+        string readRoot = access.RootPath;
         if (!VssSnapshotVerification.TryRelative(readRoot, out string relative) ||
             !VssSnapshotVerification.TryRelative(snapshot.RootPath, out string original) || relative != original)
             throw new WorkspaceException("SnapshotIdentityMismatch", "Read access must retain the captured source-relative path.");
@@ -43,7 +43,7 @@ public sealed class VssSnapshotTree : ISnapshotTree, IDisposable
         if (observation is null || observation.Available == true)
         {
             observation = SnapshotAvailabilityProbe.Observe(Snapshot with { RootPath = root });
-            if (verifiedAccess && observation.Available == false)
+            if (observation.Available == false)
                 observation = new(Snapshot.Id, null, "SnapshotObservationUnknown", null, null);
         }
         if (observation.Available != true)

@@ -70,7 +70,7 @@ splinter baseline release --id <baseline-id> --home <ReFS-home>
 
 `application.resources`는 감시 프로세스까지 포함한 소유 프로세스 수와 working set/private bytes의 관측값이다. 실행 중인 값은 OS의 시점별 표본이다. release는 `ownershipVerified=true`, `activeProcesses=0`, `workingSetBytes=0`, `privateBytes=0`을 확인하고 Git 회수 후 실제 경로도 없어야 완료한다. 결과는 `workspace.releasedResources`에 남는다. OS의 파일 캐시·standby 메모리를 강제로 비우거나 전체 시스템 RAM이 실행 전 수치와 같다고 주장하지 않는다.
 
-구형 실행 영수증은 job 소유권이 없으므로 `LegacyProcessOwnership`으로 자동 회수를 중단한다. 새 구현 이전에 끝난 `released` 기록에는 `releasedResources` 증거가 없을 수 있다. `ProcessOwnershipUnknown`, `ProcessCleanupIncomplete`에는 경로와 결과를 보존하고 실제 소유 상태를 조사한다. Editor timeout만으로 소스나 캐시를 삭제하지 않는다.
+실행 영수증에 job 소유권이 없으면 `ProcessOwnershipUnknown`으로 자동 회수를 중단한다. `ProcessCleanupIncomplete`와 함께 경로·결과·프로세스를 보존하고 실제 소유 상태를 확인한다. Editor timeout만으로 소스나 cache를 삭제하지 않는다. release 성공은 현재 `releasedResources` 증거를 요구한다.
 
 ## 개발 환경 준비와 시험
 

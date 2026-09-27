@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidateSet('Source','Overlays')][string]$Action,[Parameter(Mandatory)][string]$RunDirectory,[string]$SnapshotReceipt,[string[]]$Names=@('a','b'),[switch]$Unity)
 $ErrorActionPreference='Stop'; $root=[IO.Path]::GetFullPath($RunDirectory)
+. (Join-Path $PSScriptRoot 'snapshot-overlay-request.ps1')
 if($Action -eq 'Source') {
     if(Test-Path -LiteralPath $root){throw 'FreshRunDirectoryRequired'}
     $source=Join-Path $root 'source';New-Item -ItemType Directory -Path $source|Out-Null
@@ -17,14 +18,14 @@ if($Action -eq 'Source') {
     @{sourcePath=$source;next='Explicitly capture source with vss-snapshot.ps1, then prepare Overlays.'}|ConvertTo-Json
 }else{
     if(-not $SnapshotReceipt){throw 'SnapshotReceiptRequired'}
-    $snapshot=(Get-Content -LiteralPath $SnapshotReceipt -Raw|ConvertFrom-Json).snapshot
     foreach($name in $Names){
         if($name -notmatch '^[a-z][a-z0-9-]{0,30}$'){throw 'InvalidTestName'}
         $control=Join-Path $root "control-$name";if(Test-Path -LiteralPath $control){throw 'FreshControlRequired'}
-        New-Item -ItemType Directory -Path $control|Out-Null
-        $identity=@{version=1;id=('so-'+[IO.Path]::GetFileName($root)+'-'+$name);snapshot=$snapshot;maxJournalBytes=$(if($Unity){16GB}else{16MB});maxTransferBytes=1048576}
+        $identity=@{version=1;id=('so-'+[IO.Path]::GetFileName($root)+'-'+$name);maxJournalBytes=$(if($Unity){16GB}else{16MB});maxTransferBytes=1048576}
         if($Unity){$identity.excludedTopLevel=@('.git')}
-        @{identity=$identity;deltaPath="$root/delta-$name";mountPath="$root/mount-$name";controlPath=$control;token=[Guid]::NewGuid().ToString('N')}|ConvertTo-Json -Depth 8|Set-Content "$control/request.json" -Encoding utf8
+        $request=New-SnapshotOverlayRequest -SnapshotReceipt $SnapshotReceipt -Identity $identity -DeltaPath "$root/delta-$name" -MountPath "$root/mount-$name" -ControlPath $control
+        New-Item -ItemType Directory -Path $control|Out-Null
+        $request | ConvertTo-Json -Depth 8 | Set-Content "$control/request.json" -Encoding utf8
     }
     @{requests=@($Names|ForEach-Object{"$root/control-$_/request.json"});mounted=$false}|ConvertTo-Json
 }

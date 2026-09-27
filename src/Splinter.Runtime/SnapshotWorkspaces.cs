@@ -216,7 +216,7 @@ public sealed partial class WorkspaceCoordinator
     private static void RequireStableCollection(SnapshotWorkspaceState state)
     {
         if (state.Result is not { IndependentOfSnapshot: true, CollectionProtocol: SnapshotResult.StableJournalProtocol })
-            throw new WorkspaceException("SnapshotResultRevalidationRequired", "This result predates stable journal collection. Preserve its resources; recollect while the original snapshot and mount are available before starting release.");
+            throw new WorkspaceException("SnapshotResultInvalid", "An independent result with the current collection protocol is required. Preserve its resources.");
     }
 
     private async Task RequireStopped(WorkspaceRecord w, CancellationToken ct)

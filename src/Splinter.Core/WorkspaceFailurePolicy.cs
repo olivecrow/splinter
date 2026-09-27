@@ -4,14 +4,14 @@ namespace Splinter.Core;
 public static class WorkspaceFailurePolicy
 {
     public static bool RequiresPreservation(string? code) => code is
-        "DeltaChangedAfterCollection" or "SnapshotResultRevalidationRequired" or "StateCorrupt" or
+        "DeltaChangedAfterCollection" or "SnapshotResultInvalid" or "StateCorrupt" or
         "SnapshotReclamationInvalid" or "SnapshotCollateralLoss" or "CompactionGenerationMismatch" or
         "CompactionStateMismatch" or "CompactionCandidateMismatch" or "CompactionIntentCorrupt" or "CompactionIntentMismatch";
 
     public static string RetryDisposition(string code) => RequiresPreservation(code) ? "requires-user-action" : code switch
     {
         "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "ValidationInProgress" or "SourceObservationUncertain" or "SourceChanged" => "safe-to-retry",
-        "CoWUnsupported" or "LegacyProcessOwnership" or "ProcessOwnershipUnknown" or "SnapshotPrivilegeRequired" or
+        "CoWUnsupported" or "ProcessOwnershipUnknown" or "SnapshotPrivilegeRequired" or
         "SnapshotHeadroomRequired" or "SnapshotReleaseIsolationRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or
         "OverlayStartUncertain" or "SnapshotStateMissing" or "SnapshotCheckpointMismatch" or "SnapshotPreparationIncomplete" or "SnapshotOperationIncomplete" or
         "SnapshotObservationUnknown" or "StateRecoveryRequired" or "StateReadUnavailable" or "StateWriteIncomplete" or

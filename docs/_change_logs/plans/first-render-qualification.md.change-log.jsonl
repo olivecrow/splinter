@@ -1,1 +1,0 @@
-{"date":"2026-09-27","doc":"plans/first-render-qualification.md","change_type":"added","summary":"Close FR-01 through FR-04 within the fixed small Unity scope","intent":"Complete cold, reload, restart, failure recovery and reclamation as one unit","related_files":["docs/verification/first-render-qualification.md"]}

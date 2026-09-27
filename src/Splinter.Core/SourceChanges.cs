@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Splinter.Core;
 
 // Changes are authoritative only within one immutable snapshot and one live
@@ -14,7 +16,7 @@ public interface ISourceChangeProvider
 
 public sealed record SourceInspectionMetrics(string Mode, long PayloadBytesHashed, int FilesHashed,
     int FilesReused, long ManifestBytes, double ElapsedMilliseconds, string? Epoch = null, long? Sequence = null,
-    long GitHashInputBytes = 0, int? GitHashProcesses = null);
+    long GitHashInputBytes = 0, [property: JsonRequired] int GitHashProcesses = 0);
 
 // Per-provider bounded-read work, independent of wall-clock and physical I/O.
 public sealed record ReadRangeIndexMetrics(long ReadCalls, long SearchProbes, long VisitedExtents);
@@ -41,12 +43,12 @@ public sealed record LiveJournalWriteMetrics(long MutationGateCalls, long Mutati
 public sealed record OverlayIoMetrics(string Epoch, long LockAcquisitions, long LockWaitTicks,
     long FlushCount, long FlushTicks, long CommitCount, long JournalAppendedBytes,
     long ReplayBytes, long ReplayTicks, long JournalReadBytes, long BaseReadBytes, long StopwatchFrequency,
-    long? ReplayFrames = null, long? ReplayReadCalls = null, long? ReplayReadTicks = null,
-    long? ReplayValidationTicks = null, long? ReplayIndexTicks = null, int? ReplayBufferBytes = null,
-    ReplayIndexOperationMetrics[]? ReplayIndexOperations = null,
-    ReplayWriteRangeIndexMetrics? ReplayWriteRangeIndex = null,
-    LiveJournalWriteMetrics? LiveJournalWrites = null,
-    ReadRangeIndexMetrics? ReadRangeIndex = null);
+    [property: JsonRequired] long ReplayFrames, [property: JsonRequired] long ReplayReadCalls, [property: JsonRequired] long ReplayReadTicks,
+    [property: JsonRequired] long ReplayValidationTicks, [property: JsonRequired] long ReplayIndexTicks, [property: JsonRequired] int ReplayBufferBytes,
+    [property: JsonRequired] ReplayIndexOperationMetrics[] ReplayIndexOperations,
+    [property: JsonRequired] ReplayWriteRangeIndexMetrics ReplayWriteRangeIndex,
+    [property: JsonRequired] LiveJournalWriteMetrics LiveJournalWrites,
+    [property: JsonRequired] ReadRangeIndexMetrics ReadRangeIndex);
 
 public static class SourcePathPolicy
 {

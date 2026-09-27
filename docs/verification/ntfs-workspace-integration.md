@@ -1,6 +1,6 @@
 # NTFS workspace 통합 검증
 
-상태: **NI-01~08의 1차 내부 알파 구현·자동 및 실제 fixture 검증·회수 완료**. 날짜: 2026-09-21. [확정 범위](../plans/ntfs-workspace-integration.md)와 [현재 계약](../ntfs-workspaces.md)을 따른다. 실제 dirty 원본의 통합 차단·원본/결과 보존도 확인했다. 공개 제품 전체 지원으로 확대하지 않는다. SO/AA/SR 결과는 별도 증거다.
+상태: **NI-01~08의 1차 내부 알파 구현·자동 및 실제 fixture 검증·회수 완료**. 날짜: 2026-09-21. [확정 범위](../ntfs-workspaces.md)와 [현재 계약](../ntfs-workspaces.md)을 따른다. 실제 dirty 원본의 통합 차단·원본/결과 보존도 확인했다. 공개 제품 전체 지원으로 확대하지 않는다. SO/AA/SR 결과는 별도 증거다.
 
 ## 환경과 증거 식별
 

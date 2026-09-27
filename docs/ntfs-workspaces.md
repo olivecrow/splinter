@@ -52,7 +52,7 @@ NTFS refresh는 incremental compilation을 요청한다. 일반 제품의 전체
 
 압축은 살아 있는 범위만 chunk 단위로 다시 기록하고 연속된 무효 쓰기의 기록을 하나의 sequence 구간으로 묶는다. whiteout·rename·truncate·`.meta`와 변경 경로를 재생 대조하며 파일 전체를 copy-up하거나 기준 파일을 읽어 채우지 않는다. 새 후보는 같은 디렉터리에 flush하고 checksum·전체 재생 상태를 확인한 뒤 원자적으로 게시한다. `delta.journal.previous`는 새 세대의 mount 재연결과 seal이 확인될 때까지 남긴다. `compaction-intent.json`과 후보/이전 세대의 소유·hash가 맞지 않거나 내용이 손상되면 파일을 보존하고 `preserve`로 중단한다. 준비·게시·재연결 중 끊기면 같은 ID/home의 `workspace compact`로 `resume-compaction`을 진행한다. 자동 sweep이나 다른 workspace·snapshot 회수와 연결하지 않는다.
 
-`snapshot.compaction`에는 attempt, 전후 sequence/길이/SHA-256 seal, 전후 NTFS 파일 할당과 두 저널 세대가 함께 있던 전환 지점의 할당 합계를 기록한다. 새 시도의 `cost`는 `stopwatchFrequency`·`totalTicks`와 stage별 `elapsedTicks`·`readBytes`·`writtenBytes`·`flushCount`를 제공한다. stage에는 원본 replay/seal/상태 hash, 후보 scan/write/flush/replay/seal, 세대 게시·검증, provider 재연결·이전 세대 정리가 들어간다. `totalTicks`는 오프라인 저널 정리 호출만 재며 재연결·이전 세대 정리는 별도 stage다. 이미 게시된 세대를 확인만 하는 재시도에는 `cost`가 없을 수 있고, 누락은 0 비용이 아니다. 두 세대 할당 합계와 stage 표본은 control/identity/Git/Library를 포함한 전체 작업공간 peak가 아니다. 후보를 쓸 여유와 재연결의 2 GiB 하한이 없거나 계산한 후보가 journal budget을 넘으면 기존 세대를 보존한다. VSS 사용량은 볼륨 공유 관측이며 작업별 절감으로 귀속하지 않는다. 현재 구현은 범위 재기록이며 일반 목적 payload 압축이나 쓰기마다 수행하는 flush 정책 변경이 아니다. [정리 1차](verification/journal-compaction.md), [Unity 재개·공간 비용](verification/journal-compaction-qualification-and-cost.md), [중첩량 예산](plans/journal-compaction-peak-admission.md)을 따른다.
+`snapshot.compaction`에는 attempt, 전후 sequence/길이/SHA-256 seal, 전후 NTFS 파일 할당과 두 저널 세대가 함께 있던 전환 지점의 할당 합계를 기록한다. 새 시도의 `cost`는 `stopwatchFrequency`·`totalTicks`와 stage별 `elapsedTicks`·`readBytes`·`writtenBytes`·`flushCount`를 제공한다. stage에는 원본 replay/seal/상태 hash, 후보 scan/write/flush/replay/seal, 세대 게시·검증, provider 재연결·이전 세대 정리가 들어간다. `totalTicks`는 오프라인 저널 정리 호출만 재며 재연결·이전 세대 정리는 별도 stage다. 이미 게시된 세대를 확인만 하는 재시도에는 `cost`가 없을 수 있고, 누락은 0 비용이 아니다. 두 세대 할당 합계와 stage 표본은 control/identity/Git/Library를 포함한 전체 작업공간 peak가 아니다. 후보를 쓸 여유와 재연결의 2 GiB 하한이 없거나 계산한 후보가 journal budget을 넘으면 기존 세대를 보존한다. VSS 사용량은 볼륨 공유 관측이며 작업별 절감으로 귀속하지 않는다. 현재 구현은 범위 재기록이며 일반 목적 payload 압축이나 쓰기마다 수행하는 flush 정책 변경이 아니다. [정리 1차](verification/journal-compaction.md), [Unity 재개·공간 비용](verification/journal-compaction-qualification-and-cost.md), [중첩량 예산](ntfs-workspaces.md)을 따른다.
 
 일반 status는 앱/provider와 새 검증 응답을 조회하며 매번 프로젝트 파일을 읽지 않는다. 대기 중이던 검증 응답이 도착하면 소스를 한 번 읽어 fingerprint를 대조하고 결과를 저장한다. `data.sourceVerification=verified`인 응답에는 `source`와 `validationCurrent`가 있으며, 검증 성공은 `workspace.validation.success=true`와 `validationCurrent=true`를 함께 확인한다. `not-checked` 응답에는 두 필드를 생략한다. 이때 남아 있는 `workspace.validation`은 이전 증거이며 현재 파일 상태의 보증이 아니다. 현재 소스를 명시적으로 확인하려면 `workspace status --id <id> --verify-source`를 사용한다. checkpoint/integrate의 사전 확인은 항상 소스를 다시 읽는다.
 
@@ -99,7 +99,7 @@ provider 제어 JSON과 workspace 상태는 같은 디렉터리의 임시 파일
 
 새 provider 연결은 이전 실행이 소비한 verification ID와 다른 현재 부팅의 관측을 요구한다. `SnapshotVerificationRequired`의 재개 명령은 동일 ensure다. 관리자 Observe 뒤 같은 요청 재시도는 준비된 관측을 재사용하며 중복 캡처·등록·provider를 만들지 않는다. Observe는 VSS·원본·볼륨 설정을 변경하지 않고 소유 관측 기록만 저장한다. 정상 status는 같은 연결의 검증을 재사용한다. provider는 주기적으로 관측과 현재 읽기 경로를 확인하며 파일 I/O마다 CIM을 호출하지 않는다. 실행 중 다른 접근 정보로 변경되면 거부하고 새 연결에서만 읽기 경로를 바꾼다. 외부 관리자의 VSS 삭제·대체와 모든 동시 경쟁 조건을 검증했다는 뜻은 아니다.
 
-version 1은 원래 ID를 새로 조회해 기존 owner/provider/시각/조건과 대조한 경우에만 `verified-identity.json`을 별도로 기록한다. provenance는 `legacy-revalidated`이며 원래 영수증을 변경하거나 새 필드를 캡처 당시 증거라고 표시하지 않는다. version 2의 누락된 captureIdentity·지원하지 않는 버전은 손상으로 보존한다. 다른 owner/ID/provider/volume/상대 경로는 `SnapshotIdentityMismatch`, 손상 JSON은 `SnapshotObservationCorrupt`, 중단된 `.new`/관측 요청 `.tmp`는 `SnapshotObservationIncomplete`다. 파일이나 델타를 지우거나 이전 성공으로 대체하지 않는다. 새 boot·연결 세대, 최신 조회 실패, 손상·부분 기록과 접근 불가는 이전 성공의 재사용을 막는다. 실제 재부팅·강제 전원 종료는 별도 미검증 관문이다.
+현재 VSS 영수증은 version 2와 captureIdentity를 요구한다. 지원하지 않는 버전·누락된 capture identity는 거부하고 원본 영수증·델타를 보존하며 자동 이관하지 않는다. 다른 owner/ID/provider/volume/상대 경로는 `SnapshotIdentityMismatch`, 손상 JSON은 `SnapshotObservationCorrupt`, 중단된 게시 파일은 `SnapshotObservationIncomplete`다. 최신 조회 실패·새 boot·접근 불가는 이전 성공으로 대체하지 않는다. 실제 재부팅·강제 전원 종료는 별도 미검증 관문이다.
 
 ## 지연 회수와 명시적 재시도
 
@@ -111,7 +111,7 @@ version 1은 원래 ID를 새로 조회해 기존 owner/provider/시각/조건�
 
 `sharedStorage`는 `volumeId/observedAt/usedBytes/allocatedBytes/limitBytes`와 `scope=source-volume-shared`, `workspaceAttribution=unknown`을 제공한다. 수치는 마지막 helper가 관측한 볼륨 전체 VSS 값이다. 같은 볼륨의 작업끼리 합산하거나 해당 작업의 귀속 비용/삭제 시 반환 바이트로 표시하면 안 된다. 관측 실패 시 숫자는 생략하고 `SnapshotStorageUnknown`을 남긴다. 일반 status는 이 값을 새로 측정하지 않는다. released는 snapshot ID와 소유 자원의 부재를 뜻하며 VSS 할당량이나 OS 캐시가 즉시 0이 된다는 보장은 아니다.
 
-범위와 증거는 [지연 회수 계획](plans/deferred-snapshot-reclamation.md)과 [검증 기록](verification/deferred-snapshot-reclamation.md)을 따른다. 자동 sweep, 공유 기준 수명주기와 임의 순서의 즉시 물리 회수는 제공하지 않는다.
+범위와 증거는 [지연 회수 계획](ntfs-workspaces.md)과 [검증 기록](verification/deferred-snapshot-reclamation.md)을 따른다. 자동 sweep, 공유 기준 수명주기와 임의 순서의 즉시 물리 회수는 제공하지 않는다.
 
 ## 회수와 관측
 
@@ -119,7 +119,7 @@ version 1은 원래 ID를 새로 조회해 기존 owner/provider/시각/조건�
 
 snapshot이 소실된 뒤에는 `stable-journal-v1`로 수집한 독립 결과가 있고 Git ref/객체와 **저널 전체 seal이 동일한 경우에만** 회수할 수 있다. 사용할 수 없는 원본 트리를 다시 읽거나 수정하지 않고 unmount 후 seal을 비교한다. 독립 결과가 없거나 수집 뒤 쓰기가 있으면 결과와 저널을 보존하고 실패한다. 열린 핸들이 남은 unmount는 `OverlayStopPending`이며 핸들을 닫은 뒤 같은 release를 재시도한다.
 
-이 필드가 없는 이전 manifest도 읽을 수 있지만 회수의 증거로 바로 사용하지 않는다. 원래 snapshot과 mount가 살아 있고 아직 회수를 시작하지 않았다면 checkpoint 또는 release가 새 절차로 다시 수집한다. snapshot 소실 또는 이미 시작한 `release-*` 단계에서는 `SnapshotResultRevalidationRequired`와 `preserve`를 반환하고 남은 자원을 보존한다. 기록의 필드나 단계를 수동 수정해 통과시키는 복구는 제공하지 않는다. 소스는 [파일 단위 변경 검증](source-verification.md)을 사용하고, 초기/감사/provider 재연결 시 전체 읽기를 수행한다. 저널 전체 seal과 Git 객체 생성의 읽기는 수집 경계에 남는다. `source-inspections.jsonl`과 `storage-reads.jsonl`에 각각 실제 비용을 기록하며 검증 manifest는 delta 밖 `source-fingerprint.json`에 둔다.
+결과 manifest의 `collectionProtocol`은 필수이며 `stable-journal-v1`만 허용한다. 누락·지원하지 않는 값은 `StateCorrupt`로 거부하고 manifest·저널·snapshot을 보존한다. 현재 checkpoint가 Git commit 뒤 수집 전에 중단되어 아직 결과 manifest가 없는 경우에는 같은 작업의 checkpoint를 재시도할 수 있다. 이미 게시된 잘못된 manifest를 자동 재수집하거나 필드를 수동 수정하는 이관은 제공하지 않는다. 소스 검사는 [변경 기반 검증](source-verification.md)을 사용하고 초기·감사·provider 재연결 시 전체 읽기를 수행한다. 저널 전체 seal과 Git 객체 생성의 읽기는 수집 경계에 남으며 `source-inspections.jsonl`·`storage-reads.jsonl`에 계측한다.
 
 `workspace.snapshot.observation`은 snapshot/mount/provider/delta 존재, 소유권, 핸들·working set·private bytes, host free space, 저널 잔여량을 제공한다. 누락된 자원 값은 unknown이며 0으로 읽으면 안 된다. `storage`의 생성 payload·읽기 cache·저널 payload/metadata·sequence는 provider 계측이다. 저널 길이는 실제 NTFS file-data allocation이나 VSS 사용량이 아니다. `snapshotStorage.preservedBytes/allocatedBytes`는 현재 일반 호출에서 관측하지 못하므로 생략한다. 관리자 helper의 별도 볼륨 관측과 실제 allocation 계측이 필요하다.
 
@@ -138,7 +138,7 @@ snapshot이 소실된 뒤에는 `stable-journal-v1`로 수집한 독립 결과�
 | `OverlayClientsRemain`, `ProcessCleanupIncomplete` | 소유 앱/자식 종료 상태 확인 후 재호출 |
 | `OverlayStartUncertain`, `LaunchUncertain` | 정확한 실행 intent·PID/시작 시각·generation 조사. 중복 실행/강제 회수 없음 |
 | `UncollectedChanges`, `UnownedIgnoredFiles`, `DeltaChangedAfterCollection` | 유일한 변경을 보존하고 검증/결과 정합성 확인 |
-| `SnapshotResultRevalidationRequired` | 이전 수집 증거로 회수를 재개하지 않고 남은 자원·기록 보존. 원래 기준을 사용할 수 있는 수집 전 상태에서만 재수집 |
+| `SnapshotResultInvalid` | 이전 수집 증거로 회수를 재개하지 않고 남은 자원·기록 보존. 원래 기준을 사용할 수 있는 수집 전 상태에서만 재수집 |
 
 ## 구현과 검증 경계
 

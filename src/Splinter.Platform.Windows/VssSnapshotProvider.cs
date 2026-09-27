@@ -51,6 +51,7 @@ public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
         var receipt = await Read(cancellationToken);
         if (receipt is null) return new(snapshot.Id, null, "SnapshotVerificationRequired", null, null);
         if (!Matches(receipt, snapshot)) return new(snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
+        if (!CurrentFormat(receipt)) return new(snapshot.Id, null, "SnapshotObservationCorrupt", null, null);
         if (!receipt.Released) return await ObserveLiveAsync(snapshot, receipt, cancellationToken);
         // A device path can be recycled after deletion. Never call its new tree
         // the original snapshot merely because the old receipt says released.
@@ -71,6 +72,7 @@ public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
         var receipt = await Read(cancellationToken);
         if (receipt is null || !Matches(receipt, snapshot))
             throw new WorkspaceException("SnapshotIdentityMismatch", "Release must match the original snapshot receipt.");
+        RequireCurrentFormat(receipt);
         VssReleaseRequest? request = null;
         if (!receipt.Released)
         {
@@ -89,7 +91,7 @@ public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
         var observation = await ObserveAsync(snapshot, cancellationToken);
         if (observation is { Available: null, FailureCode: "SnapshotObservationUnknown" })
         {
-            // Older receipts and a reboot require a fresh read-only VSS query.
+            // Missing current-boot evidence requires a fresh read-only VSS query.
             // The regular CLI still returns the exact helper without elevating.
             await Run("Observe", snapshot.SourcePath, cancellationToken);
             observation = await ObserveAsync(snapshot, cancellationToken);
@@ -158,7 +160,13 @@ public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
                 .FirstOrDefault(code => errors.Contains(code, StringComparison.Ordinal)) ?? "SnapshotOperationIncomplete",
                 "The VSS helper did not complete. Preserve the receipt and inspect its diagnostic.", new { action, receiptDirectory, diagnostic = errors });
     }
+    private static bool CurrentFormat(Receipt receipt) => receipt.Version == 2 && receipt.CaptureIdentity is not null;
+    private static void RequireCurrentFormat(Receipt receipt)
+    {
+        if (!CurrentFormat(receipt))
+            throw new WorkspaceException("SnapshotObservationCorrupt", "A version 2 receipt with capture identity is required. Preserve unsupported or incomplete state.");
+    }
     private sealed record Receipt(string OwnerId, SnapshotReference Snapshot, string NativeProviderId, bool NoAutoRelease, bool Released,
-        int Version = 1, VssCaptureIdentity? CaptureIdentity = null);
+        int Version, VssCaptureIdentity? CaptureIdentity);
     private sealed record ReleaseObservation(string? OwnerId, SnapshotReference Snapshot, bool? Available, bool Released, DateTimeOffset? BootTimeUtc);
 }

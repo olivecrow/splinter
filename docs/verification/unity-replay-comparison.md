@@ -1,6 +1,6 @@
 # 작은 Unity 재개 비교 실행
 
-`ru-20260927`의 [RU-01~04](../plans/unity-replay-comparison.md)를 **scoped-complete-with-limitations**로 마감했다. 제품 기준은 `2cfcad07069e48cde64a3fa9cbfd70a1b546db5e`다. 같은 저널 재연결 6회·실제 Editor 재개 6회, 독립 결과와 원본 보존, 모든 소유 자원 회수와 VHD 분리 후 결과 읽기를 확인했다. 같은 저널 mount 중앙값은 33.84초 → 23.70초였지만, 누적 입력의 실제 Editor 전체 재개 개선은 입증하지 못했다.
+`ru-20260927`의 [RU-01~04](unity-replay-comparison.md)를 **scoped-complete-with-limitations**로 마감했다. 제품 기준은 `2cfcad07069e48cde64a3fa9cbfd70a1b546db5e`다. 같은 저널 재연결 6회·실제 Editor 재개 6회, 독립 결과와 원본 보존, 모든 소유 자원 회수와 VHD 분리 후 결과 읽기를 확인했다. 같은 저널 mount 중앙값은 33.84초 → 23.70초였지만, 누적 입력의 실제 Editor 전체 재개 개선은 입증하지 못했다.
 
 ## 입력과 비용 경계
 

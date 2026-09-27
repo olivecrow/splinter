@@ -1,6 +1,6 @@
 # SF-02 명시적 저널 공간 정리 검증
 
-실행일: 2026-09-26, Windows x64/NTFS. 범위는 [확정한 1차 계획](../plans/journal-compaction-first-milestone.md)의 결과 수집 전 명시적 압축이다. 기존 [공통 저장소 실행](storage-foundation.md)의 `FailedPreservation`은 유지한다. SF-02 전체는 계측·압축 하위 범위의 증거와 flush 정책·장애 범위를 나눠 판정한다.
+실행일: 2026-09-26, Windows x64/NTFS. 범위는 [확정한 1차 계획](../ntfs-workspaces.md)의 결과 수집 전 명시적 압축이다. 기존 [공통 저장소 실행](storage-foundation.md)의 `FailedPreservation`은 유지한다. SF-02 전체는 계측·압축 하위 범위의 증거와 flush 정책·장애 범위를 나눠 판정한다.
 
 ## 자동 계약과 중단 재개
 

@@ -154,14 +154,14 @@
               "type": "integer",
               "minimum": 0
             },
-            "replayFrames": {"type":["integer","null"], "minimum":0},
-            "replayReadCalls": {"type":["integer","null"], "minimum":0},
-            "replayReadTicks": {"type":["integer","null"], "minimum":0},
-            "replayValidationTicks": {"type":["integer","null"], "minimum":0},
-            "replayIndexTicks": {"type":["integer","null"], "minimum":0},
-            "replayBufferBytes": {"type":["integer","null"], "minimum":0},
+            "replayFrames": {"type":"integer", "minimum":0},
+            "replayReadCalls": {"type":"integer", "minimum":0},
+            "replayReadTicks": {"type":"integer", "minimum":0},
+            "replayValidationTicks": {"type":"integer", "minimum":0},
+            "replayIndexTicks": {"type":"integer", "minimum":0},
+            "replayBufferBytes": {"type":"integer", "minimum":0},
             "replayIndexOperations": {
-              "type": ["array", "null"], "maxItems": 9,
+              "type": "array", "maxItems": 9,
               "items": {
                 "type": "object", "additionalProperties": false,
                 "required": ["operation", "frames", "applyTicks"],
@@ -173,7 +173,7 @@
               }
             },
             "replayWriteRangeIndex": {
-              "type": ["object", "null"],
+              "type": "object",
               "additionalProperties": false,
               "required": ["replaceCalls", "priorExtents", "maxPriorExtents", "visitedExtents",
                 "copiedExtents", "locateAndReplaceTicks", "sortTicks", "priorExtentBuckets"],
@@ -192,7 +192,7 @@
               }
             },
             "readRangeIndex": {
-              "type": ["object", "null"],
+              "type": "object",
               "additionalProperties": false,
               "required": ["readCalls", "searchProbes", "visitedExtents"],
               "properties": {
@@ -202,7 +202,7 @@
               }
             },
             "liveJournalWrites": {
-              "type": ["object", "null"], "additionalProperties": false,
+              "type": "object", "additionalProperties": false,
               "required": ["mutationGateCalls", "mutationGateWaitTicks", "operations"],
               "properties": {
                 "mutationGateCalls": {"type":"integer", "minimum":0},
@@ -258,7 +258,17 @@
             "replayTicks",
             "journalReadBytes",
             "baseReadBytes",
-            "stopwatchFrequency"
+            "stopwatchFrequency",
+            "replayFrames",
+            "replayReadCalls",
+            "replayReadTicks",
+            "replayValidationTicks",
+            "replayIndexTicks",
+            "replayBufferBytes",
+            "replayIndexOperations",
+            "replayWriteRangeIndex",
+            "liveJournalWrites",
+            "readRangeIndex"
           ]
         }
       }
