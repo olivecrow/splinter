@@ -59,6 +59,10 @@ Runtime의 replay는 수명 한정 64KiB 버퍼로 저널만 순차 읽는다. �
 
 같은 영역 반복 쓰기와 삭제/truncate 후에도 실행 중인 기존 journal 할당은 남는다. 결과 수집 전 정지한 NTFS 작업공간에는 명시적 저널 정리를 구현했으며, [작은 Unity 재개·공간 계측](verification/journal-compaction-qualification-and-cost.md)에서 정리 직후 할당 감소와 두 세대가 겹친 관측 최고치를 확인했다. flush 묶음 처리와 기본 실행 방식 전환은 구현하지 않았다. 범위와 검증 수준은 [공통 저장소 1차 계획](plans/storage-foundation-first-milestone.md), 실제 판정과 VSS 보존 실패는 [검증 기록](verification/storage-foundation.md), 현재 회수 차단/지원 경계는 [NTFS 작업공간](ntfs-workspaces.md)을 따른다.
 
+`replayIndexOperations`는 관측된 연산별 `operation`·`frames`·`applyTicks` 배열이며 최대 9개다. `create`, `metadata`, `resize`, `write`, `write-compacted`, `rename`, `delete`, `skip-write`, `skip-range`만 허용한다. 합계는 각각 `replayFrames`와 `replayIndexTicks`에 대응하고 현재 provider의 신규 쓰기는 포함하지 않는다. `skip-range`도 한 frame이므로 frame 수는 durable sequence 증가량과 다를 수 있다. 새 provider의 빈 배열은 replay한 frame이 없음을 뜻하며, 과거 누락/null은 unknown이다. 반환 배열 수정은 내부 계수에 영향을 주지 않는다.
+
+rename의 index 적용은 기존의 경로·whiteout 순회를 유지하며 같은 하위 경로 접두사를 rename당 한 번 만들어 재사용한다. 범위 index·저널 형식·지속 cache를 추가하지 않는다. [Offline probe](replay-profiling.md)로 합성 비용을 구분하며, 그 결과를 실제 Unity 준비 시간에 곧바로 적용하지 않는다.
+
 ## 계약과 진입점
 
 `contracts/v1/source-change-{request,response,view}.schema.json`, `workspace-status-request.schema.json`, `response.schema.json`, `overlay-observation.schema.json`, `storage-read-measurement.schema.json`이 입력·출력·계측 계약이다. `capabilities.sourceVerification`에 현재 방식과 감사 명령·계측 위치가 있다. 구현은 `Core/SourceChanges.cs`, `Runtime/JournalDeltaStore.cs`, `SourceControl.Git/GitSourceFingerprint.cs`, `Platform.Windows/WindowsSourceChanges.cs`와 `NtfsSnapshotWorkspaceBackend.cs`에 나뉜다.

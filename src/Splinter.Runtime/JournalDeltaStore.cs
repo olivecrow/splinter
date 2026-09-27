@@ -41,6 +41,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private long lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount, appendedBytes;
     private long replayBytes, replayTicks, journalReadBytes, baseReadBytes;
     private long replayFrames, replayReadCalls, replayReadTicks, replayValidationTicks, replayIndexTicks;
+    private readonly Dictionary<string, (long Frames, long ApplyTicks)> replayIndexOperations = [];
     private long expectedJournalBytes;
     private bool replaying;
 
@@ -249,7 +250,9 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             {
                 Metrics = new(epoch, lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount,
                     appendedBytes, replayBytes, replayTicks, journalReadBytes, baseReadBytes, Stopwatch.Frequency,
-                    replayFrames, replayReadCalls, replayReadTicks, replayValidationTicks, replayIndexTicks, ReplayReadBufferBytes)
+                    replayFrames, replayReadCalls, replayReadTicks, replayValidationTicks, replayIndexTicks, ReplayReadBufferBytes,
+                    replayIndexOperations.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                        .Select(pair => new ReplayIndexOperationMetrics(pair.Key, pair.Value.Frames, pair.Value.ApplyTicks)).ToArray())
             };
         }
     }
@@ -405,7 +408,14 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             finally { ArrayPool<byte>.Shared.Return(data); }
             long indexStarted = Stopwatch.GetTimestamp();
             try { Apply(mutation, cursor + 8 + metadataLength, dataLength); }
-            finally { replayIndexTicks += Stopwatch.GetTimestamp() - indexStarted; }
+            finally
+            {
+                long elapsed = Stopwatch.GetTimestamp() - indexStarted;
+                replayIndexTicks += elapsed;
+                // DecodeMutation restricts these keys to the nine journal operations.
+                var prior = replayIndexOperations.GetValueOrDefault(mutation.Operation);
+                replayIndexOperations[mutation.Operation] = (prior.Frames + 1, prior.ApplyTicks + elapsed);
+            }
             replayFrames++; cursor += frameLength;
         }
         // Only an incomplete trailing transaction is unacknowledged. Corrupt
@@ -507,9 +517,12 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 paths.Remove(node.Entry.Path); hidden.Add(node.Entry.Path); break;
             case "rename":
                 string old = node.Entry.Path, destination = mutation.Destination!;
+                // Reuse the same boundary prefix across both scans; allocating it
+                // per path makes replay cost grow with every indexed path/rename.
+                string childPrefix = old + "/";
                 if (paths.TryGetValue(destination, out var replaced) && replaced != node.Entry.Id)
                 { nodes[replaced].Entry = nodes[replaced].Entry with { Deleted = true }; paths.Remove(destination); }
-                var affected = paths.Keys.Where(p => p.Equals(old, StringComparison.OrdinalIgnoreCase) || IsChild(p, old)).ToArray();
+                var affected = paths.Keys.Where(p => p.Equals(old, StringComparison.OrdinalIgnoreCase) || p.StartsWith(childPrefix, StringComparison.OrdinalIgnoreCase)).ToArray();
                 foreach (string path in affected)
                 {
                     var moved = nodes[paths[path]]; paths.Remove(path);
@@ -518,7 +531,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 }
                 // A replayed rename may introduce a node not previously looked up.
                 node.Entry = node.Entry with { Path = destination }; paths[destination] = node.Entry.Id;
-                foreach (string path in hidden.Where(p => IsChild(p, old)).ToArray())
+                foreach (string path in hidden.Where(p => p.StartsWith(childPrefix, StringComparison.OrdinalIgnoreCase)).ToArray())
                 { hidden.Remove(path); hidden.Add(destination + path[old.Length..]); }
                 hidden.Add(old); break;
             default: throw new WorkspaceException("DeltaCorrupt", "Unknown journal operation.");

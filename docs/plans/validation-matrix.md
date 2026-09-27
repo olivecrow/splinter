@@ -1,6 +1,15 @@
 # 구현 계획 검증 추적표
 
-[VR-01~04](validation-view-readiness-and-replay.md)는 [작은 Unity 실행](../verification/validation-view-readiness-and-replay.md)을 제한을 포함해 마감했다. 현재 자동 시험은 296 통과·0 실패·선택적 ReFS 1 skip이다.
+[RI-01~04](replay-index-cost.md)는 [연산별 index 계측·rename 할당 개선과 offline 합성 비교](../verification/replay-index-cost.md)의 정의한 범위다. 현재 자동 시험은 300 통과·0 실패·선택적 ReFS 1 skip이다. 실제 Unity 재연결에서 RI 변경의 개선률은 NotRun이다.
+
+| 하위 관문 | 범위 | 판정 |
+| --- | --- | --- |
+| RI-01 | 최대 9개 연산의 replay 횟수·index 시간과 nullable 계약 | Passed, 자동·합성 관측의 합계와 신규 쓰기 제외 확인 |
+| RI-02 | 범위 쓰기·겹침/resize·다수 파일 rename의 제한된 입력 | Passed, 같은 봉인 입력·독립 기대 내용과 hash·파일 할당 확인 |
+| RI-03 | rename당 경로 접두사 한 번 생성 | Passed, 경계 형제·lazy child·whiteout·비ASCII/대소문자 경로와 재생 회귀 |
+| RI-04 | 기존/계측/개선의 반복 비교와 검증 | Passed, warm OS cache·소수 표본의 합성 범위. 실제 Unity·첫 렌더·대형 PV로 확대하지 않음 |
+
+[VR-01~04](validation-view-readiness-and-replay.md)는 [작은 Unity 실행](../verification/validation-view-readiness-and-replay.md)을 제한을 포함해 마감했다. 당시 자동 시험은 296 통과·0 실패·선택적 ReFS 1 skip이다.
 
 | 하위 관문 | 범위 | 판정 |
 | --- | --- | --- |

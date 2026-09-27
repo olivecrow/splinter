@@ -865,6 +865,16 @@
             "result": {"type":"string"}, "measurements": {"type":"string"}
           }
         },
+        "developmentReplayProbe": {
+          "type": "object", "additionalProperties": false,
+          "required": ["entrypoint", "inputs", "writes", "measurements"],
+          "properties": {
+            "entrypoint": {"type":"string", "minLength":1},
+            "inputs": {"type":"string", "minLength":1},
+            "writes": {"type":"string", "minLength":1},
+            "measurements": {"type":"string", "minLength":1}
+          }
+        },
         "snapshotOverlay": {
           "type": "object",
           "additionalProperties": false,
@@ -2195,6 +2205,18 @@
         "replayValidationTicks": {"type":["integer","null"], "minimum":0},
         "replayIndexTicks": {"type":["integer","null"], "minimum":0},
         "replayBufferBytes": {"type":["integer","null"], "minimum":0},
+        "replayIndexOperations": {
+          "type": ["array", "null"], "maxItems": 9,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["operation", "frames", "applyTicks"],
+            "properties": {
+              "operation": {"enum":["create","metadata","resize","write","write-compacted","rename","delete","skip-write","skip-range"]},
+              "frames": {"type":"integer", "minimum":1},
+              "applyTicks": {"type":"integer", "minimum":0}
+            }
+          }
+        },
         "journalReadBytes": {
           "type": "integer",
           "minimum": 0

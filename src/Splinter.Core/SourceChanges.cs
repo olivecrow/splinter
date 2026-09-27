@@ -16,13 +16,16 @@ public sealed record SourceInspectionMetrics(string Mode, long PayloadBytesHashe
     int FilesReused, long ManifestBytes, double ElapsedMilliseconds, string? Epoch = null, long? Sequence = null,
     long GitHashInputBytes = 0);
 
+public sealed record ReplayIndexOperationMetrics(string Operation, long Frames, long ApplyTicks);
+
 // Monotonic counters for this provider process only. Replay and current writes
 // are separate; retained allocation must be measured by the platform adapter.
 public sealed record OverlayIoMetrics(string Epoch, long LockAcquisitions, long LockWaitTicks,
     long FlushCount, long FlushTicks, long CommitCount, long JournalAppendedBytes,
     long ReplayBytes, long ReplayTicks, long JournalReadBytes, long BaseReadBytes, long StopwatchFrequency,
     long? ReplayFrames = null, long? ReplayReadCalls = null, long? ReplayReadTicks = null,
-    long? ReplayValidationTicks = null, long? ReplayIndexTicks = null, int? ReplayBufferBytes = null);
+    long? ReplayValidationTicks = null, long? ReplayIndexTicks = null, int? ReplayBufferBytes = null,
+    ReplayIndexOperationMetrics[]? ReplayIndexOperations = null);
 
 public static class SourcePathPolicy
 {

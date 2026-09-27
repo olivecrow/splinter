@@ -1,0 +1,45 @@
+using Splinter.Core;
+using Splinter.Runtime;
+
+namespace Splinter.Tests;
+
+public sealed class JournalRenameReplayTests
+{
+    [Theory]
+    [InlineData("dir", "moved")]
+    [InlineData("Dír", "Ünicode")]
+    [InlineData("MiXeD", "mixed")]
+    public void RenameKeepsBoundarySiblingsLazyChildrenAndWhiteoutsAcrossReplay(string from, string to)
+    {
+        using var d = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        tree.Files[from + "/loaded"] = [1]; tree.Files[from + "/lazy"] = [2];
+        tree.Files[from + "/nested/removed"] = [3]; tree.Files[from + "/nested/kept"] = [4];
+        tree.Files[from + "-sibling/untouched"] = [5];
+        var identity = new OverlayIdentity(1, "rename", tree.Snapshot, 1_000_000, 4096);
+        string delta = Path.Combine(d.Path, "delta"); Guid openFile;
+        void Check(JournalDeltaStore store)
+        {
+            foreach (var (path, expected) in new[] { (to + "/loaded", (byte)9), (to + "/lazy", (byte)2),
+                (to + "/nested/kept", (byte)4), (from + "-sibling/untouched", (byte)5) })
+            {
+                byte[] bytes = new byte[1]; store.Read(store.Stat(path)!.Id, 0, bytes); Assert.Equal(expected, bytes[0]);
+            }
+            Assert.Null(store.Stat(to + "/nested/removed"));
+            if (!from.Equals(to, StringComparison.OrdinalIgnoreCase))
+            { Assert.Null(store.Stat(to + "-sibling/untouched")); Assert.Null(store.Stat(from)); }
+        }
+        using (var store = new JournalDeltaStore(delta, identity, tree))
+        {
+            openFile = store.Stat(from + "/loaded")!.Id; store.Write(openFile, 0, [9]);
+            store.Delete(store.Stat(from + "/nested/removed")!.Id);
+            _ = store.Stat(from + "-sibling/untouched");
+            store.Rename(store.Stat(from.ToUpperInvariant())!.Id, to, false);
+            Check(store); Assert.Equal(openFile, store.Stat(to + "/loaded")!.Id);
+        }
+        using var replayed = new JournalDeltaStore(delta, identity, tree);
+        Check(replayed); Assert.Equal(openFile, replayed.Stat(to + "/loaded")!.Id);
+        Assert.Equal(1, Assert.Single(replayed.Observe().Metrics!.ReplayIndexOperations!, x => x.Operation == "rename").Frames);
+        Assert.Equal(new byte[] { 1 }, tree.Files[from + "/loaded"]);
+        Assert.Equal(new byte[] { 3 }, tree.Files[from + "/nested/removed"]);
+    }
+}

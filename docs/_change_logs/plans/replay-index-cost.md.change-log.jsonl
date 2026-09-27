@@ -1,0 +1,1 @@
+{"date":"2026-09-27","doc":"plans/replay-index-cost.md","change_type":"changed","summary":"Close the bounded operation profiling and one-bottleneck improvement scope","intent":"Reduce resume cost with measured synthetic evidence without promoting unrun Unity or storage support","related_files":["docs/verification/replay-index-cost.md"]}

@@ -215,9 +215,23 @@ public sealed class ContractAndCliTests
         node["preparation"] = JsonSerializer.SerializeToNode(new { storeReadyTicks = 1, stopwatchFrequency = 1000 });
         node["storage"] = JsonSerializer.SerializeToNode(store.Observe(), json);
         Assert.True(Valid());
+        var operationSchema = contracts.GetSchema("urn:splinter:v1:overlay-observation").GetProperty("properties")
+            .GetProperty("storage").GetProperty("properties").GetProperty("metrics").GetProperty("properties").GetProperty("replayIndexOperations");
+        var responseSchema = contracts.GetSchema("urn:splinter:v1:response").GetProperty("$defs")
+            .GetProperty("overlayIoMetrics").GetProperty("properties").GetProperty("replayIndexOperations");
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(operationSchema.GetRawText()), JsonNode.Parse(responseSchema.GetRawText())));
+        node["storage"]!["metrics"]!["replayIndexOperations"] = JsonNode.Parse("""[{"operation":"rename","frames":1,"applyTicks":0}]""");
+        Assert.True(Valid());
+        node["storage"]!["metrics"]!["replayIndexOperations"]![0]!["operation"] = "unknown";
+        Assert.False(Valid());
+        node["storage"]!["metrics"]!["replayIndexOperations"]![0]!["operation"] = "write";
+        node["storage"]!["metrics"]!["replayIndexOperations"]![0]!["frames"] = 0;
+        Assert.False(Valid());
+        node["storage"]!["metrics"]!["replayIndexOperations"] = null;
+        Assert.True(Valid());
         node["storage"]!["metrics"]!["replayReadCalls"] = -1;
         Assert.False(Valid());
-        foreach (string field in new[] { "replayFrames", "replayReadCalls", "replayReadTicks", "replayValidationTicks", "replayIndexTicks", "replayBufferBytes" })
+        foreach (string field in new[] { "replayFrames", "replayReadCalls", "replayReadTicks", "replayValidationTicks", "replayIndexTicks", "replayBufferBytes", "replayIndexOperations" })
             node["storage"]!["metrics"]!.AsObject().Remove(field);
         Assert.True(Valid()); // Legacy observations keep the breakdown unknown.
         node["preparation"]!["storeReadyTicks"] = -1;

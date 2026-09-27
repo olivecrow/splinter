@@ -12,4 +12,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Splinter.Tests/Splinter.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Splinter.ReplayProbe/Splinter.ReplayProbe.csproj" />
+  </Folder>
 </Solution>

@@ -13,6 +13,7 @@ public sealed class JournalReplayTests
             """{"Epoch":"old","LockAcquisitions":0,"LockWaitTicks":0,"FlushCount":0,"FlushTicks":0,"CommitCount":0,"JournalAppendedBytes":0,"ReplayBytes":12,"ReplayTicks":34,"JournalReadBytes":12,"BaseReadBytes":0,"StopwatchFrequency":10000000}""")!;
         Assert.Null(old.ReplayFrames); Assert.Null(old.ReplayReadCalls); Assert.Null(old.ReplayReadTicks);
         Assert.Null(old.ReplayValidationTicks); Assert.Null(old.ReplayIndexTicks); Assert.Null(old.ReplayBufferBytes);
+        Assert.Null(old.ReplayIndexOperations);
     }
 
     [Theory]
@@ -42,6 +43,10 @@ public sealed class JournalReplayTests
         var metrics = resumed.Observe().Metrics!;
         Assert.Equal(bytes.Length, metrics.ReplayBytes); Assert.Equal(301, metrics.ReplayFrames);
         Assert.Equal(65536, metrics.ReplayBufferBytes);
+        var indexCosts = metrics.ReplayIndexOperations!;
+        Assert.Equal(metrics.ReplayFrames, indexCosts.Sum(x => x.Frames));
+        Assert.Equal(metrics.ReplayIndexTicks, indexCosts.Sum(x => x.ApplyTicks));
+        Assert.Equal(300, Assert.Single(indexCosts, x => x.Operation == "write").Frames);
         Assert.InRange(metrics.ReplayReadCalls!.Value, 1, 30);
         Assert.True(metrics.ReplayReadTicks + metrics.ReplayValidationTicks + metrics.ReplayIndexTicks <= metrics.ReplayTicks);
         Assert.Equal(0, metrics.CommitCount); Assert.Equal(0, metrics.FlushCount); Assert.Equal(0, metrics.BaseReadBytes);
@@ -50,6 +55,32 @@ public sealed class JournalReplayTests
         { resumed.Read(id, offset, result); Assert.Equal(block, result); }
         resumed.Dispose();
         Assert.Equal(SHA256.HashData(bytes), SHA256.HashData(File.ReadAllBytes(journal)));
+    }
+
+    [Fact]
+    public void ReplayOperationBreakdownIsBoundedDetachedAndExcludesCurrentWrites()
+    {
+        using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        var identity = new OverlayIdentity(1, "operations", tree.Snapshot, 1_000_000, 4096);
+        string delta = Path.Combine(dir.Path, "delta");
+        using (var store = new JournalDeltaStore(delta, identity, tree))
+        {
+            var file = store.Create("first", false, 32);
+            store.Write(file.Id, 0, [1, 2]); store.SetLength(file.Id, 8);
+            store.SetMetadata(file.Id, 32, 2, 2, 2); store.Rename(file.Id, "last", false); store.Delete(file.Id);
+            Assert.Empty(store.Observe().Metrics!.ReplayIndexOperations!);
+        }
+        using var resumed = new JournalDeltaStore(delta, identity, tree);
+        var metrics = resumed.Observe().Metrics!;
+        var costs = metrics.ReplayIndexOperations!;
+        Assert.Equal(new[] { "create", "delete", "metadata", "rename", "resize", "write" }, costs.Select(x => x.Operation));
+        Assert.All(costs, x => { Assert.Equal(1, x.Frames); Assert.True(x.ApplyTicks >= 0); });
+        Assert.Equal(metrics.ReplayFrames, costs.Sum(x => x.Frames));
+        Assert.Equal(metrics.ReplayIndexTicks, costs.Sum(x => x.ApplyTicks));
+        costs[0] = new("changed", 99, 99);
+        Assert.Equal("create", resumed.Observe().Metrics!.ReplayIndexOperations![0].Operation);
+        resumed.Create("new-live-write", false, 32);
+        Assert.Equal(6, resumed.Observe().Metrics!.ReplayFrames);
     }
 
     [Fact]

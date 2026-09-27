@@ -1,0 +1,1 @@
+{"date":"2026-09-27","doc":"replay-profiling.md","change_type":"changed","summary":"Define synthetic-only generation, read-only replay and memory timing interpretation","intent":"Reduce resume cost with measured synthetic evidence without promoting unrun Unity or storage support","related_files":["tools/Splinter.ReplayProbe/Program.cs"]}
