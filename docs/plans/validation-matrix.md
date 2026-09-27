@@ -1,5 +1,7 @@
 # 구현 계획 검증 추적표
 
+[코드 품질 검토의 다섯 수정](../verification/code-quality-review-fixes.md)은 빈 파일 왕복/재연결, 정리 오류 5종의 보존 분류, 실제 브리지 소스의 fixture 독립성, Git 배치 hash, sparse extent의 bounded read를 자동 검증한다. 이 후보의 live VSS/WinFsp·실제 Unity·ARM·대형 PV는 NotRun이며 이전 후보의 아래 실행 결과와 구별한다.
+
 | ID | FR 첫 미리보기 검사 | 상태 |
 | --- | --- | --- |
 | FR-01 | cold 첫 PNG 재현과 API/셰이더/연속 draw의 원인 분리 | Passed, 작은 fixture. 진단 PNG의 중간 육안 판독 정정, Unity 내부 첫 draw 원인 미확정 |

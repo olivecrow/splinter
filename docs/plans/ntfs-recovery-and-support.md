@@ -53,7 +53,7 @@ PV-01의 출발점은 현재 지원하는 짧은 home·clean 저장소 루트·C
 
 VIVOBOOK의 이전 후보는 삭제된 정확한 snapshot의 현재 부팅 내 부재를 확인했다. 새 로컬 후보는 살아 있는 VSS ID·native provider·volume identity 대조, 불변 identity/현재 읽기 위치 분리, 비관리자 재개·legacy 보존까지 구현·검증했다. 캡처와 관측의 현재 계약은 [NTFS 작업공간](../ntfs-workspaces.md), 새 증거는 [LV 기록](../verification/ntfs-live-vss-identity.md)에 있다. 아래의 나머지 중단·파일 조건과 NR-04/06/08은 남아 있다.
 
-현재 `SplinterSnapshotProbe` 자체 callback은 값·generation·PID를 기록하고 assembly MVID는 기록하지 않는다. 제품 WorkspaceBridge의 Ready heartbeat는 현재 로드된 값·generation·assemblyMvid·PID를 보고한다. NR-08과 PV에서는 실제 필드·관측 시각·변경한 함수를 먼저 확인하고 부족한 계측만 보완한다. 이전 callback이나 준비되지 않은 필드를 최신 loaded-code 증거로 보고하지 않는다.
+현재 `SplinterSnapshotProbe` 자체 callback은 값·generation·PID를 기록하고 assembly MVID는 기록하지 않는다. 제품 WorkspaceBridge heartbeat는 프로젝트/fixture 코드를 실행하지 않는다. NR-08과 PV의 loaded-code 증거는 공통 Qualification fixture의 새 `inspect` 응답에서 같은 요청 ID·PID·경로·generation·assemblyMvid·시각과 실제 바꾼 함수의 실행 값을 확인한다. 이전 callback이나 준비되지 않은 필드를 최신 증거로 보고하지 않는다.
 
 ### 2. 명령 경계와 데이터 지속성
 

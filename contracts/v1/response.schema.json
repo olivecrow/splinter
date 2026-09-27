@@ -2246,6 +2246,16 @@
             }
           }
         },
+        "readRangeIndex": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["readCalls", "searchProbes", "visitedExtents"],
+          "properties": {
+            "readCalls": { "type": "integer", "minimum": 0 },
+            "searchProbes": { "type": "integer", "minimum": 0 },
+            "visitedExtents": { "type": "integer", "minimum": 0 }
+          }
+        },
         "liveJournalWrites": {
           "type": ["object", "null"], "additionalProperties": false,
           "required": ["mutationGateCalls", "mutationGateWaitTicks", "operations"],
@@ -2345,6 +2355,10 @@
         },
         "sequence": {
           "type": "integer",
+          "minimum": 0
+        },
+        "gitHashProcesses": {
+          "type": ["integer", "null"],
           "minimum": 0
         },
         "gitHashInputBytes": {

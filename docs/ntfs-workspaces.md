@@ -42,7 +42,7 @@ splinter workspace checkpoint --id <id> --message <결과 설명> --home <상태
 splinter workspace release --id <id> --home <상태 경로>
 ```
 
-NTFS refresh는 incremental compilation을 요청한다. 일반 제품의 전체 대상 소스 fingerprint를 요청 ID·컴파일 callback·domain reload와 연결한다. 검증 뒤 소스나 `.meta`가 바뀌면 이전 성공은 무효다. `Accepted`는 접수이며 `workspace.validation.success`와 현재 fingerprint 일치가 완료 조건이다. 변경 없는 incremental 요청에서 reload가 없으면 성공을 발행하지 않는다. 현재 실제 실행 관문은 스크립트 변경 후 검증이며 일반 에셋·패키지 검증은 별도다. fixture의 `snapshot-probe.json`은 현재 로드된 코드의 값·PID·generation을 추가로 기록하며 전체 소스 검증을 대체하지 않는다. fixture 자체 보고에는 MVID가 없다. 제품 WorkspaceBridge의 Ready heartbeat는 같은 파일에 현재 로드된 함수의 값·domain generation·assemblyMvid·PID를 추가 보고한다.
+NTFS refresh는 incremental compilation을 요청한다. 일반 제품의 전체 대상 소스 fingerprint를 요청 ID·컴파일 callback·domain reload와 연결한다. 검증 뒤 소스나 `.meta`가 바뀌면 이전 성공은 무효다. `Accepted`는 접수이며 `workspace.validation.success`와 현재 fingerprint 일치가 완료 조건이다. 변경 없는 incremental 요청에서 reload가 없으면 성공을 발행하지 않는다. 현재 실제 실행 관문은 스크립트 변경 후 검증이며 일반 에셋·패키지 검증은 별도다. 제품 WorkspaceBridge의 heartbeat는 fixture나 프로젝트 함수를 호출하지 않는다. 실제 로드된 코드 증거는 공통 Qualification fixture의 새 `inspect` 응답에서 같은 request ID·projectPath·PID·generation·assemblyMvid와 실행 값 A/B/original을 확인한다. fixture 초기 callback의 `snapshot-probe.json`은 MVID가 없고 최신 reload를 보장하지 않으므로 그 파일만으로 현재 성공을 판단하지 않는다. fixture 계측은 전체 소스 검증을 대체하지 않는다.
 
 `workspace compact`는 **최종 결과 수집 전**의 연결된 NTFS 작업공간 하나에서 명시적으로 실행한다. 소유 Editor와 자식 프로세스가 종료되고 mount의 열린 핸들이 0이며 snapshot 가용성과 소유권이 확인돼야 한다. 같은 workspace의 다른 수명주기 명령은 `compact-*` 단계 동안 거부한다. provider를 멈춘 뒤 unmount 전후 저널 seal을 대조하고, 원래 snapshot·작업 ID·Git 등록을 그대로 사용해 새 저널 세대를 검증·발행·재연결한다. 새 결과를 수집하기 전에 기존 validation을 무효화하므로 `sourceVerification`과 새 validation을 다시 확인한다. 이미 완료한 세대의 같은 명령 재시도는 seal이 같을 때 읽기 전용 결과를 반환하며, 이후 새 쓰기가 있으면 다시 명시적으로 압축할 수 있다. `checkpoint`를 중간 압축용으로 사용하지 않는다.
 
@@ -133,7 +133,8 @@ snapshot이 소실된 뒤에는 `stable-journal-v1`로 수집한 독립 결과�
 | `SnapshotFileUnsupported`, `SnapshotFilterUnsupported` | 지원하지 않는 입력을 별도 검증 대상으로 유지 |
 | `SnapshotHeadroomRequired`, `DeltaFull` | 기존 결과를 보존하고 공간/한도와 helper 관측 확인. 자동 삭제·전체 복사 없음 |
 | `CompactionClientsRemain`, `CompactionProviderNotStopped` | 소유 Editor·프로세스와 mount 핸들 관측을 해결한 뒤 같은 `workspace compact` 재시도 |
-| `CompactionHeadroomRequired`, `CompactionGenerationMismatch`, `CompactionStateMismatch`, `CompactionCandidateMismatch` | 세대·intent·여유 공간을 보존하고 정확한 원인을 확인. snapshot이나 이전 저널을 먼저 삭제하지 않음 |
+| `CompactionHeadroomRequired` | 여유 공간을 확보한 뒤 같은 ID/home으로 정리 재시도. snapshot이나 이전 저널을 먼저 삭제하지 않음 |
+| `CompactionGenerationMismatch`, `CompactionStateMismatch`, `CompactionCandidateMismatch`, `CompactionIntentCorrupt`, `CompactionIntentMismatch` | Core 공통 보존 정책. 실패 응답은 `requires-user-action`과 같은 ID/절대 home의 `workspace.status`, 지속 recovery는 `preserve`. 세대·intent·후보를 보존하고 원인을 확인 |
 | `OverlayClientsRemain`, `ProcessCleanupIncomplete` | 소유 앱/자식 종료 상태 확인 후 재호출 |
 | `OverlayStartUncertain`, `LaunchUncertain` | 정확한 실행 intent·PID/시작 시각·generation 조사. 중복 실행/강제 회수 없음 |
 | `UncollectedChanges`, `UnownedIgnoredFiles`, `DeltaChangedAfterCollection` | 유일한 변경을 보존하고 검증/결과 정합성 확인 |

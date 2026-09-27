@@ -21,7 +21,7 @@
 - 제품은 clean `development`, `591d53fe5dc66e632eb92cdb8e108df7497b0fb6`에서 시작했다. 보관된 [소스 manifest](../../artifacts/ntfs-recovery/nr07-release-observation-20260921/source-manifest.json)의 121개 파일 hash가 현재 파일과 모두 일치했다. aggregate는 `78d285261a1a5899f137c39e1193eb3dc0c6e00d1d4523870bdd709c7af7140e`다.
 - 같은 기록의 [final-build.trx](../../artifacts/ntfs-recovery/nr07-release-observation-20260921/final-build.trx)는 총 140개 중 139 통과·0 실패·선택적 ReFS 1개 미실행이다. 이번 계획 작업에서 빌드·제품 시험을 재실행한 수치가 아니다.
 - 형제 Unity fixture는 clean `development`, `46e7f4dbdb219e4afa602f3598a3de9ff4070fae`, `6000.3.22f1`이다. 원격의 [최종 보고](../../artifacts/remote-vivobook/transfer/vivobook-report-1790004706952742900.json)는 검증 2건·남은 소유 workspace 자원 0·세션 정리 완료를 기록한다. 원격 현재 OS 상태를 새로 관측한 결과가 아니다.
-- 실행 범위의 원본은 [NI 기록](../verification/ntfs-workspace-integration.md)과 [NR 기록](../verification/ntfs-recovery.md)이다. fixture 자체 probe는 값·generation·PID를 기록한다. 제품 WorkspaceBridge는 Ready heartbeat에서 현재 함수의 값·domain generation·MVID·PID를 같은 파일에 별도로 기록하며 LV 구현 중 실제 보고를 확인했다.
+- 실행 범위의 원본은 [NI 기록](../verification/ntfs-workspace-integration.md)과 [NR 기록](../verification/ntfs-recovery.md)이다. LV 당시에는 제품 WorkspaceBridge의 Ready heartbeat가 함수 값·domain generation·MVID·PID를 보고했다. 현재 제품 heartbeat는 fixture를 호출하지 않으며 새 loaded-code 검증에는 공통 Qualification fixture의 요청 ID가 일치하는 `inspect` 응답을 사용한다. 과거 LV 영수증과 현재 호출 계약을 구분한다.
 
 ## 계획 당시 경계와 변경 책임
 

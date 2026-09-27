@@ -163,6 +163,9 @@
           "xunit.v3.runner.common": "[4.0.1]"
         }
       },
+      "Assembly-CSharp": {
+        "type": "Project"
+      },
       "splinter": {
         "type": "Project",
         "dependencies": {
@@ -201,7 +204,8 @@
       "splinter.protocol": {
         "type": "Project",
         "dependencies": {
-          "JsonSchema.Net": "[9.4.0, )"
+          "JsonSchema.Net": "[9.4.0, )",
+          "Splinter.Core": "[0.1.0-dev, )"
         }
       },
       "splinter.runtime": {

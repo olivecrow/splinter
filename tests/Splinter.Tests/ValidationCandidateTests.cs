@@ -196,4 +196,37 @@ public sealed class ValidationCandidateTests
         Assert.Equal("NEW content", Read(view, "Temp/private-again"));
         Assert.Null(view.Stat("Assets/code.cs"));
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("intent")]
+    [InlineData("staged")]
+    [InlineData("published")]
+    [InlineData("source-removed")]
+    public void EmptyPrivateFileCanReturnToItsOriginalPartitionAndReconnect(string? interruption)
+    {
+        using var dir = new TestDirectory(); var tree = Tree(); string a = Export(dir.Path, "A", tree);
+        string source = Path.Combine(dir.Path, "source"), cache = Path.Combine(dir.Path, "cache");
+        Guid id; bool returning = false;
+        using (var view = new ValidationViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots),
+                   stage => { if (returning && stage == interruption) throw new IOException("interrupted return"); }))
+        {
+            view.Create("Temp", true, 16); Write(view, "Temp/private", "old ranges");
+            id = view.Stat("Temp/private")!.Id;
+            view.Rename(id, "Assets/private", false);
+            view.SetLength(id, 0); returning = true;
+            if (interruption is null) view.Rename(id, "Temp/private-again", false);
+            else Assert.Throws<IOException>(() => view.Rename(id, "Temp/private-again", false));
+        }
+        using var resumed = new ValidationViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots));
+        Assert.Null(resumed.Stat("Assets/private"));
+        Assert.Equal(id, resumed.Stat("Temp/private-again")!.Id);
+        Assert.Equal("", Read(resumed, "Temp/private-again"));
+        // Extending the returned empty file must not resurrect its old payload.
+        resumed.SetLength(id, 10);
+        var bytes = new byte[10]; Assert.Equal(10, resumed.Read(id, 0, bytes));
+        Assert.Equal(new byte[10], bytes);
+        Assert.False(File.Exists(Path.Combine(cache, "partition-transfer.json")));
+        Assert.Equal(0, tree.ReadBytes);
+    }
 }

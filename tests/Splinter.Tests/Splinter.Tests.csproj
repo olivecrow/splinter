@@ -8,6 +8,7 @@
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
     <ProjectReference Include="../../src/Splinter.Cli/Splinter.Cli.csproj" />
+    <ProjectReference Include="../Splinter.UnityBridgeHarness/Splinter.UnityBridgeHarness.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>

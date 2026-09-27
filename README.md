@@ -1,5 +1,7 @@
 # Splinter
 
+[코드 품질 검토의 다섯 수정](docs/verification/code-quality-review-fixes.md)은 빈 private 파일 왕복·정리 오류 보존 계약·제품 heartbeat의 fixture 의존성을 바로잡고, Git hash 배치와 범위 읽기 탐색을 개선한다. 현재 후보의 자동 회귀와 실환경 미실행 경계는 해당 기록을 따른다. 아래 FR/JW/WI 등 실행 수치는 각 당시 후보의 증거다.
+
 [첫 미리보기 검사](docs/verification/first-render-qualification.md)의 FR-01~04를 작은 URP fixture 범위에서 제한을 포함해 마감했다. 한 요청에서 최대 두 번 중 첫 유효 화면을 채택하고 요청별 PNG·해시·픽셀 계수를 확인한다. 새 Library·코드 reload·Editor 재시작의 첫 검사 3건과 빈 화면·누락 참조·출력 충돌의 실패/복구 3종을 통과했다. 독립 결과 2개·원본/ref/타 snapshot 보존·소유 자원 회수·VHD 분리 뒤 결과 검증을 완료했으며 제품 자동 시험은 303 통과·0 실패·선택적 ReFS 1 skip이다. 진단 화면의 중간 육안 판독 정정과 정상 stop timeout 2건의 재확인을 기록한다. Unity 내부 첫 draw 원인은 미확정이며 [현재 검사 계약](docs/unity-render-qualification.md)은 제품 workspace validation API와 구별한다.
 
 [Live journal 쓰기 비용 검증](docs/verification/live-journal-write-cost.md)의 JW-01~04를 제한을 포함해 마감했다. 고정 연산별 commit 단계와 mutation 대기를 계측하고 [WriteProbe](docs/write-profiling.md)의 합성 18회·새 작은 Unity를 검증했다. 첫 준비 1,186.16초, commit 내부 848.16초 중 flush 828.38초, 후속 수정 검증 32.32초와 소유 파일 할당 관측 최고 약 2.286GB를 확인했다. Windows callback의 선행 직렬화 때문에 Runtime 단독 group flush 구현은 선정하지 않았다. 개별 acknowledged write의 내구성 정책을 유지하며 첫 PNG·후속 reload 뒤 첫 PNG의 빈 화면과 물리 절감 미입증을 기록한다. 독립 결과·원본/ref/타 snapshot 보존·소유 자원 회수·VHD 분리 뒤 결과 검증을 완료했고 자동 시험은 303 통과·0 실패·선택적 ReFS 1 skip이다.

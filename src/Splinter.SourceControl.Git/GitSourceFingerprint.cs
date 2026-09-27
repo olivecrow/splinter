@@ -43,6 +43,7 @@ public sealed partial class GitWorkspaceProvider
         var cached = reusable ? prior!.Files.ToDictionary(f => f.Path, StringComparer.Ordinal) : [];
         var invalidated = reusable ? before!.Changes.Where(p => p.Sequence > prior!.Sequence).Select(p => p.Path).ToArray() : [];
         var hashes = new List<FileHash>(files.Length);
+        var needsGitHash = new List<string>();
         long payload = 0, gitHashInput = 0;
         int readFiles = 0, reusedFiles = 0;
         using var fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -70,10 +71,9 @@ public sealed partial class GitWorkspaceProvider
                 if (unchanged && prior!.Interpretation == interpretation) gitHash = item!.GitHash;
                 else
                 {
-                    // Git's stat cache may report clean after same-size/mtime
-                    // writes. Hash content through Git's qualified EOL policy,
-                    // independently of that cache, without writing an object.
-                    gitHash = await Required(workspace.Path, ["hash-object", "--path=" + relative, "--", relative], ct);
+                    // Keep raw and Git hashes separate. Batch names through stdin
+                    // so every file retains its own attributes/EOL interpretation.
+                    needsGitHash.Add(relative);
                     gitHashInput += new FileInfo(full).Length;
                 }
             }
@@ -81,6 +81,25 @@ public sealed partial class GitWorkspaceProvider
             byte[] name = Encoding.UTF8.GetBytes(relative);
             fingerprint.AppendData(BitConverter.GetBytes(name.Length)); fingerprint.AppendData(name);
             fingerprint.AppendData([1]); fingerprint.AppendData(Convert.FromHexString(fileHash));
+        }
+        int gitHashProcesses = 0;
+        if (needsGitHash.Count != 0)
+        {
+            var gitHashes = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (string[] batch in needsGitHash.Chunk(256))
+            {
+                ct.ThrowIfCancellationRequested();
+                string input = string.Join('\n', batch.Select(QuoteGitPath)) + "\n";
+                var result = await Run(workspace.Path, ["hash-object", "--stdin-paths"], ct, input);
+                gitHashProcesses++;
+                if (result.ExitCode != 0) throw Error("GitCommandFailed", result.Error.Trim());
+                string[] values = result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(v => v.TrimEnd('\r')).ToArray();
+                if (values.Length != batch.Length || values.Any(v => v.Length is not (40 or 64) || !v.All(char.IsAsciiHexDigit)))
+                    throw Error("GitHashOutputInvalid", "Git did not return exactly one content hash per source path.");
+                for (int i = 0; i < batch.Length; i++) gitHashes.Add(batch[i], values[i]);
+            }
+            for (int i = 0; i < hashes.Count; i++)
+                if (hashes[i].GitHash is null) hashes[i] = hashes[i] with { GitHash = gitHashes[hashes[i].Path] };
         }
         // Git's index/HEAD live outside the overlay. Check membership as well as
         // the journal barrier; neither mtime nor git status is a content oracle.
@@ -124,7 +143,7 @@ public sealed partial class GitWorkspaceProvider
         }
         string mode = before is null ? "full" : auditSource ? "audit" : reusable ? "incremental" : prior is null ? "initial" : "rebuild";
         var inspection = new SourceInspectionMetrics(mode, payload, readFiles, reusedFiles, manifestBytes,
-            clock.Elapsed.TotalMilliseconds, before?.Epoch, before?.Sequence, gitHashInput);
+            clock.Elapsed.TotalMilliseconds, before?.Epoch, before?.Sequence, gitHashInput, gitHashProcesses);
         if (cachePath is not null)
         {
             string measurements = Path.Combine(Path.GetDirectoryName(cachePath)!, "source-inspections.jsonl");
@@ -137,6 +156,20 @@ public sealed partial class GitWorkspaceProvider
         {
             Inspection = inspection
         };
+    }
+
+    private static string QuoteGitPath(string path)
+    {
+        // --stdin-paths uses Git's C-style quoted byte strings, not JSON or
+        // shell quoting. Octal UTF-8 also preserves newlines and non-ASCII names.
+        var quoted = new StringBuilder("\"");
+        foreach (byte value in Encoding.UTF8.GetBytes(path))
+        {
+            if (value is (byte)'"' or (byte)'\\') quoted.Append('\\').Append((char)value);
+            else if (value is < 32 or >= 127) quoted.Append('\\').Append(Convert.ToString(value, 8).PadLeft(3, '0'));
+            else quoted.Append((char)value);
+        }
+        return quoted.Append('"').ToString();
     }
 
     private static async Task<string[]> SourceFiles(WorkspaceRecord workspace, CancellationToken ct) =>

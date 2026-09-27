@@ -310,6 +310,13 @@ public sealed partial class WorkspaceCoordinator
             }
             return await ViewAsync(w, ct);
         }
-        catch (Exception ex) { RecordFailure(w, ex); throw; }
+        catch (Exception ex)
+        {
+            RecordFailure(w, ex);
+            if (ex is WorkspaceException failure && WorkspaceFailurePolicy.RequiresPreservation(failure.Code))
+                throw new WorkspaceException(failure.Code, failure.Message, failure.Details,
+                    [new("workspace.status", new { id, home = store.Root }, true)]);
+            throw;
+        }
     }
 }

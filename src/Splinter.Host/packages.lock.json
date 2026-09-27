@@ -27,7 +27,8 @@
       "splinter.protocol": {
         "type": "Project",
         "dependencies": {
-          "JsonSchema.Net": "[9.4.0, )"
+          "JsonSchema.Net": "[9.4.0, )",
+          "Splinter.Core": "[0.1.0-dev, )"
         }
       },
       "JsonSchema.Net": {

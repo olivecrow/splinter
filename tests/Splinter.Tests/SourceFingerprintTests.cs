@@ -8,6 +8,47 @@ namespace Splinter.Tests;
 
 public sealed class SourceFingerprintTests
 {
+    [Theory]
+    [InlineData("false")]
+    [InlineData("true")]
+    public async Task BatchedHashesPreservePathSpecificConversionAcrossRestartAndAudit(string autoCrlf)
+    {
+        using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
+        await TestDirectory.Git(f.Workspace.Path, "config", "core.autocrlf", autoCrlf);
+        File.WriteAllText(f.Path(".gitattributes"), "*.txt text eol=lf\n*.bin -text\n"); f.Tracker.Mark(".gitattributes");
+        Directory.CreateDirectory(f.Path("자료 폴더"));
+        for (int i = 0; i < 520; i++)
+        {
+            string name = $"자료 폴더/file {i:D3}.txt";
+            File.WriteAllText(f.Path(name), $"line {i}\r\nnext\r\n"); f.Tracker.Mark(name);
+        }
+        string[] special = OperatingSystem.IsWindows() ? ["-leading.txt", "binary.bin"] :
+            ["-leading.txt", "binary.bin", "\"quoted.txt", "line\nbreak.txt", "tab\tname.txt"];
+        foreach (string name in special)
+        { File.WriteAllBytes(f.Path(name), [0, 13, 10, 255]); f.Tracker.Mark(name); }
+        var first = await f.Provider().InspectAsync(f.Workspace, ct);
+        Assert.Equal(3, first.Inspection!.GitHashProcesses);
+        Assert.Equal(await f.Oracle(), first.Fingerprint);
+        await CheckGitHashes();
+        var unchanged = await f.Provider().InspectAsync(f.Workspace, ct);
+        Assert.Equal(0, unchanged.Inspection!.GitHashProcesses);
+        f.Tracker.Epoch = "restarted";
+        var rebuilt = await f.Provider().InspectAsync(f.Workspace, ct);
+        Assert.Equal(3, rebuilt.Inspection!.GitHashProcesses); Assert.Equal(first.Fingerprint, rebuilt.Fingerprint);
+        var audited = await f.Provider(true).InspectAsync(f.Workspace, ct);
+        Assert.Equal(3, audited.Inspection!.GitHashProcesses); Assert.Equal(first.Fingerprint, audited.Fingerprint);
+        await CheckGitHashes();
+
+        async Task CheckGitHashes()
+        {
+            using var manifest = JsonDocument.Parse(File.ReadAllText(f.Tracker.CachePath(f.Workspace)));
+            var hashes = manifest.RootElement.GetProperty("value").GetProperty("files").EnumerateArray()
+                .ToDictionary(e => e.GetProperty("path").GetString()!, e => e.GetProperty("gitHash").GetString()!);
+            foreach (string name in special.Concat(new[] { "자료 폴더/file 000.txt", "자료 폴더/file 255.txt", "자료 폴더/file 256.txt", "자료 폴더/file 519.txt" }))
+                Assert.Equal(await TestDirectory.Git(f.Workspace.Path, "hash-object", "--path=" + name, "--", name), hashes[name]);
+        }
+    }
+
     [Fact]
     public async Task NewCliReusesLargeFilesAndDetectsSameSizeSameTimeWrites()
     {

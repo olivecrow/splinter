@@ -7,6 +7,48 @@ namespace Splinter.Tests;
 
 public sealed class UnityWorkspaceProviderTests
 {
+    [Theory]
+    [InlineData("0")]
+    [InlineData("1")]
+    public async Task ProductHeartbeatDoesNotExecuteThrowingProjectCode(string incremental)
+    {
+        using var directory = new TestDirectory();
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
+        var start = new ProcessStartInfo("dotnet")
+        {
+            UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true
+        };
+        foreach (string argument in new[] { "exec", "--runtimeconfig",
+            Path.ChangeExtension(typeof(UnityWorkspaceProviderTests).Assembly.Location, ".runtimeconfig.json"),
+            typeof(UnityBridgeHarness.HarnessMarker).Assembly.Location, "-splinterControlPath", directory.Path,
+            "-splinterToken", "test-token", "-splinterIncrementalCompilation", incremental })
+            start.ArgumentList.Add(argument);
+        using var process = Process.Start(start)!;
+        var output = process.StandardOutput.ReadToEndAsync(timeout.Token);
+        var error = process.StandardError.ReadToEndAsync(timeout.Token);
+        try { await process.WaitForExitAsync(timeout.Token); }
+        finally { if (!process.HasExited) { process.Kill(true); await process.WaitForExitAsync(CancellationToken.None); } }
+        Assert.True(process.ExitCode == 0, await error);
+        using var result = JsonDocument.Parse(await output);
+        var root = result.RootElement;
+        Assert.Equal(0, root.GetProperty("fixtureCalls").GetInt32());
+        Assert.Empty(root.GetProperty("errors").EnumerateArray());
+        Assert.False(root.GetProperty("pendingExists").GetBoolean());
+        var heartbeats = root.GetProperty("heartbeats").EnumerateArray().ToArray();
+        Assert.Equal(new[] { "ready", "compiling", "ready" }, heartbeats.Select(b => b.GetProperty("phase").GetString()));
+        Assert.All(heartbeats, b =>
+        {
+            Assert.Equal(process.Id, b.GetProperty("pid").GetInt32());
+            Assert.Equal("test-token", b.GetProperty("token").GetString());
+            Assert.True(b.GetProperty("validation").GetProperty("success").GetBoolean());
+            Assert.Equal("compiled-before-reload", b.GetProperty("validation").GetProperty("requestId").GetString());
+        });
+        Assert.True(heartbeats[0].GetProperty("ready").GetBoolean());
+        Assert.False(heartbeats[1].GetProperty("ready").GetBoolean());
+        Assert.True(heartbeats[2].GetProperty("ready").GetBoolean());
+    }
+
     [Fact]
     public async Task CompatibilityIgnoresCheckoutLineEndings()
     {

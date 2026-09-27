@@ -309,10 +309,12 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
         if (result.ExitCode != 0 && !(allowSourceChanges && result.ExitCode == 1 && result.Error.Length == 0))
             throw Error("GitCommandFailed", result.Error.Trim());
     }
-    private static async Task<CommandResult> Run(string cwd, string[] args, CancellationToken ct)
+    private static async Task<CommandResult> Run(string cwd, string[] args, CancellationToken ct, string? input = null)
     {
         var start = new ProcessStartInfo("git") { WorkingDirectory = cwd, UseShellExecute = false,
-            RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
+            RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true,
+            RedirectStandardInput = input is not null };
+        if (input is not null) start.StandardInputEncoding = new UTF8Encoding(false);
         foreach (string key in start.Environment.Keys.Where(key => key.StartsWith("GIT_", StringComparison.OrdinalIgnoreCase)).ToArray()) start.Environment.Remove(key);
         start.Environment["GIT_TERMINAL_PROMPT"] = "0";
         start.Environment["GIT_OPTIONAL_LOCKS"] = "0";
@@ -331,7 +333,11 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
             // or create Git objects. Keep a bounded deadline without treating
             // ordinary large-project work as a hung metadata query.
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromMinutes(10));
-            try { await process.WaitForExitAsync(timeout.Token); }
+            try
+            {
+                Task send = input is null ? Task.CompletedTask : SendInput();
+                await Task.WhenAll(process.WaitForExitAsync(timeout.Token), send);
+            }
             catch (OperationCanceledException)
             {
                 if (!process.HasExited) process.Kill(entireProcessTree: true);
@@ -339,7 +345,19 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
                 if (ct.IsCancellationRequested) throw;
                 throw Error("GitCommandTimeout", "Git exceeded the 10-minute workspace operation limit; inspect the persisted operation and remaining locks before retrying.");
             }
+            catch
+            {
+                if (!process.HasExited) process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync(CancellationToken.None);
+                throw;
+            }
             return new(process.ExitCode, await stdout, await stderr);
+
+            async Task SendInput()
+            {
+                await process.StandardInput.WriteAsync(input.AsMemory(), timeout.Token);
+                process.StandardInput.Close();
+            }
         }
     }
     private static string[] SplitZero(string text) => text.Split('\0', StringSplitOptions.RemoveEmptyEntries);

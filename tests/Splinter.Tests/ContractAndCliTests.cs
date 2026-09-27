@@ -73,6 +73,16 @@ public sealed class ContractAndCliTests
         Assert.True(fresh.GetProperty("data").GetProperty("source").GetProperty("hasChanges").GetBoolean());
         Assert.False(fresh.GetProperty("data").GetProperty("validationCurrent").GetBoolean());
         Assert.Null(store.Get(id).Validation);
+        var node = JsonNode.Parse(fresh.GetRawText())!;
+        var inspection = node["data"]!["source"]!["inspection"]!;
+        Assert.Equal(0, inspection["gitHashProcesses"]!.GetValue<int>()); // git-checkout uses the existing full inspection path.
+        inspection["gitHashProcesses"] = -1;
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        inspection["gitHashProcesses"] = null;
+        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        inspection.AsObject().Remove("gitHashProcesses");
+        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        Assert.Null(inspection.Deserialize<SourceInspectionMetrics>(ApiJson.Options)!.GitHashProcesses);
     }
 
     [Theory]
@@ -231,6 +241,17 @@ public sealed class ContractAndCliTests
         var liveResponseSchema = contracts.GetSchema("urn:splinter:v1:response").GetProperty("$defs")
             .GetProperty("overlayIoMetrics").GetProperty("properties").GetProperty("liveJournalWrites");
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse(liveSchema.GetRawText()), JsonNode.Parse(liveResponseSchema.GetRawText())));
+        var readSchema = contracts.GetSchema("urn:splinter:v1:overlay-observation").GetProperty("properties")
+            .GetProperty("storage").GetProperty("properties").GetProperty("metrics").GetProperty("properties").GetProperty("readRangeIndex");
+        var readResponseSchema = contracts.GetSchema("urn:splinter:v1:response").GetProperty("$defs")
+            .GetProperty("overlayIoMetrics").GetProperty("properties").GetProperty("readRangeIndex");
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(readSchema.GetRawText()), JsonNode.Parse(readResponseSchema.GetRawText())));
+        node["storage"]!["metrics"]!["readRangeIndex"]!["searchProbes"] = -1;
+        Assert.False(Valid());
+        node["storage"]!["metrics"]!["readRangeIndex"]!["searchProbes"] = 0;
+        Assert.True(Valid());
+        node["storage"]!["metrics"]!["readRangeIndex"] = null;
+        Assert.True(Valid());
         node["storage"]!["metrics"]!["liveJournalWrites"]!["operations"]![0]!["waitingMutationsAtFlushStart"]![0] = -1;
         Assert.False(Valid());
         node["storage"]!["metrics"]!["liveJournalWrites"]!["operations"]![0]!["waitingMutationsAtFlushStart"]![0] = 1;
@@ -250,7 +271,7 @@ public sealed class ContractAndCliTests
         Assert.True(Valid());
         node["storage"]!["metrics"]!["replayReadCalls"] = -1;
         Assert.False(Valid());
-        foreach (string field in new[] { "replayFrames", "replayReadCalls", "replayReadTicks", "replayValidationTicks", "replayIndexTicks", "replayBufferBytes", "replayIndexOperations", "replayWriteRangeIndex", "liveJournalWrites" })
+        foreach (string field in new[] { "replayFrames", "replayReadCalls", "replayReadTicks", "replayValidationTicks", "replayIndexTicks", "replayBufferBytes", "replayIndexOperations", "replayWriteRangeIndex", "liveJournalWrites", "readRangeIndex" })
             node["storage"]!["metrics"]!.AsObject().Remove(field);
         Assert.True(Valid()); // Legacy observations keep the breakdown unknown.
         node["preparation"]!["storeReadyTicks"] = -1;

@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../Splinter.Core/Splinter.Core.csproj" />
     <PackageReference Include="JsonSchema.Net" />
     <EmbeddedResource Include="../../contracts/v1/**/*.json" Link="Contracts/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>

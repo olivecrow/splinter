@@ -6,6 +6,30 @@ namespace Splinter.Tests;
 
 public sealed class SnapshotWorkspaceCoordinatorTests
 {
+    [Theory]
+    [InlineData("CompactionGenerationMismatch")]
+    [InlineData("CompactionStateMismatch")]
+    [InlineData("CompactionCandidateMismatch")]
+    [InlineData("CompactionIntentCorrupt")]
+    [InlineData("CompactionIntentMismatch")]
+    public async Task CompactionPreservationFailuresAgreeWithPersistedRecovery(string code)
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        f.Backend.CompactionFailure = code;
+        var failure = await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CompactAsync(id, ct));
+        Assert.Equal(code, failure.Code);
+        Assert.Equal("requires-user-action", Splinter.Protocol.ApiResponse.Failure("workspace.compact", code, failure.Message).RetryDisposition);
+        var action = Assert.Single(failure.RecoveryActions!);
+        Assert.Equal("workspace.status", action.Command); Assert.True(action.RequiresUserAction);
+        var arguments = System.Text.Json.JsonSerializer.SerializeToElement(action.Arguments);
+        Assert.Equal(id, arguments.GetProperty("id").GetString());
+        Assert.Equal(f.Home, arguments.GetProperty("home").GetString());
+        var status = await f.New().StatusAsync(id, ct);
+        Assert.Equal(new SnapshotRecoveryDecision("preserve", code, "workspace.status"), status.Recovery);
+        Assert.False(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased);
+    }
+
     [Fact]
     public async Task CompactionResumesSameWorkspaceWhilePeerRemainsUsable()
     {
@@ -467,6 +491,7 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         }
         public int Captures; public bool LoseCaptureReply, LoseMountReply, Mounted, DeltaRemoved, SnapshotReleased, WriteDuringUnmount, UnknownResources, LoseRemoveReply, KeepReleaseUnknown;
         public int CompactCalls; public bool Compacted, CompletedCompaction;
+        public string? CompactionFailure;
         public long? MinimumOverlap;
         public List<long?> SeenOverlapBudgets = [];
         public bool? Available = true;
@@ -494,6 +519,7 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default,
             long? maxEstimatedJournalOverlapBytes = null)
         { CompactCalls++; SeenOverlapBudgets.Add(maxEstimatedJournalOverlapBytes);
+          if (CompactionFailure is { } failure) throw new WorkspaceException(failure, "Preserve retained generations.");
           if (MinimumOverlap is { } minimum && maxEstimatedJournalOverlapBytes is { } budget && budget < minimum)
               throw new WorkspaceException("CompactionOverlapBudgetExceeded", "Fake overlap budget exceeded.");
           Compacted = true; return Task.FromResult(new SnapshotJournalCompaction("attempt", new(sequence, 100, "hash" + sequence),

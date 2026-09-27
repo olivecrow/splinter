@@ -52,7 +52,7 @@ A/B/원본 변경은 서로 다른 스크립트 또는 충돌하지 않는 위�
 
 현재 `integrate`는 검증한 작업 결과와 clean 원본/대상 브랜치를 확인한 뒤 Git merge를 수행한다. 최신 원본과 합친 후보를 **적용 전에 Unity로 검증하는 제품 기능은 없다**. 이번 PV는 기존 통합 명령 뒤 실제 원본을 refresh하고 로드된 코드를 확인한다. 반영 후 검증이 실패하면 결과와 상태를 보존하고 PV 실패로 기록하며, 자동 원복하거나 사전 후보 검증을 통과했다고 표시하지 않는다. 사전 통합 후보 검증은 SW·Git 통합 확대의 후속 범위다.
 
-loaded-code는 PID·프로젝트 경로·관측 시각·domain generation·assembly MVID와 실행 값을 연결한다. 기존 제품 브리지의 `snapshot-probe.json`은 이 중 MVID까지 제공하며, fixture 초기 callback만으로는 최신 증거가 충분하지 않다. A/B에서 실제 바꾼 함수의 값을 관측할 수 있도록 기존 probe를 재사용하고, 부족할 때만 fixture 계측을 보완한다. 원본은 기존 MCP로 해당 함수를 실행한다. 실제 실행하지 않은 함수는 assembly MVID만으로 동작 확인을 대신하지 않는다.
+loaded-code는 PID·프로젝트 경로·관측 시각·domain generation·assembly MVID와 실행 값을 연결한다. 공통 Qualification fixture의 새 `inspect` 응답과 요청 ID가 일치해야 하며, fixture 초기 `snapshot-probe.json`만으로는 최신 증거가 충분하지 않다. 제품 heartbeat는 fixture를 호출하지 않는다. A/B에서 실제 바꾼 함수의 값을 기존 probe로 관측하고, 부족할 때만 fixture 계측을 보완한다. 원본은 기존 MCP로 해당 함수를 실행한다. 실제 실행하지 않은 함수는 assembly MVID만으로 동작 확인을 대신하지 않는다.
 
 ### 3. PV-02: Codex 기본 worktree와 실제 에셋 프로젝트 직접 비교
 

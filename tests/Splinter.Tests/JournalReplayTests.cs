@@ -14,6 +14,44 @@ public sealed class JournalReplayTests
         Assert.Null(old.ReplayFrames); Assert.Null(old.ReplayReadCalls); Assert.Null(old.ReplayReadTicks);
         Assert.Null(old.ReplayValidationTicks); Assert.Null(old.ReplayIndexTicks); Assert.Null(old.ReplayBufferBytes);
         Assert.Null(old.ReplayIndexOperations); Assert.Null(old.ReplayWriteRangeIndex); Assert.Null(old.LiveJournalWrites);
+        Assert.Null(old.ReadRangeIndex);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BoundedReadsSeekToRelevantRangesAndPreserveHolesAndTruncation(bool reconnect)
+    {
+        using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        var expected = new byte[16384]; new Random(81).NextBytes(expected); tree.Files["file"] = (byte[])expected.Clone();
+        var identity = new OverlayIdentity(1, "read-index", tree.Snapshot, 1_000_000, 4096);
+        string delta = Path.Combine(dir.Path, "delta");
+        var store = new JournalDeltaStore(delta, identity, tree);
+        try
+        {
+            Guid id = store.Stat("file")!.Id;
+            for (int i = 0; i < 512; i++)
+            {
+                byte[] data = [(byte)i, 4, 5, 6, 7, 8, 9, 10];
+                store.Write(id, i * 32, data); data.CopyTo(expected, i * 32);
+            }
+            if (reconnect) { store.Dispose(); store = new JournalDeltaStore(delta, identity, tree); }
+            foreach ((int offset, int length) in new[] { (0, 4), (16002, 3), (8198, 38), (16380, 4), (16384, 4), (5, 0) })
+            {
+                var before = store.Observe().Metrics!.ReadRangeIndex!;
+                byte[] actual = new byte[length]; int count = store.Read(id, offset, actual);
+                Assert.Equal(expected.Skip(offset).Take(length).ToArray(), actual[..count]);
+                var after = store.Observe().Metrics!.ReadRangeIndex!;
+                Assert.Equal(1, after.ReadCalls - before.ReadCalls);
+                Assert.InRange(after.SearchProbes - before.SearchProbes, 0, 10);
+                Assert.InRange(after.VisitedExtents - before.VisitedExtents, 0, 3);
+            }
+            store.SetLength(id, 8195); store.SetLength(id, 16400);
+            byte[] tail = new byte[8224]; Assert.Equal(tail.Length, store.Read(id, 8176, tail));
+            byte[] truncated = expected.Skip(8176).Take(19).Concat(new byte[8205]).ToArray();
+            Assert.Equal(truncated, tail);
+        }
+        finally { store.Dispose(); }
     }
 
     [Theory]

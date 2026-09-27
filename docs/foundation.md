@@ -24,8 +24,8 @@ NTFS 연결은 `VerifyConnectionAsync`에서 현재 부팅·연결 세대의 정
 
 | 프로젝트 | 현재 책임 | 참조 |
 | --- | --- | --- |
-| `Splinter.Core` | 탐지·작업공간 VCS/application/storage/process ports, 기준본·자원·검증 기록, DAG 검사, `WorkspaceMountAccess`의 공급자 중립 mount identity 규칙 | .NET 기본 라이브러리 |
-| `Splinter.Protocol` | 응답 DTO, 명령 descriptor, 내장 JSON Schema와 검증 | JsonSchema.Net |
+| `Splinter.Core` | 탐지·작업공간 VCS/application/storage/process ports, 기준본·자원·검증 기록, DAG 검사, `WorkspaceMountAccess`의 공급자 중립 mount identity 규칙, `WorkspaceFailurePolicy`의 보존/재시도 분류 | .NET 기본 라이브러리 |
+| `Splinter.Protocol` | 응답 DTO, 명령 descriptor, 내장 JSON Schema와 검증 | Core, JsonSchema.Net |
 | `Splinter.Host` | 읽기 전용 명령 조합과 결과 작성 | Core, Protocol |
 | `Splinter.Runtime` | 작업공간 생성·재개·검증·회수 조정, atomic JSON 저장과 작업/저장소 잠금 | Core |
 | `Splinter.SourceControl.Git` | 저장소 조회, 실제 worktree 생성·fingerprint·커밋·통합·회수 | Core |
@@ -34,6 +34,7 @@ NTFS 연결은 `VerifyConnectionAsync`에서 현재 부팅·연결 세대의 정
 | `Splinter.Cli` | 파싱, 어댑터 조립, Runtime/Host 호출, JSON 응답과 종료 코드 | Runtime, Host, Git/Unity/Windows 어댑터, System.CommandLine |
 | `unity/Splinter.Editor` | 작업별 Editor 안에서 refresh·컴파일·domain reload 관측과 종료 요청 처리 | Unity Editor API; 독립 소스 |
 | `Splinter.Tests` | 계약, CLI, DAG, fake 공급자, 실제 Git·Windows 자식 회수·선택적 ReFS 시험 | CLI, xUnit v3, MTP |
+| `tests/Splinter.UnityBridgeHarness` | 실제 WorkspaceBridge 소스를 링크해 외부 Unity API stub과 예외를 던지는 fixture로 heartbeat 독립성 검사 | .NET 테스트 전용 실행 파일; 제품 명령·Unity 런타임 시험 아님 |
 | `tools/Splinter.ReplayProbe` | 제한된 합성 저널 생성·읽기 전용 replay·출력/hash 검증과 비용 계측 | Runtime; 개발용 console |
 | `tools/Splinter.WriteProbe` | 고정 합성 live 쓰기·metadata·동시 호출과 read-only replay·내용/hash 검증 | Runtime; 개발용 console |
 
@@ -48,6 +49,7 @@ flowchart LR
     Windows --> Core
     Windows --> Runtime
     Host --> Protocol[Protocol / JSON Schema]
+    Protocol --> Core
     Host --> Core[Core / 공급자 계약]
     Git --> Core
     Unity --> Core
@@ -60,6 +62,10 @@ Runtime의 `AtomicFilePublication`은 같은 디렉터리에서 flush한 임시 
 제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. 작은 Editor 브리지 소스를 소유 작업공간의 `Assets/__Splinter__`에 넣으며 원본이나 결과 커밋에는 포함하지 않는다. 비Git·비Unity fake로 Runtime의 기준본·수명주기·검증·프로세스 회수 경계를 시험한다. 각 대화가 workspace CLI를 직접 사용하는 데 별도 조정 AI는 필요하지 않다. 프로젝트용/전역용 설치, 필요성 자동 판단, Codex 대화/파일 경로의 자동 binding, 반영 없는 명시적 discard는 미구현이며 [대화별 계획](plans/session-workflow-and-installation.md)에 있다. 전체 DAG 실행과 agent runner는 선택적 후속이다. 범용 저장소 지원표·장애 복구 적합성도 아직 미완료다.
 
 ## 에이전트용 명령 계약
+
+제품 Editor heartbeat는 프로젝트 함수나 fixture를 실행하지 않는다. liveness·compile/domain reload·validation 전달만 담당하며, 현재 로드된 함수 값·MVID는 fixture의 명시적 `inspect` 응답에서 확인한다. .NET 브리지 harness는 ready/compiling/ready와 reload 뒤 validation 전달을 검사하지만 실제 Unity 컴파일·Editor 실행 자격을 대신하지 않는다.
+
+Core의 `WorkspaceFailurePolicy`는 지속 recovery의 보존 분류와 Protocol의 `retryDisposition`에서 함께 사용한다. 저널 정리의 generation/state/candidate/intent 불일치 5종은 `requires-user-action`이며, Runtime은 실패한 같은 `id`·절대 `home`의 `workspace.status`를 다음 행동으로 반환한다. 상태·저널·후보를 지우거나 자동 재시도해 불일치를 숨기지 않는다.
 
 개발 빌드의 실행 접두사는 `pwsh ./scripts/splinter.ps1`이다. 아래 표의 `splinter` 대신 사용한다. 스크립트는 빌드된 CLI를 호출하며 자동 빌드를 하지 않는다.
 
@@ -154,4 +160,4 @@ pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository .
 
 ## 다음 구현 경계
 
-현재 내부 알파의 저장소·프로세스 계약은 [NTFS 작업공간](ntfs-workspaces.md)과 [선택적 ReFS/자원 관리](storage-and-resources.md)에 있다. [NI 검증](verification/ntfs-workspace-integration.md)에서 실제 NTFS 범위 저장·Unity A/B·재연결·결과 보호를 확인했다. 실제 dirty 원본에 대한 통합 거부와 원본/결과 보존, 소유 자원과 VSS 회수까지 확인해 NI-01~08의 1차 내부 알파 범위를 완료했다. 진행 중인 [NR-01~08 계획](plans/ntfs-recovery-and-support.md)은 공통 복구 분류·unknown 관측·상태/저널 손상 보존·파일 속성 거부·현재 부팅과 대조하는 VSS 해제 후 관측을 부분 구현했다. 이전 NR 후보의 로컬과 VIVOBOOK 자동 시험은 모두 139 통과·0 실패·1 ReFS skip이다. 이후 [LV 후보](verification/ntfs-live-vss-identity.md)와 [검토 후 수정 후보](verification/workspace-review-fixes.md)의 실행 증거를 따로 기록한다. VIVOBOOK에서는 실제 mount의 5개 API 거부와 ARM Windows/x64 Unity 단일 작업의 검증 2건·독립 결과 보존·workspace 회수를 확인했다. 상세 범위와 canonical 준비 세션 정리는 [NR 기록](verification/ntfs-recovery.md)을 따른다. 실제 재부팅·전원·공간 장애 및 긴 패키지 경로·파일 지원 경계는 남아 있다. [공개 구현 계획](plans/implementation-plan.md)의 범용 지원표·지속 Host·전력 장애 일반 지원·DAG 실행·agent runner·Play/테스트/저작 기능은 후속 범위다. [PV-01/02의 선택 범위](verification/parallel-workflow.md)는 마감했으며 PV-01은 대표 fixture·복구 포함 완료, PV-02는 제한을 유지한 범위 완료다. 현재 후보의 자동 시험은 [RI 검증](verification/replay-index-cost.md)의 300 통과·0 실패·1 ReFS skip이다. 기존 중첩량 예산의 실행 범위는 [별도 기록](verification/journal-compaction-peak-admission.md)을 유지한다. SF-01 소스 검증과 SF-02 계측을 구현했지만 비소유 VSS 5개 소실이 있던 실행은 FailedPreservation을 유지한다. 후속 제어 JSON 게시 충돌 수정과 격리 VSS의 삭제 연쇄 재현·실제 guard 차단·오래된 순서 회수를 확인했다. 명시적 정리의 작은 Unity 재개·결과 보존도 확인했으나 정리 중 두 세대 겹침으로 전체 추가 공간의 관측 최고치는 증가했다. 임의 순서의 즉시 회수와 일반 비소유 백업 공존 보장은 남아 있다. SF-02 전체·SF-03~06 및 NR/SW 지원 범위는 미완료다. 상태와 다음 명령은 CLI 프로세스 밖에 남으며 대화 종료 시 자동 회수하지 않는다.
+현재 내부 알파의 저장소·프로세스 계약은 [NTFS 작업공간](ntfs-workspaces.md)과 [선택적 ReFS/자원 관리](storage-and-resources.md)에 있다. [NI 검증](verification/ntfs-workspace-integration.md)에서 실제 NTFS 범위 저장·Unity A/B·재연결·결과 보호를 확인했다. 실제 dirty 원본에 대한 통합 거부와 원본/결과 보존, 소유 자원과 VSS 회수까지 확인해 NI-01~08의 1차 내부 알파 범위를 완료했다. 진행 중인 [NR-01~08 계획](plans/ntfs-recovery-and-support.md)은 공통 복구 분류·unknown 관측·상태/저널 손상 보존·파일 속성 거부·현재 부팅과 대조하는 VSS 해제 후 관측을 부분 구현했다. 이전 NR 후보의 로컬과 VIVOBOOK 자동 시험은 모두 139 통과·0 실패·1 ReFS skip이다. 이후 [LV 후보](verification/ntfs-live-vss-identity.md)와 [검토 후 수정 후보](verification/workspace-review-fixes.md)의 실행 증거를 따로 기록한다. VIVOBOOK에서는 실제 mount의 5개 API 거부와 ARM Windows/x64 Unity 단일 작업의 검증 2건·독립 결과 보존·workspace 회수를 확인했다. 상세 범위와 canonical 준비 세션 정리는 [NR 기록](verification/ntfs-recovery.md)을 따른다. 실제 재부팅·전원·공간 장애 및 긴 패키지 경로·파일 지원 경계는 남아 있다. [공개 구현 계획](plans/implementation-plan.md)의 범용 지원표·지속 Host·전력 장애 일반 지원·DAG 실행·agent runner·Play/테스트/저작 기능은 후속 범위다. [PV-01/02의 선택 범위](verification/parallel-workflow.md)는 마감했으며 PV-01은 대표 fixture·복구 포함 완료, PV-02는 제한을 유지한 범위 완료다. RI 후보 당시 자동 시험은 [RI 검증](verification/replay-index-cost.md)의 300 통과·0 실패·1 ReFS skip이다. 현재 검토 수정 후보의 자동 회귀와 실환경 미실행 경계는 [다섯 결함 수정 기록](verification/code-quality-review-fixes.md)을 따른다. 기존 중첩량 예산의 실행 범위는 [별도 기록](verification/journal-compaction-peak-admission.md)을 유지한다. SF-01 소스 검증과 SF-02 계측을 구현했지만 비소유 VSS 5개 소실이 있던 실행은 FailedPreservation을 유지한다. 후속 제어 JSON 게시 충돌 수정과 격리 VSS의 삭제 연쇄 재현·실제 guard 차단·오래된 순서 회수를 확인했다. 명시적 정리의 작은 Unity 재개·결과 보존도 확인했으나 정리 중 두 세대 겹침으로 전체 추가 공간의 관측 최고치는 증가했다. 임의 순서의 즉시 회수와 일반 비소유 백업 공존 보장은 남아 있다. SF-02 전체·SF-03~06 및 NR/SW 지원 범위는 미완료다. 상태와 다음 명령은 CLI 프로세스 밖에 남으며 대화 종료 시 자동 회수하지 않는다.

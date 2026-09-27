@@ -47,9 +47,8 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
         if (state is null) return new("preserve", "SnapshotStateMissing", "workspace.status");
         var observation = state.Observation;
         string? retainedFailure = workspace.LastError?.Split(':', 2)[0];
-        if (retainedFailure is "DeltaChangedAfterCollection" or "SnapshotResultRevalidationRequired" or "StateCorrupt" or "SnapshotReclamationInvalid" or "SnapshotCollateralLoss" or
-            "CompactionGenerationMismatch" or "CompactionStateMismatch" or "CompactionCandidateMismatch" or "CompactionIntentCorrupt" or "CompactionIntentMismatch")
-            return new("preserve", retainedFailure, "workspace.status");
+        if (WorkspaceFailurePolicy.RequiresPreservation(retainedFailure))
+            return new("preserve", retainedFailure!, "workspace.status");
         if (state.Step.StartsWith("compact-", StringComparison.Ordinal))
             return new("resume-compaction", "WorkspaceCompacting", "workspace.compact");
         if ((state.Step.StartsWith("release-", StringComparison.Ordinal) || observation?.SnapshotAvailable == false) &&

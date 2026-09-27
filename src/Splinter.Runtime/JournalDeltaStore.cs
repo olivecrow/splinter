@@ -40,6 +40,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private readonly Dictionary<string, long> pathChanges = new(StringComparer.OrdinalIgnoreCase);
     private long lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount, appendedBytes;
     private long replayBytes, replayTicks, journalReadBytes, baseReadBytes;
+    private long rangeReadCalls, rangeReadSearchProbes, rangeReadVisitedExtents;
     private long replayFrames, replayReadCalls, replayReadTicks, replayValidationTicks, replayIndexTicks;
     private readonly Dictionary<string, (long Frames, long ApplyTicks)> replayIndexOperations = [];
     private long replayRangeReplaceCalls, replayRangePriorExtents, replayRangeVisitedExtents;
@@ -160,11 +161,24 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
             int count = (int)Math.Min(destination.Length, Math.Max(0, node.Entry.Length - offset));
             Span<byte> output = destination[..count]; output.Clear();
+            rangeReadCalls++;
+            if (count == 0) return 0;
             // Only uncovered intervals touch the immutable base. Data already in
             // the delta does not cause a hidden full-file baseline read.
             long cursor = offset, end = offset + count;
-            foreach (var extent in node.Extents)
+            int low = 0, high = node.Extents.Count;
+            while (low < high)
             {
+                int middle = low + (high - low) / 2;
+                rangeReadSearchProbes++;
+                var extent = node.Extents[middle];
+                if (extent.Start + extent.Length <= offset) low = middle + 1;
+                else high = middle;
+            }
+            for (int i = low; i < node.Extents.Count; i++)
+            {
+                var extent = node.Extents[i]; rangeReadVisitedExtents++;
+                if (extent.Start >= end) break;
                 long from = Math.Max(offset, extent.Start), to = Math.Min(end, extent.Start + extent.Length);
                 if (from >= to) continue;
                 ReadBase(node, cursor, from, output, offset);
@@ -265,7 +279,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     new ReplayWriteRangeIndexMetrics(replayRangeReplaceCalls, replayRangePriorExtents,
                         replayRangeMaxPriorExtents, replayRangeVisitedExtents, replayRangeCopiedExtents,
                         replayRangeLocateAndReplaceTicks, 0,
-                        (long[])replayRangePriorExtentBuckets.Clone()), ObserveLiveWrites())
+                        (long[])replayRangePriorExtentBuckets.Clone()), ObserveLiveWrites(),
+                    new ReadRangeIndexMetrics(rangeReadCalls, rangeReadSearchProbes, rangeReadVisitedExtents))
             };
         }
     }
@@ -554,7 +569,14 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 extentCount += node.Extents.Count;
                 if (!node.Entry.Deleted) paths[node.Entry.Path] = node.Entry.Id;
                 break;
-            case "create": case "metadata":
+            case "create":
+                // A private-file partition transfer can recreate a deleted ID.
+                // Its old ranges belong to the removed incarnation, including
+                // when the incoming file is empty and SetLength(0) is a no-op.
+                extentCount -= node.Extents.Count;
+                node.Extents.Clear();
+                goto case "metadata";
+            case "metadata":
                 if (!node.Entry.Deleted) paths[node.Entry.Path] = node.Entry.Id;
                 break;
             case "delete":

@@ -29,6 +29,9 @@
           "Humanizer.Core": "3.0.10",
           "Json.More.Net": "3.0.1"
         }
+      },
+      "splinter.core": {
+        "type": "Project"
       }
     }
   }

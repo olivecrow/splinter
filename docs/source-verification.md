@@ -13,7 +13,7 @@ Git 어댑터는 다음 순서로 검사한다.
 1. provider의 소스 세대를 확인하고 현재 HEAD·관리 대상 경로·staged 변경 목록과 전체 index 항목을 열거한다. worktree `git status`로 변경 없는 payload를 다시 읽게 하지 않는다.
 2. 관리 경로 정책, 유효 Git attributes와 config의 digest를 확인한다. config 원문은 manifest나 계측 로그에 저장하지 않는다. 미지원 filter/LFS·working-tree-encoding은 계속 거부한다.
 3. 같은 snapshot/epoch/policy에서 변경되지 않은 파일의 raw hash를 재사용하고, 변경된 파일만 전체 raw 내용을 해시한다. 디렉터리 rename은 하위 경로도 무효화한다. 추가·삭제·`.meta`·truncate·원자적 교체는 경로/세대와 재열거로 검출한다.
-4. Git 내용 hash도 재사용하거나 `git hash-object --path`로 계산한다. HEAD의 blob ID와 비교해 `changedPaths`/`hasChanges`를 보완한다. 같은 크기/mtime으로 Git이 clean을 반환해도 내용이 다르면 변경으로 판정한다. attributes/config 해석이 바뀌면 raw hash와 별도로 Git 내용 hash를 다시 계산한다.
+4. Git 내용 hash도 재사용하거나 최대 256개 경로씩 `git hash-object --stdin-paths`로 계산한다. UTF-8 경로를 Git의 C 인용 형식으로 전달해 공백·비ASCII 이름을 보존하고 경로별 attributes/EOL 변환을 유지한다. 각 경로에 대응하는 유효 hash가 정확히 하나씩 반환돼야 한다. HEAD의 blob ID와 비교해 `changedPaths`/`hasChanges`를 보완한다. 같은 크기/mtime으로 Git이 clean을 반환해도 내용이 다르면 변경으로 판정한다. attributes/config 해석이 바뀌면 raw hash와 별도로 Git 내용 hash를 다시 계산한다.
 5. HEAD·경로 집합·staged 변경 목록·전체 index 항목·해석 digest와 provider 세대를 다시 확인한다. 도중 변경은 `SourceChanged`이며 manifest와 현재 검증 성공을 갱신하지 않는다.
 
 수집 시 변경된 기존 파일에는 `git add --renormalize`를 경로별로 적용해 stat cache가 숨긴 내용도 index에 반영한다. 그 뒤 raw fingerprint와 실제 커밋을 다시 검사한다. 새 파일/삭제는 기존 `git add -A` 경로를 유지한다. 결과 수집의 `stable-journal-v1`, 전후·unmount 후 seal 검사와 독립 결과 검증은 그대로 필요하다.
@@ -36,7 +36,7 @@ Git 어댑터는 다음 순서로 검사한다.
 
 | 위치 | 측정 항목 | 해석 경계 |
 | --- | --- | --- |
-| `source.inspection`, `source-inspections.jsonl` | mode, raw payload bytes, 해시/재사용 파일 수, manifest bytes, 시간, epoch/sequence, `gitHashInputBytes` | Git 값은 내용 hash에 넘긴 파일의 raw 논리 길이다. Git 전체 I/O·물리 디스크 읽기량과 다르다. 초기/감사/재개 비용도 기록한다 |
+| `source.inspection`, `source-inspections.jsonl` | mode, raw payload bytes, 해시/재사용 파일 수, manifest bytes, 시간, epoch/sequence, `gitHashInputBytes`, `gitHashProcesses` | Git 바이트는 내용 hash에 넘긴 파일의 raw 논리 길이이며 프로세스 수는 해당 검사의 hash-object 호출 수다. 전체 Git 명령 수·I/O·물리 디스크 읽기량과 다르다. 초기/감사/재개 비용도 기록하고 이전 프로세스 수 누락/null은 unknown으로 둔다 |
 | `storage.metrics` | provider epoch, lock 횟수/대기 tick, flush 횟수/tick, commit/append bytes, replay bytes/tick·프레임·읽기 호출·단계별 tick, base/journal read bytes | 현재 provider 프로세스의 누적 계수다. 재시작 뒤 다른 epoch끼리 단순 차감하지 않는다. tick은 `stopwatchFrequency`로 환산한다 |
 | `storage-reads.jsonl` | seal과 최종 delta 삭제 전 확인의 실제 stream bytes와 해시 시간 | delta 밖의 진단 기록이다. seal 값·삭제 권한의 근거를 대신하지 않는다 |
 | `scripts/measure-workspace-storage.ps1` | FILE_STANDARD_INFO 파일 할당, 논리 길이, root별 분류, VSS 볼륨 관측 | 읽기 전용 개발 도구다. mount를 순회하거나 논리 트리를 실제 복제량으로 합산하지 않는다 |
@@ -64,6 +64,8 @@ Runtime의 replay는 수명 한정 64KiB 버퍼로 저널만 순차 읽는다. �
 `replayWriteRangeIndex`는 재생 중 일반 `write` frame이 범위 index를 교체한 횟수(`replaceCalls`), 교체 직전 extent 수의 누적값/최댓값(`priorExtents`/`maxPriorExtents`), 탐색 방문/목록 이동 extent 수(`visitedExtents`/`copiedExtents`), 범위 탐색과 교체 시간(`locateAndReplaceTicks`), 정렬 시간(`sortTicks`)을 집계한다. 한 frame에 여러 fragment가 있는 `write-compacted`는 이 계수에서 제외하고 `replayIndexOperations`에 별도로 남긴다. `priorExtentBuckets`의 고정 6칸은 0, 1~8, 9~64, 65~512, 513~4096, 4097개 이상이다. 경로명·파일별 목록은 노출하지 않으며 새 provider의 현재 쓰기는 포함하지 않는다. 전체 `write` 비용에는 frame 자체와 다른 index 적용도 있어 위 시간의 합과 같지 않다. 현재 정렬된 국소 교체 구현의 `sortTicks`는 0이다. 이전 기록에서 이 객체가 누락되거나 null이면 unknown이며 0으로 소급하지 않는다.
 
 rename의 index 적용은 기존의 경로·whiteout 순회를 유지하며 같은 하위 경로 접두사를 rename당 한 번 만들어 재사용한다. 범위 index·저널 형식·지속 cache를 추가하지 않는다. [Offline probe](replay-profiling.md)로 합성 비용을 구분하며, 그 결과를 실제 Unity 준비 시간에 곧바로 적용하지 않는다.
+
+일반 `Read`는 정렬되고 겹치지 않는 extent에서 끝이 요청 offset보다 큰 첫 항목을 이진 탐색하고, 요청 끝에 도달하면 순회를 멈춘다. 빈 읽기·EOF는 탐색하지 않는다. base hole과 truncate 후 zero-fill은 기존 계약을 유지한다. `storage.metrics.readRangeIndex`는 현재 provider의 `readCalls`, 이진 탐색 비교 수 `searchProbes`, 순회한 항목 수 `visitedExtents`를 집계한다. 마지막 종료 조건을 확인한 항목도 방문 수에 포함하며 읽은 바이트 수나 실제 디스크 I/O가 아니다. 이전 누락/null은 unknown이다. 내용·재연결과 범위 탐색량 검증은 [검토 후 결함 수정](verification/code-quality-review-fixes.md)을 따른다.
 
 ## Live write 비용
 

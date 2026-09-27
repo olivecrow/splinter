@@ -23,6 +23,8 @@ Runtime의 `JournalDeltaStore.ExportCandidate`는 정지한 작업자 저널을 
 
 Unity가 새 임시 파일을 다른 partition으로 rename할 때는 원본에서 읽을 범위가 0인 파일만 전달한다. `JournalPrivateFiles`는 유효 private extent만 복제하고 구멍을 채우지 않는다. 최대 유효 payload 64MiB·8,192개 extent이며 디렉터리와 원본 범위가 남은 파일의 경계 이동은 거부한다. `partition-transfer.json`은 정확한 source 세대와 양쪽 경로·file ID·range hash를 기록한다. 목적지 저널의 임시 파일에 범위를 기록하고 같은 저널 안의 atomic rename으로 게시한 뒤 원래 경로를 지운다. 원래 file ID와 열린 핸들은 유지한다. 중단 시 view I/O를 막고 같은 source 세대 재연결만으로 전송을 완료한다. 후보를 바꾸거나 intent/저널을 삭제해 복구를 우회하지 않는다. 공급자 epoch의 `transferCount`, `transferredPrivateBytes`, 마지막 경로는 관측 값이며 파일 전체 copy-up이나 새 저널 형식이 아니다.
 
+삭제된 file ID가 반대 partition에서 다시 생성되면 이전 incarnation의 extent 목록과 개수를 먼저 비운다. 길이 0의 private 파일도 이 규칙을 적용하므로 과거 payload가 range hash나 이후 확장 읽기에 남지 않는다. 같은 규칙을 live 적용과 journal replay에 사용하며 intent·staged·published·source-removed 경계에서 중단해도 같은 세대로 재연결한다. 자동 회귀의 범위는 [검토 후 결함 수정](verification/code-quality-review-fixes.md)에 기록한다.
+
 ## 개발용 진입점
 
 준비된 작업자 overlay를 정상 unmount한 뒤 실행한다.

@@ -22,7 +22,7 @@ public sealed class FoundationGateway(
         workspaceStatus = "process-poll; source-on-new-validation-or-verify-source",
         sourceVerification = new { fingerprint = "source-fingerprint-v1", ntfsMode = "journal-file-manifest-v1",
             audit = "workspace status --audit-source", cacheTrust = "same-snapshot-provider-epoch-and-source-generation",
-            measurements = "per-inspection-payload-and-manifest; provider-epoch-I/O-counters; storage-reads.jsonl; scripts/measure-workspace-storage.ps1 (read-only development sampler)" },
+            measurements = "per-inspection-payload-and-manifest; batched-Git-hash-process-count; provider-epoch-I/O-and-read-range-search-counters; storage-reads.jsonl; scripts/measure-workspace-storage.ps1 (read-only development sampler)" },
         storageModes = new[] { "ntfs-snapshot", "refs-cow", "git-checkout" },
         validationViewExperiment = new { stage = "development-spike", integratedWorkspaceMode = false,
             candidate = "snapshot-spike candidate-export; stopped-editorless-worker; immutable-live-ranges",

@@ -4,6 +4,7 @@
 
 | 문서 | 읽을 때 |
 | --- | --- |
+| [코드 품질 검토의 다섯 결함 수정](verification/code-quality-review-fixes.md) | 빈 private 파일 왕복·정리 오류 보존 정책·heartbeat fixture 분리·Git 배치 해시·범위 읽기 탐색의 자동 회귀와 실환경 미실행 경계를 확인할 때 |
 | [Unity 미리보기 검사](unity-render-qualification.md) | 공통 fixture의 요청별 PNG·실제 화면 성공 조건·오류와 자원 복원·제품 validation 경계를 확인할 때 |
 | [첫 미리보기 검사 범위](plans/first-render-qualification.md) · [실행 기록](verification/first-render-qualification.md) | FR-01~04의 첫 PNG 재현·단일 요청의 유효 화면/명시 실패·새 cold/재시작/reload와 실패 복구, 독립 결과·회수 및 진단 판독 정정·native 원인 미확정의 제한을 확인할 때 |
 | [Live 쓰기 probe](write-profiling.md) | 새 디렉터리의 고정 합성 쓰기·metadata·4-thread 입력과 연산별 비용·대기 계수를 해석할 때 |

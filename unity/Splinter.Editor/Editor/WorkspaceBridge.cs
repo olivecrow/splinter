@@ -19,7 +19,6 @@ namespace Splinter.Editor
         private static double nextTick;
         private static bool coplayShutdownGuard;
         private static bool incrementalCompilation;
-        private static readonly string DomainGeneration = Guid.NewGuid().ToString("N");
         private static readonly int Pid = System.Diagnostics.Process.GetCurrentProcess().Id;
         private static readonly long StartTicks = System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime().Ticks;
 
@@ -163,20 +162,8 @@ namespace Splinter.Editor
         }
         private static void Heartbeat(string phase, bool ready)
         {
-            // The spike requires execution evidence from the currently loaded
-            // assembly, not just a successful compiler result or source hash.
-            if (incrementalCompilation && ready)
-            {
-                Type probe = Type.GetType("SplinterSnapshotProbe, Assembly-CSharp");
-                var calculate = probe == null ? null : probe.GetMethod("Calculate", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-                if (calculate != null)
-                    Write("snapshot-probe.json", new RuntimeProbe
-                    {
-                        value = (int)calculate.Invoke(null, new object[] { 3 }), generation = DomainGeneration,
-                        assemblyMvid = probe.Assembly.ManifestModule.ModuleVersionId.ToString(), processId = Pid,
-                        projectPath = Path.GetDirectoryName(Application.dataPath), observedAt = DateTimeOffset.UtcNow.ToString("O")
-                    });
-            }
+            // Product liveness must not execute project or qualification code.
+            // Loaded-code evidence belongs to the fixture's explicit inspect request.
             Write("heartbeat.json", new HeartbeatData
             {
                 pid = Pid, startTimeUtcTicks = StartTicks, projectPath = Path.GetDirectoryName(Application.dataPath),
@@ -201,11 +188,6 @@ namespace Splinter.Editor
             else File.Move(temporary, path);
         }
         [Serializable] private class ValidationRequest { public string requestId; public string fingerprint; public string token; }
-        [Serializable] private class RuntimeProbe
-        {
-            public int value; public string generation; public string assemblyMvid;
-            public int processId; public string projectPath; public string observedAt;
-        }
         [Serializable] private class Pending
         {
             public string requestId; public string fingerprint; public string token;
