@@ -61,4 +61,4 @@ provider는 저널을 여는 동안 `replaying` 상태를 게시한다. mount/re
 
 디렉터리별 논리 길이와 `FILE_STANDARD_INFO.AllocationSize`를 구분하고 공유 VSS는 볼륨 관측으로 둔다. 측정 증거·로그도 별도 비용이며 첫 import와 반복 전환을 분리한다. 작은 Editor 없는 delta의 준비 시간을 전체 제품 `workspace ensure`나 대형 프로젝트 준비 시간으로 일반화하지 않는다. 최초 source 검증 비용, 긴 저널 replay, Unity 버전·package·platform 변경, 일반 임대 중단 복구와 source 반환 병합은 별도 검증이 필요하다.
 
-재생 읽기 버퍼와 단계별 계수는 [소스 검증·계측](source-verification.md), 실제 지원 범위와 시간은 [VR 실행](verification/validation-view-readiness-and-replay.md)을 따른다. mount 준비·compile 성공·에셋 로드 성공만으로 최초 렌더 성공을 보장하지 않는다. 첫 미리보기 자체를 확인해야 하며 첫 렌더의 초기화 문제는 미해결이다. 제품 기본 모드와 일반 Unity 지원은 별도 검증 대상이다.
+재생 읽기 버퍼와 단계별 계수는 [소스 검증·계측](source-verification.md), 실제 지원 범위와 시간은 [VR 실행](verification/validation-view-readiness-and-replay.md)과 [기존/개선 Runtime의 작은 Unity 비교](verification/unity-replay-comparison.md)를 따른다. 같은 닫힌 journal의 mount 재연결과 Editor가 새 기록을 쓰는 재시작은 입력 조건이 다르다. 최초 ready·명시적 compile·실제 코드/에셋 검증과 정상 stop의 재시도 비용을 함께 확인한다. mount 준비·compile 성공·에셋 로드 성공만으로 최초 렌더 성공을 보장하지 않는다. 첫 미리보기 자체를 확인해야 하며 첫 렌더의 초기화 문제는 미해결이다. 제품 기본 모드와 일반 Unity 지원은 별도 검증 대상이다.

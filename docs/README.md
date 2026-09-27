@@ -4,6 +4,7 @@
 
 | 문서 | 읽을 때 |
 | --- | --- |
+| [작은 Unity 재개 비교](plans/unity-replay-comparison.md) · [실행 기록](verification/unity-replay-comparison.md) | 작은 Unity의 동일 journal mount·누적 입력 Editor 각 3회 비교와 파일 할당·독립 결과·회수. 전체 Editor 개선 미입증·첫 렌더/운영 재시도 제한을 확인할 때 |
 | [Offline replay 계측](replay-profiling.md) · [RI 범위](plans/replay-index-cost.md) · [검증](verification/replay-index-cost.md) | 연산별 index 비용과 고정 합성 입력의 시간·관리 메모리 할당·동일 상태를 비교할 때. 실제 Unity·VSS 경로와 구분하는 개발용 도구 |
 | [첫 준비·재연결 시간 범위](plans/validation-view-readiness-and-replay.md) · [검증](verification/validation-view-readiness-and-replay.md) | 정상 첫 import/렌더, 같은 저널의 재생 읽기·검증·index 시간, 실제 mount 준비 응답과 저장량 기준을 확인할 때. 이전 VC와 구분하는 작은 후속 범위 |
 | [불변 후보·고정 검증 view](validation-view.md) · [VC 범위](plans/immutable-validation-view-first-milestone.md) · [검증](verification/immutable-validation-view.md) | Editor 없는 worker의 범위 후보, 같은 경로·Library의 정상 stop/remount/restart A/B/A, 생성·재개·전환 시간과 저장량을 확인할 때. 작은 범위 마감·첫 import 복구/첫 A 미리보기/긴 replay 제한 유지. 개발용 spike이며 제품 모드·source 반환 병합·큐 연결은 미구현 |

@@ -10,7 +10,7 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 [불변 검증 후보·고정 view](validation-view.md)는 개발용 `snapshot-spike` 확장이다. Core의 `ValidationCandidate`/`ValidationViewSelection`, Runtime의 읽기 전용 봉인 후보와 분리된 source/cache 저널, Windows의 WinFsp 조합을 사용한다. 제품 workspace coordinator나 기본 실행 모드에는 연결되지 않았다. 후보는 최종 checkpoint와 구별되며 별도 독립 결과 수집이 필요하다. Host의 capability는 `validationViewExperiment.integratedWorkspaceMode=false`로 경계를 표시한다.
 
-공통 Runtime의 `JournalReplayReader`는 저널 replay 읽기를 64KiB 버퍼로 묶고 `OverlayIoMetrics`에 읽기·검증·index 적용 비용을 나눈다. 모든 frame 검증과 acknowledged write flush는 유지한다. Windows client는 같은 launch의 실제 mount와 최신 mounted 상태를 기다리고 provider의 replay 단계만으로 준비 완료를 반환하지 않는다. 범위와 시간의 실제 판단은 [VR 실행](verification/validation-view-readiness-and-replay.md)을 따른다.
+공통 Runtime의 `JournalReplayReader`는 저널 replay 읽기를 64KiB 버퍼로 묶고 `OverlayIoMetrics`에 읽기·검증·index 적용 비용을 나눈다. 모든 frame 검증과 acknowledged write flush는 유지한다. Windows client는 같은 launch의 실제 mount와 최신 mounted 상태를 기다리고 provider의 replay 단계만으로 준비 완료를 반환하지 않는다. 범위와 시간의 실제 판단은 [VR 실행](verification/validation-view-readiness-and-replay.md)과 [RI 후보의 작은 Unity 비교](verification/unity-replay-comparison.md)를 따른다. 동일 저널 mount 비교와 Editor 쓰기로 입력이 누적되는 실제 재시작 비교를 구분한다.
 
 NTFS 회수는 Core의 `SnapshotReclamation`으로 실제 해제와 지연을 구분한다. 독립 결과와 자원 정리 후 더 오래된 snapshot 때문에 삭제가 차단되면 Runtime이 `reclaim-pending`을 저장하고 같은 workspace의 명시적 release 재시도로 이어간다. Windows의 `VssSnapshotReclamation`은 boot·owner·요청 ID에 묶인 helper 증거를 검증한다. `SnapshotSharedStorage`는 시각이 있는 source volume 전체 관측이며 workspace별 귀속은 unknown이다. 계약과 자동 회수의 경계는 [NTFS 지연 회수](ntfs-workspaces.md#지연-회수와-명시적-재시도)를 따른다.
 

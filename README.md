@@ -1,6 +1,8 @@
 # Splinter
 
-[Replay index 비용 계측과 개선](docs/verification/replay-index-cost.md)을 제한된 offline 합성 범위에서 검증했다. 연산별 frame·시간 계수를 추가하고 rename의 반복 경로 접두사 할당을 줄였다. 작은 실행 파일 묶음과 공통 입력으로 시간·메모리·파일 할당을 비교하며 [개발용 probe](docs/replay-profiling.md)를 제공한다. 현재 자동 시험은 300 통과·선택적 ReFS 1 skip이다. 이번 변경의 실제 Unity 재연결 개선률은 NotRun이며, 첫 렌더 문제와 대형 프로젝트 용량 목표는 남아 있다.
+[작은 Unity의 기존/개선 재개 비교](docs/verification/unity-replay-comparison.md)를 제한을 포함해 마감했다. 같은 저널 mount 중앙값은 33.84→23.70초였고 파일 할당은 같았다. 누적 입력의 실제 Editor 재개는 각각 3회 검증했지만 전체 재개 개선은 입증하지 못했다. 첫 ready 1,495.67초, 소유 파일 할당 관측 최고 약 2.389GB와 stop/focus 재시도·첫 렌더 제한을 기록했다. 독립 결과와 원본 보존, 소유 자원 회수, VHD 분리 뒤 결과 읽기를 확인했다.
+
+[Replay index 비용 계측과 개선](docs/verification/replay-index-cost.md)을 제한된 offline 합성 범위에서 검증했다. 연산별 frame·시간 계수를 추가하고 rename의 반복 경로 접두사 할당을 줄였다. 작은 실행 파일 묶음과 공통 입력으로 시간·메모리·파일 할당을 비교하며 [개발용 probe](docs/replay-profiling.md)를 제공한다. 현재 자동 시험은 300 통과·선택적 ReFS 1 skip이다. 실제 작은 Unity의 후속 비교는 [RU 실행](docs/verification/unity-replay-comparison.md)을 따른다. 첫 렌더 문제와 대형 프로젝트 용량 목표는 남아 있다.
 
 [첫 준비·재연결 검증](docs/verification/validation-view-readiness-and-replay.md)의 작은 Unity 범위를 제한을 포함해 마감했다. 저널 replay의 읽기를 64KiB로 묶고 실제 mount 준비를 기다리도록 수정했으며, 동일 cache 3회씩의 replay 중앙값은 19.46초에서 14.90초로 줄었다. 정상 첫 import는 약 17분 8초, 파일 할당 관측 최고는 약 2.281GB였다. 첫 미리보기는 빈 화면이고 같은 Editor의 두 번째 렌더는 정상이어서 첫 렌더 문제는 남아 있다. 독립 결과·원본 보존·소유 자원 회수를 확인했으며 당시 자동 시험은 296 통과·선택적 ReFS 1 skip이었다.
 

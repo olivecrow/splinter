@@ -82,3 +82,5 @@ rename의 store 생성 중앙값은 baseline 3.7168초 → current 2.4156초, ha
 - `run-matrix-qualified.ps1`, `run-guards.ps1`, `measure-space.ps1`와 모든 입력/비교 바이너리. 예비 비교의 `run-*.json`, `matrix.json`, `summary.json`, `bundles.json`도 보존했다.
 
 남은 시간 개선 후보는 범위 extent의 반복 copy/sort 비용과 실제 작은 Unity의 재연결·첫 렌더 검증이다. 이번 구현을 기본 모드·Coordination 연결·flush 변경·대형 Unity 지원으로 확대하지 않는다.
+
+실제 작은 Unity의 후속 비교는 [RU 실행](unity-replay-comparison.md)을 따른다. 이 RI 실행 당시의 실제 Unity NotRun과 합성 결과는 그대로 두고 후속 실환경 관측과 구분한다.

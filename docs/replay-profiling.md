@@ -23,4 +23,4 @@ dotnet run --project tools/Splinter.ReplayProbe --configuration Release --no-bui
 
 `allocatedManagedBytes`는 생성 구간의 누적 관리 메모리 할당량이다. 동시에 필요한 메모리나 디스크 공간이 아니다. `managedHeapBytes`는 재생 직후 GC의 회수 전 객체도 포함할 수 있는 추정 heap 크기, `peakWorkingSetBytes`는 그때까지 프로세스 전체의 관측 working-set 최고치다. receipt/hash 준비와 Runtime 초기화 비용도 프로세스 메모리에 포함된다.
 
-매 run 직전 전체 hash를 읽으므로 OS cache가 데워진다. cache를 강제로 비우지 않으며 별도 프로세스·순서·반복 수·같은 input hash와 state hash를 기록해야 한다. 파일 할당은 FILE_STANDARD_INFO 등 별도 계측으로 확인한다. 실제 실행 범위와 바이너리 비교는 [RI 검증](verification/replay-index-cost.md), 실제 Unity의 기존 관측은 [VR 검증](verification/validation-view-readiness-and-replay.md)을 따른다.
+매 run 직전 전체 hash를 읽으므로 OS cache가 데워진다. cache를 강제로 비우지 않으며 별도 프로세스·순서·반복 수·같은 input hash와 state hash를 기록해야 한다. 파일 할당은 FILE_STANDARD_INFO 등 별도 계측으로 확인한다. 이 도구의 실행 범위와 바이너리 비교는 [RI 검증](verification/replay-index-cost.md), 실제 Unity 관측은 [VR 검증](verification/validation-view-readiness-and-replay.md)과 [RI 후보의 작은 Unity 비교](verification/unity-replay-comparison.md)를 따른다. 실제 Editor의 재시작은 journal에 새 기록을 쓸 수 있으므로 같은 입력의 offline 개선률로 전체 재개 시간이나 디스크 절감량을 추정하지 않는다.

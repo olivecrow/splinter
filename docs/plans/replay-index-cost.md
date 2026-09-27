@@ -12,3 +12,5 @@
 새 Unity import·VSS·mount·전체 Library 복사본은 만들지 않는다. 범용 profiler나 새로운 제품 workspace 명령은 추가하지 않는다. 개발용 offline probe는 합성 identity만 허용하며 기존 입력을 덮어쓰거나 자동 정리하지 않는다. 첫 렌더, flush 묶음 변경, 기본 모드·Coordination 연결과 대형 PV는 별도 범위다. 실제 판정은 [RI 검증](../verification/replay-index-cost.md)에 기록한다.
 
 정의한 범위는 `scoped-complete-with-limitations`로 마감했다. 300 자동 통과·선택적 ReFS 1 skip과 공통 probe 바이너리의 합성 27회 비교를 완료했다. 실제 Unity 재연결 개선률·첫 렌더는 후속 범위이며 기존 VR 판정을 바꾸지 않는다.
+
+실제 작은 Unity의 후속 비교는 [RU 실행](../verification/unity-replay-comparison.md)을 따른다. 이 RI 실행 당시의 실제 Unity NotRun과 합성 결과는 그대로 두고 후속 실환경 관측과 구분한다.

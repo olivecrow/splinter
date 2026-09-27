@@ -1,6 +1,15 @@
 # 구현 계획 검증 추적표
 
-[RI-01~04](replay-index-cost.md)는 [연산별 index 계측·rename 할당 개선과 offline 합성 비교](../verification/replay-index-cost.md)의 정의한 범위다. 현재 자동 시험은 300 통과·0 실패·선택적 ReFS 1 skip이다. 실제 Unity 재연결에서 RI 변경의 개선률은 NotRun이다.
+[RU-01~04](unity-replay-comparison.md)는 [작은 Unity의 기존/개선 비교](../verification/unity-replay-comparison.md)를 `scoped-complete-with-limitations`로 마감했다. 제품 코드 변경 없이 같은 RI 소스의 자동 300/0/1 증거를 재사용했다.
+
+| 하위 관문 | 범위 | 판정 |
+| --- | --- | --- |
+| RU-01 | 공통 주변 계층·Core/Runtime 비교와 원본/할당 기준 | Passed, 두 작은 실행 묶음의 hash·복사 비용과 원본 기준 확인 |
+| RU-02 | 빈 cache의 첫 준비·실제 코드/에셋 | Passed, 지연 compile 수집·첫 PNG 빈 화면·정상 quit 뒤 stop 재확인 제한 유지 |
+| RU-03 | 동일 journal mount와 누적 입력 Editor 각 3회 | Passed, 정의한 관측. 전체 Editor 개선률 미입증·focus 복구/종료 재시도 포함 |
+| RU-04 | 독립 결과·원본/기존 ref/타 볼륨 snapshot·회수 | Passed, 소유 자원 0·VHD 분리 후 독립 결과 fsck/내용 확인 |
+
+[RI-01~04](replay-index-cost.md)는 [연산별 index 계측·rename 할당 개선과 offline 합성 비교](../verification/replay-index-cost.md)의 정의한 범위다. 현재 자동 시험은 300 통과·0 실패·선택적 ReFS 1 skip이다. 실제 Unity 재연결의 후속 관측은 RU 기록을 따르며 RI의 합성 관측과 구분한다.
 
 | 하위 관문 | 범위 | 판정 |
 | --- | --- | --- |
