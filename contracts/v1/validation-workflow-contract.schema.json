@@ -1,0 +1,1103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:validation-workflow-contract",
+  "$defs": {
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "generation"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "provider",
+        "sourcePath",
+        "rootPath",
+        "capturedAt",
+        "persistent",
+        "differential",
+        "consistency"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        },
+        "sourcePath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        },
+        "rootPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "persistent": {
+          "const": true
+        },
+        "differential": {
+          "const": true
+        },
+        "consistency": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        }
+      }
+    },
+    "seal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "durableSequence",
+        "journalBytes",
+        "journalHash"
+      ],
+      "properties": {
+        "durableSequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "journalBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "journalHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "worker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceId",
+        "owner",
+        "snapshot",
+        "sourceSeal"
+      ],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "owner": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+        },
+        "snapshot": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/snapshot"
+        },
+        "sourceSeal": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+        }
+      }
+    },
+    "cache": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "viewId",
+        "cacheId",
+        "snapshot",
+        "compatibilityKey",
+        "partitionKey",
+        "maxJournalBytes"
+      ],
+      "properties": {
+        "viewId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "cacheId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "snapshot": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/snapshot"
+        },
+        "compatibilityKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        },
+        "partitionKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        },
+        "maxJournalBytes": {
+          "type": "integer",
+          "minimum": 4096
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "candidate",
+            "source-generation"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        }
+      }
+    },
+    "publicationIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "projectId",
+        "candidateId",
+        "worker",
+        "managedPathPolicy"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "candidateId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "worker": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/worker"
+        },
+        "managedPathPolicy": {
+          "const": "source-only-v1"
+        }
+      }
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intent",
+        "candidateSeal",
+        "receiptId"
+      ],
+      "properties": {
+        "intent": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/publicationIntent"
+        },
+        "candidateSeal": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+        },
+        "receiptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        }
+      }
+    },
+    "selectionIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "projectId",
+        "generationId",
+        "owner",
+        "cache",
+        "candidate"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "generationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "owner": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+        },
+        "cache": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/cache"
+        },
+        "candidate": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/publication"
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intent",
+        "receiptId"
+      ],
+      "properties": {
+        "intent": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selectionIntent"
+        },
+        "receiptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validationId",
+        "generationId",
+        "candidateId",
+        "candidateSeal",
+        "sourceOutputSeal",
+        "success",
+        "completedAt"
+      ],
+      "properties": {
+        "validationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        },
+        "generationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "candidateId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "candidateSeal": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+        },
+        "sourceOutputSeal": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "owner",
+        "snapshot",
+        "seal"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+        },
+        "owner": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+        },
+        "snapshot": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/snapshot"
+        },
+        "seal": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+        }
+      }
+    },
+    "preservationIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "projectId",
+        "artifact"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "artifact": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/artifact"
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intent",
+        "reference",
+        "contentHash",
+        "independentOfSnapshot"
+      ],
+      "properties": {
+        "intent": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/preservationIntent"
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "independentOfSnapshot": {
+          "const": true
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "operation",
+        "projectId",
+        "requestKey",
+        "owner"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "operation": {
+          "enum": [
+            "publish",
+            "select",
+            "resume",
+            "observe-validation",
+            "preserve",
+            "release"
+          ]
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "requestKey": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "owner": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+        },
+        "worker": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/worker"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidateId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cache": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/cache"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "generationId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "worker"
+          ],
+          "properties": {
+            "operation": {
+              "const": "publish"
+            },
+            "worker": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/worker"
+            },
+            "candidateId": {
+              "type": "null"
+            },
+            "cache": {
+              "type": "null"
+            },
+            "generationId": {
+              "type": "null"
+            },
+            "target": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "candidateId",
+            "cache"
+          ],
+          "properties": {
+            "operation": {
+              "const": "select"
+            },
+            "worker": {
+              "type": "null"
+            },
+            "candidateId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "cache": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/cache"
+            },
+            "generationId": {
+              "type": "null"
+            },
+            "target": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "generationId"
+          ],
+          "properties": {
+            "operation": {
+              "const": "resume"
+            },
+            "worker": {
+              "type": "null"
+            },
+            "candidateId": {
+              "type": "null"
+            },
+            "cache": {
+              "type": "null"
+            },
+            "generationId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "target": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "generationId"
+          ],
+          "properties": {
+            "operation": {
+              "const": "observe-validation"
+            },
+            "worker": {
+              "type": "null"
+            },
+            "candidateId": {
+              "type": "null"
+            },
+            "cache": {
+              "type": "null"
+            },
+            "generationId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "target": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "target"
+          ],
+          "properties": {
+            "operation": {
+              "const": "preserve"
+            },
+            "worker": {
+              "type": "null"
+            },
+            "candidateId": {
+              "type": "null"
+            },
+            "cache": {
+              "type": "null"
+            },
+            "generationId": {
+              "type": "null"
+            },
+            "target": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+            }
+          }
+        },
+        {
+          "required": [
+            "target"
+          ],
+          "properties": {
+            "operation": {
+              "const": "release"
+            },
+            "worker": {
+              "type": "null"
+            },
+            "candidateId": {
+              "type": "null"
+            },
+            "cache": {
+              "type": "null"
+            },
+            "generationId": {
+              "type": "null"
+            },
+            "target": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+            }
+          }
+        }
+      ]
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "operationId",
+        "operation",
+        "replayed"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "operationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "operation": {
+          "enum": [
+            "publish",
+            "select",
+            "resume",
+            "observe-validation",
+            "preserve",
+            "release"
+          ]
+        },
+        "replayed": {
+          "type": "boolean"
+        },
+        "candidate": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/publication"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selection": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/evidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/result"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "released": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "candidate"
+          ],
+          "properties": {
+            "operation": {
+              "const": "publish"
+            },
+            "candidate": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/publication"
+            },
+            "selection": {
+              "type": "null"
+            },
+            "evidence": {
+              "type": "null"
+            },
+            "result": {
+              "type": "null"
+            },
+            "released": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "selection"
+          ],
+          "properties": {
+            "operation": {
+              "const": "select"
+            },
+            "candidate": {
+              "type": "null"
+            },
+            "selection": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
+            },
+            "evidence": {
+              "type": "null"
+            },
+            "result": {
+              "type": "null"
+            },
+            "released": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "selection"
+          ],
+          "properties": {
+            "operation": {
+              "const": "resume"
+            },
+            "candidate": {
+              "type": "null"
+            },
+            "selection": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
+            },
+            "evidence": {
+              "type": "null"
+            },
+            "result": {
+              "type": "null"
+            },
+            "released": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "selection",
+            "evidence"
+          ],
+          "properties": {
+            "operation": {
+              "const": "observe-validation"
+            },
+            "candidate": {
+              "type": "null"
+            },
+            "selection": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
+            },
+            "evidence": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/evidence"
+            },
+            "result": {
+              "type": "null"
+            },
+            "released": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "result"
+          ],
+          "properties": {
+            "operation": {
+              "const": "preserve"
+            },
+            "candidate": {
+              "type": "null"
+            },
+            "selection": {
+              "type": "null"
+            },
+            "evidence": {
+              "type": "null"
+            },
+            "result": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/result"
+            },
+            "released": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "result",
+            "released"
+          ],
+          "properties": {
+            "operation": {
+              "const": "release"
+            },
+            "candidate": {
+              "type": "null"
+            },
+            "selection": {
+              "type": "null"
+            },
+            "evidence": {
+              "type": "null"
+            },
+            "result": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/result"
+            },
+            "released": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+            }
+          }
+        }
+      ]
+    },
+    "candidateState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publication",
+        "result",
+        "released"
+      ],
+      "properties": {
+        "publication": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/publication"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/result"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "released": {
+          "type": "boolean"
+        }
+      }
+    },
+    "generationState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selection",
+        "evidence",
+        "frozenSeal",
+        "result",
+        "released"
+      ],
+      "properties": {
+        "selection": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/evidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frozenSeal": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/result"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "released": {
+          "type": "boolean"
+        }
+      }
+    },
+    "viewState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cache",
+        "owner",
+        "currentGenerationId"
+      ],
+      "properties": {
+        "cache": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/cache"
+        },
+        "owner": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+        },
+        "currentGenerationId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "operationState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "request",
+        "artifact",
+        "response"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "request": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/request"
+        },
+        "artifact": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "response": {
+          "anyOf": [
+            {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/response"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "projectId",
+        "revision",
+        "candidates",
+        "generations",
+        "views",
+        "operations"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "candidates": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+          },
+          "additionalProperties": {
+            "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/candidateState"
+          }
+        },
+        "generations": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+          },
+          "additionalProperties": {
+            "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/generationState"
+          }
+        },
+        "views": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+          },
+          "additionalProperties": {
+            "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/viewState"
+          }
+        },
+        "operations": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+          },
+          "additionalProperties": {
+            "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/operationState"
+          }
+        }
+      }
+    }
+  }
+}

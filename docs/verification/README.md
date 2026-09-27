@@ -15,6 +15,7 @@
 | PV-01/02 | 대표 fixture와 사용자 선택 비교 범위는 scoped-complete-with-limitations | PV-02 전체 Passed 아님. S4 FailedInputQualification, 소수 표본, 전체 팩 raw 입력 동등성 unknown |
 | SF-01/02 | 변경 기반 소스 검증, 명시적 정리·중첩 예산·계측의 하위 범위 | 공통 저장소 최초 실행의 FailedPreservation은 유지. SF-02 전체 Partial, 대형 용량 목표 미달성 |
 | SF-03/VC/VR | 개발용 작은 A/B/A, 정상 cold import와 재연결 | SF-03 전체 Partial. 제품 연결·큐·일반 임대 복구·source 반환 병합 미구현. VR-03 Partial |
+| SF-03/VW | [공통 수명주기](../validation-workflow.md)의 지속 상태·영수증 재조정·fake 적합성 | 실제 provider·CLI 미연결. 합성 파일/영수증이며 실제 VSS·WinFsp·Unity 지원 증거가 아님. 자동 실행 상태는 검증 추적표의 VW를 따름 |
 | RI/RU/WI | 합성 또는 동일 닫힌 저널의 제한된 replay 비교 | warm cache·소수 표본. 누적 Editor 전체 개선·Library 물리 절감으로 환산하지 않음 |
 | JW/FR | 고정 쓰기 계측과 작은 URP fixture의 요청별 유효 PNG 검사 | Windows 선행 직렬화·내구성 경계 유지. Unity 내부 첫 draw 원인 미확정, group flush 미선정 |
 | SF-04~06, SW-01~10, UA-01~04 | 계획 | NotRun. 대형 입력·모드 채택·설치/binding/discard·권한 서비스 미구현 |

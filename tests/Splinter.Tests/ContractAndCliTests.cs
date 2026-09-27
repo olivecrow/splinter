@@ -12,6 +12,23 @@ public sealed class ContractAndCliTests
     private readonly ContractCatalog contracts = new();
 
     [Fact]
+    public async Task ValidationWorkflowContractsAreDiscoverableWithoutAdvertisingProductCommands()
+    {
+        var (exit, response) = await Run("capabilities");
+        Assert.Equal(0, exit);
+        var contract = response.GetProperty("data").GetProperty("validationWorkflowContract");
+        Assert.Equal("contract-and-fake", contract.GetProperty("stage").GetString());
+        Assert.False(contract.GetProperty("integratedWorkspaceMode").GetBoolean());
+        Assert.False(contract.GetProperty("cliAvailable").GetBoolean());
+        foreach (var schema in contract.GetProperty("schemas").EnumerateArray())
+            Assert.Contains(schema.GetString()!, contracts.SchemaIds);
+        Assert.DoesNotContain(contracts.Commands, command => command.Id.StartsWith("validation.", StringComparison.Ordinal));
+        var enabled = JsonNode.Parse(response.GetRawText())!;
+        enabled["data"]!["validationWorkflowContract"]!["cliAvailable"] = true;
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(enabled)).IsValid);
+    }
+
+    [Fact]
     public void DeferredReleaseIsAcceptedAndNonterminalWhileStatusOnlyReportsItsObservation()
     {
         using var d = new TestDirectory(); var store = new WorkspaceStore(d.Path);

@@ -2,6 +2,8 @@
 
 `snapshot-spike`의 개발용 확장이다. 제품 `workspace ensure`의 실행 모드나 작업 큐에 연결되어 있지 않다. 범위는 [VC-01~04 계획](validation-view.md), 실제 판정은 [검증 기록](verification/immutable-validation-view.md)을 따른다.
 
+제품 연결 전의 [공통 수명주기 계약](validation-workflow.md)은 별도의 Core/Runtime·fake 구현이다. 아래 실제 실험을 그 provider로 연결한 상태가 아니며 서로의 통과 근거를 승계하지 않는다.
+
 ## 저장 구조
 
 Core의 `ValidationCandidate`는 원본 `OverlayIdentity`, 원래 저널 seal, 별도 후보 저널 seal과 시각을 묶는다. `ValidationViewSelection`은 후보 디렉터리·캐시 디렉터리·캐시 최상위 이름을 전달한다. Core는 Unity·Git·Win32에 의존하지 않는다.

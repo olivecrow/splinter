@@ -814,7 +814,8 @@
         "persistentHost",
         "persistentState",
         "stateBackend",
-        "storageModes"
+        "storageModes",
+        "validationWorkflowContract"
       ],
       "properties": {
         "implementationStage": {
@@ -863,6 +864,18 @@
             "integratedWorkspaceMode": {"const":false},
             "candidate": {"type":"string"}, "switching": {"type":"string"},
             "result": {"type":"string"}, "measurements": {"type":"string"}
+          }
+        },
+        "validationWorkflowContract": {
+          "type": "object", "additionalProperties": false,
+          "required": ["stage", "integratedWorkspaceMode", "cliAvailable", "runtime", "operations", "schemas", "boundaries"],
+          "properties": {
+            "stage": {"const":"contract-and-fake"},
+            "integratedWorkspaceMode": {"const":false}, "cliAvailable": {"const":false},
+            "runtime": {"type":"string", "minLength":1},
+            "operations": {"const":["publish", "select", "resume", "observe-validation", "preserve", "release"]},
+            "schemas": {"const":["urn:splinter:v1:validation-workflow-request", "urn:splinter:v1:validation-workflow-response", "urn:splinter:v1:validation-workflow-state"]},
+            "boundaries": {"type":"string", "minLength":1}
           }
         },
         "developmentReplayProbe": {

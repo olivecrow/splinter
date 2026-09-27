@@ -94,9 +94,27 @@
 
 결과 보존 결함·공통 계약을 먼저 수정하고 아래 PV-01/02의 제한된 작업·비용 관문에서 확보한 증거와 선택 범위 마감 판정을 보존한다. NR-01~03/05/07의 나머지 계약·프로세스 시험과 NR-04/06 격리 환경 준비를 병행하고 NR-08 최종 지원 회귀로 이어 간다. 실제 장애 경계 목록과 데이터 지속성 oracle은 계획에 정의한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
 
+## SF-03 공통 수명주기 적합성
+
+아래는 [공통 계약·지속 상태](../validation-workflow.md)의 자동 시험 추적이다. 실제 VSS·WinFsp·Unity의 제품 연결이나 공개 48개 시나리오의 추가 통과로 집계하지 않는다. `ValidationWorkflowTests`는 새 coordinator/provider와 합성 파일 영수증을 사용한다.
+
+| ID | 대상과 증거 | 상태 |
+| --- | --- | --- |
+| VW-01 | 입력·응답·상태 schema, current-only 거부, CLI capability의 `contract-and-fake` 경계 | Passed, 자동/fake 범위 |
+| VW-02 | 후보 불변·후속 worker 수정, project/request ID 분리, 동시 동일 요청, intent/observed/completed 중단과 provider 응답 유실 | Passed, 자동/fake 범위 |
+| VW-03 | A/B/A의 소스 세대 분리·동일 세대 재개, 다른 snapshot/cache·stale owner·busy/unknown 차단 | Passed, 자동/fake 범위 |
+| VW-04 | 후보 seal·generation별 검증 증거, 잘못된 증거 거부, worker 성공 자동 승계 없음 | Passed, 자동/fake 범위 |
+| VW-05 | 실패 검증 출력의 독립 보존, source freeze, 의존성이 있는 후보/미보존 결과/손상 결과의 회수 거부, 응답 유실 재시도 | Passed, 자동/fake 범위 |
+| VW-06 | 초기/다음 flushed 상태 재개, read-only 관측, 부분·중복·누락·구버전·역행·거짓 release 상태의 보존 거부, 후보/view 기록 누락의 의존성 오인 차단 | Passed, 자동/fake 범위 |
+
+2026-09-28의 `development` 작업 트리에서 `pwsh -NoProfile -File ./scripts/build.ps1`의 locked restore·Release 빌드와 전체 시험을 실행했다. [최종 TRX](../../artifacts/test-results/sf03-workflow-20260928.trx)는 388 Passed, 0 Failed, 1 Skipped이며, 이 중 `ValidationWorkflowTests` 64건과 capability/schema 경계 1건이 이번 범위다. 건너뛴 1건은 `SPLINTER_TEST_REFS_ROOT`가 필요한 선택적 실제 ReFS 시험이다. [실행 manifest](../../artifacts/test-results/sf03-workflow-20260928.manifest.json)는 기준 commit, 변경 코드/schema의 hash와 결과 hash를 고정한다.
+
+실제 provider 연결·Git 관리 경로 분리·snapshot/cache 공동 수명은 NotRun이며 [남은 관문](storage-priority-and-editor-modes.md#sf-03의-남은-제품-연결-관문)을 따른다.
+
 ## 제품화와 비용 관문
 
 - SF-02/03은 Partial, SF-04~06은 NotRun이다. 완료 기준은 [저장공간·Editor 계획](storage-priority-and-editor-modes.md)을 따른다.
+- SF-03의 공통 수명주기 계약은 위 VW 자동 적합성으로 추적한다. 실제 제품 VSS·WinFsp·Unity 연결의 NotRun을 올리지 않는다.
 - SW-01~10 설치·binding·명시적 discard와 UA-01~04 권한 서비스는 NotRun이다. 각각의 소유 계획에서 검증한다.
 - PV-01/02의 사용자 선택 범위는 scoped-complete-with-limitations다. 전체 PV-02 Passed로 표시하지 않고 S4 입력 실패·소수 표본·raw 입력 동등성 unknown을 유지한다. [비교 방법](parallel-workflow-qualification.md)과 [실측](../verification/parallel-workflow.md)은 후속 비교의 입력을 고정하기 위해 보존한다.
 - 현재 코드의 계약 변경은 필수 형식 생성·읽기, 지원하지 않는 형식의 비파괴 거부, 같은 버전의 중단 재시도를 함께 검증한다. 자동 시험과 실제 VSS/Unity 실행을 구별한다.
