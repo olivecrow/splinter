@@ -1,5 +1,14 @@
 # 구현 계획 검증 추적표
 
+| ID | FR 첫 미리보기 검사 | 상태 |
+| --- | --- | --- |
+| FR-01 | cold 첫 PNG 재현과 API/셰이더/연속 draw의 원인 분리 | Passed, 작은 fixture. 진단 PNG의 중간 육안 판독 정정, Unity 내부 첫 draw 원인 미확정 |
+| FR-02 | 단일 요청의 유효 PNG·요청별 경로/hash·최대 2회·명시 실패 | Passed, cold pass별 `[0,9457]`과 실제 이미지·기존 씬 복원 확인 |
+| FR-03 | 새 cold/reload/정상 재시작 첫 요청과 실패 주입/복구 | Passed, 첫 요청 3건·빈 화면/누락 mesh/출력 충돌과 정상 복구 3건 |
+| FR-04 | 독립 결과·원본/ref/타 snapshot·소유 자원 회수·VHD 분리 | Passed, 독립 결과 2개·원본 90개 파일/기존 ref 25개 보존·소유 자원 0·분리 후 결과 재검증 |
+
+[FR 계획](first-render-qualification.md)의 범위는 [실행 기록](../verification/first-render-qualification.md)을 근거로 `scoped-complete-with-limitations`다. 공통 fixture의 화면 성공 계약이며 제품 validation API·Unity 내부 원인 해결·Library 공간 절감으로 확대하지 않는다. 과거 빈 PNG와 VR-03 Partial는 유지한다. 표준 제품 빌드는 303 통과·0 실패·선택적 ReFS 1 skip이다.
+
 | ID | JW 최초 준비 쓰기 비용 | 상태 |
 | --- | --- | --- |
 | JW-01 | 고정 연산별 commit 비용·mutation 대기, nullable 계약·fake 기반 회귀 | Passed, 자동 303 통과·0 실패·선택적 ReFS 1 skip |

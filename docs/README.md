@@ -4,6 +4,8 @@
 
 | 문서 | 읽을 때 |
 | --- | --- |
+| [Unity 미리보기 검사](unity-render-qualification.md) | 공통 fixture의 요청별 PNG·실제 화면 성공 조건·오류와 자원 복원·제품 validation 경계를 확인할 때 |
+| [첫 미리보기 검사 범위](plans/first-render-qualification.md) · [실행 기록](verification/first-render-qualification.md) | FR-01~04의 첫 PNG 재현·단일 요청의 유효 화면/명시 실패·새 cold/재시작/reload와 실패 복구, 독립 결과·회수 및 진단 판독 정정·native 원인 미확정의 제한을 확인할 때 |
 | [Live 쓰기 probe](write-profiling.md) | 새 디렉터리의 고정 합성 쓰기·metadata·4-thread 입력과 연산별 비용·대기 계수를 해석할 때 |
 | [Live journal 쓰기 비용 범위](plans/live-journal-write-cost.md) | JW-01~04의 연산별 쓰기·flush 비용과 mutation 대기, 고정 합성·새 작은 Unity 실행의 완료 기준을 확인할 때 |
 | [Live journal 쓰기 비용 검증](verification/live-journal-write-cost.md) | JW의 자동·합성·작은 Unity 실행 상태와 연산별 비용, 동시성 경계·독립 결과·회수 증거를 확인할 때 |

@@ -44,6 +44,8 @@ WinFsp Cleanup에서 사용자 핸들 종료를 집계한다. 커널 retainedFil
 
 ## Unity 경계
 
+선택 모델·텍스처·PNG의 추가 검사는 형제 fixture의 [미리보기 검사 계약](unity-render-qualification.md)을 따른다. `qualification-command.json`의 `inspect`와 제품 `unity-refresh`는 각각 렌더 결과와 compile/fingerprint를 확인하는 별도 경로다. PNG 경로는 같은 요청 응답의 `assets.previewPath`를 읽는다.
+
 .git만 기준 읽기에서 제외한다. Library를 제외하거나 삭제해 전체 재생성하지 않는다. 실행 전 private overlay의 Library/ilpp.pid, Library/Pipeline/.unity-pipeline-port, Library/MCPForUnity/RunState/mcp_http_*.pid만 whiteout한다. 원본 프로세스 주소를 재사용하면 원본 compiler helper에 간섭할 수 있기 때문이다.
 
 실험 bridge의 -splinterIncrementalCompilation 1은 명시적 refresh와 incremental compilation을 요청한다. default ReFS 동작은 유지한다. 현재 fingerprint는 Assets/SplinterSnapshotProbe.cs 하나다. validation은 요청 ID·fingerprint·compiler 오류·domain reload를 확인한다. ready 상태의 snapshot-probe.json은 Editor에 로드된 Calculate(3)을 호출하여 값·domain generation·assembly MVID를 기록한다. 변경 없는 compile 요청은 reload가 없을 수 있으므로 이 spike는 실제 변경 뒤 요청한다. 일반 프로젝트 전체 validation 계약은 아니다.

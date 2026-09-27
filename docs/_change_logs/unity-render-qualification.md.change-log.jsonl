@@ -1,0 +1,1 @@
+{"date":"2026-09-27","doc":"unity-render-qualification.md","change_type":"added","summary":"Define request-specific validated URP previews with bounded passes and explicit failures","intent":"Make small-fixture render evidence usable for subsequent code review","related_files":["docs/verification/first-render-qualification.md","AGENTS.md"]}
