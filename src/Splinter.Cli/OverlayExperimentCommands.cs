@@ -46,6 +46,7 @@ internal static class OverlayExperimentCommands
         switch (input.Action)
         {
             case "candidate-export":
+            case "candidate-source-export":
                 if (overlay.ValidationView is not null)
                     throw new WorkspaceException("CandidateSourceRequired", "Export an editorless worker, not a validation output generation.");
                 string destination = Path.GetFullPath(input.CandidatePath ??
@@ -71,10 +72,17 @@ internal static class OverlayExperimentCommands
                     if (sourceApp.Running || sourceApp.Resources is not { OwnershipVerified: true, ActiveProcesses: 0 })
                         throw new WorkspaceException("ApplicationStillRunning", "The candidate source must have no live application resources.");
                 }
+                CandidateSourceProjection? projection = input.Action == "candidate-source-export"
+                    ? await GitOverlayRegistration.QualifyCandidateSourceAsync(await Receipt(input, overlay, ct), overlay.Identity, ct)
+                    : null;
                 using (var tree = new VssSnapshotTree(overlay.Identity.Snapshot, overlay.ReadAccess))
-                    return JournalDeltaStore.ExportCandidate(overlay.DeltaPath, overlay.Identity, tree,
-                        destination,
-                        Guid.NewGuid().ToString("N"), [".git", "Library", "Temp", "Logs", "UserSettings", "obj"]);
+                {
+                    string[] forbidden = [".git", "Library", "Temp", "Logs", "UserSettings", "obj"];
+                    string id = Guid.NewGuid().ToString("N");
+                    return projection is null
+                        ? JournalDeltaStore.ExportCandidate(overlay.DeltaPath, overlay.Identity, tree, destination, id, forbidden)
+                        : JournalDeltaStore.ExportSourceCandidate(overlay.DeltaPath, overlay.Identity, tree, destination, id, forbidden, projection);
+                }
             case "mount":
                 IOverlayMountProvider mountProvider = new WinFspOverlayMountProvider(input.OverlayRequestPath, Path.Combine(overlay.ControlPath, "runners"));
                 await mountProvider.MountAsync(overlay.Identity, overlay.DeltaPath, overlay.MountPath, ct);

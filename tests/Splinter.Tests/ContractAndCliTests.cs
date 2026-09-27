@@ -12,6 +12,21 @@ public sealed class ContractAndCliTests
     private readonly ContractCatalog contracts = new();
 
     [Fact]
+    public async Task ManagedCandidateExportRequiresAReceiptAndRemainsAnExperiment()
+    {
+        var input = new JsonObject { ["action"] = "candidate-source-export", ["overlayRequestPath"] = "overlay.json", ["candidatePath"] = "new-candidate" };
+        Assert.False(contracts.Validate("urn:splinter:v1:snapshot-spike-request", JsonSerializer.SerializeToElement(input)).IsValid);
+        input["receiptPath"] = "owned-git-receipt.json";
+        Assert.True(contracts.Validate("urn:splinter:v1:snapshot-spike-request", JsonSerializer.SerializeToElement(input)).IsValid);
+        var (exit, response) = await Run("capabilities");
+        Assert.Equal(0, exit);
+        var capability = response.GetProperty("data").GetProperty("validationViewExperiment");
+        Assert.False(capability.GetProperty("integratedWorkspaceMode").GetBoolean());
+        Assert.Contains("candidate-source-export", capability.GetProperty("candidate").GetString());
+        Assert.Contains("urn:splinter:v1:candidate-source-projection", contracts.SchemaIds);
+    }
+
+    [Fact]
     public async Task ValidationWorkflowContractsAreDiscoverableWithoutAdvertisingProductCommands()
     {
         var (exit, response) = await Run("capabilities");

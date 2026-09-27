@@ -197,7 +197,8 @@ public sealed partial class JournalDeltaStore
         return new(sequence, journal.Length, hash);
     }
 
-    private string StateHash()
+    private string StateHash() => StateHash(null);
+    private string StateHash(IReadOnlySet<string>? projectedFiles)
     {
         using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         void Add(object value)
@@ -210,6 +211,7 @@ public sealed partial class JournalDeltaStore
         Add(sequence);
         foreach (string path in paths.Keys.Order(StringComparer.OrdinalIgnoreCase))
         {
+            if (projectedFiles?.Contains(path) == true) continue;
             var node = nodes[paths[path]];
             Add(path); Add(node.Entry);
             foreach (var extent in node.Extents)
@@ -230,18 +232,20 @@ public sealed partial class JournalDeltaStore
                 finally { ArrayPool<byte>.Shared.Return(buffer); }
             }
         }
-        foreach (string path in hidden.Order(StringComparer.OrdinalIgnoreCase)) Add(path);
+        foreach (string path in hidden.Order(StringComparer.OrdinalIgnoreCase))
+            if (projectedFiles?.Contains(path) != true) Add(path);
         foreach (var change in pathChanges.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase)) Add(change);
         return Convert.ToHexStringLower(digest.GetHashAndReset());
     }
 
-    private List<LiveRange> LiveRanges()
+    private List<LiveRange> LiveRanges() => LiveRanges(null);
+    private List<LiveRange> LiveRanges(IReadOnlySet<string>? projectedFiles)
     {
         var live = new List<LiveRange>();
         foreach (Guid id in paths.Values.Distinct())
         {
             var node = nodes[id];
-            if (node.Entry.Deleted) continue;
+            if (node.Entry.Deleted || projectedFiles?.Contains(node.Entry.Path) == true) continue;
             live.AddRange(node.Extents.Select(e => new LiveRange(id, e.JournalOffset, e.Length, e.Start)));
         }
         live.Sort((a, b) => a.Physical.CompareTo(b.Physical));
@@ -252,7 +256,7 @@ public sealed partial class JournalDeltaStore
     }
 
     private void WriteCompactedCandidate(string path, SnapshotDeltaSeal originalSeal, List<LiveRange> live,
-        long estimated, CompactionCostBuilder cost)
+        long estimated, CompactionCostBuilder cost, IReadOnlySet<string>? projectedFiles = null)
     {
         string root = Path.GetPathRoot(Path.GetFullPath(path))!;
         // ConnectAsync also requires 2 GiB after the candidate is written.
@@ -262,7 +266,7 @@ public sealed partial class JournalDeltaStore
             throw new WorkspaceException("CompactionHeadroomRequired", "Free space cannot hold the compacted generation and safety headroom.");
         using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536))
         {
-            long actual = cost.Measure("candidate-write", this, () => WalkFrames(live, output), writtenBytes: bytes => bytes);
+            long actual = cost.Measure("candidate-write", this, () => WalkFrames(live, output, projectedFiles), writtenBytes: bytes => bytes);
             if (actual != estimated || output.Length != actual)
                 throw new WorkspaceException("CompactionCandidateMismatch", "Candidate length changed during compaction.");
             cost.Measure("candidate-flush", null, () => output.Flush(true), flushCount: 1);
@@ -271,7 +275,7 @@ public sealed partial class JournalDeltaStore
             throw new WorkspaceException("CompactionGenerationMismatch", "The original journal changed during compaction.");
     }
 
-    private long WalkFrames(List<LiveRange> live, FileStream? output)
+    private long WalkFrames(List<LiveRange> live, FileStream? output, IReadOnlySet<string>? projectedFiles = null)
     {
         long cursor = 0, total = 0;
         int liveIndex = 0;
@@ -295,6 +299,7 @@ public sealed partial class JournalDeltaStore
             if (next > journal.Length) throw new WorkspaceException("DeltaCorrupt", "Incomplete compaction input frame.");
             byte[] metadata = new byte[metadataLength]; ReadExactly(cursor + 8, metadata);
             var mutation = DecodeMutation(metadata, dataLength);
+            if (projectedFiles is not null) ValidateProjectionMutation(mutation, projectedFiles);
             while (liveIndex < live.Count && live[liveIndex].Physical + live[liveIndex].Length <= payload) liveIndex++;
             var slices = new List<PayloadSlice>();
             for (int i = liveIndex; i < live.Count && live[i].Physical < payload + dataLength; i++)
@@ -306,7 +311,16 @@ public sealed partial class JournalDeltaStore
                     throw new WorkspaceException("DeltaCorrupt", "A live extent does not belong to its journal write.");
                 slices.Add(new(from, range.Logical + from - range.Physical, checked((int)(to - from))));
             }
-            CompactionFrame frame = FrameFor(mutation, metadata, payload, dataLength, slices);
+            CompactionFrame frame;
+            if (projectedFiles?.Contains(mutation.Entry.Path) == true)
+            {
+                // Existing skip records retain sequence/path-change evidence,
+                // but create no node and carry none of the managed payload.
+                var skipped = mutation with { Operation = mutation.Operation == "skip-range" ? "skip-range" : "skip-write",
+                    Destination = null, Replace = false, Fragments = null };
+                frame = new(skipped, JsonSerializer.SerializeToUtf8Bytes(skipped), [], 0);
+            }
+            else frame = FrameFor(mutation, metadata, payload, dataLength, slices);
             long first = frame.Mutation.FromSequence ?? frame.Mutation.Sequence;
             if (pending is not null && Skipped(pending) && Skipped(frame) &&
                 pending.Mutation.Sequence + 1 == first &&

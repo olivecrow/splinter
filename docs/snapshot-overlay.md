@@ -4,7 +4,7 @@
 
 ## 구성과 저장 계약
 
-`candidate-export`와 `overlay-serve-request.validationView`의 불변 후보·분리된 source/cache 저널은 [고정 검증 view 계약](validation-view.md)을 따른다. 정상 Editor 종료·provider 종료 뒤 같은 경로에서 후보를 바꾸는 개발용 실험이며 제품 workspace 모드로 표시하지 않는다. 정의한 A/B/A와 생성·재개·전환 비용의 실행 증거는 [VC 기록](verification/immutable-validation-view.md)에 분리한다.
+`candidate-export`·등록 증거가 필요한 `candidate-source-export`와 `overlay-serve-request.validationView`의 불변 후보·분리된 source/cache 저널은 [고정 검증 view 계약](validation-view.md)을 따른다. 정상 Editor 종료·provider 종료 뒤 같은 경로에서 후보를 바꾸는 개발용 실험이며 제품 workspace 모드로 표시하지 않는다. 정의한 A/B/A와 생성·재개·전환 비용의 실행 증거는 [VC 기록](verification/immutable-validation-view.md)에 분리한다.
 
 공유 VSS helper는 같은 볼륨에 다른 오래된/동일 시각/시각 불명 snapshot이 있으면 `SnapshotReleaseIsolationRequired`로 해제를 차단하고 `release-isolation.json`을 남긴다. 정확한 ID만 삭제해도 다른 snapshot이 소실된 [실제 실패](verification/storage-foundation.md)가 있으므로 기존 snapshot을 삭제해 차단을 우회하지 않는다. 현재 guard는 [격리된 소유 snapshot](verification/storage-recovery.md)에서 검증했다. 일반 비소유 백업 공존·외부 동시 삭제의 보존 보장은 미완료다. 새 소스 변경 세대·저널 I/O 계수는 [공통 소스 검증과 계측](source-verification.md)을 따른다.
 

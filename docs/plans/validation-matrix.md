@@ -109,7 +109,21 @@
 
 2026-09-28의 `development` 작업 트리에서 `pwsh -NoProfile -File ./scripts/build.ps1`의 locked restore·Release 빌드와 전체 시험을 실행했다. [최종 TRX](../../artifacts/test-results/sf03-workflow-20260928.trx)는 388 Passed, 0 Failed, 1 Skipped이며, 이 중 `ValidationWorkflowTests` 64건과 capability/schema 경계 1건이 이번 범위다. 건너뛴 1건은 `SPLINTER_TEST_REFS_ROOT`가 필요한 선택적 실제 ReFS 시험이다. [실행 manifest](../../artifacts/test-results/sf03-workflow-20260928.manifest.json)는 기준 commit, 변경 코드/schema의 hash와 결과 hash를 고정한다.
 
-실제 provider 연결·Git 관리 경로 분리·snapshot/cache 공동 수명은 NotRun이며 [남은 관문](storage-priority-and-editor-modes.md#sf-03의-남은-제품-연결-관문)을 따른다.
+실제 provider 연결·관리 파일 분리의 VSS/Unity 실행·snapshot/cache 공동 수명은 NotRun이며 [남은 관문](storage-priority-and-editor-modes.md#sf-03의-남은-제품-연결-관문)을 따른다.
+
+## SF-03 관리 파일 분리 적합성
+
+개발용 후보 게시의 [현재 계약](../validation-view.md#등록-증거가-있는-관리-파일-분리)을 검증한다. 실제 임시 Git 등록과 합성 불변 트리를 사용하며 제품 VSS/WinFsp/Unity 연결과 구분한다. 형제 Unity fixture, 실제 snapshot, 설치와 외부 프로젝트는 이 자동 시험의 자원이 아니다.
+
+| ID | 대상과 완료 기준 | 상태 |
+| --- | --- | --- |
+| VG-01 | 등록 owner·경로·역참조·HEAD·포인터/lock 검증, 원본·다른 worktree 무변경 | Passed, 임시 실제 Git 범위 |
+| VG-02 | 검증된 전용 포인터만 후보에서 분리, 소스 rename/삭제/희소 범위 보존, hydration 0 | Passed, 합성 불변 트리/저널 |
+| VG-03 | 변조·잘못된 snapshot/owner·디렉터리·관리 경계 rename·cache 쓰기의 비파괴 거부 | Passed, 자동 시험 |
+| VG-04 | 후속 worker 편집과 후보 불변, 새 source 세대에서 원래 Git 포인터 노출 없음, 손상/중단 후보 보존 | Passed, 합성 불변 트리/저널 |
+| VG-05 | 현재 후보 형식과 필수 증거, 별도 개발용 입력·출력 schema/capability, 전체 회귀 | Passed, 자동 시험 |
+
+2026-09-28, 기준 commit `6bc433b` 이후 작업 트리의 `pwsh -NoProfile -File ./scripts/build.ps1`에서 locked restore·Release 빌드와 전체 420 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped를 확인했다. 새 projection 시험 31건과 입력/capability 시험 1건을 포함한다. [최종 TRX](../../artifacts/test-results/vg-projection-20260928.trx)와 [코드·결과 hash manifest](../../artifacts/test-results/vg-projection-20260928.manifest.json)를 보존한다. 실제 VSS/WinFsp/Unity 게시와 공통 workflow provider 연결은 NotRun이며 SF-03 전체는 Partial이다.
 
 ## 제품화와 비용 관문
 

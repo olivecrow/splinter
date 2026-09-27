@@ -10,32 +10,49 @@ public sealed partial class JournalDeltaStore
     // The source is opened read-only, denying an active writer. Only live private
     // payload ranges are copied. Neither enumeration nor hydration of the base occurs.
     public static ValidationCandidate ExportCandidate(string sourceDirectory, OverlayIdentity identity,
-        ISnapshotTree snapshot, string destination, string id, string[] forbiddenTopLevel)
+        ISnapshotTree snapshot, string destination, string id, string[] forbiddenTopLevel) =>
+        ExportCandidateCore(sourceDirectory, identity, snapshot, destination, id, forbiddenTopLevel, null, null);
+
+    public static ValidationCandidate ExportSourceCandidate(string sourceDirectory, OverlayIdentity identity,
+        ISnapshotTree snapshot, string destination, string id, string[] forbiddenTopLevel,
+        CandidateSourceProjection projection, Action<string>? boundary = null)
+    {
+        if (projection is null) throw new WorkspaceException("CandidateProjectionInvalid", "Managed-file evidence is required.");
+        return ExportCandidateCore(sourceDirectory, identity, snapshot, destination, id, forbiddenTopLevel, projection, boundary);
+    }
+
+    private static ValidationCandidate ExportCandidateCore(string sourceDirectory, OverlayIdentity identity,
+        ISnapshotTree snapshot, string destination, string id, string[] forbiddenTopLevel,
+        CandidateSourceProjection? projection, Action<string>? boundary)
     {
         long started = Stopwatch.GetTimestamp();
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Candidate id is required.");
         if (Directory.Exists(destination) || File.Exists(destination))
             throw new WorkspaceException("CandidateAlreadyExists", "Keep the existing candidate or unfinished publication; use a new destination.");
         using var source = new JournalDeltaStore(sourceDirectory, identity, snapshot, "delta.journal", true);
-        if (source.pathChanges.Keys.Any(p => forbiddenTopLevel.Contains(p.Split('/')[0], StringComparer.OrdinalIgnoreCase)))
+        var projectedFiles = projection is null ? null : source.QualifyProjection(projection);
+        var forbidden = forbiddenTopLevel.Concat(identity.ExcludedTopLevel ?? []).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (source.pathChanges.Keys.Any(p => forbidden.Contains(p.Split('/')[0]) && projectedFiles?.Contains(p) != true))
             throw new WorkspaceException("CandidateContainsManagedPaths", "This experiment accepts editorless source deltas without managed cache or Git writes.");
         var before = source.SealCurrent();
-        string state = source.StateHash();
-        var live = source.LiveRanges();
-        long estimate = source.WalkFrames(live, null);
+        string state = source.StateHash(projectedFiles);
+        var live = source.LiveRanges(projectedFiles);
+        long estimate = source.WalkFrames(live, null, projectedFiles);
         if (estimate > identity.MaxJournalBytes)
             throw new WorkspaceException("DeltaFull", "The sealed candidate exceeds the source's journal budget.");
         Directory.CreateDirectory(destination);
         using (var file = new FileStream(Path.Combine(destination, "identity.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None))
         { JsonSerializer.Serialize(file, identity); file.Flush(true); }
-        source.WriteCompactedCandidate(Path.Combine(destination, "delta.journal"), before, live, estimate, new CompactionCostBuilder());
+        source.WriteCompactedCandidate(Path.Combine(destination, "delta.journal"), before, live, estimate, new CompactionCostBuilder(), projectedFiles);
+        boundary?.Invoke("candidate-flushed");
         using var check = new JournalDeltaStore(destination, identity, snapshot, "delta.journal", true);
         if (check.StateHash() != state) throw new WorkspaceException("CandidateStateMismatch", "Preserve both generations; candidate replay differs.");
-        var result = new ValidationCandidate(1, id, identity, before, check.SealCurrent(), DateTimeOffset.UtcNow,
-            Stopwatch.GetTimestamp() - started, Stopwatch.Frequency);
+        var result = new ValidationCandidate(2, id, identity, before, check.SealCurrent(), DateTimeOffset.UtcNow,
+            Stopwatch.GetTimestamp() - started, Stopwatch.Frequency, projection);
         string pending = Path.Combine(destination, "candidate.json.new");
         using (var file = new FileStream(pending, FileMode.CreateNew, FileAccess.Write, FileShare.None))
         { JsonSerializer.Serialize(file, result); file.Flush(true); }
+        boundary?.Invoke("receipt-flushed");
         AtomicFilePublication.Publish(pending, Path.Combine(destination, "candidate.json"));
         return result;
     }
@@ -49,15 +66,21 @@ public sealed partial class JournalDeltaStore
         }
         catch (Exception ex) when (ex is JsonException or FileNotFoundException)
         { throw new WorkspaceException("CandidateUnpublished", "A complete candidate receipt is required; preserve its files."); }
-        if (candidate.Version != 1 || string.IsNullOrWhiteSpace(candidate.Id) || candidate.Identity is null ||
+        if (candidate.Version != 2 || string.IsNullOrWhiteSpace(candidate.Id) || candidate.Identity is null ||
             candidate.Seal is null || !ValidSeal(candidate.Seal) || candidate.SourceSeal is null || !ValidSeal(candidate.SourceSeal) ||
             candidate.SourceSeal.DurableSequence != candidate.Seal.DurableSequence || candidate.Identity.Snapshot != snapshot.Snapshot)
             throw new WorkspaceException("CandidateIdentityMismatch", "The candidate does not identify this exact snapshot.");
+        if (candidate.SourceProjection is { } projection) ValidateProjection(projection, candidate.Identity);
         var store = new JournalDeltaStore(directory, candidate.Identity, snapshot, "delta.journal", true);
         try
         {
             if (store.SealCurrent() != candidate.Seal)
                 throw new WorkspaceException("CandidateSealMismatch", "The published journal changed; preserve it.");
+            if (candidate.SourceProjection is null && store.pathChanges.Keys.Any(path =>
+                store.Identity.ExcludedTopLevel?.Contains(path.Split('/')[0], StringComparer.OrdinalIgnoreCase) == true))
+                throw new WorkspaceException("CandidateProjectionMismatch", "Excluded-path history requires the retained projection evidence.");
+            if (candidate.SourceProjection is { } proof && proof.Files.Any(file => store.Stat(file.Path) is not null))
+                throw new WorkspaceException("CandidateProjectionMismatch", "Projected managed files must be absent from the published candidate.");
             return store;
         }
         catch { store.Dispose(); throw; }
@@ -76,7 +99,8 @@ public sealed class CandidateSnapshotTree : ISnapshotTree, IDisposable
         this.basis = basis;
         store = JournalDeltaStore.OpenCandidate(directory, basis, out var candidate);
         Candidate = candidate;
-        string contentIdentity = System.Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { candidate.Identity, candidate.Seal })));
+        string contentIdentity = System.Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new {
+            candidate.Identity, candidate.SourceSeal, candidate.Seal, candidate.SourceProjection })));
         Snapshot = basis.Snapshot with { Id = basis.Snapshot.Id + "/candidate/" + contentIdentity,
             Provider = "sealed-range-candidate" };
     }

@@ -8,7 +8,8 @@ public static class WorkspaceFailurePolicy
         "SnapshotReclamationInvalid" or "SnapshotCollateralLoss" or "CompactionGenerationMismatch" or
         "CompactionStateMismatch" or "CompactionCandidateMismatch" or "CompactionIntentCorrupt" or "CompactionIntentMismatch" or
         "ValidationStateCorrupt" or "ValidationReceiptInvalid" or "ValidationReceiptMismatch" or "ValidationResultInvalid" or
-        "ValidationSourceChanged" or "ValidationEvidenceMismatch";
+        "ValidationSourceChanged" or "ValidationEvidenceMismatch" or
+        "CandidateProjectionMismatch" or "CandidateProjectionHistoryUnsupported";
 
     public static string RetryDisposition(string code) => RequiresPreservation(code) ? "requires-user-action" : code switch
     {
@@ -21,7 +22,7 @@ public static class WorkspaceFailurePolicy
         "SourceCacheRevalidationRequired" or "SourceObservationInvalid" or "SourceManifestLimit" or "AccessDenied" or "GitUnavailable" or "EditorFocusRequired" or
         "ValidationStateRecoveryRequired" or "ValidationStateUnavailable" or "ValidationStateWriteIncomplete" or "ValidationResourcesUnknown" or
         "ValidationSnapshotUnavailable" or "ValidationSelectionMissing" or "ValidationManagedPathsUnsupported" or "ValidationOperationPending" or
-        "ValidationResultRequired" or "ValidationDependencyActive" => "requires-user-action",
+        "ValidationResultRequired" or "ValidationDependencyActive" or "CandidateRegistrationBusy" => "requires-user-action",
         _ => "correct-request"
     };
 }

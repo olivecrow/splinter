@@ -10,7 +10,7 @@ AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실
 - `ntfs-snapshot` workspace의 VSS·WinFsp 범위 저널, Git 등록, 작업별 프로세스 그룹과 Unity 검증, 독립 결과 보존과 명시적 회수.
 - 변경 기반 소스 검증, 명시적 저널 정리와 선택적 중첩량 예산, snapshot 지연 회수.
 - 선택적 ReFS 블록 복제 backend. 최초 기준본 복사가 필요하므로 NTFS의 전체 복제 금지 요구를 충족하는 대체 경로는 아니다.
-- 불변 후보·공통 Library 검증 view와 replay/write probe는 개발 도구다. 제품 기본 모드나 자동 조정 기능이 아니다.
+- 불변 후보·등록 증거에 따른 Git 포인터 분리·공통 Library 검증 view와 replay/write probe는 개발 도구다. 제품 기본 모드나 자동 조정 기능이 아니다.
 - 검증 후보의 게시·선택·보존·회수를 위한 [공통 수명주기 계약과 fake 시험](docs/validation-workflow.md). 실제 제품 provider·CLI는 미연결이다.
 
 현재 지원은 작은 fixture의 내부 알파 범위다. 일반 에셋·파일 지원, 실제 재부팅·전원·공간 장애, ARM A/B와 대형 프로젝트의 용량 목표는 미완료다. 설치·대화 자동 연결·명시적 discard·권한 서비스·daemon/DB는 미구현이다. 현재 계약은 [기반 구조](docs/foundation.md), 지원 경계와 다음 검증은 [검증 안내](docs/verification/README.md)를 따른다.

@@ -14,6 +14,8 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 [불변 검증 후보·고정 view](validation-view.md)는 개발용 `snapshot-spike` 확장이다. Core의 `ValidationCandidate`/`ValidationViewSelection`, Runtime의 읽기 전용 봉인 후보와 분리된 source/cache 저널, Windows의 WinFsp 조합을 사용한다. 제품 workspace coordinator나 기본 실행 모드에는 연결되지 않았다. 후보는 최종 checkpoint와 구별되며 별도 독립 결과 수집이 필요하다. Host의 capability는 `validationViewExperiment.integratedWorkspaceMode=false`로 경계를 표시한다.
 
+개발용 `candidate-source-export`는 Git 어댑터의 등록 검증과 Core `CandidateSourceProjection`, Runtime의 `JournalCandidateProjection`/`ExportSourceCandidate`를 조합한다. 후보 v2는 분리 증거를 포함하며 검증된 전용 포인터의 노드·payload를 새 후보에서 제외한다. 원래 저널·Git 등록과 acknowledged-write flush는 유지한다. 실제 VSS/Unity 및 공통 workflow provider 연결과는 별도이며 [현재 계약](validation-view.md#등록-증거가-있는-관리-파일-분리)을 따른다.
+
 [검증 후보 수명주기](validation-workflow.md)는 Core의 `IValidationWorkflowProvider`와 Runtime의 `ValidationWorkflowCoordinator`/`ValidationWorkflowStore`를 사용한다. project별 atomic 상태·owner generation·동일 요청 영수증 재조정으로 후보 게시, offline 선택/동일 세대 재개, 검증 증거 귀속, 독립 결과 보존·전용 artifact 회수를 조정한다. 현재 concrete provider·CLI 연결이 없는 계약/fake 단계이며 `validationWorkflowContract.cliAvailable=false`다. 기존 제품 workspace의 validation·release와 개발용 export를 자동 연결하지 않는다.
 
 공통 Runtime의 `JournalReplayReader`는 저널 replay 읽기를 64KiB 버퍼로 묶고 `OverlayIoMetrics`에 읽기·검증·index 적용 비용을 나눈다. 모든 frame 검증과 acknowledged write flush는 유지한다. Windows client는 같은 launch의 실제 mount와 최신 mounted 상태를 기다리고 provider의 replay 단계만으로 준비 완료를 반환하지 않는다. 범위와 시간의 실제 판단은 [VR 실행](verification/validation-view-readiness-and-replay.md)과 [RI 후보의 작은 Unity 비교](verification/unity-replay-comparison.md)를 따른다. 동일 저널 mount 비교와 Editor 쓰기로 입력이 누적되는 실제 재시작 비교를 구분한다.

@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:splinter:v1:validation-candidate",
   "type": "object", "additionalProperties": false,
-  "required": ["version", "id", "identity", "sourceSeal", "seal", "createdAt", "creationTicks", "stopwatchFrequency"],
+  "required": ["version", "id", "identity", "sourceSeal", "seal", "createdAt", "creationTicks", "stopwatchFrequency", "sourceProjection"],
   "properties": {
-    "version": {"const":1},
+    "version": {"const":2},
     "id": {"type":"string", "minLength":1},
     "identity": {"type":"object", "required":["version","id","snapshot","maxJournalBytes","maxTransferBytes"],
       "properties": {
@@ -16,6 +16,7 @@
       }
     },
     "sourceSeal": {"$ref":"#/$defs/seal"}, "seal": {"$ref":"#/$defs/seal"},
+    "sourceProjection": {"anyOf":[{"type":"null"},{"$ref":"urn:splinter:v1:candidate-source-projection"}]},
     "createdAt": {"type":"string", "format":"date-time"},
     "creationTicks": {"type":"integer", "minimum":0},
     "stopwatchFrequency": {"type":"integer", "minimum":1}

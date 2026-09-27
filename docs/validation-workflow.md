@@ -15,7 +15,7 @@ SF-03 제품 연결의 Core/Runtime 계약과 fake 적합성 구현이다. 현�
 
 Core의 `IValidationWorkflowProvider`는 플랫폼 중립 port다. Runtime은 순서·소유권·지속 상태·의존성을 담당한다. provider는 현재 소유자 확인, writer fencing, 원자적 영수증, 정확한 seal의 결과 수집·독립성 검증과 전용 artifact 회수를 담당한다. Runtime의 명령 잠금은 외부 파일 편집을 막지 않으므로 provider가 부작용 안에서도 소유권·자원·seal을 재검사해야 한다.
 
-관리 경로 분리는 `source-only-v1`을 확인한 provider만 허용한다. 현재 개발용 export에 `.git`을 쓴 제품 workspace를 그대로 넣지 않는다. 사용자 파일을 조용히 제외하는 정책이 아니며 실제 Git 관리 경로 분리 구현은 후속이다. cache의 원래 snapshot·view·설정이 다르면 재사용을 거부하고 원본 전체 복제나 기준 재작성으로 대체하지 않는다.
+관리 경로 분리는 `source-only-v1`을 확인한 provider만 허용한다. [개발용 `candidate-source-export`](validation-view.md#등록-증거가-있는-관리-파일-분리)는 실제 등록 증거가 있는 포인터만 별도 후보에서 분리한다. 기존 `candidate-export`의 `.git` 거부를 완화하지 않으며 이 도구가 현재 공통 workflow provider로 연결된 것은 아니다. cache의 원래 snapshot·view·설정이 다르면 재사용을 거부하고 원본 전체 복제나 기준 재작성으로 대체하지 않는다.
 
 ## 요청과 응답
 

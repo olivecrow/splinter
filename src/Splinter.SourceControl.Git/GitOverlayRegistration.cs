@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Text;
+using System.Security.Cryptography;
 using Splinter.Core;
 
 namespace Splinter.SourceControl.Git;
@@ -109,6 +111,43 @@ public static class GitOverlayRegistration
             !Same((await File.ReadAllTextAsync(Path.Combine(r.GitDirectory, "gitdir"), ct)).Trim(), Path.Combine(r.Path, ".git")) ||
             (await File.ReadAllTextAsync(Path.Combine(r.GitDirectory, "HEAD"), ct)).Trim() != "ref: refs/heads/" + r.Branch)
             throw new WorkspaceException("GitOverlayOwnerMismatch", "Registered Git directory does not match the receipt.");
+    }
+
+    // Read-only qualification for offline candidate publication. A caller must
+    // still stop applications and exclusively open the source journal. The
+    // proof authorizes projecting this pointer from a new candidate, not
+    // deleting, unregistering or editing the worker or the source repository.
+    public static async Task<CandidateSourceProjection> QualifyCandidateSourceAsync(
+        OverlayGitReceipt receipt, OverlayIdentity identity, CancellationToken ct)
+    {
+        if (identity.Version != 1 || receipt.OwnerId != identity.Id ||
+            !Same(receipt.Project, identity.Snapshot.SourcePath) ||
+            identity.ExcludedTopLevel?.Contains(".git", StringComparer.OrdinalIgnoreCase) != true)
+            throw new WorkspaceException("GitOverlayIdentityMismatch", "The candidate must use this registration's owner, source and excluded Git metadata.");
+        await VerifyAsync(receipt, ct);
+        string common = await Git(receipt.Project, ["rev-parse", "--path-format=absolute", "--git-common-dir"], ct);
+        string commonPointer = Path.Combine(receipt.GitDirectory, "commondir"), ownership = Path.Combine(receipt.GitDirectory, "locked");
+        Plain(commonPointer); Plain(ownership);
+        if (!Same(Path.GetDirectoryName(Path.GetFullPath(receipt.GitDirectory))!, Path.Combine(common, "worktrees")) ||
+            !File.Exists(commonPointer) || !File.Exists(ownership) ||
+            !Same(Path.GetFullPath(Path.Combine(receipt.GitDirectory, (await File.ReadAllTextAsync(commonPointer, ct)).Trim())), common) ||
+            (await File.ReadAllTextAsync(ownership, ct)).TrimEnd('\r', '\n') != "Splinter overlay " + receipt.OwnerId)
+            throw new WorkspaceException("GitOverlayOwnerMismatch", "The registration must retain this owner's lock and original common directory.");
+        string pointer = receipt.Pointer;
+        if (string.IsNullOrEmpty(pointer) || !pointer.StartsWith("gitdir: ", StringComparison.Ordinal))
+            throw new WorkspaceException("GitOverlayPointerMismatch", "A qualified registration pointer is required.");
+        string target = pointer[8..].TrimEnd('\r', '\n');
+        if (target.Any(char.IsControl) || !Path.IsPathFullyQualified(target) || !Same(target, receipt.GitDirectory))
+            throw new WorkspaceException("GitOverlayPointerMismatch", "The pointer must identify the exact registered Git directory.");
+        foreach (string name in new[] { "index.lock", "HEAD.lock", "gitdir.lock", "commondir.lock" })
+            if (File.Exists(Path.Combine(receipt.GitDirectory, name)) || Directory.Exists(Path.Combine(receipt.GitDirectory, name)))
+                throw new WorkspaceException("CandidateRegistrationBusy", "Preserve the outstanding Git writer lock before qualifying a candidate.");
+        byte[] bytes = Encoding.UTF8.GetBytes(pointer);
+        if (bytes.Length is < 1 or > 4096)
+            throw new WorkspaceException("GitOverlayPointerMismatch", "The bounded pointer exceeds the candidate metadata contract.");
+        string hash = Convert.ToHexStringLower(SHA256.HashData(bytes));
+        string evidence = Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(receipt, Json)));
+        return new(1, identity.Id, identity.Snapshot, evidence, [new(".git", bytes.Length, hash)]);
     }
     public static async Task<object> PreserveAsync(OverlayGitReceipt r, CancellationToken ct)
     {
