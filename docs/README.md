@@ -8,6 +8,7 @@
 | --- | --- |
 | [현재 기반](foundation.md) | 모듈·의존성·명령·빌드와 시험 |
 | [NTFS 작업공간](ntfs-workspaces.md) | VSS identity·범위 저널·Git·권한·제어 파일 게시/읽기·복구·결과 보존·회수 |
+| [Windows 저장소 권한 서비스](storage-privilege-service.md) | 설치 범위·고정 VSS IPC·사용자/경로/소유권·보호된 재시도 상태 |
 | [Unity 알파 작업공간](alpha-workspaces.md) | 여러 차례 편집·검증·재개·통합과 Editor 수명 |
 | [저장소와 자원](storage-and-resources.md) | 선택적 ReFS 기준본·프로세스 그룹·자원 관측 |
 | [소스 검증](source-verification.md) | 변경 경로·hash cache·status freshness·현재 계측 형식 |

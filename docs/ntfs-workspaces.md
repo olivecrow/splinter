@@ -12,11 +12,11 @@
 - `--home`은 짧은 경로를 사용한다. NI의 깊은 시험 경로에서는 Unity 패키지 DLL 전체 경로가 270자일 때 초기 로드 예외가 관측됐다. 스크립트 검증과 실행은 통과했지만 긴 패키지 경로와 일반 에셋 로드를 지원으로 확정하지 않는다. 초기 임포트 시간의 SLA도 없다.
 - 생성/재연결에는 상태 볼륨의 여유 2 GiB, 새 캡처에는 기존 VSS diff-area 상한의 여유 8 GiB가 필요하다. 설치·볼륨·상한 설정은 자동 변경하지 않는다. 프로젝트 밖 쓰기도 VSS 공간을 사용한다.
 
-VSS capture/release와 정확한 live ID를 확인하는 Observe helper에는 관리자 권한이 필요하다. 일반 CLI는 자동 승격하지 않고 `SnapshotPrivilegeRequired`와 정확한 helper 경로·argument list, 그 뒤 동일 인자로 재시도할 workspace ensure, compact, unity start 또는 workspace release를 `nextActions`에 반환한다. 승인된 helper만 관리자 권한으로 실행한 뒤 원래 명령을 다시 호출한다. Unity와 일반 CLI를 관리자 계정으로 계속 실행하는 구조가 아니다. helper의 `operation-result.json`에는 성공 또는 진단이 남는다.
+VSS Capture/Observe/Release는 [Windows 저장소 권한 서비스](storage-privilege-service.md)가 처리한다. 최초 설치와 사용자·프로젝트·볼륨·home 등록은 관리자 구성이고, 정상 CLI·Git·Unity는 일반 사용자 권한이다. 서비스가 없으면 `StorageServiceMissing`, 정지했으면 `StorageServiceUnavailable`, 미등록 범위면 `StorageScopeDenied`를 반환한다. 자동 승격이나 기존 helper로의 fallback은 없다.
 
-제품은 아직 VSS helper마다 별도 승격이 필요하다. 정상 반복 작업의 UAC를 없애는 목표는 [저장소 권한 서비스 계획](plans/storage-privilege-service.md)에 있으며 현재 capability가 아니다. 개발용 제한 관리자 세션의 재사용을 제품 서비스 설치/지원 완료로 표시하지 않는다.
+서비스 코드와 실제 실행 자격은 구분한다. 최초 설치 후 정상 반복 작업의 추가 UAC 0 판정은 [UA 검증](verification/storage-privilege-service.md)을 따른다. 개발용 관리자 세션이나 fake 시험을 실제 서비스 설치·반복 사용의 완료로 표시하지 않는다.
 
-`SnapshotPrivilegeRequired` 응답은 helper 실행이 필요하다는 뜻이며 UAC 창 표시나 snapshot 생성의 증거가 아니다. 외부 실행자가 승격을 요청했다면 그 소유 프로세스의 종료 상태와 `capture-intent.json`·`capture-return.json`·`snapshot.json`·`operation-result.json`을 대조한다. 사용자에게 창이 보이지 않으면 대기 상태만으로 확인 버튼을 반복 요청하지 않는다. 기존 helper가 아직 실행 중이거나 캡처 부작용을 판정할 수 없을 때는 중복 helper/새 캡처를 시작하지 않고 기존 기록을 보존한다.
+수동 진단용 `scripts/vss-snapshot.ps1`은 별도로 승인된 관리자 작업에만 사용한다. UAC 요청 자체를 창 표시나 snapshot 생성의 증거로 삼지 않는다. 실제 소유 프로세스 종료와 `capture-intent.json`·`capture-return.json`·`snapshot.json`·`operation-result.json`을 대조한다. 창이 보이지 않거나 결과가 불명확하면 중복 helper/새 capture를 시작하지 않고 기존 기록을 보존한다.
 
 WinFsp 디렉터리 열거는 루트 이외의 디렉터리에 실제 디렉터리 정보와 함께 `.`·`..` 항목 및 marker 기반 재개 순서를 제공한다. 빈 하위 디렉터리도 Win32 `FindFirstFileW(<dir>\*)`로 열거할 수 있다. 이 항목은 overlay의 파일이나 저널 기록이 아니다. [작은 Unity 실환경 회귀](verification/journal-compaction-qualification-and-cost.md)는 수정 전 빈 폴더 열거 실패와 수정 후 성공을 대조했다.
 
@@ -30,7 +30,7 @@ splinter workspace status --id <workspace.id> --home <상태 경로>
 splinter unity start --id <id> --home <상태 경로>
 ```
 
-첫 ensure는 권한 경계에서 멈출 수 있다. 반환된 helper 실행 후 **같은 입력**으로 ensure를 재호출한다. `--editor`를 주면 준비 후 Editor 실행도 요청한다. Editor의 준비는 `application.ready`로 확인하고, 편집은 반환된 `workspace.path` 안에서만 한다. 작업 key는 프로젝트와 함께 identity를 결정하며 입력 hash, snapshot, delta, 등록, 실행 영수증은 `home`에 남는다. `--max-journal-bytes`는 기본 16 GiB, 최소 4096, 최대 1 TiB이며 작업 생성 뒤 변경할 수 없다.
+첫 ensure 전에 `storage service status`와 설치 범위를 확인한다. 서비스 설치/구성 후 **같은 입력**으로 ensure를 재호출한다. `--editor`를 주면 준비 후 Editor 실행도 요청한다. Editor의 준비는 `application.ready`로 확인하고, 편집은 반환된 `workspace.path` 안에서만 한다. 작업 key는 프로젝트와 함께 identity를 결정하며 입력 hash, snapshot, delta, 등록, 실행 영수증은 `home`에 남는다. `--max-journal-bytes`는 기본 16 GiB, 최소 4096, 최대 1 TiB이며 작업 생성 뒤 변경할 수 없다.
 
 공통 WinFsp mount/reconnect는 실행 중인 정확한 provider의 실제 mount와 최신 `mounted` 상태를 최대 2분 기다린다. `starting`/`replaying`은 준비 완료가 아니며 한도 초과나 취소로 provider·저널을 삭제하지 않는다. 같은 요청 재시도는 그 provider를 이어서 확인한다. 저널은 64KiB 수명 한정 버퍼로 읽되 모든 frame 검증을 유지하며 새 replay 단계 계수의 의미는 [계측 계약](source-verification.md#계측의-의미)을 따른다. 이것이 새 Unity 실행 모드나 기본 방식 전환을 뜻하지 않는다.
 
@@ -85,7 +85,7 @@ NTFS 응답의 `data.recovery`는 `disposition`, `reasonCode`, `nextCommand`를 
 
 스냅샷 접근 실패는 `SnapshotObservationUnknown`이다. `snapshotAvailability`와 `snapshotStorage.availability`는 `available`/`missing`/`unknown` 중 하나이며 unknown에서는 기존 boolean 필드를 생략한다. 일반 ensure와 회수 전 단계는 관측 복구까지 보존한다. 관측한 부재와 접근 오류를 구분하며, 경로가 파일로 바뀌면 `SnapshotIdentityMismatch`로 보존한다. 정확한 ID의 성공한 부재 조회만 missing으로 판정하며 읽기 경로의 소실만으로 VSS 부재를 주장하지 않는다. 새 연결의 live identity 대조는 아래 계약을 따른다.
 
-마지막 `release-snapshot` 단계에서는 독립 결과를 다시 검증하고 앱/provider·mount·Git 등록·delta 회수를 확인한 뒤 정확한 VSS helper의 관측을 갱신할 수 있다. 삭제된 장치 경로가 Win32 21을 반환해도 오류만으로 부재로 바꾸지 않는다. 같은 owner와 snapshot의 `released` 영수증, helper가 VSS ID의 부재를 확인한 `observation.json`, 현재 OS의 `LastBootUpTime` 일치가 있어야 모호한 경로 관측을 해소한다. 부팅 정보가 없거나 달라진 이전 영수증은 삭제 없는 `-Action Observe` 관리자 helper와 동일 release 재시도를 반환한다. CLI 자체를 관리자 실행하지 않는다. 부팅 정보 조회 실패는 unknown으로 남고, 회수 완료를 저장할 때도 모든 자원 부재를 검사한다. 이미 해제된 장치 경로가 다른 디렉터리로 재사용되면 identity 불일치로 보존한다.
+마지막 `release-snapshot` 단계에서는 독립 결과를 다시 검증하고 앱/provider·mount·Git 등록·delta 회수를 확인한 뒤 설치된 권한 서비스를 통해 정확한 VSS 관측을 갱신할 수 있다. 삭제된 장치 경로가 Win32 21을 반환해도 오류만으로 부재로 바꾸지 않는다. 같은 owner와 snapshot의 `released` 영수증, helper가 VSS ID의 부재를 확인한 `observation.json`, 현재 OS의 `LastBootUpTime` 일치가 있어야 모호한 경로 관측을 해소한다. 현재 부팅 정보와 다른 이전 영수증은 삭제 없는 서비스 `Observe`로 갱신한다. 부팅 정보를 확인할 수 없으면 상태를 보존한다. CLI 자체를 관리자 실행하지 않는다. 부팅 정보 조회 실패는 unknown으로 남고, 회수 완료를 저장할 때도 모든 자원 부재를 검사한다. 이미 해제된 장치 경로가 다른 디렉터리로 재사용되면 identity 불일치로 보존한다.
 
 provider의 `state.json`도 검증된 접근 관측을 사용하며 관측 불가를 `snapshot-unknown`으로 기록한다. 완결 저널 프레임의 checksum·sequence·JSON·경로/범위 메타데이터가 잘못됐거나 identity JSON이 손상되면 `DeltaCorrupt`로 실패하고 파일을 그대로 보존한다. 불완전한 마지막 프레임만 기존 계약대로 재생에서 제거하며 완결 손상을 잘라내지 않는다.
 
@@ -99,7 +99,7 @@ Windows 제어 파일 reader는 `File.Exists`로 읽기 가능 여부를 판정�
 
 `snapshot/snapshot.json` version 2의 `captureIdentity`는 원래 snapshot ID·system provider ID·volume GUID 경로·볼륨 내 상대 경로·캡처 시각·persistent/differential/no-auto-release 조건을 고정한다. `verification-request.json`은 owner·원래 ID·요청 세대·현재 boot를, `live-observation.json`은 실제 조회 객체의 identity와 현재 device root·조회 성공/실패를 기록한다. 현재 읽기 위치는 검증된 device root와 고정 상대 경로로만 만든 `SnapshotReadAccess`다. `SnapshotReference.RootPath`, overlay identity와 기존 저널은 캡처 당시 그대로 유지한다. available 응답의 `snapshotStorage.readAccess`는 snapshotId·rootPath·verificationId를 제공한다.
 
-새 provider 연결은 이전 실행이 소비한 verification ID와 다른 현재 부팅의 관측을 요구한다. `SnapshotVerificationRequired`의 재개 명령은 동일 ensure다. 관리자 Observe 뒤 같은 요청 재시도는 준비된 관측을 재사용하며 중복 캡처·등록·provider를 만들지 않는다. Observe는 VSS·원본·볼륨 설정을 변경하지 않고 소유 관측 기록만 저장한다. 정상 status는 같은 연결의 검증을 재사용한다. provider는 주기적으로 관측과 현재 읽기 경로를 확인하며 파일 I/O마다 CIM을 호출하지 않는다. 실행 중 다른 접근 정보로 변경되면 거부하고 새 연결에서만 읽기 경로를 바꾼다. 외부 관리자의 VSS 삭제·대체와 모든 동시 경쟁 조건을 검증했다는 뜻은 아니다.
+새 provider 연결은 이전 실행이 소비한 verification ID와 다른 현재 부팅의 관측을 요구한다. `SnapshotVerificationRequired`의 재개 명령은 동일 ensure다. 서비스 Observe 뒤 같은 요청 재시도는 준비된 관측을 재사용하며 중복 캡처·등록·provider를 만들지 않는다. Observe는 VSS·원본·볼륨 설정을 변경하지 않고 소유 관측 기록만 저장한다. 정상 status는 같은 연결의 검증을 재사용한다. provider는 주기적으로 관측과 현재 읽기 경로를 확인하며 파일 I/O마다 CIM을 호출하지 않는다. 실행 중 다른 접근 정보로 변경되면 거부하고 새 연결에서만 읽기 경로를 바꾼다. 외부 관리자의 VSS 삭제·대체와 모든 동시 경쟁 조건을 검증했다는 뜻은 아니다.
 
 현재 VSS 영수증은 version 2와 captureIdentity를 요구한다. 지원하지 않는 버전·누락된 capture identity는 거부하고 원본 영수증·델타를 보존하며 자동 이관하지 않는다. 다른 owner/ID/provider/volume/상대 경로는 `SnapshotIdentityMismatch`, 손상 JSON은 `SnapshotObservationCorrupt`, 중단된 게시 파일은 `SnapshotObservationIncomplete`다. 최신 조회 실패·새 boot·접근 불가는 이전 성공으로 대체하지 않는다. 실제 재부팅·강제 전원 종료는 별도 미검증 관문이다.
 
@@ -107,7 +107,7 @@ Windows 제어 파일 reader는 `File.Exists`로 읽기 가능 여부를 판정�
 
 `workspace.snapshot.reclamation`은 `snapshotId`, `attemptId`, `disposition`(`deferred`/`released`), `observedAt`, `blockingSnapshotIds`, 선택적 `sharedStorage`를 제공한다. 독립 결과가 검증되고 앱/provider·메모리·핸들 0, mount/등록/delta 회수가 확인된 뒤에만 대기 상태를 저장한다. `snapshot.step`은 `release-snapshot`, workspace phase는 `reclaim-pending`이다. 결과 ref는 유지하며 작업을 다시 mount하거나 새 snapshot으로 바꾸지 않는다.
 
-대기하는 `workspace release`는 `Accepted`, `terminal=false`, `retryDisposition=requires-user-action`, `recovery.disposition=deferred-reclamation`과 같은 `id/home`의 release를 반환한다. 자동 예약이나 폴링이 아니다. `status/list`는 저장된 대기와 마지막 관측을 보여 주며, 조회 성공을 자원 회수 완료로 읽지 않는다. 차단한 오래된 snapshot의 소유 작업이 별도로 명시적으로 회수된 뒤 같은 release를 재시도한다. 타 작업이나 비소유 snapshot은 대신 삭제하지 않는다. 비관리자 재시도는 필요할 때 정확한 관리자 helper를 `nextActions`로 반환하며 전체 CLI/Editor를 승격하지 않는다.
+대기하는 `workspace release`는 `Accepted`, `terminal=false`, `retryDisposition=requires-user-action`, `recovery.disposition=deferred-reclamation`과 같은 `id/home`의 release를 반환한다. 자동 예약이나 폴링이 아니다. `status/list`는 저장된 대기와 마지막 관측을 보여 주며, 조회 성공을 자원 회수 완료로 읽지 않는다. 차단한 오래된 snapshot의 소유 작업이 별도로 명시적으로 회수된 뒤 같은 release를 재시도한다. 타 작업이나 비소유 snapshot은 대신 삭제하지 않는다. 일반 사용자 재시도는 같은 workspace의 설치된 권한 서비스를 호출하며 전체 CLI/Editor를 승격하지 않는다.
 
 `release-request.json`과 `release-deferred.json`은 전체 snapshot reference·owner·현재 boot·요청 ID·시각에 묶인다. helper 완료 후 새 CLI는 아직 소비하지 않은 대기 결과를 회수하고, 이미 저장한 시도의 명시적 재시도는 새 요청을 발행한다. helper는 매번 최신 snapshot 목록과 삭제 차단 조건을 확인한다. 서로 다른 Splinter home의 삭제는 전역 release mutex로 직렬화하지만 외부 백업 프로그램의 동시 삭제를 직렬화하지는 못한다. 손상/불일치 증거는 `SnapshotReclamationInvalid` 또는 기존 관측 오류로 보존한다. 자원 unknown, 결과 ref 소실, 잔존 delta는 재시도에서도 회수를 막는다.
 
@@ -132,7 +132,8 @@ snapshot이 소실된 뒤에는 `stable-journal-v1`로 수집한 독립 결과�
 
 | 오류 | 재개 행동 |
 | --- | --- |
-| `SnapshotPrivilegeRequired` | `nextActions`의 VSS helper만 승인된 관리자 권한으로 실행한 뒤 같은 workspace 명령 재시도 |
+| `StorageServiceMissing` / `StorageServiceUnavailable` / `StorageScopeDenied` | `storage service status`와 설치된 grant를 확인하고 명시적 설치/구성 후 같은 workspace 명령 재시도 |
+| `StorageOperationUncertain` / `StorageRequestPending` | 보호된 기존 intent를 유지하고 같은 workspace·요청으로 재시도. 새 capture나 타 작업 회수로 우회하지 않음 |
 | `RequestKeyConflict` | 저장된 입력으로 재호출하거나 별도 작업에 새 key 사용 |
 | `SnapshotMissing`, `SnapshotIdentityMismatch` | 새 원본으로 대체하지 않음. 소실된 snapshot은 기존 독립 결과와 저널 seal이 일치할 때만 release 가능 |
 | `SnapshotFileUnsupported`, `SnapshotFilterUnsupported` | 지원하지 않는 입력을 별도 검증 대상으로 유지 |

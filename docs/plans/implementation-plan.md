@@ -465,4 +465,4 @@ AI 사용성은 정상 흐름의 호출 수·기본 응답 바이트·불필요�
 
 PV-02의 추가 비교군은 Codex worktree 코드 병렬 작업과 Unity Agent Coordination 단일 Editor 순차 검증이다. 큐 대기·후보 전달·공용 Library와 두 소스 checkout의 비용을 별도로 측정하며 Splinter 실행에는 Coordination을 사용하지 않는다. 상세 조건과 실제 실행 여부는 [PV 범위](parallel-workflow-qualification.md)와 실행 기록을 따른다.
 
-반복 작업의 UAC 제거는 [저장소 권한 서비스 계획](storage-privilege-service.md)의 UA-01~04로 별도 추적한다. 최초 설치 승인 후 일반 CLI의 반복 요청을 제한 서비스가 처리하는 목표이며 현재 daemon/DB Host나 서비스 설치가 구현됐다는 뜻은 아니다.
+반복 작업의 UAC 제거는 [저장소 권한 서비스 계획](storage-privilege-service.md)의 UA-01~04로 별도 추적한다. 제한 서비스 설치 후 일반 CLI의 반복 요청을 처리하는 [작은 실제 A/B 범위](../verification/storage-privilege-service.md)를 확인했다. 제품 전체 설치·자동 binding이나 daemon/DB Host의 완료를 뜻하지 않는다.

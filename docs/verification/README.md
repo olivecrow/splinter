@@ -21,7 +21,8 @@
 | SF-03/WF | [제품 연결·복구](product-validation-workflow.md)와 [최종 후보의 두 빈 cache A/B/A·전체 비용](product-validation-cold-cost.md), 독립 결과·회수 | scoped-complete-with-limitations. 준비 종료 후 검증 재시작 비용을 포함한 작은 fixture 범위. 이전 실패·복구를 보존하며 대형 용량·일반 cold 안정성·NR 전체를 증명하지 않음 |
 | RI/RU/WI | 합성 또는 동일 닫힌 저널의 제한된 replay 비교 | warm cache·소수 표본. 누적 Editor 전체 개선·Library 물리 절감으로 환산하지 않음 |
 | JW/FR | 고정 쓰기 계측과 작은 URP fixture의 요청별 유효 PNG 검사 | Windows 선행 직렬화·내구성 경계 유지. Unity 내부 첫 draw 원인 미확정, group flush 미선정 |
-| SF-04~06, SW-01~10, UA-01~04 | 계획 | NotRun. 대형 입력·모드 채택·설치/binding/discard·권한 서비스 미구현 |
+| SF-04~06, SW-01~10 | 계획 | NotRun. 대형 입력·모드 채택·일반 설치/binding/discard 미구현 |
+| UA-01~04 | [제한 권한 서비스](storage-privilege-service.md)의 실제 설치·일반 CLI A/B 추가 UAC 0·회수·서비스 재시작/응답 유실 | 등록된 Windows x64 NTFS/Git fixture 범위 Passed. 일반 Unity·ARM·실제 전원/재부팅과 native VSS 호출 도중 강제 종료로 확대하지 않음 |
 
 새 후보에서 필요한 실제 환경 시험을 실행하기 전에는 아래 기록을 현재 후보의 통과로 승계하지 않는다. GUI Unity·VSS·격리 디스크 시험은 정의된 범위와 소유 자원을 확인한 뒤 실행한다. 현재 원본·다른 작업·기존 결과 refs와 비소유 snapshot을 보존한다.
 
@@ -31,6 +32,7 @@
 
 | 기록 | 보존 이유 |
 | --- | --- |
+| [제한 권한 서비스](storage-privilege-service.md) | 보호된 상태·IPC 경계·최초 설치·반복 UAC·서비스 중단/응답 유실을 구분한 완료 판정 |
 | [VSS 보존 실패](storage-foundation.md), [삭제 차단과 복구](storage-recovery.md), [지연 회수](deferred-snapshot-reclamation.md) | exact-ID 삭제의 타 snapshot 영향, 격리 guard, 같은 작업의 명시적 재시도와 회수 순서 |
 | [NTFS 제품 통합](ntfs-workspace-integration.md), [live identity](ntfs-live-vss-identity.md), [NR 복구](ntfs-recovery.md) | 실제 Windows/ARM 조합과 미완료 장애·파일 관문, 환경별 재현 조건 |
 | [병렬 비교](parallel-workflow.md) | C/S/Q의 동일 입력 조건·결과 refs·Library/큐/전환 비용, S4 입력 실패와 표본 한계 |

@@ -129,4 +129,4 @@ Core의 식별자는 공급자 중립적인 project/task/workspace ID를 유지�
 
 ## 반복 작업의 관리자 승인 UX
 
-최초 설치/권한 구성 이후 정상적인 workspace 생성·재연결·회수마다 UAC를 요구하지 않는 것을 완료 목표로 둔다. 세부 설계와 UA-01~04 NotRun은 [저장소 권한 서비스 계획](storage-privilege-service.md)을 따른다. 현재 개별 VSS helper와 개발용 제한 관리자 세션은 제품의 서비스 설치·SW 완료 증거가 아니다.
+최초 설치/권한 구성 이후 정상적인 workspace 생성·재연결·회수마다 UAC를 요구하지 않는 것을 완료 목표로 둔다. 서비스 구현은 [현재 권한 계약](../storage-privilege-service.md), UA-01~04의 실제 설치·반복 사용 판정은 [UA 검증](../verification/storage-privilege-service.md)을 따른다. 현재 개별 VSS helper와 개발용 제한 관리자 세션은 제품의 서비스 설치·SW 완료 증거가 아니다.

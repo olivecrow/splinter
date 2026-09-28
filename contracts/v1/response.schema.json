@@ -91,6 +91,10 @@
   },
   "allOf": [
     {
+      "if": {"properties":{"command":{"const":"storage.service.status"},"status":{"const":"Succeeded"}}},
+      "then": {"properties":{"data":{"$ref":"#/$defs/storageServiceStatus"}}}
+    },
+    {
       "if": {"properties":{"command":{"const":"validation.execute"},"status":{"enum":["Succeeded","Accepted"]}}},
       "then": {"properties":{"data":{"$ref":"urn:splinter:v1:validation-product-data"}}}
     },
@@ -808,6 +812,16 @@
         }
       }
     },
+    "storageServiceStatus": {
+      "type": "object", "additionalProperties": false,
+      "required": ["serviceName", "state", "protocolVersion", "installPath", "statePath", "callerElevated"],
+      "properties": {
+        "serviceName": {"const":"SplinterStorageAuthority"},
+        "state": {"enum":["unsupported", "unavailable", "stopped", "running"]},
+        "protocolVersion": {"const":1}, "installPath": {"type":"string"}, "statePath": {"type":"string"},
+        "callerElevated": {"type":"boolean"}, "failureCode": {"type":"string", "minLength":1}
+      }
+    },
     "capabilitiesData": {
       "type": "object",
       "additionalProperties": false,
@@ -819,6 +833,7 @@
         "persistentState",
         "stateBackend",
         "storageModes",
+        "storageAuthority",
         "validationWorkflowContract"
       ],
       "properties": {
@@ -858,6 +873,18 @@
               "refs-cow",
               "git-checkout"
             ]
+          }
+        },
+        "storageAuthority": {
+          "type": "object", "additionalProperties": false,
+          "required": ["stage", "protocolVersion", "normalCaller", "operations", "installation", "status", "scope", "schemas", "qualification"],
+          "properties": {
+            "stage": {"const":"windows-service"}, "protocolVersion": {"const":1}, "normalCaller": {"const":"unelevated"},
+            "operations": {"const":["capture", "observe", "release"]},
+            "installation": {"type":"string", "minLength":1}, "status": {"const":"storage service status"},
+            "scope": {"type":"string", "minLength":1},
+            "schemas": {"const":["urn:splinter:v1:storage-authority-request", "urn:splinter:v1:storage-authority-response"]},
+            "qualification": {"type":"string", "minLength":1}
           }
         },
         "validationViewExperiment": {

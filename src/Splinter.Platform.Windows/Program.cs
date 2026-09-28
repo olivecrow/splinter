@@ -9,6 +9,17 @@ internal static class Program
     // finishes; this is neither the product Host nor a machine-wide daemon.
     public static async Task<int> Main(string[] args)
     {
+        if (OperatingSystem.IsWindows() && args is ["storage-service"])
+            return StorageAuthorityScm.Run();
+        if (OperatingSystem.IsWindows() && args is ["storage-grant", var source, var home, var sid])
+        {
+            using var paths = new StorageAuthorityPaths();
+            source = Path.TrimEndingDirectorySeparator(Path.GetFullPath(source));
+            home = Path.TrimEndingDirectorySeparator(Path.GetFullPath(home));
+            var grant = new StorageGrant(sid, source, home, StorageAuthorityPaths.Volume(source), paths.Pin(source), paths.Pin(home));
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(grant, StorageAuthorityProtocol.Json));
+            return 0;
+        }
         if (OperatingSystem.IsWindows() && args.Length == 2 && args[0] == "overlay-serve")
             return await WinFspOverlayServer.RunAsync(args[1]);
         if (!OperatingSystem.IsWindows() || args.Length != 2 || args[0] != "supervise") return 2;

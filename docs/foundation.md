@@ -177,4 +177,6 @@ pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository .
 
 현재 계약은 [NTFS](ntfs-workspaces.md), [선택적 ReFS·프로세스](storage-and-resources.md), [소스 검증](source-verification.md), [개발용 검증 view](validation-view.md)에 있다. 현재 지원 경계와 보존한 비교 근거는 [검증 안내](verification/README.md)에서 확인한다.
 
-남은 작업은 [저장공간·Editor 정책](plans/storage-priority-and-editor-modes.md), [NR 장애·파일 지원](plans/ntfs-recovery-and-support.md), [설치·binding·discard](plans/session-workflow-and-installation.md), [제한 권한 서비스](plans/storage-privilege-service.md)다. 기본 모드·대형 프로젝트 지원·daemon/DB·전체 공개 시나리오는 완료로 표시하지 않는다.
+[제한 권한 서비스](storage-privilege-service.md)는 Windows 어댑터의 별도 SCM/IPC 경계이며 `storage service status`로 읽기 전용 발견을 제공한다. 실행 파일과 상태를 보호하고 고정 VSS 연산만 받는다. 실제 설치·반복 사용의 완료 판정은 [UA 검증](verification/storage-privilege-service.md)을 따른다.
+
+남은 작업은 [저장공간·Editor 정책](plans/storage-priority-and-editor-modes.md), [NR 장애·파일 지원](plans/ntfs-recovery-and-support.md), [설치·binding·discard](plans/session-workflow-and-installation.md)다. 제한 권한 서비스의 실제 설치·반복 사용은 [UA 검증](verification/storage-privilege-service.md)의 등록 범위에서 확인했다. 기본 모드·대형 프로젝트 지원·daemon/DB·전체 공개 시나리오는 완료로 표시하지 않는다.

@@ -181,6 +181,6 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 
 - SF-02/03은 Partial, SF-04~06은 NotRun이다. 완료 기준은 [저장공간·Editor 계획](storage-priority-and-editor-modes.md)을 따른다.
 - SF-03의 공통 수명주기 계약은 위 VW 자동 적합성으로 추적한다. 실제 제품 VSS·WinFsp·Unity 연결은 WF의 현재 후보 증거로 따로 판정한다.
-- SW-01~10 설치·binding·명시적 discard와 UA-01~04 권한 서비스는 NotRun이다. 각각의 소유 계획에서 검증한다.
+- SW-01~10 일반 설치·binding·명시적 discard는 NotRun이다. UA-01~04의 서비스 구현·자동 시험과 실제 설치/반복 실행은 [UA 검증](../verification/storage-privilege-service.md)에서 구분한다.
 - PV-01/02의 사용자 선택 범위는 scoped-complete-with-limitations다. 전체 PV-02 Passed로 표시하지 않고 S4 입력 실패·소수 표본·raw 입력 동등성 unknown을 유지한다. [비교 방법](parallel-workflow-qualification.md)과 [실측](../verification/parallel-workflow.md)은 후속 비교의 입력을 고정하기 위해 보존한다.
 - 현재 코드의 계약 변경은 필수 형식 생성·읽기, 지원하지 않는 형식의 비파괴 거부, 같은 버전의 중단 재시도를 함께 검증한다. 자동 시험과 실제 VSS/Unity 실행을 구별한다.

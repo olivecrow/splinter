@@ -4,7 +4,7 @@
 - `main`은 출시용, `development`는 개발용이다. 일반 개발과 통합은 `development`를 기준으로 한다. 원본과 다른 작업자의 미커밋 변경을 보존한다.
 - 주 사용자는 각 대화의 AI 에이전트다. `docs/plans/session-workflow-and-installation.md`의 필요 시 사용 → 같은 작업 지속 → 명시적 반영/보존/폐기를 기본 사용 모델로 삼는다. 별도 조정 AI·Runner·DAG는 필수가 아니다.
 - 사용자가 병렬 작업을 명시하거나 다른 작업의 점유로 독립 실행이 필요할 때 Splinter workspace를 사용한다. 불필요하면 직접 작업하며, Splinter 병렬 경로에 Codex 별도 worktree를 중첩하지 않는다. 제품 내부 Git linked worktree 계약은 유지한다.
-- 대화·응답·Editor 종료, 임대 만료·타임아웃·디스크 압박은 통합이나 삭제의 승인이 아니다. release는 독립 결과를 보존한다. 명시적 discard·설치·자동 binding·권한 서비스는 미구현이다.
+- 대화·응답·Editor 종료, 임대 만료·타임아웃·디스크 압박은 통합이나 삭제의 승인이 아니다. release는 독립 결과를 보존한다. 명시적 discard·일반 제품 설치·자동 binding은 미구현이다. VSS 전용 권한 서비스의 실제 자격은 UA 추적표를 따른다.
 - 필수 저장소 요구는 원본 NTFS 위치·파일시스템 유지, 최초 전체 데이터 복제·읽기 hydration·파일 전체 copy-up fallback 금지, 범위 변경 저장이다. 원본은 작업 중 계속 수정 가능해야 한다. ReFS는 선택적 backend이며 NTFS의 이관 fallback이 아니다.
 - Core에 Unity·Win32·Git·Codex 전용 API를 넣지 않는다. 공통 계약과 fake 적합성 시험부터 연결한다. Host는 읽기 전용 in-process 조합 계층이며 daemon/DB writer가 아니다.
 - 에이전트 진입점은 `scripts/splinter.ps1`, 필수 검증은 `pwsh ./scripts/build.ps1`이다. 의존성 변경 시 중앙 버전·해당 lockfile을 함께 갱신하고 locked restore로 확인한다.
@@ -14,6 +14,7 @@
 ## 현재 기능의 소유 문서
 
 - NTFS 생성·권한·회수: `docs/ntfs-workspaces.md`. Unity 절차: `docs/alpha-workspaces.md`. ReFS·프로세스 소유권: `docs/storage-and-resources.md`.
+- 제한 권한 서비스: `docs/storage-privilege-service.md`. `storage service status`는 읽기 전용이다. `package-storage-service.ps1`은 새 패키지 작성, `setup-storage-service.ps1`은 기본 read-only 계획이며 Apply는 명시적 관리자 설치/업데이트/제거다. 설치용 `storage-grant`는 고정 경로 identity만 읽는다. 일반 workspace 명령은 자동 elevation/helper fallback을 하지 않는다. 보호된 ledger와 다른 작업의 snapshot을 보존한다.
 - 소스 검증: `docs/source-verification.md`. 일반 status는 새 pending 검증 응답을 조정할 때만 소스를 검사한다. 현재 검사 `--verify-source`, 전체 감사/손상 cache 재작성 `--audit-source`를 구분한다. 초기·감사·provider 재연결은 전체 읽기이며 크기·mtime만 신뢰하지 않는다. Git/Unity mount 허용은 Core `WorkspaceMountAccess`를 공유한다.
 - 결과 수집은 `stable-journal-v1`의 전후·unmount 후 seal 일치를 요구한다. release는 독립 결과·소유 프로세스/메모리/핸들 0·실제 mount/Git 등록/delta/마지막 소유 snapshot 회수를 확인한다. unknown을 0으로 읽지 않는다.
 - `reclaim-pending`은 결과 보존 뒤 snapshot 회수를 기다리는 상태다. 같은 id/home의 명시적 release 재시도만 허용하며 타 작업·비소유 snapshot 삭제나 자동 sweep으로 우회하지 않는다. 정확한 ID 삭제에도 다른 snapshot이 영향을 받을 수 있으므로 현재 격리 guard를 유지한다.

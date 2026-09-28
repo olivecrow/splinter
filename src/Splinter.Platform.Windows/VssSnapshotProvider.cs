@@ -8,9 +8,9 @@ using Splinter.Core;
 
 namespace Splinter.Platform.Windows;
 
-// The normal caller never self-elevates. A narrow, inspectable helper request
-// is returned when capture/release require an administrator. Its durable receipt
-// lets a fresh unprivileged CLI continue without running Unity as administrator.
+// The normal caller never self-elevates. A fixed storage-authority request and
+// its durable receipt let a fresh unprivileged CLI continue without elevating
+// the CLI, Git or Unity.
 public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
 {
     private readonly string receiptDirectory, ownerId;
@@ -92,7 +92,7 @@ public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
         if (observation is { Available: null, FailureCode: "SnapshotObservationUnknown" })
         {
             // Missing current-boot evidence requires a fresh read-only VSS query.
-            // The regular CLI still returns the exact helper without elevating.
+            // The regular CLI uses the installed authority without elevating.
             await Run("Observe", snapshot.SourcePath, cancellationToken);
             observation = await ObserveAsync(snapshot, cancellationToken);
         }
@@ -135,30 +135,7 @@ public sealed partial class VssSnapshotProvider : ISourceSnapshotProvider
     {
         if (runHelper is not null) { await runHelper(action, source, ct); return; }
         if (!OperatingSystem.IsWindows()) throw new WorkspaceException("PlatformUnsupported", "The NTFS snapshot backend requires Windows.");
-        WindowsProcessWorkspaceProvider.CheckPath(receiptDirectory); Directory.CreateDirectory(receiptDirectory);
-        using var resource = typeof(VssSnapshotProvider).Assembly.GetManifestResourceStream("Splinter.VssSnapshot.ps1")!;
-        using var reader = new StreamReader(resource);
-        string script = await reader.ReadToEndAsync(ct);
-        string helper = Path.Combine(receiptDirectory, "vss-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(script)))[..16] + ".ps1");
-        if (File.Exists(helper) && await File.ReadAllTextAsync(helper, ct) != script)
-            throw new WorkspaceException("SnapshotHelperChanged", "The recorded privilege helper changed; preserve it for inspection.");
-        if (!File.Exists(helper)) await File.WriteAllTextAsync(helper, script, ct);
-        string[] args = ["-NoProfile", "-NonInteractive", "-File", helper, "-Action", action, "-SourcePath", source, "-OwnerId", ownerId, "-ReceiptDirectory", receiptDirectory];
-        using var identity = WindowsIdentity.GetCurrent();
-        if (!new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator))
-            throw new WorkspaceException("SnapshotPrivilegeRequired", "Run only the supplied VSS helper with administrator rights, then retry the same workspace command.",
-                new { action, receiptDirectory, ownerId }, [new("pwsh", new { argumentList = args }, true)]);
-        var start = new ProcessStartInfo("pwsh") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true };
-        foreach (string arg in args) start.ArgumentList.Add(arg);
-        using var process = Process.Start(start)!;
-        var output = process.StandardOutput.ReadToEndAsync(ct); var error = process.StandardError.ReadToEndAsync(ct);
-        await process.WaitForExitAsync(ct);
-        string errors = await error; await output;
-        if (process.ExitCode != 0)
-            throw new WorkspaceException(new[] { "SnapshotHeadroomRequired", "SnapshotIdentityMismatch", "SnapshotObservationIncomplete",
-                "SnapshotReleaseIsolationRequired", "SnapshotReclamationInvalid", "SnapshotCollateralLoss", "WorkspaceBusy" }
-                .FirstOrDefault(code => errors.Contains(code, StringComparison.Ordinal)) ?? "SnapshotOperationIncomplete",
-                "The VSS helper did not complete. Preserve the receipt and inspect its diagnostic.", new { action, receiptDirectory, diagnostic = errors });
+        await RunAuthorityAsync(action, source, ct);
     }
     private static bool CurrentFormat(Receipt receipt) => receipt.Version == 2 && receipt.CaptureIdentity is not null;
     private static void RequireCurrentFormat(Receipt receipt)

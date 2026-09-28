@@ -101,6 +101,11 @@ internal static class WorkspaceCommands
         Bind(unity, "stop", null, (runtime, id, _) => runtime.StopAsync(id, ct));
 
         var storageGroup = new Command("storage", "Inspect a candidate CoW volume."); root.Subcommands.Add(storageGroup);
+        var serviceGroup = new Command("service", "Inspect the installed VSS authority; installation is an explicit machine operation.");
+        var serviceStatus = new Command("status", "Read SCM status without elevation or VSS side effects.");
+        serviceGroup.Subcommands.Add(serviceStatus); storageGroup.Subcommands.Add(serviceGroup);
+        serviceStatus.SetAction(_ => { select("storage.service.status"); respond(ApiResponse.Success("storage.service.status", StorageServiceInspection.Observe())); });
+        serviceGroup.SetAction(_ => { select("cli"); respond(ApiResponse.Failure("cli", "InvalidArguments", "Use storage service status.")); });
         var probe = new Command("probe", contracts.Find("storage.probe")!.Description);
         var pathOption = new Option<string>("--path") { Required = true }; probe.Options.Add(pathOption); storageGroup.Subcommands.Add(probe);
         probe.SetAction(parse => { select("storage.probe"); var input = new { path = parse.GetValue(pathOption)! };

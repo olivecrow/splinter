@@ -11,11 +11,14 @@ public static class WorkspaceFailurePolicy
         "ValidationSourceChanged" or "ValidationEvidenceMismatch" or "ValidationReleaseUncertain" or "ValidationResultChanged" or
         "CandidateProjectionMismatch" or "CandidateProjectionHistoryUnsupported" or
         "CandidatePublicationCorrupt" or "CandidatePublicationMismatch" or "CandidatePublicationUnowned" or
-        "CandidateSourceChanged" or "CandidatePartialMismatch" or "CandidateStateMismatch" or "CandidateSealMismatch";
+        "CandidateSourceChanged" or "CandidatePartialMismatch" or "CandidateStateMismatch" or "CandidateSealMismatch" or
+        "StorageStateIncomplete" or "StorageOwnerMismatch" or "StorageRequestConflict" or "StorageServiceIdentityMismatch" or "StoragePathChanged";
 
     public static string RetryDisposition(string code) => RequiresPreservation(code) ? "requires-user-action" : code switch
     {
         "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "ValidationInProgress" or "SourceObservationUncertain" or "SourceChanged" or "ValidationResourcesBusy" or "CandidatePublicationBusy" => "safe-to-retry",
+        "StorageServiceMissing" or "StorageServiceUnavailable" or "StorageServiceVersionMismatch" or "StorageServiceUnsafe" or
+        "StorageOperationUncertain" or "StorageRequestPending" or "StorageScopeDenied" or "StorageSnapshotNotOwned" or "StorageReleaseNotAuthorized" or
         "CoWUnsupported" or "ProcessOwnershipUnknown" or "SnapshotPrivilegeRequired" or
         "SnapshotHeadroomRequired" or "SnapshotReleaseIsolationRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or
         "OverlayStartUncertain" or "SnapshotStateMissing" or "SnapshotCheckpointMismatch" or "SnapshotPreparationIncomplete" or "SnapshotOperationIncomplete" or

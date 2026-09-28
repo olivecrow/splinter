@@ -1,6 +1,6 @@
 # 반복 UAC 없는 저장소 권한 경계
 
-사용 목표는 최초 설치/권한 구성 후 정상적인 workspace 생성·재연결·회수마다 UAC를 누르지 않는 것이다. 현재 제품은 각 VSS helper를 별도로 승격하는 내부 알파이며 이 목표는 아직 미구현이다. UAC 자체를 끄거나 CLI·Unity·에이전트 전체를 관리자로 실행하는 방식은 기본 경로로 삼지 않는다.
+사용 목표는 최초 설치/권한 구성 후 정상적인 workspace 생성·재연결·회수마다 UAC를 누르지 않는 것이다. [서비스 코드와 설치 도구](../storage-privilege-service.md)는 연결했으며 실제 완료 판정은 [UA 검증](../verification/storage-privilege-service.md)을 따른다. UAC 자체를 끄거나 CLI·Unity·에이전트 전체를 관리자로 실행하는 방식은 기본 경로로 삼지 않는다.
 
 ## 목표 구조
 
@@ -12,11 +12,11 @@ Windows 저장소 어댑터에 좁은 권한 서비스를 둔다. 설치/업데�
 
 | 검증 단위 | 완료 기준 | 상태 |
 | --- | --- | --- |
-| UA-01 설치/수명 | 최초 승인 후 제한된 서비스 등록, 재시작 발견, 활성 결과를 보존하는 업데이트/제거 | NotRun |
-| UA-02 요청 경계 | 사용자·소유권·정확한 ID·schema·경로 검증, 임의 실행과 타 작업 요청 거부 | NotRun |
-| UA-03 실제 반복 작업 | 일반 사용자 CLI의 A/B 생성·재연결·회수를 추가 UAC 없이 수행, 정확한 결과/자원 증거 | NotRun |
-| UA-04 장애/복구 | 서비스 중단·응답 유실·재시작·호환성 불일치에서 중복 capture와 거짓 완료 없음 | NotRun |
+| UA-01 설치/수명 | 최초 승인 후 제한된 서비스 등록, 재시작 발견, 활성 결과를 보존하는 업데이트/제거 | Passed: 설치·동일 패키지 업데이트·활성 상태 제거 거부·재시작 |
+| UA-02 요청 경계 | 사용자·소유권·정확한 ID·schema·경로 검증, 임의 실행과 타 작업 요청 거부 | Passed: 자동 경계 및 설치된 SYSTEM 서비스의 6종 거부·보호 경로·SCM peer |
+| UA-03 실제 반복 작업 | 일반 사용자 CLI의 A/B 생성·재연결·회수를 추가 UAC 없이 수행, 정확한 결과/자원 증거 | Passed: 전용 NTFS/Git A/B·동일 snapshot 재연결·독립 결과·회수·추가 UAC 0 |
+| UA-04 장애/복구 | 서비스 중단·응답 유실·재시작·호환성 불일치에서 중복 capture와 거짓 완료 없음 | Passed: 일반 CLI 정지 오류·재개, Observe 응답 본문 유실 후 재시작/동일 응답, 버전 거부; capture 중단은 자동 시험 |
 
-이 작업은 [대화별 설치/사용 계획](session-workflow-and-installation.md)의 권한 UX 요구사항이다. 현재 지연 회수 시험에서 사용한 제한된 관리자 세션은 소유한 두 fixture snapshot의 회수만 처리하고 종료하는 개발용 운영 도구다. 제품 서비스 설치나 UA 통과 증거가 아니다.
+이 판정은 [UA 검증](../verification/storage-privilege-service.md)의 Windows x64·등록된 프로젝트/home·작은 fixture 범위다. native VSS 호출 도중 강제 종료와 실제 재부팅·전원 장애, 일반 Unity·ARM 지원은 확대하지 않는다. 이 작업은 [대화별 설치/사용 계획](session-workflow-and-installation.md)의 권한 UX 요구사항이며 제품 전체 설치와 자동 binding은 별도다. 과거 지연 회수 시험의 제한 관리자 세션은 제품 서비스 증거로 합산하지 않는다.
 
-설계의 Windows 근거는 Microsoft의 [관리자 broker 모델](https://learn.microsoft.com/en-us/windows/win32/secauthz/administrator-broker-model)과 [OS 서비스 모델](https://learn.microsoft.com/en-us/windows/win32/secauthz/operating-system-service-model)이다. 이 문서는 구현 범위 후보와 완료 기준이며 서비스 설치를 수행하지 않는다.
+설계의 Windows 근거는 Microsoft의 [관리자 broker 모델](https://learn.microsoft.com/en-us/windows/win32/secauthz/administrator-broker-model)과 [OS 서비스 모델](https://learn.microsoft.com/en-us/windows/win32/secauthz/operating-system-service-model)이다. 이 문서는 완료 기준이며 실제 설치는 명시적 setup 진입점에서 수행한다.

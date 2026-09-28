@@ -152,6 +152,16 @@
       "retry": "idempotent-stop"
     },
     {
+      "id": "storage.service.status",
+      "description": "Inspect the installed storage authority and caller elevation without creating snapshots or prompting for elevation.",
+      "cliUsage": "splinter storage service status",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:storage-service-status-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "read-only-local-process",
+      "retry": "safe-read"
+    },
+    {
       "id": "storage.probe",
       "description": "Check ReFS volume and cluster geometry without copying files.",
       "cliUsage": "splinter storage probe --path <directory>",

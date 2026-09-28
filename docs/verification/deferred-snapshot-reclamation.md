@@ -23,7 +23,7 @@
 
 ## 권한 세션과 운영 마감
 
-사용자가 반복 UAC의 불편을 지적한 뒤 남은 B 차단·A 해제·B 재시도를 **한 번 승인한 제한 관리자 세션**에서 처리했다. 정확한 두 소유 snapshot ID·helper hash·허용 Release 동작과 15분 만료를 고정했고 일반 CLI는 계속 비관리자였다. 마지막 probe/detach를 포함해 [4건을 처리하고 세션이 종료](../../artifacts/storage-foundation/deferred-20260926/release-session-stopped.json)됐다. [VHD 분리](../../artifacts/storage-foundation/deferred-20260926/detached.json) 후 fixture·독립 Git 결과·영수증은 VHD와 artifacts에 보존했다. UAC 설정 변경이나 제품 서비스 설치는 하지 않았다. 반복 UAC 없는 제품은 [UA 계획](../plans/storage-privilege-service.md)의 NotRun으로 남는다.
+사용자가 반복 UAC의 불편을 지적한 뒤 남은 B 차단·A 해제·B 재시도를 **한 번 승인한 제한 관리자 세션**에서 처리했다. 정확한 두 소유 snapshot ID·helper hash·허용 Release 동작과 15분 만료를 고정했고 일반 CLI는 계속 비관리자였다. 마지막 probe/detach를 포함해 [4건을 처리하고 세션이 종료](../../artifacts/storage-foundation/deferred-20260926/release-session-stopped.json)됐다. [VHD 분리](../../artifacts/storage-foundation/deferred-20260926/detached.json) 후 fixture·독립 Git 결과·영수증은 VHD와 artifacts에 보존했다. 이 과거 실행에서는 UAC 설정 변경이나 제품 서비스 설치를 하지 않았다. 설치된 제품 서비스의 별도 판정은 [UA 검증](storage-privilege-service.md)을 따른다.
 
 시험 harness에서 연결 전 V: 경로 조합, PowerShell 함수/alias 이름 충돌을 수정했다. 제품 snapshot 생성 전의 준비 오류였고 다른 snapshot을 삭제하거나 기존 source를 변경하는 복구를 하지 않았다. 해당 오류 파일도 artifacts에 남겼다.
 

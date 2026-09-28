@@ -12,6 +12,18 @@ public sealed class ContractAndCliTests
     private readonly ContractCatalog contracts = new();
 
     [Fact]
+    public async Task StorageAuthorityDiscoveryIsReadOnlyAndKeepsTheHostInProcess()
+    {
+        var (exit, response) = await Run("capabilities");
+        Assert.Equal(0, exit); Assert.False(response.GetProperty("data").GetProperty("persistentHost").GetBoolean());
+        var authority = response.GetProperty("data").GetProperty("storageAuthority");
+        Assert.Equal("unelevated", authority.GetProperty("normalCaller").GetString());
+        foreach (var schema in authority.GetProperty("schemas").EnumerateArray()) Assert.Contains(schema.GetString()!, contracts.SchemaIds);
+        var (statusExit, status) = await Run("storage", "service", "status");
+        Assert.Equal(0, statusExit); Assert.Equal("SplinterStorageAuthority", status.GetProperty("data").GetProperty("serviceName").GetString());
+    }
+
+    [Fact]
     public async Task ManagedCandidateExportRequiresAReceiptAndRemainsAnExperiment()
     {
         var input = new JsonObject { ["action"] = "candidate-source-export", ["overlayRequestPath"] = "overlay.json", ["candidatePath"] = "new-candidate" };
