@@ -143,7 +143,7 @@ SF-03 전체는 Partial이다. 실제 workflow provider 연결·공동 snapshot 
 
 ## SF-03 제품 workflow 연결
 
-`validation` CLI와 Windows/Git/Unity 조합을 **scoped-complete-with-limitations**로 판정한다. VW/VG/VP 또는 이전 VC의 성공을 승계하지 않았다. 범위·완료 조건은 [확정 범위](storage-priority-and-editor-modes.md#sf-03-제품-연결과-남은-관문), 실행 증거와 실패·복구 제한은 [WF 기록](../verification/product-validation-workflow.md)을 따른다.
+`validation` CLI와 Windows/Git/Unity 조합의 WF-01~05를 **scoped-complete-with-limitations**로 판정한다. VW/VG/VP 또는 이전 VC의 성공을 승계하지 않았다. 범위·완료 조건은 [확정 범위](storage-priority-and-editor-modes.md#sf-03-제품-연결과-남은-관문), 실행 증거와 실패·복구 제한은 [WF 기록](../verification/product-validation-workflow.md)을 따른다.
 
 | ID | 검증 대상 | 상태 |
 | --- | --- | --- |
@@ -153,7 +153,19 @@ SF-03 전체는 Partial이다. 실제 workflow provider 연결·공동 snapshot 
 | WF-04 | 후보·소스 독립 Git 결과, worker 후속 편집 보존, VSS 의존성 차단과 소유 자원 회수 | Passed, 독립 ref 8개·소유 자원/VSS 0·VHD 분리 후 재검증 |
 | WF-05 | 실제 CLI 중단/응답 유실의 동일 owner/request 복구와 원본/기존 ref 보존 | Passed, publish intent 뒤 실제 CLI 종료·같은 요청 복구/재전송. 전체 명령 경계·재부팅은 제외 |
 
-2026-09-28 최종 locked restore·Release 빌드·전체 자동 시험은 511 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped다. [TRX](../../artifacts/test-results/wf-product-20260928.trx)와 [코드·실행 파일·실제 증거 manifest](../../artifacts/storage-foundation/wf-20260928/verification-manifest.json)를 보존한다. 최종 formatter의 기록 재검증과 실제 VSS/Unity 실행의 시점 차이는 WF 기록의 제한을 따른다.
+WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시험은 511 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped다. [TRX](../../artifacts/test-results/wf-product-20260928.trx)와 [코드·실행 파일·실제 증거 manifest](../../artifacts/storage-foundation/wf-20260928/verification-manifest.json)를 보존한다. 해당 formatter의 기록 재검증과 실제 VSS/Unity 실행의 시점 차이는 WF 기록의 제한을 따른다.
+
+## SF-03 새 cache 실행과 비용
+
+최종 후보에서 두 빈 cache의 A/B/A와 전체 비용·독립 결과·회수를 실행하여 WF-06~08을 **scoped-complete-with-limitations**로 판정한다. 각 세대는 렌더 준비의 정상 종료 후 재시작하여 검증하며, 추가 시작/종료와 앞선 두 실패 시도의 비용을 포함한다. [실행 근거와 제한](../verification/product-validation-cold-cost.md)을 따르며 기존 WF-01~05의 결과나 formatter 재직렬화 검사를 승계하지 않았다. 공개 48개 시나리오의 추가 통과로도 집계하지 않는다.
+
+| ID | 검증 대상 | 상태 |
+| --- | --- | --- |
+| WF-06 | 같은 최종 바이너리로 독립된 빈 cache 두 차례의 실제 A/B/A, 정상 전환·코드/에셋/PNG·세대 격리와 실행 중 원시 응답 schema | Passed, 같은 최종 후보의 두 빈 cache A/B/A. 세대별 준비/검증 Editor 각 1회, schema·세대 격리·PNG 확인. t2의 Editor 시작 전 준비 요청 재시도 제한 유지 |
+| WF-07 | 두 trial의 준비→보존→회수 전체 추가 파일 할당·관측 최고치·VSS 공유 관측·단계 시간·cache 재증가와 계측 한계 | Passed, 소유 파일 할당·관측 최고치·단계 시간·실패/재시작 비용. 순간 물리 peak와 공유 VSS workspace 귀속은 미확정 |
+| WF-08 | 새 실행 결과의 독립 Git 보존·회수 후 내용/hash, 원본/기존 refs/비소유 snapshot 보존과 소유 자원 0/부재 | Passed, 정상 결과 14개와 앞선 결과 2개의 독립 보존·VHD 분리 후 재검증·소유 자원 0/부재 |
+
+최종 locked restore·Release 빌드와 자동 시험은 515 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped다. [최종 TRX](../../artifacts/storage-foundation/wf-cold-20260928/final-candidate.trx)와 [최종 후보 manifest](../../artifacts/storage-foundation/wf-cold-20260928/final-candidate-manifest.json)를 보존한다.
 
 ## 제품화와 비용 관문
 

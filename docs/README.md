@@ -27,7 +27,7 @@
 | [구현 계획](plans/implementation-plan.md) | 목표 구조·책임·단계별 작업 |
 | [검증 추적표](plans/validation-matrix.md) | 필수 48개 시나리오와 남은 지원 관문 |
 | [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | 중단·재부팅·전원·공간·파일 경계의 완료 기준 |
-| [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·단일 Editor 비교 기준·SF-03 제품 연결과 남은 관문 |
+| [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·단일 Editor 비교 기준·작은 cold 반복 이후 남은 지원·비용 판단 |
 | [대화별 설치·사용](plans/session-workflow-and-installation.md) | 설치·binding·명시적 discard의 SW-01~10 |
 | [저장소 권한 서비스](plans/storage-privilege-service.md) | 반복 UAC 없는 제한 서비스의 UA-01~04 |
 | [병렬 비교 방법](plans/parallel-workflow-qualification.md) | C/S/Q 입력·작업·비용 비교를 재사용할 때 |

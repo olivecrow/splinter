@@ -53,6 +53,8 @@ Windows Git 호출에는 `core.longpaths=true`를 명령별로 적용한다. 사
 | `LaunchUncertain`, `EditorStopTimeout`, `ProcessOwnershipUnknown` | `controlPath/editor.log`와 해당 PID/시작 시각을 조사한다. 강제 종료·강제 회수하지 않는다. |
 | `released` | 종료된 작업이다. 새 편집에는 새 key를 쓴다. |
 
+정상 stop은 소유 Editor의 종료를 단조 시간 기준 최대 2분 기다린다. 미저장 씬/Play 상태의 명시적 거부와 호출 취소는 즉시 반영한다. 제한 시간이 지나도 Editor나 작업공간을 자동 강제 종료·회수하지 않으며, 같은 소유 프로세스의 상태를 확인한 뒤 명시적으로 재시도한다.
+
 `workspace list`는 저장된 상태이며 일반 status는 프로세스와 새 검증 응답을 관측한다. 새 결과가 없는 반복 조회는 프로젝트 파일을 읽지 않고 `sourceVerification=not-checked`를 반환하며 `source`와 `validationCurrent`를 생략한다. 저장된 validation을 현재 파일의 검증으로 해석하지 않는다. 현재 파일까지 다시 확인하려면 `workspace status --id <id> --verify-source --home <상태 경로>`를 쓴다. checkpoint/integrate는 항상 현재 소스를 확인한다. JSON 응답에 프로세스 제어 토큰을 노출하지 않는다. 권한이 필요한 환경에서는 대상 저장소와 상태 경로에 대한 정상 파일·프로세스 권한으로 실행한다.
 
 ## 구현 경계

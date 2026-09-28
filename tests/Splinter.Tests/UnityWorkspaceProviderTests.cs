@@ -7,6 +7,62 @@ namespace Splinter.Tests;
 
 public sealed class UnityWorkspaceProviderTests
 {
+    [Fact]
+    public async Task NormalShutdownMayDrainBeyondThirtySeconds()
+    {
+        var clock = new ShutdownClock();
+        await UnityWorkspaceProvider.WaitForNormalExitAsync(() => clock.Elapsed < TimeSpan.FromSeconds(54),
+            _ => Task.FromResult<string?>(null), clock, clock.Delay, TestContext.Current.CancellationToken);
+        Assert.InRange(clock.Elapsed.TotalSeconds, 54, 55);
+    }
+
+    [Fact]
+    public async Task UnresponsiveEditorRemainsAnExplicitBoundedFailure()
+    {
+        var clock = new ShutdownClock();
+        var failure = await Assert.ThrowsAsync<WorkspaceException>(() => UnityWorkspaceProvider.WaitForNormalExitAsync(
+            () => true, _ => Task.FromResult<string?>(null), clock, clock.Delay, TestContext.Current.CancellationToken));
+        Assert.Equal("EditorStopTimeout", failure.Code);
+        Assert.InRange(clock.Elapsed.TotalSeconds, 120, 121);
+    }
+
+    [Fact]
+    public async Task UnsavedStateRefusalDoesNotWaitForTheShutdownDeadline()
+    {
+        var clock = new ShutdownClock();
+        var failure = await Assert.ThrowsAsync<WorkspaceException>(() => UnityWorkspaceProvider.WaitForNormalExitAsync(
+            () => true, _ => Task.FromResult<string?>("Unsaved scene"), clock, clock.Delay, TestContext.Current.CancellationToken));
+        Assert.Equal("EditorStopBlocked", failure.Code);
+        Assert.Equal(TimeSpan.Zero, clock.Elapsed);
+    }
+
+    [Fact]
+    public async Task ShutdownWaitHonorsCallerCancellation()
+    {
+        var clock = new ShutdownClock();
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => UnityWorkspaceProvider.WaitForNormalExitAsync(
+            () => true, _ => Task.FromResult<string?>(null), clock, async (duration, token) =>
+            {
+                await clock.Delay(duration, token);
+                cancellation.Cancel();
+            }, cancellation.Token));
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(1));
+    }
+
+    private sealed class ShutdownClock : TimeProvider
+    {
+        internal TimeSpan Elapsed { get; private set; }
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+        public override long GetTimestamp() => Elapsed.Ticks;
+        internal Task Delay(TimeSpan duration, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            Elapsed += duration;
+            return Task.CompletedTask;
+        }
+    }
+
     [Theory]
     [InlineData("0")]
     [InlineData("1")]

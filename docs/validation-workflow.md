@@ -45,6 +45,8 @@ A/B/A 전환은 A stop → B select/start → B stop → A의 새 select/start�
 
 검증 요청 후 source가 변하면 `ValidationSourceChanged`다. 현재 세대를 다시 start/refresh/stop하여 새 증거를 받는다. bridge·Library 등 관리 경로는 source sequence에서 제외하며 unknown 자원은 0으로 읽지 않는다. 실패한 검증 출력도 독립 결과로 보존할 수 있다.
 
+렌더·에셋 확인이 `ProjectSettings`를 생성하거나 reload·종료 때 저장할 수 있다. 이 경우 준비 Editor를 정상 stop하고 mount 부재를 확인한 뒤 같은 세대를 다시 시작하여 최종 `refresh`를 요청한다. 검증 뒤에는 소스를 쓰는 준비 작업을 다시 실행하지 않는다. 설정 파일을 일반 소스 변경 검사에서 제외하거나, 검증 이후의 쓰기를 성공으로 승계하지 않는다. 이 추가 stop/restart도 준비·검증 비용에 포함한다.
+
 Unity refresh의 `Assets`/`ProjectSettings` 바로 아래 `~UnityDirMonSyncFile~<32자리 hex>~`은 후보와 현재 소스에 **모두 없는 경우에만** 검증 sequence에서 제외한다. 원래 후보에 있거나 현재 남은 파일, 다른 경로·이름과 일반 사용자 삭제는 계속 변경으로 계산한다. 임시 파일의 원래 journal 기록과 output seal은 보존한다.
 
 ## 후보·캐시·결과의 소유권
@@ -76,4 +78,4 @@ cache는 `Library/Temp/Logs/UserSettings/obj/.vs/.idea`의 단일 writer다. `Va
 
 중단 뒤에는 같은 명령·키·입력으로 재시도한다. 공통 coordinator는 먼저 기존 provider 영수증을 찾고, 게시의 부분 prefix·완전 저널·유실 receipt는 원래 source seal로만 재조정한다. 완전한 현재 형식의 다음 ledger revision만 명시적 재시도로 게시하며 read-only inspect가 pending을 자동 게시하지 않는다. `replayed=true`는 과거 응답이며 현재 실행 상태의 새 관측이 아니다.
 
-입력과 출력은 `validation-product-request`/`validation-product-data`, 공통 request/response/state는 `validation-workflow-*` schema를 사용한다. `ValidationWorkflowTests`는 fake 적합성과 CLI 응답, `ValidationCandidateTests`는 별도 snapshot/cache 저널, `GitValidationResultTests`는 실제 Git 객체·원본 index 보존, `JournalReclamationTests`는 실제 파일 잠금과 회수 중단 복구, `SnapshotWorkspaceCoordinatorTests`는 제품 회수 의존성 연결을 검증한다. 실제 VSS/WinFsp/Unity 실행은 [제품 workflow 검증](verification/product-validation-workflow.md)과 [추적표](plans/validation-matrix.md)를 따른다. 재부팅·전원·물리 공간 장애, 일반 에셋, 대형 프로젝트, 생성 source 병합과 기본 모드 선택은 아직 자격을 획득하지 않았다.
+입력과 출력은 `validation-product-request`/`validation-product-data`, 공통 request/response/state는 `validation-workflow-*` schema를 사용한다. `ValidationWorkflowTests`는 fake 적합성과 CLI 응답, `ValidationCandidateTests`는 별도 snapshot/cache 저널, `GitValidationResultTests`는 실제 Git 객체·원본 index 보존, `JournalReclamationTests`는 실제 파일 잠금과 회수 중단 복구, `SnapshotWorkspaceCoordinatorTests`는 제품 회수 의존성 연결을 검증한다. 실제 VSS/WinFsp/Unity 실행은 [제품 연결·복구](verification/product-validation-workflow.md), [최종 후보의 새 cache 반복·전체 비용](verification/product-validation-cold-cost.md)과 [추적표](plans/validation-matrix.md)를 따른다. 재부팅·전원·물리 공간 장애, 일반 에셋, 대형 프로젝트, 생성 source 병합과 기본 모드 선택은 아직 자격을 획득하지 않았다.

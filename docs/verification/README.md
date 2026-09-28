@@ -18,7 +18,7 @@
 | SF-03/VW | [공통 수명주기](../validation-workflow.md)의 지속 상태·영수증 재조정·fake 적합성 | 합성 파일/영수증이며 실제 VSS·WinFsp·Unity 지원 증거가 아님. 자동 실행 상태는 VW, 제품 연결 자격은 WF를 따름 |
 | SF-03/VG | [등록 증거가 있는 관리 파일 분리](../validation-view.md#등록-증거가-있는-관리-파일-분리)의 실제 임시 Git 등록·합성 불변 트리 적합성 | 후보 v2 게시의 자동 시험 범위. 실제 provider 실행은 WF의 현재 후보 증거로 별도 판정 |
 | SF-03/VP | [같은 요청 게시 복구](../validation-view.md#같은-요청의-게시-복구)의 영구 intent·부분 저널 prefix·완료 receipt 재조정 | 합성 트리·실제 임시 파일·예외 주입 범위. 실제 CLI 중단은 WF, 재부팅·전원/공간 장애는 NR의 별도 관문 |
-| SF-03/WF | [제품 CLI·VSS·Unity](product-validation-workflow.md)의 독립 A/B snapshot, 같은 view/cache A/B/A, 실제 중단 복구와 독립 결과·회수 | scoped-complete-with-limitations. 첫 cold import 중단 후 복구한 작은 fixture이며 대형 용량·cold 안정성·NR 전체를 증명하지 않음 |
+| SF-03/WF | [제품 연결·복구](product-validation-workflow.md)와 [최종 후보의 두 빈 cache A/B/A·전체 비용](product-validation-cold-cost.md), 독립 결과·회수 | scoped-complete-with-limitations. 준비 종료 후 검증 재시작 비용을 포함한 작은 fixture 범위. 이전 실패·복구를 보존하며 대형 용량·일반 cold 안정성·NR 전체를 증명하지 않음 |
 | RI/RU/WI | 합성 또는 동일 닫힌 저널의 제한된 replay 비교 | warm cache·소수 표본. 누적 Editor 전체 개선·Library 물리 절감으로 환산하지 않음 |
 | JW/FR | 고정 쓰기 계측과 작은 URP fixture의 요청별 유효 PNG 검사 | Windows 선행 직렬화·내구성 경계 유지. Unity 내부 첫 draw 원인 미확정, group flush 미선정 |
 | SF-04~06, SW-01~10, UA-01~04 | 계획 | NotRun. 대형 입력·모드 채택·설치/binding/discard·권한 서비스 미구현 |
@@ -38,6 +38,7 @@
 | [저널 정리](journal-compaction.md), [Unity와 정리 비용](journal-compaction-qualification-and-cost.md), [예산과 재증가](journal-budget-and-growth-qualification.md) | 중단 복구, 두 세대 겹침·전체 할당 peak와 Library 유효량, 재개 후 재증가 |
 | [공통 Library A/B/A](immutable-validation-view.md), [준비와 replay](validation-view-readiness-and-replay.md) | 불변 후보와 검증 세대의 분리, 정상 stop/remount/restart 비용·최초 import 제한 |
 | [제품 validation workflow](product-validation-workflow.md) | 실제 CLI 연결, 서로 다른 VSS와 한 view/cache, 코드·에셋·PNG·세대 분리, CLI 중단 복구, 독립 결과와 VHD 분리 후 검증 |
+| [새 cache 반복과 전체 비용](product-validation-cold-cost.md) | 최종 후보의 두 빈 cache A/B/A, 2분 정상 종료 대기, 준비/검증 재시작 비용, 원시 응답 schema·실패 포함 할당·16개 독립 결과·소유 자원 회수 |
 | [Replay index](replay-index-cost.md), [실제 Unity 비교](unity-replay-comparison.md), [범위 index](cumulative-write-range-index.md) | 고정 입력·후보 hash·단계별 replay와 실제 Editor 비용을 비교하는 기준 |
 | [Live 쓰기](live-journal-write-cost.md) | flush 내부 비용, callback 직렬화·대기/완료 경계와 향후 내구성 판단 |
 | [첫 미리보기](first-render-qualification.md) | 첫 draw 미확정 원인, cold/reload/재시작과 실패 주입, PNG 해시 기반 판독 기준 |

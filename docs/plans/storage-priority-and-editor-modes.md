@@ -25,7 +25,7 @@
 
 ## SF-03 제품 연결과 남은 관문
 
-제품 `validation` CLI와 실제 Windows/Git/Unity provider, 서로 다른 VSS의 A/B/A와 같은 경로/캐시, worker 게시의 쓰기 차단, 독립 Git 결과, 제품 snapshot 회수 의존성 검사는 [WF 실행](../verification/product-validation-workflow.md)에서 선택 범위 완료로 판정했다. 첫 cold import의 중단·복구 제한을 유지하며 실제 코드·에셋·PNG, 정상 stop과 mount 부재, 원본/기존 refs, 독립 결과와 소유 자원 회수로 판정했다.
+제품 `validation` CLI와 실제 Windows/Git/Unity provider, 서로 다른 VSS의 A/B/A와 같은 경로/캐시, worker 게시의 쓰기 차단, 독립 Git 결과, 제품 snapshot 회수 의존성 검사는 [WF 실행](../verification/product-validation-workflow.md)에서 선택 범위 완료로 판정했다. 기존 첫 cold import 중단·복구 기록은 유지한다. 최종 후보의 두 빈 cache 반복·원시 응답 schema·전체 비용과 보존/회수는 [WF-06~08](../verification/product-validation-cold-cost.md)의 별도 근거로 판정한다.
 
 
 공통 수명주기와 실제 provider·CLI는 [검증 후보 수명주기](../validation-workflow.md)를 따른다. 연결 자격은 [WF 추적표](validation-matrix.md#sf-03-제품-workflow-연결)에서 아래 범위를 판정한다.
@@ -36,6 +36,12 @@
 - 최종 후보의 작은 실제 A/B/A에서 정상 stop·mount 부재·같은 경로 재시작, 실제 코드/에셋·결과 독립성·원본/타 작업 보존·소유 자원 회수를 확인한다. 전체 추가 파일 할당과 최고치, replay·준비·재개 시간을 구분한다.
 
 SF-03 전체는 Partial이다. FIFO/Coordination, 일반 임대 인수, 생성 source 반환 병합, 원본 Editor 공유, 기본 모드 선택, group flush, 대형 PV 재개, NR 전체 시험과 설치·binding·discard·권한 서비스는 별도 후속이다. 현재 계약의 같은 요청 중단·응답 유실·재시작 복구는 계속 유지한다.
+
+## 다음 범위 판단
+
+[WF-06~08](../verification/product-validation-cold-cost.md)은 최종 후보의 두 빈 cache A/B/A·소유 파일 할당/시간·독립 결과/회수 근거를 제공한다. 렌더 준비에서 발생하는 설정 저장을 마친 뒤 같은 세대를 다시 시작해 검증하므로 이 추가 Editor 시작/종료도 반복 비용에 포함한다. 첫 두 시도의 실패와 관측 사이 순간 물리 최고치·공유 VSS 귀속의 한계를 유지한다.
+
+남은 우선순위는 Library 유효 데이터의 절대량과 재증가, 일반 파일/에셋·중단 경계의 보존, 같은 입력의 신규/재개/반복 비용이다. t2의 첫 Editor 시작 전 정상 unmount 직후 상태 읽기 실패는 같은 준비 요청 재시도로 복구됐지만 정확한 원인은 미확정이며, 무오류 준비 경로는 후속 검증이 필요하다. 기본 모드 판단에는 이 근거가 더 필요하며 작은 fixture 통과를 대형 공간 목표 달성으로 확대하지 않는다. 일반 임대 복구·source 반환 병합·큐/Coordination, 새 저장소 backend·flush 정책 변경, NR 전체 장애 시험, 설치·binding·discard·권한 서비스와 대형 PV 재개는 별도 범위다.
 
 ## 공통 저장소와 Editor 정책
 

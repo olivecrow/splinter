@@ -21,7 +21,7 @@
 - `scripts/measure-workspace-storage.ps1`은 읽기 전용 계측이다. 논리 payload·파일 할당·관리 메모리 누적 할당·working set·공유 VSS를 구별한다. 공유 VSS는 workspace별로 귀속하거나 중복 합산하지 않는다.
 - `docs/snapshot-overlay.md`의 spike와 `scripts/snapshot-overlay-request.ps1`의 공통 요청 생성은 개발용이다. 제품과 같은 현재 VSS 읽기 검증 tuple을 사용한다. `setup-snapshot-overlay.ps1`, `set-snapshot-test-budget.ps1`, `setup-dev-drive.ps1`은 기본 read-only 계획이며 쓰기 모드는 별도 승인된 관리자 작업이다.
 - 개발용 `candidate-export`·등록 증거가 필요한 `candidate-source-export`·`validationView`는 `docs/validation-view.md`를 따른다. 후보 현재 형식은 v2이며 이전 후보를 자동 이관하지 않는다. 게시에는 고정 `publication.requestKey`가 필요하며 같은 intent·원본 seal의 부분 저널만 정확한 prefix 검증 후 이어 쓴다. intent 없는 목적지·부분 JSON·다른 요청·손상 파일은 보존 후 거부한다. 관리 파일 분리는 정확한 owner/snapshot/내용만 검증해 새 후보에 적용하고 worker/Git 등록은 보존한다. worker 편집·불변 후보·세대별 검증 소스를 구분하며 전환은 정상 Editor stop·mount 부재 뒤 같은 경로에서 재시작한다. hot switch·생성 source 병합·큐/Coordination·제품 기본 모드 자동 선택은 미구현이다.
-- 제품 `validation` CLI와 `Splinter.Workflows.Windows`는 `docs/validation-workflow.md`를 따른다. 공통 coordinator/provider 계약에 실제 VSS·WinFsp·Git·Unity를 연결하며 단일 view/cache와 세대별 source를 분리한다. 명시적 보존 뒤 artifact·cache·worker 순서로 회수하며 후보/소스 검증을 worker의 성공으로 자동 승계하지 않는다. 작은 실제 실행 자격과 cold 중단 제한은 WF 검증을 따른다.
+- 제품 `validation` CLI와 `Splinter.Workflows.Windows`는 `docs/validation-workflow.md`를 따른다. 공통 coordinator/provider 계약에 실제 VSS·WinFsp·Git·Unity를 연결하며 단일 view/cache와 세대별 source를 분리한다. 명시적 보존 뒤 artifact·cache·worker 순서로 회수하며 후보/소스 검증을 worker의 성공으로 자동 승계하지 않는다. 작은 실제 실행·cold 반복의 자격과 추가 준비/검증 재시작·비용 한계는 WF 검증을 따른다.
 - `tools/Splinter.ReplayProbe`와 `tools/Splinter.WriteProbe`는 고정 합성 입력의 개발 도구다. 연산별 계측은 `docs/replay-profiling.md`·`docs/write-profiling.md`를 따른다. 실제 Windows mutation gate가 쓰기를 직렬화하므로 Runtime 대기 0은 OS 대기 0이 아니다. group flush는 callback 원자성·응답 경계·내구성 검토 없이는 채택하지 않는다.
 
 ## 검증과 후속 작업

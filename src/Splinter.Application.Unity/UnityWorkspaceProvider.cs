@@ -114,15 +114,33 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         if (!OwnedProcess(lease)) { await Processes.WaitForExitAsync(lease, ct); return; }
         string requestId = Guid.NewGuid().ToString("N");
         await Atomic(controlPath, "stop-request.json", new { requestId, token = lease.Token }, ct);
-        for (int attempt = 0; attempt < 120; attempt++)
+        await WaitForNormalExitAsync(() => OwnedProcess(lease), async token =>
         {
-            if (!OwnedProcess(lease)) { await Processes.WaitForExitAsync(lease, ct); return; }
-            var refusal = await Read<StopResult>(controlPath, "stop-result.json", ct);
-            if (refusal?.RequestId == requestId)
-                throw new WorkspaceException("EditorStopBlocked", refusal.Error);
-            await Task.Delay(250, ct);
+            var refusal = await Read<StopResult>(controlPath, "stop-result.json", token);
+            return refusal?.RequestId == requestId ? refusal.Error : null;
+        }, TimeProvider.System, Task.Delay, ct);
+        await Processes.WaitForExitAsync(lease, ct);
+    }
+
+    internal static async Task WaitForNormalExitAsync(Func<bool> ownedProcess,
+        Func<CancellationToken, Task<string?>> refusal, TimeProvider clock,
+        Func<TimeSpan, CancellationToken, Task> delay, CancellationToken ct)
+    {
+        // Real cold-cache shutdown can take over 30 seconds while Unity saves
+        // and drains helpers. Keep a bounded monotonic deadline; never kill or
+        // release resources merely because it expires.
+        var budget = TimeSpan.FromMinutes(2);
+        long start = clock.GetTimestamp();
+        while (ownedProcess())
+        {
+            ct.ThrowIfCancellationRequested();
+            if (await refusal(ct) is { } reason)
+                throw new WorkspaceException("EditorStopBlocked", reason);
+            TimeSpan remaining = budget - clock.GetElapsedTime(start);
+            if (remaining <= TimeSpan.Zero)
+                throw new WorkspaceException("EditorStopTimeout", "Owned Editor did not exit within two minutes. Worktree and results are retained; inspect its log before retrying.");
+            await delay(remaining < TimeSpan.FromMilliseconds(250) ? remaining : TimeSpan.FromMilliseconds(250), ct);
         }
-        throw new WorkspaceException("EditorStopTimeout", "Owned Editor did not exit. Worktree and results are retained; inspect its log before retrying.");
     }
 
     public async Task RemoveInfrastructureAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
