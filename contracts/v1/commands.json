@@ -190,6 +190,16 @@
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-baseline-removal",
       "retry": "idempotent-release"
+    },
+    {
+      "id": "validation.execute",
+      "description": "Publish immutable NTFS worker candidates, select and run a single Unity view, preserve and release exact artifacts.",
+      "cliUsage": "splinter validation --input <request.json> [--home <path>]",
+      "inputTransport": "json-file",
+      "inputSchema": "urn:splinter:v1:validation-product-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-validation-candidate-view-editor-and-result",
+      "retry": "same-request-key-and-owner; preserve-unknown-resources"
     }
   ]
 }

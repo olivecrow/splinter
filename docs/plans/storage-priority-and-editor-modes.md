@@ -1,6 +1,6 @@
 # 저장공간 우선 설계와 Editor 실행 방식
 
-대형 Unity 프로젝트의 작업공간 용량과 생성·편집 준비·재개 시간을 함께 판단하고 Editor 동시성은 그 뒤에 둔다. 현재 제품은 작업별 독립 Editor 방식이다. 단일 Editor 순차 검증은 후보이며 기본 모드 채택은 미확정이다.
+대형 Unity 프로젝트의 작업공간 용량과 생성·편집 준비·재개 시간을 함께 판단하고 Editor 동시성은 그 뒤에 둔다. 제품은 작업별 독립 Editor와 명시적 `validation` 단일 Editor 검증을 제공한다. 기본 모드 자동 선택은 미확정이다.
 
 ## 남은 범위
 
@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | SF-01 변경 기반 소스 검증 | 정의한 소스 검증 범위 Passed | 일반 파일/입력 지원은 NR 검증과 별도 |
 | SF-02 journal·저장량 | Partial | Library 유효 데이터의 절대량, 정리 중 전체 물리 peak, 재개 후 재증가를 포함한 용량 목표 |
-| SF-03 단일 Library 검증 | 개발용 후보/view 및 공통 계약/fake 하위 범위, 전체 Partial | 제품 연결·임대 복구·검증 세대와 source 반환 병합·큐/Coordination 계약 |
+| SF-03 단일 Library 검증 | 제품 CLI/provider와 작은 실제 A/B/A 연결 완료, WF 제한 유지. 전체 Partial | 일반 임대 복구·source 반환 병합·큐/Coordination 계약과 반복 비용 판단 |
 | SF-04 작업 재개·독립 결과 | NotRun | 후보 검증 후 계속 편집, VSS 소실·새 CLI·외부 원본 변경에서도 결과 보존 |
 | SF-05 대형 입력 적합성 | NotRun | 파일 수·에셋·LFS/filter·패키지 조건과 NR 장애 관문 |
 | SF-06 기본 방식 선택 | NotRun | 같은 입력의 신규/재개/누적 편집/정리 비용 비교 후 채택 여부 결정 |
@@ -23,16 +23,19 @@
 - [WI](../verification/cumulative-write-range-index.md), [RI](../verification/replay-index-cost.md), [RU](../verification/unity-replay-comparison.md): 같은 닫힌 저널·합성·누적 Editor 재개를 구별한다. 합성 개선이나 warm cache 소수 표본을 전체 Editor 개선·Library 물리 절감으로 환산하지 않는다.
 - [VSS 보호 근거](../verification/storage-recovery.md): 정확한 ID 삭제만으로 타 snapshot 보존이 보장되지 않는다. 현재 격리 guard와 명시적 지연 회수 계약을 유지한다.
 
-## SF-03의 남은 제품 연결 관문
+## SF-03 제품 연결과 남은 관문
 
-공통 수명주기 계약·지속 상태·fake 적합성의 현재 구현은 [검증 후보 수명주기](../validation-workflow.md), 자동 검증은 [추적표](validation-matrix.md#sf-03-공통-수명주기-적합성)를 따른다. 이 구현은 실제 provider·CLI에 연결되지 않았다. 다음 실제 연결에는 아래 관문을 별도 범위로 확정해야 한다.
+제품 `validation` CLI와 실제 Windows/Git/Unity provider, 서로 다른 VSS의 A/B/A와 같은 경로/캐시, worker 게시의 쓰기 차단, 독립 Git 결과, 제품 snapshot 회수 의존성 검사는 [WF 실행](../verification/product-validation-workflow.md)에서 선택 범위 완료로 판정했다. 첫 cold import의 중단·복구 제한을 유지하며 실제 코드·에셋·PNG, 정상 stop과 mount 부재, 원본/기존 refs, 독립 결과와 소유 자원 회수로 판정했다.
 
-- [등록 증거가 있는 관리 파일 분리](../validation-view.md#등록-증거가-있는-관리-파일-분리)를 제품 provider에 연결한다. 개발용 `candidate-source-export`의 실제 Git/합성 적합성은 VSS/WinFsp/Unity 게시 실행이나 제품 연결의 통과가 아니다. 기존 `ExportCandidate`의 `.git` 거부와 사용자 파일 보호는 유지한다.
-- 독립적으로 생성된 A/B의 snapshot과 공통 cache의 identity·소유권·공동 수명을 설계한다. 현재 다른 snapshot·view·partition·예산의 cache 재사용은 거부한다. 원본 기준 재작성·최초 전체 복제·읽기 hydration은 도입하지 않는다.
-- 실제 writer fencing·현재 owner 관측·영수증 재조정·독립 결과 검증을 adapter에 연결하고, 기존 제품 snapshot 회수가 새 후보·소스 세대의 의존성을 확인하게 한다. [개발용 게시 복구](../validation-view.md#같은-요청의-게시-복구)의 고정 요청/원본 seal·부분 저널/receipt 재조정을 공통 operation·owner generation과 연결하고 실제 프로세스 강제 종료 경계를 검증해야 한다. fake 영수증이나 Runtime 잠금을 OS 자원 보존 증거로 대신하지 않는다.
+
+공통 수명주기와 실제 provider·CLI는 [검증 후보 수명주기](../validation-workflow.md)를 따른다. 연결 자격은 [WF 추적표](validation-matrix.md#sf-03-제품-workflow-연결)에서 아래 범위를 판정한다.
+
+- 등록된 Git 포인터의 분리·worker 쓰기 차단·같은 owner/request 게시 복구를 실제 VSS에서 확인한다. 기존 `ExportCandidate`의 `.git` 거부와 사용자 파일 보호는 유지한다.
+- 독립 A/B snapshot에 의존하는 candidate/source 세대와 view 소유의 빈 cache를 구분한다. 동일 프로젝트·compatibility·partition·예산·owner일 때 다른 snapshot 후보로 전환하며 최초 전체 복제·읽기 hydration을 사용하지 않는다.
+- 독립 Git 결과의 객체 존재와 제품 snapshot 의존성 차단을 확인한다. 실제 CLI 중단과 응답 유실을 시험하며 fake나 예외 주입의 성공을 실제 프로세스 결과로 승계하지 않는다.
 - 최종 후보의 작은 실제 A/B/A에서 정상 stop·mount 부재·같은 경로 재시작, 실제 코드/에셋·결과 독립성·원본/타 작업 보존·소유 자원 회수를 확인한다. 전체 추가 파일 할당과 최고치, replay·준비·재개 시간을 구분한다.
 
-실제 연결 전까지 SF-03 전체 Partial과 제품 provider 연결 NotRun을 유지한다. FIFO/Coordination, 일반 임대 인수, 생성 source 반환 병합, 원본 Editor 공유, 기본 모드 선택, group flush, 대형 PV 재개, NR 전체 시험과 설치·binding·discard·권한 서비스는 별도 후속이다. 현재 계약의 같은 요청 중단·응답 유실·재시작 복구는 계속 유지한다.
+SF-03 전체는 Partial이다. FIFO/Coordination, 일반 임대 인수, 생성 source 반환 병합, 원본 Editor 공유, 기본 모드 선택, group flush, 대형 PV 재개, NR 전체 시험과 설치·binding·discard·권한 서비스는 별도 후속이다. 현재 계약의 같은 요청 중단·응답 유실·재시작 복구는 계속 유지한다.
 
 ## 공통 저장소와 Editor 정책
 

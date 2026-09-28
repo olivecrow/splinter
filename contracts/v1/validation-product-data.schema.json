@@ -1,0 +1,386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:validation-product-data",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "result"
+  ],
+  "properties": {
+    "action": {
+      "type": "string"
+    },
+    "result": {
+      "type": "object"
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "publish",
+            "select",
+            "resume",
+            "observe-validation",
+            "preserve",
+            "release"
+          ]
+        },
+        "result": {
+          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/response"
+        }
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "prepare-worker"
+          ]
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "worker",
+            "resources",
+            "managedPathPolicy"
+          ],
+          "properties": {
+            "worker": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/worker"
+            },
+            "resources": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ownershipVerified"
+              ],
+              "properties": {
+                "ownershipVerified": {
+                  "type": "boolean"
+                },
+                "applications": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "writers": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "openHandles": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "mounted": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "snapshotAvailable": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "managedPathPolicy": {
+              "const": "source-only-v1"
+            }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "status"
+          ]
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/state"
+            },
+            "resources": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "owner",
+                    "resources"
+                  ],
+                  "properties": {
+                    "owner": {
+                      "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+                    },
+                    "resources": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "ownershipVerified"
+                      ],
+                      "properties": {
+                        "ownershipVerified": {
+                          "type": "boolean"
+                        },
+                        "applications": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "writers": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "openHandles": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "mounted": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "execution": {
+              "type": [
+                "object",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "start"
+          ]
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "selection",
+            "application",
+            "controlPath",
+            "path"
+          ],
+          "properties": {
+            "selection": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
+            },
+            "application": {
+              "type": "object"
+            },
+            "mount": {
+              "type": "object"
+            },
+            "controlPath": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "refresh"
+          ]
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "selection",
+            "invocation",
+            "controlPath"
+          ],
+          "properties": {
+            "selection": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
+            },
+            "invocation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "version",
+                "requestId",
+                "fingerprint",
+                "sourceSequence"
+              ],
+              "properties": {
+                "version": {
+                  "const": 1
+                },
+                "requestId": {
+                  "type": "string"
+                },
+                "fingerprint": {
+                  "type": "string"
+                },
+                "sourceSequence": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "controlPath": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "stop"
+          ]
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "selection",
+            "stopped",
+            "seal",
+            "controlPath"
+          ],
+          "properties": {
+            "selection": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
+            },
+            "stopped": {
+              "const": true
+            },
+            "seal": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+            },
+            "controlPath": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "close-view"
+          ]
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "viewId",
+            "closed",
+            "cachePresent",
+            "mountPresent"
+          ],
+          "properties": {
+            "viewId": {
+              "type": "string"
+            },
+            "closed": {
+              "const": true
+            },
+            "cachePresent": {
+              "const": false
+            },
+            "mountPresent": {
+              "const": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "preserve-worker"
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "workspaceId",
+            "result",
+            "validationClaimed"
+          ],
+          "properties": {
+            "workspaceId": {
+              "type": "string"
+            },
+            "result": {
+              "type": "object",
+              "required": [
+                "independentOfSnapshot",
+                "collectionProtocol"
+              ],
+              "properties": {
+                "independentOfSnapshot": {
+                  "const": true
+                },
+                "collectionProtocol": {
+                  "const": "stable-journal-v1"
+                }
+              }
+            },
+            "validationClaimed": {
+              "const": false
+            }
+          }
+        }
+      }
+    }
+  ]
+}

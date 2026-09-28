@@ -44,6 +44,25 @@ public sealed class ValidationCandidateTests
     }
 
     [Fact]
+    public void ExplicitCacheOwnerSupportsIndependentSnapshotsWithoutReadingAnOldBase()
+    {
+        using var dir = new TestDirectory(); var a = Tree(); var b = Tree();
+        b.Snapshot = b.Snapshot with { Id = "independent-b" };
+        string ca = Export(dir.Path, "A", a), cb = Export(dir.Path, "B", b), cache = Path.Combine(dir.Path, "cache");
+        var cacheIdentity = Identity(a) with { Id = "owned-cache", ExcludedTopLevel = CacheRoots };
+        using (var first = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-a"), Identity(a), a, new(ca, cache, CacheRoots, cacheIdentity)))
+        { first.Create("Library", true, 16); Write(first, "Library/reusable", "warm-cache"); }
+        a.Available = false;
+        using var next = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-b"), Identity(b), b, new(cb, cache, CacheRoots, cacheIdentity));
+        Assert.Equal("B", Read(next, "Assets/code.cs"));
+        Assert.Equal("warm-cache", Read(next, "Library/reusable"));
+        Write(next, "Assets/output.cs", "generation-b");
+        var changes = next.ObserveChanges([]);
+        Assert.Equal(b.Snapshot.Id, changes.SnapshotId);
+        Assert.Contains(changes.Changes, change => change.Path == "Assets/output.cs");
+    }
+
+    [Fact]
     public void OfflineABAReusesOnlyCacheAndPreservesEachSourceOutputWithoutHydration()
     {
         using var dir = new TestDirectory(); var tree = Tree();

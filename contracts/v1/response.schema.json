@@ -91,6 +91,10 @@
   },
   "allOf": [
     {
+      "if": {"properties":{"command":{"const":"validation.execute"},"status":{"enum":["Succeeded","Accepted"]}}},
+      "then": {"properties":{"data":{"$ref":"urn:splinter:v1:validation-product-data"}}}
+    },
+    {
       "if": {
         "properties": {
           "status": {
@@ -718,7 +722,7 @@
             "owned-baseline-cache",
             "owned-baseline-removal",
             "owned-experimental-mount-git-and-editor",
-            "owned-journal-generation-replacement"
+            "owned-journal-generation-replacement", "owned-validation-candidate-view-editor-and-result"
           ]
         },
         "retry": {
@@ -732,7 +736,7 @@
             "same-pending-request",
             "idempotent-stop",
             "same-persisted-overlay-and-git-receipts; candidate-export requires stable publication requestKey and same frozen-source intent; inspect-uncertain-intents",
-            "same-workspace-compaction-intent"
+            "same-workspace-compaction-intent", "same-request-key-and-owner; preserve-unknown-resources"
           ]
         }
       }
@@ -870,11 +874,11 @@
           "type": "object", "additionalProperties": false,
           "required": ["stage", "integratedWorkspaceMode", "cliAvailable", "runtime", "operations", "schemas", "boundaries"],
           "properties": {
-            "stage": {"const":"contract-and-fake"},
-            "integratedWorkspaceMode": {"const":false}, "cliAvailable": {"const":false},
+            "stage": {"const":"windows-product"},
+            "integratedWorkspaceMode": {"const":true}, "cliAvailable": {"const":true},
             "runtime": {"type":"string", "minLength":1},
             "operations": {"const":["publish", "select", "resume", "observe-validation", "preserve", "release"]},
-            "schemas": {"const":["urn:splinter:v1:validation-workflow-request", "urn:splinter:v1:validation-workflow-response", "urn:splinter:v1:validation-workflow-state"]},
+            "schemas": {"const":["urn:splinter:v1:validation-workflow-request", "urn:splinter:v1:validation-workflow-response", "urn:splinter:v1:validation-workflow-state", "urn:splinter:v1:validation-product-request"]},
             "boundaries": {"type":"string", "minLength":1}
           }
         },

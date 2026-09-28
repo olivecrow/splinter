@@ -83,11 +83,22 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
         return await InspectSourceAsync(workspace, ct);
     }
 
-    public async Task<string> CommitAsync(WorkspaceRecord workspace, string message, CancellationToken ct = default)
+    public Task<string> CommitAsync(WorkspaceRecord workspace, string message, CancellationToken ct = default) =>
+        CommitSourceAsync(workspace, message, true, ct);
+
+    // Explicit preservation is allowed for failed/unvalidated editorless work.
+    // It never creates or promotes a Unity validation result.
+    public Task<string> CommitPreservedSourceAsync(WorkspaceRecord workspace, string message, CancellationToken ct = default)
+    {
+        if (workspace.StorageMode != "ntfs-snapshot") throw Error("ValidationWorkerMismatch", "Preservation requires an NTFS snapshot worker.");
+        return CommitSourceAsync(workspace, message, false, ct);
+    }
+
+    private async Task<string> CommitSourceAsync(WorkspaceRecord workspace, string message, bool requireValidation, CancellationToken ct)
     {
         if (workspace.StorageMode == "ntfs-snapshot") await CheckSnapshotGitFiles(workspace.Path, ct);
         SourceState before = await InspectAsync(workspace, ct);
-        if (workspace.Validation is not { Success: true } validation || validation.Fingerprint != before.Fingerprint)
+        if (requireValidation && (workspace.Validation is not { Success: true } validation || validation.Fingerprint != before.Fingerprint))
             throw Error("ValidationRequired", "Only the exact successfully validated source can be collected.");
         if (!before.HasChanges) return before.Revision;
         var tracked = SplitZero(await Required(workspace.Path, ["ls-files", "--cached", "-z"], ct));
@@ -112,7 +123,7 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
             throw Error("SourceChanged", "Source changed during collection. No commit was made; validate the new source.");
         await Required(workspace.Path, ["-c", "commit.gpgsign=false", "commit", "-m", message], ct);
         SourceState committed = await InspectAsync(workspace, ct);
-        if (committed.HasChanges || committed.Fingerprint != validation.Fingerprint)
+        if (committed.HasChanges || committed.Fingerprint != before.Fingerprint)
             throw Error("SourceChanged", "Source changed while committing. The commit and later edits are preserved; validate again before collection.");
         return committed.Revision;
     }

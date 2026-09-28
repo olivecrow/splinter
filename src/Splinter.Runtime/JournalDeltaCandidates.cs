@@ -6,6 +6,10 @@ namespace Splinter.Runtime;
 
 public sealed partial class JournalDeltaStore
 {
+    public static JournalDeltaStore OpenReadOnly(string directory, OverlayIdentity identity, ISnapshotTree basis) =>
+        new(directory, identity, basis, "delta.journal", true);
+
+    public SnapshotDeltaSeal Seal() { using (EnterGate()) { Check(); return SealCurrent(); } }
     // The source is opened read-only, denying an active writer. Only live private
     // payload ranges are copied. Neither enumeration nor hydration of the base occurs.
     public static ValidationCandidate ExportCandidate(string sourceDirectory, OverlayIdentity identity,
@@ -79,6 +83,7 @@ public sealed class CandidateSnapshotTree : ISnapshotTree, IDisposable
             Provider = "sealed-range-candidate" };
     }
     public void EnsureAvailable() => basis.EnsureAvailable();
+    public SourceChangeView ObserveChanges(string[] managedPaths) => store.ObserveChanges(managedPaths);
     private static SnapshotEntry Convert(DeltaEntry entry) => new(entry.Path, entry.Directory, entry.Length,
         entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime);
     public SnapshotEntry? Stat(string path) => store.Stat(path) is { } entry ? Convert(entry) : null;

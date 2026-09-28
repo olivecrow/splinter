@@ -8,6 +8,7 @@
     <Project Path="src/Splinter.Host/Splinter.Host.csproj" />
     <Project Path="src/Splinter.Runtime/Splinter.Runtime.csproj" />
     <Project Path="src/Splinter.Cli/Splinter.Cli.csproj" />
+    <Project Path="src/Splinter.Workflows.Windows/Splinter.Workflows.Windows.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Splinter.Tests/Splinter.Tests.csproj" />

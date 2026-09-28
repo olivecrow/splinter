@@ -1,0 +1,345 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:validation-product-request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "action",
+    "project",
+    "owner",
+    "requestKey"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "action": {
+      "enum": [
+        "prepare-worker",
+        "publish",
+        "select",
+        "resume",
+        "observe-validation",
+        "preserve",
+        "release",
+        "status",
+        "start",
+        "refresh",
+        "stop",
+        "close-view",
+        "preserve-worker"
+      ]
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "generation"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "requestKey": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "workspaceId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "viewId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "candidateId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "generationId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "candidate",
+            "source-generation"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        }
+      }
+    },
+    "maxJournalBytes": {
+      "type": "integer",
+      "minimum": 4096
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "prepare-worker",
+            "publish",
+            "preserve-worker"
+          ]
+        }
+      },
+      "required": [
+        "workspaceId"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "viewId"
+            ]
+          },
+          {
+            "required": [
+              "candidateId"
+            ]
+          },
+          {
+            "required": [
+              "generationId"
+            ]
+          },
+          {
+            "required": [
+              "target"
+            ]
+          },
+          {
+            "required": [
+              "maxJournalBytes"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "select"
+          ]
+        }
+      },
+      "required": [
+        "viewId",
+        "candidateId"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "workspaceId"
+            ]
+          },
+          {
+            "required": [
+              "generationId"
+            ]
+          },
+          {
+            "required": [
+              "target"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "resume",
+            "observe-validation",
+            "start",
+            "refresh",
+            "stop"
+          ]
+        }
+      },
+      "required": [
+        "generationId"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "workspaceId"
+            ]
+          },
+          {
+            "required": [
+              "viewId"
+            ]
+          },
+          {
+            "required": [
+              "candidateId"
+            ]
+          },
+          {
+            "required": [
+              "target"
+            ]
+          },
+          {
+            "required": [
+              "maxJournalBytes"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "preserve",
+            "release"
+          ]
+        }
+      },
+      "required": [
+        "target"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "workspaceId"
+            ]
+          },
+          {
+            "required": [
+              "viewId"
+            ]
+          },
+          {
+            "required": [
+              "candidateId"
+            ]
+          },
+          {
+            "required": [
+              "generationId"
+            ]
+          },
+          {
+            "required": [
+              "maxJournalBytes"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "status"
+          ]
+        }
+      },
+      "required": [],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "workspaceId"
+            ]
+          },
+          {
+            "required": [
+              "candidateId"
+            ]
+          },
+          {
+            "required": [
+              "generationId"
+            ]
+          },
+          {
+            "required": [
+              "target"
+            ]
+          },
+          {
+            "required": [
+              "maxJournalBytes"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "enum": [
+            "close-view"
+          ]
+        }
+      },
+      "required": [
+        "viewId"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "workspaceId"
+            ]
+          },
+          {
+            "required": [
+              "candidateId"
+            ]
+          },
+          {
+            "required": [
+              "generationId"
+            ]
+          },
+          {
+            "required": [
+              "target"
+            ]
+          },
+          {
+            "required": [
+              "maxJournalBytes"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

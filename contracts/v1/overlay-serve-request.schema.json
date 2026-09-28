@@ -50,8 +50,19 @@
       "properties": {
         "candidatePath": {"type":"string", "minLength":1},
         "cacheDeltaPath": {"type":"string", "minLength":1},
+        "cacheIdentity": {"anyOf":[{"type":"null"},{
+          "type":"object", "additionalProperties":false,
+          "required":["version","id","snapshot","maxJournalBytes","maxTransferBytes","excludedTopLevel"],
+          "properties":{
+            "version":{"const":1}, "id":{"type":"string","minLength":1},
+            "snapshot":{"$ref":"urn:splinter:v1:validation-workflow-contract#/$defs/snapshot"},
+            "maxJournalBytes":{"type":"integer","minimum":4096},
+            "maxTransferBytes":{"type":"integer","minimum":4096,"maximum":1048576},
+            "excludedTopLevel":{"type":"array","uniqueItems":true,"items":{"type":"string","minLength":1}}
+          }
+        }]},
         "cacheTopLevel": {"type":"array", "minItems":1, "uniqueItems":true,
-          "items":{"enum":["Library","Temp","Logs","UserSettings","obj"]}}
+          "items":{"enum":["Library","Temp","Logs","UserSettings","obj",".vs",".idea"]}}
       }
     }
   }

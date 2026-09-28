@@ -41,6 +41,8 @@ $stateRoot = [IO.Path]::GetFullPath($HomePath)
 $sourceRoot = [IO.Path]::GetFullPath($Project)
 $roots = [Collections.Generic.List[object]]::new()
 $roots.Add(@{name='control-and-delta';path=(Join-Path $stateRoot 'records');scope='owned';baselineExcluded=$false})
+$roots.Add(@{name='validation-product';path=(Join-Path $stateRoot 'validation-product');scope='owned';baselineExcluded=$false})
+$roots.Add(@{name='validation-workflows';path=(Join-Path $stateRoot 'validation-workflows');scope='owned';baselineExcluded=$false})
 $roots.Add(@{name='runners';path=(Join-Path $stateRoot 'runners');scope='owned';baselineExcluded=$false})
 $gitCommon = (& git -C $sourceRoot rev-parse --path-format=absolute --git-common-dir).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Git common directory observation failed' }

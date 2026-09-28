@@ -78,7 +78,19 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
         {
             await JsonSerializer.SerializeAsync(stream, data, Json, ct); stream.Flush(true);
         }
-        try { AtomicFilePublication.Publish(temporary, path); }
+        try
+        {
+            for (int retry = 0; ; retry++)
+            {
+                try { AtomicFilePublication.Publish(temporary, path); break; }
+                // A brief observer without delete sharing must not tear down a
+                // live mount. Retry the same flushed file; never remove the
+                // destination, change attributes or copy over visible state.
+                catch (IOException ex) when (OperatingSystem.IsWindows() && retry < 20 &&
+                    (ex.HResult & 0xffff) is 32 or 33 or 1175 && File.Exists(temporary))
+                { await Task.Delay(50, ct); }
+            }
+        }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             ex.Data["publicationPath"] = path;

@@ -19,6 +19,7 @@ internal static class WorkspaceCommands
         root.Options.Add(home);
         string Home(ParseResult parse) => Path.GetFullPath(parse.GetValue(home) ?? Environment.GetEnvironmentVariable("SPLINTER_HOME")
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Splinter"));
+        ValidationCommands.Add(root, contracts, Home, select, respond, ct);
         WorkspaceCoordinator Runtime(ParseResult parse, bool auditSource = false)
         {
             selectRecovery([new("workspace.list", new { home = Home(parse) })]);

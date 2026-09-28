@@ -45,19 +45,41 @@ public sealed class ContractAndCliTests
     }
 
     [Fact]
-    public async Task ValidationWorkflowContractsAreDiscoverableWithoutAdvertisingProductCommands()
+    public async Task ValidationProductRejectsAmbiguousPayloadsAndExposesItsResultContract()
+    {
+        var request = new JsonObject { ["version"] = 1, ["action"] = "select", ["project"] = "C:/fixture",
+            ["owner"] = new JsonObject { ["id"] = "view-owner", ["generation"] = 1 }, ["requestKey"] = "select-a",
+            ["viewId"] = "view", ["candidateId"] = "candidate" };
+        Assert.True(contracts.Validate("urn:splinter:v1:validation-product-request", JsonSerializer.SerializeToElement(request)).IsValid);
+        request["workspaceId"] = "ambiguous-worker";
+        Assert.False(contracts.Validate("urn:splinter:v1:validation-product-request", JsonSerializer.SerializeToElement(request)).IsValid);
+        request.Remove("workspaceId"); request["owner"]!["generation"] = 0;
+        Assert.False(contracts.Validate("urn:splinter:v1:validation-product-request", JsonSerializer.SerializeToElement(request)).IsValid);
+        var (_, schema) = await Run("schema", "validation.execute");
+        Assert.Equal("urn:splinter:v1:validation-product-request", schema.GetProperty("data").GetProperty("input").GetProperty("$id").GetString());
+        Assert.Contains("urn:splinter:v1:validation-product-data", contracts.SchemaIds);
+        using var directory = new TestDirectory(); string file = Path.Combine(directory.Path, "duplicate.json");
+        request["owner"]!["generation"] = 1;
+        File.WriteAllText(file, request.ToJsonString().Replace("\"requestKey\":", "\"requestKey\":\"duplicate\",\"requestKey\":"));
+        var (invalidExit, invalid) = await Run("validation", "--input", file, "--home", Path.Combine(directory.Path, "state"));
+        Assert.Equal(2, invalidExit); Assert.Equal("ValidationRequestInvalid", invalid.GetProperty("error").GetProperty("code").GetString());
+        Assert.False(Directory.Exists(Path.Combine(directory.Path, "state")));
+    }
+
+    [Fact]
+    public async Task ValidationWorkflowContractsExposeTheConcreteProductCommand()
     {
         var (exit, response) = await Run("capabilities");
         Assert.Equal(0, exit);
         var contract = response.GetProperty("data").GetProperty("validationWorkflowContract");
-        Assert.Equal("contract-and-fake", contract.GetProperty("stage").GetString());
-        Assert.False(contract.GetProperty("integratedWorkspaceMode").GetBoolean());
-        Assert.False(contract.GetProperty("cliAvailable").GetBoolean());
+        Assert.Equal("windows-product", contract.GetProperty("stage").GetString());
+        Assert.True(contract.GetProperty("integratedWorkspaceMode").GetBoolean());
+        Assert.True(contract.GetProperty("cliAvailable").GetBoolean());
         foreach (var schema in contract.GetProperty("schemas").EnumerateArray())
             Assert.Contains(schema.GetString()!, contracts.SchemaIds);
-        Assert.DoesNotContain(contracts.Commands, command => command.Id.StartsWith("validation.", StringComparison.Ordinal));
+        Assert.Contains(contracts.Commands, command => command.Id == "validation.execute");
         var enabled = JsonNode.Parse(response.GetRawText())!;
-        enabled["data"]!["validationWorkflowContract"]!["cliAvailable"] = true;
+        enabled["data"]!["validationWorkflowContract"]!["cliAvailable"] = false;
         Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(enabled)).IsValid);
     }
 

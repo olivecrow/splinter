@@ -109,7 +109,7 @@
 
 2026-09-28의 `development` 작업 트리에서 `pwsh -NoProfile -File ./scripts/build.ps1`의 locked restore·Release 빌드와 전체 시험을 실행했다. [최종 TRX](../../artifacts/test-results/sf03-workflow-20260928.trx)는 388 Passed, 0 Failed, 1 Skipped이며, 이 중 `ValidationWorkflowTests` 64건과 capability/schema 경계 1건이 이번 범위다. 건너뛴 1건은 `SPLINTER_TEST_REFS_ROOT`가 필요한 선택적 실제 ReFS 시험이다. [실행 manifest](../../artifacts/test-results/sf03-workflow-20260928.manifest.json)는 기준 commit, 변경 코드/schema의 hash와 결과 hash를 고정한다.
 
-실제 provider 연결·관리 파일 분리의 VSS/Unity 실행·snapshot/cache 공동 수명은 NotRun이며 [남은 관문](storage-priority-and-editor-modes.md#sf-03의-남은-제품-연결-관문)을 따른다.
+실제 provider 연결·관리 파일 분리의 VSS/Unity 실행·snapshot/cache 공동 수명은 아래 WF 추적으로 구분하며 [남은 관문](storage-priority-and-editor-modes.md#sf-03-제품-연결과-남은-관문)을 따른다.
 
 ## SF-03 관리 파일 분리 적합성
 
@@ -123,7 +123,7 @@
 | VG-04 | 후속 worker 편집과 후보 불변, 새 source 세대에서 원래 Git 포인터 노출 없음, 손상/중단 후보 보존 | Passed, 합성 불변 트리/저널 |
 | VG-05 | 현재 후보 형식과 필수 증거, 별도 개발용 입력·출력 schema/capability, 전체 회귀 | Passed, 자동 시험 |
 
-2026-09-28, 기준 commit `6bc433b` 이후 작업 트리의 `pwsh -NoProfile -File ./scripts/build.ps1`에서 locked restore·Release 빌드와 전체 420 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped를 확인했다. 새 projection 시험 31건과 입력/capability 시험 1건을 포함한다. [최종 TRX](../../artifacts/test-results/vg-projection-20260928.trx)와 [코드·결과 hash manifest](../../artifacts/test-results/vg-projection-20260928.manifest.json)를 보존한다. 실제 VSS/WinFsp/Unity 게시와 공통 workflow provider 연결은 NotRun이며 SF-03 전체는 Partial이다.
+2026-09-28, 기준 commit `6bc433b` 이후 작업 트리의 `pwsh -NoProfile -File ./scripts/build.ps1`에서 locked restore·Release 빌드와 전체 420 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped를 확인했다. 새 projection 시험 31건과 입력/capability 시험 1건을 포함한다. [최종 TRX](../../artifacts/test-results/vg-projection-20260928.trx)와 [코드·결과 hash manifest](../../artifacts/test-results/vg-projection-20260928.manifest.json)를 보존한다. 이 시험은 실제 VSS/WinFsp/Unity 게시 증거가 아니며 현재 제품 연결은 WF로 별도 판정한다. SF-03 전체는 Partial이다.
 
 ## SF-03 후보 게시 복구 적합성
 
@@ -139,12 +139,26 @@
 
 2026-09-28, 기준 commit `786d264` 이후 작업 트리에서 `pwsh -NoProfile -File ./scripts/build.ps1`의 locked restore·Release 빌드와 전체 483 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped를 확인했다. `CandidatePublicationTests` 61건과 고정 요청 누락을 실행 전에 거부하는 CLI 시험 2건을 포함한다. [최종 TRX](../../artifacts/test-results/vp-publication-20260928.trx)와 [코드·결과 hash manifest](../../artifacts/test-results/vp-publication-20260928.manifest.json)를 보존한다.
 
-SF-03 전체는 Partial이며 실제 workflow provider 연결·공동 snapshot 수명·VSS/Unity의 게시 복구는 NotRun이다.
+SF-03 전체는 Partial이다. 실제 workflow provider 연결·공동 snapshot 수명·VSS/Unity의 게시 복구는 이 VP 시험의 증거에 포함하지 않으며 아래 WF에서 별도 판정한다.
+
+## SF-03 제품 workflow 연결
+
+`validation` CLI와 Windows/Git/Unity 조합을 **scoped-complete-with-limitations**로 판정한다. VW/VG/VP 또는 이전 VC의 성공을 승계하지 않았다. 범위·완료 조건은 [확정 범위](storage-priority-and-editor-modes.md#sf-03-제품-연결과-남은-관문), 실행 증거와 실패·복구 제한은 [WF 기록](../verification/product-validation-workflow.md)을 따른다.
+
+| ID | 검증 대상 | 상태 |
+| --- | --- | --- |
+| WF-01 | 실제 독립 VSS worker A/B의 Git 포인터 분리·게시·동일 요청 재전송 | Passed, 작은 fixture |
+| WF-02 | 같은 경로·cache의 A/B/A 정상 stop/remount/start·실제 코드/에셋·세대별 출력 | Passed, 중단 복구 후 최종 A/B/A. 새 cold 무중단 자격은 없음 |
+| WF-03 | source sequence에 묶인 실제 Unity validation, 실패/변경 증거 보존 | Passed, 실제 source 변경 거부·새 검증 복구·요청별 PNG |
+| WF-04 | 후보·소스 독립 Git 결과, worker 후속 편집 보존, VSS 의존성 차단과 소유 자원 회수 | Passed, 독립 ref 8개·소유 자원/VSS 0·VHD 분리 후 재검증 |
+| WF-05 | 실제 CLI 중단/응답 유실의 동일 owner/request 복구와 원본/기존 ref 보존 | Passed, publish intent 뒤 실제 CLI 종료·같은 요청 복구/재전송. 전체 명령 경계·재부팅은 제외 |
+
+2026-09-28 최종 locked restore·Release 빌드·전체 자동 시험은 511 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped다. [TRX](../../artifacts/test-results/wf-product-20260928.trx)와 [코드·실행 파일·실제 증거 manifest](../../artifacts/storage-foundation/wf-20260928/verification-manifest.json)를 보존한다. 최종 formatter의 기록 재검증과 실제 VSS/Unity 실행의 시점 차이는 WF 기록의 제한을 따른다.
 
 ## 제품화와 비용 관문
 
 - SF-02/03은 Partial, SF-04~06은 NotRun이다. 완료 기준은 [저장공간·Editor 계획](storage-priority-and-editor-modes.md)을 따른다.
-- SF-03의 공통 수명주기 계약은 위 VW 자동 적합성으로 추적한다. 실제 제품 VSS·WinFsp·Unity 연결의 NotRun을 올리지 않는다.
+- SF-03의 공통 수명주기 계약은 위 VW 자동 적합성으로 추적한다. 실제 제품 VSS·WinFsp·Unity 연결은 WF의 현재 후보 증거로 따로 판정한다.
 - SW-01~10 설치·binding·명시적 discard와 UA-01~04 권한 서비스는 NotRun이다. 각각의 소유 계획에서 검증한다.
 - PV-01/02의 사용자 선택 범위는 scoped-complete-with-limitations다. 전체 PV-02 Passed로 표시하지 않고 S4 입력 실패·소수 표본·raw 입력 동등성 unknown을 유지한다. [비교 방법](parallel-workflow-qualification.md)과 [실측](../verification/parallel-workflow.md)은 후속 비교의 입력을 고정하기 위해 보존한다.
 - 현재 코드의 계약 변경은 필수 형식 생성·읽기, 지원하지 않는 형식의 비파괴 거부, 같은 버전의 중단 재시도를 함께 검증한다. 자동 시험과 실제 VSS/Unity 실행을 구별한다.

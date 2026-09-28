@@ -24,4 +24,4 @@ public sealed record ValidationCandidate(int Version, string Id, OverlayIdentity
     [property: JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] CandidateSourceProjection? SourceProjection);
 
 public sealed record ValidationViewSelection(string CandidatePath, string CacheDeltaPath,
-    string[] CacheTopLevel);
+    string[] CacheTopLevel, OverlayIdentity? CacheIdentity = null);

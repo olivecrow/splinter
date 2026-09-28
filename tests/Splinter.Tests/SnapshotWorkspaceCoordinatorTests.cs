@@ -442,6 +442,31 @@ public sealed class SnapshotWorkspaceCoordinatorTests
     }
 
     [Fact]
+    public async Task ValidationPublicationAndPendingIntentBlockProductSnapshotReclamation()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var workspace = (await f.Ensure(ct)).Workspace; var store = new WorkspaceStore(f.Home);
+        string project = WorkspaceStore.ProjectKey(workspace.ProjectPath);
+        var world = new ValidationWorkflowWorld(); var owner = new ValidationOwner("worker", 1);
+        var worker = world.SetWorker(workspace.Id, owner, workspace.Snapshot!.Reference!, "frozen-source");
+        var provider = new ValidationWorkflowFake(Path.Combine(f.Home, "fake-validation"), world);
+        var request = new ValidationWorkflowRequest(1, "publish", project, "publish", owner) { Worker = worker };
+        var interrupted = new ValidationWorkflowCoordinator(new(store), provider, boundary =>
+            { if (boundary == "publish:intent") throw new IOException("lost process"); });
+        await Assert.ThrowsAsync<IOException>(() => interrupted.ExecuteAsync(request, ct));
+        Assert.Equal("SnapshotInUse", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(workspace.Id, ct))).Code);
+        Assert.True(f.Backend.Mounted); Assert.False(f.Backend.DeltaRemoved); Assert.Equal(0, f.Backend.ReleaseAttempts);
+        var workflow = new ValidationWorkflowCoordinator(new(store), provider);
+        string candidate = (await workflow.ExecuteAsync(request, ct)).Candidate!.Intent.CandidateId;
+        Assert.Equal("SnapshotInUse", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(workspace.Id, ct))).Code);
+        var target = new ValidationTarget("candidate", candidate);
+        await workflow.ExecuteAsync(new(1, "preserve", project, "preserve", owner) { Target = target }, ct);
+        await workflow.ExecuteAsync(new(1, "release", project, "release", owner) { Target = target }, ct);
+        Assert.Equal("released", (await f.New().ReleaseAsync(workspace.Id, ct)).Workspace.Phase);
+        Assert.True(f.Backend.SnapshotReleased);
+    }
+
+    [Fact]
     public async Task ARemainingSnapshotDependentPreventsSnapshotDeletion()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;

@@ -43,6 +43,7 @@ public static class WinFspOverlayServer
             // WinFsp creates the mount directory itself. Passing an existing
             // empty directory returns STATUS_OBJECT_NAME_COLLISION.
             if (Directory.Exists(mountPath)) Directory.Delete(mountPath, false);
+            using var snapshotReadLease = new VssSnapshotProvider(request.SnapshotReceiptDirectory, request.SnapshotOwnerId).AcquireReadLease();
             SnapshotObservation health = await WinFspOverlayClient.ObserveSnapshotAsync(request);
             if (health.Available != true) throw new WorkspaceException(health.FailureCode ?? "SnapshotObservationUnknown", "Snapshot read access is not verified.");
             using var snapshot = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess, () => Volatile.Read(ref health));

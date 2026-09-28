@@ -5,20 +5,23 @@ using Splinter.Core;
 namespace Splinter.Runtime;
 
 public sealed record ValidationCandidateState(CandidatePublicationReceipt Publication,
-    ValidationIndependentResult? Result, bool Released);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] ValidationIndependentResult? Result, bool Released);
 public sealed record ValidationGenerationState(ValidationSelectionReceipt Selection,
-    CandidateValidationEvidence? Evidence, SnapshotDeltaSeal? FrozenSeal,
-    ValidationIndependentResult? Result, bool Released);
-public sealed record ValidationViewState(ValidationCacheIdentity Cache, ValidationOwner Owner, string? CurrentGenerationId);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] CandidateValidationEvidence? Evidence,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] SnapshotDeltaSeal? FrozenSeal,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] ValidationIndependentResult? Result, bool Released);
+public sealed record ValidationViewState(ValidationCacheIdentity Cache, ValidationOwner Owner,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? CurrentGenerationId);
 public sealed record ValidationOperationState(string Id, ValidationWorkflowRequest Request,
-    ValidationArtifact? Artifact, ValidationWorkflowResponse? Response);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] ValidationArtifact? Artifact,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] ValidationWorkflowResponse? Response);
 public sealed record ValidationWorkflowState(int Version, string ProjectId, long Revision,
     Dictionary<string, ValidationCandidateState> Candidates,
     Dictionary<string, ValidationGenerationState> Generations,
     Dictionary<string, ValidationViewState> Views,
     Dictionary<string, ValidationOperationState> Operations);
 
-// Separate from live workspace records until concrete adapters are qualified.
+// Separate ledger for candidate/view operations, also read by workspace reclamation.
 // One flushed pending generation can be completed by an explicit same-project
 // operation. Reads never publish it; malformed/ambiguous state is preserved.
 public sealed class ValidationWorkflowStore(WorkspaceStore workspaces)

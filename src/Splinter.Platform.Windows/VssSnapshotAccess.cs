@@ -7,6 +7,19 @@ public sealed partial class VssSnapshotProvider
 {
     private string VerificationPath(string name) => Path.Combine(receiptDirectory, name);
 
+    // A reconnect must not replace the current proof under another live reader.
+    // Multiple providers may share a verified snapshot; a new proof requires all
+    // its readers to stop first. The OS releases this fence after process loss.
+    internal FileStream AcquireReadLease() => ReadFence(exclusive: false);
+    private FileStream ReadFence(bool exclusive)
+    {
+        string path = VerificationPath("readers.lock");
+        WindowsProcessWorkspaceProvider.CheckPath(path);
+        try { return new FileStream(path, FileMode.OpenOrCreate, FileAccess.Read, exclusive ? FileShare.None : FileShare.Read); }
+        catch (IOException)
+        { throw new WorkspaceException("SnapshotReadersActive", "Stop the providers sharing this snapshot before reconnecting with a new verification proof."); }
+    }
+
     private async Task<T?> ReadVerificationAsync<T>(string name, CancellationToken ct)
     {
         string path = VerificationPath(name);
@@ -61,6 +74,7 @@ public sealed partial class VssSnapshotProvider
             throw new WorkspaceException(observed.FailureCode, "Preserve conflicting or damaged snapshot evidence.");
         if (observed.Available == false) throw new WorkspaceException("SnapshotMissing", "The original VSS ID is absent; do not recapture this task.");
         if (observed.ReadAccess is { } ready && ready.VerificationId != consumedVerificationId) return ready;
+        using var readers = ReadFence(exclusive: true);
         await PrepareVerificationAsync(snapshot.Id, ct);
         var request = (await ReadVerificationAsync<VssVerificationRequest>("verification-request.json", ct))!;
         if (request.RequestId == consumedVerificationId)

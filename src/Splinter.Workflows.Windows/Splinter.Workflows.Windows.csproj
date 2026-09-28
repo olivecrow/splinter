@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <InternalsVisibleTo Include="Splinter.Tests" />
+    <ProjectReference Include="../Splinter.Runtime/Splinter.Runtime.csproj" />
+    <ProjectReference Include="../Splinter.Platform.Windows/Splinter.Platform.Windows.csproj" />
+    <ProjectReference Include="../Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj" />
+    <ProjectReference Include="../Splinter.Application.Unity/Splinter.Application.Unity.csproj" />
+  </ItemGroup>
+</Project>

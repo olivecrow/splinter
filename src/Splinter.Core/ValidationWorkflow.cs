@@ -1,7 +1,7 @@
 namespace Splinter.Core;
 
-// These are application/provider-neutral contracts. They do not enable a product
-// execution mode. Concrete adapters must fence direct writers as well as CLI calls.
+// Provider-neutral contracts. Concrete adapters must fence direct writers as well
+// as CLI calls; Windows product composition is outside Core and the read-only Host.
 public sealed record ValidationOwner(string Id, long Generation);
 public sealed record ValidationWorkerIdentity(string WorkspaceId, ValidationOwner Owner,
     SnapshotReference Snapshot, SnapshotDeltaSeal SourceSeal);

@@ -155,7 +155,6 @@ internal static partial class ValidationWorkflowRules
                 state.Operations.Values.Any(o => o.Id == intent.OperationId && o.Request.Operation == "select" && o.Response?.Selection == generation.Selection),
                 "ValidationStateCorrupt", "Generation has no matching publication/selection.");
             Cache(intent.Cache); Owner(intent.Owner); Selection(generation.Selection, intent);
-            Require(intent.Cache.Snapshot == intent.Candidate.Intent.Worker.Snapshot, "ValidationStateCorrupt", "Cache snapshot mismatch.");
             Require(state.Views!.TryGetValue(intent.Cache.ViewId, out var retainedView) &&
                 retainedView.Cache == intent.Cache && retainedView.Owner == intent.Owner,
                 "ValidationStateCorrupt", "Every source generation must retain its view and cache ownership.");
@@ -169,7 +168,7 @@ internal static partial class ValidationWorkflowRules
             if (generation.Result is { } result)
             {
                 Require(generation.FrozenSeal is not null, "ValidationStateCorrupt", "Result has no frozen source seal.");
-                Result(result, new(result.Intent.OperationId, projectId, new(new("source-generation", key), intent.Owner, intent.Cache.Snapshot, generation.FrozenSeal!)));
+                Result(result, new(result.Intent.OperationId, projectId, new(new("source-generation", key), intent.Owner, intent.Candidate.Intent.Worker.Snapshot, generation.FrozenSeal!)));
                 Require(state.Operations.Values.Any(o => o.Id == result.Intent.OperationId && o.Response?.Result == result),
                     "ValidationStateCorrupt", "Independent source result has no completed preservation operation.");
             }

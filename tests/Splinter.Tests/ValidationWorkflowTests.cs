@@ -3,6 +3,8 @@ using System.Text.Json.Nodes;
 using Splinter.Core;
 using Splinter.Protocol;
 using Splinter.Runtime;
+using Splinter.Cli;
+using Splinter.Workflows.Windows;
 
 namespace Splinter.Tests;
 
@@ -39,6 +41,69 @@ public sealed class ValidationWorkflowTests
     }
     private static async Task Error(string expected, Func<Task> action) => Assert.Equal(expected, (await Assert.ThrowsAsync<WorkspaceException>(action)).Code);
     private static Action<string> Crash(string point) => current => { if (current == point) throw new IOException("Interrupted at " + point); };
+
+    [Fact]
+    public async Task ProductStatusRetainsRequiredNullsForUnpreservedAndPendingState()
+    {
+        using var h = new Harness(); string candidate = await h.Published();
+        await h.Selected(candidate);
+        await Assert.ThrowsAsync<IOException>(() => h.Runtime(Crash("publish:intent"))
+            .ExecuteAsync(h.Publish("publish-b", "worker-b"), h.Ct));
+        var state = await h.Runtime().InspectAsync("project", h.Ct);
+        var response = ApiResponse.Success("validation.execute", new { action = "status", result = new { state } });
+        var json = JsonSerializer.SerializeToElement(response, ApiJson.Options);
+        Assert.True(new ContractCatalog().Validate("urn:splinter:v1:response", json).IsValid, json.GetRawText());
+        var value = json.GetProperty("data").GetProperty("result").GetProperty("state");
+        Assert.Equal(JsonValueKind.Null, value.GetProperty("candidates").GetProperty(candidate).GetProperty("result").ValueKind);
+        Assert.Equal(JsonValueKind.Null, value.GetProperty("operations").GetProperty("publish-b").GetProperty("response").ValueKind);
+    }
+
+    [Theory]
+    [InlineData("start")]
+    [InlineData("refresh")]
+    public async Task AcceptedProductCommandProvidesAnExecutableStatusPayload(string action)
+    {
+        using var h = new Harness(); string candidate = await h.Published();
+        var selected = await h.Run(h.Select(candidate)); var selection = selected.Selection!;
+        var request = new ValidationProductRequest(1, action, h.Directory.Path, h.ViewOwner, "request",
+            GenerationId: selection.Intent.GenerationId);
+        object result = action == "start" ? new { selection, application = new { running = true, ready = false },
+            controlPath = "control", path = "mount" } : (object)new { selection,
+                invocation = new { version = 1, requestId = "validation", fingerprint = "fingerprint", sourceSequence = 1 }, controlPath = "control" };
+        var response = ValidationCommands.Response(request, result, h.Directory.Path);
+        var json = JsonSerializer.SerializeToElement(response, ApiJson.Options); var contracts = new ContractCatalog();
+        Assert.True(contracts.Validate("urn:splinter:v1:response", json).IsValid, json.GetRawText());
+        Assert.Equal("Accepted", response.Status); Assert.False(response.Terminal);
+        var arguments = json.GetProperty("nextActions")[0].GetProperty("arguments");
+        var followup = arguments.GetProperty("request");
+        Assert.True(contracts.Validate("urn:splinter:v1:validation-product-request", followup).IsValid);
+        Assert.Equal("status", followup.GetProperty("action").GetString());
+        Assert.Equal(selection.Intent.Cache.ViewId, followup.GetProperty("viewId").GetString());
+        Assert.Equal(h.Directory.Path, arguments.GetProperty("home").GetString());
+        using var copy = new TestDirectory(); string input = Path.Combine(copy.Path, "status.json");
+        File.WriteAllText(input, followup.GetRawText());
+        using var output = new StringWriter();
+        // The next request is accepted by the CLI parser/schema. This isolated
+        // home has no bound view, so the provider rejects that missing resource.
+        int exit = await Program.RunAsync(["validation", "--input", input, "--home", Path.Combine(copy.Path, "home")], output, h.Ct);
+        using var reply = JsonDocument.Parse(output.ToString());
+        Assert.Equal(2, exit);
+        Assert.NotEqual("ValidationRequestInvalid", reply.RootElement.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task IndependentSnapshotsRetainTheirOwnDependenciesWithOneOwnedCache()
+    {
+        using var h = new Harness(); var other = h.Snapshot with { Id = "snapshot-b" };
+        h.World.SetWorker("worker-b", h.WorkerOwner, other, "B");
+        string a = await h.Published(), b = await h.Published("publish-b", "worker-b");
+        string ga = await h.Selected(a), gb = await h.Selected(b, "select-b");
+        Assert.Contains("source-generation:" + ga, await h.Runtime().SnapshotDependenciesAsync("project", h.Snapshot, h.Ct));
+        Assert.DoesNotContain("source-generation:" + gb, await h.Runtime().SnapshotDependenciesAsync("project", h.Snapshot, h.Ct));
+        Assert.Contains("source-generation:" + gb, await h.Runtime().SnapshotDependenciesAsync("project", other, h.Ct));
+        var saved = await h.Run(h.Artifact("preserve", "source-generation", gb, "save-b"));
+        Assert.Equal(other, saved.Result!.Intent.Artifact.Snapshot);
+    }
 
     [Fact]
     public async Task CandidateSurvivesWorkerEditsAndAbaKeepsEverySourceGenerationSeparate()
@@ -331,6 +396,9 @@ public sealed class ValidationWorkflowTests
         File.WriteAllText(path + ".pending", node.ToJsonString());
         await Error("ValidationStateRecoveryRequired", () => h.Runtime().InspectAsync("project", h.Ct));
         Assert.True(File.Exists(path + ".pending"));
+        var recovered = await h.Runtime().RecoverForMutationAsync("project", h.Ct);
+        Assert.Equal(request, recovered.Operations[request.RequestKey].Request);
+        Assert.Equal(1, h.World.Effects["publish"]);
         Assert.True((await h.Run(request)).Replayed);
         Assert.False(File.Exists(path + ".pending")); Assert.Equal(1, h.World.Effects["publish"]);
     }

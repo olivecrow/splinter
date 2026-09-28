@@ -17,17 +17,17 @@
 - 소스 검증: `docs/source-verification.md`. 일반 status는 새 pending 검증 응답을 조정할 때만 소스를 검사한다. 현재 검사 `--verify-source`, 전체 감사/손상 cache 재작성 `--audit-source`를 구분한다. 초기·감사·provider 재연결은 전체 읽기이며 크기·mtime만 신뢰하지 않는다. Git/Unity mount 허용은 Core `WorkspaceMountAccess`를 공유한다.
 - 결과 수집은 `stable-journal-v1`의 전후·unmount 후 seal 일치를 요구한다. release는 독립 결과·소유 프로세스/메모리/핸들 0·실제 mount/Git 등록/delta/마지막 소유 snapshot 회수를 확인한다. unknown을 0으로 읽지 않는다.
 - `reclaim-pending`은 결과 보존 뒤 snapshot 회수를 기다리는 상태다. 같은 id/home의 명시적 release 재시도만 허용하며 타 작업·비소유 snapshot 삭제나 자동 sweep으로 우회하지 않는다. 정확한 ID 삭제에도 다른 snapshot이 영향을 받을 수 있으므로 현재 격리 guard를 유지한다.
-- Runtime·Windows IPC는 같은 디렉터리에서 flush한 임시 파일을 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader는 delete sharing을 허용한다. 공유 위반을 먼저 삭제하거나 속성을 바꾸어 우회하지 않는다. 저널 acknowledged-write flush 정책과 구별한다.
+- Runtime·Windows IPC는 같은 디렉터리에서 flush한 임시 파일을 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader와 시험 계측도 delete sharing을 허용한다. Windows IPC의 일시적 공유 오류는 같은 임시 파일로 최대 1초 재시도하며 목적 파일 삭제·속성 변경으로 우회하지 않는다. 저널 acknowledged-write flush 정책과 구별한다.
 - `scripts/measure-workspace-storage.ps1`은 읽기 전용 계측이다. 논리 payload·파일 할당·관리 메모리 누적 할당·working set·공유 VSS를 구별한다. 공유 VSS는 workspace별로 귀속하거나 중복 합산하지 않는다.
 - `docs/snapshot-overlay.md`의 spike와 `scripts/snapshot-overlay-request.ps1`의 공통 요청 생성은 개발용이다. 제품과 같은 현재 VSS 읽기 검증 tuple을 사용한다. `setup-snapshot-overlay.ps1`, `set-snapshot-test-budget.ps1`, `setup-dev-drive.ps1`은 기본 read-only 계획이며 쓰기 모드는 별도 승인된 관리자 작업이다.
-- 개발용 `candidate-export`·등록 증거가 필요한 `candidate-source-export`·`validationView`는 `docs/validation-view.md`를 따른다. 후보 현재 형식은 v2이며 이전 후보를 자동 이관하지 않는다. 게시에는 고정 `publication.requestKey`가 필요하며 같은 intent·원본 seal의 부분 저널만 정확한 prefix 검증 후 이어 쓴다. intent 없는 목적지·부분 JSON·다른 요청·손상 파일은 보존 후 거부한다. 관리 파일 분리는 정확한 owner/snapshot/내용만 검증해 새 후보에 적용하고 worker/Git 등록은 보존한다. worker 편집·불변 후보·세대별 검증 소스를 구분하며 전환은 정상 Editor stop·mount 부재 뒤 같은 경로에서 재시작한다. hot switch·생성 source 병합·큐/Coordination·제품 기본 모드 연결은 미구현이다.
-- 제품 연결 전 `ValidationWorkflowCoordinator`/`ValidationWorkflowStore`와 `IValidationWorkflowProvider`는 `docs/validation-workflow.md`의 공통 계약·fake 범위다. 실제 provider·CLI는 연결하지 않았으며 후보/소스 세대의 결과를 worker validation이나 snapshot 독립 결과로 자동 승계하지 않는다.
+- 개발용 `candidate-export`·등록 증거가 필요한 `candidate-source-export`·`validationView`는 `docs/validation-view.md`를 따른다. 후보 현재 형식은 v2이며 이전 후보를 자동 이관하지 않는다. 게시에는 고정 `publication.requestKey`가 필요하며 같은 intent·원본 seal의 부분 저널만 정확한 prefix 검증 후 이어 쓴다. intent 없는 목적지·부분 JSON·다른 요청·손상 파일은 보존 후 거부한다. 관리 파일 분리는 정확한 owner/snapshot/내용만 검증해 새 후보에 적용하고 worker/Git 등록은 보존한다. worker 편집·불변 후보·세대별 검증 소스를 구분하며 전환은 정상 Editor stop·mount 부재 뒤 같은 경로에서 재시작한다. hot switch·생성 source 병합·큐/Coordination·제품 기본 모드 자동 선택은 미구현이다.
+- 제품 `validation` CLI와 `Splinter.Workflows.Windows`는 `docs/validation-workflow.md`를 따른다. 공통 coordinator/provider 계약에 실제 VSS·WinFsp·Git·Unity를 연결하며 단일 view/cache와 세대별 source를 분리한다. 명시적 보존 뒤 artifact·cache·worker 순서로 회수하며 후보/소스 검증을 worker의 성공으로 자동 승계하지 않는다. 작은 실제 실행 자격과 cold 중단 제한은 WF 검증을 따른다.
 - `tools/Splinter.ReplayProbe`와 `tools/Splinter.WriteProbe`는 고정 합성 입력의 개발 도구다. 연산별 계측은 `docs/replay-profiling.md`·`docs/write-profiling.md`를 따른다. 실제 Windows mutation gate가 쓰기를 직렬화하므로 Runtime 대기 0은 OS 대기 0이 아니다. group flush는 callback 원자성·응답 경계·내구성 검토 없이는 채택하지 않는다.
 
 ## 검증과 후속 작업
 
 - 지원 상태와 보존할 비교 근거는 `docs/verification/README.md`, 미완료 검증은 `docs/plans/validation-matrix.md`를 따른다. 작은 fixture의 성공을 일반 지원으로 확대하지 않는다. 실행하지 않은 시험은 NotRun이며 이전 후보의 결과를 현재 후보의 통과로 표시하지 않는다.
-- 대형 프로젝트의 추가 물리 공간·생성·편집 준비·재개 시간을 함께 판단하고 Editor 동시성은 그 뒤에 둔다. SF-02/03은 Partial, SF-04~06은 NotRun이다. 단일 Editor 제품 연결과 기본 모드 선택은 미완료다. 마감된 대형 PV를 자동 재개하지 않는다.
+- 대형 프로젝트의 추가 물리 공간·생성·편집 준비·재개 시간을 함께 판단하고 Editor 동시성은 그 뒤에 둔다. SF-02/03은 Partial, SF-04~06은 NotRun이다. 단일 Editor 제품 연결의 현재 실행 자격은 WF 추적표를 따른다. 기본 모드 선택은 미완료다. 마감된 대형 PV를 자동 재개하지 않는다.
 - PV의 S와 Codex 독립 Editor C에는 Unity Agent Coordination을 사용하지 않는다. Q 비교군만 Codex worktree와 Coordination의 단일 Editor를 사용한다. C/S/Q의 Library·큐 대기·후보 전환 비용을 구분한다. S4 입력 실패와 전체 팩 raw 입력 동등성 unknown을 유지한다.
 - 남은 NR 관문은 명령 경계별 중단, 일반 파일/에셋, 실제 재부팅·전원·물리 공간 장애, ARM A/B다. VIVOBOOK fixture와 x64 Unity `6000.3.22f1`을 유지하며 ARM64 Editor를 임의로 추가하지 않는다. 원격 준비·증거 교환은 에이전트가 수행한다.
 - fixture 미리보기는 `docs/unity-render-qualification.md`를 따른다. 한 요청 최대 2회에서 첫 유효 PNG를 채택하고 요청 경로·해시·pass별 픽셀을 확인한다. Unity 내부 첫 draw 원인은 미확정이다. 제품 validation·대형 프로젝트 지원과 구별한다.

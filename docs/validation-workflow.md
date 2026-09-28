@@ -1,55 +1,79 @@
-# 검증 후보의 공통 수명주기 계약
+# 검증 후보의 제품 수명주기
 
-SF-03 제품 연결의 Core/Runtime 계약과 fake 적합성 구현이다. 현재 진입점은 `ValidationWorkflowCoordinator.ExecuteAsync`이며 CLI 명령·Windows/Git/Unity provider는 연결되지 않았다. `capabilities.validationWorkflowContract`는 `stage=contract-and-fake`, `cliAvailable=false`, `integratedWorkspaceMode=false`를 반환한다. 개발용 실제 mount 실험은 [validation view](validation-view.md)와 별개다.
+`pwsh ./scripts/splinter.ps1 validation --input <request.json> --home <state-root>`는 기존 NTFS worker의 불변 후보와 단일 Unity 검증 view를 연결한다. 명령 계약은 `schema validation.execute`에서 확인한다. `capabilities.validationWorkflowContract`는 `stage=windows-product`, `cliAvailable=true`, `integratedWorkspaceMode=true`다. 실제 실행 자격은 [검증 추적표](plans/validation-matrix.md)의 해당 후보 증거로 판정한다.
 
-## 식별과 책임
+`Splinter.Workflows.Windows`는 Runtime coordinator와 Windows VSS/WinFsp, Git, Unity를 조합한다. Core에는 플랫폼 API가 없고 Host는 읽기 전용이다. 직접 worker Editor를 사용하는 기존 `workspace`/`unity` 명령과 선택적으로 함께 쓰며, 기본 모드 자동 선택·큐·Coordination·소유권 자동 인수는 제공하지 않는다.
 
-| 객체 | 고정하는 내용 |
-| --- | --- |
-| 작업자 | project/workspace ID, owner ID·양의 generation, 원래 snapshot tuple, 게시할 source seal |
-| 불변 후보 | 요청에서 결정된 candidate ID, 원래 작업자 identity·source seal, 별도 candidate seal·provider receipt |
-| 검증 view/cache | view/cache ID, owner generation, 원래 snapshot, application compatibility·partition key·예산 |
-| 검증 소스 세대 | 선택 요청에서 결정된 generation ID, 해당 후보와 cache identity. A/B/A는 세 소스 세대이며 같은 세대 재개와 구별 |
-| 검증 증거 | candidate ID·seal과 source generation·output seal, 성공 여부·완료 시각 |
-| 독립 결과 | 정확한 candidate 또는 source-generation artifact·seal, 읽을 수 있는 결과 reference·content hash, snapshot 독립성 |
+## 실행 입력
 
-Core의 `IValidationWorkflowProvider`는 플랫폼 중립 port다. Runtime은 순서·소유권·지속 상태·의존성을 담당한다. provider는 현재 소유자 확인, writer fencing, 원자적 영수증, 정확한 seal의 결과 수집·독립성 검증과 전용 artifact 회수를 담당한다. Runtime의 명령 잠금은 외부 파일 편집을 막지 않으므로 provider가 부작용 안에서도 소유권·자원·seal을 재검사해야 한다.
+현재 입력은 `version=1`, `action`, 절대 프로젝트 경로 `project`, `owner:{id,generation}`, 안정된 `requestKey`를 요구한다. ID는 경로가 아닌 1~128자의 영문·숫자·`._:-` 식별자다. owner generation은 양수이며 최초 명시적 사용으로 해당 worker/view에 고정된다. 같은 request key는 같은 전체 입력으로만 재전송한다. `--home`도 계속 유지한다.
 
-관리 경로 분리는 `source-only-v1`을 확인한 provider만 허용한다. [개발용 `candidate-source-export`](validation-view.md#등록-증거가-있는-관리-파일-분리)는 실제 등록 증거가 있는 포인터만 별도 후보에서 분리한다. 기존 `candidate-export`의 `.git` 거부를 완화하지 않으며 이 도구가 현재 공통 workflow provider로 연결된 것은 아니다. cache의 원래 snapshot·view·설정이 다르면 재사용을 거부하고 원본 전체 복제나 기준 재작성으로 대체하지 않는다.
+```json
+{
+  "version": 1,
+  "action": "prepare-worker",
+  "project": "C:/projects/game",
+  "owner": {"id": "conversation-a", "generation": 1},
+  "requestKey": "prepare-a-1",
+  "workspaceId": "<workspace ensure가 반환한 ID>"
+}
+```
 
-개발용 Runtime의 [같은 요청 게시 복구](validation-view.md#같은-요청의-게시-복구)는 고정 source seal의 부분 저널·완전한 후보/receipt를 재조정한다. 공통 workflow의 operation/owner generation을 이 intent와 결합하는 adapter, 실제 자원 fencing과 현재 owner 재확인은 남아 있다. 개발용 잠금과 prefix 확인을 이 provider 계약의 완료로 간주하지 않는다.
+worker는 `workspace ensure --storage ntfs-snapshot`으로 만든다. Editor 없이 소스를 편집하고 준비·게시한다. Library 등 관리 캐시의 변경 이력이 있는 worker는 source-only 게시 적합성을 충족하지 못하면 거부한다. 데이터 생략이나 전체 파일 복제로 우회하지 않는다.
 
-## 요청과 응답
+`start`의 준비 대기와 `refresh` 요청 접수는 `Accepted`, `terminal=false`다. `nextActions[].arguments.request`의 status JSON을 별도 파일로 저장하고 `validation --input <파일> --home <arguments.home>`으로 관측한다. 원래 요청 파일을 덮어쓰지 않는다. status ledger의 아직 없는 결과·증거·응답은 필수 null 필드로 유지한다.
 
-`ValidationWorkflowRequest`는 현재 `version=1`, operation, project ID, 안정된 request key, owner를 요구한다. ID는 경로가 아닌 1~128자의 영문·숫자·`._:-` 식별자다. 각 operation은 아래 payload만 받으며 같은 request key의 다른 입력은 거부한다.
-
-| operation | payload | 동작·응답 |
+| action | 추가 입력 | 결과와 다음 단계 |
 | --- | --- | --- |
-| `publish` | worker identity | 원본 snapshot 관측·application/writer/handle 0·mount 부재 확인 후 source-only 후보 게시. intent와 정확한 영수증으로 중복 생성 방지 |
-| `select` | candidate ID, cache identity | 자원이 정지한 view에 새 소스 세대 선택. 기존 세대와 cache는 보존. 선택 완료는 실제 mount·Editor ready·검증 성공이 아님 |
-| `resume` | generation ID | 현재 선택된 동일 세대의 영수증과 정지 자원 확인. 이전 A를 재사용하려면 새 select로 별도 세대를 만들며, 실제 remount는 후속 adapter 책임 |
-| `observe-validation` | generation ID | provider 증거를 해당 후보 seal·소스 세대에만 기록. 실패 증거도 보존하며 worker의 기존 validation 필드에는 쓰지 않음 |
-| `preserve` | target kind/ID | candidate 또는 정지한 source 세대의 seal을 고정하고 독립 결과 수집·검증. 보존된 source 세대는 재개/재검증하지 않고 새 세대를 선택 |
-| `release` | target kind/ID | 독립 결과 재검증 후 정확한 전용 artifact만 회수. 후보에 남은 소스 세대가 있으면 거부. cache·snapshot·worker를 삭제하지 않음 |
+| `prepare-worker` | `workspaceId` | 소유 Editor 정상 stop, bridge 제거, flush/unmount와 seal 확인. 게시할 worker identity 반환 |
+| `publish` | `workspaceId` | 정지 worker의 원본 snapshot·Git 등록·source seal과 읽기 전용 저널 fence 확인 후 candidate 반환 |
+| `select` | `viewId`, `candidateId`, 선택적 `maxJournalBytes` | 정지 view에 새 source generation 선택. 기본 예산 16 GiB, 같은 view에서 변경 불가 |
+| `start` | `generationId` | 현재 세대를 같은 view 경로에 mount하고 정확한 Unity 버전 시작. 응답의 application ready는 별도 관측 |
+| `status` | 선택적 `viewId` | workflow ledger와 실제 앱/provider/mount/handle 자원 관측 |
+| `refresh` | `generationId` | ready Editor에 현재 source 변경 sequence를 고정한 검증 요청 전달 |
+| `stop` | `generationId` | 검증 응답·source sequence 보존, 정상 stop·bridge 제거·flush/unmount. timeout은 회수 완료가 아님 |
+| `observe-validation` | `generationId` | 정지 후 sequence가 그대로인 증거만 candidate seal·source generation·output seal에 기록 |
+| `resume` | `generationId` | 현재 미보존 세대와 정지 자원의 영수증 확인. 실제 실행은 `start` |
+| `preserve` | `target:{kind,id}` | `candidate` 또는 `source-generation`의 정확한 seal을 고정하고 독립 Git 결과 보존 |
+| `release` | 같은 target | 독립 결과 재검증 후 그 artifact의 journal만 회수. 후보에 의존하는 source 세대가 있으면 거부 |
+| `preserve-worker` | `workspaceId` | Editor 없이 현재 worker 소스를 Git 결과로 보존. 전후 seal 일치가 필요하고 컴파일 성공을 부여하지 않음 |
+| `close-view` | `viewId` | 모든 소스 세대의 보존·회수와 정지 자원 확인 뒤 해당 cache 회수. 닫힌 view는 재사용하지 않음 |
 
-후보 게시 후 worker는 추가 편집할 수 있다. 과거 후보의 성공을 최신 worker의 성공으로 올리지 않는다. Unity가 생성한 source 출력은 별도 artifact로 보존하고 자동 병합하지 않는다. 성공한 컴파일은 결과 보존의 필수 조건이 아니며, 실패한 검증의 출력도 보존할 수 있다.
+A/B/A 전환은 A stop → B select/start → B stop → A의 새 select/start다. 세 번의 선택은 세 개의 독립 source generation이다. 이전 A의 재전송은 현재 선택을 되돌리지 않는다. 게시 뒤 worker의 후속 편집은 `workspace ensure`로 같은 worker를 다시 연결해 이어가며 후보를 바꾸지 않는다. 검증 성공을 최신 worker의 성공으로 올리거나 Unity가 생성한 source를 자동으로 되돌려 병합하지 않는다.
 
-재전송의 `replayed=true` 응답은 같은 요청의 과거 영수증이다. 현재 source나 선택 세대가 같다는 새 관측이 아니며, 이전 select를 재전송해도 최신 선택을 되돌리지 않는다. 소유자 generation은 완료 요청 재전송에서도 다시 확인한다. `InspectAsync`는 현재 지속 상태를 읽고 `SnapshotDependenciesAsync`는 남은 후보·소스 세대·미완료 게시 intent를 반환한다. 이 의존성 조회는 기존 제품의 snapshot release에 아직 연결되지 않았다.
+같은 VSS의 실행 중 provider들은 검증된 read access와 OS read fence를 공유한다. 재연결이 새 검증 proof를 요구할 때 다른 provider가 읽고 있으면 `SnapshotReadersActive`로 기존 proof를 보존한다. 해당 snapshot을 사용하는 worker/view를 정상 stop/unmount한 뒤 같은 명령을 재시도한다. 한 provider의 재연결이 다른 Editor의 읽기 근거를 바꾸지 않으며, 종료된 프로세스의 fence는 OS가 해제한다.
 
-입력·성공 응답·지속 상태 schema는 `urn:splinter:v1:validation-workflow-request`, `validation-workflow-response`, `validation-workflow-state`다. 공통 정의는 `validation-workflow-contract`에 있다. `ContractCatalog`에서 조회·검증할 수 있고 capability가 ID를 노출한다. 구현된 CLI command 목록이나 `schema <command>`에 실행 가능한 명령으로 추가하지 않는다.
+검증 요청 후 source가 변하면 `ValidationSourceChanged`다. 현재 세대를 다시 start/refresh/stop하여 새 증거를 받는다. bridge·Library 등 관리 경로는 source sequence에서 제외하며 unknown 자원은 0으로 읽지 않는다. 실패한 검증 출력도 독립 결과로 보존할 수 있다.
 
-## 중단과 상태 보존
+Unity refresh의 `Assets`/`ProjectSettings` 바로 아래 `~UnityDirMonSyncFile~<32자리 hex>~`은 후보와 현재 소스에 **모두 없는 경우에만** 검증 sequence에서 제외한다. 원래 후보에 있거나 현재 남은 파일, 다른 경로·이름과 일반 사용자 삭제는 계속 변경으로 계산한다. 임시 파일의 원래 journal 기록과 output seal은 보존한다.
 
-상태는 지정한 store 아래 `validation-workflows/<project-hash>/state.json`에 보관한다. 실행 중인 명령은 provider 호출을 포함해 같은 project의 잠금으로 직렬화한다. 중단 뒤 남은 pending operation은 충돌하는 worker/candidate/view/cache만 막으며 다른 worker의 독립 게시를 막지 않는다. 충돌 오류의 `blockingRequests`는 재개할 원래 입력을 반환한다. FIFO·공정성·일반 임대 인수는 구현하지 않는다.
+## 후보·캐시·결과의 소유권
 
-부작용 전에 intent를 flush하고 게시한다. provider 응답 유실 뒤에는 먼저 정확한 기존 영수증을 찾으며, `null`은 확인된 부재만 뜻한다. 관측 불확실·손상은 오류로 보존한다. provider의 publish/select/preserve/release는 같은 intent의 부분 실행과 응답 유실에 멱등이어야 한다. source 보존은 외부 수집 전에 frozen seal을 한 번 더 저장한다.
+| 객체 | 고정하는 identity |
+| --- | --- |
+| worker | project/workspace, owner generation, 원래 VSS tuple, 게시할 source seal |
+| candidate | 공통 workflow operation에서 결정한 ID, 원래 worker·source seal, 별도 candidate seal, 원자적 게시 intent/receipt |
+| view/cache | view/cache ID, owner generation, 빈 cache의 identity label, Unity/bridge compatibility, partition·예산 |
+| source generation | 선택 요청 ID, 해당 candidate와 공통 cache. 이전 출력 journal을 보존 |
+| 검증 증거 | candidate ID/seal, source generation/output seal, 실제 요청 ID·sequence·성공 여부 |
+| 독립 결과 | frozen artifact/seal, Git result ref, commit 객체의 SHA-256, snapshot 없이 읽는 객체 집합 |
 
-상태 저장은 같은 디렉터리의 `state.json.pending`을 flush한 뒤 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader는 delete sharing을 허용한다. read-only inspect는 pending을 게시하지 않는다. 완전한 현재 형식·다음 revision이며 기존 intent·소유권·결과를 보존하는 pending만 명시적 project 명령에서 게시할 수 있다. 외부 부작용의 재시도는 원래 request key·payload를 따른다. 부분 JSON·중복 필드·누락/null·알 수 없는 필드·버전·뒤로 가는 상태·고아 준비는 보존 후 거부하며 삭제나 구버전 이관으로 우회하지 않는다.
+등록 증거가 있는 `.git` 포인터만 후보에서 분리한다. `GitOverlayRegistration.QualifyCandidateSourceAsync`와 [같은 요청 게시 복구](validation-view.md#같은-요청의-게시-복구)를 공통 operation ID에 연결한다. worker 명령 잠금과 실제 read-only journal handle을 함께 사용한다. `.git` 외의 사용자 데이터는 임의로 분리하지 않는다.
 
-동일 버전의 명령 중단·응답 유실 복구를 다루지만, 실제 재부팅·전원·물리 공간 장애를 검증한 것은 아니다. 어댑터가 아직 없는 기능, 다른 cache identity, 오래된 owner, 활성/unknown 자원, 잘못된 증거, 미보존 결과와 의존성은 각각 구별된 오류를 반환한다. 기계용 실패 응답의 재시도 분류는 공통 `WorkspaceFailurePolicy`를 따른다.
+cache는 `Library/Temp/Logs/UserSettings/obj/.vs/.idea`의 단일 writer다. `ValidationCacheIdentity.Snapshot`은 provider가 `validation-empty-cache`인 빈 기준의 고정 label이며 VSS 의존성이 아니다. 실제 VSS 의존성은 각 candidate와 source generation의 원래 worker snapshot에서 추적한다. 다른 VSS의 후보도 동일 프로젝트·Unity/bridge compatibility·partition·예산·view owner일 때 같은 cache를 쓴다. 최초 Library 복사나 원본 읽기 hydration은 없다. 개발용 `ValidationViewSelection`은 명시적 `CacheIdentity`가 없으면 요청 identity로 고정한 별도 cache를 쓰며, 제품은 반드시 view 소유 identity를 전달한다.
 
-## 검증과 지원 경계
+`GitValidationResult`는 원본 index나 checkout을 수정하지 않는다. frozen source의 논리 트리를 열거하고 변경 경로의 payload만 읽어 raw Git blob/tree/commit 객체를 만든다. 원래 base revision의 미변경 blob은 재사용한다. 필터·checkout 변환을 실행하지 않고 bridge/cache를 제외하며 `refs/splinter/validation-results/<operation-id>`와 객체 존재를 검증한다. 이는 최종 결과의 독립 materialization 비용이며 candidate 게시의 전체 복제 금지와 구분한다.
 
-`ValidationWorkflowTests`는 실제 임시 JSON 상태, 파일 영수증과 합성 payload를 사용하는 fake 적합성 시험이다. 재생성한 coordinator/provider, 게시·선택·보존·회수의 중단 경계, 응답 유실, A/B/A와 후속 worker 수정, 잘못된 owner/cache/증거, 독립 결과·의존성·손상 보존을 검사한다. `ContractAndCliTests`는 capability의 비활성 경계와 schema 발견을 확인한다. 표준 실행은 `pwsh ./scripts/build.ps1`이며 추적은 [검증 표](plans/validation-matrix.md#sf-03-공통-수명주기-적합성)를 따른다.
+보존된 source는 고정되어 다시 실행할 수 없다. 새 select를 사용한다. artifact release는 seal을 재확인하고 writer를 거부하는 handle로 journal을 잠근 뒤, 정확한 경로·seal·metadata hash의 회수 intent를 저장하고 그 journal만 unlink한다. 잠금을 닫은 뒤 hash가 같은 알려진 metadata만 제거한다. Windows에서 잠긴 자식 파일을 포함한 디렉터리의 rename에 의존하지 않는다. 중단 후 새 파일·바뀐 metadata·다른 seal은 보존하며, 회수 intent와 독립 ref는 남긴다. cache는 `close-view`로만, worker snapshot은 기존 `workspace release`로만 회수한다.
 
-SF-03 전체는 Partial, 실제 제품 provider 연결은 NotRun이다. 개발용 VC 성공이나 이 fake 성공을 제품 VSS·WinFsp·Unity A/B/A의 통과로 합산하지 않는다. 실제 어댑터 연결, snapshot 공동 수명, 생성 source 반환 병합, 큐/Coordination, 원본 Editor 공유와 기본 모드 선택은 [남은 계획](plans/storage-priority-and-editor-modes.md)에 있다.
+제품 `workspace release`는 준비된 미완료 publish intent·candidate·source generation이 남으면 `SnapshotInUse`로 중단한다. 원본 VSS가 사라진 것으로 추측하거나 snapshot 공동 비용을 0으로 읽지 않는다. 의존 artifact 보존/회수 후 `preserve-worker`로 현재 worker 결과를 보존하고 `workspace release`하며, 기존 정확한 ID·격리 guard·`reclaim-pending` 규칙을 유지한다.
+
+## 지속 상태와 재시도
+
+공통 ledger는 `validation-workflows/<project-hash>/state.json`, 실제 binding·세대·후보·cache·앱/WinFsp control·영수증은 `validation-product/<project-id>/`에 있다. mount는 home의 별도 `validation-mounts/` 경로다. 일반 owner 변경이나 오래된 형식의 자동 이관은 없다.
+
+동일 프로젝트의 제품 명령을 직렬화하고, worker 준비/게시에는 기존 workspace operation lock도 사용한다. 공통 ledger는 부작용 전 intent와 보존 전 frozen seal을 flush한다. 같은 디렉터리 임시 파일을 flush하고 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader는 delete sharing을 허용한다. 불완전한/지원하지 않는 JSON과 알 수 없는 파일은 보존 후 거부한다.
+
+중단 뒤에는 같은 명령·키·입력으로 재시도한다. 공통 coordinator는 먼저 기존 provider 영수증을 찾고, 게시의 부분 prefix·완전 저널·유실 receipt는 원래 source seal로만 재조정한다. 완전한 현재 형식의 다음 ledger revision만 명시적 재시도로 게시하며 read-only inspect가 pending을 자동 게시하지 않는다. `replayed=true`는 과거 응답이며 현재 실행 상태의 새 관측이 아니다.
+
+입력과 출력은 `validation-product-request`/`validation-product-data`, 공통 request/response/state는 `validation-workflow-*` schema를 사용한다. `ValidationWorkflowTests`는 fake 적합성과 CLI 응답, `ValidationCandidateTests`는 별도 snapshot/cache 저널, `GitValidationResultTests`는 실제 Git 객체·원본 index 보존, `JournalReclamationTests`는 실제 파일 잠금과 회수 중단 복구, `SnapshotWorkspaceCoordinatorTests`는 제품 회수 의존성 연결을 검증한다. 실제 VSS/WinFsp/Unity 실행은 [제품 workflow 검증](verification/product-validation-workflow.md)과 [추적표](plans/validation-matrix.md)를 따른다. 재부팅·전원·물리 공간 장애, 일반 에셋, 대형 프로젝트, 생성 source 병합과 기본 모드 선택은 아직 자격을 획득하지 않았다.

@@ -9,7 +9,7 @@ namespace Splinter.Platform.Windows;
 public static class WinFspOverlayClient
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    internal static async Task<string?> ConsumedVerificationAsync(OverlayServeRequest request, CancellationToken ct)
+    public static async Task<string?> ConsumedVerificationAsync(OverlayServeRequest request, CancellationToken ct)
     {
         var intent = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderIntent>(Path.Combine(request.ControlPath, "provider-launch-intent.json"), ct);
         return intent?.VerificationId;
@@ -56,7 +56,7 @@ public static class WinFspOverlayClient
             return JsonSerializer.SerializeToElement(new { phase = "starting", processAlive = true, ownershipVerified = true }, Json);
         var snapshot = await ObserveSnapshotAsync(request, ct);
         string? phase = state.GetProperty("phase").GetString();
-        return JsonSerializer.SerializeToElement(new { phase = alive && snapshot.Available != true ? "snapshot-" + snapshot.Availability : phase, processAlive = alive,
+        return JsonSerializer.SerializeToElement(new { phase = alive && snapshot.Available != true ? "snapshot-" + snapshot.Availability : phase, processAlive = alive, ownershipVerified = true,
             snapshotAvailable = snapshot.Available, snapshotAvailability = snapshot.Availability, failureCode = snapshot.FailureCode,
             mountPresent = Directory.Exists(request.MountPath), state }, Json);
     }

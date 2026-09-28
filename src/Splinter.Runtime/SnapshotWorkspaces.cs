@@ -89,6 +89,9 @@ public sealed partial class WorkspaceCoordinator
         string control = store.ControlPath(w.Id);
         try
         {
+            // Publication holds this worker lock through its durable workflow intent.
+            // Any candidate or retained source generation keeps the original VSS alive.
+            await RequireNoValidationDependenciesAsync(w, ct);
             if (!state.Step.StartsWith("release-", StringComparison.Ordinal))
             {
                 if (!state.Attached) throw new WorkspaceException("SnapshotPreparationIncomplete", "Preserve incomplete preparation and resume ensure before release.");
@@ -149,6 +152,7 @@ public sealed partial class WorkspaceCoordinator
             {
                 if (store.List().Any(other => other.Id != w.Id && other.Phase != "released" && other.Snapshot?.Step != "release-snapshot" && other.Snapshot?.Reference?.Id == state.Reference.Id))
                     throw new WorkspaceException("SnapshotInUse", "Another workspace still depends on this immutable snapshot.");
+                await RequireNoValidationDependenciesAsync(w, ct);
                 var reclamation = await Snapshots.ReleaseSnapshotAsync(w, control, ct);
                 reclamation.RequireMatch(state.Reference);
                 state.Observation = await Snapshots.ObserveAsync(w, control, ct);
@@ -184,6 +188,17 @@ public sealed partial class WorkspaceCoordinator
                     [.. failure.RecoveryActions, new("workspace.release", new { id = w.Id, home = store.Root })]);
             throw;
         }
+    }
+
+    private async Task RequireNoValidationDependenciesAsync(WorkspaceRecord w, CancellationToken ct)
+    {
+        if (w.Snapshot?.Reference is not { } snapshot) return;
+        string project = WorkspaceStore.ProjectKey(w.ProjectPath);
+        var workflows = new ValidationWorkflowStore(store);
+        using var gate = await workflows.LockAsync(project, ct);
+        var dependencies = ValidationWorkflowCoordinator.SnapshotDependencies(workflows.Read(project), snapshot);
+        if (dependencies.Length != 0)
+            throw new WorkspaceException("SnapshotInUse", "Preserve and release dependent validation artifacts before releasing this worker.", new { dependencies });
     }
 
     private void RequireSnapshotObservation(WorkspaceRecord w, SnapshotWorkspaceObservation observation)

@@ -10,15 +10,18 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 ## 구조와 의존성
 
+[제품 검증 workflow](validation-workflow.md)의 `validation --input`은 기존 NTFS worker의 후보 게시·단일 Unity view 선택/실행/검증·독립 결과 보존/회수와 `preserve-worker`를 연결한다. `workspace release`는 후보·소스 세대·미완료 게시의 snapshot 의존성을 먼저 확인한다. 제품 입력/출력은 `validation-product-request`/`validation-product-data` schema다.
+
+
 개발용 `Splinter.ReplayProbe`는 고정 synthetic identity의 작은 저널 생성과 read-only Runtime replay를 제공한다. `OverlayIoMetrics.replayIndexOperations`로 연산별 비용, `replayWriteRangeIndex`로 write 직전 extent 분포·탐색/이동/정렬 비용을 구분하고 내용·state/input hash와 관리 메모리 할당을 확인한다. Runtime의 범위 index는 정렬된 extent에서 겹치는 구간만 교체하며 끝에 추가할 때는 전체 목록 복사와 정렬을 하지 않는다. 제품 workspace나 Unity 검증이 아니며 사용법은 [offline replay 계측](replay-profiling.md), 제한된 결과는 [RI 기록](verification/replay-index-cost.md)과 [WI 기록](verification/cumulative-write-range-index.md)을 따른다.
 
 [불변 검증 후보·고정 view](validation-view.md)는 개발용 `snapshot-spike` 확장이다. Core의 `ValidationCandidate`/`ValidationViewSelection`, Runtime의 읽기 전용 봉인 후보와 분리된 source/cache 저널, Windows의 WinFsp 조합을 사용한다. 제품 workspace coordinator나 기본 실행 모드에는 연결되지 않았다. 후보는 최종 checkpoint와 구별되며 별도 독립 결과 수집이 필요하다. Host의 capability는 `validationViewExperiment.integratedWorkspaceMode=false`로 경계를 표시한다.
 
-개발용 `candidate-source-export`는 Git 어댑터의 등록 검증과 Core `CandidateSourceProjection`, Runtime의 `JournalCandidateProjection`을 조합한다. 후보 v2는 분리 증거를 포함하며 검증된 전용 포인터의 노드·payload를 새 후보에서 제외한다. 원래 저널·Git 등록과 acknowledged-write flush는 유지한다. 실제 VSS/Unity 및 공통 workflow provider 연결과는 별도이며 [현재 계약](validation-view.md#등록-증거가-있는-관리-파일-분리)을 따른다.
+개발용 `candidate-source-export`는 Git 어댑터의 등록 검증과 Core `CandidateSourceProjection`, Runtime의 `JournalCandidateProjection`을 조합한다. 후보 v2는 분리 증거를 포함하며 검증된 전용 포인터의 노드·payload를 새 후보에서 제외한다. 원래 저널·Git 등록과 acknowledged-write flush는 유지한다. 제품 workflow도 같은 게시·분리 구현을 사용하며 [현재 계약](validation-view.md#등록-증거가-있는-관리-파일-분리)을 따른다.
 
-Core의 `CandidateExportRequest`/`CandidateExportIntent`와 Runtime의 `JournalCandidatePublication`/`CandidatePrefixWriter`는 고정 요청 키·원본 seal·예상 상태를 게시 전에 기록한다. `PublishCandidate`는 같은 요청의 정확한 부분 저널만 이어 쓰고, 완성된 후보와 영수증은 재검증해 반환한다. CLI 입력은 `publication`을 요구하며 [게시 복구 계약](validation-view.md#같은-요청의-게시-복구)을 따른다. 별도 전용 잠금·create-new/atomic move를 쓰며 삭제·덮어쓰기 복구와 제품 provider 연결은 없다.
+Core의 `CandidateExportRequest`/`CandidateExportIntent`와 Runtime의 `JournalCandidatePublication`/`CandidatePrefixWriter`는 고정 요청 키·원본 seal·예상 상태를 게시 전에 기록한다. `PublishCandidate`는 같은 요청의 정확한 부분 저널만 이어 쓰고, 완성된 후보와 영수증은 재검증해 반환한다. 개발용 CLI 입력은 `publication`을 요구하며 제품 provider는 공통 operation ID를 같은 요청 키로 사용한다. [게시 복구 계약](validation-view.md#같은-요청의-게시-복구)의 전용 잠금·create-new/atomic move를 유지한다.
 
-[검증 후보 수명주기](validation-workflow.md)는 Core의 `IValidationWorkflowProvider`와 Runtime의 `ValidationWorkflowCoordinator`/`ValidationWorkflowStore`를 사용한다. project별 atomic 상태·owner generation·동일 요청 영수증 재조정으로 후보 게시, offline 선택/동일 세대 재개, 검증 증거 귀속, 독립 결과 보존·전용 artifact 회수를 조정한다. 현재 concrete provider·CLI 연결이 없는 계약/fake 단계이며 `validationWorkflowContract.cliAvailable=false`다. 기존 제품 workspace의 validation·release와 개발용 export를 자동 연결하지 않는다.
+[검증 후보 수명주기](validation-workflow.md)는 Core의 `IValidationWorkflowProvider`와 Runtime의 `ValidationWorkflowCoordinator`/`ValidationWorkflowStore`를 `Splinter.Workflows.Windows`에서 VSS/WinFsp·Git·Unity와 조합한다. 제품 `validation` 명령은 owner generation·동일 요청 재조정, source/cache 분리, 실제 검증 증거 귀속과 독립 Git 결과를 제공한다. `validationWorkflowContract.cliAvailable=true`이며 제품 workspace release는 후보와 source 세대의 snapshot 의존성을 확인한다. 기본 실행 모드 선택은 별도다.
 
 공통 Runtime의 `JournalReplayReader`는 저널 replay 읽기를 64KiB 버퍼로 묶고 `OverlayIoMetrics`에 읽기·검증·index 적용 비용을 나눈다. 모든 frame 검증과 acknowledged write flush는 유지한다. Windows client는 같은 launch의 실제 mount와 최신 mounted 상태를 기다리고 provider의 replay 단계만으로 준비 완료를 반환하지 않는다. 범위와 시간의 실제 판단은 [VR 실행](verification/validation-view-readiness-and-replay.md)과 [RI 후보의 작은 Unity 비교](verification/unity-replay-comparison.md)를 따른다. 동일 저널 mount 비교와 Editor 쓰기로 입력이 누적되는 실제 재시작 비교를 구분한다.
 
@@ -37,7 +40,8 @@ NTFS 연결은 `VerifyConnectionAsync`에서 현재 부팅·연결 세대의 정
 | `Splinter.SourceControl.Git` | 저장소 조회, 실제 worktree 생성·fingerprint·커밋·통합·회수 | Core |
 | `Splinter.Application.Unity` | 메타데이터 탐지, 정확한 버전 Editor 실행·활성화·검증 요청·종료 | Core |
 | `Splinter.Platform.Windows` | NTFS VSS helper·입력 지원 검사·범위 저널 backend/회수, ReFS 블록 복제, Job Object·WinFsp 제공자 | Core, Runtime, WinFsp.Net; Win32 |
-| `Splinter.Cli` | 파싱, 어댑터 조립, Runtime/Host 호출, JSON 응답과 종료 코드 | Runtime, Host, Git/Unity/Windows 어댑터, System.CommandLine |
+| `Splinter.Workflows.Windows` | 기존 NTFS worker와 검증 view의 실제 provider, owner binding, 단일 Unity 경로·cache, 독립 결과와 명시적 회수 | Core/Runtime, Git/Unity/Windows 어댑터 |
+| `Splinter.Cli` | 파싱, 어댑터 조립, Runtime/Host/Windows workflow 호출, JSON 응답과 종료 코드 | Runtime, Host, Git/Unity/Windows 어댑터, System.CommandLine |
 | `unity/Splinter.Editor` | 작업별 Editor 안에서 refresh·컴파일·domain reload 관측과 종료 요청 처리 | Unity Editor API; 독립 소스 |
 | `Splinter.Tests` | 계약, CLI, DAG, fake 공급자, 실제 Git·Windows 자식 회수·선택적 ReFS 시험 | CLI, xUnit v3, MTP |
 | `tests/Splinter.UnityBridgeHarness` | 실제 WorkspaceBridge 소스를 링크해 외부 Unity API stub과 예외를 던지는 fixture로 heartbeat 독립성 검사 | .NET 테스트 전용 실행 파일; 제품 명령·Unity 런타임 시험 아님 |
@@ -47,7 +51,12 @@ NTFS 연결은 `VerifyConnectionAsync`에서 현재 부팅·연결 세대의 정
 ```mermaid
 flowchart LR
     CLI[CLI 조합 지점] --> Host[읽기 전용 Host]
-    CLI --> Runtime[지속 상태를 사용하는 Runtime]
+    CLI --> Workflow[Windows validation workflow]
+    Workflow --> Runtime[지속 상태를 사용하는 Runtime]
+    Workflow --> Git
+    Workflow --> Unity
+    Workflow --> Windows
+    CLI --> Runtime
     Runtime --> Core
     CLI --> Git[Git Inspector / Workspace Provider]
     CLI --> Unity[Unity Inspector / Workspace Provider]
@@ -63,7 +72,7 @@ flowchart LR
 
 Host는 CLI 프로세스의 읽기 전용 라이브러리다. 변경 작업은 별도 Runtime이 Core ports를 통해 어댑터에 위임한다. daemon·SQLite는 없다. Runtime은 CLI가 종료되어도 남는 `workspace.json`, intent/event 기록과 프로세스 간 파일 잠금을 사용하며, Unity 어댑터는 작업별 파일 IPC를 사용한다. 어댑터 객체는 CLI에서 조립한다. 선택적 persistent Host/DB 전환과 현재 구현을 구별한다.
 
-Runtime의 `AtomicFilePublication`은 같은 디렉터리에서 flush한 임시 파일을 기존 상태에는 `File.Replace`, 최초 게시에는 덮어쓰기 없는 `File.Move`로 발행한다. workspace/baseline 저장과 Windows provider 제어 IPC가 사용하며 polling reader는 `FileShare.Delete`를 허용한다. VSS helper의 영수증도 같은 방식을 쓴다. 접근 거부/공유 위반을 목적 파일 선삭제나 속성 변경으로 우회하지 않고 남은 파일을 복구 증거로 보존한다. 이는 제어 파일 게시 방식이며 저널 flush 정책을 변경하지 않는다.
+Runtime의 `AtomicFilePublication`은 같은 디렉터리에서 flush한 임시 파일을 기존 상태에는 `File.Replace`, 최초 게시에는 덮어쓰기 없는 `File.Move`로 발행한다. workspace/baseline 저장과 Windows provider 제어 IPC가 사용하며 polling reader는 `FileShare.Delete`를 허용한다. VSS helper의 영수증도 같은 방식을 쓴다. Windows IPC의 일시적 공유 오류는 같은 임시 파일로 최대 1초 재시도하며 지속 실패는 남은 파일을 보존한다. 목적 파일 선삭제나 속성 변경으로 우회하지 않는다. 이는 제어 파일 게시 방식이며 저널 flush 정책을 변경하지 않는다.
 
 제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. 작은 Editor 브리지 소스를 소유 작업공간의 `Assets/__Splinter__`에 넣으며 원본이나 결과 커밋에는 포함하지 않는다. 비Git·비Unity fake로 Runtime의 기준본·수명주기·검증·프로세스 회수 경계를 시험한다. 각 대화가 workspace CLI를 직접 사용하는 데 별도 조정 AI는 필요하지 않다. 프로젝트용/전역용 설치, 필요성 자동 판단, Codex 대화/파일 경로의 자동 binding, 반영 없는 명시적 discard는 미구현이며 [대화별 계획](plans/session-workflow-and-installation.md)에 있다. 전체 DAG 실행과 agent runner는 선택적 후속이다. 범용 저장소 지원표·장애 복구 적합성도 아직 미완료다.
 

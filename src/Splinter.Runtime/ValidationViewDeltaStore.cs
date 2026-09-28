@@ -23,6 +23,9 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
     public OverlayIdentity Identity { get; }
     public ValidationCandidate Candidate => candidate.Candidate;
 
+    public static JournalDeltaStore OpenCacheReadOnly(string directory, OverlayIdentity identity) =>
+        JournalDeltaStore.OpenReadOnly(directory, identity, new EmptyCacheTree(identity.Snapshot));
+
     public ValidationViewDeltaStore(string sourceDirectory, OverlayIdentity identity, ISnapshotTree basis,
         ValidationViewSelection selection, Action<string>? transferBoundary = null)
     {
@@ -48,8 +51,11 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
         {
             // Partition configuration is in the persisted identity, so it cannot
             // change on reconnect and reclassify previous source as cache.
-            cache = new JournalDeltaStore(selection.CacheDeltaPath,
-                identity with { Id = identity.Id + "/cache", ExcludedTopLevel = cacheRoots }, new EmptyCacheTree(basis));
+            var cacheIdentity = selection.CacheIdentity ?? identity with { Id = identity.Id + "/cache", ExcludedTopLevel = cacheRoots };
+            if (!(cacheIdentity.ExcludedTopLevel ?? []).Order(StringComparer.OrdinalIgnoreCase).SequenceEqual(cacheRoots, StringComparer.OrdinalIgnoreCase))
+                throw new WorkspaceException("ValidationCacheMismatch", "The retained cache partition must match the selected view.");
+            cache = new JournalDeltaStore(selection.CacheDeltaPath, cacheIdentity,
+                new EmptyCacheTree(cacheIdentity.Snapshot));
             try
             {
                 source = new JournalDeltaStore(sourceDirectory, identity with {
@@ -141,7 +147,8 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
     }
     public void Delete(Guid id) { lock (gate) ForId(id).Delete(id); }
     public void Flush() { lock (gate) { source.Flush(); cache.Flush(); } }
-    public SourceChangeView ObserveChanges(string[] managedPaths) => source.ObserveChanges(managedPaths);
+    public SourceChangeView ObserveChanges(string[] managedPaths) => source.ObserveChanges(managedPaths) with
+        { WorkspaceId = Identity.Id, SnapshotId = Identity.Snapshot.Id };
     public object ObservePartitions()
     { lock (gate) return new { candidate = Candidate.Id, candidateSeal = Candidate.Seal, transferPending = transferIncomplete,
         transferCount, transferredPrivateBytes, lastTransferFrom, lastTransferTo,
@@ -210,11 +217,11 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
 
     // Cache begins empty, never seeds itself from a mutable or candidate Library.
     // Its base root is stable across candidate changes and contains no payload.
-    private sealed class EmptyCacheTree(ISnapshotTree basis) : ISnapshotTree
+    private sealed class EmptyCacheTree(SnapshotReference identity) : ISnapshotTree
     {
-        public SnapshotReference Snapshot => basis.Snapshot;
-        public void EnsureAvailable() => basis.EnsureAvailable();
-        public SnapshotEntry? Stat(string path) { EnsureAvailable(); return path.Length == 0 ? basis.Stat("") : null; }
+        public SnapshotReference Snapshot => identity;
+        public void EnsureAvailable() { }
+        public SnapshotEntry? Stat(string path) => path.Length == 0 ? new("", true, 0, 16, 0, 0, 0) : null;
         public IReadOnlyList<SnapshotEntry> List(string path) { EnsureAvailable(); return []; }
         public int Read(string path, long offset, Span<byte> destination) => throw new FileNotFoundException(path);
     }

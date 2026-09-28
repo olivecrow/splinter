@@ -8,7 +8,7 @@ public static class WorkspaceFailurePolicy
         "SnapshotReclamationInvalid" or "SnapshotCollateralLoss" or "CompactionGenerationMismatch" or
         "CompactionStateMismatch" or "CompactionCandidateMismatch" or "CompactionIntentCorrupt" or "CompactionIntentMismatch" or
         "ValidationStateCorrupt" or "ValidationReceiptInvalid" or "ValidationReceiptMismatch" or "ValidationResultInvalid" or
-        "ValidationSourceChanged" or "ValidationEvidenceMismatch" or
+        "ValidationSourceChanged" or "ValidationEvidenceMismatch" or "ValidationReleaseUncertain" or "ValidationResultChanged" or
         "CandidateProjectionMismatch" or "CandidateProjectionHistoryUnsupported" or
         "CandidatePublicationCorrupt" or "CandidatePublicationMismatch" or "CandidatePublicationUnowned" or
         "CandidateSourceChanged" or "CandidatePartialMismatch" or "CandidateStateMismatch" or "CandidateSealMismatch";
@@ -24,7 +24,7 @@ public static class WorkspaceFailurePolicy
         "SourceCacheRevalidationRequired" or "SourceObservationInvalid" or "SourceManifestLimit" or "AccessDenied" or "GitUnavailable" or "EditorFocusRequired" or
         "ValidationStateRecoveryRequired" or "ValidationStateUnavailable" or "ValidationStateWriteIncomplete" or "ValidationResourcesUnknown" or
         "ValidationSnapshotUnavailable" or "ValidationSelectionMissing" or "ValidationManagedPathsUnsupported" or "ValidationOperationPending" or
-        "ValidationResultRequired" or "ValidationDependencyActive" or "CandidateRegistrationBusy" => "requires-user-action",
+        "ValidationResultRequired" or "ValidationDependencyActive" or "ValidationReceiptMissing" or "CandidateRegistrationBusy" or "SnapshotInUse" or "SnapshotReadersActive" => "requires-user-action",
         _ => "correct-request"
     };
 }

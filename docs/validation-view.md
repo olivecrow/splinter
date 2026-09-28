@@ -2,7 +2,7 @@
 
 `snapshot-spike`의 개발용 확장이다. 제품 `workspace ensure`의 실행 모드나 작업 큐에 연결되어 있지 않다. 범위는 [VC-01~04 계획](validation-view.md), 실제 판정은 [검증 기록](verification/immutable-validation-view.md)을 따른다.
 
-제품 연결 전의 [공통 수명주기 계약](validation-workflow.md)은 별도의 Core/Runtime·fake 구현이다. 아래 실제 실험을 그 provider로 연결한 상태가 아니며 서로의 통과 근거를 승계하지 않는다.
+같은 저장소 구현을 사용하는 [제품 검증 workflow](validation-workflow.md)는 별도 `validation` 명령으로 Windows/Git/Unity 어댑터와 연결한다. 아래 개발용 실험의 통과 근거를 새 제품 후보로 자동 승계하지 않는다.
 
 ## 저장 구조
 
@@ -64,7 +64,7 @@ Runtime은 worker 저널을 읽기 전용으로 독점 writer와 분리한 뒤 �
 
 확인된 파일의 기록은 새 후보에서 기존 `skip-write/skip-range`로 표현하여 sequence와 변경 경로 기록을 유지하고 노드·payload는 옮기지 않는다. 다른 소스의 live range·rename·삭제를 재생한 state hash와 전후 worker seal을 확인한다. 원본 트리 전체 열거·payload 읽기·읽기 hydration이나 새 저널 flush 정책을 도입하지 않는다. 새 view는 worker의 Git 포인터를 보지 않으며 필요하면 자체 등록을 별도로 연결해야 한다.
 
-현재 적합성은 임시 실제 Git 등록과 합성 불변 트리의 [VG 추적](plans/validation-matrix.md#sf-03-관리-파일-분리-적합성)이다. 실제 VSS/WinFsp/Unity 명령 실행과 제품 workflow 연결은 NotRun이며 기존 VC 실행을 이 후보 형식의 통과로 승계하지 않는다.
+현재 적합성은 임시 실제 Git 등록과 합성 불변 트리의 [VG 추적](plans/validation-matrix.md#sf-03-관리-파일-분리-적합성)이다. 제품 연결과 실제 실행의 현황은 [WF 추적](plans/validation-matrix.md#sf-03-제품-workflow-연결)을 따른다. 기존 VC 실행을 이 후보 형식의 통과로 승계하지 않는다.
 
 ### 같은 요청의 게시 복구
 
@@ -84,7 +84,7 @@ Runtime은 worker 저널을 읽기 전용으로 독점 writer와 분리한 뒤 �
 
 Runtime의 일회성 `ExportCandidate`/`ExportSourceCandidate`는 같은 게시 구현을 사용하지만 기존 목적지는 계속 `CandidateAlreadyExists`로 거부한다. 의도한 재시도는 `PublishCandidate`나 고정 요청을 사용하는 CLI로 명시해야 한다. intent 없이 만들어진 후보 디렉터리는 읽기 계약과 별개로 게시 재조정 대상이 아니며 자동 채택하지 않는다. 최종 receipt 전에는 `CandidateSnapshotTree`가 `CandidateUnpublished`로 거부한다.
 
-자동 적합성의 [VP 추적](plans/validation-matrix.md#sf-03-후보-게시-복구-적합성)은 합성 불변 트리와 실제 임시 파일에서 예외를 주입한 경계·부분 바이트·새 호출을 검증한다. 실제 프로세스 강제 종료·재부팅·전원/물리 공간 장애, VSS/WinFsp/Unity 실행, 공통 workflow provider의 실제 자원 fencing과 snapshot 의존성 연결은 별도 관문이다.
+자동 적합성의 [VP 추적](plans/validation-matrix.md#sf-03-후보-게시-복구-적합성)은 합성 불변 트리와 실제 임시 파일에서 예외를 주입한 경계·부분 바이트·새 호출을 검증한다. 실제 프로세스 강제 종료·재부팅·전원/물리 공간 장애, VSS/WinFsp/Unity 실행과 제품 자원 fencing·snapshot 의존성의 증거는 [WF 추적](plans/validation-matrix.md#sf-03-제품-workflow-연결)과 구분한다.
 
 ### 후보를 사용하는 검증 view
 

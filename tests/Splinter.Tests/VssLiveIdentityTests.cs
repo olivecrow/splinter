@@ -154,6 +154,34 @@ public sealed class VssLiveIdentityTests
         if (fault == "partial") Assert.Equal("partial", File.ReadAllText(Path.Combine(directory.Path, "live-observation.json.new")));
     }
 
+    [Fact]
+    public async Task SharedReadersPreventProofRotationWithoutInvalidatingTheirCurrentProof()
+    {
+        using var directory = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
+        Write(directory.Path, "snapshot.json", new { version = 2, ownerId = "owner", snapshot = Snapshot,
+            nativeProviderId = Capture.NativeProviderId, noAutoRelease = true, released = false, captureIdentity = Capture });
+        Write(directory.Path, "verification-request.json", Request); Write(directory.Path, "live-observation.json", Live);
+        int queries = 0;
+        var provider = Provider(directory.Path, (_, _, _) =>
+        {
+            queries++;
+            var next = JsonSerializer.Deserialize<VssVerificationRequest>(File.ReadAllText(Path.Combine(directory.Path, "verification-request.json")), Json)!;
+            Write(directory.Path, "live-observation.json", Live with { RequestId = next.RequestId, ObservedAt = next.RequestedAt.AddSeconds(1) });
+            return Task.CompletedTask;
+        });
+        using (provider.AcquireReadLease())
+        using (provider.AcquireReadLease())
+        {
+            Assert.Equal(Request.RequestId, (await provider.ResolveReadAccessAsync(Snapshot, null, ct)).VerificationId);
+            var error = await Assert.ThrowsAsync<WorkspaceException>(() => provider.ResolveReadAccessAsync(Snapshot, Request.RequestId, ct));
+            Assert.Equal("SnapshotReadersActive", error.Code); Assert.Equal(0, queries);
+            Assert.True((await provider.ObserveAsync(Snapshot, ct)).Available);
+            Assert.Equal(Request, JsonSerializer.Deserialize<VssVerificationRequest>(File.ReadAllText(Path.Combine(directory.Path, "verification-request.json")), Json));
+        }
+        Assert.NotEqual(Request.RequestId, (await provider.ResolveReadAccessAsync(Snapshot, Request.RequestId, ct)).VerificationId);
+        Assert.Equal(1, queries);
+    }
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static void Write<T>(string root, string file, T value) => File.WriteAllText(Path.Combine(root, file), JsonSerializer.Serialize(value, Json));
     private static VssSnapshotProvider Provider(string path, Func<string, string, CancellationToken, Task> helper) =>

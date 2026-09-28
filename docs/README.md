@@ -12,7 +12,7 @@
 | [저장소와 자원](storage-and-resources.md) | 선택적 ReFS 기준본·프로세스 그룹·자원 관측 |
 | [소스 검증](source-verification.md) | 변경 경로·hash cache·status freshness·현재 계측 형식 |
 | [불변 후보와 검증 view](validation-view.md) | 개발용 후보 게시·같은 요청 중단 복구·검증된 Git 포인터 분리·고정 view·공통 Library |
-| [검증 후보 수명주기](validation-workflow.md) | 제품 연결 전 공통 계약·지속 상태·fake 적합성, 실제 adapter 미연결 |
+| [검증 후보 수명주기](validation-workflow.md) | 제품 validation CLI·Windows/Git/Unity 조합·공통 계약·정지 전환·독립 결과·회수 의존성 |
 | [Unity 미리보기](unity-render-qualification.md) | fixture의 요청별 PNG·픽셀·해시·실패/복구 조건 |
 | [Snapshot overlay 시험](snapshot-overlay.md) | 개발용 준비·mount·파일 API·장애·결과·회수 스크립트 |
 | [Replay probe](replay-profiling.md) | 고정 합성 입력의 replay 비용 |
@@ -27,7 +27,7 @@
 | [구현 계획](plans/implementation-plan.md) | 목표 구조·책임·단계별 작업 |
 | [검증 추적표](plans/validation-matrix.md) | 필수 48개 시나리오와 남은 지원 관문 |
 | [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | 중단·재부팅·전원·공간·파일 경계의 완료 기준 |
-| [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·단일 Editor 비교 기준·SF-03의 남은 제품 연결 관문 |
+| [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·단일 Editor 비교 기준·SF-03 제품 연결과 남은 관문 |
 | [대화별 설치·사용](plans/session-workflow-and-installation.md) | 설치·binding·명시적 discard의 SW-01~10 |
 | [저장소 권한 서비스](plans/storage-privilege-service.md) | 반복 UAC 없는 제한 서비스의 UA-01~04 |
 | [병렬 비교 방법](plans/parallel-workflow-qualification.md) | C/S/Q 입력·작업·비용 비교를 재사용할 때 |

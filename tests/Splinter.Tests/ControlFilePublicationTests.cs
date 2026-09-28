@@ -9,6 +9,25 @@ namespace Splinter.Tests;
 public sealed class ControlFilePublicationTests
 {
     [Fact]
+    public async Task BriefReaderWithoutDeleteSharingDoesNotFailLiveStatePublication()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var directory = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
+        string path = Path.Combine(directory.Path, "state.json");
+        await WindowsProcessWorkspaceProvider.WriteAsync(path, new Receipt(1, "before"), ct);
+        Task publication;
+        using (var reader = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        {
+            publication = WindowsProcessWorkspaceProvider.WriteAsync(path, new Receipt(2, "after"), ct);
+            await Task.Delay(200, ct);
+            Assert.False(publication.IsCompleted);
+        }
+        await publication;
+        Assert.Contains("after", await File.ReadAllTextAsync(path, ct));
+        Assert.Empty(Directory.EnumerateFiles(directory.Path, "*.tmp"));
+    }
+
+    [Fact]
     public async Task PublishWhilePollingReaderKeepsOldAndNewReceiptsComplete()
     {
         using var directory = new TestDirectory();

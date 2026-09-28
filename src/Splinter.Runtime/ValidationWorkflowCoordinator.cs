@@ -3,7 +3,6 @@ using static Splinter.Runtime.ValidationWorkflowRules;
 
 namespace Splinter.Runtime;
 
-// No concrete Windows/Git/application adapter or CLI command composes this yet.
 // Durable state drives retries; providers reconcile their own atomic receipts.
 public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
     IValidationWorkflowProvider provider, Action<string>? boundary = null)
@@ -13,6 +12,15 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
         Name(projectId);
         using var gate = await store.LockAsync(projectId, ct);
         return store.Read(projectId);
+    }
+
+    // A product mutation may need the original frozen request before Execute.
+    // Reconcile only the flushed ledger here; external effects remain in Execute.
+    public async Task<ValidationWorkflowState> RecoverForMutationAsync(string projectId, CancellationToken ct = default)
+    {
+        Name(projectId);
+        using var gate = await store.LockAsync(projectId, ct);
+        return store.Read(projectId, recoverPending: true);
     }
 
     public async Task<ValidationWorkflowResponse> ExecuteAsync(ValidationWorkflowRequest request, CancellationToken ct = default)
@@ -70,7 +78,6 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
                 var candidate = Candidate(state, request.CandidateId!);
                 Require(!candidate.Released, "ValidationArtifactReleased", "A released candidate cannot be selected.");
                 var cache = request.Cache!;
-                Require(cache.Snapshot == candidate.Publication.Intent.Worker.Snapshot, "ValidationCacheMismatch", "Cross-snapshot cache reuse is not supported.");
                 if (state.Views.TryGetValue(cache.ViewId, out var view))
                     Require(view.Owner == request.Owner && view.Cache == cache, "ValidationCacheMismatch", "Keep the view owner and complete cache identity.");
                 Require(!state.Views.Values.Any(v => v.Cache.CacheId == cache.CacheId && v.Cache.ViewId != cache.ViewId),
@@ -186,19 +193,23 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
         return response;
     }
 
-    // This dependency query is a contract for future snapshot reclamation wiring;
-    // it neither deletes snapshots nor changes the live workspace coordinator.
     public async Task<string[]> SnapshotDependenciesAsync(string projectId, SnapshotReference snapshot, CancellationToken ct = default)
     {
         Snapshot(snapshot);
         var state = await InspectAsync(projectId, ct);
+        return SnapshotDependencies(state, snapshot);
+    }
+
+    public static string[] SnapshotDependencies(ValidationWorkflowState state, SnapshotReference snapshot)
+    {
+        Snapshot(snapshot);
         var references = state.Candidates.Values.Select(c => c.Publication.Intent.Worker.Snapshot)
-            .Concat(state.Generations.Values.Select(g => g.Selection.Intent.Cache.Snapshot))
+            .Concat(state.Generations.Values.Select(g => g.Selection.Intent.Candidate.Intent.Worker.Snapshot))
             .Concat(state.Operations.Values.Where(o => o.Request.Worker is not null).Select(o => o.Request.Worker!.Snapshot));
         Require(!references.Any(s => s.Id == snapshot.Id && s != snapshot), "SnapshotIdentityMismatch",
             "A known snapshot ID has a different tuple; an identity mismatch is not an empty dependency set.");
         return state.Candidates.Where(p => !p.Value.Released && p.Value.Publication.Intent.Worker.Snapshot == snapshot).Select(p => "candidate:" + p.Key)
-            .Concat(state.Generations.Where(p => !p.Value.Released && p.Value.Selection.Intent.Cache.Snapshot == snapshot).Select(p => "source-generation:" + p.Key))
+            .Concat(state.Generations.Where(p => !p.Value.Released && p.Value.Selection.Intent.Candidate.Intent.Worker.Snapshot == snapshot).Select(p => "source-generation:" + p.Key))
             .Concat(state.Operations.Values.Where(o => o.Response is null && o.Request.Worker?.Snapshot == snapshot).Select(o => "operation:" + o.Id))
             .Order(StringComparer.Ordinal).ToArray();
     }
@@ -219,7 +230,7 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
         Seal(seal);
         Require(generation.FrozenSeal is null || generation.FrozenSeal == seal, "ValidationSourceChanged", "The frozen source output changed; preserve both states.");
         state.Generations[target.Id] = generation with { FrozenSeal = seal };
-        return new(target, request.Owner, generation.Selection.Intent.Cache.Snapshot, seal);
+        return new(target, request.Owner, generation.Selection.Intent.Candidate.Intent.Worker.Snapshot, seal);
     }
     private async Task PreflightAsync(ValidationWorkflowState state, ValidationWorkflowRequest request, CancellationToken ct)
     {
@@ -235,8 +246,7 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
         {
             var candidate = Candidate(state, request.CandidateId!);
             Require(!candidate.Released, "ValidationArtifactReleased", "Keep the released candidate's independent result.");
-            Require(cache.Snapshot == candidate.Publication.Intent.Worker.Snapshot &&
-                (!state.Views.TryGetValue(cache.ViewId, out var view) || view.Cache == cache && view.Owner == request.Owner) &&
+            Require((!state.Views.TryGetValue(cache.ViewId, out var view) || view.Cache == cache && view.Owner == request.Owner) &&
                 !state.Views.Values.Any(v => v.Cache.CacheId == cache.CacheId && v.Cache.ViewId != cache.ViewId),
                 "ValidationCacheMismatch", "The complete cache identity and single-view ownership must match.");
             await QuiescentView(request.ProjectId, cache.ViewId, request.Owner, ct);

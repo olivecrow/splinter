@@ -75,6 +75,15 @@
           "Splinter.Core": "[0.1.0-dev, )"
         }
       },
+      "splinter.workflows.windows": {
+        "type": "Project",
+        "dependencies": {
+          "Splinter.Application.Unity": "[0.1.0-dev, )",
+          "Splinter.Platform.Windows": "[0.1.0-dev, )",
+          "Splinter.Runtime": "[0.1.0-dev, )",
+          "Splinter.SourceControl.Git": "[0.1.0-dev, )"
+        }
+      },
       "JsonSchema.Net": {
         "type": "CentralTransitive",
         "requested": "[9.4.0, )",
