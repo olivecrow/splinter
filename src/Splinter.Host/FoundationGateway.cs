@@ -26,6 +26,7 @@ public sealed class FoundationGateway(
         storageModes = new[] { "ntfs-snapshot", "refs-cow", "git-checkout" },
         validationViewExperiment = new { stage = "development-spike", integratedWorkspaceMode = false,
             candidate = "snapshot-spike candidate-export or candidate-source-export (qualified Git receipt required); stopped-editorless-worker; immutable-live-ranges; candidate-format-v2; source-projection-schema=urn:splinter:v1:candidate-source-projection",
+            publication = "stable-request-key; durable frozen-source intent; same-request prefix and receipt reconciliation; schemas=urn:splinter:v1:candidate-export-request,urn:splinter:v1:candidate-export-intent; no-delete-repair",
             switching = "same-path-offline-remount; separate-source-generations-and-single-writer-cache",
             result = "snapshot-dependent-until-independent-collection; no-worker-return-merge-or-queue",
             measurements = "worker-ready; candidate-publication; cold-ready; repeated-stop-remount-restart-ready; bytes-and-time-separate" },

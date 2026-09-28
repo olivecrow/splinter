@@ -78,10 +78,9 @@ internal static class OverlayExperimentCommands
                 using (var tree = new VssSnapshotTree(overlay.Identity.Snapshot, overlay.ReadAccess))
                 {
                     string[] forbidden = [".git", "Library", "Temp", "Logs", "UserSettings", "obj"];
-                    string id = Guid.NewGuid().ToString("N");
-                    return projection is null
-                        ? JournalDeltaStore.ExportCandidate(overlay.DeltaPath, overlay.Identity, tree, destination, id, forbidden)
-                        : JournalDeltaStore.ExportSourceCandidate(overlay.DeltaPath, overlay.Identity, tree, destination, id, forbidden, projection);
+                    return JournalDeltaStore.PublishCandidate(overlay.DeltaPath, overlay.Identity, tree, destination,
+                        input.Publication ?? throw new WorkspaceException("CandidateRequestInvalid", "A stable publication request is required."),
+                        forbidden, projection);
                 }
             case "mount":
                 IOverlayMountProvider mountProvider = new WinFspOverlayMountProvider(input.OverlayRequestPath, Path.Combine(overlay.ControlPath, "runners"));
@@ -185,5 +184,5 @@ internal static class OverlayExperimentCommands
         return r;
     }
     private sealed record SpikeRequest(string Action, string OverlayRequestPath, string? ReceiptPath, string? Branch, string? Revision,
-        string? CandidatePath);
+        string? CandidatePath, CandidateExportRequest? Publication);
 }

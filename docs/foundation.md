@@ -14,7 +14,9 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 [불변 검증 후보·고정 view](validation-view.md)는 개발용 `snapshot-spike` 확장이다. Core의 `ValidationCandidate`/`ValidationViewSelection`, Runtime의 읽기 전용 봉인 후보와 분리된 source/cache 저널, Windows의 WinFsp 조합을 사용한다. 제품 workspace coordinator나 기본 실행 모드에는 연결되지 않았다. 후보는 최종 checkpoint와 구별되며 별도 독립 결과 수집이 필요하다. Host의 capability는 `validationViewExperiment.integratedWorkspaceMode=false`로 경계를 표시한다.
 
-개발용 `candidate-source-export`는 Git 어댑터의 등록 검증과 Core `CandidateSourceProjection`, Runtime의 `JournalCandidateProjection`/`ExportSourceCandidate`를 조합한다. 후보 v2는 분리 증거를 포함하며 검증된 전용 포인터의 노드·payload를 새 후보에서 제외한다. 원래 저널·Git 등록과 acknowledged-write flush는 유지한다. 실제 VSS/Unity 및 공통 workflow provider 연결과는 별도이며 [현재 계약](validation-view.md#등록-증거가-있는-관리-파일-분리)을 따른다.
+개발용 `candidate-source-export`는 Git 어댑터의 등록 검증과 Core `CandidateSourceProjection`, Runtime의 `JournalCandidateProjection`을 조합한다. 후보 v2는 분리 증거를 포함하며 검증된 전용 포인터의 노드·payload를 새 후보에서 제외한다. 원래 저널·Git 등록과 acknowledged-write flush는 유지한다. 실제 VSS/Unity 및 공통 workflow provider 연결과는 별도이며 [현재 계약](validation-view.md#등록-증거가-있는-관리-파일-분리)을 따른다.
+
+Core의 `CandidateExportRequest`/`CandidateExportIntent`와 Runtime의 `JournalCandidatePublication`/`CandidatePrefixWriter`는 고정 요청 키·원본 seal·예상 상태를 게시 전에 기록한다. `PublishCandidate`는 같은 요청의 정확한 부분 저널만 이어 쓰고, 완성된 후보와 영수증은 재검증해 반환한다. CLI 입력은 `publication`을 요구하며 [게시 복구 계약](validation-view.md#같은-요청의-게시-복구)을 따른다. 별도 전용 잠금·create-new/atomic move를 쓰며 삭제·덮어쓰기 복구와 제품 provider 연결은 없다.
 
 [검증 후보 수명주기](validation-workflow.md)는 Core의 `IValidationWorkflowProvider`와 Runtime의 `ValidationWorkflowCoordinator`/`ValidationWorkflowStore`를 사용한다. project별 atomic 상태·owner generation·동일 요청 영수증 재조정으로 후보 게시, offline 선택/동일 세대 재개, 검증 증거 귀속, 독립 결과 보존·전용 artifact 회수를 조정한다. 현재 concrete provider·CLI 연결이 없는 계약/fake 단계이며 `validationWorkflowContract.cliAvailable=false`다. 기존 제품 workspace의 validation·release와 개발용 export를 자동 연결하지 않는다.
 

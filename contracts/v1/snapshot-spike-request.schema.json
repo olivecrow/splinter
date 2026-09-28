@@ -7,12 +7,16 @@
   "properties": {
     "action": {"enum": ["mount", "status", "unmount", "git-prepare", "git-attach", "git-release", "unity-start", "unity-status", "unity-refresh", "unity-stop", "preserve", "candidate-export", "candidate-source-export"]},
     "candidatePath": {"type": "string", "minLength": 1},
+    "publication": {"$ref":"urn:splinter:v1:candidate-export-request"},
     "overlayRequestPath": {"type": "string", "minLength": 1},
     "receiptPath": {"type": "string", "minLength": 1},
     "branch": {"type": "string", "pattern": "^codex/[A-Za-z0-9/_-]+$"},
     "revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
   },
   "allOf": [{
+    "if": {"properties":{"action":{"enum":["candidate-export","candidate-source-export"]}},"required":["action"]},
+    "then": {"required":["candidatePath","publication"]}
+  }, {
     "if": {"properties":{"action":{"const":"candidate-source-export"}},"required":["action"]},
     "then": {"required":["candidatePath","receiptPath"]}
   }]

@@ -8,6 +8,14 @@ public sealed record CandidateManagedFile(string Path, int Length, string Conten
 public sealed record CandidateSourceProjection(int Version, string OwnerId, SnapshotReference Snapshot,
     string EvidenceHash, CandidateManagedFile[] Files);
 
+// The first publication freezes the source generation. A retry never selects a
+// later worker generation, even after the original response was lost.
+public sealed record CandidateExportRequest(int Version, string RequestKey);
+public sealed record CandidateExportIntent(int Version, CandidateExportRequest Request,
+    string SourceDirectory, string Destination, OverlayIdentity Identity, string[] ForbiddenTopLevel,
+    SnapshotDeltaSeal SourceSeal, string StateHash, long JournalBytes, DateTimeOffset StartedAt,
+    [property: JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] CandidateSourceProjection? SourceProjection);
+
 // A reusable validation input is distinct from final workspace collection.
 // Its ranges still depend on this exact snapshot; it is not an independent result.
 public sealed record ValidationCandidate(int Version, string Id, OverlayIdentity Identity,

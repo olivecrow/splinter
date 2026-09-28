@@ -8,7 +8,7 @@
 
 Core의 현재 `ValidationCandidate` 형식은 version 2이며 원본 `OverlayIdentity`, 원래 저널 seal, 별도 후보 저널 seal과 시각, 필수 `sourceProjection`을 묶는다. 일반 소스 후보의 projection은 명시적 null이고, 관리 파일을 분리한 후보에는 아래 증거가 들어간다. `ValidationViewSelection`은 후보 디렉터리·캐시 디렉터리·캐시 최상위 이름을 전달한다. Core는 Unity·Git·Win32에 의존하지 않는다. 이전 후보 형식·증거 누락은 파일을 보존하고 거부하며 자동 이관하지 않는다.
 
-Runtime의 `JournalDeltaStore.ExportCandidate`는 정지한 작업자 저널을 읽기 전용으로 열어 동시 writer를 거부한다. 기존 정리 알고리즘으로 유효 변경 범위와 메타데이터만 새 디렉터리에 기록하고 replay/state hash/seal을 확인한 뒤 `candidate.json`을 마지막에 atomic 게시한다. 원본 파일 트리 전체를 열거하거나 원본 payload를 복제하지 않는다. 저장 중 대체된 저널 payload는 후보에 필요하지 않지만 메타데이터와 일부 표현 한계에 따른 기록은 남을 수 있다. 소스 저널은 변경하지 않는다. 게시 중 임시 공간은 작업자와 후보의 합계다.
+Runtime의 `JournalDeltaStore.PublishCandidate`는 정지한 작업자 저널을 읽기 전용으로 열어 동시 writer를 거부한다. 기존 정리 알고리즘으로 유효 변경 범위와 메타데이터만 별도 디렉터리에 기록하고 replay/state hash/seal을 확인한 뒤 `candidate.json`을 마지막에 atomic 게시한다. 같은 요청의 복구는 아래 intent 계약을 따른다. 원본 파일 트리 전체를 열거하거나 원본 payload를 복제하지 않는다. 저장 중 대체된 저널 payload는 후보에 필요하지 않지만 메타데이터와 일부 표현 한계에 따른 기록은 남을 수 있다. 소스 저널은 변경하지 않는다. 게시 중 임시 공간은 작업자와 후보의 합계이며 `.new` 저널은 게시 때 이름만 바꾸므로 별도 전체 사본을 만들지 않는다.
 
 `CandidateSnapshotTree`는 게시된 identity와 seal을 검사하고 사용하는 동안 읽기 전용 저널 핸들로 쓰기·교체를 막는다. 열린 핸들이 없는 동안 외부에서 변경한 후보는 다음 연결의 seal 검사에서 거부한다. snapshot과 후보를 조합한 identity는 원본 identity·원래/후보 seal·분리 증거를 포함한다. snapshot이 소실되면 읽기를 중단한다. 후보 자체는 **snapshot에서 독립된 결과가 아니다**.
 
@@ -35,7 +35,8 @@ Unity가 새 임시 파일을 다른 partition으로 rename할 때는 원본에�
 {
   "action": "candidate-export",
   "overlayRequestPath": "C:/trial/worker-overlay.json",
-  "candidatePath": "C:/trial/candidates/a"
+  "candidatePath": "C:/trial/candidates/a",
+  "publication": { "version": 1, "requestKey": "candidate-a" }
 }
 ```
 
@@ -43,28 +44,47 @@ Unity가 새 임시 파일을 다른 partition으로 rename할 때는 원본에�
 
 ### 등록 증거가 있는 관리 파일 분리
 
-정상 Editor stop·provider 종료·mount 부재를 확인한 작업자는 정확한 `git-overlay.json` 등록 영수증을 지정한다. 이 명령은 새 후보만 게시하며 worker의 포인터·저널·Git 등록을 수정하거나 회수하지 않는다.
+정상 Editor stop·provider 종료·mount 부재를 확인한 작업자는 정확한 `git-overlay.json` 등록 영수증을 지정한다. 이 명령은 고정 요청에 해당하는 후보를 게시·재조정하며 worker의 포인터·저널·Git 등록을 수정하거나 회수하지 않는다.
 
 ```json
 {
   "action": "candidate-source-export",
   "overlayRequestPath": "C:/trial/worker-overlay.json",
   "candidatePath": "C:/trial/candidates/source-a",
-  "receiptPath": "C:/trial/worker-git.json"
+  "receiptPath": "C:/trial/worker-git.json",
+  "publication": { "version": 1, "requestKey": "source-candidate-a" }
 }
 ```
 
 Git 어댑터의 `QualifyCandidateSourceAsync`는 owner와 원본/작업 경로, 실제 linked worktree의 관리 디렉터리·역참조·branch HEAD·원본 common directory, `Splinter overlay <owner>` 잠금과 정확한 포인터를 읽기 전용으로 대조한다. `index/HEAD/gitdir/commondir.lock`이 남으면 `CandidateRegistrationBusy`로 보존한다. 현재 원본의 후속 편집을 되돌리지 않는다.
 
-Core의 `CandidateSourceProjection` version 1은 owner, 전체 snapshot tuple, 등록 증거 hash와 각 파일의 경로·길이·내용 hash를 담는다. schema는 `urn:splinter:v1:candidate-source-projection`이다. Runtime의 `ExportSourceCandidate`는 원래 snapshot에서 이미 제외된 최상위 전용 파일만 받으며 각 파일은 최대 4 KiB, 증거당 최대 16개다. Git 어댑터가 발행하는 목록은 정확한 `.git` 파일 하나다. CLI는 호출자가 임의 분리 목록을 입력하는 대신 실제 등록에서 증거를 얻는다.
+Core의 `CandidateSourceProjection` version 1은 owner, 전체 snapshot tuple, 등록 증거 hash와 각 파일의 경로·길이·내용 hash를 담는다. schema는 `urn:splinter:v1:candidate-source-projection`이다. Runtime은 원래 snapshot에서 이미 제외된 최상위 전용 파일만 받으며 각 파일은 최대 4 KiB, 증거당 최대 16개다. Git 어댑터가 발행하는 목록은 정확한 `.git` 파일 하나다. CLI는 호출자가 임의 분리 목록을 입력하는 대신 실제 등록에서 증거를 얻는다.
 
 Runtime은 worker 저널을 읽기 전용으로 독점 writer와 분리한 뒤 현재 포인터 내용과 전체 기록을 대조한다. 현재 파일이 없거나 디렉터리/다른 내용이면 `CandidateProjectionMismatch`, 관리 파일을 넘는 rename이나 원본 범위를 상속한 기록은 `CandidateProjectionHistoryUnsupported`다. 관리 디렉터리 하위 기록·cache 쓰기는 기존 `CandidateContainsManagedPaths` 거부를 유지한다. 경로 이름만으로 사용자 파일을 제외하지 않는다.
 
 확인된 파일의 기록은 새 후보에서 기존 `skip-write/skip-range`로 표현하여 sequence와 변경 경로 기록을 유지하고 노드·payload는 옮기지 않는다. 다른 소스의 live range·rename·삭제를 재생한 state hash와 전후 worker seal을 확인한다. 원본 트리 전체 열거·payload 읽기·읽기 hydration이나 새 저널 flush 정책을 도입하지 않는다. 새 view는 worker의 Git 포인터를 보지 않으며 필요하면 자체 등록을 별도로 연결해야 한다.
 
-후보 게시 전 중단된 디렉터리와 `candidate.json.new`는 보존한다. 개발용 게시 명령은 기존 목적지에 다시 쓰거나 불완전 후보를 자동 복구하지 않으며 `CandidateAlreadyExists`/`CandidateUnpublished`를 반환한다. 이 단일 게시 도구를 공통 workflow의 같은 요청 재조정 provider로 연결하는 작업은 남아 있다.
-
 현재 적합성은 임시 실제 Git 등록과 합성 불변 트리의 [VG 추적](plans/validation-matrix.md#sf-03-관리-파일-분리-적합성)이다. 실제 VSS/WinFsp/Unity 명령 실행과 제품 workflow 연결은 NotRun이며 기존 VC 실행을 이 후보 형식의 통과로 승계하지 않는다.
+
+### 같은 요청의 게시 복구
+
+두 게시 action 모두 `publication.version=1`과 고정 `requestKey`를 요구한다. 키는 1~128자의 영문·숫자·`._:-`이며 첫 글자는 영문·숫자다. 첫 요청은 worker identity·전체 snapshot tuple·source seal·projection·금지 경로·양쪽 절대 경로·예상 상태 hash/저널 길이를 `candidate-export.json`에 고정한다. 후보 ID는 요청 키와 같다. 입력과 intent schema는 `urn:splinter:v1:candidate-export-request`, `urn:splinter:v1:candidate-export-intent`다. 이후 다른 worker 세대를 게시하려면 새 키와 목적지가 필요하다.
+
+목적지 옆의 `<candidatePath>.publication.lock`을 독점으로 열어 동시에 게시하는 프로세스를 거부한다. 빈 잠금 파일은 종료 후 남지만 점유는 열린 핸들 동안만 유지된다. 이것은 일반 임대·owner 인수나 실제 OS writer 관측의 대체물이 아니다. CLI는 재시도 때도 정상 stop·mount 부재·현재 Git 등록 검증을 먼저 수행한다.
+
+| 남은 상태 | 같은 요청의 명시적 재시도 |
+| --- | --- |
+| 완전한 intent `.new` | 요청·경로·identity를 대조하고 덮어쓰기 없는 move로 게시 |
+| identity 준비 또는 일부 `delta.journal.new` | 원래 source seal을 다시 확인. 예상 저널을 재생성하며 기존 prefix 전 바이트가 일치한 뒤 나머지만 추가·flush |
+| 완전한 `.new`/게시된 저널 | 고정 길이·sequence·replay state hash와 분리 파일 부재를 확인한 뒤 게시/receipt 생성. worker의 후속 편집을 읽거나 되돌리지 않음 |
+| 완전한 `candidate.json.new`/게시된 receipt | intent·identity·source seal·후보 seal을 검증해 게시/동일 receipt 반환. 응답 유실 때문에 후보를 다시 만들지 않음 |
+| intent 없는 기존 목적지, 부분 JSON, 다른 요청/identity, 중복·알 수 없는 필드/파일, 바뀐 prefix·손상 저널 | 파일을 보존하고 거부. 덮어쓰기·truncate·삭제·자동 이관 없음 |
+
+각 메타데이터는 같은 디렉터리에서 create-new로 쓰고 flush한 뒤 최초 덮어쓰기 없는 move로 게시한다. JSON reader는 delete sharing을 허용한다. 부분 저널의 header·metadata·payload·checksum 어느 위치에서도 정확한 prefix만 이어 쓸 수 있고, 이미 최종 이름으로 게시한 저널은 수정하지 않는다. 부분 JSON은 완전한 계약을 증명할 수 없으므로 자동 재작성하지 않는다. 완성된 후보도 불변 snapshot이 없으면 사용할 수 없다.
+
+Runtime의 일회성 `ExportCandidate`/`ExportSourceCandidate`는 같은 게시 구현을 사용하지만 기존 목적지는 계속 `CandidateAlreadyExists`로 거부한다. 의도한 재시도는 `PublishCandidate`나 고정 요청을 사용하는 CLI로 명시해야 한다. intent 없이 만들어진 후보 디렉터리는 읽기 계약과 별개로 게시 재조정 대상이 아니며 자동 채택하지 않는다. 최종 receipt 전에는 `CandidateSnapshotTree`가 `CandidateUnpublished`로 거부한다.
+
+자동 적합성의 [VP 추적](plans/validation-matrix.md#sf-03-후보-게시-복구-적합성)은 합성 불변 트리와 실제 임시 파일에서 예외를 주입한 경계·부분 바이트·새 호출을 검증한다. 실제 프로세스 강제 종료·재부팅·전원/물리 공간 장애, VSS/WinFsp/Unity 실행, 공통 workflow provider의 실제 자원 fencing과 snapshot 의존성 연결은 별도 관문이다.
 
 ### 후보를 사용하는 검증 view
 
@@ -88,7 +108,7 @@ provider는 저널을 여는 동안 `replaying` 상태를 게시한다. mount/re
 
 ## 시간과 공간의 판정
 
-후보의 `creationTicks / stopwatchFrequency`는 저널 준비·검증을 마친 뒤 최종 receipt 게시 직전까지다. 전체 후보 게시 시간은 CLI 반환까지의 별도 wall-clock으로 잰다. snapshot 캡처, Git 준비, 최초 mount, 기존 worker 재개, 후보 게시, 첫 Unity import/ready, 반복 stop/remount/replay/restart/ready, 검증·결과 수집·회수를 각각 기록한다. 사용자 작업 가능 시점까지 걸리는 시간을 작은 내부 함수 수치로 대체하지 않는다.
+후보의 `creationTicks / stopwatchFrequency`는 최종 receipt를 만든 호출에서 저널 준비·검증을 마친 뒤 receipt 게시 직전까지다. 중단된 이전 시도의 시간이나 두 호출 사이의 대기 시간은 포함하지 않으며, 완료 요청의 재전송은 기존 값을 반환한다. 전체 후보 게시 시간은 CLI 반환까지의 별도 wall-clock으로 잰다. snapshot 캡처, Git 준비, 최초 mount, 기존 worker 재개, 후보 게시, 첫 Unity import/ready, 반복 stop/remount/replay/restart/ready, 검증·결과 수집·회수를 각각 기록한다. 사용자 작업 가능 시점까지 걸리는 시간을 작은 내부 함수 수치로 대체하지 않는다.
 
 디렉터리별 논리 길이와 `FILE_STANDARD_INFO.AllocationSize`를 구분하고 공유 VSS는 볼륨 관측으로 둔다. 측정 증거·로그도 별도 비용이며 첫 import와 반복 전환을 분리한다. 작은 Editor 없는 delta의 준비 시간을 전체 제품 `workspace ensure`나 대형 프로젝트 준비 시간으로 일반화하지 않는다. 최초 source 검증 비용, 긴 저널 replay, Unity 버전·package·platform 변경, 일반 임대 중단 복구와 source 반환 병합은 별도 검증이 필요하다.
 

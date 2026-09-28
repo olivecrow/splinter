@@ -125,6 +125,22 @@
 
 2026-09-28, 기준 commit `6bc433b` 이후 작업 트리의 `pwsh -NoProfile -File ./scripts/build.ps1`에서 locked restore·Release 빌드와 전체 420 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped를 확인했다. 새 projection 시험 31건과 입력/capability 시험 1건을 포함한다. [최종 TRX](../../artifacts/test-results/vg-projection-20260928.trx)와 [코드·결과 hash manifest](../../artifacts/test-results/vg-projection-20260928.manifest.json)를 보존한다. 실제 VSS/WinFsp/Unity 게시와 공통 workflow provider 연결은 NotRun이며 SF-03 전체는 Partial이다.
 
+## SF-03 후보 게시 복구 적합성
+
+[개발용 게시 복구 계약](../validation-view.md#같은-요청의-게시-복구)의 범위는 합성 불변 트리·실제 임시 파일 I/O와 예외 주입이다. 실제 프로세스 강제 종료·재부팅·전원/물리 공간 장애 또는 제품 VSS/WinFsp/Unity 검증으로 집계하지 않는다.
+
+| ID | 대상과 완료 기준 | 상태 |
+| --- | --- | --- |
+| VP-01 | intent/identity/저널/receipt flush·게시의 9개 경계, 같은 요청 재전송·동일 receipt | Passed, 예외 주입/파일 I/O |
+| VP-02 | 부분 header/metadata/payload/checksum prefix 확인 후 추가만 수행, 손상 prefix 비파괴 거부 | Passed, 합성 저널 |
+| VP-03 | 완전한 저널 뒤 worker 후속 편집/활성 writer와 분리, 미완성 게시의 원본 세대 변경 거부, 원본 payload 읽기 0 | Passed, 합성 불변 트리/저널 |
+| VP-04 | 동시 게시 잠금, 다른 요청/경로/owner/예산/projection, 부분·중복·누락·손상·출처 불명 파일 보존 | Passed, 자동 시험 |
+| VP-05 | 고정 요청 입력·intent·응답 schema/capability와 strict export/projection/view 전체 회귀 | Passed, 자동 시험 |
+
+2026-09-28, 기준 commit `786d264` 이후 작업 트리에서 `pwsh -NoProfile -File ./scripts/build.ps1`의 locked restore·Release 빌드와 전체 483 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped를 확인했다. `CandidatePublicationTests` 61건과 고정 요청 누락을 실행 전에 거부하는 CLI 시험 2건을 포함한다. [최종 TRX](../../artifacts/test-results/vp-publication-20260928.trx)와 [코드·결과 hash manifest](../../artifacts/test-results/vp-publication-20260928.manifest.json)를 보존한다.
+
+SF-03 전체는 Partial이며 실제 workflow provider 연결·공동 snapshot 수명·VSS/Unity의 게시 복구는 NotRun이다.
+
 ## 제품화와 비용 관문
 
 - SF-02/03은 Partial, SF-04~06은 NotRun이다. 완료 기준은 [저장공간·Editor 계획](storage-priority-and-editor-modes.md)을 따른다.

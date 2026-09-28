@@ -17,13 +17,31 @@ public sealed class ContractAndCliTests
         var input = new JsonObject { ["action"] = "candidate-source-export", ["overlayRequestPath"] = "overlay.json", ["candidatePath"] = "new-candidate" };
         Assert.False(contracts.Validate("urn:splinter:v1:snapshot-spike-request", JsonSerializer.SerializeToElement(input)).IsValid);
         input["receiptPath"] = "owned-git-receipt.json";
+        Assert.False(contracts.Validate("urn:splinter:v1:snapshot-spike-request", JsonSerializer.SerializeToElement(input)).IsValid);
+        input["publication"] = new JsonObject { ["version"] = 1, ["requestKey"] = "candidate-a" };
         Assert.True(contracts.Validate("urn:splinter:v1:snapshot-spike-request", JsonSerializer.SerializeToElement(input)).IsValid);
         var (exit, response) = await Run("capabilities");
         Assert.Equal(0, exit);
         var capability = response.GetProperty("data").GetProperty("validationViewExperiment");
         Assert.False(capability.GetProperty("integratedWorkspaceMode").GetBoolean());
         Assert.Contains("candidate-source-export", capability.GetProperty("candidate").GetString());
+        Assert.Contains("stable-request-key", capability.GetProperty("publication").GetString());
         Assert.Contains("urn:splinter:v1:candidate-source-projection", contracts.SchemaIds);
+        Assert.Contains("urn:splinter:v1:candidate-export-request", contracts.SchemaIds);
+        Assert.Contains("urn:splinter:v1:candidate-export-intent", contracts.SchemaIds);
+    }
+
+    [Theory]
+    [InlineData("candidate-export")]
+    [InlineData("candidate-source-export")]
+    public async Task CandidateExportWithoutAStableRequestIsRejectedBeforeOpeningTheOverlay(string action)
+    {
+        using var dir = new TestDirectory(); string path = Path.Combine(dir.Path, "request.json");
+        await File.WriteAllTextAsync(path, JsonSerializer.Serialize(new {
+            action, overlayRequestPath = "missing-overlay.json", candidatePath = "candidate", receiptPath = "missing-git.json"
+        }), TestContext.Current.CancellationToken);
+        var (exit, response) = await Run("snapshot-spike", "--input", path);
+        Assert.Equal(2, exit); Assert.Equal("InvalidSpikeRequest", response.GetProperty("error").GetProperty("code").GetString());
     }
 
     [Fact]

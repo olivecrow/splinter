@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using System.Security.Cryptography;
 using Splinter.Core;
@@ -25,36 +24,11 @@ public sealed partial class JournalDeltaStore
         ISnapshotTree snapshot, string destination, string id, string[] forbiddenTopLevel,
         CandidateSourceProjection? projection, Action<string>? boundary)
     {
-        long started = Stopwatch.GetTimestamp();
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Candidate id is required.");
+        // One-shot callers deliberately cannot adopt any existing directory.
+        // Explicit stable requests use PublishCandidate for reconciliation.
         if (Directory.Exists(destination) || File.Exists(destination))
             throw new WorkspaceException("CandidateAlreadyExists", "Keep the existing candidate or unfinished publication; use a new destination.");
-        using var source = new JournalDeltaStore(sourceDirectory, identity, snapshot, "delta.journal", true);
-        var projectedFiles = projection is null ? null : source.QualifyProjection(projection);
-        var forbidden = forbiddenTopLevel.Concat(identity.ExcludedTopLevel ?? []).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (source.pathChanges.Keys.Any(p => forbidden.Contains(p.Split('/')[0]) && projectedFiles?.Contains(p) != true))
-            throw new WorkspaceException("CandidateContainsManagedPaths", "This experiment accepts editorless source deltas without managed cache or Git writes.");
-        var before = source.SealCurrent();
-        string state = source.StateHash(projectedFiles);
-        var live = source.LiveRanges(projectedFiles);
-        long estimate = source.WalkFrames(live, null, projectedFiles);
-        if (estimate > identity.MaxJournalBytes)
-            throw new WorkspaceException("DeltaFull", "The sealed candidate exceeds the source's journal budget.");
-        Directory.CreateDirectory(destination);
-        using (var file = new FileStream(Path.Combine(destination, "identity.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None))
-        { JsonSerializer.Serialize(file, identity); file.Flush(true); }
-        source.WriteCompactedCandidate(Path.Combine(destination, "delta.journal"), before, live, estimate, new CompactionCostBuilder(), projectedFiles);
-        boundary?.Invoke("candidate-flushed");
-        using var check = new JournalDeltaStore(destination, identity, snapshot, "delta.journal", true);
-        if (check.StateHash() != state) throw new WorkspaceException("CandidateStateMismatch", "Preserve both generations; candidate replay differs.");
-        var result = new ValidationCandidate(2, id, identity, before, check.SealCurrent(), DateTimeOffset.UtcNow,
-            Stopwatch.GetTimestamp() - started, Stopwatch.Frequency, projection);
-        string pending = Path.Combine(destination, "candidate.json.new");
-        using (var file = new FileStream(pending, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-        { JsonSerializer.Serialize(file, result); file.Flush(true); }
-        boundary?.Invoke("receipt-flushed");
-        AtomicFilePublication.Publish(pending, Path.Combine(destination, "candidate.json"));
-        return result;
+        return PublishCandidate(sourceDirectory, identity, snapshot, destination, new(1, id), forbiddenTopLevel, projection, boundary);
     }
 
     internal static JournalDeltaStore OpenCandidate(string directory, ISnapshotTree snapshot, out ValidationCandidate candidate)

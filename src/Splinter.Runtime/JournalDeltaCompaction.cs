@@ -275,7 +275,7 @@ public sealed partial class JournalDeltaStore
             throw new WorkspaceException("CompactionGenerationMismatch", "The original journal changed during compaction.");
     }
 
-    private long WalkFrames(List<LiveRange> live, FileStream? output, IReadOnlySet<string>? projectedFiles = null)
+    private long WalkFrames(List<LiveRange> live, Stream? output, IReadOnlySet<string>? projectedFiles = null)
     {
         long cursor = 0, total = 0;
         int liveIndex = 0;
@@ -365,7 +365,7 @@ public sealed partial class JournalDeltaStore
         return new(compacted, encoded, slices.ToArray(), slices.Sum(s => s.Length));
     }
 
-    private void WriteFrame(FileStream output, CompactionFrame frame)
+    private void WriteFrame(Stream output, CompactionFrame frame)
     {
         Span<byte> header = stackalloc byte[8];
         BinaryPrimitives.WriteInt32LittleEndian(header, frame.Metadata.Length);

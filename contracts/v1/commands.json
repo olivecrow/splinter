@@ -9,7 +9,7 @@
       "inputSchema": "urn:splinter:v1:snapshot-spike-request",
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-experimental-mount-git-and-editor",
-      "retry": "same-persisted-overlay-and-git-receipts; inspect-uncertain-intents"
+      "retry": "same-persisted-overlay-and-git-receipts; candidate-export requires stable publication requestKey and same frozen-source intent; inspect-uncertain-intents"
     },
     {
       "id": "capabilities",

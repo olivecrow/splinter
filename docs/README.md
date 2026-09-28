@@ -11,7 +11,7 @@
 | [Unity 알파 작업공간](alpha-workspaces.md) | 여러 차례 편집·검증·재개·통합과 Editor 수명 |
 | [저장소와 자원](storage-and-resources.md) | 선택적 ReFS 기준본·프로세스 그룹·자원 관측 |
 | [소스 검증](source-verification.md) | 변경 경로·hash cache·status freshness·현재 계측 형식 |
-| [불변 후보와 검증 view](validation-view.md) | 개발용 후보 게시·검증된 Git 포인터 분리·고정 view·공통 Library |
+| [불변 후보와 검증 view](validation-view.md) | 개발용 후보 게시·같은 요청 중단 복구·검증된 Git 포인터 분리·고정 view·공통 Library |
 | [검증 후보 수명주기](validation-workflow.md) | 제품 연결 전 공통 계약·지속 상태·fake 적합성, 실제 adapter 미연결 |
 | [Unity 미리보기](unity-render-qualification.md) | fixture의 요청별 PNG·픽셀·해시·실패/복구 조건 |
 | [Snapshot overlay 시험](snapshot-overlay.md) | 개발용 준비·mount·파일 API·장애·결과·회수 스크립트 |

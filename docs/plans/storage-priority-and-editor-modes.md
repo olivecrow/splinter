@@ -29,7 +29,7 @@
 
 - [등록 증거가 있는 관리 파일 분리](../validation-view.md#등록-증거가-있는-관리-파일-분리)를 제품 provider에 연결한다. 개발용 `candidate-source-export`의 실제 Git/합성 적합성은 VSS/WinFsp/Unity 게시 실행이나 제품 연결의 통과가 아니다. 기존 `ExportCandidate`의 `.git` 거부와 사용자 파일 보호는 유지한다.
 - 독립적으로 생성된 A/B의 snapshot과 공통 cache의 identity·소유권·공동 수명을 설계한다. 현재 다른 snapshot·view·partition·예산의 cache 재사용은 거부한다. 원본 기준 재작성·최초 전체 복제·읽기 hydration은 도입하지 않는다.
-- 실제 writer fencing·현재 owner 관측·영수증 재조정·독립 결과 검증을 adapter에 연결하고, 기존 제품 snapshot 회수가 새 후보·소스 세대의 의존성을 확인하게 한다. 개발용 게시의 중단 디렉터리/미게시 영수증을 지우지 않고 같은 요청·고정 source seal로 재조정하는 경계도 필요하다. fake 영수증이나 Runtime 잠금을 OS 자원 보존 증거로 대신하지 않는다.
+- 실제 writer fencing·현재 owner 관측·영수증 재조정·독립 결과 검증을 adapter에 연결하고, 기존 제품 snapshot 회수가 새 후보·소스 세대의 의존성을 확인하게 한다. [개발용 게시 복구](../validation-view.md#같은-요청의-게시-복구)의 고정 요청/원본 seal·부분 저널/receipt 재조정을 공통 operation·owner generation과 연결하고 실제 프로세스 강제 종료 경계를 검증해야 한다. fake 영수증이나 Runtime 잠금을 OS 자원 보존 증거로 대신하지 않는다.
 - 최종 후보의 작은 실제 A/B/A에서 정상 stop·mount 부재·같은 경로 재시작, 실제 코드/에셋·결과 독립성·원본/타 작업 보존·소유 자원 회수를 확인한다. 전체 추가 파일 할당과 최고치, replay·준비·재개 시간을 구분한다.
 
 실제 연결 전까지 SF-03 전체 Partial과 제품 provider 연결 NotRun을 유지한다. FIFO/Coordination, 일반 임대 인수, 생성 source 반환 병합, 원본 Editor 공유, 기본 모드 선택, group flush, 대형 PV 재개, NR 전체 시험과 설치·binding·discard·권한 서비스는 별도 후속이다. 현재 계약의 같은 요청 중단·응답 유실·재시작 복구는 계속 유지한다.

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:candidate-export-intent",
+  "type": "object", "additionalProperties": false,
+  "required": ["version", "request", "sourceDirectory", "destination", "identity", "forbiddenTopLevel", "sourceSeal", "stateHash", "journalBytes", "startedAt", "sourceProjection"],
+  "properties": {
+    "version": {"const": 1},
+    "request": {"$ref": "urn:splinter:v1:candidate-export-request"},
+    "sourceDirectory": {"type": "string", "minLength": 1},
+    "destination": {"type": "string", "minLength": 1},
+    "identity": {"$ref": "urn:splinter:v1:validation-candidate#/properties/identity"},
+    "forbiddenTopLevel": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "sourceSeal": {"$ref": "urn:splinter:v1:validation-candidate#/$defs/seal"},
+    "stateHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "journalBytes": {"type": "integer", "minimum": 0},
+    "startedAt": {"type": "string", "format": "date-time"},
+    "sourceProjection": {"anyOf": [{"type": "null"}, {"$ref": "urn:splinter:v1:candidate-source-projection"}]}
+  }
+}

@@ -17,6 +17,8 @@ Core의 `IValidationWorkflowProvider`는 플랫폼 중립 port다. Runtime은 �
 
 관리 경로 분리는 `source-only-v1`을 확인한 provider만 허용한다. [개발용 `candidate-source-export`](validation-view.md#등록-증거가-있는-관리-파일-분리)는 실제 등록 증거가 있는 포인터만 별도 후보에서 분리한다. 기존 `candidate-export`의 `.git` 거부를 완화하지 않으며 이 도구가 현재 공통 workflow provider로 연결된 것은 아니다. cache의 원래 snapshot·view·설정이 다르면 재사용을 거부하고 원본 전체 복제나 기준 재작성으로 대체하지 않는다.
 
+개발용 Runtime의 [같은 요청 게시 복구](validation-view.md#같은-요청의-게시-복구)는 고정 source seal의 부분 저널·완전한 후보/receipt를 재조정한다. 공통 workflow의 operation/owner generation을 이 intent와 결합하는 adapter, 실제 자원 fencing과 현재 owner 재확인은 남아 있다. 개발용 잠금과 prefix 확인을 이 provider 계약의 완료로 간주하지 않는다.
+
 ## 요청과 응답
 
 `ValidationWorkflowRequest`는 현재 `version=1`, operation, project ID, 안정된 request key, owner를 요구한다. ID는 경로가 아닌 1~128자의 영문·숫자·`._:-` 식별자다. 각 operation은 아래 payload만 받으며 같은 request key의 다른 입력은 거부한다.
