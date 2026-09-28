@@ -72,7 +72,7 @@ flowchart LR
 
 Host는 CLI 프로세스의 읽기 전용 라이브러리다. 변경 작업은 별도 Runtime이 Core ports를 통해 어댑터에 위임한다. daemon·SQLite는 없다. Runtime은 CLI가 종료되어도 남는 `workspace.json`, intent/event 기록과 프로세스 간 파일 잠금을 사용하며, Unity 어댑터는 작업별 파일 IPC를 사용한다. 어댑터 객체는 CLI에서 조립한다. 선택적 persistent Host/DB 전환과 현재 구현을 구별한다.
 
-Runtime의 `AtomicFilePublication`은 같은 디렉터리에서 flush한 임시 파일을 기존 상태에는 `File.Replace`, 최초 게시에는 덮어쓰기 없는 `File.Move`로 발행한다. workspace/baseline 저장과 Windows provider 제어 IPC가 사용하며 polling reader는 `FileShare.Delete`를 허용한다. VSS helper의 영수증도 같은 방식을 쓴다. Windows IPC의 일시적 공유 오류는 같은 임시 파일로 최대 1초 재시도하며 지속 실패는 남은 파일을 보존한다. 목적 파일 선삭제나 속성 변경으로 우회하지 않는다. 이는 제어 파일 게시 방식이며 저널 flush 정책을 변경하지 않는다.
+Runtime의 `AtomicFilePublication`은 같은 디렉터리에서 flush한 임시 파일을 기존 상태에는 `File.Replace`, 최초 게시에는 덮어쓰기 없는 `File.Move`로 발행한다. workspace/baseline 저장과 Windows provider 제어 IPC가 사용하며 polling reader는 `FileShare.Delete`를 허용한다. VSS helper의 영수증도 같은 방식을 쓴다. Windows IPC의 게시 공유 오류는 같은 임시 파일로 최대 1초 재시도하며 지속 실패는 남은 파일을 보존한다. Windows 관측 reader도 교체 중 일시적 부재/공유 오류에서 경로 guard와 open을 최대 1초 재시도한다. 선택적 stop/flush/source 요청 polling의 부재는 즉시 반환하며 손상 JSON·접근 거부·소유권 불일치는 숨기지 않는다. 목적 파일 선삭제나 속성 변경으로 우회하지 않는다. 이는 제어 파일 게시/읽기 방식이며 저널 flush 정책을 변경하지 않는다.
 
 제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. 작은 Editor 브리지 소스를 소유 작업공간의 `Assets/__Splinter__`에 넣으며 원본이나 결과 커밋에는 포함하지 않는다. 비Git·비Unity fake로 Runtime의 기준본·수명주기·검증·프로세스 회수 경계를 시험한다. 각 대화가 workspace CLI를 직접 사용하는 데 별도 조정 AI는 필요하지 않다. 프로젝트용/전역용 설치, 필요성 자동 판단, Codex 대화/파일 경로의 자동 binding, 반영 없는 명시적 discard는 미구현이며 [대화별 계획](plans/session-workflow-and-installation.md)에 있다. 전체 DAG 실행과 agent runner는 선택적 후속이다. 범용 저장소 지원표·장애 복구 적합성도 아직 미완료다.
 

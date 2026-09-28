@@ -43,6 +43,8 @@ A/B/A 전환은 A stop → B select/start → B stop → A의 새 select/start�
 
 같은 VSS의 실행 중 provider들은 검증된 read access와 OS read fence를 공유한다. 재연결이 새 검증 proof를 요구할 때 다른 provider가 읽고 있으면 `SnapshotReadersActive`로 기존 proof를 보존한다. 해당 snapshot을 사용하는 worker/view를 정상 stop/unmount한 뒤 같은 명령을 재시도한다. 한 provider의 재연결이 다른 Editor의 읽기 근거를 바꾸지 않으며, 종료된 프로세스의 fence는 OS가 해제한다.
 
+Windows provider 상태의 게시/읽기 경합은 [NTFS 제어 파일 reader](ntfs-workspaces.md)의 최대 1초 복구를 따른다. 지속 공유 오류·손상·소유권 불일치는 상태와 저널을 보존하고 실패한다. 원인을 해결한 뒤 같은 owner/request를 재호출하며 `prepare-worker`의 seal·정상 unmount·소유권 조건을 생략하지 않는다.
+
 검증 요청 후 source가 변하면 `ValidationSourceChanged`다. 현재 세대를 다시 start/refresh/stop하여 새 증거를 받는다. bridge·Library 등 관리 경로는 source sequence에서 제외하며 unknown 자원은 0으로 읽지 않는다. 실패한 검증 출력도 독립 결과로 보존할 수 있다.
 
 렌더·에셋 확인이 `ProjectSettings`를 생성하거나 reload·종료 때 저장할 수 있다. 이 경우 준비 Editor를 정상 stop하고 mount 부재를 확인한 뒤 같은 세대를 다시 시작하여 최종 `refresh`를 요청한다. 검증 뒤에는 소스를 쓰는 준비 작업을 다시 실행하지 않는다. 설정 파일을 일반 소스 변경 검사에서 제외하거나, 검증 이후의 쓰기를 성공으로 승계하지 않는다. 이 추가 stop/restart도 준비·검증 비용에 포함한다.

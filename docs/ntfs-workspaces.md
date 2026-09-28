@@ -91,6 +91,8 @@ provider의 `state.json`도 검증된 접근 관측을 사용하며 관측 불�
 
 provider 제어 JSON과 workspace 상태는 같은 디렉터리의 임시 파일을 완성·flush한 뒤 기존 파일을 `File.Replace`로 교체한다. 최초 게시만 덮어쓰기 없는 move를 사용하고 독자는 delete sharing을 허용한다. VSS 영수증도 같은 방식이다. Windows provider IPC는 일시적 공유 오류 32/33/1175에서 같은 임시 파일로 최대 1초 재시도한다. 읽기 전용 속성 변경·목적 파일 선삭제·내용 덮어쓰기는 하지 않는다. 지속 실패의 임시 파일은 보존하고 내부 `state.json`에 `errorHResult`, `errorStackTrace`, `publicationPath`, `publicationTemporaryPath`를 남긴다. 외부 workspace 응답 schema나 저널 flush/seal 계약은 바뀌지 않는다. [재현·회귀 증거](verification/storage-recovery.md)를 따른다.
 
+Windows 제어 파일 reader는 `File.Exists`로 읽기 가능 여부를 판정하지 않고 경로 guard와 공유 삭제를 허용하는 open을 수행한다. 교체 중의 파일/디렉터리 부재와 공유 오류 32/33에는 단조 시간 기준 최대 1초, 최대 25ms 간격으로 같은 경로를 다시 연다. deadline 뒤에도 실제 부재이면 기존 missing 계약을 반환하며 지속 공유 오류는 예외로 남긴다. 파일 부재는 자원 0의 증거가 아니며 caller의 launch/owner·mount 검사가 계속 필요하다. 매번 경로 guard를 적용하고 JSON 손상·접근 거부·reparse·owner 불일치는 재시도로 덮지 않는다. provider의 선택적 stop/flush/source 요청은 없을 때 다음 poll에서 다시 읽으므로 부재 대기를 생략한다. [IPC 경합 근거](verification/control-file-read-races.md)는 실제 Windows 파일 시험과 합성 client 시험을 구분한다.
+
 손상된 workspace JSON은 `StateCorrupt`, 기존 control/workspace 경로 옆의 누락된 JSON은 `StateRecoveryRequired`, 읽을 수 없는 JSON은 `StateReadUnavailable`이다. 같은 key로 새 작업을 만들지 않는다. 상태 기록 실패는 `StateWriteIncomplete`이며 이전 기록과 임시 파일을 보존한다. 작업 실패 기록마저 저장할 수 없으면 원래 오류 코드를 details에 포함한다. 이 계약은 파일 잠금·중단된 임시 파일로 검증했고 실제 디스크 고갈/전원 중단 검증은 남아 있다.
 
 ## 살아 있는 VSS 식별과 읽기 위치

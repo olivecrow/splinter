@@ -132,10 +132,36 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
         }
         return Path.Combine(target, names[0]);
     }
-    internal static async Task<T?> ReadAsync<T>(string path, CancellationToken ct = default)
+    internal static async Task<T?> ReadAsync<T>(string path, CancellationToken ct = default, bool waitForPublication = true)
     {
-        CheckPath(path); if (!File.Exists(path)) return default;
-        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        long started = Stopwatch.GetTimestamp();
+        FileStream stream;
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                // Both the path guard and Open can race Replace on Windows.
+                // File.Exists also hides sharing/access failures as absence.
+                CheckPath(path);
+                stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                break;
+            }
+            catch (IOException ex) when (ex is FileNotFoundException or DirectoryNotFoundException ||
+                OperatingSystem.IsWindows() && (ex.HResult & 0xffff) is 32 or 33)
+            {
+                bool missing = ex is FileNotFoundException or DirectoryNotFoundException;
+                TimeSpan remaining = TimeSpan.FromSeconds(1) - Stopwatch.GetElapsedTime(started);
+                // Only repeatable request polling can treat a missing file as
+                // "no request yet" immediately. Observation/ownership readers
+                // must allow an in-flight publication to become visible first.
+                if (missing && (!waitForPublication || !OperatingSystem.IsWindows() || remaining <= TimeSpan.Zero)) return default;
+                if (remaining <= TimeSpan.Zero) throw;
+                await Task.Delay(remaining < TimeSpan.FromMilliseconds(25) ? remaining : TimeSpan.FromMilliseconds(25), ct);
+            }
+        }
+        await using var ownedStream = stream;
+        // A complete but invalid receipt is corruption, not a publication race.
         return await JsonSerializer.DeserializeAsync<T>(stream, Json, ct);
     }
     internal static void CheckPath(string path)

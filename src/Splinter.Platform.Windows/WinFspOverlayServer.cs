@@ -105,7 +105,7 @@ public static class WinFspOverlayServer
                         validationView = (store as ValidationViewDeltaStore)?.ObservePartitions(),
                         preparation = new { storeReadyTicks, stopwatchFrequency = Stopwatch.Frequency }
                     });
-                    var stop = await WindowsProcessWorkspaceProvider.ReadAsync<StopRequest>(Path.Combine(request.ControlPath, "stop.json"));
+                    var stop = await WindowsProcessWorkspaceProvider.ReadAsync<StopRequest>(Path.Combine(request.ControlPath, "stop.json"), waitForPublication: false);
                     if (stop?.Token == request.Token)
                     {
                         if (fileSystem.OpenHandles == 0) { store.Flush(); break; }
@@ -114,7 +114,7 @@ public static class WinFspOverlayServer
                         await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "stop-blocked.json"),
                             new { request.Token, error = "OverlayHandlesRemain", openHandles = fileSystem.OpenHandles, observedAt = DateTimeOffset.UtcNow });
                     }
-                    var flush = await WindowsProcessWorkspaceProvider.ReadAsync<FlushRequest>(Path.Combine(request.ControlPath, "flush.json"));
+                    var flush = await WindowsProcessWorkspaceProvider.ReadAsync<FlushRequest>(Path.Combine(request.ControlPath, "flush.json"), waitForPublication: false);
                     if (flush?.Token == request.Token && flush.RequestId != lastFlushRequest)
                     {
                         store.Flush();
@@ -122,7 +122,7 @@ public static class WinFspOverlayServer
                             new { request.Token, flush.RequestId, observedAt = DateTimeOffset.UtcNow, storage = store.Observe() });
                         lastFlushRequest = flush.RequestId;
                     }
-                    var sourceQuery = await WindowsProcessWorkspaceProvider.ReadAsync<SourceChangeRequest>(Path.Combine(request.ControlPath, "source-query.json"));
+                    var sourceQuery = await WindowsProcessWorkspaceProvider.ReadAsync<SourceChangeRequest>(Path.Combine(request.ControlPath, "source-query.json"), waitForPublication: false);
                     if (sourceQuery?.Token == request.Token && sourceQuery.RequestId != lastSourceRequest)
                     {
                         SourceChangeView? view = null;

@@ -41,7 +41,17 @@ SF-03 전체는 Partial이다. FIFO/Coordination, 일반 임대 인수, 생성 s
 
 [WF-06~08](../verification/product-validation-cold-cost.md)은 최종 후보의 두 빈 cache A/B/A·소유 파일 할당/시간·독립 결과/회수 근거를 제공한다. 렌더 준비에서 발생하는 설정 저장을 마친 뒤 같은 세대를 다시 시작해 검증하므로 이 추가 Editor 시작/종료도 반복 비용에 포함한다. 첫 두 시도의 실패와 관측 사이 순간 물리 최고치·공유 VSS 귀속의 한계를 유지한다.
 
-남은 우선순위는 Library 유효 데이터의 절대량과 재증가, 일반 파일/에셋·중단 경계의 보존, 같은 입력의 신규/재개/반복 비용이다. t2의 첫 Editor 시작 전 정상 unmount 직후 상태 읽기 실패는 같은 준비 요청 재시도로 복구됐지만 정확한 원인은 미확정이며, 무오류 준비 경로는 후속 검증이 필요하다. 기본 모드 판단에는 이 근거가 더 필요하며 작은 fixture 통과를 대형 공간 목표 달성으로 확대하지 않는다. 일반 임대 복구·source 반환 병합·큐/Coordination, 새 저장소 backend·flush 정책 변경, NR 전체 장애 시험, 설치·binding·discard·권한 서비스와 대형 PV 재개는 별도 범위다.
+남은 우선순위는 Library 유효 데이터의 절대량과 재증가, 일반 파일/에셋·중단 경계의 보존, 같은 입력의 신규/재개/반복 비용이다. t2의 첫 Editor 시작 전 정상 unmount 직후 상태 읽기 실패와 연결되는 Windows 파일 경합은 [IPC 검증](../verification/control-file-read-races.md)에서 재현·보완했다. 과거 한 건의 정확한 발생 지점과 새 후보의 실제 준비 경로 재자격은 후속 검증으로 남는다. 기본 모드 판단에는 이 근거가 더 필요하며 작은 fixture 통과를 대형 공간 목표 달성으로 확대하지 않는다. 일반 임대 복구·source 반환 병합·큐/Coordination, 새 저장소 backend·flush 정책 변경, NR 전체 장애 시험, 설치·binding·discard·권한 서비스와 대형 PV 재개는 별도 범위다.
+
+## 이번 범위: Windows IPC 상태 읽기 경합
+
+WF-06~08의 t2에서 정상 unmount 직후 `state.json` 읽기가 `InputUnavailable`로 실패했고 같은 `prepare-worker` 요청으로 복구됐다. 다음 작업은 이 관측과 연결되는 Windows 제어 파일의 게시/읽기 경계를 검증한다. 기존 후보 `62a84c4`를 기준으로 하며 정확한 과거 발생 원인은 재현 근거 없이 확정하지 않는다.
+
+- IPC-01: 수정 전 실제 Windows의 동시 `File.Replace` 게시와 제품 reader로 경합을 실행한다. 예외의 HRESULT·stack·파일 상태와 성공/실패 횟수를 보존하고 기존 t2 기록과 일치하는 부분과 미확정 부분을 구분한다.
+- IPC-02: 관측된 일시적 읽기 경합만 유한 시간·취소 가능한 복구로 처리한다. JSON 손상·접근 거부·reparse·다른 owner는 보존 후 거부하며, 읽기 실패를 자원 0 또는 회수 성공으로 바꾸지 않는다. 같은 버전/요청 계약, 게시 방식과 저널 flush 정책을 유지한다.
+- IPC-03: 실제 Windows 동시 게시/읽기, 정상 종료 상태 관측과 같은 요청 재호출, 지속 실패·취소·손상·소유권 경계를 회귀 시험한다. 전체 locked restore/Release 빌드·자동 시험과 문서 UTF-8 검사를 통과하고 소스/바이너리/원시 근거를 연결한다.
+
+완료 판정은 위 IPC 경계에 한정한다. 작은 합성 상태의 client 시험과 실제 WinFsp/VSS/Unity 실행을 구분하며 이번에는 새 cold A/B/A, 실제 `prepare-worker` 재자격, Library 절감, 대형 PV, 일반 NR 장애·ARM·권한 서비스를 포함하지 않는다. 이전 WF 후보의 실행 결과는 새 후보로 승계하지 않는다.
 
 ## 공통 저장소와 Editor 정책
 

@@ -167,6 +167,16 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 
 최종 locked restore·Release 빌드와 자동 시험은 515 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped다. [최종 TRX](../../artifacts/storage-foundation/wf-cold-20260928/final-candidate.trx)와 [최종 후보 manifest](../../artifacts/storage-foundation/wf-cold-20260928/final-candidate-manifest.json)를 보존한다.
 
+## Windows IPC 상태 읽기 경합
+
+[확정 범위와 완료 조건](storage-priority-and-editor-modes.md#이번-범위-windows-ipc-상태-읽기-경합)을 **scoped-complete-with-limitations**로 판정한다. [실행 근거](../verification/control-file-read-races.md)에 따르며 WF의 실제 cold 반복이나 공개 48개 시나리오의 추가 통과로 집계하지 않는다.
+
+| ID | 검증 대상 | 상태 |
+| --- | --- | --- |
+| IPC-01 | 수정 전 Windows 동시 게시/읽기 재현과 과거 실패 비교 | Passed, 3,000회 게시에서 guard/open의 부재·공유 오류 재현. 과거 t2의 정확한 발생 지점은 미확정 |
+| IPC-02 | 유한 읽기 복구와 지속 실패·취소·손상·소유권 보존 | Passed, 최대 1초 guard/open 재시도·선택적 요청 polling·추가 회귀 12개 |
+| IPC-03 | 수정 후 실제 Windows 경합·합성 종료 관측/같은 요청·전체 빌드 | Passed, 3,000회 게시/22,831회 읽기의 예외·null·손상 0. 전체 527 Passed/0 Failed/1 Skipped. 실제 WinFsp/VSS/Unity 재자격은 NotRun |
+
 ## 제품화와 비용 관문
 
 - SF-02/03은 Partial, SF-04~06은 NotRun이다. 완료 기준은 [저장공간·Editor 계획](storage-priority-and-editor-modes.md)을 따른다.

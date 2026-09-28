@@ -39,6 +39,7 @@
 | [공통 Library A/B/A](immutable-validation-view.md), [준비와 replay](validation-view-readiness-and-replay.md) | 불변 후보와 검증 세대의 분리, 정상 stop/remount/restart 비용·최초 import 제한 |
 | [제품 validation workflow](product-validation-workflow.md) | 실제 CLI 연결, 서로 다른 VSS와 한 view/cache, 코드·에셋·PNG·세대 분리, CLI 중단 복구, 독립 결과와 VHD 분리 후 검증 |
 | [새 cache 반복과 전체 비용](product-validation-cold-cost.md) | 최종 후보의 두 빈 cache A/B/A, 2분 정상 종료 대기, 준비/검증 재시작 비용, 원시 응답 schema·실패 포함 할당·16개 독립 결과·소유 자원 회수 |
+| [제어 파일 읽기 경합](control-file-read-races.md) | Windows 동시 Replace/guard/open의 부재·공유 오류, 유한 읽기 복구와 지속 실패·손상·owner 보존. 실제 WinFsp/VSS/Unity 재자격과 구분 |
 | [Replay index](replay-index-cost.md), [실제 Unity 비교](unity-replay-comparison.md), [범위 index](cumulative-write-range-index.md) | 고정 입력·후보 hash·단계별 replay와 실제 Editor 비용을 비교하는 기준 |
 | [Live 쓰기](live-journal-write-cost.md) | flush 내부 비용, callback 직렬화·대기/완료 경계와 향후 내구성 판단 |
 | [첫 미리보기](first-render-qualification.md) | 첫 draw 미확정 원인, cold/reload/재시작과 실패 주입, PNG 해시 기반 판독 기준 |
