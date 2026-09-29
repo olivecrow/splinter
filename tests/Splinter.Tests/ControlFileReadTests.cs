@@ -5,6 +5,10 @@ using Splinter.Platform.Windows;
 
 namespace Splinter.Tests;
 
+[CollectionDefinition("Windows control-file timing", DisableParallelization = true)]
+public sealed class ControlFileTimingCollection;
+
+[Collection("Windows control-file timing")]
 public sealed class ControlFileReadTests
 {
     [Fact]

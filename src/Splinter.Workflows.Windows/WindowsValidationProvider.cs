@@ -36,9 +36,10 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
     {
         var binding = Required<ViewBinding>(ViewPath(id));
         string cache = WorkspaceStore.Key(ProjectId + ":cache:" + id);
+        var worker = Worker(binding.CacheWorkerId); var workspace = Workspace(binding.CacheWorkerId);
         Require(binding.ProjectId == ProjectId && binding.Cache.ViewId == id && binding.Cache.CacheId == cache &&
-            binding.Cache.Snapshot.Provider == "validation-empty-cache" &&
-            WorkspaceStore.SamePath(binding.Cache.Snapshot.RootPath, CachePath(cache)) &&
+            binding.Cache.SnapshotBacked && binding.Cache.Snapshot == workspace.Snapshot!.Reference &&
+            binding.Cache.CompatibilityKey == worker.CompatibilityKey &&
             WorkspaceStore.SamePath(binding.MountPath, Path.Combine(store.Root, "validation-mounts", WorkspaceStore.Key(ProjectId + ":" + id))),
             "ValidationReceiptMismatch", "View/cache binding paths or identity differ from their owned location.");
         return binding;
@@ -63,7 +64,11 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
             g.Request.ValidationView is { } selected &&
             selected.CacheTopLevel.SequenceEqual(CacheRoots) && selected.CacheIdentity is { } cacheIdentity &&
             cacheIdentity.Id == view.Cache.CacheId && cacheIdentity.Snapshot == view.Cache.Snapshot &&
-            cacheIdentity.MaxJournalBytes == view.Cache.MaxJournalBytes && cacheIdentity.ExcludedTopLevel.SequenceEqual(CacheRoots) &&
+            selected.CacheBasis == "snapshot" && cacheIdentity.MaxJournalBytes == view.Cache.MaxJournalBytes &&
+            cacheIdentity.ExcludedTopLevel is { Length: 0 } && (cacheIdentity.IncludedTopLevel ?? []).SequenceEqual(CacheRoots) &&
+            g.Request.CacheSnapshot is { } cacheRead && cacheRead.OwnerId == view.CacheWorkerId &&
+            WorkspaceStore.SamePath(cacheRead.ReceiptDirectory, Path.Combine(store.ControlPath(view.CacheWorkerId), "snapshot")) &&
+            cacheRead.ReadAccess.SnapshotId == view.Cache.Snapshot.Id &&
             WorkspaceStore.SamePath(selected.CandidatePath, CandidatePath(intent.Candidate.Intent.CandidateId)) &&
             WorkspaceStore.SamePath(selected.CacheDeltaPath, CachePath(view.Cache.CacheId)),
             "ValidationReceiptMismatch", "Generation state cannot redirect owned processes, source, snapshot or cache paths.");
@@ -194,7 +199,7 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
         bool alive = observed.GetProperty("processAlive").GetBoolean(), mounted = Directory.Exists(g.Workspace.Path);
         bool owned = observed.GetProperty("ownershipVerified").GetBoolean();
         int? handles = alive ? observed.TryGetProperty("state", out var state) && state.TryGetProperty("openHandles", out var count) ? count.GetInt32() : null : owned && !mounted ? 0 : null;
-        var health = await SnapshotProvider(g.WorkerId).ObserveAsync(g.Request.Identity.Snapshot, ct);
+        var health = await WinFspOverlayClient.ObserveSnapshotAsync(g.Request, ct);
         // Actual lease observation supplies provider memory when it is alive.
         OverlayMount? current = g.Workspace.Snapshot!.Mount;
         if (alive && observed.TryGetProperty("state", out var liveState))
@@ -213,6 +218,7 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
     internal WinFspOverlayMountProvider MountProvider(ViewGeneration g) => new(Path.Combine(g.Request.ControlPath, "request.json"), Runner);
     public async Task<ValidationSelectionReceipt?> FindSelectionAsync(ValidationSelectionIntent intent, CancellationToken ct)
     {
+        RequireCacheReady(intent.Cache.ViewId);
         var g = Read<ViewGeneration>(Path.Combine(GenerationPath(intent.GenerationId), "generation.json"));
         if (g is null) return null;
         Require(g.Selection.Intent == intent, "ValidationReceiptMismatch", "Source generation belongs to another selection.");
@@ -224,6 +230,7 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
     }
     public async Task<ValidationSelectionReceipt> SelectAsync(ValidationSelectionIntent intent, CancellationToken ct)
     {
+        RequireCacheReady(intent.Cache.ViewId);
         var view = View(intent.Cache.ViewId);
         Require(!view.Closed && view.Cache == intent.Cache && view.Owner == intent.Owner, "ValidationCacheMismatch", "Keep the bound open view and cache identity.");
         var worker = Worker(intent.Candidate.Intent.Worker.WorkspaceId);
@@ -233,12 +240,17 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
         var access = await SnapshotProvider(worker.WorkspaceId).ResolveReadAccessAsync(basis.Snapshot, null, ct);
         string control = GenerationPath(intent.GenerationId), delta = Path.Combine(control, "source");
         var identity = new OverlayIdentity(1, intent.GenerationId, basis.Snapshot, intent.Cache.MaxJournalBytes, 1024 * 1024, [".git"]);
-        var cacheIdentity = new OverlayIdentity(1, intent.Cache.CacheId, intent.Cache.Snapshot, intent.Cache.MaxJournalBytes, 1024 * 1024, CacheRoots);
-        var selection = new ValidationViewSelection(CandidatePath(intent.Candidate.Intent.CandidateId), CachePath(intent.Cache.CacheId), CacheRoots, cacheIdentity);
-        using (var initialize = new ValidationViewDeltaStore(delta, identity, basis, selection)) { initialize.Flush(); }
+        var cacheIdentity = CacheIdentity(view.Cache);
+        var cacheAccess = view.CacheWorkerId == worker.WorkspaceId && view.Cache.Snapshot == basis.Snapshot ? access
+            : await SnapshotProvider(view.CacheWorkerId).ResolveReadAccessAsync(view.Cache.Snapshot, null, ct);
+        using var cacheLease = SnapshotProvider(view.CacheWorkerId).AcquireReadLease();
+        using var cacheBasis = new VssSnapshotTree(view.Cache.Snapshot, cacheAccess);
+        var selection = new ValidationViewSelection(CandidatePath(intent.Candidate.Intent.CandidateId), CachePath(intent.Cache.CacheId), CacheRoots, cacheIdentity, "snapshot");
+        using (var initialize = new ValidationViewDeltaStore(delta, identity, basis, selection, cacheBasis: cacheBasis)) { initialize.Flush(); }
         var request = new OverlayServeRequest(identity, delta, view.MountPath, Path.Combine(control, "overlay"),
             Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32)), access,
-            Path.Combine(store.ControlPath(worker.WorkspaceId), "snapshot"), worker.WorkspaceId, selection);
+            Path.Combine(store.ControlPath(worker.WorkspaceId), "snapshot"), worker.WorkspaceId, selection,
+            new(cacheAccess, Path.Combine(store.ControlPath(view.CacheWorkerId), "snapshot"), view.CacheWorkerId));
         var receipt = new ValidationSelectionReceipt(intent, intent.GenerationId);
         var w = new WorkspaceRecord { Id = intent.GenerationId, RequestKey = intent.OperationId, ProjectPath = project,
             Path = view.MountPath, SourceReference = "validation-source", BaseReference = worker.BaseRevision, BaseRevision = worker.BaseRevision,

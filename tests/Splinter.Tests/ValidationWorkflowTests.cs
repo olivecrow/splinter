@@ -32,6 +32,8 @@ public sealed class ValidationWorkflowTests
             new(1, "select", "project", key, ViewOwner) { CandidateId = candidate, Cache = new("view", "cache", Snapshot, "app-version", "cache-partition", 100_000) };
         public ValidationWorkflowRequest Generation(string action, string generation, string key) =>
             new(1, action, "project", key, ViewOwner) { GenerationId = generation };
+        public ValidationWorkflowRequest Close(ValidationCacheIdentity cache, string key = "close-view") =>
+            new(1, "close-view", "project", key, ViewOwner) { Cache = cache };
         public ValidationWorkflowRequest Artifact(string action, string kind, string id, string key) =>
             new(1, action, "project", key, kind == "candidate" ? WorkerOwner : ViewOwner) { Target = new(kind, id) };
         public Task<ValidationWorkflowResponse> Run(ValidationWorkflowRequest request) => Runtime().ExecuteAsync(request, Ct);
@@ -222,17 +224,63 @@ public sealed class ValidationWorkflowTests
         await Error("ValidationGenerationFrozen", () => h.Run(h.Generation("resume", generation, "after-preserve")));
         await h.Run(h.Artifact("release", "source-generation", generation, "release-generated"));
         await h.Run(h.Artifact("release", "candidate", a, "release-a"));
-        Assert.Equal(["candidate:" + b], await h.Runtime().SnapshotDependenciesAsync("project", h.Snapshot, h.Ct));
+        Assert.Equal(["cache:view", "candidate:" + b], await h.Runtime().SnapshotDependenciesAsync("project", h.Snapshot, h.Ct));
         Assert.Equal("A", File.ReadAllText(resultA.Reference));
         Assert.Equal("A|generated:" + generation, File.ReadAllText(generated.Reference));
         Assert.Equal("B", File.ReadAllText(h.Provider.PayloadPath(new("candidate", b))));
         Assert.Equal("A", h.World.Contents["worker-a"]);
         var keptB = (await h.Run(h.Artifact("preserve", "candidate", b, "keep-b"))).Result!;
         await h.Run(h.Artifact("release", "candidate", b, "release-b"));
-        Assert.Empty(await h.Runtime().SnapshotDependenciesAsync("project", h.Snapshot, h.Ct));
+        Assert.Equal(["cache:view"], await h.Runtime().SnapshotDependenciesAsync("project", h.Snapshot, h.Ct));
         Assert.Single((await h.Runtime().InspectAsync("project", h.Ct)).Views); // cache not reclaimed
+        await h.Run(h.Close(h.Select(a).Cache!));
+        Assert.Empty(await h.Runtime().SnapshotDependenciesAsync("project", h.Snapshot, h.Ct));
         h.World.Workers["worker-a"] = h.World.Workers["worker-a"] with { SnapshotAvailable = false };
         await h.Provider.VerifyResultAsync(resultA, h.Ct); await h.Provider.VerifyResultAsync(keptB, h.Ct);
+    }
+
+    [Theory]
+    [InlineData("close-view:intent")]
+    [InlineData("close-view:observed")]
+    [InlineData("lost-response")]
+    public async Task CacheClosureRetainsSnapshotDependencyUntilDurableRecovery(string point)
+    {
+        using var h = new Harness(); string candidate = await h.Published();
+        var selection = await h.Run(h.Select(candidate)); string generation = selection.Selection!.Intent.GenerationId;
+        var close = h.Close(selection.Selection.Intent.Cache);
+        await Error("ValidationDependencyActive", () => h.Run(close));
+        Assert.DoesNotContain("close-view", (await h.Runtime().InspectAsync("project", h.Ct)).Operations.Keys);
+        await h.Run(h.Artifact("preserve", "source-generation", generation, "keep-generation"));
+        await h.Run(h.Artifact("release", "source-generation", generation, "release-generation"));
+        await h.Run(h.Artifact("preserve", "candidate", candidate, "keep-candidate"));
+        await h.Run(h.Artifact("release", "candidate", candidate, "release-candidate"));
+        var provider = h.Provider;
+        if (point == "lost-response") provider.LoseReply = "close-view";
+        await Assert.ThrowsAsync<IOException>(() => h.Runtime(point == "lost-response" ? null : Crash(point), provider).ExecuteAsync(close, h.Ct));
+        Assert.Contains("cache:view", await h.Runtime().SnapshotDependenciesAsync("project", h.Snapshot, h.Ct));
+        var completed = await h.Run(close);
+        Assert.Equal("view", completed.ClosedViewId);
+        Assert.Equal(1, h.World.Effects["close-view"]);
+        Assert.True((await h.Run(close)).Replayed);
+        Assert.Empty(await h.Runtime().SnapshotDependenciesAsync("project", h.Snapshot, h.Ct));
+        var state = await h.Runtime().InspectAsync("project", h.Ct);
+        Assert.True(state.Views["view"].CacheReleased);
+        Assert.True(new ContractCatalog().Validate("urn:splinter:v1:validation-workflow-response", JsonSerializer.SerializeToElement(completed, ApiJson.Options)).IsValid);
+        string another = await h.Published("publish-b", "worker-b");
+        await Error("ValidationCacheMismatch", () => h.Run(h.Select(another, "reopen-closed")));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task PendingSelectionProtectsOnlyItsDeclaredSnapshotCache(bool snapshotBacked)
+    {
+        using var h = new Harness(); string candidate = await h.Published();
+        var cacheSnapshot = h.Snapshot with { Id = "cache-base" };
+        var request = h.Select(candidate) with { Cache = h.Select(candidate).Cache! with { Snapshot = cacheSnapshot, SnapshotBacked = snapshotBacked } };
+        await Assert.ThrowsAsync<IOException>(() => h.Runtime(Crash("select:intent")).ExecuteAsync(request, h.Ct));
+        var dependencies = await h.Runtime().SnapshotDependenciesAsync("project", cacheSnapshot, h.Ct);
+        Assert.Equal(snapshotBacked, dependencies.Length == 1);
     }
 
     [Theory]

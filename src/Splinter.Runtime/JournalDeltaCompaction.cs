@@ -239,6 +239,19 @@ public sealed partial class JournalDeltaStore
     }
 
     private List<LiveRange> LiveRanges() => LiveRanges(null);
+    public ValidationCacheUsage ObservePrivateUsage()
+    {
+        using (EnterGate())
+        {
+            Check();
+            long live = LiveRanges().Sum(range => (long)range.Length);
+            return new(journal.Length, payloadBytes, live, payloadBytes - live, journal.Length - payloadBytes);
+        }
+    }
+    public long EstimateCompactionJournalOverlapBytes()
+    {
+        using (EnterGate()) { Check(); return checked(journal.Length + WalkFrames(LiveRanges(), null)); }
+    }
     private List<LiveRange> LiveRanges(IReadOnlySet<string>? projectedFiles)
     {
         var live = new List<LiveRange>();

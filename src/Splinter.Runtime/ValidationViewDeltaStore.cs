@@ -24,10 +24,16 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
     public ValidationCandidate Candidate => candidate.Candidate;
 
     public static JournalDeltaStore OpenCacheReadOnly(string directory, OverlayIdentity identity) =>
-        JournalDeltaStore.OpenReadOnly(directory, identity, new EmptyCacheTree(identity.Snapshot));
+        identity.Snapshot.Provider == "validation-empty-cache" && identity.IncludedTopLevel is null
+            ? JournalDeltaStore.OpenReadOnly(directory, identity, new EmptyCacheTree(identity.Snapshot))
+            : throw new WorkspaceException("ValidationCacheMismatch", "An exact snapshot basis is required for this cache.");
+
+    public static JournalDeltaStore OpenCacheReadOnly(string directory, OverlayIdentity identity, ISnapshotTree basis) =>
+        JournalDeltaStore.OpenReadOnly(directory, identity,
+            new ValidationCacheSnapshotTree(basis, identity.Snapshot, identity.IncludedTopLevel ?? []));
 
     public ValidationViewDeltaStore(string sourceDirectory, OverlayIdentity identity, ISnapshotTree basis,
-        ValidationViewSelection selection, Action<string>? transferBoundary = null)
+        ValidationViewSelection selection, Action<string>? transferBoundary = null, ISnapshotTree? cacheBasis = null)
     {
         if (selection.CacheTopLevel is not { Length: > 0 } || selection.CacheTopLevel.Any(p =>
                 string.IsNullOrWhiteSpace(p) || JournalDeltaStore.Normalize(p) != p || p.Contains('/')) ||
@@ -46,16 +52,30 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
                     directories[j].StartsWith(directories[i] + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                     throw new WorkspaceException("UnsafePath", "View source, immutable candidate and cache must be disjoint trees.");
         cacheRoots = selection.CacheTopLevel.Order(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (new[] { "compaction-intent.json", "delta.journal.previous", "delta.journal.compacting" }
+            .Any(name => File.Exists(Path.Combine(selection.CacheDeltaPath, name))))
+            throw new WorkspaceException("ValidationCacheMaintenancePending", "Finish this cache's retained compaction before starting a validation view.");
         candidate = new CandidateSnapshotTree(selection.CandidatePath, basis);
         try
         {
             // Partition configuration is in the persisted identity, so it cannot
             // change on reconnect and reclassify previous source as cache.
-            var cacheIdentity = selection.CacheIdentity ?? identity with { Id = identity.Id + "/cache", ExcludedTopLevel = cacheRoots };
-            if (!(cacheIdentity.ExcludedTopLevel ?? []).Order(StringComparer.OrdinalIgnoreCase).SequenceEqual(cacheRoots, StringComparer.OrdinalIgnoreCase))
+            var cacheIdentity = selection.CacheIdentity ?? identity with { Id = identity.Id + "/cache", ExcludedTopLevel = cacheRoots,
+                Snapshot = identity.Snapshot with { Id = identity.Id + "/cache", Provider = "validation-empty-cache",
+                    RootPath = Path.GetFullPath(selection.CacheDeltaPath), Consistency = "empty-owned-cache" } };
+            var partitions = selection.CacheBasis == "snapshot" ? cacheIdentity.IncludedTopLevel : cacheIdentity.ExcludedTopLevel;
+            if (!(partitions ?? []).Order(StringComparer.OrdinalIgnoreCase).SequenceEqual(cacheRoots, StringComparer.OrdinalIgnoreCase) ||
+                selection.CacheBasis == "snapshot" && cacheIdentity.ExcludedTopLevel is { Length: > 0 })
                 throw new WorkspaceException("ValidationCacheMismatch", "The retained cache partition must match the selected view.");
-            cache = new JournalDeltaStore(selection.CacheDeltaPath, cacheIdentity,
-                new EmptyCacheTree(cacheIdentity.Snapshot));
+            ISnapshotTree cacheTree = selection.CacheBasis switch
+            {
+                "snapshot" when cacheBasis is not null && cacheIdentity.Snapshot.Provider != "validation-empty-cache" =>
+                    new ValidationCacheSnapshotTree(cacheBasis, cacheIdentity.Snapshot, cacheRoots),
+                "empty" when cacheBasis is null && cacheIdentity.Snapshot.Provider == "validation-empty-cache" =>
+                    new EmptyCacheTree(cacheIdentity.Snapshot),
+                _ => throw new WorkspaceException("ValidationCacheMismatch", "Select an explicit empty cache or supply the exact retained cache snapshot; never replace a missing base.")
+            };
+            cache = new JournalDeltaStore(selection.CacheDeltaPath, cacheIdentity, cacheTree);
             try
             {
                 source = new JournalDeltaStore(sourceDirectory, identity with {

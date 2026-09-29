@@ -4,6 +4,8 @@
 
 현재 우선순위는 [저장공간·준비·재개 비용](storage-priority-and-editor-modes.md), [NR 지원 관문](ntfs-recovery-and-support.md), [설치·대화 연결·폐기](session-workflow-and-installation.md), [권한 서비스](storage-privilege-service.md)다. 내부 알파 성공은 전체 필수 48개 공개 시나리오의 완료가 아니다.
 
+[Library 수명주기와 WF-09~12 일반 권한 Unity 실행](../verification/product-validation-unelevated.md)은 작은 fixture에서 scoped-complete-with-limitations다. 기존 Library snapshot 재사용·수명 의존성·private 정리·재증가·독립 결과와 회수의 이번 범위를 마감했다. 남은 판단은 대형 입력의 용량 목표·일반 NR 지원·반복 비용과 모드 채택이며, SF-02/03 전체는 Partial이다. 미실행 대형 비교·제품 설치/binding/discard는 각 관문의 NotRun을 유지한다.
+
 ## 2. AI 사용성을 먼저 고정한다
 
 | 원칙 | 구현 결정 | 검증 방법 |

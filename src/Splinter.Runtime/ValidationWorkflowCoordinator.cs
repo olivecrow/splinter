@@ -79,7 +79,7 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
                 Require(!candidate.Released, "ValidationArtifactReleased", "A released candidate cannot be selected.");
                 var cache = request.Cache!;
                 if (state.Views.TryGetValue(cache.ViewId, out var view))
-                    Require(view.Owner == request.Owner && view.Cache == cache, "ValidationCacheMismatch", "Keep the view owner and complete cache identity.");
+                    Require(view.Owner == request.Owner && view.Cache == cache && !view.CacheReleased, "ValidationCacheMismatch", "Keep the open view owner and complete cache identity.");
                 Require(!state.Views.Values.Any(v => v.Cache.CacheId == cache.CacheId && v.Cache.ViewId != cache.ViewId),
                     "ValidationCacheMismatch", "The cache is already owned by another view.");
                 var intent = new ValidationSelectionIntent(op.Id, request.ProjectId, op.Id, request.Owner, cache, candidate.Publication);
@@ -185,6 +185,20 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
                 response = new(1, op.Id, request.Operation, false, Result: result, Released: request.Target);
                 break;
             }
+            case "close-view":
+            {
+                var cache = request.Cache!;
+                Require(state.Views.TryGetValue(cache.ViewId, out var view) && view.Cache == cache && view.Owner == request.Owner,
+                    "ValidationCacheMismatch", "Close only the retained view/cache identity.");
+                Require(!state.Generations.Values.Any(g => g.Selection.Intent.Cache.ViewId == cache.ViewId && !g.Released),
+                    "ValidationDependencyActive", "Preserve and release all source generations before closing their cache.");
+                await QuiescentView(request.ProjectId, cache.ViewId, request.Owner, ct);
+                if (!view!.CacheReleased) await provider.CloseCacheAsync(request.ProjectId, cache, request.Owner, ct);
+                boundary?.Invoke("close-view:observed");
+                state.Views[cache.ViewId] = view with { CacheReleased = true, CurrentGenerationId = null };
+                response = new(1, op.Id, request.Operation, false, ClosedViewId: cache.ViewId);
+                break;
+            }
             default: throw new InvalidOperationException("Request was not validated.");
         }
         state.Operations[request.RequestKey] = op with { Response = response };
@@ -205,12 +219,16 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
         Snapshot(snapshot);
         var references = state.Candidates.Values.Select(c => c.Publication.Intent.Worker.Snapshot)
             .Concat(state.Generations.Values.Select(g => g.Selection.Intent.Candidate.Intent.Worker.Snapshot))
-            .Concat(state.Operations.Values.Where(o => o.Request.Worker is not null).Select(o => o.Request.Worker!.Snapshot));
+            .Concat(state.Operations.Values.Where(o => o.Request.Worker is not null).Select(o => o.Request.Worker!.Snapshot))
+            .Concat(state.Views.Values.Where(v => v.Cache.SnapshotBacked).Select(v => v.Cache.Snapshot))
+            .Concat(state.Operations.Values.Where(o => o.Request.Cache is { SnapshotBacked: true }).Select(o => o.Request.Cache!.Snapshot));
         Require(!references.Any(s => s.Id == snapshot.Id && s != snapshot), "SnapshotIdentityMismatch",
             "A known snapshot ID has a different tuple; an identity mismatch is not an empty dependency set.");
         return state.Candidates.Where(p => !p.Value.Released && p.Value.Publication.Intent.Worker.Snapshot == snapshot).Select(p => "candidate:" + p.Key)
             .Concat(state.Generations.Where(p => !p.Value.Released && p.Value.Selection.Intent.Candidate.Intent.Worker.Snapshot == snapshot).Select(p => "source-generation:" + p.Key))
             .Concat(state.Operations.Values.Where(o => o.Response is null && o.Request.Worker?.Snapshot == snapshot).Select(o => "operation:" + o.Id))
+            .Concat(state.Views.Where(v => !v.Value.CacheReleased && v.Value.Cache.SnapshotBacked && v.Value.Cache.Snapshot == snapshot).Select(v => "cache:" + v.Key))
+            .Concat(state.Operations.Values.Where(o => o.Response is null && o.Request.Cache is { SnapshotBacked: true } cache && cache.Snapshot == snapshot).Select(o => "operation:" + o.Id))
             .Order(StringComparer.Ordinal).ToArray();
     }
 
@@ -244,9 +262,18 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
         }
         else if (request.Cache is { } cache)
         {
+            if (request.Operation == "close-view")
+            {
+                Require(state.Views.TryGetValue(cache.ViewId, out var retained) && retained.Cache == cache && retained.Owner == request.Owner,
+                    "ValidationCacheMismatch", "Close only the retained cache identity.");
+                Require(!state.Generations.Values.Any(g => g.Selection.Intent.Cache.ViewId == cache.ViewId && !g.Released),
+                    "ValidationDependencyActive", "Preserve and release all source generations first.");
+                await QuiescentView(request.ProjectId, cache.ViewId, request.Owner, ct);
+                return;
+            }
             var candidate = Candidate(state, request.CandidateId!);
             Require(!candidate.Released, "ValidationArtifactReleased", "Keep the released candidate's independent result.");
-            Require((!state.Views.TryGetValue(cache.ViewId, out var view) || view.Cache == cache && view.Owner == request.Owner) &&
+            Require((!state.Views.TryGetValue(cache.ViewId, out var view) || view.Cache == cache && view.Owner == request.Owner && !view.CacheReleased) &&
                 !state.Views.Values.Any(v => v.Cache.CacheId == cache.CacheId && v.Cache.ViewId != cache.ViewId),
                 "ValidationCacheMismatch", "The complete cache identity and single-view ownership must match.");
             await QuiescentView(request.ProjectId, cache.ViewId, request.Owner, ct);
@@ -295,7 +322,9 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
     private static string[] Resources(ValidationWorkflowState state, ValidationWorkflowRequest request)
     {
         if (request.Worker is { } worker) return ["worker:" + worker.WorkspaceId, "candidate:" + OperationId(request)];
-        if (request.Cache is { } cache) return ["view:" + cache.ViewId, "cache:" + cache.CacheId, "candidate:" + request.CandidateId];
+        if (request.Cache is { } cache) return request.CandidateId is { } candidate
+            ? ["view:" + cache.ViewId, "cache:" + cache.CacheId, "candidate:" + candidate]
+            : ["view:" + cache.ViewId, "cache:" + cache.CacheId];
         if (request.Target is { Kind: "candidate" } target) return ["candidate:" + target.Id];
         var selection = Generation(state, request.GenerationId ?? request.Target!.Id).Selection.Intent;
         return ["view:" + selection.Cache.ViewId, "cache:" + selection.Cache.CacheId, "candidate:" + selection.Candidate.Intent.CandidateId];

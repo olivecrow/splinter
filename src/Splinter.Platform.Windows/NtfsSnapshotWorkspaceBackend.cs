@@ -191,7 +191,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetFileInformationByHandleEx(SafeFileHandle file, int fileInformationClass,
         out FileStandardInfo info, uint bufferSize);
-    private static long? Allocation(string path)
+    public static long? Allocation(string path)
     {
         if (!File.Exists(path)) return null;
         using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);

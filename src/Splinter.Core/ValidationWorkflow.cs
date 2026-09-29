@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Splinter.Core;
 
 // Provider-neutral contracts. Concrete adapters must fence direct writers as well
@@ -6,7 +8,8 @@ public sealed record ValidationOwner(string Id, long Generation);
 public sealed record ValidationWorkerIdentity(string WorkspaceId, ValidationOwner Owner,
     SnapshotReference Snapshot, SnapshotDeltaSeal SourceSeal);
 public sealed record ValidationCacheIdentity(string ViewId, string CacheId, SnapshotReference Snapshot,
-    string CompatibilityKey, string PartitionKey, long MaxJournalBytes);
+    string CompatibilityKey, string PartitionKey, long MaxJournalBytes,
+    [property: JsonRequired] bool SnapshotBacked = true);
 public sealed record ValidationResources(bool OwnershipVerified, int? Applications, int? Writers,
     int? OpenHandles, bool? Mounted);
 public sealed record ValidationWorkerObservation(ValidationWorkerIdentity Worker,
@@ -52,7 +55,7 @@ public sealed record ValidationReleaseIntent(string OperationId, string ProjectI
 public sealed record ValidationWorkflowResponse(int Version, string OperationId, string Operation,
     bool Replayed, CandidatePublicationReceipt? Candidate = null,
     ValidationSelectionReceipt? Selection = null, CandidateValidationEvidence? Evidence = null,
-    ValidationIndependentResult? Result = null, ValidationTarget? Released = null);
+    ValidationIndependentResult? Result = null, ValidationTarget? Released = null, string? ClosedViewId = null);
 
 public interface IValidationWorkflowProvider
 {
@@ -79,4 +82,8 @@ public interface IValidationWorkflowProvider
     // only the named private artifact after rechecking its frozen seal, current
     // owner and resources; never a shared cache or source snapshot.
     Task ReleaseAsync(ValidationReleaseIntent intent, CancellationToken ct);
+    // Explicit cache closure after all dependent source generations were saved
+    // and released. Return only after positive absence; retry a lost response
+    // through the same owned reclamation receipt. Never release its base here.
+    Task CloseCacheAsync(string projectId, ValidationCacheIdentity cache, ValidationOwner owner, CancellationToken ct);
 }

@@ -11,7 +11,8 @@ public sealed record ValidationGenerationState(ValidationSelectionReceipt Select
     [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] SnapshotDeltaSeal? FrozenSeal,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] ValidationIndependentResult? Result, bool Released);
 public sealed record ValidationViewState(ValidationCacheIdentity Cache, ValidationOwner Owner,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? CurrentGenerationId);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? CurrentGenerationId,
+    [property: JsonRequired] bool CacheReleased = false);
 public sealed record ValidationOperationState(string Id, ValidationWorkflowRequest Request,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] ValidationArtifact? Artifact,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] ValidationWorkflowResponse? Response);
@@ -113,7 +114,8 @@ public sealed class ValidationWorkflowStore(WorkspaceStore workspaces)
                 p.Value.Selection == next.Selection && (!p.Value.Released || next.Released) &&
                 (p.Value.FrozenSeal is null || p.Value.FrozenSeal == next.FrozenSeal) &&
                 (p.Value.Result is null || p.Value.Result == next.Result)) &&
-            before.Views.All(p => after.Views.TryGetValue(p.Key, out var next) && p.Value.Cache == next.Cache && p.Value.Owner == next.Owner);
+            before.Views.All(p => after.Views.TryGetValue(p.Key, out var next) && p.Value.Cache == next.Cache && p.Value.Owner == next.Owner &&
+                (!p.Value.CacheReleased || next.CacheReleased));
         if (!valid) throw new WorkspaceException("ValidationStateCorrupt", "Pending state rewrites existing ownership, intent or preserved output.");
     }
 

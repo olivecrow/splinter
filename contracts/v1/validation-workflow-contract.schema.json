@@ -133,7 +133,8 @@
         "snapshot",
         "compatibilityKey",
         "partitionKey",
-        "maxJournalBytes"
+        "maxJournalBytes",
+        "snapshotBacked"
       ],
       "properties": {
         "viewId": {
@@ -162,6 +163,9 @@
         "maxJournalBytes": {
           "type": "integer",
           "minimum": 4096
+        },
+        "snapshotBacked": {
+          "type": "boolean"
         }
       }
     },
@@ -430,7 +434,8 @@
             "resume",
             "observe-validation",
             "preserve",
-            "release"
+            "release",
+            "close-view"
           ]
         },
         "projectId": {
@@ -651,6 +656,31 @@
               "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
             }
           }
+        },
+        {
+          "required": [
+            "cache"
+          ],
+          "properties": {
+            "operation": {
+              "const": "close-view"
+            },
+            "cache": {
+              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/cache"
+            },
+            "worker": {
+              "type": "null"
+            },
+            "candidateId": {
+              "type": "null"
+            },
+            "generationId": {
+              "type": "null"
+            },
+            "target": {
+              "type": "null"
+            }
+          }
         }
       ]
     },
@@ -678,7 +708,8 @@
             "resume",
             "observe-validation",
             "preserve",
-            "release"
+            "release",
+            "close-view"
           ]
         },
         "replayed": {
@@ -733,6 +764,13 @@
               "type": "null"
             }
           ]
+        },
+        "closedViewId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
         }
       },
       "oneOf": [
@@ -757,6 +795,9 @@
               "type": "null"
             },
             "released": {
+              "type": "null"
+            },
+            "closedViewId": {
               "type": "null"
             }
           }
@@ -783,6 +824,9 @@
             },
             "released": {
               "type": "null"
+            },
+            "closedViewId": {
+              "type": "null"
             }
           }
         },
@@ -807,6 +851,9 @@
               "type": "null"
             },
             "released": {
+              "type": "null"
+            },
+            "closedViewId": {
               "type": "null"
             }
           }
@@ -834,6 +881,9 @@
             },
             "released": {
               "type": "null"
+            },
+            "closedViewId": {
+              "type": "null"
             }
           }
         },
@@ -858,6 +908,9 @@
               "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/result"
             },
             "released": {
+              "type": "null"
+            },
+            "closedViewId": {
               "type": "null"
             }
           }
@@ -885,6 +938,38 @@
             },
             "released": {
               "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+            },
+            "closedViewId": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "closedViewId"
+          ],
+          "properties": {
+            "operation": {
+              "const": "close-view"
+            },
+            "closedViewId": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            "candidate": {
+              "type": "null"
+            },
+            "selection": {
+              "type": "null"
+            },
+            "evidence": {
+              "type": "null"
+            },
+            "result": {
+              "type": "null"
+            },
+            "released": {
+              "type": "null"
             }
           }
         }
@@ -972,7 +1057,8 @@
       "required": [
         "cache",
         "owner",
-        "currentGenerationId"
+        "currentGenerationId",
+        "cacheReleased"
       ],
       "properties": {
         "cache": {
@@ -991,6 +1077,9 @@
               "type": "null"
             }
           ]
+        },
+        "cacheReleased": {
+          "type": "boolean"
         }
       }
     },

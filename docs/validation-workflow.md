@@ -1,6 +1,6 @@
 # 검증 후보의 제품 수명주기
 
-`pwsh ./scripts/splinter.ps1 validation --input <request.json> --home <state-root>`는 기존 NTFS worker의 불변 후보와 단일 Unity 검증 view를 연결한다. 명령 계약은 `schema validation.execute`에서 확인한다. `capabilities.validationWorkflowContract`는 `stage=windows-product`, `cliAvailable=true`, `integratedWorkspaceMode=true`다. 실제 실행 자격은 [검증 추적표](plans/validation-matrix.md)의 해당 후보 증거로 판정한다.
+`pwsh ./scripts/splinter.ps1 validation --input <request.json> --home <state-root>`는 기존 NTFS worker의 불변 후보와 단일 Unity 검증 view를 연결한다. 명령 계약은 `schema validation.execute`에서 확인한다. `capabilities.validationWorkflowContract`는 `stage=windows-product`, `cliAvailable=true`, `integratedWorkspaceMode=true`다. 실제 실행 자격은 [검증 추적표](plans/validation-matrix.md)와 [Library·일반 권한 실행의 제한](verification/product-validation-unelevated.md)에 있는 해당 후보 증거로 판정한다.
 
 `Splinter.Workflows.Windows`는 Runtime coordinator와 Windows VSS/WinFsp, Git, Unity를 조합한다. Core에는 플랫폼 API가 없고 Host는 읽기 전용이다. 직접 worker Editor를 사용하는 기존 `workspace`/`unity` 명령과 선택적으로 함께 쓰며, 기본 모드 자동 선택·큐·Coordination·소유권 자동 인수는 제공하지 않는다.
 
@@ -38,6 +38,7 @@ worker는 `workspace ensure --storage ntfs-snapshot`으로 만든다. Editor 없
 | `release` | 같은 target | 독립 결과 재검증 후 그 artifact의 journal만 회수. 후보에 의존하는 source 세대가 있으면 거부 |
 | `preserve-worker` | `workspaceId` | Editor 없이 현재 worker 소스를 Git 결과로 보존. 전후 seal 일치가 필요하고 컴파일 성공을 부여하지 않음 |
 | `close-view` | `viewId` | 모든 소스 세대의 보존·회수와 정지 자원 확인 뒤 해당 cache 회수. 닫힌 view는 재사용하지 않음 |
+| `compact-cache` | `viewId`, 양수 `maxEstimatedJournalOverlapBytes` | 정지 cache의 대체된 범위 정리. 같은 요청 중단 복구·내용 동등성·정리 전후 private payload와 파일 할당 영수증 반환 |
 
 A/B/A 전환은 A stop → B select/start → B stop → A의 새 select/start다. 세 번의 선택은 세 개의 독립 source generation이다. 이전 A의 재전송은 현재 선택을 되돌리지 않는다. 게시 뒤 worker의 후속 편집은 `workspace ensure`로 같은 worker를 다시 연결해 이어가며 후보를 바꾸지 않는다. 검증 성공을 최신 worker의 성공으로 올리거나 Unity가 생성한 source를 자동으로 되돌려 병합하지 않는다.
 
@@ -57,20 +58,26 @@ Unity refresh의 `Assets`/`ProjectSettings` 바로 아래 `~UnityDirMonSyncFile~
 | --- | --- |
 | worker | project/workspace, owner generation, 원래 VSS tuple, 게시할 source seal |
 | candidate | 공통 workflow operation에서 결정한 ID, 원래 worker·source seal, 별도 candidate seal, 원자적 게시 intent/receipt |
-| view/cache | view/cache ID, owner generation, 빈 cache의 identity label, Unity/bridge compatibility, partition·예산 |
+| view/cache | view/cache ID, owner generation, 첫 후보 worker의 불변 Library snapshot과 worker ID, Unity/bridge compatibility, partition·예산 |
 | source generation | 선택 요청 ID, 해당 candidate와 공통 cache. 이전 출력 journal을 보존 |
 | 검증 증거 | candidate ID/seal, source generation/output seal, 실제 요청 ID·sequence·성공 여부 |
 | 독립 결과 | frozen artifact/seal, Git result ref, commit 객체의 SHA-256, snapshot 없이 읽는 객체 집합 |
 
 등록 증거가 있는 `.git` 포인터만 후보에서 분리한다. `GitOverlayRegistration.QualifyCandidateSourceAsync`와 [같은 요청 게시 복구](validation-view.md#같은-요청의-게시-복구)를 공통 operation ID에 연결한다. worker 명령 잠금과 실제 read-only journal handle을 함께 사용한다. `.git` 외의 사용자 데이터는 임의로 분리하지 않는다.
 
-cache는 `Library/Temp/Logs/UserSettings/obj/.vs/.idea`의 단일 writer다. `ValidationCacheIdentity.Snapshot`은 provider가 `validation-empty-cache`인 빈 기준의 고정 label이며 VSS 의존성이 아니다. 실제 VSS 의존성은 각 candidate와 source generation의 원래 worker snapshot에서 추적한다. 다른 VSS의 후보도 동일 프로젝트·Unity/bridge compatibility·partition·예산·view owner일 때 같은 cache를 쓴다. 최초 Library 복사나 원본 읽기 hydration은 없다. 개발용 `ValidationViewSelection`은 명시적 `CacheIdentity`가 없으면 요청 identity로 고정한 별도 cache를 쓰며, 제품은 반드시 view 소유 identity를 전달한다.
+cache는 `Library/Temp/Logs/UserSettings/obj/.vs/.idea`의 단일 writer다. 첫 선택의 worker snapshot을 `SnapshotBacked=true`인 cache 기준으로 고정한다. 기존 Library는 해당 snapshot에서 직접 읽고 새 쓰기는 private 범위로 저장한다. 최초 Library 전체 복제·읽기 hydration·전체 파일 copy-up이 없다. 원본에 Library가 없으면 실제 cold import가 필요하며, 그 뒤 원본의 Library 생성·변경은 이미 고정한 cache 기준에 들어오지 않는다.
+
+후보를 B로 전환해도 cache의 기준은 A의 원래 snapshot이다. 두 snapshot의 owner·읽기 proof·OS read fence와 가용성을 각각 확인하며 하나라도 불명확하면 정상 mount로 보고하지 않는다. 사라진 기준을 새 snapshot이나 빈 cache로 교체하지 않는다. 다른 VSS의 후보도 동일 프로젝트·Unity/bridge compatibility·partition·예산·view owner일 때 같은 cache를 쓴다. 개발용 `ValidationViewSelection.CacheBasis`는 `empty` 또는 `snapshot`을 명시하고, 제품은 snapshot과 cache 전용 `IncludedTopLevel` identity를 전달한다.
+
+`compact-cache`는 Editor/provider/handle/mount의 소유 자원 0을 확인한 뒤에만 실행한다. 예산은 이전 journal과 새 journal의 예상 논리 겹침량이며 실제 볼륨 최고치가 아니다. 현재 유효 private 범위·대체된 payload·frame metadata를 구분하고, 유효 Library를 삭제하지 않는다. 불변 기준의 payload는 읽거나 새 journal로 복사하지 않는다. 기준 없는 임의 초기화와 자동 정리는 제공하지 않는다.
+
+정리 intent·후보 flush·게시·관측·이전 journal 회수·완료 영수증 각 경계에서 중단하면 같은 request key·cache·예산으로 재호출한다. 진행 중 다른 정리나 view start/select/close는 거부한다. 작은 예산의 사전 거부는 cache를 잠긴 상태로 남기지 않는다. 완료 응답 재전송은 원래 영수증을 반환하며 이후의 cache 쓰기를 다시 정리하지 않는다. `status.cacheMaintenance`에서 진행 영수증을 읽을 수 있다. 물리 할당은 Windows에서 확인한 journal 두 세대의 값이며 VSS·Git·임시 파일은 별도로 측정한다.
 
 `GitValidationResult`는 원본 index나 checkout을 수정하지 않는다. frozen source의 논리 트리를 열거하고 변경 경로의 payload만 읽어 raw Git blob/tree/commit 객체를 만든다. 원래 base revision의 미변경 blob은 재사용한다. 필터·checkout 변환을 실행하지 않고 bridge/cache를 제외하며 `refs/splinter/validation-results/<operation-id>`와 객체 존재를 검증한다. 이는 최종 결과의 독립 materialization 비용이며 candidate 게시의 전체 복제 금지와 구분한다.
 
 보존된 source는 고정되어 다시 실행할 수 없다. 새 select를 사용한다. artifact release는 seal을 재확인하고 writer를 거부하는 handle로 journal을 잠근 뒤, 정확한 경로·seal·metadata hash의 회수 intent를 저장하고 그 journal만 unlink한다. 잠금을 닫은 뒤 hash가 같은 알려진 metadata만 제거한다. Windows에서 잠긴 자식 파일을 포함한 디렉터리의 rename에 의존하지 않는다. 중단 후 새 파일·바뀐 metadata·다른 seal은 보존하며, 회수 intent와 독립 ref는 남긴다. cache는 `close-view`로만, worker snapshot은 기존 `workspace release`로만 회수한다.
 
-제품 `workspace release`는 준비된 미완료 publish intent·candidate·source generation이 남으면 `SnapshotInUse`로 중단한다. 원본 VSS가 사라진 것으로 추측하거나 snapshot 공동 비용을 0으로 읽지 않는다. 의존 artifact 보존/회수 후 `preserve-worker`로 현재 worker 결과를 보존하고 `workspace release`하며, 기존 정확한 ID·격리 guard·`reclaim-pending` 규칙을 유지한다.
+제품 `workspace release`는 준비된 미완료 intent·candidate·source generation 또는 열린 snapshot cache가 남으면 `SnapshotInUse`로 중단한다. source generation을 모두 회수해도 `close-view`의 영수증과 공통 ledger가 완료되기 전에는 cache 기준 snapshot을 회수할 수 없다. 원본 VSS가 사라진 것으로 추측하거나 snapshot 공동 비용을 0으로 읽지 않는다. 의존 artifact 보존/회수 → cache close → 현재 worker의 `preserve-worker` → `workspace release` 순서를 지키며, 기존 정확한 ID·격리 guard·`reclaim-pending` 규칙을 유지한다.
 
 ## 지속 상태와 재시도
 

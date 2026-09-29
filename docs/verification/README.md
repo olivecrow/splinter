@@ -18,13 +18,16 @@
 | SF-03/VW | [공통 수명주기](../validation-workflow.md)의 지속 상태·영수증 재조정·fake 적합성 | 합성 파일/영수증이며 실제 VSS·WinFsp·Unity 지원 증거가 아님. 자동 실행 상태는 VW, 제품 연결 자격은 WF를 따름 |
 | SF-03/VG | [등록 증거가 있는 관리 파일 분리](../validation-view.md#등록-증거가-있는-관리-파일-분리)의 실제 임시 Git 등록·합성 불변 트리 적합성 | 후보 v2 게시의 자동 시험 범위. 실제 provider 실행은 WF의 현재 후보 증거로 별도 판정 |
 | SF-03/VP | [같은 요청 게시 복구](../validation-view.md#같은-요청의-게시-복구)의 영구 intent·부분 저널 prefix·완료 receipt 재조정 | 합성 트리·실제 임시 파일·예외 주입 범위. 실제 CLI 중단은 WF, 재부팅·전원/공간 장애는 NR의 별도 관문 |
-| SF-03/WF | [제품 연결·복구](product-validation-workflow.md)와 [최종 후보의 두 빈 cache A/B/A·전체 비용](product-validation-cold-cost.md), 독립 결과·회수 | scoped-complete-with-limitations. 준비 종료 후 검증 재시작 비용을 포함한 작은 fixture 범위. 이전 실패·복구를 보존하며 대형 용량·일반 cold 안정성·NR 전체를 증명하지 않음 |
+| SF-03/WF | [제품 연결·복구](product-validation-workflow.md), [두 빈 cache](product-validation-cold-cost.md), [현재 후보의 일반 권한 cold/기존 Library](product-validation-unelevated.md)와 독립 결과·회수 | scoped-complete-with-limitations. 작은 fixture·준비/검증 재시작·포커스 재시도와 heartbeat 오류 기록의 제한 유지. 대형 용량·일반 cold 안정성·NR 전체를 증명하지 않음 |
+| LB-01~05 | [실제 Library snapshot 재사용·정리·재증가와 회수](product-validation-unelevated.md) | 이번 Library 수명주기 범위 scoped-complete-with-limitations. 전체 순간 물리 peak·VSS 귀속은 unknown이며 SF-02/03 전체는 Partial |
 | RI/RU/WI | 합성 또는 동일 닫힌 저널의 제한된 replay 비교 | warm cache·소수 표본. 누적 Editor 전체 개선·Library 물리 절감으로 환산하지 않음 |
 | JW/FR | 고정 쓰기 계측과 작은 URP fixture의 요청별 유효 PNG 검사 | Windows 선행 직렬화·내구성 경계 유지. Unity 내부 첫 draw 원인 미확정, group flush 미선정 |
 | SF-04~06, SW-01~10 | 계획 | NotRun. 대형 입력·모드 채택·일반 설치/binding/discard 미구현 |
 | UA-01~04 | [제한 권한 서비스](storage-privilege-service.md)의 실제 설치·일반 CLI A/B 추가 UAC 0·회수·서비스 재시작/응답 유실 | 등록된 Windows x64 NTFS/Git fixture 범위 Passed. 일반 Unity·ARM·실제 전원/재부팅과 native VSS 호출 도중 강제 종료로 확대하지 않음 |
 
 새 후보에서 필요한 실제 환경 시험을 실행하기 전에는 아래 기록을 현재 후보의 통과로 승계하지 않는다. GUI Unity·VSS·격리 디스크 시험은 정의된 범위와 소유 자원을 확인한 뒤 실행한다. 현재 원본·다른 작업·기존 결과 refs와 비소유 snapshot을 보존한다.
+
+[WF-09~12와 LB-01~05](product-validation-unelevated.md)는 고정한 현재 후보의 실제 실행으로 마감했다. 실행 범위와 재검증 기준은 [저장공간 우선 계획](../plans/storage-priority-and-editor-modes.md#이번-범위-일반-권한-unity-검증-흐름-재검증), 남은 일반 지원·대형 용량·설치 관문은 [추적표](../plans/validation-matrix.md)가 소유한다.
 
 ## 후속 작업에 필요한 기록
 
@@ -39,6 +42,7 @@
 | [초기 overlay 시험](snapshot-overlay.md), [ReFS·프로세스](storage-and-resources.md) | 파일 API·소유권·선택적 backend의 제한된 실환경 증거. NTFS 전체 지원으로 합산하지 않음 |
 | [저널 정리](journal-compaction.md), [Unity와 정리 비용](journal-compaction-qualification-and-cost.md), [예산과 재증가](journal-budget-and-growth-qualification.md) | 중단 복구, 두 세대 겹침·전체 할당 peak와 Library 유효량, 재개 후 재증가 |
 | [공통 Library A/B/A](immutable-validation-view.md), [준비와 replay](validation-view-readiness-and-replay.md) | 불변 후보와 검증 세대의 분리, 정상 stop/remount/restart 비용·최초 import 제한 |
+| [Library 수명주기와 일반 권한 실행](product-validation-unelevated.md) | 고정 snapshot Library·범위 쓰기·정리/재증가·cold 비교·15개 독립 결과와 회수·실패/복구 한계 |
 | [제품 validation workflow](product-validation-workflow.md) | 실제 CLI 연결, 서로 다른 VSS와 한 view/cache, 코드·에셋·PNG·세대 분리, CLI 중단 복구, 독립 결과와 VHD 분리 후 검증 |
 | [새 cache 반복과 전체 비용](product-validation-cold-cost.md) | 최종 후보의 두 빈 cache A/B/A, 2분 정상 종료 대기, 준비/검증 재시작 비용, 원시 응답 schema·실패 포함 할당·16개 독립 결과·소유 자원 회수 |
 | [제어 파일 읽기 경합](control-file-read-races.md) | Windows 동시 Replace/guard/open의 부재·공유 오류, 유한 읽기 복구와 지속 실패·손상·owner 보존. 실제 WinFsp/VSS/Unity 재자격과 구분 |

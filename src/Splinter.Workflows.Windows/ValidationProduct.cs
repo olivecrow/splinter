@@ -20,6 +20,8 @@ public sealed class ValidationProduct(WorkspaceStore store)
         var provider = new WindowsValidationProvider(store, project);
         using var operation = await store.LockAsync(WorkspaceStore.Key("validation-product:" + provider.ProjectId), ct);
         var workflow = new ValidationWorkflowCoordinator(new(store), provider);
+        if (input.Action != "status")
+            provider.RequireNoPendingCacheMaintenance(input.Action == "compact-cache" ? input.RequestKey : null);
         string requestPath = Path.Combine(provider.Root, "requests", WorkspaceStore.Key(input.RequestKey) + ".json");
         var prior = Read<ValidationProductRequest>(requestPath);
         Require(prior is null || prior == input, "ValidationRequestKeyConflict", "Retry the same product request payload.");
@@ -83,10 +85,10 @@ public sealed class ValidationProduct(WorkspaceStore store)
                 {
                     Require(Read<WorkerBinding>(provider.WorkerPath(input.ViewId!)) is null, "ValidationOwnerMismatch", "Resource identity is already a worker.");
                     string cacheId = WorkspaceStore.Key(provider.ProjectId + ":cache:" + input.ViewId);
-                    var label = candidate.Publication.Intent.Worker.Snapshot with { Id = cacheId, Provider = "validation-empty-cache",
-                        SourcePath = project, RootPath = provider.CachePath(cacheId), Consistency = "empty-owned-cache" };
-                    var cache = new ValidationCacheIdentity(input.ViewId!, cacheId, label, worker.CompatibilityKey, "unity-top-level-v1", input.MaxJournalBytes);
-                    view = new(1, provider.ProjectId, input.Owner, cache, Path.Combine(store.Root, "validation-mounts", WorkspaceStore.Key(provider.ProjectId + ":" + input.ViewId)));
+                    var cache = new ValidationCacheIdentity(input.ViewId!, cacheId, candidate.Publication.Intent.Worker.Snapshot,
+                        worker.CompatibilityKey, "unity-top-level-v1", input.MaxJournalBytes, SnapshotBacked: true);
+                    view = new(1, provider.ProjectId, input.Owner, cache,
+                        Path.Combine(store.Root, "validation-mounts", WorkspaceStore.Key(provider.ProjectId + ":" + input.ViewId)), worker.WorkspaceId);
                     Save(provider.ViewPath(input.ViewId!), view);
                 }
                 Require(view.Owner == input.Owner && !view.Closed && view.Cache.MaxJournalBytes == input.MaxJournalBytes,
@@ -111,7 +113,8 @@ public sealed class ValidationProduct(WorkspaceStore store)
                     execution = new { generationId = active.GenerationId, application = observed.App, mount = observed.Mount,
                         controlPath = provider.GenerationPath(active.GenerationId), path = generation.Workspace.Path };
                 }
-                return new { state, resources, execution };
+                var maintenance = input.ViewId is null ? null : Read<CacheMaintenance>(provider.MaintenancePath(input.ViewId));
+                return new { state, resources, execution, cacheMaintenance = maintenance };
             }
             case "start":
             case "refresh":
@@ -122,22 +125,16 @@ public sealed class ValidationProduct(WorkspaceStore store)
                 Require(Name(input.ViewId), "ValidationRequestInvalid", "viewId is required.");
                 var view = provider.View(input.ViewId!);
                 await provider.VerifyOwnerAsync(provider.ProjectId, input.ViewId!, input.Owner, ct);
-                WindowsValidationProvider.Quiescent((await provider.ObserveViewAsync(provider.ProjectId, input.ViewId!, ct)).Resources);
-                var state = await workflow.InspectAsync(provider.ProjectId, ct);
-                Require(!state.Generations.Values.Any(g => g.Selection.Intent.Cache.ViewId == input.ViewId && !g.Released) &&
-                    !state.Operations.Values.Any(o => o.Response is null), "ValidationDependencyActive", "Preserve and release view generations and finish pending operations first.");
-                Save(provider.ViewPath(input.ViewId!), view with { Closed = true });
-                string cache = provider.CachePath(view.Cache.CacheId), cacheReceipt = Path.Combine(Path.GetDirectoryName(provider.ViewPath(input.ViewId!))!, "cache-reclamation.json");
-                Require(!File.Exists(cache), "ValidationReleaseUncertain", "A file replaced the owned cache directory.");
-                SnapshotDeltaSeal? seal = Read<JournalReclamationIntent>(cacheReceipt)?.Seal;
-                if (File.Exists(Path.Combine(cache, "delta.journal")))
-                {
-                    var identity = new OverlayIdentity(1, view.Cache.CacheId, view.Cache.Snapshot, view.Cache.MaxJournalBytes, 1024 * 1024, WindowsValidationProvider.CacheRoots);
-                    using (var check = ValidationViewDeltaStore.OpenCacheReadOnly(cache, identity)) seal = check.Seal();
-                }
-                Require(!Directory.Exists(cache) || seal is not null, "ValidationReleaseUncertain", "A remaining cache needs its verified reclamation seal.");
-                if (seal is not null) JournalReclamation.Reclaim(cache, seal, ["identity.json"], cacheReceipt);
+                await workflow.ExecuteAsync(Request("close-view") with { Cache = view.Cache }, ct);
+                string cache = provider.CachePath(view.Cache.CacheId);
                 return new { viewId = input.ViewId, closed = true, cachePresent = Directory.Exists(cache), mountPresent = Directory.Exists(view.MountPath) };
+            }
+            case "compact-cache":
+            {
+                Require(Name(input.ViewId) && input.MaxEstimatedJournalOverlapBytes is > 0,
+                    "ValidationRequestInvalid", "viewId and a positive maxEstimatedJournalOverlapBytes are required.");
+                await workflow.RecoverForMutationAsync(provider.ProjectId, ct);
+                return await provider.CompactCacheAsync(input.ViewId!, input.Owner, input.RequestKey, input.MaxEstimatedJournalOverlapBytes!.Value, ct);
             }
             default: throw new WorkspaceException("ValidationRequestInvalid", "Unknown validation product action.");
         }
@@ -191,6 +188,7 @@ public sealed class ValidationProduct(WorkspaceStore store)
         var (app, mount) = await provider.ObserveGeneration(g, ct);
         if (input.Action == "start")
         {
+            provider.RequireCacheReady(selection.Intent.Cache.ViewId);
             if (app.Running)
             {
                 Require(mount.Mounted && mount.OwnershipVerified, "ValidationResourcesBusy", "The running Editor has no verified provider.");
@@ -201,7 +199,11 @@ public sealed class ValidationProduct(WorkspaceStore store)
             {
                 var consumed = await WinFspOverlayClient.ConsumedVerificationAsync(g.Request, ct);
                 var access = await provider.SnapshotProvider(g.WorkerId).ResolveReadAccessAsync(g.Request.Identity.Snapshot, consumed, ct);
-                g = g with { Request = g.Request with { ReadAccess = access } };
+                var view = provider.View(selection.Intent.Cache.ViewId);
+                var cacheConsumed = await WinFspOverlayClient.ConsumedCacheVerificationAsync(g.Request, ct);
+                var cacheAccess = view.CacheWorkerId == g.WorkerId && view.Cache.Snapshot == g.Request.Identity.Snapshot ? access
+                    : await provider.SnapshotProvider(view.CacheWorkerId).ResolveReadAccessAsync(view.Cache.Snapshot, cacheConsumed, ct);
+                g = g with { Request = g.Request with { ReadAccess = access, CacheSnapshot = g.Request.CacheSnapshot! with { ReadAccess = cacheAccess } } };
                 Save(Path.Combine(control, "generation.json"), g);
                 Save(Path.Combine(g.Request.ControlPath, "request.json"), g.Request);
             }

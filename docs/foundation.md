@@ -10,7 +10,7 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 ## 구조와 의존성
 
-[제품 검증 workflow](validation-workflow.md)의 `validation --input`은 기존 NTFS worker의 후보 게시·단일 Unity view 선택/실행/검증·독립 결과 보존/회수와 `preserve-worker`를 연결한다. `workspace release`는 후보·소스 세대·미완료 게시의 snapshot 의존성을 먼저 확인한다. 제품 입력/출력은 `validation-product-request`/`validation-product-data` schema다.
+[제품 검증 workflow](validation-workflow.md)의 `validation --input`은 기존 NTFS worker의 후보 게시·단일 Unity view 선택/실행/검증·독립 결과 보존/회수와 `preserve-worker`를 연결한다. Library는 첫 후보의 불변 snapshot을 계속 읽고 private 변경 범위만 공통 cache에 저장한다. `workspace release`는 후보·소스 세대·미완료 요청과 열린 cache 기준의 snapshot 의존성을 먼저 확인한다. `compact-cache`는 정지 경계·명시적 겹침량 예산·같은 요청 복구로 대체된 범위를 정리한다. 제품 입력/출력은 `validation-product-request`/`validation-product-data` schema다.
 
 
 개발용 `Splinter.ReplayProbe`는 고정 synthetic identity의 작은 저널 생성과 read-only Runtime replay를 제공한다. `OverlayIoMetrics.replayIndexOperations`로 연산별 비용, `replayWriteRangeIndex`로 write 직전 extent 분포·탐색/이동/정렬 비용을 구분하고 내용·state/input hash와 관리 메모리 할당을 확인한다. Runtime의 범위 index는 정렬된 extent에서 겹치는 구간만 교체하며 끝에 추가할 때는 전체 목록 복사와 정렬을 하지 않는다. 제품 workspace나 Unity 검증이 아니며 사용법은 [offline replay 계측](replay-profiling.md), 제한된 결과는 [RI 기록](verification/replay-index-cost.md)과 [WI 기록](verification/cumulative-write-range-index.md)을 따른다.

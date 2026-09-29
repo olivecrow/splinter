@@ -14,14 +14,42 @@ public static class WinFspOverlayClient
         var intent = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderIntent>(Path.Combine(request.ControlPath, "provider-launch-intent.json"), ct);
         return intent?.VerificationId;
     }
-    internal static async Task<SnapshotObservation> ObserveSnapshotAsync(OverlayServeRequest request, CancellationToken ct = default)
+    public static async Task<string?> ConsumedCacheVerificationAsync(OverlayServeRequest request, CancellationToken ct)
     {
+        var intent = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderIntent>(Path.Combine(request.ControlPath, "provider-launch-intent.json"), ct);
+        return intent?.CacheVerificationId;
+    }
+    internal static void ValidateCacheSnapshot(OverlayServeRequest request)
+    {
+        bool backed = request.ValidationView?.CacheBasis == "snapshot";
+        if (backed != (request.CacheSnapshot is not null) || backed && request.ValidationView!.CacheIdentity is null)
+            throw new WorkspaceException("ValidationCacheMismatch", "Retain the exact cache snapshot read request; an empty cache is not a recovery fallback.");
+        if (request.CacheSnapshot is { } cache)
+        {
+            if (string.IsNullOrWhiteSpace(cache.OwnerId) || string.IsNullOrWhiteSpace(cache.ReceiptDirectory) || cache.ReadAccess is null)
+                throw new WorkspaceException("SnapshotVerificationRequired", "Cache snapshot ownership and read proof are required.");
+            cache.ReadAccess.RequireMatch(request.ValidationView!.CacheIdentity!.Snapshot);
+            WindowsProcessWorkspaceProvider.CheckPath(cache.ReceiptDirectory);
+        }
+    }
+    public static async Task<SnapshotObservation> ObserveSnapshotAsync(OverlayServeRequest request, CancellationToken ct = default)
+    {
+        ValidateCacheSnapshot(request);
         if (request.ReadAccess is null || request.SnapshotReceiptDirectory is null || request.SnapshotOwnerId is null)
             return new(request.Identity.Snapshot.Id, null, "SnapshotVerificationRequired", null, null);
         request.ReadAccess.RequireMatch(request.Identity.Snapshot);
         var proof = await new VssSnapshotProvider(request.SnapshotReceiptDirectory, request.SnapshotOwnerId).ObserveAsync(request.Identity.Snapshot, ct);
         if (proof.Available == true && proof.ReadAccess != request.ReadAccess)
             return new(request.Identity.Snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
+        if (proof.Available == true && request.CacheSnapshot is { } cache)
+        {
+            var basis = request.ValidationView!.CacheIdentity!.Snapshot;
+            var cached = await new VssSnapshotProvider(cache.ReceiptDirectory, cache.OwnerId).ObserveAsync(basis, ct);
+            if (cached.Available != true)
+                return new(request.Identity.Snapshot.Id, cached.Available, cached.FailureCode ?? "ValidationCacheSnapshotUnavailable", null, null);
+            if (cached.ReadAccess != cache.ReadAccess)
+                return new(request.Identity.Snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
+        }
         return proof;
     }
     public static async Task<OverlayServeRequest> ReadRequestAsync(string path, CancellationToken ct = default)
@@ -85,11 +113,14 @@ public static class WinFspOverlayClient
         var verified = await ObserveSnapshotAsync(request, ct);
         if (verified.Available != true) throw new WorkspaceException(verified.FailureCode ?? "SnapshotObservationUnknown", "Verify snapshot access before starting a provider.");
         using (var snapshot = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess)) snapshot.EnsureAvailable();
+        if (request.CacheSnapshot is { } cache)
+            using (var basis = new VssSnapshotTree(request.ValidationView!.CacheIdentity!.Snapshot, cache.ReadAccess)) basis.EnsureAvailable();
         string stop = Path.Combine(request.ControlPath, "stop.json"); WindowsProcessWorkspaceProvider.CheckPath(stop);
         if (File.Exists(stop)) File.Delete(stop);
         string runner = WindowsProcessWorkspaceProvider.PrepareRunner(runnerCache);
         string generation = Guid.NewGuid().ToString("N");
-        await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, new ProviderIntent(request.Token, request.Identity.Id, generation, DateTimeOffset.UtcNow, request.ReadAccess?.VerificationId), ct);
+        await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, new ProviderIntent(request.Token, request.Identity.Id, generation, DateTimeOffset.UtcNow,
+            request.ReadAccess?.VerificationId, request.CacheSnapshot?.ReadAccess.VerificationId), ct);
         using var process = WindowsProcessGroup.StartSupervisor("dotnet", [runner, "overlay-serve", Path.GetFullPath(requestPath)], request.ControlPath);
         await WindowsProcessWorkspaceProvider.WriteAsync(receiptPath, new ProviderLaunch(request.Token, process.Id, process.StartTime.ToUniversalTime().Ticks, generation), CancellationToken.None);
         return await AwaitMountedAsync(() => ObserveAsync(request, ct), process.Id,
@@ -141,6 +172,6 @@ public static class WinFspOverlayClient
         }
         throw new WorkspaceException("OverlayStopPending", "Clients or provider remain; files and snapshot are retained. Query status and close owned clients.");
     }
-    private sealed record ProviderIntent(string Token, string Id, string? Generation, DateTimeOffset RequestedAt, string? VerificationId = null);
+    private sealed record ProviderIntent(string Token, string Id, string? Generation, DateTimeOffset RequestedAt, string? VerificationId = null, string? CacheVerificationId = null);
     private sealed record ProviderLaunch(string Token, int ProcessId, long StartTimeUtcTicks, string? Generation = null);
 }

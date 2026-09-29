@@ -44,12 +44,110 @@ public sealed class ValidationCandidateTests
     }
 
     [Fact]
+    public void SnapshotLibraryIsReadThroughWithoutCopyAndKeepsItsBaseAcrossCandidates()
+    {
+        using var dir = new TestDirectory(); var a = Tree(); var b = Tree();
+        a.Files["Library/large-cache"] = new byte[16 * 1024 * 1024];
+        a.Files["Library/base-label"] = "library-a"u8.ToArray();
+        b.Snapshot = b.Snapshot with { Id = "independent-b" };
+        b.Files["Library/base-label"] = "library-b"u8.ToArray();
+        string ca = Export(dir.Path, "A", a), cb = Export(dir.Path, "B", b), cache = Path.Combine(dir.Path, "cache");
+        var cacheIdentity = Identity(a) with { Id = "shared-cache", ExcludedTopLevel = [], IncludedTopLevel = CacheRoots };
+        var patch = Enumerable.Repeat((byte)0x42, 4096).ToArray();
+        using (var first = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-a"), Identity(a), a,
+                   new(ca, cache, CacheRoots, cacheIdentity, "snapshot"), cacheBasis: a))
+        {
+            Assert.Equal(0, a.ReadBytes);
+            Assert.Equal(0, new FileInfo(Path.Combine(cache, "delta.journal")).Length);
+            var file = first.Stat("Library/large-cache")!;
+            var actual = new byte[4096]; first.Read(file.Id, 8192, actual);
+            Assert.Equal(new byte[4096], actual);
+            Assert.Equal(0, new FileInfo(Path.Combine(cache, "delta.journal")).Length);
+            first.Write(file.Id, 8192, patch);
+            Assert.True(new FileInfo(Path.Combine(cache, "delta.journal")).Length < 10000);
+        }
+        using (var next = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-b"), Identity(b), b,
+                   new(cb, cache, CacheRoots, cacheIdentity, "snapshot"), cacheBasis: a))
+        {
+            Assert.Equal("B", Read(next, "Assets/code.cs"));
+            Assert.Equal("library-a", Read(next, "Library/base-label"));
+            var actual = new byte[4096]; next.Read(next.Stat("Library/large-cache")!.Id, 8192, actual);
+            Assert.Equal(patch, actual);
+            Assert.Equal(new byte[4096], a.Files["Library/large-cache"].AsSpan(8192, 4096).ToArray());
+            Assert.Equal("library-b", Encoding.UTF8.GetString(b.Files["Library/base-label"]));
+        }
+        using var check = ValidationViewDeltaStore.OpenCacheReadOnly(cache, cacheIdentity, a);
+        Assert.Equal(4096, check.Observe().PayloadBytes);
+        Assert.Equal(0, check.Observe().InitialPayloadCopiedBytes);
+        Assert.Equal(0, check.Observe().ReadCacheBytes);
+        Assert.True(a.ReadBytes < 10000);
+    }
+
+    [Fact]
+    public void MissingOrReplacedLibraryBaseIsRejectedWithoutFallingBackToEmptyCache()
+    {
+        using var dir = new TestDirectory(); var a = Tree(); var b = Tree();
+        a.Files["Library/base"] = "keep"u8.ToArray(); b.Snapshot = b.Snapshot with { Id = "independent-b" };
+        string ca = Export(dir.Path, "A", a), cb = Export(dir.Path, "B", b), cache = Path.Combine(dir.Path, "cache");
+        var cacheIdentity = Identity(a) with { Id = "shared-cache", ExcludedTopLevel = [], IncludedTopLevel = CacheRoots };
+        var selection = new ValidationViewSelection(cb, cache, CacheRoots, cacheIdentity, "snapshot");
+        using (var first = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-a"), Identity(a), a,
+                   new(ca, cache, CacheRoots, cacheIdentity, "snapshot"), cacheBasis: a))
+            first.Write(first.Stat("Library/base")!.Id, 0, "K"u8);
+        byte[] retained = File.ReadAllBytes(Path.Combine(cache, "delta.journal"));
+        string source = Path.Combine(dir.Path, "source-b");
+        Assert.Equal("ValidationCacheMismatch", Assert.Throws<WorkspaceException>(() =>
+            new ValidationViewDeltaStore(source, Identity(b), b, selection)).Code);
+        Assert.Equal("ValidationCacheMismatch", Assert.Throws<WorkspaceException>(() =>
+            new ValidationViewDeltaStore(source, Identity(b), b, selection, cacheBasis: b)).Code);
+        Assert.Equal("ValidationCacheMismatch", Assert.Throws<WorkspaceException>(() =>
+            new ValidationViewDeltaStore(source, Identity(b), b, selection with { CacheBasis = "empty" })).Code);
+        a.Available = false;
+        Assert.Equal("SnapshotMissing", Assert.Throws<WorkspaceException>(() =>
+            new ValidationViewDeltaStore(source, Identity(b), b, selection, cacheBasis: a)).Code);
+        Assert.Equal(retained, File.ReadAllBytes(Path.Combine(cache, "delta.journal")));
+        Assert.False(Directory.Exists(source));
+    }
+
+    [Fact]
+    public void CacheSnapshotCannotExposeSourceAndCompactsOnlyPrivateRepeatedRanges()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var dir = new TestDirectory(); var tree = Tree();
+        tree.Files["Library/large"] = new byte[16 * 1024 * 1024];
+        var basis = new ValidationCacheSnapshotTree(tree, tree.Snapshot, CacheRoots);
+        Assert.Null(basis.Stat("Assets/code.cs"));
+        Assert.DoesNotContain(basis.List(""), e => e.Path == "Assets");
+        Assert.Throws<FileNotFoundException>(() => basis.Read("Assets/code.cs", 0, new byte[4096]));
+        var identity = Identity(tree) with { Id = "shared-cache", ExcludedTopLevel = [], IncludedTopLevel = CacheRoots };
+        string path = Path.Combine(dir.Path, "cache");
+        using (var store = new JournalDeltaStore(path, identity, basis))
+        {
+            var id = store.Stat("Library/large")!.Id;
+            for (int i = 0; i < 32; i++) store.Write(id, 4096, Enumerable.Repeat((byte)i, 4096).ToArray());
+        }
+        var receipt = JournalDeltaStore.CompactDirectory(path, identity, basis, maxEstimatedJournalOverlapBytes: 500_000);
+        JournalDeltaStore.CompleteCompaction(path, identity);
+        Assert.Equal(0, tree.ReadBytes);
+        Assert.True(receipt.After.JournalBytes < receipt.Before.JournalBytes / 2);
+        using var resumed = ValidationViewDeltaStore.OpenCacheReadOnly(path, identity, tree);
+        Assert.Equal(16 * 1024 * 1024, resumed.Stat("Library/large")!.Length);
+        byte[] changed = new byte[4096], unchanged = new byte[4096];
+        resumed.Read(resumed.Stat("Library/large")!.Id, 4096, changed);
+        resumed.Read(resumed.Stat("Library/large")!.Id, 8192, unchanged);
+        Assert.Equal(Enumerable.Repeat((byte)31, 4096).ToArray(), changed);
+        Assert.Equal(new byte[4096], unchanged);
+        Assert.Equal(4096, resumed.Observe().PayloadBytes);
+    }
+
+    [Fact]
     public void ExplicitCacheOwnerSupportsIndependentSnapshotsWithoutReadingAnOldBase()
     {
         using var dir = new TestDirectory(); var a = Tree(); var b = Tree();
         b.Snapshot = b.Snapshot with { Id = "independent-b" };
         string ca = Export(dir.Path, "A", a), cb = Export(dir.Path, "B", b), cache = Path.Combine(dir.Path, "cache");
-        var cacheIdentity = Identity(a) with { Id = "owned-cache", ExcludedTopLevel = CacheRoots };
+        var cacheIdentity = Identity(a) with { Id = "owned-cache", ExcludedTopLevel = CacheRoots,
+            Snapshot = a.Snapshot with { Provider = "validation-empty-cache" } };
         using (var first = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-a"), Identity(a), a, new(ca, cache, CacheRoots, cacheIdentity)))
         { first.Create("Library", true, 16); Write(first, "Library/reusable", "warm-cache"); }
         a.Available = false;

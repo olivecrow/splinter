@@ -10,7 +10,7 @@ public sealed partial class VssSnapshotProvider
     // A reconnect must not replace the current proof under another live reader.
     // Multiple providers may share a verified snapshot; a new proof requires all
     // its readers to stop first. The OS releases this fence after process loss.
-    internal FileStream AcquireReadLease() => ReadFence(exclusive: false);
+    public FileStream AcquireReadLease() => ReadFence(exclusive: false);
     private FileStream ReadFence(bool exclusive)
     {
         string path = VerificationPath("readers.lock");

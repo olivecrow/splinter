@@ -19,7 +19,7 @@ Runtime의 `JournalDeltaStore.PublishCandidate`는 정지한 작업자 저널을
 | 작업자 delta | Editor 없이 A/B를 편집한다. 후보 게시 뒤 다시 편집해도 기존 후보는 변하지 않는다. |
 | 불변 후보 | 작업자와 별도 디렉터리의 범위 payload·메타데이터. snapshot에 의존한다. |
 | 세대별 소스 delta | 후보를 기준으로 Unity가 쓴 소스·.meta·관리 bridge를 보존한다. 다음 후보에는 섞지 않는다. |
-| 공통 cache delta | 빈 캐시에서 시작해 `Library`/`Temp`/`Logs`/`UserSettings`/`obj`의 쓰기를 보존한다. 후보 간 같은 저널을 재개한다. |
+| 공통 cache delta | 명시적 `empty` 기준 또는 고정한 별도 `snapshot` 기준 위에 `Library`/`Temp`/`Logs`/`UserSettings`/`obj`의 private 쓰기를 보존한다. 후보 간 같은 저널과 기준을 재개한다. |
 
 소스·후보·캐시는 서로 겹치지 않는 경로여야 한다. partition 설정·view ID·원본 snapshot·예산이 달라지면 기존 캐시를 재사용하지 않는다. 다른 writer가 캐시를 열고 있으면 다음 view를 열 수 없다. 저널 형식과 각 acknowledged write의 flush 정책은 기존과 같다. `state.json.validationView`는 source/cache 각각의 I/O 계수와 후보 seal을 보인다. 최상위 `storage` 합계는 두 저널의 관측이며 제품 `stable-journal-v1` 결과 seal로 사용하지 않는다.
 
@@ -95,7 +95,8 @@ Runtime의 일회성 `ExportCandidate`/`ExportSourceCandidate`는 같은 게시 
   "validationView": {
     "candidatePath": "C:/trial/candidates/a",
     "cacheDeltaPath": "C:/trial/cache",
-    "cacheTopLevel": ["Library", "Temp", "Logs", "UserSettings", "obj"]
+    "cacheTopLevel": ["Library", "Temp", "Logs", "UserSettings", "obj"],
+    "cacheBasis": "empty"
   }
 }
 ```

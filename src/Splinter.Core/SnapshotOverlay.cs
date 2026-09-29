@@ -44,7 +44,8 @@ public interface ISnapshotTree
 }
 
 public sealed record OverlayIdentity(int Version, string Id, SnapshotReference Snapshot,
-    long MaxJournalBytes, int MaxTransferBytes, string[]? ExcludedTopLevel = null);
+    long MaxJournalBytes, int MaxTransferBytes, string[]? ExcludedTopLevel = null,
+    string[]? IncludedTopLevel = null);
 public sealed record OverlayStorageObservation(string Id, string SnapshotId, long InitialPayloadCopiedBytes,
     long JournalBytes, long PayloadBytes, long MetadataBytes, long ReadBytes,
     long ReadCacheBytes, int MaxTransferBytes, int IndexedNodes, long DurableSequence)

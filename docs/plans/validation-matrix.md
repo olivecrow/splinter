@@ -169,13 +169,38 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 
 ## Windows IPC 상태 읽기 경합
 
-[확정 범위와 완료 조건](storage-priority-and-editor-modes.md#이번-범위-windows-ipc-상태-읽기-경합)을 **scoped-complete-with-limitations**로 판정한다. [실행 근거](../verification/control-file-read-races.md)에 따르며 WF의 실제 cold 반복이나 공개 48개 시나리오의 추가 통과로 집계하지 않는다.
+실제 Windows 파일 교체/읽기와 합성 overlay client의 IPC-01~03을 **scoped-complete-with-limitations**로 판정한다. [실행 근거와 제한](../verification/control-file-read-races.md)에 따르며 WF의 실제 cold 반복이나 공개 48개 시나리오의 추가 통과로 집계하지 않는다.
 
 | ID | 검증 대상 | 상태 |
 | --- | --- | --- |
 | IPC-01 | 수정 전 Windows 동시 게시/읽기 재현과 과거 실패 비교 | Passed, 3,000회 게시에서 guard/open의 부재·공유 오류 재현. 과거 t2의 정확한 발생 지점은 미확정 |
 | IPC-02 | 유한 읽기 복구와 지속 실패·취소·손상·소유권 보존 | Passed, 최대 1초 guard/open 재시도·선택적 요청 polling·추가 회귀 12개 |
-| IPC-03 | 수정 후 실제 Windows 경합·합성 종료 관측/같은 요청·전체 빌드 | Passed, 3,000회 게시/22,831회 읽기의 예외·null·손상 0. 전체 527 Passed/0 Failed/1 Skipped. 실제 WinFsp/VSS/Unity 재자격은 NotRun |
+| IPC-03 | 수정 후 실제 Windows 경합·합성 종료 관측/같은 요청·전체 빌드 | Passed, 3,000회 게시/22,831회 읽기의 예외·null·손상 0. 해당 후보 전체 527 Passed/0 Failed/1 Skipped. 실제 제품 재자격은 WF-09~12를 따른다 |
+
+## 일반 권한 Unity 검증 흐름 재검증
+
+`development @ 183118b`에 Library 변경을 적용한 고정 후보에서 권한 서비스·IPC와 실제 Unity workflow를 함께 실행했다. [원시 근거와 제한](../verification/product-validation-unelevated.md)에 따라 WF-09~12를 작은 fixture의 `scoped-complete-with-limitations`로 마감한다. 기존 WF-01~08·IPC·UA의 성공을 승계하거나 공개 48개 시나리오의 추가 통과로 집계하지 않는다.
+
+| ID | 검증할 경계 | 현재 상태 |
+| --- | --- | --- |
+| WF-09 | 최종 제품/설치 서비스 identity와 실제 Unity 흐름의 일반 권한·반복 추가 UAC 0 | Passed, 일반 CLI 187회·추가 UAC 관측 0. 최초 관리자 구성과 포커스 재시도는 별도 |
+| WF-10 | 작은 worker A/B·빈 cache 하나의 A/B/A, 실제 코드/에셋·세대별 검증·원시 schema | Passed, cold A/B/A·warm A/B/A/정리 후 A, raw schema 530건. 첫 draw와 heartbeat 로그 제한 유지 |
+| WF-11 | 실제 prepare-worker 정상 unmount/동일 요청, 새 CLI의 같은 작업 재연결과 후속 편집 격리 | Passed, 같은 요청·같은 workspace 재연결과 게시 후 편집 격리. 일반 강제 종료/응답 유실 관문으로 확대하지 않음 |
+| WF-12 | 독립 결과·원본/타 작업 보존, 의존성 순서에 따른 최종 회수·전체 할당/시간/실패 비용 | Passed, 독립 결과 15개·소유 자원 회수·원본/기존 snapshot 보존. 전체 순간 물리 peak와 공유 VSS 귀속 unknown |
+
+회수 후 reclaim-pending이나 소유 자원 unknown은 남지 않았다. 측정의 unknown은 위 범위와 분리해 유지한다. 자세한 완료 기준과 제외 범위는 [계획](storage-priority-and-editor-modes.md#이번-범위-일반-권한-unity-검증-흐름-재검증), 관측·실패·복구 근거는 [검증 문서](../verification/product-validation-unelevated.md)가 소유한다.
+
+## Library 저장 수명주기
+
+[이번 단계의 다섯 완료 기준](storage-priority-and-editor-modes.md#이번-단계의-library-완료-기준)은 [실제 cold/기존 Library 실행](../verification/product-validation-unelevated.md)과 자동 적합성을 함께 근거로 `scoped-complete-with-limitations`다. 대형 프로젝트 전체 지원을 뜻하지 않는다.
+
+| ID | 검증할 경계 | 현재 상태 |
+| --- | --- | --- |
+| LB-01 | 기존 Library 불변 snapshot 읽기·범위 쓰기, 초기 복제/읽기 hydration/전체 파일 copy-up 없음 | Passed, 실제 snapshot 직접 읽기·초기 private journal 0B와 범위 쓰기 자동 적합성 |
+| LB-02 | A/B/A·새 CLI의 동일 cache 기준, 원본/작업 격리·기준 회수 차단 | Passed, 실제 네 세대의 고정 기준·원본 Library 변경 격리와 cache 의존 회수 거부 |
+| LB-03 | 정지 cache 정리·겹침량 예산·내용 동등성·같은 요청 중단 복구 | Passed, 실제 정리/같은 요청/restart/재증가. 8개 중단 경계와 작은 예산 거부는 자동 시험 범위 |
+| LB-04 | 같은 소스의 cold/기존 Library 비교·전체 추가 할당·준비/재개/정리 비용 | Passed with limitations, 같은 입력의 저장량·시간·정리 겹침과 재증가. 전체 순간 물리 peak·VSS 귀속은 unknown |
+| LB-05 | artifact→cache→worker 독립 결과와 최종 회수·현재 계약 및 안내 | Passed, 실제 독립 결과·최종 소유 자원 회수와 588개 자동 시험·현재 문서 |
 
 ## 제품화와 비용 관문
 

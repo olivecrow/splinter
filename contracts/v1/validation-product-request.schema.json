@@ -28,7 +28,8 @@
         "refresh",
         "stop",
         "close-view",
-        "preserve-worker"
+        "preserve-worker",
+        "compact-cache"
       ]
     },
     "project": {
@@ -96,6 +97,10 @@
     "maxJournalBytes": {
       "type": "integer",
       "minimum": 4096
+    },
+    "maxEstimatedJournalOverlapBytes": {
+      "type": "integer",
+      "minimum": 1
     }
   },
   "oneOf": [
@@ -138,6 +143,11 @@
             "required": [
               "maxJournalBytes"
             ]
+          },
+          {
+            "required": [
+              "maxEstimatedJournalOverlapBytes"
+            ]
           }
         ]
       }
@@ -169,6 +179,11 @@
           {
             "required": [
               "target"
+            ]
+          },
+          {
+            "required": [
+              "maxEstimatedJournalOverlapBytes"
             ]
           }
         ]
@@ -215,6 +230,11 @@
             "required": [
               "maxJournalBytes"
             ]
+          },
+          {
+            "required": [
+              "maxEstimatedJournalOverlapBytes"
+            ]
           }
         ]
       }
@@ -257,6 +277,11 @@
             "required": [
               "maxJournalBytes"
             ]
+          },
+          {
+            "required": [
+              "maxEstimatedJournalOverlapBytes"
+            ]
           }
         ]
       }
@@ -296,6 +321,11 @@
             "required": [
               "maxJournalBytes"
             ]
+          },
+          {
+            "required": [
+              "maxEstimatedJournalOverlapBytes"
+            ]
           }
         ]
       }
@@ -310,6 +340,51 @@
       },
       "required": [
         "viewId"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "workspaceId"
+            ]
+          },
+          {
+            "required": [
+              "candidateId"
+            ]
+          },
+          {
+            "required": [
+              "generationId"
+            ]
+          },
+          {
+            "required": [
+              "target"
+            ]
+          },
+          {
+            "required": [
+              "maxJournalBytes"
+            ]
+          },
+          {
+            "required": [
+              "maxEstimatedJournalOverlapBytes"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "compact-cache"
+        }
+      },
+      "required": [
+        "viewId",
+        "maxEstimatedJournalOverlapBytes"
       ],
       "not": {
         "anyOf": [

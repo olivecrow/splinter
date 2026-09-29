@@ -1,6 +1,6 @@
 # Windows 제어 파일 게시/읽기 경합
 
-IPC-01~03은 **scoped-complete-with-limitations**다. [확정 범위](../plans/storage-priority-and-editor-modes.md#이번-범위-windows-ipc-상태-읽기-경합)의 실제 Windows 파일 교체/읽기와 합성 overlay client 상태를 검증했다. 새 후보의 실제 WinFsp/VSS `prepare-worker`·Unity cold A/B/A는 NotRun이며 이전 WF 결과를 승계하지 않는다.
+IPC-01~03은 **scoped-complete-with-limitations**다. 아래 기록은 실제 Windows 파일 교체/읽기와 합성 overlay client 상태의 검증이며 현재 처리 계약은 [NTFS 작업공간](../ntfs-workspaces.md)을 따른다. 이후 고정 후보의 실제 WinFsp/VSS `prepare-worker`·Unity 실행은 [WF-09~12](product-validation-unelevated.md)에서 별도로 확인했다. 그 실행의 heartbeat 게시 오류 기록과 과거 t2의 미확정 원인을 유지하며 이 합성 시험의 성공으로 승계하지 않는다.
 
 ## 수정 전 재현
 
@@ -17,6 +17,8 @@ stack에서 `CheckPath`의 `File.GetAttributes`와 `FileStream` open 양쪽의 �
 현재 계약은 [NTFS 작업공간](../ntfs-workspaces.md)을 따른다. 관측 reader의 guard/open을 유한 시간 재시도하고 이미 열린 stream에서 JSON을 해석한다. JSON 손상은 다시 읽어 숨기지 않는다. 선택적 stop/flush/source 요청 polling만 즉시 missing을 허용한다. reader는 파일·속성·저널을 변경하지 않는다.
 
 추가 회귀 시험은 실제 동시 교체의 완전성/sequence, 첫 게시 대기, 짧은 배타 handle, 지속 공유 실패 뒤 같은 읽기 재시도, 취소, 실제 부재, 선택적 polling, JSON 손상, 접근 거부, reparse parent를 포함한다. 별도 client 시험은 합성 unmounted 상태의 읽기 실패 뒤 같은 stop 재호출과 저널/상태 보존, 다른 owner 거부, 미해결 launch의 unknown을 확인한다. 합성 process/snapshot 영수증은 실제 WinFsp mount·VSS·Unity 지원의 근거가 아니다.
+
+전체 시험의 다른 flush 부하와 겹치면 500회 교체 시험이 30초 제한에 도달한 기록이 있다. Library 구현 후보의 [전체 실행](../../artifacts/storage-foundation/library-20260929/automatic-first.trx)에서도 같은 제한 실패가 있었고, [해당 9개 시험만 실행](../../artifacts/storage-foundation/library-20260929/control-file-read-recheck.trx)하면 5.10초에 통과했다. 이 시간 경계 시험 collection은 다른 collection과 직렬 실행한다. 시험 내부 4개 동시 reader·500회 게시·30초 제한·제품의 1초 복구 계약은 유지하며, 이를 과거 Unity 실패 원인의 확정으로 해석하지 않는다.
 
 ## 수정 후 판정
 

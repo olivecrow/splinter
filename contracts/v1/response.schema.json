@@ -904,7 +904,7 @@
             "stage": {"const":"windows-product"},
             "integratedWorkspaceMode": {"const":true}, "cliAvailable": {"const":true},
             "runtime": {"type":"string", "minLength":1},
-            "operations": {"const":["publish", "select", "resume", "observe-validation", "preserve", "release"]},
+            "operations": {"const":["publish", "select", "resume", "observe-validation", "preserve", "release", "close-view"]},
             "schemas": {"const":["urn:splinter:v1:validation-workflow-request", "urn:splinter:v1:validation-workflow-response", "urn:splinter:v1:validation-workflow-state", "urn:splinter:v1:validation-product-request"]},
             "boundaries": {"type":"string", "minLength":1}
           }

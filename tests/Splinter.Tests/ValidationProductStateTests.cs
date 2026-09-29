@@ -23,6 +23,7 @@ public sealed class ValidationProductStateTests
     [Theory]
     [InlineData("source")][InlineData("control")][InlineData("snapshot-owner")]
     [InlineData("application")][InlineData("managed-paths")][InlineData("cache")]
+    [InlineData("cache-owner")][InlineData("cache-proof")][InlineData("cache-partition")]
     public void PersistedGenerationCannotRedirectOwnedResources(string corruption)
     {
         using var dir = new TestDirectory(); var store = new WorkspaceStore(Path.Combine(dir.Path, "home"));
@@ -33,19 +34,23 @@ public sealed class ValidationProductStateTests
         var snapshot = new SnapshotReference("snapshot", "fake", project, "immutable", DateTimeOffset.UtcNow, true, true, "fixture");
         var worker = new WorkerBinding(1, provider.ProjectId, workerId, workerOwner, "compatibility", new string('c', 40));
         string cacheId = WorkspaceStore.Key(provider.ProjectId + ":cache:" + viewId);
-        var cache = new ValidationCacheIdentity(viewId, cacheId, snapshot with { Id = cacheId, Provider = "validation-empty-cache", RootPath = provider.CachePath(cacheId) },
+        store.Save(new WorkspaceRecord { Id = workerId, RequestKey = workerId, ProjectPath = project,
+            SourceReference = "development", BaseReference = worker.BaseRevision,
+            Path = store.WorkPath(workerId), StorageMode = "ntfs-snapshot", Snapshot = new() { Reference = snapshot } }, "fixture");
+        var cache = new ValidationCacheIdentity(viewId, cacheId, snapshot,
             worker.CompatibilityKey, "unity-top-level-v1", SnapshotWorkspaceState.DefaultJournalBytes);
-        var view = new ViewBinding(1, provider.ProjectId, owner, cache, Path.Combine(store.Root, "validation-mounts", WorkspaceStore.Key(provider.ProjectId + ":" + viewId)));
+        var view = new ViewBinding(1, provider.ProjectId, owner, cache, Path.Combine(store.Root, "validation-mounts", WorkspaceStore.Key(provider.ProjectId + ":" + viewId)), workerId);
         ProductState.Save(provider.WorkerPath(workerId), worker); ProductState.Save(provider.ViewPath(viewId), view);
         var seal = new SnapshotDeltaSeal(1, 10, new string('d', 64));
         var publication = new CandidatePublicationReceipt(new("candidate", provider.ProjectId, "candidate", new(workerId, workerOwner, snapshot, seal), "source-only-v1"), seal, "candidate");
         var selection = new ValidationSelectionReceipt(new(generation, provider.ProjectId, generation, owner, cache, publication), generation);
         string control = provider.GenerationPath(generation);
         var identity = new OverlayIdentity(1, generation, snapshot, cache.MaxJournalBytes, 1024 * 1024, [".git"]);
-        var cacheIdentity = new OverlayIdentity(1, cacheId, cache.Snapshot, cache.MaxJournalBytes, 1024 * 1024, WindowsValidationProvider.CacheRoots);
+        var cacheIdentity = WindowsValidationProvider.CacheIdentity(cache);
         var request = new OverlayServeRequest(identity, Path.Combine(control, "source"), view.MountPath, Path.Combine(control, "overlay"), "token",
             new(snapshot.Id, snapshot.RootPath, "proof"), Path.Combine(store.ControlPath(workerId), "snapshot"), workerId,
-            new(provider.CandidatePath("candidate"), provider.CachePath(cacheId), WindowsValidationProvider.CacheRoots, cacheIdentity));
+            new(provider.CandidatePath("candidate"), provider.CachePath(cacheId), WindowsValidationProvider.CacheRoots, cacheIdentity, "snapshot"),
+            new(new(snapshot.Id, snapshot.RootPath, "proof"), Path.Combine(store.ControlPath(workerId), "snapshot"), workerId));
         var workspace = new WorkspaceRecord { Id = generation, RequestKey = generation, SourceReference = "validation-source", BaseReference = worker.BaseRevision,
             ProjectPath = project, Path = view.MountPath, StorageMode = "ntfs-snapshot",
             ManagedPaths = provider.Managed, Snapshot = new() { Reference = snapshot } };
@@ -58,6 +63,10 @@ public sealed class ValidationProductStateTests
         if (corruption == "application") workspace.Path = Path.Combine(dir.Path, "unrelated");
         if (corruption == "managed-paths") workspace.ManagedPaths = ["Assets"];
         if (corruption == "cache") g = g with { Request = request with { ValidationView = request.ValidationView! with { CacheDeltaPath = Path.Combine(dir.Path, "unrelated") } } };
+        if (corruption == "cache-owner") g = g with { Request = request with { CacheSnapshot = request.CacheSnapshot! with { OwnerId = "foreign" } } };
+        if (corruption == "cache-proof") g = g with { Request = request with { CacheSnapshot = null } };
+        if (corruption == "cache-partition") g = g with { Request = request with { ValidationView = request.ValidationView! with {
+            CacheIdentity = cacheIdentity with { IncludedTopLevel = ["Assets"] } } } };
         ProductState.Save(path, g); byte[] before = File.ReadAllBytes(path);
         Assert.Equal("ValidationReceiptMismatch", Assert.Throws<WorkspaceException>(() => provider.Generation(generation)).Code);
         Assert.Equal(before, File.ReadAllBytes(path)); Assert.False(Directory.Exists(Path.Combine(dir.Path, "unrelated")));

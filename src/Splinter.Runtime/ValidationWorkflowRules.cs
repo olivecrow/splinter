@@ -43,6 +43,7 @@ internal static partial class ValidationWorkflowRules
         {
             "publish" => w && !c && !v && !g && !t,
             "select" => !w && c && v && !g && !t,
+            "close-view" => !w && !c && v && !g && !t,
             "resume" or "observe-validation" => !w && !c && !v && g && !t,
             "preserve" or "release" => !w && !c && !v && !g && t,
             _ => false
@@ -93,6 +94,13 @@ internal static partial class ValidationWorkflowRules
     {
         bool c = response.Candidate is not null, s = response.Selection is not null, e = response.Evidence is not null,
             r = response.Result is not null, d = response.Released is not null;
+        if (response.Operation == "close-view")
+        {
+            Require(!c && !s && !e && !r && !d && response.ClosedViewId == request.Cache!.ViewId,
+                "ValidationStateCorrupt", "A cache closure response must identify the retained view.");
+            return;
+        }
+        Require(response.ClosedViewId is null, "ValidationStateCorrupt", "Only explicit cache closure can release the cache dependency.");
         Require(response.Operation switch
         {
             "publish" => c && !s && !e && !r && !d && response.Candidate!.Intent.Worker == request.Worker,
@@ -178,6 +186,11 @@ internal static partial class ValidationWorkflowRules
         foreach (var (key, view) in state.Views!)
         {
             Cache(view.Cache); Owner(view.Owner);
+            Require(view.CacheReleased == state.Operations.Values.Any(o => o.Request.Operation == "close-view" &&
+                    o.Request.Cache == view.Cache && o.Response?.ClosedViewId == key) &&
+                (!view.CacheReleased || view.CurrentGenerationId is null && !state.Generations.Values.Any(g =>
+                    g.Selection.Intent.Cache.ViewId == key && !g.Released)),
+                "ValidationStateCorrupt", "Cache closure requires its completed operation and released source generations.");
             Require(key == view.Cache.ViewId && (view.CurrentGenerationId is null ||
                 state.Generations.TryGetValue(view.CurrentGenerationId, out var generation) && !generation.Released &&
                 generation.Selection.Intent.Cache == view.Cache && generation.Selection.Intent.Owner == view.Owner),
@@ -187,6 +200,9 @@ internal static partial class ValidationWorkflowRules
         }
         foreach (var op in state.Operations.Values)
         {
+            if (op.Response?.ClosedViewId is { } closed)
+                Require(state.Views.TryGetValue(closed, out var view) && view.CacheReleased && view.Cache == op.Request.Cache,
+                    "ValidationStateCorrupt", "A cache closure response cannot lose its retained view identity.");
             if (op.Response?.Candidate is { } publication)
                 Require(state.Candidates.TryGetValue(publication.Intent.CandidateId, out var publishedCandidate) && publishedCandidate.Publication == publication,
                     "ValidationStateCorrupt", "A publication response cannot lose its retained candidate and dependency.");

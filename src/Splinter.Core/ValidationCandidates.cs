@@ -2,6 +2,11 @@ using System.Text.Json.Serialization;
 
 namespace Splinter.Core;
 
+// Private journal storage only. Immutable snapshot bytes and shared VSS are not
+// charged here; frame bytes include retained mutation metadata and checksums.
+public sealed record ValidationCacheUsage(long JournalBytes, long RetainedPayloadBytes,
+    long LivePrivateBytes, long ObsoletePayloadBytes, long FrameBytes);
+
 // Adapter-qualified, bounded private files already excluded from the immutable
 // snapshot. This is evidence for candidate projection, never a deletion grant.
 public sealed record CandidateManagedFile(string Path, int Length, string ContentHash);
@@ -24,4 +29,5 @@ public sealed record ValidationCandidate(int Version, string Id, OverlayIdentity
     [property: JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] CandidateSourceProjection? SourceProjection);
 
 public sealed record ValidationViewSelection(string CandidatePath, string CacheDeltaPath,
-    string[] CacheTopLevel, OverlayIdentity? CacheIdentity = null);
+    string[] CacheTopLevel, OverlayIdentity? CacheIdentity = null,
+    [property: JsonRequired] string CacheBasis = "empty");

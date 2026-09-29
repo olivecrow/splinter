@@ -346,6 +346,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         if (paths.TryGetValue(path, out var id)) return nodes[id];
         if (path.Length == 0 || hidden.Contains(path)) return null;
         if (Identity.ExcludedTopLevel?.Contains(path.Split('/')[0], StringComparer.OrdinalIgnoreCase) == true) return null;
+        if (Identity.IncludedTopLevel is { } included && !included.Contains(path.Split('/')[0], StringComparer.OrdinalIgnoreCase)) return null;
         var parent = Lookup(Parent(path));
         if (parent is not { Entry.Directory: true, Entry.BasePath: { } baseParent }) return null;
         var entry = snapshot.Stat(Join(baseParent, Name(path)));

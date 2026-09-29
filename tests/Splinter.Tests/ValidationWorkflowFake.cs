@@ -126,4 +126,13 @@ internal sealed class ValidationWorkflowFake(string root, ValidationWorkflowWorl
         Save("released", intent.Artifact.Target.Id, intent); world.Count("release"); Reply("release");
         return Task.CompletedTask;
     }
+
+    public Task CloseCacheAsync(string projectId, ValidationCacheIdentity cache, ValidationOwner owner, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested(); Owned(cache.ViewId, owner); Quiet(world.ViewResources);
+        var old = Find<ValidationCacheIdentity>("cache-closed", cache.ViewId);
+        if (old is not null) { Check(old == cache, "ValidationCacheMismatch"); return Task.CompletedTask; }
+        Save("cache-closed", cache.ViewId, cache); world.Count("close-view"); Reply("close-view");
+        return Task.CompletedTask;
+    }
 }
