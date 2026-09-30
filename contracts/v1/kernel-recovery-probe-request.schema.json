@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "urn:splinter:v1:kernel-recovery-probe-request",
+  "type": "object", "additionalProperties": false,
+  "required": ["version", "directory", "mountPath", "operation", "boundary", "nonce", "generation"],
+  "properties": {
+    "version": {"const": 1}, "directory": {"type":"string","minLength":1}, "mountPath": {"type":"string","minLength":1},
+    "operation": {"enum":["write","rename","replace","truncate","flush","mmap"]},
+    "boundary": {"enum":["callback.before-effect","callback.after-effect","client.after-ack","client.before-view-flush"]},
+    "nonce": {"type":"string","pattern":"^[a-f0-9]{32}$"}, "generation": {"enum":[1,2]}
+  },
+  "if": {"properties":{"operation":{"not":{"const":"mmap"}}}},
+  "then": {"properties":{"boundary":{"not":{"const":"client.before-view-flush"}}}}
+}

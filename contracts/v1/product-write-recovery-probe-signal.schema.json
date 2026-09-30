@@ -1,0 +1,9 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema","$id":"urn:splinter:v1:product-write-recovery-probe-signal",
+  "type":"object","additionalProperties":false,"required":["version","nonce","boundary","requestDigest","processId","processStartTimeUtcTicks"],
+  "properties":{
+    "version":{"const":1},"nonce":{"type":"string","pattern":"^[a-f0-9]{32}$"},
+    "boundary":{"enum":["client.before-effect","client.after-ack","client.after-write-before-flush","client.before-view-flush"]},
+    "requestDigest":{"type":"string","pattern":"^[a-f0-9]{64}$"},"processId":{"type":"integer","minimum":1},"processStartTimeUtcTicks":{"type":"integer","minimum":1}
+  }
+}

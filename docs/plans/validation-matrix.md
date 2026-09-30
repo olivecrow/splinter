@@ -83,13 +83,15 @@
 
 확정 단위와 완료 기준은 [NR-01/02 준비 단계 중단 복구](ntfs-recovery-and-support.md#확정-범위-nr-0102-준비-단계-중단-복구)가 소유한다. 실제 후보와 실행 목록은 [준비 복구 검증](../verification/preparation-recovery.md)을 따른다. NR-07은 해당 단위의 사용자 쓰기 없는 부분 준비 재조정에만 연결하고 나머지 중단 관문은 유지한다.
 
-NR-03의 공통 저널 단위는 [별도 범위](ntfs-recovery-and-support.md#확정-범위-nr-03-공통-저널-쓰기flush-중단)와 [58개 실제 자식 종료](../verification/ntfs-recovery.md#nr-03-공통-저널-경계의-실제-프로세스-종료)를 따른다. 전체 NR-03이나 실제 mount·mmap·OS 장애의 완료로 확대하지 않는다.
+NR-03은 [공통 저널 58개](../verification/ntfs-recovery.md#nr-03-공통-저널-경계의-실제-프로세스-종료), [로컬 kernel 19개](../verification/ntfs-recovery.md#nr-03-로컬-winfsp-callbackmmap새-provider-연결), [제품 VSS·CLI의 client 경계](../verification/ntfs-recovery.md#nr-03-제품-vsscli의-클라이언트-경계)를 별도 범위·후보로 추적한다. 후보별 실행 자격을 서로 승계하지 않으며 NR-03 전체나 OS 장애 완료로 확대하지 않는다.
+
+별도 로컬 kernel 단위는 [실제 WinFsp callback/mmap/새 provider 19개](../verification/ntfs-recovery.md#nr-03-로컬-winfsp-callbackmmap새-provider-연결)로 scoped-complete-with-limitations다. fake 불변 기준이며 실제 VSS server/CLI·ARM·전원/공간 장애로 확대하지 않는다. 최초 reader 종료 타임아웃과 미리 열린 Read 응답/Close 구분을 보존한다.
 
 | ID | 검증 대상 | 상태 | 완료 조건·제한 |
 | --- | --- | --- | --- |
 | NR-01 | 복구 상태·identity·영속 기록·기계용 응답 | InProgress: 공통 응답·상태 보존/LV와 준비 port/schema/fake·자식 launch receipt 거부 통과 | unknown/소실/경로 불일치 구분, 복구 분류/schema/fake, 손상 JSON·잠긴 기록·고아 임시 파일 보존. 준비 후보의 615 Passed / 0 Failed / 1 optional ReFS Skipped. 상태 게시 실패 원인 미확정과 전체 중단 단계의 오류/행동은 남음 |
 | NR-02 | 준비 단계의 실제 중단과 중복 요청 | scoped-complete-with-limitations: 같은 최종 후보의 실제 CLI 종료 26개·동시 같은 요청 Ready·독립 결과/회수 | [정확한 경계와 최종 감사](../verification/preparation-recovery.md). 최초 payload/read cache 0, 원본/기존 refs/비소유 snapshot 3개 보존, 소유 runner 0. 게시 실패 1건의 명시적 동일 identity 복구와 fresh-key 재실행을 구분. native capture 내부·intent 뒤 실행 여부 unknown 간격·OS 장애는 이 자격에 포함하지 않음 |
-| NR-03 | 저널·flush·승인 쓰기의 지속성 | InProgress: 공통 저널 58개 실제 종료 scoped-complete-with-limitations, 손상 보존 회귀 통과 | fake 불변 트리·제품 Runtime에서 write/rename/replace/truncate/create/delete·명시적 flush·외부 ACK·tail·두 번째 재생 통과. 최종 후보 683 Passed / 0 Failed / 1 optional ReFS Skipped. 실제 WinFsp/VSS·mmap·동시 reader/writer·flush 내부·OS 장애는 이 후보의 미실행 관문. 이전 LV의 4KiB 쓰기·정상 재연결과 구분 |
+| NR-03 | 저널·flush·승인 쓰기의 지속성 | InProgress: 공통 저널 58개·별도 로컬 kernel 19개·제품 VSS/CLI client 13개 각각 scoped-complete-with-limitations | 제품 후보는 같은 snapshot/delta/Git 등록·새 provider/read proof·반복 ensure 불변·독립 결과·일반 release 자원 0, 698 Passed / 0 Failed / 1 optional ReFS Skipped. 이전 kernel의 reader 타임아웃, 제품 준비 StateWriteIncomplete 원인 unknown·Git text fixture 실패 보존. VSS 내부 callback·같은 파일 동시 쓰기·새 open/close 동시 완료·flush 내부·replay 중 종료·OS 장애·ARM은 미실행. 이전 공통/kernel/LV 후보와 구분 |
 | NR-04 | 정상 재부팅·강제 전원 종료 후 같은 작업 | NotRun | Ready/미수집 변경·checkpoint 완료·회수 도중의 전후 boot 식별, 같은 snapshot/delta/key, 새 원본과 시점 격리. 유효 기준은 실제 재개, 소실/손상은 보존/차단 |
 | NR-05 | 파일 특성·ACL·경로 지원/거부 | InProgress: 속성 callback 자동 통과, ARM64 실제 WinFsp 기본 I/O·5개 API 거부·회수 통과 | fake 불변 트리의 실제 mount에서 ADS/hardlink/희소/압축/mount-point reparse 거부와 일반 NTFS 양성 대조 확인. VSS 입력·EFS·ACL 전제·다른 reparse 종류·한글/공백/긴 경로는 별도 검증 |
 | NR-06 | 실제 공간 고갈·offline·snapshot 소실 | NotRun | VSS·delta/상태·Git 결과 공간을 나눈 격리 볼륨 시험, quota와 구분, unknown 보존, 늦은 쓰기·미보존 결과 보호, 다른 작업·기존 복원 지점 보존 |

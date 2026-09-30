@@ -1,6 +1,6 @@
 # NTFS 복구·지원 경계 검증
 
-기준일: 2026-09-30. [NR 계획](../plans/ntfs-recovery-and-support.md)의 실행 기록이다. **NR-01/03/05/07 부분 구현·자동 검증과 공통 저널의 실제 자식 종료 58개**를 확인했다. 아래 원격 VSS 읽기·회수 복구와 5개 파일 API 거부, ARM Windows/x64 Unity 단일 작업공간 근거는 각 이전 후보의 기록이며 NR 전체 완료가 아니다.
+기준일: 2026-10-01. [NR 계획](../plans/ntfs-recovery-and-support.md)의 실행 기록이다. **NR-01/03/05/07 부분 구현·자동 검증, 공통 저널의 실제 자식 종료 58개, 별도 로컬 WinFsp callback/mmap/새 provider 연결 19개, 제품 VSS·CLI의 외부 client 경계 13개**를 확인했다. 각 실행 단위는 아래 별도 후보로 구분한다. 원격 VSS 읽기·회수 복구와 5개 파일 API 거부, ARM Windows/x64 Unity 단일 작업공간 근거는 각 이전 후보의 기록이며 NR 전체 완료가 아니다.
 
 ## 새 live VSS 후보
 
@@ -30,7 +30,7 @@
 
 추가 프로세스 시험은 `artifacts/ntfs-recovery/nr03-process-20260921/`의 개발용 harness와 `trials-2/result.json`에 보존한다. 제품의 동일 `JournalDeltaStore` 바이너리를 사용하되 기준 트리는 결정적 fake다. 최종 ACK sequence 1/8/32가 모두 유지됐고, 재생된 sequence는 1/9/33이었다. ACK를 받기 전 완료된 마지막 레코드가 남을 수 있다는 허용 범위와 일치한다. 초기 payload 복사와 읽기 cache는 0이다. 첫 실행은 종료 직후 공유 위반 32로 중단되어 `trials/`와 실패 설명을 보존했다. 후속 harness는 소유 프로세스 종료 확인 뒤 공유 위반만 최대 5초 재관측하며, 통과한 3건에서 해당 재시도는 0회였다. 이 시험은 WinFsp/VSS·mmap flush·저널 내부 특정 명령어 중단·재부팅/전원 손실의 증거가 아니다.
 
-현재 snapshot probe는 root 메타데이터와 source 볼륨 접근을 관측한다. 재부팅 후 VSS ID·provider·volume의 동일성을 재검증한 증거는 아직 없다. [NR-02 준비 경계](preparation-recovery.md)와 아래 공통 저널 경계를 제외한 나머지 중단 관문, 정상 재부팅/강제 전원 종료, 실제 공간 고갈/offline, ACL/EFS·입력 특성의 전체 표와 부분 준비 직접 회수는 미완료다. 아래 실제 mount의 5개 API 거부와 VIVOBOOK 단일 Unity 작업공간 시험을 이 전체 범위와 구분한다.
+현재 snapshot probe는 root 메타데이터와 source 볼륨 접근을 관측한다. 재부팅 후 VSS ID·provider·volume의 동일성을 재검증한 증거는 아직 없다. [NR-02 준비 경계](preparation-recovery.md)와 아래 공통 저널·로컬 kernel 경계를 제외한 나머지 중단 관문, 정상 재부팅/강제 전원 종료, 실제 공간 고갈/offline, ACL/EFS·입력 특성의 전체 표와 부분 준비 직접 회수는 미완료다. 아래 실제 mount의 5개 API 거부와 VIVOBOOK 단일 Unity 작업공간 시험을 이 전체 범위와 구분한다.
 
 ## NR-03 공통 저널 경계의 실제 프로세스 종료
 
@@ -52,7 +52,53 @@ write의 payload 절반 후는 33,129바이트, payload 전체/checksum 후/flus
 
 첫 전체 시험은 681개 중 679 Passed / 1 Failed / 1 Skipped였다. `replace / commit.after-apply`에서 정확한 자식 종료 확인 직후 journal open의 Win32 공유 위반 32로 replay 전에 실패했다. `../nr03-journal-20260930-preflight/first-full.trx`와 `failure.json`에 당시 바이너리 hash·실패를 보존했다. harness의 post-exit guard/open에만 공유 위반 32/33의 최대 5초 재관측을 추가했고, 접근 거부·부재·손상·replay 오류는 재시도하지 않는다. 첫 실패를 제품 데이터 손상이나 flush 정책 결함의 해결로 표시하지 않는다.
 
-판정은 **공통 저널 단위 scoped-complete-with-limitations**, 전체 NR-03은 **InProgress**다. 부분 header/checksum 바이트별·OS flush 호출 내부·replay의 tail 절단/flush 도중 강제 종료, 실제 WinFsp callback 응답/재연결, 명시적 mmap flush, 동시 reader/writer, VSS·재부팅·전원·물리 공간 장애는 이번 후보에서 NotRun이다. 이전 LV·원격 실행이나 NR-02 후보의 실제 자격을 이 후보로 자동 승계하지 않는다.
+판정은 **공통 저널 단위 scoped-complete-with-limitations**, 전체 NR-03은 **InProgress**다. 부분 header/checksum 바이트별·OS flush 호출 내부·replay의 tail 절단/flush 도중 강제 종료, 실제 WinFsp callback 응답/재연결, 명시적 mmap flush, 동시 reader/writer, VSS·재부팅·전원·물리 공간 장애는 이 공통 후보에서 NotRun이다. 아래 별도 kernel 후보와 이전 LV·원격 실행이나 NR-02 후보의 실제 자격을 이 후보로 자동 승계하지 않는다.
+
+## NR-03 로컬 WinFsp callback·mmap·새 provider 연결
+
+`artifacts/ntfs-recovery/nr03-kernel-20260930/`은 공통 저널의 로컬 commit `ab9c94e` 뒤의 개발 observer·harness·schema를 포함한 최종 후보다. Windows x64, .NET 10.0.12, 기존 WinFsp 설치에서 제품 `JournalDeltaStore`·`WinFspOverlayFileSystem`과 결정적 fake 불변 트리를 실제 mount에 연결했다. 실제 VSS server/CLI·Git·Unity·VIVOBOOK은 실행하지 않았다. `source-and-environment.json`, `candidate.json`, `final-audit.json`은 소스 238개·관리 바이너리 6개의 동일 hash와 비관리자 caller를 확인한다. Windows 어댑터 SHA-256은 `501c232538f54d9479cb1390a5ace80d046b5314d2f8b66f92e2d1b75e74dc43`이다.
+
+[개발 진입점](../kernel-recovery.md)의 최종 전체 행렬은 **19 Passed / 0 Failed**다. trial별 request·signal·외부 prefix/ACK·정확한 종료 PID/시작 시각·원문 journal·재연결 요청/ready·정상 stopped·stdout/stderr·schema 검증 result를 보존했다. callback 부작용 후는 성공 응답 전에 provider를 종료하며 외부 ACK와 구분한다.
+
+| 연산 | 실제 종료 수 | 확인한 내용 |
+| --- | --- | --- |
+| write / rename / replace / truncate / 명시적 flush | 각각 3, 합계 15 | callback 전·부작용 후 응답 전·클라이언트 ACK 후, 승인 prefix와 완료한 새 내용 보존 |
+| mmap | 4 | view flush 전·파일 flush callback 전/후·view/file flush 완료 뒤 외부 ACK, 페이지 내용 oracle |
+| 같은 경로의 새 provider | 위 19건 각각 | 같은 delta/identity 재생·실제 kernel 읽기·beta 새 4KiB 쓰기/flush·정상 unmount |
+| 다른 파일의 동시 Read | write 부작용 후 1건 | gate 전에 열린 beta의 4KiB 읽기 응답/hash를 gate 중 게시, Close/reader 종료는 provider 종료 뒤 확인 |
+
+19건 모두 승인 prefix를 보존하고 첫/두 번째 재생에서 journal 원문이 바뀌지 않았다. after-effect/외부 ACK 뒤는 완전한 새 내용을 요구했다. mmap view flush 전의 이번 관측은 새 페이지 부재였고 파일 flush callback 전/후에는 페이지가 남았다. 아직 승인하지 않은 페이지는 생존 또는 부재를 허용하며 이 관측을 보장으로 확대하지 않는다. mmap ACK는 view flush와 파일 `Flush(true)`가 모두 끝난 뒤만 게시한다. 초기 payload 복사·read cache는 모두 0이고, 정상 기준 읽기의 `baseReadBytes`는 4,096~65,536바이트로 별도 기록했다.
+
+최종 `pwsh ./scripts/build.ps1`은 locked restore·Release build 경고/오류 0, **총 695개 중 694 Passed / 0 Failed / 선택적 ReFS 1 Skipped**다. `final-full.trx`·`final-build.log`를 보존했다. 공통 callback fake 5개 연산·19개 요청 조합/schema·기본 계획의 경로 미생성과 기존 회귀를 포함한다. UTF-8·diff 검사도 통과했다. 최종 19건은 새 provider의 핸들/retained context 0·mount 부재·소유 자식 0을 확인했다. 최종 감사는 smoke/실패/preflight/final의 41개 mount 관측과 204개 PID/시작 시각 증거를 대조하고, 남은 kernel child actor 0·모든 delta 보존·형제 fixture clean을 확인했다.
+
+최초 `nr03-kernel-preflight-20260930/`은 1건 통과 뒤 write after-effect의 reader 프로세스 종료를 기다리다가 15초 deadline으로 실패했다. 당시 `File.ReadAllBytes`는 open/read/dispose를 구분하지 않아 실제 대기 단계·하위 원인은 **unknown**이다. 후보 hash·signal·prefix·delta·stdout/stderr·`failure.json`·인접 `.log`를 보존했다. 기존 `Cleanup`이 읽기 전용 핸들도 mutation gate를 잡는다는 코드 근거에 따라 후속 harness는 미리 열린 Read 응답과 Close/프로세스 종료를 나눴다. 제품 잠금·flush 정책은 변경하지 않았다. `nr03-kernel-preflight2-20260930/`의 19건 성공도 보존하며, 이후 최종 capability 문구를 포함한 전체 build/새 행렬이 위 최종 근거다. 첫 실패를 새 open/close 동시 완료나 제품 데이터 손실 결함 해결로 표시하지 않는다.
+
+판정은 **로컬 kernel 단위 scoped-complete-with-limitations**, 전체 NR-03은 **InProgress**다. 새 open/close의 gate 중 응답·같은 파일의 동시 쓰기 원자성·실제 VSS server/제품 CLI의 중단/재연결·OS flush 내부·replay 중 종료·재부팅·전원·물리 공간 장애·ARM/VIVOBOOK은 이번 후보에서 **NotRun**이다. 이전 공통 저널/LV/Unity/원격 후보의 실환경 자격을 자동 승계하지 않는다. VIVOBOOK 시험이 필요하면 실행 전에 사용자에게 알린다.
+
+## NR-03 제품 VSS·CLI의 클라이언트 경계
+
+최종 PNG 후보의 실제 전체 행렬은 **13 Passed / 0 Failed**, 제품 외부 client 단위는 **scoped-complete-with-limitations**다. `artifacts/ntfs-recovery/nr03-product-png-20261001/`의 `candidate.json`·`fixture-attributes.json`·`frozen-source.json`·`final-audit.json`이 소스 244개·관리 바이너리 20개의 불변 hash를 확인한다. 같은 경로의 `environment.json`은 설치된 제한 권한 서비스와 WinFsp 파일의 불변 hash를 소유하며 설치/grant·볼륨/예산은 변경하지 않았다. CLI caller는 비관리자다. 최종 `pwsh ./scripts/build.ps1`은 **699개 중 698 Passed / 0 Failed / 선택적 ReFS 1 Skipped**, 경고/오류 0이며 `final-full.trx`·`final-build.log`를 보존한다.
+
+[개발 진입점](../product-write-recovery.md)은 기존 등록된 clean `T:/ua-source @ f71e4e244ba9b085aa0fc439336e4c60ee3d5d5d`·base `codex/library-20260929`와 제품 `.local/wl29`를 사용한다. 실제 기준은 VSS이며 일반 제품 ensure/server/WinFsp/Git 조합이다. fake 기준을 쓰거나 provider에 observer를 연결하지 않는다. 소스 FBX와 명시적 binary PNG의 합계 129,189바이트 oracle는 시험 evidence 비용이고 제품 초기 복제량이 아니다. 서비스가 조회한 capture·release-isolation으로 기존 snapshot ID 3개를 대조한다. 일반 사용자의 전역 VSS 직접 조회는 access denied/initialization failure로 **unknown**이며 0으로 표시하지 않는다.
+
+| 연산 | 실제 종료 수 | 확인한 내용 |
+| --- | --- | --- |
+| write / rename / replace / truncate / 명시적 file Flush | 각각 2, 합계 10 | client 연산 전·외부 ACK 후, 승인 prefix와 완료한 내용·namespace 보존 |
+| write | 1 | Write 반환 뒤 명시적 file Flush 전에 종료해도 새 4KiB 내용 보존 |
+| mmap | 2 | view Flush 전·view/file Flush와 외부 ACK 후의 페이지 oracle |
+| 동일 요청 재연결·명시적 보존/회수 | 위 13건 각각 | 같은 snapshot/delta/Git 등록·새 현재 읽기 검증/provider, 반복 ensure 불변·새 쓰기·독립 ref/blob·최종 자원 0 |
+
+13건 모두 정확한 provider token/workspace/snapshot/generation/PID/시작 시각의 실제 종료와 mount 부재 뒤 동일 ensure로 재개했다. 첫 재생과 두 번째 ensure에서 journal 원문이 유지되고 두 번째 ensure는 같은 새 provider를 사용했다. beta의 새 4KiB 쓰기/flush 뒤 일반 `validation preserve-worker`의 독립 Git ref/blob/namespace를 검증했으며 `stable-journal-v1`로 수집했다. Unity validation 성공은 부여하지 않는다. mmap view Flush 전의 이번 관측은 새 페이지 부재였고 view/file Flush 완료 ACK 후에는 새 페이지가 남았다. 미승인 페이지는 완전 생존 또는 부재를 허용하며 이 관측을 일반 보장으로 확대하지 않는다. 13건의 제품 초기 payload 복사와 read cache는 모두 0이다.
+
+일반 release는 모든 13건의 snapshot/mount/provider 부재, 핸들·working set·private 메모리 0, mount/Git 등록 디렉터리/delta 부재와 정확한 소유 프로세스 종료를 확인했다. 최종 감사는 아래 실패/부분 실행을 포함한 **21개 소유 workspace·59개 provider/client PID/시작 시각 증거**를 대조했다. 모든 독립 결과 refs를 보존하고 소유 자식 0, 기존 비소유 snapshot 3개 보존, 첫 smoke 전부터 마지막 실행 후까지 원본 HEAD/index/tracked hash·기존 refs/worktree 불변과 형제 fixture clean을 확인했다. 원시 journal·현재 후보·실패 증거는 삭제하지 않았다.
+
+### 보존한 실패와 재검증 조건
+
+- `nr03-product-smoke-20261001/`의 처음 write-before-effect는 product 재연결 뒤 harness `File.ReadAllBytes`의 공유 위반으로 실패했다. 제한 환경 build가 exit 1로 끝났는데 실행 전에 확인하지 않아 수정 전 후보를 실행한 순서 오류였다. 실행한 DLL/JSON과 `first-full.trx`를 보존했다. 계측에 ReadWrite/Delete sharing과 IPC의 같은 경로 guard/open 재관측만 추가했으며 제품 잠금/flush 정책은 그대로다. 같은 workspace `ceec9769dcfadfac31d7fa35`의 prefix·기준 바이트를 확인하고 일반 preserve-worker/release로 독립 ref `ee65032673fe7c09d71ae126b8cddd3056f073b9`와 전체 회수를 완료했다. 첫 실패를 통과로 바꾸지 않는다.
+- inputactions 후보 `nr03-product-20261001/`은 write 전/ACK 후·rename 전 3건을 마친 뒤 다음 초기 ensure의 `captured` 상태 저장에서 `StateWriteIncomplete`를 반환했다. mutation 경계는 **NotRun**이었다. workspace `0ec42f18abf0c388465584b2`, snapshot `{F9A02240-C144-4982-B01A-525346E10BDD}`와 완전 tmp JSON·실패 응답·status를 보존했다. 같은 요청 ensure로 같은 snapshot의 Ready를 회복하고 편집 없는 독립 결과/release를 완료했다. 이전 NR-02 게시 실패와 같은 오류 코드지만 하위 HResult/원인은 여전히 **unknown**이며 retry 정책을 추측 변경하지 않았다.
+- 같은 inputactions 후보의 `nr03-product-20261001b/`은 새 rename ACK 후와 replace 전 2건을 마쳤다. replace ACK 후는 원문 VSS/저널/재연결 oracle를 통과했지만 독립 Git blob의 raw-byte hash가 달라 실패했다. FBX를 `*.inputactions text eol=lf`로 선언한 경로에 옮긴 fixture였다. `normalization-evidence.json`은 105,120바이트에서 CRLF의 CR 정확히 3개를 제거한 105,117바이트가 Git blob hash와 일치함을 입증한다. 원문·canonical Git blob·raw journal·실행 DLL/JSON을 보존하고 workspace `56a39a5c8a16ba8ef897dbb9`의 동일 결과/ref/release를 완료했다. 원문은 독립 `independent-raw-beta.bin`으로도 남는다. Git 선언 정책을 변경하거나 제품 정규화 결함을 수정했다고 표시하지 않는다.
+
+PNG 후보는 `Assets/TutorialInfo/Icons/URP.png`의 `text: unset`·`binary: set`을 실제 확인한 다른 바이너리/입력이다. 이전 후보의 5개 완료 경계를 승계하지 않고 13개 모두 새로 실행했다. 전체 NR-03은 **InProgress**이며 현재 후보의 실제 VSS 내부 callback/OS flush 중단·replay 중 종료·동시 writer/read open/close·Unity/ARM·재부팅·전원·물리 공간 장애는 **NotRun**이다. 준비 단계 `StateWriteIncomplete`의 하위 원인도 unknown으로 유지한다. VIVOBOOK은 사용하지 않았으며 시험이 필요하면 실행 전에 사용자에게 알린다.
 
 ## VIVOBOOK 준비
 

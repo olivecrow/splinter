@@ -1,0 +1,18 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema","$id":"urn:splinter:v1:product-write-recovery-probe-request",
+  "type":"object","additionalProperties":false,
+  "required":["version","directory","mountPath","operation","boundary","nonce","alphaOracle","betaOracle","workspaceId","snapshotId","providerId","providerStartTimeUtcTicks","providerGeneration","providerToken"],
+  "properties":{
+    "version":{"const":1},"directory":{"type":"string","minLength":1},"mountPath":{"type":"string","minLength":1},
+    "operation":{"enum":["write","rename","replace","truncate","flush","mmap"]},
+    "boundary":{"enum":["client.before-effect","client.after-ack","client.after-write-before-flush","client.before-view-flush"]},
+    "nonce":{"type":"string","pattern":"^[a-f0-9]{32}$"},"alphaOracle":{"type":"string","minLength":1},"betaOracle":{"type":"string","minLength":1},
+    "workspaceId":{"type":"string","minLength":1},"snapshotId":{"type":"string","minLength":1},"providerId":{"type":"integer","minimum":1},
+    "providerStartTimeUtcTicks":{"type":"integer","minimum":1},"providerGeneration":{"type":"string","pattern":"^[a-f0-9]{32}$"},"providerToken":{"type":"string","minLength":1}
+  },
+  "allOf":[
+    {"if":{"properties":{"operation":{"const":"mmap"}}},"then":{"properties":{"boundary":{"enum":["client.before-view-flush","client.after-ack"]}}}},
+    {"if":{"properties":{"operation":{"const":"write"}}},"then":{"properties":{"boundary":{"enum":["client.before-effect","client.after-write-before-flush","client.after-ack"]}}}},
+    {"if":{"properties":{"operation":{"enum":["rename","replace","truncate","flush"]}}},"then":{"properties":{"boundary":{"enum":["client.before-effect","client.after-ack"]}}}}
+  ]
+}

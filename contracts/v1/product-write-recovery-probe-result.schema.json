@@ -1,0 +1,15 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema","$id":"urn:splinter:v1:product-write-recovery-probe-result",
+  "type":"object","additionalProperties":false,
+  "required":["version","operation","boundary","nonce","workspaceId","snapshotId","actualProviderTermination","sameSnapshotRegistrationDelta","newProviderGeneration","currentVerificationChanged","acknowledgedDataPreserved","repeatedEnsureJournalUnchanged","resumedReadWrite","prefixPreserved","beforeJournalHash","recoveredModelHash","pendingWriteSurvived","independentResultReference","independentResultRevision","validationClaimed","priorSnapshotIds","released","openHandles","ownedLiveChildren","initialPayloadCopiedBytes","readCacheBytes"],
+  "properties":{
+    "version":{"const":1},"operation":{"enum":["write","rename","replace","truncate","flush","mmap"]},"boundary":{"enum":["client.before-effect","client.after-ack","client.after-write-before-flush","client.before-view-flush"]},
+    "nonce":{"type":"string","pattern":"^[a-f0-9]{32}$"},"workspaceId":{"type":"string","minLength":1},"snapshotId":{"type":"string","minLength":1},
+    "actualProviderTermination":{"const":true},"sameSnapshotRegistrationDelta":{"const":true},"newProviderGeneration":{"const":true},"currentVerificationChanged":{"const":true},
+    "acknowledgedDataPreserved":{"const":true},"repeatedEnsureJournalUnchanged":{"const":true},"resumedReadWrite":{"const":true},"prefixPreserved":{"const":true},
+    "beforeJournalHash":{"type":"string","pattern":"^[a-f0-9]{64}$"},"recoveredModelHash":{"type":"string","pattern":"^[a-f0-9]{64}$"},"pendingWriteSurvived":{"type":"boolean"},
+    "independentResultReference":{"type":"string","minLength":1},"independentResultRevision":{"type":"string","pattern":"^[a-f0-9]{40}$"},"validationClaimed":{"const":false},
+    "priorSnapshotIds":{"type":"array","items":{"type":"string","minLength":1},"uniqueItems":true},"released":{"const":true},
+    "openHandles":{"const":0},"ownedLiveChildren":{"const":0},"initialPayloadCopiedBytes":{"const":0},"readCacheBytes":{"const":0}
+  }
+}

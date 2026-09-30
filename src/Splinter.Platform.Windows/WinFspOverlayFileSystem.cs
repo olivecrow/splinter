@@ -16,6 +16,7 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     private readonly IWorkspaceDeltaStore store;
     private readonly byte[] security;
     private readonly Action<Exception>? report;
+    private readonly IOverlayMutationObserver? mutationObserver;
     private readonly object mutationGate = new();
     private int handles;
     private int contexts;
@@ -23,10 +24,11 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     private sealed record DirectoryListingItem(string Name, DeltaEntry Entry);
     public int OpenHandles => Volatile.Read(ref handles);
     public int RetainedFileContexts => Volatile.Read(ref contexts);
-    public WinFspOverlayFileSystem(IWorkspaceDeltaStore store, Action<Exception>? report = null)
+    public WinFspOverlayFileSystem(IWorkspaceDeltaStore store, Action<Exception>? report = null,
+        IOverlayMutationObserver? mutationObserver = null)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
-        this.store = store; this.report = report;
+        this.store = store; this.report = report; this.mutationObserver = mutationObserver;
         string sid = WindowsIdentity.GetCurrent().User!.Value;
         var descriptor = new RawSecurityDescriptor($"O:{sid}G:{sid}D:P(A;;FA;;;SY)(A;;FA;;;{sid})");
         security = new byte[descriptor.BinaryLength]; descriptor.GetBinaryForm(security, 0);
@@ -157,6 +159,7 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
             Guid id = (Guid)fileNode; var entry = store.Get(id); bytesTransferred = 0;
             if (writeToEndOfFile) offset = (ulong)entry.Length;
             if (constrainedIo) length = offset >= (ulong)entry.Length ? 0 : (uint)Math.Min(length, (ulong)entry.Length - offset);
+            Visit("callback.before-effect", "write", entry.Path, length, 0);
             byte[] data = ArrayPool<byte>.Shared.Rent(store.Identity.MaxTransferBytes);
             try
             {
@@ -166,13 +169,21 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
                     Marshal.Copy(IntPtr.Add(buffer, checked((int)bytesTransferred)), data, 0, count);
                     store.Write(id, checked((long)(offset + bytesTransferred)), data.AsSpan(0, count)); bytesTransferred += (uint)count;
                 }
-                fileInfo = Info(id); return STATUS_SUCCESS;
+                fileInfo = Info(id);
+                Visit("callback.after-effect", "write", entry.Path, length, bytesTransferred);
+                return STATUS_SUCCESS;
             }
             finally { ArrayPool<byte>.Shared.Return(data); }
         }
     }
     public override int Flush(object fileNode, object fileDesc, out FileInfo fileInfo)
-    { store.Flush(); fileInfo = fileNode is Guid id ? Info(id) : default; return STATUS_SUCCESS; }
+    {
+        string path = mutationObserver is not null && fileNode is Guid node ? store.Get(node).Path : "";
+        Visit("callback.before-effect", "flush", path, 0, 0);
+        store.Flush(); fileInfo = fileNode is Guid id ? Info(id) : default;
+        Visit("callback.after-effect", "flush", path, 0, 0);
+        return STATUS_SUCCESS;
+    }
     public override int GetFileInfo(object fileNode, object fileDesc, out FileInfo fileInfo)
     { fileInfo = Info((Guid)fileNode); return STATUS_SUCCESS; }
     public override int SetBasicInfo(object fileNode, object fileDesc, uint attributes, ulong creation,
@@ -193,8 +204,12 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
         lock (mutationGate)
         {
             Guid id = (Guid)fileNode;
+            string path = mutationObserver is not null ? store.Get(id).Path : "";
+            if (mutationObserver is not null) Visit("callback.before-effect", "truncate", path, checked((long)newSize), 0);
             if (!setAllocationSize || newSize < (ulong)store.Get(id).Length) store.SetLength(id, checked((long)newSize));
-            fileInfo = Info(id); return STATUS_SUCCESS;
+            fileInfo = Info(id);
+            if (mutationObserver is not null) Visit("callback.after-effect", "truncate", path, checked((long)newSize), checked((long)fileInfo.FileSize));
+            return STATUS_SUCCESS;
         }
     }
     public override int CanDelete(object fileNode, object fileDesc, string fileName)
@@ -203,7 +218,19 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
         return entry.Directory && store.List(entry.Path).Count != 0 ? STATUS_DIRECTORY_NOT_EMPTY : STATUS_SUCCESS;
     }
     public override int Rename(object fileNode, object fileDesc, string fileName, string newFileName, bool replaceIfExists)
-    { lock (mutationGate) { store.Rename((Guid)fileNode, newFileName, replaceIfExists); return STATUS_SUCCESS; } }
+    {
+        lock (mutationGate)
+        {
+            string operation = replaceIfExists ? "replace" : "rename";
+            string path = mutationObserver is not null ? store.Get((Guid)fileNode).Path : "";
+            Visit("callback.before-effect", operation, path, 0, 0);
+            store.Rename((Guid)fileNode, newFileName, replaceIfExists);
+            Visit("callback.after-effect", operation, path, 0, 0);
+            return STATUS_SUCCESS;
+        }
+    }
+    private void Visit(string boundary, string operation, string path, long requested, long completed)
+    { mutationObserver?.Observe(new(boundary, operation, path, requested, completed)); }
     public override bool ReadDirectoryEntry(object fileNode, object fileDesc, string pattern, string marker,
         ref object context, out string fileName, out FileInfo fileInfo)
     {

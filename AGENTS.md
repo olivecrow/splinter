@@ -29,6 +29,10 @@
 
 ## 검증과 후속 작업
 
+- `scripts/test-product-write-recovery.ps1`은 `docs/product-write-recovery.md`의 등록된 로컬 fixture/home·기존 제한 서비스를 사용하는 13개 외부 client 경계 개발 시험이다. 기본 읽기 전용 계획, `-Execute`는 새 evidence/작업 key와 정확한 소유 provider 종료·동일 ensure 재연결·editorless 명시적 보존/release다. 일반 provider에는 observer를 연결하지 않고 실패 작업/delta/snapshot을 보존한다. 설치/grant/볼륨/Unity·VIVOBOOK은 포함하지 않으며 원격 시험은 실행 전에 알린다.
+
+- `scripts/test-kernel-recovery.ps1`은 `docs/kernel-recovery.md`의 로컬 실제 WinFsp/fake 불변 기준 개발 시험이다. 기본 읽기 전용 계획이며 `-Execute`만 새 evidence/mount home에 19개 callback·mmap·새 provider 관문을 실행한다. 자기 자식의 정확한 PID/시작 시각만 종료하고 delta/증거를 보존한다. VSS·제품 CLI·Unity·ARM 자격으로 승계하지 않으며 VIVOBOOK 시험이 필요하면 실행 전에 사용자에게 알린다.
+
 - `scripts/test-journal-recovery.ps1`은 `docs/journal-recovery.md`의 합성 저널/실제 자식 종료 개발 시험이다. 기본값은 읽기 전용 계획, `-Execute`는 새 증거 디렉터리에만 58개 고정 경계의 ACK·tail·재생 hash를 남긴다. 명시적 공통 observer는 일반 provider에 연결하지 않으며 실제 WinFsp/VSS/mmap/전원 자격으로 확대하지 않는다.
 
 - 지원 상태와 보존할 비교 근거는 `docs/verification/README.md`, 미완료 검증은 `docs/plans/validation-matrix.md`를 따른다. 작은 fixture의 성공을 일반 지원으로 확대하지 않는다. 실행하지 않은 시험은 NotRun이며 이전 후보의 결과를 현재 후보의 통과로 표시하지 않는다.

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "urn:splinter:v1:kernel-recovery-probe-signal",
+  "type": "object", "additionalProperties": false,
+  "required": ["version","nonce","boundary","processId","processStartTimeUtcTicks","requestDigest","operation","path","requestedBytes","completedBytes"],
+  "properties": {
+    "version":{"const":1}, "nonce":{"type":"string","pattern":"^[a-f0-9]{32}$"},
+    "boundary":{"enum":["callback.before-effect","callback.after-effect","client.after-ack","client.before-view-flush"]},
+    "processId":{"type":"integer","minimum":1}, "processStartTimeUtcTicks":{"type":"integer","minimum":1},
+    "requestDigest":{"type":"string","pattern":"^[a-f0-9]{64}$"}, "operation":{"enum":["write","rename","replace","truncate","flush","mmap"]},
+    "path":{"type":"string"}, "requestedBytes":{"type":"integer","minimum":0}, "completedBytes":{"type":"integer","minimum":0}
+  }
+}

@@ -921,6 +921,21 @@
             "measurements": {"type":"string", "minLength":1}
           }
         },
+        "developmentProductWriteRecoveryProbe": {
+          "type":"object", "additionalProperties":false, "required":["entrypoint","inputs","writes","measurements"],
+          "properties":{
+            "entrypoint":{"type":"string","minLength":1},"inputs":{"type":"string","minLength":1},
+            "writes":{"type":"string","minLength":1},"measurements":{"type":"string","minLength":1}
+          }
+        },
+        "developmentKernelRecoveryProbe": {
+          "type": "object", "additionalProperties": false,
+          "required": ["entrypoint", "inputs", "writes", "measurements"],
+          "properties": {
+            "entrypoint": {"type":"string", "minLength":1}, "inputs": {"type":"string", "minLength":1},
+            "writes": {"type":"string", "minLength":1}, "measurements": {"type":"string", "minLength":1}
+          }
+        },
         "developmentJournalRecoveryProbe": {
           "type": "object", "additionalProperties": false,
           "required": ["entrypoint", "inputs", "writes", "measurements"],

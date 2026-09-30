@@ -10,6 +10,10 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 ## 구조와 의존성
 
+Core의 `IOverlayMutationObserver`는 공급자 중립 callback 전후 관측 port다. Windows 파일시스템의 명시적 개발 인수로만 연결하며 일반 provider와 flush 정책은 그대로다. [로컬 kernel 개발 시험](kernel-recovery.md)은 실제 WinFsp host·fake 기준·외부 클라이언트와 새 provider 연결을 사용한다. `capabilities.developmentKernelRecoveryProbe`의 범위와 schema를 따르며 실제 VSS server/CLI 자격과 구분한다.
+
+[제품 쓰기 복구 개발 시험](product-write-recovery.md)은 일반 provider에 observer를 연결하지 않고 외부 client 경계에서 정확한 소유 provider를 종료한다. 기존 CLI·VSS 권한 서비스·WinFsp·Git 조합의 동일 요청 재연결·명시적 독립 보존/회수를 시험하며 `capabilities.developmentProductWriteRecoveryProbe`와 현재 request/result schema를 따른다.
+
 Core의 `IJournalMutationObserver`는 선택적 동기 저널 경계 관측 port다. `JournalDeltaStore`의 명시적 개발 생성자만 observer를 받으며 일반 Runtime·Windows 조합에는 연결하지 않는다. `scripts/test-journal-recovery.ps1`은 기본 읽기 전용 계획, `-Execute`는 Release 시험 harness의 결정적 fake 트리·실제 자식 종료와 승인 데이터 재생 검증이다. [현재 절차](journal-recovery.md)와 `capabilities.developmentJournalRecoveryProbe`에서 경계·schema·쓰기 범위를 확인한다. 기존 개별 acknowledged-write durable flush 정책은 유지한다.
 
 Core의 `IWorkspacePreparationObserver`는 공급자 중립적인 준비 경계 관측 port다. Runtime·Git·Windows가 선택적 observer를 호출하고 일반 제품 명령은 observer 없이 실행한다. 개발용 `preparation-probe --input`만 이 port를 조립하며 현재 schema와 범위는 `capabilities.developmentPreparationProbe`에 있다. `scripts/test-preparation-recovery.ps1`은 기본 읽기 전용 계획, `-Execute`는 등록된 fixture의 실제 CLI 종료·같은 요청 재개·보존/회수 시험이다. [NTFS 절차](ntfs-workspaces.md#개발용-준비-중단-시험)를 따른다.

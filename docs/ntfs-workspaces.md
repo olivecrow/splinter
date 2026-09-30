@@ -22,6 +22,8 @@ WinFsp 디렉터리 열거는 루트 이외의 디렉터리에 실제 디렉터�
 
 ## 일반 CLI 흐름
 
+등록한 로컬 fixture/home에서 쓰기 중단을 재현하는 [제품 개발 시험](product-write-recovery.md)은 일반 provider를 유지하고 외부 client 경계에서 정확한 소유 provider만 종료한다. 같은 ensure·새 현재 VSS read proof·독립 결과/release를 대조하며, 일반 workspace 사용 중 자동으로 gate를 켜거나 실패 작업을 회수하지 않는다.
+
 아래 `splinter`는 제품 저장소에서 `pwsh ./scripts/splinter.ps1`이다. 빌드는 `pwsh ./scripts/build.ps1`로 한다. `--home`은 원본 프로젝트 밖의 같은 지속 상태 경로를 모든 작업자가 공유한다.
 
 ```text

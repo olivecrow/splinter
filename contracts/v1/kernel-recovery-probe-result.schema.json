@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "urn:splinter:v1:kernel-recovery-probe-result",
+  "type":"object", "additionalProperties":false,
+  "required":["version","operation","boundary","nonce","actualProviderTermination","prefixPreserved","externalFinalAck","replayModelHash","journalBeforeHash","journalAfterHash","secondReplayUnchanged","samePathNewProviderReadWrite","concurrentDifferentFileReader","mountAbsent","ownedLiveChildren","openHandles","retainedFileContexts","initialPayloadCopiedBytes","readCacheBytes","baseReadBytes","durableSequence"],
+  "properties":{
+    "version":{"const":1}, "operation":{"enum":["write","rename","replace","truncate","flush","mmap"]},
+    "boundary":{"enum":["callback.before-effect","callback.after-effect","client.after-ack","client.before-view-flush"]}, "nonce":{"type":"string","pattern":"^[a-f0-9]{32}$"},
+    "actualProviderTermination":{"const":true}, "prefixPreserved":{"const":true}, "externalFinalAck":{"type":"boolean"},
+    "replayModelHash":{"type":"string","pattern":"^[a-f0-9]{64}$"}, "journalBeforeHash":{"type":"string","pattern":"^[a-f0-9]{64}$"}, "journalAfterHash":{"type":"string","pattern":"^[a-f0-9]{64}$"},
+    "secondReplayUnchanged":{"const":true}, "samePathNewProviderReadWrite":{"const":true}, "concurrentDifferentFileReader":{"type":"boolean"}, "mountAbsent":{"const":true},
+    "ownedLiveChildren":{"const":0}, "openHandles":{"const":0}, "retainedFileContexts":{"const":0}, "initialPayloadCopiedBytes":{"const":0}, "readCacheBytes":{"const":0},
+    "baseReadBytes":{"type":"integer","minimum":0}, "durableSequence":{"type":"integer","minimum":1}
+  }
+}

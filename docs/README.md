@@ -20,6 +20,8 @@
 | [Replay probe](replay-profiling.md) | 고정 합성 입력의 replay 비용 |
 | [Write probe](write-profiling.md) | 고정 합성 쓰기·flush·대기 비용 |
 | [저널 중단 시험](journal-recovery.md) | 합성 불변 기준의 58개 실제 자식 종료·외부 ACK·불완전 tail·재생 관문 |
+| [로컬 kernel 복구 시험](kernel-recovery.md) | 실제 WinFsp/fake 기준의 callback·mmap·동시 reader·같은 경로 재연결 개발 관문 |
+| [제품 쓰기 복구 시험](product-write-recovery.md) | 일반 VSS/WinFsp/Git CLI의 외부 client 경계·동일 작업 재연결·독립 보존/회수 개발 관문 |
 | [검증 안내](verification/README.md) | 지원 경계, 검증 진입점, 보존한 실측 근거 |
 
 ## 남은 설계와 검증
@@ -29,7 +31,7 @@
 | [제품 요구사항](../plan.html) | 제품이 달성할 목표 |
 | [구현 계획](plans/implementation-plan.md) | 목표 구조·책임·단계별 작업 |
 | [검증 추적표](plans/validation-matrix.md) | 필수 48개 시나리오와 남은 지원 관문 |
-| [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | NR-01/02 준비 복구·NR-03 공통 저널 단위와 상위 재부팅·전원·공간·파일 관문의 완료 기준 |
+| [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | NR-01/02 준비 복구·NR-03 공통 저널/로컬 kernel/제품 client 경계와 재부팅·전원·공간·파일 관문의 완료 기준 |
 | [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·비용 판단과 WF-09~12/LB-01~05의 완료 범위·재검증 기준 |
 | [대화별 설치·사용](plans/session-workflow-and-installation.md) | 설치·binding·명시적 discard의 SW-01~10 |
 | [저장소 권한 서비스](plans/storage-privilege-service.md) | 반복 UAC 없는 제한 서비스의 UA-01~04 |

@@ -2,6 +2,26 @@
 
 현재 NR-01/03/05/07은 부분 구현이다. 나머지 명령 경계·일반 파일 지원·실제 재부팅·전원·물리 공간 장애·ARM A/B는 미완료다. 현재 계약은 [NTFS](../ntfs-workspaces.md), 확인한 범위는 [검증 안내](../verification/README.md)를 따른다.
 
+## 확정 범위: NR-03 제품 VSS·CLI의 클라이언트 경계
+
+이 단위는 기존 등록한 로컬 `T:/ua-source`·`.local/wl29`·제한 권한 서비스에서 일반 제품 `workspace ensure`가 생성한 실제 VSS/WinFsp/Git 작업의 중단과 재연결이다. write/rename/replace/truncate/명시적 flush의 연산 전·외부 ACK 후 10개, write 반환 뒤 명시적 file flush 전 1개, mmap view flush 전·view/file flush와 외부 ACK 후 2개, 총 13개 클라이언트 경계를 고정한다. 일반 provider에 개발 observer를 연결하거나 gate용 제품 요청 필드를 추가하지 않는다. VSS를 쓰는 내부 callback 전후·OS 내부 종료는 이 단위와 별도다.
+
+기존 tracked FBX/PNG의 바이트를 oracle로 고정하고 workspace의 4KiB 범위 쓰기·rename/replace/truncate만 수행한다. beta는 `*.png binary` 경로를 사용한다. 이전 inputactions 후보의 정규화·준비 실패와 재검증 조건은 [소유 검증 기록](../verification/ntfs-recovery.md#보존한-실패와-재검증-조건)을 따른다. source의 HEAD/index/파일·이전 refs/worktree·비소유 snapshot을 보존한다. 새 key마다 승인 prefix 이후 외부 client를 멈추고 token·workspace/snapshot ID·provider generation·PID/시작 시각을 대조해 그 provider만 종료한다. 같은 ensure의 현재 VSS 검증 tuple·같은 snapshot/delta/Git 등록·새 provider로 읽기/쓰기 재개, 외부 ACK 데이터 보존·journal 재생 불변, 명시적 `validation preserve-worker`의 독립 Git 결과와 일반 release의 전체 자원 회수가 완료 기준이다. editorless 보존은 Unity validation 성공이 아니다. unknown·reclaim-pending이나 identity 불일치를 성공으로 읽지 않는다.
+
+기본 읽기 전용 계획과 schema/fake/필수 build/UTF-8부터 고정하며 실행·실패·원시 journal·result refs를 새 `artifacts/ntfs-recovery/<runId>/`에 보존한다. 기존 서비스/패키지/grant·볼륨/예산·원본 fixture·다른 작업을 변경하지 않는다. VIVOBOOK/Unity·ARM·재부팅·전원·물리 공간은 제외하고, VIVOBOOK 시험이 필요하면 실행 전에 알린다. 일반 사용자로 전역 VSS 목록을 직접 조회할 수 없는 경우 unknown을 유지하고 제한 서비스의 정확한 release-isolation 전후 목록과 ID 보존 근거를 사용한다.
+
+이 단위는 [최종 13개 실제 종료·독립 결과·자원 감사](../verification/ntfs-recovery.md#nr-03-제품-vsscli의-클라이언트-경계)로 **scoped-complete-with-limitations** 판정했다. 준비 상태 게시 실패의 하위 원인 미확정과 Git text 속성 fixture 실패는 같은 소유 검증 기록에 보존한다. 남은 NR-03은 실제 VSS 내부 callback·OS flush 내부·replay 중 종료·동시 I/O 관문이며 전체는 InProgress다. 상태 게시 실패의 진단 근거도 후속으로 확보하며 retry/flush 정책을 추측 변경하지 않는다. 다음 단위는 별도 범위와 후보를 고정한 뒤 실행한다.
+
+## 확정 범위: NR-03 로컬 WinFsp callback·mmap·재연결
+
+`ab9c94e`의 공통 저널 단위 다음으로 **실제 로컬 WinFsp mount의 응답 경계**를 시험한다. 제품 `WinFspOverlayFileSystem`/`JournalDeltaStore`와 결정적 fake 불변 트리를 사용한다. write/rename/replace/truncate/명시적 flush의 callback 전·부작용 후 응답 전·클라이언트 ACK 후를 구분하고, mmap은 view flush 전·파일 flush callback 전/후·명시적 flush와 ACK 후를 분리한다. 총 19건이며 일반 provider에는 개발 observer를 연결하지 않는다.
+
+완료 기준은 외부 승인 prefix 보존, 부작용 후/ACK 후 새 데이터 보존, 종료의 정확한 PID/시작 시각·nonce 일치, 실제 mount 부재 확인 뒤 같은 경로·같은 delta의 새 provider에서 읽기/쓰기·정상 stop/unmount, 소유 자식/핸들/mount 0과 저널 증거 보존이다. write callback 부작용 후에는 미리 열린 다른 파일의 동시 Read 응답을 확인하고, Close/프로세스 종료는 provider 종료 뒤 따로 확인한다. 새 open과 같은 파일의 동시 쓰기 자격으로 확대하지 않는다. mmap 미승인 페이지는 생존을 보장하지 않고 명시적 view/file flush가 모두 끝난 ACK만 승인으로 센다. 동일 후보의 fake callback 적합성·schema·필수 build·UTF-8을 통과한다.
+
+기존 로컬 WinFsp 설치와 새 소유 mount/private delta만 사용하며 VSS·Git 등록·Unity·서비스/설치/볼륨 변경은 포함하지 않는다. 원본·다른 작업·기존 artifacts를 보존한다. VIVOBOOK은 이번 로컬 단위의 필수 조건이 아니며 ARM/VIVOBOOK 시험이 필요해지면 실행 전에 사용자에게 알린다. 실제 제품 VSS server/CLI의 재연결·OS flush 내부·전원/재부팅/물리 공간·동일 파일의 동시 쓰기 원자성은 별도 미실행 관문으로 유지한다.
+
+이 단위는 [최종 19개 실제 종료와 자원 감사](../verification/ntfs-recovery.md#nr-03-로컬-winfsp-callbackmmap새-provider-연결)로 **scoped-complete-with-limitations** 판정했다. reader의 최초 타임아웃과 새 open/close의 동시 응답 미자격을 보존한다. 제품 VSS/CLI의 외부 client 경계는 위 별도 범위·후보로 추적하며 이 kernel 후보의 통과를 승계하지 않는다. VSS 내부 callback·OS flush 내부·재부팅/전원/공간 장애 관문은 여전히 미실행이다.
+
 ## 확정 범위: NR-03 공통 저널 쓰기/flush 중단
 
 다음 실행 단위는 실제 자식 프로세스의 **공통 저널 내부 경계**다. 제품 `JournalDeltaStore`와 결정적 fake 불변 트리를 사용해 write/rename/replace/truncate/create/delete, 명시적 flush의 58개 경계에서 자식을 종료한다. 입력·gate·결과 schema와 공통 observer/fake 적합성부터 연결하고, 일반 store에는 gate를 연결하지 않는다. 정상 transaction의 개별 durable flush 정책은 유지한다. 진입점과 경계는 [저널 중단 시험](../journal-recovery.md)이 소유한다.
@@ -10,7 +30,7 @@
 
 실제 WinFsp callback 응답/중단, mmap 명시적 flush, 동시 reader/writer 재연결, OS flush 내부 종료, VSS 재연결, 재부팅·전원·물리 공간 장애는 이 공통 단위의 증거로 승계하지 않는다. 별도 실제 backend 단위로 남으며 NR-03 전체는 InProgress다. 원본·타 작업·snapshot·Git 등록과 설치/서비스/볼륨 설정을 변경하지 않는다. 준비 단계의 상태 게시 실패 원인 미확정도 별도 유지한다.
 
-공통 단위는 [같은 후보의 58개 실제 종료와 최종 감사](../verification/ntfs-recovery.md#nr-03-공통-저널-경계의-실제-프로세스-종료)로 **scoped-complete-with-limitations** 판정했다. 다음 실행 단위는 실제 WinFsp callback의 중단/응답 oracle과 명시적 mmap flush·writer 재연결이다. 같은 후보의 일반 회귀만으로 이전 VSS/Unity의 실행 자격을 갱신하지 않는다.
+공통 단위는 [같은 후보의 58개 실제 종료와 최종 감사](../verification/ntfs-recovery.md#nr-03-공통-저널-경계의-실제-프로세스-종료)로 **scoped-complete-with-limitations** 판정했다. 뒤의 로컬 WinFsp 단위는 위 별도 범위와 후보로 구분한다. 같은 후보의 일반 회귀만으로 이전 VSS/Unity의 실행 자격을 갱신하지 않는다.
 
 ## 확정 범위: NR-01/02 준비 단계 중단 복구
 
