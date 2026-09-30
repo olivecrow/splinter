@@ -202,6 +202,16 @@
       "retry": "idempotent-release"
     },
     {
+      "id": "preparation.probe",
+      "description": "Development-only interruption gate in product workspace.ensure; returns its ordinary response and retains all resources.",
+      "cliUsage": "splinter preparation-probe --input <request.json>",
+      "inputTransport": "json-file",
+      "inputSchema": "urn:splinter:v1:preparation-probe-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-ntfs-preparation-and-new-boundary-signal",
+      "retry": "new-evidence-path; resume-with-original-workspace.ensure"
+    },
+    {
       "id": "validation.execute",
       "description": "Publish immutable NTFS worker candidates, select and run a single Unity view, preserve and release exact artifacts.",
       "cliUsage": "splinter validation --input <request.json> [--home <path>]",

@@ -17,7 +17,7 @@ public sealed record OverlayCacheSnapshotRead(SnapshotReadAccess ReadAccess, str
 public static class WinFspOverlayServer
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    public static async Task<int> RunAsync(string requestPath)
+    public static async Task<int> RunAsync(string requestPath, string generation)
     {
         OverlayServeRequest request = JsonSerializer.Deserialize<OverlayServeRequest>(await File.ReadAllTextAsync(requestPath), Json)
             ?? throw new ArgumentException("Missing overlay request.");
@@ -27,9 +27,20 @@ public static class WinFspOverlayServer
         int failures = 0;
         string? lastFailureCode = null;
         using var self = Process.GetCurrentProcess();
+        bool launchOwned = false;
         try
         {
-            if (string.IsNullOrWhiteSpace(request.Token) || request.Identity.Id.Length == 0) throw new ArgumentException("An owned request identity is required.");
+            // The child publishes its own identity before creating a delta or
+            // mounting. A caller dying immediately after CreateProcess cannot
+            // strand a live owned provider without a launch receipt.
+            var intent = await WindowsProcessWorkspaceProvider.ReadAsync<WinFspOverlayClient.ProviderIntent>(Path.Combine(request.ControlPath, "provider-launch-intent.json"))
+                ?? throw new WorkspaceException("OverlayStartUncertain", "A durable launch intent is required.");
+            if (intent.Token != request.Token || intent.Id != request.Identity.Id || intent.Generation != generation ||
+                string.IsNullOrWhiteSpace(generation) || string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.Identity.Id))
+                throw new WorkspaceException("OverlayOwnerMismatch", "Provider generation does not match the exact launch intent.");
+            launchOwned = true;
+            await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "provider-launch-receipt.json"),
+                new WinFspOverlayClient.ProviderLaunch(request.Token, self.Id, self.StartTime.ToUniversalTime().Ticks, generation));
             string mountPath = Path.GetFullPath(request.MountPath), deltaPath = Path.GetFullPath(request.DeltaPath);
             foreach (string other in new[] { deltaPath, request.ControlPath, request.Identity.Snapshot.SourcePath })
             {
@@ -158,6 +169,9 @@ public static class WinFspOverlayServer
         }
         catch (Exception ex)
         {
+            // An invalid/missing launch intent grants no right to overwrite an
+            // existing generation's state, even with an error report.
+            if (!launchOwned) return 1;
             await WindowsProcessWorkspaceProvider.WriteAsync(statePath, new
             {
                 version = 1, request.Token, request.Identity.Id, phase = "failed", observedAt = DateTimeOffset.UtcNow,

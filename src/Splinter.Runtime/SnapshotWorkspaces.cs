@@ -13,6 +13,10 @@ public sealed partial class WorkspaceCoordinator
     private void SnapshotStep(WorkspaceRecord w, string step)
     { RequireSnapshot(w).Step = step; store.Save(w, step); }
 
+    private Task PreparationPointAsync(string boundary, WorkspaceRecord w, CancellationToken ct) =>
+        w.StorageMode == "ntfs-snapshot" && preparationObserver is not null
+            ? preparationObserver.ReachedAsync(boundary, w, ct) : Task.CompletedTask;
+
     private async Task EnsureSnapshotAsync(WorkspaceRecord w, CancellationToken ct)
     {
         var state = RequireSnapshot(w);
@@ -25,33 +29,46 @@ public sealed partial class WorkspaceCoordinator
         if (w.BaseRevision is null)
         {
             using var sourceLock = await store.LockAsync(WorkspaceStore.ProjectKey(w.ProjectPath), ct);
+            await PreparationPointAsync("source.before-effect", w, ct);
             w.BaseRevision = await SnapshotSources.PreflightAsync(w, ct);
+            await PreparationPointAsync("source.after-effect", w, ct);
             SnapshotStep(w, "source-checked");
+            await PreparationPointAsync("source.after-record", w, ct);
         }
         if (state.Reference is null)
         {
             SnapshotStep(w, "capture-intent");
+            await PreparationPointAsync("capture.before-effect", w, ct);
             state.Reference = await Snapshots.CaptureAsync(w, control, ct);
+            await PreparationPointAsync("capture.after-effect", w, ct);
             SnapshotStep(w, "captured");
+            await PreparationPointAsync("capture.after-record", w, ct);
         }
         if (!state.Attached)
         {
             using var sourceLock = await store.LockAsync(WorkspaceStore.ProjectKey(w.ProjectPath), ct);
             SnapshotStep(w, "registration-intent");
+            await PreparationPointAsync("registration.before-effect", w, ct);
             await SnapshotSources.RegisterAsync(w, control, ct);
+            await PreparationPointAsync("registration.after-effect", w, ct);
             SnapshotStep(w, "registered");
+            await PreparationPointAsync("registration.after-record", w, ct);
         }
         await ConnectSnapshotAsync(w, ct);
         if (!state.Attached)
         {
             SnapshotStep(w, "attach-intent");
+            await PreparationPointAsync("attach.before-effect", w, ct);
             await SnapshotSources.AttachAsync(w, control, ct);
+            await PreparationPointAsync("attach.after-effect", w, ct);
             var source = await sources.InspectAsync(w, ct);
             if (source.Revision != w.BaseRevision || source.HasChanges)
                 throw new WorkspaceException("SnapshotCheckpointMismatch", "Captured files do not match the clean source checkpoint. Preserve the snapshot and delta.");
             state.Attached = true;
             w.Phase = "ready";
+            await PreparationPointAsync("ready.before-record", w, ct);
             SnapshotStep(w, "ready");
+            await PreparationPointAsync("ready.after-record", w, ct);
         }
         w.LastError = null;
         store.Save(w, "snapshot-ensured");
@@ -74,11 +91,14 @@ public sealed partial class WorkspaceCoordinator
             if (app.Running || app.Resources is not { OwnershipVerified: true, ActiveProcesses: 0 })
                 throw new WorkspaceException("OverlayClientsRemain", "Stop the owned application before reconnecting its filesystem.");
         }
+        await PreparationPointAsync("mount.before-effect", w, ct);
         state.Mount = await Snapshots.ConnectAsync(w, store.ControlPath(w.Id), ct);
+        await PreparationPointAsync("mount.after-effect", w, ct);
         state.Observation = await Snapshots.ObserveAsync(w, store.ControlPath(w.Id), ct);
         if (state.Observation is not { SnapshotAvailable: true, Mounted: true, ProviderAlive: true, OwnershipVerified: true })
             throw new WorkspaceException("OverlayStartUncertain", "Verify the owned live mount before accessing source files.");
         store.Save(w, "mount-connected");
+        await PreparationPointAsync("mount.after-record", w, ct);
     }
 
     private async Task<WorkspaceView> ReleaseSnapshotWorkspaceAsync(WorkspaceRecord w, CancellationToken ct)

@@ -13,7 +13,7 @@ namespace Splinter.Cli;
 internal static class WorkspaceCommands
 {
     public static void Add(RootCommand root, ContractCatalog contracts, Action<string> select, Action<ApiResponse> respond,
-        CancellationToken ct, Action<NextAction[]> selectRecovery)
+        CancellationToken ct, Action<NextAction[]> selectRecovery, IWorkspacePreparationObserver? preparationObserver = null)
     {
         var home = new Option<string>("--home") { Recursive = true, Description = "Durable Splinter state root; defaults to SPLINTER_HOME or local application data/Splinter." };
         root.Options.Add(home);
@@ -24,9 +24,9 @@ internal static class WorkspaceCommands
         {
             selectRecovery([new("workspace.list", new { home = Home(parse) })]);
             var store = new WorkspaceStore(Home(parse)); var storageProvider = new RefsWorkspaceStorageProvider();
-            return new(store, new GitWorkspaceProvider(storageProvider, store, new WindowsSourceChanges(store.ControlPath), auditSource),
+            return new(store, new GitWorkspaceProvider(storageProvider, store, new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver),
                 new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners"))), storageProvider,
-                new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners")));
+                new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver), preparationObserver);
         }
 
         var workspace = new Command("workspace", "Create, resume, collect, integrate and release durable isolated workspaces.");

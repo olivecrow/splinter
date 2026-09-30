@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:preparation-probe-request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "project", "home", "key", "baseReference", "boundary", "signalPath"],
+  "properties": {
+    "version": {"const": 1},
+    "project": {"type": "string", "minLength": 1},
+    "home": {"type": "string", "minLength": 1},
+    "key": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "\\S"},
+    "baseReference": {"type": "string", "minLength": 1},
+    "signalPath": {"type": "string", "minLength": 1},
+    "boundary": {"enum": ["request.before-record", "request.after-record", "source.before-effect", "source.after-effect", "source.after-record", "capture.before-effect", "capture.after-effect", "capture.after-record", "registration.before-effect", "git-registration.after-effect", "git-registration.after-record", "registration.after-effect", "registration.after-record", "delta.before-effect", "delta.after-record", "provider.before-effect", "provider.after-effect", "provider.after-record", "mount.before-effect", "mount.after-effect", "mount.after-record", "attach.before-effect", "attach.after-effect", "ready.before-record", "ready.after-record", "response.before-publish"]}
+  }
+}

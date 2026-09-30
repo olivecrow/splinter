@@ -4,14 +4,14 @@ using Splinter.Core;
 
 namespace Splinter.Platform.Windows;
 
-public sealed class WinFspOverlayMountProvider(string requestPath, string runnerCache) : IOverlayMountProvider
+public sealed class WinFspOverlayMountProvider(string requestPath, string runnerCache, Func<string, Task>? preparationPoint = null) : IOverlayMountProvider
 {
     public async Task<OverlayMount> MountAsync(OverlayIdentity identity, string deltaPath, string mountPath, CancellationToken cancellationToken = default)
     {
         var request = await WinFspOverlayClient.ReadRequestAsync(requestPath, cancellationToken);
         if (JsonSerializer.Serialize(request.Identity) != JsonSerializer.Serialize(identity) || !Same(request.DeltaPath, deltaPath) || !Same(request.MountPath, mountPath))
             throw new WorkspaceException("OverlayIdentityMismatch", "Mount must use the persisted request identity and paths.");
-        var result = await WinFspOverlayClient.StartAsync(requestPath, runnerCache, cancellationToken);
+        var result = await WinFspOverlayClient.StartAsync(requestPath, runnerCache, cancellationToken, preparationPoint);
         if (result.GetProperty("phase").GetString() != "mounted") throw new WorkspaceException("OverlayNotReady", result.GetProperty("phase").GetString()!);
         var state = result.GetProperty("state");
         return new(identity.Id, mountPath, deltaPath, identity.Snapshot, state.GetProperty("processId").GetInt32(), state.GetProperty("processStartTimeUtcTicks").GetInt64());

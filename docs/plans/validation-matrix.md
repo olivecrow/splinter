@@ -81,15 +81,17 @@
 
 ## NTFS 지원 확대 관문
 
+확정 단위와 완료 기준은 [NR-01/02 준비 단계 중단 복구](ntfs-recovery-and-support.md#확정-범위-nr-0102-준비-단계-중단-복구)가 소유한다. 실제 후보와 실행 목록은 [준비 복구 검증](../verification/preparation-recovery.md)을 따른다. NR-07은 해당 단위의 사용자 쓰기 없는 부분 준비 재조정에만 연결하고 나머지 중단 관문은 유지한다.
+
 | ID | 검증 대상 | 상태 | 완료 조건·제한 |
 | --- | --- | --- | --- |
-| NR-01 | 복구 상태·identity·영속 기록·기계용 응답 | InProgress: 공통 응답·상태 보존과 LV live identity/재개 통과 | unknown/소실/경로 불일치 구분, 복구 분류/schema/fake, 손상 JSON·잠긴 기록·고아 임시 파일 보존. VSS live identity·연결 세대는 정의한 LV 범위에서 확인. 전체 중단 단계의 오류/행동은 남음 |
-| NR-02 | 준비 단계의 실제 중단과 중복 요청 | NotRun | capture/반환 ID·Git 등록·delta 생성·mount·index·Ready의 부작용 전후 중단, 같은 key 동시 재개에 중복 자원 없음 |
+| NR-01 | 복구 상태·identity·영속 기록·기계용 응답 | InProgress: 공통 응답·상태 보존/LV와 준비 port/schema/fake·자식 launch receipt 거부 통과 | unknown/소실/경로 불일치 구분, 복구 분류/schema/fake, 손상 JSON·잠긴 기록·고아 임시 파일 보존. 현재 후보의 615 Passed / 0 Failed / 1 optional ReFS Skipped. 상태 게시 실패 원인 미확정과 전체 중단 단계의 오류/행동은 남음 |
+| NR-02 | 준비 단계의 실제 중단과 중복 요청 | scoped-complete-with-limitations: 같은 최종 후보의 실제 CLI 종료 26개·동시 같은 요청 Ready·독립 결과/회수 | [정확한 경계와 최종 감사](../verification/preparation-recovery.md). 최초 payload/read cache 0, 원본/기존 refs/비소유 snapshot 3개 보존, 소유 runner 0. 게시 실패 1건의 명시적 동일 identity 복구와 fresh-key 재실행을 구분. native capture 내부·intent 뒤 실행 여부 unknown 간격·OS 장애는 이 자격에 포함하지 않음 |
 | NR-03 | 저널·flush·승인 쓰기의 지속성 | InProgress: 손상 보존 자동 통과, fake 기준의 실제 journal 자식 종료·ACK 보존 3건 통과 | 정상/불완전 tail/완전 레코드 손상 구분, 승인 쓰기와 flushed mmap 보존, rename/replace/truncate, 초기 payload/hydration 0과 범위 할당. LV의 실제 WinFsp/VSS 4KiB 쓰기·flush·정상 provider 재연결 통과. 강제 중단 지점은 남음 |
 | NR-04 | 정상 재부팅·강제 전원 종료 후 같은 작업 | NotRun | Ready/미수집 변경·checkpoint 완료·회수 도중의 전후 boot 식별, 같은 snapshot/delta/key, 새 원본과 시점 격리. 유효 기준은 실제 재개, 소실/손상은 보존/차단 |
 | NR-05 | 파일 특성·ACL·경로 지원/거부 | InProgress: 속성 callback 자동 통과, ARM64 실제 WinFsp 기본 I/O·5개 API 거부·회수 통과 | fake 불변 트리의 실제 mount에서 ADS/hardlink/희소/압축/mount-point reparse 거부와 일반 NTFS 양성 대조 확인. VSS 입력·EFS·ACL 전제·다른 reparse 종류·한글/공백/긴 경로는 별도 검증 |
 | NR-06 | 실제 공간 고갈·offline·snapshot 소실 | NotRun | VSS·delta/상태·Git 결과 공간을 나눈 격리 볼륨 시험, quota와 구분, unknown 보존, 늦은 쓰기·미보존 결과 보호, 다른 작업·기존 복원 지점 보존 |
-| NR-07 | 부분 준비·결과·회수의 재조정 | InProgress: 마지막 VSS 해제 관측 자동 통과, 원격 동일 workspace의 released 복구·소유 자원0, LV 독립 결과·최종 회수 확인 | 사용자 쓰기 없는 부분 준비 회수 조건, commit/ref/manifest/seal 중단, unmount/Git/delta/VSS 해제 응답 유실, 결과 독립성과 실제 자원 0/부재 |
+| NR-07 | 부분 준비·결과·회수의 재조정 | InProgress: 마지막 VSS 해제/LV, 원격 released 복구와 NR-02의 사용자 쓰기 없는 준비 재개 후 독립 결과/최종 회수 | 준비를 Ready로 재개한 뒤 정상 회수한 범위. 부분 준비 직접 release와 commit/ref/manifest/seal 중단, unmount/Git/delta/VSS 해제 응답 유실은 남음. 영수증과 실패 임시 파일은 보존 |
 | NR-08 | 최종 후보·Unity 회귀·문서 | InProgress: 이전 ARM/x64 단일 검증 2건, 새 LV Windows x64 단일 검증 3건·재연결·결과·회수 통과 | 원격 workspace 소유 자원0과 canonical Editor/MCP 세션 정상 종료 확인. 같은 후보의 단일 정상 회귀이며 ARM Windows 원본/A/B·재부팅 후 loaded-code·fingerprint·validation·dirty 통합 차단과 전체 NR 완료는 남음 |
 
 결과 보존 결함·공통 계약을 먼저 수정하고 아래 PV-01/02의 제한된 작업·비용 관문에서 확보한 증거와 선택 범위 마감 판정을 보존한다. NR-01~03/05/07의 나머지 계약·프로세스 시험과 NR-04/06 격리 환경 준비를 병행하고 NR-08 최종 지원 회귀로 이어 간다. 실제 장애 경계 목록과 데이터 지속성 oracle은 계획에 정의한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.

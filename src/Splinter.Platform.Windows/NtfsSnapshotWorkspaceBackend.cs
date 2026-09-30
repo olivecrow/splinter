@@ -9,14 +9,15 @@ using Splinter.Runtime;
 
 namespace Splinter.Platform.Windows;
 
-public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshotWorkspaceBackend
+public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspacePreparationObserver? preparationObserver = null) : ISnapshotWorkspaceBackend
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static string OverlayControl(string control) => Path.Combine(control, "overlay");
     private static string RequestPath(string control) => Path.Combine(OverlayControl(control), "request.json");
     private static string DeltaPath(string control) => Path.Combine(control, "delta");
     private static VssSnapshotProvider Provider(WorkspaceRecord w, string control) => new(Path.Combine(control, "snapshot"), w.Id);
-    private WinFspOverlayMountProvider MountProvider(string control) => new(RequestPath(control), runnerCache);
+    private WinFspOverlayMountProvider MountProvider(string control, WorkspaceRecord? workspace = null) => new(RequestPath(control), runnerCache,
+        workspace is null || preparationObserver is null ? null : boundary => preparationObserver.ReachedAsync(boundary, workspace, CancellationToken.None));
     private static OverlayIdentity Identity(WorkspaceRecord w) => new(1, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024, [".git"]);
 
     public async Task<SnapshotReference> CaptureAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
@@ -76,7 +77,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache) : ISnapshot
         CheckSpace(control);
         var request = await Request(w, control, ct)
             ?? throw new WorkspaceException("SnapshotVerificationRequired", "Verify the connection before mounting its persisted request.");
-        return await MountProvider(control).MountAsync(request!.Identity, request.DeltaPath, request.MountPath, ct);
+        return await MountProvider(control, w).MountAsync(request!.Identity, request.DeltaPath, request.MountPath, ct);
     }
     public async Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {

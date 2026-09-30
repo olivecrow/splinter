@@ -6,6 +6,8 @@
 
 [Library 수명주기와 WF-09~12 일반 권한 Unity 실행](../verification/product-validation-unelevated.md)은 작은 fixture에서 scoped-complete-with-limitations다. 기존 Library snapshot 재사용·수명 의존성·private 정리·재증가·독립 결과와 회수의 이번 범위를 마감했다. 남은 판단은 대형 입력의 용량 목표·일반 NR 지원·반복 비용과 모드 채택이며, SF-02/03 전체는 Partial이다. 미실행 대형 비교·제품 설치/binding/discard는 각 관문의 NotRun을 유지한다.
 
+확정한 [NR-01/02 준비 단계 중단 복구](ntfs-recovery-and-support.md#확정-범위-nr-0102-준비-단계-중단-복구)는 [현재 후보의 26개 실제 경계·보존/회수](../verification/preparation-recovery.md)로 scoped-complete-with-limitations 판정했다. 게시 실패 1건의 원인 미확정과 정상 재개 증거를 함께 유지한다. 다음 독립 단위는 NR-03의 나머지 쓰기/flush 중단 관문이며 Library 재자격·대형 비교·설치/binding/discard·NR 전체 장애는 별도 범위다.
+
 ## 2. AI 사용성을 먼저 고정한다
 
 | 원칙 | 구현 결정 | 검증 방법 |

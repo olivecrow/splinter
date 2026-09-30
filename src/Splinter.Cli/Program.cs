@@ -19,7 +19,8 @@ public static class Program
         finally { Console.CancelKeyPress -= cancel; }
     }
 
-    public static async Task<int> RunAsync(string[] args, TextWriter output, CancellationToken cancellationToken = default)
+    public static async Task<int> RunAsync(string[] args, TextWriter output, CancellationToken cancellationToken = default,
+        IWorkspacePreparationObserver? preparationObserver = null)
     {
         string commandId = "cli";
         bool human = false;
@@ -82,7 +83,8 @@ public static class Program
             plan.SetAction(_ => { commandId = "schema"; result = gateway.Schema("plan.validate"); });
             root.Subcommands.Add(plan);
 
-            WorkspaceCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken, actions => recoveryActions = actions);
+            WorkspaceCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken, actions => recoveryActions = actions, preparationObserver);
+            DevelopmentPreparationProbe.Add(root, contracts, value => result = value, cancellationToken);
             OverlayExperimentCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken);
 
             var parsed = root.Parse(args);

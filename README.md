@@ -12,6 +12,7 @@ AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실
 - VSS 전용 Windows 권한 서비스와 명시적 설치 도구. 실제 설치·반복 UAC 0의 자격은 [UA 검증](docs/verification/storage-privilege-service.md)을 따른다.
 - 선택적 ReFS 블록 복제 backend. 최초 기준본 복사가 필요하므로 NTFS의 전체 복제 금지 요구를 충족하는 대체 경로는 아니다.
 - 불변 후보의 같은 요청 게시 재시도·등록 증거에 따른 Git 포인터 분리·공통 Library 검증 view와 replay/write probe는 개발 도구다. 제품 기본 모드나 자동 조정 기능이 아니다.
+- [개발용 준비 중단 probe/harness](docs/ntfs-workspaces.md#개발용-준비-중단-시험)는 정확한 CLI 종료 뒤 같은 요청의 준비 재개·독립 결과·회수를 시험한다. 일반 workspace 명령에는 gate를 활성화하지 않는다.
 - [제품 검증 workflow](docs/validation-workflow.md)의 `validation` CLI: 실제 Windows/Git/Unity 어댑터, 독립 VSS 후보·불변 snapshot Library와 공통 cache·소스 세대, 정지 cache 정리·독립 결과와 snapshot 회수 의존성 검사. [작은 cold/기존 Library 실행](docs/verification/product-validation-unelevated.md)에서 재사용·정리·재증가와 최종 회수를 확인했으며 기본 모드 자동 선택은 없다.
 
 현재 지원은 작은 fixture의 내부 알파 범위다. 등록한 프로젝트/home에서 제한 서비스와 일반 권한 Unity A/B/A·Library 재사용/정리·재연결·독립 결과/회수 및 추가 UAC 관측 0을 확인했다. 일반 에셋·파일 지원, 실제 재부팅·전원·공간 장애, ARM A/B와 대형 프로젝트의 용량 목표는 미완료다. 제품 전체 설치·대화 자동 연결·명시적 discard·daemon/DB는 미구현이다. 현재 계약은 [기반 구조](docs/foundation.md), 실행 중 복구와 지원 경계는 [검증 안내](docs/verification/README.md)를 따른다.

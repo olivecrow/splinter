@@ -39,6 +39,8 @@ SF-03 전체는 Partial이다. FIFO/Coordination, 일반 임대 인수, 생성 s
 
 ## 다음 범위 판단
 
+Library의 마감 뒤 확정한 [NR-01/02 준비 단계 중단 복구](ntfs-recovery-and-support.md#확정-범위-nr-0102-준비-단계-중단-복구)는 [현재 후보의 실제 경계 26개](../verification/preparation-recovery.md)로 제한을 유지해 마감했다. 동일 요청 재개·독립 결과·원본/타 작업 보존을 확인했으며, 게시 실패 원인 미확정과 대형 용량 목표·모드 채택의 SF 관문은 유지한다.
+
 [WF-06~08](../verification/product-validation-cold-cost.md)은 최종 후보의 두 빈 cache A/B/A·소유 파일 할당/시간·독립 결과/회수 근거를 제공한다. 렌더 준비에서 발생하는 설정 저장을 마친 뒤 같은 세대를 다시 시작해 검증하므로 이 추가 Editor 시작/종료도 반복 비용에 포함한다. 첫 두 시도의 실패와 관측 사이 순간 물리 최고치·공유 VSS 귀속의 한계를 유지한다.
 
 작은 입력의 Library 유효량·정리·재증가와 신규/재개 비용은 [WF/LB 실제 실행](../verification/product-validation-unelevated.md)에서 확인했다. 남은 우선순위는 대형 조건의 공간 목표, 일반 파일/에셋·중단 경계의 보존과 모드 채택이다. [IPC 검증](../verification/control-file-read-races.md)의 과거 t2 정확한 발생 지점과 새 실행의 일시적 heartbeat 게시 오류 원인은 미확정이다. 작은 fixture 통과를 대형 공간 목표 달성으로 확대하지 않는다. 일반 임대 복구·source 반환 병합·큐/Coordination, 새 backend·flush 정책, NR 전체 장애, 설치·binding·discard와 대형 PV 재개는 별도 범위다.

@@ -81,6 +81,19 @@ WinFsp의 디렉터리 mount root 자체는 reparse point다. 상태 저장소�
 
 provider가 끝나면 앱/자식이 남지 않았음을 확인한 후 같은 ensure로 기존 snapshot/delta에 재연결한다. 실행 intent만 있고 영수증을 확인할 수 없거나 이전 state와 새 실행 세대가 다르면 중복 실행 대신 `OverlayStartUncertain`으로 보존한다. 재부팅·전원 손실 복구는 미검증이다. 캡처와 실제 파일 내용의 불일치 등으로 준비를 완료할 수 없는 작업의 자동 폐기는 제공하지 않는다. `SnapshotPreparationIncomplete` 상태와 해당 영수증을 보존해 조사한다.
 
+새 NTFS 작업은 provider 실행 전에 검증된 snapshot에 대한 빈 delta identity를 게시한다. 기존 identity가 있으면 caller에서 저널을 다시 재생하지 않고 provider가 기존 저널을 검증한다. private `overlay-serve`는 정확한 launch generation을 필수 인자로 받으며 token·workspace·generation이 durable intent와 일치하는지 검사한 뒤 자신의 PID·시작 시각·generation 영수증을 게시한다. parent CLI가 프로세스 생성 직후 종료돼도 같은 ensure는 이 자식 영수증을 대조해 기존 provider를 관측한다. intent만 있고 실행 여부를 확인할 수 없는 간격은 계속 보존/차단하며 추측 재실행하지 않는다.
+
+## 개발용 준비 중단 시험
+
+`preparation-probe --input <JSON>`은 일반 `workspace ensure`의 NTFS 준비 경계에만 명시적 gate를 넣는다. Unity Editor를 시작하거나 자원을 자동 회수하지 않는다. 입력은 `preparation-probe-request` version 1, 출력 signal은 `preparation-probe-signal` schema다. capability의 `developmentPreparationProbe`에서 현재 진입점과 schema를 확인한다. signal은 원본/workspace 밖의 새 경로에만 flush 후 게시하며 boundary·workspace/request digest·PID/시작 시각·snapshot/step을 연결한다. 같은 PID/시작 시각을 확인한 외부 harness가 CLI만 종료한다. `.continue`를 명시적으로 만들면 gate를 통과하고 5분 deadline은 기존 작업을 보존한 취소다.
+
+```powershell
+# 기본값은 읽기 전용 실행 계획이다. 실제 실행에는 별도 새 evidence 경로와 -Execute를 지정한다.
+pwsh ./scripts/test-preparation-recovery.ps1 -Project <등록된 clean NTFS Git fixture> -HomePath <등록된 home> -BaseReference <현재 HEAD의 ref> -OutputPath <새 evidence 경로>
+```
+
+`-Execute`는 요청 기록·소스 확인·capture·Git 등록·delta·provider·mount·index·Ready·응답 경계의 CLI를 종료하고 같은 입력의 일반 ensure 두 개를 실행한다. 잠금의 `WorkspaceBusy`는 첫 호출이 끝난 뒤 같은 요청으로 다시 확인한다. 응답 유실 재호출·입력 충돌 거부·독립 결과 보존과 명시적 release까지 시험하며, 실패하면 해당 작업과 evidence를 남긴다. 서비스 설치·grant·볼륨/VSS 예산·전역 Git 설정은 바꾸지 않는다. fixture 소유자 차이는 명시한 source에 한정한 자식 프로세스의 Git 설정으로 처리한다. 경계별 실제 자격과 적용 불가능한 조합은 [준비 복구 검증](verification/preparation-recovery.md)을 따른다.
+
 NTFS 응답의 `data.recovery`는 `disposition`, `reasonCode`, `nextCommand`를 반환한다. `ready`는 기존 다음 작업을 진행할 수 있음을, `resume-ensure`/`resume-compaction`/`resume-release`는 같은 identity의 해당 단계를 재개할 수 있음을 나타낸다. `observe`는 관측 복구 후 status를 다시 조회하고, `preserve`는 데이터·영수증을 보존하며 원인을 해결해야 한다. `released`의 다음 행동은 list다. 실제 호출 인자는 `nextActions`에 있으며 `data.nextCommand`와 같은 명령을 가리킨다. 복구 분류 자체가 자원 삭제 승인은 아니며 각 명령에서 소유권·결과·회수 조건을 다시 검사한다.
 
 스냅샷 접근 실패는 `SnapshotObservationUnknown`이다. `snapshotAvailability`와 `snapshotStorage.availability`는 `available`/`missing`/`unknown` 중 하나이며 unknown에서는 기존 boolean 필드를 생략한다. 일반 ensure와 회수 전 단계는 관측 복구까지 보존한다. 관측한 부재와 접근 오류를 구분하며, 경로가 파일로 바뀌면 `SnapshotIdentityMismatch`로 보존한다. 정확한 ID의 성공한 부재 조회만 missing으로 판정하며 읽기 경로의 소실만으로 VSS 부재를 주장하지 않는다. 새 연결의 live identity 대조는 아래 계약을 따른다.

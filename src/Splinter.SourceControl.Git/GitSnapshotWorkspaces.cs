@@ -43,7 +43,8 @@ public sealed partial class GitWorkspaceProvider
         if (w.Snapshot?.Reference is null || w.BaseRevision is null) throw Error("SnapshotNotReady", "Capture a fixed checkpoint first.");
         // Once captured, changes to the original are explicitly allowed.
         await GitOverlayRegistration.PrepareAsync(w.ProjectPath, w.Path, w.SourceReference, w.BaseRevision, w.Id,
-            ReceiptPath(control), ct, capturedSource: true);
+            ReceiptPath(control), ct, capturedSource: true,
+            preparationPoint: boundary => preparationObserver?.ReachedAsync(boundary, w, ct) ?? Task.CompletedTask);
     }
     public async Task AttachAsync(WorkspaceRecord w, string control, CancellationToken ct = default) =>
         await GitOverlayRegistration.AttachAsync(await Receipt(w, control, ct), ct);

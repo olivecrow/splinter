@@ -11,7 +11,8 @@ public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Sourc
 }
 
 public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceProvider sources, IApplicationWorkspaceProvider applications,
-    IWorkspaceStorageProvider? storage = null, ISnapshotWorkspaceBackend? snapshots = null)
+    IWorkspaceStorageProvider? storage = null, ISnapshotWorkspaceBackend? snapshots = null,
+    IWorkspacePreparationObserver? preparationObserver = null)
 {
     public IReadOnlyList<WorkspaceRecord> List(string? project) => store.List(project is null ? null : WorkspaceStore.CanonicalProject(project));
 
@@ -50,7 +51,9 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 Snapshot = storageMode == "ntfs-snapshot" ? new() { MaxJournalBytes = maxJournalBytes } : null,
                 RequestDigest = WorkspaceStore.Key(project + "\n" + requestKey + "\n" + baseReference + "\n" + storageMode + "\n" + baselineId + "\n" + purpose + "\n" + maxJournalBytes)
             };
+            await PreparationPointAsync("request.before-record", record, ct);
             store.Save(record, "create-intent");
+            await PreparationPointAsync("request.after-record", record, ct);
         }
         else if (record.BaseReference != baseReference || record.StorageMode != storageMode || record.BaselineId != baselineId || record.Purpose != purpose ||
             storageMode == "ntfs-snapshot" && record.Snapshot?.MaxJournalBytes != maxJournalBytes)
@@ -62,7 +65,9 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             {
                 await EnsureSnapshotAsync(record, ct);
                 if (editor) await StartCoreAsync(record, ct);
-                return await ViewAsync(record, ct);
+                var view = await ViewAsync(record, ct);
+                await PreparationPointAsync("response.before-publish", record, ct);
+                return view;
             }
             if (record.BaseRevision is null)
             {

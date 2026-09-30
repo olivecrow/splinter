@@ -25,6 +25,7 @@
 - 제품 `validation` CLI와 `Splinter.Workflows.Windows`는 `docs/validation-workflow.md`를 따른다. 공통 coordinator/provider 계약에 실제 VSS·WinFsp·Git·Unity를 연결하며 단일 view/cache와 세대별 source를 분리한다. 명시적 보존 뒤 artifact·cache·worker 순서로 회수하며 후보/소스 검증을 worker의 성공으로 자동 승계하지 않는다. 작은 실제 실행·cold 반복의 자격과 추가 준비/검증 재시작·비용 한계는 WF 검증을 따른다.
 - 제품 Library cache는 첫 후보의 불변 snapshot을 고정해 읽고 private 범위만 저장한다. 후보를 바꿔도 기준 snapshot을 바꾸지 않으며 cache close가 끝나기 전 그 snapshot의 회수를 막는다. `validation`의 `compact-cache` JSON action은 정상 stop/unmount 뒤 명시적 겹침량 예산과 같은 요청 복구로 대체된 범위만 정리한다. 작은 실제 Unity의 공간·정리·재증가·회수 자격과 제한은 `docs/verification/product-validation-unelevated.md`의 LB/WF 범위를 따른다.
 - `tools/Splinter.ReplayProbe`와 `tools/Splinter.WriteProbe`는 고정 합성 입력의 개발 도구다. 연산별 계측은 `docs/replay-profiling.md`·`docs/write-profiling.md`를 따른다. 실제 Windows mutation gate가 쓰기를 직렬화하므로 Runtime 대기 0은 OS 대기 0이 아니다. group flush는 callback 원자성·응답 경계·내구성 검토 없이는 채택하지 않는다.
+- 개발용 `preparation-probe --input`과 `scripts/test-preparation-recovery.ps1`은 `docs/ntfs-workspaces.md`의 준비 중단 절차를 따른다. 스크립트 기본값은 읽기 전용 계획이며 `-Execute`만 등록된 clean fixture의 정확한 CLI PID/시작 시각을 확인해 종료하고 같은 요청의 일반 ensure·결과 보존·release를 실행한다. 실패 작업/evidence를 보존하며 Unity·설치·grant·볼륨 변경이나 unknown의 추측 재시작을 포함하지 않는다. 실제 자격은 `docs/verification/preparation-recovery.md`를 따른다.
 
 ## 검증과 후속 작업
 

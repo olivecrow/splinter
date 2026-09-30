@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:preparation-probe-signal",
+  "type": "object", "additionalProperties": false,
+  "required": ["version", "boundary", "workspaceId", "requestDigest", "processId", "processStartTimeUtcTicks", "projectPath", "workspacePath", "step", "observedAt"],
+  "properties": {
+    "version": {"const": 1},
+    "boundary": {"type": "string", "minLength": 1},
+    "workspaceId": {"type": "string", "pattern": "^[a-f0-9]{24}$"},
+    "requestDigest": {"type": "string", "pattern": "^[a-f0-9]{24}$"},
+    "processId": {"type": "integer", "minimum": 1},
+    "processStartTimeUtcTicks": {"type": "integer", "minimum": 1},
+    "projectPath": {"type": "string", "minLength": 1},
+    "workspacePath": {"type": "string", "minLength": 1},
+    "snapshotId": {"type": "string", "minLength": 1},
+    "step": {"type": "string", "minLength": 1},
+    "observedAt": {"type": "string", "format": "date-time"}
+  }
+}

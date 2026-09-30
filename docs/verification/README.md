@@ -11,7 +11,7 @@
 | 영역 | 확인한 범위 | 남은 작업·해석 제한 |
 | --- | --- | --- |
 | NI/LV 제품 NTFS | 작은 fixture의 VSS·Git·Windows x64 Unity·재연결·독립 결과·회수 | NR 전체 지원은 미완료. 실제 재부팅·전원·물리 공간 장애와 모든 명령 경계는 별도 |
-| NR | 상태/저널 손상 보호, 파일 속성 거부, 현재 boot의 live identity, ARM 단일 workspace | 나머지 파일·에셋 경계, ARM A/B와 실제 장애는 미완료 |
+| NR | 상태/저널 손상 보호, 파일 속성 거부, 현재 boot의 live identity, ARM 단일 workspace와 [준비 CLI 중단 26개](preparation-recovery.md) | NR-02는 scoped-complete-with-limitations. 게시 실패 원인 미확정·명시적 재개/회수와 fresh-key 재실행 구분. 나머지 파일·에셋, 쓰기/결과/회수 중단, ARM A/B와 OS 장애는 미완료 |
 | PV-01/02 | 대표 fixture와 사용자 선택 비교 범위는 scoped-complete-with-limitations | PV-02 전체 Passed 아님. S4 FailedInputQualification, 소수 표본, 전체 팩 raw 입력 동등성 unknown |
 | SF-01/02 | 변경 기반 소스 검증, 명시적 정리·중첩 예산·계측의 하위 범위 | 공통 저장소 최초 실행의 FailedPreservation은 유지. SF-02 전체 Partial, 대형 용량 목표 미달성 |
 | SF-03/VC/VR | 개발용 작은 A/B/A, 정상 cold import와 재연결 | SF-03 전체 Partial. 큐·일반 임대 복구·source 반환 병합 미구현. VR-03 Partial. 현재 제품 연결은 WF로 구분 |
@@ -27,7 +27,7 @@
 
 새 후보에서 필요한 실제 환경 시험을 실행하기 전에는 아래 기록을 현재 후보의 통과로 승계하지 않는다. GUI Unity·VSS·격리 디스크 시험은 정의된 범위와 소유 자원을 확인한 뒤 실행한다. 현재 원본·다른 작업·기존 결과 refs와 비소유 snapshot을 보존한다.
 
-[WF-09~12와 LB-01~05](product-validation-unelevated.md)는 고정한 현재 후보의 실제 실행으로 마감했다. 실행 범위와 재검증 기준은 [저장공간 우선 계획](../plans/storage-priority-and-editor-modes.md#이번-범위-일반-권한-unity-검증-흐름-재검증), 남은 일반 지원·대형 용량·설치 관문은 [추적표](../plans/validation-matrix.md)가 소유한다.
+[WF-09~12와 LB-01~05](product-validation-unelevated.md)는 해당 기록이 고정한 후보의 실제 실행으로 마감했다. [NR-02](preparation-recovery.md)는 별도 최종 후보의 준비 경계이며 이전 Unity/Library 자격을 자동 승계하지 않는다. 실행 범위와 재검증 기준은 [저장공간 우선 계획](../plans/storage-priority-and-editor-modes.md#이번-범위-일반-권한-unity-검증-흐름-재검증), 남은 일반 지원·대형 용량·설치 관문은 [추적표](../plans/validation-matrix.md)가 소유한다.
 
 ## 후속 작업에 필요한 기록
 
@@ -38,6 +38,7 @@
 | [제한 권한 서비스](storage-privilege-service.md) | 보호된 상태·IPC 경계·최초 설치·반복 UAC·서비스 중단/응답 유실을 구분한 완료 판정 |
 | [VSS 보존 실패](storage-foundation.md), [삭제 차단과 복구](storage-recovery.md), [지연 회수](deferred-snapshot-reclamation.md) | exact-ID 삭제의 타 snapshot 영향, 격리 guard, 같은 작업의 명시적 재시도와 회수 순서 |
 | [NTFS 제품 통합](ntfs-workspace-integration.md), [live identity](ntfs-live-vss-identity.md), [NR 복구](ntfs-recovery.md) | 실제 Windows/ARM 조합과 미완료 장애·파일 관문, 환경별 재현 조건 |
+| [준비 CLI 중단 복구](preparation-recovery.md) | 같은 최종 후보의 실제 경계 26개·동시 재개·자식 실행 세대·독립 결과/원본 보존·회수, 게시 실패 원인 미확정과 명시적 복구 |
 | [병렬 비교](parallel-workflow.md) | C/S/Q의 동일 입력 조건·결과 refs·Library/큐/전환 비용, S4 입력 실패와 표본 한계 |
 | [초기 overlay 시험](snapshot-overlay.md), [ReFS·프로세스](storage-and-resources.md) | 파일 API·소유권·선택적 backend의 제한된 실환경 증거. NTFS 전체 지원으로 합산하지 않음 |
 | [저널 정리](journal-compaction.md), [Unity와 정리 비용](journal-compaction-qualification-and-cost.md), [예산과 재증가](journal-budget-and-growth-qualification.md) | 중단 복구, 두 세대 겹침·전체 할당 peak와 Library 유효량, 재개 후 재증가 |

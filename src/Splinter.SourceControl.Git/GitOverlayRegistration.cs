@@ -13,7 +13,8 @@ public static class GitOverlayRegistration
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static Task<string> Git(string cwd, string[] args, CancellationToken ct) => GitWorkspaceProvider.Required(cwd, args, ct);
-    public static async Task<OverlayGitReceipt> PrepareAsync(string project, string path, string branch, string revision, string ownerId, string receiptPath, CancellationToken ct, bool capturedSource = false)
+    public static async Task<OverlayGitReceipt> PrepareAsync(string project, string path, string branch, string revision, string ownerId, string receiptPath, CancellationToken ct, bool capturedSource = false,
+        Func<string, Task>? preparationPoint = null)
     {
         if (File.Exists(receiptPath))
         {
@@ -57,10 +58,12 @@ public static class GitOverlayRegistration
         Directory.CreateDirectory(Path.GetDirectoryName(receiptPath)!);
         await Save(receiptPath + ".intent", new { project, path, branch, revision, ownerId }, ct);
         await Git(project, ["worktree", "add", "--no-checkout", "-b", branch, path, revision], ct);
+        if (preparationPoint is not null) await preparationPoint("git-registration.after-effect");
         string pointer = await File.ReadAllTextAsync(System.IO.Path.Combine(path, ".git"), ct);
         string gitDirectory = await Git(path, ["rev-parse", "--path-format=absolute", "--git-dir"], ct);
         var receipt = new OverlayGitReceipt(ownerId, project, path, branch, revision, gitDirectory, pointer);
         await Save(receiptPath, receipt, ct);
+        if (preparationPoint is not null) await preparationPoint("git-registration.after-record");
         await FinishPreparation(receipt, ct);
         return receipt;
     }

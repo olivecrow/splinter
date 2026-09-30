@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Splinter.Core;
+using Splinter.Runtime;
 
 namespace Splinter.Platform.Windows;
 
@@ -88,7 +89,8 @@ public static class WinFspOverlayClient
             snapshotAvailable = snapshot.Available, snapshotAvailability = snapshot.Availability, failureCode = snapshot.FailureCode,
             mountPresent = Directory.Exists(request.MountPath), state }, Json);
     }
-    public static async Task<JsonElement> StartAsync(string requestPath, string runnerCache, CancellationToken ct = default)
+    public static async Task<JsonElement> StartAsync(string requestPath, string runnerCache, CancellationToken ct = default,
+        Func<string, Task>? preparationPoint = null)
     {
         var request = await ReadRequestAsync(requestPath, ct);
         WindowsProcessWorkspaceProvider.CheckPath(request.ControlPath); Directory.CreateDirectory(request.ControlPath);
@@ -113,16 +115,29 @@ public static class WinFspOverlayClient
         var verified = await ObserveSnapshotAsync(request, ct);
         if (verified.Available != true) throw new WorkspaceException(verified.FailureCode ?? "SnapshotObservationUnknown", "Verify snapshot access before starting a provider.");
         using (var snapshot = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess)) snapshot.EnsureAvailable();
+        if (request.ValidationView is null)
+        {
+            if (preparationPoint is not null) await preparationPoint("delta.before-effect");
+            if (!File.Exists(Path.Combine(request.DeltaPath, "identity.json")))
+            {
+                using var tree = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess);
+                using var delta = new JournalDeltaStore(request.DeltaPath, request.Identity, tree);
+            }
+        }
+        if (preparationPoint is not null) await preparationPoint("delta.after-record");
         if (request.CacheSnapshot is { } cache)
             using (var basis = new VssSnapshotTree(request.ValidationView!.CacheIdentity!.Snapshot, cache.ReadAccess)) basis.EnsureAvailable();
         string stop = Path.Combine(request.ControlPath, "stop.json"); WindowsProcessWorkspaceProvider.CheckPath(stop);
         if (File.Exists(stop)) File.Delete(stop);
         string runner = WindowsProcessWorkspaceProvider.PrepareRunner(runnerCache);
         string generation = Guid.NewGuid().ToString("N");
+        if (preparationPoint is not null) await preparationPoint("provider.before-effect");
         await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, new ProviderIntent(request.Token, request.Identity.Id, generation, DateTimeOffset.UtcNow,
             request.ReadAccess?.VerificationId, request.CacheSnapshot?.ReadAccess.VerificationId), ct);
-        using var process = WindowsProcessGroup.StartSupervisor("dotnet", [runner, "overlay-serve", Path.GetFullPath(requestPath)], request.ControlPath);
+        using var process = WindowsProcessGroup.StartSupervisor("dotnet", [runner, "overlay-serve", Path.GetFullPath(requestPath), generation], request.ControlPath);
+        if (preparationPoint is not null) await preparationPoint("provider.after-effect");
         await WindowsProcessWorkspaceProvider.WriteAsync(receiptPath, new ProviderLaunch(request.Token, process.Id, process.StartTime.ToUniversalTime().Ticks, generation), CancellationToken.None);
+        if (preparationPoint is not null) await preparationPoint("provider.after-record");
         return await AwaitMountedAsync(() => ObserveAsync(request, ct), process.Id,
             process.StartTime.ToUniversalTime().Ticks, TimeSpan.FromMinutes(2), ct);
     }
@@ -172,6 +187,6 @@ public static class WinFspOverlayClient
         }
         throw new WorkspaceException("OverlayStopPending", "Clients or provider remain; files and snapshot are retained. Query status and close owned clients.");
     }
-    private sealed record ProviderIntent(string Token, string Id, string? Generation, DateTimeOffset RequestedAt, string? VerificationId = null, string? CacheVerificationId = null);
-    private sealed record ProviderLaunch(string Token, int ProcessId, long StartTimeUtcTicks, string? Generation = null);
+    internal sealed record ProviderIntent(string Token, string Id, string? Generation, DateTimeOffset RequestedAt, string? VerificationId = null, string? CacheVerificationId = null);
+    internal sealed record ProviderLaunch(string Token, int ProcessId, long StartTimeUtcTicks, string? Generation = null);
 }

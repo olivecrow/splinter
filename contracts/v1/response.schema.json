@@ -715,6 +715,7 @@
             "none",
             "read-only-local-process",
             "owned-worktree-and-optional-editor",
+            "owned-ntfs-preparation-and-new-boundary-signal",
             "read-only-local-state",
             "reconcile-owned-state",
             "owned-source-commit",
@@ -733,6 +734,7 @@
           "enum": [
             "safe-read",
             "same-project-and-task-key",
+            "new-evidence-path; resume-with-original-workspace.ensure",
             "same-workspace-and-source",
             "same-workspace-and-target",
             "idempotent-release",
@@ -907,6 +909,16 @@
             "operations": {"const":["publish", "select", "resume", "observe-validation", "preserve", "release", "close-view"]},
             "schemas": {"const":["urn:splinter:v1:validation-workflow-request", "urn:splinter:v1:validation-workflow-response", "urn:splinter:v1:validation-workflow-state", "urn:splinter:v1:validation-product-request"]},
             "boundaries": {"type":"string", "minLength":1}
+          }
+        },
+        "developmentPreparationProbe": {
+          "type": "object", "additionalProperties": false,
+          "required": ["entrypoint", "inputs", "writes", "measurements"],
+          "properties": {
+            "entrypoint": {"type":"string", "minLength":1},
+            "inputs": {"type":"string", "minLength":1},
+            "writes": {"type":"string", "minLength":1},
+            "measurements": {"type":"string", "minLength":1}
           }
         },
         "developmentReplayProbe": {
