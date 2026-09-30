@@ -29,6 +29,8 @@
 
 ## 검증과 후속 작업
 
+- `scripts/test-journal-recovery.ps1`은 `docs/journal-recovery.md`의 합성 저널/실제 자식 종료 개발 시험이다. 기본값은 읽기 전용 계획, `-Execute`는 새 증거 디렉터리에만 58개 고정 경계의 ACK·tail·재생 hash를 남긴다. 명시적 공통 observer는 일반 provider에 연결하지 않으며 실제 WinFsp/VSS/mmap/전원 자격으로 확대하지 않는다.
+
 - 지원 상태와 보존할 비교 근거는 `docs/verification/README.md`, 미완료 검증은 `docs/plans/validation-matrix.md`를 따른다. 작은 fixture의 성공을 일반 지원으로 확대하지 않는다. 실행하지 않은 시험은 NotRun이며 이전 후보의 결과를 현재 후보의 통과로 표시하지 않는다.
 - 대형 프로젝트의 추가 물리 공간·생성·편집 준비·재개 시간을 함께 판단하고 Editor 동시성은 그 뒤에 둔다. SF-02/03은 Partial, SF-04~06은 NotRun이다. 단일 Editor 제품 연결의 현재 실행 자격은 WF 추적표를 따른다. 기본 모드 선택은 미완료다. 마감된 대형 PV를 자동 재개하지 않는다.
 - PV의 S와 Codex 독립 Editor C에는 Unity Agent Coordination을 사용하지 않는다. Q 비교군만 Codex worktree와 Coordination의 단일 Editor를 사용한다. C/S/Q의 Library·큐 대기·후보 전환 비용을 구분한다. S4 입력 실패와 전체 팩 raw 입력 동등성 unknown을 유지한다.

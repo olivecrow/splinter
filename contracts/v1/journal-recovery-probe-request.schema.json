@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:journal-recovery-probe-request",
+  "type": "object", "additionalProperties": false,
+  "required": ["version", "directory", "operation", "boundary", "nonce"],
+  "properties": {
+    "version": {"const": 1},
+    "directory": {"type": "string", "minLength": 1},
+    "operation": {"enum": ["write", "rename", "replace", "truncate", "create", "delete", "flush"]},
+    "boundary": {"enum": ["commit.before-append", "commit.after-header", "commit.after-metadata", "commit.after-payload-prefix", "commit.after-payload", "commit.after-checksum", "commit.before-flush", "commit.after-flush", "commit.after-apply", "caller.before-ack", "caller.after-ack", "flush.before", "flush.after"]},
+    "nonce": {"type": "string", "pattern": "^[a-f0-9]{32}$"}
+  },
+  "allOf": [
+    {"if": {"properties": {"operation": {"const": "flush"}}},
+     "then": {"properties": {"boundary": {"enum": ["flush.before", "flush.after"]}}},
+     "else": {"properties": {"boundary": {"not": {"enum": ["flush.before", "flush.after"]}}}}},
+    {"if": {"properties": {"operation": {"not": {"const": "write"}}}},
+     "then": {"properties": {"boundary": {"not": {"enum": ["commit.after-payload-prefix", "commit.after-payload"]}}}}}
+  ]
+}

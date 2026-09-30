@@ -1,6 +1,6 @@
 # NTFS 복구·지원 경계 검증
 
-기준일: 2026-09-22. [NR 계획](../plans/ntfs-recovery-and-support.md)의 실행 기록이다. **NR-01/03/05/07 부분 구현·자동 검증, 원격 VSS 읽기·회수 복구와 5개 파일 API 거부, ARM Windows/x64 Unity 단일 작업공간 회귀·회수 통과**이며 NR 전체 완료가 아니다.
+기준일: 2026-09-30. [NR 계획](../plans/ntfs-recovery-and-support.md)의 실행 기록이다. **NR-01/03/05/07 부분 구현·자동 검증과 공통 저널의 실제 자식 종료 58개**를 확인했다. 아래 원격 VSS 읽기·회수 복구와 5개 파일 API 거부, ARM Windows/x64 Unity 단일 작업공간 근거는 각 이전 후보의 기록이며 NR 전체 완료가 아니다.
 
 ## 새 live VSS 후보
 
@@ -30,7 +30,29 @@
 
 추가 프로세스 시험은 `artifacts/ntfs-recovery/nr03-process-20260921/`의 개발용 harness와 `trials-2/result.json`에 보존한다. 제품의 동일 `JournalDeltaStore` 바이너리를 사용하되 기준 트리는 결정적 fake다. 최종 ACK sequence 1/8/32가 모두 유지됐고, 재생된 sequence는 1/9/33이었다. ACK를 받기 전 완료된 마지막 레코드가 남을 수 있다는 허용 범위와 일치한다. 초기 payload 복사와 읽기 cache는 0이다. 첫 실행은 종료 직후 공유 위반 32로 중단되어 `trials/`와 실패 설명을 보존했다. 후속 harness는 소유 프로세스 종료 확인 뒤 공유 위반만 최대 5초 재관측하며, 통과한 3건에서 해당 재시도는 0회였다. 이 시험은 WinFsp/VSS·mmap flush·저널 내부 특정 명령어 중단·재부팅/전원 손실의 증거가 아니다.
 
-현재 snapshot probe는 root 메타데이터와 source 볼륨 접근을 관측한다. 재부팅 후 VSS ID·provider·volume의 동일성을 재검증한 증거는 아직 없다. 모든 부작용 경계, 정상 재부팅/강제 전원 종료, 실제 공간 고갈/offline, ACL/EFS·입력 특성의 전체 표와 부분 준비 회수는 NotRun이다. 아래 실제 mount의 5개 API 거부와 VIVOBOOK 단일 Unity 작업공간 시험을 이 전체 범위와 구분한다.
+현재 snapshot probe는 root 메타데이터와 source 볼륨 접근을 관측한다. 재부팅 후 VSS ID·provider·volume의 동일성을 재검증한 증거는 아직 없다. [NR-02 준비 경계](preparation-recovery.md)와 아래 공통 저널 경계를 제외한 나머지 중단 관문, 정상 재부팅/강제 전원 종료, 실제 공간 고갈/offline, ACL/EFS·입력 특성의 전체 표와 부분 준비 직접 회수는 미완료다. 아래 실제 mount의 5개 API 거부와 VIVOBOOK 단일 Unity 작업공간 시험을 이 전체 범위와 구분한다.
+
+## NR-03 공통 저널 경계의 실제 프로세스 종료
+
+`artifacts/ntfs-recovery/nr03-journal-20260930b/`은 `108b594` 이후의 NR-03 공통 observer/개발 harness와 checksum이 정상인 sequence 오류 회귀를 포함한 최종 후보다. `source-and-environment.json`과 `final-audit.json`에서 소스 229개·바이너리 5개의 불변 hash, 일반 권한 caller, 실제 종료 58개와 남은 소유 자식 0을 확인했다. Runtime SHA-256은 `e5ca90d81539e575ba992d1044760cc1151a59d8628df2b9ec390d30fead27e1`이다. 기준은 결정적 fake 불변 트리이며 VSS·WinFsp·Unity를 실행하지 않았다. 형제 fixture는 clean을 유지했다.
+
+[개발 진입점](../journal-recovery.md)의 기본 계획이 파일을 만들지 않음을 자동 시험과 별도 계획 실행으로 확인했다. `-Execute`의 최종 행렬은 **58 Passed / 0 Failed**다. 각 trial에 request·nonce/PID/시작 시각이 일치하는 signal·실제 종료 관측, 승인 prefix·최종 외부 ACK, 재생 전 journal 원문, child stdout/stderr와 결과를 남겼다. `result.json`은 아래 정확한 실행 목록의 요약이다.
+
+| 연산 | 실제 종료 수 | 확인한 내용 |
+| --- | --- | --- |
+| write | 11 | append 전/header 후/metadata 후/payload 절반 후/전체 후/checksum 후/flush 전·후/apply 후/반환 후 ACK 전·후 |
+| rename / replace / truncate / create / delete | 각각 9, 합계 45 | payload 없는 같은 경계, namespace·길이·내용의 전부 적용 또는 부재 |
+| 명시적 Flush | 2 | flush 전·후 종료 뒤 이미 승인된 prefix 유지 |
+
+58건 모두 승인 sequence 4를 보존했다. 34건은 sequence 4, durable flush 이후의 24건은 sequence 5로 재생했다. 마지막 외부 ACK가 실제 게시된 6건은 모두 새 내용이 남았다. 아직 반환하지 않은 완전 transaction은 생존할 수 있다는 oracle을 유지하되, 실제 이번 flush 전 사례에서는 새 transaction이 남지 않았다. 이 관측을 모든 미승인 쓰기가 사라진다는 보장으로 해석하지 않는다.
+
+write의 payload 절반 후는 33,129바이트, payload 전체/checksum 후/flush 전의 3건은 각각 65,897바이트의 미완성 tail만 제거했다. 58건 모두 승인 prefix의 원문이 유지되고 재생 후 파일은 종료 시점 원문의 정확한 prefix였다. 두 번째 재생은 namespace·내용 hash와 journal 원문이 바뀌지 않았다. 초기 payload 복사·read cache·base payload 읽기는 0이며 합성 private 저널에 한정한 계측이다. 완전 frame의 checksum·sequence·JSON 손상 보존은 같은 후보의 기존 자동 회귀로 확인했고 손상 frame을 정상 tail로 절단하지 않는다.
+
+최종 `pwsh ./scripts/build.ps1`은 locked restore·Release build 경고/오류 0, **총 684개 중 683 Passed / 0 Failed / 선택적 ReFS 1 Skipped**다. `final-full.trx`와 `../nr03-journal-20260930-preflight/sequence-final-build.log`가 소유하며 UTF-8·diff 검사를 통과했다. 최종 행렬의 종료 후 공유 재관측은 58건 모두 0회다. 앞선 `nr03-journal-20260930/`의 58개 성공과 682개 자동 통과도 원문을 보존한다. Runtime은 같고 sequence 손상 직접 회귀 추가로 시험 바이너리·소스가 달라져 최종 행렬을 새 디렉터리에서 다시 실행했다.
+
+첫 전체 시험은 681개 중 679 Passed / 1 Failed / 1 Skipped였다. `replace / commit.after-apply`에서 정확한 자식 종료 확인 직후 journal open의 Win32 공유 위반 32로 replay 전에 실패했다. `../nr03-journal-20260930-preflight/first-full.trx`와 `failure.json`에 당시 바이너리 hash·실패를 보존했다. harness의 post-exit guard/open에만 공유 위반 32/33의 최대 5초 재관측을 추가했고, 접근 거부·부재·손상·replay 오류는 재시도하지 않는다. 첫 실패를 제품 데이터 손상이나 flush 정책 결함의 해결로 표시하지 않는다.
+
+판정은 **공통 저널 단위 scoped-complete-with-limitations**, 전체 NR-03은 **InProgress**다. 부분 header/checksum 바이트별·OS flush 호출 내부·replay의 tail 절단/flush 도중 강제 종료, 실제 WinFsp callback 응답/재연결, 명시적 mmap flush, 동시 reader/writer, VSS·재부팅·전원·물리 공간 장애는 이번 후보에서 NotRun이다. 이전 LV·원격 실행이나 NR-02 후보의 실제 자격을 이 후보로 자동 승계하지 않는다.
 
 ## VIVOBOOK 준비
 

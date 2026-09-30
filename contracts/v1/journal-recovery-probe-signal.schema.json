@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:journal-recovery-probe-signal",
+  "type": "object", "additionalProperties": false,
+  "required": ["version", "operation", "boundary", "nonce", "processId", "processStartTimeUtcTicks", "sequence", "frameStart", "frameBytes", "payloadBytes"],
+  "properties": {
+    "version": {"const": 1},
+    "operation": {"enum": ["write", "rename", "replace", "truncate", "create", "delete", "flush"]},
+    "boundary": {"enum": ["commit.before-append", "commit.after-header", "commit.after-metadata", "commit.after-payload-prefix", "commit.after-payload", "commit.after-checksum", "commit.before-flush", "commit.after-flush", "commit.after-apply", "caller.before-ack", "caller.after-ack", "flush.before", "flush.after"]},
+    "nonce": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+    "processId": {"type": "integer", "minimum": 1},
+    "processStartTimeUtcTicks": {"type": "integer", "minimum": 1},
+    "sequence": {"type": "integer", "minimum": 4, "maximum": 5},
+    "frameStart": {"type": "integer", "minimum": 0},
+    "frameBytes": {"type": "integer", "minimum": 0},
+    "payloadBytes": {"type": "integer", "minimum": 0, "maximum": 65536}
+  }
+}

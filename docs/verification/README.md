@@ -12,6 +12,7 @@
 | --- | --- | --- |
 | NI/LV 제품 NTFS | 작은 fixture의 VSS·Git·Windows x64 Unity·재연결·독립 결과·회수 | NR 전체 지원은 미완료. 실제 재부팅·전원·물리 공간 장애와 모든 명령 경계는 별도 |
 | NR | 상태/저널 손상 보호, 파일 속성 거부, 현재 boot의 live identity, ARM 단일 workspace와 [준비 CLI 중단 26개](preparation-recovery.md) | NR-02는 scoped-complete-with-limitations. 게시 실패 원인 미확정·명시적 재개/회수와 fresh-key 재실행 구분. 나머지 파일·에셋, 쓰기/결과/회수 중단, ARM A/B와 OS 장애는 미완료 |
+| NR-03 공통 저널 | [fake 불변 기준의 실제 자식 종료 58개](ntfs-recovery.md#nr-03-공통-저널-경계의-실제-프로세스-종료), 승인 prefix·flush 이후 transaction·tail·두 번째 재생 | 공통 단위 scoped-complete-with-limitations. 실제 WinFsp callback/mmap·VSS·동시 reader/writer·OS 장애는 미실행이며 NR-03 전체 InProgress |
 | PV-01/02 | 대표 fixture와 사용자 선택 비교 범위는 scoped-complete-with-limitations | PV-02 전체 Passed 아님. S4 FailedInputQualification, 소수 표본, 전체 팩 raw 입력 동등성 unknown |
 | SF-01/02 | 변경 기반 소스 검증, 명시적 정리·중첩 예산·계측의 하위 범위 | 공통 저장소 최초 실행의 FailedPreservation은 유지. SF-02 전체 Partial, 대형 용량 목표 미달성 |
 | SF-03/VC/VR | 개발용 작은 A/B/A, 정상 cold import와 재연결 | SF-03 전체 Partial. 큐·일반 임대 복구·source 반환 병합 미구현. VR-03 Partial. 현재 제품 연결은 WF로 구분 |

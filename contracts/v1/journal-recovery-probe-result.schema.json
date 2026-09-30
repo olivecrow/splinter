@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:journal-recovery-probe-result",
+  "type": "object", "additionalProperties": false,
+  "required": ["version", "operation", "boundary", "nonce", "actualProcessTermination", "acknowledgedPrefixSequence", "externalFinalAck", "replaySequence", "modelHash", "beforeHash", "afterHash", "beforeBytes", "afterBytes", "truncatedTailBytes", "initialPayloadCopiedBytes", "readCacheBytes", "baseReadBytes", "postExitSharingRetries", "secondReplayUnchanged"],
+  "properties": {
+    "version": {"const": 1},
+    "operation": {"enum": ["write", "rename", "replace", "truncate", "create", "delete", "flush"]},
+    "boundary": {"type": "string", "minLength": 1},
+    "nonce": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+    "actualProcessTermination": {"const": true},
+    "acknowledgedPrefixSequence": {"const": 4},
+    "externalFinalAck": {"type": "boolean"},
+    "replaySequence": {"enum": [4, 5]},
+    "modelHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "beforeHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "afterHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "beforeBytes": {"type": "integer", "minimum": 0},
+    "afterBytes": {"type": "integer", "minimum": 0},
+    "truncatedTailBytes": {"type": "integer", "minimum": 0},
+    "initialPayloadCopiedBytes": {"const": 0},
+    "readCacheBytes": {"const": 0},
+    "baseReadBytes": {"const": 0},
+    "postExitSharingRetries": {"type": "integer", "minimum": 0},
+    "secondReplayUnchanged": {"const": true}
+  }
+}

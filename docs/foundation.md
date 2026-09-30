@@ -10,6 +10,8 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 ## 구조와 의존성
 
+Core의 `IJournalMutationObserver`는 선택적 동기 저널 경계 관측 port다. `JournalDeltaStore`의 명시적 개발 생성자만 observer를 받으며 일반 Runtime·Windows 조합에는 연결하지 않는다. `scripts/test-journal-recovery.ps1`은 기본 읽기 전용 계획, `-Execute`는 Release 시험 harness의 결정적 fake 트리·실제 자식 종료와 승인 데이터 재생 검증이다. [현재 절차](journal-recovery.md)와 `capabilities.developmentJournalRecoveryProbe`에서 경계·schema·쓰기 범위를 확인한다. 기존 개별 acknowledged-write durable flush 정책은 유지한다.
+
 Core의 `IWorkspacePreparationObserver`는 공급자 중립적인 준비 경계 관측 port다. Runtime·Git·Windows가 선택적 observer를 호출하고 일반 제품 명령은 observer 없이 실행한다. 개발용 `preparation-probe --input`만 이 port를 조립하며 현재 schema와 범위는 `capabilities.developmentPreparationProbe`에 있다. `scripts/test-preparation-recovery.ps1`은 기본 읽기 전용 계획, `-Execute`는 등록된 fixture의 실제 CLI 종료·같은 요청 재개·보존/회수 시험이다. [NTFS 절차](ntfs-workspaces.md#개발용-준비-중단-시험)를 따른다.
 
 [제품 검증 workflow](validation-workflow.md)의 `validation --input`은 기존 NTFS worker의 후보 게시·단일 Unity view 선택/실행/검증·독립 결과 보존/회수와 `preserve-worker`를 연결한다. Library는 첫 후보의 불변 snapshot을 계속 읽고 private 변경 범위만 공통 cache에 저장한다. `workspace release`는 후보·소스 세대·미완료 요청과 열린 cache 기준의 snapshot 의존성을 먼저 확인한다. `compact-cache`는 정지 경계·명시적 겹침량 예산·같은 요청 복구로 대체된 범위를 정리한다. 제품 입력/출력은 `validation-product-request`/`validation-product-data` schema다.

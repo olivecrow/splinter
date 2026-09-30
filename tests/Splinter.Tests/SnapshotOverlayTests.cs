@@ -494,6 +494,7 @@ public sealed class SnapshotOverlayTests
     [InlineData("entry")]
     [InlineData("path")]
     [InlineData("range")]
+    [InlineData("sequence")]
     public void CompleteInvalidMetadataPreservesTheJournalAndReturnsCorruption(string fault)
     {
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
@@ -507,6 +508,7 @@ public sealed class SnapshotOverlayTests
             case "entry": metadata["Entry"] = null; break;
             case "path": metadata["Entry"]!["Path"] = "../outside"; break;
             case "range": metadata["Offset"] = long.MaxValue; break;
+            case "sequence": metadata["Sequence"] = 2; break;
         }
         byte[] encoded = fault == "json" ? "{"u8.ToArray() : System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(metadata);
         byte[] replacement = new byte[8 + encoded.Length + 1 + 32];

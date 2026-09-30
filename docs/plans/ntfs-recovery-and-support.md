@@ -2,6 +2,16 @@
 
 현재 NR-01/03/05/07은 부분 구현이다. 나머지 명령 경계·일반 파일 지원·실제 재부팅·전원·물리 공간 장애·ARM A/B는 미완료다. 현재 계약은 [NTFS](../ntfs-workspaces.md), 확인한 범위는 [검증 안내](../verification/README.md)를 따른다.
 
+## 확정 범위: NR-03 공통 저널 쓰기/flush 중단
+
+다음 실행 단위는 실제 자식 프로세스의 **공통 저널 내부 경계**다. 제품 `JournalDeltaStore`와 결정적 fake 불변 트리를 사용해 write/rename/replace/truncate/create/delete, 명시적 flush의 58개 경계에서 자식을 종료한다. 입력·gate·결과 schema와 공통 observer/fake 적합성부터 연결하고, 일반 store에는 gate를 연결하지 않는다. 정상 transaction의 개별 durable flush 정책은 유지한다. 진입점과 경계는 [저널 중단 시험](../journal-recovery.md)이 소유한다.
+
+완료 기준은 동일 최종 바이너리의 전체 행렬에서 승인 prefix 바이트 보존, 불완전 tail만 절단, 완전 미승인 frame의 전부 적용 또는 부재, flush 완료/외부 ACK 후 새 내용 보존, 두 번째 재생 hash 불변이다. 기존 완전 frame의 checksum/sequence/JSON 손상 보존·거부 회귀와 `pwsh ./scripts/build.ps1`·UTF-8도 통과해야 한다. 새 `artifacts/ntfs-recovery/<runId>/`에 candidate hash·58개 request/signal/종료·외부 ACK·재생 전 원문과 결과를 보존한다. 실패 run은 삭제하지 않는다.
+
+실제 WinFsp callback 응답/중단, mmap 명시적 flush, 동시 reader/writer 재연결, OS flush 내부 종료, VSS 재연결, 재부팅·전원·물리 공간 장애는 이 공통 단위의 증거로 승계하지 않는다. 별도 실제 backend 단위로 남으며 NR-03 전체는 InProgress다. 원본·타 작업·snapshot·Git 등록과 설치/서비스/볼륨 설정을 변경하지 않는다. 준비 단계의 상태 게시 실패 원인 미확정도 별도 유지한다.
+
+공통 단위는 [같은 후보의 58개 실제 종료와 최종 감사](../verification/ntfs-recovery.md#nr-03-공통-저널-경계의-실제-프로세스-종료)로 **scoped-complete-with-limitations** 판정했다. 다음 실행 단위는 실제 WinFsp callback의 중단/응답 oracle과 명시적 mmap flush·writer 재연결이다. 같은 후보의 일반 회귀만으로 이전 VSS/Unity의 실행 자격을 갱신하지 않는다.
+
 ## 확정 범위: NR-01/02 준비 단계 중단 복구
 
 이번 확정 단위는 **`workspace ensure`의 준비 단계에서 CLI 종료·응답 유실 뒤 같은 작업을 재개하고 중복 자원을 만들지 않는 복구**다. 작은 입력의 WF-09~12/LB-01~05는 [제한을 유지해 마감](../verification/product-validation-unelevated.md)했으며, 정상 재연결·후보 게시 복구를 준비 단계 전체의 실제 중단 증거로 승계하지 않는다. NR-02의 현재 후보와 실제 실행은 [준비 복구 검증](../verification/preparation-recovery.md)이 소유한다.

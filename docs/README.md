@@ -19,6 +19,7 @@
 | [준비 중단 절차](ntfs-workspaces.md#개발용-준비-중단-시험), [준비 복구 검증](verification/preparation-recovery.md) | 개발용 gate/harness와 같은 요청의 실제 CLI 종료·재개·원본 보존·회수 자격 |
 | [Replay probe](replay-profiling.md) | 고정 합성 입력의 replay 비용 |
 | [Write probe](write-profiling.md) | 고정 합성 쓰기·flush·대기 비용 |
+| [저널 중단 시험](journal-recovery.md) | 합성 불변 기준의 58개 실제 자식 종료·외부 ACK·불완전 tail·재생 관문 |
 | [검증 안내](verification/README.md) | 지원 경계, 검증 진입점, 보존한 실측 근거 |
 
 ## 남은 설계와 검증
@@ -28,7 +29,7 @@
 | [제품 요구사항](../plan.html) | 제품이 달성할 목표 |
 | [구현 계획](plans/implementation-plan.md) | 목표 구조·책임·단계별 작업 |
 | [검증 추적표](plans/validation-matrix.md) | 필수 48개 시나리오와 남은 지원 관문 |
-| [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | 확정된 NR-01/02 준비 복구와 상위 재부팅·전원·공간·파일 관문의 완료 기준 |
+| [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | NR-01/02 준비 복구·NR-03 공통 저널 단위와 상위 재부팅·전원·공간·파일 관문의 완료 기준 |
 | [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·비용 판단과 WF-09~12/LB-01~05의 완료 범위·재검증 기준 |
 | [대화별 설치·사용](plans/session-workflow-and-installation.md) | 설치·binding·명시적 discard의 SW-01~10 |
 | [저장소 권한 서비스](plans/storage-privilege-service.md) | 반복 UAC 없는 제한 서비스의 UA-01~04 |

@@ -32,6 +32,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private readonly object gate = new();
     private readonly ISnapshotTree snapshot;
     private readonly FileStream journal;
+    private readonly IJournalMutationObserver? mutationObserver;
     private readonly Dictionary<Guid, Node> nodes = [];
     private readonly Dictionary<string, Guid> paths = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> hidden = new(StringComparer.OrdinalIgnoreCase);
@@ -80,8 +81,17 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot)
         : this(directory, identity, snapshot, "delta.journal") { }
 
+    public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot,
+        IJournalMutationObserver mutationObserver)
+        : this(directory, identity, snapshot, "delta.journal", false, mutationObserver) { }
+
     private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName, bool readOnly = false)
+        : this(directory, identity, snapshot, journalName, readOnly, null) { }
+
+    private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName,
+        bool readOnly, IJournalMutationObserver? mutationObserver)
     {
+        this.mutationObserver = mutationObserver;
         if (identity.Version != 1 || identity.MaxJournalBytes < 4096 || identity.MaxTransferBytes is < 4096 or > 1048576)
             throw new ArgumentException("Invalid overlay version or bounded storage limits.");
         if (identity.Snapshot != snapshot.Snapshot || !identity.Snapshot.Persistent || !identity.Snapshot.Differential)
@@ -260,7 +270,12 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             ObjectDisposedException.ThrowIf(disposed, this);
             if (poisoned) throw new WorkspaceException("DeltaReconnectRequired", "Replay the preserved journal after a failed append.");
             // Flushing acknowledged private data does not need a surviving base.
-            if (!readOnly) DurableFlush();
+            if (!readOnly)
+            {
+                Visit("flush.before", "flush", sequence, 0, 0, 0);
+                DurableFlush();
+                Visit("flush.after", "flush", sequence, 0, 0, 0);
+            }
         }
     }
     public OverlayStorageObservation Observe()
@@ -407,13 +422,34 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 stage = Stopwatch.GetTimestamp();
                 try
                 {
+                    Visit("commit.before-append", mutation.Operation, mutation.Sequence, start, required, payload.Length);
                     journal.Position = start;
-                    journal.Write(header); journal.Write(metadata); journal.Write(payload); journal.Write(checksum);
+                    journal.Write(header);
+                    Visit("commit.after-header", mutation.Operation, mutation.Sequence, start, required, payload.Length);
+                    journal.Write(metadata);
+                    Visit("commit.after-metadata", mutation.Operation, mutation.Sequence, start, required, payload.Length);
+                    if (mutationObserver is not null && payload.Length > 1)
+                    {
+                        int prefix = payload.Length / 2;
+                        journal.Write(payload[..prefix]);
+                        Visit("commit.after-payload-prefix", mutation.Operation, mutation.Sequence, start, required, payload.Length);
+                        journal.Write(payload[prefix..]);
+                    }
+                    else journal.Write(payload);
+                    if (!payload.IsEmpty)
+                        Visit("commit.after-payload", mutation.Operation, mutation.Sequence, start, required, payload.Length);
+                    journal.Write(checksum);
+                    Visit("commit.after-checksum", mutation.Operation, mutation.Sequence, start, required, payload.Length);
                 }
                 finally { cost.AppendTicks += Stopwatch.GetTimestamp() - stage; }
                 long beforeFlush = flushTicks;
                 SampleWaitingMutations(cost, cost.WaitingAtStart); cost.FlushCalls++;
-                try { DurableFlush(); }
+                try
+                {
+                    Visit("commit.before-flush", mutation.Operation, mutation.Sequence, start, required, payload.Length);
+                    DurableFlush();
+                    Visit("commit.after-flush", mutation.Operation, mutation.Sequence, start, required, payload.Length);
+                }
                 finally
                 {
                     cost.FlushTicks += flushTicks - beforeFlush;
@@ -427,9 +463,16 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             stage = Stopwatch.GetTimestamp();
             try { Apply(mutation, start + 8 + metadata.Length, payload.Length); }
             finally { cost.ApplyTicks += Stopwatch.GetTimestamp() - stage; }
+            Visit("commit.after-apply", mutation.Operation, mutation.Sequence, start, required, payload.Length);
         }
         catch { cost.FailedCalls++; throw; }
         finally { cost.TotalTicks += Stopwatch.GetTimestamp() - started; }
+    }
+    private void Visit(string boundary, string operation, long nextSequence, long frameStart, long frameBytes, int bytes)
+    {
+        if (mutationObserver is null) return;
+        try { mutationObserver.Observe(new(boundary, operation, nextSequence, frameStart, frameBytes, bytes)); }
+        catch { poisoned = true; throw; }
     }
     private void Replay()
     {
