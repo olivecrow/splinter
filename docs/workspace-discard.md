@@ -1,6 +1,13 @@
-# 명시적 폐기의 공통 계약
+# 명시적 workspace 폐기
 
-현재 제공 범위는 Core 계약·Runtime 수명주기·fake 적합성이다. 제품 CLI와 실제 Git/Windows/VSS 폐기 provider는 연결하지 않았다. `capabilities.unavailable`의 `workspace.discard`는 유지되며 `workspace discard`는 실행 명령이 아니다. 현재 제품의 보존형 [release](ntfs-workspaces.md#회수와-관측)는 독립 결과와 seal을 계속 요구한다.
+`workspace discard`는 준비가 완료된 NTFS task worker를 성공 검증/checkpoint 없이 명시적으로 폐기한다. Core/Runtime과 실제 Git/Windows provider·CLI를 연결했다. 실제 VSS 폐기에는 이 계약을 지원하는 권한 서비스 패키지가 필요하며 서비스 업데이트는 별도 관리자 작업이다. [검증 기록](verification/workspace-discard.md)은 자동 권한 경계·등록된 로컬 fixture의 Editor 없는 VSS A/B 폐기와 아직 미실행인 Unity/강제 중단 자격을 구분한다.
+
+```powershell
+pwsh ./scripts/splinter.ps1 workspace status --id <id> --home <home>
+pwsh ./scripts/splinter.ps1 workspace discard --id <id> --intent-key <stable-discard-key> --expected-request-digest <requestDigest> --home <home>
+```
+
+대상은 status/list의 ID·project/path와 `requestDigest`로 확인한다. 중단/지연은 같은 key/digest/id/home으로 재시도한다. `Succeeded`/`discarded`는 정확한 소유 자원 부재, `Accepted`/`discard-reclaim-pending`은 작업 payload 제거 뒤 공유 VSS blocker를 기다리는 상태다. 기존 보존형 [release](ntfs-workspaces.md#회수와-관측)는 독립 결과·seal을 계속 요구한다.
 
 ## 입력과 소유권
 
@@ -21,12 +28,16 @@ Runtime은 앱/자식의 소유권과 프로세스·메모리 0을 요구한다.
 
 폐기 진행 중에는 ensure/Editor 시작·refresh·stop/checkpoint/integrate/release/compact로 다른 수명주기를 시작하지 않는다. status는 소스 파일을 읽거나 검증 응답을 성공으로 승계하지 않고 관측과 폐기 stage를 반환한다. 같은 intent key/digest의 `DiscardAsync`만 남은 단계를 이어 간다.
 
-workspace·candidate·source generation·cache 의존성이 있으면 정지 전에 차단하며 정확한 의존성과 확인할 다음 행동을 반환한다. snapshot 회수 직전에도 확인한다. 다른 작업·원본 Editor·공유 view/cache를 자동 종료하지 않는다.
+workspace·candidate·source generation·cache 의존성이 있으면 정지 전에 차단하며 정확한 의존성과 확인할 다음 행동을 반환한다. snapshot 회수 직전에도 확인한다. 이때 최신 mount/provider·delta 부재와 소유 자원 0 관측을 durable workspace 상태에 게시한 뒤 별도 서비스에 요청한다. 상태 게시 실패는 회수 요청 전에 중단한다. 다른 작업·원본 Editor·공유 view/cache를 자동 종료하지 않는다.
 
 `discard-reclaim-pending`은 source/delta 정리 뒤 snapshot 회수를 기다리는 상태다. 회수 영수증과 blocker를 유지하며 같은 intent로 snapshot 단계만 재시도한다. `discarded`는 정확한 snapshot/delta/mount/provider 부재와 소유 자원 0을 확인한 완료 영수증이다. unknown은 0이나 완료가 아니다. 대화·Editor 종료·timeout·공간 압박은 폐기 의도가 아니다.
 
-## 실제 provider 연결의 남은 경계
+## 실제 provider와 권한 경계
 
-`IWorkspaceDiscardProvider`가 없으면 `WorkspaceDiscardUnavailable`을 반환하고 intent 작성·Editor 정지·삭제를 수행하지 않는다. 실제 provider는 Git 등록과 작업 branch의 동일 owner/revision 확인·중단 재조정, Windows delta의 별도 삭제 intent·잔여 파일 확인, VSS 서비스의 **명시적 폐기 authorization**을 구현해야 한다. `resultsPreserved=true`를 꾸미거나 기존 release의 독립 결과 gate를 제거해 연결하지 않는다. 권한 서비스 설치/업데이트와 실제 폐기의 자격은 별도 실행 범위다.
+`WindowsWorkspaceDiscardProvider`는 일반 권한 Git·delta 처리를 조합한다. Git은 생성된 `splinter/<id>` branch와 정확한 owner lock/등록 receipt를 확인하고, `git-discard.json` intent를 게시한 뒤 등록을 제거한다. 고정 revision의 compare-and-delete와 `--no-deref`로 task branch만 제거하며 독립 결과 ref·공유 객체·원본과 peer를 보존한다. 응답 유실 뒤 등록/branch가 이미 없어도 동일 intent만 완료한다. 재생성되거나 변경된 branch는 보존 후 거부한다.
 
-이번 범위의 실행 근거는 [공통 폐기 검증](verification/workspace-discard.md), 제품 완료 기준은 [M0](plans/validation-matrix.md#첫-실사용-버전-m0)를 따른다.
+Windows delta는 owner intent와 `discard-delta-reclaim.json`에 정확한 디렉터리·seal·identity hash를 기록한다. writer를 배제하는 journal fence에서 hash/길이를 확인하고 `delta.journal`·`identity.json`만 삭제한다. 예상 밖 파일·identity/journal 변경은 거부하며 부분 삭제 후 같은 기록으로 나머지 파일만 처리한다. 현재 계약은 진행 중인 preparation/compaction의 강제 정리를 지원하지 않는다.
+
+VSS는 기존 고정 `Release` IPC operation에 별도 `release.discard` authorization을 전달한다. 서비스는 인증된 사용자·설치 scope·보호된 capture tuple, durable discard state/intent/seal, 실제 Git 등록/branch·mount/delta 부재, 소유 자원 0·공유 의존성·독점 reader fence를 대조한다. 보호된 `discard-authorized.json`을 helper에 전달하며 `resultsPreserved=true`를 만들지 않는다. live identity·정확한 snapshot ID·기존 삭제 격리 guard와 지연 회수 영수증을 유지한다. 이전 서비스에 호환 fallback이나 자동 승격을 추가하지 않는다.
+
+제품 완료 기준은 [M0](plans/validation-matrix.md#첫-실사용-버전-m0)를 따른다. provider를 별도로 조합하지 않은 .NET 호출은 `WorkspaceDiscardUnavailable`로 intent/정지 전에 거부한다.

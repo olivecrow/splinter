@@ -80,6 +80,8 @@ public sealed partial class WorkspaceCoordinator
                 RequireDiscardStopped(state.Observation);
                 if (state.Observation.DeltaPresent != false || Directory.Exists(w.Path) || File.Exists(w.Path))
                     throw new WorkspaceException("OverlayCleanupIncomplete", "Prove owned delta and mount absence before authorizing snapshot discard.");
+                // The separate authority reads durable state, not this object.
+                store.Save(w, "discard-snapshot-authorized");
                 var reclamation = await provider.DiscardSnapshotAsync(w, control, ct);
                 reclamation.RequireMatch(state.Reference);
                 state.Observation = await Snapshots.ObserveAsync(w, control, ct);

@@ -11,7 +11,8 @@ internal sealed record StorageAuthorityRequest(int Version, string RequestId, st
     string OwnerId, string SourcePath, string HomePath, string? SnapshotId,
     VssVerificationRequest Verification, StorageReleaseRequest? Release);
 internal sealed record StorageReleaseRequest(string RequestId, string OwnerId, SnapshotReference Snapshot,
-    DateTimeOffset RequestedAt, DateTimeOffset? BootTimeUtc);
+    DateTimeOffset RequestedAt, DateTimeOffset? BootTimeUtc,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] WorkspaceDiscardState? Discard = null);
 internal sealed record StorageAuthorityResponse(int Version, string RequestId, string Operation,
     string? ErrorCode, Dictionary<string, JsonElement> Receipts);
 internal sealed record StorageGrant(string UserSid, string SourcePath, string HomePath,
@@ -81,6 +82,11 @@ internal static partial class StorageAuthorityProtocol
             release.BootTimeUtc != r.Verification.BootTimeUtc || release.RequestedAt == default))
             throw Error("StorageRequestInvalid", "Request, snapshot and observation identities must agree.");
         PlainAbsolute(r.SourcePath); PlainAbsolute(r.HomePath);
+        if (r.Release?.Discard is { } discard && (discard.Step != "snapshot" || discard.Seal is null ||
+            discard.Intent.Version != 1 || discard.Intent.WorkspaceId != r.OwnerId || discard.Intent.Snapshot != r.Release.Snapshot ||
+            discard.Intent.ProjectPath != r.SourcePath || string.IsNullOrWhiteSpace(discard.Intent.IntentKey) ||
+            discard.Intent.IntentKey.Length > 128 || string.IsNullOrWhiteSpace(discard.Intent.RequestDigest)))
+            throw Error("StorageDiscardNotAuthorized", "A fixed explicit-discard intent and seal must match the owned snapshot.");
     }
     internal static void PlainAbsolute(string path)
     {

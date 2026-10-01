@@ -112,6 +112,16 @@
       "retry": "idempotent-release"
     },
     {
+      "id": "workspace.discard",
+      "description": "Explicitly discard this NTFS task without collecting a result; preserve the original, peers and independent results.",
+      "cliUsage": "splinter workspace discard --id <id> --intent-key <key> --expected-request-digest <digest> [--home <state-root>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:workspace-discard-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-task-discard",
+      "retry": "same-discard-intent"
+    },
+    {
       "id": "unity.start",
       "description": "Start or reconnect to this workspace private Editor using its exact patch version.",
       "cliUsage": "splinter unity start --id <id> [--home <state-root>]",

@@ -43,7 +43,11 @@ internal sealed class StorageAuthorityPaths : IDisposable
                 !(request.Operation == "Observe" && workspace.Phase == "creating" &&
                     workspace.Snapshot is { Step: "capture-intent", Reference: null }))
                 throw StorageAuthorityProtocol.Error("StorageOwnerMismatch", "The workspace references another snapshot.");
-            if (request.Operation == "Release") guard.RequireRelease(grant, request, workspace, control);
+            if (request.Operation == "Release")
+            {
+                if (request.Release?.Discard is not null) guard.RequireDiscard(grant, request, workspace, control);
+                else guard.RequireRelease(grant, request, workspace, control);
+            }
             return guard;
         }
         catch { guard.Dispose(); throw; }
@@ -75,6 +79,50 @@ internal sealed class StorageAuthorityPaths : IDisposable
         string objects = Path.Combine(grant.SourcePath, ".git", "objects"); Pin(objects);
         if (Present(Path.Combine(objects, "info", "alternates")) || Present(Path.Combine(objects, "info", "http-alternates")))
             throw StorageAuthorityProtocol.Error("GitResultIncomplete", "External object dependencies cannot authorize reclamation.");
+        RequireNoDependencies(grant, request, state, control);
+    }
+
+    private void RequireDiscard(StorageGrant grant, StorageAuthorityRequest request, WorkspaceRecord w, string control)
+    {
+        var state = w.Snapshot!;
+        w.Discard?.RequireMatch(w);
+        if (w.Discard is null || w.Purpose != "task" || w.SourceReference != "splinter/" + w.Id || w.Phase is not ("discarding" or "discard-reclaim-pending") ||
+            w.Discard.Step != "snapshot" || state.Reference != request.Release!.Snapshot ||
+            JsonSerializer.Serialize(w.Discard, StorageAuthorityProtocol.Json) != JsonSerializer.Serialize(request.Release.Discard, StorageAuthorityProtocol.Json) ||
+            w.ReleasedResources is not { OwnershipVerified: true, RootRunning: false, ActiveProcesses: 0, WorkingSetBytes: 0, PrivateBytes: 0 } ||
+            state.Observation is not { DeltaPresent: false, Mounted: false, ProviderAlive: false, OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 } ||
+            Present(w.Path) || Present(Path.Combine(control, "delta")))
+            throw StorageAuthorityProtocol.Error("StorageDiscardNotAuthorized", "Require this task's explicit intent, frozen seal and zero-owned-resource discard stage.");
+        var gate = Read<WorkspaceDiscardState>(Path.Combine(control, "snapshot", "discard-authorized.json"));
+        if (JsonSerializer.Serialize(gate, StorageAuthorityProtocol.Json) != JsonSerializer.Serialize(w.Discard, StorageAuthorityProtocol.Json))
+            throw StorageAuthorityProtocol.Error("StorageDiscardNotAuthorized", "The explicit discard authorization differs from the durable intent.");
+        var receipt = Read<JsonElement>(Path.Combine(control, "git-discard.json"));
+        var registration = receipt.GetProperty("registration");
+        string gitDirectory = registration.GetProperty("gitDirectory").GetString()!;
+        string git = Path.Combine(grant.SourcePath, ".git"); Pin(git);
+        if (!receipt.GetProperty("completed").GetBoolean() ||
+            receipt.GetProperty("intent").Deserialize<WorkspaceDiscardIntent>(StorageAuthorityProtocol.Json) != w.Discard.Intent ||
+            registration.GetProperty("ownerId").GetString() != w.Id || registration.GetProperty("branch").GetString() != w.SourceReference ||
+            !StorageAuthorityProcessor.Same(registration.GetProperty("path").GetString()!, w.Path) ||
+            !StorageAuthorityProcessor.Same(registration.GetProperty("project").GetString()!, grant.SourcePath) ||
+            !StorageAuthorityProcessor.Same(Path.GetDirectoryName(gitDirectory)!, Path.Combine(git, "worktrees")) || Present(gitDirectory) ||
+            ReferenceExists(grant.SourcePath, "refs/heads/" + w.SourceReference))
+            throw StorageAuthorityProtocol.Error("StorageDiscardNotAuthorized", "Prove this intent's task registration and branch absent; retain all result references.");
+        RequireNoDependencies(grant, request, state, control);
+    }
+
+    private bool ReferenceExists(string source, string reference)
+    {
+        if (!reference.StartsWith("refs/heads/", StringComparison.Ordinal) || reference.Split('/').Any(s => s is "" or "." or ".." || s.Contains('\\') || s.Contains(':')))
+            throw StorageAuthorityProtocol.Error("StoragePathRejected", "Invalid task reference.");
+        string git = Path.Combine(source, ".git"), path = Path.Combine(git, reference.Replace('/', Path.DirectorySeparatorChar));
+        if (Present(path)) { Pin(path, directory: false); return true; }
+        string packed = Path.Combine(git, "packed-refs");
+        return Present(packed) && ReadText(packed).Split('\n').Select(l => l.Trim().Split(' ', 2)).Any(p => p.Length == 2 && p[1] == reference);
+    }
+
+    private void RequireNoDependencies(StorageGrant grant, StorageAuthorityRequest request, SnapshotWorkspaceState state, string control)
+    {
         string projectId = WorkspaceStore.ProjectKey(grant.SourcePath);
         string workflow = Path.Combine(grant.HomePath, "validation-workflows", WorkspaceStore.Key(projectId), "state.json");
         if (Present(workflow + ".pending")) throw StorageAuthorityProtocol.Error("ValidationStateRecoveryRequired", "Reconcile retained validation state before reclaiming.");
@@ -94,7 +142,9 @@ internal sealed class StorageAuthorityPaths : IDisposable
             if (StorageAuthorityProcessor.Same(other, control)) continue;
             Pin(other);
             var dependent = Read<WorkspaceRecord>(Path.Combine(other, "workspace.json"));
-            if (dependent.Snapshot?.Reference?.Id == request.SnapshotId && dependent.Phase != "released" && dependent.Snapshot.Step != "release-snapshot")
+            if (dependent.Snapshot?.Reference?.Id == request.SnapshotId && dependent.Phase is not ("released" or "discarded") &&
+                dependent.Snapshot!.Step != "release-snapshot" &&
+                (dependent.Snapshot.Step != "discard-snapshot" || dependent.Snapshot.Observation?.DeltaPresent != false))
                 throw StorageAuthorityProtocol.Error("SnapshotInUse", "Another workspace still depends on this snapshot.");
         }
         leases.Add(new FileStream(Path.Combine(control, "snapshot", "readers.lock"), FileMode.Open, FileAccess.Read, FileShare.None));

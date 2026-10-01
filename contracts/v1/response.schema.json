@@ -370,7 +370,7 @@
       "if": {
         "properties": {
           "command": {
-            "const": "workspace.release"
+            "enum": ["workspace.release", "workspace.discard"]
           },
           "status": {
             "enum": [
@@ -697,6 +697,7 @@
         },
         "sideEffects": {
           "enum": [
+            "owned-task-discard",
             "none",
             "read-only-local-process",
             "owned-worktree-and-optional-editor",
@@ -717,6 +718,7 @@
         },
         "retry": {
           "enum": [
+            "same-discard-intent",
             "safe-read",
             "same-project-and-task-key",
             "new-evidence-path; resume-with-original-workspace.ensure",

@@ -111,7 +111,7 @@ internal static class StorageAuthorityServer
             var outcome = StorageAuthorityProcessor.Read<JsonElement?>(Path.Combine(receipts, "operation-result.json"));
             string? error = outcome?.GetProperty("error").GetString();
             return new[] { "SnapshotHeadroomRequired", "SnapshotIdentityMismatch", "SnapshotObservationIncomplete", "CaptureReconcileRequired",
-                "SnapshotReleaseIsolationRequired", "SnapshotReclamationInvalid", "SnapshotCollateralLoss", "WorkspaceBusy", "SnapshotInUse" }
+                "SnapshotReleaseIsolationRequired", "SnapshotReclamationInvalid", "SnapshotCollateralLoss", "WorkspaceBusy", "SnapshotInUse", "StorageDiscardNotAuthorized" }
                 .FirstOrDefault(code => error?.Contains(code, StringComparison.Ordinal) == true) ?? "SnapshotOperationIncomplete";
         }
     }

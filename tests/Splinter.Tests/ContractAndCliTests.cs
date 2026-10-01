@@ -222,7 +222,8 @@ public sealed class ContractAndCliTests
         Assert.DoesNotContain("plan.validate", commands);
         Assert.DoesNotContain("urn:splinter:v1:plan-request", contracts.SchemaIds);
         var unavailable = response.GetProperty("data").GetProperty("unavailable").EnumerateArray().Select(item => item.GetString()).ToArray();
-        Assert.Contains("workspace.discard", unavailable);
+        Assert.Contains("workspace.discard", commands);
+        Assert.DoesNotContain("workspace.discard", unavailable);
         Assert.DoesNotContain("plan.submit", unavailable);
         Assert.DoesNotContain("agent.start", unavailable);
         foreach (var descriptor in response.GetProperty("data").GetProperty("commands").EnumerateArray())
@@ -533,6 +534,20 @@ public sealed class ContractAndCliTests
             "--max-estimated-journal-overlap-bytes", "12345", "--home", directory.Path);
         Assert.Equal(2, validExit);
         Assert.NotEqual("SchemaValidationFailed", valid.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task DiscardCliRequiresExplicitIntentAndConfirmedDigest()
+    {
+        var (schemaExit, schema) = await Run("schema", "workspace.discard");
+        Assert.Equal(0, schemaExit); Assert.Equal("Succeeded", schema.GetProperty("status").GetString());
+        using var directory = new TestDirectory(); string id = new('a', 24);
+        var (missingExit, missing) = await Run("workspace", "discard", "--id", id, "--home", directory.Path);
+        Assert.Equal(2, missingExit); Assert.Equal("InvalidArguments", missing.GetProperty("error").GetProperty("code").GetString());
+        var (invalidExit, invalid) = await Run("workspace", "discard", "--id", id, "--intent-key", "discard", "--expected-request-digest", "wrong", "--home", directory.Path);
+        Assert.Equal(2, invalidExit); Assert.Equal("SchemaValidationFailed", invalid.GetProperty("error").GetProperty("code").GetString());
+        var (validExit, valid) = await Run("workspace", "discard", "--id", id, "--intent-key", "discard", "--expected-request-digest", new string('b', 24), "--home", directory.Path);
+        Assert.Equal(2, validExit); Assert.Equal("WorkspaceNotFound", valid.GetProperty("error").GetProperty("code").GetString());
     }
 
     private async Task<(int ExitCode, JsonElement Response)> Run(params string[] args)

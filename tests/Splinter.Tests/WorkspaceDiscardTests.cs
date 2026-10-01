@@ -11,6 +11,25 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     private static WorkspaceDiscardRequest DiscardRequest(WorkspaceRecord w) => new(w.Id, "discard-this-task", w.RequestDigest!);
 
     [Fact]
+    public async Task DiscardPublishesResourceAbsenceBeforeSnapshotAuthority()
+    {
+        using var f = new Fixture { WithDiscard = true }; var ct = TestContext.Current.CancellationToken;
+        var w = (await f.Ensure(ct)).Workspace; int calls = 0;
+        f.Discard.BeforeSnapshot = (_, _) =>
+        {
+            var durable = new WorkspaceStore(f.Home).Get(w.Id);
+            Assert.Equal("snapshot", durable.Discard!.Step);
+            Assert.Equal("discard-snapshot", durable.Snapshot!.Step);
+            Assert.True(durable.Snapshot.Observation is { DeltaPresent: false, Mounted: false, ProviderAlive: false,
+                OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 });
+            Assert.True(durable.ReleasedResources is { OwnershipVerified: true, ActiveProcesses: 0, WorkingSetBytes: 0, PrivateBytes: 0 });
+            calls++;
+        };
+        Assert.Equal("discarded", (await f.New().DiscardAsync(DiscardRequest(w), ct)).Workspace.Phase);
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
     public async Task FailedDirtyTaskDiscardsWithoutCheckpointWhilePeerContinues()
     {
         using var f = new Fixture { WithDiscard = true }; var ct = TestContext.Current.CancellationToken;
@@ -204,6 +223,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         public string Revision = "base";
         public bool LoseSourceReply;
         public int SourceRemovals, SnapshotEffects;
+        public Action<WorkspaceRecord, string>? BeforeSnapshot;
         private bool sourceRemoved;
         private readonly string attemptId = Guid.NewGuid().ToString("N");
         public Task<string> ObserveSourceRevisionAsync(WorkspaceRecord w, string control, CancellationToken ct) => Task.FromResult(Revision);
@@ -227,6 +247,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         {
             w.Discard!.RequireMatch(w);
             if (!sourceRemoved || !backend.DeltaRemoved) throw new InvalidOperationException("Discard source and delta first.");
+            BeforeSnapshot?.Invoke(w, control);
             if (!backend.SnapshotReleased && backend.Blockers().Length == 0) SnapshotEffects++;
             return (await backend.ReleaseSnapshotAsync(w, control, ct)) with { AttemptId = attemptId };
         }

@@ -15,7 +15,7 @@ public sealed class FoundationGateway(
     {
         implementationStage = "internal-alpha",
         commands = contracts.Commands,
-        unavailable = new[] { "workspace.discard", "automatic-conversation-binding", "product-installation" },
+        unavailable = new[] { "automatic-conversation-binding", "product-installation" },
         persistentHost = false,
         persistentState = true,
         stateBackend = "atomic-json-with-operation-locks",

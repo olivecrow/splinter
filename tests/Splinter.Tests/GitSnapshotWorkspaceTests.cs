@@ -5,7 +5,7 @@ using Splinter.SourceControl.Git;
 
 namespace Splinter.Tests;
 
-public sealed class GitSnapshotWorkspaceTests
+public sealed partial class GitSnapshotWorkspaceTests
 {
     [Theory]
     [InlineData(false)]

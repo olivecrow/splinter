@@ -33,6 +33,8 @@ IPC는 로컬 named pipe `Splinter.StorageAuthority.v1`이다. ACL은 등록된 
 
 일반 CLI는 성공한 응답의 검증 영수증을 먼저 게시하고 `snapshot.json`을 마지막에 게시한다. 비종결 실패는 이 완료 표지를 갱신하지 않는다. 응답 저장 중 종료해도 기존 capture/release 요청을 재시도한다. Runtime의 `capture-intent` 단계와 서비스의 소유 영수증이 남아 있으면 아직 workspace에 반환 ID를 게시하지 못한 capture도 읽기 검증을 재개할 수 있다.
 
-회수는 Runtime의 `stable-journal-v1` 결과 검증·Git 객체 완전성·unmount 후 seal 일치를 거친다. 서비스는 durable `release-snapshot` 단계, 독립 결과와 고정 Git refs, 소유 프로세스·메모리·핸들 0, mount/delta 부재, 다른 workspace와 validation 의존성, 독점 reader fence를 추가 확인한다. 기존 VSS live identity·삭제 격리 guard와 `reclaim-pending`을 유지한다. 시간이 지났다는 이유로 snapshot을 삭제하지 않는다.
+명시적 workspace 폐기는 같은 `Release` operation의 별도 `release.discard` 계약이다. 서비스는 고정 intent/seal·완료 Git 폐기 receipt와 실제 task branch/등록 부재·mount/delta 부재·소유 자원 0·공유 의존성·reader fence를 확인한다. 보호된 `discard-authorized.json`만 게시하고 결과 보존을 주장하지 않는다. 현재 CLI와 일치하는 서비스 패키지를 명시적으로 업데이트한 뒤 사용할 수 있으며 실제 자격은 [폐기 검증](verification/workspace-discard.md)을 따른다.
+
+보존형 회수는 Runtime의 `stable-journal-v1` 결과 검증·Git 객체 완전성·unmount 후 seal 일치를 거친다. 서비스는 durable `release-snapshot` 단계, 독립 결과와 고정 Git refs, 소유 프로세스·메모리·핸들 0, mount/delta 부재, 다른 workspace와 validation 의존성, 독점 reader fence를 추가 확인한다. 기존 VSS live identity·삭제 격리 guard와 `reclaim-pending`을 유지한다. 시간이 지났다는 이유로 snapshot을 삭제하지 않는다.
 
 서비스 부재·정지·버전 불일치는 설치/복구 필요 상태다. 자동 `RunAs`, 관리자 CLI, 이전 helper로 우회하는 fallback은 없다. `scripts/vss-snapshot.ps1`은 별도로 승인한 개발 진단·수동 복구에만 직접 사용하며 정상 workspace 경로의 대체 권한 방식으로 자동 선택하지 않는다.

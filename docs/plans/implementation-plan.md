@@ -1,5 +1,7 @@
 # Splinter 첫 실사용 버전 계획
 
+제품 `workspace discard --id --intent-key --expected-request-digest` 연결과 승인한 서비스 Update·로컬 dirty A/B 폐기 단위는 [한정 실행](../verification/workspace-discard.md)으로 마감했다. 다음 개발 범위는 **최소 AI 사용 지침과 작업 연결**이다. explicit/busy/direct/unknown 판단, CLI가 반환한 절대 경로·같은 key/id/home 재개, 보존/반영/폐기와 실패 응답 처리만 정리하고 기존 CLI로 실제 사용한다. 별도 binding framework·일반 설치·대형/ARM/OS 장애 행렬은 추가하지 않는다. Unity 오류/Editor 종료와 보존형 종료는 그 다음 대표 A/B 사용 묶음에서 확인한다.
+
 ## 목적과 완료 경계
 
 Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약되는 환경에서 AI 에이전트가 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하는 도구**다. 작업 내용의 의미 판단·코드 작성·게임 기능 검증은 해당 대화의 AI와 기존 개발 도구가 담당한다.
@@ -28,11 +30,11 @@ Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약
 
 현재 구현을 지원 완료로 승격하는 표가 아니다. 새 후보의 실행 자격과 지원 한계를 함께 기록한다. 선택적 ReFS와 diagnostic Git checkout은 NTFS 정상 경로의 fallback이 아니며 첫 버전의 지원 확대 대상에서 제외한다.
 
-## 남은 작업 순서
+## 제품 작업 순서
 
 | 순서 | 산출물 | 완료 기준과 수정 한도 |
 | --- | --- | --- |
-| 1 | 명시적 `discard` 계약·구현 | 컴파일 실패·미커밋 작업에도 성공 검증/checkpoint 없이 정확한 작업을 폐기. intent·owner/상태 대조, 소유 작성자 정지, 전용 자원 회수와 같은 intent 재개. 원본/다른 작업/공유 의존성 보존 |
+| 1 | 명시적 `discard` 계약·구현: 연결/로컬 단위 마감 | dirty 작업·같은 intent 재개/중복·peer 보호·실제 회수 확인. Unity 컴파일 실패/Editor stop은 3의 대표 흐름에 포함하며 이 때문에 별도 장애 행렬을 열지 않음 |
 | 2 | 최소 AI 작업 연결·사용 지침 | explicit/busy/direct/unknown 판단, 반환 경로에서 파일 도구·CLI·Editor 사용, 같은 key/id/home 재개. 실제 AI 사용으로 확인. 프로젝트/전역 설치·복잡한 자동 binding은 후속 |
 | 3 | A/B의 대표 사용 흐름 | 여러 차례 수정·오류 수정·재개 후 A 보존 또는 폐기, B 계속 수정. 명시적 반영에는 최신 원본/dirty guard와 독립 결과 유지. 실패를 완료로 기록하지 않음 |
 | 4 | 공간·시간의 채택 판단 | 고정 입력과 실행 경로 하나에서 생성·Editor 준비·편집·재개·종료의 전체 시간과 추가 공간 관측. 필요한 대표 입력 한 개를 선정하며 기존 제한 근거를 재사용. 실용성을 막는 재현 결함/병목만 수정 |
@@ -40,11 +42,11 @@ Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약
 
 discard의 상세 의도·공유 자원·중단 조건은 [대화별 작업 계획](session-workflow-and-installation.md#완료보존폐기)이 소유한다. 첫 구현은 정확한 worker workspace를 대상으로 한다. 사용 중인 candidate/source/cache 의존성은 명시적으로 차단하고 해당 의존성 정리 행동을 반환한다. 원본 Editor·타 작업·공유 view를 자동 종료하거나 연쇄 삭제하지 않는다. snapshot 회수가 지연되면 논리적 작업 종료와 물리 회수 대기를 구분하며 숨은 백업이나 회수 완료로 표시하지 않는다.
 
-### 폐기 공통 계약과 다음 연결 단위
+### 폐기 연결과 다음 단위
 
-Core 입력/지속 intent·provider 계약, Runtime의 stop/seal/unmount/source/delta/snapshot 순서와 동일 intent 중단 재개, fake/schema 적합성을 구현한다. 완료 조건은 실패/미커밋 작업의 checkpoint 없는 처리, owner/digest·seal·공유 의존성 보호, 교차 편집/보존형 release 차단과 정확한 지연 회수 영수증이다. 설치·권한 변경·실제 Windows/Git 삭제·CLI 등록은 다음 연결 단위다. 현재 실제 provider가 없으면 부작용 전 거부하며 기존 release의 결과 gate는 유지한다.
+[명시적 폐기](../workspace-discard.md)는 Core/Runtime의 고정 intent와 실제 Git/Windows provider·CLI를 연결했다. 자동 시험은 실제 Git 등록/작업 branch·독립 결과/peer 보호, sealed delta의 부분 삭제 재개, 별도 VSS authorization과 권한 경계를 확인한다. 승인한 서비스 Update 뒤 Editor 없는 dirty A 폐기·같은 요청 재개/중복·B 지속과 두 작업의 실제 VSS 회수를 확인했다. 기존 release의 결과 gate는 유지하며 Unity 컴파일 실패·Editor 종료는 대표 사용 묶음의 남은 확인이다.
 
-현재 계약은 [공통 폐기](../workspace-discard.md), 자동 자격은 [검증](../verification/workspace-discard.md)을 따른다. 공통 단위는 해당 검증의 한정 완료이며 M0-04 실제 Passed로 올리지 않는다. 다음 연결 단위는 실제 Git owner/ref 처리 → Windows delta의 별도 intent → VSS 폐기 authorization → CLI → 변경된 실제 종료 경계 한 묶음이다. 관리자 서비스 적용이 필요한 시점에는 설치할 후보를 준비한 뒤 별도 승인을 받는다.
+[폐기 검증](../verification/workspace-discard.md)의 코드/자동 자격과 M0-04의 Partial을 구분한다. 최소 AI 지침 단위의 완료 기준은 에이전트가 현재 capabilities에서 명령을 찾고 자기 workspace 경로를 사용하며, 같은 작업을 재개하고 명시적 종료 종류를 정확히 선택하는 것이다. 필요 없는 direct 사례에는 새 workspace를 만들지 않는다. 대표 A/B 묶음에서 남은 Editor/종료 경계를 확인하며 별도 Runner·binding framework·새 장애 행렬은 만들지 않는다.
 
 ## 유지할 구현과 제거 경계
 

@@ -9,7 +9,7 @@ public sealed record OverlayGitReceipt(string OwnerId, string Project, string Pa
 
 // This adapter registers an existing immutable tree without checking out file
 // payloads. Its receipt remains outside the mount throughout interruption.
-public static class GitOverlayRegistration
+public static partial class GitOverlayRegistration
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static Task<string> Git(string cwd, string[] args, CancellationToken ct) => GitWorkspaceProvider.Required(cwd, args, ct);

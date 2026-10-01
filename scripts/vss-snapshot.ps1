@@ -178,12 +178,22 @@ try {
     $liveIdentity = if ($null -ne $shadow) { Read-LiveIdentity $shadow $receipt } else { $null }
     if ($Action -eq 'Release') {
         if (-not $OwnerId) { throw 'SnapshotOwnerRequired' }
-        # Experiment adapter: callers must establish result preservation and no
-        # dependencies. The gate file contains their explicit reviewed evidence.
-        $gatePath = Join-Path $receiptRoot 'release-authorized.json'
-        if (-not (Test-Path -LiteralPath $gatePath)) { throw 'SnapshotReleaseGateRequired' }
-        $gate = Get-Content -LiteralPath $gatePath -Raw | ConvertFrom-Json
-        if ($gate.snapshotId -ne $receipt.snapshot.id -or $gate.remainingDependents -ne 0 -or -not $gate.resultsPreserved) { throw 'SnapshotReleaseGateInvalid' }
+        # Normal service use writes these gates only after client-token path,
+        # ownership, dependency and reader checks. Explicit discard has its own
+        # gate and does not pretend an independent result was collected.
+        if ($null -ne $releaseRequest.discard) {
+            $gatePath = Join-Path $receiptRoot 'discard-authorized.json'
+            if (-not (Test-Path -LiteralPath $gatePath)) { throw 'StorageDiscardNotAuthorized' }
+            $gate = Get-Content -LiteralPath $gatePath -Raw | ConvertFrom-Json -AsHashtable
+            if ($gate.step -cne 'snapshot' -or $gate.intent.version -ne 1 -or $gate.intent.workspaceId -cne $OwnerId -or
+                $gate.intent.snapshot.id -cne $receipt.snapshot.id -or -not $gate.intent.intentKey -or -not $gate.seal -or
+                ($gate | ConvertTo-Json -Depth 20 -Compress) -cne ($releaseRequest.discard | ConvertTo-Json -Depth 20 -Compress)) { throw 'StorageDiscardNotAuthorized' }
+        } else {
+            $gatePath = Join-Path $receiptRoot 'release-authorized.json'
+            if (-not (Test-Path -LiteralPath $gatePath)) { throw 'SnapshotReleaseGateRequired' }
+            $gate = Get-Content -LiteralPath $gatePath -Raw | ConvertFrom-Json
+            if ($gate.snapshotId -ne $receipt.snapshot.id -or $gate.remainingDependents -ne 0 -or -not $gate.resultsPreserved) { throw 'SnapshotReleaseGateInvalid' }
+        }
         if ($null -ne $shadow) {
             if ($shadow.ProviderID -ne $receipt.nativeProviderId) { throw 'SnapshotProviderMismatch' }
             Invoke-OwnedSnapshotRemoval $shadow

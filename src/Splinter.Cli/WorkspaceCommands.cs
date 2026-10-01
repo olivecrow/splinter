@@ -7,6 +7,7 @@ using Splinter.Protocol;
 using Splinter.Runtime;
 using Splinter.SourceControl.Git;
 using Splinter.Platform.Windows;
+using Splinter.Workflows.Windows;
 
 namespace Splinter.Cli;
 
@@ -24,12 +25,14 @@ internal static class WorkspaceCommands
         {
             selectRecovery([new("workspace.list", new { home = Home(parse) })]);
             var store = new WorkspaceStore(Home(parse)); var storageProvider = new RefsWorkspaceStorageProvider();
-            return new(store, new GitWorkspaceProvider(storageProvider, store, new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver),
+            var git = new GitWorkspaceProvider(storageProvider, store, new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver);
+            var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver);
+            return new(store, git,
                 new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners"))), storageProvider,
-                new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver), preparationObserver);
+                snapshots, preparationObserver, new WindowsWorkspaceDiscardProvider(git, snapshots));
         }
 
-        var workspace = new Command("workspace", "Create, resume, collect, integrate and release durable isolated workspaces.");
+        var workspace = new Command("workspace", "Create, resume, collect, integrate, release or explicitly discard durable isolated workspaces.");
         var unity = new Command("unity", "Start, refresh and stop only the selected workspace's private Unity Editor.");
         root.Subcommands.Add(workspace);
         root.Subcommands.Add(unity);
@@ -96,6 +99,19 @@ internal static class WorkspaceCommands
         Bind(workspace, "checkpoint", "--message", (runtime, id, extra) => runtime.CheckpointAsync(id, extra!, ct));
         Bind(workspace, "integrate", "--target", (runtime, id, extra) => runtime.IntegrateAsync(id, extra ?? "development", ct));
         Bind(workspace, "release", null, (runtime, id, _) => runtime.ReleaseAsync(id, ct));
+        var discardCommand = new Command("discard", contracts.Find("workspace.discard")!.Description);
+        var discardId = new Option<string>("--id") { Required = true };
+        var intentKey = new Option<string>("--intent-key") { Required = true, Description = "Explicit, stable discard request key. Reuse it to resume." };
+        var expectedDigest = new Option<string>("--expected-request-digest") { Required = true, Description = "Confirm the requestDigest returned by workspace status/list." };
+        discardCommand.Options.Add(discardId); discardCommand.Options.Add(intentKey); discardCommand.Options.Add(expectedDigest);
+        workspace.Subcommands.Add(discardCommand);
+        discardCommand.SetAction(async parse =>
+        {
+            const string command = "workspace.discard"; select(command);
+            var request = new WorkspaceDiscardRequest(parse.GetValue(discardId)!, parse.GetValue(intentKey)!, parse.GetValue(expectedDigest)!);
+            if (!Validate(command, request)) return;
+            respond(Result(command, await Runtime(parse).DiscardAsync(request, ct), false, Home(parse)));
+        });
         Bind(unity, "start", null, (runtime, id, _) => runtime.StartAsync(id, ct));
         Bind(unity, "refresh", null, (runtime, id, _) => runtime.RefreshAsync(id, ct));
         Bind(unity, "stop", null, (runtime, id, _) => runtime.StopAsync(id, ct));

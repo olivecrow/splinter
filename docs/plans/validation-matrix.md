@@ -8,13 +8,13 @@
 
 | ID | 대표 흐름 | 상태 | 재사용 근거와 남은 확인 |
 | --- | --- | --- | --- |
-| M0-01 | NTFS A/B 생성·범위 저장·원본/peer 격리 | NotRun | NI/LV의 한정 근거. 첫 버전 후보의 고정 입력과 같은 A/B 흐름에서 확인 |
+| M0-01 | NTFS A/B 생성·범위 저장·원본/peer 격리 | Partial | [로컬 폐기 A/B](../verification/workspace-discard.md)의 실제 생성·private 범위 쓰기·원본/peer 보호. Editor와 대표 입력 전체 흐름은 남음 |
 | M0-02 | 최소 AI 지침·같은 작업/경로 재개·direct 미사용 | NotRun | 기존 CLI/key/home 사용. 자동 Codex binding·전역 설치를 전제하지 않음 |
 | M0-03 | 여러 차례 수정·오류 격리·정확한 Editor 검증 | NotRun | NI/PV/WF의 한정 근거. 선택한 실행 경로 하나의 실제 AI 작업으로 확인 |
-| M0-04 | 실패/미커밋 작업의 명시적 폐기·중복/중단 재개 | NotRun | [공통 계약/Runtime/fake](../verification/workspace-discard.md) 범위. 실제 Git/Windows provider·VSS authorization·CLI와 SW-09/10의 실제 실행은 다음 연결 단위 |
+| M0-04 | 실패/미커밋 작업의 명시적 폐기·중복/중단 재개 | Partial | [로컬 폐기](../verification/workspace-discard.md): 서비스 Update·dirty A의 같은 intent 거부 후 재개·완료 요청 중복·B 지속·실제 VSS 회수. Unity 컴파일 실패/Editor stop·native 강제 중단은 미실행, SW-09 Partial/SW-10 NotRun |
 | M0-05 | 결과 보존/반영/회수·A 종료 뒤 B 지속 | NotRun | NI/PV의 독립 결과와 dirty guard. 보존과 폐기의 분기를 새 후보에서 확인 |
 | M0-06 | 지원 경로의 응답 유실/프로세스 중단·손상/unknown | NotRun | 준비 26·저널 58·kernel 19·client 13·진단 16은 각 후보의 별도 근거. 변경된 실제 경계만 재검증하며 OS 전체 장애로 확대하지 않음 |
-| M0-07 | 소유 자원 회수·공유/reclaim-pending의 정확한 보고 | NotRun | 기존 release/UA와 의존성 guard 유지. discard의 새 부작용과 중단 재조정 확인 |
+| M0-07 | 소유 자원 회수·공유/reclaim-pending의 정확한 보고 | Partial | [로컬 폐기 A/B](../verification/workspace-discard.md)의 실제 mount/Git/delta/VSS 부재·자원 0. 해당 실행에는 공유 지연 blocker가 없으며 Editor와 보존형 종료의 새 대표 흐름은 남음 |
 | M0-08 | 대표 입력의 생성/준비/재개/반복 편집/종료 비용 | NotRun | WF/LB/PV의 제한 근거를 재사용. 질문·입력·종료 조건을 고정한 비용 판단, p95/20회·C/S/Q 재개는 필수가 아님 |
 
 기존 자동 회귀는 유지한다. 실제 시험은 변경된 부작용 경계·재현 결함과 최종 대표 A/B 한 묶음에 맞춘다. 기존 결과의 후보/입력 제한을 표시하면서 재사용하고 새로운 후보 전체 Passed로 자동 승계하지 않는다.
@@ -241,6 +241,6 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 
 - SF-02/03은 Partial, SF-04~06은 NotRun이다. 완료 기준은 [저장공간·Editor 계획](storage-priority-and-editor-modes.md)을 따른다.
 - SF-03의 공통 수명주기 계약은 위 VW 자동 적합성으로 추적한다. 실제 제품 VSS·WinFsp·Unity 연결은 WF의 현재 후보 증거로 따로 판정한다.
-- SW-01~10 일반 설치·binding·명시적 discard는 NotRun이다. UA-01~04의 서비스 구현·자동 시험과 실제 설치/반복 실행은 [UA 검증](../verification/storage-privilege-service.md)에서 구분한다.
+- SW-01~08/10은 NotRun, SW-09는 [로컬 dirty 폐기](../verification/workspace-discard.md)만 확인한 Partial이다. 일반 설치/binding과 전체 대화/Editor 흐름의 자격은 남아 있다. UA-01~04의 서비스 구현·자동 시험과 실제 설치/반복 실행은 [UA 검증](../verification/storage-privilege-service.md)에서 구분한다.
 - PV-01/02의 사용자 선택 범위는 scoped-complete-with-limitations다. 전체 PV-02 Passed로 표시하지 않고 S4 입력 실패·소수 표본·raw 입력 동등성 unknown을 유지한다. [비교 방법](parallel-workflow-qualification.md)과 [실측](../verification/parallel-workflow.md)은 후속 비교의 입력을 고정하기 위해 보존한다.
 - 현재 코드의 계약 변경은 필수 형식 생성·읽기, 지원하지 않는 형식의 비파괴 거부, 같은 버전의 중단 재시도를 함께 검증한다. 자동 시험과 실제 VSS/Unity 실행을 구별한다.

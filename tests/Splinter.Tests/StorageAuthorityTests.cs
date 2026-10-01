@@ -7,7 +7,7 @@ using Splinter.Runtime;
 
 namespace Splinter.Tests;
 
-public sealed class StorageAuthorityTests
+public sealed partial class StorageAuthorityTests
 {
     private const string Sid = "S-1-5-21-111-222-333-1001";
     private static readonly DateTimeOffset Boot = DateTimeOffset.UtcNow.AddHours(-1);

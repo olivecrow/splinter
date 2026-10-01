@@ -80,6 +80,11 @@ public sealed partial class VssSnapshotProvider
         var verification = await ReadVerificationAsync<VssVerificationRequest>("verification-request.json", ct)
             ?? throw StorageAuthorityProtocol.Error("StorageRequestInvalid", "Missing durable observation intent.");
         var release = action == "Release" ? await WindowsProcessWorkspaceProvider.ReadAsync<StorageReleaseRequest>(Path.Combine(directory, "release-request.json"), ct) : null;
+        if (release is not null)
+        {
+            var discard = await WindowsProcessWorkspaceProvider.ReadAsync<WorkspaceDiscardState>(Path.Combine(directory, "discard-authorized.json"), ct);
+            if (discard is not null) release = release with { Discard = discard };
+        }
         string? snapshotId = action == "Capture" ? null : (await Read(ct))?.Snapshot.Id;
         var request = new StorageAuthorityRequest(1, release?.RequestId ?? verification.RequestId, action, ownerId,
             Path.TrimEndingDirectorySeparator(Path.GetFullPath(source)), home, snapshotId, verification, release);

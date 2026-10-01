@@ -1,6 +1,6 @@
 # 현재 기반
 
-[공통 폐기](workspace-discard.md)는 Core 입력/state·provider 계약과 Runtime의 동일 intent 단계 재개·fake 적합성을 제공한다. 실제 provider와 `workspace discard` CLI는 미연결이며 capabilities의 unavailable을 유지한다. [자동 자격](verification/workspace-discard.md)은 실제 삭제나 M0 전체 통과와 구별한다.
+[공통 폐기](workspace-discard.md)는 Core 입력/state·provider 계약과 Runtime의 동일 intent 단계 재개·fake 적합성을 제공한다. 실제 Git/Windows provider와 `workspace discard` CLI를 연결했다. [폐기 검증](verification/workspace-discard.md)은 자동 자격과 승인한 서비스 적용·로컬 Editor 없는 dirty A/B의 실제 VSS 회수를 구분한다. Unity/강제 중단과 M0 전체 통과로 확대하지 않는다.
 
 개발용 [WriteProbe](write-profiling.md)는 새 synthetic 디렉터리에서 고정 단일/동시 쓰기와 metadata 변경을 실행하고 내용과 읽기 전용 replay를 검증한다. `capabilities.developmentWriteProbe`에 입력·쓰기 경계가 있으며 제품 workspace 생성이나 Unity 검증을 대신하지 않는다. `OverlayIoMetrics.liveJournalWrites`는 고정 6개 연산별 live commit 단계와 flush 전후 다른 mutation 대기 호출을 집계한다. Runtime은 기존처럼 각 durable flush를 마친 뒤 commit을 적용한다.
 
@@ -8,7 +8,7 @@ Windows 어댑터는 변경 callback 전체를 별도의 `mutationGate`로 직�
 
 > 제품 workspace에 [NTFS snapshot 모드](ntfs-workspaces.md)를 연결했다. 자동 계약/Git/NTFS 메타데이터 시험과 실제 VSS/Unity 통합 자격은 구분하며 [NI 기록](verification/ntfs-workspace-integration.md)을 따른다. SO 독립 실험과 기존 ReFS 성공을 NI 통과로 합산하지 않는다.
 
-Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release**와 계약·진단이다. ReFS CoW와 무-checkout index를 연결하고 Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 지원 경계와 실환경 증거는 [검증 안내](verification/README.md)를 따른다. 첫 실사용 버전은 [M0](plans/implementation-plan.md)이며 discard·최소 AI 연결은 남은 작업이다. DAG 검사/제출·AI Runner·daemon/DB·범용 Unity 저작/Play/Test Runner는 제품 범위에서 제외한다.
+Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release/discard**와 계약·진단이다. ReFS CoW와 무-checkout index를 연결하고 Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 지원 경계와 실환경 증거는 [검증 안내](verification/README.md)를 따른다. 첫 실사용 버전은 [M0](plans/implementation-plan.md)이며 폐기의 로컬 한정 실행 뒤 최소 AI 연결과 대표 사용 흐름·비용 판단이 남아 있다. DAG 검사/제출·AI Runner·daemon/DB·범용 Unity 저작/Play/Test Runner는 제품 범위에서 제외한다.
 
 ## 구조와 의존성
 
@@ -86,7 +86,7 @@ Host는 CLI 프로세스의 읽기 전용 라이브러리다. 변경 작업은 �
 
 Runtime의 `AtomicFilePublication`은 같은 디렉터리에서 flush한 임시 파일을 기존 상태에는 `File.Replace`, 최초 게시에는 덮어쓰기 없는 `File.Move`로 발행한다. workspace/baseline 저장과 Windows provider 제어 IPC가 사용하며 polling reader는 `FileShare.Delete`를 허용한다. VSS helper의 영수증도 같은 방식을 쓴다. Windows IPC의 게시 공유 오류는 같은 임시 파일로 최대 1초 재시도하며 지속 실패는 남은 파일을 보존한다. Windows 관측 reader도 교체 중 일시적 부재/공유 오류에서 경로 guard와 open을 최대 1초 재시도한다. 선택적 stop/flush/source 요청 polling의 부재는 즉시 반환하며 손상 JSON·접근 거부·소유권 불일치는 숨기지 않는다. 목적 파일 선삭제나 속성 변경으로 우회하지 않는다. 이는 제어 파일 게시/읽기 방식이며 저널 flush 정책을 변경하지 않는다.
 
-제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. 작은 Editor 브리지 소스를 소유 작업공간의 `Assets/__Splinter__`에 넣으며 원본이나 결과 커밋에는 포함하지 않는다. 비Git·비Unity fake로 Runtime의 기준본·수명주기·검증·프로세스 회수 경계를 시험한다. 각 대화가 workspace CLI를 직접 사용하는 데 별도 조정 AI는 필요하지 않다. 프로젝트용/전역용 설치, 필요성 자동 판단, Codex 대화/파일 경로의 자동 binding, 반영 없는 명시적 discard는 미구현이며 [대화별 계획](plans/session-workflow-and-installation.md)에 있다. DAG 실행과 agent runner는 제품 범위에서 제외한다. 범용 저장소 지원표·장애 복구 적합성도 아직 미완료다.
+제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. 작은 Editor 브리지 소스를 소유 작업공간의 `Assets/__Splinter__`에 넣으며 원본이나 결과 커밋에는 포함하지 않는다. 비Git·비Unity fake로 Runtime의 기준본·수명주기·검증·프로세스 회수 경계를 시험한다. 각 대화가 workspace CLI를 직접 사용하는 데 별도 조정 AI는 필요하지 않다. 프로젝트용/전역용 설치, 필요성 자동 판단, Codex 대화/파일 경로의 자동 binding, 반영 없는 명시적 discard의 실제 서비스 자격은 미완료이며 [대화별 계획](plans/session-workflow-and-installation.md)에 있다. DAG 실행과 agent runner는 제품 범위에서 제외한다. 범용 저장소 지원표·장애 복구 적합성도 아직 미완료다.
 
 ## 에이전트용 명령 계약
 
@@ -105,7 +105,7 @@ Core의 `WorkspaceFailurePolicy`는 지속 recovery의 보존 분류와 Protocol
 | `splinter workspace ensure/list/status` | 프로젝트·작업 key/storage 또는 workspace ID; NTFS journal budget; status의 선택적 `--verify-source`/`--audit-source` | 지속 작업공간 생성/재접속과 snapshot/delta/앱 상태. 일반 poll은 소스 전체 읽기 생략 |
 | `splinter workspace compact` | 결과 수집 전 NTFS workspace ID와 선택적 home | 소유 Editor/핸들 0을 확인한 뒤 죽은 범위·연속 기록을 정리, 새 저널 세대를 검증·재연결; 이전 세대는 확인 전까지 보존 |
 | `splinter unity start/refresh/stop` | workspace ID | 소유 Editor의 실행·검증 요청·종료 |
-| `splinter workspace checkpoint/integrate/release` | ID, 커밋 설명/통합 대상 | 검증한 소스 커밋·원본 적용·안전한 회수 |
+| `splinter workspace checkpoint/integrate/release/discard` | ID, 커밋 설명/통합 대상 | 검증한 소스 커밋·원본 적용·안전한 회수 |
 | `splinter storage probe` | 후보 home 경로 | ReFS 볼륨·클러스터 geometry, 전체 복사 fallback 없음 |
 | `splinter baseline prepare/seal/release` | 프로젝트·기준 ref 또는 준비 ID | 호환 기준본을 우선 재사용해 새 커밋 검증·봉인, 소비 작업 종료 후 명시적 캐시 회수 |
 
@@ -131,7 +131,7 @@ workspace 응답의 `sourceVerification`은 `not-checked` 또는 `verified`다. 
 | 7 | 사용자/호출자의 조회 취소 |
 | 9 | Git 실행 불가 또는 미구현 명령의 schema 요청 |
 
-파싱 오류도 JSON 한 개로 반환한다. `schema`는 구현된 API를 나열한다. `capabilities.unavailable`은 `workspace.discard`·`automatic-conversation-binding`·`product-installation`의 미구현 상태를 표시하며 새 실행 명령을 제공하지 않는다. CoW와 자원 회수 계약은 [저장소·자원 관리](storage-and-resources.md)를 따른다. 감시 프로세스는 Editor 작업별로만 존재하며 마지막 소유 프로세스와 함께 종료한다.
+파싱 오류도 JSON 한 개로 반환한다. `schema`는 구현된 API를 나열한다. `capabilities.unavailable`은 `automatic-conversation-binding`·`product-installation`의 미구현 상태를 표시하며 새 실행 명령을 제공하지 않는다. CoW와 자원 회수 계약은 [저장소·자원 관리](storage-and-resources.md)를 따른다. 감시 프로세스는 Editor 작업별로만 존재하며 마지막 소유 프로세스와 함께 종료한다.
 
 ### 진단의 의미
 

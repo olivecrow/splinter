@@ -66,7 +66,10 @@ internal sealed class StorageAuthorityProcessor(string root, StorageAuthorityCon
         if (request.Release is not null)
         {
             Write(Path.Combine(receipts, "release-request.json"), request.Release);
-            Write(Path.Combine(receipts, "release-authorized.json"), new { snapshotId = request.SnapshotId, remainingDependents = 0, resultsPreserved = true });
+            if (request.Release.Discard is { } discard)
+                Write(Path.Combine(receipts, "discard-authorized.json"), discard);
+            else
+                Write(Path.Combine(receipts, "release-authorized.json"), new { snapshotId = request.SnapshotId, remainingDependents = 0, resultsPreserved = true });
         }
         string? error = await operations.ExecuteAsync(request.Operation, receipts, grant.SourcePath, request.OwnerId, ct);
         var output = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
