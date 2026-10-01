@@ -66,6 +66,8 @@ splinter baseline release --id <baseline-id> --home <ReFS-home>
 
 감시 프로세스는 호출자의 표준 입출력과 다른 상속 가능한 핸들을 받지 않는다. Editor가 살아 있어도 CLI의 JSON 응답과 출력 스트림은 끝난다. 실행 파일은 빌드 hash별 작은 묶음 하나를 공유하므로 작업마다 복제하지 않고, 실행 중에도 제품을 다시 빌드할 수 있다.
 
+`PrepareRunner`는 6개 실행 파일의 순서별 SHA-256으로 기존과 같은 내용 키를 계산한다. 준비 중에만 읽기 전용 원본 핸들을 유지해 hash·복사 사이의 변경을 막고, 새 묶음은 고정 크기 버퍼로 복사한 뒤 디렉터리를 게시한다. 캐시는 길이·내용 hash를 스트림으로 검사하므로 재사용 때 실행 파일 전체를 메모리 배열로 적재하지 않는다. 성공/실패 뒤 원본 핸들을 모두 닫으며 손상·소실 캐시는 보존하고 거부한다. 디스크 재사용과 준비 함수의 관리 할당 근거는 [실행 파일 묶음 검증](verification/runner-bundle-memory.md)을 따른다. 해당 할당을 Editor·전체 시스템 RAM 절감으로 읽지 않는다.
+
 정상 stop은 Unity 브리지의 저장하지 않은 씬·Play 거부와 정상 종료 절차를 따른다. Editor 본체가 종료된 뒤에도 남는 job 구성원은 감시 프로세스가 정리한다. 마지막 구성원 종료를 확인한 후 감시 프로세스도 끝난다. 원본 Editor, 다른 작업자와 이미 실행 중인 공유 서비스는 이 job의 대상이 아니다. 감시 프로세스가 예기치 않게 죽으면 job의 kill-on-close가 작동하지만, 종료 증거가 없으면 정상 회수로 판정하지 않는다.
 
 `application.resources`는 감시 프로세스까지 포함한 소유 프로세스 수와 working set/private bytes의 관측값이다. 실행 중인 값은 OS의 시점별 표본이다. release는 `ownershipVerified=true`, `activeProcesses=0`, `workingSetBytes=0`, `privateBytes=0`을 확인하고 Git 회수 후 실제 경로도 없어야 완료한다. 결과는 `workspace.releasedResources`에 남는다. OS의 파일 캐시·standby 메모리를 강제로 비우거나 전체 시스템 RAM이 실행 전 수치와 같다고 주장하지 않는다.

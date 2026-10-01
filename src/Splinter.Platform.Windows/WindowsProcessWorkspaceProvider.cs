@@ -106,31 +106,54 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
         string directory = Path.GetDirectoryName(assembly)!;
         string[] names = ["Splinter.Platform.Windows.dll", "Splinter.Platform.Windows.deps.json",
             "Splinter.Platform.Windows.runtimeconfig.json", "Splinter.Core.dll", "Splinter.Runtime.dll", "winfsp-msil.dll"];
-        var contents = names.ToDictionary(name => name, name => File.ReadAllBytes(Path.Combine(directory, name)));
-        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        foreach (string name in names) hash.AppendData(SHA256.HashData(contents[name]));
-        string target = Path.Combine(Path.GetFullPath(cache), Convert.ToHexStringLower(hash.GetHashAndReset()));
-        CheckPath(target);
-        if (!Directory.Exists(target))
+        var sources = new List<FileStream>(names.Length);
+        var digests = new List<byte[]>(names.Length);
+        try
         {
-            Directory.CreateDirectory(cache);
-            string temporary = target + "." + Guid.NewGuid().ToString("N"); Directory.CreateDirectory(temporary);
-            foreach (string name in names) File.WriteAllBytes(Path.Combine(temporary, name), contents[name]);
-            try { Directory.Move(temporary, target); }
-            catch (IOException) when (Directory.Exists(target))
+            // Keep read-only source handles until publication and validation
+            // finish. Writers/replacements cannot mix builds between hash/copy.
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            foreach (string name in names)
             {
-                // Only files just written in our exact temporary directory.
-                foreach (string name in names) File.Delete(Path.Combine(temporary, name));
-                Directory.Delete(temporary);
+                var source = new FileStream(Path.Combine(directory, name), FileMode.Open, FileAccess.Read,
+                    FileShare.Read, 4096, FileOptions.SequentialScan);
+                sources.Add(source);
+                byte[] digest = SHA256.HashData(source);
+                digests.Add(digest); hash.AppendData(digest);
             }
+            string target = Path.Combine(Path.GetFullPath(cache), Convert.ToHexStringLower(hash.GetHashAndReset()));
+            CheckPath(target);
+            if (!Directory.Exists(target))
+            {
+                Directory.CreateDirectory(cache);
+                string temporary = target + "." + Guid.NewGuid().ToString("N"); Directory.CreateDirectory(temporary);
+                for (int i = 0; i < names.Length; i++)
+                {
+                    sources[i].Position = 0;
+                    using var output = new FileStream(Path.Combine(temporary, names[i]), FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                    sources[i].CopyTo(output, 65536);
+                }
+                try { Directory.Move(temporary, target); }
+                catch (IOException) when (Directory.Exists(target))
+                {
+                    // Only files just written in our exact temporary directory.
+                    foreach (string name in names) File.Delete(Path.Combine(temporary, name));
+                    Directory.Delete(temporary);
+                }
+            }
+            for (int i = 0; i < names.Length; i++)
+            {
+                string file = Path.Combine(target, names[i]); CheckPath(file);
+                using var cached = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan);
+                if (cached.Length != sources[i].Length || !SHA256.HashData(cached).AsSpan().SequenceEqual(digests[i]))
+                    throw new WorkspaceException("RunnerChanged", "Cached supervisor bundle changed; preserve it for inspection.");
+            }
+            return Path.Combine(target, names[0]);
         }
-        foreach (string name in names)
+        finally
         {
-            string file = Path.Combine(target, name); CheckPath(file);
-            if (!File.ReadAllBytes(file).AsSpan().SequenceEqual(contents[name]))
-                throw new WorkspaceException("RunnerChanged", "Cached supervisor bundle changed; preserve it for inspection.");
+            foreach (var source in sources) source.Dispose();
         }
-        return Path.Combine(target, names[0]);
     }
     internal static async Task<T?> ReadAsync<T>(string path, CancellationToken ct = default, bool waitForPublication = true)
     {
