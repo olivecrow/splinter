@@ -55,6 +55,8 @@ SF-03 전체는 Partial이다. FIFO/Coordination, 일반 임대 인수, 생성 s
 
 ## 다음 범위 판단
 
+[작은 Unity warm 비교](../verification/unity-duplicate-private-writes.md)는 같은 등록 입력의 두 편집·같은 ensure·정상 Editor 재시작·독립 결과 보존/release와 고정 Runtime 전후 파일 할당을 소유한다. 이 한 쌍을 마감했으며 종료 직전 저널의 관측 차이가 작아 동일 private 쓰기만으로 Library 용량 목표를 달성했다고 판정하지 않는다. 유효 private 데이터의 대부분이 Library라 후속 공간 작업은 남은 새/변경 Library 기록에서 실제 개선 대상 하나를 고른다. 같은 비교의 반복·대형/cold/원격·새 장애 행렬·설치/권한/볼륨 변경·원본 통합을 자동 추가하지 않는다. 합성 96.1%·시간 SLA·메모리 절감을 실제 결과로 승계하지 않는다.
+
 Library의 마감 뒤 확정한 [NR-01/02 준비 단계 중단 복구](ntfs-recovery-and-support.md#확정-범위-nr-0102-준비-단계-중단-복구)는 [현재 후보의 실제 경계 26개](../verification/preparation-recovery.md)로 제한을 유지해 마감했다. 동일 요청 재개·독립 결과·원본/타 작업 보존을 확인했으며, 게시 실패 원인 미확정과 대형 용량 목표·모드 채택의 SF 관문은 유지한다.
 
 [WF-06~08](../verification/product-validation-cold-cost.md)은 최종 후보의 두 빈 cache A/B/A·소유 파일 할당/시간·독립 결과/회수 근거를 제공한다. 렌더 준비에서 발생하는 설정 저장을 마친 뒤 같은 세대를 다시 시작해 검증하므로 이 추가 Editor 시작/종료도 반복 비용에 포함한다. 첫 두 시도의 실패와 관측 사이 순간 물리 최고치·공유 VSS 귀속의 한계를 유지한다.
