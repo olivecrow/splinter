@@ -12,7 +12,8 @@ public sealed partial class JournalDeltaStore
 {
     private sealed record LiveRange(Guid NodeId, long Physical, int Length, long Logical);
     private sealed record PayloadSlice(long Physical, long Logical, int Length);
-    private sealed record CompactionFrame(Mutation Mutation, byte[] Metadata, PayloadSlice[] Slices, int PayloadLength);
+    private sealed record CompactionFrame(Mutation Mutation, byte[] Metadata, PayloadSlice[] Slices, int PayloadLength,
+        CompactionFrame? Fallback = null);
     private sealed record CompactionIntent(int Version, string WorkspaceId, string SnapshotId, string AttemptId,
         DateTimeOffset StartedAt, SnapshotDeltaSeal Before, string StateHash, SnapshotDeltaSeal? Candidate = null);
 
@@ -296,7 +297,8 @@ public sealed partial class JournalDeltaStore
         void Emit(CompactionFrame? frame)
         {
             if (frame is null) return;
-            total = checked(total + 8L + frame.Metadata.Length + frame.PayloadLength + 32);
+            frame = frame.Fallback ?? frame;
+            total = checked(total + FrameBytes(frame));
             if (output is not null) WriteFrame(output, frame);
         }
         static bool Skipped(CompactionFrame frame) => frame.Mutation.Operation is "skip-write" or "skip-range";
@@ -342,7 +344,8 @@ public sealed partial class JournalDeltaStore
                 var merged = frame.Mutation with { Operation = "skip-range",
                     FromSequence = pending.Mutation.FromSequence ?? pending.Mutation.Sequence };
                 byte[] encoded = JsonSerializer.SerializeToUtf8Bytes(merged);
-                if (encoded.Length <= MaxMetadataBytes)
+                if (encoded.Length <= MaxMetadataBytes && encoded.Length + 40L <=
+                    FrameBytes(pending.Fallback ?? pending) + FrameBytes(frame.Fallback ?? frame))
                 {
                     pending = new(merged, encoded, [], 0);
                     cursor = next;
@@ -361,22 +364,31 @@ public sealed partial class JournalDeltaStore
     {
         if (mutation.Operation is not ("write" or "write-compacted"))
             return new(mutation, metadata, [], dataLength);
+        var original = new CompactionFrame(mutation, metadata, [new(payload, mutation.Offset, dataLength)], dataLength);
         if (slices.Count == 0)
         {
             var skipped = mutation with { Operation = "skip-write", Fragments = null };
             byte[] encodedSkip = JsonSerializer.SerializeToUtf8Bytes(skipped);
-            if (encodedSkip.Length <= MaxMetadataBytes) return new(skipped, encodedSkip, [], 0);
-            return new(mutation, metadata, [new(payload, mutation.Offset, dataLength)], dataLength);
+            if (encodedSkip.Length > MaxMetadataBytes) return original;
+            // Keep the skip eligible for adjacent range merging. If it remains
+            // alone, retain its original frame when the skip metadata costs more.
+            return new(skipped, encodedSkip, [], 0,
+                encodedSkip.Length > metadata.Length + (long)dataLength ? original : null);
         }
         if (mutation.Operation == "write" && slices.Count == 1 && slices[0].Physical == payload && slices[0].Length == dataLength)
-            return new(mutation, metadata, [new(payload, mutation.Offset, dataLength)], dataLength);
+            return original;
         var fragments = slices.Select(s => new CompactionFragment(s.Logical, s.Length)).ToArray();
         var compacted = mutation with { Operation = "write-compacted", Fragments = fragments };
         byte[] encoded = JsonSerializer.SerializeToUtf8Bytes(compacted);
-        if (encoded.Length > MaxMetadataBytes)
-            return new(mutation, metadata, [new(payload, mutation.Offset, dataLength)], dataLength);
-        return new(compacted, encoded, slices.ToArray(), slices.Sum(s => s.Length));
+        int liveBytes = slices.Sum(s => s.Length);
+        // Fragment metadata can outweigh a few overwritten bytes. Retaining the
+        // already-owned frame is smaller and still replays the same final state.
+        if (encoded.Length > MaxMetadataBytes || encoded.Length + (long)liveBytes >= metadata.Length + (long)dataLength)
+            return original;
+        return new(compacted, encoded, slices.ToArray(), liveBytes);
     }
+
+    private static long FrameBytes(CompactionFrame frame) => 40L + frame.Metadata.Length + frame.PayloadLength;
 
     private void WriteFrame(Stream output, CompactionFrame frame)
     {

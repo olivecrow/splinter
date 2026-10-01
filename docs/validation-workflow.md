@@ -69,7 +69,7 @@ cache는 `Library/Temp/Logs/UserSettings/obj/.vs/.idea`의 단일 writer다. 첫
 
 후보를 B로 전환해도 cache의 기준은 A의 원래 snapshot이다. 두 snapshot의 owner·읽기 proof·OS read fence와 가용성을 각각 확인하며 하나라도 불명확하면 정상 mount로 보고하지 않는다. 사라진 기준을 새 snapshot이나 빈 cache로 교체하지 않는다. 다른 VSS의 후보도 동일 프로젝트·Unity/bridge compatibility·partition·예산·view owner일 때 같은 cache를 쓴다. 개발용 `ValidationViewSelection.CacheBasis`는 `empty` 또는 `snapshot`을 명시하고, 제품은 snapshot과 cache 전용 `IncludedTopLevel` identity를 전달한다.
 
-`compact-cache`는 Editor/provider/handle/mount의 소유 자원 0을 확인한 뒤에만 실행한다. 예산은 이전 journal과 새 journal의 예상 논리 겹침량이며 실제 볼륨 최고치가 아니다. 현재 유효 private 범위·대체된 payload·frame metadata를 구분하고, 유효 Library를 삭제하지 않는다. 불변 기준의 payload는 읽거나 새 journal로 복사하지 않는다. 기준 없는 임의 초기화와 자동 정리는 제공하지 않는다.
+`compact-cache`는 Editor/provider/handle/mount의 소유 자원 0을 확인한 뒤에만 실행한다. 예산은 이전 journal과 새 journal의 예상 논리 겹침량이며 실제 볼륨 최고치가 아니다. 현재 유효 private 범위·대체된 payload·frame metadata를 구분하고, 유효 Library를 삭제하지 않는다. [저널 크기 선택](ntfs-workspaces.md#일반-cli-흐름)은 작은 덮어쓰기의 범위 메타데이터가 더 커지면 기존 frame을 남기므로 일부 대체된 payload가 남을 수 있다. 불변 기준의 payload는 읽거나 새 journal로 복사하지 않는다. 기준 없는 임의 초기화와 자동 정리는 제공하지 않는다.
 
 정리 intent·후보 flush·게시·관측·이전 journal 회수·완료 영수증 각 경계에서 중단하면 같은 request key·cache·예산으로 재호출한다. 진행 중 다른 정리나 view start/select/close는 거부한다. 작은 예산의 사전 거부는 cache를 잠긴 상태로 남기지 않는다. 완료 응답 재전송은 원래 영수증을 반환하며 이후의 cache 쓰기를 다시 정리하지 않는다. `status.cacheMaintenance`에서 진행 영수증을 읽을 수 있다. 물리 할당은 Windows에서 확인한 journal 두 세대의 값이며 VSS·Git·임시 파일은 별도로 측정한다.
 
