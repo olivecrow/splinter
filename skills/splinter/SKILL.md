@@ -5,7 +5,7 @@ description: Use Splinter to create or resume an isolated workspace when the use
 
 # Splinter workspace use
 
-This is the source skill shipped in the Splinter repository. It can be read directly; project/global installation and automatic Codex discovery are not implemented. Resolve the product repository and its `scripts/splinter.ps1` from the project instructions or conversation. This source layout keeps the owning documents under `../../docs/` relative to this directory.
+This is the source skill shipped in the Splinter repository. It can be read directly; project/global installation and automatic Codex discovery are not implemented. Resolve the product repository and its `scripts/splinter.ps1` from the project instructions or conversation. This source layout keeps the owning documents under `../../docs/` relative to this directory. The [limited-version start guide](../../docs/agent-start.md) owns current prerequisites and entry steps; [delivery qualification](../../docs/verification/m0-delivery.md) distinguishes the completed M0 scope from unqualified native/OS failure and installation scenarios.
 
 ## Decide whether to use a workspace
 

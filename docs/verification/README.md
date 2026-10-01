@@ -2,7 +2,9 @@
 
 ## 현재 변경의 검증
 
-[대표 AI A/B 사용·비용](representative-agent-workflow.md)은 독립 Editor 오류/수정·같은 작업 재개·독립 결과/dirty guard/통합·A release 중 B 지속·현재 컴파일 실패 B discard와 실제 회수를 한정 마감했다. 첫 seal/포커스 거부·같은 작업 재시도와 분 단위 준비·메모리 비용을 포함한다. 물리 peak/VSS 귀속은 unknown, native 강제 중단·OS 장애·ARM·대형 입력은 해당 실행에 포함하지 않았다. 다음 범위는 한정 납품 정리다.
+[한정 M0 납품 판정](m0-delivery.md)은 기존 개발 CLI·소스 스킬·[AI 시작 안내](../agent-start.md)의 한정 버전을 scoped-complete-with-limitations로 마감한다. 현재 복구 회귀와 과거 native의 source hash/변경 경계를 대조했고 현재 전체 native 중단 통과로 승계하지 않는다. NR/SF/SW 전체 미완료는 후속 지원 확대이며 M0의 진척 분모가 아니다.
+
+[대표 AI A/B 사용·비용](representative-agent-workflow.md)은 독립 Editor 오류/수정·같은 작업 재개·독립 결과/dirty guard/통합·A release 중 B 지속·현재 컴파일 실패 B discard와 실제 회수를 한정 마감했다. 첫 seal/포커스 거부·같은 작업 재시도와 분 단위 준비·메모리 비용을 포함한다. 물리 peak/VSS 귀속은 unknown, native 강제 중단·OS 장애·ARM·대형 입력은 해당 실행에 포함하지 않았다.
 
 [명시적 폐기 검증](workspace-discard.md)은 자동 자격과 승인한 서비스 Update·로컬 Editor 없는 dirty A/B의 실제 VSS 폐기·같은 요청 재개·peer 지속을 구분한다. 그 실행 자체는 scoped-complete-with-limitations이며 현재 M0의 대표 Unity 자격과 구별한다. SW-09 전체 Partial·강제 중단/SW-10 미실행은 유지한다.
 
@@ -35,7 +37,7 @@
 | RI/RU/WI | 합성 또는 동일 닫힌 저널의 제한된 replay 비교 | warm cache·소수 표본. 누적 Editor 전체 개선·Library 물리 절감으로 환산하지 않음 |
 | JW/FR | 고정 쓰기 계측과 작은 URP fixture의 요청별 유효 PNG 검사 | Windows 선행 직렬화·내구성 경계 유지. Unity 내부 첫 draw 원인 미확정, group flush 미선정 |
 | SW-09 폐기 | [로컬 dirty A/B의 서비스 적용·동일 요청 재개](workspace-discard.md)와 [대표 Unity 실패 worker stop/폐기](representative-agent-workflow.md) | 하위 실행 scoped-complete-with-limitations, SW-09 전체 Partial. native 강제 중단·SW-10 미실행 |
-| M0, SW-03/06 | [최소 AI 지침·direct](agent-workflow.md)와 [대표 Editor·새 CLI 동일 작업 재개/종료·비용](representative-agent-workflow.md) | M0의 한정 Passed/Partial은 추적표 소유. SW-03/06 전체 Partial, busy/unknown 점유·새/동시 대화·자동 설치/binding은 미실행 |
+| M0, SW-03/06 | [최소 AI 지침·direct](agent-workflow.md)·[대표 Editor 사용/종료·비용](representative-agent-workflow.md)와 [현재 복구 회귀/한정 납품](m0-delivery.md) | 한정 M0 마감·현재 모든 native/OS 장애 통과 아님. SW-03/06 전체 Partial, busy/unknown 점유·새/동시 대화·자동 설치/binding은 미실행 |
 | SF-04~06, SW-01/02/04/05/07/08/10 | 계획 | NotRun. 대형 입력·모드 채택·일반 설치/binding과 전체 대화/Editor 사용 흐름은 미완료 |
 | UA-01~04 | [제한 권한 서비스](storage-privilege-service.md)의 실제 설치·일반 CLI A/B 추가 UAC 0·회수·서비스 재시작/응답 유실 | 등록된 Windows x64 NTFS/Git fixture 범위 Passed. 일반 Unity·ARM·실제 전원/재부팅과 native VSS 호출 도중 강제 종료로 확대하지 않음 |
 
@@ -49,6 +51,7 @@
 
 | 기록 | 보존 이유 |
 | --- | --- |
+| [한정 M0 납품](m0-delivery.md) | 현재 복구 계약 회귀·기존 native 소스 대조/재사용 한계와 시작 명령의 실제 관측, 개발 CLI 전제의 한정 완료 |
 | [대표 AI A/B 사용·비용](representative-agent-workflow.md) | 작은 warm 입력의 오류 격리·동일 작업 재개·독립 결과/dirty guard/통합·실패 폐기, 종료 뒤 Library lock 쓰기/포커스 거부·같은 작업 재시도와 시간/파일 할당 제한 |
 | [제품 범위 정리](workspace-product-scope.md) | 작업 그래프 제외의 명령/schema 발견·오류 응답 계약, 현재 자동 시험과 실환경 자격의 구분 |
 | [제한 권한 서비스](storage-privilege-service.md) | 보호된 상태·IPC 경계·최초 설치·반복 UAC·서비스 중단/응답 유실을 구분한 완료 판정 |

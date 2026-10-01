@@ -4,7 +4,7 @@
 
 ## 첫 실사용 버전 M0
 
-범위·수정 한도·종료 규칙은 [첫 버전 계획](implementation-plan.md)이 소유한다. 아래 Passed는 명시한 작은 등록 fixture·독립 Editor 경로의 한정 조건에 대한 것이며 범용 지원을 뜻하지 않는다. [대표 사용/비용](../verification/representative-agent-workflow.md)은 scoped-complete-with-limitations다. 미실행 M0가 기존 NI/WF의 부분 성공을 무효화하지 않는다.
+범위·수정 한도·종료 규칙은 [첫 버전 계획](implementation-plan.md)이 소유한다. 한정 M0는 [납품 판정](../verification/m0-delivery.md)의 **scoped-complete-with-limitations**로 마감했다. 아래 Passed는 명시한 작은 등록 fixture·독립 Editor와 현재 자동 계약/파일 시험의 조건이며 범용 지원이나 현재 바이너리의 모든 native 중단 통과를 뜻하지 않는다. 장기 NI/NR/SF/SW의 미완료는 유지한다.
 
 | ID | 대표 흐름 | 상태 | 재사용 근거와 남은 확인 |
 | --- | --- | --- | --- |
@@ -13,7 +13,7 @@
 | M0-03 | 여러 차례 수정·오류 격리·정확한 Editor 검증 | Passed | [대표 사용](../verification/representative-agent-workflow.md): A CS0103 → 수정 113, B 213/214/215의 현재 검증·loaded assembly, 같은 작업 유지. focus 거부/재시도와 게시 오류 로그 제한 포함 |
 | M0-04 | 실패/미커밋 작업의 명시적 폐기·중복/중단 재개 | Passed | [로컬 폐기](../verification/workspace-discard.md)의 동일 intent 재개/중복과 [대표 사용](../verification/representative-agent-workflow.md)의 B 현재 컴파일 실패·checkpoint 없음·정상 stop/실제 회수. native 강제 중단/SW-10은 별도 NotRun |
 | M0-05 | 결과 보존/반영/회수·A 종료 뒤 B 지속 | Passed | [대표 사용](../verification/representative-agent-workflow.md)의 독립 결과·dirty 원본 거부/보존·clean 시험 branch 통합·A release 중 B 수정. 첫 seal 거부 뒤 같은 A 재수집 성공, 원본 Editor의 통합 후 게임 검증은 별도 |
-| M0-06 | 지원 경로의 응답 유실/프로세스 중단·손상/unknown | Partial | 현재 필수 자동 회귀 744 성공과 seal 변경의 보존/동일 A 재시도. 준비 26·저널 58·kernel 19·client 13·진단 16은 각 후보의 별도 근거이며 현재 정상 사용 실행의 native 중단 통과가 아님. 납품 단위에서 기존 근거의 재사용/지원 제외 경계를 고정하며 전체 행렬을 자동 반복하지 않음 |
+| M0-06 | 지원 경로의 응답 유실/프로세스 중단·손상/unknown | Passed | [현재 복구 계약 판정](../verification/m0-delivery.md#현재-후보의-m0-06-근거): 현재 자동 회귀의 동일 요청 재개·실제 자식/파일 오류·unknown/손상 보존과 대표 seal 거부/동일 A 재수집. 과거 native의 변경된 조정/authority 경계는 승계하지 않음. 현재 모든 native 강제 중단·OS 장애 NotRun, NR 전체 InProgress 유지 |
 | M0-07 | 소유 자원 회수·공유/reclaim-pending의 정확한 보고 | Passed | [대표 사용](../verification/representative-agent-workflow.md)의 A release/B discard: 소유 Editor/provider·mount/Git/delta·정확한 VSS 부재, 자원 0. 공유 지연 blocker는 이번 실행에 없음. 전역 VSS inventory는 unknown |
 | M0-08 | 대표 입력의 생성/준비/재개/반복 편집/종료 비용 | Passed | [대표 사용](../verification/representative-agent-workflow.md)의 동일 실행 비용·제약 판단. 관측 추가 파일 할당 최대 약 335 MiB·종료 뒤 약 1.77 MiB. 분 단위 준비·큰 Editor 메모리·재시도 포함, 물리 peak/VSS 귀속 unknown |
 

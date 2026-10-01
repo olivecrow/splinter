@@ -1,6 +1,6 @@
 # Splinter 첫 실사용 버전 계획
 
-제품 discard와 최소 AI 지침에 이어 [대표 A/B 사용·비용 판단](../verification/representative-agent-workflow.md)을 **scoped-complete-with-limitations**로 마감했다. 실제 오류/수정·같은 작업 재개·독립 결과/dirty guard/통합·A 회수 중 B 지속·컴파일 실패 B 폐기와 그 실행의 비용을 확인했다. 다음 개발 범위는 **한정 버전 납품 정리**다. 지원 전제·AI 진입법·known limits와 M0-06의 기존 근거 재사용 경계를 확정한다. 별도 binding framework·일반 설치·새 harness·대형/ARM/OS 장애 행렬은 추가하지 않는다.
+**등록된 작은 Windows x64 NTFS/Git/Unity 환경의 첫 한정 실사용 버전 M0를 마감했다.** [납품 판정](../verification/m0-delivery.md)은 scoped-complete-with-limitations이며 [AI 시작 안내](../agent-start.md)에서 기존 개발 CLI·소스 스킬의 전제와 다음 행동을 찾는다. 대표 A/B 사용·비용과 현재 복구 계약을 확인했고 과거 native의 재사용 한계를 고정했다. 남은 NR/SF/SW 전체를 M0의 진척 분모로 다시 넣지 않는다. 후속 범위는 실제 사용할 프로젝트/입력 또는 설치 필요가 정해졌을 때 그 요구에 맞춰 선택한다.
 
 ## 목적과 완료 경계
 
@@ -38,19 +38,15 @@ Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약
 | 2 | 최소 AI 작업 연결·사용 지침: Editor 없는 단위 마감 | [스킬 원본](../../skills/splinter/SKILL.md)과 실제 explicit/direct·반환 경로 편집·새 CLI의 같은 key/id/home 재개·폐기 확인. Editor/대표 대화 흐름은 3에서 확인하며 프로젝트/전역 설치·자동 binding은 후속 |
 | 3 | A/B의 대표 사용 흐름: 한정 마감 | [대표 사용](../verification/representative-agent-workflow.md)의 오류/수정·같은 작업 재개·dirty guard·보존/통합/release와 실패 작업 discard. 첫 수집/포커스 거부와 같은 작업 재시도 제한 포함 |
 | 4 | 공간·시간의 채택 판단: 한정 마감 | 같은 작은 warm 입력의 관측 파일 할당·준비/편집/종료 비용으로 지속 독립 작업에 한정 채택. VSS 귀속·물리 peak·대형 효율 unknown, 새 비교/반복 관문 없음 |
-| 5 | 한정 버전 납품 | M0의 실행 결과, AI 사용법·지원 입력·설치 전제·known limits와 다음 행동. 한정 버전의 완료를 대형 프로젝트/범용 공개 지원으로 확대하지 않음 |
+| 5 | 한정 버전 납품: 마감 | [시작 안내](../agent-start.md)·[현재 복구 근거/납품 판정](../verification/m0-delivery.md). 기존 개발 CLI·등록 서비스 전제의 한정 버전이며 일반 설치·대형/범용 공개 지원으로 확대하지 않음 |
 
 discard의 상세 의도·공유 자원·중단 조건은 [대화별 작업 계획](session-workflow-and-installation.md#완료보존폐기)이 소유한다. 첫 구현은 정확한 worker workspace를 대상으로 한다. 사용 중인 candidate/source/cache 의존성은 명시적으로 차단하고 해당 의존성 정리 행동을 반환한다. 원본 Editor·타 작업·공유 view를 자동 종료하거나 연쇄 삭제하지 않는다. snapshot 회수가 지연되면 논리적 작업 종료와 물리 회수 대기를 구분하며 숨은 백업이나 회수 완료로 표시하지 않는다.
 
-### 다음 한정 버전 납품 단위
+### 한정 납품 경계와 후속 선택
 
-[대표 사용/비용](../verification/representative-agent-workflow.md)은 고정 입력·실패·같은 작업 재시도와 종료 근거를 소유한다. 같은 실행을 다시 여는 대신 다음 산출물만 정리한다.
+M0는 기존 개발 checkout의 CLI·소스 스킬과 등록된 서비스/driver 환경을 제공물로 삼는다. [대표 사용/비용](../verification/representative-agent-workflow.md)은 실행·실패·같은 작업 재시도를, [납품 판정](../verification/m0-delivery.md)은 현재 회귀·과거 native의 재사용 한계와 제외할 장애 조건을 소유한다. 일반 installer·자동 binding·외부 공개/배포를 완료한 것으로 읽지 않는다.
 
-1. 기존 개발 배포물/CLI·스킬의 시작법, 지원 project/home·입력·Unity 버전과 기존 제한 서비스 전제를 한 곳에서 찾게 한다. 전역/프로젝트 설치나 자동 binding을 구현하지 않는다.
-2. M0-06의 현재 자동 회귀와 기존 native 준비/저널/kernel/client/상태 진단 근거를 변경된 경계에 대조한다. 재사용 가능한 범위와 제외할 장애 조건을 명시하며 이전 후보의 통과를 현재 전체 통과로 표시하지 않는다. 실제 지원 경로의 새로운 안전 결함이 확인된 경우에만 그 경계를 수정/검증한다.
-3. 첫 결과 수집/포커스 재시도·게시 오류 기록, 준비/메모리 비용, VSS/물리 peak unknown과 다음 행동을 안내한다. 장기 NR/SF/SW와 한정 납품의 완료를 구분한다.
-
-종료 조건은 사용법·지원 전제·제한·근거와 남은 지원 확대가 일치하는 한정 납품 판정이다. 새 harness·전체 장애 행렬·일반 설치·VIVOBOOK·대형 PV·p95 반복은 포함하지 않는다. 외부 공개/배포·서비스 Update를 자동 수행하지 않는다.
+후속 범위는 실제 사용자 요구로 고른다. 새 프로젝트/입력이면 해당 입력·등록·mount 경계, 설치가 필요하면 프로젝트/사용자 범위 발견·배포물 연결, 관측 비용이 실용성을 막으면 그 입력의 병목을 대상으로 한다. 각 범위의 질문·지원 조건·종료 기준을 먼저 고정한다. 필요가 정해지기 전에 새 harness·전체 장애 행렬·VIVOBOOK·대형 PV·p95 반복·일반 설치/자동 binding을 자동 개시하지 않는다. 지원 경로의 승인 쓰기 손실·원본/peer 훼손이 새로 확인되면 그 결함을 먼저 수정한다.
 
 ## 유지할 구현과 제거 경계
 

@@ -2,7 +2,7 @@
 
 대형 Unity 프로젝트의 작업공간 용량과 생성·편집 준비·재개 시간을 함께 판단하고 Editor 동시성은 그 뒤에 둔다. 제품은 작업별 독립 Editor와 명시적 `validation` 단일 Editor 검증을 제공한다. 기본 모드 자동 선택은 미확정이다.
 
-첫 실사용 버전은 [M0](implementation-plan.md)의 **폐기·최소 AI 연결·대표 사용 흐름**을 먼저 완성한다. Library/validation의 기존 구현은 유지하고 실행 경로 하나를 명시적으로 선택한다. SF 전체 대형 지원·일반 임대 인수·큐/Coordination·source 반환 병합·자동 모드 선택은 첫 버전의 완료 조건에서 제외한다. 공간 효율 자체는 M0-08의 고정 입력·전체 준비/재개/종료 비용으로 반드시 판단한다.
+첫 한정 실사용 버전 [M0](implementation-plan.md)는 **폐기·최소 AI 연결·대표 사용 흐름과 비용 판단**을 마감했다. [대표 사용](../verification/representative-agent-workflow.md)은 작은 warm 입력의 지속 독립 작업에 한정 채택하며, 준비/메모리 비용과 총 물리 공간·대형 효율 미확인을 유지한다. Library/validation의 기존 구현과 명시적 실행 경로를 사용한다. SF 전체 대형 지원·일반 임대 인수·큐/Coordination·source 반환 병합·자동 모드 선택은 별도 후속이다.
 
 ## 별도 지원 확대의 남은 범위
 
@@ -37,7 +37,7 @@
 - 독립 Git 결과의 객체 존재와 제품 snapshot 의존성 차단을 확인한다. 실제 CLI 중단과 응답 유실을 시험하며 fake나 예외 주입의 성공을 실제 프로세스 결과로 승계하지 않는다.
 - 최종 후보의 작은 실제 A/B/A에서 정상 stop·mount 부재·같은 경로 재시작, 실제 코드/에셋·결과 독립성·원본/타 작업 보존·소유 자원 회수를 확인한다. 전체 추가 파일 할당과 최고치, replay·준비·재개 시간을 구분한다.
 
-SF-03 전체는 Partial이다. FIFO/Coordination, 일반 임대 인수, 생성 source 반환 병합, 원본 Editor 공유, 기본 모드 선택, group flush, 대형 PV 재개, NR 전체 시험과 설치·자동 binding은 별도 후속이다. discard와 최소 AI 연결은 SF 전체 완료를 기다리지 않고 M0에서 먼저 구현한다. 제한 권한 서비스의 등록된 NTFS/Git 실제 반복 검증은 [UA 범위](../verification/storage-privilege-service.md), Unity 연결은 아래 보존한 WF/LB 범위에서 확인했다. 현재 계약의 같은 요청 중단·응답 유실·재시작 복구는 계속 유지한다.
+SF-03 전체는 Partial이다. FIFO/Coordination, 일반 임대 인수, 생성 source 반환 병합, 원본 Editor 공유, 기본 모드 선택, group flush, 대형 PV 재개, NR 전체 시험과 설치·자동 binding은 별도 후속이다. discard와 최소 AI 연결을 포함한 한정 M0 마감은 SF 전체 통과를 뜻하지 않는다. 제한 권한 서비스의 등록된 NTFS/Git 실제 반복 검증은 [UA 범위](../verification/storage-privilege-service.md), Unity 연결은 아래 보존한 WF/LB 범위에서 확인했다. 현재 계약의 같은 요청 중단·응답 유실·재시작 복구는 계속 유지한다.
 
 ## 다음 범위 판단
 
@@ -45,7 +45,7 @@ Library의 마감 뒤 확정한 [NR-01/02 준비 단계 중단 복구](ntfs-reco
 
 [WF-06~08](../verification/product-validation-cold-cost.md)은 최종 후보의 두 빈 cache A/B/A·소유 파일 할당/시간·독립 결과/회수 근거를 제공한다. 렌더 준비에서 발생하는 설정 저장을 마친 뒤 같은 세대를 다시 시작해 검증하므로 이 추가 Editor 시작/종료도 반복 비용에 포함한다. 첫 두 시도의 실패와 관측 사이 순간 물리 최고치·공유 VSS 귀속의 한계를 유지한다.
 
-작은 입력의 Library 유효량·정리·재증가와 신규/재개 비용은 [WF/LB 실제 실행](../verification/product-validation-unelevated.md)에서 확인했다. 다음 제품 작업은 명시적 discard와 최소 AI 연결이다. M0-08은 고정 입력·명시적 실행 경로 하나에서 전체 비용을 판단하고, 재현되는 실용성 결함/병목만 수정한다. [IPC 검증](../verification/control-file-read-races.md)의 과거 t2 정확한 발생 지점과 새 실행의 일시적 heartbeat 게시 오류 원인은 미확정으로 유지한다. 대형 공간 목표·새 backend/flush 정책·전체 NR·설치/자동 binding·대형 PV 재개는 후속이며 작은 fixture 통과로 완료하지 않는다.
+작은 입력의 Library 유효량·정리·재증가와 신규/재개 비용은 [WF/LB 실제 실행](../verification/product-validation-unelevated.md)에서 확인했다. 명시적 discard·최소 AI 연결과 M0-08의 고정 입력 비용 판단은 [한정 납품](../verification/m0-delivery.md)으로 마감했다. 후속 비용 작업은 실제 사용할 입력과 실행 경로를 먼저 정하고, 관측한 실용성 결함/병목만 대상으로 삼는다. [IPC 검증](../verification/control-file-read-races.md)의 과거 t2 정확한 발생 지점과 새 실행의 일시적 heartbeat 게시 오류 원인은 미확정으로 유지한다. 대형 공간 목표·새 backend/flush 정책·전체 NR·설치/자동 binding·대형 PV 재개는 후속이며 작은 fixture 통과로 완료하지 않는다.
 
 ## 보존한 한정 범위: 일반 권한 Unity 검증 흐름
 

@@ -4,7 +4,7 @@ AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬
 
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 
-등록된 작은 fixture에서 [대표 A/B 사용](docs/verification/representative-agent-workflow.md)의 독립 Editor·오류/수정·같은 작업 재개·보존/통합/회수·실패 작업 폐기와 비용을 확인했다. 첫 결과 수집과 Editor 활성화의 재시도 제한을 포함한 내부 알파 자격이다. 에이전트는 [최소 사용 스킬](skills/splinter/SKILL.md)에서 직접/독립 작업 판단과 기존 CLI의 생성·재개·종료 절차를 읽는다. 전역 설치나 자동 대화 연결은 제공하지 않는다. [M0 계획](docs/plans/implementation-plan.md)의 다음 범위는 한정 버전 납품 정리이며, 범용 Unity 저작/Play/Test Runner·AI Runner/DAG·상주 DB는 제품 범위에서 제외한다. 전체 OS 장애·설치/자동 binding·대형 지원은 후속이고 폐기에는 해당 계약을 지원하는 제한 권한 서비스가 필요하다.
+등록된 작은 Windows x64 NTFS/Git/Unity 환경의 **첫 한정 실사용 버전 M0를 마감했다**. 제공물은 기존 개발 CLI·소스 스킬과 [AI 시작 안내](docs/agent-start.md)이며, [납품 판정](docs/verification/m0-delivery.md)은 scoped-complete-with-limitations다. [대표 A/B](docs/verification/representative-agent-workflow.md)의 오류/수정·같은 작업 재개·보존/통합/회수·실패 작업 폐기와 비용, 현재 복구 계약의 회귀를 확인했다. 전역 설치·자동 대화 연결·전체 native/OS 장애 보장·대형 지원은 후속이고 폐기에는 해당 계약을 지원하는 제한 서비스가 필요하다. 범용 Unity 저작/Play/Test Runner·AI Runner/DAG·상주 DB는 제품 범위에서 제외한다.
 
 ## 현재 제공하는 기능
 
@@ -35,7 +35,7 @@ pwsh ./scripts/splinter.ps1 workspace ensure --project ../splinter-unity --key <
 
 CLI는 stdout에 JSON 응답 하나를 반환한다. VSS 작업은 [제한 권한 서비스](docs/storage-privilege-service.md)를 사용하며, 서비스 부재나 미등록 범위는 설치/구성 필요 상태를 반환한다. [NTFS 사용법](docs/ntfs-workspaces.md)을 먼저 읽고 반환된 작업공간 경로에서 편집한다. 일반 CLI·Git·Unity 전체를 관리자 권한으로 실행하지 않는다.
 
-각 대화의 에이전트는 [스킬 원본](skills/splinter/SKILL.md)을 읽고 시작한다. 프로젝트 정책에 지정한 CLI·등록 project/home을 사용하고, 응답의 `data.workspace.path`에서 편집한다. 같은 작업은 key/id/home·기준·request digest를 대화나 인계에 남겨 같은 ensure 입력으로 재개한다. 현재 경로에서 독립 실행 없이 작업할 수 있으면 새 workspace를 만들지 않는다.
+각 대화의 에이전트는 [시작 안내](docs/agent-start.md)와 [스킬 원본](skills/splinter/SKILL.md)을 읽고 시작한다. 프로젝트 정책에 지정한 CLI·등록 project/home을 사용하고, 응답의 `data.workspace.path`에서 편집한다. 같은 작업은 key/id/home·기준·request digest를 대화나 인계에 남겨 같은 ensure 입력으로 재개한다. 현재 경로에서 독립 실행 없이 작업할 수 있으면 새 workspace를 만들지 않는다.
 
 `main`은 출시용, `development`는 개발용이다. 형제 `../splinter-unity`는 별도 Git 저장소이며 submodule이 아니다. 실제 Git 등록 시험은 `pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository ../splinter-unity`로 실행한다. 이 시험은 Unity Editor·CoW 시험과 구별한다.
 

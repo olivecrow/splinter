@@ -7,6 +7,7 @@
 | 문서 | 소유하는 내용 |
 | --- | --- |
 | [현재 기반](foundation.md) | 모듈·의존성·명령·빌드와 시험 |
+| [한정 버전 AI 시작 안내](agent-start.md) | 개발 CLI의 전제·진입·정확한 경로/같은 작업 재개·명시적 종료·실패의 다음 행동 |
 | [최소 AI 사용 스킬](../skills/splinter/SKILL.md) | 저장소 지침 원본·직접/독립 작업 판단·CLI 발견·반환 경로·같은 작업 재개·명시적 종료/실패 처리. 설치/자동 binding은 없음 |
 | [NTFS 작업공간](ntfs-workspaces.md) | VSS identity·범위 저널·Git·권한·제어 파일 게시/읽기·복구·결과 보존·회수 |
 | [명시적 폐기](workspace-discard.md) | Core/Runtime intent·Git/Windows provider·CLI·서비스 별도 authorization·중단 재개 |
@@ -27,6 +28,7 @@
 | [검증 안내](verification/README.md) | 지원 경계, 검증 진입점, 보존한 실측 근거 |
 | [최소 AI 작업 연결 검증](verification/agent-workflow.md) | source skill 직접 사용·반환 경로 편집·새 CLI 재개·direct/명시적 폐기 한정 실행 |
 | [대표 AI A/B 사용·비용 검증](verification/representative-agent-workflow.md) | 독립 Editor의 오류/수정·동일 작업 재개·보존/통합/release와 실패 작업 discard·단계별 파일 할당/시간·재시도 제한 |
+| [한정 M0 납품 판정](verification/m0-delivery.md) | 현재 복구 회귀·기존 native 소스 대조와 재사용 한계·실제 시작 명령 확인·한정 완료와 지원 확대의 구분 |
 | [상태 쓰기 진단 검증](verification/state-write-diagnostics.md) | workspace 저장 단계·게시 완료 여부·실제 파일 잠금과 기계용 오류 계약의 자격 |
 
 ## 남은 설계와 검증
@@ -34,7 +36,7 @@
 | 문서 | 용도 |
 | --- | --- |
 | [제품 요구사항](../plan.html) | 제품이 달성할 목표 |
-| [구현 계획](plans/implementation-plan.md) | 첫 실사용 버전 M0·폐기/최소 AI 연결의 실행 순서·제거 경계·검증 종료 규칙 |
+| [구현 계획](plans/implementation-plan.md) | 마감한 한정 M0·제거/유지 경계·후속 지원 범위 선택·검증 종료 규칙 |
 | [검증 추적표](plans/validation-matrix.md) | M0의 실제 상태와 장기 48개 지원·확장 카탈로그 |
 | [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | NR-01/02 준비 복구·NR-03 공통 저널/로컬 kernel/제품 client 경계와 재부팅·전원·공간·파일 관문의 완료 기준 |
 | [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·비용 판단과 WF-09~12/LB-01~05의 완료 범위·재검증 기준 |

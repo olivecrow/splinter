@@ -1,6 +1,6 @@
 # 현재 기반
 
-[공통 폐기](workspace-discard.md)는 Core 입력/state·provider 계약과 Runtime의 동일 intent 단계 재개·fake 적합성을 제공한다. 실제 Git/Windows provider와 `workspace discard` CLI를 연결했다. [폐기 검증](verification/workspace-discard.md)은 자동 자격과 승인한 서비스 적용·로컬 Editor 없는 dirty A/B의 실제 VSS 회수를 구분한다. Unity/강제 중단과 M0 전체 통과로 확대하지 않는다.
+[공통 폐기](workspace-discard.md)는 Core 입력/state·provider 계약과 Runtime의 동일 intent 단계 재개·fake 적합성을 제공한다. 실제 Git/Windows provider와 `workspace discard` CLI를 연결했다. [폐기 검증](verification/workspace-discard.md)의 서비스 적용/같은 intent 재개와 [대표 사용](verification/representative-agent-workflow.md)의 Unity 실패 작업 정상 stop/폐기를 구분한다. 현재 한정 M0와 복구 근거의 적용 경계는 [납품 판정](verification/m0-delivery.md)을 따르며 전체 native/OS 장애 지원으로 확대하지 않는다.
 
 개발용 [WriteProbe](write-profiling.md)는 새 synthetic 디렉터리에서 고정 단일/동시 쓰기와 metadata 변경을 실행하고 내용과 읽기 전용 replay를 검증한다. `capabilities.developmentWriteProbe`에 입력·쓰기 경계가 있으며 제품 workspace 생성이나 Unity 검증을 대신하지 않는다. `OverlayIoMetrics.liveJournalWrites`는 고정 6개 연산별 live commit 단계와 flush 전후 다른 mutation 대기 호출을 집계한다. Runtime은 기존처럼 각 durable flush를 마친 뒤 commit을 적용한다.
 
@@ -8,7 +8,7 @@ Windows 어댑터는 변경 callback 전체를 별도의 `mutationGate`로 직�
 
 > 제품 workspace에 [NTFS snapshot 모드](ntfs-workspaces.md)를 연결했다. 자동 계약/Git/NTFS 메타데이터 시험과 실제 VSS/Unity 통합 자격은 구분하며 [NI 기록](verification/ntfs-workspace-integration.md)을 따른다. SO 독립 실험과 기존 ReFS 성공을 NI 통과로 합산하지 않는다.
 
-Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release/discard**와 계약·진단이다. ReFS CoW와 무-checkout index를 연결하고 Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 지원 경계와 실환경 증거는 [검증 안내](verification/README.md)를 따른다. 첫 실사용 버전은 [M0](plans/implementation-plan.md)이며 폐기와 최소 AI 연결의 로컬 한정 실행 뒤 대표 A/B 사용 흐름·비용 판단이 남아 있다. DAG 검사/제출·AI Runner·daemon/DB·범용 Unity 저작/Play/Test Runner는 제품 범위에서 제외한다.
+Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release/discard**와 계약·진단이다. ReFS CoW와 무-checkout index를 연결하고 Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 지원 경계와 실환경 증거는 [검증 안내](verification/README.md)를 따른다. 첫 한정 실사용 [M0](plans/implementation-plan.md)는 마감했으며 기존 개발 CLI·등록 서비스/입력 전제와 실패 시 다음 행동은 [AI 시작 안내](agent-start.md)가 소유한다. DAG 검사/제출·AI Runner·daemon/DB·범용 Unity 저작/Play/Test Runner는 제품 범위에서 제외한다.
 
 ## 구조와 의존성
 

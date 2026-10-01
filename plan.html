@@ -20,8 +20,8 @@
 <p class="meta">Windows / NTFS + Git + Unity · 첫 실사용 버전의 한정 범위</p>
 <h1>AI가 효율적으로 병렬 작업공간을 만들고, 원할 때 폐기한다</h1>
 <p>Splinter는 Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약되는 개발 환경을 위한 로컬 도구다. 각 대화의 AI가 필요할 때 자기 작업을 만들고 여러 차례 이어 간다. 작업 내용의 판단·편집·게임 기능 검증은 해당 AI와 기존 개발 도구가 담당한다.</p>
-<nav aria-label="계획 목차"><a href="#scope">제품 범위</a><a href="#flow">사용 흐름</a><a href="#next">남은 순서</a><a href="#acceptance">완료 기준</a><a href="#verification">검증 정책</a></nav>
-<p>현재 구현은 <a href="docs/foundation.md">foundation</a>, 남은 실행 계획은 <a href="docs/plans/implementation-plan.md">첫 버전 계획</a>, 실제 자격·제한은 <a href="docs/verification/README.md">검증 안내</a>와 <a href="docs/plans/validation-matrix.md">M0 추적표</a>에서 확인한다. 제안된 폐기·작업 연결은 구현된 capability가 아니다.</p>
+<nav aria-label="계획 목차"><a href="#scope">제품 범위</a><a href="#flow">사용 흐름</a><a href="#next">완료와 후속</a><a href="#acceptance">완료 기준</a><a href="#verification">검증 정책</a></nav>
+<p>현재 구현은 <a href="docs/foundation.md">foundation</a>, 후속 범위 선택은 <a href="docs/plans/implementation-plan.md">첫 버전 계획</a>, 실제 자격·제한은 <a href="docs/verification/README.md">검증 안내</a>와 <a href="docs/plans/validation-matrix.md">M0 추적표</a>에서 확인한다. 명시적 폐기와 최소 AI 사용 지침을 포함한 한정 M0는 <a href="docs/verification/m0-delivery.md">scoped-complete-with-limitations</a>로 마감했다. 시작점은 <a href="docs/agent-start.md">AI 시작 안내</a>이며 일반 설치·자동 대화 연결은 후속이다.</p>
 
 <h2 id="scope">1. 제품 범위</h2>
 <table><thead><tr><th>필수</th><th>제품의 책임</th></tr></thead><tbody>
@@ -40,14 +40,16 @@
 <p>반환된 workspace 경로에서 AI의 파일 도구·CLI·Editor가 같은 작업을 사용한다. 작업이 이미 연결돼 있으면 원본이 비어도 같은 작업을 이어 간다. 별도 조정 AI·Codex worktree 중첩·작업 그래프 제출은 필요하지 않다.</p>
 <p>대화·Editor 종료, timeout·임대 만료·디스크 압박은 통합·폐기의 승인이 아니다. release는 독립 결과를 보존한다. discard는 성공 검증·checkpoint 없이도 명시적 intent와 정확한 소유권을 대조해 해당 작업만 제거한다. 공유 view/cache/snapshot 의존성이 있으면 차단과 다음 행동을 반환하고 자동 연쇄 삭제하지 않는다. 회수 대기는 완료와 구별한다.</p>
 
-<h2 id="next">3. 남은 작업 순서</h2>
+<h2 id="next">3. 첫 버전 완료와 후속 범위</h2>
+<p>아래 다섯 단위는 등록된 작은 Windows x64 NTFS/Git/Unity 환경에서 마감했다. 핵심 수명주기의 구현과 한정 실사용 완료를, 다른 프로젝트에서의 효율·일반 설치·지원 확대와 구분한다.</p>
 <ol>
-<li><strong>명시적 discard.</strong> 정확한 작업·owner/상태·intent → 작성자 정지 → 전용 자원 처리 → 같은 intent 중단 재개. 실패·미커밋 작업의 폐기를 먼저 완성한다.</li>
-<li><strong>최소 AI 연결.</strong> 기존 개발 배포물과 사용 지침으로 stable key·경로·home·재개를 실제 AI가 사용한다. 프로젝트/전역 설치와 복잡한 자동 binding은 별도다.</li>
-<li><strong>대표 A/B 흐름.</strong> 여러 차례 수정·오류/재개, A 보존/폐기 후 B 지속, 명시적 반영과 원본 변경 차단을 확인한다.</li>
-<li><strong>유한한 비용 판단.</strong> 입력과 실행 경로 하나를 고정해 생성·전체 준비·편집·재개·종료를 측정하고 실용성을 막는 결함만 수정한다.</li>
-<li><strong>한정 버전 납품.</strong> 사용법·지원 조건·실행 근거·제한을 함께 제공한다. 광범위한 공개 지원 완료와 구분한다.</li>
+<li><strong>명시적 discard.</strong> 실패·미커밋 작업의 폐기, 같은 intent 재개·중복 요청과 peer 보호를 확인했다. 현재 모든 native 강제 중단의 자격은 별도다.</li>
+<li><strong>최소 AI 연결.</strong> 기존 개발 CLI·소스 스킬로 stable key·반환 경로·같은 작업 재개를 사용한다. 프로젝트/전역 설치와 자동 binding은 별도다.</li>
+<li><strong>대표 A/B 흐름.</strong> 실제 독립 Editor의 여러 차례 수정·오류/재개, A 보존/반영/회수 중 B 지속과 실패 B 폐기를 확인했다.</li>
+<li><strong>유한한 비용 판단.</strong> 작은 warm 입력의 생성·준비·재개·종료 시간과 추가 파일 할당으로 지속 독립 작업에 한정 채택했다. 분 단위 준비·메모리 부담이 남고, 대형 효율·총 물리 공간 절감은 미확인이다.</li>
+<li><strong>한정 버전 납품.</strong> 시작 안내·지원 전제·현재 복구 근거·제한을 제공한다. 광범위한 공개 지원 완료와 구분한다.</li>
 </ol>
+<p>다음 범위는 실제 사용할 프로젝트와 입력을 정해 생성·편집·재개·폐기 및 전체 비용에서 필요한 경계만 확인하는 것이다. 관측한 병목은 그 입력에서 수정하고, 설치/발견이 필요할 때 해당 연결을 추가한다. ARM·전체 OS 장애·대형 비교·자동 모드 선택을 일괄 필수 작업으로 열지 않는다.</p>
 
 <h2 id="acceptance">4. 첫 버전 완료 기준</h2>
 <p><strong>실제 AI 두 작업이 같은 프로젝트에서 독립 작업공간을 만들고 여러 차례 편집·필요한 Unity 검증을 수행한다. 한 작업을 보존하거나 폐기해도 다른 작업과 원본은 유지된다. 같은 작업을 재개할 수 있고 공간·시간 비용으로 해당 조건의 사용 가능성을 판단한다.</strong></p>
