@@ -126,15 +126,28 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
 
     public void Save(WorkspaceRecord workspace, string action)
     {
-        try { SaveCore(workspace, action); }
+        var progress = new StateWriteProgress();
+        try { SaveCore(workspace, action, progress); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
+            // A low HRESULT word is a native error only for a confirmed Win32
+            // facility on Windows. Managed failures are not Win32 error zero.
+            bool win32 = OperatingSystem.IsWindows() && ((uint)ex.HResult & 0xffff0000) == 0x80070000;
+            var diagnostic = new StateWriteDiagnostic(progress.Stage, progress.StatePublication, ex.GetType().Name,
+                ex.HResult, win32 ? "win32" : null, win32 ? ex.HResult & 0xffff : null);
             throw new WorkspaceException("StateWriteIncomplete", "Workspace state could not be fully persisted. Preserve records and temporary files; restore access or space before observing the same identity.",
-                new { id = workspace.Id, action }, [new("workspace.status", new { id = workspace.Id, home = Root }, true)]);
+                new StateWriteFailureDetails(workspace.Id, action, diagnostic),
+                [new("workspace.status", new { id = workspace.Id, home = Root }, true)]);
         }
     }
 
-    private void SaveCore(WorkspaceRecord workspace, string action)
+    private sealed class StateWriteProgress
+    {
+        public string Stage = "prepare-record";
+        public string StatePublication = "not-attempted";
+    }
+
+    private void SaveCore(WorkspaceRecord workspace, string action, StateWriteProgress progress)
     {
         string control = ControlPath(workspace.Id);
         EnsurePlainPath(control);
@@ -143,14 +156,23 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
             throw new WorkspaceException("StateCorrupt", "Refusing to persist an unmanaged workspace path.");
         workspace.UpdatedAt = DateTimeOffset.UtcNow;
         string target = Path.Combine(control, "workspace.json");
+        progress.Stage = "validate-target";
         EnsurePlainPath(target);
         string temporary = target + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        progress.Stage = "open-temporary";
         using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
         {
+            progress.Stage = "write-temporary";
             JsonSerializer.Serialize(stream, workspace, Json);
+            progress.Stage = "flush-temporary";
             stream.Flush(flushToDisk: true);
+            progress.Stage = "close-temporary";
         }
+        progress.Stage = "publish-state";
+        progress.StatePublication = "unknown";
         AtomicFilePublication.Publish(temporary, target);
+        progress.StatePublication = "completed";
+        progress.Stage = "append-event";
         string journal = Path.Combine(control, "events.jsonl");
         EnsurePlainPath(journal);
         File.AppendAllText(journal, JsonSerializer.Serialize(new

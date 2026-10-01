@@ -10,6 +10,8 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 ## 구조와 의존성
 
+Core의 `StateWriteFailureDetails`/`StateWriteDiagnostic`은 workspace 상태 저장 실패의 공통 데이터 계약이다. Runtime이 단계와 게시 완료 여부·HRESULT/native 오류 관측을 채우고 CLI는 기존 실패 응답으로 전달한다. `state-write-failure-details` schema와 [NTFS 실패 계약](ntfs-workspaces.md)을 따르며 Core에는 플랫폼 해석 API를 넣지 않는다.
+
 Core의 `IOverlayMutationObserver`는 공급자 중립 callback 전후 관측 port다. Windows 파일시스템의 명시적 개발 인수로만 연결하며 일반 provider와 flush 정책은 그대로다. [로컬 kernel 개발 시험](kernel-recovery.md)은 실제 WinFsp host·fake 기준·외부 클라이언트와 새 provider 연결을 사용한다. `capabilities.developmentKernelRecoveryProbe`의 범위와 schema를 따르며 실제 VSS server/CLI 자격과 구분한다.
 
 [제품 쓰기 복구 개발 시험](product-write-recovery.md)은 일반 provider에 observer를 연결하지 않고 외부 client 경계에서 정확한 소유 provider를 종료한다. 기존 CLI·VSS 권한 서비스·WinFsp·Git 조합의 동일 요청 재연결·명시적 독립 보존/회수를 시험하며 `capabilities.developmentProductWriteRecoveryProbe`와 현재 request/result schema를 따른다.

@@ -91,6 +91,10 @@
   },
   "allOf": [
     {
+      "if": {"required":["error"],"properties":{"error":{"properties":{"code":{"const":"StateWriteIncomplete"}},"required":["code"]}}},
+      "then": {"properties":{"error":{"required":["details"],"properties":{"details":{"$ref":"urn:splinter:v1:state-write-failure-details"}}}}}
+    },
+    {
       "if": {"properties":{"command":{"const":"storage.service.status"},"status":{"const":"Succeeded"}}},
       "then": {"properties":{"data":{"$ref":"#/$defs/storageServiceStatus"}}}
     },

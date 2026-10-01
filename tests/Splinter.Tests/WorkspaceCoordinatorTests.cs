@@ -6,6 +6,44 @@ namespace Splinter.Tests;
 public sealed class WorkspaceCoordinatorTests
 {
     [Fact]
+    public async Task OriginalOperationErrorSurvivesAStateFailureWhileRecordingIt()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var dir = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
+        var store = new WorkspaceStore(Path.Combine(dir.Path, "state"));
+        FileStream? held = null;
+        var sources = new FakeSources { BeforeCreate = record =>
+        {
+            held = new FileStream(Path.Combine(store.ControlPath(record.Id), "workspace.json"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            throw new WorkspaceException("GitCommandFailed", "controlled original failure");
+        } };
+        var runtime = new WorkspaceCoordinator(store, sources, new FakeApplications());
+        string project = Project(dir);
+        try
+        {
+            var error = await Assert.ThrowsAsync<WorkspaceException>(() => runtime.EnsureAsync(project, "diagnostic", "main", "git-checkout", false, ct));
+            Assert.Equal("StateWriteIncomplete", error.Code);
+            var response = System.Text.Json.JsonSerializer.SerializeToElement(Splinter.Protocol.ApiResponse.Failure("workspace.ensure", error.Code, error.Message, error.Details), Splinter.Protocol.ApiJson.Options);
+            Assert.True(new Splinter.Protocol.ContractCatalog().Validate("urn:splinter:v1:response", response).IsValid);
+            var details = response.GetProperty("error").GetProperty("details");
+            Assert.Equal("GitCommandFailed", details.GetProperty("operationError").GetString());
+            var stateFailure = details.GetProperty("details");
+            Assert.Equal("operation-failed", stateFailure.GetProperty("action").GetString());
+            Assert.Equal("publish-state", stateFailure.GetProperty("diagnostic").GetProperty("stage").GetString());
+            Assert.Equal("unknown", stateFailure.GetProperty("diagnostic").GetProperty("statePublication").GetString());
+            Assert.Equal(32, stateFailure.GetProperty("diagnostic").GetProperty("nativeErrorCode").GetInt32());
+            string id = stateFailure.GetProperty("id").GetString()!;
+            Assert.Null(store.Get(id).LastError);
+            Assert.Contains("GitCommandFailed", File.ReadAllText(Assert.Single(Directory.GetFiles(store.ControlPath(id), "*.tmp"))));
+        }
+        finally { held?.Dispose(); }
+        sources.BeforeCreate = null;
+        var ready = await runtime.EnsureAsync(project, "diagnostic", "main", "git-checkout", false, ct);
+        Assert.Equal("ready", ready.Workspace.Phase);
+        Assert.Equal("released", (await runtime.ReleaseAsync(ready.Workspace.Id, ct)).Workspace.Phase);
+    }
+
+    [Fact]
     public async Task RepeatedStatusDoesNotInspectSourceWhileWaitingOrAfterAResultWasReconciled()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -203,7 +241,8 @@ public sealed class WorkspaceCoordinatorTests
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(ResolvedRevision);
         public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => Task.FromResult("fake-cache");
         public int CreateCalls, CommitCalls, ReleaseCalls, InspectCalls; public string Fingerprint = "initial"; public string Revision = "rev"; public TimeSpan CreateDelay; public bool DeleteAndThrowOnRelease, LeaveDirectoryOnRelease, Unregistered;
-        public async Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) { Interlocked.Increment(ref CreateCalls); await Task.Delay(CreateDelay, ct); Directory.CreateDirectory(w.Path); return new(w.Path, w.SourceReference, ResolvedRevision); }
+        public Action<WorkspaceRecord>? BeforeCreate;
+        public async Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) { Interlocked.Increment(ref CreateCalls); BeforeCreate?.Invoke(w); await Task.Delay(CreateDelay, ct); Directory.CreateDirectory(w.Path); return new(w.Path, w.SourceReference, ResolvedRevision); }
         public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)
         {
             InspectCalls++;

@@ -2,6 +2,14 @@
 
 현재 NR-01/03/05/07은 부분 구현이다. 나머지 명령 경계·일반 파일 지원·실제 재부팅·전원·물리 공간 장애·ARM A/B는 미완료다. 현재 계약은 [NTFS](../ntfs-workspaces.md), 확인한 범위는 [검증 안내](../verification/README.md)를 따른다.
 
+## 확정 범위: NR-01 상태 쓰기 실패 진단
+
+`10eaad7` 이후의 이번 단위는 `WorkspaceStore.Save`가 반환하는 `StateWriteIncomplete`의 실패 단계·예외 형식/HResult와 확인 가능한 native 오류를 기계용 응답에 보존하는 것이다. 준비/임시 파일 작성·flush/close·상태 게시·이벤트 append를 구분하며, 게시 호출이 실패하면 현재 기록의 교체 여부는 unknown으로 남긴다. 게시 뒤 이벤트 기록이 실패한 경우에는 상태 게시 완료와 명령 실패를 구분한다. 원래 작업 오류를 기록하다 실패한 응답도 같은 진단을 유지한다.
+
+공통 데이터 계약·응답 schema 적합성부터 연결하고 새 소유 임시 디렉터리의 실제 파일 잠금·읽기 전용 파일·이벤트 기록 차단으로 이전/새 기록과 임시 파일 보존, 접근 복구 뒤 같은 작업 재개를 검증한다. `pwsh ./scripts/build.ps1`·UTF-8·diff 검사를 완료한다. 기존 실패의 하위 원인은 새 진단 추가만으로 확정하지 않는다. 별도 retry/flush/atomic 게시 정책 변경, 임시 파일 삭제·자동 승계, 서비스/설치/grant/볼륨/예산 변경, VSS·WinFsp·Unity·VIVOBOOK 실행, 재부팅·전원·물리 공간 장애는 이번 범위에서 제외한다. 승인이나 사용자 입력이 필요한 환경 작업은 진행하지 않는다.
+
+이 단위는 [최종 16개 진단 시험과 필수 build/감사](../verification/state-write-diagnostics.md)로 **scoped-complete-with-limitations** 판정했다. NR-01 전체와 이전 실제 준비 실패의 원인은 미완료/unknown으로 유지한다. 후속은 같은 실제 준비 작업에서 재발할 때 새 진단을 수집하는 관문과 NR-03의 내부/replay/동시 I/O다. 관리자 환경 준비·원격 시험·재부팅/전원/공간은 별도 승인 범위이며 이번 마감으로 시작하지 않는다.
+
 ## 확정 범위: NR-03 제품 VSS·CLI의 클라이언트 경계
 
 이 단위는 기존 등록한 로컬 `T:/ua-source`·`.local/wl29`·제한 권한 서비스에서 일반 제품 `workspace ensure`가 생성한 실제 VSS/WinFsp/Git 작업의 중단과 재연결이다. write/rename/replace/truncate/명시적 flush의 연산 전·외부 ACK 후 10개, write 반환 뒤 명시적 file flush 전 1개, mmap view flush 전·view/file flush와 외부 ACK 후 2개, 총 13개 클라이언트 경계를 고정한다. 일반 provider에 개발 observer를 연결하거나 gate용 제품 요청 필드를 추가하지 않는다. VSS를 쓰는 내부 callback 전후·OS 내부 종료는 이 단위와 별도다.

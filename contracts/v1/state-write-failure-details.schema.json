@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:state-write-failure-details",
+  "oneOf": [
+    {"$ref": "#/$defs/details"},
+    {
+      "type": "object", "additionalProperties": false, "required": ["operationError", "details"],
+      "properties": {
+        "operationError": {"type": "string", "minLength": 1},
+        "details": {"$ref": "#/$defs/details"}
+      }
+    }
+  ],
+  "$defs": {
+    "details": {
+      "type": "object", "additionalProperties": false, "required": ["id", "action", "diagnostic"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-f0-9]{24}$"},
+        "action": {"type": "string", "minLength": 1},
+        "diagnostic": {"$ref": "#/$defs/diagnostic"}
+      }
+    },
+    "diagnostic": {
+      "type": "object", "additionalProperties": false,
+      "required": ["stage", "statePublication", "exceptionType", "hResult"],
+      "properties": {
+        "stage": {"enum": ["prepare-record", "validate-target", "open-temporary", "write-temporary", "flush-temporary", "close-temporary", "publish-state", "append-event"]},
+        "statePublication": {"enum": ["not-attempted", "unknown", "completed"]},
+        "exceptionType": {"type": "string", "minLength": 1},
+        "hResult": {"type": "integer", "minimum": -2147483648, "maximum": 2147483647},
+        "nativeErrorDomain": {"const": "win32"},
+        "nativeErrorCode": {"type": "integer", "minimum": 0, "maximum": 65535}
+      },
+      "dependentRequired": {"nativeErrorDomain": ["nativeErrorCode"], "nativeErrorCode": ["nativeErrorDomain"]},
+      "allOf": [
+        {"if": {"required": ["nativeErrorDomain"]}, "then": {"properties": {"hResult": {"minimum": -2147024896, "maximum": -2146959361}}}},
+        {"if": {"properties": {"stage": {"const": "publish-state"}}}, "then": {"properties": {"statePublication": {"const": "unknown"}}}},
+        {"if": {"properties": {"stage": {"const": "append-event"}}}, "then": {"properties": {"statePublication": {"const": "completed"}}}},
+        {"if": {"properties": {"stage": {"enum": ["prepare-record", "validate-target", "open-temporary", "write-temporary", "flush-temporary", "close-temporary"]}}}, "then": {"properties": {"statePublication": {"const": "not-attempted"}}}}
+      ]
+    }
+  }
+}
