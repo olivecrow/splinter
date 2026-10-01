@@ -59,7 +59,7 @@ Runtime의 replay는 수명 한정 64KiB 버퍼로 저널만 순차 읽는다. �
 
 동일 단계의 원본 Library·공유 Git 기준선을 빼고 추가량을 비교한다. Library 쓰기는 delta 안에 이미 들어 있으므로 이중 합산하지 않는다. 접근 불가·reparse 경로는 unknown으로 기록하고 subtotal만 남긴다. 일반 권한에서 VSS를 읽지 못하면 unknown이며 관리자 볼륨 관측을 별도로 확보한다. VSS의 작업별 귀속과 MFT/OS cache 등은 전체 절감률로 추정하지 않는다. 로그·임시 파일·결과 객체도 공간 장부에 포함해야 한다. 단계 표본의 최고치는 실제 순간 최고치를 보장하지 않는다.
 
-같은 영역 반복 쓰기와 삭제/truncate 후에도 실행 중인 기존 journal 할당은 남는다. 결과 수집 전 정지한 NTFS 작업공간에는 명시적 저널 정리를 구현했으며, [작은 Unity 재개·공간 계측](verification/journal-compaction-qualification-and-cost.md)에서 정리 직후 할당 감소와 두 세대가 겹친 관측 최고치를 확인했다. flush 묶음 처리와 기본 실행 방식 전환은 구현하지 않았다. 범위와 검증 수준은 [공통 저장소 1차 계획](plans/storage-priority-and-editor-modes.md), 실제 판정과 VSS 보존 실패는 [검증 기록](verification/storage-foundation.md), 현재 회수 차단/지원 경계는 [NTFS 작업공간](ntfs-workspaces.md)을 따른다.
+다른 내용의 같은 영역 반복 쓰기와 삭제/truncate 후에도 실행 중인 기존 journal 할당은 남는다. [동일 private 쓰기](ntfs-workspaces.md#동일한-private-범위의-반복-쓰기)는 기존 payload를 재사용하지만 metadata는 누적된다. `journalReadBytes`에는 일치 비교로 읽은 private 저널도 포함한다. 이 내부 비교는 `readBytes`·`readRangeIndex`의 사용자 `Read`나 snapshot `baseReadBytes`가 아니다. 결과 수집 전 정지한 NTFS 작업공간에는 명시적 저널 정리를 구현했으며, [작은 Unity 재개·공간 계측](verification/journal-compaction-qualification-and-cost.md)에서 정리 직후 할당 감소와 두 세대가 겹친 관측 최고치를 확인했다. flush 묶음 처리와 기본 실행 방식 전환은 구현하지 않았다. 범위와 검증 수준은 [공통 저장소 1차 계획](plans/storage-priority-and-editor-modes.md), 실제 판정과 VSS 보존 실패는 [검증 기록](verification/storage-foundation.md), 현재 회수 차단/지원 경계는 [NTFS 작업공간](ntfs-workspaces.md)을 따른다.
 
 `replayIndexOperations`는 관측된 연산별 `operation`·`frames`·`applyTicks` 배열이며 최대 9개다. `create`, `metadata`, `resize`, `write`, `write-compacted`, `rename`, `delete`, `skip-write`, `skip-range`만 허용한다. 합계는 각각 `replayFrames`와 `replayIndexTicks`에 대응하고 현재 provider의 신규 쓰기는 포함하지 않는다. `skip-range`도 한 frame이므로 frame 수는 durable sequence 증가량과 다를 수 있다. 현재 provider의 빈 배열은 replay한 frame이 없음을 뜻한다.  반환 배열 수정은 내부 계수에 영향을 주지 않는다.
 
@@ -74,6 +74,8 @@ rename의 index 적용은 기존의 경로·whiteout 순회를 유지하며 같�
 `liveJournalWrites`는 현재 provider에서 발생한 쓰기 계측이다. `mutationGateCalls`와 `mutationGateWaitTicks`는 중첩되지 않은 변경 API 호출과 해당 gate 대기의 누적값이며 no-op·입력 거부도 포함한다. 읽기 호출과 replay는 제외한다. `operations`는 `create/write/resize/metadata/rename/delete`의 최대 6개 집계다. `attempts`는 commit 진입, `durableCommits`는 durable flush 뒤 기록한 commit, `failedCalls`는 commit 내부 예외 수다. gate 내부의 사전 거부처럼 commit에 들어오지 않은 실패는 여기에 포함하지 않는다.
 
 연산별 `prepareTicks/appendTicks/flushTicks/applyTicks/totalTicks`는 입장 검사·직렬화·checksum, journal append, durable flush, index 적용, 전체 commit 호출의 누적 시간이다. `payloadBytes/journalBytes`는 durable commit의 기록량이고 `flushCalls`는 해당 commit의 flush 시도 수다. 명시적 Flush나 incomplete tail 복구 flush는 전체 flush 계수에만 들어간다. `waitingMutationsAtFlushStart/End`의 고정 5칸은 다른 mutation 대기 호출 0, 1, 2~3, 4~7, 8개 이상이며 `maxWaitingMutations`는 이 두 시점 표본의 최댓값이다. no-op/거부될 호출을 포함할 수 있고 gate 밖의 OS/WinFsp 대기는 측정하지 않는다. 묶을 수 있는 transaction 수나 실현 가능한 절감률을 뜻하지 않는다.
+
+동일 private 내용의 `Write`는 `metadata` commit으로 집계한다. `IJournalMutationObserver.operation/payloadBytes`도 실제 frame의 `metadata/0`이며 WinFsp callback의 요청·완료 바이트는 원래 쓰기 길이다. 일치 비교는 commit 진입 전 같은 mutation gate 안에서 하므로 위 commit 단계 tick에 포함되지 않는다. 전체 호출 비용은 별도 경과와 추가 `journalReadBytes`를 함께 판단하며 frame 저장량 감소를 전체 쓰기 시간 감소로 환산하지 않는다.
 
 관측은 같은 epoch의 차이로 비교하며 배열을 바꿔도 내부 계수는 변하지 않는다.  호출별 대기 시간은 겹칠 수 있어 벽시계와 합산하지 않는다. 현재 durable flush 정책은 동일하며 개발용 합성 실행은 [WriteProbe](write-profiling.md)를 따른다.
 

@@ -90,6 +90,8 @@ Runtime의 `AtomicFilePublication`은 같은 디렉터리에서 flush한 임시 
 
 ## 에이전트용 명령 계약
 
+`JournalDeltaStore.Write`는 전체 요청 범위가 현재 private 저널에 있고 바이트가 같을 때 기존 payload를 재사용한다. 새 수정 시각·경로 sequence는 기존 `metadata` frame으로 기록하고 개별 durable flush를 유지한다. snapshot·hole·확장은 비교하지 않는다. 현재 저널 형식과 Core port는 바뀌지 않으며 [NTFS 쓰기 계약](ntfs-workspaces.md#동일한-private-범위의-반복-쓰기)과 [한정 검증](verification/duplicate-private-writes.md)을 따른다.
+
 제품 Editor heartbeat는 프로젝트 함수나 fixture를 실행하지 않는다. liveness·compile/domain reload·validation 전달만 담당하며, 현재 로드된 함수 값·MVID는 fixture의 명시적 `inspect` 응답에서 확인한다. .NET 브리지 harness는 ready/compiling/ready와 reload 뒤 validation 전달을 검사하지만 실제 Unity 컴파일·Editor 실행 자격을 대신하지 않는다.
 
 Core의 `WorkspaceFailurePolicy`는 지속 recovery의 보존 분류와 Protocol의 `retryDisposition`에서 함께 사용한다. 저널 정리의 generation/state/candidate/intent 불일치 5종은 `requires-user-action`이며, Runtime은 실패한 같은 `id`·절대 `home`의 `workspace.status`를 다음 행동으로 반환한다. 상태·저널·후보를 지우거나 자동 재시도해 불일치를 숨기지 않는다.

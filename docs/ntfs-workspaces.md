@@ -89,6 +89,12 @@ provider가 끝나면 앱/자식이 남지 않았음을 확인한 후 같은 ens
 
 새 NTFS 작업은 provider 실행 전에 검증된 snapshot에 대한 빈 delta identity를 게시한다. 기존 identity가 있으면 caller에서 저널을 다시 재생하지 않고 provider가 기존 저널을 검증한다. private `overlay-serve`는 정확한 launch generation을 필수 인자로 받으며 token·workspace·generation이 durable intent와 일치하는지 검사한 뒤 자신의 PID·시작 시각·generation 영수증을 게시한다. parent CLI가 프로세스 생성 직후 종료돼도 같은 ensure는 이 자식 영수증을 대조해 기존 provider를 관측한다. intent만 있고 실행 여부를 확인할 수 없는 간격은 계속 보존/차단하며 추측 재실행하지 않는다.
 
+## 동일한 private 범위의 반복 쓰기
+
+현재 쓰기 범위 전체가 이미 승인된 private 저널 범위에 있고 바이트가 같으면 payload를 다시 쓰지 않는다. 기존 저널을 최대 64KiB 버퍼로 비교하고 기존 `metadata` frame에 수정 시각·현재 경로·새 sequence를 기록해 개별 `Flush(true)` 뒤 응답한다. 빈 쓰기의 기존 no-op과 다르며 소스 변경 경로와 승인 쓰기 경계는 유지한다.
+
+원본만 참조하는 범위·zero-fill hole·파일 길이 확장·다른 바이트는 요청한 payload를 기존 방식으로 저장한다. 비교를 위해 snapshot payload를 읽거나 hydration하지 않으며 작업/파일 간 dedup·공유 payload cache는 없다. 같은 내용에도 metadata는 누적되므로 무한 반복의 저장량 0을 보장하지 않는다. 정상 쓰기에서도 저널 비교 읽기가 추가될 수 있다. [한정 저장량·복구 검증](verification/duplicate-private-writes.md)은 합성 입력의 실제 NTFS 파일 할당과 작은 로컬 WinFsp client를 구분한다.
+
 ## 개발용 준비 중단 시험
 
 `preparation-probe --input <JSON>`은 일반 `workspace ensure`의 NTFS 준비 경계에만 명시적 gate를 넣는다. Unity Editor를 시작하거나 자원을 자동 회수하지 않는다. 입력은 `preparation-probe-request` version 1, 출력 signal은 `preparation-probe-signal` schema다. capability의 `developmentPreparationProbe`에서 현재 진입점과 schema를 확인한다. signal은 원본/workspace 밖의 새 경로에만 flush 후 게시하며 boundary·workspace/request digest·PID/시작 시각·snapshot/step을 연결한다. 같은 PID/시작 시각을 확인한 외부 harness가 CLI만 종료한다. `.continue`를 명시적으로 만들면 gate를 통과하고 5분 deadline은 기존 작업을 보존한 취소다.

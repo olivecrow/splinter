@@ -23,7 +23,8 @@ public sealed class ValidationCacheMaintenanceTests
         using (var store = new JournalDeltaStore(cachePath, identity, new ValidationCacheSnapshotTree(tree, tree.Snapshot, WindowsValidationProvider.CacheRoots)))
         {
             var file = store.Stat("Library/large")!;
-            for (int i = 0; i < 32; i++) store.Write(file.Id, 8192, expected);
+            // Real changes create obsolete payload; identical private writes reuse it.
+            for (int i = 0; i < 32; i++) { expected[0] = checked((byte)(11 + i)); store.Write(file.Id, 8192, expected); }
             Assert.Equal(4096, store.ObservePrivateUsage().LivePrivateBytes);
             Assert.Equal(31 * 4096, store.ObservePrivateUsage().ObsoletePayloadBytes);
         }

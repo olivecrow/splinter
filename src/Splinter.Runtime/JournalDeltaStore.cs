@@ -209,8 +209,54 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             long end = checked(offset + data.Length);
             if (data.IsEmpty) return;
             var updated = node.Entry with { Length = Math.Max(node.Entry.Length, end), LastWriteTime = DateTime.UtcNow.ToFileTimeUtc() };
-            Commit(new(sequence + 1, "write", updated, offset), data);
+            if (!readOnly && MatchesPrivateRange(node, offset, data))
+                // The referenced bytes were already durably acknowledged. Still
+                // commit the new timestamp/path sequence and flush this frame.
+                Commit(new(sequence + 1, "metadata", updated), []);
+            else Commit(new(sequence + 1, "write", updated, offset), data);
         }
+    }
+
+    private bool MatchesPrivateRange(Node node, long offset, ReadOnlySpan<byte> data)
+    {
+        long end = offset + data.Length;
+        if (end > node.Entry.Length) return false;
+        var extents = node.Extents;
+        int low = 0, high = extents.Count;
+        while (low < high)
+        {
+            int middle = low + (high - low) / 2;
+            if (extents[middle].Start + extents[middle].Length <= offset) low = middle + 1;
+            else high = middle;
+        }
+        int first = low;
+        // Establish complete private coverage before reading any bytes. Holes,
+        // base ranges and extensions always keep the ordinary write path.
+        long cursor = offset;
+        for (int i = first; cursor < end; i++)
+        {
+            if (i == extents.Count || extents[i].Start > cursor) return false;
+            cursor = Math.Min(end, extents[i].Start + extents[i].Length);
+        }
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Min(65536, data.Length));
+        try
+        {
+            cursor = offset;
+            for (int i = first; cursor < end; i++)
+            {
+                var extent = extents[i]; long until = Math.Min(end, extent.Start + extent.Length);
+                while (cursor < until)
+                {
+                    int count = (int)Math.Min(65536, until - cursor);
+                    var comparison = buffer.AsSpan(0, count);
+                    ReadExactly(extent.JournalOffset + cursor - extent.Start, comparison);
+                    if (!comparison.SequenceEqual(data.Slice((int)(cursor - offset), count))) return false;
+                    cursor += count;
+                }
+            }
+            return true;
+        }
+        finally { ArrayPool<byte>.Shared.Return(buffer); }
     }
 
     public void SetLength(Guid id, long length)
