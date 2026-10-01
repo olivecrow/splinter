@@ -4,6 +4,8 @@
 
 [명시적 폐기 검증](workspace-discard.md)은 자동 자격과 승인한 서비스 Update·로컬 Editor 없는 dirty A/B의 실제 VSS 폐기·같은 요청 재개·peer 지속을 구분한다. 로컬 단위는 scoped-complete-with-limitations, M0-01/04/07과 SW-09는 Partial이며 Unity/강제 중단·SW-10은 미실행이다.
 
+[최소 AI 작업 연결](agent-workflow.md)은 스킬 원본 직접 읽기·CLI 발견·반환 절대 경로 편집·새 CLI 동일 작업 재개·explicit/direct와 명시적 폐기를 확인했다. Editor 없는 단위는 scoped-complete-with-limitations로 마감하며 M0-02·SW-03/06은 Partial이다. 자동 스킬 발견/설치/binding·실제 busy/unknown 점유와 새/동시 대화·Unity 실행으로 확대하지 않는다.
+
 표준 진입점은 `pwsh ./scripts/build.ps1`이다. locked restore, Release 빌드, 자동 시험을 수행하며 결과는 `artifacts/test-results/`에 기록한다. 선택적 ReFS는 `SPLINTER_TEST_REFS_ROOT`를 지정한 경우에만 실행한다. 현재 계약은 VSS v2 capture identity, 완전한 overlay 검증 tuple, `stable-journal-v1` 결과, 필수 계측 필드를 요구한다. 지원하지 않는 형식은 자동 이관하지 않고 보존 후 거부한다.
 
 자동 시험은 현재 형식의 생성·읽기, 불완전한 입력 거부, checkpoint 중단 후 재시도, 소유권 불명·snapshot 소실·응답 유실에서의 보존을 다룬다. 개발 스크립트의 요청 생성 시험은 합성 영수증과 파일만 사용한다. 실제 VSS·WinFsp mount·Unity 실행을 대신하지 않는다.
@@ -31,7 +33,8 @@
 | RI/RU/WI | 합성 또는 동일 닫힌 저널의 제한된 replay 비교 | warm cache·소수 표본. 누적 Editor 전체 개선·Library 물리 절감으로 환산하지 않음 |
 | JW/FR | 고정 쓰기 계측과 작은 URP fixture의 요청별 유효 PNG 검사 | Windows 선행 직렬화·내구성 경계 유지. Unity 내부 첫 draw 원인 미확정, group flush 미선정 |
 | SW-09 폐기 | [로컬 dirty A/B의 서비스 적용·동일 요청 재개·peer 지속·실제 회수](workspace-discard.md) | 하위 실행 scoped-complete-with-limitations, SW-09 전체 Partial. 컴파일 실패/Editor stop·native 강제 중단 미실행 |
-| SF-04~06, SW-01~08/10 | 계획 | NotRun. 대형 입력·모드 채택·일반 설치/binding과 전체 대화/Editor 사용 흐름은 미완료 |
+| M0-02, SW-03/06 | [최소 AI 지침·반환 경로·같은 작업 재개/direct](agent-workflow.md) | 하위 실행 scoped-complete-with-limitations, 전체 Partial. Editor/대표 대화와 busy/unknown 점유·자동 설치/binding은 미실행 |
+| SF-04~06, SW-01/02/04/05/07/08/10 | 계획 | NotRun. 대형 입력·모드 채택·일반 설치/binding과 전체 대화/Editor 사용 흐름은 미완료 |
 | UA-01~04 | [제한 권한 서비스](storage-privilege-service.md)의 실제 설치·일반 CLI A/B 추가 UAC 0·회수·서비스 재시작/응답 유실 | 등록된 Windows x64 NTFS/Git fixture 범위 Passed. 일반 Unity·ARM·실제 전원/재부팅과 native VSS 호출 도중 강제 종료로 확대하지 않음 |
 
 새 후보에서 필요한 실제 환경 시험을 실행하기 전에는 아래 기록을 현재 후보의 통과로 승계하지 않는다. GUI Unity·VSS·격리 디스크 시험은 정의된 범위와 소유 자원을 확인한 뒤 실행한다. 현재 원본·다른 작업·기존 결과 refs와 비소유 snapshot을 보존한다.

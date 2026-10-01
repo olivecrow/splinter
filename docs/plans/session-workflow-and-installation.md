@@ -1,8 +1,8 @@
 # 대화별 작업공간 사용과 설치 계획
 
-설치·자동 세션 연결은 미구현이며 SW-01~08/10의 실제 자격은 NotRun이다. [명시적 폐기](../workspace-discard.md)는 Core/Runtime·Git/Windows provider·CLI와 제한 서비스를 연결했고 승인한 Update 뒤 로컬 Editor 없는 dirty A/B의 폐기·동일 요청 재개·peer 지속·VSS 회수를 확인했다. SW-09 전체는 Partial이다. 현재 실행 명령은 [foundation](../foundation.md), 동작 절차는 [알파 작업공간](../alpha-workspaces.md)을 따른다.
+설치·자동 세션 연결은 미구현이다. [최소 사용 스킬](../../skills/splinter/SKILL.md)은 기존 CLI를 직접 사용하는 지침 원본이며 [한정 AI 실행](../verification/agent-workflow.md)에서 explicit/direct·반환 경로 편집·새 CLI 재개를 확인했다. SW-03/06은 해당 하위 범위만 Partial, SW-01/02/04/05/07/08/10은 NotRun이다. [명시적 폐기](../workspace-discard.md)는 Core/Runtime·Git/Windows provider·CLI와 제한 서비스를 연결했고 승인한 Update 뒤 로컬 Editor 없는 dirty A/B의 폐기·동일 요청 재개·peer 지속·VSS 회수를 확인했다. SW-09 전체는 Partial이다. 현재 실행 명령은 [foundation](../foundation.md), Editor 동작 절차는 [알파 작업공간](../alpha-workspaces.md)을 따른다.
 
-첫 실사용 버전은 [M0](implementation-plan.md)의 한정 흐름이다. **명시적 discard → 최소 AI 사용 지침/작업 연결 → 실제 A/B 반복 사용**을 먼저 완성한다. 프로젝트/전역 설치·자동 Codex 세션 binding·업데이트/제거의 전체 SW 조건은 후속이다. 기존 CLI와 안정된 key/id/home·정확한 반환 경로로 사용하는 최소 경로를 첫 버전에서 실제 평가한다.
+첫 실사용 버전은 [M0](implementation-plan.md)의 한정 흐름이다. discard 연결/로컬 단위와 최소 AI의 Editor 없는 단위는 마감했고 다음은 **대표 A/B 반복 사용과 비용 판단**이다. 프로젝트/전역 설치·자동 Codex 세션 binding·업데이트/제거의 전체 SW 조건은 후속이다. 기존 CLI와 안정된 key/id/home·정확한 반환 경로를 사용하며 별도 binding framework를 선행하지 않는다.
 
 [저장공간 우선 계획](storage-priority-and-editor-modes.md)에 따라 독립 파일 작업공간과 Editor 실행 정책을 구분한다. 아래 지속 작업·반영·보존·폐기 원칙은 두 실행 방식에 공통이며, 제안 필드·상태·명령은 현재 capability가 아니다.
 
@@ -107,7 +107,7 @@ Core의 식별자는 공급자 중립적인 project/task/workspace ID를 유지�
 | 순서 | 산출물 | 담당 경계 / 완료 조건 |
 | --- | --- | --- |
 | 1 | 명시적 discard의 계약·fake·실제 worker 처리 | Core/Protocol/Runtime/Git/Windows. 성공 검증/checkpoint 없이 실패·미커밋 작업 폐기, intent/owner·동일 요청 중단 재개. 공유 candidate/source/cache는 명시적 차단과 정리 행동, 자동 연쇄 삭제 없음 |
-| 2 | 최소 AI 사용 지침·작업 연결 | explicit/busy/direct/unknown, stable key/id/home·반환 루트에서 편집/CLI/Editor, 같은 작업 재개. 특정 Codex API·전역 설치를 필수로 하지 않음 |
+| 2 | 최소 AI 사용 지침·작업 연결: Editor 없는 단위 마감 | 스킬 원본·실제 explicit/direct·반환 루트 편집·새 CLI 동일 작업 재개·명시적 폐기. Editor는 3에서 확인하며 특정 Codex API·전역 설치를 필수로 하지 않음 |
 | 3 | 실제 A/B의 여러 차례 사용과 종료 | M0의 오류 격리·보존/반영/폐기·한쪽 종료 후 peer 지속·자원 보고·비용 판단. 사용한 종료 경계의 실제 중단 재개만 선택 |
 | 후속 | 프로젝트/전역 설치·자동 binding·업데이트/제거 | 설치/Codex 어댑터의 전체 SW-01/02·세션 자동 연결. 첫 버전의 선행 조건에서 제외 |
 
@@ -115,7 +115,7 @@ Core의 식별자는 공급자 중립적인 project/task/workspace ID를 유지�
 
 ## 사용 흐름 검증: SW-01~10
 
-SW-01~08/10은 **NotRun**, SW-09는 [로컬 폐기 실행](../verification/workspace-discard.md)의 하위 범위만 확인한 **Partial**이다. 기존 NI/LV/AA/SR 시험의 성공을 이 표로 승계하지 않는다. 장기 48개 카탈로그의 UX/CLI/GT/RC를 구체화하며 새 통과율을 만들기 위한 별도 집계가 아니다. SW-03~10의 M0에 필요한 하위 흐름을 먼저 수행하고 자동 binding/설치 전체와 구별한다. SW-01/02는 후속 설치 범위다.
+SW-01/02/04/05/07/08/10은 **NotRun**, SW-03/06은 [최소 AI 실행](../verification/agent-workflow.md)의 explicit/direct·새 CLI 재개 하위 범위만 **Partial**, SW-09는 [로컬 폐기 실행](../verification/workspace-discard.md)의 **Partial**이다. busy/unknown의 실제 점유·새/동시 대화와 전체 Editor 흐름은 아직 실행하지 않았다. 기존 NI/LV/AA/SR 시험의 성공을 이 표로 승계하지 않는다. 장기 48개 카탈로그의 UX/CLI/GT/RC를 구체화하며 새 통과율을 만들기 위한 별도 집계가 아니다. SW-03~10의 M0에 필요한 하위 흐름을 먼저 수행하고 자동 binding/설치 전체와 구별한다. SW-01/02는 후속 설치 범위다.
 
 | ID | 시나리오 | 반드시 남길 증거 |
 | --- | --- | --- |

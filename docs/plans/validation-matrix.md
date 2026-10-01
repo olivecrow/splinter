@@ -9,7 +9,7 @@
 | ID | 대표 흐름 | 상태 | 재사용 근거와 남은 확인 |
 | --- | --- | --- | --- |
 | M0-01 | NTFS A/B 생성·범위 저장·원본/peer 격리 | Partial | [로컬 폐기 A/B](../verification/workspace-discard.md)의 실제 생성·private 범위 쓰기·원본/peer 보호. Editor와 대표 입력 전체 흐름은 남음 |
-| M0-02 | 최소 AI 지침·같은 작업/경로 재개·direct 미사용 | NotRun | 기존 CLI/key/home 사용. 자동 Codex binding·전역 설치를 전제하지 않음 |
+| M0-02 | 최소 AI 지침·같은 작업/경로 재개·direct 미사용 | Partial | [최소 AI 실행](../verification/agent-workflow.md): 소스 스킬 직접 읽기·반환 절대 경로 편집·새 CLI의 같은 key/id/home/snapshot·direct의 새 workspace 0. Editor/대표 대화 흐름은 다음 A/B에 포함. 자동 Codex binding·전역 설치는 후속 |
 | M0-03 | 여러 차례 수정·오류 격리·정확한 Editor 검증 | NotRun | NI/PV/WF의 한정 근거. 선택한 실행 경로 하나의 실제 AI 작업으로 확인 |
 | M0-04 | 실패/미커밋 작업의 명시적 폐기·중복/중단 재개 | Partial | [로컬 폐기](../verification/workspace-discard.md): 서비스 Update·dirty A의 같은 intent 거부 후 재개·완료 요청 중복·B 지속·실제 VSS 회수. Unity 컴파일 실패/Editor stop·native 강제 중단은 미실행, SW-09 Partial/SW-10 NotRun |
 | M0-05 | 결과 보존/반영/회수·A 종료 뒤 B 지속 | NotRun | NI/PV의 독립 결과와 dirty guard. 보존과 폐기의 분기를 새 후보에서 확인 |
@@ -125,7 +125,7 @@ NR-03은 [공통 저널 58개](../verification/ntfs-recovery.md#nr-03-공통-저
 | NR-07 | 부분 준비·결과·회수의 재조정 | InProgress: 마지막 VSS 해제/LV, 원격 released 복구와 NR-02의 사용자 쓰기 없는 준비 재개 후 독립 결과/최종 회수 | 준비를 Ready로 재개한 뒤 정상 회수한 범위. 부분 준비 직접 release와 commit/ref/manifest/seal 중단, unmount/Git/delta/VSS 해제 응답 유실은 남음. 영수증과 실패 임시 파일은 보존 |
 | NR-08 | 최종 후보·Unity 회귀·문서 | InProgress: 이전 ARM/x64 단일 검증 2건, 새 LV Windows x64 단일 검증 3건·재연결·결과·회수 통과 | 원격 workspace 소유 자원0과 canonical Editor/MCP 세션 정상 종료 확인. 같은 후보의 단일 정상 회귀이며 ARM Windows 원본/A/B·재부팅 후 loaded-code·fingerprint·validation·dirty 통합 차단과 전체 NR 완료는 남음 |
 
-결과 보존 결함·공통 계약과 기존 PV의 제한·마감 판정은 유지한다. 다음 제품 작업은 M0-04 폐기와 최소 AI 연결이며 NR 전체 행렬·NR-04/06 환경 준비·ARM 확대는 별도 지원 범위다. 지원 경로의 안전 결함 또는 변경 경계 때문에 필요한 NR만 선택한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
+결과 보존 결함·공통 계약과 기존 PV의 제한·마감 판정은 유지한다. 폐기 연결/로컬 실행과 최소 AI 연결은 한정 마감했고 다음 제품 작업은 대표 A/B 사용과 비용 판단이다. NR 전체 행렬·NR-04/06 환경 준비·ARM 확대는 별도 지원 범위다. 지원 경로의 안전 결함 또는 변경 경계 때문에 필요한 NR만 선택한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
 
 ## SF-03 공통 수명주기 적합성
 
@@ -241,6 +241,6 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 
 - SF-02/03은 Partial, SF-04~06은 NotRun이다. 완료 기준은 [저장공간·Editor 계획](storage-priority-and-editor-modes.md)을 따른다.
 - SF-03의 공통 수명주기 계약은 위 VW 자동 적합성으로 추적한다. 실제 제품 VSS·WinFsp·Unity 연결은 WF의 현재 후보 증거로 따로 판정한다.
-- SW-01~08/10은 NotRun, SW-09는 [로컬 dirty 폐기](../verification/workspace-discard.md)만 확인한 Partial이다. 일반 설치/binding과 전체 대화/Editor 흐름의 자격은 남아 있다. UA-01~04의 서비스 구현·자동 시험과 실제 설치/반복 실행은 [UA 검증](../verification/storage-privilege-service.md)에서 구분한다.
+- SW-01/02/04/05/07/08/10은 NotRun, SW-03/06은 [최소 AI 실행](../verification/agent-workflow.md)의 explicit/direct·새 CLI 재개만 확인한 Partial, SW-09는 [로컬 dirty 폐기](../verification/workspace-discard.md)의 Partial이다. 일반 설치/binding·busy/unknown 실제 선택·새/동시 대화와 전체 Editor 흐름의 자격은 남아 있다. UA-01~04의 서비스 구현·자동 시험과 실제 설치/반복 실행은 [UA 검증](../verification/storage-privilege-service.md)에서 구분한다.
 - PV-01/02의 사용자 선택 범위는 scoped-complete-with-limitations다. 전체 PV-02 Passed로 표시하지 않고 S4 입력 실패·소수 표본·raw 입력 동등성 unknown을 유지한다. [비교 방법](parallel-workflow-qualification.md)과 [실측](../verification/parallel-workflow.md)은 후속 비교의 입력을 고정하기 위해 보존한다.
 - 현재 코드의 계약 변경은 필수 형식 생성·읽기, 지원하지 않는 형식의 비파괴 거부, 같은 버전의 중단 재시도를 함께 검증한다. 자동 시험과 실제 VSS/Unity 실행을 구별한다.

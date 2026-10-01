@@ -4,11 +4,12 @@ AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬
 
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 
-명시적 discard 연결·승인한 서비스 업데이트와 로컬 dirty A/B의 실제 폐기를 확인했다. 첫 실사용 버전의 남은 순서는 **최소 AI 작업 연결 → 대표 A/B 흐름과 공간·시간 판단**이다. [M0 계획](docs/plans/implementation-plan.md)이 완료 범위를 소유한다. 범용 Unity 저작/Play/Test Runner·AI Runner/DAG·상주 DB는 제품 범위에서 제외하며 전체 OS 장애·설치/자동 binding·대형 지원은 후속이다. 폐기 실행에는 해당 계약을 지원하는 제한 권한 서비스가 필요하다.
+명시적 discard 연결·승인한 서비스 업데이트와 로컬 dirty A/B의 실제 폐기를 확인했다. 에이전트는 [최소 사용 스킬](skills/splinter/SKILL.md)에서 직접/독립 작업 판단과 기존 CLI의 생성·재개·종료 절차를 읽는다. 저장소에 포함한 지침이며 전역 설치나 자동 대화 연결은 제공하지 않는다. [M0 계획](docs/plans/implementation-plan.md)이 첫 실사용 버전의 완료 범위를 소유한다. 범용 Unity 저작/Play/Test Runner·AI Runner/DAG·상주 DB는 제품 범위에서 제외하며 전체 OS 장애·설치/자동 binding·대형 지원은 후속이다. 폐기 실행에는 해당 계약을 지원하는 제한 권한 서비스가 필요하다.
 
 ## 현재 제공하는 기능
 
 - .NET CLI, atomic JSON 상태와 작업 잠금, 공통 Core 계약 및 fake 적합성 시험.
+- 저장소에 포함한 [AI 사용 스킬](skills/splinter/SKILL.md): 필요성 판단·반환 경로 사용·같은 요청 재개·명시적 종료·실패 처리. 현재 CLI와 대화의 작업 식별자를 사용한다.
 - [명시적 폐기](docs/workspace-discard.md)의 고정 intent·중단 재개와 Git/Windows provider·`workspace discard`. 실제 서비스 적용/폐기 자격은 별도로 표시한다.
 - `ntfs-snapshot` workspace의 VSS·WinFsp 범위 저널, Git 등록, 작업별 프로세스 그룹과 Unity 검증, 독립 결과 보존과 명시적 회수.
 - 변경 기반 소스 검증, 명시적 저널 정리와 선택적 중첩량 예산, snapshot 지연 회수.
@@ -33,6 +34,8 @@ pwsh ./scripts/splinter.ps1 workspace ensure --project ../splinter-unity --key <
 ```
 
 CLI는 stdout에 JSON 응답 하나를 반환한다. VSS 작업은 [제한 권한 서비스](docs/storage-privilege-service.md)를 사용하며, 서비스 부재나 미등록 범위는 설치/구성 필요 상태를 반환한다. [NTFS 사용법](docs/ntfs-workspaces.md)을 먼저 읽고 반환된 작업공간 경로에서 편집한다. 일반 CLI·Git·Unity 전체를 관리자 권한으로 실행하지 않는다.
+
+각 대화의 에이전트는 [스킬 원본](skills/splinter/SKILL.md)을 읽고 시작한다. 프로젝트 정책에 지정한 CLI·등록 project/home을 사용하고, 응답의 `data.workspace.path`에서 편집한다. 같은 작업은 key/id/home·기준·request digest를 대화나 인계에 남겨 같은 ensure 입력으로 재개한다. 현재 경로에서 독립 실행 없이 작업할 수 있으면 새 workspace를 만들지 않는다.
 
 `main`은 출시용, `development`는 개발용이다. 형제 `../splinter-unity`는 별도 Git 저장소이며 submodule이 아니다. 실제 Git 등록 시험은 `pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository ../splinter-unity`로 실행한다. 이 시험은 Unity Editor·CoW 시험과 구별한다.
 

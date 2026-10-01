@@ -8,7 +8,7 @@ Windows 어댑터는 변경 callback 전체를 별도의 `mutationGate`로 직�
 
 > 제품 workspace에 [NTFS snapshot 모드](ntfs-workspaces.md)를 연결했다. 자동 계약/Git/NTFS 메타데이터 시험과 실제 VSS/Unity 통합 자격은 구분하며 [NI 기록](verification/ntfs-workspace-integration.md)을 따른다. SO 독립 실험과 기존 ReFS 성공을 NI 통과로 합산하지 않는다.
 
-Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release/discard**와 계약·진단이다. ReFS CoW와 무-checkout index를 연결하고 Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 지원 경계와 실환경 증거는 [검증 안내](verification/README.md)를 따른다. 첫 실사용 버전은 [M0](plans/implementation-plan.md)이며 폐기의 로컬 한정 실행 뒤 최소 AI 연결과 대표 사용 흐름·비용 판단이 남아 있다. DAG 검사/제출·AI Runner·daemon/DB·범용 Unity 저작/Play/Test Runner는 제품 범위에서 제외한다.
+Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release/discard**와 계약·진단이다. ReFS CoW와 무-checkout index를 연결하고 Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 지원 경계와 실환경 증거는 [검증 안내](verification/README.md)를 따른다. 첫 실사용 버전은 [M0](plans/implementation-plan.md)이며 폐기와 최소 AI 연결의 로컬 한정 실행 뒤 대표 A/B 사용 흐름·비용 판단이 남아 있다. DAG 검사/제출·AI Runner·daemon/DB·범용 Unity 저작/Play/Test Runner는 제품 범위에서 제외한다.
 
 ## 구조와 의존성
 
@@ -86,7 +86,7 @@ Host는 CLI 프로세스의 읽기 전용 라이브러리다. 변경 작업은 �
 
 Runtime의 `AtomicFilePublication`은 같은 디렉터리에서 flush한 임시 파일을 기존 상태에는 `File.Replace`, 최초 게시에는 덮어쓰기 없는 `File.Move`로 발행한다. workspace/baseline 저장과 Windows provider 제어 IPC가 사용하며 polling reader는 `FileShare.Delete`를 허용한다. VSS helper의 영수증도 같은 방식을 쓴다. Windows IPC의 게시 공유 오류는 같은 임시 파일로 최대 1초 재시도하며 지속 실패는 남은 파일을 보존한다. Windows 관측 reader도 교체 중 일시적 부재/공유 오류에서 경로 guard와 open을 최대 1초 재시도한다. 선택적 stop/flush/source 요청 polling의 부재는 즉시 반환하며 손상 JSON·접근 거부·소유권 불일치는 숨기지 않는다. 목적 파일 선삭제나 속성 변경으로 우회하지 않는다. 이는 제어 파일 게시/읽기 방식이며 저널 flush 정책을 변경하지 않는다.
 
-제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. 작은 Editor 브리지 소스를 소유 작업공간의 `Assets/__Splinter__`에 넣으며 원본이나 결과 커밋에는 포함하지 않는다. 비Git·비Unity fake로 Runtime의 기준본·수명주기·검증·프로세스 회수 경계를 시험한다. 각 대화가 workspace CLI를 직접 사용하는 데 별도 조정 AI는 필요하지 않다. 프로젝트용/전역용 설치, 필요성 자동 판단, Codex 대화/파일 경로의 자동 binding, 반영 없는 명시적 discard의 실제 서비스 자격은 미완료이며 [대화별 계획](plans/session-workflow-and-installation.md)에 있다. DAG 실행과 agent runner는 제품 범위에서 제외한다. 범용 저장소 지원표·장애 복구 적합성도 아직 미완료다.
+제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. 작은 Editor 브리지 소스를 소유 작업공간의 `Assets/__Splinter__`에 넣으며 원본이나 결과 커밋에는 포함하지 않는다. 비Git·비Unity fake로 Runtime의 기준본·수명주기·검증·프로세스 회수 경계를 시험한다. 각 대화가 workspace CLI를 직접 사용하는 데 별도 조정 AI는 필요하지 않다. [최소 사용 스킬](../skills/splinter/SKILL.md)은 필요성 판단, `data.workspace.path`의 파일 도구 대상 지정, 같은 project/key/id/home·기준·digest 재개와 종료 의도를 안내한다. 작업 식별자는 대화/인계에 유지하며 제품의 자동 대화 binding이나 임의 파일 편집의 대화별 배타 잠금은 제공하지 않는다. 프로젝트용/전역용 설치·자동 binding은 [대화별 계획](plans/session-workflow-and-installation.md)의 후속이다. 반영 없는 명시적 discard의 한정 서비스 실행 자격은 [폐기 검증](verification/workspace-discard.md)에 있다. DAG 실행과 agent runner는 제품 범위에서 제외한다. 범용 저장소 지원표·장애 복구 적합성도 아직 미완료다.
 
 ## 에이전트용 명령 계약
 
@@ -186,4 +186,4 @@ pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository .
 
 [제한 권한 서비스](storage-privilege-service.md)는 Windows 어댑터의 별도 SCM/IPC 경계이며 `storage service status`로 읽기 전용 발견을 제공한다. 실행 파일과 상태를 보호하고 고정 VSS 연산만 받는다. 실제 설치·반복 사용의 완료 판정은 [UA 검증](verification/storage-privilege-service.md)을 따른다.
 
-남은 첫 버전 작업은 [M0](plans/implementation-plan.md)의 discard·최소 AI 작업 연결·대표 사용/비용이다. [저장공간·Editor 정책](plans/storage-priority-and-editor-modes.md), [NR 장애·파일 지원](plans/ntfs-recovery-and-support.md), [설치·자동 binding](plans/session-workflow-and-installation.md)의 전체 지원은 후속이다. 제한 권한 서비스의 실제 설치·반복 사용은 [UA 검증](verification/storage-privilege-service.md)의 등록 범위에서 확인했다. 기본 모드·대형 프로젝트·전체 OS 지원을 완료로 표시하지 않는다.
+남은 첫 버전 작업은 [M0](plans/implementation-plan.md)의 대표 A/B 사용/종료·비용 판단과 한정 납품이다. discard·최소 AI 연결의 Editor 없는 단위는 마감했고 해당 M0 전체의 남은 Editor/보존형 종료를 대표 사용 흐름에서 확인한다. [저장공간·Editor 정책](plans/storage-priority-and-editor-modes.md), [NR 장애·파일 지원](plans/ntfs-recovery-and-support.md), [설치·자동 binding](plans/session-workflow-and-installation.md)의 전체 지원은 후속이다. 제한 권한 서비스의 실제 설치·반복 사용은 [UA 검증](verification/storage-privilege-service.md)의 등록 범위에서 확인했다. 기본 모드·대형 프로젝트·전체 OS 지원을 완료로 표시하지 않는다.

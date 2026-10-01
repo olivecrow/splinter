@@ -1,6 +1,6 @@
 # Splinter 첫 실사용 버전 계획
 
-제품 `workspace discard --id --intent-key --expected-request-digest` 연결과 승인한 서비스 Update·로컬 dirty A/B 폐기 단위는 [한정 실행](../verification/workspace-discard.md)으로 마감했다. 다음 개발 범위는 **최소 AI 사용 지침과 작업 연결**이다. explicit/busy/direct/unknown 판단, CLI가 반환한 절대 경로·같은 key/id/home 재개, 보존/반영/폐기와 실패 응답 처리만 정리하고 기존 CLI로 실제 사용한다. 별도 binding framework·일반 설치·대형/ARM/OS 장애 행렬은 추가하지 않는다. Unity 오류/Editor 종료와 보존형 종료는 그 다음 대표 A/B 사용 묶음에서 확인한다.
+제품 discard 연결·승인한 서비스 Update/로컬 dirty A/B 폐기는 [한정 실행](../verification/workspace-discard.md), 최소 AI 사용 지침과 기존 CLI의 반환 경로·동일 작업 재개/direct 미사용은 [AI 사용 실행](../verification/agent-workflow.md)으로 각각 마감했다. 다음 개발 범위는 **대표 A/B 사용 한 묶음과 그 실행의 공간·시간 판단**이다. 기존 등록 fixture·CLI·제한 서비스를 사용하고 Unity 오류/수정·Editor 종료·보존/반영/폐기의 남은 경계를 확인한다. 별도 binding framework·일반 설치·새 harness·대형/ARM/OS 장애 행렬은 추가하지 않는다.
 
 ## 목적과 완료 경계
 
@@ -35,18 +35,25 @@ Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약
 | 순서 | 산출물 | 완료 기준과 수정 한도 |
 | --- | --- | --- |
 | 1 | 명시적 `discard` 계약·구현: 연결/로컬 단위 마감 | dirty 작업·같은 intent 재개/중복·peer 보호·실제 회수 확인. Unity 컴파일 실패/Editor stop은 3의 대표 흐름에 포함하며 이 때문에 별도 장애 행렬을 열지 않음 |
-| 2 | 최소 AI 작업 연결·사용 지침 | explicit/busy/direct/unknown 판단, 반환 경로에서 파일 도구·CLI·Editor 사용, 같은 key/id/home 재개. 실제 AI 사용으로 확인. 프로젝트/전역 설치·복잡한 자동 binding은 후속 |
+| 2 | 최소 AI 작업 연결·사용 지침: Editor 없는 단위 마감 | [스킬 원본](../../skills/splinter/SKILL.md)과 실제 explicit/direct·반환 경로 편집·새 CLI의 같은 key/id/home 재개·폐기 확인. Editor/대표 대화 흐름은 3에서 확인하며 프로젝트/전역 설치·자동 binding은 후속 |
 | 3 | A/B의 대표 사용 흐름 | 여러 차례 수정·오류 수정·재개 후 A 보존 또는 폐기, B 계속 수정. 명시적 반영에는 최신 원본/dirty guard와 독립 결과 유지. 실패를 완료로 기록하지 않음 |
 | 4 | 공간·시간의 채택 판단 | 고정 입력과 실행 경로 하나에서 생성·Editor 준비·편집·재개·종료의 전체 시간과 추가 공간 관측. 필요한 대표 입력 한 개를 선정하며 기존 제한 근거를 재사용. 실용성을 막는 재현 결함/병목만 수정 |
 | 5 | 한정 버전 납품 | M0의 실행 결과, AI 사용법·지원 입력·설치 전제·known limits와 다음 행동. 한정 버전의 완료를 대형 프로젝트/범용 공개 지원으로 확대하지 않음 |
 
 discard의 상세 의도·공유 자원·중단 조건은 [대화별 작업 계획](session-workflow-and-installation.md#완료보존폐기)이 소유한다. 첫 구현은 정확한 worker workspace를 대상으로 한다. 사용 중인 candidate/source/cache 의존성은 명시적으로 차단하고 해당 의존성 정리 행동을 반환한다. 원본 Editor·타 작업·공유 view를 자동 종료하거나 연쇄 삭제하지 않는다. snapshot 회수가 지연되면 논리적 작업 종료와 물리 회수 대기를 구분하며 숨은 백업이나 회수 완료로 표시하지 않는다.
 
-### 폐기 연결과 다음 단위
+### 다음 대표 A/B 사용 단위
 
 [명시적 폐기](../workspace-discard.md)는 Core/Runtime의 고정 intent와 실제 Git/Windows provider·CLI를 연결했다. 자동 시험은 실제 Git 등록/작업 branch·독립 결과/peer 보호, sealed delta의 부분 삭제 재개, 별도 VSS authorization과 권한 경계를 확인한다. 승인한 서비스 Update 뒤 Editor 없는 dirty A 폐기·같은 요청 재개/중복·B 지속과 두 작업의 실제 VSS 회수를 확인했다. 기존 release의 결과 gate는 유지하며 Unity 컴파일 실패·Editor 종료는 대표 사용 묶음의 남은 확인이다.
 
-[폐기 검증](../verification/workspace-discard.md)의 코드/자동 자격과 M0-04의 Partial을 구분한다. 최소 AI 지침 단위의 완료 기준은 에이전트가 현재 capabilities에서 명령을 찾고 자기 workspace 경로를 사용하며, 같은 작업을 재개하고 명시적 종료 종류를 정확히 선택하는 것이다. 필요 없는 direct 사례에는 새 workspace를 만들지 않는다. 대표 A/B 묶음에서 남은 Editor/종료 경계를 확인하며 별도 Runner·binding framework·새 장애 행렬은 만들지 않는다.
+[최소 AI 실행](../verification/agent-workflow.md)의 현재 지침·기존 CLI 경로는 한정 완료다. M0-02의 남은 Editor 사용은 아래 흐름에 포함한다. 지침 발견 변경만으로 폐기/준비/저널 시험을 반복하거나 자동 Codex binding을 선행 구현하지 않는다.
+
+1. 기존 등록된 작은 clean fixture와 Unity `6000.3.22f1`의 독립 Editor 경로 하나를 고정한다. 원본·기존 결과 refs/작업을 보존하고 새 A/B만 식별한다. VIVOBOOK 시험은 포함하지 않는다.
+2. 반환된 각 경로에서 A/B를 여러 차례 편집한다. A 오류가 B를 막지 않는지 확인하고 A를 수정·재개해 현재 소스의 검증을 얻는다. 두 작업의 key/id/home·기준을 유지한다.
+3. A의 결과를 명시적으로 보존/반영·회수하는 동안 B가 계속 편집되는지 확인한다. 최신 원본/dirty guard·독립 결과 보존을 확인하고, B의 미커밋/컴파일 실패 작업은 소유 Editor 정상 종료를 포함해 명시적으로 폐기한다. 성공하지 않은 단계는 보존하고 다음 행동을 보고한다.
+4. 같은 한 묶음에서 생성·Editor 준비·편집·재개·종료 시간과 추가 저장 비용을 관측해 실용성/제한을 판단한다. 필요한 관측만 기존 도구로 수집하고 전역 물리 peak·공유 VSS 귀속이 관측되지 않으면 unknown으로 남긴다.
+
+종료 조건은 사용한 두 작업의 자원 상태·원본/독립 결과·peer 보호와 비용 판단을 보고한 시점이다. 막는 재현 결함만 한정 수정하고 기존 자동 회귀를 실행한다. 실패한 부작용 경계에 필요한 재개 외에 native 강제 중단·새 환경/입력·반복 표본을 추가하지 않는다. 전체 설치·busy/unknown 자동 선택·동시 대화의 작성자 배타 제어는 이 묶음의 필수 조건이 아니다.
 
 ## 유지할 구현과 제거 경계
 
