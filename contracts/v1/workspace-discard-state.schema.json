@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:workspace-discard-state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["intent", "step"],
+  "properties": {
+    "intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "workspaceId", "intentKey", "requestDigest", "projectPath", "path", "sourceReference", "baseRevision", "sourceRevision", "snapshot", "createdAt"],
+      "properties": {
+        "version": {"const": 1},
+        "workspaceId": {"type": "string", "pattern": "^[a-f0-9]{24}$"},
+        "intentKey": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "\\S"},
+        "requestDigest": {"type": "string", "pattern": "^[a-f0-9]{24}$"},
+        "projectPath": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sourceReference": {"type": "string", "minLength": 1},
+        "baseRevision": {"type": "string", "minLength": 1},
+        "sourceRevision": {"type": "string", "minLength": 1},
+        "snapshot": {"$ref": "urn:splinter:v1:response#/$defs/snapshotWorkspace/properties/reference"},
+        "createdAt": {"type": "string", "minLength": 1}
+      }
+    },
+    "step": {"enum": ["stop", "unmount", "source", "delta", "snapshot", "complete"]},
+    "seal": {"$ref": "urn:splinter:v1:response#/$defs/snapshotWorkspace/properties/result/properties/seal"}
+  },
+  "if": {"properties": {"step": {"not": {"const": "stop"}}}},
+  "then": {"required": ["seal"]}
+}

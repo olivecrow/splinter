@@ -103,6 +103,10 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be read. Restore access before retrying the same key."); }
         if (record.Version != 1 || record.Id != id || !SamePath(record.Path, WorkPath(id)))
             throw new WorkspaceException("StateCorrupt", "Workspace identity/path/version does not match its registry.");
+        if (record.Discard is { } discard) discard.RequireMatch(record);
+        else if (record.Phase is "discarding" or "discard-reclaim-pending" or "discarded" ||
+            record.Snapshot?.Step.StartsWith("discard", StringComparison.Ordinal) == true)
+            throw new WorkspaceException("DiscardIntentMismatch", "Preserve discard state: its durable intent is missing.");
         if (record.Snapshot?.Result is { } result && result.CollectionProtocol != SnapshotResult.StableJournalProtocol)
             throw new WorkspaceException("StateCorrupt", "The result collection protocol is invalid. Preserve the record and its resources.");
         if (record.StorageMode == "ntfs-snapshot" && (record.Snapshot is null ||

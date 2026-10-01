@@ -1,6 +1,6 @@
 # 대화별 작업공간 사용과 설치 계획
 
-설치·자동 세션 연결·명시적 discard는 미구현이며 SW-01~10은 NotRun이다. 현재 실행 명령은 [foundation](../foundation.md), 동작 절차는 [알파 작업공간](../alpha-workspaces.md)을 따른다.
+설치·자동 세션 연결·제품 discard는 미구현이며 SW-01~10은 NotRun이다. [공통 폐기](../workspace-discard.md)는 Core/Runtime·fake 범위이며 실제 provider·CLI 미연결이다. 현재 실행 명령은 [foundation](../foundation.md), 동작 절차는 [알파 작업공간](../alpha-workspaces.md)을 따른다.
 
 첫 실사용 버전은 [M0](implementation-plan.md)의 한정 흐름이다. **명시적 discard → 최소 AI 사용 지침/작업 연결 → 실제 A/B 반복 사용**을 먼저 완성한다. 프로젝트/전역 설치·자동 Codex 세션 binding·업데이트/제거의 전체 SW 조건은 후속이다. 기존 CLI와 안정된 key/id/home·정확한 반환 경로로 사용하는 최소 경로를 첫 버전에서 실제 평가한다.
 

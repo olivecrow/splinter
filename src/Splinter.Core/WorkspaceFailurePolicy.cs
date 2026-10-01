@@ -4,6 +4,7 @@ namespace Splinter.Core;
 public static class WorkspaceFailurePolicy
 {
     public static bool RequiresPreservation(string? code) => code is
+        "DiscardIntentMismatch" or "DiscardDeltaChanged" or "DiscardSourceChanged" or "DiscardRequestConflict" or
         "DeltaChangedAfterCollection" or "SnapshotResultInvalid" or "StateCorrupt" or
         "SnapshotReclamationInvalid" or "SnapshotCollateralLoss" or "CompactionGenerationMismatch" or
         "CompactionStateMismatch" or "CompactionCandidateMismatch" or "CompactionIntentCorrupt" or "CompactionIntentMismatch" or
@@ -19,6 +20,7 @@ public static class WorkspaceFailurePolicy
         "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "ValidationInProgress" or "SourceObservationUncertain" or "SourceChanged" or "ValidationResourcesBusy" or "CandidatePublicationBusy" => "safe-to-retry",
         "StorageServiceMissing" or "StorageServiceUnavailable" or "StorageServiceVersionMismatch" or "StorageServiceUnsafe" or
         "StorageOperationUncertain" or "StorageRequestPending" or "StorageScopeDenied" or "StorageSnapshotNotOwned" or "StorageReleaseNotAuthorized" or
+        "WorkspaceDiscardUnavailable" or "WorkspaceDiscarding" or "DiscardOwnershipUnknown" or
         "CoWUnsupported" or "ProcessOwnershipUnknown" or "SnapshotPrivilegeRequired" or
         "SnapshotHeadroomRequired" or "SnapshotReleaseIsolationRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or
         "OverlayStartUncertain" or "SnapshotStateMissing" or "SnapshotCheckpointMismatch" or "SnapshotPreparationIncomplete" or "SnapshotOperationIncomplete" or

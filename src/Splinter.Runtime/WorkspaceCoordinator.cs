@@ -12,7 +12,7 @@ public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Sourc
 
 public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceProvider sources, IApplicationWorkspaceProvider applications,
     IWorkspaceStorageProvider? storage = null, ISnapshotWorkspaceBackend? snapshots = null,
-    IWorkspacePreparationObserver? preparationObserver = null)
+    IWorkspacePreparationObserver? preparationObserver = null, IWorkspaceDiscardProvider? discardProvider = null)
 {
     public IReadOnlyList<WorkspaceRecord> List(string? project) => store.List(project is null ? null : WorkspaceStore.CanonicalProject(project));
 
@@ -58,7 +58,8 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         else if (record.BaseReference != baseReference || record.StorageMode != storageMode || record.BaselineId != baselineId || record.Purpose != purpose ||
             storageMode == "ntfs-snapshot" && record.Snapshot?.MaxJournalBytes != maxJournalBytes)
             throw new WorkspaceException("RequestKeyConflict", "This key already belongs to another request. Reuse its original parameters or choose a new task key.");
-        if (record.Phase == "released") return new(record, null, null, store.ControlPath(id), "workspace list");
+        if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(id), "workspace list");
+        RequireNotDiscarding(record);
         try
         {
             if (storageMode == "ntfs-snapshot")
@@ -259,6 +260,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     {
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
+        RequireNotDiscarding(record);
         if (record.Phase == "released") return new(record, null, null, store.ControlPath(id), "workspace list");
         if (record.StorageMode == "ntfs-snapshot") return await ReleaseSnapshotWorkspaceAsync(record, ct);
         // Git can unregister a worktree before failing to delete every file.
@@ -294,7 +296,13 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
 
     private async Task<WorkspaceView> ViewAsync(WorkspaceRecord record, CancellationToken ct, bool verifySource = true)
     {
-        if (record.Phase == "released") return new(record, null, null, store.ControlPath(record.Id), "workspace list");
+        if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(record.Id), "workspace list");
+        if (record.Discard is not null)
+        {
+            record.Snapshot!.Observation = await Snapshots.ObserveAsync(record, store.ControlPath(record.Id), ct);
+            return new(record, null, await applications.ObserveAsync(record, store.ControlPath(record.Id), ct),
+                store.ControlPath(record.Id), "workspace discard");
+        }
         if (record.StorageMode == "ntfs-snapshot")
         {
             var state = RequireSnapshot(record);
@@ -352,6 +360,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     }
     private static void RequireLive(WorkspaceRecord record)
     {
+        RequireNotDiscarding(record);
         if (record.Phase == "released") throw new WorkspaceException("WorkspaceReleased", "This task is released. Use a new request key.");
         if (record.BaseRevision is null) throw new WorkspaceException("WorkspaceNotReady", "Resume workspace ensure with the original request key.");
         if (record.Snapshot?.Step.StartsWith("compact-", StringComparison.Ordinal) == true)

@@ -11,7 +11,7 @@
 | M0-01 | NTFS A/B 생성·범위 저장·원본/peer 격리 | NotRun | NI/LV의 한정 근거. 첫 버전 후보의 고정 입력과 같은 A/B 흐름에서 확인 |
 | M0-02 | 최소 AI 지침·같은 작업/경로 재개·direct 미사용 | NotRun | 기존 CLI/key/home 사용. 자동 Codex binding·전역 설치를 전제하지 않음 |
 | M0-03 | 여러 차례 수정·오류 격리·정확한 Editor 검증 | NotRun | NI/PV/WF의 한정 근거. 선택한 실행 경로 하나의 실제 AI 작업으로 확인 |
-| M0-04 | 실패/미커밋 작업의 명시적 폐기·중복/중단 재개 | NotRun | discard 미구현. SW-09/10의 intent·소유권·공유 자원 보호가 다음 최우선 |
+| M0-04 | 실패/미커밋 작업의 명시적 폐기·중복/중단 재개 | NotRun | [공통 계약/Runtime/fake](../verification/workspace-discard.md) 범위. 실제 Git/Windows provider·VSS authorization·CLI와 SW-09/10의 실제 실행은 다음 연결 단위 |
 | M0-05 | 결과 보존/반영/회수·A 종료 뒤 B 지속 | NotRun | NI/PV의 독립 결과와 dirty guard. 보존과 폐기의 분기를 새 후보에서 확인 |
 | M0-06 | 지원 경로의 응답 유실/프로세스 중단·손상/unknown | NotRun | 준비 26·저널 58·kernel 19·client 13·진단 16은 각 후보의 별도 근거. 변경된 실제 경계만 재검증하며 OS 전체 장애로 확대하지 않음 |
 | M0-07 | 소유 자원 회수·공유/reclaim-pending의 정확한 보고 | NotRun | 기존 release/UA와 의존성 guard 유지. discard의 새 부작용과 중단 재조정 확인 |

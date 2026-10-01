@@ -1,5 +1,7 @@
 # NTFS snapshot 작업공간
 
+[명시적 폐기](workspace-discard.md)는 현재 Core/Runtime·fake 범위이며 제품 Windows/Git provider·CLI는 미연결이다. 실제 workspace에는 아래 보존형 release 계약이 적용되며 독립 결과 gate를 폐기를 위해 완화하지 않는다.
+
 `workspace ensure --storage ntfs-snapshot`은 기존 workspace 수명주기에 VSS 기준과 WinFsp 범위 저널을 연결한다. baseline 준비나 원본 이관은 필요하지 않다. **일반 제품 CLI로 실제 NTFS/Git/Unity 생성·편집·검증·재연결·독립 결과 보존과 회수 단계를 실행했다.** 최종 VSS 해제 상태와 지원 한계는 [NI 검증 기록](verification/ntfs-workspace-integration.md)을 따른다. 독립 SO 실험의 성공을 제품 통합의 성공으로 합산하지 않는다.
 
 ## 입력과 권한 경계

@@ -13,6 +13,8 @@
 
 ## 현재 기능의 소유 문서
 
+- 공통 폐기는 `docs/workspace-discard.md`를 따른다. Core/Runtime·schema·fake만 연결했고 실제 Git/Windows provider·CLI는 미구현이다. provider 없이는 intent·정지 전 거부한다. VSS 폐기 authorization을 결과 보존으로 위장하거나 기존 release gate를 약화하지 않는다. 자동 자격은 `docs/verification/workspace-discard.md`이며 M0-04/SW의 실제 Passed로 승계하지 않는다.
+
 - NTFS 생성·권한·회수: `docs/ntfs-workspaces.md`. Unity 절차: `docs/alpha-workspaces.md`. ReFS·프로세스 소유권: `docs/storage-and-resources.md`.
 - 제한 권한 서비스: `docs/storage-privilege-service.md`. `storage service status`는 읽기 전용이다. `package-storage-service.ps1`은 새 패키지 작성, `setup-storage-service.ps1`은 기본 read-only 계획이며 Apply는 명시적 관리자 설치/업데이트/제거다. 설치용 `storage-grant`는 고정 경로 identity만 읽는다. 일반 workspace 명령은 자동 elevation/helper fallback을 하지 않는다. 보호된 ledger와 다른 작업의 snapshot을 보존한다.
 - 소스 검증: `docs/source-verification.md`. 일반 status는 새 pending 검증 응답을 조정할 때만 소스를 검사한다. 현재 검사 `--verify-source`, 전체 감사/손상 cache 재작성 `--audit-source`를 구분한다. 초기·감사·provider 재연결은 전체 읽기이며 크기·mtime만 신뢰하지 않는다. Git/Unity mount 허용은 Core `WorkspaceMountAccess`를 공유한다.

@@ -1131,6 +1131,7 @@
           "type": "string",
           "pattern": "^[a-f0-9]{24}$"
         },
+        "discard": {"$ref": "urn:splinter:v1:workspace-discard-state"},
         "requestKey": {
           "type": "string",
           "minLength": 1
@@ -1366,6 +1367,9 @@
                 "resume-ensure",
                 "resume-compaction",
                 "resume-release",
+                "resume-discard",
+                "deferred-discard-reclamation",
+                "discarded",
                 "deferred-reclamation",
                 "released"
               ]
@@ -1380,6 +1384,7 @@
                 "workspace.ensure",
                 "workspace.compact",
                 "workspace.release",
+                "workspace.discard",
                 "workspace.list"
               ]
             }

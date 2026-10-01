@@ -4,7 +4,7 @@ using Splinter.Runtime;
 
 namespace Splinter.Tests;
 
-public sealed class SnapshotWorkspaceCoordinatorTests
+public sealed partial class SnapshotWorkspaceCoordinatorTests
 {
     [Theory]
     [InlineData("CompactionGenerationMismatch")]
@@ -490,8 +490,10 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         public Backend Backend { get; } = new();
         public Source Source { get; } = new();
         public App App { get; } = new();
-        public Fixture() { Directory.CreateDirectory(Project); }
-        public WorkspaceCoordinator New() => new(new(Home), Source, App, snapshots: Backend);
+        public bool WithDiscard;
+        public DiscardProvider Discard { get; }
+        public Fixture() { Directory.CreateDirectory(Project); Discard = new(Backend); }
+        public WorkspaceCoordinator New() => new(new(Home), Source, App, snapshots: Backend, discardProvider: WithDiscard ? Discard : null);
         public Task<WorkspaceView> Ensure(CancellationToken ct) => New().EnsureAsync(Project, "task", "base", "ntfs-snapshot", false, ct);
         public void Dispose() => directory.Dispose();
     }
@@ -512,7 +514,7 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         public string? CompactionFailure;
         public long? MinimumOverlap;
         public List<long?> SeenOverlapBudgets = [];
-        public bool? Available = true;
+        public bool? Available = true; public bool UnknownDelta;
         public string? LoseReleaseReply;
         private void FailOnce(string boundary) { if (LoseReleaseReply == boundary) { LoseReleaseReply = null; throw new WorkspaceException("ReplyLost", boundary); } }
         private SnapshotReference? receipt;
@@ -529,7 +531,7 @@ public sealed class SnapshotWorkspaceCoordinatorTests
             return Task.FromResult(new OverlayMount(w.Id, w.Path, "delta", w.Snapshot!.Reference!, 123, 1)); }
         public Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) =>
             Task.FromResult(new SnapshotWorkspaceObservation(Available, Mounted, Mounted, true, UnknownResources ? null : 0,
-                UnknownResources ? null : 0, UnknownResources ? null : 0, DeltaPresent: !DeltaRemoved));
+                UnknownResources ? null : 0, UnknownResources ? null : 0, DeltaPresent: UnknownDelta ? null : !DeltaRemoved));
         public Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string c, CancellationToken ct = default) =>
             Task.FromResult(new SnapshotDeltaSeal(sequence, Compacted ? 50 : 100, (Compacted ? "compact" : "hash") + sequence));
         public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
@@ -585,6 +587,7 @@ public sealed class SnapshotWorkspaceCoordinatorTests
     private sealed class App : IApplicationWorkspaceProvider
     {
         public int Starts, Children; public bool Running; private ApplicationValidation? validation;
+        public int Stops; public bool LoseStopReply;
         public Action? AfterRemoveInfrastructure;
         public string[] ManagedPaths => []; public string[] CacheInputs => [];
         public string CompatibilityKey(string project) => "fake";
@@ -592,7 +595,8 @@ public sealed class SnapshotWorkspaceCoordinatorTests
         public Task<ApplicationState> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.FromResult(new ApplicationState(Running, Running, "fake", Validation: validation,
             Resources: new(true, Running, Children + (Running ? 1 : 0), Children, Children)));
         public Task RequestValidationAsync(WorkspaceRecord w, string c, string id, string fp, CancellationToken ct = default) { validation = new(id, fp, true, DateTimeOffset.UtcNow, []); return Task.CompletedTask; }
-        public Task StopAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { Running = false; return Task.CompletedTask; }
+        public Task StopAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        { Stops++; Running = false; if (LoseStopReply) { LoseStopReply = false; throw new WorkspaceException("ReplyLost", "after stop"); } return Task.CompletedTask; }
         public Task RemoveInfrastructureAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { AfterRemoveInfrastructure?.Invoke(); return Task.CompletedTask; }
     }
 }

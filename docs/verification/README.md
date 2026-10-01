@@ -2,6 +2,8 @@
 
 ## 현재 변경의 검증
 
+[공통 폐기 수명주기](workspace-discard.md)는 Core/Runtime·atomic 임시 상태·fake 적합성의 자격이다. 실제 Git/Windows provider·VSS 폐기 authorization·CLI는 미연결이며 M0-04/SW-09/10은 NotRun을 유지한다.
+
 표준 진입점은 `pwsh ./scripts/build.ps1`이다. locked restore, Release 빌드, 자동 시험을 수행하며 결과는 `artifacts/test-results/`에 기록한다. 선택적 ReFS는 `SPLINTER_TEST_REFS_ROOT`를 지정한 경우에만 실행한다. 현재 계약은 VSS v2 capture identity, 완전한 overlay 검증 tuple, `stable-journal-v1` 결과, 필수 계측 필드를 요구한다. 지원하지 않는 형식은 자동 이관하지 않고 보존 후 거부한다.
 
 자동 시험은 현재 형식의 생성·읽기, 불완전한 입력 거부, checkpoint 중단 후 재시도, 소유권 불명·snapshot 소실·응답 유실에서의 보존을 다룬다. 개발 스크립트의 요청 생성 시험은 합성 영수증과 파일만 사용한다. 실제 VSS·WinFsp mount·Unity 실행을 대신하지 않는다.

@@ -44,6 +44,16 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
     {
         var state = workspace.Snapshot;
         if (workspace.Phase == "released") return new("released", "WorkspaceReleased", "workspace.list");
+        if (workspace.Discard is { } discard)
+        {
+            discard.RequireMatch(workspace);
+            if (workspace.Phase == "discarded") return new("discarded", "WorkspaceDiscarded", "workspace.list");
+            string? failure = workspace.LastError?.Split(':', 2)[0];
+            if (WorkspaceFailurePolicy.RequiresPreservation(failure)) return new("preserve", failure!, "workspace.status");
+            return workspace.Phase == "discard-reclaim-pending" && workspace.LastError is null
+                ? new("deferred-discard-reclamation", "SnapshotReleaseIsolationRequired", "workspace.discard")
+                : new("resume-discard", "WorkspaceDiscarding", "workspace.discard");
+        }
         if (state is null) return new("preserve", "SnapshotStateMissing", "workspace.status");
         var observation = state.Observation;
         string? retainedFailure = workspace.LastError?.Split(':', 2)[0];

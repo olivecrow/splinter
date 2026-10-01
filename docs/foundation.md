@@ -1,5 +1,7 @@
 # 현재 기반
 
+[공통 폐기](workspace-discard.md)는 Core 입력/state·provider 계약과 Runtime의 동일 intent 단계 재개·fake 적합성을 제공한다. 실제 provider와 `workspace discard` CLI는 미연결이며 capabilities의 unavailable을 유지한다. [자동 자격](verification/workspace-discard.md)은 실제 삭제나 M0 전체 통과와 구별한다.
+
 개발용 [WriteProbe](write-profiling.md)는 새 synthetic 디렉터리에서 고정 단일/동시 쓰기와 metadata 변경을 실행하고 내용과 읽기 전용 replay를 검증한다. `capabilities.developmentWriteProbe`에 입력·쓰기 경계가 있으며 제품 workspace 생성이나 Unity 검증을 대신하지 않는다. `OverlayIoMetrics.liveJournalWrites`는 고정 6개 연산별 live commit 단계와 flush 전후 다른 mutation 대기 호출을 집계한다. Runtime은 기존처럼 각 durable flush를 마친 뒤 commit을 적용한다.
 
 Windows 어댑터는 변경 callback 전체를 별도의 `mutationGate`로 직렬화한다. Runtime의 대기 표본에는 이 바깥의 대기와 OS queue가 포함되지 않으므로 직접 Runtime을 호출하는 합성 입력과 실제 Unity의 동시성 조건을 구분한다. 검증 범위와 group flush의 후속 판단은 [JW 실행 기록](verification/live-journal-write-cost.md)을 따른다.

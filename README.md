@@ -4,11 +4,12 @@ AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬
 
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 
-첫 실사용 버전의 남은 순서는 **명시적 discard → 최소 AI 작업 연결 → 대표 A/B 흐름과 공간·시간 판단**이다. [M0 계획](docs/plans/implementation-plan.md)이 완료 범위를 소유한다. 범용 Unity 저작/Play/Test Runner·AI Runner/DAG·상주 DB는 제품 범위에서 제외하며 전체 OS 장애·설치/자동 binding·대형 지원은 후속이다. 폐기는 아직 구현하지 않았다.
+첫 실사용 버전의 남은 순서는 **명시적 discard → 최소 AI 작업 연결 → 대표 A/B 흐름과 공간·시간 판단**이다. [M0 계획](docs/plans/implementation-plan.md)이 완료 범위를 소유한다. 범용 Unity 저작/Play/Test Runner·AI Runner/DAG·상주 DB는 제품 범위에서 제외하며 전체 OS 장애·설치/자동 binding·대형 지원은 후속이다. 제품 폐기 provider·CLI는 아직 연결하지 않았다.
 
 ## 현재 제공하는 기능
 
 - .NET CLI, atomic JSON 상태와 작업 잠금, 공통 Core 계약 및 fake 적합성 시험.
+- [공통 폐기 계약](docs/workspace-discard.md)과 Runtime의 고정 intent·중단 재개·fake 적합성. 실제 폐기 provider·제품 CLI는 아직 연결하지 않았다.
 - `ntfs-snapshot` workspace의 VSS·WinFsp 범위 저널, Git 등록, 작업별 프로세스 그룹과 Unity 검증, 독립 결과 보존과 명시적 회수.
 - 변경 기반 소스 검증, 명시적 저널 정리와 선택적 중첩량 예산, snapshot 지연 회수.
 - VSS 전용 Windows 권한 서비스와 명시적 설치 도구. 실제 설치·반복 UAC 0의 자격은 [UA 검증](docs/verification/storage-privilege-service.md)을 따른다.

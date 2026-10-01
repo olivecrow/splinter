@@ -170,7 +170,10 @@ public sealed partial class WorkspaceCoordinator
             }
             using (await store.LockAsync(WorkspaceStore.Key("snapshot:" + state.Reference!.Id), ct))
             {
-                if (store.List().Any(other => other.Id != w.Id && other.Phase != "released" && other.Snapshot?.Step != "release-snapshot" && other.Snapshot?.Reference?.Id == state.Reference.Id))
+                if (store.List().Any(other => other.Id != w.Id && other.Phase is not ("released" or "discarded") &&
+                    other.Snapshot?.Step != "release-snapshot" &&
+                    (other.Snapshot?.Step != "discard-snapshot" || other.Snapshot?.Observation?.DeltaPresent != false) &&
+                    other.Snapshot?.Reference?.Id == state.Reference.Id))
                     throw new WorkspaceException("SnapshotInUse", "Another workspace still depends on this immutable snapshot.");
                 await RequireNoValidationDependenciesAsync(w, ct);
                 var reclamation = await Snapshots.ReleaseSnapshotAsync(w, control, ct);
@@ -269,6 +272,7 @@ public sealed partial class WorkspaceCoordinator
             throw new WorkspaceException("InvalidCompactionBudget", "The estimated journal overlap budget must be positive.");
         using var gate = await store.LockAsync(id, ct);
         var w = store.Get(id);
+        RequireNotDiscarding(w);
         if (w.StorageMode != "ntfs-snapshot")
             throw new WorkspaceException("CompactionUnsupported", "Only an NTFS snapshot workspace has a range journal.");
         var state = RequireSnapshot(w);

@@ -6,6 +6,12 @@ using Splinter.Platform.Windows;
 
 namespace Splinter.Tests;
 
+[CollectionDefinition("Windows inherited-handle observation", DisableParallelization = true)]
+public sealed class WindowsInheritedHandleCollection;
+
+// This probe exposes an inheritable process-wide handle. Concurrent test
+// launches can keep it open and invalidate the supervisor-only observation.
+[Collection("Windows inherited-handle observation")]
 public sealed class WindowsProcessTests
 {
     [Fact]

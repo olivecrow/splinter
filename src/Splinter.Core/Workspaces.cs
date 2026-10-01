@@ -30,6 +30,7 @@ public sealed class WorkspaceRecord
     public ProcessResources? ReleasedResources { get; set; }
     public string? RequestDigest { get; set; }
     public SnapshotWorkspaceState? Snapshot { get; set; }
+    public WorkspaceDiscardState? Discard { get; set; }
 }
 
 public sealed record SourceWorkspace(string Path, string Reference, string BaseRevision, CloneStatistics? CloneMetrics = null);

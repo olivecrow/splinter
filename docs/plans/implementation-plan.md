@@ -40,6 +40,12 @@ Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약
 
 discard의 상세 의도·공유 자원·중단 조건은 [대화별 작업 계획](session-workflow-and-installation.md#완료보존폐기)이 소유한다. 첫 구현은 정확한 worker workspace를 대상으로 한다. 사용 중인 candidate/source/cache 의존성은 명시적으로 차단하고 해당 의존성 정리 행동을 반환한다. 원본 Editor·타 작업·공유 view를 자동 종료하거나 연쇄 삭제하지 않는다. snapshot 회수가 지연되면 논리적 작업 종료와 물리 회수 대기를 구분하며 숨은 백업이나 회수 완료로 표시하지 않는다.
 
+### 폐기 공통 계약과 다음 연결 단위
+
+Core 입력/지속 intent·provider 계약, Runtime의 stop/seal/unmount/source/delta/snapshot 순서와 동일 intent 중단 재개, fake/schema 적합성을 구현한다. 완료 조건은 실패/미커밋 작업의 checkpoint 없는 처리, owner/digest·seal·공유 의존성 보호, 교차 편집/보존형 release 차단과 정확한 지연 회수 영수증이다. 설치·권한 변경·실제 Windows/Git 삭제·CLI 등록은 다음 연결 단위다. 현재 실제 provider가 없으면 부작용 전 거부하며 기존 release의 결과 gate는 유지한다.
+
+현재 계약은 [공통 폐기](../workspace-discard.md), 자동 자격은 [검증](../verification/workspace-discard.md)을 따른다. 공통 단위는 해당 검증의 한정 완료이며 M0-04 실제 Passed로 올리지 않는다. 다음 연결 단위는 실제 Git owner/ref 처리 → Windows delta의 별도 intent → VSS 폐기 authorization → CLI → 변경된 실제 종료 경계 한 묶음이다. 관리자 서비스 적용이 필요한 시점에는 설치할 후보를 준비한 뒤 별도 승인을 받는다.
+
 ## 유지할 구현과 제거 경계
 
 | 판단 | 현재 경계 |
