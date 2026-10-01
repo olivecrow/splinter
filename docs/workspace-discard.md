@@ -1,6 +1,6 @@
 # 명시적 workspace 폐기
 
-`workspace discard`는 준비가 완료된 NTFS task worker를 성공 검증/checkpoint 없이 명시적으로 폐기한다. Core/Runtime과 실제 Git/Windows provider·CLI를 연결했다. 실제 VSS 폐기에는 이 계약을 지원하는 권한 서비스 패키지가 필요하며 서비스 업데이트는 별도 관리자 작업이다. [검증 기록](verification/workspace-discard.md)은 자동 권한 경계·등록된 로컬 fixture의 Editor 없는 VSS A/B 폐기와 아직 미실행인 Unity/강제 중단 자격을 구분한다.
+`workspace discard`는 준비가 완료된 NTFS task worker를 성공 검증/checkpoint 없이 명시적으로 폐기한다. Core/Runtime과 실제 Git/Windows provider·CLI를 연결했다. 실제 VSS 폐기에는 이 계약을 지원하는 권한 서비스 패키지가 필요하며 서비스 업데이트는 별도 관리자 작업이다. [폐기 검증](verification/workspace-discard.md)은 자동 권한 경계·로컬 Editor 없는 VSS A/B·같은 intent 재개/중복을, [대표 사용](verification/representative-agent-workflow.md)은 Unity 컴파일 실패·미커밋 worker의 정상 stop/실제 폐기를 다룬다. native 강제 중단과 일반 지원은 별도 미실행 범위다.
 
 ```powershell
 pwsh ./scripts/splinter.ps1 workspace status --id <id> --home <home>

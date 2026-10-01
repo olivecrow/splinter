@@ -2,7 +2,7 @@
 
 설치·자동 세션 연결은 미구현이다. [최소 사용 스킬](../../skills/splinter/SKILL.md)은 기존 CLI를 직접 사용하는 지침 원본이며 [한정 AI 실행](../verification/agent-workflow.md)에서 explicit/direct·반환 경로 편집·새 CLI 재개를 확인했다. SW-03/06은 해당 하위 범위만 Partial, SW-01/02/04/05/07/08/10은 NotRun이다. [명시적 폐기](../workspace-discard.md)는 Core/Runtime·Git/Windows provider·CLI와 제한 서비스를 연결했고 승인한 Update 뒤 로컬 Editor 없는 dirty A/B의 폐기·동일 요청 재개·peer 지속·VSS 회수를 확인했다. SW-09 전체는 Partial이다. 현재 실행 명령은 [foundation](../foundation.md), Editor 동작 절차는 [알파 작업공간](../alpha-workspaces.md)을 따른다.
 
-첫 실사용 버전은 [M0](implementation-plan.md)의 한정 흐름이다. discard 연결/로컬 단위와 최소 AI의 Editor 없는 단위는 마감했고 다음은 **대표 A/B 반복 사용과 비용 판단**이다. 프로젝트/전역 설치·자동 Codex 세션 binding·업데이트/제거의 전체 SW 조건은 후속이다. 기존 CLI와 안정된 key/id/home·정확한 반환 경로를 사용하며 별도 binding framework를 선행하지 않는다.
+첫 실사용 버전은 [M0](implementation-plan.md)의 한정 흐름이다. [대표 A/B 반복 사용과 비용 판단](../verification/representative-agent-workflow.md)을 마감했고 다음은 **한정 버전 납품 정리**다. 현재 Editor·오류 수정·같은 CLI 작업 재개·보존/통합/회수와 실패 B 폐기 자격은 해당 기록을 따르며 SW 전체 통과로 승계하지 않는다. 프로젝트/전역 설치·자동 Codex 세션 binding·업데이트/제거의 전체 SW 조건은 후속이다. 기존 CLI와 안정된 key/id/home·정확한 반환 경로를 사용하며 별도 binding framework를 선행하지 않는다.
 
 [저장공간 우선 계획](storage-priority-and-editor-modes.md)에 따라 독립 파일 작업공간과 Editor 실행 정책을 구분한다. 아래 지속 작업·반영·보존·폐기 원칙은 두 실행 방식에 공통이며, 제안 필드·상태·명령은 현재 capability가 아니다.
 

@@ -2,9 +2,11 @@
 
 ## 현재 변경의 검증
 
-[명시적 폐기 검증](workspace-discard.md)은 자동 자격과 승인한 서비스 Update·로컬 Editor 없는 dirty A/B의 실제 VSS 폐기·같은 요청 재개·peer 지속을 구분한다. 로컬 단위는 scoped-complete-with-limitations, M0-01/04/07과 SW-09는 Partial이며 Unity/강제 중단·SW-10은 미실행이다.
+[대표 AI A/B 사용·비용](representative-agent-workflow.md)은 독립 Editor 오류/수정·같은 작업 재개·독립 결과/dirty guard/통합·A release 중 B 지속·현재 컴파일 실패 B discard와 실제 회수를 한정 마감했다. 첫 seal/포커스 거부·같은 작업 재시도와 분 단위 준비·메모리 비용을 포함한다. 물리 peak/VSS 귀속은 unknown, native 강제 중단·OS 장애·ARM·대형 입력은 해당 실행에 포함하지 않았다. 다음 범위는 한정 납품 정리다.
 
-[최소 AI 작업 연결](agent-workflow.md)은 스킬 원본 직접 읽기·CLI 발견·반환 절대 경로 편집·새 CLI 동일 작업 재개·explicit/direct와 명시적 폐기를 확인했다. Editor 없는 단위는 scoped-complete-with-limitations로 마감하며 M0-02·SW-03/06은 Partial이다. 자동 스킬 발견/설치/binding·실제 busy/unknown 점유와 새/동시 대화·Unity 실행으로 확대하지 않는다.
+[명시적 폐기 검증](workspace-discard.md)은 자동 자격과 승인한 서비스 Update·로컬 Editor 없는 dirty A/B의 실제 VSS 폐기·같은 요청 재개·peer 지속을 구분한다. 그 실행 자체는 scoped-complete-with-limitations이며 현재 M0의 대표 Unity 자격과 구별한다. SW-09 전체 Partial·강제 중단/SW-10 미실행은 유지한다.
+
+[최소 AI 작업 연결](agent-workflow.md)은 스킬 원본 직접 읽기·CLI 발견·반환 절대 경로 편집·새 CLI 동일 작업 재개·explicit/direct와 명시적 폐기를 확인했다. Editor 없는 단위는 scoped-complete-with-limitations로 마감하며 SW-03/06 전체 Partial이다. 현재 Editor 자격은 위 대표 실행을 따르고 자동 스킬 발견/설치/binding·실제 busy/unknown 점유와 새/동시 대화로 확대하지 않는다.
 
 표준 진입점은 `pwsh ./scripts/build.ps1`이다. locked restore, Release 빌드, 자동 시험을 수행하며 결과는 `artifacts/test-results/`에 기록한다. 선택적 ReFS는 `SPLINTER_TEST_REFS_ROOT`를 지정한 경우에만 실행한다. 현재 계약은 VSS v2 capture identity, 완전한 overlay 검증 tuple, `stable-journal-v1` 결과, 필수 계측 필드를 요구한다. 지원하지 않는 형식은 자동 이관하지 않고 보존 후 거부한다.
 
@@ -32,8 +34,8 @@
 | LB-01~05 | [실제 Library snapshot 재사용·정리·재증가와 회수](product-validation-unelevated.md) | 이번 Library 수명주기 범위 scoped-complete-with-limitations. 전체 순간 물리 peak·VSS 귀속은 unknown이며 SF-02/03 전체는 Partial |
 | RI/RU/WI | 합성 또는 동일 닫힌 저널의 제한된 replay 비교 | warm cache·소수 표본. 누적 Editor 전체 개선·Library 물리 절감으로 환산하지 않음 |
 | JW/FR | 고정 쓰기 계측과 작은 URP fixture의 요청별 유효 PNG 검사 | Windows 선행 직렬화·내구성 경계 유지. Unity 내부 첫 draw 원인 미확정, group flush 미선정 |
-| SW-09 폐기 | [로컬 dirty A/B의 서비스 적용·동일 요청 재개·peer 지속·실제 회수](workspace-discard.md) | 하위 실행 scoped-complete-with-limitations, SW-09 전체 Partial. 컴파일 실패/Editor stop·native 강제 중단 미실행 |
-| M0-02, SW-03/06 | [최소 AI 지침·반환 경로·같은 작업 재개/direct](agent-workflow.md) | 하위 실행 scoped-complete-with-limitations, 전체 Partial. Editor/대표 대화와 busy/unknown 점유·자동 설치/binding은 미실행 |
+| SW-09 폐기 | [로컬 dirty A/B의 서비스 적용·동일 요청 재개](workspace-discard.md)와 [대표 Unity 실패 worker stop/폐기](representative-agent-workflow.md) | 하위 실행 scoped-complete-with-limitations, SW-09 전체 Partial. native 강제 중단·SW-10 미실행 |
+| M0, SW-03/06 | [최소 AI 지침·direct](agent-workflow.md)와 [대표 Editor·새 CLI 동일 작업 재개/종료·비용](representative-agent-workflow.md) | M0의 한정 Passed/Partial은 추적표 소유. SW-03/06 전체 Partial, busy/unknown 점유·새/동시 대화·자동 설치/binding은 미실행 |
 | SF-04~06, SW-01/02/04/05/07/08/10 | 계획 | NotRun. 대형 입력·모드 채택·일반 설치/binding과 전체 대화/Editor 사용 흐름은 미완료 |
 | UA-01~04 | [제한 권한 서비스](storage-privilege-service.md)의 실제 설치·일반 CLI A/B 추가 UAC 0·회수·서비스 재시작/응답 유실 | 등록된 Windows x64 NTFS/Git fixture 범위 Passed. 일반 Unity·ARM·실제 전원/재부팅과 native VSS 호출 도중 강제 종료로 확대하지 않음 |
 
@@ -47,6 +49,7 @@
 
 | 기록 | 보존 이유 |
 | --- | --- |
+| [대표 AI A/B 사용·비용](representative-agent-workflow.md) | 작은 warm 입력의 오류 격리·동일 작업 재개·독립 결과/dirty guard/통합·실패 폐기, 종료 뒤 Library lock 쓰기/포커스 거부·같은 작업 재시도와 시간/파일 할당 제한 |
 | [제품 범위 정리](workspace-product-scope.md) | 작업 그래프 제외의 명령/schema 발견·오류 응답 계약, 현재 자동 시험과 실환경 자격의 구분 |
 | [제한 권한 서비스](storage-privilege-service.md) | 보호된 상태·IPC 경계·최초 설치·반복 UAC·서비스 중단/응답 유실을 구분한 완료 판정 |
 | [VSS 보존 실패](storage-foundation.md), [삭제 차단과 복구](storage-recovery.md), [지연 회수](deferred-snapshot-reclamation.md) | exact-ID 삭제의 타 snapshot 영향, 격리 guard, 같은 작업의 명시적 재시도와 회수 순서 |

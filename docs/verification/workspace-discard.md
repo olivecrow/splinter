@@ -1,6 +1,6 @@
 # 명시적 폐기 연결의 검증
 
-소유 계약은 [workspace discard](../workspace-discard.md)다. 현재 후보는 Core/Runtime과 실제 Git·Windows 파일 삭제·VSS authorization·제품 CLI 연결이다. 사용자 승인으로 기존 서비스를 업데이트하고 등록된 로컬 fixture에서 **Editor 없는 dirty A 폐기·같은 요청 재시도·B 후속 쓰기·A/B 자원 회수**를 확인했다. 이 실행 단위는 scoped-complete-with-limitations이며 Unity 컴파일 실패·Editor 종료와 강제 프로세스 중단은 미실행이다. M0-01/04/07과 SW-09는 Partial, SW-10은 NotRun이다.
+소유 계약은 [workspace discard](../workspace-discard.md)다. 이 후보의 실행은 Core/Runtime과 실제 Git·Windows 파일 삭제·VSS authorization·제품 CLI 연결이다. 사용자 승인으로 기존 서비스를 업데이트하고 등록된 로컬 fixture에서 **Editor 없는 dirty A 폐기·같은 요청 재시도·B 후속 쓰기·A/B 자원 회수**를 확인했다. 이 실행 단위는 scoped-complete-with-limitations이며 Unity 컴파일 실패·Editor 종료는 별도 [대표 A/B 실행](representative-agent-workflow.md)에서 확인했다. 현재 M0 자격은 추적표를 따르고 이 Editor 없는 기록으로 승계하지 않는다. native 강제 중단/SW-10 NotRun·SW-09 전체 Partial은 유지한다.
 
 ## 현재 provider/CLI 연결 범위
 

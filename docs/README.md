@@ -26,6 +26,7 @@
 | [제품 쓰기 복구 시험](product-write-recovery.md) | 일반 VSS/WinFsp/Git CLI의 외부 client 경계·동일 작업 재연결·독립 보존/회수 개발 관문 |
 | [검증 안내](verification/README.md) | 지원 경계, 검증 진입점, 보존한 실측 근거 |
 | [최소 AI 작업 연결 검증](verification/agent-workflow.md) | source skill 직접 사용·반환 경로 편집·새 CLI 재개·direct/명시적 폐기 한정 실행 |
+| [대표 AI A/B 사용·비용 검증](verification/representative-agent-workflow.md) | 독립 Editor의 오류/수정·동일 작업 재개·보존/통합/release와 실패 작업 discard·단계별 파일 할당/시간·재시도 제한 |
 | [상태 쓰기 진단 검증](verification/state-write-diagnostics.md) | workspace 저장 단계·게시 완료 여부·실제 파일 잠금과 기계용 오류 계약의 자격 |
 
 ## 남은 설계와 검증

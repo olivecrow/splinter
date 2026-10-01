@@ -49,6 +49,7 @@ Windows Git 호출에는 `core.longpaths=true`를 명령별로 적용한다. 사
 | `EditorFocusRequired` | Windows가 활성화를 거부했다. 해당 프로젝트 Editor를 활성화한 뒤 refresh 재시도. |
 | `WorkspaceBusy`, `EditorNotReady` | 같은 명령 또는 status 재조회. |
 | `UncollectedChanges`, `GitDirtyWorktree` | 변경을 보존하고 검증·checkpoint를 완료한다. ReFS/진단 경로는 integrate도 필요하다. |
+| `DeltaChangedAfterCollection` | 독립 revision·delta·snapshot을 보존한다. 정확한 소유 Editor 종료·자원/핸들 0과 저널 안정 여부를 확인한 뒤 같은 ID/home에서 checkpoint/release를 명시적으로 재시도한다. 새 key나 seal 생략으로 우회하지 않는다. |
 | `IntegrationConflict` | 원본과 결과를 보존해 충돌을 해결한 새 작업을 진행한다. |
 | `LaunchUncertain`, `EditorStopTimeout`, `ProcessOwnershipUnknown` | `controlPath/editor.log`와 해당 PID/시작 시각을 조사한다. 강제 종료·강제 회수하지 않는다. |
 | `released` | 종료된 작업이다. 새 편집에는 새 key를 쓴다. |
@@ -67,7 +68,7 @@ Coplay `10.2.0`은 HTTP 서버 소유 정보를 전역 EditorPrefs에서 읽어 
 
 Editor가 종료하면서 기존 에셋의 직렬화 형식을 갱신하면 파일은 보존되고 기존 검증 hash가 무효화된다. 바뀐 파일을 검토한 뒤 다시 검증한다. 이번 fixture의 Mobile URP 에셋이 이 경로에 해당한다. CLI 실행 접두사는 .NET 도구 상태 경로를 제품 저장소 기준 절대 경로로 정규화하여 Unity 작업공간에 도구 sentinel 파일을 생성하지 않게 한다.
 
-사용자 전역 EditorPrefs, 라이선스, CPU/GPU, 외부 서비스는 공유된다. 보안 샌드박스가 아니며 다른 작업공간 접근을 OS 수준에서 금지하지 않는다. 씬·프리팹 편집, Play, 테스트 실행, 빌드, DAG 실행과 자동 에이전트 시작은 미구현이다. 저장소와 프로세스 그룹의 지원 범위·실제 증거는 [저장소·자원 관리](storage-and-resources.md)를 따른다. 각 대화의 에이전트가 CLI를 직접 사용할 수 있고 별도 조정 AI는 명령의 전제조건이 아니다. 하나의 대상 저장소에는 하나의 공통 `--home`을 사용한다. 제품의 설치·사용 여부 판단·Codex 대화 자동 연결과 반영 없는 discard는 아직 구현하지 않았다. [대화별 작업과 설치 계획](plans/session-workflow-and-installation.md)을 현재 실행 가능한 기능으로 해석하지 않는다.
+사용자 전역 EditorPrefs, 라이선스, CPU/GPU, 외부 서비스는 공유된다. 보안 샌드박스가 아니며 다른 작업공간 접근을 OS 수준에서 금지하지 않는다. 씬·프리팹 편집, Play, 테스트 실행, 빌드, DAG 실행과 자동 에이전트 시작은 제품 명령으로 제공하지 않는다. 저장소와 프로세스 그룹의 지원 범위·실제 증거는 [저장소·자원 관리](storage-and-resources.md)를 따른다. 각 대화의 에이전트가 [사용 지침](../skills/splinter/SKILL.md)에 따라 필요성을 판단하고 CLI를 직접 사용한다. 별도 조정 AI는 전제조건이 아니며 하나의 대상 저장소에는 하나의 공통 `--home`을 사용한다. [반영 없는 명시적 discard](workspace-discard.md)는 현재 제공한다. 제품 전체 설치·자동 사용 모드 선택·Codex 대화 자동 연결은 후속 [계획](plans/session-workflow-and-installation.md)이다. 독립 Editor의 현재 실행 자격·지연 Library lock 쓰기의 수집 거부/같은 작업 재시도·비용 제한은 [대표 사용](verification/representative-agent-workflow.md)을 따른다.
 
 ## 변경 기반 검사와 보존 제한
 

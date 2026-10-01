@@ -1,6 +1,6 @@
 # 최소 AI 작업 연결 검증
 
-[스킬 원본](../../skills/splinter/SKILL.md)의 CLI 발견·반환 경로 사용·동일 작업 재개·명시적 종료를 로컬 등록 fixture 한 작업으로 확인했다. 이 개발 단위는 **scoped-complete-with-limitations**로 마감한다. M0-02 전체는 Editor/대화 흐름이 남아 Partial이며 자동 설치·Codex 스킬 발견·대화 binding의 자격이 아니다. 현재 지침을 다시 시험하기 위해 전체 Unity/VSS 장애 행렬을 열지 않는다.
+[스킬 원본](../../skills/splinter/SKILL.md)의 CLI 발견·반환 경로 사용·동일 작업 재개·명시적 종료를 로컬 등록 fixture 한 작업으로 확인했다. 이 Editor 없는 개발 단위는 **scoped-complete-with-limitations**로 마감한다. Editor의 현재 별도 자격은 [대표 A/B 사용](representative-agent-workflow.md)과 M0 추적표를 따른다. 자동 설치·Codex 스킬 발견·대화 binding의 자격이 아니다. 현재 지침을 다시 시험하기 위해 전체 Unity/VSS 장애 행렬을 열지 않는다.
 
 ## 고정한 입력과 증거
 
@@ -30,7 +30,7 @@ explicit/direct 사례의 실제 에이전트 사용과 새 CLI 재개를 확인
 
 전체 `Win32_ShadowCopy` 목록은 sandbox에서 접근 거부, 일반 권한의 sandbox 밖 조회에서 초기화 실패로 관측할 수 없었다. 전역 snapshot inventory·비소유 snapshot 전체 비교는 **unknown**이다. 이를 위해 새 관리자 작업이나 서비스 권한 확대를 하지 않았다. 해당 task의 기존 서비스 관측과 Git/원본/기존 기록 보존만 위 표에 자격으로 남긴다.
 
-Unity Editor·컴파일 오류/수정·보존형 종료/통합·dirty guard·A 종료 뒤 B 지속과 공간/시간 채택 판단은 [대표 A/B 다음 범위](../plans/implementation-plan.md#다음-대표-ab-사용-단위)에서 확인한다. 네이티브 강제 중단·실제 재부팅/전원/공간 고갈·ARM·대형 입력은 이번 단위에 추가하지 않는다.
+Unity Editor·컴파일 오류/수정·보존형 종료/통합·dirty guard·A 종료 뒤 B 지속과 공간/시간 채택 판단은 별도 [대표 A/B 실행](representative-agent-workflow.md)에서 확인했다. 이 Editor 없는 기록의 자격으로 승계하지 않는다. 네이티브 강제 중단·실제 재부팅/전원/공간 고갈·ARM·대형 입력은 별도 지원 확대다.
 
 ## 자동 검증
 

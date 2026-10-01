@@ -4,7 +4,7 @@ AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬
 
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 
-명시적 discard 연결·승인한 서비스 업데이트와 로컬 dirty A/B의 실제 폐기를 확인했다. 에이전트는 [최소 사용 스킬](skills/splinter/SKILL.md)에서 직접/독립 작업 판단과 기존 CLI의 생성·재개·종료 절차를 읽는다. 저장소에 포함한 지침이며 전역 설치나 자동 대화 연결은 제공하지 않는다. [M0 계획](docs/plans/implementation-plan.md)이 첫 실사용 버전의 완료 범위를 소유한다. 범용 Unity 저작/Play/Test Runner·AI Runner/DAG·상주 DB는 제품 범위에서 제외하며 전체 OS 장애·설치/자동 binding·대형 지원은 후속이다. 폐기 실행에는 해당 계약을 지원하는 제한 권한 서비스가 필요하다.
+등록된 작은 fixture에서 [대표 A/B 사용](docs/verification/representative-agent-workflow.md)의 독립 Editor·오류/수정·같은 작업 재개·보존/통합/회수·실패 작업 폐기와 비용을 확인했다. 첫 결과 수집과 Editor 활성화의 재시도 제한을 포함한 내부 알파 자격이다. 에이전트는 [최소 사용 스킬](skills/splinter/SKILL.md)에서 직접/독립 작업 판단과 기존 CLI의 생성·재개·종료 절차를 읽는다. 전역 설치나 자동 대화 연결은 제공하지 않는다. [M0 계획](docs/plans/implementation-plan.md)의 다음 범위는 한정 버전 납품 정리이며, 범용 Unity 저작/Play/Test Runner·AI Runner/DAG·상주 DB는 제품 범위에서 제외한다. 전체 OS 장애·설치/자동 binding·대형 지원은 후속이고 폐기에는 해당 계약을 지원하는 제한 권한 서비스가 필요하다.
 
 ## 현재 제공하는 기능
 

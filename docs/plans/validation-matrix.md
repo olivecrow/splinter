@@ -4,18 +4,18 @@
 
 ## 첫 실사용 버전 M0
 
-범위·수정 한도·종료 규칙은 [첫 버전 계획](implementation-plan.md)이 소유한다. 아래 상태는 새 대표 사용 흐름 전체에 대한 것이며 기존 하위 실행 자격과 구별한다. 미실행 M0가 기존 NI/WF의 부분 성공을 무효화하지 않는다.
+범위·수정 한도·종료 규칙은 [첫 버전 계획](implementation-plan.md)이 소유한다. 아래 Passed는 명시한 작은 등록 fixture·독립 Editor 경로의 한정 조건에 대한 것이며 범용 지원을 뜻하지 않는다. [대표 사용/비용](../verification/representative-agent-workflow.md)은 scoped-complete-with-limitations다. 미실행 M0가 기존 NI/WF의 부분 성공을 무효화하지 않는다.
 
 | ID | 대표 흐름 | 상태 | 재사용 근거와 남은 확인 |
 | --- | --- | --- | --- |
-| M0-01 | NTFS A/B 생성·범위 저장·원본/peer 격리 | Partial | [로컬 폐기 A/B](../verification/workspace-discard.md)의 실제 생성·private 범위 쓰기·원본/peer 보호. Editor와 대표 입력 전체 흐름은 남음 |
-| M0-02 | 최소 AI 지침·같은 작업/경로 재개·direct 미사용 | Partial | [최소 AI 실행](../verification/agent-workflow.md): 소스 스킬 직접 읽기·반환 절대 경로 편집·새 CLI의 같은 key/id/home/snapshot·direct의 새 workspace 0. Editor/대표 대화 흐름은 다음 A/B에 포함. 자동 Codex binding·전역 설치는 후속 |
-| M0-03 | 여러 차례 수정·오류 격리·정확한 Editor 검증 | NotRun | NI/PV/WF의 한정 근거. 선택한 실행 경로 하나의 실제 AI 작업으로 확인 |
-| M0-04 | 실패/미커밋 작업의 명시적 폐기·중복/중단 재개 | Partial | [로컬 폐기](../verification/workspace-discard.md): 서비스 Update·dirty A의 같은 intent 거부 후 재개·완료 요청 중복·B 지속·실제 VSS 회수. Unity 컴파일 실패/Editor stop·native 강제 중단은 미실행, SW-09 Partial/SW-10 NotRun |
-| M0-05 | 결과 보존/반영/회수·A 종료 뒤 B 지속 | NotRun | NI/PV의 독립 결과와 dirty guard. 보존과 폐기의 분기를 새 후보에서 확인 |
-| M0-06 | 지원 경로의 응답 유실/프로세스 중단·손상/unknown | NotRun | 준비 26·저널 58·kernel 19·client 13·진단 16은 각 후보의 별도 근거. 변경된 실제 경계만 재검증하며 OS 전체 장애로 확대하지 않음 |
-| M0-07 | 소유 자원 회수·공유/reclaim-pending의 정확한 보고 | Partial | [로컬 폐기 A/B](../verification/workspace-discard.md)의 실제 mount/Git/delta/VSS 부재·자원 0. 해당 실행에는 공유 지연 blocker가 없으며 Editor와 보존형 종료의 새 대표 흐름은 남음 |
-| M0-08 | 대표 입력의 생성/준비/재개/반복 편집/종료 비용 | NotRun | WF/LB/PV의 제한 근거를 재사용. 질문·입력·종료 조건을 고정한 비용 판단, p95/20회·C/S/Q 재개는 필수가 아님 |
+| M0-01 | NTFS A/B 생성·범위 저장·원본/peer 격리 | Passed | [대표 사용](../verification/representative-agent-workflow.md)의 작은 warm fixture·독립 Editor 경로 한정. 최초 payload 복제 0·원본/peer 보호·회수. 일반 파일/대형 입력 지원으로 확대하지 않음 |
+| M0-02 | 최소 AI 지침·같은 작업/경로 재개·direct 미사용 | Passed | [최소 AI 실행](../verification/agent-workflow.md)의 direct/지침과 [대표 사용](../verification/representative-agent-workflow.md)의 실제 Editor·새 CLI 동일 A 재개. 자동 발견/설치/binding·새/동시 대화의 배타 제어는 후속 |
+| M0-03 | 여러 차례 수정·오류 격리·정확한 Editor 검증 | Passed | [대표 사용](../verification/representative-agent-workflow.md): A CS0103 → 수정 113, B 213/214/215의 현재 검증·loaded assembly, 같은 작업 유지. focus 거부/재시도와 게시 오류 로그 제한 포함 |
+| M0-04 | 실패/미커밋 작업의 명시적 폐기·중복/중단 재개 | Passed | [로컬 폐기](../verification/workspace-discard.md)의 동일 intent 재개/중복과 [대표 사용](../verification/representative-agent-workflow.md)의 B 현재 컴파일 실패·checkpoint 없음·정상 stop/실제 회수. native 강제 중단/SW-10은 별도 NotRun |
+| M0-05 | 결과 보존/반영/회수·A 종료 뒤 B 지속 | Passed | [대표 사용](../verification/representative-agent-workflow.md)의 독립 결과·dirty 원본 거부/보존·clean 시험 branch 통합·A release 중 B 수정. 첫 seal 거부 뒤 같은 A 재수집 성공, 원본 Editor의 통합 후 게임 검증은 별도 |
+| M0-06 | 지원 경로의 응답 유실/프로세스 중단·손상/unknown | Partial | 현재 필수 자동 회귀 744 성공과 seal 변경의 보존/동일 A 재시도. 준비 26·저널 58·kernel 19·client 13·진단 16은 각 후보의 별도 근거이며 현재 정상 사용 실행의 native 중단 통과가 아님. 납품 단위에서 기존 근거의 재사용/지원 제외 경계를 고정하며 전체 행렬을 자동 반복하지 않음 |
+| M0-07 | 소유 자원 회수·공유/reclaim-pending의 정확한 보고 | Passed | [대표 사용](../verification/representative-agent-workflow.md)의 A release/B discard: 소유 Editor/provider·mount/Git/delta·정확한 VSS 부재, 자원 0. 공유 지연 blocker는 이번 실행에 없음. 전역 VSS inventory는 unknown |
+| M0-08 | 대표 입력의 생성/준비/재개/반복 편집/종료 비용 | Passed | [대표 사용](../verification/representative-agent-workflow.md)의 동일 실행 비용·제약 판단. 관측 추가 파일 할당 최대 약 335 MiB·종료 뒤 약 1.77 MiB. 분 단위 준비·큰 Editor 메모리·재시도 포함, 물리 peak/VSS 귀속 unknown |
 
 기존 자동 회귀는 유지한다. 실제 시험은 변경된 부작용 경계·재현 결함과 최종 대표 A/B 한 묶음에 맞춘다. 기존 결과의 후보/입력 제한을 표시하면서 재사용하고 새로운 후보 전체 Passed로 자동 승계하지 않는다.
 
@@ -241,6 +241,6 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 
 - SF-02/03은 Partial, SF-04~06은 NotRun이다. 완료 기준은 [저장공간·Editor 계획](storage-priority-and-editor-modes.md)을 따른다.
 - SF-03의 공통 수명주기 계약은 위 VW 자동 적합성으로 추적한다. 실제 제품 VSS·WinFsp·Unity 연결은 WF의 현재 후보 증거로 따로 판정한다.
-- SW-01/02/04/05/07/08/10은 NotRun, SW-03/06은 [최소 AI 실행](../verification/agent-workflow.md)의 explicit/direct·새 CLI 재개만 확인한 Partial, SW-09는 [로컬 dirty 폐기](../verification/workspace-discard.md)의 Partial이다. 일반 설치/binding·busy/unknown 실제 선택·새/동시 대화와 전체 Editor 흐름의 자격은 남아 있다. UA-01~04의 서비스 구현·자동 시험과 실제 설치/반복 실행은 [UA 검증](../verification/storage-privilege-service.md)에서 구분한다.
+- SW-01/02/04/05/07/08/10은 NotRun, SW-03/06/09 전체는 Partial이다. [최소 AI 실행](../verification/agent-workflow.md)·[로컬 dirty 폐기](../verification/workspace-discard.md)와 [대표 Editor A/B 사용·종료](../verification/representative-agent-workflow.md)의 하위 자격을 구분한다. 일반 설치/binding·busy/unknown 실제 선택·새/동시 대화와 native 강제 중단은 미실행이며 M0의 한정 완료를 SW 전체에 승계하지 않는다. UA-01~04의 서비스 구현·자동 시험과 실제 설치/반복 실행은 [UA 검증](../verification/storage-privilege-service.md)에서 구분한다.
 - PV-01/02의 사용자 선택 범위는 scoped-complete-with-limitations다. 전체 PV-02 Passed로 표시하지 않고 S4 입력 실패·소수 표본·raw 입력 동등성 unknown을 유지한다. [비교 방법](parallel-workflow-qualification.md)과 [실측](../verification/parallel-workflow.md)은 후속 비교의 입력을 고정하기 위해 보존한다.
 - 현재 코드의 계약 변경은 필수 형식 생성·읽기, 지원하지 않는 형식의 비파괴 거부, 같은 버전의 중단 재시도를 함께 검증한다. 자동 시험과 실제 VSS/Unity 실행을 구별한다.
