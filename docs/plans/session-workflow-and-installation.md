@@ -2,6 +2,8 @@
 
 설치·자동 세션 연결·명시적 discard는 미구현이며 SW-01~10은 NotRun이다. 현재 실행 명령은 [foundation](../foundation.md), 동작 절차는 [알파 작업공간](../alpha-workspaces.md)을 따른다.
 
+첫 실사용 버전은 [M0](implementation-plan.md)의 한정 흐름이다. **명시적 discard → 최소 AI 사용 지침/작업 연결 → 실제 A/B 반복 사용**을 먼저 완성한다. 프로젝트/전역 설치·자동 Codex 세션 binding·업데이트/제거의 전체 SW 조건은 후속이다. 기존 CLI와 안정된 key/id/home·정확한 반환 경로로 사용하는 최소 경로를 첫 버전에서 실제 평가한다.
+
 [저장공간 우선 계획](storage-priority-and-editor-modes.md)에 따라 독립 파일 작업공간과 Editor 실행 정책을 구분한다. 아래 지속 작업·반영·보존·폐기 원칙은 두 실행 방식에 공통이며, 제안 필드·상태·명령은 현재 capability가 아니다.
 
 ## 제품의 기본 사용 모델
@@ -22,7 +24,7 @@ flowchart LR
     IB --> O
 ```
 
-프로그램은 작업 식별·지속 상태·소유권·공유 자원·통합 순서를 조정한다. 작업의 의미 판단과 편집은 각 대화의 AI가 수행한다. Codex Runner와 DAG는 이후 자동 하위 작업 위임을 위한 선택적 확장이다. daemon/SQLite 전환도 기본 사용법의 선행 조건이 아니다.
+프로그램은 작업 식별·지속 상태·소유권·공유 자원·통합 순서를 조정한다. 작업의 의미 판단과 편집은 각 대화의 AI가 수행한다. Codex Runner·DAG·daemon/SQLite는 이 제품 계획에 포함하지 않는다.
 
 ## Splinter를 사용할 때와 사용하지 않을 때
 
@@ -39,7 +41,9 @@ Editor가 열려 있다는 사실만으로 다른 작업이 점유했다고 판�
 
 이 조건에 해당하는 병렬 작업에는 **Codex의 별도 worktree 생성 기능 대신 Splinter의 작업공간 수명주기**를 사용한다. Splinter 내부 Git 어댑터가 만드는 linked worktree는 유지한다. 이미 외부 worktree에서 시작한 대화는 원본·대상 브랜치·관리 소유권을 식별하고 지원 여부를 확인한다. 기존 Codex worktree를 임의로 이동·삭제하거나 두 도구가 같은 자원을 함께 소유하게 만들지 않는다.
 
-## 프로젝트용·전역용 설치
+## 후속: 프로젝트용·전역용 설치
+
+이 절은 설치 지원을 시작할 때의 요구이며 discard나 최소 AI 사용의 선행 관문이 아니다. 첫 버전은 기존 개발 배포물/CLI·제한 서비스 전제를 명시하고 지침 발견과 실제 작업 경로 사용만 검증한다. 설치 전체가 완료된 것처럼 표시하지 않는다.
 
 사용자는 “이 프로젝트에서 Splinter를 쓰도록 가져와줘” 또는 “전역에서 쓸 수 있게 설치해줘”라고 요청한다. AI가 요청 범위의 배포물 확보, 의존성 확인, 지침 연결과 실제 발견 검증을 담당한다. 사용자가 제품 소스를 빌드하거나 직접 경로를 복사하는 절차를 정상 경로로 삼지 않는다.
 
@@ -64,6 +68,8 @@ Editor가 열려 있다는 사실만으로 다른 작업이 점유했다고 판�
 업데이트는 활성 작업이 사용하는 프로토콜·실행 파일을 강제 교체하지 않는다. 제거는 해당 설치가 만든 연결과 사용하지 않는 배포물만 처리하고, 다른 프로젝트의 공용 설치·원본·미완료 작업은 보존한다. 도구 제거 요청을 작업 폐기 요청으로 해석하지 않는다.
 
 ## 대화와 작업공간 연결
+
+첫 버전은 project/task key·workspace ID·절대 루트·동일 home·소유 세대를 최소 연결로 사용한다. 특정 Codex 대화 locator API, fork/다른 host 인계, 프로젝트/전역 manifest 자동 발견과 자동 binding은 후속이다. 새 CLI·문맥 압축 뒤 최소 연결을 그대로 사용하는 실제 AI 흐름은 M0-02에서 확인한다.
 
 Core의 식별자는 공급자 중립적인 project/task/workspace ID를 유지한다. Codex 대화 ID는 연결 어댑터가 보유하는 선택적 locator다. 지원된 세션 ID가 없으면 안정된 작업 키와 저장된 연결 manifest로 재개하며 사용자가 키를 반복 입력하게 하지 않는다.
 
@@ -100,17 +106,16 @@ Core의 식별자는 공급자 중립적인 project/task/workspace ID를 유지�
 
 | 순서 | 산출물 | 담당 경계 / 완료 조건 |
 | --- | --- | --- |
-| 1 | 사용 판단·연결·종료 의도의 계약과 fake | Core/Protocol/Runtime. explicit/busy/direct/unknown, 동일 작업 재개, 반영·보존·폐기를 구분. 구현 시 schema·fake·현재 문서를 함께 변경 |
-| 2 | 프로젝트용·전역용 설치와 최소 스킬 연결 | 설치/Codex 어댑터. 의존성·범위·기존 설정·실제 발견 확인, 미사용 경로 포함 |
-| 3 | 현재 대화의 binding·경로·재개 | Codex 연결 + Runtime. 실제 파일 도구/CLI/Editor가 같은 작업을 가리키며 Core는 Codex API에 의존하지 않음 |
-| 4 | 통합 완료 처리와 명시적 discard | Runtime/Git/Windows/Unity. 최신 원본 검증·단계별 중단 복구·정확한 소유 자원 회수 |
-| 5 | 독립 대화의 실제 여러 차례 작업과 비용 | 기존 PV-01/02와 아래 SW 사례. 코드 편집/오류 수정, A 먼저 완료, B 지속·재개, 별도 폐기, 재설치·미사용 경로 |
+| 1 | 명시적 discard의 계약·fake·실제 worker 처리 | Core/Protocol/Runtime/Git/Windows. 성공 검증/checkpoint 없이 실패·미커밋 작업 폐기, intent/owner·동일 요청 중단 재개. 공유 candidate/source/cache는 명시적 차단과 정리 행동, 자동 연쇄 삭제 없음 |
+| 2 | 최소 AI 사용 지침·작업 연결 | explicit/busy/direct/unknown, stable key/id/home·반환 루트에서 편집/CLI/Editor, 같은 작업 재개. 특정 Codex API·전역 설치를 필수로 하지 않음 |
+| 3 | 실제 A/B의 여러 차례 사용과 종료 | M0의 오류 격리·보존/반영/폐기·한쪽 종료 후 peer 지속·자원 보고·비용 판단. 사용한 종료 경계의 실제 중단 재개만 선택 |
+| 후속 | 프로젝트/전역 설치·자동 binding·업데이트/제거 | 설치/Codex 어댑터의 전체 SW-01/02·세션 자동 연결. 첫 버전의 선행 조건에서 제외 |
 
-기존 CLI로 가능한 PV 작업·비용 측정의 사용자 선택 범위는 설치/폐기 구현 전체를 기다리지 않고 `scoped-complete-with-limitations`로 마감했다. 복구·운영 개입을 포함한 PV-01 완료와 S4 FailedInputQualification·소수 표본·과거 전체 팩 raw 동등성 unknown은 [실행 기록](../verification/parallel-workflow.md)을 따른다. PV-02 전체 Passed로 올리지 않는다. 아직 없는 기능은 SW에서 NotRun으로 둔다. NR의 장애·파일 지원 조건은 지원 확대 전에 완료하고, 별도 Runner·DAG·DB 도입으로 이 사용자 흐름의 검증을 늦추지 않는다.
+기존 CLI로 가능한 PV 작업·비용 측정의 사용자 선택 범위는 설치/폐기 구현 전체를 기다리지 않고 `scoped-complete-with-limitations`로 마감했다. 복구·운영 개입을 포함한 PV-01 완료와 S4 FailedInputQualification·소수 표본·과거 전체 팩 raw 동등성 unknown은 [실행 기록](../verification/parallel-workflow.md)을 따른다. PV-02 전체 Passed로 올리지 않는다. 아직 없는 기능은 SW에서 NotRun으로 둔다. 새 지원을 추가할 때 해당 NR 장애·파일 조건을 선택해 검증한다. NR 전체 미실행이나 제품에서 제외한 Runner·DAG·DB를 M0 착수의 선행 조건으로 삼지 않는다.
 
 ## 사용 흐름 검증: SW-01~10
 
-모두 **NotRun**이다. 기존 NI/LV/AA/SR 시험의 성공을 이 표로 승계하지 않는다. 공개 48개 시나리오의 UX/CLI/GT/RC 조건을 구체화하는 하위 사례이며 새 통과율을 만들기 위한 별도 집계가 아니다.
+모두 **NotRun**이다. 기존 NI/LV/AA/SR 시험의 성공을 이 표로 승계하지 않는다. 장기 48개 카탈로그의 UX/CLI/GT/RC를 구체화하며 새 통과율을 만들기 위한 별도 집계가 아니다. SW-03~10의 M0에 필요한 하위 흐름을 먼저 수행하고 자동 binding/설치 전체와 구별한다. SW-01/02는 후속 설치 범위다.
 
 | ID | 시나리오 | 반드시 남길 증거 |
 | --- | --- | --- |

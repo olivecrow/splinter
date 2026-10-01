@@ -2,7 +2,7 @@
 
 - 먼저 `README.md`와 `docs/README.md`를 읽고 해당 작업의 문서만 이어서 읽는다. `plan.html`은 제품 요구사항, `docs/plans/`는 목표와 남은 작업, `docs/foundation.md`는 현재 구현이다.
 - `main`은 출시용, `development`는 개발용이다. 일반 개발과 통합은 `development`를 기준으로 한다. 원본과 다른 작업자의 미커밋 변경을 보존한다.
-- 주 사용자는 각 대화의 AI 에이전트다. `docs/plans/session-workflow-and-installation.md`의 필요 시 사용 → 같은 작업 지속 → 명시적 반영/보존/폐기를 기본 사용 모델로 삼는다. 별도 조정 AI·Runner·DAG는 필수가 아니다.
+- 주 사용자는 각 대화의 AI 에이전트다. `docs/plans/session-workflow-and-installation.md`의 필요 시 사용 → 같은 작업 지속 → 명시적 반영/보존/폐기를 기본 사용 모델로 삼는다. 첫 실사용 버전은 `docs/plans/implementation-plan.md`의 M0이며 다음 순서는 명시적 discard → 최소 AI 연결 → 대표 A/B 사용·비용 판단이다. 별도 조정 AI·Runner·DAG·daemon/DB·범용 Unity 저작/Play/Test Runner는 제품 범위에서 제외한다.
 - 사용자가 병렬 작업을 명시하거나 다른 작업의 점유로 독립 실행이 필요할 때 Splinter workspace를 사용한다. 불필요하면 직접 작업하며, Splinter 병렬 경로에 Codex 별도 worktree를 중첩하지 않는다. 제품 내부 Git linked worktree 계약은 유지한다.
 - 대화·응답·Editor 종료, 임대 만료·타임아웃·디스크 압박은 통합이나 삭제의 승인이 아니다. release는 독립 결과를 보존한다. 명시적 discard·일반 제품 설치·자동 binding은 미구현이다. VSS 전용 권한 서비스의 실제 자격은 UA 추적표를 따른다.
 - 필수 저장소 요구는 원본 NTFS 위치·파일시스템 유지, 최초 전체 데이터 복제·읽기 hydration·파일 전체 copy-up fallback 금지, 범위 변경 저장이다. 원본은 작업 중 계속 수정 가능해야 한다. ReFS는 선택적 backend이며 NTFS의 이관 fallback이 아니다.
@@ -37,6 +37,7 @@
 - `scripts/test-journal-recovery.ps1`은 `docs/journal-recovery.md`의 합성 저널/실제 자식 종료 개발 시험이다. 기본값은 읽기 전용 계획, `-Execute`는 새 증거 디렉터리에만 58개 고정 경계의 ACK·tail·재생 hash를 남긴다. 명시적 공통 observer는 일반 provider에 연결하지 않으며 실제 WinFsp/VSS/mmap/전원 자격으로 확대하지 않는다.
 
 - 지원 상태와 보존할 비교 근거는 `docs/verification/README.md`, 미완료 검증은 `docs/plans/validation-matrix.md`를 따른다. 작은 fixture의 성공을 일반 지원으로 확대하지 않는다. 실행하지 않은 시험은 NotRun이며 이전 후보의 결과를 현재 후보의 통과로 표시하지 않는다.
+- M0와 장기 NR/SF/SW·48개 카탈로그를 구분한다. 기존 자동 회귀·승인 쓰기·원본/peer/공유 자원 보호는 유지한다. 실제 시험은 변경된 부작용 경계·재현 결함·최종 대표 A/B 한 묶음에 맞춘다. 새 harness·전체 행렬·반복 확대에는 질문과 종료 조건을 먼저 확정하며 지원 경로의 안전 결함을 제외하면 폐기/최소 AI 연결보다 앞세우지 않는다. `plan validate`·DAG schema는 제공하지 않는다.
 - 대형 프로젝트의 추가 물리 공간·생성·편집 준비·재개 시간을 함께 판단하고 Editor 동시성은 그 뒤에 둔다. SF-02/03은 Partial, SF-04~06은 NotRun이다. 단일 Editor 제품 연결의 현재 실행 자격은 WF 추적표를 따른다. 기본 모드 선택은 미완료다. 마감된 대형 PV를 자동 재개하지 않는다.
 - PV의 S와 Codex 독립 Editor C에는 Unity Agent Coordination을 사용하지 않는다. Q 비교군만 Codex worktree와 Coordination의 단일 Editor를 사용한다. C/S/Q의 Library·큐 대기·후보 전환 비용을 구분한다. S4 입력 실패와 전체 팩 raw 입력 동등성 unknown을 유지한다.
 - 남은 NR 관문은 명령 경계별 중단, 일반 파일/에셋, 실제 재부팅·전원·물리 공간 장애, ARM A/B다. VIVOBOOK fixture와 x64 Unity `6000.3.22f1`을 유지하며 ARM64 Editor를 임의로 추가하지 않는다. 원격 준비·증거 교환은 에이전트가 수행한다.

@@ -6,7 +6,7 @@ Windows 어댑터는 변경 callback 전체를 별도의 `mutationGate`로 직�
 
 > 제품 workspace에 [NTFS snapshot 모드](ntfs-workspaces.md)를 연결했다. 자동 계약/Git/NTFS 메타데이터 시험과 실제 VSS/Unity 통합 자격은 구분하며 [NI 기록](verification/ntfs-workspace-integration.md)을 따른다. SO 독립 실험과 기존 ReFS 성공을 NI 통과로 합산하지 않는다.
 
-Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release**와 계약·진단·계획 검증이다. ReFS CoW와 무-checkout index를 연결하고, Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 지원 경계와 실환경 증거는 [검증 안내](verification/README.md)를 따른다. daemon/SQLite Host와 외부 `agent.start`는 미구현이다.
+Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release**와 계약·진단이다. ReFS CoW와 무-checkout index를 연결하고 Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 지원 경계와 실환경 증거는 [검증 안내](verification/README.md)를 따른다. 첫 실사용 버전은 [M0](plans/implementation-plan.md)이며 discard·최소 AI 연결은 남은 작업이다. DAG 검사/제출·AI Runner·daemon/DB·범용 Unity 저작/Play/Test Runner는 제품 범위에서 제외한다.
 
 ## 구조와 의존성
 
@@ -43,7 +43,7 @@ NTFS 연결은 `VerifyConnectionAsync`에서 현재 부팅·연결 세대의 정
 
 | 프로젝트 | 현재 책임 | 참조 |
 | --- | --- | --- |
-| `Splinter.Core` | 탐지·작업공간 VCS/application/storage/process ports, 기준본·자원·검증 기록, DAG 검사, `WorkspaceMountAccess`의 공급자 중립 mount identity 규칙, `WorkspaceFailurePolicy`의 보존/재시도 분류 | .NET 기본 라이브러리 |
+| `Splinter.Core` | 탐지·작업공간 VCS/application/storage/process ports, 기준본·자원·검증 기록, `WorkspaceMountAccess`의 공급자 중립 mount identity 규칙, `WorkspaceFailurePolicy`의 보존/재시도 분류 | .NET 기본 라이브러리 |
 | `Splinter.Protocol` | 응답 DTO, 명령 descriptor, 내장 JSON Schema와 검증 | Core, JsonSchema.Net |
 | `Splinter.Host` | 읽기 전용 명령 조합과 결과 작성 | Core, Protocol |
 | `Splinter.Runtime` | 작업공간 생성·재개·검증·회수 조정, atomic JSON 저장과 작업/저장소 잠금 | Core |
@@ -53,7 +53,7 @@ NTFS 연결은 `VerifyConnectionAsync`에서 현재 부팅·연결 세대의 정
 | `Splinter.Workflows.Windows` | 기존 NTFS worker와 검증 view의 실제 provider, owner binding, 단일 Unity 경로·cache, 독립 결과와 명시적 회수 | Core/Runtime, Git/Unity/Windows 어댑터 |
 | `Splinter.Cli` | 파싱, 어댑터 조립, Runtime/Host/Windows workflow 호출, JSON 응답과 종료 코드 | Runtime, Host, Git/Unity/Windows 어댑터, System.CommandLine |
 | `unity/Splinter.Editor` | 작업별 Editor 안에서 refresh·컴파일·domain reload 관측과 종료 요청 처리 | Unity Editor API; 독립 소스 |
-| `Splinter.Tests` | 계약, CLI, DAG, fake 공급자, 실제 Git·Windows 자식 회수·선택적 ReFS 시험 | CLI, xUnit v3, MTP |
+| `Splinter.Tests` | 계약, CLI, fake 공급자, 실제 Git·Windows 자식 회수·선택적 ReFS 시험 | CLI, xUnit v3, MTP |
 | `tests/Splinter.UnityBridgeHarness` | 실제 WorkspaceBridge 소스를 링크해 외부 Unity API stub과 예외를 던지는 fixture로 heartbeat 독립성 검사 | .NET 테스트 전용 실행 파일; 제품 명령·Unity 런타임 시험 아님 |
 | `tools/Splinter.ReplayProbe` | 제한된 합성 저널 생성·읽기 전용 replay·출력/hash 검증과 비용 계측 | Runtime; 개발용 console |
 | `tools/Splinter.WriteProbe` | 고정 합성 live 쓰기·metadata·동시 호출과 read-only replay·내용/hash 검증 | Runtime; 개발용 console |
@@ -84,7 +84,7 @@ Host는 CLI 프로세스의 읽기 전용 라이브러리다. 변경 작업은 �
 
 Runtime의 `AtomicFilePublication`은 같은 디렉터리에서 flush한 임시 파일을 기존 상태에는 `File.Replace`, 최초 게시에는 덮어쓰기 없는 `File.Move`로 발행한다. workspace/baseline 저장과 Windows provider 제어 IPC가 사용하며 polling reader는 `FileShare.Delete`를 허용한다. VSS helper의 영수증도 같은 방식을 쓴다. Windows IPC의 게시 공유 오류는 같은 임시 파일로 최대 1초 재시도하며 지속 실패는 남은 파일을 보존한다. Windows 관측 reader도 교체 중 일시적 부재/공유 오류에서 경로 guard와 open을 최대 1초 재시도한다. 선택적 stop/flush/source 요청 polling의 부재는 즉시 반환하며 손상 JSON·접근 거부·소유권 불일치는 숨기지 않는다. 목적 파일 선삭제나 속성 변경으로 우회하지 않는다. 이는 제어 파일 게시/읽기 방식이며 저널 flush 정책을 변경하지 않는다.
 
-제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. 작은 Editor 브리지 소스를 소유 작업공간의 `Assets/__Splinter__`에 넣으며 원본이나 결과 커밋에는 포함하지 않는다. 비Git·비Unity fake로 Runtime의 기준본·수명주기·검증·프로세스 회수 경계를 시험한다. 각 대화가 workspace CLI를 직접 사용하는 데 별도 조정 AI는 필요하지 않다. 프로젝트용/전역용 설치, 필요성 자동 판단, Codex 대화/파일 경로의 자동 binding, 반영 없는 명시적 discard는 미구현이며 [대화별 계획](plans/session-workflow-and-installation.md)에 있다. 전체 DAG 실행과 agent runner는 선택적 후속이다. 범용 저장소 지원표·장애 복구 적합성도 아직 미완료다.
+제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. 작은 Editor 브리지 소스를 소유 작업공간의 `Assets/__Splinter__`에 넣으며 원본이나 결과 커밋에는 포함하지 않는다. 비Git·비Unity fake로 Runtime의 기준본·수명주기·검증·프로세스 회수 경계를 시험한다. 각 대화가 workspace CLI를 직접 사용하는 데 별도 조정 AI는 필요하지 않다. 프로젝트용/전역용 설치, 필요성 자동 판단, Codex 대화/파일 경로의 자동 binding, 반영 없는 명시적 discard는 미구현이며 [대화별 계획](plans/session-workflow-and-installation.md)에 있다. DAG 실행과 agent runner는 제품 범위에서 제외한다. 범용 저장소 지원표·장애 복구 적합성도 아직 미완료다.
 
 ## 에이전트용 명령 계약
 
@@ -97,9 +97,8 @@ Core의 `WorkspaceFailurePolicy`는 지속 recovery의 보존 분류와 Protocol
 | 명령 | 입력 | 결과 |
 | --- | --- | --- |
 | `splinter capabilities` | 없음 | 구현된 명령, 정확한 CLI 사용법, 입력 전달 방식, schema ID, 부작용·재시도 계약, 미구현 기능 |
-| `splinter schema <command>` | 예: `plan.validate` | descriptor, 입력 schema, 출력 schema |
+| `splinter schema <command>` | 예: `workspace.ensure` | descriptor, 입력 schema, 출력 schema |
 | `splinter doctor --project <directory>` | 존재하는 로컬 디렉터리 | Git/Unity 메타데이터, commit 유무, 누락 조건, 미실행 검사 |
-| `splinter plan validate --input <plan.json>` | 최대 1 MiB JSON 파일 | 스키마·의존성 오류 또는 실행 가능 계층 |
 | `splinter snapshot-spike --input <request.json>` | 명시적으로 준비한 overlay 요청과 action | 독립 실험의 mount/status/Git/Unity/보존/회수; [전용 절차](snapshot-overlay.md) |
 | `splinter workspace ensure/list/status` | 프로젝트·작업 key/storage 또는 workspace ID; NTFS journal budget; status의 선택적 `--verify-source`/`--audit-source` | 지속 작업공간 생성/재접속과 snapshot/delta/앱 상태. 일반 poll은 소스 전체 읽기 생략 |
 | `splinter workspace compact` | 결과 수집 전 NTFS workspace ID와 선택적 home | 소유 Editor/핸들 0을 확인한 뒤 죽은 범위·연속 기록을 정리, 새 저널 세대를 검증·재연결; 이전 세대는 확인 전까지 보존 |
@@ -114,7 +113,7 @@ Core의 `WorkspaceFailurePolicy`는 지속 recovery의 보존 분류와 Protocol
 
 workspace 응답의 `sourceVerification`은 `not-checked` 또는 `verified`다. 일반 status는 새 pending 검증 응답을 한 번 조정하거나 `--verify-source`를 지정한 경우에만 source를 읽는다. 확인한 응답에는 `source`와 검증 fingerprint 일치 여부인 `validationCurrent`가 있다. 성공 판정은 `workspace.validation.success`도 함께 확인한다. NTFS 결과의 `collectionProtocol=stable-journal-v1`은 수집 전후 저널 동일성을 뜻하며 현재 필수 형식과 중단 복구·보존 절차는 [NTFS 작업공간](ntfs-workspaces.md#회수와-관측)을 따른다. capabilities의 `workspaceStatus`·`sourceVerification`·`snapshotOverlay.resultCollection`이 계약을 표시한다. NTFS는 정확한 snapshot/provider epoch/소스 변경 경로에 묶인 파일 hash를 재사용하며 같은 크기/mtime을 근거로 성공을 재사용하지 않는다. 감사·손상 manifest 복구는 `--audit-source`다. [소스 검증과 계측](source-verification.md)이 새 Core port·Windows 요청 장벽·Git manifest·개발 할당 계측의 현재 경계를 설명한다.
 
-인자 없는 실행과 `--help`는 capabilities를 반환한다. `plan`만 호출하면 `plan.validate` schema를 반환한다. 기본 출력은 stdout의 JSON 한 줄이다. `--json`과 `--non-interactive`는 기본 동작을 명시한다. `--human`은 동일 응답에 들여쓰기만 추가하며 `--json`과 함께 사용할 수 없다. 현재 명령은 입력 프롬프트를 띄우지 않는다.
+인자 없는 실행과 `--help`는 capabilities를 반환한다. 기본 출력은 stdout의 JSON 한 줄이다. `--json`과 `--non-interactive`는 기본 동작을 명시한다. `--human`은 동일 응답에 들여쓰기만 추가하며 `--json`과 함께 사용할 수 없다. 현재 명령은 입력 프롬프트를 띄우지 않는다.
 
 공통 envelope는 `schemaVersion`, `requestId`, `command`, `status`, `terminal`, `retryDisposition`, `data` 또는 `error`, `nextActions`다. 비동기 실행·컴파일 접수는 `Accepted`, `terminal=false`이며 완료 증거는 status로 조회한다. `Succeeded`는 해당 명령의 처리가 완료됐다는 뜻이다. 실제 컴파일 성공은 현재 fingerprint와 일치하는 `workspace.validation.success`로 판단한다. `requestId`는 응답 상관관계 ID이며 중복 방지 키가 아니다. ensure의 프로젝트+key가 지속 작업공간을 식별한다.
 
@@ -130,7 +129,7 @@ workspace 응답의 `sourceVerification`은 `not-checked` 또는 `verified`다. 
 | 7 | 사용자/호출자의 조회 취소 |
 | 9 | Git 실행 불가 또는 미구현 명령의 schema 요청 |
 
-파싱 오류도 JSON 한 개로 반환한다. `schema`는 구현된 API를 나열한다. `capabilities.unavailable`의 `plan.submit`, `unity.execute`, `unity.play`, `unity.tests`, `agent.start`는 실행할 수 없다. CoW와 자원 회수 계약은 [저장소·자원 관리](storage-and-resources.md)를 따른다. 감시 프로세스는 Editor 작업별로만 존재하며 마지막 소유 프로세스와 함께 종료한다.
+파싱 오류도 JSON 한 개로 반환한다. `schema`는 구현된 API를 나열한다. `capabilities.unavailable`은 `workspace.discard`·`automatic-conversation-binding`·`product-installation`의 미구현 상태를 표시하며 새 실행 명령을 제공하지 않는다. CoW와 자원 회수 계약은 [저장소·자원 관리](storage-and-resources.md)를 따른다. 감시 프로세스는 Editor 작업별로만 존재하며 마지막 소유 프로세스와 함께 종료한다.
 
 ### 진단의 의미
 
@@ -142,13 +141,9 @@ Git 어댑터는 인자 배열과 기계용 출력으로 Git을 호출하고, �
 
 `doctor` 성공은 진단 명령이 끝났다는 뜻이다. `readyForExecution`은 항상 false이고, ReFS·Editor·에이전트 인증·Host 복구는 `checksNotRun`에 표시한다. missingPrerequisites가 비어 있어도 실행 준비 완료로 해석하지 않는다.
 
-### 계획 검증의 의미
+### 제공하지 않는 작업 그래프
 
-`contracts/v1/plan-request.schema.json`은 버전, 프로젝트·snapshot·정책 참조, 목표·의존성·예상 경로·검증 조건, 자원 한도와 완료 정책의 형식을 검사한다. `contracts/examples/parallel-plan.json`은 문법 예제이며 그 안의 snapshot·정책·게임 경로는 실제 등록된 항목이 아니다.
-
-Core는 중복 ID, 없는 의존성, 중복 의존성, 순환을 거부한다. 독립 작업은 선언 순서와 관계없이 같은 계층에 놓인다. 계층은 의존성만 계산하며 실행기나 자원 스케줄러가 아니다. 실패한 그래프의 부분 실행 계층은 반환하지 않는다.
-
-성공의 범위는 `schema-and-dependency-graph`다. 정책 승인, snapshot 존재, 실행 capability, 실제 자원 예산은 확인하지 않는다. 입력 경로의 접근 권한·탈출 검사도 실행을 구현할 단계의 별도 책임이다. `readyForExecution`은 항상 false이며 계획 제출이나 실행을 대체하지 않는다.
+제품은 각 대화의 workspace 수명주기를 직접 사용한다. `plan`/`plan.validate` 명령·plan-request schema·DAG 검사기는 제공하지 않는다. 이전 명령은 구조화된 InvalidArguments/UnknownCommand로 거부하며 schema나 호환 실행으로 우회하지 않는다. [제품 범위 정리 검증](verification/workspace-product-scope.md)은 이 발견/거부 경계를 소유한다.
 
 ## 저장소와 브랜치 운영
 
@@ -189,4 +184,4 @@ pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository .
 
 [제한 권한 서비스](storage-privilege-service.md)는 Windows 어댑터의 별도 SCM/IPC 경계이며 `storage service status`로 읽기 전용 발견을 제공한다. 실행 파일과 상태를 보호하고 고정 VSS 연산만 받는다. 실제 설치·반복 사용의 완료 판정은 [UA 검증](verification/storage-privilege-service.md)을 따른다.
 
-남은 작업은 [저장공간·Editor 정책](plans/storage-priority-and-editor-modes.md), [NR 장애·파일 지원](plans/ntfs-recovery-and-support.md), [설치·binding·discard](plans/session-workflow-and-installation.md)다. 제한 권한 서비스의 실제 설치·반복 사용은 [UA 검증](verification/storage-privilege-service.md)의 등록 범위에서 확인했다. 기본 모드·대형 프로젝트 지원·daemon/DB·전체 공개 시나리오는 완료로 표시하지 않는다.
+남은 첫 버전 작업은 [M0](plans/implementation-plan.md)의 discard·최소 AI 작업 연결·대표 사용/비용이다. [저장공간·Editor 정책](plans/storage-priority-and-editor-modes.md), [NR 장애·파일 지원](plans/ntfs-recovery-and-support.md), [설치·자동 binding](plans/session-workflow-and-installation.md)의 전체 지원은 후속이다. 제한 권한 서비스의 실제 설치·반복 사용은 [UA 검증](verification/storage-privilege-service.md)의 등록 범위에서 확인했다. 기본 모드·대형 프로젝트·전체 OS 지원을 완료로 표시하지 않는다.

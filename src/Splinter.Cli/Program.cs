@@ -63,26 +63,6 @@ public static class Program
             });
             root.Subcommands.Add(doctor);
 
-            var plan = new Command("plan", "Inspect a task graph; execution is not implemented.");
-            var validate = new Command("validate", contracts.Find("plan.validate")!.Description);
-            var input = new Option<string>("--input") { Required = true, Description = "Plan JSON file, at most 1 MiB." };
-            validate.Options.Add(input);
-            validate.SetAction(parse =>
-            {
-                commandId = "plan.validate";
-                using var stream = File.OpenRead(parse.GetValue(input)!);
-                if (stream.Length > 1024 * 1024)
-                {
-                    result = ApiResponse.Failure(commandId, "InputTooLarge", "Plan input must not exceed 1 MiB.");
-                    return;
-                }
-                using var document = JsonDocument.Parse(stream);
-                result = gateway.ValidatePlan(document.RootElement);
-            });
-            plan.Subcommands.Add(validate);
-            plan.SetAction(_ => { commandId = "schema"; result = gateway.Schema("plan.validate"); });
-            root.Subcommands.Add(plan);
-
             WorkspaceCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken, actions => recoveryActions = actions, preparationObserver);
             DevelopmentPreparationProbe.Add(root, contracts, value => result = value, cancellationToken);
             OverlayExperimentCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken);

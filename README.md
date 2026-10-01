@@ -1,8 +1,10 @@
 # Splinter
 
-AI 에이전트가 작업별로 독립 개발 환경을 확보하고 수정·실행·검증·결과 보존·회수를 수행하는 로컬 프로그램이다. 첫 지원 목표는 **Windows/NTFS + Git + Unity**다. 원본 이동·최초 전체 복제·읽기 hydration 없이 불변 snapshot과 작업별 범위 변경분을 사용하며, 원본은 작업 중 계속 수정할 수 있다.
+AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하도록 돕는 로컬 도구다. 첫 지원 목표는 **Windows/NTFS + Git + Unity**다. 원본 이동·최초 전체 복제·읽기 hydration 없이 불변 snapshot과 작업별 범위 변경분을 사용하며, 원본은 작업 중 계속 수정할 수 있다.
 
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
+
+첫 실사용 버전의 남은 순서는 **명시적 discard → 최소 AI 작업 연결 → 대표 A/B 흐름과 공간·시간 판단**이다. [M0 계획](docs/plans/implementation-plan.md)이 완료 범위를 소유한다. 범용 Unity 저작/Play/Test Runner·AI Runner/DAG·상주 DB는 제품 범위에서 제외하며 전체 OS 장애·설치/자동 binding·대형 지원은 후속이다. 폐기는 아직 구현하지 않았다.
 
 ## 현재 제공하는 기능
 
@@ -39,6 +41,6 @@ CLI는 stdout에 JSON 응답 하나를 반환한다. VSS 작업은 [제한 권�
 - [제품 요구사항](plan.html): 제품이 달성해야 할 목표.
 - [구현 계획](docs/plans/implementation-plan.md): 목표 구조와 남은 작업.
 - [저장공간 우선 설계](docs/plans/storage-priority-and-editor-modes.md): 용량·준비·재개 비용과 Editor 실행 방식의 판단 기준.
-- [검증 추적표](docs/plans/validation-matrix.md): 필수 시나리오와 미완료 관문.
+- [검증 추적표](docs/plans/validation-matrix.md): 첫 버전 M0와 장기 지원·확장 카탈로그.
 
 배포 전에는 현재 데이터 계약만 지원한다. 지원하지 않는 형식은 원본과 결과를 보존한 채 명시적으로 거부하며 자동 이관하지 않는다. 변경 이력은 Git에서 확인한다.

@@ -42,16 +42,6 @@
       "retry": "safe-read"
     },
     {
-      "id": "plan.validate",
-      "description": "Validate plan syntax and dependency graph without executing or authorizing it.",
-      "cliUsage": "splinter plan validate --input <plan.json>",
-      "inputTransport": "json-file",
-      "inputSchema": "urn:splinter:v1:plan-request",
-      "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "none",
-      "retry": "safe-read"
-    },
-    {
       "id": "workspace.ensure",
       "description": "Create or reconnect an owned workspace. NTFS reconnect verifies the original live snapshot via an exact Observe helper when needed, retaining the snapshot/delta identity and current capture receipt.",
       "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <ntfs-snapshot|refs-cow|git-checkout> [--baseline <id>] [--base development] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>]",

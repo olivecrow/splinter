@@ -15,7 +15,7 @@ public sealed class FoundationGateway(
     {
         implementationStage = "internal-alpha",
         commands = contracts.Commands,
-        unavailable = new[] { "plan.submit", "unity.execute", "unity.play", "unity.tests", "agent.start" },
+        unavailable = new[] { "workspace.discard", "automatic-conversation-binding", "product-installation" },
         persistentHost = false,
         persistentState = true,
         stateBackend = "atomic-json-with-operation-locks",
@@ -117,28 +117,4 @@ public sealed class FoundationGateway(
         });
     }
 
-    public ApiResponse ValidatePlan(JsonElement input)
-    {
-        var descriptor = contracts.Find("plan.validate")!;
-        var schemaResult = contracts.Validate(descriptor.InputSchema, input);
-        if (!schemaResult.IsValid)
-            return ApiResponse.Failure("plan.validate", "SchemaValidationFailed", "The plan does not match the input contract.",
-                schemaResult, [new("schema", new { command = "plan.validate" })]);
-
-        var tasks = input.GetProperty("tasks").EnumerateArray().Select(task => new PlanTask(
-            task.GetProperty("taskId").GetString()!,
-            task.GetProperty("dependsOn").EnumerateArray().Select(item => item.GetString()!).ToArray())).ToArray();
-        var result = PlanGraph.Validate(tasks);
-        if (!result.IsValid)
-            return ApiResponse.Failure("plan.validate", "InvalidTaskGraph", "Task dependencies are invalid.", result.Issues);
-
-        return ApiResponse.Success("plan.validate", new
-        {
-            taskCount = tasks.Length,
-            executionLayers = result.ExecutionLayers,
-            validationScope = "schema-and-dependency-graph",
-            readyForExecution = false,
-            checksNotRun = new[] { "policy-authorization", "snapshot-existence", "runtime-capabilities", "resource-budget" }
-        });
-    }
 }

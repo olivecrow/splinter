@@ -15,7 +15,6 @@
     <Content Include="../../scripts/test-product-write-recovery.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../scripts/test-kernel-recovery.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../scripts/test-journal-recovery.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../contracts/examples/parallel-plan.json" Link="parallel-plan.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../scripts/prepare-snapshot-overlay-test.ps1;../../scripts/snapshot-overlay-request.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../scripts/setup-storage-service.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

@@ -1,15 +1,42 @@
 # 검증 추적표
 
-현재 기능의 제한과 보존 근거는 [검증 안내](../verification/README.md)를 따른다. 이 표는 공개 요구와 남은 검증의 소유자이며 실행하지 않은 조건을 통과로 올리지 않는다.
+현재 기능의 제한과 보존 근거는 [검증 안내](../verification/README.md)를 따른다. 첫 실사용 버전은 아래 M0, 장기 지원 확대는 기존 시나리오 카탈로그로 구분한다. 미실행 조건을 Passed로 올리거나 카탈로그 전체를 첫 버전의 완료 분모로 사용하지 않는다.
+
+## 첫 실사용 버전 M0
+
+범위·수정 한도·종료 규칙은 [첫 버전 계획](implementation-plan.md)이 소유한다. 아래 상태는 새 대표 사용 흐름 전체에 대한 것이며 기존 하위 실행 자격과 구별한다. 미실행 M0가 기존 NI/WF의 부분 성공을 무효화하지 않는다.
+
+| ID | 대표 흐름 | 상태 | 재사용 근거와 남은 확인 |
+| --- | --- | --- | --- |
+| M0-01 | NTFS A/B 생성·범위 저장·원본/peer 격리 | NotRun | NI/LV의 한정 근거. 첫 버전 후보의 고정 입력과 같은 A/B 흐름에서 확인 |
+| M0-02 | 최소 AI 지침·같은 작업/경로 재개·direct 미사용 | NotRun | 기존 CLI/key/home 사용. 자동 Codex binding·전역 설치를 전제하지 않음 |
+| M0-03 | 여러 차례 수정·오류 격리·정확한 Editor 검증 | NotRun | NI/PV/WF의 한정 근거. 선택한 실행 경로 하나의 실제 AI 작업으로 확인 |
+| M0-04 | 실패/미커밋 작업의 명시적 폐기·중복/중단 재개 | NotRun | discard 미구현. SW-09/10의 intent·소유권·공유 자원 보호가 다음 최우선 |
+| M0-05 | 결과 보존/반영/회수·A 종료 뒤 B 지속 | NotRun | NI/PV의 독립 결과와 dirty guard. 보존과 폐기의 분기를 새 후보에서 확인 |
+| M0-06 | 지원 경로의 응답 유실/프로세스 중단·손상/unknown | NotRun | 준비 26·저널 58·kernel 19·client 13·진단 16은 각 후보의 별도 근거. 변경된 실제 경계만 재검증하며 OS 전체 장애로 확대하지 않음 |
+| M0-07 | 소유 자원 회수·공유/reclaim-pending의 정확한 보고 | NotRun | 기존 release/UA와 의존성 guard 유지. discard의 새 부작용과 중단 재조정 확인 |
+| M0-08 | 대표 입력의 생성/준비/재개/반복 편집/종료 비용 | NotRun | WF/LB/PV의 제한 근거를 재사용. 질문·입력·종료 조건을 고정한 비용 판단, p95/20회·C/S/Q 재개는 필수가 아님 |
+
+기존 자동 회귀는 유지한다. 실제 시험은 변경된 부작용 경계·재현 결함과 최종 대표 A/B 한 묶음에 맞춘다. 기존 결과의 후보/입력 제한을 표시하면서 재사용하고 새로운 후보 전체 Passed로 자동 승계하지 않는다.
+
+| 장기 카탈로그 | M0에서 유지할 최소 요구 | 별도 후속/확장 |
+| --- | --- | --- |
+| FS/GT/EX/CLI | 지원 입력의 격리·범위 저장·Git/owner·JSON·재개·회수·안전 거부 | dirty/LFS/filter·attach·파일 특성/OS 조합 확대 |
+| WS/CP | 정확한 작업 경로와 Editor·컴파일/소스 세대·오류 격리 | 모든 package/define/버전 조합 |
+| AS/PL/TS/IS | 기존 도구의 일반 에셋 I/O가 지원 mount 경계를 통과하며 미격리 외부 상태는 제한으로 표시 | Splinter 자체 저작/Play/캡처/입력/Test Runner·외부 namespace API는 제품 필수 범위에서 제외 |
+| UX/RC/MG/PK | 최소 지침/작업 연결·명시적 종료·독립 결과·target guard·원본/peer 보존 | 프로젝트/전역 설치·자동 binding·통합 검증 플랫폼 |
+| NR/SF/SW/FD | M0에 실제 필요한 안전/폐기/AI 사용/비용 하위 조건 | 전체 장애 행렬·ARM·대형 지원·큐/자동 모드·설치/업데이트 |
 
 ## 결과와 증거 규칙
 
 - 상태는 `Passed`, `Failed`, `NotRun`, `Unsupported` 중 하나로 기록한다. 필수 지원 조합의 `NotRun`/`Unsupported`는 공개 통과로 집계하지 않는다.
 - 각 실행은 run ID, 도구 commit, OS/볼륨/Git/Unity/패키지/Codex 버전, fixture/source hash, 시작/종료 manifest, 명령·이벤트, 결과 파일 hash를 기록한다.
-- fixture 성공, 합성 대형 데이터 성공, 실제 프로젝트 성공을 구분한다. 단계별 통과 후에는 변경된 경계와 최종 통합 후보의 필수 시험을 다시 실행한다.
-- 아래의 ‘단계’는 구현 책임과 주 검증 단계다. P7은 공개 대상 조합에서 전체 증거를 검토하는 단계다.
+- fixture 성공, 합성 대형 데이터 성공, 실제 프로젝트 성공을 구분한다. 변경된 경계와 첫 버전 후보의 대표 흐름을 검증하고 무관한 변경에 전체 과거 실환경 재실행을 요구하지 않는다.
+- 기존 표의 P0~P7은 원래 책임/증거를 찾는 역사적 분류이며 현재 실행 순서가 아니다. 새 실행 순서와 완료 기준은 M0를 따른다.
 
-## 원본 필수 시나리오 48개
+## 장기 지원·확장 시나리오 카탈로그 48개
+
+기존 ID와 필요한 실패·재현 근거를 보존한다. 각 표의 전체 요구는 미실행 상태이며 범용 Unity 기능·전역 설치·OS 장애 전체를 첫 실사용 버전의 필수 관문으로 읽지 않는다.
 
 | ID | 검증 대상 | 단계 | 반드시 남길 증거 |
 | --- | --- | --- | --- |
@@ -98,7 +125,7 @@ NR-03은 [공통 저널 58개](../verification/ntfs-recovery.md#nr-03-공통-저
 | NR-07 | 부분 준비·결과·회수의 재조정 | InProgress: 마지막 VSS 해제/LV, 원격 released 복구와 NR-02의 사용자 쓰기 없는 준비 재개 후 독립 결과/최종 회수 | 준비를 Ready로 재개한 뒤 정상 회수한 범위. 부분 준비 직접 release와 commit/ref/manifest/seal 중단, unmount/Git/delta/VSS 해제 응답 유실은 남음. 영수증과 실패 임시 파일은 보존 |
 | NR-08 | 최종 후보·Unity 회귀·문서 | InProgress: 이전 ARM/x64 단일 검증 2건, 새 LV Windows x64 단일 검증 3건·재연결·결과·회수 통과 | 원격 workspace 소유 자원0과 canonical Editor/MCP 세션 정상 종료 확인. 같은 후보의 단일 정상 회귀이며 ARM Windows 원본/A/B·재부팅 후 loaded-code·fingerprint·validation·dirty 통합 차단과 전체 NR 완료는 남음 |
 
-결과 보존 결함·공통 계약을 먼저 수정하고 아래 PV-01/02의 제한된 작업·비용 관문에서 확보한 증거와 선택 범위 마감 판정을 보존한다. NR-01~03/05/07의 나머지 계약·프로세스 시험과 NR-04/06 격리 환경 준비를 병행하고 NR-08 최종 지원 회귀로 이어 간다. 실제 장애 경계 목록과 데이터 지속성 oracle은 계획에 정의한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
+결과 보존 결함·공통 계약과 기존 PV의 제한·마감 판정은 유지한다. 다음 제품 작업은 M0-04 폐기와 최소 AI 연결이며 NR 전체 행렬·NR-04/06 환경 준비·ARM 확대는 별도 지원 범위다. 지원 경로의 안전 결함 또는 변경 경계 때문에 필요한 NR만 선택한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
 
 ## SF-03 공통 수명주기 적합성
 
@@ -194,7 +221,7 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 | WF-11 | 실제 prepare-worker 정상 unmount/동일 요청, 새 CLI의 같은 작업 재연결과 후속 편집 격리 | Passed, 같은 요청·같은 workspace 재연결과 게시 후 편집 격리. 일반 강제 종료/응답 유실 관문으로 확대하지 않음 |
 | WF-12 | 독립 결과·원본/타 작업 보존, 의존성 순서에 따른 최종 회수·전체 할당/시간/실패 비용 | Passed, 독립 결과 15개·소유 자원 회수·원본/기존 snapshot 보존. 전체 순간 물리 peak와 공유 VSS 귀속 unknown |
 
-회수 후 reclaim-pending이나 소유 자원 unknown은 남지 않았다. 측정의 unknown은 위 범위와 분리해 유지한다. 자세한 완료 기준과 제외 범위는 [계획](storage-priority-and-editor-modes.md#이번-범위-일반-권한-unity-검증-흐름-재검증), 관측·실패·복구 근거는 [검증 문서](../verification/product-validation-unelevated.md)가 소유한다.
+회수 후 reclaim-pending이나 소유 자원 unknown은 남지 않았다. 측정의 unknown은 위 범위와 분리해 유지한다. 자세한 완료 기준과 제외 범위는 [계획](storage-priority-and-editor-modes.md#보존한-한정-범위-일반-권한-unity-검증-흐름), 관측·실패·복구 근거는 [검증 문서](../verification/product-validation-unelevated.md)가 소유한다.
 
 ## Library 저장 수명주기
 
@@ -209,6 +236,8 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 | LB-05 | artifact→cache→worker 독립 결과와 최종 회수·현재 계약 및 안내 | Passed, 실제 독립 결과·최종 소유 자원 회수와 588개 자동 시험·현재 문서 |
 
 ## 제품화와 비용 관문
+
+아래 Partial/NotRun은 지원 확대 상태이며 M0 완료의 분모가 아니다. FIFO/Coordination·source 반환 병합·기본 모드 자동 선택은 첫 버전에서 제외한다. 코드 제거와 명령 발견의 이번 자격은 [제품 범위 정리 검증](../verification/workspace-product-scope.md)을 따른다.
 
 - SF-02/03은 Partial, SF-04~06은 NotRun이다. 완료 기준은 [저장공간·Editor 계획](storage-priority-and-editor-modes.md)을 따른다.
 - SF-03의 공통 수명주기 계약은 위 VW 자동 적합성으로 추적한다. 실제 제품 VSS·WinFsp·Unity 연결은 WF의 현재 후보 증거로 따로 판정한다.

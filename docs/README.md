@@ -30,12 +30,14 @@
 | 문서 | 용도 |
 | --- | --- |
 | [제품 요구사항](../plan.html) | 제품이 달성할 목표 |
-| [구현 계획](plans/implementation-plan.md) | 목표 구조·책임·단계별 작업 |
-| [검증 추적표](plans/validation-matrix.md) | 필수 48개 시나리오와 남은 지원 관문 |
+| [구현 계획](plans/implementation-plan.md) | 첫 실사용 버전 M0·폐기/최소 AI 연결의 실행 순서·제거 경계·검증 종료 규칙 |
+| [검증 추적표](plans/validation-matrix.md) | M0의 실제 상태와 장기 48개 지원·확장 카탈로그 |
 | [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | NR-01/02 준비 복구·NR-03 공통 저널/로컬 kernel/제품 client 경계와 재부팅·전원·공간·파일 관문의 완료 기준 |
 | [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·비용 판단과 WF-09~12/LB-01~05의 완료 범위·재검증 기준 |
-| [대화별 설치·사용](plans/session-workflow-and-installation.md) | 설치·binding·명시적 discard의 SW-01~10 |
+| [대화별 설치·사용](plans/session-workflow-and-installation.md) | 우선 discard·최소 작업 연결, 후속 설치/자동 binding의 SW-01~10 |
 | [저장소 권한 서비스](plans/storage-privilege-service.md) | 반복 UAC 없는 제한 서비스의 UA-01~04 |
 | [병렬 비교 방법](plans/parallel-workflow-qualification.md) | C/S/Q 입력·작업·비용 비교를 재사용할 때 |
 
 변경 이력은 Git에서 확인한다. 완료한 단계별 계획을 다시 유지하지 않는다. 후속 성능·지원 판단에 필요한 실측은 verification에 보존하며 README·AGENTS에 복제하지 않는다.
+
+첫 버전의 실행 범위는 M0로 확정하고 NR/SF/SW 전체 미완료를 첫 버전 완료의 분모로 사용하지 않는다. [제품 범위 정리 검증](verification/workspace-product-scope.md)은 삭제한 DAG 진입점·schema와 실제 자동 회귀의 경계를 소유한다.

@@ -194,25 +194,6 @@
     {
       "if": {
         "properties": {
-          "command": {
-            "const": "plan.validate"
-          },
-          "status": {
-            "const": "Succeeded"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "data": {
-            "$ref": "#/$defs/planData"
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
           "status": {
             "const": "Accepted"
           }
@@ -1122,49 +1103,6 @@
           }
         },
         "missingPrerequisites": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        }
-      }
-    },
-    "planData": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "taskCount",
-        "executionLayers",
-        "validationScope",
-        "readyForExecution",
-        "checksNotRun"
-      ],
-      "properties": {
-        "taskCount": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 128
-        },
-        "executionLayers": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          }
-        },
-        "validationScope": {
-          "const": "schema-and-dependency-graph"
-        },
-        "readyForExecution": {
-          "const": false
-        },
-        "checksNotRun": {
           "type": "array",
           "items": {
             "type": "string",

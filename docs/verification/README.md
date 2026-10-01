@@ -8,6 +8,8 @@
 
 ## 지원 경계와 남은 관문
 
+첫 실사용 버전의 완료 기준은 [M0](../plans/validation-matrix.md#첫-실사용-버전-m0)다. 아래 NR/SF/SW·48개 카탈로그는 기존 지원 근거와 미완료 조건을 보존한다. 전체 지원 확대를 M0의 완료 분모로 삼지 않으며, 기존 하위 성공을 새 대표 A/B 흐름의 통과로 승계하지 않는다. [제품 범위 정리 검증](workspace-product-scope.md)은 제외한 작업 그래프의 발견/거부 계약과 자동 회귀를 다룬다.
+
 | 영역 | 확인한 범위 | 남은 작업·해석 제한 |
 | --- | --- | --- |
 | NI/LV 제품 NTFS | 작은 fixture의 VSS·Git·Windows x64 Unity·재연결·독립 결과·회수 | NR 전체 지원은 미완료. 실제 재부팅·전원·물리 공간 장애와 모든 명령 경계는 별도 |
@@ -31,7 +33,7 @@
 
 새 후보에서 필요한 실제 환경 시험을 실행하기 전에는 아래 기록을 현재 후보의 통과로 승계하지 않는다. GUI Unity·VSS·격리 디스크 시험은 정의된 범위와 소유 자원을 확인한 뒤 실행한다. 현재 원본·다른 작업·기존 결과 refs와 비소유 snapshot을 보존한다.
 
-[WF-09~12와 LB-01~05](product-validation-unelevated.md)는 해당 기록이 고정한 후보의 실제 실행으로 마감했다. [NR-02](preparation-recovery.md)는 별도 최종 후보의 준비 경계이며 이전 Unity/Library 자격을 자동 승계하지 않는다. 실행 범위와 재검증 기준은 [저장공간 우선 계획](../plans/storage-priority-and-editor-modes.md#이번-범위-일반-권한-unity-검증-흐름-재검증), 남은 일반 지원·대형 용량·설치 관문은 [추적표](../plans/validation-matrix.md)가 소유한다.
+[WF-09~12와 LB-01~05](product-validation-unelevated.md)는 해당 기록이 고정한 후보의 실제 실행으로 마감했다. [NR-02](preparation-recovery.md)는 별도 최종 후보의 준비 경계이며 이전 Unity/Library 자격을 자동 승계하지 않는다. 실행 범위와 재검증 기준은 [저장공간 우선 계획](../plans/storage-priority-and-editor-modes.md#보존한-한정-범위-일반-권한-unity-검증-흐름), 남은 일반 지원·대형 용량·설치 관문은 [추적표](../plans/validation-matrix.md)가 소유한다.
 
 ## 후속 작업에 필요한 기록
 
@@ -39,6 +41,7 @@
 
 | 기록 | 보존 이유 |
 | --- | --- |
+| [제품 범위 정리](workspace-product-scope.md) | 작업 그래프 제외의 명령/schema 발견·오류 응답 계약, 현재 자동 시험과 실환경 자격의 구분 |
 | [제한 권한 서비스](storage-privilege-service.md) | 보호된 상태·IPC 경계·최초 설치·반복 UAC·서비스 중단/응답 유실을 구분한 완료 판정 |
 | [VSS 보존 실패](storage-foundation.md), [삭제 차단과 복구](storage-recovery.md), [지연 회수](deferred-snapshot-reclamation.md) | exact-ID 삭제의 타 snapshot 영향, 격리 guard, 같은 작업의 명시적 재시도와 회수 순서 |
 | [NTFS 제품 통합](ntfs-workspace-integration.md), [live identity](ntfs-live-vss-identity.md), [NR 복구](ntfs-recovery.md) | 실제 Windows/ARM 조합과 미완료 장애·파일 관문, 환경별 재현 조건 |

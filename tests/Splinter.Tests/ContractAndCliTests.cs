@@ -219,9 +219,12 @@ public sealed class ContractAndCliTests
             .Select(item => item.GetProperty("id").GetString()).ToArray();
         Assert.Equal(contracts.Commands.Select(command => command.Id), commands);
         Assert.DoesNotContain("workspace.create", commands);
-        var plan = response.GetProperty("data").GetProperty("commands").EnumerateArray()
-            .Single(item => item.GetProperty("id").GetString() == "plan.validate");
-        Assert.Equal("splinter plan validate --input <plan.json>", plan.GetProperty("cliUsage").GetString());
+        Assert.DoesNotContain("plan.validate", commands);
+        Assert.DoesNotContain("urn:splinter:v1:plan-request", contracts.SchemaIds);
+        var unavailable = response.GetProperty("data").GetProperty("unavailable").EnumerateArray().Select(item => item.GetString()).ToArray();
+        Assert.Contains("workspace.discard", unavailable);
+        Assert.DoesNotContain("plan.submit", unavailable);
+        Assert.DoesNotContain("agent.start", unavailable);
         foreach (var descriptor in response.GetProperty("data").GetProperty("commands").EnumerateArray())
             Assert.Contains(descriptor.GetProperty("sideEffects").GetString(), contracts.Commands.Select(x => x.SideEffects));
     }
@@ -406,7 +409,7 @@ public sealed class ContractAndCliTests
     [InlineData("capabilities")]
     [InlineData("schema")]
     [InlineData("doctor")]
-    [InlineData("plan.validate")]
+    [InlineData("workspace.ensure")]
     public async Task SchemasAreAvailableWithoutAnyHostOrWorkingDirectoryState(string command)
     {
         var (exitCode, response) = await Run("schema", command);
@@ -435,45 +438,25 @@ public sealed class ContractAndCliTests
     }
 
     [Fact]
-    public async Task ValidPlanDoesNotClaimAuthorizationOrExecutionReadiness()
+    public async Task RemovedTaskGraphEntryPointsReturnStructuredErrors()
     {
-        var (exitCode, response) = await Run("plan", "validate", "--input", Path.Combine(AppContext.BaseDirectory, "parallel-plan.json"));
-        Assert.Equal(0, exitCode);
-        var data = response.GetProperty("data");
-        Assert.Equal(2, data.GetProperty("taskCount").GetInt32());
-        Assert.Equal(2, data.GetProperty("executionLayers")[0].GetArrayLength());
-        Assert.False(data.GetProperty("readyForExecution").GetBoolean());
-        Assert.Contains("policy-authorization", data.GetProperty("checksNotRun").EnumerateArray().Select(item => item.GetString()));
-    }
-
-    [Theory]
-    [InlineData("budget")]
-    [InlineData("unknown-field")]
-    [InlineData("version")]
-    [InlineData("empty-goal")]
-    public void PlanSchemaRejectsAmbiguousOrUnsupportedRequests(string mutation)
-    {
-        var node = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "parallel-plan.json")))!;
-        switch (mutation)
-        {
-            case "budget": node["limits"]!["maxWorkers"] = 0; break;
-            case "unknown-field": node["bypassApprovals"] = true; break;
-            case "version": node["schemaVersion"] = "2.0"; break;
-            case "empty-goal": node["tasks"]![0]!["goal"] = "   "; break;
-        }
-        using var document = JsonDocument.Parse(node.ToJsonString());
-        Assert.False(contracts.Validate("urn:splinter:v1:plan-request", document.RootElement).IsValid);
+        var (exitCode, response) = await Run("plan", "validate", "--input", "must-not-be-opened.json");
+        Assert.Equal(2, exitCode);
+        Assert.Equal("InvalidArguments", response.GetProperty("error").GetProperty("code").GetString());
+        var (schemaExit, schemaResponse) = await Run("schema", "plan.validate");
+        Assert.Equal(9, schemaExit);
+        Assert.Equal("UnknownCommand", schemaResponse.GetProperty("error").GetProperty("code").GetString());
     }
 
     [Theory]
     [InlineData("{bad json", "InvalidJson")]
-    [InlineData("{}", "SchemaValidationFailed")]
+    [InlineData("{}", "ValidationRequestInvalid")]
     public async Task InvalidInputCannotLeakParserTextIntoStdout(string json, string error)
     {
         using var directory = new TestDirectory();
         string file = Path.Combine(directory.Path, "계획 with spaces.json");
         await File.WriteAllTextAsync(file, json, TestContext.Current.CancellationToken);
-        var (exitCode, response) = await Run("plan", "validate", "--input", file);
+        var (exitCode, response) = await Run("validation", "--input", file);
         Assert.Equal(2, exitCode);
         Assert.Equal(error, response.GetProperty("error").GetProperty("code").GetString());
     }
@@ -484,22 +467,6 @@ public sealed class ContractAndCliTests
         var (exitCode, response) = await Run("schema", "workspace.create");
         Assert.Equal(9, exitCode);
         Assert.Equal("capabilities", response.GetProperty("nextActions")[0].GetProperty("command").GetString());
-    }
-
-    [Theory]
-    [InlineData("missing")]
-    [InlineData("cycle")]
-    public async Task SchemaValidButInvalidGraphsCannotPassCliValidation(string mutation)
-    {
-        var plan = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "parallel-plan.json")))!;
-        string taskId = plan["tasks"]![0]!["taskId"]!.GetValue<string>();
-        plan["tasks"]![0]!["dependsOn"] = new JsonArray(mutation == "cycle" ? taskId : "missing-task");
-        using var directory = new TestDirectory();
-        string path = Path.Combine(directory.Path, "plan.json");
-        await File.WriteAllTextAsync(path, plan.ToJsonString(), TestContext.Current.CancellationToken);
-        var (exitCode, response) = await Run("plan", "validate", "--input", path);
-        Assert.Equal(2, exitCode);
-        Assert.Equal("InvalidTaskGraph", response.GetProperty("error").GetProperty("code").GetString());
     }
 
     [Fact]
