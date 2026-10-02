@@ -31,4 +31,4 @@ Unity CLI `1.0.0-beta.5`의 `status`/`pipeline list`는 A/B를 누락했고 정�
 
 A 독립 보존은 basis 논리 52,937 bytes, result 논리 54,069 bytes, 고유 실제 payload 54,140 bytes/26개다. 파일 할당 표본은 payload 92,184 bytes, 수집 단계 두 delta 28,180,480 bytes, 공유 7개 runner 1,057,112 bytes다. 최종 delta 할당은 없고 retained control/evidence는 따로 남는다. 원본 Library 45,594,344 bytes는 기준선이며 합산하지 않는다. 계측은 `-SourceKind none`으로 Git 조회 없이 수행했고 file-result category는 control의 부분이므로 이중 합산하지 않는다. 공유 VSS의 workspace 귀속과 전체 물리 peak는 **unknown**이다.
 
-일반 Editor 없는 `application=none`은 자동 적합성 범위이며 별도 native Editor 없는 한 묶음은 실행하지 않았다. 일반 폴더 original-apply·Plastic 전용 연동·대형/ARM/원격/OS·native 강제 중단 행렬도 **NotRun/범위 제외**다. 기존 Git M0·과거 runner 메모리 수치를 새 후보의 전체 지원으로 승계하지 않는다.
+일반 Editor 없는 `application=none`은 자동 적합성 범위이며 별도 native Editor 없는 한 묶음은 실행하지 않았다. 일반 폴더 original-apply·Plastic 사용 환경의 호환 처리·대형/ARM/원격/OS·native 강제 중단 행렬도 **NotRun/범위 제외**다. 기존 Git M0·과거 runner 메모리 수치를 새 후보의 전체 지원으로 승계하지 않는다.

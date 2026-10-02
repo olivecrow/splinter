@@ -1,6 +1,8 @@
 # VCS 없는 NTFS 작업공간
 
-제품 CLI는 `--source git|none`으로 소스 공급자를 선택한다. 생략하면 기존 Git 경로다. Git 오류·손상·unknown을 일반 폴더로 해석하지 않는다. `none`은 VCS 관리 정보가 없는 일반 폴더의 NTFS task만 허용한다. 원본과 조상/하위 경로의 `.git`·`.plastic`·`.hg`·`.svn`, 지원하지 않는 파일 유형은 보존 후 거부한다. Plastic 전용 연동은 아직 제공하지 않는다. 실제 지원 상태는 [검증 기록](verification/vcs-independent-workspaces.md)이 소유한다.
+병렬 격리·범위 저장·기본 수명주기는 Splinter가 담당한다. 제품 목표는 외부 VCS 유무와 무관하게 이를 제공하고, VCS를 사용할 때도 관리 정보·등록·잠금·공유 기준과 추가 저장/메모리 비용이 작업공간의 격리·효율·원본/peer 보호를 해치지 않도록 처리하는 것이다. source 공급자는 이 호환 경계와 기준/결과 보존을 담당한다.
+
+제품 CLI는 `--source git|none`으로 소스 공급자를 선택한다. 생략하면 기존 Git 경로다. Git 오류·손상·unknown을 일반 폴더로 해석하지 않는다. `none`은 VCS 관리 정보가 없는 일반 폴더의 NTFS task만 허용한다. 원본과 조상/하위 경로의 `.git`·`.plastic`·`.hg`·`.svn`, 지원하지 않는 파일 유형은 보존 후 거부한다. Plastic 사용 환경의 호환 처리는 아직 제공하지 않는다. 실제 지원 상태는 [검증 기록](verification/vcs-independent-workspaces.md)이 소유한다.
 
 ## 입력과 같은 작업 재개
 

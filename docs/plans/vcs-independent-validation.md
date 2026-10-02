@@ -34,4 +34,4 @@ pwsh -NoProfile -File ./scripts/setup-storage-service.ps1 -Action Update -Packag
 5. B는 정상 stop 후 명시적 intent/digest의 discard를 실행하고 같은 intent 재시도·결과를 요구하지 않는 회수·원본/A 결과 보호·실제 mount/delta/소유 자원 0을 확인한다. 마지막 snapshot 회수는 기존 정확한 ID·의존성·격리 guard를 따른다.
 6. journal의 초기 payload 복제·hydration·copy-up 0 및 범위 쓰기/승인 flush 관측과 명시적 결과 보존의 논리/실제 할당 비용을 구분한다. 전체 물리 peak·공유 VSS를 임의로 0이나 workspace 귀속으로 표시하지 않는다. 결과/실패/제약을 VCS 추적표에 반영한다.
 
-사용 가능한 환경에서 이 한 묶음과 변경한 부작용 경계만 검증한다. 권한/소유권/손상/격리 guard에 막히면 해당 evidence와 자원을 보존한다. 자동 다른 source mode·새 key recapture·비소유 snapshot 삭제·새 전체 harness/행렬·대형/원격/OS/ARM 시험으로 확대하지 않는다. 일반 폴더 원본 apply·Plastic 전용 연동은 후속이다.
+사용 가능한 환경에서 이 한 묶음과 변경한 부작용 경계만 검증한다. 권한/소유권/손상/격리 guard에 막히면 해당 evidence와 자원을 보존한다. 자동 다른 source mode·새 key recapture·비소유 snapshot 삭제·새 전체 harness/행렬·대형/원격/OS/ARM 시험으로 확대하지 않는다. 일반 폴더 원본 apply·Plastic 사용 환경의 호환 처리는 후속이다.

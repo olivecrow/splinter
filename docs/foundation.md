@@ -4,7 +4,7 @@ Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트�
 
 제품 시작점은 [AI 안내](agent-start.md)와 `scripts/splinter.ps1`이다. ReFS/진단·공통 Library view·spike/probe는 [개발 CLI](development-cli.md)로 분리했다. 기존 verification은 해당 후보/입력의 근거이며 변경된 계약의 native 자격을 자동 부여하지 않는다.
 
-제품 CLI는 Git 또는 VCS 없는 일반 폴더를 명시적으로 선택한다. 소스/application 종류와 opaque 기준/결과 identity를 v2 작업 상태에 고정하고, 일반 폴더는 불변 파일 manifest·작업별 독립 payload를 사용한다. 실패 시 다른 소스로 fallback하지 않는다. 현재 제약과 실제 자격은 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. Git 원격 등록은 불필요하며 Plastic 전용 어댑터와 일반 폴더 원본 apply는 미구현이다.
+병렬 격리와 범위 저장은 Splinter의 공통 저장소 계층이 제공한다. 소스 공급자는 선택한 VCS 관리 정보와 Splinter 작업의 기준·결과·회수 사이의 안전 경계를 담당한다. 제품 CLI는 Git 또는 VCS 없는 일반 폴더를 명시적으로 선택한다. 소스/application 종류와 opaque 기준/결과 identity를 v2 작업 상태에 고정하고, 일반 폴더는 불변 파일 manifest·작업별 독립 payload를 사용한다. 실패 시 다른 소스로 fallback하지 않는다. 현재 제약과 실제 자격은 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. Git 원격 등록은 불필요하며 Plastic 사용 환경의 호환 처리와 일반 폴더 원본 apply는 미구현이다.
 
 ## 구조와 의존성
 
@@ -79,4 +79,4 @@ locked restore·Release·자동 계약/fake/Git/Windows 회귀를 수행한다. 
 
 ## 다음 구현 경계
 
-[구현 계획](plans/implementation-plan.md)을 따른다. VCS 중립 계약·일반 폴더의 기본 수명주기·기존 Git 선택 구성은 작은 A/B 한 묶음의 제한을 명시해 마감했다. 다음 기능 단위는 일반 폴더의 안전한 원본 반영이며 Plastic 전용 연동과 외부 도구의 별도 전체 인계 검증은 후속이다. 저장/메모리는 실제 관측 병목만 고른다. 마감한 Git 기반 M0·대형 PV·전체 장애 카탈로그를 자동 재개하지 않는다.
+[구현 계획](plans/implementation-plan.md)을 따른다. VCS 중립 계약·일반 폴더의 기본 수명주기·기존 Git 사용 환경의 보호 경계는 작은 A/B 한 묶음의 제한을 명시해 마감했다. 다음 기능 단위는 일반 폴더의 안전한 원본 반영이며 Plastic 사용 환경의 호환 처리와 외부 도구의 별도 전체 인계 검증은 후속이다. 저장/메모리는 실제 관측 병목만 고른다. 마감한 Git 기반 M0·대형 PV·전체 장애 카탈로그를 자동 재개하지 않는다.

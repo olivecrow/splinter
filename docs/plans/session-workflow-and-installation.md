@@ -89,7 +89,7 @@ AI는 반환 workspace에서 파일/Git 작업을 하고 필요한 시점에 소
 
 ### 후속 범위: Unity CLI의 A/B 인계
 
-VCS 독립성 요구를 반영해 **VCS 없는 기본 수명주기와 기존 Git 선택 구성을 먼저 구현하고 한정 A/B를 마감**했다. 이 절의 Unity CLI 전체 인계는 별도 후속 범위로 유지한다. 일반 폴더 단위의 exact path eval/recompile·목록 누락·원본 공존은 [VCS 검증](../verification/vcs-independent-workspaces.md)에 고정했으며 기존 Git fixture의 별도 전체 A/B 인계 시험은 병행하지 않았다. [다시 확정한 계획](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)이 현재 범위를 소유한다. 아래 Git 도구/fixture 정보는 읽기 전용으로 확인한 후속 후보이며 이 별도 실행·fixture 변경은 시작하지 않았다. 실행 상태는 [추적표](validation-matrix.md#축소한-후속의-책임-분류)를 따르며 과거 M0/WF/LB 자격을 승계하지 않는다.
+VCS 독립성 요구를 반영해 **VCS 없는 기본 수명주기와 기존 Git 사용 환경의 보호 경계를 먼저 구현하고 한정 A/B를 마감**했다. 이 절의 Unity CLI 전체 인계는 별도 후속 범위로 유지한다. 일반 폴더 단위의 exact path eval/recompile·목록 누락·원본 공존은 [VCS 검증](../verification/vcs-independent-workspaces.md)에 고정했으며 기존 Git fixture의 별도 전체 A/B 인계 시험은 병행하지 않았다. [다시 확정한 계획](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)이 현재 범위를 소유한다. 아래 Git 도구/fixture 정보는 읽기 전용으로 확인한 후속 후보이며 이 별도 실행·fixture 변경은 시작하지 않았다. 실행 상태는 [추적표](validation-matrix.md#축소한-후속의-책임-분류)를 따르며 과거 M0/WF/LB 자격을 승계하지 않는다.
 
 선택 근거는 자체 refresh/컴파일 기능을 제거한 현재 제품 경로에서 외부 도구 인계가 아직 미자격이라는 점이다. 기존 Unity CLI와 Pipeline으로 먼저 연결 절차를 확인하고, 필요한 식별 정보나 공존 결함만 프로그램에서 고친다. 저장·메모리 개선의 우선순위는 그대로 유지한다. 이미 마감한 [부분 쓰기·버퍼 개선](../verification/resource-efficiency-followup.md)을 반복하거나 관측하지 않은 Library 병목을 구현 대상으로 미리 정하지 않는다.
 

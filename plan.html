@@ -17,7 +17,7 @@
 </style>
 </head>
 <body><main>
-<p class="meta">Windows / NTFS + Git + Unity · 첫 실사용 버전의 한정 범위</p>
+<p class="meta">Windows / NTFS의 병렬 작업공간 · 외부 VCS 유무와 독립적인 제품 목표</p>
 <h1>AI가 효율적으로 병렬 작업공간을 만들고, 원할 때 폐기한다</h1>
 <p>Splinter는 Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약되는 개발 환경을 위한 로컬 도구다. 각 대화의 AI가 필요할 때 자기 작업을 만들고 여러 차례 이어 간다. 작업 내용의 판단·편집·게임 기능 검증은 해당 AI와 기존 개발 도구가 담당한다.</p>
 <nav aria-label="계획 목차"><a href="#scope">제품 범위</a><a href="#flow">사용 흐름</a><a href="#next">완료와 후속</a><a href="#acceptance">완료 기준</a><a href="#verification">검증 정책</a></nav>
@@ -26,6 +26,7 @@
 <h2 id="scope">1. 제품 범위</h2>
 <table><thead><tr><th>필수</th><th>제품의 책임</th></tr></thead><tbody>
 <tr><td>독립 작업공간</td><td>원본 NTFS 위치와 파일시스템을 유지하며 최초 전체 복제·읽기 hydration·파일 전체 copy-up 없이 불변 snapshot과 작업별 변경 범위를 사용한다. 원본은 계속 편집 가능하다.</td></tr>
+<tr><td>외부 VCS 공존</td><td>Git·Unity VCS/Plastic SCM 등의 관리 정보·등록·잠금·공유 기준을 안전하게 다뤄 Splinter의 원본/peer 격리와 병렬 작업을 보호한다. VCS 사용으로 추가되는 복제·인덱스·cache·결과 저장·메모리 비용도 효율 요구에 포함한다.</td></tr>
 <tr><td>AI용 진입점</td><td>비대화형 CLI·JSON/schema, 안정된 key/id/home과 반환된 절대 경로로 자기 작업만 조작한다. 독립 실행이 불필요하면 직접 작업한다.</td></tr>
 <tr><td>지속 작업</td><td>새 CLI·대화 재개에도 기준과 변경분을 유지한다. 다른 작업이나 전역 마지막 작업을 추측해 연결하지 않는다.</td></tr>
 <tr><td>필요한 Editor</td><td>정확한 작업공간의 Editor 실행·관찰·정지를 제공한다. refresh·컴파일·Play·테스트·빌드·캡처는 외부 MCP/Unity CLI로 수행한다. 선택적 Library/cache view는 개발 경로의 저장소 수명 관리로 제한한다.</td></tr>
@@ -33,7 +34,7 @@
 <tr><td>효율과 안전</td><td>전체 생성·준비·재개·반복 편집·종료 비용을 판단한다. 승인된 쓰기·원본/peer·공유 자원을 보호하고 unknown을 성공이나 0으로 바꾸지 않는다.</td></tr>
 </tbody></table>
 <p>첫 지원 조건은 Windows x64의 등록된 로컬 NTFS/Git 프로젝트, 검증된 clean 입력과 일반 파일, 기존 제한 VSS 서비스, 정확한 Unity <code>6000.3.22f1</code> fixture다. 일반 프로젝트·다른 패치·ARM의 지원은 각각 실제 자격이 필요하다. 미지원 파일·ACL·LFS/filter/dirty 조건의 사전 거부를 유지한다.</p>
-<p><strong>기본 수명주기는 VCS 유무와 무관하게 제공해야 한다.</strong> Git·Unity VCS/Plastic SCM·VCS 없는 일반 폴더를 제품 요구에 포함한다. 현재 구현은 Git 전제이며 원격 등록은 불필요하다. 병렬 편집과 원본 통합을 분리하고 VCS가 없어도 독립 결과를 보존해야 한다. 원본 반영은 시작 기준·결과·최신 원본의 내용 비교로 이후 원본 변경을 보호하며 자동 <code>git init</code>이나 단순 덮어쓰기로 대신하지 않는다.</p>
+<p><strong>외부 VCS가 있건 없건 Splinter는 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리해야 한다.</strong> 병렬 격리는 Splinter의 기본 기능이고 VCS별 처리는 이 기능을 안전하고 효율적으로 유지하기 위한 호환 책임이다. 현재 <code>--source git|none</code>의 한정 자격은 <a href="docs/verification/vcs-independent-workspaces.md">실행 검증</a>을 따르며 Plastic 사용 환경은 아직 미자격이다. 병렬 편집과 원본 통합을 분리하고 VCS가 없어도 독립 결과를 보존한다. 원본 반영은 시작 기준·결과·최신 원본의 내용 비교로 이후 원본 변경을 보호하며 자동 <code>git init</code>이나 단순 덮어쓰기로 대신하지 않는다.</p>
 <p>후속 개발은 <strong>1. 물리 공간 절감 → 2. 메모리 절감 → 3. 안정적인 병렬 작업</strong> 순서로 판단한다. 새 Editor의 몇 분 이내 준비는 허용 비용이며 에이전트의 코딩 계획·분석과 병행할 수 있다. 준비 시간 단축은 낮은 우선순위로 두고, 수십 분 이상 지연하거나 실제 진행을 막을 때만 해당 병목을 다룬다. 상세 기준은 <a href="docs/plans/storage-priority-and-editor-modes.md#후속-개발-우선순위">저장공간 우선 계획</a>이 소유한다.</p>
 <p>프로그램은 작업공간·소유 Editor의 수명·범위 저장·독립 결과·안전한 반영/회수/폐기를 담당한다. AI가 기존 파일/Git 도구·MCP·Unity CLI로 수행할 작업 방법과 판단은 사용 지침으로 제공한다.</p>
 <table><thead><tr><th>영역</th><th>AI와 기존 도구의 책임</th><th>프로그램에 유지할 경계</th></tr></thead><tbody>
@@ -59,8 +60,8 @@
 </ol>
 <p>남길 후속은 <a href="docs/plans/implementation-plan.md#남길-후속-작업과-종료-기준">구현 계획의 종료 기준</a>으로 선택한다.</p>
 <ul>
-<li><strong>다음 개발: VCS 없는 기본 수명주기.</strong> 공통 계약·일반 폴더 생성/재개·소유 Editor·내용 검사·독립 결과·release/discard와 기존 Git 선택 구성을 연결한다. 원본/peer·범위 저장·회수 guard를 유지한다. 계획만 반영했으며 아직 일반 폴더 지원을 제공하지 않는다. 상세 범위는 <a href="docs/plans/implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기">확정한 개발 단위</a>를 따른다.</li>
-<li><strong>그 이후: 안전한 원본 반영·Plastic SCM.</strong> Git 선택 연동 정리와 VCS 없는 원본 반영의 내용/충돌·중단 복구를 확인한 뒤 Plastic 관리 정보·기준·작업공간·결과/반영을 실제 환경에서 연결한다. 이번 단위에 전용 어댑터와 자동 병합을 넣지 않는다.</li>
+<li><strong>한정 마감: VCS 없는 기본 수명주기.</strong> 공통 계약·일반 폴더 생성/재개·소유 Editor·내용 검사·독립 결과·release/discard와 기존 Git 사용 환경의 보호 경계를 연결했다. 원본/peer·범위 저장·회수 guard를 유지한다. 실제 작은 A/B 한 묶음과 후보별 제한은 <a href="docs/verification/vcs-independent-workspaces.md">검증 기록</a>, 상세 범위는 <a href="docs/plans/implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기">확정한 개발 단위</a>를 따른다.</li>
+<li><strong>후속: 안전한 원본 반영·외부 VCS 호환 처리.</strong> VCS 없는 원본 반영의 내용/충돌·중단 복구를 확인하고, Plastic 사용 환경에서는 관리 정보·등록·잠금·공유 기준이 Splinter의 격리와 효율을 해치지 않도록 필요한 처리를 검증한다. 완료 기준은 Splinter의 원본/peer 보호·안전한 회수와 저장 공간/메모리 비용이다. VCS 명령과 check-in 절차는 이 경계를 구현하는 데 필요한 범위로 제한한다.</li>
 <li><strong>최소 외부 도구 인계는 후속으로 조정.</strong> 도구 하나의 정확한 A/B Editor 선택·작업·정상 종료 뒤 peer/원본/공유 서버 보존을 확인한다. 이번에는 일반 폴더 작업의 정확한 Editor 확인에 필요한 기존 도구 사용만 포함하며 별도 Git A/B 전체 인계 검증을 병행하지 않는다.</li>
 <li><strong>데이터 보존과 게임 검증의 분리.</strong> 자체 refresh·컴파일/포커스 처리·내부 성공 gate·중복 preserve-worker를 제거했다. 외부 검증 뒤 같은 checkpoint를 사용하며 seal·독립 결과·target guard를 유지한다. 개발용 view는 저장소 수명만 관리한다.</li>
 <li><strong>저장·메모리.</strong> 실제 사용할 입력의 관측 병목 하나를 개선하고 정확성과 전후 비용으로 마감한다.</li>

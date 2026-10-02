@@ -9,6 +9,8 @@ This is the source skill shipped in the Splinter repository. It can be read dire
 
 Splinter owns workspace/storage and owned Editor lifetimes, durable independent results, and safe explicit integration/reclamation/discard. The agent uses existing file/Git tools, MCP, or Unity CLI for project work and judgment. Setup and handoff records, tool/mode selection, conflict resolution, generated-source merging, and game validation are agent procedures. Do not request a Splinter installer/binding framework, queue/automatic mode selector, or duplicate Unity authoring/test API to perform those tasks. The [scope plan](../../docs/plans/implementation-plan.md#프로그램과-에이전트의-책임) owns the boundary; current schemas and safety gates remain authoritative.
 
+The product goal is for Splinter itself to provide parallel workspaces whether an external VCS is present or absent. VCS adapters protect Splinter's isolation, original/peer ownership, storage and memory efficiency from shared administration, registrations, locks, and VCS caches. Assess compatibility by actual Splinter workspace behavior and resource costs. Current support remains the explicit Git/plain-folder contract and its qualified limits; Plastic compatibility is future work.
+
 ## Decide whether to use a workspace
 
 | Evidence | Action |

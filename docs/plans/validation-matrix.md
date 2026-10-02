@@ -35,7 +35,7 @@
 
 | 대상 | 분류 | 남길 범위 |
 | --- | --- | --- |
-| VCS 독립성 | 실제 프로그램 기능·계약 확장 | [VCS 없는 기본 수명주기](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)는 이번 한정 단위를 마감. 일반 폴더·Git 선택 구성·후속 Plastic 자격을 아래에서 구분. 기존 M0의 미실행 항목 추가로 취급하지 않음 |
+| VCS 독립성과 외부 VCS 공존 | Splinter 자체의 병렬 작업·격리·효율 책임 | [VCS 없는 기본 수명주기](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)는 이번 한정 단위를 마감. 일반 폴더·Git 사용 환경의 보호 경계·후속 Plastic 환경의 호환 자격을 아래에서 구분. 완료 기준은 Splinter의 병렬 작업/회수·원본/peer 보호와 저장 공간/메모리 비용이며 기존 M0의 미실행 항목 추가로 취급하지 않음 |
 | 외부 MCP/Unity CLI 인계 | AI 절차·필요 시 최소 프로그램 연결/사용 검증 | [Unity CLI의 A/B 인계](session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)는 VCS 없는 기본 수명주기 뒤 후속으로 조정. CLI 버전·기존 Pipeline/fixture의 읽기 전용 확인까지 수행했으며 실제 전체 A/B 인계·정상 종료 공존은 NotRun. 기존 M0에서 승계하지 않음 |
 | SF-02/03 | 프로그램의 저장·수명 유지/관측 병목 개선 | 기존 Library/후보/세대·정리·의존성 회수. 큐/일반 임대 인수/원본 공유는 제외, 생성 소스 병합은 AI |
 | SF-04/05·NR | 필요 시 지원 검증·안전 결함 수정 | 사용할 입력/환경의 파일·Git·재개/회수 경계. 전체 대형/OS/ARM 행렬 자동 실행 없음 |
@@ -57,7 +57,7 @@
 | VCS-05 | release/discard·peer/공유 자원 보호 | Passed (한 묶음·동일 intent 복구) | A release의 경로 결함 수정·같은 요청 재개. A unmount/delta 제거 뒤 B 응답 지속, dirty B의 snapshot 대기와 동일 intent/중복 폐기. 최종 두 작업 자원/mount/delta/snapshot 부재, 원본/A 결과 유지 |
 | VCS-06 | 기존 Git·실패/형식 회귀 | Passed (자동 한정) | 최종 locked restore/Release·기존 Git와 변경한 schema/fake 적합성, VCS 없는 원본 반영 미구현의 부작용 전 거부, 손상/변경 요청 보존 |
 
-VCS 없는 원본 반영 실행과 Plastic SCM 전용 어댑터/실제 프로젝트 자격은 **후속 계획·NotRun**이다. 이번 단계에서 이름만 노출하거나 Git 없는 일반 폴더의 성공을 Plastic 관리 정보/통합의 통과로 표시하지 않는다. 구현한 Git 자체의 기존 자격은 기존 표에 유지하고 선택 구성으로 바뀐 후보의 회귀와 구별한다.
+VCS 없는 원본 반영 실행과 Plastic SCM 사용 환경의 호환 처리/실제 프로젝트 자격은 **후속 계획·NotRun**이다. Plastic 관리 정보·등록·잠금·공유 기준과 추가 저장/메모리 비용이 Splinter의 병렬 격리·효율·회수를 해치지 않는지 확인해야 한다. 이번 단계에서 이름만 노출하거나 일반 폴더의 성공을 Plastic 환경의 통과로 표시하지 않는다. Git 사용 환경에서 Splinter의 기존 자격은 기존 표에 유지하고 공급자 선택을 분리한 후보의 회귀와 구별한다.
 
 ## 결과와 증거 규칙
 
