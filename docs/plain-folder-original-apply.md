@@ -32,4 +32,4 @@ Core의 `IOriginalApplyProvider`·`IOriginalFilePublisher`는 대상/계획/inte
 
 명시적 반영은 변경 파일 하나의 stage를 만들고 게시/회수 후 다음 경로로 진행한다. 기존 내용은 rename으로 보존하므로 별도 전체 원본 backup/clone을 만들지 않는다. stage는 알려진 payload 길이만 예약하고 64KiB 버퍼로 hash·읽기·쓰기한다. 독립 결과 객체·workspace 범위 저널·명시적 게시 파일은 각각 다른 비용이다. 이 동작은 workspace 생성/hydration/copy-up이 아니다.
 
-원본 반영에는 [일반 폴더 수명주기](vcs-independent-workspaces.md)의 전제와 **이번 pending-apply guard를 포함한 현재 제한 서비스 패키지**가 필요하다. 설치/업데이트와 grant는 별도 명시적 관리자 Apply다. 일반 CLI는 이를 실행하거나 자동 elevation하지 않는다. 실제 제품 A/B가 끝나기 전에는 이 구현을 전체 수명주기의 native 통과로 표시하지 않는다.
+원본 반영에는 [일반 폴더 수명주기](vcs-independent-workspaces.md)의 전제와 **이번 pending-apply guard를 포함한 현재 제한 서비스 패키지**가 필요하다. 설치/업데이트와 grant는 별도 명시적 관리자 Apply다. 일반 CLI는 이를 실행하거나 자동 elevation하지 않는다. 실제 제품 자격은 작은 Editor 없는 Windows x64 NTFS A/B 한 묶음에 한정하며 Unity/Plastic·대형/OS 장애로 확대하지 않는다.

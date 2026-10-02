@@ -2,7 +2,7 @@
 
 AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하도록 돕는 로컬 도구다. 현재 한정 실행 환경은 **Windows/NTFS + Unity의 작은 Git 프로젝트 또는 VCS 없는 폴더**다. 원본 이동·최초 전체 복제·읽기 hydration 없이 불변 snapshot과 작업별 범위 변경분을 사용하며, 원본은 작업 중 계속 수정할 수 있다.
 
-제품 요구는 **외부 VCS가 있건 없건 Splinter 자체가 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리하는 것**이다. VCS별 처리는 Splinter 작업공간의 격리·효율·원본/peer 보호를 위한 호환 책임이다. 현재 CLI는 `--source git|none`을 선택하고 일반 폴더의 파일 기준·독립 payload 보존·회수/폐기를 제공한다. 작은 Windows x64 NTFS/Unity A/B의 한 묶음을 실행했으며 [현재 계약](docs/vcs-independent-workspaces.md)과 [후보·한정 검증 상태](docs/verification/vcs-independent-workspaces.md)를 구분한다. [일반 폴더의 안전한 원본 반영](docs/plain-folder-original-apply.md)을 명시적 계획/intent와 Windows 파일 게시로 연결했으며, [현재 검증](docs/verification/plain-folder-original-apply.md)의 실제 제품 A/B는 관리자 작업 보류로 NotRun이다. Plastic 사용 환경의 호환 처리는 [별도 후속](docs/plans/implementation-plan.md#이후-순서와-원본-반영-원칙)이다.
+제품 요구는 **외부 VCS가 있건 없건 Splinter 자체가 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리하는 것**이다. VCS별 처리는 Splinter 작업공간의 격리·효율·원본/peer 보호를 위한 호환 책임이다. 현재 CLI는 `--source git|none`을 선택하고 일반 폴더의 파일 기준·독립 payload 보존·회수/폐기를 제공한다. 작은 Windows x64 NTFS/Unity A/B의 한 묶음을 실행했으며 [현재 계약](docs/vcs-independent-workspaces.md)과 [후보·한정 검증 상태](docs/verification/vcs-independent-workspaces.md)를 구분한다. [일반 폴더의 안전한 원본 반영](docs/plain-folder-original-apply.md)을 명시적 계획/intent와 Windows 파일 게시로 연결했으며, [현재 검증](docs/verification/plain-folder-original-apply.md)의 작은 Editor 없는 실제 제품 A/B를 scoped-complete-with-limitations로 마감했다. Plastic 사용 환경의 호환 처리는 [별도 후속](docs/plans/implementation-plan.md#이후-순서와-원본-반영-원칙)이다.
 
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 

@@ -35,7 +35,7 @@
 
 | 대상 | 분류 | 남길 범위 |
 | --- | --- | --- |
-| VCS 없는 원본 반영: 현재 진행 | 실제 프로그램 기능·안전 계약 | [확정 범위](plain-folder-original-apply.md)의 변경 경로 반영·원본/peer 보호·동일 intent/부분 수행 복구. AP-01~04는 자동 계약/실제 파일 시험 한정 Passed, AP-05 제품 A/B는 NotRun, AP-06 비용/문서는 Partial. Editor 없는 작은 NTFS A/B 한 묶음으로 한정 |
+| VCS 없는 원본 반영: 한정 마감 | 실제 프로그램 기능·안전 계약 | [확정 범위](plain-folder-original-apply.md)의 변경 경로 반영·원본/peer 보호·동일 intent/부분 수행 복구. AP-01~04는 자동 계약/실제 파일 시험 한정 Passed, AP-05/06은 작은 Editor 없는 제품 A/B·계측/회귀 한정 Passed. Editor 없는 작은 NTFS A/B 한 묶음으로 한정 |
 | VCS 독립성과 외부 VCS 공존 | Splinter 자체의 병렬 작업·격리·효율 책임 | [VCS 없는 기본 수명주기](implementation-plan.md#마감한-선행-개발-단위-vcs-없는-기본-수명주기)는 이번 한정 단위를 마감. 일반 폴더·Git 사용 환경의 보호 경계·후속 Plastic 환경의 호환 자격을 아래에서 구분. 완료 기준은 Splinter의 병렬 작업/회수·원본/peer 보호와 저장 공간/메모리 비용이며 기존 M0의 미실행 항목 추가로 취급하지 않음 |
 | 외부 MCP/Unity CLI 인계 | AI 절차·필요 시 최소 프로그램 연결/사용 검증 | [Unity CLI의 A/B 인계](session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)는 VCS 없는 기본 수명주기 뒤 후속으로 조정. CLI 버전·기존 Pipeline/fixture의 읽기 전용 확인까지 수행했으며 실제 전체 A/B 인계·정상 종료 공존은 NotRun. 기존 M0에서 승계하지 않음 |
 | SF-02/03 | 프로그램의 저장·수명 유지/관측 병목 개선 | 기존 Library/후보/세대·정리·의존성 회수. 큐/일반 임대 인수/원본 공유는 제외, 생성 소스 병합은 AI |
@@ -58,11 +58,11 @@
 | VCS-05 | release/discard·peer/공유 자원 보호 | Passed (한 묶음·동일 intent 복구) | A release의 경로 결함 수정·같은 요청 재개. A unmount/delta 제거 뒤 B 응답 지속, dirty B의 snapshot 대기와 동일 intent/중복 폐기. 최종 두 작업 자원/mount/delta/snapshot 부재, 원본/A 결과 유지 |
 | VCS-06 | 기존 Git·실패/형식 회귀 | Passed (자동 한정) | 최종 locked restore/Release·기존 Git와 변경한 schema/fake 적합성, VCS 없는 원본 반영 미구현의 부작용 전 거부, 손상/변경 요청 보존 |
 
-VCS 없는 원본 반영 실행과 Plastic SCM 사용 환경의 호환 처리/실제 프로젝트 자격은 **후속 계획·NotRun**이다. Plastic 관리 정보·등록·잠금·공유 기준과 추가 저장/메모리 비용이 Splinter의 병렬 격리·효율·회수를 해치지 않는지 확인해야 한다. 이번 단계에서 이름만 노출하거나 일반 폴더의 성공을 Plastic 환경의 통과로 표시하지 않는다. Git 사용 환경에서 Splinter의 기존 자격은 기존 표에 유지하고 공급자 선택을 분리한 후보의 회귀와 구별한다.
+선행 VCS-01~06의 원본 반영 미구현 거부 근거는 해당 후보에 유지하며, 원본 반영 실행의 현재 자격은 아래 AP가 소유한다. Plastic SCM 사용 환경의 호환 처리/실제 프로젝트 자격은 **후속 계획·NotRun**이다. Plastic 관리 정보·등록·잠금·공유 기준과 추가 저장/메모리 비용이 Splinter의 병렬 격리·효율·회수를 해치지 않는지 확인해야 한다. 이번 단계에서 이름만 노출하거나 일반 폴더의 성공을 Plastic 환경의 통과로 표시하지 않는다. Git 사용 환경에서 Splinter의 기존 자격은 기존 표에 유지하고 공급자 선택을 분리한 후보의 회귀와 구별한다.
 
 ## VCS 없는 원본 반영
 
-현재 범위·입력·제외·검증량은 [원본 반영 계획](plain-folder-original-apply.md), 계약은 [현재 기능](../plain-folder-original-apply.md), 후보별 근거는 [한정 검증](../verification/plain-folder-original-apply.md)이 소유한다. 구현·일반 권한 파일 시험과 AP-05 제품 A/B NotRun을 구분하며 단위 전체는 아직 마감하지 않는다. 기존 VCS-01~06·Git M0의 통과를 이 기능으로 승계하지 않는다.
+현재 범위·입력·제외·검증량은 [원본 반영 계획](plain-folder-original-apply.md), 계약은 [현재 기능](../plain-folder-original-apply.md), 후보별 근거는 [한정 검증](../verification/plain-folder-original-apply.md)이 소유한다. 자동 계약/실제 파일 시험과 작은 Editor 없는 AP-05 제품 A/B의 자격을 구분해 scoped-complete-with-limitations로 마감했다. 기존 VCS-01~06·Git M0의 통과를 이 기능으로 승계하지 않는다.
 
 | ID | 완료 관문 | 상태 | 필요한 근거 |
 | --- | --- | --- | --- |
@@ -70,8 +70,8 @@ VCS 없는 원본 반영 실행과 Plastic SCM 사용 환경의 호환 처리/�
 | AP-02 | 변경 경로만 조건부 반영 | Passed (자동 계약/실제 파일 한정) | 수정/생성/삭제·디렉터리/유형 경계와 실제 파일 게시·동시 원본 writer/교체 보호. 무관한 원본 변경 유지 |
 | AP-03 | 충돌·손상·unknown 보존 | Passed (자동 계약/실제 파일 한정) | 전체 preflight의 충돌 시 원본 쓰기 0, 부분 반영 뒤 새 충돌의 완료/미완료 기록, 원본·결과·peer 보존과 경로 탈출 거부 |
 | AP-04 | 같은 intent·중단/응답 유실 재개 | Passed (자동 계약/실제 파일 한정) | 게시 전 intent·경로별 영수증, 확인한 완료 경로의 중복 쓰기 없음, 변경 intent/target guard·unknown의 추측 덮어쓰기/성공 없음, 미해결 intent/임시 자원의 회수 완료 차단 |
-| AP-05 | 실제 Editor 없는 NTFS A/B | NotRun | 동일 A 재개·A 반영/release 중 B 편집 지속·B 충돌 거부/결과 보존·명시적 종료·소유 자원 부재. 새 후보 한 묶음, Unity 자격 승계 없음 |
-| AP-06 | 추가 비용·기존 회귀·문서 | Partial | 일반 권한 stage/관리 할당 계측과 자동 회귀; 제품 실행/비용은 미관측. 전체 원본 복제 없음·변경 파일 임시 할당/독립 결과/journal과 메모리 비용 구분, locked restore/Release·Git/Windows/파일/계약 회귀·schema/지침 일치 |
+| AP-05 | 실제 Editor 없는 NTFS A/B | Passed (작은 한 묶음) | 동일 A 재개·3경로 반영·A release 중 B 91회 쓰기/후속 편집·B 충돌 거부와 전후 원본 manifest 일치·독립 결과 hash·양쪽 mount/delta/snapshot/소유 자원 부재. 기존 snapshot 4개 보존. native 강제 중단·Unity 자격 승계 없음 |
+| AP-06 | 추가 비용·기존 회귀·문서 | Passed (고정 계측/회귀 한정) | 8/32MiB publisher stage/관리 할당과 실제 제품 결과/journal/runner·provider 시점 메모리·일반 CLI 시간/권한 관측. locked restore/Release 826 Passed·응답 24개 schema 유효·지침 일치. 전체 물리 peak·workspace별 VSS 귀속·제품 stage 순간 peak는 unknown |
 
 ## 결과와 증거 규칙
 

@@ -1,24 +1,24 @@
 # 일반 폴더 원본 반영의 제품 A/B 준비
 
-[확정 범위](plain-folder-original-apply.md)의 AP-05 한 묶음이다. 현재는 **준비 계획이며 실행하지 않는다**. 사용자 요청으로 UAC/관리자 Apply와 새 등록은 보류한다. 일반 권한 구현·파일 시험은 [별도 기록](../verification/plain-folder-original-apply.md)을 따른다.
+[확정 범위](plain-folder-original-apply.md)의 AP-05 한 묶음에 사용한 고정 입력·승인·중단 조건이다. 사용자 복귀 후 UAC 포함 실행을 승인받아 서비스 Update와 새 등록·실제 제품 A/B를 수행했다. **한정 단위를 마감했으며 자동으로 재실행하지 않는다.** 후보별 실행/비용·첫 UAC 취소와 상태 게시 실패/동일 요청 재개는 [검증 기록](../verification/plain-folder-original-apply.md)이 소유한다.
 
 | 항목 | 고정 후보와 준비 상태 |
 | --- | --- |
-| 제품 후보 | 현재 development의 원본 반영 코드·입출력 계약·pending-apply 서비스 guard. `artifacts/plain-folder-apply/candidate.json`에 최종 코드/바이너리 hash와 회귀 근거 보존 |
-| 원본 후보 | `T:\plain-apply-20261002`, 작은 VCS 없는 editorless 일반 폴더. 아직 생성/identity 등록하지 않음 |
-| home 후보 | `C:\Users\olive\Desktop\Development\splinter\.local\ap1002`. 아직 source/home grant를 설치하지 않음 |
+| 제품 후보 | `development @ fa1efea`의 원본 반영 코드·입출력 계약·pending-apply 서비스 guard. `artifacts/plain-folder-apply/candidate.json`에 최종 코드/바이너리 hash와 회귀 근거 보존 |
+| 원본 | `T:\plain-apply-20261002`, 작은 VCS 없는 editorless 일반 폴더. 등록 identity `22B349E4:000E000000008A2D`. 검증 후 원본을 보존 |
+| home | `C:\Users\olive\Desktop\Development\splinter\.local\ap1002`, 등록 identity `B0C924D3:00BD00000008911E`. 양쪽 독립 결과·소유 영수증 보존 |
 | seed | `artifacts/plain-folder-apply/native-seed`와 `native-seed-manifest.json`: `data.txt=basis`, `obsolete.txt=delete-me`, `marker.txt=marker-before`. VCS/Unity/Library 없음. 실제 source 전송 전 후 seed hash 대조 |
 | 요청 | A `ap-editorless-a-20261002`, B `ap-editorless-b-20261002`; `--source none --application none --base snapshot --storage ntfs-snapshot`; journal budget 16MiB |
-| 서비스 변경 | `artifacts/plain-folder-apply/package-20261002-01`, 명시 파일 14개, manifest SHA-256 `850e65db3dc59e16ea015cd2afa51ff65dbb25a5bc92d70891f29d92584e5877`. 기존 grant 근거 4개와 실제 보호 구성/ledger를 대조·보존한 Update에 새 source/home 1개 추가 예정 |
-| 읽기 전용 상태/계획 | `plain-folder-apply-service-status.json`: running·callerElevated=false. `artifacts/plain-folder-apply/service-package-update-plan.json`: Update·Apply=false·기존 grant 근거 4개. 새 source/home이 없는 현재는 새 등록을 포함한 설치 가능한 최종 grant가 아님 |
-| 현재 승인 | 이전 fixture의 Apply 승인을 사용하지 않음. 설치 가능한 최종 grant/읽기 전용 Update 계획을 갖춘 뒤 해당 변경의 명시적 관리자 Apply 승인 필요 |
+| 서비스 변경 | `artifacts/plain-folder-apply/package-20261002-01`, 명시 파일 14개, manifest SHA-256 `850e65db3dc59e16ea015cd2afa51ff65dbb25a5bc92d70891f29d92584e5877`. 기존 보호 구성의 등록 4개/ledger를 대조·유지한 Update에 새 source/home 1개 추가. 설치 hash 확인 |
+| 읽기 전용 상태/계획 | `service-update-plan.json`: Update·Apply=false·등록 5개, `grants.json`에 정확한 경로 identity. 초기 4개 등록의 package-only 계획과 구분 |
+| 승인 | 이전 fixture의 승인으로 확대하지 않음. 사용자 복귀 후 UAC 포함 실행 승인 및 첫 취소 뒤 동일 Update 재승인. `service-apply-outcome.json`과 configuration/ledger 근거 보존 |
 | 제외 | Unity/원본 Editor·MCP·추가 전체 장애 harness·볼륨/VSS budget 변경·기존 source/workspace/snapshot 삭제·원격/ARM 시험 |
 
 ## 준비와 승인 경계
 
-일반 권한으로 제품 빌드와 새 package/manifest·seed를 evidence 안에 작성했다. 기존 서비스 status, 네 등록의 기존 grant 근거와 보호 대상을 읽는다. 이때 `setup-storage-service.ps1 -Apply`·SCM 재시작·elevation을 실행하지 않는다.
+일반 권한으로 제품 빌드와 새 package/manifest·seed를 evidence 안에 작성하고 새 source/home만 준비한다. `storage-grant`로 경로 identity를 읽고 기존 4개를 유지한 최종 grant·기본 read-only Update 계획을 작성한다. 준비 단계에서는 `setup-storage-service.ps1 -Apply`·SCM 재시작·elevation을 실행하지 않는다.
 
-실제 실행 준비 때 source/home이 정확한 일반 NTFS 경로인지, 비어 있는 새 대상인지 확인하고 seed를 고정한다. 원본 metadata/hash·source/home의 경로/볼륨 identity와 기존 보호 구성을 대조해 최종 grant와 기본 read-only Update 계획을 작성한다. 새 source가 없어 identity를 확인하지 못한 지금은 기존 grant를 재사용한 read-only package Update 계획과 새 등록 설계를 구분한다. 이후 검토한 변경에만 관리자 Apply를 승인받는다. 서비스·grant 거부를 elevated CLI나 자동 fallback으로 우회하지 않는다.
+관리자 Apply는 사용자 승인 후 검토한 setup script·package manifest·grant hash에 고정한다. 보호 구성과 계획이 다르면 서비스 정지/복사 전에 거부한다. Update 전후 기존 ledger 파일 hash와 설치된 package를 대조하며 등록 삭제·ledger/snapshot 정리는 하지 않는다. 이후 CLI는 계속 일반 사용자 권한으로 실행한다. 서비스·grant 거부를 elevated CLI나 자동 fallback으로 우회하지 않는다.
 
 ## 한 묶음과 종료 조건
 

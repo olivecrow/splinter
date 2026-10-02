@@ -1,6 +1,6 @@
 # 일반 폴더의 실제 A/B 실행 계획
 
-[구현 범위](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)의 실제 관문을 고정한 실행 계획이다. 사용자 관리자 Apply·A/B 승인으로 실행했고 [검증 기록](../verification/vcs-independent-workspaces.md)의 **scoped-complete-with-limitations**로 마감했다. 실제 경로 결함 수정 뒤 locked restore/Release는 795개 중 794개 통과·선택 ReFS 1개 Skipped다. 한 묶음의 후보/실패/동일 요청 복구는 검증 기록이 소유하며 전체 장애/설치 자격으로 확대하지 않는다.
+[구현 범위](implementation-plan.md#마감한-선행-개발-단위-vcs-없는-기본-수명주기)의 실제 관문을 고정한 실행 계획이다. 사용자 관리자 Apply·A/B 승인으로 실행했고 [검증 기록](../verification/vcs-independent-workspaces.md)의 **scoped-complete-with-limitations**로 마감했다. 실제 경로 결함 수정 뒤 locked restore/Release는 795개 중 794개 통과·선택 ReFS 1개 Skipped다. 한 묶음의 후보/실패/동일 요청 복구는 검증 기록이 소유하며 전체 장애/설치 자격으로 확대하지 않는다.
 
 ## 고정 입력과 변경할 머신 구성
 

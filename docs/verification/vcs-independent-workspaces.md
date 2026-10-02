@@ -1,6 +1,6 @@
 # VCS 독립 수명주기 검증
 
-범위는 [확정 계획](../plans/implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기), 현재 구현은 [일반 폴더 계약](../vcs-independent-workspaces.md), 관문 상태는 [VCS 추적표](../plans/validation-matrix.md#vcs-없는-기본-수명주기)가 소유한다. 기존 Git 기반 M0의 완료를 이번 후보에 승계하지 않는다.
+범위는 [확정 계획](../plans/implementation-plan.md#마감한-선행-개발-단위-vcs-없는-기본-수명주기), 현재 구현은 [일반 폴더 계약](../vcs-independent-workspaces.md), 관문 상태는 [VCS 추적표](../plans/validation-matrix.md#vcs-없는-기본-수명주기)가 소유한다. 기존 Git 기반 M0의 완료를 이번 후보에 승계하지 않는다.
 
 `FileWorkspaceTests`는 실제 파일 공급자와 **fake snapshot backend**를 사용한다. fixture 복사는 시험의 작은 합성 기준 준비이며 제품 NTFS의 복제/범위 쓰기 자격이 아니다. A/B·원본 이후 변경·같은 key 재개·checkpoint payload의 실제 내용과 source/snapshot/mount 없는 확인·dirty discard·기존 결과 유지·peer 보호·capture/connect/unmount/delta/snapshot 응답 유실·손상 payload 보존·seal 변화 차단·VCS 관리 정보 거부·Git 오류 fallback 부재·이전 상태 거부를 검증한다. 모든 일반 폴더 단계에서 Git adapter 호출 0을 확인한다.
 
