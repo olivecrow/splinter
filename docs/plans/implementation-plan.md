@@ -6,7 +6,7 @@
 
 Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약되는 환경에서 AI 에이전트가 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하는 도구**다. 작업 내용의 의미 판단·코드 작성·게임 기능 검증은 해당 대화의 AI와 기존 개발 도구가 담당한다.
 
-**병렬 작업공간의 기본 수명주기는 VCS 유무와 무관하게 제공해야 한다.** Git·Unity VCS/Plastic SCM·VCS 없는 일반 폴더를 제품 목표에 포함한다. 현재 구현과 마감한 M0는 Git 전제이며 이 요구를 이미 지원한 것으로 읽지 않는다. 이번 요청은 계획·문서 갱신이고, 다음 개발 단위는 아래의 VCS 없는 기본 수명주기로 다시 확정한다.
+**병렬 작업공간의 기본 수명주기는 VCS 유무와 무관하게 제공해야 한다.** Git·Unity VCS/Plastic SCM·VCS 없는 일반 폴더를 제품 목표에 포함한다. 마감한 M0는 Git 전제다. 사용자 후속 구현·실행 승인에 따라 일반 폴더 기본 수명주기와 Git 선택 구성을 연결하고 작은 실제 A/B 한 묶음을 마감했다. 원본 반영 실행과 Plastic 전용 연동은 아래 후속 단계다.
 
 첫 실사용 버전은 아래 M0의 한정된 환경과 사용 흐름을 완성한다. 범용 Unity 저작·테스트 플랫폼이나 모든 NTFS 장애 조건의 자격을 완료 기준에 넣지 않는다. 제품 요구는 [plan.html](../../plan.html), 현재 구현은 [foundation](../foundation.md), 실행 상태는 [검증 추적표](validation-matrix.md)가 소유한다.
 
@@ -37,7 +37,7 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 
 | 구분 | 남길 작업 | 종료 기준과 한도 |
 | --- | --- | --- |
-| VCS 독립성: 다음 개발 단위 확정 | [VCS 없는 기본 수명주기](#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)의 공통 계약·일반 폴더 경로·Git 선택 구성과 기존 회귀 | `.git`·Git 실행 없이 생성/재개·소유 Editor·내용 검사·독립 결과·release/discard. 원본/peer·범위 저장·회수 guard 유지. 원본 반영 실행·Plastic 전용 연동은 후속 |
+| VCS 독립성: 이번 단위 마감 | [VCS 없는 기본 수명주기](#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)의 공통 계약·일반 폴더 경로·Git 선택 구성과 기존 회귀 | [한정 A/B 판정](../verification/vcs-independent-workspaces.md)의 scoped-complete-with-limitations. 원본/peer·범위 저장·회수 guard 유지. 원본 반영 실행·Plastic 전용 연동은 후속 |
 | 외부 도구 인계: 후속으로 조정 | [Unity CLI의 A/B 인계](session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)의 기존 CLI/Pipeline·작은 등록 입력에서 정확한 대상 선택·작업·정상 종료 공존 확인 | VCS 없는 기본 수명주기 뒤 별도 인계 자격 확인. 이번에는 정확한 작업 Editor 확인에 필요한 사용만 하며 기존 Git fixture의 별도 전체 A/B 인계 시험을 병행하지 않음 |
 | 결과 보존과 작업 검증의 경계: 구현 완료 | 자체 refresh/컴파일·포커스 처리와 내부 컴파일 gate·중복 preserve-worker를 제거 | 외부 검증 뒤 기본 checkpoint 사용. 컴파일 성공 주장 없이 안정된 seal·독립 결과·target guard 유지. 현재 자동 회귀 범위는 [범위 검증](../verification/workspace-product-scope.md), 새 native 인계 자격은 도구별 선택 |
 | 저장·메모리: 관측한 병목의 프로그램 개선 | 실제 사용할 입력에서 Library·delta·결과/임시 공간과 소유 메모리 부담을 확인하고 개선 대상 하나 선택 | 같은 입력의 정확성·원본/peer 보존과 전후 비용으로 판단. 자동 자원 배정·새 backend·전체 대형 비교를 선행하지 않음 |
@@ -48,7 +48,7 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 
 ## 다시 확정한 다음 개발 단위: VCS 없는 기본 수명주기
 
-2026-10-02에 추가한 사용자 요구로 앞선 Unity CLI 인계 단위의 우선순위를 조정한다. **일반 폴더의 생성·같은 작업 재개·독립 편집/Editor·결과 보존·회수·폐기를 Git 없이 완성하고, 기존 Git 경로를 선택 가능한 연동으로 유지하는 것**이 다음 개발 범위다. 후속 구현 요청으로 공통 계약·파일 소스 공급자·CLI/Windows 연결을 구현 중이다. 현재 상태 v2와 `--source git|none`·`--application unity|none`의 실제 계약은 [기능 문서](../vcs-independent-workspaces.md), 자동 회귀와 아직 실행하지 않은 native 관문은 [검증 기록](../verification/vcs-independent-workspaces.md)을 따른다. 새 fixture 준비와 관리자 서비스 등록 Apply를 구분한다. 실행 상태와 관문은 [VCS 추적표](validation-matrix.md#vcs-없는-기본-수명주기)가 소유한다.
+2026-10-02에 추가한 사용자 요구로 앞선 Unity CLI 인계 단위의 우선순위를 조정했다. **일반 폴더의 생성·같은 작업 재개·독립 편집/Editor·결과 보존·회수·폐기를 Git 없이 완성하고, 기존 Git 경로를 선택 가능한 연동으로 유지하는 것**이 이번 확정 범위다. 공통 계약·파일 소스 공급자·CLI/Windows 연결과 승인된 서비스 업데이트·실제 A/B를 실행해 한정 범위로 마감했다. 현재 상태 v2와 `--source git|none`·`--application unity|none`의 계약은 [기능 문서](../vcs-independent-workspaces.md), 후보별 자동 회귀·실제 실행·수정 후 동일 요청 재개와 제한은 [검증 기록](../verification/vcs-independent-workspaces.md)을 따른다. 실행 상태와 관문은 [VCS 추적표](validation-matrix.md#vcs-없는-기본-수명주기)가 소유한다.
 
 ### 현재 의존성과 목표 책임
 
@@ -80,7 +80,7 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 3. A의 정상 stop·독립 checkpoint·명시적 release 후 B의 편집/Editor가 지속되고 A 결과가 원본/VSS 없이 검증돼야 한다. B는 미커밋/검증 성공 없는 변경을 명시적으로 discard한다. 결과 수집 전후/unmount seal·독립 결과·원본/peer 보호와 정확한 소유 자원 회수를 확인하며 unknown/reclaim-pending은 별도로 보고한다.
 4. 공통 계약에서 필요한 응답 유실·같은 intent 재개·손상/잘못된 대상 거부는 변경 경계의 fake/자동 회귀로 확인한다. 기존 Git 회귀를 통과시키고 Git 없는 결과의 원본 반영은 아직 실행 불가로 명시하며 부작용 전에 거부한다. 이전 Git native/M0 근거를 일반 폴더의 통과로 승계하지 않는다.
 
-입력은 Windows x64·로컬 NTFS·지원하는 일반 파일이다. Editor 없는 기본 작업에는 Unity 프로젝트 메타데이터·Editor·라이선스를 요구하지 않으며 이 거부/발견 경계도 공통 적합성에서 확인한다. 실제 소유 Editor 관문에는 정확한 Unity `6000.3.22f1`의 작은 VCS 없는 fixture를 사용한다. 새 fixture·정확한 project/home·base 내용·기존 서비스 등록/여유 공간을 실행 전에 고정한다. 기존 Git fixture의 `.git` 삭제/이동으로 입력을 만들지 않는다. 새 등록이나 grant/서비스 변경이 필요하면 기존 구성 도구로 검토 가능한 계획을 먼저 만들고 관리자 Apply는 별도 승인 경계로 남긴다. 설치·외부 프로젝트 변경은 이번 계획 요청에 포함하지 않는다.
+입력은 Windows x64·로컬 NTFS·지원하는 일반 파일이다. Editor 없는 기본 작업에는 Unity 프로젝트 메타데이터·Editor·라이선스를 요구하지 않으며 이 거부/발견 경계는 공통 적합성으로 확인했다. 실제 소유 Editor 관문에는 정확한 Unity `6000.3.22f1`의 작은 VCS 없는 fixture를 사용했다. 새 fixture·정확한 project/home·base 내용·기존 서비스 등록/여유 공간을 실행 전에 고정했고 기존 Git fixture의 `.git`을 변경하지 않았다. [native 계획](vcs-independent-validation.md)의 관리자 Apply는 사용자 별도 승인을 받아 실행했다. 이후 다른 입력/구성의 설치·외부 프로젝트 변경은 이번 마감 범위에 자동 포함하지 않는다.
 
 이번 범위는 **원본 반영의 VCS 중립 계약/차단까지**다. 일반 폴더 원본에 쓰는 실제 apply·자동 충돌 병합·Plastic 관리 정보/서버/checkout·check-in·전용 adapter·독립 Unity CLI 전체 공존 검증·대형/원격/OS 장애·개발용 view 확장은 포함하지 않는다. 지원 경로의 쓰기 손실·원본/peer 훼손은 우선 수정하고, 나머지는 선택한 단위의 성공/실패·제약을 기록한 뒤 마감한다.
 
@@ -88,7 +88,7 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 
 | 순서 | 개발 단위 | 완료 경계 |
 | --- | --- | --- |
-| 1: 이번 | VCS 중립 계약·일반 폴더 기본 수명주기·기존 Git 선택 구성 | 위 실제 A/B와 독립 결과/회수·Git 회귀. 원본 반영 실행·Plastic 지원은 아직 주장하지 않음 |
+| 1: 이번 마감 | VCS 중립 계약·일반 폴더 기본 수명주기·기존 Git 선택 구성 | 실제 A/B와 독립 결과/회수·Git 회귀의 한정 판정. 원본 반영 실행·Plastic 지원은 아직 주장하지 않음 |
 | 2 | Git 선택 연동 정리와 VCS 없는 안전한 원본 반영 | 기준/결과/최신 원본의 경로·내용 비교, 충돌 시 원본/결과 보존·부작용 전 거부, 동일 apply intent의 중단 재개와 target guard. 자동 내용 병합은 AI/기존 도구 책임 |
 | 3 | Unity VCS / Plastic SCM 연동 | 실제 사용할 client/버전/프로젝트에서 관리 정보·소유 작업공간·기준·결과/반영·peer 보호를 확인. 공통 파일 경로의 성공만으로 Plastic 자격을 주장하지 않음 |
 
@@ -96,7 +96,7 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 
 ## 첫 버전의 지원 조건
 
-아래는 마감한 Git 기반 M0의 조건이다. 새 VCS 독립성 요구의 지원 완료표가 아니며 일반 폴더와 Plastic SCM은 해당 구현/실행까지 미자격을 유지한다.
+아래는 마감한 Git 기반 M0의 조건이다. 일반 폴더의 한정 자격은 별도 [VCS 검증](../verification/vcs-independent-workspaces.md)을 따르며 Plastic SCM은 미자격을 유지한다.
 
 | 항목 | 고정할 범위 |
 | --- | --- |

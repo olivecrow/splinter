@@ -45,13 +45,16 @@ Git 어댑터는 다음 순서로 검사한다.
 | `source.inspection`, `source-inspections.jsonl` | mode, raw payload bytes, 해시/재사용 파일 수, manifest bytes, 시간, epoch/sequence, `gitHashInputBytes`, `gitHashProcesses` | Git 바이트는 내용 hash에 넘긴 파일의 raw 논리 길이이며 프로세스 수는 해당 검사의 hash-object 호출 수다. 전체 Git 명령 수·I/O·물리 디스크 읽기량과 다르다. 초기/감사/재개 비용도 기록하며 현재 계측 객체의 프로세스 수는 필수다 |
 | `storage.metrics` | provider epoch, lock 횟수/대기 tick, flush 횟수/tick, commit/append bytes, replay bytes/tick·프레임·읽기 호출·단계별 tick, base/journal read bytes | 현재 provider 프로세스의 누적 계수다. 재시작 뒤 다른 epoch끼리 단순 차감하지 않는다. tick은 `stopwatchFrequency`로 환산한다 |
 | `storage-reads.jsonl` | seal과 최종 delta 삭제 전 확인의 실제 stream bytes와 해시 시간 | delta 밖의 진단 기록이다. seal 값·삭제 권한의 근거를 대신하지 않는다 |
-| `scripts/measure-workspace-storage.ps1` | FILE_STANDARD_INFO 파일 할당, 논리 길이, root별 분류, VSS 볼륨 관측 | 읽기 전용 개발 도구다. mount를 순회하거나 논리 트리를 실제 복제량으로 합산하지 않는다 |
+| `scripts/measure-workspace-storage.ps1` | FILE_STANDARD_INFO 파일 할당, 논리 길이, root별 분류, VSS 볼륨 관측 | 읽기 전용 개발 도구다. source/application 선택을 받으며 mount를 순회하거나 논리 트리를 실제 복제량으로 합산하지 않는다 |
 | `scripts/measure-overlay-journal.py` | 정지한 저널의 frame checksum·SHA-256·sequence, 기록 경로별 누적/유효/대체 payload, 현재 경로별 유효 payload | 제품 replay·seal로 확인한 입력의 개발 장부다. 정리된 `write-compacted`·`skip-range`도 처리하며, 물리 할당·제품 검증을 대체하지 않는다 |
 
 ```powershell
 pwsh ./scripts/measure-workspace-storage.ps1 -HomePath <home> -Project <original> -OutputPath <evidence.json> -Label after-edit
+pwsh ./scripts/measure-workspace-storage.ps1 -HomePath <home> -Project <plain-folder> -SourceKind none -ApplicationKind unity -OutputPath <evidence.json> -Label after-checkpoint
 python ./scripts/measure-overlay-journal.py <stopped-delta.journal> --output <new-accounting.json>
 ```
+
+기본 source/application은 `git`/`unity`다. `-SourceKind none`은 Git을 호출하지 않고 Git common root를 추가하지 않는다. `-ApplicationKind none`은 Unity Library 기준선 root를 추가하지 않는다. 일반 폴더의 `files/objects`는 `independent-file-result-payload`로 따로 분류하며 control root의 부분이므로 다시 합산하지 않는다.
 
 할당 계측은 현재 저널·정리 후보·이전 세대를 별도 category로 나눈다. 선택적 `-EvidencePath <run-directory>`는 검증 자료를 `verification-evidence` root(`scope=measurement-overhead`)로 따로 관측한다. 이를 제품 작업공간 공간에 합산하지 않고 여러 작업이 공유하는 자료는 한 번만 센다. 표본 파일 자신이 기록되기 전의 관측이므로 마지막 표본 파일까지 포함한 절대 상한은 아니다.
 

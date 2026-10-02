@@ -15,7 +15,7 @@ public sealed class FileWorkspaceProvider(WorkspaceStore store) : ISourceWorkspa
     { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
     public static readonly string[] VcsMetadata = [".git", ".plastic", ".hg", ".svn"];
     private string Control(WorkspaceRecord w) => store.ControlPath(w.Id);
-    private static string FilePath(string control, string name) => Path.Combine(control, "files", name);
+    private static string FilePath(string control, string name) => Path.Combine(control, "files", name.Replace('/', Path.DirectorySeparatorChar));
     private static WorkspaceException Error(string message) => new("FileSourceStateInvalid", message);
     private static void Require(WorkspaceRecord w)
     {

@@ -56,6 +56,24 @@ public sealed class FileWorkspaceTests
     }
 
     [Fact]
+    public async Task IndependentResultPathsCanBePinnedByTheNativeAuthority()
+    {
+        if (!OperatingSystem.IsWindows()) { Assert.Skip("Windows authority path guard."); return; }
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var w = (await f.Ensure("authority", ct)).Workspace;
+        File.WriteAllText(Path.Combine(w.Path, "data.txt"), "worker-result");
+        await f.New().CheckpointAsync(w.Id, "preserve", ct);
+        await f.New().ReleaseAsync(w.Id, ct);
+        using var guard = new Splinter.Platform.Windows.StorageAuthorityPaths();
+        FileWorkspaceProvider.VerifyIndependentResult(f.Store.Get(w.Id), f.Store.ControlPath(w.Id), path =>
+        {
+            guard.Pin(path, directory: false);
+            return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        });
+        Assert.Equal(0, f.Git.Calls);
+    }
+
+    [Fact]
     public async Task DirtyDiscardRetainsPeerAndPreviousIndependentResults()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;

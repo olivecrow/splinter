@@ -35,7 +35,7 @@
 
 | 대상 | 분류 | 남길 범위 |
 | --- | --- | --- |
-| VCS 독립성 | 실제 프로그램 기능·계약 확장 | 다음 개발 단위는 [VCS 없는 기본 수명주기](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기). 현재 Git 의존을 코드로 확인했고 일반 폴더·Git 선택 구성·Plastic 자격은 아래 새 관문에서 구분. 기존 M0의 미실행 항목 추가로 취급하지 않음 |
+| VCS 독립성 | 실제 프로그램 기능·계약 확장 | [VCS 없는 기본 수명주기](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)는 이번 한정 단위를 마감. 일반 폴더·Git 선택 구성·후속 Plastic 자격을 아래에서 구분. 기존 M0의 미실행 항목 추가로 취급하지 않음 |
 | 외부 MCP/Unity CLI 인계 | AI 절차·필요 시 최소 프로그램 연결/사용 검증 | [Unity CLI의 A/B 인계](session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)는 VCS 없는 기본 수명주기 뒤 후속으로 조정. CLI 버전·기존 Pipeline/fixture의 읽기 전용 확인까지 수행했으며 실제 전체 A/B 인계·정상 종료 공존은 NotRun. 기존 M0에서 승계하지 않음 |
 | SF-02/03 | 프로그램의 저장·수명 유지/관측 병목 개선 | 기존 Library/후보/세대·정리·의존성 회수. 큐/일반 임대 인수/원본 공유는 제외, 생성 소스 병합은 AI |
 | SF-04/05·NR | 필요 시 지원 검증·안전 결함 수정 | 사용할 입력/환경의 파일·Git·재개/회수 경계. 전체 대형/OS/ARM 행렬 자동 실행 없음 |
@@ -46,15 +46,15 @@
 
 ## VCS 없는 기본 수명주기
 
-이 요구는 새 프로그램 기능/계약의 개발 단위이며 기존 Git 기반 M0·48개 카탈로그와 구분한다. 범위·순서·수정 한도는 [다시 확정한 계획](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)이 소유한다. 프로그램 연결과 자동 file/fake·기존 Git 회귀를 확인했으며 실제 일반 폴더 VSS/Unity는 아직 실행하지 않았다. [현재 검증](../verification/vcs-independent-workspaces.md)과 [고정 native/서비스 계획](vcs-independent-validation.md)을 따른다. 자동 회귀나 raw VSS/WinFsp의 분리 구조를 일반 폴더의 실제 지원으로 승계하지 않는다.
+이 요구는 새 프로그램 기능/계약의 개발 단위이며 기존 Git 기반 M0·48개 카탈로그와 구분한다. 범위·순서·수정 한도는 [다시 확정한 계획](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)이 소유한다. 자동 file/fake·기존 Git 회귀와 승인된 실제 일반 폴더 VSS/Unity A/B 한 묶음을 **scoped-complete-with-limitations**로 마감했다. [현재 검증](../verification/vcs-independent-workspaces.md)이 첫 후보의 생성/Editor/checkpoint, 경로 결함 수정 후보의 같은 release/discard 재개와 미실행 경계를 구분한다. [고정 native/서비스 계획](vcs-independent-validation.md)을 따랐으며 새 후보 전체 A/B 재실행·일반 지원으로 자동 승계하지 않는다.
 
 | ID | 완료 관문 | 상태 | 필요한 근거 |
 | --- | --- | --- | --- |
-| VCS-01 | VCS 중립 계약·일반 폴더 발견/생성 | Partial (자동; native NotRun) | `.git`·Git 실행/필수 설치 없이 선택한 일반 폴더 명령 동작, source mode/기준·내용 identity, Git 손상/unknown의 암묵 fallback 거부 |
-| VCS-02 | A/B 격리·원본 지속 수정·같은 작업 재개 | Partial (자동; native NotRun) | 반환 경로·서로 다른 key/ID, 동일 요청 재개의 기준/digest/변경분, 원본 이후 수정에 고정 기준 유지 |
-| VCS-03 | 기존 NTFS 효율 계약 | Partial (자동; native NotRun) | 최초 전체 payload 복제·읽기 hydration·전체 파일 copy-up 0, 범위 저장·승인 flush·seal과 필요한 기준/결과 저장 비용 구분 |
-| VCS-04 | 실제 소유 Editor·독립 결과 | Partial (자동; native NotRun) | 정확한 A/B 경로·PID/시작 시각, 외부 도구의 필요한 결과, Git commit 없는 checkpoint, 원본 수정·workspace/VSS 회수 후 실제 결과 내용 검증 |
-| VCS-05 | release/discard·peer/공유 자원 보호 | Partial (자동; native NotRun) | A 보존형 회수 중 B 지속, 성공 검증 없는 B 명시적 폐기, 같은 intent 재개·자원/결과 의존성 guard와 실제 부재/0; unknown/회수 대기 별도 |
+| VCS-01 | VCS 중립 계약·일반 폴더 발견/생성 | Passed (자동·native 한정) | `.git` 없는 등록 일반 폴더·명시 mode/기준으로 실제 생성. Git 호출 부재/손상 fallback 거부는 실제 adapter의 자동 적합성과 코드 연결로 확인. application none의 별도 native는 NotRun |
+| VCS-02 | A/B 격리·원본 지속 수정·같은 작업 재개 | Passed (자동·native 한정) | 서로 다른 반환 경로/key/ID, 새 CLI의 동일 A 요청 id/digest/basis/snapshot 유지. 원본 이후 수정에도 A/B의 basis 유지 |
+| VCS-03 | 기존 NTFS 효율 계약 | Passed (자동·native 한정) | 초기 payload/journal/read cache 0, A의 5바이트 범위 쓰기와 ACK flush/seal 회귀. Unity journal·명시적 basis/result payload·파일 할당을 별도 관측. 전체 물리 peak/VSS 귀속 unknown |
+| VCS-04 | 실제 소유 Editor·독립 결과 | Passed (한 묶음·수정 후 회수) | 정확한 A/B 경로·PID/시작 시각·외부 CLI loaded code/성공 A·실패 B, Git 없는 checkpoint. 회수 뒤 실제 49개 payload 항목/26개 object·기준/결과 내용 검증. 후보별 단계는 검증 기록에 고정 |
+| VCS-05 | release/discard·peer/공유 자원 보호 | Passed (한 묶음·동일 intent 복구) | A release의 경로 결함 수정·같은 요청 재개. A unmount/delta 제거 뒤 B 응답 지속, dirty B의 snapshot 대기와 동일 intent/중복 폐기. 최종 두 작업 자원/mount/delta/snapshot 부재, 원본/A 결과 유지 |
 | VCS-06 | 기존 Git·실패/형식 회귀 | Passed (자동 한정) | 최종 locked restore/Release·기존 Git와 변경한 schema/fake 적합성, VCS 없는 원본 반영 미구현의 부작용 전 거부, 손상/변경 요청 보존 |
 
 VCS 없는 원본 반영 실행과 Plastic SCM 전용 어댑터/실제 프로젝트 자격은 **후속 계획·NotRun**이다. 이번 단계에서 이름만 노출하거나 Git 없는 일반 폴더의 성공을 Plastic 관리 정보/통합의 통과로 표시하지 않는다. 구현한 Git 자체의 기존 자격은 기존 표에 유지하고 선택 구성으로 바뀐 후보의 회귀와 구별한다.

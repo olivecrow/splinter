@@ -2,7 +2,7 @@
 
 AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하도록 돕는 로컬 도구다. 첫 지원 목표는 **Windows/NTFS + Git + Unity**다. 원본 이동·최초 전체 복제·읽기 hydration 없이 불변 snapshot과 작업별 범위 변경분을 사용하며, 원본은 작업 중 계속 수정할 수 있다.
 
-제품 요구는 **Git·Unity VCS/Plastic SCM·VCS 없는 일반 폴더에서 같은 기본 수명주기를 제공하는 것**이다. 현재 CLI는 `--source git|none`을 선택하고 일반 폴더의 파일 기준·독립 payload 보존·회수/폐기를 연결했다. [현재 계약](docs/vcs-independent-workspaces.md)과 [검증 상태](docs/verification/vcs-independent-workspaces.md)를 구분한다. 실제 VSS/Unity A/B는 아직 미검증이며 안전한 일반 폴더 원본 반영과 Plastic 전용 연동은 [후속](docs/plans/implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)이다.
+제품 요구는 **Git·Unity VCS/Plastic SCM·VCS 없는 일반 폴더에서 같은 기본 수명주기를 제공하는 것**이다. 현재 CLI는 `--source git|none`을 선택하고 일반 폴더의 파일 기준·독립 payload 보존·회수/폐기를 제공한다. 작은 Windows x64 NTFS/Unity A/B의 한 묶음을 실행했으며 [현재 계약](docs/vcs-independent-workspaces.md)과 [후보·한정 검증 상태](docs/verification/vcs-independent-workspaces.md)를 구분한다. 안전한 일반 폴더 원본 반영과 Plastic 전용 연동은 [후속](docs/plans/implementation-plan.md#이후-순서와-원본-반영-원칙)이다.
 
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 

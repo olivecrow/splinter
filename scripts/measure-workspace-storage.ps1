@@ -4,7 +4,9 @@ param(
     [Parameter(Mandatory)][string]$Project,
     [Parameter(Mandatory)][string]$OutputPath,
     [Parameter(Mandatory)][string]$Label,
-    [string]$EvidencePath
+    [string]$EvidencePath,
+    [ValidateSet('git','none')][string]$SourceKind = 'git',
+    [ValidateSet('unity','none')][string]$ApplicationKind = 'unity'
 )
 $ErrorActionPreference = 'Stop'
 # Read-only file allocation sampling. Never traverse a workspace mount or count
@@ -44,10 +46,14 @@ $roots.Add(@{name='control-and-delta';path=(Join-Path $stateRoot 'records');scop
 $roots.Add(@{name='validation-product';path=(Join-Path $stateRoot 'validation-product');scope='owned';baselineExcluded=$false})
 $roots.Add(@{name='validation-workflows';path=(Join-Path $stateRoot 'validation-workflows');scope='owned';baselineExcluded=$false})
 $roots.Add(@{name='runners';path=(Join-Path $stateRoot 'runners');scope='owned';baselineExcluded=$false})
-$gitCommon = (& git -C $sourceRoot rev-parse --path-format=absolute --git-common-dir).Trim()
-if ($LASTEXITCODE -ne 0) { throw 'Git common directory observation failed' }
-$roots.Add(@{name='git-common';path=$gitCommon;scope='shared-including-results';baselineExcluded=$true})
-$roots.Add(@{name='original-library';path=(Join-Path $sourceRoot 'Library');scope='original';baselineExcluded=$true})
+if ($SourceKind -eq 'git') {
+    $gitCommon = (& git -C $sourceRoot rev-parse --path-format=absolute --git-common-dir).Trim()
+    if ($LASTEXITCODE -ne 0) { throw 'Git common directory observation failed' }
+    $roots.Add(@{name='git-common';path=$gitCommon;scope='shared-including-results';baselineExcluded=$true})
+}
+if ($ApplicationKind -eq 'unity') {
+    $roots.Add(@{name='original-library';path=(Join-Path $sourceRoot 'Library');scope='original';baselineExcluded=$true})
+}
 if ($EvidencePath) {
     $roots.Add(@{name='verification-evidence';path=[IO.Path]::GetFullPath($EvidencePath);scope='measurement-overhead';baselineExcluded=$false})
 }
@@ -70,7 +76,11 @@ $rows = foreach ($root in $roots) {
                             'delta.journal' { 'delta-journal-including-Library-writes' }
                             'delta.journal.compacting' { 'delta-compaction-candidate' }
                             'delta.journal.previous' { 'delta-compaction-previous' }
-                            default { if ($item.Name -like 'source-fingerprint.json*') { 'source-manifests' } else { 'other' } }
+                            default {
+                                if ($item.FullName -match '[\\/]files[\\/]objects[\\/]') { 'independent-file-result-payload' }
+                                elseif ($item.Name -like 'source-fingerprint.json*') { 'source-manifests' }
+                                else { 'other' }
+                            }
                         }
                         if (-not $categories.ContainsKey($category)) { $categories[$category] = @{logicalBytes=0L;allocatedBytes=0L;files=0L} }
                         $categories[$category].logicalBytes += $item.Length; $categories[$category].allocatedBytes += $size; $categories[$category].files++
@@ -86,7 +96,7 @@ $rows = foreach ($root in $roots) {
 $vss = $null; $vssError = $null
 try { $vss = @(Get-CimInstance Win32_ShadowStorage -ErrorAction Stop | Select-Object @{n='volume';e={$_.Volume.DeviceID}},@{n='diffVolume';e={$_.DiffVolume.DeviceID}},UsedSpace,AllocatedSpace,MaxSpace) }
 catch { $vssError = $_.Exception.Message }
-$report = [ordered]@{version=1;label=$Label;atUtc=[DateTimeOffset]::UtcNow;home=$stateRoot;project=$sourceRoot;
+$report = [ordered]@{version=1;label=$Label;atUtc=[DateTimeOffset]::UtcNow;home=$stateRoot;project=$sourceRoot;sourceKind=$SourceKind;applicationKind=$ApplicationKind;
     roots=@($rows);vssVolumeObservations=$vss;vssObservationError=$vssError;totalAttributableBytes=$null;
     limitations=@('Subtract each category baseline before comparing additional allocation. Categories subdivide their root; do not add them again.',
         'VSS is volume-wide and may include unrelated original writes. No per-workspace attribution or total savings claim.',
