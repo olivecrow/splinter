@@ -1,8 +1,10 @@
 # 불변 검증 후보와 고정 view 실험
 
+현재 명령은 [별도 개발 CLI](development-cli.md)에서 사용한다. 자체 compile/validation 요청은 제거했으며 storage 후보·source/cache·seal/회수 계약만 유지한다.
+
 `snapshot-spike`의 개발용 확장이다. 제품 `workspace ensure`의 실행 모드나 작업 큐에 연결되어 있지 않다. 범위는 [VC-01~04 계획](validation-view.md), 실제 판정은 [검증 기록](verification/immutable-validation-view.md)을 따른다.
 
-같은 저장소 구현을 사용하는 [제품 검증 workflow](validation-workflow.md)는 별도 `validation` 명령으로 Windows/Git/Unity 어댑터와 연결한다. 아래 개발용 실험의 통과 근거를 새 제품 후보로 자동 승계하지 않는다.
+같은 저장소 구현을 사용하는 [소스 view 수명주기](validation-workflow.md)는 개발용 `view` 명령으로 Windows/Git/Unity 수명 어댑터와 연결한다. Unity의 실제 편집·컴파일·테스트는 AI·외부 도구가 수행한다. 아래 개발용 실험의 통과 근거를 새 제품 후보로 자동 승계하지 않는다.
 
 ## 저장 구조
 
@@ -40,7 +42,7 @@ Unity가 새 임시 파일을 다른 partition으로 rename할 때는 원본에�
 }
 ```
 
-`scripts/splinter.ps1 snapshot-spike --input <request.json>`으로 호출한다. 입력 schema는 `snapshot-spike-request`, 결과 후보 schema는 `validation-candidate`다. `candidate-export`는 `.git`·관리 캐시를 쓴 작업자를 계속 거부한다. Git 포인터가 있는 작업자에는 아래의 별도 개발용 경로가 필요하다. 독립 결과 수집 단계의 Git 등록은 `GitOverlayRegistration`을 사용하며, 실험의 attach는 baseline과 다른 소스가 있는 index refresh의 정상 exit 1을 허용한다. lock·기타 오류를 무시하지 않고 제품 attach의 기본 계약은 유지한다.
+`scripts/splinter-dev.ps1 snapshot-spike --input <request.json>`으로 호출한다. 입력 schema는 `snapshot-spike-request`, 결과 후보 schema는 `validation-candidate`다. `candidate-export`는 `.git`·관리 캐시를 쓴 작업자를 계속 거부한다. Git 포인터가 있는 작업자에는 아래의 별도 개발용 경로가 필요하다. 독립 결과 수집 단계의 Git 등록은 `GitOverlayRegistration`을 사용하며, 실험의 attach는 baseline과 다른 소스가 있는 index refresh의 정상 exit 1을 허용한다. lock·기타 오류를 무시하지 않고 제품 attach의 기본 계약은 유지한다.
 
 ### 등록 증거가 있는 관리 파일 분리
 
@@ -103,7 +105,7 @@ Runtime의 일회성 `ExportCandidate`/`ExportSourceCandidate`는 같은 게시 
 
 전체 요청의 `identity`는 원본 snapshot을 가리킨다. 각 전환에는 새 `deltaPath`와 `controlPath`를 쓰고 동일한 `mountPath`, view ID, cache 경로를 유지한다. 이전 후보의 source delta·제어 기록은 보존한다. 재개는 같은 후보·같은 source delta·같은 identity를 쓴다. 오류 뒤 폴더나 저널을 삭제해서 identity 검사를 우회하지 않는다.
 
-전환 순서는 `unity-stop` → 소유 application 자원 0 → `unmount` → provider 종료·mount 부재 → 다음 후보 `mount` → `unity-start` → 명시적 `unity-refresh`와 실제 code/asset 확인이다. `checkpoint`를 검증 후보로 재사용하지 않는다. 열린 Editor 아래 root 교체, 자동 임대/FIFO, 작업자에 생성 소스를 병합하는 명령은 없다. source delta의 출력은 독립 Git 결과로 수집한 후에 회수한다. release·TTL·디스크 압박에 의한 자동 후보 삭제도 없다.
+전환 순서는 `unity-stop` → 소유 application 자원 0 → `unmount` → provider 종료·mount 부재 → 다음 후보 `mount` → `unity-start` → 선택한 외부 도구로 refresh·실제 code/asset 확인이다. `checkpoint`를 검증 후보로 재사용하지 않는다. 열린 Editor 아래 root 교체, 자동 임대/FIFO, 작업자에 생성 소스를 병합하는 명령은 없다. source delta의 출력은 독립 Git 결과로 수집한 후에 회수한다. release·TTL·디스크 압박에 의한 자동 후보 삭제도 없다.
 
 provider는 저널을 여는 동안 `replaying` 상태를 게시한다. mount/reconnect는 같은 launch의 PID·시작 시각을 유지하며 최대 2분 동안 실제 mount와 5초 이내의 `mounted` 관측을 기다린다. 프로세스 시작이나 replay 상태만으로 준비 완료를 반환하지 않는다. 한도 초과·취소에는 저널과 실행 중인 provider를 보존하며 같은 요청의 다음 호출이 그 provider를 기다린다. 기록과 launch 소유권이 맞지 않으면 불확실 상태를 유지하고 중복 실행하지 않는다. `state.preparation.storeReadyTicks`는 후보 확인과 source/cache 열기를 합친 내부 시간이며 전체 CLI 준비 시간과 구별한다.
 

@@ -5,7 +5,20 @@
   "additionalProperties": false,
   "required": ["action", "overlayRequestPath"],
   "properties": {
-    "action": {"enum": ["mount", "status", "unmount", "git-prepare", "git-attach", "git-release", "unity-start", "unity-status", "unity-refresh", "unity-stop", "preserve", "candidate-export", "candidate-source-export"]},
+    "action": {"enum": [
+      "mount",
+      "status",
+      "unmount",
+      "git-prepare",
+      "git-attach",
+      "git-release",
+      "unity-start",
+      "unity-status",
+      "unity-stop",
+      "preserve",
+      "candidate-export",
+      "candidate-source-export"
+    ]},
     "candidatePath": {"type": "string", "minLength": 1},
     "publication": {"$ref":"urn:splinter:v1:candidate-export-request"},
     "overlayRequestPath": {"type": "string", "minLength": 1},

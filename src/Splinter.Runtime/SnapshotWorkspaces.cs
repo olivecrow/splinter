@@ -221,7 +221,7 @@ public sealed partial class WorkspaceCoordinator
         using var gate = await workflows.LockAsync(project, ct);
         var dependencies = ValidationWorkflowCoordinator.SnapshotDependencies(workflows.Read(project), snapshot);
         if (dependencies.Length != 0)
-            throw new WorkspaceException("SnapshotInUse", "Preserve and release dependent validation artifacts before releasing this worker.", new { dependencies });
+            throw new WorkspaceException("SnapshotInUse", "Use the development CLI to preserve/release dependent storage views and close their cache before reclaiming this worker. Find its entrypoint with capabilities.", new { dependencies });
     }
 
     private void RequireSnapshotObservation(WorkspaceRecord w, SnapshotWorkspaceObservation observation)
@@ -284,8 +284,6 @@ public sealed partial class WorkspaceCoordinator
         {
             if (!state.Step.StartsWith("compact-", StringComparison.Ordinal))
             {
-                if (w.PendingValidationId is not null)
-                    throw new WorkspaceException("ValidationInProgress", "Wait for the active validation before compacting.");
                 await RequireStopped(w, ct);
                 state.Observation = await Snapshots.ObserveAsync(w, control, ct);
                 RequireSnapshotObservation(w, state.Observation);
@@ -342,7 +340,6 @@ public sealed partial class WorkspaceCoordinator
                         new("provider-reconnect", reconnectTicks,
                             state.Observation?.Storage?.Metrics?.ReplayBytes ?? 0, 0, 0),
                         new("previous-generation-cleanup", cleanupTicks, 0, 0, 0)] } };
-                w.Validation = null; w.PendingValidationId = null; w.PendingFingerprint = null;
                 state.PendingCompactionMaxEstimatedJournalOverlapBytes = null;
                 w.Phase = "ready"; w.LastError = null;
                 SnapshotStep(w, "ready");

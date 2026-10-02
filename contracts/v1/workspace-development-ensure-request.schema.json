@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:workspace-development-ensure-request",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "\\S"
+    },
+    "baseReference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "storage": {
+      "enum": [
+        "ntfs-snapshot",
+        "refs-cow",
+        "git-checkout"
+      ]
+    },
+    "editor": {
+      "type": "boolean"
+    },
+    "baseline": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24}$"
+    },
+    "maxJournalBytes": {
+      "type": "integer",
+      "minimum": 4096,
+      "maximum": 1099511627776
+    }
+  },
+  "required": [
+    "project",
+    "key",
+    "storage"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "storage": {
+            "const": "refs-cow"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "baseline"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "baseline"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "maxJournalBytes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "storage": {
+            "const": "ntfs-snapshot"
+          }
+        }
+      }
+    }
+  ]
+}

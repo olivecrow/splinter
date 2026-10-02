@@ -210,7 +210,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         string id = (await f.Ensure(ct)).Workspace.Id;
-        await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        await f.New().StartAsync(id, ct); await f.New().StatusAsync(id, ct);
         await f.New().CheckpointAsync(id, "independent result", ct);
         f.Backend.Available = false; f.Source.LoseReply = "inspect"; f.Backend.WriteDuringUnmount = lateWrite;
         if (lateWrite)
@@ -279,14 +279,18 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         var view = await f.Ensure(ct); string id = view.Workspace.Id;
-        await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        await f.New().StartAsync(id, ct); await f.New().StatusAsync(id, ct);
         f.Source.Dirty = true;
-        // A change after validation must be rejected before source collection.
+        // Project validation is external. Stable changed source can be preserved.
         f.Source.Fingerprint = "changed";
-        Assert.Equal("ValidationRequired", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CheckpointAsync(id, "result", ct))).Code);
-        await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        await f.New().StatusAsync(id, ct);
         var collected = await f.New().CheckpointAsync(id, "result", ct);
         Assert.True(collected.Workspace.Snapshot!.Result!.IndependentOfSnapshot);
+        Assert.Null(collected.Workspace.Validation);
+        string savedFingerprint = f.Source.Fingerprint;
+        f.Source.Fingerprint = "different-preserved-content";
+        Assert.Equal("ResultNotReady", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().IntegrateAsync(id, "main", ct))).Code);
+        f.Source.Fingerprint = savedFingerprint;
         var released = await f.New().ReleaseAsync(id, ct);
         Assert.Equal("released", released.Workspace.Phase); Assert.Null(released.Workspace.IntegratedRevision);
         Assert.True(f.Backend.DeltaRemoved); Assert.True(f.Backend.SnapshotReleased);
@@ -323,7 +327,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         string id = (await f.Ensure(ct)).Workspace.Id;
         if (checkpoint)
         {
-            await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+            await f.New().StartAsync(id, ct); await f.New().StatusAsync(id, ct);
         }
         f.Source.AfterPreserve = f.Backend.AcknowledgeWrite;
         var failure = await Assert.ThrowsAsync<WorkspaceException>(() => checkpoint
@@ -359,7 +363,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         string id = (await f.Ensure(ct)).Workspace.Id;
-        await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        await f.New().StartAsync(id, ct); await f.New().StatusAsync(id, ct);
         var collected = await f.New().CheckpointAsync(id, "result", ct);
         collected.Workspace.Snapshot!.Result = collected.Workspace.Snapshot.Result! with { CollectionProtocol = "unsupported" };
         collected.Workspace.Snapshot.Step = step;
@@ -380,7 +384,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         string id = (await f.Ensure(ct)).Workspace.Id;
-        await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        await f.New().StartAsync(id, ct); await f.New().StatusAsync(id, ct);
         var previous = (await f.New().CheckpointAsync(id, "result", ct)).Workspace.Snapshot!.Result;
         f.Source.AfterPreserve = f.Backend.AcknowledgeWrite;
         Assert.Equal("DeltaChangedAfterCollection", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
@@ -419,7 +423,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         string id = (await f.Ensure(ct)).Workspace.Id;
-        await f.New().StartAsync(id, ct); await f.New().RefreshAsync(id, ct); await f.New().StatusAsync(id, ct);
+        await f.New().StartAsync(id, ct); await f.New().StatusAsync(id, ct);
         f.Source.LoseReply = "preserve";
         await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CheckpointAsync(id, "result", ct));
         var recovered = await f.New().CheckpointAsync(id, "result", ct);
@@ -586,15 +590,14 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     }
     private sealed class App : IApplicationWorkspaceProvider
     {
-        public int Starts, Children; public bool Running; private ApplicationValidation? validation;
+        public int Starts, Children; public bool Running;
         public int Stops; public bool LoseStopReply;
         public Action? AfterRemoveInfrastructure;
         public string[] ManagedPaths => []; public string[] CacheInputs => [];
         public string CompatibilityKey(string project) => "fake";
         public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { Starts++; Running = true; return Task.FromResult(new ApplicationLease(1, 1, "fake", "fake")); }
-        public Task<ApplicationState> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.FromResult(new ApplicationState(Running, Running, "fake", Validation: validation,
+        public Task<ApplicationState> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.FromResult(new ApplicationState(Running, Running, "fake",
             Resources: new(true, Running, Children + (Running ? 1 : 0), Children, Children)));
-        public Task RequestValidationAsync(WorkspaceRecord w, string c, string id, string fp, CancellationToken ct = default) { validation = new(id, fp, true, DateTimeOffset.UtcNow, []); return Task.CompletedTask; }
         public Task StopAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { Stops++; Running = false; if (LoseStopReply) { LoseStopReply = false; throw new WorkspaceException("ReplyLost", "after stop"); } return Task.CompletedTask; }
         public Task RemoveInfrastructureAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { AfterRemoveInfrastructure?.Invoke(); return Task.CompletedTask; }

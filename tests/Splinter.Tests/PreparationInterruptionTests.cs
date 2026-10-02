@@ -123,7 +123,6 @@ public sealed class PreparationInterruptionTests
         public string CompatibilityKey(string p) => "fake";
         public Task<ApplicationState> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.FromResult(new ApplicationState(false, false, "stopped", Resources: new(true, false, 0, 0, 0)));
         public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task RequestValidationAsync(WorkspaceRecord w, string c, string id, string fp, CancellationToken ct = default) => throw new NotSupportedException();
         public Task StopAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();
         public Task RemoveInfrastructureAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();
     }

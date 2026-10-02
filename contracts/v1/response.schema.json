@@ -91,16 +91,78 @@
   },
   "allOf": [
     {
-      "if": {"required":["error"],"properties":{"error":{"properties":{"code":{"const":"StateWriteIncomplete"}},"required":["code"]}}},
-      "then": {"properties":{"error":{"required":["details"],"properties":{"details":{"$ref":"urn:splinter:v1:state-write-failure-details"}}}}}
+      "if": {
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "const": "StateWriteIncomplete"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "required": [
+              "details"
+            ],
+            "properties": {
+              "details": {
+                "$ref": "urn:splinter:v1:state-write-failure-details"
+              }
+            }
+          }
+        }
+      }
     },
     {
-      "if": {"properties":{"command":{"const":"storage.service.status"},"status":{"const":"Succeeded"}}},
-      "then": {"properties":{"data":{"$ref":"#/$defs/storageServiceStatus"}}}
+      "if": {
+        "properties": {
+          "command": {
+            "const": "storage.service.status"
+          },
+          "status": {
+            "const": "Succeeded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/storageServiceStatus"
+          }
+        }
+      }
     },
     {
-      "if": {"properties":{"command":{"const":"validation.execute"},"status":{"enum":["Succeeded","Accepted"]}}},
-      "then": {"properties":{"data":{"$ref":"urn:splinter:v1:validation-product-data"}}}
+      "if": {
+        "properties": {
+          "command": {
+            "const": "view.execute"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "urn:splinter:v1:validation-product-data"
+          }
+        }
+      }
     },
     {
       "if": {
@@ -370,7 +432,10 @@
       "if": {
         "properties": {
           "command": {
-            "enum": ["workspace.release", "workspace.discard"]
+            "enum": [
+              "workspace.release",
+              "workspace.discard"
+            ]
           },
           "status": {
             "enum": [
@@ -393,28 +458,6 @@
         "properties": {
           "command": {
             "const": "unity.start"
-          },
-          "status": {
-            "enum": [
-              "Succeeded",
-              "Accepted"
-            ]
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "data": {
-            "$ref": "#/$defs/workspaceView"
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "command": {
-            "const": "unity.refresh"
           },
           "status": {
             "enum": [
@@ -823,7 +866,8 @@
         "stateBackend",
         "storageModes",
         "storageAuthority",
-        "validationWorkflowContract"
+        "projectValidation",
+        "developmentEntrypoint"
       ],
       "properties": {
         "implementationStage": {
@@ -852,7 +896,7 @@
           "const": "atomic-json-with-operation-locks"
         },
         "workspaceStatus": {
-          "const": "process-poll; source-on-new-validation-or-verify-source"
+          "const": "process-provider-poll; source-only-on-verify-source"
         },
         "storageModes": {
           "type": "array",
@@ -890,10 +934,17 @@
           "type": "object", "additionalProperties": false,
           "required": ["stage", "integratedWorkspaceMode", "cliAvailable", "runtime", "operations", "schemas", "boundaries"],
           "properties": {
-            "stage": {"const":"windows-product"},
+            "stage": {"const":"development-storage-view"},
             "integratedWorkspaceMode": {"const":true}, "cliAvailable": {"const":true},
             "runtime": {"type":"string", "minLength":1},
-            "operations": {"const":["publish", "select", "resume", "observe-validation", "preserve", "release", "close-view"]},
+            "operations": {"const":[
+              "publish",
+              "select",
+              "resume",
+              "preserve",
+              "release",
+              "close-view"
+            ]},
             "schemas": {"const":["urn:splinter:v1:validation-workflow-request", "urn:splinter:v1:validation-workflow-response", "urn:splinter:v1:validation-workflow-state", "urn:splinter:v1:validation-product-request"]},
             "boundaries": {"type":"string", "minLength":1}
           }
@@ -1047,6 +1098,12 @@
             "cacheTrust",
             "measurements"
           ]
+        },
+        "projectValidation": {
+          "const": "agent-and-external-tools; checkpoint-does-not-claim-compile-or-test-success"
+        },
+        "developmentEntrypoint": {
+          "const": "pwsh scripts/splinter-dev.ps1"
         }
       }
     },
@@ -1170,10 +1227,6 @@
           "type": "string",
           "minLength": 1
         },
-        "pendingValidationId": {
-          "type": "string",
-          "minLength": 1
-        },
         "resultRevision": {
           "type": "string",
           "minLength": 1
@@ -1196,46 +1249,6 @@
         "processId": {
           "type": "integer",
           "minimum": 1
-        },
-        "validation": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "requestId",
-            "fingerprint",
-            "success",
-            "completedAt",
-            "errors",
-            "errorCount"
-          ],
-          "properties": {
-            "requestId": {
-              "type": "string",
-              "minLength": 1
-            },
-            "fingerprint": {
-              "type": "string",
-              "minLength": 1
-            },
-            "success": {
-              "type": "boolean"
-            },
-            "completedAt": {
-              "type": "string",
-              "minLength": 1
-            },
-            "errors": {
-              "type": "array",
-              "maxItems": 50,
-              "items": {
-                "type": "string"
-              }
-            },
-            "errorCount": {
-              "type": "integer",
-              "minimum": 0
-            }
-          }
         },
         "purpose": {
           "enum": [
@@ -1288,39 +1301,25 @@
       "allOf": [
         {
           "if": {
+            "properties": {
+              "sourceVerification": {
+                "const": "verified"
+              }
+            },
             "required": [
               "sourceVerification"
             ]
           },
           "then": {
-            "if": {
-              "properties": {
-                "sourceVerification": {
-                  "const": "verified"
-                }
-              }
-            },
-            "then": {
+            "required": [
+              "source"
+            ]
+          },
+          "else": {
+            "not": {
               "required": [
-                "source",
-                "validationCurrent"
+                "source"
               ]
-            },
-            "else": {
-              "not": {
-                "anyOf": [
-                  {
-                    "required": [
-                      "source"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "validationCurrent"
-                    ]
-                  }
-                ]
-              }
             }
           }
         }
@@ -1337,9 +1336,6 @@
             "not-checked",
             "verified"
           ]
-        },
-        "validationCurrent": {
-          "type": "boolean"
         },
         "workspace": {
           "$ref": "#/$defs/workspaceSummary"
@@ -1457,46 +1453,6 @@
             "processId": {
               "type": "integer",
               "minimum": 1
-            },
-            "validation": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "requestId",
-                "fingerprint",
-                "success",
-                "completedAt",
-                "errors",
-                "errorCount"
-              ],
-              "properties": {
-                "requestId": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "fingerprint": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "success": {
-                  "type": "boolean"
-                },
-                "completedAt": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "errors": {
-                  "type": "array",
-                  "maxItems": 50,
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "errorCount": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
             },
             "resources": {
               "$ref": "#/$defs/processResources"

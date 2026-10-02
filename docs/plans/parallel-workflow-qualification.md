@@ -6,7 +6,7 @@
 
 **현재 NTFS 내부 알파로 독립 대화 A/B가 여러 차례 스크립트를 수정·검증·재개하고, A를 먼저 원본에 반영·회수한 뒤에도 B가 같은 작업을 계속할 수 있는지 확인한다. 실제 3D 모델·텍스처를 포함한 같은 Unity 프로젝트에서 Codex 기본 Git worktree의 독립 Editor 방식 및 Coordination을 통한 단일 Editor 순차 검증 방식과 각각 비교하고, 시간·읽기·저장·메모리·호출·운영 개입 비용으로 다음 개선 대상을 결정한다.**
 
-[기획서](../../plan.html#section-15-1)의 PV 실행 범위와 [상위 NR 계획의 PV-01/02](ntfs-recovery-and-support.md)를 구체화한다. NR 전체의 장애 시험이나 [SW 설치·대화 연결·폐기](session-workflow-and-installation.md) 전체 구현을 이 단위의 선행 조건으로 추가하지 않는다. 이번 결과가 통과해도 공개 제품 지원이나 NR/SW 전체 완료로 올리지 않는다.
+[기획서](../../plan.html#next)의 범위 안에서 기존 PV 비교의 입력·실행/종료 조건을 보존한다. 이 비교는 자동 다음 작업이 아니며 [NR](ntfs-recovery-and-support.md)의 선택 검증과 [SW](session-workflow-and-installation.md)의 AI 절차를 전체 선행 조건으로 열지 않는다. 한정 결과를 공개 지원이나 NR/SW 전체 완료로 올리지 않는다.
 
 ## 제품 목표·구조와 현재 도달점
 
@@ -39,7 +39,7 @@ A/B/원본 변경은 서로 다른 스크립트 또는 충돌하지 않는 위�
 
 **현재 checkpoint는 편집 중간의 저장 지점이 아니라 최종 결과 수집 경계다.** `WorkspaceCoordinator`는 결과 수집 뒤 start/refresh를 `ResultAlreadyCollected`로 거부한다. 따라서 각 작업의 여러 차례 편집과 재개는 checkpoint 전에 수행하고 B를 미리 checkpoint하지 않는다. 이 제한을 풀어 같은 수집 결과에서 다시 편집하는 기능은 이번에 추가하지 않는다.
 
-현재 `integrate`는 검증한 작업 결과와 clean 원본/대상 브랜치를 확인한 뒤 Git merge를 수행한다. 최신 원본과 합친 후보를 **적용 전에 Unity로 검증하는 제품 기능은 없다**. 이번 PV는 기존 통합 명령 뒤 실제 원본을 refresh하고 로드된 코드를 확인한다. 반영 후 검증이 실패하면 결과와 상태를 보존하고 PV 실패로 기록하며, 자동 원복하거나 사전 후보 검증을 통과했다고 표시하지 않는다. 사전 통합 후보 검증은 SW·Git 통합 확대의 후속 범위다.
+현재 `integrate`는 검증한 결과와 clean 원본/대상 branch를 확인해 Git merge한다. 최신 원본과 합친 후보를 **적용 전에 Unity로 검증하는 제품 기능은 없다**. 기존 PV는 통합 뒤 원본 refresh/loaded-code를 확인하고 실패하면 결과/상태와 실패를 보존하며 자동 원복·사전 검증 통과로 위장하지 않는다. 사전 후보/통합 후 게임 검증은 AI가 Git·외부 Unity 도구로 수행할 절차다. Splinter의 통합 검증 플랫폼은 구현 제외이며 현재 gate는 유지한다.
 
 loaded-code는 PID·프로젝트 경로·관측 시각·domain generation·assembly MVID와 실행 값을 연결한다. 공통 Qualification fixture의 새 `inspect` 응답과 요청 ID가 일치해야 하며, fixture 초기 `snapshot-probe.json`만으로는 최신 증거가 충분하지 않다. 제품 heartbeat는 fixture를 호출하지 않는다. A/B에서 실제 바꾼 함수의 값을 기존 probe로 관측하고, 부족할 때만 fixture 계측을 보완한다. 원본은 기존 MCP로 해당 함수를 실행한다. 실제 실행하지 않은 함수는 assembly MVID만으로 동작 확인을 대신하지 않는다.
 
@@ -94,7 +94,7 @@ Q의 중간 코드 수정도 commit-optional 일반 FIFO 큐를 사용하고 최
 | 모델 변경 | 지정 모델 한 개를 유효한 다른 revision으로 교체하고 참조 씬에서 확인 | mesh/참조의 실제 변경과 재임포트 완료, 파일 전체 재작성과 범위 저장 비용 |
 | 한쪽 먼저 완료 | A 결과 보존·원본 반영·확인·정리, B 추가 작업 후 완료 | 정상 결과를 얻는 전체 시간, 반영/정리·남은 저장량, 상대 작업과 원본 보존 |
 
-에셋만 바뀐 경우 현재 스크립트용 `unity refresh`의 compile/domain reload 증거를 import 성공으로 대신하지 않는다. fixture의 import 완료·Asset Database/실제 로드한 mesh·texture·씬 참조와 화면 증거를 수집한다. 코드 검증을 위한 추가 변경이 필요하면 양쪽에서 같은 단계로 수행하고 순수 재임포트 구간과 따로 측정한다. 이번 제한된 관측은 범용 에셋 저작 API나 Play/Test 기능의 구현을 뜻하지 않는다. [Unity refresh 절차](https://docs.unity3d.com/6000.3/Documentation/Manual/AssetDatabaseRefreshing.html).
+에셋만 바뀐 경우 외부 MCP/Unity CLI의 컴파일·도메인 reload 관측을 import 성공으로 대신하지 않는다. Splinter 자체 refresh·컴파일 증거는 제공하지 않는다. fixture의 import 완료·Asset Database/실제 로드한 mesh·texture·씬 참조와 화면 증거를 수집한다. 코드 검증을 위한 추가 변경이 필요하면 양쪽에서 같은 단계로 수행하고 순수 재임포트 구간과 따로 측정한다. 이번 제한된 관측은 범용 에셋 저작 API나 Play/Test 기능의 구현을 뜻하지 않는다. [Unity refresh 절차](https://docs.unity3d.com/6000.3/Documentation/Manual/AssetDatabaseRefreshing.html).
 
 #### 단계별 계측과 해석
 
@@ -121,7 +121,7 @@ PV-01의 같은 Splinter 후보에 관측을 붙이고, C/S 공통 구간과 제
 
 현재 수명주기로 위 사례를 수행할 수 없거나 원본·다른 작업·유일한 결과를 훼손할 수 있는 결함은 재현 근거를 확보한 뒤 해당 경계에서 수정한다. 담당 모듈은 Runtime의 상태/결과 조정, Git의 등록/통합, Windows의 snapshot/mount/관측, Unity의 검증 연결이며 Core/Protocol 계약 변경이 필요하면 schema·fake·적합성 시험·현재 계약 문서를 함께 갱신한다.
 
-계측과 실행 결과를 얻기 전에 해시 캐시·저널 compaction·daemon/DB·ReFS 신규 기능을 구현하지 않는다. 설치·binding·discard가 필요한 새 사용 시나리오는 SW의 별도 작업으로 남긴다. 결함 수정으로 후보가 바뀌면 이전 run을 그대로 보존하고, 수정한 최종 후보에서 영향을 받는 사례와 A/B 완료·회수 흐름을 다시 연결한다.
+계측과 실행 결과를 얻기 전에 새 최적화를 선행하지 않는다. 설치 연결/인계는 SW의 AI 절차이고 자동 binding은 구현 제외다. 기존 discard 자격과 새 사용 환경의 필요한 경계는 해당 소유 문서를 따른다. 결함 수정으로 후보가 바뀌면 이전 run을 보존하고 최종 후보에서 영향을 받는 사례와 A/B 보존·회수를 연결한다.
 
 ## 산출물과 완료 기준
 
@@ -140,9 +140,9 @@ PV-01과 PV-02는 독립 판정한다. 한쪽 통과로 다른 쪽의 누락을 
 
 ## 이번에 포함하지 않는 범위
 
-- SW-01~10의 설치·업데이트·제거, 자동 사용 판단·대화 binding·작성자 인수와 명시적 discard 구현.
+- SW의 설치/인계/도구 선택 절차와 기존 discard의 새 실행 자격. 자동 binding/작성자 인수는 프로그램 구현 제외다.
 - NR 전체의 준비/회수 중단 행렬, 실제 재부팅·강제 전원 종료·물리 공간 고갈·offline, ACL/특수 파일/긴 경로 지원 확대와 ARM A/B.
 - 이번 대표 모델·텍스처의 임포트/제한된 변경을 넘는 범용 Unity 에셋 저작·패키지·Play·EditMode/PlayMode 테스트, dirty/LFS/linked-worktree 입력 상속과 사전 통합 후보 검증.
 - 선택적 Runner·DAG·daemon/SQLite 전환, ReFS 신규 확장, 측정 전 성능 최적화, 유료 에셋 구매·사용자 실사용 프로젝트 전체의 무제한 투입, 공개 릴리스·원격 push.
 
-NR의 미완료 장애·파일 경계는 일반 지원 확대 전에 계속 필요하다. PV 이후에는 실제 비용을 바탕으로 가장 필요한 보완을 정하고, SW 사용자 흐름과 NR 지원 관문을 각 계획의 완료 기준에 따라 이어 간다.
+일반 지원을 선언하려는 입력/환경의 NR 경계만 선택한다. PV의 미실행/실패를 보존하며 전체 SW/NR을 다음 필수 개발 목록으로 열지 않는다. 후속은 [축소한 구현 계획](implementation-plan.md#남길-후속-작업과-종료-기준)의 책임 분류·실제 비용·종료 기준에 따른다.

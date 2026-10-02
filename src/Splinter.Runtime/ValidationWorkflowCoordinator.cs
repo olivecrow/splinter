@@ -26,6 +26,8 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
     public async Task<ValidationWorkflowResponse> ExecuteAsync(ValidationWorkflowRequest request, CancellationToken ct = default)
     {
         Request(request);
+        Require(request.Operation != "observe-validation", "ValidationRequestInvalid",
+            "Project validation belongs to external tools; view commands manage only storage and owned resources.");
         using var gate = await store.LockAsync(request.ProjectId, ct);
         var state = store.Read(request.ProjectId, recoverPending: true);
         state.Operations.TryGetValue(request.RequestKey, out var op);
@@ -97,31 +99,18 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
                 break;
             }
             case "resume":
-            case "observe-validation":
             {
                 var generation = Generation(state, request.GenerationId!);
                 Require(!generation.Released && generation.FrozenSeal is null, "ValidationGenerationFrozen", "Use a new selection after source preservation; keep the frozen generation.");
                 var selection = generation.Selection;
                 Require(state.Views[selection.Intent.Cache.ViewId].CurrentGenerationId == request.GenerationId,
                     "ValidationGenerationMismatch", "Resume only the currently selected source generation.");
-                CandidateValidationEvidence? evidence = null;
-                if (request.Operation == "resume")
-                {
-                    await QuiescentView(request.ProjectId, selection.Intent.Cache.ViewId, request.Owner, ct);
-                    var receipt = await provider.FindSelectionAsync(selection.Intent, ct);
-                    // A missing selection receipt is not permission to replace a
-                    // source generation. The original provider must reconcile it.
-                    Require(receipt is not null, "ValidationSelectionMissing", "Preserve source/cache and recover the original selection receipt.");
-                    Selection(receipt!, selection.Intent);
-                }
-                else
-                {
-                    evidence = await provider.ReadValidationAsync(selection, ct);
-                    Evidence(evidence, selection);
-                    state.Generations[request.GenerationId!] = generation with { Evidence = evidence };
-                }
+                await QuiescentView(request.ProjectId, selection.Intent.Cache.ViewId, request.Owner, ct);
+                var receipt = await provider.FindSelectionAsync(selection.Intent, ct);
+                Require(receipt is not null, "ValidationSelectionMissing", "Preserve source/cache and recover the original selection receipt.");
+                Selection(receipt!, selection.Intent);
                 boundary?.Invoke(request.Operation + ":observed");
-                response = new(1, op.Id, request.Operation, false, Selection: selection, Evidence: evidence);
+                response = new(1, op.Id, request.Operation, false, Selection: selection);
                 break;
             }
             case "preserve":

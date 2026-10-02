@@ -165,7 +165,7 @@ public sealed class StateWriteDiagnosticTests
         byte[] index = File.ReadAllBytes(Path.Combine(project, ".git", "index"));
         string[] ensure = ["workspace", "ensure", "--project", project, "--home", home, "--key", "diagnostic", "--base", "development", "--storage", "git-checkout"];
         using var initialOutput = new StringWriter();
-        Assert.Equal(0, await Program.RunAsync(ensure, initialOutput, ct));
+        Assert.Equal(0, await Program.RunAsync(ensure, initialOutput, ct, development: true));
         var initial = JsonSerializer.Deserialize<JsonElement>(initialOutput.ToString());
         string id = initial.GetProperty("data").GetProperty("workspace").GetProperty("id").GetString()!;
         string control = Path.Combine(home, "records", id), statePath = Path.Combine(control, "workspace.json");
@@ -190,7 +190,7 @@ public sealed class StateWriteDiagnosticTests
         Assert.Single(retained);
         Assert.All(retained.Keys, path => Assert.Equal(id, ReadRecord(path).Id));
         held.Dispose();
-        using var retry = new StringWriter(); Assert.Equal(0, await Program.RunAsync(ensure, retry, ct));
+        using var retry = new StringWriter(); Assert.Equal(0, await Program.RunAsync(ensure, retry, ct, development: true));
         var ready = JsonSerializer.Deserialize<JsonElement>(retry.ToString());
         Assert.True(contracts.Validate("urn:splinter:v1:response", ready).IsValid);
         Assert.Equal(id, ready.GetProperty("data").GetProperty("workspace").GetProperty("id").GetString());

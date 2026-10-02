@@ -1,5 +1,7 @@
 # NTFS 스냅샷과 범위 저장 실험
 
+현재 명령은 [별도 개발 CLI](development-cli.md)에서 사용한다. 자체 compile/validation 요청은 제거했으며 storage 후보·source/cache·seal/회수 계약만 유지한다.
+
 **독립 저장소 실험 진입점**의 계약이다. 같은 VSS/WinFsp/저널 구현을 사용하는 일반 제품 backend는 [NTFS 작업공간](ntfs-workspaces.md)에 별도로 연결되어 있다. Windows/NTFS 한 환경의 SO-01~06 fixture 증거는 [SO 기록](verification/snapshot-overlay.md), 제품 NI 상태는 [NI 기록](verification/ntfs-workspace-integration.md)으로 구분한다. ReFS 준비나 원본 이동은 요구하지 않는다.
 
 ## 구성과 저장 계약
@@ -33,7 +35,6 @@
 | git-prepare | clean checkpoint와 새 branch, -ReceiptPath, -Revision 필요. checkout 없이 등록하며 mount보다 먼저 수행 |
 | git-attach | .git 기준 읽기를 제외한 mount에 전용 pointer와 독립 index 연결. 원본 index를 복제·공유하지 않음 |
 | unity-start / unity-status | 정확한 Unity 버전, 전용 Job Object와 소유 bridge. fresh heartbeat로 ready 판단 |
-| unity-refresh | 요청 ID와 probe fingerprint 발급. accepted/completed:false는 접수이며 같은 요청의 validation 성공과 새 코드 실행을 따로 확인 |
 | unity-stop | 정상 종료 후 Editor·자식 전부 종료, 소유 메모리 0 관측 |
 | preserve | 앱 종료 후 Git source 결과 commit와 refs/splinter/snapshot-results/overlay-id 보존. bridge·생성 cache 제외 |
 | git-release | mount 부재와 보존 revision 일치 후 정확한 Git 등록만 제거. 결과 ref와 branch 유지 |
@@ -44,11 +45,11 @@ WinFsp Cleanup에서 사용자 핸들 종료를 집계한다. 커널 retainedFil
 
 ## Unity 경계
 
-선택 모델·텍스처·PNG의 추가 검사는 형제 fixture의 [미리보기 검사 계약](unity-render-qualification.md)을 따른다. `qualification-command.json`의 `inspect`와 제품 `unity-refresh`는 각각 렌더 결과와 compile/fingerprint를 확인하는 별도 경로다. PNG 경로는 같은 요청 응답의 `assets.previewPath`를 읽는다.
+선택 모델·텍스처·PNG의 추가 검사는 형제 fixture의 [미리보기 검사 계약](unity-render-qualification.md)을 따른다. `qualification-command.json`의 `inspect`는 fixture의 명시적 코드/렌더 검사다. 제품은 refresh나 합격 판정을 제공하지 않는다. PNG 경로는 같은 요청 응답의 `assets.previewPath`를 읽는다.
 
 .git만 기준 읽기에서 제외한다. Library를 제외하거나 삭제해 전체 재생성하지 않는다. 실행 전 private overlay의 Library/ilpp.pid, Library/Pipeline/.unity-pipeline-port, Library/MCPForUnity/RunState/mcp_http_*.pid만 whiteout한다. 원본 프로세스 주소를 재사용하면 원본 compiler helper에 간섭할 수 있기 때문이다.
 
-실험 bridge의 -splinterIncrementalCompilation 1은 명시적 refresh와 incremental compilation을 요청한다. default ReFS 동작은 유지한다. 현재 fingerprint는 Assets/SplinterSnapshotProbe.cs 하나다. validation은 요청 ID·fingerprint·compiler 오류·domain reload를 확인한다. 제품 heartbeat는 fixture 함수를 실행하지 않는다. 실제 로드된 값·generation·assembly MVID는 공통 Qualification fixture의 새 `inspect` 요청과 일치하는 응답에서 확인하며, 초기 `snapshot-probe.json`을 최신 증거로 재사용하지 않는다. 변경 없는 compile 요청은 reload가 없을 수 있으므로 이 spike는 실제 변경 뒤 요청한다. 일반 프로젝트 전체 validation 계약은 아니다.
+실험의 소유 bridge도 실행 관측과 정상 종료만 처리한다. refresh·컴파일·로드 코드/렌더 증거는 외부 도구와 fixture의 명시적 inspect 절차에서 확인한다. 초기 fixture 출력이나 Editor ready를 최신 코드의 합격으로 재사용하지 않는다.
 
 ## 재현 순서
 

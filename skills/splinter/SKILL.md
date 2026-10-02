@@ -7,6 +7,8 @@ description: Use Splinter to create or resume an isolated workspace when the use
 
 This is the source skill shipped in the Splinter repository. It can be read directly; project/global installation and automatic Codex discovery are not implemented. Resolve the product repository and its `scripts/splinter.ps1` from the project instructions or conversation. This source layout keeps the owning documents under `../../docs/` relative to this directory. The [limited-version start guide](../../docs/agent-start.md) owns current prerequisites and entry steps; [delivery qualification](../../docs/verification/m0-delivery.md) distinguishes the completed M0 scope from unqualified native/OS failure and installation scenarios.
 
+Splinter owns workspace/storage and owned Editor lifetimes, durable independent results, and safe explicit integration/reclamation/discard. The agent uses existing file/Git tools, MCP, or Unity CLI for project work and judgment. Setup and handoff records, tool/mode selection, conflict resolution, generated-source merging, and game validation are agent procedures. Do not request a Splinter installer/binding framework, queue/automatic mode selector, or duplicate Unity authoring/test API to perform those tasks. The [scope plan](../../docs/plans/implementation-plan.md#프로그램과-에이전트의-책임) owns the boundary; current schemas and safety gates remain authoritative.
+
 ## Decide whether to use a workspace
 
 | Evidence | Action |
@@ -57,9 +59,13 @@ Use one writer for a task path. Short CLI locks and provider process identity do
 
 ## Use an Editor only when needed
 
-Read the `unity.start`, `unity.refresh`, and `unity.stop` schemas and [Unity workspaces](../../docs/alpha-workspaces.md). Pass the same workspace ID/home; target only its returned project and owned Editor. Observe actual readiness and current validation evidence after pending responses. Request acceptance is not compile success, and older validation does not certify later edits.
+Read the `unity.start` and `unity.stop` schemas and [Unity workspaces](../../docs/alpha-workspaces.md). Pass the same workspace ID/home; target only its returned project and owned Editor. Observe actual readiness after pending responses. Readiness describes the owned Editor process; it does not certify compile or test success. Use the chosen MCP or Unity CLI for refresh, compilation, Play, tests, builds, and capture.
 
-If using the explicit shared validation view/cache instead of an independent Editor, follow [validation workflow](../../docs/validation-workflow.md) and its owner/request identities. Do not hot-switch an Editor or treat a candidate's validation as the current worker's success. Do not stop the original or a peer Editor to obtain access.
+Optional shared Library view/cache is a [development CLI](../../docs/development-cli.md) storage path. Follow [view lifetimes](../../docs/validation-workflow.md) and its owner/request identities. Do not hot-switch an Editor or treat a candidate as proof that the current worker is correct. Do not stop the original or a peer Editor to obtain access.
+
+For external MCP/Unity CLI work, explicitly match the tool's selected project to the returned workspace path before mutation. The current Coplay worker procedure uses a dedicated Splinter bridge and does not start its own server; parallel-worker external-tool handoff is not yet qualified. Use the [bounded handoff plan](../../docs/plans/session-workflow-and-installation.md#외부-도구-인계의-한정-범위) to establish compatibility for the chosen tool rather than assuming that Editor readiness proves tool connectivity. Do not stop a shared/original server to acquire access or bypass tool permissions.
+
+Splinter does not issue compile requests or maintain a current compile-success claim. Use `workspace checkpoint` to preserve stable source, including editorless or failed-compilation work. It retains independent-result, journal-seal, resource, and target guards; the agent decides whether external validation is sufficient before integration. Scene/asset editing, Play, tests, builds, capture, and evaluation belong to the chosen external tools and the agent, not a new Splinter command family.
 
 ## Match termination to the user's intent
 
@@ -67,10 +73,10 @@ If using the explicit shared validation view/cache instead of an independent Edi
 | --- | --- |
 | Continue later / keep the current work | Retain the same workspace and identity; stop its Editor only when needed. Conversation/Editor end is not release or discard. |
 | Preserve a result without applying it | Use the applicable independent-result path, then explicit `workspace release` if cleanup was requested. |
-| Apply the result | Use checkpoint/current validation and explicit integration to the requested target, checking current original/dirty/conflict guards; then release when requested. A commit request alone does not authorize integration or remote push. |
+| Apply the result | Use external validation as needed, checkpoint, and explicit integration to the requested target, checking current original/dirty/conflict guards; then release when requested. A commit request alone does not authorize integration or remote push. |
 | Throw away this workspace's work | Use explicit `workspace discard` with the exact ID, intent key, expected digest, and home. A successful validation/checkpoint is not required. |
 
-For a validated worker, the checkpoint/integrate/release path is in [Unity workspaces](../../docs/alpha-workspaces.md). For an editorless worker, `validation` action `preserve-worker` can create an independent result without granting compile success; use its schema and [validation workflow](../../docs/validation-workflow.md). Do not call ordinary release before satisfying its result-preservation gate. Candidate/source/cache dependencies must be handled explicitly, not cascaded away.
+Use the same checkpoint/integrate/release path in [Unity workspaces](../../docs/alpha-workspaces.md) for Editor-backed and editorless workers. Checkpoint creates an independent result without claiming compile success. Do not call ordinary release before satisfying its result-preservation gate. Candidate/source/cache dependencies must be handled explicitly, not cascaded away.
 
 ```powershell
 pwsh -File <product-root>/scripts/splinter.ps1 schema workspace.discard

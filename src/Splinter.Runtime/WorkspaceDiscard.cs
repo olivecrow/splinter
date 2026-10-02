@@ -97,7 +97,6 @@ public sealed partial class WorkspaceCoordinator
                 }
                 if (state.Observation.SnapshotAvailable != false)
                     throw new WorkspaceException("SnapshotReleaseIncomplete", "Snapshot absence remains unknown; resume the same discard intent.");
-                w.Validation = null; w.PendingValidationId = null; w.PendingFingerprint = null;
                 w.LastError = null;
                 DiscardStep(w, "complete");
             }
@@ -137,7 +136,7 @@ public sealed partial class WorkspaceCoordinator
         catch (WorkspaceException ex) when (ex.Code == "SnapshotInUse")
         {
             throw new WorkspaceException(ex.Code, ex.Message, ex.Details,
-                [new("schema", new { command = "validation" }, true), new("workspace.status", new { id = w.Id, home = store.Root }, true)]);
+                [new("capabilities", new { }, true), new("workspace.status", new { id = w.Id, home = store.Root }, true)]);
         }
     }
     private static void RequireNotDiscarding(WorkspaceRecord w)

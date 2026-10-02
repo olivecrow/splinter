@@ -13,6 +13,7 @@ $Project = [IO.Path]::GetFullPath($Project)
 $HomePath = [IO.Path]::GetFullPath($HomePath)
 $OutputPath = [IO.Path]::GetFullPath($OutputPath)
 $cli = Join-Path $repo 'src/Splinter.Cli/bin/Release/net10.0/splinter.dll'
+$developmentCli = Join-Path $repo 'tools/Splinter.Development/bin/Release/net10.0/splinter-dev.dll'
 $known = @('request.before-record','request.after-record','source.before-effect','source.after-effect','source.after-record',
     'capture.before-effect','capture.after-effect','capture.after-record','registration.before-effect',
     'git-registration.after-effect','git-registration.after-record','registration.after-effect','registration.after-record',
@@ -48,7 +49,7 @@ function StartCli([string[]]$cliArguments) {
     $start.RedirectStandardOutput=$true; $start.RedirectStandardError=$true
     $start.Environment['XDG_CONFIG_HOME']=$OutputPath
     $start.Environment['DOTNET_CLI_HOME']=Join-Path $repo '.local/dotnet'
-    $start.ArgumentList.Add($cli); foreach ($a in $cliArguments) { $start.ArgumentList.Add($a) }
+    $start.ArgumentList.Add($(if ($cliArguments[0] -eq 'preparation-probe') { $developmentCli } else { $cli })); foreach ($a in $cliArguments) { $start.ArgumentList.Add($a) }
     $p=[Diagnostics.Process]::Start($start)
     return @{ process=$p; stdout=$p.StandardOutput.ReadToEndAsync(); stderr=$p.StandardError.ReadToEndAsync(); arguments=$cliArguments }
 }

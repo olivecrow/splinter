@@ -154,18 +154,13 @@ internal static class OverlayExperimentCommands
                 string executable = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Unity", "Hub", "Editor", version, "Editor", "Unity.exe");
                 if (!File.Exists(executable)) throw new WorkspaceException("UnityEditorMissing", executable);
                 Directory.CreateDirectory(control);
-                foreach (string name in new[] { "heartbeat.json", "stop-request.json", "stop-result.json", "validation-request.json", "pending.json", "validation.json", "snapshot-probe.json" })
+                foreach (string name in new[] { "heartbeat.json", "stop-request.json", "stop-result.json", "snapshot-probe.json" })
                     if (File.Exists(Path.Combine(control, name))) File.Delete(Path.Combine(control, name));
                 string token = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
                 await File.WriteAllTextAsync(Path.Combine(control, "launch-intent.json"), JsonSerializer.Serialize(new { workspace.Id, token, executable, projectPath = workspace.Path }, Json), ct);
                 await processes.StartAsync(new ProcessLaunch(executable, ["-projectPath", workspace.Path, "-logFile", Path.Combine(control, "editor.log"),
-                    "-splinterControlPath", control, "-splinterToken", token, "-splinterIncrementalCompilation", "1"], workspace.Path, token), control, ct);
+                    "-splinterControlPath", control, "-splinterToken", token], workspace.Path, token), control, ct);
                 return await unity.ObserveAsync(workspace, control, ct);
-            case "unity-refresh":
-                string requestId = Guid.NewGuid().ToString("N");
-                string fingerprint = Convert.ToHexStringLower(SHA256.HashData(await File.ReadAllBytesAsync(Path.Combine(workspace.Path, "Assets", "SplinterSnapshotProbe.cs"), ct)));
-                await unity.RequestValidationAsync(workspace, control, requestId, fingerprint, ct);
-                return new { requestId, fingerprint, phase = "accepted", completed = false };
             case "preserve":
                 var state = await unity.ObserveAsync(workspace, control, ct);
                 if (state.Running || state.Resources is not { OwnershipVerified: true, ActiveProcesses: 0 }) throw new WorkspaceException("OverlayClientsRemain", "Preserve source after application writes have stopped.");

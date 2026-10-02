@@ -45,6 +45,17 @@ public sealed class ValidationWorkflowTests
     private static Action<string> Crash(string point) => current => { if (current == point) throw new IOException("Interrupted at " + point); };
 
     [Fact]
+    public async Task RemovedValidationObservationCannotCreateAnOperationOrProviderEffect()
+    {
+        using var h = new Harness();
+        var runtime = h.Runtime(); string root = Path.Combine(h.Directory.Path, "state");
+        var before = Directory.GetFileSystemEntries(root, "*", SearchOption.AllDirectories).Order().ToArray();
+        await Error("ValidationRequestInvalid", () => runtime.ExecuteAsync(h.Generation("observe-validation", "generation", "removed"), h.Ct));
+        Assert.Empty(h.World.Effects);
+        Assert.Equal(before, Directory.GetFileSystemEntries(root, "*", SearchOption.AllDirectories).Order().ToArray());
+    }
+
+    [Fact]
     public async Task ProductStatusRetainsRequiredNullsForUnpreservedAndPendingState()
     {
         using var h = new Harness(); string candidate = await h.Published();
@@ -52,7 +63,7 @@ public sealed class ValidationWorkflowTests
         await Assert.ThrowsAsync<IOException>(() => h.Runtime(Crash("publish:intent"))
             .ExecuteAsync(h.Publish("publish-b", "worker-b"), h.Ct));
         var state = await h.Runtime().InspectAsync("project", h.Ct);
-        var response = ApiResponse.Success("validation.execute", new { action = "status", result = new { state } });
+        var response = ApiResponse.Success("view.execute", new { action = "status", result = new { state } });
         var json = JsonSerializer.SerializeToElement(response, ApiJson.Options);
         Assert.True(new ContractCatalog().Validate("urn:splinter:v1:response", json).IsValid, json.GetRawText());
         var value = json.GetProperty("data").GetProperty("result").GetProperty("state");
@@ -60,18 +71,15 @@ public sealed class ValidationWorkflowTests
         Assert.Equal(JsonValueKind.Null, value.GetProperty("operations").GetProperty("publish-b").GetProperty("response").ValueKind);
     }
 
-    [Theory]
-    [InlineData("start")]
-    [InlineData("refresh")]
-    public async Task AcceptedProductCommandProvidesAnExecutableStatusPayload(string action)
+    [Fact]
+    public async Task AcceptedDevelopmentStartProvidesAnExecutableStatusPayload()
     {
         using var h = new Harness(); string candidate = await h.Published();
         var selected = await h.Run(h.Select(candidate)); var selection = selected.Selection!;
-        var request = new ValidationProductRequest(1, action, h.Directory.Path, h.ViewOwner, "request",
+        var request = new ValidationProductRequest(1, "start", h.Directory.Path, h.ViewOwner, "request",
             GenerationId: selection.Intent.GenerationId);
-        object result = action == "start" ? new { selection, application = new { running = true, ready = false },
-            controlPath = "control", path = "mount" } : (object)new { selection,
-                invocation = new { version = 1, requestId = "validation", fingerprint = "fingerprint", sourceSequence = 1 }, controlPath = "control" };
+        object result = new { selection, application = new { running = true, ready = false },
+            controlPath = "control", path = "mount" };
         var response = ValidationCommands.Response(request, result, h.Directory.Path);
         var json = JsonSerializer.SerializeToElement(response, ApiJson.Options); var contracts = new ContractCatalog();
         Assert.True(contracts.Validate("urn:splinter:v1:response", json).IsValid, json.GetRawText());
@@ -87,7 +95,7 @@ public sealed class ValidationWorkflowTests
         using var output = new StringWriter();
         // The next request is accepted by the CLI parser/schema. This isolated
         // home has no bound view, so the provider rejects that missing resource.
-        int exit = await Program.RunAsync(["validation", "--input", input, "--home", Path.Combine(copy.Path, "home")], output, h.Ct);
+        int exit = await Program.RunAsync(["view", "--input", input, "--home", Path.Combine(copy.Path, "home")], output, h.Ct, development: true);
         using var reply = JsonDocument.Parse(output.ToString());
         Assert.Equal(2, exit);
         Assert.NotEqual("ValidationRequestInvalid", reply.RootElement.GetProperty("error").GetProperty("code").GetString());
@@ -122,9 +130,6 @@ public sealed class ValidationWorkflowTests
         Assert.Equal("A|generated:" + a2, h.Provider.SourceContent(a2));
         await Error("ValidationGenerationMismatch", () => h.Run(h.Generation("resume", a1, "wrong-generation")));
         Assert.Equal(a2, (await h.Run(h.Generation("resume", a2, "resume-current"))).Selection!.Intent.GenerationId);
-        var response = await h.Run(h.Generation("observe-validation", a2, "proof"));
-        Assert.True(response.Evidence!.Success);
-        Assert.Equal(a, response.Evidence.CandidateId);
         Assert.Equal("A-after-publication", h.World.Contents["worker-a"]);
         var state = await h.Runtime().InspectAsync("project", h.Ct);
         Assert.Single(state.Views); Assert.Equal(3, state.Generations.Count);
@@ -218,8 +223,6 @@ public sealed class ValidationWorkflowTests
         await Error("ValidationResultRequired", () => h.Run(h.Artifact("release", "candidate", a, "too-early")));
         var resultA = (await h.Run(h.Artifact("preserve", "candidate", a, "keep-a"))).Result!;
         await Error("ValidationDependencyActive", () => h.Run(h.Artifact("release", "candidate", a, "has-dependent")));
-        h.World.ValidationSuccess = false;
-        Assert.False((await h.Run(h.Generation("observe-validation", generation, "failed-compile"))).Evidence!.Success);
         var generated = (await h.Run(h.Artifact("preserve", "source-generation", generation, "keep-generated"))).Result!;
         await Error("ValidationGenerationFrozen", () => h.Run(h.Generation("resume", generation, "after-preserve")));
         await h.Run(h.Artifact("release", "source-generation", generation, "release-generated"));
@@ -375,16 +378,9 @@ public sealed class ValidationWorkflowTests
     }
 
     [Fact]
-    public async Task WrongEvidenceAndMutatedPreservedSourceCannotAuthorizeSuccessOrReclamation()
+    public async Task MutatedPreservedSourceCannotAuthorizeReclamation()
     {
         using var h = new Harness(); string a = await h.Published(), generation = await h.Selected(a);
-        var selection = (await h.Runtime().InspectAsync("project", h.Ct)).Generations[generation].Selection;
-        var good = await h.Provider.ReadValidationAsync(selection, h.Ct);
-        h.World.EvidenceOverride = good with { GenerationId = "other-generation" };
-        var request = h.Generation("observe-validation", generation, "proof");
-        await Error("ValidationEvidenceMismatch", () => h.Run(request));
-        Assert.Null((await h.Runtime().InspectAsync("project", h.Ct)).Generations[generation].Evidence);
-        h.World.EvidenceOverride = good; await h.Run(request);
         await h.Run(h.Artifact("preserve", "source-generation", generation, "keep"));
         File.AppendAllText(h.Provider.PayloadPath(new("source-generation", generation)), "late-generated-write");
         await Error("ValidationSourceChanged", () => h.Run(h.Artifact("release", "source-generation", generation, "release")));
@@ -575,7 +571,6 @@ public sealed class ValidationWorkflowTests
         var published = await Run(h.Publish()); string a = published.Candidate!.Intent.CandidateId;
         string generation = (await Run(h.Select(a))).Selection!.Intent.GenerationId;
         await Run(h.Generation("resume", generation, "resume"));
-        await Run(h.Generation("observe-validation", generation, "proof"));
         await Run(h.Artifact("preserve", "source-generation", generation, "keep-source"));
         await Run(h.Artifact("release", "source-generation", generation, "release-source"));
         await Run(h.Artifact("preserve", "candidate", a, "keep-candidate"));

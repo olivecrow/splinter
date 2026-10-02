@@ -9,7 +9,53 @@ namespace Splinter.Tests;
 
 public sealed class ContractAndCliTests
 {
-    private readonly ContractCatalog contracts = new();
+    private readonly ContractCatalog contracts = new(development: true);
+
+    [Fact]
+    public async Task ProductDiscoveryExcludesDevelopmentAndCompileControl()
+    {
+        using var output = new StringWriter();
+        Assert.Equal(0, await Program.RunAsync(["capabilities"], output, TestContext.Current.CancellationToken));
+        using var response = JsonDocument.Parse(output.ToString());
+        var catalog = new ContractCatalog();
+        Assert.True(catalog.Validate("urn:splinter:v1:response", response.RootElement).IsValid, output.ToString());
+        var data = response.RootElement.GetProperty("data");
+        Assert.Equal(new[] { "ntfs-snapshot" }, data.GetProperty("storageModes").EnumerateArray().Select(item => item.GetString()));
+        foreach (string command in new[] { "unity.refresh", "validation.execute", "view.execute", "snapshot.spike", "preparation.probe", "baseline.prepare", "storage.probe" })
+            Assert.Null(catalog.Find(command));
+        Assert.False(data.TryGetProperty("validationWorkflowContract", out _));
+        Assert.Contains("external-tools", data.GetProperty("projectValidation").GetString());
+    }
+
+    [Theory]
+    [InlineData("unity", "refresh")]
+    [InlineData("baseline", "prepare")]
+    [InlineData("validation", "")]
+    [InlineData("view", "")]
+    [InlineData("snapshot-spike", "")]
+    [InlineData("preparation-probe", "")]
+    public async Task ProductRejectsRemovedCommandsBeforeCreatingState(string command, string subcommand)
+    {
+        using var directory = new TestDirectory(); string home = Path.Combine(directory.Path, "untouched");
+        string[] arguments = string.IsNullOrEmpty(subcommand) ? [command, "--home", home] : [command, subcommand, "--home", home];
+        using var output = new StringWriter();
+        Assert.Equal(2, await Program.RunAsync(arguments, output, TestContext.Current.CancellationToken));
+        using var response = JsonDocument.Parse(output.ToString());
+        Assert.Equal("InvalidArguments", response.RootElement.GetProperty("error").GetProperty("code").GetString());
+        Assert.False(Directory.Exists(home));
+    }
+
+    [Fact]
+    public async Task ProductRejectsReFsBeforeOpeningSourceOrState()
+    {
+        using var directory = new TestDirectory(); string home = Path.Combine(directory.Path, "untouched");
+        using var output = new StringWriter();
+        Assert.Equal(2, await Program.RunAsync(["workspace", "ensure", "--project", "missing-source", "--key", "task",
+            "--storage", "refs-cow", "--home", home], output, TestContext.Current.CancellationToken));
+        using var response = JsonDocument.Parse(output.ToString());
+        Assert.Equal("SchemaValidationFailed", response.RootElement.GetProperty("error").GetProperty("code").GetString());
+        Assert.False(Directory.Exists(home));
+    }
 
     [Fact]
     public async Task StorageAuthorityDiscoveryIsReadOnlyAndKeepsTheHostInProcess()
@@ -67,13 +113,13 @@ public sealed class ContractAndCliTests
         Assert.False(contracts.Validate("urn:splinter:v1:validation-product-request", JsonSerializer.SerializeToElement(request)).IsValid);
         request.Remove("workspaceId"); request["owner"]!["generation"] = 0;
         Assert.False(contracts.Validate("urn:splinter:v1:validation-product-request", JsonSerializer.SerializeToElement(request)).IsValid);
-        var (_, schema) = await Run("schema", "validation.execute");
+        var (_, schema) = await Run("schema", "view.execute");
         Assert.Equal("urn:splinter:v1:validation-product-request", schema.GetProperty("data").GetProperty("input").GetProperty("$id").GetString());
         Assert.Contains("urn:splinter:v1:validation-product-data", contracts.SchemaIds);
         using var directory = new TestDirectory(); string file = Path.Combine(directory.Path, "duplicate.json");
         request["owner"]!["generation"] = 1;
         File.WriteAllText(file, request.ToJsonString().Replace("\"requestKey\":", "\"requestKey\":\"duplicate\",\"requestKey\":"));
-        var (invalidExit, invalid) = await Run("validation", "--input", file, "--home", Path.Combine(directory.Path, "state"));
+        var (invalidExit, invalid) = await Run("view", "--input", file, "--home", Path.Combine(directory.Path, "state"));
         Assert.Equal(2, invalidExit); Assert.Equal("ValidationRequestInvalid", invalid.GetProperty("error").GetProperty("code").GetString());
         Assert.False(Directory.Exists(Path.Combine(directory.Path, "state")));
     }
@@ -84,12 +130,12 @@ public sealed class ContractAndCliTests
         var (exit, response) = await Run("capabilities");
         Assert.Equal(0, exit);
         var contract = response.GetProperty("data").GetProperty("validationWorkflowContract");
-        Assert.Equal("windows-product", contract.GetProperty("stage").GetString());
+        Assert.Equal("development-storage-view", contract.GetProperty("stage").GetString());
         Assert.True(contract.GetProperty("integratedWorkspaceMode").GetBoolean());
         Assert.True(contract.GetProperty("cliAvailable").GetBoolean());
         foreach (var schema in contract.GetProperty("schemas").EnumerateArray())
             Assert.Contains(schema.GetString()!, contracts.SchemaIds);
-        Assert.Contains(contracts.Commands, command => command.Id == "validation.execute");
+        Assert.Contains(contracts.Commands, command => command.Id == "view.execute");
         var enabled = JsonNode.Parse(response.GetRawText())!;
         enabled["data"]!["validationWorkflowContract"]!["cliAvailable"] = false;
         Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(enabled)).IsValid);
@@ -149,15 +195,19 @@ public sealed class ContractAndCliTests
             var (polled, status) = await Run("workspace", "status", "--id", id, "--home", home);
             Assert.Equal(0, polled);
             Assert.Equal("not-checked", status.GetProperty("data").GetProperty("sourceVerification").GetString());
-            Assert.True(status.GetProperty("data").GetProperty("workspace").GetProperty("validation").GetProperty("success").GetBoolean());
+            Assert.False(status.GetProperty("data").GetProperty("workspace").TryGetProperty("validation", out _));
+            Assert.NotNull(store.Get(id).Validation);
         }
         var (verified, fresh) = await Run("workspace", "status", "--id", id, "--home", home, "--verify-source");
         Assert.Equal(0, verified);
         Assert.Equal("verified", fresh.GetProperty("data").GetProperty("sourceVerification").GetString());
         Assert.True(fresh.GetProperty("data").GetProperty("source").GetProperty("hasChanges").GetBoolean());
-        Assert.False(fresh.GetProperty("data").GetProperty("validationCurrent").GetBoolean());
-        Assert.Null(store.Get(id).Validation);
+        Assert.False(fresh.GetProperty("data").TryGetProperty("validationCurrent", out _));
+        Assert.NotNull(store.Get(id).Validation);
         var node = JsonNode.Parse(fresh.GetRawText())!;
+        node["data"]!["workspace"]!["validation"] = JsonSerializer.SerializeToNode(record.Validation, ApiJson.Options);
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
+        node["data"]!["workspace"]!.AsObject().Remove("validation");
         var inspection = node["data"]!["source"]!["inspection"]!;
         Assert.Equal(0, inspection["gitHashProcesses"]!.GetValue<int>()); // git-checkout uses the existing full inspection path.
         inspection["gitHashProcesses"] = -1;
@@ -384,7 +434,7 @@ public sealed class ContractAndCliTests
     [InlineData("git-checkout", 4096, false)]
     public void JournalBudgetBelongsOnlyToSnapshotRequests(string storage, long maxJournalBytes, bool valid)
     {
-        Assert.Equal(valid, contracts.Validate("urn:splinter:v1:workspace-ensure-request",
+        Assert.Equal(valid, contracts.Validate("urn:splinter:v1:workspace-development-ensure-request",
             JsonSerializer.SerializeToElement(new { project = "C:/project", key = "task", storage, maxJournalBytes })).IsValid);
     }
 
@@ -455,9 +505,9 @@ public sealed class ContractAndCliTests
     public async Task InvalidInputCannotLeakParserTextIntoStdout(string json, string error)
     {
         using var directory = new TestDirectory();
-        string file = Path.Combine(directory.Path, "계획 with spaces.json");
+        string file = Path.Combine(directory.Path, "怨꾪쉷 with spaces.json");
         await File.WriteAllTextAsync(file, json, TestContext.Current.CancellationToken);
-        var (exitCode, response) = await Run("validation", "--input", file);
+        var (exitCode, response) = await Run("view", "--input", file);
         Assert.Equal(2, exitCode);
         Assert.Equal(error, response.GetProperty("error").GetProperty("code").GetString());
     }
@@ -553,7 +603,7 @@ public sealed class ContractAndCliTests
     private async Task<(int ExitCode, JsonElement Response)> Run(params string[] args)
     {
         using var output = new StringWriter();
-        int exitCode = await Program.RunAsync(args, output, TestContext.Current.CancellationToken);
+        int exitCode = await Program.RunAsync(args, output, TestContext.Current.CancellationToken, development: true);
         string text = output.ToString().TrimEnd('\r', '\n');
         Assert.DoesNotContain('\n', text);
         using var document = JsonDocument.Parse(text);

@@ -23,7 +23,6 @@
             "publish",
             "select",
             "resume",
-            "observe-validation",
             "preserve",
             "release"
           ]
@@ -240,57 +239,6 @@
       "properties": {
         "action": {
           "enum": [
-            "refresh"
-          ]
-        },
-        "result": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "selection",
-            "invocation",
-            "controlPath"
-          ],
-          "properties": {
-            "selection": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
-            },
-            "invocation": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "version",
-                "requestId",
-                "fingerprint",
-                "sourceSequence"
-              ],
-              "properties": {
-                "version": {
-                  "const": 1
-                },
-                "requestId": {
-                  "type": "string"
-                },
-                "fingerprint": {
-                  "type": "string"
-                },
-                "sourceSequence": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            },
-            "controlPath": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    {
-      "properties": {
-        "action": {
-          "enum": [
             "stop"
           ]
         },
@@ -347,45 +295,6 @@
               "const": false
             },
             "mountPresent": {
-              "const": false
-            }
-          }
-        }
-      }
-    },
-    {
-      "properties": {
-        "action": {
-          "const": "preserve-worker"
-        },
-        "result": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "workspaceId",
-            "result",
-            "validationClaimed"
-          ],
-          "properties": {
-            "workspaceId": {
-              "type": "string"
-            },
-            "result": {
-              "type": "object",
-              "required": [
-                "independentOfSnapshot",
-                "collectionProtocol"
-              ],
-              "properties": {
-                "independentOfSnapshot": {
-                  "const": true
-                },
-                "collectionProtocol": {
-                  "const": "stable-journal-v1"
-                }
-              }
-            },
-            "validationClaimed": {
               "const": false
             }
           }

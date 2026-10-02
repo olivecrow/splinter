@@ -45,28 +45,29 @@ $reply
 
 ## 편집·Editor·종료
 
-필요한 명령의 `schema <command>`를 먼저 읽고 저장한 ID/home을 사용한다. Editor가 필요할 때만 `unity start`; 준비는 status의 실제 `application.ready`로 확인한다. 외부 편집 뒤 `unity refresh`를 요청하고 status에서 `sourceVerification=verified`·`validationCurrent=true`·`workspace.validation.success=true`를 함께 확인한다. Accepted나 이전 성공을 새 소스의 컴파일 성공으로 읽지 않는다. 일반 status는 반복 전체 소스 검사를 하지 않으며 현재 확인에는 `--verify-source`, 손상 cache 감사에는 `--audit-source`를 구분한다.
+작업 내용·도구/모드 선택·충돌 해결·게임 검증은 AI와 기존 파일/Git·MCP·Unity CLI의 책임이다. 외부 도구가 선택한 projectRoot는 반환 workspace와 일치해야 한다. 병렬 worker의 외부 MCP/Unity CLI 연결은 사용할 도구별 실제 자격을 확인해야 한다. 현재 Coplay 브리지는 수명 관측·정상 종료·peer 보호를 담당하며 자체 컴파일 요청이나 성공 판정을 제공하지 않는다. 연결 범위는 [AI 사용 계획](plans/session-workflow-and-installation.md#외부-도구-인계의-한정-범위)을 따른다.
 
-`unity start`와 `ensure --editor`의 시작 후 응답도 실행 관측을 사용한다. 새 pending validation 결과의 조정이 없으면 `not-checked`이며 현재 소스 검증은 별도로 요청한다. 시작 뒤 import 중 소스 검사 실패를 실행 실패로 혼동하지 않는다.
+필요한 명령의 `schema <command>`를 먼저 읽고 저장한 ID/home을 사용한다. Editor가 필요할 때만 `unity start`; 준비는 status의 실제 `application.ready`로 확인한다. `ready`는 실행 준비 상태다. 편집 뒤 refresh·컴파일·테스트는 선택한 외부 도구로 수행하고 그 결과를 AI가 판정한다. Splinter 응답은 컴파일·테스트 성공을 제공하지 않는다. 일반 status는 반복 전체 소스 검사를 하지 않으며 현재 확인에는 `--verify-source`, 손상 cache 감사에는 `--audit-source`를 구분한다.
+
+`unity start`와 `ensure --editor`의 시작 후 응답도 실행 관측을 사용한다. `sourceVerification=not-checked`이며 현재 소스 검증은 별도로 요청한다. 시작 뒤 import 중 소스 검사 실패를 실행 실패로 혼동하지 않는다.
 
 | 명시적 의도 | 사용할 경로 |
 | --- | --- |
 | 나중에 계속 작업 | 같은 workspace 유지. 필요한 경우 `unity stop --id <id> --home <home>`으로 Editor만 정상 종료 |
-| 결과 보존 뒤 자원 회수 | 현재 검증 → `workspace checkpoint --id <id> --message <설명> --home <home>` → 명시적 `workspace release`. 원본 통합은 필수가 아님 |
+| 결과 보존 뒤 자원 회수 | 필요한 외부 검증 → `workspace checkpoint --id <id> --message <설명> --home <home>` → 명시적 `workspace release`. 원본 통합은 필수가 아님 |
 | 원본 반영 뒤 자원 회수 | checkpoint → 요청한 깨끗한 현재 원본 branch에 `workspace integrate --id <id> --target <branch> --home <home>` → 명시적 release. 원본 Editor의 통합 후 검증은 별도이며 push/배포 승인이 아님 |
 | 실패/미커밋 작업 폐기 | `workspace discard --id <id> --intent-key <고정 intent> --expected-request-digest <저장 digest> --home <home>`. 성공 검증/checkpoint 불필요; 정확한 대상과 기존 폐기 승인을 사용 |
 
-checkpoint는 최종 수집 경계다. 반복 편집/재개는 그 전에 수행한다. 성공 검증 없는 editorless 보존이 필요하면 `validation`의 명시적 `preserve-worker` 경로와 [소유 계약](validation-workflow.md)을 따른다. 후보/cache 의존성은 따로 정리하며 연쇄 삭제하지 않는다. 대화/Editor 종료·timeout·임대 만료·디스크 압박은 통합/회수/폐기 의도가 아니다.
+checkpoint는 최종 수집 경계다. 반복 편집/재개는 그 전에 수행한다. Editor가 없거나 컴파일에 실패한 작업도 같은 `workspace checkpoint`로 독립 보존할 수 있다. checkpoint는 소스/저널의 안정성을 확인하며 컴파일 성공을 부여하지 않는다. 선택적 Library/view 저장소 경로는 [개발용 CLI](development-cli.md)로 분리한다. 후보/cache 의존성은 따로 정리하며 연쇄 삭제하지 않는다. 대화/Editor 종료·timeout·임대 만료·디스크 압박은 통합/회수/폐기 의도가 아니다.
 
 ## 실패와 완료 판독
 
 | 응답/조건 | 다음 행동 |
 | --- | --- |
 | 검증 실패·SourceChanged·dirty 원본 | 변경을 보존하고 소스를 수정/현재 검증. 원본 변경을 없애려고 stash/reset하거나 결과를 버리지 않음 |
-| EditorFocusRequired | 정확한 작업 Editor 활성화 뒤 같은 refresh 재시도. 타 Editor를 종료하지 않음 |
 | DeltaChangedAfterCollection | revision/delta/snapshot 보존. 정확한 소유 Editor 종료·자원/핸들 0과 저널 안정 확인 뒤 같은 ID/home의 checkpoint/release 명시적 재시도 |
 | 상태 손상·소유권/실행 unknown·중단된 부작용 | 구조화된 오류와 evidence 보존, 제공한 다음 행동/같은 요청의 회복 조건 확인. JSON·잠금·임시 파일 수동 삭제나 추측 강제 종료로 우회하지 않음 |
 | reclaim-pending·discard-reclaim-pending | 논리 종료와 물리 회수 대기 구분. 같은 작업/home의 release 또는 같은 discard intent 재시도만 허용; 다른 snapshot sweep 금지 |
 | released·discarded | 실제 mount/Git/delta·정확한 snapshot 부재와 소유 자원 0을 확인한 종료. 기록/로그·독립 결과는 남음. unknown은 0이 아니며 새 편집에는 새 작업 key 사용 |
 
-첫 정상 stop 뒤 지연 Library lock 쓰기와 포커스 거부가 발생할 수 있다. 준비/소유 메모리/재시도 비용이 있어 짧은 수정에는 direct를 우선한다. 지원 경로의 승인 쓰기 손실·원본/peer 훼손이 관측되면 해당 경로를 중단하고 먼저 수정한다. 실제 재부팅/전원/물리 공간 장애·현재 바이너리의 모든 native 중단 경계는 보장하지 않는다. 비용과 미확정 게시 오류의 소유 근거는 [대표 사용](verification/representative-agent-workflow.md), 이후 재검증 조건은 [납품 검증](verification/m0-delivery.md)을 따른다.
+첫 정상 stop 뒤 지연 Library lock 쓰기가 발생할 수 있다. 외부 도구의 연결·동작 실패는 해당 도구의 근거로 처리한다. 준비/소유 메모리/재시도 비용이 있어 짧은 수정에는 direct를 우선한다. 지원 경로의 승인 쓰기 손실·원본/peer 훼손이 관측되면 해당 경로를 중단하고 먼저 수정한다. 실제 재부팅/전원/물리 공간 장애·현재 바이너리의 모든 native 중단 경계는 보장하지 않는다. 비용과 미확정 게시 오류의 소유 근거는 [대표 사용](verification/representative-agent-workflow.md), 이후 재검증 조건은 [납품 검증](verification/m0-delivery.md)을 따른다.

@@ -15,8 +15,6 @@ internal sealed partial class WindowsValidationProvider
         internal string[] Changes => changes;
         internal string BaseRevision => baseRevision;
         internal SnapshotDeltaSeal Seal => source?.Seal() ?? candidate.Candidate.Seal;
-        internal long SourceSequence(string[] managed) => source is null ? 0 : ValidationSequence(source.ObserveChanges(managed),
-            path => candidate.Stat(path) is null && source.Stat(path) is null);
         public void EnsureAvailable() => candidate.EnsureAvailable();
         public SnapshotEntry? Stat(string path) => source is null ? candidate.Stat(path) : source.Stat(path) is { } entry ? Convert(entry) : null;
         public IReadOnlyList<SnapshotEntry> List(string path) => source is null ? candidate.List(path) : source.List(path).Select(Convert).ToArray();
@@ -58,19 +56,6 @@ internal sealed partial class WindowsValidationProvider
         Quiescent((await ObserveViewAsync(selection.Intent.ProjectId, selection.Intent.Cache.ViewId, ct)).Resources);
         using var tree = await OpenArtifact(new("source-generation", selection.Intent.GenerationId), ct);
         return tree.Seal;
-    }
-    public async Task<CandidateValidationEvidence> ReadValidationAsync(ValidationSelectionReceipt selection, CancellationToken ct)
-    {
-        Quiescent((await ObserveViewAsync(selection.Intent.ProjectId, selection.Intent.Cache.ViewId, ct)).Resources);
-        string root = GenerationPath(selection.Intent.GenerationId);
-        var invocation = Required<ValidationInvocation>(Path.Combine(root, "validation-invocation.json"));
-        var observed = Required<ValidationObservation>(Path.Combine(root, "validation-observed.json"));
-        using var tree = await OpenArtifact(new("source-generation", selection.Intent.GenerationId), ct);
-        Require(observed.Validation.RequestId == invocation.RequestId && observed.Validation.Fingerprint == invocation.Fingerprint &&
-            observed.SourceSequence == invocation.SourceSequence && tree.SourceSequence(Managed) == invocation.SourceSequence,
-            "ValidationSourceChanged", "Source changed after the validation request. Restart and refresh this generation explicitly.");
-        return new(observed.Validation.RequestId, selection.Intent.GenerationId, selection.Intent.Candidate.Intent.CandidateId,
-            selection.Intent.Candidate.CandidateSeal, tree.Seal, observed.Validation.Success, observed.Validation.CompletedAt);
     }
     internal string ResultPath(string operation) => Path.Combine(Root, "results", WorkspaceStore.Key(operation) + ".json");
     public async Task<ValidationIndependentResult?> FindResultAsync(ValidationPreservationIntent intent, CancellationToken ct)

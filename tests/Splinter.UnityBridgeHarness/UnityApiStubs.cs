@@ -3,12 +3,6 @@ namespace UnityEditor
 {
     [AttributeUsage(AttributeTargets.Class)]
     public sealed class InitializeOnLoadAttribute : Attribute { }
-    public enum ImportAssetOptions { ForceUpdate }
-    public static class AssetDatabase
-    {
-        public static void Refresh() { }
-        public static void Refresh(ImportAssetOptions options) { }
-    }
     public static class EditorApplication
     {
         public static double timeSinceStartup;
@@ -17,32 +11,6 @@ namespace UnityEditor
         public static event Action quitting;
         public static void Advance() { timeSinceStartup++; update?.Invoke(); }
         public static void Exit(int code) { quitting?.Invoke(); }
-    }
-}
-
-namespace UnityEditor.Compilation
-{
-    public enum CompilerMessageType { Error, Warning }
-    public enum RequestScriptCompilationOptions { CleanBuildCache }
-    public struct CompilerMessage
-    {
-        public CompilerMessageType type;
-        public string file, message;
-        public int line;
-    }
-    public static class CompilationPipeline
-    {
-        public static event Action<object> compilationStarted;
-        public static event Action<string, CompilerMessage[]> assemblyCompilationFinished;
-        public static event Action<object> compilationFinished;
-        public static void RequestScriptCompilation() { }
-        public static void RequestScriptCompilation(RequestScriptCompilationOptions options) { }
-        public static void Complete(object context, CompilerMessage[] messages)
-        {
-            compilationStarted?.Invoke(context);
-            assemblyCompilationFinished?.Invoke("Assembly-CSharp", messages);
-            compilationFinished?.Invoke(context);
-        }
     }
 }
 

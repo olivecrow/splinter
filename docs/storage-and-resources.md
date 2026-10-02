@@ -1,5 +1,7 @@
 # 저장소 복제와 실행 자원 회수
 
+ReFS/기준본은 `scripts/splinter-dev.ps1`의 선택적 개발 경로다. 일반 제품 생성은 NTFS만 제공하며 이 문서의 복제·봉인은 프로젝트 내용의 검증 성공을 부여하지 않는다.
+
 이 문서는 **선택적 ReFS 내부 알파**와 공통 프로세스 회수의 계약이다. 일반 workspace에 연결한 NTFS 경로는 [NTFS 작업공간](ntfs-workspaces.md), 실제 NTFS/Git/Unity 증거와 완료한 자원 회수은 [NI 검증](verification/ntfs-workspace-integration.md)을 따른다. 아래 최초 전체 기준본 준비를 NTFS 입력의 필수 단계로 사용하지 않는다. 별도 [SO fixture 증거](verification/snapshot-overlay.md)는 제품 NI 통과와 구분한다.
 
 명시적으로 ReFS 경로를 선택한 반복 작업에는 `refs-cow`를 사용한다. 동일 기준본의 큰 파일은 ReFS 블록을 공유하고 수정한 블록만 별도로 할당한다. `git-checkout`은 최초 기준본 준비와 명시적인 진단용이다. CoW 실패를 일반 checkout이나 전체 파일 복사로 바꾸는 fallback은 없다.
@@ -19,22 +21,21 @@
 <home>/locks/              짧은 명령의 파일 잠금
 ```
 
-아래 `splinter`는 저장소에서 `pwsh ./scripts/splinter.ps1`을 뜻한다.
+아래 `splinter`는 저장소에서 `pwsh ./scripts/splinter-dev.ps1`을 뜻한다.
 
 ```text
 splinter storage probe --path <ReFS-home>
 splinter baseline prepare --project <Unity-repository> --base development --home <ReFS-home>
 splinter workspace status --id <preparation-id> --home <ReFS-home>
-splinter unity refresh --id <preparation-id> --home <ReFS-home>
 splinter workspace status --id <preparation-id> --home <ReFS-home>
 splinter baseline seal --id <preparation-id> --home <ReFS-home>
 ```
 
-처음 prepare는 정확한 소스 커밋을 한 번 checkout하고 별도 Editor에서 Library를 생성한다. `ready=true` 이후 refresh하고 현재 fingerprint의 `validation.success=true`를 확인한 다음 seal한다. **실행 중인 원본의 Library는 읽거나 복사하지 않는다.** prepare는 프로젝트·소스 커밋·Unity 버전/브리지 호환 키로 같은 준비 작업을 찾는다. 이미 봉인된 기준본은 다시 예열하지 않는다. 캐시를 명시적으로 회수한 뒤에는 새 세대의 준비 작업을 만든다.
+처음 prepare는 정확한 소스 커밋을 한 번 checkout하고 별도 Editor에서 Library를 생성한다. `ready=true` 이후 필요한 외부 검증을 하고 소유 Editor를 정상 종료한 다음 seal한다. seal은 소스 revision과 수명만 확인하며 컴파일 성공을 선언하지 않는다. **실행 중인 원본의 Library는 읽거나 복사하지 않는다.** prepare는 프로젝트·소스 커밋·Unity 버전/브리지 호환 키로 같은 준비 작업을 찾는다. 이미 봉인된 기준본은 다시 예열하지 않는다. 캐시를 명시적으로 회수한 뒤에는 새 세대의 준비 작업을 만든다.
 
-다음 소스 커밋을 준비할 때에는 동일 프로젝트·Unity/브리지 호환 키와 동일 `Packages`·`ProjectSettings` Git snapshot을 가진 봉인 기준본을 먼저 찾는다. 호환 기준본이 있으면 소스와 Library를 CoW로 가져오고 Git이 바뀐 소스만 새 커밋으로 갱신한다. Unity에서 갱신·컴파일·봉인을 완료해야 새 커밋의 기준본이 된다. 패키지·프로젝트 설정이 달라지거나 호환 기준본이 없을 때만 cold 준비를 사용한다. 버전 파일의 CRLF/LF는 같은 호환 키로 정규화한다. 에셋마다 임포트 조건을 추정해 검증을 생략하지 않는다.
+다음 소스 커밋을 준비할 때에는 동일 프로젝트·Unity/브리지 호환 키와 동일 `Packages`·`ProjectSettings` Git snapshot을 가진 봉인 기준본을 먼저 찾는다. 호환 기준본이 있으면 소스와 Library를 CoW로 가져오고 Git이 바뀐 소스만 새 커밋으로 갱신한다. 외부 Unity 도구의 갱신·검증 뒤 봉인을 완료해야 새 커밋의 기준본이 된다. 패키지·프로젝트 설정이 달라지거나 호환 기준본이 없을 때만 cold 준비를 사용한다. 버전 파일의 CRLF/LF는 같은 호환 키로 정규화한다. 에셋마다 임포트 조건을 추정해 검증을 생략하지 않는다.
 
-seal은 검증된 변경 없는 소스인지 확인하고 소유 프로세스 그룹을 종료한다. 작업 브리지를 제거한 뒤 소스와 Library를 CoW로 봉인하고 준비 worktree를 회수한다. `.git`, Temp, Logs, UserSettings, IDE 생성 파일은 기준본에 넣지 않는다. 예열 과정이나 종료가 추적 소스를 변경하면 봉인을 거부한다. 변경을 별도 소스 커밋으로 검토한 후 새 기준본을 준비한다.
+seal은 정확한 revision의 변경 없는 소스인지 확인하고 소유 프로세스 그룹을 종료한다. 작업 브리지를 제거한 뒤 소스와 Library를 CoW로 봉인하고 준비 worktree를 회수한다. `.git`, Temp, Logs, UserSettings, IDE 생성 파일은 기준본에 넣지 않는다. 예열 과정이나 종료가 추적 소스를 변경하면 봉인을 거부한다. 변경을 별도 소스 커밋으로 검토한 후 새 기준본을 준비한다.
 
 ```text
 splinter workspace ensure --project <Unity-repository> --key <task-key> --storage refs-cow --baseline <baseline-id> --base <baseline.baseRevision> --editor --home <ReFS-home>

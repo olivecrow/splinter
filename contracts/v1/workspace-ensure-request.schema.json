@@ -19,18 +19,10 @@
       "minLength": 1
     },
     "storage": {
-      "enum": [
-        "ntfs-snapshot",
-        "refs-cow",
-        "git-checkout"
-      ]
+      "const": "ntfs-snapshot"
     },
     "editor": {
       "type": "boolean"
-    },
-    "baseline": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{24}$"
     },
     "maxJournalBytes": {
       "type": "integer",
@@ -42,42 +34,5 @@
     "project",
     "key",
     "storage"
-  ],
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "storage": {
-            "const": "refs-cow"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "baseline"
-        ]
-      },
-      "else": {
-        "not": {
-          "required": [
-            "baseline"
-          ]
-        }
-      }
-    },
-    {
-      "if": {
-        "required": [
-          "maxJournalBytes"
-        ]
-      },
-      "then": {
-        "properties": {
-          "storage": {
-            "const": "ntfs-snapshot"
-          }
-        }
-      }
-    }
   ]
 }

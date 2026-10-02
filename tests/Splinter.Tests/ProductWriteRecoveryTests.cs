@@ -164,12 +164,9 @@ public sealed class ProductWriteRecoveryTests
             using (var writer = OpenWrite(Path.Combine(mount, Beta))) { writer.Write(Block(0x7e)); writer.Flush(true); }
             Assert.Equal(Expected(r, pending, true), KernelModel(r));
             WriteBytesNew(Path.Combine(dir, "journal-before-preserve.bin"), SharedBytes(journal));
-            string preserve = Path.Combine(dir, "preserve-request.json");
-            WriteNew(preserve, new { version = 1, action = "preserve-worker", project, owner = new { id = "nr03-write-recovery", generation = 1 }, requestKey = "preserve-" + r.Nonce, workspaceId = id });
-            var preserved = await Cli(cli, root, ["validation", "--input", preserve, "--home", home], Path.Combine(dir, "preserve"), ct);
-            var preservation = preserved.GetProperty("data").GetProperty("result");
-            Assert.False(preservation.GetProperty("validationClaimed").GetBoolean());
-            var savedResult = preservation.GetProperty("result"); string revision = savedResult.GetProperty("revision").GetString()!;
+            var preserved = await Cli(cli, root, ["workspace", "checkpoint", "--id", id, "--message", "Preserve recovered client writes", "--home", home], Path.Combine(dir, "preserve"), ct);
+            var savedResult = preserved.GetProperty("data").GetProperty("workspace").GetProperty("snapshot").GetProperty("result");
+            string revision = savedResult.GetProperty("revision").GetString()!;
             string reference = savedResult.GetProperty("resultReference").GetString()!;
             Assert.True(savedResult.GetProperty("independentOfSnapshot").GetBoolean()); Assert.Equal("stable-journal-v1", savedResult.GetProperty("collectionProtocol").GetString());
             Assert.Equal(revision, await GitText(project, ["rev-parse", reference], ct));

@@ -7,7 +7,6 @@ public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Sourc
 {
     public SnapshotRecoveryDecision? Recovery => Workspace.StorageMode == "ntfs-snapshot" ? SnapshotRecoveryDecision.For(Workspace) : null;
     public string SourceVerification => Source is null ? "not-checked" : "verified";
-    public bool? ValidationCurrent => Source is null ? null : Workspace.Validation is { } validation && validation.Fingerprint == Source.Fingerprint;
 }
 
 public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceProvider sources, IApplicationWorkspaceProvider applications,
@@ -108,9 +107,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
         RequireLive(record);
-        // Starting an Editor is not a source-validation request. Import may
-        // legitimately change source metadata immediately after launch; a
-        // completed pending validation still gets its normal fresh inspection.
+        // Starting an Editor observes liveness, not project correctness.
         try { await StartCoreAsync(record, ct); return await ViewAsync(record, ct, verifySource: false); }
         catch (Exception ex)
         {
@@ -145,33 +142,6 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         store.Save(record, "editor-started");
     }
 
-    public async Task<WorkspaceView> RefreshAsync(string id, CancellationToken ct = default)
-    {
-        using var gate = await store.LockAsync(id, ct);
-        var record = store.Get(id);
-        RequireLive(record);
-        if (record.ResultRevision is not null) throw new WorkspaceException("ResultAlreadyCollected", "Create a new workspace to edit a collected result.");
-        var current = await ViewAsync(record, ct);
-        if (current.Application?.Running != true || current.Application.Ready != true)
-            throw new WorkspaceException("EditorNotReady", "Start the Editor and poll workspace status until application.ready is true.");
-        string fingerprint = RequireSource(current).Fingerprint;
-        if (record.PendingValidationId is not null && record.PendingFingerprint != fingerprint)
-            throw new WorkspaceException("ValidationInProgress", "Source changed while validation is running. Wait for its result, then refresh again.");
-        record.PendingValidationId ??= Guid.NewGuid().ToString("N");
-        record.PendingFingerprint = fingerprint;
-        record.Validation = null;
-        record.Phase = "validating";
-        store.Save(record, "validation-intent");
-        try
-        {
-            await applications.RequestValidationAsync(record, store.ControlPath(id), record.PendingValidationId, fingerprint, ct);
-            record.LastError = null;
-            store.Save(record, "validation-requested");
-        }
-        catch (Exception ex) { RecordFailure(record, ex); throw; }
-        return new(record, current.Source, current.Application, store.ControlPath(id), "workspace status --id " + id);
-    }
-
     public async Task<WorkspaceView> CheckpointAsync(string id, string message, CancellationToken ct = default)
     {
         using var gate = await store.LockAsync(id, ct);
@@ -193,8 +163,6 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             }
             return current;
         }
-        if (record.Validation is not { Success: true } validation || validation.Fingerprint != current.Source!.Fingerprint)
-            throw new WorkspaceException("ValidationRequired", "Refresh and verify the current source before collecting a result.");
         if (string.IsNullOrWhiteSpace(message)) throw new WorkspaceException("CommitMessageRequired", "A result commit needs a nonempty message.");
         record.Phase = "collecting";
         store.Save(record, "checkpoint-intent");
@@ -204,6 +172,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             {
                 await applications.StopAsync(record, store.ControlPath(id), ct);
                 await RequireStopped(record, ct);
+                await applications.RemoveInfrastructureAsync(record, store.ControlPath(id), ct);
             }
             record.ResultRevision = await sources.CommitAsync(record, message, ct);
             if (record.StorageMode == "ntfs-snapshot")
@@ -223,9 +192,15 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         RequireLive(record);
         var current = await ViewAsync(record, ct);
         RequireSource(current);
-        if (record.ResultRevision is null || record.Validation is not { Success: true } validation ||
-            current.Source!.HasChanges || validation.Fingerprint != current.Source.Fingerprint || current.Source.Revision != record.ResultRevision)
-            throw new WorkspaceException("ResultNotReady", "Checkpoint validated source before integrating; later changes must be preserved.");
+        if (record.ResultRevision is null || current.Source!.HasChanges || current.Source.Revision != record.ResultRevision)
+            throw new WorkspaceException("ResultNotReady", "Checkpoint the exact current source before integrating; later changes must be preserved.");
+        if (record.StorageMode == "ntfs-snapshot")
+        {
+            var preserved = RequireSnapshot(record).Result;
+            if (preserved is not { IndependentOfSnapshot: true, CollectionProtocol: SnapshotResult.StableJournalProtocol } ||
+                preserved.Revision != current.Source.Revision || preserved.Fingerprint != current.Source.Fingerprint)
+                throw new WorkspaceException("ResultNotReady", "Integrate only the exact independently preserved source.");
+        }
         record.Phase = "integrating";
         store.Save(record, "integration-intent");
         try
@@ -248,12 +223,6 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         var record = store.Get(id);
         RequireLive(record);
         await applications.StopAsync(record, store.ControlPath(id), ct);
-        if (record.PendingValidationId is not null)
-        {
-            record.PendingValidationId = null;
-            record.PendingFingerprint = null;
-            record.Validation = null;
-        }
         record.Phase = record.IntegratedRevision is not null ? "integrated" : record.ResultRevision is not null ? "collected" : "ready";
         store.Save(record, "editor-stopped");
         return await ViewAsync(record, ct);
@@ -320,34 +289,15 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         }
         if (record.BaseRevision is null) return new(record, null, null, store.ControlPath(record.Id), "workspace ensure");
         var app = await applications.ObserveAsync(record, store.ControlPath(record.Id), ct);
-        bool reconcileValidation = record.PendingValidationId is not null && app.Validation?.RequestId == record.PendingValidationId;
-        // Poll process/provider state without reading project assets. A newly
-        // completed validation still requires exactly one fresh fingerprint.
-        var source = verifySource || reconcileValidation ? await sources.InspectAsync(record, ct) : null;
+        // Ordinary polls observe resources without reading project assets.
+        var source = verifySource ? await sources.InspectAsync(record, ct) : null;
         bool changed = false;
         if (app.Lease is not null && app.Lease != record.Application) { record.Application = app.Lease; changed = true; }
-        if (reconcileValidation)
-        {
-            record.Validation = app.Validation!.Fingerprint == record.PendingFingerprint && app.Validation.Fingerprint == source!.Fingerprint
-                ? app.Validation : app.Validation with { Success = false, Errors = ["Source changed during validation; refresh again."] };
-            record.PendingValidationId = null;
-            record.PendingFingerprint = null;
-            record.Phase = record.Validation.Success ? "validated" : "validation-failed";
-            record.LastError = null;
-            changed = true;
-        }
-        if (source is not null && record.Validation is { Success: true } validation && validation.Fingerprint != source.Fingerprint)
-        {
-            record.Validation = null;
-            record.Phase = "source-changed";
-            changed = true;
-        }
         if (record.Phase == "editor-starting" && app.Ready) { record.Phase = "active"; changed = true; }
         if (changed) store.Save(record, "observed");
-        string next = record.Purpose == "baseline" && record.Validation?.Success == true ? "baseline seal" :
+        string next = record.Purpose == "baseline" && !app.Running ? "baseline seal" :
             record.IntegratedRevision is not null ? "workspace release" : record.ResultRevision is not null ? "workspace integrate" :
-            record.PendingValidationId is not null ? "workspace status" : record.Validation?.Success == true ? "workspace checkpoint" :
-            app.Ready ? "unity refresh" : app.Running ? "workspace status" : "unity start";
+            app.Running && !app.Ready ? "workspace status" : "workspace checkpoint";
         return new(record, source, app, store.ControlPath(record.Id), next + " --id " + record.Id);
     }
 

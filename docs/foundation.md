@@ -1,193 +1,79 @@
 # 현재 기반
 
-[공통 폐기](workspace-discard.md)는 Core 입력/state·provider 계약과 Runtime의 동일 intent 단계 재개·fake 적합성을 제공한다. 실제 Git/Windows provider와 `workspace discard` CLI를 연결했다. [폐기 검증](verification/workspace-discard.md)의 서비스 적용/같은 intent 재개와 [대표 사용](verification/representative-agent-workflow.md)의 Unity 실패 작업 정상 stop/폐기를 구분한다. 현재 한정 M0와 복구 근거의 적용 경계는 [납품 판정](verification/m0-delivery.md)을 따르며 전체 native/OS 장애 지원으로 확대하지 않는다.
+Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트의 외부 도구 작업 → checkpoint → 선택적 integrate → 명시적 release/discard**다. 작업공간·소유 Editor·범위 저장·독립 결과·회수 안전성을 관리한다. 컴파일·테스트·게임 합격은 에이전트와 MCP·Unity CLI 등 외부 도구의 책임이다.
 
-개발용 [WriteProbe](write-profiling.md)는 새 synthetic 디렉터리에서 고정 단일/동시 쓰기와 metadata 변경을 실행하고 내용과 읽기 전용 replay를 검증한다. `capabilities.developmentWriteProbe`에 입력·쓰기 경계가 있으며 제품 workspace 생성이나 Unity 검증을 대신하지 않는다. `OverlayIoMetrics.liveJournalWrites`는 고정 6개 연산별 live commit 단계와 flush 전후 다른 mutation 대기 호출을 집계한다. Runtime은 기존처럼 각 durable flush를 마친 뒤 commit을 적용한다.
-
-Windows 어댑터는 변경 callback 전체를 별도의 `mutationGate`로 직렬화한다. Runtime의 대기 표본에는 이 바깥의 대기와 OS queue가 포함되지 않으므로 직접 Runtime을 호출하는 합성 입력과 실제 Unity의 동시성 조건을 구분한다. 검증 범위와 group flush의 후속 판단은 [JW 실행 기록](verification/live-journal-write-cost.md)을 따른다.
-
-> 제품 workspace에 [NTFS snapshot 모드](ntfs-workspaces.md)를 연결했다. 자동 계약/Git/NTFS 메타데이터 시험과 실제 VSS/Unity 통합 자격은 구분하며 [NI 기록](verification/ntfs-workspace-integration.md)을 따른다. SO 독립 실험과 기존 ReFS 성공을 NI 통과로 합산하지 않는다.
-
-Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 → 작업공간 생성/재개 → Unity start/refresh/stop → 상태·validation 관찰 → checkpoint/integrate/release/discard**와 계약·진단이다. ReFS CoW와 무-checkout index를 연결하고 Windows 프로세스 그룹의 종료 증거를 회수 조건으로 사용한다. 지원 경계와 실환경 증거는 [검증 안내](verification/README.md)를 따른다. 첫 한정 실사용 [M0](plans/implementation-plan.md)는 마감했으며 기존 개발 CLI·등록 서비스/입력 전제와 실패 시 다음 행동은 [AI 시작 안내](agent-start.md)가 소유한다. DAG 검사/제출·AI Runner·daemon/DB·범용 Unity 저작/Play/Test Runner는 제품 범위에서 제외한다.
+제품 시작점은 [AI 안내](agent-start.md)와 `scripts/splinter.ps1`이다. ReFS/진단·공통 Library view·spike/probe는 [개발 CLI](development-cli.md)로 분리했다. 기존 verification은 해당 후보/입력의 근거이며 변경된 계약의 native 자격을 자동 부여하지 않는다.
 
 ## 구조와 의존성
 
-범위 저널은 전체가 private인 덮어쓰기에서 같은 바이트를 재사용하며, 4KiB 이상 절감하는 일치 앞뒤를 제외한 연속 변경 범위 하나를 기존 write frame으로 저장한다. Windows callback은 요청 크기의 버퍼를 빌리고, Editor 시작 응답은 일반 실행 관측을 사용한다. 새 pending 결과·명시적 검증/수집의 현재 소스와 seal 검사, 개별 flush는 유지한다. 소유 계약은 [NTFS](ntfs-workspaces.md)·[소스 검증](source-verification.md), 한정 자격은 [공간·버퍼·시작 검증](verification/resource-efficiency-followup.md)이다.
-
-Core의 `StateWriteFailureDetails`/`StateWriteDiagnostic`은 workspace 상태 저장 실패의 공통 데이터 계약이다. Runtime이 단계와 게시 완료 여부·HRESULT/native 오류 관측을 채우고 CLI는 기존 실패 응답으로 전달한다. `state-write-failure-details` schema와 [NTFS 실패 계약](ntfs-workspaces.md)을 따르며 Core에는 플랫폼 해석 API를 넣지 않는다.
-
-Core의 `IOverlayMutationObserver`는 공급자 중립 callback 전후 관측 port다. Windows 파일시스템의 명시적 개발 인수로만 연결하며 일반 provider와 flush 정책은 그대로다. [로컬 kernel 개발 시험](kernel-recovery.md)은 실제 WinFsp host·fake 기준·외부 클라이언트와 새 provider 연결을 사용한다. `capabilities.developmentKernelRecoveryProbe`의 범위와 schema를 따르며 실제 VSS server/CLI 자격과 구분한다.
-
-[제품 쓰기 복구 개발 시험](product-write-recovery.md)은 일반 provider에 observer를 연결하지 않고 외부 client 경계에서 정확한 소유 provider를 종료한다. 기존 CLI·VSS 권한 서비스·WinFsp·Git 조합의 동일 요청 재연결·명시적 독립 보존/회수를 시험하며 `capabilities.developmentProductWriteRecoveryProbe`와 현재 request/result schema를 따른다.
-
-Core의 `IJournalMutationObserver`는 선택적 동기 저널 경계 관측 port다. `JournalDeltaStore`의 명시적 개발 생성자만 observer를 받으며 일반 Runtime·Windows 조합에는 연결하지 않는다. `scripts/test-journal-recovery.ps1`은 기본 읽기 전용 계획, `-Execute`는 Release 시험 harness의 결정적 fake 트리·실제 자식 종료와 승인 데이터 재생 검증이다. [현재 절차](journal-recovery.md)와 `capabilities.developmentJournalRecoveryProbe`에서 경계·schema·쓰기 범위를 확인한다. 기존 개별 acknowledged-write durable flush 정책은 유지한다.
-
-Core의 `IWorkspacePreparationObserver`는 공급자 중립적인 준비 경계 관측 port다. Runtime·Git·Windows가 선택적 observer를 호출하고 일반 제품 명령은 observer 없이 실행한다. 개발용 `preparation-probe --input`만 이 port를 조립하며 현재 schema와 범위는 `capabilities.developmentPreparationProbe`에 있다. `scripts/test-preparation-recovery.ps1`은 기본 읽기 전용 계획, `-Execute`는 등록된 fixture의 실제 CLI 종료·같은 요청 재개·보존/회수 시험이다. [NTFS 절차](ntfs-workspaces.md#개발용-준비-중단-시험)를 따른다.
-
-[제품 검증 workflow](validation-workflow.md)의 `validation --input`은 기존 NTFS worker의 후보 게시·단일 Unity view 선택/실행/검증·독립 결과 보존/회수와 `preserve-worker`를 연결한다. Library는 첫 후보의 불변 snapshot을 계속 읽고 private 변경 범위만 공통 cache에 저장한다. `workspace release`는 후보·소스 세대·미완료 요청과 열린 cache 기준의 snapshot 의존성을 먼저 확인한다. `compact-cache`는 정지 경계·명시적 겹침량 예산·같은 요청 복구로 대체된 범위를 정리한다. 제품 입력/출력은 `validation-product-request`/`validation-product-data` schema다.
-
-
-개발용 `Splinter.ReplayProbe`는 고정 synthetic identity의 작은 저널 생성과 read-only Runtime replay를 제공한다. `OverlayIoMetrics.replayIndexOperations`로 연산별 비용, `replayWriteRangeIndex`로 write 직전 extent 분포·탐색/이동/정렬 비용을 구분하고 내용·state/input hash와 관리 메모리 할당을 확인한다. Runtime의 범위 index는 정렬된 extent에서 겹치는 구간만 교체하며 끝에 추가할 때는 전체 목록 복사와 정렬을 하지 않는다. 제품 workspace나 Unity 검증이 아니며 사용법은 [offline replay 계측](replay-profiling.md), 제한된 결과는 [RI 기록](verification/replay-index-cost.md)과 [WI 기록](verification/cumulative-write-range-index.md)을 따른다.
-
-[불변 검증 후보·고정 view](validation-view.md)는 개발용 `snapshot-spike` 확장이다. Core의 `ValidationCandidate`/`ValidationViewSelection`, Runtime의 읽기 전용 봉인 후보와 분리된 source/cache 저널, Windows의 WinFsp 조합을 사용한다. 제품 workspace coordinator나 기본 실행 모드에는 연결되지 않았다. 후보는 최종 checkpoint와 구별되며 별도 독립 결과 수집이 필요하다. Host의 capability는 `validationViewExperiment.integratedWorkspaceMode=false`로 경계를 표시한다.
-
-개발용 `candidate-source-export`는 Git 어댑터의 등록 검증과 Core `CandidateSourceProjection`, Runtime의 `JournalCandidateProjection`을 조합한다. 후보 v2는 분리 증거를 포함하며 검증된 전용 포인터의 노드·payload를 새 후보에서 제외한다. 원래 저널·Git 등록과 acknowledged-write flush는 유지한다. 제품 workflow도 같은 게시·분리 구현을 사용하며 [현재 계약](validation-view.md#등록-증거가-있는-관리-파일-분리)을 따른다.
-
-Core의 `CandidateExportRequest`/`CandidateExportIntent`와 Runtime의 `JournalCandidatePublication`/`CandidatePrefixWriter`는 고정 요청 키·원본 seal·예상 상태를 게시 전에 기록한다. `PublishCandidate`는 같은 요청의 정확한 부분 저널만 이어 쓰고, 완성된 후보와 영수증은 재검증해 반환한다. 개발용 CLI 입력은 `publication`을 요구하며 제품 provider는 공통 operation ID를 같은 요청 키로 사용한다. [게시 복구 계약](validation-view.md#같은-요청의-게시-복구)의 전용 잠금·create-new/atomic move를 유지한다.
-
-[검증 후보 수명주기](validation-workflow.md)는 Core의 `IValidationWorkflowProvider`와 Runtime의 `ValidationWorkflowCoordinator`/`ValidationWorkflowStore`를 `Splinter.Workflows.Windows`에서 VSS/WinFsp·Git·Unity와 조합한다. 제품 `validation` 명령은 owner generation·동일 요청 재조정, source/cache 분리, 실제 검증 증거 귀속과 독립 Git 결과를 제공한다. `validationWorkflowContract.cliAvailable=true`이며 제품 workspace release는 후보와 source 세대의 snapshot 의존성을 확인한다. 기본 실행 모드 선택은 별도다.
-
-공통 Runtime의 `JournalReplayReader`는 저널 replay 읽기를 64KiB 버퍼로 묶고 `OverlayIoMetrics`에 읽기·검증·index 적용 비용을 나눈다. 모든 frame 검증과 acknowledged write flush는 유지한다. Windows client는 같은 launch의 실제 mount와 최신 mounted 상태를 기다리고 provider의 replay 단계만으로 준비 완료를 반환하지 않는다. 범위와 시간의 실제 판단은 [VR 실행](verification/validation-view-readiness-and-replay.md)과 [RI 후보의 작은 Unity 비교](verification/unity-replay-comparison.md)를 따른다. 동일 저널 mount 비교와 Editor 쓰기로 입력이 누적되는 실제 재시작 비교를 구분한다.
-
-NTFS 회수는 Core의 `SnapshotReclamation`으로 실제 해제와 지연을 구분한다. 독립 결과와 자원 정리 후 더 오래된 snapshot 때문에 삭제가 차단되면 Runtime이 `reclaim-pending`을 저장하고 같은 workspace의 명시적 release 재시도로 이어간다. Windows의 `VssSnapshotReclamation`은 boot·owner·요청 ID에 묶인 helper 증거를 검증한다. `SnapshotSharedStorage`는 시각이 있는 source volume 전체 관측이며 workspace별 귀속은 unknown이다. 계약과 자동 회수의 경계는 [NTFS 지연 회수](ntfs-workspaces.md#지연-회수와-명시적-재시도)를 따른다.
-
-[NTFS snapshot 모드](ntfs-workspaces.md)는 Core의 `ISnapshotWorkspaceBackend`/`ISnapshotSourceWorkspaceProvider`를 통해 기존 coordinator에 연결한다. Runtime은 단계·의존성·결과 manifest를 조정하고 Windows 어댑터가 VSS helper·메타데이터 지원 검사·WinFsp·범위 저널을 관리한다. Windows 모듈은 Runtime과 WinFsp.Net을 참조한다. 같은 저널/mount 구현을 사용하는 [독립 실험 명령](snapshot-overlay.md)은 별도 진입점이다.
-
-NTFS 연결은 `VerifyConnectionAsync`에서 현재 부팅·연결 세대의 정확한 live VSS identity를 확인한다. Core의 `SnapshotReadAccess`는 공급자 중립적인 snapshot ID·읽기 root·검증 ID만 전달하며 VSS provider/volume/CIM 정보는 Windows에 남긴다. 불변 SnapshotReference와 delta identity를 변경하지 않고 검증된 현재 읽기 위치로 재개한다. capability의 `snapshotVerification`/`snapshotReadAccess`와 입력·응답 schema가 이 계약을 노출한다. 세부 계약과 미검증 경계는 [NTFS 작업공간](ntfs-workspaces.md#살아-있는-vss-식별과-읽기-위치), 후보별 시험은 [LV 기록](verification/ntfs-live-vss-identity.md)을 따른다.
-
 | 프로젝트 | 현재 책임 | 참조 |
 | --- | --- | --- |
-| `Splinter.Core` | 탐지·작업공간 VCS/application/storage/process ports, 기준본·자원·검증 기록, `WorkspaceMountAccess`의 공급자 중립 mount identity 규칙, `WorkspaceFailurePolicy`의 보존/재시도 분류 | .NET 기본 라이브러리 |
-| `Splinter.Protocol` | 응답 DTO, 명령 descriptor, 내장 JSON Schema와 검증 | Core, JsonSchema.Net |
-| `Splinter.Host` | 읽기 전용 명령 조합과 결과 작성 | Core, Protocol |
-| `Splinter.Runtime` | 작업공간 생성·재개·검증·회수 조정, atomic JSON 저장과 작업/저장소 잠금 | Core |
-| `Splinter.SourceControl.Git` | 저장소 조회, 실제 worktree 생성·fingerprint·커밋·통합·회수 | Core |
-| `Splinter.Application.Unity` | 메타데이터 탐지, 정확한 버전 Editor 실행·활성화·검증 요청·종료 | Core |
-| `Splinter.Platform.Windows` | NTFS VSS helper·입력 지원 검사·범위 저널 backend/회수, ReFS 블록 복제, Job Object·WinFsp 제공자 | Core, Runtime, WinFsp.Net; Win32 |
-| `Splinter.Workflows.Windows` | 기존 NTFS worker와 검증 view의 실제 provider, owner binding, 단일 Unity 경로·cache, 독립 결과와 명시적 회수 | Core/Runtime, Git/Unity/Windows 어댑터 |
-| `Splinter.Cli` | 파싱, 어댑터 조립, Runtime/Host/Windows workflow 호출, JSON 응답과 종료 코드 | Runtime, Host, Git/Unity/Windows 어댑터, System.CommandLine |
-| `unity/Splinter.Editor` | 작업별 Editor 안에서 refresh·컴파일·domain reload 관측과 종료 요청 처리 | Unity Editor API; 독립 소스 |
-| `Splinter.Tests` | 계약, CLI, fake 공급자, 실제 Git·Windows 자식 회수·선택적 ReFS 시험 | CLI, xUnit v3, MTP |
-| `tests/Splinter.UnityBridgeHarness` | 실제 WorkspaceBridge 소스를 링크해 외부 Unity API stub과 예외를 던지는 fixture로 heartbeat 독립성 검사 | .NET 테스트 전용 실행 파일; 제품 명령·Unity 런타임 시험 아님 |
-| `tools/Splinter.ReplayProbe` | 제한된 합성 저널 생성·읽기 전용 replay·출력/hash 검증과 비용 계측 | Runtime; 개발용 console |
-| `tools/Splinter.WriteProbe` | 고정 합성 live 쓰기·metadata·동시 호출과 read-only replay·내용/hash 검증 | Runtime; 개발용 console |
+| `Splinter.Core` | workspace/storage/source/application/process ports·소유권·결과·실패 계약 | .NET 기본 라이브러리 |
+| `Splinter.Protocol` | 응답 DTO·제품/개발 명령 카탈로그·내장 JSON Schema | Core, JsonSchema.Net |
+| `Splinter.Host` | 읽기 전용 발견/진단 | Core, Protocol |
+| `Splinter.Runtime` | 작업공간 수명·atomic JSON 상태/잠금·범위 저널과 후보/cache 수명 | Core |
+| `Splinter.SourceControl.Git` | linked worktree/index·현재 소스 hash·커밋·독립 결과·guard가 있는 merge/회수 | Core |
+| `Splinter.Application.Unity` | 정확한 버전/프로젝트의 Editor 실행·준비 관측·정상 종료·소유 bridge | Core |
+| `Splinter.Platform.Windows` | VSS·WinFsp·변경 범위 저널·제한 권한 서비스·Job Object·선택적 ReFS | Core, Runtime, WinFsp.Net; Win32 |
+| `Splinter.Workflows.Windows` | 개발용 불변 source view·공통 Library cache·독립 결과와 회수 의존성 | Runtime와 Git/Unity/Windows |
+| `Splinter.Cli` | 제품 명령 파싱·어댑터 조합·JSON/종료 코드; 개발 진입점의 공통 조합 | Host, Runtime, Git/Unity/Windows/workflow, System.CommandLine |
+| `tools/Splinter.Development` | 별도 개발 명령 진입점 `splinter-dev` | CLI |
+| `unity/Splinter.Editor` | liveness·import/compile 진행 관측·미저장 씬/Play 보호와 정상 종료 | Unity Editor API; 소유 workspace에만 포함 |
+| `Splinter.Tests`, `tests/Splinter.UnityBridgeHarness` | 계약/fake·실제 Git·Windows 자식·bridge 소스 적합성·선택 ReFS 회귀 | xUnit v3, MTP; bridge에는 Unity API stub 사용 |
+| `tools/Splinter.ReplayProbe`, `tools/Splinter.WriteProbe` | 고정 합성 입력의 읽기/쓰기 비용과 정확성 계측 | Runtime; 개발 도구 |
 
-```mermaid
-flowchart LR
-    CLI[CLI 조합 지점] --> Host[읽기 전용 Host]
-    CLI --> Workflow[Windows validation workflow]
-    Workflow --> Runtime[지속 상태를 사용하는 Runtime]
-    Workflow --> Git
-    Workflow --> Unity
-    Workflow --> Windows
-    CLI --> Runtime
-    Runtime --> Core
-    CLI --> Git[Git Inspector / Workspace Provider]
-    CLI --> Unity[Unity Inspector / Workspace Provider]
-    CLI --> Windows[NTFS snapshot / ReFS / 프로세스 그룹]
-    Windows --> Core
-    Windows --> Runtime
-    Host --> Protocol[Protocol / JSON Schema]
-    Protocol --> Core
-    Host --> Core[Core / 공급자 계약]
-    Git --> Core
-    Unity --> Core
-```
+CLI는 짧은 프로세스다. Host는 읽기 전용 in-process 계층이며 daemon/DB writer가 아니다. Runtime은 부작용 전 intent와 같은 요청 영수증을 durable 상태에 게시한다. 공급자 전용 API는 어댑터에 있고 Core에는 Unity/Win32/Git/Codex API를 넣지 않는다.
 
-Host는 CLI 프로세스의 읽기 전용 라이브러리다. 변경 작업은 별도 Runtime이 Core ports를 통해 어댑터에 위임한다. daemon·SQLite는 없다. Runtime은 CLI가 종료되어도 남는 `workspace.json`, intent/event 기록과 프로세스 간 파일 잠금을 사용하며, Unity 어댑터는 작업별 파일 IPC를 사용한다. 어댑터 객체는 CLI에서 조립한다. 선택적 persistent Host/DB 전환과 현재 구현을 구별한다.
+workspace/baseline 상태와 Windows 제어 IPC는 같은 디렉터리에 flush한 임시 파일을 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader의 delete sharing, 한정 공유 오류 재시도, unknown/손상/소유권 오류 보존은 [NTFS 계약](ntfs-workspaces.md)을 따른다. 상태 쓰기 실패 단계/HResult·게시 완료 여부는 [진단 계약](verification/state-write-diagnostics.md)에 있다.
 
-Runtime의 `AtomicFilePublication`은 같은 디렉터리에서 flush한 임시 파일을 기존 상태에는 `File.Replace`, 최초 게시에는 덮어쓰기 없는 `File.Move`로 발행한다. workspace/baseline 저장과 Windows provider 제어 IPC가 사용하며 polling reader는 `FileShare.Delete`를 허용한다. VSS helper의 영수증도 같은 방식을 쓴다. Windows IPC의 게시 공유 오류는 같은 임시 파일로 최대 1초 재시도하며 지속 실패는 남은 파일을 보존한다. Windows 관측 reader도 교체 중 일시적 부재/공유 오류에서 경로 guard와 open을 최대 1초 재시도한다. 선택적 stop/flush/source 요청 polling의 부재는 즉시 반환하며 손상 JSON·접근 거부·소유권 불일치는 숨기지 않는다. 목적 파일 선삭제나 속성 변경으로 우회하지 않는다. 이는 제어 파일 게시/읽기 방식이며 저널 flush 정책을 변경하지 않는다.
+범위 저널은 승인 쓰기의 개별 durable flush·전후/unmount seal을 유지한다. 동일 private 바이트와 일치 앞뒤의 작은 변경 범위를 재사용하며 최초 전체 복제·읽기 hydration·전체 파일 copy-up fallback은 없다. source fingerprint cache는 snapshot/provider 세대·변경 이력에 묶이고 초기/감사/재연결은 전체 내용을 확인한다. [소스 검증](source-verification.md)은 저장 내용 검사이며 프로젝트 합격 판정이 아니다.
 
-제품 .NET 어셈블리를 Unity 프로젝트에 넣지 않는다. 작은 Editor 브리지 소스를 소유 작업공간의 `Assets/__Splinter__`에 넣으며 원본이나 결과 커밋에는 포함하지 않는다. 비Git·비Unity fake로 Runtime의 기준본·수명주기·검증·프로세스 회수 경계를 시험한다. 각 대화가 workspace CLI를 직접 사용하는 데 별도 조정 AI는 필요하지 않다. [최소 사용 스킬](../skills/splinter/SKILL.md)은 필요성 판단, `data.workspace.path`의 파일 도구 대상 지정, 같은 project/key/id/home·기준·digest 재개와 종료 의도를 안내한다. 작업 식별자는 대화/인계에 유지하며 제품의 자동 대화 binding이나 임의 파일 편집의 대화별 배타 잠금은 제공하지 않는다. 프로젝트용/전역용 설치·자동 binding은 [대화별 계획](plans/session-workflow-and-installation.md)의 후속이다. 반영 없는 명시적 discard의 한정 서비스 실행 자격은 [폐기 검증](verification/workspace-discard.md)에 있다. DAG 실행과 agent runner는 제품 범위에서 제외한다. 범용 저장소 지원표·장애 복구 적합성도 아직 미완료다.
+소유 process supervisor와 PID/시작 시각/토큰·자식 자원 0, 실제 mount/Git/delta·snapshot 회수 관측은 제품 핵심이다. [명시적 discard](workspace-discard.md)는 별도 durable intent/authorization을 사용한다. `release`는 독립 결과를 남기며 shared/reclaim-pending·unknown을 회수 완료로 표시하지 않는다. 열린 개발용 candidate/source/cache도 snapshot 의존성으로 계속 보호한다.
+
+현재 durable 형식에 남아 있는 이전 validation 필드·영수증은 보존/구조 검사만 한다. 자체 컴파일 요청·callback/domain reload 성공 판정·Editor 포커스 제어는 없다. 결과 보존/통합은 이 필드에 의존하지 않는다. 구버전 자동 이관·손상 복구 fallback·자동 sweep은 제공하지 않는다.
 
 ## 에이전트용 명령 계약
 
-`JournalDeltaStore.Write`는 전체 요청 범위가 현재 private 저널에 있고 바이트가 같을 때 기존 payload를 재사용한다. 새 수정 시각·경로 sequence는 기존 `metadata` frame으로 기록하고 개별 durable flush를 유지한다. snapshot·hole·확장은 비교하지 않는다. 현재 저널 형식과 Core port는 바뀌지 않으며 [NTFS 쓰기 계약](ntfs-workspaces.md#동일한-private-범위의-반복-쓰기)과 [한정 검증](verification/duplicate-private-writes.md)을 따른다.
+개발 checkout의 실행 접두사는 `pwsh ./scripts/splinter.ps1`이다. stdout은 JSON 응답 하나이며 acceptance·성공·회수 대기·실패를 구분한다. 첫 사용 전에 `schema <command>`를 읽고 반환된 `data.workspace.path`를 편집/외부 도구의 기준으로 사용한다.
 
-제품 Editor heartbeat는 프로젝트 함수나 fixture를 실행하지 않는다. liveness·compile/domain reload·validation 전달만 담당하며, 현재 로드된 함수 값·MVID는 fixture의 명시적 `inspect` 응답에서 확인한다. .NET 브리지 harness는 ready/compiling/ready와 reload 뒤 validation 전달을 검사하지만 실제 Unity 컴파일·Editor 실행 자격을 대신하지 않는다.
-
-Core의 `WorkspaceFailurePolicy`는 지속 recovery의 보존 분류와 Protocol의 `retryDisposition`에서 함께 사용한다. 저널 정리의 generation/state/candidate/intent 불일치 5종은 `requires-user-action`이며, Runtime은 실패한 같은 `id`·절대 `home`의 `workspace.status`를 다음 행동으로 반환한다. 상태·저널·후보를 지우거나 자동 재시도해 불일치를 숨기지 않는다.
-
-개발 빌드의 실행 접두사는 `pwsh ./scripts/splinter.ps1`이다. 아래 표의 `splinter` 대신 사용한다. 스크립트는 빌드된 CLI를 호출하며 자동 빌드를 하지 않는다.
-
-| 명령 | 입력 | 결과 |
-| --- | --- | --- |
-| `splinter capabilities` | 없음 | 구현된 명령, 정확한 CLI 사용법, 입력 전달 방식, schema ID, 부작용·재시도 계약, 미구현 기능 |
-| `splinter schema <command>` | 예: `workspace.ensure` | descriptor, 입력 schema, 출력 schema |
-| `splinter doctor --project <directory>` | 존재하는 로컬 디렉터리 | Git/Unity 메타데이터, commit 유무, 누락 조건, 미실행 검사 |
-| `splinter snapshot-spike --input <request.json>` | 명시적으로 준비한 overlay 요청과 action | 독립 실험의 mount/status/Git/Unity/보존/회수; [전용 절차](snapshot-overlay.md) |
-| `splinter workspace ensure/list/status` | 프로젝트·작업 key/storage 또는 workspace ID; NTFS journal budget; status의 선택적 `--verify-source`/`--audit-source` | 지속 작업공간 생성/재접속과 snapshot/delta/앱 상태. 일반 poll은 소스 전체 읽기 생략 |
-| `splinter workspace compact` | 결과 수집 전 NTFS workspace ID와 선택적 home | 소유 Editor/핸들 0을 확인한 뒤 죽은 범위·연속 기록을 정리, 새 저널 세대를 검증·재연결; 이전 세대는 확인 전까지 보존 |
-| `splinter unity start/refresh/stop` | workspace ID | 소유 Editor의 실행·검증 요청·종료 |
-| `splinter workspace checkpoint/integrate/release/discard` | ID, 커밋 설명/통합 대상 | 검증한 소스 커밋·원본 적용·안전한 회수 |
-| `splinter storage probe` | 후보 home 경로 | ReFS 볼륨·클러스터 geometry, 전체 복사 fallback 없음 |
-| `splinter baseline prepare/seal/release` | 프로젝트·기준 ref 또는 준비 ID | 호환 기준본을 우선 재사용해 새 커밋 검증·봉인, 소비 작업 종료 후 명시적 캐시 회수 |
-
-필수 인자와 재개·복구 절차는 [알파 작업공간](alpha-workspaces.md)을 따른다. 입력 schema와 `capabilities`가 기계용 계약이다.
-
-`JournalDeltaStore`의 명시적 오프라인 압축은 Core의 snapshot backend port와 Runtime coordinator를 통해 Windows backend에 연결한다. 후보 저널은 원본 저널을 재생한 살아 있는 범위에서 작성하며, 메타데이터 증가가 payload 절감을 상쇄하면 기존 frame을 유지한다. `compaction-intent.json`, checksum, 상태 hash, 전후 seal을 대조한다. coordinator는 `compact-unmount` → `compact-write` → `compact-connect`를 저장하고 같은 작업의 재시도를 허용한다. 선택적 `maxEstimatedJournalOverlapBytes`는 기존/후보 저널 길이 합계를 후보 작성 전에 검사하며, pending 예산을 같은 작업의 재시도까지 저장한다. 새 정리 시도의 stage 비용은 Core `SnapshotCompactionCost`로 응답에 보존하며 scan·후보 쓰기·flush·재생·seal과 재연결·이전 세대 정리를 분리한다. 재연결 뒤 이전 세대를 제거하며 validation은 새로 받아야 한다. [현재 NTFS 계약](ntfs-workspaces.md#일반-cli-흐름), [크기 회귀 검증](verification/journal-compaction-size.md), [정리 1차](verification/journal-compaction.md), [Unity 재개·공간 비용](verification/journal-compaction-qualification-and-cost.md), [중첩량 예산](ntfs-workspaces.md)을 따른다.
-
-workspace 응답의 `sourceVerification`은 `not-checked` 또는 `verified`다. 일반 status는 새 pending 검증 응답을 한 번 조정하거나 `--verify-source`를 지정한 경우에만 source를 읽는다. 확인한 응답에는 `source`와 검증 fingerprint 일치 여부인 `validationCurrent`가 있다. 성공 판정은 `workspace.validation.success`도 함께 확인한다. NTFS 결과의 `collectionProtocol=stable-journal-v1`은 수집 전후 저널 동일성을 뜻하며 현재 필수 형식과 중단 복구·보존 절차는 [NTFS 작업공간](ntfs-workspaces.md#회수와-관측)을 따른다. capabilities의 `workspaceStatus`·`sourceVerification`·`snapshotOverlay.resultCollection`이 계약을 표시한다. NTFS는 정확한 snapshot/provider epoch/소스 변경 경로에 묶인 파일 hash를 재사용하며 같은 크기/mtime을 근거로 성공을 재사용하지 않는다. 감사·손상 manifest 복구는 `--audit-source`다. [소스 검증과 계측](source-verification.md)이 새 Core port·Windows 요청 장벽·Git manifest·개발 할당 계측의 현재 경계를 설명한다.
-
-인자 없는 실행과 `--help`는 capabilities를 반환한다. 기본 출력은 stdout의 JSON 한 줄이다. `--json`과 `--non-interactive`는 기본 동작을 명시한다. `--human`은 동일 응답에 들여쓰기만 추가하며 `--json`과 함께 사용할 수 없다. 현재 명령은 입력 프롬프트를 띄우지 않는다.
-
-공통 envelope는 `schemaVersion`, `requestId`, `command`, `status`, `terminal`, `retryDisposition`, `data` 또는 `error`, `nextActions`다. 비동기 실행·컴파일 접수는 `Accepted`, `terminal=false`이며 완료 증거는 status로 조회한다. `Succeeded`는 해당 명령의 처리가 완료됐다는 뜻이다. 실제 컴파일 성공은 현재 fingerprint와 일치하는 `workspace.validation.success`로 판단한다. `requestId`는 응답 상관관계 ID이며 중복 방지 키가 아니다. ensure의 프로젝트+key가 지속 작업공간을 식별한다.
-
-실패에는 안정된 `error.code`와 설명이 있다. 입력 수정은 `correct-request`, 중지된 조회·Git 조회 타임아웃은 `safe-to-retry`, 권한·Git 설치 문제는 `requires-user-action`으로 분류한다. 가능한 경우 `nextActions`에 다음 명령과 인자를 넣는다. 에이전트는 메시지 문자열보다 코드와 schema를 기준으로 처리한다.
-
-| 종료 코드 | 현재 의미 |
+| 제품 명령 | 책임 |
 | --- | --- |
-| 0 | 명령 처리 성공 |
-| 2 | 잘못된 인자·JSON·계획·경로·프로젝트 메타데이터 |
-| 3 | 파일 접근 권한 부족 |
-| 5 | 내부 오류 또는 Git 조회 실패 |
-| 6 | Git 조회 제한 시간 초과 |
-| 7 | 사용자/호출자의 조회 취소 |
-| 9 | Git 실행 불가 또는 미구현 명령의 schema 요청 |
+| `capabilities`, `schema`, `doctor` | 현재 제품 계약 발견·입력/출력·읽기 전용 진단 |
+| `workspace ensure/list/status` | NTFS 생성/같은 요청 재개·저장 목록·소유 자원 관측 |
+| `workspace status --verify-source/--audit-source` | 현재 내용 hash 확인/전체 감사 |
+| `workspace checkpoint` | 소유 Editor 정상 stop·안정된 소스 commit·독립 결과. 컴파일/테스트 성공 불필요 |
+| `workspace integrate` | 정확한 보존 결과·현재 소스·깨끗한 대상 branch·저장소 잠금과 Git merge |
+| `workspace compact` | 정상 stop/unmount·seal·명시적 예산으로 private 저널 정리 |
+| `workspace release/discard` | 독립 결과 보존 뒤 회수/명시적 결과 폐기. peer와 공유 의존성 보호 |
+| `unity start/stop` | 해당 workspace Editor의 수명. 준비/종료는 상태 관측으로 확인 |
+| `storage service status` | 기존 제한 VSS 서비스의 읽기 전용 상태 |
 
-파싱 오류도 JSON 한 개로 반환한다. `schema`는 구현된 API를 나열한다. `capabilities.unavailable`은 `automatic-conversation-binding`·`product-installation`의 미구현 상태를 표시하며 새 실행 명령을 제공하지 않는다. CoW와 자원 회수 계약은 [저장소·자원 관리](storage-and-resources.md)를 따른다. 감시 프로세스는 Editor 작업별로만 존재하며 마지막 소유 프로세스와 함께 종료한다.
+`unity refresh`, 제품 `validation`, 일반 ReFS/baseline·spike/probe 명령은 제공하지 않는다. 개발 계약은 `scripts/splinter-dev.ps1 capabilities/schema`에서 따로 발견한다. 선택적 `view`도 storage/cache 수명만 관리하고 검증 수집/판정을 하지 않는다.
 
 ### 진단의 의미
 
-실제 workspace의 Git 작업은 대형 에셋 확인·객체 저장을 포함하므로 명령별 10분 제한과 호출자 취소를 사용한다. 제한 초과 시 소유 명령 프로세스를 종료하고 상태·남은 잠금을 보존한다. snapshot attach 재시도는 index 존재만으로 초기 확인을 완료했다고 판단하지 않으며 stat cache를 다시 refresh한다. 아래 진단용 inspector의 제한과 구별한다.
-
-Git 어댑터는 인자 배열과 기계용 출력으로 Git을 호출하고, 상속된 `GIT_*` 환경변수의 다른 저장소 지정을 제거한다. 조회별 제한 시간은 10초다. 최초 커밋이 없는 저장소와 linked worktree를 구분하며 index를 변경하지 않는 조회만 수행한다.
-
-현재 `repositoryId`는 정규화한 Git common directory 경로다. 이동에도 유지되는 영속 제품 ID는 아니다. Unity 탐지는 상위 경로의 Assets, ProjectSettings/ProjectVersion.txt, Packages/manifest.json을 검사한다. Unity 버전이나 패키지를 읽었다는 사실은 해당 Editor가 설치되었거나 실행 가능하다는 보장이 아니다.
-
-`doctor` 성공은 진단 명령이 끝났다는 뜻이다. `readyForExecution`은 항상 false이고, ReFS·Editor·에이전트 인증·Host 복구는 `checksNotRun`에 표시한다. missingPrerequisites가 비어 있어도 실행 준비 완료로 해석하지 않는다.
+`doctor`·저장된 list·Editor ready·source fingerprint·checkpoint 성공은 각각 자신의 경계만 증명한다. 외부 도구 연결·게임 동작·컴파일/테스트 합격을 뜻하지 않는다. 외부 도구의 정확한 A/B projectRoot·공유 서버 공존은 별도 사용 자격이다.
 
 ### 제공하지 않는 작업 그래프
 
-제품은 각 대화의 workspace 수명주기를 직접 사용한다. `plan`/`plan.validate` 명령·plan-request schema·DAG 검사기는 제공하지 않는다. 이전 명령은 구조화된 InvalidArguments/UnknownCommand로 거부하며 schema나 호환 실행으로 우회하지 않는다. [제품 범위 정리 검증](verification/workspace-product-scope.md)은 이 발견/거부 경계를 소유한다.
+AI Runner·DAG/plan 제출·daemon/DB·큐/자동 모드·Codex 자동 binding·전용 installer·범용 Unity 저작/Play/Test API는 제공하지 않는다. 설치 연결·대화 인계·작업 순서·검증 판단·충돌 해결은 에이전트 절차다.
 
 ## 저장소와 브랜치 운영
 
-- 제품 저장소의 `main`은 출시용, `development`는 개발용이다. 일반 개발과 통합은 `development`를 기준으로 하며, 필요한 작업 브랜치도 여기에서 분기한다. 출시할 개발 결과를 `main`에 반영한다.
-- 형제 `../splinter-unity`는 Splinter 검증을 위한 독립 fixture다. 이 저장소의 `development`에는 MCP와 재사용할 테스트 기본 설정을 유지한다.
-- 에이전트가 시험 목적에 맞춰 Unity fixture의 브랜치·워크트리·시험용 커밋과 미커밋 변경·충돌 등의 상태를 자율적으로 구성하고 관리한다. 재현과 회수를 위해 기준 커밋과 만든 시험 상태를 기록한다.
-- Unity 파일이 달라지는 checkout이나 시험 변경 후에는 해당 Editor에 포커스를 맞추고 컴파일·새로고침 완료를 확인한다. Editor 연결과 검증 절차는 Unity 저장소의 `Docs/AI/UnityMcp.md`를 따른다.
+`development`가 개발/통합 기준이고 `main`은 출시용이다. 형제 `../splinter-unity`는 독립 Git/Unity fixture이며 해당 지침을 별도로 따른다. 문서나 소스 변경이 기존 결과 refs·snapshot·다른 작업의 정리 승인은 아니다.
 
 ## 빌드와 시험
 
-저장소 루트에서 `pwsh ./scripts/build.ps1`을 실행한다. SDK는 global.json, 패키지는 Directory.Packages.props와 프로젝트별 packages.lock.json에 고정한다. 스크립트는 locked restore → 경고를 오류로 처리한 Release 빌드 → 시험 순서로 실행하고, 실패 시 중단한다. 첫 restore에는 nuget.org 접근이 필요하다. 다운로드와 도구 상태는 무시된 `.local/`에 둔다.
+```powershell
+pwsh ./scripts/build.ps1
+```
 
-.NET 10의 Microsoft.Testing.Platform 모드와 xUnit v3를 사용한다. TRX는 `artifacts/test-results/`에 쓴다. 실행기 선택은 [Microsoft 문서](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-with-dotnet-test), TRX 옵션은 [공식 패키지](https://www.nuget.org/packages/Microsoft.Testing.Extensions.TrxReport/2.4.0)를 따른다.
-
-자동 시험은 JSON/schema·그래프·inspector와 fake 수명주기, 재접속, 검증 hash 불일치 거부, 실제 Git 격리·통합·충돌 보존·긴 경로·부분 삭제 복구, 무-checkout index와 실제 Windows 자식 회수를 다룬다. `SPLINTER_TEST_REFS_ROOT`를 지정하면 실제 대용량 ReFS 블록 복제·할당량·쓰기 격리도 시험하며, 생략하면 그 시험은 Skipped다. 각 후보의 실환경 범위와 자동 시험을 [검증 안내](verification/README.md)에 구분한다. 원격 CI와 Ubuntu 실행 증거는 아직 없다. 실제 GUI Unity 시험은 자동 .NET 시험과 별도로 기록한다.
+locked restore·Release·자동 계약/fake/Git/Windows 회귀를 수행한다. 의존성은 중앙 버전과 lockfile을 유지한다. 선택 ReFS 환경변수가 없으면 해당 실제 시험은 Skipped다. 자동 시험을 native VSS/Unity·ARM/OS 장애 자격으로 승계하지 않는다. 원시 근거와 지원 제한은 [검증 안내](verification/README.md)에 보존한다.
 
 ### 실제 저장소의 Git 수명주기 시험
 
-```powershell
-pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository ../splinter-unity
-pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository .
-```
-
-두 저장소 모두 최초 커밋과 추적된 README.md가 필요하다. 이 스크립트는 제품 명령이 아니라 개발용 통합 시험이며, 지정 저장소의 Git 관리 영역에 임시 branch/worktree를 등록한다.
-
-1. 원본 HEAD·status·staged/unstaged diff hash와 README hash를 기록한다.
-2. 정확한 HEAD에서 일반 Git checkout으로 A/B worktree와 별도 index를 만들고 실제 CLI doctor로 확인한다.
-3. A의 README를 수정하여 B와 원본이 그대로인지 확인한다.
-4. 자기 수정만 복원하고 Git으로 worktree와 임시 branch를 회수한다. 원본 상태와 기존 worktree 등록을 다시 비교한다.
-
-산출물은 `artifacts/worktree-smoke/<runId>/result.json`과 A/B doctor JSON이다. 소유 marker·정확한 경로·reparse·HEAD·dirty/ignored 상태를 검사하며 force remove/reset/clean/prune을 사용하지 않는다. 예상하지 못한 변경은 보존하고 실패를 기록한다. Git hook은 시험 호출에서만 비활성화한다. 외부 프로세스와의 경합·강제 종료 복구까지 보장하는 제품 cleanup 구현은 아니다.
-
-`storageMode=git-checkout`, `unityStarted=false`가 시험 범위를 명시한다. Library를 복제하거나 Editor를 실행하지 않으므로 Git/CoW 결합·캐시·동시 Unity 실행 시험의 통과 근거로 사용할 수 없다. 형제 Unity 저장소는 제품 submodule이 아니며 버전·템플릿·운영 경계는 그 저장소의 Docs/AI/UnityProjectContext.md에서 확인한다.
+`pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository <경로>`는 명시한 저장소의 worktree 등록을 수정하는 개발 시험이다. Unity/CoW 자격과 구별하며 기존 작업·원본·refs를 보존한다.
 
 ## 다음 구현 경계
 
-현재 계약은 [NTFS](ntfs-workspaces.md), [선택적 ReFS·프로세스](storage-and-resources.md), [소스 검증](source-verification.md), [개발용 검증 view](validation-view.md)에 있다. 현재 지원 경계와 보존한 비교 근거는 [검증 안내](verification/README.md)에서 확인한다.
-
-[제한 권한 서비스](storage-privilege-service.md)는 Windows 어댑터의 별도 SCM/IPC 경계이며 `storage service status`로 읽기 전용 발견을 제공한다. 실행 파일과 상태를 보호하고 고정 VSS 연산만 받는다. 실제 설치·반복 사용의 완료 판정은 [UA 검증](verification/storage-privilege-service.md)을 따른다.
-
-남은 첫 버전 작업은 [M0](plans/implementation-plan.md)의 대표 A/B 사용/종료·비용 판단과 한정 납품이다. discard·최소 AI 연결의 Editor 없는 단위는 마감했고 해당 M0 전체의 남은 Editor/보존형 종료를 대표 사용 흐름에서 확인한다. [저장공간·Editor 정책](plans/storage-priority-and-editor-modes.md), [NR 장애·파일 지원](plans/ntfs-recovery-and-support.md), [설치·자동 binding](plans/session-workflow-and-installation.md)의 전체 지원은 후속이다. 제한 권한 서비스의 실제 설치·반복 사용은 [UA 검증](verification/storage-privilege-service.md)의 등록 범위에서 확인했다. 기본 모드·대형 프로젝트·전체 OS 지원을 완료로 표시하지 않는다.
+[축소한 구현 계획](plans/implementation-plan.md)을 따른다. 실제 사용할 외부 도구 하나의 정확한 대상·공존과 관측한 저장/메모리 병목을 고른다. 마감한 M0·대형 PV·전체 장애 카탈로그를 자동 재개하지 않는다.

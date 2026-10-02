@@ -21,20 +21,26 @@
 <h1>AI가 효율적으로 병렬 작업공간을 만들고, 원할 때 폐기한다</h1>
 <p>Splinter는 Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약되는 개발 환경을 위한 로컬 도구다. 각 대화의 AI가 필요할 때 자기 작업을 만들고 여러 차례 이어 간다. 작업 내용의 판단·편집·게임 기능 검증은 해당 AI와 기존 개발 도구가 담당한다.</p>
 <nav aria-label="계획 목차"><a href="#scope">제품 범위</a><a href="#flow">사용 흐름</a><a href="#next">완료와 후속</a><a href="#acceptance">완료 기준</a><a href="#verification">검증 정책</a></nav>
-<p>현재 구현은 <a href="docs/foundation.md">foundation</a>, 후속 범위 선택은 <a href="docs/plans/implementation-plan.md">첫 버전 계획</a>, 실제 자격·제한은 <a href="docs/verification/README.md">검증 안내</a>와 <a href="docs/plans/validation-matrix.md">M0 추적표</a>에서 확인한다. 명시적 폐기와 최소 AI 사용 지침을 포함한 한정 M0는 <a href="docs/verification/m0-delivery.md">scoped-complete-with-limitations</a>로 마감했다. 시작점은 <a href="docs/agent-start.md">AI 시작 안내</a>이며 일반 설치·자동 대화 연결은 후속이다.</p>
+<p>현재 구현은 <a href="docs/foundation.md">foundation</a>, 축소한 후속 책임은 <a href="docs/plans/implementation-plan.md">구현 계획</a>, 실제 자격·제한은 <a href="docs/verification/README.md">검증 안내</a>와 <a href="docs/plans/validation-matrix.md">추적표</a>에서 확인한다. 한정 M0는 <a href="docs/verification/m0-delivery.md">scoped-complete-with-limitations</a>로 마감했다. 시작점은 <a href="docs/agent-start.md">AI 시작 안내</a>이며 설치 연결·대화 인계는 AI 사용 절차로 다룬다.</p>
 
 <h2 id="scope">1. 제품 범위</h2>
 <table><thead><tr><th>필수</th><th>제품의 책임</th></tr></thead><tbody>
 <tr><td>독립 작업공간</td><td>원본 NTFS 위치와 파일시스템을 유지하며 최초 전체 복제·읽기 hydration·파일 전체 copy-up 없이 불변 snapshot과 작업별 변경 범위를 사용한다. 원본은 계속 편집 가능하다.</td></tr>
 <tr><td>AI용 진입점</td><td>비대화형 CLI·JSON/schema, 안정된 key/id/home과 반환된 절대 경로로 자기 작업만 조작한다. 독립 실행이 불필요하면 직접 작업한다.</td></tr>
 <tr><td>지속 작업</td><td>새 CLI·대화 재개에도 기준과 변경분을 유지한다. 다른 작업이나 전역 마지막 작업을 추측해 연결하지 않는다.</td></tr>
-<tr><td>필요한 Editor</td><td>정확한 작업공간의 Editor 실행·관찰·정지와 소스 세대 확인을 제공한다. 독립 편집과 Editor 검증을 구분하며 기존 Library/cache와 명시적 validation 경로를 활용한다.</td></tr>
+<tr><td>필요한 Editor</td><td>정확한 작업공간의 Editor 실행·관찰·정지를 제공한다. refresh·컴파일·Play·테스트·빌드·캡처는 외부 MCP/Unity CLI로 수행한다. 선택적 Library/cache view는 개발 경로의 저장소 수명 관리로 제한한다.</td></tr>
 <tr><td>명시적 종료</td><td>반영·결과 보존형 회수·반영 없는 폐기를 구분한다. 실패하거나 미커밋인 작업도 폐기할 수 있어야 하며 A 종료는 B에 영향을 주지 않는다.</td></tr>
 <tr><td>효율과 안전</td><td>전체 생성·준비·재개·반복 편집·종료 비용을 판단한다. 승인된 쓰기·원본/peer·공유 자원을 보호하고 unknown을 성공이나 0으로 바꾸지 않는다.</td></tr>
 </tbody></table>
 <p>첫 지원 조건은 Windows x64의 등록된 로컬 NTFS/Git 프로젝트, 검증된 clean 입력과 일반 파일, 기존 제한 VSS 서비스, 정확한 Unity <code>6000.3.22f1</code> fixture다. 일반 프로젝트·다른 패치·ARM의 지원은 각각 실제 자격이 필요하다. 미지원 파일·ACL·LFS/filter/dirty 조건의 사전 거부를 유지한다.</p>
 <p>후속 개발은 <strong>1. 물리 공간 절감 → 2. 메모리 절감 → 3. 안정적인 병렬 작업</strong> 순서로 판단한다. 새 Editor의 몇 분 이내 준비는 허용 비용이며 에이전트의 코딩 계획·분석과 병행할 수 있다. 준비 시간 단축은 낮은 우선순위로 두고, 수십 분 이상 지연하거나 실제 진행을 막을 때만 해당 병목을 다룬다. 상세 기준은 <a href="docs/plans/storage-priority-and-editor-modes.md#후속-개발-우선순위">저장공간 우선 계획</a>이 소유한다.</p>
-<p>범용 Unity 에셋 저작·Play 입력/화면 제어·Test Runner API, AI Runner/DAG·스케줄러·상주 DB는 제공 범위에서 제외한다. 기존 Unity 도구를 올바른 작업공간에서 사용하는 것을 막지 않는다. OS 장애 전체·대형 입력·자동 모드·제품 설치/자동 binding의 지원 확대는 후속이며 첫 버전의 완료 분모가 아니다.</p>
+<p>프로그램은 작업공간·소유 Editor의 수명·범위 저장·독립 결과·안전한 반영/회수/폐기를 담당한다. AI가 기존 파일/Git 도구·MCP·Unity CLI로 수행할 작업 방법과 판단은 사용 지침으로 제공한다.</p>
+<table><thead><tr><th>영역</th><th>AI와 기존 도구의 책임</th><th>프로그램에 유지할 경계</th></tr></thead><tbody>
+<tr><td>설치·대화 연결</td><td>배포물/의존성·스킬 연결, key/id/home·기준/digest 인계와 재조회</td><td>현재 CLI/schema·지속 상태/identity·제한 서비스의 명시적 구성 도구</td></tr>
+<tr><td>Unity 작업</td><td>정확한 MCP/CLI 대상 선택, 에셋 편집·컴파일 분석·Play·테스트·빌드·캡처와 합격 판단</td><td>정확한 작업 경로·소유 Editor 수명·외부 도구 공존. 소스 안정성·독립 결과·통합 target guard 유지</td></tr>
+<tr><td>순서·통합</td><td>Editor 수/모드/작업 순서 선택, 충돌 해결·생성 소스 반환 병합·통합 후 게임 검증</td><td>명시적 전환·Library/cache 수명, 독립 결과·target/dirty guard·통합 직렬화·peer 보호</td></tr>
+</tbody></table>
+<p>전용 installer·Codex 자동 binding·자동 모드/큐·일반 임대 인수·원본 Editor 공유·Unity 작업/검증 플랫폼·AI Runner/DAG·daemon/DB는 구현 범위에서 제외한다. OS 장애 전체·ARM·대형/특수 입력은 필요 시 지원 검증이며 모든 미실행 시나리오를 프로그램 개발 목록으로 세지 않는다.</p>
 
 <h2 id="flow">2. 사용 흐름과 수명</h2>
 <div class="flow">필요할 때 생성/재개 → 독립 편집·필요한 Editor 사용 → 보존 / 명시적 반영 후 회수 / 명시적 폐기</div>
@@ -45,12 +51,19 @@
 <p>아래 다섯 단위는 등록된 작은 Windows x64 NTFS/Git/Unity 환경에서 마감했다. 핵심 수명주기의 구현과 한정 실사용 완료를, 다른 프로젝트에서의 효율·일반 설치·지원 확대와 구분한다.</p>
 <ol>
 <li><strong>명시적 discard.</strong> 실패·미커밋 작업의 폐기, 같은 intent 재개·중복 요청과 peer 보호를 확인했다. 현재 모든 native 강제 중단의 자격은 별도다.</li>
-<li><strong>최소 AI 연결.</strong> 기존 개발 CLI·소스 스킬로 stable key·반환 경로·같은 작업 재개를 사용한다. 프로젝트/전역 설치와 자동 binding은 별도다.</li>
+<li><strong>최소 AI 연결.</strong> 기존 개발 CLI·소스 스킬로 stable key·반환 경로·같은 작업 재개를 사용한다. 설치 연결·인계는 AI 절차이고 전용 installer·자동 binding은 구현 제외다.</li>
 <li><strong>대표 A/B 흐름.</strong> 실제 독립 Editor의 여러 차례 수정·오류/재개, A 보존/반영/회수 중 B 지속과 실패 B 폐기를 확인했다.</li>
 <li><strong>유한한 비용 판단.</strong> 작은 warm 입력의 생성·준비·재개·종료 시간과 추가 파일 할당으로 지속 독립 작업에 한정 채택했다. 메모리 부담이 남고, 대형 효율·총 물리 공간 절감은 미확인이다. 관측한 몇 분 이내 Editor 준비 자체는 허용 비용이다.</li>
 <li><strong>한정 버전 납품.</strong> 시작 안내·지원 전제·현재 복구 근거·제한을 제공한다. 광범위한 공개 지원 완료와 구분한다.</li>
 </ol>
-<p>다음 범위는 실제 사용할 프로젝트와 입력을 정해 생성·편집·재개·폐기 및 전체 비용에서 필요한 경계만 확인하는 것이다. 관측한 병목은 그 입력에서 수정하고, 설치/발견이 필요할 때 해당 연결을 추가한다. ARM·전체 OS 장애·대형 비교·자동 모드 선택을 일괄 필수 작업으로 열지 않는다.</p>
+<p>남길 후속은 <a href="docs/plans/implementation-plan.md#남길-후속-작업과-종료-기준">구현 계획의 종료 기준</a>으로 선택한다.</p>
+<ul>
+<li><strong>최소 외부 도구 인계.</strong> 도구 하나의 정확한 A/B Editor 선택·작업·정상 종료 뒤 peer/원본/공유 서버 보존만 확인한다. 필요한 식별 정보/공존 결함만 수정한다.</li>
+<li><strong>데이터 보존과 게임 검증의 분리.</strong> 자체 refresh·컴파일/포커스 처리·내부 성공 gate·중복 preserve-worker를 제거했다. 외부 검증 뒤 같은 checkpoint를 사용하며 seal·독립 결과·target guard를 유지한다. 개발용 view는 저장소 수명만 관리한다.</li>
+<li><strong>저장·메모리.</strong> 실제 사용할 입력의 관측 병목 하나를 개선하고 정확성과 전후 비용으로 마감한다.</li>
+<li><strong>AI 사용 절차.</strong> 발견·같은 작업 재개·외부 도구 선택·보존/반영/폐기를 스킬과 예시로 제공한다.</li>
+</ul>
+<p>현재 worker 브리지는 실행 관측·정상 종료·Coplay peer 보호만 담당한다. checkpoint/integrate는 컴파일 증거를 요구하지 않으며 데이터 보존·통합 guard를 유지한다. 외부 MCP/Unity CLI 인계의 실제 자격은 도구별 확인이 필요하다. 상세 제약은 <a href="docs/plans/session-workflow-and-installation.md#외부-도구-인계의-한정-범위">사용 계획</a>을 따른다. 파일/Git/복구 지원 검증은 사용할 환경의 필요한 경계나 재현 안전 결함만 선택한다.</p>
 
 <h2 id="acceptance">4. 첫 버전 완료 기준</h2>
 <p><strong>실제 AI 두 작업이 같은 프로젝트에서 독립 작업공간을 만들고 여러 차례 편집·필요한 Unity 검증을 수행한다. 한 작업을 보존하거나 폐기해도 다른 작업과 원본은 유지된다. 같은 작업을 재개할 수 있고 공간·시간 비용으로 해당 조건의 사용 가능성을 판단한다.</strong></p>
@@ -61,7 +74,7 @@
 <ul>
 <li><code>pwsh ./scripts/build.ps1</code>의 locked restore·Release·기존 자동 시험과 변경한 schema/fake 적합성을 유지한다. 승인 쓰기·원본/peer 보호·잘못된 삭제 방지는 필수다.</li>
 <li>실제 시험은 변경된 부작용 경계나 재현 결함에 맞춰 선택한다. 첫 후보의 대표 A/B 흐름 한 묶음을 수행하며 무관한 문서/발견 변경마다 과거 Unity/VSS 전체를 재검증하지 않는다.</li>
-<li>새 장애 harness·전체 조합·반복 확대에는 답할 질문과 종료 조건을 먼저 정한다. 성공하면 다음 M0로 이동하며 대형 C/S/Q 비교를 자동 재개하지 않는다.</li>
+<li>새 장애 harness·전체 조합·반복 확대에는 답할 질문과 종료 조건을 먼저 정한다. 선택한 후속 단위를 마감하며 M0나 대형 C/S/Q 비교를 자동 재개하지 않는다. 기존 NotRun·Partial·실패/unknown은 보존한다.</li>
 <li>지원 경로의 데이터 손실·원본 오염·타 작업 종료/삭제가 재현되면 해당 경로를 차단하고 수정한다. OS 장애 미자격은 제한으로 공개하고 불확실한 상태는 보존한다.</li>
 <li>작업별 delta·Library·Git 결과·임시 파일과 공유 VSS를 구분한다. 관측하지 못한 순간 물리 peak·VSS 귀속을 0이나 임의 절감률로 표시하지 않는다.</li>
 </ul>

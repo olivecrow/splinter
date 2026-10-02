@@ -32,6 +32,8 @@ internal static partial class ValidationWorkflowRules
     }
     internal static void Target(ValidationTarget target)
     { Name(target.Id); Require(target.Kind is "candidate" or "source-generation", "ValidationRequestInvalid", "Unknown artifact kind."); }
+    // Current-format retained ledgers can contain earlier observation receipts.
+    // Structural checks preserve them; ExecuteAsync rejects new observation commands.
     internal static void Request(ValidationWorkflowRequest request)
     {
         if (request is null) throw new WorkspaceException("ValidationRequestInvalid", "A complete request is required.");

@@ -8,16 +8,16 @@ namespace Splinter.Tests;
 public sealed class ValidationProductStateTests
 {
     [Theory]
-    [InlineData("Assets/~UnityDirMonSyncFile~0123456789abcdef0123456789abcdef~", true, 1)]
-    [InlineData("ProjectSettings/~UnityDirMonSyncFile~0123456789abcdef0123456789abcdef~", true, 1)]
-    [InlineData("Assets/~UnityDirMonSyncFile~0123456789abcdef0123456789abcdef~", false, 2)]
-    [InlineData("Assets/sub/~UnityDirMonSyncFile~0123456789abcdef0123456789abcdef~", true, 2)]
-    [InlineData("Assets/~UnityDirMonSyncFile~user-file~", true, 2)]
-    [InlineData("Assets/user.cs", true, 2)]
-    public void ValidationIgnoresOnlyAbsentUnityDirectoryProbes(string path, bool absentFromBoth, long expected)
+    [InlineData("refresh")][InlineData("observe-validation")][InlineData("preserve-worker")]
+    public async Task RemovedActionsAreRejectedBeforeWritingAnyState(string action)
     {
-        var changes = new SourceChangeView("view", "snapshot", "epoch", 2, [new("Assets/source.cs", 1), new(path, 2)]);
-        Assert.Equal(expected, WindowsValidationProvider.ValidationSequence(changes, _ => absentFromBoth));
+        using var dir = new TestDirectory(); string home = Path.Combine(dir.Path, "untouched");
+        var product = new ValidationProduct(new WorkspaceStore(home));
+        var before = Directory.GetFileSystemEntries(home, "*", SearchOption.AllDirectories).Order().ToArray();
+        var request = new ValidationProductRequest(1, action, "missing-project", new("owner", 1), "removed");
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() => product.ExecuteAsync(request, TestContext.Current.CancellationToken));
+        Assert.Equal("ValidationRequestInvalid", error.Code);
+        Assert.Equal(before, Directory.GetFileSystemEntries(home, "*", SearchOption.AllDirectories).Order().ToArray());
     }
 
     [Theory]

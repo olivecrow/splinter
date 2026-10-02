@@ -1,6 +1,8 @@
 # 검증 추적표
 
-현재 기능의 제한과 보존 근거는 [검증 안내](../verification/README.md)를 따른다. 첫 실사용 버전은 아래 M0, 장기 지원 확대는 기존 시나리오 카탈로그로 구분한다. 미실행 조건을 Passed로 올리거나 카탈로그 전체를 첫 버전의 완료 분모로 사용하지 않는다.
+현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop을 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제거했고 결과 보존은 checkpoint로 통일했다. 선택적 단일 view/Library cache·ReFS·probe는 [개발용 CLI](../development-cli.md)로 분리했다. 아래 기존 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 이번 후보의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](../verification/workspace-product-scope.md)을 따른다.
+
+현재 기능의 제한과 보존 근거는 [검증 안내](../verification/README.md)를 따른다. M0는 한정 마감했고 기존 시나리오의 실행 상태를 보존한다. 각 행의 후속 책임은 프로그램 구현·AI 사용 절차·필요 시 지원 검증·구현 제외로 구분한다. 미실행을 Passed로 올리거나 전체 카탈로그를 미완성 프로그램 기능/M0 완료의 분모로 사용하지 않는다.
 
 ## 첫 실사용 버전 M0
 
@@ -9,7 +11,7 @@
 | ID | 대표 흐름 | 상태 | 재사용 근거와 남은 확인 |
 | --- | --- | --- | --- |
 | M0-01 | NTFS A/B 생성·범위 저장·원본/peer 격리 | Passed | [대표 사용](../verification/representative-agent-workflow.md)의 작은 warm fixture·독립 Editor 경로 한정. 최초 payload 복제 0·원본/peer 보호·회수. 일반 파일/대형 입력 지원으로 확대하지 않음 |
-| M0-02 | 최소 AI 지침·같은 작업/경로 재개·direct 미사용 | Passed | [최소 AI 실행](../verification/agent-workflow.md)의 direct/지침과 [대표 사용](../verification/representative-agent-workflow.md)의 실제 Editor·새 CLI 동일 A 재개. 자동 발견/설치/binding·새/동시 대화의 배타 제어는 후속 |
+| M0-02 | 최소 AI 지침·같은 작업/경로 재개·direct 미사용 | Passed | [최소 AI 실행](../verification/agent-workflow.md)의 direct/지침과 [대표 사용](../verification/representative-agent-workflow.md)의 실제 Editor·새 CLI 동일 A 재개. 설치/인계는 AI 절차, 자동 binding/임의 파일의 대화별 배타 제어는 구현 제외. 새/동시 대화 전체 증거는 별도 |
 | M0-03 | 여러 차례 수정·오류 격리·정확한 Editor 검증 | Passed | [대표 사용](../verification/representative-agent-workflow.md): A CS0103 → 수정 113, B 213/214/215의 현재 검증·loaded assembly, 같은 작업 유지. focus 거부/재시도와 게시 오류 로그 제한 포함 |
 | M0-04 | 실패/미커밋 작업의 명시적 폐기·중복/중단 재개 | Passed | [로컬 폐기](../verification/workspace-discard.md)의 동일 intent 재개/중복과 [대표 사용](../verification/representative-agent-workflow.md)의 B 현재 컴파일 실패·checkpoint 없음·정상 stop/실제 회수. native 강제 중단/SW-10은 별도 NotRun |
 | M0-05 | 결과 보존/반영/회수·A 종료 뒤 B 지속 | Passed | [대표 사용](../verification/representative-agent-workflow.md)의 독립 결과·dirty 원본 거부/보존·clean 시험 branch 통합·A release 중 B 수정. 첫 seal 거부 뒤 같은 A 재수집 성공, 원본 Editor의 통합 후 게임 검증은 별도 |
@@ -19,24 +21,38 @@
 
 기존 자동 회귀는 유지한다. 실제 시험은 변경된 부작용 경계·재현 결함과 최종 대표 A/B 한 묶음에 맞춘다. 기존 결과의 후보/입력 제한을 표시하면서 재사용하고 새로운 후보 전체 Passed로 자동 승계하지 않는다.
 
-| 장기 카탈로그 | M0에서 유지할 최소 요구 | 별도 후속/확장 |
+| 장기 카탈로그 | 유지할 프로그램 요구 | AI 절차·제외·선택 검증 |
 | --- | --- | --- |
 | FS/GT/EX/CLI | 지원 입력의 격리·범위 저장·Git/owner·JSON·재개·회수·안전 거부 | dirty/LFS/filter·attach·파일 특성/OS 조합 확대 |
-| WS/CP | 정확한 작업 경로와 Editor·컴파일/소스 세대·오류 격리 | 모든 package/define/버전 조합 |
+| WS/CP | 정확한 작업 경로와 소유 Editor·소스 세대·현재 gate·오류 격리 | 외부 Unity 도구 사용/컴파일 분석은 AI. 실제 필요한 package/define/버전만 선택 검증 |
 | AS/PL/TS/IS | 기존 도구의 일반 에셋 I/O가 지원 mount 경계를 통과하며 미격리 외부 상태는 제한으로 표시 | Splinter 자체 저작/Play/캡처/입력/Test Runner·외부 namespace API는 제품 필수 범위에서 제외 |
-| UX/RC/MG/PK | 최소 지침/작업 연결·명시적 종료·독립 결과·target guard·원본/peer 보존 | 프로젝트/전역 설치·자동 binding·통합 검증 플랫폼 |
-| NR/SF/SW/FD | M0에 실제 필요한 안전/폐기/AI 사용/비용 하위 조건 | 전체 장애 행렬·ARM·대형 지원·큐/자동 모드·설치/업데이트 |
+| UX/RC/MG/PK | 현재 명령의 지속 상태/identity·명시적 종료·독립 결과·target guard·원본/peer 보존 | 설치/인계·충돌 해결·게임 검증은 AI. 전용 installer·자동 binding·통합 검증 플랫폼은 구현 제외 |
+| NR/SF/SW/FD | 지원 입력의 안전/회수·범위 저장/Library 수명·필요한 비용 관측 | OS/ARM/대형은 필요 시 검증. 모드 선택/설치/업데이트는 AI, 큐·자동 모드·일반 임대 인수는 구현 제외 |
+
+## 축소한 후속의 책임 분류
+
+실제 작업과 종료 기준은 [구현 계획](implementation-plan.md#남길-후속-작업과-종료-기준)이 소유한다. 이 표는 기존 ID의 상태를 변경하지 않고 후속 책임만 분류한다.
+
+| 대상 | 분류 | 남길 범위 |
+| --- | --- | --- |
+| 외부 MCP/Unity CLI 인계 | AI 절차·필요 시 최소 프로그램 연결/사용 검증 | 도구 하나의 정확한 A/B 대상과 정상 종료 공존. 현재 미자격/전용 브리지·검증 gate 제약은 [사용 계획](session-workflow-and-installation.md#외부-도구-인계의-한정-범위). 새 실행은 NotRun이며 기존 M0에서 승계하지 않음 |
+| SF-02/03 | 프로그램의 저장·수명 유지/관측 병목 개선 | 기존 Library/후보/세대·정리·의존성 회수. 큐/일반 임대 인수/원본 공유는 제외, 생성 소스 병합은 AI |
+| SF-04/05·NR | 필요 시 지원 검증·안전 결함 수정 | 사용할 입력/환경의 파일·Git·재개/회수 경계. 전체 대형/OS/ARM 행렬 자동 실행 없음 |
+| SF-06·SW-01/02/03/06 | AI 사용 절차 | 모드 선택·설치 연결·필요성 판단·인계/재조회. 자동 모드·전용 installer·Codex binding은 구현 제외 |
+| SW-04~10·MG/CP/AS/PL/TS | 작업공간 보호는 프로그램, 작업 수행/판단은 AI·외부 도구 | 현재 owner/중복·원본/peer·독립 결과·통합/폐기 guard 유지. 충돌 해결/게임 검증 판단과 범용 Unity 저작/컴파일/Test API는 추가하지 않음 |
+
+범위에서 제외한 기능의 NotRun/Partial/실패를 Passed/Unsupported로 바꾸지 않는다. 현재 프로그램의 gate·schema·자동 시험도 이 문서 변경으로 바꾸지 않는다.
 
 ## 결과와 증거 규칙
 
 - 상태는 `Passed`, `Failed`, `NotRun`, `Unsupported` 중 하나로 기록한다. 필수 지원 조합의 `NotRun`/`Unsupported`는 공개 통과로 집계하지 않는다.
 - 각 실행은 run ID, 도구 commit, OS/볼륨/Git/Unity/패키지/Codex 버전, fixture/source hash, 시작/종료 manifest, 명령·이벤트, 결과 파일 hash를 기록한다.
 - fixture 성공, 합성 대형 데이터 성공, 실제 프로젝트 성공을 구분한다. 변경된 경계와 첫 버전 후보의 대표 흐름을 검증하고 무관한 변경에 전체 과거 실환경 재실행을 요구하지 않는다.
-- 기존 표의 P0~P7은 원래 책임/증거를 찾는 역사적 분류이며 현재 실행 순서가 아니다. 새 실행 순서와 완료 기준은 M0를 따른다.
+- 기존 표의 P0~P7은 원래 책임/증거를 찾는 역사적 분류이며 현재 실행 순서가 아니다. M0는 마감했고 후속은 위 분류와 구현 계획의 선택한 단위를 따른다.
 
 ## 장기 지원·확장 시나리오 카탈로그 48개
 
-기존 ID와 필요한 실패·재현 근거를 보존한다. 각 표의 전체 요구는 미실행 상태이며 범용 Unity 기능·전역 설치·OS 장애 전체를 첫 실사용 버전의 필수 관문으로 읽지 않는다.
+기존 ID·원래 시나리오와 실패/재현 근거를 보존한다. P0~P7·범용 Unity 기능·설치·binding의 원래 문구는 현재 프로그램 개발 요구가 아니다. AI 사용 절차와 구현 제외 항목을 위 표로 분류하고 mount/Git/보존에 필요한 하위 경계만 선택한다. 미실행과 과거 실패는 그대로 유지한다.
 
 | ID | 검증 대상 | 단계 | 반드시 남길 증거 |
 | --- | --- | --- | --- |
@@ -125,7 +141,7 @@ NR-03은 [공통 저널 58개](../verification/ntfs-recovery.md#nr-03-공통-저
 | NR-07 | 부분 준비·결과·회수의 재조정 | InProgress: 마지막 VSS 해제/LV, 원격 released 복구와 NR-02의 사용자 쓰기 없는 준비 재개 후 독립 결과/최종 회수 | 준비를 Ready로 재개한 뒤 정상 회수한 범위. 부분 준비 직접 release와 commit/ref/manifest/seal 중단, unmount/Git/delta/VSS 해제 응답 유실은 남음. 영수증과 실패 임시 파일은 보존 |
 | NR-08 | 최종 후보·Unity 회귀·문서 | InProgress: 이전 ARM/x64 단일 검증 2건, 새 LV Windows x64 단일 검증 3건·재연결·결과·회수 통과 | 원격 workspace 소유 자원0과 canonical Editor/MCP 세션 정상 종료 확인. 같은 후보의 단일 정상 회귀이며 ARM Windows 원본/A/B·재부팅 후 loaded-code·fingerprint·validation·dirty 통합 차단과 전체 NR 완료는 남음 |
 
-결과 보존 결함·공통 계약과 기존 PV의 제한·마감 판정은 유지한다. 폐기 연결/로컬 실행과 최소 AI 연결은 한정 마감했고 다음 제품 작업은 대표 A/B 사용과 비용 판단이다. NR 전체 행렬·NR-04/06 환경 준비·ARM 확대는 별도 지원 범위다. 지원 경로의 안전 결함 또는 변경 경계 때문에 필요한 NR만 선택한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 workspace home은 짧은 별도 경로를 사용한다.
+결과 보존 결함·공통 계약과 기존 PV의 제한/마감 판정은 유지한다. 폐기·최소 AI 연결·대표 A/B·비용 판단은 한정 M0로 마감했다. NR 전체·OS/공간·ARM은 필요 시 지원 검증이며 안전 결함·변경 경계·실제 사용할 입력에 필요한 하위 단위만 선택한다. 새 원시 증거는 `artifacts/ntfs-recovery/<runId>/`에 보존하고 home은 짧은 별도 경로를 사용한다.
 
 ## SF-03 공통 수명주기 적합성
 
@@ -237,10 +253,10 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 
 ## 제품화와 비용 관문
 
-아래 Partial/NotRun은 지원 확대 상태이며 M0 완료의 분모가 아니다. FIFO/Coordination·source 반환 병합·기본 모드 자동 선택은 첫 버전에서 제외한다. 코드 제거와 명령 발견의 이번 자격은 [제품 범위 정리 검증](../verification/workspace-product-scope.md)을 따른다.
+아래 Partial/NotRun은 증거 상태이며 미완성 프로그램 기능의 수가 아니다. FIFO/Coordination·일반 임대 인수·원본 공유·자동 모드·전용 installer·자동 binding은 구현 제외다. source 반환 병합·설치/인계·도구 선택·게임 검증은 AI 절차다. 기존 코드 제거/명령 발견의 자격은 [제품 범위 정리 검증](../verification/workspace-product-scope.md)에 보존하며 이번 계획 축소를 새 실행/코드 제거 증거로 읽지 않는다.
 
 - SF-02/03은 Partial, SF-04~06은 NotRun이다. 완료 기준은 [저장공간·Editor 계획](storage-priority-and-editor-modes.md)을 따른다.
 - SF-03의 공통 수명주기 계약은 위 VW 자동 적합성으로 추적한다. 실제 제품 VSS·WinFsp·Unity 연결은 WF의 현재 후보 증거로 따로 판정한다.
-- SW-01/02/04/05/07/08/10은 NotRun, SW-03/06/09 전체는 Partial이다. [최소 AI 실행](../verification/agent-workflow.md)·[로컬 dirty 폐기](../verification/workspace-discard.md)와 [대표 Editor A/B 사용·종료](../verification/representative-agent-workflow.md)의 하위 자격을 구분한다. 일반 설치/binding·busy/unknown 실제 선택·새/동시 대화와 native 강제 중단은 미실행이며 M0의 한정 완료를 SW 전체에 승계하지 않는다. UA-01~04의 서비스 구현·자동 시험과 실제 설치/반복 실행은 [UA 검증](../verification/storage-privilege-service.md)에서 구분한다.
+- SW-01/02/04/05/07/08/10 NotRun·SW-03/06/09 전체 Partial은 유지한다. [최소 AI 실행](../verification/agent-workflow.md)·[로컬 폐기](../verification/workspace-discard.md)·[대표 A/B](../verification/representative-agent-workflow.md)의 하위 자격을 구분한다. 설치/인계의 AI 절차와 busy/unknown·새/동시 대화·native 중단의 미실행을 보존하며 구현 제외 기능을 완료로 표시하지 않는다. [UA](../verification/storage-privilege-service.md)의 제한 서비스 구성/반복 사용은 전용 제품 installer와 구별한다.
 - PV-01/02의 사용자 선택 범위는 scoped-complete-with-limitations다. 전체 PV-02 Passed로 표시하지 않고 S4 입력 실패·소수 표본·raw 입력 동등성 unknown을 유지한다. [비교 방법](parallel-workflow-qualification.md)과 [실측](../verification/parallel-workflow.md)은 후속 비교의 입력을 고정하기 위해 보존한다.
 - 현재 코드의 계약 변경은 필수 형식 생성·읽기, 지원하지 않는 형식의 비파괴 거부, 같은 버전의 중단 재시도를 함께 검증한다. 자동 시험과 실제 VSS/Unity 실행을 구별한다.

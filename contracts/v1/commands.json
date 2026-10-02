@@ -4,12 +4,13 @@
     {
       "id": "snapshot.spike",
       "description": "Operate an explicitly prepared NTFS snapshot-overlay experiment; not the workspace backend.",
-      "cliUsage": "splinter snapshot-spike --input <request.json>",
+      "cliUsage": "splinter-dev snapshot-spike --input <request.json>",
       "inputTransport": "json-file",
       "inputSchema": "urn:splinter:v1:snapshot-spike-request",
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-experimental-mount-git-and-editor",
-      "retry": "same-persisted-overlay-and-git-receipts; candidate-export requires stable publication requestKey and same frozen-source intent; inspect-uncertain-intents"
+      "retry": "same-persisted-overlay-and-git-receipts; candidate-export requires stable publication requestKey and same frozen-source intent; inspect-uncertain-intents",
+      "developmentOnly": true
     },
     {
       "id": "capabilities",
@@ -44,7 +45,7 @@
     {
       "id": "workspace.ensure",
       "description": "Create or reconnect an owned workspace. NTFS reconnect verifies the original live snapshot via an exact Observe helper when needed, retaining the snapshot/delta identity and current capture receipt.",
-      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <ntfs-snapshot|refs-cow|git-checkout> [--baseline <id>] [--base development] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>]",
+      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage ntfs-snapshot [--base development] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-ensure-request",
       "outputSchema": "urn:splinter:v1:response",
@@ -63,7 +64,7 @@
     },
     {
       "id": "workspace.status",
-      "description": "Observe owned processes and reconcile a new validation once; --verify-source checks current content, --audit-source reads all content and rebuilds its manifest.",
+      "description": "Observe owned resources; --verify-source checks current contents, --audit-source performs the full audit.",
       "cliUsage": "splinter workspace status --id <id> [--verify-source] [--home <state-root>] [--audit-source]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-status-request",
@@ -83,7 +84,7 @@
     },
     {
       "id": "workspace.checkpoint",
-      "description": "Commit only source matching successful Unity compilation evidence.",
+      "description": "Preserve the stable current source as an independent result without claiming compilation or test success.",
       "cliUsage": "splinter workspace checkpoint --id <id> --message <message> [--home <state-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-checkpoint-request",
@@ -132,16 +133,6 @@
       "retry": "same-workspace"
     },
     {
-      "id": "unity.refresh",
-      "description": "Request compilation of an exact source fingerprint; poll workspace status for completion.",
-      "cliUsage": "splinter unity refresh --id <id> [--home <state-root>]",
-      "inputTransport": "options",
-      "inputSchema": "urn:splinter:v1:unity-refresh-request",
-      "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "owned-editor-compile",
-      "retry": "same-pending-request"
-    },
-    {
       "id": "unity.stop",
       "description": "Stop only the owned Editor while retaining source and workspace for later turns.",
       "cliUsage": "splinter unity stop --id <id> [--home <state-root>]",
@@ -164,62 +155,68 @@
     {
       "id": "storage.probe",
       "description": "Check ReFS volume and cluster geometry without copying files.",
-      "cliUsage": "splinter storage probe --path <directory>",
+      "cliUsage": "splinter-dev storage probe --path <directory>",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:storage-probe-request",
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "read-only-local-process",
-      "retry": "safe-read"
+      "retry": "safe-read",
+      "developmentOnly": true
     },
     {
       "id": "baseline.prepare",
       "description": "Create or reconnect to one exact-revision baseline preparation Editor.",
-      "cliUsage": "splinter baseline prepare --project <repository> [--base development] [--home <ReFS-root>]",
+      "cliUsage": "splinter-dev baseline prepare --project <repository> [--base development] [--home <ReFS-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:baseline-prepare-request",
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-worktree-and-optional-editor",
-      "retry": "same-project-and-task-key"
+      "retry": "same-project-and-task-key",
+      "developmentOnly": true
     },
     {
       "id": "baseline.seal",
-      "description": "Stop a validated preparation Editor, seal source and Library, then release its worktree.",
-      "cliUsage": "splinter baseline seal --id <id> [--home <ReFS-root>]",
+      "description": "Stop the owned preparation Editor, seal unchanged source and Library, then release its worktree; no compile claim.",
+      "cliUsage": "splinter-dev baseline seal --id <id> [--home <ReFS-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:baseline-seal-request",
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-baseline-cache",
-      "retry": "same-workspace"
+      "retry": "same-workspace",
+      "developmentOnly": true
     },
     {
       "id": "baseline.release",
       "description": "Reclaim a sealed cache only after every consumer is released.",
-      "cliUsage": "splinter baseline release --id <id> [--home <ReFS-root>]",
+      "cliUsage": "splinter-dev baseline release --id <id> [--home <ReFS-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:baseline-release-request",
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-baseline-removal",
-      "retry": "idempotent-release"
+      "retry": "idempotent-release",
+      "developmentOnly": true
     },
     {
       "id": "preparation.probe",
       "description": "Development-only interruption gate in product workspace.ensure; returns its ordinary response and retains all resources.",
-      "cliUsage": "splinter preparation-probe --input <request.json>",
+      "cliUsage": "splinter-dev preparation-probe --input <request.json>",
       "inputTransport": "json-file",
       "inputSchema": "urn:splinter:v1:preparation-probe-request",
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-ntfs-preparation-and-new-boundary-signal",
-      "retry": "new-evidence-path; resume-with-original-workspace.ensure"
+      "retry": "new-evidence-path; resume-with-original-workspace.ensure",
+      "developmentOnly": true
     },
     {
-      "id": "validation.execute",
-      "description": "Publish immutable NTFS worker candidates, select and run a single Unity view, preserve and release exact artifacts.",
-      "cliUsage": "splinter validation --input <request.json> [--home <path>]",
+      "id": "view.execute",
+      "description": "Development-only immutable source views and shared Library cache lifetimes; project validation uses external tools.",
+      "cliUsage": "splinter-dev view --input <request.json> [--home <path>]",
       "inputTransport": "json-file",
       "inputSchema": "urn:splinter:v1:validation-product-request",
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-validation-candidate-view-editor-and-result",
-      "retry": "same-request-key-and-owner; preserve-unknown-resources"
+      "retry": "same-request-key-and-owner; preserve-unknown-resources",
+      "developmentOnly": true
     }
   ]
 }

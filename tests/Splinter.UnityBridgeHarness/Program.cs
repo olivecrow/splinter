@@ -13,13 +13,6 @@ namespace Splinter.UnityBridgeHarness
             string control = args[Array.IndexOf(args, "-splinterControlPath") + 1];
             string token = args[Array.IndexOf(args, "-splinterToken") + 1];
             UnityEngine.Application.dataPath = Path.Combine(control, "Assets");
-            // Emulate a successful compilation waiting for the next domain.
-            File.WriteAllText(Path.Combine(control, "pending.json"), JsonSerializer.Serialize(new
-            {
-                requestId = "compiled-before-reload", fingerprint = "source-hash", token,
-                started = true, finished = true, reloaded = false, finishedTicks = 1,
-                errors = Array.Empty<string>()
-            }));
             RuntimeHelpers.RunClassConstructor(typeof(Splinter.Editor.WorkspaceBridge).TypeHandle);
             var observations = new List<JsonElement>();
             EditorApplication.Advance(); Capture();
@@ -31,8 +24,7 @@ namespace Splinter.UnityBridgeHarness
             {
                 fixtureCalls = SplinterSnapshotProbe.Calls,
                 errors = UnityEngine.Debug.Errors,
-                heartbeats = observations,
-                pendingExists = File.Exists(Path.Combine(control, "pending.json"))
+                heartbeats = observations
             }));
 
             void Capture()

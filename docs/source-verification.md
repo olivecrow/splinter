@@ -4,7 +4,7 @@
 
 ## 검증 흐름과 소유 경계
 
-`unity start`와 `workspace ensure --editor`의 시작 후 응답은 일반 status와 같이 실행 상태를 관측하고, 새 pending validation 결과를 조정할 때만 소스를 검사한다. 시작 응답의 `sourceVerification=not-checked`는 현재 소스의 컴파일 성공이 아니다. Editor 없는 ensure의 검사, refresh·명시적 `--verify-source`/감사, checkpoint/integrate의 현재 검사와 결과 seal은 유지한다. 시작 후 import 중 불필요한 검사 실패를 피하며 소스 변경 거부를 재시도로 숨기지 않는다.
+`unity start`와 `workspace ensure --editor`는 실행 상태만 관측한다. 시작 후 현재 소스 검사나 컴파일 성공을 요구하지 않는다. Editor 없는 ensure·명시적 `--verify-source`/감사·checkpoint/integrate의 현재 내용 검사와 결과 seal은 유지한다.
 
 Core의 `ISourceChangeProvider`/`SourceChangeView`는 workspace ID, snapshot ID, provider epoch, 마지막 소스 sequence, 경로별 마지막 변경 sequence를 제공한다. Runtime의 `JournalDeltaStore`는 acknowledged journal 기록에서 이 집합을 만들고 재생 시 다시 구성한다. 새 provider의 epoch는 항상 다르다. Core는 Git·Unity·Win32 API를 참조하지 않는다.
 
@@ -32,7 +32,7 @@ Git 어댑터는 다음 순서로 검사한다.
 - `workspace status --audit-source --id <id> --home <home>`은 전체 소스를 읽고 다시 작성한다. 거부된 manifest는 `.rejected-<id>`로 먼저 보존한다. `--verify-source`를 포함하는 동작이다.
 - snapshot/provider 관측 unknown, 완결 저널 손상, 앞뒤 소스 세대 불일치는 성공 발행을 차단한다. 불완전한 마지막 journal frame의 재생 규칙과 acknowledged write 보존은 기존 계약을 유지한다.
 
-일반 status는 새 pending validation 응답을 조정할 때만 소스를 검증한다. 명시적 현재 검사는 `--verify-source`를 쓴다. `sourceVerification=verified`, `validationCurrent=true`, `workspace.validation.success=true`를 함께 확인해야 현재 Unity 검증 성공이다. fingerprint 캐시 성공 자체는 Unity 컴파일 성공이 아니다.
+일반 status는 소스 내용을 읽지 않고 소유 앱/provider를 관측한다. 명시적 현재 검사는 `--verify-source`이며 `sourceVerification=verified`와 반환 source fingerprint를 확인한다. 이는 저장 내용 검사다. 컴파일·테스트 성공은 외부 도구에서 별도로 판단한다.
 
 ## 계측의 의미
 

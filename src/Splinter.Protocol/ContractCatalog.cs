@@ -9,7 +9,7 @@ public sealed class ContractCatalog
     private readonly Dictionary<string, JsonElement> documents = new(StringComparer.Ordinal);
     private readonly Dictionary<string, JsonSchema> schemas = new(StringComparer.Ordinal);
 
-    public ContractCatalog()
+    public ContractCatalog(bool development = false)
     {
         Assembly assembly = typeof(ContractCatalog).Assembly;
         // Catalogs can coexist in one process; never register application schemas globally.
@@ -30,12 +30,18 @@ public sealed class ContractCatalog
         using Stream catalogStream = assembly.GetManifestResourceStream(catalogName)!;
         using var catalogDocument = JsonDocument.Parse(catalogStream);
         Commands = catalogDocument.RootElement.GetProperty("commands").EnumerateArray()
+            .Where(item => development || !item.TryGetProperty("developmentOnly", out var flag) || !flag.GetBoolean())
             .Select(item => new CommandDescriptor(
                 item.GetProperty("id").GetString()!, item.GetProperty("description").GetString()!,
                 item.GetProperty("cliUsage").GetString()!, item.GetProperty("inputTransport").GetString()!,
                 item.GetProperty("inputSchema").GetString()!, item.GetProperty("outputSchema").GetString()!,
                 item.GetProperty("sideEffects").GetString()!, item.GetProperty("retry").GetString()!))
             .ToArray();
+        if (development)
+            Commands = Commands.Select(command => command.Id == "workspace.ensure"
+                ? command with { InputSchema = "urn:splinter:v1:workspace-development-ensure-request",
+                    CliUsage = "splinter-dev workspace ensure --project <path> --key <key> --storage <ntfs-snapshot|refs-cow|git-checkout> [--baseline <id>] [--base development] [--editor] [--home <path>] [--max-journal-bytes <bytes>]" }
+                : command).ToArray();
         foreach (var command in Commands)
         {
             if (!schemas.ContainsKey(command.InputSchema) || !schemas.ContainsKey(command.OutputSchema))

@@ -15,28 +15,13 @@ public sealed class WorkspaceCoordinatorTests
         int before = sources.InspectCalls; sources.InspectionError = "SourceChanged";
         var started = await New(d, sources, apps).StartAsync(initial.Workspace.Id, ct);
         Assert.True(started.Application!.Running); Assert.Equal("not-checked", started.SourceVerification);
-        Assert.Null(started.ValidationCurrent); Assert.Null(started.Source);
+        Assert.Null(started.Source);
         var resumed = await New(d, sources, apps).EnsureAsync(project, "starting", "main", "git-checkout", true, ct);
         Assert.Equal(initial.Workspace.Id, resumed.Workspace.Id); Assert.Equal("not-checked", resumed.SourceVerification);
         await New(d, sources, apps).StartAsync(initial.Workspace.Id, ct);
         Assert.Equal(before, sources.InspectCalls); Assert.Equal(1, apps.StartCalls); Assert.Equal(1, sources.CreateCalls);
         Assert.Equal("SourceChanged", (await Assert.ThrowsAsync<WorkspaceException>(() =>
-            New(d, sources, apps).RefreshAsync(initial.Workspace.Id, ct))).Code);
-    }
-
-    [Fact]
-    public async Task StartStillChecksNewValidationAndRejectsItsChangedSource()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications();
-        var c = New(d, sources, apps);
-        string id = (await c.EnsureAsync(Project(d), "pending", "main", "git-checkout", true, ct)).Workspace.Id;
-        await c.RefreshAsync(id, ct); sources.Fingerprint = "edited"; apps.EmitValidation = true;
-        var completed = await New(d, sources, apps).StartAsync(id, ct);
-        Assert.Equal("verified", completed.SourceVerification); Assert.False(completed.ValidationCurrent);
-        Assert.False(completed.Workspace.Validation!.Success);
-        Assert.Equal("ValidationRequired", (await Assert.ThrowsAsync<WorkspaceException>(() => c.CheckpointAsync(id, "stale", ct))).Code);
-        Assert.Equal(0, sources.CommitCalls); Assert.Equal(1, apps.StartCalls);
+            New(d, sources, apps).StatusAsync(initial.Workspace.Id, ct, verifySource: true))).Code);
     }
 
     [Fact]
@@ -78,50 +63,25 @@ public sealed class WorkspaceCoordinatorTests
     }
 
     [Fact]
-    public async Task RepeatedStatusDoesNotInspectSourceWhileWaitingOrAfterAResultWasReconciled()
+    public async Task ExternalProjectValidationIsNotRequiredForCheckpointOrIntegration()
     {
         var ct = TestContext.Current.CancellationToken;
         using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications();
-        string id = (await New(d, sources, apps).EnsureAsync(Project(d), "poll", "main", "git-checkout", true, ct)).Workspace.Id;
-        await New(d, sources, apps).RefreshAsync(id, ct);
-        int before = sources.InspectCalls;
-        for (int i = 0; i < 10; i++) Assert.Null((await New(d, sources, apps).StatusAsync(id, ct)).Source);
-        Assert.Equal(before, sources.InspectCalls);
-        apps.EmitValidation = true;
-        var completed = await New(d, sources, apps).StatusAsync(id, ct);
-        Assert.True(completed.Workspace.Validation!.Success);
-        Assert.Equal("verified", completed.SourceVerification);
-        Assert.True(completed.ValidationCurrent);
-        Assert.Equal("initial", completed.Source!.Fingerprint);
-        Assert.Equal(before + 1, sources.InspectCalls);
-        for (int i = 0; i < 10; i++) Assert.Null((await New(d, sources, apps).StatusAsync(id, ct)).Source);
-        Assert.Equal(before + 1, sources.InspectCalls);
-        sources.Fingerprint = "changed-after-validation";
-        var historical = await New(d, sources, apps).StatusAsync(id, ct);
-        Assert.Equal("not-checked", historical.SourceVerification);
-        Assert.Null(historical.ValidationCurrent);
-        Assert.True(historical.Workspace.Validation!.Success);
-        Assert.Equal("ValidationRequired", (await Assert.ThrowsAsync<WorkspaceException>(() =>
-            New(d, sources, apps).CheckpointAsync(id, "stale result", ct))).Code);
-        Assert.Equal(0, sources.CommitCalls);
-    }
-
-    [Fact]
-    public async Task ExplicitSourceVerificationInvalidatesAnOldSuccess()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications { EmitValidation = true };
         var c = New(d, sources, apps);
-        string id = (await c.EnsureAsync(Project(d), "verify", "main", "git-checkout", true, ct)).Workspace.Id;
-        await c.RefreshAsync(id, ct); await c.StatusAsync(id, ct);
+        string id = (await c.EnsureAsync(Project(d), "external", "main", "git-checkout", false, ct)).Workspace.Id;
         sources.Fingerprint = "edited";
         int before = sources.InspectCalls;
-        var fresh = await New(d, sources, apps).StatusAsync(id, ct, verifySource: true);
-        Assert.Equal(before + 1, sources.InspectCalls);
+        for (int i = 0; i < 5; i++) Assert.Null((await c.StatusAsync(id, ct)).Source);
+        Assert.Equal(before, sources.InspectCalls);
+        var fresh = await c.StatusAsync(id, ct, verifySource: true);
         Assert.Equal("edited", fresh.Source!.Fingerprint);
-        Assert.False(fresh.ValidationCurrent);
-        Assert.Null(fresh.Workspace.Validation);
-        Assert.Equal("source-changed", fresh.Workspace.Phase);
+        var collected = await c.CheckpointAsync(id, "external work", ct);
+        Assert.Null(collected.Workspace.Validation);
+        Assert.Equal("collected", collected.Workspace.Phase);
+        sources.Fingerprint = "later-write"; sources.Revision = "later-revision";
+        Assert.Equal("ResultNotReady", (await Assert.ThrowsAsync<WorkspaceException>(() => c.IntegrateAsync(id, "main", ct))).Code);
+        sources.Revision = collected.Workspace.ResultRevision!;
+        Assert.Equal("integrated", (await c.IntegrateAsync(id, "main", ct)).Workspace.Phase);
     }
 
     [Fact]
@@ -139,45 +99,13 @@ public sealed class WorkspaceCoordinatorTests
     }
 
     [Fact]
-    public async Task NonGitNonUnityFakesCanDriveValidationAndChangedFingerprintBlocksCheckpoint()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications();
-        var c = New(d, sources, apps); var view = await c.EnsureAsync(Project(d), "task", "main", "git-checkout", true, ct);
-        apps.EmitValidation = true;
-        var pending = await c.RefreshAsync(view.Workspace.Id, ct);
-        sources.Fingerprint = "changed";
-        var failed = await c.StatusAsync(view.Workspace.Id, ct);
-        Assert.Equal("validation-failed", failed.Workspace.Phase);
-        var error = await Assert.ThrowsAsync<WorkspaceException>(() => c.CheckpointAsync(view.Workspace.Id, "result", ct));
-        Assert.Equal("ValidationRequired", error.Code);
-        Assert.Equal(0, sources.CommitCalls);
-        Assert.NotNull(pending.Workspace.PendingValidationId);
-    }
-
-    [Fact]
-    public async Task AsyncValidationAcceptanceDoesNotMeanSuccessAndMatchingResultCanCheckpoint()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications();
-        var c = New(d, sources, apps); var view = await c.EnsureAsync(Project(d), "task", "main", "git-checkout", true, ct);
-        apps.EmitValidation = false; await c.RefreshAsync(view.Workspace.Id, ct);
-        var before = await c.StatusAsync(view.Workspace.Id, ct);
-        Assert.Null(before.Workspace.Validation);
-        await Assert.ThrowsAsync<WorkspaceException>(() => c.CheckpointAsync(view.Workspace.Id, "result", ct));
-        apps.EmitValidation = true; await c.StatusAsync(view.Workspace.Id, ct);
-        var result = await c.CheckpointAsync(view.Workspace.Id, "result", ct);
-        Assert.Equal("collected", result.Workspace.Phase);
-    }
-
-    [Fact]
     public async Task StopKeepsWorkspaceAndReleaseRefusesDirtyOrUnintegratedResultsThenIsIdempotent()
     {
         var ct = TestContext.Current.CancellationToken;
         using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications();
         var c = New(d, sources, apps); var view = await c.EnsureAsync(Project(d), "task", "main", "git-checkout", true, ct);
         var stopped = await c.StopAsync(view.Workspace.Id, ct); Assert.NotEqual("released", stopped.Workspace.Phase);
-        apps.EmitValidation = true; await c.StartAsync(view.Workspace.Id, ct); await c.RefreshAsync(view.Workspace.Id, ct); await c.StatusAsync(view.Workspace.Id, ct);
+        await c.StartAsync(view.Workspace.Id, ct); await c.StatusAsync(view.Workspace.Id, ct);
         await c.CheckpointAsync(view.Workspace.Id, "result", ct);
         var blocked = await Assert.ThrowsAsync<WorkspaceException>(() => c.ReleaseAsync(view.Workspace.Id, ct));
         Assert.Equal("UncollectedChanges", blocked.Code); Assert.Equal(0, sources.ReleaseCalls);
@@ -241,17 +169,15 @@ public sealed class WorkspaceCoordinatorTests
     }
 
     [Fact]
-    public async Task BaselineSealsOnlyAfterValidationAndRejectsMutationAndActiveConsumerRemoval()
+    public async Task BaselineRejectsMutationAndActiveConsumerRemoval()
     {
         var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); var sources = new FakeSources { Revision = "base" };
-        var apps = new FakeApplications { EmitValidation = true }; var storage = new FakeStorage();
+        var apps = new FakeApplications(); var storage = new FakeStorage();
         var store = new WorkspaceStore(Path.Combine(d.Path, "state")); var runtime = new WorkspaceCoordinator(store, sources, apps, storage);
         string project = Project(d);
         var prepared = await runtime.PrepareBaselineAsync(project, "main", ct); string id = prepared.Workspace.Id;
-        await Assert.ThrowsAsync<WorkspaceException>(() => runtime.SealBaselineAsync(id, ct));
         string library = Path.Combine(prepared.Workspace.Path, "Library"); Directory.CreateDirectory(library);
         await File.WriteAllTextAsync(Path.Combine(library, "cache"), "warmed once", ct);
-        await runtime.RefreshAsync(id, ct); await runtime.StatusAsync(id, ct);
         var baseline = await runtime.SealBaselineAsync(id, ct);
         Assert.False(Directory.Exists(prepared.Workspace.Path)); Assert.Equal(1, storage.CloneCalls);
         Assert.Equal(id, (await runtime.PrepareBaselineAsync(project, "main", ct)).Workspace.Id);
@@ -292,22 +218,14 @@ public sealed class WorkspaceCoordinatorTests
     {
         public string CompatibilityKey(string project) => "fake-application";
         public string[] CacheInputs => ["configuration"];
-        public string[] ManagedPaths => ["Library", "Temp"]; public bool Running; public bool EmitValidation; public int RemoveCalls, StartCalls;
+        public string[] ManagedPaths => ["Library", "Temp"]; public bool Running; public int RemoveCalls, StartCalls;
         public bool OwnershipVerified = true; public int SurvivingChildren;
-        private ApplicationValidation? validation;
-        private (string Id, string Fingerprint)? pending;
         public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { StartCalls++; Running = true; return Task.FromResult(new ApplicationLease(1, 1, "token", "fake")); }
         public Task<ApplicationState> ObserveAsync(WorkspaceRecord w, string p, CancellationToken ct = default)
         {
-            if (EmitValidation && pending is { } request)
-            {
-                validation = new(request.Id, request.Fingerprint, true, DateTimeOffset.UtcNow, []);
-                pending = null;
-            }
-            return Task.FromResult(new ApplicationState(Running, Running, Running ? "ready" : "stopped", null, validation,
+            return Task.FromResult(new ApplicationState(Running, Running, Running ? "ready" : "stopped", null, Resources:
                 new(OwnershipVerified, Running, (Running ? 1 : 0) + SurvivingChildren, Running || SurvivingChildren != 0 ? 1024 : 0, Running || SurvivingChildren != 0 ? 1024 : 0)));
         }
-        public Task RequestValidationAsync(WorkspaceRecord w, string p, string id, string fp, CancellationToken ct = default) { pending = (id, fp); return Task.CompletedTask; }
         public Task StopAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { Running = false; return Task.CompletedTask; }
         public Task RemoveInfrastructureAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { RemoveCalls++; return Task.CompletedTask; }
     }

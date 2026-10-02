@@ -14,8 +14,6 @@ internal sealed class ValidationWorkflowWorld
     public Dictionary<string, string> Contents { get; } = [];
     public ValidationResources ViewResources { get; set; } = new(true, 0, 0, 0, false);
     public Dictionary<string, int> Effects { get; } = [];
-    public CandidateValidationEvidence? EvidenceOverride { get; set; }
-    public bool ValidationSuccess { get; set; } = true;
     public void Count(string action) => Effects[action] = Effects.GetValueOrDefault(action) + 1;
     public ValidationWorkerIdentity SetWorker(string id, ValidationOwner owner, SnapshotReference snapshot, string content, long sequence = 1)
     {
@@ -87,10 +85,6 @@ internal sealed class ValidationWorkflowFake(string root, ValidationWorkflowWorl
         Save("selection", intent.GenerationId, receipt); world.Count("select"); Reply("select");
         return Task.FromResult(receipt);
     }
-    public Task<CandidateValidationEvidence> ReadValidationAsync(ValidationSelectionReceipt selection, CancellationToken ct) =>
-        Task.FromResult(world.EvidenceOverride ?? new("validation:" + selection.Intent.GenerationId,
-            selection.Intent.GenerationId, selection.Intent.Candidate.Intent.CandidateId, selection.Intent.Candidate.CandidateSeal,
-            Seal(SourceContent(selection.Intent.GenerationId)), world.ValidationSuccess, DateTimeOffset.UtcNow));
     public Task<SnapshotDeltaSeal> SealSourceAsync(ValidationSelectionReceipt selection, CancellationToken ct)
     { Quiet(world.ViewResources); return Task.FromResult(Seal(SourceContent(selection.Intent.GenerationId))); }
     public Task<ValidationIndependentResult?> FindResultAsync(ValidationPreservationIntent intent, CancellationToken ct) =>

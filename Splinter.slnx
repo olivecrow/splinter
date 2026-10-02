@@ -15,6 +15,7 @@
     <Project Path="tests/Splinter.UnityBridgeHarness/Splinter.UnityBridgeHarness.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/Splinter.Development/Splinter.Development.csproj" />
     <Project Path="tools/Splinter.ReplayProbe/Splinter.ReplayProbe.csproj" />
     <Project Path="tools/Splinter.WriteProbe/Splinter.WriteProbe.csproj" />
   </Folder>

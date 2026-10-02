@@ -16,6 +16,9 @@ public sealed class ValidationProduct(WorkspaceStore store)
     {
         Require(input.Version == 1 && input.Owner.Generation > 0 && Name(input.Owner.Id) && Name(input.RequestKey),
             "ValidationRequestInvalid", "Use current version and bounded owner/request identities.");
+        Require(input.Action is "prepare-worker" or "publish" or "select" or "resume" or "preserve" or "release" or
+            "status" or "start" or "stop" or "close-view" or "compact-cache",
+            "ValidationRequestInvalid", "Use a supported storage view action; project validation belongs to external tools.");
         string project = WorkspaceStore.CanonicalProject(input.Project);
         var provider = new WindowsValidationProvider(store, project);
         using var operation = await store.LockAsync(WorkspaceStore.Key("validation-product:" + provider.ProjectId), ct);
@@ -31,7 +34,6 @@ public sealed class ValidationProduct(WorkspaceStore store)
         {
             case "prepare-worker":
             case "publish":
-            case "preserve-worker":
             {
                 Require(input.WorkspaceId is not null, "ValidationRequestInvalid", "workspaceId is required.");
                 using var workerGate = await store.LockAsync(input.WorkspaceId!, ct);
@@ -46,8 +48,6 @@ public sealed class ValidationProduct(WorkspaceStore store)
                     Save(provider.WorkerPath(w.Id), binding);
                 }
                 await provider.VerifyOwnerAsync(provider.ProjectId, w.Id, input.Owner, ct);
-                if (input.Action == "preserve-worker")
-                    return await PreserveWorkerAsync(input, provider, w, ct);
                 if (input.Action == "prepare-worker")
                 {
                     Require(w.Phase is not ("released" or "releasing" or "reclaim-pending") && !w.Snapshot!.Step.StartsWith("release-", StringComparison.Ordinal),
@@ -63,7 +63,6 @@ public sealed class ValidationProduct(WorkspaceStore store)
                         Require(await backend.SealAsync(w, control, ct) == seal, "ValidationSourceChanged", "Source changed while unmounting.");
                     }
                     w.Snapshot!.Observation = await backend.ObserveAsync(w, control, ct);
-                    w.PendingValidationId = null; w.PendingFingerprint = null; w.Validation = null;
                     store.Save(w, "validation-worker-prepared");
                     return await provider.ObserveWorkerAsync(provider.ProjectId, w.Id, ct);
                 }
@@ -96,7 +95,6 @@ public sealed class ValidationProduct(WorkspaceStore store)
                 return await workflow.ExecuteAsync(Request("select") with { CandidateId = input.CandidateId, Cache = view.Cache }, ct);
             }
             case "resume":
-            case "observe-validation":
                 return await workflow.ExecuteAsync(Request(input.Action) with { GenerationId = input.GenerationId }, ct);
             case "preserve":
             case "release":
@@ -117,7 +115,6 @@ public sealed class ValidationProduct(WorkspaceStore store)
                 return new { state, resources, execution, cacheMaintenance = maintenance };
             }
             case "start":
-            case "refresh":
             case "stop":
                 return await ControlAsync(input, provider, workflow, ct);
             case "close-view":
@@ -138,39 +135,6 @@ public sealed class ValidationProduct(WorkspaceStore store)
             }
             default: throw new WorkspaceException("ValidationRequestInvalid", "Unknown validation product action.");
         }
-    }
-
-    private async Task<object> PreserveWorkerAsync(ValidationProductRequest input, WindowsValidationProvider provider, WorkspaceRecord w, CancellationToken ct)
-    {
-        Require(w.Phase is not ("released" or "releasing" or "reclaim-pending") && !w.Snapshot!.Step.StartsWith("release-", StringComparison.Ordinal),
-            "ValidationWorkerMismatch", "Do not change a releasing worker's result.");
-        string control = store.ControlPath(w.Id);
-        var backend = new NtfsSnapshotWorkspaceBackend(provider.Runner);
-        await provider.Unity.StopAsync(w, control, ct);
-        var app = await provider.Unity.ObserveAsync(w, control, ct);
-        Require(app.Resources is { OwnershipVerified: true, ActiveProcesses: 0, WorkingSetBytes: 0, PrivateBytes: 0 },
-            "ValidationResourcesBusy", "Preservation requires the owned Editor and all children to be stopped.");
-        await backend.VerifyConnectionAsync(w, control, ct);
-        w.Snapshot!.Mount = await backend.ConnectAsync(w, control, ct);
-        w.Snapshot.Observation = await backend.ObserveAsync(w, control, ct);
-        store.Save(w, "validation-worker-preservation-connected");
-        await provider.Unity.RemoveInfrastructureAsync(w, control, ct);
-        var before = await backend.SealAsync(w, control, ct);
-        string intentPath = Path.Combine(provider.Root, "worker-preservation", WorkspaceStore.Key(input.RequestKey) + ".json");
-        var intent = new WorkerPreservation(1, w.Id, input.Owner, before);
-        var prior = Read<WorkerPreservation>(intentPath);
-        Require(prior is null || prior == intent, "ValidationSourceChanged", "Retry only the same frozen worker preservation; later edits remain separate.");
-        if (prior is null) Save(intentPath, intent);
-        var git = new GitWorkspaceProvider(baselines: store, sourceChanges: new WindowsSourceChanges(store.ControlPath));
-        w.ResultRevision = await git.CommitPreservedSourceAsync(w, "Preserve Splinter worker " + input.RequestKey, ct);
-        string reference = await git.PreserveAsync(w, control, ct);
-        var source = await git.InspectAsync(w, ct);
-        var after = await backend.SealAsync(w, control, ct);
-        Require(before == after, "ValidationSourceChanged", "Worker writes overlapped independent result collection; retain the journal.");
-        w.Snapshot.Result = new(w.Snapshot.Reference!.Id, w.ResultRevision, source.Fingerprint, reference, after, true, SnapshotResult.StableJournalProtocol);
-        w.Validation = null; w.PendingValidationId = null; w.PendingFingerprint = null;
-        w.Phase = "collected"; w.LastError = null; store.Save(w, "validation-worker-preserved");
-        return new { workspaceId = w.Id, result = w.Snapshot.Result, validationClaimed = false };
     }
 
     private static async Task<object> ControlAsync(ValidationProductRequest input, WindowsValidationProvider provider,
@@ -219,25 +183,8 @@ public sealed class ValidationProduct(WorkspaceStore store)
             Save(Path.Combine(control, "generation.json"), g);
             return new { selection, application = await provider.Unity.ObserveAsync(g.Workspace, control, ct), controlPath = control, path = g.Workspace.Path };
         }
-        if (input.Action == "refresh")
-        {
-            Require(app.Running && app.Ready, "EditorNotReady", "Wait for the selected Editor to become ready before requesting validation.");
-            long sequence = await provider.ObserveValidationSequence(g, ct);
-            string fingerprint = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(g.Selection.ReceiptId + ":" + sequence)));
-            string id = WorkspaceStore.Key(input.RequestKey);
-            var invocation = new ValidationInvocation(1, id, fingerprint, sequence);
-            Save(Path.Combine(control, "validation-invocation.json"), invocation);
-            await provider.Unity.RequestValidationAsync(g.Workspace, control, id, fingerprint, ct);
-            return new { selection, invocation, controlPath = control };
-        }
         if (mount.Mounted)
         {
-            var invocation = Read<ValidationInvocation>(Path.Combine(control, "validation-invocation.json"));
-            if (app.Validation is { } validation && invocation is not null && validation.RequestId == invocation.RequestId)
-            {
-                long sequence = await provider.ObserveValidationSequence(g, ct);
-                Save(Path.Combine(control, "validation-observed.json"), new ValidationObservation(1, validation, sequence));
-            }
             await provider.Unity.StopAsync(g.Workspace, control, ct);
             await provider.Unity.RemoveInfrastructureAsync(g.Workspace, control, ct);
             await provider.MountProvider(g).FlushAsync(g.Workspace.Snapshot!.Mount!, ct);

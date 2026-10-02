@@ -91,28 +91,6 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
         Require(health.Available == true, "ValidationSnapshotUnavailable", "Verify this exact VSS identity before reading source.");
         return new(snapshot, access, () => health);
     }
-    internal static long ValidationSequence(SourceChangeView changes, Func<string, bool> absentFromCandidateAndCurrent)
-    {
-        // Unity's directory monitor creates and deletes GUID probes during each
-        // refresh. Ignore only exact probe names absent from BOTH immutable input
-        // and current output; a retained/deleted user file can never disappear.
-        return changes.Changes.Where(change => !System.Text.RegularExpressions.Regex.IsMatch(change.Path,
-                "^(Assets|ProjectSettings)/~UnityDirMonSyncFile~[0-9a-fA-F]{32}~$", System.Text.RegularExpressions.RegexOptions.CultureInvariant) ||
-                !absentFromCandidateAndCurrent(change.Path))
-            .Select(change => change.Sequence).DefaultIfEmpty(0).Max();
-    }
-    internal async Task<long> ObserveValidationSequence(ViewGeneration g, CancellationToken ct)
-    {
-        var changes = await new WindowsSourceChanges(_ => GenerationPath(g.Selection.Intent.GenerationId)).ObserveChangesAsync(g.Workspace, ct);
-        using var basis = await Basis(g.WorkerId, g.Request.Identity.Snapshot, ct);
-        using var candidate = new CandidateSnapshotTree(g.Request.ValidationView!.CandidatePath, basis);
-        return ValidationSequence(changes, path =>
-        {
-            if (candidate.Stat(path) is not null) return false;
-            try { _ = File.GetAttributes(Path.Combine(g.Workspace.Path, path.Replace('/', Path.DirectorySeparatorChar))); return false; }
-            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { return true; }
-        });
-    }
     public Task VerifyOwnerAsync(string projectId, string resourceId, ValidationOwner owner, CancellationToken ct)
     {
         Require(projectId == ProjectId, "ValidationOwnerMismatch", "Project identity mismatch.");

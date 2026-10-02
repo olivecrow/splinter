@@ -39,16 +39,15 @@ splinter unity start --id <id> --home <상태 경로>
 공통 WinFsp mount/reconnect는 실행 중인 정확한 provider의 실제 mount와 최신 `mounted` 상태를 최대 2분 기다린다. `starting`/`replaying`은 준비 완료가 아니며 한도 초과나 취소로 provider·저널을 삭제하지 않는다. 같은 요청 재시도는 그 provider를 이어서 확인한다. 저널은 64KiB 수명 한정 버퍼로 읽되 모든 frame 검증을 유지하며 새 replay 단계 계수의 의미는 [계측 계약](source-verification.md#계측의-의미)을 따른다. 이것이 새 Unity 실행 모드나 기본 방식 전환을 뜻하지 않는다.
 
 ```text
-splinter unity refresh --id <id> --home <상태 경로>
 splinter workspace status --id <id> --home <상태 경로>
 splinter workspace compact --id <id> --home <상태 경로>
 splinter workspace checkpoint --id <id> --message <결과 설명> --home <상태 경로>
 splinter workspace release --id <id> --home <상태 경로>
 ```
 
-NTFS refresh는 incremental compilation을 요청한다. 일반 제품의 전체 대상 소스 fingerprint를 요청 ID·컴파일 callback·domain reload와 연결한다. 검증 뒤 소스나 `.meta`가 바뀌면 이전 성공은 무효다. `Accepted`는 접수이며 `workspace.validation.success`와 현재 fingerprint 일치가 완료 조건이다. 변경 없는 incremental 요청에서 reload가 없으면 성공을 발행하지 않는다. 현재 실제 실행 관문은 스크립트 변경 후 검증이며 일반 에셋·패키지 검증은 별도다. 제품 WorkspaceBridge의 heartbeat는 fixture나 프로젝트 함수를 호출하지 않는다. 실제 로드된 코드 증거는 공통 Qualification fixture의 새 `inspect` 응답에서 같은 request ID·projectPath·PID·generation·assemblyMvid와 실행 값 A/B/original을 확인한다. fixture 초기 callback의 `snapshot-probe.json`은 MVID가 없고 최신 reload를 보장하지 않으므로 그 파일만으로 현재 성공을 판단하지 않는다. fixture 계측은 전체 소스 검증을 대체하지 않는다.
+Editor의 refresh·컴파일·Play/테스트 등은 반환 workspace 경로를 선택한 외부 MCP·Unity CLI에서 수행한다. 제품 bridge는 liveness·진행 상태와 정상 종료만 처리하고 프로젝트 함수를 실행하거나 합격을 판정하지 않는다. checkpoint는 컴파일 성공 없는 소스도 안정된 독립 결과로 보존한다. 실제 게임/코드 검증 증거는 선택한 도구에서 확인한다.
 
-`workspace compact`는 **최종 결과 수집 전**의 연결된 NTFS 작업공간 하나에서 명시적으로 실행한다. 소유 Editor와 자식 프로세스가 종료되고 mount의 열린 핸들이 0이며 snapshot 가용성과 소유권이 확인돼야 한다. 같은 workspace의 다른 수명주기 명령은 `compact-*` 단계 동안 거부한다. provider를 멈춘 뒤 unmount 전후 저널 seal을 대조하고, 원래 snapshot·작업 ID·Git 등록을 그대로 사용해 새 저널 세대를 검증·발행·재연결한다. 새 결과를 수집하기 전에 기존 validation을 무효화하므로 `sourceVerification`과 새 validation을 다시 확인한다. 이미 완료한 세대의 같은 명령 재시도는 seal이 같을 때 읽기 전용 결과를 반환하며, 이후 새 쓰기가 있으면 다시 명시적으로 압축할 수 있다. `checkpoint`를 중간 압축용으로 사용하지 않는다.
+`workspace compact`는 **최종 결과 수집 전**의 연결된 NTFS 작업공간 하나에서 명시적으로 실행한다. 소유 Editor와 자식 프로세스가 종료되고 mount의 열린 핸들이 0이며 snapshot 가용성과 소유권이 확인돼야 한다. 같은 workspace의 다른 수명주기 명령은 `compact-*` 단계 동안 거부한다. provider를 멈춘 뒤 unmount 전후 저널 seal을 대조하고, 원래 snapshot·작업 ID·Git 등록을 그대로 사용해 새 저널 세대를 검증·발행·재연결한다. 정리 뒤 source 내용과 seal을 다시 확인하며 프로젝트 검증은 에이전트가 필요에 맞게 수행한다. 이미 완료한 세대의 같은 명령 재시도는 seal이 같을 때 읽기 전용 결과를 반환하며, 이후 새 쓰기가 있으면 다시 명시적으로 압축할 수 있다. `checkpoint`를 중간 압축용으로 사용하지 않는다.
 
 선택적 `--max-estimated-journal-overlap-bytes <양의 정수>`는 기존 저널의 논리 길이와 후보 저널의 사전 계산 논리 길이의 합계를 제한한다. 지정하지 않으면 기존 정리 동작을 유지한다. 합계가 예산을 초과하면 새 후보 파일·세대 게시 전에 `CompactionOverlapBudgetExceeded`와 두 길이·합계를 반환한다. 그때 provider는 정지된 `resume-compaction` 상태이므로 같은 ID/home의 `workspace compact`로 명시적으로 재시도한다. 인자를 생략한 재시도는 저장된 예산을 유지하고, 값을 명시해야 바뀐다. 이미 후보가 게시된 `compact-connect` 단계에서는 새 예산이 복구를 막지 않는다. 성공하면 pending 예산을 지운다. 이 옵션은 **예상 저널 파일 길이의 중첩량**만 제한하며 NTFS 실제 할당, control/Git/Library, VSS diff area 또는 작업공간 전체 물리 peak의 상한이 아니다. 실제 판단에는 [읽기 전용 공간 장부](source-verification.md#계측의-의미)를 함께 사용한다.
 
@@ -60,7 +59,7 @@ whiteout·rename·truncate·`.meta`와 변경 경로를 재생 대조하며 파�
 
 `snapshot.compaction`에는 attempt, 전후 sequence/길이/SHA-256 seal, 전후 NTFS 파일 할당과 두 저널 세대가 함께 있던 전환 지점의 할당 합계를 기록한다. 새 시도의 `cost`는 `stopwatchFrequency`·`totalTicks`와 stage별 `elapsedTicks`·`readBytes`·`writtenBytes`·`flushCount`를 제공한다. stage에는 원본 replay/seal/상태 hash, 후보 scan/write/flush/replay/seal, 세대 게시·검증, provider 재연결·이전 세대 정리가 들어간다. `totalTicks`는 오프라인 저널 정리 호출만 재며 재연결·이전 세대 정리는 별도 stage다. 이미 게시된 세대를 확인만 하는 재시도에는 `cost`가 없을 수 있고, 누락은 0 비용이 아니다. 두 세대 할당 합계와 stage 표본은 control/identity/Git/Library를 포함한 전체 작업공간 peak가 아니다. 후보를 쓸 여유와 재연결의 2 GiB 하한이 없거나 계산한 후보가 journal budget을 넘으면 기존 세대를 보존한다. VSS 사용량은 볼륨 공유 관측이며 작업별 절감으로 귀속하지 않는다. 현재 구현은 범위 재기록이며 일반 목적 payload 압축이나 쓰기마다 수행하는 flush 정책 변경이 아니다. [정리 1차](verification/journal-compaction.md), [Unity 재개·공간 비용](verification/journal-compaction-qualification-and-cost.md), [중첩량 예산](ntfs-workspaces.md)을 따른다.
 
-일반 status는 앱/provider와 새 검증 응답을 조회하며 매번 프로젝트 파일을 읽지 않는다. 대기 중이던 검증 응답이 도착하면 소스를 한 번 읽어 fingerprint를 대조하고 결과를 저장한다. `data.sourceVerification=verified`인 응답에는 `source`와 `validationCurrent`가 있으며, 검증 성공은 `workspace.validation.success=true`와 `validationCurrent=true`를 함께 확인한다. `not-checked` 응답에는 두 필드를 생략한다. 이때 남아 있는 `workspace.validation`은 이전 증거이며 현재 파일 상태의 보증이 아니다. 현재 소스를 명시적으로 확인하려면 `workspace status --id <id> --verify-source`를 사용한다. checkpoint/integrate의 사전 확인은 항상 소스를 다시 읽는다.
+일반 status는 소유 앱/provider를 관측하고 프로젝트 내용을 읽지 않는다. `--verify-source`의 `sourceVerification=verified` 응답에는 현재 `source`가 있으며 `not-checked`에는 이를 생략한다. source fingerprint는 저장 내용 검사이고 컴파일/테스트 성공이 아니다. checkpoint/integrate는 현재 소스와 독립 결과를 다시 확인한다.
 
 checkpoint는 앱과 자식의 종료를 확인한 뒤 검증한 소스만 커밋하고 `refs/splinter/snapshot-results/<id>`와 `workspace.snapshot.result`를 남긴다. manifest에는 snapshot ID, revision, fingerprint, 결과 ref, 저널 sequence/길이/SHA-256과 `collectionProtocol=stable-journal-v1`이 있다. 소스 검사와 결과 ref 보존 전후의 seal이 같을 때만 manifest를 발행한다. 결과 객체가 Git 저장소 안에 있는지 검증한다. 결과 커밋과 기록은 회수 뒤에도 남는다. 새로운 편집에는 새 key를 사용한다.
 
@@ -71,7 +70,7 @@ checkpoint는 앱과 자식의 종료를 확인한 뒤 검증한 소스만 커�
 workspace의 Git 명령에는 10분 제한과 호출자 취소가 적용된다. 큰 에셋의 초기 index 확인도 파일 내용을 읽을 수 있다. index 파일이 이미 있어도 중단된 attach의 재시도는 stat cache refresh를 완료한다. `GitCommandTimeout` 뒤에는 상태와 남은 잠금을 조사해야 하며 제품은 `index.lock`을 자동 삭제하지 않는다. 진단용 Git inspector의 10초 제한과 별도다.
 
 ```text
-<home>/records/<id>/workspace.json         identity, 단계, validation, 결과 manifest
+<home>/records/<id>/workspace.json         identity, 단계, 이전 증거, 결과 manifest
 <home>/records/<id>/events.jsonl           작업 intent와 완료·실패
 <home>/records/<id>/snapshot/              소유 VSS 영수증, helper, 입력 검사, 해제 허가
 <home>/records/<id>/git-overlay.json       no-checkout 등록과 전용 .git pointer
@@ -150,7 +149,7 @@ Windows에서 FACILITY_WIN32 HRESULT를 확인한 경우만 `nativeErrorDomain=w
 
 ## 회수와 관측
 
-제품 [validation workflow](validation-workflow.md)의 미완료 publish intent·후보·소스 세대도 해당 VSS의 의존성이다. `workspace release`는 이들이 남으면 원본 worker의 정리 전에 `SnapshotInUse`를 반환한다. 같은 worker 명령 잠금 아래 게시와 회수를 직렬화한다. Editor 없이 편집한 worker의 결과는 명시적 `validation`의 `preserve-worker`로 보존할 수 있으며 검증 성공은 부여하지 않는다.
+개발용 [source view/Library cache](validation-workflow.md)의 미완료 게시·후보·소스 세대·열린 cache는 해당 VSS의 의존성이다. 제품 release/discard는 이들이 남으면 `SnapshotInUse`로 차단하며 연쇄 삭제하지 않는다. Editor 없는 worker도 제품 `workspace checkpoint`로 보존한다.
 
 
 회수 순서는 앱/자식 종료 → 소유 브리지 제거 → 수집 전 flush/seal → 현재 source 검사와 독립 결과 ref 보존 → 수집 후 flush/seal 대조 → manifest 저장 → unmount와 provider 종료 → seal 재대조 → Git 등록 회수 → delta 회수 → 마지막 의존성이 없는 소유 VSS ID 해제다. 브리지 제거는 합법적인 저널 변경이므로 수집 구간 전에 마친다. 관리 캐시 밖의 ignored 파일, 미보존 변경, 다른 의존 작업이 있으면 중단한다. 수집 중이나 이후의 쓰기로 seal이 달라지면 `DeltaChangedAfterCollection`로 중단하고 기존 manifest·저널·snapshot을 보존한다. delta 회수 중 응답이 유실되면 기존 삭제 intent와 남은 파일을 검증하고 이어 간다. VSS 해제 helper는 정확한 소유 ID만 받으며 전역 삭제를 하지 않는다. 다만 정확한 ID 삭제 중에도 provider가 오래된 다른 snapshot을 제거한 [실패 기록](verification/storage-foundation.md)이 있다. 현재는 같은 볼륨의 다른 오래된/동일 시각/시각 불명 snapshot 또는 볼륨 정보 불명이 있으면 `SnapshotReleaseIsolationRequired`로 삭제 전에 차단한다. `release-isolation.json`에 전후 ID와 삭제 시도 여부를 기록하고 다른 ID 소실은 `SnapshotCollateralLoss`다. 기존 snapshot을 지워 우회하지 않는다. 차단과 오래된 순서의 회수는 [격리된 소유 합성 snapshot](verification/storage-recovery.md)에서 실제 검증했으며 provider 전체·일반 비소유 백업 공존의 보존 보장은 아니다. 더 오래된 snapshot이 사용 중이면 나중에 끝난 작업도 마지막 snapshot 회수 단계의 `reclaim-pending`으로 남는다. 결과 보존과 회수 대기를 구분하고 같은 작업의 명시적 release 재시도로 이어간다. 이 상태는 완전한 release 성공이 아니다.

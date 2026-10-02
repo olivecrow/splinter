@@ -76,7 +76,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         Assert.Equal("DiscardRequestConflict", (await Assert.ThrowsAsync<WorkspaceException>(() =>
             f.New().DiscardAsync(request with { IntentKey = "replacement" }, ct))).Code);
         Assert.Equal("WorkspaceDiscarding", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Ensure(ct))).Code);
-        Func<Task>[] forbidden = [() => f.New().StartAsync(w.Id, ct), () => f.New().RefreshAsync(w.Id, ct),
+        Func<Task>[] forbidden = [() => f.New().StartAsync(w.Id, ct),
             () => f.New().StopAsync(w.Id, ct), () => f.New().CheckpointAsync(w.Id, "no", ct),
             () => f.New().IntegrateAsync(w.Id, "base", ct), () => f.New().ReleaseAsync(w.Id, ct), () => f.New().CompactAsync(w.Id, ct)];
         foreach (var action in forbidden) Assert.Equal("WorkspaceDiscarding", (await Assert.ThrowsAsync<WorkspaceException>(action)).Code);
@@ -162,7 +162,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         var dependencies = JsonSerializer.SerializeToElement(failure.Details).GetProperty("dependencies").EnumerateArray().Select(x => x.GetString()).ToArray();
         Assert.Contains(dependencies, x => x!.StartsWith("candidate:"));
         Assert.Contains(dependencies, x => x!.StartsWith("source-generation:")); Assert.Contains("cache:discard-view", dependencies);
-        Assert.Contains(failure.RecoveryActions!, x => x.Command == "schema" && x.RequiresUserAction);
+        Assert.Contains(failure.RecoveryActions!, x => x.Command == "capabilities" && x.RequiresUserAction);
         Assert.Null(new WorkspaceStore(f.Home).Get(w.Id).Discard); Assert.Equal(0, f.App.Stops); Assert.True(f.Backend.Mounted);
     }
 

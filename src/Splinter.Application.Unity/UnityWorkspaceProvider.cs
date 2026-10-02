@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Security.Cryptography;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using Splinter.Core;
 
@@ -64,7 +63,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         await File.WriteAllTextAsync(markerPath, JsonSerializer.Serialize(new InfrastructureMarker(workspace.Id, Hash(code)), Json), ct);
         string token = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
         await Atomic(controlPath, "launch-intent.json", new { workspace.Id, token, executable, projectPath = root }, ct);
-        foreach (string name in new[] { "heartbeat.json", "stop-request.json", "stop-result.json", "validation-request.json", "pending.json", "validation.json" })
+        foreach (string name in new[] { "heartbeat.json", "stop-request.json", "stop-result.json" })
         {
             string path = Path.Combine(controlPath, name);
             PlainPath(path);
@@ -72,8 +71,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         }
         return await Processes.StartAsync(new ProcessLaunch(executable,
             ["-projectPath", root, "-logFile", Path.Combine(controlPath, "editor.log"),
-             "-splinterControlPath", Path.GetFullPath(controlPath), "-splinterToken", token,
-             .. (workspace.StorageMode == "ntfs-snapshot" ? new[] { "-splinterIncrementalCompilation", "1" } : [])], root, token), controlPath, ct);
+             "-splinterControlPath", Path.GetFullPath(controlPath), "-splinterToken", token], root, token), controlPath, ct);
     }
 
     public async Task<ApplicationState> ObserveAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
@@ -90,16 +88,8 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         bool valid = heartbeat is not null && heartbeat.Token == lease.Token && heartbeat.Pid == lease.ProcessId &&
             heartbeat.StartTimeUtcTicks == lease.StartTimeUtcTicks && SamePath(heartbeat.ProjectPath, workspace.Path) &&
             DateTimeOffset.UtcNow - heartbeat.ObservedAt < TimeSpan.FromSeconds(15);
-        return valid ? new(true, heartbeat!.Ready, heartbeat.Phase, lease, ToValidation(heartbeat.Validation), resources)
+        return valid ? new(true, heartbeat!.Ready, heartbeat.Phase, lease, Resources: resources)
             : new(true, false, "starting-or-unresponsive; inspect editor.log", lease, Resources: resources);
-    }
-
-    public async Task RequestValidationAsync(WorkspaceRecord workspace, string controlPath, string requestId, string fingerprint, CancellationToken ct = default)
-    {
-        var lease = await Read<ApplicationLease>(controlPath, "launch-receipt.json", ct);
-        if (lease is null || !OwnedProcess(lease)) throw new WorkspaceException("EditorNotRunning", "Start the workspace Editor first.");
-        FocusEditor(lease);
-        await Atomic(controlPath, "validation-request.json", new { requestId, fingerprint, token = lease.Token }, ct);
     }
 
     public async Task StopAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)
@@ -230,22 +220,6 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         catch (InvalidOperationException) { return false; }
         catch (Win32Exception ex) { throw new WorkspaceException("ProcessOwnershipUnknown", ex.Message); }
     }
-    private static void FocusEditor(ApplicationLease lease)
-    {
-        if (!OperatingSystem.IsWindows())
-            throw new WorkspaceException("UnsupportedPlatform", "Interactive Editor validation currently supports Windows only.");
-        using var process = Process.GetProcessById(lease.ProcessId);
-        nint window = process.MainWindowHandle;
-        if (window == 0 || (!SetForegroundWindow(window) && GetForegroundWindow() != window))
-            throw new WorkspaceException("EditorFocusRequired", "Windows did not activate this Editor. Activate its project window and retry unity refresh.");
-    }
-    [DllImport("user32.dll")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetForegroundWindow(nint window);
-    [DllImport("user32.dll")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern nint GetForegroundWindow();
     private static bool SamePath(string left, string right) => string.Equals(Path.GetFullPath(left).TrimEnd(Path.DirectorySeparatorChar),
         Path.GetFullPath(right).TrimEnd(Path.DirectorySeparatorChar), OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
     private static string Hash(string code) => Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(code)));
@@ -273,18 +247,6 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
     }
     private sealed record InfrastructureMarker(string WorkspaceId, string CodeHash);
     private sealed record Heartbeat(string Token, int Pid, long StartTimeUtcTicks, string ProjectPath,
-        string Phase, bool Ready, DateTimeOffset ObservedAt, ValidationWire? Validation);
-    // Unity JsonUtility writes a default nested object for a null serializable class.
-    // No request ID means no evidence; an empty completion timestamp is not a date.
-    private static ApplicationValidation? ToValidation(ValidationWire? value)
-    {
-        if (value is null || string.IsNullOrEmpty(value.RequestId)) return null;
-        if (string.IsNullOrEmpty(value.Fingerprint) || value.Errors is null ||
-            !DateTimeOffset.TryParse(value.CompletedAt, System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.RoundtripKind, out var completed))
-            throw new WorkspaceException("BridgeProtocolInvalid", "Validation evidence is incomplete; inspect the workspace Editor log.");
-        return new(value.RequestId, value.Fingerprint, value.Success, completed, value.Errors);
-    }
-    private sealed record ValidationWire(string? RequestId, string? Fingerprint, bool Success, string? CompletedAt, string[]? Errors);
+        string Phase, bool Ready, DateTimeOffset ObservedAt);
     private sealed record StopResult(string RequestId, string Error);
 }

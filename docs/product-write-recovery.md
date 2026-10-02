@@ -21,6 +21,6 @@ write는 8192 위치의 4KiB, truncate는 4KiB 길이, replace는 beta를 alpha�
 
 request/signal/result는 `product-write-recovery-probe-{request,signal,result}.schema.json`이며 정확한 workspace/snapshot/token/generation/PID/시작 시각을 고정한다. prefix/ACK/signal은 새 임시 파일을 flush하고 overwrite 없는 move로 게시한다. 실패는 client만 종료하고 제품 provider/workspace/snapshot과 delta를 보존한다. 종료 직후 journal 공유 오류 32/33만 최대 5초 재관측하며 손상·접근 거부·unknown을 숨기지 않는다.
 
-정확한 provider 종료와 mount 부재 뒤 동일 ensure는 같은 snapshot/delta/Git 등록을 이어야 한다. 새 현재 VSS read verification·새 provider generation을 확인하고 두 번째 ensure는 같은 새 provider와 journal을 유지해야 한다. 실제 kernel 읽기·beta 4KiB 새 쓰기 후 `validation preserve-worker`로 독립 Git 결과를 명시적으로 보존하며 컴파일 성공은 부여하지 않는다. ref/blob의 바이트를 검증하고 일반 release의 source seal·mount/Git 등록/delta/마지막 snapshot 회수와 프로세스/핸들/메모리 0을 확인한다. `reclaim-pending`은 완료가 아니다.
+정확한 provider 종료와 mount 부재 뒤 동일 ensure는 같은 snapshot/delta/Git 등록을 이어야 한다. 새 현재 VSS read verification·새 provider generation을 확인하고 두 번째 ensure는 같은 새 provider와 journal을 유지해야 한다. 실제 kernel 읽기·beta 4KiB 새 쓰기 후 `workspace checkpoint`로 독립 Git 결과를 명시적으로 보존하며 컴파일 성공은 부여하지 않는다. ref/blob의 바이트를 검증하고 일반 release의 source seal·mount/Git 등록/delta/마지막 snapshot 회수와 프로세스/핸들/메모리 0을 확인한다. `reclaim-pending`은 완료가 아니다.
 
 원본 HEAD/index/tracked hash·기존 refs/worktree와 서비스의 capture/release-isolation snapshot ID를 대조한다. 일반 사용자의 전역 VSS 조회 실패는 unknown이며 0이 아니다. 제한 서비스의 guard와 영수증 근거만 사용하고 비소유 snapshot을 직접 삭제하지 않는다. 실행·실패·현재 후보·지원 한계는 [NR 검증](verification/ntfs-recovery.md)이 소유한다. 이전 fake/kernel 후보·Unity·ARM·재부팅/전원/공간 장애의 자격을 승계하지 않는다. VIVOBOOK 시험은 실행 전에 사용자에게 알린다.

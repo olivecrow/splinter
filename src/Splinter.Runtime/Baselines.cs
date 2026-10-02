@@ -53,8 +53,8 @@ public sealed partial class WorkspaceCoordinator
             {
                 RequireLive(record);
                 var view = await ViewAsync(record, ct);
-                if (view.Source!.HasChanges || view.Source.Revision != record.BaseRevision || record.Validation is not { Success: true } validation || validation.Fingerprint != view.Source.Fingerprint)
-                    throw new WorkspaceException("BaselineValidationRequired", "Baseline source must be unchanged and successfully compiled. Refresh, query status, then seal.");
+                if (view.Source!.HasChanges || view.Source.Revision != record.BaseRevision)
+                    throw new WorkspaceException("BaselineSourceChanged", "Baseline source must match its exact revision before sealing.");
                 await applications.StopAsync(record, store.ControlPath(id), ct);
                 var stopped = await applications.ObserveAsync(record, store.ControlPath(id), ct);
                 if (stopped.Resources is not { OwnershipVerified: true, ActiveProcesses: 0 })

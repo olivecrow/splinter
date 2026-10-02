@@ -51,11 +51,24 @@ public sealed class GitWorkspaceProviderTests
     }
 
     [Fact]
-    public async Task Commit_rejects_stale_or_missing_validation_without_commit()
+    public async Task Commit_preserves_source_without_requiring_internal_compile_evidence()
     {
-        var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); var repo = await Repo(d.Path, ct); var wt = Path.Combine(d.Path, "stale"); var w = Record(repo, wt, "splinter/stale"); var p = new GitWorkspaceProvider(); var made = await p.CreateAsync(w, ct); w.BaseRevision = made.BaseRevision; await File.WriteAllTextAsync(Path.Combine(wt, "new.txt"), "new", ct); var before = await p.InspectAsync(w, ct);
-        await Assert.ThrowsAsync<WorkspaceException>(() => p.CommitAsync(w, "bad", ct)); Assert.Equal(before.Revision, await TestDirectory.Git(wt, "rev-parse", "HEAD"));
-        w.Validation = new("stale", "wrong", true, DateTimeOffset.UtcNow, []); await Assert.ThrowsAsync<WorkspaceException>(() => p.CommitAsync(w, "bad", ct)); Assert.Equal(before.Revision, await TestDirectory.Git(wt, "rev-parse", "HEAD"));
+        var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory();
+        var repo = await Repo(d.Path, ct); var wt = Path.Combine(d.Path, "external");
+        var w = Record(repo, wt, "splinter/external"); var p = new GitWorkspaceProvider();
+        w.BaseRevision = (await p.CreateAsync(w, ct)).BaseRevision;
+        await File.WriteAllTextAsync(Path.Combine(wt, "new.txt"), "unvalidated", ct);
+        var first = await p.CommitAsync(w, "preserve source", ct);
+        Assert.Equal("unvalidated", await TestDirectory.Git(repo, "show", first + ":new.txt"));
+        Assert.Null(w.Validation);
+        w.Validation = new("historic", "stale", false, DateTimeOffset.UtcNow, ["old compile failure"]);
+        await File.WriteAllTextAsync(Path.Combine(wt, "new.txt"), "current", ct);
+        var second = await p.CommitAsync(w, "preserve current source", ct);
+        Assert.NotEqual(first, second);
+        Assert.Equal("current", await TestDirectory.Git(repo, "show", second + ":new.txt"));
+        Assert.False(w.Validation.Success); Assert.Equal("stale", w.Validation.Fingerprint);
+        Assert.False((await p.InspectAsync(w, ct)).HasChanges);
+        Assert.False(File.Exists(Path.Combine(repo, "new.txt")));
     }
 
     [Fact]

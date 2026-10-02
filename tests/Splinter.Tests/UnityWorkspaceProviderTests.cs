@@ -63,10 +63,8 @@ public sealed class UnityWorkspaceProviderTests
         }
     }
 
-    [Theory]
-    [InlineData("0")]
-    [InlineData("1")]
-    public async Task ProductHeartbeatDoesNotExecuteThrowingProjectCode(string incremental)
+    [Fact]
+    public async Task ProductHeartbeatDoesNotExecuteThrowingProjectCode()
     {
         using var directory = new TestDirectory();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
@@ -78,7 +76,7 @@ public sealed class UnityWorkspaceProviderTests
         foreach (string argument in new[] { "exec", "--runtimeconfig",
             Path.ChangeExtension(typeof(UnityWorkspaceProviderTests).Assembly.Location, ".runtimeconfig.json"),
             typeof(UnityBridgeHarness.HarnessMarker).Assembly.Location, "-splinterControlPath", directory.Path,
-            "-splinterToken", "test-token", "-splinterIncrementalCompilation", incremental })
+            "-splinterToken", "test-token" })
             start.ArgumentList.Add(argument);
         using var process = Process.Start(start)!;
         var output = process.StandardOutput.ReadToEndAsync(timeout.Token);
@@ -90,15 +88,13 @@ public sealed class UnityWorkspaceProviderTests
         var root = result.RootElement;
         Assert.Equal(0, root.GetProperty("fixtureCalls").GetInt32());
         Assert.Empty(root.GetProperty("errors").EnumerateArray());
-        Assert.False(root.GetProperty("pendingExists").GetBoolean());
         var heartbeats = root.GetProperty("heartbeats").EnumerateArray().ToArray();
         Assert.Equal(new[] { "ready", "compiling", "ready" }, heartbeats.Select(b => b.GetProperty("phase").GetString()));
         Assert.All(heartbeats, b =>
         {
             Assert.Equal(process.Id, b.GetProperty("pid").GetInt32());
             Assert.Equal("test-token", b.GetProperty("token").GetString());
-            Assert.True(b.GetProperty("validation").GetProperty("success").GetBoolean());
-            Assert.Equal("compiled-before-reload", b.GetProperty("validation").GetProperty("requestId").GetString());
+            Assert.False(b.TryGetProperty("validation", out _));
         });
         Assert.True(heartbeats[0].GetProperty("ready").GetBoolean());
         Assert.False(heartbeats[1].GetProperty("ready").GetBoolean());
@@ -119,7 +115,7 @@ public sealed class UnityWorkspaceProviderTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task HeartbeatHandlesUnityDefaultNestedObjectAndRealValidation(bool completed)
+    public async Task HeartbeatIgnoresEarlierCompileEvidence(bool completed)
     {
         var ct = TestContext.Current.CancellationToken;
         using var directory = new TestDirectory();
@@ -139,7 +135,6 @@ public sealed class UnityWorkspaceProviderTests
         var state = await new UnityWorkspaceProvider().ObserveAsync(record, directory.Path, ct);
         Assert.True(state.Running);
         Assert.True(state.Ready);
-        if (completed) Assert.True(state.Validation!.Success);
-        else Assert.Null(state.Validation);
+        Assert.False(JsonSerializer.SerializeToElement(state, options).TryGetProperty("validation", out _));
     }
 }

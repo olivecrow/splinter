@@ -174,14 +174,14 @@ public sealed class SourceFingerprintTests
     }
 
     [Fact]
-    public async Task ManagedLibraryWritesDoNotInvalidateSourceAndStaleMetaValidationCannotCommit()
+    public async Task ManagedLibraryWritesDoNotInvalidateSourceAndMetaChangesArePreserved()
     {
         using var f = await Fixture.Create(); var first = await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken);
         f.Tracker.OnObserve = _ => f.Tracker.Mark("Library/cache");
         Assert.Equal(0, (await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken)).Inspection!.PayloadBytesHashed);
         f.Workspace.Validation = new("old", first.Fingerprint, true, DateTimeOffset.UtcNow, []);
         File.WriteAllText(f.Path("code.cs.meta"), "guid: updated"); f.Tracker.Mark("code.cs.meta");
-        Assert.Equal("ValidationRequired", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Provider().CommitAsync(f.Workspace, "stale", TestContext.Current.CancellationToken))).Code);
+        Assert.NotEqual(first.Fingerprint, (await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken)).Fingerprint);
     }
 
     [Fact]

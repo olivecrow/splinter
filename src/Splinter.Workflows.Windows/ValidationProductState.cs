@@ -17,9 +17,6 @@ internal sealed record ViewBinding(int Version, string ProjectId, ValidationOwne
 internal sealed record ViewGeneration(int Version, ValidationSelectionReceipt Selection, string WorkerId,
     string BaseRevision, WorkspaceRecord Workspace, OverlayServeRequest Request);
 internal sealed record ActiveGeneration(int Version, string GenerationId);
-internal sealed record ValidationInvocation(int Version, string RequestId, string Fingerprint, long SourceSequence);
-internal sealed record ValidationObservation(int Version, ApplicationValidation Validation, long SourceSequence);
-internal sealed record WorkerPreservation(int Version, string WorkspaceId, ValidationOwner Owner, SnapshotDeltaSeal Seal);
 internal sealed record CacheMaintenance(int Version, string RequestKey, ValidationCacheIdentity Cache,
     long MaxEstimatedJournalOverlapBytes, SnapshotDeltaSeal BeforeSeal, ValidationCacheUsage Before,
     SnapshotJournalCompaction? Compaction = null, ValidationCacheUsage? After = null, bool Completed = false);

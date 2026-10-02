@@ -10,17 +10,21 @@ namespace Splinter.Cli;
 
 public static class Program
 {
-    public static async Task<int> Main(string[] args)
+    public static Task<int> Main(string[] args) => RunEntryPointAsync(args, false);
+
+    public static Task<int> RunDevelopmentAsync(string[] args) => RunEntryPointAsync(args, true);
+
+    private static async Task<int> RunEntryPointAsync(string[] args, bool development)
     {
         using var cancellation = new CancellationTokenSource();
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += cancel;
-        try { return await RunAsync(args, Console.Out, cancellation.Token); }
+        try { return await RunAsync(args, Console.Out, cancellation.Token, development: development); }
         finally { Console.CancelKeyPress -= cancel; }
     }
 
     public static async Task<int> RunAsync(string[] args, TextWriter output, CancellationToken cancellationToken = default,
-        IWorkspacePreparationObserver? preparationObserver = null)
+        IWorkspacePreparationObserver? preparationObserver = null, bool development = false)
     {
         string commandId = "cli";
         bool human = false;
@@ -28,8 +32,8 @@ public static class Program
         ApiResponse response;
         try
         {
-            var contracts = new ContractCatalog();
-            var gateway = new FoundationGateway(contracts, new GitRepositoryInspector(), new UnityProjectInspector());
+            var contracts = new ContractCatalog(development);
+            var gateway = new FoundationGateway(contracts, new GitRepositoryInspector(), new UnityProjectInspector(), development);
             var root = new RootCommand("Splinter agent-first workspace runtime (internal alpha).");
             root.Options.Clear();
             var help = new Option<bool>("--help", "-h") { Recursive = true, Description = "List implemented command contracts." };
@@ -63,9 +67,12 @@ public static class Program
             });
             root.Subcommands.Add(doctor);
 
-            WorkspaceCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken, actions => recoveryActions = actions, preparationObserver);
-            DevelopmentPreparationProbe.Add(root, contracts, value => result = value, cancellationToken);
-            OverlayExperimentCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken);
+            WorkspaceCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken, actions => recoveryActions = actions, preparationObserver, development);
+            if (development)
+            {
+                DevelopmentPreparationProbe.Add(root, contracts, value => result = value, cancellationToken);
+                OverlayExperimentCommands.Add(root, contracts, id => commandId = id, value => result = value, cancellationToken);
+            }
 
             var parsed = root.Parse(args);
             human = parsed.GetValue(humanOption);

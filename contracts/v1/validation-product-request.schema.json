@@ -20,15 +20,12 @@
         "publish",
         "select",
         "resume",
-        "observe-validation",
         "preserve",
         "release",
         "status",
         "start",
-        "refresh",
         "stop",
         "close-view",
-        "preserve-worker",
         "compact-cache"
       ]
     },
@@ -109,8 +106,7 @@
         "action": {
           "enum": [
             "prepare-worker",
-            "publish",
-            "preserve-worker"
+            "publish"
           ]
         }
       },
@@ -194,9 +190,7 @@
         "action": {
           "enum": [
             "resume",
-            "observe-validation",
             "start",
-            "refresh",
             "stop"
           ]
         }

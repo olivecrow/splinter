@@ -72,7 +72,6 @@ public interface IValidationWorkflowProvider
     // Select offline, preserving old source generations. This is not Editor-ready
     // or validation success. Recheck ownership/quiescence within the side effect.
     Task<ValidationSelectionReceipt> SelectAsync(ValidationSelectionIntent intent, CancellationToken ct);
-    Task<CandidateValidationEvidence> ReadValidationAsync(ValidationSelectionReceipt selection, CancellationToken ct);
     Task<SnapshotDeltaSeal> SealSourceAsync(ValidationSelectionReceipt selection, CancellationToken ct);
     Task<ValidationIndependentResult?> FindResultAsync(ValidationPreservationIntent intent, CancellationToken ct);
     // Preserve the exact frozen seal, including failed validation outputs.

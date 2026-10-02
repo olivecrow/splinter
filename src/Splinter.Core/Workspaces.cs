@@ -19,6 +19,7 @@ public sealed class WorkspaceRecord
     public string Purpose { get; set; } = "task";
     public string[] ManagedPaths { get; set; } = [];
     public ApplicationLease? Application { get; set; }
+    // Retain earlier evidence in the current durable format; no longer produced or used as a gate.
     public string? PendingValidationId { get; set; }
     public string? PendingFingerprint { get; set; }
     public ApplicationValidation? Validation { get; set; }
@@ -41,10 +42,11 @@ public sealed record SourceState(string Revision, string Fingerprint, bool HasCh
 public sealed record IntegrationResult(string Revision, bool AlreadyIntegrated);
 public sealed record ApplicationLease(int ProcessId, long StartTimeUtcTicks, string Token, string ExecutablePath,
     ProcessGroupLease? Group = null);
+// Historical evidence in WorkspaceRecord only; application observations do not publish it.
 public sealed record ApplicationValidation(string RequestId, string Fingerprint, bool Success,
     DateTimeOffset CompletedAt, string[] Errors);
 public sealed record ApplicationState(bool Running, bool Ready, string Phase,
-    ApplicationLease? Lease = null, ApplicationValidation? Validation = null, ProcessResources? Resources = null);
+    ApplicationLease? Lease = null, ProcessResources? Resources = null);
 
 public interface ISourceWorkspaceProvider
 {
@@ -64,8 +66,6 @@ public interface IApplicationWorkspaceProvider
     string CompatibilityKey(string project);
     Task<ApplicationLease> StartAsync(WorkspaceRecord workspace, string controlPath, CancellationToken cancellationToken = default);
     Task<ApplicationState> ObserveAsync(WorkspaceRecord workspace, string controlPath, CancellationToken cancellationToken = default);
-    Task RequestValidationAsync(WorkspaceRecord workspace, string controlPath, string requestId, string fingerprint,
-        CancellationToken cancellationToken = default);
     Task StopAsync(WorkspaceRecord workspace, string controlPath, CancellationToken cancellationToken = default);
     Task RemoveInfrastructureAsync(WorkspaceRecord workspace, string controlPath, CancellationToken cancellationToken = default);
 }

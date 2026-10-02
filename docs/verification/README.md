@@ -1,5 +1,7 @@
 # 검증 안내와 보존 근거
 
+현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop을 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제거했고 결과 보존은 checkpoint로 통일했다. 선택적 단일 view/Library cache·ReFS·probe는 [개발용 CLI](../development-cli.md)로 분리했다. 아래 기존 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 이번 후보의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](workspace-product-scope.md)을 따른다.
+
 ## 현재 변경의 검증
 
 [한정 M0 납품 판정](m0-delivery.md)은 기존 개발 CLI·소스 스킬·[AI 시작 안내](../agent-start.md)의 한정 버전을 scoped-complete-with-limitations로 마감한다. 현재 복구 회귀와 과거 native의 source hash/변경 경계를 대조했고 현재 전체 native 중단 통과로 승계하지 않는다. NR/SF/SW 전체 미완료는 후속 지원 확대이며 M0의 진척 분모가 아니다.
@@ -28,7 +30,7 @@
 | NR-01 상태 쓰기 진단 | [실패 단계·게시 상태·기계용 오류와 실제 파일 시험 16개](state-write-diagnostics.md) | 진단 단위 scoped-complete-with-limitations. 실제 Windows 파일 I/O와 새 소유 diagnostic Git CLI·공통/schema/fake 범위. 이전 NR-02/03 상태 게시 실패 원인은 unknown, NR-01 전체 InProgress. VSS/WinFsp·전원/공간 관문의 자격과 구분 |
 | PV-01/02 | 대표 fixture와 사용자 선택 비교 범위는 scoped-complete-with-limitations | PV-02 전체 Passed 아님. S4 FailedInputQualification, 소수 표본, 전체 팩 raw 입력 동등성 unknown |
 | SF-01/02 | 변경 기반 소스 검증, 명시적 정리·중첩 예산·계측의 하위 범위 | 공통 저장소 최초 실행의 FailedPreservation은 유지. SF-02 전체 Partial, 대형 용량 목표 미달성 |
-| SF-03/VC/VR | 개발용 작은 A/B/A, 정상 cold import와 재연결 | SF-03 전체 Partial. 큐·일반 임대 복구·source 반환 병합 미구현. VR-03 Partial. 현재 제품 연결은 WF로 구분 |
+| SF-03/VC/VR | 개발용 작은 A/B/A, 정상 cold import와 재연결 | SF-03 전체 Partial·VR-03 Partial 유지. 큐/일반 임대 인수는 구현 제외, source 반환 병합은 AI 절차. 현재 제품 연결은 WF로 구분 |
 | SF-03/VW | [공통 수명주기](../validation-workflow.md)의 지속 상태·영수증 재조정·fake 적합성 | 합성 파일/영수증이며 실제 VSS·WinFsp·Unity 지원 증거가 아님. 자동 실행 상태는 VW, 제품 연결 자격은 WF를 따름 |
 | SF-03/VG | [등록 증거가 있는 관리 파일 분리](../validation-view.md#등록-증거가-있는-관리-파일-분리)의 실제 임시 Git 등록·합성 불변 트리 적합성 | 후보 v2 게시의 자동 시험 범위. 실제 provider 실행은 WF의 현재 후보 증거로 별도 판정 |
 | SF-03/VP | [같은 요청 게시 복구](../validation-view.md#같은-요청의-게시-복구)의 영구 intent·부분 저널 prefix·완료 receipt 재조정 | 합성 트리·실제 임시 파일·예외 주입 범위. 실제 CLI 중단은 WF, 재부팅·전원/공간 장애는 NR의 별도 관문 |
@@ -38,7 +40,7 @@
 | JW/FR | 고정 쓰기 계측과 작은 URP fixture의 요청별 유효 PNG 검사 | Windows 선행 직렬화·내구성 경계 유지. Unity 내부 첫 draw 원인 미확정, group flush 미선정 |
 | SW-09 폐기 | [로컬 dirty A/B의 서비스 적용·동일 요청 재개](workspace-discard.md)와 [대표 Unity 실패 worker stop/폐기](representative-agent-workflow.md) | 하위 실행 scoped-complete-with-limitations, SW-09 전체 Partial. native 강제 중단·SW-10 미실행 |
 | M0, SW-03/06 | [최소 AI 지침·direct](agent-workflow.md)·[대표 Editor 사용/종료·비용](representative-agent-workflow.md)와 [현재 복구 회귀/한정 납품](m0-delivery.md) | 한정 M0 마감·현재 모든 native/OS 장애 통과 아님. SW-03/06 전체 Partial, busy/unknown 점유·새/동시 대화·자동 설치/binding은 미실행 |
-| SF-04~06, SW-01/02/04/05/07/08/10 | 계획 | NotRun. 대형 입력·모드 채택·일반 설치/binding과 전체 대화/Editor 사용 흐름은 미완료 |
+| SF-04~06, SW-01/02/04/05/07/08/10 | 보존한 시나리오·후속 책임 분류 | NotRun 유지. 대형/특수 지원은 필요 시 검증, 모드/설치/인계는 AI 절차, 자동 모드/전용 installer/binding은 구현 제외. 전체 대화/Editor 흐름은 미자격 |
 | UA-01~04 | [제한 권한 서비스](storage-privilege-service.md)의 실제 설치·일반 CLI A/B 추가 UAC 0·회수·서비스 재시작/응답 유실 | 등록된 Windows x64 NTFS/Git fixture 범위 Passed. 일반 Unity·ARM·실제 전원/재부팅과 native VSS 호출 도중 강제 종료로 확대하지 않음 |
 
 새 후보에서 필요한 실제 환경 시험을 실행하기 전에는 아래 기록을 현재 후보의 통과로 승계하지 않는다. GUI Unity·VSS·격리 디스크 시험은 정의된 범위와 소유 자원을 확인한 뒤 실행한다. 현재 원본·다른 작업·기존 결과 refs와 비소유 snapshot을 보존한다.
@@ -74,4 +76,4 @@
 | [Live 쓰기](live-journal-write-cost.md) | flush 내부 비용, callback 직렬화·대기/완료 경계와 향후 내구성 판단 |
 | [첫 미리보기](first-render-qualification.md) | 첫 draw 미확정 원인, cold/reload/재시작과 실패 주입, PNG 해시 기반 판독 기준 |
 
-미완료 시나리오의 소유자는 [검증 추적표](../plans/validation-matrix.md), 다음 제품 설계 판단은 [저장공간 우선 계획](../plans/storage-priority-and-editor-modes.md)을 따른다. 완료 단계별 계획과 반복 CHANGE LOG는 유지하지 않는다.
+시나리오의 실행 상태와 후속 책임 분류는 [검증 추적표](../plans/validation-matrix.md), 축소한 작업/종료 기준은 [구현 계획](../plans/implementation-plan.md), 비용 판단은 [저장공간 우선 계획](../plans/storage-priority-and-editor-modes.md)을 따른다. 구현 제외를 Passed로 바꾸지 않고 전체 NotRun을 개발 backlog로 읽지 않는다. 완료 단계별 계획과 반복 CHANGE LOG는 유지하지 않는다.

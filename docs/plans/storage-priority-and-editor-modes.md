@@ -1,8 +1,10 @@
 # 저장공간 우선 설계와 Editor 실행 방식
 
-대형 Unity 프로젝트의 작업공간 용량과 생성·편집 준비·재개 시간을 함께 판단하고 Editor 동시성은 그 뒤에 둔다. 제품은 작업별 독립 Editor와 명시적 `validation` 단일 Editor 검증을 제공한다. 기본 모드 자동 선택은 미확정이다.
+현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop을 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제거했고 결과 보존은 checkpoint로 통일했다. 선택적 단일 view/Library cache·ReFS·probe는 [개발용 CLI](../development-cli.md)로 분리했다. 아래 기존 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 이번 후보의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](../verification/workspace-product-scope.md)을 따른다.
 
-첫 한정 실사용 버전 [M0](implementation-plan.md)는 **폐기·최소 AI 연결·대표 사용 흐름과 비용 판단**을 마감했다. [대표 사용](../verification/representative-agent-workflow.md)은 작은 warm 입력의 지속 독립 작업에 한정 채택하며, 준비/메모리 비용과 총 물리 공간·대형 효율 미확인을 유지한다. Library/validation의 기존 구현과 명시적 실행 경로를 사용한다. SF 전체 대형 지원·일반 임대 인수·큐/Coordination·source 반환 병합·자동 모드 선택은 별도 후속이다.
+대형 Unity 프로젝트의 작업공간 용량과 생성·편집 준비·재개 시간을 함께 판단하고 Editor 동시성은 그 뒤에 둔다. 기본 CLI는 작업별 독립 Editor 수명을 관리한다. 선택적 단일 Editor용 소스 view/Library cache는 `splinter-dev.ps1 view`의 저장소 경로다. 프로젝트 검증과 모드 선택은 AI·외부 도구의 책임이며 자동 모드 선택은 구현 제외다.
+
+첫 한정 실사용 버전 [M0](implementation-plan.md)는 **폐기·최소 AI 연결·대표 사용 흐름과 비용 판단**을 마감했다. [대표 사용](../verification/representative-agent-workflow.md)의 작은 warm 입력·준비/메모리 비용·총 물리 공간/대형 효율 미확인을 유지한다. Library/validation은 기존 명시적 저장 경로로 유지한다. 작업 순서·Editor 수·모드 선택·source 반환 병합은 AI 절차이며 일반 임대 인수·큐/Coordination·자동 모드 선택·원본 Editor 공유는 프로그램 구현에서 제외한다. 책임 경계는 [구현 계획](implementation-plan.md#프로그램과-에이전트의-책임)을 따른다.
 
 ## 후속 개발 우선순위
 
@@ -18,16 +20,18 @@
 
 ## 별도 지원 확대의 남은 범위
 
-| 단위 | 현재 상태 | 남은 완료 조건 |
+| 단위 | 기존 실행 상태 | 축소한 후속 책임 |
 | --- | --- | --- |
 | SF-01 변경 기반 소스 검증 | 정의한 소스 검증 범위 Passed | 일반 파일/입력 지원은 NR 검증과 별도 |
-| SF-02 journal·저장량 | 작은 입력의 Library 수명주기 LB 마감. 전체 Partial | 대형 입력의 용량 목표와 정리 중 전체 순간 물리 peak |
-| SF-03 단일 Library 검증 | 제품 CLI/provider·cold/기존 Library·A/B/A/정리 후 재실행의 WF/LB 범위 마감. 전체 Partial | 일반 임대 복구·source 반환 병합·큐/Coordination 계약과 모드 채택 판단 |
-| SF-04 작업 재개·독립 결과 | NotRun | 후보 검증 후 계속 편집, VSS 소실·새 CLI·외부 원본 변경에서도 결과 보존 |
-| SF-05 대형 입력 적합성 | NotRun | 파일 수·에셋·LFS/filter·패키지 조건과 NR 장애 관문 |
-| SF-06 기본 방식 선택 | NotRun | 같은 입력의 신규/재개/누적 편집/정리 비용 비교 후 채택 여부 결정 |
+| SF-02 journal·저장량 | 작은 Library 수명주기 LB 마감. 전체 Partial | 실제 사용할 입력의 저장 병목만 개선. 대형 목표·순간 물리 peak는 필요 시 검증이며 미확인 상태 유지 |
+| SF-03 단일 Library 검증 | 기존 WF/LB 범위 마감. 전체 Partial | 기존 cache·후보/세대·명시적 전환의 수명/회수 유지. 외부 도구 인계는 최소 연결 범위. 큐·일반 임대 인수·원본 공유는 제외, 생성 소스 병합은 AI/Git 절차 |
+| SF-04 작업 재개·독립 결과 | NotRun | 사용할 후보/worker의 같은 요청 재개·결과 보존과 기준 소실/원본 변경 경계만 선택. 전체 특수 조합은 필수 아님 |
+| SF-05 대형 입력 적합성 | NotRun | 사용할 입력의 mount/Git·파일 I/O 정확성만 선택. 에셋/패키지 저작은 외부 도구 책임, LFS/filter 등의 비지원 거부 유지 |
+| SF-06 기본 방식 선택 | NotRun | AI가 기존 경로의 비용으로 선택하는 사용 절차. 제품 자동 선택 구현 제외, 전체 비교 실행은 필요 시에만 선택 |
 
 개발용 후보와 현재 계약은 [validation view](../validation-view.md)를 따른다. 완료된 작은 시험과 제한은 [검증 안내](../verification/README.md)에서 확인하며 새 대형 PV를 자동 시작하지 않는다.
+
+SF-02/03 Partial·SF-04~06 NotRun은 증거 상태이며 미완성 프로그램 기능의 수가 아니다. AI 절차/구현 제외로 분류한 항목도 과거 미실행을 통과로 바꾸지 않는다. 저장·메모리 개선은 실제 입력의 병목 하나와 종료 기준을 고르고, 기존 cache가 있다는 이유로 작업 큐·게임 검증 자동화까지 확장하지 않는다.
 
 ## 다음 판단에 필요한 근거
 
@@ -51,7 +55,7 @@
 - 독립 Git 결과의 객체 존재와 제품 snapshot 의존성 차단을 확인한다. 실제 CLI 중단과 응답 유실을 시험하며 fake나 예외 주입의 성공을 실제 프로세스 결과로 승계하지 않는다.
 - 최종 후보의 작은 실제 A/B/A에서 정상 stop·mount 부재·같은 경로 재시작, 실제 코드/에셋·결과 독립성·원본/타 작업 보존·소유 자원 회수를 확인한다. 전체 추가 파일 할당과 최고치, replay·준비·재개 시간을 구분한다.
 
-SF-03 전체는 Partial이다. FIFO/Coordination, 일반 임대 인수, 생성 source 반환 병합, 원본 Editor 공유, 기본 모드 선택, group flush, 대형 PV 재개, NR 전체 시험과 설치·자동 binding은 별도 후속이다. discard와 최소 AI 연결을 포함한 한정 M0 마감은 SF 전체 통과를 뜻하지 않는다. 제한 권한 서비스의 등록된 NTFS/Git 실제 반복 검증은 [UA 범위](../verification/storage-privilege-service.md), Unity 연결은 아래 보존한 WF/LB 범위에서 확인했다. 현재 계약의 같은 요청 중단·응답 유실·재시작 복구는 계속 유지한다.
+SF-03 전체 Partial은 유지한다. FIFO/Coordination·일반 임대 인수·원본 Editor 공유·자동 모드·전용 installer·자동 binding은 구현 제외다. 생성 source 반환 병합과 실행 방식 선택은 AI 절차다. group flush는 채택하지 않았으며 대형 PV/NR 전체는 필요 시 지원 검증이다. 한정 M0를 전체 SF 통과로 읽지 않는다. [UA](../verification/storage-privilege-service.md)와 아래 WF/LB의 기존 자격·현재 계약의 동일 요청/응답 유실/재시작 복구는 유지한다.
 
 ## 다음 범위 판단
 
@@ -63,7 +67,7 @@ Library의 마감 뒤 확정한 [NR-01/02 준비 단계 중단 복구](ntfs-reco
 
 [WF-06~08](../verification/product-validation-cold-cost.md)은 최종 후보의 두 빈 cache A/B/A·소유 파일 할당/시간·독립 결과/회수 근거를 제공한다. 렌더 준비에서 발생하는 설정 저장을 마친 뒤 같은 세대를 다시 시작해 검증하므로 이 추가 Editor 시작/종료도 반복 비용에 포함한다. 첫 두 시도의 실패와 관측 사이 순간 물리 최고치·공유 VSS 귀속의 한계를 유지한다.
 
-작은 입력의 Library 유효량·정리·재증가와 신규/재개 비용은 [WF/LB 실제 실행](../verification/product-validation-unelevated.md)에서 확인했다. 명시적 discard·최소 AI 연결과 M0-08의 고정 입력 비용 판단은 [한정 납품](../verification/m0-delivery.md)으로 마감했다. 후속 비용 작업은 실제 사용할 입력과 실행 경로를 먼저 정하고, 관측한 실용성 결함/병목만 대상으로 삼는다. [IPC 검증](../verification/control-file-read-races.md)의 과거 t2 정확한 발생 지점과 새 실행의 일시적 heartbeat 게시 오류 원인은 미확정으로 유지한다. 대형 공간 목표·새 backend/flush 정책·전체 NR·설치/자동 binding·대형 PV 재개는 후속이며 작은 fixture 통과로 완료하지 않는다.
+작은 Library 유효량·정리·재증가와 신규/재개 비용은 [WF/LB](../verification/product-validation-unelevated.md), M0 비용 판단은 [한정 납품](../verification/m0-delivery.md)의 범위로 마감했다. 후속 비용 작업은 실제 입력과 경로의 관측 병목만 고른다. [IPC](../verification/control-file-read-races.md)의 과거 t2 지점과 heartbeat 게시 오류 원인 미확정은 유지한다. 대형 공간·전체 NR/PV는 필요 시 검증이며 새 backend/flush 정책을 선행하지 않는다. 설치는 AI 절차이고 자동 binding은 구현 제외다.
 
 ## 보존한 한정 범위: 일반 권한 Unity 검증 흐름
 
@@ -121,13 +125,13 @@ Library 완료 기준의 구현과 이를 막는 재현 가능한 결함을 기�
 
 WF-09~12의 모든 증거가 있을 때 이 작은 실행 단위만 `scoped-complete-with-limitations`로 마감한다. `reclaim-pending`, 관측 unknown, 환경 차단이나 미보존 결과가 남으면 완료로 처리하지 않고 남은 정확한 조건을 기록한다. 비소유 snapshot 삭제·자동 sweep·강제 프로세스 종료로 완료 조건을 맞추지 않는다.
 
-SF-02/03과 SF-04~06 및 SW-01~10의 전체 자격은 각 소유 관문에 따라 판정한다. Library 완료는 위 다섯 조건의 실제 근거로 별도 판정하고 일반 cold 안정성·SF-04 전체·대형 프로젝트 전체 지원으로 확대하지 않는다. C/S/Q·대형 PV 재개, 기본 모드 자동 선택, source 반환 병합·FIFO/Coordination·일반 임대 인수, 제품 설치·대화 binding·discard, 실제 전원/재부팅/공간 고갈·ARM A/B, 일반 에셋 저작/Play/Unity 테스트 확대와 원격 게시·릴리스는 제외한다.
+Library 완료는 위 다섯 조건의 실제 근거로만 판정하고 일반 cold·SF/SW 전체·대형 지원으로 확대하지 않는다. 기존 SF/SW 실행 상태를 보존하며 각 행의 AI 절차/구현 제외/필요 시 검증 분류를 따른다. 이 마감 범위에 대형 PV·OS/ARM 시험·설치/게시를 추가하지 않는다. 자동 모드·큐·일반 임대 인수·원본 공유는 구현 제외이고 source 반환 병합·게임 검증은 AI와 외부 도구 책임이다.
 
 이번 Library 구현·검증의 마감은 위 다섯 기준에 한정한다. 새 입력이나 후보에서 보존 결함이 드러나면 해당 경계를 함께 수정·검증한다. 별도 NR 전체 장애나 공개 운영 범위를 자동으로 실행하지 않는다.
 
 ## 공통 저장소와 Editor 정책
 
-작업자는 Editor 없이 독립 소스를 편집하고 불변 후보를 게시할 수 있어야 한다. 검증 view는 같은 경로의 단일 Library를 사용하되 정상 Editor stop·mount 부재 뒤 재시작하며 replay·재시작·큐 대기를 반복 비용에 포함한다. 사용자 원본 Editor를 별도로 열면 총 Editor 수는 둘이다. 원본 Editor 자체를 공유하려면 짧은 임대 동안 미저장 상태·후보 적용·원복을 보호하는 별도 계약이 필요하다. 작업 기간 전체의 원본 쓰기를 막지 않는다.
+작업자는 Editor 없이 독립 소스를 편집하고 기존 불변 후보 경로를 명시적으로 사용할 수 있다. 검증 view는 정상 Editor stop·mount 부재 뒤 같은 경로/Library로 재시작한다. AI가 작업 순서와 모드를 선택하며 실제 대기·replay·재시작 비용을 기록한다. 사용자 원본 Editor는 별도 소유로 보존하고 제품 공유/인수 계약을 추가하지 않는다. 작업 기간 전체의 원본 쓰기를 막지 않는다.
 
 전체 논리 파일 트리와 GUID/.meta·패키지 의존성을 유지하며 범위 읽기와 실제 변경만 저장한다. 현재 씬이 참조하는 파일만 선택하는 방식이나 파일 전체 복사로 대체하지 않는다. 도구가 전체 파일을 다시 쓰면 그 쓰기는 누적되므로 정리·독립 Git 결과의 materialization 비용까지 포함한다.
 
