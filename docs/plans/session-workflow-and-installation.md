@@ -83,15 +83,21 @@ Core의 식별자는 공급자 중립적인 project/task/workspace ID를 유지�
 
 AI는 반환 workspace에서 파일/Git 작업을 하고 필요한 시점에 소유 Editor를 확보한 뒤 MCP·Unity CLI로 Unity 작업을 수행한다. 에셋 저작·Play·테스트·빌드·캡처·오류 분석·검증 판단은 외부 도구와 AI가 맡는다. 모드/작업 순서 선택도 AI가 하며 자동 큐·일반 임대 인수·Unity 명령 중계는 구현하지 않는다.
 
-현재 worker는 Coplay `10.2.0` 서버를 따로 시작하지 않는 전용 브리지 경로이며 원본 서버 종료 방어가 있다. 병렬 worker에서 MCP/Unity CLI를 사용하는 정상 경로는 아직 실제 자격이 없다. 다음 인계 작업은 사용할 외부 도구 하나·버전·기존 프로젝트 설정을 먼저 고정하고, 정확한 A/B 프로젝트 선택·작업·한쪽 정상 종료 뒤 peer/원본/공유 서버 보존만 확인한다. 기존 도구가 선택/연결을 제공하면 그 절차를 스킬에 적고, 필요한 식별 정보 누락이나 공존 결함만 프로그램에서 수정한다. 패키지·서비스·원본 설정 변경은 해당 실행 범위에 별도로 명시하며 이 계획만으로 설치하지 않는다.
+현재 worker는 Coplay `10.2.0` 서버를 따로 시작하지 않는 전용 브리지 경로이며 원본 서버 종료 방어가 있다. Unity CLI의 작은 T: Plastic A/B exact-path 작업·정상 종료 공존·독립 결과/회수는 [별도 UH 검증](../verification/unity-cli-handoff.md)으로 한정 마감했다. CLI 목록 누락·첫 eval 타임아웃과 MCP/다른 입력의 미자격을 유지한다. 새 인계 작업은 사용할 외부 도구 하나·버전·기존 프로젝트 설정을 먼저 고정하고, 정확한 A/B 프로젝트 선택·작업·한쪽 정상 종료 뒤 peer/원본/공유 서버 보존만 확인한다. 기존 도구가 선택/연결을 제공하면 그 절차를 스킬에 적고, 필요한 식별 정보 누락이나 공존 결함만 프로그램에서 수정한다. 패키지·서비스·원본 설정 변경은 해당 실행 범위에 별도로 명시하며 이 계획만으로 설치하지 않는다.
 
 현재 `checkpoint/integrate`는 내부 컴파일 증거를 요구하지 않는다. AI가 외부 도구로 검증할 내용을 판단하고, Splinter는 같은 checkpoint 경로로 Editor 유무·컴파일 결과와 무관하게 안정된 소스를 독립 보존한다. seal·독립 결과·target/dirty guard는 유지한다. `preserve-worker`와 자체 refresh/컴파일/포커스 처리는 제거했으며 범용 검증 증거 플랫폼은 추가하지 않는다. 선택적 단일 view/Library cache는 [개발 CLI](../development-cli.md)의 저장소 수명 관리로 제한한다. 현재 기본 사용법은 [시작 안내](../agent-start.md)를 따른다.
 
 ### 후속 범위: Unity CLI의 A/B 인계
 
-VCS 독립성 요구를 반영해 **VCS 없는 기본 수명주기와 기존 Git 사용 환경의 보호 경계를 먼저 구현하고 한정 A/B를 마감**했다. 이 절의 Unity CLI 전체 인계는 별도 후속 범위로 유지한다. 일반 폴더 단위의 exact path eval/recompile·목록 누락·원본 공존은 [VCS 검증](../verification/vcs-independent-workspaces.md)에 고정했으며 기존 Git fixture의 별도 전체 A/B 인계 시험은 병행하지 않았다. [일반 폴더 원본 반영](plain-folder-original-apply.md)은 구현·일반 권한 파일 시험과 작은 Editor 없는 제품 A/B를 한정 마감했으며 이 절의 전체 인계는 별도 후속이다. 아래 Git 도구/fixture 정보는 읽기 전용으로 확인한 후속 후보이며 이 별도 실행·fixture 변경은 시작하지 않았다. 실행 상태는 [추적표](validation-matrix.md#축소한-후속의-책임-분류)를 따르며 과거 M0/WF/LB 자격을 승계하지 않는다.
+아래에 고정한 2026-10-03의 T: 실행은 [UH-01~04](../verification/unity-cli-handoff.md)로 scoped-complete-with-limitations 마감했다. 정확한 반환 경로의 기존 CLI 연결로 해결돼 프로그램 변경은 없으며 [사용 절차](../alpha-workspaces.md#unity-cli의-정확한-대상-선택)·스킬·시작 안내를 보완했다. 목록 발견 제한·초기 읽기 eval 타임아웃·미실행 MCP/Play/Test/build와 선행 C: 회수 보류는 유지한다. 이하 Git 표는 이전에 읽기 전용으로 조사한 후보이며 이번 실행 입력이 아니다.
 
-선택 근거는 자체 refresh/컴파일 기능을 제거한 현재 제품 경로에서 외부 도구 인계가 아직 미자격이라는 점이다. 기존 Unity CLI와 Pipeline으로 먼저 연결 절차를 확인하고, 필요한 식별 정보나 공존 결함만 프로그램에서 고친다. 저장·메모리 개선의 우선순위는 그대로 유지한다. 이미 마감한 [부분 쓰기·버퍼 개선](../verification/resource-efficiency-followup.md)을 반복하거나 관측하지 않은 Library 병목을 구현 대상으로 미리 정하지 않는다.
+2026-10-03의 실행 단위는 아래 과거 Git 후보 대신 **기존 `T:\plastic-fixture-20261002`·등록 home `T:\pt1002`·`source=plastic`·`application=unity`·`base=snapshot`**을 사용한다. 후보는 `development @ 57d4439`이며 프로그램 수정 시 최종 소스/바이너리 hash를 다시 고정한다. Unity `6000.3.22f1`·CLI `1.0.0-beta.5`·Pipeline `0.8.0-exp.1`을 그대로 사용한다. 질문은 선행 PC의 worker 발견 실패가 CLI 목록에만 한정되는지, 정확한 반환 경로의 실제 명령/loaded 결과와 A 정상 종료 후 B의 후속 작업이 가능한지다.
+
+새 key `cli-t-a-20261003`·`cli-t-b-20261003` 하나씩만 만들며 같은 home/16 GiB journal budget을 고정한다. 별도 source 등록·fixture 복제·서비스 업데이트·패키지/원본 설정 변경·Coplay 서버 시작은 포함하지 않는다. 원본 C: Editor/Pipeline, T: source/Plastic 관리 정보와 기존 등록 5개, 보존 결과·C: 회수 보류를 유지한다. A/B 각각 작은 C# loaded 값을 확인하고 A stop 후 B 후속 컴파일/조회, 두 독립 결과 보존과 release·마지막 소유 snapshot/자원 회수로 마감한다. 연결 자체가 불가능하면 실패와 보존 상태·필요한 최소 후속 범위를 남긴다. CLI의 substring 선택 결과를 정확한 절대 경로/PID와 대조하며 discovery 실패를 readiness 또는 연결 성공으로 숨기지 않는다.
+
+VCS 독립성 요구를 반영해 **VCS 없는 기본 수명주기와 기존 Git 사용 환경의 보호 경계를 먼저 구현하고 한정 A/B를 마감**했다. 일반 폴더 단위의 exact path eval/recompile·목록 누락·원본 공존은 [VCS 검증](../verification/vcs-independent-workspaces.md), 작은 Editor 없는 원본 반영은 [별도 AP](plain-folder-original-apply.md)의 자격이다. 이후 이 절의 T: Plastic A/B 인계를 별도 실행해 마감했으며 이들 판정을 서로 승계하지 않는다. 아래 Git 후보의 별도 실행/fixture 변경은 시작하지 않았다. 실행 상태는 [추적표](validation-matrix.md#축소한-후속의-책임-분류)를 따른다.
+
+이 단위는 자체 refresh/컴파일 기능을 제거한 제품 경로에서 실제 외부 도구 인계를 확인하려고 선택했다. 기존 Unity CLI/Pipeline의 exact-path 연결로 해결돼 프로그램 변경 없이 사용 절차와 자격을 보완했다. 새 도구/입력에서도 필요한 식별 정보나 공존 결함만 수정한다. 저장·메모리 개선의 우선순위는 그대로 유지한다. 이미 마감한 [부분 쓰기·버퍼 개선](../verification/resource-efficiency-followup.md)을 반복하거나 관측하지 않은 Library 병목을 구현 대상으로 미리 정하지 않는다.
 
 | 항목 | 고정한 범위와 실행 전 재확인 |
 | --- | --- |

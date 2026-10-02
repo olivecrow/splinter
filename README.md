@@ -6,6 +6,8 @@ AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬
 
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 
+[Unity CLI의 정확한 A/B 인계](docs/verification/unity-cli-handoff.md)는 작은 T: Plastic 입력에서 편집·loaded 결과·A 정상 종료 뒤 B 후속 작업·두 독립 결과/회수까지 한정 확인했다. 설치된 CLI의 worker 목록 누락과 첫 eval 타임아웃은 유지하며, [반환 경로와 실제 대상/PID를 확인하는 절차](docs/alpha-workspaces.md#unity-cli의-정확한-대상-선택)를 사용한다. MCP·다른 입력/버전·Play/Test/build의 자격으로 확대하지 않는다.
+
 등록된 작은 Windows x64 NTFS/Git/Unity 환경의 **첫 한정 실사용 버전 M0를 마감했다**. 제공물은 기존 개발 CLI·소스 스킬과 [AI 시작 안내](docs/agent-start.md)이며, [납품 판정](docs/verification/m0-delivery.md)은 scoped-complete-with-limitations다. [대표 A/B](docs/verification/representative-agent-workflow.md)의 오류/수정·같은 작업 재개·보존/통합/회수·실패 작업 폐기와 비용, 현재 복구 계약의 회귀를 확인했다. 폐기에는 해당 계약을 지원하는 제한 서비스가 필요하다. 후속 책임은 [축소한 구현 계획](docs/plans/implementation-plan.md#프로그램과-에이전트의-책임)에서 프로그램 구현·AI 사용 절차·필요 시 지원 검증으로 구분한다.
 
 Splinter는 작업공간과 소유 Editor의 수명·범위 저장·독립 결과·안전한 반영/회수/폐기를 담당한다. 설치 연결·대화 인계·도구/모드 선택·충돌 해결·게임 검증은 AI와 기존 Git·MCP·Unity CLI가 수행한다. 전용 installer·Codex 자동 binding·큐/자동 모드·일반 임대 인수·원본 Editor 공유·범용 Unity 작업 API·AI Runner/DAG·상주 DB는 구현 범위에서 제외한다. 현재 외부 도구 인계는 [도구 선택·연결과 peer 보호의 한정 범위](docs/plans/session-workflow-and-installation.md#외부-도구-인계의-한정-범위)를 먼저 확인해야 한다.

@@ -13,7 +13,23 @@ splinter workspace status --id <반환 id> --home <등록 home>
 
 `data.workspace.path`에서 편집하고 외부 MCP·Unity CLI의 projectRoot도 이 경로와 일치시킨다. `application.running`·`ready`는 실행/준비 관측이며 컴파일·테스트 성공이 아니다. Editor 준비 중 에이전트가 소스 분석·계획을 진행할 수 있다. 같은 key/id/home·기준·request digest를 다음 대화에 보존한다.
 
-제품은 `unity start`와 `unity stop`을 제공한다. refresh·컴파일 분석·씬/에셋 편집·Play·테스트·빌드·캡처는 선택한 외부 도구로 수행한다. `unity refresh`와 자체 컴파일 성공 판정은 제공하지 않는다. 외부 도구의 실제 A/B 인계 자격은 아직 별도로 확인해야 한다.
+제품은 `unity start`와 `unity stop`을 제공한다. refresh·컴파일 분석·씬/에셋 편집·Play·테스트·빌드·캡처는 선택한 외부 도구로 수행한다. `unity refresh`와 자체 컴파일 성공 판정은 제공하지 않는다. Unity CLI의 작은 T: Plastic A/B 인계는 [한정 검증](verification/unity-cli-handoff.md)을 따르며 MCP·다른 입력/버전은 별도로 확인해야 한다.
+
+## Unity CLI의 정확한 대상 선택
+
+설치된 CLI의 version/help와 프로젝트의 기존 Pipeline을 확인한다. Splinter `application.ready`는 소유 Editor의 실행 관측이며 도구 연결·컴파일 합격을 증명하지 않는다. 반환 `data.workspace.path`를 모든 Editor 명령의 `--project-path`에 명시하고, 읽기 전용 catalog 응답의 `data.target.projectPath`와 공개 PID를 실제 workspace/`data.application.processId`에 대조한 뒤 편집한다. `status`의 substring 필터와 목록 누락을 정확한 대상/Editor 부재 증거로 사용하지 않는다.
+
+Unity CLI `1.0.0-beta.5`·Pipeline `0.8.0-exp.1`에서는 목록에 빠진 worker도 다음 경로로 연결했다. 명령 이름/입력은 그 Editor의 catalog/schema에서 읽고 실제 응답의 outer/nested success와 결과를 각각 확인한다.
+
+```powershell
+unity --format json command --project-path <반환 workspace 경로> --tag scripts/compile
+unity --format json command recompile --project-path <반환 workspace 경로> --caller plugin --skill unity-cli
+unity --format json command recompile_status --project-path <반환 workspace 경로> --caller plugin --skill unity-cli
+```
+
+`recompile` 요청 성공은 컴파일 완료가 아니다. 해당 작업의 status와 loaded 코드 결과를 외부 도구에서 확인한다. reload 뒤 포트가 바뀔 수 있으므로 포트를 저장해 다른 작업을 선택하지 않고 같은 반환 경로로 재연결한다. eval의 큰 정수 시작 ticks가 필요하면 `ToString()`으로 반환해 JSON 숫자 정밀도 손실을 피한다. 인증 token이나 전체 프로세스 명령행은 출력하지 않는다.
+
+실제 검증의 첫 eval 타임아웃과 읽기 전용 동일 요청의 한 번 재시도는 검증 문서에 보존했다. 쓰기/씬 변경/컴파일 요청을 시간 경과만으로 반복하지 않는다. 연결 실패에서는 정확한 경로·소유 상태·descriptor 준비·Safe Mode·sandbox 관측을 구분하고 작업을 보존한다. 원본 fallback·자동 패키지 교체나 서버 탈취는 하지 않는다. 정상 `unity stop` 뒤 peer의 정확한 경로/PID와 실제 후속 응답을 확인하고, 독립 결과/회수는 Splinter의 기존 checkpoint/release를 사용한다.
 
 ## 결과와 명시적 종료
 

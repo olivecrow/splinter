@@ -1,5 +1,9 @@
 # 검증 추적표
 
+## Unity CLI A/B 인계
+
+[고정 실행 범위](session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)와 [UH-01~04 근거/비용/제한](../verification/unity-cli-handoff.md)을 따른다. 기존 CLI/Pipeline·작은 T: Plastic 입력의 exact-path 작업·정상 종료 공존·독립 결과/회수를 scoped-complete-with-limitations로 마감했다. 목록 발견 누락·초기 읽기 eval 타임아웃·MCP/다른 입력/Play/Test/build 미자격은 유지한다. 과거 M0/PC의 실패를 삭제하거나 이 단위를 자동 재실행하지 않는다.
+
 ## Plastic 사용 환경의 병렬 작업
 
 범위는 [호환 계획](plastic-compatibility.md)·[C: 실행 계획](plastic-validation.md)·[추가 T: 회수 계획](plastic-reclamation-validation.md), 현재 후보의 근거는 [검증 기록](../verification/plastic-compatibility.md)을 따른다. 작은 T: A/B의 마지막 snapshot 회수까지 scoped-complete-with-limitations로 마감했다. C: 보류 상태와 기존 Git/none/AP 자격을 승계하지 않는다.
@@ -8,7 +12,7 @@
 | --- | --- | --- |
 | PC-01 | 고정 source 선택·regular/static identity·home/등록 겹침·손상/unknown 비파괴 거부 | Passed, 자동 적합성과 고정 실제 client/root/GUID·같은 요청 A/B. 실제 unknown/손상 전체 장애 자격으로 확대하지 않음 |
 | PC-02 | 관리 root 읽기/열거/생성/rename 차단·재연결 고정·기존 Git pointer 회귀 | Passed, 자동 적합성·실제 생성/rename 5회 AccessDenied와 journal 불변·cm worker 등록 없음 |
-| PC-03 | 실제 A/B·원본 계속 편집·같은 요청·소유 Editor·관리 정보/등록 보호 | Passed with limitations, 정확한 A/B/원본 Editor·파일 격리·기존 원본/등록 보호. Unity CLI worker 발견 STATUS_NO_INSTANCES, 전체 외부 인계 미자격 |
+| PC-03 | 실제 A/B·원본 계속 편집·같은 요청·소유 Editor·관리 정보/등록 보호 | Passed with limitations, 정확한 A/B/원본 Editor·파일 격리·기존 원본/등록 보호. PC 당시 CLI worker 발견 STATUS_NO_INSTANCES/전체 인계 미실행. 후속 exact-path 인계는 별도 UH 자격을 따르며 목록 발견 제한은 유지 |
 | PC-04 | A 독립 결과/release·B 지속/dirty discard·원본/peer/공유 자원 보호 | Passed with limitations, 별도 T: A released/B discarded·독립 bytes/hash·B 41회 지속 쓰기·snapshot/소유 자원 0·기존 C: 6개 snapshot/보호 기록 보존. 선행 C: 입력의 회수 Partial·보류 상태는 유지 |
 | PC-05 | 생성/읽기/관리 복제 비용·delta/결과/소유 메모리·필수 기존 회귀 | Passed with limitations, 생성 초기 payload/readCache 0·단계 비용/소유 메모리/독립 결과 기록·844개 필수 회귀 통과. T: Library 기준선 complete·최종 VSS used/allocated 0. 전체 물리 peak/VSS 귀속·선행 잠긴 C: Library 기준선 unknown |
 
@@ -49,7 +53,7 @@
 | --- | --- | --- |
 | VCS 없는 원본 반영: 한정 마감 | 실제 프로그램 기능·안전 계약 | [확정 범위](plain-folder-original-apply.md)의 변경 경로 반영·원본/peer 보호·동일 intent/부분 수행 복구. AP-01~04는 자동 계약/실제 파일 시험 한정 Passed, AP-05/06은 작은 Editor 없는 제품 A/B·계측/회귀 한정 Passed. Editor 없는 작은 NTFS A/B 한 묶음으로 한정 |
 | VCS 독립성과 외부 VCS 공존 | Splinter 자체의 병렬 작업·격리·효율 책임 | [VCS 없는 기본 수명주기](implementation-plan.md#마감한-선행-개발-단위-vcs-없는-기본-수명주기)는 이번 한정 단위를 마감. 일반 폴더·Git 사용 환경의 보호 경계·후속 Plastic 환경의 호환 자격을 아래에서 구분. 완료 기준은 Splinter의 병렬 작업/회수·원본/peer 보호와 저장 공간/메모리 비용이며 기존 M0의 미실행 항목 추가로 취급하지 않음 |
-| 외부 MCP/Unity CLI 인계 | AI 절차·필요 시 최소 프로그램 연결/사용 검증 | [Unity CLI의 A/B 인계](session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)는 VCS 없는 기본 수명주기 뒤 후속으로 조정. CLI 버전·기존 Pipeline/fixture의 읽기 전용 확인까지 수행했으며 실제 전체 A/B 인계·정상 종료 공존은 NotRun. 기존 M0에서 승계하지 않음 |
+| 외부 MCP/Unity CLI 인계 | AI 절차·필요 시 최소 프로그램 연결/사용 검증 | [Unity CLI의 A/B 인계](session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)는 [UH-01~04](../verification/unity-cli-handoff.md)의 작은 T: Plastic exact-path 작업·loaded 코드·A stop/release 뒤 B 지속·두 결과/회수로 한정 마감. 목록 누락·초기 eval 타임아웃 유지. MCP·기존 Git 후보/다른 입력·Play/Test/build는 NotRun. 기존 M0에서 승계하지 않음 |
 | SF-02/03 | 프로그램의 저장·수명 유지/관측 병목 개선 | 기존 Library/후보/세대·정리·의존성 회수. 큐/일반 임대 인수/원본 공유는 제외, 생성 소스 병합은 AI |
 | SF-04/05·NR | 필요 시 지원 검증·안전 결함 수정 | 사용할 입력/환경의 파일·Git·재개/회수 경계. 전체 대형/OS/ARM 행렬 자동 실행 없음 |
 | SF-06·SW-01/02/03/06 | AI 사용 절차 | 모드 선택·설치 연결·필요성 판단·인계/재조회. 자동 모드·전용 installer·Codex binding은 구현 제외 |

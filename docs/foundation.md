@@ -2,6 +2,8 @@
 
 Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트의 외부 도구 작업 → checkpoint → 선택적 integrate → 명시적 release/discard**다. 작업공간·소유 Editor·범위 저장·독립 결과·회수 안전성을 관리한다. 컴파일·테스트·게임 합격은 에이전트와 MCP·Unity CLI 등 외부 도구의 책임이다.
 
+Unity CLI의 외부 작업은 [정확한 대상 선택 절차](alpha-workspaces.md#unity-cli의-정확한-대상-선택)를 따른다. 현재 작은 T: Plastic A/B의 exact-path command·loaded 값·정상 종료 공존·독립 결과/회수는 [별도 한정 자격](verification/unity-cli-handoff.md)으로 확인했으며, 목록 발견 누락·첫 eval 타임아웃과 MCP/다른 입력의 미자격을 유지한다. 프로그램의 새 Unity 작업 API나 컴파일 gate를 추가하지 않았다.
+
 제품 시작점은 [AI 안내](agent-start.md)와 `scripts/splinter.ps1`이다. ReFS/진단·공통 Library view·spike/probe는 [개발 CLI](development-cli.md)로 분리했다. 기존 verification은 해당 후보/입력의 근거이며 변경된 계약의 native 자격을 자동 부여하지 않는다.
 
 병렬 격리와 범위 저장은 Splinter의 공통 저장소 계층이 제공한다. 소스 공급자는 선택한 VCS 관리 정보와 Splinter 작업의 기준·결과·회수 사이의 안전 경계를 담당한다. 제품 CLI는 Git·VCS 없는 일반 폴더·Plastic 사용 환경를 명시적으로 선택한다. 소스/application 종류와 opaque 기준/결과 identity를 v2 작업 상태에 고정하고, 일반 폴더는 불변 파일 manifest·작업별 독립 payload를 사용한다. 실패 시 다른 소스로 fallback하지 않는다. 현재 제약과 실제 자격은 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. Git 원격 등록은 불필요하며 Plastic 사용 환경의 관리 정보/등록 격리와 독립 파일 결과는 [현재 계약](plastic-compatibility.md)을 따르며 [실제 자격](verification/plastic-compatibility.md)을 별도로 확인한다. 일반 폴더의 editorless [원본 apply](plain-folder-original-apply.md)는 계획/intent·조건부 Windows 게시를 제공하며 실제 제품 자격은 작은 Editor 없는 NTFS A/B 한 묶음에 한정한다.

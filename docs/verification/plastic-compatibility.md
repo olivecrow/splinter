@@ -53,6 +53,8 @@ A 소유 `{15F429DA-9D49-4D2E-A7A7-29759C68E8DE}`, B 소유 `{1C744E83-7E77-46E8
 
 ## 별도 T: 입력의 회수 자격
 
+이 PC 단위 뒤 [Unity CLI A/B 인계](unity-cli-handoff.md)를 별도 새 T: A/B 한 묶음에서 한정 확인했다. 목록의 STATUS_NO_INSTANCES는 유지되지만 정확한 반환 경로의 command가 실제 작업 Editor에 연결됨을 확인했다. 아래 PC의 과거 실패를 첫 시도 통과로 바꾸거나 C: 회수 보류를 해결했다고 읽지 않는다.
+
 사용자의 다음 작업 실행 요청에 따라 [고정한 추가 계획](../plans/plastic-reclamation-validation.md)의 한 A/B만 실행했다. 제품 후보는 `4e262b7`이며 이후 프로그램 변경은 없었다. 위 C: 실행과 구분해 원시 증거를 `artifacts/plastic-reclamation/`에 보존한다.
 
 입력은 새 `T:\plastic-fixture-20261002`, home `T:\pt1002`, Plastic regular/static GUID `fc4fce46-cb20-4ad8-b474-cdb0000f9866`다. 사용자 원본의 작은 소스 61개/245,487 bytes만 hash를 확인해 fixture로 준비하고 `.plastic`·Library는 복사하지 않았다. 명시한 기존 repository에 source 등록 1개를 추가했고 checkout/update/check-in은 하지 않았다. 소유 batch Unity `6000.3.22f1`은 새 Library를 준비하고 정상 quit했다. 준비 helper가 `T:`/`t:`를 대소문자 구분으로 비교해 등록 뒤 assertion을 실패했지만, 같은 GUID와 61개 실제 hash를 읽기 전용으로 확인해 이어갔다. 새 중복 등록이나 제품 fallback은 만들지 않았다.

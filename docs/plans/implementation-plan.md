@@ -40,13 +40,13 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 | --- | --- | --- |
 | 일반 폴더 원본 반영: 한정 마감 | [VCS 없는 안전한 원본 반영](plain-folder-original-apply.md)의 명시적 대상·3자 내용 비교·조건부 게시·동일 intent/부분 수행 복구 | [AP-01~06](validation-matrix.md#vcs-없는-원본-반영)과 Editor 없는 작은 NTFS A/B 한 묶음. 원본/peer·독립 결과·효율과 기존 Git 회귀 유지. 자동 파일/중단 주입 시험과 AP-05 제품 A/B 한정 자격을 구분. [검증 판정](../verification/plain-folder-original-apply.md)은 scoped-complete-with-limitations |
 | VCS 독립성: 이번 단위 마감 | [VCS 없는 기본 수명주기](#마감한-선행-개발-단위-vcs-없는-기본-수명주기)의 공통 계약·일반 폴더 경로·기존 Git 사용 환경의 보호 경계와 회귀 | [한정 A/B 판정](../verification/vcs-independent-workspaces.md)의 scoped-complete-with-limitations. 원본/peer·범위 저장·회수 guard 유지. 원본 반영 자격은 [별도 AP](../verification/plain-folder-original-apply.md), Plastic 호환 자격은 별도 PC |
-| 외부 도구 인계: 후속으로 조정 | [Unity CLI의 A/B 인계](session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)의 기존 CLI/Pipeline·작은 등록 입력에서 정확한 대상 선택·작업·정상 종료 공존 확인 | VCS 없는 기본 수명주기 뒤 별도 인계 자격 확인. 이번에는 정확한 작업 Editor 확인에 필요한 사용만 하며 기존 Git fixture의 별도 전체 A/B 인계 시험을 병행하지 않음 |
+| Unity CLI 인계: 한정 마감 | [Unity CLI의 A/B 인계](session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)의 기존 CLI/Pipeline·작은 T: Plastic 입력에서 정확한 대상 선택·loaded 편집·정상 종료 공존·독립 결과/회수 | [UH 검증](../verification/unity-cli-handoff.md)의 scoped-complete-with-limitations. 프로그램 변경 없이 반환 경로의 command로 연결. 목록 누락/첫 eval 타임아웃·MCP/다른 입력/Play/Test/build 미자격 유지. 기존 Git 후보의 별도 전체 인계는 실행하지 않음 |
 | 결과 보존과 작업 검증의 경계: 구현 완료 | 자체 refresh/컴파일·포커스 처리와 내부 컴파일 gate·중복 preserve-worker를 제거 | 외부 검증 뒤 기본 checkpoint 사용. 컴파일 성공 주장 없이 안정된 seal·독립 결과·target guard 유지. 현재 자동 회귀 범위는 [범위 검증](../verification/workspace-product-scope.md), 새 native 인계 자격은 도구별 선택 |
 | 저장·메모리: 관측한 병목의 프로그램 개선 | 실제 사용할 입력에서 Library·delta·결과/임시 공간과 소유 메모리 부담을 확인하고 개선 대상 하나 선택 | 같은 입력의 정확성·원본/peer 보존과 전후 비용으로 판단. 자동 자원 배정·새 backend·전체 대형 비교를 선행하지 않음 |
 | AI 사용 절차 | 발견·생성/재개·외부 도구 선택·보존/반영/폐기의 스킬/예시 보완 | 에이전트가 기존 schema와 반환 경로·동일 식별자로 수행 가능. 문서로 가능한 동작에 새 프로그램 기능을 요구하지 않음 |
 | 필요 시 지원 검증 | 사용할 입력/환경의 mount·Git·중단/회수 경계와 재현된 안전 결함만 선택 | 지원 조건·후보·질문·종료 기준을 먼저 고정. OS 장애 전체·ARM·LFS/filter·모든 파일/패키지·48개 카탈로그는 일괄 필수 작업이 아님 |
 
-외부 도구 인계는 아직 자격을 확인한 정상 경로가 아니다. 현재 worker는 Coplay 서버를 시작하지 않는 전용 브리지 경로이며 원본 서버 종료 방어가 있다. checkpoint/integrate는 컴파일·테스트 성공 판정을 하지 않는다. 이 두 연결 조건의 현재 제약은 [대화별 사용 계획](session-workflow-and-installation.md#외부-도구-인계의-한정-범위)이 소유한다. 현재 명령과 기본/개발 경로는 [현재 기반](../foundation.md)과 [개발 CLI](../development-cli.md)를 따른다. 과거 M0/WF/LB의 native 실행 자격은 이번 변경 후보로 자동 승계하지 않는다.
+Unity CLI exact-path 인계는 위 작은 입력의 한정 자격을 따르며 MCP·다른 입력/버전의 정상 연결은 미자격이다. 현재 worker는 Coplay 서버를 시작하지 않는 전용 브리지 경로이며 원본 서버 종료 방어가 있다. checkpoint/integrate는 컴파일·테스트 성공 판정을 하지 않는다. 연결 조건과 유지하는 목록/타임아웃 제약은 [대화별 사용 계획](session-workflow-and-installation.md#외부-도구-인계의-한정-범위)이 소유한다. 현재 명령과 기본/개발 경로는 [현재 기반](../foundation.md)과 [개발 CLI](../development-cli.md)를 따른다. 과거 M0/WF/LB의 native 실행 자격은 이번 변경 후보로 자동 승계하지 않는다.
 
 ## 한정 마감한 원본 반영
 

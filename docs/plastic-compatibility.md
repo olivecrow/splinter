@@ -28,4 +28,6 @@ release/discard는 [공통 파일 결과](vcs-independent-workspaces.md)·[명�
 
 비소유 snapshot과 공유 source-volume storage를 보호해 회수가 보류될 수 있다. A release는 `reclaim-pending`, 명시적 discard는 `discard-reclaim-pending`의 Accepted/nonterminal 응답과 같은 intent의 후속 행동을 반환하며 완료로 해석하지 않는다. 별도 작은 T: A/B의 마지막 snapshot 회수는 한정 확인했으며 선행 C: 보류·Unity CLI의 A/B 발견 실패와 구분한다. 정확한 입력/자격은 [PC 검증](verification/plastic-compatibility.md)을 따른다.
 
+후속 [Unity CLI 인계 검증](verification/unity-cli-handoff.md)은 같은 등록 T: 입력의 새 A/B에서 목록에 빠진 worker의 exact-path command·loaded 코드·A 정상 종료 뒤 B 작업과 두 결과/회수를 확인했다. CLI 목록 발견을 수정한 것은 아니며 MCP·다른 입력/버전의 연결을 자동 승계하지 않는다. 실제 사용은 [정확한 대상 선택 절차](alpha-workspaces.md#unity-cli의-정확한-대상-선택)를 따른다.
+
 원본 반영·Plastic check-in/update/merge·새 VCS 등록은 제공하지 않는다. `workspace integrate`는 상태 변경·Editor 종료·원본 쓰기 전에 거부한다. 독립 결과는 보존할 수 있으며 원본 반영은 별도 후속이다. Editor의 refresh·컴파일·Play/Test/빌드와 외부 도구 연결은 AI/기존 도구의 책임이며 Splinter의 readiness/checkpoint는 그 성공을 주장하지 않는다.
