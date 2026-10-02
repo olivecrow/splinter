@@ -18,4 +18,4 @@
 
 캡처 직전에 원본 저장/import 상태를 확인한다. filesystem crash consistency이며 미저장 Editor 메모리는 기준에 포함되지 않는다. 실패/응답 유실은 같은 key/id/home의 관측으로 확인하고 허용된 다음 행동만 수행한다. 새 key·파일 삭제·권한/설정 변경으로 우회하지 않는다.
 
-이 고정 계획은 2026-10-02 실행했다. 기존 grant/보호 ledger·원본/등록을 보존하며 A/B 생성·독립 Editor·같은 요청·독립 결과·B 지속/명시적 폐기를 관측했다. **A/B의 mount/provider/delta/소유 프로세스는 회수했지만 snapshot 회수는 C: 비소유 snapshot 보호로 보류**됐다. 정확한 작업/snapshot ID·blocker·비용·외부 CLI 발견 실패는 [검증 기록](../verification/plastic-compatibility.md)이 소유한다. 기존 source/snapshot을 보존하며 추가 fixture를 사용하는 회수 자격 검증은 사용자의 선택과 별도 고정 계획 후 진행한다.
+이 고정 계획은 2026-10-02 실행했다. 기존 grant/보호 ledger·원본/등록을 보존하며 A/B 생성·독립 Editor·같은 요청·독립 결과·B 지속/명시적 폐기를 관측했다. **A/B의 mount/provider/delta/소유 프로세스는 회수했지만 snapshot 회수는 C: 비소유 snapshot 보호로 보류**됐다. 정확한 작업/snapshot ID·blocker·비용·외부 CLI 발견 실패는 [검증 기록](../verification/plastic-compatibility.md)이 소유한다. 이후 사용자 요청으로 [별도 T: 고정 계획](plastic-reclamation-validation.md)의 마지막 회수까지 한정 마감했으며, 이 C: 작업/snapshot 보류는 그대로 보존한다.

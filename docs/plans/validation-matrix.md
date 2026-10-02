@@ -2,15 +2,15 @@
 
 ## Plastic 사용 환경의 병렬 작업
 
-범위는 [호환 계획](plastic-compatibility.md)·[실제 실행 계획](plastic-validation.md), 현재 후보의 근거는 [검증 기록](../verification/plastic-compatibility.md)을 따른다. 기존 Git/none/AP 자격을 승계하지 않는다.
+범위는 [호환 계획](plastic-compatibility.md)·[C: 실행 계획](plastic-validation.md)·[추가 T: 회수 계획](plastic-reclamation-validation.md), 현재 후보의 근거는 [검증 기록](../verification/plastic-compatibility.md)을 따른다. 작은 T: A/B의 마지막 snapshot 회수까지 scoped-complete-with-limitations로 마감했다. C: 보류 상태와 기존 Git/none/AP 자격을 승계하지 않는다.
 
 | ID | 검증 대상 | 상태 |
 | --- | --- | --- |
 | PC-01 | 고정 source 선택·regular/static identity·home/등록 겹침·손상/unknown 비파괴 거부 | Passed, 자동 적합성과 고정 실제 client/root/GUID·같은 요청 A/B. 실제 unknown/손상 전체 장애 자격으로 확대하지 않음 |
 | PC-02 | 관리 root 읽기/열거/생성/rename 차단·재연결 고정·기존 Git pointer 회귀 | Passed, 자동 적합성·실제 생성/rename 5회 AccessDenied와 journal 불변·cm worker 등록 없음 |
 | PC-03 | 실제 A/B·원본 계속 편집·같은 요청·소유 Editor·관리 정보/등록 보호 | Passed with limitations, 정확한 A/B/원본 Editor·파일 격리·기존 원본/등록 보호. Unity CLI worker 발견 STATUS_NO_INSTANCES, 전체 외부 인계 미자격 |
-| PC-04 | A 독립 결과/release·B 지속/dirty discard·원본/peer/공유 자원 보호 | Partial, A 독립 bytes/hash·B 43회 지속 쓰기·양쪽 mount/provider/delta/자원 0. C: 비소유 VSS 보호로 reclaim-pending/discard-reclaim-pending, snapshot 회수 미완료 |
-| PC-05 | 생성/읽기/관리 복제 비용·delta/결과/소유 메모리·필수 기존 회귀 | Passed with limitations, 생성 초기 payload/readCache 0·단계 비용/소유 메모리/독립 결과 기록·필수 회귀. 전체 물리 peak/VSS 귀속/잠긴 원본 Library 기준선 unknown |
+| PC-04 | A 독립 결과/release·B 지속/dirty discard·원본/peer/공유 자원 보호 | Passed with limitations, 별도 T: A released/B discarded·독립 bytes/hash·B 41회 지속 쓰기·snapshot/소유 자원 0·기존 C: 6개 snapshot/보호 기록 보존. 선행 C: 입력의 회수 Partial·보류 상태는 유지 |
+| PC-05 | 생성/읽기/관리 복제 비용·delta/결과/소유 메모리·필수 기존 회귀 | Passed with limitations, 생성 초기 payload/readCache 0·단계 비용/소유 메모리/독립 결과 기록·844개 필수 회귀 통과. T: Library 기준선 complete·최종 VSS used/allocated 0. 전체 물리 peak/VSS 귀속·선행 잠긴 C: Library 기준선 unknown |
 
 현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop을 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제거했고 결과 보존은 checkpoint로 통일했다. 선택적 단일 view/Library cache·ReFS·probe는 [개발용 CLI](../development-cli.md)로 분리했다. 아래 기존 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 이번 후보의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](../verification/workspace-product-scope.md)을 따른다.
 
@@ -70,7 +70,7 @@
 | VCS-05 | release/discard·peer/공유 자원 보호 | Passed (한 묶음·동일 intent 복구) | A release의 경로 결함 수정·같은 요청 재개. A unmount/delta 제거 뒤 B 응답 지속, dirty B의 snapshot 대기와 동일 intent/중복 폐기. 최종 두 작업 자원/mount/delta/snapshot 부재, 원본/A 결과 유지 |
 | VCS-06 | 기존 Git·실패/형식 회귀 | Passed (자동 한정) | 최종 locked restore/Release·기존 Git와 변경한 schema/fake 적합성, VCS 없는 원본 반영 미구현의 부작용 전 거부, 손상/변경 요청 보존 |
 
-선행 VCS-01~06의 원본 반영 미구현 거부 근거는 해당 후보에 유지하며, 원본 반영 실행의 현재 자격은 아래 AP가 소유한다. Plastic SCM 사용 환경은 위 PC의 별도 구현/실제 자격을 따른다. 작은 실제 A/B의 생성·격리·독립 결과/peer 보호를 확인했지만 비소유 VSS 보호로 물리 회수는 Partial이며 외부 CLI 전체 인계도 미자격이다. 일반 폴더의 성공을 Plastic 환경의 통과로 표시하지 않는다. Git 사용 환경에서 Splinter의 기존 자격은 기존 표에 유지하고 공급자 선택을 분리한 후보의 회귀와 구별한다.
+선행 VCS-01~06의 원본 반영 미구현 거부 근거는 해당 후보에 유지하며, 원본 반영 실행의 현재 자격은 아래 AP가 소유한다. Plastic SCM 사용 환경은 위 PC의 별도 구현/실제 자격을 따른다. 작은 별도 T: A/B의 생성·격리·독립 결과/peer 보호와 회수까지 한정 마감했으며 선행 C: 비소유 VSS 보호의 보류와 외부 CLI 전체 인계 미자격은 유지한다. 일반 폴더의 성공을 Plastic 환경의 통과로 표시하지 않는다. Git 사용 환경에서 Splinter의 기존 자격은 기존 표에 유지하고 공급자 선택을 분리한 후보의 회귀와 구별한다.
 
 ## VCS 없는 원본 반영
 

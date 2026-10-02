@@ -6,7 +6,7 @@
 
 ## 현재 변경의 검증
 
-[Plastic 호환](plastic-compatibility.md)은 regular/static 원본의 관리 정보/등록 격리·독립 파일 결과의 자동 적합성과 현재 후보의 실제 A/B를 별도로 추적한다.
+[Plastic 호환](plastic-compatibility.md)은 regular/static 원본의 관리 정보/등록 격리·독립 파일 결과의 자동 적합성과 현재 후보의 실제 A/B를 별도로 추적한다. 작은 별도 T: A/B의 마지막 snapshot 회수까지 scoped-complete-with-limitations로 마감했으며 선행 C: 보류·외부 CLI worker 발견 실패/전체 인계 미자격은 유지한다.
 
 [VCS 독립 수명주기](vcs-independent-workspaces.md)는 일반 폴더의 자동 파일/fake·Git 회귀와 실제 VSS/Unity A/B·수정 후 동일 요청 회수의 scoped-complete-with-limitations를 구분한다. 후보별 실행·목록 누락·공간·미실행 경계를 유지한다. 새 상태는 v2이며 이전 상태를 자동 이관하지 않는다.
 

@@ -26,6 +26,6 @@ A/B는 **Plastic에 등록되지 않은 파일 작업공간**이다. 원본 Plas
 
 release/discard는 [공통 파일 결과](vcs-independent-workspaces.md)·[명시적 폐기](workspace-discard.md)의 intent·seal·독립 결과·원본/peer·소유 자원 회수 guard를 유지한다. 권한 서비스는 요청에 묶인 receipts와 payload만 검증하며 SYSTEM 권한으로 `cm`·원본 Plastic 관리 정보·사용자 인증 설정을 사용하지 않는다. 최신 서비스 패키지가 필요하며 일반 CLI는 자동 elevation/helper fallback을 하지 않는다.
 
-비소유 snapshot과 공유 source-volume storage를 보호해 회수가 보류될 수 있다. A release는 `reclaim-pending`, 명시적 discard는 `discard-reclaim-pending`의 Accepted/nonterminal 응답과 같은 intent의 후속 행동을 반환하며 완료로 해석하지 않는다. 실제 C: 입력의 이 제한과 Unity CLI의 A/B 발견 실패는 [PC 검증](verification/plastic-compatibility.md)을 따른다.
+비소유 snapshot과 공유 source-volume storage를 보호해 회수가 보류될 수 있다. A release는 `reclaim-pending`, 명시적 discard는 `discard-reclaim-pending`의 Accepted/nonterminal 응답과 같은 intent의 후속 행동을 반환하며 완료로 해석하지 않는다. 별도 작은 T: A/B의 마지막 snapshot 회수는 한정 확인했으며 선행 C: 보류·Unity CLI의 A/B 발견 실패와 구분한다. 정확한 입력/자격은 [PC 검증](verification/plastic-compatibility.md)을 따른다.
 
 원본 반영·Plastic check-in/update/merge·새 VCS 등록은 제공하지 않는다. `workspace integrate`는 상태 변경·Editor 종료·원본 쓰기 전에 거부한다. 독립 결과는 보존할 수 있으며 원본 반영은 별도 후속이다. Editor의 refresh·컴파일·Play/Test/빌드와 외부 도구 연결은 AI/기존 도구의 책임이며 Splinter의 readiness/checkpoint는 그 성공을 주장하지 않는다.

@@ -1,6 +1,6 @@
 # Plastic 호환 검증
 
-이번 후보는 [현재 계약](../plastic-compatibility.md)과 [확정 범위](../plans/plastic-compatibility.md)를 따른다. 2026-10-02 작은 Windows x64/NTFS Plastic/Unity A/B에서 생성·관리 영역 격리·원본 지속 편집·같은 작업 재개·소유 Editor·독립 결과와 peer 지속 작업을 확인했다. **물리 snapshot 회수는 Partial**이다. 기존 비소유 C: snapshot을 보호해 A `reclaim-pending`·B `discard-reclaim-pending`으로 남겼다. 기존 Git/none/AP/M0 자격이나 완전한 외부 도구 인계를 승계하지 않는다.
+이번 후보는 [현재 계약](../plastic-compatibility.md)과 [확정 범위](../plans/plastic-compatibility.md)를 따른다. 2026-10-02 작은 Windows x64/NTFS Plastic/Unity A/B에서 생성·관리 영역 격리·원본 지속 편집·같은 작업 재개·소유 Editor·독립 결과와 peer 지속 작업을 확인했다. **C: 입력의 물리 snapshot 회수는 Partial**이며 기존 비소유 snapshot을 보호해 A `reclaim-pending`·B `discard-reclaim-pending`으로 남겼다. 아래 별도 T: 입력에서는 A release와 B discard의 마지막 snapshot 회수까지 **scoped-complete-with-limitations**로 마감했다. T: 통과를 C: 보류 해소·기존 Git/none/AP/M0 자격·완전한 외부 도구 인계로 승계하지 않는다.
 
 ## 고정 입력
 
@@ -50,3 +50,31 @@ A 소유 `{15F429DA-9D49-4D2E-A7A7-29759C68E8DE}`, B 소유 `{1C744E83-7E77-46E8
 | 비교 불확실성 | 실행 중 원본 Library의 locked 파일로 physical baseline complete=false/allocatedBytes=null. 전체 물리 peak·VSS 작업별 귀속·전체 RAM/공간 절감은 unknown |
 
 기존 Pipeline으로 Splinter의 정확한 A/B Editor launch/readiness/normal stop은 확인했다. 설치된 Unity CLI `1.0.0-beta.5`의 read-only `status --project-path <A/B>`는 **STATUS_NO_INSTANCES**였고 원본만 발견했다. `unity-cli-a-status.json`·`unity-cli-b-status.json`에 실패를 보존했다. Coplay/MCP 추가·Pipeline 교체·광범위한 연결 수정을 자동으로 포함하지 않는다. 외부 도구의 A/B 전체 인계·refresh/컴파일/Play/Test/빌드·원본 반영·check-in·대형/ARM/OS 장애는 미자격이다.
+
+## 별도 T: 입력의 회수 자격
+
+사용자의 다음 작업 실행 요청에 따라 [고정한 추가 계획](../plans/plastic-reclamation-validation.md)의 한 A/B만 실행했다. 제품 후보는 `4e262b7`이며 이후 프로그램 변경은 없었다. 위 C: 실행과 구분해 원시 증거를 `artifacts/plastic-reclamation/`에 보존한다.
+
+입력은 새 `T:\plastic-fixture-20261002`, home `T:\pt1002`, Plastic regular/static GUID `fc4fce46-cb20-4ad8-b474-cdb0000f9866`다. 사용자 원본의 작은 소스 61개/245,487 bytes만 hash를 확인해 fixture로 준비하고 `.plastic`·Library는 복사하지 않았다. 명시한 기존 repository에 source 등록 1개를 추가했고 checkout/update/check-in은 하지 않았다. 소유 batch Unity `6000.3.22f1`은 새 Library를 준비하고 정상 quit했다. 준비 helper가 `T:`/`t:`를 대소문자 구분으로 비교해 등록 뒤 assertion을 실패했지만, 같은 GUID와 61개 실제 hash를 읽기 전용으로 확인해 이어갔다. 새 중복 등록이나 제품 fallback은 만들지 않았다.
+
+서비스 package 14개·grant/setup hash와 설치 쓰기는 추가 계획에 고정했다. Update 뒤 기존 grant 6개 + 새 등록 1개, 보호 ledger 기존 1,418개 파일 hash·설치 14개 hash·기존 C: snapshot 6개를 확인했다. 일반 workspace/cm/Unity 명령은 비승격이다.
+
+| 관문 | 실제 T: 판정과 근거 |
+| --- | --- |
+| 생성/재개/관리 보호 | A `f3282c3a99d1131747f82ae9`, B `7cdc0fba90c3029daa166356`, 별도 기준 snapshot/private delta. 초기 payload/journal/readCache 0, 동일 A 요청의 id/basis/snapshot 유지, 관리 root 생성/rename 5회 거부·sequence 2→2와 journal 불변. `01/02-*-ensure.json`·`09-a-same-request.json`·`denied-administration.json` |
+| 원본/Editor/peer | 캡처 뒤 source marker는 A/B에 들어오지 않음. 정확한 A PID 34716·B PID 77552 ready, A 정상 stop/checkpoint/release 중 B 같은 Editor ready와 bounded 쓰기 41회 성공. `10-*-editor-ready.json`·`11/12-*.json`·`b-writer-outcome.json`·`15-b-after-a-release.json` |
+| A 독립 결과와 회수 | 결과 `sha256:d3504d1ed423f0dea3181423263fd448dbade1a486664a8c495e10f6ac77fc40`. release Succeeded/terminal, phase released. A snapshot `{08E9AA89-C328-4342-BD38-3B822ABC49E4}` 해제 뒤 기준 61개/245,487 bytes·결과 62개/245,515 bytes·62개 독립 객체 hash/크기와 A probe 실제 내용 재검증. `14-a-release.json`·`independent-result-verification.json` |
+| B 명시적 폐기와 회수 | intent `plastic-t-b-discard-20261002`·반환 digest로 dirty B를 discard. Succeeded/terminal, phase discarded, B snapshot `{F66DC85E-B51A-43A6-B6E1-B7DFF2440096}` 해제. B result manifest/result revision 없음. `16-b-discard.json` |
+| 마지막 소유 자원 | `17-a-final.json`·`18-b-final.json`: snapshotAvailable/mounted/providerAlive/deltaPresent false, handles/provider working set/private bytes 0, releasedResources ownershipVerified true·rootRunning false·activeProcesses/working set/private bytes 0 |
+| 기존 자원 보호 | 관리자 read-only 최종 대조에서 T: snapshot 0·기존 C: 6개 보존·기존 ledger 1,418개 hash 보존·grant 7개 exact 일치. C: source/`.plastic` 파일 변경/삭제/추가 0, 기존 원본 Editor PID 68624와 시작 시각 유지. Plastic 등록 5개는 전후 byte 일치. C: 두 작업은 여전히 reclaim-pending/discard-reclaim-pending. `protection-outcome.json`·`snapshots-final.json`·`C-original-source-comparison.json`·`19/20-c-*-observe.json` |
+
+| T: 비용 표본 | 값과 한계 |
+| --- | --- |
+| 단계 시간 | ensure A 30,482 ms/B 30,357 ms, A 정상 stop 28,359 ms·checkpoint 8,388 ms·release 13,613 ms, B discard 37,285 ms. 다른 C: 입력과 전체 성능 비교로 사용하지 않음 |
+| 준비된 원본 Library | logical 1,819,103,541/allocated 1,852,496,112 bytes·30,748 files, complete=true. 새 fixture의 원본 준비 비용이며 작업별 복제 비용이 아님 |
+| 초기/최종 파일 할당 | 초기 control/delta 111,232 bytes·40 files·payload 0. 최종 control/result/evidence 699,704 bytes·135 files, 독립 payload logical 245,515/allocated 310,624 bytes. 공유 runner 1,139,032 bytes·7 files 별도 1회 계상 |
+| Editor 쓰기 delta | 마지막 누적 journal A 129,774,265/payload 117,550,197 bytes, B 129,256,319/117,040,994 bytes. 최종 delta 파일은 둘 다 없음 |
+| 소유 메모리 | ready 표본 A working set 3,005,116,416/private 3,449,417,728 bytes·11 processes; B 3,167,453,184/3,731,984,384·13 processes. 최종 소유 자원 0, 전체 peak/메모리 절감 비교 미자격 |
+| VSS | 마지막 T: source-volume used/allocated 0·limit 10,737,418,240 bytes. 공유 비용의 workspace 귀속은 unknown을 유지하며 원본 Library/저널/독립 결과와 중복 합산하지 않음. C: shared used 27,067,400,192 bytes는 기존 6개 snapshot의 다른 볼륨 비용 |
+
+현재 프로그램 후보의 필수 자동 회귀는 위 844 Passed / 0 Failed / 1 optional ReFS Skipped를 유지한다. 추가 T: 응답 22개는 현재 response schema를 통과했고 문서 UTF-8도 확인했다. 지원 판정은 위 고정 입력의 정상 수명주기·회수·원본/peer 보호에 한정한다. C: 공유 snapshot의 보류·외부 CLI worker 발견 실패·MCP 전체 인계·원본 반영·Plastic 서버 기능·대형/ARM/OS 장애의 미자격은 유지한다.

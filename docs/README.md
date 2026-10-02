@@ -11,7 +11,7 @@
 | [한정 버전 AI 시작 안내](agent-start.md) | 개발 CLI의 전제·진입·정확한 경로/같은 작업 재개·명시적 종료·실패의 다음 행동 |
 | [최소 AI 사용 스킬](../skills/splinter/SKILL.md) | 저장소 지침 원본·직접/독립 작업 판단·CLI 발견·반환 경로·같은 작업 재개·명시적 종료/실패 처리. 설치/자동 binding은 없음 |
 | [VCS 없는 작업공간](vcs-independent-workspaces.md) | 명시적 소스/application 선택·파일 기준/결과·현재 형식·회수와 실제 검증의 구분 |
-| [Plastic 사용 환경](plastic-compatibility.md), [호환 계획](plans/plastic-compatibility.md), [실제 실행 계획](plans/plastic-validation.md), [검증](verification/plastic-compatibility.md) | Splinter A/B의 관리 정보/등록 격리·무 checkout 파일 작업공간·독립 결과·snapshot 회수 Partial/외부 도구 발견 제한 |
+| [Plastic 사용 환경](plastic-compatibility.md), [호환 계획](plans/plastic-compatibility.md), [C: 실행 계획](plans/plastic-validation.md), [추가 T: 회수 계획](plans/plastic-reclamation-validation.md), [검증](verification/plastic-compatibility.md) | Splinter A/B의 관리 정보/등록 격리·무 checkout 파일 작업공간·독립 결과·T: 마지막 회수의 한정 마감과 C: 보류/외부 도구 발견 제한 |
 | [일반 폴더 원본 반영](plain-folder-original-apply.md) | 읽기 전용 계획·고정 대상/intent·조건부 Windows 게시·중단/회수와 비용 경계 |
 | [원본 반영 검증](verification/plain-folder-original-apply.md) | Core/fake·실제 일반 권한 NTFS 파일 시험과 작은 Editor 없는 제품 A/B 한정 마감·계측 |
 | [VCS 독립 검증](verification/vcs-independent-workspaces.md) | 자동 파일/fake·Git 회귀와 실제 A/B·서비스 업데이트·동일 요청 회수 복구의 한정 판정/비용 |
