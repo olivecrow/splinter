@@ -6,6 +6,8 @@
 
 ## 현재 변경의 검증
 
+[Plastic 호환](plastic-compatibility.md)은 regular/static 원본의 관리 정보/등록 격리·독립 파일 결과의 자동 적합성과 현재 후보의 실제 A/B를 별도로 추적한다.
+
 [VCS 독립 수명주기](vcs-independent-workspaces.md)는 일반 폴더의 자동 파일/fake·Git 회귀와 실제 VSS/Unity A/B·수정 후 동일 요청 회수의 scoped-complete-with-limitations를 구분한다. 후보별 실행·목록 누락·공간·미실행 경계를 유지한다. 새 상태는 v2이며 이전 상태를 자동 이관하지 않는다.
 
 [한정 M0 납품 판정](m0-delivery.md)은 기존 개발 CLI·소스 스킬·[AI 시작 안내](../agent-start.md)의 한정 버전을 scoped-complete-with-limitations로 마감한다. 현재 복구 회귀와 과거 native의 source hash/변경 경계를 대조했고 현재 전체 native 중단 통과로 승계하지 않는다. NR/SF/SW 전체 미완료는 후속 지원 확대이며 M0의 진척 분모가 아니다.

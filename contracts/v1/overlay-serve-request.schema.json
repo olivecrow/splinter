@@ -42,6 +42,7 @@
           "minimum": 4096,
           "maximum": 1048576
         },
+        "deniedTopLevel": {"type":["array","null"],"maxItems":32,"uniqueItems":true,"items":{"type":"string","minLength":1,"pattern":"^[^/\\\\:]+$"}},
         "excludedTopLevel": {
           "type": [
             "array",
@@ -220,6 +221,7 @@
                   "minimum": 4096,
                   "maximum": 1048576
                 },
+                "deniedTopLevel": {"type":["array","null"],"maxItems":32,"uniqueItems":true,"items":{"type":"string","minLength":1,"pattern":"^[^/\\\\:]+$"}},
                 "excludedTopLevel": {
                   "type": "array",
                   "uniqueItems": true,

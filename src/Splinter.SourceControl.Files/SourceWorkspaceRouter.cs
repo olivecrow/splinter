@@ -4,11 +4,11 @@ namespace Splinter.SourceControl.Files;
 
 // Selection is durable. An adapter failure is propagated, never reinterpreted
 // as a request for another source mode.
-public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWorkspaceProvider files) :
+public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWorkspaceProvider files, ISourceWorkspaceProvider? plastic = null) :
     ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider
 {
     private ISourceWorkspaceProvider For(WorkspaceRecord w) => w.SourceKind switch
-    { "git" => git, "none" => files, _ => throw new WorkspaceException("SourceSelectionUnsupported", "Unknown durable source kind.") };
+    { "git" => git, "none" => files, "plastic" when plastic is not null => plastic, _ => throw new WorkspaceException("SourceSelectionUnsupported", "Unknown or unavailable durable source kind.") };
     private ISnapshotSourceWorkspaceProvider Snapshot(WorkspaceRecord w) => (ISnapshotSourceWorkspaceProvider)For(w);
     private ISourceDiscardProvider Discard(WorkspaceRecord w) => (ISourceDiscardProvider)For(w);
     public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => git.ResolveRevisionAsync(p, r, ct);

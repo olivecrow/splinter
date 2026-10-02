@@ -9,7 +9,7 @@ namespace Splinter.Host;
 public sealed class FoundationGateway(
     ContractCatalog contracts,
     IRepositoryInspector repositories,
-    IApplicationInspector applications, bool development = false)
+    IApplicationInspector applications, bool development = false, ISourceCompatibilityInspector? compatibilityInspector = null)
 {
     public ApiResponse Capabilities() => ApiResponse.Success("capabilities", new
     {
@@ -24,12 +24,14 @@ public sealed class FoundationGateway(
             audit = "workspace status --audit-source", cacheTrust = "same-snapshot-provider-epoch-and-source-generation",
             measurements = "per-inspection-payload-and-manifest; batched-Git-hash-process-count; provider-epoch-I/O-and-read-range-search-counters; storage-reads.jsonl; scripts/measure-workspace-storage.ps1 (read-only development sampler)" },
         storageModes = development ? new[] { "ntfs-snapshot", "refs-cow", "git-checkout" } : ["ntfs-snapshot"],
-        sourceModes = new[] { "git", "none" },
+        sourceModes = new[] { "git", "none", "plastic" },
         applicationModes = new[] { "unity", "none" },
         workspaceRecordVersion = WorkspaceRecord.CurrentVersion,
         plainFolder = new { basis = "immutable-snapshot-content-manifest", result = "owned-basis-and-result-payloads-at-explicit-collection",
             inspection = "full-content-read; no-mtime-only-cache", originalApply = "explicit-plan-and-intent; editorless-windows-ntfs",
             qualification = "docs/verification/vcs-independent-workspaces.md and docs/verification/plain-folder-original-apply.md; actual product apply A/B is separate from ordinary-user NTFS file/fake tests" },
+        plasticCompatibility = new { mode = "regular/static-original; unregistered-isolated-file-workers", administration = "excluded-and-write-denied; no-client-registration-or-check-in",
+            originalApply = "unsupported", qualification = "docs/verification/plastic-compatibility.md; native qualification separate from fake lifecycle" },
         projectValidation = "agent-and-external-tools; checkpoint-does-not-claim-compile-or-test-success",
         developmentEntrypoint = "pwsh scripts/splinter-dev.ps1",
         storageAuthority = new { stage = "windows-service", protocolVersion = 1, normalCaller = "unelevated",
@@ -107,23 +109,25 @@ public sealed class FoundationGateway(
 
     public async Task<ApiResponse> DoctorAsync(string path, CancellationToken cancellationToken = default, string source = "git", string applicationKind = "unity")
     {
-        if (source is not ("git" or "none") || applicationKind is not ("unity" or "none"))
-            return ApiResponse.Failure("doctor", "SourceSelectionUnsupported", "Select git or none and unity or none.");
+        if (source is not ("git" or "none" or "plastic") || applicationKind is not ("unity" or "none"))
+            return ApiResponse.Failure("doctor", "SourceSelectionUnsupported", "Select git, none or plastic and unity or none.");
         string fullPath = Path.GetFullPath(path);
         if (!Directory.Exists(fullPath))
             return ApiResponse.Failure("doctor", "ProjectPathNotFound", "The project path must be an existing directory.");
         var repository = source == "git" ? await repositories.InspectAsync(fullPath, cancellationToken) : null;
+        var compatibility = source == "plastic" && compatibilityInspector is not null ? await compatibilityInspector.InspectAsync(fullPath, cancellationToken) : null;
         var application = applicationKind == "unity" ? applications.Inspect(fullPath) : null;
         return ApiResponse.Success("doctor", new
         {
             path = fullPath,
             source, applicationKind,
             repository,
+            compatibility,
             application,
             hasCommit = repository?.Revision is not null,
             readyForExecution = false,
             checksNotRun = new[] { "refs-block-cloning", "unity-editor", "agent-authentication", "host-recovery" },
-            missingPrerequisites = source == "none" ? [] : repository is null ? new[] { "GitRepository" }
+            missingPrerequisites = source == "plastic" ? compatibility is null ? new[] { "PlasticWorkspaceObservation" } : [] : source == "none" ? [] : repository is null ? new[] { "GitRepository" }
                 : repository.Revision is null ? new[] { "InitialCommit" } : Array.Empty<string>()
         });
     }

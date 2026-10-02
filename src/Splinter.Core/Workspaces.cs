@@ -52,6 +52,11 @@ public sealed record SourceState(string Revision, string Fingerprint, bool HasCh
     public SourceInspectionMetrics? Inspection { get; init; }
 }
 public sealed record IntegrationResult(string Revision, bool AlreadyIntegrated);
+public sealed record SourceCompatibility(string Kind, string Path, string Identity, string Mode, string ClientVersion);
+public interface ISourceCompatibilityInspector
+{
+    Task<SourceCompatibility> InspectAsync(string path, CancellationToken cancellationToken = default);
+}
 public sealed record ApplicationLease(int ProcessId, long StartTimeUtcTicks, string Token, string ExecutablePath,
     ProcessGroupLease? Group = null);
 // Historical evidence in WorkspaceRecord only; application observations do not publish it.

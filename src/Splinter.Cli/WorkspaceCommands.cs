@@ -28,7 +28,8 @@ internal static class WorkspaceCommands
             var store = new WorkspaceStore(Home(parse)); IWorkspaceStorageProvider? storageProvider = development ? new RefsWorkspaceStorageProvider() : null;
             var git = new GitWorkspaceProvider(storageProvider, store, new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver);
             var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver);
-            var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store, new WindowsOriginalFilePublisher()));
+            var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store, new WindowsOriginalFilePublisher()),
+                new PlasticWorkspaceProvider(store, new PlasticWorkspaceClient()));
             return new(store, sources,
                 new SelectedApplicationProvider(new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners")))), storageProvider,
                 snapshots, preparationObserver, new WindowsWorkspaceDiscardProvider(sources, snapshots));
@@ -45,7 +46,7 @@ internal static class WorkspaceCommands
         var project = new Option<string>("--project") { Required = true };
         var key = new Option<string>("--key") { Required = true, Description = "Stable unique task key; reuse to resume across turns." };
         var basis = new Option<string>("--base") { Description = "Source branch/ref; default development." };
-        var source = new Option<string>("--source") { Description = "git (default) or none. Selection is durable; failures never fall back." };
+        var source = new Option<string>("--source") { Description = "git (default), none or plastic. Selection is durable; failures never fall back." };
         var application = new Option<string>("--application") { Description = "unity (default) or none for an ordinary folder without an Editor." };
         var storage = new Option<string>("--storage") { Required = true, Description = "ntfs-snapshot uses an immutable source snapshot and range delta. refs-cow requires a baseline; git-checkout is diagnostic." };
         var journalBudget = new Option<long?>("--max-journal-bytes") { Description = "Immutable NTFS delta budget; defaults to 16 GiB. A changed limit requires a new task key." };
@@ -60,7 +61,7 @@ internal static class WorkspaceCommands
             select(command);
             string sourceKind = parse.GetValue(source) ?? "git";
             string applicationKind = parse.GetValue(application) ?? (sourceKind == "none" ? "none" : "unity");
-            string baseReference = parse.GetValue(basis) ?? (sourceKind == "none" ? "snapshot" : "development");
+            string baseReference = parse.GetValue(basis) ?? (sourceKind is "none" or "plastic" ? "snapshot" : "development");
             var input = new { project = parse.GetValue(project), key = parse.GetValue(key), baseReference, source = sourceKind, application = applicationKind, storage = parse.GetValue(storage), editor = parse.GetValue(editor), baseline = development ? parse.GetValue(baselineOption) : null, maxJournalBytes = parse.GetValue(journalBudget) };
             if (!Validate(command, input)) return;
             var view = await Runtime(parse).EnsureAsync(input.project!, input.key!, baseReference, input.storage!, input.editor, ct, input.baseline,

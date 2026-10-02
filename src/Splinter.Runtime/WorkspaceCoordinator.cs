@@ -20,9 +20,9 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         bool editor, CancellationToken ct = default, string? baselineId = null, string purpose = "task",
         long maxJournalBytes = SnapshotWorkspaceState.DefaultJournalBytes, string sourceKind = "git", string applicationKind = "unity")
     {
-        if (sourceKind is not ("git" or "none") || applicationKind is not ("unity" or "none"))
-            throw new WorkspaceException("SourceSelectionUnsupported", "Select git or none and unity or none explicitly; no fallback is available.");
-        if (sourceKind == "none" && (storageMode != "ntfs-snapshot" || baselineId is not null || baseReference != "snapshot" || purpose != "task"))
+        if (sourceKind is not ("git" or "none" or "plastic") || applicationKind is not ("unity" or "none"))
+            throw new WorkspaceException("SourceSelectionUnsupported", "Select git, none or plastic and unity or none explicitly; no fallback is available.");
+        if (sourceKind is "none" or "plastic" && (storageMode != "ntfs-snapshot" || baselineId is not null || baseReference != "snapshot" || purpose != "task"))
             throw new WorkspaceException("SourceSelectionUnsupported", "Plain folders require an NTFS task and the snapshot basis.");
         if (editor && applicationKind == "none")
             throw new WorkspaceException("ApplicationUnsupported", "This ordinary folder has no selected application provider.");
@@ -201,7 +201,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     {
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
-        if (record.SourceKind == "none")
+        if (record.SourceKind is "none" or "plastic")
             throw new WorkspaceException("SourceIntegrationUnsupported", "Plain-folder apply requires its separate plan, explicit intent and reviewed digest; a branch target alone cannot authorize it.");
         RequireLive(record);
         var current = await ViewAsync(record, ct);
@@ -311,7 +311,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         if (record.Phase == "editor-starting" && app.Ready) { record.Phase = "active"; changed = true; }
         if (changed) store.Save(record, "observed");
         string next = record.Purpose == "baseline" && !app.Running ? "baseline seal" :
-            record.IntegratedRevision is not null ? "workspace release" : record.ResultRevision is not null ? record.SourceKind == "none" ? "workspace release" : "workspace integrate" :
+            record.IntegratedRevision is not null ? "workspace release" : record.ResultRevision is not null ? record.SourceKind is "none" or "plastic" ? "workspace release" : "workspace integrate" :
             app.Running && !app.Ready ? "workspace status" : "workspace checkpoint";
         return new(record, source, app, store.ControlPath(record.Id), next + " --id " + record.Id);
     }

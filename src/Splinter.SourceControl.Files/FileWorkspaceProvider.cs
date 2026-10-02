@@ -19,17 +19,25 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     private static WorkspaceException Error(string message) => new("FileSourceStateInvalid", message);
     private static void Require(WorkspaceRecord w)
     {
-        if (w.SourceKind != "none" || w.StorageMode != "ntfs-snapshot" || w.BaseReference != "snapshot" || w.Purpose != "task")
+        if (w.SourceKind is not ("none" or "plastic") || w.StorageMode != "ntfs-snapshot" || w.BaseReference != "snapshot" || w.Purpose != "task")
             throw Error("Only the explicitly selected plain-folder NTFS task is supported.");
     }
     public Task<string> PreflightAsync(WorkspaceRecord w, CancellationToken ct = default)
     {
+        if (w.SourceKind != "none") throw Error("Plastic input requires its explicit compatibility adapter.");
+        return PreflightFilesAsync(w, ct);
+    }
+    internal static Task<string> PreflightFilesAsync(WorkspaceRecord w, CancellationToken ct = default)
+    {
         Require(w);
         for (string? path = w.ProjectPath; path is not null; path = Path.GetDirectoryName(path))
             foreach (string name in VcsMetadata)
+            {
+                if (w.SourceKind == "plastic" && name == ".plastic" && WorkspaceStore.SamePath(path, w.ProjectPath)) continue;
                 if (File.Exists(Path.Combine(path, name)) || Directory.Exists(Path.Combine(path, name)))
                     throw new WorkspaceException("VcsMetadataUnsupported", "The plain-folder path cannot contain or inherit VCS administration.");
-        var entries = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true);
+            }
+        var entries = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true, omitPlasticRoot: w.SourceKind == "plastic");
         if (entries.Any(e => e.Path.Split('/').Any(p => p.StartsWith(".splinter-apply-", StringComparison.OrdinalIgnoreCase))))
             throw new WorkspaceException("OriginalApplyResourcesPresent", "Preserve unresolved original publication resources; do not capture them as a new task's source.");
         return Task.FromResult("snapshot:" + w.Id);
@@ -38,6 +46,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     {
         Require(w);
         if (w.Snapshot?.Reference is null) throw Error("The immutable snapshot identity is missing.");
+        if (w.SourceKind == "plastic") PlasticWorkspaceProvider.VerifyReceipt(w, control);
         SaveFixed(FilePath(control, "owner.json"), new FileSourceOwner(w.Id, w.RequestDigest!, w.ProjectPath,
             w.Path, w.SourceReference, w.Snapshot.Reference));
         return Task.CompletedTask;
@@ -45,6 +54,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     private static void Owner(WorkspaceRecord w, string control, Func<string, Stream>? open = null)
     {
         Require(w);
+        if (w.SourceKind == "plastic") PlasticWorkspaceProvider.VerifyReceipt(w, control, open);
         var owner = Read<FileSourceOwner>(FilePath(control, "owner.json"), open);
         if (owner.Version != 1 || owner != new FileSourceOwner(w.Id, w.RequestDigest!, w.ProjectPath, w.Path, w.SourceReference, w.Snapshot!.Reference!))
             throw Error("The file source owner differs from this request and snapshot.");
@@ -60,7 +70,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         else
         {
             string root = ImmutableRoot(w);
-            baseline = Manifest(w, Scan(root, w.ManagedPaths, ct));
+            baseline = Manifest(w, Scan(root, w.ManagedPaths, ct, omitPlasticRoot: w.SourceKind == "plastic"));
             SaveFixed(path, baseline);
         }
         return Task.FromResult(baseline.Identity);
@@ -204,7 +214,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
                 (mount is null || !WorkspaceStore.SamePath(current, mount)))
                 throw new WorkspaceException("UnsafePath", "Only the exact observed mount root may be a reparse point.");
     }
-    private static FileSourceEntry[] Scan(string root, string[] managed, CancellationToken ct, bool metadataOnly = false, string? mount = null)
+    private static FileSourceEntry[] Scan(string root, string[] managed, CancellationToken ct, bool metadataOnly = false, string? mount = null, bool omitPlasticRoot = false)
     {
         var entries = new List<FileSourceEntry>();
         long pathBytes = 0;
@@ -216,6 +226,8 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
             {
                 ct.ThrowIfCancellationRequested();
                 string relative = Path.GetRelativePath(root, path).Replace('\\', '/');
+                if (omitPlasticRoot && relative.Equals(".plastic", StringComparison.OrdinalIgnoreCase))
+                { WorkspaceStore.EnsurePlainPath(path); if (!Directory.Exists(path)) throw Error("Plastic administration must be a directory."); continue; }
                 if (!ValidPath(relative)) throw new WorkspaceException("VcsMetadataUnsupported", "VCS administration and unsupported paths cannot be ordinary file input.");
                 Plain(path, mount);
                 if (Managed(relative, managed)) continue;
@@ -286,7 +298,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     { WorkspaceStore.EnsurePlainPath(path); return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 65536); }
     private static Stream Open(string path, string? mount)
     { Plain(path, mount); return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 65536); }
-    private static T Read<T>(string path, Func<string, Stream>? open = null)
+    internal static T Read<T>(string path, Func<string, Stream>? open = null)
     {
         try { using var stream = (open ?? Open)(path);
             if (stream.Length > 16 * 1024 * 1024) throw Error("Preserve the oversized file source receipt.");
@@ -295,7 +307,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { throw Error("The file source receipt cannot be read; preserve it."); }
     }
-    private static void SaveFixed<T>(string path, T value)
+    internal static void SaveFixed<T>(string path, T value)
     {
         WorkspaceStore.EnsurePlainPath(path); Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(value, Json);

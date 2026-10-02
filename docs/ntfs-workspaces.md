@@ -8,6 +8,8 @@
 
 ## 입력과 권한 경계
 
+아래 Git의 clean/HEAD/관리 등록 조건은 `--source git` 경로다. 일반 폴더는 [VCS 독립 계약](vcs-independent-workspaces.md), Plastic은 [관리 정보/등록 호환 계약](plastic-compatibility.md)을 따르며 공통 NTFS/VSS/WinFsp·소유 자원·범위 저장·회수 guard를 공유한다.
+
 - Windows의 기존 NTFS, 설치된 WinFsp, 저장된 clean Git repository root를 대상으로 한다. 첫 Unity 검증 대상은 별도 `splinter-unity` fixture다. 원본의 현재 HEAD와 `--base`가 같아야 하며 `.git` 디렉터리가 원본 안에 있어야 한다.
 - dirty/staged/untracked 변경, skip-worktree/assume-unchanged, submodule/symlink, LFS·사용자 filter·working-tree-encoding은 거부한다. 필터는 checkpoint와 결과 보존 시에도 검사한다. 원본을 stash/reset하거나 임의로 커밋하지 않는다.
 - 원본과 불변 스냅샷의 메타데이터를 검사하여 ADS, hardlink, reparse, EFS, 압축·희소 파일을 `SnapshotFileUnsupported`로 거부한다. `.git`은 기준 트리에서 제외한다. 이 검사는 파일 payload를 읽거나 복제하지 않는다. 개별 ACL 변경은 지원하지 않으며 overlay가 원본의 모든 ACL 의미를 재현한다고 주장하지 않는다.

@@ -6,7 +6,7 @@
 
 Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약되는 환경에서 AI 에이전트가 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하는 도구**다. 작업 내용의 의미 판단·코드 작성·게임 기능 검증은 해당 대화의 AI와 기존 개발 도구가 담당한다.
 
-**외부 VCS가 있건 없건 Splinter는 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리해야 한다.** 병렬 격리·기본 수명주기는 Splinter의 기능이며 VCS별 처리는 이를 안전하고 효율적으로 유지하는 호환 책임이다. 마감한 M0는 Git 전제다. 일반 폴더 기본 수명주기와 기존 Git 사용 환경의 보호 경계를 연결하고 작은 실제 A/B 한 묶음을 마감했다. 일반 폴더의 작은 Editor 없는 원본 반영도 한정 마감했고 Plastic 사용 환경의 호환 처리는 별도 후속이다.
+**외부 VCS가 있건 없건 Splinter는 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리해야 한다.** 병렬 격리·기본 수명주기는 Splinter의 기능이며 VCS별 처리는 이를 안전하고 효율적으로 유지하는 호환 책임이다. 마감한 M0는 Git 전제다. 일반 폴더 기본 수명주기와 기존 Git 사용 환경의 보호 경계를 연결하고 작은 실제 A/B 한 묶음을 마감했다. 일반 폴더의 작은 Editor 없는 원본 반영도 한정 마감했다. 현재 Plastic 호환 계약과 작은 실제 A/B를 연결했으며 [PC 검증](../verification/plastic-compatibility.md)의 snapshot 회수 Partial·외부 도구 발견 실패를 유지한다.
 
 첫 실사용 버전은 아래 M0의 한정된 환경과 사용 흐름을 완성한다. 범용 Unity 저작·테스트 플랫폼이나 모든 NTFS 장애 조건의 자격을 완료 기준에 넣지 않는다. 제품 요구는 [plan.html](../../plan.html), 현재 구현은 [foundation](../foundation.md), 실행 상태는 [검증 추적표](validation-matrix.md)가 소유한다.
 
@@ -52,7 +52,7 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 
 2026-10-02에 확정한 **VCS 없는 일반 폴더의 안전한 원본 반영**을 scoped-complete-with-limitations로 마감했다. 정확한 독립 결과의 변경 경로만 원본에 반영하며 원본의 이후 수정·B의 편집·보존 결과를 유지하는 제품 경계를 작은 Editor 없는 A/B 한 묶음에서 확인했다. 포함/제외·조건부 게시와 중단 복구·비용·종료 기준은 [확정 범위](plain-folder-original-apply.md)가 소유한다.
 
-첫 실제 자격은 `source=none`·`application=none`의 작은 Windows x64/NTFS A/B 한 묶음이다. Plastic 사용 환경의 호환 처리와 Unity 전체 인계/원본 Editor 반영 자격은 별도 후속이다. 현재 integrate의 부작용 전 거부와 기존 지원 상태는 그대로이며 [AP 추적표](validation-matrix.md#vcs-없는-원본-반영)는 NotRun이다. 이번 계획 요청은 문서만 변경하고 구현·설치·실제 원본 쓰기를 시작하지 않는다.
+첫 실제 자격은 `source=none`·`application=none`의 작은 Windows x64/NTFS A/B 한 묶음이다. [AP 추적표](validation-matrix.md#vcs-없는-원본-반영)의 AP-01~06과 [실행 근거](../verification/plain-folder-original-apply.md)를 한정 마감했다. Plastic 사용 환경의 호환 처리와 Unity 전체 인계/원본 Editor 반영 자격은 별도 후속이며 이 판정을 승계하지 않는다.
 
 ## 마감한 선행 개발 단위: VCS 없는 기본 수명주기
 
@@ -66,7 +66,7 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 | --- | --- | --- |
 | Git | 생성·재개·독립 Editor·내용 검사·독립 결과·회수·폐기 | 기존 commit/ref·linked worktree·통합/dirty guard로 관리 정보를 보호. 공유 객체/등록과 작업별 변경분·결과 비용을 구분하고 회수 시 원본/peer를 유지. 현재 한정 자격과 회귀를 보존 |
 | VCS 없음 | 동일 | 불변 파일 기준·내용 hash·독립 결과의 기본 수명주기를 한정 마감. 외부 VCS 설치/초기화 불필요. 안전한 원본 반영은 별도 AP 단위의 자동 파일 시험과 작은 Editor 없는 제품 A/B 한정 자격을 구분 |
-| Unity VCS / Plastic SCM | 동일 | 관리 정보·등록·잠금·공유 기준이 Splinter의 격리·회수와 저장 공간/메모리에 문제를 만들지 않도록 필요한 호환 처리. 미구현/미자격이며 이번 마감 범위에서 제외 |
+| Unity VCS / Plastic SCM | 동일 | 선행 일반 폴더 단위에서는 제외. 현재 [호환 계약](../plastic-compatibility.md)의 관리 정보/등록 보호·독립 파일 결과를 별도 구현했고 [PC](../verification/plastic-compatibility.md)의 한정 실제 자격과 회수/인계 제한을 따름 |
 
 병렬 편집·결과 보존과 원본 통합을 분리한다. VCS가 없어도 독립 작업과 결과 보관이 가능해야 하며 Git commit/check-in 성공을 전제하지 않는다. 원본에 적용할 때는 작업 시작 기준·보존 결과·최신 원본을 비교해 이후 원본 변경을 보호한다. 단순 덮어쓰기·자동 `git init`·사용자에게 Git 등록을 요구하는 방식으로 대체하지 않는다.
 
@@ -90,7 +90,7 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 
 입력은 Windows x64·로컬 NTFS·지원하는 일반 파일이다. Editor 없는 기본 작업에는 Unity 프로젝트 메타데이터·Editor·라이선스를 요구하지 않으며 이 거부/발견 경계는 공통 적합성으로 확인했다. 실제 소유 Editor 관문에는 정확한 Unity `6000.3.22f1`의 작은 VCS 없는 fixture를 사용했다. 새 fixture·정확한 project/home·base 내용·기존 서비스 등록/여유 공간을 실행 전에 고정했고 기존 Git fixture의 `.git`을 변경하지 않았다. [native 계획](vcs-independent-validation.md)의 관리자 Apply는 사용자 별도 승인을 받아 실행했다. 이후 다른 입력/구성의 설치·외부 프로젝트 변경은 이번 마감 범위에 자동 포함하지 않는다.
 
-선행 마감 범위는 **원본 반영의 VCS 중립 계약/차단까지**였다. 실제 apply는 아래 별도 현재 단위이며 선행 통과를 승계하지 않는다. 선행 단위에는 실제 apply가 포함되지 않았다. 자동 충돌 병합·Plastic 관리 정보/서버/checkout·check-in·전용 adapter·독립 Unity CLI 전체 공존 검증·대형/원격/OS 장애·개발용 view 확장은 현재 단위에도 포함하지 않는다. 지원 경로의 쓰기 손실·원본/peer 훼손은 우선 수정하고, 나머지는 선택한 단위의 성공/실패·제약을 기록한 뒤 마감한다.
+선행 마감 범위는 **원본 반영의 VCS 중립 계약/차단까지**였다. 실제 apply는 아래 별도 AP 단위이며 선행 통과를 승계하지 않는다. 선행 단위에는 실제 apply가 포함되지 않았다. 자동 충돌 병합·Plastic 관리 정보/서버/checkout·check-in·전용 adapter·독립 Unity CLI 전체 공존 검증·대형/원격/OS 장애·개발용 view 확장은 AP 단위에도 포함하지 않았다. Plastic 호환 adapter는 아래 별도 PC 범위를 따른다. 지원 경로의 쓰기 손실·원본/peer 훼손은 우선 수정하고, 나머지는 선택한 단위의 성공/실패·제약을 기록한 뒤 마감한다.
 
 ### 이후 순서와 원본 반영 원칙
 
@@ -98,13 +98,13 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 | --- | --- | --- |
 | 1: 이번 마감 | VCS 중립 계약·일반 폴더 기본 수명주기·기존 Git 사용 환경의 보호 경계 | 실제 A/B와 독립 결과/회수·Git 회귀의 한정 판정. 원본 반영 실행·Plastic 사용 환경의 자격은 아직 주장하지 않음 |
 | 2: 한정 마감 | [VCS 없는 안전한 원본 반영](plain-folder-original-apply.md)과 기존 Git 보호 경계 유지 | 명시적 대상·3자 내용 비교·조건부 게시·동일 intent/부분 수행 복구, Editor 없는 작은 NTFS A/B 한 묶음과 AP-01~06. 자동 내용 병합은 AI/기존 도구 책임 |
-| 3 | Unity VCS / Plastic SCM 사용 환경의 병렬 격리·효율 호환 처리 | 실제 client/버전/프로젝트에서 Splinter A/B·원본 지속 편집·기준/변경분 격리·같은 작업 재개·독립 결과·안전한 회수와 관리 정보/등록/잠금 보호를 확인. 추가 복제·cache·결과 저장·메모리 비용을 기존 효율 요구로 판단. 공통 일반 폴더의 성공만으로 Plastic 자격을 주장하지 않음 |
+| 3: 진행 중 | [Unity VCS / Plastic SCM 사용 환경의 병렬 격리·효율 호환 처리](plastic-compatibility.md) | 계약/자동 적합성과 작은 실제 A/B의 생성·원본 지속 편집·같은 요청·Editor·독립 결과·peer/관리 정보 보호를 확인. C: 비소유 VSS 보호로 snapshot 회수 Partial, 외부 CLI worker 발견 실패. 추가 복제/delta/결과/메모리 비용과 후속 한계는 PC가 소유하며 완전 회수/전체 인계 통과를 주장하지 않음 |
 
 원본 반영은 전체 원본을 작업 시작 상태로 되돌리지 않는다. 변경할 경로가 기준과 같을 때 적용하고, 이미 결과와 같으면 동일 intent의 재조정 근거로 확인하며, 원본과 작업이 서로 다르게 변경한 경로·새 파일/삭제/유형 충돌은 보존·거부한다. 영향 없는 원본 변경은 유지한다. 실제 게시·부분 적용 복구의 범위는 [한정 범위](plain-folder-original-apply.md)에 고정했다. 현재 입력/출력 schema와 게시·복구 계약은 [기능 문서](../plain-folder-original-apply.md)를 따른다. AP-05 제품 A/B와 AP-06 비용/회귀를 한정 마감했으며 [실행 근거와 제한](../verification/plain-folder-original-apply.md)을 따른다. native 강제 중단·Unity/Plastic·대형/OS 지원으로 승계하지 않는다. VCS 명령/API는 Splinter의 소유권·격리·기준/결과·회수 경계를 구현하는 데 필요한 범위로 사용한다. 일반 VCS 충돌 해결·check-in 정책은 기존 도구/AI 절차다. 호환 작업의 완료 기준은 Splinter의 안전성과 효율이며 VCS 기능 수나 check-in 성공 횟수가 아니다.
 
 ## 첫 버전의 지원 조건
 
-아래는 마감한 Git 기반 M0의 조건이다. 일반 폴더의 한정 자격은 별도 [VCS 검증](../verification/vcs-independent-workspaces.md)을 따르며 Plastic SCM은 미자격을 유지한다.
+아래는 마감한 Git 기반 M0의 조건이다. 일반 폴더의 한정 자격은 별도 [VCS 검증](../verification/vcs-independent-workspaces.md), Plastic은 별도 [PC 검증](../verification/plastic-compatibility.md)을 따른다. 서로의 native 자격을 승계하지 않는다.
 
 | 항목 | 고정할 범위 |
 | --- | --- |

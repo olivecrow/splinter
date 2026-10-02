@@ -101,11 +101,13 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         { throw new WorkspaceException("StateCorrupt", "Workspace JSON is invalid or incomplete. Preserve its record and temporary files for recovery."); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be read. Restore access before retrying the same key."); }
-        if (record.Version != WorkspaceRecord.CurrentVersion || record.SourceKind is not ("git" or "none") ||
+        if (record.Version != WorkspaceRecord.CurrentVersion || record.SourceKind is not ("git" or "none" or "plastic") ||
             record.ApplicationKind is not ("unity" or "none") || record.ApplicationKind == "none" && record.ManagedPaths.Length != 0 ||
-            record.SourceKind == "none" && (record.StorageMode != "ntfs-snapshot" || record.BaseReference != "snapshot" || record.Purpose != "task") ||
+            record.SourceKind is "none" or "plastic" && (record.StorageMode != "ntfs-snapshot" || record.BaseReference != "snapshot" || record.Purpose != "task") ||
             record.Id != id || !SamePath(record.Path, WorkPath(id)))
             throw new WorkspaceException("StateCorrupt", "Workspace identity/path/version does not match its registry.");
+        if (record.SourceKind == "plastic" && (record.OriginalApply is not null || record.IntegratedRevision is not null || record.Phase is "integrating" or "integrated"))
+            throw new WorkspaceException("StateCorrupt", "Plastic original application is unavailable; preserve the unsupported state.");
         if (record.Discard is { } discard) discard.RequireMatch(record);
         else if (record.Phase is "discarding" or "discard-reclaim-pending" or "discarded" ||
             record.Snapshot?.Step.StartsWith("discard", StringComparison.Ordinal) == true)

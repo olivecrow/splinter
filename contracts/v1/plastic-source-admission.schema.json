@@ -1,0 +1,13 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"urn:splinter:v1:plastic-source-admission",
+  "type":"object","additionalProperties":false,
+  "required":["version","ownerId","requestDigest","projectPath","workspaceGuid","clientVersion","administrationHash"],
+  "properties":{
+    "version":{"const":1},"ownerId":{"type":"string","pattern":"^[a-f0-9]{24}$"},
+    "requestDigest":{"type":"string","pattern":"^[a-f0-9]{24}$"},"projectPath":{"type":"string","minLength":1},
+    "workspaceGuid":{"type":"string","pattern":"^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"},
+    "clientVersion":{"type":"string","pattern":"^[0-9]+(\\.[0-9]+){3}$"},
+    "administrationHash":{"type":"string","pattern":"^[a-f0-9]{64}$"}
+  }
+}

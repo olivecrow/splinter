@@ -186,6 +186,37 @@ public sealed class ContractAndCliTests
     }
 
     [Fact]
+    public void DeferredDiscardRequiresExplicitSameIntentRetryWhileStatusOnlyObserves()
+    {
+        using var d = new TestDirectory(); var store = new WorkspaceStore(d.Path);
+        string id = WorkspaceStore.Key("deferred-discard-contract");
+        var snapshot = new SnapshotReference("snapshot", "fake", d.Path, "snapshot-root", DateTimeOffset.UtcNow, true, true, "fake");
+        var workspace = new WorkspaceRecord { Id = id, RequestKey = "discard", RequestDigest = id, ProjectPath = d.Path,
+            Path = store.WorkPath(id), BaseReference = "snapshot", BaseRevision = "basis", SourceReference = "task",
+            StorageMode = "ntfs-snapshot", Phase = "discard-reclaim-pending",
+            Snapshot = new() { Step = "discard-snapshot", Reference = snapshot,
+                Observation = new(true, false, false, true, 0, 0, 0, DeltaPresent: false),
+                Reclamation = new("snapshot", "attempt", "deferred", DateTimeOffset.UtcNow, ["older"]) },
+            Discard = new() { Step = "snapshot", Seal = new(1, 100, "hash"),
+                Intent = new(1, id, "discard-this-task", id, d.Path, store.WorkPath(id), "task", "basis", "source", snapshot, DateTimeOffset.UtcNow) } };
+        var view = new WorkspaceView(workspace, null, null, store.ControlPath(id), "workspace discard");
+        var response = WorkspaceCommands.Result("workspace.discard", view, false, d.Path);
+        Assert.Equal("Accepted", response.Status); Assert.False(response.Terminal);
+        Assert.Equal("requires-user-action", response.RetryDisposition);
+        var next = Assert.Single(response.NextActions);
+        Assert.Equal("workspace.discard", next.Command); Assert.True(next.RequiresUserAction);
+        var args = JsonSerializer.SerializeToElement(next.Arguments, ApiJson.Options);
+        Assert.Equal("discard-this-task", args.GetProperty("intentKey").GetString());
+        Assert.Equal(id, args.GetProperty("expectedRequestDigest").GetString());
+        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(response, ApiJson.Options)).IsValid);
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(response with { RetryDisposition = "not-needed" }, ApiJson.Options)).IsValid);
+        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(response with { Status = "Succeeded", Terminal = true }, ApiJson.Options)).IsValid);
+        var status = WorkspaceCommands.Result("workspace.status", view, false, d.Path);
+        Assert.Equal("Succeeded", status.Status); Assert.Equal("not-needed", status.RetryDisposition);
+        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(status, ApiJson.Options)).IsValid);
+    }
+
+    [Fact]
     public async Task StatusPollDoesNotOpenGitSourceFilesAndExplicitVerificationDetectsEdits()
     {
         using var directory = new TestDirectory(); var ct = TestContext.Current.CancellationToken;

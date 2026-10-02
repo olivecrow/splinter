@@ -9,7 +9,7 @@ using Splinter.Platform.Windows;
 
 namespace Splinter.Tests;
 
-public sealed class SnapshotOverlayTests
+public sealed partial class SnapshotOverlayTests
 {
     [Fact]
     public void SourceChangeBarrierIgnoresManagedWritesAndSurvivesJournalReplayWithNewEpoch()

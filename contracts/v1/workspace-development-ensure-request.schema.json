@@ -40,6 +40,7 @@
     "source": {
       "enum": [
         "git",
+        "plastic",
         "none"
       ],
       "default": "git",
@@ -98,7 +99,7 @@
       "if": {
         "properties": {
           "source": {
-            "const": "none"
+            "enum": ["none", "plastic"]
           }
         },
         "required": [

@@ -623,33 +623,43 @@
           "data"
         ],
         "properties": {
-          "command": {
-            "const": "workspace.release"
-          },
           "status": {
             "enum": [
               "Succeeded",
               "Accepted"
             ]
-          },
-          "data": {
-            "required": [
-              "workspace"
-            ],
+          }
+        },
+        "anyOf": [
+          {
             "properties": {
-              "workspace": {
-                "required": [
-                  "phase"
-                ],
+              "command": { "const": "workspace.release" },
+              "data": {
+                "required": ["workspace"],
                 "properties": {
-                  "phase": {
-                    "const": "reclaim-pending"
+                  "workspace": {
+                    "required": ["phase"],
+                    "properties": { "phase": { "const": "reclaim-pending" } }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "command": { "const": "workspace.discard" },
+              "data": {
+                "required": ["workspace"],
+                "properties": {
+                  "workspace": {
+                    "required": ["phase"],
+                    "properties": { "phase": { "const": "discard-reclaim-pending" } }
                   }
                 }
               }
             }
           }
-        }
+        ]
       },
       "then": {
         "properties": {
@@ -900,7 +910,8 @@
         "workspaceStatus": {
           "const": "process-provider-poll; source-only-on-verify-source"
         },
-        "sourceModes": {"type":"array","items":{"enum":["git","none"]}},
+        "sourceModes": {"type":"array","items":{"enum":["git","plastic",
+        "none","plastic"]}},
         "applicationModes": {"type":"array","items":{"enum":["unity","none"]}},
         "workspaceRecordVersion": {"const":2},
         "plainFolder": {
@@ -910,6 +921,10 @@
             "basis":{"type":"string"}, "result":{"type":"string"}, "inspection":{"type":"string"},
             "originalApply":{"const":"explicit-plan-and-intent; editorless-windows-ntfs"}, "qualification":{"type":"string"}
           }
+        },
+        "plasticCompatibility": {
+          "type":"object", "additionalProperties":false, "required":["mode","administration","originalApply","qualification"],
+          "properties": {"mode":{"type":"string"},"administration":{"type":"string"},"originalApply":{"const":"unsupported"},"qualification":{"type":"string"}}
         },
         "storageModes": {
           "type": "array",
@@ -1151,7 +1166,13 @@
         "missingPrerequisites"
       ],
       "properties": {
-        "source": {"enum":["git","none"]},
+        "compatibility": {
+          "type":["object","null"],"additionalProperties":false,
+          "required":["kind","path","identity","mode","clientVersion"],
+          "properties":{"kind":{"const":"plastic"},"path":{"type":"string"},"identity":{"type":"string"},"mode":{"type":"string"},"clientVersion":{"type":"string"}}
+        },
+        "source": {"enum":["git","plastic",
+        "none","plastic"]},
         "applicationKind": {"enum":["unity","none"]},
         "path": {
           "type": "string",
@@ -1203,7 +1224,8 @@
       ],
       "properties": {
         "version": {"const":2},
-        "sourceKind": {"enum":["git","none"]},
+        "sourceKind": {"enum":["git","plastic",
+        "none","plastic"]},
         "applicationKind": {"enum":["unity","none"]},
         "resultStorage": {
           "type":"object","additionalProperties":false,

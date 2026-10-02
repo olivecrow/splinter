@@ -5,6 +5,7 @@ using Splinter.Core;
 using Splinter.Host;
 using Splinter.Protocol;
 using Splinter.SourceControl.Git;
+using Splinter.SourceControl.Files;
 
 namespace Splinter.Cli;
 
@@ -33,7 +34,7 @@ public static class Program
         try
         {
             var contracts = new ContractCatalog(development);
-            var gateway = new FoundationGateway(contracts, new GitRepositoryInspector(), new UnityProjectInspector(), development);
+            var gateway = new FoundationGateway(contracts, new GitRepositoryInspector(), new UnityProjectInspector(), development, new PlasticWorkspaceClient());
             var root = new RootCommand("Splinter agent-first workspace runtime (internal alpha).");
             root.Options.Clear();
             var help = new Option<bool>("--help", "-h") { Recursive = true, Description = "List implemented command contracts." };

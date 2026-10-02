@@ -94,6 +94,10 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         this.mutationObserver = mutationObserver;
         if (identity.Version != 1 || identity.MaxJournalBytes < 4096 || identity.MaxTransferBytes is < 4096 or > 1048576)
             throw new ArgumentException("Invalid overlay version or bounded storage limits.");
+        if (identity.DeniedTopLevel is { } denied && (denied.Length > 32 ||
+            denied.Any(p => string.IsNullOrEmpty(p) || Normalize(p) != p || p.Contains('/')) ||
+            denied.Distinct(StringComparer.OrdinalIgnoreCase).Count() != denied.Length))
+            throw new ArgumentException("Denied administration roots must be bounded unique top-level names.");
         if (identity.Snapshot != snapshot.Snapshot || !identity.Snapshot.Persistent || !identity.Snapshot.Differential)
             throw new WorkspaceException("SnapshotIdentityMismatch", "Reconnect requires the exact persistent differential snapshot reference.");
         snapshot.EnsureAvailable();
@@ -152,7 +156,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     {
         using (EnterGate(mutation: true))
         {
-            Check(); path = Normalize(path);
+            Check(); path = Normalize(path); RequireAllowed(path);
             if (path.Length == 0 || Lookup(path) is not null) throw new IOException("Path already exists.");
             RequireParent(path); RequireNodeCapacity();
             long now = DateTime.UtcNow.ToFileTimeUtc();
@@ -306,7 +310,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     {
         using (EnterGate(mutation: true))
         {
-            Check(); Node node = Required(id); destination = Normalize(destination);
+            Check(); Node node = Required(id); destination = Normalize(destination); RequireAllowed(destination);
             if (node.Entry.Path.Length == 0 || node.Entry.Deleted || destination.Length == 0 || IsChild(destination, node.Entry.Path))
                 throw new IOException("Invalid rename.");
             RequireParent(destination);
@@ -424,6 +428,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     }
     private Node? Lookup(string path)
     {
+        if (Denied(path)) return null;
         if (paths.TryGetValue(path, out var id)) return nodes[id];
         if (path.Length == 0 || hidden.Contains(path)) return null;
         if (Identity.ExcludedTopLevel?.Contains(path.Split('/')[0], StringComparer.OrdinalIgnoreCase) == true) return null;
@@ -432,6 +437,11 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         if (parent is not { Entry.Directory: true, Entry.BasePath: { } baseParent }) return null;
         var entry = snapshot.Stat(Join(baseParent, Name(path)));
         return entry is null ? null : AddBaseNode(entry, path);
+    }
+    private bool Denied(string path) => Identity.DeniedTopLevel?.Contains(path.Split('/')[0], StringComparer.OrdinalIgnoreCase) == true;
+    private void RequireAllowed(string path)
+    {
+        if (Denied(path)) throw new UnauthorizedAccessException("This administration root is reserved by the workspace isolation policy.");
     }
     private Node AddBaseNode(SnapshotEntry entry, string path)
     {
@@ -718,6 +728,9 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     }
     private void RequireMutationCapacity(Mutation mutation)
     {
+        RequireAllowed(mutation.Entry.Path);
+        if (mutation.Entry.BasePath is { } basis) RequireAllowed(basis);
+        if (mutation.Destination is { } target) RequireAllowed(target);
         int newPaths = (pathChanges.ContainsKey(mutation.Entry.Path) ? 0 : 1) +
             (mutation.Destination is { } destination && !pathChanges.ContainsKey(destination) ? 1 : 0);
         if (pathChanges.Count > MaxHiddenPaths - newPaths)

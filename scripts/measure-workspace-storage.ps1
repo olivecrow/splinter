@@ -5,7 +5,7 @@ param(
     [Parameter(Mandatory)][string]$OutputPath,
     [Parameter(Mandatory)][string]$Label,
     [string]$EvidencePath,
-    [ValidateSet('git','none')][string]$SourceKind = 'git',
+    [ValidateSet('git','none','plastic')][string]$SourceKind = 'git',
     [ValidateSet('unity','none')][string]$ApplicationKind = 'unity'
 )
 $ErrorActionPreference = 'Stop'

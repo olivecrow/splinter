@@ -19,7 +19,8 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
     private WinFspOverlayMountProvider MountProvider(string control, WorkspaceRecord? workspace = null) => new(RequestPath(control), runnerCache,
         workspace is null || preparationObserver is null ? null : boundary => preparationObserver.ReachedAsync(boundary, workspace, CancellationToken.None));
     public static OverlayIdentity Identity(WorkspaceRecord w) => new(1, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024,
-        w.SourceKind == "none" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : [".git"]);
+        w.SourceKind is "none" or "plastic" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : [".git"],
+        DeniedTopLevel: w.SourceKind == "plastic" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : null);
 
     public async Task<SnapshotReference> CaptureAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
@@ -31,7 +32,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         CheckSpace(control);
         // Reject unsupported live input before requesting a privileged capture.
         // Repeat on the immutable tree to close the capture-time race.
-        if (!File.Exists(Path.Combine(control, "snapshot", "snapshot.json"))) SnapshotInputChecks.VerifyTree(w.ProjectPath, ct, w.SourceKind == "none");
+        if (!File.Exists(Path.Combine(control, "snapshot", "snapshot.json"))) SnapshotInputChecks.VerifyTree(w.ProjectPath, ct, w.SourceKind is "none" or "plastic", w.SourceKind == "plastic");
         var snapshot = await Provider(w, control).CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(control, "snapshot")), ct);
         string probePath = Path.Combine(control, "snapshot", "input-check.json");
         var prior = await WindowsProcessWorkspaceProvider.ReadAsync<InputCheck>(probePath, ct);
@@ -39,7 +40,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         {
             var watch = Stopwatch.StartNew();
             var access = await Provider(w, control).ResolveReadAccessAsync(snapshot, null, ct);
-            int entries = SnapshotInputChecks.VerifyTree(access.RootPath, ct, w.SourceKind == "none");
+            int entries = SnapshotInputChecks.VerifyTree(access.RootPath, ct, w.SourceKind is "none" or "plastic", w.SourceKind == "plastic");
             await WindowsProcessWorkspaceProvider.WriteAsync(probePath, new InputCheck(1, snapshot.Id, entries, watch.ElapsedMilliseconds, 0), ct);
         }
         return snapshot;

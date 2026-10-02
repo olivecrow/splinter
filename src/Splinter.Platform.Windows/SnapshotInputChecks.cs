@@ -8,7 +8,7 @@ namespace Splinter.Platform.Windows;
 // Metadata-only admission check. It never reads or copies file payloads.
 public static class SnapshotInputChecks
 {
-    public static int VerifyTree(string root, CancellationToken ct = default, bool rejectVcsMetadata = false)
+    public static int VerifyTree(string root, CancellationToken ct = default, bool rejectVcsMetadata = false, bool omitPlasticRoot = false)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         int count = 0;
@@ -19,6 +19,8 @@ public static class SnapshotInputChecks
             foreach (string path in Directory.EnumerateFileSystemEntries(directory))
             {
                 ct.ThrowIfCancellationRequested();
+                if (omitPlasticRoot && directory == root && Path.GetFileName(path).Equals(".plastic", StringComparison.OrdinalIgnoreCase))
+                { Verify(path); if (!Directory.Exists(path)) throw new WorkspaceException("VcsMetadataUnsupported", "Plastic administration must be a directory."); continue; }
                 if (rejectVcsMetadata && Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase))
                     throw new WorkspaceException("VcsMetadataUnsupported", "The immutable plain-folder tree cannot contain VCS administration.");
                 if (!rejectVcsMetadata && directory == root && Path.GetFileName(path).Equals(".git", StringComparison.OrdinalIgnoreCase)) continue;

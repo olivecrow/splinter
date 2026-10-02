@@ -26,7 +26,7 @@ internal sealed class StorageAuthorityPaths : IDisposable
             string control = Path.Combine(grant.HomePath, "records", request.OwnerId);
             guard.Pin(control); guard.Pin(Path.Combine(control, "snapshot"));
             var workspace = guard.Read<WorkspaceRecord>(Path.Combine(control, "workspace.json"));
-            if (workspace.Version != WorkspaceRecord.CurrentVersion || workspace.SourceKind is not ("git" or "none") ||
+            if (workspace.Version != WorkspaceRecord.CurrentVersion || workspace.SourceKind is not ("git" or "none" or "plastic") ||
                 workspace.ApplicationKind is not ("unity" or "none") || workspace.Id != request.OwnerId || workspace.StorageMode != "ntfs-snapshot" ||
                 !StorageAuthorityProcessor.Same(workspace.ProjectPath, grant.SourcePath) ||
                 !StorageAuthorityProcessor.Same(workspace.Path, Path.Combine(grant.HomePath, "workspaces", request.OwnerId)) ||
@@ -61,7 +61,7 @@ internal sealed class StorageAuthorityPaths : IDisposable
         if (w.Phase is not ("releasing" or "reclaim-pending" or "released") || state.Step is not ("release-snapshot" or "released") ||
             state.Reference != request.Release!.Snapshot || state.Result is not { IndependentOfSnapshot: true, CollectionProtocol: SnapshotResult.StableJournalProtocol } result ||
             result.SnapshotId != request.SnapshotId || result.Revision != w.ResultRevision ||
-            result.ResultReference != (w.SourceKind == "none" ? Splinter.SourceControl.Files.FileWorkspaceProvider.ResultReference(w) : "refs/splinter/snapshot-results/" + w.Id) ||
+            result.ResultReference != (w.SourceKind is "none" or "plastic" ? Splinter.SourceControl.Files.FileWorkspaceProvider.ResultReference(w) : "refs/splinter/snapshot-results/" + w.Id) ||
             w.ReleasedResources is not { OwnershipVerified: true, RootRunning: false, ActiveProcesses: 0, WorkingSetBytes: 0, PrivateBytes: 0 } ||
             state.Observation is not { Mounted: false, ProviderAlive: false, OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
             throw StorageAuthorityProtocol.Error("StorageReleaseNotAuthorized", "Require the durable independent-result and zero-owned-resource release stage.");
@@ -74,7 +74,7 @@ internal sealed class StorageAuthorityPaths : IDisposable
         // Runtime verifies reachable Git objects and the post-unmount seal before
         // this durable stage. Independently pin the preserved refs here, without
         // executing Git or reading user configuration as SYSTEM.
-        if (w.SourceKind == "none")
+        if (w.SourceKind is "none" or "plastic")
             Splinter.SourceControl.Files.FileWorkspaceProvider.VerifyIndependentResult(w, control, path => OpenFileEvidence(path, control));
         else
         {
@@ -103,7 +103,7 @@ internal sealed class StorageAuthorityPaths : IDisposable
         var gate = Read<WorkspaceDiscardState>(Path.Combine(control, "snapshot", "discard-authorized.json"));
         if (JsonSerializer.Serialize(gate, StorageAuthorityProtocol.Json) != JsonSerializer.Serialize(w.Discard, StorageAuthorityProtocol.Json))
             throw StorageAuthorityProtocol.Error("StorageDiscardNotAuthorized", "The explicit discard authorization differs from the durable intent.");
-        if (w.SourceKind == "none")
+        if (w.SourceKind is "none" or "plastic")
             Splinter.SourceControl.Files.FileWorkspaceProvider.VerifyDiscarded(w, control, OpenRead);
         else
         {

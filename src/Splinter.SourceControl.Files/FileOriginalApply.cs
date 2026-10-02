@@ -7,7 +7,7 @@ public sealed partial class FileWorkspaceProvider
     private IOriginalFilePublisher OriginalPublisher(WorkspaceRecord w)
     {
         Require(w);
-        if (originalPublisher is null || w.ApplicationKind != "none")
+        if (originalPublisher is null || w.SourceKind != "none" || w.ApplicationKind != "none")
             throw new WorkspaceException("SourceIntegrationUnsupported", "Conditional original-apply requires the publisher and the qualified editorless application mode.");
         return originalPublisher;
     }
