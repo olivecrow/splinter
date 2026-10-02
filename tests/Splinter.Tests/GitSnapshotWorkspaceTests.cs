@@ -182,11 +182,11 @@ public sealed partial class GitSnapshotWorkspaceTests
         await git.AttachAsync(w, control, ct);
         Assert.False((await git.InspectAsync(w, ct)).HasChanges);
         await File.WriteAllTextAsync(Path.Combine(w.Path, ".gitattributes"), "README.md filter=new-filter\n", ct);
-        Assert.Equal("SnapshotFilterUnsupported", (await Assert.ThrowsAsync<WorkspaceException>(() => git.CommitAsync(w, "must not collect filtered data", ct))).Code);
+        Assert.Equal("SnapshotFilterUnsupported", (await Assert.ThrowsAsync<WorkspaceException>(() => git.CheckpointAsync(w, "must not collect filtered data", ct))).Code);
         File.Delete(Path.Combine(w.Path, ".gitattributes"));
         await File.WriteAllTextAsync(Path.Combine(w.Path, "README.md"), "private result\n", ct);
         var state = await git.InspectAsync(w, ct);
-        w.ResultRevision = await git.CommitAsync(w, "result", ct);
+        w.ResultRevision = await git.CheckpointAsync(w, "result", ct);
         Assert.Null(w.Validation); // preservation cannot claim that this worker was validated.
         string reference = await git.PreserveAsync(w, control, ct);
         w.Snapshot.Result = new("snapshot", w.ResultRevision, state.Fingerprint, reference, new(1, 100, "fake"), true, SnapshotResult.StableJournalProtocol);

@@ -33,7 +33,9 @@ pwsh -File <product-root>/scripts/splinter.ps1 storage service status
 
 `capabilities` and `schema <command>` are the authority for available commands, inputs, effects, and retry policy. Read a command's schema before its first use. `doctor --project <source>` diagnoses prerequisites but is not an execution/ownership/Editor-ready certificate. A missing build, service, or project/home grant needs its stated setup action; ordinary workspace commands do not elevate or install a helper automatically. Never elevate the entire CLI, Git, or Unity to bypass that result.
 
-Use the registered absolute source and home, clean supported Git input, explicit base ref, and a stable key for this task. Do not invent a new home to bypass an existing registration or ownership failure. Supported input and native prerequisites are in [NTFS workspaces](../../docs/ntfs-workspaces.md); current support is a small Windows x64 fixture alpha, not general NTFS/ARM/OS-failure qualification.
+Select `--source git` for supported clean Git input or `--source none` for a registered folder without VCS administration. There is no failure fallback. `none` defaults to the captured `snapshot` basis and application `none`; add `--application unity` on the first request only for Unity work. Keep source/application selection and basis with project/key/id/home/digest in every handoff. Current workspace state is v2; preserve/reject earlier state without migration. Read the [plain-folder contract](../../docs/vcs-independent-workspaces.md) and its native qualification before use. Plain-folder integrate is unavailable before side effects; retain its actual independent result.
+
+Use the registered absolute source and home, the selected supported input and basis, and a stable key for this task. Do not invent a new home to bypass an existing registration or ownership failure. Supported input and native prerequisites are in [NTFS workspaces](../../docs/ntfs-workspaces.md); current support is a small Windows x64 fixture alpha, not general NTFS/ARM/OS-failure qualification.
 
 ## Create, use, and resume the same task
 

@@ -6,6 +6,15 @@ namespace Splinter.SourceControl.Git;
 
 public sealed partial class GitWorkspaceProvider
 {
+    public async Task VerifyDiscardedAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
+    {
+        string path = Path.Combine(control, "git-discard.json"); CheckPaths(w);
+        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+        var receipt = await JsonSerializer.DeserializeAsync<GitDiscardReceipt>(stream, Json, ct);
+        if (receipt is not { Completed: true } || receipt.Intent != w.Discard!.Intent ||
+            Directory.Exists(receipt.Registration.GitDirectory) || File.Exists(receipt.Registration.GitDirectory))
+            throw new WorkspaceException("GitOverlayReleaseIncomplete", "The exact completed Git discard receipt is required.");
+    }
     internal static async Task<string?> DiscardBranchAsync(OverlayGitReceipt r, CancellationToken ct)
     {
         string reference = "refs/heads/" + r.Branch;

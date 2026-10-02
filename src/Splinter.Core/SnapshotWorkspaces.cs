@@ -123,6 +123,10 @@ public interface ISnapshotSourceWorkspaceProvider
     Task<string> PreflightAsync(WorkspaceRecord workspace, CancellationToken ct = default);
     Task RegisterAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task AttachAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
+    // Establish from the immutable captured tree; a VCS adapter already fixed
+    // its revision during preflight. Never recalculate from the live original.
+    Task<string> EstablishBaselineAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default) =>
+        Task.FromResult(workspace.BaseRevision!);
     Task<string> PreserveAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task VerifyResultAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task UnregisterAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);

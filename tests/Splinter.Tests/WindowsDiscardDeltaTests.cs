@@ -48,7 +48,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         if (variant == "unknown-file") await File.WriteAllTextAsync(Path.Combine(delta, "keep.txt"), "unowned", ct);
         if (variant == "changed-journal") await File.WriteAllBytesAsync(Path.Combine(delta, "delta.journal"), [4, 3, 2, 1], ct);
         if (variant == "unknown-resources") f.Backend.UnknownResources = true;
-        var adapter = new WindowsWorkspaceDiscardProvider(new(), f.Backend);
+        var adapter = new WindowsWorkspaceDiscardProvider(new GitWorkspaceProvider(), f.Backend);
         if (variant is "unknown-file" or "changed-journal" or "unknown-resources")
         {
             await Assert.ThrowsAsync<WorkspaceException>(() => adapter.DiscardDeltaAsync(w, control, ct));

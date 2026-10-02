@@ -101,7 +101,10 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         { throw new WorkspaceException("StateCorrupt", "Workspace JSON is invalid or incomplete. Preserve its record and temporary files for recovery."); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be read. Restore access before retrying the same key."); }
-        if (record.Version != 1 || record.Id != id || !SamePath(record.Path, WorkPath(id)))
+        if (record.Version != WorkspaceRecord.CurrentVersion || record.SourceKind is not ("git" or "none") ||
+            record.ApplicationKind is not ("unity" or "none") || record.ApplicationKind == "none" && record.ManagedPaths.Length != 0 ||
+            record.SourceKind == "none" && (record.StorageMode != "ntfs-snapshot" || record.BaseReference != "snapshot" || record.Purpose != "task") ||
+            record.Id != id || !SamePath(record.Path, WorkPath(id)))
             throw new WorkspaceException("StateCorrupt", "Workspace identity/path/version does not match its registry.");
         if (record.Discard is { } discard) discard.RequireMatch(record);
         else if (record.Phase is "discarding" or "discard-reclaim-pending" or "discarded" ||

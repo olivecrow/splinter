@@ -46,16 +46,16 @@
 
 ## VCS 없는 기본 수명주기
 
-이 요구는 새 프로그램 기능/계약의 개발 단위이며 기존 Git 기반 M0·48개 카탈로그와 구분한다. 범위·순서·수정 한도는 [다시 확정한 계획](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)이 소유한다. 아래는 계획만 고정했으며 Git 회귀 성공이나 raw VSS/WinFsp의 분리 구조를 일반 폴더 지원으로 승계하지 않는다.
+이 요구는 새 프로그램 기능/계약의 개발 단위이며 기존 Git 기반 M0·48개 카탈로그와 구분한다. 범위·순서·수정 한도는 [다시 확정한 계획](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)이 소유한다. 프로그램 연결과 자동 file/fake·기존 Git 회귀를 확인했으며 실제 일반 폴더 VSS/Unity는 아직 실행하지 않았다. [현재 검증](../verification/vcs-independent-workspaces.md)과 [고정 native/서비스 계획](vcs-independent-validation.md)을 따른다. 자동 회귀나 raw VSS/WinFsp의 분리 구조를 일반 폴더의 실제 지원으로 승계하지 않는다.
 
 | ID | 완료 관문 | 상태 | 필요한 근거 |
 | --- | --- | --- | --- |
-| VCS-01 | VCS 중립 계약·일반 폴더 발견/생성 | NotRun | `.git`·Git 실행/필수 설치 없이 선택한 일반 폴더 명령 동작, source mode/기준·내용 identity, Git 손상/unknown의 암묵 fallback 거부 |
-| VCS-02 | A/B 격리·원본 지속 수정·같은 작업 재개 | NotRun | 반환 경로·서로 다른 key/ID, 동일 요청 재개의 기준/digest/변경분, 원본 이후 수정에 고정 기준 유지 |
-| VCS-03 | 기존 NTFS 효율 계약 | NotRun | 최초 전체 payload 복제·읽기 hydration·전체 파일 copy-up 0, 범위 저장·승인 flush·seal과 필요한 기준/결과 저장 비용 구분 |
-| VCS-04 | 실제 소유 Editor·독립 결과 | NotRun | 정확한 A/B 경로·PID/시작 시각, 외부 도구의 필요한 결과, Git commit 없는 checkpoint, 원본 수정·workspace/VSS 회수 후 실제 결과 내용 검증 |
-| VCS-05 | release/discard·peer/공유 자원 보호 | NotRun | A 보존형 회수 중 B 지속, 성공 검증 없는 B 명시적 폐기, 같은 intent 재개·자원/결과 의존성 guard와 실제 부재/0; unknown/회수 대기 별도 |
-| VCS-06 | 기존 Git·실패/형식 회귀 | NotRun | 최종 locked restore/Release·기존 Git와 변경한 schema/fake 적합성, VCS 없는 원본 반영 미구현의 부작용 전 거부, 손상/변경 요청 보존 |
+| VCS-01 | VCS 중립 계약·일반 폴더 발견/생성 | Partial (자동; native NotRun) | `.git`·Git 실행/필수 설치 없이 선택한 일반 폴더 명령 동작, source mode/기준·내용 identity, Git 손상/unknown의 암묵 fallback 거부 |
+| VCS-02 | A/B 격리·원본 지속 수정·같은 작업 재개 | Partial (자동; native NotRun) | 반환 경로·서로 다른 key/ID, 동일 요청 재개의 기준/digest/변경분, 원본 이후 수정에 고정 기준 유지 |
+| VCS-03 | 기존 NTFS 효율 계약 | Partial (자동; native NotRun) | 최초 전체 payload 복제·읽기 hydration·전체 파일 copy-up 0, 범위 저장·승인 flush·seal과 필요한 기준/결과 저장 비용 구분 |
+| VCS-04 | 실제 소유 Editor·독립 결과 | Partial (자동; native NotRun) | 정확한 A/B 경로·PID/시작 시각, 외부 도구의 필요한 결과, Git commit 없는 checkpoint, 원본 수정·workspace/VSS 회수 후 실제 결과 내용 검증 |
+| VCS-05 | release/discard·peer/공유 자원 보호 | Partial (자동; native NotRun) | A 보존형 회수 중 B 지속, 성공 검증 없는 B 명시적 폐기, 같은 intent 재개·자원/결과 의존성 guard와 실제 부재/0; unknown/회수 대기 별도 |
+| VCS-06 | 기존 Git·실패/형식 회귀 | Passed (자동 한정) | 최종 locked restore/Release·기존 Git와 변경한 schema/fake 적합성, VCS 없는 원본 반영 미구현의 부작용 전 거부, 손상/변경 요청 보존 |
 
 VCS 없는 원본 반영 실행과 Plastic SCM 전용 어댑터/실제 프로젝트 자격은 **후속 계획·NotRun**이다. 이번 단계에서 이름만 노출하거나 Git 없는 일반 폴더의 성공을 Plastic 관리 정보/통합의 통과로 표시하지 않는다. 구현한 Git 자체의 기존 자격은 기존 표에 유지하고 선택 구성으로 바뀐 후보의 회귀와 구별한다.
 

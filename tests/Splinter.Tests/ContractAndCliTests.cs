@@ -9,6 +9,21 @@ namespace Splinter.Tests;
 
 public sealed class ContractAndCliTests
 {
+    [Fact]
+    public async Task PlainFolderDiscoveryAndDoctorHaveNoGitOrUnityPrerequisite()
+    {
+        var catalog = new ContractCatalog();
+        var input = JsonSerializer.SerializeToElement(new { project = "folder", key = "task", storage = "ntfs-snapshot", source = "none", application = "none", baseReference = "snapshot" });
+        Assert.True(catalog.Validate(catalog.Find("workspace.ensure")!.InputSchema, input).IsValid);
+        Assert.False(catalog.Validate(catalog.Find("workspace.ensure")!.InputSchema,
+            JsonSerializer.SerializeToElement(new { project = "folder", key = "task", storage = "ntfs-snapshot", source = "none", application = "none", editor = true })).IsValid);
+        using var directory = new TestDirectory(); using var output = new StringWriter();
+        Assert.Equal(0, await Program.RunAsync(["doctor", "--project", directory.Path, "--source", "none"], output, TestContext.Current.CancellationToken));
+        using var response = JsonDocument.Parse(output.ToString());
+        Assert.Empty(response.RootElement.GetProperty("data").GetProperty("missingPrerequisites").EnumerateArray());
+        Assert.False(response.RootElement.GetProperty("data").TryGetProperty("repository", out _));
+        Assert.False(response.RootElement.GetProperty("data").TryGetProperty("application", out _));
+    }
     private readonly ContractCatalog contracts = new(development: true);
 
     [Fact]
@@ -284,7 +299,7 @@ public sealed class ContractAndCliTests
     public void AcceptedWorkspaceResponseMatchesContract()
     {
         using var document = JsonDocument.Parse("""
-        {"schemaVersion":"1.0","requestId":"00000000000000000000000000000000","command":"workspace.ensure","status":"Accepted","terminal":false,"retryDisposition":"not-needed","nextActions":[{"command":"workspace.status","arguments":{"id":"aaaaaaaaaaaaaaaaaaaaaaaa"},"requiresUserAction":false}],"data":{"workspace":{"id":"aaaaaaaaaaaaaaaaaaaaaaaa","requestKey":"task","projectPath":"C:/project","path":"C:/workspace","sourceReference":"development","baseReference":"development","phase":"creating","createdAt":"2026-09-21T00:00:00Z","updatedAt":"2026-09-21T00:00:00Z","storageMode":"git-checkout"},"controlPath":"C:/control","nextCommand":"workspace.status","isolation":"private"}}
+        {"schemaVersion":"1.0","requestId":"00000000000000000000000000000000","command":"workspace.ensure","status":"Accepted","terminal":false,"retryDisposition":"not-needed","nextActions":[{"command":"workspace.status","arguments":{"id":"aaaaaaaaaaaaaaaaaaaaaaaa"},"requiresUserAction":false}],"data":{"workspace":{"version":2,"sourceKind":"git","applicationKind":"unity","id":"aaaaaaaaaaaaaaaaaaaaaaaa","requestKey":"task","projectPath":"C:/project","path":"C:/workspace","sourceReference":"development","baseReference":"development","phase":"creating","createdAt":"2026-09-21T00:00:00Z","updatedAt":"2026-09-21T00:00:00Z","storageMode":"git-checkout"},"controlPath":"C:/control","nextCommand":"workspace.status","isolation":"private"}}
         """);
         Assert.True(contracts.Validate("urn:splinter:v1:response", document.RootElement).IsValid);
     }
@@ -297,7 +312,7 @@ public sealed class ContractAndCliTests
     {
         var node = JsonSerializer.SerializeToNode(ApiResponse.Success("workspace.status", new
         {
-            workspace = new { id = "aaaaaaaaaaaaaaaaaaaaaaaa", requestKey = "task", projectPath = "C:/project", path = "C:/work",
+            workspace = new { version = WorkspaceRecord.CurrentVersion, sourceKind = "git", applicationKind = "unity", id = "aaaaaaaaaaaaaaaaaaaaaaaa", requestKey = "task", projectPath = "C:/project", path = "C:/work",
                 sourceReference = "task", baseReference = "development", phase = "creating", createdAt = DateTimeOffset.UtcNow,
                 updatedAt = DateTimeOffset.UtcNow, storageMode = "ntfs-snapshot", requestDigest = "aaaaaaaaaaaaaaaaaaaaaaaa",
                 snapshot = new SnapshotWorkspaceState { Observation = new(available, false, false, false, null, null, null,
@@ -540,7 +555,7 @@ public sealed class ContractAndCliTests
             {"schemaVersion":"1.0","requestId":"00000000000000000000000000000000",
              "command":"workspace.compact","status":"Succeeded","terminal":true,
              "retryDisposition":"not-needed","nextActions":[],
-             "data":{"workspace":{"id":"000000000000000000000000","requestKey":"test",
+             "data":{"workspace":{"version":2,"sourceKind":"git","applicationKind":"unity","id":"000000000000000000000000","requestKey":"test",
                  "projectPath":"P:","path":"W:","sourceReference":"development",
                  "baseReference":"development","phase":"ready","createdAt":"2026-09-26T00:00:00Z",
                  "updatedAt":"2026-09-26T00:00:00Z","storageMode":"ntfs-snapshot","requestDigest":"test",

@@ -4,6 +4,8 @@
 
 ## 현재 변경의 검증
 
+[VCS 독립 수명주기](vcs-independent-workspaces.md)는 일반 폴더의 자동 파일/fake·Git 회귀와 실제 VSS/Unity A/B의 남은 관문을 구분한다. 새 상태는 v2이며 이전 상태를 자동 이관하지 않는다.
+
 [한정 M0 납품 판정](m0-delivery.md)은 기존 개발 CLI·소스 스킬·[AI 시작 안내](../agent-start.md)의 한정 버전을 scoped-complete-with-limitations로 마감한다. 현재 복구 회귀와 과거 native의 source hash/변경 경계를 대조했고 현재 전체 native 중단 통과로 승계하지 않는다. NR/SF/SW 전체 미완료는 후속 지원 확대이며 M0의 진척 분모가 아니다.
 
 [대표 AI A/B 사용·비용](representative-agent-workflow.md)은 독립 Editor 오류/수정·같은 작업 재개·독립 결과/dirty guard/통합·A release 중 B 지속·현재 컴파일 실패 B discard와 실제 회수를 한정 마감했다. 첫 seal/포커스 거부·같은 작업 재시도와 분 단위 준비·메모리 비용을 포함한다. 물리 peak/VSS 귀속은 unknown, native 강제 중단·OS 장애·ARM·대형 입력은 해당 실행에 포함하지 않았다.

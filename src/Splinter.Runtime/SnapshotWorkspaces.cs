@@ -60,6 +60,7 @@ public sealed partial class WorkspaceCoordinator
             SnapshotStep(w, "attach-intent");
             await PreparationPointAsync("attach.before-effect", w, ct);
             await SnapshotSources.AttachAsync(w, control, ct);
+            w.BaseRevision = await SnapshotSources.EstablishBaselineAsync(w, control, ct);
             await PreparationPointAsync("attach.after-effect", w, ct);
             var source = await sources.InspectAsync(w, ct);
             if (source.Revision != w.BaseRevision || source.HasChanges)

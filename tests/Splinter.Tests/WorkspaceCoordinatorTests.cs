@@ -210,7 +210,7 @@ public sealed class WorkspaceCoordinatorTests
             return Directory.Exists(w.Path) && !Unregistered
                 ? Task.FromResult(new SourceState(Revision, Fingerprint, false, [])) : throw new DirectoryNotFoundException(w.Path);
         }
-        public Task<string> CommitAsync(WorkspaceRecord w, string m, CancellationToken ct = default) { Interlocked.Increment(ref CommitCalls); Revision = "result"; return Task.FromResult(Revision); }
+        public Task<string> CheckpointAsync(WorkspaceRecord w, string m, CancellationToken ct = default) { Interlocked.Increment(ref CommitCalls); Revision = "result"; return Task.FromResult(Revision); }
         public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string t, CancellationToken ct = default) => Task.FromResult(new IntegrationResult("result", false));
         public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) { Interlocked.Increment(ref ReleaseCalls); if (DeleteAndThrowOnRelease) { DeleteAndThrowOnRelease = false; Unregistered = true; if (!LeaveDirectoryOnRelease) Directory.Delete(w.Path); throw new IOException("simulated interrupted release"); } if (Directory.Exists(w.Path)) Directory.Delete(w.Path, true); return Task.CompletedTask; }
     }

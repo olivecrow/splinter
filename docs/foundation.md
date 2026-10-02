@@ -4,7 +4,7 @@ Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트�
 
 제품 시작점은 [AI 안내](agent-start.md)와 `scripts/splinter.ps1`이다. ReFS/진단·공통 Library view·spike/probe는 [개발 CLI](development-cli.md)로 분리했다. 기존 verification은 해당 후보/입력의 근거이며 변경된 계약의 native 자격을 자동 부여하지 않는다.
 
-현재 제품 CLI는 Git provider를 항상 조합하고 NTFS 생성 전에 로컬 `.git`·HEAD/base·clean을 검사한다. 기준/결과의 commit·ref와 source 등록/폐기도 Git에 연결돼 있어 VCS 없는 폴더·Plastic SCM은 아직 지원하지 않는다. 원격 Git 등록은 불필요하다. VCS 무관한 제품 목표와 다음 개발 범위는 [구현 계획](plans/implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)을 따른다.
+제품 CLI는 Git 또는 VCS 없는 일반 폴더를 명시적으로 선택한다. 소스/application 종류와 opaque 기준/결과 identity를 v2 작업 상태에 고정하고, 일반 폴더는 불변 파일 manifest·작업별 독립 payload를 사용한다. 실패 시 다른 소스로 fallback하지 않는다. 현재 제약과 실제 자격은 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. Git 원격 등록은 불필요하며 Plastic 전용 어댑터와 일반 폴더 원본 apply는 미구현이다.
 
 ## 구조와 의존성
 
@@ -14,9 +14,10 @@ Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트�
 | `Splinter.Protocol` | 응답 DTO·제품/개발 명령 카탈로그·내장 JSON Schema | Core, JsonSchema.Net |
 | `Splinter.Host` | 읽기 전용 발견/진단 | Core, Protocol |
 | `Splinter.Runtime` | 작업공간 수명·atomic JSON 상태/잠금·범위 저널과 후보/cache 수명 | Core |
+| `Splinter.SourceControl.Files` | 일반 폴더 기준/hash·독립 기준/결과 payload·고정 소스 라우팅·폐기 영수증 | Core, Runtime |
 | `Splinter.SourceControl.Git` | linked worktree/index·현재 소스 hash·커밋·독립 결과·guard가 있는 merge/회수 | Core |
 | `Splinter.Application.Unity` | 정확한 버전/프로젝트의 Editor 실행·준비 관측·정상 종료·소유 bridge | Core |
-| `Splinter.Platform.Windows` | VSS·WinFsp·변경 범위 저널·제한 권한 서비스·Job Object·선택적 ReFS | Core, Runtime, WinFsp.Net; Win32 |
+| `Splinter.Platform.Windows` | VSS·WinFsp·변경 범위 저널·제한 권한 서비스·Job Object·선택적 ReFS | Core, Runtime, Files, WinFsp.Net; Win32 |
 | `Splinter.Workflows.Windows` | 개발용 불변 source view·공통 Library cache·독립 결과와 회수 의존성 | Runtime와 Git/Unity/Windows |
 | `Splinter.Cli` | 제품 명령 파싱·어댑터 조합·JSON/종료 코드; 개발 진입점의 공통 조합 | Host, Runtime, Git/Unity/Windows/workflow, System.CommandLine |
 | `tools/Splinter.Development` | 별도 개발 명령 진입점 `splinter-dev` | CLI |
@@ -43,7 +44,7 @@ workspace/baseline 상태와 Windows 제어 IPC는 같은 디렉터리에 flush�
 | `capabilities`, `schema`, `doctor` | 현재 제품 계약 발견·입력/출력·읽기 전용 진단 |
 | `workspace ensure/list/status` | NTFS 생성/같은 요청 재개·저장 목록·소유 자원 관측 |
 | `workspace status --verify-source/--audit-source` | 현재 내용 hash 확인/전체 감사 |
-| `workspace checkpoint` | 소유 Editor 정상 stop·안정된 소스 commit·독립 결과. 컴파일/테스트 성공 불필요 |
+| `workspace checkpoint` | 소유 Editor 정상 stop·안정된 소스 checkpoint·독립 결과. 컴파일/테스트 성공 불필요 |
 | `workspace integrate` | 정확한 보존 결과·현재 소스·깨끗한 대상 branch·저장소 잠금과 Git merge |
 | `workspace compact` | 정상 stop/unmount·seal·명시적 예산으로 private 저널 정리 |
 | `workspace release/discard` | 독립 결과 보존 뒤 회수/명시적 결과 폐기. peer와 공유 의존성 보호 |

@@ -127,7 +127,7 @@ if ($Action -ne 'Remove') {
         Assert-GrantDirectory $grant.sourcePath; Assert-GrantDirectory $grant.homePath
         if (-not $grantKeys.Add(($grant.userSid, $grant.sourcePath, $grant.homePath -join "`n"))) { throw 'StorageGrantDuplicate: one grant per user/project/home is required.' }
     }
-    $requiredFiles = @('service-version.json','Splinter.Core.dll','Splinter.Runtime.dll','Splinter.Platform.Windows.exe',
+    $requiredFiles = @('service-version.json','Splinter.Core.dll','Splinter.Runtime.dll','Splinter.SourceControl.Files.dll','Splinter.Platform.Windows.exe',
         'Splinter.Platform.Windows.dll','Splinter.Platform.Windows.deps.json','Splinter.Platform.Windows.runtimeconfig.json','winfsp-msil.dll','vss-snapshot.ps1')
     $fileNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     if ($manifest.files -isnot [array]) { throw 'StoragePackageInvalid: files must be an array.' }

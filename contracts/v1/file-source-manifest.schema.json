@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:file-source-manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "ownerId",
+    "requestDigest",
+    "snapshotId",
+    "identity",
+    "entries"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "ownerId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24}$"
+    },
+    "requestDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24}$"
+    },
+    "snapshotId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "entries": {
+      "type": "array",
+      "maxItems": 32768,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "kind",
+          "length",
+          "hash",
+          "lastWriteUtcTicks",
+          "attributes"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*(?:^|/)(?:\\.\\.?)(?:/|$))[^\\\\:]+$"
+          },
+          "kind": {
+            "enum": [
+              "file",
+              "directory"
+            ]
+          },
+          "length": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "hash": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "lastWriteUtcTicks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "attributes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "directory"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "length": {
+                  "const": 0
+                },
+                "hash": {
+                  "type": "null"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "hash": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

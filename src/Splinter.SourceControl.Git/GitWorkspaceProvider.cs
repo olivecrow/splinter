@@ -9,7 +9,7 @@ namespace Splinter.SourceControl.Git;
 
 public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? storage = null, IWorkspaceBaselineReader? baselines = null,
     ISourceChangeProvider? sourceChanges = null, bool auditSource = false,
-    IWorkspacePreparationObserver? preparationObserver = null) : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider
+    IWorkspacePreparationObserver? preparationObserver = null) : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public Task<string> ResolveRevisionAsync(string project, string reference, CancellationToken ct = default) =>
@@ -84,7 +84,7 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
         return await InspectSourceAsync(workspace, ct);
     }
 
-    public async Task<string> CommitAsync(WorkspaceRecord workspace, string message, CancellationToken ct = default)
+    public async Task<string> CheckpointAsync(WorkspaceRecord workspace, string message, CancellationToken ct = default)
     {
         if (workspace.StorageMode == "ntfs-snapshot") await CheckSnapshotGitFiles(workspace.Path, ct);
         SourceState before = await InspectAsync(workspace, ct);

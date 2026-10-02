@@ -2,7 +2,27 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:splinter:v1:doctor-request",
   "type": "object",
-  "required": ["project"],
-  "properties": { "project": { "type": "string", "minLength": 1 } },
+  "required": [
+    "project"
+  ],
+  "properties": {
+    "project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "enum": [
+        "git",
+        "none"
+      ],
+      "default": "git"
+    },
+    "application": {
+      "enum": [
+        "unity",
+        "none"
+      ]
+    }
+  },
   "additionalProperties": false
 }

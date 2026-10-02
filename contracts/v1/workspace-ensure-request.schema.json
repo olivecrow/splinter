@@ -28,11 +28,74 @@
       "type": "integer",
       "minimum": 4096,
       "maximum": 1099511627776
+    },
+    "source": {
+      "enum": [
+        "git",
+        "none"
+      ],
+      "default": "git",
+      "description": "Explicit durable source adapter. Failures never fall back."
+    },
+    "application": {
+      "enum": [
+        "unity",
+        "none"
+      ],
+      "description": "Durable application selection. none requires no Editor or Unity metadata."
     }
   },
   "required": [
     "project",
     "key",
     "storage"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "none"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "storage": {
+            "const": "ntfs-snapshot"
+          },
+          "baseReference": {
+            "const": "snapshot"
+          }
+        },
+        "not": {
+          "required": [
+            "baseline"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "application": {
+            "const": "none"
+          }
+        },
+        "required": [
+          "application"
+        ]
+      },
+      "then": {
+        "properties": {
+          "editor": {
+            "const": false
+          }
+        }
+      }
+    }
   ]
 }

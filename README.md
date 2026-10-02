@@ -2,7 +2,7 @@
 
 AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하도록 돕는 로컬 도구다. 첫 지원 목표는 **Windows/NTFS + Git + Unity**다. 원본 이동·최초 전체 복제·읽기 hydration 없이 불변 snapshot과 작업별 범위 변경분을 사용하며, 원본은 작업 중 계속 수정할 수 있다.
 
-제품 요구는 **Git·Unity VCS/Plastic SCM·VCS 없는 일반 폴더에서 같은 기본 수명주기를 제공하는 것**이다. 현재 제품 CLI는 로컬 Git 저장소를 요구하고 원격 등록은 필요하지 않다. [다음 개발 범위](docs/plans/implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)는 일반 폴더의 기본 수명주기·Git 선택 구성이며 안전한 원본 반영 실행과 Plastic 전용 연동은 후속이다. 아직 Git 없는 병렬 작업을 지원하지 않는다.
+제품 요구는 **Git·Unity VCS/Plastic SCM·VCS 없는 일반 폴더에서 같은 기본 수명주기를 제공하는 것**이다. 현재 CLI는 `--source git|none`을 선택하고 일반 폴더의 파일 기준·독립 payload 보존·회수/폐기를 연결했다. [현재 계약](docs/vcs-independent-workspaces.md)과 [검증 상태](docs/verification/vcs-independent-workspaces.md)를 구분한다. 실제 VSS/Unity A/B는 아직 미검증이며 안전한 일반 폴더 원본 반영과 Plastic 전용 연동은 [후속](docs/plans/implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)이다.
 
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 
@@ -15,7 +15,7 @@ Splinter는 작업공간과 소유 Editor의 수명·범위 저장·독립 결�
 - .NET CLI, atomic JSON 상태와 작업 잠금, 공통 Core 계약 및 fake 적합성 시험.
 - 저장소에 포함한 [AI 사용 스킬](skills/splinter/SKILL.md): 필요성 판단·반환 경로 사용·같은 요청 재개·명시적 종료·실패 처리. 현재 CLI와 대화의 작업 식별자를 사용한다.
 - [명시적 폐기](docs/workspace-discard.md)의 고정 intent·중단 재개와 Git/Windows provider·`workspace discard`. 실제 서비스 적용/폐기 자격은 별도로 표시한다.
-- `ntfs-snapshot` workspace의 VSS·WinFsp 범위 저널, Git 등록, 작업별 프로세스 그룹과 Editor start/stop, 독립 결과 보존과 명시적 회수.
+- `ntfs-snapshot` workspace의 VSS·WinFsp 범위 저널, 선택한 Git/파일 기준, 작업별 프로세스 그룹과 Editor start/stop, 독립 결과 보존과 명시적 회수.
 - 변경 기반 소스 검증, 명시적 저널 정리와 선택적 중첩량 예산, snapshot 지연 회수.
 - VSS 전용 Windows 권한 서비스와 명시적 설치 도구. 실제 설치·반복 UAC 0의 자격은 [UA 검증](docs/verification/storage-privilege-service.md)을 따른다.
 - `checkpoint`는 현재 소스를 독립 결과로 보존한다. 컴파일·Play·테스트·빌드·캡처와 합격 판단은 AI가 MCP·Unity CLI 등으로 수행하며 Splinter는 그 성공을 판정하지 않는다.
@@ -25,7 +25,7 @@ Splinter는 작업공간과 소유 Editor의 수명·범위 저장·독립 결�
 
 ## 실행
 
-.NET SDK `10.0.112` 호환 패치, Git, PowerShell 7.2 이상이 필요하다. 저장소 루트에서 실행한다.
+.NET SDK `10.0.112` 호환 패치, Git 경로에서만 Git, PowerShell 7.2 이상이 필요하다. 저장소 루트에서 실행한다.
 
 ```powershell
 pwsh ./scripts/build.ps1

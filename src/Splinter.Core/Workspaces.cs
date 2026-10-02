@@ -4,7 +4,13 @@ namespace Splinter.Core;
 // versioned state, not proof that an external side effect has completed.
 public sealed class WorkspaceRecord
 {
-    public int Version { get; set; } = 1;
+    public const int CurrentVersion = 2;
+    [System.Text.Json.Serialization.JsonRequired]
+    public int Version { get; set; } = CurrentVersion;
+    [System.Text.Json.Serialization.JsonRequired]
+    public string SourceKind { get; set; } = "git";
+    [System.Text.Json.Serialization.JsonRequired]
+    public string ApplicationKind { get; set; } = "unity";
     public required string Id { get; set; }
     public required string RequestKey { get; set; }
     public required string ProjectPath { get; set; }
@@ -32,7 +38,12 @@ public sealed class WorkspaceRecord
     public string? RequestDigest { get; set; }
     public SnapshotWorkspaceState? Snapshot { get; set; }
     public WorkspaceDiscardState? Discard { get; set; }
+    public SourceResultStorage? ResultStorage { get; set; }
 }
+
+// Logical payload bytes of explicit result preservation, separate from the
+// workspace journal and physical allocation/VSS accounting.
+public sealed record SourceResultStorage(long BasisLogicalBytes, long ResultLogicalBytes, long UniquePayloadBytes, int PayloadObjects);
 
 public sealed record SourceWorkspace(string Path, string Reference, string BaseRevision, CloneStatistics? CloneMetrics = null);
 public sealed record SourceState(string Revision, string Fingerprint, bool HasChanges, string[] ChangedPaths)
@@ -54,9 +65,17 @@ public interface ISourceWorkspaceProvider
     Task<string> SnapshotKeyAsync(string project, string revision, string[] paths, CancellationToken cancellationToken = default);
     Task<SourceWorkspace> CreateAsync(WorkspaceRecord workspace, CancellationToken cancellationToken = default);
     Task<SourceState> InspectAsync(WorkspaceRecord workspace, CancellationToken cancellationToken = default);
-    Task<string> CommitAsync(WorkspaceRecord workspace, string message, CancellationToken cancellationToken = default);
+    // Returns an opaque preserved-source identity, not necessarily a commit.
+    Task<string> CheckpointAsync(WorkspaceRecord workspace, string message, CancellationToken cancellationToken = default);
     Task<IntegrationResult> IntegrateAsync(WorkspaceRecord workspace, string targetReference, CancellationToken cancellationToken = default);
     Task ReleaseAsync(WorkspaceRecord workspace, CancellationToken cancellationToken = default);
+}
+
+public interface ISourceDiscardProvider
+{
+    Task<string> ObserveDiscardRevisionAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
+    Task DiscardSourceAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
+    Task VerifyDiscardedAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
 }
 
 public interface IApplicationWorkspaceProvider

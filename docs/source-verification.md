@@ -1,5 +1,7 @@
 # 변경 기반 소스 검증과 저장 계측
 
+현재 `--source none`의 일반 폴더 경로와 v2 상태/서비스 패키지는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
+
 제품 `ntfs-snapshot`은 파일 단위 raw SHA-256과 Git 내용 hash를 같은 snapshot·provider 세대·소스 변경 이력에 묶어 재사용한다. 파일 크기·수정 시간·Git stat cache만으로 내용이 같다고 판단하지 않는다. 전체 fingerprint의 경로 정렬과 `source-fingerprint-v1` 값은 유지한다. ReFS/진단 backend는 기존 전체 raw 읽기 경로다.
 
 ## 검증 흐름과 소유 경계

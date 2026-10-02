@@ -40,7 +40,7 @@ public sealed class ContractCatalog
         if (development)
             Commands = Commands.Select(command => command.Id == "workspace.ensure"
                 ? command with { InputSchema = "urn:splinter:v1:workspace-development-ensure-request",
-                    CliUsage = "splinter-dev workspace ensure --project <path> --key <key> --storage <ntfs-snapshot|refs-cow|git-checkout> [--baseline <id>] [--base development] [--editor] [--home <path>] [--max-journal-bytes <bytes>]" }
+                    CliUsage = "splinter-dev workspace ensure --project <path> --key <key> --storage <ntfs-snapshot|refs-cow|git-checkout> [--source git|none] [--application unity|none] [--baseline <id>] [--base <reference>] [--editor] [--home <path>] [--max-journal-bytes <bytes>]" }
                 : command).ToArray();
         foreach (var command in Commands)
         {

@@ -34,8 +34,8 @@
     },
     {
       "id": "doctor",
-      "description": "Inspect a local Git/Unity project without starting or changing it.",
-      "cliUsage": "splinter doctor --project <directory>",
+      "description": "Read the explicitly selected source/application environment; no capture, launch or execution qualification.",
+      "cliUsage": "splinter doctor --project <path> [--source git|none] [--application unity|none]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:doctor-request",
       "outputSchema": "urn:splinter:v1:response",
@@ -44,8 +44,8 @@
     },
     {
       "id": "workspace.ensure",
-      "description": "Create or reconnect an owned workspace. NTFS reconnect verifies the original live snapshot via an exact Observe helper when needed, retaining the snapshot/delta identity and current capture receipt.",
-      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage ntfs-snapshot [--base development] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>]",
+      "description": "Create or resume the explicitly selected Git or plain-folder NTFS workspace. No fallback or initial data clone.",
+      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage ntfs-snapshot [--source git|none] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-ensure-request",
       "outputSchema": "urn:splinter:v1:response",
@@ -84,7 +84,7 @@
     },
     {
       "id": "workspace.checkpoint",
-      "description": "Preserve the stable current source as an independent result without claiming compilation or test success.",
+      "description": "Stop the owned application and preserve an independent source result; no compile claim.",
       "cliUsage": "splinter workspace checkpoint --id <id> --message <message> [--home <state-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-checkpoint-request",
@@ -94,7 +94,7 @@
     },
     {
       "id": "workspace.integrate",
-      "description": "Stop owned Editor and merge collected source into a clean checked-out target branch.",
+      "description": "Integrate the exact Git result into a clean target branch. Plain-folder original-apply is rejected before side effects.",
       "cliUsage": "splinter workspace integrate --id <id> [--target development] [--home <state-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-integrate-request",

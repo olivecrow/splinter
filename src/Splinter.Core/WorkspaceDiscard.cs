@@ -52,11 +52,10 @@ public sealed class WorkspaceDiscardState
 // implement owner-checked, same-intent retries; release's result gate stays intact.
 public interface IWorkspaceDiscardProvider
 {
-    // Read-only preflight of owned source registration; return its current HEAD.
+    // Read-only preflight of owned source registration; return its opaque identity.
     Task<string> ObserveSourceRevisionAsync(WorkspaceRecord workspace, string control, CancellationToken ct);
-    // Unmounted root only. Remove this intent's registration and task branch,
-    // comparing the frozen revision; retain independent results/shared refs/objects.
-    // Never repository GC or an implicit discard of previously preserved results.
+    // Unmounted root only. Retire this intent's source registration, comparing
+    // its frozen identity; retain independent results and shared resources.
     Task DiscardSourceAsync(WorkspaceRecord workspace, string control, CancellationToken ct);
     // Verify intent + seal, zero handles/processes and owned file allowlist.
     // Persist deletion intent before partial removal; reconcile a lost response.

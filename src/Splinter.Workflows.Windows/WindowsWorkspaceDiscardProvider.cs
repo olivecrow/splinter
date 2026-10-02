@@ -8,11 +8,11 @@ namespace Splinter.Workflows.Windows;
 
 // Ordinary-user composition. Privileged VSS deletion stays in the existing
 // fixed service protocol with a separate explicit-discard authorization.
-public sealed class WindowsWorkspaceDiscardProvider(GitWorkspaceProvider git, ISnapshotWorkspaceBackend snapshots) : IWorkspaceDiscardProvider
+public sealed class WindowsWorkspaceDiscardProvider(ISourceDiscardProvider source, ISnapshotWorkspaceBackend snapshots) : IWorkspaceDiscardProvider
 {
     public Task<string> ObserveSourceRevisionAsync(WorkspaceRecord w, string control, CancellationToken ct) =>
-        git.ObserveDiscardRevisionAsync(w, control, ct);
-    public Task DiscardSourceAsync(WorkspaceRecord w, string control, CancellationToken ct) => git.DiscardSourceAsync(w, control, ct);
+        source.ObserveDiscardRevisionAsync(w, control, ct);
+    public Task DiscardSourceAsync(WorkspaceRecord w, string control, CancellationToken ct) => source.DiscardSourceAsync(w, control, ct);
 
     public async Task DiscardDeltaAsync(WorkspaceRecord w, string control, CancellationToken ct)
     {
@@ -32,7 +32,7 @@ public sealed class WindowsWorkspaceDiscardProvider(GitWorkspaceProvider git, IS
         {
             WorkspaceStore.EnsurePlainPath(identityPath);
             var identity = ProductState.Read<OverlayIdentity>(identityPath, journal: true);
-            var expected = new OverlayIdentity(1, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024, [".git"]);
+            var expected = NtfsSnapshotWorkspaceBackend.Identity(w);
             if (JsonSerializer.Serialize(identity) != JsonSerializer.Serialize(expected))
                 throw new WorkspaceException("OverlayIdentityMismatch", "The delta identity changed; preserve its files.");
         }
@@ -59,12 +59,8 @@ public sealed class WindowsWorkspaceDiscardProvider(GitWorkspaceProvider git, IS
             .ReleaseAsync(w.Snapshot!.Reference!, ct, w.Snapshot.Reclamation?.AttemptId);
     }
 
-    private static Task RequireSourceAbsentAsync(WorkspaceRecord w, string control, CancellationToken ct)
+    private Task RequireSourceAbsentAsync(WorkspaceRecord w, string control, CancellationToken ct)
     {
-        var receipt = ProductState.Read<GitDiscardReceipt>(Path.Combine(control, "git-discard.json"));
-        if (receipt is not { Completed: true } || receipt.Intent != w.Discard!.Intent ||
-            Directory.Exists(receipt.Registration.GitDirectory) || File.Exists(receipt.Registration.GitDirectory))
-            throw new WorkspaceException("GitOverlayReleaseIncomplete", "The exact completed Git discard receipt is required.");
-        return Task.CompletedTask;
+        return source.VerifyDiscardedAsync(w, control, ct);
     }
 }

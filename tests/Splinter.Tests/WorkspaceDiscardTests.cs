@@ -195,7 +195,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         Assert.True(catalog.Validate("urn:splinter:v1:workspace-discard-state", JsonSerializer.SerializeToElement(state)).IsValid);
         var response = ApiResponse.Success("workspace.status", new
         {
-            workspace = new { pending.Id, pending.RequestKey, pending.ProjectPath, pending.Path, pending.SourceReference,
+            workspace = new { pending.Version, pending.SourceKind, pending.ApplicationKind, pending.Id, pending.RequestKey, pending.ProjectPath, pending.Path, pending.SourceReference,
                 pending.BaseReference, pending.Phase, pending.CreatedAt, pending.UpdatedAt, pending.StorageMode, pending.RequestDigest, pending.Snapshot, pending.Discard },
             controlPath = store.ControlPath(w.Id), nextCommand = "workspace.discard", isolation = "private", recovery = new WorkspaceView(pending, null, null, "control", "workspace discard").Recovery
         });

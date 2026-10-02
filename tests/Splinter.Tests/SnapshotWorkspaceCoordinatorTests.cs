@@ -584,7 +584,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         { if (InspectionError is not null) throw new WorkspaceException(InspectionError, "fixture cache failure");
             FailOnce("inspect"); return Task.FromResult(new SourceState(w.ResultRevision ?? "base", Fingerprint, Dirty, [])); }
         public string? InspectionError;
-        public Task<string> CommitAsync(WorkspaceRecord w, string message, CancellationToken ct = default) { Dirty = false; return Task.FromResult("result"); }
+        public Task<string> CheckpointAsync(WorkspaceRecord w, string message, CancellationToken ct = default) { Dirty = false; return Task.FromResult("result"); }
         public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string target, CancellationToken ct = default) => throw new InvalidOperationException("Do not force integration");
         public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new InvalidOperationException("Do not use checkout deletion");
     }

@@ -26,7 +26,8 @@ internal sealed class StorageAuthorityPaths : IDisposable
             string control = Path.Combine(grant.HomePath, "records", request.OwnerId);
             guard.Pin(control); guard.Pin(Path.Combine(control, "snapshot"));
             var workspace = guard.Read<WorkspaceRecord>(Path.Combine(control, "workspace.json"));
-            if (workspace.Version != 1 || workspace.Id != request.OwnerId || workspace.StorageMode != "ntfs-snapshot" ||
+            if (workspace.Version != WorkspaceRecord.CurrentVersion || workspace.SourceKind is not ("git" or "none") ||
+                workspace.ApplicationKind is not ("unity" or "none") || workspace.Id != request.OwnerId || workspace.StorageMode != "ntfs-snapshot" ||
                 !StorageAuthorityProcessor.Same(workspace.ProjectPath, grant.SourcePath) ||
                 !StorageAuthorityProcessor.Same(workspace.Path, Path.Combine(grant.HomePath, "workspaces", request.OwnerId)) ||
                 workspace.Snapshot is null)
@@ -59,7 +60,7 @@ internal sealed class StorageAuthorityPaths : IDisposable
         if (w.Phase is not ("releasing" or "reclaim-pending" or "released") || state.Step is not ("release-snapshot" or "released") ||
             state.Reference != request.Release!.Snapshot || state.Result is not { IndependentOfSnapshot: true, CollectionProtocol: SnapshotResult.StableJournalProtocol } result ||
             result.SnapshotId != request.SnapshotId || result.Revision != w.ResultRevision ||
-            result.ResultReference != "refs/splinter/snapshot-results/" + w.Id ||
+            result.ResultReference != (w.SourceKind == "none" ? Splinter.SourceControl.Files.FileWorkspaceProvider.ResultReference(w) : "refs/splinter/snapshot-results/" + w.Id) ||
             w.ReleasedResources is not { OwnershipVerified: true, RootRunning: false, ActiveProcesses: 0, WorkingSetBytes: 0, PrivateBytes: 0 } ||
             state.Observation is not { Mounted: false, ProviderAlive: false, OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
             throw StorageAuthorityProtocol.Error("StorageReleaseNotAuthorized", "Require the durable independent-result and zero-owned-resource release stage.");
@@ -72,13 +73,18 @@ internal sealed class StorageAuthorityPaths : IDisposable
         // Runtime verifies reachable Git objects and the post-unmount seal before
         // this durable stage. Independently pin the preserved refs here, without
         // executing Git or reading user configuration as SYSTEM.
-        Pin(Path.Combine(grant.SourcePath, ".git"));
-        if (ReadReference(grant.SourcePath, result.ResultReference) != result.Revision ||
-            ReadReference(grant.SourcePath, "refs/heads/" + w.SourceReference) != result.Revision)
-            throw StorageAuthorityProtocol.Error("GitOverlayResultMismatch", "The independent result references changed; retain the snapshot.");
-        string objects = Path.Combine(grant.SourcePath, ".git", "objects"); Pin(objects);
-        if (Present(Path.Combine(objects, "info", "alternates")) || Present(Path.Combine(objects, "info", "http-alternates")))
-            throw StorageAuthorityProtocol.Error("GitResultIncomplete", "External object dependencies cannot authorize reclamation.");
+        if (w.SourceKind == "none")
+            Splinter.SourceControl.Files.FileWorkspaceProvider.VerifyIndependentResult(w, control, path => OpenFileEvidence(path, control));
+        else
+        {
+            Pin(Path.Combine(grant.SourcePath, ".git"));
+            if (ReadReference(grant.SourcePath, result.ResultReference) != result.Revision ||
+                ReadReference(grant.SourcePath, "refs/heads/" + w.SourceReference) != result.Revision)
+                throw StorageAuthorityProtocol.Error("GitOverlayResultMismatch", "The independent result references changed; retain the snapshot.");
+            string objects = Path.Combine(grant.SourcePath, ".git", "objects"); Pin(objects);
+            if (Present(Path.Combine(objects, "info", "alternates")) || Present(Path.Combine(objects, "info", "http-alternates")))
+                throw StorageAuthorityProtocol.Error("GitResultIncomplete", "External object dependencies cannot authorize reclamation.");
+        }
         RequireNoDependencies(grant, request, state, control);
     }
 
@@ -96,18 +102,23 @@ internal sealed class StorageAuthorityPaths : IDisposable
         var gate = Read<WorkspaceDiscardState>(Path.Combine(control, "snapshot", "discard-authorized.json"));
         if (JsonSerializer.Serialize(gate, StorageAuthorityProtocol.Json) != JsonSerializer.Serialize(w.Discard, StorageAuthorityProtocol.Json))
             throw StorageAuthorityProtocol.Error("StorageDiscardNotAuthorized", "The explicit discard authorization differs from the durable intent.");
-        var receipt = Read<JsonElement>(Path.Combine(control, "git-discard.json"));
-        var registration = receipt.GetProperty("registration");
-        string gitDirectory = registration.GetProperty("gitDirectory").GetString()!;
-        string git = Path.Combine(grant.SourcePath, ".git"); Pin(git);
-        if (!receipt.GetProperty("completed").GetBoolean() ||
-            receipt.GetProperty("intent").Deserialize<WorkspaceDiscardIntent>(StorageAuthorityProtocol.Json) != w.Discard.Intent ||
-            registration.GetProperty("ownerId").GetString() != w.Id || registration.GetProperty("branch").GetString() != w.SourceReference ||
-            !StorageAuthorityProcessor.Same(registration.GetProperty("path").GetString()!, w.Path) ||
-            !StorageAuthorityProcessor.Same(registration.GetProperty("project").GetString()!, grant.SourcePath) ||
-            !StorageAuthorityProcessor.Same(Path.GetDirectoryName(gitDirectory)!, Path.Combine(git, "worktrees")) || Present(gitDirectory) ||
-            ReferenceExists(grant.SourcePath, "refs/heads/" + w.SourceReference))
-            throw StorageAuthorityProtocol.Error("StorageDiscardNotAuthorized", "Prove this intent's task registration and branch absent; retain all result references.");
+        if (w.SourceKind == "none")
+            Splinter.SourceControl.Files.FileWorkspaceProvider.VerifyDiscarded(w, control, OpenRead);
+        else
+        {
+            var receipt = Read<JsonElement>(Path.Combine(control, "git-discard.json"));
+            var registration = receipt.GetProperty("registration");
+            string gitDirectory = registration.GetProperty("gitDirectory").GetString()!;
+            string git = Path.Combine(grant.SourcePath, ".git"); Pin(git);
+            if (!receipt.GetProperty("completed").GetBoolean() ||
+                receipt.GetProperty("intent").Deserialize<WorkspaceDiscardIntent>(StorageAuthorityProtocol.Json) != w.Discard.Intent ||
+                registration.GetProperty("ownerId").GetString() != w.Id || registration.GetProperty("branch").GetString() != w.SourceReference ||
+                !StorageAuthorityProcessor.Same(registration.GetProperty("path").GetString()!, w.Path) ||
+                !StorageAuthorityProcessor.Same(registration.GetProperty("project").GetString()!, grant.SourcePath) ||
+                !StorageAuthorityProcessor.Same(Path.GetDirectoryName(gitDirectory)!, Path.Combine(git, "worktrees")) || Present(gitDirectory) ||
+                ReferenceExists(grant.SourcePath, "refs/heads/" + w.SourceReference))
+                throw StorageAuthorityProtocol.Error("StorageDiscardNotAuthorized", "Prove this intent's task registration and branch absent; retain all result references.");
+        }
         RequireNoDependencies(grant, request, state, control);
     }
 
@@ -175,6 +186,14 @@ internal sealed class StorageAuthorityPaths : IDisposable
         Pin(path, directory: false);
         var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         if (stream.Length > 16 * 1024 * 1024) { stream.Dispose(); throw new IOException("Oversized authority evidence."); }
+        leases.Add(stream); return stream;
+    }
+    private Stream OpenFileEvidence(string path, string control)
+    {
+        if (!StorageAuthorityProcessor.Same(Path.GetDirectoryName(path)!, Path.Combine(control, "files", "objects"))) return OpenRead(path);
+        // Validated hash names, pinned deny-write/delete until reclamation.
+        Pin(path, directory: false);
+        var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 65536);
         leases.Add(stream); return stream;
     }
     internal string Pin(string path, bool directory = true)

@@ -4,6 +4,7 @@
     <Project Path="src/Splinter.Platform.Windows/Splinter.Platform.Windows.csproj" />
     <Project Path="src/Splinter.Protocol/Splinter.Protocol.csproj" />
     <Project Path="src/Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj" />
+    <Project Path="src/Splinter.SourceControl.Files/Splinter.SourceControl.Files.csproj" />
     <Project Path="src/Splinter.Application.Unity/Splinter.Application.Unity.csproj" />
     <Project Path="src/Splinter.Host/Splinter.Host.csproj" />
     <Project Path="src/Splinter.Runtime/Splinter.Runtime.csproj" />

@@ -24,6 +24,12 @@ public sealed class FoundationGateway(
             audit = "workspace status --audit-source", cacheTrust = "same-snapshot-provider-epoch-and-source-generation",
             measurements = "per-inspection-payload-and-manifest; batched-Git-hash-process-count; provider-epoch-I/O-and-read-range-search-counters; storage-reads.jsonl; scripts/measure-workspace-storage.ps1 (read-only development sampler)" },
         storageModes = development ? new[] { "ntfs-snapshot", "refs-cow", "git-checkout" } : ["ntfs-snapshot"],
+        sourceModes = new[] { "git", "none" },
+        applicationModes = new[] { "unity", "none" },
+        workspaceRecordVersion = WorkspaceRecord.CurrentVersion,
+        plainFolder = new { basis = "immutable-snapshot-content-manifest", result = "owned-basis-and-result-payloads-at-explicit-collection",
+            inspection = "full-content-read; no-mtime-only-cache", originalApply = "unavailable-before-side-effects",
+            qualification = "docs/verification/vcs-independent-workspaces.md; native qualification is separate from automated file/fake tests" },
         projectValidation = "agent-and-external-tools; checkpoint-does-not-claim-compile-or-test-success",
         developmentEntrypoint = "pwsh scripts/splinter-dev.ps1",
         storageAuthority = new { stage = "windows-service", protocolVersion = 1, normalCaller = "unelevated",
@@ -99,22 +105,25 @@ public sealed class FoundationGateway(
             });
     }
 
-    public async Task<ApiResponse> DoctorAsync(string path, CancellationToken cancellationToken = default)
+    public async Task<ApiResponse> DoctorAsync(string path, CancellationToken cancellationToken = default, string source = "git", string applicationKind = "unity")
     {
+        if (source is not ("git" or "none") || applicationKind is not ("unity" or "none"))
+            return ApiResponse.Failure("doctor", "SourceSelectionUnsupported", "Select git or none and unity or none.");
         string fullPath = Path.GetFullPath(path);
         if (!Directory.Exists(fullPath))
             return ApiResponse.Failure("doctor", "ProjectPathNotFound", "The project path must be an existing directory.");
-        var repository = await repositories.InspectAsync(fullPath, cancellationToken);
-        var application = applications.Inspect(fullPath);
+        var repository = source == "git" ? await repositories.InspectAsync(fullPath, cancellationToken) : null;
+        var application = applicationKind == "unity" ? applications.Inspect(fullPath) : null;
         return ApiResponse.Success("doctor", new
         {
             path = fullPath,
+            source, applicationKind,
             repository,
             application,
             hasCommit = repository?.Revision is not null,
             readyForExecution = false,
             checksNotRun = new[] { "refs-block-cloning", "unity-editor", "agent-authentication", "host-recovery" },
-            missingPrerequisites = repository is null ? new[] { "GitRepository" }
+            missingPrerequisites = source == "none" ? [] : repository is null ? new[] { "GitRepository" }
                 : repository.Revision is null ? new[] { "InitialCommit" } : Array.Empty<string>()
         });
     }

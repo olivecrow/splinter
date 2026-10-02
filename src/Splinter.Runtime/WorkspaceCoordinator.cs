@@ -17,8 +17,14 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
 
     public async Task<WorkspaceView> EnsureAsync(string project, string requestKey, string baseReference, string storageMode,
         bool editor, CancellationToken ct = default, string? baselineId = null, string purpose = "task",
-        long maxJournalBytes = SnapshotWorkspaceState.DefaultJournalBytes)
+        long maxJournalBytes = SnapshotWorkspaceState.DefaultJournalBytes, string sourceKind = "git", string applicationKind = "unity")
     {
+        if (sourceKind is not ("git" or "none") || applicationKind is not ("unity" or "none"))
+            throw new WorkspaceException("SourceSelectionUnsupported", "Select git or none and unity or none explicitly; no fallback is available.");
+        if (sourceKind == "none" && (storageMode != "ntfs-snapshot" || baselineId is not null || baseReference != "snapshot" || purpose != "task"))
+            throw new WorkspaceException("SourceSelectionUnsupported", "Plain folders require an NTFS task and the snapshot basis.");
+        if (editor && applicationKind == "none")
+            throw new WorkspaceException("ApplicationUnsupported", "This ordinary folder has no selected application provider.");
         if (string.IsNullOrWhiteSpace(requestKey) || requestKey.Length > 128)
             throw new WorkspaceException("InvalidRequestKey", "Use a stable task key between 1 and 128 characters; reuse it across turns.");
         if (storageMode is not ("git-checkout" or "refs-cow" or "ntfs-snapshot"))
@@ -45,16 +51,17 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             record = new WorkspaceRecord
             {
                 Id = id, RequestKey = requestKey, ProjectPath = project, Path = store.WorkPath(id),
-                SourceReference = "splinter/" + id, BaseReference = baseReference, ManagedPaths = applications.ManagedPaths,
+                SourceReference = "splinter/" + id, BaseReference = baseReference, ManagedPaths = applicationKind == "none" ? [] : applications.ManagedPaths,
                 StorageMode = storageMode, BaselineId = baselineId, Purpose = purpose,
+                SourceKind = sourceKind, ApplicationKind = applicationKind,
                 Snapshot = storageMode == "ntfs-snapshot" ? new() { MaxJournalBytes = maxJournalBytes } : null,
-                RequestDigest = WorkspaceStore.Key(project + "\n" + requestKey + "\n" + baseReference + "\n" + storageMode + "\n" + baselineId + "\n" + purpose + "\n" + maxJournalBytes)
+                RequestDigest = WorkspaceStore.Key(project + "\n" + requestKey + "\n" + baseReference + "\n" + storageMode + "\n" + baselineId + "\n" + purpose + "\n" + maxJournalBytes + "\n" + sourceKind + "\n" + applicationKind)
             };
             await PreparationPointAsync("request.before-record", record, ct);
             store.Save(record, "create-intent");
             await PreparationPointAsync("request.after-record", record, ct);
         }
-        else if (record.BaseReference != baseReference || record.StorageMode != storageMode || record.BaselineId != baselineId || record.Purpose != purpose ||
+        else if (record.SourceKind != sourceKind || record.ApplicationKind != applicationKind || record.BaseReference != baseReference || record.StorageMode != storageMode || record.BaselineId != baselineId || record.Purpose != purpose ||
             storageMode == "ntfs-snapshot" && record.Snapshot?.MaxJournalBytes != maxJournalBytes)
             throw new WorkspaceException("RequestKeyConflict", "This key already belongs to another request. Reuse its original parameters or choose a new task key.");
         if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(id), "workspace list");
@@ -91,7 +98,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             if (ex is WorkspaceException { Code: "SnapshotPrivilegeRequired", RecoveryActions: not null } failure)
                 throw new WorkspaceException(failure.Code, failure.Message, failure.Details,
                     [.. failure.RecoveryActions, new("workspace.ensure", new { project, key = requestKey, baseReference, storage = storageMode,
-                        baseline = baselineId, maxJournalBytes = record.Snapshot?.MaxJournalBytes, editor, home = store.Root })]);
+                        source = sourceKind, application = applicationKind, baseline = baselineId, maxJournalBytes = record.Snapshot?.MaxJournalBytes, editor, home = store.Root })]);
             throw;
         }
     }
@@ -122,6 +129,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     private async Task StartCoreAsync(WorkspaceRecord record, CancellationToken ct)
     {
         RequireLive(record);
+        if (record.ApplicationKind == "none") throw new WorkspaceException("ApplicationUnsupported", "This ordinary folder has no selected application provider.");
         if (record.StorageMode == "ntfs-snapshot")
         {
             if (!RequireSnapshot(record).Attached) throw new WorkspaceException("SnapshotNotReady", "Resume workspace ensure before starting Unity.");
@@ -163,7 +171,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             }
             return current;
         }
-        if (string.IsNullOrWhiteSpace(message)) throw new WorkspaceException("CommitMessageRequired", "A result commit needs a nonempty message.");
+        if (string.IsNullOrWhiteSpace(message)) throw new WorkspaceException("CommitMessageRequired", "A source checkpoint needs a nonempty message.");
         record.Phase = "collecting";
         store.Save(record, "checkpoint-intent");
         try
@@ -174,7 +182,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 await RequireStopped(record, ct);
                 await applications.RemoveInfrastructureAsync(record, store.ControlPath(id), ct);
             }
-            record.ResultRevision = await sources.CommitAsync(record, message, ct);
+            record.ResultRevision = await sources.CheckpointAsync(record, message, ct);
             if (record.StorageMode == "ntfs-snapshot")
                 await CollectSnapshotResultAsync(record, ct);
             record.Phase = "collected";
@@ -189,6 +197,8 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     {
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
+        if (record.SourceKind == "none")
+            throw new WorkspaceException("SourceIntegrationUnsupported", "File original-apply is not implemented. Retain the independent result; the original has not been touched.");
         RequireLive(record);
         var current = await ViewAsync(record, ct);
         RequireSource(current);
@@ -296,7 +306,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         if (record.Phase == "editor-starting" && app.Ready) { record.Phase = "active"; changed = true; }
         if (changed) store.Save(record, "observed");
         string next = record.Purpose == "baseline" && !app.Running ? "baseline seal" :
-            record.IntegratedRevision is not null ? "workspace release" : record.ResultRevision is not null ? "workspace integrate" :
+            record.IntegratedRevision is not null ? "workspace release" : record.ResultRevision is not null ? record.SourceKind == "none" ? "workspace release" : "workspace integrate" :
             app.Running && !app.Ready ? "workspace status" : "workspace checkpoint";
         return new(record, source, app, store.ControlPath(record.Id), next + " --id " + record.Id);
     }

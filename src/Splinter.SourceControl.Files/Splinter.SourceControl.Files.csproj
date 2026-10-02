@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Splinter.Core/Splinter.Core.csproj" />
+    <ProjectReference Include="../Splinter.Runtime/Splinter.Runtime.csproj" />
+  </ItemGroup>
+</Project>

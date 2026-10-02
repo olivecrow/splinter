@@ -75,7 +75,7 @@ public sealed class SourceFingerprintTests
         Assert.Equal(await f.Oracle(), (await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken)).Fingerprint);
         var validated = await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken);
         f.Workspace.Validation = new("same-mtime", validated.Fingerprint, true, DateTimeOffset.UtcNow, []);
-        await f.Provider().CommitAsync(f.Workspace, "preserve same-size same-mtime content", TestContext.Current.CancellationToken);
+        await f.Provider().CheckpointAsync(f.Workspace, "preserve same-size same-mtime content", TestContext.Current.CancellationToken);
         Assert.Equal("return 2;", await TestDirectory.Git(f.Workspace.Path, "show", "HEAD:code.cs"));
         Assert.False((await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken)).HasChanges);
     }

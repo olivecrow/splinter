@@ -59,11 +59,16 @@ public static class Program
 
             var doctor = new Command("doctor", contracts.Find("doctor")!.Description);
             var project = new Option<string>("--project") { Required = true, Description = "Existing project directory." };
+            var doctorSource = new Option<string>("--source");
+            var doctorApplication = new Option<string>("--application");
             doctor.Options.Add(project);
+            doctor.Options.Add(doctorSource); doctor.Options.Add(doctorApplication);
             doctor.SetAction(async parse =>
             {
                 commandId = "doctor";
-                result = await gateway.DoctorAsync(parse.GetValue(project)!, cancellationToken);
+                string source = parse.GetValue(doctorSource) ?? "git";
+                result = await gateway.DoctorAsync(parse.GetValue(project)!, cancellationToken, source,
+                    parse.GetValue(doctorApplication) ?? (source == "none" ? "none" : "unity"));
             });
             root.Subcommands.Add(doctor);
 

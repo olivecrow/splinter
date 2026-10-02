@@ -11,6 +11,7 @@
     <ProjectReference Include="../Splinter.Runtime/Splinter.Runtime.csproj" />
     <ProjectReference Include="../Splinter.Workflows.Windows/Splinter.Workflows.Windows.csproj" />
     <ProjectReference Include="../Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj" />
+    <ProjectReference Include="../Splinter.SourceControl.Files/Splinter.SourceControl.Files.csproj" />
     <ProjectReference Include="../Splinter.Application.Unity/Splinter.Application.Unity.csproj" />
   </ItemGroup>
 </Project>

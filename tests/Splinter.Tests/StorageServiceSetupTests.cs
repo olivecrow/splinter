@@ -24,7 +24,7 @@ public sealed class StorageServiceSetupTests
         string package = Path.Combine(d.Path, "package"), source = Path.Combine(d.Path, "source"), home = Path.Combine(d.Path, "home");
         foreach (string path in new[] { package, source, home }) Directory.CreateDirectory(path);
         var files = new JsonArray();
-        foreach (string name in new[] { "service-version.json", "Splinter.Core.dll", "Splinter.Runtime.dll", "Splinter.Platform.Windows.exe",
+        foreach (string name in new[] { "service-version.json", "Splinter.Core.dll", "Splinter.Runtime.dll", "Splinter.SourceControl.Files.dll", "Splinter.Platform.Windows.exe",
             "Splinter.Platform.Windows.dll", "Splinter.Platform.Windows.deps.json", "Splinter.Platform.Windows.runtimeconfig.json", "winfsp-msil.dll", "vss-snapshot.ps1" })
         {
             // Hash-only setup planning must never execute this fixture payload.

@@ -898,6 +898,17 @@
         "workspaceStatus": {
           "const": "process-provider-poll; source-only-on-verify-source"
         },
+        "sourceModes": {"type":"array","items":{"enum":["git","none"]}},
+        "applicationModes": {"type":"array","items":{"enum":["unity","none"]}},
+        "workspaceRecordVersion": {"const":2},
+        "plainFolder": {
+          "type":"object","additionalProperties":false,
+          "required":["basis","result","inspection","originalApply","qualification"],
+          "properties": {
+            "basis":{"type":"string"}, "result":{"type":"string"}, "inspection":{"type":"string"},
+            "originalApply":{"const":"unavailable-before-side-effects"}, "qualification":{"type":"string"}
+          }
+        },
         "storageModes": {
           "type": "array",
           "items": {
@@ -1138,6 +1149,8 @@
         "missingPrerequisites"
       ],
       "properties": {
+        "source": {"enum":["git","none"]},
+        "applicationKind": {"enum":["unity","none"]},
         "path": {
           "type": "string",
           "minLength": 1
@@ -1174,6 +1187,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "version", "sourceKind", "applicationKind",
         "id",
         "requestKey",
         "projectPath",
@@ -1186,6 +1200,17 @@
         "storageMode"
       ],
       "properties": {
+        "version": {"const":2},
+        "sourceKind": {"enum":["git","none"]},
+        "applicationKind": {"enum":["unity","none"]},
+        "resultStorage": {
+          "type":"object","additionalProperties":false,
+          "required":["basisLogicalBytes","resultLogicalBytes","uniquePayloadBytes","payloadObjects"],
+          "properties": {
+            "basisLogicalBytes":{"type":"integer","minimum":0}, "resultLogicalBytes":{"type":"integer","minimum":0},
+            "uniquePayloadBytes":{"type":"integer","minimum":0}, "payloadObjects":{"type":"integer","minimum":0}
+          }
+        },
         "id": {
           "type": "string",
           "pattern": "^[a-f0-9]{24}$"

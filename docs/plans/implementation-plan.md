@@ -48,11 +48,11 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 
 ## 다시 확정한 다음 개발 단위: VCS 없는 기본 수명주기
 
-2026-10-02에 추가한 사용자 요구로 앞선 Unity CLI 인계 단위의 우선순위를 조정한다. **일반 폴더의 생성·같은 작업 재개·독립 편집/Editor·결과 보존·회수·폐기를 Git 없이 완성하고, 기존 Git 경로를 선택 가능한 연동으로 유지하는 것**이 다음 개발 범위다. 아직 프로그램을 변경하거나 새 fixture·서비스 등록을 실행하지 않았다. 실행 상태와 관문은 [VCS 추적표](validation-matrix.md#vcs-없는-기본-수명주기)가 소유한다.
+2026-10-02에 추가한 사용자 요구로 앞선 Unity CLI 인계 단위의 우선순위를 조정한다. **일반 폴더의 생성·같은 작업 재개·독립 편집/Editor·결과 보존·회수·폐기를 Git 없이 완성하고, 기존 Git 경로를 선택 가능한 연동으로 유지하는 것**이 다음 개발 범위다. 후속 구현 요청으로 공통 계약·파일 소스 공급자·CLI/Windows 연결을 구현 중이다. 현재 상태 v2와 `--source git|none`·`--application unity|none`의 실제 계약은 [기능 문서](../vcs-independent-workspaces.md), 자동 회귀와 아직 실행하지 않은 native 관문은 [검증 기록](../verification/vcs-independent-workspaces.md)을 따른다. 새 fixture 준비와 관리자 서비스 등록 Apply를 구분한다. 실행 상태와 관문은 [VCS 추적표](validation-matrix.md#vcs-없는-기본-수명주기)가 소유한다.
 
 ### 현재 의존성과 목표 책임
 
-현재 CLI는 `WorkspaceCommands.Runtime`에서 Git provider와 Git을 사용하는 discard provider를 항상 조합한다. `GitSnapshotWorkspaces.PreflightAsync`는 로컬 `.git`·HEAD/base 일치·clean 상태를 요구한다. Core의 `ISourceWorkspaceProvider`는 `ResolveRevisionAsync/CommitAsync/IntegrateAsync`와 reference/revision 중심이며, checkpoint·snapshot 결과 보존/검증·폐기도 Git branch/ref/object에 연결돼 있다. 저장 계층이 분리돼 있다는 이유만으로 일반 폴더를 지원하지 않는다. Git 원격 저장소 등록은 필수 조건이 아니다.
+범위 재확정 당시 CLI는 Git provider와 Git discard provider를 항상 조합했고 Core와 결과 보존도 commit/revision 중심이었다. 현재 구현은 `SourceKind`·`ApplicationKind`와 opaque 기준/결과 identity, 공급자 checkpoint·독립 보존·폐기를 구분한다. Git 선택 경로는 기존 로컬 `.git`·HEAD/base·clean·branch/ref/object guard를 유지한다. 새 일반 폴더 경로의 실제 자격은 별도 검증하며 Git 원격 등록은 필수 조건이 아니다.
 
 | 환경 | 공통으로 제공할 목표 | 환경별 책임과 현재 상태 |
 | --- | --- | --- |
