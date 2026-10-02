@@ -42,11 +42,11 @@
 | 문서 | 용도 |
 | --- | --- |
 | [제품 요구사항](../plan.html) | 제품이 달성할 목표 |
-| [구현 계획](plans/implementation-plan.md) | 프로그램/에이전트 책임·축소한 후속 작업/종료 기준·마감한 M0·유지/제외 경계 |
+| [구현 계획](plans/implementation-plan.md) | 프로그램/에이전트 책임·VCS 무관한 제품 요구·다시 확정한 일반 폴더 기본 수명주기와 후속 Git/원본 반영·Plastic 순서·마감한 M0 |
 | [검증 추적표](plans/validation-matrix.md) | M0와 기존 ID의 실제 증거 상태·후속 책임 분류·보존한 48개 카탈로그 |
 | [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | NR-01/02 준비 복구·NR-03 공통 저널/로컬 kernel/제품 client 경계와 재부팅·전원·공간·파일 관문의 완료 기준 |
 | [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·비용 판단과 WF-09~12/LB-01~05의 완료 범위·재검증 기준 |
-| [대화별 설치·사용](plans/session-workflow-and-installation.md) | AI의 설치 연결/인계/도구 선택/종료 절차·외부 MCP/Unity CLI 인계의 최소 경계·SW 증거 분류 |
+| [대화별 설치·사용](plans/session-workflow-and-installation.md) | AI의 설치 연결/인계/도구 선택/종료 절차·외부 도구의 최소 경계·[후속 Unity CLI A/B 인계 범위](plans/session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)·SW 증거 분류 |
 | [저장소 권한 서비스](plans/storage-privilege-service.md) | 반복 UAC 없는 제한 서비스의 UA-01~04 |
 | [병렬 비교 방법](plans/parallel-workflow-qualification.md) | C/S/Q 입력·작업·비용 비교를 재사용할 때 |
 

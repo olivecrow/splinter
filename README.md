@@ -2,6 +2,8 @@
 
 AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하도록 돕는 로컬 도구다. 첫 지원 목표는 **Windows/NTFS + Git + Unity**다. 원본 이동·최초 전체 복제·읽기 hydration 없이 불변 snapshot과 작업별 범위 변경분을 사용하며, 원본은 작업 중 계속 수정할 수 있다.
 
+제품 요구는 **Git·Unity VCS/Plastic SCM·VCS 없는 일반 폴더에서 같은 기본 수명주기를 제공하는 것**이다. 현재 제품 CLI는 로컬 Git 저장소를 요구하고 원격 등록은 필요하지 않다. [다음 개발 범위](docs/plans/implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)는 일반 폴더의 기본 수명주기·Git 선택 구성이며 안전한 원본 반영 실행과 Plastic 전용 연동은 후속이다. 아직 Git 없는 병렬 작업을 지원하지 않는다.
+
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 
 등록된 작은 Windows x64 NTFS/Git/Unity 환경의 **첫 한정 실사용 버전 M0를 마감했다**. 제공물은 기존 개발 CLI·소스 스킬과 [AI 시작 안내](docs/agent-start.md)이며, [납품 판정](docs/verification/m0-delivery.md)은 scoped-complete-with-limitations다. [대표 A/B](docs/verification/representative-agent-workflow.md)의 오류/수정·같은 작업 재개·보존/통합/회수·실패 작업 폐기와 비용, 현재 복구 계약의 회귀를 확인했다. 폐기에는 해당 계약을 지원하는 제한 서비스가 필요하다. 후속 책임은 [축소한 구현 계획](docs/plans/implementation-plan.md#프로그램과-에이전트의-책임)에서 프로그램 구현·AI 사용 절차·필요 시 지원 검증으로 구분한다.

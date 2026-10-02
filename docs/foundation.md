@@ -4,6 +4,8 @@ Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트�
 
 제품 시작점은 [AI 안내](agent-start.md)와 `scripts/splinter.ps1`이다. ReFS/진단·공통 Library view·spike/probe는 [개발 CLI](development-cli.md)로 분리했다. 기존 verification은 해당 후보/입력의 근거이며 변경된 계약의 native 자격을 자동 부여하지 않는다.
 
+현재 제품 CLI는 Git provider를 항상 조합하고 NTFS 생성 전에 로컬 `.git`·HEAD/base·clean을 검사한다. 기준/결과의 commit·ref와 source 등록/폐기도 Git에 연결돼 있어 VCS 없는 폴더·Plastic SCM은 아직 지원하지 않는다. 원격 Git 등록은 불필요하다. VCS 무관한 제품 목표와 다음 개발 범위는 [구현 계획](plans/implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)을 따른다.
+
 ## 구조와 의존성
 
 | 프로젝트 | 현재 책임 | 참조 |
@@ -76,4 +78,4 @@ locked restore·Release·자동 계약/fake/Git/Windows 회귀를 수행한다. 
 
 ## 다음 구현 경계
 
-[축소한 구현 계획](plans/implementation-plan.md)을 따른다. 실제 사용할 외부 도구 하나의 정확한 대상·공존과 관측한 저장/메모리 병목을 고른다. 마감한 M0·대형 PV·전체 장애 카탈로그를 자동 재개하지 않는다.
+[구현 계획](plans/implementation-plan.md)을 따른다. 다음은 VCS 중립 계약·일반 폴더의 기본 수명주기·기존 Git 선택 구성이다. 외부 도구의 별도 전체 인계 검증은 후속이며 저장/메모리는 실제 관측 병목만 고른다. 마감한 Git 기반 M0·대형 PV·전체 장애 카탈로그를 자동 재개하지 않는다.

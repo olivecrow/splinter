@@ -87,6 +87,38 @@ AI는 반환 workspace에서 파일/Git 작업을 하고 필요한 시점에 소
 
 현재 `checkpoint/integrate`는 내부 컴파일 증거를 요구하지 않는다. AI가 외부 도구로 검증할 내용을 판단하고, Splinter는 같은 checkpoint 경로로 Editor 유무·컴파일 결과와 무관하게 안정된 소스를 독립 보존한다. seal·독립 결과·target/dirty guard는 유지한다. `preserve-worker`와 자체 refresh/컴파일/포커스 처리는 제거했으며 범용 검증 증거 플랫폼은 추가하지 않는다. 선택적 단일 view/Library cache는 [개발 CLI](../development-cli.md)의 저장소 수명 관리로 제한한다. 현재 기본 사용법은 [시작 안내](../agent-start.md)를 따른다.
 
+### 후속 범위: Unity CLI의 A/B 인계
+
+VCS 독립성 요구를 반영해 **VCS 없는 기본 수명주기와 기존 Git 선택 구성을 먼저 개발**한다. 이 절의 Unity CLI 인계는 그 뒤의 후속 범위로 유지한다. 이번 일반 폴더 단위에서는 정확한 작업 Editor 확인에 필요한 기존 외부 도구 사용만 포함하고, 기존 Git fixture의 별도 전체 A/B 인계 시험은 병행하지 않는다. [다시 확정한 계획](implementation-plan.md#다시-확정한-다음-개발-단위-vcs-없는-기본-수명주기)이 현재 범위를 소유한다. 아래 도구/fixture 정보는 읽기 전용으로 확인한 후속 후보이며 실행·설치·fixture 변경을 시작하지 않았다. 실행 상태는 [추적표](validation-matrix.md#축소한-후속의-책임-분류)를 따르며 과거 M0/WF/LB 자격을 승계하지 않는다.
+
+선택 근거는 자체 refresh/컴파일 기능을 제거한 현재 제품 경로에서 외부 도구 인계가 아직 미자격이라는 점이다. 기존 Unity CLI와 Pipeline으로 먼저 연결 절차를 확인하고, 필요한 식별 정보나 공존 결함만 프로그램에서 고친다. 저장·메모리 개선의 우선순위는 그대로 유지한다. 이미 마감한 [부분 쓰기·버퍼 개선](../verification/resource-efficiency-followup.md)을 반복하거나 관측하지 않은 Library 병목을 구현 대상으로 미리 정하지 않는다.
+
+| 항목 | 고정한 범위와 실행 전 재확인 |
+| --- | --- |
+| 제품 후보 | `development @ 7891389`. 구현이 바뀌면 최종 Git SHA·소스/바이너리 hash를 실행 근거에 고정 |
+| 외부 도구 | 설치된 `C:/Users/olive/AppData/Local/Unity/bin/unity.exe`, `1.0.0-beta.5`. 로컬 `--version`과 `command --help`에서 `--project-path`를 확인. 최신 스킬의 명령·옵션을 설치 버전에 그대로 가정하지 않음 |
+| Unity/연결 패키지 | Unity `6000.3.22f1`·`com.unity.pipeline` `0.7.0-exp.1`. 기존 등록 fixture의 manifest·lock·ProjectVersion을 읽어 확인했으며 실제 연결은 미실행 |
+| 입력/상태 위치 | 기존 `T:/ua-source`, base `codex/library-20260929`, HEAD `f71e4e244ba9b085aa0fc439336e4c60ee3d5d5d`, home `C:/Users/olive/Desktop/Development/splinter/.local/wl29`. 원본 Git은 이번 읽기에서 clean. 기존 등록·warm Library·여유 공간·실제 HEAD/clean을 실행 전에 다시 확인하며 달라지면 새 기준을 명시 |
+| 작업/소유권 | 새 A/B key 각각 하나, 같은 등록 home, 반환된 서로 다른 workspace 경로·ID/digest/snapshot. 기존 작업·결과 refs·원본/peer Editor와 서버 identity를 먼저 보존 |
+
+#### 실행 순서와 완료 기준
+
+1. 제품 schema와 기존 서비스/등록·입력을 읽기 전용으로 확인한다. A/B workspace와 소유 Editor를 만들고, Pipeline 발견 결과의 프로젝트 절대 경로·PID를 Splinter의 반환 경로·소유 PID/시작 시각과 대조한다. 연결 실패나 sandbox의 미관측을 Editor 부재로 단정하지 않는다.
+2. A/B 각각에 `--project-path <반환 workspace 경로>`를 명시해 명령 카탈로그와 실제 입력 schema를 읽는다. 기존 도구가 제공하는 refresh/컴파일·조회 경로로 작업별 작은 C# 변경과 서로 다른 loaded 결과를 확인한다. A 조작 전후 B·원본의 선택 소스 hash와 Editor identity가 유지되어야 한다. 원본 경로로 fallback하거나 Splinter 자체 컴파일 기능을 복원하지 않는다.
+3. A를 Splinter의 정상 stop으로 종료하고 B에서 도구 조회·한 번의 후속 편집/컴파일이 가능한지 확인한다. 기존 원본 Editor·공유 Coplay 서버가 있으면 정확한 projectRoot·PID/시작 시각과 연결을 전후 대조한다. 없는 서버는 새로 시작하지 않고 그 공존 관문은 NotRun으로 남긴다. 자기 작업의 Pipeline 연결과 기존 Coplay 서버를 구분한다.
+4. 새로 만든 A/B는 각각 안정된 소스를 `checkpoint`로 독립 보존한 뒤 명시적 `release`로 회수한다. 독립 결과의 내용과 실제 mount/Git 등록/delta·마지막 소유 snapshot 부재 및 소유 자원 0을 확인한다. shared/reclaim-pending·unknown이면 완료로 표시하지 않고 같은 작업의 다음 행동을 남긴다. 원본 integrate·discard는 이 단위의 관문이 아니다.
+5. 최종 후보의 필수 `pwsh ./scripts/build.ps1`과 변경한 계약의 schema/fake·적합성을 확인한다. CLI/패키지·입력 SHA·A/B 식별자·명령/응답·전후 hash/소유 자원·결과 refs·시간과 관측 파일 할당을 실행 근거에 남기고, 성공한 사용 절차만 스킬/시작 안내에 반영한다. 외부 컴파일 성공과 Splinter의 데이터 보존 성공은 각각 판정한다.
+
+완료는 위 관문의 **실제 실행 근거와 한정 지원 판정**이다. 도구 발견/버전 확인만으로 인계를 완료하지 않는다. 원본·공유 서버 관문이 미실행이면 제한을 적고 전체 공존 성공을 주장하지 않는다. 반복 벤치마크나 공간/메모리 절감률을 이 단위의 합격 조건에 넣지 않는다.
+
+#### 수정 한도와 종료 규칙
+
+절차로 해결되면 스킬·예시·지원 기록만 보완한다. 프로그램 수정은 반환 대상 식별 정보와 소유 Editor/외부 도구 공존의 재현 결함에 한정한다. 공개 계약 변경에는 schema·fake·적합성과 해당 현재 문서를 함께 갱신하고 기존 승인 쓰기·seal·독립 결과·target/dirty·peer 보호를 유지한다.
+
+등록/driver/서비스·패키지/버전 변경이 필요하거나 Pipeline 연결 자체가 성립하지 않으면 실패와 보존 상태를 남기고 필요한 최소 변경을 별도 범위로 제시한다. 도구 설치·업데이트, 원본 설정 변경·Coplay 서버 시작, 관리자 Apply, 전역 Codex 설정, 다른 MCP로의 자동 전환은 포함하지 않는다. 지원 경로의 승인 쓰기 손실·원본/peer 훼손이 재현되면 해당 경로를 차단하고 그 결함을 우선한다.
+
+대표 A/B 한 묶음과 발견한 동일 원인의 한정 재현/수정·회귀로 마감한다. 새 harness·장애 행렬·강제 프로세스 종료·OS/ARM/VIVOBOOK·대형/cold/C/S/Q 비교·개발용 view 확장·자동 모드/큐·전용 installer/binding·push/배포는 이 범위에 넣지 않는다.
+
 ## 완료·보존·폐기
 
 | 사용자 의도 | 목표 처리 | 결과/자원 |

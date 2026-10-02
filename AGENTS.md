@@ -9,6 +9,7 @@
 - 대화·응답·Editor 종료, 임대 만료·타임아웃·디스크 압박은 통합이나 삭제의 승인이 아니다. release는 독립 결과를 보존한다. 명시적 discard는 NTFS task의 provider/CLI를 연결했으며 실제 자격은 폐기 검증을 따른다. 일반 제품 설치·자동 binding은 미구현이다. VSS 전용 권한 서비스의 실제 자격은 UA 추적표를 따른다.
 - 필수 저장소 요구는 원본 NTFS 위치·파일시스템 유지, 최초 전체 데이터 복제·읽기 hydration·파일 전체 copy-up fallback 금지, 범위 변경 저장이다. 원본은 작업 중 계속 수정 가능해야 한다. ReFS는 개발용 선택적 backend이며 NTFS의 이관 fallback이 아니다.
 - Core에 Unity·Win32·Git·Codex 전용 API를 넣지 않는다. 공통 계약과 fake 적합성 시험부터 연결한다. Host는 읽기 전용 in-process 조합 계층이며 daemon/DB writer가 아니다.
+- VCS 무관한 병렬 작업은 확정한 제품 요구다. 다음 개발은 `docs/plans/implementation-plan.md`의 일반 폴더 기본 수명주기·VCS 중립 계약·기존 Git 선택 구성을 따른다. 현재 CLI는 Git 전제이며 일반 폴더/Plastic을 지원한다고 안내하지 않는다. 일반 폴더 원본 반영 실행·Plastic 전용 연동·외부 도구의 별도 전체 인계 검증은 후속이다. 자동 git init·Git 손상/unknown의 VCS 없음 fallback과 기존 Git/결과/peer guard 약화는 금지한다.
 - 기본 에이전트 진입점은 `scripts/splinter.ps1`의 NTFS 수명주기다. ReFS/baseline·diagnostic checkout·view·spike/probe는 `scripts/splinter-dev.ps1`와 `tools/Splinter.Development`로 분리하며 `docs/development-cli.md`를 따른다. 필수 검증은 `pwsh ./scripts/build.ps1`이다. 의존성 변경 시 중앙 버전·해당 lockfile을 함께 갱신하고 locked restore로 확인한다.
 - 현재 버전 계약 하나만 지원한다. 구버전 자동 이관·호환 fallback을 추가하지 않는다. 지원하지 않거나 손상된 상태는 보존 후 명시적으로 거부한다. 같은 버전에서의 중단·응답 유실·재시작 복구는 유지한다.
 - 계약 변경 시 입력·출력 schema, fake, 적합성 시험, 해당 기능 문서·검증 추적표를 함께 갱신한다. 새 모듈이나 실행 명령은 이 파일·문서 지도·capabilities에 현재 상태를 반영한다.
