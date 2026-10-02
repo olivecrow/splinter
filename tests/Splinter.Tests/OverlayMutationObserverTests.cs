@@ -18,7 +18,7 @@ public sealed class OverlayMutationObserverTests
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows callback composition.");
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         tree.Files["alpha"] = [1, 2, 3, 4]; tree.Files["beta"] = [8, 8];
-        using var store = new JournalDeltaStore(dir.Path, new(1, "callback", tree.Snapshot, 100000, 4096), tree);
+        using var store = new JournalDeltaStore(dir.Path, new(2, "callback", tree.Snapshot, 100000, 4096), tree);
         var events = new List<OverlayMutationBoundary>();
         var fileSystem = new WinFspOverlayFileSystem(store, mutationObserver: new Recorder(events));
         Guid id = store.Stat("alpha")!.Id;

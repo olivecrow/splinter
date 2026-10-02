@@ -8,7 +8,7 @@ namespace Splinter.Workflows.Windows;
 internal sealed partial class WindowsValidationProvider
 {
     internal static OverlayIdentity CacheIdentity(ValidationCacheIdentity cache) =>
-        new(1, cache.CacheId, cache.Snapshot, cache.MaxJournalBytes, 1024 * 1024, [], CacheRoots);
+        new(2, cache.CacheId, cache.Snapshot, cache.MaxJournalBytes, 1024 * 1024, [], CacheRoots);
 
     internal string MaintenancePath(string viewId) => Path.Combine(Path.GetDirectoryName(ViewPath(viewId))!, "cache-maintenance.json");
     internal void RequireCacheReady(string viewId) => Require(Read<CacheMaintenance>(MaintenancePath(viewId)) is not { Completed: false },

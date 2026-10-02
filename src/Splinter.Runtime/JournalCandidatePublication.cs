@@ -129,7 +129,7 @@ public sealed partial class JournalDeltaStore
             }
             using var check = VerifyPublicationJournal(destination, "delta.journal", snapshot, intent);
             boundary?.Invoke("candidate-flushed");
-            var result = new ValidationCandidate(2, request.RequestKey, identity, intent.SourceSeal, check.SealCurrent(),
+            var result = new ValidationCandidate(3, request.RequestKey, identity, intent.SourceSeal, check.SealCurrent(),
                 DateTimeOffset.UtcNow, Stopwatch.GetTimestamp() - started, Stopwatch.Frequency, projection);
             WritePublicationFile(Path.Combine(destination, "candidate.json.new"), result);
             boundary?.Invoke("receipt-flushed");
@@ -193,7 +193,7 @@ public sealed partial class JournalDeltaStore
 
     private static void ValidatePublicationReceipt(ValidationCandidate receipt, CandidateExportIntent intent)
     {
-        if (receipt.Version != 2 || receipt.Id != intent.Request.RequestKey ||
+        if (receipt.Version != 3 || receipt.Id != intent.Request.RequestKey ||
             !SamePublicationValue(receipt.Identity, intent.Identity) || receipt.SourceSeal != intent.SourceSeal ||
             !SamePublicationValue(receipt.SourceProjection, intent.SourceProjection) || receipt.Seal is null || !ValidSeal(receipt.Seal) ||
             receipt.Seal.DurableSequence != intent.SourceSeal.DurableSequence || receipt.Seal.JournalBytes != intent.JournalBytes ||

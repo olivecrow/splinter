@@ -29,7 +29,7 @@ public sealed class CandidateSourceProjectionTests
     {
         public readonly TestDirectory Directory = new();
         public readonly SnapshotOverlayTests.FakeSnapshotTree Tree = new();
-        public OverlayIdentity Identity => new(1, "worker", Tree.Snapshot, 10_000_000, 65536, [".git"]);
+        public OverlayIdentity Identity => new(2, "worker", Tree.Snapshot, 10_000_000, 65536, [".git"]);
         public string Worker => Path.Combine(Directory.Path, "worker");
         public string Candidate => Path.Combine(Directory.Path, "candidate");
         public string Journal => Path.Combine(Worker, "delta.journal");
@@ -203,7 +203,7 @@ public sealed class CandidateSourceProjectionTests
                 var a = await GitOverlayRegistration.PrepareAsync(source, Path.Combine(d.Path, "mount-a"), "codex/a", revision, "a", Path.Combine(d.Path, "a.json"), ct);
                 var b = await GitOverlayRegistration.PrepareAsync(source, Path.Combine(d.Path, "mount-b"), "codex/b", revision, "b", Path.Combine(d.Path, "b.json"), ct);
                 var snapshot = new SnapshotReference("snapshot", "fake", source, "immutable", DateTimeOffset.UnixEpoch, true, true, "fixture");
-                return new(d, source, a, b, new(1, "a", snapshot, 10_000_000, 65536, [".git"]));
+                return new(d, source, a, b, new(2, "a", snapshot, 10_000_000, 65536, [".git"]));
             }
             catch { d.Dispose(); throw; }
         }

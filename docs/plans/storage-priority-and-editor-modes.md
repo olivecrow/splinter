@@ -59,7 +59,7 @@ SF-03 전체 Partial은 유지한다. FIFO/Coordination·일반 임대 인수·�
 
 ## 다음 범위 판단
 
-현재 선택한 공간 후보는 [실제 Bee 입력의 독립 블록 압축](../verification/library-block-compression-feasibility.md)이다. 최근 UH A/B의 누적 저장은 payload가 대부분이고, 같은 Plastic fixture의 큰 Bee 4개 파일에서 충분한 압축 여지를 관측했다. 후보 선정과 [독립 codec](../verification/workspace-payload-codec.md)의 정확성·크기/버퍼 검증은 구분하며 실제 저널 저장/지원으로 승계하지 않는다. 후속 경계는 아래 제품 연결을 따른다.
+선택한 공간 개선은 [Bee 입력의 독립 블록 압축 후보](../verification/library-block-compression-feasibility.md)와 [독립 codec](../verification/workspace-payload-codec.md) 뒤 [압축 저널 제품 연결](../verification/journal-payload-compression.md)의 작은 T: A/B·동일 journal raw 대조를 한정 마감했다. 후보 모델/standalone 논리 압축률과 제품의 실제 journal 파일 할당을 구분한다. 전체 workspace 공간/RAM·대형/OS 자격과 SF 전체 Partial은 유지하며 다음 병목은 필요한 실제 입력으로 별도 선정한다.
 
 [부분 쓰기·버퍼·시작 개선](../verification/resource-efficiency-followup.md)은 private 덮어쓰기의 일치 앞뒤 재사용, 작은 I/O 버퍼 제한, Editor 시작과 현재 소스 검증의 분리 범위를 마감했다. 새/확장/전체 내용 변경의 Library 부담은 남으며 동일 입력의 고정 공간/대여 버퍼 대조와 작은 로컬 Unity 수명주기로만 판정한다. 전체 Library 절감률·Editor/시스템 RAM·준비 시간 SLA·OS 장애 지원을 승계하지 않는다. 다음 공간 대상은 실제 새/전체 변경 Library 기록에서 선택하며 같은 비교 반복·대형/원격/설치·장애 행렬을 자동 추가하지 않는다.
 
@@ -75,7 +75,7 @@ Library의 마감 뒤 확정한 [NR-01/02 준비 단계 중단 복구](ntfs-reco
 
 제품 연결 전 **독립 범위 codec의 공통 계약/fake·정확성·손상/부분 읽기·크기/버퍼 경계와 고정 Bee 입력 대조**는 scoped-complete-with-limitations로 마감했다. 구현과 한정 판정은 [codec 검증](../verification/workspace-payload-codec.md)이 소유한다. 개발 capabilities/schema에 standalone 상태만 추가했고 기본 workspace·현재 저널 형식·설치된 서비스를 바꾸지 않았다. codec의 논리 표현 절감을 실제 workspace/NTFS 절감으로 읽지 않는다.
 
-다음 질문은 **압축 범위를 현재 append/ACK·독립 결과·원본/peer 보호에 연결해 실제 저널 파일 할당을 줄일 수 있는가**다. 포함과 종료 조건은 아래로 한정한다.
+[확정 범위](journal-payload-compression.md)와 [JP 검증](../verification/journal-payload-compression.md)의 직접 근거로 제품 연결을 scoped-complete-with-limitations로 마감했다. 질문은 **압축 범위를 현재 append/ACK·독립 결과·원본/peer 보호에 연결해 실제 저널 파일 할당을 줄일 수 있는가**였다. 아래는 마감한 포함/종료 기준이며 추가 반복 지시가 아니다.
 
 | 포함 | 종료 기준 |
 | --- | --- |
@@ -87,7 +87,7 @@ Library의 마감 뒤 확정한 [NR-01/02 준비 단계 중단 복구](ntfs-reco
 
 계약·내용/복구·한정 A/B·파일 할당의 전후 근거가 모두 있으면 이 제품 연결 단위만 마감한다. 수치가 증가하거나 기능/회수 실패가 남으면 실패 증거를 보존하고 해당 경계만 수정한다. 후보 선정의 83% 모델이나 standalone codec 표를 제품 절감률로 승계하지 않는다.
 
-제품 연결은 이번 독립 codec 구현에 자동 포함하지 않는다. 새 UAC/서비스/grant/볼륨·원본 통합/check-in·MCP·대형/ARM/OS 장애·flush/group commit·새 backend·작업 모드/큐/스케줄러·전체 메모리 최적화는 이 다음 단위에서도 제외한다. 설치/권한 변경이 실제로 필요하면 구체적 계획을 별도로 작성한다. 기존 C: 비소유 blocker와 보류 snapshot은 그대로 유지한다.
+제품 연결은 선행 독립 codec 구현과 별도 단위로 확정/실행했다. 새 UAC/서비스/grant/볼륨·원본 통합/check-in·MCP·대형/ARM/OS 장애·flush/group commit·새 backend·작업 모드/큐/스케줄러·전체 메모리 최적화는 포함하지 않았다. 설치/권한 변경이 실제로 필요하면 구체적 계획을 별도로 작성한다. 기존 C: 비소유 blocker와 보류 snapshot은 그대로 유지한다.
 
 ## 보존한 한정 범위: 일반 권한 Unity 검증 흐름
 

@@ -328,7 +328,9 @@
                     "retainedPayloadBytes",
                     "livePrivateBytes",
                     "obsoletePayloadBytes",
-                    "frameBytes"
+                    "frameBytes",
+                    "liveStoredPayloadBytes",
+                    "retainedLogicalPayloadBytes"
                   ],
                   "properties": {
                     "journalBytes": {
@@ -348,6 +350,14 @@
                       "minimum": 0
                     },
                     "frameBytes": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "liveStoredPayloadBytes": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "retainedLogicalPayloadBytes": {
                       "type": "integer",
                       "minimum": 0
                     }
@@ -492,7 +502,9 @@
             "retainedPayloadBytes",
             "livePrivateBytes",
             "obsoletePayloadBytes",
-            "frameBytes"
+            "frameBytes",
+            "liveStoredPayloadBytes",
+            "retainedLogicalPayloadBytes"
           ],
           "properties": {
             "journalBytes": {
@@ -512,6 +524,14 @@
               "minimum": 0
             },
             "frameBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "liveStoredPayloadBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "retainedLogicalPayloadBytes": {
               "type": "integer",
               "minimum": 0
             }
@@ -627,7 +647,9 @@
                 "retainedPayloadBytes",
                 "livePrivateBytes",
                 "obsoletePayloadBytes",
-                "frameBytes"
+                "frameBytes",
+                "liveStoredPayloadBytes",
+                "retainedLogicalPayloadBytes"
               ],
               "properties": {
                 "journalBytes": {
@@ -647,6 +669,14 @@
                   "minimum": 0
                 },
                 "frameBytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "liveStoredPayloadBytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "retainedLogicalPayloadBytes": {
                   "type": "integer",
                   "minimum": 0
                 }

@@ -28,7 +28,7 @@
 | [작은 Unity 동일 쓰기 공간 비교](verification/unity-duplicate-private-writes.md) | 고정 Runtime의 warm 편집/재개·Library/저널 분류·실제 파일 할당·동일 독립 결과와 회수·작은 관측 차이의 한계 |
 | [부분 쓰기·버퍼·시작 개선](verification/resource-efficiency-followup.md) | private 덮어쓰기의 일치 앞뒤 재사용·요청 크기 버퍼·시작/소스 검증 분리와 고정 입력·로컬 Unity 자격 |
 | [Library payload 압축 후보 선정](verification/library-block-compression-feasibility.md) | UH 비용 재계산·현재 Bee 4개 입력의 읽기 전용 block 모델/복원·다음 codec 범위 선정. 실제 저널/물리 절감 미자격 |
-| [범위 payload codec](workspace-payload-codec.md), [검증](verification/workspace-payload-codec.md) | 공통 block API·raw/Brotli binary 표현·손상 거부·부분 읽기와 bounded buffer. 현재 journal/workspace 미연결 |
+| [범위 payload codec](workspace-payload-codec.md), [검증](verification/workspace-payload-codec.md) | 공통 block API·raw/Brotli binary 표현·손상 거부·부분 읽기와 bounded buffer. 현재 [journal 연결](journal-payload-compression.md)의 block 부품; standalone 표본과 제품 자격을 구분 |
 | [소스 검증](source-verification.md) | 변경 경로·hash cache·status freshness·현재 계측 형식 |
 | [불변 후보와 검증 view](validation-view.md) | 개발용 후보 게시·같은 요청 중단 복구·검증된 Git 포인터 분리·고정 view·공통 Library |
 | [개발용 소스 view 수명주기](validation-workflow.md) | 개발 CLI의 view·snapshot Library·정지 cache 정리·독립 결과·회수 의존성. Unity 검증은 외부 도구 책임 |
@@ -44,6 +44,7 @@
 | [최소 AI 작업 연결 검증](verification/agent-workflow.md) | source skill 직접 사용·반환 경로 편집·새 CLI 재개·direct/명시적 폐기 한정 실행 |
 | [대표 AI A/B 사용·비용 검증](verification/representative-agent-workflow.md) | 독립 Editor의 오류/수정·동일 작업 재개·보존/통합/release와 실패 작업 discard·단계별 파일 할당/시간·재시도 제한 |
 | [한정 M0 납품 판정](verification/m0-delivery.md) | 현재 복구 회귀·기존 native 소스 대조와 재사용 한계·실제 시작 명령 확인·한정 완료와 지원 확대의 구분 |
+| [압축 저널](journal-payload-compression.md), [범위](plans/journal-payload-compression.md), [검증](verification/journal-payload-compression.md) | 저장/복원 길이·논리 fragment·SJR2/overlay v2/candidate v3·정리/복구·실제 A/B와 파일 할당의 한정 연결 |
 | [상태 쓰기 진단 검증](verification/state-write-diagnostics.md) | workspace 저장 단계·게시 완료 여부·실제 파일 잠금과 기계용 오류 계약의 자격 |
 
 ## 남은 설계와 검증

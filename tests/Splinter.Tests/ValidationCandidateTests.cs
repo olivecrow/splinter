@@ -9,7 +9,7 @@ namespace Splinter.Tests;
 public sealed class ValidationCandidateTests
 {
     private static readonly string[] CacheRoots = ["Library", "Temp"];
-    private static OverlayIdentity Identity(ISnapshotTree tree) => new(1, "view", tree.Snapshot, 100_000_000, 65536, [".git"]);
+    private static OverlayIdentity Identity(ISnapshotTree tree) => new(2, "view", tree.Snapshot, 100_000_000, 65536, [".git"]);
     private static void Write(IWorkspaceDeltaStore store, string path, string value)
     {
         var entry = store.Stat(path) ?? store.Create(path, false, 32);
@@ -77,7 +77,7 @@ public sealed class ValidationCandidateTests
             Assert.Equal("library-b", Encoding.UTF8.GetString(b.Files["Library/base-label"]));
         }
         using var check = ValidationViewDeltaStore.OpenCacheReadOnly(cache, cacheIdentity, a);
-        Assert.Equal(4096, check.Observe().PayloadBytes);
+        Assert.Equal(4096, check.ObservePrivateUsage().RetainedLogicalPayloadBytes);
         Assert.Equal(0, check.Observe().InitialPayloadCopiedBytes);
         Assert.Equal(0, check.Observe().ReadCacheBytes);
         Assert.True(a.ReadBytes < 10000);
@@ -137,7 +137,7 @@ public sealed class ValidationCandidateTests
         resumed.Read(resumed.Stat("Library/large")!.Id, 8192, unchanged);
         Assert.Equal(Enumerable.Repeat((byte)31, 4096).ToArray(), changed);
         Assert.Equal(new byte[4096], unchanged);
-        Assert.Equal(4096, resumed.Observe().PayloadBytes);
+        Assert.Equal(4096, resumed.ObservePrivateUsage().RetainedLogicalPayloadBytes);
     }
 
     [Fact]

@@ -44,7 +44,7 @@ public sealed partial class JournalDeltaStore
         }
         catch (Exception ex) when (ex is JsonException or FileNotFoundException)
         { throw new WorkspaceException("CandidateUnpublished", "A complete candidate receipt is required; preserve its files."); }
-        if (candidate.Version != 2 || string.IsNullOrWhiteSpace(candidate.Id) || candidate.Identity is null ||
+        if (candidate.Version != 3 || string.IsNullOrWhiteSpace(candidate.Id) || candidate.Identity is null ||
             candidate.Seal is null || !ValidSeal(candidate.Seal) || candidate.SourceSeal is null || !ValidSeal(candidate.SourceSeal) ||
             candidate.SourceSeal.DurableSequence != candidate.Seal.DurableSequence || candidate.Identity.Snapshot != snapshot.Snapshot)
             throw new WorkspaceException("CandidateIdentityMismatch", "The candidate does not identify this exact snapshot.");

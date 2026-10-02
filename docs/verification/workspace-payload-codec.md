@@ -1,6 +1,6 @@
 # 독립 범위 payload codec 검증
 
-2026-10-03의 이번 단위는 [저장공간 계획](../plans/storage-priority-and-editor-modes.md#범위-payload-codec과-다음-제품-연결)의 **제품 연결 전 공통 codec**이다. `IWorkspacePayloadCodec`·Runtime의 raw/Brotli 표현·literal fake/적합성·개발용 발견 정보와 output schema를 추가했다. 현재 journal/workspace에 연결하지 않았으며 지원 자격은 독립 codec에 한정한다. 현재 동작/byte schema와 버퍼 수명은 [기능 문서](../workspace-payload-codec.md)가 소유한다.
+2026-10-03의 이 선행 단위는 [저장공간 계획](../plans/storage-priority-and-editor-modes.md#범위-payload-codec과-다음-제품-연결)의 **제품 연결 전 공통 codec**이다. `IWorkspacePayloadCodec`·Runtime의 raw/Brotli 표현·literal fake/적합성·개발용 발견 정보와 output schema를 추가했다. 당시 후보는 journal/workspace 미연결이며 이 자격은 독립 codec에 한정한다. 이후 제품 연결은 [별도 JP](journal-payload-compression.md)가 소유한다. 현재 block/byte schema와 버퍼 수명은 [기능 문서](../workspace-payload-codec.md)를 따른다.
 
 ## 자동 검증의 경계
 
@@ -34,4 +34,4 @@ thread 누적 관리 할당은 profile 합계 425,344/91,288/1,575,024B이며 po
 
 최종 `pwsh ./scripts/build.ps1`의 locked restore·Release는 경고/오류 0, **총 865개 / 성공 864 / 실패 0 / 선택적 ReFS 1 skip**이다. 최종 실행에서는 이 shell의 `DOTNET_PROCESSOR_COUNT=4`만 설정했다. `build-final.log`·`tests.trx`와 초기 실패의 `build-normal-user.log`·`initial-tests.trx`를 보존하며 18개 codec 시험과 2개 발견 시험 모두 통과했다. 실제 입력 대조의 Runtime DLL hash는 최종 빌드와 같다. 문서 UTF-8·로컬 링크·diff 검사를 통과했다.
 
-**이 독립 codec 단위는 scoped-complete-with-limitations로 마감한다.** 실제 product journal 연결, replay/compaction/candidate/독립 결과와 seal·budget·native 중단/회수·NTFS 물리 공간 절감은 NotRun이다. 기존 workspace 수명주기·서비스/등록·원본/peer/보류 snapshot은 변경하지 않았다. SF-02/03 전체 Partial과 전체 peak/VSS 귀속 unknown은 유지한다. 다음 작업은 [제품 연결 범위](../plans/storage-priority-and-editor-modes.md#범위-payload-codec과-다음-제품-연결)를 따른다.
+**이 독립 codec 단위는 scoped-complete-with-limitations로 마감한다.** 이 단위에서 실제 product journal·replay/compaction/candidate/독립 결과·seal/budget·native 중단/회수·NTFS 절감은 NotRun이었다. 당시 workspace 수명주기·서비스/등록·원본/peer/보류 snapshot은 변경하지 않았다. 이후 한정 제품 자격은 [JP](journal-payload-compression.md)로 구분하며 SF-02/03 전체 Partial과 전체 peak/VSS 귀속 unknown을 유지한다.

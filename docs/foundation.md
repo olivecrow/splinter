@@ -31,7 +31,7 @@ CLI는 짧은 프로세스다. Host는 읽기 전용 in-process 계층이며 dae
 
 workspace/baseline 상태와 Windows 제어 IPC는 같은 디렉터리에 flush한 임시 파일을 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader의 delete sharing, 한정 공유 오류 재시도, unknown/손상/소유권 오류 보존은 [NTFS 계약](ntfs-workspaces.md)을 따른다. 상태 쓰기 실패 단계/HResult·게시 완료 여부는 [진단 계약](verification/state-write-diagnostics.md)에 있다.
 
-범위 저널은 승인 쓰기의 개별 durable flush·전후/unmount seal을 유지한다. 동일 private 바이트와 일치 앞뒤의 작은 변경 범위를 재사용하며 최초 전체 복제·읽기 hydration·전체 파일 copy-up fallback은 없다. source fingerprint cache는 snapshot/provider 세대·변경 이력에 묶이고 초기/감사/재연결은 전체 내용을 확인한다. [소스 검증](source-verification.md)은 저장 내용 검사이며 프로젝트 합격 판정이 아니다.
+[현재 압축 저널](journal-payload-compression.md)은 overlay v2/SJR2·candidate v3의 raw/Brotli 범위를 사용한다. 실제 제품 연결 자격은 [JP](verification/journal-payload-compression.md)로 구분한다. 범위 저널은 승인 쓰기의 개별 durable flush·전후/unmount seal을 유지한다. 동일 private 바이트와 일치 앞뒤의 작은 변경 범위를 재사용하며 최초 전체 복제·읽기 hydration·전체 파일 copy-up fallback은 없다. source fingerprint cache는 snapshot/provider 세대·변경 이력에 묶이고 초기/감사/재연결은 전체 내용을 확인한다. [소스 검증](source-verification.md)은 저장 내용 검사이며 프로젝트 합격 판정이 아니다.
 
 소유 process supervisor와 PID/시작 시각/토큰·자식 자원 0, 실제 mount/Git/delta·snapshot 회수 관측은 제품 핵심이다. [명시적 discard](workspace-discard.md)는 별도 durable intent/authorization을 사용한다. `release`는 독립 결과를 남기며 shared/reclaim-pending·unknown을 회수 완료로 표시하지 않는다. 열린 개발용 candidate/source/cache도 snapshot 의존성으로 계속 보호한다.
 

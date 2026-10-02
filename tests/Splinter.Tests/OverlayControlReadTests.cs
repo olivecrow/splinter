@@ -77,7 +77,7 @@ public sealed class OverlayControlReadTests
     {
         var snapshot = new SnapshotReference("snapshot", "windows-vss-system", root, Path.Combine(root, "base"),
             DateTimeOffset.UtcNow, true, true, "synthetic-control-test");
-        return new(new(1, "overlay", snapshot, 65536, 4096), Path.Combine(root, "delta"), Path.Combine(root, "mount"),
+        return new(new(2, "overlay", snapshot, 65536, 4096), Path.Combine(root, "delta"), Path.Combine(root, "mount"),
             root, "owner-token", new(snapshot.Id, snapshot.RootPath, "verified"), Path.Combine(root, "receipt"), "owner");
     }
 

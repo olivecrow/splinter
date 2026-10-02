@@ -10,7 +10,7 @@ public sealed class JournalWriteMetricsTests
     public void LiveCostsSeparateMutationCallsDurableCommitsAndDetachedObservations()
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        using var store = new JournalDeltaStore(dir.Path, new(1, "live-costs", tree.Snapshot, 65536, 4096), tree);
+        using var store = new JournalDeltaStore(dir.Path, new(2, "live-costs", tree.Snapshot, 65536, 4096), tree);
         var file = store.Create("file", false, 32);
         store.Write(file.Id, 0, [1, 2, 3, 4]); store.SetLength(file.Id, 8);
         store.SetMetadata(file.Id, 32, 1, 1, 2); store.Rename(file.Id, "renamed", false);
@@ -48,7 +48,7 @@ public sealed class JournalWriteMetricsTests
     public void RejectedAppendHasNoDurableCommitAndReplayStartsWithEmptyLiveCosts()
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = new OverlayIdentity(1, "rejected-write", tree.Snapshot, 4096, 4096);
+        var identity = new OverlayIdentity(2, "rejected-write", tree.Snapshot, 4096, 4096);
         string journal = Path.Combine(dir.Path, "delta.journal");
         byte[] HashJournal()
         {
@@ -59,7 +59,8 @@ public sealed class JournalWriteMetricsTests
         {
             var file = store.Create("file", false, 32);
             byte[] before = HashJournal();
-            var error = Assert.Throws<WorkspaceException>(() => store.Write(file.Id, 0, new byte[4096]));
+            byte[] rejectedPayload = new byte[4096]; new Random(538).NextBytes(rejectedPayload);
+            var error = Assert.Throws<WorkspaceException>(() => store.Write(file.Id, 0, rejectedPayload));
             Assert.Equal("DeltaFull", error.Code);
             var rejected = Assert.Single(store.Observe().Metrics!.LiveJournalWrites!.Operations, x => x.Operation == "write");
             Assert.Equal(1, rejected.Attempts); Assert.Equal(1, rejected.FailedCalls);

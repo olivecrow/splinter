@@ -326,7 +326,7 @@ public sealed class KernelRecoveryTests
     { byte[] bytes = new byte[e.Length]; Assert.Equal(bytes.Length, store.Read(e.Id, 0, bytes)); return new { path = e.Path, length = bytes.Length, sha256 = Hash(bytes) }; }));
     private static string Digest<T>(T value) => Hash(JsonSerializer.SerializeToUtf8Bytes(value));
     private static string Hash(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
-    private static OverlayIdentity Identity(Request r) => new(1, r.Nonce, new Tree().Snapshot, 4 * 1024 * 1024, 4096);
+    private static OverlayIdentity Identity(Request r) => new(2, r.Nonce, new Tree().Snapshot, 4 * 1024 * 1024, 4096);
     private static void WriteNew<T>(string path, T value) => WriteBytesNew(path, JsonSerializer.SerializeToUtf8Bytes(value, Json));
     private static void WriteBytesNew(string path, byte[] bytes)
     { using (var file = new FileStream(path + ".tmp", FileMode.CreateNew, FileAccess.Write, FileShare.Read | FileShare.Delete)) { file.Write(bytes); file.Flush(true); } File.Move(path + ".tmp", path, false); }

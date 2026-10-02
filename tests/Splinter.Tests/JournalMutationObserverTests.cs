@@ -9,7 +9,7 @@ public sealed class JournalMutationObserverTests
     public void ExplicitObserverReportsOrderedFramesWithoutChangingDurabilityOrPayload()
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var observer = new RecordingObserver(); var identity = new OverlayIdentity(1, "observer", tree.Snapshot, 100000, 4096);
+        var observer = new RecordingObserver(); var identity = new OverlayIdentity(2, "observer", tree.Snapshot, 100000, 4096);
         using var store = new JournalDeltaStore(dir.Path, identity, tree, observer);
         var file = store.Create("file", false, 32); observer.Events.Clear();
         store.Write(file.Id, 0, new byte[4096]);
@@ -19,7 +19,7 @@ public sealed class JournalMutationObserverTests
         Assert.Equal(2, store.Observe().Metrics!.FlushCount);
         store.Flush(); Assert.Equal(new[] { "flush.before", "flush.after" }, observer.Events.TakeLast(2).Select(e => e.Boundary));
         Assert.Equal(3, store.Observe().Metrics!.FlushCount);
-        Assert.Equal(4096, store.Observe().PayloadBytes);
+        Assert.Equal(4096, store.ObservePrivateUsage().RetainedLogicalPayloadBytes);
     }
 
     [Theory]
@@ -30,7 +30,7 @@ public sealed class JournalMutationObserverTests
     public void FailedDevelopmentObserverRequiresReconnectAndPreservesAcknowledgedData(string boundary, bool newWriteSurvives)
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var observer = new RecordingObserver(); var identity = new OverlayIdentity(1, "observer-failure", tree.Snapshot, 100000, 4096);
+        var observer = new RecordingObserver(); var identity = new OverlayIdentity(2, "observer-failure", tree.Snapshot, 100000, 4096);
         using (var store = new JournalDeltaStore(dir.Path, identity, tree, observer))
         {
             var file = store.Create("file", false, 32); store.Write(file.Id, 0, [1, 2, 3, 4]);

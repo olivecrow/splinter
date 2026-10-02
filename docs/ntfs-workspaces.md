@@ -6,6 +6,8 @@
 
 `workspace ensure --storage ntfs-snapshot`은 기존 workspace 수명주기에 VSS 기준과 WinFsp 범위 저널을 연결한다. baseline 준비나 원본 이관은 필요하지 않다. **일반 제품 CLI로 실제 NTFS/Git/Unity 생성·편집·검증·재연결·독립 결과 보존과 회수 단계를 실행했다.** 최종 VSS 해제 상태와 지원 한계는 [NI 검증 기록](verification/ntfs-workspace-integration.md)을 따른다. 독립 SO 실험의 성공을 제품 통합의 성공으로 합산하지 않는다.
 
+현재 저장소는 [압축 저널](journal-payload-compression.md)의 overlay v2/SJR2 형식 하나를 지원하며 후보는 v3다. 이전 identity/저널/후보는 보존 후 거부한다. 이전 NI/M0 실행을 이 형식의 native 통과로 승계하지 않으며 [JP 검증](verification/journal-payload-compression.md)을 따른다.
+
 ## 입력과 권한 경계
 
 아래 Git의 clean/HEAD/관리 등록 조건은 `--source git` 경로다. 일반 폴더는 [VCS 독립 계약](vcs-independent-workspaces.md), Plastic은 [관리 정보/등록 호환 계약](plastic-compatibility.md)을 따르며 공통 NTFS/VSS/WinFsp·소유 자원·범위 저장·회수 guard를 공유한다.

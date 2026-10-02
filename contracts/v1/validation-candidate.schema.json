@@ -4,11 +4,11 @@
   "type": "object", "additionalProperties": false,
   "required": ["version", "id", "identity", "sourceSeal", "seal", "createdAt", "creationTicks", "stopwatchFrequency", "sourceProjection"],
   "properties": {
-    "version": {"const":2},
+    "version": {"const":3},
     "id": {"type":"string", "minLength":1},
     "identity": {"type":"object", "required":["version","id","snapshot","maxJournalBytes","maxTransferBytes"],
       "properties": {
-        "version":{"const":1}, "id":{"type":"string","minLength":1},
+        "version":{"const":2}, "id":{"type":"string","minLength":1},
         "snapshot":{"type":"object", "required":["id","provider","sourcePath","rootPath","capturedAt","persistent","differential","consistency"],
           "properties":{"persistent":{"const":true},"differential":{"const":true}}},
         "maxJournalBytes":{"type":"integer","minimum":4096},

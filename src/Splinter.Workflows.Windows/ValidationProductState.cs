@@ -40,7 +40,7 @@ internal static class ProductState
             var value = document.RootElement.Deserialize<T>(journal ? new JsonSerializerOptions(Json) { PropertyNamingPolicy = null } : Json)
                 ?? throw new JsonException("Empty receipt.");
             if (document.RootElement.TryGetProperty(journal ? "Version" : "version", out var version) &&
-                version.GetInt32() != (typeof(T) == typeof(ValidationCandidate) ? 2 : 1)) throw new JsonException("Unsupported version.");
+                version.GetInt32() != (typeof(T) == typeof(ValidationCandidate) ? 3 : typeof(T) == typeof(OverlayIdentity) ? 2 : 1)) throw new JsonException("Unsupported version.");
             return value;
         }
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { return null; }

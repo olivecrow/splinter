@@ -12,7 +12,7 @@ public sealed class OverlayDirectoryEnumerationTests
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows WinFsp callback contract.");
         using var directory = new TestDirectory();
         var tree = new EmptyTree();
-        var identity = new OverlayIdentity(1, "empty-directory", tree.Snapshot, 100000, 4096);
+        var identity = new OverlayIdentity(2, "empty-directory", tree.Snapshot, 100000, 4096);
         using var store = new JournalDeltaStore(Path.Combine(directory.Path, "delta"), identity, tree);
         var child = store.Create("empty", true, (uint)FileAttributes.Directory);
         long sequence = store.Observe().DurableSequence;

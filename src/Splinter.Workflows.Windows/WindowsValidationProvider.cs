@@ -82,7 +82,7 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
         return w;
     }
     internal string Delta(WorkspaceRecord w) => Path.Combine(store.ControlPath(w.Id), "delta");
-    internal static OverlayIdentity Identity(WorkspaceRecord w) => new(1, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024, [".git"]);
+    internal static OverlayIdentity Identity(WorkspaceRecord w) => new(2, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024, [".git"]);
     internal VssSnapshotProvider SnapshotProvider(string worker) => new(Path.Combine(store.ControlPath(worker), "snapshot"), worker);
     internal async Task<VssSnapshotTree> Basis(string worker, SnapshotReference snapshot, CancellationToken ct)
     {
@@ -217,7 +217,7 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
         using var basis = await Basis(worker.WorkspaceId, intent.Candidate.Intent.Worker.Snapshot, ct);
         var access = await SnapshotProvider(worker.WorkspaceId).ResolveReadAccessAsync(basis.Snapshot, null, ct);
         string control = GenerationPath(intent.GenerationId), delta = Path.Combine(control, "source");
-        var identity = new OverlayIdentity(1, intent.GenerationId, basis.Snapshot, intent.Cache.MaxJournalBytes, 1024 * 1024, [".git"]);
+        var identity = new OverlayIdentity(2, intent.GenerationId, basis.Snapshot, intent.Cache.MaxJournalBytes, 1024 * 1024, [".git"]);
         var cacheIdentity = CacheIdentity(view.Cache);
         var cacheAccess = view.CacheWorkerId == worker.WorkspaceId && view.Cache.Snapshot == basis.Snapshot ? access
             : await SnapshotProvider(view.CacheWorkerId).ResolveReadAccessAsync(view.Cache.Snapshot, null, ct);

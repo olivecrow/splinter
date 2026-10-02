@@ -8,7 +8,7 @@
 
 ## 저장 구조
 
-Core의 현재 `ValidationCandidate` 형식은 version 2이며 원본 `OverlayIdentity`, 원래 저널 seal, 별도 후보 저널 seal과 시각, 필수 `sourceProjection`을 묶는다. 일반 소스 후보의 projection은 명시적 null이고, 관리 파일을 분리한 후보에는 아래 증거가 들어간다. `ValidationViewSelection`은 후보 디렉터리·캐시 디렉터리·캐시 최상위 이름을 전달한다. Core는 Unity·Git·Win32에 의존하지 않는다. 이전 후보 형식·증거 누락은 파일을 보존하고 거부하며 자동 이관하지 않는다.
+Core의 현재 `ValidationCandidate` 형식은 version 3이며 overlay v2/SJR2의 저장/복원 길이·논리 fragment를 사용하고 원본 `OverlayIdentity`, 원래 저널 seal, 별도 후보 저널 seal과 시각, 필수 `sourceProjection`을 묶는다. 일반 소스 후보의 projection은 명시적 null이고, 관리 파일을 분리한 후보에는 아래 증거가 들어간다. `ValidationViewSelection`은 후보 디렉터리·캐시 디렉터리·캐시 최상위 이름을 전달한다. Core는 Unity·Git·Win32에 의존하지 않는다. 이전 후보 형식·증거 누락은 파일을 보존하고 거부하며 자동 이관하지 않는다.
 
 Runtime의 `JournalDeltaStore.PublishCandidate`는 정지한 작업자 저널을 읽기 전용으로 열어 동시 writer를 거부한다. 기존 정리 알고리즘으로 유효 변경 범위와 메타데이터만 별도 디렉터리에 기록하고 replay/state hash/seal을 확인한 뒤 `candidate.json`을 마지막에 atomic 게시한다. 같은 요청의 복구는 아래 intent 계약을 따른다. 원본 파일 트리 전체를 열거하거나 원본 payload를 복제하지 않는다. 저장 중 대체된 저널 payload는 후보에 필요하지 않지만 메타데이터와 일부 표현 한계에 따른 기록은 남을 수 있다. 소스 저널은 변경하지 않는다. 게시 중 임시 공간은 작업자와 후보의 합계이며 `.new` 저널은 게시 때 이름만 바꾸므로 별도 전체 사본을 만들지 않는다.
 

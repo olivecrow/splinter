@@ -17,7 +17,7 @@ public sealed class WinFspTransferTests
     {
         if (!OperatingSystem.IsWindows()) return;
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = new OverlayIdentity(1, "transfer", tree.Snapshot, 4 * 1024 * 1024, 65536);
+        var identity = new OverlayIdentity(2, "transfer", tree.Snapshot, 4 * 1024 * 1024, 65536);
         using var store = new JournalDeltaStore(root.Path, identity, tree);
         Guid id = store.Create("file", false, 32).Id;
         var fs = new WinFspOverlayFileSystem(store);

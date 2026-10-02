@@ -1,0 +1,27 @@
+# 저널 변경 범위 압축
+
+`JournalDeltaStore`는 overlay **v2**와 **SJR2** 저널 하나를 지원한다. write callback 하나의 최대 1MiB 변경 범위를 raw 또는 독립 `splinter-range-brotli-v1` 블록으로 저장한다. 이전 overlay/저널은 보존 후 명시적으로 거부하며 자동 변환하지 않는다. workspace 상태는 v2이고 후보는 v3다.
+
+## 현재 frame
+
+| 위치 | 길이 | 의미 |
+| --- | ---: | --- |
+| 0 | 4B | ASCII `SJR2` |
+| 4 | 4B | little-endian metadata 길이, 1~65,536B |
+| 8 | 4B | 실제 stored payload 길이 |
+| 12 | 4B | 복원 후 decoded payload 길이, 0~MaxTransferBytes |
+| 16 | metadata 길이 | 현재 Mutation JSON |
+| 이후 | stored 길이 | raw 바이트 또는 codec의 완전한 SPB1 표현 |
+| 마지막 | 32B | header·metadata·stored payload 전체 SHA-256 |
+
+`stored=decoded`는 raw이고 `0<stored<decoded`는 codec이다. metadata 연산은 두 길이가 0이다. 압축 선택은 codec의 **48B 전체 비용까지 포함해 raw보다 최소 64B 작은 경우**뿐이다. raw에는 codec header/checksum을 추가하지 않는다. 새 raw frame은 이전 frame보다 header 8B가 추가되므로 이전 raw보다 항상 작다고 주장하지 않는다. encoded에는 외부 frame checksum과 codec checksum이 모두 있으며 계측에 포함한다.
+
+Core `WorkspaceJournalPayload`는 저장/복원 길이와 논리 fragment의 범위를 검사한다. extent는 고정 block 시작·두 길이·decoded fragment offset을 보존한다. 부분 덮어쓰기와 잘라내기는 압축 stream 내부의 물리 offset을 계산하지 않는다. 압축된 블록의 부분 읽기도 전체 bounded 블록을 검증·복원하며 블록 cache를 유지하지 않는다. snapshot은 미덮인 범위에서만 읽는다.
+
+승인 쓰기는 기존 순서대로 frame append·개별 durable flush·index 반영·callback 반환을 유지한다. 압축을 위해 callback을 여러 승인으로 나누거나 group flush를 추가하지 않는다. private 동일 바이트/앞뒤 범위 재사용을 먼저 수행한다. journal budget은 실제 header/metadata/stored/checksum 길이로 검사한다. 재생은 외부 checksum과 내부 codec/선언 길이 일치를 확인한 뒤 논리 extent를 연결한다. 손상된 완전한 frame은 보존·거부하며 불완전한 마지막 미승인 frame만 기존 정책으로 제거한다.
+
+compaction/candidate는 유효 논리 fragment를 모아 현재 frame으로 표현하고 원래 저장 frame보다 작을 때만 선택한다. fragment metadata가 더 비싸면 원래 frame을 보존한다. 내용/sequence/소스 seal·같은 intent 재시도와 명시적 겹침 예산은 유지한다. 독립 결과 수집은 기존 파일/소스 provider를 통해 decoded 내용을 읽으며 회수할 저널/VSS에 의존하지 않는다.
+
+`PayloadBytes`/`RetainedPayloadBytes`는 실제 stored 길이이며 codec 48B도 포함한다. `LivePrivateBytes`·`RetainedLogicalPayloadBytes`는 논리 길이다. `LiveStoredPayloadBytes`는 참조되는 block을 한 번씩 합산하고 `ObsoletePayloadBytes`는 완전히 미참조된 block의 stored 합계다. 일부만 유효한 압축 block은 전체 저장 비용을 유지하므로 논리 길이를 물리 길이에서 빼지 않는다. frame 비용은 header·metadata·외부 checksum이며 VSS·전체 workspace 비용과 구분한다.
+
+압축 준비는 최대 decoded+48B encoded 임시 buffer와 decoded 크기의 codec scratch를 사용한다. ArrayPool의 실제 대여 배열은 최대 encoded 요청에서 2MiB가 될 수 있다. 반환할 짧은 encoded prefix는 별도 관리 배열이며 성공/실패 뒤 pool lease는 반환된다. read/replay/compaction의 buffer·작은 read의 전체 block 복원 비용과 Brotli native memory는 별도로 측정한다. [실제 자격](verification/journal-payload-compression.md)과 [종료 범위](plans/journal-payload-compression.md)를 따른다.

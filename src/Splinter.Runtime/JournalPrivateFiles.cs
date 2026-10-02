@@ -21,7 +21,7 @@ public sealed partial class JournalDeltaStore
             var ranges = new List<PrivateRange>();
             foreach (var extent in node.Extents)
             {
-                byte[] data = new byte[extent.Length]; ReadExactly(extent.JournalOffset, data);
+                byte[] data = new byte[extent.Length]; ReadExtent(extent, 0, data);
                 digest.AppendData(JsonSerializer.SerializeToUtf8Bytes(new { Offset = extent.Start, Length = extent.Length }));
                 digest.AppendData(data); ranges.Add(new(extent.Start, data));
             }

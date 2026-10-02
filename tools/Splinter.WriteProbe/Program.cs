@@ -36,7 +36,7 @@ internal static class Program
         Directory.CreateDirectory(directory);
         var snapshot = new SnapshotReference("write-probe-" + profile, "synthetic-write-probe", "no-live-source",
             "empty-synthetic-root", DateTimeOffset.UnixEpoch, true, true, "synthetic-only");
-        var identity = new OverlayIdentity(1, "write-probe-" + profile, snapshot, Budget, 4096);
+        var identity = new OverlayIdentity(2, "write-probe-" + profile, snapshot, Budget, 4096);
         var tree = new EmptyTree(snapshot);
         var expected = new List<ExpectedFile>();
         OverlayStorageObservation observed;

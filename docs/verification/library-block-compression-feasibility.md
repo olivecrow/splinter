@@ -1,6 +1,6 @@
 # Library 범위 payload 압축의 후보 선정
 
-2026-10-03에 최근 Unity CLI A/B 비용과 현재 Plastic fixture의 큰 Bee 파일 4개를 읽기 전용으로 분석했다. **다음 공간 개선 후보는 한정된 범위 payload의 독립 블록 압축**이다. 이 문서는 후보 선정 근거를 소유한다. 압축은 제품 저널에 적용하지 않았으며 실제 저널 할당·작업공간 전체 절감과 지원 자격은 미측정이다. 후속 독립 codec의 자격은 [별도 검증](workspace-payload-codec.md), 다음 제품 연결 범위는 [저장공간 계획](../plans/storage-priority-and-editor-modes.md#범위-payload-codec과-다음-제품-연결)을 따른다.
+2026-10-03에 Unity CLI A/B 비용과 Plastic fixture의 Bee 파일 4개를 읽기 전용으로 분석해 **한정된 범위 payload의 독립 블록 압축**을 선정했다. 이 문서는 선행 후보 모델의 근거를 소유하며 당시 제품 journal/NTFS 할당은 미측정이었다. 이후 독립 codec은 [별도 검증](workspace-payload-codec.md), 실제 제품 연결은 [JP](journal-payload-compression.md)를 따른다. 후보 모델을 제품 전체 절감/지원 자격으로 승계하지 않는다.
 
 ## 기존 비용에서 고른 대상
 
@@ -58,4 +58,4 @@ ready 때 provider working set은 A/B 121,761,792/120,512,512B, private bytes는
 
 **읽기 전용 후보 선정 단위는 마감했다.** `measurement.json`은 전체 입력 hash/시각과 24개 roundtrip·크기/CPU 표본, `summary.json`은 UH 4개 원시 JSON의 hash·재계산과 probe/바이너리 hash를 보존한다. `summarize.py`는 profile 수·모든 복원·선정 기준을 확인했다. 제품 코드/schema/상태·저널 형식은 바꾸지 않았다.
 
-후속 [독립 codec](workspace-payload-codec.md)과 [다음 제품 연결](../plans/storage-priority-and-editor-modes.md#범위-payload-codec과-다음-제품-연결)을 구분한다. 실제 저널 연결은 NotRun이며 새 형식의 부분 읽기·replay/compaction/candidate/seal·예산·중단·원본/peer 보호를 이 수치로 통과 처리하지 않는다. 기존 Git/Plastic/일반 폴더 수명주기의 자격을 압축 지원으로 확대하지 않는다. SF-02/03 Partial·대형 비용/전체 peak/VSS 귀속 unknown과 C:의 기존 비소유 blocker·보류 snapshot은 그대로 유지한다.
+후속 [독립 codec](workspace-payload-codec.md)과 [제품 JP 연결](journal-payload-compression.md)을 구분한다. 실제 저널 연결은 이 후보 분석에서 NotRun이었으며 새 형식의 부분 읽기·replay/compaction/candidate/seal·예산·중단·원본/peer 보호를 이 모델로 통과 처리하지 않는다. 별도 JP의 직접 근거만 한정 자격으로 사용한다. SF-02/03 Partial·대형 비용/전체 peak/VSS 귀속 unknown과 기존 C: 보류를 유지한다.

@@ -45,7 +45,7 @@ public sealed class ValidationProductStateTests
         var publication = new CandidatePublicationReceipt(new("candidate", provider.ProjectId, "candidate", new(workerId, workerOwner, snapshot, seal), "source-only-v1"), seal, "candidate");
         var selection = new ValidationSelectionReceipt(new(generation, provider.ProjectId, generation, owner, cache, publication), generation);
         string control = provider.GenerationPath(generation);
-        var identity = new OverlayIdentity(1, generation, snapshot, cache.MaxJournalBytes, 1024 * 1024, [".git"]);
+        var identity = new OverlayIdentity(2, generation, snapshot, cache.MaxJournalBytes, 1024 * 1024, [".git"]);
         var cacheIdentity = WindowsValidationProvider.CacheIdentity(cache);
         var request = new OverlayServeRequest(identity, Path.Combine(control, "source"), view.MountPath, Path.Combine(control, "overlay"), "token",
             new(snapshot.Id, snapshot.RootPath, "proof"), Path.Combine(store.ControlPath(workerId), "snapshot"), workerId,

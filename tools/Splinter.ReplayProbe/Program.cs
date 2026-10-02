@@ -49,7 +49,7 @@ internal static class Program
         if (Directory.Exists(directory) || File.Exists(directory)) throw new IOException("Preserve the existing input; use a new directory.");
         long started = Stopwatch.GetTimestamp();
         Directory.CreateDirectory(directory);
-        var identity = new OverlayIdentity(1, "probe-" + profile, Snapshot(profile), Budget, 1024 * 1024);
+        var identity = new OverlayIdentity(2, "probe-" + profile, Snapshot(profile), Budget, 1024 * 1024);
         // Runtime identity uses its default (PascalCase) serialization contract.
         using (var file = new FileStream(Path.Combine(directory, "identity.json"), FileMode.CreateNew, FileAccess.Write, FileShare.None))
         { JsonSerializer.Serialize(file, identity); file.Flush(true); }
@@ -61,11 +61,13 @@ internal static class Program
             void Append(string operation, DeltaEntry entry, ReadOnlySpan<byte> payload, long offset = 0, string? destination = null)
             {
                 byte[] metadata = JsonSerializer.SerializeToUtf8Bytes(new Mutation(++sequence, operation, entry, offset, destination));
-                if (journal.Position + 40L + metadata.Length + payload.Length > (IsRangeProfile(profile) ? RangeProfileBudget : Budget))
+                if (journal.Position + 48L + metadata.Length + payload.Length > (IsRangeProfile(profile) ? RangeProfileBudget : Budget))
                     throw new IOException("Synthetic input budget exceeded.");
-                Span<byte> header = stackalloc byte[8];
-                BinaryPrimitives.WriteInt32LittleEndian(header, metadata.Length);
-                BinaryPrimitives.WriteInt32LittleEndian(header[4..], payload.Length);
+                Span<byte> header = stackalloc byte[JournalDeltaStore.FrameHeaderBytes];
+                "SJR2"u8.CopyTo(header);
+                BinaryPrimitives.WriteInt32LittleEndian(header[4..], metadata.Length);
+                BinaryPrimitives.WriteInt32LittleEndian(header[8..], payload.Length);
+                BinaryPrimitives.WriteInt32LittleEndian(header[12..], payload.Length);
                 using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                 hash.AppendData(header); hash.AppendData(metadata); hash.AppendData(payload);
                 journal.Write(header); journal.Write(metadata); journal.Write(payload); journal.Write(hash.GetHashAndReset());
@@ -156,7 +158,7 @@ internal static class Program
         var receipt = JsonSerializer.Deserialize<Receipt>(File.ReadAllText(Path.Combine(directory, "probe.json")), Json)
             ?? throw new InvalidDataException("Synthetic receipt required.");
         if (receipt.Version != 1 || !IsProfile(receipt.Profile) ||
-            receipt.Identity != new OverlayIdentity(1, "probe-" + receipt.Profile, Snapshot(receipt.Profile), Budget, 1024 * 1024))
+            receipt.Identity != new OverlayIdentity(2, "probe-" + receipt.Profile, Snapshot(receipt.Profile), Budget, 1024 * 1024))
             throw new InvalidDataException("Only this tool's synthetic identities are accepted.");
         string journalPath = Path.Combine(directory, "delta.journal");
         if (new FileInfo(journalPath).Length > (IsRangeProfile(receipt.Profile) ? RangeProfileBudget : Budget) ||

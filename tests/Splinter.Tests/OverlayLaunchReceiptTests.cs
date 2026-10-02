@@ -18,7 +18,7 @@ public sealed class OverlayLaunchReceiptTests
         using var d = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
         var snapshot = new SnapshotReference("snapshot", "fake", Path.Combine(d.Path, "source"), Path.Combine(d.Path, "base"),
             DateTimeOffset.UtcNow, true, true, "fake");
-        var request = new OverlayServeRequest(new(1, "overlay", snapshot, 65536, 4096), Path.Combine(d.Path, "delta"),
+        var request = new OverlayServeRequest(new(2, "overlay", snapshot, 65536, 4096), Path.Combine(d.Path, "delta"),
             Path.Combine(d.Path, "mount"), d.Path, "token", new(snapshot.Id, snapshot.RootPath, "verified"), Path.Combine(d.Path, "snapshot"), "owner");
         var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         string requestPath = Path.Combine(d.Path, "request.json"), intent = Path.Combine(d.Path, "provider-launch-intent.json"),

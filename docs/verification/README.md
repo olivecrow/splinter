@@ -6,6 +6,8 @@
 
 ## 현재 변경의 검증
 
+[압축 저널 제품 연결](journal-payload-compression.md)은 overlay v2/SJR2·candidate v3의 현재 회귀·작은 T: Plastic A/B·동일 입력 journal raw 대조의 실제 NTFS 할당·두 독립 결과/회수를 scoped-complete-with-limitations로 마감했다. 전체 공간/RAM·대형/OS 자격과 기존 C: 보류를 유지하며 독립 codec의 논리 표본/이전 native 자격을 승계하지 않는다.
+
 [Unity CLI A/B 인계](unity-cli-handoff.md)는 기존 CLI/Pipeline·작은 T: Plastic 입력에서 정확한 반환 경로의 catalog/loaded 편집·A stop/release 뒤 B 후속 컴파일·두 독립 결과/마지막 snapshot 회수와 원본 보호를 scoped-complete-with-limitations로 마감했다. 프로그램 변경 없이 사용 절차를 보완했으며 목록 누락·첫 eval 타임아웃·MCP/다른 입력/Play/Test/build 미자격은 유지한다.
 
 [Plastic 호환](plastic-compatibility.md)은 regular/static 원본의 관리 정보/등록 격리·독립 파일 결과의 자동 적합성과 현재 후보의 실제 A/B를 별도로 추적한다. 작은 별도 T: A/B의 마지막 snapshot 회수까지 scoped-complete-with-limitations로 마감했으며 선행 C: 보류·외부 CLI worker 발견 실패/전체 인계 미자격은 유지한다.

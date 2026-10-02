@@ -25,7 +25,7 @@ public sealed class CandidatePublicationTests
         public string Worker => Path.Combine(Root.Path, "worker");
         public string Candidate => Path.Combine(Root.Path, "candidate");
         public string Journal => Path.Combine(Worker, "delta.journal");
-        public OverlayIdentity Identity => new(1, "worker", Tree.Snapshot, 10_000_000, 65536, [".git"]);
+        public OverlayIdentity Identity => new(2, "worker", Tree.Snapshot, 10_000_000, 65536, [".git"]);
         public CandidateExportRequest Request => new(1, "candidate-a");
         public CandidateSourceProjection Projection => new(1, Identity.Id, Tree.Snapshot, new string('a', 64),
             [new(".git", Encoding.UTF8.GetByteCount(Pointer), Hash(Encoding.UTF8.GetBytes(Pointer)))]);
@@ -220,7 +220,7 @@ public sealed class CandidatePublicationTests
             case "intent-field-duplicate": File.WriteAllText(intent, File.ReadAllText(intent).Replace("\"Version\":1", "\"Version\":1,\"Version\":1", StringComparison.Ordinal)); break;
             case "identity-json": File.WriteAllText(identity, "{"); break;
             case "identity-field-unknown": ChangeJson(identity, node => node["Unexpected"] = true); break;
-            case "identity-field-duplicate": File.WriteAllText(identity, File.ReadAllText(identity).Replace("\"Version\":1", "\"Version\":1,\"Version\":1", StringComparison.Ordinal)); break;
+            case "identity-field-duplicate": File.WriteAllText(identity, File.ReadAllText(identity).Replace("\"Version\":2", "\"Version\":2,\"Version\":2", StringComparison.Ordinal)); break;
             case "identity-missing": File.Delete(identity); break;
             case "journal-changed": using (var file = new FileStream(journal, FileMode.Append)) file.WriteByte(1); break;
             case "receipt-json": File.WriteAllText(receipt, "{"); break;
@@ -266,7 +266,7 @@ public sealed class CandidatePublicationTests
     public void PlainSourceAndAnEmptyJournalUseTheSameDurableContract()
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = new OverlayIdentity(1, "empty", tree.Snapshot, 65536, 4096, []);
+        var identity = new OverlayIdentity(2, "empty", tree.Snapshot, 65536, 4096, []);
         string source = Path.Combine(root.Path, "source"), candidate = Path.Combine(root.Path, "candidate");
         using (new JournalDeltaStore(source, identity, tree)) { }
         var request = new CandidateExportRequest(1, "empty");

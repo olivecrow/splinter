@@ -1,8 +1,8 @@
 namespace Splinter.Core;
 
 // A self-contained representation of one bounded changed range. The codec has
-// no file, snapshot, journal, VCS or application access. It is not yet a journal
-// format or a workspace capability.
+// no file, snapshot, journal, VCS or application access. Journal framing,
+// durability and logical fragment references belong to its caller.
 public interface IWorkspacePayloadCodec
 {
     string CodecId { get; }

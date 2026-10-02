@@ -13,7 +13,7 @@ public sealed partial class SnapshotOverlayTests
     {
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree();
         tree.Files[".plastic/private"] = [1, 2, 3]; tree.Files["source"] = [4];
-        var identity = new OverlayIdentity(1, "guard", tree.Snapshot, 100000, 4096, [".plastic", ".git"], DeniedTopLevel: [".plastic", ".git"]);
+        var identity = new OverlayIdentity(2, "guard", tree.Snapshot, 100000, 4096, [".plastic", ".git"], DeniedTopLevel: [".plastic", ".git"]);
         string delta = Path.Combine(d.Path, "delta");
         using (var store = new JournalDeltaStore(delta, identity, tree))
         {
@@ -38,7 +38,7 @@ public sealed partial class SnapshotOverlayTests
     public void ExcludingCapturedAdministrationStillAllowsOwnedGitMetadataWithoutDenial()
     {
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files[".git/source-owner"] = [1];
-        using var store = new JournalDeltaStore(Path.Combine(d.Path, "delta"), new(1, "git", tree.Snapshot, 100000, 4096, [".git"]), tree);
+        using var store = new JournalDeltaStore(Path.Combine(d.Path, "delta"), new(2, "git", tree.Snapshot, 100000, 4096, [".git"]), tree);
         Assert.Null(store.Stat(".git"));
         var privateGit = store.Create(".git", false, 32); store.Write(privateGit.Id, 0, [2]);
         Assert.NotNull(store.Stat(".git")); Assert.Equal(0, tree.ReadBytes);

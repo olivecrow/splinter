@@ -10,10 +10,12 @@ namespace Splinter.Runtime;
 
 public sealed partial class JournalDeltaStore
 {
-    private sealed record LiveRange(Guid NodeId, long Physical, int Length, long Logical);
-    private sealed record PayloadSlice(long Physical, long Logical, int Length);
+    private sealed record LiveRange(Guid NodeId, long Physical, int Length, long Logical,
+        WorkspaceJournalPayload Payload, int BlockOffset);
+    private sealed record PayloadSlice(long Physical, long Logical, int Length,
+        WorkspaceJournalPayload Payload, int BlockOffset = 0);
     private sealed record CompactionFrame(Mutation Mutation, byte[] Metadata, PayloadSlice[] Slices, int PayloadLength,
-        CompactionFrame? Fallback = null);
+        WorkspaceJournalPayload Payload, byte[]? Encoded = null, CompactionFrame? Fallback = null);
     private sealed record CompactionIntent(int Version, string WorkspaceId, string SnapshotId, string AttemptId,
         DateTimeOffset StartedAt, SnapshotDeltaSeal Before, string StateHash, SnapshotDeltaSeal? Candidate = null);
 
@@ -221,11 +223,11 @@ public sealed partial class JournalDeltaStore
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(65536);
                 try
                 {
-                    long offset = extent.JournalOffset; int remaining = extent.Length;
+                    int offset = 0, remaining = extent.Length;
                     while (remaining > 0)
                     {
                         int count = Math.Min(buffer.Length, remaining);
-                        ReadExactly(offset, buffer.AsSpan(0, count));
+                        ReadExtent(extent, offset, buffer.AsSpan(0, count));
                         digest.AppendData(buffer.AsSpan(0, count));
                         offset += count; remaining -= count;
                     }
@@ -245,8 +247,13 @@ public sealed partial class JournalDeltaStore
         using (EnterGate())
         {
             Check();
-            long live = LiveRanges().Sum(range => (long)range.Length);
-            return new(journal.Length, payloadBytes, live, payloadBytes - live, journal.Length - payloadBytes);
+            var ranges = LiveRanges();
+            long live = ranges.Sum(range => (long)range.Length);
+            // A partially live compressed block remains wholly stored. Do not
+            // subtract logical bytes from compressed physical accounting.
+            long storedLive = ranges.GroupBy(r => r.Physical).Sum(g => (long)g.First().Payload.StoredBytes);
+            return new(journal.Length, payloadBytes, live, payloadBytes - storedLive, journal.Length - payloadBytes)
+            { LiveStoredPayloadBytes = storedLive, RetainedLogicalPayloadBytes = logicalPayloadBytes };
         }
     }
     public long EstimateCompactionJournalOverlapBytes()
@@ -260,11 +267,11 @@ public sealed partial class JournalDeltaStore
         {
             var node = nodes[id];
             if (node.Entry.Deleted || projectedFiles?.Contains(node.Entry.Path) == true) continue;
-            live.AddRange(node.Extents.Select(e => new LiveRange(id, e.JournalOffset, e.Length, e.Start)));
+            live.AddRange(node.Extents.Select(e => new LiveRange(id, e.JournalOffset, e.Length, e.Start, e.Payload, e.BlockOffset)));
         }
-        live.Sort((a, b) => a.Physical.CompareTo(b.Physical));
+        live.Sort((a, b) => a.Physical != b.Physical ? a.Physical.CompareTo(b.Physical) : a.BlockOffset.CompareTo(b.BlockOffset));
         for (int i = 1; i < live.Count; i++)
-            if (live[i - 1].Physical + live[i - 1].Length > live[i].Physical)
+            if (live[i - 1].Physical == live[i].Physical && live[i - 1].BlockOffset + live[i - 1].Length > live[i].BlockOffset)
                 throw new WorkspaceException("DeltaCorrupt", "Live journal payload ranges overlap; preserve the journal.");
         return live;
     }
@@ -302,29 +309,27 @@ public sealed partial class JournalDeltaStore
             if (output is not null) WriteFrame(output, frame);
         }
         static bool Skipped(CompactionFrame frame) => frame.Mutation.Operation is "skip-write" or "skip-range";
-        byte[] header = new byte[8];
+        byte[] header = new byte[FrameHeaderBytes];
         while (cursor < journal.Length)
         {
             ReadExactly(cursor, header);
-            int metadataLength = BinaryPrimitives.ReadInt32LittleEndian(header);
-            int dataLength = BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(4));
-            if (metadataLength is < 1 or > MaxMetadataBytes || dataLength < 0 || dataLength > Identity.MaxTransferBytes)
-                throw new WorkspaceException("DeltaCorrupt", "Invalid compaction input frame.");
-            long payload = cursor + 8L + metadataLength, next = payload + dataLength + 32;
+            var (metadataLength, descriptor) = ReadHeader(header);
+            int dataLength = descriptor.DecodedBytes;
+            long payload = cursor + FrameHeaderBytes + (long)metadataLength, next = payload + descriptor.StoredBytes + FrameChecksumBytes;
             if (next > journal.Length) throw new WorkspaceException("DeltaCorrupt", "Incomplete compaction input frame.");
-            byte[] metadata = new byte[metadataLength]; ReadExactly(cursor + 8, metadata);
+            byte[] metadata = new byte[metadataLength]; ReadExactly(cursor + FrameHeaderBytes, metadata);
             var mutation = DecodeMutation(metadata, dataLength);
             if (projectedFiles is not null) ValidateProjectionMutation(mutation, projectedFiles);
-            while (liveIndex < live.Count && live[liveIndex].Physical + live[liveIndex].Length <= payload) liveIndex++;
+            while (liveIndex < live.Count && live[liveIndex].Physical < payload) liveIndex++;
             var slices = new List<PayloadSlice>();
-            for (int i = liveIndex; i < live.Count && live[i].Physical < payload + dataLength; i++)
+            for (int i = liveIndex; i < live.Count && live[i].Physical == payload; i++)
             {
                 var range = live[i];
-                long from = Math.Max(range.Physical, payload), to = Math.Min(range.Physical + range.Length, payload + dataLength);
-                if (from >= to) continue;
                 if (mutation.Operation is not ("write" or "write-compacted") || range.NodeId != mutation.Entry.Id)
                     throw new WorkspaceException("DeltaCorrupt", "A live extent does not belong to its journal write.");
-                slices.Add(new(from, range.Logical + from - range.Physical, checked((int)(to - from))));
+                descriptor.RequireFragment(range.BlockOffset, range.Length);
+                if (range.Payload != descriptor) throw new WorkspaceException("DeltaCorrupt", "Live block identity differs from its frame.");
+                slices.Add(new(payload, range.Logical, range.Length, descriptor, range.BlockOffset));
             }
             CompactionFrame frame;
             if (projectedFiles?.Contains(mutation.Entry.Path) == true)
@@ -333,9 +338,9 @@ public sealed partial class JournalDeltaStore
                 // but create no node and carry none of the managed payload.
                 var skipped = mutation with { Operation = mutation.Operation == "skip-range" ? "skip-range" : "skip-write",
                     Destination = null, Replace = false, Fragments = null };
-                frame = new(skipped, JsonSerializer.SerializeToUtf8Bytes(skipped), [], 0);
+                frame = new(skipped, JsonSerializer.SerializeToUtf8Bytes(skipped), [], 0, new(0, 0));
             }
-            else frame = FrameFor(mutation, metadata, payload, dataLength, slices);
+            else frame = FrameFor(mutation, metadata, payload, descriptor, slices);
             long first = frame.Mutation.FromSequence ?? frame.Mutation.Sequence;
             if (pending is not null && Skipped(pending) && Skipped(frame) &&
                 pending.Mutation.Sequence + 1 == first &&
@@ -344,10 +349,10 @@ public sealed partial class JournalDeltaStore
                 var merged = frame.Mutation with { Operation = "skip-range",
                     FromSequence = pending.Mutation.FromSequence ?? pending.Mutation.Sequence };
                 byte[] encoded = JsonSerializer.SerializeToUtf8Bytes(merged);
-                if (encoded.Length <= MaxMetadataBytes && encoded.Length + 40L <=
+                if (encoded.Length <= MaxMetadataBytes && encoded.Length + FrameHeaderBytes + FrameChecksumBytes <=
                     FrameBytes(pending.Fallback ?? pending) + FrameBytes(frame.Fallback ?? frame))
                 {
-                    pending = new(merged, encoded, [], 0);
+                    pending = new(merged, encoded, [], 0, new(0, 0));
                     cursor = next;
                     continue;
                 }
@@ -360,11 +365,12 @@ public sealed partial class JournalDeltaStore
         return total;
     }
 
-    private static CompactionFrame FrameFor(Mutation mutation, byte[] metadata, long payload, int dataLength, List<PayloadSlice> slices)
+    private CompactionFrame FrameFor(Mutation mutation, byte[] metadata, long payload, WorkspaceJournalPayload descriptor, List<PayloadSlice> slices)
     {
         if (mutation.Operation is not ("write" or "write-compacted"))
-            return new(mutation, metadata, [], dataLength);
-        var original = new CompactionFrame(mutation, metadata, [new(payload, mutation.Offset, dataLength)], dataLength);
+            return new(mutation, metadata, [], 0, descriptor);
+        int dataLength = descriptor.DecodedBytes;
+        var original = new CompactionFrame(mutation, metadata, [new(payload, mutation.Offset, dataLength, descriptor)], dataLength, descriptor);
         if (slices.Count == 0)
         {
             var skipped = mutation with { Operation = "skip-write", Fragments = null };
@@ -372,10 +378,10 @@ public sealed partial class JournalDeltaStore
             if (encodedSkip.Length > MaxMetadataBytes) return original;
             // Keep the skip eligible for adjacent range merging. If it remains
             // alone, retain its original frame when the skip metadata costs more.
-            return new(skipped, encodedSkip, [], 0,
-                encodedSkip.Length > metadata.Length + (long)dataLength ? original : null);
+            return new(skipped, encodedSkip, [], 0, new(0, 0), Fallback:
+                encodedSkip.Length > metadata.Length + (long)descriptor.StoredBytes ? original : null);
         }
-        if (mutation.Operation == "write" && slices.Count == 1 && slices[0].Physical == payload && slices[0].Length == dataLength)
+        if (mutation.Operation == "write" && slices.Count == 1 && slices[0].BlockOffset == 0 && slices[0].Length == dataLength)
             return original;
         var fragments = slices.Select(s => new CompactionFragment(s.Logical, s.Length)).ToArray();
         var compacted = mutation with { Operation = "write-compacted", Fragments = fragments };
@@ -383,31 +389,58 @@ public sealed partial class JournalDeltaStore
         int liveBytes = slices.Sum(s => s.Length);
         // Fragment metadata can outweigh a few overwritten bytes. Retaining the
         // already-owned frame is smaller and still replays the same final state.
-        if (encoded.Length > MaxMetadataBytes || encoded.Length + (long)liveBytes >= metadata.Length + (long)dataLength)
-            return original;
-        return new(compacted, encoded, slices.ToArray(), liveBytes);
+        if (encoded.Length > MaxMetadataBytes) return original;
+        byte[] decoded = ArrayPool<byte>.Shared.Rent(liveBytes);
+        byte[]? compressed;
+        try
+        {
+            int at = 0;
+            foreach (var slice in slices)
+            {
+                ReadPayload(slice.Physical, slice.Payload, slice.BlockOffset, decoded.AsSpan(at, slice.Length));
+                at += slice.Length;
+            }
+            compressed = EncodePayload(decoded.AsSpan(0, liveBytes));
+        }
+        finally { ArrayPool<byte>.Shared.Return(decoded); }
+        var nextPayload = new WorkspaceJournalPayload(compressed?.Length ?? liveBytes, liveBytes);
+        if (encoded.Length + (long)nextPayload.StoredBytes >= metadata.Length + (long)descriptor.StoredBytes) return original;
+        return new(compacted, encoded, slices.ToArray(), liveBytes, nextPayload, compressed);
     }
 
-    private static long FrameBytes(CompactionFrame frame) => 40L + frame.Metadata.Length + frame.PayloadLength;
+    private static long FrameBytes(CompactionFrame frame) => FrameHeaderBytes + (long)FrameChecksumBytes + frame.Metadata.Length + frame.Payload.StoredBytes;
 
     private void WriteFrame(Stream output, CompactionFrame frame)
     {
-        Span<byte> header = stackalloc byte[8];
-        BinaryPrimitives.WriteInt32LittleEndian(header, frame.Metadata.Length);
-        BinaryPrimitives.WriteInt32LittleEndian(header[4..], frame.PayloadLength);
+        Span<byte> header = stackalloc byte[FrameHeaderBytes];
+        WriteHeader(header, frame.Metadata.Length, frame.Payload);
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         output.Write(header); output.Write(frame.Metadata);
         hash.AppendData(header); hash.AppendData(frame.Metadata);
         byte[] buffer = ArrayPool<byte>.Shared.Rent(65536);
         try
         {
-            foreach (var slice in frame.Slices)
+            if (frame.Encoded is { } encoded)
+            { output.Write(encoded); hash.AppendData(encoded); }
+            else if (frame.Payload.Encoded)
             {
-                long at = slice.Physical; int remaining = slice.Length;
+                // Retaining a complete frame preserves its exact encoded bytes.
+                long at = frame.Slices[0].Physical; int remaining = frame.Payload.StoredBytes;
                 while (remaining > 0)
                 {
                     int count = Math.Min(buffer.Length, remaining);
                     ReadExactly(at, buffer.AsSpan(0, count));
+                    output.Write(buffer.AsSpan(0, count)); hash.AppendData(buffer.AsSpan(0, count));
+                    at += count; remaining -= count;
+                }
+            }
+            else foreach (var slice in frame.Slices)
+            {
+                int at = slice.BlockOffset, remaining = slice.Length;
+                while (remaining > 0)
+                {
+                    int count = Math.Min(buffer.Length, remaining);
+                    ReadPayload(slice.Physical, slice.Payload, at, buffer.AsSpan(0, count));
                     output.Write(buffer.AsSpan(0, count)); hash.AppendData(buffer.AsSpan(0, count));
                     at += count; remaining -= count;
                 }

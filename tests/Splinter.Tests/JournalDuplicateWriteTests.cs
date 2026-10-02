@@ -12,7 +12,7 @@ public sealed class JournalDuplicateWriteTests
     public void ChangedLibraryEnvelopeReusesPrivateEdgesAcrossExtentsAndReplay(int offset, int count)
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = new OverlayIdentity(1, "edges", tree.Snapshot, 4 * 1024 * 1024, 131072);
+        var identity = new OverlayIdentity(2, "edges", tree.Snapshot, 4 * 1024 * 1024, 131072);
         byte[] expected = Enumerable.Repeat((byte)7, 131072).ToArray(); DeltaEntry current;
         using (var store = new JournalDeltaStore(root.Path, identity, tree))
         {
@@ -40,7 +40,7 @@ public sealed class JournalDuplicateWriteTests
     public void InterruptedTrimmedWriteRecoversOneAcknowledgedEnvelope(string boundary, bool committed)
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var observer = new Observer(); var identity = new OverlayIdentity(1, "edge-interrupted", tree.Snapshot, 100000, 32768);
+        var observer = new Observer(); var identity = new OverlayIdentity(2, "edge-interrupted", tree.Snapshot, 100000, 32768);
         byte[] expected = new byte[32768]; expected[16000] = 1;
         using (var store = new JournalDeltaStore(root.Path, identity, tree, observer))
         {
@@ -51,7 +51,7 @@ public sealed class JournalDuplicateWriteTests
         }
         using var replay = new JournalDeltaStore(root.Path, identity, tree);
         Assert.Equal(committed ? 3 : 2, replay.Observe().DurableSequence);
-        Assert.Equal(expected.Length + (committed ? 1 : 0), replay.Observe().PayloadBytes);
+        Assert.Equal(expected.Length + (committed ? 1 : 0), replay.ObservePrivateUsage().RetainedLogicalPayloadBytes);
         byte[] actual = new byte[expected.Length]; replay.Read(replay.Stat("file")!.Id, 0, actual);
         if (!committed) expected[16000] = 0;
         Assert.Equal(expected, actual); Assert.Equal(0, tree.ReadBytes);
@@ -61,7 +61,7 @@ public sealed class JournalDuplicateWriteTests
     public void RepeatedPrivateContentKeepsPayloadAndStillCommitsMetadataAcrossReplay()
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = new OverlayIdentity(1, "duplicate", tree.Snapshot, 4 * 1024 * 1024, 65536);
+        var identity = new OverlayIdentity(2, "duplicate", tree.Snapshot, 4 * 1024 * 1024, 65536);
         byte[] expected = Enumerable.Repeat((byte)1, 65536).ToArray();
         Array.Fill(expected, (byte)2, 16384, 16384);
         DeltaEntry current; SourceChangeView changes; long payload;
@@ -104,16 +104,16 @@ public sealed class JournalDuplicateWriteTests
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         byte[] incoming = new byte[4096]; tree.Files["base"] = incoming.ToArray();
-        var identity = new OverlayIdentity(1, "different", tree.Snapshot, 100000, 4096);
+        var identity = new OverlayIdentity(2, "different", tree.Snapshot, 100000, 4096);
         using var store = new JournalDeltaStore(root.Path, identity, tree);
         Guid id = scenario == "base" ? store.Stat("base")!.Id : store.Create("file", false, 32).Id;
         if (scenario == "hole") { store.SetLength(id, incoming.Length); store.Write(id, 0, [0]); store.Write(id, 4095, [0]); }
         if (scenario is "different" or "extension") store.Write(id, 0, incoming);
         if (scenario == "different") incoming[^1] = 1;
         long offset = scenario == "extension" ? 1 : 0;
-        long before = store.Observe().PayloadBytes;
+        long before = store.ObservePrivateUsage().RetainedLogicalPayloadBytes;
         store.Write(id, offset, incoming);
-        Assert.Equal(before + incoming.Length, store.Observe().PayloadBytes);
+        Assert.Equal(before + incoming.Length, store.ObservePrivateUsage().RetainedLogicalPayloadBytes);
         Assert.Equal(0, tree.ReadBytes);
         byte[] actual = new byte[incoming.Length]; Assert.Equal(actual.Length, store.Read(id, offset, actual));
         Assert.Equal(incoming, actual); Assert.Equal(0, tree.ReadBytes);
@@ -123,16 +123,17 @@ public sealed class JournalDuplicateWriteTests
     public void SmallJournalBudgetAdmitsDuplicateButStillRejectsDifferentPayload()
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = new OverlayIdentity(1, "budget", tree.Snapshot, 40000, 32768);
+        var identity = new OverlayIdentity(2, "budget", tree.Snapshot, 40000, 32768);
         using var store = new JournalDeltaStore(root.Path, identity, tree);
-        Guid id = store.Create("file", false, 32).Id; byte[] bytes = new byte[32768];
+        Guid id = store.Create("file", false, 32).Id; byte[] bytes = new byte[32768]; new Random(537).NextBytes(bytes);
+        byte[] original = bytes.ToArray();
         store.Write(id, 0, bytes); store.Write(id, 0, bytes);
         Assert.Equal(bytes.Length, store.Observe().PayloadBytes);
         Assert.Equal(3, store.Observe().DurableSequence);
-        long length = store.Observe().JournalBytes; Array.Fill(bytes, (byte)1);
+        long length = store.Observe().JournalBytes; new Random(538).NextBytes(bytes);
         Assert.Equal("DeltaFull", Assert.Throws<WorkspaceException>(() => store.Write(id, 0, bytes)).Code);
         Assert.Equal(length, store.Observe().JournalBytes); Assert.Equal(3, store.Observe().DurableSequence);
-        byte[] actual = new byte[bytes.Length]; store.Read(id, 0, actual); Assert.All(actual, value => Assert.Equal(0, value));
+        byte[] actual = new byte[bytes.Length]; store.Read(id, 0, actual); Assert.Equal(original, actual);
     }
 
     [Theory]
@@ -141,7 +142,7 @@ public sealed class JournalDuplicateWriteTests
     public void FailedDuplicateCommitPreservesPriorPayloadAndRecoversItsMetadataBoundary(string boundary, bool committed)
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var observer = new Observer(); var identity = new OverlayIdentity(1, "interrupted", tree.Snapshot, 100000, 4096);
+        var observer = new Observer(); var identity = new OverlayIdentity(2, "interrupted", tree.Snapshot, 100000, 4096);
         using (var store = new JournalDeltaStore(root.Path, identity, tree, observer))
         {
             Guid id = store.Create("file", false, 32).Id; store.Write(id, 0, [1, 2, 3, 4]);

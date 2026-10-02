@@ -20,7 +20,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         string control = store.ControlPath(w.Id), delta = Path.Combine(control, "delta");
         await f.Backend.UnmountAsync(w, control, ct);
         Directory.CreateDirectory(delta);
-        var identity = new OverlayIdentity(1, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024, [".git"]);
+        var identity = new OverlayIdentity(2, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024, [".git"]);
         var tree = new SnapshotOverlayTests.FakeSnapshotTree { Snapshot = w.Snapshot.Reference! };
         long sequence;
         using (var journal = new JournalDeltaStore(delta, identity, tree))

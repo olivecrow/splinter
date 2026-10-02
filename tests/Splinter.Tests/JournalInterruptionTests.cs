@@ -224,7 +224,7 @@ public sealed class JournalInterruptionTests
     }));
     private static string Digest<T>(T value) => Hash(JsonSerializer.SerializeToUtf8Bytes(value));
     private static string Hash(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
-    private static OverlayIdentity Identity(EmptyTree tree) => new(1, "journal-recovery-probe", tree.Snapshot, 4 * 1024 * 1024, 65536);
+    private static OverlayIdentity Identity(EmptyTree tree) => new(2, "journal-recovery-probe", tree.Snapshot, 4 * 1024 * 1024, 65536);
     private static void WriteNew<T>(string path, T value) => WriteBytesNew(path, JsonSerializer.SerializeToUtf8Bytes(value, Json));
     private static void WriteBytesNew(string path, byte[] value)
     {

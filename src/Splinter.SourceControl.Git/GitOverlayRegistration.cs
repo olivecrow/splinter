@@ -123,7 +123,7 @@ public static partial class GitOverlayRegistration
     public static async Task<CandidateSourceProjection> QualifyCandidateSourceAsync(
         OverlayGitReceipt receipt, OverlayIdentity identity, CancellationToken ct)
     {
-        if (identity.Version != 1 || receipt.OwnerId != identity.Id ||
+        if (identity.Version != 2 || receipt.OwnerId != identity.Id ||
             !Same(receipt.Project, identity.Snapshot.SourcePath) ||
             identity.ExcludedTopLevel?.Contains(".git", StringComparer.OrdinalIgnoreCase) != true)
             throw new WorkspaceException("GitOverlayIdentityMismatch", "The candidate must use this registration's owner, source and excluded Git metadata.");

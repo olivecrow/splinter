@@ -302,8 +302,12 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 아래 Partial/NotRun은 증거 상태이며 미완성 프로그램 기능의 수가 아니다. FIFO/Coordination·일반 임대 인수·원본 공유·자동 모드·전용 installer·자동 binding은 구현 제외다. source 반환 병합·설치/인계·도구 선택·게임 검증은 AI 절차다. 기존 코드 제거/명령 발견의 자격은 [제품 범위 정리 검증](../verification/workspace-product-scope.md)에 보존하며 이번 계획 축소를 새 실행/코드 제거 증거로 읽지 않는다.
 
 - SF-02/03은 Partial, SF-04~06은 NotRun이다. 완료 기준은 [저장공간·Editor 계획](storage-priority-and-editor-modes.md)을 따른다.
-- 후속 [Bee payload 후보 선정](../verification/library-block-compression-feasibility.md)은 읽기 전용 분석으로 마감했다. [독립 codec](../verification/workspace-payload-codec.md)은 제품 연결 전 단위이며 SF-02의 실제 압축/물리 공간 자격을 올리지 않는다. 다음 [제품 연결](storage-priority-and-editor-modes.md#범위-payload-codec과-다음-제품-연결)은 별도 한정 범위다.
+- [Bee payload 후보 선정](../verification/library-block-compression-feasibility.md)과 [독립 codec](../verification/workspace-payload-codec.md)은 선행 분석/부품 단위다. 이후 [JP 제품 연결](../verification/journal-payload-compression.md)의 작은 T: A/B·동일 journal raw 대조의 NTFS 할당을 한정 마감했다. 이 하위 자격을 전체 SF-02·workspace 공간/RAM 절감으로 올리지 않는다.
 - SF-03의 공통 수명주기 계약은 위 VW 자동 적합성으로 추적한다. 실제 제품 VSS·WinFsp·Unity 연결은 WF의 현재 후보 증거로 따로 판정한다.
 - SW-01/02/04/05/07/08/10 NotRun·SW-03/06/09 전체 Partial은 유지한다. [최소 AI 실행](../verification/agent-workflow.md)·[로컬 폐기](../verification/workspace-discard.md)·[대표 A/B](../verification/representative-agent-workflow.md)의 하위 자격을 구분한다. 설치/인계의 AI 절차와 busy/unknown·새/동시 대화·native 중단의 미실행을 보존하며 구현 제외 기능을 완료로 표시하지 않는다. [UA](../verification/storage-privilege-service.md)의 제한 서비스 구성/반복 사용은 전용 제품 installer와 구별한다.
 - PV-01/02의 사용자 선택 범위는 scoped-complete-with-limitations다. 전체 PV-02 Passed로 표시하지 않고 S4 입력 실패·소수 표본·raw 입력 동등성 unknown을 유지한다. [비교 방법](parallel-workflow-qualification.md)과 [실측](../verification/parallel-workflow.md)은 후속 비교의 입력을 고정하기 위해 보존한다.
 - 현재 코드의 계약 변경은 필수 형식 생성·읽기, 지원하지 않는 형식의 비파괴 거부, 같은 버전의 중단 재시도를 함께 검증한다. 자동 시험과 실제 VSS/Unity 실행을 구별한다.
+
+## 현재 압축 저널 제품 연결
+
+[JP-01~06](../verification/journal-payload-compression.md)은 [확정 범위](journal-payload-compression.md)의 공통 frame/fragment·현재 단일 형식·내용/복구/정리·작은 T: 실제 A/B·동일 journal raw 대조의 NTFS 할당/메모리 표본·필수 회귀를 scoped-complete-with-limitations로 마감했다. 이전 standalone·M0/UH를 새 형식의 근거로 승계하지 않으며 SF 전체 Partial·전체 peak/VSS 귀속/native RAM unknown과 기존 C: 보류를 유지한다.

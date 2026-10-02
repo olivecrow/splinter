@@ -5,7 +5,11 @@ namespace Splinter.Core;
 // Private journal storage only. Immutable snapshot bytes and shared VSS are not
 // charged here; frame bytes include retained mutation metadata and checksums.
 public sealed record ValidationCacheUsage(long JournalBytes, long RetainedPayloadBytes,
-    long LivePrivateBytes, long ObsoletePayloadBytes, long FrameBytes);
+    long LivePrivateBytes, long ObsoletePayloadBytes, long FrameBytes)
+{
+    public long LiveStoredPayloadBytes { get; init; }
+    public long RetainedLogicalPayloadBytes { get; init; }
+}
 
 // Adapter-qualified, bounded private files already excluded from the immutable
 // snapshot. This is evidence for candidate projection, never a deletion grant.

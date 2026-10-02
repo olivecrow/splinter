@@ -1036,13 +1036,13 @@
           "type": "object", "additionalProperties": false,
           "required": ["stage", "contract", "codec", "maxDecodedBytes", "blockOverheadBytes", "scope", "specification", "qualification"],
           "properties": {
-            "stage": {"const": "standalone-not-journal-integrated"},
+            "stage": {"const": "workspace-internal-alpha"},
             "contract": {"const": "IWorkspacePayloadCodec"},
             "codec": {"const": "splinter-range-brotli-v1"},
             "maxDecodedBytes": {"const": 1048576},
             "blockOverheadBytes": {"const": 48},
             "scope": {"type": "string", "minLength": 1},
-            "specification": {"const": "docs/workspace-payload-codec.md"},
+            "specification": {"const": "docs/journal-payload-compression.md"},
             "qualification": {"type": "string", "minLength": 1}
           }
         },
@@ -1081,7 +1081,7 @@
               "const": "verified-location-separate-from-immutable-delta-identity"
             },
             "deltaStore": {
-              "const": "bounded-checksummed-range-journal; explicit-offline-compaction-with-durable-generation-retry"
+              "const": "bounded-checksummed-range-journal-v2; raw-or-brotli; explicit-offline-compaction-with-durable-generation-retry"
             },
             "resultCollection": {
               "const": "stable-journal-v1"

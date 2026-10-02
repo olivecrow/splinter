@@ -39,6 +39,8 @@ Select `--source git` for supported clean Git input, `--source none` for a regis
 
 Use the registered absolute source and home, the selected supported input and basis, and a stable key for this task. Do not invent a new home to bypass an existing registration or ownership failure. Supported input and native prerequisites are in [NTFS workspaces](../../docs/ntfs-workspaces.md); current support is a small Windows x64 fixture alpha, not general NTFS/ARM/OS-failure qualification.
 
+The current private journal uses overlay v2/SJR2 raw or bounded Brotli ranges; development candidates are v3. Preserve and reject earlier formats without migration or a fallback reader. This adds no codec command or task-selection flag. See the [current compression contract](../../docs/journal-payload-compression.md) and [one fixed small T: Plastic A/B qualification](../../docs/verification/journal-payload-compression.md); do not claim whole-project space or RAM savings. An Editor stop alone does not freeze the journal: use the normal checkpoint/seal and unmount guards, retaining a changed-input failure and the same task.
+
 ## Create, use, and resume the same task
 
 ```powershell

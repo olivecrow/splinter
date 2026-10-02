@@ -1,6 +1,6 @@
 # 범위 payload codec
 
-`IWorkspacePayloadCodec`는 **한 변경 범위의 독립적인 byte 표현과 부분 읽기**를 위한 공통 계약이다. `BrotliWorkspacePayloadCodec`를 Core/fake의 적합성과 함께 제공하며 아직 `JournalDeltaStore`·workspace/provider에 연결하지 않았다. 기존 CLI·workspace v2·overlay/candidate 형식·durable flush/ACK·독립 결과/seal은 이 codec을 사용하지 않는다. 개발용 capabilities의 `developmentPayloadCodec`에서 이 경계를 표시하며 새 실행 명령은 없다.
+`IWorkspacePayloadCodec`는 한 변경 범위의 독립적인 byte 표현과 부분 읽기 계약이다. `BrotliWorkspacePayloadCodec`를 Core/fake 적합성과 함께 제공하며 [현재 압축 저널](journal-payload-compression.md)의 저장 표현으로 사용한다. codec 자체에는 파일·VCS·snapshot·Editor 접근과 내구성 정책이 없다. 제품 연결 자격은 [JP 검증](verification/journal-payload-compression.md), 독립 표본은 [codec 검증](verification/workspace-payload-codec.md)으로 구분한다. 새 codec 실행 명령은 없다.
 
 ## 입력·출력 계약
 
@@ -35,4 +35,4 @@ checksum은 길이·encoding·payload를 함께 보호하며 decoder가 소비�
 
 ArrayPool은 요청보다 큰 배열을 줄 수 있다. 기본 상한 1MiB의 power-of-two 요청에서는 대여 크기도 그 상한 안이지만 임의의 더 작은 configured 상한을 byte 단위의 pool 할당 상한으로 해석하지 않는다. caller가 제공한 input/encoded/read 버퍼·pool 잔류·Brotli native state는 별도 메모리 비용이다. 작은 부분 읽기에도 블록 전체 복원이 필요할 수 있어 read amplification을 숨기지 않는다. 전역 decoded cache/dictionary·persistent codec state는 없다.
 
-공통 fake/적합성, malformed stream·임대 반환/누적 관리 할당과 실제 Bee 입력의 한정 근거는 [codec 검증](verification/workspace-payload-codec.md)을 따른다. 현재 지원은 독립 codec에 한정하며 journal replay/compaction/candidate/독립 결과·budget·native 중단/NTFS 물리 절감은 다음 제품 연결 범위다.
+공통 fake/적합성, malformed stream·임대 반환/누적 관리 할당과 실제 Bee 입력의 한정 근거는 [codec 검증](verification/workspace-payload-codec.md)을 따른다. journal replay/compaction/candidate/독립 결과·budget·native 중단/NTFS 물리 절감은 별도 JP 검증을 따른다.

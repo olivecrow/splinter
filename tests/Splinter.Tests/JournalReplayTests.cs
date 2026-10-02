@@ -13,7 +13,7 @@ public sealed class JournalReplayTests
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var expected = new byte[16384]; new Random(81).NextBytes(expected); tree.Files["file"] = (byte[])expected.Clone();
-        var identity = new OverlayIdentity(1, "read-index", tree.Snapshot, 1_000_000, 4096);
+        var identity = new OverlayIdentity(2, "read-index", tree.Snapshot, 1_000_000, 4096);
         string delta = Path.Combine(dir.Path, "delta");
         var store = new JournalDeltaStore(delta, identity, tree);
         try
@@ -51,7 +51,7 @@ public sealed class JournalReplayTests
     public void BufferedReplayPreservesBytesAndDetectsCorruptionAcrossReadBoundaries(int corruptAt)
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = new OverlayIdentity(1, "replay", tree.Snapshot, 10_000_000, 1_048_576);
+        var identity = new OverlayIdentity(2, "replay", tree.Snapshot, 10_000_000, 1_048_576);
         string delta = Path.Combine(dir.Path, "delta"), journal = Path.Combine(delta, "delta.journal");
         byte[] block = new byte[4096]; new Random(17).NextBytes(block);
         using (var store = new JournalDeltaStore(delta, identity, tree))
@@ -97,7 +97,7 @@ public sealed class JournalReplayTests
     public void OrderedRangeSplicePreservesRandomOverlapsHolesAndReconnectBytes()
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = new OverlayIdentity(1, "range-splice", tree.Snapshot, 1_000_000, 4096);
+        var identity = new OverlayIdentity(2, "range-splice", tree.Snapshot, 1_000_000, 4096);
         string delta = Path.Combine(dir.Path, "delta"), journal = Path.Combine(delta, "delta.journal");
         byte[] expected = new byte[4096]; var random = new Random(27);
         Guid id;
@@ -135,7 +135,7 @@ public sealed class JournalReplayTests
     public void ReplayOperationBreakdownIsBoundedDetachedAndExcludesCurrentWrites()
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = new OverlayIdentity(1, "operations", tree.Snapshot, 1_000_000, 4096);
+        var identity = new OverlayIdentity(2, "operations", tree.Snapshot, 1_000_000, 4096);
         string delta = Path.Combine(dir.Path, "delta");
         using (var store = new JournalDeltaStore(delta, identity, tree))
         {
@@ -165,7 +165,7 @@ public sealed class JournalReplayTests
     public void BufferedReadAheadDoesNotAcknowledgeIncompleteFinalFrame()
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = new OverlayIdentity(1, "replay", tree.Snapshot, 10_000_000, 1_048_576);
+        var identity = new OverlayIdentity(2, "replay", tree.Snapshot, 10_000_000, 1_048_576);
         string delta = Path.Combine(dir.Path, "delta"), journal = Path.Combine(delta, "delta.journal");
         long acknowledged;
         using (var store = new JournalDeltaStore(delta, identity, tree))

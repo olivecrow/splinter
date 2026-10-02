@@ -18,6 +18,7 @@ Splinter는 작업공간과 소유 Editor의 수명·범위 저장·독립 결�
 - 저장소에 포함한 [AI 사용 스킬](skills/splinter/SKILL.md): 필요성 판단·반환 경로 사용·같은 요청 재개·명시적 종료·실패 처리. 현재 CLI와 대화의 작업 식별자를 사용한다.
 - [명시적 폐기](docs/workspace-discard.md)의 고정 intent·중단 재개와 Git/Windows provider·`workspace discard`. 실제 서비스 적용/폐기 자격은 별도로 표시한다.
 - `ntfs-snapshot` workspace의 VSS·WinFsp 범위 저널, 선택한 Git/파일 기준, 작업별 프로세스 그룹과 Editor start/stop, 독립 결과 보존과 명시적 회수.
+- [현재 압축 저널](docs/journal-payload-compression.md): bounded raw/Brotli 범위·overlay v2·candidate v3. 실제 자격은 [별도 검증](docs/verification/journal-payload-compression.md)을 따른다.
 - 변경 기반 소스 검증, 명시적 저널 정리와 선택적 중첩량 예산, snapshot 지연 회수.
 - VSS 전용 Windows 권한 서비스와 명시적 설치 도구. 실제 설치·반복 UAC 0의 자격은 [UA 검증](docs/verification/storage-privilege-service.md)을 따른다.
 - `checkpoint`는 현재 소스를 독립 결과로 보존한다. 컴파일·Play·테스트·빌드·캡처와 합격 판단은 AI가 MCP·Unity CLI 등으로 수행하며 Splinter는 그 성공을 판정하지 않는다.

@@ -17,7 +17,7 @@ public sealed class OverlayFileAttributeTests
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows overlay callback contract.");
         using var directory = new TestDirectory();
         var tree = new TestTree();
-        var identity = new OverlayIdentity(1, "attributes", tree.Snapshot, 100000, 4096);
+        var identity = new OverlayIdentity(2, "attributes", tree.Snapshot, 100000, 4096);
         string delta = Path.Combine(directory.Path, "delta");
         using var store = new JournalDeltaStore(delta, identity, tree);
         var fileSystem = new WinFspOverlayFileSystem(store);
@@ -60,7 +60,7 @@ public sealed class OverlayFileAttributeTests
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows overlay callback contract.");
         using var directory = new TestDirectory(); var tree = new TestTree();
-        var identity = new OverlayIdentity(1, "attributes", tree.Snapshot, 100000, 4096);
+        var identity = new OverlayIdentity(2, "attributes", tree.Snapshot, 100000, 4096);
         string delta = Path.Combine(directory.Path, "delta");
         uint attributes = (uint)(FileAttributes.Archive | FileAttributes.Hidden | FileAttributes.ReadOnly);
         using (var store = new JournalDeltaStore(delta, identity, tree))

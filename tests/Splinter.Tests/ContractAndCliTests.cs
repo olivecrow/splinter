@@ -297,7 +297,7 @@ public sealed class ContractAndCliTests
     public void OverlayReadAccessRequiresTheWholeVerificationTuple(string variant, bool valid)
     {
         var request = JsonSerializer.SerializeToNode(new Splinter.Platform.Windows.OverlayServeRequest(
-            new(1, "workspace", VssLiveIdentityTests.Snapshot, 1048576, 1048576), "delta", "mount", "control", new string('a', 64),
+            new(2, "workspace", VssLiveIdentityTests.Snapshot, 1048576, 1048576), "delta", "mount", "control", new string('a', 64),
             new(VssLiveIdentityTests.Snapshot.Id, VssLiveIdentityTests.Snapshot.RootPath, "verified"), "receipt", "owner"), ApiJson.Options)!;
         if (variant is "no-owner" or "missing-tuple") request.AsObject().Remove("snapshotOwnerId");
         if (variant is "no-directory" or "missing-tuple") request.AsObject().Remove("snapshotReceiptDirectory");
@@ -308,7 +308,7 @@ public sealed class ContractAndCliTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task PayloadCodecDiscoveryKeepsJournalIntegrationUnqualified(bool development)
+    public async Task PayloadCodecDiscoveryAdvertisesScopedJournalIntegrationOnlyInDevelopment(bool development)
     {
         using var output = new StringWriter();
         Assert.Equal(0, await Program.RunAsync(["capabilities"], output, TestContext.Current.CancellationToken, development: development));
@@ -319,12 +319,13 @@ public sealed class ContractAndCliTests
         if (development)
         {
             var codec = data.GetProperty("developmentPayloadCodec");
-            Assert.Equal("standalone-not-journal-integrated", codec.GetProperty("stage").GetString());
+            Assert.Equal("workspace-internal-alpha", codec.GetProperty("stage").GetString());
+            Assert.Equal("docs/journal-payload-compression.md", codec.GetProperty("specification").GetString());
             Assert.Equal(new Splinter.Runtime.BrotliWorkspacePayloadCodec().CodecId, codec.GetProperty("codec").GetString());
             Assert.Equal(Splinter.Runtime.BrotliWorkspacePayloadCodec.MaximumBlockBytes, codec.GetProperty("maxDecodedBytes").GetInt32());
             Assert.Equal(Splinter.Runtime.BrotliWorkspacePayloadCodec.BlockOverheadBytes, codec.GetProperty("blockOverheadBytes").GetInt32());
             var unsupported = JsonNode.Parse(response.RootElement.GetRawText())!;
-            unsupported["data"]!["developmentPayloadCodec"]!["stage"] = "workspace-internal-alpha";
+            unsupported["data"]!["developmentPayloadCodec"]!["stage"] = "standalone-unqualified";
             Assert.False(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(unsupported)).IsValid);
         }
         else Assert.True(!data.TryGetProperty("developmentPayloadCodec", out var hidden) || hidden.ValueKind == JsonValueKind.Null);
@@ -423,7 +424,7 @@ public sealed class ContractAndCliTests
     public void OverlayReplayStateAndMetricsMatchThePublishedObservationContract()
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = new OverlayIdentity(1, "replay-contract", tree.Snapshot, 65536, 4096);
+        var identity = new OverlayIdentity(2, "replay-contract", tree.Snapshot, 65536, 4096);
         using var store = new JournalDeltaStore(Path.Combine(dir.Path, "delta"), identity, tree);
         store.Create("live-cost-contract", false, 32);
         var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);

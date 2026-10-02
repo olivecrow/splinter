@@ -21,7 +21,7 @@ if($Action -eq 'Source') {
     foreach($name in $Names){
         if($name -notmatch '^[a-z][a-z0-9-]{0,30}$'){throw 'InvalidTestName'}
         $control=Join-Path $root "control-$name";if(Test-Path -LiteralPath $control){throw 'FreshControlRequired'}
-        $identity=@{version=1;id=('so-'+[IO.Path]::GetFileName($root)+'-'+$name);maxJournalBytes=$(if($Unity){16GB}else{16MB});maxTransferBytes=1048576}
+        $identity=@{version=2;id=('so-'+[IO.Path]::GetFileName($root)+'-'+$name);maxJournalBytes=$(if($Unity){16GB}else{16MB});maxTransferBytes=1048576}
         if($Unity){$identity.excludedTopLevel=@('.git')}
         $request=New-SnapshotOverlayRequest -SnapshotReceipt $SnapshotReceipt -Identity $identity -DeltaPath "$root/delta-$name" -MountPath "$root/mount-$name" -ControlPath $control
         New-Item -ItemType Directory -Path $control|Out-Null

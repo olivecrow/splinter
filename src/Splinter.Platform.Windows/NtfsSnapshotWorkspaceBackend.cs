@@ -18,7 +18,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
     private static VssSnapshotProvider Provider(WorkspaceRecord w, string control) => new(Path.Combine(control, "snapshot"), w.Id);
     private WinFspOverlayMountProvider MountProvider(string control, WorkspaceRecord? workspace = null) => new(RequestPath(control), runnerCache,
         workspace is null || preparationObserver is null ? null : boundary => preparationObserver.ReachedAsync(boundary, workspace, CancellationToken.None));
-    public static OverlayIdentity Identity(WorkspaceRecord w) => new(1, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024,
+    public static OverlayIdentity Identity(WorkspaceRecord w) => new(2, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024,
         w.SourceKind is "none" or "plastic" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : [".git"],
         DeniedTopLevel: w.SourceKind == "plastic" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : null);
 

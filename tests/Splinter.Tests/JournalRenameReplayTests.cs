@@ -15,7 +15,7 @@ public sealed class JournalRenameReplayTests
         tree.Files[from + "/loaded"] = [1]; tree.Files[from + "/lazy"] = [2];
         tree.Files[from + "/nested/removed"] = [3]; tree.Files[from + "/nested/kept"] = [4];
         tree.Files[from + "-sibling/untouched"] = [5];
-        var identity = new OverlayIdentity(1, "rename", tree.Snapshot, 1_000_000, 4096);
+        var identity = new OverlayIdentity(2, "rename", tree.Snapshot, 1_000_000, 4096);
         string delta = Path.Combine(d.Path, "delta"); Guid openFile;
         void Check(JournalDeltaStore store)
         {

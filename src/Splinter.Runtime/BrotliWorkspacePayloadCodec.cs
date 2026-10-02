@@ -6,7 +6,7 @@ using Splinter.Core;
 
 namespace Splinter.Runtime;
 
-// An isolated codec; JournalDeltaStore does not use this representation.
+// An independent block codec used by the bounded journal payload caller.
 public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
 {
     public const int MaximumBlockBytes = 1024 * 1024;
