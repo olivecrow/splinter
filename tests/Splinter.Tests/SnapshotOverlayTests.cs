@@ -263,7 +263,9 @@ public sealed class SnapshotOverlayTests
             for (int pass = 0; pass < 2; pass++)
                 for (int part = 0; part < 16; part++)
                 {
-                    block[0] = checked((byte)(pass * 16 + part));
+                    // Exercise full replacement and compaction, rather than a
+                    // one-byte edit now handled by private-edge reuse.
+                    Array.Fill(block, checked((byte)(pass * 16 + part)));
                     store.Write(id, part * block.Length, block);
                 }
             store.SetLength(id, 4 * 1024 * 1024);

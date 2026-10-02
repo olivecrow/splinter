@@ -93,7 +93,11 @@ provider가 끝나면 앱/자식이 남지 않았음을 확인한 후 같은 ens
 
 현재 쓰기 범위 전체가 이미 승인된 private 저널 범위에 있고 바이트가 같으면 payload를 다시 쓰지 않는다. 기존 저널을 최대 64KiB 버퍼로 비교하고 기존 `metadata` frame에 수정 시각·현재 경로·새 sequence를 기록해 개별 `Flush(true)` 뒤 응답한다. 빈 쓰기의 기존 no-op과 다르며 소스 변경 경로와 승인 쓰기 경계는 유지한다.
 
-원본만 참조하는 범위·zero-fill hole·파일 길이 확장·다른 바이트는 요청한 payload를 기존 방식으로 저장한다. 비교를 위해 snapshot payload를 읽거나 hydration하지 않으며 작업/파일 간 dedup·공유 payload cache는 없다. 같은 내용에도 metadata는 누적되므로 무한 반복의 저장량 0을 보장하지 않는다. 정상 쓰기에서도 저널 비교 읽기가 추가될 수 있다. [한정 저장량·복구 검증](verification/duplicate-private-writes.md)은 합성 입력의 실제 NTFS 파일 할당과 작은 로컬 WinFsp client를 구분한다.
+같은 private 범위에 일부 다른 바이트가 있으면 첫 차이부터 마지막 차이까지의 연속 범위 하나를 저장한다. 앞뒤의 일치 바이트를 제외해 payload를 4KiB 이상 줄일 수 있을 때만 적용하며, 중간의 일치 바이트는 그 범위에 포함한다. 전체 요청의 길이·수정 시각·경로 sequence를 유지하고 기존 `write` frame 하나와 개별 `Flush(true)`로 승인한다. 작은 절감에는 기존 전체 요청을 저장해 불필요한 extent 분할을 피한다.
+
+원본만 참조하는 범위·zero-fill hole·파일 길이 확장은 요청한 payload를 기존 방식으로 저장한다. 첫 신규 파일 쓰기도 그대로다. 비교를 위해 snapshot payload를 읽거나 hydration하지 않으며 작업/파일 간 dedup·공유 payload cache는 없다. 같은 내용에도 metadata는 누적되므로 무한 반복의 저장량 0을 보장하지 않는다. 정상 쓰기에서도 저널 비교 읽기가 추가될 수 있다. [동일 쓰기 검증](verification/duplicate-private-writes.md)과 [부분 덮어쓰기·버퍼·시작 검증](verification/resource-efficiency-followup.md)은 고정 입력의 실제 파일 할당과 Unity 전체 효율을 구별한다.
+
+WinFsp Read/Write callback은 요청 길이와 최대 전송 크기 중 작은 크기로 버퍼를 빌린다. 빈 요청은 최소 대여 버퍼를 사용하며 기존 빈 I/O 의미를 유지한다. 큰 요청의 chunk 크기·callback 직렬화·승인/flush 경계는 그대로이고 성공/실패 뒤 버퍼를 반환한다. 대여 크기와 누적 관리 할당은 Editor·시스템 RAM과 구별한다.
 
 ## 개발용 준비 중단 시험
 

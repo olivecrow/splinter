@@ -47,6 +47,8 @@ $reply
 
 필요한 명령의 `schema <command>`를 먼저 읽고 저장한 ID/home을 사용한다. Editor가 필요할 때만 `unity start`; 준비는 status의 실제 `application.ready`로 확인한다. 외부 편집 뒤 `unity refresh`를 요청하고 status에서 `sourceVerification=verified`·`validationCurrent=true`·`workspace.validation.success=true`를 함께 확인한다. Accepted나 이전 성공을 새 소스의 컴파일 성공으로 읽지 않는다. 일반 status는 반복 전체 소스 검사를 하지 않으며 현재 확인에는 `--verify-source`, 손상 cache 감사에는 `--audit-source`를 구분한다.
 
+`unity start`와 `ensure --editor`의 시작 후 응답도 실행 관측을 사용한다. 새 pending validation 결과의 조정이 없으면 `not-checked`이며 현재 소스 검증은 별도로 요청한다. 시작 뒤 import 중 소스 검사 실패를 실행 실패로 혼동하지 않는다.
+
 | 명시적 의도 | 사용할 경로 |
 | --- | --- |
 | 나중에 계속 작업 | 같은 workspace 유지. 필요한 경우 `unity stop --id <id> --home <home>`으로 Editor만 정상 종료 |

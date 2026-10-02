@@ -4,6 +4,8 @@
 
 ## 검증 흐름과 소유 경계
 
+`unity start`와 `workspace ensure --editor`의 시작 후 응답은 일반 status와 같이 실행 상태를 관측하고, 새 pending validation 결과를 조정할 때만 소스를 검사한다. 시작 응답의 `sourceVerification=not-checked`는 현재 소스의 컴파일 성공이 아니다. Editor 없는 ensure의 검사, refresh·명시적 `--verify-source`/감사, checkpoint/integrate의 현재 검사와 결과 seal은 유지한다. 시작 후 import 중 불필요한 검사 실패를 피하며 소스 변경 거부를 재시도로 숨기지 않는다.
+
 Core의 `ISourceChangeProvider`/`SourceChangeView`는 workspace ID, snapshot ID, provider epoch, 마지막 소스 sequence, 경로별 마지막 변경 sequence를 제공한다. Runtime의 `JournalDeltaStore`는 acknowledged journal 기록에서 이 집합을 만들고 재생 시 다시 구성한다. 새 provider의 epoch는 항상 다르다. Core는 Git·Unity·Win32 API를 참조하지 않는다.
 
 Windows 어댑터는 `overlay/source-query.json`과 `source-response.json`의 새 request ID를 사용한다. 요청 전후에 정확한 provider PID·시작 시각·mount·snapshot identity를 확인한다. 주기적인 `state.json`의 과거 소스 세대를 검증 장벽으로 사용하지 않는다. 15초 안에 해당 응답을 받지 못하면 `SourceObservationUncertain`으로 보존한다.

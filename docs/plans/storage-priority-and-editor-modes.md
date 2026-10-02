@@ -55,6 +55,8 @@ SF-03 전체는 Partial이다. FIFO/Coordination, 일반 임대 인수, 생성 s
 
 ## 다음 범위 판단
 
+[부분 쓰기·버퍼·시작 개선](../verification/resource-efficiency-followup.md)은 private 덮어쓰기의 일치 앞뒤 재사용, 작은 I/O 버퍼 제한, Editor 시작과 현재 소스 검증의 분리 범위를 마감했다. 새/확장/전체 내용 변경의 Library 부담은 남으며 동일 입력의 고정 공간/대여 버퍼 대조와 작은 로컬 Unity 수명주기로만 판정한다. 전체 Library 절감률·Editor/시스템 RAM·준비 시간 SLA·OS 장애 지원을 승계하지 않는다. 다음 공간 대상은 실제 새/전체 변경 Library 기록에서 선택하며 같은 비교 반복·대형/원격/설치·장애 행렬을 자동 추가하지 않는다.
+
 [작은 Unity warm 비교](../verification/unity-duplicate-private-writes.md)는 같은 등록 입력의 두 편집·같은 ensure·정상 Editor 재시작·독립 결과 보존/release와 고정 Runtime 전후 파일 할당을 소유한다. 이 한 쌍을 마감했으며 종료 직전 저널의 관측 차이가 작아 동일 private 쓰기만으로 Library 용량 목표를 달성했다고 판정하지 않는다. 유효 private 데이터의 대부분이 Library라 후속 공간 작업은 남은 새/변경 Library 기록에서 실제 개선 대상 하나를 고른다. 같은 비교의 반복·대형/cold/원격·새 장애 행렬·설치/권한/볼륨 변경·원본 통합을 자동 추가하지 않는다. 합성 96.1%·시간 SLA·메모리 절감을 실제 결과로 승계하지 않는다.
 
 Library의 마감 뒤 확정한 [NR-01/02 준비 단계 중단 복구](ntfs-recovery-and-support.md#확정-범위-nr-0102-준비-단계-중단-복구)는 [현재 후보의 실제 경계 26개](../verification/preparation-recovery.md)로 제한을 유지해 마감했다. 동일 요청 재개·독립 결과·원본/타 작업 보존을 확인했으며, 게시 실패 원인 미확정과 대형 용량 목표·모드 채택의 SF 관문은 유지한다.

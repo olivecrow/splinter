@@ -6,6 +6,40 @@ namespace Splinter.Tests;
 public sealed class WorkspaceCoordinatorTests
 {
     [Fact]
+    public async Task StartAndEnsureEditorDoNotVerifyImportingSourceOrStartDuplicateApplications()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications();
+        string project = Project(d);
+        var initial = await New(d, sources, apps).EnsureAsync(project, "starting", "main", "git-checkout", false, ct);
+        int before = sources.InspectCalls; sources.InspectionError = "SourceChanged";
+        var started = await New(d, sources, apps).StartAsync(initial.Workspace.Id, ct);
+        Assert.True(started.Application!.Running); Assert.Equal("not-checked", started.SourceVerification);
+        Assert.Null(started.ValidationCurrent); Assert.Null(started.Source);
+        var resumed = await New(d, sources, apps).EnsureAsync(project, "starting", "main", "git-checkout", true, ct);
+        Assert.Equal(initial.Workspace.Id, resumed.Workspace.Id); Assert.Equal("not-checked", resumed.SourceVerification);
+        await New(d, sources, apps).StartAsync(initial.Workspace.Id, ct);
+        Assert.Equal(before, sources.InspectCalls); Assert.Equal(1, apps.StartCalls); Assert.Equal(1, sources.CreateCalls);
+        Assert.Equal("SourceChanged", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            New(d, sources, apps).RefreshAsync(initial.Workspace.Id, ct))).Code);
+    }
+
+    [Fact]
+    public async Task StartStillChecksNewValidationAndRejectsItsChangedSource()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications();
+        var c = New(d, sources, apps);
+        string id = (await c.EnsureAsync(Project(d), "pending", "main", "git-checkout", true, ct)).Workspace.Id;
+        await c.RefreshAsync(id, ct); sources.Fingerprint = "edited"; apps.EmitValidation = true;
+        var completed = await New(d, sources, apps).StartAsync(id, ct);
+        Assert.Equal("verified", completed.SourceVerification); Assert.False(completed.ValidationCurrent);
+        Assert.False(completed.Workspace.Validation!.Success);
+        Assert.Equal("ValidationRequired", (await Assert.ThrowsAsync<WorkspaceException>(() => c.CheckpointAsync(id, "stale", ct))).Code);
+        Assert.Equal(0, sources.CommitCalls); Assert.Equal(1, apps.StartCalls);
+    }
+
+    [Fact]
     public async Task OriginalOperationErrorSurvivesAStateFailureWhileRecordingIt()
     {
         if (!OperatingSystem.IsWindows()) return;
@@ -241,11 +275,12 @@ public sealed class WorkspaceCoordinatorTests
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(ResolvedRevision);
         public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => Task.FromResult("fake-cache");
         public int CreateCalls, CommitCalls, ReleaseCalls, InspectCalls; public string Fingerprint = "initial"; public string Revision = "rev"; public TimeSpan CreateDelay; public bool DeleteAndThrowOnRelease, LeaveDirectoryOnRelease, Unregistered;
-        public Action<WorkspaceRecord>? BeforeCreate;
+        public Action<WorkspaceRecord>? BeforeCreate; public string? InspectionError;
         public async Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) { Interlocked.Increment(ref CreateCalls); BeforeCreate?.Invoke(w); await Task.Delay(CreateDelay, ct); Directory.CreateDirectory(w.Path); return new(w.Path, w.SourceReference, ResolvedRevision); }
         public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)
         {
             InspectCalls++;
+            if (InspectionError is { } error) throw new WorkspaceException(error, "Controlled source inspection failure.");
             return Directory.Exists(w.Path) && !Unregistered
                 ? Task.FromResult(new SourceState(Revision, Fingerprint, false, [])) : throw new DirectoryNotFoundException(w.Path);
         }
@@ -257,11 +292,11 @@ public sealed class WorkspaceCoordinatorTests
     {
         public string CompatibilityKey(string project) => "fake-application";
         public string[] CacheInputs => ["configuration"];
-        public string[] ManagedPaths => ["Library", "Temp"]; public bool Running; public bool EmitValidation; public int RemoveCalls;
+        public string[] ManagedPaths => ["Library", "Temp"]; public bool Running; public bool EmitValidation; public int RemoveCalls, StartCalls;
         public bool OwnershipVerified = true; public int SurvivingChildren;
         private ApplicationValidation? validation;
         private (string Id, string Fingerprint)? pending;
-        public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { Running = true; return Task.FromResult(new ApplicationLease(1, 1, "token", "fake")); }
+        public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { StartCalls++; Running = true; return Task.FromResult(new ApplicationLease(1, 1, "token", "fake")); }
         public Task<ApplicationState> ObserveAsync(WorkspaceRecord w, string p, CancellationToken ct = default)
         {
             if (EmitValidation && pending is { } request)

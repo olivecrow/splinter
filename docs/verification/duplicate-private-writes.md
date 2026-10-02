@@ -1,6 +1,6 @@
 # 동일 private 쓰기의 저장량과 복구
 
-실행일: 2026-10-02, Windows x64/C: NTFS. 범위는 기존 private 저널로 완전히 덮인 요청의 바이트가 같을 때 payload를 재사용하는 것이다. 현재 `metadata` frame·개별 durable flush를 사용하며 Core port·CLI/schema·저널 버전은 유지한다. 원본만 참조하는 범위·hole·확장·다른 바이트는 기존 payload 쓰기다. [현재 계약](../ntfs-workspaces.md#동일한-private-범위의-반복-쓰기)과 [계측 의미](../source-verification.md#live-write-비용)를 따른다.
+실행일: 2026-10-02, Windows x64/C: NTFS. 이 기록의 범위는 기존 private 저널로 완전히 덮인 요청의 바이트가 같을 때 payload를 재사용하는 것이다. `metadata` frame·개별 durable flush를 사용하며 Core port·CLI/schema·저널 버전은 유지했다. 당시 원본만 참조하는 범위·hole·확장·다른 바이트는 기존 payload 쓰기였다. 이후의 부분 변경 앞뒤 재사용은 [별도 검증](resource-efficiency-followup.md)을 따른다. [현재 계약](../ntfs-workspaces.md#동일한-private-범위의-반복-쓰기)과 [계측 의미](../source-verification.md#live-write-비용)를 따른다.
 
 ## 동일 입력의 실제 NTFS 할당
 

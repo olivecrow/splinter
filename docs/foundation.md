@@ -12,6 +12,8 @@ Splinter의 현재 실행 범위는 내부 알파의 **기준본 준비/봉인 �
 
 ## 구조와 의존성
 
+범위 저널은 전체가 private인 덮어쓰기에서 같은 바이트를 재사용하며, 4KiB 이상 절감하는 일치 앞뒤를 제외한 연속 변경 범위 하나를 기존 write frame으로 저장한다. Windows callback은 요청 크기의 버퍼를 빌리고, Editor 시작 응답은 일반 실행 관측을 사용한다. 새 pending 결과·명시적 검증/수집의 현재 소스와 seal 검사, 개별 flush는 유지한다. 소유 계약은 [NTFS](ntfs-workspaces.md)·[소스 검증](source-verification.md), 한정 자격은 [공간·버퍼·시작 검증](verification/resource-efficiency-followup.md)이다.
+
 Core의 `StateWriteFailureDetails`/`StateWriteDiagnostic`은 workspace 상태 저장 실패의 공통 데이터 계약이다. Runtime이 단계와 게시 완료 여부·HRESULT/native 오류 관측을 채우고 CLI는 기존 실패 응답으로 전달한다. `state-write-failure-details` schema와 [NTFS 실패 계약](ntfs-workspaces.md)을 따르며 Core에는 플랫폼 해석 API를 넣지 않는다.
 
 Core의 `IOverlayMutationObserver`는 공급자 중립 callback 전후 관측 port다. Windows 파일시스템의 명시적 개발 인수로만 연결하며 일반 provider와 flush 정책은 그대로다. [로컬 kernel 개발 시험](kernel-recovery.md)은 실제 WinFsp host·fake 기준·외부 클라이언트와 새 provider 연결을 사용한다. `capabilities.developmentKernelRecoveryProbe`의 범위와 schema를 따르며 실제 VSS server/CLI 자격과 구분한다.

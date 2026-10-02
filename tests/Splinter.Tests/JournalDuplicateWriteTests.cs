@@ -5,6 +5,58 @@ namespace Splinter.Tests;
 
 public sealed class JournalDuplicateWriteTests
 {
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(65530, 12)]
+    [InlineData(131071, 1)]
+    public void ChangedLibraryEnvelopeReusesPrivateEdgesAcrossExtentsAndReplay(int offset, int count)
+    {
+        using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        var identity = new OverlayIdentity(1, "edges", tree.Snapshot, 4 * 1024 * 1024, 131072);
+        byte[] expected = Enumerable.Repeat((byte)7, 131072).ToArray(); DeltaEntry current;
+        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        {
+            store.Create("Library", true, 16); store.Create("Library/Bee", true, 16);
+            Guid id = store.Create("Library/Bee/cache", false, 32).Id;
+            store.Write(id, 0, expected.AsSpan(0, 65536)); store.Write(id, 65536, expected.AsSpan(65536));
+            var before = store.Observe(); Array.Fill(expected, (byte)9, offset, count);
+            store.Write(id, 0, expected); var after = store.Observe();
+            Assert.Equal(before.PayloadBytes + count, after.PayloadBytes);
+            Assert.Equal(before.DurableSequence + 1, after.DurableSequence);
+            Assert.Equal(before.Metrics!.FlushCount + 1, after.Metrics!.FlushCount);
+            Assert.Equal(0, after.Metrics.BaseReadBytes); Assert.Equal(0, tree.ReadBytes);
+            Assert.Equal(0, store.ObserveChanges(["Library"]).Sequence);
+            current = store.Get(id);
+        }
+        using var replay = new JournalDeltaStore(root.Path, identity, tree);
+        Assert.Equal(current, replay.Stat(current.Path));
+        byte[] actual = new byte[expected.Length]; Assert.Equal(actual.Length, replay.Read(current.Id, 0, actual));
+        Assert.Equal(expected, actual); Assert.Equal(0, tree.ReadBytes);
+    }
+
+    [Theory]
+    [InlineData("commit.after-header", false)]
+    [InlineData("commit.after-flush", true)]
+    public void InterruptedTrimmedWriteRecoversOneAcknowledgedEnvelope(string boundary, bool committed)
+    {
+        using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        var observer = new Observer(); var identity = new OverlayIdentity(1, "edge-interrupted", tree.Snapshot, 100000, 32768);
+        byte[] expected = new byte[32768]; expected[16000] = 1;
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, observer))
+        {
+            Guid id = store.Create("file", false, 32).Id; store.Write(id, 0, new byte[expected.Length]);
+            observer.FailAt = boundary; Assert.Throws<IOException>(() => store.Write(id, 0, expected));
+            Assert.Equal("write", observer.Reached!.Operation); Assert.Equal(1, observer.Reached.PayloadBytes);
+            Assert.Equal("DeltaReconnectRequired", Assert.Throws<WorkspaceException>(() => store.Write(id, 0, [9])).Code);
+        }
+        using var replay = new JournalDeltaStore(root.Path, identity, tree);
+        Assert.Equal(committed ? 3 : 2, replay.Observe().DurableSequence);
+        Assert.Equal(expected.Length + (committed ? 1 : 0), replay.Observe().PayloadBytes);
+        byte[] actual = new byte[expected.Length]; replay.Read(replay.Stat("file")!.Id, 0, actual);
+        if (!committed) expected[16000] = 0;
+        Assert.Equal(expected, actual); Assert.Equal(0, tree.ReadBytes);
+    }
+
     [Fact]
     public void RepeatedPrivateContentKeepsPayloadAndStillCommitsMetadataAcrossReplay()
     {
@@ -77,7 +129,7 @@ public sealed class JournalDuplicateWriteTests
         store.Write(id, 0, bytes); store.Write(id, 0, bytes);
         Assert.Equal(bytes.Length, store.Observe().PayloadBytes);
         Assert.Equal(3, store.Observe().DurableSequence);
-        long length = store.Observe().JournalBytes; bytes[^1] = 1;
+        long length = store.Observe().JournalBytes; Array.Fill(bytes, (byte)1);
         Assert.Equal("DeltaFull", Assert.Throws<WorkspaceException>(() => store.Write(id, 0, bytes)).Code);
         Assert.Equal(length, store.Observe().JournalBytes); Assert.Equal(3, store.Observe().DurableSequence);
         byte[] actual = new byte[bytes.Length]; store.Read(id, 0, actual); Assert.All(actual, value => Assert.Equal(0, value));

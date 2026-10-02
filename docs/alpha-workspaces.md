@@ -17,6 +17,8 @@ splinter workspace status --id <응답의 workspace.id> --home <상태 경로>
 
 `data.application.ready=true`가 될 때까지 10초 정도 간격을 두고 status를 조회한다. 최초 기준본의 cold 준비는 패키지 해석과 새 Library 임포트에 수 분이 걸릴 수 있다. CoW 작업도 경로 변경과 소유 브리지 추가에 따른 갱신이 필요하다. `running=true`와 로그 진행이 유지되면 짧은 대기만으로 실패로 판정하지 않는다. **반환된 `data.workspace.path`에서만** 수정한다. 원본 경로나 다른 작업자의 경로를 수정하지 않는다. Editor가 필요하지 않으면 `--editor`를 생략하고 나중에 `unity start --id`로 연다.
 
+`unity start`와 `ensure --editor`의 실행 응답은 소스 검증 요청이 아니다. 일반 status와 같이 `sourceVerification=not-checked`를 반환하며 새 pending validation 결과가 있으면 기존 현재 소스 검사를 수행한다. refresh·명시적 현재 검사·checkpoint/integrate의 검증은 유지한다. 시작 접수와 준비·현재 컴파일 성공을 구분한다.
+
 fixture의 Unity `6000.3.22f1`은 C# 9 문법을 사용한다. 예를 들어 file-scoped namespace 대신 `namespace Example { ... }`를 쓴다. 다른 Unity 패치의 실행 검증은 별도다.
 
 ```text

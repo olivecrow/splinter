@@ -81,7 +81,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 store.Save(record, "created");
             }
             if (editor) await StartCoreAsync(record, ct);
-            return await ViewAsync(record, ct);
+            return await ViewAsync(record, ct, verifySource: !editor);
         }
         catch (Exception ex)
         {
@@ -108,7 +108,10 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
         RequireLive(record);
-        try { await StartCoreAsync(record, ct); return await ViewAsync(record, ct); }
+        // Starting an Editor is not a source-validation request. Import may
+        // legitimately change source metadata immediately after launch; a
+        // completed pending validation still gets its normal fresh inspection.
+        try { await StartCoreAsync(record, ct); return await ViewAsync(record, ct, verifySource: false); }
         catch (Exception ex)
         {
             RecordFailure(record, ex);

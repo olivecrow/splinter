@@ -137,7 +137,7 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     }
     public override int Read(object fileNode, object fileDesc, IntPtr buffer, ulong offset, uint length, out uint bytesTransferred)
     {
-        bytesTransferred = 0; byte[] data = ArrayPool<byte>.Shared.Rent(store.Identity.MaxTransferBytes);
+        bytesTransferred = 0; byte[] data = ArrayPool<byte>.Shared.Rent((int)Math.Min(Math.Max(length, 1u), (uint)store.Identity.MaxTransferBytes));
         try
         {
             while (bytesTransferred < length)
@@ -160,7 +160,7 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
             if (writeToEndOfFile) offset = (ulong)entry.Length;
             if (constrainedIo) length = offset >= (ulong)entry.Length ? 0 : (uint)Math.Min(length, (ulong)entry.Length - offset);
             Visit("callback.before-effect", "write", entry.Path, length, 0);
-            byte[] data = ArrayPool<byte>.Shared.Rent(store.Identity.MaxTransferBytes);
+            byte[] data = ArrayPool<byte>.Shared.Rent((int)Math.Min(Math.Max(length, 1u), (uint)store.Identity.MaxTransferBytes));
             try
             {
                 while (bytesTransferred < length)

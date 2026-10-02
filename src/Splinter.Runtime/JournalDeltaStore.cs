@@ -209,18 +209,21 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             long end = checked(offset + data.Length);
             if (data.IsEmpty) return;
             var updated = node.Entry with { Length = Math.Max(node.Entry.Length, end), LastWriteTime = DateTime.UtcNow.ToFileTimeUtc() };
-            if (!readOnly && MatchesPrivateRange(node, offset, data))
+            int firstChanged = 0, changedLength = data.Length;
+            if (!readOnly) FindPrivateChanges(node, offset, data, out firstChanged, out changedLength);
+            if (changedLength == 0)
                 // The referenced bytes were already durably acknowledged. Still
                 // commit the new timestamp/path sequence and flush this frame.
                 Commit(new(sequence + 1, "metadata", updated), []);
-            else Commit(new(sequence + 1, "write", updated, offset), data);
+            else Commit(new(sequence + 1, "write", updated, offset + firstChanged), data.Slice(firstChanged, changedLength));
         }
     }
 
-    private bool MatchesPrivateRange(Node node, long offset, ReadOnlySpan<byte> data)
+    private void FindPrivateChanges(Node node, long offset, ReadOnlySpan<byte> data, out int firstChanged, out int changedLength)
     {
+        firstChanged = 0; changedLength = data.Length;
         long end = offset + data.Length;
-        if (end > node.Entry.Length) return false;
+        if (end > node.Entry.Length) return;
         var extents = node.Extents;
         int low = 0, high = extents.Count;
         while (low < high)
@@ -235,12 +238,13 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         long cursor = offset;
         for (int i = first; cursor < end; i++)
         {
-            if (i == extents.Count || extents[i].Start > cursor) return false;
+            if (i == extents.Count || extents[i].Start > cursor) return;
             cursor = Math.Min(end, extents[i].Start + extents[i].Length);
         }
         byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Min(65536, data.Length));
         try
         {
+            int firstDifference = data.Length, lastDifference = -1;
             cursor = offset;
             for (int i = first; cursor < end; i++)
             {
@@ -250,11 +254,27 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     int count = (int)Math.Min(65536, until - cursor);
                     var comparison = buffer.AsSpan(0, count);
                     ReadExactly(extent.JournalOffset + cursor - extent.Start, comparison);
-                    if (!comparison.SequenceEqual(data.Slice((int)(cursor - offset), count))) return false;
+                    int at = (int)(cursor - offset);
+                    var incoming = data.Slice(at, count);
+                    if (!comparison.SequenceEqual(incoming))
+                    {
+                        int firstByte = 0, last = count - 1;
+                        while (comparison[firstByte] == incoming[firstByte]) firstByte++;
+                        while (comparison[last] == incoming[last]) last--;
+                        firstDifference = Math.Min(firstDifference, at + firstByte);
+                        lastDifference = at + last;
+                    }
                     cursor += count;
                 }
             }
-            return true;
+            if (lastDifference < 0) changedLength = 0;
+            else if (data.Length - (lastDifference - firstDifference + 1) >= 4096)
+            {
+                // Keep one ordinary write frame/flush for the callback. Reuse
+                // only already acknowledged private edges, and avoid extra
+                // extent splits for tiny payload savings.
+                firstChanged = firstDifference; changedLength = lastDifference - firstDifference + 1;
+            }
         }
         finally { ArrayPool<byte>.Shared.Return(buffer); }
     }
