@@ -7,6 +7,7 @@ public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Sourc
 {
     public SnapshotRecoveryDecision? Recovery => Workspace.StorageMode == "ntfs-snapshot" ? SnapshotRecoveryDecision.For(Workspace) : null;
     public string SourceVerification => Source is null ? "not-checked" : "verified";
+    public OriginalApplyPlan? OriginalApplyPlan { get; init; }
 }
 
 public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceProvider sources, IApplicationWorkspaceProvider applications,
@@ -66,6 +67,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             throw new WorkspaceException("RequestKeyConflict", "This key already belongs to another request. Reuse its original parameters or choose a new task key.");
         if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(id), "workspace list");
         RequireNotDiscarding(record);
+        record.OriginalApply?.RequireReclaimable(record);
         try
         {
             if (storageMode == "ntfs-snapshot")
@@ -171,6 +173,8 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             }
             return current;
         }
+        if (record.OriginalApply is not null)
+            throw new WorkspaceException("OriginalApplyResultFixed", "Preserve the fixed applied result and later edits; use a new task for another apply generation.");
         if (string.IsNullOrWhiteSpace(message)) throw new WorkspaceException("CommitMessageRequired", "A source checkpoint needs a nonempty message.");
         record.Phase = "collecting";
         store.Save(record, "checkpoint-intent");
@@ -198,7 +202,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
         if (record.SourceKind == "none")
-            throw new WorkspaceException("SourceIntegrationUnsupported", "File original-apply is not implemented. Retain the independent result; the original has not been touched.");
+            throw new WorkspaceException("SourceIntegrationUnsupported", "Plain-folder apply requires its separate plan, explicit intent and reviewed digest; a branch target alone cannot authorize it.");
         RequireLive(record);
         var current = await ViewAsync(record, ct);
         RequireSource(current);
@@ -243,6 +247,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
         RequireNotDiscarding(record);
+        record.OriginalApply?.RequireReclaimable(record);
         if (record.Phase == "released") return new(record, null, null, store.ControlPath(id), "workspace list");
         if (record.StorageMode == "ntfs-snapshot") return await ReleaseSnapshotWorkspaceAsync(record, ct);
         // Git can unregister a worktree before failing to delete every file.
@@ -321,9 +326,10 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 new { operationError = (ex as WorkspaceException)?.Code ?? ex.GetType().Name, stateError.Details }, stateError.RecoveryActions);
         }
     }
-    private static void RequireLive(WorkspaceRecord record)
+    private static void RequireLive(WorkspaceRecord record, bool allowOriginalApply = false)
     {
         RequireNotDiscarding(record);
+        if (!allowOriginalApply) record.OriginalApply?.RequireReclaimable(record);
         if (record.Phase == "released") throw new WorkspaceException("WorkspaceReleased", "This task is released. Use a new request key.");
         if (record.BaseRevision is null) throw new WorkspaceException("WorkspaceNotReady", "Resume workspace ensure with the original request key.");
         if (record.Snapshot?.Step.StartsWith("compact-", StringComparison.Ordinal) == true)

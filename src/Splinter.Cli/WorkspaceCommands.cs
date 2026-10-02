@@ -28,7 +28,7 @@ internal static class WorkspaceCommands
             var store = new WorkspaceStore(Home(parse)); IWorkspaceStorageProvider? storageProvider = development ? new RefsWorkspaceStorageProvider() : null;
             var git = new GitWorkspaceProvider(storageProvider, store, new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver);
             var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver);
-            var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store));
+            var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store, new WindowsOriginalFilePublisher()));
             return new(store, sources,
                 new SelectedApplicationProvider(new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners")))), storageProvider,
                 snapshots, preparationObserver, new WindowsWorkspaceDiscardProvider(sources, snapshots));
@@ -104,7 +104,34 @@ internal static class WorkspaceCommands
             respond(Result(command, view, false, Home(parse)));
         });
         Bind(workspace, "checkpoint", "--message", (runtime, id, extra) => runtime.CheckpointAsync(id, extra!, ct));
-        Bind(workspace, "integrate", "--target", (runtime, id, extra) => runtime.IntegrateAsync(id, extra ?? "development", ct));
+        var integrate = new Command("integrate", contracts.Find("workspace.integrate")!.Description);
+        var integrateId = new Option<string>("--id") { Required = true };
+        var integrateTarget = new Option<string>("--target"); var planOnly = new Option<bool>("--plan");
+        var applyIntent = new Option<string>("--intent-key"); var planDigest = new Option<string>("--expected-plan-digest");
+        integrate.Options.Add(integrateId); integrate.Options.Add(integrateTarget); integrate.Options.Add(planOnly);
+        integrate.Options.Add(applyIntent); integrate.Options.Add(planDigest); workspace.Subcommands.Add(integrate);
+        integrate.SetAction(async parse =>
+        {
+            const string command = "workspace.integrate"; select(command);
+            string id = parse.GetValue(integrateId)!; string? target = parse.GetValue(integrateTarget);
+            bool plan = parse.GetValue(planOnly); string? intent = parse.GetValue(applyIntent), digest = parse.GetValue(planDigest);
+            if (!Validate(command, new { id, target, plan, intentKey = intent, expectedPlanDigest = digest })) return;
+            var record = new WorkspaceStore(Home(parse)).Get(id); var runtime = Runtime(parse);
+            WorkspaceView view;
+            if (record.SourceKind == "none")
+            {
+                if (target != "original" || !plan && (intent is null || digest is null))
+                    throw new WorkspaceException("OriginalApplyRequestInvalid", "Use --target original --plan, then the explicit intent key and exact returned plan digest.");
+                view = plan ? await runtime.PlanOriginalAsync(id, ct) : await runtime.ApplyOriginalAsync(id, intent!, digest!, ct);
+            }
+            else
+            {
+                if (plan || intent is not null || digest is not null)
+                    throw new WorkspaceException("OriginalApplyRequestInvalid", "Original-apply options belong to the selected plain-folder source only.");
+                view = await runtime.IntegrateAsync(id, target ?? "development", ct);
+            }
+            respond(Result(command, view, false, Home(parse)));
+        });
         Bind(workspace, "release", null, (runtime, id, _) => runtime.ReleaseAsync(id, ct));
         var discardCommand = new Command("discard", contracts.Find("workspace.discard")!.Description);
         var discardId = new Option<string>("--id") { Required = true };
@@ -230,6 +257,7 @@ internal static class WorkspaceCommands
             command == "workspace.discard" && view.Workspace.Phase == "discard-reclaim-pending";
         string nextCommand = accepted ? "workspace.status" : view.NextCommand.Split(" --", 2)[0].Replace(' ', '.');
         if (!accepted && view.Recovery is { Disposition: not "ready" } recovery) nextCommand = recovery.NextCommand;
+        if (view.OriginalApplyPlan is not null || view.Workspace.OriginalApply is { Completed: false }) nextCommand = "workspace.integrate";
         object data = new
         {
             workspace = Summary(view.Workspace),
@@ -243,11 +271,15 @@ internal static class WorkspaceCommands
                 view.Application.Running, view.Application.Ready, view.Application.Phase,
                 processId = view.Application.Lease?.ProcessId, view.Application.Resources
             },
-            view.ControlPath, nextCommand, view.Recovery, view.SourceVerification,
+            view.ControlPath, nextCommand, view.Recovery, view.SourceVerification, view.OriginalApplyPlan,
             isolation = "private-project-and-library; shared user preferences and external services are not sandboxed"
         };
         var response = ApiResponse.Success(command, data);
-        object nextArguments = nextCommand == "workspace.ensure"
+        object nextArguments = nextCommand == "workspace.integrate" && view.Workspace.SourceKind == "none"
+            ? view.Workspace.OriginalApply is { } apply
+                ? new { id = view.Workspace.Id, target = "original", apply.IntentKey, expectedPlanDigest = apply.Plan.Digest, home }
+                : (object)new { id = view.Workspace.Id, target = "original", plan = true, home }
+            : nextCommand == "workspace.ensure"
             ? new { project = view.Workspace.ProjectPath, key = view.Workspace.RequestKey, baseReference = view.Workspace.BaseReference,
                 source = view.Workspace.SourceKind, application = view.Workspace.ApplicationKind,
                 storage = view.Workspace.StorageMode, baseline = view.Workspace.BaselineId, maxJournalBytes = view.Workspace.Snapshot?.MaxJournalBytes, home }
@@ -268,7 +300,7 @@ internal static class WorkspaceCommands
     {
         record.Version, record.Id, record.RequestKey, record.ProjectPath, record.Path, record.SourceKind, record.ApplicationKind, record.SourceReference, record.BaseReference,
         record.BaseRevision, record.Phase, record.CreatedAt, record.UpdatedAt, record.StorageMode, record.Purpose, record.BaselineId, record.CloneMetrics, record.ReleasedResources,
-        record.RequestDigest, record.Snapshot, record.Discard, record.ResultStorage,
+        record.RequestDigest, record.Snapshot, record.Discard, record.ResultStorage, record.OriginalApply,
         processId = record.Application?.ProcessId,
         record.ResultRevision, record.IntegratedRevision, record.LastError
     };

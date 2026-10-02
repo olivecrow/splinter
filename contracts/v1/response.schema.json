@@ -749,6 +749,7 @@
             "reconcile-owned-state",
             "owned-source-commit",
             "original-target-merge",
+            "plan:read-only; Git:original-target-merge; plain-folder:conditional-per-path-publication",
             "owned-editor-and-worktree-removal",
             "owned-editor-start",
             "owned-editor-compile",
@@ -767,6 +768,7 @@
             "new-evidence-path; resume-with-original-workspace.ensure",
             "same-workspace-and-source",
             "same-workspace-and-target",
+            "Git:same-workspace-and-target; plain-folder:exact-intent-and-plan-digest",
             "idempotent-release",
             "same-workspace",
             "same-pending-request",
@@ -906,7 +908,7 @@
           "required":["basis","result","inspection","originalApply","qualification"],
           "properties": {
             "basis":{"type":"string"}, "result":{"type":"string"}, "inspection":{"type":"string"},
-            "originalApply":{"const":"unavailable-before-side-effects"}, "qualification":{"type":"string"}
+            "originalApply":{"const":"explicit-plan-and-intent; editorless-windows-ntfs"}, "qualification":{"type":"string"}
           }
         },
         "storageModes": {
@@ -1216,6 +1218,7 @@
           "pattern": "^[a-f0-9]{24}$"
         },
         "discard": {"$ref": "urn:splinter:v1:workspace-discard-state"},
+        "originalApply": {"$ref": "urn:splinter:v1:original-apply-state"},
         "requestKey": {
           "type": "string",
           "minLength": 1
@@ -1356,6 +1359,7 @@
         "isolation"
       ],
       "properties": {
+        "originalApplyPlan": {"$ref": "urn:splinter:v1:original-apply-plan"},
         "sourceVerification": {
           "enum": [
             "not-checked",

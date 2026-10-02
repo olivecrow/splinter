@@ -11,9 +11,90 @@
     "target": {
       "type": "string",
       "minLength": 1
+    },
+    "plan": {
+      "type": "boolean"
+    },
+    "intentKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "expectedPlanDigest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
     }
   },
   "required": [
     "id"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "plan": {
+            "const": true
+          }
+        },
+        "required": [
+          "plan"
+        ]
+      },
+      "then": {
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "target": {
+            "const": "original"
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "intentKey"
+              ]
+            },
+            {
+              "required": [
+                "expectedPlanDigest"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "anyOf": [
+          {
+            "required": [
+              "intentKey"
+            ]
+          },
+          {
+            "required": [
+              "expectedPlanDigest"
+            ]
+          }
+        ]
+      },
+      "then": {
+        "required": [
+          "target",
+          "intentKey",
+          "expectedPlanDigest"
+        ],
+        "properties": {
+          "target": {
+            "const": "original"
+          },
+          "plan": {
+            "const": false
+          }
+        }
+      }
+    }
   ]
 }

@@ -94,13 +94,13 @@
     },
     {
       "id": "workspace.integrate",
-      "description": "Integrate the exact Git result into a clean target branch. Plain-folder original-apply is rejected before side effects.",
-      "cliUsage": "splinter workspace integrate --id <id> [--target development] [--home <state-root>]",
+      "description": "Integrate an exact Git result into its clean branch, or explicitly plan/apply a plain-folder result to its fixed original (editorless Windows NTFS).",
+      "cliUsage": "splinter workspace integrate --id <id> [--target <Git-branch|original>] [--plan | --intent-key <key> --expected-plan-digest <digest>] [--home <state-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-integrate-request",
       "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "original-target-merge",
-      "retry": "same-workspace-and-target"
+      "sideEffects": "plan:read-only; Git:original-target-merge; plain-folder:conditional-per-path-publication",
+      "retry": "Git:same-workspace-and-target; plain-folder:exact-intent-and-plan-digest"
     },
     {
       "id": "workspace.release",

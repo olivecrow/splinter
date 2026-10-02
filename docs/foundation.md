@@ -4,7 +4,7 @@ Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트�
 
 제품 시작점은 [AI 안내](agent-start.md)와 `scripts/splinter.ps1`이다. ReFS/진단·공통 Library view·spike/probe는 [개발 CLI](development-cli.md)로 분리했다. 기존 verification은 해당 후보/입력의 근거이며 변경된 계약의 native 자격을 자동 부여하지 않는다.
 
-병렬 격리와 범위 저장은 Splinter의 공통 저장소 계층이 제공한다. 소스 공급자는 선택한 VCS 관리 정보와 Splinter 작업의 기준·결과·회수 사이의 안전 경계를 담당한다. 제품 CLI는 Git 또는 VCS 없는 일반 폴더를 명시적으로 선택한다. 소스/application 종류와 opaque 기준/결과 identity를 v2 작업 상태에 고정하고, 일반 폴더는 불변 파일 manifest·작업별 독립 payload를 사용한다. 실패 시 다른 소스로 fallback하지 않는다. 현재 제약과 실제 자격은 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. Git 원격 등록은 불필요하며 Plastic 사용 환경의 호환 처리와 일반 폴더 원본 apply는 미구현이다.
+병렬 격리와 범위 저장은 Splinter의 공통 저장소 계층이 제공한다. 소스 공급자는 선택한 VCS 관리 정보와 Splinter 작업의 기준·결과·회수 사이의 안전 경계를 담당한다. 제품 CLI는 Git 또는 VCS 없는 일반 폴더를 명시적으로 선택한다. 소스/application 종류와 opaque 기준/결과 identity를 v2 작업 상태에 고정하고, 일반 폴더는 불변 파일 manifest·작업별 독립 payload를 사용한다. 실패 시 다른 소스로 fallback하지 않는다. 현재 제약과 실제 자격은 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. Git 원격 등록은 불필요하며 Plastic 사용 환경의 호환 처리는 미구현이다. 일반 폴더의 editorless [원본 apply](plain-folder-original-apply.md)는 계획/intent·조건부 Windows 게시를 제공하며 실제 제품 A/B는 별도 미자격이다.
 
 ## 구조와 의존성
 
@@ -45,7 +45,7 @@ workspace/baseline 상태와 Windows 제어 IPC는 같은 디렉터리에 flush�
 | `workspace ensure/list/status` | NTFS 생성/같은 요청 재개·저장 목록·소유 자원 관측 |
 | `workspace status --verify-source/--audit-source` | 현재 내용 hash 확인/전체 감사 |
 | `workspace checkpoint` | 소유 Editor 정상 stop·안정된 소스 checkpoint·독립 결과. 컴파일/테스트 성공 불필요 |
-| `workspace integrate` | 정확한 보존 결과·현재 소스·깨끗한 대상 branch·저장소 잠금과 Git merge |
+| `workspace integrate` | Git의 정확한 결과·깨끗한 branch merge 또는 editorless 일반 폴더의 `--target original --plan`/고정 intent·digest 조건부 게시 |
 | `workspace compact` | 정상 stop/unmount·seal·명시적 예산으로 private 저널 정리 |
 | `workspace release/discard` | 독립 결과 보존 뒤 회수/명시적 결과 폐기. peer와 공유 의존성 보호 |
 | `unity start/stop` | 해당 workspace Editor의 수명. 준비/종료는 상태 관측으로 확인 |
@@ -79,4 +79,4 @@ locked restore·Release·자동 계약/fake/Git/Windows 회귀를 수행한다. 
 
 ## 다음 구현 경계
 
-[구현 계획](plans/implementation-plan.md)을 따른다. VCS 중립 계약·일반 폴더의 기본 수명주기·기존 Git 사용 환경의 보호 경계는 작은 A/B 한 묶음의 제한을 명시해 마감했다. 다음 기능 단위는 일반 폴더의 안전한 원본 반영이며 Plastic 사용 환경의 호환 처리와 외부 도구의 별도 전체 인계 검증은 후속이다. 저장/메모리는 실제 관측 병목만 고른다. 마감한 Git 기반 M0·대형 PV·전체 장애 카탈로그를 자동 재개하지 않는다.
+[구현 계획](plans/implementation-plan.md)을 따른다. VCS 중립 계약·일반 폴더의 기본 수명주기·기존 Git 사용 환경의 보호 경계는 작은 A/B 한 묶음의 제한을 명시해 마감했다. 현재 기능 단위는 [일반 폴더의 안전한 원본 반영](plain-folder-original-apply.md)의 구현·자동 시험과 미실행 제품 A/B를 구분하며 Plastic 사용 환경의 호환 처리와 외부 도구의 별도 전체 인계 검증은 후속이다. 저장/메모리는 실제 관측 병목만 고른다. 마감한 Git 기반 M0·대형 PV·전체 장애 카탈로그를 자동 재개하지 않는다.

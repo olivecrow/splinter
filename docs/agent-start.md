@@ -1,6 +1,6 @@
 # 한정 버전 AI 시작 안내
 
-현재 `--source none`의 일반 폴더 경로와 v2 상태/서비스 패키지는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
+현재 `--source none`의 일반 폴더 경로와 v2 상태/서비스 패키지는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. Editor 없는 원본 반영은 [계획/intent 사용법](plain-folder-original-apply.md)의 정확한 digest·최신 서비스 guard와 별도 제품 A/B 미자격을 확인한다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
 
 현재 제공물은 **등록된 Windows x64 NTFS/Git/Unity 환경의 개발 CLI와 저장소 사용 스킬**이다. 에이전트는 [스킬 원본](../skills/splinter/SKILL.md)을 먼저 읽고, 독립 실행이 필요한 지속 작업에만 workspace를 사용한다. 현재 경로에서 안전하게 작업할 수 있으면 direct로 작업한다. 실행 자격과 M0 완료 판정은 [한정 납품 검증](verification/m0-delivery.md)이 소유한다.
 

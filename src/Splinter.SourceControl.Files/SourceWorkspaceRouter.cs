@@ -5,7 +5,7 @@ namespace Splinter.SourceControl.Files;
 // Selection is durable. An adapter failure is propagated, never reinterpreted
 // as a request for another source mode.
 public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWorkspaceProvider files) :
-    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider
+    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider
 {
     private ISourceWorkspaceProvider For(WorkspaceRecord w) => w.SourceKind switch
     { "git" => git, "none" => files, _ => throw new WorkspaceException("SourceSelectionUnsupported", "Unknown durable source kind.") };
@@ -17,6 +17,8 @@ public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWork
     public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default) => For(w).InspectAsync(w, ct);
     public Task<string> CheckpointAsync(WorkspaceRecord w, string message, CancellationToken ct = default) => For(w).CheckpointAsync(w, message, ct);
     public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string target, CancellationToken ct = default) => For(w).IntegrateAsync(w, target, ct);
+    public Task<OriginalApplyPlan> PlanOriginalAsync(WorkspaceRecord w, CancellationToken ct = default) => files.PlanOriginalAsync(w, ct);
+    public Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord w, string key, string digest, CancellationToken ct = default) => files.ApplyOriginalAsync(w, key, digest, ct);
     public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) => For(w).ReleaseAsync(w, ct);
     public Task<string> PreflightAsync(WorkspaceRecord w, CancellationToken ct = default) => Snapshot(w).PreflightAsync(w, ct);
     public Task RegisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Snapshot(w).RegisterAsync(w, c, ct);

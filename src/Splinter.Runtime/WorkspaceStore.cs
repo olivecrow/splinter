@@ -110,6 +110,11 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         else if (record.Phase is "discarding" or "discard-reclaim-pending" or "discarded" ||
             record.Snapshot?.Step.StartsWith("discard", StringComparison.Ordinal) == true)
             throw new WorkspaceException("DiscardIntentMismatch", "Preserve discard state: its durable intent is missing.");
+        record.OriginalApply?.RequireMatch(record);
+        if (record.SourceKind == "none" &&
+            (record.Phase is "integrating" or "integrated" && record.OriginalApply is null ||
+             record.IntegratedRevision is not null && (record.OriginalApply?.Completed != true || record.IntegratedRevision != record.ResultRevision)))
+            throw new WorkspaceException("OriginalApplyStateInvalid", "Preserve the original-apply record: its fixed intent or completion receipt is missing.");
         if (record.Snapshot?.Result is { } result && result.CollectionProtocol != SnapshotResult.StableJournalProtocol)
             throw new WorkspaceException("StateCorrupt", "The result collection protocol is invalid. Preserve the record and its resources.");
         if (record.StorageMode == "ntfs-snapshot" && (record.Snapshot is null ||

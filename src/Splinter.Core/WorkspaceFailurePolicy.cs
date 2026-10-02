@@ -5,6 +5,8 @@ public static class WorkspaceFailurePolicy
 {
     public static bool RequiresPreservation(string? code) => code is
         "FileSourceStateInvalid" or "FileResultIncomplete" or
+        "OriginalApplyStateInvalid" or "OriginalApplyPending" or "OriginalApplyRequestConflict" or "OriginalApplyConflict" or
+        "OriginalApplyNativeFailure" or "OriginalApplyPlanChanged" or "OriginalApplyResultFixed" or "OriginalApplyResourcesPresent" or
         "DiscardIntentMismatch" or "DiscardDeltaChanged" or "DiscardSourceChanged" or "DiscardRequestConflict" or "StorageDiscardNotAuthorized" or
         "DeltaChangedAfterCollection" or "SnapshotResultInvalid" or "StateCorrupt" or
         "SnapshotReclamationInvalid" or "SnapshotCollateralLoss" or "CompactionGenerationMismatch" or

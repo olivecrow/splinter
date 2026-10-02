@@ -10,6 +10,7 @@ public sealed partial class WorkspaceCoordinator
             throw new WorkspaceException("InvalidRequestKey", "Use a stable discard intent key between 1 and 128 characters.");
         using var gate = await store.LockAsync(request.Id, ct);
         var w = store.Get(request.Id);
+        w.OriginalApply?.RequireReclaimable(w);
         if (w.RequestDigest is null || request.ExpectedRequestDigest != w.RequestDigest)
             throw new WorkspaceException("DiscardRequestConflict", "Confirm the workspace request digest before discarding this task.");
         if (w.Discard is { } prior && prior.Intent.IntentKey != request.IntentKey)

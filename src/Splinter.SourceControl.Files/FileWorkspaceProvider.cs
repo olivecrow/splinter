@@ -8,8 +8,8 @@ namespace Splinter.SourceControl.Files;
 
 // Content is read at admission/inspection, but only explicit result collection
 // stores payloads. This adapter never creates a checkout or invokes a VCS.
-public sealed class FileWorkspaceProvider(WorkspaceStore store) : ISourceWorkspaceProvider,
-    ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider
+public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOriginalFilePublisher? originalPublisher = null) : ISourceWorkspaceProvider,
+    ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
@@ -29,7 +29,9 @@ public sealed class FileWorkspaceProvider(WorkspaceStore store) : ISourceWorkspa
             foreach (string name in VcsMetadata)
                 if (File.Exists(Path.Combine(path, name)) || Directory.Exists(Path.Combine(path, name)))
                     throw new WorkspaceException("VcsMetadataUnsupported", "The plain-folder path cannot contain or inherit VCS administration.");
-        _ = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true);
+        var entries = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true);
+        if (entries.Any(e => e.Path.Split('/').Any(p => p.StartsWith(".splinter-apply-", StringComparison.OrdinalIgnoreCase))))
+            throw new WorkspaceException("OriginalApplyResourcesPresent", "Preserve unresolved original publication resources; do not capture them as a new task's source.");
         return Task.FromResult("snapshot:" + w.Id);
     }
     public Task RegisterAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
@@ -309,7 +311,7 @@ public sealed class FileWorkspaceProvider(WorkspaceStore store) : ISourceWorkspa
     public Task<string> ResolveRevisionAsync(string project, string reference, CancellationToken ct = default) => throw Error("A file basis requires immutable capture.");
     public Task<string> SnapshotKeyAsync(string project, string revision, string[] paths, CancellationToken ct = default) => throw Error("VCS cache baselines are unavailable for plain folders.");
     public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw Error("No checkout or full-copy fallback is available.");
-    public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string target, CancellationToken ct = default) => throw new WorkspaceException("SourceIntegrationUnsupported", "Safe file original-apply is deferred.");
+    public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string target, CancellationToken ct = default) => throw new WorkspaceException("SourceIntegrationUnsupported", "Use the original-apply plan and exact intent/digest contract; branch integration cannot authorize original writes.");
     public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) => throw Error("Use the sealed NTFS release lifecycle.");
 }
 

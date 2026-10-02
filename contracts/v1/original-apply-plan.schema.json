@@ -1,0 +1,222 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "ownerId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24}$"
+    },
+    "requestDigest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "basis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "result": {
+      "type": "string",
+      "minLength": 1
+    },
+    "projectPath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "projectIdentity": {
+      "type": "string",
+      "minLength": 1
+    },
+    "changes": {
+      "type": "array",
+      "maxItems": 32768,
+      "items": {
+        "$ref": "#/$defs/change"
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    }
+  },
+  "required": [
+    "version",
+    "ownerId",
+    "requestDigest",
+    "basis",
+    "result",
+    "projectPath",
+    "projectIdentity",
+    "changes",
+    "conflicts",
+    "digest"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:original-apply-plan",
+  "$defs": {
+    "fileVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "file",
+            "directory"
+          ]
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "attributes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "modifiedUtcTicks": {
+          "type": "integer",
+          "minimum": 504911232000000000
+        }
+      },
+      "required": [
+        "kind",
+        "length",
+        "attributes",
+        "modifiedUtcTicks"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "file"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "hash"
+            ],
+            "properties": {
+              "hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "length": {
+                "const": 0
+              },
+              "hash": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "$ref": "#/$defs/fileVersion"
+        }
+      },
+      "required": [
+        "identity",
+        "version"
+      ]
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "before": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/fileVersion"
+            }
+          ]
+        },
+        "after": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/fileVersion"
+            }
+          ]
+        },
+        "expected": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/observation"
+            }
+          ]
+        },
+        "alreadyMatches": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "alreadyMatches"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "before"
+          ],
+          "properties": {
+            "before": {
+              "$ref": "#/$defs/fileVersion"
+            }
+          }
+        },
+        {
+          "required": [
+            "after"
+          ],
+          "properties": {
+            "after": {
+              "$ref": "#/$defs/fileVersion"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -28,6 +28,6 @@ pwsh ./scripts/splinter.ps1 workspace ensure --project <등록된 일반 폴더>
 
 ## 반영·회수·폐기
 
-VCS 없는 `workspace integrate`는 상태 변경·Editor stop·원본 쓰기 전에 `SourceIntegrationUnsupported`로 거부한다. 기준/결과/최신 원본 비교를 사용하는 안전한 apply는 [후속 계획](plans/implementation-plan.md#이후-순서와-원본-반영-원칙)이다.
+VCS 없는 `workspace integrate --target original --plan`은 정확한 checkpoint·기준/결과/현재 원본을 비교하는 읽기 전용 계획이다. `application=none`에서만 명시적 intent key와 검토 digest로 조건부 원본 반영을 실행한다. 전체 계약·중단/회수 guard·메타데이터와 실제 자격 제한은 [원본 반영](plain-folder-original-apply.md)을 따른다. Unity application·branch 대상·intent 없는 실행은 부작용 전에 거부한다.
 
 release는 실제 독립 payload 검증, 정상 stop·소유 자원 0·unmount 후 seal·delta 부재·snapshot 의존성/격리 guard를 유지한다. 제한 서비스도 같은 고정 owner/basis/result와 내용을 확인한다. 회수 지연/unknown은 완료나 0이 아니다. 명시적 discard는 별도 intent·seal·완료된 file-source 영수증과 기존 별도 authorization을 사용하며 이미 보존한 독립 결과를 지우지 않는다. 같은 intent 재시도만 허용하고 원본·peer·공유 자원을 삭제하지 않는다.

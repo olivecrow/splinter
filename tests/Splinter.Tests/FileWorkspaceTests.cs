@@ -8,7 +8,7 @@ namespace Splinter.Tests;
 
 // Real file-source adapter with a synthetic snapshot backend. Copying here is
 // test fixture setup only; it does not qualify VSS/WinFsp or Editor behavior.
-public sealed class FileWorkspaceTests
+public sealed partial class FileWorkspaceTests
 {
     [Fact]
     public async Task OrdinaryFolderResumesKeepsCapturedBasisAndPreservesActualBytesWithoutGit()
@@ -188,8 +188,10 @@ public sealed class FileWorkspaceTests
         public WorkspaceStore Store { get; }
         public Backend Backend { get; } = new();
         public ForbiddenGit Git { get; } = new();
-        public Fixture()
+        private readonly IOriginalFilePublisher? publisher;
+        public Fixture(IOriginalFilePublisher? publisher = null)
         {
+            this.publisher = publisher;
             Project = Path.Combine(directory.Path, "source"); Store = new(Path.Combine(directory.Path, "home"));
             Directory.CreateDirectory(Path.Combine(Project, "Library"));
             File.WriteAllText(Path.Combine(Project, "data.txt"), "basis");
@@ -197,7 +199,7 @@ public sealed class FileWorkspaceTests
         }
         public WorkspaceCoordinator New()
         {
-            var files = new FileWorkspaceProvider(Store);
+            var files = new FileWorkspaceProvider(Store, publisher);
             return new(Store, new SourceWorkspaceRouter(Git, files), new SelectedApplicationProvider(new NoApplication()),
                 snapshots: Backend, discardProvider: new Discard(files, Backend));
         }

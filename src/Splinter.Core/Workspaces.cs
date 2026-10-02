@@ -39,6 +39,7 @@ public sealed class WorkspaceRecord
     public SnapshotWorkspaceState? Snapshot { get; set; }
     public WorkspaceDiscardState? Discard { get; set; }
     public SourceResultStorage? ResultStorage { get; set; }
+    public OriginalApplyState? OriginalApply { get; set; }
 }
 
 // Logical payload bytes of explicit result preservation, separate from the

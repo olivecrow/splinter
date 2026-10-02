@@ -1,0 +1,60 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "plan": {
+      "$ref": "urn:splinter:v1:original-apply-plan"
+    },
+    "intentKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "steps": {
+      "type": "array",
+      "maxItems": 32768,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "phase": {
+            "enum": [
+              "pending",
+              "staging",
+              "staged",
+              "retired",
+              "published",
+              "done"
+            ]
+          },
+          "stagedIdentity": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "stagedBytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "phase",
+          "stagedBytes"
+        ]
+      }
+    },
+    "completed": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "plan",
+    "intentKey",
+    "steps",
+    "completed"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:original-apply-state"
+}

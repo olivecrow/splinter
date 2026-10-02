@@ -274,6 +274,7 @@ public sealed partial class WorkspaceCoordinator
         using var gate = await store.LockAsync(id, ct);
         var w = store.Get(id);
         RequireNotDiscarding(w);
+        w.OriginalApply?.RequireReclaimable(w);
         if (w.StorageMode != "ntfs-snapshot")
             throw new WorkspaceException("CompactionUnsupported", "Only an NTFS snapshot workspace has a range journal.");
         var state = RequireSnapshot(w);

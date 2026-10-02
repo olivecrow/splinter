@@ -46,6 +46,7 @@ internal sealed class StorageAuthorityPaths : IDisposable
                 throw StorageAuthorityProtocol.Error("StorageOwnerMismatch", "The workspace references another snapshot.");
             if (request.Operation == "Release")
             {
+                workspace.OriginalApply?.RequireReclaimable(workspace);
                 if (request.Release?.Discard is not null) guard.RequireDiscard(grant, request, workspace, control);
                 else guard.RequireRelease(grant, request, workspace, control);
             }
