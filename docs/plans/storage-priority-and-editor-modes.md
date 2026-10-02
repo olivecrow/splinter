@@ -59,6 +59,8 @@ SF-03 전체 Partial은 유지한다. FIFO/Coordination·일반 임대 인수·�
 
 ## 다음 범위 판단
 
+현재 선택한 공간 후보는 [실제 Bee 입력의 독립 블록 압축](../verification/library-block-compression-feasibility.md)이다. 최근 UH A/B의 누적 저장은 payload가 대부분이고, 같은 Plastic fixture의 큰 Bee 4개 파일에서 충분한 압축 여지를 관측했다. 후보 선정과 [독립 codec](../verification/workspace-payload-codec.md)의 정확성·크기/버퍼 검증은 구분하며 실제 저널 저장/지원으로 승계하지 않는다. 후속 경계는 아래 제품 연결을 따른다.
+
 [부분 쓰기·버퍼·시작 개선](../verification/resource-efficiency-followup.md)은 private 덮어쓰기의 일치 앞뒤 재사용, 작은 I/O 버퍼 제한, Editor 시작과 현재 소스 검증의 분리 범위를 마감했다. 새/확장/전체 내용 변경의 Library 부담은 남으며 동일 입력의 고정 공간/대여 버퍼 대조와 작은 로컬 Unity 수명주기로만 판정한다. 전체 Library 절감률·Editor/시스템 RAM·준비 시간 SLA·OS 장애 지원을 승계하지 않는다. 다음 공간 대상은 실제 새/전체 변경 Library 기록에서 선택하며 같은 비교 반복·대형/원격/설치·장애 행렬을 자동 추가하지 않는다.
 
 [작은 Unity warm 비교](../verification/unity-duplicate-private-writes.md)는 같은 등록 입력의 두 편집·같은 ensure·정상 Editor 재시작·독립 결과 보존/release와 고정 Runtime 전후 파일 할당을 소유한다. 이 한 쌍을 마감했으며 종료 직전 저널의 관측 차이가 작아 동일 private 쓰기만으로 Library 용량 목표를 달성했다고 판정하지 않는다. 유효 private 데이터의 대부분이 Library라 후속 공간 작업은 남은 새/변경 Library 기록에서 실제 개선 대상 하나를 고른다. 같은 비교의 반복·대형/cold/원격·새 장애 행렬·설치/권한/볼륨 변경·원본 통합을 자동 추가하지 않는다. 합성 96.1%·시간 SLA·메모리 절감을 실제 결과로 승계하지 않는다.
@@ -68,6 +70,24 @@ Library의 마감 뒤 확정한 [NR-01/02 준비 단계 중단 복구](ntfs-reco
 [WF-06~08](../verification/product-validation-cold-cost.md)은 최종 후보의 두 빈 cache A/B/A·소유 파일 할당/시간·독립 결과/회수 근거를 제공한다. 렌더 준비에서 발생하는 설정 저장을 마친 뒤 같은 세대를 다시 시작해 검증하므로 이 추가 Editor 시작/종료도 반복 비용에 포함한다. 첫 두 시도의 실패와 관측 사이 순간 물리 최고치·공유 VSS 귀속의 한계를 유지한다.
 
 작은 Library 유효량·정리·재증가와 신규/재개 비용은 [WF/LB](../verification/product-validation-unelevated.md), M0 비용 판단은 [한정 납품](../verification/m0-delivery.md)의 범위로 마감했다. 후속 비용 작업은 실제 입력과 경로의 관측 병목만 고른다. [IPC](../verification/control-file-read-races.md)의 과거 t2 지점과 heartbeat 게시 오류 원인 미확정은 유지한다. 대형 공간·전체 NR/PV는 필요 시 검증이며 새 backend/flush 정책을 선행하지 않는다. 설치는 AI 절차이고 자동 binding은 구현 제외다.
+
+## 범위 payload codec과 다음 제품 연결
+
+제품 연결 전 **독립 범위 codec의 공통 계약/fake·정확성·손상/부분 읽기·크기/버퍼 경계와 고정 Bee 입력 대조**는 scoped-complete-with-limitations로 마감했다. 구현과 한정 판정은 [codec 검증](../verification/workspace-payload-codec.md)이 소유한다. 개발 capabilities/schema에 standalone 상태만 추가했고 기본 workspace·현재 저널 형식·설치된 서비스를 바꾸지 않았다. codec의 논리 표현 절감을 실제 workspace/NTFS 절감으로 읽지 않는다.
+
+다음 질문은 **압축 범위를 현재 append/ACK·독립 결과·원본/peer 보호에 연결해 실제 저널 파일 할당을 줄일 수 있는가**다. 포함과 종료 조건은 아래로 한정한다.
+
+| 포함 | 종료 기준 |
+| --- | --- |
+| 먼저 공통 frame/범위 계약과 fake 적합성 | encoded 물리 길이·decoded 논리 길이·fragment offset·metadata/checksum 비용·한 callback의 단일 승인/flush를 명시. codec 48B와 기존 checksum의 중복 비용을 계수하고 raw 선택이 같은 새 frame을 늘리지 않음. 부분 읽기의 block 전체 복원 비용/버퍼 상한을 유지 |
+| Runtime의 write/read/replay·정리/candidate 연결 | 현재 private 일치 앞뒤 재사용·부분 overlap/resize/delete/rename·내용/sequence/seal·동일 요청 재개·후보/정리 겹침 예산·독립 결과를 유지. 초기 전체 복제·snapshot 비교 읽기·read hydration·파일 전체 copy-up을 하지 않음 |
+| 현재 계약의 단일 버전 경계 | 필요한 현재 형식/version과 schema·fake·오류를 함께 갱신. 지원하지 않는 기존 기록/후보/저널은 변환/덮어쓰기 없이 보존·명시적 거부. 현재 보류 자원·결과를 임의 재작성/회수하거나 구버전 reader/fallback을 추가하지 않음 |
+| 변경된 실제 부작용의 작은 한 묶음 | 먼저 기존 고정 경계의 checksum/부분 frame/ACK/재생을 대조하고, 등록된 T: Plastic 입력/기존 home의 대표 A/B 한 쌍만 고정. 같은 작업 재개·정상 Editor stop·독립 결과·A 회수 중 B 지속·원본/등록/기존 결과·소유 자원 회수를 확인. 실행 전 정확한 key/바이너리/기준/예산을 보존 |
+| 실제 공간/메모리 판단 | raw/현재 후보의 같은 입력에서 정확한 journal 파일 할당·유효/대체 payload와 추가 metadata·buffer/소유 메모리·실패 비용을 분리. 공유 VSS/전체 peak·native codec memory의 미측정을 0으로 읽지 않음. 필수 빌드·schema/문서/UTF-8·diff 검사 |
+
+계약·내용/복구·한정 A/B·파일 할당의 전후 근거가 모두 있으면 이 제품 연결 단위만 마감한다. 수치가 증가하거나 기능/회수 실패가 남으면 실패 증거를 보존하고 해당 경계만 수정한다. 후보 선정의 83% 모델이나 standalone codec 표를 제품 절감률로 승계하지 않는다.
+
+제품 연결은 이번 독립 codec 구현에 자동 포함하지 않는다. 새 UAC/서비스/grant/볼륨·원본 통합/check-in·MCP·대형/ARM/OS 장애·flush/group commit·새 backend·작업 모드/큐/스케줄러·전체 메모리 최적화는 이 다음 단위에서도 제외한다. 설치/권한 변경이 실제로 필요하면 구체적 계획을 별도로 작성한다. 기존 C: 비소유 blocker와 보류 snapshot은 그대로 유지한다.
 
 ## 보존한 한정 범위: 일반 권한 Unity 검증 흐름
 

@@ -74,6 +74,12 @@ public sealed class FoundationGateway(
             inputs = "fixed synthetic serial-1024, parallel-4x256, and metadata-1024; 16 MiB journal limit per new directory",
             writes = "new directory only; retains journals; no automatic cleanup; not a workspace or Unity qualification",
             measurements = "per-operation live commit stages and waiting mutation samples; output bytes and read-only replay verified; no batching policy change" } : null,
+        developmentPayloadCodec = development ? new { stage = "standalone-not-journal-integrated",
+            contract = "IWorkspacePayloadCodec", codec = "splinter-range-brotli-v1",
+            maxDecodedBytes = 1048576, blockOverheadBytes = 48,
+            scope = "independent bounded block; raw or Brotli quality 1; complete validation before partial read; no workspace command or state/overlay format change",
+            specification = "docs/workspace-payload-codec.md",
+            qualification = "docs/verification/workspace-payload-codec.md; journal/NTFS/Unity workspace savings unqualified" } : null,
         snapshotOverlay = new
         {
             stage = "workspace-internal-alpha",

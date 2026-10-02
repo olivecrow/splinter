@@ -22,6 +22,7 @@
 
 - NTFS 생성·권한·회수: `docs/ntfs-workspaces.md`. Unity 절차: `docs/alpha-workspaces.md`. ReFS·프로세스 소유권: `docs/storage-and-resources.md`.
 - 실행 파일 cache의 `PrepareRunner`는 같은 home/내용 키의 7개 파일을 재사용하며 고정 크기 스트림으로 hash·복사·캐시 검사를 한다. 준비 중 원본 읽기 핸들만 유지하고 성공/실패 뒤 닫는다. 손상/소실 cache는 보존·거부하며 자동 재작성/이전 버전 sweep은 하지 않는다. 함수 관리 할당·동일 빌드 파일 할당·동시 게시 자격은 `docs/verification/runner-bundle-memory.md`를 따르며 Editor/전체 RAM·VSS/전체 공간 절감으로 확대하지 않는다.
+- `IWorkspacePayloadCodec`·`BrotliWorkspacePayloadCodec`는 `docs/workspace-payload-codec.md`의 독립 bounded block 구현이다. 현재 journal/workspace에 연결하지 않았고 개발 capabilities에만 이 범위를 표시한다. 실제 Bee 입력의 후보 선정·codec 적합성을 제품 공간 절감/현재 형식의 native 지원으로 승계하지 않는다. 제품 연결은 `docs/plans/storage-priority-and-editor-modes.md`의 별도 경계를 먼저 확정한다.
 - 제한 권한 서비스: `docs/storage-privilege-service.md`. `storage service status`는 읽기 전용이다. `package-storage-service.ps1`은 새 패키지 작성, `setup-storage-service.ps1`은 기본 read-only 계획이며 Apply는 명시적 관리자 설치/업데이트/제거다. 설치용 `storage-grant`는 고정 경로 identity만 읽는다. 일반 workspace 명령은 자동 elevation/helper fallback을 하지 않는다. 보호된 ledger와 다른 작업의 snapshot을 보존한다.
 - 소스 검증: `docs/source-verification.md`. 일반 status는 자원/프로세스만 관측하고 소스를 검사하지 않는다. 현재 검사 `--verify-source`, 전체 감사/손상 cache 재작성 `--audit-source`를 구분한다. 초기·감사·provider 재연결은 전체 읽기이며 크기·mtime만 신뢰하지 않는다. Git/Unity mount 허용은 Core `WorkspaceMountAccess`를 공유한다.
 - 결과 수집은 `stable-journal-v1`의 전후·unmount 후 seal 일치를 요구한다. release는 독립 결과·소유 프로세스/메모리/핸들 0·실제 mount/Git 등록/delta/마지막 소유 snapshot 회수를 확인한다. unknown을 0으로 읽지 않는다.

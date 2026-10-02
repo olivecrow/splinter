@@ -1032,6 +1032,20 @@
             "measurements": {"type":"string", "minLength":1}
           }
         },
+        "developmentPayloadCodec": {
+          "type": "object", "additionalProperties": false,
+          "required": ["stage", "contract", "codec", "maxDecodedBytes", "blockOverheadBytes", "scope", "specification", "qualification"],
+          "properties": {
+            "stage": {"const": "standalone-not-journal-integrated"},
+            "contract": {"const": "IWorkspacePayloadCodec"},
+            "codec": {"const": "splinter-range-brotli-v1"},
+            "maxDecodedBytes": {"const": 1048576},
+            "blockOverheadBytes": {"const": 48},
+            "scope": {"type": "string", "minLength": 1},
+            "specification": {"const": "docs/workspace-payload-codec.md"},
+            "qualification": {"type": "string", "minLength": 1}
+          }
+        },
         "snapshotOverlay": {
           "type": "object",
           "additionalProperties": false,

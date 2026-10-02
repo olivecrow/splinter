@@ -75,6 +75,8 @@
 | [동일 private 쓰기](duplicate-private-writes.md) | byte 일치·전체 private 범위의 중복 저장 억제·metadata/flush·예산/복구·작은 로컬 WinFsp client 완료 |
 | [작은 Unity 동일 쓰기 비교](unity-duplicate-private-writes.md) | 실제 제품 CLI/VSS/WinFsp/Unity의 warm 편집·재시작 한 쌍·저널/Library·동일 결과/회수와 관측 차이 한계 |
 | [부분 쓰기·버퍼·시작 개선](resource-efficiency-followup.md) | private 일치 앞뒤 재사용·요청 크기 버퍼의 고정 입력 대조·로컬 시작/재시작·현재 검증/보존/회수 |
+| [Library payload 압축 후보 선정](library-block-compression-feasibility.md) | 최근 UH 누적 비용·Bee 4개 파일/24개 조합의 정확한 복원·크기 모델. 다음 bounded codec 후보이며 제품/물리 공간 절감은 미자격 |
+| [독립 범위 codec](workspace-payload-codec.md) | Core/fake·raw/Brotli·손상/trailing 거부·부분 읽기/임대 반환·동시 caller와 실제 Bee 표현 대조. product journal 미연결 |
 | [공통 Library A/B/A](immutable-validation-view.md), [준비와 replay](validation-view-readiness-and-replay.md) | 불변 후보와 검증 세대의 분리, 정상 stop/remount/restart 비용·최초 import 제한 |
 | [Library 수명주기와 일반 권한 실행](product-validation-unelevated.md) | 고정 snapshot Library·범위 쓰기·정리/재증가·cold 비교·15개 독립 결과와 회수·실패/복구 한계 |
 | [제품 validation workflow](product-validation-workflow.md) | 실제 CLI 연결, 서로 다른 VSS와 한 view/cache, 코드·에셋·PNG·세대 분리, CLI 중단 복구, 독립 결과와 VHD 분리 후 검증 |

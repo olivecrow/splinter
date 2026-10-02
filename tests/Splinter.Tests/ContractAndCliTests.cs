@@ -305,6 +305,32 @@ public sealed class ContractAndCliTests
         Assert.Equal(valid, contracts.Validate("urn:splinter:v1:overlay-serve-request", JsonSerializer.SerializeToElement(request)).IsValid);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PayloadCodecDiscoveryKeepsJournalIntegrationUnqualified(bool development)
+    {
+        using var output = new StringWriter();
+        Assert.Equal(0, await Program.RunAsync(["capabilities"], output, TestContext.Current.CancellationToken, development: development));
+        using var response = JsonDocument.Parse(output.ToString());
+        var catalog = new ContractCatalog(development);
+        Assert.True(catalog.Validate("urn:splinter:v1:response", response.RootElement).IsValid, output.ToString());
+        var data = response.RootElement.GetProperty("data");
+        if (development)
+        {
+            var codec = data.GetProperty("developmentPayloadCodec");
+            Assert.Equal("standalone-not-journal-integrated", codec.GetProperty("stage").GetString());
+            Assert.Equal(new Splinter.Runtime.BrotliWorkspacePayloadCodec().CodecId, codec.GetProperty("codec").GetString());
+            Assert.Equal(Splinter.Runtime.BrotliWorkspacePayloadCodec.MaximumBlockBytes, codec.GetProperty("maxDecodedBytes").GetInt32());
+            Assert.Equal(Splinter.Runtime.BrotliWorkspacePayloadCodec.BlockOverheadBytes, codec.GetProperty("blockOverheadBytes").GetInt32());
+            var unsupported = JsonNode.Parse(response.RootElement.GetRawText())!;
+            unsupported["data"]!["developmentPayloadCodec"]!["stage"] = "workspace-internal-alpha";
+            Assert.False(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(unsupported)).IsValid);
+        }
+        else Assert.True(!data.TryGetProperty("developmentPayloadCodec", out var hidden) || hidden.ValueKind == JsonValueKind.Null);
+        Assert.DoesNotContain(catalog.Commands, command => command.Id.Contains("codec", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task CapabilitiesOnlyAdvertiseImplementedCommands()
     {
