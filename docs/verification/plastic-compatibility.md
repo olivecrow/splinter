@@ -80,3 +80,18 @@ A 소유 `{15F429DA-9D49-4D2E-A7A7-29759C68E8DE}`, B 소유 `{1C744E83-7E77-46E8
 | VSS | 마지막 T: source-volume used/allocated 0·limit 10,737,418,240 bytes. 공유 비용의 workspace 귀속은 unknown을 유지하며 원본 Library/저널/독립 결과와 중복 합산하지 않음. C: shared used 27,067,400,192 bytes는 기존 6개 snapshot의 다른 볼륨 비용 |
 
 현재 프로그램 후보의 필수 자동 회귀는 위 844 Passed / 0 Failed / 1 optional ReFS Skipped를 유지한다. 추가 T: 응답 22개는 현재 response schema를 통과했고 문서 UTF-8도 확인했다. 지원 판정은 위 고정 입력의 정상 수명주기·회수·원본/peer 보호에 한정한다. C: 공유 snapshot의 보류·외부 CLI worker 발견 실패·MCP 전체 인계·원본 반영·Plastic 서버 기능·대형/ARM/OS 장애의 미자격은 유지한다.
+
+## 과거 C: 작업의 승인된 동일 요청 회수 재시도 (2026-10-04)
+
+사용자가 과거 C: Plastic 정리를 명시해 기존 A `c050da8fd660e350f0ef2756`/B `1ac08fe356c9603d0f13bf83`·home `T:\pc1002`·원본 `C:\Users\olive\Desktop\Development\splinter-unity-plastic`만 재시도했다. A는 같은 release, B는 기존 intent `plastic-b-discard-20261002`·digest `51a72495ab9ea5bde42a2ab2`를 유지했다. 새 workspace/설치/grant/서비스 교체·다른 snapshot 삭제는 수행하지 않았다.
+
+현재 CLI의 [A](../../artifacts/unity-followup-20261003/plastic-a-release-retry.json)·[B](../../artifacts/unity-followup-20261003/plastic-b-discard-retry.json)는 `OverlayIdentityMismatch`로 거부했다. 저장된 overlay identity v1과 현재 backend의 v2 계약 차이를 확인했으며 자동 이관/호환 fallback을 추가하지 않았다. 원래 실행 계약 `4e262b7`의 소스를 별도 evidence 폴더로 archive하고 기존 패키지 cache의 locked restore/Release(경고/오류 0)로 역사적 CLI를 재구성했다. 이 별도 도구로 정확한 기존 요청만 실행해 실제 회수 blocker를 확인했다. 제품의 구버전 지원이나 설치된 서비스 rollback으로 해석하지 않는다.
+
+| 실제 같은 요청 재시도 | 판정 |
+| --- | --- |
+| [원래 계약 A release](../../artifacts/unity-followup-20261003/plastic-original-a-release-retry-corrected.json) | Accepted/nonterminal, reclaim-pending, deferred-reclamation / `SnapshotReleaseIsolationRequired` |
+| [원래 계약 B discard](../../artifacts/unity-followup-20261003/plastic-original-b-discard-retry-corrected.json) | Accepted/nonterminal, discard-reclaim-pending, deferred-discard-reclamation / 같은 격리 guard. 같은 intent/digest 보존 |
+
+A snapshot `{15F429DA-9D49-4D2E-A7A7-29759C68E8DE}`를 막는 비소유 snapshot은 `{78AD7813-DF73-4845-8513-F14CC6E87331}`, `{15182498-4A5B-4E95-B85F-FBE2EC57AE15}`, `{A16A6070-1AAE-445F-8561-08C86B00A115}`, `{0A89C286-0E9C-43EB-87AA-4CD068E98E7E}` 네 개다. B snapshot `{1C744E83-7E77-46E8-B51F-B9AC2A7B2589}`에는 같은 네 개와 A의 pending snapshot이 blocker로 남는다. 소유 Editor/provider/mount/delta/handles는 이미 0이고 독립 A 결과와 B discard intent는 보존됐다.
+
+[최종 관리자 read-only snapshot 관측](../../artifacts/unity-followup-20261003/final-native-protection.json)은 C:의 원래 6개가 모두 유지됨을 확인한다. 이번 별도 Git S A/B의 마지막 T: snapshot 회수로 이 C: 보류가 해소됐다고 읽지 않는다. 사용자 정리 승인은 유효하며, 보류 사유는 비소유 snapshot에 영향을 줄 수 있는 실제 VSS 격리 제약이다. 같은 blocker를 자동 반복하거나 다른 작업을 지워 우회하지 않는다.

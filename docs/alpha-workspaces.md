@@ -13,9 +13,11 @@ splinter workspace status --id <반환 id> --home <등록 home>
 
 `data.workspace.path`에서 편집하고 외부 MCP·Unity CLI의 projectRoot도 이 경로와 일치시킨다. `application.running`·`ready`는 실행/준비 관측이며 컴파일·테스트 성공이 아니다. Editor 준비 중 에이전트가 소스 분석·계획을 진행할 수 있다. 같은 key/id/home·기준·request digest를 다음 대화에 보존한다.
 
-제품은 `unity start`와 `unity stop`을 제공한다. refresh·컴파일 분석·씬/에셋 편집·Play·테스트·빌드·캡처는 선택한 외부 도구로 수행한다. `unity refresh`와 자체 컴파일 성공 판정은 제공하지 않는다. Unity CLI의 작은 T: Plastic A/B 인계는 [한정 검증](verification/unity-cli-handoff.md)을 따르며 MCP·다른 입력/버전은 별도로 확인해야 한다.
+제품은 `unity start`와 `unity stop`을 제공한다. refresh·컴파일 분석·씬/에셋 편집·Play·테스트·빌드·캡처는 선택한 외부 도구로 수행한다. `unity refresh`와 자체 컴파일 성공 판정은 제공하지 않는다. Unity CLI의 작은 T: Plastic 인계는 [UH 검증](verification/unity-cli-handoff.md), 별도 작은 Git C/S의 MCP 편집·현재 상태 테스트는 [UP 검증](verification/unity-parallel-editor-validation.md)을 따른다. 다른 입력/버전과 Play/build 자격은 별도로 확인해야 한다.
 
 ## Unity CLI의 정확한 대상 선택
+
+Coplay MCP를 사용하는 고정 UP 입력에서는 각 호출에 현재 discovery의 `unity_instance`를 명시하고 실제 root/PID를 대조한다. 전역 HTTP 설정을 보존한 상태의 수동 stdio bridge는 domain reload 뒤 자동 시작되지 않을 수 있다. 외부 CLI로 해당 Editor의 compile/import 완료와 bridge 부재를 관측한 뒤 명시적으로 시작하고 실제 새 discovery/호출 결과를 확인한다. 시작 응답 직후의 포트 충돌 fallback을 재시작 요청으로 반복하지 않는다. MCP 테스트는 job ID와 Editor identity를 함께 보존하고 상세 결과를 외부 파일에 저장한다. Coplay 10.2.0은 SessionState에 job metadata를 저장하지만 상세 결과는 저장하지 않는다. 초기화 timeout·unknown job을 테스트 실패 또는 성공으로 대신 판정하지 않고 현재 Editor/job 상태를 조사한다. 실제 사용은 UP의 60초 초기화 예산과 호출/테스트 프레임 겹침 근거로 한정한다.
 
 설치된 CLI의 version/help와 프로젝트의 기존 Pipeline을 확인한다. Splinter `application.ready`는 소유 Editor의 실행 관측이며 도구 연결·컴파일 합격을 증명하지 않는다. 반환 `data.workspace.path`를 모든 Editor 명령의 `--project-path`에 명시하고, 읽기 전용 catalog 응답의 `data.target.projectPath`와 공개 PID를 실제 workspace/`data.application.processId`에 대조한 뒤 편집한다. `status`의 substring 필터와 목록 누락을 정확한 대상/Editor 부재 증거로 사용하지 않는다.
 
@@ -49,6 +51,6 @@ release는 독립 결과를 남긴 뒤 소유 Editor/provider/mount/Git/delta·�
 
 Unity 어댑터는 PID·시작 시각·실행 파일·토큰·프로젝트 경로와 Job Object 자식을 확인한다. 소유 `Assets/__Splinter__` 브리지는 liveness·import/compile 중 상태 관측과 정상 종료만 제공하고 프로젝트 함수를 실행하지 않는다. Play·미저장 씬·진행 중 import/compile은 정상 종료를 막는다. 최대 2분의 종료 대기 뒤에도 강제 종료/회수하지 않으며 작업과 로그를 보존한다.
 
-Coplay `10.2.0`의 전역 EditorPrefs 기반 종료 callback이 원본 MCP 서버를 종료하지 않도록 작업 프로세스 안에서 해당 callback만 해제한다. 전역 설정이나 패키지 파일은 수정하지 않는다. worker의 외부 MCP 서버를 시작하는 경로는 아직 자격을 확인하지 않았으며 다른 버전까지 호환성을 확대하지 않는다.
+Coplay `10.2.0`의 전역 EditorPrefs 기반 종료 callback이 원본 MCP 서버를 종료하지 않도록 작업 프로세스 안에서 해당 callback만 해제한다. 전역 설정이나 패키지 파일은 수정하지 않는다. 외부 MCP stdio bridge의 명시적 시작과 reload 뒤 재연결은 작은 Git C/S의 [UP 검증](verification/unity-parallel-editor-validation.md)에 한정하며 다른 버전까지 호환성을 확대하지 않는다.
 
 사용자 설정·라이선스·CPU/GPU·외부 서비스는 공유된다. 보안 샌드박스가 아니다. source hash 확인은 `workspace status --verify-source`, 전체 감사는 `--audit-source`다. 일반 status는 파일 내용을 읽지 않고 실행 자원을 관측한다. 실제 한정 실행 근거와 실패·재시도/비용은 [대표 사용](verification/representative-agent-workflow.md)에 보존하며 새 외부 도구 경로의 성공으로 승계하지 않는다.

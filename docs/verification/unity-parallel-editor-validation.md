@@ -1,6 +1,6 @@
 # Unity 병렬 Editor의 실제 에셋·테스트·반영 검증
 
-2026-10-03의 작은 Windows x64/NTFS·Git/Unity 입력에서 Splinter S군 A/B와 후속 Codex 독립 worktree C군 A/B의 **MCP 대상 선택, 텍스처·씬 편집과 재로드, 현재 파일 테스트의 실패 격리, 전체·선택 경로 반영과 정리**를 `scoped-complete-with-limitations`로 마감했다. C에서는 Splinter를 전혀 사용하지 않았다. 두 실행 모두 반영한 시험 원본을 실제 Editor에서 로드·테스트하고 기존 원본을 복원했다. C의 Editor/cache 정리는 확인했으나 앱 primary checkout 전체 회수는 `Partial`을 유지한다. 앞선 코드 수정·수명주기 비교를 이번 자격으로 승계하지 않고 실제 C 후속 증거를 따로 보존한다.
+2026-10-03~04의 작은 Windows x64/NTFS·Git/Unity 입력에서 Splinter S군 A/B와 Codex 독립 worktree C군 A/B의 **MCP 대상 선택, 텍스처·씬 편집과 재로드, 현재 파일 테스트의 실패 격리, 전체·선택 경로 반영과 정리**를 `scoped-complete-with-limitations`로 마감했다. C에서는 Splinter를 전혀 사용하지 않았다. 승인한 후속에서 C/S의 실제 MCP 테스트 프레임 겹침과 reload 뒤 결과 보존/재연결, C의 checkout·Git 등록·부모 폴더 전체 제거까지 확인했다. 과거 실행의 순차 처리·초기 실패와 당시 정리 Partial은 아래 원래 근거로 남기며, 현재 판정은 마지막 후속 절을 따른다. 전체 물리 peak/VSS 작업별 귀속·Editor RAM 절감은 미확정이며, 과거 C: Plastic snapshot 보류는 별도 [PC 검증](plastic-compatibility.md)의 실제 blocker를 유지한다.
 
 원시 근거는 [`artifacts/unity-parallel-validation-20261003/`](../../artifacts/unity-parallel-validation-20261003/)에 보존한다. 외부 MCP·Unity CLI가 편집·refresh·컴파일·테스트와 실제 값 검증을 수행했으며, Splinter는 workspace·소유 Editor·독립 결과·반영/회수 경계를 담당한다. [Unity 작업공간](../alpha-workspaces.md)과 [현재 지원 추적표](README.md)의 한정 자격을 유지한다.
 
@@ -23,11 +23,11 @@
 
 | ID / 확인 항목 | S군 현재 판정 | C군 비교 | 핵심 근거 |
 | --- | --- | --- | --- |
-| UP-01: MCP의 정확한 A/B routing | Passed with limitations. A/B 각 3회, 총 6개 요청이 올바른 반환 root/PID에 도달했고 invalid selector는 거부됨. MCP 내부 동시 실행 자격은 별도 | Passed with limitations. C도 6회 exact routing·invalid 거부. 초기 포트 충돌과 reload 후 명시적 bridge 재연결 필요 | [`mcp-routing-concurrent.json`](../../artifacts/unity-parallel-validation-20261003/mcp-routing-concurrent.json) |
+| UP-01: MCP의 정확한 A/B routing | Passed with limitations. A/B 각 3회 exact routing·invalid 거부. 후속의 호출별 target과 실제 겹치는 테스트도 확인 | Passed with limitations. C도 6회 exact routing·invalid 거부와 후속 겹침 확인. 초기 포트 충돌과 reload 후 명시적 bridge 재연결 필요 | [`mcp-routing-concurrent.json`](../../artifacts/unity-parallel-validation-20261003/mcp-routing-concurrent.json), 아래 후속 |
 | UP-02: 텍스처 편집·현재 파일/loaded 값 | Passed. 같은 상대 경로의 64×64 PNG를 A/B의 다른 색·import 설정으로 저장하고 raw PNG와 loaded texture를 대조 | Passed. S와 같은 PNG 바이트/색·importer 값, 서로 다른 C GUID·loaded 값 확인 | [`mcp-texture-edited-and-loaded.json`](../../artifacts/unity-parallel-validation-20261003/mcp-texture-edited-and-loaded.json), [`mcp-scenes-current-loaded-after-reconnect.json`](../../artifacts/unity-parallel-validation-20261003/mcp-scenes-current-loaded-after-reconnect.json) |
 | UP-03: 씬·material 편집·저장·재로드 | Passed with limitations. A/B root·위치·Camera/Light·PNG material 연결을 확인하고 scale을 다시 편집·저장·reload. 첫 거부/부분 생성의 명시적 재개를 기록 | Passed. C 각 씬 생성·편집·저장·Single 재로드와 같은 위치/scale·URP Lit 참조 확인 | [`mcp-scene-create-owned-partial-resume.json`](../../artifacts/unity-parallel-validation-20261003/mcp-scene-create-owned-partial-resume.json), [`mcp-scene-edited-reload.json`](../../artifacts/unity-parallel-validation-20261003/mcp-scene-edited-reload.json), `s-a-scene-scale-actual.json`·`s-b-scene-scale-actual.json` |
-| UP-04: 현재 파일 테스트·실패 격리·복원 | Passed with limitations. 최초 MCP A/B 각각 3/0, B 현재 marker만 `B-v2`로 바꿔 A 3/0·B 2/1, `B-v1` 복원 뒤 B 3/0. MCP runner 순차 처리와 CLI 호출 겹침은 구분 | Passed with limitations. CLI A 3/0·B 2/1, 복원 B 3/0. MCP 최초 job 실패/유실 후 명시적 1회 재실행에서 각 실제 project/PID/MVID·3/0 확인 | [`mcp-test-results-initial.json`](../../artifacts/unity-parallel-validation-20261003/mcp-test-results-initial.json), [`s-a-tests-parallel-negative.json`](../../artifacts/unity-parallel-validation-20261003/s-a-tests-parallel-negative.json), [`s-b-tests-parallel-negative.json`](../../artifacts/unity-parallel-validation-20261003/s-b-tests-parallel-negative.json), [`s-b-tests-current-state-restored.json`](../../artifacts/unity-parallel-validation-20261003/s-b-tests-current-state-restored.json) |
-| UP-05/06: 전체·부분 원본 반영과 완전 정리 | Passed with limitations. A 전체 14파일 반영·release 중 B 지속, B 선택 2파일의 AI/Git 반영·A 14파일 보존, 원본 L2의 실제 load/test 3/0, A/B 같은 작업 회수 및 원본·기존 작업·MCP 상태 복원 대조 완료. 첫 seal 거부와 명시적 재시도를 유지 | 반영·Editor/cache 정리 Passed. A 전체 15경로+B 선택 2경로·로컬 load/test 3/0·기존 각 94 raw hash 복원. 앱 checkout 전체 회수 Partial | [`s-a-integrated-all-paths-verified.json`](../../artifacts/unity-parallel-validation-20261003/s-a-integrated-all-paths-verified.json), [`s-b-selected-paths-applied-verified.json`](../../artifacts/unity-parallel-validation-20261003/s-b-selected-paths-applied-verified.json), [`l2-integrated-assets-scene-actual.json`](../../artifacts/unity-parallel-validation-20261003/l2-integrated-assets-scene-actual.json), [`final-native-cleanup-and-restoration.json`](../../artifacts/unity-parallel-validation-20261003/final-native-cleanup-and-restoration.json) |
+| UP-04: 현재 파일 테스트·실패 격리·복원 | Passed with limitations. 최초 3/0·B marker 실패/복원과 당시 순차 처리 유지. 후속 MCP는 각 4/0, 실제 프레임 8,761ms 겹침 | Passed with limitations. 초기 job 실패/유실·명시적 재실행, CLI 실패 격리 유지. 후속 MCP는 각 4/0, 실제 프레임 7,869ms 겹침 | [`mcp-test-results-initial.json`](../../artifacts/unity-parallel-validation-20261003/mcp-test-results-initial.json), [`s-b-tests-current-state-restored.json`](../../artifacts/unity-parallel-validation-20261003/s-b-tests-current-state-restored.json), 아래 후속 |
+| UP-05/06: 전체·부분 원본 반영과 완전 정리 | Passed with limitations. A 전체/B 선택 반영·원본 load/test·B 지속·기존 보호 거부/재시도 유지. 후속 S도 독립 결과와 자원 0 확인 | Passed with limitations. A 전체+B 선택 반영·원본 load/test·raw 보존에 이어 후속에서 두 checkout·Git 등록·부모 폴더 전체 제거 | [`s-a-integrated-all-paths-verified.json`](../../artifacts/unity-parallel-validation-20261003/s-a-integrated-all-paths-verified.json), [`s-b-selected-paths-applied-verified.json`](../../artifacts/unity-parallel-validation-20261003/s-b-selected-paths-applied-verified.json), 아래 후속 |
 
 `Passed`는 이 고정 입력에서 실제로 확인한 경계다. S군 다섯 항목은 한정 마감했으며 다른 도구/프로젝트/버전의 일반 지원 선언은 아니다.
 
@@ -176,3 +176,66 @@ L/A/B/L2는 모두 clean guard와 정확한 PID/start 대조 후 `CloseMainWindo
 필수 빌드는 위 실제 Unity 실행 이후에 수행했다. 이때 나온 Runtime SHA-256 `aea683d3004e1c6224548aeb6b0a8f09aebaa9217b1b15103b9d72af9c21c5b7`은 빌드 검증의 별도 산출물 identity이며, 앞선 실행 파일과 바이너리가 같거나 이 새 산출물로 Native 행렬을 다시 실행했다는 뜻이 아니다.
 
 C 후속 마감 뒤 문서 커밋 `0529a0e87f48f1f9348ce6fb88d93af227be2d06`를 기준으로 필수 빌드를 다시 실행했다. locked restore·Release(경고/오류 0)·906 passed / 0 failed / 1 skip을 [`C 후속의 별도 제품 회귀 기록`](../../artifacts/unity-codex-parallel-validation-20261003/required-build-validation.json)과 고정 TRX에 보존했다. Runtime SHA-256은 `e15a295cfc20a75d66c8651f20824d8f8c2134549ecf0b12df7c44365b6b72e3`이며 이 바이너리로 S native 검증을 재실행하거나 C에서 Splinter를 사용한 것은 아니다. 후속 문서는 UTF-8·diff·근거 링크와 실제 결과 값을 대조했고 HTML은 변경하지 않았다.
+
+## 승인한 연결·비용·전체 정리 후속 (2026-10-04)
+
+사용자가 지정한 세 미완료 영역을 [고정 범위](../plans/unity-parallel-editor-validation.md#승인한-연결비용정리-후속)로 실행했다. 제품 소스 기준은 `e61270b`, 도구는 Unity `6000.3.22f1`·Pipeline `0.8.0-exp.1`·Coplay `10.2.0`·Unity CLI `1.0.0-beta.5`다. C는 기존 Codex worktree 두 곳과 일반 Git/MCP/CLI/OS 계측만 사용했다. S는 같은 작업 입력을 별도 snapshot/private journal에 연결했으며 제품 코드·설치·버전을 변경하지 않았다. 증거는 [`unity-followup-20261003`](../../artifacts/unity-followup-20261003/)에 보존하고 HTML은 갱신하지 않는다.
+
+| 대상 | 현재 작업 identity / 결과 |
+| --- | --- |
+| C A/B | 기존 `1a8c/splinter-unity`·`90dd/splinter-unity`; 실제 테스트 PID `67732`·`75348`; 보존 commit `44ca7db18b1271149bcfea4cad4bb9238715c974`·`b2fc1733a43723b235f29457da9a8d0d4910153e` |
+| S A | key `uf-s-a-20261004`, id `a11706b9134d80aaa36df46f`; 정정 뒤 PID `32116`, ticks `639266373431877788`; 독립 결과 `7cf07dacbefc0473a383ebb188fb35741845d2f9` |
+| S B | key `uf-s-b-20261004`, id `1861e89ca17b018d19177fba`; 정정 뒤 PID `50316`, ticks `639266373480692699`; 독립 결과 `1a2328367ceea023c5106e31390952e383abe7ba` |
+| L | `T:\ua-source`의 시험 branch `codex/uf-source-20261003`, base `5343f8324749b4c7551892bfead9240276e1864a`; PID `29268`, ticks `639266363920309963`. 종료 뒤 원래 `codex/library-20260929`/`f71e4e2` 및 94 raw 파일 복원 |
+
+이번 S의 첫 입력 복사는 에이전트의 `Copy-Item` 디렉터리 사용 실수로 기존 폴더 아래 `c-a-task-input`/`c-b-task-input`을 중첩 생성했다. 같은 `UP.CurrentState.Tests` asmdef가 두 개 생겨 첫 Editor 시작에 컴파일 오류와 Safe Mode 질문이 발생했다. 사용자가 Quit로 닫은 뒤 정확한 소유 중첩 파일/meta를 제거하고 파일별 상대 경로로 다시 복사했다. 새 작업을 만들지 않고 같은 id/home을 사용했으며, [A](../../artifacts/unity-followup-20261003/s-a-closed-input-equality.json)·[B](../../artifacts/unity-followup-20261003/s-b-closed-input-equality.json)의 C 작업 파일 hash를 확인하고 재시작했다. 최종 실제 read는 compile/import/failed=false·clean scene이고 MCP 테스트도 통과했다. 초기 저널·실패 시작 비용을 제외하거나 첫 시도 성공으로 기록하지 않는다. S A에는 원본 기준의 작은 `SelectedB.png`/meta가 추가로 남으므로 전체 Assets/Library 입력까지 완전히 동일하다고 주장하지 않는다.
+
+### MCP 연결과 실제 테스트 겹침
+
+기존 marker·씬·텍스처 세 테스트에 12초간 현재 marker를 매 프레임 확인하는 Editor-only `OverlapProbe` 하나를 더했다. 각 호출의 `unity_instance`를 고정하고 실제 프로젝트/PID/start/MVID·시작/종료 Unix ms를 테스트에서 기록했다. 별도 Editor 두 곳이 동시에 시험을 진행하는 동안 각 작업의 현재 marker가 유지됐다. C/S 각각 A/B **4 passed / 0 failed**다.
+
+| 실제 테스트 프레임 | A 시작→종료 (Unix ms) | B 시작→종료 (Unix ms) | 실제 겹침 |
+| --- | --- | --- | --- |
+| C | `1791040010833`→`1791040022863` | `1791040006599`→`1791040018702` | 7,869ms |
+| S | `1791040996101`→`1791041008188` | `1791040999427`→`1791041011429` | 8,761ms |
+
+[C 상세 결과](../../artifacts/unity-followup-20261003/c-mcp-concurrent-test-results-first.json)·[S 상세 결과](../../artifacts/unity-followup-20261003/s-mcp-concurrent-test-results-first.json)와 `c-a/b-test-window.json`·`s-a/b-test-window.json`을 함께 대조했다. 단순 외부 호출 겹침을 실제 동시 시험으로 바꾸지 않았으며, 앞선 3개 테스트의 순차 처리 기록도 그대로 유지한다. 이번 `init_timeout=60000`은 실제 compile/import 완료와 정확한 대상 확인 뒤 사용한 한정 예산이다. PlayMode/build·다른 버전/대형 입력은 NotRun이다.
+
+[설치된 소스 근거](../../artifacts/unity-followup-20261003/mcp-installed-source-investigation.json)에 따르면 `StdioBridgeReloadHandler`는 HTTP 설정이 활성화돼 있으면 수동 stdio를 reload 전에 중지하고 resume intent를 지운다. 실제 S A에서 상세 결과를 외부에 보존한 다음 한 번 명시적 domain reload를 요청했고 bridge=false·idle/compiled를 확인했다. 같은 A에서 명시적으로 재연결한 뒤 **같은 job ID는 succeeded로 복원되지만 result=null**이었다. [실제 reload 뒤 job](../../artifacts/unity-followup-20261003/s-a-job-after-explicit-reload.json)은 `TestJobManager`가 SessionState에 최근 10개의 metadata만 저장하고 상세 결과는 생략하는 소스와 일치한다. B는 같은 PID/clean scene을 유지했다.
+
+소스의 기본 초기화 관문은 15초이며 아직 total test가 없고 compile/import 중이 아닐 때 시간 초과로 job을 실패시킨다. 이는 과거 왜 초기화가 시작되지 않았는지에 대한 원인 확정은 아니다. `GetTestJob`의 Unknown job_id는 선택된 Editor의 manager에 ID가 없다는 응답이며, 과거의 정확한 유실 경로는 미확정이다. 이번의 result=null을 Unknown job 재현/해결로 주장하지 않는다. [현재 AI 지침](../../skills/splinter/SKILL.md)과 [Unity 절차](../alpha-workspaces.md)에 실제 readiness→호출별 대상→명시적 재연결→reload 전 외부 결과 보존을 반영했다. 전역 HTTP를 꺼서 peer를 방해하거나 쓰기/시험을 timeout만으로 자동 반복하지 않는다.
+
+S B의 시작 이후 로그에 소유 Splinter heartbeat 게시의 `File.Replace` IOException이 두 차례 남았다. [오류 stack/hash](../../artifacts/unity-followup-20261003/s-heartbeat-publication-error.json)를 보존했으며 이후 actual readiness·MCP 테스트·정상 회수는 통과했다. 이 게시 오류의 원인은 미확정이고, 성공한 후속 관측으로 오류가 없었다고 바꾸거나 새 장애 행렬의 자격을 주장하지 않는다.
+
+### 물리 파일·공유 VSS·실제 메모리
+
+파일은 읽기 전용 Win32 `FileStandardInfo.AllocationSize`로 ordinary 물리 root만 세었다. S mount의 논리 파일을 복제된 물리량으로 세지 않았다. 프로세스는 PID/start와 실제 자식 tree를 확인해 nominal 2초, 관리자 read-only VSS/볼륨은 nominal 5초 간격으로 관측했으며 실제 간격에는 조회 비용이 포함된다. [최종 비용 집계](../../artifacts/unity-followup-20261003/cost-summary-complete-samples.json)는 두 VSS 원시 형식을 실제 volume identity로 연결한다. C/S 테스트 겹침 구간의 메모리 표본은 각각 3개/2개로 적고, 모두 표본 관측값이다.
+
+| 관측 범위 | C | S / 해석 |
+| --- | --- | --- |
+| 작업별 파일 할당 snapshot | A 1,891,682,584 B + B 1,894,403,824 B = **3,786,086,408 B** | A 38,285,776 B + B 35,877,448 B, 실제 로드한 runner 7파일 1,155,416 B를 공유 1회 포함 = **75,318,640 B**. 해당 시점 추가 파일 할당 약 98.01% 감소 |
+| 종료 직전 누적 저널 | 별도 저널 없음 | A 38,065,785 B·B 41,210,123 B. 정지/수집 중 추가 쓰기를 포함하며 위 할당 snapshot이 생애 peak가 아님을 보여 줌 |
+| 원본/공유 비용 | L 전체 2,090,943,536 B, Library 2,068,885,632 B | S는 준비된 L Library의 snapshot을 읽음. 원본·공유 Git·VSS·설치된 .NET·MFT/디렉터리·증거 backup을 작업별 절감 비율에 합산하지 않음 |
+| 시험 겹침 중 A+B Editor tree private 중앙값 | 9,864,130,560 B | 9,944,137,728 B; **Editor RAM 절감 확인 안 됨**. S provider 별도 228,839,424 B |
+| A+B Editor tree private 표본 최대 | 10,074,521,600 B | 11,637,444,608 B. C는 없던 Library를 다시 import했고 S는 warm snapshot이라 인과 성능 비교 아님 |
+| L+A+B+provider private 표본 최대 | 16,732,868,608 B | 17,960,079,360 B. 동일 시점 tree 합계의 최대이며 순간 최대·전체 시스템 RAM과 구분 |
+| 전체 시스템 committed 표본 최대 | 60,077,449,216 B | 62,206,164,992 B. 기존 Editor와 다른 작업이 포함돼 작업별 귀속 unknown |
+| C: 공유 VSS 첫→마지막 used / 표본 최대 allocated | 34,397,179,904→34,854,719,488 B / 35,212,394,496 B | 기존 snapshot 6개 포함. C worktree나 S에 귀속/중복 합산하지 않음 |
+| T: 공유 VSS 표본 최대 used / allocated / 최종 | 3,063,808 B / 34,258,944 B / 0 B | 마지막 S snapshot 회수 뒤 used/allocated 모두 0, workspaceAttribution unknown 유지 |
+| 볼륨 free 처음→마지막 | C: 268,480,024,576→268,025,610,240 B | T: 12,998,754,304→12,999,430,144 B. 증거·공유 자원·다른 작업이 포함된 전역 변화이며 순수 작업 비용 아님 |
+
+위 98.01%는 **정의한 파일 할당 snapshot의 비교**다. 전체 물리 peak·VSS 작업별 귀속이나 전체 RAM 절감으로 확대하지 않는다. 최초 계측이 provider executable의 폴더인 설치된 .NET을 runner bundle로 잘못 잡았던 파일은 보존했고, 실제 provider 인자의 Splinter DLL 경로와 [7파일 hash](../../artifacts/unity-followup-20261003/s-loaded-runner-files.json)로 범위를 정정했다. whole-home의 다른 runner 버전도 이번 비용에 합산하지 않았다. S 정정 뒤 초기 AssetDatabase refresh는 A 약 222초/B 약 219초였으며, 오류 시작·재로드·정지·수집·회수 비용도 포함한다. RAM 절감 부재만을 이유로 검증되지 않은 새 Editor 내부 최적화나 자동 모드를 구현하지 않았다.
+
+### 전체 회수와 원본·기존 작업 보호
+
+앱 archive의 primary 제한은 해당 도구의 제한이다. 사용자는 정확한 비교군 정리를 이미 승인했다. 첫 `git worktree remove --force`는 자동 승인 검토가 primary 제한을 강제 옵션으로 우회하는 삭제로 판단해 거부했다. 이후 원본/현재 tracked raw·필요한 `.local`을 독립 hash 보존했고, baseline.txt의 Git 정규화 blob이 HEAD와 같으며 raw bytes는 그대로임을 확인해 index를 refresh했다. B의 untracked `.local`도 독립 보존 이동했다. **강제 옵션 없는 `git worktree remove -- <exact path>`**가 통과했으며 [두 checkout/Git 등록 제거](../../artifacts/unity-followup-20261003/c-checkouts-removed.json)와 [0바이트 앱 이름 파일 보존/빈 부모 제거](../../artifacts/unity-followup-20261003/c-empty-parent-cleanup.json)를 확인했다. C 정리에는 Splinter를 사용하지 않았다. 별도 승인 질문은 추가하지 않았다.
+
+C의 첫 open helper가 Editor 수명 동안 기다린 뒤 다음 B open을 이어가 B를 다시 열었던 비용을 보존했다. 정확한 소유 launcher를 중지하고 clean B를 `EditorApplication.Exit(0)`로 정상 종료했다. 종료 요청의 transport 실패를 재실행 승인으로 읽지 않고 실제 process/자식 부재로 판단했다. S의 잘못된 첫 입력 종료는 사용자 Quit였으며, 정정된 최종 A/B는 제품의 정상 stop·checkpoint·release를 사용했다. A stop 35,128ms·checkpoint 71,744ms·release 51,271ms, B stop 34,711ms·checkpoint 70,281ms·release 46,466ms의 외부 경과를 원시 cost 파일에 보존한다. A 회수 진행 중 B의 같은 실제 PID/clean scene을 읽었고 B 정상 종료는 A release 시작 약 40초 뒤 요청됐다. 앞선 UP의 A 완료 뒤 B 쓰기 자격과 이번 관측을 구분한다.
+
+[최종 native 보호 대조](../../artifacts/unity-followup-20261003/final-native-protection.json)는 S A/B phase=released·independent result 존재·mount/provider/delta/snapshot 부재·handles/소유 application process/working set/private bytes 0 및 관측했던 전체 C/S/L 자식 identity 부재를 확인한다. [최종 기록 할당](../../artifacts/unity-followup-20261003/s-final-retained-allocation.json)은 A/B 합계 497,960 B와 공유 재사용 runner 1,155,416 B다. 독립 Git 결과·증거·재사용 cache/종료 receipt는 의도적으로 남으며 자원 누수 또는 file bytes 0으로 보고하지 않는다.
+
+원본 L의 이전 branch/head·94 raw hash를 [복원](../../artifacts/unity-followup-20261003/l-source-restored-final.json)했고 canonical `development`/`6a54974` clean을 유지했다. 사전 refs 81개 중 이번 C probe 결과 두 branch만 승인한 새 commit으로 바뀌고 나머지 79개는 불변이다. 기존 Editor `68624`·`85184`·`52688`의 CIM 생성 시각이 같고 C: snapshot 6개는 모두 유지됐다. [MCP 정리](../../artifacts/unity-followup-20261003/mcp-cleanup-verified.json)는 닫힌 시험 Editor가 소유한 discovery만 정리해 앞선 검증에서 보존/복원했던 7개 기준 파일의 현재 hash를 대조했다. 공유 HTTP는 활성 상태를 보존했고 기존 서버를 종료하지 않았다. 소유 sampler는 stop 파일로 정상 종료했다.
+
+과거 C: Plastic A/B의 실제 같은 요청 회수 재시도는 [PC 후속](plastic-compatibility.md#과거-c-작업의-승인된-동일-요청-회수-재시도-2026-10-04)이 소유한다. 현재 형식의 거부와 원래 계약 CLI로 확인한 비소유 snapshot 격리 blocker를 유지한다. 이는 이번 S의 회수 실패나 사용자 정리 승인의 부재가 아니며, 외부 작업의 snapshot 삭제로 우회하지 않았다.
+
+후속의 [필수 회귀 기록](../../artifacts/unity-followup-20261003/required-build-validation.json)은 locked restore·Release(경고/오류 0)·906 passed / 0 failed / 1 optional ReFS skip이다. 제한 환경의 첫 restore 실패 기록과 허용 환경의 성공 로그·고정 TRX를 함께 보존했다. 빌드의 Runtime hash와 앞선 실제 S에 로드한 runner 7파일 hash는 별도 identity이며 새 바이너리로 native 행렬을 재실행한 것은 아니다. 문서 UTF-8·diff·근거 링크와 실제 count/겹침/회수 값을 대조했으며 제품 코드/schema와 HTML은 변경하지 않았다.

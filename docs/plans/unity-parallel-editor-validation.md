@@ -33,10 +33,22 @@ Git 원본 `T:\ua-source`, 등록 home `.local/wl29`, Unity `6000.3.22f1`, 승�
 
 입력·Editor/패키지 버전은 S와 동일하며 새 `Assets/ParallelQualification`의 PNG·씬·marker·세 개 EditMode 테스트로 한정한다. 호출별 실제 project/PID 확인, A/B 서로 다른 값, B만 변경해 실패/복구, A 전체 및 B PNG/meta 두 경로 선택 반영, A 종료/Library 정리 중 B 지속, 시험 원본에서 실제 load/테스트, 정상 종료와 원본·기존 branch/파일 복원을 종료 기준으로 삼는다. 기존 미커밋 raw 바이트와 결과 commits, 외부 Editor/MCP 설정은 보존한다.
 
-앱이 primary checkout의 archive를 거부했던 기존 제한은 강제 삭제로 우회하지 않는다. 소유 Editor와 생성 cache 정리는 실제 확인하고, 전체 앱 checkout 제거가 불가능하면 그 제한을 남긴 채 범위를 마감한다. 쓰기 타임아웃은 관측 없이 반복하지 않으며 새 설치·버전·장애 행렬·대형/PlayMode/build 시험은 포함하지 않는다. 새 원시 증거는 `artifacts/unity-codex-parallel-validation-20261003/`, 결과는 검증 문서와 대화의 짧은 텍스트에 남긴다. HTML은 추가하지 않는다.
+앱의 archive가 primary checkout을 거부한 것은 해당 도구의 제한이며 사용자 정리 승인의 부재가 아니다. 사용자는 시험 작업공간 전체 정리를 명시했고 후속에서도 재확인했다. 결과 refs와 미커밋 raw 파일·필요한 ignored 증거를 독립 보존하고 소유 프로세스 부재·정확한 Git 등록/경로를 확인한 뒤 일반 Git worktree 제거 경로를 사용할 수 있다. 다른 작업·원본·공유 서버·비소유 snapshot은 정리 대상이 아니다. 쓰기 타임아웃은 관측 없이 반복하지 않으며 새 설치·버전·장애 행렬·대형/PlayMode/build 시험은 포함하지 않는다. 새 원시 증거는 `artifacts/unity-codex-parallel-validation-20261003/`, 결과는 검증 문서와 대화의 짧은 텍스트에 남긴다. HTML은 추가하지 않는다.
 
 ## 한정 종료
 
 사용자는 위 73개 기록의 보존 이동과 앞선 같은 A/B의 release 재시도를 명시적으로 승인했고, hash/독립 결과를 유지한 채 회수 차단을 해소했다. S A/B의 UP-01~06은 실제 검증과 기존 HTML의 실패·명시적 재시도 기록으로 한정 마감했다. 후속 C A/B도 위 고정 범위의 MCP·리소스·씬·현재 상태 테스트·전체/선택 반영과 Editor/cache 정리를 실제 확인했다. 각 방식의 반영 결과를 로컬 Unity에서 불러오고 테스트한 뒤 원본·이전 작업의 raw 파일/branch/결과를 보존·복원했다.
 
-C의 첫 MCP 테스트 초기화/결과 유실, reload 후 수동 bridge 재연결, MCP runner 순차 처리와 앱 primary checkout 전체 회수 Partial은 [실제 검증](../verification/unity-parallel-editor-validation.md)이 소유한다. 새 제품 코드·서비스·설치·버전·전체 장애 행렬 확대는 포함하지 않는다. 후속 C 결과는 텍스트와 검증 문서에만 추가하며 기존 HTML은 S까지의 기록으로 유지한다. 저장·메모리 전체 peak/귀속 unknown과 범위 밖 NotRun은 바꾸지 않는다.
+C의 첫 MCP 테스트 초기화/결과 유실, reload 후 수동 bridge 재연결, 최초 MCP runner 순차 처리와 당시 checkout 회수 Partial은 [실제 검증](../verification/unity-parallel-editor-validation.md)이 소유한다. 아래 승인한 후속에서 실제 테스트 겹침과 C checkout 전체 회수까지 확인했으며 과거 실패를 첫 시도 통과로 바꾸지 않는다. 새 제품 코드·서비스·설치·버전·전체 장애 행렬 확대는 포함하지 않는다. 후속 C 결과는 텍스트와 검증 문서에만 추가하며 기존 HTML은 S까지의 기록으로 유지한다. 저장·메모리 전체 peak/귀속 unknown과 범위 밖 NotRun은 바꾸지 않는다.
+
+## 승인한 연결·비용·정리 후속
+
+사용자는 MCP 연결 안정성, 전체 공간/메모리 비용, 과거 C: Plastic 회수와 Codex checkout 정리를 진행하도록 명시했다. 고정 Editor/Pipeline/Coplay 버전과 작은 Git 입력을 유지하고 추가 설치·지원 행렬·원격·Play/build는 포함하지 않는다. 종료 조건은 다음과 같다.
+
+- 설치된 MCP 소스의 reload/초기화/job 경계를 확인하고 A/B 호출과 실제 테스트 프레임의 겹침을 구별한다. 같은 작업의 로드 완료·bridge 관측·명시적 재연결·테스트 결과 보존 절차를 실제 검증한다. 실패한 쓰기는 자동 반복하지 않는다.
+- C/S 각각 로컬 L+A+B의 동일 씬/리소스/테스트 작업을 계측한다. 파일 할당, 공유 VSS, 볼륨 free 변화, 프로세스 private/working set와 시스템 표본 peak를 별도 기록한다. 기존 타 작업 때문에 인과 귀속이 불가능한 값은 unknown을 유지한다. 절감이 없으면 그 결과도 마감 근거다.
+- C는 Splinter 없이 기존 Codex worktree를 사용하고, 결과/미커밋/증거를 보존한 뒤 정확한 두 Git 등록과 checkout을 제거한다. 앱 제한을 승인 거부로 읽지 않는다.
+- 과거 Plastic A release/B의 같은 discard intent를 현재 상태로 한 번 명시 재시도한다. 비소유 snapshot guard가 남으면 실제 blocker를 기록하고 해당 자원은 보존한다.
+- 새 S 소유 자원·시험 Editor/bridge/sampler를 정리하고 원본/기존 refs/공유 설정/비소유 자원을 전후 대조한다. 새 근거는 `artifacts/unity-followup-20261003/`, 판정은 기존 검증 문서와 짧은 대화 텍스트에 남긴다.
+
+후속은 `scoped-complete-with-limitations`로 마감한다. C/S MCP는 각 A/B 4/0·실제 프레임 7,869/8,761ms 겹침, 같은 Editor의 reload 뒤 job metadata/상세 결과 경계와 명시적 재연결을 확인했다. 파일 할당 snapshot 감소와 실제 Editor RAM 절감 미확인을 모두 기록했다. C checkout/Git 등록/부모·새 S 소유 자원을 회수하고 원본/기존 작업을 대조했다. S 첫 입력 복사 실수의 Safe Mode/정정·같은 id 재시작 비용도 유지한다. 과거 Plastic은 현재 형식 거부 뒤 원래 계약 CLI의 같은 요청에서 실제 비소유 snapshot guard를 확인했으며 회수 자체는 pending이다. 사용자 승인 부재로 남기지 않는다. 세부 수치·원시 근거·미확정 원인은 검증 문서가 소유하며 새 확대 검증은 자동 개시하지 않는다.
