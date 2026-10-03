@@ -29,6 +29,8 @@ Unity CLI의 외부 작업은 [정확한 대상 선택 절차](alpha-workspaces.
 
 CLI는 짧은 프로세스다. Host는 읽기 전용 in-process 계층이며 daemon/DB writer가 아니다. Runtime은 부작용 전 intent와 같은 요청 영수증을 durable 상태에 게시한다. 공급자 전용 API는 어댑터에 있고 Core에는 Unity/Win32/Git/Codex API를 넣지 않는다.
 
+Runtime의 파일 잠금은 workspace ID별 명령을 직렬화하며 프로젝트/공유 기준/snapshot 잠금은 필요한 기존 부작용 경계를 보호한다. 확인된 sharing/lock violation만 한정 대기한다. 잠금 경로·접근·다른 I/O 실패는 `StateReadUnavailable`로 즉시 거부하며 점유나 자동 복구로 해석하지 않는다. 현재 동시 CLI/파일 I/O의 한정 자격은 [SP 검증](verification/stable-parallel-completion.md)을 따른다.
+
 [읽기 전용 저장 장부](source-verification.md#계측의-의미)는 현재 SJR2의 stored/decoded·논리 유효 범위·참조 블록 전체 비용과 정확한 task/shared 파일 할당을 구별한다. 물리 저장 개발의 종료 경계와 최종 후보 자격은 [PS 범위](plans/physical-storage-completion.md)·[실행 검증](verification/physical-storage-completion.md)을 따른다. 제품 replay·seal과 VSS 소유권/회수 계약을 계측기로 대체하지 않는다.
 
 workspace/baseline 상태와 Windows 제어 IPC는 같은 디렉터리에 flush한 임시 파일을 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader의 delete sharing, 한정 공유 오류 재시도, unknown/손상/소유권 오류 보존은 [NTFS 계약](ntfs-workspaces.md)을 따른다. 상태 쓰기 실패 단계/HResult·게시 완료 여부는 [진단 계약](verification/state-write-diagnostics.md)에 있다.

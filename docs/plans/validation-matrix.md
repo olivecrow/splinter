@@ -1,5 +1,16 @@
 # 검증 추적표
 
+## 병렬 안정성의 선택 단위 마감
+
+[SP 확정 범위](stable-parallel-completion.md)와 [현재 후보 직접 근거](../verification/stable-parallel-completion.md)로 Editor 없는 CLI·파일 I/O 경계를 **scoped-complete-with-limitations** 마감했다. 이전 Unity/도구/대형/OS 자격과 C: 보류·전역 VSS unknown을 유지한다.
+
+| ID | 대상 | 판정 |
+| --- | --- | --- |
+| SP-01 | 잠금 오류 재현·분류 | Passed, 수정 전 2개 실제 경로 오류 실패 보존·확인된 sharing/lock violation만 대기·다른 I/O/접근 오류는 즉시 StateReadUnavailable |
+| SP-02 | 동일/다른 작업의 명령 경계 | Passed, 점유/취소/핸들 보존/재사용·A 정상 stop 대기 중 B status/같은 ensure 완료. 집중 18건·새 회귀 6건 |
+| SP-03 | 실제 A/B 명령·쓰기 겹침 | Passed with limitations, A checkpoint/release가 진행 중일 때 B 조회/같은 요청·각 32개 쓰기 완료와 hash·A 결과 격리·B 후속 편집/독립 결과 |
+| SP-04 | 보호·회수·회귀·종료 | Passed with limitations, 소유 두 snapshot missing/자원 0·65개 원본/944개 이전 records 파일·등록/기존 Editor 보호·906 passed/0 failed/1 optional skip·응답 20건 schema. 전역 VSS CIM 조회 실패 unknown |
+
 ## 메모리 단계 마감
 
 [ME 확정 범위](memory-completion.md)와 [현재 후보 직접 근거](../verification/memory-completion.md)로 **현재 Windows/NTFS 알파의 메모리 개발을 scoped-complete-with-limitations 마감했다.** 다음 일반 개발은 안정적인 병렬 작업이다. lease·누적 할당/heap·process/group·시스템 공유 값을 구분하며 전체 RAM/native codec/순간 peak unknown과 이전 지원 상태를 유지한다.

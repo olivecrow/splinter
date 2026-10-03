@@ -49,6 +49,7 @@
 | [저널 기본값 저장 범위](plans/journal-metadata-storage.md), [검증](verification/journal-metadata-storage.md) | 현재 SJR2 기본값 생략·명시적 정리/후보의 더 작은 메타데이터 선택·고정 실제 저널의 오프라인 NTFS 할당과 추가 비용. 새 native 수명주기 자격은 구분 |
 | [물리 저장 단계 최종 범위](plans/physical-storage-completion.md), [검증](verification/physical-storage-completion.md) | 현재 SJR2 장부·정확한 task 파일 할당·최종 제품 A/B·정리/독립 결과/회수와 물리 저장 단계의 종료 경계 |
 | [메모리 단계 최종 범위](plans/memory-completion.md), [검증](verification/memory-completion.md) | 압축 쓰기 중복 buffer·부분/빈 읽기 scratch·같은 실제 저널 대조와 소유 provider/Editor·공유 시스템 비용/회수의 종료 경계 |
+| [병렬 안정성의 확정 범위](plans/stable-parallel-completion.md), [검증](verification/stable-parallel-completion.md) | 잠금 오류의 점유 오인 수정·실제 A 수집/회수와 B 조회/재개·파일 쓰기 겹침·독립 결과/소유 회수. Editor 없는 경계와 기존 자격 구분 |
 
 ## 남은 설계와 검증
 

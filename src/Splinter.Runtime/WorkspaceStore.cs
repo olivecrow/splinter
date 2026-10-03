@@ -68,10 +68,17 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         {
             cancellationToken.ThrowIfCancellationRequested();
             try { return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
-            catch (IOException) when (attempt < 50) { await Task.Delay(100, cancellationToken); }
-            catch (IOException) { throw new WorkspaceException("WorkspaceBusy", "Another command owns this workspace. Retry the same command."); }
+            catch (IOException ex) when (IsLockContention(ex) && attempt < 50) { await Task.Delay(100, cancellationToken); }
+            catch (IOException ex) when (IsLockContention(ex))
+            { throw new WorkspaceException("WorkspaceBusy", "Another command owns this workspace. Retry the same command."); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            { throw new WorkspaceException("StateReadUnavailable", "The workspace operation lock cannot be opened. Preserve state and restore its path, access or storage before retrying the same identity."); }
         }
     }
+
+    // Confirmed sharing/lock violations are contention. Missing paths, access,
+    // storage and other I/O failures must not become a safe-to-retry busy reply.
+    private static bool IsLockContention(IOException error) => (uint)error.HResult is 0x80070020 or 0x80070021;
 
     public WorkspaceRecord? Find(string id)
     {

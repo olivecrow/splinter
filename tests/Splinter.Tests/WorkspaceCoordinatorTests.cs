@@ -126,6 +126,38 @@ public sealed class WorkspaceCoordinatorTests
         await Task.WhenAll(same); Assert.Equal(5, sources.CreateCalls); Assert.Single(same.Select(t => t.Result.Workspace.Id).Distinct());
     }
 
+    [Fact]
+    public async Task PeerStatusAndSameEnsureCompleteWhileAnotherWorkspaceWaitsForNormalStop()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications();
+        string project = Project(d);
+        var a = (await New(d, sources, apps).EnsureAsync(project, "parallel-a", "main", "git-checkout", false, ct)).Workspace;
+        var b = (await New(d, sources, apps).EnsureAsync(project, "parallel-b", "main", "git-checkout", false, ct)).Workspace;
+        var stopping = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        apps.BeforeStop = async (workspace, token) =>
+        {
+            if (workspace.Id != a.Id) return;
+            stopping.SetResult(); await finish.Task.WaitAsync(token);
+        };
+        var release = New(d, sources, apps).ReleaseAsync(a.Id, ct);
+        try
+        {
+            await stopping.Task.WaitAsync(TimeSpan.FromSeconds(5), ct);
+            var status = await New(d, sources, apps).StatusAsync(b.Id, ct).WaitAsync(TimeSpan.FromSeconds(2), ct);
+            var resumed = await New(d, sources, apps).EnsureAsync(project, "parallel-b", "main", "git-checkout", false, ct)
+                .WaitAsync(TimeSpan.FromSeconds(2), ct);
+            Assert.False(release.IsCompleted);
+            Assert.Equal(b.Id, status.Workspace.Id); Assert.Equal(b.RequestDigest, resumed.Workspace.RequestDigest);
+            Assert.Equal(b.Path, resumed.Workspace.Path); Assert.Equal(b.BaseRevision, resumed.Workspace.BaseRevision);
+            Assert.Equal(2, sources.CreateCalls); Assert.True(Directory.Exists(b.Path));
+        }
+        finally { finish.TrySetResult(); await release; }
+        Assert.Equal("released", (await New(d, sources, apps).StatusAsync(a.Id, ct)).Workspace.Phase);
+        Assert.True(Directory.Exists(b.Path));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -220,13 +252,14 @@ public sealed class WorkspaceCoordinatorTests
         public string[] CacheInputs => ["configuration"];
         public string[] ManagedPaths => ["Library", "Temp"]; public bool Running; public int RemoveCalls, StartCalls;
         public bool OwnershipVerified = true; public int SurvivingChildren;
+        public Func<WorkspaceRecord, CancellationToken, Task>? BeforeStop;
         public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { StartCalls++; Running = true; return Task.FromResult(new ApplicationLease(1, 1, "token", "fake")); }
         public Task<ApplicationState> ObserveAsync(WorkspaceRecord w, string p, CancellationToken ct = default)
         {
             return Task.FromResult(new ApplicationState(Running, Running, Running ? "ready" : "stopped", null, Resources:
                 new(OwnershipVerified, Running, (Running ? 1 : 0) + SurvivingChildren, Running || SurvivingChildren != 0 ? 1024 : 0, Running || SurvivingChildren != 0 ? 1024 : 0)));
         }
-        public Task StopAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { Running = false; return Task.CompletedTask; }
+        public async Task StopAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { if (BeforeStop is not null) await BeforeStop(w, ct); Running = false; }
         public Task RemoveInfrastructureAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { RemoveCalls++; return Task.CompletedTask; }
     }
     private sealed class FakeStorage : IWorkspaceStorageProvider

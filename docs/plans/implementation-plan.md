@@ -36,7 +36,7 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 
 ## 남길 후속 작업과 종료 기준
 
-현재 Windows/NTFS 알파의 **물리 저장 개발 단계는 [PS-01~05](physical-storage-completion.md), 메모리 단계는 [ME-01~05](memory-completion.md)로 한정 마감했다.** 다음 일반 개발 우선순위는 안정적인 병렬 작업이다. SF/NR의 별도 지원 확대와 공유 VSS/순간 peak·전체 RAM 귀속 unknown을 미완성 공간/메모리 기능 수로 읽거나 자동 재실행하지 않는다.
+현재 Windows/NTFS 알파의 **물리 저장 단계는 [PS-01~05](physical-storage-completion.md), 메모리는 [ME-01~05](memory-completion.md), 병렬 안정성의 선택 단위는 [SP-01~04](stable-parallel-completion.md)로 한정 마감했다.** SP는 잠금 오류와 Editor 없는 동시 CLI/파일 I/O 경계다. 새 일반 작업은 실제 진행 차단/보존 결함 또는 새 입력/지원 요구에서 고른다. SF/NR의 별도 지원 확대와 공유 VSS/순간 peak·전체 RAM 귀속 unknown을 미완성 기능 수로 읽거나 자동 재실행하지 않는다.
 
 | 구분 | 남길 작업 | 종료 기준과 한도 |
 | --- | --- | --- |
@@ -49,6 +49,7 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 | 물리 저장: 기본값 메타데이터 한정 마감 | [JM 확정 범위](journal-metadata-storage.md)의 현재 SJR2 기본값 생략·명시적 정리/후보의 더 작은 표현 | [JM 직접 근거](../verification/journal-metadata-storage.md)의 고정 실제 저널 전후 파일 할당·내용/sequence·추가 관리 할당·필수 회귀로 scoped-complete-with-limitations 마감. 기존 정리의 대체 payload 제거와 구분하며 새 Unity/VSS·전체 workspace/RAM 자격은 주장하지 않음 |
 | 물리 저장 단계: 한정 마감 | [PS 확정 범위](physical-storage-completion.md)의 현재 SJR2 장부·정확한 task 파일 할당·최종 제품 A/B·정리/독립 결과/회수 | [PS 직접 근거](../verification/physical-storage-completion.md)의 13개 계측 시험·884개 필수 회귀·최신 JM 후보의 실제 A/B와 두 소유 snapshot 회수·설명 가능한 잔여 비용. 일반 후속 공간 목록은 닫고 메모리로 이동. 대형/OS/ARM·VSS 귀속/전체 순간 peak와 C: 보류는 별도 유지 |
 | 메모리 단계: 한정 마감 | [ME 확정 범위](memory-completion.md)의 압축 쓰기 중복 buffer·부분/빈 read scratch·같은 실제 입력 의미·소유 provider/Editor/시스템 비용·최종 A/B 회수 | [ME 직접 근거](../verification/memory-completion.md)의 lease 감소·바이트/실패 미게시·900개 필수 회귀·현재 후보의 독립 결과/두 snapshot 회수. 전체 RAM·native codec/순간 peak unknown과 별도 지원 상태를 유지하고 다음 일반 개발은 안정적인 병렬 작업 |
+| 병렬 안정성: 선택 단위 한정 마감 | [SP 확정 범위](stable-parallel-completion.md)의 잠금 오류 분류·다른 작업 진행·실제 A 수집/회수 중 B 조회/재개/파일 쓰기 | [SP 직접 근거](../verification/stable-parallel-completion.md)의 새 6개 회귀·906개 필수 통과·실제 겹침/64개 쓰기와 독립 결과/회수. Editor 없는 경계이며 기존 Unity/도구/PV·전역 VSS unknown은 유지. 새 결함/입력/지원 질문 없이 반복을 추가하지 않음 |
 | 필요 시 지원 검증 | 사용할 입력/환경의 mount·Git·중단/회수 경계와 재현된 안전 결함만 선택 | 지원 조건·후보·질문·종료 기준을 먼저 고정. OS 장애 전체·ARM·LFS/filter·모든 파일/패키지·48개 카탈로그는 일괄 필수 작업이 아님 |
 
 Unity CLI exact-path 인계는 위 작은 입력의 한정 자격을 따르며 MCP·다른 입력/버전의 정상 연결은 미자격이다. 현재 worker는 Coplay 서버를 시작하지 않는 전용 브리지 경로이며 원본 서버 종료 방어가 있다. checkpoint/integrate는 컴파일·테스트 성공 판정을 하지 않는다. 연결 조건과 유지하는 목록/타임아웃 제약은 [대화별 사용 계획](session-workflow-and-installation.md#외부-도구-인계의-한정-범위)이 소유한다. 현재 명령과 기본/개발 경로는 [현재 기반](../foundation.md)과 [개발 CLI](../development-cli.md)를 따른다. 과거 M0/WF/LB의 native 실행 자격은 이번 변경 후보로 자동 승계하지 않는다.
@@ -140,7 +141,7 @@ M0는 기존 개발 checkout의 CLI·소스 스킬과 등록된 서비스/driver
 
 후속은 위 책임 표와 종료 기준 안에서 실제 사용자 요구로 고른다. 새 프로젝트/입력이면 해당 입력·등록·mount 경계, 설치가 필요하면 AI 사용 절차와 기존 구성 도구, 관측 비용이 실용성을 막으면 그 입력의 병목을 대상으로 한다. 필요가 정해지기 전에 새 harness·전체 장애 행렬·VIVOBOOK·대형 PV·p95 반복을 개시하지 않는다. 지원 경로의 승인 쓰기 손실·원본/peer 훼손이 새로 확인되면 그 결함을 먼저 수정한다.
 
-개발 순서는 **물리 공간 절감 → 메모리 절감 → 안정적인 병렬 작업**이며 현재 물리 저장/메모리 단계는 PS/ME의 한정 범위로 마감했다. 다음 일반 후속은 안정적인 병렬 작업이다. [저장공간 우선 계획](storage-priority-and-editor-modes.md#후속-개발-우선순위)이 준비 시간의 허용 기준과 판단 방법을 소유한다. 몇 분 이내의 새 Editor 준비는 허용하며 AI의 계획/분석과 병행할 수 있으므로 준비 시간 단축을 높은 우선순위에 두지 않는다. 기존 개발 범위와 마감한 M0 판정은 유지한다.
+개발 순서는 **물리 공간 절감 → 메모리 절감 → 안정적인 병렬 작업**이며 PS/ME와 SP의 선택 단위를 한정 마감했다. 새 실제 사용의 차단/안전 결함 또는 필요한 지원 입력에서 다음 단위를 고른다. [저장공간 우선 계획](storage-priority-and-editor-modes.md#후속-개발-우선순위)이 준비 시간의 허용 기준과 판단 방법을 소유한다. 몇 분 이내의 새 Editor 준비는 허용하며 AI의 계획/분석과 병행할 수 있으므로 준비 시간 단축을 높은 우선순위에 두지 않는다. 기존 개발 범위와 마감한 M0 판정은 유지한다.
 
 ## 유지할 구현과 제거 경계
 
