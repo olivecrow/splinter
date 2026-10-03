@@ -1,5 +1,19 @@
 # 검증 추적표
 
+## 물리 저장 단계 마감
+
+[PS 확정 범위](physical-storage-completion.md)와 [현재 후보 직접 근거](../verification/physical-storage-completion.md)로 **현재 Windows/NTFS 알파의 물리 저장 개발을 scoped-complete-with-limitations 마감했다.** 다음 일반 개발은 메모리이며 기존 M0/JP/JM·SF/NR의 후보/지원 상태를 승계하거나 변경하지 않는다.
+
+| ID | 대상 | 판정 |
+| --- | --- | --- |
+| PS-01 | stopped SJR2의 stored/decoded·논리 live·전체 참조 block 장부 | Passed, 독립/손상/writer 10건·기존 Runtime usage와 현재 seal/계수 대조. Brotli 내용 복원·비ASCII 제외 |
+| PS-02 | 정확한 task·공유/원본/evidence 파일 할당 | Passed, 실제 Windows 합계/중복 root/누락/기존 출력/hardlink unknown 3건 |
+| PS-03 | 최신 후보 실제 A/B·생성/읽기/같은 요청·소유 Editor·정리·독립 결과/회수·B 지속 | Passed with limitations, 작은 T: 입력 한 묶음·두 정확한 snapshot missing·소유 자원 0·원본/기존 records/등록/프로세스 보존 |
+| PS-04 | 정리/두 세대 비용·회수 뒤 잔여량 | Passed with limitations, 두 task 1,048,304 allocated B·shared runner와 이전 자료/evidence 분리. VSS 귀속·전체 물리 순간 peak unknown |
+| PS-05 | 필수 자동 회귀·schema·문서 | Passed, 884 passed/0 failed/1 optional skip·Python 13 passed·응답 schema 35건·UTF-8/링크/diff |
+
+SF-02/03 전체 Partial·SF-04~06 NotRun·대형 PV/다른 입력/ARM/OS·실제 디스크 고갈·기존 C: 회수 보류는 그대로다. 이들은 이번 공간 구현 단계의 필수 후속 목록이 아니다.
+
 ## Unity CLI A/B 인계
 
 [고정 실행 범위](session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)와 [UH-01~04 근거/비용/제한](../verification/unity-cli-handoff.md)을 따른다. 기존 CLI/Pipeline·작은 T: Plastic 입력의 exact-path 작업·정상 종료 공존·독립 결과/회수를 scoped-complete-with-limitations로 마감했다. 목록 발견 누락·초기 읽기 eval 타임아웃·MCP/다른 입력/Play/Test/build 미자격은 유지한다. 과거 M0/PC의 실패를 삭제하거나 이 단위를 자동 재실행하지 않는다.
@@ -311,3 +325,16 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 ## 현재 압축 저널 제품 연결
 
 [JP-01~06](../verification/journal-payload-compression.md)은 [확정 범위](journal-payload-compression.md)의 공통 frame/fragment·현재 단일 형식·내용/복구/정리·작은 T: 실제 A/B·동일 journal raw 대조의 NTFS 할당/메모리 표본·필수 회귀를 scoped-complete-with-limitations로 마감했다. 이전 standalone·M0/UH를 새 형식의 근거로 승계하지 않으며 SF 전체 Partial·전체 peak/VSS 귀속/native RAM unknown과 기존 C: 보류를 유지한다.
+
+## 저널 기본값의 물리 저장 개선
+
+[JM 확정 범위](journal-metadata-storage.md)의 직접 근거는 [JM 검증](../verification/journal-metadata-storage.md)이 소유한다. 현재 SJR2 기본값 표현의 개선이며 새 형식/자동 이관·새 native A/B를 포함하지 않는다.
+
+| ID | 경계 | 상태 |
+| --- | --- | --- |
+| JM-01 | literal 기본값 명시/생략·비기본값·raw/encoded·개별 flush | Passed, 자동/fake |
+| JM-02 | 명시적 정리/후보의 더 작은 metadata·내용/sequence·예산 | Passed, focused 자동/실제 저널 오프라인 |
+| JM-03 | 고정 A/B 전후 NTFS 할당·이전 세대 회수·기준 읽기/입력 변경 0 | Passed with limitations, 새 Unity/VSS 수명주기 NotRun |
+| JM-04 | 필수 전체 build·현재 계약/문서·UTF-8/diff | Passed, 884 passed·0 failed·1 optional ReFS skip. UTF-8/로컬 링크/diff 확인 |
+
+JM-01~04는 scoped-complete-with-limitations로 마감했다. 실제 저널의 오프라인 파일 할당 감소를 전체 workspace 공간·메모리·새 native 지원으로 확대하지 않는다.

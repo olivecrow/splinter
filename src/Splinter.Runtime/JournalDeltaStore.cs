@@ -23,7 +23,9 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         public List<Extent> Extents = [];
     }
     private sealed record Mutation(long Sequence, string Operation, DeltaEntry Entry,
-        long Offset = 0, string? Destination = null, bool Replace = false,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long Offset = 0,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Destination = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Replace = false,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CompactionFragment[]? Fragments = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? FromSequence = null);
     private const int MaxMetadataBytes = 65536;

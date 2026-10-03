@@ -46,6 +46,8 @@
 | [한정 M0 납품 판정](verification/m0-delivery.md) | 현재 복구 회귀·기존 native 소스 대조와 재사용 한계·실제 시작 명령 확인·한정 완료와 지원 확대의 구분 |
 | [압축 저널](journal-payload-compression.md), [범위](plans/journal-payload-compression.md), [검증](verification/journal-payload-compression.md) | 저장/복원 길이·논리 fragment·SJR2/overlay v2/candidate v3·정리/복구·실제 A/B와 파일 할당의 한정 연결 |
 | [상태 쓰기 진단 검증](verification/state-write-diagnostics.md) | workspace 저장 단계·게시 완료 여부·실제 파일 잠금과 기계용 오류 계약의 자격 |
+| [저널 기본값 저장 범위](plans/journal-metadata-storage.md), [검증](verification/journal-metadata-storage.md) | 현재 SJR2 기본값 생략·명시적 정리/후보의 더 작은 메타데이터 선택·고정 실제 저널의 오프라인 NTFS 할당과 추가 비용. 새 native 수명주기 자격은 구분 |
+| [물리 저장 단계 최종 범위](plans/physical-storage-completion.md), [검증](verification/physical-storage-completion.md) | 현재 SJR2 장부·정확한 task 파일 할당·최종 제품 A/B·정리/독립 결과/회수와 물리 저장 단계의 종료 경계 |
 
 ## 남은 설계와 검증
 

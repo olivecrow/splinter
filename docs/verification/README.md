@@ -1,10 +1,14 @@
 # 검증 안내와 보존 근거
 
+[물리 저장 단계 최종 검증](physical-storage-completion.md)은 최신 JM Runtime의 고정 T: A/B·초기 복제/읽기 hydration 0·같은 작업·소유 Editor·정리·독립 결과/회수·설명 가능한 잔여 파일 할당과 현재 장부/회귀를 scoped-complete-with-limitations로 마감했다. 다음 일반 개발 우선순위는 메모리다. SF/NR의 별도 지원 확대·C: 회수 보류와 공유 VSS/전체 순간 peak unknown은 유지한다.
+
 일반 폴더 원본 반영의 현재 후보는 [별도 검증](plain-folder-original-apply.md)을 따른다. 일반 권한 파일 시험과 작은 Editor 없는 실제 제품 VSS·WinFsp A/B 한정 마감을 구분한다.
 
 현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop을 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제거했고 결과 보존은 checkpoint로 통일했다. 선택적 단일 view/Library cache·ReFS·probe는 [개발용 CLI](../development-cli.md)로 분리했다. 아래 기존 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 이번 후보의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](workspace-product-scope.md)을 따른다.
 
 ## 현재 변경의 검증
+
+[저널 기본값 메타데이터](journal-metadata-storage.md)는 현재 SJR2 의미·개별 flush를 유지하는 구현과 실제 Unity A/B의 보존된 저널을 사용한 오프라인 NTFS 전후 비교를 소유한다. 기존 payload 정리 효과·추가 직렬화 비용·새 native 수명주기의 미실행과 전체 workspace/RAM 미확인을 구분한다.
 
 [압축 저널 제품 연결](journal-payload-compression.md)은 overlay v2/SJR2·candidate v3의 현재 회귀·작은 T: Plastic A/B·동일 입력 journal raw 대조의 실제 NTFS 할당·두 독립 결과/회수를 scoped-complete-with-limitations로 마감했다. 전체 공간/RAM·대형/OS 자격과 기존 C: 보류를 유지하며 독립 codec의 논리 표본/이전 native 자격을 승계하지 않는다.
 

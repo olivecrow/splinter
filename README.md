@@ -50,6 +50,7 @@ CLI는 stdout에 JSON 응답 하나를 반환한다. VSS 작업은 [제한 권�
 - [제품 요구사항](plan.html): 제품이 달성해야 할 목표.
 - [구현 계획](docs/plans/implementation-plan.md): 프로그램/에이전트 책임과 축소한 후속 작업·종료 기준.
 - [저장공간 우선 설계](docs/plans/storage-priority-and-editor-modes.md): 용량·준비·재개 비용과 Editor 실행 방식의 판단 기준.
+- [물리 저장 단계 마감](docs/verification/physical-storage-completion.md): 현재 NTFS 알파의 최종 A/B·정리·독립 결과/회수·잔여 비용을 한정 확인했으며 다음 일반 개발은 메모리다.
 - [검증 추적표](docs/plans/validation-matrix.md): 첫 버전 M0와 장기 지원·확장 카탈로그.
 
 배포 전에는 현재 데이터 계약만 지원한다. 지원하지 않는 형식은 원본과 결과를 보존한 채 명시적으로 거부하며 자동 이관하지 않는다. 변경 이력은 Git에서 확인한다.

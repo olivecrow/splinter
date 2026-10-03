@@ -8,9 +8,11 @@
 
 ## 후속 개발 우선순위
 
+**현재 Windows/NTFS 알파의 물리 저장 단계는 [PS 최종 범위](physical-storage-completion.md)·[PS-01~05 직접 검증](../verification/physical-storage-completion.md)으로 scoped-complete-with-limitations 마감했다.** 아래 순서는 제품의 판단 기준이며 다음 일반 개발은 2의 메모리 절감이다. 공간 작업은 새 실사용 부족·데이터 보존 결함·명시적 지원 확대 요청이 있을 때만 해당 입력/질문으로 다시 연다. 기존 SF-02/03 Partial·대형/OS/ARM NotRun과 전체 순간 peak/VSS 귀속 unknown을 유지한다.
+
 | 순위 | 목표 | 판단할 내용 |
 | --- | --- | --- |
-| 1 | 물리 공간 절감 | 원본 전체 복제 없이 작업 수와 누적 편집에 따른 총 추가 공간·회수 후 잔여량을 줄임. 파일 할당·Library·Git/임시 결과와 공유 VSS를 아래 공통 정책에 따라 구분 |
+| 1: 현재 알파 한정 마감 | 물리 공간 절감 | 범위 저장·private 재사용/압축·명시적 정리·작은 metadata와 최종 A/B의 회수/잔여 비용을 PS로 확인. 파일 할당·Library·독립 결과/임시 evidence와 공유 VSS를 구분하며 지원 확대는 별도 |
 | 2 | 메모리 절감 | provider·Editor·검증 cache의 메모리와 동시 작업 수에 따른 부담을 줄임. 프로세스 working set/private bytes와 시스템 전체 사용량을 구분하며 단순 합을 물리 메모리 절감으로 읽지 않음 |
 | 3 | 안정적인 병렬 작업 | 작업별 기준·변경분·Editor를 격리하고 같은 작업 재개·명시적 보존/반영/폐기·타 작업 지속을 유지 |
 
@@ -42,6 +44,7 @@ SF-02/03 Partial·SF-04~06 NotRun은 증거 상태이며 미완성 프로그램 
 - [JW](../verification/live-journal-write-cost.md): 첫 import commit 내부 848.16초 중 flush 828.38초를 관측했다. Windows callback의 선행 직렬화 때문에 Runtime 단독 group flush는 미선정이다. callback 원자성·대기/완료 경계·acknowledged write 내구성을 별도로 검토해야 한다.
 - [WI](../verification/cumulative-write-range-index.md), [RI](../verification/replay-index-cost.md), [RU](../verification/unity-replay-comparison.md): 같은 닫힌 저널·합성·누적 Editor 재개를 구별한다. 합성 개선이나 warm cache 소수 표본을 전체 Editor 개선·Library 물리 절감으로 환산하지 않는다.
 - [VSS 보호 근거](../verification/storage-recovery.md): 정확한 ID 삭제만으로 타 snapshot 보존이 보장되지 않는다. 현재 격리 guard와 명시적 지연 회수 계약을 유지한다.
+- [PS 단계 마감](../verification/physical-storage-completion.md): 최신 JM 후보의 고정 T: A/B·정리·독립 결과/회수와 1,048,304B의 선택 task 잔여량. 공유 runner/기존 records/evidence·원본 Library는 분리하며 전체 공간 절감률·물리 순간 peak는 unknown이다. 과거 SF 전체를 Passed로 변경하지 않는다.
 
 ## SF-03 제품 연결과 남은 관문
 
@@ -58,6 +61,8 @@ SF-02/03 Partial·SF-04~06 NotRun은 증거 상태이며 미완성 프로그램 
 SF-03 전체 Partial은 유지한다. FIFO/Coordination·일반 임대 인수·원본 Editor 공유·자동 모드·전용 installer·자동 binding은 구현 제외다. 생성 source 반환 병합과 실행 방식 선택은 AI 절차다. group flush는 채택하지 않았으며 대형 PV/NR 전체는 필요 시 지원 검증이다. 한정 M0를 전체 SF 통과로 읽지 않는다. [UA](../verification/storage-privilege-service.md)와 아래 WF/LB의 기존 자격·현재 계약의 동일 요청/응답 유실/재시작 복구는 유지한다.
 
 ## 다음 범위 판단
+
+JP의 보존된 실제 저널에서 [기본값 메타데이터의 물리 저장 개선](journal-metadata-storage.md)을 별도 JM-01~04로 확정하고 scoped-complete-with-limitations로 마감했다. 현재 SJR2 의미·개별 flush·결과/회수 guard를 유지하며 새 쓰기와 명시적 정리/후보에서 기본값 표현만 줄인다. [직접 근거](../verification/journal-metadata-storage.md)는 같은 A/B 저널의 오프라인 NTFS 할당과 추가 직렬화 비용이며 새 native A/B/전체 workspace·RAM 자격으로 승계하지 않는다.
 
 선택한 공간 개선은 [Bee 입력의 독립 블록 압축 후보](../verification/library-block-compression-feasibility.md)와 [독립 codec](../verification/workspace-payload-codec.md) 뒤 [압축 저널 제품 연결](../verification/journal-payload-compression.md)의 작은 T: A/B·동일 journal raw 대조를 한정 마감했다. 후보 모델/standalone 논리 압축률과 제품의 실제 journal 파일 할당을 구분한다. 전체 workspace 공간/RAM·대형/OS 자격과 SF 전체 Partial은 유지하며 다음 병목은 필요한 실제 입력으로 별도 선정한다.
 

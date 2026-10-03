@@ -20,7 +20,11 @@ Core `WorkspaceJournalPayload`는 저장/복원 길이와 논리 fragment의 범
 
 승인 쓰기는 기존 순서대로 frame append·개별 durable flush·index 반영·callback 반환을 유지한다. 압축을 위해 callback을 여러 승인으로 나누거나 group flush를 추가하지 않는다. private 동일 바이트/앞뒤 범위 재사용을 먼저 수행한다. journal budget은 실제 header/metadata/stored/checksum 길이로 검사한다. 재생은 외부 checksum과 내부 codec/선언 길이 일치를 확인한 뒤 논리 extent를 연결한다. 손상된 완전한 frame은 보존·거부하며 불완전한 마지막 미승인 frame만 기존 정책으로 제거한다.
 
+Mutation JSON은 `Offset=0`·`Destination=null`·`Replace=false`를 생략한다. 현재 reader는 명시적 기본값과 생략을 같은 의미로 읽으며 비기본값·Entry·Sequence·Operation·fragment/skip 범위는 유지한다. 생성/재연결/읽기에서 저장된 저널을 다시 쓰지 않는다. 현재 형식과 CLI·Core·응답 schema는 그대로다.
+
 compaction/candidate는 유효 논리 fragment를 모아 현재 frame으로 표현하고 원래 저장 frame보다 작을 때만 선택한다. fragment metadata가 더 비싸면 원래 frame을 보존한다. 내용/sequence/소스 seal·같은 intent 재시도와 명시적 겹침 예산은 유지한다. 독립 결과 수집은 기존 파일/소스 provider를 통해 decoded 내용을 읽으며 회수할 저널/VSS에 의존하지 않는다.
+
+명시적 compaction/candidate는 유지할 frame의 decoded mutation을 현재 JSON으로 직렬화해 더 작을 때만 메타데이터를 선택한다. 유지하는 payload의 raw/encoded 바이트와 두 길이는 그대로이며 외부 checksum은 새 metadata에 맞춰 작성한다. 생략된 기본값의 실제 저장 자격과 추가 직렬화 비용은 [JM 검증](verification/journal-metadata-storage.md), 한정 범위는 [JM 계획](plans/journal-metadata-storage.md)을 따른다.
 
 `PayloadBytes`/`RetainedPayloadBytes`는 실제 stored 길이이며 codec 48B도 포함한다. `LivePrivateBytes`·`RetainedLogicalPayloadBytes`는 논리 길이다. `LiveStoredPayloadBytes`는 참조되는 block을 한 번씩 합산하고 `ObsoletePayloadBytes`는 완전히 미참조된 block의 stored 합계다. 일부만 유효한 압축 block은 전체 저장 비용을 유지하므로 논리 길이를 물리 길이에서 빼지 않는다. frame 비용은 header·metadata·외부 checksum이며 VSS·전체 workspace 비용과 구분한다.
 

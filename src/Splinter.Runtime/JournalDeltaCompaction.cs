@@ -367,6 +367,11 @@ public sealed partial class JournalDeltaStore
 
     private CompactionFrame FrameFor(Mutation mutation, byte[] metadata, long payload, WorkspaceJournalPayload descriptor, List<PayloadSlice> slices)
     {
+        // Current SJR2 readers already supply these optional mutation defaults.
+        // Explicit compaction may reduce their JSON without touching the stored
+        // block or rewriting a saved journal merely because it was opened.
+        byte[] reducedMetadata = JsonSerializer.SerializeToUtf8Bytes(mutation);
+        if (reducedMetadata.Length < metadata.Length) metadata = reducedMetadata;
         if (mutation.Operation is not ("write" or "write-compacted"))
             return new(mutation, metadata, [], 0, descriptor);
         int dataLength = descriptor.DecodedBytes;

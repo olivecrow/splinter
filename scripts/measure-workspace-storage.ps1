@@ -5,6 +5,8 @@ param(
     [Parameter(Mandatory)][string]$OutputPath,
     [Parameter(Mandatory)][string]$Label,
     [string]$EvidencePath,
+    [string[]]$WorkspaceIds,
+    [switch]$SkipOriginalLibrary,
     [ValidateSet('git','none','plastic')][string]$SourceKind = 'git',
     [ValidateSet('unity','none')][string]$ApplicationKind = 'unity'
 )
@@ -33,6 +35,7 @@ public static class SplinterAllocationProbe {
             if (handle.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
             if (!GetFileInformationByHandleEx(handle, 1, out var info, (uint)Marshal.SizeOf<StandardInfo>()))
                 throw new Win32Exception(Marshal.GetLastWin32Error());
+            if (info.Links > 1) throw new InvalidOperationException("Hardlinked allocation cannot be attributed by path; preserve unknown.");
             return info.AllocationSize;
         }
     }
@@ -41,27 +44,50 @@ public static class SplinterAllocationProbe {
 }
 $stateRoot = [IO.Path]::GetFullPath($HomePath)
 $sourceRoot = [IO.Path]::GetFullPath($Project)
+$destination = [IO.Path]::GetFullPath($OutputPath)
+if (Test-Path -LiteralPath $destination) { throw 'Preserve existing measurement output; choose a new file.' }
 $roots = [Collections.Generic.List[object]]::new()
-$roots.Add(@{name='control-and-delta';path=(Join-Path $stateRoot 'records');scope='owned';baselineExcluded=$false})
-$roots.Add(@{name='validation-product';path=(Join-Path $stateRoot 'validation-product');scope='owned';baselineExcluded=$false})
-$roots.Add(@{name='validation-workflows';path=(Join-Path $stateRoot 'validation-workflows');scope='owned';baselineExcluded=$false})
-$roots.Add(@{name='runners';path=(Join-Path $stateRoot 'runners');scope='owned';baselineExcluded=$false})
+if ($WorkspaceIds) {
+    if (@($WorkspaceIds | Select-Object -Unique).Count -ne $WorkspaceIds.Count -or @($WorkspaceIds | Where-Object { $_ -cnotmatch '^[a-f0-9]{24}$' }).Count) { throw 'Workspace IDs must be unique exact lowercase task IDs.' }
+    foreach ($workspaceId in $WorkspaceIds) {
+        $taskRoot = Join-Path $stateRoot ('records/' + $workspaceId)
+        $workspaceFile = Join-Path $taskRoot 'workspace.json'
+        if (-not (Test-Path -LiteralPath $workspaceFile)) { throw 'Selected workspace record is missing; do not count it as zero.' }
+        $saved = Get-Content -LiteralPath $workspaceFile -Raw | ConvertFrom-Json
+        if ($saved.version -ne 2 -or $saved.id -cne $workspaceId -or $saved.projectPath -ne $sourceRoot) { throw 'Selected workspace identity/project differs.' }
+        $roots.Add(@{name=('workspace-' + $workspaceId);path=$taskRoot;scope='selected-workspace';baselineExcluded=$false})
+    }
+} else { $roots.Add(@{name='control-and-delta';path=(Join-Path $stateRoot 'records');scope='shared-home';baselineExcluded=$false}) }
+$roots.Add(@{name='validation-product';path=(Join-Path $stateRoot 'validation-product');scope='shared-home';baselineExcluded=$false})
+$roots.Add(@{name='validation-workflows';path=(Join-Path $stateRoot 'validation-workflows');scope='shared-home';baselineExcluded=$false})
+$roots.Add(@{name='runners';path=(Join-Path $stateRoot 'runners');scope='shared-home-cache';baselineExcluded=$false})
 if ($SourceKind -eq 'git') {
     $gitCommon = (& git -C $sourceRoot rev-parse --path-format=absolute --git-common-dir).Trim()
     if ($LASTEXITCODE -ne 0) { throw 'Git common directory observation failed' }
     $roots.Add(@{name='git-common';path=$gitCommon;scope='shared-including-results';baselineExcluded=$true})
 }
-if ($ApplicationKind -eq 'unity') {
+if ($ApplicationKind -eq 'unity' -and -not $SkipOriginalLibrary) {
     $roots.Add(@{name='original-library';path=(Join-Path $sourceRoot 'Library');scope='original';baselineExcluded=$true})
 }
 if ($EvidencePath) {
     $roots.Add(@{name='verification-evidence';path=[IO.Path]::GetFullPath($EvidencePath);scope='measurement-overhead';baselineExcluded=$false})
+}
+# Root totals can only be summed when their physical inventories are disjoint.
+# Never traverse the logical workspace mounts or quietly duplicate evidence.
+for ($left = 0; $left -lt $roots.Count; $left++) {
+    for ($right = $left + 1; $right -lt $roots.Count; $right++) {
+        $a = [IO.Path]::GetFullPath($roots[$left].path).TrimEnd('\','/')
+        $b = [IO.Path]::GetFullPath($roots[$right].path).TrimEnd('\','/')
+        if ($a.Equals($b,[StringComparison]::OrdinalIgnoreCase) -or $a.StartsWith($b+'\',[StringComparison]::OrdinalIgnoreCase) -or $b.StartsWith($a+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Overlapping measurement roots would duplicate allocation; choose disjoint roots.' }
+    }
 }
 $rows = foreach ($root in $roots) {
     $errorsSeen = [Collections.Generic.List[string]]::new()
     $fileCount = 0L; $logical = 0L; $allocated = 0L
     $categories = @{}
     if (Test-Path -LiteralPath $root.path) {
+        $rootItem = Get-Item -LiteralPath $root.path -Force
+        if (-not $rootItem.PSIsContainer -or $rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Measurement roots must be real directories, never mounts/reparse points.' }
         $pending = [Collections.Generic.Stack[string]]::new(); $pending.Push($root.path)
         while ($pending.Count) {
             $directory = $pending.Pop()
@@ -96,15 +122,27 @@ $rows = foreach ($root in $roots) {
 $vss = $null; $vssError = $null
 try { $vss = @(Get-CimInstance Win32_ShadowStorage -ErrorAction Stop | Select-Object @{n='volume';e={$_.Volume.DeviceID}},@{n='diffVolume';e={$_.DiffVolume.DeviceID}},UsedSpace,AllocatedSpace,MaxSpace) }
 catch { $vssError = $_.Exception.Message }
-$report = [ordered]@{version=1;label=$Label;atUtc=[DateTimeOffset]::UtcNow;home=$stateRoot;project=$sourceRoot;sourceKind=$SourceKind;applicationKind=$ApplicationKind;
+$productRows = @($rows | Where-Object { $_.scope -notin @('original','measurement-overhead') })
+$completeProduct = @($productRows | Where-Object { -not $_.complete }).Count -eq 0
+$productAllocatedBytes = [long]0
+if ($completeProduct) {
+    foreach ($productRow in $productRows) { $productAllocatedBytes += [long]$productRow.allocatedBytes }
+}
+$volumes = @(@($stateRoot,$sourceRoot) | ForEach-Object { [IO.Path]::GetPathRoot($_) } | Select-Object -Unique | ForEach-Object { $drive=[IO.DriveInfo]::new($_); @{root=$_;freeBytes=$drive.AvailableFreeSpace;totalBytes=$drive.TotalSize;fileSystem=$drive.DriveFormat;scope='volume-shared';workspaceAttribution='unknown'} })
+$report = [ordered]@{version=2;label=$Label;atUtc=[DateTimeOffset]::UtcNow;home=$stateRoot;project=$sourceRoot;sourceKind=$SourceKind;applicationKind=$ApplicationKind;workspaceIds=@($WorkspaceIds);originalLibrarySampled=($ApplicationKind -eq 'unity' -and -not $SkipOriginalLibrary);
     roots=@($rows);vssVolumeObservations=$vss;vssObservationError=$vssError;totalAttributableBytes=$null;
+    volumeObservations=$volumes;productFileAllocationBytes=if($completeProduct){$productAllocatedBytes}else{$null};productFileAllocationComplete=$completeProduct;
     limitations=@('Subtract each category baseline before comparing additional allocation. Categories subdivide their root; do not add them again.',
         'VSS is volume-wide and may include unrelated original writes. No per-workspace attribution or total savings claim.',
         'File allocations exclude MFT/directory metadata and kernel/OS caches. Stage samples can miss peaks.',
         'Original Library baseline is excluded. Workspace Library writes are already inside the delta journal.',
         'Logs outside these roots and this measurement output require a separate evidence allocation entry.',
         'Optional verification-evidence is measurement overhead, not product workspace allocation; count a shared evidence root only once.')}
-$destination = [IO.Path]::GetFullPath($OutputPath)
 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
-$report | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $destination -Encoding utf8
+$json = $report | ConvertTo-Json -Depth 12
+# No overwrite, even if another observation publishes this path during scanning.
+$output = [IO.FileStream]::new($destination,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::Read)
+try {
+    $bytes=[Text.UTF8Encoding]::new($false).GetBytes($json); $output.Write($bytes); $output.Flush($true)
+} finally { $output.Dispose() }
 [pscustomobject]@{label=$Label;roots=$rows.Count;completeRoots=@($rows | Where-Object complete).Count;vssKnown=($null -eq $vssError);output=$destination} | ConvertTo-Json -Compress

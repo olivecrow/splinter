@@ -15,10 +15,11 @@ spec.loader.exec_module(measure)
 
 
 def frame(sequence, operation, path="Assets/a", length=0, data=b"", node="a", **extra):
+    decoded = extra.pop('decoded', len(data))
     mutation = dict(Sequence=sequence, Operation=operation,
         Entry=dict(Id=node, Path=path, Length=length, Deleted=operation == "delete"), **extra)
     metadata = json.dumps(mutation, separators=(",", ":")).encode()
-    content = struct.pack("<ii", len(metadata), len(data)) + metadata + data
+    content = b'SJR2' + struct.pack("<iii", len(metadata), len(data), decoded) + metadata + data
     return content + hashlib.sha256(content).digest()
 
 
@@ -47,10 +48,13 @@ class AccountingTests(unittest.TestCase):
         ])
         result = self.inspect(data)
         # Original abcdefgh -> abWXYZgh -> abWXY; trash is deleted.
-        self.assertEqual(result["livePayloadBytes"], len(b"abWXY"))
-        self.assertEqual(result["obsoletePayloadBytes"], 10)
+        self.assertEqual(result["livePrivateBytes"], len(b"abWXY"))
+        # Both raw source blocks are still referenced. Their stored cost remains
+        # whole, although only five logical bytes survive; only trash is wholly obsolete.
+        self.assertEqual(result["liveStoredPayloadBytes"], 12)
+        self.assertEqual(result["obsoletePayloadBytes"], 3)
         self.assertEqual(result["livePayloadByCurrentGroup"], {"Library": 5})
-        self.assertEqual(result["groups"]["Assets"]["retainedPayloadBytes"], 5)
+        self.assertEqual(result["groups"]["Assets"]["retainedPayloadBytes"], 12)
         self.assertEqual(result["groups"]["Library"]["obsoletePayloadBytes"], 3)
 
     def test_compacted_fragments_and_skip_sequence_preserve_live_accounting(self):
@@ -63,7 +67,7 @@ class AccountingTests(unittest.TestCase):
             frame(101, "metadata", path="Library/reused", length=5),
         ])
         result = self.inspect(data)
-        self.assertEqual(result["livePayloadBytes"], 5)
+        self.assertEqual(result["livePrivateBytes"], 5)
         self.assertEqual(result["obsoletePayloadBytes"], 0)
         self.assertEqual(result["durableSequence"], 101)
         self.assertEqual(result["frameCount"], 7)
@@ -94,6 +98,60 @@ class AccountingTests(unittest.TestCase):
     def test_unicode_comparison_is_not_silently_assumed(self):
         with self.assertRaisesRegex(ValueError, "non-ASCII"):
             self.inspect(frame(1, "create", path="Assets/이름"))
+
+    def test_partly_live_encoded_block_is_counted_whole_once(self):
+        # A literal SPB1 structure/checksum oracle. Accounting intentionally
+        # does not claim Brotli content validity or decode the block.
+        prefix = b'SPB1' + struct.pack('<ii', 4096, 10) + b'\x01\0\0\0'
+        encoded = prefix + b'x' * 10
+        encoded += hashlib.sha256(encoded).digest()
+        data = b''.join([
+            frame(1, 'write', length=4096, data=encoded, decoded=4096),
+            frame(2, 'write', length=4096, data=b'abcd', Offset=16),
+            frame(3, 'resize', length=100),
+        ])
+        result = self.inspect(data)
+        self.assertEqual(result['livePrivateBytes'], 100)
+        self.assertEqual(result['liveStoredPayloadBytes'], len(encoded) + 4)
+        self.assertEqual(result['obsoletePayloadBytes'], 0)
+        self.assertEqual(result['decodedPayloadBytes'], 4100)
+        self.assertFalse(result['payloadContentsDecoded'])
+        deleted = self.inspect(data + frame(4, 'delete', length=100))
+        self.assertEqual(deleted['liveStoredPayloadBytes'], 0)
+        self.assertEqual(deleted['obsoletePayloadBytes'], len(encoded) + 4)
+
+    def test_encoded_compacted_fragments_share_one_fixed_block(self):
+        prefix = b'SPB1' + struct.pack('<ii', 1024, 10) + b'\x01\0\0\0'
+        encoded = prefix + b'x' * 10
+        encoded += hashlib.sha256(encoded).digest()
+        result = self.inspect(b''.join([
+            frame(1, 'write-compacted', length=2048, data=encoded, decoded=1024,
+                  Fragments=[dict(Offset=0, Length=512), dict(Offset=1024, Length=512)]),
+            frame(2, 'write', length=2048, data=b'abcdefgh', Offset=10),
+        ]))
+        self.assertEqual(result['livePrivateBytes'], 1024)
+        self.assertEqual(result['liveStoredPayloadBytes'], len(encoded) + 8)
+        self.assertEqual(result['obsoletePayloadBytes'], 0)
+
+    def test_recreated_same_id_discards_prior_incarnation_ranges(self):
+        result = self.inspect(b''.join([
+            frame(1, 'write', length=4, data=b'old!'),
+            frame(2, 'delete', length=4), frame(3, 'create'),
+        ]))
+        self.assertEqual(result['livePrivateBytes'], 0)
+        self.assertEqual(result['obsoletePayloadBytes'], 4)
+
+    def test_previous_format_and_inner_corruption_preserve_input(self):
+        prefix = b'SPB1' + struct.pack('<ii', 1024, 10) + b'\x01\0\0\0'
+        encoded = prefix + b'x' * 10 + b'0' * 32
+        cases = [b'old-format' * 4, frame(1, 'write', length=1024, data=encoded, decoded=1024)]
+        for data in cases:
+            with tempfile.TemporaryDirectory(dir=self.temp_root) as directory:
+                path = Path(directory) / 'delta.journal'
+                path.write_bytes(data)
+                with self.assertRaises(ValueError):
+                    measure.analyze(path)
+                self.assertEqual(path.read_bytes(), data)
 
     @unittest.skipUnless(os.name == "nt", "Windows share-mode boundary")
     def test_active_writer_is_rejected_without_changing_journal(self):
