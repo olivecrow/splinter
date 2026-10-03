@@ -7,7 +7,7 @@ namespace Splinter.Runtime;
 public sealed partial class JournalDeltaStore
 {
     public const int FrameHeaderBytes = 16, FrameChecksumBytes = 32;
-    private readonly IWorkspacePayloadCodec payloadCodec = new BrotliWorkspacePayloadCodec();
+    private readonly BrotliWorkspacePayloadCodec payloadCodec = new();
 
     private static void WriteHeader(Span<byte> header, int metadata, WorkspaceJournalPayload payload)
     {
@@ -35,13 +35,7 @@ public sealed partial class JournalDeltaStore
     private byte[]? EncodePayload(ReadOnlySpan<byte> decoded)
     {
         if (decoded.Length < BrotliWorkspacePayloadCodec.BlockOverheadBytes + 64) return null;
-        byte[] encoded = ArrayPool<byte>.Shared.Rent(payloadCodec.GetMaxEncodedBytes(decoded.Length));
-        try
-        {
-            int count = payloadCodec.Encode(decoded, encoded);
-            return count <= decoded.Length - 64 ? encoded.AsSpan(0, count).ToArray() : null;
-        }
-        finally { ArrayPool<byte>.Shared.Return(encoded); }
+        return payloadCodec.EncodeJournalPayload(decoded);
     }
     private void ValidateEncoded(ReadOnlySpan<byte> encoded, WorkspaceJournalPayload payload)
     {

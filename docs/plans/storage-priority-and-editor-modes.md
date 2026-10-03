@@ -8,12 +8,12 @@
 
 ## 후속 개발 우선순위
 
-**현재 Windows/NTFS 알파의 물리 저장 단계는 [PS 최종 범위](physical-storage-completion.md)·[PS-01~05 직접 검증](../verification/physical-storage-completion.md)으로 scoped-complete-with-limitations 마감했다.** 아래 순서는 제품의 판단 기준이며 다음 일반 개발은 2의 메모리 절감이다. 공간 작업은 새 실사용 부족·데이터 보존 결함·명시적 지원 확대 요청이 있을 때만 해당 입력/질문으로 다시 연다. 기존 SF-02/03 Partial·대형/OS/ARM NotRun과 전체 순간 peak/VSS 귀속 unknown을 유지한다.
+**현재 Windows/NTFS 알파의 물리 저장은 [PS](physical-storage-completion.md)·[직접 근거](../verification/physical-storage-completion.md), 메모리는 [ME](memory-completion.md)·[직접 근거](../verification/memory-completion.md)로 scoped-complete-with-limitations 마감했다.** 아래 순서는 제품의 판단 기준이며 다음 일반 개발은 3의 안정적인 병렬 작업이다. 공간/메모리는 새 실사용 부족·누수/지속 증가·보존 결함/작업 차단·명시적 지원 확대 요청에서만 해당 입력/질문/종료 기준으로 다시 연다. 기존 SF-02/03 Partial·대형/OS/ARM NotRun과 전체 순간 peak/VSS/시스템 RAM 귀속 unknown을 유지한다.
 
 | 순위 | 목표 | 판단할 내용 |
 | --- | --- | --- |
 | 1: 현재 알파 한정 마감 | 물리 공간 절감 | 범위 저장·private 재사용/압축·명시적 정리·작은 metadata와 최종 A/B의 회수/잔여 비용을 PS로 확인. 파일 할당·Library·독립 결과/임시 evidence와 공유 VSS를 구분하며 지원 확대는 별도 |
-| 2 | 메모리 절감 | provider·Editor·검증 cache의 메모리와 동시 작업 수에 따른 부담을 줄임. 프로세스 working set/private bytes와 시스템 전체 사용량을 구분하며 단순 합을 물리 메모리 절감으로 읽지 않음 |
+| 2: 현재 알파 한정 마감 | 메모리 절감 | ME의 쓰기 중복 buffer·작은 read scratch·같은 실제 입력/실패 계약·소유 비용/회수. provider·Editor/cache·pool/관리 heap·시스템 값을 분리하며 전체 RAM 감소율과 별도 지원 상태를 만들지 않음 |
 | 3 | 안정적인 병렬 작업 | 작업별 기준·변경분·Editor를 격리하고 같은 작업 재개·명시적 보존/반영/폐기·타 작업 지속을 유지 |
 
 원본·타 작업·승인 쓰기와 결과 보존은 모든 절감 판단의 필수 조건이다. 기존 SF/NR/SW 범위를 유지하며 위 순서로 실제 사용 입력의 필요한 경계만 선택한다.

@@ -2,7 +2,7 @@
 
 사용자 요청에 따라 **현재 Windows/NTFS 알파의 물리 저장 공간 구현·검증 단위를 이번 작업으로 마감**하는 것이 목표다. 질문은 **최종 후보의 두 작업이 전체 복제/읽기 hydration 없이 생성·편집·재개되고, 명시적 정리와 독립 결과/회수 뒤 추가 파일 할당이 설명 가능한 잔여량으로 돌아오는가**다. 압축/동일 private 쓰기/작은 변경 범위/기본값 metadata의 기존 구현을 유지한다. 새 공간 최적화를 무한히 이어 가지 않고 아래 조건으로 종료한다.
 
-**PS-01~05를 scoped-complete-with-limitations로 마감했다.** [직접 실행·비용·보호/회수 판정](../verification/physical-storage-completion.md)이 소유 근거다. 다음 일반 개발 우선순위는 메모리이며 물리 저장 작업을 자동으로 이어 가지 않는다.
+**PS-01~05를 scoped-complete-with-limitations로 마감했다.** [직접 실행·비용·보호/회수 판정](../verification/physical-storage-completion.md)이 소유 근거다. 후속 메모리 단계는 [ME 계획](memory-completion.md)·[검증](../verification/memory-completion.md)이 소유하며 물리 저장 작업을 자동으로 이어 가지 않는다.
 
 ## 완료 조건
 

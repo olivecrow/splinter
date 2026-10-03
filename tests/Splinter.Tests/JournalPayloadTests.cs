@@ -52,6 +52,36 @@ public sealed class JournalPayloadTests
         Assert.Equal(0, tree.ReadBytes);
     }
 
+    [Theory]
+    [InlineData(111)] [InlineData(112)] [InlineData(113)] [InlineData(128)]
+    [InlineData(4096)] [InlineData(65536)] [InlineData(1048576)]
+    public void JournalSavingDecisionAndSelectedBytesMatchStandaloneCodecIncludingThreshold(int size)
+    {
+        using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        var identity = Identity(tree) with { MaxJournalBytes = 16 * 1024 * 1024, MaxTransferBytes = 1048576 };
+        var codec = new BrotliWorkspacePayloadCodec();
+        foreach (int randomPrefix in new[] { 0, Math.Max(0, size - 160), size }.Distinct())
+        {
+            byte[] input = new byte[size]; new Random(1936).NextBytes(input.AsSpan(0, randomPrefix));
+            byte[] encoded = new byte[codec.GetMaxEncodedBytes(size)]; int length = codec.Encode(input, encoded);
+            bool compressed = size >= 112 && length <= size - 64;
+            string child = Path.Combine(directory.Path, randomPrefix.ToString());
+            using (var store = new JournalDeltaStore(child, identity, tree))
+            {
+                Guid file = store.Create("file", false, 32).Id; store.Write(file, 0, input);
+                byte[] output = new byte[size]; Assert.Equal(size, store.Read(file, 0, output)); Assert.Equal(input, output);
+            }
+            byte[] frames = File.ReadAllBytes(Path.Combine(child, "delta.journal"));
+            int firstMetadata = BinaryPrimitives.ReadInt32LittleEndian(frames.AsSpan(4));
+            int cursor = 16 + firstMetadata + 32;
+            int metadata = BinaryPrimitives.ReadInt32LittleEndian(frames.AsSpan(cursor + 4));
+            int stored = BinaryPrimitives.ReadInt32LittleEndian(frames.AsSpan(cursor + 8));
+            Assert.Equal(size, BinaryPrimitives.ReadInt32LittleEndian(frames.AsSpan(cursor + 12)));
+            Assert.Equal(compressed ? length : size, stored);
+            Assert.Equal(compressed ? encoded[..length] : input, frames.AsSpan(cursor + 16 + metadata, stored).ToArray());
+        }
+    }
+
     [Fact]
     public void CompressedFragmentsSurvivePartialOverlapResizeRenameCandidateAndCompaction()
     {

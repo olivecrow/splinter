@@ -28,4 +28,6 @@ compaction/candidate는 유효 논리 fragment를 모아 현재 frame으로 표�
 
 `PayloadBytes`/`RetainedPayloadBytes`는 실제 stored 길이이며 codec 48B도 포함한다. `LivePrivateBytes`·`RetainedLogicalPayloadBytes`는 논리 길이다. `LiveStoredPayloadBytes`는 참조되는 block을 한 번씩 합산하고 `ObsoletePayloadBytes`는 완전히 미참조된 block의 stored 합계다. 일부만 유효한 압축 block은 전체 저장 비용을 유지하므로 논리 길이를 물리 길이에서 빼지 않는다. frame 비용은 header·metadata·외부 checksum이며 VSS·전체 workspace 비용과 구분한다.
 
-압축 준비는 최대 decoded+48B encoded 임시 buffer와 decoded 크기의 codec scratch를 사용한다. ArrayPool의 실제 대여 배열은 최대 encoded 요청에서 2MiB가 될 수 있다. 반환할 짧은 encoded prefix는 별도 관리 배열이며 성공/실패 뒤 pool lease는 반환된다. read/replay/compaction의 buffer·작은 read의 전체 block 복원 비용과 Brotli native memory는 별도로 측정한다. [실제 자격](verification/journal-payload-compression.md)과 [종료 범위](plans/journal-payload-compression.md)를 따른다.
+압축 준비는 유익한 block의 최대 stored 용량(decoded−48−64B)만 scratch 하나로 대여하고 선택한 정확한 encoded 배열을 만든다. raw를 선택하면 결과 배열을 만들지 않는다. 중복 decoded+48B encoded 임시 buffer는 사용하지 않는다. codec/선택/바이트와 budget/개별 durable flush/ACK는 유지한다. read/replay의 작은/빈 요청은 16KiB chunk와 요청분 staging으로 전체 stream을 검증하며 decoded cache를 두지 않는다. 전체 요청은 전체 bounded scratch를 유지한다.
+
+pool 임대 반환은 pool 잔류·native codec state·caller 요청/result/index를 제거한다는 뜻이 아니다. [ME 범위](plans/memory-completion.md)·[현재 메모리 근거](verification/memory-completion.md)는 lease·관리 할당/heap·소유 provider/Editor와 시스템 공유 비용을 구분한다. 선행 공간/수명주기 자격은 [JP 검증](verification/journal-payload-compression.md)·[JP 종료 범위](plans/journal-payload-compression.md)를 유지한다.

@@ -12,6 +12,7 @@ public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
     public const int MaximumBlockBytes = 1024 * 1024;
     public const int BlockOverheadBytes = 48;
     private const int PrefixBytes = 16, ChecksumBytes = 32, MinimumPayloadSavingBytes = 64;
+    private const int DecodeChunkBytes = 16384;
     private readonly ArrayPool<byte> scratchPool;
     public string CodecId => "splinter-range-brotli-v1";
     public int MaxDecodedBytes { get; }
@@ -52,9 +53,34 @@ public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
             finally { scratchPool.Return(scratch); }
         }
         if (!compressed) { decoded.CopyTo(payload); stored = decoded.Length; }
+        return CompleteBlock(destination, decoded.Length, stored, compressed);
+    }
+
+    // The journal keeps raw bytes bare. Rent only enough compressed capacity
+    // to meet its full-block saving threshold, then allocate the selected result.
+    internal byte[]? EncodeJournalPayload(ReadOnlySpan<byte> decoded)
+    {
+        GetMaxEncodedBytes(decoded.Length);
+        int capacity = decoded.Length - BlockOverheadBytes - MinimumPayloadSavingBytes;
+        if (capacity <= 0) return null;
+        byte[] scratch = scratchPool.Rent(capacity);
+        try
+        {
+            if (!BrotliEncoder.TryCompress(decoded, scratch.AsSpan(0, capacity), out int stored, quality: 1, window: 22))
+                return null;
+            byte[] result = new byte[BlockOverheadBytes + stored];
+            scratch.AsSpan(0, stored).CopyTo(result.AsSpan(PrefixBytes));
+            CompleteBlock(result, decoded.Length, stored, true);
+            return result;
+        }
+        finally { scratchPool.Return(scratch); }
+    }
+
+    private static int CompleteBlock(Span<byte> destination, int decoded, int stored, bool compressed)
+    {
         Span<byte> prefix = destination[..PrefixBytes];
         prefix.Clear(); "SPB1"u8.CopyTo(prefix);
-        BinaryPrimitives.WriteInt32LittleEndian(prefix[4..], decoded.Length);
+        BinaryPrimitives.WriteInt32LittleEndian(prefix[4..], decoded);
         BinaryPrimitives.WriteInt32LittleEndian(prefix[8..], stored);
         prefix[12] = compressed ? (byte)1 : (byte)0;
         SHA256.HashData(destination[..(PrefixBytes + stored)], destination.Slice(PrefixBytes + stored, ChecksumBytes));
@@ -85,8 +111,10 @@ public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
             if (count > 0) payload.Slice(offset, count).CopyTo(destination);
             return count;
         }
-        // Validate a whole bounded block before touching the caller's output.
-        // Use the declared decoded bound, never an encoded expansion estimate.
+        // Small/empty reads still validate the entire stream, but retain only
+        // a chunk and the requested bytes until validation has succeeded.
+        if (decoded > DecodeChunkBytes && count <= decoded / 2)
+            return ReadChunked(payload, decoded, offset, destination, count);
         byte[] scratch = scratchPool.Rent(decoded);
         try
         {
@@ -95,6 +123,40 @@ public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
                 consumed != stored || written != decoded) throw Corrupt();
             if (count > 0) scratch.AsSpan(offset, count).CopyTo(destination);
             return count;
+        }
+        finally { scratchPool.Return(scratch); }
+    }
+
+    private int ReadChunked(ReadOnlySpan<byte> payload, int decoded, int offset, Span<byte> destination, int count)
+    {
+        byte[] scratch = scratchPool.Rent(DecodeChunkBytes + count);
+        try
+        {
+            using var decoder = new BrotliDecoder();
+            int consumed = 0, written = 0;
+            Span<byte> staged = scratch.AsSpan(DecodeChunkBytes, count);
+            while (true)
+            {
+                // One extra output byte detects expansion beyond the declared
+                // bound, including a decoder which needs a final empty input.
+                Span<byte> chunk = scratch.AsSpan(0, Math.Min(DecodeChunkBytes, decoded - written + 1));
+                OperationStatus status = decoder.Decompress(payload[consumed..], chunk, out int used, out int produced);
+                consumed += used;
+                if (produced > decoded - written) throw Corrupt();
+                if (count > 0)
+                {
+                    int start = Math.Max(written, offset), end = Math.Min(written + produced, offset + count);
+                    if (end > start) chunk.Slice(start - written, end - start).CopyTo(staged[(start - offset)..]);
+                }
+                written += produced;
+                if (status == OperationStatus.Done)
+                {
+                    if (consumed != payload.Length || written != decoded) throw Corrupt();
+                    staged.CopyTo(destination);
+                    return count;
+                }
+                if (status != OperationStatus.DestinationTooSmall || (used == 0 && produced == 0)) throw Corrupt();
+            }
         }
         finally { scratchPool.Return(scratch); }
     }

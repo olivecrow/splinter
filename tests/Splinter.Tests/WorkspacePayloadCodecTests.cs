@@ -86,7 +86,7 @@ public sealed class WorkspacePayloadCodecTests
     }
 
     [Fact]
-    public void RepeatedMaximumRangeCompressesAndSmallReadUsesOneBoundedReturnedScratch()
+    public void RepeatedMaximumRangeCompressesAndSmallReadUsesChunkAndStagingInsteadOfFullDecodedScratch()
     {
         var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadCodec(scratchPool: pool);
         byte[] input = new byte[codec.MaxDecodedBytes]; Array.Fill(input, (byte)19);
@@ -94,11 +94,14 @@ public sealed class WorkspacePayloadCodecTests
         int count = codec.Encode(input, encoded); Assert.True(count < input.Length / 100);
         Assert.Equal(1, encoded[12]);
         Assert.Equal(1, pool.Rents); Assert.Equal(1, pool.Returns);
+        pool.MaxRequest = 0;
         byte[] output = new byte[7]; Assert.Equal(7, codec.Read(encoded.AsSpan(0, count), 173, output));
         Assert.All(output, x => Assert.Equal(19, x));
-        Assert.Equal(input.Length, pool.MaxRequest); Assert.Equal(2, pool.Rents); Assert.Equal(2, pool.Returns);
+        Assert.Equal(16384 + 7, pool.MaxRequest); Assert.Equal(2, pool.Rents); Assert.Equal(2, pool.Returns);
+        pool.MaxRequest = 0;
         Assert.Equal(0, codec.Read(encoded.AsSpan(0, count), int.MaxValue, []));
         Assert.Equal(3, pool.Returns);
+        Assert.Equal(16384, pool.MaxRequest);
     }
 
     [Theory]
@@ -180,7 +183,48 @@ public sealed class WorkspacePayloadCodecTests
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 256; i++) codec.Read(encoded.AsSpan(0, length), i, output);
         Assert.InRange(GC.GetAllocatedBytesForCurrentThread() - before, 0, 32768);
-        Assert.Equal(273, pool.Rents); Assert.Equal(pool.Rents, pool.Returns); Assert.Equal(65536, pool.MaxRequest);
+        Assert.Equal(273, pool.Rents); Assert.Equal(pool.Rents, pool.Returns);
+    }
+
+    [Theory]
+    [InlineData(16381, 7)]
+    [InlineData(65531, 31)]
+    [InlineData(1048573, 19)]
+    [InlineData(1048576, 7)]
+    [InlineData(int.MaxValue, 19)]
+    public void MaximumChunkedReadsCrossBoundariesPublishOnlyTheRequestedPrefixAndReturnOneLease(int offset, int capacity)
+    {
+        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadCodec(scratchPool: pool);
+        byte[] input = Enumerable.Range(0, codec.MaxDecodedBytes).Select(i => (byte)(i / 71)).ToArray();
+        byte[] encoded = new byte[codec.GetMaxEncodedBytes(input.Length)]; int stored = codec.Encode(input, encoded);
+        Assert.Equal(1, encoded[12]); pool.MaxRequest = 0;
+        byte[] output = Enumerable.Repeat((byte)0x77, capacity).ToArray();
+        int count = Math.Max(0, offset >= input.Length ? 0 : Math.Min(capacity, input.Length - offset));
+        Assert.Equal(count, codec.Read(encoded.AsSpan(0, stored), offset, output));
+        if (count > 0) Assert.Equal(input.AsSpan(offset, count).ToArray(), output[..count]);
+        Assert.All(output.Skip(count), b => Assert.Equal(0x77, b));
+        Assert.Equal(16384 + count, pool.MaxRequest); Assert.Equal(2, pool.Rents); Assert.Equal(pool.Rents, pool.Returns);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(16383)]
+    [InlineData(1048576)]
+    [InlineData(int.MaxValue)]
+    public void RechecksummedDamageAfterRequestedBytesNeverPublishesStagedPrefixOrLeaksScratch(int offset)
+    {
+        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadCodec(scratchPool: pool);
+        byte[] encoded = new byte[codec.GetMaxEncodedBytes(codec.MaxDecodedBytes)];
+        int length = codec.Encode(new byte[codec.MaxDecodedBytes], encoded);
+        byte[] invalid = encoded[..(length + 1)];
+        int payload = BinaryPrimitives.ReadInt32LittleEndian(invalid.AsSpan(8));
+        invalid[16 + payload] = 0x55;
+        BinaryPrimitives.WriteInt32LittleEndian(invalid.AsSpan(8), payload + 1); Resign(invalid);
+        byte[] output = Enumerable.Repeat((byte)0x77, 31).ToArray(); pool.MaxRequest = 0;
+        Assert.Equal("PayloadBlockCorrupt", Assert.Throws<WorkspaceException>(() => codec.Read(invalid, offset, output)).Code);
+        Assert.All(output, b => Assert.Equal(0x77, b));
+        Assert.InRange(pool.MaxRequest, 16384, 16384 + 31); Assert.Equal(pool.Rents, pool.Returns);
+        Assert.Throws<WorkspaceException>(() => codec.Read(invalid, offset, [])); Assert.Equal(pool.Rents, pool.Returns);
     }
 
     private static void Resign(byte[] block) => SHA256.HashData(block.AsSpan(0, block.Length - 32), block.AsSpan(block.Length - 32));

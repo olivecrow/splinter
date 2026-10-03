@@ -1,8 +1,20 @@
 # 검증 추적표
 
+## 메모리 단계 마감
+
+[ME 확정 범위](memory-completion.md)와 [현재 후보 직접 근거](../verification/memory-completion.md)로 **현재 Windows/NTFS 알파의 메모리 개발을 scoped-complete-with-limitations 마감했다.** 다음 일반 개발은 안정적인 병렬 작업이다. lease·누적 할당/heap·process/group·시스템 공유 값을 구분하며 전체 RAM/native codec/순간 peak unknown과 이전 지원 상태를 유지한다.
+
+| ID | 대상 | 판정 |
+| --- | --- | --- |
+| ME-01 | 고정 실제 입력·분리된 비용 | Passed with limitations, actual A/B hash·같은 probe/별도 child process·source 증거 보존. pool 잔류/heap와 native/전체 시스템 RAM 귀속 구분 |
+| ME-02 | journal 중복 압축 buffer | Passed, 기본 max 쓰기 lease 3MiB→1MiB·raw/선택/bytes·budget/개별 flush/ACK 유지 |
+| ME-03 | 부분/빈 읽기 scratch | Passed, 최대 block 7B/4KiB lease 1MiB→32KiB·빈 16KiB·실제 replay 최대 lease 2,162,688→1,130,496B·전체 stream 검증/실패 미게시/임대 반환 |
+| ME-04 | 최종 현재 후보 A/B·소유 비용/회수 | Passed with limitations, T: 한 묶음·loaded PID/ticks/MVID·A release 중 B 후속 변경·독립 파일 결과/두 snapshot missing·원본/기존 records/등록/프로세스 보호. 첫 발견/읽기 timeout 제한 유지 |
+| ME-05 | 필수 회귀·schema·문서/종료 | Passed, 900 passed/0 failed/1 optional skip·실제 응답 schema·UTF-8/링크/diff. 최종 계수는 ME completion 증거 |
+
 ## 물리 저장 단계 마감
 
-[PS 확정 범위](physical-storage-completion.md)와 [현재 후보 직접 근거](../verification/physical-storage-completion.md)로 **현재 Windows/NTFS 알파의 물리 저장 개발을 scoped-complete-with-limitations 마감했다.** 다음 일반 개발은 메모리이며 기존 M0/JP/JM·SF/NR의 후보/지원 상태를 승계하거나 변경하지 않는다.
+[PS 확정 범위](physical-storage-completion.md)와 [직접 근거](../verification/physical-storage-completion.md)로 **현재 Windows/NTFS 알파의 물리 저장 개발을 scoped-complete-with-limitations 마감했다.** 후속 메모리는 위 별도 ME 판정을 따른다. 기존 M0/JP/JM·SF/NR의 후보/지원 상태를 승계하거나 변경하지 않는다.
 
 | ID | 대상 | 판정 |
 | --- | --- | --- |

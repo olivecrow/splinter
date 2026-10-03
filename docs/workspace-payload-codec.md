@@ -31,8 +31,10 @@ checksum은 길이·encoding·payload를 함께 보호하며 decoder가 소비�
 
 ## 버퍼와 수명
 
-압축 시 caller 입력 길이만큼의 scratch를 대여하고 유익한 encoded prefix만 결과로 옮긴다. 압축이 비효율적이면 raw로 선택하며 모든 경로에서 scratch를 반환한다. raw read는 checksum 검사 뒤 span을 직접 읽는다. compressed read는 **declared decoded 길이 하나**의 scratch에 전체 블록을 복원한 뒤 필요한 부분만 옮긴다. 성공/실패 뒤 scratch를 반환하며 decoded 블록을 codec에 저장하지 않는다.
+공통 Encode는 caller 입력 길이만큼의 scratch를 대여하고 유익한 encoded prefix만 결과로 옮긴다. 압축이 비효율적이면 raw로 선택하며 모든 경로에서 scratch를 반환한다. journal의 내부 Encode는 raw fallback용 encoded buffer를 빌리지 않고 전체 block 절감 기준을 만족할 압축 용량만 대여해 정확한 결과 배열을 만든다. 공통 API/형식/quality/window/바이트/선택 기준은 유지한다.
+
+raw read는 checksum 검사 뒤 span을 직접 읽는다. compressed read에서 decoded가 16KiB보다 크고 요청 길이가 그 절반 이하이면 **16KiB chunk + 실제 요청 길이**의 scratch 하나를 사용한다. 전체 stream을 순차 복원하며 요청분만 scratch 뒤에 보존하고 decoder 완료·정확한 입력 소비/복원 길이를 검증한 뒤 출력에 게시한다. 빈/EOF 읽기는 chunk만 필요하다. 작은 block/큰 요청은 declared decoded 길이의 전체 scratch를 사용한다. 재서명된 trailing/초과 복원/잘림도 출력 게시 전에 거부하고 성공/실패 뒤 임대를 반환한다. decoded 블록을 codec에 저장하지 않는다.
 
 ArrayPool은 요청보다 큰 배열을 줄 수 있다. 기본 상한 1MiB의 power-of-two 요청에서는 대여 크기도 그 상한 안이지만 임의의 더 작은 configured 상한을 byte 단위의 pool 할당 상한으로 해석하지 않는다. caller가 제공한 input/encoded/read 버퍼·pool 잔류·Brotli native state는 별도 메모리 비용이다. 작은 부분 읽기에도 블록 전체 복원이 필요할 수 있어 read amplification을 숨기지 않는다. 전역 decoded cache/dictionary·persistent codec state는 없다.
 
-공통 fake/적합성, malformed stream·임대 반환/누적 관리 할당과 실제 Bee 입력의 한정 근거는 [codec 검증](verification/workspace-payload-codec.md)을 따른다. journal replay/compaction/candidate/독립 결과·budget·native 중단/NTFS 물리 절감은 별도 JP 검증을 따른다.
+공통 fake/적합성, malformed stream·임대 반환/누적 관리 할당과 실제 Bee 입력의 선행 근거는 [codec 검증](verification/workspace-payload-codec.md)을 따른다. 현재 메모리 경로의 범위/직접 근거는 [ME 계획](plans/memory-completion.md)·[ME 검증](verification/memory-completion.md)이 소유한다. journal replay/compaction/candidate/독립 결과·budget·native 중단/NTFS 물리 절감은 별도 JP 검증을 따른다.

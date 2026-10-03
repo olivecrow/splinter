@@ -1,6 +1,8 @@
 # 검증 안내와 보존 근거
 
-[물리 저장 단계 최종 검증](physical-storage-completion.md)은 최신 JM Runtime의 고정 T: A/B·초기 복제/읽기 hydration 0·같은 작업·소유 Editor·정리·독립 결과/회수·설명 가능한 잔여 파일 할당과 현재 장부/회귀를 scoped-complete-with-limitations로 마감했다. 다음 일반 개발 우선순위는 메모리다. SF/NR의 별도 지원 확대·C: 회수 보류와 공유 VSS/전체 순간 peak unknown은 유지한다.
+[물리 저장 단계 최종 검증](physical-storage-completion.md)은 최신 JM Runtime의 고정 T: A/B·초기 복제/읽기 hydration 0·같은 작업·소유 Editor·정리·독립 결과/회수·설명 가능한 잔여 파일 할당과 현재 장부/회귀를 scoped-complete-with-limitations로 마감했다. SF/NR의 별도 지원 확대·C: 회수 보류와 공유 VSS/전체 순간 peak unknown은 유지한다.
+
+[메모리 단계 최종 검증](memory-completion.md)은 현재 Runtime의 압축 쓰기/부분·빈 read buffer·바이트/미게시/재생 의미·같은 실제 저널과 새 제품 A/B의 소유 비용/독립 결과/회수를 scoped-complete-with-limitations로 마감했다. 전체 RAM·native codec/순간 peak unknown을 유지한다. 다음 일반 개발은 안정적인 병렬 작업이다.
 
 일반 폴더 원본 반영의 현재 후보는 [별도 검증](plain-folder-original-apply.md)을 따른다. 일반 권한 파일 시험과 작은 Editor 없는 실제 제품 VSS·WinFsp A/B 한정 마감을 구분한다.
 

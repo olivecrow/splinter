@@ -1,6 +1,6 @@
 # 물리 저장 공간 단계의 최종 검증
 
-[확정 범위](../plans/physical-storage-completion.md)의 PS-01~05를 **scoped-complete-with-limitations로 마감했다.** 현재 Windows x64 NTFS 알파의 물리 저장 구현·비용 판단이 완료됐으며 다음 일반 개발 우선순위는 메모리다. SF 전체·대형/OS/ARM 지원과 구분하고 실행 원시는 `artifacts/physical-storage-completion-20261003/`에 보존한다.
+[확정 범위](../plans/physical-storage-completion.md)의 PS-01~05를 **scoped-complete-with-limitations로 마감했다.** 현재 Windows x64 NTFS 알파의 물리 저장 구현·비용 판단이 완료됐으며 후속 메모리 판정은 [ME 검증](memory-completion.md)을 따른다. SF 전체·대형/OS/ARM 지원과 구분하고 실행 원시는 `artifacts/physical-storage-completion-20261003/`에 보존한다.
 
 ## 후보와 직접 근거
 
@@ -63,4 +63,4 @@ B도 정상 stop·같은 예산의 한 번 정리·재연결된 네 표본과 so
 
 ordinary VSS 사용량 조회는 실패를 unknown으로 남긴다. 볼륨 여유량은 다른 쓰기와 VSS가 포함되는 공유 관측이며 파일 할당의 합계나 작업별 VSS 귀속·전체 공간 절감률로 환산하지 않는다. compaction의 두 journal 세대 할당은 전체 workspace 순간 peak가 아니다. MFT/디렉터리·kernel/OS cache·전체 물리 peak와 RAM 개선은 unknown이다.
 
-기존 C: reclaim-pending/discard-reclaim-pending·비소유 snapshot은 호출/삭제 대상으로 삼지 않는다. 이번 두 T: snapshot의 회수가 C: 보류 해소나 전체 볼륨 snapshot 0을 뜻하지 않는다. SF-02/03 Partial·SF-04~06 NotRun·대형 PV/다른 입력/VCS/ARM/OS·디스크 고갈 지원의 상태를 유지한다. 이 단위를 닫은 뒤 다음 일반 개발 우선순위는 메모리이며 새 공간 작업은 새 실사용 부족/보존 결함/명시적 지원 확대 요청으로만 연다.
+기존 C: reclaim-pending/discard-reclaim-pending·비소유 snapshot은 호출/삭제 대상으로 삼지 않는다. 이번 두 T: snapshot의 회수가 C: 보류 해소나 전체 볼륨 snapshot 0을 뜻하지 않는다. SF-02/03 Partial·SF-04~06 NotRun·대형 PV/다른 입력/VCS/ARM/OS·디스크 고갈 지원의 상태를 유지한다. 후속 메모리는 별도 ME 범위이며 새 공간 작업은 새 실사용 부족/보존 결함/명시적 지원 확대 요청으로만 연다.
