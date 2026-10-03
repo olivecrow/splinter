@@ -2,7 +2,7 @@
 
 [Unity 실제 C/S 비교](unity-live-comparison.md)와 [HTML 보고서](../../reports/unity-live-comparison-20261003.html)는 Splinter를 전혀 사용하지 않은 Codex 앱 worktree와 제품 workspace의 로컬 L + A/B를 실제 실행했다. 지정 소유 파일 할당·독립 Editor/provider 메모리·격리/같은 작업 재개·B 지속은 확인했다. 전체 물리/VSS 귀속·최소 RAM은 unknown이며, 같은 home의 과거 기록 필수 필드 누락으로 마지막 snapshot 회수는 Partial다. 이전 SF/PV의 전체 지원 상태를 변경하지 않는다.
 
-[Unity 병렬 편집 검증](unity-parallel-editor-validation.md)과 [HTML](../../reports/unity-parallel-editor-validation-20261003.html)은 S A/B의 호출별 MCP 대상·텍스처/importer·씬 저장/재로드·현재 상태 EditMode 테스트·A 전체/B 선택 반영·원본 Unity 확인과 완전 회수를 scoped-complete-with-limitations로 마감한다. MCP reload 뒤 명시적 재연결, 보호 검사 거부와 같은 작업의 명시적 release 재시도를 기록했다. 사용자가 승인한 73개 구형 기록의 hash 보존 이동 후 앞선 비교 A/B의 마지막 snapshot도 회수됐으며, 최초 비교의 실패/비용 기록은 유지한다. C worktree의 이번 다섯 기능 항목은 NotRun이다.
+[Unity 병렬 편집 검증](unity-parallel-editor-validation.md)은 S와 Splinter를 사용하지 않은 C A/B의 호출별 MCP 대상·텍스처/importer·씬 저장/재로드·현재 상태 EditMode 테스트·A 전체/B 선택 반영·원본 Unity 확인과 정리를 scoped-complete-with-limitations로 마감한다. [기존 HTML](../../reports/unity-parallel-editor-validation-20261003.html)은 S까지의 기록이며 C 후속은 텍스트에만 추가했다. C의 첫 MCP 테스트 초기화/결과 유실 뒤 명시적 재실행·각 current project/PID 확인과 Editor/cache 정리는 통과했으나 앱 primary checkout 전체 회수는 Partial이다. MCP reload 뒤 명시적 재연결과 S의 보호 검사 거부·같은 작업 release 재시도를 유지한다. 승인된 73개 구형 기록의 hash 보존 이동 뒤 앞선 비교 A/B의 마지막 snapshot도 회수됐으며 최초 실패/비용 기록은 유지한다.
 
 [물리 저장 단계 최종 검증](physical-storage-completion.md)은 최신 JM Runtime의 고정 T: A/B·초기 복제/읽기 hydration 0·같은 작업·소유 Editor·정리·독립 결과/회수·설명 가능한 잔여 파일 할당과 현재 장부/회귀를 scoped-complete-with-limitations로 마감했다. SF/NR의 별도 지원 확대·C: 회수 보류와 공유 VSS/전체 순간 peak unknown은 유지한다.
 

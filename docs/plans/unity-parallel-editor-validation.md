@@ -27,6 +27,16 @@ Git 원본 `T:\ua-source`, 등록 home `.local/wl29`, Unity `6000.3.22f1`, 승�
 
 검증 문서와 HTML은 실제 실행·실패·미실행과 비용을 표시한다. 작은 입력의 통과를 대형 프로젝트·PlayMode/build·전원 장애·다른 버전의 지원으로 확대하지 않는다.
 
+## Codex worktree 후속 고정 범위
+
+사용자의 남은 검증 실행 요청에 따라 C 비교군도 같은 다섯 기능을 한 번의 작은 A/B로 확인한다. 기존 앱 생성 worktree `1a8c/splinter-unity`와 `90dd/splinter-unity`의 종료된 작업을 보존하고, 별도 `codex/uc-up-*` 시험 branch에서 기준 `23896dfacba2d90d0c49f826444b178fdbe82d2b`를 사용한다. C에서는 Splinter 명령·provider·서비스·mount·소유권 helper와 Coordination을 사용하지 않는다. 일반 Git, 기존 MCP, Unity CLI와 OS 관측만 사용한다.
+
+입력·Editor/패키지 버전은 S와 동일하며 새 `Assets/ParallelQualification`의 PNG·씬·marker·세 개 EditMode 테스트로 한정한다. 호출별 실제 project/PID 확인, A/B 서로 다른 값, B만 변경해 실패/복구, A 전체 및 B PNG/meta 두 경로 선택 반영, A 종료/Library 정리 중 B 지속, 시험 원본에서 실제 load/테스트, 정상 종료와 원본·기존 branch/파일 복원을 종료 기준으로 삼는다. 기존 미커밋 raw 바이트와 결과 commits, 외부 Editor/MCP 설정은 보존한다.
+
+앱이 primary checkout의 archive를 거부했던 기존 제한은 강제 삭제로 우회하지 않는다. 소유 Editor와 생성 cache 정리는 실제 확인하고, 전체 앱 checkout 제거가 불가능하면 그 제한을 남긴 채 범위를 마감한다. 쓰기 타임아웃은 관측 없이 반복하지 않으며 새 설치·버전·장애 행렬·대형/PlayMode/build 시험은 포함하지 않는다. 새 원시 증거는 `artifacts/unity-codex-parallel-validation-20261003/`, 결과는 검증 문서와 대화의 짧은 텍스트에 남긴다. HTML은 추가하지 않는다.
+
 ## 한정 종료
 
-사용자는 위 73개 기록의 보존 이동과 앞선 같은 A/B의 release 재시도를 명시적으로 승인했고, hash/독립 결과를 유지한 채 회수 차단을 해소했다. 새 S A/B의 UP-01~06은 [실제 검증](../verification/unity-parallel-editor-validation.md)과 [HTML](../../reports/unity-parallel-editor-validation-20261003.html)의 조건 및 실패·명시적 재시도 기록으로 한정 마감한다. A 전체와 B 선택 리소스를 시험 원본 Unity에서 불러오고 현재 상태 테스트를 실행한 뒤, 독립 결과를 보존하고 모든 소유 작업 공간을 회수했다. 기존 원본·다른 작업을 복원/보호했으며 새 제품 코드·서비스·설치·버전 확대는 포함하지 않는다. C의 이번 다섯 기능 항목은 NotRun이며 앞선 실제 저장·메모리 비교의 자격과 구별한다.
+사용자는 위 73개 기록의 보존 이동과 앞선 같은 A/B의 release 재시도를 명시적으로 승인했고, hash/독립 결과를 유지한 채 회수 차단을 해소했다. S A/B의 UP-01~06은 실제 검증과 기존 HTML의 실패·명시적 재시도 기록으로 한정 마감했다. 후속 C A/B도 위 고정 범위의 MCP·리소스·씬·현재 상태 테스트·전체/선택 반영과 Editor/cache 정리를 실제 확인했다. 각 방식의 반영 결과를 로컬 Unity에서 불러오고 테스트한 뒤 원본·이전 작업의 raw 파일/branch/결과를 보존·복원했다.
+
+C의 첫 MCP 테스트 초기화/결과 유실, reload 후 수동 bridge 재연결, MCP runner 순차 처리와 앱 primary checkout 전체 회수 Partial은 [실제 검증](../verification/unity-parallel-editor-validation.md)이 소유한다. 새 제품 코드·서비스·설치·버전·전체 장애 행렬 확대는 포함하지 않는다. 후속 C 결과는 텍스트와 검증 문서에만 추가하며 기존 HTML은 S까지의 기록으로 유지한다. 저장·메모리 전체 peak/귀속 unknown과 범위 밖 NotRun은 바꾸지 않는다.
