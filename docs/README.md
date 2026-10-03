@@ -50,6 +50,8 @@
 | [물리 저장 단계 최종 범위](plans/physical-storage-completion.md), [검증](verification/physical-storage-completion.md) | 현재 SJR2 장부·정확한 task 파일 할당·최종 제품 A/B·정리/독립 결과/회수와 물리 저장 단계의 종료 경계 |
 | [메모리 단계 최종 범위](plans/memory-completion.md), [검증](verification/memory-completion.md) | 압축 쓰기 중복 buffer·부분/빈 읽기 scratch·같은 실제 저널 대조와 소유 provider/Editor·공유 시스템 비용/회수의 종료 경계 |
 | [병렬 안정성의 확정 범위](plans/stable-parallel-completion.md), [검증](verification/stable-parallel-completion.md) | 잠금 오류의 점유 오인 수정·실제 A 수집/회수와 B 조회/재개·파일 쓰기 겹침·독립 결과/소유 회수. Editor 없는 경계와 기존 자격 구분 |
+| [Unity 실제 C/S 비교 범위](plans/unity-live-comparison.md), [검증](verification/unity-live-comparison.md), [HTML](../reports/unity-live-comparison-20261003.html) | Splinter 없는 Codex worktree와 제품 workspace의 L/A/B·실제 코드/에셋·파일 할당/메모리·0.7 실패/승인한 0.8·격리/재개/지속. 당시 구형 home 기록의 마지막 회수 Partial과 승인된 후속 해소를 구분 |
+| [Unity 병렬 편집 확정 범위](plans/unity-parallel-editor-validation.md), [검증](verification/unity-parallel-editor-validation.md), [HTML](../reports/unity-parallel-editor-validation-20261003.html) | S A/B의 실제 MCP 대상·PNG/importer·씬 저장/재로드·현재 파일 테스트·전체/선택 반영·B 지속/완전 회수. 앞선 구형 기록 회수 차단의 승인된 보존 이동과 같은 ID/home 해소; C의 이번 기능 항목은 NotRun |
 
 ## 남은 설계와 검증
 

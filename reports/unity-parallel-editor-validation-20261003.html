@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unity A/B 병렬 작업 검증 · 2026-10-03</title>
+  <style>
+    :root{color-scheme:light;--ink:#1b2c43;--muted:#52647b;--line:#d8e1ec;--paper:#fff;--bg:#f2f5f9;--blue:#285ec0;--green:#17664b;--amber:#865309;--red:#a33634;font-family:"Segoe UI","Malgun Gothic",sans-serif;line-height:1.75}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:24px}body{margin:0;background:var(--bg);color:var(--ink)}a{color:#245bb7;text-decoration-thickness:1px;text-underline-offset:3px}a:hover{color:#103d8c}a:focus-visible,summary:focus-visible{outline:3px solid #edb54f;outline-offset:4px}main{max-width:1160px;margin:auto;padding:34px 28px 80px}
+    header{background:#142b4c;color:#f4f7fc;padding:40px 44px;border-radius:20px;position:relative;overflow:hidden}header::after{content:"";position:absolute;width:190px;height:190px;border:34px solid #274a78;border-radius:50%;right:-58px;top:-90px;pointer-events:none}header a{color:#c0ddff}.eyebrow{font-size:12px;letter-spacing:1.2px;font-weight:650;color:#b7cce9}.title{font-size:clamp(27px,4vw,43px);line-height:1.3;letter-spacing:-1.3px;margin:12px 0 17px;max-width:810px}.lead{font-size:18px;max-width:880px;margin:0}.header-note{font-size:13px;color:#c4d2e5;margin:20px 0 0}
+    .status-line{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:25px 0 0}.pill{display:inline-block;font-size:12px;font-weight:700;border-radius:99px;padding:3px 11px;white-space:nowrap}.ok{background:#e5f4ec;color:var(--green)}.pending{background:#fff0d8;color:var(--amber)}.fail{background:#fae6e4;color:var(--red)}.notrun{background:#e9edf3;color:#536278}.neutral{background:#e5edfb;color:#284b8c}
+    nav{display:flex;gap:10px 20px;flex-wrap:wrap;padding:22px 6px;font-size:14px}nav a{font-weight:600}section{margin-top:26px;padding:28px 32px;background:var(--paper);border:1px solid var(--line);border-radius:15px}h2{font-size:24px;line-height:1.4;letter-spacing:-.55px;margin:0 0 15px}h3{font-size:18px;margin:26px 0 10px}p{margin:11px 0}code{font-family:Consolas,"Cascadia Code",monospace;font-size:.88em;overflow-wrap:anywhere;background:#eef2f7;border-radius:3px;padding:1px 4px}header code{color:#edf4ff;background:#294468}.muted{color:var(--muted);font-size:13px}.summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:24px}.summary-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 16px}.summary-card .number{font-size:12px;color:var(--muted);font-weight:700}.summary-card h2{font-size:17px;margin:7px 0 11px;letter-spacing:-.25px}.summary-card p{font-size:13px;line-height:1.7;margin:9px 0 0}.summary-card a{text-decoration:none;color:var(--ink)}.callout{background:#f4f7fc;border-left:4px solid var(--blue);padding:15px 19px;margin:19px 0;border-radius:0 8px 8px 0}.callout p{margin:0}.callout.warn{background:#fff8ed;border-color:#ce952f}.table-wrap{overflow-x:auto;margin:18px 0}table{width:100%;border-collapse:collapse;font-size:14px;text-align:left}caption{text-align:left;font-size:13px;color:var(--muted);padding:0 0 10px}th,td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}thead th{background:#eef3fa;color:#355274;font-size:12px;font-weight:700}tbody th{font-weight:650;background:#fbfcfe}td small{display:block;color:var(--muted);margin-top:4px;font-size:12px}.identity-table{table-layout:fixed}.identity-table th:first-child{width:12%}.path{overflow-wrap:anywhere;font-size:12px}.evidence{font-size:13px;color:var(--muted)}.evidence a{display:inline-block;margin-right:13px}.swatch{display:inline-block;width:13px;height:13px;border-radius:3px;border:1px solid #9daabb;vertical-align:-1px;margin-right:6px}.swatch-a{background:rgb(255,64,32)}.swatch-b{background:rgb(32,64,255)}.mono{font-family:Consolas,monospace;font-size:12px;overflow-wrap:anywhere}.inline-list{padding-left:20px;margin:13px 0}.inline-list li{margin:8px 0}details{border:1px solid var(--line);border-radius:8px;margin:17px 0;padding:13px 17px;background:#fbfcfe}summary{font-weight:650;cursor:pointer;font-size:14px}details p,details li{font-size:13px}.timeline{background:#f4f7fc;border-radius:10px;padding:19px 22px;margin:20px 0}.timeline h3{margin:0 0 12px;font-size:15px}.time-row{display:grid;grid-template-columns:95px 1fr;gap:15px;align-items:center;margin:12px 0;font-size:13px}.track{height:26px;background:#e0e7f1;border-radius:4px;position:relative}.bar{height:100%;position:absolute;border-radius:4px;background:#2867bd;color:#fff;padding:1px 8px;font-size:12px;white-space:nowrap;overflow:hidden}.bar.b{background:#438170}.axis{margin-left:110px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}figure{margin:0}figcaption{font-size:12px;color:var(--muted);margin-top:11px}.phase-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.phase-card{border:1px solid var(--line);padding:18px 20px;border-radius:10px}.phase-card h3{margin:0 0 10px}.phase-card p,.phase-card li{font-size:14px}.foot{padding:24px 6px 0;color:var(--muted);font-size:12px}.evidence-index td:first-child{width:30%}
+    @media(max-width:960px){.summary-grid{grid-template-columns:repeat(3,1fr)}.identity-table{table-layout:auto}}@media(max-width:680px){main{padding:18px 14px 45px}header{padding:27px 23px;border-radius:14px}.lead{font-size:16px}section{padding:22px 19px}.summary-grid{grid-template-columns:1fr}.summary-card{display:grid;grid-template-columns:1fr auto;gap:0 12px}.summary-card .number,.summary-card h2,.summary-card p{grid-column:1}.summary-card .pill{grid-column:2;grid-row:2;align-self:start}.phase-grid{grid-template-columns:1fr}h2{font-size:21px}td,th{padding:10px 11px;min-width:100px}.time-row{grid-template-columns:65px 1fr;gap:10px}.axis{margin-left:75px}.bar{font-size:10px;padding:3px 5px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media print{body{background:white}main{max-width:none;padding:0}header{background:#eef3fa;color:#172d4e;border:1px solid #cbd6e5;padding:24px}header::after,nav{display:none}header a,.eyebrow,.header-note{color:#3b5677}section,.summary-card{break-inside:avoid;border-radius:5px}section{padding:20px;margin-top:20px}a{color:#244f89}table{font-size:11px}.summary-grid{grid-template-columns:repeat(5,1fr);gap:6px}.summary-card{padding:12px}.summary-card h2{font-size:13px}.summary-card p{font-size:11px}.pill{font-size:10px}.table-wrap{overflow:visible}details{break-inside:avoid}details>*{display:block}header code{color:#172d4e;background:#dee7f4}.foot{padding:15px 0}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">SPLINTER · WINDOWS x64 / NTFS · 2026-10-03</div>
+    <h1 class="title">Unity A/B 병렬 작업<br>실제 Editor·에셋·시험 검증</h1>
+    <p class="lead">독립 A/B Editor에서 MCP 연결·텍스처·씬·현재 상태 시험을 확인했다. A의 전체 14파일과 B의 선택 2파일을 원본에 반영해 다시 검사했고, 결과를 독립 보존한 뒤 이번 A/B의 소유 자원을 회수했다. 원본·기존 Editor·기존 결과·MCP 설정의 복원도 확인했다.</p>
+    <div class="status-line">
+      <span class="pill ok">요청한 5항목: 한정 완료</span>
+      <span class="pill neutral">실패·재연결·명시적 재시도 포함</span>
+      <span class="pill neutral">CLI 호출 실제 겹침 2.448초</span>
+    </div>
+    <p class="header-note">최종 관측 2026-10-03 22:41:45 KST. 한정 환경의 실제 JSON을 근거로 작성했다. MCP runner의 비겹침, Importer 보완, 초기 씬 실패, seal 거부와 재시도 비용을 결과에 포함했다.</p>
+  </header>
+
+  <nav aria-label="보고서 목차">
+    <a href="#scope">대상·범위</a><a href="#routing">① MCP 연결</a><a href="#texture">② 텍스처</a><a href="#scene">③ 씬</a><a href="#tests">④ 현재 상태 시험</a><a href="#integration">⑤ 통합·회수</a><a href="#limits">제한·증거</a>
+  </nav>
+
+  <div class="summary-grid" aria-label="요청한 다섯 항목의 현재 결과">
+    <article class="summary-card"><div class="number">01 / ROUTING</div><h2><a href="#routing">정확한 MCP A/B 연결</a></h2><span class="pill ok">확인 · 재연결 필요</span><p>6개 nonce 응답의 실제 프로젝트·PID가 대상과 일치했다. reload 뒤 bridge 재시작이 필요했다.</p></article>
+    <article class="summary-card"><div class="number">02 / TEXTURE</div><h2><a href="#texture">독립 텍스처 편집</a></h2><span class="pill ok">확인 · Importer 보완</span><p>같은 Shared.png 경로, 서로 다른 픽셀·GUID. 원본 PNG와 로드된 픽셀을 대조했다.</p></article>
+    <article class="summary-card"><div class="number">03 / SCENE</div><h2><a href="#scene">씬 생성·저장·재로드</a></h2><span class="pill ok">실패 수정 후 확인</span><p>UP_A/UP_B, Camera·Light, URP 재질 참조를 확인했다. 초기 additive 실패를 보존했다.</p></article>
+    <article class="summary-card"><div class="number">04 / TEST</div><h2><a href="#tests">현재 상태 시험</a></h2><span class="pill ok">의도한 실패 시험 포함 확인</span><p>A 3/0, B-v2 2/1, B-v1 복구 3/0. 독립 CLI 호출이 실제 시간상 겹쳤다.</p></article>
+    <article class="summary-card"><div class="number">05 / APPLY &amp; RELEASE</div><h2><a href="#integration">원본 반영·완전 회수</a></h2><span class="pill ok">한정 완료 · 재시도 포함</span><p>A 전체 14파일·B 선택 2파일 반영, 원본 시험 3/0. 독립 결과 보존·소유 자원 회수·기준선 복원을 확인했다.</p></article>
+  </div>
+
+  <section id="scope">
+    <h2>이번 검증은 새 S A/B 한 묶음이다</h2>
+    <p>원본 L은 <code>T:\ua-source</code>, S는 Splinter가 반환한 각 작업공간에서 독립 Editor를 사용했다. Unity <strong>6000.3.22f1</strong>, Unity CLI 연결 패키지 <strong>0.8.0-exp.1</strong>, Unity MCP <strong>10.2.0</strong> 환경이다. Unity 작업은 외부 MCP·CLI가 수행했고, Splinter는 작업공간과 소유 수명·독립 결과를 관리했다.</p>
+    <div class="table-wrap">
+      <table class="identity-table">
+        <caption>검증 중 실제 응답으로 확인한 identity. PID는 해당 시점의 값이며 현재 실행 중이라는 뜻은 아니다.</caption>
+        <thead><tr><th scope="col">대상</th><th scope="col">실제 프로젝트 / 작업 ID</th><th scope="col">Editor PID / 시작 ticks</th><th scope="col">MCP instance / stdio 포트</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">L 원본</th><td class="path">T:\ua-source</td><td>14256</td><td class="mono">ua-source@a28d347c<br>6400</td></tr>
+          <tr><th scope="row">S A</th><td class="path">C:\Users\olive\Desktop\Development\splinter\.local\wl29\workspaces\d02a34b32ea4ca395677b89c<br><small>key: up-s-a-20261003 · digest: aed6eefc257aa8e49913d554</small></td><td>21200<br><span class="mono">639266284202579734</span></td><td class="mono">d02a34b32ea4ca395677b89c@eda8e9a8<br>6401</td></tr>
+          <tr><th scope="row">S B</th><td class="path">C:\Users\olive\Desktop\Development\splinter\.local\wl29\workspaces\cc032fded7ad2ee04b79be9b<br><small>key: up-s-b-20261003 · digest: 835baab97c73401f945d2da8</small></td><td>51944<br><span class="mono">639266284355334240</span></td><td class="mono">cc032fded7ad2ee04b79be9b@93892746<br>6402</td></tr>
+          <tr><th scope="row">L2 반영 검증</th><td class="path">T:\ua-source<br><small>반영된 trial 상태를 다시 연 소유 원본 Editor</small></td><td>25756<br><span class="mono">639266314384909281</span></td><td>Unity CLI 정확한 경로로 관측<br><small>최종 정상 종료 확인</small></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">공통 home: <code>C:\Users\olive\Desktop\Development\splinter\.local\wl29</code><br>고정 base: <code>23896dfacba2d90d0c49f826444b178fdbe82d2b</code>. MCP 포트와 Unity CLI 포트(관측 시 A 7802 / B 7803)는 서로 다른 연결이다.</p>
+    <p class="evidence">근거: <a href="../artifacts/unity-parallel-validation-20261003/s-a-ensure.json">A ensure</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-ensure.json">B ensure</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-l-identity.json">L 실제 identity</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-scenes-current-loaded-after-reconnect.json">A/B 실제 identity·시작 시각</a></p>
+    <div class="callout"><p><strong>C군의 이번 다섯 항목은 모두 NotRun.</strong> 이전 Codex worktree C군과 Splinter S군의 저장공간·메모리 측정은 <a href="unity-live-comparison-20261003.html">별도 저장공간 비교 보고서</a>에 있다. 이전 코드·수명주기 결과를 이번 MCP·텍스처·씬·시험·원본 반영의 통과로 옮기지 않았다.</p></div>
+  </section>
+
+  <section id="routing">
+    <h2>① MCP 요청은 실제 A/B Editor에 도달했다</h2>
+    <p>각 요청에 명시한 <code>unity_instance</code>와 실행 코드의 프로젝트 guard를 사용했다. 세 쌍의 읽기 요청에서 <code>A-0…A-2</code>는 모두 A의 실제 경로·PID 21200, <code>B-0…B-2</code>는 모두 B의 실제 경로·PID 51944를 반환했다. 두 Editor의 동일한 기본 assembly MVID는 같은 입력을 사용했다는 관측이며, 대상 구분은 실제 경로·PID·nonce로 확인했다.</p>
+    <div class="table-wrap">
+      <table><thead><tr><th scope="col">관측</th><th scope="col">결과</th><th scope="col">해석</th></tr></thead><tbody>
+        <tr><th scope="row">명시적 A/B 읽기 6개</th><td><span class="pill ok">6 / 6 대상 일치</span></td><td>원본 L 또는 peer로 잘못 전달된 응답은 이 묶음에서 없었다.</td></tr>
+        <tr><th scope="row">reload 이후 연결</th><td>bridge=false / instance not found 관측</td><td>자동 유지로 처리하지 않았다. 정확한 프로젝트의 CLI로 bridge를 명시적으로 재시작하고 다시 identity를 읽었다.</td></tr>
+        <tr><th scope="row">씬 로드 뒤 재연결</th><td>A 6401 / B 6402, bridge=true</td><td>포트만으로 판정하지 않고 재연결 이후 실제 프로젝트·PID·현재 씬을 다시 대조했다.</td></tr>
+      </tbody></table>
+    </div>
+    <p>텍스처 생성 후 첫 편집 요청에는 A/B <code>instance not found</code>가 발생했다. CLI 읽기에서 A의 bridge가 꺼졌음을 확인했고, 이후 소유 대상 재연결·Importer 조정 후 편집 결과를 관측했다. 씬 로드와 시험 assembly 컴파일 뒤에도 같은 재연결 경계를 확인했다.</p>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/mcp-routing-concurrent.json">6개 라우팅 응답·요청 시간</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-texture-edit.json">첫 편집 연결 실패</a><a href="../artifacts/unity-parallel-validation-20261003/s-a-post-reload-bridge-status.json">reload 뒤 bridge=false</a><a href="../artifacts/unity-parallel-validation-20261003/s-a-bridge-after-scene-load-start.json">A 명시적 재연결</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-bridge-after-scene-load-start.json">B 명시적 재연결</a></p>
+    <div class="callout warn"><p>요청 시작 시간이 겹쳐도 Editor 내부 실행이 겹쳤다고 단정할 수 없다. 이 검증의 MCP 시험 runner A/B 구간은 실제로 겹치지 않았다. 독립 CLI 호출의 시간 겹침은 ④에서 별도로 제시한다.</p></div>
+  </section>
+
+  <section id="texture">
+    <h2>② 같은 텍스처 경로에 서로 다른 현재 상태를 저장했다</h2>
+    <p>MCP <code>manage_texture</code>로 각 작업공간의 <code>Assets/ParallelQualification/Shared.png</code>를 64×64 회색으로 생성한 뒤, 정확한 A/B 대상의 MCP 실행 코드로 픽셀과 <code>TextureImporter</code>를 조정했다. 최종 확인은 파일 PNG를 디코딩한 픽셀과 Unity가 로드한 텍스처 픽셀을 함께 읽었다.</p>
+    <div class="table-wrap">
+      <table><thead><tr><th scope="col">현재 값</th><th scope="col">S A</th><th scope="col">S B</th></tr></thead><tbody>
+        <tr><th scope="row">파일 / 로드 크기</th><td>64 × 64 / 64 × 64</td><td>64 × 64 / 64 × 64</td></tr>
+        <tr><th scope="row">RGBA 중심 픽셀</th><td><span class="swatch swatch-a" aria-hidden="true"></span>255, 64, 32, 255</td><td><span class="swatch swatch-b" aria-hidden="true"></span>32, 64, 255, 255</td></tr>
+        <tr><th scope="row">Filter / Wrap</th><td>Point / Clamp</td><td>Bilinear / Repeat</td></tr>
+        <tr><th scope="row">Read / Compression</th><td>Readable / Uncompressed</td><td>Readable / Uncompressed</td></tr>
+        <tr><th scope="row">실제 texture GUID</th><td class="mono">05846e8270c65b643b140d49a4a55554</td><td class="mono">e40304653661e7d4e9a4ae9d5bdc1f08</td></tr>
+        <tr><th scope="row">PNG SHA-256</th><td class="mono">c22f129db1e087779d4ff0dad52bb85bc0b81c0093a8b497607e3f7a71f4dea4</td><td class="mono">5c0843d32867de66a507074c0d9ea2f281268c720df82112750eb754e6069da8</td></tr>
+      </tbody></table>
+    </div>
+    <div class="callout warn"><p><strong>처음 전달한 importSettings는 기대 설정을 적용하지 못했다.</strong> 생성 응답의 <code>_debug_params.importSettings</code>는 빈 객체였고, 실제 <code>isReadable</code>도 false였다. 성공 응답만으로 설정 적용을 판단하지 않았다. 정확한 대상에서 Importer를 명시적으로 조정·재수입한 뒤 <code>beforeReadable=false → afterReadable=true</code>와 현재 픽셀·필터·wrap을 확인했다.</p></div>
+    <p>씬 재로드 뒤에도 파일의 (0,0)·중심 픽셀과 imported 중심 픽셀이 각 작업의 값으로 일치했다. AssetDatabase GUID와 실제 <code>.meta</code> GUID도 일치했다. B에는 별도 선택 리소스용 32×32 초록 <code>SelectedB.png</code>를 만들었다. A release 이후 같은 B Editor에서 색을 <strong>48, 240, 80, 255</strong>로 추가 편집하고, 이 PNG와 metadata만 원본에 반영했다. 실제 원본의 픽셀·GUID 확인은 ⑤에 있다.</p>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/mcp-texture-create.json">MCP 생성·importSettings 응답</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-texture-edited-and-loaded.json">명시적 Importer 조정·실제 로드 값</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-scenes-current-loaded-after-reconnect.json">재로드 뒤 파일·로드 픽셀·metadata</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-b-selected-resource-create.json">B 고유 텍스처</a></p>
+  </section>
+
+  <section id="scene">
+    <h2>③ 독립 씬을 저장하고 다시 열어 참조를 확인했다</h2>
+    <p>각 작업공간에서 <code>Assets/ParallelQualification/Shared.unity</code>와 <code>Shared.mat</code>를 생성했다. 실제 사용 가능한 <code>Universal Render Pipeline/Lit</code>을 확인하고, 재질 <code>_BaseMap</code>·<code>mainTexture</code>에 각 작업의 Shared.png를 연결했다. 씬에는 Cube, Camera, Directional Light가 있다.</p>
+    <div class="table-wrap">
+      <table><thead><tr><th scope="col">저장·재로드 관측</th><th scope="col">S A</th><th scope="col">S B</th></tr></thead><tbody>
+        <tr><th scope="row">씬 루트</th><td>UP_A · Main Camera · Directional Light</td><td>UP_B · Main Camera · Directional Light</td></tr>
+        <tr><th scope="row">Cube 위치 / scale</th><td>(1, 2, 3) / (2, 1, 1)</td><td>(4, 5, 6) / (1, 3, 1)</td></tr>
+        <tr><th scope="row">로드 상태 / dirty</th><td>Shared / true / false</td><td>Shared / true / false</td></tr>
+        <tr><th scope="row">실제 scene GUID</th><td class="mono">1adbbc4d494bc2747b41f7a2c5e6448b</td><td class="mono">a0c85fe2d61939a4d8fba8295aa6eab9</td></tr>
+        <tr><th scope="row">실제 material GUID</th><td class="mono">6b40da5bdd09d6942ad46fbe034773cc</td><td class="mono">61a2debd1cf64eb42ab494752962ff97</td></tr>
+        <tr><th scope="row">Renderer → Material → Texture</th><td colspan="2">각 작업공간의 Shared.mat → Shared.png. 씬·재질·텍스처의 AssetDatabase GUID와 실제 metadata GUID 모두 일치.</td></tr>
+      </tbody></table>
+    </div>
+    <p>Cube scale은 MCP GameObject 수정 응답, 씬 저장·로드 응답, 이후 정확한 Editor의 CLI 읽기로 확인했다. 현재 상태 시험은 저장된 씬을 <code>OpenSceneMode.Single</code>로 다시 열어 작업별 루트·위치·텍스처 참조·Camera·Light를 검사했다.</p>
+    <details open>
+      <summary>초기 실패와 수정 경로</summary>
+      <ol class="inline-list">
+        <li>첫 코드는 MCP safety 검사에서 <code>Process.Start</code> 패턴으로 차단됐다. 프로세스 시작 시각을 읽는 표현이 포함됐으며, 이 응답을 씬 생성 성공으로 처리하지 않았다.</li>
+        <li>표현을 수정한 다음 실행은 <code>Cannot create a new scene additively with an untitled scene unsaved</code>로 실패했다. 재질이 먼저 작성된 부분 상태를 보존했다.</li>
+        <li>소유 부분 재질과 깨끗한 untitled 씬을 검증한 뒤, 그 초기 씬을 대체하는 명시적 수정 경로로 이어 갔다. 반환값 <code>partialMaterialVerified=true</code>, <code>replacedCleanUntitled=true</code>와 실제 저장 씬 GUID를 확인했다.</li>
+        <li>MCP로 scale 수정 → 저장 → 재로드를 수행했다. 연결 소실을 관측한 뒤 명시적으로 재연결하고 실제 씬·metadata·픽셀을 읽었다.</li>
+      </ol>
+    </details>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/l-shader-probe.json">실제 URP shader 확인</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-scene-create-save-reopen.json">첫 safety 차단</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-scene-create-save-reopen-corrected.json">additive 초기 실패</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-scene-create-owned-partial-resume.json">소유 부분 상태 검증·수정</a></p>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/mcp-scene-edit-scale.json">MCP scale 수정</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-scene-edited-save.json">씬 저장</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-scene-edited-reload.json">씬 재로드</a><a href="../artifacts/unity-parallel-validation-20261003/s-a-scene-scale-actual.json">A 실제 scale</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-scene-scale-actual.json">B 실제 scale</a></p>
+  </section>
+
+  <section id="tests">
+    <h2>④ 시험은 작업공간의 현재 파일·로드 상태를 읽었다</h2>
+    <p>각 작업공간에 <code>UP.CurrentState.Tests</code> EditMode assembly를 작성·컴파일했고, 완료 응답의 <code>failed=false</code>를 관측했다. 시험 세 개는 실행할 때마다 현재 Marker.txt를 읽고, 저장 씬을 다시 열고, 현재 imported 텍스처의 픽셀·Importer 설정을 확인했다. 실제 경로·PID·test assembly MVID·파일 hash를 시험 출력에 기록했다.</p>
+    <div class="table-wrap">
+      <table><thead><tr><th scope="col">시험</th><th scope="col">확인 대상</th><th scope="col">현재 상태를 읽는 근거</th></tr></thead><tbody>
+        <tr><th scope="row">MarkerMatchesTheCurrentFileContents</th><td>Marker.txt</td><td>실행 중 파일 내용을 읽는다. B의 파일만 B-v2로 바꾸면 기대 B-v1과 달라 실패한다.</td></tr>
+        <tr><th scope="row">SavedSceneHasTheCurrentTaskRootAndTexturedRenderer</th><td>Shared.unity</td><td>저장 씬을 Single로 재오픈하고 UP_A/UP_B·위치·Camera·Light·Renderer 재질 텍스처를 검사한다.</td></tr>
+        <tr><th scope="row">TextureHasTheCurrentTaskPixelsAndImportSettings</th><td>Shared.png / TextureImporter</td><td>64×64, 현재 RGBA·filter·wrap·Readable·Uncompressed를 검사한다.</td></tr>
+      </tbody></table>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th scope="col">실행</th><th scope="col">현재 마커</th><th scope="col">통과 / 실패</th><th scope="col">관측</th></tr></thead><tbody>
+        <tr><th scope="row">MCP 초기 A</th><td>A-v1</td><td><span class="pill ok">3 / 0</span></td><td>job_id 0459b8f09d6e4a2db8d88d6f8f938b1f</td></tr>
+        <tr><th scope="row">MCP 초기 B</th><td>B-v1</td><td><span class="pill ok">3 / 0</span></td><td>job_id c296358af4174565bf8c0db1a2e4d391</td></tr>
+        <tr><th scope="row">Native CLI A · 겹침 실행</th><td>A-v1</td><td><span class="pill ok">3 / 0</span></td><td>B의 의도한 실패 시험과 독립 호출 구간이 겹쳤다.</td></tr>
+        <tr><th scope="row">Native CLI B · 의도한 실패 시험</th><td>B-v2</td><td><span class="pill fail">2 / 1</span></td><td>마커 시험만 실패. “Expected: B-v1 / But was: B-v2”. 씬·텍스처 시험은 통과.</td></tr>
+        <tr><th scope="row">Native CLI B · 복구</th><td>B-v1</td><td><span class="pill ok">3 / 0</span></td><td>마커 파일만 복구. 음성 변경·복구에서 testSourceChanged=false.</td></tr>
+        <tr><th scope="row">Native CLI B · A release 이후</th><td>B-v1</td><td><span class="pill ok">3 / 0</span></td><td>같은 B PID 51944에서 추가 에셋 편집 이후 현재 마커·Shared 씬·텍스처 시험 통과.</td></tr>
+        <tr><th scope="row">Native CLI L2 · 반영된 원본</th><td>A-v1</td><td><span class="pill ok">3 / 0</span></td><td>T:\ua-source / PID 25756. A의 씬·Shared 텍스처·마커를 원본에서 검사했다.</td></tr>
+      </tbody></table>
+    </div>
+    <div class="callout"><p>B-v2 실패를 숨기지 않았다. 이 의도적 실패와 B-v1 복구는 미리 고정한 성공 결과를 읽는 시험이 아니라, 실행 시점의 파일 내용을 검사했다는 근거다. CLI 명령의 <code>success=true</code>·exit 0과 시험의 <code>Failed=1</code>을 구분했다.</p></div>
+    <figure class="timeline">
+      <h3>MCP runner: 실제 시험 구간은 겹치지 않았다</h3>
+      <div class="time-row"><span>A runner</span><div class="track"><div class="bar" style="left:0;width:45.64%">3.421초</div></div></div>
+      <div class="time-row"><span>B runner</span><div class="track"><div class="bar b" style="left:53.67%;width:46.33%">3.473초</div></div></div>
+      <div class="axis"><span>13:11:00.419Z</span><span>13:11:07.915Z</span></div>
+      <figcaption>A 13:11:00.419–03.840Z, B 13:11:04.442–07.915Z. A 종료와 B 시작 사이 602ms. 두 MCP 요청의 시작 시간은 같지만 실제 runner 병렬 실행 증거가 아니다.</figcaption>
+    </figure>
+    <figure class="timeline">
+      <h3>독립 Unity CLI 호출: 실행 구간이 2.448초 겹쳤다</h3>
+      <div class="time-row"><span>A CLI</span><div class="track"><div class="bar" style="left:0;width:75.92%">A 3.585초</div></div></div>
+      <div class="time-row"><span>B CLI</span><div class="track"><div class="bar b" style="left:24.08%;width:75.92%">B 3.585초</div></div></div>
+      <div class="axis"><span>13:13:17.066Z</span><span>13:13:21.789Z</span></div>
+      <figcaption>요청의 시작·종료 벽시계 구간: A 13:13:17.0661571–20.6515068Z, B 13:13:18.2034894–21.7889601Z. 겹침 13:13:18.2034894–20.6515068Z. 각각 정확한 A/B 프로젝트에서 시험 Summary를 반환했다. ordinary token(elevated=false).</figcaption>
+    </figure>
+    <p class="muted">시험 결과의 내부 Duration은 A 3.44초, B 3.36초다. 그림은 CLI 프로세스 요청 구간을 나타내며 개별 NUnit 시험의 절대 시작·종료 시각이나 성능 배율을 추정하지 않는다. 모든 Z 시각은 UTC이고 한국 시각은 +9시간이다.</p>
+    <p>최종 identity 읽기는 A test MVID <code>a686f47c-bdb3-404f-a9cf-98b5f810ba4d</code>, B <code>aa76aeb6-491c-4596-8f11-b28afc950ce0</code>, 마커 A-v1/B-v1, 정확한 프로젝트·PID, bridge=true를 반환했다.</p>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/mcp-test-results-initial.json">MCP Summary·runner 시각·시험 출력</a><a href="../artifacts/unity-parallel-validation-20261003/s-a-tests-parallel-negative.json">CLI A 3/0</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-tests-parallel-negative.json">CLI B-v2 2/1</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-tests-current-state-restored.json">CLI B 복구 3/0</a></p>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/s-a-tests-parallel-negative-cost.json">A 실행 구간</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-tests-parallel-negative-cost.json">B 실행 구간</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-marker-negative-state.json">B 파일만 변경</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-marker-restored.json">B 파일 복구</a><a href="../artifacts/unity-parallel-validation-20261003/s-a-tests-source-identity-final.json">A 최종 identity</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-tests-source-identity-final.json">B 최종 identity</a></p>
+  </section>
+
+  <section id="integration" data-status="scoped-complete-with-limitations">
+    <h2>⑤ 전체·부분 원본 반영과 완전 회수 <span class="pill ok">한정 완료</span></h2>
+    <p>A는 제품의 <code>workspace.integrate</code>로 전체 14파일을 반영했다. B는 전체 독립 결과를 보존하고, 이번 검증에서 명시적으로 선택한 PNG·metadata 2파일만 AI·Git 절차로 반영했다. 이 두 경로와 원본 Unity가 생성한 metadata 1파일 보존을 구분했다. 반영된 원본 Editor에서 현재 에셋·씬·시험을 확인한 뒤 소유 자원을 회수하고 실행 전 기준선을 복원했다.</p>
+    <div class="table-wrap">
+      <table><thead><tr><th scope="col">반영·보존 단계</th><th scope="col">실제 결과</th><th scope="col">경계</th></tr></thead><tbody>
+        <tr><th scope="row">A 전체 반영 · 제품 integrate</th><td>14파일, 모든 Git blob·SHA 일치<br><code>5123d9d8c874af2e0bb213c408bfd0f1bd27fdcb</code></td><td>고정 base의 다른 변경 없음. A 독립 결과 <code>c95c6870495bd907553ae9c856fcdf46aa2451a5</code> 보존.</td></tr>
+        <tr><th scope="row">B 선택 반영 · AI/Git 절차</th><td>SelectedB.png + SelectedB.png.meta 2파일<br><code>091b0b0e377563f8a19264181546c6913b72a543</code></td><td>A 14파일 hash 불변. B의 Shared 씬·재질·텍스처·마커를 덮어쓰지 않고 전체 B 결과에 보존.</td></tr>
+        <tr><th scope="row">L2 생성 metadata 보존</th><td>Marker.txt.meta 1파일 추가 보존<br><code>106dbf97cf6b82ea164a2bb1a97c058c78532f3a</code></td><td>원본 Unity가 import 중 생성한 파일. A 결과에 원래 포함된 것으로 계산하지 않았다.</td></tr>
+      </tbody></table>
+    </div>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/s-a-full-integrate.json">A 제품 전체 integrate</a><a href="../artifacts/unity-parallel-validation-20261003/s-a-integrated-all-paths-verified.json">A 전체 14파일 대조</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-selected-paths-applied-verified.json">B 선택 2파일·A 불변 대조</a><a href="../artifacts/unity-parallel-validation-20261003/l2-final-trial-source-preserved.json">최종 trial 결과 보존</a></p>
+
+    <h3>A 회수 중에도 B가 지속했고 추가 편집했다</h3>
+    <p>A release 진행 중 B의 같은 PID 51944에서 B-v1·Shared 씬·파랑 픽셀을 읽었다. A 회수 후에도 B를 재시작하지 않고 SelectedB.png를 기존 (32, 255, 64, 255)에서 <strong>(48, 240, 80, 255)</strong>로 바꿨고, 같은 GUID <code>bb0514a8fc38686428721f805ff7e1ec</code>를 확인했다. 이후 B 현재 상태 시험은 3/0이었다. 이 세 시험은 Shared 에셋을 검사하며, SelectedB의 추가 편집은 별도 실제 픽셀 읽기로 증명한다.</p>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/s-b-live-during-a-release.json">A release 중 B 지속</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-new-resource-write-after-a-release.json">A 회수 후 B 추가 편집</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-tests-after-a-release.json">B 현재 상태 3/0</a></p>
+
+    <h3>원본 Editor에서 반영 결과를 실제로 읽었다</h3>
+    <p>원본 <code>T:\ua-source</code>의 L2 PID 25756에서 Shared.unity를 Single로 열었다. <strong>UP_A 위치 (1,2,3), scale (2,1,1)</strong>, A Shared.png GUID <code>05846e8270c65b643b140d49a4a55554</code>·주황 픽셀, B SelectedB.png GUID <code>bb0514a8fc38686428721f805ff7e1ec</code>·새 초록 픽셀, 마커 A-v1을 읽었다. compiling/updating/failed=false였고, 현재 상태 시험은 <strong>3 통과 / 0 실패</strong>였다.</p>
+    <p class="muted">Unity Color 반환은 정규화된 float다. Shared RGBA(1.000, 0.251, 0.125, 1.000), Selected RGBA(0.188, 0.941, 0.314, 1.000)는 각각 앞서 저장한 RGBA8 (255,64,32,255)와 (48,240,80,255)에 대응한다.</p>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/l2-integrated-assets-scene-actual.json">원본 실제 경로·PID·씬·scale·GUID·픽셀</a><a href="../artifacts/unity-parallel-validation-20261003/l2-integrated-current-state-tests.json">원본 현재 상태 시험 3/0</a><a href="../artifacts/unity-parallel-validation-20261003/l2-owned-normal-close.json">L2 정상 종료 요청</a></p>
+
+    <h3>seal 거부·안정 관측·실제 재수집을 구분했다</h3>
+    <div class="phase-grid">
+      <div class="phase-card">
+        <h3>A checkpoint 실패 후 재수집</h3>
+        <ul class="inline-list">
+          <li>반영 전 원본은 고정 base HEAD, Git status clean, 94개 추적 파일의 bytes/hash를 기록했다. 작업용 ParallelQualification 에셋은 원본에 없었다.</li>
+          <li>A 첫 checkpoint는 <code>DeltaChangedAfterCollection</code>로 실패했다. 겹친 쓰기를 성공으로 무시하지 않고 저널을 보존했다.</li>
+          <li>A Editor 종료·소유 프로세스 0, 두 status에서 동일 sequence <code>39000</code>·journal bytes <code>55086488</code>를 관측한 뒤 안정 상태에서 재수집했다.</li>
+          <li>재수집 checkpoint는 Succeeded·collected, <code>stable-journal-v1</code>, <code>independentOfSnapshot=true</code>. 결과 revision <code>c95c6870495bd907553ae9c856fcdf46aa2451a5</code>를 보존했다.</li>
+          <li>A 전체 반영 이후 release는 Succeeded. 최종 snapshot missing과 소유 자원 부재를 별도 대조했다.</li>
+        </ul>
+      </div>
+      <div class="phase-card">
+        <h3>B release 거부 후 명시적 재시도</h3>
+        <ul class="inline-list">
+          <li>최초 checkpoint 명령은 필수 <code>--message</code> 누락으로 InvalidArguments였다. 수정한 요청에서 결과 <code>03b5c6271900b004a062dbafb686f4a24a557f6a</code>, seal sequence <code>39232</code>를 보존했다.</li>
+          <li>첫 release는 <code>DeltaChangedAfterCollection</code>로 거부됐다. journal sequence가 <code>39232 → 39234</code>, bytes가 <code>55618778 → 55619588</code>로 바뀌었다.</li>
+          <li>두 읽기 전용 status에서 현재 sequence <code>39234</code>·bytes <code>55619588</code>가 같음을 관측했다. 기존 첫 결과는 추가 ref에도 보존했다.</li>
+          <li>후속 checkpoint 응답은 Succeeded였지만 <strong>기존 sequence 39232 seal을 반환한 no-op</strong>이었다. 이를 안정 상태 재수집 성공으로 표시하지 않았다.</li>
+          <li>같은 id/home의 <strong>명시적 release 재시도</strong>에서 실제 안정 상태 <code>39234 / 55619588</code>를 수집했다. 최종 seal hash <code>5f7fd72800e5c443087582804066796b8a4ffefffcd34bee87aa447660ea49f2</code>, phase=released·snapshot missing을 확인했다.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/original-before-apply.json">반영 전 원본 기준선</a><a href="../artifacts/unity-parallel-validation-20261003/s-a-checkpoint.json">A 첫 checkpoint 실패</a><a href="../artifacts/unity-parallel-validation-20261003/s-a-quiescent-1.json">A 안정 관측 1</a><a href="../artifacts/unity-parallel-validation-20261003/s-a-quiescent-2.json">A 안정 관측 2</a><a href="../artifacts/unity-parallel-validation-20261003/s-a-checkpoint-stable-recollect.json">A 실제 안정 상태 재수집</a><a href="../artifacts/unity-parallel-validation-20261003/s-a-release-after-full-integration.json">A release 성공</a></p>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/s-b-checkpoint-final.json">B 필수 인자 오류</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-checkpoint-required-message.json">B 첫 수집 seal</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-release-after-selected-integration.json">B 첫 release 거부</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-quiescent-after-release-refusal-1.json">B 안정 관측 1</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-quiescent-after-release-refusal-2.json">B 안정 관측 2</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-checkpoint-stable-after-release-refusal.json">B checkpoint 기존 seal 반환</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-release-explicit-quiescent-retry.json">B explicit release 실제 재수집·회수</a></p>
+
+    <details open>
+      <summary>실패·재시도 비용도 최종 결과에 포함했다</summary>
+      <div class="table-wrap">
+        <table><caption>각 CLI cost JSON의 elapsedMilliseconds. Editor 전체 준비 시간·전체 작업 지연과 구분한다. 모두 callerElevated=false.</caption><thead><tr><th scope="col">실제 시도</th><th scope="col">시간</th><th scope="col">결과</th></tr></thead><tbody>
+          <tr><th scope="row">A 첫 checkpoint / 안정 재수집</th><td><a href="../artifacts/unity-parallel-validation-20261003/s-a-checkpoint-cost.json">99.216초</a> / <a href="../artifacts/unity-parallel-validation-20261003/s-a-checkpoint-stable-recollect-cost.json">49.849초</a></td><td>seal 거부 / 실제 안정 수집 성공</td></tr>
+          <tr><th scope="row">A 전체 integrate / release</th><td><a href="../artifacts/unity-parallel-validation-20261003/s-a-full-integrate-cost.json">25.247초</a> / <a href="../artifacts/unity-parallel-validation-20261003/s-a-release-after-full-integration-cost.json">51.794초</a></td><td>제품 전체 반영 / 회수 성공</td></tr>
+          <tr><th scope="row">B 인자 누락 / 수정 checkpoint</th><td><a href="../artifacts/unity-parallel-validation-20261003/s-b-checkpoint-final-cost.json">1.057초</a> / <a href="../artifacts/unity-parallel-validation-20261003/s-b-checkpoint-required-message-cost.json">100.360초</a></td><td>InvalidArguments / 첫 결과 수집</td></tr>
+          <tr><th scope="row">B 첫 release</th><td><a href="../artifacts/unity-parallel-validation-20261003/s-b-release-after-selected-integration-cost.json">35.924초</a></td><td>DeltaChangedAfterCollection</td></tr>
+          <tr><th scope="row">B 안정 읽기 두 번</th><td><a href="../artifacts/unity-parallel-validation-20261003/s-b-quiescent-after-release-refusal-1-cost.json">2.178초</a> / <a href="../artifacts/unity-parallel-validation-20261003/s-b-quiescent-after-release-refusal-2-cost.json">2.385초</a></td><td>동일한 현재 sequence·bytes 관측</td></tr>
+          <tr><th scope="row">B checkpoint 재요청 / explicit release</th><td><a href="../artifacts/unity-parallel-validation-20261003/s-b-checkpoint-stable-after-release-refusal-cost.json">8.369초</a> / <a href="../artifacts/unity-parallel-validation-20261003/s-b-release-explicit-quiescent-retry-cost.json">47.146초</a></td><td>기존 seal 반환 no-op / 실제 안정 수집·회수 성공</td></tr>
+        </tbody></table>
+      </div>
+    </details>
+
+    <h3>최종 소유 자원과 보호 대상의 상태</h3>
+    <div class="table-wrap">
+      <table><thead><tr><th scope="col">최종 대상</th><th scope="col">실제 관측</th><th scope="col">보존한 결과</th></tr></thead><tbody>
+        <tr><th scope="row">이번 A/B</th><td>phase=released, snapshot missing. 소유 PID·workspace·Git 등록·delta 없음. provider handles/working set/private=0, application activeProcesses/working set/private=0.</td><td>A/B 각각 <code>refs/splinter/snapshot-results/&lt;id&gt;</code> 유지. B 첫 수집 결과는 <code>refs/splinter/qualification-results/up-b-first-collected-20261003</code>에도 보존.</td></tr>
+        <tr><th scope="row">원본 L / L2</th><td>소유 PID 14256·25756과 직접 자식 부재. L2 clean 씬에서 정상 CloseMainWindow 한 번, force=false. 실제 종료 부재 관측.</td><td>통합·선택 결과 trial <code>codex/up-source-20261003</code> @<code>106dbf97cf6b82ea164a2bb1a97c058c78532f3a</code> 유지.</td></tr>
+        <tr><th scope="row">원본·canonical</th><td>T:\ua-source: 원래 <code>codex/library-20260929</code> @<code>f71e4e244ba9b085aa0fc439336e4c60ee3d5d5d</code>, clean. 94 tracked 파일의 기준 bytes/hash 일치, 시험용 에셋 없음.</td><td>canonical splinter-unity: <code>development</code> @<code>6a54974a9c655031aeb2be17fb7622fc5d641c52</code>, clean.</td></tr>
+        <tr><th scope="row">기존 Editor·기록·결과</th><td>보호 PID 68624, 동일 시작 ticks <code>639265412574256360</code>. archive 73 records / 2,130 files 모든 hash 일치, 기존 결과 refs 72개 불변.</td><td>기존 소유가 아닌 snapshot 삭제 요청 0. 독립 결과·terminal receipts·shared runner cache·raw evidence는 의도적으로 보존.</td></tr>
+        <tr><th scope="row">MCP 설정·발견 metadata</th><td>port preference 6402→기준 6400 복원. HTTP=true, ResumeStdioAfterReload key 없음. 닫힌 소유 A/B port 파일 2개만 제거, legacy port 파일의 기준 bytes 복원.</td><td>baseline 발견 파일 7개 hash 일치, owned port files remaining=[]; 기존 다른 프로젝트 파일 보존.</td></tr>
+      </tbody></table>
+    </div>
+    <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/final-native-cleanup-and-restoration.json">최종 자원 회수·원본·보호 대상 대조</a><a href="../artifacts/unity-parallel-validation-20261003/s-b-first-result-extra-preservation.json">B 첫 결과 추가 보존 ref</a><a href="../artifacts/unity-parallel-validation-20261003/l2-mcp-preferences-owned-restore.json">MCP preferences 복원</a><a href="../artifacts/unity-parallel-validation-20261003/mcp-owned-discovery-cleanup-verified.json">소유 port metadata 정리·기준 hash 확인</a></p>
+    <div class="callout warn"><p>완전 회수는 이번 A/B의 소유 실행·mount·delta·Git 등록·snapshot 자원이 없음을 뜻한다. 독립 결과·receipts·공통 runner·증거·보존 archive를 삭제했다는 뜻이 아니다. 선택 2파일 반영은 AI/Git 절차이며 제품의 범용 부분 반영 API를 새로 검증했다고 표시하지 않는다. 공유 경로 B 결과를 원본에 덮어쓰는 충돌 시나리오는 실행하지 않았다.</p></div>
+    <details>
+      <summary>과거 비교 A/B 회수는 별도 완료 기록이다</summary>
+      <p>이전 비교의 A <code>40cd86f88ef543d7a8418a6e</code>와 B <code>fd4c3247d6b0d38e6c7b5fba</code>는 구형 terminal 기록의 명시적 보존·분리 이후, 같은 id/home의 release 재시도가 Succeeded였다. 각각 phase=released, snapshotAvailability=missing, 소유 프로세스 0을 반환했다. 이번 새 A/B의 5단계 완료 증거와 구분한다.</p>
+      <p class="evidence"><a href="../artifacts/unity-parallel-validation-20261003/old-a-explicit-release.json">이전 A 명시적 release</a><a href="../artifacts/unity-parallel-validation-20261003/old-b-explicit-release.json">이전 B 명시적 release</a></p>
+    </details>
+  </section>
+
+  <section id="limits">
+    <h2>확인 범위와 남은 판단</h2>
+    <p>이번 결과는 이 Windows 환경의 작은 고정 Unity 입력, 등록한 home, 정확한 A/B Editor와 해당 에셋·EditMode 시험에 한정한다. 에셋·씬의 실제 데이터와 참조를 검사했으며 Game view 렌더 품질·Play mode·빌드·대형 프로젝트·다른 버전의 지원을 검증한 결과는 아니다.</p>
+    <div class="table-wrap">
+      <table><thead><tr><th scope="col">항목</th><th scope="col">이번 S군</th><th scope="col">이번 C군</th></tr></thead><tbody>
+        <tr><th scope="row">① MCP A/B 라우팅·재연결</th><td>한정 확인 · 명시적 reload 재연결 필요</td><td><span class="pill notrun">NotRun</span></td></tr>
+        <tr><th scope="row">② 텍스처 독립 편집</th><td>한정 확인 · Importer 명시적 보완</td><td><span class="pill notrun">NotRun</span></td></tr>
+        <tr><th scope="row">③ 씬 편집·저장·재로드</th><td>초기 실패 수정 후 한정 확인</td><td><span class="pill notrun">NotRun</span></td></tr>
+        <tr><th scope="row">④ 현재 상태 시험·병렬 호출</th><td>의도한 실패 시험 포함 확인 · CLI 호출 겹침 / MCP runner 겹침 없음</td><td><span class="pill notrun">NotRun</span></td></tr>
+        <tr><th scope="row">⑤ 전체·부분 반영·완전 회수</th><td>한정 완료 · A 제품 전체 반영 / B AI·Git 선택 반영 / 결과 보존·소유 회수</td><td><span class="pill notrun">NotRun</span></td></tr>
+      </tbody></table>
+    </div>
+    <p>private project·Library 격리는 사용자 설정·외부 MCP 서버 전체를 sandbox하는 계약이 아니다. 이 묶음에서 반환 경로·PID·픽셀·참조를 대조했고, MCP 재연결은 외부 도구 절차로 수행했다. 타임아웃·연결 소실만으로 쓰기를 자동 반복한 성공으로 표현하지 않는다. 전체 저장공간·RAM 절감은 이 보고서에서 새로 측정하지 않았다.</p>
+    <h3>증거를 읽는 방법</h3>
+    <p class="muted">본문 링크는 자격 증명이 없는 JSON 관측·결과다. 원시 Editor/도구 로그는 공개 링크 목록에 포함하지 않았다. 성공 응답, 실제 로드 값, 시험 합격, 원본 반영, 회수 완료를 각각 구분한다. 시각이 다른 관측을 현재 상태로 합치지 않는다.</p>
+    <div class="table-wrap">
+      <table class="evidence-index"><thead><tr><th scope="col">추가 검증 경계</th><th scope="col">직접 확인할 JSON</th></tr></thead><tbody>
+        <tr><th scope="row">컴파일 완료</th><td><a href="../artifacts/unity-parallel-validation-20261003/s-a-test-compile-status-3.json">A completed / failed=false</a> · <a href="../artifacts/unity-parallel-validation-20261003/s-b-test-compile-status-3.json">B completed / failed=false</a></td></tr>
+        <tr><th scope="row">로드 뒤 bridge 중단</th><td><a href="../artifacts/unity-parallel-validation-20261003/s-a-after-scene-load-bridge-status.json">A bridge=false</a> · <a href="../artifacts/unity-parallel-validation-20261003/s-b-after-scene-load-bridge-status.json">B bridge=false</a></td></tr>
+        <tr><th scope="row">재연결 뒤 실제 씬</th><td><a href="../artifacts/unity-parallel-validation-20261003/mcp-scenes-current-loaded-after-reconnect.json">A/B path·PID·시작 시각·metadata·PNG/로드 픽셀</a></td></tr>
+        <tr><th scope="row">B 복구 실행 비용</th><td><a href="../artifacts/unity-parallel-validation-20261003/s-b-tests-current-state-restored-cost.json">ordinary token·시작/종료 구간</a></td></tr>
+        <tr><th scope="row">보호 Editor 기준·최종 대조</th><td><a href="../artifacts/unity-parallel-validation-20261003/protected-editor-before.json">기존 비소유 Editor 기준선</a> · <a href="../artifacts/unity-parallel-validation-20261003/final-native-cleanup-and-restoration.json">최종 동일 identity·기존 기록/refs·원본 복원 확인</a></td></tr>
+        <tr><th scope="row">이전 저장공간 비교</th><td><a href="unity-live-comparison-20261003.html">C/S 저장공간·메모리 보고서</a> · 당시 한정 결과와 당시 회수 제한을 보존한 별도 보고서</td></tr>
+      </tbody></table>
+    </div>
+  </section>
+  <footer class="foot">증거 위치: artifacts/unity-parallel-validation-20261003 · 최종 한정 완료 / scoped-complete-with-limitations · 최종 관측 2026-10-03 22:41:45 KST · 이 HTML은 독립 검증 기록이며 제품의 범용 MCP·Unity 지원 선언이 아니다.</footer>
+</main>
+</body>
+</html>
