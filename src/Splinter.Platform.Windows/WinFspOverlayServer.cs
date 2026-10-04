@@ -10,7 +10,7 @@ namespace Splinter.Platform.Windows;
 public sealed record OverlayServeRequest(OverlayIdentity Identity, string DeltaPath, string MountPath,
     string ControlPath, string Token, [property: JsonRequired] SnapshotReadAccess ReadAccess,
     [property: JsonRequired] string SnapshotReceiptDirectory, [property: JsonRequired] string SnapshotOwnerId,
-    ValidationViewSelection? ValidationView = null, OverlayCacheSnapshotRead? CacheSnapshot = null);
+    ValidationViewSelection? ValidationView = null, OverlayCacheSnapshotRead? CacheSnapshot = null, OverlayCacheSnapshotRead? GeneratedSnapshot = null);
 
 public sealed record OverlayCacheSnapshotRead(SnapshotReadAccess ReadAccess, string ReceiptDirectory, string OwnerId);
 
@@ -64,6 +64,12 @@ public static class WinFspOverlayServer
             if (health.Available != true) throw new WorkspaceException(health.FailureCode ?? "SnapshotObservationUnknown", "Snapshot read access is not verified.");
             using var snapshot = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess,
                 request.SnapshotReceiptDirectory, request.SnapshotOwnerId, () => Volatile.Read(ref health));
+            using var generatedLease = request.Identity.Graft is { } graftLease
+                ? WorkspaceSnapshotBasis.AcquireReadLease(graftLease.Basis.Snapshot, graftLease.Basis.ReceiptDirectory, graftLease.Basis.OwnerId) : null;
+            using var generatedTree = request.Identity.Graft is { } graftTree
+                ? WorkspaceSnapshotBasis.OpenTree(graftTree.Basis.Snapshot, request.GeneratedSnapshot!.ReadAccess, graftTree.Basis.ReceiptDirectory, graftTree.Basis.OwnerId) : null;
+            ISnapshotTree basisTree = request.Identity.Graft is { } graft
+                ? new GraftedSnapshotTree(snapshot, generatedTree!, graft) : snapshot;
             using var cacheSnapshot = request.CacheSnapshot is { } cacheAccess
                 ? new VssSnapshotTree(request.ValidationView!.CacheIdentity!.Snapshot, cacheAccess.ReadAccess, () => Volatile.Read(ref health)) : null;
             if (request.ValidationView is { } selection)
@@ -90,7 +96,7 @@ public static class WinFspOverlayServer
             long replayStarted = Stopwatch.GetTimestamp();
             using IWorkspaceDeltaStore store = request.ValidationView is { } selectedView
                 ? new ValidationViewDeltaStore(deltaPath, request.Identity, snapshot, selectedView, cacheBasis: cacheSnapshot)
-                : new JournalDeltaStore(deltaPath, request.Identity, snapshot);
+                : new JournalDeltaStore(deltaPath, request.Identity, basisTree);
             long storeReadyTicks = Stopwatch.GetTimestamp() - replayStarted;
             var fileSystem = new WinFspOverlayFileSystem(store, ex =>
             {

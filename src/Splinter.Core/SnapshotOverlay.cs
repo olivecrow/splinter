@@ -37,6 +37,7 @@ public sealed record SnapshotEntry(string Path, bool Directory, long Length, uin
 public interface ISnapshotTree
 {
     SnapshotReference Snapshot { get; }
+    SnapshotGraft? Graft => null;
     void EnsureAvailable();
     SnapshotEntry? Stat(string relativePath);
     IReadOnlyList<SnapshotEntry> List(string relativeDirectory);
@@ -45,7 +46,7 @@ public interface ISnapshotTree
 
 public sealed record OverlayIdentity(int Version, string Id, SnapshotReference Snapshot,
     long MaxJournalBytes, int MaxTransferBytes, string[]? ExcludedTopLevel = null,
-    string[]? IncludedTopLevel = null, string[]? DeniedTopLevel = null);
+    string[]? IncludedTopLevel = null, string[]? DeniedTopLevel = null, SnapshotGraft? Graft = null);
 public sealed record OverlayStorageObservation(string Id, string SnapshotId, long InitialPayloadCopiedBytes,
     long JournalBytes, long PayloadBytes, long MetadataBytes, long ReadBytes,
     long ReadCacheBytes, int MaxTransferBytes, int IndexedNodes, long DurableSequence)

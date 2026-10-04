@@ -56,6 +56,7 @@ private Mutation의 기본값 JSON은 생략하고 명시적 정리/후보에서
 | `workspace integrate` | Git의 정확한 결과·깨끗한 branch merge 또는 editorless 일반 폴더의 `--target original --plan`/고정 intent·digest 조건부 게시 |
 | `workspace compact` | 정상 stop/unmount·seal·명시적 예산으로 private 저널 정리 |
 | `workspace release/discard` | 독립 결과 보존 뒤 회수/명시적 결과 폐기. peer와 공유 의존성 보호 |
+| `library prepare/status/restore` | 명시적으로 허용된 원본 Library의 같은 볼륨 이동·원본/A/B 범위 저장·마지막 일반 NTFS 복원. [계약](git-library-reference.md) |
 | `unity start/stop` | 해당 workspace Editor의 수명. 준비/종료는 상태 관측으로 확인 |
 | `storage service status` | 기존 제한 VSS 서비스의 읽기 전용 상태 |
 

@@ -42,7 +42,19 @@
           "minimum": 4096,
           "maximum": 1048576
         },
-        "deniedTopLevel": {"type":["array","null"],"maxItems":32,"uniqueItems":true,"items":{"type":"string","minLength":1,"pattern":"^[^/\\\\:]+$"}},
+        "deniedTopLevel": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:]+$"
+          }
+        },
         "excludedTopLevel": {
           "type": [
             "array",
@@ -75,7 +87,8 @@
             "provider": {
               "enum": [
                 "windows-vss-system",
-                "git-objects"
+                "git-objects",
+                "owned-directory"
               ]
             },
             "sourcePath": {
@@ -99,7 +112,8 @@
             "consistency": {
               "enum": [
                 "filesystem-crash-consistent-no-application-writer",
-                "recorded-project-commit-raw-blobs"
+                "recorded-project-commit-raw-blobs",
+                "stopped-original-owned-directory"
               ]
             }
           },
@@ -120,9 +134,25 @@
                 }
               },
               "else": {
-                "properties": {
-                  "consistency": {
-                    "const": "filesystem-crash-consistent-no-application-writer"
+                "if": {
+                  "properties": {
+                    "provider": {
+                      "const": "owned-directory"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "consistency": {
+                      "const": "stopped-original-owned-directory"
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "consistency": {
+                      "const": "filesystem-crash-consistent-no-application-writer"
+                    }
                   }
                 }
               }
@@ -139,6 +169,25 @@
             "minLength": 1
           },
           "uniqueItems": true
+        },
+        "graft": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "relativePath",
+            "basis"
+          ],
+          "properties": {
+            "relativePath": {
+              "const": "Library"
+            },
+            "basis": {
+              "$ref": "urn:splinter:v1:generated-directory-reference"
+            }
+          }
         }
       }
     },
@@ -252,7 +301,19 @@
                   "minimum": 4096,
                   "maximum": 1048576
                 },
-                "deniedTopLevel": {"type":["array","null"],"maxItems":32,"uniqueItems":true,"items":{"type":"string","minLength":1,"pattern":"^[^/\\\\:]+$"}},
+                "deniedTopLevel": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "maxItems": 32,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^[^/\\\\:]+$"
+                  }
+                },
                 "excludedTopLevel": {
                   "type": "array",
                   "uniqueItems": true,
@@ -271,6 +332,25 @@
                     "minLength": 1
                   },
                   "uniqueItems": true
+                },
+                "graft": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "additionalProperties": false,
+                  "required": [
+                    "relativePath",
+                    "basis"
+                  ],
+                  "properties": {
+                    "relativePath": {
+                      "const": "Library"
+                    },
+                    "basis": {
+                      "$ref": "urn:splinter:v1:generated-directory-reference"
+                    }
+                  }
                 }
               }
             }
@@ -295,6 +375,51 @@
       }
     },
     "cacheSnapshot": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "readAccess",
+        "receiptDirectory",
+        "ownerId"
+      ],
+      "properties": {
+        "readAccess": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "snapshotId",
+            "rootPath",
+            "verificationId"
+          ],
+          "properties": {
+            "snapshotId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rootPath": {
+              "type": "string",
+              "minLength": 1
+            },
+            "verificationId": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "receiptDirectory": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "generatedSnapshot": {
       "type": [
         "object",
         "null"

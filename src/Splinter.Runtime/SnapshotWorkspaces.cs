@@ -77,6 +77,11 @@ public sealed partial class WorkspaceCoordinator
 
     private async Task ConnectSnapshotAsync(WorkspaceRecord w, CancellationToken ct)
     {
+        if (w.GeneratedDirectory is { } generated && !w.ManagedPaths.Contains(generated.RelativePath, StringComparer.OrdinalIgnoreCase))
+        {
+            w.ManagedPaths = [.. w.ManagedPaths, generated.RelativePath];
+            store.Save(w, "generated-path-bound");
+        }
         var state = RequireSnapshot(w);
         if (state.Reference is null || state.Step.StartsWith("release-", StringComparison.Ordinal))
             throw new WorkspaceException("SnapshotNotReady", "Resume ensure or the pending release first.");

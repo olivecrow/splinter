@@ -10,7 +10,8 @@ using Splinter.SourceControl.Git;
 
 namespace Splinter.Platform.Windows;
 
-public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspacePreparationObserver? preparationObserver = null) : ISnapshotWorkspaceBackend
+public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspacePreparationObserver? preparationObserver = null,
+    IGeneratedDirectoryDependencies? generatedDirectories = null) : ISnapshotWorkspaceBackend
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static string OverlayControl(string control) => Path.Combine(control, "overlay");
@@ -22,7 +23,8 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         workspace is null || preparationObserver is null ? null : boundary => preparationObserver.ReachedAsync(boundary, workspace, CancellationToken.None));
     public static OverlayIdentity Identity(WorkspaceRecord w) => new(2, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024,
         w.SourceKind is "none" or "plastic" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : [".git"],
-        DeniedTopLevel: w.SourceKind == "plastic" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : null);
+        DeniedTopLevel: w.SourceKind == "plastic" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : null,
+        Graft: w.GeneratedDirectory is { } generated ? new(generated.RelativePath, generated) : null);
 
     public async Task<SnapshotReference> CaptureAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
@@ -34,6 +36,9 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         CheckSpace(control);
         if (w.StorageMode == "git-snapshot")
         {
+            if (w.GeneratedDirectoryId is { } generatedId)
+                w.GeneratedDirectory = await (generatedDirectories ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Generated basis dependencies are unavailable."))
+                    .AttachAsync(generatedId, w, ct);
             if (w.SourceKind != "git" || w.BaseRevision is null) throw new WorkspaceException("GitBasisUnsupported", "Fix a Git project commit before capture.");
             return await new GitObjectSnapshotProvider(Path.Combine(control, "snapshot"), w.Id, w.BaseRevision)
                 .CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(control, "snapshot")), ct);
@@ -78,6 +83,12 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
             ? new(Identity(w), DeltaPath(control), w.Path, OverlayControl(control), Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32)),
                 access, Path.Combine(control, "snapshot"), w.Id)
             : request with { ReadAccess = access, SnapshotReceiptDirectory = Path.Combine(control, "snapshot"), SnapshotOwnerId = w.Id };
+        if (w.GeneratedDirectory is { } generated)
+        {
+            await (generatedDirectories ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Generated basis dependencies are unavailable.")).AttachAsync(generated.Id, w, ct);
+            var generatedAccess = await WorkspaceSnapshotBasis.ResolveAsync(generated.Snapshot, generated.ReceiptDirectory, generated.OwnerId, null, ct);
+            request = request with { GeneratedSnapshot = new(generatedAccess, generated.ReceiptDirectory, generated.OwnerId) };
+        }
         Directory.CreateDirectory(OverlayControl(control));
         await WindowsProcessWorkspaceProvider.WriteAsync(RequestPath(control), request, ct);
     }
@@ -166,9 +177,12 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
             throw new WorkspaceException(health.FailureCode ?? "SnapshotVerificationRequired", "Verify the original snapshot read access before compaction.");
         using var tree = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess,
             request.SnapshotReceiptDirectory, request.SnapshotOwnerId, () => health);
+        using var generatedLease = request.Identity.Graft is { } g ? WorkspaceSnapshotBasis.AcquireReadLease(g.Basis.Snapshot, g.Basis.ReceiptDirectory, g.Basis.OwnerId) : null;
+        using var generatedTree = request.Identity.Graft is { } gt ? WorkspaceSnapshotBasis.OpenTree(gt.Basis.Snapshot, request.GeneratedSnapshot!.ReadAccess, gt.Basis.ReceiptDirectory, gt.Basis.OwnerId) : null;
+        ISnapshotTree basisTree = request.Identity.Graft is { } graft ? new GraftedSnapshotTree(tree, generatedTree!, graft) : tree;
         string delta = DeltaPath(control);
         WindowsProcessWorkspaceProvider.CheckPath(delta);
-        var result = JournalDeltaStore.CompactDirectory(delta, request.Identity, tree,
+        var result = JournalDeltaStore.CompactDirectory(delta, request.Identity, basisTree,
             maxEstimatedJournalOverlapBytes: maxEstimatedJournalOverlapBytes);
         string journal = Path.Combine(delta, "delta.journal"), previous = Path.Combine(delta, "delta.journal.previous");
         long? oldAllocation = Allocation(previous), newAllocation = Allocation(journal);
@@ -258,7 +272,10 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         string directory = Path.Combine(control, "snapshot");
         await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(directory, "release-authorized.json"),
             new { snapshotId = w.Snapshot.Reference!.Id, remainingDependents = 0, resultsPreserved = true }, ct);
-        return await Provider(w, control).ReleaseAsync(w.Snapshot.Reference, ct, w.Snapshot.Reclamation?.AttemptId);
+        var reclaimed = await Provider(w, control).ReleaseAsync(w.Snapshot.Reference, ct, w.Snapshot.Reclamation?.AttemptId);
+        if (reclaimed.Disposition == "released" && w.GeneratedDirectory is { } generated)
+            await (generatedDirectories ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Generated basis dependencies are unavailable.")).DetachAsync(generated, w, ct);
+        return reclaimed;
     }
     private static async Task<OverlayServeRequest?> Request(WorkspaceRecord w, string control, CancellationToken ct)
     {

@@ -1,6 +1,6 @@
 # 한정 버전 AI 시작 안내
 
-`--storage git-snapshot --source git`은 [Git 프로젝트 기준본](git-project-basis.md)의 새 경로다. 기록된 commit만 사용하며 VSS 서비스/grant 없이 기존 WinFsp에서 실행한다. ignored/private/Library는 포함하지 않고 생성 데이터는 private다. 아래 등록·VSS·warm Library 전제는 `ntfs-snapshot`의 기존 자격이며 새 Git 경로로 승계하지 않는다. 실제 Editor 없는 Git 자격과 Unity/대형 NotRun은 [별도 검증](verification/git-project-basis.md)을 따른다.
+`--storage git-snapshot --source git`은 [Git 프로젝트 기준본](git-project-basis.md)의 새 경로다. 기록된 commit만 사용하며 VSS 서비스/grant 없이 기존 WinFsp에서 실행한다. ignored/private 소스는 제외한다. Library 생략 시 새 private 데이터이고, [원본 Library 참조](git-library-reference.md)는 승인한 전환 뒤 반환 basis id를 `--library-basis`에 명시한다. 아래 등록·VSS·warm Library 전제는 `ntfs-snapshot`의 기존 자격이며 새 Git 경로로 승계하지 않는다. 실제 Editor 없는 Git 자격과 Unity/대형 NotRun은 [별도 검증](verification/git-project-basis.md)을 따른다.
 
 `--source plastic`의 regular/static 원본과 등록하지 않는 파일 작업공간은 [Plastic 계약](plastic-compatibility.md)을 따른다. 관리 정보/등록을 상속하지 않는 짧은 home·현재 서비스와 [별도 실제 자격](verification/plastic-compatibility.md)을 확인한다. 원본 반영은 거부한다.
 

@@ -22,12 +22,13 @@ internal static class WorkspaceCommands
         string Home(ParseResult parse) => Path.GetFullPath(parse.GetValue(home) ?? Environment.GetEnvironmentVariable("SPLINTER_HOME")
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Splinter"));
         if (development) ValidationCommands.Add(root, contracts, Home, select, respond, ct);
+        GeneratedDirectoryCommands.Add(root, contracts, Home, select, respond, ct);
         WorkspaceCoordinator Runtime(ParseResult parse, bool auditSource = false)
         {
             selectRecovery([new("workspace.list", new { home = Home(parse) })]);
             var store = new WorkspaceStore(Home(parse)); IWorkspaceStorageProvider? storageProvider = development ? new RefsWorkspaceStorageProvider() : null;
             var git = new GitWorkspaceProvider(storageProvider, store, new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver);
-            var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver);
+            var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver, new ManagedDirectoryBasis(store));
             var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store, new WindowsOriginalFilePublisher()),
                 new PlasticWorkspaceProvider(store, new PlasticWorkspaceClient()));
             return new(store, sources,
@@ -52,8 +53,10 @@ internal static class WorkspaceCommands
         var journalBudget = new Option<long?>("--max-journal-bytes") { Description = "Immutable NTFS delta budget; defaults to 16 GiB. A changed limit requires a new task key." };
         var baselineOption = new Option<string>("--baseline") { Description = "Sealed baseline id required for refs-cow." };
         var editor = new Option<bool>("--editor") { Description = "Also start the private Editor when this task needs it." };
+        var generatedBasis = new Option<string>("--library-basis") { Description = "Exact prepared original Library basis id; fixed for this task." };
         ensure.Options.Add(project); ensure.Options.Add(key); ensure.Options.Add(basis); ensure.Options.Add(storage); ensure.Options.Add(editor); if (development) ensure.Options.Add(baselineOption); ensure.Options.Add(journalBudget);
         ensure.Options.Add(source); ensure.Options.Add(application);
+        ensure.Options.Add(generatedBasis);
         workspace.Subcommands.Add(ensure);
         ensure.SetAction(async parse =>
         {
@@ -62,10 +65,10 @@ internal static class WorkspaceCommands
             string sourceKind = parse.GetValue(source) ?? "git";
             string applicationKind = parse.GetValue(application) ?? (sourceKind == "none" ? "none" : "unity");
             string baseReference = parse.GetValue(basis) ?? (sourceKind is "none" or "plastic" ? "snapshot" : "development");
-            var input = new { project = parse.GetValue(project), key = parse.GetValue(key), baseReference, source = sourceKind, application = applicationKind, storage = parse.GetValue(storage), editor = parse.GetValue(editor), baseline = development ? parse.GetValue(baselineOption) : null, maxJournalBytes = parse.GetValue(journalBudget) };
+            var input = new { project = parse.GetValue(project), key = parse.GetValue(key), baseReference, source = sourceKind, application = applicationKind, storage = parse.GetValue(storage), editor = parse.GetValue(editor), baseline = development ? parse.GetValue(baselineOption) : null, maxJournalBytes = parse.GetValue(journalBudget), libraryBasis = parse.GetValue(generatedBasis) };
             if (!Validate(command, input)) return;
             var view = await Runtime(parse).EnsureAsync(input.project!, input.key!, baseReference, input.storage!, input.editor, ct, input.baseline,
-                maxJournalBytes: input.maxJournalBytes ?? SnapshotWorkspaceState.DefaultJournalBytes, sourceKind: sourceKind, applicationKind: applicationKind);
+                maxJournalBytes: input.maxJournalBytes ?? SnapshotWorkspaceState.DefaultJournalBytes, sourceKind: sourceKind, applicationKind: applicationKind, generatedDirectoryId: input.libraryBasis);
             respond(Result(command, view, input.editor && view.Application is { Running: true, Ready: false }, Home(parse)));
         });
         var list = new Command("list", contracts.Find("workspace.list")!.Description);

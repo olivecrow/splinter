@@ -47,6 +47,13 @@
         "none"
       ],
       "description": "Durable application selection. none requires no Editor or Unity metadata."
+    },
+    "libraryBasis": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{24}$"
     }
   },
   "required": [

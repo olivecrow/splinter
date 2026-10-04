@@ -20,6 +20,8 @@
 
 [Git Unity 실제 검증](git-unity-validation.md)은 별도로 승인한 현재 `splinter-unity`의 새 Git 기준 A/B와 cold Library, exact HTTP MCP·리소스/씬/현재 상태 시험·소유 회수와 관측한 준비 병목을 소유한다. 약 88분의 cold import·reload disconnect/실패 상세 소실·RAM 절감 미확인과 과거 VSS 자격을 구분한다.
 
+[Git 원본 Library 참조](git-library-reference.md)는 승인한 Library 전용 관리형 mount·원본/A/B의 고정 기준과 범위 쓰기·마지막 일반 NTFS 복원, 새 warm Unity MCP/RAM 검증을 소유한다. cold 실행과 작은 파일 중단 시험을 실제 warm Unity 자격으로 승계하지 않는다.
+
 [저널 기본값 메타데이터](journal-metadata-storage.md)는 현재 SJR2 의미·개별 flush를 유지하는 구현과 실제 Unity A/B의 보존된 저널을 사용한 오프라인 NTFS 전후 비교를 소유한다. 기존 payload 정리 효과·추가 직렬화 비용·새 native 수명주기의 미실행과 전체 workspace/RAM 미확인을 구분한다.
 
 [압축 저널 제품 연결](journal-payload-compression.md)은 overlay v2/SJR2·candidate v3의 현재 회귀·작은 T: Plastic A/B·동일 입력 journal raw 대조의 실제 NTFS 할당·두 독립 결과/회수를 scoped-complete-with-limitations로 마감했다. 전체 공간/RAM·대형/OS 자격과 기존 C: 보류를 유지하며 독립 codec의 논리 표본/이전 native 자격을 승계하지 않는다.

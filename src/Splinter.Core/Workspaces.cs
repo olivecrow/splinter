@@ -40,6 +40,8 @@ public sealed class WorkspaceRecord
     public WorkspaceDiscardState? Discard { get; set; }
     public SourceResultStorage? ResultStorage { get; set; }
     public OriginalApplyState? OriginalApply { get; set; }
+    public string? GeneratedDirectoryId { get; set; }
+    public GeneratedDirectoryReference? GeneratedDirectory { get; set; }
 }
 
 // Logical payload bytes of explicit result preservation, separate from the

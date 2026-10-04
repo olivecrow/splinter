@@ -693,6 +693,47 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "enum": [
+              "library.prepare",
+              "library.status",
+              "library.restore"
+            ]
+          },
+          "status": {
+            "const": "Succeeded"
+          }
+        },
+        "required": [
+          "command",
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "basis",
+              "home"
+            ],
+            "properties": {
+              "basis": {
+                "$ref": "urn:splinter:v1:managed-directory-state"
+              },
+              "home": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -750,6 +791,7 @@
         },
         "sideEffects": {
           "enum": [
+            "owned-original-library-lifecycle",
             "owned-task-discard",
             "none",
             "read-only-local-process",
@@ -767,11 +809,13 @@
             "owned-baseline-cache",
             "owned-baseline-removal",
             "owned-experimental-mount-git-and-editor",
-            "owned-journal-generation-replacement", "owned-validation-candidate-view-editor-and-result"
+            "owned-journal-generation-replacement",
+            "owned-validation-candidate-view-editor-and-result"
           ]
         },
         "retry": {
           "enum": [
+            "same-id-home-key-and-plan; preserve-unknown-side-effects",
             "same-discard-intent",
             "safe-read",
             "same-project-and-task-key",
@@ -784,7 +828,8 @@
             "same-pending-request",
             "idempotent-stop",
             "same-persisted-overlay-and-git-receipts; candidate-export requires stable publication requestKey and same frozen-source intent; inspect-uncertain-intents",
-            "same-workspace-compaction-intent", "same-request-key-and-owner; preserve-unknown-resources"
+            "same-workspace-compaction-intent",
+            "same-request-key-and-owner; preserve-unknown-resources"
           ]
         }
       }
@@ -1389,6 +1434,13 @@
         },
         "snapshot": {
           "$ref": "#/$defs/snapshotWorkspace"
+        },
+        "generatedDirectoryId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{24}$"
+        },
+        "generatedDirectory": {
+          "$ref": "urn:splinter:v1:generated-directory-reference"
         }
       },
       "allOf": [

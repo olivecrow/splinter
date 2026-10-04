@@ -103,7 +103,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             denied.Any(p => string.IsNullOrEmpty(p) || Normalize(p) != p || p.Contains('/')) ||
             denied.Distinct(StringComparer.OrdinalIgnoreCase).Count() != denied.Length))
             throw new ArgumentException("Denied administration roots must be bounded unique top-level names.");
-        if (identity.Snapshot != snapshot.Snapshot || !identity.Snapshot.Persistent || !identity.Snapshot.Differential)
+        if (identity.Snapshot != snapshot.Snapshot || identity.Graft != snapshot.Graft || !identity.Snapshot.Persistent || !identity.Snapshot.Differential)
             throw new WorkspaceException("SnapshotIdentityMismatch", "Reconnect requires the exact persistent differential snapshot reference.");
         snapshot.EnsureAvailable();
         this.snapshot = snapshot;
@@ -154,7 +154,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             if (!parent.Entry.Directory) throw new IOException("Not a directory.");
             if (parent.Entry.BasePath is { } lower)
                 foreach (var item in snapshot.List(lower)) _ = Lookup(Join(parent.Entry.Path, Name(item.Path)));
-            return paths.Keys.Where(p => p.Length != 0 && Parent(p).Equals(parent.Entry.Path, StringComparison.OrdinalIgnoreCase))
+            return paths.Keys.Where(p => p.Length != 0 && ParentEquals(p, parent.Entry.Path))
                 .Select(p => nodes[paths[p]].Entry).OrderBy(e => e.Path, StringComparer.OrdinalIgnoreCase).ToArray();
         }
     }
@@ -469,6 +469,11 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         return path;
     }
     private static string Parent(string path) { int slash = path.LastIndexOf('/'); return slash < 0 ? "" : path[..slash]; }
+    private static bool ParentEquals(string path, string parent)
+    {
+        int slash = path.LastIndexOf('/');
+        return path.AsSpan(0, slash < 0 ? 0 : slash).Equals(parent.AsSpan(), StringComparison.OrdinalIgnoreCase);
+    }
     private static string Name(string path) => path[(path.LastIndexOf('/') + 1)..];
     private static string Join(string parent, string name) => parent.Length == 0 ? name : parent + "/" + name;
     private static bool IsChild(string child, string parent) => child.StartsWith(parent + "/", StringComparison.OrdinalIgnoreCase);

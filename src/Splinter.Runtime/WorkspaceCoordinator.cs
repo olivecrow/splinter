@@ -18,7 +18,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
 
     public async Task<WorkspaceView> EnsureAsync(string project, string requestKey, string baseReference, string storageMode,
         bool editor, CancellationToken ct = default, string? baselineId = null, string purpose = "task",
-        long maxJournalBytes = SnapshotWorkspaceState.DefaultJournalBytes, string sourceKind = "git", string applicationKind = "unity")
+        long maxJournalBytes = SnapshotWorkspaceState.DefaultJournalBytes, string sourceKind = "git", string applicationKind = "unity", string? generatedDirectoryId = null)
     {
         if (sourceKind is not ("git" or "none" or "plastic") || applicationKind is not ("unity" or "none"))
             throw new WorkspaceException("SourceSelectionUnsupported", "Select git, none or plastic and unity or none explicitly; no fallback is available.");
@@ -28,6 +28,8 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             throw new WorkspaceException("SourceSelectionUnsupported", "git-snapshot requires a Git task with a fixed recorded commit.");
         if (editor && applicationKind == "none")
             throw new WorkspaceException("ApplicationUnsupported", "This ordinary folder has no selected application provider.");
+        if (generatedDirectoryId is not null && (storageMode != "git-snapshot" || sourceKind != "git"))
+            throw new WorkspaceException("GeneratedBasisUnsupported", "A generated directory reference currently requires git-snapshot.");
         if (string.IsNullOrWhiteSpace(requestKey) || requestKey.Length > 128)
             throw new WorkspaceException("InvalidRequestKey", "Use a stable task key between 1 and 128 characters; reuse it across turns.");
         if (storageMode is not ("git-checkout" or "refs-cow" or "ntfs-snapshot" or "git-snapshot"))
@@ -56,15 +58,15 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 Id = id, RequestKey = requestKey, ProjectPath = project, Path = store.WorkPath(id),
                 SourceReference = "splinter/" + id, BaseReference = baseReference, ManagedPaths = applicationKind == "none" ? [] : applications.ManagedPaths,
                 StorageMode = storageMode, BaselineId = baselineId, Purpose = purpose,
-                SourceKind = sourceKind, ApplicationKind = applicationKind,
+                SourceKind = sourceKind, ApplicationKind = applicationKind, GeneratedDirectoryId = generatedDirectoryId,
                 Snapshot = WorkspaceStorage.HasRangeJournal(storageMode) ? new() { MaxJournalBytes = maxJournalBytes } : null,
-                RequestDigest = WorkspaceStore.Key(project + "\n" + requestKey + "\n" + baseReference + "\n" + storageMode + "\n" + baselineId + "\n" + purpose + "\n" + maxJournalBytes + "\n" + sourceKind + "\n" + applicationKind)
+                RequestDigest = WorkspaceStore.Key(project + "\n" + requestKey + "\n" + baseReference + "\n" + storageMode + "\n" + baselineId + "\n" + purpose + "\n" + maxJournalBytes + "\n" + sourceKind + "\n" + applicationKind + (generatedDirectoryId is null ? "" : "\n" + generatedDirectoryId))
             };
             await PreparationPointAsync("request.before-record", record, ct);
             store.Save(record, "create-intent");
             await PreparationPointAsync("request.after-record", record, ct);
         }
-        else if (record.SourceKind != sourceKind || record.ApplicationKind != applicationKind || record.BaseReference != baseReference || record.StorageMode != storageMode || record.BaselineId != baselineId || record.Purpose != purpose ||
+        else if (record.GeneratedDirectoryId != generatedDirectoryId || record.SourceKind != sourceKind || record.ApplicationKind != applicationKind || record.BaseReference != baseReference || record.StorageMode != storageMode || record.BaselineId != baselineId || record.Purpose != purpose ||
             WorkspaceStorage.HasRangeJournal(storageMode) && record.Snapshot?.MaxJournalBytes != maxJournalBytes)
             throw new WorkspaceException("RequestKeyConflict", "This key already belongs to another request. Reuse its original parameters or choose a new task key.");
         if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(id), "workspace list");

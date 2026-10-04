@@ -22,6 +22,17 @@ public static class WinFspOverlayClient
     }
     internal static void ValidateCacheSnapshot(OverlayServeRequest request)
     {
+        if ((request.Identity.Graft is null) != (request.GeneratedSnapshot is null) || request.Identity.Graft is not null && request.ValidationView is not null)
+            throw new WorkspaceException("GeneratedBasisMismatch", "Retain the exact generated read request without a validation-view fallback.");
+        if (request.Identity.Graft is { } graft)
+        {
+            var generated = request.GeneratedSnapshot!;
+            if (graft.RelativePath != graft.Basis.RelativePath || graft.Basis.Snapshot.Provider != OwnedDirectorySnapshotTree.ProviderName ||
+                generated.ReceiptDirectory != graft.Basis.ReceiptDirectory || generated.OwnerId != graft.Basis.OwnerId ||
+                generated.ReadAccess.VerificationId != graft.Basis.ManifestHash)
+                throw new WorkspaceException("GeneratedBasisMismatch", "Generated ownership, manifest and read proof must match.");
+            generated.ReadAccess.RequireMatch(graft.Basis.Snapshot);
+        }
         bool backed = request.ValidationView?.CacheBasis == "snapshot";
         if (backed != (request.CacheSnapshot is not null) || backed && request.ValidationView!.CacheIdentity is null)
             throw new WorkspaceException("ValidationCacheMismatch", "Retain the exact cache snapshot read request; an empty cache is not a recovery fallback.");
@@ -50,6 +61,12 @@ public static class WinFspOverlayClient
                 return new(request.Identity.Snapshot.Id, cached.Available, cached.FailureCode ?? "ValidationCacheSnapshotUnavailable", null, null);
             if (cached.ReadAccess != cache.ReadAccess)
                 return new(request.Identity.Snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
+        }
+        if (proof.Available == true && request.Identity.Graft is { } graft)
+        {
+            var generated = await WorkspaceSnapshotBasis.Provider(graft.Basis.Snapshot, graft.Basis.ReceiptDirectory, graft.Basis.OwnerId).ObserveAsync(graft.Basis.Snapshot, ct);
+            if (generated.Available != true || generated.ReadAccess != request.GeneratedSnapshot!.ReadAccess)
+                return new(request.Identity.Snapshot.Id, generated.Available, generated.FailureCode ?? "GeneratedBasisMismatch", null, null);
         }
         return proof;
     }
@@ -114,14 +131,17 @@ public static class WinFspOverlayClient
             throw new WorkspaceException("MountReconcileRequired", "A stale mount remains. Preserve its journal and inspect ownership before reconnecting.");
         var verified = await ObserveSnapshotAsync(request, ct);
         if (verified.Available != true) throw new WorkspaceException(verified.FailureCode ?? "SnapshotObservationUnknown", "Verify snapshot access before starting a provider.");
-        using (var snapshot = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess, request.SnapshotReceiptDirectory, request.SnapshotOwnerId)) snapshot.EnsureAvailable();
-        if (request.ValidationView is null)
+        using (var snapshot = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess, request.SnapshotReceiptDirectory, request.SnapshotOwnerId))
         {
-            if (preparationPoint is not null) await preparationPoint("delta.before-effect");
-            if (!File.Exists(Path.Combine(request.DeltaPath, "identity.json")))
+            snapshot.EnsureAvailable();
+            if (request.ValidationView is null)
             {
-                using var tree = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess, request.SnapshotReceiptDirectory, request.SnapshotOwnerId);
-                using var delta = new JournalDeltaStore(request.DeltaPath, request.Identity, tree);
+                if (preparationPoint is not null) await preparationPoint("delta.before-effect");
+                if (!File.Exists(Path.Combine(request.DeltaPath, "identity.json")))
+                {
+                    using var composed = new WorkspaceSnapshotBasis.GeneratedTreeScope(snapshot, request);
+                    using var delta = new JournalDeltaStore(request.DeltaPath, request.Identity, composed);
+                }
             }
         }
         if (preparationPoint is not null) await preparationPoint("delta.after-record");

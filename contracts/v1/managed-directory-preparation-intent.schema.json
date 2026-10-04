@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:managed-directory-preparation-intent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "id", "projectPath", "key", "originalPath", "basisPath", "compatibilityKey"],
+  "properties": {
+    "version": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-f0-9]{24}$"},
+    "projectPath": {"type": "string", "minLength": 1},
+    "key": {"type": "string", "minLength": 1, "maxLength": 128},
+    "originalPath": {"type": "string", "minLength": 1},
+    "basisPath": {"type": "string", "minLength": 1},
+    "compatibilityKey": {"type": "string", "minLength": 1}
+  }
+}

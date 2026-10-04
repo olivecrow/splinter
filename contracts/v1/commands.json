@@ -45,7 +45,7 @@
     {
       "id": "workspace.ensure",
       "description": "Create or resume an isolated range workspace from a VSS source snapshot or recorded Git project commit.",
-      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <ntfs-snapshot|git-snapshot> [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>]",
+      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <ntfs-snapshot|git-snapshot> [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>] [--library-basis <id>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-ensure-request",
       "outputSchema": "urn:splinter:v1:response",
@@ -217,6 +217,36 @@
       "sideEffects": "owned-validation-candidate-view-editor-and-result",
       "retry": "same-request-key-and-owner; preserve-unknown-resources",
       "developmentOnly": true
+    },
+    {
+      "id": "library.prepare",
+      "description": "Move the stopped original Library without copying and mount private original writes.",
+      "cliUsage": "splinter library prepare --project <path> --key <key> --home <path>",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:library-prepare-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-original-library-lifecycle",
+      "retry": "same-id-home-key-and-plan; preserve-unknown-side-effects"
+    },
+    {
+      "id": "library.status",
+      "description": "Read the exact original Library basis lifecycle state.",
+      "cliUsage": "splinter library status --id <id> --home <path>",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:library-status-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "none",
+      "retry": "same-id-home-key-and-plan; preserve-unknown-side-effects"
+    },
+    {
+      "id": "library.restore",
+      "description": "Restore the original Library by file moves and private range writes after dependents are released.",
+      "cliUsage": "splinter library restore --id <id> --home <path>",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:library-restore-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-original-library-lifecycle",
+      "retry": "same-id-home-key-and-plan; preserve-unknown-side-effects"
     }
   ]
 }

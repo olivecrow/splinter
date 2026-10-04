@@ -111,10 +111,16 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         if (record.Version != WorkspaceRecord.CurrentVersion || record.SourceKind is not ("git" or "none" or "plastic") ||
             record.StorageMode is not ("ntfs-snapshot" or "git-snapshot" or "refs-cow" or "git-checkout") ||
             record.StorageMode == "git-snapshot" && (record.SourceKind != "git" || record.Purpose != "task" || record.BaselineId is not null) ||
-            record.ApplicationKind is not ("unity" or "none") || record.ApplicationKind == "none" && record.ManagedPaths.Length != 0 ||
+            record.ApplicationKind is not ("unity" or "none") || record.ApplicationKind == "none" && record.ManagedPaths.Length != 0 &&
+                (record.GeneratedDirectory is null || !record.ManagedPaths.SequenceEqual(new[] { record.GeneratedDirectory.RelativePath })) ||
             record.SourceKind is "none" or "plastic" && (record.StorageMode != "ntfs-snapshot" || record.BaseReference != "snapshot" || record.Purpose != "task") ||
             record.Id != id || !SamePath(record.Path, WorkPath(id)))
             throw new WorkspaceException("StateCorrupt", "Workspace identity/path/version does not match its registry.");
+        if (record.GeneratedDirectoryId is not null && record.StorageMode != "git-snapshot" || record.GeneratedDirectory is { } generated &&
+            (generated.Id != record.GeneratedDirectoryId || !SamePath(generated.ProjectPath, record.ProjectPath) ||
+             string.IsNullOrWhiteSpace(generated.RelativePath) || generated.RelativePath.Contains('/') || generated.RelativePath.Contains('\\')) ||
+            record.GeneratedDirectoryId is not null && record.GeneratedDirectory is null && record.Snapshot?.Attached == true)
+            throw new WorkspaceException("GeneratedBasisMismatch", "Retain the task's exact generated-directory identity.");
         if (record.SourceKind == "plastic" && (record.OriginalApply is not null || record.IntegratedRevision is not null || record.Phase is "integrating" or "integrated"))
             throw new WorkspaceException("StateCorrupt", "Plastic original application is unavailable; preserve the unsupported state.");
         if (record.Discard is { } discard) discard.RequireMatch(record);
