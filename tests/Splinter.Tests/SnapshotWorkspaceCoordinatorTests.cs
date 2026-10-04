@@ -6,6 +6,22 @@ namespace Splinter.Tests;
 
 public sealed partial class SnapshotWorkspaceCoordinatorTests
 {
+    [Fact]
+    public async Task GitProjectModeUsesSharedJournalLifecycleAndSameRequestRecovery()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        f.Backend.LoseCaptureReply = true;
+        Task<WorkspaceView> Ensure() => f.New().EnsureAsync(f.Project, "git-task", "base", "git-snapshot", false, ct);
+        Assert.Equal("ReplyLost", (await Assert.ThrowsAsync<WorkspaceException>(Ensure)).Code);
+        var ready = await Ensure();
+        Assert.Equal("ready", ready.Recovery!.Disposition); Assert.Equal(1, f.Backend.Captures);
+        Assert.Equal(ready.Workspace.Id, (await Ensure()).Workspace.Id);
+        await f.New().CompactAsync(ready.Workspace.Id, ct);
+        var result = await f.New().CheckpointAsync(ready.Workspace.Id, "result", ct);
+        Assert.True(result.Workspace.Snapshot!.Result!.IndependentOfSnapshot);
+        Assert.Equal("released", (await f.New().ReleaseAsync(ready.Workspace.Id, ct)).Workspace.Phase);
+        Assert.True(f.Backend.DeltaRemoved); Assert.True(f.Backend.SnapshotReleased);
+    }
     [Theory]
     [InlineData("CompactionGenerationMismatch")]
     [InlineData("CompactionStateMismatch")]
@@ -526,7 +542,9 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         public void AcknowledgeWrite() => sequence++;
         public Task<SnapshotReference> CaptureAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         {
-            if (receipt is null) { Captures++; receipt = new(SnapshotId, "fake", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "fake"); }
+            if (receipt is null) { Captures++; receipt = w.StorageMode == "git-snapshot"
+                ? new("git-" + w.Id + "-" + w.BaseRevision, "git-objects", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "recorded-project-commit-raw-blobs")
+                : new(SnapshotId, "fake", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "fake"); }
             if (LoseCaptureReply) { LoseCaptureReply = false; throw new WorkspaceException("ReplyLost", "after capture"); }
             return Task.FromResult(receipt);
         }

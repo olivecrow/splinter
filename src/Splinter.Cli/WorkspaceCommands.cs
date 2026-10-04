@@ -48,7 +48,7 @@ internal static class WorkspaceCommands
         var basis = new Option<string>("--base") { Description = "Source branch/ref; default development." };
         var source = new Option<string>("--source") { Description = "git (default), none or plastic. Selection is durable; failures never fall back." };
         var application = new Option<string>("--application") { Description = "unity (default) or none for an ordinary folder without an Editor." };
-        var storage = new Option<string>("--storage") { Required = true, Description = "ntfs-snapshot uses an immutable source snapshot and range delta. refs-cow requires a baseline; git-checkout is diagnostic." };
+        var storage = new Option<string>("--storage") { Required = true, Description = "git-snapshot reads a recorded project commit without VSS or checkout; ntfs-snapshot uses VSS. Both store private ranges. refs-cow/git-checkout are development paths." };
         var journalBudget = new Option<long?>("--max-journal-bytes") { Description = "Immutable NTFS delta budget; defaults to 16 GiB. A changed limit requires a new task key." };
         var baselineOption = new Option<string>("--baseline") { Description = "Sealed baseline id required for refs-cow." };
         var editor = new Option<bool>("--editor") { Description = "Also start the private Editor when this task needs it." };

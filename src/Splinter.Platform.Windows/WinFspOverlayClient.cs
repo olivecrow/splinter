@@ -39,7 +39,7 @@ public static class WinFspOverlayClient
         if (request.ReadAccess is null || request.SnapshotReceiptDirectory is null || request.SnapshotOwnerId is null)
             return new(request.Identity.Snapshot.Id, null, "SnapshotVerificationRequired", null, null);
         request.ReadAccess.RequireMatch(request.Identity.Snapshot);
-        var proof = await new VssSnapshotProvider(request.SnapshotReceiptDirectory, request.SnapshotOwnerId).ObserveAsync(request.Identity.Snapshot, ct);
+        var proof = await WorkspaceSnapshotBasis.Provider(request.Identity.Snapshot, request.SnapshotReceiptDirectory, request.SnapshotOwnerId).ObserveAsync(request.Identity.Snapshot, ct);
         if (proof.Available == true && proof.ReadAccess != request.ReadAccess)
             return new(request.Identity.Snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
         if (proof.Available == true && request.CacheSnapshot is { } cache)
@@ -114,13 +114,13 @@ public static class WinFspOverlayClient
             throw new WorkspaceException("MountReconcileRequired", "A stale mount remains. Preserve its journal and inspect ownership before reconnecting.");
         var verified = await ObserveSnapshotAsync(request, ct);
         if (verified.Available != true) throw new WorkspaceException(verified.FailureCode ?? "SnapshotObservationUnknown", "Verify snapshot access before starting a provider.");
-        using (var snapshot = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess)) snapshot.EnsureAvailable();
+        using (var snapshot = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess, request.SnapshotReceiptDirectory, request.SnapshotOwnerId)) snapshot.EnsureAvailable();
         if (request.ValidationView is null)
         {
             if (preparationPoint is not null) await preparationPoint("delta.before-effect");
             if (!File.Exists(Path.Combine(request.DeltaPath, "identity.json")))
             {
-                using var tree = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess);
+                using var tree = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess, request.SnapshotReceiptDirectory, request.SnapshotOwnerId);
                 using var delta = new JournalDeltaStore(request.DeltaPath, request.Identity, tree);
             }
         }

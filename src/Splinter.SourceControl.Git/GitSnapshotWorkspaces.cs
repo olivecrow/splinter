@@ -12,11 +12,20 @@ public sealed partial class GitWorkspaceProvider
             throw Error("SnapshotSourceUnsupported", "The first NTFS alpha accepts repository roots with a local .git directory.");
         await EnsureClean(w.ProjectPath, ct);
         string revision = await ResolveRevisionAsync(w.ProjectPath, w.BaseReference, ct);
-        if (await Required(w.ProjectPath, ["rev-parse", "HEAD"], ct) != revision)
+        if (w.StorageMode != "git-snapshot" && await Required(w.ProjectPath, ["rev-parse", "HEAD"], ct) != revision)
             throw Error("SnapshotCheckpointMismatch", "The requested base must equal the source checkout HEAD.");
         if (SplitZero(await Required(w.ProjectPath, ["ls-files", "-v", "-z"], ct)).Any(entry => !entry.StartsWith("H ", StringComparison.Ordinal)))
             throw Error("SnapshotSourceUnsupported", "Skip-worktree, assume-unchanged and unresolved index entries cannot prove a clean captured source.");
         await CheckSnapshotGitFiles(w.ProjectPath, ct);
+        if (w.StorageMode == "git-snapshot")
+        {
+            if (await Required(w.ProjectPath, ["rev-parse", "HEAD"], ct) != revision)
+                throw Error("GitBasisUnsupported", "The first Git basis requires a clean checkout at the requested commit before preparation.");
+            // No working-tree conversion is performed by the object reader.
+            string autoCrlf = (await Run(w.ProjectPath, ["config", "--get", "core.autocrlf"], ct)).Output.Trim();
+            if (autoCrlf is not ("" or "false" or "input"))
+                throw Error("GitBasisUnsupported", "Raw committed bytes require core.autocrlf=false or input; no materializing conversion fallback.");
+        }
         return revision;
     }
 

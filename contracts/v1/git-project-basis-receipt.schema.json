@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:git-project-basis-receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "ownerId",
+    "snapshot",
+    "revision",
+    "tree",
+    "reference",
+    "pinned",
+    "released"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "ownerId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9-]+$"
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "provider",
+        "sourcePath",
+        "rootPath",
+        "capturedAt",
+        "persistent",
+        "differential",
+        "consistency"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "const": "git-objects"
+        },
+        "sourcePath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rootPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "persistent": {
+          "const": true
+        },
+        "differential": {
+          "const": true
+        },
+        "consistency": {
+          "const": "recorded-project-commit-raw-blobs"
+        }
+      }
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$"
+    },
+    "tree": {
+      "type": "string",
+      "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$"
+    },
+    "reference": {
+      "type": "string",
+      "pattern": "^refs/splinter/git-bases/[A-Za-z0-9-]+$"
+    },
+    "pinned": {
+      "type": "boolean"
+    },
+    "released": {
+      "type": "boolean"
+    }
+  }
+}

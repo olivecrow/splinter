@@ -21,6 +21,8 @@ Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약
 
 ## 프로그램과 에이전트의 책임
 
+현재 후속 공간 단위는 사용자 확정의 [VCS 프로젝트 단위 기준본 전환](project-scoped-basis-and-reclamation-review.md)이다. Git·Plastic에 기록된 버전을 재사용해 프로젝트에 대해서만 기준본을 만들고 작업별 범위 저장과 연결한다. Git은 별도 `git-snapshot`으로 연결했으며 자격은 [전용 검증](../verification/git-project-basis.md)을 따른다. Plastic reader·VCS 없는 새 기준본은 후순위이며 기존 일반 폴더 기능/결과·VSS pending은 보존한다. 기존 native 자격을 새 reader의 통과로 승계하지 않는다.
+
 Splinter는 작업공간의 생성·유지·재개·독립 결과·명시적 반영/회수/폐기와 소유 Editor의 수명을 담당한다. AI가 현재 CLI·파일 도구·Git·MCP·Unity CLI로 수행할 수 있는 정책과 작업 절차는 프로그램 기능으로 추가하지 않는다.
 
 | 영역 | Splinter에 남길 책임 | AI와 기존 도구의 책임 |

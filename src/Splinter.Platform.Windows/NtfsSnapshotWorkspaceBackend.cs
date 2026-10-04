@@ -6,6 +6,7 @@ using Microsoft.Win32.SafeHandles;
 using Microsoft.Win32;
 using Splinter.Core;
 using Splinter.Runtime;
+using Splinter.SourceControl.Git;
 
 namespace Splinter.Platform.Windows;
 
@@ -15,7 +16,8 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
     private static string OverlayControl(string control) => Path.Combine(control, "overlay");
     private static string RequestPath(string control) => Path.Combine(OverlayControl(control), "request.json");
     private static string DeltaPath(string control) => Path.Combine(control, "delta");
-    private static VssSnapshotProvider Provider(WorkspaceRecord w, string control) => new(Path.Combine(control, "snapshot"), w.Id);
+    private static ISourceSnapshotProvider Provider(WorkspaceRecord w, string control) =>
+        WorkspaceSnapshotBasis.Provider(w.Snapshot!.Reference!, Path.Combine(control, "snapshot"), w.Id);
     private WinFspOverlayMountProvider MountProvider(string control, WorkspaceRecord? workspace = null) => new(RequestPath(control), runnerCache,
         workspace is null || preparationObserver is null ? null : boundary => preparationObserver.ReachedAsync(boundary, workspace, CancellationToken.None));
     public static OverlayIdentity Identity(WorkspaceRecord w) => new(2, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024,
@@ -30,16 +32,22 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         if (Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\WinFsp", "InstallDir", null) is not string)
             throw new WorkspaceException("WinFspMissing", "Install a qualified WinFsp provider before capture; no full-copy fallback is available.");
         CheckSpace(control);
+        if (w.StorageMode == "git-snapshot")
+        {
+            if (w.SourceKind != "git" || w.BaseRevision is null) throw new WorkspaceException("GitBasisUnsupported", "Fix a Git project commit before capture.");
+            return await new GitObjectSnapshotProvider(Path.Combine(control, "snapshot"), w.Id, w.BaseRevision)
+                .CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(control, "snapshot")), ct);
+        }
         // Reject unsupported live input before requesting a privileged capture.
         // Repeat on the immutable tree to close the capture-time race.
         if (!File.Exists(Path.Combine(control, "snapshot", "snapshot.json"))) SnapshotInputChecks.VerifyTree(w.ProjectPath, ct, w.SourceKind is "none" or "plastic", w.SourceKind == "plastic");
-        var snapshot = await Provider(w, control).CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(control, "snapshot")), ct);
+        var snapshot = await new VssSnapshotProvider(Path.Combine(control, "snapshot"), w.Id).CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(control, "snapshot")), ct);
         string probePath = Path.Combine(control, "snapshot", "input-check.json");
         var prior = await WindowsProcessWorkspaceProvider.ReadAsync<InputCheck>(probePath, ct);
         if (prior is null || prior.SnapshotId != snapshot.Id || prior.Version != 1)
         {
             var watch = Stopwatch.StartNew();
-            var access = await Provider(w, control).ResolveReadAccessAsync(snapshot, null, ct);
+            var access = await WorkspaceSnapshotBasis.ResolveAsync(snapshot, Path.Combine(control, "snapshot"), w.Id, null, ct);
             int entries = SnapshotInputChecks.VerifyTree(access.RootPath, ct, w.SourceKind is "none" or "plastic", w.SourceKind == "plastic");
             await WindowsProcessWorkspaceProvider.WriteAsync(probePath, new InputCheck(1, snapshot.Id, entries, watch.ElapsedMilliseconds, 0), ct);
         }
@@ -65,7 +73,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
             }
         }
         string? consumed = request is null ? null : await WinFspOverlayClient.ConsumedVerificationAsync(request, ct);
-        var access = await provider.ResolveReadAccessAsync(snapshot, consumed, ct);
+        var access = await WorkspaceSnapshotBasis.ResolveAsync(snapshot, Path.Combine(control, "snapshot"), w.Id, consumed, ct);
         request = request is null
             ? new(Identity(w), DeltaPath(control), w.Path, OverlayControl(control), Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32)),
                 access, Path.Combine(control, "snapshot"), w.Id)
@@ -156,7 +164,8 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         var health = await Provider(w, control).ObserveAsync(w.Snapshot!.Reference!, ct);
         if (health.Available != true || request.ReadAccess is null)
             throw new WorkspaceException(health.FailureCode ?? "SnapshotVerificationRequired", "Verify the original snapshot read access before compaction.");
-        using var tree = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess, () => health);
+        using var tree = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess,
+            request.SnapshotReceiptDirectory, request.SnapshotOwnerId, () => health);
         string delta = DeltaPath(control);
         WindowsProcessWorkspaceProvider.CheckPath(delta);
         var result = JournalDeltaStore.CompactDirectory(delta, request.Identity, tree,

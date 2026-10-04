@@ -17,9 +17,9 @@ Unity CLI의 외부 작업은 [정확한 대상 선택 절차](alpha-workspaces.
 | `Splinter.Host` | 읽기 전용 발견/진단 | Core, Protocol |
 | `Splinter.Runtime` | 작업공간 수명·atomic JSON 상태/잠금·범위 저널과 후보/cache 수명 | Core |
 | `Splinter.SourceControl.Files` | 일반 폴더/Plastic 파일 기준·독립 payload·Plastic 읽기 전용 호환 경계·고정 소스 라우팅·폐기 영수증 | Core, Runtime |
-| `Splinter.SourceControl.Git` | linked worktree/index·현재 소스 hash·커밋·독립 결과·guard가 있는 merge/회수 | Core |
+| `Splinter.SourceControl.Git` | fixed commit/tree/blob reader·소유 기준 ref/fence·linked worktree/index·현재 소스 hash·독립 결과·guard가 있는 merge/회수 | Core |
 | `Splinter.Application.Unity` | 정확한 버전/프로젝트의 Editor 실행·준비 관측·정상 종료·소유 bridge | Core |
-| `Splinter.Platform.Windows` | VSS·WinFsp·변경 범위 저널·제한 권한 서비스·Job Object·선택적 ReFS | Core, Runtime, Files, WinFsp.Net; Win32 |
+| `Splinter.Platform.Windows` | VSS/Git 불변 reader 조합·WinFsp·변경 범위 저널·제한 권한 서비스·Job Object·선택적 ReFS | Core, Runtime, Files, Git, WinFsp.Net; Win32 |
 | `Splinter.Workflows.Windows` | 개발용 불변 source view·공통 Library cache·독립 결과와 회수 의존성 | Runtime와 Git/Unity/Windows |
 | `Splinter.Cli` | 제품 명령 파싱·어댑터 조합·JSON/종료 코드; 개발 진입점의 공통 조합 | Host, Runtime, Git/Unity/Windows/workflow, System.CommandLine |
 | `tools/Splinter.Development` | 별도 개발 명령 진입점 `splinter-dev` | CLI |

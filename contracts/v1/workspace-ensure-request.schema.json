@@ -19,7 +19,10 @@
       "minLength": 1
     },
     "storage": {
-      "const": "ntfs-snapshot"
+      "enum": [
+        "ntfs-snapshot",
+        "git-snapshot"
+      ]
     },
     "editor": {
       "type": "boolean"
@@ -56,7 +59,10 @@
       "if": {
         "properties": {
           "source": {
-            "enum": ["none", "plastic"]
+            "enum": [
+              "none",
+              "plastic"
+            ]
           }
         },
         "required": [
@@ -95,6 +101,30 @@
           "editor": {
             "const": false
           }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "storage": {
+            "const": "git-snapshot"
+          }
+        },
+        "required": [
+          "storage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "const": "git"
+          }
+        },
+        "not": {
+          "required": [
+            "baseline"
+          ]
         }
       }
     }

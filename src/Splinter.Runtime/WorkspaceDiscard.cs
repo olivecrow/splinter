@@ -16,7 +16,7 @@ public sealed partial class WorkspaceCoordinator
         if (w.Discard is { } prior && prior.Intent.IntentKey != request.IntentKey)
             throw new WorkspaceException("DiscardRequestConflict", "Resume the original discard intent; do not replace it.");
         if (w.Phase == "discarded") return new(w, null, null, store.ControlPath(w.Id), "workspace list");
-        if (w.StorageMode != "ntfs-snapshot" || w.Purpose != "task" || w.Phase == "released")
+        if (!WorkspaceStorage.HasRangeJournal(w.StorageMode) || w.Purpose != "task" || w.Phase == "released")
             throw new WorkspaceException("DiscardUnsupported", "Discard currently requires an attached NTFS task workspace.");
         var provider = discardProvider ?? throw new WorkspaceException("WorkspaceDiscardUnavailable", "A discard provider is not composed; preserve this task.");
         var state = RequireSnapshot(w);

@@ -44,8 +44,8 @@
     },
     {
       "id": "workspace.ensure",
-      "description": "Create or resume the explicitly selected Git or plain-folder NTFS workspace. No fallback or initial data clone.",
-      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage ntfs-snapshot [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>]",
+      "description": "Create or resume an isolated range workspace from a VSS source snapshot or recorded Git project commit.",
+      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <ntfs-snapshot|git-snapshot> [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-ensure-request",
       "outputSchema": "urn:splinter:v1:response",

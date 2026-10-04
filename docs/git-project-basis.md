@@ -1,0 +1,28 @@
+# Git 프로젝트 기준본
+
+`--storage git-snapshot --source git`은 기록된 프로젝트 commit의 tree/blob을 기준본으로 사용한다. 원본은 기존 NTFS 위치에 남고 작업 중 수정하거나 branch를 진행할 수 있다. 생성·읽기·재개·정리·회수에 VSS나 저장소 권한 서비스를 호출하지 않는다. 기존 `ntfs-snapshot`은 VSS 경로이며 자동 변환하지 않는다.
+
+```powershell
+pwsh ./scripts/splinter.ps1 schema workspace.ensure
+pwsh ./scripts/splinter.ps1 workspace ensure --project <Git-root> --key <task-key> --source git --application none --base development --storage git-snapshot --home <NTFS-home>
+```
+
+반환된 `data.workspace.path`에서 편집하며 project/key/id/home·storage·base/digest를 같은 요청의 재개에 유지한다. 첫 경로는 clean checkout HEAD와 요청 commit이 일치하는 repository root를 요구한다. `.git`이 원본 내부의 일반 디렉터리여야 하며 local objects·regular files만 사용한다. dirty/staged/untracked·skip-worktree/assume-unchanged·submodule/symlink·LFS/filter/working-tree-encoding·부분 clone/shallow/alternates는 거부한다. raw blob을 노출하므로 `core.autocrlf`는 false 또는 input만 허용하고 checkout 변환을 실행하지 않는다. 현재 폴더 전체의 시점 capture라는 의미로 사용하지 않는다.
+
+## 소유권과 저장
+
+`GitObjectSnapshotProvider`는 정확한 commit/tree와 owner를 `git-basis.json`에 고정하고 `refs/splinter/git-bases/<id>`를 compare-and-create한다. intent 게시 뒤 effect/응답 유실은 같은 요청으로 조정한다. 완성한 ref의 소실/이동·symbolic ref·손상 영수증은 보존 후 거부하며 새 기준을 만들지 않는다. 첫 기준 선택 뒤 mutable source·index·branch를 다시 기준으로 읽지 않는다.
+
+`GitObjectSnapshotTree`는 fixed tree의 metadata와 raw blob을 `git cat-file`로 읽는다. commit/tree/blob의 object hash를 확인하고 partial read는 전체 blob 검증 뒤 요청분만 반환한다. 읽기 scratch는 64KiB와 최대 1MiB 요청분 staging이며 payload를 disk cache/checkout하지 않는다. 현재 구현은 **범위를 읽을 때에도 blob 전체를 해독/검증한다**. packed object의 Git 내부 메모리·프로세스/반복 읽기 비용을 이 관리 buffer 한도로 해석하지 않는다. 빈/EOF 요청은 0바이트를 반환한다. Windows 경로의 case 충돌·ADS/예약 이름·특수 entry는 거부한다. Git 밖의 mutable 파일을 fallback으로 읽지 않는다.
+
+WinFsp와 기존 overlay v2/SJR2 범위 저널을 사용한다. 최초 기준 payload 복제·read hydration·파일 전체 copy-up 없이 private 변경 범위만 저장한다. Git linked worktree는 기존 no-checkout 등록/index 계약을 사용하며 `.git` pointer는 private 저널에 쓰는 관리 데이터다. 원본 index/branch와 peer 등록은 수정하지 않는다. baseline reachability ref는 결과 branch와 별도다.
+
+## 결과와 회수
+
+기존 checkpoint·source guard·전후/unmount seal·독립 결과·통합 target/dirty guard를 유지한다. release는 exact 독립 결과를 확인하고 소유 application/provider/handle/mount/등록/delta가 없어진 뒤 기준 ref를 compare-and-delete한다. reader fence가 열려 있거나 ref가 변했으면 삭제하지 않는다. 명시적 discard도 같은 identity/intent·자원 0 경계를 거친다. 회수 응답이 유실되면 같은 release/discard intent만 이어간다. 원본/peer/독립 결과 refs·공유 객체는 보존하며 Git GC를 실행하지 않는다.
+
+## 입력과 검증 한계
+
+ignored/private 파일과 Unity Library는 commit 기준본에 포함되지 않는다. 생성 데이터는 workspace 안에서 새 private 데이터로 생성된다. warm Library 재사용·Unity Editor/MCP·대형 에셋 성능과 RAM 절감은 이 경로의 현재 자격이 아니다. VSS 작업의 과거 pending snapshot도 새 경로가 해결하거나 삭제하지 않는다. Plastic/VCS 없는 새 기준 reader는 후속이다. 기존 개발용 VSS view/cache는 이 Git 기준본의 지원 경로로 안내하지 않는다.
+
+현재 계약은 `workspace.ensure`·`overlay-serve-request`·`git-project-basis-receipt`와 응답 schema, Core snapshot ports와 `WorkspaceStorage.HasRangeJournal`, Windows `WorkspaceSnapshotBasis` 조합으로 연결한다. runner에는 Git DLL이 추가되어 현재 8개 파일의 내용 키를 사용하며 이전 bundle은 유지한다. [검증](verification/git-project-basis.md)은 자동/fake 경계와 실제 Editor 없는 A/B를 구분한다.

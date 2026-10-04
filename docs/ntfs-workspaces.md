@@ -1,5 +1,7 @@
 # NTFS snapshot 작업공간
 
+이 문서는 기존 `ntfs-snapshot`의 VSS 경로를 소유한다. VSS 없이 Git commit을 프로젝트 기준본으로 사용하는 `git-snapshot`은 [별도 계약](git-project-basis.md)과 [검증](verification/git-project-basis.md)을 따른다. 두 경로의 기준본·ignored/Library 입력 의미·권한/회수 자격을 섞지 않는다.
+
 현재 `--source none`의 일반 폴더 경로와 v2 상태/서비스 패키지는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
 
 [명시적 폐기](workspace-discard.md)는 Core/Runtime·Windows/Git provider·CLI를 연결했다. 해당 계약을 지원하는 제한 서비스가 필요하며 로컬 Editor 없는 dirty A/B의 실제 폐기 자격은 [폐기 검증](verification/workspace-discard.md)을 따른다. 아래 보존형 release는 독립 결과 gate를 계속 요구한다.

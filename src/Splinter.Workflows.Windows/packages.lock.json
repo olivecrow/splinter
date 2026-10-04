@@ -22,6 +22,7 @@
           "Splinter.Core": "[0.1.0-dev, )",
           "Splinter.Runtime": "[0.1.0-dev, )",
           "Splinter.SourceControl.Files": "[0.1.0-dev, )",
+          "Splinter.SourceControl.Git": "[0.1.0-dev, )",
           "WinFsp.Net": "[2.2.26215, )"
         }
       },

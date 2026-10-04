@@ -35,7 +35,7 @@ public sealed class ContractAndCliTests
         var catalog = new ContractCatalog();
         Assert.True(catalog.Validate("urn:splinter:v1:response", response.RootElement).IsValid, output.ToString());
         var data = response.RootElement.GetProperty("data");
-        Assert.Equal(new[] { "ntfs-snapshot" }, data.GetProperty("storageModes").EnumerateArray().Select(item => item.GetString()));
+        Assert.Equal(new[] { "ntfs-snapshot", "git-snapshot" }, data.GetProperty("storageModes").EnumerateArray().Select(item => item.GetString()));
         foreach (string command in new[] { "unity.refresh", "validation.execute", "view.execute", "snapshot.spike", "preparation.probe", "baseline.prepare", "storage.probe" })
             Assert.Null(catalog.Find(command));
         Assert.False(data.TryGetProperty("validationWorkflowContract", out _));

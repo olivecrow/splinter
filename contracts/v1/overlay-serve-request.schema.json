@@ -73,7 +73,10 @@
               "minLength": 1
             },
             "provider": {
-              "const": "windows-vss-system"
+              "enum": [
+                "windows-vss-system",
+                "git-objects"
+              ]
             },
             "sourcePath": {
               "type": "string",
@@ -94,9 +97,37 @@
               "const": true
             },
             "consistency": {
-              "const": "filesystem-crash-consistent-no-application-writer"
+              "enum": [
+                "filesystem-crash-consistent-no-application-writer",
+                "recorded-project-commit-raw-blobs"
+              ]
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "provider": {
+                    "const": "git-objects"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "consistency": {
+                    "const": "recorded-project-commit-raw-blobs"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "consistency": {
+                    "const": "filesystem-crash-consistent-no-application-writer"
+                  }
+                }
+              }
+            }
+          ]
         },
         "includedTopLevel": {
           "type": [

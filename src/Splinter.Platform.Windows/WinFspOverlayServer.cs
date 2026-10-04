@@ -56,13 +56,14 @@ public static class WinFspOverlayServer
             // WinFsp creates the mount directory itself. Passing an existing
             // empty directory returns STATUS_OBJECT_NAME_COLLISION.
             if (Directory.Exists(mountPath)) Directory.Delete(mountPath, false);
-            using var snapshotReadLease = new VssSnapshotProvider(request.SnapshotReceiptDirectory, request.SnapshotOwnerId).AcquireReadLease();
+            using var snapshotReadLease = WorkspaceSnapshotBasis.AcquireReadLease(request.Identity.Snapshot, request.SnapshotReceiptDirectory, request.SnapshotOwnerId);
             WinFspOverlayClient.ValidateCacheSnapshot(request);
             using var cacheReadLease = request.CacheSnapshot is { } cacheRead
                 ? new VssSnapshotProvider(cacheRead.ReceiptDirectory, cacheRead.OwnerId).AcquireReadLease() : null;
             SnapshotObservation health = await WinFspOverlayClient.ObserveSnapshotAsync(request);
             if (health.Available != true) throw new WorkspaceException(health.FailureCode ?? "SnapshotObservationUnknown", "Snapshot read access is not verified.");
-            using var snapshot = new VssSnapshotTree(request.Identity.Snapshot, request.ReadAccess, () => Volatile.Read(ref health));
+            using var snapshot = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess,
+                request.SnapshotReceiptDirectory, request.SnapshotOwnerId, () => Volatile.Read(ref health));
             using var cacheSnapshot = request.CacheSnapshot is { } cacheAccess
                 ? new VssSnapshotTree(request.ValidationView!.CacheIdentity!.Snapshot, cacheAccess.ReadAccess, () => Volatile.Read(ref health)) : null;
             if (request.ValidationView is { } selection)

@@ -4,6 +4,7 @@ namespace Splinter.Core;
 public static class WorkspaceFailurePolicy
 {
     public static bool RequiresPreservation(string? code) => code is
+        "GitBasisRefChanged" or "GitBasisReceiptInvalid" or "GitBasisObjectInvalid" or
         "FileSourceStateInvalid" or "FileResultIncomplete" or
         "OriginalApplyStateInvalid" or "OriginalApplyPending" or "OriginalApplyRequestConflict" or "OriginalApplyConflict" or
         "OriginalApplyNativeFailure" or "OriginalApplyPlanChanged" or "OriginalApplyResultFixed" or "OriginalApplyResourcesPresent" or
@@ -24,7 +25,7 @@ public static class WorkspaceFailurePolicy
         "StorageServiceMissing" or "StorageServiceUnavailable" or "StorageServiceVersionMismatch" or "StorageServiceUnsafe" or
         "StorageOperationUncertain" or "StorageRequestPending" or "StorageScopeDenied" or "StorageSnapshotNotOwned" or "StorageReleaseNotAuthorized" or
         "WorkspaceDiscardUnavailable" or "WorkspaceDiscarding" or "DiscardOwnershipUnknown" or
-        "CoWUnsupported" or "ProcessOwnershipUnknown" or "SnapshotPrivilegeRequired" or
+        "GitBasisUnavailable" or "CoWUnsupported" or "ProcessOwnershipUnknown" or "SnapshotPrivilegeRequired" or
         "SnapshotHeadroomRequired" or "SnapshotReleaseIsolationRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or
         "OverlayStartUncertain" or "SnapshotStateMissing" or "SnapshotCheckpointMismatch" or "SnapshotPreparationIncomplete" or "SnapshotOperationIncomplete" or
         "SnapshotObservationUnknown" or "StateRecoveryRequired" or "StateReadUnavailable" or "StateWriteIncomplete" or

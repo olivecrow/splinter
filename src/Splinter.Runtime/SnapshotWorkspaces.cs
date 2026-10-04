@@ -14,7 +14,7 @@ public sealed partial class WorkspaceCoordinator
     { RequireSnapshot(w).Step = step; store.Save(w, step); }
 
     private Task PreparationPointAsync(string boundary, WorkspaceRecord w, CancellationToken ct) =>
-        w.StorageMode == "ntfs-snapshot" && preparationObserver is not null
+        WorkspaceStorage.HasRangeJournal(w.StorageMode) && preparationObserver is not null
             ? preparationObserver.ReachedAsync(boundary, w, ct) : Task.CompletedTask;
 
     private async Task EnsureSnapshotAsync(WorkspaceRecord w, CancellationToken ct)
@@ -275,7 +275,7 @@ public sealed partial class WorkspaceCoordinator
         var w = store.Get(id);
         RequireNotDiscarding(w);
         w.OriginalApply?.RequireReclaimable(w);
-        if (w.StorageMode != "ntfs-snapshot")
+        if (!WorkspaceStorage.HasRangeJournal(w.StorageMode))
             throw new WorkspaceException("CompactionUnsupported", "Only an NTFS snapshot workspace has a range journal.");
         var state = RequireSnapshot(w);
         if (w.Phase is "released" or "reclaim-pending" || state.Step.StartsWith("release-", StringComparison.Ordinal) ||

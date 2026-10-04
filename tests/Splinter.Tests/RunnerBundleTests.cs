@@ -10,7 +10,7 @@ namespace Splinter.Tests;
 public sealed class RunnerBundleTests
 {
     private static readonly string[] Names = ["Splinter.Platform.Windows.dll", "Splinter.Platform.Windows.deps.json",
-        "Splinter.Platform.Windows.runtimeconfig.json", "Splinter.Core.dll", "Splinter.Runtime.dll", "Splinter.SourceControl.Files.dll", "winfsp-msil.dll"];
+        "Splinter.Platform.Windows.runtimeconfig.json", "Splinter.Core.dll", "Splinter.Runtime.dll", "Splinter.SourceControl.Files.dll", "Splinter.SourceControl.Git.dll", "winfsp-msil.dll"];
 
     [Fact]
     public void ReuseKeepsTheSameBundleKeyAndDoesNotAllocateWholeBinaryArrays()
@@ -34,7 +34,7 @@ public sealed class RunnerBundleTests
             Assert.InRange(allocated, 0, bundleBytes / 2);
         }
         Assert.Single(Directory.GetDirectories(cache));
-        Assert.Equal(7, files.Length);
+        Assert.Equal(8, files.Length);
         Assert.Equal(writeTimes, files.Select(File.GetLastWriteTimeUtc).ToArray());
         AssertSourceConfigUnlocked(source);
     }
@@ -59,6 +59,7 @@ public sealed class RunnerBundleTests
     [InlineData("Splinter.Core.dll")]
     [InlineData("Splinter.Runtime.dll")]
     [InlineData("Splinter.SourceControl.Files.dll")]
+    [InlineData("Splinter.SourceControl.Git.dll")]
     [InlineData("winfsp-msil.dll")]
     public void ChangedSameLengthCacheIsRejectedAndPreserved(string name)
     {

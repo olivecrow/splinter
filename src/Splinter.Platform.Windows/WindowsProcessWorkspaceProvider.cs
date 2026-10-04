@@ -105,7 +105,7 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
         string assembly = typeof(WindowsProcessWorkspaceProvider).Assembly.Location;
         string directory = Path.GetDirectoryName(assembly)!;
         string[] names = ["Splinter.Platform.Windows.dll", "Splinter.Platform.Windows.deps.json",
-            "Splinter.Platform.Windows.runtimeconfig.json", "Splinter.Core.dll", "Splinter.Runtime.dll", "Splinter.SourceControl.Files.dll", "winfsp-msil.dll"];
+            "Splinter.Platform.Windows.runtimeconfig.json", "Splinter.Core.dll", "Splinter.Runtime.dll", "Splinter.SourceControl.Files.dll", "Splinter.SourceControl.Git.dll", "winfsp-msil.dll"];
         var sources = new List<FileStream>(names.Length);
         var digests = new List<byte[]>(names.Length);
         try

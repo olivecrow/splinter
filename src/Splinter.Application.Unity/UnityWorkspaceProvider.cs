@@ -36,7 +36,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
             .FirstOrDefault(line => line.StartsWith("m_EditorVersion:", StringComparison.Ordinal))?.Split(':', 2)[1].Trim()
             ?? throw new WorkspaceException("UnityVersionMissing", "ProjectVersion.txt has no Editor version.");
         string executable = ResolveEditor(version);
-        if (workspace.StorageMode == "ntfs-snapshot")
+        if (WorkspaceStorage.HasRangeJournal(workspace.StorageMode))
         {
             // Remove only captured process addresses in the private overlay.
             // Unity may otherwise terminate the original compiler helper.

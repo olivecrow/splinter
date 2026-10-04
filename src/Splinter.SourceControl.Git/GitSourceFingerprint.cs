@@ -17,7 +17,7 @@ public sealed partial class GitWorkspaceProvider
     private async Task<SourceState> InspectSourceAsync(WorkspaceRecord workspace, CancellationToken ct)
     {
         var clock = Stopwatch.StartNew();
-        var tracker = workspace.StorageMode == "ntfs-snapshot" ? sourceChanges : null;
+        var tracker = WorkspaceStorage.HasRangeJournal(workspace.StorageMode) ? sourceChanges : null;
         var before = tracker is null ? null : await tracker.ObserveChangesAsync(workspace, ct);
         if (before is not null) RequireView(workspace, before);
         string revision = await Required(workspace.Path, ["rev-parse", "HEAD"], ct);

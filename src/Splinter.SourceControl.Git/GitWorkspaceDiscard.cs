@@ -44,7 +44,7 @@ public sealed partial class GitWorkspaceProvider
 
     private static void RequireDiscardTask(WorkspaceRecord w)
     {
-        if (w.Purpose != "task" || w.StorageMode != "ntfs-snapshot" || w.SourceReference != "splinter/" + w.Id)
+        if (w.Purpose != "task" || !WorkspaceStorage.HasRangeJournal(w.StorageMode) || w.SourceReference != "splinter/" + w.Id)
             throw new WorkspaceException("DiscardIntentMismatch", "Discard only the exact branch assigned to this NTFS task.");
     }
 }

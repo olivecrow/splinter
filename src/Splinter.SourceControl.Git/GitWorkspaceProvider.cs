@@ -86,7 +86,7 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
 
     public async Task<string> CheckpointAsync(WorkspaceRecord workspace, string message, CancellationToken ct = default)
     {
-        if (workspace.StorageMode == "ntfs-snapshot") await CheckSnapshotGitFiles(workspace.Path, ct);
+        if (WorkspaceStorage.HasRangeJournal(workspace.StorageMode)) await CheckSnapshotGitFiles(workspace.Path, ct);
         SourceState before = await InspectAsync(workspace, ct);
         if (!before.HasChanges) return before.Revision;
         var tracked = SplitZero(await Required(workspace.Path, ["ls-files", "--cached", "-z"], ct));
@@ -98,12 +98,12 @@ public sealed partial class GitWorkspaceProvider(IWorkspaceStorageProvider? stor
         string[] exclusions = (await ChangedPaths(workspace.Path, ct)).Where(path => Managed(path, workspace.ManagedPaths))
             .Select(path => ":(exclude,literal)" + path).ToArray();
         await Required(workspace.Path, ["add", "-A", "--", ".", .. exclusions], ct);
-        if (workspace.StorageMode == "ntfs-snapshot")
+        if (WorkspaceStorage.HasRangeJournal(workspace.StorageMode))
             foreach (string[] batch in before.ChangedPaths.Where(path => tracked.Contains(path, StringComparer.Ordinal) &&
                 File.Exists(Path.Combine(workspace.Path, path))).Select(path => ":(literal)" + path).Chunk(50))
                 await Required(workspace.Path, ["add", "--renormalize", "--", .. batch], ct);
         var stagedPaths = SplitZero(await Required(workspace.Path, ["ls-files", "--cached", "-z"], ct));
-        if (workspace.StorageMode == "ntfs-snapshot") await CheckSnapshotGitFiles(workspace.Path, ct);
+        if (WorkspaceStorage.HasRangeJournal(workspace.StorageMode)) await CheckSnapshotGitFiles(workspace.Path, ct);
         if (stagedPaths.Any(path => Managed(path, workspace.ManagedPaths)))
             throw Error("ManagedPathTracked", "Generated files changed while staging. No commit was made; preserve and unstage them before retrying.");
         SourceState staged = await InspectAsync(workspace, ct);

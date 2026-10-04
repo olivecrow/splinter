@@ -5,7 +5,7 @@ namespace Splinter.Runtime;
 public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Source, ApplicationState? Application,
     string ControlPath, string NextCommand)
 {
-    public SnapshotRecoveryDecision? Recovery => Workspace.StorageMode == "ntfs-snapshot" ? SnapshotRecoveryDecision.For(Workspace) : null;
+    public SnapshotRecoveryDecision? Recovery => WorkspaceStorage.HasRangeJournal(Workspace.StorageMode) ? SnapshotRecoveryDecision.For(Workspace) : null;
     public string SourceVerification => Source is null ? "not-checked" : "verified";
     public OriginalApplyPlan? OriginalApplyPlan { get; init; }
 }
@@ -24,12 +24,14 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             throw new WorkspaceException("SourceSelectionUnsupported", "Select git, none or plastic and unity or none explicitly; no fallback is available.");
         if (sourceKind is "none" or "plastic" && (storageMode != "ntfs-snapshot" || baselineId is not null || baseReference != "snapshot" || purpose != "task"))
             throw new WorkspaceException("SourceSelectionUnsupported", "Plain folders require an NTFS task and the snapshot basis.");
+        if (storageMode == "git-snapshot" && (sourceKind != "git" || purpose != "task"))
+            throw new WorkspaceException("SourceSelectionUnsupported", "git-snapshot requires a Git task with a fixed recorded commit.");
         if (editor && applicationKind == "none")
             throw new WorkspaceException("ApplicationUnsupported", "This ordinary folder has no selected application provider.");
         if (string.IsNullOrWhiteSpace(requestKey) || requestKey.Length > 128)
             throw new WorkspaceException("InvalidRequestKey", "Use a stable task key between 1 and 128 characters; reuse it across turns.");
-        if (storageMode is not ("git-checkout" or "refs-cow" or "ntfs-snapshot"))
-            throw new WorkspaceException("UnsupportedStorageMode", "Choose ntfs-snapshot, refs-cow, or explicit git-checkout for a diagnostic workspace.");
+        if (storageMode is not ("git-checkout" or "refs-cow" or "ntfs-snapshot" or "git-snapshot"))
+            throw new WorkspaceException("UnsupportedStorageMode", "Choose git-snapshot, ntfs-snapshot, refs-cow, or explicit git-checkout for a diagnostic workspace.");
         if (storageMode == "refs-cow" && baselineId is null || storageMode != "refs-cow" && baselineId is not null)
             throw new WorkspaceException("BaselineRequired", "Only refs-cow consumes a sealed baseline.");
         project = WorkspaceStore.CanonicalProject(project);
@@ -55,7 +57,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 SourceReference = "splinter/" + id, BaseReference = baseReference, ManagedPaths = applicationKind == "none" ? [] : applications.ManagedPaths,
                 StorageMode = storageMode, BaselineId = baselineId, Purpose = purpose,
                 SourceKind = sourceKind, ApplicationKind = applicationKind,
-                Snapshot = storageMode == "ntfs-snapshot" ? new() { MaxJournalBytes = maxJournalBytes } : null,
+                Snapshot = WorkspaceStorage.HasRangeJournal(storageMode) ? new() { MaxJournalBytes = maxJournalBytes } : null,
                 RequestDigest = WorkspaceStore.Key(project + "\n" + requestKey + "\n" + baseReference + "\n" + storageMode + "\n" + baselineId + "\n" + purpose + "\n" + maxJournalBytes + "\n" + sourceKind + "\n" + applicationKind)
             };
             await PreparationPointAsync("request.before-record", record, ct);
@@ -63,14 +65,14 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             await PreparationPointAsync("request.after-record", record, ct);
         }
         else if (record.SourceKind != sourceKind || record.ApplicationKind != applicationKind || record.BaseReference != baseReference || record.StorageMode != storageMode || record.BaselineId != baselineId || record.Purpose != purpose ||
-            storageMode == "ntfs-snapshot" && record.Snapshot?.MaxJournalBytes != maxJournalBytes)
+            WorkspaceStorage.HasRangeJournal(storageMode) && record.Snapshot?.MaxJournalBytes != maxJournalBytes)
             throw new WorkspaceException("RequestKeyConflict", "This key already belongs to another request. Reuse its original parameters or choose a new task key.");
         if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(id), "workspace list");
         RequireNotDiscarding(record);
         record.OriginalApply?.RequireReclaimable(record);
         try
         {
-            if (storageMode == "ntfs-snapshot")
+            if (WorkspaceStorage.HasRangeJournal(storageMode))
             {
                 await EnsureSnapshotAsync(record, ct);
                 if (editor) await StartCoreAsync(record, ct);
@@ -132,7 +134,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     {
         RequireLive(record);
         if (record.ApplicationKind == "none") throw new WorkspaceException("ApplicationUnsupported", "This ordinary folder has no selected application provider.");
-        if (record.StorageMode == "ntfs-snapshot")
+        if (WorkspaceStorage.HasRangeJournal(record.StorageMode))
         {
             if (!RequireSnapshot(record).Attached) throw new WorkspaceException("SnapshotNotReady", "Resume workspace ensure before starting Unity.");
             await ConnectSnapshotAsync(record, ct);
@@ -161,7 +163,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         RequireSource(current);
         if (record.ResultRevision is not null && current.Source!.Revision == record.ResultRevision && !current.Source.HasChanges)
         {
-            if (record.StorageMode == "ntfs-snapshot" && RequireSnapshot(record).Result is null)
+            if (WorkspaceStorage.HasRangeJournal(record.StorageMode) && RequireSnapshot(record).Result is null)
             {
                 try
                 {
@@ -180,14 +182,14 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         store.Save(record, "checkpoint-intent");
         try
         {
-            if (record.StorageMode == "ntfs-snapshot")
+            if (WorkspaceStorage.HasRangeJournal(record.StorageMode))
             {
                 await applications.StopAsync(record, store.ControlPath(id), ct);
                 await RequireStopped(record, ct);
                 await applications.RemoveInfrastructureAsync(record, store.ControlPath(id), ct);
             }
             record.ResultRevision = await sources.CheckpointAsync(record, message, ct);
-            if (record.StorageMode == "ntfs-snapshot")
+            if (WorkspaceStorage.HasRangeJournal(record.StorageMode))
                 await CollectSnapshotResultAsync(record, ct);
             record.Phase = "collected";
             record.LastError = null;
@@ -208,7 +210,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         RequireSource(current);
         if (record.ResultRevision is null || current.Source!.HasChanges || current.Source.Revision != record.ResultRevision)
             throw new WorkspaceException("ResultNotReady", "Checkpoint the exact current source before integrating; later changes must be preserved.");
-        if (record.StorageMode == "ntfs-snapshot")
+        if (WorkspaceStorage.HasRangeJournal(record.StorageMode))
         {
             var preserved = RequireSnapshot(record).Result;
             if (preserved is not { IndependentOfSnapshot: true, CollectionProtocol: SnapshotResult.StableJournalProtocol } ||
@@ -249,7 +251,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         RequireNotDiscarding(record);
         record.OriginalApply?.RequireReclaimable(record);
         if (record.Phase == "released") return new(record, null, null, store.ControlPath(id), "workspace list");
-        if (record.StorageMode == "ntfs-snapshot") return await ReleaseSnapshotWorkspaceAsync(record, ct);
+        if (WorkspaceStorage.HasRangeJournal(record.StorageMode)) return await ReleaseSnapshotWorkspaceAsync(record, ct);
         // Git can unregister a worktree before failing to delete every file.
         // Let the source adapter validate and resume that partial removal.
         bool removalAlreadyAttempted = record.Phase == "releasing";
@@ -290,7 +292,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             return new(record, null, await applications.ObserveAsync(record, store.ControlPath(record.Id), ct),
                 store.ControlPath(record.Id), "workspace discard");
         }
-        if (record.StorageMode == "ntfs-snapshot")
+        if (WorkspaceStorage.HasRangeJournal(record.StorageMode))
         {
             var state = RequireSnapshot(record);
             state.Observation = await Snapshots.ObserveAsync(record, store.ControlPath(record.Id), ct);

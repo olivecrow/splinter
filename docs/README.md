@@ -17,6 +17,7 @@
 | [VCS 독립 검증](verification/vcs-independent-workspaces.md) | 자동 파일/fake·Git 회귀와 실제 A/B·서비스 업데이트·동일 요청 회수 복구의 한정 판정/비용 |
 | [일반 폴더 실제 실행 계획](plans/vcs-independent-validation.md) | 고정 fixture·서비스 업데이트/grant의 검토 가능한 계획·한 A/B 묶음과 중단 조건 |
 | [NTFS 작업공간](ntfs-workspaces.md) | VSS identity·범위 저널·Git·권한·제어 파일 게시/읽기·복구·결과 보존·회수 |
+| [Git 프로젝트 기준본](git-project-basis.md), [검증](verification/git-project-basis.md) | `git-snapshot`의 fixed Git commit/tree/blob·VSS 없는 WinFsp 범위 저장·소유 ref/fence·독립 결과/회수. ignored/Library·Unity·대형 비용의 미자격을 구분 |
 | [명시적 폐기](workspace-discard.md) | Core/Runtime intent·Git/Windows provider·CLI·서비스 별도 authorization·중단 재개 |
 | [Windows 저장소 권한 서비스](storage-privilege-service.md) | 설치 범위·고정 VSS IPC·사용자/경로/소유권·보호된 재시도 상태 |
 | [Unity 알파 작업공간](alpha-workspaces.md) | 외부 도구로 편집·검증, 같은 작업 재개·독립 결과·통합과 Editor 수명 |
@@ -64,6 +65,7 @@
 | [검증 추적표](plans/validation-matrix.md) | M0와 기존 ID의 실제 증거 상태·후속 책임 분류·보존한 48개 카탈로그 |
 | [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | NR-01/02 준비 복구·NR-03 공통 저널/로컬 kernel/제품 client 경계와 재부팅·전원·공간·파일 관문의 완료 기준 |
 | [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·비용 판단과 WF-09~12/LB-01~05의 완료 범위·재검증 기준 |
+| [VCS 프로젝트 단위 기준본 전환](plans/project-scoped-basis-and-reclamation-review.md) | Git·Plastic의 고정 버전 재사용·프로젝트 범위·기존 범위 저널 연결의 VP-01~05. Git은 별도 현재 계약/검증으로 연결하고 Plastic reader·VCS 없는 새 기준본은 후순위. 사전 CLI 접근과 실제 제품 자격을 구분 |
 | [대화별 설치·사용](plans/session-workflow-and-installation.md) | AI의 설치 연결/인계/도구 선택/종료 절차·외부 도구의 최소 경계·[후속 Unity CLI A/B 인계 범위](plans/session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)·SW 증거 분류 |
 | [저장소 권한 서비스](plans/storage-privilege-service.md) | 반복 UAC 없는 제한 서비스의 UA-01~04 |
 | [병렬 비교 방법](plans/parallel-workflow-qualification.md) | C/S/Q 입력·작업·비용 비교를 재사용할 때 |

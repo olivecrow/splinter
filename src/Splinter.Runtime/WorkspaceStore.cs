@@ -109,6 +109,8 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be read. Restore access before retrying the same key."); }
         if (record.Version != WorkspaceRecord.CurrentVersion || record.SourceKind is not ("git" or "none" or "plastic") ||
+            record.StorageMode is not ("ntfs-snapshot" or "git-snapshot" or "refs-cow" or "git-checkout") ||
+            record.StorageMode == "git-snapshot" && (record.SourceKind != "git" || record.Purpose != "task" || record.BaselineId is not null) ||
             record.ApplicationKind is not ("unity" or "none") || record.ApplicationKind == "none" && record.ManagedPaths.Length != 0 ||
             record.SourceKind is "none" or "plastic" && (record.StorageMode != "ntfs-snapshot" || record.BaseReference != "snapshot" || record.Purpose != "task") ||
             record.Id != id || !SamePath(record.Path, WorkPath(id)))
@@ -126,14 +128,18 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
             throw new WorkspaceException("OriginalApplyStateInvalid", "Preserve the original-apply record: its fixed intent or completion receipt is missing.");
         if (record.Snapshot?.Result is { } result && result.CollectionProtocol != SnapshotResult.StableJournalProtocol)
             throw new WorkspaceException("StateCorrupt", "The result collection protocol is invalid. Preserve the record and its resources.");
-        if (record.StorageMode == "ntfs-snapshot" && (record.Snapshot is null ||
+        if (WorkspaceStorage.HasRangeJournal(record.StorageMode) && (record.Snapshot is null ||
             record.Snapshot.Attached && record.Snapshot.Reference is null ||
             record.Snapshot.Mount is { } mount && (mount.Id != id || !SamePath(mount.Path, record.Path) || mount.Snapshot != record.Snapshot.Reference)))
             throw new WorkspaceException("SnapshotStateMissing", "Preserve this workspace: snapshot identities do not match its durable record.");
+        if (record.StorageMode == "git-snapshot" && record.Snapshot?.Reference is { } basis &&
+            (basis.Provider != "git-objects" || basis.Consistency != "recorded-project-commit-raw-blobs" ||
+             !SamePath(basis.SourcePath, record.ProjectPath) || record.BaseRevision is null || basis.Id != "git-" + record.Id + "-" + record.BaseRevision))
+            throw new WorkspaceException("SnapshotIdentityMismatch", "Preserve the Git task's original recorded basis.");
         // Reading durable metadata must also work while an overlay is mounted
         // or a mount reply was lost. The backend verifies the root's live
         // ownership before any source access; all registry ancestors stay plain.
-        EnsurePlainPath(record.StorageMode == "ntfs-snapshot" ? Path.GetDirectoryName(record.Path)! : record.Path);
+        EnsurePlainPath(WorkspaceStorage.HasRangeJournal(record.StorageMode) ? Path.GetDirectoryName(record.Path)! : record.Path);
         return record;
     }
 

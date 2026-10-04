@@ -25,6 +25,8 @@ An open Editor alone does not prove another writer is active. `doctor` and works
 
 ## Discover the current contract
 
+For a recorded Git project basis, use `--source git --storage git-snapshot` after reading [its contract](../../docs/git-project-basis.md) and [qualification](../../docs/verification/git-project-basis.md). This path reads fixed local commit/tree/blob objects and requires WinFsp, but no VSS service/grant. It requires a clean repository root at the requested commit, uses raw blobs without checkout conversion, and excludes ignored/private files and Library. Keep storage with the same request identity. Missing/corrupt objects or changed owner refs must be preserved, never hydrated from the live original. Current native qualification is separate from previous VSS/Unity evidence. The registered VSS prerequisites below apply to `ntfs-snapshot`, not this Git route.
+
 Use an absolute CLI path, an existing build, and ordinary Windows privileges:
 
 ```powershell

@@ -55,7 +55,7 @@ public sealed class WindowsWorkspaceDiscardProvider(ISourceDiscardProvider sourc
             throw new WorkspaceException("SnapshotInUse", "Prove the owned source, mount and delta absent before discard.");
         await RequireSourceAbsentAsync(w, control, ct);
         ProductState.Save(Path.Combine(control, "snapshot", "discard-authorized.json"), w.Discard);
-        return await new VssSnapshotProvider(Path.Combine(control, "snapshot"), w.Id)
+        return await WorkspaceSnapshotBasis.Provider(w.Snapshot!.Reference!, Path.Combine(control, "snapshot"), w.Id)
             .ReleaseAsync(w.Snapshot!.Reference!, ct, w.Snapshot.Reclamation?.AttemptId);
     }
 

@@ -926,11 +926,63 @@
           "type":"object", "additionalProperties":false, "required":["mode","administration","originalApply","qualification"],
           "properties": {"mode":{"type":"string"},"administration":{"type":"string"},"originalApply":{"const":"unsupported"},"qualification":{"type":"string"}}
         },
+        "gitProjectBasis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "storage",
+            "provider",
+            "scope",
+            "ownership",
+            "boundaries",
+            "readCost",
+            "qualification",
+            "initialPayloadCopiedBytes",
+            "readCacheBytes"
+          ],
+          "properties": {
+            "storage": {
+              "type": "string",
+              "minLength": 1
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1
+            },
+            "scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownership": {
+              "type": "string",
+              "minLength": 1
+            },
+            "boundaries": {
+              "type": "string",
+              "minLength": 1
+            },
+            "readCost": {
+              "type": "string",
+              "minLength": 1
+            },
+            "qualification": {
+              "type": "string",
+              "minLength": 1
+            },
+            "initialPayloadCopiedBytes": {
+              "const": 0
+            },
+            "readCacheBytes": {
+              "const": 0
+            }
+          }
+        },
         "storageModes": {
           "type": "array",
           "items": {
             "enum": [
               "ntfs-snapshot",
+              "git-snapshot",
               "refs-cow",
               "git-checkout"
             ]
@@ -1306,6 +1358,7 @@
         "storageMode": {
           "enum": [
             "ntfs-snapshot",
+            "git-snapshot",
             "refs-cow",
             "git-checkout"
           ]
@@ -1343,7 +1396,7 @@
           "if": {
             "properties": {
               "storageMode": {
-                "const": "ntfs-snapshot"
+                "enum": ["ntfs-snapshot", "git-snapshot"]
               }
             },
             "required": [
