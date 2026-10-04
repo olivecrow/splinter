@@ -8,10 +8,15 @@ namespace Splinter.Workflows.Windows;
 
 // Ordinary-user composition. Privileged VSS deletion stays in the existing
 // fixed service protocol with a separate explicit-discard authorization.
-public sealed class WindowsWorkspaceDiscardProvider(ISourceDiscardProvider source, ISnapshotWorkspaceBackend snapshots) : IWorkspaceDiscardProvider
+public sealed class WindowsWorkspaceDiscardProvider(ISourceDiscardProvider source, ISnapshotWorkspaceBackend snapshots,
+    IGeneratedDirectoryDependencies? generatedDirectories = null) : IWorkspaceDiscardProvider
 {
-    public Task<string> ObserveSourceRevisionAsync(WorkspaceRecord w, string control, CancellationToken ct) =>
-        source.ObserveDiscardRevisionAsync(w, control, ct);
+    public Task<string> ObserveSourceRevisionAsync(WorkspaceRecord w, string control, CancellationToken ct)
+    {
+        if (w.GeneratedDirectory is not null && generatedDirectories is null)
+            throw new WorkspaceException("GeneratedBasisUnsupported", "Compose generated dependency reclamation before discarding this task.");
+        return source.ObserveDiscardRevisionAsync(w, control, ct);
+    }
     public Task DiscardSourceAsync(WorkspaceRecord w, string control, CancellationToken ct) => source.DiscardSourceAsync(w, control, ct);
 
     public async Task DiscardDeltaAsync(WorkspaceRecord w, string control, CancellationToken ct)
@@ -55,8 +60,11 @@ public sealed class WindowsWorkspaceDiscardProvider(ISourceDiscardProvider sourc
             throw new WorkspaceException("SnapshotInUse", "Prove the owned source, mount and delta absent before discard.");
         await RequireSourceAbsentAsync(w, control, ct);
         ProductState.Save(Path.Combine(control, "snapshot", "discard-authorized.json"), w.Discard);
-        return await WorkspaceSnapshotBasis.Provider(w.Snapshot!.Reference!, Path.Combine(control, "snapshot"), w.Id)
+        var reclaimed = await WorkspaceSnapshotBasis.Provider(w.Snapshot!.Reference!, Path.Combine(control, "snapshot"), w.Id)
             .ReleaseAsync(w.Snapshot!.Reference!, ct, w.Snapshot.Reclamation?.AttemptId);
+        if (reclaimed.Disposition == "released" && w.GeneratedDirectory is { } generated)
+            await (generatedDirectories ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Retain the generated dependency until reclamation is composed.")).DetachAsync(generated, w, ct);
+        return reclaimed;
     }
 
     private Task RequireSourceAbsentAsync(WorkspaceRecord w, string control, CancellationToken ct)

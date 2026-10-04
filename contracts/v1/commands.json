@@ -44,8 +44,8 @@
     },
     {
       "id": "workspace.ensure",
-      "description": "Create or resume an isolated range workspace from a VSS source snapshot or recorded Git project commit.",
-      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <ntfs-snapshot|git-snapshot> [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>] [--library-basis <id>]",
+      "description": "Create or resume an isolated range workspace from VSS or a recorded Git/Plastic project version.",
+      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <ntfs-snapshot|git-snapshot|plastic-snapshot> [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>] [--library-basis <id>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-ensure-request",
       "outputSchema": "urn:splinter:v1:response",

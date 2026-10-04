@@ -16,16 +16,16 @@ public interface IPlasticWorkspaceClient
     Task<PlasticWorkspaceLocation[]> ListAsync(CancellationToken ct = default);
 }
 
-public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorkspaceClient client) :
+public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorkspaceClient client, IPlasticRevisionClient? revisionClient = null) :
     ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider
 {
-    private readonly FileWorkspaceProvider files = new(store);
+    private readonly FileWorkspaceProvider files = new(store, revisionClient: revisionClient);
     private string Control(WorkspaceRecord w) => store.ControlPath(w.Id);
     private static string Evidence(string control, string name) => Path.Combine(control, "plastic", name);
     private static WorkspaceException Invalid(string message) => new("PlasticCompatibilityInvalid", message);
     private static void Require(WorkspaceRecord w)
     {
-        if (w.SourceKind != "plastic" || w.StorageMode != "ntfs-snapshot" || w.BaseReference != "snapshot" || w.Purpose != "task")
+        if (w.SourceKind != "plastic" || (w.StorageMode != "ntfs-snapshot" || w.BaseReference != "snapshot") && w.StorageMode != "plastic-snapshot" || w.Purpose != "task")
             throw Invalid("Select Plastic explicitly with an NTFS task and snapshot basis.");
     }
     public static void RequireIdentity(PlasticWorkspaceIdentity identity, string project)
@@ -69,10 +69,24 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
         var identity = await client.InspectAsync(w.ProjectPath, ct); RequireIdentity(identity, w.ProjectPath);
         string version = await client.VersionAsync(ct);
         await VerifyIsolationAsync(w, ct);
-        await FileWorkspaceProvider.PreflightFilesAsync(w, ct);
+        if (w.StorageMode == "plastic-snapshot")
+        {
+            PlasticRevisionClient.RequireTreeSpec(w.BaseReference);
+            for (string? path = w.ProjectPath; path is not null; path = Path.GetDirectoryName(path))
+                foreach (string name in FileWorkspaceProvider.VcsMetadata)
+                    if (!(name == ".plastic" && WorkspaceStore.SamePath(path, w.ProjectPath)) &&
+                        (Directory.Exists(Path.Combine(path, name)) || File.Exists(Path.Combine(path, name))))
+                        throw Invalid("The original must not inherit another VCS administration.");
+            var manifest = await (revisionClient ?? new PlasticRevisionClient()).ListAsync(w.BaseReference, ct);
+            await (revisionClient ?? new PlasticRevisionClient()).VerifyProjectAsync(w.ProjectPath, manifest, ct);
+            if (w.ApplicationKind == "unity" && (!manifest.Entries.Any(e => e.Path.StartsWith("Assets/", StringComparison.Ordinal)) ||
+                !manifest.Entries.Any(e => e.Path == "Packages/manifest.json") || !manifest.Entries.Any(e => e.Path == "ProjectSettings/ProjectVersion.txt")))
+                throw new WorkspaceException("PlasticBasisSourceIncomplete", "Choose a recorded Unity source including Assets, Packages and ProjectSettings.");
+        }
+        else await FileWorkspaceProvider.PreflightFilesAsync(w, ct);
         FileWorkspaceProvider.SaveFixed(Evidence(Control(w), "admission.json"), new PlasticSourceAdmission(w.Id, w.RequestDigest!,
             w.ProjectPath, identity.Guid, version, AdministrationHash(w.ProjectPath)));
-        return "snapshot:" + w.Id;
+        return w.StorageMode == "plastic-snapshot" ? "recorded:" + w.BaseReference : "snapshot:" + w.Id;
     }
     public async Task RegisterAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
@@ -114,7 +128,7 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
         var admission = Admission(w, c);
         var access = w.Snapshot?.Observation?.SnapshotStorage?.ReadAccess ?? throw Invalid("Verify immutable captured access before computing the basis.");
         access.RequireMatch(w.Snapshot!.Reference!);
-        if (AdministrationHash(access.RootPath) != admission.AdministrationHash)
+        if (w.StorageMode != "plastic-snapshot" && AdministrationHash(access.RootPath) != admission.AdministrationHash)
             throw Invalid("Captured Plastic administration differs from admission; preserve this snapshot.");
         return files.EstablishBaselineAsync(w, c, ct);
     }

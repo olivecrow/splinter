@@ -21,7 +21,7 @@ Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약
 
 ## 프로그램과 에이전트의 책임
 
-현재 후속 공간 단위는 사용자 확정의 [VCS 프로젝트 단위 기준본 전환](project-scoped-basis-and-reclamation-review.md)이다. Git·Plastic에 기록된 버전을 재사용해 프로젝트에 대해서만 기준본을 만들고 작업별 범위 저장과 연결한다. Git은 별도 `git-snapshot`으로 연결했으며 자격은 [전용 검증](../verification/git-project-basis.md)을 따른다. Plastic reader·VCS 없는 새 기준본은 후순위이며 기존 일반 폴더 기능/결과·VSS pending은 보존한다. 기존 native 자격을 새 reader의 통과로 승계하지 않는다.
+사용자 확정의 [VCS 프로젝트 단위 기준본 전환](project-scoped-basis-and-reclamation-review.md)은 Git·Plastic에 기록된 버전을 재사용해 프로젝트에 대해서만 기준본을 만들고 작업별 범위 저장과 연결한다. Git은 `git-snapshot`과 원본 Library 참조·실제 Unity/MCP 검증까지 [한정 마감](../verification/git-library-reference.md)했으며 실제 RAM 절감은 확인하지 못했다. Plastic도 [PPB-01~06](plastic-project-basis.md)의 reader·Library·고정 실제 Unity/MCP A/B·독립 결과/회수/원본 복원을 [한정 마감](../verification/plastic-project-basis.md)했다. 초기 준비/복원·MCP 응답/실행 겹침 제한과 전체 peak unknown을 유지하며 RAM 절감은 사용자가 합격 조건에서 제외했다. VCS 없는 새 기준본·Plastic 원본 반영은 별도 후속이며 기존 일반 폴더 기능/결과·VSS pending은 보존한다. 기존 native 자격을 새 reader의 통과로 승계하지 않는다.
 
 Splinter는 작업공간의 생성·유지·재개·독립 결과·명시적 반영/회수/폐기와 소유 Editor의 수명을 담당한다. AI가 현재 CLI·파일 도구·Git·MCP·Unity CLI로 수행할 수 있는 정책과 작업 절차는 프로그램 기능으로 추가하지 않는다.
 

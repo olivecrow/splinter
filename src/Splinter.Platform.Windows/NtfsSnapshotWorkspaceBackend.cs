@@ -7,6 +7,7 @@ using Microsoft.Win32;
 using Splinter.Core;
 using Splinter.Runtime;
 using Splinter.SourceControl.Git;
+using Splinter.SourceControl.Files;
 
 namespace Splinter.Platform.Windows;
 
@@ -34,11 +35,14 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         if (Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\WinFsp", "InstallDir", null) is not string)
             throw new WorkspaceException("WinFspMissing", "Install a qualified WinFsp provider before capture; no full-copy fallback is available.");
         CheckSpace(control);
-        if (w.StorageMode == "git-snapshot")
+        if (w.StorageMode is "git-snapshot" or "plastic-snapshot")
         {
             if (w.GeneratedDirectoryId is { } generatedId)
                 w.GeneratedDirectory = await (generatedDirectories ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Generated basis dependencies are unavailable."))
                     .AttachAsync(generatedId, w, ct);
+            if (w.StorageMode == "plastic-snapshot")
+                return await new PlasticRevisionSnapshotProvider(Path.Combine(control, "snapshot"), w.Id, w.BaseReference)
+                    .CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(control, "snapshot")), ct);
             if (w.SourceKind != "git" || w.BaseRevision is null) throw new WorkspaceException("GitBasisUnsupported", "Fix a Git project commit before capture.");
             return await new GitObjectSnapshotProvider(Path.Combine(control, "snapshot"), w.Id, w.BaseRevision)
                 .CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(control, "snapshot")), ct);

@@ -109,14 +109,14 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be read. Restore access before retrying the same key."); }
         if (record.Version != WorkspaceRecord.CurrentVersion || record.SourceKind is not ("git" or "none" or "plastic") ||
-            record.StorageMode is not ("ntfs-snapshot" or "git-snapshot" or "refs-cow" or "git-checkout") ||
+            record.StorageMode is not ("ntfs-snapshot" or "git-snapshot" or "plastic-snapshot" or "refs-cow" or "git-checkout") ||
             record.StorageMode == "git-snapshot" && (record.SourceKind != "git" || record.Purpose != "task" || record.BaselineId is not null) ||
             record.ApplicationKind is not ("unity" or "none") || record.ApplicationKind == "none" && record.ManagedPaths.Length != 0 &&
                 (record.GeneratedDirectory is null || !record.ManagedPaths.SequenceEqual(new[] { record.GeneratedDirectory.RelativePath })) ||
-            record.SourceKind is "none" or "plastic" && (record.StorageMode != "ntfs-snapshot" || record.BaseReference != "snapshot" || record.Purpose != "task") ||
+            (record.SourceKind == "none" || record.SourceKind == "plastic" && record.StorageMode != "plastic-snapshot") && (record.StorageMode != "ntfs-snapshot" || record.BaseReference != "snapshot" || record.Purpose != "task") ||
             record.Id != id || !SamePath(record.Path, WorkPath(id)))
             throw new WorkspaceException("StateCorrupt", "Workspace identity/path/version does not match its registry.");
-        if (record.GeneratedDirectoryId is not null && record.StorageMode != "git-snapshot" || record.GeneratedDirectory is { } generated &&
+        if (record.GeneratedDirectoryId is not null && record.StorageMode is not ("git-snapshot" or "plastic-snapshot") || record.GeneratedDirectory is { } generated &&
             (generated.Id != record.GeneratedDirectoryId || !SamePath(generated.ProjectPath, record.ProjectPath) ||
              string.IsNullOrWhiteSpace(generated.RelativePath) || generated.RelativePath.Contains('/') || generated.RelativePath.Contains('\\')) ||
             record.GeneratedDirectoryId is not null && record.GeneratedDirectory is null && record.Snapshot?.Attached == true)
@@ -138,6 +138,9 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
             record.Snapshot.Attached && record.Snapshot.Reference is null ||
             record.Snapshot.Mount is { } mount && (mount.Id != id || !SamePath(mount.Path, record.Path) || mount.Snapshot != record.Snapshot.Reference)))
             throw new WorkspaceException("SnapshotStateMissing", "Preserve this workspace: snapshot identities do not match its durable record.");
+        if (record.StorageMode == "plastic-snapshot" && (record.SourceKind != "plastic" || record.Purpose != "task" || record.BaselineId is not null || record.BaseReference == "snapshot" ||
+            record.Snapshot?.Reference is { } plasticBasis && (plasticBasis.Provider != "plastic-revisions" || plasticBasis.Consistency != "recorded-project-changeset-raw-revisions" || !SamePath(plasticBasis.SourcePath, record.ProjectPath))))
+            throw new WorkspaceException("SnapshotIdentityMismatch", "Preserve the Plastic task recorded basis and source selection.");
         if (record.StorageMode == "git-snapshot" && record.Snapshot?.Reference is { } basis &&
             (basis.Provider != "git-objects" || basis.Consistency != "recorded-project-commit-raw-blobs" ||
              !SamePath(basis.SourcePath, record.ProjectPath) || record.BaseRevision is null || basis.Id != "git-" + record.Id + "-" + record.BaseRevision))

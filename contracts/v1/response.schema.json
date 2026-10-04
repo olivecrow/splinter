@@ -969,7 +969,7 @@
         },
         "plasticCompatibility": {
           "type":"object", "additionalProperties":false, "required":["mode","administration","originalApply","qualification"],
-          "properties": {"mode":{"type":"string"},"administration":{"type":"string"},"originalApply":{"const":"unsupported"},"qualification":{"type":"string"}}
+          "properties": {"mode":{"type":"string"},"administration":{"type":"string"},"originalApply":{"const":"unsupported"},"qualification":{"type":"string"},"recordedBasis":{"type":"string"},"library":{"type":"string"}}
         },
         "gitProjectBasis": {
           "type": "object",
@@ -1028,6 +1028,7 @@
             "enum": [
               "ntfs-snapshot",
               "git-snapshot",
+              "plastic-snapshot",
               "refs-cow",
               "git-checkout"
             ]
@@ -1404,6 +1405,7 @@
           "enum": [
             "ntfs-snapshot",
             "git-snapshot",
+            "plastic-snapshot",
             "refs-cow",
             "git-checkout"
           ]
@@ -1448,7 +1450,7 @@
           "if": {
             "properties": {
               "storageMode": {
-                "enum": ["ntfs-snapshot", "git-snapshot"]
+                "enum": ["ntfs-snapshot", "git-snapshot", "plastic-snapshot"]
               }
             },
             "required": [

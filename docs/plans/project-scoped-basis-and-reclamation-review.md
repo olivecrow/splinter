@@ -25,7 +25,7 @@
 
 기록된 버전의 선택과 현재 폴더 전체의 시점 캡처는 다른 입력 의미다. commit/changeset만으로 ignored/private 파일까지 보존됐다고 표시하지 않는다. Git 변환/CRLF·LFS/filter·submodule/특수 파일과 Plastic 변환/부분 workspace의 미지원 거부를 유지하며 새 방식에서 필요한 자격을 별도로 확인한다. 결과를 원본/VCS 없이 독립 보존할 때 필요한 payload 저장은 생성/읽기 비용과 구분한다.
 
-현재 제품 CLI의 `ntfs-snapshot`은 VSS 기반이다. Git 전용 `git-snapshot`은 [현재 계약](../git-project-basis.md)으로 연결했다. 기존 명령의 기준본이나 과거 VSS 상태를 바꾸지 않으며 Plastic 버전 reader는 아직 미구현이다.
+현재 제품 CLI의 `ntfs-snapshot`은 VSS 기반이다. Git 전용 `git-snapshot`은 [현재 계약](../git-project-basis.md)으로 연결했고 [원본 Library 참조](../git-library-reference.md)와 실제 Unity/MCP도 한정 마감했다. Plastic 전용 `plastic-snapshot`도 [현재 계약](../plastic-project-basis.md)의 fixed changeset/blob reader와 공통 Library에 연결했다. 현재 자동·실제 자격은 [PPB 검증](../verification/plastic-project-basis.md)이 소유한다. 실제 RAM 절감은 보장하지 않으며 사용자가 Plastic 단계의 합격 조건에서 제외했다. 기존 명령의 기준본이나 과거 VSS 상태를 바꾸지 않는다.
 
 ## 구현 순서와 종료 기준
 
@@ -36,14 +36,14 @@
 | ID | 포함할 단위 | 종료 기준 | 현재 상태 |
 | --- | --- | --- | --- |
 | VP-01 | 공통 기준본 계약·fake 적합성 | 프로젝트 범위·불변 identity·bounded read·소유 기준 참조·missing/unknown 거부·같은 요청 복구를 정의. 원본 수정/기준 이동/손상·다른 owner에 대한 보호 확인 | Git 공통 계약/fake·보호 자동 시험 Passed |
-| VP-02 | Git 기준본 reader·소유 참조 | 정확한 project tree/blob만 사용. 전체 checkout/초기 payload 복제·읽기 disk cache 없음, 원본/branch 변경 뒤 동일 바이트, 객체 소실 보존 거부. 원본 index/branch·peer/결과 refs 보호 | Git reader/소유 ref 연결 및 작은 Editor 없는 A/B 확인. 대형/Unity 미자격 유지 |
-| VP-03 | Plastic 기준본 reader·고정 identity | 정확한 changeset/revision의 목록·내용 읽기. 새 Plastic 등록/check-in 없음. 필요한 소스의 포함 여부·내용 변환·서버/cache 비용·실패/응답 유실을 확인하고 원본/peer를 보호 | CLI 목록/한 파일 읽기만 확인. provider 연결 NotRun |
-| VP-04 | Windows overlay·Runtime/CLI 연결 | WinFsp·범위 저널을 공통 불변 reader와 연결. 생성/재개/읽기/정리/수집/회수에 새 VSS 호출 0. 현재 input/output schema·fake·capabilities·기능/AI 문서를 함께 갱신 | Git 연결/실제 수명주기 확인. Plastic 연결 NotRun |
-| VP-05 | 한정 실제 입력·A/B와 비용 판정 | VCS별 필요한 작은 Editor 없는 한 A/B에서 원본 변경 중 기준 유지, 변경량 저장, 같은 요청 재개, A 종료 중 B 지속, 독립 결과/전용 자원 회수 확인. 파일 할당·전송/cache·소유 메모리·잔여 shared 데이터 분리 | Git A/B·원본 변화/peer 지속·독립 결과/회수 및 파일 할당 확인. Plastic/전체 RAM·peak NotRun/unknown 유지 |
+| VP-02 | Git 기준본 reader·소유 참조 | 정확한 project tree/blob만 사용. 전체 checkout/초기 payload 복제·읽기 disk cache 없음, 원본/branch 변경 뒤 동일 바이트, 객체 소실 보존 거부. 원본 index/branch·peer/결과 refs 보호 | Git reader/소유 ref 연결 및 작은 Editor 없는 A/B 확인. 후속 Unity/Library는 GL 검증으로 한정 마감, 대형/일반 RAM 미자격 유지 |
+| VP-03 | Plastic 기준본 reader·고정 identity | 정확한 changeset/revision의 목록·내용 읽기. 공급자는 새 Plastic 등록/check-in 없음. 필요한 소스의 포함 여부·내용 변환·서버/cache 비용·실패/응답 유실을 확인하고 원본/peer를 보호 | fixed reader·전체 cs 2 길이/hash 확인·자동 보호 시험 통과. 승인된 정확한 입력 check-in과 제품의 읽기 전용 계약을 구분하며 PPB 검증을 따름 |
+| VP-04 | Windows overlay·Runtime/CLI 연결 | WinFsp·범위 저널을 공통 불변 reader와 연결. 생성/재개/읽기/정리/수집/회수에 새 VSS 호출 0. 현재 input/output schema·fake·capabilities·기능/AI 문서를 함께 갱신 | Git과 Plastic 연결·schema/fake/필수 회귀 완료. Plastic 실제 수명주기는 PPB 검증의 상태를 따름 |
+| VP-05 | 한정 실제 입력·A/B와 비용 판정 | VCS별 필요한 작은 Editor 없는 한 A/B에서 원본 변경 중 기준 유지, 변경량 저장, 같은 요청 재개, A 종료 중 B 지속, 독립 결과/전용 자원 회수 확인. 파일 할당·전송/cache·소유 메모리·잔여 shared 데이터 분리 | Git A/B와 별도 PPB Plastic Unity A/B의 기준/Library 격리·재개·peer 지속·독립 결과/회수·원본 복원/비용 확인. MCP 응답·release/test 실행 겹침 제한과 외부 cache/전체 peak unknown 유지 |
 
 Git reader부터 연결한 뒤 Plastic reader를 같은 계약에 연결한다. 실제 workspace 실행은 입력과 질문·종료 기준을 고정한 해당 단위에서 수행한다. Unity Editor·Library 재사용·MCP·Play/Test/build 전체를 VP-05에 자동 포함하지 않는다. 일반 VCS 없는 폴더의 전환, 원본 쓰기 kernel driver, 새 installer/service/grant/볼륨 설정, 서버 이력 변경, 전체 장애/ARM/대형 행렬은 이번 범위에서 제외한다.
 
-Git의 VP-01/02·VP-04/05 부분은 [전용 검증](../verification/git-project-basis.md)의 자동 919 Passed/1 선택적 NotRun과 고정 실제 Editor 없는 A/B로 scoped-complete-with-limitations 마감했다. Plastic VP-03과 해당 연결/실제 입력, Git Unity/Library·대형/전체 RAM 자격은 이 마감에 포함하지 않는다. 새 질문 없이 같은 A/B나 전체 장애 행렬을 자동 반복하지 않는다.
+Git의 VP-01/02·VP-04/05 부분은 [전용 검증](../verification/git-project-basis.md)의 자동 919 Passed/1 선택적 NotRun과 고정 실제 Editor 없는 A/B로 scoped-complete-with-limitations 마감했다. 이후 Git Unity/Library는 [GL 검증](../verification/git-library-reference.md)에서 별도 한정 마감했다. Plastic VP-03과 해당 연결/실제 입력도 [PPB 범위](plastic-project-basis.md)의 자동 961 Passed/1 선택적 skip과 고정 Unity A/B로 [한정 마감](../verification/plastic-project-basis.md)했다. 대형/전체 peak 자격과 VCS 없는 전환은 유지하며 RAM 절감은 Plastic 단계의 합격 조건이 아니다. 새 질문 없이 같은 A/B나 전체 장애 행렬을 자동 반복하지 않는다.
 
 ## 고정 VCS 내용의 사전 확인
 

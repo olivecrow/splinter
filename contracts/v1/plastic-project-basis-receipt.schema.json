@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:plastic-project-basis-receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "ownerId",
+    "snapshot",
+    "manifest",
+    "manifestDigest",
+    "released"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "ownerId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9-]+$"
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "provider",
+        "sourcePath",
+        "rootPath",
+        "capturedAt",
+        "persistent",
+        "differential",
+        "consistency"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "const": "plastic-revisions"
+        },
+        "sourcePath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rootPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "persistent": {
+          "const": true
+        },
+        "differential": {
+          "const": true
+        },
+        "consistency": {
+          "const": "recorded-project-changeset-raw-revisions"
+        }
+      }
+    },
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "treeSpec",
+        "repositoryId",
+        "rootRevision",
+        "rootGuid",
+        "entries",
+        "repository"
+      ],
+      "properties": {
+        "treeSpec": {
+          "type": "string",
+          "pattern": "^[0-9]+@[^\\s]+$"
+        },
+        "repositoryId": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "rootRevision": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "rootGuid": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "entries": {
+          "type": "array",
+          "maxItems": 32768,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "directory",
+              "revision",
+              "length",
+              "contentHash",
+              "timestamp"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "directory": {
+                "type": "boolean"
+              },
+              "revision": {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              "length": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8589934592
+              },
+              "contentHash": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9+/]{22}==$"
+              },
+              "timestamp": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^rep:"
+        }
+      }
+    },
+    "manifestDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "released": {
+      "type": "boolean"
+    }
+  }
+}

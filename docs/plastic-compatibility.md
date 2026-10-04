@@ -2,6 +2,8 @@
 
 Splinter가 병렬 작업공간을 제공한다. Unity VCS/Plastic SCM 연동은 원본의 관리 정보·등록·잠금을 격리하고 추가 checkout/복제 비용을 만들지 않기 위한 호환 경계다. 현재 후보의 자동/실제 자격은 [검증 기록](verification/plastic-compatibility.md), 이번 범위는 [계획](plans/plastic-compatibility.md)이 소유한다.
 
+기록된 changeset을 참조하는 별도 `plastic-snapshot`은 [프로젝트 기준본](plastic-project-basis.md)과 [현재 검증](verification/plastic-project-basis.md)을 따른다. 아래 기본 snapshot 선택·서비스·VSS 회수 자격은 기존 `ntfs-snapshot`이다.
+
 ## 선택과 입력
 
 `--source plastic`을 최초 요청에 명시한다. 현재 상태 v2에 project/key/id/home·source/application·basis·digest를 고정한다. `plastic`의 기본 application은 `unity`, basis는 `snapshot`이며 NTFS task만 지원한다. `--application none`은 Editor 없는 입력의 공통 수명주기에 사용한다. 다른 source로 fallback하지 않는다.

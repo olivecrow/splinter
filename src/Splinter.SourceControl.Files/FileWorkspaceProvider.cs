@@ -8,7 +8,7 @@ namespace Splinter.SourceControl.Files;
 
 // Content is read at admission/inspection, but only explicit result collection
 // stores payloads. This adapter never creates a checkout or invokes a VCS.
-public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOriginalFilePublisher? originalPublisher = null) : ISourceWorkspaceProvider,
+public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOriginalFilePublisher? originalPublisher = null, IPlasticRevisionClient? revisionClient = null) : ISourceWorkspaceProvider,
     ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
@@ -19,7 +19,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     private static WorkspaceException Error(string message) => new("FileSourceStateInvalid", message);
     private static void Require(WorkspaceRecord w)
     {
-        if (w.SourceKind is not ("none" or "plastic") || w.StorageMode != "ntfs-snapshot" || w.BaseReference != "snapshot" || w.Purpose != "task")
+        if (w.SourceKind is not ("none" or "plastic") || (w.StorageMode != "ntfs-snapshot" || w.BaseReference != "snapshot") && !(w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot") || w.Purpose != "task")
             throw Error("Only the explicitly selected plain-folder NTFS task is supported.");
     }
     public Task<string> PreflightAsync(WorkspaceRecord w, CancellationToken ct = default)
@@ -70,7 +70,8 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         else
         {
             string root = ImmutableRoot(w);
-            baseline = Manifest(w, Scan(root, w.ManagedPaths, ct, omitPlasticRoot: w.SourceKind == "plastic"));
+            baseline = w.StorageMode == "plastic-snapshot" ? RecordedManifest(w, control, ct) :
+                Manifest(w, Scan(root, w.ManagedPaths, ct, omitPlasticRoot: w.SourceKind == "plastic"));
             SaveFixed(path, baseline);
         }
         return Task.FromResult(baseline.Identity);
@@ -110,7 +111,8 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         var result = Manifest(w, Scan(w.Path, w.ManagedPaths, ct, mount: w.Path));
         if (result.Identity != w.ResultRevision) throw new WorkspaceException("UncollectedChanges", "The source changed after checkpoint; retain the journal.");
         SaveFixed(FilePath(control, "collection.json"), new FileCollectionIntent(w.Id, w.RequestDigest!, baseline.Identity, result.Identity));
-        PreservePayloads(control, baseline, ImmutableRoot(w), ct);
+        if (w.StorageMode == "plastic-snapshot") PreserveRecordedPayloads(w, control, baseline, ct);
+        else PreservePayloads(control, baseline, ImmutableRoot(w), ct);
         PreservePayloads(control, result, w.Path, ct, w.Path);
         // Verify that every payload exists before publishing an independent result.
         VerifyPayloads(control, baseline, ct); VerifyPayloads(control, result, ct);
@@ -197,7 +199,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         return m;
     }
     private static bool ValidHash(string? hash) => hash is { Length: 64 } && hash.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f');
-    private static bool ValidPath(string path) => !string.IsNullOrEmpty(path) && !Path.IsPathRooted(path) &&
+    internal static bool ValidPath(string path) => !string.IsNullOrEmpty(path) && !Path.IsPathRooted(path) &&
         !path.Contains('\\') && !path.Contains(':') && path.Split('/').All(p => p is not ("" or "." or "..") && !VcsMetadata.Contains(p, StringComparer.OrdinalIgnoreCase));
     private static bool Managed(string path, string[] managed) => managed.Any(p => p.StartsWith('*')
         ? path.EndsWith(p[1..], StringComparison.OrdinalIgnoreCase)

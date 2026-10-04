@@ -21,7 +21,8 @@
     "storage": {
       "enum": [
         "ntfs-snapshot",
-        "git-snapshot"
+        "git-snapshot",
+        "plastic-snapshot"
       ]
     },
     "editor": {
@@ -66,10 +67,7 @@
       "if": {
         "properties": {
           "source": {
-            "enum": [
-              "none",
-              "plastic"
-            ]
+            "const": "none"
           }
         },
         "required": [
@@ -132,6 +130,106 @@
           "required": [
             "baseline"
           ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "plastic"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "oneOf": [
+          {
+            "properties": {
+              "storage": {
+                "const": "ntfs-snapshot"
+              },
+              "baseReference": {
+                "const": "snapshot"
+              }
+            },
+            "not": {
+              "required": [
+                "baseline"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "storage": {
+                "const": "plastic-snapshot"
+              },
+              "baseReference": {
+                "type": "string",
+                "pattern": "^[0-9]+@[^\\s]+$"
+              }
+            },
+            "required": [
+              "baseReference"
+            ],
+            "not": {
+              "required": [
+                "baseline"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "storage": {
+            "const": "plastic-snapshot"
+          }
+        },
+        "required": [
+          "storage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "const": "plastic"
+          }
+        },
+        "required": [
+          "source",
+          "baseReference"
+        ],
+        "not": {
+          "required": [
+            "baseline"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "libraryBasis": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "libraryBasis"
+        ]
+      },
+      "then": {
+        "properties": {
+          "storage": {
+            "enum": [
+              "git-snapshot",
+              "plastic-snapshot"
+            ]
+          }
         }
       }
     }

@@ -88,7 +88,8 @@
               "enum": [
                 "windows-vss-system",
                 "git-objects",
-                "owned-directory"
+                "owned-directory",
+                "plastic-revisions"
               ]
             },
             "sourcePath": {
@@ -113,7 +114,8 @@
               "enum": [
                 "filesystem-crash-consistent-no-application-writer",
                 "recorded-project-commit-raw-blobs",
-                "stopped-original-owned-directory"
+                "stopped-original-owned-directory",
+                "recorded-project-changeset-raw-revisions"
               ]
             }
           },
@@ -149,9 +151,25 @@
                   }
                 },
                 "else": {
-                  "properties": {
-                    "consistency": {
-                      "const": "filesystem-crash-consistent-no-application-writer"
+                  "if": {
+                    "properties": {
+                      "provider": {
+                        "const": "plastic-revisions"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "consistency": {
+                        "const": "recorded-project-changeset-raw-revisions"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "consistency": {
+                        "const": "filesystem-crash-consistent-no-application-writer"
+                      }
                     }
                   }
                 }

@@ -22,17 +22,19 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     {
         if (sourceKind is not ("git" or "none" or "plastic") || applicationKind is not ("unity" or "none"))
             throw new WorkspaceException("SourceSelectionUnsupported", "Select git, none or plastic and unity or none explicitly; no fallback is available.");
-        if (sourceKind is "none" or "plastic" && (storageMode != "ntfs-snapshot" || baselineId is not null || baseReference != "snapshot" || purpose != "task"))
+        if ((sourceKind == "none" || sourceKind == "plastic" && storageMode != "plastic-snapshot") && (storageMode != "ntfs-snapshot" || baselineId is not null || baseReference != "snapshot" || purpose != "task"))
             throw new WorkspaceException("SourceSelectionUnsupported", "Plain folders require an NTFS task and the snapshot basis.");
         if (storageMode == "git-snapshot" && (sourceKind != "git" || purpose != "task"))
             throw new WorkspaceException("SourceSelectionUnsupported", "git-snapshot requires a Git task with a fixed recorded commit.");
+        if (storageMode == "plastic-snapshot" && (sourceKind != "plastic" || purpose != "task" || baselineId is not null || baseReference == "snapshot"))
+            throw new WorkspaceException("SourceSelectionUnsupported", "plastic-snapshot requires an explicit recorded changeset and Plastic task.");
         if (editor && applicationKind == "none")
             throw new WorkspaceException("ApplicationUnsupported", "This ordinary folder has no selected application provider.");
-        if (generatedDirectoryId is not null && (storageMode != "git-snapshot" || sourceKind != "git"))
-            throw new WorkspaceException("GeneratedBasisUnsupported", "A generated directory reference currently requires git-snapshot.");
+        if (generatedDirectoryId is not null && (storageMode is not ("git-snapshot" or "plastic-snapshot")))
+            throw new WorkspaceException("GeneratedBasisUnsupported", "A generated directory reference requires a recorded VCS snapshot.");
         if (string.IsNullOrWhiteSpace(requestKey) || requestKey.Length > 128)
             throw new WorkspaceException("InvalidRequestKey", "Use a stable task key between 1 and 128 characters; reuse it across turns.");
-        if (storageMode is not ("git-checkout" or "refs-cow" or "ntfs-snapshot" or "git-snapshot"))
+        if (storageMode is not ("git-checkout" or "refs-cow" or "ntfs-snapshot" or "git-snapshot" or "plastic-snapshot"))
             throw new WorkspaceException("UnsupportedStorageMode", "Choose git-snapshot, ntfs-snapshot, refs-cow, or explicit git-checkout for a diagnostic workspace.");
         if (storageMode == "refs-cow" && baselineId is null || storageMode != "refs-cow" && baselineId is not null)
             throw new WorkspaceException("BaselineRequired", "Only refs-cow consumes a sealed baseline.");
