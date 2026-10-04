@@ -11,7 +11,7 @@ pwsh ./scripts/splinter.ps1 schema workspace.ensure
 pwsh ./scripts/splinter.ps1 workspace ensure --project <original> --key <stable-key> --source plastic --application unity --storage plastic-snapshot --base <changeset@repository@server> --home <same-volume-short-home> --library-basis <prepared-id>
 ```
 
-home은 모든 VCS 관리/Plastic 등록을 상속하거나 겹치지 않는다. VSS service/grant는 이 기록된 기준 경로의 전제가 아니다. 설치된 WinFsp와 일반 사용자 `cm`의 저장소 읽기 접근이 필요하다. 원본 `.plastic` 등 관리 root를 worker에서 제외하고 쓰기·rename도 차단한다. worker는 등록하지 않는 파일 작업공간이며 Plastic update/check-in/merge·인증/서버 설정을 제공하지 않는다. 원본 반영은 현재 거부한다.
+home은 모든 VCS 관리/Plastic 등록을 상속하거나 겹치지 않는다. VSS service/grant는 이 기록된 기준 경로의 전제가 아니다. 설치된 WinFsp와 일반 사용자 `cm`의 저장소 읽기 접근이 필요하다. 원본 `.plastic` 등 관리 root를 worker에서 제외하고 쓰기·rename도 차단한다. worker는 등록하지 않는 파일 작업공간이며 Plastic update/check-in/merge·인증/서버 설정을 제공하지 않는다. 전체/선택 로컬 반영은 [별도 계획/intent 계약](plastic-original-apply.md)을 따른다.
 
 기록된 tree의 모든 깊이에서 VCS 관리 entry를 거부한다. 실행 중 도구가 없는 nested `.git`/`.plastic` 경로를 조회하는 것은 ordinary not-found이며, 이 조회를 허용해 관리 entry의 기록이나 worker의 최상위 관리 root 쓰기를 허용하지 않는다.
 

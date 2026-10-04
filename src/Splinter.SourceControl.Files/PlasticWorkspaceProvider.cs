@@ -16,10 +16,12 @@ public interface IPlasticWorkspaceClient
     Task<PlasticWorkspaceLocation[]> ListAsync(CancellationToken ct = default);
 }
 
-public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorkspaceClient client, IPlasticRevisionClient? revisionClient = null) :
-    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider
+public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorkspaceClient client, IPlasticRevisionClient? revisionClient = null,
+    IOriginalFilePublisher? originalPublisher = null, IPlasticOriginalGuard? originalGuard = null) :
+    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider
 {
-    private readonly FileWorkspaceProvider files = new(store, revisionClient: revisionClient);
+    private readonly FileWorkspaceProvider files = new(store, originalPublisher, revisionClient, originalGuard ??
+        (client is IPlasticOriginalStateClient state ? new PlasticOriginalGuard(store, client, state, revisionClient ?? new PlasticRevisionClient()) : null));
     private string Control(WorkspaceRecord w) => store.ControlPath(w.Id);
     private static string Evidence(string control, string name) => Path.Combine(control, "plastic", name);
     private static WorkspaceException Invalid(string message) => new("PlasticCompatibilityInvalid", message);
@@ -34,7 +36,7 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
             !System.Guid.TryParseExact(identity.Guid, "D", out _) || identity.Type != "regular" || identity.Dynamic != "static")
             throw Invalid("Only the exact registered regular/static Plastic workspace root is supported.");
     }
-    private static string AdministrationHash(string root)
+    internal static string AdministrationHash(string root)
     {
         string directory = Path.Combine(root, ".plastic"), path = Path.Combine(directory, "plastic.workspace");
         WorkspaceStore.EnsurePlainPath(path);
@@ -102,7 +104,7 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
         }
         VerifyReceipt(w, control); await VerifyIsolationAsync(w, ct); await files.RegisterAsync(w, control, ct);
     }
-    private static PlasticSourceAdmission Admission(WorkspaceRecord w, string control, Func<string, Stream>? open = null)
+    internal static PlasticSourceAdmission Admission(WorkspaceRecord w, string control, Func<string, Stream>? open = null)
     {
         Require(w);
         var a = FileWorkspaceProvider.Read<PlasticSourceAdmission>(Evidence(control, "admission.json"), open);
@@ -149,6 +151,8 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
     public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw Invalid("No Plastic checkout or full-copy fallback is available.");
     public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string t, CancellationToken ct = default) => throw new WorkspaceException("SourceIntegrationUnsupported", "Plastic/Unity original application is not qualified; preserve an independent result.");
     public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) => throw Invalid("Use the sealed NTFS release lifecycle.");
+    public Task<OriginalApplyPlan> PlanOriginalAsync(WorkspaceRecord w, CancellationToken ct = default, string[]? paths = null) => files.PlanOriginalAsync(w, ct, paths);
+    public Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord w, string key, string digest, CancellationToken ct = default, string[]? paths = null) => files.ApplyOriginalAsync(w, key, digest, ct, paths);
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

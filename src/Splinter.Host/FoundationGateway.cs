@@ -38,7 +38,7 @@ public sealed class FoundationGateway(
         plasticCompatibility = new { mode = "regular/static-original; unregistered-isolated-file-workers", administration = "excluded-and-write-denied; no-client-registration-or-check-in",
             recordedBasis = "plastic-snapshot; fixed-changeset-raw-revisions; no-VSS-or-checkout-or-payload-disk-cache; first-full-hash-and-one-revision-chunk-proof; backward/interleaved-reopen-may-retransmit",
             library = "explicit-original-managed-Library-basis-and-private-ranges; same-lifecycle-as-Git",
-            originalApply = "unsupported", qualification = "docs/verification/plastic-compatibility.md; native qualification separate from fake lifecycle" },
+            originalApply = "plastic-snapshot; explicit-plan-intent-and-selection; stopped-original-windows-ntfs; no-server-mutation", qualification = "docs/verification/plastic-compatibility.md and docs/verification/plastic-original-apply.md; native qualification separate from fake lifecycle" },
         projectValidation = "agent-and-external-tools; checkpoint-does-not-claim-compile-or-test-success",
         developmentEntrypoint = "pwsh scripts/splinter-dev.ps1",
         storageAuthority = new { stage = "windows-service", protocolVersion = 1, normalCaller = "unelevated",

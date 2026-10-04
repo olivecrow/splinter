@@ -1,5 +1,9 @@
 # 검증 추적표
 
+## Recorded Plastic 원본 반영의 선택 단위 마감
+
+[POA 범위](plastic-original-apply.md)와 [후보별 직접 근거](../verification/plastic-original-apply.md)는 전체/선택 로컬 게시·원본/peer 보호·회수와 Unity import/원본 복원을 한정 마감한다. 실제 게시 후보와 마지막 불완전 asset/meta 삭제 거부 추가의 자동 자격을 구분한다. 실제 서버 잠금 생성·최종 후보의 새 재게시 묶음·OS 장애·기존 PPB MCP 테스트/release 실행 중첩 미확인은 유지한다. 구형 VSS Plastic와 과거 C: 보류를 해소한 것으로 읽지 않는다.
+
 ## 병렬 안정성의 선택 단위 마감
 
 [SP 확정 범위](stable-parallel-completion.md)와 [현재 후보 직접 근거](../verification/stable-parallel-completion.md)로 Editor 없는 CLI·파일 I/O 경계를 **scoped-complete-with-limitations** 마감했다. 이전 Unity/도구/대형/OS 자격과 C: 보류·전역 VSS unknown을 유지한다.

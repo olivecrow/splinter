@@ -2,6 +2,8 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "sourceIdentity": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "selectedPaths": { "type": "array", "minItems": 1, "maxItems": 512, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 1024 } },
     "version": {
       "const": 1
     },

@@ -121,14 +121,14 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
              string.IsNullOrWhiteSpace(generated.RelativePath) || generated.RelativePath.Contains('/') || generated.RelativePath.Contains('\\')) ||
             record.GeneratedDirectoryId is not null && record.GeneratedDirectory is null && record.Snapshot?.Attached == true)
             throw new WorkspaceException("GeneratedBasisMismatch", "Retain the task's exact generated-directory identity.");
-        if (record.SourceKind == "plastic" && (record.OriginalApply is not null || record.IntegratedRevision is not null || record.Phase is "integrating" or "integrated"))
+        if (record.SourceKind == "plastic" && record.StorageMode != "plastic-snapshot" && (record.OriginalApply is not null || record.IntegratedRevision is not null || record.Phase is "integrating" or "integrated"))
             throw new WorkspaceException("StateCorrupt", "Plastic original application is unavailable; preserve the unsupported state.");
         if (record.Discard is { } discard) discard.RequireMatch(record);
         else if (record.Phase is "discarding" or "discard-reclaim-pending" or "discarded" ||
             record.Snapshot?.Step.StartsWith("discard", StringComparison.Ordinal) == true)
             throw new WorkspaceException("DiscardIntentMismatch", "Preserve discard state: its durable intent is missing.");
         record.OriginalApply?.RequireMatch(record);
-        if (record.SourceKind == "none" &&
+        if (record.SourceKind is "none" or "plastic" &&
             (record.Phase is "integrating" or "integrated" && record.OriginalApply is null ||
              record.IntegratedRevision is not null && (record.OriginalApply?.Completed != true || record.IntegratedRevision != record.ResultRevision)))
             throw new WorkspaceException("OriginalApplyStateInvalid", "Preserve the original-apply record: its fixed intent or completion receipt is missing.");

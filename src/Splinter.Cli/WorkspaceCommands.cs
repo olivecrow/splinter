@@ -30,7 +30,7 @@ internal static class WorkspaceCommands
             var git = new GitWorkspaceProvider(storageProvider, store, new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver);
             var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver, new ManagedDirectoryBasis(store));
             var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store, new WindowsOriginalFilePublisher()),
-                new PlasticWorkspaceProvider(store, new PlasticWorkspaceClient()));
+                new PlasticWorkspaceProvider(store, new PlasticWorkspaceClient(), originalPublisher: new WindowsOriginalFilePublisher(allowPlasticAdministration: true)));
             return new(store, sources,
                 new SelectedApplicationProvider(new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners")))), storageProvider,
                 snapshots, preparationObserver, new WindowsWorkspaceDiscardProvider(sources, snapshots, new ManagedDirectoryBasis(store)));
@@ -112,25 +112,28 @@ internal static class WorkspaceCommands
         var integrateId = new Option<string>("--id") { Required = true };
         var integrateTarget = new Option<string>("--target"); var planOnly = new Option<bool>("--plan");
         var applyIntent = new Option<string>("--intent-key"); var planDigest = new Option<string>("--expected-plan-digest");
+        var applyPaths = new Option<string[]>("--path") { Description = "Select relative source paths; repeat for multiple selections. Omit for all changes.", AllowMultipleArgumentsPerToken = false };
         integrate.Options.Add(integrateId); integrate.Options.Add(integrateTarget); integrate.Options.Add(planOnly);
         integrate.Options.Add(applyIntent); integrate.Options.Add(planDigest); workspace.Subcommands.Add(integrate);
+        integrate.Options.Add(applyPaths);
         integrate.SetAction(async parse =>
         {
             const string command = "workspace.integrate"; select(command);
             string id = parse.GetValue(integrateId)!; string? target = parse.GetValue(integrateTarget);
             bool plan = parse.GetValue(planOnly); string? intent = parse.GetValue(applyIntent), digest = parse.GetValue(planDigest);
-            if (!Validate(command, new { id, target, plan, intentKey = intent, expectedPlanDigest = digest })) return;
+            string[]? paths = parse.GetValue(applyPaths); if (paths is { Length: 0 }) paths = null;
+            if (!Validate(command, new { id, target, plan, intentKey = intent, expectedPlanDigest = digest, paths })) return;
             var record = new WorkspaceStore(Home(parse)).Get(id); var runtime = Runtime(parse);
             WorkspaceView view;
-            if (record.SourceKind == "none")
+            if (record.SourceKind is "none" or "plastic")
             {
                 if (target != "original" || !plan && (intent is null || digest is null))
                     throw new WorkspaceException("OriginalApplyRequestInvalid", "Use --target original --plan, then the explicit intent key and exact returned plan digest.");
-                view = plan ? await runtime.PlanOriginalAsync(id, ct) : await runtime.ApplyOriginalAsync(id, intent!, digest!, ct);
+                view = plan ? await runtime.PlanOriginalAsync(id, ct, paths) : await runtime.ApplyOriginalAsync(id, intent!, digest!, ct, paths);
             }
             else
             {
-                if (plan || intent is not null || digest is not null)
+                if (plan || intent is not null || digest is not null || paths is not null)
                     throw new WorkspaceException("OriginalApplyRequestInvalid", "Original-apply options belong to the selected plain-folder source only.");
                 view = await runtime.IntegrateAsync(id, target ?? "development", ct);
             }

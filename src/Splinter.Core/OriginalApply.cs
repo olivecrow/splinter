@@ -25,8 +25,17 @@ public sealed record OriginalApplyPlan([property: JsonRequired] int Version, [pr
     [property: JsonRequired] string ProjectPath, [property: JsonRequired] string ProjectIdentity,
     [property: JsonRequired] OriginalApplyChange[] Changes, [property: JsonRequired] string[] Conflicts, [property: JsonRequired] string Digest)
 {
-    public string ComputeDigest() => "sha256:" + Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(
-        new { Version, OwnerId, RequestDigest, Basis, Result, ProjectPath, ProjectIdentity, Changes, Conflicts })));
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? SourceIdentity { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string[]? SelectedPaths { get; init; }
+    public string ComputeDigest()
+    {
+        var content = new Dictionary<string, object?> { [nameof(Version)] = Version, [nameof(OwnerId)] = OwnerId,
+            [nameof(RequestDigest)] = RequestDigest, [nameof(Basis)] = Basis, [nameof(Result)] = Result,
+            [nameof(ProjectPath)] = ProjectPath, [nameof(ProjectIdentity)] = ProjectIdentity, [nameof(Changes)] = Changes, [nameof(Conflicts)] = Conflicts };
+        if (SourceIdentity is not null) content.Add(nameof(SourceIdentity), SourceIdentity);
+        if (SelectedPaths is not null) content.Add(nameof(SelectedPaths), SelectedPaths);
+        return "sha256:" + Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(content)));
+    }
 }
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class OriginalApplyStep
@@ -44,7 +53,12 @@ public sealed class OriginalApplyState
     [JsonRequired] public bool Completed { get; set; }
     public void RequireMatch(WorkspaceRecord w)
     {
-        if (Plan is null || Plan.Version != 1 || w.StorageMode != "ntfs-snapshot" || w.Purpose != "task" || w.SourceKind != "none" || w.ApplicationKind != "none" ||
+        bool plain = w.SourceKind == "none" && w.ApplicationKind == "none" && w.StorageMode == "ntfs-snapshot";
+        bool plastic = w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot" && w.ApplicationKind is "none" or "unity";
+        if (Plan is null || Plan.Version != 1 || w.Purpose != "task" || !plain && !plastic ||
+            plastic && (Plan.SourceIdentity is not { Length: 71 } || !Plan.SourceIdentity.StartsWith("sha256:", StringComparison.Ordinal) ||
+                Plan.SourceIdentity[7..].Any(c => c is not (>= '0' and <= '9' or >= 'a' and <= 'f'))) ||
+            plain && Plan.SourceIdentity is not null || Plan.SelectedPaths is { } selected && !ValidSelection(selected) ||
             Plan.OwnerId != w.Id || Plan.RequestDigest != w.RequestDigest || Plan.Basis != w.BaseRevision ||
             Plan.Result != w.ResultRevision || Plan.ProjectPath != w.ProjectPath ||
             string.IsNullOrWhiteSpace(IntentKey) || IntentKey.Length > 128 || Plan.Changes is null ||
@@ -65,6 +79,11 @@ public sealed class OriginalApplyState
                 throw new WorkspaceException("OriginalApplyStateInvalid", "Preserve incomplete payload publication receipts.");
         }
     }
+    public static bool ValidSelection(string[] paths) => paths.Length is > 0 and <= 512 &&
+        paths.All(p => !string.IsNullOrWhiteSpace(p) && p.Length <= 1024 && !p.Contains('\\') && !p.Contains(':') && !p.Contains('*') && !p.Contains('?') &&
+            p.Split('/').All(s => s.Length > 0 && s is not ("." or "..") && !s.StartsWith(".splinter-apply-", StringComparison.OrdinalIgnoreCase) &&
+                !new[] { ".git", ".plastic", ".hg", ".svn" }.Contains(s, StringComparer.OrdinalIgnoreCase))) &&
+        paths.Distinct(StringComparer.OrdinalIgnoreCase).Count() == paths.Length && paths.SequenceEqual(paths.Order(StringComparer.Ordinal));
     private static bool Valid(OriginalApplyChange? c) => c is not null && !string.IsNullOrWhiteSpace(c.Path) &&
         !c.Path.Contains('\\') && !c.Path.Contains(':') && c.Path.Split('/').All(p => p.Length > 0 && p is not ("." or "..") &&
             !p.StartsWith(".splinter-apply-", StringComparison.OrdinalIgnoreCase)) &&
@@ -82,8 +101,8 @@ public sealed class OriginalApplyState
 }
 public interface IOriginalApplyProvider
 {
-    Task<OriginalApplyPlan> PlanOriginalAsync(WorkspaceRecord workspace, CancellationToken ct = default);
-    Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord workspace, string intentKey, string expectedPlanDigest, CancellationToken ct = default);
+    Task<OriginalApplyPlan> PlanOriginalAsync(WorkspaceRecord workspace, CancellationToken ct = default, string[]? paths = null);
+    Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord workspace, string intentKey, string expectedPlanDigest, CancellationToken ct = default, string[]? paths = null);
 }
 // Native path/handle operations live behind this port, never in Core.
 public interface IOriginalFilePublisher

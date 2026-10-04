@@ -17,8 +17,10 @@ public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWork
     public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default) => For(w).InspectAsync(w, ct);
     public Task<string> CheckpointAsync(WorkspaceRecord w, string message, CancellationToken ct = default) => For(w).CheckpointAsync(w, message, ct);
     public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string target, CancellationToken ct = default) => For(w).IntegrateAsync(w, target, ct);
-    public Task<OriginalApplyPlan> PlanOriginalAsync(WorkspaceRecord w, CancellationToken ct = default) => files.PlanOriginalAsync(w, ct);
-    public Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord w, string key, string digest, CancellationToken ct = default) => files.ApplyOriginalAsync(w, key, digest, ct);
+    private IOriginalApplyProvider Original(WorkspaceRecord w) => For(w) as IOriginalApplyProvider ??
+        throw new WorkspaceException("SourceIntegrationUnsupported", "The selected source has no conditional original publisher.");
+    public Task<OriginalApplyPlan> PlanOriginalAsync(WorkspaceRecord w, CancellationToken ct = default, string[]? paths = null) => Original(w).PlanOriginalAsync(w, ct, paths);
+    public Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord w, string key, string digest, CancellationToken ct = default, string[]? paths = null) => Original(w).ApplyOriginalAsync(w, key, digest, ct, paths);
     public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) => For(w).ReleaseAsync(w, ct);
     public Task<string> PreflightAsync(WorkspaceRecord w, CancellationToken ct = default) => Snapshot(w).PreflightAsync(w, ct);
     public Task RegisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Snapshot(w).RegisterAsync(w, c, ct);

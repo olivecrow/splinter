@@ -2,7 +2,7 @@
 
 `--storage git-snapshot --source git`은 [Git 프로젝트 기준본](git-project-basis.md)의 새 경로다. 기록된 commit만 사용하며 VSS 서비스/grant 없이 기존 WinFsp에서 실행한다. ignored/private 소스는 제외한다. Library 생략 시 새 private 데이터이고, [원본 Library 참조](git-library-reference.md)는 승인한 전환 뒤 반환 basis id를 `--library-basis`에 명시한다. 아래 등록·VSS·warm Library 전제는 `ntfs-snapshot`의 기존 자격이며 새 Git 경로로 승계하지 않는다. 실제 Editor 없는 Git 자격과 Unity/대형 NotRun은 [별도 검증](verification/git-project-basis.md)을 따른다.
 
-`--source plastic`의 regular/static 원본과 등록하지 않는 파일 작업공간은 [Plastic 계약](plastic-compatibility.md)을 따른다. 기록된 버전은 [프로젝트 기준본](plastic-project-basis.md)의 `--storage plastic-snapshot --base <changeset@repository@server>`로 선택하며 VSS service/grant 없이 WinFsp와 일반 사용자 cm 접근을 사용한다. 관리 정보/등록을 상속하지 않는 짧은 home·정확한 기준·현재 검증을 확인한다. Library는 명시적 prepare/반환 id/restore로 연결하며 원본 반영은 거부한다.
+`--source plastic`의 regular/static 원본과 등록하지 않는 파일 작업공간은 [Plastic 계약](plastic-compatibility.md)을 따른다. 기록된 버전은 [프로젝트 기준본](plastic-project-basis.md)의 `--storage plastic-snapshot --base <changeset@repository@server>`로 선택하며 VSS service/grant 없이 WinFsp와 일반 사용자 cm 접근을 사용한다. 관리 정보/등록을 상속하지 않는 짧은 home·정확한 기준·현재 검증을 확인한다. Library는 명시적 prepare/반환 id/restore로 연결한다. [원본 전체/선택 반영](plastic-original-apply.md)은 원본 Editor 정상 종료 후 별도 고정 계획/intent로 진행하며 서버 이력은 변경하지 않는다.
 
 현재 `--source none`의 일반 폴더 경로와 v2 상태/서비스 패키지는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. Editor 없는 원본 반영은 [계획/intent 사용법](plain-folder-original-apply.md)의 정확한 digest·최신 서비스 guard와 작은 Editor 없는 제품 A/B의 한정 자격을 확인한다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
 

@@ -94,13 +94,13 @@
     },
     {
       "id": "workspace.integrate",
-      "description": "Integrate an exact Git result into its clean branch, or explicitly plan/apply a plain-folder result to its fixed original (editorless Windows NTFS).",
-      "cliUsage": "splinter workspace integrate --id <id> [--target <Git-branch|original>] [--plan | --intent-key <key> --expected-plan-digest <digest>] [--home <state-root>]",
+      "description": "Integrate an exact Git result into its clean branch, or plan/apply full or selected plain-folder/recorded-Plastic changes to their fixed original on Windows NTFS.",
+      "cliUsage": "splinter workspace integrate --id <id> [--target <Git-branch|original>] [--plan | --intent-key <key> --expected-plan-digest <digest>] [--path <relative-path> ...] [--home <state-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-integrate-request",
       "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "plan:read-only; Git:original-target-merge; plain-folder:conditional-per-path-publication",
-      "retry": "Git:same-workspace-and-target; plain-folder:exact-intent-and-plan-digest"
+      "sideEffects": "plan:read-only; Git:original-target-merge; files:conditional-per-path-publication; Plastic:no-server-mutation",
+      "retry": "Git:same-workspace-and-target; files:exact-intent-and-plan-digest-and-selection"
     },
     {
       "id": "workspace.release",

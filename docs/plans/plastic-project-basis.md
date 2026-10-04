@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 공통·VCS 없음 | 생성/재개·격리·결과 보존·release/discard와 작은 Editor 없는 원본 반영을 한정 마감. 기준본은 기존 VSS 경로 | 기본 수명주기를 다시 구현하지 않는다. VCS 없는 프로젝트 기준본 전환은 사용자 결정대로 후순위 |
 | Git | fixed commit reader·범위 저장·원본 Library 참조·실제 MCP/리소스/씬/current-state tests·결과/회수·Library 복원을 한정 마감 | 공통 계약과 Library 구현을 재사용한다. [GL 검증](../verification/git-library-reference.md)의 RAM 절감 미확인·MCP 실패 상세 소실·준비/복원 비용과 전체 peak unknown은 유지 |
-| Plastic | regular/static 등록·관리 root 격리·VSS 기반 A/B·독립 파일 결과·release/discard를 한정 마감 | changeset reader와 Library 연결은 구현했으며 자동/실제 자격은 PPB 검증을 따른다. 원본 반영은 현재 명시적 거부이며 이번 기준본 전환과 구분 |
+| Plastic | regular/static 등록·관리 root 격리·VSS 기반 A/B·독립 파일 결과·release/discard를 한정 마감 | changeset reader와 Library 연결의 자격은 PPB를 따른다. 원본 전체/선택 반영은 별도 POA 계약/자격이며 기준본 전환과 구분 |
 
 이 Plastic 경로를 한정 마감했다. 이 단위의 마감을 VCS 없는 새 기준본·Plastic 원본 반영·실제 Unity RAM 절감까지 완성한 것으로 표시하지 않는다. 기존 C: VSS pending도 별도 [회수 근거](../verification/plastic-compatibility.md#과거-c-작업의-승인된-동일-요청-회수-재시도-2026-10-04)를 유지한다.
 
@@ -49,7 +49,7 @@ PPB-01/02부터 연결하고 Library의 변경된 경계를 작은 native로 확
 
 ## 이번 단위 뒤에 남는 작업
 
-- **Plastic 원본 반영**: 전체/선택 변경을 로컬에 적용하는 계약은 별도 미구현이다. 이번에는 독립 파일 결과를 제공하고 기존 `workspace integrate`의 사전 거부를 유지한다. 이후 실제 필요에 맞춰 명시적 대상·3자 비교·Plastic 관리 identity/dirty/잠금·Unity 원본 Editor·부분 게시 복구를 확정한다. VCS check-in/merge는 AI와 기존 도구의 책임이다.
+- **Plastic 원본 반영**: [후속 고정 범위](plastic-original-apply.md)가 전체/선택 로컬 게시·3자 비교·관리 identity/잠금·원본 Editor 보호·부분 게시 복구를 소유한다. PPB의 독립 결과 자격으로 반영 성공을 승계하지 않는다. VCS check-in/merge는 AI와 기존 도구의 책임이다.
 - **VCS 없는 프로젝트의 새 기준본**: 사용자 결정대로 후순위다. 기존 VSS 수명주기와 일반 폴더 원본 반영은 유지한다. Library 기능이 공통 계약이라는 사실을 `source=none`의 현재 연결/자격으로 승계하지 않는다.
 - **과거 VSS의 회수 제약**: 기존 C: pending과 비소유 snapshot 보호는 별도 문제다. 새 Plastic 기준본의 VSS 사용 0으로 과거 snapshot이 회수됐다고 표시하지 않는다.
 - **추가 지원·성능**: Gluon/partial/dynamic·혼합/중첩 VCS·Plastic 서버 이력 변경·전용 installer/service/grant·OS/ARM/대형 전체·Play/build·일반 RAM 절감 연구·새 HTML 보고서는 포함하지 않는다. 실제 사용의 안전 결함/차단이나 명시적 요구가 생기면 필요한 단위를 다시 선택한다.

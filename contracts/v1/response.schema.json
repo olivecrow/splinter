@@ -801,7 +801,7 @@
             "reconcile-owned-state",
             "owned-source-commit",
             "original-target-merge",
-            "plan:read-only; Git:original-target-merge; plain-folder:conditional-per-path-publication",
+            "plan:read-only; Git:original-target-merge; files:conditional-per-path-publication; Plastic:no-server-mutation",
             "owned-editor-and-worktree-removal",
             "owned-editor-start",
             "owned-editor-compile",
@@ -822,7 +822,7 @@
             "new-evidence-path; resume-with-original-workspace.ensure",
             "same-workspace-and-source",
             "same-workspace-and-target",
-            "Git:same-workspace-and-target; plain-folder:exact-intent-and-plan-digest",
+            "Git:same-workspace-and-target; files:exact-intent-and-plan-digest-and-selection",
             "idempotent-release",
             "same-workspace",
             "same-pending-request",
@@ -969,7 +969,7 @@
         },
         "plasticCompatibility": {
           "type":"object", "additionalProperties":false, "required":["mode","administration","originalApply","qualification"],
-          "properties": {"mode":{"type":"string"},"administration":{"type":"string"},"originalApply":{"const":"unsupported"},"qualification":{"type":"string"},"recordedBasis":{"type":"string"},"library":{"type":"string"}}
+          "properties": {"mode":{"type":"string"},"administration":{"type":"string"},"originalApply":{"const":"plastic-snapshot; explicit-plan-intent-and-selection; stopped-original-windows-ntfs; no-server-mutation"},"qualification":{"type":"string"},"recordedBasis":{"type":"string"},"library":{"type":"string"}}
         },
         "gitProjectBasis": {
           "type": "object",

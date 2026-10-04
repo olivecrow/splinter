@@ -53,7 +53,7 @@ private Mutation의 기본값 JSON은 생략하고 명시적 정리/후보에서
 | `workspace ensure/list/status` | NTFS 생성/같은 요청 재개·저장 목록·소유 자원 관측 |
 | `workspace status --verify-source/--audit-source` | 현재 내용 hash 확인/전체 감사 |
 | `workspace checkpoint` | 소유 Editor 정상 stop·안정된 소스 checkpoint·독립 결과. 컴파일/테스트 성공 불필요 |
-| `workspace integrate` | Git의 정확한 결과·깨끗한 branch merge 또는 editorless 일반 폴더의 `--target original --plan`/고정 intent·digest 조건부 게시 |
+| `workspace integrate` | Git의 정확한 결과·깨끗한 branch merge 또는 일반 폴더/recorded Plastic의 `--target original --plan`/고정 intent·digest·선택 경로 조건부 NTFS 게시 |
 | `workspace compact` | 정상 stop/unmount·seal·명시적 예산으로 private 저널 정리 |
 | `workspace release/discard` | 독립 결과 보존 뒤 회수/명시적 결과 폐기. peer와 공유 의존성 보호 |
 | `library prepare/status/restore` | 명시적으로 허용된 원본 Library의 같은 볼륨 이동·원본/A/B 범위 저장·마지막 일반 NTFS 복원. [계약](git-library-reference.md) |
@@ -88,6 +88,6 @@ locked restore·Release·자동 계약/fake/Git/Windows 회귀를 수행한다. 
 
 ## 다음 구현 경계
 
-[구현 계획](plans/implementation-plan.md)을 따른다. VCS 중립 계약·일반 폴더의 기본 수명주기·기존 Git 사용 환경의 보호 경계는 작은 A/B 한 묶음의 제한을 명시해 마감했다. [일반 폴더의 안전한 원본 반영](plain-folder-original-apply.md)의 구현·자동 파일 시험과 작은 Editor 없는 제품 A/B 한정 마감을 구분한다. [Plastic 호환 계약](plastic-compatibility.md)은 별도로 연결하고 작은 T: A/B의 마지막 회수까지 한정 마감했다. 선행 C: 회수 보류·외부 CLI 발견 실패는 [PC 검증](verification/plastic-compatibility.md)을 따른다. Plastic 원본 반영과 외부 도구의 전체 인계 자격은 후속이다. 저장/메모리는 실제 관측 병목만 고른다. 마감한 Git 기반 M0·대형 PV·전체 장애 카탈로그를 자동 재개하지 않는다.
+[구현 계획](plans/implementation-plan.md)을 따른다. VCS 중립 계약·일반 폴더의 기본 수명주기·기존 Git 사용 환경의 보호 경계는 작은 A/B 한 묶음의 제한을 명시해 마감했다. [일반 폴더의 안전한 원본 반영](plain-folder-original-apply.md)의 구현·자동 파일 시험과 작은 Editor 없는 제품 A/B 한정 마감을 구분한다. [Plastic 호환 계약](plastic-compatibility.md)은 별도로 연결하고 작은 T: A/B의 마지막 회수까지 한정 마감했다. 선행 C: 회수 보류·외부 CLI 발견 실패는 [PC 검증](verification/plastic-compatibility.md)을 따른다. recorded Plastic의 [전체/선택 원본 반영](plastic-original-apply.md)은 [별도 한정 자격](verification/plastic-original-apply.md)을 따른다. 외부 도구의 전체 인계 자격은 필요한 입력에서 별도로 확인한다. 저장/메모리는 실제 관측 병목만 고른다. 마감한 Git 기반 M0·대형 PV·전체 장애 카탈로그를 자동 재개하지 않는다.
 
 Plastic의 `plastic-snapshot`은 `Splinter.SourceControl.Files`의 고정 revision reader와 기존 Windows overlay/공통 Library dependency를 연결한다. 현재 계약과 자격은 [프로젝트 기준본](plastic-project-basis.md)·[검증](verification/plastic-project-basis.md)을 따른다. 원본 반영·새 Plastic 등록/check-in·서버 pin은 제공하지 않는다.

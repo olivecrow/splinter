@@ -1,5 +1,7 @@
 # 문서 지도
 
+[Plastic 전체/선택 원본 반영](plastic-original-apply.md)의 현재 계약, [고정 범위](plans/plastic-original-apply.md), [자격](verification/plastic-original-apply.md)을 구분한다.
+
 현재 구현은 아래 기능 문서에서, 축소한 후속 책임은 계획 문서에서 확인한다. 계획은 프로그램 구현·AI 사용 절차·필요 시 지원 검증·구현 제외를 구분한다. 검증 기록은 지정한 입력·후보의 근거이며 현재 코드의 자동 통과 선언이나 미완성 기능의 수가 아니다.
 
 ## 현재 계약과 사용법

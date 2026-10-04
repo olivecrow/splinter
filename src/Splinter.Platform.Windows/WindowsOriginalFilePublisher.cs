@@ -13,23 +13,26 @@ namespace Splinter.Platform.Windows;
 public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
 {
     private readonly Action<string, int>? boundary;
-    public WindowsOriginalFilePublisher() { }
-    internal WindowsOriginalFilePublisher(Action<string, int> boundary) => this.boundary = boundary;
+    private readonly bool allowPlasticAdministration;
+    public WindowsOriginalFilePublisher(bool allowPlasticAdministration = false) => this.allowPlasticAdministration = allowPlasticAdministration;
+    internal WindowsOriginalFilePublisher(Action<string, int> boundary, bool allowPlasticAdministration = false)
+    { this.boundary = boundary; this.allowPlasticAdministration = allowPlasticAdministration; }
     public string RootIdentity(string project)
     {
-        using var guard = new Guard(project, []);
+        using var guard = new Guard(project, [], allowPlasticAdministration);
         return Id(guard.Root);
     }
     public OriginalFileObservation? Observe(string project, string relativePath, CancellationToken ct = default)
     {
-        using var guard = new Guard(project, []);
+        using var guard = new Guard(project, [], allowPlasticAdministration);
         return guard.Observe(relativePath, ct);
     }
 
     public void Publish(OriginalApplyState state, Func<OriginalFileVersion, Stream> openPayload, Action persist, CancellationToken ct = default)
     {
         var plan = state.Plan;
-        using var guard = new Guard(plan.ProjectPath, plan.Changes.Where(c => c.Before?.Kind == "directory" && c.After is null).Select(c => c.Path).ToArray());
+        if (allowPlasticAdministration && plan.SourceIdentity is null) throw Conflict("An explicit Plastic source guard is required.");
+        using var guard = new Guard(plan.ProjectPath, plan.Changes.Where(c => c.Before?.Kind == "directory" && c.After is null).Select(c => c.Path).ToArray(), allowPlasticAdministration);
         if (Id(guard.Root) != plan.ProjectIdentity) throw Conflict("The physical original root changed.");
         string intent = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(state.IntentKey)))[..24];
         string Prefix(int i) => $".splinter-apply-{plan.OwnerId}-{intent}-{i}";
@@ -162,7 +165,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
         private readonly HashSet<string> deleteDirectories;
         private readonly string project;
         public SafeFileHandle Root { get; }
-        public Guard(string project, string[] deleteDirectories)
+        public Guard(string project, string[] deleteDirectories, bool allowPlasticAdministration)
         {
             if (!OperatingSystem.IsWindows()) throw new WorkspaceException("OriginalApplyUnsupported", "Conditional publication requires Windows NTFS.");
             this.project = Path.GetFullPath(project);
@@ -179,13 +182,15 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
                 if (fs.ToString() != "NTFS") throw new WorkspaceException("OriginalApplyUnsupported", "The fixed original must stay on NTFS.");
                 for (string? p = this.project; p is not null; p = Path.GetDirectoryName(p))
                     foreach (string vcs in new[] { ".git", ".plastic", ".hg", ".svn" })
-                        if (Present(Path.Combine(p, vcs))) throw new WorkspaceException("VcsMetadataUnsupported", "VCS administration requires its explicit compatibility boundary.");
+                        if (Present(Path.Combine(p, vcs)) && !(allowPlasticAdministration && vcs == ".plastic" && p == this.project))
+                            throw new WorkspaceException("VcsMetadataUnsupported", "VCS administration requires its explicit compatibility boundary.");
             }
             catch { Dispose(); throw; }
         }
         private string Full(string relative)
         {
             if (string.IsNullOrEmpty(relative) || relative.Split('/').Any(p => p.Length == 0 || p is "." or ".." ||
+                new[] { ".git", ".plastic", ".hg", ".svn" }.Contains(p, StringComparer.OrdinalIgnoreCase) ||
                 p.EndsWith(' ') || p.EndsWith('.') || p.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || p.Length > 180 ||
                 p.Split('.')[0].ToUpperInvariant() is "CON" or "PRN" or "AUX" or "NUL" or "COM1" or "COM2" or "COM3" or "COM4" or "COM5" or "COM6" or "COM7" or "COM8" or "COM9" or "LPT1" or "LPT2" or "LPT3" or "LPT4" or "LPT5" or "LPT6" or "LPT7" or "LPT8" or "LPT9"))
                 throw new WorkspaceException("OriginalApplyUnsupported", "Preserve unsupported publication path names.");

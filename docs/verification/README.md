@@ -1,5 +1,7 @@
 # 검증 안내와 보존 근거
 
+[Plastic 원본 반영](plastic-original-apply.md)은 recorded 기준의 전체/선택 게시, 등록·잠금·Editor 보호와 같은 intent 복구의 별도 자격이다.
+
 [Unity 실제 C/S 비교](unity-live-comparison.md)와 [HTML 보고서](../../reports/unity-live-comparison-20261003.html)는 Splinter를 전혀 사용하지 않은 Codex 앱 worktree와 제품 workspace의 로컬 L + A/B를 실제 실행했다. 지정 소유 파일 할당·독립 Editor/provider 메모리·격리/같은 작업 재개·B 지속은 확인했다. 전체 물리/VSS 귀속·최소 RAM은 unknown이며, 같은 home의 과거 기록 필수 필드 누락으로 마지막 snapshot 회수는 Partial다. 이전 SF/PV의 전체 지원 상태를 변경하지 않는다.
 
 [Unity 병렬 편집 검증](unity-parallel-editor-validation.md)은 S와 Splinter를 사용하지 않은 C A/B의 호출별 MCP 대상·텍스처/importer·씬 저장/재로드·현재 상태 EditMode 테스트·A 전체/B 선택 반영·원본 Unity 확인과 정리를 scoped-complete-with-limitations로 마감한다. 승인한 후속에서 C/S의 실제 MCP 테스트 프레임 겹침·reload 뒤 metadata/상세 결과 경계와 명시적 재연결·C checkout/Git 등록/부모 전체 회수까지 확인했다. 파일 할당 snapshot 감소와 실제 Editor RAM 절감 미확인, 전체 물리 peak/VSS 작업별 귀속 unknown을 구분한다. 과거 초기화/결과 유실·순차 처리·S 보호 거부/명시적 재시도와 Safe Mode를 유발한 후속 입력 복사 실수/정정 비용은 유지한다. [기존 HTML](../../reports/unity-parallel-editor-validation-20261003.html)은 S까지의 기록이며 후속은 텍스트다. 승인한 73개 terminal 기록 보존 이동으로 해소한 앞선 비교 A/B와, 별도 [과거 C: Plastic](plastic-compatibility.md)의 실제 비소유 snapshot 격리 pending을 구분한다. 정리 지시를 승인 부재로 재해석하지 않는다.
