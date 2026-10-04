@@ -9,8 +9,8 @@ using static Splinter.SourceControl.Git.GitObjectSnapshotProvider;
 namespace Splinter.SourceControl.Git;
 
 // cat-file streams raw object bytes, including packed objects. A requested range
-// is staged until the entire blob hash has verified. Scratch is bounded, there
-// is no read-to-disk cache; full-blob decoding cost is intentionally observable.
+// is staged until a full blob proof or its verified chunk proofs match. Only
+// one blob's bounded proof and one 64KiB chunk are retained, never disk payload.
 public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
 {
     public SnapshotReference Snapshot { get; }
@@ -22,6 +22,13 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     private Process? reader;
     private Task<string>? stderr;
     private bool disposed;
+    private const int ChunkBytes = 65536, MaxProofBytes = 4 * 1024 * 1024;
+    private string? provedObject;
+    private byte[]? chunkProofs;
+    private readonly byte[] chunk = new byte[ChunkBytes];
+    private long chunkOffset = -1, streamPosition;
+    private int chunkLength;
+    private bool streaming;
     public long DecodedBlobBytes { get; private set; }
 
     internal GitObjectSnapshotTree(SnapshotReference snapshot, string tree, string revision, string reference, Func<SnapshotObservation> health)
@@ -55,7 +62,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
             Add(new(path, false, length, (uint)FileAttributes.Archive, timestamp, timestamp, timestamp));
             blobs.Add(path, fields[2]);
         }
-        foreach (string subtree in subtrees) VerifyObject(snapshot.RootPath, subtree, "tree");
+        VerifySubtrees(snapshot.RootPath, subtrees);
         // metadata listing uses the fixed tree, never the branch or mutable index.
         _ = revision; _ = reference;
     }
@@ -98,6 +105,46 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         if (observed.Id != Snapshot.Id || observed.Available != true)
             throw Failure(observed.FailureCode ?? "SnapshotObservationUnknown", "Preserve this task's immutable object basis.");
     }
+    private static void VerifySubtrees(string common, IReadOnlyCollection<string> objects)
+    {
+        if (objects.Count == 0) return;
+        using var process = Process.Start(StartInfo(common, ["cat-file", "--batch"])) ?? throw Failure("GitBasisUnavailable", "Git did not start.");
+        var error = process.StandardError.ReadToEndAsync();
+        using var timeout = new Timer(_ => { try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } },
+            null, TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
+        byte[] scratch = ArrayPool<byte>.Shared.Rent(ChunkBytes);
+        try
+        {
+            foreach (string objectId in objects)
+            {
+                process.StandardInput.Write(objectId + "\n"); process.StandardInput.Flush();
+                var output = process.StandardOutput.BaseStream;
+                string[] header = Header(output).Split(' ');
+                if (header.Length != 3 || header[0] != objectId || header[1] != "tree" ||
+                    !long.TryParse(header[2], NumberStyles.None, CultureInfo.InvariantCulture, out long length) || length < 0)
+                    throw Failure("GitBasisObjectInvalid", "The fixed subtree header is invalid.");
+                using var hash = IncrementalHash.CreateHash(objectId.Length == 40 ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256);
+                hash.AppendData(Encoding.ASCII.GetBytes("tree " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
+                for (long position = 0; position < length;)
+                {
+                    int n = (int)Math.Min(ChunkBytes, length - position);
+                    output.ReadExactly(scratch.AsSpan(0, n)); hash.AppendData(scratch.AsSpan(0, n)); position += n;
+                }
+                if (output.ReadByte() != '\n' || Convert.ToHexStringLower(hash.GetHashAndReset()) != objectId)
+                    throw Failure("GitBasisObjectInvalid", "The fixed subtree hash failed; preserve the object store and receipt.");
+            }
+            process.StandardInput.Close();
+            if (!process.WaitForExit(1000)) { process.Kill(entireProcessTree: true); process.WaitForExit(); }
+            _ = error.GetAwaiter().GetResult();
+            if (process.ExitCode != 0) throw Failure("GitBasisObjectInvalid", "The fixed subtree reader failed.");
+        }
+        catch (IOException) { throw Failure("GitBasisObjectInvalid", "The fixed subtree stream is incomplete."); }
+        finally
+        {
+            if (!process.HasExited) { process.Kill(entireProcessTree: true); process.WaitForExit(); }
+            ArrayPool<byte>.Shared.Return(scratch);
+        }
+    }
     public SnapshotEntry? Stat(string relativePath)
     { EnsureAvailable(); return entries.GetValueOrDefault(Normalize(relativePath)); }
     public IReadOnlyList<SnapshotEntry> List(string relativeDirectory)
@@ -118,41 +165,87 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         lock (readGate)
         {
             EnsureAvailable();
-            byte[] scratch = ArrayPool<byte>.Shared.Rent(65536), staged = ArrayPool<byte>.Shared.Rent(count);
+            byte[] staged = ArrayPool<byte>.Shared.Rent(count);
             try
             {
-                if (reader is null)
-                {
-                    reader = Process.Start(StartInfo(Snapshot.RootPath, ["cat-file", "--batch"])) ?? throw Failure("GitBasisUnavailable", "Git reader did not start.");
-                    stderr = reader.StandardError.ReadToEndAsync();
-                }
-                var process = reader;
-                using var timeout = new Timer(_ => { try { if (!process.HasExited) process.Kill(); } catch (InvalidOperationException) { } },
+                using var timeout = new Timer(_ => { try { if (reader is { HasExited: false } current) current.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } },
                     null, TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
-                process.StandardInput.Write(objectId + "\n"); process.StandardInput.Flush();
-                var output = process.StandardOutput.BaseStream;
-                string header = Header(output);
-                if (header != objectId + " blob " + length.ToString(CultureInfo.InvariantCulture))
-                    throw Failure("GitBasisObjectInvalid", "The fixed blob is missing or its header changed.");
-                using var hash = IncrementalHash.CreateHash(objectId.Length == 40 ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256);
-                hash.AppendData(Encoding.ASCII.GetBytes("blob " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
-                for (long position = 0; position < length;)
+                if (provedObject != objectId)
                 {
-                    int n = output.Read(scratch, 0, (int)Math.Min(65536, length - position));
-                    if (n == 0) throw Failure("GitBasisObjectInvalid", "A fixed blob ended before its recorded length.");
-                    hash.AppendData(scratch.AsSpan(0, n)); DecodedBlobBytes += n;
-                    long begin = Math.Max(position, offset), end = Math.Min(position + n, offset + count);
-                    if (end > begin) scratch.AsSpan((int)(begin - position), (int)(end - begin)).CopyTo(staged.AsSpan((int)(begin - offset)));
-                    position += n;
+                    ResetProof(streaming);
+                    long proofLength = ((length - 1) / ChunkBytes + 1) * 32;
+                    if (proofLength > MaxProofBytes) throw Failure("GitBasisUnsupported", "A recorded blob exceeds the bounded 8GiB chunk-proof limit.");
+                    byte[] proof = new byte[(int)proofLength];
+                    var output = BeginBlob(objectId, length);
+                    using var hash = IncrementalHash.CreateHash(objectId.Length == 40 ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256);
+                    hash.AppendData(Encoding.ASCII.GetBytes("blob " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
+                    for (long position = 0; position < length;)
+                    {
+                        int n = (int)Math.Min(ChunkBytes, length - position);
+                        output.ReadExactly(chunk.AsSpan(0, n)); DecodedBlobBytes += n;
+                        hash.AppendData(chunk.AsSpan(0, n));
+                        SHA256.HashData(chunk.AsSpan(0, n), proof.AsSpan((int)(position / ChunkBytes) * 32, 32));
+                        long begin = Math.Max(position, offset), end = Math.Min(position + n, offset + count);
+                        if (end > begin) chunk.AsSpan((int)(begin - position), (int)(end - begin)).CopyTo(staged.AsSpan((int)(begin - offset)));
+                        chunkOffset = position; chunkLength = n; position += n;
+                    }
+                    if (output.ReadByte() != '\n' || Convert.ToHexStringLower(hash.GetHashAndReset()) != objectId)
+                        throw Failure("GitBasisObjectInvalid", "The recorded blob hash failed; no requested bytes are published.");
+                    provedObject = objectId; chunkProofs = proof; streaming = false;
                 }
-                if (output.ReadByte() != '\n' || Convert.ToHexStringLower(hash.GetHashAndReset()) != objectId)
-                    throw Failure("GitBasisObjectInvalid", "The recorded blob hash failed; no requested bytes are published.");
+                else
+                {
+                    for (long at = offset; at < offset + count;)
+                    {
+                        LoadProvedChunk(objectId, length, at);
+                        int n = (int)Math.Min(offset + count - at, chunkOffset + chunkLength - at);
+                        chunk.AsSpan((int)(at - chunkOffset), n).CopyTo(staged.AsSpan((int)(at - offset))); at += n;
+                    }
+                }
                 staged.AsSpan(0, count).CopyTo(destination); return count;
             }
             catch (Exception ex) when (ex is IOException or InvalidOperationException or WorkspaceException)
-            { StopReader(); throw ex is WorkspaceException ? ex : Failure("GitBasisObjectInvalid", "The owned blob reader failed; preserve the basis and journal."); }
-            finally { ArrayPool<byte>.Shared.Return(scratch); ArrayPool<byte>.Shared.Return(staged); }
+            { ResetProof(); throw ex is WorkspaceException ? ex : Failure("GitBasisObjectInvalid", "The owned blob reader failed; preserve the basis and journal."); }
+            finally { ArrayPool<byte>.Shared.Return(staged); }
         }
+    }
+    private Stream BeginBlob(string objectId, long length)
+    {
+        if (streaming) StopReader();
+        if (reader is null)
+        {
+            reader = Process.Start(StartInfo(Snapshot.RootPath, ["cat-file", "--batch"])) ?? throw Failure("GitBasisUnavailable", "Git reader did not start.");
+            stderr = reader.StandardError.ReadToEndAsync();
+        }
+        reader.StandardInput.Write(objectId + "\n"); reader.StandardInput.Flush();
+        var output = reader.StandardOutput.BaseStream;
+        if (Header(output) != objectId + " blob " + length.ToString(CultureInfo.InvariantCulture)) throw Failure("GitBasisObjectInvalid", "The fixed blob is missing or its header changed.");
+        streamPosition = 0; streaming = true; return output;
+    }
+    private void LoadProvedChunk(string objectId, long length, long at)
+    {
+        if (at >= chunkOffset && at < chunkOffset + chunkLength) return;
+        if (!streaming || at < streamPosition) { BeginBlob(objectId, length); chunkOffset = -1; chunkLength = 0; }
+        var output = reader!.StandardOutput.BaseStream;
+        Span<byte> digest = stackalloc byte[32];
+        do
+        {
+            int n = (int)Math.Min(ChunkBytes, length - streamPosition);
+            output.ReadExactly(chunk.AsSpan(0, n)); DecodedBlobBytes += n;
+            SHA256.HashData(chunk.AsSpan(0, n), digest);
+            if (!digest.SequenceEqual(chunkProofs!.AsSpan((int)(streamPosition / ChunkBytes) * 32, 32))) throw Failure("GitBasisObjectInvalid", "The requested chunk does not match the fully verified fixed blob; no bytes are published.");
+            chunkOffset = streamPosition; chunkLength = n; streamPosition += n;
+        } while (at >= streamPosition);
+        if (streamPosition == length)
+        {
+            if (output.ReadByte() != '\n') throw Failure("GitBasisObjectInvalid", "The fixed blob framing changed.");
+            streaming = false;
+        }
+    }
+    private void ResetProof(bool stopReader = true)
+    {
+        if (stopReader) StopReader();
+        provedObject = null; chunkProofs = null; chunkOffset = -1; chunkLength = 0; streaming = false;
     }
     private static string Header(Stream stream)
     {
@@ -195,8 +288,8 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     private void StopReader()
     {
         if (reader is null) return;
-        try { reader.StandardInput.Close(); if (!reader.WaitForExit(1000)) { reader.Kill(); reader.WaitForExit(); } }
+        try { reader.StandardInput.Close(); if (!reader.WaitForExit(1000)) { reader.Kill(entireProcessTree: true); reader.WaitForExit(); } }
         finally { reader.Dispose(); reader = null; stderr = null; }
     }
-    public void Dispose() { lock (readGate) { StopReader(); disposed = true; } }
+    public void Dispose() { lock (readGate) { ResetProof(); disposed = true; } }
 }

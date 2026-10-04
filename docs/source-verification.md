@@ -2,7 +2,9 @@
 
 현재 `--source none`의 일반 폴더 경로와 v2 상태/서비스 패키지는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
 
-제품 `ntfs-snapshot`은 파일 단위 raw SHA-256과 Git 내용 hash를 같은 snapshot·provider 세대·소스 변경 이력에 묶어 재사용한다. 파일 크기·수정 시간·Git stat cache만으로 내용이 같다고 판단하지 않는다. 전체 fingerprint의 경로 정렬과 `source-fingerprint-v1` 값은 유지한다. ReFS/진단 backend는 기존 전체 raw 읽기 경로다.
+제품 `ntfs-snapshot`과 `git-snapshot`의 Git 어댑터는 파일 단위 raw SHA-256과 Git 내용 hash를 같은 snapshot·provider 세대·소스 변경 이력에 묶어 재사용한다. 파일 크기·수정 시간·Git stat cache만으로 내용이 같다고 판단하지 않는다. 전체 fingerprint의 경로 정렬과 `source-fingerprint-v1` 값은 유지한다. ReFS/진단 backend는 기존 전체 raw 읽기 경로다.
+
+range journal의 명시적 전체 raw hash는 pooled 1MiB buffer를 한 파일씩 재사용해 읽기 callback 수를 제한한다. 파일을 끝까지 읽는 SHA-256 값·취소/실패와 검사 전후 세대 guard는 유지하며 payload를 디스크에 저장하지 않는다. 작은 파일도 이 buffer를 재사용하고 파일 수에 비례하는 payload 배열을 만들지 않는다.
 
 ## 검증 흐름과 소유 경계
 

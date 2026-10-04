@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -62,7 +63,8 @@ public sealed partial class GitWorkspaceProvider
             else
             {
                 await using var stream = File.OpenRead(full);
-                fileHash = Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct));
+                fileHash = tracker is null ? Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct)) :
+                    await HashRangeSourceAsync(stream, ct);
                 payload += stream.Position; readFiles++;
             }
             string? gitHash = null;
@@ -156,6 +158,22 @@ public sealed partial class GitWorkspaceProvider
         {
             Inspection = inspection
         };
+    }
+
+    private static async Task<string> HashRangeSourceAsync(Stream stream, CancellationToken ct)
+    {
+        // The snapshot protocol already bounds each transfer to 1MiB. Use that
+        // bound for an explicit full-content hash instead of 4KiB OS callbacks.
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(1024 * 1024);
+        try
+        {
+            using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            int count;
+            while ((count = await stream.ReadAsync(buffer.AsMemory(0, 1024 * 1024), ct)) != 0)
+                digest.AppendData(buffer.AsSpan(0, count));
+            return Convert.ToHexStringLower(digest.GetHashAndReset());
+        }
+        finally { ArrayPool<byte>.Shared.Return(buffer); }
     }
 
     private static string QuoteGitPath(string path)

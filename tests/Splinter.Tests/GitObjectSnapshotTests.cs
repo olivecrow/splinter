@@ -34,6 +34,43 @@ public sealed class GitObjectSnapshotTests
     }
 
     [Fact]
+    public async Task SequentialSmallReadsUseLinearDecodingAndBackwardReadsKeepExactBytes()
+    {
+        using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
+        var snapshot = await f.Capture();
+        using var tree = f.Provider.OpenTree(snapshot, await f.Provider.ResolveReadAccessAsync(snapshot, ct),
+            () => new(snapshot.Id, true, null, 0, null));
+        byte[] actual = new byte[f.Data.Length];
+        for (int offset = 0; offset < actual.Length; offset += 4096)
+            Assert.Equal(4096, tree.Read("file.bin", offset, actual.AsSpan(offset, 4096)));
+        Assert.Equal(f.Data, actual);
+        Assert.InRange(tree.DecodedBlobBytes, f.Data.Length, 2L * f.Data.Length);
+        byte[] backwards = new byte[70000];
+        Assert.Equal(backwards.Length, tree.Read("file.bin", 12000, backwards));
+        Assert.Equal(f.Data.AsSpan(12000, backwards.Length).ToArray(), backwards);
+        Assert.Empty(Directory.GetFiles(f.Receipt, "*.bin", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public async Task CorruptRereadChunkAfterFullProofPublishesNoneOfTheRequestedRange()
+    {
+        using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
+        var snapshot = await f.Capture();
+        using var tree = f.Provider.OpenTree(snapshot, await f.Provider.ResolveReadAccessAsync(snapshot, ct));
+        tree.Read("file.bin", 0, new byte[16]);
+        string blob = await TestDirectory.Git(f.Source, "rev-parse", f.Revision + ":file.bin");
+        string objectPath = Path.Combine(f.Source, ".git", "objects", blob[..2], blob[2..]);
+        File.SetAttributes(objectPath, FileAttributes.Normal);
+        byte[] corrupt = f.Data.ToArray(); corrupt[65540] ^= 1;
+        using (var file = File.Create(objectPath))
+        using (var zlib = new ZLibStream(file, CompressionLevel.Fastest))
+        { zlib.Write(Encoding.ASCII.GetBytes("blob " + corrupt.Length + "\0")); zlib.Write(corrupt); }
+        byte[] destination = Enumerable.Repeat((byte)217, 70000).ToArray();
+        Assert.Equal("GitBasisObjectInvalid", Assert.Throws<WorkspaceException>(() => tree.Read("file.bin", 0, destination)).Code);
+        Assert.All(destination, b => Assert.Equal((byte)217, b));
+    }
+
+    [Fact]
     public async Task RangeJournalKeepsPrivateWritesAndReadsWithoutPayloadCopyOrDiskHydration()
     {
         using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
@@ -148,6 +185,19 @@ public sealed class GitObjectSnapshotTests
     }
 
     [Fact]
+    public async Task CorruptNestedTreeIsRejectedByTheBoundedBatchVerifier()
+    {
+        using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
+        var snapshot = await f.Capture(); var access = await f.Provider.ResolveReadAccessAsync(snapshot, ct);
+        string tree = await TestDirectory.Git(f.Source, "rev-parse", f.Revision + ":Assets");
+        string path = Path.Combine(f.Source, ".git", "objects", tree[..2], tree[2..]);
+        File.SetAttributes(path, FileAttributes.Normal);
+        using (var file = File.Create(path))
+        using (var zlib = new ZLibStream(file, CompressionLevel.Fastest)) zlib.Write(Encoding.ASCII.GetBytes("tree 0\0"));
+        Assert.Equal("GitBasisObjectInvalid", Assert.Throws<WorkspaceException>(() => f.Provider.OpenTree(snapshot, access)).Code);
+    }
+
+    [Fact]
     public async Task TreeMetadataCorruptionAndIncompleteReceiptsAreRejected()
     {
         using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
@@ -185,6 +235,8 @@ public sealed class GitObjectSnapshotTests
             await TestDirectory.Git(f.Source, "config", "user.email", "fixture@example.invalid");
             await File.WriteAllBytesAsync(Path.Combine(f.Source, "file.bin"), f.Data);
             await File.WriteAllTextAsync(Path.Combine(f.Source, ".gitignore"), "ignored/\n");
+            Directory.CreateDirectory(Path.Combine(f.Source, "Assets"));
+            await File.WriteAllTextAsync(Path.Combine(f.Source, "Assets", "nested.txt"), "fixed nested source\n");
             Directory.CreateDirectory(Path.Combine(f.Source, "ignored"));
             await File.WriteAllTextAsync(Path.Combine(f.Source, "ignored", "private.txt"), "not recorded");
             await TestDirectory.Git(f.Source, "add", "."); await TestDirectory.Git(f.Source, "commit", "-m", "basis");

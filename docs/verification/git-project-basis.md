@@ -1,6 +1,6 @@
 # Git 프로젝트 기준본 검증
 
-질문은 Git에 이미 기록된 프로젝트만을 불변 기준으로 읽고 VSS 없이 범위 작업공간을 유지/회수할 수 있는가다. [구현 범위](../plans/project-scoped-basis-and-reclamation-review.md)의 VP-01/02·VP-04/05의 Git 부분에 한정하며 Plastic·VCS 없는 전환·Unity Editor/Library/MCP·대형/ARM/OS 장애 행렬은 NotRun이다.
+질문은 Git에 이미 기록된 프로젝트만을 불변 기준으로 읽고 VSS 없이 범위 작업공간을 유지/회수할 수 있는가다. [구현 범위](../plans/project-scoped-basis-and-reclamation-review.md)의 VP-01/02·VP-04/05의 Git 부분에 한정한다. 아래 최초 구현 후보의 Unity Editor/Library/MCP는 NotRun이며, 후속 reader 수정과 실제 Unity A/B는 [별도 검증](git-unity-validation.md)이 소유한다. Plastic·VCS 없는 전환·대형/ARM/OS 장애 행렬로 승계하지 않는다.
 
 ## 자동 계약과 reader
 

@@ -27,7 +27,7 @@ public sealed class FoundationGateway(
         gitProjectBasis = new { storage = "git-snapshot", provider = "git-objects", scope = "recorded-project-commit-raw-blobs",
             ownership = "exact-owned-reachability-ref-and-reader-fence; no-shared-object-GC", initialPayloadCopiedBytes = 0, readCacheBytes = 0,
             boundaries = "clean-repository-root-at-requested-commit; regular-local-objects; no-VSS; no-working-tree-conversion; ignored-files-not-captured; private-generated-data",
-            readCost = "bounded-request-staging-and-64KiB-scratch; cat-file-full-blob-decode-and-hash-per-read; native-Git-memory-not-bounded-by-managed-scratch",
+            readCost = "first-full-blob-hash; subsequent-64KiB-chunk-proofs; one-blob-proof-max-4MiB-and-blob-max-8GiB; one-64KiB-chunk-and-request-staging-max-1MiB; sequential-decoder-resume; no-disk-payload-cache; native-Git-memory-and-random-prefix-decode-not-bounded-by-managed-buffers",
             qualification = "docs/verification/git-project-basis.md" },
         sourceModes = new[] { "git", "none", "plastic" },
         applicationModes = new[] { "unity", "none" },
