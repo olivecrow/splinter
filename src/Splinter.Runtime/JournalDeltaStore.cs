@@ -38,6 +38,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private readonly IJournalMutationObserver? mutationObserver;
     private readonly Dictionary<Guid, Node> nodes = [];
     private readonly Dictionary<string, Guid> paths = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, HashSet<Guid>> children = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> hidden = new(StringComparer.OrdinalIgnoreCase);
     private long sequence, payloadBytes, logicalPayloadBytes, readBytes;
     private readonly string epoch = Guid.NewGuid().ToString("N");
@@ -154,8 +155,9 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             if (!parent.Entry.Directory) throw new IOException("Not a directory.");
             if (parent.Entry.BasePath is { } lower)
                 foreach (var item in snapshot.List(lower)) _ = Lookup(Join(parent.Entry.Path, Name(item.Path)));
-            return paths.Keys.Where(p => p.Length != 0 && ParentEquals(p, parent.Entry.Path))
-                .Select(p => nodes[paths[p]].Entry).OrderBy(e => e.Path, StringComparer.OrdinalIgnoreCase).ToArray();
+            return children.TryGetValue(parent.Entry.Path, out var entries)
+                ? entries.Select(id => nodes[id].Entry).OrderBy(e => e.Path, StringComparer.OrdinalIgnoreCase).ToArray()
+                : [];
         }
     }
 
@@ -457,7 +459,27 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         var id = new Guid(digest.AsSpan(0, 16));
         var node = new Node(new(id, path, entry.Directory, entry.Length, entry.Attributes,
             entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime, entry.Path, entry.Length));
-        nodes.Add(id, node); paths.Add(path, id); return node;
+        nodes.Add(id, node); IndexPath(path, id); return node;
+    }
+    private void IndexPath(string path, Guid id)
+    {
+        if (paths.TryGetValue(path, out var existing))
+        {
+            if (existing == id) return;
+            RemovePath(path);
+        }
+        paths.Add(path, id);
+        if (path.Length == 0) return;
+        string parent = Parent(path);
+        if (!children.TryGetValue(parent, out var entries)) children.Add(parent, entries = []);
+        entries.Add(id);
+    }
+    private void RemovePath(string path)
+    {
+        if (!paths.Remove(path, out var id) || path.Length == 0) return;
+        string parent = Parent(path);
+        var entries = children[parent]; entries.Remove(id);
+        if (entries.Count == 0) children.Remove(parent);
     }
     public static string Normalize(string path)
     {
@@ -469,11 +491,6 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         return path;
     }
     private static string Parent(string path) { int slash = path.LastIndexOf('/'); return slash < 0 ? "" : path[..slash]; }
-    private static bool ParentEquals(string path, string parent)
-    {
-        int slash = path.LastIndexOf('/');
-        return path.AsSpan(0, slash < 0 ? 0 : slash).Equals(parent.AsSpan(), StringComparison.OrdinalIgnoreCase);
-    }
     private static string Name(string path) => path[(path.LastIndexOf('/') + 1)..];
     private static string Join(string parent, string name) => parent.Length == 0 ? name : parent + "/" + name;
     private static bool IsChild(string child, string parent) => child.StartsWith(parent + "/", StringComparison.OrdinalIgnoreCase);
@@ -696,14 +713,14 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     }
                 }
                 extentCount += node.Extents.Count;
-                if (!node.Entry.Deleted) paths[node.Entry.Path] = node.Entry.Id;
+                if (!node.Entry.Deleted) IndexPath(node.Entry.Path, node.Entry.Id);
                 break;
             case "resize":
                 extentCount -= node.Extents.Count;
                 node.Extents = node.Extents.Where(e => e.Start < node.Entry.Length)
                     .Select(e => e with { Length = (int)Math.Min(e.Length, node.Entry.Length - e.Start) }).ToList();
                 extentCount += node.Extents.Count;
-                if (!node.Entry.Deleted) paths[node.Entry.Path] = node.Entry.Id;
+                if (!node.Entry.Deleted) IndexPath(node.Entry.Path, node.Entry.Id);
                 break;
             case "create":
                 // A private-file partition transfer can recreate a deleted ID.
@@ -713,26 +730,26 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 node.Extents.Clear();
                 goto case "metadata";
             case "metadata":
-                if (!node.Entry.Deleted) paths[node.Entry.Path] = node.Entry.Id;
+                if (!node.Entry.Deleted) IndexPath(node.Entry.Path, node.Entry.Id);
                 break;
             case "delete":
-                paths.Remove(node.Entry.Path); hidden.Add(node.Entry.Path); break;
+                RemovePath(node.Entry.Path); hidden.Add(node.Entry.Path); break;
             case "rename":
                 string old = node.Entry.Path, destination = mutation.Destination!;
                 // Reuse the same boundary prefix across both scans; allocating it
                 // per path makes replay cost grow with every indexed path/rename.
                 string childPrefix = old + "/";
                 if (paths.TryGetValue(destination, out var replaced) && replaced != node.Entry.Id)
-                { nodes[replaced].Entry = nodes[replaced].Entry with { Deleted = true }; paths.Remove(destination); }
+                { nodes[replaced].Entry = nodes[replaced].Entry with { Deleted = true }; RemovePath(destination); }
                 var affected = paths.Keys.Where(p => p.Equals(old, StringComparison.OrdinalIgnoreCase) || p.StartsWith(childPrefix, StringComparison.OrdinalIgnoreCase)).ToArray();
                 foreach (string path in affected)
                 {
-                    var moved = nodes[paths[path]]; paths.Remove(path);
+                    var moved = nodes[paths[path]]; RemovePath(path);
                     moved.Entry = moved.Entry with { Path = destination + path[old.Length..] };
-                    paths[moved.Entry.Path] = moved.Entry.Id;
+                    IndexPath(moved.Entry.Path, moved.Entry.Id);
                 }
                 // A replayed rename may introduce a node not previously looked up.
-                node.Entry = node.Entry with { Path = destination }; paths[destination] = node.Entry.Id;
+                node.Entry = node.Entry with { Path = destination }; IndexPath(destination, node.Entry.Id);
                 foreach (string path in hidden.Where(p => p.StartsWith(childPrefix, StringComparison.OrdinalIgnoreCase)).ToArray())
                 { hidden.Remove(path); hidden.Add(destination + path[old.Length..]); }
                 hidden.Add(old); break;

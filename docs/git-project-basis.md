@@ -11,6 +11,8 @@ pwsh ./scripts/splinter.ps1 workspace ensure --project <Git-root> --key <task-ke
 
 ## 소유권과 저장
 
+Git commit/tree/blob의 stream 검증은 전체 작업의 30초 제한 대신 각 blocking read의 30초 무진행 제한을 적용한다. 부분 읽기가 계속 완료되면 전체 검증 시간이 30초를 넘어도 진행하며 hashing/idle 시간에는 타이머를 적용하지 않는다. 무진행이면 그 stream의 정확한 소유 reader만 종료하고 `GitBasisReadTimeout`으로 기준·저널을 보존한다. 실패 시 요청 buffer 미게시·proof 폐기·고정 기준 보호는 유지하며 쓰기를 자동 반복하지 않는다. metadata 명령 자체의 기존 제한과 8GiB blob/proof 상한은 유지한다.
+
 `GitObjectSnapshotProvider`는 정확한 commit/tree와 owner를 `git-basis.json`에 고정하고 `refs/splinter/git-bases/<id>`를 compare-and-create한다. intent 게시 뒤 effect/응답 유실은 같은 요청으로 조정한다. 완성한 ref의 소실/이동·symbolic ref·손상 영수증은 보존 후 거부하며 새 기준을 만들지 않는다. 첫 기준 선택 뒤 mutable source·index·branch를 다시 기준으로 읽지 않는다.
 
 `GitObjectSnapshotTree`는 fixed tree의 metadata와 raw blob을 `git cat-file`로 읽는다. commit/root tree의 object hash와 한 batch stream에서 읽은 모든 subtree hash를 확인한다. blob의 첫 읽기는 전체 object hash를 검증하면서 64KiB 단위 SHA-256 proof를 만든 뒤 요청분만 반환한다. 같은 blob의 후속 읽기는 그 proof에 맞는 chunk만 요청분 staging에 게시한다. 연속 읽기는 decoder를 이어 쓰고 뒤로 읽을 때는 stream을 다시 연다. 한 blob의 proof만 최대 4MiB, 검증된 chunk 하나 64KiB와 최대 1MiB 요청분 staging을 유지하며 blob 상한은 8GiB다. 다른 blob·오류·close 뒤 proof를 버린다. payload를 disk cache/checkout하지 않는다. 이미 검증한 chunk의 요청분이 고정 내용과 일치함을 보장하며 매 요청마다 blob 전체의 현재 손상을 다시 감사하는 의미는 아니다. packed object의 Git 내부 메모리·프로세스/비연속 해독 비용을 이 관리 buffer 한도로 해석하지 않는다. 빈/EOF 요청은 0바이트를 반환한다. Windows 경로의 case 충돌·ADS/예약 이름·특수 entry는 거부한다. Git 밖의 mutable 파일을 fallback으로 읽지 않는다.

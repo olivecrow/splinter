@@ -119,6 +119,10 @@ pwsh ./scripts/test-preparation-recovery.ps1 -Project <등록된 clean NTFS Git 
 
 NTFS 응답의 `data.recovery`는 `disposition`, `reasonCode`, `nextCommand`를 반환한다. `ready`는 기존 다음 작업을 진행할 수 있음을, `resume-ensure`/`resume-compaction`/`resume-release`는 같은 identity의 해당 단계를 재개할 수 있음을 나타낸다. `observe`는 관측 복구 후 status를 다시 조회하고, `preserve`는 데이터·영수증을 보존하며 원인을 해결해야 한다. `released`의 다음 행동은 list다. 실제 호출 인자는 `nextActions`에 있으며 `data.nextCommand`와 같은 명령을 가리킨다. 복구 분류 자체가 자원 삭제 승인은 아니며 각 명령에서 소유권·결과·회수 조건을 다시 검사한다.
 
+기준/복원 보호 오류 `ProjectBasisMismatch`, `GeneratedBasisChanged`, `GeneratedRestoreConflict`, `RestoreSealMismatch`, `PlasticBasisInvalid`, `GitBasisReadTimeout`은 Core 공통 보존 정책을 사용한다. 실패 응답은 `requires-user-action`, durable workspace recovery는 `preserve`/`workspace.status`다. 같은 기준/id/home·영수증·저널을 보존하고 원인을 확인하며 입력 변경이나 새 작업으로 우회하지 않는다. 고정 Plastic revision의 잘못된 입력은 별도 `PlasticBasisRequestInvalid`/`correct-request`로 구분한다.
+
+저널의 디렉터리 조회는 부모별 자식 identity 색인에서 해당 폴더만 정렬해 반환한다. 기준의 lazy entry와 생성·삭제·교체·디렉터리 이동·재생에서 같은 색인을 갱신한다. 조회마다 다른 폴더의 전체 경로를 순회하지 않으며 기존 metadata 상한·mutation gate·개별 flush/ACK·SJR2 형식은 유지한다. 색인은 bounded 관리 metadata 비용이며 실제 Unity 준비 시간이나 전체 RAM 절감을 보장하지 않는다.
+
 스냅샷 접근 실패는 `SnapshotObservationUnknown`이다. `snapshotAvailability`와 `snapshotStorage.availability`는 `available`/`missing`/`unknown` 중 하나이며 unknown에서는 기존 boolean 필드를 생략한다. 일반 ensure와 회수 전 단계는 관측 복구까지 보존한다. 관측한 부재와 접근 오류를 구분하며, 경로가 파일로 바뀌면 `SnapshotIdentityMismatch`로 보존한다. 정확한 ID의 성공한 부재 조회만 missing으로 판정하며 읽기 경로의 소실만으로 VSS 부재를 주장하지 않는다. 새 연결의 live identity 대조는 아래 계약을 따른다.
 
 마지막 `release-snapshot` 단계에서는 독립 결과를 다시 검증하고 앱/provider·mount·Git 등록·delta 회수를 확인한 뒤 설치된 권한 서비스를 통해 정확한 VSS 관측을 갱신할 수 있다. 삭제된 장치 경로가 Win32 21을 반환해도 오류만으로 부재로 바꾸지 않는다. 같은 owner와 snapshot의 `released` 영수증, helper가 VSS ID의 부재를 확인한 `observation.json`, 현재 OS의 `LastBootUpTime` 일치가 있어야 모호한 경로 관측을 해소한다. 현재 부팅 정보와 다른 이전 영수증은 삭제 없는 서비스 `Observe`로 갱신한다. 부팅 정보를 확인할 수 없으면 상태를 보존한다. CLI 자체를 관리자 실행하지 않는다. 부팅 정보 조회 실패는 unknown으로 남고, 회수 완료를 저장할 때도 모든 자원 부재를 검사한다. 이미 해제된 장치 경로가 다른 디렉터리로 재사용되면 identity 불일치로 보존한다.

@@ -4,6 +4,8 @@
 
 ## 자동 계약과 reader
 
+현재 read 무진행 제한은 `GitProgressReadTests`에서 제어한 clock/부분 stream으로 확인한다. 각 부분 읽기가 20초 안에 끝나는 총 160초 검증은 완료되고 hashing/idle은 reader를 종료하지 않는다. 31초 동안 한 읽기가 멈추면 그 reader의 abort 한 번과 `GitBasisReadTimeout`을 확인한다. 실제 작은 loose/packed Git 읽기·손상 요청 buffer 미게시 회귀는 유지한다. 이 제어 stream 시험은 실제 대형 blob/느린 저장장치나 전체 Unity 준비 성능의 통과가 아니다. `RecoveryContractTests`는 timeout/기준 손상의 `requires-user-action`·`preserve` 일치를 확인한다.
+
 `GitObjectSnapshotTests`는 실제 작은 Git 저장소의 loose/packed object·원본 수정/branch 이동 뒤 고정 range 읽기·ignored 데이터 제외·범위 저널 재생·reader release fence·peer/독립 ref 보호·symbolic/변경 ref 거부·create/delete 응답 유실 조정·blob 소실/손상 시 반환 buffer 미게시·tree hash/필수 receipt 필드 손상 거부를 확인한다. `SnapshotWorkspaceCoordinatorTests.GitProjectModeUsesSharedJournalLifecycleAndSameRequestRecovery`는 공통 fake에서 capture 응답 유실·동일 요청·정리/독립 결과/release를 확인한다. fake를 WinFsp 실행 증거로 읽지 않는다.
 
 기존 RunnerBundle/ContractAndCli·Git/원본/peer·discard/atomic-state 회귀도 유지한다. 첫 한정 실행의 두 회수 시험은 배열의 참조 동일성을 비교해 실패했다. 직렬화된 내용 비교로 수정했으며 제품 실패로 분류하지 않는다. `artifacts/git-basis-focused-classes/`의 실패 TRX를 보존한다. 첫 combined class/method filter는 0개 실행되어 통과로 세지 않는다.

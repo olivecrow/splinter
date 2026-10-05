@@ -2,6 +2,8 @@
 
 범위는 [계획](../plans/git-library-reference.md)의 GL-01~05, 현재 계약은 [원본 Library 참조](../git-library-reference.md)다. 사용자 승인 경로는 Library만 같은 볼륨에서 이동하고 원본 경로에 관리형 mount를 제공한 뒤 마지막에 복원하는 것이다. 이전 cold Git A/B와 VSS/view 결과를 새 warm 경로의 통과로 읽지 않는다.
 
+현재 v2 restore plan의 파일 identity/생성 영수증 보호는 프로젝트 복원과 공통 `ManagedDirectoryRestoreTests`에서 확인한다. 중단 뒤 다른 파일이 같은 경로를 차지하면 동일 바이트여도 대상·기준·저널을 보존하며 거부한다. 정상 중단의 같은 요청 재개와 readonly·핸들 보호도 시험한다. 아래 GL 실행은 당시 후보의 자격이며 이 보호 변경의 실제 Unity/WinFsp 복원·OS 장애는 NotRun이다.
+
 | ID | 현재 판정 | 근거 |
 | --- | --- | --- |
 | GL-01 | Passed, 한정 실제 Unity | 원본 3,148,601,607B를 같은 볼륨에서 이동·초기 복사/read cache 0. base 145, 원본 146, A 147, B 148과 base hash 불변 |

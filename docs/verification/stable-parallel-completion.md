@@ -4,6 +4,8 @@
 
 ## SP-01~02: 결함과 공통 회귀
 
+현재 디렉터리 자식 색인의 회귀는 `JournalRenameReplayTests`에서 다른 300개 폴더를 색인한 뒤 파일 교체·신규 파일 삭제·하위 디렉터리 이동·lazy 자식·일반 재생/정리 재생의 목록과 바이트를 확인한다. 조회 비용은 해당 폴더의 자식 수에 따르며 색인은 현재 상한 안에서 유지한다. 대형 Unity 지연·전체 메모리 비용은 이번 자동 시험으로 측정하거나 통과로 선언하지 않는다. 아래 SP 실제 A/B는 당시 후보의 자격이다.
+
 기준 `1dd9f12`에서 실제 잠금 디렉터리를 제거한 시험은 5초 대기 뒤 `WorkspaceBusy`를 반환했다. 경로 문제를 안전한 점유 재시도로 잘못 안내한 것이다. 잠금 위치가 기존 디렉터리인 시험은 원시 `UnauthorizedAccessException`이었다. 수정 전의 두 실패와 세 점유 시험 통과를 `artifacts/stable-parallel-completion-20261003/lock-before.trx`에 보존했다.
 
 Runtime은 확인된 sharing/lock violation HRESULT만 기존 100ms/5초 대기로 처리한다. 다른 I/O·접근 실패는 기존 `StateReadUnavailable`/`requires-user-action`으로 즉시 거부한다. 파일/권한을 수정하거나 새 잠금 디렉터리로 우회하지 않는다. 같은 작업의 점유·취소·소유 핸들 보존·닫힌 뒤 재사용, 다른 key의 독립 잠금, A의 정상 stop 대기 중 B의 status/같은 ensure 완료를 확인했다. 집중 시험은 18 passed, 새 회귀는 6건이다. 서로 다른 key의 생성 수만 대조하던 기존 시험에 실제 완료 순서의 경계를 보완했다.

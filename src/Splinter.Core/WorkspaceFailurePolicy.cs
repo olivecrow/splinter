@@ -4,6 +4,8 @@ namespace Splinter.Core;
 public static class WorkspaceFailurePolicy
 {
     public static bool RequiresPreservation(string? code) => code is
+        "ProjectBasisMismatch" or "GeneratedBasisChanged" or "GeneratedRestoreConflict" or "RestoreSealMismatch" or "PlasticBasisInvalid" or
+        "GitBasisReadTimeout" or
         "GitBasisRefChanged" or "GitBasisReceiptInvalid" or "GitBasisObjectInvalid" or
         "FileSourceStateInvalid" or "FileResultIncomplete" or
         "OriginalApplyStateInvalid" or "OriginalApplyPending" or "OriginalApplyRequestConflict" or "OriginalApplyConflict" or

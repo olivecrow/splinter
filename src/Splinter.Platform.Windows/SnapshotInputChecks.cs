@@ -72,6 +72,14 @@ public static class SnapshotInputChecks
     }
     private static WorkspaceException Unsupported(string path, string message) => new("SnapshotFileUnsupported", message, new { path });
     private static WorkspaceException Native(string path) => new("SnapshotInputProbeFailed", new Win32Exception(Marshal.GetLastWin32Error()).Message, new { path });
+    internal static string FileIdentity(SafeFileHandle handle, bool directory = false)
+    {
+        if (!GetFileInformationByHandle(handle, out var info)) throw Native("owned restore handle");
+        RejectUnsupportedAttributes(info.Attributes);
+        if (directory != ((info.Attributes & 16) != 0) || !directory && info.Links != 1)
+            throw new WorkspaceException("GeneratedRestoreConflict", "Preserve a substituted restore file or directory.");
+        return $"{info.VolumeSerial:X8}:{info.IndexHigh:X8}{info.IndexLow:X8}";
+    }
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct StreamData { public long Size; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 296)] public string Name; }
     // https://learn.microsoft.com/windows/win32/api/fileapi/ns-fileapi-by_handle_file_information

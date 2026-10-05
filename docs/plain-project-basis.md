@@ -46,4 +46,6 @@ pwsh ./scripts/splinter.ps1 project restore --id <basis id> --home <home>
 
 최종 restore 전에 모든 task를 명시적으로 회수하고 원본 Editor를 저장·정상 종료한다. active dependent/reader·미완료 intent와 예상 밖 원본 점유는 복원을 차단한다. 고정 restore plan/seal/cursor로 기존 파일을 이동하고 바뀐 범위만 적용한다. 같은 id/home의 중단 재개를 허용하며 성공한 restore 재요청은 완료 영수증을 반환한다. 활성 mount/provider/delta와 이동 기준 payload는 회수하지만 상태·manifest·plan·로그·독립 결과는 보존한다.
 
+현재 restore plan은 v2다. 기존 파일의 NTFS volume/file identity를 계획에 고정하고 새 파일은 생성 뒤 파일별 영수증을 durable 게시한 다음 범위를 쓴다. 이동·쓰기 동안 파일과 부모 경로의 핸들을 유지하며, 재개·완료 확인에도 같은 파일 identity와 내용을 대조한다. 같은 이름/같은 바이트의 교체 파일도 소유 파일로 취급하지 않는다. 생성과 영수증 게시 사이에 중단되면 소유권을 추측하지 않고 대상·기준·저널을 보존해 거부한다. 이전 restore plan은 자동 이관하지 않는다. workspace v2·overlay v2/SJR2 형식은 유지한다.
+
 계측은 `scripts/measure-workspace-storage.ps1 -SourceKind none -SkipOriginalLibrary -ProjectBasisIds <id> -WorkspaceIds <A>,<B>`로 공통 기준 root를 한 번만 센다. 이동한 기존 payload를 추가 저장 비용에서 제외하고 공통 manifest/원본 저널·task 저널·runner·독립 결과를 구분한다. 전체 순간 peak/OS metadata와 RAM 절감은 이 계약의 보장이 아니다.

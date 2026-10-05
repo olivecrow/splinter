@@ -11,6 +11,12 @@
 | NP-05 | 선택 Unity source의 원본/A/B exact MCP identity·리소스/importer·씬 생성/수정·현재 상태 tests·실제 2.690초 테스트 겹침 | 편집/테스트 Passed; 공유 서버 종료 결함은 제한 |
 | NP-06 | warm·A 회수 뒤 정확한 task/common 파일 할당·baseline/독립 결과 분리·필수 전체 회귀와 실제 response schema | Passed; 전체 peak/OS 비용 unknown |
 
+## 공통 복원 보호 회귀
+
+현재 공통 복원 보호는 `ManagedDirectoryRestoreTests`의 로컬 NTFS 파일 시험으로 별도 확인한다. 새 파일의 범위 flush 후 다른 파일로 교체·동일 바이트 교체·생성 영수증 전 중단·보존 영역 파일의 전체 덮어쓰기 후 이동 중단·완료 뒤 교체에서 대상과 기준/저널을 보존한다. 정상 영수증 뒤 재개·readonly 파일 이동/메타데이터·retained bytes 변경 거부 시 readonly 속성 보존·쓰기 중 외부 교체 거부·이전 restore plan 거부도 확인한다. `RecoveryContractTests`는 기준 보호 오류의 응답/복구 정책 일치를 확인한다. 이 변경의 실제 Unity/WinFsp restore와 OS 장애는 NotRun이며 아래 이전 후보의 실행을 현재 보호 변경의 native 통과로 승계하지 않는다.
+
+2026-10-05 최종 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드 경고/오류 0, 전체 1,005개 중 1,004 Passed/0 Failed/1 선택적 ReFS NotRun이다. 복원/오류 정책·디렉터리 이동/재생·Git 무진행 제한의 새 회귀 20개를 포함한다. 최종 TRX는 `artifacts/code-quality-fixes/full-final.trx`에 보존하며 문서 UTF-8·diff 공백 검사도 통과했다. 이 파일/제어 stream·기존 전체 자동 회귀를 새로운 Unity·VSS·대형/ARM/OS 자격으로 확대하지 않는다.
+
 ## Editor 없는 실제 파일 경계
 
 `T:/np-native-project-20261005`, home `T:/np-native-home-20261005`, 기준 `0378ee9322d8ed7e5d6dd18b`, A `07db6ca107068b9ce01ef40f`, B `c866ae90adb0b5679ff72f20`. 고정 3 MiB 파일과 작은 text 입력에서 원본 private text·A/B 1-byte 변경이 서로 분리됐다. A 전체 반영 후 원본의 별도 변경은 보존됐다. A 회수 뒤 B가 추가로 썼고 B를 같은 intent로 폐기한 뒤 일반 NTFS 원본을 복원했다. A byte 11·원본 text와 B 신규 파일 부재를 확인했다. 근거: `artifacts/plain-project-basis-20261005/native-files/`의 각 JSON과 `summary.json`.

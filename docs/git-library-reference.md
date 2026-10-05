@@ -22,6 +22,8 @@ Library 안에 외부 서버의 계속 쓰는 로그가 있으면 기준본을 �
 
 복원은 durable 계획·완료 cursor로 재개한다. 시작된 파일 이동·범위 쓰기는 같은 계획으로 검증/redo하고, 이미 완료한 파일의 변경은 거부한다. 잘린 basis tail은 다시 나타나지 않도록 retained length와 private 범위를 적용한다. 새 파일은 zero hole과 새 payload를 쓰며 기존 파일의 나머지 데이터는 복사하지 않는다. 원본의 최종 Library 내용이 독립적으로 검증된 뒤만 소유 payload를 삭제한다. 작은 파일 시험의 중단 주입은 실제 OS 전원 장애 자격이 아니다.
 
+현재 복원 계획은 v2이며 기존 파일의 NTFS volume/file identity와 새 파일의 생성 영수증을 확인한다. 파일과 부모 경로를 핸들로 보호한 상태에서 이동·범위 쓰기·메타데이터 적용을 수행한다. 완료 cursor 앞뒤와 최종 회수 전 재개에서도 교체 파일은 내용이 같아도 거부한다. 새 파일 생성 뒤 영수증 게시 전 중단은 보존 필요 상태이며 경로 존재만으로 같은 파일이라고 추측하지 않는다. 대상·기준·저널·영수증을 보존하고 이전 복원 계획을 자동 이관하지 않는다.
+
 공통 기준은 이동한 데이터이므로 새 전체 payload 비용으로 합산하지 않는다. manifest·파일 핸들·provider·각 저널은 별도 비용이다. 전체 읽기 검증에는 I/O가 들고, Unity가 재수입하거나 자체 cache를 다시 쓰면 그 private 범위도 저장된다. 파일 참조만으로 Unity heap·graphics·scene RAM 공유를 주장하지 않는다. RAM 계측은 `scripts/measure-process-memory.ps1`의 Private Bytes·상주 페이지·PSS 추정을 구분한다. 이 스크립트는 page metadata/residency만 조회하고 원본 payload를 읽거나 GC/working-set trim을 하지 않는다. ShareCount의 7 상한·표본 비원자성·각 Editor 간 공유 귀속 unknown을 유지한다.
 
 파일 할당 계측은 기존 `scripts/measure-workspace-storage.ps1`에 정확한 `-WorkspaceIds`와 `-GeneratedDirectoryIds <basis-id> -SkipOriginalLibrary`를 전달한다. 선택한 state/project/owner/경로를 대조하고 공유 basis root를 한 번만 센다. Win32 조회에는 긴 NTFS 경로도 전달한다. `moved-original-Library-payload`는 원래 있던 데이터의 이동이며 추가 비용에서 제외한다. 원본 delta·basis metadata·각 작업 delta·공유 runner/Git·증거 비용은 구별한다. 전체 물리 peak/VSS 귀속은 이 파일 표본으로 확정하지 않는다.

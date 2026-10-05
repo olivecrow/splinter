@@ -20,6 +20,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     private readonly Dictionary<string, List<SnapshotEntry>> children = new(StringComparer.OrdinalIgnoreCase);
     private readonly object readGate = new();
     private Process? reader;
+    private GitProgressReadStream? readerOutput;
     private Task<string>? stderr;
     private bool disposed;
     private const int ChunkBytes = 65536, MaxProofBytes = 4 * 1024 * 1024;
@@ -80,8 +81,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
             failureCode: "GitBasisObjectInvalid").GetAwaiter().GetResult(), CultureInfo.InvariantCulture);
         using var process = Process.Start(StartInfo(common, ["cat-file", type, objectId])) ?? throw Failure("GitBasisUnavailable", "Git did not start.");
         var error = process.StandardError.ReadToEndAsync(); process.StandardInput.Close();
-        using var timeout = new Timer(_ => { try { if (!process.HasExited) process.Kill(); } catch (InvalidOperationException) { } },
-            null, TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
+        using var output = ProgressOutput(process);
         using var hash = IncrementalHash.CreateHash(objectId.Length == 40 ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256);
         hash.AppendData(Encoding.ASCII.GetBytes(type + " " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
         byte[] scratch = ArrayPool<byte>.Shared.Rent(65536);
@@ -89,7 +89,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         try
         {
             int n;
-            while ((n = process.StandardOutput.BaseStream.Read(scratch, 0, 65536)) != 0)
+            while ((n = output.Read(scratch, 0, 65536)) != 0)
             { read += n; if (read > length) break; hash.AppendData(scratch.AsSpan(0, n)); }
             if (!process.WaitForExit(1000)) { process.Kill(); process.WaitForExit(); }
             _ = error.GetAwaiter().GetResult();
@@ -110,15 +110,13 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         if (objects.Count == 0) return;
         using var process = Process.Start(StartInfo(common, ["cat-file", "--batch"])) ?? throw Failure("GitBasisUnavailable", "Git did not start.");
         var error = process.StandardError.ReadToEndAsync();
-        using var timeout = new Timer(_ => { try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } },
-            null, TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
+        using var output = ProgressOutput(process);
         byte[] scratch = ArrayPool<byte>.Shared.Rent(ChunkBytes);
         try
         {
             foreach (string objectId in objects)
             {
                 process.StandardInput.Write(objectId + "\n"); process.StandardInput.Flush();
-                var output = process.StandardOutput.BaseStream;
                 string[] header = Header(output).Split(' ');
                 if (header.Length != 3 || header[0] != objectId || header[1] != "tree" ||
                     !long.TryParse(header[2], NumberStyles.None, CultureInfo.InvariantCulture, out long length) || length < 0)
@@ -168,8 +166,6 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
             byte[] staged = ArrayPool<byte>.Shared.Rent(count);
             try
             {
-                using var timeout = new Timer(_ => { try { if (reader is { HasExited: false } current) current.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } },
-                    null, TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
                 if (provedObject != objectId)
                 {
                     ResetProof(streaming);
@@ -216,9 +212,10 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         {
             reader = Process.Start(StartInfo(Snapshot.RootPath, ["cat-file", "--batch"])) ?? throw Failure("GitBasisUnavailable", "Git reader did not start.");
             stderr = reader.StandardError.ReadToEndAsync();
+            readerOutput = ProgressOutput(reader);
         }
         reader.StandardInput.Write(objectId + "\n"); reader.StandardInput.Flush();
-        var output = reader.StandardOutput.BaseStream;
+        var output = readerOutput!;
         if (Header(output) != objectId + " blob " + length.ToString(CultureInfo.InvariantCulture)) throw Failure("GitBasisObjectInvalid", "The fixed blob is missing or its header changed.");
         streamPosition = 0; streaming = true; return output;
     }
@@ -226,7 +223,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     {
         if (at >= chunkOffset && at < chunkOffset + chunkLength) return;
         if (!streaming || at < streamPosition) { BeginBlob(objectId, length); chunkOffset = -1; chunkLength = 0; }
-        var output = reader!.StandardOutput.BaseStream;
+        var output = readerOutput!;
         Span<byte> digest = stackalloc byte[32];
         do
         {
@@ -288,8 +285,11 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     private void StopReader()
     {
         if (reader is null) return;
+        readerOutput?.Dispose(); readerOutput = null;
         try { reader.StandardInput.Close(); if (!reader.WaitForExit(1000)) { reader.Kill(entireProcessTree: true); reader.WaitForExit(); } }
         finally { reader.Dispose(); reader = null; stderr = null; }
     }
+    private static GitProgressReadStream ProgressOutput(Process process) => new(process.StandardOutput.BaseStream,
+        () => { try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } });
     public void Dispose() { lock (readGate) { ResetProof(); disposed = true; } }
 }

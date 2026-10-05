@@ -7,6 +7,30 @@ namespace Splinter.Tests;
 public sealed class RecoveryContractTests
 {
     [Theory]
+    [InlineData("ProjectBasisMismatch")]
+    [InlineData("GeneratedBasisChanged")]
+    [InlineData("GeneratedRestoreConflict")]
+    [InlineData("RestoreSealMismatch")]
+    [InlineData("PlasticBasisInvalid")]
+    [InlineData("GitBasisReadTimeout")]
+    public void BasisProtectionErrorsAgreeAcrossResponseAndDurableRecovery(string code)
+    {
+        Assert.True(WorkspaceFailurePolicy.RequiresPreservation(code));
+        Assert.Equal("requires-user-action", Splinter.Protocol.ApiResponse.Failure("workspace.ensure", code, "preserve").RetryDisposition);
+        var record = Record("aaaaaaaaaaaaaaaaaaaaaaaa", "unused"); record.StorageMode = "project-snapshot";
+        record.Snapshot = new(); record.LastError = code + ": preserve the fixed basis";
+        var recovery = SnapshotRecoveryDecision.For(record);
+        Assert.Equal("preserve", recovery.Disposition); Assert.Equal(code, recovery.ReasonCode); Assert.Equal("workspace.status", recovery.NextCommand);
+    }
+    [Fact]
+    public void InvalidPlasticRevisionInputRemainsARequestCorrection()
+    {
+        var error = Assert.Throws<WorkspaceException>(() => new Splinter.SourceControl.Files.PlasticRevisionClient().OpenRevision("1@repo@server", "moving-revision"));
+        Assert.Equal("PlasticBasisRequestInvalid", error.Code);
+        Assert.False(WorkspaceFailurePolicy.RequiresPreservation(error.Code));
+        Assert.Equal("correct-request", Splinter.Protocol.ApiResponse.Failure("workspace.ensure", error.Code, error.Message).RetryDisposition);
+    }
+    [Theory]
     [InlineData("ready", true, true, true, null, false, "ready", "workspace.status")]
     [InlineData("ready", null, true, false, null, false, "observe", "workspace.status")]
     [InlineData("ready", false, true, false, "SnapshotMissing", false, "preserve", "workspace.status")]

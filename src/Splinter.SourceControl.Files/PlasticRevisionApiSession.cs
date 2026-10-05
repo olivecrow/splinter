@@ -26,7 +26,7 @@ internal sealed class PlasticRevisionApiSession : IPlasticRevisionReader, IDispo
     { char[] scratch = new char[4096]; while (await reader.ReadAsync(scratch) != 0) { } }
     public Stream OpenRevision(string treeSpec, string revision)
     {
-        RequireTreeSpec(treeSpec); if (!Numeric(revision)) throw Failure("PlasticBasisInvalid", "An exact revision ID is required.");
+        RequireTreeSpec(treeSpec); if (!Numeric(revision)) throw Failure("PlasticBasisRequestInvalid", "An exact revision ID is required.");
         Start(); using var startup = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         string repository = treeSpec[(treeSpec.IndexOf('@') + 1)..];
         var uri = new Uri("http://localhost:" + port + "/api/v1/repos/" + Uri.EscapeDataString(repository) + "/revisions/" + revision + "/blob");

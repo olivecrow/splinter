@@ -4,6 +4,8 @@
 
 ## 입력과 관리 경계
 
+잘못된 고정 revision 입력은 `PlasticBasisRequestInvalid`/`correct-request`다. 이미 고정한 목록·receipt·revision 내용의 손상이나 변경은 `PlasticBasisInvalid`로 구분하며 `requires-user-action`·workspace `preserve`/`workspace.status`를 반환한다. 동일 task/basis·저널을 보존하고 새 기준 선택이나 다른 VCS로 우회하지 않는다.
+
 원본은 정확한 regular/static Plastic workspace root다. 명시한 원본 local root의 controlled-directory XML과 지정한 changeset 목록의 canonical repository/server·repository ID를 대조한다. 명시적 numeric changeset·root revision/GUID·파일 revision/길이/hash·목록 digest와 owner를 `snapshot/plastic-basis.json`에 고정한다. branch 최신값·mutable 원본·다른 VCS로 fallback하지 않는다. working tree의 dirty/private 파일은 기록된 기준에 포함된 것으로 표시하지 않는다. Unity 입력에는 기록된 Assets·Packages/manifest.json·ProjectSettings/ProjectVersion.txt가 있어야 한다.
 
 ```powershell

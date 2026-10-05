@@ -5,6 +5,34 @@ namespace Splinter.Tests;
 
 public sealed class JournalRenameReplayTests
 {
+    [Fact]
+    public void ListingsStayExactAcrossReplacementDirectoryMovesDeletionAndReplay()
+    {
+        using var d = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        tree.Files["a/old"] = [1]; tree.Files["a/nested/lazy"] = [2]; tree.Files["b/replaced"] = [3];
+        for (int i = 0; i < 300; i++) tree.Files[$"other{i}/file"] = [4];
+        var identity = new OverlayIdentity(2, "listing", tree.Snapshot, 1_000_000, 4096); string delta = Path.Combine(d.Path, "delta");
+        void Check(JournalDeltaStore store)
+        {
+            Assert.Equal(new[] { "b/moved", "b/replaced" }, store.List("b").Select(e => e.Path).ToArray());
+            Assert.Equal(new[] { "b/moved/nested" }, store.List("b/moved").Select(e => e.Path).ToArray());
+            Assert.Equal(new[] { "b/moved/nested/lazy" }, store.List("b/moved/nested").Select(e => e.Path).ToArray());
+            Assert.Equal(new byte[] { 1 }, Read(store, "b/replaced"));
+            Assert.Throws<DirectoryNotFoundException>(() => store.List("a"));
+        }
+        using (var store = new JournalDeltaStore(delta, identity, tree))
+        {
+            foreach (var entry in store.List("")) _ = store.List(entry.Path); // Warm unrelated paths.
+            store.Rename(store.Stat("a/old")!.Id, "b/replaced", true);
+            var created = store.Create("a/temporary", false, 32); store.Delete(created.Id);
+            store.Rename(store.Stat("a")!.Id, "b/moved", false); Check(store);
+        }
+        using (var replayed = new JournalDeltaStore(delta, identity, tree)) Check(replayed);
+        JournalDeltaStore.CompactDirectory(delta, identity, tree);
+        using (var compacted = new JournalDeltaStore(delta, identity, tree)) Check(compacted);
+    }
+    private static byte[] Read(JournalDeltaStore store, string path)
+    { byte[] value = new byte[1]; Assert.Equal(1, store.Read(store.Stat(path)!.Id, 0, value)); return value; }
     [Theory]
     [InlineData("dir", "moved")]
     [InlineData("Dír", "Ünicode")]

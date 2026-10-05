@@ -10,10 +10,11 @@ namespace Splinter.Platform.Windows;
 // before redo; unknown files, altered retained bytes and changed journals fail.
 internal static class ManagedDirectoryRestore
 {
-    private sealed record RestoreFile(DeltaRestoreEntry Delta, string FinalHash, string RetainedHash);
+    private sealed record RestoreFile(DeltaRestoreEntry Delta, string FinalHash, string RetainedHash, string? BasisIdentity);
     private sealed record RestorePlan(int Version, GeneratedDirectoryReference Basis, SnapshotDeltaSeal Seal,
         SnapshotEntry[] Directories, RestoreFile[] Files);
     private sealed record RestoreCursor(string PlanHash, int CompletedFiles, bool FilesVerified = false);
+    private sealed record FileReceipt(int Version, string PlanHash, Guid EntryId, string Identity);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public static async Task ExecuteAsync(ManagedDirectoryState state, OverlayServeRequest request, CancellationToken ct, Action<string>? boundary = null)
     {
@@ -21,14 +22,21 @@ internal static class ManagedDirectoryRestore
         var manifest = new OwnedDirectorySnapshotProvider(root, state.Basis.OwnerId).Read(state.Basis.Snapshot);
         var manifestItems = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.OrdinalIgnoreCase);
         RestorePlan? plan = await WindowsProcessWorkspaceProvider.ReadAsync<RestorePlan>(planPath, ct);
+        if (plan is not null && plan.Version != 2) throw new WorkspaceException("RestoreSealMismatch", "Preserve an unsupported restore plan without migration.");
         var savedCursor = await WindowsProcessWorkspaceProvider.ReadAsync<RestoreCursor>(cursorPath, ct);
         if (plan is not null && savedCursor is { FilesVerified: true })
         {
             if (plan.Basis != state.Basis || savedCursor.PlanHash != ManagedDirectoryBasis.HashFile(planPath) || savedCursor.CompletedFiles != plan.Files.Length)
                 throw new WorkspaceException("GeneratedRestoreConflict", "Retain an inconsistent completed restoration.");
             RejectForeign(state.OriginalPath, plan.Files.Select(f => f.Delta.Entry.Path).ToHashSet(StringComparer.OrdinalIgnoreCase), plan.Directories.Select(d => d.Path).ToHashSet(StringComparer.OrdinalIgnoreCase));
-            foreach (var file in plan.Files) if (ManagedDirectoryBasis.HashFile(PathOf(state.OriginalPath, file.Delta.Entry.Path)) != file.FinalHash)
-                throw new WorkspaceException("GeneratedRestoreConflict", "A restored original changed before cleanup.");
+            foreach (var file in plan.Files)
+            {
+                string target = PathOf(state.OriginalPath, file.Delta.Entry.Path);
+                using var access = new ManagedRestoreFileAccess(target);
+                using var pin = ManagedRestoreFileAccess.Read(target);
+                ManagedRestoreFileAccess.Require(pin, await FileIdentityAsync(root, savedCursor.PlanHash, file, ct));
+                if (Hash(pin) != file.FinalHash) throw new WorkspaceException("GeneratedRestoreConflict", "A restored original changed before cleanup.");
+            }
             Cleanup(state, request, manifest, boundary); return;
         }
         JournalDeltaStore journal;
@@ -50,13 +58,19 @@ internal static class ManagedDirectoryRestore
                         if (count == 0) throw new WorkspaceException("GeneratedRestoreConflict", "A fixed restore file ended early.");
                         hash.AppendData(buffer, 0, count); offset += count;
                     }
-                    string retained = entry.Entry.BasePath is { } basePath ? RetainedHash(PathOf(state.Basis.Snapshot.RootPath, basePath), entry.Entry.BaseLength, entry.Ranges) : EmptyHash;
-                    files.Add(new(entry, Convert.ToHexStringLower(hash.GetHashAndReset()), retained));
+                    string retained = EmptyHash; string? basisIdentity = null;
+                    if (entry.Entry.BasePath is { } basePath)
+                    {
+                        using var pin = ManagedRestoreFileAccess.Read(PathOf(state.Basis.Snapshot.RootPath, basePath));
+                        basisIdentity = ManagedRestoreFileAccess.Identity(pin);
+                        retained = RetainedHash(pin, entry.Entry.BaseLength, entry.Ranges);
+                    }
+                    files.Add(new(entry, Convert.ToHexStringLower(hash.GetHashAndReset()), retained, basisIdentity));
                 }
                 var directories = entries.Where(e => e.Entry.Directory).Select(e => new SnapshotEntry(e.Entry.Path, true, 0, e.Entry.Attributes,
                     e.Entry.CreationTime, e.Entry.LastAccessTime, e.Entry.LastWriteTime)).OrderBy(e => e.Path.Length).ToArray();
                 if (journal.Seal() != seal) throw new WorkspaceException("RestoreSealMismatch", "The restore journal changed while planning.");
-                plan = new(1, state.Basis, seal, directories, files.ToArray());
+                plan = new(2, state.Basis, seal, directories, files.ToArray());
                 await WindowsProcessWorkspaceProvider.WriteAsync(planPath, plan, ct);
             }
             catch { journal.Dispose(); throw; }
@@ -64,7 +78,7 @@ internal static class ManagedDirectoryRestore
         else journal = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, new MetadataOnlyRestoreTree(manifest));
         using (journal)
         {
-            if (plan.Version != 1 || plan.Basis != state.Basis || ManagedDirectoryBasis.HashFile(Path.Combine(request.DeltaPath, "delta.journal")) != plan.Seal.JournalHash ||
+            if (plan.Version != 2 || plan.Basis != state.Basis || ManagedDirectoryBasis.HashFile(Path.Combine(request.DeltaPath, "delta.journal")) != plan.Seal.JournalHash ||
                 new FileInfo(Path.Combine(request.DeltaPath, "delta.journal")).Length != plan.Seal.JournalBytes)
                 throw new WorkspaceException("RestoreSealMismatch", "Retain a mismatched restore plan/journal.");
             string planHash = ManagedDirectoryBasis.HashFile(planPath);
@@ -81,34 +95,55 @@ internal static class ManagedDirectoryRestore
             for (int i = 0; i < plan.Files.Length; i++)
             {
                 ct.ThrowIfCancellationRequested(); var file = plan.Files[i]; var entry = file.Delta.Entry; string target = PathOf(state.OriginalPath, entry.Path);
+                string? source = entry.BasePath is { } basisPath ? PathOf(state.Basis.Snapshot.RootPath, basisPath) : null;
+                using var access = new ManagedRestoreFileAccess(source is null || !File.Exists(source) ? [target] : [source, target]);
                 if (i < cursor.CompletedFiles)
                 {
-                    if (!File.Exists(target) || ManagedDirectoryBasis.HashFile(target) != file.FinalHash) throw new WorkspaceException("GeneratedRestoreConflict", "A completed restore file changed.");
+                    using var completed = ManagedRestoreFileAccess.Read(target);
+                    ManagedRestoreFileAccess.Require(completed, await FileIdentityAsync(root, planHash, file, ct));
+                    if (Hash(completed) != file.FinalHash) throw new WorkspaceException("GeneratedRestoreConflict", "A completed restore file changed.");
                     continue;
                 }
                 if (entry.BasePath is { } basePath)
                 {
-                    string source = PathOf(state.Basis.Snapshot.RootPath, basePath);
-                    if (File.Exists(source))
+                    if (file.BasisIdentity is null) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve a restore plan without its basis file identity.");
+                    if (File.Exists(source!))
                     {
                         if (File.Exists(target)) throw new WorkspaceException("GeneratedRestoreConflict", "Both the original basis file and restore target exist.");
+                        using var moved = ManagedRestoreFileAccess.Read(source!, moving: true);
+                        ManagedRestoreFileAccess.Require(moved, file.BasisIdentity);
                         var original = manifestItems.GetValueOrDefault(basePath);
-                        if (original?.Hash is null || ManagedDirectoryBasis.HashFile(source) != original.Hash)
+                        if (original?.Hash is null || Hash(moved) != original.Hash)
                             throw new WorkspaceException("GeneratedBasisChanged", "A remaining basis file changed before its move.");
-                        File.Move(source, target, false);
+                        ManagedRestoreFileAccess.Move(moved, target);
                         boundary?.Invoke("file.after-move");
                     }
-                    if (!File.Exists(target) || RetainedHash(target, entry.BaseLength, file.Delta.Ranges) != file.RetainedHash)
-                        throw new WorkspaceException("GeneratedRestoreConflict", "Retained bytes changed; preserve the original and journal.");
                 }
-                else if (!File.Exists(target)) { using var created = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None); created.Flush(true); }
+                else
+                {
+                    var receipt = await ReadReceiptAsync(root, planHash, file, ct);
+                    if (receipt is null)
+                    {
+                        if (File.Exists(target)) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve a new restore target without its creation receipt.");
+                        using var created = new FileStream(target, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
+                        created.Flush(true); boundary?.Invoke("file.after-create-before-receipt");
+                        receipt = new(1, planHash, entry.Id, ManagedRestoreFileAccess.Identity(created));
+                        await WindowsProcessWorkspaceProvider.WriteAsync(ReceiptPath(root, entry.Id), receipt, ct);
+                        boundary?.Invoke("file.after-create-receipt");
+                    }
+                }
+                string identity = await FileIdentityAsync(root, planHash, file, ct);
+                using var output = ManagedRestoreFileAccess.Write(target, identity, pin =>
+                {
+                    if (entry.BasePath is not null && RetainedHash(pin, entry.BaseLength, file.Delta.Ranges) != file.RetainedHash)
+                        throw new WorkspaceException("GeneratedRestoreConflict", "Retained bytes changed; preserve the original and journal.");
+                });
                 // A started range effect is redoable from the fixed private
                 // journal. Reset only the non-retained tail, never copy a file.
-                bool needsWrite = file.Delta.Ranges.Length != 0 || new FileInfo(target).Length != entry.Length || entry.BaseLength < entry.Length;
-                if (needsWrite && ManagedDirectoryBasis.HashFile(target) != file.FinalHash)
+                bool needsWrite = file.Delta.Ranges.Length != 0 || output.Length != entry.Length || entry.BaseLength < entry.Length;
+                if (needsWrite && Hash(output) != file.FinalHash)
                 {
-                    File.SetAttributes(target, File.GetAttributes(target) & ~FileAttributes.ReadOnly);
-                    using var output = new FileStream(target, FileMode.Open, FileAccess.Write, FileShare.None, 4096, FileOptions.RandomAccess);
+                    boundary?.Invoke("file.before-ranges-write");
                     output.SetLength(entry.BaseLength); output.SetLength(entry.Length);
                     foreach (var range in file.Delta.Ranges)
                         for (int offset = 0; offset < range.Length;)
@@ -120,8 +155,8 @@ internal static class ManagedDirectoryRestore
                     output.Flush(true);
                     boundary?.Invoke("file.after-ranges-flush");
                 }
-                if (ManagedDirectoryBasis.HashFile(target) != file.FinalHash) throw new WorkspaceException("GeneratedRestoreConflict", "Restored range content differs from its fixed result.");
-                SetMetadata(target, entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime);
+                if (Hash(output) != file.FinalHash) throw new WorkspaceException("GeneratedRestoreConflict", "Restored range content differs from its fixed result.");
+                ManagedRestoreFileAccess.Metadata(output, entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime);
                 cursor = cursor with { CompletedFiles = i + 1 }; await WindowsProcessWorkspaceProvider.WriteAsync(cursorPath, cursor, ct);
             }
             RejectForeign(state.OriginalPath, allowedFiles, allowedDirectories);
@@ -169,9 +204,20 @@ internal static class ManagedDirectoryRestore
         string path = Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar)); WorkspaceStore.EnsurePlainPath(path); return path;
     }
     private static string EmptyHash => Convert.ToHexStringLower(SHA256.HashData(Array.Empty<byte>()));
-    private static string RetainedHash(string path, long length, DeltaRestoreRange[] ranges)
+    private static string ReceiptPath(string root, Guid id) => Path.Combine(root, "restore-file-" + id.ToString("N") + ".json");
+    private static async Task<FileReceipt?> ReadReceiptAsync(string root, string planHash, RestoreFile file, CancellationToken ct)
     {
-        using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read); using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var receipt = await WindowsProcessWorkspaceProvider.ReadAsync<FileReceipt>(ReceiptPath(root, file.Delta.Entry.Id), ct, waitForPublication: false);
+        if (receipt is not null && (receipt.Version != 1 || receipt.PlanHash != planHash || receipt.EntryId != file.Delta.Entry.Id || string.IsNullOrEmpty(receipt.Identity)))
+            throw new WorkspaceException("GeneratedRestoreConflict", "Preserve an inconsistent restore file receipt.");
+        return receipt;
+    }
+    private static async Task<string> FileIdentityAsync(string root, string planHash, RestoreFile file, CancellationToken ct) => file.BasisIdentity ??
+        (await ReadReceiptAsync(root, planHash, file, ct))?.Identity ?? throw new WorkspaceException("GeneratedRestoreConflict", "Preserve a restore target without its file identity.");
+    private static string Hash(FileStream file) { file.Position = 0; return Convert.ToHexStringLower(SHA256.HashData(file)); }
+    private static string RetainedHash(FileStream input, long length, DeltaRestoreRange[] ranges)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         if (input.Length < length) throw new WorkspaceException("GeneratedRestoreConflict", "Retained bytes are missing.");
         byte[] buffer = new byte[65536]; long cursor = 0;
         foreach (var range in ranges.Append(new(length, 0)))
