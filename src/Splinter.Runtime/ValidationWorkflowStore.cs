@@ -73,7 +73,8 @@ public sealed class ValidationWorkflowStore(WorkspaceStore workspaces)
         {
             using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             using var document = JsonDocument.Parse(input);
-            UniqueProperties(document.RootElement);
+            if (!JsonPropertyValidation.HasUniqueProperties(document.RootElement))
+                throw new JsonException("Duplicate state field.");
             var state = document.RootElement.Deserialize<ValidationWorkflowState>(Json)
                 ?? throw new JsonException("Empty state.");
             ValidationWorkflowRules.State(state, projectId);
@@ -82,21 +83,6 @@ public sealed class ValidationWorkflowStore(WorkspaceStore workspaces)
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { return null; }
         catch (Exception ex) when (ex is JsonException or ArgumentException or NullReferenceException || ex is WorkspaceException)
         { throw new WorkspaceException("ValidationStateCorrupt", "Unsupported, incomplete or inconsistent workflow state. Preserve all generations."); }
-    }
-
-    private static void UniqueProperties(JsonElement value)
-    {
-        if (value.ValueKind == JsonValueKind.Object)
-        {
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var property in value.EnumerateObject())
-            {
-                if (!names.Add(property.Name)) throw new JsonException("Duplicate state field.");
-                UniqueProperties(property.Value);
-            }
-        }
-        else if (value.ValueKind == JsonValueKind.Array)
-            foreach (var item in value.EnumerateArray()) UniqueProperties(item);
     }
 
     private static void RequireContinuation(ValidationWorkflowState before, ValidationWorkflowState after)

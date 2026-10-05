@@ -77,7 +77,7 @@ pwsh scripts/test-snapshot-overlay-compatibility.ps1 -RunDirectory $run
 
 Unity는 별도 run에 실제 fixture를 캡처한다. -Action Overlays -Unity로 .git 제외·16GiB journal 한도의 A/B 요청을 만든다. 각 요청에 git-prepare -Branch <new-codex-branch> -Revision <checkpoint-SHA> -ReceiptPath <run/git-a.json> → mount → git-attach → unity-start를 실행한다. 원본/A/B를 서로 다르게 편집하고 대상 Editor의 새로고침·새 코드 실행을 확인한다. measure-snapshot-overlay.ps1로 allocation·provider/OS cache·볼륨을, unity-status로 앱 Job 자원을 기록한다.
 
-결과 확정 뒤 unity-stop, preserve-snapshot-overlay-unity.ps1 -RunDirectory <run> -Name a 및 b를 실행한다. 이 wrapper는 source 보존·journal accounting·unmount·Git 등록 회수·manifest를 연결한다. 합성 fixture도 모든 mount를 정상 해제한다. reclaim-snapshot-overlay-test.ps1은 기본 read-only 검증이며 -Reclaim은 결과 hash/ref·동일 durable sequence·프로세스/핸들/mount/Git 등록 부재를 확인한 뒤 delta만 지운다. 중단 후 이미 회수한 delta는 일치하는 reclaim intent로 재조정한다. 마지막 관리자 release-snapshot-overlay-test.ps1 -RunDirectories <runs> -OutputPath <report>는 해당 snapshot ID만 회수하고 기존 ID 보존을 검증한다. 난수 원본과 실행기 cache는 snapshot 회수 후 명시적으로 정리한다.
+결과 확정 뒤 unity-stop, preserve-snapshot-overlay-unity.ps1 -RunDirectory <run> -Name a 및 b를 실행한다. 이 wrapper는 source 보존·정상 unmount/provider 종료·stopped journal accounting·Git 등록 회수·manifest 순서로 연결한다. unmount나 accounting 실패 뒤에는 후속 등록 회수를 수행하지 않고 독립 source 결과와 journal을 보존한다. 합성 fixture도 모든 mount를 정상 해제한다. reclaim-snapshot-overlay-test.ps1은 기본 read-only 검증이며 -Reclaim은 결과 hash/ref·동일 durable sequence·프로세스/핸들/mount/Git 등록 부재를 확인한 뒤 delta만 지운다. 중단 후 이미 회수한 delta는 일치하는 reclaim intent로 재조정한다. 마지막 관리자 release-snapshot-overlay-test.ps1 -RunDirectories <runs> -OutputPath <report>는 해당 snapshot ID만 회수하고 기존 ID 보존을 검증한다. 난수 원본과 실행기 cache는 snapshot 회수 후 명시적으로 정리한다.
 
 ## 비용과 미검증 범위
 
@@ -90,3 +90,5 @@ ADS, hardlink identity, reparse/EFS/압축/희소, 개별 ACL 변경, 일반 dir
 ## 개발 요청의 필수 증거
 
 `prepare-snapshot-overlay-test.ps1`, `test-snapshot-overlay-faults.ps1`, `test-snapshot-overlay-compatibility.ps1`은 `scripts/snapshot-overlay-request.ps1`의 공통 생성 함수를 사용한다. 현재 v2 capture receipt와 같은 요청의 live observation으로 `readAccess`, `snapshotReceiptDirectory`, `snapshotOwnerId`를 모두 채운다. mount는 제품과 같은 VSS identity·현재 boot·소유권 검증을 수행하며 경로 존재 확인만으로 우회하지 않는다. 새 조회가 필요하면 정확한 receipt의 `vss-snapshot.ps1 -Action Observe` 절차를 먼저 수행한다. 요청 생성은 capture·mount·원본 변경을 수행하지 않는다.
+
+계측과 범위 I/O의 공통 구현은 내부 모듈 `scripts/internal/SnapshotOverlayIO.psm1`이 소유한다. 시험·계측 진입점은 이 모듈을 import하고 run 경로를 명시적으로 전달한다. 모듈 import는 타입 등록·파일 I/O·시험 실행을 수행하지 않으며 allocation 조회 시에만 Windows helper를 준비한다. `FunctionsOnly` 시험 import는 제공하지 않는다.

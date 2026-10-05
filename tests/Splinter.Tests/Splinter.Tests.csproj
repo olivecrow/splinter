@@ -18,5 +18,7 @@
     <Content Include="../../scripts/prepare-snapshot-overlay-test.ps1;../../scripts/snapshot-overlay-request.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../scripts/setup-storage-service.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../scripts/vss-snapshot.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../scripts/preserve-snapshot-overlay-unity.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../scripts/internal/SnapshotOverlayIO.psm1" Link="Scripts/internal/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

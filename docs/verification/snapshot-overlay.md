@@ -69,3 +69,9 @@ pwsh scripts/build.ps1: locked restore, 빌드 경고/오류 0, 69개 중 68 통
 초기 allocation 측정 오류는 S/measurement-v1-invalid/invalidity.json에 기록했다. 그 묶음과 이전 filesystem-operations의 물리 allocation 필드는 무효다. hash·operation 결과는 유효하며 현재 02/03 physical 측정은 FILE_STANDARD_INFO.AllocationSize로 고쳤다.
 
 재부팅·전원 손실, host 물리 공간 고갈, 모든 mount/flush/release 명령 경계의 강제 종료, ADS/hardlink/reparse/EFS/ACL, dirty/LFS 원본, 패키지·임의 에셋 변경, PlayMode/Unity Test Framework는 NotRun 또는 Unsupported다. 실제 1TB 데이터셋을 실행하지 않았다. 통합 판단은 **후보 유지 및 제품 coordinator 설계 진행 가능**이며 상용 지원/성능 확정은 보류한다.
+
+## 현재 개발 script의 자동 회귀 경계
+
+`SnapshotScriptLifecycleTests`는 외부 명령 대역과 자기 임시 파일에서 source 보존 → provider 종료 → stopped journal 계측 → Git 등록 회수 순서를 검사한다. unmount/계측 실패는 독립 source 영수증과 journal·등록을 보존하고 후속 회수를 중단해야 한다. 내부 I/O 모듈의 import는 caller 경로 변수와 타입을 변경하지 않으며 명시적 두 run 경로의 JSON 게시와 범위 쓰기/읽기 결과를 검사한다.
+
+현재 helper의 Windows 할당 조회는 자기 8,192B 파일 한 개의 logical/allocated 합계 일치만 확인했다. 근거는 `artifacts/code-efficiency-fixes/helper-allocation/report.json`이며 VSS·Unity·전체 workspace 비용의 새 자격이 아니다. 저널 계측기 회귀는 `artifacts/code-efficiency-fixes/journal-accounting-tests.log`, 필수 locked restore/Release 빌드는 경고·오류 0이며 자동 회귀는 총 1,061개 중 1,051 Passed / 0 Failed / 10 conditional Skipped다. 로그와 현재 TRX는 `artifacts/code-efficiency-fixes/required-build.log`·`required-build.trx`를 따른다. 기존 SO-01~06 native 실행은 당시 후보의 근거로 유지하며 이번 wrapper/helper 후보의 실제 Unity/VSS 재실행은 NotRun이다.

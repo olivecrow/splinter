@@ -225,26 +225,12 @@ public sealed partial class JournalDeltaStore
             using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
             if (file.Length > 1024 * 1024) throw new JsonException("Publication metadata exceeds its bound.");
             using var document = JsonDocument.Parse(file);
-            RequireUniquePublicationProperties(document.RootElement);
+            if (!JsonPropertyValidation.HasUniqueProperties(document.RootElement))
+                throw new JsonException("Duplicate publication field.");
             return document.RootElement.Deserialize<T>(PublicationJson) ?? throw new JsonException("Missing publication metadata.");
         }
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { return null; }
         catch (JsonException) { throw new WorkspaceException("CandidatePublicationCorrupt", "Malformed, unsupported or incomplete metadata must be preserved."); }
-    }
-
-    private static void RequireUniquePublicationProperties(JsonElement value)
-    {
-        if (value.ValueKind == JsonValueKind.Object)
-        {
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var property in value.EnumerateObject())
-            {
-                if (!names.Add(property.Name)) throw new JsonException("Duplicate publication field.");
-                RequireUniquePublicationProperties(property.Value);
-            }
-        }
-        else if (value.ValueKind == JsonValueKind.Array)
-            foreach (var item in value.EnumerateArray()) RequireUniquePublicationProperties(item);
     }
 
     private static void WritePublicationFile<T>(string path, T value)

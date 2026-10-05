@@ -23,7 +23,8 @@ internal static class ValidationCommands
             using var stream = File.OpenRead(parse.GetValue(input)!);
             if (stream.Length > 1024 * 1024) throw new WorkspaceException("InputTooLarge", "Storage view request exceeds 1 MiB.");
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-            RequireUniqueFields(document.RootElement);
+            if (!JsonPropertyValidation.HasUniqueProperties(document.RootElement))
+                throw new WorkspaceException("ValidationRequestInvalid", "Duplicate request fields are ambiguous.");
             if (!contracts.Validate("urn:splinter:v1:validation-product-request", document.RootElement).IsValid)
                 throw new WorkspaceException("ValidationRequestInvalid", "Request does not match view.execute schema.");
             var request = document.RootElement.Deserialize<ValidationProductRequest>(new JsonSerializerOptions(JsonSerializerDefaults.Web)
@@ -35,11 +36,12 @@ internal static class ValidationCommands
 
     internal static ApiResponse Response(ValidationProductRequest request, object result, string home)
     {
+        var response = ApiResponse.Success("view.execute", new { request.Action, result });
+        if (request.Action != "start") return response;
         var observed = JsonSerializer.SerializeToElement(result, ApiJson.Options);
-        bool accepted = request.Action == "start" &&
+        bool accepted =
             observed.GetProperty("application").GetProperty("running").GetBoolean() &&
             !observed.GetProperty("application").GetProperty("ready").GetBoolean();
-        var response = ApiResponse.Success("view.execute", new { request.Action, result });
         if (!accepted) return response;
         string viewId = observed.GetProperty("selection").GetProperty("intent").GetProperty("cache").GetProperty("viewId").GetString()!;
         var status = new { version = 1, action = "status", project = Path.GetFullPath(request.Project), request.Owner,
@@ -48,19 +50,5 @@ internal static class ValidationCommands
         // pass to --input; never overwrite the caller's original request file.
         return response with { Status = "Accepted", Terminal = false,
             NextActions = [new("view.execute", new { home = Path.GetFullPath(home), request = status })] };
-    }
-    private static void RequireUniqueFields(JsonElement value)
-    {
-        if (value.ValueKind == JsonValueKind.Object)
-        {
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var property in value.EnumerateObject())
-            {
-                if (!names.Add(property.Name)) throw new WorkspaceException("ValidationRequestInvalid", "Duplicate request fields are ambiguous.");
-                RequireUniqueFields(property.Value);
-            }
-        }
-        else if (value.ValueKind == JsonValueKind.Array)
-            foreach (var item in value.EnumerateArray()) RequireUniqueFields(item);
     }
 }

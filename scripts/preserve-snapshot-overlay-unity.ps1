@@ -25,9 +25,9 @@ if(Test-Path -LiteralPath $request.mountPath){
     if($LASTEXITCODE -ne 0 -or $changed){throw 'SourceChangedAfterPreservation'}
 }
 $accounting=Join-Path $root "unity-$Name-journal-accounting.json"
+Invoke-Spike 'unmount'|ConvertTo-Json -Depth 12|Set-Content (Join-Path $root "mount-$Name-final-unmount.json") -Encoding utf8
 & python (Join-Path $PSScriptRoot 'measure-overlay-journal.py') (Join-Path $request.deltaPath 'delta.journal') --output $accounting|Out-Null
 if($LASTEXITCODE -ne 0){throw 'JournalAccountingFailed'}
-Invoke-Spike 'unmount'|ConvertTo-Json -Depth 12|Set-Content (Join-Path $root "mount-$Name-final-unmount.json") -Encoding utf8
 Invoke-Spike 'git-release' $revision|ConvertTo-Json -Depth 8|Set-Content (Join-Path $root "git-$Name-final-release.json") -Encoding utf8
 $state=Get-Content (Join-Path $control 'state.json') -Raw|ConvertFrom-Json
 $output=Join-Path $root "results/$Name";New-Item -ItemType Directory -Path $output -Force|Out-Null

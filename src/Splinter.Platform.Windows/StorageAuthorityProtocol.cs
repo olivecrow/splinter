@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Splinter.Core;
+using Splinter.Runtime;
 
 namespace Splinter.Platform.Windows;
 
@@ -50,19 +51,9 @@ internal static partial class StorageAuthorityProtocol
     internal static T Decode<T>(ReadOnlySpan<byte> bytes)
     {
         using var doc = JsonDocument.Parse(bytes.ToArray(), new() { MaxDepth = 32 });
-        Unique(doc.RootElement);
+        if (!JsonPropertyValidation.HasUniqueProperties(doc.RootElement))
+            throw new JsonException("Duplicate property.");
         return doc.RootElement.Deserialize<T>(Json) ?? throw new JsonException("Empty storage authority message.");
-    }
-    private static void Unique(JsonElement element)
-    {
-        if (element.ValueKind == JsonValueKind.Object)
-        {
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var property in element.EnumerateObject())
-            { if (!names.Add(property.Name)) throw new JsonException("Duplicate property."); Unique(property.Value); }
-        }
-        else if (element.ValueKind == JsonValueKind.Array)
-            foreach (var item in element.EnumerateArray()) Unique(item);
     }
     internal static void Validate(StorageAuthorityRequest r)
     {

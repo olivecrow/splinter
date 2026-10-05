@@ -12,6 +12,8 @@ Unity CLI의 외부 작업은 [정확한 대상 선택 절차](alpha-workspaces.
 
 ## 구조와 의존성
 
+JSON object/array 내부의 중복 속성명 순회는 Runtime의 `JsonPropertyValidation`이 공통으로 소유한다. 이름은 Ordinal로 비교하며 크기·깊이·버전·역직렬화 옵션과 오류 코드는 각 입력/상태 경계에서 유지한다. 개발용 view 응답은 `start`의 Accepted 판단에만 임시 JSON 검사를 사용하며 다른 action의 결과는 최종 응답 출력에서 직렬화한다.
+
 [OS와 앱 확장 경계](extensibility-boundaries.md)는 snapshot identity에 고정한 경로 정책·선택적 Unix 권한 metadata와 앱별 프로젝트 정책을 소유한다. Unity의 원본 잠금/동반 파일/Library descriptor는 Unity 어댑터에 있고 Files·Windows는 명시적으로 주입한 정책을 사용한다. 관리형 basis 상태·준비 intent는 앱/디렉터리 identity를 명시한 v2만 지원한다. 다른 OS·앱의 실제 어댑터는 없으며 자동 적합성과 실제 지원은 [검증](verification/extensibility-boundaries.md)에서 구분한다.
 
 Plastic 내용 reader는 Files에 내장된 고정 client adapter를 일반 사용자 PowerShell 자식에서 실행하고 private stdio frame만 읽는다. 공개 API listener나 새로운 CLI 명령은 제공하지 않는다. Windows `cm 11.0.16.9915`·PowerShell 7 전제와 helper의 bounded segment는 [현재 계약](plastic-project-basis.md), 자동/한정 native 읽기는 [보안 경계 검증](verification/security-boundaries.md)을 따른다. 작업공간의 저장 격리는 악성 Git hook·Unity 코드·인증된 MCP 코드 실행에 대한 OS 보안 sandbox가 아니다.

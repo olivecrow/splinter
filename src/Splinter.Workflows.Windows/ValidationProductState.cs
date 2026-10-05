@@ -36,7 +36,8 @@ internal static class ProductState
             using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             if (input.Length > 16 * 1024 * 1024) throw new JsonException("Receipt exceeds its bound.");
             using var document = JsonDocument.Parse(input);
-            Unique(document.RootElement);
+            if (!JsonPropertyValidation.HasUniqueProperties(document.RootElement))
+                throw new JsonException("Duplicate property.");
             var value = document.RootElement.Deserialize<T>(journal ? new JsonSerializerOptions(Json) { PropertyNamingPolicy = null } : Json)
                 ?? throw new JsonException("Empty receipt.");
             if (document.RootElement.TryGetProperty(journal ? "Version" : "version", out var version) &&
@@ -55,15 +56,6 @@ internal static class ProductState
         using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
         { JsonSerializer.Serialize(output, value, Json); output.Flush(true); }
         AtomicFilePublication.Publish(temporary, path);
-    }
-    private static void Unique(JsonElement element)
-    {
-        if (element.ValueKind == JsonValueKind.Object)
-        {
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var p in element.EnumerateObject()) { if (!names.Add(p.Name)) throw new JsonException("Duplicate property."); Unique(p.Value); }
-        }
-        else if (element.ValueKind == JsonValueKind.Array) foreach (var item in element.EnumerateArray()) Unique(item);
     }
     internal static void Require(bool condition, string code, string message)
     { if (!condition) throw new WorkspaceException(code, message); }
