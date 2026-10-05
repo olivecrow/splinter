@@ -39,7 +39,7 @@ public sealed class JournalInterruptionTests
     public async Task EvidenceRun()
     {
         string? root = Environment.GetEnvironmentVariable("SPLINTER_JOURNAL_RECOVERY_EVIDENCE");
-        if (root is null) return;
+        if (root is null) Assert.Skip("External evidence run requires SPLINTER_JOURNAL_RECOVERY_EVIDENCE.");
         root = Path.GetFullPath(root);
         Assert.False(Directory.Exists(root) || File.Exists(root), "Preserve existing evidence; use a new directory.");
         Directory.CreateDirectory(root);
@@ -65,7 +65,7 @@ public sealed class JournalInterruptionTests
     public void ChildWriter()
     {
         string? input = Environment.GetEnvironmentVariable("SPLINTER_JOURNAL_RECOVERY_CHILD");
-        if (input is null) return;
+        if (input is null) Assert.Skip("Subprocess-only entrypoint requires SPLINTER_JOURNAL_RECOVERY_CHILD.");
         var request = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(input));
         string directory = request.GetProperty("directory").GetString()!, operation = request.GetProperty("operation").GetString()!,
             boundary = request.GetProperty("boundary").GetString()!, nonce = request.GetProperty("nonce").GetString()!;

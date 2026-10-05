@@ -20,8 +20,11 @@ public sealed class JournalProbeContractTests
                     JournalInterruptionTests.CommitBoundaries.Contains(boundary) && (operation == "write" || !boundary.Contains("payload", StringComparison.Ordinal));
                 Assert.Equal(supported, catalog.Validate("urn:splinter:v1:journal-recovery-probe-request", input).IsValid);
             }
-        Assert.False(catalog.Validate("urn:splinter:v1:journal-recovery-probe-request",
-            JsonSerializer.SerializeToElement(new { version = 0 })).IsValid);
+        var versionInput = JsonSerializer.SerializeToNode(new { version = 1, directory = "new", operation = "write",
+            boundary = "commit.before-append", nonce = new string('a', 32) })!;
+        Assert.True(catalog.Validate("urn:splinter:v1:journal-recovery-probe-request", JsonSerializer.SerializeToElement(versionInput)).IsValid);
+        versionInput["version"] = 0;
+        Assert.False(catalog.Validate("urn:splinter:v1:journal-recovery-probe-request", JsonSerializer.SerializeToElement(versionInput)).IsValid);
         Assert.Equal(58, JournalInterruptionTests.Cases.Count);
     }
 

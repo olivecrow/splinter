@@ -24,7 +24,7 @@ public sealed class KernelRecoveryTests
     public async Task EvidenceRun()
     {
         string? configuration = Environment.GetEnvironmentVariable("SPLINTER_KERNEL_RECOVERY_RUN");
-        if (configuration is null) return;
+        if (configuration is null) Assert.Skip("External WinFsp run requires SPLINTER_KERNEL_RECOVERY_RUN.");
         Assert.True(OperatingSystem.IsWindows(), "Real Windows/WinFsp run required.");
         var config = JsonSerializer.Deserialize<JsonElement>(configuration);
         string root = Path.GetFullPath(config.GetProperty("evidencePath").GetString()!), home = Path.GetFullPath(config.GetProperty("mountHome").GetString()!);
@@ -51,7 +51,8 @@ public sealed class KernelRecoveryTests
     [Fact]
     public void ChildProvider()
     {
-        string? input = Environment.GetEnvironmentVariable("SPLINTER_KERNEL_RECOVERY_CHILD"); if (input is null) return;
+        string? input = Environment.GetEnvironmentVariable("SPLINTER_KERNEL_RECOVERY_CHILD");
+        if (input is null) Assert.Skip("Subprocess-only entrypoint requires SPLINTER_KERNEL_RECOVERY_CHILD.");
         Request request = Load(input); var tree = new Tree(); string ready = Path.Combine(request.Directory, "ready-" + request.Generation + ".json");
         Directory.CreateDirectory(Path.GetDirectoryName(request.MountPath)!);
         if (System.IO.Directory.Exists(request.MountPath))
@@ -93,7 +94,8 @@ public sealed class KernelRecoveryTests
     [Fact]
     public void ChildClient()
     {
-        string? input = Environment.GetEnvironmentVariable("SPLINTER_KERNEL_RECOVERY_CHILD"); if (input is null) return;
+        string? input = Environment.GetEnvironmentVariable("SPLINTER_KERNEL_RECOVERY_CHILD");
+        if (input is null) Assert.Skip("Subprocess-only entrypoint requires SPLINTER_KERNEL_RECOVERY_CHILD.");
         Request request = Load(input); string alpha = Path.Combine(request.MountPath, "alpha");
         try
         {
@@ -138,7 +140,8 @@ public sealed class KernelRecoveryTests
     [Fact]
     public void ChildReader()
     {
-        string? input = Environment.GetEnvironmentVariable("SPLINTER_KERNEL_RECOVERY_CHILD"); if (input is null) return;
+        string? input = Environment.GetEnvironmentVariable("SPLINTER_KERNEL_RECOVERY_CHILD");
+        if (input is null) Assert.Skip("Subprocess-only entrypoint requires SPLINTER_KERNEL_RECOVERY_CHILD.");
         var request = Load(input); WaitFile(Path.Combine(request.Directory, "ready-1.json"));
         using var reader = new FileStream(Path.Combine(request.MountPath, "beta"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         WriteNew(Path.Combine(request.Directory, "reader-ready.json"), new { request.Nonce, processId = Environment.ProcessId,

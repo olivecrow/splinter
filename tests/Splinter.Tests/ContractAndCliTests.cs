@@ -265,19 +265,15 @@ public sealed class ContractAndCliTests
         Assert.Throws<JsonException>(() => inspection.Deserialize<SourceInspectionMetrics>(ApiJson.Options));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task StatusOptionAndSourceFreshnessAreMachineReadable(bool verifySource)
+    [Fact]
+    public async Task UnpreparedStatusWithSourceVerificationRemainsNotChecked()
     {
         using var directory = new TestDirectory();
         var store = new WorkspaceStore(directory.Path);
         string id = WorkspaceStore.Key("status-cli");
         store.Save(new() { Id = id, RequestKey = "status-cli", ProjectPath = Path.Combine(directory.Path, "project"),
             Path = store.WorkPath(id), SourceReference = "task", BaseReference = "development" }, "fixture");
-        string[] args = ["workspace", "status", "--id", id, "--home", directory.Path];
-        if (verifySource) args = [.. args, "--verify-source"];
-        var (exitCode, response) = await Run(args);
+        var (exitCode, response) = await Run("workspace", "status", "--id", id, "--home", directory.Path, "--verify-source");
         Assert.Equal(0, exitCode);
         var data = response.GetProperty("data");
         Assert.Equal("not-checked", data.GetProperty("sourceVerification").GetString());

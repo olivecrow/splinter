@@ -426,20 +426,6 @@ public sealed partial class SnapshotOverlayTests
     }
 
     [Fact]
-    public void RenameDirectoriesPreservesLazyBasePathsAndDeletionAcrossReconnect()
-    {
-        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["dir/a"] = [1, 2]; tree.Files["dir/b"] = [3, 4];
-        using (var store = New(d, tree))
-        {
-            store.Delete(store.Stat("dir/a")!.Id); store.Rename(store.Stat("dir")!.Id, "moved", false);
-            Assert.Null(store.Stat("dir")); Assert.Null(store.Stat("moved/a")); Assert.NotNull(store.Stat("moved/b"));
-        }
-        using var resumed = New(d, tree); Assert.Null(resumed.Stat("dir")); Assert.Null(resumed.Stat("moved/a"));
-        byte[] data = new byte[2]; resumed.Read(resumed.Stat("moved/b")!.Id, 0, data); Assert.Equal(new byte[] { 3, 4 }, data);
-        Assert.Single(resumed.List("moved"));
-    }
-
-    [Fact]
     public void ReplaceDoesNotChangeAnOpenHandleToTheOldFile()
     {
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["original"] = [1, 2];

@@ -21,7 +21,8 @@ public sealed class ProductWriteRecoveryTests
     [Fact]
     public async Task EvidenceRun()
     {
-        string? configText = Environment.GetEnvironmentVariable("SPLINTER_PRODUCT_WRITE_RECOVERY_RUN"); if (configText is null) return;
+        string? configText = Environment.GetEnvironmentVariable("SPLINTER_PRODUCT_WRITE_RECOVERY_RUN");
+        if (configText is null) Assert.Skip("External product run requires SPLINTER_PRODUCT_WRITE_RECOVERY_RUN.");
         Assert.True(OperatingSystem.IsWindows()); var c = JsonSerializer.Deserialize<JsonElement>(configText);
         string root = Path.GetFullPath(c.GetProperty("evidencePath").GetString()!), project = Path.GetFullPath(c.GetProperty("project").GetString()!),
             home = Path.GetFullPath(c.GetProperty("home").GetString()!), cli = Path.GetFullPath(c.GetProperty("cliPath").GetString()!),
@@ -68,7 +69,8 @@ public sealed class ProductWriteRecoveryTests
     [Fact]
     public void ClientActor()
     {
-        string? input = Environment.GetEnvironmentVariable("SPLINTER_PRODUCT_WRITE_RECOVERY_CHILD"); if (input is null) return;
+        string? input = Environment.GetEnvironmentVariable("SPLINTER_PRODUCT_WRITE_RECOVERY_CHILD");
+        if (input is null) Assert.Skip("Subprocess-only entrypoint requires SPLINTER_PRODUCT_WRITE_RECOVERY_CHILD.");
         var r = JsonSerializer.Deserialize<Request>(File.ReadAllText(input), Json)!;
         Assert.True(new ContractCatalog().Validate("urn:splinter:v1:product-write-recovery-probe-request", JsonSerializer.SerializeToElement(r, Json)).IsValid);
         string alpha = Path.Combine(r.MountPath, Alpha), beta = Path.Combine(r.MountPath, Beta);

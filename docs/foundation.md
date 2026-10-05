@@ -91,6 +91,8 @@ pwsh ./scripts/build.ps1
 
 locked restore·Release·자동 계약/fake/Git/Windows 회귀를 수행한다. 의존성은 중앙 버전과 lockfile을 유지한다. 선택 ReFS 환경변수가 없으면 해당 실제 시험은 Skipped다. 자동 시험을 native VSS/Unity·ARM/OS 장애 자격으로 승계하지 않는다. 원시 근거와 지원 제한은 [검증 안내](verification/README.md)에 보존한다.
 
+외부 복구 시험의 `EvidenceRun`과 자식 전용 `ChildWriter`·`ChildProvider`·`ChildClient`·`ChildReader`·`ClientActor`·`ChildEnsure`는 지정된 실행 환경 변수가 없으면 Skipped다. 해당 스크립트나 부모 시험이 환경 변수를 전달할 때 같은 진입점이 실행된다. 기본 자동 실행에서도 부모 시험이 호출하는 합성 저널·준비 중단 회귀는 실행하며, 외부 kernel·제품 쓰기 복구의 실행 자격과 구분한다.
+
 ### 실제 저장소의 Git 수명주기 시험
 
 `pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository <경로>`는 명시한 저장소의 worktree 등록을 수정하는 개발 시험이다. Unity/CoW 자격과 구별하며 기존 작업·원본·refs를 보존한다.

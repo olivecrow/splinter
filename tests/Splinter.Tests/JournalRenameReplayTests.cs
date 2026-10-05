@@ -63,6 +63,7 @@ public sealed class JournalRenameReplayTests
         tree.Files[from + "/loaded"] = [1]; tree.Files[from + "/lazy"] = [2];
         tree.Files[from + "/nested/removed"] = [3]; tree.Files[from + "/nested/kept"] = [4];
         tree.Files[from + "-sibling/untouched"] = [5];
+        tree.Files[from + "/removed"] = [6];
         var identity = new OverlayIdentity(2, "rename", tree.Snapshot, 1_000_000, 4096);
         string delta = Path.Combine(d.Path, "delta"); Guid openFile;
         void Check(JournalDeltaStore store)
@@ -73,6 +74,10 @@ public sealed class JournalRenameReplayTests
                 byte[] bytes = new byte[1]; store.Read(store.Stat(path)!.Id, 0, bytes); Assert.Equal(expected, bytes[0]);
             }
             Assert.Null(store.Stat(to + "/nested/removed"));
+            Assert.Null(store.Stat(to + "/removed"));
+            Assert.Equal(new[] { to + "/lazy", to + "/loaded", to + "/nested" },
+                store.List(to).Select(e => e.Path).Order(StringComparer.Ordinal).ToArray());
+            Assert.Equal(new[] { to + "/nested/kept" }, store.List(to + "/nested").Select(e => e.Path).ToArray());
             if (!from.Equals(to, StringComparison.OrdinalIgnoreCase))
             { Assert.Null(store.Stat(to + "-sibling/untouched")); Assert.Null(store.Stat(from)); }
         }
@@ -80,6 +85,7 @@ public sealed class JournalRenameReplayTests
         {
             openFile = store.Stat(from + "/loaded")!.Id; store.Write(openFile, 0, [9]);
             store.Delete(store.Stat(from + "/nested/removed")!.Id);
+            store.Delete(store.Stat(from + "/removed")!.Id);
             _ = store.Stat(from + "-sibling/untouched");
             store.Rename(store.Stat(from.ToUpperInvariant())!.Id, to, false);
             Check(store); Assert.Equal(openFile, store.Stat(to + "/loaded")!.Id);

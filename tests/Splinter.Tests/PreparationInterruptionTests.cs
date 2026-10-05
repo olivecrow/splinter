@@ -55,7 +55,7 @@ public sealed class PreparationInterruptionTests
     public async Task ChildEnsure()
     {
         string? input = Environment.GetEnvironmentVariable("SPLINTER_TEST_PREPARATION_INPUT");
-        if (input is null) return; // Subprocess-only fixture entrypoint.
+        if (input is null) Assert.Skip("Subprocess-only entrypoint requires SPLINTER_TEST_PREPARATION_INPUT.");
         var ct = TestContext.Current.CancellationToken;
         var r = JsonSerializer.Deserialize<JsonElement>(await File.ReadAllTextAsync(input, ct));
         await Ensure(r.GetProperty("project").GetString()!, r.GetProperty("home").GetString()!,
@@ -63,12 +63,16 @@ public sealed class PreparationInterruptionTests
     }
 
     [Fact]
-    public void ProbeCatalogAndSchemaAgreeAndRejectUnknownInputs()
+    public void ProbeCatalogMatchesBoundariesAndRejectsUnsupportedVersion()
     {
         var contracts = new ContractCatalog();
         var schema = contracts.GetSchema("urn:splinter:v1:preparation-probe-request");
         Assert.Equal(DevelopmentPreparationProbe.Boundaries, schema.GetProperty("properties").GetProperty("boundary").GetProperty("enum").EnumerateArray().Select(e => e.GetString()));
-        Assert.False(contracts.Validate("urn:splinter:v1:preparation-probe-request", JsonSerializer.SerializeToElement(new { version = 0 })).IsValid);
+        var input = JsonSerializer.SerializeToNode(new { version = 1, project = "source", home = "home", key = "interrupted",
+            baseReference = "base", boundary = DevelopmentPreparationProbe.Boundaries[0], signalPath = "signal.json" })!;
+        Assert.True(contracts.Validate("urn:splinter:v1:preparation-probe-request", JsonSerializer.SerializeToElement(input)).IsValid);
+        input["version"] = 0;
+        Assert.False(contracts.Validate("urn:splinter:v1:preparation-probe-request", JsonSerializer.SerializeToElement(input)).IsValid);
     }
 
     private static Task<WorkspaceView> Ensure(string project, string home, IWorkspacePreparationObserver? observer, CancellationToken ct) =>
