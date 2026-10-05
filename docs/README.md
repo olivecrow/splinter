@@ -9,11 +9,12 @@
 | 문서 | 소유하는 내용 |
 | --- | --- |
 | [현재 기반](foundation.md) | 모듈·의존성·명령·빌드와 시험 |
-| [Unity MCP 응답 복구](unity-mcp-response-recovery.md) | 외부 Coplay 고정 패치의 준비·HTTP 대상·Codex 설정 조회 검사·긴 코드 job·reload 상세 결과와 한정 자격 |
+| [Unity MCP 연결·응답 복구](unity-mcp-response-recovery.md) | 외부 Coplay 고정 패치의 준비·HTTP 대상·Codex 설정 조회 검사·Editor 종료 뒤 남은 연결 확인/필요한 복구·긴 코드 job·reload 상세 결과와 한정 자격 |
 | [개발용 CLI](development-cli.md) | 기본 CLI에서 분리한 ReFS/baseline·diagnostic checkout·저장소 view·spike/probe의 진입점 |
 | [한정 버전 AI 시작 안내](agent-start.md) | 개발 CLI의 전제·진입·정확한 경로/같은 작업 재개·명시적 종료·실패의 다음 행동 |
 | [최소 AI 사용 스킬](../skills/splinter/SKILL.md) | 저장소 지침 원본·직접/독립 작업 판단·CLI 발견·반환 경로·같은 작업 재개·명시적 종료/실패 처리. 설치/자동 binding은 없음 |
 | [VCS 없는 작업공간](vcs-independent-workspaces.md) | 명시적 소스/application 선택·파일 기준/결과·현재 형식·회수와 실제 검증의 구분 |
+| [VCS 없는 프로젝트 기준본](plain-project-basis.md), [범위](plans/plain-project-basis.md), [검증](verification/plain-project-basis.md) | 승인한 whole-project 관리형 원본·VSS 없는 None source/Library 공통 기준·원본/A/B private 범위·전체/선택 게시·task 참조 회수와 마지막 일반 NTFS 복원. 파일/실제 Unity·비용/미자격을 구분 |
 | [Plastic 사용 환경](plastic-compatibility.md), [호환 계획](plans/plastic-compatibility.md), [C: 실행 계획](plans/plastic-validation.md), [추가 T: 회수 계획](plans/plastic-reclamation-validation.md), [검증](verification/plastic-compatibility.md) | Splinter A/B의 관리 정보/등록 격리·무 checkout 파일 작업공간·독립 결과·T: 마지막 회수의 한정 마감과 C: 보류/외부 도구 발견 제한 |
 | [일반 폴더 원본 반영](plain-folder-original-apply.md) | 읽기 전용 계획·고정 대상/intent·조건부 Windows 게시·중단/회수와 비용 경계 |
 | [원본 반영 검증](verification/plain-folder-original-apply.md) | Core/fake·실제 일반 권한 NTFS 파일 시험과 작은 Editor 없는 제품 A/B 한정 마감·계측 |
@@ -71,7 +72,7 @@
 | [검증 추적표](plans/validation-matrix.md) | M0와 기존 ID의 실제 증거 상태·후속 책임 분류·보존한 48개 카탈로그 |
 | [NTFS 복구·지원](plans/ntfs-recovery-and-support.md) | NR-01/02 준비 복구·NR-03 공통 저널/로컬 kernel/제품 client 경계와 재부팅·전원·공간·파일 관문의 완료 기준 |
 | [저장공간 우선 설계](plans/storage-priority-and-editor-modes.md) | SF-02~06·비용 판단과 WF-09~12/LB-01~05의 완료 범위·재검증 기준 |
-| [VCS 프로젝트 단위 기준본 전환](plans/project-scoped-basis-and-reclamation-review.md) | Git·Plastic의 고정 버전 재사용·프로젝트 범위·기존 범위 저널 연결의 VP-01~05. Git/Plastic은 Library·고정 실제 Unity까지 한정 마감하고 VCS 없는 새 기준본은 후순위. 사전 CLI 접근과 실제 제품 자격을 구분 |
+| [VCS 프로젝트 단위 기준본 전환](plans/project-scoped-basis-and-reclamation-review.md) | Git·Plastic의 고정 버전 재사용·프로젝트 범위·기존 범위 저널 연결의 VP-01~05. Git/Plastic은 Library·고정 실제 Unity까지 한정 마감하고 VCS 없는 새 기준본은 별도 승인한 NP 관리형 원본 계약을 따름. 사전 CLI 접근과 실제 제품 자격을 구분 |
 | [Plastic 프로젝트 기준본·Library 범위](plans/plastic-project-basis.md) | fixed changeset reader·VSS 없는 범위 저장·공통 Library와 실제 Unity A/B·MCP/리소스/씬/현재 상태 tests·독립 결과/회수/원본 복원의 PPB-01~06 한정 마감. 초기 준비/복원·MCP 응답/실행 겹침 제한과 원본 반영/기존 VSS/비VCS 후속을 구분 |
 | [Git 원본 Library 참조·MCP/RAM](plans/git-library-reference.md) | 승인한 Library 전용 관리형 mount·원본/peer 복구와 GL-01~05 한정 마감. 실제 RAM 절감 미확인·MCP 실패 상세 소실·준비/복원 비용은 검증에 유지 |
 | [대화별 설치·사용](plans/session-workflow-and-installation.md) | AI의 설치 연결/인계/도구 선택/종료 절차·외부 도구의 최소 경계·[후속 Unity CLI A/B 인계 범위](plans/session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)·SW 증거 분류 |

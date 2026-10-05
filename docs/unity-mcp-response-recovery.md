@@ -1,4 +1,4 @@
-# Unity MCP의 긴 실행과 reload 결과 보존
+# Unity MCP 연결 복구와 실행 결과 보존
 
 `integrations/unity-mcp/`는 Coplay Unity MCP `10.2.0` revision `30d22075093d1d35dfb0091c1c7550e9ad948577`의 로컬 외부 도구 패치다. Splinter workspace 명령·Core/Runtime·제품 capabilities를 확장하지 않는다. Unity 편집·컴파일·테스트와 합격 판단은 계속 에이전트와 MCP/Unity CLI가 담당한다. [실제 자격](verification/vss-and-mcp-remediation.md)과 [고정 범위](plans/vss-and-mcp-remediation.md)를 구분한다.
 
@@ -37,6 +37,27 @@ codex mcp get unity_mcp_coplay --json
 
 전체 앱을 재실행할 때 에이전트의 실행 세션에서 시작한 외부 Editor/서버도 함께 종료될 수 있다. Editor가 반드시 유지된다고 안내하지 않는다. 작업 상태와 정확한 PID/start를 먼저 확인하고, 종료됐다면 같은 프로젝트·패키지·포트로 독립 실행한 뒤 HTTP 응답과 Editor Connect를 확인한다. 앱 도구의 재연결은 서버가 응답하는 상태에서 수행한다. 현재 대화가 이미 받은 startup 실패와 직접 HTTP client의 성공은 따로 기록하며 전역 설정 재작성이나 Editor 쓰기 재시도로 우회하지 않는다.
 
+## Editor 종료 후 남은 MCP 연결 확인
+
+MCP를 사용하는 병렬 작업의 알려진 Editor 하나가 종료되면 남은 원본/peer Editor의 MCP 연결을 확인한다. `unity stop`, release/discard 과정의 종료, 관리형 기준 전환·복원을 위한 종료와 사용자가 닫았음을 관측한 경우에 적용한다. 종료한 Editor의 연결 해제는 정상이며, 공유 서버 중단은 남은 Editor의 연결 복구가 필요한 별도 상태다. 확인은 필수이고 정상 서버의 재시작은 필수가 아니다. 이 절차는 [Splinter 스킬](../skills/splinter/SKILL.md#check-remaining-mcp-connections-after-an-editor-stops)이 수행하며 제품의 자동 재시작 기능이 아니다.
+
+예정된 종료 전에 계속 사용할 Editor의 project path·PID/start·MCP instance, 사용하는 endpoint/transport·서버 버전·기존 시작 절차·로그 위치를 인계에 남긴다. 실행 중이거나 완료한 중요한 job의 request/job ID와 상세 결과도 보존한다. 인증 토큰과 전체 명령행은 출력하지 않는다. 이미 종료됐다면 기존 인계와 실제 프로세스 관측에서 identity를 확인하며 빈 MCP 목록으로 Editor 종료를 추측하지 않는다.
+
+| 종료 뒤 관측 | 대응 |
+| --- | --- |
+| 서버가 응답하고 남은 정확한 instance의 읽기 요청도 성공 | 그대로 작업 지속. 서버/Editor를 재시작하지 않음 |
+| MCP 서버가 중단됐고 기록한 endpoint의 포트가 비어 있음 | 기존 승인 범위의 시작 절차로 같은 버전·transport·endpoint를 복구하고 알려진 남은 Editor를 재연결 |
+| 서버는 정상이나 특정 Editor만 instance 목록에서 누락 | 실제 해당 Editor의 PID/start·초기화 상태를 확인하고 기존 Connect/start 방식으로 그 클라이언트만 재연결 |
+| 포트가 다른 프로세스에 점유됐거나 서버/Editor 소유권이 불명확 | 기존 프로세스를 종료하거나 다른 포트로 우회하지 않음. 영향을 받는 MCP 쓰기를 보류하고 정확한 차단 상태를 보고 |
+
+서버가 중단된 경우 준비 단계의 **기존 사용자 없는 서버를 정상 종료**하는 절차를 반복할 필요가 없다. 실제 부재·포트 미점유를 확인한 뒤 승인한 기존 실행을 복구한다. 현재 작업의 서버 재시작/외부 로그 승인은 같은 범위에서 유지되며 이를 없던 승인으로 취급하지 않는다. 서버를 정상 재시작했다는 이유만으로 복구 완료를 선언하지 않는다. 서버 응답 뒤 알려진 각 남은 Editor의 기존 Connect 또는 해당 버전이 제공하는 시작 경로로 연결하고 `mcpforunity://instances`를 다시 읽는다. 서버가 내려가 MCP 도구를 사용할 수 없다면 기존 Unity CLI의 exact-path 경로나 실제 해당 Editor의 Connect를 사용한다. 연결 문제 때문에 새 Editor/workspace를 만들거나 다른 Editor를 종료하지 않는다.
+
+새 discovery의 정확한 instance에 읽기 전용 요청을 보내 반환 project/PID/start를 저장한 workspace/소유 Editor와 대조한다. 큰 시작 시각은 문자열로 받는다. A/B는 per-call target을 사용하고 다른 요청과 세션 기본 대상을 경쟁하지 않는다. 기존 request/job ID를 먼저 조회하며 재연결 자체는 timeout 쓰기·씬 편집·test 재실행의 승인이 아니다. Unity의 import/compile 완료와 실제 도구 readiness도 구분한다.
+
+한 번의 명시적 복구와 도구 timeout에 맞춘 한정 readiness 확인 뒤에도 연결/identity가 확인되지 않으면 반복 재시작하지 않는다. 작업과 기존 요청을 보존하고 영향받은 MCP 작업만 대기 상태로 보고하며 독립적인 파일 작업·승인한 회수는 계속한다. 모든 Editor가 종료됐고 MCP 후속 작업이 없다면 서버를 다시 띄우지 않는다. 남은 알려진 공유 사용자/서버의 보호 확인은 유지한다. 결과와 인계에는 종료한 Editor의 회수 결과, 공유 서버 상태, 각 남은 Editor의 연결 확인/미확인과 다음 행동을 분리해 기록한다.
+
+정상 종료 때 공유 서버까지 내려간 [실제 None 관측](verification/plain-project-basis.md#외부-mcp-종료-결함과-복구)의 대응으로 이 운영 절차를 선택했다. 당시 같은 버전/포트의 서버 복구와 기존 Editor의 Codex 기본 MCP 재연결은 확인했다. 절차 문서화는 외부 MCP 소유권 결함을 수정하거나 무중단 공존을 입증하지 않으며, 새 종료 시험이나 다른 패키지의 일반 자격으로 승계하지 않는다.
+
 ## 긴 코드 실행
 
 `execute_code`에 다음 입력을 사용한다. `start`는 Editor SessionState에 request/input을 먼저 기록하고 빠르게 job ID를 반환한다. 다음 Editor update에서 기존 ExecuteCode를 한 번 실행한다. Inspector 갱신에 의존하는 `delayCall`은 사용하지 않는다.
@@ -54,3 +75,5 @@ codex mcp get unity_mcp_coplay --json
 TestJobManager의 기존 최근 10개 job 정책을 유지하면서 완료한 TestRunResult와 immutable summary/item의 JSON 생성자를 연결한다. `run_tests`의 job ID와 Editor identity를 보존하고 `get_test_job(include_details=true)`로 읽는다. 같은 Editor의 domain reload 뒤 같은 job ID로 summary·개별 결과·실패/stack/output을 복원한다. 상세 결과 보존에는 해당 결과 크기의 SessionState 비용이 추가되며 RAM 절감 기능이 아니다. 큰 테스트 묶음·Editor 종료 후 보존은 이번 자격에 포함하지 않았다. 중요한 결과는 외부 evidence에도 보존한다.
 
 복구는 정상 Editor stop 후 원래 manifest/lock과 기존 서버 실행 경로를 되돌리는 명시적 작업이다. 활성 Editor/다른 작업이 참조하는 로컬 후보·서버를 삭제하지 않는다. 변경을 되돌릴 때도 Codex 설정 조회 검사와 실제 연결을 확인한다.
+
+현재 고정 후보의 전역 EditorPrefs에 stale handshake가 남으면 정상 종료의 `StopManagedLocalHttpServer`가 다른 Editor와 공유하는 서버를 포트 추정으로 종료할 수 있다. 응답/job 보존 패치는 이 shutdown 경계를 수정하지 않았다. 종료 뒤에는 위 연결 확인·필요한 복구 절차를 따른다.

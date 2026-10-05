@@ -7,6 +7,7 @@ param(
     [string]$EvidencePath,
     [string[]]$WorkspaceIds,
     [string[]]$GeneratedDirectoryIds,
+    [string[]]$ProjectBasisIds,
     [switch]$SkipOriginalLibrary,
     [ValidateSet('git','none','plastic')][string]$SourceKind = 'git',
     [ValidateSet('unity','none')][string]$ApplicationKind = 'unity'
@@ -63,16 +64,19 @@ if ($WorkspaceIds) {
         $roots.Add(@{name=('workspace-' + $workspaceId);path=$taskRoot;scope='selected-workspace';baselineExcluded=$false})
     }
 } else { $roots.Add(@{name='control-and-delta';path=(Join-Path $stateRoot 'records');scope='shared-home';baselineExcluded=$false}) }
-if ($GeneratedDirectoryIds) {
-    if (@($GeneratedDirectoryIds | Select-Object -Unique).Count -ne $GeneratedDirectoryIds.Count -or @($GeneratedDirectoryIds | Where-Object { $_ -cnotmatch '^[a-f0-9]{24}$' }).Count) { throw 'Generated-directory IDs must be unique exact lowercase IDs.' }
+foreach ($basisGroup in @(@{ids=$GeneratedDirectoryIds;folder='library-bases';kind='Library';relative='Library'},@{ids=$ProjectBasisIds;folder='project-bases';kind='project';relative=''})) {
+    $selectedBasisIds = @($basisGroup.ids | Where-Object { $_ })
+    if (-not $selectedBasisIds.Count) { continue }
+    if ($basisGroup.kind -eq 'project' -and $SourceKind -ne 'none') { throw 'Managed project allocation requires source none.' }
+    if (@($selectedBasisIds | Select-Object -Unique).Count -ne $selectedBasisIds.Count -or @($selectedBasisIds | Where-Object { $_ -cnotmatch '^[a-f0-9]{24}$' }).Count) { throw 'Basis IDs must be unique exact lowercase IDs.' }
     if (-not $SkipOriginalLibrary) { throw 'Skip the logical original Library mount when explicitly measuring its moved basis.' }
-    foreach ($basisId in $GeneratedDirectoryIds) {
-        $basisRoot = Join-Path $stateRoot ('library-bases/' + $basisId)
+    foreach ($basisId in $selectedBasisIds) {
+        $basisRoot = Join-Path $stateRoot ($basisGroup.folder + '/' + $basisId)
         $basisState = Join-Path $basisRoot 'state.json'
         if (-not (Test-Path -LiteralPath $basisState)) { throw 'Selected generated-directory state is missing; preserve unknown.' }
         $savedBasis = Get-Content -LiteralPath $basisState -Raw | ConvertFrom-Json
-        if ($savedBasis.version -ne 1 -or $savedBasis.basis.id -cne $basisId -or $savedBasis.basis.ownerId -cne $basisId -or $savedBasis.basis.projectPath -ne $sourceRoot -or $savedBasis.basis.receiptDirectory -ne $basisRoot -or $savedBasis.basis.snapshot.rootPath -ne (Join-Path $basisRoot 'base')) { throw 'Selected generated-directory identity/project/path differs.' }
-        $roots.Add(@{name=('library-basis-' + $basisId);path=$basisRoot;scope='shared-including-original-basis';baselineExcluded=$true;movedPayloadPath=(Join-Path $basisRoot 'base')})
+        if ($savedBasis.version -ne 1 -or $savedBasis.basis.id -cne $basisId -or $savedBasis.basis.ownerId -cne $basisId -or $savedBasis.basis.relativePath -cne $basisGroup.relative -or $savedBasis.basis.projectPath -ne $sourceRoot -or $savedBasis.basis.receiptDirectory -ne $basisRoot -or $savedBasis.basis.snapshot.rootPath -ne (Join-Path $basisRoot 'base')) { throw 'Selected basis identity/project/path differs.' }
+        $roots.Add(@{name=($basisGroup.kind + '-basis-' + $basisId);path=$basisRoot;scope='shared-including-original-basis';baselineExcluded=$true;movedPayloadPath=(Join-Path $basisRoot 'base');movedCategory=('moved-original-' + $basisGroup.kind + '-payload')})
     }
 }
 $roots.Add(@{name='validation-product';path=(Join-Path $stateRoot 'validation-product');scope='shared-home';baselineExcluded=$false})
@@ -125,7 +129,7 @@ $rows = foreach ($root in $roots) {
                                 else { 'other' }
                             }
                         }
-                        if ($root.movedPayloadPath -and $item.FullName.StartsWith($root.movedPayloadPath + '\', [StringComparison]::OrdinalIgnoreCase)) { $category = 'moved-original-Library-payload' }
+                        if ($root.movedPayloadPath -and $item.FullName.StartsWith($root.movedPayloadPath + '\', [StringComparison]::OrdinalIgnoreCase)) { $category = $root.movedCategory }
                         if (-not $categories.ContainsKey($category)) { $categories[$category] = @{logicalBytes=0L;allocatedBytes=0L;files=0L} }
                         $categories[$category].logicalBytes += $item.Length; $categories[$category].allocatedBytes += $size; $categories[$category].files++
                     } catch { $errorsSeen.Add($item.FullName + ': ' + $_.Exception.Message) }
@@ -147,7 +151,7 @@ if ($completeProduct) {
     foreach ($productRow in $productRows) { $productAllocatedBytes += [long]$productRow.allocatedBytes }
 }
 $volumes = @(@($stateRoot,$sourceRoot) | ForEach-Object { [IO.Path]::GetPathRoot($_) } | Select-Object -Unique | ForEach-Object { $drive=[IO.DriveInfo]::new($_); @{root=$_;freeBytes=$drive.AvailableFreeSpace;totalBytes=$drive.TotalSize;fileSystem=$drive.DriveFormat;scope='volume-shared';workspaceAttribution='unknown'} })
-$report = [ordered]@{version=2;label=$Label;atUtc=[DateTimeOffset]::UtcNow;home=$stateRoot;project=$sourceRoot;sourceKind=$SourceKind;applicationKind=$ApplicationKind;workspaceIds=@($WorkspaceIds);generatedDirectoryIds=@($GeneratedDirectoryIds);originalLibrarySampled=($ApplicationKind -eq 'unity' -and -not $SkipOriginalLibrary);
+$report = [ordered]@{version=2;label=$Label;atUtc=[DateTimeOffset]::UtcNow;home=$stateRoot;project=$sourceRoot;sourceKind=$SourceKind;applicationKind=$ApplicationKind;workspaceIds=@($WorkspaceIds);generatedDirectoryIds=@($GeneratedDirectoryIds);projectBasisIds=@($ProjectBasisIds);originalLibrarySampled=($ApplicationKind -eq 'unity' -and -not $SkipOriginalLibrary);
     roots=@($rows);vssVolumeObservations=$vss;vssObservationError=$vssError;totalAttributableBytes=$null;
     volumeObservations=$volumes;productFileAllocationBytes=if($completeProduct){$productAllocatedBytes}else{$null};productFileAllocationComplete=$completeProduct;
     limitations=@('Subtract each category baseline before comparing additional allocation. Categories subdivide their root; do not add them again.',

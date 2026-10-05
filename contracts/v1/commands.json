@@ -45,7 +45,7 @@
     {
       "id": "workspace.ensure",
       "description": "Create or resume an isolated range workspace from VSS or a recorded Git/Plastic project version.",
-      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <ntfs-snapshot|git-snapshot|plastic-snapshot> [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>] [--library-basis <id>]",
+      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <ntfs-snapshot|git-snapshot|plastic-snapshot|project-snapshot> [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>] [--library-basis <id>] [--project-basis <id>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-ensure-request",
       "outputSchema": "urn:splinter:v1:response",
@@ -246,6 +246,36 @@
       "inputSchema": "urn:splinter:v1:library-restore-request",
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-original-library-lifecycle",
+      "retry": "same-id-home-key-and-plan; preserve-unknown-side-effects"
+    },
+    {
+      "id": "project.prepare",
+      "description": "Explicit VCS-free original project basis prepare; same-volume rename and range restoration.",
+      "cliUsage": "splinter project prepare --project <path> --key <key> --home <path> [--application none|unity]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:project-prepare-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-original-project-lifecycle",
+      "retry": "same-id-home-key-and-plan; preserve-unknown-side-effects"
+    },
+    {
+      "id": "project.status",
+      "description": "Read the exact persisted VCS-free project basis identity and phase; not a live mount health certificate.",
+      "cliUsage": "splinter project status --id <id> --home <path>",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:project-status-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "none",
+      "retry": "same-id-home-key-and-plan; preserve-unknown-side-effects"
+    },
+    {
+      "id": "project.restore",
+      "description": "Explicit VCS-free original project basis restore; same-volume rename and range restoration.",
+      "cliUsage": "splinter project restore --id <id> --home <path>",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:project-restore-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "owned-original-project-lifecycle",
       "retry": "same-id-home-key-and-plan; preserve-unknown-side-effects"
     }
   ]

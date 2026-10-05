@@ -7,7 +7,7 @@ public sealed partial class WorkspaceCoordinator
     private async Task<WorkspaceView> RequireOriginalResult(WorkspaceRecord w, CancellationToken ct)
     {
         RequireLive(w, allowOriginalApply: true);
-        if (!(w.SourceKind == "none" && w.ApplicationKind == "none" || w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot") || sources is not IOriginalApplyProvider)
+        if (!(w.SourceKind == "none" && (w.ApplicationKind == "none" || w.StorageMode == "project-snapshot") || w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot") || sources is not IOriginalApplyProvider)
             throw new WorkspaceException("SourceIntegrationUnsupported", "Select a qualified original-apply source and independently preserved result.");
         var view = await ViewAsync(w, ct);
         RequireSource(view);

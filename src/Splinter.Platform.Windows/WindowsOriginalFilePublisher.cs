@@ -14,17 +14,21 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
 {
     private readonly Action<string, int>? boundary;
     private readonly bool allowPlasticAdministration;
-    public WindowsOriginalFilePublisher(bool allowPlasticAdministration = false) => this.allowPlasticAdministration = allowPlasticAdministration;
+    private readonly Func<string, IDisposable?>? managedRoot;
+    public WindowsOriginalFilePublisher(bool allowPlasticAdministration = false, Func<string, IDisposable?>? managedRoot = null)
+    { this.allowPlasticAdministration = allowPlasticAdministration; this.managedRoot = managedRoot; }
     internal WindowsOriginalFilePublisher(Action<string, int> boundary, bool allowPlasticAdministration = false)
     { this.boundary = boundary; this.allowPlasticAdministration = allowPlasticAdministration; }
     public string RootIdentity(string project)
     {
-        using var guard = new Guard(project, [], allowPlasticAdministration);
+        using var lease = managedRoot?.Invoke(project);
+        using var guard = new Guard(project, [], allowPlasticAdministration, lease is not null);
         return Id(guard.Root);
     }
     public OriginalFileObservation? Observe(string project, string relativePath, CancellationToken ct = default)
     {
-        using var guard = new Guard(project, [], allowPlasticAdministration);
+        using var lease = managedRoot?.Invoke(project);
+        using var guard = new Guard(project, [], allowPlasticAdministration, lease is not null);
         return guard.Observe(relativePath, ct);
     }
 
@@ -32,7 +36,8 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
     {
         var plan = state.Plan;
         if (allowPlasticAdministration && plan.SourceIdentity is null) throw Conflict("An explicit Plastic source guard is required.");
-        using var guard = new Guard(plan.ProjectPath, plan.Changes.Where(c => c.Before?.Kind == "directory" && c.After is null).Select(c => c.Path).ToArray(), allowPlasticAdministration);
+        using var lease = managedRoot?.Invoke(plan.ProjectPath);
+        using var guard = new Guard(plan.ProjectPath, plan.Changes.Where(c => c.Before?.Kind == "directory" && c.After is null).Select(c => c.Path).ToArray(), allowPlasticAdministration, lease is not null);
         if (Id(guard.Root) != plan.ProjectIdentity) throw Conflict("The physical original root changed.");
         string intent = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(state.IntentKey)))[..24];
         string Prefix(int i) => $".splinter-apply-{plan.OwnerId}-{intent}-{i}";
@@ -164,11 +169,13 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
         private readonly Dictionary<string, SafeFileHandle> handles = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> deleteDirectories;
         private readonly string project;
+        private readonly bool managed;
         public SafeFileHandle Root { get; }
-        public Guard(string project, string[] deleteDirectories, bool allowPlasticAdministration)
+        public Guard(string project, string[] deleteDirectories, bool allowPlasticAdministration, bool managed = false)
         {
             if (!OperatingSystem.IsWindows()) throw new WorkspaceException("OriginalApplyUnsupported", "Conditional publication requires Windows NTFS.");
             this.project = Path.GetFullPath(project);
+            this.managed = managed;
             this.deleteDirectories = deleteDirectories.Select(Full).ToHashSet(StringComparer.OrdinalIgnoreCase);
             try
             {
@@ -179,7 +186,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
                 Root = handles[this.project];
                 var fs = new StringBuilder(32);
                 Check(GetVolumeInformationByHandleW(Root, null, 0, out _, out _, out _, fs, fs.Capacity), "Inspect original filesystem");
-                if (fs.ToString() != "NTFS") throw new WorkspaceException("OriginalApplyUnsupported", "The fixed original must stay on NTFS.");
+                if (fs.ToString() != (managed ? "SplinterSO" : "NTFS")) throw new WorkspaceException("OriginalApplyUnsupported", "The fixed original filesystem differs from its verified access contract.");
                 for (string? p = this.project; p is not null; p = Path.GetDirectoryName(p))
                     foreach (string vcs in new[] { ".git", ".plastic", ".hg", ".svn" })
                         if (Present(Path.Combine(p, vcs)) && !(allowPlasticAdministration && vcs == ".plastic" && p == this.project))
@@ -210,7 +217,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
             // of admission. No sharing for writes/deletes is granted in return.
             uint access = (Present(path) && (File.GetAttributes(path) & FileAttributes.Directory) != 0 ? 0x20u : 1u) |
                 ReadAttributes | ReadControl | (mutation ? DeleteAccess : 0) | (stage ? 0x2u | 0x100u | 0x40000u | 0x80000u : 0);
-            var handle = CreateFileW(path, access, 1, IntPtr.Zero, 3, 0x02000000 | 0x00200000, IntPtr.Zero);
+            var handle = CreateFileW(path, access, 1, IntPtr.Zero, 3, 0x02000000u | (managed && path == project ? 0u : 0x00200000u), IntPtr.Zero);
             if (handle.IsInvalid)
             {
                 int error = Marshal.GetLastWin32Error(); handle.Dispose();
@@ -253,7 +260,9 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
             var info = Information(handle); bool directory = (info.Attributes & 16) != 0;
             if ((info.Attributes & UnsupportedAttributes) != 0 || !directory && info.Links != 1 || mutation && (info.Attributes & 1) != 0)
                 throw new WorkspaceException("OriginalApplyUnsupported", "A pinned entry gained unsupported metadata or links.");
-            RequireSingleStream(path, directory);
+            // Exact managed roots advertise NamedStreams=false; preparation
+            // rejected ADS on NTFS and this provider cannot create them.
+            if (!managed) RequireSingleStream(path, directory);
             string? hash = directory ? null : Hash(handle, Length(info), ct);
             return new(Id(handle), new(directory ? "directory" : "file", directory ? 0 : Length(info), hash,
                 (int)info.Attributes, DateTime.FromFileTimeUtc(Time(info.Write)).Ticks));
@@ -313,6 +322,17 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
             if (required is 0 or > 65536) throw new WorkspaceException("OriginalApplyUnsupported", "Preserve an unsupported original security descriptor.");
             byte[] descriptor = new byte[required];
             Check(GetKernelObjectSecurity(source, 7, descriptor, required, out _), "Read original security descriptor");
+            if (managed)
+            {
+                // This verified WinFsp view has one fixed owner descriptor and
+                // no persistent ACL API. Verify equality instead of requesting
+                // an unsupported security mutation or ignoring a mismatch.
+                byte[] actual = new byte[required];
+                Check(GetKernelObjectSecurity(target, 7, actual, required, out uint length), "Verify managed publication security");
+                if (length != required || !actual.AsSpan().SequenceEqual(descriptor))
+                    throw new WorkspaceException("OriginalApplyUnsupported", "Preserve differing managed publication security.");
+                return;
+            }
             // Also preserve the DACL protection flag, so inheritance does not
             // silently change a file's permissions when it is replaced.
             Check(GetSecurityDescriptorControl(descriptor, out ushort control, out _), "Read original security control");

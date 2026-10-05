@@ -53,7 +53,7 @@ public sealed class OriginalApplyState
     [JsonRequired] public bool Completed { get; set; }
     public void RequireMatch(WorkspaceRecord w)
     {
-        bool plain = w.SourceKind == "none" && w.ApplicationKind == "none" && w.StorageMode == "ntfs-snapshot";
+        bool plain = w.SourceKind == "none" && (w.ApplicationKind == "none" && w.StorageMode == "ntfs-snapshot" || w.StorageMode == "project-snapshot");
         bool plastic = w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot" && w.ApplicationKind is "none" or "unity";
         if (Plan is null || Plan.Version != 1 || w.Purpose != "task" || !plain && !plastic ||
             plastic && (Plan.SourceIdentity is not { Length: 71 } || !Plan.SourceIdentity.StartsWith("sha256:", StringComparison.Ordinal) ||

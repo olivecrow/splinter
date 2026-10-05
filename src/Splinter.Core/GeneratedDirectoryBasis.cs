@@ -1,6 +1,7 @@
 namespace Splinter.Core;
 
-// An application-generated subtree is independent of its VCS source basis.
+// "Library" denotes a generated subtree independent of its VCS source basis;
+// an empty relative path denotes the explicitly managed whole-project basis.
 // The platform owns freezing, write interception and restoration of the original.
 public sealed record GeneratedDirectoryReference(string Id, string ProjectPath, string RelativePath,
     SnapshotReference Snapshot, string ReceiptDirectory, string OwnerId, string ManifestHash);
@@ -12,4 +13,11 @@ public interface IGeneratedDirectoryDependencies
 {
     Task<GeneratedDirectoryReference> AttachAsync(string id, WorkspaceRecord workspace, CancellationToken ct = default);
     Task DetachAsync(GeneratedDirectoryReference basis, WorkspaceRecord workspace, CancellationToken ct = default);
+}
+
+// Verifies the exact managed original before source reads or publication.
+// Platform adapters retain the basis/mount lease for the entire operation.
+public interface IProjectSourceAccess
+{
+    IDisposable Acquire(WorkspaceRecord workspace, bool publishing, CancellationToken ct = default);
 }

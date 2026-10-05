@@ -129,7 +129,7 @@ public sealed partial class WorkspaceCoordinator
             other.Snapshot?.Step != "release-snapshot" &&
             (other.Snapshot?.Step != "discard-snapshot" || other.Snapshot?.Observation?.DeltaPresent != false) &&
             other.Snapshot?.Reference?.Id == w.Snapshot.Reference.Id).ToArray();
-        if (dependents.Length != 0)
+        if (w.StorageMode != "project-snapshot" && dependents.Length != 0)
             throw new WorkspaceException("SnapshotInUse", "Another workspace depends on this snapshot; preserve it.",
                 new { dependencies = dependents.Select(other => "workspace:" + other.Id).ToArray() },
                 dependents.Select(other => new WorkspaceRecoveryAction("workspace.status", new { id = other.Id, home = store.Root }, true)).ToArray());

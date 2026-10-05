@@ -9,11 +9,11 @@ namespace Splinter.Workflows.Windows;
 // Ordinary-user composition. Privileged VSS deletion stays in the existing
 // fixed service protocol with a separate explicit-discard authorization.
 public sealed class WindowsWorkspaceDiscardProvider(ISourceDiscardProvider source, ISnapshotWorkspaceBackend snapshots,
-    IGeneratedDirectoryDependencies? generatedDirectories = null) : IWorkspaceDiscardProvider
+    IGeneratedDirectoryDependencies? generatedDirectories = null, IGeneratedDirectoryDependencies? projectDirectories = null) : IWorkspaceDiscardProvider
 {
     public Task<string> ObserveSourceRevisionAsync(WorkspaceRecord w, string control, CancellationToken ct)
     {
-        if (w.GeneratedDirectory is not null && generatedDirectories is null)
+        if (w.GeneratedDirectory is not null && (w.StorageMode == "project-snapshot" ? projectDirectories : generatedDirectories) is null)
             throw new WorkspaceException("GeneratedBasisUnsupported", "Compose generated dependency reclamation before discarding this task.");
         return source.ObserveDiscardRevisionAsync(w, control, ct);
     }
@@ -63,7 +63,7 @@ public sealed class WindowsWorkspaceDiscardProvider(ISourceDiscardProvider sourc
         var reclaimed = await WorkspaceSnapshotBasis.Provider(w.Snapshot!.Reference!, Path.Combine(control, "snapshot"), w.Id)
             .ReleaseAsync(w.Snapshot!.Reference!, ct, w.Snapshot.Reclamation?.AttemptId);
         if (reclaimed.Disposition == "released" && w.GeneratedDirectory is { } generated)
-            await (generatedDirectories ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Retain the generated dependency until reclamation is composed.")).DetachAsync(generated, w, ct);
+            await ((w.StorageMode == "project-snapshot" ? projectDirectories : generatedDirectories) ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Retain the generated dependency until reclamation is composed.")).DetachAsync(generated, w, ct);
         return reclaimed;
     }
 

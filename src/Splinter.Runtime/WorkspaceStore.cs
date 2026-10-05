@@ -33,6 +33,13 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         EnsurePlainPath(path);
         return path;
     }
+    // Only callers with an explicit managed-basis contract may use this path.
+    public static string ManagedProjectPath(string project)
+    {
+        string path = Path.TrimEndingDirectorySeparator(Path.GetFullPath(project));
+        EnsurePlainPath(Path.GetDirectoryName(path) ?? throw new WorkspaceException("UnsafePath", "A volume root cannot be a managed project."));
+        return path;
+    }
     public static string ProjectKey(string project) => Key(OperatingSystem.IsWindows() ? project.ToUpperInvariant() : project);
     public string WorkPath(string id) { CheckId(id); return Path.Combine(Root, "workspaces", id); }
     public string ControlPath(string id) { CheckId(id); return Path.Combine(Root, "records", id); }
@@ -109,18 +116,22 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be read. Restore access before retrying the same key."); }
         if (record.Version != WorkspaceRecord.CurrentVersion || record.SourceKind is not ("git" or "none" or "plastic") ||
-            record.StorageMode is not ("ntfs-snapshot" or "git-snapshot" or "plastic-snapshot" or "refs-cow" or "git-checkout") ||
+            record.StorageMode is not ("ntfs-snapshot" or "git-snapshot" or "plastic-snapshot" or "project-snapshot" or "refs-cow" or "git-checkout") ||
             record.StorageMode == "git-snapshot" && (record.SourceKind != "git" || record.Purpose != "task" || record.BaselineId is not null) ||
             record.ApplicationKind is not ("unity" or "none") || record.ApplicationKind == "none" && record.ManagedPaths.Length != 0 &&
                 (record.GeneratedDirectory is null || !record.ManagedPaths.SequenceEqual(new[] { record.GeneratedDirectory.RelativePath })) ||
-            (record.SourceKind == "none" || record.SourceKind == "plastic" && record.StorageMode != "plastic-snapshot") && (record.StorageMode != "ntfs-snapshot" || record.BaseReference != "snapshot" || record.Purpose != "task") ||
+            (record.SourceKind == "none" && record.StorageMode != "project-snapshot" || record.SourceKind == "plastic" && record.StorageMode != "plastic-snapshot") && (record.StorageMode != "ntfs-snapshot" || record.BaseReference != "snapshot" || record.Purpose != "task") ||
             record.Id != id || !SamePath(record.Path, WorkPath(id)))
             throw new WorkspaceException("StateCorrupt", "Workspace identity/path/version does not match its registry.");
-        if (record.GeneratedDirectoryId is not null && record.StorageMode is not ("git-snapshot" or "plastic-snapshot") || record.GeneratedDirectory is { } generated &&
+        if (record.GeneratedDirectoryId is not null && record.StorageMode is not ("git-snapshot" or "plastic-snapshot" or "project-snapshot") || record.GeneratedDirectory is { } generated &&
             (generated.Id != record.GeneratedDirectoryId || !SamePath(generated.ProjectPath, record.ProjectPath) ||
-             string.IsNullOrWhiteSpace(generated.RelativePath) || generated.RelativePath.Contains('/') || generated.RelativePath.Contains('\\')) ||
+             record.StorageMode != "project-snapshot" && string.IsNullOrWhiteSpace(generated.RelativePath) || generated.RelativePath.Contains('/') || generated.RelativePath.Contains('\\')) ||
             record.GeneratedDirectoryId is not null && record.GeneratedDirectory is null && record.Snapshot?.Attached == true)
             throw new WorkspaceException("GeneratedBasisMismatch", "Retain the task's exact generated-directory identity.");
+        if (record.StorageMode == "project-snapshot" && (record.SourceKind != "none" || record.Purpose != "task" || record.BaselineId is not null || record.BaseReference != "snapshot" ||
+            record.GeneratedDirectoryId is null || record.GeneratedDirectory is { } projectBasis && (projectBasis.RelativePath != "" || projectBasis.OwnerId != projectBasis.Id ||
+                record.Snapshot?.Reference is { } projectSnapshot && projectSnapshot != projectBasis.Snapshot)))
+            throw new WorkspaceException("ProjectBasisMismatch", "Preserve the task's fixed project basis and source selection.");
         if (record.SourceKind == "plastic" && record.StorageMode != "plastic-snapshot" && (record.OriginalApply is not null || record.IntegratedRevision is not null || record.Phase is "integrating" or "integrated"))
             throw new WorkspaceException("StateCorrupt", "Plastic original application is unavailable; preserve the unsupported state.");
         if (record.Discard is { } discard) discard.RequireMatch(record);

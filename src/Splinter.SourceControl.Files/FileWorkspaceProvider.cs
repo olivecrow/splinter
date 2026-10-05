@@ -9,7 +9,7 @@ namespace Splinter.SourceControl.Files;
 // Content is read at admission/inspection, but only explicit result collection
 // stores payloads. This adapter never creates a checkout or invokes a VCS.
 public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOriginalFilePublisher? originalPublisher = null, IPlasticRevisionClient? revisionClient = null,
-    IPlasticOriginalGuard? originalGuard = null) : ISourceWorkspaceProvider,
+    IPlasticOriginalGuard? originalGuard = null, IProjectSourceAccess? projectAccess = null) : ISourceWorkspaceProvider,
     ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
@@ -20,12 +20,13 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     private static WorkspaceException Error(string message) => new("FileSourceStateInvalid", message);
     private static void Require(WorkspaceRecord w)
     {
-        if (w.SourceKind is not ("none" or "plastic") || (w.StorageMode != "ntfs-snapshot" || w.BaseReference != "snapshot") && !(w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot") || w.Purpose != "task")
+        if (w.SourceKind is not ("none" or "plastic") || (w.StorageMode != "ntfs-snapshot" || w.BaseReference != "snapshot") && !(w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot") && !(w.SourceKind == "none" && w.StorageMode == "project-snapshot" && w.GeneratedDirectoryId is not null) || w.Purpose != "task")
             throw Error("Only the explicitly selected plain-folder NTFS task is supported.");
     }
     public Task<string> PreflightAsync(WorkspaceRecord w, CancellationToken ct = default)
     {
         if (w.SourceKind != "none") throw Error("Plastic input requires its explicit compatibility adapter.");
+        using var lease = w.StorageMode == "project-snapshot" ? (projectAccess ?? throw new WorkspaceException("ProjectBasisUnsupported", "Compose the exact managed project source guard.")).Acquire(w, false, ct) : null;
         return PreflightFilesAsync(w, ct);
     }
     internal static Task<string> PreflightFilesAsync(WorkspaceRecord w, CancellationToken ct = default)
@@ -38,7 +39,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
                 if (File.Exists(Path.Combine(path, name)) || Directory.Exists(Path.Combine(path, name)))
                     throw new WorkspaceException("VcsMetadataUnsupported", "The plain-folder path cannot contain or inherit VCS administration.");
             }
-        var entries = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true, omitPlasticRoot: w.SourceKind == "plastic");
+        var entries = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true, mount: w.StorageMode == "project-snapshot" ? w.ProjectPath : null, omitPlasticRoot: w.SourceKind == "plastic");
         if (entries.Any(e => e.Path.Split('/').Any(p => p.StartsWith(".splinter-apply-", StringComparison.OrdinalIgnoreCase))))
             throw new WorkspaceException("OriginalApplyResourcesPresent", "Preserve unresolved original publication resources; do not capture them as a new task's source.");
         return Task.FromResult("snapshot:" + w.Id);

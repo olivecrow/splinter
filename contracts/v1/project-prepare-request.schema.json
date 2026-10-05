@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "$id": "urn:splinter:v1:project-prepare-request",
+  "properties": {
+    "project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "application": {
+      "enum": [
+        "none",
+        "unity"
+      ],
+      "default": "none"
+    }
+  },
+  "required": [
+    "project",
+    "key"
+  ]
+}

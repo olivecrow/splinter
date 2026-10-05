@@ -20,7 +20,7 @@
       "minLength": 1
     },
     "relativePath": {
-      "const": "Library"
+      "enum": ["Library", ""]
     },
     "snapshot": {
       "type": "object",

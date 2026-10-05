@@ -545,6 +545,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
             if (receipt is null) { Captures++; receipt = w.StorageMode == "git-snapshot"
                 ? new("git-" + w.Id + "-" + w.BaseRevision, "git-objects", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "recorded-project-commit-raw-blobs")
                 : new(SnapshotId, "fake", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "fake"); }
+            if (w.StorageMode == "project-snapshot") w.GeneratedDirectory = new(w.GeneratedDirectoryId!, w.ProjectPath, "", receipt, "receipt", w.GeneratedDirectoryId!, new string('a', 64));
             if (LoseCaptureReply) { LoseCaptureReply = false; throw new WorkspaceException("ReplyLost", "after capture"); }
             return Task.FromResult(receipt);
         }

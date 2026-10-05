@@ -1,6 +1,6 @@
 # Splinter
 
-AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하도록 돕는 로컬 도구다. 현재 한정 실행 환경은 **Windows/NTFS + Unity의 작은 Git·Plastic 프로젝트 또는 VCS 없는 폴더**다. 원본 이동·최초 전체 복제·읽기 hydration 없이 불변 snapshot과 작업별 범위 변경분을 사용하며, 원본은 작업 중 계속 수정할 수 있다.
+AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하도록 돕는 로컬 도구다. 현재 한정 실행 환경은 **Windows/NTFS + Unity의 작은 Git·Plastic 프로젝트 또는 VCS 없는 폴더**다. 최초 전체 복제·읽기 hydration 없이 불변 기준과 작업별 범위 변경분을 사용하며, 원본은 작업 중 계속 수정할 수 있다. 명시적으로 승인한 Library 또는 VCS 없는 프로젝트의 관리형 mount는 같은 NTFS 볼륨에서 데이터를 복사 없이 이동하고 기존 경로를 유지한 뒤 최종 복원한다.
 
 제품 요구는 **외부 VCS가 있건 없건 Splinter 자체가 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리하는 것**이다. VCS별 처리는 Splinter 작업공간의 격리·효율·원본/peer 보호를 위한 호환 책임이다. 현재 CLI는 `--source git|none|plastic`을 선택하고 일반 폴더의 파일 기준·독립 payload 보존·회수/폐기를 제공한다. 작은 Windows x64 NTFS/Unity A/B의 한 묶음을 실행했으며 [현재 계약](docs/vcs-independent-workspaces.md)과 [후보·한정 검증 상태](docs/verification/vcs-independent-workspaces.md)를 구분한다. [일반 폴더의 안전한 원본 반영](docs/plain-folder-original-apply.md)을 명시적 계획/intent와 Windows 파일 게시로 연결했으며, [현재 검증](docs/verification/plain-folder-original-apply.md)의 작은 Editor 없는 실제 제품 A/B를 scoped-complete-with-limitations로 마감했다. Plastic 사용 환경은 [관리 정보/등록 격리와 독립 파일 결과](docs/plastic-compatibility.md)를 연결하고 [별도 T: A/B 검증](docs/verification/plastic-compatibility.md#별도-t-입력의-회수-자격)의 마지막 snapshot 회수까지 한정 마감했다. 선행 C: 보류는 [승인된 후속 회수](docs/verification/vss-and-mcp-remediation.md)에서 종결했고 당시 근거는 보존한다. 외부 도구 발견 제한은 유지한다.
 
@@ -20,6 +20,7 @@ Splinter는 작업공간과 소유 Editor의 수명·범위 저장·독립 결�
 - `ntfs-snapshot` workspace의 VSS·WinFsp 범위 저널, 선택한 Git/파일 기준, 작업별 프로세스 그룹과 Editor start/stop, 독립 결과 보존과 명시적 회수.
 - [Git 프로젝트 기준본](docs/git-project-basis.md)의 `git-snapshot`: 기록된 commit/tree/blob을 VSS·전체 checkout·읽기 disk cache 없이 기존 범위 저널에 연결한다. ignored 소스는 제외하며 Library는 [명시적 원본 참조](docs/git-library-reference.md)로 연결할 수 있다. 실제 자격은 [별도 검증](docs/verification/git-project-basis.md)을 따른다.
 - [Plastic 프로젝트 기준본](docs/plastic-project-basis.md)의 `plastic-snapshot`: 고정 changeset/revision을 VSS·checkout·payload disk cache 없이 읽고 공통 Library 참조를 연결한다. [전체/선택 원본 반영](docs/plastic-original-apply.md)은 고정 계획/intent와 조건부 NTFS 게시를 사용하며 [실제 자격](docs/verification/plastic-original-apply.md)을 별도로 확인한다.
+- [VCS 없는 프로젝트 기준본](docs/plain-project-basis.md)의 `project-snapshot`: 승인한 원본 관리형 mount·같은 볼륨 이동·source/Library 불변 참조와 원본/A/B private 범위·독립 결과·전체/선택 원본 반영·명시적 NTFS 복원. VSS를 사용하지 않으며 [현재 후보 자격](docs/verification/plain-project-basis.md)을 확인한다.
 - [현재 압축 저널](docs/journal-payload-compression.md): bounded raw/Brotli 범위·overlay v2·candidate v3. 실제 자격은 [별도 검증](docs/verification/journal-payload-compression.md)을 따른다.
 - 변경 기반 소스 검증, 명시적 저널 정리와 선택적 중첩량 예산, snapshot 지연 회수.
 - VSS 전용 Windows 권한 서비스와 명시적 설치 도구. 실제 설치·반복 UAC 0의 자격은 [UA 검증](docs/verification/storage-privilege-service.md)을 따른다.
@@ -52,7 +53,7 @@ CLI는 stdout에 JSON 응답 하나를 반환한다. VSS 작업은 [제한 권�
 - [제품 요구사항](plan.html): 제품이 달성해야 할 목표.
 - [구현 계획](docs/plans/implementation-plan.md): 프로그램/에이전트 책임과 축소한 후속 작업·종료 기준.
 - [저장공간 우선 설계](docs/plans/storage-priority-and-editor-modes.md): 용량·준비·재개 비용과 Editor 실행 방식의 판단 기준.
-- [VCS 프로젝트 단위 기준본 전환 계획](docs/plans/project-scoped-basis-and-reclamation-review.md): Git·Plastic 버전 재사용과 범위 저널 연결의 확정 범위. VCS 없는 새 방식은 후순위이며 Git 경로는 별도 `git-snapshot`으로 연결했다.
+- [VCS 프로젝트 단위 기준본 전환 계획](docs/plans/project-scoped-basis-and-reclamation-review.md): Git·Plastic 버전 재사용과 범위 저널 연결의 확정 범위. VCS 없는 새 방식은 [별도 NP 범위](docs/plans/plain-project-basis.md)의 관리형 프로젝트 기준본으로 연결한다.
 - [물리 저장 단계 마감](docs/verification/physical-storage-completion.md): 현재 NTFS 알파의 최종 A/B·정리·독립 결과/회수·잔여 비용을 한정 확인했다.
 - [메모리 단계 마감](docs/verification/memory-completion.md): 압축 쓰기/부분 읽기 buffer·같은 실제 저널·provider/Editor 비용과 최종 A/B 회수를 한정 확인했다.
 - [병렬 안정성의 선택 단위 마감](docs/verification/stable-parallel-completion.md): 잠금 경로 오류와 실제 A checkpoint/release 중 B 조회·재개·64개 쓰기/독립 결과/회수를 확인했다. Editor 없는 경계이며 기존 Unity 자격과 구분한다.

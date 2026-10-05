@@ -701,7 +701,10 @@
             "enum": [
               "library.prepare",
               "library.status",
-              "library.restore"
+              "library.restore",
+              "project.prepare",
+              "project.status",
+              "project.restore"
             ]
           },
           "status": {
@@ -792,6 +795,7 @@
         "sideEffects": {
           "enum": [
             "owned-original-library-lifecycle",
+            "owned-original-project-lifecycle",
             "owned-task-discard",
             "none",
             "read-only-local-process",
@@ -971,6 +975,46 @@
           "type":"object", "additionalProperties":false, "required":["mode","administration","originalApply","qualification"],
           "properties": {"mode":{"type":"string"},"administration":{"type":"string"},"originalApply":{"const":"plastic-snapshot; explicit-plan-intent-and-selection; stopped-original-windows-ntfs; no-server-mutation"},"qualification":{"type":"string"},"recordedBasis":{"type":"string"},"library":{"type":"string"}}
         },
+        "plainProjectBasis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "storage",
+            "source",
+            "lifecycle",
+            "initialPayloadCopiedBytes",
+            "vss",
+            "readCache",
+            "library",
+            "qualification"
+          ],
+          "properties": {
+            "storage": {
+              "const": "project-snapshot"
+            },
+            "source": {
+              "const": "none"
+            },
+            "lifecycle": {
+              "type": "string"
+            },
+            "initialPayloadCopiedBytes": {
+              "const": 0
+            },
+            "vss": {
+              "const": false
+            },
+            "readCache": {
+              "const": false
+            },
+            "library": {
+              "type": "string"
+            },
+            "qualification": {
+              "type": "string"
+            }
+          }
+        },
         "gitProjectBasis": {
           "type": "object",
           "additionalProperties": false,
@@ -1030,7 +1074,8 @@
               "git-snapshot",
               "plastic-snapshot",
               "refs-cow",
-              "git-checkout"
+              "git-checkout",
+              "project-snapshot"
             ]
           }
         },
@@ -1407,7 +1452,8 @@
             "git-snapshot",
             "plastic-snapshot",
             "refs-cow",
-            "git-checkout"
+            "git-checkout",
+            "project-snapshot"
           ]
         },
         "processId": {
@@ -1450,7 +1496,7 @@
           "if": {
             "properties": {
               "storageMode": {
-                "enum": ["ntfs-snapshot", "git-snapshot", "plastic-snapshot"]
+                "enum": ["ntfs-snapshot", "git-snapshot", "plastic-snapshot", "project-snapshot"]
               }
             },
             "required": [

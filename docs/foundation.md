@@ -12,6 +12,8 @@ Unity CLI의 외부 작업은 [정확한 대상 선택 절차](alpha-workspaces.
 
 ## 구조와 의존성
 
+[VCS 없는 프로젝트 기준본](plain-project-basis.md)은 Windows `ManagedDirectoryBasis(projectBasis:true)`의 원본 prepare/restore와 `ProjectDirectorySnapshotProvider`의 task-owned reference를 사용한다. 공통 `IProjectSourceAccess`는 원본 읽기/게시 동안 정확한 기준·mount·필요한 Editor 종료 lease를 보유한다. Files는 기존 독립 결과/3자 반영을 재사용하고 Windows publisher는 검증된 원본 view만 제한적으로 허용한다. task 회수는 peer 공통 payload를 삭제하지 않으며 마지막 restore가 기준 수명을 소유한다. Core에 Win32/Unity API를 추가하지 않는다.
+
 | 프로젝트 | 현재 책임 | 참조 |
 | --- | --- | --- |
 | `Splinter.Core` | workspace/storage/source/application/process ports·소유권·결과·실패 계약 | .NET 기본 라이브러리 |
@@ -59,6 +61,7 @@ private Mutation의 기본값 JSON은 생략하고 명시적 정리/후보에서
 | `workspace compact` | 정상 stop/unmount·seal·명시적 예산으로 private 저널 정리 |
 | `workspace release/discard` | 독립 결과 보존 뒤 회수/명시적 결과 폐기. peer와 공유 의존성 보호 |
 | `library prepare/status/restore` | 명시적으로 허용된 원본 Library의 같은 볼륨 이동·원본/A/B 범위 저장·마지막 일반 NTFS 복원. [계약](git-library-reference.md) |
+| `project prepare/status/restore` | 명시적으로 허용된 VCS 없는 전체 원본의 같은 NTFS 볼륨 이동·source/Library 공통 기준·원본/A/B 범위 저장·마지막 일반 NTFS 복원. [계약](plain-project-basis.md) |
 | `unity start/stop` | 해당 workspace Editor의 수명. 준비/종료는 상태 관측으로 확인 |
 | `storage service status` | 기존 제한 VSS 서비스의 읽기 전용 상태 |
 

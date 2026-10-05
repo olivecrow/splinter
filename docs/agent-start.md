@@ -1,5 +1,7 @@
 # 한정 버전 AI 시작 안내
 
+VCS 없는 프로젝트의 VSS 없는 경로는 [프로젝트 기준본](plain-project-basis.md)이다. 승인한 원본 Editor 정상 종료 뒤 `project prepare --application none|unity`로 같은 NTFS 볼륨에서 데이터를 복사 없이 이동하고 기존 경로에 관리형 view를 제공한다. 반환 basis id를 `workspace ensure --source none --storage project-snapshot --project-basis <id>`에 고정한다. Library도 같은 기준/private 범위로 쓰며 최종 task 회수 뒤 `project restore`로 일반 NTFS 원본을 복원한다. VSS service/grant는 불필요하고 원본 소스 경로의 관리형 mount 예외를 먼저 승인받아야 한다. [현재 자격](verification/plain-project-basis.md)과 기존 VSS 경로를 구분한다.
+
 `--storage git-snapshot --source git`은 [Git 프로젝트 기준본](git-project-basis.md)의 새 경로다. 기록된 commit만 사용하며 VSS 서비스/grant 없이 기존 WinFsp에서 실행한다. ignored/private 소스는 제외한다. Library 생략 시 새 private 데이터이고, [원본 Library 참조](git-library-reference.md)는 승인한 전환 뒤 반환 basis id를 `--library-basis`에 명시한다. 아래 등록·VSS·warm Library 전제는 `ntfs-snapshot`의 기존 자격이며 새 Git 경로로 승계하지 않는다. 실제 Editor 없는 Git 자격과 Unity/대형 NotRun은 [별도 검증](verification/git-project-basis.md)을 따른다.
 
 `--source plastic`의 regular/static 원본과 등록하지 않는 파일 작업공간은 [Plastic 계약](plastic-compatibility.md)을 따른다. 기록된 버전은 [프로젝트 기준본](plastic-project-basis.md)의 `--storage plastic-snapshot --base <changeset@repository@server>`로 선택하며 VSS service/grant 없이 WinFsp와 일반 사용자 cm 접근을 사용한다. 관리 정보/등록을 상속하지 않는 짧은 home·정확한 기준·현재 검증을 확인한다. Library는 명시적 prepare/반환 id/restore로 연결한다. [원본 전체/선택 반영](plastic-original-apply.md)은 원본 Editor 정상 종료 후 별도 고정 계획/intent로 진행하며 서버 이력은 변경하지 않는다.
@@ -56,6 +58,8 @@ $reply
 필요한 명령의 `schema <command>`를 먼저 읽고 저장한 ID/home을 사용한다. Editor가 필요할 때만 `unity start`; 준비는 status의 실제 `application.ready`로 확인한다. `ready`는 실행 준비 상태다. 편집 뒤 refresh·컴파일·테스트는 선택한 외부 도구로 수행하고 그 결과를 AI가 판정한다. Splinter 응답은 컴파일·테스트 성공을 제공하지 않는다. 일반 status는 반복 전체 소스 검사를 하지 않으며 현재 확인에는 `--verify-source`, 손상 cache 감사에는 `--audit-source`를 구분한다.
 
 `unity start`와 `ensure --editor`의 시작 후 응답도 실행 관측을 사용한다. `sourceVerification=not-checked`이며 현재 소스 검증은 별도로 요청한다. 시작 뒤 import 중 소스 검사 실패를 실행 실패로 혼동하지 않는다.
+
+병렬 Editor 하나가 종료되면 [스킬의 종료 후 MCP 확인](../skills/splinter/SKILL.md#check-remaining-mcp-connections-after-an-editor-stops)을 수행한다. 남은 알려진 원본/peer의 연결을 확인하고, 공유 서버가 중단됐거나 클라이언트가 끊겼다면 기존 승인 범위에서 같은 endpoint/버전으로 복구·재연결한 뒤 실제 project/PID/start를 대조한다. 정상 서버를 매번 재시작하지 않으며 서버 시작과 각 Editor의 검증된 연결, workspace 회수 결과는 별도로 보고한다. 자세한 순서와 중단 조건은 [MCP 절차](unity-mcp-response-recovery.md#editor-종료-후-남은-mcp-연결-확인)를 따른다.
 
 | 명시적 의도 | 사용할 경로 |
 | --- | --- |

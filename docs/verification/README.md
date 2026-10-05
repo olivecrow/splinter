@@ -20,6 +20,8 @@
 
 ## 현재 변경의 검증
 
+[VCS 없는 프로젝트 기준본](plain-project-basis.md)은 새 `project-snapshot`·승인한 whole-project 원본 view·source/Library 범위 분리와 NTFS 복원, 작은 파일/실제 Unity MCP·씬·리소스·현재 상태 테스트·비용의 후보별 자격을 소유한다. 기존 VSS 일반 폴더나 Git/Plastic 성공을 승계하지 않는다.
+
 [Git 프로젝트 기준본](git-project-basis.md)은 기록된 commit/tree/blob을 VSS 없이 범위 저널에 연결하는 계약과 작은 Editor 없는 Git A/B의 자격을 소유한다. 초기 payload 복제/읽기 disk cache 0과 shared 객체/runner·full-blob 해독 비용을 분리하며 Plastic·Unity Library/Editor/MCP·대형/ARM/OS 장애는 이 경로의 자격으로 승계하지 않는다.
 
 [Git Unity 실제 검증](git-unity-validation.md)은 별도로 승인한 현재 `splinter-unity`의 새 Git 기준 A/B와 cold Library, exact HTTP MCP·리소스/씬/현재 상태 시험·소유 회수와 관측한 준비 병목을 소유한다. 약 88분의 cold import·reload disconnect/실패 상세 소실·RAM 절감 미확인과 과거 VSS 자격을 구분한다.

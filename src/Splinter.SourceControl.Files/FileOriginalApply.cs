@@ -7,7 +7,7 @@ public sealed partial class FileWorkspaceProvider
     private IOriginalFilePublisher OriginalPublisher(WorkspaceRecord w)
     {
         Require(w);
-        if (originalPublisher is null || !(w.SourceKind == "none" && w.ApplicationKind == "none" ||
+        if (originalPublisher is null || !(w.SourceKind == "none" && (w.ApplicationKind == "none" || w.StorageMode == "project-snapshot" && projectAccess is not null) ||
             w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot" && originalGuard is not null))
             throw new WorkspaceException("SourceIntegrationUnsupported", "Conditional original-apply requires the publisher and the qualified editorless application mode.");
         return originalPublisher;
@@ -28,8 +28,11 @@ public sealed partial class FileWorkspaceProvider
             throw new WorkspaceException("OriginalApplyRequestConflict", "Resume the same fixed full or selected original-apply scope.");
     }
     public Task<OriginalApplyPlan> PlanOriginalAsync(WorkspaceRecord w, CancellationToken ct = default, string[]? paths = null)
+        => PlanOriginalCore(w, ct, paths, false);
+    private Task<OriginalApplyPlan> PlanOriginalCore(WorkspaceRecord w, CancellationToken ct, string[]? paths, bool projectLeaseHeld)
     {
         var publisher = OriginalPublisher(w);
+        using var projectLease = w.StorageMode == "project-snapshot" && !projectLeaseHeld ? projectAccess!.Acquire(w, true, ct) : null;
         Owner(w, Control(w)); VerifyIndependentResult(w, Control(w));
         var selected = Selection(w, paths);
         if (w.OriginalApply is { } existing) { existing.RequireMatch(w); RequireSelection(existing.Plan, selected); return Task.FromResult(existing.Plan); }
@@ -71,7 +74,7 @@ public sealed partial class FileWorkspaceProvider
                 }
             }
         using var sourceLease = w.SourceKind == "plastic" ? originalGuard!.Acquire(w, included.Order(StringComparer.Ordinal).ToArray(), ct) : null;
-        var originalEntries = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true, omitPlasticRoot: w.SourceKind == "plastic");
+        var originalEntries = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true, mount: w.StorageMode == "project-snapshot" ? w.ProjectPath : null, omitPlasticRoot: w.SourceKind == "plastic");
         var originalNames = originalEntries.ToDictionary(e => e.Path, StringComparer.OrdinalIgnoreCase);
         var changes = new List<OriginalApplyChange>(); var conflicts = new List<string>();
         string rootIdentity = publisher.RootIdentity(w.ProjectPath);
@@ -123,6 +126,7 @@ public sealed partial class FileWorkspaceProvider
     public async Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord w, string intentKey, string expectedPlanDigest, CancellationToken ct = default, string[]? paths = null)
     {
         var publisher = OriginalPublisher(w);
+        using var projectLease = w.StorageMode == "project-snapshot" ? projectAccess!.Acquire(w, true, ct) : null;
         Owner(w, Control(w)); VerifyIndependentResult(w, Control(w));
         var selected = Selection(w, paths);
         if (string.IsNullOrWhiteSpace(intentKey) || intentKey.Length > 128)
@@ -137,7 +141,7 @@ public sealed partial class FileWorkspaceProvider
         }
         else
         {
-            var plan = await PlanOriginalAsync(w, ct, selected);
+            var plan = await PlanOriginalCore(w, ct, selected, true);
             if (plan.Digest != expectedPlanDigest) throw new WorkspaceException("OriginalApplyPlanChanged", "The original changed after planning; review the latest plan before any write.");
             if (plan.Conflicts.Length != 0) throw new WorkspaceException("OriginalApplyConflict", "The original has conflicts; no original writes were performed.", plan);
             // Re-acquire below before saving intent: no original or durable

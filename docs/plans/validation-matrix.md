@@ -1,5 +1,9 @@
 # 검증 추적표
 
+## VCS 없는 프로젝트 기준본
+
+사용자 승인한 whole-project 원본 mount와 VSS 없는 `project-snapshot`의 NP-01~06은 [확정 범위](plain-project-basis.md)·[후보별 검증](../verification/plain-project-basis.md)을 따른다. 기존 AP/GL/PPB의 성공을 새 경로로 승계하지 않으며 새 전체 OS/대형/ARM 행렬은 열지 않는다.
+
 ## 기존 C: 회수와 MCP 응답 복구의 현재 판정
 
 [VR/MR 직접 근거](../verification/vss-and-mcp-remediation.md)로 기존 C: Plastic A release/B discard의 소유 회수와 독립 결과·최신 DirectX 보존을 확인했다. 고정 Coplay 패치의 35초 한 번 실행·중복 방지·reload 상세 결과와 Codex 기본 HTTP MCP의 정확한 원본/패치/현재 상태도 확인해 두 문제를 한정 마감했다. 아래 이전 단계의 C: 보류·MCP 응답 실패는 당시 후보의 근거이며 현재 보류 상태가 아니다. 그 단계의 다른 NotRun/Partial을 자동으로 통과 처리하지 않는다. 이전 Editor 종료의 원인 조사는 사용자 지시로 후속 작업에서 제외했다.

@@ -12,7 +12,7 @@ public static class WorkspaceSnapshotBasis
     {
         GitObjectSnapshotProvider.ProviderName => new GitObjectSnapshotProvider(directory, owner),
         PlasticRevisionSnapshotProvider.ProviderName => new PlasticRevisionSnapshotProvider(directory, owner),
-        OwnedDirectorySnapshotTree.ProviderName => new OwnedDirectorySnapshotProvider(directory, owner),
+        OwnedDirectorySnapshotTree.ProviderName => ProjectDirectorySnapshotProvider.Present(directory) ? new ProjectDirectorySnapshotProvider(directory, owner) : new OwnedDirectorySnapshotProvider(directory, owner),
         "windows-vss-system" => new VssSnapshotProvider(directory, owner),
         _ => throw new WorkspaceException("SnapshotProviderUnsupported", "Retain the unsupported immutable basis.")
     };
@@ -21,7 +21,7 @@ public static class WorkspaceSnapshotBasis
         {
             GitObjectSnapshotProvider.ProviderName => new GitObjectSnapshotProvider(directory, owner).ResolveReadAccessAsync(snapshot, ct),
             PlasticRevisionSnapshotProvider.ProviderName => new PlasticRevisionSnapshotProvider(directory, owner).ResolveReadAccessAsync(snapshot, ct),
-            OwnedDirectorySnapshotTree.ProviderName => new OwnedDirectorySnapshotProvider(directory, owner).ResolveReadAccessAsync(snapshot, ct),
+            OwnedDirectorySnapshotTree.ProviderName => ProjectDirectorySnapshotProvider.Present(directory) ? new ProjectDirectorySnapshotProvider(directory, owner).ResolveReadAccessAsync(snapshot, ct) : new OwnedDirectorySnapshotProvider(directory, owner).ResolveReadAccessAsync(snapshot, ct),
             "windows-vss-system" => new VssSnapshotProvider(directory, owner).ResolveReadAccessAsync(snapshot, consumed, ct),
             _ => throw new WorkspaceException("SnapshotProviderUnsupported", "Retain the unsupported immutable basis.")
         };
@@ -29,7 +29,7 @@ public static class WorkspaceSnapshotBasis
     {
         GitObjectSnapshotProvider.ProviderName => new GitObjectSnapshotProvider(directory, owner).AcquireReadLease(),
         PlasticRevisionSnapshotProvider.ProviderName => new PlasticRevisionSnapshotProvider(directory, owner).AcquireReadLease(),
-        OwnedDirectorySnapshotTree.ProviderName => new OwnedDirectorySnapshotProvider(directory, owner).AcquireReadLease(),
+        OwnedDirectorySnapshotTree.ProviderName => ProjectDirectorySnapshotProvider.Present(directory) ? new ProjectDirectorySnapshotProvider(directory, owner).AcquireReadLease(snapshot) : new OwnedDirectorySnapshotProvider(directory, owner).AcquireReadLease(),
         "windows-vss-system" => new VssSnapshotProvider(directory, owner).AcquireReadLease(),
         _ => throw new WorkspaceException("SnapshotProviderUnsupported", "Retain the unsupported immutable basis.")
     };
@@ -38,7 +38,7 @@ public static class WorkspaceSnapshotBasis
         {
             GitObjectSnapshotProvider.ProviderName => new GitObjectSnapshotProvider(directory, owner).OpenTree(snapshot, access, health),
             PlasticRevisionSnapshotProvider.ProviderName => new PlasticRevisionSnapshotProvider(directory, owner).OpenTree(snapshot, access),
-            OwnedDirectorySnapshotTree.ProviderName => new OwnedDirectorySnapshotTree(new OwnedDirectorySnapshotProvider(directory, owner).Read(snapshot), snapshot),
+            OwnedDirectorySnapshotTree.ProviderName => new OwnedDirectorySnapshotTree((ProjectDirectorySnapshotProvider.Present(directory) ? new ProjectDirectorySnapshotProvider(directory, owner).Shared(snapshot) : new OwnedDirectorySnapshotProvider(directory, owner)).Read(snapshot), snapshot),
             "windows-vss-system" => new VssSnapshotTree(snapshot, access, health),
             _ => throw new WorkspaceException("SnapshotProviderUnsupported", "Retain the unsupported immutable basis.")
         });

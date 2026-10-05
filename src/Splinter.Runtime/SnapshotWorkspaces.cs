@@ -77,7 +77,7 @@ public sealed partial class WorkspaceCoordinator
 
     private async Task ConnectSnapshotAsync(WorkspaceRecord w, CancellationToken ct)
     {
-        if (w.GeneratedDirectory is { } generated && !w.ManagedPaths.Contains(generated.RelativePath, StringComparer.OrdinalIgnoreCase))
+        if (w.StorageMode != "project-snapshot" && w.GeneratedDirectory is { } generated && !w.ManagedPaths.Contains(generated.RelativePath, StringComparer.OrdinalIgnoreCase))
         {
             w.ManagedPaths = [.. w.ManagedPaths, generated.RelativePath];
             store.Save(w, "generated-path-bound");
@@ -176,7 +176,9 @@ public sealed partial class WorkspaceCoordinator
             }
             using (await store.LockAsync(WorkspaceStore.Key("snapshot:" + state.Reference!.Id), ct))
             {
-                if (store.List().Any(other => other.Id != w.Id && other.Phase is not ("released" or "discarded") &&
+                // Managed project tasks release their own reference; the
+                // explicit original restore owns the shared payload lifecycle.
+                if (w.StorageMode != "project-snapshot" && store.List().Any(other => other.Id != w.Id && other.Phase is not ("released" or "discarded") &&
                     other.Snapshot?.Step != "release-snapshot" &&
                     (other.Snapshot?.Step != "discard-snapshot" || other.Snapshot?.Observation?.DeltaPresent != false) &&
                     other.Snapshot?.Reference?.Id == state.Reference.Id))

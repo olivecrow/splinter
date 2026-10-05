@@ -22,7 +22,8 @@
       "enum": [
         "ntfs-snapshot",
         "git-snapshot",
-        "plastic-snapshot"
+        "plastic-snapshot",
+        "project-snapshot"
       ]
     },
     "editor": {
@@ -55,6 +56,13 @@
         "null"
       ],
       "pattern": "^[a-f0-9]{24}$"
+    },
+    "projectBasis": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{24}$"
     }
   },
   "required": [
@@ -77,7 +85,10 @@
       "then": {
         "properties": {
           "storage": {
-            "const": "ntfs-snapshot"
+            "enum": [
+              "ntfs-snapshot",
+              "project-snapshot"
+            ]
           },
           "baseReference": {
             "const": "snapshot"
@@ -229,6 +240,65 @@
               "git-snapshot",
               "plastic-snapshot"
             ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "storage": {
+            "const": "project-snapshot"
+          }
+        },
+        "required": [
+          "storage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "const": "none"
+          },
+          "projectBasis": {
+            "type": "string"
+          },
+          "libraryBasis": {
+            "type": "null"
+          },
+          "baseReference": {
+            "const": "snapshot"
+          }
+        },
+        "required": [
+          "source",
+          "projectBasis"
+        ],
+        "not": {
+          "required": [
+            "baseline"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "projectBasis": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectBasis"
+        ]
+      },
+      "then": {
+        "properties": {
+          "storage": {
+            "const": "project-snapshot"
+          },
+          "libraryBasis": {
+            "type": "null"
           }
         }
       }

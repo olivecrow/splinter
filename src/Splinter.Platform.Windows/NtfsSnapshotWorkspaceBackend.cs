@@ -12,8 +12,10 @@ using Splinter.SourceControl.Files;
 namespace Splinter.Platform.Windows;
 
 public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspacePreparationObserver? preparationObserver = null,
-    IGeneratedDirectoryDependencies? generatedDirectories = null) : ISnapshotWorkspaceBackend
+    IGeneratedDirectoryDependencies? generatedDirectories = null, IGeneratedDirectoryDependencies? projectDirectories = null) : ISnapshotWorkspaceBackend
 {
+    private IGeneratedDirectoryDependencies Dependencies(WorkspaceRecord w) =>
+        (w.StorageMode == "project-snapshot" ? projectDirectories : generatedDirectories) ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Compose the exact basis dependency manager.");
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static string OverlayControl(string control) => Path.Combine(control, "overlay");
     private static string RequestPath(string control) => Path.Combine(OverlayControl(control), "request.json");
@@ -24,8 +26,8 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         workspace is null || preparationObserver is null ? null : boundary => preparationObserver.ReachedAsync(boundary, workspace, CancellationToken.None));
     public static OverlayIdentity Identity(WorkspaceRecord w) => new(2, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024,
         w.SourceKind is "none" or "plastic" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : [".git"],
-        DeniedTopLevel: w.SourceKind == "plastic" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : null,
-        Graft: w.GeneratedDirectory is { } generated ? new(generated.RelativePath, generated) : null);
+        DeniedTopLevel: w.SourceKind == "plastic" || w.StorageMode == "project-snapshot" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : null,
+        Graft: w.StorageMode != "project-snapshot" && w.GeneratedDirectory is { } generated ? new(generated.RelativePath, generated) : null);
 
     public async Task<SnapshotReference> CaptureAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
@@ -35,10 +37,16 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         if (Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\WinFsp", "InstallDir", null) is not string)
             throw new WorkspaceException("WinFspMissing", "Install a qualified WinFsp provider before capture; no full-copy fallback is available.");
         CheckSpace(control);
+        if (w.StorageMode == "project-snapshot")
+        {
+            w.GeneratedDirectory = await Dependencies(w).AttachAsync(w.GeneratedDirectoryId!, w, ct);
+            await ProjectDirectorySnapshotProvider.CaptureAsync(Path.Combine(control, "snapshot"), w, ct);
+            return w.GeneratedDirectory.Snapshot;
+        }
         if (w.StorageMode is "git-snapshot" or "plastic-snapshot")
         {
             if (w.GeneratedDirectoryId is { } generatedId)
-                w.GeneratedDirectory = await (generatedDirectories ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Generated basis dependencies are unavailable."))
+                w.GeneratedDirectory = await Dependencies(w)
                     .AttachAsync(generatedId, w, ct);
             if (w.StorageMode == "plastic-snapshot")
                 return await new PlasticRevisionSnapshotProvider(Path.Combine(control, "snapshot"), w.Id, w.BaseReference)
@@ -87,9 +95,9 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
             ? new(Identity(w), DeltaPath(control), w.Path, OverlayControl(control), Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32)),
                 access, Path.Combine(control, "snapshot"), w.Id)
             : request with { ReadAccess = access, SnapshotReceiptDirectory = Path.Combine(control, "snapshot"), SnapshotOwnerId = w.Id };
-        if (w.GeneratedDirectory is { } generated)
+        if (w.StorageMode != "project-snapshot" && w.GeneratedDirectory is { } generated)
         {
-            await (generatedDirectories ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Generated basis dependencies are unavailable.")).AttachAsync(generated.Id, w, ct);
+            await Dependencies(w).AttachAsync(generated.Id, w, ct);
             var generatedAccess = await WorkspaceSnapshotBasis.ResolveAsync(generated.Snapshot, generated.ReceiptDirectory, generated.OwnerId, null, ct);
             request = request with { GeneratedSnapshot = new(generatedAccess, generated.ReceiptDirectory, generated.OwnerId) };
         }
@@ -278,7 +286,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
             new { snapshotId = w.Snapshot.Reference!.Id, remainingDependents = 0, resultsPreserved = true }, ct);
         var reclaimed = await Provider(w, control).ReleaseAsync(w.Snapshot.Reference, ct, w.Snapshot.Reclamation?.AttemptId);
         if (reclaimed.Disposition == "released" && w.GeneratedDirectory is { } generated)
-            await (generatedDirectories ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Generated basis dependencies are unavailable.")).DetachAsync(generated, w, ct);
+            await Dependencies(w).DetachAsync(generated, w, ct);
         return reclaimed;
     }
     private static async Task<OverlayServeRequest?> Request(WorkspaceRecord w, string control, CancellationToken ct)
