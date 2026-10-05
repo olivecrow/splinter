@@ -35,9 +35,7 @@ public sealed partial class FileWorkspaceTests
         long managed = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.True(state.Completed); Assert.Equal((long)mebibytes * 1024 * 1024, stageAllocation);
         Assert.InRange(managed, 0, 4 * 1024 * 1024);
-        string evidence = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/plain-folder-apply"));
-        Directory.CreateDirectory(evidence);
-        File.WriteAllText(Path.Combine(evidence, $"cost-{mebibytes}-{w.Id}.json"), JsonSerializer.Serialize(new
+        TestContext.Current.TestOutputHelper!.WriteLine(JsonSerializer.Serialize(new
         {
             payloadBytes = (long)mebibytes * 1024 * 1024, stageAllocationBytes = stageAllocation,
             publisherManagedAllocatedBytes = managed, retainedPublicationFiles = Directory.GetFiles(f.Project, ".splinter-apply-*").Length,

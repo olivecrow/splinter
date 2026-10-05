@@ -19,7 +19,9 @@
 
 ## 공간과 메모리
 
-증거는 `artifacts/plain-folder-apply/cost-*.json`이다. 변경 파일 하나의 stage가 8,388,608 / 33,554,432 bytes를 할당하고 정상 게시 뒤 임시 파일 0개를 확인했다. publisher 자체의 관리 누적 할당은 해당 선택 시험에서 524,488~525,312 bytes였다. 고정 64KiB 스트림과 metadata/hash 버퍼의 비용이며 Runtime state publication·VSS·Editor·전체 프로세스 working set 또는 물리 peak를 포함하지 않는다. 독립 결과의 기준/결과 payload와 workspace 저널을 합쳐 절감률을 계산하지 않는다.
+AP-06 당시 증거는 `artifacts/plain-folder-apply/cost-*.json`이다. 변경 파일 하나의 stage가 8,388,608 / 33,554,432 bytes를 할당하고 정상 게시 뒤 임시 파일 0개를 확인했다. publisher 자체의 관리 누적 할당은 해당 선택 시험에서 524,488~525,312 bytes였다. 고정 64KiB 스트림과 metadata/hash 버퍼의 비용이며 Runtime state publication·VSS·Editor·전체 프로세스 working set 또는 물리 peak를 포함하지 않는다. 독립 결과의 기준/결과 payload와 workspace 저널을 합쳐 절감률을 계산하지 않는다.
+
+현재 `PublicationStreamsPayloadAndSamplesOnlyOneChangedFileStage` 회귀는 같은 계측값을 xUnit 시험 출력에 기록한다. 필수 빌드의 `artifacts/test-results/Splinter.Tests_net10.0_x64.trx`에서 각 8MiB·32MiB 사례의 출력으로 확인하며 실행마다 별도 `cost-<크기>-<workspace ID>.json`을 누적하지 않는다. 위 JSON은 당시의 보존 근거이며 현재 시험의 입력은 아니다.
 
 처음 순차 EOF 확장에서는 각각 9,371,648 / 34,537,472 bytes를 할당했다. 알려진 최종 stage 길이를 한 번 예약해 두 표본의 추가 983,040 bytes를 제거했다. 최초 실패/관측은 `artifacts/plain-folder-apply-preallocation-before.trx`와 `.log`에 보존한다. 다른 크기·볼륨·대형 성능의 고정 절감률이나 SLA를 주장하지 않는다.
 
