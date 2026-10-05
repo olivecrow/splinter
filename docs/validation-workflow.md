@@ -1,6 +1,6 @@
 # 개발용 소스 view와 Library cache 수명
 
-별도 [개발 CLI](development-cli.md)의 `view`는 후보·소스 세대·공통 Library·독립 결과의 저장 수명만 관리한다. 자체 refresh·컴파일·검증 수집/판정은 제거했고 작업 내용의 검증은 외부 도구와 에이전트가 맡는다. worker 보존은 제품 `workspace checkpoint` 하나로 수행한다. 저장 경로/현재 형식은 유지하며 기존 기록을 자동 이관하거나 삭제하지 않는다.
+별도 [개발 CLI](development-cli.md)의 `view`는 후보·소스 세대·공통 Library·독립 결과의 저장 수명만 관리한다. 자체 refresh·컴파일·검증 수집/판정은 제공하지 않으며 작업 내용의 검증은 외부 도구와 에이전트가 맡는다. worker 보존은 제품 `workspace checkpoint`로 수행한다. 저장 경로/현재 형식과 기존 기록을 자동 이관하거나 삭제하지 않는다.
 
 `pwsh ./scripts/splinter-dev.ps1 view --input <request.json> --home <state-root>`는 기존 NTFS worker의 불변 후보와 단일 Unity 검증 view를 연결한다. 명령 계약은 `schema view.execute`에서 확인한다. `capabilities.validationWorkflowContract`는 `stage=development-storage-view`, `cliAvailable=true`, `integratedWorkspaceMode=true`다. 실제 실행 자격은 [검증 추적표](plans/validation-matrix.md)와 [Library·일반 권한 실행의 제한](verification/product-validation-unelevated.md)에 있는 해당 후보 증거로 판정한다.
 

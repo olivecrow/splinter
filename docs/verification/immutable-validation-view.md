@@ -1,6 +1,6 @@
 # 불변 후보·고정 검증 view 검증
 
-2026-09-27, `vc-20260926`. [VC-01~04](../validation-view.md)의 합성 및 기존 작은 Unity A/B/A 실행을 **scoped-complete-with-limitations**로 마감했다. 불변 후보 게시, 같은 Library의 코드·에셋 원복, 독립 결과와 소유 자원 회수를 확인했다. 첫 import의 장애·강제 종료/수정 후 재개, 첫 A의 빈 미리보기, 긴 cache replay의 mount 응답 재확인, 최초 Git 할당 미계측을 포함한다. SF-03 전체는 Partial이며 제품 모드 채택·대형 Unity 적합성은 완료하지 않았다.
+2026-09-27, `vc-20260926`의 VC-01~04 합성 및 작은 Unity A/B/A 실행은 **scoped-complete-with-limitations**다. 불변 후보 게시, 같은 Library의 코드·에셋 원복, 독립 결과와 소유 자원 회수를 확인했다. 첫 import의 장애·강제 종료/수정 후 재개, 첫 A의 빈 미리보기, 긴 cache replay의 mount 응답 재확인, 최초 Git 할당 미계측을 포함한다. SF-03 전체는 Partial이며 제품 모드 채택·대형 Unity 적합성은 완료하지 않았다. 현재 형식과 명령은 [후보 계약](../validation-view.md)을 따른다.
 
 원시 증거는 `artifacts/storage-foundation/vc-20260926/`의 `closeout.json`, `cost-summary.json`, `results-verification.json`, `pre-reclamation-audit.json`, 개별 CLI 응답·timing·Unity 로그·검증 응답·저널 장부·파일 할당 관측에 보존한다. 일부 제어 증거에는 로컬 IPC 토큰이 있으므로 공개 산출물로 사용하지 않는다.
 

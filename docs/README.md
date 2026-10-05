@@ -2,30 +2,31 @@
 
 [Plastic 전체/선택 원본 반영](plastic-original-apply.md)의 현재 계약, [고정 범위](plans/plastic-original-apply.md), [자격](verification/plastic-original-apply.md)을 구분한다.
 
-현재 구현은 아래 기능 문서에서, 축소한 후속 책임은 계획 문서에서 확인한다. 계획은 프로그램 구현·AI 사용 절차·필요 시 지원 검증·구현 제외를 구분한다. 검증 기록은 지정한 입력·후보의 근거이며 현재 코드의 자동 통과 선언이나 미완성 기능의 수가 아니다.
+현재 구현은 아래 기능 문서에서, 후속 책임은 계획 문서에서 확인한다. 계획은 프로그램 구현·AI 사용 절차·필요 시 지원 검증·구현 제외를 구분한다. 검증 기록은 지정한 입력·후보의 근거이며 현재 코드의 자동 통과 선언이나 미완성 기능의 수가 아니다. 용어가 낯설면 [용어집](glossary.md)에서 의미와 서로의 차이를 먼저 확인한다.
 
 ## 현재 계약과 사용법
 
 | 문서 | 소유하는 내용 |
 | --- | --- |
+| [용어집](glossary.md) | 작업/기준/저장·식별자·보존/반영/회수·응답과 검증 상태의 쉬운 설명과 소유 문서 |
 | [현재 기반](foundation.md) | 모듈·의존성·명령·빌드와 시험 |
 | [OS와 앱 확장 경계](extensibility-boundaries.md), [검증](verification/extensibility-boundaries.md) | 불변 경로 정책·Unix 권한 metadata·앱별 원본/동반 파일/생성 디렉터리 정책, 실제 다른 OS·앱 미구현과 합성 시험의 구분 |
 | [보안 경계 검증](verification/security-boundaries.md) | Plastic private reader·외부 MCP 인증·서비스 상속 ACL·보호된 회수 잠금·짧은 IPC 수신의 자동/한정 읽기와 미실행 배포 경계 |
 | [코드 최적화 회귀](verification/code-quality-optimization.md) | 구조화한 다음 행동·파일 rename/복원 검색·고유 객체 검사·원본 계획 조상 집합·압축 블록 순회의 자동 검증과 실측 한계 |
 | [Unity MCP 연결·응답 복구](unity-mcp-response-recovery.md) | 외부 Coplay 고정 패치의 준비·HTTP 대상·Codex 설정 조회 검사·Editor 종료 뒤 남은 연결 확인/필요한 복구·긴 코드 job·reload 상세 결과와 한정 자격 |
 | [개발용 CLI](development-cli.md) | 기본 CLI에서 분리한 ReFS/baseline·diagnostic checkout·저장소 view·spike/probe의 진입점 |
-| [한정 버전 AI 시작 안내](agent-start.md) | 개발 CLI의 전제·진입·정확한 경로/같은 작업 재개·명시적 종료·실패의 다음 행동 |
+| [한정 버전 AI 시작 안내](agent-start.md) | 기본 CLI의 저장 경로별 전제·진입·정확한 경로/같은 작업 재개·명시적 종료·실패의 다음 행동 |
 | [최소 AI 사용 스킬](../skills/splinter/SKILL.md) | 저장소 지침 원본·직접/독립 작업 판단·CLI 발견·반환 경로·같은 작업 재개·명시적 종료/실패 처리. 설치/자동 binding은 없음 |
 | [VCS 없는 작업공간](vcs-independent-workspaces.md) | 명시적 소스/application 선택·파일 기준/결과·현재 형식·회수와 실제 검증의 구분 |
 | [VCS 없는 프로젝트 기준본](plain-project-basis.md), [범위](plans/plain-project-basis.md), [검증](verification/plain-project-basis.md) | 승인한 whole-project 관리형 원본·VSS 없는 None source/Library 공통 기준·원본/A/B private 범위·전체/선택 게시·task 참조 회수와 마지막 일반 NTFS 복원. 파일/실제 Unity·비용/미자격을 구분 |
-| [Plastic 사용 환경](plastic-compatibility.md), [호환 계획](plans/plastic-compatibility.md), [C: 실행 계획](plans/plastic-validation.md), [추가 T: 회수 계획](plans/plastic-reclamation-validation.md), [검증](verification/plastic-compatibility.md) | Splinter A/B의 관리 정보/등록 격리·무 checkout 파일 작업공간·독립 결과·T: 마지막 회수의 한정 마감과 C: 보류/외부 도구 발견 제한 |
+| [Plastic 사용 환경](plastic-compatibility.md), [호환 범위](plans/plastic-compatibility.md), [검증](verification/plastic-compatibility.md), [C: 후속 회수](verification/vss-and-mcp-remediation.md#vr-01-정확한-기존-c-plastic-회수) | 관리 정보/등록 격리·무 checkout 파일 작업공간·독립 결과와 회수. C: 회수는 종결했으며 외부 도구 발견 제한은 유지 |
 | [일반 폴더 원본 반영](plain-folder-original-apply.md) | 읽기 전용 계획·고정 대상/intent·조건부 Windows 게시·중단/회수와 비용 경계 |
 | [원본 반영 검증](verification/plain-folder-original-apply.md) | Core/fake·실제 일반 권한 NTFS 파일 시험과 작은 Editor 없는 제품 A/B 한정 마감·계측 |
 | [VCS 독립 검증](verification/vcs-independent-workspaces.md) | 자동 파일/fake·Git 회귀와 실제 A/B·서비스 업데이트·동일 요청 회수 복구의 한정 판정/비용 |
 | [일반 폴더 실제 실행 계획](plans/vcs-independent-validation.md) | 고정 fixture·서비스 업데이트/grant의 검토 가능한 계획·한 A/B 묶음과 중단 조건 |
 | [NTFS 작업공간](ntfs-workspaces.md) | VSS identity·범위 저널·Git·권한·제어 파일 게시/읽기·복구·결과 보존·회수 |
 | [Plastic 프로젝트 기준본](plastic-project-basis.md), [검증](verification/plastic-project-basis.md) | fixed changeset/revision·VSS 없는 범위 저장·공통 원본 Library·독립 파일 결과와 소유 회수. 구현/reader·native·실제 Unity 자격을 구분 |
-| [Git 프로젝트 기준본](git-project-basis.md), [검증](verification/git-project-basis.md) | `git-snapshot`의 fixed Git commit/tree/blob·VSS 없는 WinFsp 범위 저장·소유 ref/fence·독립 결과/회수. ignored/Library 기준 재사용과 후속 Unity 자격을 구분 |
+| [Git 프로젝트 기준본](git-project-basis.md), [reader/Editor 없는 검증](verification/git-project-basis.md), [Unity 검증](verification/git-unity-validation.md) | `git-snapshot`의 fixed Git commit/tree/blob·VSS 없는 WinFsp 범위 저장·소유 ref/fence·독립 결과/회수. ignored/Library 기준 재사용과 후보별 Unity 자격을 구분 |
 | [Git 원본 Library 참조](git-library-reference.md), [검증](verification/git-library-reference.md) | 명시적 Library prepare/status/restore·원본 관리형 mount·Git 소스와 불변 Library graft·작업 의존성·파일 이동/범위 복원과 MCP/RAM 자격 |
 | [Git Unity 실제 실행 범위](plans/git-unity-validation.md), [검증](verification/git-unity-validation.md) | 현재 원본 Git/Unity의 새 기준 A/B·cold Library·exact HTTP MCP·리소스/씬/현재 상태 시험과 소유 회수. 준비 병목/동일 요청 복구와 이전 VSS 자격을 구분 |
 | [명시적 폐기](workspace-discard.md) | Core/Runtime intent·Git/Windows provider·CLI·서비스 별도 authorization·중단 재개 |
@@ -61,10 +62,10 @@
 | [물리 저장 단계 최종 범위](plans/physical-storage-completion.md), [검증](verification/physical-storage-completion.md) | 현재 SJR2 장부·정확한 task 파일 할당·최종 제품 A/B·정리/독립 결과/회수와 물리 저장 단계의 종료 경계 |
 | [메모리 단계 최종 범위](plans/memory-completion.md), [검증](verification/memory-completion.md) | 압축 쓰기 중복 buffer·부분/빈 읽기 scratch·같은 실제 저널 대조와 소유 provider/Editor·공유 시스템 비용/회수의 종료 경계 |
 | [병렬 안정성의 확정 범위](plans/stable-parallel-completion.md), [검증](verification/stable-parallel-completion.md) | 잠금 오류의 점유 오인 수정·실제 A 수집/회수와 B 조회/재개·파일 쓰기 겹침·독립 결과/소유 회수. Editor 없는 경계와 기존 자격 구분 |
-| [Unity 실제 C/S 비교 범위](plans/unity-live-comparison.md), [검증](verification/unity-live-comparison.md), [HTML](../reports/unity-live-comparison-20261003.html) | Splinter 없는 Codex worktree와 제품 workspace의 L/A/B·실제 코드/에셋·파일 할당/메모리·0.7 실패/승인한 0.8·격리/재개/지속. 당시 구형 home 기록의 마지막 회수 Partial과 승인된 후속 해소를 구분 |
-| [Unity 병렬 편집 확정 범위](plans/unity-parallel-editor-validation.md), [검증](verification/unity-parallel-editor-validation.md), [기존 S HTML](../reports/unity-parallel-editor-validation-20261003.html) | S와 Splinter를 사용하지 않은 C A/B의 MCP·PNG/importer·씬·현재 파일 테스트·전체/선택 반영·정리. 후속 실제 MCP 테스트 겹침·reload 결과 보존/재연결·C checkout 전체 회수와 파일/VSS/RAM 표본. 초기 실패/비용·전체 peak unknown·과거 Plastic pending 유지. 후속은 텍스트 기록 |
+| [Unity 실제 C/S 비교 범위](plans/unity-live-comparison.md), [검증](verification/unity-live-comparison.md), [HTML](../reports/unity-live-comparison-20261003.html) | Codex worktree와 제품 workspace의 코드/에셋·파일 할당/메모리·격리/재개·회수 비교. 입력/버전과 실패·후속 복구의 근거는 소유 검증에서 구분 |
+| [Unity 병렬 편집 확정 범위](plans/unity-parallel-editor-validation.md), [검증](verification/unity-parallel-editor-validation.md), [S HTML](../reports/unity-parallel-editor-validation-20261003.html) | C/S A/B의 정확한 MCP 대상·리소스/씬/테스트·원본 반영·소유 회수와 비용 비교. HTML은 S까지이며 후속 실행과 제한은 텍스트 검증이 소유 |
 
-## 남은 설계와 검증
+## 설계 범위와 검증 기준
 
 | 문서 | 용도 |
 | --- | --- |
@@ -82,6 +83,6 @@
 | [저장소 권한 서비스](plans/storage-privilege-service.md) | 반복 UAC 없는 제한 서비스의 UA-01~04 |
 | [병렬 비교 방법](plans/parallel-workflow-qualification.md) | C/S/Q 입력·작업·비용 비교를 재사용할 때 |
 
-변경 이력은 Git에서 확인한다. 완료한 단계별 계획을 다시 유지하지 않는다. 후속 성능·지원 판단에 필요한 실측은 verification에 보존하며 README·AGENTS에 복제하지 않는다.
+현재 기능 문서는 구조·동작·진입점·제약만 설명한다. 검증과 계획에서 보존할 과거 기록은 지원 범위를 입증하는 후보/입력/환경·결과, 미해결 제한·재현 조건, 복구·소유권 판단과 비교에 필요한 근거다. 같은 근거는 소유 문서에 한 번만 두고 지도에서는 연결한다. 후속 판단에 쓰이지 않는 완료 순서·작업 일지·중복 시험 숫자·해결된 상태의 반복 요약은 제거하며 단순 변경 이력은 Git에서 확인한다. 완료한 계획에 남은 승인 범위·재현 조건·제외 조건이 필요하면 유지하되 현재 미완료 작업으로 표시하지 않는다. 원시 artifacts·독립 결과·snapshot은 문서 정리 대상으로 삭제하지 않는다.
 
 첫 버전의 실행 범위는 M0로 확정하고 NR/SF/SW 전체 미완료를 첫 버전 완료의 분모로 사용하지 않는다. [제품 범위 정리 검증](verification/workspace-product-scope.md)은 삭제한 DAG/Unity 검증 진입점·기본/개발 CLI 분리와 실제 자동 회귀의 경계를 소유한다.

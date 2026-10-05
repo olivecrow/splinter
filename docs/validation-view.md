@@ -1,8 +1,8 @@
 # 불변 검증 후보와 고정 view 실험
 
-현재 명령은 [별도 개발 CLI](development-cli.md)에서 사용한다. 자체 compile/validation 요청은 제거했으며 storage 후보·source/cache·seal/회수 계약만 유지한다.
+현재 명령은 [별도 개발 CLI](development-cli.md)에서 사용한다. storage 후보·source/cache·seal/회수를 관리하며 자체 compile/validation 요청은 제공하지 않는다.
 
-`snapshot-spike`의 개발용 확장이다. 제품 `workspace ensure`의 실행 모드나 작업 큐에 연결되어 있지 않다. 범위는 [VC-01~04 계획](validation-view.md), 실제 판정은 [검증 기록](verification/immutable-validation-view.md)을 따른다.
+`snapshot-spike`의 개발용 확장이다. 제품 `workspace ensure`의 실행 모드나 작업 큐에 연결되어 있지 않다. 현재 범위는 아래 저장·게시·view 계약이며, 과거 VC-01~04의 입력과 판정은 [검증 기록](verification/immutable-validation-view.md#관문별-판정)을 따른다.
 
 같은 저장소 구현을 사용하는 [소스 view 수명주기](validation-workflow.md)는 개발용 `view` 명령으로 Windows/Git/Unity 수명 어댑터와 연결한다. Unity의 실제 편집·컴파일·테스트는 AI·외부 도구가 수행한다. 아래 개발용 실험의 통과 근거를 새 제품 후보로 자동 승계하지 않는다.
 

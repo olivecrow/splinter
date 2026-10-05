@@ -1,5 +1,7 @@
 # 현재 기반
 
+기준본·변경분·seal·intent와 종료 명령의 차이는 [용어집](glossary.md)을 참고한다.
+
 외부 Coplay 고정 패치의 준비·HTTP 설정 검사·code job/reload 결과는 [MCP 사용 절차](unity-mcp-response-recovery.md)를 따른다. 제품 모듈·CLI schema/capabilities와 별개이며 [실제 자격](verification/vss-and-mcp-remediation.md)에 한정한다.
 
 Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트의 외부 도구 작업 → checkpoint → 선택적 integrate → 명시적 release/discard**다. 작업공간·소유 Editor·범위 저장·독립 결과·회수 안전성을 관리한다. 컴파일·테스트·게임 합격은 에이전트와 MCP·Unity CLI 등 외부 도구의 책임이다.
@@ -49,7 +51,7 @@ Runtime의 파일 잠금은 workspace ID별 명령을 직렬화하며 프로젝�
 
 workspace/baseline 상태와 Windows 제어 IPC는 같은 디렉터리에 flush한 임시 파일을 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader의 delete sharing, 한정 공유 오류 재시도, unknown/손상/소유권 오류 보존은 [NTFS 계약](ntfs-workspaces.md)을 따른다. 상태 쓰기 실패 단계/HResult·게시 완료 여부는 [진단 계약](verification/state-write-diagnostics.md)에 있다.
 
-[현재 압축 저널](journal-payload-compression.md)은 overlay v2/SJR2·candidate v3의 raw/Brotli 범위를 사용한다. 실제 제품 연결 자격은 [JP](verification/journal-payload-compression.md), 현재 내부 buffer와 비용/회수 자격은 [ME](verification/memory-completion.md)로 구분한다. 압축 준비의 중복 encoded 임시 buffer를 제거했고 작은/빈 compressed read는 chunk와 요청분 staging으로 전체 stream 검증 뒤 게시한다. 범위 저널은 승인 쓰기의 개별 durable flush·전후/unmount seal을 유지한다. 동일 private 바이트와 일치 앞뒤의 작은 변경 범위를 재사용하며 최초 전체 복제·읽기 hydration·전체 파일 copy-up fallback은 없다. source fingerprint cache는 snapshot/provider 세대·변경 이력에 묶이고 초기/감사/재연결은 전체 내용을 확인한다. [소스 검증](source-verification.md)은 저장 내용 검사이며 프로젝트 합격 판정이 아니다.
+[현재 압축 저널](journal-payload-compression.md)은 overlay v2/SJR2·candidate v3의 raw/Brotli 범위를 사용한다. 실제 제품 연결 자격은 [JP](verification/journal-payload-compression.md), 현재 내부 buffer와 비용/회수 자격은 [ME](verification/memory-completion.md)로 구분한다. 압축 준비는 scratch 하나와 선택 결과 배열을 사용하며 작은/빈 compressed read는 chunk와 요청분 staging으로 전체 stream 검증 뒤 게시한다. 범위 저널은 승인 쓰기의 개별 durable flush·전후/unmount seal을 유지한다. 동일 private 바이트와 일치 앞뒤의 작은 변경 범위를 재사용하며 최초 전체 복제·읽기 hydration·전체 파일 copy-up fallback은 없다. source fingerprint cache는 snapshot/provider 세대·변경 이력에 묶이고 초기/감사/재연결은 전체 내용을 확인한다. [소스 검증](source-verification.md)은 저장 내용 검사이며 프로젝트 합격 판정이 아니다.
 
 private Mutation의 기본값 JSON은 생략하고 명시적 정리/후보에서는 더 작은 현재 메타데이터를 선택한다. 입력/응답·SJR2 의미를 바꾸거나 저장된 저널을 읽기 중 변환하지 않는다. 실제 Unity 저널의 오프라인 파일 할당과 새 후보 native 실행의 구분은 [JM 검증](verification/journal-metadata-storage.md)을 따른다.
 

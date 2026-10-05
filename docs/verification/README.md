@@ -2,15 +2,15 @@
 
 [보안 경계 검증](security-boundaries.md)은 Plastic private reader·MCP 인증·서비스 ACL/잠금/수신 제한의 변경된 경계만 다룬다. 과거 Unity A/B 자격은 유지하며, 현재 reader·MCP v2의 Unity 실행과 설치된 서비스 업데이트를 자동 통과로 표시하지 않는다.
 
-[C: 회수/MCP 응답 복구](vss-and-mcp-remediation.md)는 별도 승인한 차단 snapshot 3개 제거와 과거 동일 A release/B discard의 종결·최신 DirectX/독립 결과 보호, 외부 Coplay 패치의 35초 실행·중복 방지·reload 상세 결과를 소유한다. 아래 과거 C: pending과 MCP 응답 제한은 당시 근거이며 이 후속과 구분한다. 전역 Codex env 설정 결함/사용자 복구·당시 Stdio binding·예기치 않은 Editor/서버 종료와 독립 재실행을 기록하고, 사용자 Connect 뒤 Codex 기본 HTTP 도구의 정확한 원본/패치/현재 상태도 확인했다.
+[C: 회수/MCP 응답 복구](vss-and-mcp-remediation.md)는 과거 동일 A release/B discard의 회수 종결과 외부 Coplay 패치의 실행·중복 방지·reload 상세 결과를 소유한다. C: 회수 보류는 종결됐으며 최초 실패의 재현 조건·소유권과 복구 근거는 해당 검증에 남긴다. MCP의 과거 후보 결과와 현재 인증/transport의 미실행 경계는 [보안 검증](security-boundaries.md)과 구분한다.
 
 [Plastic 원본 반영](plastic-original-apply.md)은 recorded 기준의 전체/선택 게시, 등록·잠금·Editor 보호와 같은 intent 복구의 별도 자격이다.
 
-[Unity 실제 C/S 비교](unity-live-comparison.md)와 [HTML 보고서](../../reports/unity-live-comparison-20261003.html)는 Splinter를 전혀 사용하지 않은 Codex 앱 worktree와 제품 workspace의 로컬 L + A/B를 실제 실행했다. 지정 소유 파일 할당·독립 Editor/provider 메모리·격리/같은 작업 재개·B 지속은 확인했다. 전체 물리/VSS 귀속·최소 RAM은 unknown이며, 같은 home의 과거 기록 필수 필드 누락으로 마지막 snapshot 회수는 Partial다. 이전 SF/PV의 전체 지원 상태를 변경하지 않는다.
+[Unity 실제 C/S 비교](unity-live-comparison.md)와 [HTML 보고서](../../reports/unity-live-comparison-20261003.html)는 Codex 앱 worktree와 제품 workspace의 지정 입력·파일 할당·Editor/provider 메모리·격리와 재개를 비교한다. 과거 home 기록 누락과 승인한 후속 회수의 근거는 소유 검증에서 구분한다. 전체 물리/VSS 귀속·최소 RAM은 unknown이며 SF/PV 전체 지원으로 확대하지 않는다.
 
-[Unity 병렬 편집 검증](unity-parallel-editor-validation.md)은 S와 Splinter를 사용하지 않은 C A/B의 호출별 MCP 대상·텍스처/importer·씬 저장/재로드·현재 상태 EditMode 테스트·A 전체/B 선택 반영·원본 Unity 확인과 정리를 scoped-complete-with-limitations로 마감한다. 승인한 후속에서 C/S의 실제 MCP 테스트 프레임 겹침·reload 뒤 metadata/상세 결과 경계와 명시적 재연결·C checkout/Git 등록/부모 전체 회수까지 확인했다. 파일 할당 snapshot 감소와 실제 Editor RAM 절감 미확인, 전체 물리 peak/VSS 작업별 귀속 unknown을 구분한다. 과거 초기화/결과 유실·순차 처리·S 보호 거부/명시적 재시도와 Safe Mode를 유발한 후속 입력 복사 실수/정정 비용은 유지한다. [기존 HTML](../../reports/unity-parallel-editor-validation-20261003.html)은 S까지의 기록이며 후속은 텍스트다. 승인한 73개 terminal 기록 보존 이동으로 해소한 앞선 비교 A/B와, 별도 [과거 C: Plastic](plastic-compatibility.md)의 실제 비소유 snapshot 격리 pending을 구분한다. 정리 지시를 승인 부재로 재해석하지 않는다.
+[Unity 병렬 편집 검증](unity-parallel-editor-validation.md)은 C/S A/B의 정확한 MCP 대상·리소스/씬·현재 상태 시험·원본 반영과 회수의 한정 자격을 소유한다. 실제 테스트 겹침·reload 결과 보존/재연결·소유 회수와 초기 실패/복구 비용은 텍스트 검증을 따른다. [HTML](../../reports/unity-parallel-editor-validation-20261003.html)은 S까지의 기록이다. Editor RAM 절감 미확인·전체 물리 peak/VSS 귀속 unknown은 유지한다.
 
-[물리 저장 단계 최종 검증](physical-storage-completion.md)은 최신 JM Runtime의 고정 T: A/B·초기 복제/읽기 hydration 0·같은 작업·소유 Editor·정리·독립 결과/회수·설명 가능한 잔여 파일 할당과 현재 장부/회귀를 scoped-complete-with-limitations로 마감했다. SF/NR의 별도 지원 확대·C: 회수 보류와 공유 VSS/전체 순간 peak unknown은 유지한다.
+[물리 저장 단계 최종 검증](physical-storage-completion.md)은 고정 JM 후보의 T: A/B·초기 복제/읽기 hydration 0·정리·독립 결과/회수·잔여 파일 할당과 장부/회귀를 scoped-complete-with-limitations로 판정한다. SF/NR의 별도 지원 확대와 공유 VSS/전체 순간 peak unknown은 유지한다.
 
 [메모리 단계 최종 검증](memory-completion.md)은 현재 Runtime의 압축 쓰기/부분·빈 read buffer·바이트/미게시/재생 의미·같은 실제 저널과 새 제품 A/B의 소유 비용/독립 결과/회수를 scoped-complete-with-limitations로 마감했다. 전체 RAM·native codec/순간 peak unknown을 유지한다.
 
@@ -18,7 +18,7 @@
 
 일반 폴더 원본 반영의 현재 후보는 [별도 검증](plain-folder-original-apply.md)을 따른다. 일반 권한 파일 시험과 작은 Editor 없는 실제 제품 VSS·WinFsp A/B 한정 마감을 구분한다.
 
-현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop을 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제거했고 결과 보존은 checkpoint로 통일했다. 선택적 단일 view/Library cache·ReFS·probe는 [개발용 CLI](../development-cli.md)로 분리했다. 아래 기존 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 이번 후보의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](workspace-product-scope.md)을 따른다.
+현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop·checkpoint를 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제공하지 않는다. 선택적 view/Library cache·ReFS·probe는 [개발용 CLI](../development-cli.md)의 경로다. 아래 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 변경된 계약의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](workspace-product-scope.md)을 따른다. 검증 상태의 뜻은 [용어집](../glossary.md#응답과-검증-상태)을 참고한다.
 
 ## 현재 변경의 검증
 
@@ -38,11 +38,11 @@
 
 [저널 기본값 메타데이터](journal-metadata-storage.md)는 현재 SJR2 의미·개별 flush를 유지하는 구현과 실제 Unity A/B의 보존된 저널을 사용한 오프라인 NTFS 전후 비교를 소유한다. 기존 payload 정리 효과·추가 직렬화 비용·새 native 수명주기의 미실행과 전체 workspace/RAM 미확인을 구분한다.
 
-[압축 저널 제품 연결](journal-payload-compression.md)은 overlay v2/SJR2·candidate v3의 현재 회귀·작은 T: Plastic A/B·동일 입력 journal raw 대조의 실제 NTFS 할당·두 독립 결과/회수를 scoped-complete-with-limitations로 마감했다. 전체 공간/RAM·대형/OS 자격과 기존 C: 보류를 유지하며 독립 codec의 논리 표본/이전 native 자격을 승계하지 않는다.
+[압축 저널 제품 연결](journal-payload-compression.md)은 overlay v2/SJR2·candidate v3의 회귀·작은 T: Plastic A/B·동일 입력 journal raw 대조의 실제 NTFS 할당·독립 결과/회수의 한정 자격을 소유한다. 전체 공간/RAM·대형/OS 자격과 독립 codec의 논리 표본/이전 native 자격을 구분한다.
 
 [Unity CLI A/B 인계](unity-cli-handoff.md)는 기존 CLI/Pipeline·작은 T: Plastic 입력에서 정확한 반환 경로의 catalog/loaded 편집·A stop/release 뒤 B 후속 컴파일·두 독립 결과/마지막 snapshot 회수와 원본 보호를 scoped-complete-with-limitations로 마감했다. 프로그램 변경 없이 사용 절차를 보완했으며 목록 누락·첫 eval 타임아웃·MCP/다른 입력/Play/Test/build 미자격은 유지한다.
 
-[Plastic 호환](plastic-compatibility.md)은 regular/static 원본의 관리 정보/등록 격리·독립 파일 결과의 자동 적합성과 현재 후보의 실제 A/B를 별도로 추적한다. 작은 별도 T: A/B의 마지막 snapshot 회수까지 scoped-complete-with-limitations로 마감했으며 선행 C: 보류·외부 CLI worker 발견 실패/전체 인계 미자격은 유지한다.
+[Plastic 호환](plastic-compatibility.md)은 regular/static 원본의 관리 정보/등록 격리·독립 파일 결과의 자동 적합성과 고정 후보의 실제 T: A/B·마지막 snapshot 회수를 별도로 추적한다. 외부 CLI worker 발견 실패/전체 인계 미자격은 유지한다. C: 회수의 현재 종결은 위 VR-01을 따른다.
 
 [VCS 독립 수명주기](vcs-independent-workspaces.md)는 일반 폴더의 자동 파일/fake·Git 회귀와 실제 VSS/Unity A/B·수정 후 동일 요청 회수의 scoped-complete-with-limitations를 구분한다. 후보별 실행·목록 누락·공간·미실행 경계를 유지한다. 새 상태는 v2이며 이전 상태를 자동 이관하지 않는다.
 
@@ -77,7 +77,7 @@
 | SF-03/VG | [등록 증거가 있는 관리 파일 분리](../validation-view.md#등록-증거가-있는-관리-파일-분리)의 실제 임시 Git 등록·합성 불변 트리 적합성 | 후보 v2 게시의 자동 시험 범위. 실제 provider 실행은 WF의 현재 후보 증거로 별도 판정 |
 | SF-03/VP | [같은 요청 게시 복구](../validation-view.md#같은-요청의-게시-복구)의 영구 intent·부분 저널 prefix·완료 receipt 재조정 | 합성 트리·실제 임시 파일·예외 주입 범위. 실제 CLI 중단은 WF, 재부팅·전원/공간 장애는 NR의 별도 관문 |
 | SF-03/WF | [제품 연결·복구](product-validation-workflow.md), [두 빈 cache](product-validation-cold-cost.md), [현재 후보의 일반 권한 cold/기존 Library](product-validation-unelevated.md)와 독립 결과·회수 | scoped-complete-with-limitations. 작은 fixture·준비/검증 재시작·포커스 재시도와 heartbeat 오류 기록의 제한 유지. 대형 용량·일반 cold 안정성·NR 전체를 증명하지 않음 |
-| LB-01~05 | [실제 Library snapshot 재사용·정리·재증가와 회수](product-validation-unelevated.md) | 이번 Library 수명주기 범위 scoped-complete-with-limitations. 전체 순간 물리 peak·VSS 귀속은 unknown이며 SF-02/03 전체는 Partial |
+| LB-01~05 | [실제 Library snapshot 재사용·정리·재증가와 회수](product-validation-unelevated.md) | 고정 후보의 Library 수명주기 범위 scoped-complete-with-limitations. 전체 순간 물리 peak·VSS 귀속은 unknown이며 SF-02/03 전체는 Partial |
 | RI/RU/WI | 합성 또는 동일 닫힌 저널의 제한된 replay 비교 | warm cache·소수 표본. 누적 Editor 전체 개선·Library 물리 절감으로 환산하지 않음 |
 | JW/FR | 고정 쓰기 계측과 작은 URP fixture의 요청별 유효 PNG 검사 | Windows 선행 직렬화·내구성 경계 유지. Unity 내부 첫 draw 원인 미확정, group flush 미선정 |
 | SW-09 폐기 | [로컬 dirty A/B의 서비스 적용·동일 요청 재개](workspace-discard.md)와 [대표 Unity 실패 worker stop/폐기](representative-agent-workflow.md) | 하위 실행 scoped-complete-with-limitations, SW-09 전체 Partial. native 강제 중단·SW-10 미실행 |

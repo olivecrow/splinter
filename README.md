@@ -2,13 +2,13 @@
 
 AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하도록 돕는 로컬 도구다. 현재 한정 실행 환경은 **Windows/NTFS + Unity의 작은 Git·Plastic 프로젝트 또는 VCS 없는 폴더**다. 최초 전체 복제·읽기 hydration 없이 불변 기준과 작업별 범위 변경분을 사용하며, 원본은 작업 중 계속 수정할 수 있다. 명시적으로 승인한 Library 또는 VCS 없는 프로젝트의 관리형 mount는 같은 NTFS 볼륨에서 데이터를 복사 없이 이동하고 기존 경로를 유지한 뒤 최종 복원한다.
 
-제품 요구는 **외부 VCS가 있건 없건 Splinter 자체가 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리하는 것**이다. VCS별 처리는 Splinter 작업공간의 격리·효율·원본/peer 보호를 위한 호환 책임이다. 현재 CLI는 `--source git|none|plastic`을 선택하고 일반 폴더의 파일 기준·독립 payload 보존·회수/폐기를 제공한다. 작은 Windows x64 NTFS/Unity A/B의 한 묶음을 실행했으며 [현재 계약](docs/vcs-independent-workspaces.md)과 [후보·한정 검증 상태](docs/verification/vcs-independent-workspaces.md)를 구분한다. [일반 폴더의 안전한 원본 반영](docs/plain-folder-original-apply.md)을 명시적 계획/intent와 Windows 파일 게시로 연결했으며, [현재 검증](docs/verification/plain-folder-original-apply.md)의 작은 Editor 없는 실제 제품 A/B를 scoped-complete-with-limitations로 마감했다. Plastic 사용 환경은 [관리 정보/등록 격리와 독립 파일 결과](docs/plastic-compatibility.md)를 연결하고 [별도 T: A/B 검증](docs/verification/plastic-compatibility.md#별도-t-입력의-회수-자격)의 마지막 snapshot 회수까지 한정 마감했다. 선행 C: 보류는 [승인된 후속 회수](docs/verification/vss-and-mcp-remediation.md)에서 종결했고 당시 근거는 보존한다. 외부 도구 발견 제한은 유지한다.
+제품 요구는 **외부 VCS가 있건 없건 Splinter 자체가 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리하는 것**이다. VCS별 처리는 작업공간의 격리·효율·원본/peer 보호를 위한 호환 책임이다. 현재 CLI는 `--source git|none|plastic`을 선택한다. 일반 폴더의 기준·결과·회수는 [현재 계약](docs/vcs-independent-workspaces.md), Plastic의 관리 정보/등록 보호는 [호환 계약](docs/plastic-compatibility.md)을 따른다.
 
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 
-[Unity CLI의 정확한 A/B 인계](docs/verification/unity-cli-handoff.md)는 작은 T: Plastic 입력에서 편집·loaded 결과·A 정상 종료 뒤 B 후속 작업·두 독립 결과/회수까지 한정 확인했다. 설치된 CLI의 worker 목록 누락과 첫 eval 타임아웃은 유지하며, [반환 경로와 실제 대상/PID를 확인하는 절차](docs/alpha-workspaces.md#unity-cli의-정확한-대상-선택)를 사용한다. MCP·다른 입력/버전·Play/Test/build의 자격으로 확대하지 않는다.
+외부 Unity 도구는 [반환 경로와 실제 대상/PID를 확인하는 절차](docs/alpha-workspaces.md#unity-cli의-정확한-대상-선택)를 사용한다. CLI 목록에 worker가 없다는 이유만으로 Editor 부재를 판정하지 않는다. 도구별 실행 자격과 제한은 [검증 안내](docs/verification/README.md)에서 확인한다.
 
-등록된 작은 Windows x64 NTFS/Git/Unity 환경의 **첫 한정 실사용 버전 M0를 마감했다**. 제공물은 기존 개발 CLI·소스 스킬과 [AI 시작 안내](docs/agent-start.md)이며, [납품 판정](docs/verification/m0-delivery.md)은 scoped-complete-with-limitations다. [대표 A/B](docs/verification/representative-agent-workflow.md)의 오류/수정·같은 작업 재개·보존/통합/회수·실패 작업 폐기와 비용, 현재 복구 계약의 회귀를 확인했다. 폐기에는 해당 계약을 지원하는 제한 서비스가 필요하다. 후속 책임은 [축소한 구현 계획](docs/plans/implementation-plan.md#프로그램과-에이전트의-책임)에서 프로그램 구현·AI 사용 절차·필요 시 지원 검증으로 구분한다.
+제공물은 저장소 checkout에서 실행하는 기본 CLI·소스 스킬과 [AI 시작 안내](docs/agent-start.md)다. 후속 책임은 [구현 계획](docs/plans/implementation-plan.md#프로그램과-에이전트의-책임)에서 프로그램 구현·AI 사용 절차·필요 시 지원 검증으로 구분한다.
 
 Splinter는 작업공간과 소유 Editor의 수명·범위 저장·독립 결과·안전한 반영/회수/폐기를 담당한다. 설치 연결·대화 인계·도구/모드 선택·충돌 해결·게임 검증은 AI와 기존 Git·MCP·Unity CLI가 수행한다. 전용 installer·Codex 자동 binding·큐/자동 모드·일반 임대 인수·원본 Editor 공유·범용 Unity 작업 API·AI Runner/DAG·상주 DB는 구현 범위에서 제외한다. 현재 외부 도구 인계는 [도구 선택·연결과 peer 보호의 한정 범위](docs/plans/session-workflow-and-installation.md#외부-도구-인계의-한정-범위)를 먼저 확인해야 한다.
 
@@ -28,7 +28,7 @@ Splinter는 작업공간과 소유 Editor의 수명·범위 저장·독립 결�
 - `checkpoint`는 현재 소스를 독립 결과로 보존한다. 컴파일·Play·테스트·빌드·캡처와 합격 판단은 AI가 MCP·Unity CLI 등으로 수행하며 Splinter는 그 성공을 판정하지 않는다.
 - 선택적 ReFS/baseline·diagnostic checkout·후보/공통 Library view·spike/probe는 [개발용 CLI](docs/development-cli.md)의 별도 경로다. 기본 CLI의 명령 발견·작업 생성에서 제외한다. view는 저장소 수명과 회수 의존성만 관리한다.
 
-현재 지원은 작은 fixture의 내부 알파 범위다. 기존 M0·WF/LB 실행 기록은 당시 후보의 근거이며, 이번 컴파일 기능 제거·개발 CLI 분리 후보의 native 실행 통과로 승계하지 않는다. 등록한 프로젝트/home에서 제한 서비스와 일반 권한 Unity A/B/A·Library 재사용/정리·재연결·독립 결과/회수 및 추가 UAC 관측 0을 확인했다. 일반 파일/에셋 I/O·OS 장애·ARM·대형 용량의 미자격은 유지하고 실제 사용할 입력/환경에서 필요한 경계만 선택한다. 전용 제품 설치·대화 자동 연결은 현재 제공하지 않으며 구현 제외 항목을 미완성 개발 목록으로 세지 않는다. 실제 discard 자격은 [폐기 검증](docs/verification/workspace-discard.md), 현재 계약은 [기반 구조](docs/foundation.md), 지원 경계는 [검증 안내](docs/verification/README.md)를 따른다.
+현재 지원은 작은 fixture의 내부 알파 범위다. 과거 실행 기록은 지정한 후보·입력의 근거이며 변경된 계약의 native 실행 통과로 자동 승계하지 않는다. 대형·ARM·OS 장애 등 미실행 범위와 도구별 제한은 [검증 안내](docs/verification/README.md)를 따른다. 전용 제품 설치·대화 자동 연결은 제공하지 않는다. 실제 discard 자격은 [폐기 검증](docs/verification/workspace-discard.md), 현재 계약은 [기반 구조](docs/foundation.md)에서 확인한다.
 
 ## 실행
 
@@ -51,6 +51,7 @@ CLI는 stdout에 JSON 응답 하나를 반환한다. VSS 작업은 [제한 권�
 ## 문서
 
 - [문서 지도](docs/README.md): 현재 기능별 계약과 사용법.
+- [용어집](docs/glossary.md): 기준본·변경분·seal·intent와 보존/반영/회수/폐기의 차이.
 - [제품 요구사항](plan.html): 제품이 달성해야 할 목표.
 - [구현 계획](docs/plans/implementation-plan.md): 프로그램/에이전트 책임과 축소한 후속 작업·종료 기준.
 - [저장공간 우선 설계](docs/plans/storage-priority-and-editor-modes.md): 용량·준비·재개 비용과 Editor 실행 방식의 판단 기준.
