@@ -3,8 +3,11 @@ using Splinter.Core;
 namespace Splinter.Runtime;
 
 public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Source, ApplicationState? Application,
-    string ControlPath, string NextCommand)
+    string ControlPath, string Command)
 {
+    public string NextCommand => Command == "workspace.list" ? "workspace list" :
+        Command == "workspace.ensure" && Workspace.Purpose == "baseline" ? "workspace ensure --storage refs-cow --baseline " + Workspace.Id :
+        Command.Replace('.', ' ') + " --id " + Workspace.Id;
     public SnapshotRecoveryDecision? Recovery => WorkspaceStorage.HasRangeJournal(Workspace.StorageMode) ? SnapshotRecoveryDecision.For(Workspace) : null;
     public string SourceVerification => Source is null ? "not-checked" : "verified";
     public OriginalApplyPlan? OriginalApplyPlan { get; init; }
@@ -73,7 +76,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         else if (record.GeneratedDirectoryId != generatedDirectoryId || record.SourceKind != sourceKind || record.ApplicationKind != applicationKind || record.BaseReference != baseReference || record.StorageMode != storageMode || record.BaselineId != baselineId || record.Purpose != purpose ||
             WorkspaceStorage.HasRangeJournal(storageMode) && record.Snapshot?.MaxJournalBytes != maxJournalBytes)
             throw new WorkspaceException("RequestKeyConflict", "This key already belongs to another request. Reuse its original parameters or choose a new task key.");
-        if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(id), "workspace list");
+        if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(id), "workspace.list");
         RequireNotDiscarding(record);
         record.OriginalApply?.RequireReclaimable(record);
         try
@@ -107,8 +110,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                     [new("workspace.status", new { id, home = store.Root, auditSource = true })]);
             if (ex is WorkspaceException { Code: "SnapshotPrivilegeRequired", RecoveryActions: not null } failure)
                 throw new WorkspaceException(failure.Code, failure.Message, failure.Details,
-                    [.. failure.RecoveryActions, new("workspace.ensure", new { project, key = requestKey, baseReference, storage = storageMode,
-                        source = sourceKind, application = applicationKind, baseline = baselineId, maxJournalBytes = record.Snapshot?.MaxJournalBytes, editor, home = store.Root })]);
+                    [.. failure.RecoveryActions, WorkspaceActions.Ensure(record, store.Root, editor)]);
             throw;
         }
     }
@@ -256,7 +258,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         var record = store.Get(id);
         RequireNotDiscarding(record);
         record.OriginalApply?.RequireReclaimable(record);
-        if (record.Phase == "released") return new(record, null, null, store.ControlPath(id), "workspace list");
+        if (record.Phase == "released") return new(record, null, null, store.ControlPath(id), "workspace.list");
         if (WorkspaceStorage.HasRangeJournal(record.StorageMode)) return await ReleaseSnapshotWorkspaceAsync(record, ct);
         // Git can unregister a worktree before failing to delete every file.
         // Let the source adapter validate and resume that partial removal.
@@ -284,14 +286,14 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             record.Phase = "released";
             record.LastError = null;
             store.Save(record, "released");
-            return new(record, null, null, store.ControlPath(id), "workspace list");
+            return new(record, null, null, store.ControlPath(id), "workspace.list");
         }
         catch (Exception ex) { RecordFailure(record, ex); throw; }
     }
 
     private async Task<WorkspaceView> ViewAsync(WorkspaceRecord record, CancellationToken ct, bool verifySource = true)
     {
-        if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(record.Id), "workspace list");
+        if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(record.Id), "workspace.list");
         if (record.Discard is not null)
         {
             record.Snapshot!.Observation = await Snapshots.ObserveAsync(record, store.ControlPath(record.Id), ct);
@@ -307,10 +309,10 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             {
                 var unavailableApp = await applications.ObserveAsync(record, store.ControlPath(record.Id), ct);
                 return new(record, null, unavailableApp, store.ControlPath(record.Id), state.Step.StartsWith("release-", StringComparison.Ordinal)
-                    ? "workspace release" : state.Step.StartsWith("compact-", StringComparison.Ordinal) ? "workspace compact" : "workspace ensure");
+                    ? "workspace.release" : state.Step.StartsWith("compact-", StringComparison.Ordinal) ? "workspace.compact" : "workspace.ensure");
             }
         }
-        if (record.BaseRevision is null) return new(record, null, null, store.ControlPath(record.Id), "workspace ensure");
+        if (record.BaseRevision is null) return new(record, null, null, store.ControlPath(record.Id), "workspace.ensure");
         var app = await applications.ObserveAsync(record, store.ControlPath(record.Id), ct);
         // Ordinary polls observe resources without reading project assets.
         var source = verifySource ? await sources.InspectAsync(record, ct) : null;
@@ -318,10 +320,10 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         if (app.Lease is not null && app.Lease != record.Application) { record.Application = app.Lease; changed = true; }
         if (record.Phase == "editor-starting" && app.Ready) { record.Phase = "active"; changed = true; }
         if (changed) store.Save(record, "observed");
-        string next = record.Purpose == "baseline" && !app.Running ? "baseline seal" :
-            record.IntegratedRevision is not null ? "workspace release" : record.ResultRevision is not null ? record.SourceKind is "none" or "plastic" ? "workspace release" : "workspace integrate" :
-            app.Running && !app.Ready ? "workspace status" : "workspace checkpoint";
-        return new(record, source, app, store.ControlPath(record.Id), next + " --id " + record.Id);
+        string next = record.Purpose == "baseline" && !app.Running ? "baseline.seal" :
+            record.IntegratedRevision is not null ? "workspace.release" : record.ResultRevision is not null ? record.SourceKind is "none" or "plastic" ? "workspace.release" : "workspace.integrate" :
+            app.Running && !app.Ready ? "workspace.status" : "workspace.checkpoint";
+        return new(record, source, app, store.ControlPath(record.Id), next);
     }
 
     private void RecordFailure(WorkspaceRecord record, Exception ex)

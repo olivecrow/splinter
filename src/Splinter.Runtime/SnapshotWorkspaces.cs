@@ -196,7 +196,7 @@ public sealed partial class WorkspaceCoordinator
                     state.Reclamation = reclamation;
                     w.Phase = "reclaim-pending"; w.LastError = null;
                     store.Save(w, "snapshot-reclamation-deferred");
-                    return new(w, null, null, control, "workspace release");
+                    return new(w, null, null, control, "workspace.release");
                 }
                 if (state.Observation is not { SnapshotAvailable: false, DeltaPresent: false, Mounted: false, ProviderAlive: false,
                     OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
@@ -209,7 +209,7 @@ public sealed partial class WorkspaceCoordinator
                 state.Reclamation = reclamation;
                 SnapshotStep(w, "released");
             }
-            return new(w, null, null, control, "workspace list");
+            return new(w, null, null, control, "workspace.list");
         }
         catch (Exception ex)
         {

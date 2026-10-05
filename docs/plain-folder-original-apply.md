@@ -12,6 +12,8 @@ pwsh ./scripts/splinter.ps1 workspace integrate --id <id> --target original --in
 
 `--plan`은 원본·workspace 상태를 쓰지 않는다. 짧은 작업/원본 잠금 아래 현재 checkpoint·독립 payload·현재 원본을 읽고 `data.originalApplyPlan`에 owner/request digest, basis/result, 고정 대상의 물리 identity, 변경 경로, 내용/유형/속성 guard와 충돌을 반환한다. 변경 경로 밖의 원본 수정·새 파일은 유지하며 폴더 전체의 clean 상태를 요구하지 않는다. 계획의 성공 응답은 반영 성공이 아니다.
 
+선택 경로의 포함 여부는 각 manifest 경로의 조상을 선택 집합에서 조회한다. 원본의 보존/외부 자식은 조상 집합을 한 번 구성해 삭제 디렉터리의 guard에 사용한다. 선택마다 manifest 전체를 다시 검색하거나 삭제 디렉터리마다 원본 전체를 반복 순회하지 않는다. 경계가 다른 형제·중첩 선택·누락 선택의 거부와 Unity companion·변경 순서·계획 digest 의미는 유지한다. `nextActions`의 원본 반영 계획/재개 인자는 고정 `target=original`과 `paths`, 재개 시 같은 intent/digest를 포함한다.
+
 실행은 명시적 `original`·intent key·정확한 검토 digest를 요구한다. 계획 이후 원본이 바뀌면 새 intent 게시 전에 `OriginalApplyPlanChanged`로 거부한다. 시작 전 충돌/미지원은 원본에 쓰지 않는다. 작업공간이 checkpoint 뒤 바뀌면 `ResultNotReady`다. Git의 기존 branch 대상과 기본 `development`는 유지하며 plain-folder 옵션을 Git에 적용하지 않는다.
 
 수정·생성·삭제할 일반 파일과 필요한 디렉터리 생성/빈 디렉터리 삭제를 경로별로 처리한다. 기준과 결과가 같은 경로는 건드리지 않는다. 원본이 기준과 같으면 반영 후보, 결과와 같으면 추가 쓰기 없이 확인, 서로 다른 변경이면 충돌이다. 경로 rename은 삭제/생성으로 비교한다. case-only rename·유형 교체·지원하지 않는 속성 변경·read-only·reparse·hard link·compressed/encrypted/sparse·대체 데이터 스트림은 보존하고 거부한다. 원본 삭제 디렉터리의 무관한 자식은 제거하지 않는다.

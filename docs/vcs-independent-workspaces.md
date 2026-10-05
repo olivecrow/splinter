@@ -28,6 +28,8 @@ pwsh ./scripts/splinter.ps1 workspace ensure --project <등록된 일반 폴더>
 
 모든 파일·hash·owner를 확인하고 전후 `stable-journal-v1` seal이 같을 때만 독립 결과를 게시한다. 결과 확인에는 원본/작업 mount/VSS를 사용하지 않는다. 같은 collection의 응답 유실은 이미 게시한 내용과 고정 임시 파일을 확인해 재개하며, 다른 intent·부분/손상 파일은 보존 후 거부한다. 결과를 자동 덮어쓰거나 sweep하지 않는다. checkpoint는 컴파일/테스트 합격 증거를 만들지 않는다.
 
+payload 보존의 각 단계는 고유 hash 객체만 처리한다. 독립 결과를 검사하는 한 호출 안에서는 기준/결과 manifest의 객체 집합을 합쳐 동일 객체를 한 번 hash한다. 동일 hash의 선언 길이가 다르면 객체 읽기 전에 거부한다. 게시 전·게시 후 및 이후 회수/서비스 검사는 각각 다시 검증하며 이전 성공을 신뢰하는 지속 cache를 두지 않는다. manifest의 모든 경로/메타데이터·identity/owner·collection 검사는 유지한다. [최적화 회귀](verification/code-quality-optimization.md)는 공유 객체의 읽기 수와 이후 손상 거부를 구분한다.
+
 ## 반영·회수·폐기
 
 VCS 없는 `workspace integrate --target original --plan`은 정확한 checkpoint·기준/결과/현재 원본을 비교하는 읽기 전용 계획이다. `application=none`에서만 명시적 intent key와 검토 digest로 조건부 원본 반영을 실행한다. 전체 계약·중단/회수 guard·메타데이터와 실제 자격 제한은 [원본 반영](plain-folder-original-apply.md)을 따른다. Unity application·branch 대상·intent 없는 실행은 부작용 전에 거부한다.

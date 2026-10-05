@@ -41,8 +41,11 @@ public sealed partial class JournalDeltaStore
             if (!readOnly || restoreReadSeal != seal || journal.Length != seal.JournalBytes || sequence != seal.DurableSequence)
                 throw new WorkspaceException("RestoreSealMismatch", "Retain a changed restoration journal.");
             var node = nodes[id]; int copied = 0;
-            foreach (var extent in node.Extents)
+            var (first, probes) = FindExtent(node.Extents, offset);
+            rangeReadCalls++; rangeReadSearchProbes += probes;
+            for (int i = first; i < node.Extents.Count; i++)
             {
+                var extent = node.Extents[i]; rangeReadVisitedExtents++;
                 if (extent.Start > offset + copied) break;
                 long end = Math.Min(extent.Start + extent.Length, offset + destination.Length);
                 long start = Math.Max(extent.Start, offset + copied);

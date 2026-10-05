@@ -23,7 +23,7 @@ public sealed partial class WorkspaceCoordinator
             var candidate = store.GetBaseline(record.Id);
             if (candidate.CompatibilityKey != compatibility) continue;
             if (candidate.BaseRevision == revision)
-                return new(record, null, null, store.ControlPath(record.Id), "workspace ensure --storage refs-cow --baseline " + record.Id);
+                return new(record, null, null, store.ControlPath(record.Id), "workspace.ensure");
             if (seed is null && await sources.SnapshotKeyAsync(project, candidate.BaseRevision, applications.CacheInputs, ct) == signature) seed = candidate;
         }
         int generation = records.Count(w => w.Purpose == "baseline" && w.RequestKey.StartsWith(key + "-", StringComparison.Ordinal)
@@ -35,7 +35,7 @@ public sealed partial class WorkspaceCoordinator
         if (view.Workspace.Phase == "released")
         {
             store.GetBaseline(view.Workspace.Id);
-            return view with { NextCommand = "workspace ensure --storage refs-cow --baseline " + view.Workspace.Id };
+            return view with { Command = "workspace.ensure" };
         }
         return view;
     }

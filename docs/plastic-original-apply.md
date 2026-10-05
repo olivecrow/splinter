@@ -10,6 +10,8 @@ pwsh scripts/splinter.ps1 workspace integrate --id <id> --target original --inte
 
 `--path`는 반복할 수 있는 정확한 상대 파일/디렉터리 경로다. 생략하면 전체 변경이다. 필요한 새 부모와 Unity Assets의 파일·폴더 `.meta`를 함께 계획하며 변하지 않은 companion도 원본 GUID 보호를 위해 확인한다. managed 경로·VCS 관리 정보·패턴·중복·누락 선택은 거부한다. 계획의 `selectedPaths`, `sourceIdentity`, 변경/충돌과 digest를 검토한다. 경로 순서는 정규화한다.
 
+계획의 경로/삭제 guard 검색은 [공통 원본 반영](plain-folder-original-apply.md)의 조상 집합을 사용한다. CLI `nextActions`에도 `target=original`·선택 `paths`를 유지하고 미완료 반영의 재개에는 정확한 intent/digest를 포함한다. 선택 계획에서 재개 인자를 생략해 전체 범위로 바꾸지 않는다.
+
 기준/결과/현재 원본의 내용과 관련 속성을 비교한다. 기준 또는 이미 같은 결과만 허용하며 제3의 변경·경로 대소문자 변경·특수 메타데이터·외부 자식이 남는 삭제는 거부한다. 선택하지 않은 변경은 독립 결과에 남고 원본에 게시하지 않는다. 결과가 고정된 뒤의 추가 편집은 새 작업으로 처리한다.
 
 Plastic revision은 NTFS indexing 속성을 기록하지 않는다. 기존 원본의 `NotContentIndexed` 비트만 게시 버전에 보존하며 파일 내용·다른 속성·identity와 게시 직전 조건을 계속 검증한다. 일반 폴더 기준의 속성 비교는 변경하지 않는다.

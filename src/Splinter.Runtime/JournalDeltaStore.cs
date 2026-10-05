@@ -189,15 +189,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             // Only uncovered intervals touch the immutable base. Data already in
             // the delta does not cause a hidden full-file baseline read.
             long cursor = offset, end = offset + count;
-            int low = 0, high = node.Extents.Count;
-            while (low < high)
-            {
-                int middle = low + (high - low) / 2;
-                rangeReadSearchProbes++;
-                var extent = node.Extents[middle];
-                if (extent.Start + extent.Length <= offset) low = middle + 1;
-                else high = middle;
-            }
+            var (low, probes) = FindExtent(node.Extents, offset);
+            rangeReadSearchProbes += probes;
             for (int i = low; i < node.Extents.Count; i++)
             {
                 var extent = node.Extents[i]; rangeReadVisitedExtents++;
@@ -238,14 +231,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         long end = offset + data.Length;
         if (end > node.Entry.Length) return;
         var extents = node.Extents;
-        int low = 0, high = extents.Count;
-        while (low < high)
-        {
-            int middle = low + (high - low) / 2;
-            if (extents[middle].Start + extents[middle].Length <= offset) low = middle + 1;
-            else high = middle;
-        }
-        int first = low;
+        int first = FindExtent(extents, offset).Index;
         // Establish complete private coverage before reading any bytes. Holes,
         // base ranges and extensions always keep the ordinary write path.
         long cursor = offset;
@@ -254,7 +240,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             if (i == extents.Count || extents[i].Start > cursor) return;
             cursor = Math.Min(end, extents[i].Start + extents[i].Length);
         }
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Min(65536, data.Length));
+        byte[]? buffer = null;
         try
         {
             int firstDifference = data.Length, lastDifference = -1;
@@ -262,20 +248,34 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             for (int i = first; cursor < end; i++)
             {
                 var extent = extents[i]; long until = Math.Min(end, extent.Start + extent.Length);
+                if (extent.Payload.Encoded)
+                {
+                    long from = cursor;
+                    VisitExtent(extent, (at, bytes, incoming) =>
+                    {
+                        long start = Math.Max(from, extent.Start + at), stop = Math.Min(until, extent.Start + at + bytes.Length);
+                        if (stop <= start) return;
+                        int index = (int)(start - offset), length = (int)(stop - start);
+                        var difference = Differences(bytes.Slice((int)(start - extent.Start - at), length), incoming.Slice(index, length));
+                        if (difference.Last < 0) return;
+                        firstDifference = Math.Min(firstDifference, index + difference.First);
+                        lastDifference = index + difference.Last;
+                    }, data);
+                    cursor = until; continue;
+                }
                 while (cursor < until)
                 {
+                    buffer ??= ArrayPool<byte>.Shared.Rent(Math.Min(65536, data.Length));
                     int count = (int)Math.Min(65536, until - cursor);
                     var comparison = buffer.AsSpan(0, count);
                     ReadExtent(extent, (int)(cursor - extent.Start), comparison);
                     int at = (int)(cursor - offset);
                     var incoming = data.Slice(at, count);
-                    if (!comparison.SequenceEqual(incoming))
+                    var difference = Differences(comparison, incoming);
+                    if (difference.Last >= 0)
                     {
-                        int firstByte = 0, last = count - 1;
-                        while (comparison[firstByte] == incoming[firstByte]) firstByte++;
-                        while (comparison[last] == incoming[last]) last--;
-                        firstDifference = Math.Min(firstDifference, at + firstByte);
-                        lastDifference = at + last;
+                        firstDifference = Math.Min(firstDifference, at + difference.First);
+                        lastDifference = at + difference.Last;
                     }
                     cursor += count;
                 }
@@ -289,7 +289,15 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 firstChanged = firstDifference; changedLength = lastDifference - firstDifference + 1;
             }
         }
-        finally { ArrayPool<byte>.Shared.Return(buffer); }
+        finally { if (buffer is not null) ArrayPool<byte>.Shared.Return(buffer); }
+    }
+    private static (int First, int Last) Differences(ReadOnlySpan<byte> previous, ReadOnlySpan<byte> incoming)
+    {
+        if (previous.SequenceEqual(incoming)) return (0, -1);
+        int first = 0, last = previous.Length - 1;
+        while (previous[first] == incoming[first]) first++;
+        while (previous[last] == incoming[last]) last--;
+        return (first, last);
     }
 
     public void SetLength(Guid id, long length)
@@ -480,6 +488,28 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         string parent = Parent(path);
         var entries = children[parent]; entries.Remove(id);
         if (entries.Count == 0) children.Remove(parent);
+    }
+    private List<Node> IndexedSubtree(Node root)
+    {
+        var result = new List<Node> { root };
+        if (!root.Entry.Directory) return result;
+        // Replay may index a modified descendant without its unmodified parents.
+        // The direct-child listing index therefore cannot enumerate this subtree.
+        string prefix = root.Entry.Path + "/";
+        foreach (var (path, id) in paths)
+            if (path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) result.Add(nodes[id]);
+        return result;
+    }
+    private static (int Index, int Probes) FindExtent(IReadOnlyList<Extent> extents, long offset)
+    {
+        int low = 0, high = extents.Count, probes = 0;
+        while (low < high)
+        {
+            int middle = low + (high - low) / 2; probes++;
+            if (extents[middle].Start + extents[middle].Length <= offset) low = middle + 1;
+            else high = middle;
+        }
+        return (low, probes);
     }
     public static string Normalize(string path)
     {
@@ -736,22 +766,22 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 RemovePath(node.Entry.Path); hidden.Add(node.Entry.Path); break;
             case "rename":
                 string old = node.Entry.Path, destination = mutation.Destination!;
-                // Reuse the same boundary prefix across both scans; allocating it
-                // per path makes replay cost grow with every indexed path/rename.
-                string childPrefix = old + "/";
                 if (paths.TryGetValue(destination, out var replaced) && replaced != node.Entry.Id)
                 { nodes[replaced].Entry = nodes[replaced].Entry with { Deleted = true }; RemovePath(destination); }
-                var affected = paths.Keys.Where(p => p.Equals(old, StringComparison.OrdinalIgnoreCase) || p.StartsWith(childPrefix, StringComparison.OrdinalIgnoreCase)).ToArray();
-                foreach (string path in affected)
+                var affected = IndexedSubtree(node);
+                // Remove all old names before indexing new names, including case-only moves.
+                foreach (var moved in affected) RemovePath(moved.Entry.Path);
+                foreach (var moved in affected)
                 {
-                    var moved = nodes[paths[path]]; RemovePath(path);
-                    moved.Entry = moved.Entry with { Path = destination + path[old.Length..] };
+                    moved.Entry = moved.Entry with { Path = destination + moved.Entry.Path[old.Length..] };
                     IndexPath(moved.Entry.Path, moved.Entry.Id);
                 }
-                // A replayed rename may introduce a node not previously looked up.
-                node.Entry = node.Entry with { Path = destination }; IndexPath(destination, node.Entry.Id);
-                foreach (string path in hidden.Where(p => p.StartsWith(childPrefix, StringComparison.OrdinalIgnoreCase)).ToArray())
-                { hidden.Remove(path); hidden.Add(destination + path[old.Length..]); }
+                if (node.Entry.Directory)
+                {
+                    string childPrefix = old + "/";
+                    foreach (string path in hidden.Where(p => p.StartsWith(childPrefix, StringComparison.OrdinalIgnoreCase)).ToArray())
+                    { hidden.Remove(path); hidden.Add(destination + path[old.Length..]); }
+                }
                 hidden.Add(old); break;
             default: throw new WorkspaceException("DeltaCorrupt", "Unknown journal operation.");
         }

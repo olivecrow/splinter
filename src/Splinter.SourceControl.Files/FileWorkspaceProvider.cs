@@ -117,7 +117,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         else PreservePayloads(control, baseline, ImmutableRoot(w), ct);
         PreservePayloads(control, result, w.Path, ct, w.Path);
         // Verify that every payload exists before publishing an independent result.
-        VerifyPayloads(control, baseline, ct); VerifyPayloads(control, result, ct);
+        VerifyPayloads(control, baseline.Entries.Concat(result.Entries), ct);
         SaveFixed(FilePath(control, "result.json"), result);
         VerifyIndependentResult(w, control);
         var payloads = baseline.Entries.Concat(result.Entries).Where(e => e.Kind == "file").DistinctBy(e => e.Hash).ToArray();
@@ -145,7 +145,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         if (baseline.Identity != w.BaseRevision || result.Identity != w.ResultRevision ||
             intent != new FileCollectionIntent(w.Id, w.RequestDigest!, baseline.Identity, result.Identity))
             throw Error("The preserved basis/result collection differs from the durable task.");
-        VerifyPayloads(control, baseline, default, open); VerifyPayloads(control, result, default, open);
+        VerifyPayloads(control, baseline.Entries.Concat(result.Entries), default, open);
     }
     public Task UnregisterAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
@@ -265,7 +265,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     }
     private static void PreservePayloads(string control, FileSourceManifest manifest, string root, CancellationToken ct, string? mount = null)
     {
-        foreach (var entry in manifest.Entries.Where(e => e.Kind == "file"))
+        foreach (var entry in UniquePayloads(manifest.Entries))
         {
             ct.ThrowIfCancellationRequested();
             string objectPath = FilePath(control, "objects/" + entry.Hash);
@@ -296,8 +296,21 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { throw new WorkspaceException("FileResultIncomplete", "The independent payload cannot be read; preserve it: " + path); }
     }
-    private static void VerifyPayloads(string control, FileSourceManifest manifest, CancellationToken ct, Func<string, Stream>? open = null)
-    { foreach (var entry in manifest.Entries.Where(e => e.Kind == "file")) VerifyObject(FilePath(control, "objects/" + entry.Hash), entry, ct, open); }
+    private static IEnumerable<FileSourceEntry> UniquePayloads(IEnumerable<FileSourceEntry> entries)
+    {
+        var objects = new Dictionary<string, FileSourceEntry>(StringComparer.Ordinal);
+        foreach (var entry in entries.Where(e => e.Kind == "file"))
+        {
+            if (objects.TryGetValue(entry.Hash!, out var prior))
+            {
+                if (prior.Length != entry.Length) throw Error("One content object cannot have different declared lengths.");
+            }
+            else objects.Add(entry.Hash!, entry);
+        }
+        return objects.Values;
+    }
+    private static void VerifyPayloads(string control, IEnumerable<FileSourceEntry> entries, CancellationToken ct, Func<string, Stream>? open = null)
+    { foreach (var entry in UniquePayloads(entries)) VerifyObject(FilePath(control, "objects/" + entry.Hash), entry, ct, open); }
     private static Stream Open(string path)
     { WorkspaceStore.EnsurePlainPath(path); return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 65536); }
     private static Stream Open(string path, string? mount)

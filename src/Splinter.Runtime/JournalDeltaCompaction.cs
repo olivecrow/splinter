@@ -220,19 +220,7 @@ public sealed partial class JournalDeltaStore
             foreach (var extent in node.Extents)
             {
                 Add(new { extent.Start, extent.Length });
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(65536);
-                try
-                {
-                    int offset = 0, remaining = extent.Length;
-                    while (remaining > 0)
-                    {
-                        int count = Math.Min(buffer.Length, remaining);
-                        ReadExtent(extent, offset, buffer.AsSpan(0, count));
-                        digest.AppendData(buffer.AsSpan(0, count));
-                        offset += count; remaining -= count;
-                    }
-                }
-                finally { ArrayPool<byte>.Shared.Return(buffer); }
+                VisitExtent(extent, (_, bytes, _) => digest.AppendData(bytes));
             }
         }
         foreach (string path in hidden.Order(StringComparer.OrdinalIgnoreCase))
@@ -399,12 +387,7 @@ public sealed partial class JournalDeltaStore
         byte[]? compressed;
         try
         {
-            int at = 0;
-            foreach (var slice in slices)
-            {
-                ReadPayload(slice.Physical, slice.Payload, slice.BlockOffset, decoded.AsSpan(at, slice.Length));
-                at += slice.Length;
-            }
+            VisitSlices(slices, (at, bytes, _) => bytes.CopyTo(decoded.AsSpan(at)));
             compressed = EncodePayload(decoded.AsSpan(0, liveBytes));
         }
         finally { ArrayPool<byte>.Shared.Return(decoded); }
@@ -415,6 +398,42 @@ public sealed partial class JournalDeltaStore
 
     private static long FrameBytes(CompactionFrame frame) => FrameHeaderBytes + (long)FrameChecksumBytes + frame.Metadata.Length + frame.Payload.StoredBytes;
 
+    private void VisitSlices(IReadOnlyList<PayloadSlice> slices, BrotliWorkspacePayloadCodec.DecodedChunkVisitor visit)
+    {
+        if (slices[0].Payload.Encoded)
+        {
+            int first = 0, outputOffset = 0;
+            VisitPayload(slices[0].Physical, slices[0].Payload, (at, bytes, _) =>
+            {
+                while (first < slices.Count)
+                {
+                    var slice = slices[first];
+                    int start = Math.Max(at, slice.BlockOffset), end = Math.Min(at + bytes.Length, slice.BlockOffset + slice.Length);
+                    if (end > start) visit(outputOffset + start - slice.BlockOffset, bytes.Slice(start - at, end - start), default);
+                    if (at + bytes.Length < slice.BlockOffset + slice.Length) break;
+                    outputOffset += slice.Length; first++;
+                }
+            });
+            return;
+        }
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(65536);
+        try
+        {
+            int outputOffset = 0;
+            foreach (var slice in slices)
+            {
+                for (int at = 0; at < slice.Length;)
+                {
+                    int count = Math.Min(buffer.Length, slice.Length - at);
+                    ReadPayload(slice.Physical, slice.Payload, slice.BlockOffset + at, buffer.AsSpan(0, count));
+                    visit(outputOffset + at, buffer.AsSpan(0, count), default); at += count;
+                }
+                outputOffset += slice.Length;
+            }
+        }
+        finally { ArrayPool<byte>.Shared.Return(buffer); }
+    }
+
     private void WriteFrame(Stream output, CompactionFrame frame)
     {
         Span<byte> header = stackalloc byte[FrameHeaderBytes];
@@ -422,12 +441,12 @@ public sealed partial class JournalDeltaStore
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         output.Write(header); output.Write(frame.Metadata);
         hash.AppendData(header); hash.AppendData(frame.Metadata);
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(65536);
-        try
+        if (frame.Encoded is { } encoded)
+        { output.Write(encoded); hash.AppendData(encoded); }
+        else if (frame.Payload.Encoded)
         {
-            if (frame.Encoded is { } encoded)
-            { output.Write(encoded); hash.AppendData(encoded); }
-            else if (frame.Payload.Encoded)
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(65536);
+            try
             {
                 // Retaining a complete frame preserves its exact encoded bytes.
                 long at = frame.Slices[0].Physical; int remaining = frame.Payload.StoredBytes;
@@ -439,19 +458,10 @@ public sealed partial class JournalDeltaStore
                     at += count; remaining -= count;
                 }
             }
-            else foreach (var slice in frame.Slices)
-            {
-                int at = slice.BlockOffset, remaining = slice.Length;
-                while (remaining > 0)
-                {
-                    int count = Math.Min(buffer.Length, remaining);
-                    ReadPayload(slice.Physical, slice.Payload, at, buffer.AsSpan(0, count));
-                    output.Write(buffer.AsSpan(0, count)); hash.AppendData(buffer.AsSpan(0, count));
-                    at += count; remaining -= count;
-                }
-            }
+            finally { ArrayPool<byte>.Shared.Return(buffer); }
         }
-        finally { ArrayPool<byte>.Shared.Return(buffer); }
+        else if (frame.Slices.Length != 0)
+            VisitSlices(frame.Slices, (_, bytes, _) => { output.Write(bytes); hash.AppendData(bytes); });
         output.Write(hash.GetHashAndReset());
     }
 }

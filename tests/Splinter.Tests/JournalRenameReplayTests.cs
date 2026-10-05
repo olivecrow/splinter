@@ -33,6 +33,26 @@ public sealed class JournalRenameReplayTests
     }
     private static byte[] Read(JournalDeltaStore store, string path)
     { byte[] value = new byte[1]; Assert.Equal(1, store.Read(store.Stat(path)!.Id, 0, value)); return value; }
+
+    [Theory]
+    [InlineData("dir", "moved")]
+    [InlineData("dir", "DIR")]
+    public void DirectoryRenameMovesReplayedDescendantsWhoseParentsHaveNoMutations(string from, string to)
+    {
+        using var d = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        tree.Files[from + "/nested/deeper/file"] = [1]; tree.Files[from + "-sibling/file"] = [2];
+        var identity = new OverlayIdentity(2, "deep-rename", tree.Snapshot, 1_000_000, 4096); Guid file;
+        using (var writer = new JournalDeltaStore(d.Path, identity, tree))
+        {
+            file = writer.Stat(from + "/nested/deeper/file")!.Id; writer.Write(file, 0, [9]);
+            writer.Rename(writer.Stat(from)!.Id, to, false);
+        }
+        using var reader = new JournalDeltaStore(d.Path, identity, tree);
+        Assert.Equal(file, reader.Stat(to + "/nested/deeper/file")!.Id);
+        Assert.Equal(new byte[] { 9 }, Read(reader, to + "/nested/deeper/file"));
+        Assert.Equal(new byte[] { 2 }, Read(reader, from + "-sibling/file"));
+        if (!from.Equals(to, StringComparison.OrdinalIgnoreCase)) Assert.Null(reader.Stat(from + "/nested/deeper/file"));
+    }
     [Theory]
     [InlineData("dir", "moved")]
     [InlineData("Dír", "Ünicode")]

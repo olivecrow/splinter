@@ -43,14 +43,7 @@ public sealed partial class FileWorkspaceProvider
         var result = ReadManifest(w, FilePath(Control(w), "result.json"));
         var before = baseline.Entries.ToDictionary(e => e.Path, StringComparer.OrdinalIgnoreCase);
         var after = result.Entries.ToDictionary(e => e.Path, StringComparer.OrdinalIgnoreCase);
-        var included = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var all = before.Keys.Union(after.Keys, StringComparer.OrdinalIgnoreCase).ToArray();
-        foreach (string path in all)
-            if (selected is null || selected.Any(s => path.Equals(s, StringComparison.OrdinalIgnoreCase) || path.StartsWith(s + "/", StringComparison.OrdinalIgnoreCase)))
-                if (!before.TryGetValue(path, out var b) || !after.TryGetValue(path, out var a) || !VersionOf(b).SameContent(VersionOf(a)) ||
-                    b.Attributes != a.Attributes || b.Path != a.Path) included.Add(path);
-        if (selected is not null && selected.Any(s => !all.Any(p => p.Equals(s, StringComparison.OrdinalIgnoreCase) || p.StartsWith(s + "/", StringComparison.OrdinalIgnoreCase))))
-            throw new WorkspaceException("OriginalApplyRequestInvalid", "A selected source path is absent from both basis and result.");
+        var included = IncludedChanges(before, after, selected);
         // Parent creation/deletion and Unity GUID metadata are part of the
         // reviewed write set. An unchanged companion is pinned as a guard.
         foreach (string path in included.ToArray())
@@ -76,6 +69,7 @@ public sealed partial class FileWorkspaceProvider
         using var sourceLease = w.SourceKind == "plastic" ? originalGuard!.Acquire(w, included.Order(StringComparer.Ordinal).ToArray(), ct) : null;
         var originalEntries = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true, mount: w.StorageMode == "project-snapshot" ? w.ProjectPath : null, omitPlasticRoot: w.SourceKind == "plastic");
         var originalNames = originalEntries.ToDictionary(e => e.Path, StringComparer.OrdinalIgnoreCase);
+        var retainedParents = RetainedParents(originalEntries, before, after, included);
         var changes = new List<OriginalApplyChange>(); var conflicts = new List<string>();
         string rootIdentity = publisher.RootIdentity(w.ProjectPath);
         foreach (string path in included.Order(StringComparer.Ordinal))
@@ -109,9 +103,7 @@ public sealed partial class FileWorkspaceProvider
             bool sameBasis = bv is null ? observed is null : bv.SameContent(observed?.Version) && bv.RelevantAttributes == observed!.Version.RelevantAttributes;
             bool sameResult = av is null ? observed is null : av.SameContent(observed?.Version) && av.RelevantAttributes == observed!.Version.RelevantAttributes;
             if (!sameBasis && !sameResult) conflicts.Add(path + ": original and result diverged");
-            if (bv?.Kind == "directory" && av is null && originalEntries.Any(e =>
-                e.Path.StartsWith(path + "/", StringComparison.OrdinalIgnoreCase) &&
-                (after.ContainsKey(e.Path) || !before.ContainsKey(e.Path) || !included.Contains(e.Path))))
+            if (bv?.Kind == "directory" && av is null && retainedParents.Contains(path))
                 conflicts.Add(path + ": directory contains retained or foreign children");
             changes.Add(new(path, bv, av, observed, sameResult));
         }
@@ -121,6 +113,35 @@ public sealed partial class FileWorkspaceProvider
         var plan = new OriginalApplyPlan(1, w.Id, w.RequestDigest!, w.BaseRevision!, w.ResultRevision!, w.ProjectPath,
             rootIdentity, ordered, conflicts.Distinct().ToArray(), "") { SourceIdentity = sourceLease?.Identity, SelectedPaths = selected };
         return Task.FromResult(plan with { Digest = plan.ComputeDigest() });
+    }
+    private static HashSet<string> IncludedChanges(Dictionary<string, FileSourceEntry> before,
+        Dictionary<string, FileSourceEntry> after, string[]? selected)
+    {
+        var selection = selected?.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var included = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string path in before.Keys.Union(after.Keys, StringComparer.OrdinalIgnoreCase))
+        {
+            bool matches = selection is null;
+            if (selection is not null)
+                for (string? ancestor = path; ancestor is not null; ancestor = Parent(ancestor))
+                    if (selection.Contains(ancestor)) { found.Add(ancestor); matches = true; }
+            if (matches && (!before.TryGetValue(path, out var b) || !after.TryGetValue(path, out var a) ||
+                !VersionOf(b).SameContent(VersionOf(a)) || b.Attributes != a.Attributes || b.Path != a.Path)) included.Add(path);
+        }
+        if (selection is not null && found.Count != selection.Count)
+            throw new WorkspaceException("OriginalApplyRequestInvalid", "A selected source path is absent from both basis and result.");
+        return included;
+    }
+    private static HashSet<string> RetainedParents(IEnumerable<FileSourceEntry> original,
+        Dictionary<string, FileSourceEntry> before, Dictionary<string, FileSourceEntry> after, HashSet<string> included)
+    {
+        var parents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in original)
+            if (after.ContainsKey(entry.Path) || !before.ContainsKey(entry.Path) || !included.Contains(entry.Path))
+                for (string? parent = Parent(entry.Path); parent is not null; parent = Parent(parent))
+                    if (!parents.Add(parent)) break; // Its ancestors were already indexed.
+        return parents;
     }
     private static string? Parent(string path) => path.LastIndexOf('/') is var slash && slash >= 0 ? path[..slash] : null;
     public async Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord w, string intentKey, string expectedPlanDigest, CancellationToken ct = default, string[]? paths = null)

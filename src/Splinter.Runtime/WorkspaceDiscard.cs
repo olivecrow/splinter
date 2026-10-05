@@ -15,7 +15,7 @@ public sealed partial class WorkspaceCoordinator
             throw new WorkspaceException("DiscardRequestConflict", "Confirm the workspace request digest before discarding this task.");
         if (w.Discard is { } prior && prior.Intent.IntentKey != request.IntentKey)
             throw new WorkspaceException("DiscardRequestConflict", "Resume the original discard intent; do not replace it.");
-        if (w.Phase == "discarded") return new(w, null, null, store.ControlPath(w.Id), "workspace list");
+        if (w.Phase == "discarded") return new(w, null, null, store.ControlPath(w.Id), "workspace.list");
         if (!WorkspaceStorage.HasRangeJournal(w.StorageMode) || w.Purpose != "task" || w.Phase == "released")
             throw new WorkspaceException("DiscardUnsupported", "Discard currently requires an attached NTFS task workspace.");
         var provider = discardProvider ?? throw new WorkspaceException("WorkspaceDiscardUnavailable", "A discard provider is not composed; preserve this task.");
@@ -94,14 +94,14 @@ public sealed partial class WorkspaceCoordinator
                 {
                     w.Phase = "discard-reclaim-pending"; w.LastError = null;
                     store.Save(w, "discard-reclamation-deferred");
-                    return new(w, null, null, control, "workspace discard");
+                    return new(w, null, null, control, "workspace.discard");
                 }
                 if (state.Observation.SnapshotAvailable != false)
                     throw new WorkspaceException("SnapshotReleaseIncomplete", "Snapshot absence remains unknown; resume the same discard intent.");
                 w.LastError = null;
                 DiscardStep(w, "complete");
             }
-            return new(w, null, null, control, "workspace list");
+            return new(w, null, null, control, "workspace.list");
         }
         catch (Exception ex) { RecordFailure(w, ex); throw; }
     }

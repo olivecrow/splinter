@@ -168,7 +168,7 @@ public sealed class ContractAndCliTests
                 Observation = new(true, false, false, true, 0, 0, 0, DeltaPresent: false),
                 Reclamation = new("snapshot", "attempt", "deferred", DateTimeOffset.UtcNow, ["older"],
                     new("volume", DateTimeOffset.UtcNow, null, null, null, "SnapshotStorageUnknown")) } };
-        var view = new WorkspaceView(workspace, null, null, store.ControlPath(id), "workspace release");
+        var view = new WorkspaceView(workspace, null, null, store.ControlPath(id), "workspace.release");
         var response = WorkspaceCommands.Result("workspace.release", view, false, d.Path);
         Assert.Equal("Accepted", response.Status); Assert.False(response.Terminal);
         Assert.Equal("requires-user-action", response.RetryDisposition);
@@ -199,7 +199,7 @@ public sealed class ContractAndCliTests
                 Reclamation = new("snapshot", "attempt", "deferred", DateTimeOffset.UtcNow, ["older"]) },
             Discard = new() { Step = "snapshot", Seal = new(1, 100, "hash"),
                 Intent = new(1, id, "discard-this-task", id, d.Path, store.WorkPath(id), "task", "basis", "source", snapshot, DateTimeOffset.UtcNow) } };
-        var view = new WorkspaceView(workspace, null, null, store.ControlPath(id), "workspace discard");
+        var view = new WorkspaceView(workspace, null, null, store.ControlPath(id), "workspace.discard");
         var response = WorkspaceCommands.Result("workspace.discard", view, false, d.Path);
         Assert.Equal("Accepted", response.Status); Assert.False(response.Terminal);
         Assert.Equal("requires-user-action", response.RetryDisposition);

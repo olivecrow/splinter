@@ -43,7 +43,7 @@ public sealed partial class FileWorkspaceProvider
     private void PreserveRecordedPayloads(WorkspaceRecord w, string control, FileSourceManifest manifest, CancellationToken ct)
     {
         var owned = RecordedTree(w, control); using var lease = owned.Lease; using var tree = owned.Tree; byte[] scratch = new byte[65536];
-        foreach (var entry in manifest.Entries.Where(e => e.Kind == "file"))
+        foreach (var entry in UniquePayloads(manifest.Entries))
         {
             ct.ThrowIfCancellationRequested(); string objectPath = FilePath(control, "objects/" + entry.Hash);
             WorkspaceStore.EnsurePlainPath(objectPath);

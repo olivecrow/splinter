@@ -98,7 +98,11 @@ provider가 끝나면 앱/자식이 남지 않았음을 확인한 후 같은 ens
 
 ## 동일한 private 범위의 반복 쓰기
 
-현재 쓰기 범위 전체가 이미 승인된 private 저널 범위에 있고 바이트가 같으면 payload를 다시 쓰지 않는다. 기존 저널을 최대 64KiB 버퍼로 비교하고 기존 `metadata` frame에 수정 시각·현재 경로·새 sequence를 기록해 개별 `Flush(true)` 뒤 응답한다. 빈 쓰기의 기존 no-op과 다르며 소스 변경 경로와 승인 쓰기 경계는 유지한다.
+일반 파일 rename은 해당 node만 이름 변경하며 전체 경로/whiteout을 검색하지 않는다. 디렉터리 rename은 경계 `/`를 포함한 접두사로 알려진 하위 경로와 whiteout을 이동한다. 재생에는 변경되지 않은 부모 node 없이 하위 파일만 존재할 수 있으므로 이 경우 직접 자식 목록 index만으로 대체하지 않는다. 모든 이전 이름을 제거한 뒤 새 이름을 등록하며 대소문자 변경·열린 파일 ID·lazy 기준 자식을 유지한다.
+
+일반 읽기와 sealed private 복원 읽기는 같은 이진 검색으로 첫 겹치는 extent를 찾고 필요한 범위만 순회한다. 기존 `ReadRangeIndex`에는 두 종류의 호출·검색 probe·방문 extent가 포함된다. 복원은 exact seal과 private coverage를 요구하며 hole을 원본 읽기로 대체하지 않는다.
+
+현재 쓰기 범위 전체가 이미 승인된 private 저널 범위에 있고 바이트가 같으면 payload를 다시 쓰지 않는다. raw 저널은 최대 64KiB 버퍼로 비교하고 encoded extent는 [전체 블록을 한 번 순회](journal-payload-compression.md)한다. 기존 `metadata` frame에 수정 시각·현재 경로·새 sequence를 기록해 개별 `Flush(true)` 뒤 응답한다. 빈 쓰기의 기존 no-op과 다르며 소스 변경 경로와 승인 쓰기 경계는 유지한다.
 
 같은 private 범위에 일부 다른 바이트가 있으면 첫 차이부터 마지막 차이까지의 연속 범위 하나를 저장한다. 앞뒤의 일치 바이트를 제외해 payload를 4KiB 이상 줄일 수 있을 때만 적용하며, 중간의 일치 바이트는 그 범위에 포함한다. 전체 요청의 길이·수정 시각·경로 sequence를 유지하고 기존 `write` frame 하나와 개별 `Flush(true)`로 승인한다. 작은 절감에는 기존 전체 요청을 저장해 불필요한 extent 분할을 피한다.
 

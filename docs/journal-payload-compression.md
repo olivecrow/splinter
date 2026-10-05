@@ -30,4 +30,6 @@ compaction/candidate는 유효 논리 fragment를 모아 현재 frame으로 표�
 
 압축 준비는 유익한 block의 최대 stored 용량(decoded−48−64B)만 scratch 하나로 대여하고 선택한 정확한 encoded 배열을 만든다. raw를 선택하면 결과 배열을 만들지 않는다. 중복 decoded+48B encoded 임시 buffer는 사용하지 않는다. codec/선택/바이트와 budget/개별 durable flush/ACK는 유지한다. read/replay의 작은/빈 요청은 16KiB chunk와 요청분 staging으로 전체 stream을 검증하며 decoded cache를 두지 않는다. 전체 요청은 전체 bounded scratch를 유지한다.
 
+내부 상태 hash와 private 비교는 encoded extent 하나를 저장 블록 읽기 한 번·16KiB 복원 chunk 순회 한 번으로 처리한다. 정리/후보의 같은 물리 블록에 속한 유효 slice는 전체 블록을 한 번 복원해 모으며 64KiB 청크나 slice마다 전체 stream을 다시 읽지 않는다. 별도 extent/검증 단계는 다시 검사하고 decoded cache를 남기지 않는다. header/checksum·완전한 stream과 tail/선언 길이 검증이 끝나기 전의 digest/비교와 미게시 후보는 임시 결과다. 실패하면 승인 쓰기나 후보 세대를 게시하지 않는다. 공개 range read는 검증 성공 뒤 destination에 복사하는 기존 staging 규칙을 유지한다. [자동 회귀](verification/code-quality-optimization.md)는 블록 읽기 수·최대 크기/fragment의 바이트와 기존 실패 미게시 규칙을 검증하며 실제 Unity 시간·전체 RAM 절감률을 주장하지 않는다.
+
 pool 임대 반환은 pool 잔류·native codec state·caller 요청/result/index를 제거한다는 뜻이 아니다. [ME 범위](plans/memory-completion.md)·[현재 메모리 근거](verification/memory-completion.md)는 lease·관리 할당/heap·소유 provider/Editor와 시스템 공유 비용을 구분한다. 선행 공간/수명주기 자격은 [JP 검증](verification/journal-payload-compression.md)·[JP 종료 범위](plans/journal-payload-compression.md)를 유지한다.

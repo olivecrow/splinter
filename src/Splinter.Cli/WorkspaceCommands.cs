@@ -264,9 +264,8 @@ internal static class WorkspaceCommands
     {
         bool deferred = command == "workspace.release" && view.Workspace.Phase == "reclaim-pending" ||
             command == "workspace.discard" && view.Workspace.Phase == "discard-reclaim-pending";
-        string nextCommand = accepted ? "workspace.status" : view.NextCommand.Split(" --", 2)[0].Replace(' ', '.');
-        if (!accepted && view.Recovery is { Disposition: not "ready" } recovery) nextCommand = recovery.NextCommand;
-        if (view.OriginalApplyPlan is not null || view.Workspace.OriginalApply is { Completed: false }) nextCommand = "workspace.integrate";
+        var next = WorkspaceActions.Next(view, home, accepted);
+        string nextCommand = next.Command;
         object data = new
         {
             workspace = Summary(view.Workspace),
@@ -284,24 +283,11 @@ internal static class WorkspaceCommands
             isolation = "private-project-and-library; shared user preferences and external services are not sandboxed"
         };
         var response = ApiResponse.Success(command, data);
-        object nextArguments = nextCommand == "workspace.integrate" && view.Workspace.SourceKind == "none"
-            ? view.Workspace.OriginalApply is { } apply
-                ? new { id = view.Workspace.Id, target = "original", apply.IntentKey, expectedPlanDigest = apply.Plan.Digest, home }
-                : (object)new { id = view.Workspace.Id, target = "original", plan = true, home }
-            : nextCommand == "workspace.ensure"
-            ? new { project = view.Workspace.ProjectPath, key = view.Workspace.RequestKey, baseReference = view.Workspace.BaseReference,
-                source = view.Workspace.SourceKind, application = view.Workspace.ApplicationKind,
-                storage = view.Workspace.StorageMode, baseline = view.Workspace.BaselineId, maxJournalBytes = view.Workspace.Snapshot?.MaxJournalBytes, home }
-            : nextCommand == "workspace.discard" && view.Workspace.Discard is { } discard
-                ? new { id = view.Workspace.Id, discard.Intent.IntentKey, expectedRequestDigest = discard.Intent.RequestDigest, home }
-                : nextCommand == "workspace.list" ? new { home } : (object)new { id = view.Workspace.Id, home };
         return response with
         {
             Status = deferred || accepted ? "Accepted" : "Succeeded", Terminal = !(deferred || accepted),
             RetryDisposition = deferred ? "requires-user-action" : "not-needed",
-            NextActions = view.Workspace.Purpose == "baseline" && view.Workspace.Phase == "released"
-                ? [new("schema", new { command = "workspace.ensure" })]
-                : [new(nextCommand, nextArguments, view.Recovery is { Disposition: "observe" or "preserve" or "deferred-reclamation" or "deferred-discard-reclamation" })]
+            NextActions = [new(next.Command, next.Arguments, next.RequiresUserAction)]
         };
     }
 
