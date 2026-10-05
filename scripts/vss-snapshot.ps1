@@ -23,6 +23,34 @@ function Save-Json([string]$Path, $Value) {
     if ([IO.File]::Exists($Path)) { [IO.File]::Replace(($Path + '.new'), $Path, [System.Management.Automation.Language.NullString]::Value) }
     else { [IO.File]::Move(($Path + '.new'), $Path) }
 }
+function Open-SnapshotReleaseLock([string]$Directory) {
+    # The name lives in the protected service ledger, not the cross-user
+    # kernel-object namespace. Installation provisions this directory.
+    $cursor = [IO.Path]::GetFullPath($Directory)
+    while ($cursor) {
+        if ((Get-Item -LiteralPath $cursor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'StorageServiceUnsafe: reparse release lock path.' }
+        $parent = [IO.Directory]::GetParent($cursor)
+        $cursor = if ($parent) { $parent.FullName } else { $null }
+    }
+    $path = Join-Path $Directory 'vss-release.lock'
+    foreach ($entry in @($Directory, $path)) {
+        if (-not (Test-Path -LiteralPath $entry)) { continue }
+        if ((Get-Item -LiteralPath $entry -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'StorageServiceUnsafe: reparse release lock.' }
+        $acl = Get-Acl -LiteralPath $entry
+        if ($acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -notin @('S-1-5-18','S-1-5-32-544')) { throw 'StorageServiceUnsafe: untrusted release lock owner.' }
+        $writes = [Security.AccessControl.FileSystemRights]::Write -bor [Security.AccessControl.FileSystemRights]::Delete -bor [Security.AccessControl.FileSystemRights]::DeleteSubdirectoriesAndFiles -bor [Security.AccessControl.FileSystemRights]::ChangePermissions -bor [Security.AccessControl.FileSystemRights]::TakeOwnership -bor 0x50000000
+        foreach ($rule in $acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])) {
+            $creatorOwner = $rule.IdentityReference.Value -eq 'S-1-3-0' -and ($rule.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly)
+            if ($rule.AccessControlType -eq 'Allow' -and ($rule.FileSystemRights -band $writes) -and $rule.IdentityReference.Value -notin @('S-1-5-18','S-1-5-32-544') -and -not $creatorOwner) { throw 'StorageServiceUnsafe: writable release lock or child.' }
+        }
+    }
+    $mode = if (Test-Path -LiteralPath $path) { [IO.FileMode]::Open } else { [IO.FileMode]::CreateNew }
+    try { return [IO.FileStream]::new($path, $mode, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None) }
+    catch [IO.IOException] {
+        if (($_.Exception.HResult -band 0xffff) -in @(32,33,80,183)) { throw 'WorkspaceBusy: another Splinter snapshot release owns the protected lock.' }
+        throw
+    }
+}
 function Read-LiveIdentity($Shadow, $Receipt) {
     if ($Receipt.snapshot.rootPath -notmatch '^\\\\\?\\GLOBALROOT\\Device\\HarddiskVolumeShadowCopy[0-9]+(?:\\(.*))?$') { throw 'SnapshotIdentityMismatch' }
     $relativePath = [string]$Matches[1]
@@ -154,11 +182,7 @@ try {
     if ($Action -eq 'Release') {
         # Serialize Splinter's inventories/deletions across homes. This cannot
         # serialize unrelated backup software; that remains a support boundary.
-        $releaseMutex = [Threading.Mutex]::new($false, 'Global\Splinter.VssSnapshotRelease.v1')
-        $releaseMutexHeld = $false
-        try { $releaseMutexHeld = $releaseMutex.WaitOne(0) }
-        catch [Threading.AbandonedMutexException] { $releaseMutexHeld = $true }
-        if (-not $releaseMutexHeld) { throw 'WorkspaceBusy: another Splinter snapshot release is in progress.' }
+        $releaseLock = Open-SnapshotReleaseLock (Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) 'SplinterStorageAuthority')
         $releaseRequestPath = Join-Path $receiptRoot 'release-request.json'
         if (Test-Path -LiteralPath ($releaseRequestPath + '.new')) { throw 'SnapshotObservationIncomplete' }
         if (-not (Test-Path -LiteralPath $releaseRequestPath)) {
@@ -225,7 +249,6 @@ try {
     Save-Json (Join-Path $receiptRoot 'operation-result.json') ([ordered]@{action=$Action; success=$false; error=$_.Exception.Message; completedAt=[DateTimeOffset]::UtcNow})
     throw
 } finally {
-    if ($releaseMutexHeld) { $releaseMutex.ReleaseMutex() }
-    if ($null -ne $releaseMutex) { $releaseMutex.Dispose() }
+    if ($null -ne $releaseLock) { $releaseLock.Dispose() }
     $lock.Dispose()
 }

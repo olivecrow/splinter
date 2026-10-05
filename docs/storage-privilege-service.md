@@ -21,6 +21,8 @@
 
 ## 요청 경계
 
+설치와 서비스 시작 시 경로 소유자는 SYSTEM/Administrators여야 하며, 경로 자체뿐 아니라 자식에 상속되는 쓰기 권한도 검사한다. 일반 사용자의 `InheritOnly` 쓰기도 거부한다. `CREATOR OWNER`의 상속 전용 규칙은 신뢰한 생성 토큰으로 치환되는 경우로 취급한다. 기존 설치 파일과 configuration도 설치 시 개별 소유자/쓰기 권한을 확인하며 불안전한 ACL을 자동 수정하지 않는다.
+
 IPC는 로컬 named pipe `Splinter.StorageAuthority.v1`이다. ACL은 등록된 사용자 SID와 SYSTEM만 허용하고 Network SID는 거부한다. 등록 사용자는 클라이언트 읽기·쓰기만 가능하며 서버 instance 생성 권한은 없다. 클라이언트는 SCM의 LocalSystem 계정·고정 실행 경로·독립 프로세스 구성과 pipe 서버 PID를 확인한다. 서비스는 클라이언트를 impersonate해 실제 SID를 얻으며 요청 본문의 사용자 이름은 신뢰하지 않는다. 첫 pipe instance만 생성하므로 다른 서버의 같은 이름을 공유하지 않는다.
 
 사용자 프로젝트·home·workspace의 읽기는 요청자의 토큰으로 한다. 서비스는 reparse·경로 대체를 거부하고 디렉터리 ID를 등록값과 대조한다. 조상 경로와 검사한 기록은 작업 동안 rename/delete가 안 되는 핸들로 유지한다. 원본 내부의 일반 파일 편집은 계속 가능하다.
@@ -28,6 +30,10 @@ IPC는 로컬 named pipe `Splinter.StorageAuthority.v1`이다. ACL은 등록된 
 요청은 현재 버전·고정 operation·owner·프로젝트·home·snapshot ID·boot에 묶인 검증/회수 ID만 받는다. 임의 코드·명령·실행 파일·관리자 쓰기 목적지는 없다. 중복/알 수 없는 JSON 필드·필수 필드 누락·크기 초과를 거부한다. 입력/출력은 `storage-authority-request.schema.json`과 `storage-authority-response.schema.json`이 소유한다.
 
 ## 보존과 재시도
+
+요청 frame 전체 수신은 연결 후 1초, 인증된 작업은 별도 3분, 응답 쓰기는 별도 1초로 제한한다. 미완성 header/body는 자원 작업에 진입하지 않고 연결을 종료한다. 등록된 악성 계정의 모든 서비스 남용을 방지하는 rate limit/보안 sandbox 계약은 아니다.
+
+VSS 회수의 공통 잠금은 보호된 `%ProgramData%/SplinterStorageAuthority/vss-release.lock`의 독점 파일 핸들이다. 프로세스 종료로 핸들이 닫히면 다시 얻을 수 있으며 파일은 자동 삭제하지 않는다. 다른 로컬 사용자의 전역 mutex 선점에 의존하지 않는다. 승인한 수동 helper 회수도 이 설치된 보호 경로를 요구하며, 부재·불안전한 소유자/상속 ACL·reparse는 보존·거부한다. 기존 snapshot inventory·삭제 격리·동일 요청 guard는 유지한다.
 
 서비스는 자신이 캡처한 snapshot만 소유권 기록에 연결한다. 다른 workspace의 snapshot ID나 사용자 파일에서 가져온 capture 영수증으로 권한을 얻을 수 없다. 서비스의 영수증은 보호된 디렉터리에만 쓰며, 응답의 고정 영수증 이름을 workspace 폴더에 저장하는 주체는 일반 CLI다.
 

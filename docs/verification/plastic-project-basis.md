@@ -4,6 +4,8 @@
 
 범위는 [PPB-01~06](../plans/plastic-project-basis.md), 현재 계약은 [Plastic 프로젝트 기준본](../plastic-project-basis.md)이다. RAM 절감은 사용자가 합격 조건에서 제외했으며 실제 비용만 관측한다. 원시 증거는 `artifacts/plastic-project-basis-20261004/`에 보존한다.
 
+아래 PPB의 native/Unity·비용 자격은 실행 당시의 cm API reader에 한정한다. 현재 private stdio reader로 이관한 내용·자동 시험의 근거는 [SB-01](security-boundaries.md)이며, 새 reader의 실제 Unity·대형 segmented revision은 NotRun이다. 과거 전체 순회와 A/B를 새 reader의 통과로 승계하지 않는다.
+
 | ID | 현재 상태 | 근거/남은 조건 |
 | --- | --- | --- |
 | PPB-01 | Passed with limitations | 승인된 cs 2의 60개 파일/244,715B 전체 길이·내용 hash 확인. binary/BOM reader 결함을 수정. 외부 cache/네트워크 비용은 unknown |

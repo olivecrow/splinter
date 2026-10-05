@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <EmbeddedResource Include="PlasticRevisionBridge.cs" LogicalName="Splinter.PlasticRevisionBridge.cs" />
+    <InternalsVisibleTo Include="Splinter.Tests" />
     <ProjectReference Include="../Splinter.Core/Splinter.Core.csproj" />
     <ProjectReference Include="../Splinter.Runtime/Splinter.Runtime.csproj" />
   </ItemGroup>

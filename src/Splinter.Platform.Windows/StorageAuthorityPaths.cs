@@ -228,7 +228,11 @@ internal sealed class StorageAuthorityPaths : IDisposable
     internal static void RequireProtectedDirectory(string path, bool allowWindowsInstaller = false)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
-        var acl = new DirectoryInfo(path).GetAccessControl();
+        RequireProtectedAcl(new DirectoryInfo(path).GetAccessControl(), allowWindowsInstaller);
+    }
+    internal static void RequireProtectedAcl(FileSystemSecurity acl, bool allowWindowsInstaller = false)
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         string? owner = acl.GetOwner(typeof(SecurityIdentifier))?.Value;
         if (owner is not ("S-1-5-18" or "S-1-5-32-544"))
             throw StorageAuthorityProtocol.Error("StorageServiceUnsafe", "Service paths must be owned by SYSTEM or Administrators.");
@@ -236,9 +240,10 @@ internal sealed class StorageAuthorityPaths : IDisposable
             FileSystemRights.ChangePermissions | FileSystemRights.TakeOwnership | (FileSystemRights)0x50000000;
         string? installer = allowWindowsInstaller ? new NTAccount("NT SERVICE", "TrustedInstaller").Translate(typeof(SecurityIdentifier)).Value : null;
         foreach (FileSystemAccessRule rule in acl.GetAccessRules(true, true, typeof(SecurityIdentifier)))
-            if (rule.AccessControlType == AccessControlType.Allow && (rule.PropagationFlags & PropagationFlags.InheritOnly) == 0 && (rule.FileSystemRights & writes) != 0 &&
-                rule.IdentityReference.Value is not ("S-1-5-18" or "S-1-5-32-544") && rule.IdentityReference.Value != installer)
-                throw StorageAuthorityProtocol.Error("StorageServiceUnsafe", "A non-administrator can modify the authority directory.");
+            if (rule.AccessControlType == AccessControlType.Allow && (rule.FileSystemRights & writes) != 0 &&
+                rule.IdentityReference.Value is not ("S-1-5-18" or "S-1-5-32-544") && rule.IdentityReference.Value != installer &&
+                !(rule.IdentityReference.Value == "S-1-3-0" && (rule.PropagationFlags & PropagationFlags.InheritOnly) != 0))
+                throw StorageAuthorityProtocol.Error("StorageServiceUnsafe", "A non-administrator can modify the authority directory or its children.");
     }
     private static bool Present(string path)
     {

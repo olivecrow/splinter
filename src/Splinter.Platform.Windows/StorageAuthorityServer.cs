@@ -38,11 +38,10 @@ internal static class StorageAuthorityServer
                 PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.FirstPipeInstance, 65536, 65536, security);
             if (first) { ready(); first = false; }
             await pipe.WaitForConnectionAsync(ct);
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct); deadline.CancelAfter(TimeSpan.FromMinutes(3));
             StorageAuthorityRequest? request = null;
             try
             {
-                request = StorageAuthorityProtocol.Decode<StorageAuthorityRequest>(await ReadFrameAsync(pipe, StorageAuthorityProtocol.MaxRequestBytes, deadline.Token));
+                request = StorageAuthorityProtocol.Decode<StorageAuthorityRequest>(await ReadRequestAsync(pipe, ct));
                 string? sid = null;
                 pipe.RunAsClient(() => { if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
                     using var peer = WindowsIdentity.GetCurrent(true); sid = peer?.User?.Value; });
@@ -53,8 +52,10 @@ internal static class StorageAuthorityServer
                     pipe.RunAsClient(() => guard = StorageAuthorityPaths.Authorize(grant, r));
                     return guard ?? throw new UnauthorizedAccessException();
                 }
-                var response = await processor.ProcessAsync(sid, request, Authorize, deadline.Token);
-                await WriteFrameAsync(pipe, JsonSerializer.SerializeToUtf8Bytes(response, StorageAuthorityProtocol.Json), deadline.Token);
+                using var operation = CancellationTokenSource.CreateLinkedTokenSource(ct); operation.CancelAfter(TimeSpan.FromMinutes(3));
+                var response = await processor.ProcessAsync(sid, request, Authorize, operation.Token);
+                using var reply = CancellationTokenSource.CreateLinkedTokenSource(ct); reply.CancelAfter(TimeSpan.FromSeconds(1));
+                await WriteFrameAsync(pipe, JsonSerializer.SerializeToUtf8Bytes(response, StorageAuthorityProtocol.Json), reply.Token);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or WorkspaceException or System.ComponentModel.Win32Exception or OperationCanceledException or ArgumentException or InvalidOperationException or KeyNotFoundException or NullReferenceException)
@@ -68,6 +69,12 @@ internal static class StorageAuthorityServer
                 catch (Exception send) when (send is IOException or OperationCanceledException) { }
             }
         }
+    }
+    internal static async Task<byte[]> ReadRequestAsync(Stream stream, CancellationToken ct)
+    {
+        using var receive = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        receive.CancelAfter(TimeSpan.FromSeconds(1));
+        return await ReadFrameAsync(stream, StorageAuthorityProtocol.MaxRequestBytes, receive.Token);
     }
     internal static PipeSecurity PipeSecurityFor(IEnumerable<string> userSids)
     {

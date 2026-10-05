@@ -12,6 +12,8 @@ Unity CLI의 외부 작업은 [정확한 대상 선택 절차](alpha-workspaces.
 
 ## 구조와 의존성
 
+Plastic 내용 reader는 Files에 내장된 고정 client adapter를 일반 사용자 PowerShell 자식에서 실행하고 private stdio frame만 읽는다. 공개 API listener나 새로운 CLI 명령은 제공하지 않는다. Windows `cm 11.0.16.9915`·PowerShell 7 전제와 helper의 bounded segment는 [현재 계약](plastic-project-basis.md), 자동/한정 native 읽기는 [보안 경계 검증](verification/security-boundaries.md)을 따른다. 작업공간의 저장 격리는 악성 Git hook·Unity 코드·인증된 MCP 코드 실행에 대한 OS 보안 sandbox가 아니다.
+
 [VCS 없는 프로젝트 기준본](plain-project-basis.md)은 Windows `ManagedDirectoryBasis(projectBasis:true)`의 원본 prepare/restore와 `ProjectDirectorySnapshotProvider`의 task-owned reference를 사용한다. 공통 `IProjectSourceAccess`는 원본 읽기/게시 동안 정확한 기준·mount·필요한 Editor 종료 lease를 보유한다. Files는 기존 독립 결과/3자 반영을 재사용하고 Windows publisher는 검증된 원본 view만 제한적으로 허용한다. task 회수는 peer 공통 payload를 삭제하지 않으며 마지막 restore가 기준 수명을 소유한다. Core에 Win32/Unity API를 추가하지 않는다.
 
 Library/프로젝트의 공통 restore는 v2 계획·기존 파일 identity·신규 생성 영수증과 Windows 핸들 보호를 사용한다. Runtime의 저널 자식 색인은 생성/이동/삭제/재생에서 갱신하며 디렉터리 조회의 전체 경로 검색을 피한다. Git의 `GitProgressReadStream`은 정확한 소유 reader의 blocking read만 30초로 제한하며 진행 중인 전체 object 검증을 중단하지 않는다. 오류의 응답/복구 분류는 Core `WorkspaceFailurePolicy`가 공통으로 소유한다. 각 계약·자동/실제 자격은 기능별 문서를 따른다.

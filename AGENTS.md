@@ -20,6 +20,8 @@
 
 ## 현재 기능의 소유 문서
 
+- 보안 경계 변경의 한정 자격은 `docs/verification/security-boundaries.md`다. recorded Plastic 내용은 고정 Windows cm `11.0.16.9915` 라이브러리와 tree-owned private stdio 자식을 사용하며 인증 없는 `cm api`·payload disk cache로 fallback하지 않는다. 외부 MCP 후보 v2는 HTTP/Editor WebSocket에 동일한 비밀 `SPLINTER_MCP_TOKEN`을 요구한다. 전역 환경/Codex 설정·실행 중 Editor·설치된 서비스는 자동 변경하지 않으며 기존 Unity 자격을 현재 후보로 승계하지 않는다. 서비스는 자식 상속 쓰기 ACL도 거부하고 회수는 보호된 ledger의 파일 잠금을 사용한다. 저장 격리를 악성 코드의 OS 보안 sandbox로 읽지 않는다.
+
 - 외부 Coplay 고정 패치는 `integrations/unity-mcp/`와 `docs/unity-mcp-response-recovery.md`, C: 동일 요청 회수·35초 실행·reload 상세 결과 자격은 `docs/verification/vss-and-mcp-remediation.md`가 소유한다. 제품 Core/Runtime/capabilities와 구분한다. Codex MCP 설정 변경 후 반드시 `codex mcp list --json`과 `codex mcp get <server> --json`으로 transport/env 제약까지 확인한다. HTTP 항목에 Stdio의 command/args/env를 남기지 않는다. 다른 설정·서버·Editor를 보존한다.
 
 - Recorded Plastic의 전체/선택 원본 반영은 `docs/plastic-original-apply.md`를 따른다. `plastic-snapshot`의 독립 결과·고정 intent/digest/선택·관리 GUID/selector/잠금 관측·원본 Editor lockfile과 조건부 NTFS 게시를 연결한다. Library/VCS 관리 데이터·서버 이력·등록/잠금 변경은 게시하지 않는다. 기존 VSS Plastic apply와 released 결과 재수입은 거부한다. 범위/자격은 `docs/plans/plastic-original-apply.md`·`docs/verification/plastic-original-apply.md`이며 fake/native 파일 시험과 실제 제품 A/B를 구분한다.

@@ -4,6 +4,8 @@
 
 ## 준비와 연결
 
+현재 생성 형식은 `splinter-mcp-remediation-v2`다. 서버의 모든 HTTP 경로와 `/hub/plugin` WebSocket에 로컬 인증을 적용한다. v1의 실행·reload 자격은 과거 MR 근거이며 v2의 인증·Editor 인계 자격과 구분한다. 기존 후보를 덮어쓰거나 자동 이관하지 않고 새 output을 준비한다.
+
 원본 upstream과 uv/Unity cache를 수정하지 않는다. 새 디렉터리에 선택 소스만 checkout하고 `prepare.py`로 package/server를 생성한다. HEAD와 선택 경로의 미커밋/미추적 변경을 검사하고, 이미 존재하는 출력은 보존·거부한다. `candidate.json`의 upstream revision·패치 파일 hash를 `verify.py`로 확인한다. upstream 라이선스는 준비한 checkout의 `LICENSE`를 따른다.
 
 ```powershell
@@ -14,15 +16,26 @@ python integrations/unity-mcp/prepare.py --upstream <upstream> --output <새-out
 python integrations/unity-mcp/verify.py <output>
 ```
 
-해당 Editor를 정상 종료하고 `Packages/manifest.json`의 `com.coplaydev.unity-mcp`만 준비한 `<output>/package`의 절대 `file:` 경로로 연결한다. 원래 manifest/lock을 보존하고 Unity가 갱신한 lock을 함께 검토한다. 패키지 이름/버전은 upstream과 같으며 별도 공식 릴리스나 모든 프로젝트의 자동 설치가 아니다. 같은 PC에서 새 A/B로 상속하는 절대 경로는 가능하지만 다른 PC에는 먼저 같은 후보를 준비해야 한다. 현재 검증 PC의 연결은 `.local/unity-mcp-remediation/candidate-02/package`이며 최종 재생성 후보와 파일이 일치한다.
+해당 Editor를 정상 종료하고 `Packages/manifest.json`의 `com.coplaydev.unity-mcp`만 준비한 `<output>/package`의 절대 `file:` 경로로 연결한다. 원래 manifest/lock을 보존하고 Unity가 갱신한 lock을 함께 검토한다. 패키지 이름/버전은 upstream과 같으며 별도 공식 릴리스나 모든 프로젝트의 자동 설치가 아니다. 같은 PC에서 새 A/B로 상속하는 절대 경로는 가능하지만 다른 PC에는 먼저 같은 후보를 준비해야 한다. 과거 MR 연결은 `.local/unity-mcp-remediation/candidate-02/package`의 v1이며 현재 인증 후보는 `.local/unity-mcp-remediation/candidate-security-v2-03`이다. 현재 후보의 생성/해시·자동 transport 시험과 실제 Editor 연결은 [보안 검증](verification/security-boundaries.md)에서 구분한다.
 
 공유 HTTP 서버는 기존 사용자가 없는 것을 확인하고 정상 종료한 뒤, 같은 버전·8080에 재시작한다. 준비한 server의 의존성과 호환되는 기존 Python venv를 사용한다. `server.py <output>/server --transport http --http-url http://127.0.0.1:8080 --project-scoped-tools --pidfile <외부-evidence>/mcp-server.pid`로 실행하며 로그도 프로젝트 Library 밖에 둔다. 이미 점유된 포트에 두 번째 서버를 띄우지 않는다. 시작 wrapper는 패치 파일 hash를 확인한 뒤 준비한 server를 import한다. 검사 실패는 덮어쓰기나 다른 버전 fallback으로 숨기지 않는다.
 
 Codex는 한 HTTP endpoint를 사용하고 각 호출의 `unity_instance`를 현재 discovery의 정확한 프로젝트 hash로 지정한다. 단일 HTTP 서버가 여러 Editor를 구분하므로 Editor별 URL·Stdio 전환이 이 응답 문제의 필수 해결책은 아니다. 반환 project/PID/start를 소유 Editor와 대조하고 reload 후 새 session/discovery를 확인한다. Editor가 연결되지 않았다면 올바른 프로젝트에서 Connect를 명시적으로 수행한다. 모든 프로젝트의 설정을 임의로 재작성하거나 서버 자동 시작을 켜지 않는다.
 
+서버·해당 Editor·Codex는 같은 Windows 사용자의 부모 실행 환경에 있는 동일한 비밀 `SPLINTER_MCP_TOKEN`을 상속한다. 값은 random 32-byte의 64자리 hex이며 아래 생성은 값을 출력하지 않는다. 토큰을 소스·manifest·명령행·로그·대화에 넣지 않는다. 이 저장소는 전역 환경 변수·Codex 설정·실행 중 Editor를 자동 변경하지 않는다.
+
+```powershell
+$env:SPLINTER_MCP_TOKEN = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+# 이 환경에서 승인한 서버·Editor·Codex를 시작한다. 실행 중 peer와 토큰을 자동 교체하지 않는다.
+```
+
+HTTP client는 `Authorization: Bearer <token>`, local Editor는 기존 `X-API-Key` WebSocket header로 같은 토큰을 보낸다. 토큰이 없거나 형식이 잘못되면 서버와 local Editor 연결은 거부한다. 인증 없는 HTTP는 401, WebSocket은 accept 전에 1008로 닫으며 browser Origin도 거부한다. server host는 loopback으로 제한한다. secret을 아는 동일 사용자/인증된 코드의 호스트 접근을 격리하는 sandbox는 아니다.
+
 ## Codex 설정 검사
 
 HTTP 항목은 `url = "http://127.0.0.1:8080/mcp"`를 사용한다. Stdio에서 전환할 때 `command`, `args`뿐 아니라 그 항목의 `[mcp_servers.<name>.env]` 하위 표도 제거해야 한다. 현재 Codex streamable HTTP는 이 `env`를 허용하지 않는다. 전역 설정은 모든 대화에 영향을 주므로 원본을 보존하고 대상 항목 외 변경이 없는지 확인한다. 중복 alias를 비활성화할 때도 다른 서버 설정을 유지한다.
+
+HTTP 항목에는 `bearer_token_env_var = "SPLINTER_MCP_TOKEN"`을 지정한다. 이는 외부 서버에 환경을 설정하는 `env`와 다르며 Codex 프로세스가 상속한 비밀을 HTTP header로 전달한다. 기존 앱 프로세스에 새 환경이 자동 반영되지는 않는다. 명시적으로 연결을 전환할 때 정확한 남은 Editor·서버·job의 수명을 먼저 보존하고 인증된 읽기 요청까지 확인한다.
 
 설정 변경 뒤 다음 두 **설정 조회 검사**를 완료한다. TOML 문법 파싱만으로는 transport 제약을 검증하지 못한다. 실패하면 새 연결을 진행하지 않고 해당 변경을 바로 고치거나 원본으로 복구한다. 전체 설정/토큰은 출력하지 않는다.
 

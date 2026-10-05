@@ -20,7 +20,7 @@ public interface IPlasticRevisionClient : IPlasticRevisionReader
     IPlasticRevisionReader CreateReadSession() => this;
 }
 
-// Only fixed tree enumeration and raw revision blob GET. No update, checkout,
+// Only fixed tree enumeration and private raw revision streams. No update, checkout,
 // registration, check-in, server setting or payload file is created here.
 public sealed class PlasticRevisionClient : IPlasticRevisionClient
 {
@@ -125,9 +125,9 @@ public sealed class PlasticRevisionClient : IPlasticRevisionClient
     internal static bool Numeric(string value) => long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out long n) && n >= 0;
     public Stream OpenRevision(string treeSpec, string revision)
     {
-        var session = new PlasticRevisionApiSession();
+        var session = new PlasticRevisionStreamSession();
         try { return session.OpenOwnedRevision(treeSpec, revision); }
         catch { session.Dispose(); throw; }
     }
-    public IPlasticRevisionReader CreateReadSession() => new PlasticRevisionApiSession();
+    public IPlasticRevisionReader CreateReadSession() => new PlasticRevisionStreamSession();
 }

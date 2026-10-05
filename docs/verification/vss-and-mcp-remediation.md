@@ -4,6 +4,8 @@
 
 원시 근거는 `artifacts/vss-mcp-remediation-20261005/`다. 예전 실패·pending은 당시 증거로 보존하며 아래 후속 회수로 현재 상태만 갱신한다. 새로운 A/B·Play/build·OS 장애 행렬을 실행하지 않았다.
 
+아래 MR의 실제 Editor·긴 실행·reload 자격은 인증을 추가하기 전 v1 후보의 근거다. 현재 생성 형식 v2의 인증·transport 시험은 [SB-02](security-boundaries.md)를 따르며, 새 토큰을 사용한 실제 Editor 연결과 실행 중 서버 전환은 NotRun이다. VR의 회수 결과는 그대로 보존한다.
+
 ## VR-01: 정확한 기존 C: Plastic 회수
 
 | 항목 | 결과와 근거 |

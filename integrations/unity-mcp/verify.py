@@ -5,7 +5,7 @@ import json
 import pathlib
 
 REVISION = '30d22075093d1d35dfb0091c1c7550e9ad948577'
-PATCH = 'splinter-mcp-remediation-v1'
+PATCH = 'splinter-mcp-remediation-v2'
 
 
 def verify(root):
@@ -16,7 +16,9 @@ def verify(root):
     expected = {
         'package/Editor/Tools/ExecuteCode.cs', 'package/Editor/Tools/ExecuteCodeJobs.cs',
         'package/Editor/Tools/ExecuteCodeJobs.cs.meta', 'package/Editor/Services/TestJobManager.cs',
-        'package/Editor/Services/TestRunnerService.cs', 'server/services/tools/execute_code.py'}
+        'package/Editor/Services/TestRunnerService.cs', 'server/services/tools/execute_code.py',
+        'package/Editor/Services/Transport/Transports/WebSocketTransportClient.cs',
+        'server/main.py', 'server/local_auth.py', 'server/cli/utils/connection.py'}
     if set(manifest.get('changes', {})) != expected:
         raise ValueError('Incomplete prepared MCP patch')
     for relative, change in manifest['changes'].items():

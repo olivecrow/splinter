@@ -973,7 +973,7 @@
         },
         "plasticCompatibility": {
           "type":"object", "additionalProperties":false, "required":["mode","administration","originalApply","qualification"],
-          "properties": {"mode":{"type":"string"},"administration":{"type":"string"},"originalApply":{"const":"plastic-snapshot; explicit-plan-intent-and-selection; stopped-original-windows-ntfs; no-server-mutation"},"qualification":{"type":"string"},"recordedBasis":{"type":"string"},"library":{"type":"string"}}
+          "properties": {"mode":{"type":"string"},"administration":{"type":"string"},"originalApply":{"const":"plastic-snapshot; explicit-plan-intent-and-selection; stopped-original-windows-ntfs; no-server-mutation"},"qualification":{"type":"string"},"recordedBasis":{"type":"string"},"reader":{"type":"string"},"library":{"type":"string"}}
         },
         "plainProjectBasis": {
           "type": "object",

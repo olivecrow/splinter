@@ -70,7 +70,10 @@ function Assert-ProtectedEntry([string]$Path) {
         if ($current.GetOwner([Security.Principal.SecurityIdentifier]).Value -notin @('S-1-5-18','S-1-5-32-544')) { throw 'Preexisting authority path has an untrusted owner; preserve it.' }
         $writes = [Security.AccessControl.FileSystemRights]::Write -bor [Security.AccessControl.FileSystemRights]::Delete -bor [Security.AccessControl.FileSystemRights]::DeleteSubdirectoriesAndFiles -bor [Security.AccessControl.FileSystemRights]::ChangePermissions -bor [Security.AccessControl.FileSystemRights]::TakeOwnership -bor 0x50000000
         foreach ($rule in $current.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])) {
-            if ($rule.AccessControlType -eq 'Allow' -and -not ($rule.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly) -and ($rule.FileSystemRights -band $writes) -and $rule.IdentityReference.Value -notin @('S-1-5-18','S-1-5-32-544')) { throw 'Preexisting authority path is writable by another principal; preserve it.' }
+            # InheritOnly can grant writes to the next installed executable or
+            # ledger file. CREATOR OWNER resolves to the trusted creating token.
+            $creatorOwner = $rule.IdentityReference.Value -eq 'S-1-3-0' -and ($rule.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly)
+            if ($rule.AccessControlType -eq 'Allow' -and ($rule.FileSystemRights -band $writes) -and $rule.IdentityReference.Value -notin @('S-1-5-18','S-1-5-32-544') -and -not $creatorOwner) { throw 'Preexisting authority path or child is writable by another principal; preserve it.' }
         }
 }
 function Set-ProtectedDirectory([string]$Path, [bool]$Readable) {
