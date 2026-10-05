@@ -6,7 +6,7 @@
 
 Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약되는 환경에서 AI 에이전트가 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하는 도구**다. 작업 내용의 의미 판단·코드 작성·게임 기능 검증은 해당 대화의 AI와 기존 개발 도구가 담당한다.
 
-**외부 VCS가 있건 없건 Splinter는 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리해야 한다.** 병렬 격리·기본 수명주기는 Splinter의 기능이며 VCS별 처리는 이를 안전하고 효율적으로 유지하는 호환 책임이다. 마감한 M0는 Git 전제다. 일반 폴더 기본 수명주기와 기존 Git 사용 환경의 보호 경계를 연결하고 작은 실제 A/B 한 묶음을 마감했다. 일반 폴더의 작은 Editor 없는 원본 반영도 한정 마감했다. Plastic 호환 계약과 별도 작은 T: A/B의 마지막 snapshot 회수까지 한정 마감했으며 [PC 검증](../verification/plastic-compatibility.md)의 선행 C: 회수 보류·외부 도구 발견 실패를 유지한다.
+**외부 VCS가 있건 없건 Splinter는 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리해야 한다.** 병렬 격리·기본 수명주기는 Splinter의 기능이며 VCS별 처리는 이를 안전하고 효율적으로 유지하는 호환 책임이다. 마감한 M0는 Git 전제다. 일반 폴더 기본 수명주기와 기존 Git 사용 환경의 보호 경계를 연결하고 작은 실제 A/B 한 묶음을 마감했다. 일반 폴더의 작은 Editor 없는 원본 반영도 한정 마감했다. Plastic 호환 계약과 별도 작은 T: A/B의 마지막 snapshot 회수까지 한정 마감했다. [PC 검증](../verification/plastic-compatibility.md)의 선행 C: 보류와 발견 실패는 당시 근거로 보존하며, C: 회수의 현재 종결은 [VR-01](../verification/vss-and-mcp-remediation.md#vr-01-정확한-기존-c-plastic-회수)을 따른다.
 
 첫 실사용 버전은 아래 M0의 한정된 환경과 사용 흐름을 완성한다. 범용 Unity 저작·테스트 플랫폼이나 모든 NTFS 장애 조건의 자격을 완료 기준에 넣지 않는다. 제품 요구는 [plan.html](../../plan.html), 현재 구현은 [foundation](../foundation.md), 실행 상태는 [검증 추적표](validation-matrix.md)가 소유한다.
 
@@ -21,7 +21,7 @@ Splinter는 **Unity처럼 프로젝트·Editor 점유로 독립 작업이 제약
 
 ## 프로그램과 에이전트의 책임
 
-사용자 확정의 [VCS 프로젝트 단위 기준본 전환](project-scoped-basis-and-reclamation-review.md)은 Git·Plastic에 기록된 버전을 재사용해 프로젝트에 대해서만 기준본을 만들고 작업별 범위 저장과 연결한다. Git은 `git-snapshot`과 원본 Library 참조·실제 Unity/MCP 검증까지 [한정 마감](../verification/git-library-reference.md)했으며 실제 RAM 절감은 확인하지 못했다. Plastic도 [PPB-01~06](plastic-project-basis.md)의 reader·Library·고정 실제 Unity/MCP A/B·독립 결과/회수/원본 복원을 [한정 마감](../verification/plastic-project-basis.md)했다. 초기 준비/복원·MCP 응답/실행 겹침 제한과 전체 peak unknown을 유지하며 RAM 절감은 사용자가 합격 조건에서 제외했다. [Plastic 전체/선택 원본 게시](plastic-original-apply.md)는 별도 POA 범위와 후보별 자격으로 한정 마감했다. VCS 없는 새 기준본은 사용자 결정대로 후순위이며 기존 일반 폴더 기능/결과·VSS pending은 보존한다. 기존 native 자격을 새 reader의 통과로 승계하지 않는다.
+사용자 확정의 [VCS 프로젝트 단위 기준본 전환](project-scoped-basis-and-reclamation-review.md)은 Git·Plastic에 기록된 버전을 재사용해 프로젝트에 대해서만 기준본을 만들고 작업별 범위 저장과 연결한다. Git은 `git-snapshot`과 원본 Library 참조·실제 Unity/MCP 검증까지 [한정 마감](../verification/git-library-reference.md)했으며 실제 RAM 절감은 확인하지 못했다. Plastic도 [PPB-01~06](plastic-project-basis.md)의 reader·Library·고정 실제 Unity/MCP A/B·독립 결과/회수/원본 복원을 [한정 마감](../verification/plastic-project-basis.md)했다. 초기 준비/복원·실행 겹침 제한과 전체 peak unknown을 유지하며 RAM 절감은 사용자가 합격 조건에서 제외했다. 당시 MCP 응답 제한은 [고정 Coplay 패치의 MR 검증](../verification/vss-and-mcp-remediation.md)에서 긴 실행·중복 방지·reload 상세 결과·Codex 기본 HTTP 연결까지 후속 해결했다. 이 자격을 새로운 병렬 A/B 전체의 패치 검증으로 승계하지 않는다. [Plastic 전체/선택 원본 게시](plastic-original-apply.md)는 별도 POA 범위와 후보별 자격으로 한정 마감했다. VCS 없는 새 기준본은 사용자 결정대로 후순위이며 기존 일반 폴더 기능/결과와 과거 VSS 보류 근거를 보존한다. 기존 native 자격을 새 reader의 통과로 승계하지 않는다.
 
 Splinter는 작업공간의 생성·유지·재개·독립 결과·명시적 반영/회수/폐기와 소유 Editor의 수명을 담당한다. AI가 현재 CLI·파일 도구·Git·MCP·Unity CLI로 수행할 수 있는 정책과 작업 절차는 프로그램 기능으로 추가하지 않는다.
 
@@ -39,6 +39,8 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 ## 남길 후속 작업과 종료 기준
 
 현재 Windows/NTFS 알파의 **물리 저장 단계는 [PS-01~05](physical-storage-completion.md), 메모리는 [ME-01~05](memory-completion.md), 병렬 안정성의 선택 단위는 [SP-01~04](stable-parallel-completion.md)로 한정 마감했다.** SP는 잠금 오류와 Editor 없는 동시 CLI/파일 I/O 경계다. 새 일반 작업은 실제 진행 차단/보존 결함 또는 새 입력/지원 요구에서 고른다. SF/NR의 별도 지원 확대와 공유 VSS/순간 peak·전체 RAM 귀속 unknown을 미완성 기능 수로 읽거나 자동 재실행하지 않는다.
+
+기존 C: VSS 회수 보류와 MCP 응답 제한도 [VR/MR](../verification/vss-and-mcp-remediation.md)로 한정 마감했다. 아래 과거 단계의 C: 보류·MCP 실패 표현은 당시 근거이며 현재의 미완료 작업이 아니다. 예기치 않은 이전 Editor 종료의 원인 조사는 사용자가 후속 범위에서 제외했다. 현재 확정한 단위에 필수 구현을 추가하지 않으며 VCS 없는 프로젝트 기준본은 후순위, 대형·ARM·OS 장애 등은 필요한 입력/지원 범위를 정한 뒤 선택한다.
 
 | 구분 | 남길 작업 | 종료 기준과 한도 |
 | --- | --- | --- |

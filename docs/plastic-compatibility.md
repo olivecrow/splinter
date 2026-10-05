@@ -1,5 +1,7 @@
 # Plastic 사용 환경의 작업공간
 
+과거 C:의 정확한 A/B는 별도 승인한 차단 snapshot 제거 뒤 released/discarded로 종결했다. 당시 pending과 현재 상태는 [VR-01](verification/vss-and-mcp-remediation.md)로 구분하며 일반 비소유 snapshot 보호 guard는 유지한다.
+
 Splinter가 병렬 작업공간을 제공한다. Unity VCS/Plastic SCM 연동은 원본의 관리 정보·등록·잠금을 격리하고 추가 checkout/복제 비용을 만들지 않기 위한 호환 경계다. 현재 후보의 자동/실제 자격은 [검증 기록](verification/plastic-compatibility.md), 이번 범위는 [계획](plans/plastic-compatibility.md)이 소유한다.
 
 기록된 changeset을 참조하는 별도 `plastic-snapshot`은 [프로젝트 기준본](plastic-project-basis.md)과 [현재 검증](verification/plastic-project-basis.md)을 따른다. 아래 기본 snapshot 선택·서비스·VSS 회수 자격은 기존 `ntfs-snapshot`이다.

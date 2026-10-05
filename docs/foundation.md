@@ -1,5 +1,7 @@
 # 현재 기반
 
+외부 Coplay 고정 패치의 준비·HTTP 설정 검사·code job/reload 결과는 [MCP 사용 절차](unity-mcp-response-recovery.md)를 따른다. 제품 모듈·CLI schema/capabilities와 별개이며 [실제 자격](verification/vss-and-mcp-remediation.md)에 한정한다.
+
 Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트의 외부 도구 작업 → checkpoint → 선택적 integrate → 명시적 release/discard**다. 작업공간·소유 Editor·범위 저장·독립 결과·회수 안전성을 관리한다. 컴파일·테스트·게임 합격은 에이전트와 MCP·Unity CLI 등 외부 도구의 책임이다.
 
 Unity CLI의 외부 작업은 [정확한 대상 선택 절차](alpha-workspaces.md#unity-cli의-정확한-대상-선택)를 따른다. 현재 작은 T: Plastic A/B의 exact-path command·loaded 값·정상 종료 공존·독립 결과/회수는 [별도 한정 자격](verification/unity-cli-handoff.md)으로 확인했으며, 목록 발견 누락·첫 eval 타임아웃과 MCP/다른 입력의 미자격을 유지한다. 프로그램의 새 Unity 작업 API나 컴파일 gate를 추가하지 않았다.

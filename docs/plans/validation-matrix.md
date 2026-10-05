@@ -1,5 +1,9 @@
 # 검증 추적표
 
+## 기존 C: 회수와 MCP 응답 복구의 현재 판정
+
+[VR/MR 직접 근거](../verification/vss-and-mcp-remediation.md)로 기존 C: Plastic A release/B discard의 소유 회수와 독립 결과·최신 DirectX 보존을 확인했다. 고정 Coplay 패치의 35초 한 번 실행·중복 방지·reload 상세 결과와 Codex 기본 HTTP MCP의 정확한 원본/패치/현재 상태도 확인해 두 문제를 한정 마감했다. 아래 이전 단계의 C: 보류·MCP 응답 실패는 당시 후보의 근거이며 현재 보류 상태가 아니다. 그 단계의 다른 NotRun/Partial을 자동으로 통과 처리하지 않는다. 이전 Editor 종료의 원인 조사는 사용자 지시로 후속 작업에서 제외했다.
+
 ## Recorded Plastic 원본 반영의 선택 단위 마감
 
 [POA 범위](plastic-original-apply.md)와 [후보별 직접 근거](../verification/plastic-original-apply.md)는 전체/선택 로컬 게시·원본/peer 보호·회수와 Unity import/원본 복원을 한정 마감한다. 실제 게시 후보와 마지막 불완전 asset/meta 삭제 거부 추가의 자동 자격을 구분한다. 실제 서버 잠금 생성·최종 후보의 새 재게시 묶음·OS 장애·기존 PPB MCP 테스트/release 실행 중첩 미확인은 유지한다. 구형 VSS Plastic와 과거 C: 보류를 해소한 것으로 읽지 않는다.

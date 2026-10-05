@@ -17,6 +17,8 @@ splinter workspace status --id <반환 id> --home <등록 home>
 
 ## Unity CLI의 정확한 대상 선택
 
+현재 HTTP의 긴 `execute_code`는 [외부 Coplay 응답 복구 절차](unity-mcp-response-recovery.md)의 `start`/`get_job`과 고정 request ID를 사용한다. timeout으로 임의 쓰기를 자동 반복하지 않는다. reload 뒤 완료 상세 테스트 결과와 같은 job을 읽는 자격은 [VR/MR](verification/vss-and-mcp-remediation.md)에 한정한다. Codex transport를 바꾸면 env/command/args를 함께 검토하고 실제 MCP 설정 조회 두 검사를 수행한다.
+
 Coplay MCP를 사용하는 고정 UP 입력에서는 각 호출에 현재 discovery의 `unity_instance`를 명시하고 실제 root/PID를 대조한다. 전역 HTTP 설정을 보존한 상태의 수동 stdio bridge는 domain reload 뒤 자동 시작되지 않을 수 있다. 외부 CLI로 해당 Editor의 compile/import 완료와 bridge 부재를 관측한 뒤 명시적으로 시작하고 실제 새 discovery/호출 결과를 확인한다. 시작 응답 직후의 포트 충돌 fallback을 재시작 요청으로 반복하지 않는다. MCP 테스트는 job ID와 Editor identity를 함께 보존하고 상세 결과를 외부 파일에 저장한다. Coplay 10.2.0은 SessionState에 job metadata를 저장하지만 상세 결과는 저장하지 않는다. 초기화 timeout·unknown job을 테스트 실패 또는 성공으로 대신 판정하지 않고 현재 Editor/job 상태를 조사한다. 실제 사용은 UP의 60초 초기화 예산과 호출/테스트 프레임 겹침 근거로 한정한다.
 
 Git GL/Plastic PPB의 HTTP 연결 절차에서는 reload 후 서버 session과 Editor discovery를 다시 관측하고 반환 project/PID가 같은 작업인지 확인한다. 씬은 가능한 builtin 요청, 테스트는 비동기 시작 후 같은 instance의 job 조회를 사용하고 상세 결과를 reload/종료 전에 저장한다. 긴 CodeDOM 쓰기의 실패 응답은 실제 완료와 다를 수 있다. 같은 쓰기를 반복하기 전에 같은 Editor의 history와 파일/loaded 결과로 수행 여부를 확인하고 unknown은 보존한다. peer의 job ID가 Unknown이면 그 peer에서 재실행하지 않는다. 요청 시각이 겹쳤다는 사실만으로 실제 테스트 실행이 release와 겹쳤다고 판정하지 않는다. 기존 PPB의 실행 중첩 미확인은 유지한다.

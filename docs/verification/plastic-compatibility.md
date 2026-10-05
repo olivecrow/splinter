@@ -1,5 +1,7 @@
 # Plastic 호환 검증
 
+아래 과거 C: pending은 당시 증거다. 현재 동일 A/B의 승인된 released/discarded 종결·독립 결과와 최신 DirectX 보존은 [VR-01](vss-and-mcp-remediation.md)이 소유한다.
+
 이번 후보는 [현재 계약](../plastic-compatibility.md)과 [확정 범위](../plans/plastic-compatibility.md)를 따른다. 2026-10-02 작은 Windows x64/NTFS Plastic/Unity A/B에서 생성·관리 영역 격리·원본 지속 편집·같은 작업 재개·소유 Editor·독립 결과와 peer 지속 작업을 확인했다. **C: 입력의 물리 snapshot 회수는 Partial**이며 기존 비소유 snapshot을 보호해 A `reclaim-pending`·B `discard-reclaim-pending`으로 남겼다. 아래 별도 T: 입력에서는 A release와 B discard의 마지막 snapshot 회수까지 **scoped-complete-with-limitations**로 마감했다. T: 통과를 C: 보류 해소·기존 Git/none/AP/M0 자격·완전한 외부 도구 인계로 승계하지 않는다.
 
 ## 고정 입력

@@ -1,5 +1,7 @@
 # Plastic 프로젝트 기준본 검증
 
+이 실행 당시의 과거 C: pending과 MCP 긴 응답 제한은 보존한다. 현재 C: 동일 A/B 회수와 외부 Coplay 긴 요청/reload 상세 결과의 한정 해결은 [VR/MR](vss-and-mcp-remediation.md)을 따른다.
+
 범위는 [PPB-01~06](../plans/plastic-project-basis.md), 현재 계약은 [Plastic 프로젝트 기준본](../plastic-project-basis.md)이다. RAM 절감은 사용자가 합격 조건에서 제외했으며 실제 비용만 관측한다. 원시 증거는 `artifacts/plastic-project-basis-20261004/`에 보존한다.
 
 | ID | 현재 상태 | 근거/남은 조건 |

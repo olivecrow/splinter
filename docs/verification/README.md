@@ -1,5 +1,7 @@
 # 검증 안내와 보존 근거
 
+[C: 회수/MCP 응답 복구](vss-and-mcp-remediation.md)는 별도 승인한 차단 snapshot 3개 제거와 과거 동일 A release/B discard의 종결·최신 DirectX/독립 결과 보호, 외부 Coplay 패치의 35초 실행·중복 방지·reload 상세 결과를 소유한다. 아래 과거 C: pending과 MCP 응답 제한은 당시 근거이며 이 후속과 구분한다. 전역 Codex env 설정 결함/사용자 복구·당시 Stdio binding·예기치 않은 Editor/서버 종료와 독립 재실행을 기록하고, 사용자 Connect 뒤 Codex 기본 HTTP 도구의 정확한 원본/패치/현재 상태도 확인했다.
+
 [Plastic 원본 반영](plastic-original-apply.md)은 recorded 기준의 전체/선택 게시, 등록·잠금·Editor 보호와 같은 intent 복구의 별도 자격이다.
 
 [Unity 실제 C/S 비교](unity-live-comparison.md)와 [HTML 보고서](../../reports/unity-live-comparison-20261003.html)는 Splinter를 전혀 사용하지 않은 Codex 앱 worktree와 제품 workspace의 로컬 L + A/B를 실제 실행했다. 지정 소유 파일 할당·독립 Editor/provider 메모리·격리/같은 작업 재개·B 지속은 확인했다. 전체 물리/VSS 귀속·최소 RAM은 unknown이며, 같은 home의 과거 기록 필수 필드 누락으로 마지막 snapshot 회수는 Partial다. 이전 SF/PV의 전체 지원 상태를 변경하지 않는다.
