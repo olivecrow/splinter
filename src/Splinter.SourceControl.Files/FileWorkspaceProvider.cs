@@ -9,7 +9,8 @@ namespace Splinter.SourceControl.Files;
 // Content is read at admission/inspection, but only explicit result collection
 // stores payloads. This adapter never creates a checkout or invokes a VCS.
 public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOriginalFilePublisher? originalPublisher = null, IPlasticRevisionClient? revisionClient = null,
-    IPlasticOriginalGuard? originalGuard = null, IProjectSourceAccess? projectAccess = null) : ISourceWorkspaceProvider,
+    IPlasticOriginalGuard? originalGuard = null, IProjectSourceAccess? projectAccess = null,
+    ApplicationProjectPolicies? applicationPolicies = null) : ISourceWorkspaceProvider,
     ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)

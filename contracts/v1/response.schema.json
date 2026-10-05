@@ -962,6 +962,14 @@
         "sourceModes": {"type":"array","items":{"enum":["git","plastic",
         "none","plastic"]}},
         "applicationModes": {"type":"array","items":{"enum":["unity","none"]}},
+        "extensionContracts": {
+          "type": "object", "additionalProperties": false,
+          "required": ["pathPolicy", "permissions", "application", "managedBasisVersion", "generatedDirectories", "qualification"],
+          "properties": {
+            "pathPolicy": {"type":"string"}, "permissions": {"type":"string"}, "application": {"type":"string"},
+            "managedBasisVersion": {"const":2}, "generatedDirectories": {"const":"one-top-level-subtree"}, "qualification": {"type":"string"}
+          }
+        },
         "workspaceRecordVersion": {"const":2},
         "plainFolder": {
           "type":"object","additionalProperties":false,
@@ -1914,6 +1922,7 @@
               "type": "string",
               "minLength": 1
             },
+            "pathPolicy": {"enum": [null, "posix-case-sensitive-v1"]},
             "persistent": {
               "type": "boolean"
             },
@@ -1976,6 +1985,7 @@
                   "type": "string",
                   "minLength": 1
                 },
+                "pathPolicy": {"enum": [null, "posix-case-sensitive-v1"]},
                 "persistent": {
                   "type": "boolean"
                 },

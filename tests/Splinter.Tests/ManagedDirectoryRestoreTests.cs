@@ -167,7 +167,7 @@ public sealed class ManagedDirectoryRestoreTests
             var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, snapshot.Id); var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
             File.WriteAllText(Path.Combine(root, "manifest.json"), JsonSerializer.Serialize(manifest, options)); string hash = ManagedDirectoryBasis.HashFile(Path.Combine(root, "manifest.json"));
             File.WriteAllText(Path.Combine(root, "proof.json"), JsonSerializer.Serialize(new OwnedDirectoryProof(1, snapshot, snapshot.Id, hash, manifest.Items.Sum(i => i.Entry.Length)), options));
-            State = new() { Key = "fixture", OriginalPath = Path.Combine(directory.Path, "original", "Library"), CompatibilityKey = "fixture", Phase = "restoring",
+            State = new() { ApplicationKind = "unity", DirectoryKind = "Library", Key = "fixture", OriginalPath = Path.Combine(directory.Path, "original", "Library"), CompatibilityKey = "fixture", Phase = "restoring",
                 Basis = new(snapshot.Id, Path.Combine(directory.Path, "original"), "Library", snapshot, root, snapshot.Id, hash) };
             Request = new(new(2, snapshot.Id, snapshot, 1024 * 1024, 65536), Path.Combine(root, "delta"), Original, Path.Combine(root, "overlay"), "token", new(snapshot.Id, basisPath, hash), root, snapshot.Id);
             using var tree = new OwnedDirectorySnapshotTree(manifest, snapshot); using var journal = new JournalDeltaStore(Request.DeltaPath, Request.Identity, tree);

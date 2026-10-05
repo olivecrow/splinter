@@ -12,6 +12,8 @@ Unity CLI의 외부 작업은 [정확한 대상 선택 절차](alpha-workspaces.
 
 ## 구조와 의존성
 
+[OS와 앱 확장 경계](extensibility-boundaries.md)는 snapshot identity에 고정한 경로 정책·선택적 Unix 권한 metadata와 앱별 프로젝트 정책을 소유한다. Unity의 원본 잠금/동반 파일/Library descriptor는 Unity 어댑터에 있고 Files·Windows는 명시적으로 주입한 정책을 사용한다. 관리형 basis 상태·준비 intent는 앱/디렉터리 identity를 명시한 v2만 지원한다. 다른 OS·앱의 실제 어댑터는 없으며 자동 적합성과 실제 지원은 [검증](verification/extensibility-boundaries.md)에서 구분한다.
+
 Plastic 내용 reader는 Files에 내장된 고정 client adapter를 일반 사용자 PowerShell 자식에서 실행하고 private stdio frame만 읽는다. 공개 API listener나 새로운 CLI 명령은 제공하지 않는다. Windows `cm 11.0.16.9915`·PowerShell 7 전제와 helper의 bounded segment는 [현재 계약](plastic-project-basis.md), 자동/한정 native 읽기는 [보안 경계 검증](verification/security-boundaries.md)을 따른다. 작업공간의 저장 격리는 악성 Git hook·Unity 코드·인증된 MCP 코드 실행에 대한 OS 보안 sandbox가 아니다.
 
 [VCS 없는 프로젝트 기준본](plain-project-basis.md)은 Windows `ManagedDirectoryBasis(projectBasis:true)`의 원본 prepare/restore와 `ProjectDirectorySnapshotProvider`의 task-owned reference를 사용한다. 공통 `IProjectSourceAccess`는 원본 읽기/게시 동안 정확한 기준·mount·필요한 Editor 종료 lease를 보유한다. Files는 기존 독립 결과/3자 반영을 재사용하고 Windows publisher는 검증된 원본 view만 제한적으로 허용한다. task 회수는 peer 공통 payload를 삭제하지 않으며 마지막 restore가 기준 수명을 소유한다. Core에 Win32/Unity API를 추가하지 않는다.

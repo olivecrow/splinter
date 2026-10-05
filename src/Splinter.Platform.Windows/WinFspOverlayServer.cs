@@ -21,6 +21,7 @@ public static class WinFspOverlayServer
     {
         OverlayServeRequest request = JsonSerializer.Deserialize<OverlayServeRequest>(await File.ReadAllTextAsync(requestPath), Json)
             ?? throw new ArgumentException("Missing overlay request.");
+        WindowsSnapshotPolicy.Require(request);
         WindowsProcessWorkspaceProvider.CheckPath(request.ControlPath);
         Directory.CreateDirectory(request.ControlPath);
         string statePath = Path.Combine(request.ControlPath, "state.json");

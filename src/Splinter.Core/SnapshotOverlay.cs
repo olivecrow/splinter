@@ -1,9 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace Splinter.Core;
 
 // No provider-specific API or live-source fallback belongs in this contract.
 public sealed record SnapshotReference(string Id, string Provider, string SourcePath,
     string RootPath, DateTimeOffset CapturedAt, bool Persistent, bool Differential,
-    string Consistency);
+    string Consistency,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? PathPolicy = null);
 public sealed record SnapshotCapture(string SourcePath, string OwnerId, string ReceiptDirectory);
 // A verified access location is replaceable; the snapshot and delta identity are not.
 public sealed record SnapshotReadAccess(string SnapshotId, string RootPath, string VerificationId)
@@ -30,7 +33,8 @@ public interface ISourceSnapshotProvider
 }
 
 public sealed record SnapshotEntry(string Path, bool Directory, long Length, uint Attributes,
-    long CreationTime, long LastAccessTime, long LastWriteTime);
+    long CreationTime, long LastAccessTime, long LastWriteTime,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] uint? UnixMode = null);
 
 // Implementations must read one immutable snapshot ID, never the mutable original.
 // A missing snapshot fails reads; reconnect must not capture a replacement.
@@ -55,7 +59,8 @@ public sealed record OverlayStorageObservation(string Id, string SnapshotId, lon
 }
 public sealed record DeltaEntry(Guid Id, string Path, bool Directory, long Length, uint Attributes,
     long CreationTime, long LastAccessTime, long LastWriteTime, string? BasePath, long BaseLength,
-    bool Deleted = false);
+    bool Deleted = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] uint? UnixMode = null);
 
 public interface IWorkspaceDeltaStore : IDisposable
 {
@@ -68,6 +73,7 @@ public interface IWorkspaceDeltaStore : IDisposable
     void Write(Guid id, long offset, ReadOnlySpan<byte> data);
     void SetLength(Guid id, long length);
     void SetMetadata(Guid id, uint attributes, long creationTime, long accessTime, long writeTime);
+    void SetUnixMode(Guid id, uint? mode) => throw new WorkspaceException("UnixPermissionsUnsupported", "This delta provider cannot change Unix permissions.");
     void Rename(Guid id, string destination, bool replace);
     void Delete(Guid id);
     void Flush();

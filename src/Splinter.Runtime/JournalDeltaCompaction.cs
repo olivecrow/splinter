@@ -212,7 +212,7 @@ public sealed partial class JournalDeltaStore
             digest.AppendData(length); digest.AppendData(data);
         }
         Add(sequence);
-        foreach (string path in paths.Keys.Order(StringComparer.OrdinalIgnoreCase))
+        foreach (string path in paths.Keys.Order(pathPolicy.Comparer))
         {
             if (projectedFiles?.Contains(path) == true) continue;
             var node = nodes[paths[path]];
@@ -223,9 +223,9 @@ public sealed partial class JournalDeltaStore
                 VisitExtent(extent, (_, bytes, _) => digest.AppendData(bytes));
             }
         }
-        foreach (string path in hidden.Order(StringComparer.OrdinalIgnoreCase))
+        foreach (string path in hidden.Order(pathPolicy.Comparer))
             if (projectedFiles?.Contains(path) != true) Add(path);
-        foreach (var change in pathChanges.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase)) Add(change);
+        foreach (var change in pathChanges.OrderBy(x => x.Key, pathPolicy.Comparer)) Add(change);
         return Convert.ToHexStringLower(digest.GetHashAndReset());
     }
 

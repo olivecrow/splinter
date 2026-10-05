@@ -44,28 +44,21 @@ public sealed partial class FileWorkspaceProvider
         var before = baseline.Entries.ToDictionary(e => e.Path, StringComparer.OrdinalIgnoreCase);
         var after = result.Entries.ToDictionary(e => e.Path, StringComparer.OrdinalIgnoreCase);
         var included = IncludedChanges(before, after, selected);
-        // Parent creation/deletion and Unity GUID metadata are part of the
-        // reviewed write set. An unchanged companion is pinned as a guard.
+        // Structural parents are shared; source companions are supplied by
+        // the exact application policy and pinned in the reviewed write set.
         foreach (string path in included.ToArray())
         {
             for (string? parent = Parent(path); parent is not null; parent = Parent(parent))
-                if (!before.ContainsKey(parent) && after.ContainsKey(parent) || w.ApplicationKind == "unity" && parent.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)) included.Add(parent);
+                if (!before.ContainsKey(parent) && after.ContainsKey(parent)) included.Add(parent);
         }
-        var companions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (w.ApplicationKind == "unity")
-            foreach (string path in included.ToArray())
-            {
-                if (!path.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)) continue;
-                string asset = path.EndsWith(".meta", StringComparison.OrdinalIgnoreCase) ? path[..^5] : path;
-                if (after.ContainsKey(asset) != after.ContainsKey(asset + ".meta"))
-                    throw new WorkspaceException("OriginalApplyMetadataMissing", "Preserve an incomplete result asset/metadata pair: " + asset);
-                foreach (string pair in new[] { asset, asset + ".meta" })
-                {
-                    if (!before.ContainsKey(pair) && !after.ContainsKey(pair))
-                        throw new WorkspaceException("OriginalApplyMetadataMissing", "Preserve the missing Unity asset/metadata companion: " + pair);
-                    included.Add(pair); companions.Add(pair);
-                }
-            }
+        var closure = (applicationPolicies ?? ApplicationProjectPolicies.None).Get(w.ApplicationKind)
+            .CloseSelection(included, before.ContainsKey, after.ContainsKey);
+        if (closure.Paths.Any(p => !ValidPath(p) || Managed(p, w.ManagedPaths)) ||
+            closure.Companions.Any(p => !closure.Paths.Contains(p, StringComparer.OrdinalIgnoreCase)) ||
+            included.Any(p => !closure.Paths.Contains(p, StringComparer.OrdinalIgnoreCase)))
+            throw new WorkspaceException("ApplicationSelectionInvalid", "The application policy must retain the requested source paths and exclude managed data.");
+        included = closure.Paths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var companions = closure.Companions.ToHashSet(StringComparer.OrdinalIgnoreCase);
         using var sourceLease = w.SourceKind == "plastic" ? originalGuard!.Acquire(w, included.Order(StringComparer.Ordinal).ToArray(), ct) : null;
         var originalEntries = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true, mount: w.StorageMode == "project-snapshot" ? w.ProjectPath : null, omitPlasticRoot: w.SourceKind == "plastic");
         var originalNames = originalEntries.ToDictionary(e => e.Path, StringComparer.OrdinalIgnoreCase);

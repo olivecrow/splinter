@@ -64,7 +64,7 @@ if ($WorkspaceIds) {
         $roots.Add(@{name=('workspace-' + $workspaceId);path=$taskRoot;scope='selected-workspace';baselineExcluded=$false})
     }
 } else { $roots.Add(@{name='control-and-delta';path=(Join-Path $stateRoot 'records');scope='shared-home';baselineExcluded=$false}) }
-foreach ($basisGroup in @(@{ids=$GeneratedDirectoryIds;folder='library-bases';kind='Library';relative='Library'},@{ids=$ProjectBasisIds;folder='project-bases';kind='project';relative=''})) {
+foreach ($basisGroup in @(@{ids=$GeneratedDirectoryIds;folder='library-bases';kind='Library';descriptorKind='Library';relative='Library'},@{ids=$ProjectBasisIds;folder='project-bases';kind='project';descriptorKind='Project';relative=''})) {
     $selectedBasisIds = @($basisGroup.ids | Where-Object { $_ })
     if (-not $selectedBasisIds.Count) { continue }
     if ($basisGroup.kind -eq 'project' -and $SourceKind -ne 'none') { throw 'Managed project allocation requires source none.' }
@@ -75,7 +75,7 @@ foreach ($basisGroup in @(@{ids=$GeneratedDirectoryIds;folder='library-bases';ki
         $basisState = Join-Path $basisRoot 'state.json'
         if (-not (Test-Path -LiteralPath $basisState)) { throw 'Selected generated-directory state is missing; preserve unknown.' }
         $savedBasis = Get-Content -LiteralPath $basisState -Raw | ConvertFrom-Json
-        if ($savedBasis.version -ne 1 -or $savedBasis.basis.id -cne $basisId -or $savedBasis.basis.ownerId -cne $basisId -or $savedBasis.basis.relativePath -cne $basisGroup.relative -or $savedBasis.basis.projectPath -ne $sourceRoot -or $savedBasis.basis.receiptDirectory -ne $basisRoot -or $savedBasis.basis.snapshot.rootPath -ne (Join-Path $basisRoot 'base')) { throw 'Selected basis identity/project/path differs.' }
+        if ($savedBasis.version -ne 2 -or $savedBasis.applicationKind -cne $ApplicationKind -or $savedBasis.directoryKind -cne $basisGroup.descriptorKind -or $savedBasis.basis.id -cne $basisId -or $savedBasis.basis.ownerId -cne $basisId -or $savedBasis.basis.relativePath -cne $basisGroup.relative -or $savedBasis.basis.projectPath -ne $sourceRoot -or $savedBasis.basis.receiptDirectory -ne $basisRoot -or $savedBasis.basis.snapshot.rootPath -ne (Join-Path $basisRoot 'base')) { throw 'Selected basis identity/project/path differs.' }
         $roots.Add(@{name=($basisGroup.kind + '-basis-' + $basisId);path=$basisRoot;scope='shared-including-original-basis';baselineExcluded=$true;movedPayloadPath=(Join-Path $basisRoot 'base');movedCategory=('moved-original-' + $basisGroup.kind + '-payload')})
     }
 }

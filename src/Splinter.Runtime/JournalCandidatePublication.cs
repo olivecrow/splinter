@@ -26,16 +26,17 @@ public sealed partial class JournalDeltaStore
         destination = Path.TrimEndingDirectorySeparator(Path.GetFullPath(destination));
         WorkspaceStore.EnsurePlainPath(sourceDirectory); WorkspaceStore.EnsurePlainPath(destination);
         string separator = Path.DirectorySeparatorChar.ToString();
-        if (sourceDirectory.Equals(destination, StringComparison.OrdinalIgnoreCase) ||
-            sourceDirectory.StartsWith(destination + separator, StringComparison.OrdinalIgnoreCase) ||
-            destination.StartsWith(sourceDirectory + separator, StringComparison.OrdinalIgnoreCase))
+        if (sourceDirectory.Equals(destination, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ||
+            sourceDirectory.StartsWith(destination + separator, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ||
+            destination.StartsWith(sourceDirectory + separator, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
             throw new WorkspaceException("UnsafePath", "Candidate and source must be separate trees.");
         if (identity.Snapshot != snapshot.Snapshot)
             throw new WorkspaceException("SnapshotIdentityMismatch", "Publication requires the exact snapshot tuple.");
         if (projection is not null) ValidateProjection(projection, identity);
+        var policy = WorkspacePathPolicy.For(identity.Snapshot);
         string[] forbidden = forbiddenTopLevel.Concat(identity.ExcludedTopLevel ?? [])
-            .Select(p => p.ToLowerInvariant()).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
-        if (forbidden.Any(p => string.IsNullOrWhiteSpace(p) || Normalize(p) != p || p.Contains('/')))
+            .Select(p => policy.CaseSensitive ? p : p.ToLowerInvariant()).Distinct(policy.Comparer).Order(policy.Comparer).ToArray();
+        if (forbidden.Any(p => string.IsNullOrWhiteSpace(p) || policy.Normalize(p) != p || p.Contains('/')))
             throw new WorkspaceException("CandidateRequestInvalid", "Forbidden paths must be nonempty top-level names.");
 
         string lockPath = destination + ".publication.lock";
@@ -173,7 +174,7 @@ public sealed partial class JournalDeltaStore
     private static HashSet<string>? QualifyPublicationSource(JournalDeltaStore source, CandidateSourceProjection? projection, string[] forbidden)
     {
         var files = projection is null ? null : source.QualifyProjection(projection);
-        if (source.pathChanges.Keys.Any(p => forbidden.Contains(p.Split('/')[0], StringComparer.OrdinalIgnoreCase) && files?.Contains(p) != true))
+        if (source.pathChanges.Keys.Any(p => forbidden.Contains(p.Split('/')[0], source.pathPolicy.Comparer) && files?.Contains(p) != true))
             throw new WorkspaceException("CandidateContainsManagedPaths", "The source contains unqualified managed-file or cache writes.");
         return files;
     }

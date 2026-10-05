@@ -15,6 +15,7 @@ Splinter는 작업공간과 소유 Editor의 수명·범위 저장·독립 결�
 ## 현재 제공하는 기능
 
 - .NET CLI, atomic JSON 상태와 작업 잠금, 공통 Core 계약 및 fake 적합성 시험.
+- [OS와 앱 확장 계약](docs/extensibility-boundaries.md): 불변 경로 정책·권한 metadata·앱별 원본 보호/동반 파일/생성 디렉터리 정책. 실제 다른 OS·앱 어댑터는 미구현이다.
 - 저장소에 포함한 [AI 사용 스킬](skills/splinter/SKILL.md): 필요성 판단·반환 경로 사용·같은 요청 재개·명시적 종료·실패 처리. 현재 CLI와 대화의 작업 식별자를 사용한다.
 - [명시적 폐기](docs/workspace-discard.md)의 고정 intent·중단 재개와 Git/Windows provider·`workspace discard`. 실제 서비스 적용/폐기 자격은 별도로 표시한다.
 - `ntfs-snapshot` workspace의 VSS·WinFsp 범위 저널, 선택한 Git/파일 기준, 작업별 프로세스 그룹과 Editor start/stop, 독립 결과 보존과 명시적 회수.

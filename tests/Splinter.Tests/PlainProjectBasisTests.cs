@@ -86,8 +86,8 @@ public sealed class PlainProjectBasisTests
         if (!OperatingSystem.IsWindows()) return;
         using var d = new TestDirectory(); string source = Path.Combine(d.Path, "source"); Directory.CreateDirectory(source);
         File.WriteAllText(Path.Combine(source, "keep"), "intact"); Directory.CreateDirectory(Path.Combine(source, ".git"));
-        var manager = new ManagedDirectoryBasis(new WorkspaceStore(Path.Combine(d.Path, "home")), projectBasis: true);
-        Assert.Equal("VcsMetadataUnsupported", Assert.Throws<WorkspaceException>(() => manager.PrepareAsync(source, "none", "plain-project-v1", TestContext.Current.CancellationToken).GetAwaiter().GetResult()).Code);
+        var manager = new ManagedDirectoryBasis(new WorkspaceStore(Path.Combine(d.Path, "home")), ApplicationProjectPolicies.None, projectBasis: true);
+        Assert.Equal("VcsMetadataUnsupported", Assert.Throws<WorkspaceException>(() => manager.PrepareAsync(source, "none", "none", TestContext.Current.CancellationToken).GetAwaiter().GetResult()).Code);
         Assert.Equal("intact", File.ReadAllText(Path.Combine(source, "keep")));
         Assert.False(Directory.Exists(Path.Combine(d.Path, "home", "project-bases")));
     }

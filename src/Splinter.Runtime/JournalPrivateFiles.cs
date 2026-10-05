@@ -36,7 +36,7 @@ public sealed partial class JournalDeltaStore
     {
         using (EnterGate(mutation: true))
         {
-            Check(); staging = Normalize(staging);
+            Check(); staging = NormalizePath(staging);
             if (nodes.TryGetValue(file.Entry.Id, out var prior) && !prior.Entry.Deleted || Lookup(staging) is not null)
                 throw new WorkspaceException("ViewTransferCollision", "Preserve existing file identities at the transfer destination.");
             RequireParent(staging); RequireNodeCapacity();

@@ -73,8 +73,10 @@ public static class WinFspOverlayClient
     public static async Task<OverlayServeRequest> ReadRequestAsync(string path, CancellationToken ct = default)
     {
         WindowsProcessWorkspaceProvider.CheckPath(path);
-        return await WindowsProcessWorkspaceProvider.ReadAsync<OverlayServeRequest>(path, ct)
+        var request = await WindowsProcessWorkspaceProvider.ReadAsync<OverlayServeRequest>(path, ct)
             ?? throw new WorkspaceException("OverlayRequestMissing", "A persisted overlay request is required.");
+        WindowsSnapshotPolicy.Require(request);
+        return request;
     }
     public static async Task<JsonElement> ObserveAsync(OverlayServeRequest request, CancellationToken ct = default)
     {

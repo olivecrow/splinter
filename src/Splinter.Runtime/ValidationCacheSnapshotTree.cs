@@ -9,18 +9,20 @@ public sealed class ValidationCacheSnapshotTree : ISnapshotTree
 {
     private readonly ISnapshotTree basis;
     private readonly HashSet<string> roots;
+    private readonly WorkspacePathPolicy policy;
     public SnapshotReference Snapshot => basis.Snapshot;
 
     public ValidationCacheSnapshotTree(ISnapshotTree basis, SnapshotReference expected, string[] roots)
     {
+        policy = WorkspacePathPolicy.For(expected);
         if (basis.Snapshot != expected)
             throw new WorkspaceException("ValidationCacheMismatch", "The cache requires its original immutable snapshot tuple.");
         if (roots.Length == 0 || roots.Any(p => string.IsNullOrWhiteSpace(p) ||
-                JournalDeltaStore.Normalize(p) != p || p.Contains('/')) ||
-            roots.Distinct(StringComparer.OrdinalIgnoreCase).Count() != roots.Length)
+                policy.Normalize(p) != p || p.Contains('/')) ||
+            roots.Distinct(policy.Comparer).Count() != roots.Length)
             throw new WorkspaceException("ValidationCacheMismatch", "Use distinct ordinary cache partition roots.");
         this.basis = basis;
-        this.roots = new(roots, StringComparer.OrdinalIgnoreCase);
+        this.roots = new(roots, policy.Comparer);
         basis.EnsureAvailable();
     }
 
@@ -28,18 +30,18 @@ public sealed class ValidationCacheSnapshotTree : ISnapshotTree
     public void EnsureAvailable() => basis.EnsureAvailable();
     public SnapshotEntry? Stat(string path)
     {
-        path = JournalDeltaStore.Normalize(path); EnsureAvailable();
+        path = policy.Normalize(path); EnsureAvailable();
         return Includes(path) ? basis.Stat(path) : null;
     }
     public IReadOnlyList<SnapshotEntry> List(string path)
     {
-        path = JournalDeltaStore.Normalize(path); EnsureAvailable();
+        path = policy.Normalize(path); EnsureAvailable();
         if (!Includes(path)) throw new DirectoryNotFoundException(path);
-        return basis.List(path).Where(e => Includes(JournalDeltaStore.Normalize(e.Path))).ToArray();
+        return basis.List(path).Where(e => Includes(policy.Normalize(e.Path))).ToArray();
     }
     public int Read(string path, long offset, Span<byte> destination)
     {
-        path = JournalDeltaStore.Normalize(path); EnsureAvailable();
+        path = policy.Normalize(path); EnsureAvailable();
         if (!Includes(path)) throw new FileNotFoundException(path);
         return basis.Read(path, offset, destination);
     }

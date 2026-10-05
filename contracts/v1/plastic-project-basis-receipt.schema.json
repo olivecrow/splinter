@@ -54,6 +54,7 @@
           "type": "string",
           "format": "date-time"
         },
+        "pathPolicy": {"enum": [null, "posix-case-sensitive-v1"]},
         "persistent": {
           "const": true
         },

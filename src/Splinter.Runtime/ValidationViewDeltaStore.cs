@@ -10,6 +10,7 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
 {
     private readonly object gate = new();
     private readonly CandidateSnapshotTree candidate;
+    private readonly WorkspacePathPolicy policy;
     private readonly JournalDeltaStore source, cache;
     private readonly string[] cacheRoots;
     private readonly Dictionary<Guid, JournalDeltaStore> handles = [];
@@ -35,9 +36,10 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
     public ValidationViewDeltaStore(string sourceDirectory, OverlayIdentity identity, ISnapshotTree basis,
         ValidationViewSelection selection, Action<string>? transferBoundary = null, ISnapshotTree? cacheBasis = null)
     {
+        policy = WorkspacePathPolicy.For(identity.Snapshot);
         if (selection.CacheTopLevel is not { Length: > 0 } || selection.CacheTopLevel.Any(p =>
-                string.IsNullOrWhiteSpace(p) || JournalDeltaStore.Normalize(p) != p || p.Contains('/')) ||
-            selection.CacheTopLevel.Distinct(StringComparer.OrdinalIgnoreCase).Count() != selection.CacheTopLevel.Length)
+                string.IsNullOrWhiteSpace(p) || policy.Normalize(p) != p || p.Contains('/')) ||
+            selection.CacheTopLevel.Distinct(policy.Comparer).Count() != selection.CacheTopLevel.Length)
             throw new ArgumentException("Cache partition names must be distinct ordinary top-level names.");
         Identity = identity;
         this.sourceDirectory = Path.GetFullPath(sourceDirectory);
@@ -47,11 +49,11 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
             .Select(p => Path.TrimEndingDirectorySeparator(Path.GetFullPath(p))).ToArray();
         for (int i = 0; i < directories.Length; i++)
             for (int j = i + 1; j < directories.Length; j++)
-                if (directories[i].Equals(directories[j], StringComparison.OrdinalIgnoreCase) ||
-                    directories[i].StartsWith(directories[j] + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
-                    directories[j].StartsWith(directories[i] + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                if (directories[i].Equals(directories[j], OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ||
+                    directories[i].StartsWith(directories[j] + Path.DirectorySeparatorChar, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ||
+                    directories[j].StartsWith(directories[i] + Path.DirectorySeparatorChar, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
                     throw new WorkspaceException("UnsafePath", "View source, immutable candidate and cache must be disjoint trees.");
-        cacheRoots = selection.CacheTopLevel.Order(StringComparer.OrdinalIgnoreCase).ToArray();
+        cacheRoots = selection.CacheTopLevel.Order(policy.Comparer).ToArray();
         if (new[] { "compaction-intent.json", "delta.journal.previous", "delta.journal.compacting" }
             .Any(name => File.Exists(Path.Combine(selection.CacheDeltaPath, name))))
             throw new WorkspaceException("ValidationCacheMaintenancePending", "Finish this cache's retained compaction before starting a validation view.");
@@ -63,8 +65,10 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
             var cacheIdentity = selection.CacheIdentity ?? identity with { Id = identity.Id + "/cache", ExcludedTopLevel = cacheRoots,
                 Snapshot = identity.Snapshot with { Id = identity.Id + "/cache", Provider = "validation-empty-cache",
                     RootPath = Path.GetFullPath(selection.CacheDeltaPath), Consistency = "empty-owned-cache" } };
+            if (cacheIdentity.Snapshot.PathPolicy != identity.Snapshot.PathPolicy)
+                throw new WorkspaceException("ValidationCacheMismatch", "Cache and source partitions must use the same immutable path policy.");
             var partitions = selection.CacheBasis == "snapshot" ? cacheIdentity.IncludedTopLevel : cacheIdentity.ExcludedTopLevel;
-            if (!(partitions ?? []).Order(StringComparer.OrdinalIgnoreCase).SequenceEqual(cacheRoots, StringComparer.OrdinalIgnoreCase) ||
+            if (!(partitions ?? []).Order(policy.Comparer).SequenceEqual(cacheRoots, policy.Comparer) ||
                 selection.CacheBasis == "snapshot" && cacheIdentity.ExcludedTopLevel is { Length: > 0 })
                 throw new WorkspaceException("ValidationCacheMismatch", "The retained cache partition must match the selected view.");
             ISnapshotTree cacheTree = selection.CacheBasis switch
@@ -97,7 +101,7 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
         catch { candidate.Dispose(); throw; }
     }
 
-    private bool Cached(string path) => cacheRoots.Contains(JournalDeltaStore.Normalize(path).Split('/')[0], StringComparer.OrdinalIgnoreCase);
+    private bool Cached(string path) => cacheRoots.Contains(policy.Normalize(path).Split('/')[0], policy.Comparer);
     private void CheckTransfer()
     { if (transferIncomplete) throw new WorkspaceException("ViewTransferRecoveryRequired", "Reconnect this exact source generation to finish the preserved private-file transfer."); }
     private JournalDeltaStore ForPath(string path) { CheckTransfer(); return Cached(path) ? cache : source; }
@@ -116,10 +120,10 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
         lock (gate)
         {
             CheckTransfer();
-            if (JournalDeltaStore.Normalize(directory).Length == 0)
+            if (policy.Normalize(directory).Length == 0)
                 return source.List("").Where(e => !Cached(e.Path)).Select(e => Remember(e, source))
                     .Concat(cache.List("").Where(e => Cached(e.Path)).Select(e => Remember(e, cache)))
-                    .OrderBy(e => e.Path, StringComparer.OrdinalIgnoreCase).ToArray();
+                    .OrderBy(e => e.Path, policy.Comparer).ToArray();
             var owner = ForPath(directory);
             return owner.List(directory).Select(e => Remember(e, owner)).ToArray();
         }
@@ -131,6 +135,7 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
     public void SetLength(Guid id, long length) { lock (gate) ForId(id).SetLength(id, length); }
     public void SetMetadata(Guid id, uint attributes, long creationTime, long accessTime, long writeTime)
     { lock (gate) ForId(id).SetMetadata(id, attributes, creationTime, accessTime, writeTime); }
+    public void SetUnixMode(Guid id, uint? mode) { lock (gate) ForId(id).SetUnixMode(id, mode); }
     public void Rename(Guid id, string destination, bool replace)
     {
         lock (gate)
@@ -138,7 +143,7 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
             var owner = ForId(id);
             if (owner != ForPath(destination))
             {
-                destination = JournalDeltaStore.Normalize(destination);
+                destination = policy.Normalize(destination);
                 var privateFile = owner.ReadPrivateFile(id);
                 var target = ForPath(destination);
                 if (target.FindPrivateIdentity(id) is { Deleted: false })

@@ -19,7 +19,8 @@ public interface IPlasticOriginalGuard
 // Normal-user observational VCS boundary. No server mutation or privileged
 // process is used, and remote observations are not a distributed reservation.
 public sealed class PlasticOriginalGuard(WorkspaceStore store, IPlasticWorkspaceClient client,
-    IPlasticOriginalStateClient stateClient, IPlasticRevisionClient revisions) : IPlasticOriginalGuard
+    IPlasticOriginalStateClient stateClient, IPlasticRevisionClient revisions,
+    ApplicationProjectPolicies? applicationPolicies = null) : IPlasticOriginalGuard
 {
     public IPlasticOriginalLease Acquire(WorkspaceRecord w, string[] paths, CancellationToken ct, bool publishing = false)
     {
@@ -32,17 +33,8 @@ public sealed class PlasticOriginalGuard(WorkspaceStore store, IPlasticWorkspace
                 string path = Path.Combine(w.ProjectPath, ".plastic", name); WorkspaceStore.EnsurePlainPath(path);
                 lease.Streams.Add(new(path, FileMode.Open, FileAccess.Read, FileShare.Read));
             }
-            if (w.ApplicationKind == "unity")
-            {
-                string temp = Path.Combine(w.ProjectPath, "Temp"), file = Path.Combine(temp, "UnityLockfile");
-                WorkspaceStore.EnsurePlainPath(file);
-                if (File.Exists(file)) lease.Streams.Add(new(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None));
-                else if (publishing)
-                {
-                    if (!Directory.Exists(temp)) { Directory.CreateDirectory(temp); lease.CreatedTemp = temp; }
-                    lease.Streams.Add(new(file, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.DeleteOnClose));
-                }
-            }
+            lease.Application = (applicationPolicies ?? ApplicationProjectPolicies.None).Get(w.ApplicationKind)
+                .AcquireOriginal(w.ProjectPath, publishing);
             var identity = client.InspectAsync(w.ProjectPath, ct).GetAwaiter().GetResult();
             PlasticWorkspaceProvider.RequireIdentity(identity, w.ProjectPath);
             if (identity.Guid != admission.WorkspaceGuid || client.VersionAsync(ct).GetAwaiter().GetResult() != admission.ClientVersion ||
@@ -76,12 +68,11 @@ public sealed class PlasticOriginalGuard(WorkspaceStore store, IPlasticWorkspace
     {
         public List<FileStream> Streams { get; } = [];
         public string Identity { get; set; } = "";
-        public string? CreatedTemp;
+        public IDisposable? Application;
         public void Dispose()
         {
             for (int i = Streams.Count - 1; i >= 0; i--) Streams[i].Dispose(); Streams.Clear();
-            if (CreatedTemp is not null && Directory.Exists(CreatedTemp) && !Directory.EnumerateFileSystemEntries(CreatedTemp).Any()) Directory.Delete(CreatedTemp);
-            CreatedTemp = null;
+            Application?.Dispose(); Application = null;
         }
     }
 }

@@ -4,6 +4,8 @@
 
 ## 명시적 수명주기
 
+앱별 Library descriptor·원본 reservation·호환 키는 Unity 정책을 명시적으로 주입해 선택한다. 관리형 기준 state와 준비 intent는 앱·디렉터리 종류를 고정한 v2만 지원하며 v1은 보존·거부한다. 공통 확장 계약은 [확장 경계](extensibility-boundaries.md)를 따른다.
+
 사용자가 허용한 예외는 **Library만 관리형 mount로 전환하는 것**이다. 프로젝트 root와 소스는 기존 NTFS 위치에 남는다. 최초 연결과 마지막 복원에는 원본 Editor를 저장하고 정상 종료한다. Splinter 명령은 원본 Editor를 자동 종료하거나 다시 열지 않는다.
 
 1. `library prepare --project <original> --key <stable-key> --home <same-volume-home>`는 기존 Library를 같은 NTFS 볼륨의 소유 `library-bases/<id>/base`로 rename하고 기존 `<original>/Library`에 원본 전용 writable WinFsp overlay를 연결한다.

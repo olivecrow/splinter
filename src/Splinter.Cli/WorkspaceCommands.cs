@@ -28,13 +28,16 @@ internal static class WorkspaceCommands
             selectRecovery([new("workspace.list", new { home = Home(parse) })]);
             var store = new WorkspaceStore(Home(parse)); IWorkspaceStorageProvider? storageProvider = development ? new RefsWorkspaceStorageProvider() : null;
             var git = new GitWorkspaceProvider(storageProvider, store, new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver);
-            var projects = new ManagedDirectoryBasis(store, projectBasis: true);
-            var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver, new ManagedDirectoryBasis(store), projects);
-            var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store, new WindowsOriginalFilePublisher(managedRoot: projects.AcquireOriginal), projectAccess: projects),
-                new PlasticWorkspaceProvider(store, new PlasticWorkspaceClient(), originalPublisher: new WindowsOriginalFilePublisher(allowPlasticAdministration: true)));
+            var projects = new ManagedDirectoryBasis(store, UnityProjectPolicy.Policies, projectBasis: true);
+            var generated = new ManagedDirectoryBasis(store, UnityProjectPolicy.Policies);
+            var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver, generated, projects);
+            var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store, new WindowsOriginalFilePublisher(managedRoot: projects.AcquireOriginal), projectAccess: projects,
+                    applicationPolicies: UnityProjectPolicy.Policies),
+                new PlasticWorkspaceProvider(store, new PlasticWorkspaceClient(), originalPublisher: new WindowsOriginalFilePublisher(allowPlasticAdministration: true),
+                    applicationPolicies: UnityProjectPolicy.Policies));
             return new(store, sources,
                 new SelectedApplicationProvider(new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners")))), storageProvider,
-                snapshots, preparationObserver, new WindowsWorkspaceDiscardProvider(sources, snapshots, new ManagedDirectoryBasis(store), projects));
+                snapshots, preparationObserver, new WindowsWorkspaceDiscardProvider(sources, snapshots, generated, projects));
         }
 
         var workspace = new Command("workspace", "Create, resume, collect, integrate, release or explicitly discard durable isolated workspaces.");

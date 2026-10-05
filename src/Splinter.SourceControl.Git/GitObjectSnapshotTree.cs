@@ -15,9 +15,10 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
 {
     public SnapshotReference Snapshot { get; }
     private readonly Func<SnapshotObservation> health;
-    private readonly Dictionary<string, SnapshotEntry> entries = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, string> blobs = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, List<SnapshotEntry>> children = new(StringComparer.OrdinalIgnoreCase);
+    private readonly WorkspacePathPolicy policy;
+    private readonly Dictionary<string, SnapshotEntry> entries;
+    private readonly Dictionary<string, string> blobs;
+    private readonly Dictionary<string, List<SnapshotEntry>> children;
     private readonly object readGate = new();
     private Process? reader;
     private GitProgressReadStream? readerOutput;
@@ -35,6 +36,8 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     internal GitObjectSnapshotTree(SnapshotReference snapshot, string tree, string revision, string reference, Func<SnapshotObservation> health)
     {
         Snapshot = snapshot; this.health = health;
+        policy = WorkspacePathPolicy.For(snapshot);
+        entries = new(policy.Comparer); blobs = new(policy.Comparer); children = new(policy.Comparer);
         EnsureAvailable();
         long timestamp = snapshot.CapturedAt.UtcDateTime.ToFileTimeUtc();
         Add(new("", true, 0, (uint)FileAttributes.Directory, timestamp, timestamp, timestamp));
@@ -60,7 +63,8 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
                 throw Failure("GitBasisUnsupported", "Only regular committed files are supported; no symlink/submodule fallback.");
             RequireObjectId(fields[2]); ValidateRecordedPath(path);
             EnsureParents(path, timestamp);
-            Add(new(path, false, length, (uint)FileAttributes.Archive, timestamp, timestamp, timestamp));
+            Add(new(path, false, length, (uint)FileAttributes.Archive, timestamp, timestamp, timestamp,
+                fields[0] == "100755" ? 0x1EDu : 0x1A4u));
             blobs.Add(path, fields[2]);
         }
         VerifySubtrees(snapshot.RootPath, subtrees);
@@ -263,18 +267,21 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         if (entry.Path.Length != 0) children[Parent(entry.Path)].Add(entry);
     }
     private static string Parent(string path) => path.Contains('/') ? path[..path.LastIndexOf('/')] : "";
-    private static string Normalize(string path)
+    private string Normalize(string path)
     {
-        string normalized = path.Replace('\\', '/').Trim('/');
+        string normalized = policy.Normalize(path);
         if (normalized.Length != 0) ValidateRecordedPath(normalized);
         return normalized;
     }
-    private static void ValidateRecordedPath(string path)
+    private void ValidateRecordedPath(string path)
     {
-        if (path.Length == 0 || path.Contains('\\') || path.Any(c => char.IsControl(c) || ":*?\"<>|".Contains(c)) ||
-            path.Split('/').Any(p => p.Length == 0 || p is "." or ".." || p.Equals(".git", StringComparison.OrdinalIgnoreCase) ||
-                p.EndsWith('.') || p.EndsWith(' ') || Reserved(p)))
-            throw Failure("GitBasisUnsupported", "Recorded paths must be unambiguous regular Windows project paths.");
+        bool invalid;
+        try { invalid = path.Length == 0 || policy.Normalize(path) != path; }
+        catch (ArgumentException) { invalid = true; }
+        if (invalid || path.Split('/').Any(p => p.Equals(".git", policy.Comparison)) ||
+            !policy.CaseSensitive && (path.Contains('\\') || path.Any(c => char.IsControl(c) || ":*?\"<>|".Contains(c)) ||
+                path.Split('/').Any(Reserved)))
+            throw Failure("GitBasisUnsupported", "Recorded paths must be unambiguous regular paths under the immutable tree policy.");
     }
     private static bool Reserved(string part)
     {

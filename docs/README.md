@@ -9,6 +9,7 @@
 | 문서 | 소유하는 내용 |
 | --- | --- |
 | [현재 기반](foundation.md) | 모듈·의존성·명령·빌드와 시험 |
+| [OS와 앱 확장 경계](extensibility-boundaries.md), [검증](verification/extensibility-boundaries.md) | 불변 경로 정책·Unix 권한 metadata·앱별 원본/동반 파일/생성 디렉터리 정책, 실제 다른 OS·앱 미구현과 합성 시험의 구분 |
 | [보안 경계 검증](verification/security-boundaries.md) | Plastic private reader·외부 MCP 인증·서비스 상속 ACL·보호된 회수 잠금·짧은 IPC 수신의 자동/한정 읽기와 미실행 배포 경계 |
 | [코드 최적화 회귀](verification/code-quality-optimization.md) | 구조화한 다음 행동·파일 rename/복원 검색·고유 객체 검사·원본 계획 조상 집합·압축 블록 순회의 자동 검증과 실측 한계 |
 | [Unity MCP 연결·응답 복구](unity-mcp-response-recovery.md) | 외부 Coplay 고정 패치의 준비·HTTP 대상·Codex 설정 조회 검사·Editor 종료 뒤 남은 연결 확인/필요한 복구·긴 코드 job·reload 상세 결과와 한정 자격 |

@@ -34,7 +34,10 @@ public static class WorkspaceSnapshotBasis
         _ => throw new WorkspaceException("SnapshotProviderUnsupported", "Retain the unsupported immutable basis.")
     };
     public static DisposableSnapshotTree OpenTree(SnapshotReference snapshot, SnapshotReadAccess access, string directory, string owner,
-        Func<SnapshotObservation>? health = null) => new(snapshot.Provider switch
+        Func<SnapshotObservation>? health = null)
+    {
+        WindowsSnapshotPolicy.Require(snapshot);
+        return new(snapshot.Provider switch
         {
             GitObjectSnapshotProvider.ProviderName => new GitObjectSnapshotProvider(directory, owner).OpenTree(snapshot, access, health),
             PlasticRevisionSnapshotProvider.ProviderName => new PlasticRevisionSnapshotProvider(directory, owner).OpenTree(snapshot, access),
@@ -42,6 +45,7 @@ public static class WorkspaceSnapshotBasis
             "windows-vss-system" => new VssSnapshotTree(snapshot, access, health),
             _ => throw new WorkspaceException("SnapshotProviderUnsupported", "Retain the unsupported immutable basis.")
         });
+    }
     public sealed class DisposableSnapshotTree(ISnapshotTree tree) : ISnapshotTree, IDisposable
     {
         public SnapshotReference Snapshot => tree.Snapshot;

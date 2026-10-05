@@ -9,6 +9,36 @@ namespace Splinter.Tests;
 
 public sealed class GitObjectSnapshotTests
 {
+    [Fact]
+    public async Task ExecutableGitModeSurvivesJournalRenameCandidateAndIndependentGitResult()
+    {
+        using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
+        await TestDirectory.Git(f.Source, "update-index", "--chmod=+x", "file.bin");
+        await TestDirectory.Git(f.Source, "commit", "-m", "executable basis");
+        f.Revision = await TestDirectory.Git(f.Source, "rev-parse", "HEAD");
+        var snapshot = await f.Capture(); var access = await f.Provider.ResolveReadAccessAsync(snapshot, ct);
+        using var tree = f.Provider.OpenTree(snapshot, access);
+        Assert.Equal(0x1EDu, tree.Stat("file.bin")!.UnixMode);
+        Assert.Equal(0x1A4u, tree.Stat("Assets/nested.txt")!.UnixMode);
+        var identity = new OverlayIdentity(2, "modes", snapshot, 4 * 1024 * 1024, 4096);
+        string delta = Path.Combine(f.Root, "delta"), candidatePath = Path.Combine(f.Root, "candidate");
+        using (var writer = new JournalDeltaStore(delta, identity, tree))
+        {
+            writer.Rename(writer.Stat("file.bin")!.Id, "renamed.bin", false);
+            writer.Write(writer.Stat("renamed.bin")!.Id, 0, [7]);
+            writer.SetUnixMode(writer.Stat("Assets/nested.txt")!.Id, 0x1ED);
+        }
+        JournalDeltaStore.ExportCandidate(delta, identity, tree, candidatePath, "modes", []);
+        using var candidate = new CandidateSnapshotTree(candidatePath, tree);
+        var result = await GitValidationResult.PreserveAsync(f.Source, f.Revision, new string('b', 24), candidate,
+            ["file.bin", "renamed.bin"], [], ct);
+        string listing = await TestDirectory.Git(f.Source, "ls-tree", "-r", result.Reference);
+        Assert.StartsWith("100755 blob", Assert.Single(listing.Split('\n'), row => row.EndsWith("\trenamed.bin", StringComparison.Ordinal)));
+        Assert.StartsWith("100755 blob", Assert.Single(listing.Split('\n'), row => row.EndsWith("\tAssets/nested.txt", StringComparison.Ordinal)));
+        Assert.DoesNotContain("\tfile.bin", listing);
+        Assert.Equal(0x1EDu, candidate.Stat("renamed.bin")!.UnixMode);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -222,7 +252,7 @@ public sealed class GitObjectSnapshotTests
         public string Root => directory.Path;
         public string Source => Path.Combine(Root, "source");
         public string Receipt => Path.Combine(Root, "receipt");
-        public string Revision { get; private set; } = "";
+        public string Revision { get; set; } = "";
         public byte[] Data { get; } = Enumerable.Range(0, 1024 * 1024).Select(i => (byte)(i * 31)).ToArray();
         public GitObjectSnapshotProvider Provider => new(Receipt, "task", Revision);
         public Task<SnapshotReference> Capture() => Provider.CaptureAsync(new(Source, "task", Receipt), TestContext.Current.CancellationToken);

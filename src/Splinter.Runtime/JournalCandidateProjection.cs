@@ -7,20 +7,25 @@ public sealed partial class JournalDeltaStore
 {
     private static bool ProjectionHash(string? value) => value is { Length: 64 } &&
         value.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f');
+    private static bool ProjectionPath(WorkspacePathPolicy policy, string path)
+    {
+        try { return policy.Normalize(path) == path; }
+        catch (ArgumentException) { return false; }
+    }
 
     private static HashSet<string> ValidateProjection(CandidateSourceProjection proof, OverlayIdentity identity)
     {
         if (proof.Version != 1 || proof.OwnerId != identity.Id || proof.Snapshot != identity.Snapshot ||
             !ProjectionHash(proof.EvidenceHash) || proof.Files is not { Length: > 0 and <= 16 })
             throw new WorkspaceException("CandidateProjectionInvalid", "Require current evidence for this exact owner and immutable snapshot.");
-        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var policy = WorkspacePathPolicy.For(identity.Snapshot);
+        var paths = new HashSet<string>(policy.Comparer);
         foreach (var file in proof.Files)
         {
             if (file is null || string.IsNullOrWhiteSpace(file.Path) || file.Path.Length > 128 || file.Path is "." or ".." ||
-                file.Path.Contains('/') || file.Path.Contains('\\') || file.Path.Contains(':') || file.Path.Any(char.IsControl) ||
-                file.Path.EndsWith('.') || file.Path.EndsWith(' ') || file.Length is < 1 or > 4096 ||
+                file.Path.Contains('/') || !ProjectionPath(policy, file.Path) || file.Path.Any(char.IsControl) || file.Length is < 1 or > 4096 ||
                 !ProjectionHash(file.ContentHash) || !paths.Add(file.Path) ||
-                identity.ExcludedTopLevel?.Contains(file.Path, StringComparer.OrdinalIgnoreCase) != true)
+                identity.ExcludedTopLevel?.Contains(file.Path, policy.Comparer) != true)
                 throw new WorkspaceException("CandidateProjectionInvalid", "Only bounded, distinct, already-excluded top-level private files can be projected.");
         }
         return paths;
@@ -42,14 +47,14 @@ public sealed partial class JournalDeltaStore
         return projected;
     }
 
-    private static void ValidateProjectionMutation(Mutation mutation, IReadOnlySet<string> projected)
+    private void ValidateProjectionMutation(Mutation mutation, IReadOnlySet<string> projected)
     {
         foreach (string path in projected)
         {
-            bool exact = mutation.Entry.Path.Equals(path, StringComparison.OrdinalIgnoreCase);
-            bool child = mutation.Entry.Path.StartsWith(path + "/", StringComparison.OrdinalIgnoreCase);
+            bool exact = mutation.Entry.Path.Equals(path, pathPolicy.Comparison);
+            bool child = mutation.Entry.Path.StartsWith(path + "/", pathPolicy.Comparison);
             bool destination = mutation.Destination is { } to &&
-                (to.Equals(path, StringComparison.OrdinalIgnoreCase) || to.StartsWith(path + "/", StringComparison.OrdinalIgnoreCase));
+                (to.Equals(path, pathPolicy.Comparison) || to.StartsWith(path + "/", pathPolicy.Comparison));
             if (child || destination || exact && (mutation.Operation == "rename" || mutation.Entry.Directory || mutation.Entry.BasePath is not null))
                 throw new WorkspaceException("CandidateProjectionHistoryUnsupported", "Managed-file history crosses the qualified private-file boundary; preserve it without projection.");
         }

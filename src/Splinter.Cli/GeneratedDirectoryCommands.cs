@@ -36,13 +36,13 @@ internal static class GeneratedDirectoryCommands
                 {
                     respond(ApiResponse.Failure(command, "InvalidArguments", "Use the command's exact current schema.")); return;
                 }
-                var manager = new ManagedDirectoryBasis(new WorkspaceStore(home(parse)), projectBasis);
+                var manager = new ManagedDirectoryBasis(new WorkspaceStore(home(parse)), UnityProjectPolicy.Policies, projectBasis);
                 ManagedDirectoryState state;
                 if (action == "prepare")
                 {
                     string path = manager.NormalizeProject(parse.GetValue(project)!);
-                    string compatibility = projectBasis && (parse.GetValue(application) ?? "none") == "none" ? "plain-project-v1" : new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(home(parse), "runners"))).CompatibilityKey(path);
-                    state = await manager.PrepareAsync(path, parse.GetValue(key)!, compatibility, ct);
+                    string applicationKind = projectBasis ? parse.GetValue(application) ?? "none" : UnityProjectPolicy.Instance.ApplicationKind;
+                    state = await manager.PrepareAsync(path, parse.GetValue(key)!, applicationKind, ct);
                 }
                 else state = action == "restore" ? await manager.RestoreAsync(parse.GetValue(id)!, ct) : await manager.GetAsync(parse.GetValue(id)!, ct);
                 respond(ApiResponse.Success(command, new { basis = state, home = home(parse) }));

@@ -12,6 +12,7 @@ public static class GitValidationResult
     public static async Task<(string Reference, string Hash)> PreserveAsync(string project, string baseRevision,
         string operationId, ISnapshotTree tree, string[] changedPaths, string[] managedPaths, CancellationToken ct)
     {
+        var policy = WorkspacePathPolicy.For(tree.Snapshot);
         string listing = await Run(project, ["ls-tree", "-r", "-z", baseRevision], null, ct);
         var baseline = new Dictionary<string, (string Mode, string Hash)>(StringComparer.Ordinal);
         foreach (string row in listing.Split('\0', StringSplitOptions.RemoveEmptyEntries))
@@ -21,24 +22,34 @@ public static class GitValidationResult
                 throw new WorkspaceException("SnapshotInputUnsupported", "Independent validation results require ordinary source files.");
             baseline.Add(row[(tab + 1)..], (fields[0], fields[2]));
         }
-        bool Changed(string path) => changedPaths.Any(p => path.Equals(p, StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith(p + "/", StringComparison.OrdinalIgnoreCase));
+        bool Changed(string path) => changedPaths.Any(p => path.Equals(p, policy.Comparison) || policy.IsChild(path, p));
         async Task<string> Build(string directory)
         {
             var records = new List<(string Name, string Row)>();
             foreach (var entry in tree.List(directory))
             {
                 ct.ThrowIfCancellationRequested();
-                if (SourcePathPolicy.Managed(entry.Path, managedPaths)) continue;
+                if (policy.Managed(entry.Path, managedPaths)) continue;
                 string name = entry.Path.Split('/')[^1];
                 if (name is "." or ".." || name.Contains('\0') || name.Contains('\n'))
                     throw new WorkspaceException("SnapshotInputUnsupported", "Unsupported source entry name.");
                 string hash, mode;
-                if (entry.Directory) { hash = await Build(entry.Path); mode = "040000"; }
+                if (entry.Directory)
+                {
+                    if (entry.UnixMode is not null)
+                        throw new WorkspaceException("GitPermissionsUnsupported", "Git trees cannot preserve directory permission metadata; retain the candidate.");
+                    hash = await Build(entry.Path); mode = "040000";
+                }
                 else
                 {
                     bool retained = baseline.TryGetValue(entry.Path, out var original);
-                    mode = retained ? original.Mode : "100644";
+                    mode = entry.UnixMode switch
+                    {
+                        0x1A4 => "100644",
+                        0x1ED => "100755",
+                        null => retained ? original.Mode : "100644",
+                        _ => throw new WorkspaceException("GitPermissionsUnsupported", "Git results can preserve regular 0644/0755 modes only; retain unsupported permission metadata in the candidate.")
+                    };
                     hash = retained && !Changed(entry.Path) ? original.Hash : (await Run(project, ["hash-object", "-w", "--stdin"], async output =>
                     {
                         byte[] buffer = new byte[1024 * 1024]; long offset = 0;

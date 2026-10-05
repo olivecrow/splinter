@@ -15,7 +15,7 @@ pwsh ./scripts/splinter.ps1 schema workspace.ensure
 pwsh ./scripts/splinter.ps1 workspace ensure --project <원본> --key <task key> --source none --application unity --storage project-snapshot --project-basis <반환 basis.id> --home <같은 home>
 ```
 
-일반 데이터는 prepare와 ensure 모두 `--application none`을 사용한다. `unity`는 Unity 버전·package 호환 key를 고정하며 Library도 전체 프로젝트 기준에 포함한다. `--library-basis`와 `--project-basis`는 함께 사용하지 않는다. `base=snapshot`, purpose task만 허용한다. 현재 상태는 v2이고 기준 state는 version 1이다. 이전 상태의 자동 이관은 없다.
+일반 데이터는 prepare와 ensure 모두 `--application none`을 사용한다. `unity`는 Unity 버전·package 호환 key를 고정하며 Library도 전체 프로젝트 기준에 포함한다. `--library-basis`와 `--project-basis`는 함께 사용하지 않는다. `base=snapshot`, purpose task만 허용한다. workspace 상태와 관리형 기준 state·준비 intent는 v2다. 기준 state에는 앱·디렉터리 종류를 명시하며 이전 상태는 보존·거부하고 자동 이관하지 않는다. 정책 조합은 [확장 경계](extensibility-boundaries.md)를 따른다.
 
 같은 project/key/home/application의 prepare와 같은 task ensure는 기존 identity를 유지한다. 응답의 `data.basis.basis.id`, `data.workspace.path`, task id/digest와 basis manifest hash를 인계에 남긴다. prepare 실패는 새 key로 재캡처하지 않고 같은 요청의 준비 상태를 복구한다. `project status --id <basis id>`는 저장된 identity/phase를 읽으며 현재 mount 건강을 인증하지 않는다. task attach·원본 계획/게시는 정확한 provider·원본 volume identity와 기준 reader lease를 별도로 확인한다. 소실·손상·owner 불일치는 보존 후 거부한다.
 

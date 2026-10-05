@@ -90,6 +90,8 @@ public sealed class CandidateSourceProjectionTests
     [InlineData("snapshot", "CandidateProjectionInvalid")]
     [InlineData("evidence", "CandidateProjectionInvalid")]
     [InlineData("user-path", "CandidateProjectionInvalid")]
+    [InlineData("colon", "CandidateProjectionInvalid")]
+    [InlineData("traversal", "CandidateProjectionInvalid")]
     [InlineData("duplicates", "CandidateProjectionInvalid")]
     [InlineData("version", "CandidateProjectionInvalid")]
     [InlineData("content", "CandidateProjectionMismatch")]
@@ -108,6 +110,8 @@ public sealed class CandidateSourceProjectionTests
             case "snapshot": proof = proof with { Snapshot = proof.Snapshot with { RootPath = "other" } }; break;
             case "evidence": proof = proof with { EvidenceHash = "unverified" }; break;
             case "user-path": proof = proof with { Files = [proof.Files[0] with { Path = "Assets" }] }; break;
+            case "colon": proof = proof with { Files = [proof.Files[0] with { Path = "named:stream" }] }; break;
+            case "traversal": proof = proof with { Files = [proof.Files[0] with { Path = ".." }] }; break;
             case "duplicates": proof = proof with { Files = [proof.Files[0], proof.Files[0]] }; break;
             case "version": proof = proof with { Version = 0 }; break;
             default:

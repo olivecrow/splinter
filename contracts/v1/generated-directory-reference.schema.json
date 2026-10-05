@@ -20,7 +20,8 @@
       "minLength": 1
     },
     "relativePath": {
-      "enum": ["Library", ""]
+      "type": "string",
+      "pattern": "^(?:|[^/\\\\:\\u0000-\\u001f]+)$"
     },
     "snapshot": {
       "type": "object",
@@ -55,6 +56,7 @@
           "type": "string",
           "format": "date-time"
         },
+        "pathPolicy": {"enum": [null, "posix-case-sensitive-v1"]},
         "persistent": {
           "const": true
         },

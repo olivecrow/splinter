@@ -17,11 +17,13 @@ public interface IPlasticWorkspaceClient
 }
 
 public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorkspaceClient client, IPlasticRevisionClient? revisionClient = null,
-    IOriginalFilePublisher? originalPublisher = null, IPlasticOriginalGuard? originalGuard = null) :
+    IOriginalFilePublisher? originalPublisher = null, IPlasticOriginalGuard? originalGuard = null,
+    ApplicationProjectPolicies? applicationPolicies = null) :
     ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider
 {
     private readonly FileWorkspaceProvider files = new(store, originalPublisher, revisionClient, originalGuard ??
-        (client is IPlasticOriginalStateClient state ? new PlasticOriginalGuard(store, client, state, revisionClient ?? new PlasticRevisionClient()) : null));
+        (client is IPlasticOriginalStateClient state ? new PlasticOriginalGuard(store, client, state, revisionClient ?? new PlasticRevisionClient(), applicationPolicies) : null),
+        applicationPolicies: applicationPolicies);
     private string Control(WorkspaceRecord w) => store.ControlPath(w.Id);
     private static string Evidence(string control, string name) => Path.Combine(control, "plastic", name);
     private static WorkspaceException Invalid(string message) => new("PlasticCompatibilityInvalid", message);

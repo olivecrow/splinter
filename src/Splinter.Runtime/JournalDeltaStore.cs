@@ -34,15 +34,16 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     public const int MaxHiddenPaths = 250000;
     private readonly object gate = new();
     private readonly ISnapshotTree snapshot;
+    private readonly WorkspacePathPolicy pathPolicy;
     private readonly FileStream journal;
     private readonly IJournalMutationObserver? mutationObserver;
     private readonly Dictionary<Guid, Node> nodes = [];
-    private readonly Dictionary<string, Guid> paths = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, HashSet<Guid>> children = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> hidden = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Guid> paths;
+    private readonly Dictionary<string, HashSet<Guid>> children;
+    private readonly HashSet<string> hidden;
     private long sequence, payloadBytes, logicalPayloadBytes, readBytes;
     private readonly string epoch = Guid.NewGuid().ToString("N");
-    private readonly Dictionary<string, long> pathChanges = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, long> pathChanges;
     private long lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount, appendedBytes;
     private long replayBytes, replayTicks, journalReadBytes, baseReadBytes;
     private long rangeReadCalls, rangeReadSearchProbes, rangeReadVisitedExtents;
@@ -96,13 +97,16 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         bool readOnly, IJournalMutationObserver? mutationObserver)
     {
         this.mutationObserver = mutationObserver;
+        pathPolicy = WorkspacePathPolicy.For(identity.Snapshot);
+        paths = new(pathPolicy.Comparer); children = new(pathPolicy.Comparer);
+        hidden = new(pathPolicy.Comparer); pathChanges = new(pathPolicy.Comparer);
         if (identity.Version != 2)
             throw new WorkspaceException("OverlayFormatUnsupported", "Only overlay v2 is supported; preserve old identities and journals without migration.");
         if (identity.MaxJournalBytes < 4096 || identity.MaxTransferBytes is < 4096 or > 1048576)
             throw new ArgumentException("Invalid overlay version or bounded storage limits.");
         if (identity.DeniedTopLevel is { } denied && (denied.Length > 32 ||
-            denied.Any(p => string.IsNullOrEmpty(p) || Normalize(p) != p || p.Contains('/')) ||
-            denied.Distinct(StringComparer.OrdinalIgnoreCase).Count() != denied.Length))
+            denied.Any(p => string.IsNullOrEmpty(p) || NormalizePath(p) != p || p.Contains('/')) ||
+            denied.Distinct(pathPolicy.Comparer).Count() != denied.Length))
             throw new ArgumentException("Denied administration roots must be bounded unique top-level names.");
         if (identity.Snapshot != snapshot.Snapshot || identity.Graft != snapshot.Graft || !identity.Snapshot.Persistent || !identity.Snapshot.Differential)
             throw new WorkspaceException("SnapshotIdentityMismatch", "Reconnect requires the exact persistent differential snapshot reference.");
@@ -145,18 +149,18 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         catch { journal.Dispose(); throw; }
     }
 
-    public DeltaEntry? Stat(string path) { using (EnterGate()) { Check(); return Lookup(Normalize(path))?.Entry; } }
+    public DeltaEntry? Stat(string path) { using (EnterGate()) { Check(); return Lookup(NormalizePath(path))?.Entry; } }
     public DeltaEntry Get(Guid id) { using (EnterGate()) { Check(); return Required(id).Entry; } }
     public IReadOnlyList<DeltaEntry> List(string directory)
     {
         using (EnterGate())
         {
-            Check(); Node parent = Lookup(Normalize(directory)) ?? throw new DirectoryNotFoundException(directory);
+            Check(); Node parent = Lookup(NormalizePath(directory)) ?? throw new DirectoryNotFoundException(directory);
             if (!parent.Entry.Directory) throw new IOException("Not a directory.");
             if (parent.Entry.BasePath is { } lower)
                 foreach (var item in snapshot.List(lower)) _ = Lookup(Join(parent.Entry.Path, Name(item.Path)));
             return children.TryGetValue(parent.Entry.Path, out var entries)
-                ? entries.Select(id => nodes[id].Entry).OrderBy(e => e.Path, StringComparer.OrdinalIgnoreCase).ToArray()
+                ? entries.Select(id => nodes[id].Entry).OrderBy(e => e.Path, pathPolicy.Comparer).ToArray()
                 : [];
         }
     }
@@ -165,12 +169,13 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     {
         using (EnterGate(mutation: true))
         {
-            Check(); path = Normalize(path); RequireAllowed(path);
+            Check(); path = NormalizePath(path); RequireAllowed(path);
             if (path.Length == 0 || Lookup(path) is not null) throw new IOException("Path already exists.");
             RequireParent(path); RequireNodeCapacity();
             long now = DateTime.UtcNow.ToFileTimeUtc();
             var entry = new DeltaEntry(Guid.NewGuid(), path, directory, 0,
-                directory ? attributes | 16u : attributes & ~16u, now, now, now, null, 0);
+                pathPolicy == WorkspacePathPolicy.Windows ? directory ? attributes | 16u : attributes & ~16u : attributes,
+                now, now, now, null, 0);
             Commit(new(sequence + 1, "create", entry), []);
             return entry;
         }
@@ -323,11 +328,21 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         }
     }
 
+    public void SetUnixMode(Guid id, uint? mode)
+    {
+        WorkspaceUnixPermissions.RequireValid(mode);
+        using (EnterGate(mutation: true))
+        {
+            Check(); var old = Required(id).Entry;
+            if (old.UnixMode != mode) Commit(new(sequence + 1, "metadata", old with { UnixMode = mode }), []);
+        }
+    }
+
     public void Rename(Guid id, string destination, bool replace)
     {
         using (EnterGate(mutation: true))
         {
-            Check(); Node node = Required(id); destination = Normalize(destination); RequireAllowed(destination);
+            Check(); Node node = Required(id); destination = NormalizePath(destination); RequireAllowed(destination);
             if (node.Entry.Path.Length == 0 || node.Entry.Deleted || destination.Length == 0 || IsChild(destination, node.Entry.Path))
                 throw new IOException("Invalid rename.");
             RequireParent(destination);
@@ -394,7 +409,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             // Root mutations can only change directory attributes/timestamps:
             // create, rename, delete, resize and payload writes reject the root.
             // They do not change a source file or source membership.
-            var changes = pathChanges.Where(p => p.Key.Length != 0 && !SourcePathPolicy.Managed(p.Key, managedPaths))
+            var changes = pathChanges.Where(p => p.Key.Length != 0 && !pathPolicy.Managed(p.Key, managedPaths))
                 .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => new SourcePathChange(p.Key, p.Value)).ToArray();
             return new(Identity.Id, Identity.Snapshot.Id, epoch,
                 changes.Length == 0 ? 0 : changes.Max(p => p.Sequence), changes);
@@ -448,25 +463,25 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         if (Denied(path)) return null;
         if (paths.TryGetValue(path, out var id)) return nodes[id];
         if (path.Length == 0 || hidden.Contains(path)) return null;
-        if (Identity.ExcludedTopLevel?.Contains(path.Split('/')[0], StringComparer.OrdinalIgnoreCase) == true) return null;
-        if (Identity.IncludedTopLevel is { } included && !included.Contains(path.Split('/')[0], StringComparer.OrdinalIgnoreCase)) return null;
+        if (Identity.ExcludedTopLevel?.Contains(path.Split('/')[0], pathPolicy.Comparer) == true) return null;
+        if (Identity.IncludedTopLevel is { } included && !included.Contains(path.Split('/')[0], pathPolicy.Comparer)) return null;
         var parent = Lookup(Parent(path));
         if (parent is not { Entry.Directory: true, Entry.BasePath: { } baseParent }) return null;
         var entry = snapshot.Stat(Join(baseParent, Name(path)));
         return entry is null ? null : AddBaseNode(entry, path);
     }
-    private bool Denied(string path) => Identity.DeniedTopLevel?.Contains(path.Split('/')[0], StringComparer.OrdinalIgnoreCase) == true;
+    private bool Denied(string path) => Identity.DeniedTopLevel?.Contains(path.Split('/')[0], pathPolicy.Comparer) == true;
     private void RequireAllowed(string path)
     {
         if (Denied(path)) throw new UnauthorizedAccessException("This administration root is reserved by the workspace isolation policy.");
     }
     private Node AddBaseNode(SnapshotEntry entry, string path)
     {
-        RequireNodeCapacity();
-        var digest = SHA256.HashData(Encoding.UTF8.GetBytes(Identity.Snapshot.Id + "/" + entry.Path.ToUpperInvariant()));
+        RequireNodeCapacity(); WorkspaceUnixPermissions.RequireValid(entry.UnixMode);
+        var digest = SHA256.HashData(Encoding.UTF8.GetBytes(Identity.Snapshot.Id + "/" + pathPolicy.IdentityPath(entry.Path)));
         var id = new Guid(digest.AsSpan(0, 16));
         var node = new Node(new(id, path, entry.Directory, entry.Length, entry.Attributes,
-            entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime, entry.Path, entry.Length));
+            entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime, entry.Path, entry.Length, UnixMode: entry.UnixMode));
         nodes.Add(id, node); IndexPath(path, id); return node;
     }
     private void IndexPath(string path, Guid id)
@@ -497,7 +512,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         // The direct-child listing index therefore cannot enumerate this subtree.
         string prefix = root.Entry.Path + "/";
         foreach (var (path, id) in paths)
-            if (path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) result.Add(nodes[id]);
+            if (path.StartsWith(prefix, pathPolicy.Comparison)) result.Add(nodes[id]);
         return result;
     }
     private static (int Index, int Probes) FindExtent(IReadOnlyList<Extent> extents, long offset)
@@ -511,19 +526,12 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         }
         return (low, probes);
     }
-    public static string Normalize(string path)
-    {
-        path = path.Replace('\\', '/').TrimStart('/');
-        if (path.EndsWith('/') && path.Length != 0) path = path.TrimEnd('/');
-        if (path.Length > 32000 || path.Contains(':') || path.Contains('\0') ||
-            (path.Length != 0 && path.Split('/').Any(p => p is "." or ".." or "" || p.EndsWith('.') || p.EndsWith(' '))))
-            throw new ArgumentException("Only relative ordinary file paths are supported.");
-        return path;
-    }
+    public static string Normalize(string path) => WorkspacePathPolicy.Windows.Normalize(path);
+    private string NormalizePath(string path) => pathPolicy.Normalize(path);
     private static string Parent(string path) { int slash = path.LastIndexOf('/'); return slash < 0 ? "" : path[..slash]; }
     private static string Name(string path) => path[(path.LastIndexOf('/') + 1)..];
     private static string Join(string parent, string name) => parent.Length == 0 ? name : parent + "/" + name;
-    private static bool IsChild(string child, string parent) => child.StartsWith(parent + "/", StringComparison.OrdinalIgnoreCase);
+    private bool IsChild(string child, string parent) => pathPolicy.IsChild(child, parent);
 
     private void Commit(Mutation mutation, ReadOnlySpan<byte> payload)
     {
@@ -668,7 +676,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             journal.SetLength(cursor); DurableFlush();
         }
     }
-    private static Mutation DecodeMutation(byte[] metadata, int payloadLength)
+    private Mutation DecodeMutation(byte[] metadata, int payloadLength)
     {
         Mutation? mutation;
         try { mutation = JsonSerializer.Deserialize<Mutation>(metadata); }
@@ -676,14 +684,14 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         static WorkspaceException Invalid() => new("DeltaCorrupt", "Journal mutation metadata is invalid; preserve the complete frame.");
         if (mutation?.Entry is not { } entry || entry.Id == Guid.Empty || entry.Path is null ||
             entry.Length < 0 || entry.BaseLength < 0 || entry.BaseLength > entry.Length ||
-            entry.BasePath is null && entry.BaseLength != 0 || entry.Directory && entry.Length != 0)
+            entry.BasePath is null && entry.BaseLength != 0 || entry.Directory && entry.Length != 0 || entry.UnixMode is > 0xFFF)
             throw Invalid();
         try
         {
-            if (Normalize(entry.Path) != entry.Path || entry.BasePath is not null && Normalize(entry.BasePath) != entry.BasePath)
+            if (NormalizePath(entry.Path) != entry.Path || entry.BasePath is not null && NormalizePath(entry.BasePath) != entry.BasePath)
                 throw Invalid();
             if (mutation.Operation == "rename" && (mutation.Destination is null ||
-                mutation.Destination.Length == 0 || Normalize(mutation.Destination) != mutation.Destination ||
+                mutation.Destination.Length == 0 || NormalizePath(mutation.Destination) != mutation.Destination ||
                 entry.Path.Length == 0 || IsChild(mutation.Destination, entry.Path))) throw Invalid();
         }
         catch (ArgumentException) { throw Invalid(); }
@@ -779,7 +787,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 if (node.Entry.Directory)
                 {
                     string childPrefix = old + "/";
-                    foreach (string path in hidden.Where(p => p.StartsWith(childPrefix, StringComparison.OrdinalIgnoreCase)).ToArray())
+                    foreach (string path in hidden.Where(p => p.StartsWith(childPrefix, pathPolicy.Comparison)).ToArray())
                     { hidden.Remove(path); hidden.Add(destination + path[old.Length..]); }
                 }
                 hidden.Add(old); break;

@@ -6,11 +6,59 @@ using Splinter.Platform.Windows;
 using Splinter.Protocol;
 using Splinter.Runtime;
 using Splinter.SourceControl.Files;
+using Splinter.Application.Unity;
 
 namespace Splinter.Tests;
 
 public sealed class PlasticOriginalApplyTests
 {
+    [Fact]
+    public async Task InjectedApplicationOwnsCompanionGuardsAndOriginalReservation()
+    {
+        var policy = new ProjectPolicy();
+        using var f = new Fixture(policies: new(policy)); var ct = TestContext.Current.CancellationToken;
+        await f.Prepare(ct); f.Write("Assets/item.txt", "changed"); await f.Collect(ct);
+        var plan = await f.Source.PlanOriginalAsync(f.W, ct, ["Assets/item.txt"]);
+        Assert.Empty(plan.Conflicts);
+        Assert.Contains(plan.Changes, c => c.Path == "Packages/manifest.json" && c.AlreadyMatches);
+        Assert.DoesNotContain(plan.Changes, c => c.Path == "Assets/item.txt.meta");
+        Assert.Equal(1, policy.Acquired); Assert.Equal(1, policy.Released);
+        policy.Refuse = true;
+        Assert.Equal("FakeOriginalBusy", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            f.Source.ApplyOriginalAsync(f.W, "apply", plan.Digest, ct, ["Assets/item.txt"]))).Code);
+        Assert.Null(f.W.OriginalApply);
+        Assert.Equal("basis", File.ReadAllText(Path.Combine(f.Project, "Assets", "item.txt")));
+        policy.Refuse = false;
+        File.WriteAllText(Path.Combine(f.Project, "Packages", "manifest.json"), "foreign");
+        var changed = await f.Source.PlanOriginalAsync(f.W, ct, ["Assets/item.txt"]);
+        Assert.Contains(changed.Conflicts, c => c.StartsWith("Packages/manifest.json:", StringComparison.Ordinal));
+        Assert.Equal(policy.Acquired, policy.Released);
+    }
+    [Fact]
+    public async Task MissingApplicationPolicyFailsBeforeIntentOrOriginalWrites()
+    {
+        using var f = new Fixture(policies: ApplicationProjectPolicies.None); var ct = TestContext.Current.CancellationToken;
+        await f.Prepare(ct); f.Write("Assets/item.txt", "changed"); await f.Collect(ct);
+        Assert.Equal("ApplicationPolicyUnsupported", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            f.Source.PlanOriginalAsync(f.W, ct))).Code);
+        Assert.Null(f.W.OriginalApply); Assert.Equal("basis", File.ReadAllText(Path.Combine(f.Project, "Assets", "item.txt")));
+    }
+    private sealed class ProjectPolicy : IApplicationProjectPolicy
+    {
+        public bool Refuse;
+        public int Acquired, Released;
+        public string ApplicationKind => "unity"; // Substitute a policy in the currently admitted slot.
+        public GeneratedDirectoryDescriptor? GeneratedDirectory => null;
+        public string CompatibilityKey(string project) => "synthetic";
+        public IDisposable AcquireOriginal(string project, bool reservePublication = false, string? verifiedManagedRoot = null)
+        {
+            if (Refuse) throw new WorkspaceException("FakeOriginalBusy", "synthetic original reservation refusal");
+            Acquired++; return new Release(this);
+        }
+        public ApplicationSelection CloseSelection(IEnumerable<string> paths, Func<string, bool> before, Func<string, bool> after)
+            => new(paths.Append("Packages/manifest.json").ToArray(), ["Packages/manifest.json"]);
+        private sealed class Release(ProjectPolicy policy) : IDisposable { public void Dispose() => policy.Released++; }
+    }
     [Fact]
     public async Task SelectedUnityChangesPinMetadataAndPreserveWithheldOriginalAndAdministration()
     {
@@ -157,7 +205,7 @@ public sealed class PlasticOriginalApplyTests
         public WorkspaceRecord W { get; }
         public Client Client { get; } = new();
         public PlasticWorkspaceProvider Source { get; }
-        public Fixture(Action<string, int>? boundary = null)
+        public Fixture(Action<string, int>? boundary = null, ApplicationProjectPolicies? policies = null)
         {
             if (!OperatingSystem.IsWindows()) Assert.Skip("Conditional Windows NTFS publication.");
             Project = Path.Combine(directory.Path, "project"); Directory.CreateDirectory(Path.Combine(Project, ".plastic"));
@@ -167,7 +215,8 @@ public sealed class PlasticOriginalApplyTests
             Store = new(Path.Combine(directory.Path, "home")); string id = WorkspaceStore.Key("plastic-apply");
             W = new() { Id = id, RequestKey = "apply", ProjectPath = Project, Path = Store.WorkPath(id), SourceReference = "files:" + id,
                 BaseReference = "1@repo@server", SourceKind = "plastic", ApplicationKind = "unity", ManagedPaths = ["Library", "Temp"], StorageMode = "plastic-snapshot", RequestDigest = "fixed", Snapshot = new() };
-            Source = new(Store, Client, Client, boundary is null ? new WindowsOriginalFilePublisher(true) : new WindowsOriginalFilePublisher(boundary, true));
+            Source = new(Store, Client, Client, boundary is null ? new WindowsOriginalFilePublisher(true) : new WindowsOriginalFilePublisher(boundary, true),
+                applicationPolicies: policies ?? UnityProjectPolicy.Policies);
         }
         public async Task Prepare(CancellationToken ct)
         {

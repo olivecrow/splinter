@@ -55,7 +55,7 @@ public sealed partial class JournalDeltaStore
             if (store.SealCurrent() != candidate.Seal)
                 throw new WorkspaceException("CandidateSealMismatch", "The published journal changed; preserve it.");
             if (candidate.SourceProjection is null && store.pathChanges.Keys.Any(path =>
-                store.Identity.ExcludedTopLevel?.Contains(path.Split('/')[0], StringComparer.OrdinalIgnoreCase) == true))
+                store.Identity.ExcludedTopLevel?.Contains(path.Split('/')[0], store.pathPolicy.Comparer) == true))
                 throw new WorkspaceException("CandidateProjectionMismatch", "Excluded-path history requires the retained projection evidence.");
             if (candidate.SourceProjection is { } proof && proof.Files.Any(file => store.Stat(file.Path) is not null))
                 throw new WorkspaceException("CandidateProjectionMismatch", "Projected managed files must be absent from the published candidate.");
@@ -85,7 +85,7 @@ public sealed class CandidateSnapshotTree : ISnapshotTree, IDisposable
     public void EnsureAvailable() => basis.EnsureAvailable();
     public SourceChangeView ObserveChanges(string[] managedPaths) => store.ObserveChanges(managedPaths);
     private static SnapshotEntry Convert(DeltaEntry entry) => new(entry.Path, entry.Directory, entry.Length,
-        entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime);
+        entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime, entry.UnixMode);
     public SnapshotEntry? Stat(string path) => store.Stat(path) is { } entry ? Convert(entry) : null;
     public IReadOnlyList<SnapshotEntry> List(string path) => store.List(path).Select(Convert).ToArray();
     public int Read(string path, long offset, Span<byte> destination) =>

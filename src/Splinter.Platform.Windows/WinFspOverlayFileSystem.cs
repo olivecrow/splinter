@@ -28,6 +28,7 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
         IOverlayMutationObserver? mutationObserver = null)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        WindowsSnapshotPolicy.Require(store.Identity.Snapshot);
         this.store = store; this.report = report; this.mutationObserver = mutationObserver;
         string sid = WindowsIdentity.GetCurrent().User!.Value;
         var descriptor = new RawSecurityDescriptor($"O:{sid}G:{sid}D:P(A;;FA;;;SY)(A;;FA;;;{sid})");

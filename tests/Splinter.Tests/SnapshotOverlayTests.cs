@@ -481,6 +481,7 @@ public sealed partial class SnapshotOverlayTests
 
     [Theory]
     [InlineData("json")]
+    [InlineData("unix-mode")]
     [InlineData("entry")]
     [InlineData("path")]
     [InlineData("range")]
@@ -497,6 +498,7 @@ public sealed partial class SnapshotOverlayTests
         {
             case "entry": metadata["Entry"] = null; break;
             case "path": metadata["Entry"]!["Path"] = "../outside"; break;
+            case "unix-mode": metadata["Entry"]!["UnixMode"] = 0x1000; break;
             case "range": metadata["Offset"] = long.MaxValue; break;
             case "sequence": metadata["Sequence"] = 2; break;
         }

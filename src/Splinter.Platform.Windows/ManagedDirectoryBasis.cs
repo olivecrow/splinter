@@ -7,7 +7,9 @@ namespace Splinter.Platform.Windows;
 
 public sealed class ManagedDirectoryState
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
+    public string ApplicationKind { get; set; } = "";
+    public string DirectoryKind { get; set; } = "";
     public required string Key { get; set; }
     public required GeneratedDirectoryReference Basis { get; set; }
     public required string OriginalPath { get; set; }
@@ -17,12 +19,23 @@ public sealed class ManagedDirectoryState
     public long InitialPayloadCopiedBytes { get; set; }
 }
 
-// Explicit lifecycle for a moved immutable Library or VCS-free project tree.
+// Explicit lifecycle for a moved immutable generated subtree or VCS-free project tree.
 // The application owns normal Editor stop/start; this class owns only its mount.
-public sealed class ManagedDirectoryBasis(WorkspaceStore store, bool projectBasis = false) : IGeneratedDirectoryDependencies, IProjectSourceAccess
+public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProjectPolicies policies, bool projectBasis = false) : IGeneratedDirectoryDependencies, IProjectSourceAccess
 {
-    private string Kind => projectBasis ? "Project" : "Library";
-    private string RelativePath => projectBasis ? "" : "Library";
+    private GeneratedDirectoryDescriptor Descriptor(IApplicationProjectPolicy policy)
+    {
+        var descriptor = projectBasis ? new GeneratedDirectoryDescriptor("Project", "") : policy.GeneratedDirectory
+            ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Compose an application policy with an explicit generated directory.");
+        string relativePath = descriptor.RelativePath ?? ""; bool validPath;
+        try { validPath = descriptor.RelativePath is not null && JournalDeltaStore.Normalize(relativePath) == relativePath; }
+        catch (ArgumentException) { validPath = false; }
+        if (string.IsNullOrWhiteSpace(descriptor.Kind) || descriptor.Kind.Length > 64 || descriptor.Kind.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '-') || !validPath ||
+            !projectBasis && (relativePath.Length == 0 || relativePath.Contains('/') || relativePath.Contains('\\') ||
+                Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata.Contains(relativePath, StringComparer.OrdinalIgnoreCase)))
+            throw new WorkspaceException("GeneratedBasisUnsupported", "Use one ordinary top-level generated directory with an explicit descriptor identity.");
+        return descriptor;
+    }
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     private string Root(string id) { if (id.Length != 24 || id.Any(c => !char.IsAsciiHexDigit(c))) throw new WorkspaceException("InvalidWorkspaceId", "Use the exact basis id."); return Path.Combine(store.Root, projectBasis ? "project-bases" : "library-bases", id); }
     private string StatePath(string id) => Path.Combine(Root(id), "state.json");
@@ -53,7 +66,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, bool projectBasi
         if (!projectBasis || workspace.StorageMode != "project-snapshot" || workspace.SourceKind != "none" || workspace.GeneratedDirectoryId is null)
             throw new WorkspaceException("ProjectBasisMismatch", "An exact VCS-free managed project basis is required.");
         var state = GetAsync(workspace.GeneratedDirectoryId, ct).GetAwaiter().GetResult();
-        if (!WorkspaceStore.SamePath(state.Basis.ProjectPath, workspace.ProjectPath) || workspace.GeneratedDirectory is { } prior && prior != state.Basis)
+        if (state.ApplicationKind != workspace.ApplicationKind || !WorkspaceStore.SamePath(state.Basis.ProjectPath, workspace.ProjectPath) || workspace.GeneratedDirectory is { } prior && prior != state.Basis)
             throw new WorkspaceException("ProjectBasisMismatch", "Preserve the fixed original project reference.");
         return AcquireOriginal(state, publishing);
     }
@@ -79,36 +92,54 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, bool projectBasi
             if (!observed.GetProperty("ownershipVerified").GetBoolean() || !observed.GetProperty("processAlive").GetBoolean() ||
                 observed.GetProperty("phase").GetString() != "mounted" || !Directory.Exists(state.OriginalPath))
                 throw new WorkspaceException("ProjectOriginalMountRequired", "Reconnect the exact original managed view; no mutable-source fallback is available.");
-            if (publishing) editor = RequireStopped(state.Basis.ProjectPath);
             mount = ManagedMountIdentity.Acquire(state.OriginalPath, state.Basis.Id);
+            if (publishing) editor = RequireStopped(policies.Get(state.ApplicationKind), state.Basis.ProjectPath, state.OriginalPath);
             return new OriginalLease(lease, editor, mount);
         }
         catch { mount?.Dispose(); editor?.Dispose(); lease.Dispose(); throw; }
     }
-    private sealed class OriginalLease(IDisposable basis, IDisposable? editor, IDisposable mount) : IDisposable
-    { public void Dispose() { mount.Dispose(); editor?.Dispose(); basis.Dispose(); } }
+    private sealed class OriginalLease(IDisposable? basis, IDisposable? editor, IDisposable mount) : IDisposable
+    {
+        private IDisposable? basisLease = basis, editorLease = editor, mountLease = mount;
+        public void Dispose()
+        {
+            var application = Interlocked.Exchange(ref editorLease, null);
+            var root = Interlocked.Exchange(ref mountLease, null);
+            var source = Interlocked.Exchange(ref basisLease, null);
+            try { application?.Dispose(); }
+            finally { try { root?.Dispose(); } finally { source?.Dispose(); } }
+        }
+    }
     public async Task<ManagedDirectoryState> GetAsync(string id, CancellationToken ct = default)
     {
         var state = await WindowsProcessWorkspaceProvider.ReadAsync<ManagedDirectoryState>(StatePath(id), ct)
             ?? throw new WorkspaceException("GeneratedBasisMissing", "Retain the missing generated-directory identity.");
+        if (state.Version != 2 || string.IsNullOrWhiteSpace(state.ApplicationKind))
+            throw new WorkspaceException("GeneratedBasisMismatch", "Preserve an unsupported generated-directory state without migration.");
+        var descriptor = Descriptor(policies.Get(state.ApplicationKind));
         var basis = state.Basis;
-        if (state.Version != 1 || basis.Id != id || basis.OwnerId != id || basis.RelativePath != RelativePath ||
+        if (state.DirectoryKind != descriptor.Kind || basis.Id != id || basis.OwnerId != id || basis.RelativePath != descriptor.RelativePath ||
             !WorkspaceStore.SamePath(basis.ReceiptDirectory, Root(id)) || !WorkspaceStore.SamePath(basis.Snapshot.RootPath, Path.Combine(Root(id), "base")) ||
             !WorkspaceStore.SamePath(state.OriginalPath, Path.Combine(basis.ProjectPath, basis.RelativePath)) || basis.Snapshot.Provider != OwnedDirectorySnapshotTree.ProviderName ||
             basis.Snapshot.Id != id || !basis.Snapshot.Persistent || !basis.Snapshot.Differential || basis.Snapshot.Consistency != "stopped-original-owned-directory" ||
             !WorkspaceStore.SamePath(basis.Snapshot.SourcePath, basis.Snapshot.RootPath) || basis.ManifestHash.Length != 64 || basis.ManifestHash.Any(c => !char.IsAsciiHexDigit(c)) ||
-            string.IsNullOrWhiteSpace(state.Key) || state.Key.Length > 128 || id != WorkspaceStore.Key(WorkspaceStore.ProjectKey(basis.ProjectPath) + "\n" + Kind + "\n" + state.Key) ||
+            string.IsNullOrWhiteSpace(state.Key) || state.Key.Length > 128 || string.IsNullOrWhiteSpace(state.CompatibilityKey) || state.CompatibilityKey.Length > 256 ||
+            id != WorkspaceStore.Key(WorkspaceStore.ProjectKey(basis.ProjectPath) + "\n" + descriptor.Kind + "\n" + state.Key) ||
             state.Phase is not ("preparing" or "ready" or "restoring" or "restored"))
             throw new WorkspaceException("GeneratedBasisMismatch", "Preserve an unsupported generated-directory state.");
         return state;
     }
-    public async Task<ManagedDirectoryState> PrepareAsync(string project, string key, string compatibilityKey, CancellationToken ct = default)
+    public async Task<ManagedDirectoryState> PrepareAsync(string project, string key, string applicationKind, CancellationToken ct = default)
     {
         project = NormalizeProject(project);
+        var policy = policies.Get(applicationKind); var descriptor = Descriptor(policy);
+        string compatibilityKey = policy.CompatibilityKey(project);
+        if (string.IsNullOrWhiteSpace(compatibilityKey) || compatibilityKey.Length > 256)
+            throw new WorkspaceException("ApplicationPolicyUnsupported", "The application policy must provide an explicit bounded compatibility identity.");
         if (string.IsNullOrWhiteSpace(key) || key.Length > 128) throw new WorkspaceException("InvalidRequestKey", "Use a stable generated-directory key.");
-        string id = WorkspaceStore.Key(WorkspaceStore.ProjectKey(project) + "\n" + Kind + "\n" + key);
+        string id = WorkspaceStore.Key(WorkspaceStore.ProjectKey(project) + "\n" + descriptor.Kind + "\n" + key);
         using var gate = await Gate(id, ct);
-        string root = Root(id), original = Path.Combine(project, RelativePath), basisPath = Path.Combine(root, "base");
+        string root = Root(id), original = Path.Combine(project, descriptor.RelativePath), basisPath = Path.Combine(root, "base");
         if (!OperatingSystem.IsWindows() || new DriveInfo(Path.GetPathRoot(project)!).DriveFormat != "NTFS" ||
             !WorkspaceStore.SamePath(Path.GetPathRoot(project)!, Path.GetPathRoot(root)!))
             throw new WorkspaceException("NtfsVolumeRequired", "The generated basis must be renamed on the same existing NTFS volume.");
@@ -119,20 +150,20 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, bool projectBasi
         if (File.Exists(StatePath(id)))
         {
             state = await GetAsync(id, ct);
-            if (state.Key != key || state.CompatibilityKey != compatibilityKey || !WorkspaceStore.SamePath(state.Basis.ProjectPath, project))
+            if (state.ApplicationKind != applicationKind || state.Key != key || state.CompatibilityKey != compatibilityKey || !WorkspaceStore.SamePath(state.Basis.ProjectPath, project))
                 throw new WorkspaceException("RequestKeyConflict", "Reuse the original generated-directory parameters.");
             if (state.Phase == "restored") return state;
             if (state.Phase == "restoring") throw new WorkspaceException("GeneratedBasisRestorePending", "Resume the same restoration first.");
         }
         else
         {
-            using var editorGuard = RequireStopped(project);
+            using var editorGuard = RequireStopped(policy, project);
             if (projectBasis) RequireNoVcs(project);
             WorkspaceStore.EnsurePlainPath(original); WorkspaceStore.EnsurePlainPath(root);
             if (!Directory.Exists(original) || Directory.Exists(basisPath))
                 throw new WorkspaceException("GeneratedBasisPreparationConflict", "An intact original without a renamed basis is required.");
             string intentPath = Path.Combine(root, "prepare-intent.json");
-            var intent = new PreparationIntent(1, id, project, key, original, basisPath, compatibilityKey);
+            var intent = new PreparationIntent(2, id, project, key, original, basisPath, applicationKind, descriptor.Kind, compatibilityKey);
             if (Directory.Exists(root))
             {
                 var prior = await WindowsProcessWorkspaceProvider.ReadAsync<PreparationIntent>(intentPath, ct);
@@ -151,13 +182,13 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, bool projectBasi
             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(root, "proof.json"), new OwnedDirectoryProof(1, snapshot, id, manifestHash, manifest.Items.Sum(i => i.Entry.Length)), ct);
             using (var readers = new FileStream(Path.Combine(root, "readers.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)) { if (readers.Length != 0) throw new WorkspaceException("GeneratedBasisPreparationConflict", "Retain an inconsistent reader lock."); readers.Flush(true); }
             Directory.CreateDirectory(Path.Combine(root, "dependents"));
-            state = new() { Key = key, OriginalPath = original, CompatibilityKey = compatibilityKey,
-                Basis = new(id, project, RelativePath, snapshot, root, id, manifestHash) };
+            state = new() { ApplicationKind = applicationKind, DirectoryKind = descriptor.Kind, Key = key, OriginalPath = original, CompatibilityKey = compatibilityKey,
+                Basis = new(id, project, descriptor.RelativePath, snapshot, root, id, manifestHash) };
             await WindowsProcessWorkspaceProvider.WriteAsync(StatePath(id), state, ct);
         }
         if (state.Phase == "preparing")
         {
-            using var editorGuard = RequireStopped(project);
+            using var editorGuard = RequireStopped(policy, project);
             if (Directory.Exists(original) && Directory.Exists(basisPath)) throw new WorkspaceException("GeneratedBasisPreparationConflict", "Both original and basis exist; retain both.");
             if (!Directory.Exists(basisPath)) { WorkspaceStore.EnsurePlainPath(original); if (projectBasis) editorGuard?.Dispose(); Directory.Move(original, basisPath); }
             // The mount client verifies and fences the renamed basis before
@@ -182,11 +213,10 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, bool projectBasi
     public async Task<GeneratedDirectoryReference> AttachAsync(string id, WorkspaceRecord workspace, CancellationToken ct = default)
     {
         using var gate = await Gate(id, ct); var state = await GetAsync(id, ct);
-        if (state.Phase != "ready" || !WorkspaceStore.SamePath(state.Basis.ProjectPath, workspace.ProjectPath) ||
+        if (state.Phase != "ready" || state.ApplicationKind != workspace.ApplicationKind || !WorkspaceStore.SamePath(state.Basis.ProjectPath, workspace.ProjectPath) ||
             workspace.GeneratedDirectoryId != id || workspace.GeneratedDirectory is { } prior && prior != state.Basis)
             throw new WorkspaceException("GeneratedBasisMismatch", "Only the exact live generated basis may be attached to this project/task.");
-        if (projectBasis && (workspace.SourceKind != "none" || workspace.StorageMode != "project-snapshot" ||
-            (state.CompatibilityKey == "plain-project-v1") != (workspace.ApplicationKind == "none")))
+        if (projectBasis && (workspace.SourceKind != "none" || workspace.StorageMode != "project-snapshot"))
             throw new WorkspaceException("ProjectBasisMismatch", "Use the basis's exact source and application contract.");
         var request = await WinFspOverlayClient.ReadRequestAsync(RequestPath(id), ct); ValidateRequest(state, request);
         var observed = await WinFspOverlayClient.ObserveAsync(request, ct);
@@ -202,7 +232,8 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, bool projectBasi
     public async Task DetachAsync(GeneratedDirectoryReference basis, WorkspaceRecord workspace, CancellationToken ct = default)
     {
         using var gate = await Gate(basis.Id, ct); var state = await GetAsync(basis.Id, ct);
-        if (state.Basis != basis) throw new WorkspaceException("GeneratedBasisMismatch", "Retain a changed dependent basis.");
+        if (state.ApplicationKind != workspace.ApplicationKind || state.Basis != basis)
+            throw new WorkspaceException("GeneratedBasisMismatch", "Retain a changed dependent basis or application identity.");
         string control = store.ControlPath(workspace.Id);
         if (Directory.Exists(workspace.Path) || Directory.Exists(Path.Combine(control, "delta")))
             throw new WorkspaceException("GeneratedBasisInUse", "Remove the owned mount and delta before detaching its generated basis.");
@@ -224,7 +255,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, bool projectBasi
         if (Directory.EnumerateFileSystemEntries(Path.Combine(Root(id), "dependents")).Any() ||
             store.List(state.Basis.ProjectPath).Any(w => w.GeneratedDirectoryId == id && w.Phase is not ("released" or "discarded") && Directory.Exists(Path.Combine(store.ControlPath(w.Id), "delta"))))
             throw new WorkspaceException("GeneratedBasisInUse", "Retain all active task references before restoring the original.");
-        using var editorGuard = RequireStopped(state.Basis.ProjectPath);
+        using var editorGuard = RequireStoppedForState(state);
         if (state.Phase == "preparing")
         {
             // Explicitly undo an unpublished transition. No mount/worker was
@@ -270,12 +301,20 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, bool projectBasi
         await ManagedDirectoryRestore.ExecuteAsync(state, request, ct);
         state.Mount = null; state.Phase = "restored"; await WindowsProcessWorkspaceProvider.WriteAsync(StatePath(id), state, ct); return state;
     }
-    private static IDisposable? RequireStopped(string project)
+    private IDisposable? RequireStoppedForState(ManagedDirectoryState state)
     {
-        string path = Path.Combine(project, "Temp", "UnityLockfile");
-        if (!File.Exists(path)) return null;
-        try { return File.OpenHandle(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None); }
-        catch (IOException) { throw new WorkspaceException("OriginalEditorStopRequired", "Save and normally stop the original Editor before changing its Library mount."); }
+        if (projectBasis && state.Phase is "ready" or "restoring" && Directory.Exists(state.OriginalPath))
+        {
+            var mount = ManagedMountIdentity.Acquire(state.OriginalPath, state.Basis.Id);
+            try { return new OriginalLease(null, RequireStopped(policies.Get(state.ApplicationKind), state.Basis.ProjectPath, state.OriginalPath), mount); }
+            catch { mount.Dispose(); throw; }
+        }
+        return RequireStopped(policies.Get(state.ApplicationKind), state.Basis.ProjectPath);
+    }
+    private static IDisposable? RequireStopped(IApplicationProjectPolicy policy, string project, string? verifiedManagedRoot = null)
+    {
+        try { return policy.AcquireOriginal(project, verifiedManagedRoot: verifiedManagedRoot); }
+        catch (IOException) { throw new WorkspaceException("OriginalEditorStopRequired", "Save and normally stop the original application before changing its managed mount."); }
     }
     private static void ValidateRequest(ManagedDirectoryState state, OverlayServeRequest request)
     {
@@ -292,5 +331,6 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, bool projectBasi
     }
     internal static string HashFile(string path) { using var f = File.OpenRead(path); return Convert.ToHexStringLower(SHA256.HashData(f)); }
     private sealed record GeneratedDependency(string WorkspaceId, string RequestDigest, GeneratedDirectoryReference Basis);
-    private sealed record PreparationIntent(int Version, string Id, string ProjectPath, string Key, string OriginalPath, string BasisPath, string CompatibilityKey);
+    private sealed record PreparationIntent(int Version, string Id, string ProjectPath, string Key, string OriginalPath, string BasisPath,
+        string ApplicationKind, string DirectoryKind, string CompatibilityKey);
 }

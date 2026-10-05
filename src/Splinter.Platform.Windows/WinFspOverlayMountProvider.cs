@@ -8,6 +8,7 @@ public sealed class WinFspOverlayMountProvider(string requestPath, string runner
 {
     public async Task<OverlayMount> MountAsync(OverlayIdentity identity, string deltaPath, string mountPath, CancellationToken cancellationToken = default)
     {
+        WindowsSnapshotPolicy.Require(identity.Snapshot);
         var request = await WinFspOverlayClient.ReadRequestAsync(requestPath, cancellationToken);
         if (JsonSerializer.Serialize(request.Identity) != JsonSerializer.Serialize(identity) || !Same(request.DeltaPath, deltaPath) || !Same(request.MountPath, mountPath))
             throw new WorkspaceException("OverlayIdentityMismatch", "Mount must use the persisted request identity and paths.");
