@@ -64,7 +64,7 @@ final-vss.json에서 owned t0 {14D604AB-4D25-4DF4-84D5-BE4ED8379CE8}, t1 {B00DEE
 
 ## 자동 검증과 남은 범위
 
-pwsh scripts/build.ps1: locked restore, 빌드 경고/오류 0, 69개 중 68 통과·ReFS 전용 1개 skip. snapshot fake 11개는 범위/겹침/읽기/재생/소실/결과 해제 조건을 검사하며, mount 관측 회귀 2개는 실패 상태의 메모리 필드 누락을 0으로 간주하지 않는지와 미시작 상태를 검사한다. 실제 증거를 fake로 대체하지 않았다. 준비와 Unity 복합 보존 wrapper는 검증된 구성 명령을 재현하기 위해 추가했으며 전체 wrapper를 새 fixture로 다시 실행한 증거는 없다. PowerShell 21개와 journal accounting Python의 구문 검사도 통과했다.
+pwsh scripts/build.ps1: locked restore, 빌드 경고/오류 0, 69개 중 68 통과·당시 시험 1개 skip. snapshot fake 11개는 범위/겹침/읽기/재생/소실/결과 해제 조건을 검사하며, mount 관측 회귀 2개는 실패 상태의 메모리 필드 누락을 0으로 간주하지 않는지와 미시작 상태를 검사한다. 실제 증거를 fake로 대체하지 않았다. 준비와 Unity 복합 보존 wrapper는 검증된 구성 명령을 재현하기 위해 추가했으며 전체 wrapper를 새 fixture로 다시 실행한 증거는 없다. PowerShell 21개와 journal accounting Python의 구문 검사도 통과했다.
 
 초기 allocation 측정 오류는 S/measurement-v1-invalid/invalidity.json에 기록했다. 그 묶음과 이전 filesystem-operations의 물리 allocation 필드는 무효다. hash·operation 결과는 유효하며 현재 02/03 physical 측정은 FILE_STANDARD_INFO.AllocationSize로 고쳤다.
 

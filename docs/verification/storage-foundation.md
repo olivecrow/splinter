@@ -34,7 +34,7 @@
 
 기준 커밋은 `development`의 `30ce3075bb377e968931a6bc53dde77c4065673f`이며 미커밋 후보로 실행했다. 관련 없는 기존 계획 변경은 유지했고 commit/push는 하지 않았다.
 
-- 변경 전 기준: [baseline TRX](../../artifacts/storage-foundation/sf-20260925/baseline.trx), 207개 중 206 통과·0 실패·선택적 ReFS 1 skip.
+- 변경 전 기준: [baseline TRX](../../artifacts/storage-foundation/sf-20260925/baseline.trx), 207개 중 206 통과·0 실패·당시 제외 시험 1 skip.
 - 실제 소스 비용·최종 Unity 수집 후보: [live manifest](../../artifacts/storage-foundation/sf-20260925/live-candidate-manifest.json), [live TRX](../../artifacts/storage-foundation/sf-20260925/live-candidate.trx), 218개 중 217 통과·0 실패·1 skip. 범위 저장·초기 Unity 단계의 이전 후보와 재개·수정 과정도 원시 기록에 보존한다.
 - 2026-09-25 마감 당시 VSS 차단 후보: [candidate manifest](../../artifacts/storage-foundation/sf-20260925/candidate-manifest.json), [최종 build](../../artifacts/storage-foundation/sf-20260925/implementation-build-14.log), [TRX](../../artifacts/storage-foundation/sf-20260925/candidate.trx), 227개 중 226 통과·0 실패·1 skip. locked restore·Release build·자동 시험을 수행했다. 당시 추가 guard 후보의 실제 VSS 실행은 하지 않았으며 새 후보의 후속 검증은 [별도 기록](storage-recovery.md)을 따른다.
 

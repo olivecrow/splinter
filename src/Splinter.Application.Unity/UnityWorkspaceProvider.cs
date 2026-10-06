@@ -10,7 +10,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public string[] ManagedPaths => ["Assets/__Splinter__", "Assets/__Splinter__.meta", "Library", "Temp", "Logs", "UserSettings", "obj", ".vs", ".idea", "*.csproj", "*.sln", "*.slnx"];
-    public string[] CacheInputs => ["Packages", "ProjectSettings"];
+
     public string CompatibilityKey(string project) => UnityProjectPolicy.Instance.CompatibilityKey(project);
 
     public async Task<ApplicationLease> StartAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)

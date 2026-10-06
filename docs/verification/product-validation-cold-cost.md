@@ -74,7 +74,7 @@ t2에서는 첫 Editor 시작 전 `prepare-worker`의 정상 unmount 직후 `sta
 
 VHD 분리 직후 남은 두 home의 합은 0.006 GiB, 당시 실행 증거·독립 결과는 0.070 GiB, VHD backing의 시작 대비 증가는 0.000 GiB다. 전체 계측 구간의 host 파일 할당 관측 최고는 2.264 GiB다. 계측 종료 뒤 작성한 집계 JSON·문서·최종 해시 목록은 이 종료 표본 이후의 작은 산출물이며 당시 할당으로 소급 계산하지 않는다.
 
-최종 `pwsh -NoProfile -File scripts/build.ps1`은 locked restore·Release 빌드와 **515 Passed / 0 Failed / 1 Skipped**다. 선택적 실제 ReFS root가 없는 시험은 Skipped로 유지했다. 시험 전 자동 baseline과 이번 최종 TRX를 구별해 보존했다.
+최종 `pwsh -NoProfile -File scripts/build.ps1`은 locked restore·Release 빌드와 **515 Passed / 0 Failed / 1 Skipped**다. 당시 제외 시험 root가 없는 시험은 Skipped로 유지했다. 시험 전 자동 baseline과 이번 최종 TRX를 구별해 보존했다.
 
 제품 기본 모드, 일반 임대 복구·생성 source 반환 병합·큐/Coordination, 설치·binding·discard·권한 서비스, 대형 PV와 NR의 재부팅/전원/공간/ARM A/B는 [남은 계획](../plans/storage-priority-and-editor-modes.md)에 있다. [기존 WF-01~05](product-validation-workflow.md)의 cold 중단·복구 기록은 이 실행으로 소급 변경하지 않는다.
 

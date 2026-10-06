@@ -9,7 +9,7 @@ public static class WorkspaceActions
     {
         project = w.ProjectPath, key = w.RequestKey, baseReference = w.BaseReference,
         source = w.SourceKind, application = w.ApplicationKind, storage = w.StorageMode,
-        baseline = w.BaselineId, maxJournalBytes = w.Snapshot?.MaxJournalBytes,
+        maxJournalBytes = w.Snapshot?.MaxJournalBytes,
         libraryBasis = w.StorageMode == "project-snapshot" ? null : w.GeneratedDirectoryId,
         projectBasis = w.StorageMode == "project-snapshot" ? w.GeneratedDirectoryId : null,
         editor = editor ? true : (bool?)null, home
@@ -22,7 +22,6 @@ public static class WorkspaceActions
         if (!accepted && view.Recovery is { Disposition: not "ready" } recovery) command = recovery.NextCommand;
         if (view.OriginalApplyPlan is not null || w.OriginalApply is { Completed: false }) command = "workspace.integrate";
         bool requiresUser = view.Recovery is { Disposition: "observe" or "preserve" or "deferred-reclamation" or "deferred-discard-reclamation" };
-        if (w.Purpose == "baseline" && w.Phase == "released") return new("schema", new { command = "workspace.ensure" });
         if (command == "workspace.ensure") return Ensure(w, home) with { RequiresUserAction = requiresUser };
         object arguments = command switch
         {

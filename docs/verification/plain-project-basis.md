@@ -15,7 +15,7 @@
 
 현재 공통 복원 보호는 `ManagedDirectoryRestoreTests`의 로컬 NTFS 파일 시험으로 별도 확인한다. 새 파일의 범위 flush 후 다른 파일로 교체·동일 바이트 교체·생성 영수증 전 중단·보존 영역 파일의 전체 덮어쓰기 후 이동 중단·완료 뒤 교체에서 대상과 기준/저널을 보존한다. 정상 영수증 뒤 재개·readonly 파일 이동/메타데이터·retained bytes 변경 거부 시 readonly 속성 보존·쓰기 중 외부 교체 거부·이전 restore plan 거부도 확인한다. `RecoveryContractTests`는 기준 보호 오류의 응답/복구 정책 일치를 확인한다. 이 변경의 실제 Unity/WinFsp restore와 OS 장애는 NotRun이며 아래 이전 후보의 실행을 현재 보호 변경의 native 통과로 승계하지 않는다.
 
-2026-10-05 최종 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드 경고/오류 0, 전체 1,005개 중 1,004 Passed/0 Failed/1 선택적 ReFS NotRun이다. 복원/오류 정책·디렉터리 이동/재생·Git 무진행 제한의 새 회귀 20개를 포함한다. 최종 TRX는 `artifacts/code-quality-fixes/full-final.trx`에 보존하며 문서 UTF-8·diff 공백 검사도 통과했다. 이 파일/제어 stream·기존 전체 자동 회귀를 새로운 Unity·VSS·대형/ARM/OS 자격으로 확대하지 않는다.
+2026-10-05 최종 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드 경고/오류 0, 전체 1,005개 중 1,004 Passed/0 Failed/1 당시 제외 시험 NotRun이다. 복원/오류 정책·디렉터리 이동/재생·Git 무진행 제한의 새 회귀 20개를 포함한다. 최종 TRX는 `artifacts/code-quality-fixes/full-final.trx`에 보존하며 문서 UTF-8·diff 공백 검사도 통과했다. 이 파일/제어 stream·기존 전체 자동 회귀를 새로운 Unity·VSS·대형/ARM/OS 자격으로 확대하지 않는다.
 
 ## Editor 없는 실제 파일 경계
 
@@ -69,4 +69,4 @@ warm `unity-storage-warm.json`은 정확한 A/B·공통 basis/runner **6 roots**
 
 이 backend는 VSS를 호출하지 않는다. 일반 사용자 계측의 시스템 전체 VSS 조회는 unknown이며 시스템 VSS 0이라고 주장하지 않는다. 물리 순간 peak/OS metadata·개별 ACL 의미·대형/ARM/재부팅/전원 장애·다른 Unity 버전은 NotRun이다. RAM 절감은 사용자 결정대로 합격 조건이 아니다.
 
-`full-build-final.log`의 locked restore·Release build는 경고/오류 0, **984 Passed/0 Failed/1 optional ReFS Skipped**다. 이전 전체 회귀에서 신규 mode/capability·command sideEffects의 schema 누락으로 8개가 실패한 로그도 보존했으며 누락을 고친 현재 후보의 결과와 구분한다. `response-schema-validation-complete.json`은 최종 restore/status/동일 restore를 포함한 실제 파일/Unity 수명주기 응답 43개가 현재 제품 `ContractCatalog`의 response schema를 통과했음을 기록한다. 지원 판정은 작은 실제 입력과 자동 회귀의 **scoped-complete-with-limitations**이며 외부 MCP shutdown 제한·unknown·NotRun을 그대로 유지한다.
+`full-build-final.log`의 locked restore·Release build는 경고/오류 0, **984 Passed/0 Failed/1 Skipped**다. 이전 전체 회귀에서 신규 mode/capability·command sideEffects의 schema 누락으로 8개가 실패한 로그도 보존했으며 누락을 고친 현재 후보의 결과와 구분한다. `response-schema-validation-complete.json`은 최종 restore/status/동일 restore를 포함한 실제 파일/Unity 수명주기 응답 43개가 현재 제품 `ContractCatalog`의 response schema를 통과했음을 기록한다. 지원 판정은 작은 실제 입력과 자동 회귀의 **scoped-complete-with-limitations**이며 외부 MCP shutdown 제한·unknown·NotRun을 그대로 유지한다.

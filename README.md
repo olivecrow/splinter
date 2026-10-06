@@ -26,7 +26,7 @@ Splinter는 작업공간과 소유 Editor의 수명·범위 저장·독립 결�
 - 변경 기반 소스 검증, 명시적 저널 정리와 선택적 중첩량 예산, snapshot 지연 회수.
 - VSS 전용 Windows 권한 서비스와 명시적 설치 도구. 실제 설치·반복 UAC 0의 자격은 [UA 검증](docs/verification/storage-privilege-service.md)을 따른다.
 - `checkpoint`는 현재 소스를 독립 결과로 보존한다. 컴파일·Play·테스트·빌드·캡처와 합격 판단은 AI가 MCP·Unity CLI 등으로 수행하며 Splinter는 그 성공을 판정하지 않는다.
-- 선택적 ReFS/baseline·diagnostic checkout·후보/공통 Library view·spike/probe는 [개발용 CLI](docs/development-cli.md)의 별도 경로다. 기본 CLI의 명령 발견·작업 생성에서 제외한다. view는 저장소 수명과 회수 의존성만 관리한다.
+- diagnostic checkout·후보/공통 Library view·spike/probe는 [개발용 CLI](docs/development-cli.md)의 별도 경로다. 기본 CLI의 명령 발견·작업 생성에서 제외한다. view는 저장소 수명과 회수 의존성만 관리한다.
 
 현재 지원은 작은 fixture의 내부 알파 범위다. 과거 실행 기록은 지정한 후보·입력의 근거이며 변경된 계약의 native 실행 통과로 자동 승계하지 않는다. 대형·ARM·OS 장애 등 미실행 범위와 도구별 제한은 [검증 안내](docs/verification/README.md)를 따른다. 전용 제품 설치·대화 자동 연결은 제공하지 않는다. 실제 discard 자격은 [폐기 검증](docs/verification/workspace-discard.md), 현재 계약은 [기반 구조](docs/foundation.md)에서 확인한다.
 

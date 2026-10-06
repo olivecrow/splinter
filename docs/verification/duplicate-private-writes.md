@@ -30,7 +30,7 @@
 
 첫 전체 회귀의 cache 정리 시험 8건은 동일 payload 32회가 무효 기록을 만든다는 입력 가정에서 실패했다([TRX](../../artifacts/storage-foundation/duplicate-write-20261001-235827-526/automated-first.trx), [진단](../../artifacts/storage-foundation/duplicate-write-20261001-235827-526/first-run-failure.json)). 그 fixture의 첫 바이트만 매회 바꿔 실제 무효 payload를 만들고 최종 기대 내용 42·8개 중단 경계·동일 요청 복구·범위/예산·보존 검증 조건을 유지했다.
 
-필수 `pwsh ./scripts/build.ps1`의 최종 실행은 locked restore·Release 빌드 경고/오류 0, 자동 시험 **765건 중 764 통과·0 실패·선택적 ReFS 1 skip**이다. [build 로그](../../artifacts/storage-foundation/duplicate-write-20261001-235827-526/build.log), [최종 TRX](../../artifacts/storage-foundation/duplicate-write-20261001-235827-526/automated.trx), [현재 source/binary hash와 판정](../../artifacts/storage-foundation/duplicate-write-20261001-235827-526/result.json)을 보존했다. 동일 쓰기·observer·정리/재개·cache 정리의 현재 회귀도 통과했다.
+필수 `pwsh ./scripts/build.ps1`의 최종 실행은 locked restore·Release 빌드 경고/오류 0, 자동 시험 **765건 중 764 통과·0 실패·당시 제외 시험 1 skip**이다. [build 로그](../../artifacts/storage-foundation/duplicate-write-20261001-235827-526/build.log), [최종 TRX](../../artifacts/storage-foundation/duplicate-write-20261001-235827-526/automated.trx), [현재 source/binary hash와 판정](../../artifacts/storage-foundation/duplicate-write-20261001-235827-526/result.json)을 보존했다. 동일 쓰기·observer·정리/재개·cache 정리의 현재 회귀도 통과했다.
 
 이 단위는 **scoped-complete-with-limitations**다. 완료 조건은 위 공간·개별 flush·내용/metadata·예산·복구와 기존 자동 회귀 통과다. SF-02 전체의 Partial·대형/일반 Unity 전체 절감 unknown은 유지한다.
 

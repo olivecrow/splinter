@@ -1,6 +1,6 @@
 # 저장공간 우선 설계와 Editor 실행 방식
 
-현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop을 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제거했고 결과 보존은 checkpoint로 통일했다. 선택적 단일 view/Library cache·ReFS·probe는 [개발용 CLI](../development-cli.md)로 분리했다. 아래 기존 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 이번 후보의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](../verification/workspace-product-scope.md)을 따른다.
+현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop을 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제거했고 결과 보존은 checkpoint로 통일했다. 선택적 단일 view/Library cache·probe는 [개발용 CLI](../development-cli.md)로 분리했다. 아래 기존 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 이번 후보의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](../verification/workspace-product-scope.md)을 따른다.
 
 대형 Unity 프로젝트의 작업공간 용량과 생성·편집 준비·재개 시간을 함께 판단하고 Editor 동시성은 그 뒤에 둔다. 기본 CLI는 작업별 독립 Editor 수명을 관리한다. 선택적 단일 Editor용 소스 view/Library cache는 `splinter-dev.ps1 view`의 저장소 경로다. 프로젝트 검증과 모드 선택은 AI·외부 도구의 책임이며 자동 모드 선택은 구현 제외다.
 

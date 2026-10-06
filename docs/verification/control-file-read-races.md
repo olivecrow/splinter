@@ -24,7 +24,7 @@ stack에서 `CheckPath`의 `File.GetAttributes`와 `FileStream` open 양쪽의 �
 
 [수정 후 raw 결과](../../artifacts/storage-foundation/ipc-read-20260928/after-native/result.json)는 같은 3,000회 게시·8개 reader·8 KiB body에서 읽기 22,831회, null 0회, 예외 0회, 손상 0회, 최종 sequence 3,000, 임시 파일 0개다. 경과 17.29초이며 전후 한 번씩의 경합 재현이므로 처리량 개선이나 최대 부하 한계로 해석하지 않는다. 수정 전후 제품 DLL과 probe를 별도 보존했다.
 
-`pwsh -NoProfile -File scripts/build.ps1`의 locked restore·Release 빌드·전체 자동 시험은 **527 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped**다. 추가 시험 12개가 통과했고 실제 동시 교체 회귀는 별도로 500회 게시와 reader 4개를 사용했다. 지속 공유 오류는 약 1초 뒤 예외로 남았고 같은 stop 요청 재호출에서 상태/저널 bytes와 unknown snapshot 관측을 유지했다. JSON 손상·접근 거부·reparse·다른 owner·미해결 launch의 보존도 확인했다.
+`pwsh -NoProfile -File scripts/build.ps1`의 locked restore·Release 빌드·전체 자동 시험은 **527 Passed, 0 Failed, 당시 제외 시험 1 Skipped**다. 추가 시험 12개가 통과했고 실제 동시 교체 회귀는 별도로 500회 게시와 reader 4개를 사용했다. 지속 공유 오류는 약 1초 뒤 예외로 남았고 같은 stop 요청 재호출에서 상태/저널 bytes와 unknown snapshot 관측을 유지했다. JSON 손상·접근 거부·reparse·다른 owner·미해결 launch의 보존도 확인했다.
 
 [빌드 로그](../../artifacts/storage-foundation/ipc-read-20260928/build.log), [최종 TRX](../../artifacts/storage-foundation/ipc-read-20260928/final-candidate.trx), [교차 검증 요약](../../artifacts/storage-foundation/ipc-read-20260928/verification-summary.json), [소스·바이너리·증거 manifest](../../artifacts/storage-foundation/ipc-read-20260928/evidence-manifest.json)를 보존한다. 문서 UTF-8과 변경 diff 검사를 함께 통과했다. 외부 schema·현재 버전·Core fake 계약·게시 writer·저널 flush/seal은 바뀌지 않았다.
 

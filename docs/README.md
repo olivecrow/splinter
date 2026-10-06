@@ -14,7 +14,8 @@
 | [보안 경계 검증](verification/security-boundaries.md) | Plastic private reader·외부 MCP 인증·서비스 상속 ACL·보호된 회수 잠금·짧은 IPC 수신의 자동/한정 읽기와 미실행 배포 경계 |
 | [코드 최적화 회귀](verification/code-quality-optimization.md) | 구조화한 다음 행동·파일 rename/복원 검색·고유 객체 검사·원본 계획 조상 집합·압축 블록 순회의 자동 검증과 실측 한계 |
 | [Unity MCP 연결·응답 복구](unity-mcp-response-recovery.md) | 외부 Coplay 고정 패치의 준비·HTTP 대상·Codex 설정 조회 검사·Editor 종료 뒤 남은 연결 확인/필요한 복구·긴 코드 job·reload 상세 결과와 한정 자격 |
-| [개발용 CLI](development-cli.md) | 기본 CLI에서 분리한 ReFS/baseline·diagnostic checkout·저장소 view·spike/probe의 진입점 |
+| [개발용 CLI](development-cli.md) | 기본 CLI에서 분리한 diagnostic checkout·저장소 view·spike/probe의 진입점 |
+| [폐기한 ReFS 기준본 경로](plans/refs-retirement.md) | 대형 프로젝트의 최초 전체 기준본 준비 부담으로 폐기한 기능과 과거 근거의 경계 |
 | [한정 버전 AI 시작 안내](agent-start.md) | 기본 CLI의 저장 경로별 전제·진입·정확한 경로/같은 작업 재개·명시적 종료·실패의 다음 행동 |
 | [최소 AI 사용 스킬](../skills/splinter/SKILL.md) | 저장소 지침 원본·직접/독립 작업 판단·CLI 발견·반환 경로·같은 작업 재개·명시적 종료/실패 처리. 설치/자동 binding은 없음 |
 | [VCS 없는 작업공간](vcs-independent-workspaces.md) | 명시적 소스/application 선택·파일 기준/결과·현재 형식·회수와 실제 검증의 구분 |
@@ -33,7 +34,7 @@
 | [Windows 저장소 권한 서비스](storage-privilege-service.md) | 설치 범위·고정 VSS IPC·사용자/경로/소유권·보호된 재시도 상태 |
 | [Unity 알파 작업공간](alpha-workspaces.md) | 외부 도구로 편집·검증, 같은 작업 재개·독립 결과·통합과 Editor 수명 |
 | [Unity CLI A/B 인계 검증](verification/unity-cli-handoff.md) | 정확한 반환 경로의 catalog/loaded 코드·A stop/release 뒤 B 후속 작업·두 독립 결과/회수의 작은 T: 한정 자격과 목록 누락/타임아웃 제한 |
-| [저장소와 자원](storage-and-resources.md) | 선택적 ReFS 기준본·프로세스 그룹·자원 관측 |
+| [저장소와 자원](storage-and-resources.md) | 프로세스 그룹·자원 관측 |
 | [실행 파일 묶음의 메모리 검증](verification/runner-bundle-memory.md) | 동일 빌드의 디스크 재사용·스트림 준비의 관리 할당·손상/소실 거부·동시 게시와 실제 프로세스 회귀 |
 | [저널 정리 크기 회귀](verification/journal-compaction-size.md) | 작은 덮어쓰기의 메타데이터 증가 재현·더 작은 frame 선택·같은 입력의 NTFS 할당 비교 |
 | [동일 private 쓰기](verification/duplicate-private-writes.md) | 승인된 private 범위의 중복 payload 억제·메타데이터/flush 유지·NTFS 할당과 작은 WinFsp client 검증 |

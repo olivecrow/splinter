@@ -22,7 +22,6 @@
       "enum": [
         "ntfs-snapshot",
         "git-snapshot",
-        "refs-cow",
         "git-checkout",
         "plastic-snapshot",
         "project-snapshot"
@@ -30,10 +29,6 @@
     },
     "editor": {
       "type": "boolean"
-    },
-    "baseline": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{24}$"
     },
     "maxJournalBytes": {
       "type": "integer",
@@ -79,27 +74,6 @@
   "allOf": [
     {
       "if": {
-        "properties": {
-          "storage": {
-            "const": "refs-cow"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "baseline"
-        ]
-      },
-      "else": {
-        "not": {
-          "required": [
-            "baseline"
-          ]
-        }
-      }
-    },
-    {
-      "if": {
         "required": [
           "maxJournalBytes"
         ]
@@ -139,11 +113,6 @@
           "baseReference": {
             "const": "snapshot"
           }
-        },
-        "not": {
-          "required": [
-            "baseline"
-          ]
         }
       }
     },
@@ -182,11 +151,6 @@
           "source": {
             "const": "git"
           }
-        },
-        "not": {
-          "required": [
-            "baseline"
-          ]
         }
       }
     },
@@ -260,12 +224,7 @@
         "required": [
           "source",
           "baseReference"
-        ],
-        "not": {
-          "required": [
-            "baseline"
-          ]
-        }
+        ]
       }
     },
     {
@@ -319,12 +278,7 @@
         "required": [
           "source",
           "projectBasis"
-        ],
-        "not": {
-          "required": [
-            "baseline"
-          ]
-        }
+        ]
       }
     },
     {

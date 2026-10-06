@@ -32,8 +32,6 @@ public sealed class WorkspaceRecord
     public string? ResultRevision { get; set; }
     public string? IntegratedRevision { get; set; }
     public string? LastError { get; set; }
-    public string? BaselineId { get; set; }
-    public CloneStatistics? CloneMetrics { get; set; }
     public ProcessResources? ReleasedResources { get; set; }
     public string? RequestDigest { get; set; }
     public SnapshotWorkspaceState? Snapshot { get; set; }
@@ -42,13 +40,16 @@ public sealed class WorkspaceRecord
     public OriginalApplyState? OriginalApply { get; set; }
     public string? GeneratedDirectoryId { get; set; }
     public GeneratedDirectoryReference? GeneratedDirectory { get; set; }
+    // Unknown state values must not silently bypass the current contract.
+    [System.Text.Json.Serialization.JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? UnrecognizedState { get; set; }
 }
 
 // Logical payload bytes of explicit result preservation, separate from the
 // workspace journal and physical allocation/VSS accounting.
 public sealed record SourceResultStorage(long BasisLogicalBytes, long ResultLogicalBytes, long UniquePayloadBytes, int PayloadObjects);
 
-public sealed record SourceWorkspace(string Path, string Reference, string BaseRevision, CloneStatistics? CloneMetrics = null);
+public sealed record SourceWorkspace(string Path, string Reference, string BaseRevision);
 public sealed record SourceState(string Revision, string Fingerprint, bool HasChanges, string[] ChangedPaths)
 {
     public SourceInspectionMetrics? Inspection { get; init; }
@@ -70,7 +71,6 @@ public sealed record ApplicationState(bool Running, bool Ready, string Phase,
 public interface ISourceWorkspaceProvider
 {
     Task<string> ResolveRevisionAsync(string project, string reference, CancellationToken cancellationToken = default);
-    Task<string> SnapshotKeyAsync(string project, string revision, string[] paths, CancellationToken cancellationToken = default);
     Task<SourceWorkspace> CreateAsync(WorkspaceRecord workspace, CancellationToken cancellationToken = default);
     Task<SourceState> InspectAsync(WorkspaceRecord workspace, CancellationToken cancellationToken = default);
     // Returns an opaque preserved-source identity, not necessarily a commit.
@@ -89,7 +89,6 @@ public interface ISourceDiscardProvider
 public interface IApplicationWorkspaceProvider
 {
     string[] ManagedPaths { get; }
-    string[] CacheInputs { get; }
     string CompatibilityKey(string project);
     Task<ApplicationLease> StartAsync(WorkspaceRecord workspace, string controlPath, CancellationToken cancellationToken = default);
     Task<ApplicationState> ObserveAsync(WorkspaceRecord workspace, string controlPath, CancellationToken cancellationToken = default);

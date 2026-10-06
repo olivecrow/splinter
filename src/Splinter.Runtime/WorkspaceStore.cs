@@ -8,7 +8,7 @@ namespace Splinter.Runtime;
 
 // One short-lived CLI owns one operation lock. Editor and record lifetimes are
 // independent of that CLI, so closing a conversation never releases its workspace.
-public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
+public sealed partial class WorkspaceStore
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     public string Root { get; }
@@ -18,7 +18,7 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         Root = Path.GetFullPath(root);
         EnsurePlainPath(Root);
         Directory.CreateDirectory(Root);
-        foreach (string name in new[] { "records", "workspaces", "locks", "baselines" })
+        foreach (string name in new[] { "records", "workspaces", "locks" })
         {
             string path = Path.Combine(Root, name);
             EnsurePlainPath(path);
@@ -43,29 +43,6 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
     public static string ProjectKey(string project) => Key(OperatingSystem.IsWindows() ? project.ToUpperInvariant() : project);
     public string WorkPath(string id) { CheckId(id); return Path.Combine(Root, "workspaces", id); }
     public string ControlPath(string id) { CheckId(id); return Path.Combine(Root, "records", id); }
-    public string BaselinePath(string id) { CheckId(id); return Path.Combine(Root, "baselines", id, "tree"); }
-    public WorkspaceBaseline GetBaseline(string id)
-    {
-        string path = Path.Combine(Path.GetDirectoryName(BaselinePath(id))!, "baseline.json"); EnsurePlainPath(path);
-        if (!File.Exists(path)) throw new WorkspaceException("BaselineNotReady", "Prepare, validate and seal this baseline first.");
-        var record = JsonSerializer.Deserialize<WorkspaceBaseline>(File.ReadAllText(path), Json)
-            ?? throw new WorkspaceException("StateCorrupt", "Empty baseline record.");
-        if (record.Id != id || !SamePath(record.Path, BaselinePath(id))) throw new WorkspaceException("StateCorrupt", "Baseline path/identity mismatch.");
-        EnsurePlainPath(record.Path);
-        if (!Directory.Exists(record.Path)) throw new WorkspaceException("BaselineNotReady", "Baseline files are unavailable.");
-        if (BaselineManifest.Hash(record.Path) != record.ManifestHash) throw new WorkspaceException("BaselineChanged", "Sealed baseline files changed. Preserve them and prepare a new baseline.");
-        return record;
-    }
-    public void SaveBaseline(WorkspaceBaseline record)
-    {
-        if (!SamePath(record.Path, BaselinePath(record.Id))) throw new WorkspaceException("StateCorrupt", "Invalid baseline path.");
-        string file = Path.Combine(Path.GetDirectoryName(record.Path)!, "baseline.json"); EnsurePlainPath(file);
-        string temporary = file + ".tmp"; EnsurePlainPath(temporary);
-        using (var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
-        { JsonSerializer.Serialize(stream, record, Json); stream.Flush(true); }
-        AtomicFilePublication.Publish(temporary, file);
-    }
-
     public async Task<FileStream> LockAsync(string key, CancellationToken cancellationToken = default)
     {
         CheckId(key);
@@ -115,9 +92,10 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
         { throw new WorkspaceException("StateCorrupt", "Workspace JSON is invalid or incomplete. Preserve its record and temporary files for recovery."); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be read. Restore access before retrying the same key."); }
-        if (record.Version != WorkspaceRecord.CurrentVersion || record.SourceKind is not ("git" or "none" or "plastic") ||
-            record.StorageMode is not ("ntfs-snapshot" or "git-snapshot" or "plastic-snapshot" or "project-snapshot" or "refs-cow" or "git-checkout") ||
-            record.StorageMode == "git-snapshot" && (record.SourceKind != "git" || record.Purpose != "task" || record.BaselineId is not null) ||
+        if (record.Version != WorkspaceRecord.CurrentVersion || record.Purpose != "task" ||
+            record.UnrecognizedState?.Any(field => field.Value.ValueKind != JsonValueKind.Null) == true || record.SourceKind is not ("git" or "none" or "plastic") ||
+            record.StorageMode is not ("ntfs-snapshot" or "git-snapshot" or "plastic-snapshot" or "project-snapshot" or "git-checkout") ||
+            record.StorageMode == "git-snapshot" && (record.SourceKind != "git" || record.Purpose != "task") ||
             record.ApplicationKind is not ("unity" or "none") || record.ApplicationKind == "none" && record.ManagedPaths.Length != 0 &&
                 (record.GeneratedDirectory is null || !record.ManagedPaths.SequenceEqual(new[] { record.GeneratedDirectory.RelativePath })) ||
             (record.SourceKind == "none" && record.StorageMode != "project-snapshot" || record.SourceKind == "plastic" && record.StorageMode != "plastic-snapshot") && (record.StorageMode != "ntfs-snapshot" || record.BaseReference != "snapshot" || record.Purpose != "task") ||
@@ -128,7 +106,7 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
              record.StorageMode != "project-snapshot" && string.IsNullOrWhiteSpace(generated.RelativePath) || generated.RelativePath.Contains('/') || generated.RelativePath.Contains('\\')) ||
             record.GeneratedDirectoryId is not null && record.GeneratedDirectory is null && record.Snapshot?.Attached == true)
             throw new WorkspaceException("GeneratedBasisMismatch", "Retain the task's exact generated-directory identity.");
-        if (record.StorageMode == "project-snapshot" && (record.SourceKind != "none" || record.Purpose != "task" || record.BaselineId is not null || record.BaseReference != "snapshot" ||
+        if (record.StorageMode == "project-snapshot" && (record.SourceKind != "none" || record.Purpose != "task" || record.BaseReference != "snapshot" ||
             record.GeneratedDirectoryId is null || record.GeneratedDirectory is { } projectBasis && (projectBasis.RelativePath != "" || projectBasis.OwnerId != projectBasis.Id ||
                 record.Snapshot?.Reference is { } projectSnapshot && projectSnapshot != projectBasis.Snapshot)))
             throw new WorkspaceException("ProjectBasisMismatch", "Preserve the task's fixed project basis and source selection.");
@@ -149,7 +127,7 @@ public sealed partial class WorkspaceStore : IWorkspaceBaselineReader
             record.Snapshot.Attached && record.Snapshot.Reference is null ||
             record.Snapshot.Mount is { } mount && (mount.Id != id || !SamePath(mount.Path, record.Path) || mount.Snapshot != record.Snapshot.Reference)))
             throw new WorkspaceException("SnapshotStateMissing", "Preserve this workspace: snapshot identities do not match its durable record.");
-        if (record.StorageMode == "plastic-snapshot" && (record.SourceKind != "plastic" || record.Purpose != "task" || record.BaselineId is not null || record.BaseReference == "snapshot" ||
+        if (record.StorageMode == "plastic-snapshot" && (record.SourceKind != "plastic" || record.Purpose != "task" || record.BaseReference == "snapshot" ||
             record.Snapshot?.Reference is { } plasticBasis && (plasticBasis.Provider != "plastic-revisions" || plasticBasis.Consistency != "recorded-project-changeset-raw-revisions" || !SamePath(plasticBasis.SourcePath, record.ProjectPath))))
             throw new WorkspaceException("SnapshotIdentityMismatch", "Preserve the Plastic task recorded basis and source selection.");
         if (record.StorageMode == "git-snapshot" && record.Snapshot?.Reference is { } basis &&

@@ -499,126 +499,6 @@
     },
     {
       "if": {
-        "properties": {
-          "command": {
-            "const": "storage.probe"
-          },
-          "status": {
-            "enum": [
-              "Succeeded",
-              "Accepted"
-            ]
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "data": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "storage"
-            ],
-            "properties": {
-              "storage": {
-                "$ref": "#/$defs/storageProbe"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "command": {
-            "const": "baseline.prepare"
-          },
-          "status": {
-            "enum": [
-              "Succeeded",
-              "Accepted"
-            ]
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "data": {
-            "$ref": "#/$defs/workspaceView"
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "command": {
-            "const": "baseline.seal"
-          },
-          "status": {
-            "enum": [
-              "Succeeded",
-              "Accepted"
-            ]
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "data": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "baseline"
-            ],
-            "properties": {
-              "baseline": {
-                "$ref": "#/$defs/baseline"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "command": {
-            "const": "baseline.release"
-          },
-          "status": {
-            "enum": [
-              "Succeeded",
-              "Accepted"
-            ]
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "data": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "id",
-              "phase"
-            ],
-            "properties": {
-              "id": {
-                "type": "string",
-                "pattern": "^[a-f0-9]{24}$"
-              },
-              "phase": {
-                "const": "released"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
         "required": [
           "data"
         ],
@@ -810,8 +690,6 @@
             "owned-editor-start",
             "owned-editor-compile",
             "owned-editor-stop",
-            "owned-baseline-cache",
-            "owned-baseline-removal",
             "owned-experimental-mount-git-and-editor",
             "owned-journal-generation-replacement",
             "owned-validation-candidate-view-editor-and-result"
@@ -1081,7 +959,6 @@
               "ntfs-snapshot",
               "git-snapshot",
               "plastic-snapshot",
-              "refs-cow",
               "git-checkout",
               "project-snapshot"
             ]
@@ -1459,7 +1336,6 @@
             "ntfs-snapshot",
             "git-snapshot",
             "plastic-snapshot",
-            "refs-cow",
             "git-checkout",
             "project-snapshot"
           ]
@@ -1470,16 +1346,8 @@
         },
         "purpose": {
           "enum": [
-            "task",
-            "baseline"
+            "task"
           ]
-        },
-        "baselineId": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{24}$"
-        },
-        "cloneMetrics": {
-          "$ref": "#/$defs/cloneStatistics"
         },
         "releasedResources": {
           "$ref": "#/$defs/processResources"
@@ -1715,112 +1583,6 @@
         "privateBytes": {
           "type": "integer",
           "minimum": 0
-        }
-      }
-    },
-    "cloneStatistics": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "logicalBytes",
-        "clonedBytes",
-        "copiedBytes",
-        "files",
-        "elapsedMilliseconds"
-      ],
-      "properties": {
-        "logicalBytes": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "clonedBytes": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "copiedBytes": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "files": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "elapsedMilliseconds": {
-          "type": "integer",
-          "minimum": 0
-        }
-      }
-    },
-    "storageProbe": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "mode",
-        "volume",
-        "fileSystem",
-        "clusterBytes"
-      ],
-      "properties": {
-        "mode": {
-          "const": "refs-cow"
-        },
-        "volume": {
-          "type": "string",
-          "minLength": 1
-        },
-        "fileSystem": {
-          "const": "ReFS"
-        },
-        "clusterBytes": {
-          "type": "integer",
-          "minimum": 1
-        }
-      }
-    },
-    "baseline": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "projectPath",
-        "baseRevision",
-        "compatibilityKey",
-        "path",
-        "sealedAt",
-        "cloneMetrics",
-        "manifestHash"
-      ],
-      "properties": {
-        "id": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{24}$"
-        },
-        "projectPath": {
-          "type": "string",
-          "minLength": 1
-        },
-        "baseRevision": {
-          "type": "string",
-          "minLength": 1
-        },
-        "compatibilityKey": {
-          "type": "string",
-          "minLength": 1
-        },
-        "path": {
-          "type": "string",
-          "minLength": 1
-        },
-        "sealedAt": {
-          "type": "string",
-          "minLength": 1
-        },
-        "cloneMetrics": {
-          "$ref": "#/$defs/cloneStatistics"
-        },
-        "manifestHash": {
-          "type": "string",
-          "minLength": 1
         }
       }
     },

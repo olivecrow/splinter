@@ -15,7 +15,7 @@
 
 실제 두 작업은 JW에서 고정한 같은 CLI/Windows/Git/Core/Runtime 실행 파일을 사용한다(`binary-manifest.json`). 해당 파일은 JW 커밋 전 빌드라 informational version에 `091a5fc`가 남아 있다. `a1c3f91` 이후 재빌드와 PE hash는 다르며 8개 공통 관리 DLL의 메서드 본문/필드 값 hash는 일치했다(`post-commit-version-stamps.json`, `post-commit-method-body-comparison.json`). 이 비교는 PE 전체 hash 동등성 주장이 아니다.
 
-표준 `scripts/build.ps1`의 locked restore·Release 빌드·시험은 **303 통과, 0 실패, 선택적 ReFS 1 skip**이다. 제한 환경의 첫 restore는 상세 진단 없이 exit 1이었고 권한이 허용된 동일 진입점 재실행이 통과했다. 두 로그와 TRX를 보존한다. 기준 Unity의 최초 준비와 제품 자동 시험이 일부 겹쳤으므로 최초 준비 시간을 성능 비교로 사용하지 않는다.
+표준 `scripts/build.ps1`의 locked restore·Release 빌드·시험은 **303 통과, 0 실패, 당시 제외 시험 1 skip**이다. 제한 환경의 첫 restore는 상세 진단 없이 exit 1이었고 권한이 허용된 동일 진입점 재실행이 통과했다. 두 로그와 TRX를 보존한다. 기준 Unity의 최초 준비와 제품 자동 시험이 일부 겹쳤으므로 최초 준비 시간을 성능 비교로 사용하지 않는다.
 
 ## 재현과 수정 근거
 

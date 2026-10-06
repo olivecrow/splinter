@@ -125,7 +125,7 @@ Unity CLI exact-path 인계는 위 작은 입력의 한정 자격을 따르며 M
 | AI 진입 | 개발 배포물/기존 CLI와 최소 사용 지침, 안정된 task key·workspace ID·절대 경로·동일 home. 전역 마지막 작업 추측이나 특정 Codex 세션 API를 필수로 하지 않음 |
 | 보장 | 지원 경로의 원본/타 작업 격리, 승인된 쓰기 보존, 정확한 소유 자원 처리, 같은 버전의 정상 재개와 요청 재전송. OS 장애 전체 보장·보안 샌드박스는 선언하지 않음 |
 
-현재 구현을 지원 완료로 승격하는 표가 아니다. 새 후보의 실행 자격과 지원 한계를 함께 기록한다. 선택적 ReFS와 diagnostic Git checkout은 NTFS 정상 경로의 fallback이 아니며 첫 버전의 지원 확대 대상에서 제외한다.
+현재 구현을 지원 완료로 승격하는 표가 아니다. 새 후보의 실행 자격과 지원 한계를 함께 기록한다. diagnostic Git checkout은 NTFS 정상 경로의 fallback이 아니며 첫 버전의 지원 확대 대상에서 제외한다.
 
 ## 제품 작업 순서
 
@@ -154,7 +154,8 @@ M0는 기존 개발 checkout의 CLI·소스 스킬과 등록된 서비스/driver
 | 유지 | Core ports/schema, atomic 상태·잠금, Git linked worktree, VSS/WinFsp 범위 저널·승인 쓰기 flush·결과 seal, process supervisor·소유권·회수 guard |
 | 유지 | Unity start/status/stop의 실행·자원 관측과 Coplay peer 보호. 프로젝트 검증은 외부 도구·AI의 책임 |
 | 제거 | 자체 Unity refresh·컴파일 이벤트/도메인 reload 증거·포커스 재시도·내부 컴파일 성공 gate와 중복 preserve-worker |
-| 개발 경로로 분리·확장 중지 | ReFS/baseline·diagnostic checkout·단일 view/Library cache·spike/probe. `splinter-dev.ps1`로만 생성/선택하고 저장소 보호 회귀와 재현 근거로 유지. 기본 제품 발견에서 제외 |
+| 폐기 | [ReFS 기준본 경로](refs-retirement.md). 대형 프로젝트에서 최초 전체 기준본 준비의 저장공간·시간 부담이 커 코드·명령·시험을 제거. 현재 스냅샷 경로를 사용 |
+| 개발 경로로 분리·확장 중지 | diagnostic checkout·단일 view/Library cache·spike/probe. `splinter-dev.ps1`로만 생성/선택하고 저장소 보호 회귀와 재현 근거로 유지. 기본 제품 발견에서 제외 |
 | 구현 범위에서 제외 | DAG/AI Runner·daemon/DB·범용 Unity 저작/Play/Test Runner, 전용 installer·Codex 자동 binding, 자동 모드·큐·일반 임대 인수·원본 Editor 공유, 충돌 해결/생성 소스 반환 병합·게임 검증 플랫폼 |
 
 모듈 명칭에 `runner`가 있더라도 OS 자식 프로세스를 감독하는 내부 보조 프로그램은 작업 분할용 AI Runner와 다르다. 실제 제품 경로와 실패 재현에 사용되는 기능을 이름만 보고 삭제하지 않는다. 상태·기록 형식을 임의로 바꾸거나 구버전 migration/fallback을 추가하지 않는다. 원시 evidence, 독립 결과 refs, snapshot과 다른 작업은 정리 대상이 아니다.

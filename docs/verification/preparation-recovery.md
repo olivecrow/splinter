@@ -11,7 +11,7 @@ NR-01/02의 `workspace ensure` 준비 단계는 **scoped-complete-with-limitatio
 - 제품 CLI는 일반 사용자이고 [서비스 상태](../../artifacts/ntfs-recovery/nr02-20260930d/service.stdout.json)의 `callerElevated=false`, protocol 1, 설치된 `SplinterStorageAuthority=running`을 확인했다. 기존 grant와 서비스 설치를 재사용한다.
 - clean NTFS/Git source는 `T:\ua-source`, base는 `codex/library-20260929`, revision은 `f71e4e244ba9b085aa0fc439336e4c60ee3d5d5d`다. home은 제품 저장소의 `.local/wl29`다. Unity Editor는 시작하지 않는다.
 - source의 Library를 새로 만들거나 복제하지 않는다. 기존 VHD·VSS 예산·서비스/grant·원본 소유자·전역 Git 설정을 변경하지 않는다. fixture의 Git 소유자 차이는 자식 전용 `XDG_CONFIG_HOME`의 정확한 source 예외로 처리한다.
-- [필수 빌드 결과](../../artifacts/ntfs-recovery/nr02-20260930d/final-full.trx)는 locked restore·Release 빌드 뒤 615 Passed / 0 Failed / 1 optional ReFS Skipped다. 새 공통 준비 시험은 19개 실제 자식 종료/fake 복구와 subprocess/schema 2개다. fake는 VSS·WinFsp 성공으로 집계하지 않는다.
+- [필수 빌드 결과](../../artifacts/ntfs-recovery/nr02-20260930d/final-full.trx)는 locked restore·Release 빌드 뒤 615 Passed / 0 Failed / 1 Skipped다. 새 공통 준비 시험은 19개 실제 자식 종료/fake 복구와 subprocess/schema 2개다. fake는 VSS·WinFsp 성공으로 집계하지 않는다.
 
 ## 실행 방법과 판정
 
@@ -52,11 +52,11 @@ provider 시작은 제품 validation view도 공유한다. 이전 WF/LB의 실�
 
 ## 보존한 실패와 재검증 조건
 
-착수 전 `d9825ba` 기준 전체 시험은 587 Passed / 1 Failed / 1 optional ReFS Skipped였다. `WindowsProcessTests.SupervisorSurvivesClientAndCleansDescendantThatOutlivesRoot`가 `TestDirectory.Dispose`의 임시 `Splinter.Core.dll` 삭제 접근 거부로 실패했고 같은 바이너리 단독 재실행은 1 Passed였다. 원인은 미확정이며 해당 시험을 수정하지 않았다. 이번 최종 전체 시험에서 통과한 사실과 구분한다. [기준 실패/단독 재실행](../../artifacts/ntfs-recovery/scope-20260930/)을 보존한다.
+착수 전 `d9825ba` 기준 전체 시험은 587 Passed / 1 Failed / 1 Skipped였다. `WindowsProcessTests.SupervisorSurvivesClientAndCleansDescendantThatOutlivesRoot`가 `TestDirectory.Dispose`의 임시 `Splinter.Core.dll` 삭제 접근 거부로 실패했고 같은 바이너리 단독 재실행은 1 Passed였다. 원인은 미확정이며 해당 시험을 수정하지 않았다. 이번 최종 전체 시험에서 통과한 사실과 구분한다. [기준 실패/단독 재실행](../../artifacts/ntfs-recovery/scope-20260930/)을 보존한다.
 
 실환경 harness 준비 중 Git 함수 재귀·safe.directory 경로 표기·제품 자식이 제거하는 `GIT_*` 설정 때문에 실패한 `nr02-20260930`, `nr02-20260930a`, `nr02-20260930b` evidence를 보존한다. 마지막 실패는 capture 전 새 작업 기록만 남겼다. 정확한 원래 요청으로 작업 `82034cc66236f1251c2dbe56`을 재개하고 독립 결과/정상 회수한 응답은 [중단 후보 회수](../../artifacts/ntfs-recovery/nr02-20260930c/owned-cleanup/)에 있다. 이 실패를 boundary Passed로 집계하지 않는다.
 
-첫 구현 후보의 실제 시험은 권한 확인 전 실패 기록 게시를 보강하기 위해 15번째 작업에서 중단했다. [15개 작업의 독립 결과/회수](../../artifacts/ntfs-recovery/nr02-20260930c/stopped-run-cleanup.json)와 첫 후보의 609 Passed / 0 Failed / 1 optional ReFS Skipped를 보존한다. 완료 경계 14개와 진행 중이던 작업의 정상 회수를 구분한다. 첫 후보의 부분 통과를 최종 후보의 통과로 승계하지 않고 26개 경계를 모두 새로 실행한다.
+첫 구현 후보의 실제 시험은 권한 확인 전 실패 기록 게시를 보강하기 위해 15번째 작업에서 중단했다. [15개 작업의 독립 결과/회수](../../artifacts/ntfs-recovery/nr02-20260930c/stopped-run-cleanup.json)와 첫 후보의 609 Passed / 0 Failed / 1 Skipped를 보존한다. 완료 경계 14개와 진행 중이던 작업의 정상 회수를 구분한다. 첫 후보의 부분 통과를 최종 후보의 통과로 승계하지 않고 26개 경계를 모두 새로 실행한다.
 
 최종 후보 d의 `registration.before-effect`에서 첫 새 CLI가 `snapshot-ensured` 게시 중 `StateWriteIncomplete`를 반환했다. `ready` 기록은 이미 남았고 실패 임시 파일은 보존됐다. 동시에 시작한 CLI는 최초 `WorkspaceBusy` 뒤 같은 요청으로 동일 snapshot/provider의 Ready에 도달했다. 원래 요청의 명시적 status/ensure/release 응답과 실패 임시 파일은 [해당 trial](../../artifacts/ntfs-recovery/nr02-20260930d/registration.before-effect/)에 있다. 오류의 하위 HResult는 기존 기계용 응답에 없으므로 공유 오류·접근 거부·공간 원인을 확정하지 않으며 Runtime retry 정책을 추측 변경하지 않는다. 원인 미확정의 게시 실패를 정상 통과로 덮지 않고 실제 재개/독립 결과/회수와 fresh-key 재실행을 별도로 판정한다.
 

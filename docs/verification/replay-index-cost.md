@@ -1,6 +1,6 @@
 # Replay index 비용 검증
 
-`ri-20260927`의 [RI-01~04](../replay-profiling.md)를 **scoped-complete-with-limitations**로 마감했다. 연산별 index 계측과 rename 접두사 재사용을 구현했고 자동 **300 통과·0 실패·선택적 ReFS 1 skip**, 공통 검사 바이너리의 합성 **27회 출력 일치·입력 보존**을 확인했다. 기존 VR raw journal은 회수했으므로 이번 수치를 실제 Unity 재연결 개선으로 해석하지 않는다.
+`ri-20260927`의 [RI-01~04](../replay-profiling.md)를 **scoped-complete-with-limitations**로 마감했다. 연산별 index 계측과 rename 접두사 재사용을 구현했고 자동 **300 통과·0 실패·당시 제외 시험 1 skip**, 공통 검사 바이너리의 합성 **27회 출력 일치·입력 보존**을 확인했다. 기존 VR raw journal은 회수했으므로 이번 수치를 실제 Unity 재연결 개선으로 해석하지 않는다.
 
 ## 후보와 입력
 

@@ -8,7 +8,7 @@
 - 기존 원본 Library를 기준으로 읽되 초기 전체 복사·읽기 hydration·파일 전체 copy-up·VSS 재도입으로 우회하지 않는다. 각 작업의 Library 쓰기는 별도 범위 저널이다.
 - 원본이 계속 수정돼도 시작 세대의 Library 바이트가 유지돼야 한다. mtime/길이·감시 알림·하드링크만으로 불변성을 주장하지 않는다.
 - 현재 WinFsp는 mount를 통해 오는 쓰기만 처리한다. 원본의 직접 NTFS 쓰기와 mmap 덮어쓰기는 현재 provider를 통과하지 않는다. Git ignored Library에는 이전 내용을 복원할 객체가 없다.
-- ReFS block cloning을 NTFS 이관 fallback으로 사용하지 않는다. 공식 [block cloning](https://learn.microsoft.com/en-us/windows/win32/fileio/block-cloning)은 ReFS 경계다. [oplock](https://learn.microsoft.com/en-us/windows/win32/fileio/types-of-opportunistic-locks)은 접근/쓰기 충돌 통지이며 변경 범위의 이전 내용 저장 구현을 대신하지 않는다.
+- [oplock](https://learn.microsoft.com/en-us/windows/win32/fileio/types-of-opportunistic-locks)은 접근/쓰기 충돌 통지이며 변경 범위의 이전 내용 저장 구현을 대신하지 않는다.
 
 ## 검토 가능한 두 실행 경로
 

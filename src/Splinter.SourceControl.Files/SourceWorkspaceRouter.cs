@@ -12,7 +12,6 @@ public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWork
     private ISnapshotSourceWorkspaceProvider Snapshot(WorkspaceRecord w) => (ISnapshotSourceWorkspaceProvider)For(w);
     private ISourceDiscardProvider Discard(WorkspaceRecord w) => (ISourceDiscardProvider)For(w);
     public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => git.ResolveRevisionAsync(p, r, ct);
-    public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => git.SnapshotKeyAsync(p, r, paths, ct);
     public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => For(w).CreateAsync(w, ct);
     public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default) => For(w).InspectAsync(w, ct);
     public Task<string> CheckpointAsync(WorkspaceRecord w, string message, CancellationToken ct = default) => For(w).CheckpointAsync(w, message, ct);

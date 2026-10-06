@@ -44,4 +44,4 @@ native의 고정 DLL은 해당 변경을 커밋하기 전 Release 빌드이며 i
 
 회수 뒤 전체 제품 roots의 기준선 대비 추가 할당은 기록 335,008B·두 Runtime의 재사용 runner 묶음 2,024,112B·Git 공통 결과 9,904B다. 기존 validation roots와 원본 Library는 같다. 시험 증거는 별도 비용이다. [최종 장부](../../artifacts/storage-foundation/unity-space-20261002-004005-467/storage-ended.json)의 공유 VSS는 unknown이며 MFT/디렉터리·OS cache·순간 전체 peak와 총 물리 공간 절감률을 주장하지 않는다. 단계 시간/실패·재시도는 monitor에 보존하며 준비 시간 SLA나 게임/시스템 메모리 절감으로 읽지 않는다.
 
-필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 경고/오류 0, **765개 중 764 통과·실패 0·선택적 ReFS 1 skip**이다. [build 로그](../../artifacts/storage-foundation/unity-space-20261002-004005-467/build.log)와 [TRX](../../artifacts/storage-foundation/unity-space-20261002-004005-467/automated.trx)를 보존했다. 이번 비교를 마감하고 추가 반복/지원 확대를 자동 개시하지 않는다.
+필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 경고/오류 0, **765개 중 764 통과·실패 0·당시 제외 시험 1 skip**이다. [build 로그](../../artifacts/storage-foundation/unity-space-20261002-004005-467/build.log)와 [TRX](../../artifacts/storage-foundation/unity-space-20261002-004005-467/automated.trx)를 보존했다. 이번 비교를 마감하고 추가 반복/지원 확대를 자동 개시하지 않는다.

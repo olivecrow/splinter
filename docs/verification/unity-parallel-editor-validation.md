@@ -171,7 +171,7 @@ L/A/B/L2는 모두 clean guard와 정확한 PID/start 대조 후 `CloseMainWindo
 
 ## 문서와 현재 계약의 회귀 확인
 
-같은 제품 후보 `52d9099b2df3bdd786defbabe8e0b04d3ea0cdf3`에서 필수 `pwsh -NoProfile -File scripts/build.ps1`를 실행해 locked restore·Release 빌드(오류/경고 0)·906 passed / 0 failed / 1 optional ReFS skip을 확인했다. [`required-build-validation.json`](../../artifacts/unity-parallel-validation-20261003/required-build-validation.json)과 고정한 TRX를 보존한다. 제품 코드/schema 변경은 없으며 이 자동 회귀를 추가 Unity·VSS 지원 행렬의 실행으로 해석하지 않는다. 최종 UTF-8·HTML 링크와 실제 브라우저 표시 대조는 `report-validation.json`을 따른다.
+같은 제품 후보 `52d9099b2df3bdd786defbabe8e0b04d3ea0cdf3`에서 필수 `pwsh -NoProfile -File scripts/build.ps1`를 실행해 locked restore·Release 빌드(오류/경고 0)·906 passed / 0 failed / 1 skip을 확인했다. [`required-build-validation.json`](../../artifacts/unity-parallel-validation-20261003/required-build-validation.json)과 고정한 TRX를 보존한다. 제품 코드/schema 변경은 없으며 이 자동 회귀를 추가 Unity·VSS 지원 행렬의 실행으로 해석하지 않는다. 최종 UTF-8·HTML 링크와 실제 브라우저 표시 대조는 `report-validation.json`을 따른다.
 
 필수 빌드는 위 실제 Unity 실행 이후에 수행했다. 이때 나온 Runtime SHA-256 `aea683d3004e1c6224548aeb6b0a8f09aebaa9217b1b15103b9d72af9c21c5b7`은 빌드 검증의 별도 산출물 identity이며, 앞선 실행 파일과 바이너리가 같거나 이 새 산출물로 Native 행렬을 다시 실행했다는 뜻이 아니다.
 
@@ -238,4 +238,4 @@ C의 첫 open helper가 Editor 수명 동안 기다린 뒤 다음 B open을 이�
 
 과거 C: Plastic A/B의 실제 같은 요청 회수 재시도는 [PC 후속](plastic-compatibility.md#과거-c-작업의-승인된-동일-요청-회수-재시도-2026-10-04)이 소유한다. 현재 형식의 거부와 원래 계약 CLI로 확인한 비소유 snapshot 격리 blocker를 유지한다. 이는 이번 S의 회수 실패나 사용자 정리 승인의 부재가 아니며, 외부 작업의 snapshot 삭제로 우회하지 않았다.
 
-후속의 [필수 회귀 기록](../../artifacts/unity-followup-20261003/required-build-validation.json)은 locked restore·Release(경고/오류 0)·906 passed / 0 failed / 1 optional ReFS skip이다. 제한 환경의 첫 restore 실패 기록과 허용 환경의 성공 로그·고정 TRX를 함께 보존했다. 빌드의 Runtime hash와 앞선 실제 S에 로드한 runner 7파일 hash는 별도 identity이며 새 바이너리로 native 행렬을 재실행한 것은 아니다. 문서 UTF-8·diff·근거 링크와 실제 count/겹침/회수 값을 대조했으며 제품 코드/schema와 HTML은 변경하지 않았다.
+후속의 [필수 회귀 기록](../../artifacts/unity-followup-20261003/required-build-validation.json)은 locked restore·Release(경고/오류 0)·906 passed / 0 failed / 1 skip이다. 제한 환경의 첫 restore 실패 기록과 허용 환경의 성공 로그·고정 TRX를 함께 보존했다. 빌드의 Runtime hash와 앞선 실제 S에 로드한 runner 7파일 hash는 별도 identity이며 새 바이너리로 native 행렬을 재실행한 것은 아니다. 문서 UTF-8·diff·근거 링크와 실제 count/겹침/회수 값을 대조했으며 제품 코드/schema와 HTML은 변경하지 않았다.

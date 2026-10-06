@@ -47,7 +47,7 @@ A의 private state hash는 `2e28ef2352868301e4fa2ae033404077ca93bbc11ebe003bc39f
 
 ## 판정
 
-필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 경고/오류 0, 자동 시험 **884 passed·0 failed·1 optional ReFS skipped**다. [build 로그](../../artifacts/journal-metadata-storage-20261003/build.log)와 [같은 실행 TRX](../../artifacts/journal-metadata-storage-20261003/automated.trx)를 보존했다. 기존 candidate/compaction 게시 중단·동일 intent 재개·손상 보존·개별 ACK/flush와 checksum/tail·원본/peer/회수 guard 회귀가 포함된다. 현재 private JSON의 표현만 바꾸므로 공개 schema/Core/fake 계약의 형식 변경은 없다. UTF-8 88파일·변경 문서의 로컬 링크와 diff 검사를 통과했다. [최종 감사](../../artifacts/journal-metadata-storage-20261003/final-audit.json)는 입력/바이너리/현재 source hash·전후 내용/sequence·소유 이전 세대 회수·파일 할당과 전체 시험을 대조한다.
+필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 경고/오류 0, 자동 시험 **884 passed·0 failed·1 skipped**다. [build 로그](../../artifacts/journal-metadata-storage-20261003/build.log)와 [같은 실행 TRX](../../artifacts/journal-metadata-storage-20261003/automated.trx)를 보존했다. 기존 candidate/compaction 게시 중단·동일 intent 재개·손상 보존·개별 ACK/flush와 checksum/tail·원본/peer/회수 guard 회귀가 포함된다. 현재 private JSON의 표현만 바꾸므로 공개 schema/Core/fake 계약의 형식 변경은 없다. UTF-8 88파일·변경 문서의 로컬 링크와 diff 검사를 통과했다. [최종 감사](../../artifacts/journal-metadata-storage-20261003/final-audit.json)는 입력/바이너리/현재 source hash·전후 내용/sequence·소유 이전 세대 회수·파일 할당과 전체 시험을 대조한다.
 
 JM-01~04를 **scoped-complete-with-limitations**로 마감한다. 채택 근거는 이미 정리된 A를 포함한 두 실제 저널의 더 작은 NTFS 파일 할당과 내용/복구 회귀다. 추가 관리 누적 할당·단일 시간 표본의 한계를 공개하며 메모리/시간 개선으로 읽지 않는다. 새 Unity/VSS A/B·설치/grant/볼륨·원본 반영·대형/ARM/원격/OS 장애·전체 peak/VSS 귀속/전체 RAM은 NotRun 또는 unknown을 유지한다. 기존 JP/M0·SF-02/03 Partial·C: 보류의 상태를 변경하지 않는다.
 

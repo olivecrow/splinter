@@ -11,7 +11,7 @@ using Splinter.SourceControl.Git;
 namespace Splinter.Cli;
 
 // Bounded spike entrypoint, deliberately separate from workspace ensure and its
-// ReFS lifecycle. No source capture, driver install or fallback is implicit.
+// workspace lifecycle. No source capture, driver install or fallback is implicit.
 internal static class OverlayExperimentCommands
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

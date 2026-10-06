@@ -9,7 +9,7 @@
 | JP-03 단일 형식/schema/발견 | Passed | SJR2·overlay v2·candidate v3, 이전 요청/저장 identity와 완전한 미지원 frame 보존/거부. workspace v2·서비스 protocol 유지. 최종 발견과 실제 응답 40개를 현재 embedded schema로 검증 |
 | JP-04 실제 T: A/B/독립 결과/회수 | Passed with limitations | 동일 ensure·정확한 project/PID/ticks·loaded A/B·A 정리/회수 중 같은 B 지속·후속 b-two·두 독립 결과/마지막 소유 snapshot 회수. 원본/등록/기존 records 보존 |
 | JP-05 NTFS 파일 할당·메모리 비용 | Passed with limitations | 동일 metadata/decoded 입력의 실제 journal raw 대조·파일 할당·논리/저장/유효/대체 payload, 관리 누적 할당/소유 메모리 표본 공개. 전체 peak/VSS 귀속/native codec RAM unknown |
-| JP-06 전체 회귀·문서 | Passed | 최종 locked restore·Release 경고/오류 0, 881 passed·0 failed·1 optional ReFS skip. 현재 embedded schema의 실제 응답/발견 40개 유효. 현재 계약/스킬/계획/검증표·UTF-8/로컬 링크/diff 대조 |
+| JP-06 전체 회귀·문서 | Passed | 최종 locked restore·Release 경고/오류 0, 881 passed·0 failed·1 skip. 현재 embedded schema의 실제 응답/발견 40개 유효. 현재 계약/스킬/계획/검증표·UTF-8/로컬 링크/diff 대조 |
 
 첫 전체 빌드는 성공했으나 이전 버전·raw 물리 길이를 전제한 회귀 59개가 실패했다. 이전 형식의 지원을 재개하지 않고 시험 입력/현재 schema/개발 도구를 갱신했다. 집중 회귀의 첫 229개 중 3개는 바뀐 입력 oracle/압축 이전 크기·예산 전제였다. 원시 실패를 `artifacts/payload-integration-initial.trx`·`payload-integration-focused.log`에 보존한다.
 

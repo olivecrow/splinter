@@ -10,9 +10,9 @@
 
 기존 RunnerBundle/ContractAndCli·Git/원본/peer·discard/atomic-state 회귀도 유지한다. 첫 한정 실행의 두 회수 시험은 배열의 참조 동일성을 비교해 실패했다. 직렬화된 내용 비교로 수정했으며 제품 실패로 분류하지 않는다. `artifacts/git-basis-focused-classes/`의 실패 TRX를 보존한다. 첫 combined class/method filter는 0개 실행되어 통과로 세지 않는다.
 
-첫 전체 실행은 920개 중 918 Passed·1 Failed·1 선택적 ReFS NotRun이었다. tree 손상으로 Git metadata 명령이 실패할 때 일반 `GitBasisUnavailable`로 분류하던 결함을 보존 필요 `GitBasisObjectInvalid`로 고쳤다. blob/table hash 검사와 requested buffer 미게시 의미는 유지한다. 실패 TRX는 `artifacts/git-project-basis-20261004/full-before-error-classification-fix.trx`에 보존하며 수정 뒤 필수 전체 검사를 다시 실행한다.
+첫 전체 실행은 920개 중 918 Passed·1 Failed·1 당시 제외 시험 NotRun이었다. tree 손상으로 Git metadata 명령이 실패할 때 일반 `GitBasisUnavailable`로 분류하던 결함을 보존 필요 `GitBasisObjectInvalid`로 고쳤다. blob/table hash 검사와 requested buffer 미게시 의미는 유지한다. 실패 TRX는 `artifacts/git-project-basis-20261004/full-before-error-classification-fix.trx`에 보존하며 수정 뒤 필수 전체 검사를 다시 실행한다.
 
-최종 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드·전체 920개 중 919 Passed/0 Failed/1 선택적 ReFS NotRun으로 통과했다. Git reader 11개와 Git mode fake 수명주기·runner/기존 Git·VSS·원본/peer·discard 회귀가 포함된다. TRX는 `artifacts/test-results/Splinter.Tests_net10.0_x64.trx`와 이 실행 evidence의 `full-final.trx`다. 빌드의 4개 MSB3026 경고는 동시에 종료 중이던 소유 CLI의 DLL 잠금으로 한 번씩 복사 재시도 후 완료됐으며 build 오류는 0이었다. 문서 UTF-8과 변경 whitespace 검사도 통과했다. 이 자동/실제 Git 단위를 scoped-complete-with-limitations로 마감하며 아래 NotRun/unknown을 유지한다.
+최종 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드·전체 920개 중 919 Passed/0 Failed/1 당시 제외 시험 NotRun으로 통과했다. Git reader 11개와 Git mode fake 수명주기·runner/기존 Git·VSS·원본/peer·discard 회귀가 포함된다. TRX는 `artifacts/test-results/Splinter.Tests_net10.0_x64.trx`와 이 실행 evidence의 `full-final.trx`다. 빌드의 4개 MSB3026 경고는 동시에 종료 중이던 소유 CLI의 DLL 잠금으로 한 번씩 복사 재시도 후 완료됐으며 build 오류는 0이었다. 문서 UTF-8과 변경 whitespace 검사도 통과했다. 이 자동/실제 Git 단위를 scoped-complete-with-limitations로 마감하며 아래 NotRun/unknown을 유지한다.
 
 ## 실제 입력과 실행
 

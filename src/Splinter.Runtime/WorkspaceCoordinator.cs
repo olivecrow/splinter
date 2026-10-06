@@ -6,7 +6,6 @@ public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Sourc
     string ControlPath, string Command)
 {
     public string NextCommand => Command == "workspace.list" ? "workspace list" :
-        Command == "workspace.ensure" && Workspace.Purpose == "baseline" ? "workspace ensure --storage refs-cow --baseline " + Workspace.Id :
         Command.Replace('.', ' ') + " --id " + Workspace.Id;
     public SnapshotRecoveryDecision? Recovery => WorkspaceStorage.HasRangeJournal(Workspace.StorageMode) ? SnapshotRecoveryDecision.For(Workspace) : null;
     public string SourceVerification => Source is null ? "not-checked" : "verified";
@@ -14,24 +13,24 @@ public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Sourc
 }
 
 public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceProvider sources, IApplicationWorkspaceProvider applications,
-    IWorkspaceStorageProvider? storage = null, ISnapshotWorkspaceBackend? snapshots = null,
+    ISnapshotWorkspaceBackend? snapshots = null,
     IWorkspacePreparationObserver? preparationObserver = null, IWorkspaceDiscardProvider? discardProvider = null)
 {
     public IReadOnlyList<WorkspaceRecord> List(string? project) => store.List(project is null ? null : WorkspaceStore.ManagedProjectPath(project));
 
     public async Task<WorkspaceView> EnsureAsync(string project, string requestKey, string baseReference, string storageMode,
-        bool editor, CancellationToken ct = default, string? baselineId = null, string purpose = "task",
+        bool editor, CancellationToken ct = default,
         long maxJournalBytes = SnapshotWorkspaceState.DefaultJournalBytes, string sourceKind = "git", string applicationKind = "unity", string? generatedDirectoryId = null)
     {
         if (sourceKind is not ("git" or "none" or "plastic") || applicationKind is not ("unity" or "none"))
             throw new WorkspaceException("SourceSelectionUnsupported", "Select git, none or plastic and unity or none explicitly; no fallback is available.");
-        if ((sourceKind == "none" && storageMode != "project-snapshot" || sourceKind == "plastic" && storageMode != "plastic-snapshot") && (storageMode != "ntfs-snapshot" || baselineId is not null || baseReference != "snapshot" || purpose != "task"))
+        if ((sourceKind == "none" && storageMode != "project-snapshot" || sourceKind == "plastic" && storageMode != "plastic-snapshot") && (storageMode != "ntfs-snapshot" || baseReference != "snapshot"))
             throw new WorkspaceException("SourceSelectionUnsupported", "Plain folders require an NTFS task and the snapshot basis.");
-        if (storageMode == "git-snapshot" && (sourceKind != "git" || purpose != "task"))
+        if (storageMode == "git-snapshot" && sourceKind != "git")
             throw new WorkspaceException("SourceSelectionUnsupported", "git-snapshot requires a Git task with a fixed recorded commit.");
-        if (storageMode == "plastic-snapshot" && (sourceKind != "plastic" || purpose != "task" || baselineId is not null || baseReference == "snapshot"))
+        if (storageMode == "plastic-snapshot" && (sourceKind != "plastic" || baseReference == "snapshot"))
             throw new WorkspaceException("SourceSelectionUnsupported", "plastic-snapshot requires an explicit recorded changeset and Plastic task.");
-        if (storageMode == "project-snapshot" && (sourceKind != "none" || purpose != "task" || baselineId is not null || baseReference != "snapshot" || generatedDirectoryId is null))
+        if (storageMode == "project-snapshot" && (sourceKind != "none" || baseReference != "snapshot" || generatedDirectoryId is null))
             throw new WorkspaceException("ProjectBasisRequired", "project-snapshot requires source none, snapshot base and an exact prepared project basis.");
         if (editor && applicationKind == "none")
             throw new WorkspaceException("ApplicationUnsupported", "This ordinary folder has no selected application provider.");
@@ -39,41 +38,32 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             throw new WorkspaceException("GeneratedBasisUnsupported", "A generated directory reference requires a recorded VCS snapshot.");
         if (string.IsNullOrWhiteSpace(requestKey) || requestKey.Length > 128)
             throw new WorkspaceException("InvalidRequestKey", "Use a stable task key between 1 and 128 characters; reuse it across turns.");
-        if (storageMode is not ("git-checkout" or "refs-cow" or "ntfs-snapshot" or "git-snapshot" or "plastic-snapshot" or "project-snapshot"))
-            throw new WorkspaceException("UnsupportedStorageMode", "Choose git-snapshot, ntfs-snapshot, refs-cow, or explicit git-checkout for a diagnostic workspace.");
-        if (storageMode == "refs-cow" && baselineId is null || storageMode != "refs-cow" && baselineId is not null)
-            throw new WorkspaceException("BaselineRequired", "Only refs-cow consumes a sealed baseline.");
+        if (storageMode is not ("git-checkout" or "ntfs-snapshot" or "git-snapshot" or "plastic-snapshot" or "project-snapshot"))
+            throw new WorkspaceException("UnsupportedStorageMode", "Choose git-snapshot, plastic-snapshot, project-snapshot, ntfs-snapshot, or explicit git-checkout for a diagnostic workspace.");
         project = storageMode == "project-snapshot" ? WorkspaceStore.ManagedProjectPath(project) : WorkspaceStore.CanonicalProject(project);
         if (!Directory.Exists(project)) throw new WorkspaceException("ProjectPathNotFound", "Project directory does not exist.");
         if (WorkspaceStore.SamePath(store.Root, project) || store.Root.StartsWith(project + Path.DirectorySeparatorChar, PathComparison))
             throw new WorkspaceException("UnsafeStateRoot", "State and workspaces must live outside the project being edited.");
         string id = WorkspaceStore.Key(WorkspaceStore.ProjectKey(project) + "\n" + requestKey);
         using var gate = await store.LockAsync(id, ct);
-        using var baselineGate = baselineId is null ? null : await store.LockAsync(WorkspaceStore.Key("baseline:" + baselineId), ct);
         var record = store.Find(id);
-        if (record is null && baselineId is not null)
-        {
-            Storage.Probe(store.Root);
-            var baseline = store.GetBaseline(baselineId);
-            if (!WorkspaceStore.SamePath(project, baseline.ProjectPath) || applications.CompatibilityKey(project) != baseline.CompatibilityKey)
-                throw new WorkspaceException("BaselineMismatch", "Baseline belongs to another project or application configuration.");
-        }
         if (record is null)
         {
             record = new WorkspaceRecord
             {
                 Id = id, RequestKey = requestKey, ProjectPath = project, Path = store.WorkPath(id),
                 SourceReference = "splinter/" + id, BaseReference = baseReference, ManagedPaths = applicationKind == "none" ? [] : applications.ManagedPaths,
-                StorageMode = storageMode, BaselineId = baselineId, Purpose = purpose,
+                StorageMode = storageMode, Purpose = "task",
                 SourceKind = sourceKind, ApplicationKind = applicationKind, GeneratedDirectoryId = generatedDirectoryId,
                 Snapshot = WorkspaceStorage.HasRangeJournal(storageMode) ? new() { MaxJournalBytes = maxJournalBytes } : null,
-                RequestDigest = WorkspaceStore.Key(project + "\n" + requestKey + "\n" + baseReference + "\n" + storageMode + "\n" + baselineId + "\n" + purpose + "\n" + maxJournalBytes + "\n" + sourceKind + "\n" + applicationKind + (generatedDirectoryId is null ? "" : "\n" + generatedDirectoryId))
+                // Preserve the existing empty request slot so current snapshot identities remain unchanged.
+                RequestDigest = WorkspaceStore.Key(project + "\n" + requestKey + "\n" + baseReference + "\n" + storageMode + "\n\n" + "task" + "\n" + maxJournalBytes + "\n" + sourceKind + "\n" + applicationKind + (generatedDirectoryId is null ? "" : "\n" + generatedDirectoryId))
             };
             await PreparationPointAsync("request.before-record", record, ct);
             store.Save(record, "create-intent");
             await PreparationPointAsync("request.after-record", record, ct);
         }
-        else if (record.GeneratedDirectoryId != generatedDirectoryId || record.SourceKind != sourceKind || record.ApplicationKind != applicationKind || record.BaseReference != baseReference || record.StorageMode != storageMode || record.BaselineId != baselineId || record.Purpose != purpose ||
+        else if (record.GeneratedDirectoryId != generatedDirectoryId || record.SourceKind != sourceKind || record.ApplicationKind != applicationKind || record.BaseReference != baseReference || record.StorageMode != storageMode || record.Purpose != "task" ||
             WorkspaceStorage.HasRangeJournal(storageMode) && record.Snapshot?.MaxJournalBytes != maxJournalBytes)
             throw new WorkspaceException("RequestKeyConflict", "This key already belongs to another request. Reuse its original parameters or choose a new task key.");
         if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(id), "workspace.list");
@@ -94,7 +84,6 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 using var repositoryGate = await store.LockAsync(WorkspaceStore.ProjectKey(project), ct);
                 SourceWorkspace created = await sources.CreateAsync(record, ct);
                 record.BaseRevision = created.BaseRevision;
-                record.CloneMetrics = created.CloneMetrics;
                 record.Phase = "ready";
                 record.LastError = null;
                 store.Save(record, "created");

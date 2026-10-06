@@ -76,4 +76,4 @@ C B의 stale descriptor 401과 S B reload 뒤 401은 새 exact-path catalog로 �
 
 `artifacts/unity-live-comparison-20261003/`에 응답·cost·94 파일 hash·OS allocation/JSONL·독립 결과·실패 진단을 보존했다. HTML은 `reviewed.json`의 검토한 표와 문장을 포함하고, 공개 범위에 맞는 28개 JSON 근거를 연결한다. 인증 인자가 들어갈 수 있는 원시 Editor 로그나 전체 명령행은 보고서에 싣지 않는다.
 
-필수 build의 현재 후보 결과는 기존 locked restore/Release·906 passed/0 failed/1 optional ReFS skip이다. 이번 실행은 제품 코드를 바꾸지 않은 실제 Unity 검증이며 Unity Play/Test/build 통과로 해석하지 않는다. UTF-8·HTML source links/계산·실제 browser의 표/그래프와 disclosure 확인 결과는 `report-validation.json`에 별도로 남긴다. 작은 화면의 CSS breakpoint는 source 검사이며 별도 device viewport 실행 자격은 NotRun이다.
+필수 build의 현재 후보 결과는 기존 locked restore/Release·906 passed/0 failed/1 skip이다. 이번 실행은 제품 코드를 바꾸지 않은 실제 Unity 검증이며 Unity Play/Test/build 통과로 해석하지 않는다. UTF-8·HTML source links/계산·실제 browser의 표/그래프와 disclosure 확인 결과는 `report-validation.json`에 별도로 남긴다. 작은 화면의 CSS breakpoint는 source 검사이며 별도 device viewport 실행 자격은 NotRun이다.

@@ -37,6 +37,6 @@
 
 ## 자동 회귀와 적용 한계
 
-최종 필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 경고/오류 0, **777개 중 776 통과·실패 0·선택적 ReFS 1 skip**이다. `build-final.log`와 `automated.trx`를 보존한다. 최초 전체 시험의 정리 비율 실패도 `build.log`에 남긴다. 해당 시험은 전체 덮어쓰기를 의도했지만 첫 바이트만 바꾸고 있어 새 재사용이 정리 전 비용을 줄였다. 전체 바이트 변경 입력으로 수정했으며 기존 정리 비율·내용/회수 판정을 약화하지 않았다.
+최종 필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 경고/오류 0, **777개 중 776 통과·실패 0·당시 제외 시험 1 skip**이다. `build-final.log`와 `automated.trx`를 보존한다. 최초 전체 시험의 정리 비율 실패도 `build.log`에 남긴다. 해당 시험은 전체 덮어쓰기를 의도했지만 첫 바이트만 바꾸고 있어 새 재사용이 정리 전 비용을 줄였다. 전체 바이트 변경 입력으로 수정했으며 기존 정리 비율·내용/회수 판정을 약화하지 않았다.
 
 현재 고정 probe와 실제 제품 provider의 Runtime/Windows hash는 최종 필수 빌드와 일치한다. `source-identity.json`은 `development @ e7b1c49` 위 미커밋 구현 3개의 hash를 고정한다. 재빌드/새 후보의 native 전체 통과를 주장하지 않으며 입력·바이너리·실행 경계별로 판정한다. **이 세 개선 단위는 scoped-complete-with-limitations로 마감한다.** 남은 새/전체 변경 Library 부담, 실제 provider/Editor RAM, SourceChanged/늦은 수집 쓰기의 다른 경계는 별도 후속 판단이다.

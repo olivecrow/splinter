@@ -10,7 +10,7 @@
 | SB-04 | 회수 잠금 | 실제 임시 파일 핸들의 독점 획득·두 번째 획득 거부·dispose 뒤 재획득·파일 보존을 승인된 ACL double 아래 확인. 전역 mutex 이름과 무관. VSS 삭제·설치된 서비스의 실제 회수는 NotRun |
 | SB-05 | IPC 수신 | 실제 자기 named pipe의 미완성 header/body가 별도 1초 제한으로 종료되고 다음 client의 정상 frame이 수신됨. 인증된 operation의 기존 3분 제한·결과 불명확 보존은 유지. 반복 등록 사용자 남용에 대한 일반 rate limit이나 새 queue를 구현한 것이 아님 |
 
-필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드 경고/오류 0, 총 **1,036개 중 1,026 Passed / 0 Failed / 10 conditional Skipped**로 통과했다. skip은 선택적 ReFS와 별도 실행 입력이 필요한 evidence/child 진입점이다. 최종 원시 근거는 `artifacts/security-fixes/required-build-complete.log`와 `required-build-complete.trx`이며 일반 사용자 권한으로 실행했다. 제한 토큰에서는 기존 named-pipe 시험도 연결을 거부하므로 그 실패를 제품 실패로 합산하지 않는다. 중간 전체 실행은 누락된 capabilities schema와 새 pipe 시험의 읽기 전 쓰기 대기를 발견해 중단했고 해당 로그를 보존한다. 이를 고친 pipe 시험 4개를 먼저 확인한 뒤 최종 전체 회귀를 완료했다.
+필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드 경고/오류 0, 총 **1,036개 중 1,026 Passed / 0 Failed / 10 conditional Skipped**로 통과했다. skip은 당시 제외 시험와 별도 실행 입력이 필요한 evidence/child 진입점이다. 최종 원시 근거는 `artifacts/security-fixes/required-build-complete.log`와 `required-build-complete.trx`이며 일반 사용자 권한으로 실행했다. 제한 토큰에서는 기존 named-pipe 시험도 연결을 거부하므로 그 실패를 제품 실패로 합산하지 않는다. 중간 전체 실행은 누락된 capabilities schema와 새 pipe 시험의 읽기 전 쓰기 대기를 발견해 중단했고 해당 로그를 보존한다. 이를 고친 pipe 시험 4개를 먼저 확인한 뒤 최종 전체 회귀를 완료했다.
 
 요청·상태·workspace v2는 기존 계약을 유지하며 capabilities의 Plastic reader 설명을 응답 schema에 함께 추가한다. 의존성/lockfile 변경은 없으며 bridge는 vendor 라이브러리의 안정된 공개 SDK로 주장하지 않는 고정 버전 내부 adapter다. helper는 4MiB decoded scratch와 최대 64KiB frame을 유지하며 vendor packet/native allocation·외부 cache/통신·전체 RAM peak는 별도 미계측이다.
 

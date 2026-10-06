@@ -6,7 +6,7 @@
 
 `liveJournalWrites`는 `create/write/resize/metadata/rename/delete`의 최대 6개 연산별 commit 진입·durable commit·실패, payload/저널 바이트, 준비·append·flush·index 적용·전체 호출 시간을 집계한다. 중첩을 제외한 mutation gate 호출/대기와 flush 시작/끝의 다른 대기 mutation 호출 수를 기록한다. histogram의 5칸은 0, 1, 2~3, 4~7, 8개 이상이다. 관측 배열은 복사본이고 과거 누락/null은 unknown이다. no-op와 commit 이전 거부는 mutation 호출에는 포함될 수 있으나 commit 시도에는 포함되지 않는다. 명시적 Flush와 tail 복구 flush는 전체 flush 계수에만 들어간다.
 
-표준 `pwsh ./scripts/build.ps1`의 locked restore·Release 빌드는 경고/오류 0, 자동 **303 통과·0 실패·선택적 ReFS 1 skip**이다. 여섯 연산·no-op·사전 거부·명시적 Flush 구분, 반환 배열 격리, 예산 거부 뒤 journal hash와 재연결, 두 schema의 일치와 음수 histogram 거부를 확인했다. `evidence/build-instrumentation.log`와 `evidence/tests-303-passed.trx`가 해당 실행의 증거다.
+표준 `pwsh ./scripts/build.ps1`의 locked restore·Release 빌드는 경고/오류 0, 자동 **303 통과·0 실패·당시 제외 시험 1 skip**이다. 여섯 연산·no-op·사전 거부·명시적 Flush 구분, 반환 배열 격리, 예산 거부 뒤 journal hash와 재연결, 두 schema의 일치와 음수 histogram 거부를 확인했다. `evidence/build-instrumentation.log`와 `evidence/tests-303-passed.trx`가 해당 실행의 증거다.
 
 ## 고정 합성 쓰기 18회
 

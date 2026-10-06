@@ -4,7 +4,7 @@
 
 정의한 지연 회수의 자동 계약/fake/실제 helper 함수와 실제 격리 NTFS/Git 경로를 검증했다. Unity 실행이나 NR 전체 지원으로 확대하지 않는다.
 
-첫 표준 빌드의 자동 시험에서 252개 중 248 통과·3 실패·선택적 ReFS 1 skip을 확인했다. 3건은 새 descriptor의 retry 값이 기존 enum을 벗어난 2건과 CLI 테스트 fixture의 필수 requestDigest 누락 1건이다. descriptor는 기존 `idempotent-release`를 유지하고 fixture를 수정했다. [수정 후 빌드](../../artifacts/storage-foundation/deferred-20260926/build-03.log)는 252개 중 251 통과·0 실패·선택적 ReFS 1 skip이다. 샌드박스 내 locked restore는 진단 없이 종료되어 동일 표준 빌드를 일반 권한 환경에서 실행했다.
+첫 표준 빌드의 자동 시험에서 252개 중 248 통과·3 실패·당시 제외 시험 1 skip을 확인했다. 3건은 새 descriptor의 retry 값이 기존 enum을 벗어난 2건과 CLI 테스트 fixture의 필수 requestDigest 누락 1건이다. descriptor는 기존 `idempotent-release`를 유지하고 fixture를 수정했다. [수정 후 빌드](../../artifacts/storage-foundation/deferred-20260926/build-03.log)는 252개 중 251 통과·0 실패·당시 제외 시험 1 skip이다. 샌드박스 내 locked restore는 진단 없이 종료되어 동일 표준 빌드를 일반 권한 환경에서 실행했다.
 
 ## 실제 NTFS/Git 수명주기
 
@@ -33,4 +33,4 @@
 
 이번 결과는 과거 SF 실행의 FailedPreservation을 소급 변경하지 않는다. SF-02 전체 Partial, SF-03~06 NotRun, 일반 비소유 백업 공존·외부 동시 삭제·실제 재부팅/전원/공간 장애·ARM A/B와 SW/UA 관문은 유지한다. 자동 sweep·다른 workspace 연쇄 회수·임의 완료 순서의 즉시 물리 회수는 제공하지 않는다.
 
-최종 [표준 빌드](../../artifacts/storage-foundation/deferred-20260926/build-04.log)는 locked restore·Release build·자동 시험 **253개 중 252 통과·0 실패·선택적 ReFS 1 skip**이다. [최종 후보](../../artifacts/storage-foundation/deferred-20260926/candidate-manifest.json)와 [TRX](../../artifacts/storage-foundation/deferred-20260926/candidate.trx), [마감 영수증](../../artifacts/storage-foundation/deferred-20260926/final-closeout.json)에 범위와 후보 차이를 남겼다. 이 작업에서 commit/push는 하지 않았다.
+최종 [표준 빌드](../../artifacts/storage-foundation/deferred-20260926/build-04.log)는 locked restore·Release build·자동 시험 **253개 중 252 통과·0 실패·당시 제외 시험 1 skip**이다. [최종 후보](../../artifacts/storage-foundation/deferred-20260926/candidate-manifest.json)와 [TRX](../../artifacts/storage-foundation/deferred-20260926/candidate.trx), [마감 영수증](../../artifacts/storage-foundation/deferred-20260926/final-closeout.json)에 범위와 후보 차이를 남겼다. 이 작업에서 commit/push는 하지 않았다.

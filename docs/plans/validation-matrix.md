@@ -65,7 +65,7 @@ SF-02/03 전체 Partial·SF-04~06 NotRun·대형 PV/다른 입력/ARM/OS·실제
 | PC-04 | A 독립 결과/release·B 지속/dirty discard·원본/peer/공유 자원 보호 | Passed with limitations, 별도 T: A released/B discarded·독립 bytes/hash·B 41회 지속 쓰기·snapshot/소유 자원 0·기존 C: 6개 snapshot/보호 기록 보존. 선행 C: 입력의 회수 Partial·보류 상태는 유지 |
 | PC-05 | 생성/읽기/관리 복제 비용·delta/결과/소유 메모리·필수 기존 회귀 | Passed with limitations, 생성 초기 payload/readCache 0·단계 비용/소유 메모리/독립 결과 기록·844개 필수 회귀 통과. T: Library 기준선 complete·최종 VSS used/allocated 0. 전체 물리 peak/VSS 귀속·선행 잠긴 C: Library 기준선 unknown |
 
-현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop을 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제거했고 결과 보존은 checkpoint로 통일했다. 선택적 단일 view/Library cache·ReFS·probe는 [개발용 CLI](../development-cli.md)로 분리했다. 아래 기존 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 이번 후보의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](../verification/workspace-product-scope.md)을 따른다.
+현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop을 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제거했고 결과 보존은 checkpoint로 통일했다. 선택적 단일 view/Library cache·probe는 [개발용 CLI](../development-cli.md)로 분리했다. 아래 기존 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 이번 후보의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](../verification/workspace-product-scope.md)을 따른다.
 
 현재 기능의 제한과 보존 근거는 [검증 안내](../verification/README.md)를 따른다. M0는 한정 마감했고 기존 시나리오의 실행 상태를 보존한다. 각 행의 후속 책임은 프로그램 구현·AI 사용 절차·필요 시 지원 검증·구현 제외로 구분한다. 미실행을 Passed로 올리거나 전체 카탈로그를 미완성 프로그램 기능/M0 완료의 분모로 사용하지 않는다.
 
@@ -227,9 +227,9 @@ NR-03은 [공통 저널 58개](../verification/ntfs-recovery.md#nr-03-공통-저
 
 | ID | 검증 대상 | 상태 | 완료 조건·제한 |
 | --- | --- | --- | --- |
-| NR-01 | 복구 상태·identity·영속 기록·기계용 응답 | InProgress: 공통 응답·상태 보존/LV와 준비 port/schema/fake·자식 launch receipt 거부, 상태 쓰기 진단 단위 scoped-complete-with-limitations | unknown/소실/경로 불일치 구분, 손상 JSON·잠긴 기록·고아 tmp 보존. [진단 16개](../verification/state-write-diagnostics.md)는 stage·게시 상태·native 오류·원래 작업 오류와 실제 파일/diagnostic Git CLI 재개/회수, 후보 714 Passed / 0 Failed / 1 optional ReFS Skipped. 이전 실제 준비 상태 게시 실패의 원인은 unknown이고 전체 중단 단계의 오류/행동은 남음 |
+| NR-01 | 복구 상태·identity·영속 기록·기계용 응답 | InProgress: 공통 응답·상태 보존/LV와 준비 port/schema/fake·자식 launch receipt 거부, 상태 쓰기 진단 단위 scoped-complete-with-limitations | unknown/소실/경로 불일치 구분, 손상 JSON·잠긴 기록·고아 tmp 보존. [진단 16개](../verification/state-write-diagnostics.md)는 stage·게시 상태·native 오류·원래 작업 오류와 실제 파일/diagnostic Git CLI 재개/회수, 후보 714 Passed / 0 Failed / 1 Skipped. 이전 실제 준비 상태 게시 실패의 원인은 unknown이고 전체 중단 단계의 오류/행동은 남음 |
 | NR-02 | 준비 단계의 실제 중단과 중복 요청 | scoped-complete-with-limitations: 같은 최종 후보의 실제 CLI 종료 26개·동시 같은 요청 Ready·독립 결과/회수 | [정확한 경계와 최종 감사](../verification/preparation-recovery.md). 최초 payload/read cache 0, 원본/기존 refs/비소유 snapshot 3개 보존, 소유 runner 0. 게시 실패 1건의 명시적 동일 identity 복구와 fresh-key 재실행을 구분. native capture 내부·intent 뒤 실행 여부 unknown 간격·OS 장애는 이 자격에 포함하지 않음 |
-| NR-03 | 저널·flush·승인 쓰기의 지속성 | InProgress: 공통 저널 58개·별도 로컬 kernel 19개·제품 VSS/CLI client 13개 각각 scoped-complete-with-limitations | 제품 후보는 같은 snapshot/delta/Git 등록·새 provider/read proof·반복 ensure 불변·독립 결과·일반 release 자원 0, 698 Passed / 0 Failed / 1 optional ReFS Skipped. 이전 kernel의 reader 타임아웃, 제품 준비 StateWriteIncomplete 원인 unknown·Git text fixture 실패 보존. VSS 내부 callback·같은 파일 동시 쓰기·새 open/close 동시 완료·flush 내부·replay 중 종료·OS 장애·ARM은 미실행. 이전 공통/kernel/LV 후보와 구분 |
+| NR-03 | 저널·flush·승인 쓰기의 지속성 | InProgress: 공통 저널 58개·별도 로컬 kernel 19개·제품 VSS/CLI client 13개 각각 scoped-complete-with-limitations | 제품 후보는 같은 snapshot/delta/Git 등록·새 provider/read proof·반복 ensure 불변·독립 결과·일반 release 자원 0, 698 Passed / 0 Failed / 1 Skipped. 이전 kernel의 reader 타임아웃, 제품 준비 StateWriteIncomplete 원인 unknown·Git text fixture 실패 보존. VSS 내부 callback·같은 파일 동시 쓰기·새 open/close 동시 완료·flush 내부·replay 중 종료·OS 장애·ARM은 미실행. 이전 공통/kernel/LV 후보와 구분 |
 | NR-04 | 정상 재부팅·강제 전원 종료 후 같은 작업 | NotRun | Ready/미수집 변경·checkpoint 완료·회수 도중의 전후 boot 식별, 같은 snapshot/delta/key, 새 원본과 시점 격리. 유효 기준은 실제 재개, 소실/손상은 보존/차단 |
 | NR-05 | 파일 특성·ACL·경로 지원/거부 | InProgress: 속성 callback 자동 통과, ARM64 실제 WinFsp 기본 I/O·5개 API 거부·회수 통과 | fake 불변 트리의 실제 mount에서 ADS/hardlink/희소/압축/mount-point reparse 거부와 일반 NTFS 양성 대조 확인. VSS 입력·EFS·ACL 전제·다른 reparse 종류·한글/공백/긴 경로는 별도 검증 |
 | NR-06 | 실제 공간 고갈·offline·snapshot 소실 | NotRun | VSS·delta/상태·Git 결과 공간을 나눈 격리 볼륨 시험, quota와 구분, unknown 보존, 늦은 쓰기·미보존 결과 보호, 다른 작업·기존 복원 지점 보존 |
@@ -251,7 +251,7 @@ NR-03은 [공통 저널 58개](../verification/ntfs-recovery.md#nr-03-공통-저
 | VW-05 | 실패 검증 출력의 독립 보존, source freeze, 의존성이 있는 후보/미보존 결과/손상 결과의 회수 거부, 응답 유실 재시도 | Passed, 자동/fake 범위 |
 | VW-06 | 초기/다음 flushed 상태 재개, read-only 관측, 부분·중복·누락·구버전·역행·거짓 release 상태의 보존 거부, 후보/view 기록 누락의 의존성 오인 차단 | Passed, 자동/fake 범위 |
 
-2026-09-28의 `development` 작업 트리에서 `pwsh -NoProfile -File ./scripts/build.ps1`의 locked restore·Release 빌드와 전체 시험을 실행했다. [최종 TRX](../../artifacts/test-results/sf03-workflow-20260928.trx)는 388 Passed, 0 Failed, 1 Skipped이며, 이 중 `ValidationWorkflowTests` 64건과 capability/schema 경계 1건이 이번 범위다. 건너뛴 1건은 `SPLINTER_TEST_REFS_ROOT`가 필요한 선택적 실제 ReFS 시험이다. [실행 manifest](../../artifacts/test-results/sf03-workflow-20260928.manifest.json)는 기준 commit, 변경 코드/schema의 hash와 결과 hash를 고정한다.
+2026-09-28의 `development` 작업 트리에서 `pwsh -NoProfile -File ./scripts/build.ps1`의 locked restore·Release 빌드와 전체 시험을 실행했다. [최종 TRX](../../artifacts/test-results/sf03-workflow-20260928.trx)는 388 Passed, 0 Failed, 1 Skipped이며, 이 중 `ValidationWorkflowTests` 64건과 capability/schema 경계 1건이 이번 범위다. 건너뛴 1건은 현재 폐기한 backend의 당시 시험이다. [실행 manifest](../../artifacts/test-results/sf03-workflow-20260928.manifest.json)는 기준 commit, 변경 코드/schema의 hash와 결과 hash를 고정한다.
 
 실제 provider 연결·관리 파일 분리의 VSS/Unity 실행·snapshot/cache 공동 수명은 아래 WF 추적으로 구분하며 [남은 관문](storage-priority-and-editor-modes.md#sf-03-제품-연결과-남은-관문)을 따른다.
 
@@ -267,7 +267,7 @@ NR-03은 [공통 저널 58개](../verification/ntfs-recovery.md#nr-03-공통-저
 | VG-04 | 후속 worker 편집과 후보 불변, 새 source 세대에서 원래 Git 포인터 노출 없음, 손상/중단 후보 보존 | Passed, 합성 불변 트리/저널 |
 | VG-05 | 현재 후보 형식과 필수 증거, 별도 개발용 입력·출력 schema/capability, 전체 회귀 | Passed, 자동 시험 |
 
-2026-09-28, 기준 commit `6bc433b` 이후 작업 트리의 `pwsh -NoProfile -File ./scripts/build.ps1`에서 locked restore·Release 빌드와 전체 420 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped를 확인했다. 새 projection 시험 31건과 입력/capability 시험 1건을 포함한다. [최종 TRX](../../artifacts/test-results/vg-projection-20260928.trx)와 [코드·결과 hash manifest](../../artifacts/test-results/vg-projection-20260928.manifest.json)를 보존한다. 이 시험은 실제 VSS/WinFsp/Unity 게시 증거가 아니며 현재 제품 연결은 WF로 별도 판정한다. SF-03 전체는 Partial이다.
+2026-09-28, 기준 commit `6bc433b` 이후 작업 트리의 `pwsh -NoProfile -File ./scripts/build.ps1`에서 locked restore·Release 빌드와 전체 420 Passed, 0 Failed, 당시 제외 시험 1 Skipped를 확인했다. 새 projection 시험 31건과 입력/capability 시험 1건을 포함한다. [최종 TRX](../../artifacts/test-results/vg-projection-20260928.trx)와 [코드·결과 hash manifest](../../artifacts/test-results/vg-projection-20260928.manifest.json)를 보존한다. 이 시험은 실제 VSS/WinFsp/Unity 게시 증거가 아니며 현재 제품 연결은 WF로 별도 판정한다. SF-03 전체는 Partial이다.
 
 ## SF-03 후보 게시 복구 적합성
 
@@ -281,7 +281,7 @@ NR-03은 [공통 저널 58개](../verification/ntfs-recovery.md#nr-03-공통-저
 | VP-04 | 동시 게시 잠금, 다른 요청/경로/owner/예산/projection, 부분·중복·누락·손상·출처 불명 파일 보존 | Passed, 자동 시험 |
 | VP-05 | 고정 요청 입력·intent·응답 schema/capability와 strict export/projection/view 전체 회귀 | Passed, 자동 시험 |
 
-2026-09-28, 기준 commit `786d264` 이후 작업 트리에서 `pwsh -NoProfile -File ./scripts/build.ps1`의 locked restore·Release 빌드와 전체 483 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped를 확인했다. `CandidatePublicationTests` 61건과 고정 요청 누락을 실행 전에 거부하는 CLI 시험 2건을 포함한다. [최종 TRX](../../artifacts/test-results/vp-publication-20260928.trx)와 [코드·결과 hash manifest](../../artifacts/test-results/vp-publication-20260928.manifest.json)를 보존한다.
+2026-09-28, 기준 commit `786d264` 이후 작업 트리에서 `pwsh -NoProfile -File ./scripts/build.ps1`의 locked restore·Release 빌드와 전체 483 Passed, 0 Failed, 당시 제외 시험 1 Skipped를 확인했다. `CandidatePublicationTests` 61건과 고정 요청 누락을 실행 전에 거부하는 CLI 시험 2건을 포함한다. [최종 TRX](../../artifacts/test-results/vp-publication-20260928.trx)와 [코드·결과 hash manifest](../../artifacts/test-results/vp-publication-20260928.manifest.json)를 보존한다.
 
 SF-03 전체는 Partial이다. 실제 workflow provider 연결·공동 snapshot 수명·VSS/Unity의 게시 복구는 이 VP 시험의 증거에 포함하지 않으며 아래 WF에서 별도 판정한다.
 
@@ -297,7 +297,7 @@ SF-03 전체는 Partial이다. 실제 workflow provider 연결·공동 snapshot 
 | WF-04 | 후보·소스 독립 Git 결과, worker 후속 편집 보존, VSS 의존성 차단과 소유 자원 회수 | Passed, 독립 ref 8개·소유 자원/VSS 0·VHD 분리 후 재검증 |
 | WF-05 | 실제 CLI 중단/응답 유실의 동일 owner/request 복구와 원본/기존 ref 보존 | Passed, publish intent 뒤 실제 CLI 종료·같은 요청 복구/재전송. 전체 명령 경계·재부팅은 제외 |
 
-WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시험은 511 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped다. [TRX](../../artifacts/test-results/wf-product-20260928.trx)와 [코드·실행 파일·실제 증거 manifest](../../artifacts/storage-foundation/wf-20260928/verification-manifest.json)를 보존한다. 해당 formatter의 기록 재검증과 실제 VSS/Unity 실행의 시점 차이는 WF 기록의 제한을 따른다.
+WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시험은 511 Passed, 0 Failed, 당시 제외 시험 1 Skipped다. [TRX](../../artifacts/test-results/wf-product-20260928.trx)와 [코드·실행 파일·실제 증거 manifest](../../artifacts/storage-foundation/wf-20260928/verification-manifest.json)를 보존한다. 해당 formatter의 기록 재검증과 실제 VSS/Unity 실행의 시점 차이는 WF 기록의 제한을 따른다.
 
 ## SF-03 새 cache 실행과 비용
 
@@ -309,7 +309,7 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 | WF-07 | 두 trial의 준비→보존→회수 전체 추가 파일 할당·관측 최고치·VSS 공유 관측·단계 시간·cache 재증가와 계측 한계 | Passed, 소유 파일 할당·관측 최고치·단계 시간·실패/재시작 비용. 순간 물리 peak와 공유 VSS workspace 귀속은 미확정 |
 | WF-08 | 새 실행 결과의 독립 Git 보존·회수 후 내용/hash, 원본/기존 refs/비소유 snapshot 보존과 소유 자원 0/부재 | Passed, 정상 결과 14개와 앞선 결과 2개의 독립 보존·VHD 분리 후 재검증·소유 자원 0/부재 |
 
-최종 locked restore·Release 빌드와 자동 시험은 515 Passed, 0 Failed, 선택적 실제 ReFS 1 Skipped다. [최종 TRX](../../artifacts/storage-foundation/wf-cold-20260928/final-candidate.trx)와 [최종 후보 manifest](../../artifacts/storage-foundation/wf-cold-20260928/final-candidate-manifest.json)를 보존한다.
+최종 locked restore·Release 빌드와 자동 시험은 515 Passed, 0 Failed, 당시 제외 시험 1 Skipped다. [최종 TRX](../../artifacts/storage-foundation/wf-cold-20260928/final-candidate.trx)와 [최종 후보 manifest](../../artifacts/storage-foundation/wf-cold-20260928/final-candidate-manifest.json)를 보존한다.
 
 ## Windows IPC 상태 읽기 경합
 
@@ -370,6 +370,6 @@ WF-01~05 후보의 2026-09-28 locked restore·Release 빌드·전체 자동 시�
 | JM-01 | literal 기본값 명시/생략·비기본값·raw/encoded·개별 flush | Passed, 자동/fake |
 | JM-02 | 명시적 정리/후보의 더 작은 metadata·내용/sequence·예산 | Passed, focused 자동/실제 저널 오프라인 |
 | JM-03 | 고정 A/B 전후 NTFS 할당·이전 세대 회수·기준 읽기/입력 변경 0 | Passed with limitations, 새 Unity/VSS 수명주기 NotRun |
-| JM-04 | 필수 전체 build·현재 계약/문서·UTF-8/diff | Passed, 884 passed·0 failed·1 optional ReFS skip. UTF-8/로컬 링크/diff 확인 |
+| JM-04 | 필수 전체 build·현재 계약/문서·UTF-8/diff | Passed, 884 passed·0 failed·1 skip. UTF-8/로컬 링크/diff 확인 |
 
 JM-01~04는 scoped-complete-with-limitations로 마감했다. 실제 저널의 오프라인 파일 할당 감소를 전체 workspace 공간·메모리·새 native 지원으로 확대하지 않는다.

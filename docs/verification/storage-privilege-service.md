@@ -39,7 +39,7 @@ Unity Editor를 시작하지 않았으므로 `workspace checkpoint`의 `Validati
 
 ## 자동 검증
 
-`pwsh ./scripts/build.ps1`의 locked restore·Release 빌드와 **568 통과·0 실패·1 ReFS 생략**이 현재 제품 후보의 근거다. `StorageAuthorityTests`·`StorageAuthorityPipeTests` 31개와 `StorageServiceSetupTests` 9개를 포함한다. fake capture 중단/응답 유실/동일 요청 복구, 완전한 pending 게시 재개·손상 보존, 실제 Windows 파일 교체 차단·일반 파일 쓰기·임시 pipe SID/ACL, 읽기 전용 설치 입력 거부를 검증했다.
+`pwsh ./scripts/build.ps1`의 locked restore·Release 빌드와 **568 통과·0 실패·1 시험 생략**이 현재 제품 후보의 근거다. `StorageAuthorityTests`·`StorageAuthorityPipeTests` 31개와 `StorageServiceSetupTests` 9개를 포함한다. fake capture 중단/응답 유실/동일 요청 복구, 완전한 pending 게시 재개·손상 보존, 실제 Windows 파일 교체 차단·일반 파일 쓰기·임시 pipe SID/ACL, 읽기 전용 설치 입력 거부를 검증했다.
 
 최종 빌드 로그는 `build-setup-preflight.log`, 전체 결과는 `artifacts/test-results/Splinter.Tests_net10.0_x64.trx`다. 앞선 `build-final.log`, `authority-final.trx`, `setup-preflight.trx`도 보존한다. 기존 파일 교체 경합 시험은 중간에 한 번 30초 제한에 걸렸으나 시험/기한을 바꾸지 않은 별도 재실행과 최종 전체 실행에서 통과했다. 원인이 해결됐다고 단정하지 않는다.
 

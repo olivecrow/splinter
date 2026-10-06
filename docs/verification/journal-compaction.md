@@ -4,7 +4,7 @@
 
 ## 자동 계약과 중단 재개
 
-`JournalDeltaStore`는 기존 acknowledged frame을 replay한 뒤 살아 있는 payload 범위만 새 후보에 chunk 단위로 쓴다. 16MiB 전체 재쓰기와 truncate 뒤의 live 4MiB, `.meta`, rename·delete, 변경 경로·sequence를 fake snapshot으로 대조하고 시험 볼륨의 저널 할당 감소를 검사했다. 후보 flush·재생·상태 hash와 전후 seal을 확인한 후 `File.Replace`로 전환한다. intent 기록, 후보 flush, 준비 영수증, 게시 직후의 네 지점에서 중단을 주입해 같은 identity의 재시도를 실행했다. 손상된 후보는 원본 저널을 바꾸지 않고 거부한다. 재연결된 provider가 저널 핸들을 열고 있을 때도 검증 후 이전 세대를 정리한다. 단일 Editor/프로세스/핸들 관측, 다른 workspace의 독립 상태, 반복 compact의 같은 attempt 반환은 coordinator fake로 검사했다. 전체 `pwsh ./scripts/build.ps1`의 locked restore/Release 빌드는 경고·오류 0이었다. Unity 첫 임포트와 겹친 시험의 프로세스 감독 1건은 시간 초과했으나, Editor와 VHD를 회수한 뒤 `pwsh ./scripts/build.ps1 -NoRestore` 전체 재실행에서 **263건 중 262 통과·0 실패·선택적 ReFS 1 skip**이었다.
+`JournalDeltaStore`는 기존 acknowledged frame을 replay한 뒤 살아 있는 payload 범위만 새 후보에 chunk 단위로 쓴다. 16MiB 전체 재쓰기와 truncate 뒤의 live 4MiB, `.meta`, rename·delete, 변경 경로·sequence를 fake snapshot으로 대조하고 시험 볼륨의 저널 할당 감소를 검사했다. 후보 flush·재생·상태 hash와 전후 seal을 확인한 후 `File.Replace`로 전환한다. intent 기록, 후보 flush, 준비 영수증, 게시 직후의 네 지점에서 중단을 주입해 같은 identity의 재시도를 실행했다. 손상된 후보는 원본 저널을 바꾸지 않고 거부한다. 재연결된 provider가 저널 핸들을 열고 있을 때도 검증 후 이전 세대를 정리한다. 단일 Editor/프로세스/핸들 관측, 다른 workspace의 독립 상태, 반복 compact의 같은 attempt 반환은 coordinator fake로 검사했다. 전체 `pwsh ./scripts/build.ps1`의 locked restore/Release 빌드는 경고·오류 0이었다. Unity 첫 임포트와 겹친 시험의 프로세스 감독 1건은 시간 초과했으나, Editor와 VHD를 회수한 뒤 `pwsh ./scripts/build.ps1 -NoRestore` 전체 재실행에서 **263건 중 262 통과·0 실패·당시 제외 시험 1 skip**이었다.
 
 이 검증은 프로세스 중단을 흉내 낸 결정적 경계 시험이다. 실제 강제 전원 종료·물리 공간 고갈·재부팅의 저널 세대 복구를 통과로 표시하지 않는다. 저널의 기존 쓰기별 `Flush(true)` 정책은 변경하지 않았다.
 

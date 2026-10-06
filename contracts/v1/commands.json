@@ -153,50 +153,6 @@
       "retry": "safe-read"
     },
     {
-      "id": "storage.probe",
-      "description": "Check ReFS volume and cluster geometry without copying files.",
-      "cliUsage": "splinter-dev storage probe --path <directory>",
-      "inputTransport": "options",
-      "inputSchema": "urn:splinter:v1:storage-probe-request",
-      "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "read-only-local-process",
-      "retry": "safe-read",
-      "developmentOnly": true
-    },
-    {
-      "id": "baseline.prepare",
-      "description": "Create or reconnect to one exact-revision baseline preparation Editor.",
-      "cliUsage": "splinter-dev baseline prepare --project <repository> [--base development] [--home <ReFS-root>]",
-      "inputTransport": "options",
-      "inputSchema": "urn:splinter:v1:baseline-prepare-request",
-      "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "owned-worktree-and-optional-editor",
-      "retry": "same-project-and-task-key",
-      "developmentOnly": true
-    },
-    {
-      "id": "baseline.seal",
-      "description": "Stop the owned preparation Editor, seal unchanged source and Library, then release its worktree; no compile claim.",
-      "cliUsage": "splinter-dev baseline seal --id <id> [--home <ReFS-root>]",
-      "inputTransport": "options",
-      "inputSchema": "urn:splinter:v1:baseline-seal-request",
-      "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "owned-baseline-cache",
-      "retry": "same-workspace",
-      "developmentOnly": true
-    },
-    {
-      "id": "baseline.release",
-      "description": "Reclaim a sealed cache only after every consumer is released.",
-      "cliUsage": "splinter-dev baseline release --id <id> [--home <ReFS-root>]",
-      "inputTransport": "options",
-      "inputSchema": "urn:splinter:v1:baseline-release-request",
-      "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "owned-baseline-removal",
-      "retry": "idempotent-release",
-      "developmentOnly": true
-    },
-    {
       "id": "preparation.probe",
       "description": "Development-only interruption gate in product workspace.ensure; returns its ordinary response and retains all resources.",
       "cliUsage": "splinter-dev preparation-probe --input <request.json>",

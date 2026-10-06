@@ -5,7 +5,7 @@ namespace Splinter.Cli;
 internal sealed class SelectedApplicationProvider(IApplicationWorkspaceProvider unity) : IApplicationWorkspaceProvider
 {
     public string[] ManagedPaths => unity.ManagedPaths;
-    public string[] CacheInputs => unity.CacheInputs;
+
     public string CompatibilityKey(string p) => unity.CompatibilityKey(p);
     public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => unity.StartAsync(w, c, ct);
     private static void None(WorkspaceRecord w)

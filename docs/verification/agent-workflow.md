@@ -34,6 +34,6 @@ Unity Editor·컴파일 오류/수정·보존형 종료/통합·dirty guard·A �
 
 ## 자동 검증
 
-스킬의 frontmatter/이름/description과 미완성 placeholder를 `skill-creator/scripts/quick_validate.py`로 검사했다. 이는 구조 검사이며 실제 사용 자격은 위 원시 응답/파일 관측에서 얻는다. 필수 `scripts/build.ps1`의 locked restore·Release는 경고/오류 0, 자동 시험은 **총 745 / 성공 744 / 실패 0 / 선택적 ReFS 건너뜀 1**이다. sandbox 안의 첫 restore 실패 로그를 보존하고 일반 권한의 sandbox 밖에서 같은 표준 빌드를 완료했다. `build.log`, `build-escaped.log`, TRX와 `automated.json`을 해당 evidence에 보존한다.
+스킬의 frontmatter/이름/description과 미완성 placeholder를 `skill-creator/scripts/quick_validate.py`로 검사했다. 이는 구조 검사이며 실제 사용 자격은 위 원시 응답/파일 관측에서 얻는다. 필수 `scripts/build.ps1`의 locked restore·Release는 경고/오류 0, 자동 시험은 **총 745 / 성공 744 / 실패 0 / 당시 제외 시험 건너뜀 1**이다. sandbox 안의 첫 restore 실패 로그를 보존하고 일반 권한의 sandbox 밖에서 같은 표준 빌드를 완료했다. `build.log`, `build-escaped.log`, TRX와 `automated.json`을 해당 evidence에 보존한다.
 
 전체 문서 58개와 변경 파일 10개를 UTF-8로 확인했고, 변경 파일의 로컬 문서 링크와 Git diff 공백 검사를 통과했다. 제품 코드/계약 변경이나 별도 지침 모사 시험은 추가하지 않았다.

@@ -19,4 +19,4 @@
 
 `artifacts/code-quality-optimization/`에 집중 시험의 최초/최종 TRX와 필수 빌드 로그·전체 TRX를 보존한다. 최초 집중 시험은 294개 중 293 통과·1 실패다. 실패는 Plastic fixture가 recorded base schema 대신 임의 문자열을 사용한 입력 오류였으며 실제 recorded 형식으로 수정했다. 기존 실패 결과도 보존한다.
 
-최종 집중 시험은 **299 통과·실패/skip 0**이다. 추가한 회귀는 다음 행동 11개·저널 검색/블록 순회 4개·부모 미기록 rename 재생 2개·객체/원본 계획 3개로 총 20개다. 필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드 경고/오류 0, **1,025개 중 1,024 통과·실패 0·선택적 ReFS 1 skip**이며 전체 시험은 약 4분 35초다. `build-final.log`·`full-final.trx`와 변경 C#의 `source-manifest.json`을 보존했다. 문서 119개는 UTF-8 검사에 통과했다. 이 문서는 자동 회귀의 증거이며 과거 RI/JP/ME/SP·원본 반영의 실제 입력 자격을 현재 후보의 native 통과로 승계하지 않는다.
+최종 집중 시험은 **299 통과·실패/skip 0**이다. 추가한 회귀는 다음 행동 11개·저널 검색/블록 순회 4개·부모 미기록 rename 재생 2개·객체/원본 계획 3개로 총 20개다. 필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드 경고/오류 0, **1,025개 중 1,024 통과·실패 0·당시 제외 시험 1 skip**이며 전체 시험은 약 4분 35초다. `build-final.log`·`full-final.trx`와 변경 C#의 `source-manifest.json`을 보존했다. 문서 119개는 UTF-8 검사에 통과했다. 이 문서는 자동 회귀의 증거이며 과거 RI/JP/ME/SP·원본 반영의 실제 입력 자격을 현재 후보의 native 통과로 승계하지 않는다.

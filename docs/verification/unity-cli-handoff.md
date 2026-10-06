@@ -24,7 +24,7 @@ Splinter의 launch receipt와 heartbeat의 정확한 PID/시작 ticks 일치를 
 | UH-01: 정확한 연결/발견 | Passed with limitations. A/B `command --project-path <반환 root>`의 catalog/target·eval 실제 project/PID를 확인. `status --project-path`는 둘 다 STATUS_NO_INSTANCES, 일반 권한 `pipeline list`는 원본만 반환. sandbox 밖에서도 같은 제한을 확인했고 누락을 Editor 부재로 판정하지 않음 |
 | UH-02: 편집·loaded 결과·정상 종료 공존 | Passed with limitations. 각 `Assets/SplinterCliProbe.cs`의 `a-one`/`b-one`, A 수정 후 `a-two`, A stop/release 뒤 같은 B PID의 후속 `b-two`·외부 recompile completed/failed=false를 확인. A 수정 전후 B 값/MVID는 동일. 원본 소스/관리 정보·등록·Editor/Pipeline 연결 보존 |
 | UH-03: 독립 결과/회수 | Passed. 두 checkpoint·release와 실제 객체 hash/크기/최종 probe bytes 검증, mount/provider/delta/소유 프로세스/핸들/메모리 0 또는 부재, 마지막 소유 VSS 두 개 회수와 T: snapshot 0. 기존 C: 보류를 회수 성공으로 승계하지 않음 |
-| UH-04: 기존 계약/비용 | Passed with limitations. 필수 locked restore·Release 빌드 0 warning/error, 844개 자동 시험 통과/0 실패/선택적 ReFS 1 skip. 현재 embedded catalog로 제품 JSON 응답 28개 유효. 단계 시간/범위 저장과 독립 결과 비용을 기록; 전체 물리 peak·RAM peak/절감·VSS 작업별 귀속은 unknown |
+| UH-04: 기존 계약/비용 | Passed with limitations. 필수 locked restore·Release 빌드 0 warning/error, 844개 자동 시험 통과/0 실패/당시 제외 시험 1 skip. 현재 embedded catalog로 제품 JSON 응답 28개 유효. 단계 시간/범위 저장과 독립 결과 비용을 기록; 전체 물리 peak·RAM peak/절감·VSS 작업별 귀속은 unknown |
 
 `a-catalog-initial.json`은 descriptor 게시 전 COMMAND_FAILED다. 각 Editor의 첫 eval과 A recompile 후 첫 eval은 `Main thread operation timed out after 5000ms`였고, **읽기 전용인 동일 대상 eval을 한 번 재시도**해 loaded 값과 실제 대상을 확인했다. 실패를 삭제하거나 첫 시도 통과로 표시하지 않는다. 첫 타임아웃의 내부 원인은 미확정이며 일반 Unity 작업/쓰기 요청을 자동 재시도하는 자격으로 확대하지 않는다.
 

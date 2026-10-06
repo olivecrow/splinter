@@ -27,7 +27,7 @@ changeset 1에는 Assets가 없고 현재 원본과 비교한 추가/변경 파�
 
 `PlasticRevisionTests`는 bounded binary range proof/순차 재사용·손상/길이 불일치와 buffer 미게시·원본 이후 변경/다른 owner/고정 tree 변화 거부·reader fence/같은 release intent·unsupported paths·source/storage/schema를 확인한다. 파일 mount double의 독립 결과 시험은 서버/원본 없는 검증과 discard의 dependent 제거 실패 뒤 같은 기준 회수 재개를 다룬다. 그 시험의 파일 materialization은 제품 WinFsp/no-copy native 증거가 아니다.
 
-최초 focused 실행은 반환 배열의 참조 동일성 비교와 capabilities schema의 빌드 시점 차이로 실패했다. 동일 내용 비교와 현재 schema를 포함한 재빌드로 수정했다. 다음 실행은 새 storageMode를 반영하지 않은 기존 discovery 기대값이 실패해 현재 계약으로 갱신했다. 후속 새 시험의 PascalCase fixture JSON과 recovery assertion의 잘못된 속성명도 수정했다. 최초/후속 로그와 TRX를 보존하며 제품 내용 손실이나 첫 실행 통과로 표시하지 않는다. 최종 후보의 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드 경고/오류 0, 전체 962개 중 961 Passed·실패 0·선택적 ReFS 1 skip이다. 원시 로그/결과는 `build-verified-candidate.log`와 `build-verified-candidate.trx`다.
+최초 focused 실행은 반환 배열의 참조 동일성 비교와 capabilities schema의 빌드 시점 차이로 실패했다. 동일 내용 비교와 현재 schema를 포함한 재빌드로 수정했다. 다음 실행은 새 storageMode를 반영하지 않은 기존 discovery 기대값이 실패해 현재 계약으로 갱신했다. 후속 새 시험의 PascalCase fixture JSON과 recovery assertion의 잘못된 속성명도 수정했다. 최초/후속 로그와 TRX를 보존하며 제품 내용 손실이나 첫 실행 통과로 표시하지 않는다. 최종 후보의 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드 경고/오류 0, 전체 962개 중 961 Passed·실패 0·당시 제외 시험 1 skip이다. 원시 로그/결과는 `build-verified-candidate.log`와 `build-verified-candidate.trx`다.
 
 ## 실제 입력에서 발견한 수정
 

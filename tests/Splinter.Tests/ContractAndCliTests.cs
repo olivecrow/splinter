@@ -60,16 +60,36 @@ public sealed class ContractAndCliTests
         Assert.False(Directory.Exists(home));
     }
 
-    [Fact]
-    public async Task ProductRejectsReFsBeforeOpeningSourceOrState()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BothClisRejectRetiredStorageBeforeOpeningSourceOrState(bool development)
     {
         using var directory = new TestDirectory(); string home = Path.Combine(directory.Path, "untouched");
         using var output = new StringWriter();
         Assert.Equal(2, await Program.RunAsync(["workspace", "ensure", "--project", "missing-source", "--key", "task",
-            "--storage", "refs-cow", "--home", home], output, TestContext.Current.CancellationToken));
+            "--storage", "refs-cow", "--home", home], output, TestContext.Current.CancellationToken, development: development));
         using var response = JsonDocument.Parse(output.ToString());
         Assert.Equal("SchemaValidationFailed", response.RootElement.GetProperty("error").GetProperty("code").GetString());
         Assert.False(Directory.Exists(home));
+    }
+
+    [Theory]
+    [InlineData("baseline", "prepare")]
+    [InlineData("baseline", "seal")]
+    [InlineData("baseline", "release")]
+    [InlineData("storage", "probe")]
+    public async Task DevelopmentCliRejectsRetiredCommandsWithoutCreatingState(string command, string subcommand)
+    {
+        using var directory = new TestDirectory(); string home = Path.Combine(directory.Path, "untouched");
+        using var output = new StringWriter();
+        Assert.Equal(2, await Program.RunAsync([command, subcommand, "--home", home], output,
+            TestContext.Current.CancellationToken, development: true));
+        using var response = JsonDocument.Parse(output.ToString());
+        Assert.Equal("InvalidArguments", response.RootElement.GetProperty("error").GetProperty("code").GetString());
+        Assert.False(Directory.Exists(home));
+        Assert.Null(contracts.Find(command + "." + subcommand));
+        Assert.DoesNotContain("urn:splinter:v1:" + command + "-" + subcommand + "-request", contracts.SchemaIds);
     }
 
     [Fact]

@@ -64,7 +64,7 @@ group은 root/children/supervisor의 관측 합이며 물리 RAM 합이 아니�
 
 ## ME-05: 회귀와 종료
 
-`pwsh ./scripts/build.ps1`의 locked restore·Release 빌드 경고/오류 0, **900 passed / 0 failed / 1 optional ReFS skipped (901 total)**를 확인했다. 추가 16개는 codec chunk/미게시 경계와 journal 선택/바이트 대조다. 최초 focused 실행의 네 실패는 시험 입력의 중복 출력 directory였으며 Distinct로 수정한 뒤 전체 필수 실행이 통과했다. 그 실패 evidence도 보존했다.
+`pwsh ./scripts/build.ps1`의 locked restore·Release 빌드 경고/오류 0, **900 passed / 0 failed / 1 skipped (901 total)**를 확인했다. 추가 16개는 codec chunk/미게시 경계와 journal 선택/바이트 대조다. 최초 focused 실행의 네 실패는 시험 입력의 중복 출력 directory였으며 Distinct로 수정한 뒤 전체 필수 실행이 통과했다. 그 실패 evidence도 보존했다.
 
 현재 제품 `ContractCatalog`로 실제 응답 **44개**의 schema를 검증했다. UTF-8 92개 파일·문서 링크 414개와 diff 검사를 통과했다. 현재 source/binary 증거의 최종 계수/판정은 `completion-final.json`에 고정한다. 현재 메모리 구현과 이 한 묶음은 마감했으며 최종 A/B나 새 benchmark/harness를 자동 반복하지 않는다.
 

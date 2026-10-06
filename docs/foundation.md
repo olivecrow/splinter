@@ -8,7 +8,7 @@ Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트�
 
 Unity CLI의 외부 작업은 [정확한 대상 선택 절차](alpha-workspaces.md#unity-cli의-정확한-대상-선택)를 따른다. 현재 작은 T: Plastic A/B의 exact-path command·loaded 값·정상 종료 공존·독립 결과/회수는 [별도 한정 자격](verification/unity-cli-handoff.md)으로 확인했으며, 목록 발견 누락·첫 eval 타임아웃과 MCP/다른 입력의 미자격을 유지한다. 프로그램의 새 Unity 작업 API나 컴파일 gate를 추가하지 않았다.
 
-제품 시작점은 [AI 안내](agent-start.md)와 `scripts/splinter.ps1`이다. ReFS/진단·공통 Library view·spike/probe는 [개발 CLI](development-cli.md)로 분리했다. 기존 verification은 해당 후보/입력의 근거이며 변경된 계약의 native 자격을 자동 부여하지 않는다.
+제품 시작점은 [AI 안내](agent-start.md)와 `scripts/splinter.ps1`이다. 진단·공통 Library view·spike/probe는 [개발 CLI](development-cli.md)로 분리했다. 기존 verification은 해당 후보/입력의 근거이며 변경된 계약의 native 자격을 자동 부여하지 않는다.
 
 병렬 격리와 범위 저장은 Splinter의 공통 저장소 계층이 제공한다. 소스 공급자는 선택한 VCS 관리 정보와 Splinter 작업의 기준·결과·회수 사이의 안전 경계를 담당한다. 제품 CLI는 Git·VCS 없는 일반 폴더·Plastic 사용 환경를 명시적으로 선택한다. 소스/application 종류와 opaque 기준/결과 identity를 v2 작업 상태에 고정하고, 일반 폴더는 불변 파일 manifest·작업별 독립 payload를 사용한다. 실패 시 다른 소스로 fallback하지 않는다. 현재 제약과 실제 자격은 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. Git 원격 등록은 불필요하며 Plastic 사용 환경의 관리 정보/등록 격리와 독립 파일 결과는 [현재 계약](plastic-compatibility.md)을 따르며 [실제 자격](verification/plastic-compatibility.md)을 별도로 확인한다. 일반 폴더의 editorless [원본 apply](plain-folder-original-apply.md)는 계획/intent·조건부 Windows 게시를 제공하며 실제 제품 자격은 작은 Editor 없는 NTFS A/B 한 묶음에 한정한다.
 
@@ -33,12 +33,12 @@ Library/프로젝트의 공통 restore는 v2 계획·기존 파일 identity·신
 | `Splinter.SourceControl.Files` | 일반 폴더/Plastic 파일 기준·독립 payload·Plastic 읽기 전용 호환 경계·고정 소스 라우팅·폐기 영수증 | Core, Runtime |
 | `Splinter.SourceControl.Git` | fixed commit/tree/blob reader·소유 기준 ref/fence·linked worktree/index·현재 소스 hash·독립 결과·guard가 있는 merge/회수 | Core |
 | `Splinter.Application.Unity` | 정확한 버전/프로젝트의 Editor 실행·준비 관측·정상 종료·소유 bridge | Core |
-| `Splinter.Platform.Windows` | VSS/Git 불변 reader 조합·WinFsp·변경 범위 저널·제한 권한 서비스·Job Object·선택적 ReFS | Core, Runtime, Files, Git, WinFsp.Net; Win32 |
+| `Splinter.Platform.Windows` | VSS/Git 불변 reader 조합·WinFsp·변경 범위 저널·제한 권한 서비스·Job Object | Core, Runtime, Files, Git, WinFsp.Net; Win32 |
 | `Splinter.Workflows.Windows` | 개발용 불변 source view·공통 Library cache·독립 결과와 회수 의존성 | Runtime와 Git/Unity/Windows |
 | `Splinter.Cli` | 제품 명령 파싱·어댑터 조합·JSON/종료 코드; 개발 진입점의 공통 조합 | Host, Runtime, Git/Unity/Windows/workflow, System.CommandLine |
 | `tools/Splinter.Development` | 별도 개발 명령 진입점 `splinter-dev` | CLI |
 | `unity/Splinter.Editor` | liveness·import/compile 진행 관측·미저장 씬/Play 보호와 정상 종료 | Unity Editor API; 소유 workspace에만 포함 |
-| `Splinter.Tests`, `tests/Splinter.UnityBridgeHarness` | 계약/fake·실제 Git·Windows 자식·bridge 소스 적합성·선택 ReFS 회귀 | xUnit v3, MTP; bridge에는 Unity API stub 사용 |
+| `Splinter.Tests`, `tests/Splinter.UnityBridgeHarness` | 계약/fake·실제 Git·Windows 자식·bridge 소스 적합성 | xUnit v3, MTP; bridge에는 Unity API stub 사용 |
 | `tools/Splinter.ReplayProbe`, `tools/Splinter.WriteProbe` | 고정 합성 입력의 읽기/쓰기 비용과 정확성 계측 | Runtime; 개발 도구 |
 
 CLI는 짧은 프로세스다. Host는 읽기 전용 in-process 계층이며 daemon/DB writer가 아니다. Runtime은 부작용 전 intent와 같은 요청 영수증을 durable 상태에 게시한다. 공급자 전용 API는 어댑터에 있고 Core에는 Unity/Win32/Git/Codex API를 넣지 않는다.
@@ -49,7 +49,7 @@ Runtime의 파일 잠금은 workspace ID별 명령을 직렬화하며 프로젝�
 
 [읽기 전용 저장 장부](source-verification.md#계측의-의미)는 현재 SJR2의 stored/decoded·논리 유효 범위·참조 블록 전체 비용과 정확한 task/shared 파일 할당을 구별한다. 물리 저장 개발의 종료 경계와 최종 후보 자격은 [PS 범위](plans/physical-storage-completion.md)·[실행 검증](verification/physical-storage-completion.md)을 따른다. 제품 replay·seal과 VSS 소유권/회수 계약을 계측기로 대체하지 않는다.
 
-workspace/baseline 상태와 Windows 제어 IPC는 같은 디렉터리에 flush한 임시 파일을 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader의 delete sharing, 한정 공유 오류 재시도, unknown/손상/소유권 오류 보존은 [NTFS 계약](ntfs-workspaces.md)을 따른다. 상태 쓰기 실패 단계/HResult·게시 완료 여부는 [진단 계약](verification/state-write-diagnostics.md)에 있다.
+workspace 상태와 Windows 제어 IPC는 같은 디렉터리에 flush한 임시 파일을 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader의 delete sharing, 한정 공유 오류 재시도, unknown/손상/소유권 오류 보존은 [NTFS 계약](ntfs-workspaces.md)을 따른다. 상태 쓰기 실패 단계/HResult·게시 완료 여부는 [진단 계약](verification/state-write-diagnostics.md)에 있다.
 
 [현재 압축 저널](journal-payload-compression.md)은 overlay v2/SJR2·candidate v3의 raw/Brotli 범위를 사용한다. 실제 제품 연결 자격은 [JP](verification/journal-payload-compression.md), 현재 내부 buffer와 비용/회수 자격은 [ME](verification/memory-completion.md)로 구분한다. 압축 준비는 scratch 하나와 선택 결과 배열을 사용하며 작은/빈 compressed read는 chunk와 요청분 staging으로 전체 stream 검증 뒤 게시한다. 범위 저널은 승인 쓰기의 개별 durable flush·전후/unmount seal을 유지한다. 동일 private 바이트와 일치 앞뒤의 작은 변경 범위를 재사용하며 최초 전체 복제·읽기 hydration·전체 파일 copy-up fallback은 없다. source fingerprint cache는 snapshot/provider 세대·변경 이력에 묶이고 초기/감사/재연결은 전체 내용을 확인한다. [소스 검증](source-verification.md)은 저장 내용 검사이며 프로젝트 합격 판정이 아니다.
 
@@ -77,7 +77,7 @@ private Mutation의 기본값 JSON은 생략하고 명시적 정리/후보에서
 | `unity start/stop` | 해당 workspace Editor의 수명. 준비/종료는 상태 관측으로 확인 |
 | `storage service status` | 기존 제한 VSS 서비스의 읽기 전용 상태 |
 
-`unity refresh`, 제품 `validation`, 일반 ReFS/baseline·spike/probe 명령은 제공하지 않는다. 개발 계약은 `scripts/splinter-dev.ps1 capabilities/schema`에서 따로 발견한다. 선택적 `view`도 storage/cache 수명만 관리하고 검증 수집/판정을 하지 않는다.
+`unity refresh`, 제품 `validation`, 일반 spike/probe 명령은 제공하지 않는다. 개발 계약은 `scripts/splinter-dev.ps1 capabilities/schema`에서 따로 발견한다. 선택적 `view`도 storage/cache 수명만 관리하고 검증 수집/판정을 하지 않는다.
 
 ### 진단의 의미
 
@@ -97,7 +97,7 @@ AI Runner·DAG/plan 제출·daemon/DB·큐/자동 모드·Codex 자동 binding·
 pwsh ./scripts/build.ps1
 ```
 
-locked restore·Release·자동 계약/fake/Git/Windows 회귀를 수행한다. 의존성은 중앙 버전과 lockfile을 유지한다. 선택 ReFS 환경변수가 없으면 해당 실제 시험은 Skipped다. 자동 시험을 native VSS/Unity·ARM/OS 장애 자격으로 승계하지 않는다. 원시 근거와 지원 제한은 [검증 안내](verification/README.md)에 보존한다.
+locked restore·Release·자동 계약/fake/Git/Windows 회귀를 수행한다. 의존성은 중앙 버전과 lockfile을 유지한다. 자동 시험을 native VSS/Unity·ARM/OS 장애 자격으로 승계하지 않는다. 원시 근거와 지원 제한은 [검증 안내](verification/README.md)에 보존한다.
 
 외부 복구 시험의 `EvidenceRun`과 자식 전용 `ChildWriter`·`ChildProvider`·`ChildClient`·`ChildReader`·`ClientActor`·`ChildEnsure`는 지정된 실행 환경 변수가 없으면 Skipped다. 해당 스크립트나 부모 시험이 환경 변수를 전달할 때 같은 진입점이 실행된다. 기본 자동 실행에서도 부모 시험이 호출하는 합성 저널·준비 중단 회귀는 실행하며, 외부 kernel·제품 쓰기 복구의 실행 자격과 구분한다.
 

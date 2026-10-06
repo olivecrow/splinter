@@ -78,7 +78,7 @@ job `7885946d44d44be4b310fbd9721f3aed`의 summary와 개별 3개 결과를 저�
 - Coplay server argument/target/error/no-retry 경계: **7 Passed**, `server-tests.txt`.
 - 선택 Unity EditMode: **3 Passed**, summary/items roundtrip와 actual reload 결과 동일.
 - 후속 Codex 기본 HTTP MCP: 정확한 원본 target·project/PID/start·현재 로드된 패치·read-only code 결과·idle/Console error 0 확인. 과거 Stdio 0/HTTP startup 실패는 당시 근거로 보존한다.
-- `pwsh scripts/build.ps1`: **978 Passed / 0 Failed / 1 optional ReFS Skipped**, `product-build.log`와 원래 TRX.
+- `pwsh scripts/build.ps1`: **978 Passed / 0 Failed / 1 Skipped**, `product-build.log`와 원래 TRX.
 - 준비 파일 6개 hash 검증·정상 생성 server wrapper `--help`·Python 구문이 통과했다. 문서 UTF-8은 제품 115개/fixture 6개, 두 저장소 `git diff --check`도 통과했다.
 
 VR/MR의 고정 범위는 **scoped-complete-with-limitations**다. 완료한 테스트의 상세 보존과 실제 긴 code 요청의 한 번 실행 및 Codex 기본 HTTP 연결을 확인했으며 새로운 병렬 A/B 전부의 패치 자격으로 승계하지 않는다. Editor 재시작 후 job 복구/OS 장애·임의 코드 취소/롤백·거대한 상세 테스트 결과 비용·모든 native MCP client의 자동 schema 갱신·다른 버전/PC는 NotRun이다. 예기치 않은 이전 Editor/서버 종료의 정확한 원인은 미확정이며 독립 실행 뒤의 추가 앱 재시작 생존 시험도 NotRun이다. 사용자가 이전 종료의 원인 조사를 후속 범위에서 제외했으므로 이 기록을 미완료 작업으로 집계하거나 추가 조사하지 않는다. 공유 VSS 전체 비용과 workspace 귀속/물리 peak unknown, 기존 대형/ARM/OS 지원 제한은 그대로다. Coplay upstream 공식 배포/병합을 완료했다고 주장하지 않는다.

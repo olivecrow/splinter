@@ -90,6 +90,6 @@ home에는 worker/candidate/source/cache journal·영수증·로그·TEMP/TMP가
 - cold A의 최종 Editor 로그에 heartbeat `File.Replace` IOException 기록 2건이 있다. 후속 heartbeat와 최종 검증은 정상이며 독립 결과와 회수도 확인했다. 원인은 미확정이다. 나머지 최종 Editor 로그에는 같은 bridge 오류가 없었다. 준비 로그는 재시작 시 덮어쓸 수 있으므로 모든 실행 구간의 오류 0을 주장하지 않는다. 과거 IPC 경합의 정확한 원인 해결 증거로 승계하지 않는다.
 - 개발용 원본 Library 준비 helper가 deps/runtimeconfig 파일 누락으로 Unity 시작 전에 한 번 실패했다. 실행 프로세스와 Library가 없음을 확인하고 실패 디렉터리를 보존한 뒤 helper 파일 구성을 보완했다. 제품 바이너리 변경이나 privileged fallback은 없었다.
 - 두 `SnapshotInUse` 응답은 cache 수명 의존성의 예상된 거부다. artifact를 보존/회수한 뒤에도 cache가 기준 snapshot을 붙들고 있음을 확인했으며 `close-view` 후에만 worker 회수가 성공했다.
-- `pwsh ./scripts/build.ps1`: locked restore·Release 빌드 성공, **588 Passed / 0 Failed / 1 optional ReFS Skipped**. 첫 전체 실행의 제어 파일 시험 시간 초과는 따로 보존했고 단독 9개 시험은 통과했다. 해당 시험 묶음을 다른 flush 부하와 병렬 실행하지 않도록 분리하되 4개 동시 reader·500회 게시·30초 deadline 및 제품의 1초 재시도 계약은 유지했다. 최종 전체 실행을 다시 통과했다.
+- `pwsh ./scripts/build.ps1`: locked restore·Release 빌드 성공, **588 Passed / 0 Failed / 1 Skipped**. 첫 전체 실행의 제어 파일 시험 시간 초과는 따로 보존했고 단독 9개 시험은 통과했다. 해당 시험 묶음을 다른 flush 부하와 병렬 실행하지 않도록 분리하되 4개 동시 reader·500회 게시·30초 deadline 및 제품의 1초 재시도 계약은 유지했다. 최종 전체 실행을 다시 통과했다.
 
 실제 강제 종료·응답 유실의 모든 명령 경계, 재부팅/전원/공간 장애, 일반 파일·에셋과 ARM A/B는 별도 NR 관문이다. Library의 이번 구현·실측·회수는 마감하지만, SF-02/03 전체는 Partial, SF-04~06과 설치/binding/discard는 기존 관문을 유지한다.

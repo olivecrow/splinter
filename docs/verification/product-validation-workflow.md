@@ -63,7 +63,7 @@ A1에는 같은 세대에서 진단 중 만든 `Validationa1*.txt`가 남고 B�
 5. 최초 source release의 잠긴 journal 디렉터리 rename이 Windows에서 거부됐다. seal을 검증한 journal handle을 유지하며 정확한 파일을 unlink하고, durable 회수 intent와 metadata hash로 재시도하는 방식으로 수정했다. 같은 release 요청 재개와 세 source·세 candidate·cache의 실제 회수가 성공했다.
 6. 실행 중 작성된 응답 20개는 Accepted의 후속 명령 또는 status의 필수 null 필드가 빠져 schema 검사에 실패했다. 원시 응답은 그대로 보존한다. 최종 formatter로 실제 결과 57개를 재직렬화한 응답과 status 후속 payload 15개, 실제 입력 50개는 모두 통과했다(`schema-audit-final.json`). 이는 **직렬화 재검증**이며 VSS/Unity 재실행으로 세지 않는다. 최종 바이너리의 VHD 분리 후 실제 status 응답도 schema에 적합하다.
 
-최종 `pwsh -NoProfile -File scripts/build.ps1`은 locked restore·Release 빌드 **경고/오류 0**, 자동 시험 **511 Passed / 0 Failed / 1 Skipped**다. skip은 명시적 ReFS root가 없는 선택적 실제 extent-clone 시험이다. serializer 수정 전 런타임의 최종 A/B/A, 이후 회수 수정의 실제 실행, 최종 serializer 자동/기록 재검증의 경계를 구분한다. 새 cold 반복, 모든 명령 경계별 중단, 실제 재부팅·전원·물리 공간 장애, 일반 에셋·대형 프로젝트·ARM A/B는 이번 통과에 포함하지 않는다.
+최종 `pwsh -NoProfile -File scripts/build.ps1`은 locked restore·Release 빌드 **경고/오류 0**, 자동 시험 **511 Passed / 0 Failed / 1 Skipped**다. skip은 현재 폐기한 backend의 당시 실행 조건에 따른 기록이다. serializer 수정 전 런타임의 최종 A/B/A, 이후 회수 수정의 실제 실행, 최종 serializer 자동/기록 재검증의 경계를 구분한다. 새 cold 반복, 모든 명령 경계별 중단, 실제 재부팅·전원·물리 공간 장애, 일반 에셋·대형 프로젝트·ARM A/B는 이번 통과에 포함하지 않는다.
 
 ## 독립 결과와 회수
 

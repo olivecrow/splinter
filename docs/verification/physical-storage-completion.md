@@ -12,7 +12,7 @@
 | PS-02 | 정확한 task 선택·공유/evidence 분리·합계·중복 root/누락 record·기존 출력 보존·실제 hardlink unknown 시험 3건 | Passed, Windows 파일 할당. MFT/디렉터리·VSS/OS cache 귀속 제외 |
 | PS-03 | 아래 최종 A/B의 최신 Runtime 생성·읽기·같은 요청·소유 Editor·고정 쓰기·정리·독립 결과/회수 | Passed with limitations, 한 작은 실제 A/B와 정확한 두 snapshot의 회수 |
 | PS-04 | 단계별 정확한 root 할당·저널 두 세대 겹침·결과/runner/evidence·회수 후 잔여량 | Passed with limitations, 공유 VSS 귀속/전체 순간 peak는 unknown |
-| PS-05 | locked restore·Release 경고/오류 0, 884 passed·0 failed·1 optional ReFS skipped. Python 13 passed·실제/실패 응답 schema 35건·UTF-8/로컬 링크/diff | Passed, 현재 후보의 자동 회귀와 문서 감사 |
+| PS-05 | locked restore·Release 경고/오류 0, 884 passed·0 failed·1 skipped. Python 13 passed·실제/실패 응답 schema 35건·UTF-8/로컬 링크/diff | Passed, 현재 후보의 자동 회귀와 문서 감사 |
 
 `python-final.log`·`python-qualified.log`·`build.log`·`automated.trx`·`response-schema-validation.json`은 최종 후보의 실행 근거다. 마지막 Python 실행은 소문자 task ID의 엄격한 거부까지 포함한다. 최초 Python 합계 시험은 OrderedDictionary의 `Measure-Object` 합계 누락을 발견했고 명시적 합산으로 수정했다. 실패 로그와 수정 전 생성/읽기 표본의 원시 row를 보존했다. `final-costs.json`은 이 두 초기 표본의 합계를 불변 root row에서 독립 재계산하고 이후 표본의 게시 합계와 root/category 합계도 대조한다. 이전 raw 저널의 부분 live bytes를 곧바로 회수 가능 payload로 읽던 장부 기대값도 현재 Runtime의 전체 참조 block 의미로 수정했다.
 

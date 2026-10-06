@@ -30,7 +30,7 @@
 
 현재 함수의 재사용 관리 할당은 **98.96% 감소**했다. 변경 후 8회는 모두 20,976B였다. 기존 디스크 재사용은 유지됐고 물리 공간의 추가 절감은 이 변경의 결과로 주장하지 않는다. 바이너리 논리 길이의 512B 차이는 전체 물리 공간 최적화로 해석하지 않는다.
 
-필수 `pwsh ./scripts/build.ps1`의 locked restore·Release는 경고/오류 0, **총 754 / 성공 753 / 실패 0 / 선택적 ReFS 건너뜀 1**이다. 최종 TRX에서 새 `RunnerBundleTests` 9개와 기존 `WindowsProcessTests.SupervisorSurvivesClientAndCleansDescendantThatOutlivesRoot`의 성공을 대조했다. 같은 묶음에서 실제 감시 프로세스가 실행되고 소유 자식/메모리 0과 비소유 sentinel 생존을 확인한 근거이며 새로운 Unity 자격은 아니다.
+필수 `pwsh ./scripts/build.ps1`의 locked restore·Release는 경고/오류 0, **총 754 / 성공 753 / 실패 0 / 당시 제외 시험 건너뜀 1**이다. 최종 TRX에서 새 `RunnerBundleTests` 9개와 기존 `WindowsProcessTests.SupervisorSurvivesClientAndCleansDescendantThatOutlivesRoot`의 성공을 대조했다. 같은 묶음에서 실제 감시 프로세스가 실행되고 소유 자식/메모리 0과 비소유 sentinel 생존을 확인한 근거이며 새로운 Unity 자격은 아니다.
 
 이 준비 메모리 단위는 **scoped-complete-with-limitations**로 마감한다. `source-before.cs`·`source-after.cs`·`source-and-binaries.json`·`result.json`과 최종 `automated.trx`를 보존한다. 서비스 설치/업데이트·fixture 변경·새 NTFS workspace·Editor·VIVOBOOK 실행 없이 완료했으며 기존 cache/원시 결과를 삭제하지 않았다.
 

@@ -1,6 +1,6 @@
 # 한정 버전 AI 시작 안내
 
-제품 진입점은 저장소 checkout의 `scripts/splinter.ps1`과 [스킬 원본](../skills/splinter/SKILL.md)이다. ReFS·view·probe는 [별도 개발 CLI](development-cli.md)의 경로다. 용어는 [용어집](glossary.md)을 참고한다. 독립 실행이 필요한 지속 작업에만 workspace를 사용하며 현재 경로에서 안전하게 작업할 수 있으면 direct로 작업한다.
+제품 진입점은 저장소 checkout의 `scripts/splinter.ps1`과 [스킬 원본](../skills/splinter/SKILL.md)이다. view·probe는 [별도 개발 CLI](development-cli.md)의 경로다. 용어는 [용어집](glossary.md)을 참고한다. 독립 실행이 필요한 지속 작업에만 workspace를 사용하며 현재 경로에서 안전하게 작업할 수 있으면 direct로 작업한다.
 
 ## 저장 경로별 시작점
 

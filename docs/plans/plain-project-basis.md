@@ -13,7 +13,7 @@
 | A: VCS 없는 원본 프로젝트도 관리형 mount 허용, 권장 | 원본 Editor를 정상 종료한 뒤 기존 데이터 트리를 같은 NTFS 볼륨에서 소유 기준 영역으로 rename한다. 원본의 기존 경로에는 writable WinFsp view를 제공한다. 원본·A/B가 불변 데이터를 공유하고 각 범위 저널에 쓴다. 원본 경로는 같지만 활성 경로의 파일시스템은 WinFsp로 바뀐다 | 기존 OwnedDirectory tree·range journal·managed restore를 재사용하는 프로젝트 수명주기. 원본 view의 내용과 마지막 NTFS 복원을 명시적으로 관리. Library도 같은 불변 기준/각 작업 private 범위로 연결 |
 | B: 원본 소스의 직접 NTFS 접근을 유지 | 원본 쓰기·paging I/O·truncate·rename/delete 전에 필요한 이전 내용과 metadata를 보존한다 | 별도 minifilter 등 쓰기 선행 보존 계층의 설계·WDK/서명/개발 환경 확인부터 진행. 기존 사용자 모드 WinFsp에 이미 구현됐다고 표시하지 않으며 드라이버를 자동 설치하지 않음 |
 
-A는 현재 Library 승인에서 원본 소스까지 예외를 확대하는 제품 결정이다. 데이터 전체 복사나 ReFS 이관을 뜻하지 않는다. B는 현재 NTFS 원본 계약을 유지하지만 새로운 kernel 경계가 생긴다. A를 선택하더라도 미지원 특수 파일·실제 OS 장애의 일반 자격을 제공하지 않는다.
+A는 현재 Library 승인에서 원본 소스까지 예외를 확대하는 제품 결정이다. 데이터 전체 복사을 뜻하지 않는다. B는 현재 NTFS 원본 계약을 유지하지만 새로운 kernel 경계가 생긴다. A를 선택하더라도 미지원 특수 파일·실제 OS 장애의 일반 자격을 제공하지 않는다.
 
 ## 검증 입력: 기존 Unity 파일 재사용
 
@@ -45,6 +45,6 @@ A는 현재 Library 승인에서 원본 소스까지 예외를 확대하는 제�
 
 ## 제외와 증거 상태
 
-NP의 현재 상태와 실패/재시도·미실행 경계는 [검증 추적](../verification/plain-project-basis.md)을 따른다. 승인한 A 계약으로 구현·파일/Unity 검증과 전체 회귀를 확인했으며 서비스 설치·VCS 등록·전역 MCP 설정을 변경하지 않았다. 검증 원본의 정상 종료 때 새로 관측한 외부 Coplay 공유 서버 종료 결함과 같은 버전/포트 복구는 NP 검증의 별도 제한으로 남긴다. 기존 M0/PS/ME/SP/GL/PPB/AP의 통과를 새로운 None reader의 자격으로 승계하지 않는다. 새 전체 장애 행렬·대형 팩·ARM·ReFS fallback·자동 Git init·VSS 재도입·전용 installer·Codex binding·게임 검증 API와 이전 Editor 종료 원인 조사는 포함하지 않는다.
+NP의 현재 상태와 실패/재시도·미실행 경계는 [검증 추적](../verification/plain-project-basis.md)을 따른다. 승인한 A 계약으로 구현·파일/Unity 검증과 전체 회귀를 확인했으며 서비스 설치·VCS 등록·전역 MCP 설정을 변경하지 않았다. 검증 원본의 정상 종료 때 새로 관측한 외부 Coplay 공유 서버 종료 결함과 같은 버전/포트 복구는 NP 검증의 별도 제한으로 남긴다. 기존 M0/PS/ME/SP/GL/PPB/AP의 통과를 새로운 None reader의 자격으로 승계하지 않는다. 새 전체 장애 행렬·대형 팩·ARM·자동 Git init·VSS 재도입·전용 installer·Codex binding·게임 검증 API와 이전 Editor 종료 원인 조사는 포함하지 않는다.
 
-기술 판단은 [VSS의 volume snapshot](https://learn.microsoft.com/en-us/windows/win32/vss/shadow-copies-and-shadow-copy-sets), [ReFS 전용 block cloning](https://learn.microsoft.com/en-us/windows/win32/fileio/block-cloning), [oplock의 충돌/break 계약](https://learn.microsoft.com/en-us/windows/win32/fileio/types-of-opportunistic-locks), [minifilter의 pre-operation 경계](https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/writing-preoperation-callback-routines)를 참고했다. 이 문서에서 A/B 경로의 제품 구성과 비용에 대한 설명은 현재 코드/요구를 대조한 설계 판단이며 해당 공식 문서가 Splinter 구현을 검증한 것은 아니다.
+기술 판단은 [VSS의 volume snapshot](https://learn.microsoft.com/en-us/windows/win32/vss/shadow-copies-and-shadow-copy-sets), [oplock의 충돌/break 계약](https://learn.microsoft.com/en-us/windows/win32/fileio/types-of-opportunistic-locks), [minifilter의 pre-operation 경계](https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/writing-preoperation-callback-routines)를 참고했다. 이 문서에서 A/B 경로의 제품 구성과 비용에 대한 설명은 현재 코드/요구를 대조한 설계 판단이며 해당 공식 문서가 Splinter 구현을 검증한 것은 아니다.

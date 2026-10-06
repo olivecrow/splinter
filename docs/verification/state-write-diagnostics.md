@@ -2,7 +2,7 @@
 
 기준일: 2026-10-01. [NR-01의 확정 범위](../plans/ntfs-recovery-and-support.md#확정-범위-nr-01-상태-쓰기-실패-진단)와 [현재 workspace 계약](../ntfs-workspaces.md)의 진단 단위다. `10eaad7` 뒤 최종 후보는 **scoped-complete-with-limitations**다. NR-01 전체는 **InProgress**이며 실제 VSS/WinFsp/Unity·서비스/grant/설치·VIVOBOOK·재부팅/전원/물리 공간 장애는 이번 후보에서 **NotRun**이다.
 
-`artifacts/ntfs-recovery/state-write-diagnostics-20261001/`의 `qualified-source.json`·`qualified-candidate.json`·`final-audit.json`은 소스 247개·관리 바이너리/JSON 20개의 후보를 고정한다. 소스 hash 불변, 기존 설치 서비스/WinFsp 파일 hash 불변과 형제 fixture clean을 확인했다. `qualified-build.log`·`qualified-full.trx`는 locked restore·Release build 경고/오류 0, **715개 중 714 Passed / 0 Failed / 선택적 ReFS 1 Skipped**를 소유한다. UTF-8·diff 검사도 통과했다.
+`artifacts/ntfs-recovery/state-write-diagnostics-20261001/`의 `qualified-source.json`·`qualified-candidate.json`·`final-audit.json`은 소스 247개·관리 바이너리/JSON 20개의 후보를 고정한다. 소스 hash 불변, 기존 설치 서비스/WinFsp 파일 hash 불변과 형제 fixture clean을 확인했다. `qualified-build.log`·`qualified-full.trx`는 locked restore·Release build 경고/오류 0, **715개 중 714 Passed / 0 Failed / 당시 제외 시험 1 Skipped**를 소유한다. UTF-8·diff 검사도 통과했다.
 
 | 관문 | 수 | 결과와 한계 |
 | --- | --- | --- |

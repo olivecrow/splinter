@@ -17,7 +17,7 @@
 
 `OverlayAdministrationTests`는 불변 fake tree의 숨긴 관리 영역·대소문자·생성/rename 거부·저널 미변경·재연결 정책 고정과 Git private pointer 생성 회귀를 확인한다. 실제 WinFsp callback·Unity plugin의 행동은 별도 실제 관문이다.
 
-필수 locked restore/Release/전체 시험의 첫 native 후보는 **843 Passed / 0 Failed / 1 optional ReFS Skipped**였고, `artifacts/plastic-compatibility/build.log`에 보존했다. 실제 B의 deferred discard 응답을 대조하다 response schema의 retry 분기가 release에만 적용되는 기존 불일치를 발견했다. 동일 intent의 discard 재시도 계약을 schema에 반영하고 CLI 응답/관측/잘못된 terminal·retry 거부 회귀를 추가했다. 최종 필수 빌드는 **844 Passed / 0 Failed / 1 optional ReFS Skipped**, Release warning/error 0이었다. 근거는 `build-final-03.log`·`response-schema-validation.json`이며 UTF-8 문서 검사도 통과했다. 앞선 sandbox restore 실패와 소유 진단 helper의 DLL 핸들로 실패한 빌드는 별도 로그로 보존하고, 해당 helper의 정확한 PID/시작 시각/스크립트 identity를 확인해 종료했다. 이 schema 수정은 설치된 Windows 회수 동작을 바꾸지 않는다.
+필수 locked restore/Release/전체 시험의 첫 native 후보는 **843 Passed / 0 Failed / 1 Skipped**였고, `artifacts/plastic-compatibility/build.log`에 보존했다. 실제 B의 deferred discard 응답을 대조하다 response schema의 retry 분기가 release에만 적용되는 기존 불일치를 발견했다. 동일 intent의 discard 재시도 계약을 schema에 반영하고 CLI 응답/관측/잘못된 terminal·retry 거부 회귀를 추가했다. 최종 필수 빌드는 **844 Passed / 0 Failed / 1 Skipped**, Release warning/error 0이었다. 근거는 `build-final-03.log`·`response-schema-validation.json`이며 UTF-8 문서 검사도 통과했다. 앞선 sandbox restore 실패와 소유 진단 helper의 DLL 핸들로 실패한 빌드는 별도 로그로 보존하고, 해당 helper의 정확한 PID/시작 시각/스크립트 identity를 확인해 종료했다. 이 schema 수정은 설치된 Windows 회수 동작을 바꾸지 않는다.
 
 ## 실제 실행과 보호
 
@@ -81,7 +81,7 @@ A 소유 `{15F429DA-9D49-4D2E-A7A7-29759C68E8DE}`, B 소유 `{1C744E83-7E77-46E8
 | 소유 메모리 | ready 표본 A working set 3,005,116,416/private 3,449,417,728 bytes·11 processes; B 3,167,453,184/3,731,984,384·13 processes. 최종 소유 자원 0, 전체 peak/메모리 절감 비교 미자격 |
 | VSS | 마지막 T: source-volume used/allocated 0·limit 10,737,418,240 bytes. 공유 비용의 workspace 귀속은 unknown을 유지하며 원본 Library/저널/독립 결과와 중복 합산하지 않음. C: shared used 27,067,400,192 bytes는 기존 6개 snapshot의 다른 볼륨 비용 |
 
-현재 프로그램 후보의 필수 자동 회귀는 위 844 Passed / 0 Failed / 1 optional ReFS Skipped를 유지한다. 추가 T: 응답 22개는 현재 response schema를 통과했고 문서 UTF-8도 확인했다. 지원 판정은 위 고정 입력의 정상 수명주기·회수·원본/peer 보호에 한정한다. C: 공유 snapshot의 보류·외부 CLI worker 발견 실패·MCP 전체 인계·원본 반영·Plastic 서버 기능·대형/ARM/OS 장애의 미자격은 유지한다.
+현재 프로그램 후보의 필수 자동 회귀는 위 844 Passed / 0 Failed / 1 Skipped를 유지한다. 추가 T: 응답 22개는 현재 response schema를 통과했고 문서 UTF-8도 확인했다. 지원 판정은 위 고정 입력의 정상 수명주기·회수·원본/peer 보호에 한정한다. C: 공유 snapshot의 보류·외부 CLI worker 발견 실패·MCP 전체 인계·원본 반영·Plastic 서버 기능·대형/ARM/OS 장애의 미자격은 유지한다.
 
 ## 과거 C: 작업의 승인된 동일 요청 회수 재시도 (2026-10-04)
 

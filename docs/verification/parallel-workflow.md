@@ -4,7 +4,7 @@
 
 ## 고정한 조건
 
-- 시작 제품 후보: `f6b123b2d47abed0be7d4717384c351512db97ab`와 문서 변경. 첫 locked restore/build/test는 205개 중 204 통과·0 실패·선택적 ReFS 1 skip이다. S1에서 발견한 Git 제한시간/중단 재개 결함을 수정한 현재 후보는 아래 별도 manifest와 206 통과 증거로 식별한다. [시작 소스·바이너리](../../artifacts/parallel-workflow/pv-20260923/product-candidate.json), [첫 TRX](../../artifacts/parallel-workflow/pv-20260923/build.trx).
+- 시작 제품 후보: `f6b123b2d47abed0be7d4717384c351512db97ab`와 문서 변경. 첫 locked restore/build/test는 205개 중 204 통과·0 실패·당시 제외 시험 1 skip이다. S1에서 발견한 Git 제한시간/중단 재개 결함을 수정한 현재 후보는 아래 별도 manifest와 206 통과 증거로 식별한다. [시작 소스·바이너리](../../artifacts/parallel-workflow/pv-20260923/product-candidate.json), [첫 TRX](../../artifacts/parallel-workflow/pv-20260923/build.trx).
 - 원본 fixture: `development`, 대표 에셋 기준 `0dad6a254a2005b07b34842c05a7764d70560deb`. 공통 계측을 포함한 작은 기준은 `2e85e3fe1b3be036cb826749b59159c0ff2737da`다. 두 로컬 커밋은 시험용이며 원격 공개하지 않았다.
 - 작은 기준은 기존 스크립트/패키지와 공통 확인용 모델·텍스처·씬을 포함하고 Medieval village 전체 팩을 제외한다. 추적 Assets의 Git blob 합계는 52파일·6,136,298바이트이며, 대표 기준은 1,565파일·2,804,660,531바이트다. 두 기준의 확인용 에셋 tree는 정확히 같다. Git blob 크기는 checkout의 줄바꿈 변환 전 논리 크기이며 실제 파일 할당과 구별한다. [프로필 구조](../../artifacts/parallel-workflow/pv-20260923/profile-source-structure.json).
 - Windows 11 x64, Ryzen 5 5600X, RAM 약 64GiB, NTFS C:, Unity 6000.3.22f1/URP 17.3.0. 원본 GUI Editor PID 67176과 MCP를 보존한다.
@@ -66,7 +66,7 @@ C1 전체 구간의 작업별 표본 working set 최댓값은 A 6,639,058,944바
 
 workspace Git 명령의 제한을 10분으로 늘리고, 중단된 attach는 index가 이미 있어도 stat cache refresh를 수행하도록 수정했다. 자동 잠금 삭제는 추가하지 않았다. 이 시험의 종료된 Git 프로세스와 정확한 등록 경로·0바이트 잠금을 확인하여 잠금 사본을 증거로 남긴 뒤 두 잠금만 제거했다. 기존 snapshot·provider·delta·index 본체와 key를 유지하여 재개한다. readonly 진단 `status`의 동시 실행은 약 16.9초였으며 초기 요청과 캐시 조건이 달라 생성 시간으로 대체하지 않는다.
 
-수정 후보는 새 locked restore/build와 자동 시험 **207개 중 206 통과·0 실패·선택적 ReFS 1 skip**을 완료했다. 두 새 사례는 중간 index의 refresh 재개와 예상하지 않은 잠금/내용 보존을 실제 Git으로 검증한다. [수정 소스·바이너리](../../artifacts/parallel-workflow/pv-20260923/product-candidate-git-timeout-fix.json), [TRX](../../artifacts/parallel-workflow/pv-20260923/build-git-timeout-fix.trx). S1은 실패·조사·수정 후의 복구 실행이며, 새 후보의 처음부터 준비 시간은 후속 새 key 실행에서 따로 측정한다.
+수정 후보는 새 locked restore/build와 자동 시험 **207개 중 206 통과·0 실패·당시 제외 시험 1 skip**을 완료했다. 두 새 사례는 중간 index의 refresh 재개와 예상하지 않은 잠금/내용 보존을 실제 Git으로 검증한다. [수정 소스·바이너리](../../artifacts/parallel-workflow/pv-20260923/product-candidate-git-timeout-fix.json), [TRX](../../artifacts/parallel-workflow/pv-20260923/build-git-timeout-fix.trx). S1은 실패·조사·수정 후의 복구 실행이며, 새 후보의 처음부터 준비 시간은 후속 새 key 실행에서 따로 측정한다.
 
 ## S1에서 확보한 작업 관측
 

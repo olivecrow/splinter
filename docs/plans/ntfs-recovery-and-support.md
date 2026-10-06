@@ -187,7 +187,7 @@ AI는 기존 명령의 동일 요청 재시도·관측·증거 보존과 외부 
 - 재부팅/전원 시험은 전후 boot 식별·시간, workspace/key와 요청 hash, VSS/delta identity, 마지막으로 외부에서 확인한 쓰기·seal, Git ref/tree, 새 프로세스 시작 시각을 연결한다. 증거를 대상 VM 밖에 회수한 뒤 다음 trial로 초기화한다.
 - 장애 전후 원본 HEAD·index·staged/unstaged/untracked 내용, 비소유 worktree·snapshot, 다른 작업의 hash를 대조한다. 모든 장애 시험은 자기 소유 fixture·프로세스·볼륨만 대상으로 한다.
 - 저장 계약 회귀는 최초 payload·읽기 hydration 0, 같은 4KiB 쓰기의 payload 증가, metadata/할당 단위·VSS·Git 저장량을 분리한다. 읽기 I/O나 Unity의 실제 Library 재작성 비용을 0으로 보고하지 않는다.
-- 최종 변경 후보에 `pwsh ./scripts/build.ps1`을 실행하고 같은 source hash의 실환경 시험을 연결한다. 선택적 ReFS 미실행과 Windows·Unity 미실행을 각각 표기한다. 변경된 입력/출력 schema, fake, 적합성 시험, 사용법·지원표·검증 추적표와 UTF-8을 확인한다.
+- 최종 변경 후보에 `pwsh ./scripts/build.ps1`을 실행하고 같은 source hash의 실환경 시험을 연결한다. Windows·Unity 미실행을 각각 표기한다. 변경된 입력/출력 schema, fake, 적합성 시험, 사용법·지원표·검증 추적표와 UTF-8을 확인한다.
 - NR-01~08의 필수 하위 사례에 실행 근거가 모두 있어야 **전체 NR 지원 범위 완료**다. 미지원 파일의 안전한 거부 시험은 그 거부 계약의 Passed이며 해당 파일 지원의 Passed가 아니다. 환경 미비·미실행·실패는 각각 이유와 다음 조건을 남긴다.
 - 전체 NR 완료는 마감한 M0나 다음 인계/저장 개선의 선행 조건이 아니다. 지원 경로의 안전 결함은 먼저 수정하고 실제 사용할 환경의 필요한 조건만 선택한다. NR 완료도 장기 48개 전체나 물리 장치 전원 장애 일반 지원을 뜻하지 않는다.
 

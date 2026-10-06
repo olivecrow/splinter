@@ -23,7 +23,7 @@
 | VC-03 | Passed, 정의한 loaded-code·asset A/B/A와 보존/회수. 첫 A import는 수정·운영 개입 후 성공했다. 첫 A의 빈 렌더 미리보기는 미해결 제한이며 A/B/A 전체 렌더 통과로 집계하지 않는다 |
 | VC-04 | 계측 범위 완료, 공간·시간 장부는 제한 포함: 아래 실제 수치와 unknown을 보존한다. 정상 cold import 시간, 생성 직전 Git 추가 할당, 미관측 peak와 동등 입력 비교군의 절감률은 미확인이다 |
 
-최종 `pwsh ./scripts/build.ps1`은 **282 통과·0 실패·선택적 ReFS 1 skip**이며 build warning/error는 0이다. `build-transfer-retry.log`, `tests-282-passed.trx`를 따른다. 합성은 추가·삭제·rename·truncate·.meta, 후보 뒤 재편집, 캐시 재개, 독립 source 출력, 1GiB sparse 파일의 유효 4KiB만 이동, 5개 중단 지점에서 같은 세대 복구와 잘못된 세대 차단, 열린 file ID의 replace·왕복을 확인한다. 후보/선택 schema와 변경 소스의 Git attach, 남은 index.lock 보존도 포함한다. 이 합성 복구는 실제 재부팅·전원·공간 장애를 대체하지 않는다.
+최종 `pwsh ./scripts/build.ps1`은 **282 통과·0 실패·당시 제외 시험 1 skip**이며 build warning/error는 0이다. `build-transfer-retry.log`, `tests-282-passed.trx`를 따른다. 합성은 추가·삭제·rename·truncate·.meta, 후보 뒤 재편집, 캐시 재개, 독립 source 출력, 1GiB sparse 파일의 유효 4KiB만 이동, 5개 중단 지점에서 같은 세대 복구와 잘못된 세대 차단, 열린 file ID의 replace·왕복을 확인한다. 후보/선택 schema와 변경 소스의 Git attach, 남은 index.lock 보존도 포함한다. 이 합성 복구는 실제 재부팅·전원·공간 장애를 대체하지 않는다.
 
 ## Unity 결과와 운영 개입
 

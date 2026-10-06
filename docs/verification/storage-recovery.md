@@ -48,6 +48,6 @@ Runtime의 `AtomicFilePublication`은 완성·flush한 같은 디렉터리의 �
 
 ## 후보와 마감
 
-기준은 `development`의 `30ce3075bb377e968931a6bc53dde77c4065673f`이고 미커밋 후보다. [후보 manifest](../../artifacts/storage-foundation/recovery-20260926/candidate-manifest.json)에 구현 입력 138개와 빌드 DLL 해시를 남겼다. [최종 빌드](../../artifacts/storage-foundation/recovery-20260926/build-02.log)는 locked restore·Release build·전체 자동 시험 **232개 중 231 통과·0 실패·선택적 ReFS 1 skip**이며 [TRX](../../artifacts/storage-foundation/recovery-20260926/candidate.trx)를 보존한다.
+기준은 `development`의 `30ce3075bb377e968931a6bc53dde77c4065673f`이고 미커밋 후보다. [후보 manifest](../../artifacts/storage-foundation/recovery-20260926/candidate-manifest.json)에 구현 입력 138개와 빌드 DLL 해시를 남겼다. [최종 빌드](../../artifacts/storage-foundation/recovery-20260926/build-02.log)는 locked restore·Release build·전체 자동 시험 **232개 중 231 통과·0 실패·당시 제외 시험 1 skip**이며 [TRX](../../artifacts/storage-foundation/recovery-20260926/candidate.trx)를 보존한다.
 
 시험 자원 마감은 [최종 영수증](../../artifacts/storage-foundation/recovery-20260926/final-closeout.json)을 따른다. 합성 snapshot 96개 중 재현 과정에서 연쇄 삭제된 4개를 포함해 남은 snapshot은 0이다. 보호 시험의 생존 파일 hash 대조는 90건 모두 일치했다. [최종 VSS 조회](../../artifacts/storage-foundation/recovery-20260926/lab-probe.json)에서 C:/V:의 UsedSpace·AllocatedSpace는 0이고 C: 한도는 64GiB다. [시험 VHD 분리](../../artifacts/storage-foundation/recovery-20260926/detached.json)를 완료했고 합성 파일을 담은 VHDX와 원시 증거는 보존했다. 원본 Unity fixture는 clean이고 수정하지 않았다. 기존 작업 변경을 유지했으며 commit/push는 하지 않았다. 이전 `FailedPreservation`, SF-02 Partial, SF-03~06 NotRun 및 NR/SW 지원 경계는 이 재현 시험으로 승격하지 않는다.

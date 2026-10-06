@@ -17,7 +17,7 @@
 
 계측 구현에서 한 파일 순차 16,384회의 `write` 중앙값 2.873초 중 전체 정렬은 2.299초, 목록 순회·복사는 0.566초였다. 직전 extent 수 합계는 134,209,536개, 최대 16,383개였고 순차 입력에서 같은 수만큼 방문·복사했다. 후보는 동일 분포에서 방문 16,383개, 복사 0개다. 같은 frame 수의 반복 덮어쓰기는 목록 길이가 작아 `write` 약 0.01초다. 그러므로 비용은 frame 수 자체보다 한 파일에 누적된 extent 목록을 매번 전체 처리하는 방식에 따른다. 별도 계측 오버헤드는 무계측/계측 3회 범위를 함께 공개하며 중앙값 차이가 표본 산포보다 작을 때 개선/회귀로 판정하지 않는다.
 
-후보는 append 경로에서 끝에 추가하고, 그 외에는 정렬된 extent의 겹침 구간을 이진 탐색해 국소 교체한다. 기존 왼쪽·오른쪽 fragment와 journal offset을 유지하고, list 용량을 먼저 확보한 뒤 변경한다. 저널 형식, frame checksum·sequence·seal, acknowledged write flush는 바꾸지 않았다. 임의 겹침·hole·truncate·확장·재연결의 byte/hash와 기존 journal 회귀, `replayWriteRangeIndex` schema의 음수 거부·이전 계수 누락 호환을 자동 시험에 추가했다. 최종 후보는 `write-compacted`를 일반 `write` 계수에서 제외한다. 최종 표준 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드 경고/오류 0, 자동 **301 통과·0 실패·선택적 ReFS 1 skip**이며 TRX는 `evidence/standard-build-tests-capability-final.trx`에 보존했다.
+후보는 append 경로에서 끝에 추가하고, 그 외에는 정렬된 extent의 겹침 구간을 이진 탐색해 국소 교체한다. 기존 왼쪽·오른쪽 fragment와 journal offset을 유지하고, list 용량을 먼저 확보한 뒤 변경한다. 저널 형식, frame checksum·sequence·seal, acknowledged write flush는 바꾸지 않았다. 임의 겹침·hole·truncate·확장·재연결의 byte/hash와 기존 journal 회귀, `replayWriteRangeIndex` schema의 음수 거부·이전 계수 누락 호환을 자동 시험에 추가했다. 최종 후보는 `write-compacted`를 일반 `write` 계수에서 제외한다. 최종 표준 `pwsh ./scripts/build.ps1`은 locked restore·Release 빌드 경고/오류 0, 자동 **301 통과·0 실패·당시 제외 시험 1 skip**이며 TRX는 `evidence/standard-build-tests-capability-final.trx`에 보존했다.
 
 네 합성 입력 디렉터리의 논리 크기/FILE_STANDARD_INFO 파일 할당은 73,596,387/73,618,960B, 기준/계측/최종 후보 probe 실행 묶음의 파일 할당은 각 356,696B, 기준/후보 Unity CLI 묶음은 각 3,220,144B였다. 분리 전 예비 후보 probe 묶음도 별도로 남겼다. 누적 관리 할당은 시간 동안의 총량이고 동시 working set이나 디스크 절감량이 아니다. 특히 합성 16,384회 순차 입력의 관리 할당 감소를 Unity Library 물리 절감으로 환산하지 않는다.
 

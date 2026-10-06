@@ -4,7 +4,7 @@
 
 | 관문 | 현재 판정 |
 | --- | --- |
-| BQ-01 | Passed: 제품 locked restore·Release 빌드·자동 267 통과·0 실패·선택적 ReFS 1 skip. 읽기 전용 장부 6건 통과. 합성/Unity 생성 직전 Git 공간 기준과 후보 hash 확보 |
+| BQ-01 | Passed: 제품 locked restore·Release 빌드·자동 267 통과·0 실패·당시 제외 시험 1 skip. 읽기 전용 장부 6건 통과. 합성/Unity 생성 직전 Git 공간 기준과 후보 hash 확보 |
 | BQ-02 | Passed: 실제 제품 mount의 예산 초과·인자 생략 재시도 거부, 저널 hash/sequence·snapshot 보존과 후보 없음, 명시적 정확한 중첩량 재시도·내용·같은 snapshot 재개 확인 |
 | BQ-03 | Passed, 운영 재시도 포함: 첫 로드·정리·같은 snapshot 재개·총 3회 수정의 실제 값/MVID/현재 validation·정상 stop 확인 |
 | BQ-04 | Passed, 정의한 논리 분류·별도 파일 할당 장부: 정리 전후·최종 수집 seal 일치, 재증가 분해·동시 표본 최고치·공유 VSS 확인. MFT/전역 cache·표본 사이 peak는 unknown |
@@ -22,7 +22,7 @@ BQ의 이 제한된 실행 완료를 SF-02 전체 Passed나 대형 프로젝트 
 
 ## 후보와 합성 예산 경로
 
-`candidate-manifest.json`에 제품 소스·계약·시험 hash를 고정했고 `candidate.trx`와 `build.log`에 locked restore·Release 빌드 및 267 통과/0 실패/선택적 ReFS 1 skip을 남겼다. 이번 코드 변경은 개발용 읽기 전용 계측 두 스크립트와 그 회귀 시험에 한정한다. Python 장부 6건은 `accounting-tests-final.log`를 따른다. 제품 Runtime·Core·CLI는 변경하지 않았다.
+`candidate-manifest.json`에 제품 소스·계약·시험 hash를 고정했고 `candidate.trx`와 `build.log`에 locked restore·Release 빌드 및 267 통과/0 실패/당시 제외 시험 1 skip을 남겼다. 이번 코드 변경은 개발용 읽기 전용 계측 두 스크립트와 그 회귀 시험에 한정한다. Python 장부 6건은 `accounting-tests-final.log`를 따른다. 제품 Runtime·Core·CLI는 변경하지 않았다.
 
 `original-baselines.json`은 합성 원본 `2aa147df53037cc31eaa2acbe04ab7330e66b49d`와 작은 Unity 원본 `58f81b5bc6ff8a940d8a90872bd3fed858a54cc1`의 HEAD·index·추적 파일 원시 hash를 고정한다. 생성 전 Git common 할당은 두 입력 모두 측정했다. 새로운 대형 에셋이나 원본 Library를 만들지 않았다.
 

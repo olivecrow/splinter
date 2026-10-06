@@ -4,7 +4,7 @@
 
 ## 입력과 보호 경계
 
-- 제품 `development`의 Git 구현 커밋 `d401677`과 현재 빌드를 사용한다. 필수 자동 검사는 919 Passed/1 선택적 ReFS NotRun이다.
+- 제품 `development`의 Git 구현 커밋 `d401677`과 현재 빌드를 사용한다. 필수 자동 검사는 919 Passed/1 당시 제외 시험 NotRun이다.
 - 원본은 `C:/Users/olive/Desktop/Development/splinter-unity`, development commit `6a54974a9c655031aeb2be17fb7622fc5d641c52`다. 기록된 1,602파일/약 2.8GB를 그대로 기준으로 사용하며 별도 전체 checkout/복제를 만들지 않는다. Medieval 전체 팩의 기존 입력 제약은 보존한다.
 - 실제 원본은 Unity 6000.3.22f1, Coplay 10.2.0, Pipeline 0.7.0-exp.1이다. 원본 PID 81892/start ticks 639266922811331760, HTTP instance `splinter-unity@983ac2308e6c044d`를 확인했다. 원본 Editor/씬/서버·원본 branch/파일/기존 결과 refs를 유지한다.
 - raw Git 기준 계약에 맞추기 위해 원본 repository에만 임시 `core.autocrlf=input`을 지정한다. global true는 변경하지 않는다. 현재 checkout 파일을 다시 쓰지 않고 clean 상태를 확인한다. 최초/임시 config 내용과 원본 파일 hash를 기록하며 종료 때 같은 내용 guard로 local 설정을 복원한다. 다른 변경을 덮어쓰지 않는다.

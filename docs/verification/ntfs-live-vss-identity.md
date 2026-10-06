@@ -6,7 +6,7 @@
 
 제품 `development`의 `591d53fe5dc66e632eb92cdb8e108df7497b0fb6`에 작업 트리 변경을 적용했다. [source manifest](../../artifacts/ntfs-recovery/lv-20260922/source-manifest.json)의 124개 파일 aggregate는 `73f590dfc7d9676fc897daeefe00d1dd81da52f08d5c3fe5873905e54774b11a`다. 실행 증거는 이 커밋 전 작업 트리 후보의 파일 hash에 연결되며, 제품 push·배포는 검증 범위에 포함하지 않는다. fixture의 독립 checkpoint 커밋은 아래 결과에 포함된다.
 
-`pwsh ./scripts/build.ps1`의 locked restore와 Release build는 경고·오류 0, [최종 TRX](../../artifacts/ntfs-recovery/lv-20260922/final-build.trx)는 **181개 중 180 통과·0 실패·선택적 ReFS 1 skip**이다. 새로운 dependency나 lock 변경은 없다. 초기 시험의 기존 기대값·capabilities schema 누락·시험의 열린 저널 읽기 공유 문제는 수정 후 전체 재실행했다. 이전 실패 결과는 별도 artifact에 보존했다.
+`pwsh ./scripts/build.ps1`의 locked restore와 Release build는 경고·오류 0, [최종 TRX](../../artifacts/ntfs-recovery/lv-20260922/final-build.trx)는 **181개 중 180 통과·0 실패·당시 제외 시험 1 skip**이다. 새로운 dependency나 lock 변경은 없다. 초기 시험의 기존 기대값·capabilities schema 누락·시험의 열린 저널 읽기 공유 문제는 수정 후 전체 재실행했다. 이전 실패 결과는 별도 artifact에 보존했다.
 
 | ID | 확인 범위 | 상태 |
 | --- | --- | --- |

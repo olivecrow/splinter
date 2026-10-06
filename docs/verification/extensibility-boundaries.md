@@ -10,7 +10,7 @@
 | 기존 Unity 동작 | 기존 Plastic 원본 반영 시험의 `.meta`·UnityLockfile·고정 intent·등록/잠금 보호, 임시 reservation 소유 정리 | 자동 파일 회귀; 새 Unity Editor 실행 NotRun |
 | 생성 디렉터리 | 주입한 Cache descriptor·고정 앱/종류·v1 보존 거부, 기존 prepare/restore 회귀 | 자동 파일 적합성; 새 native mount/A/B NotRun |
 
-2026-10-05의 `pwsh ./scripts/build.ps1`은 locked restore·Release build를 경고/오류 0개로 완료했다. 전체 회귀는 **1,052개: 통과 1,042·실패 0·조건부 건너뜀 10**이며 시험 실행 시간은 4분 44초다. TRX는 `artifacts/test-results/Splinter.Tests_net10.0_x64.trx`다. 건너뜀은 기존 ReFS·외부 실행/자식 전용 진입점의 조건이며 새 지원 통과로 표시하지 않는다.
+2026-10-05의 `pwsh ./scripts/build.ps1`은 locked restore·Release build를 경고/오류 0개로 완료했다. 전체 회귀는 **1,052개: 통과 1,042·실패 0·조건부 건너뜀 10**이며 시험 실행 시간은 4분 44초다. TRX는 `artifacts/test-results/Splinter.Tests_net10.0_x64.trx`다. 건너뜀은 당시 backend·외부 실행/자식 전용 진입점의 조건이며 새 지원 통과로 표시하지 않는다.
 
 집중 검사는 파일시스템/Git/후보 56개, 생성 디렉터리/프로젝트/복원 34개, 앱 정책/Plastic 원본 반영 21개와 CLI 계약 59개를 확인했다. 이 집합은 전체 회귀와 겹치므로 합산하지 않는다. 최종 전체 회귀에는 추가한 잘못된 projection 경로·손상 권한 metadata 사례와 응답 capabilities schema도 포함한다.
 

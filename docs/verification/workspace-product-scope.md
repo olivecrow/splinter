@@ -4,7 +4,7 @@
 
 ## 현재 계약
 
-- 기본 `scripts/splinter.ps1`은 NTFS workspace 생성/재개·관측·범위 저널 정리·checkpoint·integrate·release/discard, 소유 Editor start/stop과 읽기 전용 service status를 제공한다. ReFS·baseline·diagnostic checkout·view·spike/probe는 기본 발견·생성에서 제외한다.
+- 기본 `scripts/splinter.ps1`은 NTFS workspace 생성/재개·관측·범위 저널 정리·checkpoint·integrate·release/discard, 소유 Editor start/stop과 읽기 전용 service status를 제공한다. diagnostic checkout·view·spike/probe는 기본 발견·생성에서 제외한다.
 - `scripts/splinter-dev.ps1`은 선택적 저장소 경로와 개발 시험의 별도 진입점이다. `view --input`은 불변 source generation·단일 Library cache·명시적 보존/회수 의존성을 관리한다. 자동 모드·큐·Unity 작업 판단은 제공하지 않는다.
 - 자체 refresh·컴파일 요청/콜백·도메인 reload 성공 증거·Editor 포커스 조작·내부 컴파일 성공 gate는 없다. `unity refresh`·`validation`과 view의 refresh/observe-validation/preserve-worker를 호환 실행하지 않는다. 제거한 명령/입력은 상태나 provider 부작용 전에 거부한다.
 - checkpoint는 Editor 유무·컴파일 결과와 무관하게 안정된 현재 소스를 독립 결과로 보존한다. NTFS는 정상 stop·소유 자원 0·bridge 제거·전후/unmount 뒤 같은 저널 seal을 요구한다. integrate는 현재 revision/fingerprint와 정확한 독립 결과·원본 target/dirty guard를 확인한다. 컴파일·테스트 성공은 주장하지 않는다.
@@ -21,8 +21,8 @@
 
 ## 보존한 이전 근거
 
-2026-10-01 `development @ 9ec88e6`의 DAG 제외 후보는 705 Passed, 0 Failed, 선택적 ReFS 1 Skipped였다. [manifest](../../artifacts/workspace-product-scope/20261001-154027-033/automated.json)·[TRX](../../artifacts/workspace-product-scope/20261001-154027-033/automated.trx)는 당시 근거이며 현재 코드의 통과 선언이 아니다. 원시 artifacts·독립 결과 refs·snapshot은 정리 대상으로 삭제하지 않는다.
+2026-10-01 `development @ 9ec88e6`의 DAG 제외 후보는 705 Passed, 0 Failed, 당시 제외 시험 1 Skipped였다. [manifest](../../artifacts/workspace-product-scope/20261001-154027-033/automated.json)·[TRX](../../artifacts/workspace-product-scope/20261001-154027-033/automated.trx)는 당시 근거이며 현재 코드의 통과 선언이 아니다. 원시 artifacts·독립 결과 refs·snapshot은 정리 대상으로 삭제하지 않는다.
 
 ## 현재 자동 실행 근거
 
-2026-10-02 `development @ 146a402`의 미커밋 축소 후보에서 locked restore·Release 빌드는 경고 0·오류 0, 전체 회귀는 **776 Passed, 0 Failed, 선택적 ReFS 1 Skipped**였다. 이후 오류 문구·공백만 정리하고 최종 Release 재빌드와 CLI 계약 **56 Passed, 0 Failed**를 확인했다. [실행/소스·바이너리 hash manifest](../../artifacts/workspace-product-scope/agent-boundary-20261002-040234/automated.json)·[전체 TRX](../../artifacts/workspace-product-scope/agent-boundary-20261002-040234/full.trx)·[최종 CLI TRX](../../artifacts/workspace-product-scope/agent-boundary-20261002-040234/cli.trx)를 보존한다. 제한 환경의 후속 Git 생성 1건은 실패했고 같은 시험은 일반 권한 환경에서 통과했다. 최초 실패 회귀와 제한 환경 로그도 같은 evidence에 남긴다.
+2026-10-02 `development @ 146a402`의 미커밋 축소 후보에서 locked restore·Release 빌드는 경고 0·오류 0, 전체 회귀는 **776 Passed, 0 Failed, 당시 제외 시험 1 Skipped**였다. 이후 오류 문구·공백만 정리하고 최종 Release 재빌드와 CLI 계약 **56 Passed, 0 Failed**를 확인했다. [실행/소스·바이너리 hash manifest](../../artifacts/workspace-product-scope/agent-boundary-20261002-040234/automated.json)·[전체 TRX](../../artifacts/workspace-product-scope/agent-boundary-20261002-040234/full.trx)·[최종 CLI TRX](../../artifacts/workspace-product-scope/agent-boundary-20261002-040234/cli.trx)를 보존한다. 제한 환경의 후속 Git 생성 1건은 실패했고 같은 시험은 일반 권한 환경에서 통과했다. 최초 실패 회귀와 제한 환경 로그도 같은 evidence에 남긴다.

@@ -63,4 +63,4 @@ Unity checkpoint는 변경 파일 `Assets/SplinterSnapshotProbe.cs`만 결과 �
 
 합성의 오래된 소유 snapshot을 먼저, Unity의 최신 소유 snapshot을 나중에 명시적으로 해제했다. 두 제품 상태는 `released`, 소유 Editor/자식·mount·delta·VSS ID는 0이고 `V:`의 VSS Used/Allocated도 0이다. 제한 관리자 세션은 정확한 두 ID만 처리했으며 [종료 영수증](../../artifacts/storage-foundation/qj-20260926/response-finish.json) 뒤 격리 VHD `Attached=false`, `V:` 부재를 확인했다. 일반 비소유 백업 공존이나 임의 순서 즉시 회수의 증거가 아니다.
 
-전체 `pwsh ./scripts/build.ps1`의 locked restore와 Release 빌드는 경고·오류 0, 자동 시험 **265건 중 264 통과·0 실패·선택적 ReFS 1 skip**이었다. 비용 응답의 `response.schema.json` 계약도 자동 시험에서 검증했다. 실제 mount와 Unity 회귀는 위 별도 영수증으로 확인했다. SF-02 전체는 flush 정책과 전원/재부팅/공간 장애가 남아 **Partial**이다. 작은 Unity fixture에서 정리 중 최고 추가 공간이 정리 전보다 크게 늘었고, 계속 작업한 뒤 최종 추가 공간도 정리 전을 넘었다. 따라서 대형 Unity 프로젝트의 작업공간 용량 부담 해소를 달성했다고 판정하지 않는다.
+전체 `pwsh ./scripts/build.ps1`의 locked restore와 Release 빌드는 경고·오류 0, 자동 시험 **265건 중 264 통과·0 실패·당시 제외 시험 1 skip**이었다. 비용 응답의 `response.schema.json` 계약도 자동 시험에서 검증했다. 실제 mount와 Unity 회귀는 위 별도 영수증으로 확인했다. SF-02 전체는 flush 정책과 전원/재부팅/공간 장애가 남아 **Partial**이다. 작은 Unity fixture에서 정리 중 최고 추가 공간이 정리 전보다 크게 늘었고, 계속 작업한 뒤 최종 추가 공간도 정리 전을 넘었다. 따라서 대형 Unity 프로젝트의 작업공간 용량 부담 해소를 달성했다고 판정하지 않는다.

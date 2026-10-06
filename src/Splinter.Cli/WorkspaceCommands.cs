@@ -26,8 +26,8 @@ internal static class WorkspaceCommands
         WorkspaceCoordinator Runtime(ParseResult parse, bool auditSource = false)
         {
             selectRecovery([new("workspace.list", new { home = Home(parse) })]);
-            var store = new WorkspaceStore(Home(parse)); IWorkspaceStorageProvider? storageProvider = development ? new RefsWorkspaceStorageProvider() : null;
-            var git = new GitWorkspaceProvider(storageProvider, store, new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver);
+            var store = new WorkspaceStore(Home(parse));
+            var git = new GitWorkspaceProvider(new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver);
             var projects = new ManagedDirectoryBasis(store, UnityProjectPolicy.Policies, projectBasis: true);
             var generated = new ManagedDirectoryBasis(store, UnityProjectPolicy.Policies);
             var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver, generated, projects);
@@ -36,7 +36,7 @@ internal static class WorkspaceCommands
                 new PlasticWorkspaceProvider(store, new PlasticWorkspaceClient(), originalPublisher: new WindowsOriginalFilePublisher(allowPlasticAdministration: true),
                     applicationPolicies: UnityProjectPolicy.Policies));
             return new(store, sources,
-                new SelectedApplicationProvider(new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners")))), storageProvider,
+                new SelectedApplicationProvider(new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners")))),
                 snapshots, preparationObserver, new WindowsWorkspaceDiscardProvider(sources, snapshots, generated, projects));
         }
 
@@ -53,12 +53,11 @@ internal static class WorkspaceCommands
         var basis = new Option<string>("--base") { Description = "Source branch/ref; default development." };
         var source = new Option<string>("--source") { Description = "git (default), none or plastic. Selection is durable; failures never fall back." };
         var application = new Option<string>("--application") { Description = "unity (default) or none for an ordinary folder without an Editor." };
-        var storage = new Option<string>("--storage") { Required = true, Description = "git-snapshot/plastic-snapshot read recorded project versions without VSS or checkout; ntfs-snapshot uses VSS. Both store private ranges. refs-cow/git-checkout are development paths." };
+        var storage = new Option<string>("--storage") { Required = true, Description = "git-snapshot/plastic-snapshot read recorded project versions without VSS or checkout; ntfs-snapshot uses VSS. Both store private ranges. git-checkout is an explicit development diagnostic path." };
         var journalBudget = new Option<long?>("--max-journal-bytes") { Description = "Immutable NTFS delta budget; defaults to 16 GiB. A changed limit requires a new task key." };
-        var baselineOption = new Option<string>("--baseline") { Description = "Sealed baseline id required for refs-cow." };
         var editor = new Option<bool>("--editor") { Description = "Also start the private Editor when this task needs it." };
         var generatedBasis = new Option<string>("--library-basis") { Description = "Exact prepared original Library basis id; fixed for this task." };
-        ensure.Options.Add(project); ensure.Options.Add(key); ensure.Options.Add(basis); ensure.Options.Add(storage); ensure.Options.Add(editor); if (development) ensure.Options.Add(baselineOption); ensure.Options.Add(journalBudget);
+        ensure.Options.Add(project); ensure.Options.Add(key); ensure.Options.Add(basis); ensure.Options.Add(storage); ensure.Options.Add(editor); ensure.Options.Add(journalBudget);
         ensure.Options.Add(source); ensure.Options.Add(application);
         var projectBasis = new Option<string>("--project-basis") { Description = "Exact prepared managed project basis id; requires source none and project-snapshot." };
         ensure.Options.Add(generatedBasis); ensure.Options.Add(projectBasis);
@@ -70,9 +69,9 @@ internal static class WorkspaceCommands
             string sourceKind = parse.GetValue(source) ?? "git";
             string applicationKind = parse.GetValue(application) ?? (sourceKind == "none" ? "none" : "unity");
             string baseReference = parse.GetValue(basis) ?? (sourceKind is "none" or "plastic" ? "snapshot" : "development");
-            var input = new { project = parse.GetValue(project), key = parse.GetValue(key), baseReference, source = sourceKind, application = applicationKind, storage = parse.GetValue(storage), editor = parse.GetValue(editor), baseline = development ? parse.GetValue(baselineOption) : null, maxJournalBytes = parse.GetValue(journalBudget), libraryBasis = parse.GetValue(generatedBasis), projectBasis = parse.GetValue(projectBasis) };
+            var input = new { project = parse.GetValue(project), key = parse.GetValue(key), baseReference, source = sourceKind, application = applicationKind, storage = parse.GetValue(storage), editor = parse.GetValue(editor), maxJournalBytes = parse.GetValue(journalBudget), libraryBasis = parse.GetValue(generatedBasis), projectBasis = parse.GetValue(projectBasis) };
             if (!Validate(command, input)) return;
-            var view = await Runtime(parse).EnsureAsync(input.project!, input.key!, baseReference, input.storage!, input.editor, ct, input.baseline,
+            var view = await Runtime(parse).EnsureAsync(input.project!, input.key!, baseReference, input.storage!, input.editor, ct,
                 maxJournalBytes: input.maxJournalBytes ?? SnapshotWorkspaceState.DefaultJournalBytes, sourceKind: sourceKind, applicationKind: applicationKind, generatedDirectoryId: input.projectBasis ?? input.libraryBasis);
             respond(Result(command, view, input.editor && view.Application is { Running: true, Ready: false }, Home(parse)));
         });
@@ -161,49 +160,13 @@ internal static class WorkspaceCommands
         Bind(unity, "start", null, (runtime, id, _) => runtime.StartAsync(id, ct));
         Bind(unity, "stop", null, (runtime, id, _) => runtime.StopAsync(id, ct));
 
-        var storageGroup = new Command("storage", "Inspect a candidate CoW volume."); root.Subcommands.Add(storageGroup);
+        var storageGroup = new Command("storage", "Inspect the storage privilege service."); root.Subcommands.Add(storageGroup);
         var serviceGroup = new Command("service", "Inspect the installed VSS authority; installation is an explicit machine operation.");
         var serviceStatus = new Command("status", "Read SCM status without elevation or VSS side effects.");
         serviceGroup.Subcommands.Add(serviceStatus); storageGroup.Subcommands.Add(serviceGroup);
         serviceStatus.SetAction(_ => { select("storage.service.status"); respond(ApiResponse.Success("storage.service.status", StorageServiceInspection.Observe())); });
         serviceGroup.SetAction(_ => { select("cli"); respond(ApiResponse.Failure("cli", "InvalidArguments", "Use storage service status.")); });
         storageGroup.SetAction(_ => { select("cli"); respond(ApiResponse.Failure("cli", "InvalidArguments", "Use storage service status.")); });
-        if (development)
-        {
-            var probe = new Command("probe", contracts.Find("storage.probe")!.Description);
-            var pathOption = new Option<string>("--path") { Required = true }; probe.Options.Add(pathOption); storageGroup.Subcommands.Add(probe);
-            probe.SetAction(parse => { select("storage.probe"); var input = new { path = parse.GetValue(pathOption)! };
-                if (Validate("storage.probe", input)) respond(ApiResponse.Success("storage.probe", new { storage = new RefsWorkspaceStorageProvider().Probe(input.path) })); });
-            var baselineGroup = new Command("baseline", "Warm once, seal and explicitly reclaim a reusable cache."); root.Subcommands.Add(baselineGroup);
-            foreach (var group in new[] { storageGroup, baselineGroup })
-                group.SetAction(_ => { select("cli"); respond(ApiResponse.Failure("cli", "InvalidArguments", "Select a subcommand; use capabilities.")); });
-            var prepare = new Command("prepare", contracts.Find("baseline.prepare")!.Description);
-            var baselineProject = new Option<string>("--project") { Required = true }; var baselineBase = new Option<string>("--base");
-            prepare.Options.Add(baselineProject); prepare.Options.Add(baselineBase); baselineGroup.Subcommands.Add(prepare);
-            prepare.SetAction(async parse =>
-            {
-                select("baseline.prepare");
-                var input = new { project = parse.GetValue(baselineProject)!, baseReference = parse.GetValue(baselineBase) ?? "development" };
-                if (!Validate("baseline.prepare", input)) return;
-                var view = await Runtime(parse).PrepareBaselineAsync(input.project, input.baseReference, ct);
-                respond(Result("baseline.prepare", view, view.Application is { Ready: false }, Home(parse)));
-            });
-            foreach (string name in new[] { "seal", "release" })
-            {
-                string commandId = "baseline." + name;
-                var command = new Command(name, contracts.Find(commandId)!.Description); var idOption = new Option<string>("--id") { Required = true };
-                command.Options.Add(idOption); baselineGroup.Subcommands.Add(command);
-                command.SetAction(async parse =>
-                {
-                    select(commandId); string id = parse.GetValue(idOption)!;
-                    if (!Validate(commandId, new { id })) return;
-                    if (name == "seal") respond(ApiResponse.Success(commandId, new { baseline = await Runtime(parse).SealBaselineAsync(id, ct) }) with
-                        { NextActions = [new("schema", new { command = "workspace.ensure" })] });
-                    else { await Runtime(parse).ReleaseBaselineAsync(id, ct); respond(ApiResponse.Success(commandId, new { id, phase = "released" })); }
-                });
-            }
-        }
-
         void Bind(Command group, string name, string? extraName, Func<WorkspaceCoordinator, string, string?, Task<WorkspaceView>> action)
         {
             string commandId = group.Name + "." + name;
@@ -297,7 +260,7 @@ internal static class WorkspaceCommands
     private static object Summary(WorkspaceRecord record) => new
     {
         record.Version, record.Id, record.RequestKey, record.ProjectPath, record.Path, record.SourceKind, record.ApplicationKind, record.SourceReference, record.BaseReference,
-        record.BaseRevision, record.Phase, record.CreatedAt, record.UpdatedAt, record.StorageMode, record.Purpose, record.BaselineId, record.CloneMetrics, record.ReleasedResources,
+        record.BaseRevision, record.Phase, record.CreatedAt, record.UpdatedAt, record.StorageMode, record.Purpose, record.ReleasedResources,
         record.RequestDigest, record.Snapshot, record.Discard, record.ResultStorage, record.OriginalApply,
         processId = record.Application?.ProcessId,
         record.ResultRevision, record.IntegratedRevision, record.LastError

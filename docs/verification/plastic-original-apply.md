@@ -39,4 +39,4 @@ A 회수의 실제 releasing 이벤트는 UTC 16:45:59.768~16:46:02.160이며, B
 
 기존 Git Editor 34200/639267143482280358과 공유 8080 서버 73512/639267092568061834는 동일 PID/시작 시각을 유지한다. 초기 payload 복제/read cache는 A/B 각각 0이다. 준비 A/B 41.10/39.14초, checkpoint 65.61/48.88초, A 선택 apply 33.33초, B 전체 apply 25.60초, A release 21.16초, B discard 8.13초다. 수집 당시 delta는 A 6690B(할당 8192B)/B 3039B(할당 4096B); 최종 delta 0이고 control 할당은 422936/427056B, 보존 objects는 314656/310376B다. 공유 runner/evidence와 원본 Library를 별도 분리했다. 전체 순간 peak·공유 VSS 귀속은 unknown이며 RAM 절감률은 이 범위의 요구가 아니다.
 
-최종 `pwsh scripts/build.ps1`: locked restore/Release 경고·오류 0, **978 Passed + 1 optional ReFS Skip / 979**, 실패 0. `final-build.trx`와 `final-candidate.json`에 현재 회귀와 소스 hashes를 보존한다. UTF-8과 diff 검사는 별도로 확인한다.
+최종 `pwsh scripts/build.ps1`: locked restore/Release 경고·오류 0, **978 Passed + 1 Skip / 979**, 실패 0. `final-build.trx`와 `final-candidate.json`에 현재 회귀와 소스 hashes를 보존한다. UTF-8과 diff 검사는 별도로 확인한다.

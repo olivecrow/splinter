@@ -18,7 +18,7 @@
 
 일반 폴더 원본 반영의 현재 후보는 [별도 검증](plain-folder-original-apply.md)을 따른다. 일반 권한 파일 시험과 작은 Editor 없는 실제 제품 VSS·WinFsp A/B 한정 마감을 구분한다.
 
-현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop·checkpoint를 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제공하지 않는다. 선택적 view/Library cache·ReFS·probe는 [개발용 CLI](../development-cli.md)의 경로다. 아래 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 변경된 계약의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](workspace-product-scope.md)을 따른다. 검증 상태의 뜻은 [용어집](../glossary.md#응답과-검증-상태)을 참고한다.
+현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop·checkpoint를 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제공하지 않는다. 선택적 view/Library cache·probe는 [개발용 CLI](../development-cli.md)의 경로다. 아래 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 변경된 계약의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](workspace-product-scope.md)을 따른다. 검증 상태의 뜻은 [용어집](../glossary.md#응답과-검증-상태)을 참고한다.
 
 ## 현재 변경의 검증
 
@@ -54,7 +54,9 @@
 
 [최소 AI 작업 연결](agent-workflow.md)은 스킬 원본 직접 읽기·CLI 발견·반환 절대 경로 편집·새 CLI 동일 작업 재개·explicit/direct와 명시적 폐기를 확인했다. Editor 없는 단위는 scoped-complete-with-limitations로 마감하며 SW-03/06 전체 Partial이다. 현재 Editor 자격은 위 대표 실행을 따르고 자동 스킬 발견/설치/binding·실제 busy/unknown 점유와 새/동시 대화로 확대하지 않는다.
 
-표준 진입점은 `pwsh ./scripts/build.ps1`이다. locked restore, Release 빌드, 자동 시험을 수행하며 결과는 `artifacts/test-results/`에 기록한다. 선택적 ReFS는 `SPLINTER_TEST_REFS_ROOT`를 지정한 경우에만 실행한다. 현재 계약은 VSS v2 capture identity, 완전한 overlay 검증 tuple, `stable-journal-v1` 결과, 필수 계측 필드를 요구한다. 지원하지 않는 형식은 자동 이관하지 않고 보존 후 거부한다.
+표준 진입점은 `pwsh ./scripts/build.ps1`이다. locked restore, Release 빌드, 자동 시험을 수행하며 결과는 `artifacts/test-results/`에 기록한다. 현재 계약은 VSS v2 capture identity, 완전한 overlay 검증 tuple, `stable-journal-v1` 결과, 필수 계측 필드를 요구한다. 지원하지 않는 형식은 자동 이관하지 않고 보존 후 거부한다.
+
+과거 후보의 시험 수와 제외 수는 당시 TRX의 기록이다. 폐기한 backend 시험의 예전 제외 수는 현재 실행 조건이나 남은 필수 검증이 아니다. [ReFS 폐기 결정](../plans/refs-retirement.md)과 [현재 제거 검증](refs-retirement.md)을 구분한다.
 
 자동 시험은 현재 형식의 생성·읽기, 불완전한 입력 거부, checkpoint 중단 후 재시도, 소유권 불명·snapshot 소실·응답 유실에서의 보존을 다룬다. 개발 스크립트의 요청 생성 시험은 합성 영수증과 파일만 사용한다. 실제 VSS·WinFsp mount·Unity 실행을 대신하지 않는다.
 
@@ -103,7 +105,8 @@
 | [NTFS 제품 통합](ntfs-workspace-integration.md), [live identity](ntfs-live-vss-identity.md), [NR 복구](ntfs-recovery.md) | 실제 Windows/ARM 조합과 미완료 장애·파일 관문, 환경별 재현 조건 |
 | [준비 CLI 중단 복구](preparation-recovery.md) | 같은 최종 후보의 실제 경계 26개·동시 재개·자식 실행 세대·독립 결과/원본 보존·회수, 게시 실패 원인 미확정과 명시적 복구 |
 | [병렬 비교](parallel-workflow.md) | C/S/Q의 동일 입력 조건·결과 refs·Library/큐/전환 비용, S4 입력 실패와 표본 한계 |
-| [초기 overlay 시험](snapshot-overlay.md), [ReFS·프로세스](storage-and-resources.md) | 파일 API·소유권·선택적 backend의 제한된 실환경 증거. NTFS 전체 지원으로 합산하지 않음 |
+| [초기 overlay 시험](snapshot-overlay.md) | NTFS 파일 API·소유권의 제한된 실환경 증거. NTFS 전체 지원으로 합산하지 않음 |
+| [폐기한 ReFS의 과거 근거](storage-and-resources.md), [제거 검증](refs-retirement.md) | 과거 SR 증거 보존과 현재 기능/계약 제거의 자동 회귀를 구분 |
 | [저널 정리](journal-compaction.md), [Unity와 정리 비용](journal-compaction-qualification-and-cost.md), [예산과 재증가](journal-budget-and-growth-qualification.md) | 중단 복구, 두 세대 겹침·전체 할당 peak와 Library 유효량, 재개 후 재증가 |
 | [저널 정리 크기 회귀](journal-compaction-size.md) | 작은 덮어쓰기가 오히려 저널을 키우는 조건·기존 frame 유지·동일 합성 입력의 NTFS 파일 할당 비교 |
 | [동일 private 쓰기](duplicate-private-writes.md) | byte 일치·전체 private 범위의 중복 저장 억제·metadata/flush·예산/복구·작은 로컬 WinFsp client 완료 |

@@ -6,7 +6,7 @@
 
 `ContractAndCliTests`는 일반 폴더 입력/schema와 Git/Unity 없는 doctor를 확인한다. 기존 Git 수명주기·merge/dirty guard와 Windows 자원/저널 회귀는 필수 `scripts/build.ps1`에 포함한다. 새 `Splinter.SourceControl.Files.dll`이 runner 묶음과 서비스 패키지에 포함된다. runner는 현재 7개 파일이며 과거 6개 후보의 실제 메모리 수치를 현재 후보 수치로 재사용하지 않는다.
 
-최종 `pwsh ./scripts/build.ps1`의 locked restore·Release는 경고/오류 0, **795개 중 794개 통과·선택 ReFS 1개 Skipped**다. TRX는 `artifacts/vcs-independent/native-fix-final.trx`, build 출력은 `native-fix-build.log`다. 앞선 794개 시험의 `automated-final.trx`·`verification.json`, 초기 schema/fixture 실패 증거는 그대로 보존하며 최종 통과로 덮어쓰지 않는다. 실제 회수에서 재현한 경로 결함은 아래의 같은 요청 복구와 실제 authority pin 자동 회귀로 확인했다.
+최종 `pwsh ./scripts/build.ps1`의 locked restore·Release는 경고/오류 0, **795개 중 794개 통과·당시 제외 시험 1개 Skipped**다. TRX는 `artifacts/vcs-independent/native-fix-final.trx`, build 출력은 `native-fix-build.log`다. 앞선 794개 시험의 `automated-final.trx`·`verification.json`, 초기 schema/fixture 실패 증거는 그대로 보존하며 최종 통과로 덮어쓰지 않는다. 실제 회수에서 재현한 경로 결함은 아래의 같은 요청 복구와 실제 authority pin 자동 회귀로 확인했다.
 
 ## 실제 A/B 한 묶음의 판정
 

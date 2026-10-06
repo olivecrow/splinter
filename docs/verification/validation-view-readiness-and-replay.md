@@ -15,7 +15,7 @@
 | VR-03 | Partial | 빈 cache의 첫 import·명시적 compile 완료·실제 코드/에셋 확인·정상 stop은 통과. `EditorFocusRequired` 뒤 같은 Editor에 명시적 refresh 재시도 1회가 필요했다. 첫 PNG는 배경만 표시됐고 같은 Editor의 두 번째 PNG는 모델을 표시했다. 원인은 미확정이다. |
 | VR-04 | Passed, 정의한 범위 | 같은 닫힌 source/cache 저널의 기존/새 구현 각각 3회, hash 보존·실제 소스 읽기·I/O 실패 0. 독립 Git 결과·원본 보존·파일 할당·공유 VSS 관측·최종 소유 자원 회수를 확인했다. |
 
-`pwsh ./scripts/build.ps1`의 locked restore·빌드·자동 시험은 **296 통과·0 실패·선택적 ReFS 1 skip**이다. `build-contract-final.log`와 `tests-296-passed.trx`에 저장했다. `JournalReplayTests`, `OverlayReadinessTests`와 실제 관측 형식의 `overlay-observation` schema 적합성 시험을 추가했다. 일반 response와 개발용 overlay schema 모두 새 nullable 계수를 허용한다. 이전 기록에 계수가 없으면 unknown이다.
+`pwsh ./scripts/build.ps1`의 locked restore·빌드·자동 시험은 **296 통과·0 실패·당시 제외 시험 1 skip**이다. `build-contract-final.log`와 `tests-296-passed.trx`에 저장했다. `JournalReplayTests`, `OverlayReadinessTests`와 실제 관측 형식의 `overlay-observation` schema 적합성 시험을 추가했다. 일반 response와 개발용 overlay schema 모두 새 nullable 계수를 허용한다. 이전 기록에 계수가 없으면 unknown이다.
 
 첫 실행의 sandbox restore 제한과 writer가 열린 상태에서 hash를 읽던 새 시험 코드 오류는 `build.log`·`build-retry.log`에 남겼으며, 시험의 writer를 닫고 재실행했다. 최종 성공 증거를 실패 실행에 소급하지 않는다. cold Editor가 사용한 Runtime/Core/Windows binary와 최종 비교 binary의 hash는 같으며 마지막 schema 회귀 추가로 `Splinter.Protocol.dll`만 바뀌었다. `code-under-test-final.json`과 두 current manifest로 구분한다.
 

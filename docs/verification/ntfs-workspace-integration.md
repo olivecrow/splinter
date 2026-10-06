@@ -28,9 +28,9 @@
 | NI-05 재연결 | Passed: 대표 fixture | 앱 종료 후 제공자 종료·동일 snapshot/delta 재연결, Editor stop/start와 새로운 domain의 loaded-code. 재부팅 미실행 |
 | NI-06 결과·공간 보호 | Passed: 자동/fixture | 독립 결과, 미보존 변경 거부, quota disk-full, snapshot 소실 보호. 실제 dirty development 통합은 GitDirtyWorktree로 차단하며 HEAD/index/diff/result ref 보존 |
 | NI-07 회수 | Passed: fixture | 앱/자식/provider·소유 메모리·핸들 0, mount/경로/Git 등록/delta/소유 VSS 부재. 독립 결과·원본·기존 복원 지점 보존 |
-| NI-08 최종 후보·문서 | Passed: 이번 내부 알파 범위 | locked restore·Release build·97 passed/0 failed/1 ReFS skip, 같은 source hash의 실제 run·추가 통합 차단·회수 증거, 현재 문서·UTF-8 동기화 |
+| NI-08 최종 후보·문서 | Passed: 이번 내부 알파 범위 | locked restore·Release build·97 passed/0 failed/1 skip, 같은 source hash의 실제 run·추가 통합 차단·회수 증거, 현재 문서·UTF-8 동기화 |
 
-`pwsh ./scripts/build.ps1`은 경고/오류 0으로 완료했다. `evidence/final-build.trx`는 **총 98개, passed 97, failed 0, not executed 1**, 시험 실행 약 63초다. 제외된 것은 `SPLINTER_TEST_REFS_ROOT`가 필요한 선택적 ReFS 시험이다. fake나 일반 Git 디렉터리 시험을 실제 VSS/WinFsp/Unity 증거로 집계하지 않는다. 실제 NTFS ADS/hardlink와 mount-root/내부 junction 거부 시험도 자동 시험에 포함된다.
+`pwsh ./scripts/build.ps1`은 경고/오류 0으로 완료했다. `evidence/final-build.trx`는 **총 98개, passed 97, failed 0, not executed 1**, 시험 실행 약 63초다. 제외된 것은 현재 폐기한 backend의 당시 시험이다. fake나 일반 Git 디렉터리 시험을 실제 VSS/WinFsp/Unity 증거로 집계하지 않는다. 실제 NTFS ADS/hardlink와 mount-root/내부 junction 거부 시험도 자동 시험에 포함된다.
 
 ## 원본과 두 Unity 작업의 독립성
 
@@ -106,7 +106,7 @@ A/B/바이너리 캡처 직후 C: VSS UsedSpace는 각각 9,214,996,480 / 9,428,
 - marker가 자신의 변경과 정확히 일치함을 확인하고 저장한 원본 바이트만 복원했다. `original-restored.json`은 원래 SHA의 clean 상태, `original-after-mcp.json`은 원본 probe 13과 idle 상태다. Editor 접근/작업 lease도 종료했다.
 - `vss-Release.json`, `final-release.json`, `final-state.json`에서 이 작업도 `released`이며 앱/자식/provider·소유 메모리·핸들 0, mount·Git 등록·delta·소유 VSS 부재를 확인했다. 기존 VSS 3개와 독립 결과는 보존했다. 회수 전 journal은 181,925,663바이트이며 회수 뒤 남은 공간을 뜻하지 않는다.
 
-이번 추가 시험은 제품 코드 변경 없이 수행했다. `candidate-inputs.json`은 위의 117개 파일 source hash와 기존 최종 TRX를 연결한다. 같은 후보의 97 passed/0 failed/1 ReFS skip 결과를 재사용하며 빌드를 다시 실행한 것으로 기록하지 않는다. 이 추가 시험에서 clean 원본에 대한 merge 성공이나 두 NTFS 결과의 충돌 merge를 실행한 것은 아니다. 실제 dirty 통합 차단과 기존 자동 Git/계약 시험의 범위를 구분한다.
+이번 추가 시험은 제품 코드 변경 없이 수행했다. `candidate-inputs.json`은 위의 117개 파일 source hash와 기존 최종 TRX를 연결한다. 같은 후보의 97 passed/0 failed/1 skip 결과를 재사용하며 빌드를 다시 실행한 것으로 기록하지 않는다. 이 추가 시험에서 clean 원본에 대한 merge 성공이나 두 NTFS 결과의 충돌 merge를 실행한 것은 아니다. 실제 dirty 통합 차단과 기존 자동 Git/계약 시험의 범위를 구분한다.
 
 짧은 home에서 해당 패키지 DLL 경로는 244자였고 파일 존재와 초기 로그의 `DirectoryNotFoundException`/`PathTooLongException` 부재를 확인했다(`short-home-observation.json`). 이는 이 fixture의 관측이며 긴 경로/일반 패키지 전체 지원을 뜻하지 않는다.
 

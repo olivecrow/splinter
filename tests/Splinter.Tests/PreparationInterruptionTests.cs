@@ -112,7 +112,6 @@ public sealed class PreparationInterruptionTests
         public Task AttachAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.CompletedTask;
         public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default) => Task.FromResult(new SourceState("base", "fingerprint", false, []));
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(r);
-        public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => Task.FromResult(r);
         public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();
         public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();
@@ -123,7 +122,7 @@ public sealed class PreparationInterruptionTests
     }
     private sealed class App : IApplicationWorkspaceProvider
     {
-        public string[] ManagedPaths => []; public string[] CacheInputs => [];
+        public string[] ManagedPaths => [];
         public string CompatibilityKey(string p) => "fake";
         public Task<ApplicationState> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.FromResult(new ApplicationState(false, false, "stopped", Resources: new(true, false, 0, 0, 0)));
         public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();

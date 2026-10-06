@@ -216,7 +216,7 @@ public sealed partial class FileWorkspaceTests
     private sealed class NoApplication : IApplicationWorkspaceProvider
     {
         public string[] ManagedPaths => throw new InvalidOperationException("No application metadata for ordinary folders");
-        public string[] CacheInputs => throw new InvalidOperationException();
+
         public string CompatibilityKey(string p) => throw new InvalidOperationException();
         public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new InvalidOperationException();
         public Task<ApplicationState> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new InvalidOperationException();
@@ -228,7 +228,6 @@ public sealed partial class FileWorkspaceTests
         public int Calls;
         private Exception Fail() { Calls++; return new WorkspaceException("GitRequiredFailure", "Git adapter unavailable; no fallback."); }
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => throw Fail();
-        public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => throw Fail();
         public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw Fail();
         public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default) => throw Fail();
         public Task<string> CheckpointAsync(WorkspaceRecord w, string m, CancellationToken ct = default) => throw Fail();

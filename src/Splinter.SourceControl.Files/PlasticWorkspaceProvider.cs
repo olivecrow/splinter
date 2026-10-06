@@ -149,7 +149,6 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
     public Task DiscardSourceAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => files.DiscardSourceAsync(w, c, ct);
     public Task VerifyDiscardedAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => files.VerifyDiscardedAsync(w, c, ct);
     public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => throw Invalid("Use the captured file basis, not a Plastic changeset checkout.");
-    public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => throw Invalid("Plastic cache baselines are unavailable.");
     public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw Invalid("No Plastic checkout or full-copy fallback is available.");
     public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string t, CancellationToken ct = default) => throw new WorkspaceException("SourceIntegrationUnsupported", "Plastic/Unity original application is not qualified; preserve an independent result.");
     public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) => throw Invalid("Use the sealed NTFS release lifecycle.");

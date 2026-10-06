@@ -1,6 +1,6 @@
 # 병렬 Unity 작업공간과 Editor 수명
 
-제품은 NTFS 작업공간과 그 Editor의 수명을 관리한다. 생성·재개·범위 저장·독립 결과·통합·회수/폐기는 [NTFS 계약](ntfs-workspaces.md)을 따른다. 선택적 ReFS와 Library view는 [개발 CLI](development-cli.md)에 분리돼 있다.
+제품은 NTFS 작업공간과 그 Editor의 수명을 관리한다. 생성·재개·범위 저장·독립 결과·통합·회수/폐기는 [NTFS 계약](ntfs-workspaces.md)을 따른다. Library view는 [개발 CLI](development-cli.md)에 분리돼 있다.
 
 ## 에이전트의 기본 흐름
 

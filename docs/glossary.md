@@ -29,7 +29,6 @@ CLI 응답과 기능 문서를 읽을 때 필요한 용어를 설명한다. 각 
 | base / baseRevision | `--base`는 요청하는 기준 선택값, `baseRevision`은 선택한 고정 버전의 identity다. Git commit이나 Plastic revision 등 의미는 소스 계약에 따른다. | [Git 기준본](git-project-basis.md), [Plastic 기준본](plastic-project-basis.md) |
 | snapshot / 스냅샷 | 변경되지 않는 기준을 읽기 위한 참조와 identity. VSS뿐 아니라 고정 Git object·Plastic revision·관리형 디렉터리 기준도 포함한다. 항상 프로젝트 전체 복사본을 뜻하지 않는다. | [Git 기준본](git-project-basis.md), [Plastic 기준본](plastic-project-basis.md), [프로젝트 기준본](plain-project-basis.md) |
 | basis / 기준본 | 여러 작업에서 참조하는 관리형 기준과 수명 기록. Library basis는 Library만, project basis는 VCS 없는 프로젝트와 생성 데이터를 다룬다. task 회수와 마지막 basis 복원은 별도다. | [Library 기준](git-library-reference.md), [프로젝트 기준](plain-project-basis.md) |
-| baseline | 개발용 ReFS 경로에서 준비·seal한 공통 기준본. 제품의 `--project-basis`·`--library-basis`와 명령·저장 방식이 다르다. | [개발용 저장소](storage-and-resources.md) |
 | overlay / 겹쳐 보이는 파일 트리 | 불변 기준 위에 그 작업의 변경분을 적용해 보이는 파일 트리. 기준을 복사하거나 직접 수정하지 않고 작업별 내용을 보여 준다. | [NTFS 작업공간](ntfs-workspaces.md) |
 | delta / 변경분 | 작업에서 변경한 바이트 범위와 파일 길이·이름·삭제 등의 정보. 변경 파일 전체 복사본과 같은 뜻이 아니다. | [NTFS 작업공간](ntfs-workspaces.md) |
 | private / 작업 전용 | 원본·다른 작업과 공유하지 않는 변경 범위나 생성 데이터. 암호화나 악성 코드 실행 격리를 뜻하지 않는다. | [현재 기반](foundation.md) |
@@ -50,7 +49,7 @@ CLI 응답과 기능 문서를 읽을 때 필요한 용어를 설명한다. 각 
 | `plastic-snapshot` | 기록된 Plastic changeset/revision을 읽는다. VSS service/grant가 필요하지 않다. |
 | `project-snapshot` | 승인한 VCS 없는 관리형 프로젝트 기준을 읽는다. VSS service/grant가 필요하지 않다. |
 
-`refs-cow`, `git-checkout`, baseline·view·probe는 [개발용 CLI](development-cli.md)의 경로다. 제품 NTFS 실패의 자동 fallback으로 사용하지 않는다.
+`git-checkout`, view·probe는 [개발용 CLI](development-cli.md)의 경로다. 제품 NTFS 실패의 자동 fallback으로 사용하지 않는다.
 
 ## 보존·반영·회수
 

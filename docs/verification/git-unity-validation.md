@@ -12,13 +12,13 @@
 
 각 실패 명령이 종료한 뒤 정확한 owner/request/token과 client handle 0을 대조해 기존 private stop protocol로 provider를 정상 unmount했다. 동일 등록 `.git/worktrees/<id>`의 빈 `index.lock`은 exclusive open·내용/생성 UTC 시각으로 확인해 `preparation-recovery-A/B/owned-stale-index.lock`에 보존 이동했다. A 복구 스크립트의 PowerShell using 문법 오류와 local/UTC 비교·최종 phase 명칭 오류는 실행/가드 실패로 구별하며, 정상 provider stop 뒤 추가 자원을 삭제하지 않았다. 새 A/B 또는 원본/peer/VSS 정리로 우회하지 않았다.
 
-첫 수정 build는 아직 실행 중이던 B CLI PID 43932의 출력 DLL 잠금 때문에 실패했고 로그를 보존했다. B의 기한 종료·동일 소유 stop 뒤 필수 locked restore/build/회귀는 922 Passed/1 선택적 ReFS NotRun, Git reader의 선택 검사는 14/14 Passed였다.
+첫 수정 build는 아직 실행 중이던 B CLI PID 43932의 출력 DLL 잠금 때문에 실패했고 로그를 보존했다. B의 기한 종료·동일 소유 stop 뒤 필수 locked restore/build/회귀는 922 Passed/1 당시 제외 시험 NotRun, Git reader의 선택 검사는 14/14 Passed였다.
 
 수정 reader로 동일 A/B의 준비를 재개해 등록·mount·source 검사와 Editor 시작을 완료했다. 준비 중 약 8.54GB의 누적 source 읽기와 약 704,000 callback을 관측했다. 초기 index 읽기·raw SHA-256·Git 해시 입력이 포함된 누적 값이며 최초 데이터 복제량이 아니다. 별도로 range source의 full SHA-256 입력을 기존 4KiB 대신 상한 1MiB pooled buffer로 읽도록 수정했다. 내용 hash·취소·journal barrier·manifest 게시 의미는 유지한다. A 정상 Editor 종료 뒤 전체 감사는 1,620파일/2,804,781,822바이트 SHA-256·동일량 Git hash 입력을 131.494초에 확인했다. 이 명령 전후 provider read callback은 17,418회, baseRead는 6,094,751,628바이트 증가했고 I/O failure는 0이었다. Git 검사와 index 관측을 포함한 값이므로 SHA-256 단독 callback/전체 성능 개선율로 환산하지 않는다.
 
 A Editor PID 69124/start ticks 639266955196373287, B PID 81688/start ticks 639266955572189536으로 시작했다. 두 `unity start`는 `Accepted`/running=true/ready=false였으며 컴파일 통과를 의미하지 않는다. 약 30분의 cold PackageCache 준비 뒤 두 Editor의 package 등록 완료 로그를 확인했다. 이 구간의 저널은 A 약 795MB/B 약 838MB까지 증가했고 I/O failure는 0이었다. 개별 durable flush의 비용을 관측했으며 ACK/flush를 합치거나 생략하지 않았다.
 
-같은 프로그램 소스의 build는 경고·오류 없이 완료됐으나 cold import와 겹친 전체 회귀는 920 Passed/2 Failed/1 선택적 ReFS NotRun이었다. 실패는 기존 preparation 자식이 30초 안에 경계에 도달하지 못한 경우와 storage setup 자식의 30초 종료 대기 취소다. `full-under-cold-import.trx`와 로그를 보존한다. A/B 회수 뒤 필수 `pwsh ./scripts/build.ps1`의 locked restore·Release 빌드·전체 923검사는 922 Passed/0 Failed/1 선택적 ReFS NotRun으로 통과했다. 테스트 시간은 4분 42.447초이며 앞선 두 시간 제한 검사도 통과했다. 제품/시험의 기한을 늘리거나 실패 검사를 제외하지 않았다. `build-quiet-final.log`·`full-quiet-final.trx`와 UTF-8/whitespace 검사 결과를 최종 후보의 근거로 사용한다.
+같은 프로그램 소스의 build는 경고·오류 없이 완료됐으나 cold import와 겹친 전체 회귀는 920 Passed/2 Failed/1 당시 제외 시험 NotRun이었다. 실패는 기존 preparation 자식이 30초 안에 경계에 도달하지 못한 경우와 storage setup 자식의 30초 종료 대기 취소다. `full-under-cold-import.trx`와 로그를 보존한다. A/B 회수 뒤 필수 `pwsh ./scripts/build.ps1`의 locked restore·Release 빌드·전체 923검사는 922 Passed/0 Failed/1 당시 제외 시험 NotRun으로 통과했다. 테스트 시간은 4분 42.447초이며 앞선 두 시간 제한 검사도 통과했다. 제품/시험의 기한을 늘리거나 실패 검사를 제외하지 않았다. `build-quiet-final.log`·`full-quiet-final.trx`와 UTF-8/whitespace 검사 결과를 최종 후보의 근거로 사용한다.
 
 GUI Editor의 cold InitialRefreshV2는 A 5,297.249초(88.3분), B 5,263.066초(87.7분)에 완료됐다. 실제 Medieval village 텍스처·모델·URP shader include·material/terrain/prefab 입력을 import했고 첫 스크립트 컴파일 시간은 A 124.635초/B 197.441초, Editor 어셈블리 초기화는 약 73초였다. 일부 원본 텍스처의 Crunch는 약 38초로 기록됐다. FBX 중복 이름/타입 및 terrain shader 의존성/지원 경고를 보존한다. 완료 후 정확한 project/PID에서 compiling/updating/compilationFailed/playing=false를 확인했다. 빠른 준비나 warm Library 자격은 아니다.
 

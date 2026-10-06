@@ -6,6 +6,76 @@ namespace Splinter.Tests;
 public sealed class WorkspaceCoordinatorTests
 {
     [Fact]
+    public async Task RetiredStorageCannotFallBackToSourceCreation()
+    {
+        using var d = new TestDirectory(); var sources = new FakeSources();
+        var runtime = New(d, sources, new FakeApplications());
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() => runtime.EnsureAsync("missing-project", "retired", "main", "refs-cow", false,
+            TestContext.Current.CancellationToken));
+        Assert.Equal("UnsupportedStorageMode", error.Code);
+        Assert.Equal(0, sources.CreateCalls);
+        Assert.Empty(new WorkspaceStore(Path.Combine(d.Path, "state")).List());
+    }
+
+    [Theory]
+    [InlineData("refs-cow", "task")]
+    [InlineData("git-checkout", "baseline")]
+    public async Task RetiredPersistedWorkspaceIsRejectedWithoutChangingItsFiles(string storageMode, string purpose)
+    {
+        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications();
+        var store = new WorkspaceStore(Path.Combine(d.Path, "state"));
+        var runtime = new WorkspaceCoordinator(store, sources, apps);
+        var w = (await runtime.EnsureAsync(Project(d), "retired-record", "main", "git-checkout", false,
+            TestContext.Current.CancellationToken)).Workspace;
+        string retained = Path.Combine(w.Path, "retained-result"); await File.WriteAllTextAsync(retained, "preserve", TestContext.Current.CancellationToken);
+        w.StorageMode = storageMode; w.Purpose = purpose;
+        store.Save(w, "retired-fixture");
+        string recordPath = Path.Combine(store.ControlPath(w.Id), "workspace.json");
+        byte[] before = await File.ReadAllBytesAsync(recordPath, TestContext.Current.CancellationToken);
+        Assert.Equal("StateCorrupt", (await Assert.ThrowsAsync<WorkspaceException>(() => runtime.ReleaseAsync(w.Id,
+            TestContext.Current.CancellationToken))).Code);
+        Assert.Equal(before, await File.ReadAllBytesAsync(recordPath, TestContext.Current.CancellationToken));
+        Assert.Equal("preserve", await File.ReadAllTextAsync(retained, TestContext.Current.CancellationToken));
+        Assert.Equal(0, sources.ReleaseCalls); Assert.Equal(0, apps.RemoveCalls);
+    }
+
+    [Fact]
+    public async Task ExistingRequestDigestAndResumeIdentityStayUnchanged()
+    {
+        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications(); string project = Project(d);
+        var w = (await New(d, sources, apps).EnsureAsync(project, "retained-request", "main", "git-checkout", false,
+            TestContext.Current.CancellationToken)).Workspace;
+        string previousDigest = WorkspaceStore.Key(project + "\nretained-request\nmain\ngit-checkout\n\ntask\n" +
+            SnapshotWorkspaceState.DefaultJournalBytes + "\ngit\nunity");
+        Assert.Equal(previousDigest, w.RequestDigest);
+        var resumed = await New(d, sources, apps).EnsureAsync(project, "retained-request", "main", "git-checkout", false,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(w.Id, resumed.Workspace.Id); Assert.Equal(previousDigest, resumed.Workspace.RequestDigest);
+        Assert.Equal(1, sources.CreateCalls);
+    }
+
+    [Theory]
+    [InlineData("baselineId", "\"obsolete-basis\"")]
+    [InlineData("cloneMetrics", "{}")]
+    public async Task RemovedStateValuesCannotBeIgnoredOrRewritten(string field, string value)
+    {
+        using var d = new TestDirectory(); var store = new WorkspaceStore(Path.Combine(d.Path, "state"));
+        var runtime = new WorkspaceCoordinator(store, new FakeSources(), new FakeApplications());
+        var w = (await runtime.EnsureAsync(Project(d), "unknown-state", "main", "git-checkout", false,
+            TestContext.Current.CancellationToken)).Workspace;
+        string path = Path.Combine(store.ControlPath(w.Id), "workspace.json");
+        var node = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken))!;
+        node[field] = null;
+        await File.WriteAllTextAsync(path, node.ToJsonString(), TestContext.Current.CancellationToken);
+        Assert.Equal(w.RequestDigest, store.Get(w.Id).RequestDigest);
+        node[field] = System.Text.Json.Nodes.JsonNode.Parse(value);
+        await File.WriteAllTextAsync(path, node.ToJsonString(), TestContext.Current.CancellationToken);
+        byte[] before = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
+        Assert.Equal("StateCorrupt", Assert.Throws<WorkspaceException>(() => store.Get(w.Id)).Code);
+        Assert.Equal(before, await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task StartAndEnsureEditorDoNotVerifyImportingSourceOrStartDuplicateApplications()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -190,48 +260,12 @@ public sealed class WorkspaceCoordinatorTests
         Assert.Equal(new ProcessResources(true, false, 0, 0, 0), released.Workspace.ReleasedResources);
     }
 
-    [Fact]
-    public async Task UnsupportedCoWIsRejectedBeforeGitCreationAndNeverFallsBack()
-    {
-        var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); var sources = new FakeSources();
-        var store = new WorkspaceStore(Path.Combine(d.Path, "state"));
-        var runtime = new WorkspaceCoordinator(store, sources, new FakeApplications(), new FakeStorage { Unsupported = true });
-        var error = await Assert.ThrowsAsync<WorkspaceException>(() => runtime.PrepareBaselineAsync(Project(d), "main", ct));
-        Assert.Equal("CoWUnsupported", error.Code); Assert.Equal(0, sources.CreateCalls); Assert.Empty(store.List());
-    }
-
-    [Fact]
-    public async Task BaselineRejectsMutationAndActiveConsumerRemoval()
-    {
-        var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); var sources = new FakeSources { Revision = "base" };
-        var apps = new FakeApplications(); var storage = new FakeStorage();
-        var store = new WorkspaceStore(Path.Combine(d.Path, "state")); var runtime = new WorkspaceCoordinator(store, sources, apps, storage);
-        string project = Project(d);
-        var prepared = await runtime.PrepareBaselineAsync(project, "main", ct); string id = prepared.Workspace.Id;
-        string library = Path.Combine(prepared.Workspace.Path, "Library"); Directory.CreateDirectory(library);
-        await File.WriteAllTextAsync(Path.Combine(library, "cache"), "warmed once", ct);
-        var baseline = await runtime.SealBaselineAsync(id, ct);
-        Assert.False(Directory.Exists(prepared.Workspace.Path)); Assert.Equal(1, storage.CloneCalls);
-        Assert.Equal(id, (await runtime.PrepareBaselineAsync(project, "main", ct)).Workspace.Id);
-        Assert.Equal(1, sources.CreateCalls);
-        var consumer = await runtime.EnsureAsync(project, "consumer", "main", "refs-cow", false, ct, id);
-        var busy = await Assert.ThrowsAsync<WorkspaceException>(() => runtime.ReleaseBaselineAsync(id, ct));
-        Assert.Equal("BaselineInUse", busy.Code);
-        await runtime.ReleaseAsync(consumer.Workspace.Id, ct);
-        await File.WriteAllTextAsync(Path.Combine(baseline.Path, "Library", "cache"), "unexpected change", ct);
-        var changed = await Assert.ThrowsAsync<WorkspaceException>(() => runtime.ReleaseBaselineAsync(id, ct));
-        Assert.Equal("BaselineChanged", changed.Code); Assert.True(Directory.Exists(baseline.Path));
-        await File.WriteAllTextAsync(Path.Combine(baseline.Path, "Library", "cache"), "warmed once", ct);
-        await runtime.ReleaseBaselineAsync(id, ct); Assert.False(Directory.Exists(baseline.Path));
-        Assert.NotEqual(id, (await runtime.PrepareBaselineAsync(project, "main", ct)).Workspace.Id);
-    }
     private static WorkspaceCoordinator New(TestDirectory d, FakeSources s, FakeApplications a) => new(new WorkspaceStore(System.IO.Path.Combine(d.Path, "state")), s, a);
 
     private sealed class FakeSources : ISourceWorkspaceProvider
     {
         public string ResolvedRevision = "base";
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(ResolvedRevision);
-        public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => Task.FromResult("fake-cache");
         public int CreateCalls, CommitCalls, ReleaseCalls, InspectCalls; public string Fingerprint = "initial"; public string Revision = "rev"; public TimeSpan CreateDelay; public bool DeleteAndThrowOnRelease, LeaveDirectoryOnRelease, Unregistered;
         public Action<WorkspaceRecord>? BeforeCreate; public string? InspectionError;
         public async Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) { Interlocked.Increment(ref CreateCalls); BeforeCreate?.Invoke(w); await Task.Delay(CreateDelay, ct); Directory.CreateDirectory(w.Path); return new(w.Path, w.SourceReference, ResolvedRevision); }
@@ -249,7 +283,7 @@ public sealed class WorkspaceCoordinatorTests
     private sealed class FakeApplications : IApplicationWorkspaceProvider
     {
         public string CompatibilityKey(string project) => "fake-application";
-        public string[] CacheInputs => ["configuration"];
+
         public string[] ManagedPaths => ["Library", "Temp"]; public bool Running; public int RemoveCalls, StartCalls;
         public bool OwnershipVerified = true; public int SurvivingChildren;
         public Func<WorkspaceRecord, CancellationToken, Task>? BeforeStop;
@@ -261,21 +295,5 @@ public sealed class WorkspaceCoordinatorTests
         }
         public async Task StopAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { if (BeforeStop is not null) await BeforeStop(w, ct); Running = false; }
         public Task RemoveInfrastructureAsync(WorkspaceRecord w, string p, CancellationToken ct = default) { RemoveCalls++; return Task.CompletedTask; }
-    }
-    private sealed class FakeStorage : IWorkspaceStorageProvider
-    {
-        public bool Unsupported; public int CloneCalls;
-        public StorageProbe Probe(string d) => Unsupported ? throw new WorkspaceException("CoWUnsupported", "fake unsupported volume") : new("fake", "fake", "fake", 4096);
-        public Task<CloneStatistics> CloneAsync(string source, string destination, string[] excluded, CancellationToken ct = default)
-        {
-            CloneCalls++; long bytes = 0; int count = 0; Directory.CreateDirectory(destination);
-            foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
-            {
-                string relative = Path.GetRelativePath(source, file); if (excluded.Contains(relative.Split(Path.DirectorySeparatorChar)[0])) continue;
-                string target = Path.Combine(destination, relative); Directory.CreateDirectory(Path.GetDirectoryName(target)!); File.Copy(file, target);
-                bytes += new FileInfo(file).Length; count++;
-            }
-            return Task.FromResult(new CloneStatistics(bytes, 0, bytes, count, 0));
-        }
     }
 }

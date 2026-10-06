@@ -27,7 +27,7 @@ public static class WorkspaceFailurePolicy
         "StorageServiceMissing" or "StorageServiceUnavailable" or "StorageServiceVersionMismatch" or "StorageServiceUnsafe" or
         "StorageOperationUncertain" or "StorageRequestPending" or "StorageScopeDenied" or "StorageSnapshotNotOwned" or "StorageReleaseNotAuthorized" or
         "WorkspaceDiscardUnavailable" or "WorkspaceDiscarding" or "DiscardOwnershipUnknown" or
-        "GitBasisUnavailable" or "CoWUnsupported" or "ProcessOwnershipUnknown" or "SnapshotPrivilegeRequired" or
+        "GitBasisUnavailable" or "ProcessOwnershipUnknown" or "SnapshotPrivilegeRequired" or
         "SnapshotHeadroomRequired" or "SnapshotReleaseIsolationRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or
         "OverlayStartUncertain" or "SnapshotStateMissing" or "SnapshotCheckpointMismatch" or "SnapshotPreparationIncomplete" or "SnapshotOperationIncomplete" or
         "SnapshotObservationUnknown" or "StateRecoveryRequired" or "StateReadUnavailable" or "StateWriteIncomplete" or

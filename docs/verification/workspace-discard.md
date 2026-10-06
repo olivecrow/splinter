@@ -13,7 +13,7 @@
 
 ## 서비스 패키지 준비 후보의 실행 근거
 
-2026-10-01 `development @ c23ea4c` 이후 미커밋 후보의 `pwsh ./scripts/build.ps1`은 locked restore·Release 경고/오류 0, **744개 중 743 성공·0 실패·선택적 실제 ReFS 미실행 1**이다. 이전 공통 후보의 718 성공을 현재 후보의 근거로 대체하지 않으며, 추가된 25개 경계 사례를 포함한 전체 회귀를 실행했다. [source hash](../../artifacts/workspace-discard/product-20261001-180005-293/source.json)·[manifest](../../artifacts/workspace-discard/product-20261001-180005-293/automated.json)·[TRX](../../artifacts/workspace-discard/product-20261001-180005-293/automated.trx)·[빌드 로그](../../artifacts/workspace-discard/product-20261001-180005-293/build.log)가 고정 근거다. 패키지 작성 후에도 시험한 소스 hash가 일치함을 확인했다.
+2026-10-01 `development @ c23ea4c` 이후 미커밋 후보의 `pwsh ./scripts/build.ps1`은 locked restore·Release 경고/오류 0, **744개 중 743 성공·0 실패·당시 제외 시험 미실행 1**이다. 이전 공통 후보의 718 성공을 현재 후보의 근거로 대체하지 않으며, 추가된 25개 경계 사례를 포함한 전체 회귀를 실행했다. [source hash](../../artifacts/workspace-discard/product-20261001-180005-293/source.json)·[manifest](../../artifacts/workspace-discard/product-20261001-180005-293/automated.json)·[TRX](../../artifacts/workspace-discard/product-20261001-180005-293/automated.trx)·[빌드 로그](../../artifacts/workspace-discard/product-20261001-180005-293/build.log)가 고정 근거다. 패키지 작성 후에도 시험한 소스 hash가 일치함을 확인했다.
 
 [서비스 패키지 manifest](../../artifacts/workspace-discard/product-20261001-180005-293/package-01/package.json)의 SHA-256은 `962ceac3aa23b41a8a89987e14e31c258b3120a83a34d19c55e4151e21e292e3`이며 12개 파일 hash를 확인했다. [읽기 전용 Update 계획](../../artifacts/workspace-discard/product-20261001-180005-293/update-plan.json)은 `apply=false`다. 기존 evidence의 세 scope를 새 패키지의 read-only `storage-grant`로 현재 디렉터리/볼륨 identity와 대조했고 새 grant를 추가하지 않았다. Apply는 보호된 실제 설정의 모든 기존 scope 보존을 다시 검사하며 누락/변경이 있으면 거부한다. [패키지/계획 검토 hash](../../artifacts/workspace-discard/product-20261001-180005-293/package-review.json)를 남겼다.
 
@@ -36,7 +36,7 @@
 
 `DiscardPublishesResourceAbsenceBeforeSnapshotAuthority`에서 별도 reader가 요청 시점의 durable 상태를 읽어 [수정 전 실패](../../artifacts/workspace-discard/product-20261001-180005-293/regression-before-fix/Splinter.Tests_net10.0_x64.trx)를 재현했다. Runtime이 최신 부재/zero 관측을 `discard-snapshot-authorized`로 게시한 뒤 요청하도록 수정했다. 게시 실패는 privileged 요청 전에 중단한다. 서비스의 검사·IPC 계약·설치 패키지는 변경하거나 재적용하지 않았다. 실패한 A의 ID·digest·intent와 같은 Release request ID로 재개했으며 새 A/snapshot으로 바꾸지 않았다.
 
-수정 뒤 필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 경고/오류 0, **745개 중 744 성공·0 실패·선택적 실제 ReFS 미실행 1**이다. [수정 후보 hash](../../artifacts/workspace-discard/product-20261001-180005-293/source-after-observation-fix.json)·[자동 실행 manifest](../../artifacts/workspace-discard/product-20261001-180005-293/automated-after-observation-fix.json)·[TRX](../../artifacts/workspace-discard/product-20261001-180005-293/automated-after-observation-fix.trx)·[로그](../../artifacts/workspace-discard/product-20261001-180005-293/build-after-observation-fix.log)를 고정했고 native 실행 후에도 코드 hash가 일치했다. 기존 743 성공은 서비스 패키지 준비 후보의 별도 근거다.
+수정 뒤 필수 `pwsh ./scripts/build.ps1`은 locked restore·Release 경고/오류 0, **745개 중 744 성공·0 실패·당시 제외 시험 미실행 1**이다. [수정 후보 hash](../../artifacts/workspace-discard/product-20261001-180005-293/source-after-observation-fix.json)·[자동 실행 manifest](../../artifacts/workspace-discard/product-20261001-180005-293/automated-after-observation-fix.json)·[TRX](../../artifacts/workspace-discard/product-20261001-180005-293/automated-after-observation-fix.trx)·[로그](../../artifacts/workspace-discard/product-20261001-180005-293/build-after-observation-fix.log)를 고정했고 native 실행 후에도 코드 hash가 일치했다. 기존 743 성공은 서비스 패키지 준비 후보의 별도 근거다.
 
 이번 자격은 dirty 파일·서비스 거부 후 같은 요청 재개·완료 요청 중복·peer 지속과 실제 회수에 한정한다. 컴파일 실패/Editor stop·native 강제 중단·재부팅·전원·물리 공간·ARM·대형 프로젝트와 전체 비용 자격은 승계하지 않는다. 다음 단위는 최소 AI 사용 지침과 대표 사용 흐름이며 새 장애 행렬을 열지 않는다.
 
@@ -54,7 +54,7 @@
 
 ## 실행 근거와 판정
 
-2026-10-01 `development @ af94ea6`의 미커밋 후보에서 공통 단위를 **scoped-complete-with-limitations**로 판정했다. `pwsh ./scripts/build.ps1`의 locked restore·Release는 경고 0·오류 0이며 자동 시험은 총 719 중 성공 718·실패 0·선택적 실제 ReFS 미실행 1이다. [고정 소스 hash](../../artifacts/workspace-discard/final-20261001-170615-205/source.json), [실행 manifest](../../artifacts/workspace-discard/final-20261001-170615-205/automated.json), [TRX](../../artifacts/workspace-discard/final-20261001-170615-205/automated.trx), [전체 로그](../../artifacts/workspace-discard/final-20261001-170615-205/build.log)는 로컬 근거다.
+2026-10-01 `development @ af94ea6`의 미커밋 후보에서 공통 단위를 **scoped-complete-with-limitations**로 판정했다. `pwsh ./scripts/build.ps1`의 locked restore·Release는 경고 0·오류 0이며 자동 시험은 총 719 중 성공 718·실패 0·당시 제외 시험 미실행 1이다. [고정 소스 hash](../../artifacts/workspace-discard/final-20261001-170615-205/source.json), [실행 manifest](../../artifacts/workspace-discard/final-20261001-170615-205/automated.json), [TRX](../../artifacts/workspace-discard/final-20261001-170615-205/automated.trx), [전체 로그](../../artifacts/workspace-discard/final-20261001-170615-205/build.log)는 로컬 근거다.
 
 새 폐기 사례 13개와 기존 coordinator/Windows process 사례를 합친 [한정 실행 54개](../../artifacts/workspace-discard/final-20261001-165923-391/targeted.trx)도 통과했다. 최초 peer 준비 순서와 시험용 응답의 누락 digest는 fixture를 수정했고 [초기 실패](../../artifacts/workspace-discard/initial-fixture-failures/automated.trx)와 [응답 schema 실패](../../artifacts/workspace-discard/targeted-missing-response-digest.trx)를 보존했다.
 

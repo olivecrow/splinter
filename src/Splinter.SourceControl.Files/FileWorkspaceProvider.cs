@@ -339,7 +339,6 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         File.Move(pending, path);
     }
     public Task<string> ResolveRevisionAsync(string project, string reference, CancellationToken ct = default) => throw Error("A file basis requires immutable capture.");
-    public Task<string> SnapshotKeyAsync(string project, string revision, string[] paths, CancellationToken ct = default) => throw Error("VCS cache baselines are unavailable for plain folders.");
     public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw Error("No checkout or full-copy fallback is available.");
     public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string target, CancellationToken ct = default) => throw new WorkspaceException("SourceIntegrationUnsupported", "Use the original-apply plan and exact intent/digest contract; branch integration cannot authorize original writes.");
     public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) => throw Error("Use the sealed NTFS release lifecycle.");

@@ -6,7 +6,7 @@
 
 이후의 수집 경쟁 조건·status 비용·공통 mount 접근 수정은 [별도 검증 기록](README.md)을 따른다. 아래 LV·원격 Unity 수치를 그 수정 후보의 실환경 통과로 승계하지 않는다.
 
-[LV-01~08 기록](ntfs-live-vss-identity.md)은 캡처/live identity와 현재 읽기 위치 분리, 새 연결 세대의 비관리자 Observe/재개을 검증한다. 새 후보는 자동 180 통과·0 실패·선택적 ReFS 1 skip, 실제 VSS/Git 재연결·4KiB 범위 쓰기·원본 시점 격리, Windows x64 Unity 검증 3건·재연결 후 loaded-code·독립 결과·최종 회수를 통과했다. 77개 원본 파일과 기존 snapshot 3개를 보존했고 소유 자원은 0이다. 다음 절의 139개 통과와 원격 ARM 시험은 이전 후보 기록이며 새 후보의 ARM·실제 재부팅·전원·공간 장애는 NotRun이다.
+[LV-01~08 기록](ntfs-live-vss-identity.md)은 캡처/live identity와 현재 읽기 위치 분리, 새 연결 세대의 비관리자 Observe/재개을 검증한다. 새 후보는 자동 180 통과·0 실패·당시 제외 시험 1 skip, 실제 VSS/Git 재연결·4KiB 범위 쓰기·원본 시점 격리, Windows x64 Unity 검증 3건·재연결 후 loaded-code·독립 결과·최종 회수를 통과했다. 77개 원본 파일과 기존 snapshot 3개를 보존했고 소유 자원은 0이다. 다음 절의 139개 통과와 원격 ARM 시험은 이전 후보 기록이며 새 후보의 ARM·실제 재부팅·전원·공간 장애는 NotRun이다.
 
 ## 로컬 코드와 자동 시험
 
@@ -24,7 +24,7 @@
 | 저널 프로세스 종료 | 별도 자식의 64KiB 쓰기 완료를 외부 ACK 파일에 flush한 뒤 실제 강제 종료, 1/8/32 ACK 재연결 및 두 번째 재생 hash 일치 | 실제 프로세스 / fake 불변 트리 3건 Passed |
 | 작업 중 파일 속성 | reparse/EFS/압축/희소의 create/overwrite/속성 callback 거부, 기존 바이트·속성·sequence·저널 hash 불변. 일반 속성과 변경 없음 sentinel 재연결 | callback/실제 저널 Passed |
 | 마지막 회수 관측 | 같은 부팅의 정확한 해제 관측만 unknown 해소, 다른 부팅·identity·조회 실패는 보존, 최종 회수 재개도 unknown이면 완료 차단 | 영수증/fake Passed |
-| 전체 회귀 | locked restore → Release build → 자동 시험, 총 140개 중 139 통과·0 실패·선택적 ReFS 1 skip. 경고/오류 0 | Passed |
+| 전체 회귀 | locked restore → Release build → 자동 시험, 총 140개 중 139 통과·0 실패·당시 제외 시험 1 skip. 경고/오류 0 | Passed |
 
 이전 NR-07 후보 증거는 `artifacts/ntfs-recovery/nr07-release-observation-20260921/`의 `final-build.trx`, `source-manifest.json`에 있다. 앞선 128개 시험 후보는 `nr01305-20260921/`, 112개 후보는 `nr01-20260921/`에 따로 보존한다. `RecoveryContractTests`, `SnapshotWorkspaceCoordinatorTests`, `VssReleaseObservationTests`, `ContractAndCliTests`, `SnapshotOverlayTests`, `OverlayFileAttributeTests`가 추가 계약을 검증한다. 기존 journal/Git/Windows 프로세스 시험도 같은 후보에서 실행했다. 파일 잠금에 의한 저장 실패는 실제 볼륨 고갈의 증거가 아니며 callback 직접 호출은 실제 mount의 파일 API 시험이 아니다.
 
@@ -48,7 +48,7 @@
 
 write의 payload 절반 후는 33,129바이트, payload 전체/checksum 후/flush 전의 3건은 각각 65,897바이트의 미완성 tail만 제거했다. 58건 모두 승인 prefix의 원문이 유지되고 재생 후 파일은 종료 시점 원문의 정확한 prefix였다. 두 번째 재생은 namespace·내용 hash와 journal 원문이 바뀌지 않았다. 초기 payload 복사·read cache·base payload 읽기는 0이며 합성 private 저널에 한정한 계측이다. 완전 frame의 checksum·sequence·JSON 손상 보존은 같은 후보의 기존 자동 회귀로 확인했고 손상 frame을 정상 tail로 절단하지 않는다.
 
-최종 `pwsh ./scripts/build.ps1`은 locked restore·Release build 경고/오류 0, **총 684개 중 683 Passed / 0 Failed / 선택적 ReFS 1 Skipped**다. `final-full.trx`와 `../nr03-journal-20260930-preflight/sequence-final-build.log`가 소유하며 UTF-8·diff 검사를 통과했다. 최종 행렬의 종료 후 공유 재관측은 58건 모두 0회다. 앞선 `nr03-journal-20260930/`의 58개 성공과 682개 자동 통과도 원문을 보존한다. Runtime은 같고 sequence 손상 직접 회귀 추가로 시험 바이너리·소스가 달라져 최종 행렬을 새 디렉터리에서 다시 실행했다.
+최종 `pwsh ./scripts/build.ps1`은 locked restore·Release build 경고/오류 0, **총 684개 중 683 Passed / 0 Failed / 당시 제외 시험 1 Skipped**다. `final-full.trx`와 `../nr03-journal-20260930-preflight/sequence-final-build.log`가 소유하며 UTF-8·diff 검사를 통과했다. 최종 행렬의 종료 후 공유 재관측은 58건 모두 0회다. 앞선 `nr03-journal-20260930/`의 58개 성공과 682개 자동 통과도 원문을 보존한다. Runtime은 같고 sequence 손상 직접 회귀 추가로 시험 바이너리·소스가 달라져 최종 행렬을 새 디렉터리에서 다시 실행했다.
 
 첫 전체 시험은 681개 중 679 Passed / 1 Failed / 1 Skipped였다. `replace / commit.after-apply`에서 정확한 자식 종료 확인 직후 journal open의 Win32 공유 위반 32로 replay 전에 실패했다. `../nr03-journal-20260930-preflight/first-full.trx`와 `failure.json`에 당시 바이너리 hash·실패를 보존했다. harness의 post-exit guard/open에만 공유 위반 32/33의 최대 5초 재관측을 추가했고, 접근 거부·부재·손상·replay 오류는 재시도하지 않는다. 첫 실패를 제품 데이터 손상이나 flush 정책 결함의 해결로 표시하지 않는다.
 
@@ -69,7 +69,7 @@ write의 payload 절반 후는 33,129바이트, payload 전체/checksum 후/flus
 
 19건 모두 승인 prefix를 보존하고 첫/두 번째 재생에서 journal 원문이 바뀌지 않았다. after-effect/외부 ACK 뒤는 완전한 새 내용을 요구했다. mmap view flush 전의 이번 관측은 새 페이지 부재였고 파일 flush callback 전/후에는 페이지가 남았다. 아직 승인하지 않은 페이지는 생존 또는 부재를 허용하며 이 관측을 보장으로 확대하지 않는다. mmap ACK는 view flush와 파일 `Flush(true)`가 모두 끝난 뒤만 게시한다. 초기 payload 복사·read cache는 모두 0이고, 정상 기준 읽기의 `baseReadBytes`는 4,096~65,536바이트로 별도 기록했다.
 
-최종 `pwsh ./scripts/build.ps1`은 locked restore·Release build 경고/오류 0, **총 695개 중 694 Passed / 0 Failed / 선택적 ReFS 1 Skipped**다. `final-full.trx`·`final-build.log`를 보존했다. 공통 callback fake 5개 연산·19개 요청 조합/schema·기본 계획의 경로 미생성과 기존 회귀를 포함한다. UTF-8·diff 검사도 통과했다. 최종 19건은 새 provider의 핸들/retained context 0·mount 부재·소유 자식 0을 확인했다. 최종 감사는 smoke/실패/preflight/final의 41개 mount 관측과 204개 PID/시작 시각 증거를 대조하고, 남은 kernel child actor 0·모든 delta 보존·형제 fixture clean을 확인했다.
+최종 `pwsh ./scripts/build.ps1`은 locked restore·Release build 경고/오류 0, **총 695개 중 694 Passed / 0 Failed / 당시 제외 시험 1 Skipped**다. `final-full.trx`·`final-build.log`를 보존했다. 공통 callback fake 5개 연산·19개 요청 조합/schema·기본 계획의 경로 미생성과 기존 회귀를 포함한다. UTF-8·diff 검사도 통과했다. 최종 19건은 새 provider의 핸들/retained context 0·mount 부재·소유 자식 0을 확인했다. 최종 감사는 smoke/실패/preflight/final의 41개 mount 관측과 204개 PID/시작 시각 증거를 대조하고, 남은 kernel child actor 0·모든 delta 보존·형제 fixture clean을 확인했다.
 
 최초 `nr03-kernel-preflight-20260930/`은 1건 통과 뒤 write after-effect의 reader 프로세스 종료를 기다리다가 15초 deadline으로 실패했다. 당시 `File.ReadAllBytes`는 open/read/dispose를 구분하지 않아 실제 대기 단계·하위 원인은 **unknown**이다. 후보 hash·signal·prefix·delta·stdout/stderr·`failure.json`·인접 `.log`를 보존했다. 기존 `Cleanup`이 읽기 전용 핸들도 mutation gate를 잡는다는 코드 근거에 따라 후속 harness는 미리 열린 Read 응답과 Close/프로세스 종료를 나눴다. 제품 잠금·flush 정책은 변경하지 않았다. `nr03-kernel-preflight2-20260930/`의 19건 성공도 보존하며, 이후 최종 capability 문구를 포함한 전체 build/새 행렬이 위 최종 근거다. 첫 실패를 새 open/close 동시 완료나 제품 데이터 손실 결함 해결로 표시하지 않는다.
 
@@ -77,7 +77,7 @@ write의 payload 절반 후는 33,129바이트, payload 전체/checksum 후/flus
 
 ## NR-03 제품 VSS·CLI의 클라이언트 경계
 
-최종 PNG 후보의 실제 전체 행렬은 **13 Passed / 0 Failed**, 제품 외부 client 단위는 **scoped-complete-with-limitations**다. `artifacts/ntfs-recovery/nr03-product-png-20261001/`의 `candidate.json`·`fixture-attributes.json`·`frozen-source.json`·`final-audit.json`이 소스 244개·관리 바이너리 20개의 불변 hash를 확인한다. 같은 경로의 `environment.json`은 설치된 제한 권한 서비스와 WinFsp 파일의 불변 hash를 소유하며 설치/grant·볼륨/예산은 변경하지 않았다. CLI caller는 비관리자다. 최종 `pwsh ./scripts/build.ps1`은 **699개 중 698 Passed / 0 Failed / 선택적 ReFS 1 Skipped**, 경고/오류 0이며 `final-full.trx`·`final-build.log`를 보존한다.
+최종 PNG 후보의 실제 전체 행렬은 **13 Passed / 0 Failed**, 제품 외부 client 단위는 **scoped-complete-with-limitations**다. `artifacts/ntfs-recovery/nr03-product-png-20261001/`의 `candidate.json`·`fixture-attributes.json`·`frozen-source.json`·`final-audit.json`이 소스 244개·관리 바이너리 20개의 불변 hash를 확인한다. 같은 경로의 `environment.json`은 설치된 제한 권한 서비스와 WinFsp 파일의 불변 hash를 소유하며 설치/grant·볼륨/예산은 변경하지 않았다. CLI caller는 비관리자다. 최종 `pwsh ./scripts/build.ps1`은 **699개 중 698 Passed / 0 Failed / 당시 제외 시험 1 Skipped**, 경고/오류 0이며 `final-full.trx`·`final-build.log`를 보존한다.
 
 [개발 진입점](../product-write-recovery.md)은 기존 등록된 clean `T:/ua-source @ f71e4e244ba9b085aa0fc439336e4c60ee3d5d5d`·base `codex/library-20260929`와 제품 `.local/wl29`를 사용한다. 실제 기준은 VSS이며 일반 제품 ensure/server/WinFsp/Git 조합이다. fake 기준을 쓰거나 provider에 observer를 연결하지 않는다. 소스 FBX와 명시적 binary PNG의 합계 129,189바이트 oracle는 시험 evidence 비용이고 제품 초기 복제량이 아니다. 서비스가 조회한 capture·release-isolation으로 기존 snapshot ID 3개를 대조한다. 일반 사용자의 전역 VSS 직접 조회는 access denied/initialization failure로 **unknown**이며 0으로 표시하지 않는다.
 
@@ -108,7 +108,7 @@ PNG 후보는 `Assets/TutorialInfo/Icons/URP.png`의 `text: unset`·`binary: set
 
 원격 Codex의 최근 작업 본문이 이쪽 조회에서 비어 있어 지정 파일만 제공하는 한시적 로컬 전송 서버를 사용했다. 결과는 최소 bool/오류 코드 JSON으로 직접 수신했다. 계정명·전체 경로가 포함된 보고서는 전송하지 않으며 사용자에게 중계나 수동 복사를 요구하지 않는다. 증거는 `artifacts/remote-vivobook/transfer/vivobook-report-*.json`에 보관한다. 이 전송 서버는 제품 기능이 아니다.
 
-사용자가 승인한 현재 제품 소스 162개와 파일별 manifest를 원격에 전달했다. ZIP SHA-256은 `3d3efb9239d55a18a8a622ba76af1335efc2c4252eaa92915f51dbb83a74005c`이고 시험 대상 소스 aggregate는 `8422f019575a3a2bb48a239f9220f2e3ba51bb34079d9982563dc8f5b0e8ad55`다. ARM64 .NET의 locked restore·Release build·자동 시험은 **총 128개, 127 통과·0 실패·선택적 ReFS 1 skip**이다. 전송 hash, 소스 불변 및 최종 TRX hash를 확인했다. `WindowsProcessTests`는 PATH로 시작한 PowerShell의 `$PSHOME`을 atomic 파일로 직접 받아 실행 파일을 확인하므로 설치 경로를 고정하거나 외부 `Process.MainModule` 조회에 의존하지 않는다.
+사용자가 승인한 현재 제품 소스 162개와 파일별 manifest를 원격에 전달했다. ZIP SHA-256은 `3d3efb9239d55a18a8a622ba76af1335efc2c4252eaa92915f51dbb83a74005c`이고 시험 대상 소스 aggregate는 `8422f019575a3a2bb48a239f9220f2e3ba51bb34079d9982563dc8f5b0e8ad55`다. ARM64 .NET의 locked restore·Release build·자동 시험은 **총 128개, 127 통과·0 실패·당시 제외 시험 1 skip**이다. 전송 hash, 소스 불변 및 최종 TRX hash를 확인했다. `WindowsProcessTests`는 PATH로 시작한 PowerShell의 `$PSHOME`을 atomic 파일로 직접 받아 실행 파일을 확인하므로 설치 경로를 고정하거나 외부 `Process.MainModule` 조회에 의존하지 않는다.
 
 원격 작업의 직접 사용자 승인 후 **WinFsp `2.2.26215 Beta4` Core·사용자 런타임 설치가 완료**됐다. MSI exit code 0, 재부팅 불필요, ARM64 파일과 서명 검증, launcher 실행을 확인했다. 아래 별도 시험에서 실제 커널 mount와 파일 I/O도 확인했다. 설치 성공과 실행 시험은 별도 증거이며 기존 x64 Unity 파일과 패키지 선언은 유지됐다.
 

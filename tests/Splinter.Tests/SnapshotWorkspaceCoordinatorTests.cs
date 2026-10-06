@@ -597,7 +597,6 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         { if (InvalidResult) throw new WorkspaceException("ResultMissing", "Preserved result is unavailable."); return Task.CompletedTask; }
         public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("unregister"); return Task.CompletedTask; }
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(r);
-        public Task<string> SnapshotKeyAsync(string p, string r, string[] paths, CancellationToken ct = default) => Task.FromResult(r);
         public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new InvalidOperationException("No clone/checkout fallback");
         public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)
         { if (InspectionError is not null) throw new WorkspaceException(InspectionError, "fixture cache failure");
@@ -612,7 +611,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         public int Starts, Children; public bool Running;
         public int Stops; public bool LoseStopReply;
         public Action? AfterRemoveInfrastructure;
-        public string[] ManagedPaths => []; public string[] CacheInputs => [];
+        public string[] ManagedPaths => [];
         public string CompatibilityKey(string project) => "fake";
         public Task<ApplicationLease> StartAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { Starts++; Running = true; return Task.FromResult(new ApplicationLease(1, 1, "fake", "fake")); }
         public Task<ApplicationState> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.FromResult(new ApplicationState(Running, Running, "fake",

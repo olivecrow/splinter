@@ -36,4 +36,4 @@ B의 조회·재개는 각 A 명령이 끝나기 전에 완료했다. 64개 쓰�
 
 추가 전역 `Win32_ShadowCopy` 목록 조회는 일반 사용자 토큰에서 초기화 실패했다. 실패 log를 보존했고 권한·서비스/등록·볼륨을 변경하지 않았다. 전역 목록/기존 보류 snapshot의 새 live 관측은 unknown이다. 이번 두 소유 snapshot의 부재는 각 제품 release의 검증된 관측이며 전체 볼륨/VSS가 0이라는 주장과 구별한다. 과거 C: 보류·SF Partial/NotRun·대형/ARM/OS/다른 도구 미자격은 유지한다.
 
-필수 `pwsh ./scripts/build.ps1`의 locked restore·Release build·906 passed/0 failed/1 optional ReFS skip과 실제 JSON 응답 20건의 현재 `ContractCatalog` schema 검증을 완료했다. 문서 UTF-8·로컬 링크·diff와 최종 source/binary/evidence 연결은 `completion-final.json`에 보존한다. 이번 선택 단위는 마감하며 새 병렬 작업은 실제 진행 차단/보존 결함·새 입력/지원 요구의 질문과 종료 조건에서만 연다. 새 Editor 준비의 몇 분 비용만으로 큐·새 최적화/전체 비교를 자동 시작하지 않는다.
+필수 `pwsh ./scripts/build.ps1`의 locked restore·Release build·906 passed/0 failed/1 skip과 실제 JSON 응답 20건의 현재 `ContractCatalog` schema 검증을 완료했다. 문서 UTF-8·로컬 링크·diff와 최종 source/binary/evidence 연결은 `completion-final.json`에 보존한다. 이번 선택 단위는 마감하며 새 병렬 작업은 실제 진행 차단/보존 결함·새 입력/지원 요구의 질문과 종료 조건에서만 연다. 새 Editor 준비의 몇 분 비용만으로 큐·새 최적화/전체 비교를 자동 시작하지 않는다.
