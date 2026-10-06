@@ -14,7 +14,7 @@
     },
     "revertBaseRanges": {
       "type": "boolean",
-      "description": "Only at explicit compaction, remove private ranges equal to the fixed base. Default false; omitted retry uses saved option."
+      "description": "Select current-state journal storage for subsequent durable writes and reconnects. Explicit compaction also removes base-equal ranges. New workspace journals default ON; existing journals and omission retain saved mode. Explicit false selects OFF. CLI --optimize-journal and --revert-base-ranges select this same field."
     }
   },
   "required": [

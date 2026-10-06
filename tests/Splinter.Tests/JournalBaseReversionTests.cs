@@ -27,7 +27,7 @@ public sealed class JournalBaseReversionTests
         var tree = new TracedTree(basis);
         var identity = new OverlayIdentity(2, "ordered-failure", tree.Snapshot, 16777216, 1048576);
         SnapshotDeltaSeal seal;
-        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             foreach (string path in new[] { "b", "a" })
             { Guid id = store.Stat(path)!.Id; store.Write(id, 0, new byte[8192]); store.Write(id, 0, basis.Files[path]); }
@@ -42,7 +42,7 @@ public sealed class JournalBaseReversionTests
         Assert.False(File.Exists(Path.Combine(root.Path, "compaction-intent.json")));
         Assert.False(File.Exists(Path.Combine(root.Path, "delta.journal.compacting")));
         tree.ShortReadPath = null;
-        using var replay = new JournalDeltaStore(root.Path, identity, tree);
+        using var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false);
         Assert.Equal(seal, replay.Seal());
         foreach (string path in new[] { "a", "b" })
         { byte[] bytes = new byte[8192]; Assert.Equal(8192, replay.Read(replay.Stat(path)!.Id, 0, bytes)); Assert.Equal(basis.Files[path], bytes); }
@@ -57,7 +57,7 @@ public sealed class JournalBaseReversionTests
         var identity = new OverlayIdentity(2, "ordered-return", tree.Snapshot, 16777216, 1048576);
         var expected = new Dictionary<string, DeltaEntry>(); var bytes = new Dictionary<string, byte[]>();
         SourceChangeView changes;
-        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             for (int pass = 0; pass < 3; pass++)
             foreach (int offset in new[] { 12288, 0 })
@@ -81,7 +81,7 @@ public sealed class JournalBaseReversionTests
         var receipt = JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: true);
         Assert.Equal(12288, receipt.RevertedPayloadBytes);
         Assert.Equal(new[] { ("a", 0L), ("a", 12288L), ("b", 0L), ("b", 12288L), ("c", 0L), ("c", 12288L) }, tree.Reads);
-        using (var replay = new JournalDeltaStore(root.Path, identity, tree))
+        using (var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             Assert.Equal(changes.Sequence, replay.ObserveChanges([]).Sequence);
             Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);
@@ -103,7 +103,7 @@ public sealed class JournalBaseReversionTests
         tree.Files["file"] = RandomNumberGenerator.GetBytes(16384);
         var identity = new OverlayIdentity(2, "base-return", tree.Snapshot, 16 * 1024 * 1024, 1048576);
         DeltaEntry expected; SourceChangeView changes;
-        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Stat("file")!.Id;
             for (int i = 0; i < 8; i++)
@@ -114,7 +114,7 @@ public sealed class JournalBaseReversionTests
         var receipt = JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: enabled);
         Assert.Equal(enabled, receipt.RevertBaseRanges);
         Assert.Equal(enabled ? 16384 : 0, receipt.RevertedPayloadBytes);
-        using (var replay = new JournalDeltaStore(root.Path, identity, tree))
+        using (var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             Assert.Equal(expected, replay.Stat("renamed")); Assert.Null(replay.Stat("file"));
             byte[] actual = new byte[16384]; replay.Read(expected.Id, 0, actual); Assert.Equal(tree.Files["file"], actual);
@@ -133,7 +133,7 @@ public sealed class JournalBaseReversionTests
         var identity = new OverlayIdentity(2, "mixed-return", tree.Snapshot, 16 * 1024 * 1024, 1048576);
         byte[] expected = (byte[])basis.Clone(); Array.Fill(expected, (byte)42, 4096, 4096);
         DeltaEntry entry, replacement; SourceChangeView changes;
-        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Stat("file")!.Id; store.Write(id, 0, new byte[16384]); store.Write(id, 0, expected);
             store.SetLength(id, 12000); store.SetLength(id, 16384); Array.Clear(expected, 12000, 4384);
@@ -144,7 +144,7 @@ public sealed class JournalBaseReversionTests
         }
         var receipt = JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: true);
         Assert.True(receipt.RevertedPayloadBytes > 0);
-        using (var replay = new JournalDeltaStore(root.Path, identity, tree))
+        using (var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             Assert.Equal(entry, replay.Stat("file")); Assert.Equal(replacement, replay.Stat("replace"));
             byte[] actual = new byte[16384]; replay.Read(entry.Id, 0, actual); Assert.Equal(expected, actual);
@@ -163,7 +163,7 @@ public sealed class JournalBaseReversionTests
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree(); tree.Files["file"] = [65,66,67,68];
         var identity = new OverlayIdentity(2, "resume-return", tree.Snapshot, 1048576, 4096); DeltaEntry expected;
-        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         { Guid id = store.Stat("file")!.Id; store.Write(id, 0, [66,66,66,66]); store.Write(id, 0, [67,67,67,67]); store.Write(id, 0, [65,66,67,68]); expected = store.Get(id); }
         Assert.Throws<InvalidOperationException>(() => JournalDeltaStore.CompactDirectory(root.Path, identity, tree,
             boundary: at => { if (at == stage) throw new InvalidOperationException(); }, revertBaseRanges: true));
@@ -171,21 +171,23 @@ public sealed class JournalBaseReversionTests
             JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: false)).Code);
         var receipt = JournalDeltaStore.CompactDirectory(root.Path, identity, tree);
         Assert.Equal(4, receipt.RevertedPayloadBytes);
-        using (var replay = new JournalDeltaStore(root.Path, identity, tree))
+        using (var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         { Assert.Equal(expected, replay.Stat("file")); byte[] bytes = new byte[4]; replay.Read(expected.Id, 0, bytes); Assert.Equal(tree.Files["file"], bytes); }
         JournalDeltaStore.CompleteCompaction(root.Path, identity);
     }
 
-    [Fact]
-    public void PreviousIntentVersionIsPreservedAndRejected()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void PreviousIntentVersionIsPreservedAndRejected(int version)
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree(); tree.Files["file"] = [1,2,3];
         var identity = new OverlayIdentity(2, "old-intent", tree.Snapshot, 1048576, 4096);
-        using (var store = new JournalDeltaStore(root.Path, identity, tree)) store.Write(store.Stat("file")!.Id, 0, [1,2,3]);
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false)) store.Write(store.Stat("file")!.Id, 0, [1,2,3]);
         Assert.Throws<InvalidOperationException>(() => JournalDeltaStore.CompactDirectory(root.Path, identity, tree,
             boundary: at => { if (at == "intent") throw new InvalidOperationException(); }, revertBaseRanges: true));
         string path = Path.Combine(root.Path, "compaction-intent.json");
-        var intent = JsonNode.Parse(File.ReadAllText(path))!; intent["Version"] = 1;
+        var intent = JsonNode.Parse(File.ReadAllText(path))!; intent["Version"] = version;
         File.WriteAllText(path, intent.ToJsonString());
         byte[] saved = File.ReadAllBytes(path), journal = File.ReadAllBytes(Path.Combine(root.Path, "delta.journal"));
         Assert.Equal("CompactionIntentMismatch", Assert.Throws<WorkspaceException>(() =>
@@ -199,7 +201,7 @@ public sealed class JournalBaseReversionTests
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree(); tree.Files["file"] = [1,2,3];
         var identity = new OverlayIdentity(2, "loss-return", tree.Snapshot, 1048576, 4096);
-        using (var store = new JournalDeltaStore(root.Path, identity, tree)) store.Write(store.Stat("file")!.Id, 0, [1,2,3]);
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false)) store.Write(store.Stat("file")!.Id, 0, [1,2,3]);
         byte[] before = File.ReadAllBytes(Path.Combine(root.Path, "delta.journal")); tree.Available = false;
         Assert.Equal("SnapshotMissing", Assert.Throws<WorkspaceException>(() =>
             JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: true)).Code);

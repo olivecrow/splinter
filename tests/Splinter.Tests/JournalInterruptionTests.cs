@@ -71,7 +71,7 @@ public sealed class JournalInterruptionTests
             boundary = request.GetProperty("boundary").GetString()!, nonce = request.GetProperty("nonce").GetString()!;
         var tree = new EmptyTree();
         var observer = new Gate(directory, operation, boundary, nonce);
-        using var store = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(tree), tree, observer);
+        using var store = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(tree), tree, observer, optimizeJournal: false);
         var alpha = store.Create("alpha", false, 32); store.Write(alpha.Id, 0, Alpha());
         var beta = store.Create("beta", false, 32); store.Write(beta.Id, 0, Beta());
         WriteNew(Path.Combine(directory, "ack-prefix.json"), new { version = 1, sequence = 4,
@@ -145,7 +145,7 @@ public sealed class JournalInterruptionTests
             long prefix = ack.GetProperty("journalBytes").GetInt64();
             Assert.True(before.Length >= prefix); WriteBytesNew(Path.Combine(directory, "journal-before-replay.bin"), before);
             var tree = new EmptyTree(); string model; OverlayStorageObservation observation;
-            using (var resumed = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(tree), tree))
+            using (var resumed = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(tree), tree, optimizeJournal: false))
             {
                 observation = resumed.Observe(); model = ReadModel(resumed);
                 bool durable = boundary is "commit.after-flush" or "commit.after-apply" or "caller.before-ack" or "caller.after-ack";
@@ -160,7 +160,7 @@ public sealed class JournalInterruptionTests
             byte[] after = File.ReadAllBytes(journal); Assert.True(after.Length <= before.Length);
             Assert.Equal(before[..checked((int)prefix)], after[..checked((int)prefix)]);
             Assert.Equal(before[..after.Length], after); // Replay may truncate only the incomplete trailing frame.
-            using (var second = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(tree), tree)) Assert.Equal(model, ReadModel(second));
+            using (var second = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(tree), tree, optimizeJournal: false)) Assert.Equal(model, ReadModel(second));
             Assert.Equal(after, File.ReadAllBytes(journal));
             var result = JsonSerializer.SerializeToElement(new { version = 1, operation, boundary, nonce,
                 actualProcessTermination = true, acknowledgedPrefixSequence = 4, externalFinalAck = boundary == "caller.after-ack",

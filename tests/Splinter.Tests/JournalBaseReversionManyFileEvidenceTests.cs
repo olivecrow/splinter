@@ -101,7 +101,7 @@ public sealed class JournalBaseReversionManyFileEvidenceTests
                 var entries = new Dictionary<string, DeltaEntry>(); SourceChangeView changes;
                 var latencies = new List<long>(); long began, allocated, writeTicks, writeAllocated;
                 using (var reader = new Reader(provider, snapshot))
-                using (var store = new JournalDeltaStore(directory, identity, reader.Tree))
+                using (var store = new JournalDeltaStore(directory, identity, reader.Tree, optimizeJournal: false))
                 {
                     foreach (var file in files) entries[file.Path] = store.Stat(file.Path)!;
                     allocated = GC.GetTotalAllocatedBytes(true); began = Stopwatch.GetTimestamp();
@@ -141,12 +141,12 @@ public sealed class JournalBaseReversionManyFileEvidenceTests
                 long afterAllocation = JournalBaseReversionEvidenceTests.Allocation(journal);
                 began = Stopwatch.GetTimestamp(); ValidationCacheUsage usage; SnapshotDeltaSeal seal;
                 using (var reader = new Reader(provider, snapshot))
-                using (var replay = new JournalDeltaStore(directory, identity, reader.Tree))
+                using (var replay = new JournalDeltaStore(directory, identity, reader.Tree, optimizeJournal: false))
                 { usage = replay.ObservePrivateUsage(); seal = replay.Seal(); }
                 long replayTicks = Stopwatch.GetTimestamp() - began;
                 // Full-file streaming hashes and metadata/sequence comparison are outside measured replay.
                 using (var reader = new Reader(provider, snapshot))
-                using (var replay = new JournalDeltaStore(directory, identity, reader.Tree))
+                using (var replay = new JournalDeltaStore(directory, identity, reader.Tree, optimizeJournal: false))
                 {
                     Assert.Equal(changes.Sequence, replay.ObserveChanges([]).Sequence);
                     Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);

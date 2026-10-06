@@ -21,7 +21,8 @@ public sealed class SnapshotWorkspaceState
 public sealed record SnapshotJournalCompaction(string AttemptId, SnapshotDeltaSeal Before, SnapshotDeltaSeal After,
     DateTimeOffset StartedAt, long? BeforeAllocatedBytes = null, long? AfterAllocatedBytes = null,
     long? PeakTemporaryAllocatedBytes = null, SnapshotCompactionCost? Cost = null,
-    bool RevertBaseRanges = false, long BaseComparedBytes = 0, long RevertedPayloadBytes = 0);
+    bool RevertBaseRanges = false, long BaseComparedBytes = 0, long RevertedPayloadBytes = 0,
+    bool JournalOptimizationEnabled = false);
 
 // Direct per-attempt measurements. A retry that only verifies an already
 // published generation may have no cost receipt; absence is not zero work.

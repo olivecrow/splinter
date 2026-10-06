@@ -70,7 +70,7 @@ public sealed partial class SnapshotOverlayTests
         string delta = Path.Combine(d.Path, "delta");
         byte[] fragmentedBytes = new byte[8192]; new Random(537).NextBytes(fragmentedBytes);
         long original;
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             var large = store.Stat("large")!;
             for (int i = 0; i < 100; i++)
@@ -97,7 +97,7 @@ public sealed partial class SnapshotOverlayTests
             stage.WrittenBytes == compacted.After.JournalBytes);
         Assert.Contains(compacted.Cost.Stages, stage => stage.Stage == "candidate-flush" && stage.FlushCount == 1);
         Assert.Contains(compacted.Cost.Stages, stage => stage.Stage == "candidate-replay" && stage.ReadBytes > 0);
-        using (var resumed = new JournalDeltaStore(delta, identity, tree))
+        using (var resumed = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             var replayMetrics = resumed.Observe().Metrics!;
             Assert.Equal(Assert.Single(replayMetrics.ReplayIndexOperations!, x => x.Operation == "write").Frames,
@@ -130,7 +130,7 @@ public sealed partial class SnapshotOverlayTests
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");
         long sequence;
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             Guid file = store.Stat("file")!.Id;
             for (int i = 0; i < 10; i++) store.Write(file, 0, [checked((byte)i)]);
@@ -149,13 +149,13 @@ public sealed partial class SnapshotOverlayTests
         Assert.False(File.Exists(Path.Combine(delta, "compaction-intent.json")));
         Assert.False(File.Exists(Path.Combine(delta, "delta.journal.compacting")));
         Assert.False(File.Exists(Path.Combine(delta, "delta.journal.previous")));
-        using (var unchanged = new JournalDeltaStore(delta, identity, tree))
+        using (var unchanged = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
             Assert.Equal(sequence, unchanged.Observe().DurableSequence);
 
         var compacted = JournalDeltaStore.CompactDirectory(delta, identity, tree,
             maxEstimatedJournalOverlapBytes: before.Length * 2L);
         Assert.Equal(sequence, compacted.After.DurableSequence);
-        using (var resumed = new JournalDeltaStore(delta, identity, tree))
+        using (var resumed = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             byte[] actual = new byte[1]; resumed.Read(resumed.Stat("file")!.Id, 0, actual);
             Assert.Equal(9, actual[0]);
@@ -174,7 +174,7 @@ public sealed partial class SnapshotOverlayTests
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = new byte[8192];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             Guid file = store.Stat("file")!.Id;
             for (int i = 0; i < 10; i++) store.Write(file, 0, [checked((byte)i)]);
@@ -183,7 +183,7 @@ public sealed partial class SnapshotOverlayTests
             boundary => { if (boundary == cut) throw new InvalidOperationException("injected interruption"); }));
         var receipt = JournalDeltaStore.CompactDirectory(delta, identity, tree);
         Assert.Equal(10, receipt.After.DurableSequence);
-        using (var resumed = new JournalDeltaStore(delta, identity, tree))
+        using (var resumed = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             byte[] actual = new byte[1]; resumed.Read(resumed.Stat("file")!.Id, 0, actual);
             Assert.Equal(9, actual[0]);
@@ -200,7 +200,7 @@ public sealed partial class SnapshotOverlayTests
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Stat("file")!.Id;
             for (int i = 0; i < 10; i++) store.Write(id, 0, [checked((byte)i)]);
@@ -211,7 +211,7 @@ public sealed partial class SnapshotOverlayTests
         File.WriteAllBytes(Path.Combine(delta, "delta.journal.compacting"), [1, 2, 3]);
         Assert.Equal(original, File.ReadAllBytes(Path.Combine(delta, "delta.journal")));
         var published = JournalDeltaStore.CompactDirectory(delta, identity, tree);
-        using (var connected = new JournalDeltaStore(delta, identity, tree))
+        using (var connected = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             byte[] value = new byte[1]; connected.Read(connected.Stat("file")!.Id, 0, value);
             Assert.Equal(9, value[0]);
@@ -230,7 +230,7 @@ public sealed partial class SnapshotOverlayTests
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Stat("file")!.Id;
             for (int i = 0; i < 100; i++)
@@ -241,7 +241,7 @@ public sealed partial class SnapshotOverlayTests
         }
         long beforeAllocation = AllocatedBytes(Path.Combine(delta, "delta.journal"));
         var receipt = JournalDeltaStore.CompactDirectory(delta, identity, tree);
-        using var connected = new JournalDeltaStore(delta, identity, tree);
+        using var connected = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false);
         JournalDeltaStore.CompleteCompaction(delta, identity);
         Assert.Equal(receipt.After.DurableSequence, connected.Observe().DurableSequence);
         Assert.False(File.Exists(Path.Combine(delta, "delta.journal.previous")));
@@ -257,7 +257,7 @@ public sealed partial class SnapshotOverlayTests
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");
         SourceChangeView changes;
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Stat("large")!.Id;
             byte[] block = new byte[1024 * 1024];
@@ -280,7 +280,7 @@ public sealed partial class SnapshotOverlayTests
         Assert.True(afterAllocated < beforeAllocated,
             $"Whole-file rewrite and truncate allocation stayed high: {beforeAllocated} -> {afterAllocated}.");
         Assert.True(receipt.After.JournalBytes < receipt.Before.JournalBytes / 4);
-        using (var resumed = new JournalDeltaStore(delta, identity, tree))
+        using (var resumed = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             Assert.Equal(changes.Sequence, resumed.ObserveChanges([]).Sequence);
             Assert.Equal(changes.Changes, resumed.ObserveChanges([]).Changes);
@@ -327,7 +327,7 @@ public sealed partial class SnapshotOverlayTests
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");
-        using (var store = new JournalDeltaStore(delta, identity, tree)) store.Write(store.Stat("file")!.Id, 0, [7]);
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false)) store.Write(store.Stat("file")!.Id, 0, [7]);
         byte[] before = File.ReadAllBytes(Path.Combine(delta, "delta.journal"));
         Assert.Throws<InvalidOperationException>(() => JournalDeltaStore.CompactDirectory(delta, identity, tree,
             boundary => { if (boundary == "prepared") throw new InvalidOperationException("injected interruption"); }));
@@ -532,12 +532,12 @@ public sealed partial class SnapshotOverlayTests
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files[".git/config"] = [1]; tree.Files["Library/cache"] = [2];
         OverlayIdentity Identity() => new(2, "excluded", tree.Snapshot, 100000, 4096, [".git", "Temp"]);
         string delta = Path.Combine(d.Path, "delta");
-        using (var store = new JournalDeltaStore(delta, Identity(), tree))
+        using (var store = new JournalDeltaStore(delta, Identity(), tree, optimizeJournal: false))
         {
             Assert.Null(store.Stat(".git")); Assert.NotNull(store.Stat("Library/cache"));
             var pointer = store.Create(".git", false, 32); store.Write(pointer.Id, 0, new byte[] { 9, 8 });
         }
-        using var resumed = new JournalDeltaStore(delta, Identity(), tree);
+        using var resumed = new JournalDeltaStore(delta, Identity(), tree, optimizeJournal: false);
         byte[] bytes = new byte[2]; Assert.Equal(2, resumed.Read(resumed.Stat(".git")!.Id, 0, bytes));
         Assert.Equal(new byte[] { 9, 8 }, bytes); Assert.Null(resumed.Stat(".git/config"));
         Assert.Equal(new byte[] { 1 }, tree.Files[".git/config"]);
@@ -556,7 +556,7 @@ public sealed partial class SnapshotOverlayTests
     }
 
     private static JournalDeltaStore New(TestDirectory d, FakeSnapshotTree tree, long budget = 100 * 1024 * 1024) =>
-        new(Path.Combine(d.Path, "delta"), new(2, "test", tree.Snapshot, budget, 1024 * 1024), tree);
+        new(Path.Combine(d.Path, "delta"), new(2, "test", tree.Snapshot, budget, 1024 * 1024), tree, optimizeJournal: false);
 
     internal sealed class FakeSnapshotTree : ISnapshotTree
     {

@@ -306,11 +306,12 @@ public sealed partial class WorkspaceCoordinator
                 // read-only retry. New writes change the seal and allow a later
                 // explicit compaction of the same workspace.
                 if (state.Compaction is { } completed &&
+                    (!completed.RevertBaseRanges || completed.JournalOptimizationEnabled) &&
                     (revertBaseRanges is null || revertBaseRanges == completed.RevertBaseRanges) &&
                     await Snapshots.SealAsync(w, control, ct) == completed.After)
                     return await ViewAsync(w, ct);
                 state.PendingCompactionMaxEstimatedJournalOverlapBytes = maxEstimatedJournalOverlapBytes;
-                state.PendingCompactionRevertBaseRanges = revertBaseRanges ?? false;
+                state.PendingCompactionRevertBaseRanges = revertBaseRanges ?? state.Observation?.Storage?.JournalOptimizationEnabled ?? state.Compaction?.JournalOptimizationEnabled ?? false;
                 SnapshotStep(w, "compact-unmount");
             }
             else if (state.Step == "compact-unmount" || state.Step == "compact-write")

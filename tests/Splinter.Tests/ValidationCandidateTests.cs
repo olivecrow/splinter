@@ -121,7 +121,7 @@ public sealed class ValidationCandidateTests
         Assert.Throws<FileNotFoundException>(() => basis.Read("Assets/code.cs", 0, new byte[4096]));
         var identity = Identity(tree) with { Id = "shared-cache", ExcludedTopLevel = [], IncludedTopLevel = CacheRoots };
         string path = Path.Combine(dir.Path, "cache");
-        using (var store = new JournalDeltaStore(path, identity, basis))
+        using (var store = new JournalDeltaStore(path, identity, basis, optimizeJournal: false))
         {
             var id = store.Stat("Library/large")!.Id;
             for (int i = 0; i < 32; i++) store.Write(id, 4096, Enumerable.Repeat((byte)i, 4096).ToArray());

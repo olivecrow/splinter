@@ -23,7 +23,7 @@ Splinter는 작업공간과 소유 Editor의 수명·범위 저장·독립 결�
 - [Plastic 프로젝트 기준본](docs/plastic-project-basis.md)의 `plastic-snapshot`: 고정 changeset/revision을 VSS·checkout·payload disk cache 없이 읽고 공통 Library 참조를 연결한다. [전체/선택 원본 반영](docs/plastic-original-apply.md)은 고정 계획/intent와 조건부 NTFS 게시를 사용하며 [실제 자격](docs/verification/plastic-original-apply.md)을 별도로 확인한다.
 - [VCS 없는 프로젝트 기준본](docs/plain-project-basis.md)의 `project-snapshot`: 승인한 원본 관리형 mount·같은 볼륨 이동·source/Library 불변 참조와 원본/A/B private 범위·독립 결과·전체/선택 원본 반영·명시적 NTFS 복원. VSS를 사용하지 않으며 [현재 후보 자격](docs/verification/plain-project-basis.md)을 확인한다.
 - [현재 압축 저널](docs/journal-payload-compression.md): bounded raw/Brotli 범위·overlay v2·candidate v3. 실제 자격은 [별도 검증](docs/verification/journal-payload-compression.md)을 따른다.
-- 변경 기반 소스 검증, 명시적 저널 정리와 선택적 중첩량 예산, snapshot 지연 회수. [기준본 복귀 옵션](docs/journal-base-reversion.md)은 정리 때만 같은 private 범위를 제거하며 기본 OFF다.
+- 변경 기반 소스 검증, 명시적 저널 정리와 선택적 중첩량 예산, snapshot 지연 회수. [저널 최적화 ON](docs/latest-only-journal.md)은 후속 저장에서 현재 private 범위만 유지하고, 명시적 정리에서는 기준본과 같은 범위도 제거한다. 새 작업의 기본값은 ON이며 기존 작업은 저장된 선택을 유지한다.
 - VSS 전용 Windows 권한 서비스와 명시적 설치 도구. 실제 설치·반복 UAC 0의 자격은 [UA 검증](docs/verification/storage-privilege-service.md)을 따른다.
 - `checkpoint`는 현재 소스를 독립 결과로 보존한다. 컴파일·Play·테스트·빌드·캡처와 합격 판단은 AI가 MCP·Unity CLI 등으로 수행하며 Splinter는 그 성공을 판정하지 않는다.
 - diagnostic checkout·후보/공통 Library view·spike/probe는 [개발용 CLI](docs/development-cli.md)의 별도 경로다. 기본 CLI의 명령 발견·작업 생성에서 제외한다. view는 저장소 수명과 회수 의존성만 관리한다.

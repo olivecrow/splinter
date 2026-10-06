@@ -1,5 +1,7 @@
 # 명시적 저널 정리의 기준본 복귀
 
+아래는 `25f4fa1` 당시 append/v2 compaction intent 구현의 마감 범위다. 현재 사용자 의도에 따른 [현재본 저장](latest-only-journal.md)은 별도 범위이며 v3 intent·SJL2를 사용한다. 이전 수치를 현재 후보의 자격으로 승계하지 않는다.
+
 사용자가 승인한 구현·실제 비교 범위다. `development @ d97bd3c`에서 시작한다. 명시적 `workspace compact --revert-base-ranges true`만 고정 불변 기준과 같은 private 범위를 제거한다. append/개별 flush/ACK·정리 전 누적·자동 정리 없음은 유지한다. 기본은 OFF로 시작하며 아래 조건을 모두 충족한 경우에만 변경한다.
 
 ## 고정 비교와 판정

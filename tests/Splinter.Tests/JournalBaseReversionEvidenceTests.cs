@@ -67,7 +67,7 @@ public sealed class JournalBaseReversionEvidenceTests
         }
         using var basis = new RecoveryBasis(); var tree = basis.Tree; var identity = basis.Identity; string delta = Path.Combine(request.Directory, "delta");
         var observer = new AppendGate(Gate);
-        using (var store = new JournalDeltaStore(delta, identity, tree, observer))
+        using (var store = new JournalDeltaStore(delta, identity, tree, observer, optimizeJournal: false))
         {
             Guid id = store.Stat(basis.File)!.Id; store.Write(id, 0, new byte[16384]); store.Write(id, 0, Enumerable.Repeat((byte)42,16384).ToArray());
             WriteJson(Path.Combine(request.Directory, "ack-prefix.json"), new { entry = store.Get(id), seal = store.Seal() });
@@ -120,7 +120,7 @@ public sealed class JournalBaseReversionEvidenceTests
                 bool ackFinal = File.Exists(Path.Combine(directory, "ack-final.json"));
                 var ack = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(Path.Combine(directory, ackFinal ? "ack-final.json" : "ack-prefix.json")));
                 DeltaEntry entry;
-                using (var replay = new JournalDeltaStore(delta, identity, tree))
+                using (var replay = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
                 {
                     entry = replay.Stat(basis.File)!; byte[] bytes = new byte[16384]; replay.Read(entry.Id, 0, bytes);
                     Assert.Equal(basis.Bytes, bytes); Assert.Equal(3, replay.Observe().DurableSequence);
@@ -131,7 +131,7 @@ public sealed class JournalBaseReversionEvidenceTests
                 var receipt = JournalDeltaStore.CompactDirectory(delta, identity, tree, revertBaseRanges: stage == "append-flushed" ? true : null);
                 Assert.True(receipt.RevertBaseRanges || stage == "append-flushed");
                 JournalDeltaStore.CompleteCompaction(delta, identity);
-                using var final = new JournalDeltaStore(delta, identity, tree);
+                using var final = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false);
                 byte[] result = new byte[16384]; final.Read(entry.Id, 0, result); Assert.Equal(basis.Bytes, result); Assert.Equal(entry, final.Get(entry.Id));
                 results.Add(new { stage, childPid = child.Id, childStartTicks = ticks, forcedExitCode = child.ExitCode,
                     ackFinal, unacknowledgedCompleteWriteSurvived = !ackFinal, receipt, seal = final.Seal(), sha256 = Convert.ToHexStringLower(SHA256.HashData(result)) });
@@ -163,7 +163,7 @@ public sealed class JournalBaseReversionEvidenceTests
             var identity = new OverlayIdentity(2, "base-benchmark", tree.Snapshot, 1024L*1024*1024, 1048576);
             var expected = new Dictionary<string, DeltaEntry>(); long writeTicks, writeAllocated;
             long allocated = GC.GetTotalAllocatedBytes(true), began = Stopwatch.GetTimestamp();
-            using (var store = new JournalDeltaStore(directory, identity, tree))
+            using (var store = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
             {
                 var ids = Enumerable.Range(0,files).Select(i => store.Stat($"file-{i}")!.Id).ToArray();
                 for (int cycle = 0; cycle < 32; cycle++) foreach (var id in ids) { store.Write(id,0,b); store.Write(id,0,c); store.Write(id,0,a); }
@@ -177,7 +177,7 @@ public sealed class JournalBaseReversionEvidenceTests
             long compactTicks = Stopwatch.GetTimestamp()-began, compactAllocated = GC.GetTotalAllocatedBytes(true)-allocated;
             long afterAllocation = Allocation(Path.Combine(directory,"delta.journal"));
             began = Stopwatch.GetTimestamp(); ValidationCacheUsage usage; SnapshotDeltaSeal seal; OverlayStorageObservation observation;
-            using (var replay = new JournalDeltaStore(directory, identity, tree))
+            using (var replay = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
             {
                 long replayTicks = Stopwatch.GetTimestamp()-began; usage = replay.ObservePrivateUsage(); seal = replay.Seal();
                 foreach (var (path, entry) in expected)

@@ -21,6 +21,9 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         Assert.Equal(new bool?[] { true }, f.Backend.SeenReversionOptions);
         await f.New().CompactAsync(id, ct);
         Assert.Equal(1, f.Backend.CompactCalls);
+        f.Backend.AcknowledgeWrite();
+        await f.New().CompactAsync(id, ct);
+        Assert.Equal(new bool?[] { true, true }, f.Backend.SeenReversionOptions);
     }
     [Fact]
     public async Task GitProjectModeUsesSharedJournalLifecycleAndSameRequestRecovery()
@@ -584,7 +587,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
               throw new WorkspaceException("CompactionOverlapBudgetExceeded", "Fake overlap budget exceeded.");
           Compacted = true; return Task.FromResult(new SnapshotJournalCompaction("attempt", new(sequence, 100, "hash" + sequence),
             new(sequence, 50, "compact" + sequence), DateTimeOffset.UtcNow, 4096, 2048, 6144,
-            new(Stopwatch.Frequency, 20, [new("candidate-scan", 10, 100, 0, 0)]), RevertBaseRanges: revertBaseRanges ?? false)); }
+            new(Stopwatch.Frequency, 20, [new("candidate-scan", 10, 100, 0, 0)]), RevertBaseRanges: revertBaseRanges ?? false, JournalOptimizationEnabled: revertBaseRanges ?? false)); }
         public Task CompleteCompactionAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { CompletedCompaction = true; return Task.CompletedTask; }
         public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default)

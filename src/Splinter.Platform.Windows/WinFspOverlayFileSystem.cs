@@ -18,6 +18,7 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     private readonly Action<Exception>? report;
     private readonly IOverlayMutationObserver? mutationObserver;
     private readonly object mutationGate = new();
+    private readonly Dictionary<Guid, int> retainedContexts = [];
     private int handles;
     private int contexts;
     private sealed class HandleContext { public int Cleaned; }
@@ -100,18 +101,23 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
                 return STATUS_OBJECT_NAME_COLLISION;
             }
             var entry = store.Create(fileName, (createOptions & 1) != 0, fileAttributes);
-            fileNode = entry.Id; fileDesc = new HandleContext(); fileInfo = Info(entry);
+            fileNode = entry.Id; fileDesc = Retain(entry.Id); fileInfo = Info(entry);
             normalizedName = "\\" + entry.Path.Replace('/', '\\'); Interlocked.Increment(ref handles); Interlocked.Increment(ref contexts); return STATUS_SUCCESS;
         }
     }
     public override int Open(string fileName, uint createOptions, uint grantedAccess,
         out object fileNode, out object fileDesc, out FileInfo fileInfo, out string normalizedName)
     {
-        fileNode = null!; fileDesc = null!; fileInfo = default; normalizedName = null!;
-        var entry = store.Stat(fileName); if (entry is null) return STATUS_OBJECT_NAME_NOT_FOUND;
-        fileNode = entry.Id; fileDesc = new HandleContext(); fileInfo = Info(entry);
-        normalizedName = "\\" + entry.Path.Replace('/', '\\'); Interlocked.Increment(ref handles); Interlocked.Increment(ref contexts); return STATUS_SUCCESS;
+        lock (mutationGate)
+        {
+            fileNode = null!; fileDesc = null!; fileInfo = default; normalizedName = null!;
+            var entry = store.Stat(fileName); if (entry is null) return STATUS_OBJECT_NAME_NOT_FOUND;
+            fileNode = entry.Id; fileDesc = Retain(entry.Id); fileInfo = Info(entry);
+            normalizedName = "\\" + entry.Path.Replace('/', '\\'); Interlocked.Increment(ref handles); Interlocked.Increment(ref contexts); return STATUS_SUCCESS;
+        }
     }
+    private HandleContext Retain(Guid id)
+    { retainedContexts[id] = retainedContexts.GetValueOrDefault(id) + 1; return new(); }
     public override int Overwrite(object fileNode, object fileDesc, uint fileAttributes,
         bool replaceFileAttributes, ulong allocationSize, out FileInfo fileInfo)
     {
@@ -134,7 +140,16 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     public override void Close(object fileNode, object fileDesc)
     {
         if (Interlocked.Exchange(ref ((HandleContext)fileDesc).Cleaned, 1) == 0) Interlocked.Decrement(ref handles);
-        Interlocked.Decrement(ref contexts);
+        try
+        {
+            lock (mutationGate)
+            {
+                Guid id = (Guid)fileNode;
+                if (retainedContexts[id] > 1) retainedContexts[id]--;
+                else { retainedContexts.Remove(id); store.ReleaseUnlinkedFile(id); }
+            }
+        }
+        finally { Interlocked.Decrement(ref contexts); }
     }
     public override int Read(object fileNode, object fileDesc, IntPtr buffer, ulong offset, uint length, out uint bytesTransferred)
     {
@@ -225,7 +240,10 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
             string operation = replaceIfExists ? "replace" : "rename";
             string path = mutationObserver is not null ? store.Get((Guid)fileNode).Path : "";
             Visit("callback.before-effect", operation, path, 0, 0);
+            var replaced = replaceIfExists ? store.Stat(newFileName) : null;
             store.Rename((Guid)fileNode, newFileName, replaceIfExists);
+            if (replaced is not null && replaced.Id != (Guid)fileNode && !retainedContexts.ContainsKey(replaced.Id))
+                store.ReleaseUnlinkedFile(replaced.Id);
             Visit("callback.after-effect", operation, path, 0, 0);
             return STATUS_SUCCESS;
         }

@@ -1,5 +1,7 @@
 # 기준본 복귀 비교 시간 최적화
 
+아래는 `f67f217`의 명시적 정리 비용을 소유한다. 후속 [현재본 저널 ON](latest-only-journal.md)은 live 쓰기의 이전 payload 회수를 별도로 구현하며, 아래 v2 intent/append 수치를 현재 후보의 자격으로 승계하지 않는다.
+
 2026-10-06 사용자 요청으로 이전 구현 `25f4fa1` 다음에 진행한다. 고정 비율의 비용 증가인지 확인하고 실제 다수 파일의 반복 변경에서 병목을 줄인다. 기존 기본 OFF와 v2 intent·바이트/metadata/sequence·개별 flush/ACK·전체 blob/검증 chunk 증명·실패 미게시를 유지한다.
 
 범위는 Git 소유 cat-file reader의 부분 읽기 종료와 Runtime 기준 비교 순서다. 읽지 않은 stdout 때문에 종료마다 1초를 기다리는 것을 피하며, 같은 기준 파일의 범위를 논리 순서로 비교한 뒤 기존 journal 물리 순서로 돌려놓는다. payload cache·추가 전체 복제·자동 정리·service/설치·Unity Editor·새 A/B/전체 장애 행렬은 추가하지 않는다.
@@ -13,3 +15,5 @@
 [검증 기록](../verification/journal-base-reversion-optimization.md)은 전후 36표본과 원본/ref 보존을 소유한다. ON 정리 시간은 8파일 혼합 -79.47%, 32파일 혼합 -90.19%, 복귀 없는 8파일 -87.18%다. 최종 할당/선택은 동일하고, 복귀 없는 입력은 최적화 후에도 공간 절감 0%·전체 시간 약 43% 회귀이므로 기본 OFF를 유지한다. 쓰기/전체 시간 변동과 이전 바이너리 측정 중 병행 작업을 기록하며 쓰기 속도 개선으로 해석하지 않는다.
 
 2026-10-06 **scoped-complete-with-limitations**. 필수 locked restore/전체 build와 1,079 통과·0 실패·9 선택 시험 skipped, 문서/UTF-8/diff 검사 및 측정 Runtime/Git DLL과의 hash 일치를 확인했다. 기존 바이트/metadata/ACK·원본/ref 보호와 기본 OFF를 유지한다. Unity/WinFsp·OS/다른 provider/전체 peak의 미측정은 위 기록대로 남기며 후속 전체 행렬을 자동 확대하지 않는다.
+
+기본값의 후속 결정: 이 기록의 OFF는 당시 후보의 선택이다. 현재 SJL4 쓰기 경로와 새 작업의 기본 ON 결정은 [현재 계약](../latest-only-journal.md) 및 [후속 검증](../verification/latest-journal-write-optimization.md)을 따른다. 당시 입력·수치·미자격은 그대로 보존한다.

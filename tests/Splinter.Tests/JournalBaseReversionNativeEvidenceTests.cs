@@ -62,7 +62,7 @@ public sealed class JournalBaseReversionNativeEvidenceTests
                 { var entry = basis.Tree.Stat(path)!; Assert.InRange(entry.Length,1048576,16777216); contents[path] = Read(basis.Tree,path,(int)entry.Length); }
                 preparationTicks = Stopwatch.GetTimestamp()-began;
                 long allocated = GC.GetTotalAllocatedBytes(true); began = Stopwatch.GetTimestamp();
-                using var store = new JournalDeltaStore(directory,identity,basis.Tree);
+                using var store = new JournalDeltaStore(directory,identity,basis.Tree, optimizeJournal: false);
                 for (int index=0;index<input.Files.Length;index++)
                 {
                     string path = input.Files[index]; int length = index==0 ? 4096 : 1048576;
@@ -87,7 +87,7 @@ public sealed class JournalBaseReversionNativeEvidenceTests
             long afterAllocation=JournalBaseReversionEvidenceTests.Allocation(Path.Combine(directory,"delta.journal"));
             began=Stopwatch.GetTimestamp(); ValidationCacheUsage usage;long replayTicks;SnapshotDeltaSeal seal;
             using (var basis=new Basis(input.OverlayRequest))
-            using (var replay=new JournalDeltaStore(directory,identity,basis.Tree))
+            using (var replay=new JournalDeltaStore(directory,identity,basis.Tree, optimizeJournal: false))
             {
                 replayTicks=Stopwatch.GetTimestamp()-began;usage=replay.ObservePrivateUsage();seal=replay.Seal();
                 foreach (string path in input.Files)

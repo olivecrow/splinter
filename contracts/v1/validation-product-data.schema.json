@@ -448,6 +448,7 @@
                         "stages"
                       ]
                     },
+                    "journalOptimizationEnabled": { "type": "boolean" },
                     "revertBaseRanges": {
                       "type": "boolean"
                     },
@@ -635,6 +636,7 @@
                     "stages"
                   ]
                 },
+                "journalOptimizationEnabled": { "type": "boolean" },
                 "revertBaseRanges": {
                   "type": "boolean"
                 },

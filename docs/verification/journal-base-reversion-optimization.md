@@ -51,3 +51,5 @@ OS cache는 비우지 않았고 cold/warm을 분리하지 못했다. 이전 바�
 원본 사용 PNG 32개 SHA-256·HEAD·clean status와 기존 ref **92개**가 그대로다. 기준 owner `jr-opt-20261006`의 ref만 같은 receipt/lease 확인 뒤 release했고 `ownership-after.json`의 차이는 비어 있다. 기존 원본/Library·Editor·서비스/ACL/설치·비소유 ref·Git GC를 변경하지 않았다. 일반 reader 최적화는 Git 읽기 경로에 적용되며 기준본 복귀 선택은 계속 명시적 ON이다.
 
 전체 작업공간 물리 peak·공유 저장 귀속·provider/Editor RAM·native codec RAM·OS 물리 I/O는 unknown이다. 새 native WinFsp 중단·Unity 저장/import/Play/Test/build·다른 provider/OS/전체 장애 행렬은 NotRun이다. 이전 최종 A/B를 다시 실행하거나 그 자격을 이 후보로 승계하지 않는다.
+
+기본값의 후속 결정: 이 기록의 OFF는 당시 후보의 선택이다. 현재 SJL4 쓰기 경로와 새 작업의 기본 ON 결정은 [현재 계약](../latest-only-journal.md) 및 [후속 검증](../verification/latest-journal-write-optimization.md)을 따른다. 당시 입력·수치·미자격은 그대로 보존한다.

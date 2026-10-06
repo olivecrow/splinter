@@ -37,7 +37,7 @@ public sealed class JournalPayloadTests
         using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree); var observer = new Observer();
         byte[] input = new byte[65536]; if (!compressible) new Random(537).NextBytes(input);
-        using var store = new JournalDeltaStore(directory.Path, identity, tree, observer);
+        using var store = new JournalDeltaStore(directory.Path, identity, tree, observer, optimizeJournal: false);
         Guid file = store.Create("file", false, 32).Id;
         var before = store.Observe(); observer.Events.Clear(); store.Write(file, 0, input);
         var after = store.Observe();
@@ -66,7 +66,7 @@ public sealed class JournalPayloadTests
             byte[] encoded = new byte[codec.GetMaxEncodedBytes(size)]; int length = codec.Encode(input, encoded);
             bool compressed = size >= 112 && length <= size - 64;
             string child = Path.Combine(directory.Path, randomPrefix.ToString());
-            using (var store = new JournalDeltaStore(child, identity, tree))
+            using (var store = new JournalDeltaStore(child, identity, tree, optimizeJournal: false))
             {
                 Guid file = store.Create("file", false, 32).Id; store.Write(file, 0, input);
                 byte[] output = new byte[size]; Assert.Equal(size, store.Read(file, 0, output)); Assert.Equal(input, output);
@@ -88,7 +88,7 @@ public sealed class JournalPayloadTests
         using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree); string delta = Path.Combine(directory.Path, "delta");
         byte[] expected = Enumerable.Repeat((byte)7, 65536).ToArray(); long sequence;
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             var file = store.Create("file", false, 32);
             store.Write(file.Id, 0, expected);
@@ -110,7 +110,7 @@ public sealed class JournalPayloadTests
         Assert.Equal(3, published.Version);
         using var input = new CandidateSnapshotTree(candidate, tree);
         byte[] output = new byte[expected.Length]; Assert.Equal(output.Length, input.Read("renamed", 0, output)); Assert.Equal(expected, output);
-        using var replay = new JournalDeltaStore(delta, identity, tree);
+        using var replay = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false);
         Assert.Equal(sequence, replay.Observe().DurableSequence); Assert.Null(replay.Stat("deleted"));
         replay.Read(replay.Stat("renamed")!.Id, 0, output); Assert.Equal(expected, output); Assert.Equal(0, tree.ReadBytes);
     }
@@ -121,7 +121,7 @@ public sealed class JournalPayloadTests
     public void CompleteEncodedCorruptionIsPreservedEvenWithAnOuterChecksum(string fault)
     {
         using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree(); var identity = Identity(tree);
-        using (var store = new JournalDeltaStore(directory.Path, identity, tree))
+        using (var store = new JournalDeltaStore(directory.Path, identity, tree, optimizeJournal: false))
             store.Write(store.Create("file", false, 32).Id, 0, new byte[65536]);
         string journal = Path.Combine(directory.Path, "delta.journal"); byte[] bytes = File.ReadAllBytes(journal);
         int cursor = 0;
@@ -140,7 +140,7 @@ public sealed class JournalPayloadTests
         }
         if (fault != "checksum") SHA256.HashData(bytes.AsSpan(cursor, bytes.Length - cursor - 32), bytes.AsSpan(bytes.Length - 32));
         File.WriteAllBytes(journal, bytes);
-        var error = Assert.Throws<WorkspaceException>(() => new JournalDeltaStore(directory.Path, identity, tree));
+        var error = Assert.Throws<WorkspaceException>(() => new JournalDeltaStore(directory.Path, identity, tree, optimizeJournal: false));
         Assert.Contains(error.Code, new[] { "DeltaCorrupt", "PayloadBlockCorrupt", "JournalFormatUnsupported" });
         Assert.Equal(bytes, File.ReadAllBytes(journal));
     }
@@ -152,7 +152,7 @@ public sealed class JournalPayloadTests
         string path = Path.Combine(directory.Path, "old"); Directory.CreateDirectory(path);
         byte[] original = [1, 2, 3]; File.WriteAllBytes(Path.Combine(path, "delta.journal"), original);
         Assert.Equal("OverlayFormatUnsupported", Assert.Throws<WorkspaceException>(() =>
-            new JournalDeltaStore(path, Identity(tree) with { Version = 1 }, tree)).Code);
+            new JournalDeltaStore(path, Identity(tree) with { Version = 1 }, tree, optimizeJournal: false)).Code);
         Assert.Equal(original, File.ReadAllBytes(Path.Combine(path, "delta.journal")));
         Assert.False(File.Exists(Path.Combine(path, "identity.json")));
     }
@@ -164,7 +164,7 @@ public sealed class JournalPayloadTests
         string identityPath = Path.Combine(directory.Path, "identity.json");
         string saved = JsonSerializer.Serialize(Identity(tree) with { Version = 1 }); File.WriteAllText(identityPath, saved);
         Assert.Equal("OverlayFormatUnsupported", Assert.Throws<WorkspaceException>(() =>
-            new JournalDeltaStore(directory.Path, Identity(tree), tree)).Code);
+            new JournalDeltaStore(directory.Path, Identity(tree), tree, optimizeJournal: false)).Code);
         Assert.Equal(saved, File.ReadAllText(identityPath)); Assert.False(File.Exists(Path.Combine(directory.Path, "delta.journal")));
     }
 

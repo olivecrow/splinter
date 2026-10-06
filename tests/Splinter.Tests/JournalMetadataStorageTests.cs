@@ -36,7 +36,7 @@ public sealed class JournalMetadataStorageTests
         }
         Assert.Equal(original, File.ReadAllBytes(journal)); // Opening never rewrites saved current frames.
         long estimate;
-        using (var reader = new JournalDeltaStore(root.Path, identity, tree))
+        using (var reader = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
             estimate = reader.EstimateCompactionJournalOverlapBytes();
         var receipt = JournalDeltaStore.CompactDirectory(root.Path, identity, tree,
             maxEstimatedJournalOverlapBytes: estimate);
@@ -44,7 +44,7 @@ public sealed class JournalMetadataStorageTests
         Assert.True(receipt.After.JournalBytes <= original.LongLength);
         if (explicitDefaults) Assert.True(receipt.After.JournalBytes < original.LongLength);
         Assert.Equal(original, File.ReadAllBytes(Path.Combine(root.Path, "delta.journal.previous")));
-        using (var reader = new JournalDeltaStore(root.Path, identity, tree))
+        using (var reader = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             AssertState(reader, entry with { Path = "target" });
             Assert.Equal(changes.Changes, reader.ObserveChanges([]).Changes);
@@ -60,7 +60,7 @@ public sealed class JournalMetadataStorageTests
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "metadata-write", tree.Snapshot, 1024 * 1024, 4096);
         byte[] expected = new byte[4096]; Guid id;
-        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             id = store.Create("file", false, 32).Id;
             store.Create("target", false, 32);
@@ -72,7 +72,7 @@ public sealed class JournalMetadataStorageTests
             store.Rename(id, "target", true);
         }
         AssertReducedFrames(Path.Combine(root.Path, "delta.journal"));
-        using var replay = new JournalDeltaStore(root.Path, identity, tree);
+        using var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false);
         Assert.Null(replay.Stat("file")); Assert.Equal(id, replay.Stat("target")!.Id);
         byte[] actual = new byte[expected.Length]; Assert.Equal(actual.Length, replay.Read(id, 0, actual));
         Assert.Equal(expected, actual); Assert.Equal(0, tree.ReadBytes);
