@@ -293,7 +293,16 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     {
         if (reader is null) return;
         readerOutput?.Dispose(); readerOutput = null;
-        try { reader.StandardInput.Close(); if (!reader.WaitForExit(1000)) { reader.Kill(entireProcessTree: true); reader.WaitForExit(); } }
+        try
+        {
+            // A partial proved-chunk read can leave cat-file blocked writing its
+            // unread suffix. Closing this owned pipe cancels that output before
+            // stdin EOF; no discarded blob needs to be drained or cached.
+            reader.StandardOutput.Close();
+            reader.StandardInput.Close();
+            if (!reader.WaitForExit(1000)) { reader.Kill(entireProcessTree: true); reader.WaitForExit(); }
+            _ = stderr?.GetAwaiter().GetResult();
+        }
         finally { reader.Dispose(); reader = null; stderr = null; }
     }
     private static GitProgressReadStream ProgressOutput(Process process) => new(process.StandardOutput.BaseStream,

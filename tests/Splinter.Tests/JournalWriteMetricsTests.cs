@@ -10,7 +10,7 @@ public sealed class JournalWriteMetricsTests
     public void LiveCostsSeparateMutationCallsDurableCommitsAndDetachedObservations()
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        using var store = new JournalDeltaStore(dir.Path, new(2, "live-costs", tree.Snapshot, 65536, 4096), tree);
+        using var store = new JournalDeltaStore(dir.Path, new(2, "live-costs", tree.Snapshot, 65536, 4096), tree, optimizeJournal: false);
         var file = store.Create("file", false, 32);
         store.Write(file.Id, 0, [1, 2, 3, 4]); store.SetLength(file.Id, 8);
         store.SetMetadata(file.Id, 32, 1, 1, 2); store.Rename(file.Id, "renamed", false);
@@ -55,7 +55,7 @@ public sealed class JournalWriteMetricsTests
             using var input = new FileStream(journal, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             return SHA256.HashData(input);
         }
-        using (var store = new JournalDeltaStore(dir.Path, identity, tree))
+        using (var store = new JournalDeltaStore(dir.Path, identity, tree, optimizeJournal: false))
         {
             var file = store.Create("file", false, 32);
             byte[] before = HashJournal();
@@ -69,7 +69,7 @@ public sealed class JournalWriteMetricsTests
             Assert.All(rejected.WaitingMutationsAtFlushStart, count => Assert.Equal(0, count));
             Assert.Equal(before, HashJournal());
         }
-        using var resumed = new JournalDeltaStore(dir.Path, identity, tree);
+        using var resumed = new JournalDeltaStore(dir.Path, identity, tree, optimizeJournal: false);
         Assert.Equal(0, resumed.Stat("file")!.Length);
         Assert.Equal(1, resumed.Observe().DurableSequence);
         Assert.Empty(resumed.Observe().Metrics!.LiveJournalWrites!.Operations);

@@ -104,7 +104,7 @@ public sealed class FoundationGateway(
             snapshotReleaseIsolation = "preserve-when-older-or-unknown-age-same-volume-snapshots-exist; audit-other-ids-after-release; not-a-provider-wide-preservation-guarantee",
             snapshotReclamation = "durable-reclaim-pending; explicit-same-workspace-release-retry; boot-and-attempt-bound-helper; source-volume-shared-cost-with-unknown-workspace-attribution; no-background-sweep",
             snapshotReadAccess = "verified-location-separate-from-immutable-delta-identity",
-            deltaStore = "bounded-checksummed-range-journal-v2; raw-or-brotli; explicit-offline-compaction-with-durable-generation-retry",
+            deltaStore = "bounded-checksummed-range-journal-v2; raw-or-brotli; default-current-state-SJL4-with-single-flush-capsule-and-superseded-range-reclamation; explicit-compaction-and-same-request-recovery",
             resultCollection = SnapshotResult.StableJournalProtocol,
             requestSchema = "urn:splinter:v1:overlay-serve-request",
             observationSchema = "urn:splinter:v1:overlay-observation",

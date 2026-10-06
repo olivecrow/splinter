@@ -5,6 +5,19 @@ namespace Splinter.Runtime;
 
 public sealed partial class JournalDeltaStore
 {
+    private readonly HashSet<string> projectionUnsafe = [];
+    private void RecordProjectionMutation(Mutation mutation)
+    {
+        foreach (string path in Identity.ExcludedTopLevel ?? [])
+        {
+            bool exact = mutation.Entry.Path.Equals(path, pathPolicy.Comparison);
+            bool child = mutation.Entry.Path.StartsWith(path + "/", pathPolicy.Comparison);
+            bool destination = mutation.Destination is { } to &&
+                (to.Equals(path, pathPolicy.Comparison) || to.StartsWith(path + "/", pathPolicy.Comparison));
+            if (child || destination || exact && (mutation.Operation == "rename" || mutation.Entry.Directory || mutation.Entry.BasePath is not null))
+                projectionUnsafe.Add(path);
+        }
+    }
     private static bool ProjectionHash(string? value) => value is { Length: 64 } &&
         value.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f');
     private static bool ProjectionPath(WorkspacePathPolicy policy, string path)
@@ -44,6 +57,8 @@ public sealed partial class JournalDeltaStore
             if (Read(id, 0, bytes) != bytes.Length || Convert.ToHexStringLower(SHA256.HashData(bytes)) != file.ContentHash)
                 throw new WorkspaceException("CandidateProjectionMismatch", "Managed-file content differs from the adapter evidence; preserve the source.");
         }
+        if ((latest is not null || hasStatePrefix) && projected.Any(projectionUnsafe.Contains))
+            throw new WorkspaceException("CandidateProjectionHistoryUnsupported", "A recorded projection boundary was crossed; preserve its current state without projection.");
         return projected;
     }
 

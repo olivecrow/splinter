@@ -20,16 +20,16 @@ public sealed class JournalRenameReplayTests
             Assert.Equal(new byte[] { 1 }, Read(store, "b/replaced"));
             Assert.Throws<DirectoryNotFoundException>(() => store.List("a"));
         }
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             foreach (var entry in store.List("")) _ = store.List(entry.Path); // Warm unrelated paths.
             store.Rename(store.Stat("a/old")!.Id, "b/replaced", true);
             var created = store.Create("a/temporary", false, 32); store.Delete(created.Id);
             store.Rename(store.Stat("a")!.Id, "b/moved", false); Check(store);
         }
-        using (var replayed = new JournalDeltaStore(delta, identity, tree)) Check(replayed);
+        using (var replayed = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false)) Check(replayed);
         JournalDeltaStore.CompactDirectory(delta, identity, tree);
-        using (var compacted = new JournalDeltaStore(delta, identity, tree)) Check(compacted);
+        using (var compacted = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false)) Check(compacted);
     }
     private static byte[] Read(JournalDeltaStore store, string path)
     { byte[] value = new byte[1]; Assert.Equal(1, store.Read(store.Stat(path)!.Id, 0, value)); return value; }
@@ -42,12 +42,12 @@ public sealed class JournalRenameReplayTests
         using var d = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         tree.Files[from + "/nested/deeper/file"] = [1]; tree.Files[from + "-sibling/file"] = [2];
         var identity = new OverlayIdentity(2, "deep-rename", tree.Snapshot, 1_000_000, 4096); Guid file;
-        using (var writer = new JournalDeltaStore(d.Path, identity, tree))
+        using (var writer = new JournalDeltaStore(d.Path, identity, tree, optimizeJournal: false))
         {
             file = writer.Stat(from + "/nested/deeper/file")!.Id; writer.Write(file, 0, [9]);
             writer.Rename(writer.Stat(from)!.Id, to, false);
         }
-        using var reader = new JournalDeltaStore(d.Path, identity, tree);
+        using var reader = new JournalDeltaStore(d.Path, identity, tree, optimizeJournal: false);
         Assert.Equal(file, reader.Stat(to + "/nested/deeper/file")!.Id);
         Assert.Equal(new byte[] { 9 }, Read(reader, to + "/nested/deeper/file"));
         Assert.Equal(new byte[] { 2 }, Read(reader, from + "-sibling/file"));
@@ -81,7 +81,7 @@ public sealed class JournalRenameReplayTests
             if (!from.Equals(to, StringComparison.OrdinalIgnoreCase))
             { Assert.Null(store.Stat(to + "-sibling/untouched")); Assert.Null(store.Stat(from)); }
         }
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             openFile = store.Stat(from + "/loaded")!.Id; store.Write(openFile, 0, [9]);
             store.Delete(store.Stat(from + "/nested/removed")!.Id);
@@ -90,7 +90,7 @@ public sealed class JournalRenameReplayTests
             store.Rename(store.Stat(from.ToUpperInvariant())!.Id, to, false);
             Check(store); Assert.Equal(openFile, store.Stat(to + "/loaded")!.Id);
         }
-        using var replayed = new JournalDeltaStore(delta, identity, tree);
+        using var replayed = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false);
         Check(replayed); Assert.Equal(openFile, replayed.Stat(to + "/loaded")!.Id);
         Assert.Equal(1, Assert.Single(replayed.Observe().Metrics!.ReplayIndexOperations!, x => x.Operation == "rename").Frames);
         Assert.Equal(new byte[] { 1 }, tree.Files[from + "/loaded"]);

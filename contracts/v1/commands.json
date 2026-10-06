@@ -74,8 +74,8 @@
     },
     {
       "id": "workspace.compact",
-      "description": "Explicitly compact an idle NTFS workspace journal before result collection, with an optional estimated journal overlap budget, then reconnect the same snapshot and workspace.",
-      "cliUsage": "splinter workspace compact --id <id> [--max-estimated-journal-overlap-bytes <bytes>] [--home <state-root>]",
+      "description": "Explicitly compact an idle NTFS workspace and select current-state journal storage for subsequent writes, then reconnect the same snapshot and workspace.",
+      "cliUsage": "splinter workspace compact --id <id> [--max-estimated-journal-overlap-bytes <bytes>] [--optimize-journal <true|false>] [--home <state-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-compact-request",
       "outputSchema": "urn:splinter:v1:response",

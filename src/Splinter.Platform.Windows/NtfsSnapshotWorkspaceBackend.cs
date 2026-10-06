@@ -162,14 +162,12 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         else storage = observed.GetProperty("state").GetProperty("storage").Deserialize<OverlayStorageObservation>(Json);
         string journal = Path.Combine(request.DeltaPath, "delta.journal");
         WindowsProcessWorkspaceProvider.CheckPath(journal);
-        await using var stream = new FileStream(journal, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        if (storage is null || stream.Length != storage.JournalBytes) throw new WorkspaceException("DeltaChangedAfterCollection", "Journal length and flush receipt differ; preserve it.");
-        long length = stream.Length;
+        if (storage is null) throw new WorkspaceException("DeltaChangedAfterCollection", "The journal flush receipt is missing.");
         var timer = Stopwatch.StartNew();
-        string hash = Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct));
-        await RecordRead(control, w, "seal", stream.Position, timer.Elapsed.TotalMilliseconds, ct);
-        if (stream.Length != length) throw new WorkspaceException("DeltaChangedAfterCollection", "Journal grew while sealing; preserve it.");
-        return new(storage.DurableSequence, length, hash);
+        var seal = JournalDeltaStore.SealJournal(journal, storage.DurableSequence);
+        if (seal.JournalBytes != storage.JournalBytes) throw new WorkspaceException("DeltaChangedAfterCollection", "Journal bytes and flush receipt differ; preserve it.");
+        await RecordRead(control, w, "seal", seal.JournalBytes, timer.Elapsed.TotalMilliseconds, ct);
+        return seal;
     }
     public async Task UnmountAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
@@ -177,7 +175,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         await WinFspOverlayClient.StopAsync(request, ct);
     }
     public async Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string control, CancellationToken ct = default,
-        long? maxEstimatedJournalOverlapBytes = null)
+        long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null)
     {
         var observed = await ObserveAsync(w, control, ct);
         if (observed is not { SnapshotAvailable: true, Mounted: false, ProviderAlive: false,
@@ -195,9 +193,9 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         string delta = DeltaPath(control);
         WindowsProcessWorkspaceProvider.CheckPath(delta);
         var result = JournalDeltaStore.CompactDirectory(delta, request.Identity, basisTree,
-            maxEstimatedJournalOverlapBytes: maxEstimatedJournalOverlapBytes);
+            maxEstimatedJournalOverlapBytes: maxEstimatedJournalOverlapBytes, revertBaseRanges: revertBaseRanges);
         string journal = Path.Combine(delta, "delta.journal"), previous = Path.Combine(delta, "delta.journal.previous");
-        long? oldAllocation = Allocation(previous), newAllocation = Allocation(journal);
+        long? oldAllocation = JournalAllocation(previous), newAllocation = JournalAllocation(journal);
         return result with { BeforeAllocatedBytes = oldAllocation, AfterAllocatedBytes = newAllocation,
             PeakTemporaryAllocatedBytes = oldAllocation is not null && newAllocation is not null ? oldAllocation + newAllocation : null };
     }
@@ -235,6 +233,16 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         return GetFileInformationByHandleEx(handle, 1, out var info, (uint)Marshal.SizeOf<FileStandardInfo>()) ? info.AllocationSize : null;
     }
+    private static long? JournalAllocation(string path)
+    {
+        long bytes = 0;
+        foreach (string file in JournalDeltaStore.JournalStorageFiles(path))
+        {
+            if (Allocation(file) is not { } allocation) return null;
+            bytes = checked(bytes + allocation);
+        }
+        return bytes;
+    }
     public async Task RemoveDeltaAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
         var result = w.Snapshot?.Result ?? throw new WorkspaceException("OverlayResultRequired", "Independent result is missing.");
@@ -252,6 +260,12 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         else if (intent != result) throw new WorkspaceException("OverlayResultRequired", "Reclamation intent differs from the retained result.");
         if (File.Exists(delta)) throw new WorkspaceException("UnownedDeltaFiles", "A file replaced the owned delta directory; preserve it.");
         if (!Directory.Exists(delta)) return;
+        string currentJournal = Path.Combine(delta, "delta.journal"), latestReceipt = Path.Combine(control, "latest-delta-reclaim.json");
+        if (File.Exists(latestReceipt) || File.Exists(currentJournal) && LatestJournalReclamation.IsLatest(currentJournal))
+        {
+            LatestJournalReclamation.ReclaimDirectory(delta, result.Seal, ["identity.json"], latestReceipt);
+            return;
+        }
         foreach (string entry in Directory.EnumerateFileSystemEntries(delta))
         {
             WindowsProcessWorkspaceProvider.CheckPath(entry);

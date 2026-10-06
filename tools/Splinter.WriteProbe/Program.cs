@@ -41,7 +41,7 @@ internal static class Program
         var expected = new List<ExpectedFile>();
         OverlayStorageObservation observed;
         long elapsed, allocated;
-        using (var store = new JournalDeltaStore(directory, identity, tree))
+        using (var store = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
         {
             int workers = profile == "parallel-4x256" ? 4 : 1;
             var entries = Enumerable.Range(0, workers).Select(i => store.Create($"file-{i}", false, 32)).ToArray();

@@ -63,9 +63,11 @@ public sealed class CandidateSourceProjectionTests
             sequence = worker.Observe().DurableSequence;
         }
         byte[] original = File.ReadAllBytes(f.Journal);
+        SnapshotDeltaSeal sourceSeal; using (var source = f.OpenWorker()) sourceSeal = source.Seal();
         var receipt = f.Export();
         Assert.Equal(original, File.ReadAllBytes(f.Journal));
-        Assert.Equal(Hash(original), receipt.SourceSeal.JournalHash);
+        Assert.Equal(sourceSeal, receipt.SourceSeal);
+        Assert.Equal(sourceSeal, JournalDeltaStore.SealJournal(f.Journal, sourceSeal.DurableSequence));
         Assert.Equal(sequence, receipt.Seal.DurableSequence);
         Assert.Equal(0, f.Tree.ReadBytes);
         Assert.True(File.ReadAllBytes(Path.Combine(f.Candidate, "delta.journal")).AsSpan().IndexOf(Encoding.UTF8.GetBytes(Pointer)) < 0);
@@ -99,7 +101,7 @@ public sealed class CandidateSourceProjectionTests
     [InlineData("missing", "CandidateProjectionMismatch")]
     [InlineData("rename-out", "CandidateProjectionHistoryUnsupported")]
     [InlineData("rename-in", "CandidateProjectionHistoryUnsupported")]
-    [InlineData("directory-history", "CandidateContainsManagedPaths")]
+    [InlineData("directory-history", "CandidateProjectionHistoryUnsupported")]
     [InlineData("cache", "CandidateContainsManagedPaths")]
     public void UnqualifiedProjectionCannotCreateACandidateOrChangeTheWorker(string fault, string error)
     {
@@ -138,6 +140,21 @@ public sealed class CandidateSourceProjectionTests
         Assert.Equal(0, f.Tree.ReadBytes);
     }
 
+    [Fact]
+    public void CurrentStateAndOffConversionPreserveProjectionBoundaryRefusalAfterHistoryIsReclaimed()
+    {
+        using var f = new Fixture();
+        using (var worker = f.OpenWorker())
+        { worker.Rename(worker.Stat(".git")!.Id, "saved-pointer", false); Write(worker, ".git", Pointer); }
+        JournalDeltaStore.CompactDirectory(f.Worker, f.Identity, f.Tree, revertBaseRanges: true);
+        JournalDeltaStore.CompleteCompaction(f.Worker, f.Identity);
+        Assert.Equal("CandidateProjectionHistoryUnsupported", Assert.Throws<WorkspaceException>(() => f.Export()).Code);
+        Assert.False(Directory.Exists(f.Candidate));
+        JournalDeltaStore.CompactDirectory(f.Worker, f.Identity, f.Tree, revertBaseRanges: false);
+        JournalDeltaStore.CompleteCompaction(f.Worker, f.Identity);
+        Assert.Equal("CandidateProjectionHistoryUnsupported", Assert.Throws<WorkspaceException>(() => f.Export()).Code);
+        Assert.False(Directory.Exists(f.Candidate));
+    }
     [Fact]
     public void StrictExportAndActiveWriterCannotBypassProjectionQualification()
     {

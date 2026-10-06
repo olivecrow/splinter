@@ -10,7 +10,7 @@ public sealed class JournalOptimizationTests
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "restore-search", tree.Snapshot, 1_000_000, 4096); Guid id;
-        using (var writer = new JournalDeltaStore(root.Path, identity, tree))
+        using (var writer = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             id = writer.Create("file", false, 32).Id;
             for (int i = 0; i < 512; i++) writer.Write(id, i * 32, [(byte)i, 7, 8, 9]);
@@ -32,7 +32,7 @@ public sealed class JournalOptimizationTests
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "compressed-comparison", tree.Snapshot, 4_000_000, 1024 * 1024);
-        using var store = new JournalDeltaStore(root.Path, identity, tree); var id = store.Create("file", false, 32).Id;
+        using var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false); var id = store.Create("file", false, 32).Id;
         byte[] bytes = new byte[1024 * 1024]; store.Write(id, 0, bytes); long payload = store.Observe().PayloadBytes;
         long before = store.Observe().Metrics!.JournalReadBytes; store.Write(id, 0, bytes);
         Assert.Equal(payload, store.Observe().PayloadBytes);
@@ -48,7 +48,7 @@ public sealed class JournalOptimizationTests
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "stream-compaction", tree.Snapshot, 4_000_000, 1024 * 1024);
         byte[] expected = new byte[1024 * 1024]; long firstPayload, payload, frameCount; Guid id;
-        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             id = store.Create("file", false, 32).Id; store.Write(id, 0, expected); firstPayload = store.Observe().PayloadBytes;
             if (fragmented)

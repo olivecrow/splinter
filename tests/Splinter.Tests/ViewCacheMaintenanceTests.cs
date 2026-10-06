@@ -20,7 +20,7 @@ public sealed class ViewCacheMaintenanceTests
         var cache = new ViewCacheIdentity("view", "cache", tree.Snapshot, "fixture", "unity-top-level-v1", 10_000_000);
         var identity = WindowsViewProvider.CacheIdentity(cache);
         byte[] expected = Enumerable.Repeat((byte)42, 4096).ToArray();
-        using (var store = new JournalDeltaStore(cachePath, identity, new CacheSnapshotTree(tree, tree.Snapshot, WindowsViewProvider.CacheRoots)))
+        using (var store = new JournalDeltaStore(cachePath, identity, new CacheSnapshotTree(tree, tree.Snapshot, WindowsViewProvider.CacheRoots), optimizeJournal: false))
         {
             var file = store.Stat("Library/large")!;
             // Real changes create obsolete payload; identical private writes reuse it.
@@ -59,7 +59,7 @@ public sealed class ViewCacheMaintenanceTests
         string path = Path.Combine(dir.Path, "cache"), pointer = Path.Combine(dir.Path, "maintenance.json");
         var cache = new ViewCacheIdentity("view", "cache", tree.Snapshot, "fixture", "unity-top-level-v1", 1_000_000);
         using (var store = new JournalDeltaStore(path, WindowsViewProvider.CacheIdentity(cache),
-                   new CacheSnapshotTree(tree, tree.Snapshot, WindowsViewProvider.CacheRoots)))
+                   new CacheSnapshotTree(tree, tree.Snapshot, WindowsViewProvider.CacheRoots), optimizeJournal: false))
             store.Write(store.Stat("Library/large")!.Id, 0, new byte[4096]);
         byte[] before = File.ReadAllBytes(Path.Combine(path, "delta.journal"));
         Assert.Equal("CompactionOverlapBudgetExceeded", Assert.Throws<WorkspaceException>(() =>

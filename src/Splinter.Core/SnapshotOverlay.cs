@@ -56,6 +56,7 @@ public sealed record OverlayStorageObservation(string Id, string SnapshotId, lon
     long ReadCacheBytes, int MaxTransferBytes, int IndexedNodes, long DurableSequence)
 {
     public OverlayIoMetrics? Metrics { get; init; }
+    public bool JournalOptimizationEnabled { get; init; }
 }
 public sealed record DeltaEntry(Guid Id, string Path, bool Directory, long Length, uint Attributes,
     long CreationTime, long LastAccessTime, long LastWriteTime, string? BasePath, long BaseLength,
@@ -76,6 +77,9 @@ public interface IWorkspaceDeltaStore : IDisposable
     void SetUnixMode(Guid id, uint? mode) => throw new WorkspaceException("UnixPermissionsUnsupported", "This delta provider cannot change Unix permissions.");
     void Rename(Guid id, string destination, bool replace);
     void Delete(Guid id);
+    // The caller has closed every retained context for this identity. A provider
+    // may reclaim an unlinked file; live names and other identities stay intact.
+    void ReleaseUnlinkedFile(Guid id) { }
     void Flush();
     OverlayStorageObservation Observe();
 }

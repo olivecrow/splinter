@@ -75,13 +75,15 @@ public sealed class CandidatePublicationTests
     public void EveryDurableBoundaryReconcilesTheSameCandidateAndStableReceipt(string boundary)
     {
         using var f = new Fixture(); byte[] worker = File.ReadAllBytes(f.Journal);
+        SnapshotDeltaSeal sourceSeal; using (var source = f.OpenWorker()) sourceSeal = source.Seal();
         f.StopAt(boundary);
         if (boundary != "receipt-published")
             Assert.Equal("CandidateUnpublished", Assert.Throws<WorkspaceException>(() => new CandidateSnapshotTree(f.Candidate, f.Tree)).Code);
         var result = f.Publish(); var files = Files(f.Candidate);
         Assert.Equal(JsonSerializer.Serialize(result), JsonSerializer.Serialize(f.Publish()));
         Unchanged(f.Candidate, files); Assert.Equal(worker, File.ReadAllBytes(f.Journal));
-        Assert.Equal(f.Request.RequestKey, result.Id); Assert.Equal(Hash(worker), result.SourceSeal.JournalHash);
+        Assert.Equal(f.Request.RequestKey, result.Id); Assert.Equal(sourceSeal, result.SourceSeal);
+        Assert.Equal(sourceSeal, JournalDeltaStore.SealJournal(f.Journal, sourceSeal.DurableSequence));
         Assert.Equal(result.SourceSeal.DurableSequence, result.Seal.DurableSequence);
         Assert.False(Directory.EnumerateFiles(f.Candidate, "*.new").Any());
         using var candidate = new CandidateSnapshotTree(f.Candidate, f.Tree);
@@ -136,11 +138,11 @@ public sealed class CandidatePublicationTests
     {
         using var f = new Fixture(); f.StopAt(boundary);
         using (var worker = f.OpenWorker()) Write(worker, "Assets/code.cs", "follow-up");
-        string later = Hash(File.ReadAllBytes(f.Journal));
+        SnapshotDeltaSeal later; using (var worker = f.OpenWorker()) later = worker.Seal();
         ImmutableCandidate result;
         using (var worker = f.OpenWorker()) result = f.Publish();
-        Assert.NotEqual(later, result.SourceSeal.JournalHash);
-        Assert.Equal(later, Hash(File.ReadAllBytes(f.Journal)));
+        Assert.NotEqual(later, result.SourceSeal);
+        Assert.Equal(later, JournalDeltaStore.SealJournal(f.Journal, later.DurableSequence));
         using var candidate = new CandidateSnapshotTree(f.Candidate, f.Tree);
         byte[] bytes = new byte[9]; candidate.Read("Assets/code.cs", 0, bytes); Assert.Equal("candidate"u8.ToArray(), bytes);
         Assert.Equal(0, f.Tree.ReadBytes);
@@ -262,16 +264,20 @@ public sealed class CandidatePublicationTests
         Unchanged(f.Candidate, before);
     }
 
-    [Fact]
-    public void PlainSourceAndAnEmptyJournalUseTheSameDurableContract()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PlainSourceAndAnEmptyJournalUseTheSameDurableContract(bool optimized)
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "empty", tree.Snapshot, 65536, 4096, []);
         string source = Path.Combine(root.Path, "source"), candidate = Path.Combine(root.Path, "candidate");
-        using (new JournalDeltaStore(source, identity, tree)) { }
+        using (var writer = new JournalDeltaStore(source, identity, tree, optimizeJournal: optimized)) Assert.Equal(optimized, writer.JournalOptimizationEnabled);
         var request = new CandidateExportRequest(1, "empty");
         var first = JournalDeltaStore.PublishCandidate(source, identity, tree, candidate, request, []);
-        Assert.Equal(0, first.Seal.JournalBytes); Assert.Null(first.SourceProjection);
+        Assert.Equal(0, first.Seal.DurableSequence); Assert.Null(first.SourceProjection);
+        using (var read = new CandidateSnapshotTree(candidate, tree))
+        { Assert.NotNull(read.Stat("")); Assert.Equal(tree.List("").Select(e => e.Path), read.List("").Select(e => e.Path)); }
         Assert.Equal(JsonSerializer.Serialize(first), JsonSerializer.Serialize(JournalDeltaStore.PublishCandidate(source, identity, tree, candidate, request, [])));
         var contracts = new ContractCatalog();
         Assert.True(contracts.Validate("urn:splinter:v1:candidate-export-request", JsonSerializer.SerializeToElement(request, ApiJson.Options)).IsValid);
