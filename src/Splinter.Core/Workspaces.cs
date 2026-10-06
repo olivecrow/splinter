@@ -25,10 +25,6 @@ public sealed class WorkspaceRecord
     public string Purpose { get; set; } = "task";
     public string[] ManagedPaths { get; set; } = [];
     public ApplicationLease? Application { get; set; }
-    // Retain earlier evidence in the current durable format; no longer produced or used as a gate.
-    public string? PendingValidationId { get; set; }
-    public string? PendingFingerprint { get; set; }
-    public ApplicationValidation? Validation { get; set; }
     public string? ResultRevision { get; set; }
     public string? IntegratedRevision { get; set; }
     public string? LastError { get; set; }
@@ -62,9 +58,6 @@ public interface ISourceCompatibilityInspector
 }
 public sealed record ApplicationLease(int ProcessId, long StartTimeUtcTicks, string Token, string ExecutablePath,
     ProcessGroupLease? Group = null);
-// Historical evidence in WorkspaceRecord only; application observations do not publish it.
-public sealed record ApplicationValidation(string RequestId, string Fingerprint, bool Success,
-    DateTimeOffset CompletedAt, string[] Errors);
 public sealed record ApplicationState(bool Running, bool Ready, string Phase,
     ApplicationLease? Lease = null, ProcessResources? Resources = null);
 

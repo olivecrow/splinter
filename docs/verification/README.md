@@ -77,9 +77,9 @@
 | PV-01/02 | 대표 fixture와 사용자 선택 비교 범위는 scoped-complete-with-limitations | PV-02 전체 Passed 아님. S4 FailedInputQualification, 소수 표본, 전체 팩 raw 입력 동등성 unknown |
 | SF-01/02 | 변경 기반 소스 검증, 명시적 정리·중첩 예산·계측의 하위 범위 | 공통 저장소 최초 실행의 FailedPreservation은 유지. SF-02 전체 Partial, 대형 용량 목표 미달성 |
 | SF-03/VC/VR | 개발용 작은 A/B/A, 정상 cold import와 재연결 | SF-03 전체 Partial·VR-03 Partial 유지. 큐/일반 임대 인수는 구현 제외, source 반환 병합은 AI 절차. 현재 제품 연결은 WF로 구분 |
-| SF-03/VW | [공통 수명주기](../validation-workflow.md)의 지속 상태·영수증 재조정·fake 적합성 | 합성 파일/영수증이며 실제 VSS·WinFsp·Unity 지원 증거가 아님. 자동 실행 상태는 VW, 제품 연결 자격은 WF를 따름 |
-| SF-03/VG | [등록 증거가 있는 관리 파일 분리](../validation-view.md#등록-증거가-있는-관리-파일-분리)의 실제 임시 Git 등록·합성 불변 트리 적합성 | 후보 v2 게시의 자동 시험 범위. 실제 provider 실행은 WF의 현재 후보 증거로 별도 판정 |
-| SF-03/VP | [같은 요청 게시 복구](../validation-view.md#같은-요청의-게시-복구)의 영구 intent·부분 저널 prefix·완료 receipt 재조정 | 합성 트리·실제 임시 파일·예외 주입 범위. 실제 CLI 중단은 WF, 재부팅·전원/공간 장애는 NR의 별도 관문 |
+| SF-03/VW | [공통 수명주기](../view-workflow.md)의 지속 상태·영수증 재조정·fake 적합성 | 합성 파일/영수증이며 실제 VSS·WinFsp·Unity 지원 증거가 아님. 자동 실행 상태는 VW, 제품 연결 자격은 WF를 따름 |
+| SF-03/VG | [등록 증거가 있는 관리 파일 분리](../source-view.md#등록-증거가-있는-관리-파일-분리)의 실제 임시 Git 등록·합성 불변 트리 적합성 | 후보 v2 게시의 자동 시험 범위. 실제 provider 실행은 WF의 현재 후보 증거로 별도 판정 |
+| SF-03/VP | [같은 요청 게시 복구](../source-view.md#같은-요청의-게시-복구)의 영구 intent·부분 저널 prefix·완료 receipt 재조정 | 합성 트리·실제 임시 파일·예외 주입 범위. 실제 CLI 중단은 WF, 재부팅·전원/공간 장애는 NR의 별도 관문 |
 | SF-03/WF | [제품 연결·복구](product-validation-workflow.md), [두 빈 cache](product-validation-cold-cost.md), [현재 후보의 일반 권한 cold/기존 Library](product-validation-unelevated.md)와 독립 결과·회수 | scoped-complete-with-limitations. 작은 fixture·준비/검증 재시작·포커스 재시도와 heartbeat 오류 기록의 제한 유지. 대형 용량·일반 cold 안정성·NR 전체를 증명하지 않음 |
 | LB-01~05 | [실제 Library snapshot 재사용·정리·재증가와 회수](product-validation-unelevated.md) | 고정 후보의 Library 수명주기 범위 scoped-complete-with-limitations. 전체 순간 물리 peak·VSS 귀속은 unknown이며 SF-02/03 전체는 Partial |
 | RI/RU/WI | 합성 또는 동일 닫힌 저널의 제한된 replay 비교 | warm cache·소수 표본. 누적 Editor 전체 개선·Library 물리 절감으로 환산하지 않음 |

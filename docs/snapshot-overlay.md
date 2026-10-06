@@ -1,12 +1,12 @@
 # NTFS 스냅샷과 범위 저장 실험
 
-현재 명령은 [별도 개발 CLI](development-cli.md)에서 사용한다. 자체 compile/validation 요청은 제거했으며 storage 후보·source/cache·seal/회수 계약만 유지한다.
+현재 명령은 [별도 개발 CLI](development-cli.md)에서 사용한다. storage 후보·source/cache·seal/회수 계약을 제공하며 프로젝트 작업과 결과 판단은 AI·외부 도구가 맡는다.
 
 **독립 저장소 실험 진입점**의 계약이다. 같은 VSS/WinFsp/저널 구현을 사용하는 일반 제품 backend는 [NTFS 작업공간](ntfs-workspaces.md)에 별도로 연결되어 있다. Windows/NTFS 한 환경의 SO-01~06 fixture 증거는 [SO 기록](verification/snapshot-overlay.md), 제품 NI 상태는 [NI 기록](verification/ntfs-workspace-integration.md)으로 구분한다. 원본 이동은 요구하지 않는다.
 
 ## 구성과 저장 계약
 
-`candidate-export`·등록 증거가 필요한 `candidate-source-export`와 `overlay-serve-request.validationView`의 불변 후보·분리된 source/cache 저널은 [고정 검증 view 계약](validation-view.md)을 따른다. 게시 입력은 고정 `publication.requestKey`를 요구하며 같은 요청의 intent·원본 seal로만 중단을 재조정한다. 정상 Editor 종료·provider 종료 뒤 같은 경로에서 후보를 바꾸는 개발용 실험이며 제품 workspace 모드로 표시하지 않는다. 정의한 A/B/A와 생성·재개·전환 비용의 실행 증거는 [VC 기록](verification/immutable-validation-view.md)에 분리한다.
+`candidate-export`·등록 증거가 필요한 `candidate-source-export`와 `overlay-serve-request.sourceView`의 불변 후보·분리된 source/cache 저널은 [고정 소스 view 계약](source-view.md)을 따른다. 게시 입력은 고정 `publication.requestKey`를 요구하며 같은 요청의 intent·원본 seal로만 중단을 재조정한다. 정상 Editor 종료·provider 종료 뒤 같은 경로에서 후보를 바꾸는 개발용 실험이며 제품 workspace 모드로 표시하지 않는다. 정의한 A/B/A와 생성·재개·전환 비용의 실행 증거는 [VC 기록](verification/immutable-validation-view.md)에 분리한다.
 
 공유 VSS helper는 같은 볼륨에 다른 오래된/동일 시각/시각 불명 snapshot이 있으면 `SnapshotReleaseIsolationRequired`로 해제를 차단하고 `release-isolation.json`을 남긴다. 정확한 ID만 삭제해도 다른 snapshot이 소실된 [실제 실패](verification/storage-foundation.md)가 있으므로 기존 snapshot을 삭제해 차단을 우회하지 않는다. 현재 guard는 [격리된 소유 snapshot](verification/storage-recovery.md)에서 검증했다. 일반 비소유 백업 공존·외부 동시 삭제의 보존 보장은 미완료다. 새 소스 변경 세대·저널 I/O 계수는 [공통 소스 검증과 계측](source-verification.md)을 따른다.
 

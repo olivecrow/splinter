@@ -133,7 +133,7 @@ public sealed partial class WorkspaceCoordinator
             throw new WorkspaceException("SnapshotInUse", "Another workspace depends on this snapshot; preserve it.",
                 new { dependencies = dependents.Select(other => "workspace:" + other.Id).ToArray() },
                 dependents.Select(other => new WorkspaceRecoveryAction("workspace.status", new { id = other.Id, home = store.Root }, true)).ToArray());
-        try { await RequireNoValidationDependenciesAsync(w, ct); }
+        try { await RequireNoViewDependenciesAsync(w, ct); }
         catch (WorkspaceException ex) when (ex.Code == "SnapshotInUse")
         {
             throw new WorkspaceException(ex.Code, ex.Message, ex.Details,

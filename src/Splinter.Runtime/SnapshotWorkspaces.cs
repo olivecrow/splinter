@@ -117,7 +117,7 @@ public sealed partial class WorkspaceCoordinator
         {
             // Publication holds this worker lock through its durable workflow intent.
             // Any candidate or retained source generation keeps the original VSS alive.
-            await RequireNoValidationDependenciesAsync(w, ct);
+            await RequireNoViewDependenciesAsync(w, ct);
             if (!state.Step.StartsWith("release-", StringComparison.Ordinal))
             {
                 if (!state.Attached) throw new WorkspaceException("SnapshotPreparationIncomplete", "Preserve incomplete preparation and resume ensure before release.");
@@ -183,7 +183,7 @@ public sealed partial class WorkspaceCoordinator
                     (other.Snapshot?.Step != "discard-snapshot" || other.Snapshot?.Observation?.DeltaPresent != false) &&
                     other.Snapshot?.Reference?.Id == state.Reference.Id))
                     throw new WorkspaceException("SnapshotInUse", "Another workspace still depends on this immutable snapshot.");
-                await RequireNoValidationDependenciesAsync(w, ct);
+                await RequireNoViewDependenciesAsync(w, ct);
                 var reclamation = await Snapshots.ReleaseSnapshotAsync(w, control, ct);
                 reclamation.RequireMatch(state.Reference);
                 state.Observation = await Snapshots.ObserveAsync(w, control, ct);
@@ -221,13 +221,13 @@ public sealed partial class WorkspaceCoordinator
         }
     }
 
-    private async Task RequireNoValidationDependenciesAsync(WorkspaceRecord w, CancellationToken ct)
+    private async Task RequireNoViewDependenciesAsync(WorkspaceRecord w, CancellationToken ct)
     {
         if (w.Snapshot?.Reference is not { } snapshot) return;
         string project = WorkspaceStore.ProjectKey(w.ProjectPath);
-        var workflows = new ValidationWorkflowStore(store);
+        var workflows = new ViewWorkflowStore(store);
         using var gate = await workflows.LockAsync(project, ct);
-        var dependencies = ValidationWorkflowCoordinator.SnapshotDependencies(workflows.Read(project), snapshot);
+        var dependencies = ViewWorkflowCoordinator.SnapshotDependencies(workflows.Read(project), snapshot);
         if (dependencies.Length != 0)
             throw new WorkspaceException("SnapshotInUse", "Use the development CLI to preserve/release dependent storage views and close their cache before reclaiming this worker. Find its entrypoint with capabilities.", new { dependencies });
     }

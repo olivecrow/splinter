@@ -302,7 +302,6 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         await f.New().StatusAsync(id, ct);
         var collected = await f.New().CheckpointAsync(id, "result", ct);
         Assert.True(collected.Workspace.Snapshot!.Result!.IndependentOfSnapshot);
-        Assert.Null(collected.Workspace.Validation);
         string savedFingerprint = f.Source.Fingerprint;
         f.Source.Fingerprint = "different-preserved-content";
         Assert.Equal("ResultNotReady", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().IntegrateAsync(id, "main", ct))).Code);
@@ -462,24 +461,24 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     }
 
     [Fact]
-    public async Task ValidationPublicationAndPendingIntentBlockProductSnapshotReclamation()
+    public async Task ViewPublicationAndPendingIntentBlockProductSnapshotReclamation()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         var workspace = (await f.Ensure(ct)).Workspace; var store = new WorkspaceStore(f.Home);
         string project = WorkspaceStore.ProjectKey(workspace.ProjectPath);
-        var world = new ValidationWorkflowWorld(); var owner = new ValidationOwner("worker", 1);
+        var world = new ViewWorkflowWorld(); var owner = new ViewOwner("worker", 1);
         var worker = world.SetWorker(workspace.Id, owner, workspace.Snapshot!.Reference!, "frozen-source");
-        var provider = new ValidationWorkflowFake(Path.Combine(f.Home, "fake-validation"), world);
-        var request = new ValidationWorkflowRequest(1, "publish", project, "publish", owner) { Worker = worker };
-        var interrupted = new ValidationWorkflowCoordinator(new(store), provider, boundary =>
+        var provider = new ViewWorkflowFake(Path.Combine(f.Home, "fake-validation"), world);
+        var request = new ViewWorkflowRequest(1, "publish", project, "publish", owner) { Worker = worker };
+        var interrupted = new ViewWorkflowCoordinator(new(store), provider, boundary =>
             { if (boundary == "publish:intent") throw new IOException("lost process"); });
         await Assert.ThrowsAsync<IOException>(() => interrupted.ExecuteAsync(request, ct));
         Assert.Equal("SnapshotInUse", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(workspace.Id, ct))).Code);
         Assert.True(f.Backend.Mounted); Assert.False(f.Backend.DeltaRemoved); Assert.Equal(0, f.Backend.ReleaseAttempts);
-        var workflow = new ValidationWorkflowCoordinator(new(store), provider);
+        var workflow = new ViewWorkflowCoordinator(new(store), provider);
         string candidate = (await workflow.ExecuteAsync(request, ct)).Candidate!.Intent.CandidateId;
         Assert.Equal("SnapshotInUse", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(workspace.Id, ct))).Code);
-        var target = new ValidationTarget("candidate", candidate);
+        var target = new ViewTarget("candidate", candidate);
         await workflow.ExecuteAsync(new(1, "preserve", project, "preserve", owner) { Target = target }, ct);
         await workflow.ExecuteAsync(new(1, "release", project, "release", owner) { Target = target }, ct);
         Assert.Equal("released", (await f.New().ReleaseAsync(workspace.Id, ct)).Workspace.Phase);

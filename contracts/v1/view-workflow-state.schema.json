@@ -1,0 +1,5 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:view-workflow-state",
+  "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/state"
+}

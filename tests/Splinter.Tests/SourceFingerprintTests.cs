@@ -73,8 +73,6 @@ public sealed class SourceFingerprintTests
             }
         }
         Assert.Equal(await f.Oracle(), (await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken)).Fingerprint);
-        var validated = await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken);
-        f.Workspace.Validation = new("same-mtime", validated.Fingerprint, true, DateTimeOffset.UtcNow, []);
         await f.Provider().CheckpointAsync(f.Workspace, "preserve same-size same-mtime content", TestContext.Current.CancellationToken);
         Assert.Equal("return 2;", await TestDirectory.Git(f.Workspace.Path, "show", "HEAD:code.cs"));
         Assert.False((await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken)).HasChanges);
@@ -179,7 +177,7 @@ public sealed class SourceFingerprintTests
         using var f = await Fixture.Create(); var first = await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken);
         f.Tracker.OnObserve = _ => f.Tracker.Mark("Library/cache");
         Assert.Equal(0, (await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken)).Inspection!.PayloadBytesHashed);
-        f.Workspace.Validation = new("old", first.Fingerprint, true, DateTimeOffset.UtcNow, []);
+
         File.WriteAllText(f.Path("code.cs.meta"), "guid: updated"); f.Tracker.Mark("code.cs.meta");
         Assert.NotEqual(first.Fingerprint, (await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken)).Fingerprint);
     }

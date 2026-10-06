@@ -13,6 +13,6 @@ public static class WindowsSnapshotPolicy
     {
         Require(request.Identity.Snapshot);
         if (request.Identity.Graft is { } graft) Require(graft.Basis.Snapshot);
-        if (request.ValidationView?.CacheIdentity is { } cache) Require(cache.Snapshot);
+        if (request.SourceView?.CacheIdentity is { } cache) Require(cache.Snapshot);
     }
 }

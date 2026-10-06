@@ -44,7 +44,7 @@ public sealed class CandidateSourceProjectionTests
             using var store = OpenWorker(); Write(store, ".git", Pointer); Write(store, "Assets/code.cs", "candidate");
         }
         public JournalDeltaStore OpenWorker() => new(Worker, Identity, Tree);
-        public ValidationCandidate Export(CandidateSourceProjection? proof = null, Action<string>? fault = null) =>
+        public ImmutableCandidate Export(CandidateSourceProjection? proof = null, Action<string>? fault = null) =>
             JournalDeltaStore.ExportSourceCandidate(Worker, Identity, Tree, Candidate, "candidate", Forbidden, proof ?? Proof, fault);
         public void Dispose() => Directory.Dispose();
     }
@@ -78,7 +78,7 @@ public sealed class CandidateSourceProjectionTests
         byte[] range = new byte[4]; candidate.Read("Assets/sparse", 8192, range); Assert.Equal(new byte[] { 1, 2, 3, 4 }, range);
         using (var worker = f.OpenWorker()) Write(worker, "Assets/code.cs", "follow-up");
         Assert.Equal("candidate", Read(candidate, "Assets/code.cs"));
-        using var view = new ValidationViewDeltaStore(Path.Combine(f.Directory.Path, "view-source"), f.Identity, f.Tree,
+        using var view = new SourceViewDeltaStore(Path.Combine(f.Directory.Path, "view-source"), f.Identity, f.Tree,
             new(f.Candidate, Path.Combine(f.Directory.Path, "cache"), ["Library", "Temp"]));
         Assert.Null(view.Stat(".git")); Write(view, ".git", "a different view registration");
         Assert.Null(candidate.Stat(".git"));
@@ -173,7 +173,7 @@ public sealed class CandidateSourceProjectionTests
     {
         using var f = new Fixture(); var receipt = f.Export();
         var contracts = new ContractCatalog();
-        Assert.True(contracts.Validate("urn:splinter:v1:validation-candidate", JsonSerializer.SerializeToElement(receipt, ApiJson.Options)).IsValid);
+        Assert.True(contracts.Validate("urn:splinter:v1:immutable-candidate", JsonSerializer.SerializeToElement(receipt, ApiJson.Options)).IsValid);
         string path = Path.Combine(f.Candidate, "candidate.json"); var node = JsonNode.Parse(File.ReadAllText(path))!;
         switch (fault)
         {
@@ -225,7 +225,7 @@ public sealed class CandidateSourceProjectionTests
         string worker = Path.Combine(f.Directory.Path, "worker"), candidatePath = Path.Combine(f.Directory.Path, "candidate");
         using (var store = new JournalDeltaStore(worker, f.Identity, tree)) { Write(store, ".git", f.Receipt.Pointer); Write(store, "source.txt", "candidate"); }
         var candidate = JournalDeltaStore.ExportSourceCandidate(worker, f.Identity, tree, candidatePath, "c", Forbidden, proof);
-        Assert.True(new ContractCatalog().Validate("urn:splinter:v1:validation-candidate", JsonSerializer.SerializeToElement(candidate, ApiJson.Options)).IsValid);
+        Assert.True(new ContractCatalog().Validate("urn:splinter:v1:immutable-candidate", JsonSerializer.SerializeToElement(candidate, ApiJson.Options)).IsValid);
         using var opened = new CandidateSnapshotTree(candidatePath, tree); Assert.Null(opened.Stat(".git")); Assert.Equal("candidate", Read(opened, "source.txt"));
         Assert.Equal(before, await TestDirectory.Git(f.Source, "worktree", "list", "--porcelain"));
         Assert.Equal(originalIndex, await File.ReadAllBytesAsync(Path.Combine(f.Source, ".git", "index"), ct));

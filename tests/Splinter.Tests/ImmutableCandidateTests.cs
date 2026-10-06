@@ -6,7 +6,7 @@ using Splinter.Protocol;
 
 namespace Splinter.Tests;
 
-public sealed class ValidationCandidateTests
+public sealed class ImmutableCandidateTests
 {
     private static readonly string[] CacheRoots = ["Library", "Temp"];
     private static OverlayIdentity Identity(ISnapshotTree tree) => new(2, "view", tree.Snapshot, 100_000_000, 65536, [".git"]);
@@ -54,7 +54,7 @@ public sealed class ValidationCandidateTests
         string ca = Export(dir.Path, "A", a), cb = Export(dir.Path, "B", b), cache = Path.Combine(dir.Path, "cache");
         var cacheIdentity = Identity(a) with { Id = "shared-cache", ExcludedTopLevel = [], IncludedTopLevel = CacheRoots };
         var patch = Enumerable.Repeat((byte)0x42, 4096).ToArray();
-        using (var first = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-a"), Identity(a), a,
+        using (var first = new SourceViewDeltaStore(Path.Combine(dir.Path, "source-a"), Identity(a), a,
                    new(ca, cache, CacheRoots, cacheIdentity, "snapshot"), cacheBasis: a))
         {
             Assert.Equal(0, a.ReadBytes);
@@ -66,7 +66,7 @@ public sealed class ValidationCandidateTests
             first.Write(file.Id, 8192, patch);
             Assert.True(new FileInfo(Path.Combine(cache, "delta.journal")).Length < 10000);
         }
-        using (var next = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-b"), Identity(b), b,
+        using (var next = new SourceViewDeltaStore(Path.Combine(dir.Path, "source-b"), Identity(b), b,
                    new(cb, cache, CacheRoots, cacheIdentity, "snapshot"), cacheBasis: a))
         {
             Assert.Equal("B", Read(next, "Assets/code.cs"));
@@ -76,7 +76,7 @@ public sealed class ValidationCandidateTests
             Assert.Equal(new byte[4096], a.Files["Library/large-cache"].AsSpan(8192, 4096).ToArray());
             Assert.Equal("library-b", Encoding.UTF8.GetString(b.Files["Library/base-label"]));
         }
-        using var check = ValidationViewDeltaStore.OpenCacheReadOnly(cache, cacheIdentity, a);
+        using var check = SourceViewDeltaStore.OpenCacheReadOnly(cache, cacheIdentity, a);
         Assert.Equal(4096, check.ObservePrivateUsage().RetainedLogicalPayloadBytes);
         Assert.Equal(0, check.Observe().InitialPayloadCopiedBytes);
         Assert.Equal(0, check.Observe().ReadCacheBytes);
@@ -90,21 +90,21 @@ public sealed class ValidationCandidateTests
         a.Files["Library/base"] = "keep"u8.ToArray(); b.Snapshot = b.Snapshot with { Id = "independent-b" };
         string ca = Export(dir.Path, "A", a), cb = Export(dir.Path, "B", b), cache = Path.Combine(dir.Path, "cache");
         var cacheIdentity = Identity(a) with { Id = "shared-cache", ExcludedTopLevel = [], IncludedTopLevel = CacheRoots };
-        var selection = new ValidationViewSelection(cb, cache, CacheRoots, cacheIdentity, "snapshot");
-        using (var first = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-a"), Identity(a), a,
+        var selection = new SourceViewSelection(cb, cache, CacheRoots, cacheIdentity, "snapshot");
+        using (var first = new SourceViewDeltaStore(Path.Combine(dir.Path, "source-a"), Identity(a), a,
                    new(ca, cache, CacheRoots, cacheIdentity, "snapshot"), cacheBasis: a))
             first.Write(first.Stat("Library/base")!.Id, 0, "K"u8);
         byte[] retained = File.ReadAllBytes(Path.Combine(cache, "delta.journal"));
         string source = Path.Combine(dir.Path, "source-b");
-        Assert.Equal("ValidationCacheMismatch", Assert.Throws<WorkspaceException>(() =>
-            new ValidationViewDeltaStore(source, Identity(b), b, selection)).Code);
-        Assert.Equal("ValidationCacheMismatch", Assert.Throws<WorkspaceException>(() =>
-            new ValidationViewDeltaStore(source, Identity(b), b, selection, cacheBasis: b)).Code);
-        Assert.Equal("ValidationCacheMismatch", Assert.Throws<WorkspaceException>(() =>
-            new ValidationViewDeltaStore(source, Identity(b), b, selection with { CacheBasis = "empty" })).Code);
+        Assert.Equal("ViewCacheMismatch", Assert.Throws<WorkspaceException>(() =>
+            new SourceViewDeltaStore(source, Identity(b), b, selection)).Code);
+        Assert.Equal("ViewCacheMismatch", Assert.Throws<WorkspaceException>(() =>
+            new SourceViewDeltaStore(source, Identity(b), b, selection, cacheBasis: b)).Code);
+        Assert.Equal("ViewCacheMismatch", Assert.Throws<WorkspaceException>(() =>
+            new SourceViewDeltaStore(source, Identity(b), b, selection with { CacheBasis = "empty" })).Code);
         a.Available = false;
         Assert.Equal("SnapshotMissing", Assert.Throws<WorkspaceException>(() =>
-            new ValidationViewDeltaStore(source, Identity(b), b, selection, cacheBasis: a)).Code);
+            new SourceViewDeltaStore(source, Identity(b), b, selection, cacheBasis: a)).Code);
         Assert.Equal(retained, File.ReadAllBytes(Path.Combine(cache, "delta.journal")));
         Assert.False(Directory.Exists(source));
     }
@@ -115,7 +115,7 @@ public sealed class ValidationCandidateTests
         if (!OperatingSystem.IsWindows()) return;
         using var dir = new TestDirectory(); var tree = Tree();
         tree.Files["Library/large"] = new byte[16 * 1024 * 1024];
-        var basis = new ValidationCacheSnapshotTree(tree, tree.Snapshot, CacheRoots);
+        var basis = new CacheSnapshotTree(tree, tree.Snapshot, CacheRoots);
         Assert.Null(basis.Stat("Assets/code.cs"));
         Assert.DoesNotContain(basis.List(""), e => e.Path == "Assets");
         Assert.Throws<FileNotFoundException>(() => basis.Read("Assets/code.cs", 0, new byte[4096]));
@@ -130,7 +130,7 @@ public sealed class ValidationCandidateTests
         JournalDeltaStore.CompleteCompaction(path, identity);
         Assert.Equal(0, tree.ReadBytes);
         Assert.True(receipt.After.JournalBytes < receipt.Before.JournalBytes / 2);
-        using var resumed = ValidationViewDeltaStore.OpenCacheReadOnly(path, identity, tree);
+        using var resumed = SourceViewDeltaStore.OpenCacheReadOnly(path, identity, tree);
         Assert.Equal(16 * 1024 * 1024, resumed.Stat("Library/large")!.Length);
         byte[] changed = new byte[4096], unchanged = new byte[4096];
         resumed.Read(resumed.Stat("Library/large")!.Id, 4096, changed);
@@ -148,10 +148,10 @@ public sealed class ValidationCandidateTests
         string ca = Export(dir.Path, "A", a), cb = Export(dir.Path, "B", b), cache = Path.Combine(dir.Path, "cache");
         var cacheIdentity = Identity(a) with { Id = "owned-cache", ExcludedTopLevel = CacheRoots,
             Snapshot = a.Snapshot with { Provider = "validation-empty-cache" } };
-        using (var first = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-a"), Identity(a), a, new(ca, cache, CacheRoots, cacheIdentity)))
+        using (var first = new SourceViewDeltaStore(Path.Combine(dir.Path, "source-a"), Identity(a), a, new(ca, cache, CacheRoots, cacheIdentity)))
         { first.Create("Library", true, 16); Write(first, "Library/reusable", "warm-cache"); }
         a.Available = false;
-        using var next = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-b"), Identity(b), b, new(cb, cache, CacheRoots, cacheIdentity));
+        using var next = new SourceViewDeltaStore(Path.Combine(dir.Path, "source-b"), Identity(b), b, new(cb, cache, CacheRoots, cacheIdentity));
         Assert.Equal("B", Read(next, "Assets/code.cs"));
         Assert.Equal("warm-cache", Read(next, "Library/reusable"));
         Write(next, "Assets/output.cs", "generation-b");
@@ -172,7 +172,7 @@ public sealed class ValidationCandidateTests
         for (int i = 0; i < 3; i++)
         {
             bool isA = i != 1;
-            using var view = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-" + i), Identity(tree), tree,
+            using var view = new SourceViewDeltaStore(Path.Combine(dir.Path, "source-" + i), Identity(tree), tree,
                 new(isA ? a : b, cache, CacheRoots));
             Assert.Equal(isA ? "A" : "B", Read(view, "Assets/code.cs"));
             Assert.Equal(isA, view.Stat("Assets/new.meta") is not null);
@@ -188,7 +188,7 @@ public sealed class ValidationCandidateTests
             Assert.Equal("ViewPartitionBoundary", Assert.Throws<WorkspaceException>(() =>
                 view.Rename(view.Stat("Assets/large")!.Id, "Library/leak", false)).Code);
         }
-        using var resumed = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source-0"), Identity(tree), tree, new(a, cache, CacheRoots));
+        using var resumed = new SourceViewDeltaStore(Path.Combine(dir.Path, "source-0"), Identity(tree), tree, new(a, cache, CacheRoots));
         Assert.Equal("output-0", Read(resumed, "Assets/generated.meta"));
         Assert.Equal("persistent", Read(resumed, "Library/cache"));
         Assert.Equal("original", Encoding.UTF8.GetString(tree.Files["Assets/code.cs"]));
@@ -201,8 +201,8 @@ public sealed class ValidationCandidateTests
         using (var worker = new JournalDeltaStore(Path.Combine(dir.Path, "worker-A"), Identity(tree), tree))
             Assert.Throws<IOException>(() => JournalDeltaStore.ExportCandidate(Path.Combine(dir.Path, "worker-A"), Identity(tree), tree,
                 Path.Combine(dir.Path, "busy"), "busy", CacheRoots));
-        using var view = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source"), Identity(tree), tree, new(a, Path.Combine(dir.Path, "cache"), CacheRoots));
-        Assert.Throws<IOException>(() => new ValidationViewDeltaStore(Path.Combine(dir.Path, "other"), Identity(tree), tree,
+        using var view = new SourceViewDeltaStore(Path.Combine(dir.Path, "source"), Identity(tree), tree, new(a, Path.Combine(dir.Path, "cache"), CacheRoots));
+        Assert.Throws<IOException>(() => new SourceViewDeltaStore(Path.Combine(dir.Path, "other"), Identity(tree), tree,
             new(a, Path.Combine(dir.Path, "cache"), CacheRoots)));
         Assert.Throws<IOException>(() => File.WriteAllBytes(Path.Combine(a, "delta.journal"), [1]));
         Assert.Equal("CandidateAlreadyExists", Assert.Throws<WorkspaceException>(() => JournalDeltaStore.ExportCandidate(
@@ -221,7 +221,7 @@ public sealed class ValidationCandidateTests
         else if (fault == "incomplete") { using var file = new FileStream(journal, FileMode.Append); file.WriteByte(1); }
         else
         {
-            var receipt = JsonSerializer.Deserialize<ValidationCandidate>(File.ReadAllText(Path.Combine(a, "candidate.json")))!;
+            var receipt = JsonSerializer.Deserialize<ImmutableCandidate>(File.ReadAllText(Path.Combine(a, "candidate.json")))!;
             File.WriteAllText(Path.Combine(a, "candidate.json"), JsonSerializer.Serialize(receipt with {
                 Seal = receipt.Seal with { JournalHash = new string('0', 64) } }));
         }
@@ -231,13 +231,13 @@ public sealed class ValidationCandidateTests
     }
 
     [Fact]
-    public void WrongSourceGenerationAndMissingSnapshotCannotReuseValidation()
+    public void WrongSourceGenerationAndMissingSnapshotCannotReuseSourceView()
     {
         using var dir = new TestDirectory(); var tree = Tree(); string a = Export(dir.Path, "A", tree), b = Export(dir.Path, "B", tree);
         string source = Path.Combine(dir.Path, "source"), cache = Path.Combine(dir.Path, "cache");
-        using (var view = new ValidationViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots))) Write(view, "Assets/result", "keep");
+        using (var view = new SourceViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots))) Write(view, "Assets/result", "keep");
         Assert.Equal("OverlayIdentityMismatch", Assert.Throws<WorkspaceException>(() =>
-            new ValidationViewDeltaStore(source, Identity(tree), tree, new(b, cache, CacheRoots))).Code);
+            new SourceViewDeltaStore(source, Identity(tree), tree, new(b, cache, CacheRoots))).Code);
         tree.Available = false;
         Assert.Equal("SnapshotMissing", Assert.Throws<WorkspaceException>(() => new CandidateSnapshotTree(a, tree)).Code);
     }
@@ -248,17 +248,17 @@ public sealed class ValidationCandidateTests
         using var dir = new TestDirectory(); var tree = Tree(); string a = Export(dir.Path, "A", tree);
         using var candidate = new CandidateSnapshotTree(a, tree);
         var contracts = new ContractCatalog();
-        Assert.True(contracts.Validate("urn:splinter:v1:validation-candidate",
+        Assert.True(contracts.Validate("urn:splinter:v1:immutable-candidate",
             JsonSerializer.SerializeToElement(candidate.Candidate, ApiJson.Options)).IsValid);
-        Assert.False(contracts.Validate("urn:splinter:v1:validation-candidate",
+        Assert.False(contracts.Validate("urn:splinter:v1:immutable-candidate",
             JsonSerializer.SerializeToElement(candidate.Candidate with { Seal = candidate.Candidate.Seal with { JournalHash = "bad" } }, ApiJson.Options)).IsValid);
         string source = Path.Combine(dir.Path, "source"), cache = Path.Combine(dir.Path, "cache");
-        using (var view = new ValidationViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots)))
+        using (var view = new SourceViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots)))
         { view.Create("Library", true, 16); Write(view, "Library/cache", "keep"); }
         Assert.Equal("OverlayIdentityMismatch", Assert.Throws<WorkspaceException>(() =>
-            new ValidationViewDeltaStore(source, Identity(tree), tree, new(a, cache, ["Library"]))).Code);
+            new SourceViewDeltaStore(source, Identity(tree), tree, new(a, cache, ["Library"]))).Code);
         Assert.Equal("UnsafePath", Assert.Throws<WorkspaceException>(() =>
-            new ValidationViewDeltaStore(source, Identity(tree), tree, new(a, Path.Combine(a, "cache"), CacheRoots))).Code);
+            new SourceViewDeltaStore(source, Identity(tree), tree, new(a, Path.Combine(a, "cache"), CacheRoots))).Code);
     }
 
     [Theory]
@@ -272,7 +272,7 @@ public sealed class ValidationCandidateTests
         using var dir = new TestDirectory(); var tree = Tree(); string a = Export(dir.Path, "A", tree);
         string source = Path.Combine(dir.Path, "source"), cache = Path.Combine(dir.Path, "cache");
         Guid id;
-        using (var view = new ValidationViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots),
+        using (var view = new SourceViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots),
                    stage => { if (stage == boundary) throw new IOException("injected interruption"); }))
         {
             view.Create("Temp", true, 16);
@@ -283,8 +283,8 @@ public sealed class ValidationCandidateTests
             Assert.Equal("ViewTransferRecoveryRequired", Assert.Throws<WorkspaceException>(() => view.Stat("Assets/code.cs")).Code);
         }
         Assert.Equal("ViewTransferRecoveryRequired", Assert.Throws<WorkspaceException>(() =>
-            new ValidationViewDeltaStore(Path.Combine(dir.Path, "wrong-generation"), Identity(tree), tree, new(a, cache, CacheRoots))).Code);
-        using var resumed = new ValidationViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots));
+            new SourceViewDeltaStore(Path.Combine(dir.Path, "wrong-generation"), Identity(tree), tree, new(a, cache, CacheRoots))).Code);
+        using var resumed = new SourceViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots));
         Assert.Null(resumed.Stat("Temp/staged"));
         Assert.Equal(id, resumed.Stat("Assets/sparse-output")!.Id);
         Assert.Equal(1024L * 1024 * 1024, resumed.Stat("Assets/sparse-output")!.Length);
@@ -297,7 +297,7 @@ public sealed class ValidationCandidateTests
     public void PrivateRenamePreservesOpenIdentityAndReplaceDestination()
     {
         using var dir = new TestDirectory(); var tree = Tree(); string a = Export(dir.Path, "A", tree);
-        using var view = new ValidationViewDeltaStore(Path.Combine(dir.Path, "source"), Identity(tree), tree,
+        using var view = new SourceViewDeltaStore(Path.Combine(dir.Path, "source"), Identity(tree), tree,
             new(a, Path.Combine(dir.Path, "cache"), CacheRoots));
         view.Create("Temp", true, 16); Write(view, "Temp/private", "new content");
         Guid openId = view.Stat("Temp/private")!.Id;
@@ -325,7 +325,7 @@ public sealed class ValidationCandidateTests
         using var dir = new TestDirectory(); var tree = Tree(); string a = Export(dir.Path, "A", tree);
         string source = Path.Combine(dir.Path, "source"), cache = Path.Combine(dir.Path, "cache");
         Guid id; bool returning = false;
-        using (var view = new ValidationViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots),
+        using (var view = new SourceViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots),
                    stage => { if (returning && stage == interruption) throw new IOException("interrupted return"); }))
         {
             view.Create("Temp", true, 16); Write(view, "Temp/private", "old ranges");
@@ -335,7 +335,7 @@ public sealed class ValidationCandidateTests
             if (interruption is null) view.Rename(id, "Temp/private-again", false);
             else Assert.Throws<IOException>(() => view.Rename(id, "Temp/private-again", false));
         }
-        using var resumed = new ValidationViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots));
+        using var resumed = new SourceViewDeltaStore(source, Identity(tree), tree, new(a, cache, CacheRoots));
         Assert.Null(resumed.Stat("Assets/private"));
         Assert.Equal(id, resumed.Stat("Temp/private-again")!.Id);
         Assert.Equal("", Read(resumed, "Temp/private-again"));

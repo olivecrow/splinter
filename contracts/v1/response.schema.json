@@ -159,7 +159,7 @@
       "then": {
         "properties": {
           "data": {
-            "$ref": "urn:splinter:v1:validation-product-data"
+            "$ref": "urn:splinter:v1:view-lifecycle-data"
           }
         }
       }
@@ -692,7 +692,7 @@
             "owned-editor-stop",
             "owned-experimental-mount-git-and-editor",
             "owned-journal-generation-replacement",
-            "owned-validation-candidate-view-editor-and-result"
+            "owned-immutable-candidate-view-editor-and-result"
           ]
         },
         "retry": {
@@ -976,7 +976,7 @@
             "qualification": {"type":"string", "minLength":1}
           }
         },
-        "validationViewExperiment": {
+        "sourceViewExperiment": {
           "type": "object", "additionalProperties": false,
           "required": ["stage", "integratedWorkspaceMode", "candidate", "publication", "switching", "result", "measurements"],
           "properties": {
@@ -986,7 +986,7 @@
             "result": {"type":"string"}, "measurements": {"type":"string"}
           }
         },
-        "validationWorkflowContract": {
+        "viewWorkflowContract": {
           "type": "object", "additionalProperties": false,
           "required": ["stage", "integratedWorkspaceMode", "cliAvailable", "runtime", "operations", "schemas", "boundaries"],
           "properties": {
@@ -1001,7 +1001,7 @@
               "release",
               "close-view"
             ]},
-            "schemas": {"const":["urn:splinter:v1:validation-workflow-request", "urn:splinter:v1:validation-workflow-response", "urn:splinter:v1:validation-workflow-state", "urn:splinter:v1:validation-product-request"]},
+            "schemas": {"const":["urn:splinter:v1:view-workflow-request", "urn:splinter:v1:view-workflow-response", "urn:splinter:v1:view-workflow-state", "urn:splinter:v1:view-lifecycle-request"]},
             "boundaries": {"type":"string", "minLength":1}
           }
         },

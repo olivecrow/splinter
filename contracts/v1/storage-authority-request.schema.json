@@ -25,7 +25,7 @@
       "required": ["requestId", "ownerId", "snapshot", "requestedAt", "bootTimeUtc"],
       "properties": {
         "requestId": { "type": "string", "pattern": "^[0-9a-f]{32}$" }, "ownerId": { "type": "string", "minLength": 1 },
-        "snapshot": { "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/snapshot" },
+        "snapshot": { "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/snapshot" },
         "requestedAt": { "type": "string", "format": "date-time" }, "bootTimeUtc": { "type": "string", "format": "date-time" },
         "discard": { "anyOf": [{ "type": "null" }, { "$ref": "urn:splinter:v1:workspace-discard-state" }] }
       }

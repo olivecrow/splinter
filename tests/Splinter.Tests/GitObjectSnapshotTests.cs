@@ -30,7 +30,7 @@ public sealed class GitObjectSnapshotTests
         }
         JournalDeltaStore.ExportCandidate(delta, identity, tree, candidatePath, "modes", []);
         using var candidate = new CandidateSnapshotTree(candidatePath, tree);
-        var result = await GitValidationResult.PreserveAsync(f.Source, f.Revision, new string('b', 24), candidate,
+        var result = await GitSourceResult.PreserveAsync(f.Source, f.Revision, new string('b', 24), candidate,
             ["file.bin", "renamed.bin"], [], ct);
         string listing = await TestDirectory.Git(f.Source, "ls-tree", "-r", result.Reference);
         Assert.StartsWith("100755 blob", Assert.Single(listing.Split('\n'), row => row.EndsWith("\trenamed.bin", StringComparison.Ordinal)));

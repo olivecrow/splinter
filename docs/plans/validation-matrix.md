@@ -242,24 +242,24 @@ NR-03은 [공통 저널 58개](../verification/ntfs-recovery.md#nr-03-공통-저
 
 ## SF-03 공통 수명주기 적합성
 
-아래는 [공통 계약·지속 상태](../validation-workflow.md)의 자동 시험 추적이다. 실제 VSS·WinFsp·Unity의 제품 연결이나 공개 48개 시나리오의 추가 통과로 집계하지 않는다. `ValidationWorkflowTests`는 새 coordinator/provider와 합성 파일 영수증을 사용한다.
+아래는 [공통 계약·지속 상태](../view-workflow.md)의 자동 시험 추적이다. `ViewWorkflowTests`는 coordinator/provider와 합성 파일 영수증을 사용한다. 현재 코드의 실행 결과와 범위는 [저장 view 계약 검증](../verification/storage-view-contract.md)을 따른다. 실제 VSS·WinFsp·Unity 연결이나 공개 48개 시나리오의 추가 통과로 집계하지 않는다.
 
 | ID | 대상과 증거 | 상태 |
 | --- | --- | --- |
-| VW-01 | 입력·응답·상태 schema, current-only 거부, CLI capability의 `contract-and-fake` 경계 | Passed, 자동/fake 범위 |
+| VW-01 | 입력·응답·상태 schema, 미지원 요청/필드 거부·bytes 보존, 개발 CLI capability와 실행 가능한 후속 status 요청 | Passed, 자동/fake 범위 |
 | VW-02 | 후보 불변·후속 worker 수정, project/request ID 분리, 동시 동일 요청, intent/observed/completed 중단과 provider 응답 유실 | Passed, 자동/fake 범위 |
 | VW-03 | A/B/A의 소스 세대 분리·동일 세대 재개, 다른 snapshot/cache·stale owner·busy/unknown 차단 | Passed, 자동/fake 범위 |
-| VW-04 | 후보 seal·generation별 검증 증거, 잘못된 증거 거부, worker 성공 자동 승계 없음 | Passed, 자동/fake 범위 |
-| VW-05 | 실패 검증 출력의 독립 보존, source freeze, 의존성이 있는 후보/미보존 결과/손상 결과의 회수 거부, 응답 유실 재시도 | Passed, 자동/fake 범위 |
+| VW-04 | 후보 seal·source generation 일치, 직접 writer·변경 source·손상 receipt 거부 | Passed, 자동/fake 범위 |
+| VW-05 | source 출력의 독립 보존, source freeze, 의존성이 있는 후보/미보존 결과/손상 결과의 회수 거부, 응답 유실 재시도 | Passed, 자동/fake 범위 |
 | VW-06 | 초기/다음 flushed 상태 재개, read-only 관측, 부분·중복·누락·구버전·역행·거짓 release 상태의 보존 거부, 후보/view 기록 누락의 의존성 오인 차단 | Passed, 자동/fake 범위 |
 
-2026-09-28의 `development` 작업 트리에서 `pwsh -NoProfile -File ./scripts/build.ps1`의 locked restore·Release 빌드와 전체 시험을 실행했다. [최종 TRX](../../artifacts/test-results/sf03-workflow-20260928.trx)는 388 Passed, 0 Failed, 1 Skipped이며, 이 중 `ValidationWorkflowTests` 64건과 capability/schema 경계 1건이 이번 범위다. 건너뛴 1건은 현재 폐기한 backend의 당시 시험이다. [실행 manifest](../../artifacts/test-results/sf03-workflow-20260928.manifest.json)는 기준 commit, 변경 코드/schema의 hash와 결과 hash를 고정한다.
+현재 계약의 필수 locked restore·Release 빌드·자동 회귀는 [실행 근거](../verification/storage-view-contract.md)에 기록한다.
 
 실제 provider 연결·관리 파일 분리의 VSS/Unity 실행·snapshot/cache 공동 수명은 아래 WF 추적으로 구분하며 [남은 관문](storage-priority-and-editor-modes.md#sf-03-제품-연결과-남은-관문)을 따른다.
 
 ## SF-03 관리 파일 분리 적합성
 
-개발용 후보 게시의 [현재 계약](../validation-view.md#등록-증거가-있는-관리-파일-분리)을 검증한다. 실제 임시 Git 등록과 합성 불변 트리를 사용하며 제품 VSS/WinFsp/Unity 연결과 구분한다. 형제 Unity fixture, 실제 snapshot, 설치와 외부 프로젝트는 이 자동 시험의 자원이 아니다.
+개발용 후보 게시의 [현재 계약](../source-view.md#등록-증거가-있는-관리-파일-분리)을 검증한다. 실제 임시 Git 등록과 합성 불변 트리를 사용하며 제품 VSS/WinFsp/Unity 연결과 구분한다. 형제 Unity fixture, 실제 snapshot, 설치와 외부 프로젝트는 이 자동 시험의 자원이 아니다.
 
 | ID | 대상과 완료 기준 | 상태 |
 | --- | --- | --- |
@@ -273,7 +273,7 @@ NR-03은 [공통 저널 58개](../verification/ntfs-recovery.md#nr-03-공통-저
 
 ## SF-03 후보 게시 복구 적합성
 
-[개발용 게시 복구 계약](../validation-view.md#같은-요청의-게시-복구)의 범위는 합성 불변 트리·실제 임시 파일 I/O와 예외 주입이다. 실제 프로세스 강제 종료·재부팅·전원/물리 공간 장애 또는 제품 VSS/WinFsp/Unity 검증으로 집계하지 않는다.
+[개발용 게시 복구 계약](../source-view.md#같은-요청의-게시-복구)의 범위는 합성 불변 트리·실제 임시 파일 I/O와 예외 주입이다. 실제 프로세스 강제 종료·재부팅·전원/물리 공간 장애 또는 제품 VSS/WinFsp/Unity 검증으로 집계하지 않는다.
 
 | ID | 대상과 완료 기준 | 상태 |
 | --- | --- | --- |

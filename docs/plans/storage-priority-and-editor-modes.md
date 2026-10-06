@@ -33,7 +33,7 @@
 | SF-05 대형 입력 적합성 | NotRun | 사용할 입력의 mount/Git·파일 I/O 정확성만 선택. 에셋/패키지 저작은 외부 도구 책임, LFS/filter 등의 비지원 거부 유지 |
 | SF-06 기본 방식 선택 | NotRun | AI가 기존 경로의 비용으로 선택하는 사용 절차. 제품 자동 선택 구현 제외, 전체 비교 실행은 필요 시에만 선택 |
 
-개발용 후보와 현재 계약은 [validation view](../validation-view.md)를 따른다. 완료된 작은 시험과 제한은 [검증 안내](../verification/README.md)에서 확인하며 새 대형 PV를 자동 시작하지 않는다.
+개발용 후보와 현재 계약은 [validation view](../source-view.md)를 따른다. 완료된 작은 시험과 제한은 [검증 안내](../verification/README.md)에서 확인하며 새 대형 PV를 자동 시작하지 않는다.
 
 SF-02/03 Partial·SF-04~06 NotRun은 증거 상태이며 미완성 프로그램 기능의 수가 아니다. AI 절차/구현 제외로 분류한 항목도 과거 미실행을 통과로 바꾸지 않는다. 저장·메모리 개선은 실제 입력의 병목 하나와 종료 기준을 고르고, 기존 cache가 있다는 이유로 작업 큐·게임 검증 자동화까지 확장하지 않는다.
 
@@ -53,7 +53,7 @@ SF-02/03 Partial·SF-04~06 NotRun은 증거 상태이며 미완성 프로그램 
 제품 `validation` CLI와 실제 Windows/Git/Unity provider, 서로 다른 VSS의 A/B/A와 같은 경로/캐시, worker 게시의 쓰기 차단, 독립 Git 결과, 제품 snapshot 회수 의존성 검사는 [WF 실행](../verification/product-validation-workflow.md)에서 선택 범위 완료로 판정했다. 기존 첫 cold import 중단·복구 기록은 유지한다. 최종 후보의 두 빈 cache 반복·원시 응답 schema·전체 비용과 보존/회수는 [WF-06~08](../verification/product-validation-cold-cost.md)의 별도 근거로 판정한다.
 
 
-공통 수명주기와 실제 provider·CLI는 [검증 후보 수명주기](../validation-workflow.md)를 따른다. 연결 자격은 [WF 추적표](validation-matrix.md#sf-03-제품-workflow-연결)에서 아래 범위를 판정한다.
+공통 수명주기와 실제 provider·CLI는 [검증 후보 수명주기](../view-workflow.md)를 따른다. 연결 자격은 [WF 추적표](validation-matrix.md#sf-03-제품-workflow-연결)에서 아래 범위를 판정한다.
 
 - 등록된 Git 포인터의 분리·worker 쓰기 차단·같은 owner/request 게시 복구를 실제 VSS에서 확인한다. 기존 `ExportCandidate`의 `.git` 거부와 사용자 파일 보호는 유지한다.
 - 독립 A/B snapshot에 의존하는 candidate/source 세대와 view 소유 cache를 구분한다. cache는 최초 후보의 Library snapshot을 유지한다. 동일 프로젝트·compatibility·partition·예산·owner일 때 다른 snapshot 후보로 전환하며 최초 전체 복제·읽기 hydration을 사용하지 않는다.

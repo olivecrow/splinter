@@ -1,13 +1,13 @@
 using Splinter.Core;
-using static Splinter.Runtime.ValidationWorkflowRules;
+using static Splinter.Runtime.ViewWorkflowRules;
 
 namespace Splinter.Runtime;
 
 // Durable state drives retries; providers reconcile their own atomic receipts.
-public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
-    IValidationWorkflowProvider provider, Action<string>? boundary = null)
+public sealed class ViewWorkflowCoordinator(ViewWorkflowStore store,
+    IViewWorkflowProvider provider, Action<string>? boundary = null)
 {
-    public async Task<ValidationWorkflowState> InspectAsync(string projectId, CancellationToken ct = default)
+    public async Task<ViewWorkflowState> InspectAsync(string projectId, CancellationToken ct = default)
     {
         Name(projectId);
         using var gate = await store.LockAsync(projectId, ct);
@@ -16,31 +16,29 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
 
     // A product mutation may need the original frozen request before Execute.
     // Reconcile only the flushed ledger here; external effects remain in Execute.
-    public async Task<ValidationWorkflowState> RecoverForMutationAsync(string projectId, CancellationToken ct = default)
+    public async Task<ViewWorkflowState> RecoverForMutationAsync(string projectId, CancellationToken ct = default)
     {
         Name(projectId);
         using var gate = await store.LockAsync(projectId, ct);
         return store.Read(projectId, recoverPending: true);
     }
 
-    public async Task<ValidationWorkflowResponse> ExecuteAsync(ValidationWorkflowRequest request, CancellationToken ct = default)
+    public async Task<ViewWorkflowResponse> ExecuteAsync(ViewWorkflowRequest request, CancellationToken ct = default)
     {
         Request(request);
-        Require(request.Operation != "observe-validation", "ValidationRequestInvalid",
-            "Project validation belongs to external tools; view commands manage only storage and owned resources.");
         using var gate = await store.LockAsync(request.ProjectId, ct);
         var state = store.Read(request.ProjectId, recoverPending: true);
         state.Operations.TryGetValue(request.RequestKey, out var op);
-        Require(op is null || op.Request == request, "ValidationRequestKeyConflict", "Retry the original payload for this request key.");
+        Require(op is null || op.Request == request, "ViewRequestKeyConflict", "Retry the original payload for this request key.");
         var (resource, owner) = Authority(state, request);
-        Require(owner == request.Owner, "ValidationOwnerMismatch", "The resource belongs to another owner generation.");
+        Require(owner == request.Owner, "ViewOwnerMismatch", "The resource belongs to another owner generation.");
         await provider.VerifyOwnerAsync(request.ProjectId, resource, owner, ct);
         if (op?.Response is { } completed) return completed with { Replayed = true };
         string[] keys = Resources(state, request);
         var blocking = state.Operations.Values.Where(other => other.Request.RequestKey != request.RequestKey && other.Response is null &&
             Resources(state, other.Request).Intersect(keys, StringComparer.Ordinal).Any()).Select(other => other.Request).ToArray();
         if (blocking.Length != 0)
-            throw new WorkspaceException("ValidationOperationPending", "Resume the pending operation on this resource before changing its intent.",
+            throw new WorkspaceException("ViewOperationPending", "Resume the pending operation on this resource before changing its intent.",
                 new { blockingRequests = blocking });
         if (op is null)
         {
@@ -52,7 +50,7 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
             state = store.Save(state);
         }
         boundary?.Invoke(request.Operation + ":intent");
-        ValidationWorkflowResponse response;
+        ViewWorkflowResponse response;
         switch (request.Operation)
         {
             case "publish":
@@ -62,10 +60,10 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
                 if (receipt is null)
                 {
                     var observed = await provider.ObserveWorkerAsync(request.ProjectId, request.Worker!.WorkspaceId, ct);
-                    Require(observed.Worker == request.Worker, "ValidationSourceChanged", "The worker identity or sealed source changed; preserve it.");
+                    Require(observed.Worker == request.Worker, "ViewSourceChanged", "The worker identity or sealed source changed; preserve it.");
                     Quiescent(observed.Resources);
-                    Require(observed.SnapshotAvailable == true, "ValidationSnapshotUnavailable", "The exact snapshot must be verified available.");
-                    Require(observed.ManagedPathPolicy == "source-only-v1", "ValidationManagedPathsUnsupported",
+                    Require(observed.SnapshotAvailable == true, "ViewSnapshotUnavailable", "The exact snapshot must be verified available.");
+                    Require(observed.ManagedPathPolicy == "source-only-v1", "ViewManagedPathsUnsupported",
                         "The adapter has not qualified source-only publication with its managed paths.");
                     receipt = await provider.PublishAsync(intent, ct);
                 }
@@ -78,13 +76,13 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
             case "select":
             {
                 var candidate = Candidate(state, request.CandidateId!);
-                Require(!candidate.Released, "ValidationArtifactReleased", "A released candidate cannot be selected.");
+                Require(!candidate.Released, "ViewArtifactReleased", "A released candidate cannot be selected.");
                 var cache = request.Cache!;
                 if (state.Views.TryGetValue(cache.ViewId, out var view))
-                    Require(view.Owner == request.Owner && view.Cache == cache && !view.CacheReleased, "ValidationCacheMismatch", "Keep the open view owner and complete cache identity.");
+                    Require(view.Owner == request.Owner && view.Cache == cache && !view.CacheReleased, "ViewCacheMismatch", "Keep the open view owner and complete cache identity.");
                 Require(!state.Views.Values.Any(v => v.Cache.CacheId == cache.CacheId && v.Cache.ViewId != cache.ViewId),
-                    "ValidationCacheMismatch", "The cache is already owned by another view.");
-                var intent = new ValidationSelectionIntent(op.Id, request.ProjectId, op.Id, request.Owner, cache, candidate.Publication);
+                    "ViewCacheMismatch", "The cache is already owned by another view.");
+                var intent = new ViewSelectionIntent(op.Id, request.ProjectId, op.Id, request.Owner, cache, candidate.Publication);
                 var receipt = await provider.FindSelectionAsync(intent, ct);
                 if (receipt is null)
                 {
@@ -93,7 +91,7 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
                 }
                 Selection(receipt, intent);
                 boundary?.Invoke("select:observed");
-                state.Generations.Add(op.Id, new(receipt, null, null, null, false));
+                state.Generations.Add(op.Id, new(receipt, null, null, false));
                 state.Views[cache.ViewId] = new(cache, request.Owner, op.Id);
                 response = new(1, op.Id, request.Operation, false, Selection: receipt);
                 break;
@@ -101,13 +99,13 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
             case "resume":
             {
                 var generation = Generation(state, request.GenerationId!);
-                Require(!generation.Released && generation.FrozenSeal is null, "ValidationGenerationFrozen", "Use a new selection after source preservation; keep the frozen generation.");
+                Require(!generation.Released && generation.FrozenSeal is null, "ViewGenerationFrozen", "Use a new selection after source preservation; keep the frozen generation.");
                 var selection = generation.Selection;
                 Require(state.Views[selection.Intent.Cache.ViewId].CurrentGenerationId == request.GenerationId,
-                    "ValidationGenerationMismatch", "Resume only the currently selected source generation.");
+                    "ViewGenerationMismatch", "Resume only the currently selected source generation.");
                 await QuiescentView(request.ProjectId, selection.Intent.Cache.ViewId, request.Owner, ct);
                 var receipt = await provider.FindSelectionAsync(selection.Intent, ct);
-                Require(receipt is not null, "ValidationSelectionMissing", "Preserve source/cache and recover the original selection receipt.");
+                Require(receipt is not null, "ViewSelectionMissing", "Preserve source/cache and recover the original selection receipt.");
                 Selection(receipt!, selection.Intent);
                 boundary?.Invoke(request.Operation + ":observed");
                 response = new(1, op.Id, request.Operation, false, Selection: selection);
@@ -130,7 +128,7 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
                     state = store.Save(state);
                 }
                 boundary?.Invoke("preserve:frozen");
-                var intent = new ValidationPreservationIntent(op.Id, request.ProjectId, op.Artifact!);
+                var intent = new ViewPreservationIntent(op.Id, request.ProjectId, op.Artifact!);
                 var result = await provider.FindResultAsync(intent, ct) ?? await provider.PreserveAsync(intent, ct);
                 Result(result, intent);
                 await provider.VerifyResultAsync(result, ct);
@@ -144,11 +142,11 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
             case "release":
             {
                 var result = ResultFor(state, request.Target!);
-                Require(result is not null, "ValidationResultRequired", "Preserve and verify an independent result before releasing this artifact.");
+                Require(result is not null, "ViewResultRequired", "Preserve and verify an independent result before releasing this artifact.");
                 await provider.VerifyResultAsync(result!, ct);
                 if (request.Target!.Kind == "candidate")
                     Require(!state.Generations.Values.Any(g => !g.Released && g.Selection.Intent.Candidate.Intent.CandidateId == request.Target.Id),
-                        "ValidationDependencyActive", "Source generations still depend on this candidate; preserve and release them first.");
+                        "ViewDependencyActive", "Source generations still depend on this candidate; preserve and release them first.");
                 else if (!Generation(state, request.Target.Id).Released)
                 {
                     var generation = Generation(state, request.Target.Id);
@@ -157,7 +155,7 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
                     // artifact absent through idempotent ReleaseAsync. It must
                     // otherwise verify this frozen seal before removing anything.
                 }
-                var intent = new ValidationReleaseIntent(op.Id, request.ProjectId, result!.Intent.Artifact, result);
+                var intent = new ViewReleaseIntent(op.Id, request.ProjectId, result!.Intent.Artifact, result);
                 bool alreadyReleased = request.Target.Kind == "candidate" ? Candidate(state, request.Target.Id).Released : Generation(state, request.Target.Id).Released;
                 if (!alreadyReleased) await provider.ReleaseAsync(intent, ct);
                 boundary?.Invoke("release:observed");
@@ -178,9 +176,9 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
             {
                 var cache = request.Cache!;
                 Require(state.Views.TryGetValue(cache.ViewId, out var view) && view.Cache == cache && view.Owner == request.Owner,
-                    "ValidationCacheMismatch", "Close only the retained view/cache identity.");
+                    "ViewCacheMismatch", "Close only the retained view/cache identity.");
                 Require(!state.Generations.Values.Any(g => g.Selection.Intent.Cache.ViewId == cache.ViewId && !g.Released),
-                    "ValidationDependencyActive", "Preserve and release all source generations before closing their cache.");
+                    "ViewDependencyActive", "Preserve and release all source generations before closing their cache.");
                 await QuiescentView(request.ProjectId, cache.ViewId, request.Owner, ct);
                 if (!view!.CacheReleased) await provider.CloseCacheAsync(request.ProjectId, cache, request.Owner, ct);
                 boundary?.Invoke("close-view:observed");
@@ -203,7 +201,7 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
         return SnapshotDependencies(state, snapshot);
     }
 
-    public static string[] SnapshotDependencies(ValidationWorkflowState state, SnapshotReference snapshot)
+    public static string[] SnapshotDependencies(ViewWorkflowState state, SnapshotReference snapshot)
     {
         Snapshot(snapshot);
         var references = state.Candidates.Values.Select(c => c.Publication.Intent.Worker.Snapshot)
@@ -221,81 +219,81 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
             .Order(StringComparer.Ordinal).ToArray();
     }
 
-    private async Task<ValidationArtifact> FreezeAsync(ValidationWorkflowState state, ValidationWorkflowRequest request, CancellationToken ct)
+    private async Task<ViewArtifact> FreezeAsync(ViewWorkflowState state, ViewWorkflowRequest request, CancellationToken ct)
     {
         var target = request.Target!;
         if (target.Kind == "candidate")
         {
             var candidate = Candidate(state, target.Id);
-            Require(!candidate.Released, "ValidationArtifactReleased", "The candidate is already released.");
+            Require(!candidate.Released, "ViewArtifactReleased", "The candidate is already released.");
             return new(target, request.Owner, candidate.Publication.Intent.Worker.Snapshot, candidate.Publication.CandidateSeal);
         }
         var generation = Generation(state, target.Id);
-        Require(!generation.Released, "ValidationArtifactReleased", "The source generation is already released.");
+        Require(!generation.Released, "ViewArtifactReleased", "The source generation is already released.");
         await QuiescentView(request.ProjectId, generation.Selection.Intent.Cache.ViewId, request.Owner, ct);
         var seal = await provider.SealSourceAsync(generation.Selection, ct);
         Seal(seal);
-        Require(generation.FrozenSeal is null || generation.FrozenSeal == seal, "ValidationSourceChanged", "The frozen source output changed; preserve both states.");
+        Require(generation.FrozenSeal is null || generation.FrozenSeal == seal, "ViewSourceChanged", "The frozen source output changed; preserve both states.");
         state.Generations[target.Id] = generation with { FrozenSeal = seal };
         return new(target, request.Owner, generation.Selection.Intent.Candidate.Intent.Worker.Snapshot, seal);
     }
-    private async Task PreflightAsync(ValidationWorkflowState state, ValidationWorkflowRequest request, CancellationToken ct)
+    private async Task PreflightAsync(ViewWorkflowState state, ViewWorkflowRequest request, CancellationToken ct)
     {
         if (request.Worker is { } worker)
         {
             var observed = await provider.ObserveWorkerAsync(request.ProjectId, worker.WorkspaceId, ct);
-            Require(observed.Worker == worker, "ValidationSourceChanged", "The worker's source or snapshot changed.");
+            Require(observed.Worker == worker, "ViewSourceChanged", "The worker's source or snapshot changed.");
             Quiescent(observed.Resources);
-            Require(observed.SnapshotAvailable == true, "ValidationSnapshotUnavailable", "Verify the original snapshot before publication.");
-            Require(observed.ManagedPathPolicy == "source-only-v1", "ValidationManagedPathsUnsupported", "The provider has not qualified managed-path separation.");
+            Require(observed.SnapshotAvailable == true, "ViewSnapshotUnavailable", "Verify the original snapshot before publication.");
+            Require(observed.ManagedPathPolicy == "source-only-v1", "ViewManagedPathsUnsupported", "The provider has not qualified managed-path separation.");
         }
         else if (request.Cache is { } cache)
         {
             if (request.Operation == "close-view")
             {
                 Require(state.Views.TryGetValue(cache.ViewId, out var retained) && retained.Cache == cache && retained.Owner == request.Owner,
-                    "ValidationCacheMismatch", "Close only the retained cache identity.");
+                    "ViewCacheMismatch", "Close only the retained cache identity.");
                 Require(!state.Generations.Values.Any(g => g.Selection.Intent.Cache.ViewId == cache.ViewId && !g.Released),
-                    "ValidationDependencyActive", "Preserve and release all source generations first.");
+                    "ViewDependencyActive", "Preserve and release all source generations first.");
                 await QuiescentView(request.ProjectId, cache.ViewId, request.Owner, ct);
                 return;
             }
             var candidate = Candidate(state, request.CandidateId!);
-            Require(!candidate.Released, "ValidationArtifactReleased", "Keep the released candidate's independent result.");
+            Require(!candidate.Released, "ViewArtifactReleased", "Keep the released candidate's independent result.");
             Require((!state.Views.TryGetValue(cache.ViewId, out var view) || view.Cache == cache && view.Owner == request.Owner && !view.CacheReleased) &&
                 !state.Views.Values.Any(v => v.Cache.CacheId == cache.CacheId && v.Cache.ViewId != cache.ViewId),
-                "ValidationCacheMismatch", "The complete cache identity and single-view ownership must match.");
+                "ViewCacheMismatch", "The complete cache identity and single-view ownership must match.");
             await QuiescentView(request.ProjectId, cache.ViewId, request.Owner, ct);
         }
         else if (request.GenerationId is { } id)
         {
             var generation = Generation(state, id);
-            Require(!generation.Released && generation.FrozenSeal is null, "ValidationGenerationFrozen", "Preserved source generations cannot be resumed or revalidated.");
+            Require(!generation.Released && generation.FrozenSeal is null, "ViewGenerationFrozen", "Preserved source generations cannot be resumed.");
             Require(state.Views[generation.Selection.Intent.Cache.ViewId].CurrentGenerationId == id,
-                "ValidationGenerationMismatch", "Only the current generation can resume or receive validation.");
+                "ViewGenerationMismatch", "Only the current generation can resume.");
             if (request.Operation == "resume") await QuiescentView(request.ProjectId, generation.Selection.Intent.Cache.ViewId, request.Owner, ct);
         }
         else if (request.Operation == "release")
         {
-            Require(ResultFor(state, request.Target!) is not null, "ValidationResultRequired", "Preserve an independent result before release.");
+            Require(ResultFor(state, request.Target!) is not null, "ViewResultRequired", "Preserve an independent result before release.");
             if (request.Target!.Kind == "candidate")
                 Require(!state.Generations.Values.Any(g => !g.Released && g.Selection.Intent.Candidate.Intent.CandidateId == request.Target.Id),
-                    "ValidationDependencyActive", "Retained source generations still depend on the candidate.");
+                    "ViewDependencyActive", "Retained source generations still depend on the candidate.");
         }
     }
-    private async Task QuiescentView(string project, string view, ValidationOwner owner, CancellationToken ct)
+    private async Task QuiescentView(string project, string view, ViewOwner owner, CancellationToken ct)
     {
         var observation = await provider.ObserveViewAsync(project, view, ct);
-        Require(observation.Owner == owner, "ValidationOwnerMismatch", "The view belongs to another owner generation.");
+        Require(observation.Owner == owner, "ViewOwnerMismatch", "The view belongs to another owner generation.");
         Quiescent(observation.Resources);
     }
-    private static ValidationCandidateState Candidate(ValidationWorkflowState state, string id) =>
-        state.Candidates.TryGetValue(id, out var value) ? value : throw new WorkspaceException("ValidationCandidateNotFound", "No published candidate with this identity.");
-    private static ValidationGenerationState Generation(ValidationWorkflowState state, string id) =>
-        state.Generations.TryGetValue(id, out var value) ? value : throw new WorkspaceException("ValidationGenerationNotFound", "No selected source generation with this identity.");
-    private static ValidationIndependentResult? ResultFor(ValidationWorkflowState state, ValidationTarget target) =>
+    private static ViewCandidateState Candidate(ViewWorkflowState state, string id) =>
+        state.Candidates.TryGetValue(id, out var value) ? value : throw new WorkspaceException("ViewCandidateNotFound", "No published candidate with this identity.");
+    private static ViewGenerationState Generation(ViewWorkflowState state, string id) =>
+        state.Generations.TryGetValue(id, out var value) ? value : throw new WorkspaceException("ViewGenerationNotFound", "No selected source generation with this identity.");
+    private static ViewIndependentResult? ResultFor(ViewWorkflowState state, ViewTarget target) =>
         target.Kind == "candidate" ? Candidate(state, target.Id).Result : Generation(state, target.Id).Result;
-    private static (string Resource, ValidationOwner Owner) Authority(ValidationWorkflowState state, ValidationWorkflowRequest request)
+    private static (string Resource, ViewOwner Owner) Authority(ViewWorkflowState state, ViewWorkflowRequest request)
     {
         if (request.Worker is { } worker) return (worker.WorkspaceId, worker.Owner);
         if (request.Cache is { } cache)
@@ -308,7 +306,7 @@ public sealed class ValidationWorkflowCoordinator(ValidationWorkflowStore store,
         var intent = Generation(state, request.GenerationId ?? request.Target!.Id).Selection.Intent;
         return (intent.Cache.ViewId, intent.Owner);
     }
-    private static string[] Resources(ValidationWorkflowState state, ValidationWorkflowRequest request)
+    private static string[] Resources(ViewWorkflowState state, ViewWorkflowRequest request)
     {
         if (request.Worker is { } worker) return ["worker:" + worker.WorkspaceId, "candidate:" + OperationId(request)];
         if (request.Cache is { } cache) return request.CandidateId is { } candidate

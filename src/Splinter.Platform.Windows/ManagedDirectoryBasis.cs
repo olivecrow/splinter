@@ -326,7 +326,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
             JsonSerializer.Serialize(request.Identity) != JsonSerializer.Serialize(expected) ||
             request.MountPath != state.OriginalPath || request.SnapshotOwnerId != state.Basis.OwnerId ||
             request.SnapshotReceiptDirectory != state.Basis.ReceiptDirectory || request.DeltaPath != Path.Combine(state.Basis.ReceiptDirectory, "delta") ||
-            request.ControlPath != Path.Combine(state.Basis.ReceiptDirectory, "overlay") || request.Identity.Graft is not null || request.ValidationView is not null)
+            request.ControlPath != Path.Combine(state.Basis.ReceiptDirectory, "overlay") || request.Identity.Graft is not null || request.SourceView is not null)
             throw new WorkspaceException("GeneratedBasisMismatch", "Retain an inconsistent original mount request.");
     }
     internal static string HashFile(string path) { using var f = File.OpenRead(path); return Convert.ToHexStringLower(SHA256.HashData(f)); }

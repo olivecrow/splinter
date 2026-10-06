@@ -1,6 +1,6 @@
 # 제품 validation workflow 검증
 
-[제품 CLI와 실제 provider](../validation-workflow.md)의 WF-01~05를 **선택 범위 완료·제한 유지 (`scoped-complete-with-limitations`)**로 판정한다. 독립 VSS worker A/B에서 게시한 후보를 같은 Unity view/cache로 A/B/A 검증하고, 후보·소스 세대·worker 결과를 독립 Git 객체로 보존한 뒤 소유 자원을 회수했다. 첫 cold import의 중단과 복구를 포함한 작은 fixture 실행이며 SF-03 전체, 대형 용량 목표나 cold 무중단 안정성의 통과가 아니다.
+[제품 CLI와 실제 provider](../view-workflow.md)의 WF-01~05를 **선택 범위 완료·제한 유지 (`scoped-complete-with-limitations`)**로 판정한다. 독립 VSS worker A/B에서 게시한 후보를 같은 Unity view/cache로 A/B/A 검증하고, 후보·소스 세대·worker 결과를 독립 Git 객체로 보존한 뒤 소유 자원을 회수했다. 첫 cold import의 중단과 복구를 포함한 작은 fixture 실행이며 SF-03 전체, 대형 용량 목표나 cold 무중단 안정성의 통과가 아니다.
 
 원시 증거는 [`artifacts/storage-foundation/wf-20260928/`](../../artifacts/storage-foundation/wf-20260928/), 최종 코드는 기준 `c1e3cc4` 이후의 이 문서와 함께 커밋된 작업이다. 파일·실행 파일·결과 hash는 [검증 manifest](../../artifacts/storage-foundation/wf-20260928/verification-manifest.json), 전체 자동 시험은 [최종 TRX](../../artifacts/test-results/wf-product-20260928.trx)에 고정한다. 실행 중 수정 전의 실패와 최종 실행을 섞어 이전 성공을 승계하지 않는다.
 

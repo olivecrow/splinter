@@ -23,7 +23,7 @@ public sealed class GitWorkspaceProviderTests
         var created = await p.CreateAsync(w, ct); w.BaseRevision = created.BaseRevision; await File.WriteAllTextAsync(System.IO.Path.Combine(wt, "worker.txt"), "worker", ct);
         Assert.False(File.Exists(System.IO.Path.Combine(repo, "worker.txt")));
         var resumed = await p.CreateAsync(w, ct); Assert.Equal(created.Path, resumed.Path);
-        var state = await p.InspectAsync(w, ct); w.Validation = new("test", state.Fingerprint, true, DateTimeOffset.UtcNow, []); w.ResultRevision = await p.CheckpointAsync(w, "worker result", ct);
+        w.ResultRevision = await p.CheckpointAsync(w, "worker result", ct);
         var unintegrated = await Assert.ThrowsAsync<WorkspaceException>(() => p.ReleaseAsync(w, ct)); Assert.Equal("GitReleaseResultNotIntegrated", unintegrated.Code);
         var integrated = await p.IntegrateAsync(w, "main", ct); w.IntegratedRevision = integrated.Revision; await p.ReleaseAsync(w, ct);
     }
@@ -45,7 +45,7 @@ public sealed class GitWorkspaceProviderTests
     {
         var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); string repo = await Repo(d.Path, ct); string wt = System.IO.Path.Combine(d.Path, "worker");
         var w = Record(repo, wt, "splinter/work-3"); var p = new GitWorkspaceProvider(); var created = await p.CreateAsync(w, ct); w.BaseRevision = created.BaseRevision;
-        await File.WriteAllTextAsync(System.IO.Path.Combine(wt, "result.txt"), "result", ct); var state = await p.InspectAsync(w, ct); w.Validation = new("test", state.Fingerprint, true, DateTimeOffset.UtcNow, []); string result = await p.CheckpointAsync(w, "result", ct); w.ResultRevision = result;
+        await File.WriteAllTextAsync(System.IO.Path.Combine(wt, "result.txt"), "result", ct); string result = await p.CheckpointAsync(w, "result", ct); w.ResultRevision = result;
         var integrated = await p.IntegrateAsync(w, "main", ct); Assert.False(integrated.AlreadyIntegrated);
         Assert.Equal(result, await TestDirectory.Git(repo, "merge-base", result, integrated.Revision));
         w.IntegratedRevision = integrated.Revision; await p.ReleaseAsync(w, ct);
@@ -56,7 +56,7 @@ public sealed class GitWorkspaceProviderTests
     public async Task Deleted_file_fingerprint_survives_stage_commit_and_release()
     {
         var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); var repo = await Repo(d.Path, ct); var wt = Path.Combine(d.Path, "deleted"); var w = Record(repo, wt, "splinter/deleted"); var p = new GitWorkspaceProvider(); var made = await p.CreateAsync(w, ct); w.BaseRevision = made.BaseRevision;
-        File.Delete(Path.Combine(wt, "file.txt")); var state = await p.InspectAsync(w, ct); w.Validation = new("delete", state.Fingerprint, true, DateTimeOffset.UtcNow, []);
+        File.Delete(Path.Combine(wt, "file.txt"));
         w.ResultRevision = await p.CheckpointAsync(w, "remove file", ct); var integrated = await p.IntegrateAsync(w, "main", ct); w.IntegratedRevision = integrated.Revision; await p.ReleaseAsync(w, ct); Assert.False(File.Exists(Path.Combine(repo, "file.txt")));
     }
 
@@ -70,13 +70,11 @@ public sealed class GitWorkspaceProviderTests
         await File.WriteAllTextAsync(Path.Combine(wt, "new.txt"), "unvalidated", ct);
         var first = await p.CheckpointAsync(w, "preserve source", ct);
         Assert.Equal("unvalidated", await TestDirectory.Git(repo, "show", first + ":new.txt"));
-        Assert.Null(w.Validation);
-        w.Validation = new("historic", "stale", false, DateTimeOffset.UtcNow, ["old compile failure"]);
+
         await File.WriteAllTextAsync(Path.Combine(wt, "new.txt"), "current", ct);
         var second = await p.CheckpointAsync(w, "preserve current source", ct);
         Assert.NotEqual(first, second);
         Assert.Equal("current", await TestDirectory.Git(repo, "show", second + ":new.txt"));
-        Assert.False(w.Validation.Success); Assert.Equal("stale", w.Validation.Fingerprint);
         Assert.False((await p.InspectAsync(w, ct)).HasChanges);
         Assert.False(File.Exists(Path.Combine(repo, "new.txt")));
     }
@@ -99,8 +97,6 @@ public sealed class GitWorkspaceProviderTests
         await File.WriteAllTextAsync(Path.Combine(workspace.Path, "Library", "cache"), "cache", ct);
         await File.WriteAllTextAsync(Path.Combine(workspace.Path, "Assets", "__Splinter__", "bridge.cs"), "generated", ct);
         await File.WriteAllTextAsync(Path.Combine(workspace.Path, "script.cs"), "source", ct);
-        var source = await provider.InspectAsync(workspace, ct);
-        workspace.Validation = new("compile", source.Fingerprint, true, DateTimeOffset.UtcNow, []);
         workspace.ResultRevision = await provider.CheckpointAsync(workspace, "source only", ct);
         Assert.Equal("script.cs", await TestDirectory.Git(workspace.Path, "diff-tree", "--no-commit-id", "--name-only", "-r", workspace.ResultRevision));
         Assert.True(File.Exists(Path.Combine(workspace.Path, "Library", "cache")));
@@ -112,7 +108,7 @@ public sealed class GitWorkspaceProviderTests
     {
         var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); string repo = await Repo(d.Path, ct); string wt = System.IO.Path.Combine(d.Path, "worker");
         var w = Record(repo, wt, "splinter/work-4"); var p = new GitWorkspaceProvider(); var created = await p.CreateAsync(w, ct); w.BaseRevision = created.BaseRevision;
-        await File.WriteAllTextAsync(System.IO.Path.Combine(wt, "file.txt"), "worker", ct); var state = await p.InspectAsync(w, ct); w.Validation = new("test", state.Fingerprint, true, DateTimeOffset.UtcNow, []); w.ResultRevision = await p.CheckpointAsync(w, "worker", ct);
+        await File.WriteAllTextAsync(System.IO.Path.Combine(wt, "file.txt"), "worker", ct); w.ResultRevision = await p.CheckpointAsync(w, "worker", ct);
         await File.WriteAllTextAsync(System.IO.Path.Combine(repo, "file.txt"), "target", ct); await TestDirectory.Git(repo, "add", "file.txt"); await TestDirectory.Git(repo, "commit", "-m", "target");
         var ex = await Assert.ThrowsAsync<WorkspaceException>(() => p.IntegrateAsync(w, "main", ct)); Assert.Equal("IntegrationConflict", ex.Code);
         Assert.Equal("target", await File.ReadAllTextAsync(System.IO.Path.Combine(repo, "file.txt"), ct));
@@ -154,8 +150,6 @@ public sealed class GitWorkspaceProviderTests
         var provider = new GitWorkspaceProvider();
         workspace.BaseRevision = (await provider.CreateAsync(workspace, ct)).BaseRevision;
         await File.WriteAllTextAsync(Path.Combine(workspace.Path, "result.txt"), "collected", ct);
-        var source = await provider.InspectAsync(workspace, ct);
-        workspace.Validation = new("compile", source.Fingerprint, true, DateTimeOffset.UtcNow, []);
         workspace.ResultRevision = await provider.CheckpointAsync(workspace, "result", ct);
         workspace.IntegratedRevision = (await provider.IntegrateAsync(workspace, "main", ct)).Revision;
         await TestDirectory.Git(repo, "worktree", "remove", workspace.Path);

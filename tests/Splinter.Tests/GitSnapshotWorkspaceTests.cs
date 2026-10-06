@@ -187,7 +187,6 @@ public sealed partial class GitSnapshotWorkspaceTests
         await File.WriteAllTextAsync(Path.Combine(w.Path, "README.md"), "private result\n", ct);
         var state = await git.InspectAsync(w, ct);
         w.ResultRevision = await git.CheckpointAsync(w, "result", ct);
-        Assert.Null(w.Validation); // preservation cannot claim that this worker was validated.
         string reference = await git.PreserveAsync(w, control, ct);
         w.Snapshot.Result = new("snapshot", w.ResultRevision, state.Fingerprint, reference, new(1, 100, "fake"), true, SnapshotResult.StableJournalProtocol);
         await git.VerifyResultAsync(w, control, ct);

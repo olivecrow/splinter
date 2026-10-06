@@ -6,20 +6,20 @@ using Splinter.Platform.Windows;
 
 namespace Splinter.Workflows.Windows;
 
-public sealed record ValidationProductRequest(int Version, string Action, string Project,
-    ValidationOwner Owner, string RequestKey, string? WorkspaceId = null, string? ViewId = null,
-    string? CandidateId = null, string? GenerationId = null, ValidationTarget? Target = null,
+public sealed record ViewLifecycleRequest(int Version, string Action, string Project,
+    ViewOwner Owner, string RequestKey, string? WorkspaceId = null, string? ViewId = null,
+    string? CandidateId = null, string? GenerationId = null, ViewTarget? Target = null,
     long MaxJournalBytes = SnapshotWorkspaceState.DefaultJournalBytes, long? MaxEstimatedJournalOverlapBytes = null);
-internal sealed record WorkerBinding(int Version, string ProjectId, string WorkspaceId, ValidationOwner Owner,
+internal sealed record WorkerBinding(int Version, string ProjectId, string WorkspaceId, ViewOwner Owner,
     string CompatibilityKey, string BaseRevision);
-internal sealed record ViewBinding(int Version, string ProjectId, ValidationOwner Owner, ValidationCacheIdentity Cache,
+internal sealed record ViewBinding(int Version, string ProjectId, ViewOwner Owner, ViewCacheIdentity Cache,
     string MountPath, [property: JsonRequired] string CacheWorkerId, bool Closed = false);
-internal sealed record ViewGeneration(int Version, ValidationSelectionReceipt Selection, string WorkerId,
+internal sealed record ViewGeneration(int Version, ViewSelectionReceipt Selection, string WorkerId,
     string BaseRevision, WorkspaceRecord Workspace, OverlayServeRequest Request);
 internal sealed record ActiveGeneration(int Version, string GenerationId);
-internal sealed record CacheMaintenance(int Version, string RequestKey, ValidationCacheIdentity Cache,
-    long MaxEstimatedJournalOverlapBytes, SnapshotDeltaSeal BeforeSeal, ValidationCacheUsage Before,
-    SnapshotJournalCompaction? Compaction = null, ValidationCacheUsage? After = null, bool Completed = false);
+internal sealed record CacheMaintenance(int Version, string RequestKey, ViewCacheIdentity Cache,
+    long MaxEstimatedJournalOverlapBytes, SnapshotDeltaSeal BeforeSeal, JournalPrivateUsage Before,
+    SnapshotJournalCompaction? Compaction = null, JournalPrivateUsage? After = null, bool Completed = false);
 
 internal static class ProductState
 {
@@ -41,14 +41,14 @@ internal static class ProductState
             var value = document.RootElement.Deserialize<T>(journal ? new JsonSerializerOptions(Json) { PropertyNamingPolicy = null } : Json)
                 ?? throw new JsonException("Empty receipt.");
             if (document.RootElement.TryGetProperty(journal ? "Version" : "version", out var version) &&
-                version.GetInt32() != (typeof(T) == typeof(ValidationCandidate) ? 3 : typeof(T) == typeof(OverlayIdentity) ? 2 : 1)) throw new JsonException("Unsupported version.");
+                version.GetInt32() != (typeof(T) == typeof(ImmutableCandidate) ? 3 : typeof(T) == typeof(OverlayIdentity) ? 2 : 1)) throw new JsonException("Unsupported version.");
             return value;
         }
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { return null; }
-        catch (JsonException) { throw new WorkspaceException("ValidationReceiptInvalid", "Preserve unsupported or corrupt validation state: " + path); }
+        catch (JsonException) { throw new WorkspaceException("ViewReceiptInvalid", "Preserve unsupported or corrupt view state: " + path); }
     }
     internal static T Required<T>(string path, bool journal = false) where T : class =>
-        Read<T>(path, journal) ?? throw new WorkspaceException("ValidationReceiptMissing", "Retain and reconcile missing state: " + path);
+        Read<T>(path, journal) ?? throw new WorkspaceException("ViewReceiptMissing", "Retain and reconcile missing state: " + path);
     internal static void Save<T>(string path, T value)
     {
         WorkspaceStore.EnsurePlainPath(path); Directory.CreateDirectory(Path.GetDirectoryName(path)!);

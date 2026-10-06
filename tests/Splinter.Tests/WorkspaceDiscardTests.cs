@@ -38,8 +38,8 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         WorkspaceCoordinator Peer() => new(new(f.Home), peerSource, peerApp, snapshots: peerBackend);
         var b = await Peer().EnsureAsync(f.Project, "peer", "base", "ntfs-snapshot", false, ct);
         peerSource.Dirty = true;
-        a.Validation = new("failed", "source", false, DateTimeOffset.UtcNow, ["compile error"]);
-        a.Phase = "validation-failed"; new WorkspaceStore(f.Home).Save(a, "fixture-error");
+
+        a.LastError = "SourceObservationUncertain"; new WorkspaceStore(f.Home).Save(a, "fixture-error");
         f.Source.Dirty = true; f.Source.InspectionError = "MustNotReadSource"; f.App.Running = true; f.Backend.AcknowledgeWrite();
         var finished = await f.New().DiscardAsync(DiscardRequest(a), ct);
         Assert.Equal("discarded", finished.Workspace.Phase); Assert.Equal("complete", finished.Workspace.Discard!.Step);
@@ -149,11 +149,11 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     {
         using var f = new Fixture { WithDiscard = true }; var ct = TestContext.Current.CancellationToken;
         var w = (await f.Ensure(ct)).Workspace; string project = WorkspaceStore.ProjectKey(f.Project);
-        var world = new ValidationWorkflowWorld(); var owner = new ValidationOwner("discard-worker", 1);
+        var world = new ViewWorkflowWorld(); var owner = new ViewOwner("discard-worker", 1);
         var worker = world.SetWorker(w.Id, owner, w.Snapshot!.Reference!, "candidate-data");
-        var viewOwner = new ValidationOwner("discard-validator", 1); world.Owners["discard-view"] = viewOwner;
-        var workflow = new ValidationWorkflowCoordinator(new(new WorkspaceStore(f.Home)),
-            new ValidationWorkflowFake(Path.Combine(f.Home, "discard-validation"), world));
+        var viewOwner = new ViewOwner("discard-validator", 1); world.Owners["discard-view"] = viewOwner;
+        var workflow = new ViewWorkflowCoordinator(new(new WorkspaceStore(f.Home)),
+            new ViewWorkflowFake(Path.Combine(f.Home, "discard-validation"), world));
         var candidate = (await workflow.ExecuteAsync(new(1, "publish", project, "publish-before-discard", owner) { Worker = worker }, ct)).Candidate!;
         await workflow.ExecuteAsync(new(1, "select", project, "select-before-discard", viewOwner)
         { CandidateId = candidate.Intent.CandidateId, Cache = new("discard-view", "discard-cache", w.Snapshot.Reference!, "fake", "source", 4096) }, ct);

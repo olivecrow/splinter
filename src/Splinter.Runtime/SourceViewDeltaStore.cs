@@ -6,7 +6,7 @@ namespace Splinter.Runtime;
 // An offline-selected source generation and a separately owned persistent cache.
 // The two journals are exclusive writers. A selection change requires disposal
 // of the entire mounted view; live handle rebinding is deliberately unsupported.
-public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
+public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore
 {
     private readonly object gate = new();
     private readonly CandidateSnapshotTree candidate;
@@ -22,19 +22,19 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
     private sealed record TransferIntent(int Version, string SourceDirectory, OverlayIdentity SourceIdentity,
         Guid Id, string From, string Destination, string Staging, bool FromCache, bool Replace, string Hash);
     public OverlayIdentity Identity { get; }
-    public ValidationCandidate Candidate => candidate.Candidate;
+    public ImmutableCandidate Candidate => candidate.Candidate;
 
     public static JournalDeltaStore OpenCacheReadOnly(string directory, OverlayIdentity identity) =>
         identity.Snapshot.Provider == "validation-empty-cache" && identity.IncludedTopLevel is null
             ? JournalDeltaStore.OpenReadOnly(directory, identity, new EmptyCacheTree(identity.Snapshot))
-            : throw new WorkspaceException("ValidationCacheMismatch", "An exact snapshot basis is required for this cache.");
+            : throw new WorkspaceException("ViewCacheMismatch", "An exact snapshot basis is required for this cache.");
 
     public static JournalDeltaStore OpenCacheReadOnly(string directory, OverlayIdentity identity, ISnapshotTree basis) =>
         JournalDeltaStore.OpenReadOnly(directory, identity,
-            new ValidationCacheSnapshotTree(basis, identity.Snapshot, identity.IncludedTopLevel ?? []));
+            new CacheSnapshotTree(basis, identity.Snapshot, identity.IncludedTopLevel ?? []));
 
-    public ValidationViewDeltaStore(string sourceDirectory, OverlayIdentity identity, ISnapshotTree basis,
-        ValidationViewSelection selection, Action<string>? transferBoundary = null, ISnapshotTree? cacheBasis = null)
+    public SourceViewDeltaStore(string sourceDirectory, OverlayIdentity identity, ISnapshotTree basis,
+        SourceViewSelection selection, Action<string>? transferBoundary = null, ISnapshotTree? cacheBasis = null)
     {
         policy = WorkspacePathPolicy.For(identity.Snapshot);
         if (selection.CacheTopLevel is not { Length: > 0 } || selection.CacheTopLevel.Any(p =>
@@ -56,7 +56,7 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
         cacheRoots = selection.CacheTopLevel.Order(policy.Comparer).ToArray();
         if (new[] { "compaction-intent.json", "delta.journal.previous", "delta.journal.compacting" }
             .Any(name => File.Exists(Path.Combine(selection.CacheDeltaPath, name))))
-            throw new WorkspaceException("ValidationCacheMaintenancePending", "Finish this cache's retained compaction before starting a validation view.");
+            throw new WorkspaceException("ViewCacheMaintenancePending", "Finish this cache's retained compaction before starting a source view.");
         candidate = new CandidateSnapshotTree(selection.CandidatePath, basis);
         try
         {
@@ -66,18 +66,18 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
                 Snapshot = identity.Snapshot with { Id = identity.Id + "/cache", Provider = "validation-empty-cache",
                     RootPath = Path.GetFullPath(selection.CacheDeltaPath), Consistency = "empty-owned-cache" } };
             if (cacheIdentity.Snapshot.PathPolicy != identity.Snapshot.PathPolicy)
-                throw new WorkspaceException("ValidationCacheMismatch", "Cache and source partitions must use the same immutable path policy.");
+                throw new WorkspaceException("ViewCacheMismatch", "Cache and source partitions must use the same immutable path policy.");
             var partitions = selection.CacheBasis == "snapshot" ? cacheIdentity.IncludedTopLevel : cacheIdentity.ExcludedTopLevel;
             if (!(partitions ?? []).Order(policy.Comparer).SequenceEqual(cacheRoots, policy.Comparer) ||
                 selection.CacheBasis == "snapshot" && cacheIdentity.ExcludedTopLevel is { Length: > 0 })
-                throw new WorkspaceException("ValidationCacheMismatch", "The retained cache partition must match the selected view.");
+                throw new WorkspaceException("ViewCacheMismatch", "The retained cache partition must match the selected view.");
             ISnapshotTree cacheTree = selection.CacheBasis switch
             {
                 "snapshot" when cacheBasis is not null && cacheIdentity.Snapshot.Provider != "validation-empty-cache" =>
-                    new ValidationCacheSnapshotTree(cacheBasis, cacheIdentity.Snapshot, cacheRoots),
+                    new CacheSnapshotTree(cacheBasis, cacheIdentity.Snapshot, cacheRoots),
                 "empty" when cacheBasis is null && cacheIdentity.Snapshot.Provider == "validation-empty-cache" =>
                     new EmptyCacheTree(cacheIdentity.Snapshot),
-                _ => throw new WorkspaceException("ValidationCacheMismatch", "Select an explicit empty cache or supply the exact retained cache snapshot; never replace a missing base.")
+                _ => throw new WorkspaceException("ViewCacheMismatch", "Select an explicit empty cache or supply the exact retained cache snapshot; never replace a missing base.")
             };
             cache = new JournalDeltaStore(selection.CacheDeltaPath, cacheIdentity, cacheTree);
             try

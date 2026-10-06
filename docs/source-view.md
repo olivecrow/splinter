@@ -1,20 +1,20 @@
-# 불변 검증 후보와 고정 view 실험
+# 불변 소스 후보와 고정 view
 
 현재 명령은 [별도 개발 CLI](development-cli.md)에서 사용한다. storage 후보·source/cache·seal/회수를 관리하며 자체 compile/validation 요청은 제공하지 않는다.
 
-`snapshot-spike`의 개발용 확장이다. 제품 `workspace ensure`의 실행 모드나 작업 큐에 연결되어 있지 않다. 현재 범위는 아래 저장·게시·view 계약이며, 과거 VC-01~04의 입력과 판정은 [검증 기록](verification/immutable-validation-view.md#관문별-판정)을 따른다.
+`snapshot-spike`의 개발용 확장이다. 제품 `workspace ensure`의 실행 모드나 작업 큐에 연결되어 있지 않다. 현재 범위는 아래 저장·게시·view 계약이며, VC-01~04의 입력과 판정은 [검증 기록](verification/immutable-validation-view.md#관문별-판정)을 따른다.
 
-같은 저장소 구현을 사용하는 [소스 view 수명주기](validation-workflow.md)는 개발용 `view` 명령으로 Windows/Git/Unity 수명 어댑터와 연결한다. Unity의 실제 편집·컴파일·테스트는 AI·외부 도구가 수행한다. 아래 개발용 실험의 통과 근거를 새 제품 후보로 자동 승계하지 않는다.
+같은 저장소 구현을 사용하는 [소스 view 수명주기](view-workflow.md)는 개발용 `view` 명령으로 Windows/Git/Unity 수명 어댑터와 연결한다. Unity의 실제 편집·컴파일·테스트는 AI·외부 도구가 수행한다. 아래 개발용 실험의 통과 근거를 새 제품 후보로 자동 승계하지 않는다.
 
 ## 저장 구조
 
-Core의 현재 `ValidationCandidate` 형식은 version 3이며 overlay v2/SJR2의 저장/복원 길이·논리 fragment를 사용하고 원본 `OverlayIdentity`, 원래 저널 seal, 별도 후보 저널 seal과 시각, 필수 `sourceProjection`을 묶는다. 일반 소스 후보의 projection은 명시적 null이고, 관리 파일을 분리한 후보에는 아래 증거가 들어간다. `ValidationViewSelection`은 후보 디렉터리·캐시 디렉터리·캐시 최상위 이름을 전달한다. Core는 Unity·Git·Win32에 의존하지 않는다. 이전 후보 형식·증거 누락은 파일을 보존하고 거부하며 자동 이관하지 않는다.
+Core의 현재 `ImmutableCandidate` 형식은 version 3이며 overlay v2/SJR2의 저장/복원 길이·논리 fragment를 사용하고 원본 `OverlayIdentity`, 원래 저널 seal, 별도 후보 저널 seal과 시각, 필수 `sourceProjection`을 묶는다. 일반 소스 후보의 projection은 명시적 null이고, 관리 파일을 분리한 후보에는 아래 증거가 들어간다. `SourceViewSelection`은 후보 디렉터리·캐시 디렉터리·캐시 최상위 이름을 전달한다. Core는 Unity·Git·Win32에 의존하지 않는다. 이전 후보 형식·증거 누락은 파일을 보존하고 거부하며 자동 이관하지 않는다.
 
 Runtime의 `JournalDeltaStore.PublishCandidate`는 정지한 작업자 저널을 읽기 전용으로 열어 동시 writer를 거부한다. 기존 정리 알고리즘으로 유효 변경 범위와 메타데이터만 별도 디렉터리에 기록하고 replay/state hash/seal을 확인한 뒤 `candidate.json`을 마지막에 atomic 게시한다. 같은 요청의 복구는 아래 intent 계약을 따른다. 원본 파일 트리 전체를 열거하거나 원본 payload를 복제하지 않는다. 저장 중 대체된 저널 payload는 후보에 필요하지 않지만 메타데이터와 일부 표현 한계에 따른 기록은 남을 수 있다. 소스 저널은 변경하지 않는다. 게시 중 임시 공간은 작업자와 후보의 합계이며 `.new` 저널은 게시 때 이름만 바꾸므로 별도 전체 사본을 만들지 않는다.
 
 `CandidateSnapshotTree`는 게시된 identity와 seal을 검사하고 사용하는 동안 읽기 전용 저널 핸들로 쓰기·교체를 막는다. 열린 핸들이 없는 동안 외부에서 변경한 후보는 다음 연결의 seal 검사에서 거부한다. snapshot과 후보를 조합한 identity는 원본 identity·원래/후보 seal·분리 증거를 포함한다. snapshot이 소실되면 읽기를 중단한다. 후보 자체는 **snapshot에서 독립된 결과가 아니다**.
 
-`ValidationViewDeltaStore`는 두 개의 독점 writer 저널을 사용한다.
+`SourceViewDeltaStore`는 두 개의 독점 writer 저널을 사용한다.
 
 | 저장 위치 | 수명과 역할 |
 | --- | --- |
@@ -23,7 +23,7 @@ Runtime의 `JournalDeltaStore.PublishCandidate`는 정지한 작업자 저널을
 | 세대별 소스 delta | 후보를 기준으로 Unity가 쓴 소스·.meta·관리 bridge를 보존한다. 다음 후보에는 섞지 않는다. |
 | 공통 cache delta | 명시적 `empty` 기준 또는 고정한 별도 `snapshot` 기준 위에 `Library`/`Temp`/`Logs`/`UserSettings`/`obj`의 private 쓰기를 보존한다. 후보 간 같은 저널과 기준을 재개한다. |
 
-소스·후보·캐시는 서로 겹치지 않는 경로여야 한다. partition 설정·view ID·원본 snapshot·예산이 달라지면 기존 캐시를 재사용하지 않는다. 다른 writer가 캐시를 열고 있으면 다음 view를 열 수 없다. 저널 형식과 각 acknowledged write의 flush 정책은 기존과 같다. `state.json.validationView`는 source/cache 각각의 I/O 계수와 후보 seal을 보인다. 최상위 `storage` 합계는 두 저널의 관측이며 제품 `stable-journal-v1` 결과 seal로 사용하지 않는다.
+소스·후보·캐시는 서로 겹치지 않는 경로여야 한다. partition 설정·view ID·원본 snapshot·예산이 달라지면 기존 캐시를 재사용하지 않는다. 다른 writer가 캐시를 열고 있으면 다음 view를 열 수 없다. 저널 형식과 각 acknowledged write의 flush 정책은 기존과 같다. `state.json.sourceView`는 source/cache 각각의 I/O 계수와 후보 seal을 보인다. 최상위 `storage` 합계는 두 저널의 관측이며 제품 `stable-journal-v1` 결과 seal로 사용하지 않는다.
 
 Unity가 새 임시 파일을 다른 partition으로 rename할 때는 원본에서 읽을 범위가 0인 파일만 전달한다. `JournalPrivateFiles`는 유효 private extent만 복제하고 구멍을 채우지 않는다. 최대 유효 payload 64MiB·8,192개 extent이며 디렉터리와 원본 범위가 남은 파일의 경계 이동은 거부한다. `partition-transfer.json`은 정확한 source 세대와 양쪽 경로·file ID·range hash를 기록한다. 목적지 저널의 임시 파일에 범위를 기록하고 같은 저널 안의 atomic rename으로 게시한 뒤 원래 경로를 지운다. 원래 file ID와 열린 핸들은 유지한다. 중단 시 view I/O를 막고 같은 source 세대 재연결만으로 전송을 완료한다. 후보를 바꾸거나 intent/저널을 삭제해 복구를 우회하지 않는다. 공급자 epoch의 `transferCount`, `transferredPrivateBytes`, 마지막 경로는 관측 값이며 파일 전체 copy-up이나 새 저널 형식이 아니다.
 
@@ -42,7 +42,7 @@ Unity가 새 임시 파일을 다른 partition으로 rename할 때는 원본에�
 }
 ```
 
-`scripts/splinter-dev.ps1 snapshot-spike --input <request.json>`으로 호출한다. 입력 schema는 `snapshot-spike-request`, 결과 후보 schema는 `validation-candidate`다. `candidate-export`는 `.git`·관리 캐시를 쓴 작업자를 계속 거부한다. Git 포인터가 있는 작업자에는 아래의 별도 개발용 경로가 필요하다. 독립 결과 수집 단계의 Git 등록은 `GitOverlayRegistration`을 사용하며, 실험의 attach는 baseline과 다른 소스가 있는 index refresh의 정상 exit 1을 허용한다. lock·기타 오류를 무시하지 않고 제품 attach의 기본 계약은 유지한다.
+`scripts/splinter-dev.ps1 snapshot-spike --input <request.json>`으로 호출한다. 입력 schema는 `snapshot-spike-request`, 결과 후보 schema는 `immutable-candidate`다. `candidate-export`는 `.git`·관리 캐시를 쓴 작업자를 계속 거부한다. Git 포인터가 있는 작업자에는 아래의 별도 개발용 경로가 필요하다. 독립 결과 수집 단계의 Git 등록은 `GitOverlayRegistration`을 사용하며, 실험의 attach는 baseline과 다른 소스가 있는 index refresh의 정상 exit 1을 허용한다. lock·기타 오류를 무시하지 않고 제품 attach의 기본 계약은 유지한다.
 
 ### 등록 증거가 있는 관리 파일 분리
 
@@ -88,13 +88,13 @@ Runtime의 일회성 `ExportCandidate`/`ExportSourceCandidate`는 같은 게시 
 
 자동 적합성의 [VP 추적](plans/validation-matrix.md#sf-03-후보-게시-복구-적합성)은 합성 불변 트리와 실제 임시 파일에서 예외를 주입한 경계·부분 바이트·새 호출을 검증한다. 실제 프로세스 강제 종료·재부팅·전원/물리 공간 장애, VSS/WinFsp/Unity 실행과 제품 자원 fencing·snapshot 의존성의 증거는 [WF 추적](plans/validation-matrix.md#sf-03-제품-workflow-연결)과 구분한다.
 
-### 후보를 사용하는 검증 view
+### 후보를 사용하는 소스 view
 
 검증용 `overlay-serve-request`에 다음 선택을 더한다.
 
 ```json
 {
-  "validationView": {
+  "sourceView": {
     "candidatePath": "C:/trial/candidates/a",
     "cacheDeltaPath": "C:/trial/cache",
     "cacheTopLevel": ["Library", "Temp", "Logs", "UserSettings", "obj"],
@@ -105,7 +105,7 @@ Runtime의 일회성 `ExportCandidate`/`ExportSourceCandidate`는 같은 게시 
 
 전체 요청의 `identity`는 원본 snapshot을 가리킨다. 각 전환에는 새 `deltaPath`와 `controlPath`를 쓰고 동일한 `mountPath`, view ID, cache 경로를 유지한다. 이전 후보의 source delta·제어 기록은 보존한다. 재개는 같은 후보·같은 source delta·같은 identity를 쓴다. 오류 뒤 폴더나 저널을 삭제해서 identity 검사를 우회하지 않는다.
 
-전환 순서는 `unity-stop` → 소유 application 자원 0 → `unmount` → provider 종료·mount 부재 → 다음 후보 `mount` → `unity-start` → 선택한 외부 도구로 refresh·실제 code/asset 확인이다. `checkpoint`를 검증 후보로 재사용하지 않는다. 열린 Editor 아래 root 교체, 자동 임대/FIFO, 작업자에 생성 소스를 병합하는 명령은 없다. source delta의 출력은 독립 Git 결과로 수집한 후에 회수한다. release·TTL·디스크 압박에 의한 자동 후보 삭제도 없다.
+전환 순서는 `unity-stop` → 소유 application 자원 0 → `unmount` → provider 종료·mount 부재 → 다음 후보 `mount` → `unity-start` → 선택한 외부 도구로 refresh·실제 code/asset 확인이다. 후보 게시에는 정지 worker의 source seal과 `candidate-export` 또는 `candidate-source-export`를 사용한다. 열린 Editor 아래 root 교체, 자동 임대/FIFO, 작업자에 생성 소스를 병합하는 명령은 없다. source delta의 출력은 독립 Git 결과로 수집한 후에 회수한다. release·TTL·디스크 압박에 의한 자동 후보 삭제도 없다.
 
 provider는 저널을 여는 동안 `replaying` 상태를 게시한다. mount/reconnect는 같은 launch의 PID·시작 시각을 유지하며 최대 2분 동안 실제 mount와 5초 이내의 `mounted` 관측을 기다린다. 프로세스 시작이나 replay 상태만으로 준비 완료를 반환하지 않는다. 한도 초과·취소에는 저널과 실행 중인 provider를 보존하며 같은 요청의 다음 호출이 그 provider를 기다린다. 기록과 launch 소유권이 맞지 않으면 불확실 상태를 유지하고 중복 실행하지 않는다. `state.preparation.storeReadyTicks`는 후보 확인과 source/cache 열기를 합친 내부 시간이며 전체 CLI 준비 시간과 구별한다.
 

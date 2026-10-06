@@ -14,8 +14,8 @@ public static class WorkspaceFailurePolicy
         "DeltaChangedAfterCollection" or "SnapshotResultInvalid" or "StateCorrupt" or
         "SnapshotReclamationInvalid" or "SnapshotCollateralLoss" or "CompactionGenerationMismatch" or
         "CompactionStateMismatch" or "CompactionCandidateMismatch" or "CompactionIntentCorrupt" or "CompactionIntentMismatch" or
-        "ValidationStateCorrupt" or "ValidationReceiptInvalid" or "ValidationReceiptMismatch" or "ValidationResultInvalid" or
-        "ValidationSourceChanged" or "ValidationEvidenceMismatch" or "ValidationReleaseUncertain" or "ValidationResultChanged" or
+        "ViewStateCorrupt" or "ViewReceiptInvalid" or "ViewReceiptMismatch" or "ViewResultInvalid" or
+        "ViewSourceChanged" or "ViewReleaseUncertain" or "ViewResultChanged" or
         "CandidateProjectionMismatch" or "CandidateProjectionHistoryUnsupported" or
         "CandidatePublicationCorrupt" or "CandidatePublicationMismatch" or "CandidatePublicationUnowned" or
         "CandidateSourceChanged" or "CandidatePartialMismatch" or "CandidateStateMismatch" or "CandidateSealMismatch" or
@@ -23,7 +23,7 @@ public static class WorkspaceFailurePolicy
 
     public static string RetryDisposition(string code) => RequiresPreservation(code) ? "requires-user-action" : code switch
     {
-        "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "SourceObservationUncertain" or "SourceChanged" or "ValidationResourcesBusy" or "CandidatePublicationBusy" => "safe-to-retry",
+        "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "SourceObservationUncertain" or "SourceChanged" or "ViewResourcesBusy" or "CandidatePublicationBusy" => "safe-to-retry",
         "StorageServiceMissing" or "StorageServiceUnavailable" or "StorageServiceVersionMismatch" or "StorageServiceUnsafe" or
         "StorageOperationUncertain" or "StorageRequestPending" or "StorageScopeDenied" or "StorageSnapshotNotOwned" or "StorageReleaseNotAuthorized" or
         "WorkspaceDiscardUnavailable" or "WorkspaceDiscarding" or "DiscardOwnershipUnknown" or
@@ -33,9 +33,9 @@ public static class WorkspaceFailurePolicy
         "SnapshotObservationUnknown" or "StateRecoveryRequired" or "StateReadUnavailable" or "StateWriteIncomplete" or
         "DeltaCorrupt" or "DeltaReconnectRequired" or "OverlayIdentityMissing" or "OverlayIdentityMismatch" or "SnapshotIdentityMismatch" or
         "SourceCacheRevalidationRequired" or "SourceObservationInvalid" or "SourceManifestLimit" or "AccessDenied" or "GitUnavailable" or
-        "ValidationStateRecoveryRequired" or "ValidationStateUnavailable" or "ValidationStateWriteIncomplete" or "ValidationResourcesUnknown" or
-        "ValidationSnapshotUnavailable" or "ValidationSelectionMissing" or "ValidationManagedPathsUnsupported" or "ValidationOperationPending" or
-        "ValidationResultRequired" or "ValidationDependencyActive" or "ValidationReceiptMissing" or "CandidateRegistrationBusy" or "SnapshotInUse" or "SnapshotReadersActive" => "requires-user-action",
+        "ViewStateRecoveryRequired" or "ViewStateUnavailable" or "ViewStateWriteIncomplete" or "ViewResourcesUnknown" or
+        "ViewSnapshotUnavailable" or "ViewSelectionMissing" or "ViewManagedPathsUnsupported" or "ViewOperationPending" or
+        "ViewResultRequired" or "ViewDependencyActive" or "ViewReceiptMissing" or "CandidateRegistrationBusy" or "SnapshotInUse" or "SnapshotReadersActive" => "requires-user-action",
         _ => "correct-request"
     };
 }

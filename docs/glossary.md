@@ -9,12 +9,12 @@ CLI 응답과 기능 문서를 읽을 때 필요한 용어를 설명한다. 각 
 | 원본 / project | 작업의 출발점이자 명시적으로 결과를 반영할 대상 프로젝트. 작업 중에도 원본을 계속 수정할 수 있다. | [작업공간](vcs-independent-workspaces.md) |
 | task / 작업 | 같은 목적과 고정 key로 이어가는 논리적인 작업. 대화나 CLI 프로세스가 끝나도 작업이 자동 종료되지는 않는다. | [AI 시작 안내](agent-start.md) |
 | workspace / 작업공간 | 특정 작업의 파일을 편집하는 독립 경로와 그 상태·소유 자원. 응답의 `data.workspace.path`를 사용한다. | [현재 기반](foundation.md) |
-| worker / 작업자 | 편집하는 작업공간을 가리키는 말. 개발용 view 문서에서는 후보를 내보내는 소스 작업공간을 뜻한다. AI 자체나 background thread의 이름이 아니다. | [개발용 view](validation-workflow.md) |
+| worker / 작업자 | 편집하는 작업공간을 가리키는 말. 개발용 view 문서에서는 후보를 내보내는 소스 작업공간을 뜻한다. AI 자체나 background thread의 이름이 아니다. | [개발용 view](view-workflow.md) |
 | peer / 다른 작업 | 같은 프로젝트나 기준을 사용하는 다른 작업공간. A의 회수는 B의 파일·Editor·결과를 정리할 권한이 아니다. | [회수와 관측](ntfs-workspaces.md#회수와-관측) |
 | home | 같은 프로젝트의 작업 상태·작업 경로·공유 실행 파일을 두는 기준 디렉터리. 재개와 회수에서도 같은 home을 지정한다. | [AI 시작 안내](agent-start.md) |
-| key / request key | 같은 논리 작업이나 요청을 다시 찾기 위한 고정 이름. workspace의 `--key`, 게시의 `requestKey`, 폐기의 `intentKey`는 각각의 명령에서 사용하는 키다. 같은 키로 다른 입력을 보내면 새 요청으로 바뀌지 않는다. | [AI 시작 안내](agent-start.md), [후보 게시](validation-view.md#같은-요청의-게시-복구) |
+| key / request key | 같은 논리 작업이나 요청을 다시 찾기 위한 고정 이름. workspace의 `--key`, 게시의 `requestKey`, 폐기의 `intentKey`는 각각의 명령에서 사용하는 키다. 같은 키로 다른 입력을 보내면 새 요청으로 바뀌지 않는다. | [AI 시작 안내](agent-start.md), [후보 게시](source-view.md#같은-요청의-게시-복구) |
 | ID / id | Splinter가 작업공간·기준본 등 특정 객체에 부여한 식별자. 사용자가 정하는 작업 key와 구분하며 status/list로 정확한 대상을 확인한다. | [명시적 폐기](workspace-discard.md) |
-| owner / 소유자 | 자원이나 영수증이 어느 작업에 속하는지 나타내는 identity. 개발용 workflow의 generation은 같은 소유자의 세대를 구분한다. | [개발용 view](validation-workflow.md) |
+| owner / 소유자 | 자원이나 영수증이 어느 작업에 속하는지 나타내는 identity. 개발용 workflow의 generation은 같은 소유자의 세대를 구분한다. | [개발용 view](view-workflow.md) |
 | digest / fingerprint / hash | 입력이나 내용을 요약한 값. `requestDigest`는 고정 작업 입력, 계획 digest는 반영 계획, fingerprint는 해당 계약의 내용 검증에 사용한다. 서로 대체하지 않는다. | [원본 반영](plain-folder-original-apply.md), [소스 검증](source-verification.md) |
 | intent / 수행 의도 | 반영·폐기·복원처럼 중간에 끊길 수 있는 작업의 대상과 입력을 먼저 고정한 기록. 중단 후에는 같은 intent로 이어가며 파일을 지우거나 새 키로 우회하지 않는다. | [원본 반영](plain-folder-original-apply.md), [폐기](workspace-discard.md) |
 | receipt / 영수증 | 생성·등록·게시·회수 등 특정 수행에서 확인한 대상과 소유권을 남기는 기록. 기록의 존재만으로 현재 mount나 프로세스가 살아 있음을 뜻하지 않는다. | [프로젝트 기준본](plain-project-basis.md), [회수와 관측](ntfs-workspaces.md#회수와-관측) |
@@ -57,16 +57,16 @@ CLI 응답과 기능 문서를 읽을 때 필요한 용어를 설명한다. 각 
 | --- | --- | --- |
 | checkpoint | 소유 Editor의 정상 종료와 안정된 소스 확인 뒤 결과를 보존하는 명령. 컴파일·테스트 성공을 뜻하지 않는다. | [AI 시작 안내](agent-start.md#편집editor종료) |
 | independent result / 독립 결과 | 기존 snapshot이나 작업 mount를 회수해도 보존되는 소스 결과. Git 결과와 파일 payload 결과의 표현은 서로 다르다. | [NTFS 작업공간](ntfs-workspaces.md), [VCS 없는 작업공간](vcs-independent-workspaces.md) |
-| seal / 내용 고정 증거 | 특정 시점의 저널 sequence·길이·hash 등으로 이후 변경 여부를 대조하는 값. 컴파일 합격이나 사용자 승인 표시가 아니다. | [소스 검증](source-verification.md), [후보](validation-view.md) |
-| candidate / 후보 | 정지 worker의 유효 변경분을 별도 게시한 개발용 입력. 게시 후 worker 편집과 분리되지만 여전히 원본 snapshot에 의존하므로 독립 결과와 다르다. | [불변 후보](validation-view.md) |
-| view / source generation / cache | 개발용 view는 선택한 후보로 실행하는 고정 경로다. source generation은 선택별 소스 세대, cache는 같은 view에서 유지하는 생성 데이터 영역이다. 기본 제품 작업 모드가 아니다. | [개발용 view](validation-workflow.md) |
+| seal / 내용 고정 증거 | 특정 시점의 저널 sequence·길이·hash 등으로 이후 변경 여부를 대조하는 값. 컴파일 합격이나 사용자 승인 표시가 아니다. | [소스 검증](source-verification.md), [후보](source-view.md) |
+| candidate / 후보 | 정지 worker의 유효 변경분을 별도 게시한 개발용 입력. 게시 후 worker 편집과 분리되지만 여전히 원본 snapshot에 의존하므로 독립 결과와 다르다. | [불변 후보](source-view.md) |
+| view / source generation / cache | 개발용 view는 선택한 후보로 실행하는 고정 경로다. source generation은 선택별 소스 세대, cache는 같은 view에서 유지하는 생성 데이터 영역이다. 기본 제품 작업 모드가 아니다. | [개발용 view](view-workflow.md) |
 | integrate / apply / 원본 반영 | checkpoint 결과를 명시적 대상에 반영한다. Git branch 반영과 일반 폴더·recorded Plastic의 `--target original` 조건부 파일 게시를 구분한다. | [현재 기반](foundation.md), [파일 반영](plain-folder-original-apply.md), [Plastic 반영](plastic-original-apply.md) |
 | release / 자원 회수 | 독립 결과를 보존한 뒤 해당 작업의 소유 자원을 회수한다. 원본 반영이 필수는 아니며 결과 폐기와 다르다. | [회수와 관측](ntfs-workspaces.md#회수와-관측) |
 | discard / 작업 폐기 | 성공 checkpoint 없이 해당 작업의 작업 데이터를 명시적으로 버리고 소유 자원을 회수한다. 이미 원본에 반영한 내용을 되돌리는 명령은 아니다. | [명시적 폐기](workspace-discard.md) |
 | restore / 원본 복원 | 모든 dependent/reader를 종료한 뒤 Library 또는 project basis의 현재 원본 내용을 일반 NTFS로 돌려놓는 명령. 처음 준비한 시점으로 원본 편집을 되돌리는 뜻이 아니다. | [Library 참조](git-library-reference.md), [프로젝트 기준본](plain-project-basis.md) |
 | compact / 저널 정리 | 정상 stop/unmount와 seal·예산 확인 후 대체된 저널 범위를 명시적으로 정리한다. 작업 폐기나 일반 파일 삭제가 아니다. | [압축 저널](journal-payload-compression.md) |
 | reclaim-pending / discard-reclaim-pending | 각각 보존 또는 폐기 경로에서 물리 자원 회수를 기다리는 상태. 종료 완료로 읽지 않고 같은 작업·같은 요청으로 명시적으로 재시도한다. | [AI 시작 안내](agent-start.md#실패와-완료-판독) |
-| lease / fence / dependency | lease는 작업 동안 보유하는 접근 수명, fence는 읽기·쓰기·회수의 동시 충돌을 막는 경계, dependency는 기준을 아직 사용하는 객체 관계다. 만료·타임아웃은 다른 작업 삭제나 일반 소유권 인수의 승인이 아니다. | [개발용 view](validation-workflow.md), [폐기](workspace-discard.md) |
+| lease / fence / dependency | lease는 작업 동안 보유하는 접근 수명, fence는 읽기·쓰기·회수의 동시 충돌을 막는 경계, dependency는 기준을 아직 사용하는 객체 관계다. 만료·타임아웃은 다른 작업 삭제나 일반 소유권 인수의 승인이 아니다. | [개발용 view](view-workflow.md), [폐기](workspace-discard.md) |
 | grant / authorization | grant는 제한 서비스에 등록한 사용자·project·volume·home 범위다. authorization은 특정 capture/release/discard 요청에서 대조하는 권한과 소유 증거다. 사용자 의도와 대상 검사를 대체하지 않는다. | [권한 서비스](storage-privilege-service.md) |
 
 예를 들어 A 작업의 결과만 남기고 끝내려면 checkpoint → release를 사용한다. 원본에 반영하려면 checkpoint → 명시적 integrate → release다. 실패한 A 작업을 버리려면 discard를 사용한다. project basis를 함께 쓰는 B가 남아 있으면 A 회수 뒤에도 project restore를 진행할 수 없다.

@@ -12,11 +12,11 @@ public sealed partial class JournalDeltaStore
     public SnapshotDeltaSeal Seal() { using (EnterGate()) { Check(); return SealCurrent(); } }
     // The source is opened read-only, denying an active writer. Only live private
     // payload ranges are copied. Neither enumeration nor hydration of the base occurs.
-    public static ValidationCandidate ExportCandidate(string sourceDirectory, OverlayIdentity identity,
+    public static ImmutableCandidate ExportCandidate(string sourceDirectory, OverlayIdentity identity,
         ISnapshotTree snapshot, string destination, string id, string[] forbiddenTopLevel) =>
         ExportCandidateCore(sourceDirectory, identity, snapshot, destination, id, forbiddenTopLevel, null, null);
 
-    public static ValidationCandidate ExportSourceCandidate(string sourceDirectory, OverlayIdentity identity,
+    public static ImmutableCandidate ExportSourceCandidate(string sourceDirectory, OverlayIdentity identity,
         ISnapshotTree snapshot, string destination, string id, string[] forbiddenTopLevel,
         CandidateSourceProjection projection, Action<string>? boundary = null)
     {
@@ -24,7 +24,7 @@ public sealed partial class JournalDeltaStore
         return ExportCandidateCore(sourceDirectory, identity, snapshot, destination, id, forbiddenTopLevel, projection, boundary);
     }
 
-    private static ValidationCandidate ExportCandidateCore(string sourceDirectory, OverlayIdentity identity,
+    private static ImmutableCandidate ExportCandidateCore(string sourceDirectory, OverlayIdentity identity,
         ISnapshotTree snapshot, string destination, string id, string[] forbiddenTopLevel,
         CandidateSourceProjection? projection, Action<string>? boundary)
     {
@@ -35,11 +35,11 @@ public sealed partial class JournalDeltaStore
         return PublishCandidate(sourceDirectory, identity, snapshot, destination, new(1, id), forbiddenTopLevel, projection, boundary);
     }
 
-    internal static JournalDeltaStore OpenCandidate(string directory, ISnapshotTree snapshot, out ValidationCandidate candidate)
+    internal static JournalDeltaStore OpenCandidate(string directory, ISnapshotTree snapshot, out ImmutableCandidate candidate)
     {
         try
         {
-            candidate = JsonSerializer.Deserialize<ValidationCandidate>(File.ReadAllText(Path.Combine(directory, "candidate.json")))
+            candidate = JsonSerializer.Deserialize<ImmutableCandidate>(File.ReadAllText(Path.Combine(directory, "candidate.json")))
                 ?? throw new JsonException();
         }
         catch (Exception ex) when (ex is JsonException or FileNotFoundException)
@@ -70,7 +70,7 @@ public sealed class CandidateSnapshotTree : ISnapshotTree, IDisposable
 {
     private readonly JournalDeltaStore store;
     private readonly ISnapshotTree basis;
-    public ValidationCandidate Candidate { get; }
+    public ImmutableCandidate Candidate { get; }
     public SnapshotReference Snapshot { get; }
     public CandidateSnapshotTree(string directory, ISnapshotTree basis)
     {

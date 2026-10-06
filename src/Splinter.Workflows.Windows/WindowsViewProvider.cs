@@ -12,7 +12,7 @@ namespace Splinter.Workflows.Windows;
 // The product composition owns concrete resources; Core/Runtime remain portable.
 // Its facade serializes product operations, and publication also owns the worker
 // operation lock used by workspace ensure/release. Journal readers fence direct writers.
-internal sealed partial class WindowsValidationProvider(WorkspaceStore store, string project) : IValidationWorkflowProvider
+internal sealed partial class WindowsViewProvider(WorkspaceStore store, string project) : IViewWorkflowProvider
 {
     internal static readonly string[] CacheRoots = ["Library", "Temp", "Logs", "UserSettings", "obj", ".vs", ".idea"];
     internal string ProjectId => WorkspaceStore.ProjectKey(project);
@@ -29,7 +29,7 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
     internal WorkerBinding Worker(string id)
     {
         var binding = Required<WorkerBinding>(WorkerPath(id));
-        Require(binding.ProjectId == ProjectId && binding.WorkspaceId == id, "ValidationReceiptMismatch", "Worker binding identity differs from its location.");
+        Require(binding.ProjectId == ProjectId && binding.WorkspaceId == id, "ViewReceiptMismatch", "Worker binding identity differs from its location.");
         return binding;
     }
     internal ViewBinding View(string id)
@@ -41,7 +41,7 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
             binding.Cache.SnapshotBacked && binding.Cache.Snapshot == workspace.Snapshot!.Reference &&
             binding.Cache.CompatibilityKey == worker.CompatibilityKey &&
             WorkspaceStore.SamePath(binding.MountPath, Path.Combine(store.Root, "validation-mounts", WorkspaceStore.Key(ProjectId + ":" + id))),
-            "ValidationReceiptMismatch", "View/cache binding paths or identity differ from their owned location.");
+            "ViewReceiptMismatch", "View/cache binding paths or identity differ from their owned location.");
         return binding;
     }
     internal ViewGeneration Generation(string id)
@@ -61,7 +61,7 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
             WorkspaceStore.SamePath(g.Request.MountPath, view.MountPath) &&
             g.Request.SnapshotOwnerId == worker.WorkspaceId &&
             WorkspaceStore.SamePath(g.Request.SnapshotReceiptDirectory, Path.Combine(store.ControlPath(worker.WorkspaceId), "snapshot")) &&
-            g.Request.ValidationView is { } selected &&
+            g.Request.SourceView is { } selected &&
             selected.CacheTopLevel.SequenceEqual(CacheRoots) && selected.CacheIdentity is { } cacheIdentity &&
             cacheIdentity.Id == view.Cache.CacheId && cacheIdentity.Snapshot == view.Cache.Snapshot &&
             selected.CacheBasis == "snapshot" && cacheIdentity.MaxJournalBytes == view.Cache.MaxJournalBytes &&
@@ -71,14 +71,14 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
             cacheRead.ReadAccess.SnapshotId == view.Cache.Snapshot.Id &&
             WorkspaceStore.SamePath(selected.CandidatePath, CandidatePath(intent.Candidate.Intent.CandidateId)) &&
             WorkspaceStore.SamePath(selected.CacheDeltaPath, CachePath(view.Cache.CacheId)),
-            "ValidationReceiptMismatch", "Generation state cannot redirect owned processes, source, snapshot or cache paths.");
+            "ViewReceiptMismatch", "Generation state cannot redirect owned processes, source, snapshot or cache paths.");
         return g;
     }
     internal WorkspaceRecord Workspace(string id)
     {
         var w = store.Get(id);
         Require(WorkspaceStore.SamePath(w.ProjectPath, project) && w.StorageMode == "ntfs-snapshot" && w.Snapshot?.Reference is not null,
-            "ValidationWorkerMismatch", "Use this project's existing NTFS snapshot worker.");
+            "ViewWorkerMismatch", "Use this project's existing NTFS snapshot worker.");
         return w;
     }
     internal string Delta(WorkspaceRecord w) => Path.Combine(store.ControlPath(w.Id), "delta");
@@ -88,19 +88,19 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
     {
         var access = await SnapshotProvider(worker).ResolveReadAccessAsync(snapshot, null, ct);
         var health = await SnapshotProvider(worker).ObserveAsync(snapshot, ct);
-        Require(health.Available == true, "ValidationSnapshotUnavailable", "Verify this exact VSS identity before reading source.");
+        Require(health.Available == true, "ViewSnapshotUnavailable", "Verify this exact VSS identity before reading source.");
         return new(snapshot, access, () => health);
     }
-    public Task VerifyOwnerAsync(string projectId, string resourceId, ValidationOwner owner, CancellationToken ct)
+    public Task VerifyOwnerAsync(string projectId, string resourceId, ViewOwner owner, CancellationToken ct)
     {
-        Require(projectId == ProjectId, "ValidationOwnerMismatch", "Project identity mismatch.");
+        Require(projectId == ProjectId, "ViewOwnerMismatch", "Project identity mismatch.");
         var worker = Read<WorkerBinding>(WorkerPath(resourceId)); var view = Read<ViewBinding>(ViewPath(resourceId));
-        Require(worker is null != (view is null), "ValidationOwnerMismatch", "Exactly one bound resource must identify this owner.");
+        Require(worker is null != (view is null), "ViewOwnerMismatch", "Exactly one bound resource must identify this owner.");
         Require((worker?.Owner ?? view!.Owner) == owner && (worker?.ProjectId ?? view!.ProjectId) == ProjectId,
-            "ValidationOwnerMismatch", "The resource belongs to another project or owner generation.");
+            "ViewOwnerMismatch", "The resource belongs to another project or owner generation.");
         return Task.CompletedTask;
     }
-    public async Task<ValidationWorkerObservation> ObserveWorkerAsync(string projectId, string workspaceId, CancellationToken ct)
+    public async Task<ViewWorkerObservation> ObserveWorkerAsync(string projectId, string workspaceId, CancellationToken ct)
     {
         var binding = Worker(workspaceId); await VerifyOwnerAsync(projectId, workspaceId, binding.Owner, ct);
         var w = Workspace(workspaceId);
@@ -123,7 +123,7 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
             frozen.Identity.Id == intent.Worker.WorkspaceId && frozen.Identity.Snapshot == intent.Worker.Snapshot &&
             WorkspaceStore.SamePath(frozen.SourceDirectory, Delta(workspace)) && WorkspaceStore.SamePath(frozen.Destination, destination) &&
             JsonSerializer.Serialize(frozen.Identity) == JsonSerializer.Serialize(Identity(workspace)),
-            "ValidationReceiptMismatch", "Publication must reconcile its original frozen worker.");
+            "ViewReceiptMismatch", "Publication must reconcile its original frozen worker.");
         using var basis = await Basis(intent.Worker.WorkspaceId, intent.Worker.Snapshot, ct);
         var candidate = JournalDeltaStore.PublishCandidate(frozen.SourceDirectory, frozen.Identity, basis, destination,
             new(1, intent.CandidateId), CacheRoots, frozen.SourceProjection);
@@ -132,38 +132,38 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
     public async Task<CandidatePublicationReceipt> PublishAsync(CandidatePublicationIntent intent, CancellationToken ct)
     {
         var observed = await ObserveWorkerAsync(intent.ProjectId, intent.Worker.WorkspaceId, ct);
-        Require(observed.Worker == intent.Worker, "ValidationSourceChanged", "The publication source changed.");
+        Require(observed.Worker == intent.Worker, "ViewSourceChanged", "The publication source changed.");
         var w = Workspace(intent.Worker.WorkspaceId); var identity = Identity(w);
         using var basis = await Basis(w.Id, intent.Worker.Snapshot, ct);
         using var fence = JournalDeltaStore.OpenReadOnly(Delta(w), identity, basis);
-        Require(fence.Seal() == intent.Worker.SourceSeal, "ValidationSourceChanged", "Source changed before its writer fence.");
+        Require(fence.Seal() == intent.Worker.SourceSeal, "ViewSourceChanged", "Source changed before its writer fence.");
         var git = await GitOverlayRegistration.ReadAsync(Path.Combine(store.ControlPath(w.Id), "git-overlay.json"), ct);
         var projection = await GitOverlayRegistration.QualifyCandidateSourceAsync(git, identity, ct);
         var candidate = JournalDeltaStore.PublishCandidate(Delta(w), identity, basis, CandidatePath(intent.CandidateId),
             new(1, intent.CandidateId), CacheRoots, projection);
-        Require(fence.Seal() == intent.Worker.SourceSeal, "ValidationSourceChanged", "Frozen source changed during publication.");
+        Require(fence.Seal() == intent.Worker.SourceSeal, "ViewSourceChanged", "Frozen source changed during publication.");
         return Receipt(intent, candidate);
     }
-    private static CandidatePublicationReceipt Receipt(CandidatePublicationIntent intent, ValidationCandidate candidate)
+    private static CandidatePublicationReceipt Receipt(CandidatePublicationIntent intent, ImmutableCandidate candidate)
     {
         Require(candidate.Id == intent.CandidateId && candidate.SourceSeal == intent.Worker.SourceSeal,
-            "ValidationReceiptMismatch", "Candidate receipt does not match the frozen publication.");
+            "ViewReceiptMismatch", "Candidate receipt does not match the frozen publication.");
         return new(intent, candidate.Seal, candidate.Id);
     }
-    internal static ValidationResources Resources(ApplicationState app, SnapshotWorkspaceObservation observed) =>
+    internal static ViewResources Resources(ApplicationState app, SnapshotWorkspaceObservation observed) =>
         new(observed.OwnershipVerified && app.Resources?.OwnershipVerified == true &&
             (app.Running || app.Resources is { WorkingSetBytes: 0, PrivateBytes: 0 }) &&
             (observed.ProviderAlive || observed is { WorkingSetBytes: 0, PrivateBytes: 0 }),
             app.Resources?.ActiveProcesses, observed.ProviderAlive ? 1 : 0, observed.OpenHandles, observed.Mounted);
-    internal static void Quiescent(ValidationResources r) => Require(r is { OwnershipVerified: true, Applications: 0, Writers: 0, OpenHandles: 0, Mounted: false },
-        "ValidationResourcesBusy", "Verify zero owned applications, writers, handles and mounts; unknown is not zero.");
-    public async Task<ValidationViewObservation> ObserveViewAsync(string projectId, string viewId, CancellationToken ct)
+    internal static void Quiescent(ViewResources r) => Require(r is { OwnershipVerified: true, Applications: 0, Writers: 0, OpenHandles: 0, Mounted: false },
+        "ViewResourcesBusy", "Verify zero owned applications, writers, handles and mounts; unknown is not zero.");
+    public async Task<SourceViewObservation> ObserveViewAsync(string projectId, string viewId, CancellationToken ct)
     {
         var view = View(viewId); await VerifyOwnerAsync(projectId, viewId, view.Owner, ct);
         var active = Read<ActiveGeneration>(ActivePath(viewId));
         if (active is null)
         {
-            Require(!Directory.Exists(view.MountPath) && !File.Exists(view.MountPath), "ValidationResourcesBusy", "An unowned view path exists.");
+            Require(!Directory.Exists(view.MountPath) && !File.Exists(view.MountPath), "ViewResourcesBusy", "An unowned view path exists.");
             return new(view.Owner, new(true, 0, 0, 0, false));
         }
         var generation = Generation(active.GenerationId);
@@ -194,25 +194,25 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
             live?.PrivateBytes ?? (owned && !alive && !mounted ? 0 : null)));
     }
     internal WinFspOverlayMountProvider MountProvider(ViewGeneration g) => new(Path.Combine(g.Request.ControlPath, "request.json"), Runner);
-    public async Task<ValidationSelectionReceipt?> FindSelectionAsync(ValidationSelectionIntent intent, CancellationToken ct)
+    public async Task<ViewSelectionReceipt?> FindSelectionAsync(ViewSelectionIntent intent, CancellationToken ct)
     {
         RequireCacheReady(intent.Cache.ViewId);
         var g = Read<ViewGeneration>(Path.Combine(GenerationPath(intent.GenerationId), "generation.json"));
         if (g is null) return null;
-        Require(g.Selection.Intent == intent, "ValidationReceiptMismatch", "Source generation belongs to another selection.");
+        Require(g.Selection.Intent == intent, "ViewReceiptMismatch", "Source generation belongs to another selection.");
         // Only an explicit pending select/resume reaches here. Never replace its source.
         Quiescent((await ObserveViewAsync(intent.ProjectId, intent.Cache.ViewId, ct)).Resources);
         using var tree = await OpenArtifact(new("source-generation", intent.GenerationId), ct);
         Save(ActivePath(intent.Cache.ViewId), new ActiveGeneration(1, intent.GenerationId));
         return g.Selection;
     }
-    public async Task<ValidationSelectionReceipt> SelectAsync(ValidationSelectionIntent intent, CancellationToken ct)
+    public async Task<ViewSelectionReceipt> SelectAsync(ViewSelectionIntent intent, CancellationToken ct)
     {
         RequireCacheReady(intent.Cache.ViewId);
         var view = View(intent.Cache.ViewId);
-        Require(!view.Closed && view.Cache == intent.Cache && view.Owner == intent.Owner, "ValidationCacheMismatch", "Keep the bound open view and cache identity.");
+        Require(!view.Closed && view.Cache == intent.Cache && view.Owner == intent.Owner, "ViewCacheMismatch", "Keep the bound open view and cache identity.");
         var worker = Worker(intent.Candidate.Intent.Worker.WorkspaceId);
-        Require(worker.CompatibilityKey == view.Cache.CompatibilityKey, "ValidationCacheMismatch", "The Editor/bridge compatibility key differs.");
+        Require(worker.CompatibilityKey == view.Cache.CompatibilityKey, "ViewCacheMismatch", "The Editor/bridge compatibility key differs.");
         Quiescent((await ObserveViewAsync(intent.ProjectId, intent.Cache.ViewId, ct)).Resources);
         using var basis = await Basis(worker.WorkspaceId, intent.Candidate.Intent.Worker.Snapshot, ct);
         var access = await SnapshotProvider(worker.WorkspaceId).ResolveReadAccessAsync(basis.Snapshot, null, ct);
@@ -223,16 +223,16 @@ internal sealed partial class WindowsValidationProvider(WorkspaceStore store, st
             : await SnapshotProvider(view.CacheWorkerId).ResolveReadAccessAsync(view.Cache.Snapshot, null, ct);
         using var cacheLease = SnapshotProvider(view.CacheWorkerId).AcquireReadLease();
         using var cacheBasis = new VssSnapshotTree(view.Cache.Snapshot, cacheAccess);
-        var selection = new ValidationViewSelection(CandidatePath(intent.Candidate.Intent.CandidateId), CachePath(intent.Cache.CacheId), CacheRoots, cacheIdentity, "snapshot");
-        using (var initialize = new ValidationViewDeltaStore(delta, identity, basis, selection, cacheBasis: cacheBasis)) { initialize.Flush(); }
+        var selection = new SourceViewSelection(CandidatePath(intent.Candidate.Intent.CandidateId), CachePath(intent.Cache.CacheId), CacheRoots, cacheIdentity, "snapshot");
+        using (var initialize = new SourceViewDeltaStore(delta, identity, basis, selection, cacheBasis: cacheBasis)) { initialize.Flush(); }
         var request = new OverlayServeRequest(identity, delta, view.MountPath, Path.Combine(control, "overlay"),
             Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32)), access,
             Path.Combine(store.ControlPath(worker.WorkspaceId), "snapshot"), worker.WorkspaceId, selection,
             new(cacheAccess, Path.Combine(store.ControlPath(view.CacheWorkerId), "snapshot"), view.CacheWorkerId));
-        var receipt = new ValidationSelectionReceipt(intent, intent.GenerationId);
+        var receipt = new ViewSelectionReceipt(intent, intent.GenerationId);
         var w = new WorkspaceRecord { Id = intent.GenerationId, RequestKey = intent.OperationId, ProjectPath = project,
-            Path = view.MountPath, SourceReference = "validation-source", BaseReference = worker.BaseRevision, BaseRevision = worker.BaseRevision,
-            StorageMode = "ntfs-snapshot", Purpose = "validation", ManagedPaths = Managed, Snapshot = new() { Reference = basis.Snapshot, MaxJournalBytes = intent.Cache.MaxJournalBytes } };
+            Path = view.MountPath, SourceReference = "view-source", BaseReference = worker.BaseRevision, BaseRevision = worker.BaseRevision,
+            StorageMode = "ntfs-snapshot", Purpose = "source-view", ManagedPaths = Managed, Snapshot = new() { Reference = basis.Snapshot, MaxJournalBytes = intent.Cache.MaxJournalBytes } };
         Save(Path.Combine(control, "generation.json"), new ViewGeneration(1, receipt, worker.WorkspaceId, worker.BaseRevision, w, request));
         Save(Path.Combine(request.ControlPath, "request.json"), request);
         Save(ActivePath(intent.Cache.ViewId), new ActiveGeneration(1, intent.GenerationId));

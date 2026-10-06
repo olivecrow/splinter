@@ -4,7 +4,7 @@ namespace Splinter.Core;
 
 // Private journal storage only. Immutable snapshot bytes and shared VSS are not
 // charged here; frame bytes include retained mutation metadata and checksums.
-public sealed record ValidationCacheUsage(long JournalBytes, long RetainedPayloadBytes,
+public sealed record JournalPrivateUsage(long JournalBytes, long RetainedPayloadBytes,
     long LivePrivateBytes, long ObsoletePayloadBytes, long FrameBytes)
 {
     public long LiveStoredPayloadBytes { get; init; }
@@ -25,13 +25,13 @@ public sealed record CandidateExportIntent(int Version, CandidateExportRequest R
     SnapshotDeltaSeal SourceSeal, string StateHash, long JournalBytes, DateTimeOffset StartedAt,
     [property: JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] CandidateSourceProjection? SourceProjection);
 
-// A reusable validation input is distinct from final workspace collection.
+// A reusable immutable source input is distinct from final workspace collection.
 // Its ranges still depend on this exact snapshot; it is not an independent result.
-public sealed record ValidationCandidate(int Version, string Id, OverlayIdentity Identity,
+public sealed record ImmutableCandidate(int Version, string Id, OverlayIdentity Identity,
     SnapshotDeltaSeal SourceSeal, SnapshotDeltaSeal Seal, DateTimeOffset CreatedAt,
     long CreationTicks, long StopwatchFrequency,
     [property: JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] CandidateSourceProjection? SourceProjection);
 
-public sealed record ValidationViewSelection(string CandidatePath, string CacheDeltaPath,
+public sealed record SourceViewSelection(string CandidatePath, string CacheDeltaPath,
     string[] CacheTopLevel, OverlayIdentity? CacheIdentity = null,
     [property: JsonRequired] string CacheBasis = "empty");

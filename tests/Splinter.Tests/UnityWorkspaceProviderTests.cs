@@ -161,7 +161,7 @@ public sealed class UnityWorkspaceProviderTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task HeartbeatIgnoresEarlierCompileEvidence(bool completed)
+    public async Task HeartbeatReportsOwnedApplicationReadiness(bool ready)
     {
         var ct = TestContext.Current.CancellationToken;
         using var directory = new TestDirectory();
@@ -172,15 +172,13 @@ public sealed class UnityWorkspaceProviderTests
         await File.WriteAllTextAsync(Path.Combine(directory.Path, "heartbeat.json"), JsonSerializer.Serialize(new
         {
             token = lease.Token, pid = lease.ProcessId, startTimeUtcTicks = lease.StartTimeUtcTicks,
-            projectPath = directory.Path, phase = "ready", ready = true, observedAt = DateTimeOffset.UtcNow,
-            validation = new { requestId = completed ? "request" : "", fingerprint = completed ? "hash" : "",
-                success = completed, completedAt = completed ? DateTimeOffset.UtcNow.ToString("O") : "", errors = Array.Empty<string>() }
+            projectPath = directory.Path, phase = ready ? "ready" : "importing", ready, observedAt = DateTimeOffset.UtcNow
         }, options), ct);
         var record = new WorkspaceRecord { Id = "test", RequestKey = "test", ProjectPath = directory.Path,
             Path = directory.Path, SourceReference = "test", BaseReference = "test" };
         var state = await new UnityWorkspaceProvider().ObserveAsync(record, directory.Path, ct);
         Assert.True(state.Running);
-        Assert.True(state.Ready);
-        Assert.False(JsonSerializer.SerializeToElement(state, options).TryGetProperty("validation", out _));
+        Assert.Equal(ready, state.Ready);
+        Assert.Equal(ready ? "ready" : "importing", state.Phase);
     }
 }

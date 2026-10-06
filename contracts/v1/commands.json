@@ -168,9 +168,9 @@
       "description": "Development-only immutable source views and shared Library cache lifetimes; project validation uses external tools.",
       "cliUsage": "splinter-dev view --input <request.json> [--home <path>]",
       "inputTransport": "json-file",
-      "inputSchema": "urn:splinter:v1:validation-product-request",
+      "inputSchema": "urn:splinter:v1:view-lifecycle-request",
       "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "owned-validation-candidate-view-editor-and-result",
+      "sideEffects": "owned-immutable-candidate-view-editor-and-result",
       "retry": "same-request-key-and-owner; preserve-unknown-resources",
       "developmentOnly": true
     },

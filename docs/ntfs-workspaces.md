@@ -167,7 +167,7 @@ Windows에서 FACILITY_WIN32 HRESULT를 확인한 경우만 `nativeErrorDomain=w
 
 ## 회수와 관측
 
-개발용 [source view/Library cache](validation-workflow.md)의 미완료 게시·후보·소스 세대·열린 cache는 해당 VSS의 의존성이다. 제품 release/discard는 이들이 남으면 `SnapshotInUse`로 차단하며 연쇄 삭제하지 않는다. Editor 없는 worker도 제품 `workspace checkpoint`로 보존한다.
+개발용 [source view/Library cache](view-workflow.md)의 미완료 게시·후보·소스 세대·열린 cache는 해당 VSS의 의존성이다. 제품 release/discard는 이들이 남으면 `SnapshotInUse`로 차단하며 연쇄 삭제하지 않는다. Editor 없는 worker도 제품 `workspace checkpoint`로 보존한다.
 
 
 회수 순서는 앱/자식 종료 → 소유 브리지 제거 → 수집 전 flush/seal → 현재 source 검사와 독립 결과 ref 보존 → 수집 후 flush/seal 대조 → manifest 저장 → unmount와 provider 종료 → seal 재대조 → Git 등록 회수 → delta 회수 → 마지막 의존성이 없는 소유 VSS ID 해제다. 브리지 제거는 합법적인 저널 변경이므로 수집 구간 전에 마친다. 관리 캐시 밖의 ignored 파일, 미보존 변경, 다른 의존 작업이 있으면 중단한다. 수집 중이나 이후의 쓰기로 seal이 달라지면 `DeltaChangedAfterCollection`로 중단하고 기존 manifest·저널·snapshot을 보존한다. delta 회수 중 응답이 유실되면 기존 삭제 intent와 남은 파일을 검증하고 이어 간다. VSS 해제 helper는 정확한 소유 ID만 받으며 전역 삭제를 하지 않는다. 다만 정확한 ID 삭제 중에도 provider가 오래된 다른 snapshot을 제거한 [실패 기록](verification/storage-foundation.md)이 있다. 현재는 같은 볼륨의 다른 오래된/동일 시각/시각 불명 snapshot 또는 볼륨 정보 불명이 있으면 `SnapshotReleaseIsolationRequired`로 삭제 전에 차단한다. `release-isolation.json`에 전후 ID와 삭제 시도 여부를 기록하고 다른 ID 소실은 `SnapshotCollateralLoss`다. 기존 snapshot을 지워 우회하지 않는다. 차단과 오래된 순서의 회수는 [격리된 소유 합성 snapshot](verification/storage-recovery.md)에서 실제 검증했으며 provider 전체·일반 비소유 백업 공존의 보존 보장은 아니다. 더 오래된 snapshot이 사용 중이면 나중에 끝난 작업도 마지막 snapshot 회수 단계의 `reclaim-pending`으로 남는다. 결과 보존과 회수 대기를 구분하고 같은 작업의 명시적 release 재시도로 이어간다. 이 상태는 완전한 release 성공이 아니다.

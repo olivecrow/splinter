@@ -47,8 +47,8 @@ internal static class OverlayExperimentCommands
         {
             case "candidate-export":
             case "candidate-source-export":
-                if (overlay.ValidationView is not null)
-                    throw new WorkspaceException("CandidateSourceRequired", "Export an editorless worker, not a validation output generation.");
+                if (overlay.SourceView is not null)
+                    throw new WorkspaceException("CandidateSourceRequired", "Export an editorless worker, not a source output generation.");
                 string destination = Path.GetFullPath(input.CandidatePath ??
                     throw new WorkspaceException("CandidatePathRequired", "Use a new candidate directory."));
                 for (string? part = destination; part is not null; part = Path.GetDirectoryName(part))

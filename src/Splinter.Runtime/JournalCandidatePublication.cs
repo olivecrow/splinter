@@ -16,7 +16,7 @@ public sealed partial class JournalDeltaStore
 
     // Only an explicit stable request may continue its durable intent. All
     // publication files are create-new or no-overwrite moves; no repair deletes.
-    public static ValidationCandidate PublishCandidate(string sourceDirectory, OverlayIdentity identity,
+    public static ImmutableCandidate PublishCandidate(string sourceDirectory, OverlayIdentity identity,
         ISnapshotTree snapshot, string destination, CandidateExportRequest request, string[] forbiddenTopLevel,
         CandidateSourceProjection? projection = null, Action<string>? boundary = null)
     {
@@ -77,8 +77,8 @@ public sealed partial class JournalDeltaStore
 
             // A full receipt is authoritative only after replay, state, and seal
             // checks. No current worker handle is needed for a historical retry.
-            var receipt = ReadPublicationFile<ValidationCandidate>(Path.Combine(destination, "candidate.json"))
-                ?? ReadPublicationFile<ValidationCandidate>(Path.Combine(destination, "candidate.json.new"));
+            var receipt = ReadPublicationFile<ImmutableCandidate>(Path.Combine(destination, "candidate.json"))
+                ?? ReadPublicationFile<ImmutableCandidate>(Path.Combine(destination, "candidate.json.new"));
             if (receipt is not null)
             {
                 ValidatePublicationReceipt(receipt, intent);
@@ -130,7 +130,7 @@ public sealed partial class JournalDeltaStore
             }
             using var check = VerifyPublicationJournal(destination, "delta.journal", snapshot, intent);
             boundary?.Invoke("candidate-flushed");
-            var result = new ValidationCandidate(3, request.RequestKey, identity, intent.SourceSeal, check.SealCurrent(),
+            var result = new ImmutableCandidate(3, request.RequestKey, identity, intent.SourceSeal, check.SealCurrent(),
                 DateTimeOffset.UtcNow, Stopwatch.GetTimestamp() - started, Stopwatch.Frequency, projection);
             WritePublicationFile(Path.Combine(destination, "candidate.json.new"), result);
             boundary?.Invoke("receipt-flushed");
@@ -192,7 +192,7 @@ public sealed partial class JournalDeltaStore
         catch { check.Dispose(); throw; }
     }
 
-    private static void ValidatePublicationReceipt(ValidationCandidate receipt, CandidateExportIntent intent)
+    private static void ValidatePublicationReceipt(ImmutableCandidate receipt, CandidateExportIntent intent)
     {
         if (receipt.Version != 3 || receipt.Id != intent.Request.RequestKey ||
             !SamePublicationValue(receipt.Identity, intent.Identity) || receipt.SourceSeal != intent.SourceSeal ||

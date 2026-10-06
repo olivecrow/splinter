@@ -2,7 +2,7 @@
 
 별도 [개발 CLI](development-cli.md)의 `view`는 후보·소스 세대·공통 Library·독립 결과의 저장 수명만 관리한다. 자체 refresh·컴파일·검증 수집/판정은 제공하지 않으며 작업 내용의 검증은 외부 도구와 에이전트가 맡는다. worker 보존은 제품 `workspace checkpoint`로 수행한다. 저장 경로/현재 형식과 기존 기록을 자동 이관하거나 삭제하지 않는다.
 
-`pwsh ./scripts/splinter-dev.ps1 view --input <request.json> --home <state-root>`는 기존 NTFS worker의 불변 후보와 단일 Unity 검증 view를 연결한다. 명령 계약은 `schema view.execute`에서 확인한다. `capabilities.validationWorkflowContract`는 `stage=development-storage-view`, `cliAvailable=true`, `integratedWorkspaceMode=true`다. 실제 실행 자격은 [검증 추적표](plans/validation-matrix.md)와 [Library·일반 권한 실행의 제한](verification/product-validation-unelevated.md)에 있는 해당 후보 증거로 판정한다.
+`pwsh ./scripts/splinter-dev.ps1 view --input <request.json> --home <state-root>`는 기존 NTFS worker의 불변 후보와 단일 소스 view를 연결한다. 명령 계약은 `schema view.execute`에서 확인한다. `capabilities.viewWorkflowContract`는 `stage=development-storage-view`, `cliAvailable=true`, `integratedWorkspaceMode=true`다. 실제 실행 자격은 [검증 추적표](plans/validation-matrix.md)와 [Library·일반 권한 실행의 제한](verification/product-validation-unelevated.md)을 따른다.
 
 `Splinter.Workflows.Windows`는 Runtime coordinator와 Windows VSS/WinFsp, Git, Unity를 조합한다. Core에는 플랫폼 API가 없고 Host는 읽기 전용이다. 직접 worker Editor를 사용하는 기존 `workspace`/`unity` 명령과 선택적으로 함께 쓰며, 기본 모드 자동 선택·큐·Coordination·소유권 자동 인수는 제공하지 않는다.
 
@@ -23,7 +23,7 @@
 
 worker는 `workspace ensure --storage ntfs-snapshot`으로 만든다. Editor 없이 소스를 편집하고 준비·게시한다. Library 등 관리 캐시의 변경 이력이 있는 worker는 source-only 게시 적합성을 충족하지 못하면 거부한다. 데이터 생략이나 전체 파일 복제로 우회하지 않는다.
 
-`start`의 준비 대기와 `refresh` 요청 접수는 `Accepted`, `terminal=false`다. `nextActions[].arguments.request`의 status JSON을 별도 파일로 저장하고 `validation --input <파일> --home <arguments.home>`으로 관측한다. 원래 요청 파일을 덮어쓰지 않는다. status ledger의 아직 없는 결과·증거·응답은 필수 null 필드로 유지한다.
+`start`가 실행 중이며 application ready를 기다리면 `Accepted`, `terminal=false`다. `nextActions[].arguments.request`의 status JSON을 별도 파일로 저장하고 `pwsh ./scripts/splinter-dev.ps1 view --input <파일> --home <arguments.home>`으로 관측한다. 원래 요청 파일을 덮어쓰지 않는다. status ledger의 아직 없는 결과·frozen seal·응답은 필수 null 필드로 유지한다.
 
 | action | 추가 입력 | 결과와 다음 단계 |
 | --- | --- | --- |
@@ -41,7 +41,7 @@ worker는 `workspace ensure --storage ntfs-snapshot`으로 만든다. Editor 없
 
 A/B/A 전환은 A stop → B select/start → B stop → A의 새 select/start다. 세 번의 선택은 세 개의 독립 source generation이다. 이전 A의 재전송은 현재 선택을 되돌리지 않는다. 게시 뒤 worker의 후속 편집은 `workspace ensure`로 같은 worker를 다시 연결해 이어가며 후보를 바꾸지 않는다. view의 실행을 최신 worker의 합격으로 올리거나 Unity가 생성한 source를 자동으로 되돌려 병합하지 않는다.
 
-같은 VSS의 실행 중 provider들은 검증된 read access와 OS read fence를 공유한다. 재연결이 새 검증 proof를 요구할 때 다른 provider가 읽고 있으면 `SnapshotReadersActive`로 기존 proof를 보존한다. 해당 snapshot을 사용하는 worker/view를 정상 stop/unmount한 뒤 같은 명령을 재시도한다. 한 provider의 재연결이 다른 Editor의 읽기 근거를 바꾸지 않으며, 종료된 프로세스의 fence는 OS가 해제한다.
+같은 VSS의 실행 중 provider들은 확인된 read access와 OS read fence를 공유한다. 재연결이 새 검증 proof를 요구할 때 다른 provider가 읽고 있으면 `SnapshotReadersActive`로 기존 proof를 보존한다. 해당 snapshot을 사용하는 worker/view를 정상 stop/unmount한 뒤 같은 명령을 재시도한다. 한 provider의 재연결이 다른 Editor의 읽기 근거를 바꾸지 않으며, 종료된 프로세스의 fence는 OS가 해제한다.
 
 Windows provider 상태의 게시/읽기 경합은 [NTFS 제어 파일 reader](ntfs-workspaces.md)의 최대 1초 복구를 따른다. 지속 공유 오류·손상·소유권 불일치는 상태와 저널을 보존하고 실패한다. 원인을 해결한 뒤 같은 owner/request를 재호출하며 `prepare-worker`의 seal·정상 unmount·소유권 조건을 생략하지 않는다.
 
@@ -55,17 +55,17 @@ Windows provider 상태의 게시/읽기 경합은 [NTFS 제어 파일 reader](n
 | source generation | 선택 요청 ID, 해당 candidate와 공통 cache. 이전 출력 journal을 보존 |
 | 독립 결과 | frozen artifact/seal, Git result ref, commit 객체의 SHA-256, snapshot 없이 읽는 객체 집합 |
 
-등록 증거가 있는 `.git` 포인터만 후보에서 분리한다. `GitOverlayRegistration.QualifyCandidateSourceAsync`와 [같은 요청 게시 복구](validation-view.md#같은-요청의-게시-복구)를 공통 operation ID에 연결한다. worker 명령 잠금과 실제 read-only journal handle을 함께 사용한다. `.git` 외의 사용자 데이터는 임의로 분리하지 않는다.
+등록 증거가 있는 `.git` 포인터만 후보에서 분리한다. `GitOverlayRegistration.QualifyCandidateSourceAsync`와 [같은 요청 게시 복구](source-view.md#같은-요청의-게시-복구)를 공통 operation ID에 연결한다. worker 명령 잠금과 실제 read-only journal handle을 함께 사용한다. `.git` 외의 사용자 데이터는 임의로 분리하지 않는다.
 
 cache는 `Library/Temp/Logs/UserSettings/obj/.vs/.idea`의 단일 writer다. 첫 선택의 worker snapshot을 `SnapshotBacked=true`인 cache 기준으로 고정한다. 기존 Library는 해당 snapshot에서 직접 읽고 새 쓰기는 private 범위로 저장한다. 최초 Library 전체 복제·읽기 hydration·전체 파일 copy-up이 없다. 원본에 Library가 없으면 실제 cold import가 필요하며, 그 뒤 원본의 Library 생성·변경은 이미 고정한 cache 기준에 들어오지 않는다.
 
-후보를 B로 전환해도 cache의 기준은 A의 원래 snapshot이다. 두 snapshot의 owner·읽기 proof·OS read fence와 가용성을 각각 확인하며 하나라도 불명확하면 정상 mount로 보고하지 않는다. 사라진 기준을 새 snapshot이나 빈 cache로 교체하지 않는다. 다른 VSS의 후보도 동일 프로젝트·Unity/bridge compatibility·partition·예산·view owner일 때 같은 cache를 쓴다. 개발용 `ValidationViewSelection.CacheBasis`는 `empty` 또는 `snapshot`을 명시하고, 개발용 view는 snapshot과 cache 전용 `IncludedTopLevel` identity를 전달한다.
+후보를 B로 전환해도 cache의 기준은 A의 원래 snapshot이다. 두 snapshot의 owner·읽기 proof·OS read fence와 가용성을 각각 확인하며 하나라도 불명확하면 정상 mount로 보고하지 않는다. 사라진 기준을 새 snapshot이나 빈 cache로 교체하지 않는다. 다른 VSS의 후보도 동일 프로젝트·Unity/bridge compatibility·partition·예산·view owner일 때 같은 cache를 쓴다. 개발용 `SourceViewSelection.CacheBasis`는 `empty` 또는 `snapshot`을 명시하고, 개발용 view는 snapshot과 cache 전용 `IncludedTopLevel` identity를 전달한다.
 
 `compact-cache`는 Editor/provider/handle/mount의 소유 자원 0을 확인한 뒤에만 실행한다. 예산은 이전 journal과 새 journal의 예상 논리 겹침량이며 실제 볼륨 최고치가 아니다. 현재 유효 private 범위·대체된 payload·frame metadata를 구분하고, 유효 Library를 삭제하지 않는다. [저널 크기 선택](ntfs-workspaces.md#일반-cli-흐름)은 작은 덮어쓰기의 범위 메타데이터가 더 커지면 기존 frame을 남기므로 일부 대체된 payload가 남을 수 있다. 불변 기준의 payload는 읽거나 새 journal로 복사하지 않는다. 기준 없는 임의 초기화와 자동 정리는 제공하지 않는다.
 
 정리 intent·후보 flush·게시·관측·이전 journal 회수·완료 영수증 각 경계에서 중단하면 같은 request key·cache·예산으로 재호출한다. 진행 중 다른 정리나 view start/select/close는 거부한다. 작은 예산의 사전 거부는 cache를 잠긴 상태로 남기지 않는다. 완료 응답 재전송은 원래 영수증을 반환하며 이후의 cache 쓰기를 다시 정리하지 않는다. `status.cacheMaintenance`에서 진행 영수증을 읽을 수 있다. 물리 할당은 Windows에서 확인한 journal 두 세대의 값이며 VSS·Git·임시 파일은 별도로 측정한다.
 
-`GitValidationResult`는 원본 index나 checkout을 수정하지 않는다. frozen source의 논리 트리를 열거하고 변경 경로의 payload만 읽어 raw Git blob/tree/commit 객체를 만든다. 원래 base revision의 미변경 blob은 재사용한다. 필터·checkout 변환을 실행하지 않고 bridge/cache를 제외하며 `refs/splinter/validation-results/<operation-id>`와 객체 존재를 검증한다. 이는 최종 결과의 독립 materialization 비용이며 candidate 게시의 전체 복제 금지와 구분한다.
+`GitSourceResult`는 원본 index나 checkout을 수정하지 않는다. frozen source의 논리 트리를 열거하고 변경 경로의 payload만 읽어 raw Git blob/tree/commit 객체를 만든다. 원래 base revision의 미변경 blob은 재사용한다. 필터·checkout 변환을 실행하지 않고 bridge/cache를 제외하며 `refs/splinter/validation-results/<operation-id>`와 객체 존재를 검증한다. 이는 최종 결과의 독립 materialization 비용이며 candidate 게시의 전체 복제 금지와 구분한다.
 
 보존된 source는 고정되어 다시 실행할 수 없다. 새 select를 사용한다. artifact release는 seal을 재확인하고 writer를 거부하는 handle로 journal을 잠근 뒤, 정확한 경로·seal·metadata hash의 회수 intent를 저장하고 그 journal만 unlink한다. 잠금을 닫은 뒤 hash가 같은 알려진 metadata만 제거한다. Windows에서 잠긴 자식 파일을 포함한 디렉터리의 rename에 의존하지 않는다. 중단 후 새 파일·바뀐 metadata·다른 seal은 보존하며, 회수 intent와 독립 ref는 남긴다. cache는 `close-view`로만, worker snapshot은 기존 `workspace release`로만 회수한다.
 
@@ -79,4 +79,4 @@ cache는 `Library/Temp/Logs/UserSettings/obj/.vs/.idea`의 단일 writer다. 첫
 
 중단 뒤에는 같은 명령·키·입력으로 재시도한다. 공통 coordinator는 먼저 기존 provider 영수증을 찾고, 게시의 부분 prefix·완전 저널·유실 receipt는 원래 source seal로만 재조정한다. 완전한 현재 형식의 다음 ledger revision만 명시적 재시도로 게시하며 read-only inspect가 pending을 자동 게시하지 않는다. `replayed=true`는 과거 응답이며 현재 실행 상태의 새 관측이 아니다.
 
-입력과 출력은 `validation-product-request`/`validation-product-data`, 공통 request/response/state는 `validation-workflow-*` schema를 사용한다. `ValidationWorkflowTests`는 fake 적합성과 CLI 응답, `ValidationCandidateTests`는 별도 snapshot/cache 저널, `GitValidationResultTests`는 실제 Git 객체·원본 index 보존, `JournalReclamationTests`는 실제 파일 잠금과 회수 중단 복구, `SnapshotWorkspaceCoordinatorTests`는 제품 회수 의존성 연결을 검증한다. 이전 후보의 실제 VSS/WinFsp/Unity 실행 기록은 [제품 연결·복구](verification/product-validation-workflow.md), [최종 후보의 새 cache 반복·전체 비용](verification/product-validation-cold-cost.md)과 [추적표](plans/validation-matrix.md)를 따른다. 이번 컴파일 기능 제거·개발 CLI 분리 후보의 native 실행 통과로 승계하지 않는다. 재부팅·전원·물리 공간 장애·일반 에셋·대형 프로젝트는 미자격이며, 생성 source 병합과 모드 선택은 AI 절차다.
+입력과 출력은 `view-lifecycle-request`/`view-lifecycle-data`, 공통 request/response/state는 `view-workflow-*` schema를 사용한다. `ViewWorkflowTests`는 fake 적합성과 CLI 응답, `ImmutableCandidateTests`는 별도 snapshot/cache 저널, `GitSourceResultTests`는 실제 Git 객체·원본 index 보존, `JournalReclamationTests`는 실제 파일 잠금과 회수 중단 복구, `SnapshotWorkspaceCoordinatorTests`는 제품 회수 의존성 연결을 검증한다. 현재 자동 회귀와 실제 실행의 한계는 [저장 view 계약 검증](verification/storage-view-contract.md)을 따른다. 재부팅·전원·물리 공간 장애·일반 에셋·대형 프로젝트는 미자격이며, 생성 source 병합과 모드 선택은 AI 절차다.

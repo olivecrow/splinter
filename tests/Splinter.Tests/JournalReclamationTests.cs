@@ -40,7 +40,7 @@ public sealed class JournalReclamationTests
         using (var writer = new FileStream(journal, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
             Assert.Throws<IOException>(() => JournalReclamation.Reclaim(directory, seal, ["identity.json"], receipt));
         Assert.False(File.Exists(receipt)); Assert.True(File.Exists(journal));
-        Assert.Equal("ValidationSourceChanged", Assert.Throws<WorkspaceException>(() =>
+        Assert.Equal("ViewSourceChanged", Assert.Throws<WorkspaceException>(() =>
             JournalReclamation.Reclaim(directory, seal with { JournalHash = new string('0', 64) }, ["identity.json"], receipt)).Code);
         Assert.True(File.Exists(journal)); Assert.False(File.Exists(receipt));
         JournalReclamation.Reclaim(directory, seal, ["identity.json"], receipt);
@@ -51,7 +51,7 @@ public sealed class JournalReclamationTests
     public void FileAtDirectoryPathIsPreservedInsteadOfReportedAbsent()
     {
         using var root = new TestDirectory(); string path = Path.Combine(root.Path, "cache"); File.WriteAllText(path, "owned-or-unknown");
-        Assert.Equal("ValidationReleaseUncertain", Assert.Throws<WorkspaceException>(() => JournalReclamation.Reclaim(path,
+        Assert.Equal("ViewReleaseUncertain", Assert.Throws<WorkspaceException>(() => JournalReclamation.Reclaim(path,
             new(0, 0, new string('0', 64)), ["identity.json"], Path.Combine(root.Path, "receipt.json"))).Code);
         Assert.Equal("owned-or-unknown", File.ReadAllText(path));
     }

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:splinter:v1:validation-workflow-contract",
+  "$id": "urn:splinter:v1:view-workflow-contract",
   "$defs": {
     "owner": {
       "type": "object",
@@ -62,7 +62,12 @@
           "type": "string",
           "format": "date-time"
         },
-        "pathPolicy": {"enum": [null, "posix-case-sensitive-v1"]},
+        "pathPolicy": {
+          "enum": [
+            null,
+            "posix-case-sensitive-v1"
+          ]
+        },
         "persistent": {
           "const": true
         },
@@ -115,13 +120,13 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
         },
         "owner": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/owner"
         },
         "snapshot": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/snapshot"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/snapshot"
         },
         "sourceSeal": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/seal"
         }
       }
     },
@@ -147,7 +152,7 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
         },
         "snapshot": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/snapshot"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/snapshot"
         },
         "compatibilityKey": {
           "type": "string",
@@ -214,7 +219,7 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
         },
         "worker": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/worker"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/worker"
         },
         "managedPathPolicy": {
           "const": "source-only-v1"
@@ -231,10 +236,10 @@
       ],
       "properties": {
         "intent": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/publicationIntent"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/publicationIntent"
         },
         "candidateSeal": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/seal"
         },
         "receiptId": {
           "type": "string",
@@ -269,13 +274,13 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
         },
         "owner": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/owner"
         },
         "cache": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/cache"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/cache"
         },
         "candidate": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/publication"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/publication"
         }
       }
     },
@@ -288,55 +293,13 @@
       ],
       "properties": {
         "intent": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selectionIntent"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/selectionIntent"
         },
         "receiptId": {
           "type": "string",
           "minLength": 1,
           "maxLength": 4096,
           "pattern": "\\S"
-        }
-      }
-    },
-    "evidence": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "validationId",
-        "generationId",
-        "candidateId",
-        "candidateSeal",
-        "sourceOutputSeal",
-        "success",
-        "completedAt"
-      ],
-      "properties": {
-        "validationId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 4096,
-          "pattern": "\\S"
-        },
-        "generationId": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
-        },
-        "candidateId": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
-        },
-        "candidateSeal": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
-        },
-        "sourceOutputSeal": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "completedAt": {
-          "type": "string",
-          "format": "date-time"
         }
       }
     },
@@ -351,16 +314,16 @@
       ],
       "properties": {
         "target": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/target"
         },
         "owner": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/owner"
         },
         "snapshot": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/snapshot"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/snapshot"
         },
         "seal": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/seal"
         }
       }
     },
@@ -382,7 +345,7 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
         },
         "artifact": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/artifact"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/artifact"
         }
       }
     },
@@ -397,7 +360,7 @@
       ],
       "properties": {
         "intent": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/preservationIntent"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/preservationIntent"
         },
         "reference": {
           "type": "string",
@@ -433,7 +396,6 @@
             "publish",
             "select",
             "resume",
-            "observe-validation",
             "preserve",
             "release",
             "close-view"
@@ -448,12 +410,12 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
         },
         "owner": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/owner"
         },
         "worker": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/worker"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/worker"
             },
             {
               "type": "null"
@@ -474,7 +436,7 @@
         "cache": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/cache"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/cache"
             },
             {
               "type": "null"
@@ -495,7 +457,7 @@
         "target": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/target"
             },
             {
               "type": "null"
@@ -513,7 +475,7 @@
               "const": "publish"
             },
             "worker": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/worker"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/worker"
             },
             "candidateId": {
               "type": "null"
@@ -546,7 +508,7 @@
               "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
             },
             "cache": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/cache"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/cache"
             },
             "generationId": {
               "type": "null"
@@ -563,32 +525,6 @@
           "properties": {
             "operation": {
               "const": "resume"
-            },
-            "worker": {
-              "type": "null"
-            },
-            "candidateId": {
-              "type": "null"
-            },
-            "cache": {
-              "type": "null"
-            },
-            "generationId": {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
-            },
-            "target": {
-              "type": "null"
-            }
-          }
-        },
-        {
-          "required": [
-            "generationId"
-          ],
-          "properties": {
-            "operation": {
-              "const": "observe-validation"
             },
             "worker": {
               "type": "null"
@@ -629,7 +565,7 @@
               "type": "null"
             },
             "target": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/target"
             }
           }
         },
@@ -654,7 +590,7 @@
               "type": "null"
             },
             "target": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/target"
             }
           }
         },
@@ -667,7 +603,7 @@
               "const": "close-view"
             },
             "cache": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/cache"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/cache"
             },
             "worker": {
               "type": "null"
@@ -707,7 +643,6 @@
             "publish",
             "select",
             "resume",
-            "observe-validation",
             "preserve",
             "release",
             "close-view"
@@ -719,7 +654,7 @@
         "candidate": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/publication"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/publication"
             },
             {
               "type": "null"
@@ -729,17 +664,7 @@
         "selection": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "evidence": {
-          "anyOf": [
-            {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/evidence"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/selection"
             },
             {
               "type": "null"
@@ -749,7 +674,7 @@
         "result": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/result"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/result"
             },
             {
               "type": "null"
@@ -759,7 +684,7 @@
         "released": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/target"
             },
             {
               "type": "null"
@@ -784,12 +709,9 @@
               "const": "publish"
             },
             "candidate": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/publication"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/publication"
             },
             "selection": {
-              "type": "null"
-            },
-            "evidence": {
               "type": "null"
             },
             "result": {
@@ -815,10 +737,7 @@
               "type": "null"
             },
             "selection": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
-            },
-            "evidence": {
-              "type": "null"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/selection"
             },
             "result": {
               "type": "null"
@@ -843,39 +762,7 @@
               "type": "null"
             },
             "selection": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
-            },
-            "evidence": {
-              "type": "null"
-            },
-            "result": {
-              "type": "null"
-            },
-            "released": {
-              "type": "null"
-            },
-            "closedViewId": {
-              "type": "null"
-            }
-          }
-        },
-        {
-          "required": [
-            "selection",
-            "evidence"
-          ],
-          "properties": {
-            "operation": {
-              "const": "observe-validation"
-            },
-            "candidate": {
-              "type": "null"
-            },
-            "selection": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
-            },
-            "evidence": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/evidence"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/selection"
             },
             "result": {
               "type": "null"
@@ -902,11 +789,8 @@
             "selection": {
               "type": "null"
             },
-            "evidence": {
-              "type": "null"
-            },
             "result": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/result"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/result"
             },
             "released": {
               "type": "null"
@@ -931,14 +815,11 @@
             "selection": {
               "type": "null"
             },
-            "evidence": {
-              "type": "null"
-            },
             "result": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/result"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/result"
             },
             "released": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/target"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/target"
             },
             "closedViewId": {
               "type": "null"
@@ -963,9 +844,6 @@
             "selection": {
               "type": "null"
             },
-            "evidence": {
-              "type": "null"
-            },
             "result": {
               "type": "null"
             },
@@ -986,12 +864,12 @@
       ],
       "properties": {
         "publication": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/publication"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/publication"
         },
         "result": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/result"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/result"
             },
             {
               "type": "null"
@@ -1008,29 +886,18 @@
       "additionalProperties": false,
       "required": [
         "selection",
-        "evidence",
         "frozenSeal",
         "result",
         "released"
       ],
       "properties": {
         "selection": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
-        },
-        "evidence": {
-          "anyOf": [
-            {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/evidence"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/selection"
         },
         "frozenSeal": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/seal"
             },
             {
               "type": "null"
@@ -1040,7 +907,7 @@
         "result": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/result"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/result"
             },
             {
               "type": "null"
@@ -1063,10 +930,10 @@
       ],
       "properties": {
         "cache": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/cache"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/cache"
         },
         "owner": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/owner"
         },
         "currentGenerationId": {
           "anyOf": [
@@ -1099,12 +966,12 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
         },
         "request": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/request"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/request"
         },
         "artifact": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/artifact"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/artifact"
             },
             {
               "type": "null"
@@ -1114,7 +981,7 @@
         "response": {
           "anyOf": [
             {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/response"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/response"
             },
             {
               "type": "null"
@@ -1154,7 +1021,7 @@
             "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
           },
           "additionalProperties": {
-            "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/candidateState"
+            "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/candidateState"
           }
         },
         "generations": {
@@ -1164,7 +1031,7 @@
             "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
           },
           "additionalProperties": {
-            "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/generationState"
+            "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/generationState"
           }
         },
         "views": {
@@ -1174,7 +1041,7 @@
             "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
           },
           "additionalProperties": {
-            "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/viewState"
+            "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/viewState"
           }
         },
         "operations": {
@@ -1184,7 +1051,7 @@
             "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
           },
           "additionalProperties": {
-            "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/operationState"
+            "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/operationState"
           }
         }
       }

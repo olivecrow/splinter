@@ -10,13 +10,18 @@ namespace Splinter.Platform.Windows;
 public sealed record OverlayServeRequest(OverlayIdentity Identity, string DeltaPath, string MountPath,
     string ControlPath, string Token, [property: JsonRequired] SnapshotReadAccess ReadAccess,
     [property: JsonRequired] string SnapshotReceiptDirectory, [property: JsonRequired] string SnapshotOwnerId,
-    ValidationViewSelection? ValidationView = null, OverlayCacheSnapshotRead? CacheSnapshot = null, OverlayCacheSnapshotRead? GeneratedSnapshot = null);
+    SourceViewSelection? SourceView = null, OverlayCacheSnapshotRead? CacheSnapshot = null, OverlayCacheSnapshotRead? GeneratedSnapshot = null);
 
 public sealed record OverlayCacheSnapshotRead(SnapshotReadAccess ReadAccess, string ReceiptDirectory, string OwnerId);
 
 public static class WinFspOverlayServer
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNameCaseInsensitive = false,
+        RespectRequiredConstructorParameters = true,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+    };
     public static async Task<int> RunAsync(string requestPath, string generation)
     {
         OverlayServeRequest request = JsonSerializer.Deserialize<OverlayServeRequest>(await File.ReadAllTextAsync(requestPath), Json)
@@ -72,8 +77,8 @@ public static class WinFspOverlayServer
             ISnapshotTree basisTree = request.Identity.Graft is { } graft
                 ? new GraftedSnapshotTree(snapshot, generatedTree!, graft) : snapshot;
             using var cacheSnapshot = request.CacheSnapshot is { } cacheAccess
-                ? new VssSnapshotTree(request.ValidationView!.CacheIdentity!.Snapshot, cacheAccess.ReadAccess, () => Volatile.Read(ref health)) : null;
-            if (request.ValidationView is { } selection)
+                ? new VssSnapshotTree(request.SourceView!.CacheIdentity!.Snapshot, cacheAccess.ReadAccess, () => Volatile.Read(ref health)) : null;
+            if (request.SourceView is { } selection)
             {
                 foreach (string path in new[] { selection.CandidatePath, selection.CacheDeltaPath })
                 {
@@ -95,8 +100,8 @@ public static class WinFspOverlayServer
                 processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks
             });
             long replayStarted = Stopwatch.GetTimestamp();
-            using IWorkspaceDeltaStore store = request.ValidationView is { } selectedView
-                ? new ValidationViewDeltaStore(deltaPath, request.Identity, snapshot, selectedView, cacheBasis: cacheSnapshot)
+            using IWorkspaceDeltaStore store = request.SourceView is { } selectedView
+                ? new SourceViewDeltaStore(deltaPath, request.Identity, snapshot, selectedView, cacheBasis: cacheSnapshot)
                 : new JournalDeltaStore(deltaPath, request.Identity, basisTree);
             long storeReadyTicks = Stopwatch.GetTimestamp() - replayStarted;
             var fileSystem = new WinFspOverlayFileSystem(store, ex =>
@@ -128,7 +133,7 @@ public static class WinFspOverlayServer
                         openHandles = fileSystem.OpenHandles, retainedFileContexts = fileSystem.RetainedFileContexts,
                         workingSetBytes = self.WorkingSet64, privateBytes = self.PrivateMemorySize64,
                         ioFailures = Volatile.Read(ref failures), lastFailureCode = Volatile.Read(ref lastFailureCode), storage = store.Observe(),
-                        validationView = (store as ValidationViewDeltaStore)?.ObservePartitions(),
+                        sourceView = (store as SourceViewDeltaStore)?.ObservePartitions(),
                         preparation = new { storeReadyTicks, stopwatchFrequency = Stopwatch.Frequency }
                     });
                     var stop = await WindowsProcessWorkspaceProvider.ReadAsync<StopRequest>(Path.Combine(request.ControlPath, "stop.json"), waitForPublication: false);
@@ -153,7 +158,7 @@ public static class WinFspOverlayServer
                     {
                         SourceChangeView? view = null;
                         string? sourceError = null;
-                        try { view = store is ValidationViewDeltaStore selected ? selected.ObserveChanges(sourceQuery.ManagedPaths)
+                        try { view = store is SourceViewDeltaStore selected ? selected.ObserveChanges(sourceQuery.ManagedPaths)
                             : ((JournalDeltaStore)store).ObserveChanges(sourceQuery.ManagedPaths); }
                         catch (WorkspaceException ex) { sourceError = ex.Code; }
                         await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "source-response.json"),

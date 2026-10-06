@@ -5,22 +5,22 @@ namespace Splinter.Runtime;
 // One immutable cache base, independent of the candidate selected for source.
 // Filtering is metadata-only: neither construction nor enumeration materializes
 // snapshot payload. The caller owns the supplied snapshot and its read lease.
-public sealed class ValidationCacheSnapshotTree : ISnapshotTree
+public sealed class CacheSnapshotTree : ISnapshotTree
 {
     private readonly ISnapshotTree basis;
     private readonly HashSet<string> roots;
     private readonly WorkspacePathPolicy policy;
     public SnapshotReference Snapshot => basis.Snapshot;
 
-    public ValidationCacheSnapshotTree(ISnapshotTree basis, SnapshotReference expected, string[] roots)
+    public CacheSnapshotTree(ISnapshotTree basis, SnapshotReference expected, string[] roots)
     {
         policy = WorkspacePathPolicy.For(expected);
         if (basis.Snapshot != expected)
-            throw new WorkspaceException("ValidationCacheMismatch", "The cache requires its original immutable snapshot tuple.");
+            throw new WorkspaceException("ViewCacheMismatch", "The cache requires its original immutable snapshot tuple.");
         if (roots.Length == 0 || roots.Any(p => string.IsNullOrWhiteSpace(p) ||
                 policy.Normalize(p) != p || p.Contains('/')) ||
             roots.Distinct(policy.Comparer).Count() != roots.Length)
-            throw new WorkspaceException("ValidationCacheMismatch", "Use distinct ordinary cache partition roots.");
+            throw new WorkspaceException("ViewCacheMismatch", "Use distinct ordinary cache partition roots.");
         this.basis = basis;
         this.roots = new(roots, policy.Comparer);
         basis.EnsureAvailable();

@@ -15,6 +15,7 @@
 | [코드 최적화 회귀](verification/code-quality-optimization.md) | 구조화한 다음 행동·파일 rename/복원 검색·고유 객체 검사·원본 계획 조상 집합·압축 블록 순회의 자동 검증과 실측 한계 |
 | [선택적 외부 Unity 도구](unity-mcp-response-recovery.md), [검증](verification/external-tool-boundaries.md) | 에이전트의 도구 선택·대상/요청 확인·필요 시 연결 복구와 제품 결합 제거. 외부 패치 제작/운영·버전 gate는 제외 |
 | [개발용 CLI](development-cli.md) | 기본 CLI에서 분리한 diagnostic checkout·저장소 view·spike/probe의 진입점 |
+| [저장 view 계약 검증](verification/storage-view-contract.md) | 현재 후보·소스 세대·Library cache·독립 결과 계약과 schema/미지원 필드·같은 요청 복구·소유 회수의 자동 회귀 |
 | [폐기한 ReFS 기준본 경로](plans/refs-retirement.md) | 대형 프로젝트의 최초 전체 기준본 준비 부담으로 폐기한 기능과 과거 근거의 경계 |
 | [한정 버전 AI 시작 안내](agent-start.md) | 기본 CLI의 저장 경로별 전제·진입·정확한 경로/같은 작업 재개·명시적 종료·실패의 다음 행동 |
 | [최소 AI 사용 스킬](../skills/splinter/SKILL.md) | 저장소 지침 원본·직접/독립 작업 판단·CLI 발견·반환 경로·같은 작업 재개·명시적 종료/실패 처리. 설치/자동 binding은 없음 |
@@ -43,8 +44,8 @@
 | [Library payload 압축 후보 선정](verification/library-block-compression-feasibility.md) | UH 비용 재계산·현재 Bee 4개 입력의 읽기 전용 block 모델/복원·다음 codec 범위 선정. 실제 저널/물리 절감 미자격 |
 | [범위 payload codec](workspace-payload-codec.md), [검증](verification/workspace-payload-codec.md) | 공통 block API·raw/Brotli binary 표현·손상 거부·부분 읽기와 bounded buffer. 현재 [journal 연결](journal-payload-compression.md)의 block 부품; standalone 표본과 제품 자격을 구분 |
 | [소스 검증](source-verification.md) | 변경 경로·hash cache·status freshness·현재 계측 형식 |
-| [불변 후보와 검증 view](validation-view.md) | 개발용 후보 게시·같은 요청 중단 복구·검증된 Git 포인터 분리·고정 view·공통 Library |
-| [개발용 소스 view 수명주기](validation-workflow.md) | 개발 CLI의 view·snapshot Library·정지 cache 정리·독립 결과·회수 의존성. Unity 검증은 외부 도구 책임 |
+| [불변 소스 후보와 고정 view](source-view.md) | 개발용 후보 게시·같은 요청 중단 복구·검증된 Git 포인터 분리·고정 view·공통 Library |
+| [개발용 소스 view 수명주기](view-workflow.md) | 개발 CLI의 view·snapshot Library·정지 cache 정리·독립 결과·회수 의존성. Unity 검증은 외부 도구 책임 |
 | [Unity 미리보기](unity-render-qualification.md) | fixture의 요청별 PNG·픽셀·해시·실패/복구 조건 |
 | [Snapshot overlay 시험](snapshot-overlay.md) | 개발용 준비·mount·파일 API·장애·결과·회수 스크립트와 내부 계측/I/O 모듈 |
 | [준비 중단 절차](ntfs-workspaces.md#개발용-준비-중단-시험), [준비 복구 검증](verification/preparation-recovery.md) | 개발용 gate/harness와 같은 요청의 실제 CLI 종료·재개·원본 보존·회수 자격 |

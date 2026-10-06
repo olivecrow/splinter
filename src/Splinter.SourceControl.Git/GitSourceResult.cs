@@ -7,7 +7,7 @@ namespace Splinter.SourceControl.Git;
 
 // Builds independent objects directly from the frozen logical source. No checkout,
 // mutable index, hydration directory, filters or worker branch is used.
-public static class GitValidationResult
+public static class GitSourceResult
 {
     public static async Task<(string Reference, string Hash)> PreserveAsync(string project, string baseRevision,
         string operationId, ISnapshotTree tree, string[] changedPaths, string[] managedPaths, CancellationToken ct)
@@ -19,7 +19,7 @@ public static class GitValidationResult
         {
             int tab = row.IndexOf('\t'); string[] fields = row[..tab].Split(' ');
             if (fields[0] is not ("100644" or "100755"))
-                throw new WorkspaceException("SnapshotInputUnsupported", "Independent validation results require ordinary source files.");
+                throw new WorkspaceException("SnapshotInputUnsupported", "Independent source results require ordinary source files.");
             baseline.Add(row[(tab + 1)..], (fields[0], fields[2]));
         }
         bool Changed(string path) => changedPaths.Any(p => path.Equals(p, policy.Comparison) || policy.IsChild(path, p));
@@ -67,13 +67,13 @@ public static class GitValidationResult
             return (await Run(project, ["mktree", "-z"], stream => stream.WriteAsync(input, ct).AsTask(), ct)).Trim();
         }
         string root = await Build("");
-        byte[] message = Encoding.UTF8.GetBytes($"Splinter validation result {operationId}\n");
+        byte[] message = Encoding.UTF8.GetBytes($"Splinter source result {operationId}\n");
         string revision = (await Run(project, ["commit-tree", root, "-p", baseRevision],
             stream => stream.WriteAsync(message, ct).AsTask(), ct, deterministicCommit: true)).Trim();
         string reference = "refs/splinter/validation-results/" + operationId;
         string existing = await Run(project, ["for-each-ref", "--format=%(objectname)", reference], null, ct);
         if (existing.Trim().Length != 0 && existing.Trim() != revision)
-            throw new WorkspaceException("ValidationResultChanged", "Keep the existing independent result; its identity differs.");
+            throw new WorkspaceException("ViewResultChanged", "Keep the existing independent result; its identity differs.");
         if (existing.Trim().Length == 0)
             await Run(project, ["update-ref", reference, revision, new string('0', revision.Length)], null, ct);
         return (reference, await VerifyAsync(project, reference, ct));
@@ -83,11 +83,11 @@ public static class GitValidationResult
     {
         if (!reference.StartsWith("refs/splinter/validation-results/", StringComparison.Ordinal) ||
             reference["refs/splinter/validation-results/".Length..].Any(c => !char.IsAsciiHexDigit(c)))
-            throw new WorkspaceException("ValidationResultInvalid", "A retained validation result reference is required.");
+            throw new WorkspaceException("ViewResultInvalid", "A retained source result reference is required.");
         string commit = await Run(project, ["cat-file", "commit", reference], null, ct);
         string objects = await Run(project, ["rev-list", "--objects", "--missing=print", reference], null, ct);
         if (objects.Split('\n').Any(line => line.StartsWith('?')))
-            throw new WorkspaceException("ValidationResultInvalid", "Independent result objects are missing.");
+            throw new WorkspaceException("ViewResultInvalid", "Independent result objects are missing.");
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(commit)));
     }
 

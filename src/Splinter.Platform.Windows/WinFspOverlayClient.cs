@@ -22,8 +22,8 @@ public static class WinFspOverlayClient
     }
     internal static void ValidateCacheSnapshot(OverlayServeRequest request)
     {
-        if ((request.Identity.Graft is null) != (request.GeneratedSnapshot is null) || request.Identity.Graft is not null && request.ValidationView is not null)
-            throw new WorkspaceException("GeneratedBasisMismatch", "Retain the exact generated read request without a validation-view fallback.");
+        if ((request.Identity.Graft is null) != (request.GeneratedSnapshot is null) || request.Identity.Graft is not null && request.SourceView is not null)
+            throw new WorkspaceException("GeneratedBasisMismatch", "Retain the exact generated read request and its graft identity.");
         if (request.Identity.Graft is { } graft)
         {
             var generated = request.GeneratedSnapshot!;
@@ -33,14 +33,14 @@ public static class WinFspOverlayClient
                 throw new WorkspaceException("GeneratedBasisMismatch", "Generated ownership, manifest and read proof must match.");
             generated.ReadAccess.RequireMatch(graft.Basis.Snapshot);
         }
-        bool backed = request.ValidationView?.CacheBasis == "snapshot";
-        if (backed != (request.CacheSnapshot is not null) || backed && request.ValidationView!.CacheIdentity is null)
-            throw new WorkspaceException("ValidationCacheMismatch", "Retain the exact cache snapshot read request; an empty cache is not a recovery fallback.");
+        bool backed = request.SourceView?.CacheBasis == "snapshot";
+        if (backed != (request.CacheSnapshot is not null) || backed && request.SourceView!.CacheIdentity is null)
+            throw new WorkspaceException("ViewCacheMismatch", "Retain the exact cache snapshot read request; an empty cache is not a recovery fallback.");
         if (request.CacheSnapshot is { } cache)
         {
             if (string.IsNullOrWhiteSpace(cache.OwnerId) || string.IsNullOrWhiteSpace(cache.ReceiptDirectory) || cache.ReadAccess is null)
                 throw new WorkspaceException("SnapshotVerificationRequired", "Cache snapshot ownership and read proof are required.");
-            cache.ReadAccess.RequireMatch(request.ValidationView!.CacheIdentity!.Snapshot);
+            cache.ReadAccess.RequireMatch(request.SourceView!.CacheIdentity!.Snapshot);
             WindowsProcessWorkspaceProvider.CheckPath(cache.ReceiptDirectory);
         }
     }
@@ -55,10 +55,10 @@ public static class WinFspOverlayClient
             return new(request.Identity.Snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
         if (proof.Available == true && request.CacheSnapshot is { } cache)
         {
-            var basis = request.ValidationView!.CacheIdentity!.Snapshot;
+            var basis = request.SourceView!.CacheIdentity!.Snapshot;
             var cached = await new VssSnapshotProvider(cache.ReceiptDirectory, cache.OwnerId).ObserveAsync(basis, ct);
             if (cached.Available != true)
-                return new(request.Identity.Snapshot.Id, cached.Available, cached.FailureCode ?? "ValidationCacheSnapshotUnavailable", null, null);
+                return new(request.Identity.Snapshot.Id, cached.Available, cached.FailureCode ?? "ViewCacheSnapshotUnavailable", null, null);
             if (cached.ReadAccess != cache.ReadAccess)
                 return new(request.Identity.Snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
         }
@@ -136,7 +136,7 @@ public static class WinFspOverlayClient
         using (var snapshot = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess, request.SnapshotReceiptDirectory, request.SnapshotOwnerId))
         {
             snapshot.EnsureAvailable();
-            if (request.ValidationView is null)
+            if (request.SourceView is null)
             {
                 if (preparationPoint is not null) await preparationPoint("delta.before-effect");
                 if (!File.Exists(Path.Combine(request.DeltaPath, "identity.json")))
@@ -148,7 +148,7 @@ public static class WinFspOverlayClient
         }
         if (preparationPoint is not null) await preparationPoint("delta.after-record");
         if (request.CacheSnapshot is { } cache)
-            using (var basis = new VssSnapshotTree(request.ValidationView!.CacheIdentity!.Snapshot, cache.ReadAccess)) basis.EnsureAvailable();
+            using (var basis = new VssSnapshotTree(request.SourceView!.CacheIdentity!.Snapshot, cache.ReadAccess)) basis.EnsureAvailable();
         string stop = Path.Combine(request.ControlPath, "stop.json"); WindowsProcessWorkspaceProvider.CheckPath(stop);
         if (File.Exists(stop)) File.Delete(stop);
         string runner = WindowsProcessWorkspaceProvider.PrepareRunner(runnerCache);

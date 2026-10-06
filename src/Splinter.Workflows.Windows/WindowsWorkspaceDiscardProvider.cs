@@ -47,7 +47,7 @@ public sealed class WindowsWorkspaceDiscardProvider(ISourceDiscardProvider sourc
         {
             JournalReclamation.Reclaim(delta, w.Discard.Seal, ["identity.json"], Path.Combine(control, "discard-delta-reclaim.json"));
         }
-        catch (WorkspaceException ex) when (ex.Code.StartsWith("Validation", StringComparison.Ordinal))
+        catch (WorkspaceException ex) when (ex.Code.StartsWith("View", StringComparison.Ordinal))
         { throw new WorkspaceException("DiscardDeltaChanged", ex.Message); }
     }
 

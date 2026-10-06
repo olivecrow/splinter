@@ -1,6 +1,6 @@
 # 첫 준비·재연결 시간 검증
 
-실행 ID는 `vr-20260927`이며 [VR-01~04](../validation-view.md)를 `scoped-complete-with-limitations`로 마감했다. 시작 제품 기준은 `5c5d94f`이고 그 위의 VR 후보를 검증했다. 정상 첫 import와 반복 재연결·보존/회수는 확인했지만 첫 렌더는 빈 화면이어서 VR-03 전체는 Partial이다. SF-03 전체나 일반 Unity 지원을 Passed로 올리지 않는다.
+실행 ID는 `vr-20260927`이며 [VR-01~04](../source-view.md)를 `scoped-complete-with-limitations`로 마감했다. 시작 제품 기준은 `5c5d94f`이고 그 위의 VR 후보를 검증했다. 정상 첫 import와 반복 재연결·보존/회수는 확인했지만 첫 렌더는 빈 화면이어서 VR-03 전체는 Partial이다. SF-03 전체나 일반 Unity 지원을 Passed로 올리지 않는다.
 
 기존 격리 NTFS VHD의 작은 Unity `V:\sf-compaction-20260926\unity`와 새 소유 `V:\vr27`을 사용한다. snapshot은 `{FFE06A10-BF98-4846-B91B-C573B1D53E2A}`, 원본 기준은 `58f81b5bc6ff8a940d8a90872bd3fed858a54cc1`이다. 원본 Library와 새 cache가 없는 상태를 확인했다. worker 생성 전 공유 Git 파일 할당 6,112,144B를 포함한 기준을 보존했다.
 

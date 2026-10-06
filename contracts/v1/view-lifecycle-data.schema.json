@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:splinter:v1:validation-product-data",
+  "$id": "urn:splinter:v1:view-lifecycle-data",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -28,7 +28,7 @@
           ]
         },
         "result": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/response"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/response"
         }
       }
     },
@@ -49,7 +49,7 @@
           ],
           "properties": {
             "worker": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/worker"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/worker"
             },
             "resources": {
               "type": "object",
@@ -118,7 +118,7 @@
           ],
           "properties": {
             "state": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/state"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/state"
             },
             "resources": {
               "anyOf": [
@@ -134,7 +134,7 @@
                   ],
                   "properties": {
                     "owner": {
-                      "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/owner"
+                      "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/owner"
                     },
                     "resources": {
                       "type": "object",
@@ -188,7 +188,7 @@
             "cacheMaintenance": {
               "anyOf": [
                 {
-                  "$ref": "urn:splinter:v1:validation-product-data#/$defs/cacheMaintenance"
+                  "$ref": "urn:splinter:v1:view-lifecycle-data#/$defs/cacheMaintenance"
                 },
                 {
                   "type": "null"
@@ -217,7 +217,7 @@
           ],
           "properties": {
             "selection": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/selection"
             },
             "application": {
               "type": "object"
@@ -253,13 +253,13 @@
           ],
           "properties": {
             "selection": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/selection"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/selection"
             },
             "stopped": {
               "const": true
             },
             "seal": {
-              "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+              "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/seal"
             },
             "controlPath": {
               "type": "string"
@@ -309,7 +309,7 @@
         "result": {
           "allOf": [
             {
-              "$ref": "urn:splinter:v1:validation-product-data#/$defs/cacheMaintenance"
+              "$ref": "urn:splinter:v1:view-lifecycle-data#/$defs/cacheMaintenance"
             },
             {
               "required": [
@@ -485,14 +485,14 @@
           "minLength": 1
         },
         "cache": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/cache"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/cache"
         },
         "maxEstimatedJournalOverlapBytes": {
           "type": "integer",
           "minimum": 1
         },
         "beforeSeal": {
-          "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/seal"
+          "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/seal"
         },
         "before": {
           "type": "object",

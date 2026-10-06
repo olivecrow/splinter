@@ -230,7 +230,7 @@ public sealed partial class JournalDeltaStore
     }
 
     private List<LiveRange> LiveRanges() => LiveRanges(null);
-    public ValidationCacheUsage ObservePrivateUsage()
+    public JournalPrivateUsage ObservePrivateUsage()
     {
         using (EnterGate())
         {

@@ -38,7 +38,7 @@ public sealed class ContractAndCliTests
         Assert.Equal(new[] { "ntfs-snapshot", "git-snapshot", "plastic-snapshot", "project-snapshot" }, data.GetProperty("storageModes").EnumerateArray().Select(item => item.GetString()));
         foreach (string command in new[] { "unity.refresh", "validation.execute", "view.execute", "snapshot.spike", "preparation.probe", "baseline.prepare", "storage.probe" })
             Assert.Null(catalog.Find(command));
-        Assert.False(data.TryGetProperty("validationWorkflowContract", out _));
+        Assert.False(data.TryGetProperty("viewWorkflowContract", out _));
         Assert.Contains("external-tools", data.GetProperty("projectValidation").GetString());
     }
 
@@ -115,7 +115,7 @@ public sealed class ContractAndCliTests
         Assert.True(contracts.Validate("urn:splinter:v1:snapshot-spike-request", JsonSerializer.SerializeToElement(input)).IsValid);
         var (exit, response) = await Run("capabilities");
         Assert.Equal(0, exit);
-        var capability = response.GetProperty("data").GetProperty("validationViewExperiment");
+        var capability = response.GetProperty("data").GetProperty("sourceViewExperiment");
         Assert.False(capability.GetProperty("integratedWorkspaceMode").GetBoolean());
         Assert.Contains("candidate-source-export", capability.GetProperty("candidate").GetString());
         Assert.Contains("stable-request-key", capability.GetProperty("publication").GetString());
@@ -138,33 +138,33 @@ public sealed class ContractAndCliTests
     }
 
     [Fact]
-    public async Task ValidationProductRejectsAmbiguousPayloadsAndExposesItsResultContract()
+    public async Task ViewProductRejectsAmbiguousPayloadsAndExposesItsResultContract()
     {
         var request = new JsonObject { ["version"] = 1, ["action"] = "select", ["project"] = "C:/fixture",
             ["owner"] = new JsonObject { ["id"] = "view-owner", ["generation"] = 1 }, ["requestKey"] = "select-a",
             ["viewId"] = "view", ["candidateId"] = "candidate" };
-        Assert.True(contracts.Validate("urn:splinter:v1:validation-product-request", JsonSerializer.SerializeToElement(request)).IsValid);
+        Assert.True(contracts.Validate("urn:splinter:v1:view-lifecycle-request", JsonSerializer.SerializeToElement(request)).IsValid);
         request["workspaceId"] = "ambiguous-worker";
-        Assert.False(contracts.Validate("urn:splinter:v1:validation-product-request", JsonSerializer.SerializeToElement(request)).IsValid);
+        Assert.False(contracts.Validate("urn:splinter:v1:view-lifecycle-request", JsonSerializer.SerializeToElement(request)).IsValid);
         request.Remove("workspaceId"); request["owner"]!["generation"] = 0;
-        Assert.False(contracts.Validate("urn:splinter:v1:validation-product-request", JsonSerializer.SerializeToElement(request)).IsValid);
+        Assert.False(contracts.Validate("urn:splinter:v1:view-lifecycle-request", JsonSerializer.SerializeToElement(request)).IsValid);
         var (_, schema) = await Run("schema", "view.execute");
-        Assert.Equal("urn:splinter:v1:validation-product-request", schema.GetProperty("data").GetProperty("input").GetProperty("$id").GetString());
-        Assert.Contains("urn:splinter:v1:validation-product-data", contracts.SchemaIds);
+        Assert.Equal("urn:splinter:v1:view-lifecycle-request", schema.GetProperty("data").GetProperty("input").GetProperty("$id").GetString());
+        Assert.Contains("urn:splinter:v1:view-lifecycle-data", contracts.SchemaIds);
         using var directory = new TestDirectory(); string file = Path.Combine(directory.Path, "duplicate.json");
         request["owner"]!["generation"] = 1;
         File.WriteAllText(file, request.ToJsonString().Replace("\"requestKey\":", "\"requestKey\":\"duplicate\",\"requestKey\":"));
         var (invalidExit, invalid) = await Run("view", "--input", file, "--home", Path.Combine(directory.Path, "state"));
-        Assert.Equal(2, invalidExit); Assert.Equal("ValidationRequestInvalid", invalid.GetProperty("error").GetProperty("code").GetString());
+        Assert.Equal(2, invalidExit); Assert.Equal("ViewRequestInvalid", invalid.GetProperty("error").GetProperty("code").GetString());
         Assert.False(Directory.Exists(Path.Combine(directory.Path, "state")));
     }
 
     [Fact]
-    public async Task ValidationWorkflowContractsExposeTheConcreteProductCommand()
+    public async Task ViewWorkflowContractsExposeTheConcreteProductCommand()
     {
         var (exit, response) = await Run("capabilities");
         Assert.Equal(0, exit);
-        var contract = response.GetProperty("data").GetProperty("validationWorkflowContract");
+        var contract = response.GetProperty("data").GetProperty("viewWorkflowContract");
         Assert.Equal("development-storage-view", contract.GetProperty("stage").GetString());
         Assert.True(contract.GetProperty("integratedWorkspaceMode").GetBoolean());
         Assert.True(contract.GetProperty("cliAvailable").GetBoolean());
@@ -172,7 +172,7 @@ public sealed class ContractAndCliTests
             Assert.Contains(schema.GetString()!, contracts.SchemaIds);
         Assert.Contains(contracts.Commands, command => command.Id == "view.execute");
         var enabled = JsonNode.Parse(response.GetRawText())!;
-        enabled["data"]!["validationWorkflowContract"]!["cliAvailable"] = false;
+        enabled["data"]!["viewWorkflowContract"]!["cliAvailable"] = false;
         Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(enabled)).IsValid);
     }
 
@@ -251,8 +251,7 @@ public sealed class ContractAndCliTests
         Assert.Equal(0, created);
         string id = response.GetProperty("data").GetProperty("workspace").GetProperty("id").GetString()!;
         var store = new WorkspaceStore(home); var record = store.Get(id);
-        record.Validation = new("fixture", response.GetProperty("data").GetProperty("source").GetProperty("fingerprint").GetString()!, true, DateTimeOffset.UtcNow, []);
-        store.Save(record, "fixture-validation");
+
         string file = Path.Combine(record.Path, "asset.bin");
         await File.WriteAllTextAsync(file, "edited", ct);
         // This exclusive handle would make the old polling fingerprint fail.
@@ -262,18 +261,13 @@ public sealed class ContractAndCliTests
             Assert.Equal(0, polled);
             Assert.Equal("not-checked", status.GetProperty("data").GetProperty("sourceVerification").GetString());
             Assert.False(status.GetProperty("data").GetProperty("workspace").TryGetProperty("validation", out _));
-            Assert.NotNull(store.Get(id).Validation);
         }
         var (verified, fresh) = await Run("workspace", "status", "--id", id, "--home", home, "--verify-source");
         Assert.Equal(0, verified);
         Assert.Equal("verified", fresh.GetProperty("data").GetProperty("sourceVerification").GetString());
         Assert.True(fresh.GetProperty("data").GetProperty("source").GetProperty("hasChanges").GetBoolean());
         Assert.False(fresh.GetProperty("data").TryGetProperty("validationCurrent", out _));
-        Assert.NotNull(store.Get(id).Validation);
         var node = JsonNode.Parse(fresh.GetRawText())!;
-        node["data"]!["workspace"]!["validation"] = JsonSerializer.SerializeToNode(record.Validation, ApiJson.Options);
-        Assert.False(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(node)).IsValid);
-        node["data"]!["workspace"]!.AsObject().Remove("validation");
         var inspection = node["data"]!["source"]!["inspection"]!;
         Assert.Equal(0, inspection["gitHashProcesses"]!.GetValue<int>()); // git-checkout uses the existing full inspection path.
         inspection["gitHashProcesses"] = -1;
@@ -590,7 +584,7 @@ public sealed class ContractAndCliTests
 
     [Theory]
     [InlineData("{bad json", "InvalidJson")]
-    [InlineData("{}", "ValidationRequestInvalid")]
+    [InlineData("{}", "ViewRequestInvalid")]
     public async Task InvalidInputCannotLeakParserTextIntoStdout(string json, string error)
     {
         using var directory = new TestDirectory();

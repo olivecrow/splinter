@@ -93,7 +93,7 @@ public sealed partial class WorkspaceStore
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be read. Restore access before retrying the same key."); }
         if (record.Version != WorkspaceRecord.CurrentVersion || record.Purpose != "task" ||
-            record.UnrecognizedState?.Any(field => field.Value.ValueKind != JsonValueKind.Null) == true || record.SourceKind is not ("git" or "none" or "plastic") ||
+            record.UnrecognizedState?.Count > 0 || record.SourceKind is not ("git" or "none" or "plastic") ||
             record.StorageMode is not ("ntfs-snapshot" or "git-snapshot" or "plastic-snapshot" or "project-snapshot" or "git-checkout") ||
             record.StorageMode == "git-snapshot" && (record.SourceKind != "git" || record.Purpose != "task") ||
             record.ApplicationKind is not ("unity" or "none") || record.ApplicationKind == "none" && record.ManagedPaths.Length != 0 &&

@@ -266,7 +266,7 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
     {
         var result = await Run(cwd, ["update-index", "--refresh"], ct);
         // Exit 1 with no diagnostic means tracked files need update. A sealed
-        // validation candidate intentionally differs from its baseline index.
+        // source candidate intentionally differs from its baseline index.
         if (result.ExitCode != 0 && !(allowSourceChanges && result.ExitCode == 1 && result.Error.Length == 0))
             throw Error("GitCommandFailed", result.Error.Trim());
     }

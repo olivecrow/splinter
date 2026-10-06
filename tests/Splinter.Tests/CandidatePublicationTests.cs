@@ -42,7 +42,7 @@ public sealed class CandidatePublicationTests
             worker.Write(sparse.Id, 65536 + 10000, new byte[12000]);
         }
         public JournalDeltaStore OpenWorker() => new(Worker, Identity, Tree);
-        public ValidationCandidate Publish(Action<string>? boundary = null) => JournalDeltaStore.PublishCandidate(
+        public ImmutableCandidate Publish(Action<string>? boundary = null) => JournalDeltaStore.PublishCandidate(
             Worker, Identity, Tree, Candidate, Request, Forbidden, Projection, boundary);
         public void StopAt(string boundary) => Assert.Throws<IOException>(() => Publish(stage =>
         { if (stage == boundary) throw new IOException("injected publication interruption"); }));
@@ -92,7 +92,7 @@ public sealed class CandidatePublicationTests
         var contracts = new ContractCatalog();
         var intent = JsonSerializer.Deserialize<CandidateExportIntent>(File.ReadAllText(Path.Combine(f.Candidate, "candidate-export.json")))!;
         Assert.True(contracts.Validate("urn:splinter:v1:candidate-export-intent", JsonSerializer.SerializeToElement(intent, ApiJson.Options)).IsValid);
-        Assert.True(contracts.Validate("urn:splinter:v1:validation-candidate", JsonSerializer.SerializeToElement(result, ApiJson.Options)).IsValid);
+        Assert.True(contracts.Validate("urn:splinter:v1:immutable-candidate", JsonSerializer.SerializeToElement(result, ApiJson.Options)).IsValid);
     }
 
     [Theory]
@@ -137,7 +137,7 @@ public sealed class CandidatePublicationTests
         using var f = new Fixture(); f.StopAt(boundary);
         using (var worker = f.OpenWorker()) Write(worker, "Assets/code.cs", "follow-up");
         string later = Hash(File.ReadAllBytes(f.Journal));
-        ValidationCandidate result;
+        ImmutableCandidate result;
         using (var worker = f.OpenWorker()) result = f.Publish();
         Assert.NotEqual(later, result.SourceSeal.JournalHash);
         Assert.Equal(later, Hash(File.ReadAllBytes(f.Journal)));

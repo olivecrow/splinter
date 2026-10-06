@@ -57,7 +57,9 @@ private Mutation의 기본값 JSON은 생략하고 명시적 정리/후보에서
 
 소유 process supervisor와 PID/시작 시각/토큰·자식 자원 0, 실제 mount/Git/delta·snapshot 회수 관측은 제품 핵심이다. [명시적 discard](workspace-discard.md)는 별도 durable intent/authorization을 사용한다. `release`는 독립 결과를 남기며 shared/reclaim-pending·unknown을 회수 완료로 표시하지 않는다. 열린 개발용 candidate/source/cache도 snapshot 의존성으로 계속 보호한다.
 
-현재 durable 형식에 남아 있는 이전 validation 필드·영수증은 보존/구조 검사만 한다. 자체 컴파일 요청·callback/domain reload 성공 판정·Editor 포커스 제어는 없다. 결과 보존/통합은 이 필드에 의존하지 않는다. 구버전 자동 이관·손상 복구 fallback·자동 sweep은 제공하지 않는다.
+workspace 상태는 저장·소스·소유 자원·독립 결과와 반영/회수 intent를 기록한다. view ledger는 후보 게시·소스 세대·cache 의존성과 요청별 receipt를 기록한다. 지원하지 않는 필드·형식과 손상된 상태는 보존하고 명시적으로 거부한다. 컴파일·Play/Test/build와 게임 합격 판단은 에이전트와 외부 도구가 수행한다.
+
+개발용 저장 계약은 Core의 `ViewWorkflow*`·`ImmutableCandidate`·`SourceViewSelection`, Runtime의 `ViewWorkflowCoordinator`·`SourceViewDeltaStore`·`CacheSnapshotTree`, Windows의 `ViewLifecycle`·`WindowsViewProvider`, Git의 `GitSourceResult`가 소유한다. 현재 schema와 회귀 근거는 [저장 view 계약 검증](verification/storage-view-contract.md)을 따른다.
 
 ## 에이전트용 명령 계약
 
@@ -77,7 +79,7 @@ private Mutation의 기본값 JSON은 생략하고 명시적 정리/후보에서
 | `unity start/stop` | 해당 workspace Editor의 수명. 준비/종료는 상태 관측으로 확인 |
 | `storage service status` | 기존 제한 VSS 서비스의 읽기 전용 상태 |
 
-`unity refresh`, 제품 `validation`, 일반 spike/probe 명령은 제공하지 않는다. 개발 계약은 `scripts/splinter-dev.ps1 capabilities/schema`에서 따로 발견한다. 선택적 `view`도 storage/cache 수명만 관리하고 검증 수집/판정을 하지 않는다.
+개발 계약은 `scripts/splinter-dev.ps1 capabilities/schema`에서 발견한다. `view`는 불변 후보·소스 세대·Library cache·독립 결과의 수명을 관리한다. spike/probe의 별도 입력과 실행 조건은 [개발 CLI](development-cli.md)를 따른다.
 
 ### 진단의 의미
 

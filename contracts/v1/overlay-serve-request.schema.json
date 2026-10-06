@@ -257,7 +257,7 @@
       "type": "string",
       "minLength": 1
     },
-    "validationView": {
+    "sourceView": {
       "type": [
         "object",
         "null"
@@ -309,7 +309,7 @@
                   "minLength": 1
                 },
                 "snapshot": {
-                  "$ref": "urn:splinter:v1:validation-workflow-contract#/$defs/snapshot"
+                  "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/snapshot"
                 },
                 "maxJournalBytes": {
                   "type": "integer",
@@ -488,10 +488,10 @@
     {
       "if": {
         "required": [
-          "validationView"
+          "sourceView"
         ],
         "properties": {
-          "validationView": {
+          "sourceView": {
             "type": "object",
             "required": [
               "cacheBasis"
@@ -512,7 +512,7 @@
           "cacheSnapshot": {
             "type": "object"
           },
-          "validationView": {
+          "sourceView": {
             "required": [
               "cacheIdentity"
             ],

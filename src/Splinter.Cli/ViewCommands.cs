@@ -9,7 +9,7 @@ using Splinter.Workflows.Windows;
 
 namespace Splinter.Cli;
 
-internal static class ValidationCommands
+internal static class ViewCommands
 {
     public static void Add(RootCommand root, ContractCatalog contracts, Func<ParseResult, string> home,
         Action<string> select, Action<ApiResponse> respond, CancellationToken ct)
@@ -24,17 +24,17 @@ internal static class ValidationCommands
             if (stream.Length > 1024 * 1024) throw new WorkspaceException("InputTooLarge", "Storage view request exceeds 1 MiB.");
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
             if (!JsonPropertyValidation.HasUniqueProperties(document.RootElement))
-                throw new WorkspaceException("ValidationRequestInvalid", "Duplicate request fields are ambiguous.");
-            if (!contracts.Validate("urn:splinter:v1:validation-product-request", document.RootElement).IsValid)
-                throw new WorkspaceException("ValidationRequestInvalid", "Request does not match view.execute schema.");
-            var request = document.RootElement.Deserialize<ValidationProductRequest>(new JsonSerializerOptions(JsonSerializerDefaults.Web)
+                throw new WorkspaceException("ViewRequestInvalid", "Duplicate request fields are ambiguous.");
+            if (!contracts.Validate("urn:splinter:v1:view-lifecycle-request", document.RootElement).IsValid)
+                throw new WorkspaceException("ViewRequestInvalid", "Request does not match view.execute schema.");
+            var request = document.RootElement.Deserialize<ViewLifecycleRequest>(new JsonSerializerOptions(JsonSerializerDefaults.Web)
                 { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow, RespectRequiredConstructorParameters = true })!;
-            var result = await new ValidationProduct(new WorkspaceStore(home(parse))).ExecuteAsync(request, ct);
+            var result = await new ViewLifecycle(new WorkspaceStore(home(parse))).ExecuteAsync(request, ct);
             respond(Response(request, result, home(parse)));
         });
     }
 
-    internal static ApiResponse Response(ValidationProductRequest request, object result, string home)
+    internal static ApiResponse Response(ViewLifecycleRequest request, object result, string home)
     {
         var response = ApiResponse.Success("view.execute", new { request.Action, result });
         if (request.Action != "start") return response;

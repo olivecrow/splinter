@@ -137,17 +137,17 @@ internal sealed class StorageAuthorityPaths : IDisposable
     {
         string projectId = WorkspaceStore.ProjectKey(grant.SourcePath);
         string workflow = Path.Combine(grant.HomePath, "validation-workflows", WorkspaceStore.Key(projectId), "state.json");
-        if (Present(workflow + ".pending")) throw StorageAuthorityProtocol.Error("ValidationStateRecoveryRequired", "Reconcile retained validation state before reclaiming.");
+        if (Present(workflow + ".pending")) throw StorageAuthorityProtocol.Error("ViewStateRecoveryRequired", "Reconcile retained view state before reclaiming.");
         if (Present(workflow))
         {
             Pin(Path.GetDirectoryName(workflow)!);
-            var ledger = Read<ValidationWorkflowState>(workflow);
+            var ledger = Read<ViewWorkflowState>(workflow);
             if (ledger.Version != 1 || ledger.ProjectId != projectId ||
-                ValidationWorkflowCoordinator.SnapshotDependencies(ledger, state.Reference!).Length != 0)
-                throw StorageAuthorityProtocol.Error("SnapshotInUse", "Validation artifacts still depend on this snapshot.");
+                ViewWorkflowCoordinator.SnapshotDependencies(ledger, state.Reference!).Length != 0)
+                throw StorageAuthorityProtocol.Error("SnapshotInUse", "View artifacts still depend on this snapshot.");
         }
         else if (Directory.Exists(Path.GetDirectoryName(workflow)))
-            throw StorageAuthorityProtocol.Error("ValidationStateRecoveryRequired", "Preserve orphaned validation preparation.");
+            throw StorageAuthorityProtocol.Error("ViewStateRecoveryRequired", "Preserve orphaned view preparation.");
         string records = Path.Combine(grant.HomePath, "records"); Pin(records);
         foreach (string other in Directory.EnumerateDirectories(records))
         {

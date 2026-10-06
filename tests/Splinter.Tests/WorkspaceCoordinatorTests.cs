@@ -55,9 +55,12 @@ public sealed class WorkspaceCoordinatorTests
     }
 
     [Theory]
-    [InlineData("baselineId", "\"obsolete-basis\"")]
-    [InlineData("cloneMetrics", "{}")]
-    public async Task RemovedStateValuesCannotBeIgnoredOrRewritten(string field, string value)
+    [InlineData("unexpected", "null")]
+    [InlineData("unexpected", "{}")]
+    [InlineData("validation", "{}")]
+    [InlineData("pendingValidationId", "\"request\"")]
+    [InlineData("pendingFingerprint", "\"hash\"")]
+    public async Task UnrecognizedStateFieldsArePreservedAndRejected(string field, string value)
     {
         using var d = new TestDirectory(); var store = new WorkspaceStore(Path.Combine(d.Path, "state"));
         var runtime = new WorkspaceCoordinator(store, new FakeSources(), new FakeApplications());
@@ -65,9 +68,6 @@ public sealed class WorkspaceCoordinatorTests
             TestContext.Current.CancellationToken)).Workspace;
         string path = Path.Combine(store.ControlPath(w.Id), "workspace.json");
         var node = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken))!;
-        node[field] = null;
-        await File.WriteAllTextAsync(path, node.ToJsonString(), TestContext.Current.CancellationToken);
-        Assert.Equal(w.RequestDigest, store.Get(w.Id).RequestDigest);
         node[field] = System.Text.Json.Nodes.JsonNode.Parse(value);
         await File.WriteAllTextAsync(path, node.ToJsonString(), TestContext.Current.CancellationToken);
         byte[] before = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
@@ -146,7 +146,6 @@ public sealed class WorkspaceCoordinatorTests
         var fresh = await c.StatusAsync(id, ct, verifySource: true);
         Assert.Equal("edited", fresh.Source!.Fingerprint);
         var collected = await c.CheckpointAsync(id, "external work", ct);
-        Assert.Null(collected.Workspace.Validation);
         Assert.Equal("collected", collected.Workspace.Phase);
         sources.Fingerprint = "later-write"; sources.Revision = "later-revision";
         Assert.Equal("ResultNotReady", (await Assert.ThrowsAsync<WorkspaceException>(() => c.IntegrateAsync(id, "main", ct))).Code);
