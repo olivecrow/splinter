@@ -1109,7 +1109,7 @@
               "const": "verified-location-separate-from-immutable-delta-identity"
             },
             "deltaStore": {
-              "const": "bounded-checksummed-range-journal-v2; raw-or-brotli; explicit-offline-compaction-with-durable-generation-retry"
+              "const": "bounded-checksummed-range-journal-v2; raw-or-brotli; default-current-state-SJL4-with-single-flush-capsule-and-superseded-range-reclamation; explicit-compaction-and-same-request-recovery"
             },
             "resultCollection": {
               "const": "stable-journal-v1"
@@ -1590,6 +1590,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "journalOptimizationEnabled": { "type": "boolean" },
         "id": {
           "type": "string",
           "minLength": 1
@@ -2089,6 +2090,10 @@
             "beforeAllocatedBytes": { "type": "integer", "minimum": 0 },
             "afterAllocatedBytes": { "type": "integer", "minimum": 0 },
             "peakTemporaryAllocatedBytes": { "type": "integer", "minimum": 0 },
+            "journalOptimizationEnabled": { "type": "boolean" },
+            "revertBaseRanges": { "type": "boolean" },
+            "baseComparedBytes": { "type": "integer", "minimum": 0 },
+            "revertedPayloadBytes": { "type": "integer", "minimum": 0 },
             "cost": {
               "type": "object",
               "additionalProperties": false,
@@ -2116,6 +2121,7 @@
           },
           "required": ["attemptId", "before", "after", "startedAt"]
         },
+        "pendingCompactionRevertBaseRanges": { "type": "boolean" },
         "pendingCompactionMaxEstimatedJournalOverlapBytes": {
           "type": "integer",
           "minimum": 1

@@ -277,7 +277,7 @@ public sealed partial class FileWorkspaceTests
         public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { Removed.Add(w.Id); Lost("remove"); return Task.CompletedTask; }
         public Task<SnapshotReclamation> ReleaseSnapshotAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { Released.Add(w.Id); if (Directory.Exists(w.Snapshot!.Reference!.RootPath)) Directory.Delete(w.Snapshot.Reference.RootPath, true); Lost("release"); return Task.FromResult(new SnapshotReclamation(w.Snapshot.Reference.Id, "fake", "released", DateTimeOffset.UtcNow, [])); }
-        public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default, long? maxEstimatedJournalOverlapBytes = null) => throw new InvalidOperationException();
+        public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default, long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null) => throw new InvalidOperationException();
         public Task CompleteCompactionAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new InvalidOperationException();
         private static void Copy(string source, string target, bool omitPlastic = false)
         {

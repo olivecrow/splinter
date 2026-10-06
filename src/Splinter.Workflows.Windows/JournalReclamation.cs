@@ -13,6 +13,12 @@ internal static class JournalReclamation
 {
     internal static void Reclaim(string directory, SnapshotDeltaSeal seal, string[] metadataNames, string receiptPath, Action<string>? boundary = null)
     {
+        string current = Path.Combine(directory, "delta.journal"), latestReceipt = receiptPath + ".latest";
+        if (LatestJournalReclamation.HasIntent(latestReceipt) || File.Exists(current) && LatestJournalReclamation.IsLatest(current))
+        {
+            LatestJournalReclamation.ReclaimDirectory(directory, seal, metadataNames, latestReceipt, boundary);
+            return;
+        }
         WorkspaceStore.EnsurePlainPath(directory);
         Require(!File.Exists(directory), "ValidationReleaseUncertain", "A file replaced the owned artifact directory.");
         var prior = Read<JournalReclamationIntent>(receiptPath);

@@ -8,16 +8,26 @@ namespace Splinter.Tests;
 public sealed class ManagedDirectoryRestoreTests
 {
     [Theory]
-    [InlineData(null)]
-    [InlineData("file.after-move")]
-    [InlineData("file.after-create-receipt")]
-    [InlineData("file.after-ranges-flush")]
-    [InlineData("restore.after-verified")]
-    [InlineData("restore.after-basis-reclaim")]
-    [InlineData("restore.after-delta-reclaim")]
-    public async Task FilesMoveWithoutFullCopyAndFixedRangeRestorationResumes(string? interruption)
+    [InlineData(null, false)]
+    [InlineData("file.after-move", false)]
+    [InlineData("file.after-create-receipt", false)]
+    [InlineData("file.after-ranges-flush", false)]
+    [InlineData("restore.after-verified", false)]
+    [InlineData("restore.after-basis-reclaim", false)]
+    [InlineData("restore.after-delta-reclaim", false)]
+    [InlineData(null, true)]
+    [InlineData("file.after-ranges-flush", true)]
+    [InlineData("restore.after-basis-reclaim", true)]
+    public async Task FilesMoveWithoutFullCopyAndFixedRangeRestorationResumes(string? interruption, bool optimized)
     {
         using var fixture = new Fixture(); bool interrupted = false;
+        if (optimized)
+        {
+            using var tree = new OwnedDirectorySnapshotTree(new OwnedDirectorySnapshotProvider(fixture.State.Basis.ReceiptDirectory,
+                fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot), fixture.State.Basis.Snapshot);
+            JournalDeltaStore.CompactDirectory(fixture.Request.DeltaPath, fixture.Request.Identity, tree, revertBaseRanges: true);
+            JournalDeltaStore.CompleteCompaction(fixture.Request.DeltaPath, fixture.Request.Identity);
+        }
         if (interruption is not null)
         {
             await Assert.ThrowsAsync<IOException>(() => ManagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, TestContext.Current.CancellationToken,
@@ -170,7 +180,7 @@ public sealed class ManagedDirectoryRestoreTests
             State = new() { ApplicationKind = "unity", DirectoryKind = "Library", Key = "fixture", OriginalPath = Path.Combine(directory.Path, "original", "Library"), CompatibilityKey = "fixture", Phase = "restoring",
                 Basis = new(snapshot.Id, Path.Combine(directory.Path, "original"), "Library", snapshot, root, snapshot.Id, hash) };
             Request = new(new(2, snapshot.Id, snapshot, 1024 * 1024, 65536), Path.Combine(root, "delta"), Original, Path.Combine(root, "overlay"), "token", new(snapshot.Id, basisPath, hash), root, snapshot.Id);
-            using var tree = new OwnedDirectorySnapshotTree(manifest, snapshot); using var journal = new JournalDeltaStore(Request.DeltaPath, Request.Identity, tree);
+            using var tree = new OwnedDirectorySnapshotTree(manifest, snapshot); using var journal = new JournalDeltaStore(Request.DeltaPath, Request.Identity, tree, optimizeJournal: false);
             journal.Write(journal.Stat("dir/large")!.Id, 100, [7, 8]); journal.Rename(journal.Stat("dir")!.Id, "renamed", false); journal.Delete(journal.Stat("deleted")!.Id);
             var created = journal.Create("new", false, 32); journal.Write(created.Id, 0, [9]); journal.Write(created.Id, 4, [6]);
             var truncate = journal.Stat("truncated")!; journal.SetLength(truncate.Id, 1); journal.SetLength(truncate.Id, 5); journal.Write(truncate.Id, 4, [2]);

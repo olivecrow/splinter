@@ -1,6 +1,6 @@
 # 저널 변경 범위 압축
 
-`JournalDeltaStore`는 overlay **v2**와 **SJR2** 저널 하나를 지원한다. write callback 하나의 최대 1MiB 변경 범위를 raw 또는 독립 `splinter-range-brotli-v1` 블록으로 저장한다. 이전 overlay/저널은 보존 후 명시적으로 거부하며 자동 변환하지 않는다. workspace 상태는 v2이고 후보는 v3다.
+`JournalDeltaStore`는 overlay **v2**, OFF의 **SJR2**와 [최적화 ON의 SJL4 현재본 저널](latest-only-journal.md)을 지원한다. write callback 하나의 최대 1MiB 변경 범위를 raw 또는 독립 `splinter-range-brotli-v1` 블록으로 저장한다. 이전 overlay/저널은 보존 후 명시적으로 거부하며 자동 이관하지 않는다. workspace 상태는 v2이고 독립 후보는 v3/SJR2다. 아래 frame append/선택 설명은 OFF의 일반 SJR2 경로이며 ON은 payload/metadata의 단일 capsule 기록·mutation마다 한 durable flush·게시/회수를 사용한다.
 
 ## 현재 frame
 
@@ -20,9 +20,9 @@ Core `WorkspaceJournalPayload`는 저장/복원 길이와 논리 fragment의 범
 
 승인 쓰기는 기존 순서대로 frame append·개별 durable flush·index 반영·callback 반환을 유지한다. 압축을 위해 callback을 여러 승인으로 나누거나 group flush를 추가하지 않는다. private 동일 바이트/앞뒤 범위 재사용을 먼저 수행한다. journal budget은 실제 header/metadata/stored/checksum 길이로 검사한다. 재생은 외부 checksum과 내부 codec/선언 길이 일치를 확인한 뒤 논리 extent를 연결한다. 손상된 완전한 frame은 보존·거부하며 불완전한 마지막 미승인 frame만 기존 정책으로 제거한다.
 
-Mutation JSON은 `Offset=0`·`Destination=null`·`Replace=false`를 생략한다. 현재 reader는 명시적 기본값과 생략을 같은 의미로 읽으며 비기본값·Entry·Sequence·Operation·fragment/skip 범위는 유지한다. 생성/재연결/읽기에서 저장된 저널을 다시 쓰지 않는다. 현재 형식과 CLI·Core·응답 schema는 그대로다.
+Mutation JSON은 `Offset=0`·`Destination=null`·`Replace=false`를 생략한다. 현재 reader는 명시적 기본값과 생략을 같은 의미로 읽으며 비기본값·Entry·Sequence·Operation·fragment/skip 범위는 유지한다. 생성/재연결/읽기에서 저장된 저널을 다시 쓰지 않는다. 이 기본값 생략은 형식과 기존 입력 의미를 유지한다. 선택적 [기준본 복귀 정리](journal-base-reversion.md)의 추가 CLI/응답 필드는 별도 계약을 따른다.
 
-compaction/candidate는 유효 논리 fragment를 모아 현재 frame으로 표현하고 원래 저장 frame보다 작을 때만 선택한다. fragment metadata가 더 비싸면 원래 frame을 보존한다. 내용/sequence/소스 seal·같은 intent 재시도와 명시적 겹침 예산은 유지한다. 독립 결과 수집은 기존 파일/소스 provider를 통해 decoded 내용을 읽으며 회수할 저널/VSS에 의존하지 않는다.
+기본 compaction/candidate는 유효 논리 fragment를 모아 현재 frame으로 표현하고 원래 저장 frame보다 작을 때만 선택한다. fragment metadata가 더 비싸면 원래 frame을 보존한다. 내용/sequence/소스 seal·같은 intent 재시도와 명시적 겹침 예산은 유지한다. 독립 결과 수집은 기존 파일/소스 provider를 통해 decoded 내용을 읽으며 회수할 저널/VSS에 의존하지 않는다.
 
 명시적 compaction/candidate는 유지할 frame의 decoded mutation을 현재 JSON으로 직렬화해 더 작을 때만 메타데이터를 선택한다. 유지하는 payload의 raw/encoded 바이트와 두 길이는 그대로이며 외부 checksum은 새 metadata에 맞춰 작성한다. 생략된 기본값의 실제 저장 자격과 추가 직렬화 비용은 [JM 검증](verification/journal-metadata-storage.md), 한정 범위는 [JM 계획](plans/journal-metadata-storage.md)을 따른다.
 

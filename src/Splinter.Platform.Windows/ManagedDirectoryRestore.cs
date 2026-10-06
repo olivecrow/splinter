@@ -37,7 +37,7 @@ internal static class ManagedDirectoryRestore
                 ManagedRestoreFileAccess.Require(pin, await FileIdentityAsync(root, savedCursor.PlanHash, file, ct));
                 if (Hash(pin) != file.FinalHash) throw new WorkspaceException("GeneratedRestoreConflict", "A restored original changed before cleanup.");
             }
-            Cleanup(state, request, manifest, boundary); return;
+            Cleanup(state, request, manifest, plan.Seal, boundary); return;
         }
         JournalDeltaStore journal;
         if (plan is null)
@@ -78,8 +78,10 @@ internal static class ManagedDirectoryRestore
         else journal = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, new MetadataOnlyRestoreTree(manifest));
         using (journal)
         {
-            if (plan.Version != 2 || plan.Basis != state.Basis || ManagedDirectoryBasis.HashFile(Path.Combine(request.DeltaPath, "delta.journal")) != plan.Seal.JournalHash ||
-                new FileInfo(Path.Combine(request.DeltaPath, "delta.journal")).Length != plan.Seal.JournalBytes)
+            // Planning has closed the basis reader; restoration now uses only
+            // the pinned private journal, even after basis files are moved.
+            if (plan.Version != 2 || plan.Basis != state.Basis ||
+                JournalDeltaStore.SealJournal(Path.Combine(request.DeltaPath, "delta.journal"), plan.Seal.DurableSequence) != plan.Seal)
                 throw new WorkspaceException("RestoreSealMismatch", "Retain a mismatched restore plan/journal.");
             string planHash = ManagedDirectoryBasis.HashFile(planPath);
             journal.PrepareRestoreReads(plan.Seal);
@@ -165,9 +167,9 @@ internal static class ManagedDirectoryRestore
             cursor = cursor with { FilesVerified = true }; await WindowsProcessWorkspaceProvider.WriteAsync(cursorPath, cursor, ct);
             boundary?.Invoke("restore.after-verified");
         }
-        Cleanup(state, request, manifest, boundary);
+        Cleanup(state, request, manifest, plan.Seal, boundary);
     }
-    private static void Cleanup(ManagedDirectoryState state, OverlayServeRequest request, OwnedDirectoryManifest manifest, Action<string>? boundary)
+    private static void Cleanup(ManagedDirectoryState state, OverlayServeRequest request, OwnedDirectoryManifest manifest, SnapshotDeltaSeal seal, Action<string>? boundary)
     {
         var manifestItems = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.OrdinalIgnoreCase);
         // The final ordinary NTFS tree is independent. Only untouched deleted
@@ -192,6 +194,12 @@ internal static class ManagedDirectoryRestore
             boundary?.Invoke("restore.after-basis-reclaim");
         }
         if (!Directory.Exists(request.DeltaPath)) return;
+        string journalPath = Path.Combine(request.DeltaPath, "delta.journal"), reclaim = Path.Combine(state.Basis.ReceiptDirectory, "latest-restore-delta-reclaim.json");
+        if (File.Exists(reclaim) || File.Exists(journalPath) && LatestJournalReclamation.IsLatest(journalPath))
+        {
+            LatestJournalReclamation.ReclaimDirectory(request.DeltaPath, seal, ["identity.json"], reclaim);
+            boundary?.Invoke("restore.after-delta-reclaim"); return;
+        }
         var actual = Directory.EnumerateFileSystemEntries(request.DeltaPath).ToArray();
         if (actual.Any(p => Path.GetFileName(p) is not ("delta.journal" or "identity.json") || Directory.Exists(p))) throw new WorkspaceException("UnownedDeltaFiles", "Retain unexpected original-delta files.");
         foreach (string path in actual) { WorkspaceStore.EnsurePlainPath(path); File.Delete(path); }

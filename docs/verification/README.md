@@ -2,6 +2,8 @@
 
 [외부 도구 결합 제거](external-tool-boundaries.md)는 MCP 부재/내부 API 변경에 독립적인 bridge 초기화·정상 종료와 패키지 run-state 보존의 자동 회귀를 소유한다. MCP·Unity CLI의 이름/버전·패치·연결 성공은 제품 전제가 아니다. 아래 도구별 실행 기록은 당시 후보/입력의 사실이며 현재 지원이나 설치 요구로 승계하지 않는다.
 
+[현재본 쓰기 경로 최적화](latest-journal-write-optimization.md)는 현재 SJL4 capsule의 단일 payload/metadata 기록·mutation마다 한 durable flush·정확한 이전 payload/metadata 회수와 동일 8/32 PNG 반복 입력의 ON 쓰기 -29.5%/-30.7%와 ON/OFF 파일 할당 -91.75%/-93.61%를 소유한다. ON은 OFF보다 5.6–5.8배 느리고 관리 누적 할당은 늘었다. 사용자가 1,536회 전체 22.389s·개별 평균 약 14.6ms와 파일 할당 감소를 근거로 새 작업의 기본 ON을 선택했으며 기존 OFF/ON은 유지한다. SJL2 당시 비용과 SJL3 중간 후보의 7~8% 시간 개선은 별도 보존한다. 파일/소유 프로세스 중단·WinFsp fake 기준 자격이며 Unity/VSS/OS 전원/전체 peak 자격은 승계하지 않는다.
+
 [보안 경계 검증](security-boundaries.md)은 Plastic private reader·MCP 인증·서비스 ACL/잠금/수신 제한의 변경된 경계만 다룬다. 과거 Unity A/B 자격은 유지하며, 현재 reader의 Unity 실행과 설치된 서비스 업데이트를 자동 통과로 표시하지 않는다. MCP v2는 현재 제공 범위에서 제거한 과거 외부 후보의 기록이다.
 
 [C: 회수/MCP 응답 복구](vss-and-mcp-remediation.md)는 과거 동일 A release/B discard의 회수 종결과 외부 Coplay 패치의 실행·중복 방지·reload 상세 결과를 소유한다. C: 회수 보류는 종결됐으며 최초 실패의 재현 조건·소유권과 복구 근거는 해당 검증에 남긴다. MCP의 과거 후보 결과와 현재 인증/transport의 미실행 경계는 [보안 검증](security-boundaries.md)과 구분한다.
@@ -23,6 +25,12 @@
 현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop·checkpoint를 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제공하지 않는다. 선택적 view/Library cache·probe는 [개발용 CLI](../development-cli.md)의 경로다. 아래 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 변경된 계약의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](workspace-product-scope.md)을 따른다. 검증 상태의 뜻은 [용어집](../glossary.md#응답과-검증-상태)을 참고한다.
 
 ## 현재 변경의 검증
+
+[SJL2 당시 현재본 저널](latest-only-journal.md)은 SJL2/root v2·SJT2·v3 compact intent의 다수 파일 반복 쓰기와 현재 payload 회수를 소유한다. 실제 PNG 8/32파일 OFF/ON 각 3회에서 최종 파일 할당은 -91.81%/-93.74%이고 ON은 모든 cycle에서 일정했다. 32파일 쓰기 중앙값은 OFF 3.998s/ON 33.351s로 당시에는 기본 OFF를 유지했다. 현재 기본값은 후속 쓰기 경로 최적화 검증을 따른다. 필요한 WinFsp 정상 close/reconnect·소유 자식 중단·composite seal/accounting과 전체 회귀를 구분하고 Unity/VSS/대형 자격을 승계하지 않는다.
+
+[선택적 기준본 복귀 정리](journal-base-reversion.md)는 이전 append/v2 intent 후보의 실제 2.8GB Unity 프로젝트 recorded Git 입력과 합성 OFF/ON 각 3회, 고정 7경계의 실제 자식 종료 각 2기준, WinFsp editorless A/B의 독립 결과/소유 회수를 소유한다. 당시 최종 저널 할당 -74.76%와 전체 측정 시간 +49.41%를 함께 기록해 기본 OFF를 유지했다. 최초 runner 접근 거부·명시적 같은 작업 재개와 Unity import/전체 순간 peak 미확인을 보존하며 새 SJL2 자격과 구분한다.
+
+[다수 파일 시간 최적화](journal-base-reversion-optimization.md)는 별도 실제 PNG 8/32파일 반복 변경·전후 36개 stopped NTFS 저널의 정리 시간과 hash/metadata/sequence를 소유한다. ON 정리는 8파일 -79.47%, 32파일 -90.19%이며 원본/ref와 최종 할당을 보존했다. 복귀 없는 입력의 전체 비용·쓰기 변동을 함께 기록해 당시 기본 OFF를 유지했으며 이전 Unity/WinFsp 자격을 새 후보로 승계하지 않는다.
 
 [OS와 앱 확장 계약](extensibility-boundaries.md)은 불변 경로 정책·권한 metadata와 주입한 앱별 동반 파일/원본 reservation/생성 디렉터리 descriptor의 자동 적합성을 소유한다. 실제 macOS/Linux·다른 앱·새 Unity/VSS A/B는 NotRun이다.
 

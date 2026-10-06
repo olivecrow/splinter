@@ -14,7 +14,7 @@ public sealed class JournalDuplicateWriteTests
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "edges", tree.Snapshot, 4 * 1024 * 1024, 131072);
         byte[] expected = Enumerable.Repeat((byte)7, 131072).ToArray(); DeltaEntry current;
-        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             store.Create("Library", true, 16); store.Create("Library/Bee", true, 16);
             Guid id = store.Create("Library/Bee/cache", false, 32).Id;
@@ -28,7 +28,7 @@ public sealed class JournalDuplicateWriteTests
             Assert.Equal(0, store.ObserveChanges(["Library"]).Sequence);
             current = store.Get(id);
         }
-        using var replay = new JournalDeltaStore(root.Path, identity, tree);
+        using var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false);
         Assert.Equal(current, replay.Stat(current.Path));
         byte[] actual = new byte[expected.Length]; Assert.Equal(actual.Length, replay.Read(current.Id, 0, actual));
         Assert.Equal(expected, actual); Assert.Equal(0, tree.ReadBytes);
@@ -42,14 +42,14 @@ public sealed class JournalDuplicateWriteTests
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var observer = new Observer(); var identity = new OverlayIdentity(2, "edge-interrupted", tree.Snapshot, 100000, 32768);
         byte[] expected = new byte[32768]; expected[16000] = 1;
-        using (var store = new JournalDeltaStore(root.Path, identity, tree, observer))
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, observer, optimizeJournal: false))
         {
             Guid id = store.Create("file", false, 32).Id; store.Write(id, 0, new byte[expected.Length]);
             observer.FailAt = boundary; Assert.Throws<IOException>(() => store.Write(id, 0, expected));
             Assert.Equal("write", observer.Reached!.Operation); Assert.Equal(1, observer.Reached.PayloadBytes);
             Assert.Equal("DeltaReconnectRequired", Assert.Throws<WorkspaceException>(() => store.Write(id, 0, [9])).Code);
         }
-        using var replay = new JournalDeltaStore(root.Path, identity, tree);
+        using var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false);
         Assert.Equal(committed ? 3 : 2, replay.Observe().DurableSequence);
         Assert.Equal(expected.Length + (committed ? 1 : 0), replay.ObservePrivateUsage().RetainedLogicalPayloadBytes);
         byte[] actual = new byte[expected.Length]; replay.Read(replay.Stat("file")!.Id, 0, actual);
@@ -65,7 +65,7 @@ public sealed class JournalDuplicateWriteTests
         byte[] expected = Enumerable.Repeat((byte)1, 65536).ToArray();
         Array.Fill(expected, (byte)2, 16384, 16384);
         DeltaEntry current; SourceChangeView changes; long payload;
-        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Create("file", false, 32).Id;
             store.Write(id, 0, Enumerable.Repeat((byte)1, expected.Length).ToArray());
@@ -82,7 +82,7 @@ public sealed class JournalDuplicateWriteTests
             current = store.Stat("file")!; Assert.True(current.LastWriteTime > 1);
             changes = store.ObserveChanges([]); Assert.Equal(observed.DurableSequence, changes.Sequence);
         }
-        using (var replay = new JournalDeltaStore(root.Path, identity, tree))
+        using (var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             Assert.Equal(current, replay.Stat("file"));
             Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);
@@ -105,7 +105,7 @@ public sealed class JournalDuplicateWriteTests
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         byte[] incoming = new byte[4096]; tree.Files["base"] = incoming.ToArray();
         var identity = new OverlayIdentity(2, "different", tree.Snapshot, 100000, 4096);
-        using var store = new JournalDeltaStore(root.Path, identity, tree);
+        using var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false);
         Guid id = scenario == "base" ? store.Stat("base")!.Id : store.Create("file", false, 32).Id;
         if (scenario == "hole") { store.SetLength(id, incoming.Length); store.Write(id, 0, [0]); store.Write(id, 4095, [0]); }
         if (scenario is "different" or "extension") store.Write(id, 0, incoming);
@@ -124,7 +124,7 @@ public sealed class JournalDuplicateWriteTests
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "budget", tree.Snapshot, 40000, 32768);
-        using var store = new JournalDeltaStore(root.Path, identity, tree);
+        using var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false);
         Guid id = store.Create("file", false, 32).Id; byte[] bytes = new byte[32768]; new Random(537).NextBytes(bytes);
         byte[] original = bytes.ToArray();
         store.Write(id, 0, bytes); store.Write(id, 0, bytes);
@@ -143,7 +143,7 @@ public sealed class JournalDuplicateWriteTests
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var observer = new Observer(); var identity = new OverlayIdentity(2, "interrupted", tree.Snapshot, 100000, 4096);
-        using (var store = new JournalDeltaStore(root.Path, identity, tree, observer))
+        using (var store = new JournalDeltaStore(root.Path, identity, tree, observer, optimizeJournal: false))
         {
             Guid id = store.Create("file", false, 32).Id; store.Write(id, 0, [1, 2, 3, 4]);
             store.SetMetadata(id, 32, 1, 1, 1); observer.FailAt = boundary;
@@ -151,7 +151,7 @@ public sealed class JournalDuplicateWriteTests
             Assert.Equal("metadata", observer.Reached!.Operation); Assert.Equal(0, observer.Reached.PayloadBytes);
             Assert.Equal("DeltaReconnectRequired", Assert.Throws<WorkspaceException>(() => store.Write(id, 0, [9])).Code);
         }
-        using var replay = new JournalDeltaStore(root.Path, identity, tree);
+        using var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false);
         var entry = replay.Stat("file")!;
         Assert.Equal(committed ? 4 : 3, replay.Observe().DurableSequence);
         Assert.Equal(4, replay.Observe().PayloadBytes);

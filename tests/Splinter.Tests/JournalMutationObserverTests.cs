@@ -10,7 +10,7 @@ public sealed class JournalMutationObserverTests
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var observer = new RecordingObserver(); var identity = new OverlayIdentity(2, "observer", tree.Snapshot, 100000, 4096);
-        using var store = new JournalDeltaStore(dir.Path, identity, tree, observer);
+        using var store = new JournalDeltaStore(dir.Path, identity, tree, observer, optimizeJournal: false);
         var file = store.Create("file", false, 32); observer.Events.Clear();
         store.Write(file.Id, 0, new byte[4096]);
         Assert.Equal(JournalInterruptionTests.CommitBoundaries.Take(9), observer.Events.Select(e => e.Boundary));
@@ -31,7 +31,7 @@ public sealed class JournalMutationObserverTests
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var observer = new RecordingObserver(); var identity = new OverlayIdentity(2, "observer-failure", tree.Snapshot, 100000, 4096);
-        using (var store = new JournalDeltaStore(dir.Path, identity, tree, observer))
+        using (var store = new JournalDeltaStore(dir.Path, identity, tree, observer, optimizeJournal: false))
         {
             var file = store.Create("file", false, 32); store.Write(file.Id, 0, [1, 2, 3, 4]);
             if (boundary == "flush.before") store.Write(file.Id, 4, [5, 6, 7, 8]);
@@ -39,7 +39,7 @@ public sealed class JournalMutationObserverTests
             Assert.Throws<IOException>(() => { if (boundary == "flush.before") store.Flush(); else store.Write(file.Id, 4, [5, 6, 7, 8]); });
             Assert.Equal("DeltaReconnectRequired", Assert.Throws<WorkspaceException>(() => store.Write(file.Id, 0, [9])).Code);
         }
-        using var resumed = new JournalDeltaStore(dir.Path, identity, tree);
+        using var resumed = new JournalDeltaStore(dir.Path, identity, tree, optimizeJournal: false);
         byte[] result = new byte[8]; int count = resumed.Read(resumed.Stat("file")!.Id, 0, result);
         Assert.Equal(newWriteSurvives ? new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 } : new byte[] { 1, 2, 3, 4 }, result[..count]);
     }

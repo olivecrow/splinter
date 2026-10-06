@@ -38,7 +38,7 @@ public sealed partial class JournalDeltaStore
         using (EnterGate())
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            if (!readOnly || restoreReadSeal != seal || journal.Length != seal.JournalBytes || sequence != seal.DurableSequence)
+            if (!readOnly || restoreReadSeal != seal || CurrentJournalBytes != seal.JournalBytes || sequence != seal.DurableSequence)
                 throw new WorkspaceException("RestoreSealMismatch", "Retain a changed restoration journal.");
             var node = nodes[id]; int copied = 0;
             var (first, probes) = FindExtent(node.Extents, offset);

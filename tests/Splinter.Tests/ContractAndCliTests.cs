@@ -10,6 +10,16 @@ namespace Splinter.Tests;
 public sealed class ContractAndCliTests
 {
     [Fact]
+    public async Task BaseReversionOptionIsDiscoverableAndBooleanOnly()
+    {
+        var catalog = new ContractCatalog(); string schema = catalog.Find("workspace.compact")!.InputSchema;
+        Assert.True(catalog.Validate(schema, JsonSerializer.SerializeToElement(new { id = new string('a',24), revertBaseRanges = true })).IsValid);
+        Assert.False(catalog.Validate(schema, JsonSerializer.SerializeToElement(new { id = new string('a',24), revertBaseRanges = "true" })).IsValid);
+        using var output = new StringWriter();
+        Assert.Equal(0, await Program.RunAsync(["schema", "workspace.compact"], output, TestContext.Current.CancellationToken));
+        Assert.Contains("revertBaseRanges", output.ToString());
+    }
+    [Fact]
     public async Task PlainFolderDiscoveryAndDoctorHaveNoGitOrUnityPrerequisite()
     {
         var catalog = new ContractCatalog();

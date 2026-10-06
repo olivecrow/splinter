@@ -79,7 +79,7 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
                     new EmptyCacheTree(cacheIdentity.Snapshot),
                 _ => throw new WorkspaceException("ValidationCacheMismatch", "Select an explicit empty cache or supply the exact retained cache snapshot; never replace a missing base.")
             };
-            cache = new JournalDeltaStore(selection.CacheDeltaPath, cacheIdentity, cacheTree);
+            cache = new JournalDeltaStore(selection.CacheDeltaPath, cacheIdentity, cacheTree, optimizeJournal: false);
             try
             {
                 source = new JournalDeltaStore(sourceDirectory, identity with {
@@ -171,6 +171,7 @@ public sealed class ValidationViewDeltaStore : IWorkspaceDeltaStore
         }
     }
     public void Delete(Guid id) { lock (gate) ForId(id).Delete(id); }
+    public void ReleaseUnlinkedFile(Guid id) { lock (gate) ForId(id).ReleaseUnlinkedFile(id); }
     public void Flush() { lock (gate) { source.Flush(); cache.Flush(); } }
     public SourceChangeView ObserveChanges(string[] managedPaths) => source.ObserveChanges(managedPaths) with
         { WorkspaceId = Identity.Id, SnapshotId = Identity.Snapshot.Id };

@@ -447,6 +447,18 @@
                         "totalTicks",
                         "stages"
                       ]
+                    },
+                    "journalOptimizationEnabled": { "type": "boolean" },
+                    "revertBaseRanges": {
+                      "type": "boolean"
+                    },
+                    "baseComparedBytes": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "revertedPayloadBytes": {
+                      "type": "integer",
+                      "minimum": 0
                     }
                   },
                   "required": [
@@ -623,6 +635,18 @@
                     "totalTicks",
                     "stages"
                   ]
+                },
+                "journalOptimizationEnabled": { "type": "boolean" },
+                "revertBaseRanges": {
+                  "type": "boolean"
+                },
+                "baseComparedBytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "revertedPayloadBytes": {
+                  "type": "integer",
+                  "minimum": 0
                 }
               },
               "required": [

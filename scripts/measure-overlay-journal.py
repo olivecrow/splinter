@@ -6,6 +6,8 @@ not path-level physical allocation. Encoded blocks are counted whole even when
 only a fragment remains live. Codec structure/checksums are checked, but this
 tool does not decode Brotli or replace product replay. No snapshot is read.
 """
+import base64
+import re
 import argparse
 import collections
 import contextlib
@@ -14,6 +16,7 @@ import json
 import os
 import pathlib
 import struct
+import uuid
 
 
 @contextlib.contextmanager
@@ -77,12 +80,189 @@ def replace_range(extents, replacement):
     return sorted(result + [replacement])
 
 
+def framed_json(data, magic):
+    if len(data) < 44 or data[:4] != magic or struct.unpack('<q', data[4:12])[0] != len(data) - 44 or hashlib.sha256(data[:-32]).digest() != data[-32:]:
+        raise ValueError('Corrupt complete current-state record')
+    return json.loads(data[12:-32])
+
+
+def validate_payload(payload, decoded):
+    if not 0 < len(payload) <= decoded <= 1048576:
+        raise ValueError('Invalid current block lengths')
+    if len(payload) == decoded:
+        return False
+    if len(payload) < 48 or payload[:4] != b'SPB1' or payload[12:16] != b'\x01\0\0\0':
+        raise ValueError('Invalid encoded current block')
+    declared, stored = struct.unpack('<ii', payload[4:12])
+    if declared != decoded or stored + 48 != len(payload) or hashlib.sha256(payload[:-32]).digest() != payload[-32:]:
+        raise ValueError('Encoded current block checksum mismatch')
+    return True
+
+
+def capsule(data, identity):
+    if len(data) < 128 or data[:4] != b'SJL4' or struct.unpack('<i', data[4:8])[0] != 4:
+        raise ValueError('Unsupported capsule')
+    generation, count, metadata = struct.unpack('<qqi', data[8:28])
+    end = 128 + count
+    if generation < 1 or count < 0 or metadata < 1 or end + metadata + 32 > 268435456 or data[32:64].hex() != identity:
+        raise ValueError('Invalid capsule bounds or owner')
+    if len(data) not in (end, end + metadata + 32) or hashlib.sha256(data[128:end]).digest() != data[96:128]:
+        raise ValueError('Capsule data checksum differs')
+    values, at = {}, 128
+    while at < end:
+        header = data[at:at+80]
+        block_id, size = struct.unpack('<qi', header[4:16])
+        if header[:4] != b'SJB1' or block_id < 1 or not 0 < size <= 1048576 or at + 80 + size > end or header[16:48].hex() != identity:
+            raise ValueError('Invalid capsule block')
+        block = data[at:at+80+size]
+        if hashlib.sha256(block[80:]).digest() != header[48:80]:
+            raise ValueError('Current block checksum differs')
+        values[f'block-{block_id:016x}.bin'] = block
+        at += 80 + size
+    record = None
+    if len(data) != end:
+        if hashlib.sha256(data[:-32]).digest() != data[-32:]:
+            raise ValueError('Complete capsule checksum differs')
+        record = json.loads(data[end:-32])
+        if record['Version'] != 1 or record['Generation'] != generation:
+            raise ValueError('Capsule generation differs')
+        for item in record['Items']:
+            name = item['Name']
+            if item['Metadata'] is not None:
+                values[name] = base64.b64decode(item['Metadata'], validate=True)
+            if len(values[name]) != item['Length'] or hashlib.sha256(values[name]).hexdigest() != item['Hash']:
+                raise ValueError('Capsule item checksum differs')
+    elif count == 0:
+        raise ValueError('Empty capsule prefix')
+    return generation, values, record
+
+
+def analyze_latest(path):
+    with stopped_reader(path) as root_file:
+        root_bytes = root_file.read(268435457)
+        is_capsule = root_bytes[4:8] == b'\x04\0\0\0'
+        if is_capsule:
+            footer_at = 128 + struct.unpack('<q', root_bytes[16:24])[0]
+            root = json.loads(root_bytes[footer_at:-32])['After']
+        else:
+            root = framed_json(root_bytes, b'SJL4')
+        if root['Version'] != 4 or not re.fullmatch(r'latest-[0-9a-f]{32}', root['Objects']):
+            raise ValueError('Unsupported current root')
+        objects = path.parent / root['Objects']
+        if objects.is_symlink() or not objects.is_dir():
+            raise ValueError('Missing or redirected current objects')
+        names = sorted(objects.iterdir(), key=lambda item: item.name)
+        digest = hashlib.sha256(root_bytes)
+        groups = collections.defaultdict(lambda: dict(transactions=0, logicalMutations=0, payloadBytes=0,
+            decodedPayloadBytes=0, metadataAndFrameBytes=0, retainedPayloadBytes=0))
+        nodes, block_refs, hashes, lengths, virtual, owners, frames = [], {}, {}, {}, {}, {}, []
+        physical_bytes = len(root_bytes)
+        for file in names:
+            if file.is_symlink() or not file.is_file() or not (re.fullmatch(r'(node-[0-9a-f]{32}\.json|bucket-[0-9a-f]{2}\.json|block-[0-9a-f]{16}\.bin|commit-[0-9a-f]{16}-[0-9a-f]{32}\.bin|owner\.lock)', file.name)):
+                raise ValueError('Pending or unowned current journal file')
+            with stopped_reader(file) as stream:
+                data = stream.read(268435457)
+                name = file.name.encode('utf-8')
+                digest.update(struct.pack('<q', len(name))); digest.update(name); digest.update(struct.pack('<q', len(data))); digest.update(data)
+                physical_bytes += len(data)
+                if file.name.startswith('commit-'):
+                    generation, values, record = capsule(data, root['IdentityHash'])
+                    frames.append((generation, file.name, values, record))
+                else:
+                    virtual[file.name] = data; owners[file.name] = file.name
+        if is_capsule:
+            generation, values, record = capsule(root_bytes, root['IdentityHash'])
+            if any(f[0] >= generation for f in frames) or len({f[0] for f in frames}) != len(frames):
+                raise ValueError('Unexpected backup generation')
+            frames.append((generation, path.name, values, record))
+        for _, name, values, record in sorted(frames):
+            virtual.update(values); owners.update({v: name for v in values})
+            for removed in record['Removes'] if record else []:
+                virtual.pop(removed, None); owners.pop(removed, None)
+        for _, name, values, record in frames:
+            if any(owners.get(item) != name for item in values):
+                raise ValueError('Superseded metadata or payload remains')
+        for file in names:
+            if not file.name.startswith('commit-') and owners.get(file.name) != file.name:
+                raise ValueError('Superseded seed file remains')
+        file_bytes = sum(map(len, virtual.values()))
+        for name, data in virtual.items():
+            lengths[name], hashes[name] = len(data), hashlib.sha256(data).hexdigest()
+            if name.startswith('node-'):
+                node = framed_json(data, b'SJN1'); key(node['Entry']['Path']); nodes.append(node)
+                groups[group_name(node['Entry']['Path'])]['metadataAndFrameBytes'] += len(data)
+                for block in node['Blocks']:
+                    if block['Id'] in block_refs:
+                        raise ValueError('Duplicate current block owner')
+                    block_refs[block['Id']] = (block['Hash'], node)
+            elif name.startswith('bucket-'):
+                framed_json(data, b'SJK1'); groups['other']['metadataAndFrameBytes'] += len(data)
+            elif name == 'owner.lock' and data:
+                raise ValueError('Owner guard is not empty')
+        if file_bytes != root['FileBytes'] or len(virtual) != root['FileCount'] or sum(name.startswith('block-') for name in virtual) != len(block_refs):
+            raise ValueError('Current inventory differs from root')
+        live_paths, live_groups = collections.Counter(), collections.Counter()
+        stored = decoded = live_stored = compressed = fragments = unlinked = 0
+        for block_id, (expected_hash, node) in block_refs.items():
+            name = f'block-{block_id:016x}.bin'
+            if hashes.get(name) != expected_hash:
+                raise ValueError('Current payload differs from node reference')
+            pieces = sorted((extent for extent in node['Extents'] if extent['JournalOffset'] == block_id * 2097152), key=lambda extent: extent['BlockOffset'])
+            if not pieces:
+                raise ValueError('Unreferenced current block')
+            descriptor = pieces[0]['Payload']
+            end = 0
+            for piece in pieces:
+                if piece['Payload'] != descriptor or piece['BlockOffset'] != end or piece['Length'] <= 0 or piece['Start'] < 0 or piece['Start'] + piece['Length'] > node['Entry']['Length']:
+                    raise ValueError('Invalid or superseded current payload slices')
+                end += piece['Length']; fragments += 1
+            if end != descriptor['DecodedBytes'] or lengths[name] != descriptor['StoredBytes'] + 80:
+                raise ValueError('Current payload includes unused bytes')
+            block = virtual[name]; header, payload = block[:80], block[80:]
+            if len(header) != 80 or header[:4] != b'SJB1' or struct.unpack('<q', header[4:12])[0] != block_id or struct.unpack('<i', header[12:16])[0] != descriptor['StoredBytes'] or header[16:48].hex() != root['IdentityHash']:
+                raise ValueError('Current block has another owner, address or length')
+            if hashlib.sha256(payload).digest() != header[48:80]:
+                raise ValueError('Current block payload checksum differs')
+            compressed += validate_payload(payload, end)
+            origin = group_name(node['Entry']['Path']); group = groups[origin]
+            size = descriptor['StoredBytes']
+            group['payloadBytes'] += size; group['decodedPayloadBytes'] += end; group['metadataAndFrameBytes'] += 80
+            stored += size; decoded += end
+            if not node['Entry'].get('Deleted', False):
+                group['retainedPayloadBytes'] += size; live_stored += size
+                live_paths[node['Entry']['Path']] += end; live_groups[origin] += end
+            else:
+                unlinked += size
+        if stored != root['PayloadBytes'] or decoded != root['LogicalBytes']:
+            raise ValueError('Current payload totals differ from root')
+        for group in groups.values():
+            group['obsoletePayloadBytes'] = group['payloadBytes'] - group['retainedPayloadBytes']
+        root_file.seek(0)
+        if root_file.read() != root_bytes:
+            raise ValueError('Current root changed during accounting')
+        total = physical_bytes
+        groups['other']['metadataAndFrameBytes'] += total - stored - sum(g['metadataAndFrameBytes'] for g in groups.values())
+        return dict(version=2, journalFormat='SJL4', journalBytes=total, journalSha256=digest.hexdigest(), durableSequence=root['Sequence'],
+            frameCount=0, currentNodeCount=len(nodes), currentPayloadBlockCount=len(block_refs), currentFragmentCount=fragments,
+            groups=dict(groups), operations={}, storedPayloadBytes=stored, decodedPayloadBytes=decoded,
+            livePrivateBytes=sum(live_groups.values()), liveStoredPayloadBytes=live_stored, obsoletePayloadBytes=stored-live_stored,
+            unlinkedCurrentPayloadBytes=unlinked, compressedFrameCount=compressed, metadataAndFrameBytes=total-stored,
+            unclassifiedBytes=0, livePayloadByCurrentGroup=dict(live_groups), largestWrittenPaths=[], largestLivePaths=live_paths.most_common(15),
+            diagnosticReadBytes=total+stored, checksumsVerified=True, payloadContentsDecoded=False, payloadIncludesRepeatedWrites=False,
+            fileDataAllocationMeasuredSeparately=True, obsoletePayloadIsNotGuaranteedCompactionSavings=True,
+            qualifiedPathComparison='ASCII case-insensitive; non-ASCII rejected')
+
+
 def analyze(path):
+    with stopped_reader(path) as stream:
+        if stream.read(4) == b'SJL4':
+            return analyze_latest(path)
     groups = collections.defaultdict(lambda: dict(transactions=0, logicalMutations=0,
         payloadBytes=0, decodedPayloadBytes=0, metadataAndFrameBytes=0, retainedPayloadBytes=0))
     operations, written_paths = collections.Counter(), collections.Counter()
     nodes, paths, blocks = {}, {}, {}
     sequence = frames = compressed_frames = 0
+    state_open = state_complete = False
     journal_hash = hashlib.sha256()
     with stopped_reader(path) as stream:
         initial = os.fstat(stream.fileno())
@@ -118,11 +298,21 @@ def analyze(path):
             mutation = json.loads(metadata)
             entry = mutation["Entry"]
             operation = mutation["Operation"]
-            first = mutation.get("FromSequence") if operation == "skip-range" else mutation["Sequence"]
-            if first != sequence + 1 or mutation["Sequence"] < first:
-                raise ValueError("Invalid sequence")
-            logical_count = mutation["Sequence"] - sequence
-            sequence = mutation["Sequence"]
+            state = operation.startswith('state-')
+            if state:
+                if frames == 0 and operation == 'state-node':
+                    state_open = True
+                if not state_open or state_complete:
+                    raise ValueError('Misplaced current-state prefix')
+                logical_count = 0
+                if operation == 'state-complete':
+                    sequence = mutation['Sequence']; state_complete = True
+            else:
+                first = mutation.get("FromSequence") if operation == "skip-range" else mutation["Sequence"]
+                if state_open and not state_complete or first != sequence + 1 or mutation["Sequence"] < first:
+                    raise ValueError("Invalid sequence")
+                logical_count = mutation["Sequence"] - sequence
+                sequence = mutation["Sequence"]
             current_path = entry["Path"]
             path_key = key(current_path)
             origin = group_name(current_path)
@@ -135,6 +325,11 @@ def analyze(path):
             written_paths[current_path] += payload_length
             operations[operation] += 1
             frames += 1
+            if operation in ('state-hidden', 'state-change', 'state-complete', 'state-projection-unsafe'):
+                if payload_length:
+                    raise ValueError('Payload on current-state metadata')
+                continue
+            operation = {'state-node': 'metadata', 'state-write': 'write'}.get(operation, operation)
             if operation in ("skip-write", "skip-range"):
                 if payload_length:
                     raise ValueError("Payload on skipped mutation")
@@ -186,6 +381,8 @@ def analyze(path):
             if operation not in ("delete", "rename") and not entry.get("Deleted", False):
                 paths[path_key] = node_id
         after = os.fstat(stream.fileno())
+        if state_open and not state_complete:
+            raise ValueError('Incomplete current-state prefix')
         if (after.st_size, after.st_mtime_ns) != (initial.st_size, initial.st_mtime_ns):
             raise ValueError("Journal changed during accounting")
     live_groups, live_paths = collections.Counter(), collections.Counter()

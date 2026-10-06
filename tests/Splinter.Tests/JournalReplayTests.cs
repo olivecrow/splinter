@@ -15,7 +15,7 @@ public sealed class JournalReplayTests
         var expected = new byte[16384]; new Random(81).NextBytes(expected); tree.Files["file"] = (byte[])expected.Clone();
         var identity = new OverlayIdentity(2, "read-index", tree.Snapshot, 1_000_000, 4096);
         string delta = Path.Combine(dir.Path, "delta");
-        var store = new JournalDeltaStore(delta, identity, tree);
+        var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false);
         try
         {
             Guid id = store.Stat("file")!.Id;
@@ -24,7 +24,7 @@ public sealed class JournalReplayTests
                 byte[] data = [(byte)i, 4, 5, 6, 7, 8, 9, 10];
                 store.Write(id, i * 32, data); data.CopyTo(expected, i * 32);
             }
-            if (reconnect) { store.Dispose(); store = new JournalDeltaStore(delta, identity, tree); }
+            if (reconnect) { store.Dispose(); store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false); }
             foreach ((int offset, int length) in new[] { (0, 4), (16002, 3), (8198, 38), (16380, 4), (16384, 4), (5, 0) })
             {
                 var before = store.Observe().Metrics!.ReadRangeIndex!;
@@ -54,7 +54,7 @@ public sealed class JournalReplayTests
         var identity = new OverlayIdentity(2, "replay", tree.Snapshot, 10_000_000, 1_048_576);
         string delta = Path.Combine(dir.Path, "delta"), journal = Path.Combine(delta, "delta.journal");
         byte[] block = new byte[4096]; new Random(17).NextBytes(block);
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             var file = store.Create("private", false, 32);
             for (int i = 0; i < (corruptAt < 0 ? 300 : 40); i++) store.Write(file.Id, i * 4096, block);
@@ -63,10 +63,10 @@ public sealed class JournalReplayTests
         if (corruptAt >= 0)
         {
             bytes[corruptAt] ^= 1; File.WriteAllBytes(journal, bytes);
-            Assert.Equal("DeltaCorrupt", Assert.Throws<WorkspaceException>(() => new JournalDeltaStore(delta, identity, tree)).Code);
+            Assert.Equal("DeltaCorrupt", Assert.Throws<WorkspaceException>(() => new JournalDeltaStore(delta, identity, tree, optimizeJournal: false)).Code);
             Assert.Equal(bytes, File.ReadAllBytes(journal)); return;
         }
-        using var resumed = new JournalDeltaStore(delta, identity, tree);
+        using var resumed = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false);
         var metrics = resumed.Observe().Metrics!;
         Assert.Equal(bytes.Length, metrics.ReplayBytes); Assert.Equal(301, metrics.ReplayFrames);
         Assert.Equal(65536, metrics.ReplayBufferBytes);
@@ -101,7 +101,7 @@ public sealed class JournalReplayTests
         string delta = Path.Combine(dir.Path, "delta"), journal = Path.Combine(delta, "delta.journal");
         byte[] expected = new byte[4096]; var random = new Random(27);
         Guid id;
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             id = store.Create("private", false, 32).Id;
             store.SetLength(id, expected.Length);
@@ -122,7 +122,7 @@ public sealed class JournalReplayTests
             store.Write(id, 4095, [0x5a]); expected[4095] = 0x5a;
         }
         byte[] before = SHA256.HashData(File.ReadAllBytes(journal));
-        using var resumed = new JournalDeltaStore(delta, identity, tree);
+        using var resumed = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false);
         byte[] replayed = new byte[expected.Length];
         Assert.Equal(replayed.Length, resumed.Read(id, 0, replayed));
         Assert.Equal(expected, replayed);
@@ -137,14 +137,14 @@ public sealed class JournalReplayTests
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "operations", tree.Snapshot, 1_000_000, 4096);
         string delta = Path.Combine(dir.Path, "delta");
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             var file = store.Create("first", false, 32);
             store.Write(file.Id, 0, [1, 2]); store.SetLength(file.Id, 8);
             store.SetMetadata(file.Id, 32, 2, 2, 2); store.Rename(file.Id, "last", false); store.Delete(file.Id);
             Assert.Empty(store.Observe().Metrics!.ReplayIndexOperations!);
         }
-        using var resumed = new JournalDeltaStore(delta, identity, tree);
+        using var resumed = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false);
         var metrics = resumed.Observe().Metrics!;
         var costs = metrics.ReplayIndexOperations!;
         Assert.Equal(new[] { "create", "delete", "metadata", "rename", "resize", "write" }, costs.Select(x => x.Operation));
@@ -168,14 +168,14 @@ public sealed class JournalReplayTests
         var identity = new OverlayIdentity(2, "replay", tree.Snapshot, 10_000_000, 1_048_576);
         string delta = Path.Combine(dir.Path, "delta"), journal = Path.Combine(delta, "delta.journal");
         long acknowledged;
-        using (var store = new JournalDeltaStore(delta, identity, tree))
+        using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             var file = store.Create("private", false, 32);
             store.Write(file.Id, 0, new byte[130_000]); acknowledged = store.Observe().JournalBytes;
             store.Write(file.Id, 0, [9, 9, 9]);
         }
         using (var file = new FileStream(journal, FileMode.Open, FileAccess.Write)) file.SetLength(file.Length - 17);
-        using var resumed = new JournalDeltaStore(delta, identity, tree);
+        using var resumed = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false);
         Assert.Equal(acknowledged, resumed.Observe().JournalBytes);
         Assert.Equal(2, resumed.Observe().Metrics!.ReplayFrames);
         byte[] data = new byte[3]; resumed.Read(resumed.Stat("private")!.Id, 0, data);

@@ -14,7 +14,7 @@ public sealed class JournalCompactionSizeTests
         var identity = new OverlayIdentity(2, "size", tree.Snapshot, 1024 * 1024, 8192);
         string directory = Path.Combine(root.Path, "delta");
         byte[] expected = new byte[8192]; new Random(537).NextBytes(expected);
-        using (var store = new JournalDeltaStore(directory, identity, tree))
+        using (var store = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Create("file", false, 32).Id;
             store.Write(id, 0, expected);
@@ -31,7 +31,7 @@ public sealed class JournalCompactionSizeTests
             JournalDeltaStore.CompleteCompaction(directory, identity);
         }
         SourceChangeView changes; DeltaEntry entry; long before, estimate;
-        using (var store = new JournalDeltaStore(directory, identity, tree))
+        using (var store = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Stat("file")!.Id;
             for (int offset = 16; offset < 2048; offset += 32)
@@ -46,7 +46,7 @@ public sealed class JournalCompactionSizeTests
             maxEstimatedJournalOverlapBytes: before * 2);
         Assert.True(receipt.After.JournalBytes <= before, $"Compaction grew the journal: {before} -> {receipt.After.JournalBytes}.");
         Assert.Equal(before + receipt.After.JournalBytes, estimate);
-        using (var replay = new JournalDeltaStore(directory, identity, tree))
+        using (var replay = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
         {
             Assert.Equal(entry, replay.Stat("file"));
             Assert.Equal(changes.Sequence, replay.ObserveChanges([]).Sequence);
@@ -67,7 +67,7 @@ public sealed class JournalCompactionSizeTests
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "tiny", tree.Snapshot, 1024 * 1024, 4096);
         string directory = Path.Combine(root.Path, "delta"); SourceChangeView changes;
-        using (var store = new JournalDeltaStore(directory, identity, tree))
+        using (var store = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
         {
             Guid a = store.Create("a", false, 32).Id, b = store.Create("b", false, 32).Id;
             for (int i = 0; i < 20; i++) { store.Write(a, 0, [(byte)i]); store.Write(b, 0, [(byte)(i + 1)]); }
@@ -75,7 +75,7 @@ public sealed class JournalCompactionSizeTests
         }
         var receipt = JournalDeltaStore.CompactDirectory(directory, identity, tree);
         Assert.True(receipt.After.JournalBytes <= receipt.Before.JournalBytes);
-        using (var replay = new JournalDeltaStore(directory, identity, tree))
+        using (var replay = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
         {
             Assert.Equal(changes.Sequence, replay.ObserveChanges([]).Sequence);
             Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);

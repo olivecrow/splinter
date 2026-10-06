@@ -57,7 +57,7 @@ public sealed class KernelRecoveryTests
         Directory.CreateDirectory(Path.GetDirectoryName(request.MountPath)!);
         if (System.IO.Directory.Exists(request.MountPath))
         { Assert.True(MountAbsent(request.MountPath)); System.IO.Directory.Delete(request.MountPath, false); }
-        using var store = new JournalDeltaStore(Path.Combine(request.Directory, "delta"), Identity(request), tree);
+        using var store = new JournalDeltaStore(Path.Combine(request.Directory, "delta"), Identity(request), tree, optimizeJournal: false);
         var gate = new Gate(request, input);
         var fs = new WinFspOverlayFileSystem(store, ex => WriteNew(Path.Combine(request.Directory, "io-error-" + Guid.NewGuid().ToString("N") + ".json"),
             new { type = ex.GetType().Name, ex.Message, ex.HResult }), request.Generation == 1 ? gate : null);
@@ -207,7 +207,7 @@ public sealed class KernelRecoveryTests
             string journal = Path.Combine(directory, "delta", "delta.journal"); byte[] before = await ReadAfterExit(journal, ct);
             WriteBytesNew(Path.Combine(directory, "journal-before-replay.bin"), before);
             string model; OverlayStorageObservation observed;
-            using (var store = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(request), new Tree()))
+            using (var store = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(request), new Tree(), optimizeJournal: false))
             { model = ReadStoreModel(store); observed = store.Observe(); }
             bool mustPreserveNew = boundary is "callback.after-effect" or "client.after-ack";
             if (mustPreserveNew) Assert.Equal(Model(true, operation), model);
@@ -215,7 +215,7 @@ public sealed class KernelRecoveryTests
             else Assert.Equal(Model(false, operation), model);
             byte[] after = File.ReadAllBytes(journal); Assert.Equal(before, after);
             Assert.Equal(0, observed.InitialPayloadCopiedBytes); Assert.Equal(0, observed.ReadCacheBytes);
-            using (var store = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(request), new Tree())) Assert.Equal(model, ReadStoreModel(store));
+            using (var store = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(request), new Tree(), optimizeJournal: false)) Assert.Equal(model, ReadStoreModel(store));
             Assert.Equal(after, File.ReadAllBytes(journal));
             bool pending = model == Model(true, operation);
             string nextInput = Path.Combine(directory, "resume-request.json"); WriteNew(nextInput, request with { Generation = 2 });
@@ -232,7 +232,7 @@ public sealed class KernelRecoveryTests
             await WaitMountAbsent(mount, ct);
             var stopped = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(Path.Combine(directory, "stopped-2.json")));
             Assert.Equal(0, stopped.GetProperty("openHandles").GetInt32()); Assert.Equal(0, stopped.GetProperty("retainedFileContexts").GetInt32());
-            using (var store = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(request), new Tree())) Assert.Equal(Model(pending, operation, true), ReadStoreModel(store));
+            using (var store = new JournalDeltaStore(Path.Combine(directory, "delta"), Identity(request), new Tree(), optimizeJournal: false)) Assert.Equal(Model(pending, operation, true), ReadStoreModel(store));
             var result = JsonSerializer.SerializeToElement(new { version = 1, request.Operation, request.Boundary, request.Nonce,
                 actualProviderTermination = true, prefixPreserved = true, externalFinalAck = boundary == "client.after-ack",
                 replayModelHash = model, journalBeforeHash = Hash(before), journalAfterHash = Hash(after), secondReplayUnchanged = true,

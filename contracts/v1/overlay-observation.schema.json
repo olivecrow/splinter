@@ -88,6 +88,7 @@
         "durableSequence"
       ],
       "properties": {
+        "journalOptimizationEnabled": { "type": "boolean" },
         "initialPayloadCopiedBytes": {
           "const": 0
         },

@@ -64,6 +64,34 @@ public sealed class GitObjectSnapshotTests
     }
 
     [Fact]
+    public async Task AbandonedPartialReadersSwitchAndDisposeWithoutPerReaderGraceDelay()
+    {
+        using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
+        var snapshot = await f.Capture();
+        var tree = f.Provider.OpenTree(snapshot, await f.Provider.ResolveReadAccessAsync(snapshot, ct),
+            () => new(snapshot.Id, true, null, 0, null));
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            byte[] bytes = new byte[4096];
+            for (int pass = 0; pass < 6; pass++)
+            {
+                Assert.Equal(bytes.Length, tree.Read("file.bin", 0, bytes));
+                Assert.Equal(f.Data.AsSpan(0, bytes.Length).ToArray(), bytes);
+                // The full proof ended at EOF; rereading the prefix starts a
+                // proved stream with an unread suffix larger than the pipe.
+                Assert.Equal(bytes.Length, tree.Read("file.bin", 4096, bytes));
+                Assert.Equal(f.Data.AsSpan(4096, bytes.Length).ToArray(), bytes);
+                if (pass != 5) Assert.Equal(20, tree.Read("Assets/nested.txt", 0, new byte[20]));
+            }
+        }
+        finally { tree.Dispose(); }
+        // Six formerly deterministic one-second waits, with ample launch margin.
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(4), $"Partial-reader cancellation took {stopwatch.Elapsed}.");
+        Assert.Throws<ObjectDisposedException>(() => tree.Read("file.bin", 0, new byte[1]));
+    }
+
+    [Fact]
     public async Task SequentialSmallReadsUseLinearDecodingAndBackwardReadsKeepExactBytes()
     {
         using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
