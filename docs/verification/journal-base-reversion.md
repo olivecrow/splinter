@@ -1,6 +1,6 @@
 # 선택적 기준본 복귀 정리 검증
 
-2026-10-06, Windows/NTFS, `development @ d97bd3c` 이후의 이번 미커밋 후보. [고정 범위와 판정 기준](../plans/journal-base-reversion.md), [현재 계약](../journal-base-reversion.md)을 따른다. **기본값은 OFF**다. ON은 정리 후 공간을 줄였지만 실제 입력의 전체 측정 시간과 관리 할당을 늘렸다. 자동 정리·append 비용 감소·Unity 준비 개선을 주장하지 않는다.
+2026-10-06, Windows/NTFS, `development @ d97bd3c` 이후의 구현 `25f4fa1`에 대한 기록. [고정 범위와 판정 기준](../plans/journal-base-reversion.md), [현재 계약](../journal-base-reversion.md)을 따른다. **기본값은 OFF**다. 이 후보의 ON은 정리 후 공간을 줄였지만 실제 입력의 전체 측정 시간과 관리 할당을 늘렸다. 후속 [다수 파일 시간 최적화](../plans/journal-base-reversion-optimization.md)의 바이너리·측정과 구분한다. 자동 정리·append 비용 감소·Unity 준비 개선을 주장하지 않는다.
 
 증거 root는 `artifacts/journal-base-reversion-20261006/`다. ignored 로컬 증거를 보존했으며 다른 후보의 통과를 승계하지 않았다.
 

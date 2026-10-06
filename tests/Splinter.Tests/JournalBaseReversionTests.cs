@@ -7,6 +7,93 @@ namespace Splinter.Tests;
 
 public sealed class JournalBaseReversionTests
 {
+    private sealed class TracedTree(SnapshotOverlayTests.FakeSnapshotTree inner) : ISnapshotTree
+    {
+        public readonly List<(string Path, long Offset)> Reads = [];
+        public string? ShortReadPath;
+        public SnapshotReference Snapshot => inner.Snapshot;
+        public void EnsureAvailable() => inner.EnsureAvailable();
+        public SnapshotEntry? Stat(string path) => inner.Stat(path);
+        public IReadOnlyList<SnapshotEntry> List(string path) => inner.List(path);
+        public int Read(string path, long offset, Span<byte> destination)
+        { Reads.Add((path, offset)); return path == ShortReadPath ? 0 : inner.Read(path, offset, destination); }
+    }
+
+    [Fact]
+    public void FailedComparisonAfterAnotherFileRevertsPreservesAllAcknowledgedPrivateBytes()
+    {
+        using var root = new TestDirectory(); var basis = new SnapshotOverlayTests.FakeSnapshotTree();
+        basis.Files["a"] = RandomNumberGenerator.GetBytes(8192); basis.Files["b"] = RandomNumberGenerator.GetBytes(8192);
+        var tree = new TracedTree(basis);
+        var identity = new OverlayIdentity(2, "ordered-failure", tree.Snapshot, 16777216, 1048576);
+        SnapshotDeltaSeal seal;
+        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        {
+            foreach (string path in new[] { "b", "a" })
+            { Guid id = store.Stat(path)!.Id; store.Write(id, 0, new byte[8192]); store.Write(id, 0, basis.Files[path]); }
+            seal = store.Seal();
+        }
+        byte[] journal = File.ReadAllBytes(Path.Combine(root.Path, "delta.journal"));
+        tree.Reads.Clear(); tree.ShortReadPath = "b";
+        Assert.Equal("SnapshotReadFailed", Assert.Throws<WorkspaceException>(() =>
+            JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: true)).Code);
+        Assert.Equal(new[] { ("a", 0L), ("b", 0L) }, tree.Reads);
+        Assert.Equal(journal, File.ReadAllBytes(Path.Combine(root.Path, "delta.journal")));
+        Assert.False(File.Exists(Path.Combine(root.Path, "compaction-intent.json")));
+        Assert.False(File.Exists(Path.Combine(root.Path, "delta.journal.compacting")));
+        tree.ShortReadPath = null;
+        using var replay = new JournalDeltaStore(root.Path, identity, tree);
+        Assert.Equal(seal, replay.Seal());
+        foreach (string path in new[] { "a", "b" })
+        { byte[] bytes = new byte[8192]; Assert.Equal(8192, replay.Read(replay.Stat(path)!.Id, 0, bytes)); Assert.Equal(basis.Files[path], bytes); }
+    }
+
+    [Fact]
+    public void InterleavedAndRenamedFilesCompareInBaseOrderAndReplayInJournalOrder()
+    {
+        using var root = new TestDirectory(); var basis = new SnapshotOverlayTests.FakeSnapshotTree();
+        foreach (string path in new[] { "a", "b", "c" }) basis.Files[path] = RandomNumberGenerator.GetBytes(16384);
+        var tree = new TracedTree(basis);
+        var identity = new OverlayIdentity(2, "ordered-return", tree.Snapshot, 16777216, 1048576);
+        var expected = new Dictionary<string, DeltaEntry>(); var bytes = new Dictionary<string, byte[]>();
+        SourceChangeView changes;
+        using (var store = new JournalDeltaStore(root.Path, identity, tree))
+        {
+            for (int pass = 0; pass < 3; pass++)
+            foreach (int offset in new[] { 12288, 0 })
+            foreach (string path in new[] { "c", "b", "a" })
+            {
+                byte[] payload = basis.Files[path].AsSpan(offset, 4096).ToArray();
+                if (pass < 2 || offset == 12288) foreach (ref byte b in payload.AsSpan()) b ^= 0x55;
+                store.Write(store.Stat(path)!.Id, offset, payload);
+            }
+            store.Rename(store.Stat("a")!.Id, "renamed", false);
+            foreach (string path in new[] { "a", "b", "c" })
+            {
+                string current = path == "a" ? "renamed" : path;
+                Guid id = store.Stat(current)!.Id; store.SetMetadata(id, 33, 101, 202, 303);
+                expected[current] = store.Get(id); bytes[current] = (byte[])basis.Files[path].Clone();
+                for (int at = 12288; at < 16384; at++) bytes[current][at] ^= 0x55;
+            }
+            changes = store.ObserveChanges([]);
+        }
+        tree.Reads.Clear();
+        var receipt = JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: true);
+        Assert.Equal(12288, receipt.RevertedPayloadBytes);
+        Assert.Equal(new[] { ("a", 0L), ("a", 12288L), ("b", 0L), ("b", 12288L), ("c", 0L), ("c", 12288L) }, tree.Reads);
+        using (var replay = new JournalDeltaStore(root.Path, identity, tree))
+        {
+            Assert.Equal(changes.Sequence, replay.ObserveChanges([]).Sequence);
+            Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);
+            foreach (var (path, entry) in expected)
+            {
+                Assert.Equal(entry, replay.Stat(path)); byte[] actual = new byte[16384];
+                Assert.Equal(actual.Length, replay.Read(entry.Id, 0, actual)); Assert.Equal(bytes[path], actual);
+            }
+        }
+        JournalDeltaStore.CompleteCompaction(root.Path, identity);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

@@ -20,3 +20,5 @@ source 구조 hash와 제거 후 기대 구조 hash를 구별한다. 제거는 �
 ## 이번 단위 마감
 
 2026-10-06 **scoped-complete-with-limitations**. 합성/실제 2.8GB recorded Unity 프로젝트 입력의 각 3회 OFF/ON, 합성/실제 Git 기준 강제 자식 종료 각 7경계, 실제 WinFsp editorless A/B·독립 결과·두 release를 마쳤다. 최초 A runner 접근 거부는 보존했으며 명시적 사용자 승인 뒤 같은 ID/home·저장된 ON의 공식 재개로 마무리했다. 실제 PNG 최종 저널 할당 -74.76%지만 쓰기+정리+재생 +49.41%, 반복 압축 입력은 할당 개선 0%로 기본 ON 조건에 미달한다. **기본 OFF 유지**. [검증 수치·이력·한계](../verification/journal-base-reversion.md)가 원본이다. Unity cold import·WinFsp kill·전원/OS/전체 행렬, 전체 순간 공간/RAM·공유 귀속은 NotRun/unknown으로 남긴다. 이 입력의 추가 A/B나 기본값 변경을 자동 재개하지 않는다.
+
+이 구현은 `25f4fa1`로 커밋했다. 이후 사용자 요청의 [다수 파일 시간 최적화](journal-base-reversion-optimization.md)는 별도 범위이며 이때의 수치를 현재 최적화 바이너리의 측정으로 승계하지 않는다.

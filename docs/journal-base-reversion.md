@@ -9,6 +9,8 @@ pwsh ./scripts/splinter.ps1 workspace compact --id <id> --home <home> --revert-b
 
 기준 비교는 현재 파일 incarnation의 `BasePath`·`BaseLength` 안에서만 수행한다. 읽기는 최대 64KiB와 workspace transfer 한도 안에서 처리하고 4KiB 단위 또는 끝의 짧은 단위가 모두 같은 경우에 제거한다. 한 단위 안에 다른 바이트가 있으면 그 단위를 유지하므로 모든 같은 바이트를 최소 표현으로 만드는 알고리즘은 아니다. 부분 복귀/혼합 쓰기를 지원하고 truncate 후 늘린 tail·신규/삭제 재생성 파일을 기존 기준 내용으로 복원하지 않는다. 기준 없는 private 파일은 유지한다.
 
+파일 저장 순서가 교차해도 비교는 같은 `BasePath`의 논리 offset 순으로 진행하고, 후보 작성 전에 남은 범위를 원래 저널의 물리 순서로 정렬한다. Git reader는 하나의 blob 증명과 64KiB chunk만 유지한다. 부분 읽기의 남은 stdout은 정확한 소유 파이프를 닫아 종료하며, 버린 내용을 drain하거나 cache하지 않는다. 전체 blob hash와 요청 chunk 검증·30초 무진행 제한은 유지한다. 이 변경의 [비교 범위](plans/journal-base-reversion-optimization.md)와 전후 계측은 기존 실제 A/B 자격과 구분한다.
+
 내용이 같아도 파일 ID·경로/rename·길이·속성/UnixMode·시간·삭제/재생성·hidden·변경 path/sequence는 유지한다. 마지막 payload 쓰기가 전부 제거되면 기존 `metadata` frame으로 그 쓰기의 entry를 적용한다. 이전 무효 쓰기는 기존 sequence/skip 표현으로 유지한다. 기준본 복귀가 필요한 frame에는 제거한 범위를 다시 넣는 원본 payload fallback을 사용하지 않는다. 그래서 ON은 OFF의 더 작은 frame 선택과 비용이 다르고 일부 입력에서 더 많은 metadata/CPU/관리 할당이 필요할 수 있다. 한도·fragment metadata 제한에 걸리면 원본을 보존하고 거부한다.
 
 ## 검증과 같은 요청 복구

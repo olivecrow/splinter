@@ -24,3 +24,5 @@ pwsh ./scripts/splinter-dev.ps1 schema view.execute
 verification의 Unity·WF/LB 실행 기록은 명시한 후보·입력의 근거다. 현재 계약에서 변경된 외부 도구 연결이나 native 실행 자격으로 자동 승계하지 않는다.
 
 [기준본 복귀의 한정 계측](verification/journal-base-reversion.md)은 `JournalBaseReversionEvidenceTests`·`NativeEvidenceTests`·`ProductEvidenceTests`의 명시적 환경 입력으로 수행한다. 일반 실행은 gate/실제 제품 시험을 자동 활성화하지 않는다. 고정 입력과 새 evidence 경로에서만 실행하며 제품 명령 발견에 별도 probe를 추가하지 않는다.
+
+[다수 파일 시간 계측](verification/journal-base-reversion-optimization.md)은 `JournalBaseReversionManyFileEvidenceTests`의 `SPLINTER_BASE_REVERSION_MANY_FILES` JSON 입력으로만 활성화한다. input은 정확한 source/revision/owner/receipt/output/variant/files/profiles를 고정하며 `before`는 소유 Git 기준 ref를 보존하고 `after`가 전후 내용 검증 뒤 그 ref만 release한다. 입력이 없는 필수 build는 이 실제 계측을 실행하지 않는다. 사전에 [파일 수·쓰기·소유 기준·종료 조건](plans/journal-base-reversion-optimization.md)을 고정하며 기존 evidence를 덮어쓰거나 실패한 기준을 자동 회수하지 않는다.

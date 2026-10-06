@@ -17,6 +17,8 @@ Git commit/tree/blob의 stream 검증은 전체 작업의 30초 제한 대신 �
 
 `GitObjectSnapshotTree`는 fixed tree의 metadata와 raw blob을 `git cat-file`로 읽는다. commit/root tree의 object hash와 한 batch stream에서 읽은 모든 subtree hash를 확인한다. blob의 첫 읽기는 전체 object hash를 검증하면서 64KiB 단위 SHA-256 proof를 만든 뒤 요청분만 반환한다. 같은 blob의 후속 읽기는 그 proof에 맞는 chunk만 요청분 staging에 게시한다. 연속 읽기는 decoder를 이어 쓰고 뒤로 읽을 때는 stream을 다시 연다. 한 blob의 proof만 최대 4MiB, 검증된 chunk 하나 64KiB와 최대 1MiB 요청분 staging을 유지하며 blob 상한은 8GiB다. 다른 blob·오류·close 뒤 proof를 버린다. payload를 disk cache/checkout하지 않는다. 이미 검증한 chunk의 요청분이 고정 내용과 일치함을 보장하며 매 요청마다 blob 전체의 현재 손상을 다시 감사하는 의미는 아니다. packed object의 Git 내부 메모리·프로세스/비연속 해독 비용을 이 관리 buffer 한도로 해석하지 않는다. 빈/EOF 요청은 0바이트를 반환한다. Windows 경로의 case 충돌·ADS/예약 이름·특수 entry는 거부한다. Git 밖의 mutable 파일을 fallback으로 읽지 않는다.
 
+부분 읽기를 버리고 다른 blob으로 전환하거나 close할 때 정확한 소유 stdout 파이프를 먼저 닫아 unread suffix의 쓰기 대기를 취소한다. 이어 stdin을 닫고 기존 1초 종료 한도/소유 자식 종료와 stderr 관측을 유지한다. 요청 bytes는 이미 전체 blob 또는 chunk proof로 검증한 뒤에만 반환하며 취소한 suffix를 읽기 성공으로 판정하지 않는다. 이 시간 최적화는 [별도 다수 파일 비교](plans/journal-base-reversion-optimization.md)의 범위이며 이전 실제 Unity/WinFsp 자격을 자동 승계하지 않는다.
+
 WinFsp와 기존 overlay v2/SJR2 범위 저널을 사용한다. 최초 기준 payload 복제·read hydration·파일 전체 copy-up 없이 private 변경 범위만 저장한다. Git linked worktree는 기존 no-checkout 등록/index 계약을 사용하며 `.git` pointer는 private 저널에 쓰는 관리 데이터다. 원본 index/branch와 peer 등록은 수정하지 않는다. baseline reachability ref는 결과 branch와 별도다.
 
 ## 결과와 회수

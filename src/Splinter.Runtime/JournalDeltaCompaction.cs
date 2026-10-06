@@ -277,6 +277,14 @@ public sealed partial class JournalDeltaStore
         byte[] basis = ArrayPool<byte>.Shared.Rent(windowBytes);
         try
         {
+            // The journal order interleaves files across saves. Compare one base
+            // path in increasing logical order so bounded sequential readers do
+            // not repeatedly prove the same blob or abandon its stream.
+            live.Sort((a, b) =>
+            {
+                int path = pathPolicy.Comparer.Compare(nodes[a.NodeId].Entry.BasePath, nodes[b.NodeId].Entry.BasePath);
+                return path != 0 ? path : a.Logical.CompareTo(b.Logical);
+            });
             foreach (var range in live)
             {
                 var node = nodes[range.NodeId];
@@ -326,6 +334,8 @@ public sealed partial class JournalDeltaStore
             }
         }
         finally { ArrayPool<byte>.Shared.Return(basis); }
+        // Candidate frame scanning consumes ranges in the source journal order.
+        retained.Sort((a, b) => a.Physical != b.Physical ? a.Physical.CompareTo(b.Physical) : a.BlockOffset.CompareTo(b.BlockOffset));
         return retained;
     }
     public ValidationCacheUsage ObservePrivateUsage()
