@@ -67,6 +67,8 @@ For a later CLI invocation or continued conversation, use the saved absolute CLI
 
 Use one writer for a task path. Short CLI locks and provider process identity do not constitute an exclusive Codex-conversation lock for arbitrary file edits. If the handoff is ambiguous or another writer may still be active, establish which task may write before editing; automatic session binding and stale-writer exclusion are not provided by this skill.
 
+Optional `workspace compact --revert-base-ranges true` removes private ranges equal to the fixed immutable basis **only during explicit stopped-provider compaction**; default false. Read [the contract](../../docs/journal-base-reversion.md). Preserve the saved boolean on recovery; omitted retries reuse it and a conflicting boolean is rejected. This does not prevent running append growth or certify Unity preparation.
+
 `workspace status --id <id> --home <home>` observes that task. When current source verification is needed, use `--verify-source`; reserve `--audit-source` for a full audit or damaged verification cache. Do not turn every status poll into a full source scan.
 
 ## Use an Editor only when needed

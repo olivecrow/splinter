@@ -177,7 +177,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         await WinFspOverlayClient.StopAsync(request, ct);
     }
     public async Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string control, CancellationToken ct = default,
-        long? maxEstimatedJournalOverlapBytes = null)
+        long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null)
     {
         var observed = await ObserveAsync(w, control, ct);
         if (observed is not { SnapshotAvailable: true, Mounted: false, ProviderAlive: false,
@@ -195,7 +195,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         string delta = DeltaPath(control);
         WindowsProcessWorkspaceProvider.CheckPath(delta);
         var result = JournalDeltaStore.CompactDirectory(delta, request.Identity, basisTree,
-            maxEstimatedJournalOverlapBytes: maxEstimatedJournalOverlapBytes);
+            maxEstimatedJournalOverlapBytes: maxEstimatedJournalOverlapBytes, revertBaseRanges: revertBaseRanges);
         string journal = Path.Combine(delta, "delta.journal"), previous = Path.Combine(delta, "delta.journal.previous");
         long? oldAllocation = Allocation(previous), newAllocation = Allocation(journal);
         return result with { BeforeAllocatedBytes = oldAllocation, AfterAllocatedBytes = newAllocation,

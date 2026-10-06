@@ -93,7 +93,9 @@ internal static class WorkspaceCommands
         {
             Description = "Optional ceiling for the estimated sum of old and candidate journal lengths; this is not a physical workspace peak limit."
         };
-        compact.Options.Add(compactId); compact.Options.Add(maxEstimatedJournalOverlapBytes);
+        var revertBaseRanges = new Option<bool?>("--revert-base-ranges")
+        { Description = "At explicit compaction only, compare private ranges with the fixed immutable base and remove equal ranges. Default false; retries reuse the saved option." };
+        compact.Options.Add(compactId); compact.Options.Add(maxEstimatedJournalOverlapBytes); compact.Options.Add(revertBaseRanges);
         workspace.Subcommands.Add(compact);
         compact.SetAction(async parse =>
         {
@@ -101,9 +103,10 @@ internal static class WorkspaceCommands
             select(command);
             string id = parse.GetValue(compactId)!;
             long? budget = parse.GetValue(maxEstimatedJournalOverlapBytes);
-            if (!Validate(command, new { id, maxEstimatedJournalOverlapBytes = budget })) return;
+            bool? revert = parse.GetValue(revertBaseRanges);
+            if (!Validate(command, new { id, maxEstimatedJournalOverlapBytes = budget, revertBaseRanges = revert })) return;
             WorkspaceView view;
-            try { view = await Runtime(parse).CompactAsync(id, ct, budget); }
+            try { view = await Runtime(parse).CompactAsync(id, ct, budget, revert); }
             catch (WorkspaceException ex) when (ex.Code == "CompactionOverlapBudgetExceeded")
             {
                 throw new WorkspaceException(ex.Code, ex.Message, ex.Details,

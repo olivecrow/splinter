@@ -7,6 +7,22 @@ namespace Splinter.Tests;
 public sealed partial class SnapshotWorkspaceCoordinatorTests
 {
     [Fact]
+    public async Task CompactionOptionIsDurableAndCannotChangeDuringReconnect()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string id = (await f.Ensure(ct)).Workspace.Id;
+        f.Backend.LoseMountReply = true;
+        Assert.Equal("ReplyLost", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CompactAsync(id, ct, revertBaseRanges: true))).Code);
+        Assert.True(new WorkspaceStore(f.Home).Get(id).Snapshot!.PendingCompactionRevertBaseRanges);
+        Assert.Equal("CompactionIntentMismatch", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CompactAsync(id, ct, revertBaseRanges: false))).Code);
+        var resumed = await f.New().CompactAsync(id, ct);
+        Assert.True(resumed.Workspace.Snapshot!.Compaction!.RevertBaseRanges);
+        Assert.Null(resumed.Workspace.Snapshot.PendingCompactionRevertBaseRanges);
+        Assert.Equal(new bool?[] { true }, f.Backend.SeenReversionOptions);
+        await f.New().CompactAsync(id, ct);
+        Assert.Equal(1, f.Backend.CompactCalls);
+    }
+    [Fact]
     public async Task GitProjectModeUsesSharedJournalLifecycleAndSameRequestRecovery()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
@@ -534,6 +550,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         public string? CompactionFailure;
         public long? MinimumOverlap;
         public List<long?> SeenOverlapBudgets = [];
+        public List<bool?> SeenReversionOptions = [];
         public bool? Available = true; public bool UnknownDelta;
         public string? LoseReleaseReply;
         private void FailOnce(string boundary) { if (LoseReleaseReply == boundary) { LoseReleaseReply = null; throw new WorkspaceException("ReplyLost", boundary); } }
@@ -560,14 +577,14 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { Mounted = false; if (Directory.Exists(w.Path)) Directory.Delete(w.Path); if (WriteDuringUnmount) sequence++; FailOnce("unmount"); return Task.CompletedTask; }
         public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default,
-            long? maxEstimatedJournalOverlapBytes = null)
-        { CompactCalls++; SeenOverlapBudgets.Add(maxEstimatedJournalOverlapBytes);
+            long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null)
+        { CompactCalls++; SeenOverlapBudgets.Add(maxEstimatedJournalOverlapBytes); SeenReversionOptions.Add(revertBaseRanges);
           if (CompactionFailure is { } failure) throw new WorkspaceException(failure, "Preserve retained generations.");
           if (MinimumOverlap is { } minimum && maxEstimatedJournalOverlapBytes is { } budget && budget < minimum)
               throw new WorkspaceException("CompactionOverlapBudgetExceeded", "Fake overlap budget exceeded.");
           Compacted = true; return Task.FromResult(new SnapshotJournalCompaction("attempt", new(sequence, 100, "hash" + sequence),
             new(sequence, 50, "compact" + sequence), DateTimeOffset.UtcNow, 4096, 2048, 6144,
-            new(Stopwatch.Frequency, 20, [new("candidate-scan", 10, 100, 0, 0)]))); }
+            new(Stopwatch.Frequency, 20, [new("candidate-scan", 10, 100, 0, 0)]), RevertBaseRanges: revertBaseRanges ?? false)); }
         public Task CompleteCompactionAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { CompletedCompaction = true; return Task.CompletedTask; }
         public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default)

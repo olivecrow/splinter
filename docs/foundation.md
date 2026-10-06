@@ -70,7 +70,7 @@ private Mutation의 기본값 JSON은 생략하고 명시적 정리/후보에서
 | `workspace status --verify-source/--audit-source` | 현재 내용 hash 확인/전체 감사 |
 | `workspace checkpoint` | 소유 Editor 정상 stop·안정된 소스 checkpoint·독립 결과. 컴파일/테스트 성공 불필요 |
 | `workspace integrate` | Git의 정확한 결과·깨끗한 branch merge 또는 일반 폴더/recorded Plastic의 `--target original --plan`/고정 intent·digest·선택 경로 조건부 NTFS 게시 |
-| `workspace compact` | 정상 stop/unmount·seal·명시적 예산으로 private 저널 정리 |
+| `workspace compact` | 정상 stop/unmount·seal·명시적 예산으로 private 저널 정리. 선택적 [기준본 복귀](journal-base-reversion.md)는 기본 OFF |
 | `workspace release/discard` | 독립 결과 보존 뒤 회수/명시적 결과 폐기. peer와 공유 의존성 보호 |
 | `library prepare/status/restore` | 명시적으로 허용된 원본 Library의 같은 볼륨 이동·원본/A/B 범위 저장·마지막 일반 NTFS 복원. [계약](git-library-reference.md) |
 | `project prepare/status/restore` | 명시적으로 허용된 VCS 없는 전체 원본의 같은 NTFS 볼륨 이동·source/Library 공통 기준·원본/A/B 범위 저장·마지막 일반 NTFS 복원. [계약](plain-project-basis.md) |

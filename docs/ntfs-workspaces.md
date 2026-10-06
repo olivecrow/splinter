@@ -57,11 +57,13 @@ Editor의 refresh·컴파일·Play/테스트 등은 반환 workspace 경로를 �
 
 `workspace compact`는 **최종 결과 수집 전**의 연결된 NTFS 작업공간 하나에서 명시적으로 실행한다. 소유 Editor와 자식 프로세스가 종료되고 mount의 열린 핸들이 0이며 snapshot 가용성과 소유권이 확인돼야 한다. 같은 workspace의 다른 수명주기 명령은 `compact-*` 단계 동안 거부한다. provider를 멈춘 뒤 unmount 전후 저널 seal을 대조하고, 원래 snapshot·작업 ID·Git 등록을 그대로 사용해 새 저널 세대를 검증·발행·재연결한다. 정리 뒤 source 내용과 seal을 다시 확인하며 프로젝트 검증은 에이전트가 필요에 맞게 수행한다. 이미 완료한 세대의 같은 명령 재시도는 seal이 같을 때 읽기 전용 결과를 반환하며, 이후 새 쓰기가 있으면 다시 명시적으로 압축할 수 있다. `checkpoint`를 중간 압축용으로 사용하지 않는다.
 
+`--revert-base-ranges true`는 명시적 정리에서만 고정 기준과 같은 private 범위를 제거한다. 기본 false·같은 요청의 저장된 선택 재개·원래/기대 구조 hash·metadata/identity 보존과 v2 compaction intent는 [기준본 복귀 계약](journal-base-reversion.md)을 따른다. OFF의 기준 읽기 0과 작은 frame fallback을 ON으로 승계하지 않는다.
+
 선택적 `--max-estimated-journal-overlap-bytes <양의 정수>`는 기존 저널의 논리 길이와 후보 저널의 사전 계산 논리 길이의 합계를 제한한다. 지정하지 않으면 기존 정리 동작을 유지한다. 합계가 예산을 초과하면 새 후보 파일·세대 게시 전에 `CompactionOverlapBudgetExceeded`와 두 길이·합계를 반환한다. 그때 provider는 정지된 `resume-compaction` 상태이므로 같은 ID/home의 `workspace compact`로 명시적으로 재시도한다. 인자를 생략한 재시도는 저장된 예산을 유지하고, 값을 명시해야 바뀐다. 이미 후보가 게시된 `compact-connect` 단계에서는 새 예산이 복구를 막지 않는다. 성공하면 pending 예산을 지운다. 이 옵션은 **예상 저널 파일 길이의 중첩량**만 제한하며 NTFS 실제 할당, control/Git/Library, VSS diff area 또는 작업공간 전체 물리 peak의 상한이 아니다. 실제 판단에는 [읽기 전용 공간 장부](source-verification.md#계측의-의미)를 함께 사용한다.
 
 예산 검사는 provider 정지 뒤 기존 저널 재생·seal·상태 hash·후보 scan을 수행하므로 거부에도 읽기 시간과 Editor 정지가 필요하다. 중단된 이전 시도에 이미 부분 후보 파일이 있으면 낮은 예산의 거부도 그 파일을 삭제하지 않는다. 예산은 앞으로 작성할 후보를 검사하며 이미 쓰인 공간을 자동 회수하지 않는다. 원본 저널·intent·기존 부분 후보의 소유와 상태를 확인한 뒤 같은 작업의 명시적 재시도로 진행한다.
 
-압축은 살아 있는 범위를 chunk 단위로 다시 기록하고 같은 경로의 연속된 무효 쓰기를 하나의 sequence 구간으로 묶는다. 범위/무효 쓰기 메타데이터와 payload의 합계가 기존 frame보다 커지면 기존 frame을 유지한다. 개별 skip 표현이 더 크면 같은 경로의 묶음이 더 작을 때만 변환한다. 따라서 일반 정리는 후보 저널의 논리 길이를 늘리지 않지만, 더 작은 표현을 위해 일부 무효 payload를 남길 수 있으며 `obsoletePayloadBytes=0`을 완료 조건으로 삼지 않는다. 사전 예산 계산과 후보 작성은 같은 선택 규칙을 사용한다. [크기 회귀 검증](verification/journal-compaction-size.md)의 합성 입력과 실제 저널 할당 비교를 따른다.
+압축은 살아 있는 범위를 chunk 단위로 다시 기록하고 같은 경로의 연속된 무효 쓰기를 하나의 sequence 구간으로 묶는다. 범위/무효 쓰기 메타데이터와 payload의 합계가 기존 frame보다 커지면 기존 frame을 유지한다. 개별 skip 표현이 더 크면 같은 경로의 묶음이 더 작을 때만 변환한다. 따라서 기본(OFF) 정리는 후보 저널의 논리 길이를 늘리지 않지만, 더 작은 표현을 위해 일부 무효 payload를 남길 수 있으며 `obsoletePayloadBytes=0`을 완료 조건으로 삼지 않는다. 사전 예산 계산과 후보 작성은 같은 선택 규칙을 사용한다. [크기 회귀 검증](verification/journal-compaction-size.md)의 합성 입력과 실제 저널 할당 비교를 따른다.
 
 whiteout·rename·truncate·`.meta`와 변경 경로를 재생 대조하며 파일 전체를 copy-up하거나 기준 파일을 읽어 채우지 않는다. 새 후보는 같은 디렉터리에 flush하고 checksum·전체 재생 상태를 확인한 뒤 원자적으로 게시한다. `delta.journal.previous`는 새 세대의 mount 재연결과 seal이 확인될 때까지 남긴다. `compaction-intent.json`과 후보/이전 세대의 소유·hash가 맞지 않거나 내용이 손상되면 파일을 보존하고 `preserve`로 중단한다. 준비·게시·재연결 중 끊기면 같은 ID/home의 `workspace compact`로 `resume-compaction`을 진행한다. 자동 sweep이나 다른 workspace·snapshot 회수와 연결하지 않는다.
 

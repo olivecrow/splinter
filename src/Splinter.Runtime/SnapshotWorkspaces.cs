@@ -274,7 +274,7 @@ public sealed partial class WorkspaceCoordinator
     }
 
     public async Task<WorkspaceView> CompactAsync(string id, CancellationToken ct = default,
-        long? maxEstimatedJournalOverlapBytes = null)
+        long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null)
     {
         if (maxEstimatedJournalOverlapBytes is <= 0)
             throw new WorkspaceException("InvalidCompactionBudget", "The estimated journal overlap budget must be positive.");
@@ -291,6 +291,9 @@ public sealed partial class WorkspaceCoordinator
         string control = store.ControlPath(id);
         try
         {
+            if (state.Step.StartsWith("compact-", StringComparison.Ordinal) && revertBaseRanges is { } requestedReversion &&
+                requestedReversion != (state.PendingCompactionRevertBaseRanges ?? false))
+                throw new WorkspaceException("CompactionIntentMismatch", "Resume the saved base-reversion option.");
             if (!state.Step.StartsWith("compact-", StringComparison.Ordinal))
             {
                 await RequireStopped(w, ct);
@@ -303,9 +306,11 @@ public sealed partial class WorkspaceCoordinator
                 // read-only retry. New writes change the seal and allow a later
                 // explicit compaction of the same workspace.
                 if (state.Compaction is { } completed &&
+                    (revertBaseRanges is null || revertBaseRanges == completed.RevertBaseRanges) &&
                     await Snapshots.SealAsync(w, control, ct) == completed.After)
                     return await ViewAsync(w, ct);
                 state.PendingCompactionMaxEstimatedJournalOverlapBytes = maxEstimatedJournalOverlapBytes;
+                state.PendingCompactionRevertBaseRanges = revertBaseRanges ?? false;
                 SnapshotStep(w, "compact-unmount");
             }
             else if (state.Step == "compact-unmount" || state.Step == "compact-write")
@@ -333,7 +338,7 @@ public sealed partial class WorkspaceCoordinator
             {
                 await Snapshots.VerifyConnectionAsync(w, control, ct);
                 state.Compaction = await Snapshots.CompactAsync(w, control, ct,
-                    state.PendingCompactionMaxEstimatedJournalOverlapBytes);
+                    state.PendingCompactionMaxEstimatedJournalOverlapBytes, state.PendingCompactionRevertBaseRanges);
                 SnapshotStep(w, "compact-connect");
             }
             if (state.Step == "compact-connect")
@@ -350,6 +355,7 @@ public sealed partial class WorkspaceCoordinator
                             state.Observation?.Storage?.Metrics?.ReplayBytes ?? 0, 0, 0),
                         new("previous-generation-cleanup", cleanupTicks, 0, 0, 0)] } };
                 state.PendingCompactionMaxEstimatedJournalOverlapBytes = null;
+                state.PendingCompactionRevertBaseRanges = null;
                 w.Phase = "ready"; w.LastError = null;
                 SnapshotStep(w, "ready");
             }

@@ -2089,6 +2089,9 @@
             "beforeAllocatedBytes": { "type": "integer", "minimum": 0 },
             "afterAllocatedBytes": { "type": "integer", "minimum": 0 },
             "peakTemporaryAllocatedBytes": { "type": "integer", "minimum": 0 },
+            "revertBaseRanges": { "type": "boolean" },
+            "baseComparedBytes": { "type": "integer", "minimum": 0 },
+            "revertedPayloadBytes": { "type": "integer", "minimum": 0 },
             "cost": {
               "type": "object",
               "additionalProperties": false,
@@ -2116,6 +2119,7 @@
           },
           "required": ["attemptId", "before", "after", "startedAt"]
         },
+        "pendingCompactionRevertBaseRanges": { "type": "boolean" },
         "pendingCompactionMaxEstimatedJournalOverlapBytes": {
           "type": "integer",
           "minimum": 1

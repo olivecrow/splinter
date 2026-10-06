@@ -22,6 +22,8 @@
 
 ## 현재 변경의 검증
 
+[선택적 기준본 복귀 정리](journal-base-reversion.md)는 실제 2.8GB Unity 프로젝트의 recorded Git 입력과 합성 OFF/ON 각 3회, 고정 7경계의 실제 자식 종료 각 2기준, WinFsp editorless A/B의 독립 결과/소유 회수를 소유한다. 실제 최종 저널 할당 -74.76%와 전체 측정 시간 +49.41%를 함께 기록해 기본 OFF를 유지한다. 최초 runner 접근 거부·명시적 같은 작업 재개와 Unity import/전체 순간 peak 미확인을 보존한다.
+
 [OS와 앱 확장 계약](extensibility-boundaries.md)은 불변 경로 정책·권한 metadata와 주입한 앱별 동반 파일/원본 reservation/생성 디렉터리 descriptor의 자동 적합성을 소유한다. 실제 macOS/Linux·다른 앱·새 Unity/VSS A/B는 NotRun이다.
 
 [코드 최적화 회귀](code-quality-optimization.md)는 `8873ba6` 위의 여섯 검토 항목에 대한 계약/파일·fake 저널 시험이다. 다음 행동의 정확한 basis/선택 인자·공유 객체 재검사·복원 검색·rename 재생·블록 순회 비용을 검증한다. 새 Unity/VSS/서비스 실행이나 닫힌 단계의 전체 지원 자격을 포함하지 않는다.

@@ -11,7 +11,13 @@
     "maxEstimatedJournalOverlapBytes": {
       "type": "integer",
       "minimum": 1
+    },
+    "revertBaseRanges": {
+      "type": "boolean",
+      "description": "Only at explicit compaction, remove private ranges equal to the fixed base. Default false; omitted retry uses saved option."
     }
   },
-  "required": ["id"]
+  "required": [
+    "id"
+  ]
 }

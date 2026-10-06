@@ -15,11 +15,13 @@ public sealed class SnapshotWorkspaceState
     public SnapshotReclamation? Reclamation { get; set; }
     public SnapshotJournalCompaction? Compaction { get; set; }
     public long? PendingCompactionMaxEstimatedJournalOverlapBytes { get; set; }
+    public bool? PendingCompactionRevertBaseRanges { get; set; }
 }
 
 public sealed record SnapshotJournalCompaction(string AttemptId, SnapshotDeltaSeal Before, SnapshotDeltaSeal After,
     DateTimeOffset StartedAt, long? BeforeAllocatedBytes = null, long? AfterAllocatedBytes = null,
-    long? PeakTemporaryAllocatedBytes = null, SnapshotCompactionCost? Cost = null);
+    long? PeakTemporaryAllocatedBytes = null, SnapshotCompactionCost? Cost = null,
+    bool RevertBaseRanges = false, long BaseComparedBytes = 0, long RevertedPayloadBytes = 0);
 
 // Direct per-attempt measurements. A retry that only verifies an already
 // published generation may have no cost receipt; absence is not zero work.
@@ -112,7 +114,7 @@ public interface ISnapshotWorkspaceBackend
     Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task UnmountAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default,
-        long? maxEstimatedJournalOverlapBytes = null);
+        long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null);
     Task CompleteCompactionAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task RemoveDeltaAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task<SnapshotReclamation> ReleaseSnapshotAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);

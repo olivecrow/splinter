@@ -17,11 +17,13 @@ public sealed partial class JournalDeltaStore
     private sealed record CompactionFrame(Mutation Mutation, byte[] Metadata, PayloadSlice[] Slices, int PayloadLength,
         WorkspaceJournalPayload Payload, byte[]? Encoded = null, CompactionFrame? Fallback = null);
     private sealed record CompactionIntent(int Version, string WorkspaceId, string SnapshotId, string AttemptId,
-        DateTimeOffset StartedAt, SnapshotDeltaSeal Before, string StateHash, SnapshotDeltaSeal? Candidate = null);
+        DateTimeOffset StartedAt, SnapshotDeltaSeal Before, string StateHash, string ExpectedStateHash,
+        bool RevertBaseRanges, long BaseComparedBytes, long RevertedPayloadBytes, SnapshotDeltaSeal? Candidate = null);
 
     private const string CandidateName = "delta.journal.compacting";
     private const string BackupName = "delta.journal.previous";
     private const string IntentName = "compaction-intent.json";
+    private Dictionary<Guid, long>? lastCompactionWrites;
 
     private sealed class CompactionCostBuilder
     {
@@ -52,7 +54,7 @@ public sealed partial class JournalDeltaStore
     }
 
     public static SnapshotJournalCompaction CompactDirectory(string directory, OverlayIdentity identity, ISnapshotTree snapshot,
-        Action<string>? boundary = null, long? maxEstimatedJournalOverlapBytes = null)
+        Action<string>? boundary = null, long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null)
     {
         if (maxEstimatedJournalOverlapBytes is <= 0)
             throw new WorkspaceException("InvalidCompactionBudget", "The estimated journal overlap budget must be positive.");
@@ -62,15 +64,18 @@ public sealed partial class JournalDeltaStore
         string backup = Path.Combine(directory, BackupName), intentPath = Path.Combine(directory, IntentName);
         if (!File.Exists(current)) throw new WorkspaceException("DeltaMissing", "Preserve the workspace: its journal is missing.");
         var intent = ReadIntent(intentPath);
-        if (intent is not null && (intent.Version != 1 || intent.WorkspaceId != identity.Id || intent.SnapshotId != identity.Snapshot.Id ||
+        if (intent is not null && (intent.Version != 2 || intent.WorkspaceId != identity.Id || intent.SnapshotId != identity.Snapshot.Id ||
             string.IsNullOrWhiteSpace(intent.AttemptId)))
             throw new WorkspaceException("CompactionIntentMismatch", "Preserve a compaction intent with another owner or snapshot.");
+        if (intent is not null && revertBaseRanges is { } selected && selected != intent.RevertBaseRanges)
+            throw new WorkspaceException("CompactionIntentMismatch", "Resume the saved compaction option; preserve both generations.");
+        bool revert = intent?.RevertBaseRanges ?? revertBaseRanges ?? false;
         if (intent?.Candidate is { } ready && Matches(current, ready) && !File.Exists(candidate))
         {
             if (File.Exists(backup) && !Matches(backup, intent.Before))
                 throw new WorkspaceException("CompactionGenerationMismatch", "The retained previous journal differs from its intent.");
             using var verified = new JournalDeltaStore(directory, identity, snapshot);
-            if (verified.StateHash() != intent.StateHash)
+            if (verified.StateHash() != intent.ExpectedStateHash)
                 throw new WorkspaceException("CompactionStateMismatch", "The published journal does not reconstruct the original state.");
             return Receipt(intent);
         }
@@ -88,10 +93,23 @@ public sealed partial class JournalDeltaStore
                 throw new WorkspaceException("CompactionGenerationMismatch", "The source journal changed since compaction started.");
             List<LiveRange>? live = null;
             long estimated = 0;
+            string expectedStateHash = intent?.ExpectedStateHash ?? stateHash;
+            long compared = intent?.BaseComparedBytes ?? 0, reverted = intent?.RevertedPayloadBytes ?? 0;
             if (intent?.Candidate is null)
             {
                 live = cost.Measure("live-range-index", old, old.LiveRanges);
-                estimated = cost.Measure("candidate-scan", old, () => old.WalkFrames(live, null));
+                if (revert)
+                {
+                    cost.Measure("last-write-index", old, old.IndexLastCompactionWrites);
+                    long baseBefore = old.baseReadBytes, liveBefore = live.Sum(r => (long)r.Length);
+                    live = cost.Measure("base-range-compare", old, () => old.RetainDifferentBaseRanges(live),
+                        directReadBytes: _ => old.baseReadBytes - baseBefore);
+                    compared = old.baseReadBytes - baseBefore; reverted = liveBefore - live.Sum(r => (long)r.Length);
+                    expectedStateHash = cost.Measure("expected-state-hash", old, () => old.StateHash(null, live));
+                    if (intent is not null && (expectedStateHash != intent.ExpectedStateHash || compared != intent.BaseComparedBytes || reverted != intent.RevertedPayloadBytes))
+                        throw new WorkspaceException("CompactionStateMismatch", "The immutable base comparison differs from the saved intent.");
+                }
+                estimated = cost.Measure("candidate-scan", old, () => old.WalkFrames(live, null, revertBaseRanges: revert));
                 if (estimated > identity.MaxJournalBytes)
                     throw new WorkspaceException("DeltaFull", "The compacted generation exceeds this workspace journal budget.");
                 long projected = checked(old.journal.Length + estimated);
@@ -103,8 +121,8 @@ public sealed partial class JournalDeltaStore
             }
             if (intent is null)
             {
-                intent = new(1, identity.Id, identity.Snapshot.Id, Guid.NewGuid().ToString("N"),
-                    DateTimeOffset.UtcNow, before, stateHash);
+                intent = new(2, identity.Id, identity.Snapshot.Id, Guid.NewGuid().ToString("N"),
+                    DateTimeOffset.UtcNow, before, stateHash, expectedStateHash, revert, compared, reverted);
                 cost.Measure("intent-publication", null, () => WriteIntent(intentPath, intent), flushCount: 1);
                 boundary?.Invoke("intent");
             }
@@ -113,12 +131,12 @@ public sealed partial class JournalDeltaStore
                 // The unfinished candidate was never published. The authoritative
                 // journal and its seal have been verified before replacing it.
                 if (File.Exists(candidate)) File.Delete(candidate);
-                old.WriteCompactedCandidate(candidate, before, live!, estimated, cost);
+                old.WriteCompactedCandidate(candidate, before, live!, estimated, cost, revertBaseRanges: revert);
                 boundary?.Invoke("candidate-flushed");
                 long candidateReplayStarted = Stopwatch.GetTimestamp();
                 using var check = new JournalDeltaStore(directory, identity, snapshot, CandidateName);
                 cost.Add("candidate-replay", Stopwatch.GetTimestamp() - candidateReplayStarted, check.replayBytes);
-                if (cost.Measure("candidate-state-hash", check, check.StateHash) != intent.StateHash || check.sequence != old.sequence)
+                if (cost.Measure("candidate-state-hash", check, check.StateHash) != intent.ExpectedStateHash || check.sequence != old.sequence)
                     throw new WorkspaceException("CompactionStateMismatch", "Candidate replay differs from the active journal; preserve both.");
                 intent = intent with { Candidate = cost.Measure("candidate-seal", check, check.SealCurrent,
                     directReadBytes: _ => check.journal.Length) };
@@ -138,22 +156,27 @@ public sealed partial class JournalDeltaStore
         return Receipt(intent) with { Cost = cost.Build(Stopwatch.GetTimestamp() - totalStarted) };
     }
 
-    public static void CompleteCompaction(string directory, OverlayIdentity identity)
+    public static void CompleteCompaction(string directory, OverlayIdentity identity, Action<string>? boundary = null)
     {
         string current = Path.Combine(directory, "delta.journal"), backup = Path.Combine(directory, BackupName);
         string intentPath = Path.Combine(directory, IntentName);
         var intent = ReadIntent(intentPath) ?? throw new WorkspaceException("CompactionIntentMissing", "The compaction intent is missing.");
-        if (intent.Version != 1 || intent.WorkspaceId != identity.Id || intent.SnapshotId != identity.Snapshot.Id ||
+        if (intent.Version != 2 || intent.WorkspaceId != identity.Id || intent.SnapshotId != identity.Snapshot.Id ||
             string.IsNullOrWhiteSpace(intent.AttemptId) || intent.Candidate is not { } candidate ||
             File.Exists(Path.Combine(directory, CandidateName)) ||
             !Matches(current, candidate) || File.Exists(backup) && !Matches(backup, intent.Before))
             throw new WorkspaceException("CompactionGenerationMismatch", "The selected journal or previous generation differs from the intent.");
+        boundary?.Invoke("before-previous-delete");
         if (File.Exists(backup)) File.Delete(backup);
+        boundary?.Invoke("previous-deleted");
         File.Delete(intentPath);
+        boundary?.Invoke("intent-deleted");
     }
 
     private static SnapshotJournalCompaction Receipt(CompactionIntent intent) =>
-        new(intent.AttemptId, intent.Before, intent.Candidate!, intent.StartedAt);
+        new(intent.AttemptId, intent.Before, intent.Candidate!, intent.StartedAt,
+            RevertBaseRanges: intent.RevertBaseRanges, BaseComparedBytes: intent.BaseComparedBytes,
+            RevertedPayloadBytes: intent.RevertedPayloadBytes);
 
     private static CompactionIntent? ReadIntent(string path)
     {
@@ -162,6 +185,7 @@ public sealed partial class JournalDeltaStore
         {
             var intent = JsonSerializer.Deserialize<CompactionIntent>(File.ReadAllText(path));
             if (intent is null || intent.Before is null || string.IsNullOrWhiteSpace(intent.StateHash) ||
+                string.IsNullOrWhiteSpace(intent.ExpectedStateHash) || intent.BaseComparedBytes < 0 || intent.RevertedPayloadBytes < 0 ||
                 !ValidSeal(intent.Before) || intent.Candidate is { } candidate && !ValidSeal(candidate))
                 throw new WorkspaceException("CompactionIntentCorrupt", "Preserve the incomplete compaction intent and journals.");
             return intent;
@@ -201,7 +225,7 @@ public sealed partial class JournalDeltaStore
     }
 
     private string StateHash() => StateHash(null);
-    private string StateHash(IReadOnlySet<string>? projectedFiles)
+    private string StateHash(IReadOnlySet<string>? projectedFiles, List<LiveRange>? retained = null)
     {
         using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         void Add(object value)
@@ -212,12 +236,15 @@ public sealed partial class JournalDeltaStore
             digest.AppendData(length); digest.AppendData(data);
         }
         Add(sequence);
+        var retainedByNode = retained?.GroupBy(r => r.NodeId).ToDictionary(g => g.Key,
+            g => g.OrderBy(r => r.Logical).Select(r => new Extent(r.Logical, r.Length, r.Physical, r.Payload, r.BlockOffset)).ToArray());
         foreach (string path in paths.Keys.Order(pathPolicy.Comparer))
         {
             if (projectedFiles?.Contains(path) == true) continue;
             var node = nodes[paths[path]];
             Add(path); Add(node.Entry);
-            foreach (var extent in node.Extents)
+            IEnumerable<Extent> extents = retainedByNode is null ? node.Extents : retainedByNode.GetValueOrDefault(node.Entry.Id) ?? [];
+            foreach (var extent in extents)
             {
                 Add(new { extent.Start, extent.Length });
                 VisitExtent(extent, (_, bytes, _) => digest.AppendData(bytes));
@@ -230,6 +257,77 @@ public sealed partial class JournalDeltaStore
     }
 
     private List<LiveRange> LiveRanges() => LiveRanges(null);
+    private void IndexLastCompactionWrites()
+    {
+        lastCompactionWrites = [];
+        byte[] header = new byte[FrameHeaderBytes];
+        for (long cursor = 0; cursor < journal.Length;)
+        {
+            ReadExactly(cursor, header); var (length, payload) = ReadHeader(header);
+            byte[] metadata = new byte[length]; ReadExactly(cursor + FrameHeaderBytes, metadata);
+            var mutation = DecodeMutation(metadata, payload.DecodedBytes);
+            if (mutation.Operation is "write" or "write-compacted") lastCompactionWrites[mutation.Entry.Id] = mutation.Sequence;
+            cursor = checked(cursor + FrameHeaderBytes + (long)length + payload.StoredBytes + FrameChecksumBytes);
+        }
+    }
+    private List<LiveRange> RetainDifferentBaseRanges(List<LiveRange> live)
+    {
+        var retained = new List<LiveRange>();
+        int windowBytes = Math.Min(65536, Identity.MaxTransferBytes);
+        byte[] basis = ArrayPool<byte>.Shared.Rent(windowBytes);
+        try
+        {
+            foreach (var range in live)
+            {
+                var node = nodes[range.NodeId];
+                if (node.Entry.BasePath is not { } basePath || range.Logical >= node.Entry.BaseLength)
+                { retained.Add(range); continue; }
+                var extent = new Extent(range.Logical, range.Length, range.Physical, range.Payload, range.BlockOffset);
+                // Decoded chunks are bounded and verified by the existing codec.
+                // Read only private intervals inside this incarnation's valid base.
+                int keptStart = -1, keptLength = 0;
+                void Keep(int at, int length)
+                {
+                    if (keptStart >= 0 && keptStart + keptLength == at) { keptLength += length; return; }
+                    if (keptStart >= 0) retained.Add(range with { Logical = range.Logical + keptStart, Length = keptLength, BlockOffset = range.BlockOffset + keptStart });
+                    keptStart = at; keptLength = length;
+                }
+                VisitExtent(extent, (at, bytes, _) =>
+                {
+                    for (int cursor = 0; cursor < bytes.Length;)
+                    {
+                        int count = Math.Min(windowBytes, bytes.Length - cursor), local = at + cursor;
+                        long logical = range.Logical + local;
+                        int comparable = (int)Math.Min(count, Math.Max(0, node.Entry.BaseLength - logical));
+                        if (comparable > 0)
+                        {
+                            int read = 0;
+                            while (read < comparable)
+                            {
+                                int got = snapshot.Read(basePath, logical + read, basis.AsSpan(read, comparable - read));
+                                if (got <= 0 || got > comparable - read)
+                                    throw new WorkspaceException("SnapshotReadFailed", "Preserve private ranges: immutable base returned a short read.");
+                                baseReadBytes += got; read += got;
+                            }
+                        }
+                        for (int part = 0; part < count;)
+                        {
+                            int unit = Math.Min(4096, count - part);
+                            bool same = part + unit <= comparable && bytes.Slice(cursor + part, unit).SequenceEqual(basis.AsSpan(part, unit));
+                            if (!same) Keep(local + part, unit);
+                            part += unit;
+                        }
+                        cursor += count;
+                    }
+                });
+                if (keptStart >= 0) retained.Add(range with { Logical = range.Logical + keptStart, Length = keptLength, BlockOffset = range.BlockOffset + keptStart });
+                if (retained.Count > MaxIndexedExtents)
+                    throw new WorkspaceException("OverlayExtentLimit", "Preserve the source: base reversion exceeds the bounded index.");
+            }
+        }
+        finally { ArrayPool<byte>.Shared.Return(basis); }
+        return retained;
+    }
     public ValidationCacheUsage ObservePrivateUsage()
     {
         using (EnterGate())
@@ -265,7 +363,7 @@ public sealed partial class JournalDeltaStore
     }
 
     private void WriteCompactedCandidate(string path, SnapshotDeltaSeal originalSeal, List<LiveRange> live,
-        long estimated, CompactionCostBuilder cost, IReadOnlySet<string>? projectedFiles = null)
+        long estimated, CompactionCostBuilder cost, IReadOnlySet<string>? projectedFiles = null, bool revertBaseRanges = false)
     {
         string root = Path.GetPathRoot(Path.GetFullPath(path))!;
         // ConnectAsync also requires 2 GiB after the candidate is written.
@@ -275,7 +373,7 @@ public sealed partial class JournalDeltaStore
             throw new WorkspaceException("CompactionHeadroomRequired", "Free space cannot hold the compacted generation and safety headroom.");
         using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536))
         {
-            long actual = cost.Measure("candidate-write", this, () => WalkFrames(live, output, projectedFiles), writtenBytes: bytes => bytes);
+            long actual = cost.Measure("candidate-write", this, () => WalkFrames(live, output, projectedFiles, revertBaseRanges), writtenBytes: bytes => bytes);
             if (actual != estimated || output.Length != actual)
                 throw new WorkspaceException("CompactionCandidateMismatch", "Candidate length changed during compaction.");
             cost.Measure("candidate-flush", null, () => output.Flush(true), flushCount: 1);
@@ -284,7 +382,7 @@ public sealed partial class JournalDeltaStore
             throw new WorkspaceException("CompactionGenerationMismatch", "The original journal changed during compaction.");
     }
 
-    private long WalkFrames(List<LiveRange> live, Stream? output, IReadOnlySet<string>? projectedFiles = null)
+    private long WalkFrames(List<LiveRange> live, Stream? output, IReadOnlySet<string>? projectedFiles = null, bool revertBaseRanges = false)
     {
         long cursor = 0, total = 0;
         int liveIndex = 0;
@@ -328,7 +426,7 @@ public sealed partial class JournalDeltaStore
                     Destination = null, Replace = false, Fragments = null };
                 frame = new(skipped, JsonSerializer.SerializeToUtf8Bytes(skipped), [], 0, new(0, 0));
             }
-            else frame = FrameFor(mutation, metadata, payload, descriptor, slices);
+            else frame = FrameFor(mutation, metadata, payload, descriptor, slices, revertBaseRanges);
             long first = frame.Mutation.FromSequence ?? frame.Mutation.Sequence;
             if (pending is not null && Skipped(pending) && Skipped(frame) &&
                 pending.Mutation.Sequence + 1 == first &&
@@ -353,7 +451,8 @@ public sealed partial class JournalDeltaStore
         return total;
     }
 
-    private CompactionFrame FrameFor(Mutation mutation, byte[] metadata, long payload, WorkspaceJournalPayload descriptor, List<PayloadSlice> slices)
+    private CompactionFrame FrameFor(Mutation mutation, byte[] metadata, long payload, WorkspaceJournalPayload descriptor, List<PayloadSlice> slices,
+        bool revertBaseRanges = false)
     {
         // Current SJR2 readers already supply these optional mutation defaults.
         // Explicit compaction may reduce their JSON without touching the stored
@@ -366,13 +465,24 @@ public sealed partial class JournalDeltaStore
         var original = new CompactionFrame(mutation, metadata, [new(payload, mutation.Offset, dataLength, descriptor)], dataLength, descriptor);
         if (slices.Count == 0)
         {
+            if (revertBaseRanges && lastCompactionWrites?.GetValueOrDefault(mutation.Entry.Id) == mutation.Sequence)
+            {
+                // Dropping the last live write must still apply its complete entry
+                // (including BaseLength/timestamps). skip-write only records sequence.
+                var entryOnly = mutation with { Operation = "metadata", Offset = 0, Fragments = null };
+                return new(entryOnly, JsonSerializer.SerializeToUtf8Bytes(entryOnly), [], 0, new(0, 0));
+            }
             var skipped = mutation with { Operation = "skip-write", Fragments = null };
             byte[] encodedSkip = JsonSerializer.SerializeToUtf8Bytes(skipped);
-            if (encodedSkip.Length > MaxMetadataBytes) return original;
+            if (encodedSkip.Length > MaxMetadataBytes)
+            {
+                if (revertBaseRanges) throw new WorkspaceException("OverlayMetadataLimit", "Preserve the source: base-reversion metadata exceeds the transaction limit.");
+                return original;
+            }
             // Keep the skip eligible for adjacent range merging. If it remains
             // alone, retain its original frame when the skip metadata costs more.
             return new(skipped, encodedSkip, [], 0, new(0, 0), Fallback:
-                encodedSkip.Length > metadata.Length + (long)descriptor.StoredBytes ? original : null);
+                !revertBaseRanges && encodedSkip.Length > metadata.Length + (long)descriptor.StoredBytes ? original : null);
         }
         if (mutation.Operation == "write" && slices.Count == 1 && slices[0].BlockOffset == 0 && slices[0].Length == dataLength)
             return original;
@@ -382,7 +492,11 @@ public sealed partial class JournalDeltaStore
         int liveBytes = slices.Sum(s => s.Length);
         // Fragment metadata can outweigh a few overwritten bytes. Retaining the
         // already-owned frame is smaller and still replays the same final state.
-        if (encoded.Length > MaxMetadataBytes) return original;
+        if (encoded.Length > MaxMetadataBytes)
+        {
+            if (revertBaseRanges) throw new WorkspaceException("OverlayMetadataLimit", "Preserve the source: base reversion produced too many fragments.");
+            return original;
+        }
         byte[] decoded = ArrayPool<byte>.Shared.Rent(liveBytes);
         byte[]? compressed;
         try
@@ -392,7 +506,7 @@ public sealed partial class JournalDeltaStore
         }
         finally { ArrayPool<byte>.Shared.Return(decoded); }
         var nextPayload = new WorkspaceJournalPayload(compressed?.Length ?? liveBytes, liveBytes);
-        if (encoded.Length + (long)nextPayload.StoredBytes >= metadata.Length + (long)descriptor.StoredBytes) return original;
+        if (!revertBaseRanges && encoded.Length + (long)nextPayload.StoredBytes >= metadata.Length + (long)descriptor.StoredBytes) return original;
         return new(compacted, encoded, slices.ToArray(), liveBytes, nextPayload, compressed);
     }
 
