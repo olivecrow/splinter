@@ -15,7 +15,7 @@
 
 `ContractAndCliTests`는 기본/개발 command discovery·NTFS 전용 ensure schema·삭제 명령의 부작용 전 거부·현재 응답에서 컴파일 필드 배제를 검사한다. `ValidationProductStateTests`와 `ValidationWorkflowTests`는 삭제 action의 durable request/operation/provider 효과 0을 확인한다.
 
-`WorkspaceCoordinatorTests`·`GitWorkspaceProviderTests`·`GitSnapshotWorkspaceTests`는 내부 컴파일 증거 없이 현재 소스를 수집/통합하고, 원본/dirty guard와 metadata 포함 fingerprint·독립 결과를 확인한다. `SnapshotWorkspaceCoordinatorTests`·`WorkspaceDiscardTests`는 결과 이후의 source/delta 변경, 독립 결과 누락, 소유 자원·cache/snapshot 의존성을 계속 차단한다. Unity bridge harness는 heartbeat·정상 종료·Coplay peer 보호만 시험한다.
+`WorkspaceCoordinatorTests`·`GitWorkspaceProviderTests`·`GitSnapshotWorkspaceTests`는 내부 컴파일 증거 없이 현재 소스를 수집/통합하고, 원본/dirty guard와 metadata 포함 fingerprint·독립 결과를 확인한다. `SnapshotWorkspaceCoordinatorTests`·`WorkspaceDiscardTests`는 결과 이후의 source/delta 변경, 독립 결과 누락, 소유 자원·cache/snapshot 의존성을 계속 차단한다. 당시 Unity bridge의 Coplay 종료 hook 보호 자격은 과거 후보에 한정한다. 현재 harness는 외부 패키지 부재/내부 API 변경과 무관한 초기화·heartbeat·정상 종료 및 다른 quitting callback 보존을 [별도 검증](external-tool-boundaries.md)으로 확인한다.
 
 필수 실행은 `pwsh ./scripts/build.ps1`의 locked restore·Release 빌드·전체 자동 회귀다. 현재 후보의 실행 결과와 hash는 아래에 기록한다. 이 자동 회귀는 실제 VSS·WinFsp·Unity A/B 또는 외부 MCP/Unity CLI 연결·ARM·재부팅/전원/물리 공간 장애의 통과가 아니다. 기존 M0/WF/LB 기록을 이번 축소 후보의 native 자격으로 승계하지 않는다. 설치/grant·원본 fixture·원격 환경은 이번 변경에 포함하지 않는다.
 

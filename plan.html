@@ -69,7 +69,7 @@
 <li><strong>저장·메모리.</strong> 실제 사용할 입력의 관측 병목 하나를 개선하고 정확성과 전후 비용으로 마감한다. <a href="docs/plans/journal-payload-compression.md">압축 저널 연결</a>은 SJR2/overlay v2/candidate v3·자동 회귀·작은 T: A/B·동일 journal raw 대조의 NTFS 할당으로 한정 마감했다. <a href="docs/verification/journal-payload-compression.md">JP의 직접 근거</a>를 전체 workspace 공간/RAM·대형/OS 지원으로 확대하지 않는다.</li>
 <li><strong>AI 사용 절차.</strong> 발견·같은 작업 재개·외부 도구 선택·보존/반영/폐기를 스킬과 예시로 제공한다.</li>
 </ul>
-<p>현재 worker 브리지는 실행 관측·정상 종료·Coplay peer 보호만 담당한다. checkpoint/integrate는 컴파일 증거를 요구하지 않으며 데이터 보존·통합 guard를 유지한다. 외부 MCP/Unity CLI 인계의 실제 자격은 도구별 확인이 필요하다. 상세 제약은 <a href="docs/plans/session-workflow-and-installation.md#외부-도구-인계의-한정-범위">사용 계획</a>을 따른다. 파일/Git/복구 지원 검증은 사용할 환경의 필요한 경계나 재현 안전 결함만 선택한다.</p>
+<p>현재 worker 브리지는 소유 Editor의 실행 관측·정상 종료만 담당한다. MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 때 선택하는 외부 도구이며 없어도 Splinter 기능이 성립한다. 특정 도구 이름·버전·내부 API·연결 성공은 제품 전제나 gate가 아니다. 외부 도구 설치·다운그레이드·수정·별도 수정본 생성/운영은 제품 범위에서 제외한다. 도구 선택·연결·컴파일/Play/Test/build·결과 판단과 외부 공유 서버의 복구는 에이전트와 해당 도구가 맡는다. 과거 고정 버전·패치 검증은 당시 근거로 보존한다. checkpoint/integrate는 컴파일 증거를 요구하지 않으며 저장 격리·소유 자원·seal·독립 결과·dirty/target·원본/peer 보호를 유지한다. 상세 책임은 <a href="docs/plans/session-workflow-and-installation.md#외부-도구-인계의-한정-범위">사용 계획</a>을 따른다. 파일/Git/복구 지원 검증은 사용할 환경의 필요한 경계나 재현 안전 결함만 선택한다.</p>
 
 <h2 id="acceptance">4. 첫 버전 완료 기준</h2>
 <p><strong>실제 AI 두 작업이 같은 프로젝트에서 독립 작업공간을 만들고 여러 차례 편집·필요한 Unity 검증을 수행한다. 한 작업을 보존하거나 폐기해도 다른 작업과 원본은 유지된다. 같은 작업을 재개할 수 있고 공간·시간 비용으로 해당 조건의 사용 가능성을 판단한다.</strong></p>

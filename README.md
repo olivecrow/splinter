@@ -6,7 +6,7 @@ AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬
 
 각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
 
-외부 Unity 도구는 [반환 경로와 실제 대상/PID를 확인하는 절차](docs/alpha-workspaces.md#unity-cli의-정확한-대상-선택)를 사용한다. CLI 목록에 worker가 없다는 이유만으로 Editor 부재를 판정하지 않는다. 도구별 실행 자격과 제한은 [검증 안내](docs/verification/README.md)에서 확인한다.
+MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 때 선택하는 선택적 외부 도구다. 없어도 Splinter의 저장 격리·기준본·Library/미변경 파일 참조·범위 변경·독립 결과·안전한 원본 반영과 소유 자원 수명 기능은 성립한다. 특정 도구 이름·버전·내부 API는 제품 전제나 gate가 아니다. 도구 선택·연결·refresh·컴파일·Play/Test/build·캡처와 결과 판단은 에이전트가 맡는다. 외부 도구 설치·다운그레이드·수정·별도 수정본 생성/운영은 Splinter 범위에서 제외한다. 외부 도구를 사용할 때는 [반환 경로와 실제 대상/PID 확인](docs/alpha-workspaces.md#unity-cli의-정확한-대상-선택)을 따른다. 과거 도구 실행 기록은 현재 필수 조건으로 승계하지 않는다.
 
 제공물은 저장소 checkout에서 실행하는 기본 CLI·소스 스킬과 [AI 시작 안내](docs/agent-start.md)다. 후속 책임은 [구현 계획](docs/plans/implementation-plan.md#프로그램과-에이전트의-책임)에서 프로그램 구현·AI 사용 절차·필요 시 지원 검증으로 구분한다.
 

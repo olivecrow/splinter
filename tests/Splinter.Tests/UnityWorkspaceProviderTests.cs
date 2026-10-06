@@ -8,6 +8,37 @@ namespace Splinter.Tests;
 public sealed class UnityWorkspaceProviderTests
 {
     [Fact]
+    public async Task LaunchPreparationPreservesExternalPackageRunStateAndOriginalFiles()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var directory = new TestDirectory();
+        string root = Path.Combine(directory.Path, "worker"), original = Path.Combine(directory.Path, "original");
+        string[] paths = ["Library/ilpp.pid", "Library/Pipeline/.unity-pipeline-port",
+            "Library/MCPForUnity/RunState/mcp_http_8080.pid", "Library/OtherTool/server.pid", "Library/artifact.bin"];
+        foreach (string project in new[] { root, original })
+        {
+            Directory.CreateDirectory(Path.Combine(project, "Assets"));
+            Directory.CreateDirectory(Path.Combine(project, "ProjectSettings"));
+            await File.WriteAllTextAsync(Path.Combine(project, "ProjectSettings", "ProjectVersion.txt"), "m_EditorVersion: 6000.3.22f1", ct);
+            foreach (string relative in paths)
+            {
+                string path = Path.Combine(project, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                await File.WriteAllTextAsync(path, relative, ct);
+            }
+        }
+        var workspace = new WorkspaceRecord { Id = "test", RequestKey = "test", Path = root,
+            ProjectPath = original, BaseReference = "test", SourceReference = "test", StorageMode = "git-snapshot" };
+        UnityWorkspaceProvider.ResetCapturedUnityProcessAddresses(workspace);
+        Assert.False(File.Exists(Path.Combine(root, paths[0])));
+        Assert.False(File.Exists(Path.Combine(root, paths[1])));
+        foreach (string relative in paths.Skip(2))
+            Assert.Equal(relative, await File.ReadAllTextAsync(Path.Combine(root, relative), ct));
+        foreach (string relative in paths)
+            Assert.Equal(relative, await File.ReadAllTextAsync(Path.Combine(original, relative), ct));
+    }
+
+    [Fact]
     public async Task NormalShutdownMayDrainBeyondThirtySeconds()
     {
         var clock = new ShutdownClock();
@@ -63,8 +94,10 @@ public sealed class UnityWorkspaceProviderTests
         }
     }
 
-    [Fact]
-    public async Task ProductHeartbeatDoesNotExecuteThrowingProjectCode()
+    [Theory]
+    [InlineData("absent")]
+    [InlineData("changed-hook")]
+    public async Task ProductBridgeInitializesAndStopsWithoutInspectingExternalTools(string externalTool)
     {
         using var directory = new TestDirectory();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
@@ -76,7 +109,7 @@ public sealed class UnityWorkspaceProviderTests
         foreach (string argument in new[] { "exec", "--runtimeconfig",
             Path.ChangeExtension(typeof(UnityWorkspaceProviderTests).Assembly.Location, ".runtimeconfig.json"),
             typeof(UnityBridgeHarness.HarnessMarker).Assembly.Location, "-splinterControlPath", directory.Path,
-            "-splinterToken", "test-token" })
+            "-splinterToken", "test-token", "--external-tool", externalTool })
             start.ArgumentList.Add(argument);
         using var process = Process.Start(start)!;
         var output = process.StandardOutput.ReadToEndAsync(timeout.Token);
@@ -89,16 +122,29 @@ public sealed class UnityWorkspaceProviderTests
         Assert.Equal(0, root.GetProperty("fixtureCalls").GetInt32());
         Assert.Empty(root.GetProperty("errors").EnumerateArray());
         var heartbeats = root.GetProperty("heartbeats").EnumerateArray().ToArray();
-        Assert.Equal(new[] { "ready", "compiling", "ready" }, heartbeats.Select(b => b.GetProperty("phase").GetString()));
+        Assert.Equal(new[] { "ready", "compiling", "ready", "exiting" }, heartbeats.Select(b => b.GetProperty("phase").GetString()));
         Assert.All(heartbeats, b =>
         {
             Assert.Equal(process.Id, b.GetProperty("pid").GetInt32());
             Assert.Equal("test-token", b.GetProperty("token").GetString());
             Assert.False(b.TryGetProperty("validation", out _));
+            Assert.False(b.TryGetProperty("coplayShutdownGuard", out _));
+            Assert.Equal(directory.Path, b.GetProperty("projectPath").GetString());
+            Assert.True(b.GetProperty("startTimeUtcTicks").GetInt64() > 0);
         });
         Assert.True(heartbeats[0].GetProperty("ready").GetBoolean());
         Assert.False(heartbeats[1].GetProperty("ready").GetBoolean());
         Assert.True(heartbeats[2].GetProperty("ready").GetBoolean());
+        Assert.False(heartbeats[3].GetProperty("ready").GetBoolean());
+        Assert.Equal(0, root.GetProperty("externalLookups").GetInt32());
+        Assert.Equal(0, root.GetProperty("quitCallsBeforeStop").GetInt32());
+        Assert.Equal(1, root.GetProperty("externalQuitCalls").GetInt32());
+        Assert.True(root.GetProperty("exited").GetBoolean());
+        Assert.True(root.GetProperty("wrongTokenBlocked").GetBoolean());
+        Assert.True(root.GetProperty("compilingBlocked").GetBoolean());
+        Assert.True(root.GetProperty("importingBlocked").GetBoolean());
+        Assert.Contains("Stop Play", root.GetProperty("playRefusal").GetString());
+        Assert.Equal("Unsaved scene: Assets/Unsaved.unity", root.GetProperty("sceneRefusal").GetString());
     }
 
     [Fact]

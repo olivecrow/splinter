@@ -1,5 +1,7 @@
 # 검증 추적표
 
+[외부 도구 결합 제거 검증](../verification/external-tool-boundaries.md)의 ET-01~04는 외부 도구 없이 성립하는 제품 경계를 소유한다. 아래 MCP·Unity CLI·고정 패치의 과거 자격은 현재 필수 설치/버전/성공 gate가 아니다. 새 Unity A/B·도구 행렬을 자동 재실행하지 않는다.
+
 ## VCS 없는 프로젝트 기준본
 
 사용자 승인한 whole-project 원본 mount와 VSS 없는 `project-snapshot`의 NP-01~06은 [확정 범위](plain-project-basis.md)·[후보별 검증](../verification/plain-project-basis.md)을 따른다. 기존 AP/GL/PPB의 성공을 새 경로로 승계하지 않으며 새 전체 OS/대형/ARM 행렬은 열지 않는다.

@@ -125,9 +125,6 @@ internal static class OverlayExperimentCommands
                     string ephemeral = Path.Combine(workspace.Path, relative);
                     if (File.Exists(ephemeral)) File.Delete(ephemeral);
                 }
-                string mcpRunState = Path.Combine(workspace.Path, "Library", "MCPForUnity", "RunState");
-                if (Directory.Exists(mcpRunState))
-                    foreach (string ephemeral in Directory.EnumerateFiles(mcpRunState, "mcp_http_*.pid")) File.Delete(ephemeral);
                 string infrastructure = Path.Combine(workspace.Path, "Assets", "__Splinter__");
                 string marker = Path.Combine(infrastructure, "workspace.marker");
                 using (var resource = typeof(UnityWorkspaceProvider).Assembly.GetManifestResourceStream("Splinter.Editor.WorkspaceBridge.cs")!)

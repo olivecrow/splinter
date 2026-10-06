@@ -13,29 +13,17 @@ splinter workspace status --id <반환 id> --home <등록 home>
 
 `data.workspace.path`에서 편집하고 외부 MCP·Unity CLI의 projectRoot도 이 경로와 일치시킨다. `application.running`·`ready`는 실행/준비 관측이며 컴파일·테스트 성공이 아니다. Editor 준비 중 에이전트가 소스 분석·계획을 진행할 수 있다. 같은 key/id/home·기준·request digest를 다음 대화에 보존한다.
 
-제품은 `unity start`와 `unity stop`을 제공한다. refresh·컴파일 분석·씬/에셋 편집·Play·테스트·빌드·캡처는 선택한 외부 도구로 수행한다. `unity refresh`와 자체 컴파일 성공 판정은 제공하지 않는다. Unity CLI의 작은 T: Plastic 인계는 [UH 검증](verification/unity-cli-handoff.md), 별도 작은 Git C/S의 MCP 편집·현재 상태 테스트는 [UP 검증](verification/unity-parallel-editor-validation.md)을 따른다. 다른 입력/버전과 Play/build 자격은 별도로 확인해야 한다.
+제품은 `unity start`와 `unity stop`을 제공한다. refresh·컴파일 분석·씬/에셋 편집·Play·테스트·빌드·캡처는 에이전트가 Editor UI 또는 선택한 외부 도구로 수행한다. `unity refresh`와 자체 컴파일 성공 판정은 제공하지 않는다. 과거 작은 T: Plastic CLI 인계는 [UH](verification/unity-cli-handoff.md), 작은 Git C/S의 MCP 편집·현재 상태 테스트는 [UP](verification/unity-parallel-editor-validation.md)의 지정 입력 기록이며 현재 도구 설치/버전 요구가 아니다.
 
 ## Unity CLI의 정확한 대상 선택
 
-현재 HTTP의 긴 `execute_code`는 [외부 Coplay 응답 복구 절차](unity-mcp-response-recovery.md)의 `start`/`get_job`과 고정 request ID를 사용한다. timeout으로 임의 쓰기를 자동 반복하지 않는다. reload 뒤 완료 상세 테스트 결과와 같은 job을 읽는 자격은 [VR/MR](verification/vss-and-mcp-remediation.md)에 한정한다. Codex transport를 바꾸면 env/command/args를 함께 검토하고 실제 MCP 설정 조회 두 검사를 수행한다.
+MCP·Unity CLI는 필요할 때 에이전트가 선택하는 외부 도구다. Splinter 사용에 설치나 고정 버전이 필요하지 않으며 Editor의 UI 또는 기존 파일 도구를 통한 작업도 가능하다. 선택한 도구의 현재 도움말·schema와 사용자 프로젝트 설정을 읽고 연결한다. 특정 패키지를 설치·다운그레이드·패치하거나 수정본을 생성/운영하지 않는다.
 
-Coplay MCP를 사용하는 고정 UP 입력에서는 각 호출에 현재 discovery의 `unity_instance`를 명시하고 실제 root/PID를 대조한다. 전역 HTTP 설정을 보존한 상태의 수동 stdio bridge는 domain reload 뒤 자동 시작되지 않을 수 있다. 외부 CLI로 해당 Editor의 compile/import 완료와 bridge 부재를 관측한 뒤 명시적으로 시작하고 실제 새 discovery/호출 결과를 확인한다. 시작 응답 직후의 포트 충돌 fallback을 재시작 요청으로 반복하지 않는다. MCP 테스트는 job ID와 Editor identity를 함께 보존하고 상세 결과를 외부 파일에 저장한다. Coplay 10.2.0은 SessionState에 job metadata를 저장하지만 상세 결과는 저장하지 않는다. 초기화 timeout·unknown job을 테스트 실패 또는 성공으로 대신 판정하지 않고 현재 Editor/job 상태를 조사한다. 실제 사용은 UP의 60초 초기화 예산과 호출/테스트 프레임 겹침 근거로 한정한다.
+외부 명령의 실제 프로젝트 절대 경로·PID/시작 시각을 `data.workspace.path`와 소유 Editor identity에 대조한 뒤 편집한다. Unity CLI가 정확한 project-path 선택을 제공하면 매 요청에 반환 경로를 전달하고, MCP가 per-call target을 제공하면 현재 discovery의 정확한 대상을 사용한다. 세션 기본 대상이나 목록의 substring 필터를 정확한 대상 증거로 쓰지 않는다. 목록 누락은 Editor 부재가 아니며 reload 후 포트/session을 추측해 고정하지 않는다.
 
-Git GL/Plastic PPB의 HTTP 연결 절차에서는 reload 후 서버 session과 Editor discovery를 다시 관측하고 반환 project/PID가 같은 작업인지 확인한다. 씬은 가능한 builtin 요청, 테스트는 비동기 시작 후 같은 instance의 job 조회를 사용하고 상세 결과를 reload/종료 전에 저장한다. 긴 CodeDOM 쓰기의 실패 응답은 실제 완료와 다를 수 있다. 같은 쓰기를 반복하기 전에 같은 Editor의 history와 파일/loaded 결과로 수행 여부를 확인하고 unknown은 보존한다. peer의 job ID가 Unknown이면 그 peer에서 재실행하지 않는다. 요청 시각이 겹쳤다는 사실만으로 실제 테스트 실행이 release와 겹쳤다고 판정하지 않는다. 기존 PPB의 실행 중첩 미확인은 유지한다.
+요청 접수·연결·컴파일 완료·테스트 결과를 각각 확인하고 중요한 request/job ID와 결과를 보존한다. timeout이나 unknown 응답만으로 쓰기·테스트를 반복하지 않는다. 연결 실패 때 작업과 소유 상태를 보존하고 해당 도구의 절차로 조사한다. 원본 fallback·서버 탈취·자동 패키지 교체는 하지 않는다. 한 Editor 종료 뒤 다음 외부 요청 전에 남은 대상의 연결을 확인하는 책임도 에이전트에 있다. 상세 경계는 [외부 도구 안내](unity-mcp-response-recovery.md)를 따른다.
 
-설치된 CLI의 version/help와 프로젝트의 기존 Pipeline을 확인한다. Splinter `application.ready`는 소유 Editor의 실행 관측이며 도구 연결·컴파일 합격을 증명하지 않는다. 반환 `data.workspace.path`를 모든 Editor 명령의 `--project-path`에 명시하고, 읽기 전용 catalog 응답의 `data.target.projectPath`와 공개 PID를 실제 workspace/`data.application.processId`에 대조한 뒤 편집한다. `status`의 substring 필터와 목록 누락을 정확한 대상/Editor 부재 증거로 사용하지 않는다.
-
-Unity CLI `1.0.0-beta.5`·Pipeline `0.8.0-exp.1`에서는 목록에 빠진 worker도 다음 경로로 연결했다. 명령 이름/입력은 그 Editor의 catalog/schema에서 읽고 실제 응답의 outer/nested success와 결과를 각각 확인한다.
-
-```powershell
-unity --format json command --project-path <반환 workspace 경로> --tag scripts/compile
-unity --format json command recompile --project-path <반환 workspace 경로> --caller plugin --skill unity-cli
-unity --format json command recompile_status --project-path <반환 workspace 경로> --caller plugin --skill unity-cli
-```
-
-`recompile` 요청 성공은 컴파일 완료가 아니다. 해당 작업의 status와 loaded 코드 결과를 외부 도구에서 확인한다. reload 뒤 포트가 바뀔 수 있으므로 포트를 저장해 다른 작업을 선택하지 않고 같은 반환 경로로 재연결한다. eval의 큰 정수 시작 ticks가 필요하면 `ToString()`으로 반환해 JSON 숫자 정밀도 손실을 피한다. 인증 token이나 전체 프로세스 명령행은 출력하지 않는다.
-
-실제 검증의 첫 eval 타임아웃과 읽기 전용 동일 요청의 한 번 재시도는 검증 문서에 보존했다. 쓰기/씬 변경/컴파일 요청을 시간 경과만으로 반복하지 않는다. 연결 실패에서는 정확한 경로·소유 상태·descriptor 준비·Safe Mode·sandbox 관측을 구분하고 작업을 보존한다. 원본 fallback·자동 패키지 교체나 서버 탈취는 하지 않는다. 정상 `unity stop` 뒤 peer의 정확한 경로/PID와 실제 후속 응답을 확인하고, 독립 결과/회수는 Splinter의 기존 checkpoint/release를 사용한다.
+과거 Unity CLI 명령/버전·Pipeline과 고정 MCP 후보의 실행·실패·재시도는 [UH](verification/unity-cli-handoff.md), [UP](verification/unity-parallel-editor-validation.md), [GL](verification/git-library-reference.md), [PPB](verification/plastic-project-basis.md), [VR/MR](verification/vss-and-mcp-remediation.md)에 보존한다. 그 기록을 현재 필수 도구나 다른 버전의 통과로 승계하지 않는다.
 
 ## 결과와 명시적 종료
 
@@ -55,6 +43,6 @@ release는 독립 결과를 남긴 뒤 소유 Editor/provider/mount/Git/delta·�
 
 Unity 어댑터는 PID·시작 시각·실행 파일·토큰·프로젝트 경로와 Job Object 자식을 확인한다. 소유 `Assets/__Splinter__` 브리지는 liveness·import/compile 중 상태 관측과 정상 종료만 제공하고 프로젝트 함수를 실행하지 않는다. Play·미저장 씬·진행 중 import/compile은 정상 종료를 막는다. 최대 2분의 종료 대기 뒤에도 강제 종료/회수하지 않으며 작업과 로그를 보존한다.
 
-Coplay `10.2.0`의 전역 EditorPrefs 기반 종료 callback이 원본 MCP 서버를 종료하지 않도록 작업 프로세스 안에서 해당 callback만 해제한다. 전역 설정이나 패키지 파일은 수정하지 않는다. 외부 MCP stdio bridge의 명시적 시작과 reload 뒤 재연결은 작은 Git C/S의 [UP 검증](verification/unity-parallel-editor-validation.md)에 한정하며 다른 버전까지 호환성을 확대하지 않는다.
+Splinter는 외부 패키지의 초기화·종료 callback을 조회하거나 해제하지 않고 서버나 패키지 전용 run-state 파일도 관리하지 않는다. 외부 도구가 자체 공유 서버를 종료하는 결함은 해당 도구/에이전트 절차의 책임이다. 소유 Editor의 정상 종료와 결과/자원 guard는 유지하며 외부 연결 성공을 요구하지 않는다.
 
 사용자 설정·라이선스·CPU/GPU·외부 서비스는 공유된다. 보안 샌드박스가 아니다. source hash 확인은 `workspace status --verify-source`, 전체 감사는 `--audit-source`다. 일반 status는 파일 내용을 읽지 않고 실행 자원을 관측한다. 실제 한정 실행 근거와 실패·재시도/비용은 [대표 사용](verification/representative-agent-workflow.md)에 보존하며 새 외부 도구 경로의 성공으로 승계하지 않는다.

@@ -1,6 +1,8 @@
 # 검증 안내와 보존 근거
 
-[보안 경계 검증](security-boundaries.md)은 Plastic private reader·MCP 인증·서비스 ACL/잠금/수신 제한의 변경된 경계만 다룬다. 과거 Unity A/B 자격은 유지하며, 현재 reader·MCP v2의 Unity 실행과 설치된 서비스 업데이트를 자동 통과로 표시하지 않는다.
+[외부 도구 결합 제거](external-tool-boundaries.md)는 MCP 부재/내부 API 변경에 독립적인 bridge 초기화·정상 종료와 패키지 run-state 보존의 자동 회귀를 소유한다. MCP·Unity CLI의 이름/버전·패치·연결 성공은 제품 전제가 아니다. 아래 도구별 실행 기록은 당시 후보/입력의 사실이며 현재 지원이나 설치 요구로 승계하지 않는다.
+
+[보안 경계 검증](security-boundaries.md)은 Plastic private reader·MCP 인증·서비스 ACL/잠금/수신 제한의 변경된 경계만 다룬다. 과거 Unity A/B 자격은 유지하며, 현재 reader의 Unity 실행과 설치된 서비스 업데이트를 자동 통과로 표시하지 않는다. MCP v2는 현재 제공 범위에서 제거한 과거 외부 후보의 기록이다.
 
 [C: 회수/MCP 응답 복구](vss-and-mcp-remediation.md)는 과거 동일 A release/B discard의 회수 종결과 외부 Coplay 패치의 실행·중복 방지·reload 상세 결과를 소유한다. C: 회수 보류는 종결됐으며 최초 실패의 재현 조건·소유권과 복구 근거는 해당 검증에 남긴다. MCP의 과거 후보 결과와 현재 인증/transport의 미실행 경계는 [보안 검증](security-boundaries.md)과 구분한다.
 

@@ -28,7 +28,7 @@ Splinter는 작업공간의 생성·유지·재개·독립 결과·명시적 반
 | 영역 | Splinter에 남길 책임 | AI와 기존 도구의 책임 |
 | --- | --- | --- |
 | 작업 연결 | 안정된 key/id/home·기준·반환 경로, 같은 요청 재개·중복/잘못된 대상 거부 | 필요성 판단, 인계 기록·재조회, 한 경로의 작성자 조정. Codex 자동 binding/fork/전역 마지막 작업 추측은 구현 제외 |
-| Editor | 정확한 프로젝트의 실행·관찰·정지, 소유권·자원 회수, 외부 도구와의 공존 | MCP·Unity CLI의 대상 선택, 편집·refresh·컴파일 분석·Play·테스트·빌드·캡처. 이 명령의 복제나 범용 중계 API는 구현 제외 |
+| Editor | 정확한 프로젝트의 실행·관찰·정지, 소유권·자원 회수 | 선택적 외부 도구의 선택·대상 연결·공유 서버 공존/복구, 편집·refresh·컴파일 분석·Play·테스트·빌드·캡처와 판단. 외부 도구 설치/다운그레이드/패치·수정본 운영과 범용 중계 API는 구현 제외 |
 | 결과와 통합 | 안정된 seal·독립 결과·최신 target/dirty guard·통합 직렬화·원본/peer 보호 | 검증할 내용·합격 판단, Git 충돌 해결·통합 전략, Unity 생성 소스의 검토/반환 병합, 통합 후 게임 검증 |
 | 저장과 실행 방식 | 범위 저장·Library/cache 수명·명시적 정리·비용/상태 관측 | 독립 Editor 또는 기존 validation 경로 선택, 작업 순서와 동시 Editor 수 판단. 자동 모드·큐/스케줄러·원본 Editor 공유·일반 임대 인수는 구현 제외 |
 | 외부 VCS 공존 | 관리 정보·등록·잠금·공유 기준의 격리, 원본/peer 보호, 추가 복제·인덱스/cache·결과 저장·메모리 비용의 제한과 관측 | 기존 VCS 도구로 수행하는 일반 이력 관리·check-in·충돌 해결 정책. 호환 완료는 Splinter의 실제 병렬 작업/회수와 효율로 판단 |
@@ -56,7 +56,7 @@ AI의 판단으로 대체할 수 없는 승인 쓰기 지속성·소유권·원�
 | 병렬 안정성: 선택 단위 한정 마감 | [SP 확정 범위](stable-parallel-completion.md)의 잠금 오류 분류·다른 작업 진행·A 수집/회수 중 B 조회/재개/파일 쓰기 | 판정·동시 실행과 회수 근거는 [SP 검증](../verification/stable-parallel-completion.md)이 소유한다. Editor 없는 경계이며 기존 Unity/도구/PV·전역 VSS unknown은 유지. 새 결함/입력/지원 질문 없이 반복을 추가하지 않음 |
 | 필요 시 지원 검증 | 사용할 입력/환경의 mount·Git·중단/회수 경계와 재현된 안전 결함만 선택 | 지원 조건·후보·질문·종료 기준을 먼저 고정. OS 장애 전체·ARM·LFS/filter·모든 파일/패키지·48개 카탈로그는 일괄 필수 작업이 아님 |
 
-Unity CLI exact-path 인계는 위 작은 입력의 한정 자격을 따르며 MCP·다른 입력/버전의 정상 연결은 미자격이다. 현재 worker는 Coplay 서버를 시작하지 않는 전용 브리지 경로이며 원본 서버 종료 방어가 있다. checkpoint/integrate는 컴파일·테스트 성공 판정을 하지 않는다. 연결 조건과 유지하는 목록/타임아웃 제약은 [대화별 사용 계획](session-workflow-and-installation.md#외부-도구-인계의-한정-범위)이 소유한다. 현재 명령과 기본/개발 경로는 [현재 기반](../foundation.md)과 [개발 CLI](../development-cli.md)를 따른다. 과거 M0/WF/LB의 native 실행 자격은 이번 변경 후보로 자동 승계하지 않는다.
+MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 때 선택하는 선택적 외부 도구다. 없어도 Splinter의 저장 격리·기준본·Library/미변경 파일 참조·범위 변경·독립 결과·안전한 원본 반영과 소유 자원 수명 기능은 성립한다. 특정 도구 이름·버전·내부 API는 제품 전제나 gate가 아니다. 도구 선택·연결·refresh·컴파일·Play/Test/build·캡처와 결과 판단은 에이전트가 맡는다. 외부 도구 설치·다운그레이드·수정·별도 수정본 생성/운영은 Splinter 범위에서 제외한다. 과거 exact-path/고정 MCP 인계 자격은 지정한 후보·입력의 기록이다. 현재 소유 bridge는 외부 callback·서버·PID 파일을 조작하지 않는다. checkpoint/integrate는 컴파일·테스트 성공 판정을 하지 않는다. [외부 도구 경계](../unity-mcp-response-recovery.md)와 [결합 제거 검증](../verification/external-tool-boundaries.md)을 따른다.
 
 ## 한정 마감한 원본 반영
 
@@ -152,7 +152,7 @@ M0는 기존 개발 checkout의 CLI·소스 스킬과 등록된 서비스/driver
 | 판단 | 현재 경계 |
 | --- | --- |
 | 유지 | Core ports/schema, atomic 상태·잠금, Git linked worktree, VSS/WinFsp 범위 저널·승인 쓰기 flush·결과 seal, process supervisor·소유권·회수 guard |
-| 유지 | Unity start/status/stop의 실행·자원 관측과 Coplay peer 보호. 프로젝트 검증은 외부 도구·AI의 책임 |
+| 유지 | Unity start/status/stop의 실행·자원 관측과 원본/peer 소유 자원 보호. 프로젝트 검증은 외부 도구·AI의 책임 |
 | 제거 | 자체 Unity refresh·컴파일 이벤트/도메인 reload 증거·포커스 재시도·내부 컴파일 성공 gate와 중복 preserve-worker |
 | 폐기 | [ReFS 기준본 경로](refs-retirement.md). 대형 프로젝트에서 최초 전체 기준본 준비의 저장공간·시간 부담이 커 코드·명령·시험을 제거. 현재 스냅샷 경로를 사용 |
 | 개발 경로로 분리·확장 중지 | diagnostic checkout·단일 view/Library cache·spike/probe. `splinter-dev.ps1`로만 생성/선택하고 저장소 보호 회귀와 재현 근거로 유지. 기본 제품 발견에서 제외 |

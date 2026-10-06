@@ -30,19 +30,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
             .FirstOrDefault(line => line.StartsWith("m_EditorVersion:", StringComparison.Ordinal))?.Split(':', 2)[1].Trim()
             ?? throw new WorkspaceException("UnityVersionMissing", "ProjectVersion.txt has no Editor version.");
         string executable = ResolveEditor(version);
-        if (WorkspaceStorage.HasRangeJournal(workspace.StorageMode))
-        {
-            // Remove only captured process addresses in the private overlay.
-            // Unity may otherwise terminate the original compiler helper.
-            foreach (string relative in new[] { "Library/ilpp.pid", "Library/Pipeline/.unity-pipeline-port" })
-            {
-                string file = Path.Combine(root, relative); PlainPath(file, workspace);
-                if (File.Exists(file)) File.Delete(file);
-            }
-            string runState = Path.Combine(root, "Library", "MCPForUnity", "RunState"); PlainPath(runState, workspace);
-            if (Directory.Exists(runState))
-                foreach (string file in Directory.EnumerateFiles(runState, "mcp_http_*.pid")) { PlainPath(file, workspace); File.Delete(file); }
-        }
+        ResetCapturedUnityProcessAddresses(workspace);
         string infrastructure = Path.Combine(root, "Assets", "__Splinter__");
         string markerPath = Path.Combine(infrastructure, "workspace.marker");
         if (Directory.Exists(infrastructure)) VerifyInfrastructure(workspace, infrastructure);
@@ -66,6 +54,19 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         return await Processes.StartAsync(new ProcessLaunch(executable,
             ["-projectPath", root, "-logFile", Path.Combine(controlPath, "editor.log"),
              "-splinterControlPath", Path.GetFullPath(controlPath), "-splinterToken", token], root, token), controlPath, ct);
+    }
+
+    internal static void ResetCapturedUnityProcessAddresses(WorkspaceRecord workspace)
+    {
+        if (!WorkspaceStorage.HasRangeJournal(workspace.StorageMode)) return;
+        string root = ValidateRoot(workspace);
+        // Only Unity's own captured compiler/Pipeline addresses belong to this
+        // launch preparation. External packages manage their own run state.
+        foreach (string relative in new[] { "Library/ilpp.pid", "Library/Pipeline/.unity-pipeline-port" })
+        {
+            string file = Path.Combine(root, relative); PlainPath(file, workspace);
+            if (File.Exists(file)) File.Delete(file);
+        }
     }
 
     public async Task<ApplicationState> ObserveAsync(WorkspaceRecord workspace, string controlPath, CancellationToken ct = default)

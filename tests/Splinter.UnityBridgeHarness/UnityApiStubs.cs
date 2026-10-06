@@ -9,8 +9,9 @@ namespace UnityEditor
         public static bool isCompiling, isUpdating, isPlayingOrWillChangePlaymode;
         public static event Action update;
         public static event Action quitting;
+        public static bool Exited;
         public static void Advance() { timeSinceStartup++; update?.Invoke(); }
-        public static void Exit(int code) { quitting?.Invoke(); }
+        public static void Exit(int code) { Exited = true; quitting?.Invoke(); }
     }
 }
 
@@ -35,7 +36,8 @@ namespace UnityEngine.SceneManagement
     public struct Scene { public bool isDirty; public string path; }
     public static class SceneManager
     {
-        public static int sceneCount => 0;
-        public static Scene GetSceneAt(int index) => default;
+        public static Scene[] Scenes = [];
+        public static int sceneCount => Scenes.Length;
+        public static Scene GetSceneAt(int index) => Scenes[index];
     }
 }

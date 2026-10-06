@@ -47,7 +47,7 @@ WinFsp Cleanup에서 사용자 핸들 종료를 집계한다. 커널 retainedFil
 
 선택 모델·텍스처·PNG의 추가 검사는 형제 fixture의 [미리보기 검사 계약](unity-render-qualification.md)을 따른다. `qualification-command.json`의 `inspect`는 fixture의 명시적 코드/렌더 검사다. 제품은 refresh나 합격 판정을 제공하지 않는다. PNG 경로는 같은 요청 응답의 `assets.previewPath`를 읽는다.
 
-.git만 기준 읽기에서 제외한다. Library를 제외하거나 삭제해 전체 재생성하지 않는다. 실행 전 private overlay의 Library/ilpp.pid, Library/Pipeline/.unity-pipeline-port, Library/MCPForUnity/RunState/mcp_http_*.pid만 whiteout한다. 원본 프로세스 주소를 재사용하면 원본 compiler helper에 간섭할 수 있기 때문이다.
+.git만 기준 읽기에서 제외한다. Library를 제외하거나 삭제해 전체 재생성하지 않는다. 실행 전 private overlay의 Library/ilpp.pid, Library/Pipeline/.unity-pipeline-port만 whiteout한다. 원본 프로세스 주소를 재사용하면 원본 compiler helper에 간섭할 수 있기 때문이다. 외부 패키지 전용 run-state/PID 파일은 변경하지 않으며 해당 도구와 에이전트가 관리한다.
 
 실험의 소유 bridge도 실행 관측과 정상 종료만 처리한다. refresh·컴파일·로드 코드/렌더 증거는 외부 도구와 fixture의 명시적 inspect 절차에서 확인한다. 초기 fixture 출력이나 Editor ready를 최신 코드의 합격으로 재사용하지 않는다.
 

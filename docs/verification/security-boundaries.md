@@ -1,5 +1,7 @@
 # 보안 경계 검증
 
+SB-02는 제거된 외부 패치 기능의 과거 인증 후보 기록이다. 현재 제품에 외부 MCP 토큰·고정 버전·후보 준비/연결을 요구하지 않으며 패치 제작/운영은 제공하지 않는다. 기존 후보·설치·서버·evidence는 보존한다. 현재 책임은 [외부 도구 경계](../unity-mcp-response-recovery.md)를 따른다.
+
 선택 범위는 다른 로컬 Windows 계정의 Plastic/MCP 접근, 서비스 자식 파일의 쓰기 ACL, 전역 회수 잠금 선점, 미완성 IPC 수신이다. 원본/peer·snapshot·서비스 ledger·기존 외부 후보를 보존한다. 설치/grant 변경·VSS 회수·Unity A/B·새 악성 프로젝트·전체 공격 행렬을 실행하지 않는다. 원시 확인은 `artifacts/security-fixes/`다.
 
 | ID | 경계 | 확인과 제한 |
@@ -14,4 +16,4 @@
 
 요청·상태·workspace v2는 기존 계약을 유지하며 capabilities의 Plastic reader 설명을 응답 schema에 함께 추가한다. 의존성/lockfile 변경은 없으며 bridge는 vendor 라이브러리의 안정된 공개 SDK로 주장하지 않는 고정 버전 내부 adapter다. helper는 4MiB decoded scratch와 최대 64KiB frame을 유지하며 vendor packet/native allocation·외부 cache/통신·전체 RAM peak는 별도 미계측이다.
 
-보안 수정의 현재 코드와 설치·실행 중인 환경은 구분한다. 새 서비스 패키지의 명시적 Update와 외부 MCP 새 후보/인증된 client 연결이 적용되어야 실행 환경에 반영된다. v1 후보·원래 manifest/lock·공유 서버와 다른 Editor를 자동 교체하지 않는다. 과거 PPB/MR의 실제 Unity 자격은 당시 reader/후보의 근거로 보존하며 새 후보의 Passed로 승계하지 않는다.
+보안 수정의 현재 코드와 설치·실행 중인 환경은 구분한다. 서비스 수정의 실행 환경 반영은 새 서비스 패키지의 명시적 Update와 별도 자격을 따른다. 과거 외부 MCP 후보 연결은 현재 제품 설치 요구가 아니다. v1 후보·원래 manifest/lock·공유 서버와 다른 Editor를 자동 교체하지 않는다. 과거 PPB/MR의 실제 Unity 자격은 당시 reader/후보의 근거로 보존하며 새 후보의 Passed로 승계하지 않는다.

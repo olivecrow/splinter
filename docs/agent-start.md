@@ -60,13 +60,13 @@ $reply
 
 ## 편집·Editor·종료
 
-작업 내용·도구/모드 선택·충돌 해결·게임 검증은 AI와 기존 파일/Git·MCP·Unity CLI의 책임이다. 외부 도구가 선택한 projectRoot는 반환 workspace와 일치해야 한다. Unity CLI의 [정확한 대상 선택 절차](alpha-workspaces.md#unity-cli의-정확한-대상-선택)와 [작은 T: A/B 자격](verification/unity-cli-handoff.md)을 확인한다. 해당 버전에서 status/목록이 worker를 누락해도 같은 반환 경로의 command는 연결되므로 누락을 Editor 부재로 판정하지 않는다. 명령의 실제 target/project/PID를 대조하며 reload 뒤 포트를 고정하지 않는다. MCP·다른 입력의 자격은 별도로 확인해야 한다. 현재 Coplay 브리지는 수명 관측·정상 종료·peer 보호를 담당하며 자체 컴파일 요청이나 성공 판정을 제공하지 않는다. 연결 범위는 [AI 사용 계획](plans/session-workflow-and-installation.md#외부-도구-인계의-한정-범위)을 따른다.
+MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 때 선택하는 선택적 외부 도구다. 없어도 Splinter의 저장 격리·기준본·Library/미변경 파일 참조·범위 변경·독립 결과·안전한 원본 반영과 소유 자원 수명 기능은 성립한다. 특정 도구 이름·버전·내부 API는 제품 전제나 gate가 아니다. 도구 선택·연결·refresh·컴파일·Play/Test/build·캡처와 결과 판단은 에이전트가 맡는다. 외부 도구 설치·다운그레이드·수정·별도 수정본 생성/운영은 Splinter 범위에서 제외한다. 선택한 도구의 실제 project/PID/start를 반환 workspace/소유 Editor와 대조한다. 목록 누락만으로 Editor 부재를 판단하지 않고 현재 도구의 도움말/schema를 읽는다. Splinter 브리지는 수명 관측·정상 종료만 담당한다. [대상 선택](alpha-workspaces.md#unity-cli의-정확한-대상-선택)을 참고한다.
 
 필요한 명령의 `schema <command>`를 먼저 읽고 저장한 ID/home을 사용한다. Editor가 필요할 때만 `unity start`; 준비는 status의 실제 `application.ready`로 확인한다. `ready`는 실행 준비 상태다. 편집 뒤 refresh·컴파일·테스트는 선택한 외부 도구로 수행하고 그 결과를 AI가 판정한다. Splinter 응답은 컴파일·테스트 성공을 제공하지 않는다. 일반 status는 반복 전체 소스 검사를 하지 않으며 현재 확인에는 `--verify-source`, 손상 cache 감사에는 `--audit-source`를 구분한다.
 
 `unity start`와 `ensure --editor`의 시작 후 응답도 실행 관측을 사용한다. `sourceVerification=not-checked`이며 현재 소스 검증은 별도로 요청한다. 시작 뒤 import 중 소스 검사 실패를 실행 실패로 혼동하지 않는다.
 
-병렬 Editor 하나가 종료되면 [스킬의 종료 후 MCP 확인](../skills/splinter/SKILL.md#check-remaining-mcp-connections-after-an-editor-stops)을 수행한다. 남은 알려진 원본/peer의 연결을 확인하고, 공유 서버가 중단됐거나 클라이언트가 끊겼다면 기존 승인 범위에서 같은 endpoint/버전으로 복구·재연결한 뒤 실제 project/PID/start를 대조한다. 정상 서버를 매번 재시작하지 않으며 서버 시작과 각 Editor의 검증된 연결, workspace 회수 결과는 별도로 보고한다. 자세한 순서와 중단 조건은 [MCP 절차](unity-mcp-response-recovery.md#editor-종료-후-남은-mcp-연결-확인)를 따른다.
+외부 도구를 사용 중인 Editor 하나가 종료되면 에이전트가 다음 외부 요청 전에 남은 대상의 연결과 identity를 확인한다. 외부 패키지가 공유 서버를 종료하는 문제와 그 복구는 해당 도구/에이전트 절차의 책임이다. 연결 실패는 Splinter 결과 보존/회수의 gate가 아니며 서버·패키지·전역 설정을 자동 변경하지 않는다. [선택적 연결 확인](unity-mcp-response-recovery.md#editor-종료-후-남은-mcp-연결-확인)을 따른다.
 
 | 명시적 의도 | 사용할 경로 |
 | --- | --- |

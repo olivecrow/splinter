@@ -57,7 +57,7 @@ A 회수 뒤 B MCP로 값 202·A 변경/원본 private 파일 부재를 확인�
 
 이전에 승인한 같은 버전/포트·외부 로그 재시작으로 서버를 복구했다. 새 8080 listener는 PID 37048이고 전역 Codex 설정은 수정하지 않았다. stale handshake가 제거된 B 종료 뒤 서버가 유지됨을 관측했다. 마지막 Codex 기본 MCP의 read-only identity job은 기존 Git 원본 PID 37600/start `639267352637577053`, 정확한 path, compiling/updating=false로 성공했다. 근거는 `preserved-editor-native-mcp-final.json`과 `artifacts/vss-mcp-remediation-20261005/np1005-final-instances.json`이다.
 
-이 복구는 패키지의 shutdown 소유권 결함을 수정한 것이 아니다. 따라서 임의의 기존 handshake가 있는 공유 서버 무중단 공존 자격은 제공하지 않는다. 사용자가 선택한 대응은 [스킬의 종료 후 연결 확인](../../skills/splinter/SKILL.md#check-remaining-mcp-connections-after-an-editor-stops)과 [필요한 서버 복구·Editor 재연결 절차](../unity-mcp-response-recovery.md#editor-종료-후-남은-mcp-연결-확인)다. 외부 MCP 코드 수정을 제품의 필수 후속으로 남기지 않으며 새로운 프로젝트 기준본 기능·자동 모드·서버별 URL/전역 설정 변경으로 확대하지 않는다. 이 문서 변경을 새 실제 종료 검증으로 읽지 않는다.
+이 복구는 패키지의 shutdown 소유권 결함을 수정한 것이 아니다. 따라서 임의의 기존 handshake가 있는 공유 서버 무중단 공존 자격은 제공하지 않는다. 당시 선택한 대응은 [스킬의 종료 후 연결 확인](../../skills/splinter/SKILL.md#check-remaining-mcp-connections-after-an-editor-stops)과 [필요한 서버 복구·Editor 재연결 절차](../unity-mcp-response-recovery.md#editor-종료-후-남은-mcp-연결-확인)다. 현재 외부 도구의 연결/복구는 에이전트와 해당 도구의 책임이며 Splinter 결과/회수 gate가 아니다. 외부 MCP 코드 수정을 제품의 필수 후속으로 남기지 않으며 새로운 프로젝트 기준본 기능·자동 모드·서버별 URL/전역 설정 변경으로 확대하지 않는다. 이 문서 변경을 새 실제 종료 검증으로 읽지 않는다.
 
 ## 저장 비용과 제한
 

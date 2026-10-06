@@ -13,7 +13,6 @@ namespace Splinter.Editor
         private static string control = "";
         private static string token = "";
         private static double nextTick;
-        private static bool coplayShutdownGuard;
         private static readonly int Pid = System.Diagnostics.Process.GetCurrentProcess().Id;
         private static readonly long StartTicks = System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime().Ticks;
 
@@ -26,7 +25,6 @@ namespace Splinter.Editor
                 else if (args[i] == "-splinterToken") token = args[++i];
             }
             if (string.IsNullOrEmpty(control) || string.IsNullOrEmpty(token)) return;
-            GuardCoplayShutdown();
             EditorApplication.update += Tick;
             EditorApplication.quitting += () => Heartbeat("exiting", false);
         }
@@ -43,7 +41,7 @@ namespace Splinter.Editor
                 {
                     string reason = UnsavedReason();
                     if (reason != null) Write("stop-result.json", new StopResult { requestId = stop.requestId, error = reason });
-                    else { GuardCoplayShutdown(); Heartbeat("exiting", false); EditorApplication.Exit(0); return; }
+                    else { Heartbeat("exiting", false); EditorApplication.Exit(0); return; }
                 }
                 string phase = EditorApplication.isCompiling ? "compiling" : EditorApplication.isUpdating ? "importing" : "ready";
                 Heartbeat(phase, phase == "ready");
@@ -62,20 +60,6 @@ namespace Splinter.Editor
                 if (SceneManager.GetSceneAt(i).isDirty) return "Unsaved scene: " + SceneManager.GetSceneAt(i).path;
             return null;
         }
-        private static void GuardCoplayShutdown()
-        {
-            // Coplay 10.2.0 stores its server handshake in global EditorPrefs.
-            // A worker's quit callback can therefore stop the original Editor's server.
-            // Unsubscribe only that callback in this owned process; never edit global
-            // preferences or package files. Splinter workers do not own MCP servers.
-            Type cleanup = Type.GetType("MCPForUnity.Editor.Services.McpEditorShutdownCleanup, MCPForUnity.Editor");
-            if (cleanup == null) return;
-            var method = cleanup.GetMethod("OnEditorQuitting", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-            if (method == null) throw new InvalidOperationException("Unsupported Coplay shutdown hook; preserve the Editor for inspection.");
-            System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(cleanup.TypeHandle);
-            EditorApplication.quitting -= (Action)Delegate.CreateDelegate(typeof(Action), method);
-            coplayShutdownGuard = true;
-        }
         private static void Heartbeat(string phase, bool ready)
         {
             // Product liveness must not execute project or qualification code.
@@ -83,7 +67,7 @@ namespace Splinter.Editor
             Write("heartbeat.json", new HeartbeatData
             {
                 pid = Pid, startTimeUtcTicks = StartTicks, projectPath = Path.GetDirectoryName(Application.dataPath),
-                token = token, phase = phase, ready = ready, coplayShutdownGuard = coplayShutdownGuard, observedAt = DateTimeOffset.UtcNow.ToString("O")
+                token = token, phase = phase, ready = ready, observedAt = DateTimeOffset.UtcNow.ToString("O")
             });
         }
         private static T Read<T>(string name) where T : class
@@ -105,7 +89,6 @@ namespace Splinter.Editor
         {
             public int pid; public long startTimeUtcTicks; public string projectPath; public string token;
             public string phase; public bool ready; public string observedAt;
-            public bool coplayShutdownGuard;
         }
         [Serializable] private class StopRequest { public string requestId; public string token; }
         [Serializable] private class StopResult { public string requestId; public string error; }

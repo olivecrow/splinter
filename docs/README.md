@@ -11,9 +11,9 @@
 | [용어집](glossary.md) | 작업/기준/저장·식별자·보존/반영/회수·응답과 검증 상태의 쉬운 설명과 소유 문서 |
 | [현재 기반](foundation.md) | 모듈·의존성·명령·빌드와 시험 |
 | [OS와 앱 확장 경계](extensibility-boundaries.md), [검증](verification/extensibility-boundaries.md) | 불변 경로 정책·Unix 권한 metadata·앱별 원본/동반 파일/생성 디렉터리 정책, 실제 다른 OS·앱 미구현과 합성 시험의 구분 |
-| [보안 경계 검증](verification/security-boundaries.md) | Plastic private reader·외부 MCP 인증·서비스 상속 ACL·보호된 회수 잠금·짧은 IPC 수신의 자동/한정 읽기와 미실행 배포 경계 |
+| [보안 경계 검증](verification/security-boundaries.md) | Plastic private reader·서비스 상속 ACL·보호된 회수 잠금·짧은 IPC 수신의 자동/한정 읽기와 미실행 배포 경계, 과거 외부 MCP 인증 기록 |
 | [코드 최적화 회귀](verification/code-quality-optimization.md) | 구조화한 다음 행동·파일 rename/복원 검색·고유 객체 검사·원본 계획 조상 집합·압축 블록 순회의 자동 검증과 실측 한계 |
-| [Unity MCP 연결·응답 복구](unity-mcp-response-recovery.md) | 외부 Coplay 고정 패치의 준비·HTTP 대상·Codex 설정 조회 검사·Editor 종료 뒤 남은 연결 확인/필요한 복구·긴 코드 job·reload 상세 결과와 한정 자격 |
+| [선택적 외부 Unity 도구](unity-mcp-response-recovery.md), [검증](verification/external-tool-boundaries.md) | 에이전트의 도구 선택·대상/요청 확인·필요 시 연결 복구와 제품 결합 제거. 외부 패치 제작/운영·버전 gate는 제외 |
 | [개발용 CLI](development-cli.md) | 기본 CLI에서 분리한 diagnostic checkout·저장소 view·spike/probe의 진입점 |
 | [폐기한 ReFS 기준본 경로](plans/refs-retirement.md) | 대형 프로젝트의 최초 전체 기준본 준비 부담으로 폐기한 기능과 과거 근거의 경계 |
 | [한정 버전 AI 시작 안내](agent-start.md) | 기본 CLI의 저장 경로별 전제·진입·정확한 경로/같은 작업 재개·명시적 종료·실패의 다음 행동 |
@@ -80,7 +80,7 @@
 | [VCS 프로젝트 단위 기준본 전환](plans/project-scoped-basis-and-reclamation-review.md) | Git·Plastic의 고정 버전 재사용·프로젝트 범위·기존 범위 저널 연결의 VP-01~05. Git/Plastic은 Library·고정 실제 Unity까지 한정 마감하고 VCS 없는 새 기준본은 별도 승인한 NP 관리형 원본 계약을 따름. 사전 CLI 접근과 실제 제품 자격을 구분 |
 | [Plastic 프로젝트 기준본·Library 범위](plans/plastic-project-basis.md) | fixed changeset reader·VSS 없는 범위 저장·공통 Library와 실제 Unity A/B·MCP/리소스/씬/현재 상태 tests·독립 결과/회수/원본 복원의 PPB-01~06 한정 마감. 초기 준비/복원·MCP 응답/실행 겹침 제한과 원본 반영/기존 VSS/비VCS 후속을 구분 |
 | [Git 원본 Library 참조·MCP/RAM](plans/git-library-reference.md) | 승인한 Library 전용 관리형 mount·원본/peer 복구와 GL-01~05 한정 마감. 실제 RAM 절감 미확인·MCP 실패 상세 소실·준비/복원 비용은 검증에 유지 |
-| [대화별 설치·사용](plans/session-workflow-and-installation.md) | AI의 설치 연결/인계/도구 선택/종료 절차·외부 도구의 최소 경계·[후속 Unity CLI A/B 인계 범위](plans/session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)·SW 증거 분류 |
+| [대화별 설치·사용](plans/session-workflow-and-installation.md) | AI의 설치 연결/인계/선택적 도구 사용/종료 절차·제품과 외부 도구의 책임·[과거 Unity CLI A/B 인계 범위](plans/session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)·SW 증거 분류 |
 | [저장소 권한 서비스](plans/storage-privilege-service.md) | 반복 UAC 없는 제한 서비스의 UA-01~04 |
 | [병렬 비교 방법](plans/parallel-workflow-qualification.md) | C/S/Q 입력·작업·비용 비교를 재사용할 때 |
 

@@ -2,11 +2,11 @@
 
 기준본·변경분·seal·intent와 종료 명령의 차이는 [용어집](glossary.md)을 참고한다.
 
-외부 Coplay 고정 패치의 준비·HTTP 설정 검사·code job/reload 결과는 [MCP 사용 절차](unity-mcp-response-recovery.md)를 따른다. 제품 모듈·CLI schema/capabilities와 별개이며 [실제 자격](verification/vss-and-mcp-remediation.md)에 한정한다.
+MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 때 선택하는 선택적 외부 도구다. 없어도 Splinter의 저장 격리·기준본·Library/미변경 파일 참조·범위 변경·독립 결과·안전한 원본 반영과 소유 자원 수명 기능은 성립한다. 특정 도구 이름·버전·내부 API는 제품 전제나 gate가 아니다. 도구 선택·연결·refresh·컴파일·Play/Test/build·캡처와 결과 판단은 에이전트가 맡는다. 외부 도구 설치·다운그레이드·수정·별도 수정본 생성/운영은 Splinter 범위에서 제외한다. [외부 도구 경계](unity-mcp-response-recovery.md)와 [결합 제거 검증](verification/external-tool-boundaries.md)을 따른다.
 
 Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트의 외부 도구 작업 → checkpoint → 선택적 integrate → 명시적 release/discard**다. 작업공간·소유 Editor·범위 저장·독립 결과·회수 안전성을 관리한다. 컴파일·테스트·게임 합격은 에이전트와 MCP·Unity CLI 등 외부 도구의 책임이다.
 
-Unity CLI의 외부 작업은 [정확한 대상 선택 절차](alpha-workspaces.md#unity-cli의-정확한-대상-선택)를 따른다. 현재 작은 T: Plastic A/B의 exact-path command·loaded 값·정상 종료 공존·독립 결과/회수는 [별도 한정 자격](verification/unity-cli-handoff.md)으로 확인했으며, 목록 발견 누락·첫 eval 타임아웃과 MCP/다른 입력의 미자격을 유지한다. 프로그램의 새 Unity 작업 API나 컴파일 gate를 추가하지 않았다.
+외부 도구를 사용하는 경우 [정확한 대상 선택](alpha-workspaces.md#unity-cli의-정확한-대상-선택)을 수행한다. 과거 [UH](verification/unity-cli-handoff.md)·MCP 실행은 당시 입력/후보의 근거이며 현재 제품의 도구 버전 요구나 컴파일 gate가 아니다. Splinter 브리지는 외부 패키지의 종료 callback·서버·run-state를 조작하지 않는다.
 
 제품 시작점은 [AI 안내](agent-start.md)와 `scripts/splinter.ps1`이다. 진단·공통 Library view·spike/probe는 [개발 CLI](development-cli.md)로 분리했다. 기존 verification은 해당 후보/입력의 근거이며 변경된 계약의 native 자격을 자동 부여하지 않는다.
 

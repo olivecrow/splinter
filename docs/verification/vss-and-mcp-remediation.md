@@ -1,6 +1,6 @@
 # 기존 C: 회수와 MCP 응답 복구 검증
 
-2026-10-05의 [고정 범위](../plans/vss-and-mcp-remediation.md)를 한정 마감한다. 과거 C: Plastic A/B의 회수 보류는 해소됐다. 외부 Coplay `10.2.0`의 로컬 패치에서 긴 코드의 비동기 접수/결과 조회와 같은 Editor 세션의 reload 후 상세 테스트 결과를 확인했다. [현재 사용법](../unity-mcp-response-recovery.md)은 Splinter의 제품 Unity API와 구분한다.
+2026-10-05의 [고정 범위](../plans/vss-and-mcp-remediation.md)를 한정 마감한다. 과거 C: Plastic A/B의 회수 보류는 해소됐다. 외부 Coplay `10.2.0`의 로컬 패치에서 긴 코드의 비동기 접수/결과 조회와 같은 Editor 세션의 reload 후 상세 테스트 결과를 확인했다. 외부 패치 제작/운영은 현재 제공 범위에서 제거했다. 이 기록의 버전·패치·설정은 현재 필수 조건으로 승계하지 않으며 [현재 경계](../unity-mcp-response-recovery.md)를 따른다. 기존 외부 후보·설치된 패키지·서버·evidence와 독립 결과는 보존한다.
 
 원시 근거는 `artifacts/vss-mcp-remediation-20261005/`다. 예전 실패·pending은 당시 증거로 보존하며 아래 후속 회수로 현재 상태만 갱신한다. 새로운 A/B·Play/build·OS 장애 행렬을 실행하지 않았다.
 
@@ -44,7 +44,7 @@ Codex 재실행 이후 기본 resource 조회의 실패 transport는 **streamabl
 
 새 서버 시작 뒤 `codex mcp list --json`와 `codex mcp get unity_mcp_coplay --json`은 다시 exit 0이었다. 전역 설정을 다시 수정하지 않았다. `after-app-restart-instances-01.json`의 직접 HTTP 조회는 정상 응답/Editor 0이었으며 사용자에게 새 Editor에서 Connect를 요청했다. 당시 대화의 기본 MCP resource 조회는 이전 HTTP startup 실패를 계속 반환했으므로 직접 HTTP 성공과 구분했다.
 
-사용자가 Connect를 누른 뒤 **Codex 기본 HTTP MCP도 정상 확인했다**. `after-user-connect-instances-01.json`은 정확한 `splinter-unity@983ac2308e6c044d`와 새 bridge session `c666afc8-2731-4a85-ba6b-84cf48e2c151`을 기록한다. 기본 `set_active_instance`로 해당 대상을 고정한 뒤 custom-tools/project info/editor state와 read_console을 읽었다. 기본 도구의 `debug_request_context`에서도 고정된 대상과 현재 `integrations/unity-mcp/server.py`의 HTTP 실행 경로를 확인했다.
+사용자가 Connect를 누른 뒤 **Codex 기본 HTTP MCP도 정상 확인했다**. `after-user-connect-instances-01.json`은 정확한 `splinter-unity@983ac2308e6c044d`와 새 bridge session `c666afc8-2731-4a85-ba6b-84cf48e2c151`을 기록한다. 기본 `set_active_instance`로 해당 대상을 고정한 뒤 custom-tools/project info/editor state와 read_console을 읽었다. 기본 도구의 `debug_request_context`에서도 고정된 대상과 당시 `integrations/unity-mcp/server.py`의 HTTP 실행 경로를 확인했다.
 
 `native-binding-after-user-connect.json`은 기본 MCP의 원시 응답을 보존한다. 기본 `execute_custom_tool(tool_name=execute_code)`로 짧은 read-only identity job `811f8ecc364a4856b2a80ac11aea43fa`를 접수하고 같은 request ID로 결과를 조회했다. succeeded/내부 success=true이며 반환 project와 PID 37600/start `639267352637577053`가 독립 실행한 원본과 정확히 일치한다. 로드된 patch는 `splinter-mcp-remediation-v1`, package 경로는 candidate-02이고 sceneDirty=false다. Editor는 idle/ready_for_tools=true이며 compile/import/Play/Test/reload 중이 아니고 Console error 조회는 0개였다. 64-bit 시작 시각은 JavaScript structuredContent의 반올림을 피하도록 원시 `content.text` JSON을 Python 정수로 대조했다. 준비한 패치 6개 hash와 Codex 설정 조회 두 개도 다시 통과했다. 앞선 응답 종료 뒤에도 동일 Editor identity가 유지됐으며 추가 앱 재시작 생존 시험은 실행하지 않았다. 긴 실행/테스트/reload/A/B를 재실행하거나 설정·씬·에셋을 수정하지 않았다.
 
