@@ -16,6 +16,8 @@ Core의 `ISourceChangeProvider`/`SourceChangeView`는 workspace ID, snapshot ID,
 
 Windows 어댑터는 `overlay/source-query.json`과 `source-response.json`의 새 request ID를 사용한다. 요청 전후에 정확한 provider PID·시작 시각·mount·snapshot identity를 확인한다. 주기적인 `state.json`의 과거 소스 세대를 검증 장벽으로 사용하지 않는다. 15초 안에 해당 응답을 받지 못하면 `SourceObservationUncertain`으로 보존한다.
 
+provider는 게시된 source/flush/stop 요청 파일 알림으로 즉시 깨어난다. 알림은 기존 token/request ID 검사를 시작하는 힌트일 뿐 실행 승인이 아니다. heartbeat/snapshot 관측은 1초 주기를 유지하고, 알림 누락이나 알림 기능 사용 불가 시 polling도 유지한다. 응답/state 파일 쓰기는 provider를 깨우지 않는다. 전체 inventory polling을 늘리거나 15초 불확실성 경계를 완화하지 않고 요청마다 붙던 무조건적인 1초 대기를 제거한다.
+
 Git 어댑터는 다음 순서로 검사한다.
 
 1. provider의 소스 세대를 확인하고 현재 HEAD·관리 대상 경로·staged 변경 목록과 전체 index 항목을 열거한다. worktree `git status`로 변경 없는 payload를 다시 읽게 하지 않는다.
@@ -25,6 +27,18 @@ Git 어댑터는 다음 순서로 검사한다.
 5. HEAD·경로 집합·staged 변경 목록·전체 index 항목·해석 digest와 provider 세대를 다시 확인한다. 도중 변경은 `SourceChanged`이며 manifest와 현재 검증 성공을 갱신하지 않는다.
 
 수집 시 변경된 기존 파일에는 `git add --renormalize`를 경로별로 적용해 stat cache가 숨긴 내용도 index에 반영한다. 그 뒤 raw fingerprint와 실제 커밋을 다시 검사한다. 새 파일/삭제는 기존 `git add -A` 경로를 유지한다. 결과 수집의 `stable-journal-v1`, 전후·unmount 후 seal 검사와 독립 결과 검증은 그대로 필요하다.
+
+속성 검사는 경로 50개마다 프로세스를 실행하는 대신, UTF-8 NUL 구분 경로를 `git check-attr --stdin -z`에 256 KiB를 목표로 묶어 전달한다. 현재 파일과 cached index의 filter/encoding 검사, 전후 전체 속성 해석 digest를 유지하며 출력 순서와 digest 바이트도 같다. 속성 결과 cache로 이 검사를 대체하지 않는다.
+
+범위 저널의 첫 checkpoint는 앱 종료 전에 자원 준비 상태를 관측하고, checkpoint adapter와 seal을 갖춘 독립 결과 수집으로 소스를 검증한다. 최종 응답은 자원만 관측하여 `sourceVerification=not-checked`이고 `source`를 생략하며, 검증한 결과 revision/fingerprint/seal은 `workspace.snapshot.result`에 남는다. 수집 뒤 현재 소스를 다시 검사했다고 주장하지 않으면서 추가 소스 검사 두 번을 줄인다. 기존 revision이 있는 checkpoint 재요청은 현재 소스를 계속 검사한다. 새 현재 소스 관측이 필요하면 `workspace status --verify-source`를 요청한다.
+
+Git adapter는 공통 `ISnapshotCheckpointSourceProvider` 연산을 구현하여 Runtime이 checkpoint와 독립 보존 전체를 변경 없는 저널 seal 구간으로 감싼다. 일반 수정은 입력과 commit 내용의 전체 소스 검사 두 번을 사용한다. 연산 안에서만 유지하는 증명이 staging 전후와 결과 ref 게시 후 identity/policy·전체 소스 변경 이력·HEAD·index·파일 목록·해석 설정을 확인한다. commit tree는 준비한 staged tree와 같아야 하며 관리 경로의 index 진입도 거부한다. 증명을 저장하거나 계측값에서 복구하지 않는다. 삭제/이름 변경이나 삭제한 `.gitattributes` 등 누락된 tracked 파일은 staging이 목록과 속성 fallback을 정상적으로 바꾸므로 중간 전체 검사를 유지한다. source router는 선택한 adapter의 `SupportsCheckpointAndPreserve` capability와 연산을 전달하며 미지원 source를 Git으로 재해석하지 않는다. 이 capability가 없는 adapter는 기존 수집 경로를 유지한다. 실패/응답 유실은 commit·저널·이전 성공 manifest를 보존하고 같은 task에서 재검증한다.
+
+ignored 파일 검사는 Git pathspec에서 literal 관리 root를 먼저 제외하여 하위 파일 열거를 줄인다. wildcard 정책은 경로별 분류를 유지하며 관리 대상 밖의 ignored 형제 파일은 계속 보존을 차단한다. ignored 사용자 파일을 독립 소스 결과에 포함하는 변경은 아니다.
+
+실행 중 볼륨 조회는 재연결 시 재구성하는 배타 writer의 바이트 장부를 사용한다. 주기적/flush 활동 보고는 `journalBytesBasis=writer-accounting`, 명시적 `Observe`의 실제 파일 순회는 `current-files`로 구분한다. 실패하여 재연결이 필요한 writer는 활동 storage를 unknown으로 두고 `DeltaReconnectRequired`와 살아 있는 프로세스/핸들 관측을 유지하며 강제 unmount하지 않는다. 용량 요청은 사용할 수 없는 장부를 거부한다. 활동 장부와 heartbeat 경과 시간은 내용/seal 증명이 아니다.
+
+release는 infrastructure 제거 후 저장한 저널 seal과 정확히 일치하고, 새 소스 검사가 clean이며 결과 revision/fingerprint와 같고, 두 번째 seal도 바뀌지 않은 경우에만 기존 `stable-journal-v1` 독립 결과를 재사용한다. 독립 ref/object 검사와 unmount 후 seal 검사는 계속 수행한다. 생성 데이터나 infrastructure가 바뀌면 전체 수집 경로를 사용하며, 소스 불일치·결과 손상·동시 쓰기는 작업을 보존한다. [수명주기 최적화 자격](verification/checkpoint-release-optimization.md)을 따른다.
 
 `Library`, `Temp`, 소유 Unity bridge 등 관리 경로의 쓰기는 소스 세대를 올리지 않는다. 루트 디렉터리의 날짜·속성 변경도 소스 내용 변경이 아니다. 루트의 rename/delete/resize/payload 쓰기는 기존 저장 계약에서 거부한다. 변경 경로 인덱스는 최대 250,000개이며 한도 초과는 acknowledged append 전에 차단한다.
 

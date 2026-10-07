@@ -77,7 +77,7 @@
       "minimum": 0
     },
     "storage": {
-      "type": "object",
+      "type": ["object", "null"],
       "required": [
         "initialPayloadCopiedBytes",
         "journalBytes",
@@ -89,6 +89,7 @@
       ],
       "properties": {
         "journalOptimizationEnabled": { "type": "boolean" },
+        "journalBytesBasis": { "enum": ["current-files", "writer-accounting"] },
         "initialPayloadCopiedBytes": {
           "const": 0
         },

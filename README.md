@@ -16,6 +16,39 @@ Splinter separates the data a task can reuse from the data it changes. Its range
 
 The intended workflow is simple: use a workspace when a task needs independent execution, continue that same task across conversations, then explicitly preserve, integrate, or discard it. Each agent works in the path returned by Splinter and can use its existing file tools, Git tools, and application tooling there.
 
+## Measured storage and time tradeoff
+
+We compared two actual Codex app worktrees with two Splinter workspaces on the same Unity project: **1,602 tracked files, about 2.8 GB of source, Unity 6000.3.22f1**. Each method ran two independent Editors and the same isolated A/B code changes. Codex created a new Library per worktree; Splinter used `git-snapshot`, the existing original Library basis, and the default SJL4 journal optimization.
+
+The source work was deliberately minimal: A changed `value + 1` to `value + 2` in one C# file, and B changed `value + value` to `value + value + value` in another. Each result contained one changed line. The preservation/release interval below begins after editing, compilation and Editor shutdown; it is overhead for preserving these small results and reclaiming resources. **The measured delays are performance blockers for interactive development on this input.**
+
+![Additional file allocation for two Unity workspaces: Codex 10.52 GiB, Splinter 0.14 GiB](docs/images/unity-workspace-storage.png)
+
+After both edits compiled, additional file allocation was **10.52 GiB for Codex and 0.14 GiB for Splinter: a 98.65% reduction**. This counts task files, owned Git registration, and shared Splinter runner/Library metadata once. Existing original source, Library payload, and shared Git objects are excluded; this is a measured stage, not peak disk usage.
+
+![Time tradeoff for the same Unity task: Editor preparation and code edit to compiled readiness](docs/images/unity-workspace-time.png)
+
+| Observed A/B cohort time | Codex worktrees | Splinter + Library basis | Splinter difference |
+| --- | ---: | ---: | ---: |
+| Editor launch to compiled readiness, after workspace creation | 14m 47s | 29m 13s | +14m 26s |
+| Code change / refresh to compiled readiness | 19s | 9m 14s | +8m 55s |
+
+**Storage savings came with a substantial time cost in this run.** Splinter also took 4m 33s to prepare the Library basis once and 12m 46s for the two sequential workspace creation calls; these setup costs are separate from the Editor bars. End-to-end Codex task creation time was unavailable and is excluded.
+
+**Result preservation was also slow: A's checkpoint alone took 95m 23s after Editor shutdown**, outside the Editor bars. It exposed repeated full Git attribute checks and journal-inventory observations under the store lock. A later read-only probe of the same 50 paths took 0.23s on ordinary NTFS and 12.83s on Splinter. The [delay diagnosis and lifecycle costs](docs/verification/readme-unity-comparison.md#preservation-delay-diagnosis) separate these findings from the earlier Unity timings; a comparable end-to-end Codex preservation time was not obtained.
+
+[Follow-up profiling](docs/verification/checkpoint-release-profiling.md) reused those records and tiny Editor-free tasks: checkpoint repeated source inspection seven times, release recollected the preserved result, and journal reclamation contained quadratic file-fence lookup. The original product was not optimized in that diagnosis.
+
+[Subsequent lifecycle optimization](docs/verification/checkpoint-release-optimization.md) batches Git attribute queries, removes response-only source scans, reuses unchanged sealed results and indexes reclamation fences. On the same tiny Editor-free workload, checkpoint improved **42.30s → 31.88s (24.65%)** and release **20.66s → 14.54s (29.59%)**. These are small-fixture measurements; the large Unity lifecycle has not been remeasured.
+
+[Further optimization CO-05–08](docs/verification/checkpoint-release-optimization.md#final-product-measurement-co-07) combines checkpoint/preservation verification and removes repeated inventory work and fixed request delays. A fresh comparison on the same tiny workload, against the already optimized distribution, measured checkpoint **28.66s → 14.09s (50.84% less)** and release **13.68s → 9.66s (29.39% less)**. The large Unity chart below retains the historical measurement.
+
+![Separate Splinter lifecycle costs in minutes: Library preparation 4.5, workspace creation 12.8, recorded A/B preservation and release 156.1, Library restoration 24.6](docs/images/unity-workspace-lifecycle.png)
+
+The recorded preservation/release sequence took **2h 36m 7s**, including overlapping B work, the retained `WorkspaceBusy` orchestration refusal and recovery, and concurrent diagnostic probes. This includes A's checkpoint above; the intervals must not be added twice. Final Library restoration took **24m 33s**. Both Splinter results were preserved, owned resources reclaimed, the original Library restored, and all 1,602 original source files verified unchanged. These lifecycle bars show the recorded Splinter sequence; comparable Codex totals were unavailable.
+
+This is one cohort per method on Windows/NTFS, run Codex then Splinter without clearing OS caches. It verifies selected compilation, asset loading, and rendering, with no Play Mode, tests, or game build. It does not establish general speed, RAM, or peak storage savings. See the [methodology, exact values, failures, and cleanup qualification](docs/verification/readme-unity-comparison.md), [recorded dataset](reports/benchmarks/unity-workspace-comparison-20261007.json), and [chart renderer](scripts/plot-unity-workspace-comparison.py).
+
 ## How it works
 
 A **basis** is the fixed data from which a workspace starts. A **private journal** records that workspace's changed byte ranges and file metadata. Together, they form the project tree exposed through a writable WinFsp filesystem.
@@ -148,5 +181,6 @@ Splinter builds on the work of these projects and their contributors:
 - **[json-everything](https://github.com/json-everything/json-everything)** provides JsonSchema.Net, JsonPointer.Net, and Json.More.Net for schema validation and JSON handling. Its source is MIT-licensed; the pinned NuGet binaries also include an Open Source Maintenance Fee agreement.
 - **[Humanizer](https://github.com/Humanizr/Humanizer)** is an indirect runtime dependency of the JSON packages, under the MIT license.
 - **[xUnit.net](https://github.com/xunit/xunit)** and **[Microsoft.Testing.Platform](https://github.com/microsoft/testfx)** provide automated testing and TRX reports, under Apache 2.0 and MIT respectively.
+- **[Matplotlib](https://matplotlib.org/)** renders the recorded comparison charts through an optional documentation script.
 
 Installed Git, PowerShell, Unity, and Plastic tools retain their own licenses. Exact direct and indirect package versions, upstream license links, attribution conditions, and redistribution considerations are recorded in [Third party notices](THIRD_PARTY_NOTICES.md).

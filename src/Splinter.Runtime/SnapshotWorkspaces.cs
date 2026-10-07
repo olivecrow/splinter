@@ -140,7 +140,8 @@ public sealed partial class WorkspaceCoordinator
                     // Infrastructure removal legitimately appends to the journal.
                     // Complete it before the stable source-collection interval.
                     await applications.RemoveInfrastructureAsync(w, control, ct);
-                    await CollectSnapshotResultAsync(w, ct);
+                    if (!await ReuseSnapshotResultAsync(w, ct))
+                        await CollectSnapshotResultAsync(w, ct);
                 }
                 w.Phase = "releasing";
                 SnapshotStep(w, "release-unmount");
@@ -238,6 +239,45 @@ public sealed partial class WorkspaceCoordinator
             throw new WorkspaceException(observation.FailureCode ?? "SnapshotObservationUnknown", "Snapshot availability could not be observed. Preserve the existing identity and delta; restore access before resuming.",
                 new { id = w.Id, observation.FailureCode },
                 [new("workspace.status", new { id = w.Id, home = store.Root }, true)]);
+    }
+
+    private async Task<bool> ReuseSnapshotResultAsync(WorkspaceRecord w, CancellationToken ct)
+    {
+        var state = RequireSnapshot(w);
+        if (state.Result is null) return false;
+        RequireStableCollection(state);
+        string control = store.ControlPath(w.Id);
+        var before = await Snapshots.SealAsync(w, control, ct);
+        // Changed generated data or infrastructure still follows full collection,
+        // including the source adapter's ignored-file and preservation guards.
+        if (before != state.Result.Seal) return false;
+        var source = await sources.InspectAsync(w, ct);
+        if (source.HasChanges || source.Revision != w.ResultRevision || source.Revision != state.Result.Revision ||
+            source.Fingerprint != state.Result.Fingerprint)
+            throw new WorkspaceException("UncollectedChanges", "The current source differs from its independent result. Preserve and checkpoint it before release.");
+        var after = await Snapshots.SealAsync(w, control, ct);
+        if (after != before)
+            throw new WorkspaceException("DeltaChangedAfterCollection", "Writes overlapped result verification. Preserve the journal before deletion.");
+        // The caller still verifies the independently preserved result and its
+        // owned refs/objects, then requires the same seal after unmount.
+        return true;
+    }
+
+    private async Task CheckpointSnapshotResultAsync(WorkspaceRecord w, ISnapshotCheckpointSourceProvider provider,
+        string message, CancellationToken ct)
+    {
+        await RequireStopped(w, ct);
+        string control = store.ControlPath(w.Id);
+        var before = await Snapshots.SealAsync(w, control, ct);
+        var result = await provider.CheckpointAndPreserveAsync(w, control, message, ct);
+        if (result.Source.HasChanges || string.IsNullOrWhiteSpace(result.ResultReference))
+            throw new WorkspaceException("UncollectedChanges", "The source provider did not preserve a clean independent checkpoint.");
+        var after = await Snapshots.SealAsync(w, control, ct);
+        if (after != before)
+            throw new WorkspaceException("DeltaChangedAfterCollection", "Writes overlapped checkpoint preservation; retain the journal and result.");
+        w.ResultRevision = result.Source.Revision;
+        RequireSnapshot(w).Result = new(RequireSnapshot(w).Reference!.Id, result.Source.Revision,
+            result.Source.Fingerprint, result.ResultReference, after, true, SnapshotResult.StableJournalProtocol);
     }
 
     private async Task CollectSnapshotResultAsync(WorkspaceRecord w, CancellationToken ct)

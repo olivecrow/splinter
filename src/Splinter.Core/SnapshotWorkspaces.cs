@@ -134,3 +134,13 @@ public interface ISnapshotSourceWorkspaceProvider
     Task VerifyResultAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task UnregisterAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
 }
+
+// One operation owns source verification, checkpointing and independent
+// preservation. Runtime must enclose it in matching full-journal seals.
+public sealed record SnapshotSourceCheckpoint(SourceState Source, string ResultReference);
+public interface ISnapshotCheckpointSourceProvider
+{
+    bool SupportsCheckpointAndPreserve(WorkspaceRecord workspace);
+    Task<SnapshotSourceCheckpoint> CheckpointAndPreserveAsync(WorkspaceRecord workspace, string control,
+        string message, CancellationToken ct = default);
+}

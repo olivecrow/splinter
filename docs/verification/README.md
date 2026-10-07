@@ -13,6 +13,12 @@
 
 [Plastic original apply](plastic-original-apply.md) separately qualifies recorded-basis full/selected publication, registration/lock/Editor protection, same-intent recovery.
 
+[README Unity comparison](readme-unity-comparison.md) owns RB-01–05: actual Codex app worktrees versus current default-ON Splinter with the original Library basis, two independent Editors per method, identical A/B edits, additional file allocation and separately measured setup/Editor time. The single run reduced edited-ready allocation by 98.65% with longer Editor preparation and recompilation. Failures, cleanup, one-cohort/cache limits, unmeasured RAM/whole-disk peak, and unexecuted Play/Test/build remain explicit.
+
+[Checkpoint/release profiling](checkpoint-release-profiling.md) owns LP-01–04: reused Unity phase records, tiny Editor-free Git/Library tasks with scratch-only timing scopes, and a bounded fence-membership microprobe. It identifies repeated verification/recollection and quadratic reclamation; no optimization or expanded support pass is claimed.
+
+[Checkpoint/release optimization](checkpoint-release-optimization.md) owns CO-01–08: attribute batching, result reuse, combined checkpoint/preservation, live accounting, indexed inventory and request wakeup. The follow-up tiny comparison reduced checkpoint 50.84% and release 29.39% against the already optimized binary. Guard/schema regression and original/owned cleanup passed; large Unity remeasurement and expanded support remain NotRun.
+
 [Actual Unity C/S comparison](unity-live-comparison.md)/[HTML report](../../reports/unity-live-comparison-20261003.html) compare designated-input/file-allocation/Editor/provider memory/isolation/resumption in Codex app worktrees/product workspaces. Missing historical home fields/authorized follow-up reclaim distinguished in owning verification. Total physical/VSS attribution/minimum RAM unknown; no full SF/PV support expansion.
 
 [Unity parallel-edit verification](unity-parallel-editor-validation.md) owns bounded C/S A/B exact MCP targets/resources/scenes/current-state tests/original apply/reclaim. Actual test overlap/reload-result preservation/reconnect/owned reclaim/initial failure/recovery costs follow text verification. [HTML](../../reports/unity-parallel-editor-validation-20261003.html) records through S. Editor RAM savings unconfirmed/full physical peak/VSS attribution unknown retained.

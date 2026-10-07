@@ -74,9 +74,9 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     };
     public override int GetVolumeInfo(out VolumeInfo volumeInfo)
     {
-        var observation = store.Observe();
+        long journalBytes = store.GetJournalBytes();
         volumeInfo = new() { TotalSize = (ulong)store.Identity.MaxJournalBytes,
-            FreeSize = (ulong)Math.Max(0, store.Identity.MaxJournalBytes - observation.JournalBytes) };
+            FreeSize = (ulong)Math.Max(0, store.Identity.MaxJournalBytes - journalBytes) };
         volumeInfo.SetVolumeLabel("Splinter snapshot overlay"); return STATUS_SUCCESS;
     }
     public override int GetSecurityByName(string fileName, out uint fileAttributes, ref byte[] securityDescriptor)

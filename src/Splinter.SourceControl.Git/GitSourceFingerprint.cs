@@ -14,8 +14,11 @@ public sealed partial class GitWorkspaceProvider
         string Policy, string Epoch, long Sequence, FileHash[] Files, string Interpretation);
     private sealed record SourceManifestEnvelope(SourceManifest Value, string Sha256);
     private const long MaxManifestBytes = 64 * 1024 * 1024;
+    private sealed record SourceProof(SourceChangeView View, string Revision, string[] Files, string Interpretation,
+        string Index, string Path, string ProjectPath, SnapshotReference Snapshot, string[] ManagedPaths, bool CompleteMembership);
 
-    private async Task<SourceState> InspectSourceAsync(WorkspaceRecord workspace, CancellationToken ct)
+    private async Task<SourceState> InspectSourceAsync(WorkspaceRecord workspace, CancellationToken ct,
+        Action<SourceProof>? capture = null)
     {
         var clock = Stopwatch.StartNew();
         var tracker = WorkspaceStorage.HasRangeJournal(workspace.StorageMode) ? sourceChanges : null;
@@ -154,10 +157,50 @@ public sealed partial class GitWorkspaceProvider
                 fingerprint = value, measuredAt = DateTimeOffset.UtcNow, inspection }, Json) + "\n", ct);
         }
         string[] allChanges = changes.Concat(contentChanges).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        if (before is not null) capture?.Invoke(new(before with { Changes = [.. before.Changes] }, revision, files, interpretation,
+            indexState, workspace.Path, workspace.ProjectPath, workspace.Snapshot!.Reference!, [.. workspace.ManagedPaths], hashes.Count == files.Length));
         return new(revision, value, allChanges.Length != 0, allChanges)
         {
             Inspection = inspection
         };
+    }
+
+    private async Task VerifyStagedSourceAsync(WorkspaceRecord workspace, SourceProof proof, CancellationToken ct,
+        bool staging = true)
+    {
+        await EnsureRegistered(workspace, ct);
+        RequireView(workspace, proof.View);
+        if (workspace.Path != proof.Path || workspace.ProjectPath != proof.ProjectPath || workspace.Snapshot!.Reference != proof.Snapshot ||
+            !workspace.ManagedPaths.SequenceEqual(proof.ManagedPaths, StringComparer.Ordinal))
+            throw Error("SourceChanged", "Checkpoint source identity or managed-path policy changed.");
+        string index = await Required(workspace.Path, ["ls-files", "--stage", "-z"], ct);
+        RequireUnmanagedIndex(index, workspace.ManagedPaths);
+        await CheckSnapshotGitFiles(workspace.Path, ct);
+        string revision = await Required(workspace.Path, ["rev-parse", "HEAD"], ct);
+        string[] files = await SourceFiles(workspace, ct);
+        string interpretation = await Interpretation(workspace, files, ct);
+        string[] finalFiles = await SourceFiles(workspace, ct);
+        string finalInterpretation = await Interpretation(workspace, finalFiles, ct);
+        if (!staging && index != proof.Index || revision != proof.Revision || !files.SequenceEqual(proof.Files, StringComparer.Ordinal) ||
+            interpretation != proof.Interpretation || index != await Required(workspace.Path, ["ls-files", "--stage", "-z"], ct) ||
+            revision != await Required(workspace.Path, ["rev-parse", "HEAD"], ct) ||
+            !files.SequenceEqual(finalFiles, StringComparer.Ordinal) || interpretation != finalInterpretation)
+            throw Error("SourceChanged", "Source membership, interpretation or Git metadata changed while staging; retain the source.");
+        var current = await sourceChanges!.ObserveChangesAsync(workspace, ct);
+        RequireView(workspace, current);
+        if (current.Epoch != proof.View.Epoch || current.Sequence != proof.View.Sequence ||
+            !current.Changes.SequenceEqual(proof.View.Changes))
+            throw Error("SourceChanged", "Source changed during checkpoint verification; preserve the current source and any retained commit.");
+    }
+
+    private static void RequireUnmanagedIndex(string index, string[] managedPaths)
+    {
+        foreach (string entry in SplitZero(index))
+        {
+            string[] fields = entry.Split('\t', 2);
+            if (fields.Length != 2 || Managed(fields[1], managedPaths))
+                throw Error("ManagedPathTracked", "Generated infrastructure entered the source index; preserve and unstage it before checkpointing.");
+        }
     }
 
     private static async Task<string> HashRangeSourceAsync(Stream stream, CancellationToken ct)
@@ -207,8 +250,8 @@ public sealed partial class GitWorkspaceProvider
         using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         // Only a digest is persisted: config may contain private values.
         digest.AppendData(Encoding.UTF8.GetBytes(await Required(workspace.Path, ["config", "--null", "--list"], ct)));
-        foreach (string[] batch in files.Chunk(50))
-            digest.AppendData(Encoding.UTF8.GetBytes(await Required(workspace.Path, ["check-attr", "--all", "-z", "--", .. batch], ct)));
+        await AttributeOutputAsync(workspace.Path, files, cached: false, all: true,
+            output => digest.AppendData(Encoding.UTF8.GetBytes(output)), ct);
         return Convert.ToHexStringLower(digest.GetHashAndReset());
     }
 

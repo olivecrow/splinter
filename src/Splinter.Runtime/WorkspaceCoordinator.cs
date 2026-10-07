@@ -156,8 +156,14 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
         RequireLive(record);
-        var current = await ViewAsync(record, ct);
-        RequireSource(current);
+        bool rangeJournal = WorkspaceStorage.HasRangeJournal(record.StorageMode);
+        // A first checkpoint is verified by the source adapter after application
+        // shutdown. Only an existing result needs source inspection here to
+        // decide whether this is the same checkpoint or a new generation.
+        bool verifyInitialSource = !rangeJournal || record.ResultRevision is not null;
+        var current = await ViewAsync(record, ct, verifyInitialSource);
+        if (verifyInitialSource || current.Command is "workspace.ensure" or "workspace.release" or "workspace.compact")
+            RequireSource(current);
         if (record.ResultRevision is not null && current.Source!.Revision == record.ResultRevision && !current.Source.HasChanges)
         {
             if (WorkspaceStorage.HasRangeJournal(record.StorageMode) && RequireSnapshot(record).Result is null)
@@ -185,13 +191,21 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 await RequireStopped(record, ct);
                 await applications.RemoveInfrastructureAsync(record, store.ControlPath(id), ct);
             }
-            record.ResultRevision = await sources.CheckpointAsync(record, message, ct);
-            if (WorkspaceStorage.HasRangeJournal(record.StorageMode))
-                await CollectSnapshotResultAsync(record, ct);
+            if (rangeJournal && sources is ISnapshotCheckpointSourceProvider checkpointSource && checkpointSource.SupportsCheckpointAndPreserve(record))
+                await CheckpointSnapshotResultAsync(record, checkpointSource, message, ct);
+            else
+            {
+                record.ResultRevision = await sources.CheckpointAsync(record, message, ct);
+                if (rangeJournal) await CollectSnapshotResultAsync(record, ct);
+            }
             record.Phase = "collected";
             record.LastError = null;
             store.Save(record, "checkpoint-completed");
-            return await ViewAsync(record, ct);
+            // Collection already verified and sealed the independent result.
+            // Observe resources for the response without another full scan;
+            // Source remains null rather than claiming a later current-source
+            // verification that this response did not perform.
+            return await ViewAsync(record, ct, verifySource: !rangeJournal);
         }
         catch (Exception ex) { RecordFailure(record, ex); throw; }
     }

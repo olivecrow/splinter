@@ -6,7 +6,7 @@ using Splinter.SourceControl.Git;
 
 namespace Splinter.Tests;
 
-public sealed class SourceFingerprintTests
+public sealed partial class SourceFingerprintTests
 {
     [Theory]
     [InlineData("false")]

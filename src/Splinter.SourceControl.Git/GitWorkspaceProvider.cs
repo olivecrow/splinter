@@ -8,7 +8,7 @@ using Splinter.Core;
 namespace Splinter.SourceControl.Git;
 
 public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceChanges = null, bool auditSource = false,
-    IWorkspacePreparationObserver? preparationObserver = null) : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider
+    IWorkspacePreparationObserver? preparationObserver = null) : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, ISnapshotCheckpointSourceProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public Task<string> ResolveRevisionAsync(string project, string reference, CancellationToken ct = default) =>
@@ -47,11 +47,29 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
     }
 
     public async Task<string> CheckpointAsync(WorkspaceRecord workspace, string message, CancellationToken ct = default)
+        => (await CheckpointSourceAsync(workspace, message, null, ct)).Revision;
+
+    private async Task<SourceState> CheckpointSourceAsync(WorkspaceRecord workspace, string message,
+        Func<string, Task>? preserve, CancellationToken ct)
     {
-        if (WorkspaceStorage.HasRangeJournal(workspace.StorageMode)) await CheckSnapshotGitFiles(workspace.Path, ct);
-        SourceState before = await InspectAsync(workspace, ct);
-        if (!before.HasChanges) return before.Revision;
-        var tracked = SplitZero(await Required(workspace.Path, ["ls-files", "--cached", "-z"], ct));
+        if (WorkspaceStorage.HasRangeJournal(workspace.StorageMode) && sourceChanges is null) await CheckSnapshotGitFiles(workspace.Path, ct);
+        await EnsureRegistered(workspace, ct);
+        SourceProof? proof = null;
+        SourceState before = await InspectSourceAsync(workspace, ct, value => proof = value);
+        if (proof is not null) RequireUnmanagedIndex(proof.Index, workspace.ManagedPaths);
+        if (!before.HasChanges)
+        {
+            if (preserve is null) return before;
+            await preserve(before.Revision);
+            await EnsureRegistered(workspace, ct);
+            SourceProof? unchangedProof = null;
+            var unchanged = await InspectSourceAsync(workspace, ct, value => unchangedProof = value);
+            if (unchangedProof is not null) RequireUnmanagedIndex(unchangedProof.Index, workspace.ManagedPaths);
+            if (unchanged.HasChanges || unchanged.Revision != before.Revision || unchanged.Fingerprint != before.Fingerprint)
+                throw Error("SourceChanged", "Source changed while preserving its checkpoint; retain the result and source.");
+            return unchanged;
+        }
+        var tracked = SplitZero(await Required(workspace.Path, ["ls-files", "--cached", "-z"], ct)).ToHashSet(StringComparer.Ordinal);
         if (tracked.Any(path => Managed(path, workspace.ManagedPaths)))
             throw Error("ManagedPathTracked", "Generated infrastructure has been staged/tracked. Preserve it and unstage it explicitly before collecting source.");
         // Excluding an explicitly named ignored directory makes `git add` fail.
@@ -65,17 +83,38 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
                 File.Exists(Path.Combine(workspace.Path, path))).Select(path => ":(literal)" + path).Chunk(50))
                 await Required(workspace.Path, ["add", "--renormalize", "--", .. batch], ct);
         var stagedPaths = SplitZero(await Required(workspace.Path, ["ls-files", "--cached", "-z"], ct));
-        if (WorkspaceStorage.HasRangeJournal(workspace.StorageMode)) await CheckSnapshotGitFiles(workspace.Path, ct);
+        if (WorkspaceStorage.HasRangeJournal(workspace.StorageMode) && proof is not { CompleteMembership: true }) await CheckSnapshotGitFiles(workspace.Path, ct);
         if (stagedPaths.Any(path => Managed(path, workspace.ManagedPaths)))
             throw Error("ManagedPathTracked", "Generated files changed while staging. No commit was made; preserve and unstage them before retrying.");
-        SourceState staged = await InspectAsync(workspace, ct);
-        if (before.Fingerprint != staged.Fingerprint)
+        // Staging removes missing tracked names and may change Git's fallback
+        // attributes for a deleted .gitattributes. Reinspect that input rather
+        // than treating its expected membership change as an external mutation.
+        if (proof is { CompleteMembership: true }) await VerifyStagedSourceAsync(workspace, proof, ct);
+        else if (before.Fingerprint != (await InspectAsync(workspace, ct)).Fingerprint)
             throw Error("SourceChanged", "Source changed during collection. No commit was made; preserve the current source and retry.");
+        string stagedTree = await Required(workspace.Path, ["write-tree"], ct);
         await Required(workspace.Path, ["-c", "commit.gpgsign=false", "commit", "-m", message], ct);
-        SourceState committed = await InspectAsync(workspace, ct);
-        if (committed.HasChanges || committed.Fingerprint != before.Fingerprint)
+        string revision = await Required(workspace.Path, ["rev-parse", "HEAD"], ct);
+        if (await Required(workspace.Path, ["rev-parse", "HEAD^{tree}"], ct) != stagedTree)
+            throw Error("SourceChanged", "The committed tree differs from the staged checkpoint; retain the commit and source.");
+        await EnsureRegistered(workspace, ct);
+        SourceProof? committedProof = null;
+        SourceState committed = await InspectSourceAsync(workspace, ct, value => committedProof = value);
+        if (committedProof is not null) RequireUnmanagedIndex(committedProof.Index, workspace.ManagedPaths);
+        if (committed.HasChanges || committed.Fingerprint != before.Fingerprint || committed.Revision != revision)
             throw Error("SourceChanged", "Source changed while committing. The commit and later edits are preserved; recollect the stable source.");
-        return committed.Revision;
+        if (preserve is not null)
+        {
+            await preserve(revision);
+            if (committedProof is not null) await VerifyStagedSourceAsync(workspace, committedProof, ct, staging: false);
+            else
+            {
+                var retained = await InspectAsync(workspace, ct);
+                if (retained.HasChanges || retained.Revision != revision || retained.Fingerprint != committed.Fingerprint)
+                    throw Error("SourceChanged", "Source changed while preserving the result; retain the source and commit.");
+            }
+        }
+        return committed;
     }
 
     public async Task<IntegrationResult> IntegrateAsync(WorkspaceRecord workspace, string targetReference, CancellationToken ct = default)

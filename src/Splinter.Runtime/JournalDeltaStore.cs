@@ -386,17 +386,31 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             }
         }
     }
-    public OverlayStorageObservation Observe()
+    public long GetJournalBytes()
+    {
+        using (EnterGate()) return AccountedJournalBytes();
+    }
+    private long AccountedJournalBytes()
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (poisoned) throw new WorkspaceException("DeltaReconnectRequired", "Replay the failed writer before observing its accounting.");
+        return latest?.CommittedBytes ?? expectedJournalBytes;
+    }
+    public OverlayStorageObservation? ObserveActivity() => ObserveStorage(inspectFiles: false);
+    public OverlayStorageObservation Observe() => ObserveStorage(inspectFiles: true)!;
+    private OverlayStorageObservation? ObserveStorage(bool inspectFiles)
     {
         using (EnterGate())
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            long bytes = CurrentJournalBytes;
+            if (!inspectFiles && poisoned) return null;
+            long bytes = inspectFiles ? CurrentJournalBytes : AccountedJournalBytes();
             long stored = latest?.Current.PayloadBytes ?? payloadBytes;
             return new(Identity.Id, Identity.Snapshot.Id, 0, bytes, stored,
                 bytes - stored, readBytes, 0, Identity.MaxTransferBytes, nodes.Count, latest?.Current.Sequence ?? sequence)
             {
                 JournalOptimizationEnabled = latest is not null,
+                JournalBytesBasis = inspectFiles ? "current-files" : "writer-accounting",
                 Metrics = new(epoch, lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount,
                     appendedBytes, replayBytes, replayTicks, journalReadBytes, baseReadBytes, Stopwatch.Frequency,
                     replayFrames, replayReadCalls, replayReadTicks, replayValidationTicks, replayIndexTicks, ReplayReadBufferBytes,

@@ -35,15 +35,15 @@ public sealed partial class GitWorkspaceProvider
             if (!entry.StartsWith("100644 ", StringComparison.Ordinal) && !entry.StartsWith("100755 ", StringComparison.Ordinal))
                 throw Error("SnapshotSourceUnsupported", "Submodules, symbolic links and unresolved index entries are not supported.");
         string[] paths = SplitZero(await Required(path, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], ct)).Distinct(StringComparer.Ordinal).ToArray();
-        foreach (string[] batch in paths.Chunk(50))
+        foreach (bool cached in new[] { false, true })
         {
-            foreach (string[] options in new[] { Array.Empty<string>(), new[] { "--cached" } })
+            await AttributeOutputAsync(path, paths, cached, all: false, output =>
             {
-                string[] values = SplitZero(await Required(path, ["check-attr", .. options, "-z", "filter", "working-tree-encoding", "--", .. batch], ct));
+                string[] values = SplitZero(output);
                 for (int i = 2; i < values.Length; i += 3)
                     if (values[i] is not ("unspecified" or "unset"))
                         throw Error("SnapshotFilterUnsupported", "Materializing filters/LFS and working-tree-encoding need separate qualification: " + values[i - 2]);
-            }
+            }, ct);
         }
     }
 
@@ -65,12 +65,47 @@ public sealed partial class GitWorkspaceProvider
         var source = await InspectAsync(w, ct);
         if (source.HasChanges || source.Revision != w.ResultRevision)
             throw Error("UncollectedChanges", "Checkpoint current changes before preserving a source result.");
-        foreach (string ignored in SplitZero(await Required(w.Path, ["ls-files", "--others", "--ignored", "--exclude-standard", "-z"], ct)))
+        foreach (string ignored in await IgnoredSourceFiles(w, ct))
             if (!Managed(ignored, w.ManagedPaths)) throw Error("UnownedIgnoredFiles", "Unclassified ignored result must be preserved: " + ignored);
         string reference = ResultReference(w);
         await Required(w.ProjectPath, ["update-ref", reference, source.Revision], ct);
         await Required(w.ProjectPath, ["cat-file", "-e", source.Revision + "^{tree}"], ct);
         return reference;
+    }
+
+    public bool SupportsCheckpointAndPreserve(WorkspaceRecord w) => WorkspaceStorage.HasRangeJournal(w.StorageMode);
+
+    public async Task<SnapshotSourceCheckpoint> CheckpointAndPreserveAsync(WorkspaceRecord w, string control,
+        string message, CancellationToken ct = default)
+    {
+        if (!WorkspaceStorage.HasRangeJournal(w.StorageMode))
+            throw Error("UnsupportedStorageMode", "Sealed checkpoint preservation requires a range-journal workspace.");
+        await Receipt(w, control, ct);
+        string reference = ResultReference(w);
+        var source = await CheckpointSourceAsync(w, message, async revision =>
+        {
+            foreach (string ignored in await IgnoredSourceFiles(w, ct))
+                if (!Managed(ignored, w.ManagedPaths))
+                    throw Error("UnownedIgnoredFiles", "Unclassified ignored result must be preserved: " + ignored);
+            await Required(w.ProjectPath, ["update-ref", reference, revision], ct);
+            await Required(w.ProjectPath, ["cat-file", "-e", revision + "^{tree}"], ct);
+        }, ct);
+        if (await Required(w.ProjectPath, ["rev-parse", reference], ct) != source.Revision ||
+            await Required(w.ProjectPath, ["rev-parse", "refs/heads/" + w.SourceReference], ct) != source.Revision)
+            throw Error("GitOverlayResultMismatch", "The preserved checkpoint reference changed; keep the source and result.");
+        return new(source, reference);
+    }
+
+    private static async Task<string[]> IgnoredSourceFiles(WorkspaceRecord w, CancellationToken ct)
+    {
+        // Wildcard policies retain the existing per-path classification. Literal
+        // managed roots can be pruned before Git traverses generated subtrees.
+        string magic = OperatingSystem.IsWindows() ? ":(top,exclude,literal,icase)" : ":(top,exclude,literal)";
+        var exclusions = w.ManagedPaths.Where(root => !root.Contains('*') && !root.Contains('\\') &&
+            !Path.IsPathRooted(root) && root.TrimEnd('/').Split('/').All(part => part is not ("" or "." or "..")))
+            .Select(root => magic + root.TrimEnd('/')).ToArray();
+        return SplitZero(await Required(w.Path,
+            ["ls-files", "--others", "--ignored", "--exclude-standard", "-z", "--", ".", .. exclusions], ct));
     }
     public async Task VerifyResultAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {

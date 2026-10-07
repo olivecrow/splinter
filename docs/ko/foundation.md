@@ -57,6 +57,8 @@ workspace 상태와 Windows 제어 IPC는 같은 디렉터리에 flush한 임시
 
 private Mutation의 기본값 JSON은 생략하고 명시적 정리/후보에서는 더 작은 현재 메타데이터를 선택한다. 입력/응답·SJR2 의미를 바꾸거나 저장된 저널을 읽기 중 변환하지 않는다. 실제 Unity 저널의 오프라인 파일 할당과 새 후보 native 실행의 구분은 [JM 검증](verification/journal-metadata-storage.md)을 따른다.
 
+[Checkpoint/release 최적화](verification/checkpoint-release-optimization.md)는 안정된 seal 안에서 Git checkpoint/보존을 결합하고 SJL4 inventory 검색을 인덱스로 바꾸며 새 회수의 seal 검증을 통합한다. 실행 중 writer 계수는 실제 파일 감사와 구분해 표시하고 poisoned 계수는 provider를 종료하지 않고 unknown으로 남긴다. 요청 파일 알림으로 provider를 깨우되 1초 heartbeat polling과 요청 identity 검사는 유지한다. 기존 독립 결과·내용 hash·소유권·중단 복구 검사를 유지한다.
+
 소유 process supervisor와 PID/시작 시각/토큰·자식 자원 0, 실제 mount/Git/delta·snapshot 회수 관측은 제품 핵심이다. [명시적 discard](workspace-discard.md)는 별도 durable intent/authorization을 사용한다. `release`는 독립 결과를 남기며 shared/reclaim-pending·unknown을 회수 완료로 표시하지 않는다. 열린 개발용 candidate/source/cache도 snapshot 의존성으로 계속 보호한다.
 
 workspace 상태는 저장·소스·소유 자원·독립 결과와 반영/회수 intent를 기록한다. view ledger는 후보 게시·소스 세대·cache 의존성과 요청별 receipt를 기록한다. 지원하지 않는 필드·형식과 손상된 상태는 보존하고 명시적으로 거부한다. 컴파일·Play/Test/build와 게임 합격 판단은 에이전트와 외부 도구가 수행한다.

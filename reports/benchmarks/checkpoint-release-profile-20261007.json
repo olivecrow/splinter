@@ -1,0 +1,1671 @@
+{
+  "schemaVersion": 1,
+  "recordedDate": "2026-10-07",
+  "purpose": "Bounded checkpoint/release diagnosis, not optimization or Unity compilation qualification.",
+  "fixture": {
+    "sourceRevision": "338fb9b2b083f1e95c4a82fd68bed405256d2c75",
+    "trackedFiles": 64,
+    "sourceBytes": 5510,
+    "libraryFiles": 256,
+    "libraryBytes": 65536,
+    "editorExecuted": false,
+    "storage": "git-snapshot",
+    "application": "unity",
+    "maxJournalBytes": 67108864,
+    "bounds": {
+      "maxCases": 2,
+      "perCommandObservationSeconds": 240
+    }
+  },
+  "methodology": {
+    "tinyCases": 2,
+    "repetitionsPerCase": 1,
+    "parallelCases": false,
+    "editorExecuted": false,
+    "edits": "Each case changes the same one source line. Private-library case additionally changes the first byte of 128 existing 256-byte Library files; minimal case changes none.",
+    "priorEvidence": "Reuses the completed large Unity run; no large-project rerun.",
+    "instrumentedDistribution": "Scratch Git/Runtime assemblies only; original product source and original Unity fixture unchanged.",
+    "limits": [
+      "Single ordered run per case, no cache clearing or statistical confidence.",
+      "Instrumentation logging overhead is included and not independently quantified.",
+      "A roughly 4.4-second diagnostic fence microprobe overlapped the first case at 07:50:01 UTC; no isolated absolute SLA is claimed.",
+      "Tiny fixture demonstrates mechanisms; its wall times must not be extrapolated to Unity or a larger project.",
+      "Git span includes process startup and I/O, not just attribute CPU time.",
+      "Non-Git inspection residual is a phase remainder, not measured provider-lock time.",
+      "Provider inventory counters cover process lifetime, not individual checkpoint/release intervals.",
+      "Nested Runtime spans and event stages overlap source/seal phases; do not sum across parent/child tables."
+    ]
+  },
+  "instrumentation": {
+    "purpose": "diagnostic-only scratch assemblies; no product source changes",
+    "changedSources": {
+      "src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs": {
+        "originalSha256": "b17213dc52d51bf930154779b2b33e3474153216c1f8c679ca3fc574ff35b378",
+        "diagnosticSha256": "8cf26072407a26962a5e2ea50f1e3381bff35a9ed94acb320e157c65ae858b6c"
+      },
+      "src/Splinter.SourceControl.Git/LifecycleProfiler.cs": {
+        "originalSha256": null,
+        "diagnosticSha256": "46614844edc54e681abfa0ec23346879ad525bdd55fe382adb36cf9691669b56"
+      },
+      "src/Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj": {
+        "originalSha256": "fc298ecf37c3a953976be90230f31c0fecb8440002e8c68fb34907d269cd9e05",
+        "diagnosticSha256": "aca3113700d40f1d60489562aaa43118f2f12b65bd903cdddf5dd36704cc37be"
+      },
+      "src/Splinter.Runtime/JournalDeltaLatest.cs": {
+        "originalSha256": "71082ab9a454a0bae34efda46645aa31ca84ae004760533dd319f3408064d7d1",
+        "diagnosticSha256": "c5d40ee75917d1e50e3d7a7dc0c2cf38ffbdb188641dc8f7f7bf6445e84d9ef5"
+      },
+      "src/Splinter.Runtime/LatestJournalReclamation.cs": {
+        "originalSha256": "249d3f66af9abf95752e99fa040d1c61b1b82886ce63cc02b58aa45dc858abc7",
+        "diagnosticSha256": "45607ea4a6331c7adc8bfd544f5dd9f792df110522b852954877eff5ab5e2b69"
+      },
+      "src/Splinter.Runtime/LatestJournalStorage.cs": {
+        "originalSha256": "cbda81a149f014b8568562c03fb0eefa3ef4fa01f34967fffd6a0b831414b084",
+        "diagnosticSha256": "ed1df485aa15d00aa6cf16a33e89e5b2edc87b6e4745ef4a5b3535f35e187da4"
+      },
+      "src/Splinter.Runtime/LifecycleProfiler.cs": {
+        "originalSha256": null,
+        "diagnosticSha256": "c53187bd5d12bf6fc8adc11c9c050259b1f0b5bc3087a4c68a709e7ebed901ad"
+      },
+      "src/Splinter.Runtime/Splinter.Runtime.csproj": {
+        "originalSha256": "35117335f5d0a91370c99017a947e59328badf1b1917722d430bc587d1bfb3f1",
+        "diagnosticSha256": "6d5385e5e74eed98fdf295f34faae6b7d6f9db29e77c95a35cd72e5232ada861"
+      }
+    },
+    "timingSemantics": "spans overlap and nest; aggregate inventory ticks do not add to parent spans; file logging failures swallowed; inventory uses counters only and flushes on normal exit",
+    "lockedRestore": "passed",
+    "gitBuild": {
+      "errors": 0,
+      "warnings": 0,
+      "elapsedSeconds": 2.82
+    },
+    "runtimeBuild": {
+      "errors": 0,
+      "warnings": 0,
+      "elapsedSeconds": 4.32
+    },
+    "replacements": {
+      "Splinter.SourceControl.Git.dll": {
+        "originalSha256": "a2c932f28cbc668d27c314dd0bdce6b3ec0fddef1e5fac0df1dfc568d1150c75",
+        "diagnosticSha256": "53d246756b58170c0fd178e116ec73de2af5298feaaa0220fb2b01f4835fcd84"
+      },
+      "Splinter.SourceControl.Git.pdb": {
+        "originalSha256": "b7285cf8e71a986cb9939aa6123d93be56715e4a90efde4574d7a1b42cf74c34",
+        "diagnosticSha256": "97668fee3f68ac30e34cdfe49be7ada06fcc52120d793c5f40282df3ded8c83d"
+      },
+      "Splinter.Runtime.dll": {
+        "originalSha256": "62e8168a8e7d19e04b8342e7746f401ebb6097bc71658300dc5b9929e58e302d",
+        "diagnosticSha256": "2c3f477089f9e624618a672b0bab3ded70b7b085a20a5a63329d13d8596b7455"
+      },
+      "Splinter.Runtime.pdb": {
+        "originalSha256": "ca8a64160e0928239dee309170604e4c426083093ed44fa5596be261d6c03b25",
+        "diagnosticSha256": "ad35b3bf81dea9a600fb41f7d4f3073a4db2dae281e543450cd0c3104cf802ef"
+      }
+    },
+    "unchangedBinaryFileCount": 41,
+    "diagnosticDllSha256": {
+      "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+      "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+      "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+      "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+      "Splinter.Application.Unity.dll": "ca9a50b06e6e285189e3342bdf12584d567d92a65bcdf096dec1b480a0ca2e2b",
+      "Splinter.Core.dll": "8d26a03953fd20b9c37b626ebf3b592316d41ec5b8fac49479cc6c54941228bb",
+      "splinter.dll": "1c65d153c0e5de104e5ca727569dcf106e2cfdd8d7f76e001e623e3d8bef06bc",
+      "Splinter.Host.dll": "c0834cb46fb6db3a833e10a2521920f4071ad2fa971a90f65238bef0b69de228",
+      "Splinter.Platform.Windows.dll": "6f76e01ecaed3611e2569215d192b78a9830ebbcd04929613c7c8f4495327bef",
+      "Splinter.Protocol.dll": "61c0f0f8fe95fb2e3038cf58d31f265b170f7a690f27d4509dce9c878a2f6346",
+      "Splinter.Runtime.dll": "2c3f477089f9e624618a672b0bab3ded70b7b085a20a5a63329d13d8596b7455",
+      "Splinter.SourceControl.Files.dll": "db50909c78ae32fda8c1fd828e5c30c263dc9124bb902a6baedcfcb013d57ac4",
+      "Splinter.SourceControl.Git.dll": "53d246756b58170c0fd178e116ec73de2af5298feaaa0220fb2b01f4835fcd84",
+      "Splinter.Workflows.Windows.dll": "764b5ead836bb03d7298d9156bf67d14ff701c692929a050c043cf5b6f86fe96",
+      "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+      "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+    },
+    "postRunOriginalVerification": {
+      "sourceFileCount": 45,
+      "allSourceHashesMatched": true,
+      "originalCliBinarySha256": {
+        "Splinter.SourceControl.Git.dll": "a2c932f28cbc668d27c314dd0bdce6b3ec0fddef1e5fac0df1dfc568d1150c75",
+        "Splinter.SourceControl.Git.pdb": "b7285cf8e71a986cb9939aa6123d93be56715e4a90efde4574d7a1b42cf74c34",
+        "Splinter.Runtime.dll": "62e8168a8e7d19e04b8342e7746f401ebb6097bc71658300dc5b9929e58e302d",
+        "Splinter.Runtime.pdb": "ca8a64160e0928239dee309170604e4c426083093ed44fa5596be261d6c03b25"
+      },
+      "allOriginalCliBinaryHashesMatched": true
+    },
+    "productSourceChanged": false,
+    "diagnosticBuildOnly": true
+  },
+  "priorUnity": {
+    "trackedFiles": 1602,
+    "sourceBytes": 2804772822,
+    "operations": {
+      "aCheckpoint": {
+        "cost": {
+          "beganUtc": "2026-10-07T04:15:20.950002+00:00",
+          "endedUtc": "2026-10-07T05:50:44.317329+00:00",
+          "elapsedSeconds": 5723.60831,
+          "exitCode": 0
+        },
+        "sourceInspection": {
+          "count": 7,
+          "seconds": 4673.119157,
+          "wallShare": 0.816464,
+          "filesHashed": 1,
+          "payloadBytesHashed": 143,
+          "inspections": [
+            {
+              "beganUtc": "2026-10-07T04:15:24.585484+00:00",
+              "endedUtc": "2026-10-07T04:22:12.703871+00:00",
+              "seconds": 408.118387,
+              "filesHashed": 1,
+              "filesReused": 1601,
+              "payloadBytesHashed": 143
+            },
+            {
+              "beganUtc": "2026-10-07T04:25:05.655919+00:00",
+              "endedUtc": "2026-10-07T04:31:50.901849+00:00",
+              "seconds": 405.24593,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T04:34:52.828315+00:00",
+              "endedUtc": "2026-10-07T04:41:14.961641+00:00",
+              "seconds": 382.133326,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T04:41:20.677206+00:00",
+              "endedUtc": "2026-10-07T04:49:19.003925+00:00",
+              "seconds": 478.326719,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T04:53:39.034918+00:00",
+              "endedUtc": "2026-10-07T05:17:28.743542+00:00",
+              "seconds": 1429.708624,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T05:23:04.386321+00:00",
+              "endedUtc": "2026-10-07T05:36:43.549627+00:00",
+              "seconds": 819.163306,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T05:38:13.806691+00:00",
+              "endedUtc": "2026-10-07T05:50:44.229557+00:00",
+              "seconds": 750.422866,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            }
+          ]
+        },
+        "seal": {
+          "count": 2,
+          "seconds": 295.658536,
+          "wallShare": 0.051656,
+          "payloadBytesPerSeal": [
+            36694054,
+            36694054
+          ]
+        },
+        "nonOverlappingPhaseSeconds": 4968.777693,
+        "nonOverlappingPhaseShare": 0.86812,
+        "otherUnattributedSeconds": 754.830617,
+        "events": [
+          {
+            "action": "checkpoint-intent",
+            "atUtc": "2026-10-07T04:22:12.7141738+00:00",
+            "elapsedSeconds": 411.764171
+          },
+          {
+            "action": "checkpoint-completed",
+            "atUtc": "2026-10-07T05:38:07.5321019+00:00",
+            "elapsedSeconds": 4966.582099
+          }
+        ],
+        "intervalSemantics": "Inspection starts inferred from recorded completion minus monotonic elapsed; logger/write overhead and other stages remain unattributed.",
+        "finalResponseAfterDurableCompletionSeconds": 756.785228,
+        "finalResponseSourceInspectionSeconds": 750.422866
+      },
+      "aRelease": {
+        "cost": {
+          "beganUtc": "2026-10-07T05:50:44.320090+00:00",
+          "endedUtc": "2026-10-07T06:18:26.611621+00:00",
+          "elapsedSeconds": 1662.4729290000032,
+          "exitCode": 0
+        },
+        "sourceInspection": {
+          "count": 2,
+          "seconds": 1041.264448,
+          "wallShare": 0.626335,
+          "filesHashed": 0,
+          "payloadBytesHashed": 0,
+          "inspections": [
+            {
+              "beganUtc": "2026-10-07T05:51:41.246249+00:00",
+              "endedUtc": "2026-10-07T06:00:57.778011+00:00",
+              "seconds": 556.531762,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T06:04:34.148769+00:00",
+              "endedUtc": "2026-10-07T06:12:38.881456+00:00",
+              "seconds": 484.732686,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            }
+          ]
+        },
+        "seal": {
+          "count": 4,
+          "seconds": 133.349467,
+          "wallShare": 0.080212,
+          "payloadBytesPerSeal": [
+            36694054,
+            36694054,
+            36694054,
+            36694054
+          ]
+        },
+        "nonOverlappingPhaseSeconds": 1174.613916,
+        "nonOverlappingPhaseShare": 0.706546,
+        "otherUnattributedSeconds": 487.859013,
+        "events": [
+          {
+            "action": "release-unmount",
+            "atUtc": "2026-10-07T06:13:20.7247618+00:00",
+            "elapsedSeconds": 1356.404671
+          },
+          {
+            "action": "release-registration",
+            "atUtc": "2026-10-07T06:13:59.1677159+00:00",
+            "elapsedSeconds": 1394.847625
+          },
+          {
+            "action": "release-delta",
+            "atUtc": "2026-10-07T06:14:01.3041251+00:00",
+            "elapsedSeconds": 1396.984035
+          },
+          {
+            "action": "release-snapshot",
+            "atUtc": "2026-10-07T06:18:25.6153495+00:00",
+            "elapsedSeconds": 1661.295259
+          },
+          {
+            "action": "released",
+            "atUtc": "2026-10-07T06:18:26.5463213+00:00",
+            "elapsedSeconds": 1662.226231
+          }
+        ],
+        "intervalSemantics": "Inspection starts inferred from recorded completion minus monotonic elapsed; logger/write overhead and other stages remain unattributed.",
+        "releaseEventStages": {
+          "beforeUnmountMarkerSeconds": 1356.404671,
+          "unmountAndSealSeconds": 38.442954,
+          "unregisterSeconds": 2.13641,
+          "removePrivateDeltaSeconds": 264.311224,
+          "basisReleaseAndFinalObservationSeconds": 0.930972,
+          "semantics": "Durable event gaps include state/event publication. Delta removal contains a seal; these stages overlap the source/seal aggregate and must not be added to it."
+        }
+      },
+      "bCheckpoint": {
+        "cost": {
+          "beganUtc": "2026-10-07T05:43:24.2486523+00:00",
+          "endedUtc": "2026-10-07T06:31:58.6789518+00:00",
+          "elapsedSeconds": 2914.6685034,
+          "exitCode": 0
+        },
+        "sourceInspection": {
+          "count": 5,
+          "seconds": 2450.363293,
+          "wallShare": 0.840701,
+          "filesHashed": 1,
+          "payloadBytesHashed": 152,
+          "inspections": [
+            {
+              "beganUtc": "2026-10-07T05:43:31.256743+00:00",
+              "endedUtc": "2026-10-07T05:55:43.744314+00:00",
+              "seconds": 732.487571,
+              "filesHashed": 1,
+              "filesReused": 1601,
+              "payloadBytesHashed": 152
+            },
+            {
+              "beganUtc": "2026-10-07T05:58:55.627295+00:00",
+              "endedUtc": "2026-10-07T06:07:13.254820+00:00",
+              "seconds": 497.627525,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T06:07:54.451510+00:00",
+              "endedUtc": "2026-10-07T06:15:48.499174+00:00",
+              "seconds": 474.047664,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T06:18:53.097970+00:00",
+              "endedUtc": "2026-10-07T06:25:07.036613+00:00",
+              "seconds": 373.938643,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T06:25:46.359538+00:00",
+              "endedUtc": "2026-10-07T06:31:58.621428+00:00",
+              "seconds": 372.26189,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            }
+          ]
+        },
+        "seal": {
+          "count": 2,
+          "seconds": 61.775758,
+          "wallShare": 0.021195,
+          "payloadBytesPerSeal": [
+            36711624,
+            36711624
+          ]
+        },
+        "nonOverlappingPhaseSeconds": 2512.139051,
+        "nonOverlappingPhaseShare": 0.861895,
+        "otherUnattributedSeconds": 402.529452,
+        "events": [
+          {
+            "action": "checkpoint-intent",
+            "atUtc": "2026-10-07T05:55:43.7522615+00:00",
+            "elapsedSeconds": 739.503609
+          },
+          {
+            "action": "checkpoint-completed",
+            "atUtc": "2026-10-07T06:25:44.0782925+00:00",
+            "elapsedSeconds": 2539.82964
+          }
+        ],
+        "intervalSemantics": "Inspection starts inferred from recorded completion minus monotonic elapsed; logger/write overhead and other stages remain unattributed.",
+        "finalResponseAfterDurableCompletionSeconds": 374.600659,
+        "finalResponseSourceInspectionSeconds": 372.26189
+      },
+      "bRelease": {
+        "cost": {
+          "beganUtc": "2026-10-07T06:32:03.7468195+00:00",
+          "endedUtc": "2026-10-07T06:51:27.0327209+00:00",
+          "elapsedSeconds": 1163.3742298,
+          "exitCode": 0
+        },
+        "sourceInspection": {
+          "count": 2,
+          "seconds": 729.912441,
+          "wallShare": 0.62741,
+          "filesHashed": 0,
+          "payloadBytesHashed": 0,
+          "inspections": [
+            {
+              "beganUtc": "2026-10-07T06:32:32.355747+00:00",
+              "endedUtc": "2026-10-07T06:38:33.793147+00:00",
+              "seconds": 361.4374,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T06:41:06.999596+00:00",
+              "endedUtc": "2026-10-07T06:47:15.474637+00:00",
+              "seconds": 368.475041,
+              "filesHashed": 0,
+              "filesReused": 1602,
+              "payloadBytesHashed": 0
+            }
+          ]
+        },
+        "seal": {
+          "count": 4,
+          "seconds": 95.173012,
+          "wallShare": 0.081808,
+          "payloadBytesPerSeal": [
+            36711624,
+            36711624,
+            36711624,
+            36711624
+          ]
+        },
+        "nonOverlappingPhaseSeconds": 825.085453,
+        "nonOverlappingPhaseShare": 0.709218,
+        "otherUnattributedSeconds": 338.288777,
+        "events": [
+          {
+            "action": "release-unmount",
+            "atUtc": "2026-10-07T06:47:50.1273223+00:00",
+            "elapsedSeconds": 946.380503
+          },
+          {
+            "action": "release-registration",
+            "atUtc": "2026-10-07T06:48:17.5558397+00:00",
+            "elapsedSeconds": 973.80902
+          },
+          {
+            "action": "release-delta",
+            "atUtc": "2026-10-07T06:48:18.8785725+00:00",
+            "elapsedSeconds": 975.131753
+          },
+          {
+            "action": "release-snapshot",
+            "atUtc": "2026-10-07T06:51:26.5406766+00:00",
+            "elapsedSeconds": 1162.793857
+          },
+          {
+            "action": "released",
+            "atUtc": "2026-10-07T06:51:26.9683488+00:00",
+            "elapsedSeconds": 1163.221529
+          }
+        ],
+        "intervalSemantics": "Inspection starts inferred from recorded completion minus monotonic elapsed; logger/write overhead and other stages remain unattributed.",
+        "releaseEventStages": {
+          "beforeUnmountMarkerSeconds": 946.380503,
+          "unmountAndSealSeconds": 27.428517,
+          "unregisterSeconds": 1.322733,
+          "removePrivateDeltaSeconds": 187.662104,
+          "basisReleaseAndFinalObservationSeconds": 0.427672,
+          "semantics": "Durable event gaps include state/event publication. Delta removal contains a seal; these stages overlap the source/seal aggregate and must not be added to it."
+        }
+      }
+    }
+  },
+  "cases": {
+    "minimal": {
+      "privateLibraryFilesChanged": 0,
+      "ensureCost": {
+        "beganUtc": "2026-10-07T07:49:38.922650+00:00",
+        "endedUtc": "2026-10-07T07:50:10.606517+00:00",
+        "elapsedSeconds": 31.685547600001883,
+        "exitCode": 0,
+        "status": "Succeeded",
+        "error": null
+      },
+      "ensureAndProviderInventoryCounters": [
+        {
+          "role": "owned-provider-lifetime",
+          "calls": 733,
+          "filesVisited": 2015,
+          "meanFilesPerCall": 2.748977,
+          "seconds": 0.177039,
+          "semantics": "Process-lifetime counter; includes nested/periodic inventory work. Do not add to spans or assume provider counter belongs to this command interval."
+        },
+        {
+          "role": "main-ensure-cli",
+          "calls": 3,
+          "filesVisited": 6,
+          "meanFilesPerCall": 2.0,
+          "seconds": 0.000623,
+          "semantics": "Process-lifetime counter; includes nested/periodic inventory work. Do not add to spans or assume provider counter belongs to this command interval."
+        }
+      ],
+      "closure": {
+        "phase": "released",
+        "resultRevision": "65368c6334e0c8479cda1dd1a8031c78986a90f7",
+        "resultContentVerified": true,
+        "mountAbsent": true,
+        "deltaAbsent": true,
+        "changedSourcePathCount": 1,
+        "changedSourcePaths": [
+          "Assets/File000.cs"
+        ],
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "deltaPresent": false
+        }
+      },
+      "checkpoint": {
+        "cost": {
+          "beganUtc": "2026-10-07T07:50:10.645746+00:00",
+          "endedUtc": "2026-10-07T07:50:52.642103+00:00",
+          "elapsedSeconds": 41.9985889999989,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null
+        },
+        "sourceInspection": {
+          "count": 7,
+          "seconds": 33.90704,
+          "wallShare": 0.807338,
+          "filesHashed": 1,
+          "payloadBytesHashed": 89,
+          "inspections": [
+            {
+              "beganUtc": "2026-10-07T07:50:11.948610+00:00",
+              "endedUtc": "2026-10-07T07:50:16.699563+00:00",
+              "seconds": 4.750953,
+              "filesHashed": 1,
+              "filesReused": 63,
+              "payloadBytesHashed": 89
+            },
+            {
+              "beganUtc": "2026-10-07T07:50:17.612244+00:00",
+              "endedUtc": "2026-10-07T07:50:22.974152+00:00",
+              "seconds": 5.361908,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:50:24.411746+00:00",
+              "endedUtc": "2026-10-07T07:50:29.132545+00:00",
+              "seconds": 4.720799,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:50:29.528072+00:00",
+              "endedUtc": "2026-10-07T07:50:34.064785+00:00",
+              "seconds": 4.536713,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:50:35.298050+00:00",
+              "endedUtc": "2026-10-07T07:50:40.171631+00:00",
+              "seconds": 4.873581,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:50:41.243143+00:00",
+              "endedUtc": "2026-10-07T07:50:46.472139+00:00",
+              "seconds": 5.228996,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:50:48.124294+00:00",
+              "endedUtc": "2026-10-07T07:50:52.558382+00:00",
+              "seconds": 4.434088,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            }
+          ]
+        },
+        "seal": {
+          "count": 2,
+          "seconds": 0.045886,
+          "wallShare": 0.001093,
+          "payloadBytesPerSeal": [
+            3912,
+            3912
+          ]
+        },
+        "nonOverlappingPhaseSeconds": 33.952926,
+        "nonOverlappingPhaseShare": 0.80843,
+        "otherUnattributedSeconds": 8.045663,
+        "events": [
+          {
+            "action": "checkpoint-intent",
+            "atUtc": "2026-10-07T07:50:16.7084164+00:00",
+            "elapsedSeconds": 6.06267
+          },
+          {
+            "action": "checkpoint-completed",
+            "atUtc": "2026-10-07T07:50:47.4865466+00:00",
+            "elapsedSeconds": 36.8408
+          }
+        ],
+        "intervalSemantics": "Inspection starts inferred from recorded completion minus monotonic elapsed; logger/write overhead and other stages remain unattributed.",
+        "finalResponseAfterDurableCompletionSeconds": 5.155557,
+        "finalResponseSourceInspectionSeconds": 4.434088,
+        "gitCommands": {
+          "count": 190,
+          "seconds": 20.647212,
+          "unionSeconds": 20.646063,
+          "wallShare": 0.491589,
+          "categories": [
+            {
+              "category": "add",
+              "count": 2,
+              "seconds": 0.229925,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "cat-file",
+              "count": 1,
+              "seconds": 0.101979,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "check-attr.all",
+              "count": 28,
+              "seconds": 2.987769,
+              "insideSourceInspectionSeconds": 2.987598
+            },
+            {
+              "category": "check-attr.cached-filter",
+              "count": 20,
+              "seconds": 2.185181,
+              "insideSourceInspectionSeconds": 1.509204
+            },
+            {
+              "category": "check-attr.current-filter",
+              "count": 20,
+              "seconds": 2.200595,
+              "insideSourceInspectionSeconds": 1.514304
+            },
+            {
+              "category": "commit",
+              "count": 1,
+              "seconds": 0.184636,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "config",
+              "count": 14,
+              "seconds": 1.460909,
+              "insideSourceInspectionSeconds": 1.460827
+            },
+            {
+              "category": "diff",
+              "count": 14,
+              "seconds": 1.510465,
+              "insideSourceInspectionSeconds": 1.510394
+            },
+            {
+              "category": "hash-object",
+              "count": 1,
+              "seconds": 0.113194,
+              "insideSourceInspectionSeconds": 0.113189
+            },
+            {
+              "category": "ls-files",
+              "count": 51,
+              "seconds": 5.635796,
+              "insideSourceInspectionSeconds": 4.617703
+            },
+            {
+              "category": "ls-tree",
+              "count": 7,
+              "seconds": 0.765659,
+              "insideSourceInspectionSeconds": 0.765618
+            },
+            {
+              "category": "rev-parse",
+              "count": 22,
+              "seconds": 2.319132,
+              "insideSourceInspectionSeconds": 1.462455
+            },
+            {
+              "category": "status",
+              "count": 1,
+              "seconds": 0.109572,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "update-ref",
+              "count": 1,
+              "seconds": 0.102612,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "worktree",
+              "count": 7,
+              "seconds": 0.739789,
+              "insideSourceInspectionSeconds": 0.0
+            }
+          ],
+          "insideSourceInspectionSeconds": 15.941292,
+          "sourceInspectionNonGitResidualSeconds": 17.965748,
+          "sourceInspectionNonGitResidualSemantics": "Includes plain-path filesystem validation, callback/barrier waiting, manifest/cache reads/writes and uninstrumented code; not a direct callback-lock timer.",
+          "semantics": "Main CLI process only. Git process spans include startup/wait/I/O. Categories are disjoint commands; intersections belong to the source-inspection parent and must not be added twice."
+        },
+        "runtimeSpanStages": [
+          {
+            "stage": "runtime.journal.seal.total",
+            "count": 2,
+            "seconds": 0.041477,
+            "nested": true
+          }
+        ],
+        "mainCliInventoryCounters": [
+          {
+            "role": "main-cli",
+            "calls": 4,
+            "filesVisited": 12,
+            "meanFilesPerCall": 3.0,
+            "seconds": 0.001172,
+            "semantics": "Process-lifetime counter; includes nested/periodic inventory work. Do not add to spans or assume provider counter belongs to this command interval."
+          }
+        ],
+        "otherProcessTracePresent": false,
+        "profilingScope": "Main CLI PID matched to phase process receipt; no provider lifetime counter is treated as exact checkpoint/release share."
+      },
+      "release": {
+        "cost": {
+          "beganUtc": "2026-10-07T07:50:52.730315+00:00",
+          "endedUtc": "2026-10-07T07:51:12.780717+00:00",
+          "elapsedSeconds": 20.05129769999985,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null
+        },
+        "sourceInspection": {
+          "count": 2,
+          "seconds": 10.073094,
+          "wallShare": 0.502366,
+          "filesHashed": 0,
+          "payloadBytesHashed": 0,
+          "inspections": [
+            {
+              "beganUtc": "2026-10-07T07:50:55.094409+00:00",
+              "endedUtc": "2026-10-07T07:50:59.989360+00:00",
+              "seconds": 4.894951,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:51:00.960499+00:00",
+              "endedUtc": "2026-10-07T07:51:06.138642+00:00",
+              "seconds": 5.178143,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            }
+          ]
+        },
+        "seal": {
+          "count": 4,
+          "seconds": 0.073686,
+          "wallShare": 0.003675,
+          "payloadBytesPerSeal": [
+            3912,
+            3912,
+            3912,
+            3912
+          ]
+        },
+        "nonOverlappingPhaseSeconds": 10.14678,
+        "nonOverlappingPhaseShare": 0.506041,
+        "otherUnattributedSeconds": 9.904518,
+        "events": [
+          {
+            "action": "release-unmount",
+            "atUtc": "2026-10-07T07:51:07.237724+00:00",
+            "elapsedSeconds": 14.507409
+          },
+          {
+            "action": "release-registration",
+            "atUtc": "2026-10-07T07:51:09.0943252+00:00",
+            "elapsedSeconds": 16.36401
+          },
+          {
+            "action": "release-delta",
+            "atUtc": "2026-10-07T07:51:10.4061322+00:00",
+            "elapsedSeconds": 17.675817
+          },
+          {
+            "action": "release-snapshot",
+            "atUtc": "2026-10-07T07:51:12.1784208+00:00",
+            "elapsedSeconds": 19.448105
+          },
+          {
+            "action": "released",
+            "atUtc": "2026-10-07T07:51:12.6659912+00:00",
+            "elapsedSeconds": 19.935676
+          }
+        ],
+        "intervalSemantics": "Inspection starts inferred from recorded completion minus monotonic elapsed; logger/write overhead and other stages remain unattributed.",
+        "releaseEventStages": {
+          "beforeUnmountMarkerSeconds": 14.507409,
+          "unmountAndSealSeconds": 1.856601,
+          "unregisterSeconds": 1.311807,
+          "removePrivateDeltaSeconds": 1.772288,
+          "basisReleaseAndFinalObservationSeconds": 0.487571,
+          "semantics": "Durable event gaps include state/event publication. Delta removal contains a seal; these stages overlap the source/seal aggregate and must not be added to it."
+        },
+        "gitCommands": {
+          "count": 69,
+          "seconds": 7.267894,
+          "unionSeconds": 7.267536,
+          "wallShare": 0.362447,
+          "categories": [
+            {
+              "category": "cat-file",
+              "count": 3,
+              "seconds": 0.303085,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "check-attr.all",
+              "count": 8,
+              "seconds": 0.859584,
+              "insideSourceInspectionSeconds": 0.859541
+            },
+            {
+              "category": "check-attr.cached-filter",
+              "count": 6,
+              "seconds": 0.651957,
+              "insideSourceInspectionSeconds": 0.432552
+            },
+            {
+              "category": "check-attr.current-filter",
+              "count": 6,
+              "seconds": 0.656101,
+              "insideSourceInspectionSeconds": 0.439896
+            },
+            {
+              "category": "config",
+              "count": 4,
+              "seconds": 0.426433,
+              "insideSourceInspectionSeconds": 0.426411
+            },
+            {
+              "category": "diff",
+              "count": 4,
+              "seconds": 0.437712,
+              "insideSourceInspectionSeconds": 0.437691
+            },
+            {
+              "category": "ls-files",
+              "count": 15,
+              "seconds": 1.609352,
+              "insideSourceInspectionSeconds": 1.290748
+            },
+            {
+              "category": "ls-tree",
+              "count": 2,
+              "seconds": 0.213074,
+              "insideSourceInspectionSeconds": 0.213064
+            },
+            {
+              "category": "rev-list",
+              "count": 2,
+              "seconds": 0.205277,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "rev-parse",
+              "count": 14,
+              "seconds": 1.397309,
+              "insideSourceInspectionSeconds": 0.411186
+            },
+            {
+              "category": "update-ref",
+              "count": 1,
+              "seconds": 0.100487,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "worktree",
+              "count": 4,
+              "seconds": 0.407523,
+              "insideSourceInspectionSeconds": 0.0
+            }
+          ],
+          "insideSourceInspectionSeconds": 4.511089,
+          "sourceInspectionNonGitResidualSeconds": 5.562005,
+          "sourceInspectionNonGitResidualSemantics": "Includes plain-path filesystem validation, callback/barrier waiting, manifest/cache reads/writes and uninstrumented code; not a direct callback-lock timer.",
+          "semantics": "Main CLI process only. Git process spans include startup/wait/I/O. Categories are disjoint commands; intersections belong to the source-inspection parent and must not be added twice."
+        },
+        "reclamationProfile": {
+          "parentStage": "runtime.reclaim.total",
+          "parentSeconds": 0.04945,
+          "children": [
+            {
+              "stage": "runtime.reclaim.build-inventory",
+              "count": 1,
+              "seconds": 0.012829
+            },
+            {
+              "stage": "runtime.reclaim.fence-membership",
+              "count": 1,
+              "seconds": 0.000556
+            },
+            {
+              "stage": "runtime.reclaim.hash-and-delete",
+              "count": 1,
+              "seconds": 0.002603
+            },
+            {
+              "stage": "runtime.reclaim.seal-check",
+              "count": 1,
+              "seconds": 0.01165
+            },
+            {
+              "stage": "runtime.reclaim.validate-inventory-first",
+              "count": 1,
+              "seconds": 0.00871
+            },
+            {
+              "stage": "runtime.reclaim.validate-inventory-second",
+              "count": 1,
+              "seconds": 0.007944
+            }
+          ],
+          "parentUnattributedSeconds": 0.005158,
+          "semantics": "Parent and children nest. Add disjoint child durations only when comparing shares; never add children to the parent. Journal seal is also nested inside reclaim.seal-check."
+        },
+        "runtimeSpanStages": [
+          {
+            "stage": "runtime.journal.seal.total",
+            "count": 5,
+            "seconds": 0.078768,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.build-inventory",
+            "count": 1,
+            "seconds": 0.012829,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.fence-membership",
+            "count": 1,
+            "seconds": 0.000556,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.hash-and-delete",
+            "count": 1,
+            "seconds": 0.002603,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.seal-check",
+            "count": 1,
+            "seconds": 0.01165,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.total",
+            "count": 1,
+            "seconds": 0.04945,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.validate-inventory-first",
+            "count": 1,
+            "seconds": 0.00871,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.validate-inventory-second",
+            "count": 1,
+            "seconds": 0.007944,
+            "nested": true
+          }
+        ],
+        "mainCliInventoryCounters": [
+          {
+            "role": "main-cli",
+            "calls": 10,
+            "filesVisited": 30,
+            "meanFilesPerCall": 3.0,
+            "seconds": 0.002677,
+            "semantics": "Process-lifetime counter; includes nested/periodic inventory work. Do not add to spans or assume provider counter belongs to this command interval."
+          }
+        ],
+        "otherProcessTracePresent": false,
+        "profilingScope": "Main CLI PID matched to phase process receipt; no provider lifetime counter is treated as exact checkpoint/release share."
+      }
+    },
+    "private-library": {
+      "privateLibraryFilesChanged": 128,
+      "ensureCost": {
+        "beganUtc": "2026-10-07T07:51:12.870644+00:00",
+        "endedUtc": "2026-10-07T07:51:42.539402+00:00",
+        "elapsedSeconds": 29.67030390000218,
+        "exitCode": 0,
+        "status": "Succeeded",
+        "error": null
+      },
+      "ensureAndProviderInventoryCounters": [
+        {
+          "role": "main-ensure-cli",
+          "calls": 3,
+          "filesVisited": 6,
+          "meanFilesPerCall": 2.0,
+          "seconds": 0.000607,
+          "semantics": "Process-lifetime counter; includes nested/periodic inventory work. Do not add to spans or assume provider counter belongs to this command interval."
+        },
+        {
+          "role": "owned-provider-lifetime",
+          "calls": 992,
+          "filesVisited": 89615,
+          "meanFilesPerCall": 90.337702,
+          "seconds": 3.897345,
+          "semantics": "Process-lifetime counter; includes nested/periodic inventory work. Do not add to spans or assume provider counter belongs to this command interval."
+        }
+      ],
+      "closure": {
+        "phase": "released",
+        "resultRevision": "e33d916943d8fa5826c23994b60c81bbff4c984c",
+        "resultContentVerified": true,
+        "mountAbsent": true,
+        "deltaAbsent": true,
+        "changedSourcePathCount": 1,
+        "changedSourcePaths": [
+          "Assets/File000.cs"
+        ],
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "deltaPresent": false
+        }
+      },
+      "checkpoint": {
+        "cost": {
+          "beganUtc": "2026-10-07T07:51:47.552764+00:00",
+          "endedUtc": "2026-10-07T07:52:29.544442+00:00",
+          "elapsedSeconds": 41.994024399999034,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null
+        },
+        "sourceInspection": {
+          "count": 7,
+          "seconds": 33.654252,
+          "wallShare": 0.801406,
+          "filesHashed": 1,
+          "payloadBytesHashed": 89,
+          "inspections": [
+            {
+              "beganUtc": "2026-10-07T07:51:48.684311+00:00",
+              "endedUtc": "2026-10-07T07:51:53.712538+00:00",
+              "seconds": 5.028227,
+              "filesHashed": 1,
+              "filesReused": 63,
+              "payloadBytesHashed": 89
+            },
+            {
+              "beganUtc": "2026-10-07T07:51:54.695325+00:00",
+              "endedUtc": "2026-10-07T07:51:59.835309+00:00",
+              "seconds": 5.139984,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:52:01.341523+00:00",
+              "endedUtc": "2026-10-07T07:52:05.993105+00:00",
+              "seconds": 4.651582,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:52:06.396272+00:00",
+              "endedUtc": "2026-10-07T07:52:11.057800+00:00",
+              "seconds": 4.661528,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:52:12.444209+00:00",
+              "endedUtc": "2026-10-07T07:52:17.110473+00:00",
+              "seconds": 4.666264,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:52:18.186658+00:00",
+              "endedUtc": "2026-10-07T07:52:23.357177+00:00",
+              "seconds": 5.170519,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:52:25.159422+00:00",
+              "endedUtc": "2026-10-07T07:52:29.495571+00:00",
+              "seconds": 4.336149,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            }
+          ]
+        },
+        "seal": {
+          "count": 2,
+          "seconds": 0.420659,
+          "wallShare": 0.010017,
+          "payloadBytesPerSeal": [
+            254386,
+            254386
+          ]
+        },
+        "nonOverlappingPhaseSeconds": 34.074911,
+        "nonOverlappingPhaseShare": 0.811423,
+        "otherUnattributedSeconds": 7.919113,
+        "events": [
+          {
+            "action": "checkpoint-intent",
+            "atUtc": "2026-10-07T07:51:53.7196336+00:00",
+            "elapsedSeconds": 6.166869
+          },
+          {
+            "action": "checkpoint-completed",
+            "atUtc": "2026-10-07T07:52:24.5446974+00:00",
+            "elapsedSeconds": 36.991933
+          }
+        ],
+        "intervalSemantics": "Inspection starts inferred from recorded completion minus monotonic elapsed; logger/write overhead and other stages remain unattributed.",
+        "finalResponseAfterDurableCompletionSeconds": 4.999745,
+        "finalResponseSourceInspectionSeconds": 4.336149,
+        "gitCommands": {
+          "count": 190,
+          "seconds": 21.980206,
+          "unionSeconds": 21.97893,
+          "wallShare": 0.523382,
+          "categories": [
+            {
+              "category": "add",
+              "count": 2,
+              "seconds": 0.230686,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "cat-file",
+              "count": 1,
+              "seconds": 0.100631,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "check-attr.all",
+              "count": 28,
+              "seconds": 3.169929,
+              "insideSourceInspectionSeconds": 3.169745
+            },
+            {
+              "category": "check-attr.cached-filter",
+              "count": 20,
+              "seconds": 2.367032,
+              "insideSourceInspectionSeconds": 1.662151
+            },
+            {
+              "category": "check-attr.current-filter",
+              "count": 20,
+              "seconds": 2.357804,
+              "insideSourceInspectionSeconds": 1.649409
+            },
+            {
+              "category": "commit",
+              "count": 1,
+              "seconds": 0.195907,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "config",
+              "count": 14,
+              "seconds": 1.543029,
+              "insideSourceInspectionSeconds": 1.542942
+            },
+            {
+              "category": "diff",
+              "count": 14,
+              "seconds": 1.654175,
+              "insideSourceInspectionSeconds": 1.654075
+            },
+            {
+              "category": "hash-object",
+              "count": 1,
+              "seconds": 0.116681,
+              "insideSourceInspectionSeconds": 0.116676
+            },
+            {
+              "category": "ls-files",
+              "count": 51,
+              "seconds": 6.060714,
+              "insideSourceInspectionSeconds": 4.943547
+            },
+            {
+              "category": "ls-tree",
+              "count": 7,
+              "seconds": 0.792462,
+              "insideSourceInspectionSeconds": 0.792417
+            },
+            {
+              "category": "rev-parse",
+              "count": 22,
+              "seconds": 2.475341,
+              "insideSourceInspectionSeconds": 1.565044
+            },
+            {
+              "category": "status",
+              "count": 1,
+              "seconds": 0.121335,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "update-ref",
+              "count": 1,
+              "seconds": 0.102634,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "worktree",
+              "count": 7,
+              "seconds": 0.691844,
+              "insideSourceInspectionSeconds": 0.0
+            }
+          ],
+          "insideSourceInspectionSeconds": 17.096006,
+          "sourceInspectionNonGitResidualSeconds": 16.558246,
+          "sourceInspectionNonGitResidualSemantics": "Includes plain-path filesystem validation, callback/barrier waiting, manifest/cache reads/writes and uninstrumented code; not a direct callback-lock timer.",
+          "semantics": "Main CLI process only. Git process spans include startup/wait/I/O. Categories are disjoint commands; intersections belong to the source-inspection parent and must not be added twice."
+        },
+        "runtimeSpanStages": [
+          {
+            "stage": "runtime.journal.seal.total",
+            "count": 2,
+            "seconds": 0.416672,
+            "nested": true
+          }
+        ],
+        "mainCliInventoryCounters": [
+          {
+            "role": "main-cli",
+            "calls": 4,
+            "filesVisited": 524,
+            "meanFilesPerCall": 131.0,
+            "seconds": 0.021186,
+            "semantics": "Process-lifetime counter; includes nested/periodic inventory work. Do not add to spans or assume provider counter belongs to this command interval."
+          }
+        ],
+        "otherProcessTracePresent": false,
+        "profilingScope": "Main CLI PID matched to phase process receipt; no provider lifetime counter is treated as exact checkpoint/release share."
+      },
+      "release": {
+        "cost": {
+          "beganUtc": "2026-10-07T07:52:29.630303+00:00",
+          "endedUtc": "2026-10-07T07:52:50.177548+00:00",
+          "elapsedSeconds": 20.5481131000015,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null
+        },
+        "sourceInspection": {
+          "count": 2,
+          "seconds": 9.808811,
+          "wallShare": 0.477358,
+          "filesHashed": 0,
+          "payloadBytesHashed": 0,
+          "inspections": [
+            {
+              "beganUtc": "2026-10-07T07:52:32.131572+00:00",
+              "endedUtc": "2026-10-07T07:52:36.894317+00:00",
+              "seconds": 4.762745,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            },
+            {
+              "beganUtc": "2026-10-07T07:52:37.913092+00:00",
+              "endedUtc": "2026-10-07T07:52:42.959158+00:00",
+              "seconds": 5.046066,
+              "filesHashed": 0,
+              "filesReused": 64,
+              "payloadBytesHashed": 0
+            }
+          ]
+        },
+        "seal": {
+          "count": 4,
+          "seconds": 0.775397,
+          "wallShare": 0.037736,
+          "payloadBytesPerSeal": [
+            254386,
+            254386,
+            254386,
+            254386
+          ]
+        },
+        "nonOverlappingPhaseSeconds": 10.584208,
+        "nonOverlappingPhaseShare": 0.515094,
+        "otherUnattributedSeconds": 9.963905,
+        "events": [
+          {
+            "action": "release-unmount",
+            "atUtc": "2026-10-07T07:52:44.2534713+00:00",
+            "elapsedSeconds": 14.623168
+          },
+          {
+            "action": "release-registration",
+            "atUtc": "2026-10-07T07:52:45.9027541+00:00",
+            "elapsedSeconds": 16.272451
+          },
+          {
+            "action": "release-delta",
+            "atUtc": "2026-10-07T07:52:47.2876184+00:00",
+            "elapsedSeconds": 17.657315
+          },
+          {
+            "action": "release-snapshot",
+            "atUtc": "2026-10-07T07:52:49.6276031+00:00",
+            "elapsedSeconds": 19.9973
+          },
+          {
+            "action": "released",
+            "atUtc": "2026-10-07T07:52:50.1013004+00:00",
+            "elapsedSeconds": 20.470997
+          }
+        ],
+        "intervalSemantics": "Inspection starts inferred from recorded completion minus monotonic elapsed; logger/write overhead and other stages remain unattributed.",
+        "releaseEventStages": {
+          "beforeUnmountMarkerSeconds": 14.623168,
+          "unmountAndSealSeconds": 1.649283,
+          "unregisterSeconds": 1.384864,
+          "removePrivateDeltaSeconds": 2.339985,
+          "basisReleaseAndFinalObservationSeconds": 0.473697,
+          "semantics": "Durable event gaps include state/event publication. Delta removal contains a seal; these stages overlap the source/seal aggregate and must not be added to it."
+        },
+        "gitCommands": {
+          "count": 69,
+          "seconds": 7.659411,
+          "unionSeconds": 7.659013,
+          "wallShare": 0.372736,
+          "categories": [
+            {
+              "category": "cat-file",
+              "count": 3,
+              "seconds": 0.373401,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "check-attr.all",
+              "count": 8,
+              "seconds": 0.905397,
+              "insideSourceInspectionSeconds": 0.905351
+            },
+            {
+              "category": "check-attr.cached-filter",
+              "count": 6,
+              "seconds": 0.69418,
+              "insideSourceInspectionSeconds": 0.462227
+            },
+            {
+              "category": "check-attr.current-filter",
+              "count": 6,
+              "seconds": 0.677169,
+              "insideSourceInspectionSeconds": 0.447967
+            },
+            {
+              "category": "config",
+              "count": 4,
+              "seconds": 0.439581,
+              "insideSourceInspectionSeconds": 0.439559
+            },
+            {
+              "category": "diff",
+              "count": 4,
+              "seconds": 0.450333,
+              "insideSourceInspectionSeconds": 0.450309
+            },
+            {
+              "category": "ls-files",
+              "count": 15,
+              "seconds": 1.751386,
+              "insideSourceInspectionSeconds": 1.406472
+            },
+            {
+              "category": "ls-tree",
+              "count": 2,
+              "seconds": 0.219985,
+              "insideSourceInspectionSeconds": 0.219973
+            },
+            {
+              "category": "rev-list",
+              "count": 2,
+              "seconds": 0.19989,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "rev-parse",
+              "count": 14,
+              "seconds": 1.451295,
+              "insideSourceInspectionSeconds": 0.4502
+            },
+            {
+              "category": "update-ref",
+              "count": 1,
+              "seconds": 0.091995,
+              "insideSourceInspectionSeconds": 0.0
+            },
+            {
+              "category": "worktree",
+              "count": 4,
+              "seconds": 0.404798,
+              "insideSourceInspectionSeconds": 0.0
+            }
+          ],
+          "insideSourceInspectionSeconds": 4.782058,
+          "sourceInspectionNonGitResidualSeconds": 5.026753,
+          "sourceInspectionNonGitResidualSemantics": "Includes plain-path filesystem validation, callback/barrier waiting, manifest/cache reads/writes and uninstrumented code; not a direct callback-lock timer.",
+          "semantics": "Main CLI process only. Git process spans include startup/wait/I/O. Categories are disjoint commands; intersections belong to the source-inspection parent and must not be added twice."
+        },
+        "reclamationProfile": {
+          "parentStage": "runtime.reclaim.total",
+          "parentSeconds": 0.511125,
+          "children": [
+            {
+              "stage": "runtime.reclaim.build-inventory",
+              "count": 1,
+              "seconds": 0.023205
+            },
+            {
+              "stage": "runtime.reclaim.fence-membership",
+              "count": 1,
+              "seconds": 0.013273
+            },
+            {
+              "stage": "runtime.reclaim.hash-and-delete",
+              "count": 1,
+              "seconds": 0.050766
+            },
+            {
+              "stage": "runtime.reclaim.seal-check",
+              "count": 1,
+              "seconds": 0.155567
+            },
+            {
+              "stage": "runtime.reclaim.validate-inventory-first",
+              "count": 1,
+              "seconds": 0.120534
+            },
+            {
+              "stage": "runtime.reclaim.validate-inventory-second",
+              "count": 1,
+              "seconds": 0.135433
+            }
+          ],
+          "parentUnattributedSeconds": 0.012347,
+          "semantics": "Parent and children nest. Add disjoint child durations only when comparing shares; never add children to the parent. Journal seal is also nested inside reclaim.seal-check."
+        },
+        "runtimeSpanStages": [
+          {
+            "stage": "runtime.journal.seal.total",
+            "count": 5,
+            "seconds": 0.923593,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.build-inventory",
+            "count": 1,
+            "seconds": 0.023205,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.fence-membership",
+            "count": 1,
+            "seconds": 0.013273,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.hash-and-delete",
+            "count": 1,
+            "seconds": 0.050766,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.seal-check",
+            "count": 1,
+            "seconds": 0.155567,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.total",
+            "count": 1,
+            "seconds": 0.511125,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.validate-inventory-first",
+            "count": 1,
+            "seconds": 0.120534,
+            "nested": true
+          },
+          {
+            "stage": "runtime.reclaim.validate-inventory-second",
+            "count": 1,
+            "seconds": 0.135433,
+            "nested": true
+          }
+        ],
+        "mainCliInventoryCounters": [
+          {
+            "role": "main-cli",
+            "calls": 10,
+            "filesVisited": 1310,
+            "meanFilesPerCall": 131.0,
+            "seconds": 0.052418,
+            "semantics": "Process-lifetime counter; includes nested/periodic inventory work. Do not add to spans or assume provider counter belongs to this command interval."
+          }
+        ],
+        "otherProcessTracePresent": false,
+        "profilingScope": "Main CLI PID matched to phase process receipt; no provider lifetime counter is treated as exact checkpoint/release share."
+      }
+    }
+  },
+  "separateSetupAndRestoreCosts": {
+    "libraryPrepare": {
+      "beganUtc": "2026-10-07T07:49:31.093727+00:00",
+      "endedUtc": "2026-10-07T07:49:38.919891+00:00",
+      "elapsedSeconds": 7.826320599997416,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "error": null
+    },
+    "libraryRestore": {
+      "beganUtc": "2026-10-07T07:52:50.263062+00:00",
+      "endedUtc": "2026-10-07T07:53:00.393412+00:00",
+      "elapsedSeconds": 10.13064680000025,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "error": null
+    }
+  },
+  "fenceMembershipProbe": {
+    "version": 1,
+    "measuredAt": "2026-10-07T07:50:01.4391091+00:00",
+    "purpose": "Bounded diagnostic current-loop microprobe, not actual product release elapsed",
+    "method": "Real NTFS one-byte files and FileStream.Name; exact SamePath/Any/File.Exists body with non-atomic diagnostic comparison counter; 32-file warmup then one pass per size; files disposed and deleted after each pass",
+    "observations": [
+      {
+        "files": 32,
+        "comparisonCalls": 528,
+        "expectedComparisonCalls": 528,
+        "elapsedTicks": 24321,
+        "elapsedMilliseconds": 2.4321,
+        "stopwatchFrequency": 10000000,
+        "addedFences": 0,
+        "warmup": true
+      },
+      {
+        "files": 256,
+        "comparisonCalls": 32896,
+        "expectedComparisonCalls": 32896,
+        "elapsedTicks": 535754,
+        "elapsedMilliseconds": 53.5754,
+        "stopwatchFrequency": 10000000,
+        "addedFences": 0,
+        "warmup": false
+      },
+      {
+        "files": 512,
+        "comparisonCalls": 131328,
+        "expectedComparisonCalls": 131328,
+        "elapsedTicks": 2114900,
+        "elapsedMilliseconds": 211.49,
+        "stopwatchFrequency": 10000000,
+        "addedFences": 0,
+        "warmup": false
+      },
+      {
+        "files": 1024,
+        "comparisonCalls": 524800,
+        "expectedComparisonCalls": 524800,
+        "elapsedTicks": 4495459,
+        "elapsedMilliseconds": 449.5459,
+        "stopwatchFrequency": 10000000,
+        "addedFences": 0,
+        "warmup": false
+      }
+    ]
+  },
+  "closure": {
+    "status": "completed",
+    "originalTrackedFilesVerified": 64,
+    "originalLibraryFilesVerified": 256,
+    "originalSourceClean": true,
+    "ownedGitBasisRefsAbsent": true,
+    "originalLibraryRestored": true,
+    "originalUnityFixtureModified": false
+  }
+}

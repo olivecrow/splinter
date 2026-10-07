@@ -75,6 +75,12 @@ whiteout·rename·truncate·`.meta`와 변경 경로를 재생 대조하며 파�
 
 checkpoint는 앱과 자식의 종료를 확인한 뒤 검증한 소스만 커밋하고 `refs/splinter/snapshot-results/<id>`와 `workspace.snapshot.result`를 남긴다. manifest에는 snapshot ID, revision, fingerprint, 결과 ref, 저널 sequence/길이/SHA-256과 `collectionProtocol=stable-journal-v1`이 있다. 소스 검사와 결과 ref 보존 전후의 seal이 같을 때만 manifest를 발행한다. 결과 객체가 Git 저장소 안에 있는지 검증한다. 결과 커밋과 기록은 회수 뒤에도 남는다. 새로운 편집에는 새 key를 사용한다.
 
+범위 저널의 첫 checkpoint 응답은 `sourceVerification=not-checked`로 자원 관측을 반환하며, seal을 갖춘 결과 manifest에 검증한 revision/fingerprint가 있다. 변경 없는 release는 정확한 seal과 새 clean 소스 검사 한 번을 조건으로 독립 결과를 검증·재사용한다. 바뀐 저널은 전체 수집을 유지한다. 이 [소스 검증 규칙](source-verification.md)은 독립 결과·unmount 후 seal·소유권 검사를 유지하며, [한정 최적화 근거](verification/checkpoint-release-optimization.md)를 새 Unity 입력의 자격으로 확대하지 않는다.
+
+Git checkpoint와 독립 보존은 typed 소스 트랜잭션 하나를 공유한다. 일반 편집은 전체 소스 검사 두 번과 해당 연산의 staging/pinning 증명을 사용하며 누락된 추적 경로가 있으면 staged 전체 검사를 유지한다. 전체 트랜잭션의 전후 저널 seal을 유지한다. 실행 중 volume/heartbeat 계측은 배타적 writer의 저널 바이트 계수(`journalBytesBasis=writer-accounting`), 명시적 관측과 최종 stopped 상태는 실제 파일 검사(`current-files`)를 사용한다. poisoned writer는 저장량을 unknown으로 반환하고 살아 있는 소유권/open handle을 유지하며 reconnect를 요구한다. 파일 알림은 source/flush/stop 처리를 깨우고 heartbeat polling은 1초 주기를 유지한다. 알림 자체는 요청 승인이 아니다.
+
+SJL4 재생/inventory는 checksum·identity·소유권 검사를 생략하지 않고 backup 세대와 payload 경로를 인덱스로 찾는다. 새 SJL4 회수는 소유 요청과 stopped 바이트/sequence 관측을 검사한 뒤 바깥 intent에 저장된 예상 seal을 고정한다. 기존 내부 reclaimer가 검증된 inventory 생성과 파일 삭제 전에 전체 seal을 비교한다. 바깥 intent만으로는 삭제할 수 없다. OFF/현재 저널 부재 경로는 바깥 전체 seal을 유지하고, 중단 복구도 동일 intent/inventory/fence 검사를 유지한다. 형식과 개별 durable flush/ACK 의미는 바뀌지 않는다.
+
 원본 반영이 필요할 때만 `workspace integrate --id <id> --target development --home <상태 경로>`를 호출한다. 원본은 요청한 브랜치의 clean 상태여야 한다. 충돌 시 이 명령이 시작한 merge만 중단하고 결과를 보존한다. **독립 결과를 보존한 NTFS 작업은 원본 통합 없이 회수할 수 있다.** 실제 NTFS fixture에서 원본 README에 미커밋 변경을 넣고 통합을 요청하면 `GitDirtyWorktree`로 거부하며 원본 HEAD·인덱스·변경 내용과 결과 ref를 보존하는 것을 확인했다. 실패한 검증이나 미커밋 변경은 자동 삭제하지 않는다. 원본 통합·Editor 조작의 공통 절차는 [알파 작업공간](alpha-workspaces.md)을 따른다.
 
 ## 지속 상태와 재개

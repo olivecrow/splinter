@@ -5,7 +5,7 @@ namespace Splinter.SourceControl.Files;
 // Selection is durable. An adapter failure is propagated, never reinterpreted
 // as a request for another source mode.
 public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWorkspaceProvider files, ISourceWorkspaceProvider? plastic = null) :
-    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider
+    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISnapshotCheckpointSourceProvider
 {
     private ISourceWorkspaceProvider For(WorkspaceRecord w) => w.SourceKind switch
     { "git" => git, "none" => files, "plastic" when plastic is not null => plastic, _ => throw new WorkspaceException("SourceSelectionUnsupported", "Unknown or unavailable durable source kind.") };
@@ -15,6 +15,12 @@ public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWork
     public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => For(w).CreateAsync(w, ct);
     public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default) => For(w).InspectAsync(w, ct);
     public Task<string> CheckpointAsync(WorkspaceRecord w, string message, CancellationToken ct = default) => For(w).CheckpointAsync(w, message, ct);
+    public bool SupportsCheckpointAndPreserve(WorkspaceRecord w) =>
+        For(w) is ISnapshotCheckpointSourceProvider provider && provider.SupportsCheckpointAndPreserve(w);
+    public Task<SnapshotSourceCheckpoint> CheckpointAndPreserveAsync(WorkspaceRecord w, string control, string message, CancellationToken ct = default) =>
+        For(w) is ISnapshotCheckpointSourceProvider provider && provider.SupportsCheckpointAndPreserve(w)
+            ? provider.CheckpointAndPreserveAsync(w, control, message, ct)
+            : throw new WorkspaceException("SnapshotCheckpointUnsupported", "The selected source has no combined checkpoint/preservation operation.");
     public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string target, CancellationToken ct = default) => For(w).IntegrateAsync(w, target, ct);
     private IOriginalApplyProvider Original(WorkspaceRecord w) => For(w) as IOriginalApplyProvider ??
         throw new WorkspaceException("SourceIntegrationUnsupported", "The selected source has no conditional original publisher.");

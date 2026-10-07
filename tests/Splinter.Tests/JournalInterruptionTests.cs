@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Splinter.Core;
+using Splinter.Platform.Windows;
 using Splinter.Protocol;
 using Splinter.Runtime;
 
@@ -116,7 +117,9 @@ public sealed class JournalInterruptionTests
             long started = Stopwatch.GetTimestamp();
             while (!File.Exists(signal) && !child.HasExited && Stopwatch.GetElapsedTime(started) < TimeSpan.FromSeconds(25)) await Task.Delay(20, ct);
             Assert.True(File.Exists(signal), child.HasExited ? await stdout + await stderr : "Child did not reach " + boundary);
-            var proof = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(signal));
+            // The signal is atomically moved into place; its publication can
+            // still hold a Windows delete handle after File.Exists succeeds.
+            var proof = await WindowsProcessWorkspaceProvider.ReadAsync<JsonElement>(signal, ct);
             Assert.True(catalog.Validate("urn:splinter:v1:journal-recovery-probe-signal", proof).IsValid);
             Assert.Equal(nonce, proof.GetProperty("nonce").GetString());
             Assert.Equal(operation, proof.GetProperty("operation").GetString()); Assert.Equal(boundary, proof.GetProperty("boundary").GetString());

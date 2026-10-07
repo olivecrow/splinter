@@ -12,6 +12,12 @@
 
 [Plastic 원본 반영](plastic-original-apply.md)은 recorded 기준의 전체/선택 게시, 등록·잠금·Editor 보호와 같은 intent 복구의 별도 자격이다.
 
+[README Unity 비교](readme-unity-comparison.md)는 RB-01–05를 소유한다. 실제 Codex 앱 워크트리와 기본 ON인 현재 Splinter·원본 Library 기준본에서 방식별 독립 Editor 두 개와 동일 A/B 편집, 추가 파일 할당, 별도로 측정한 준비·Editor 시간을 비교했다. 한 번의 실행에서 편집·컴파일 완료 시점의 할당은 98.65% 줄었고 Editor 준비·재컴파일은 더 오래 걸렸다. 실패·정리·한 묶음/캐시 제한·RAM/전체 디스크 peak 미측정·Play/Test/build 미실행을 유지한다.
+
+[Checkpoint/release 프로파일링](checkpoint-release-profiling.md)은 LP-01–04를 소유한다. Unity 단계 기록 재사용, 복사본만 계측한 작은 Editor 없는 Git/Library task, 한정 fence 검색 microprobe다. 반복 검증/재수집·제곱 비례 회수를 확인했으며 최적화나 지원 확대 통과를 주장하지 않는다.
+
+[Checkpoint/release 최적화](checkpoint-release-optimization.md)는 CO-01–08을 소유한다. 속성 묶음·결과 재사용·통합 checkpoint/보존·live 계수·inventory 인덱스·요청 wake를 연결했다. 후속 소형 비교는 앞서 최적화한 배포본 대비 checkpoint 50.84%·release 29.39% 감소다. Guard/schema 회귀·원본 보존/소유 회수를 통과했으며 대형 Unity 재측정과 지원 확대는 NotRun이다.
+
 [Unity 실제 C/S 비교](unity-live-comparison.md)와 [HTML 보고서](../../../reports/unity-live-comparison-20261003.html)는 Codex 앱 worktree와 제품 workspace의 지정 입력·파일 할당·Editor/provider 메모리·격리와 재개를 비교한다. 과거 home 기록 누락과 승인한 후속 회수의 근거는 소유 검증에서 구분한다. 전체 물리/VSS 귀속·최소 RAM은 unknown이며 SF/PV 전체 지원으로 확대하지 않는다.
 
 [Unity 병렬 편집 검증](unity-parallel-editor-validation.md)은 C/S A/B의 정확한 MCP 대상·리소스/씬·현재 상태 시험·원본 반영과 회수의 한정 자격을 소유한다. 실제 테스트 겹침·reload 결과 보존/재연결·소유 회수와 초기 실패/복구 비용은 텍스트 검증을 따른다. [HTML](../../../reports/unity-parallel-editor-validation-20261003.html)은 S까지의 기록이다. Editor RAM 절감 미확인·전체 물리 peak/VSS 귀속 unknown은 유지한다.

@@ -73,6 +73,9 @@
 | [물리 저장 단계 최종 범위](plans/physical-storage-completion.md), [검증](verification/physical-storage-completion.md) | 현재 SJR2 장부·정확한 task 파일 할당·최종 제품 A/B·정리/독립 결과/회수와 물리 저장 단계의 종료 경계 |
 | [메모리 단계 최종 범위](plans/memory-completion.md), [검증](verification/memory-completion.md) | 압축 쓰기 중복 buffer·부분/빈 읽기 scratch·같은 실제 저널 대조와 소유 provider/Editor·공유 시스템 비용/회수의 종료 경계 |
 | [병렬 안정성의 확정 범위](plans/stable-parallel-completion.md), [검증](verification/stable-parallel-completion.md) | 잠금 오류의 점유 오인 수정·실제 A 수집/회수와 B 조회/재개·파일 쓰기 겹침·독립 결과/소유 회수. Editor 없는 경계와 기존 자격 구분 |
+| [README Unity 공간·시간 비교](verification/readme-unity-comparison.md), [데이터](../../reports/benchmarks/unity-workspace-comparison-20261007.json) | 실제 Codex 앱 워크트리와 기본 ON인 현재 Splinter·원본 Library 기준본의 동일 A/B 편집, 추가 파일 할당, 별도 준비·Editor 비용, 한정 컴파일·에셋 검증 |
+| [Checkpoint/release 프로파일링](verification/checkpoint-release-profiling.md), [데이터](../../reports/benchmarks/checkpoint-release-profile-20261007.json) | 기존 Unity 단계 귀속·작은 Editor 없는 task; 반복 검증/재수집·저널 inventory·제곱 비례 fence 검색; 제품 최적화 없는 진단 복사본 |
+| [Checkpoint/release 최적화](verification/checkpoint-release-optimization.md), [첫 데이터](../../reports/benchmarks/checkpoint-release-optimization-20261007.json), [후속 데이터](../../reports/benchmarks/checkpoint-release-followup-20261007.json) | CO-01–08: Git 묶음/통합 보존·seal 결과 재사용·fence/inventory 인덱스·구분한 live 계수·요청 wake; 작은 일반 배포본 비용·guard 회귀·소유 회수 |
 | [Unity 실제 C/S 비교 범위](plans/unity-live-comparison.md), [검증](verification/unity-live-comparison.md), [HTML](../../reports/unity-live-comparison-20261003.html) | Codex worktree와 제품 workspace의 코드/에셋·파일 할당/메모리·격리/재개·회수 비교. 입력/버전과 실패·후속 복구의 근거는 소유 검증에서 구분 |
 | [Unity 병렬 편집 확정 범위](plans/unity-parallel-editor-validation.md), [검증](verification/unity-parallel-editor-validation.md), [S HTML](../../reports/unity-parallel-editor-validation-20261003.html) | C/S A/B의 정확한 MCP 대상·리소스/씬/테스트·원본 반영·소유 회수와 비용 비교. HTML은 S까지이며 후속 실행과 제한은 텍스트 검증이 소유 |
 

@@ -16,6 +16,39 @@ Splinter는 작업이 재사용할 데이터와 변경할 데이터를 분리합
 
 기본 사용 흐름은 간단합니다. 독립 실행이 필요할 때 작업공간을 만들고, 여러 대화에 걸쳐 같은 작업을 이어간 뒤, 명시적으로 보존·반영·폐기합니다. 에이전트는 Splinter가 반환한 경로에서 기존 파일 도구·Git 도구·애플리케이션 도구로 작업합니다.
 
+## 실제 측정한 저장 공간과 시간의 트레이드 오프
+
+같은 Unity 프로젝트에서 **실제 Codex 앱 워크트리 두 개와 Splinter 작업공간 두 개**를 비교했습니다. 입력은 추적 파일 1,602개, 소스 약 2.8 GB, Unity 6000.3.22f1입니다. 각 방식에서 독립 Editor 두 개를 실행하고 동일한 A/B 코드 변경을 수행했습니다. Codex는 워크트리마다 새 Library를 생성했고, Splinter는 `git-snapshot`, 기존 원본 Library 기준본, 기본 SJL4 저널 최적화를 사용했습니다.
+
+소스 작업은 의도적으로 작게 제한했습니다. A는 C# 파일 하나에서 `value + 1`을 `value + 2`로, B는 다른 파일에서 `value + value`를 `value + value + value`로 바꿨습니다. 결과마다 변경한 줄은 한 줄입니다. 아래 보존·회수 구간은 편집·컴파일·Editor 종료 이후부터이며, 이 작은 결과를 보존하고 자원을 회수하는 부가 비용입니다. **측정한 지연은 이 입력에서 대화형 개발의 실사용을 가로막는 성능 문제입니다.**
+
+![Unity 작업공간 두 개의 추가 파일 할당: Codex 10.52 GiB, Splinter 0.14 GiB](docs/images/unity-workspace-storage.png)
+
+두 변경의 컴파일을 확인한 시점의 추가 파일 할당은 **Codex 10.52 GiB, Splinter 0.14 GiB로, 98.65% 감소**했습니다. 작업 파일과 소유 Git 등록을 포함하고, Splinter의 공유 runner와 Library 메타데이터는 한 번만 합산했습니다. 기존 원본 소스·Library 본문·공유 Git 객체는 제외했습니다. 특정 시점의 실측값이며 디스크 최대 사용량은 아닙니다.
+
+![같은 Unity 작업의 시간 비용: Editor 준비 및 코드 변경 후 컴파일 준비](docs/images/unity-workspace-time.png)
+
+| A/B 두 작업의 관측 시간 | Codex 워크트리 | Splinter + Library 기준본 | Splinter 추가 시간 |
+| --- | ---: | ---: | ---: |
+| 작업공간 생성 후 Editor 시작부터 컴파일 준비까지 | 14분 47초 | 29분 13초 | +14분 26초 |
+| 코드 변경·refresh부터 컴파일 준비까지 | 19초 | 9분 14초 | +8분 55초 |
+
+**이번 실행에서는 공간 절감과 함께 상당한 시간 비용이 발생했습니다.** Splinter는 별도로 최초 Library 기준본 준비에 4분 33초, 작업공간 두 개의 순차 생성에 12분 46초가 걸렸습니다. 이 준비 비용은 Editor 그래프에 포함하지 않았습니다. Codex 대화 생성의 전체 완료 시간은 확인할 수 없어 제외했습니다.
+
+**결과 보존도 느렸습니다. Editor 종료 후 A의 checkpoint만 95분 23초가 걸렸으며 Editor 그래프의 범위 밖입니다.** 전체 Git attribute 검사의 반복과 store 잠금 안의 journal 파일 순회로 추가 metadata 비용이 드러났습니다. 이후 같은 50개 경로를 읽기 전용으로 조회했을 때 일반 NTFS는 0.23초, Splinter는 12.83초가 걸렸습니다. [지연 원인과 수명주기 비용](docs/ko/verification/readme-unity-comparison.md#보존-단계-지연-원인)은 이 결과와 앞선 Unity 시간을 구분합니다. 같은 경계의 Codex 전체 보존 시간은 측정하지 못했습니다.
+
+[후속 프로파일링](docs/ko/verification/checkpoint-release-profiling.md)은 해당 기록과 작은 Editor 없는 task를 사용했습니다. checkpoint는 소스 검사를 일곱 번 반복하고, release는 보존한 결과를 재수집하며, 저널 회수에는 파일 fence의 제곱 비례 검색이 있었습니다. 이 진단에서 원래 제품을 최적화하지 않았습니다.
+
+[이후 수명주기 최적화](docs/ko/verification/checkpoint-release-optimization.md)로 Git 속성 검사를 묶고, 응답만을 위한 소스 검사를 줄이며, 변경 없는 seal 결과를 재사용하고 회수 fence를 인덱스로 찾습니다. 같은 작은 Editor 없는 workload에서 checkpoint는 **42.30초 → 31.88초 (24.65%)**, release는 **20.66초 → 14.54초 (29.59%)**로 개선됐습니다. 작은 fixture의 측정이며 대형 Unity 수명주기는 다시 측정하지 않았습니다.
+
+[추가 최적화 CO-05–08](docs/ko/verification/checkpoint-release-optimization.md#최종-제품-측정-co-07)는 checkpoint/보존 검증을 결합하고 반복 inventory와 고정 요청 대기를 줄였습니다. 같은 작은 workload의 새 비교에서 앞서 최적화한 배포본 대비 checkpoint **28.66초 → 14.09초 (50.84% 감소)**, release **13.68초 → 9.66초 (29.39% 감소)**였습니다. 아래 대형 Unity 그래프는 과거 측정을 그대로 보여줍니다.
+
+![Splinter의 별도 수명주기 비용(분): Library 준비 4.5, 작업공간 생성 12.8, 기록한 A/B 보존·회수 156.1, Library 복원 24.6](docs/images/unity-workspace-lifecycle.png)
+
+기록한 보존·회수 순서는 **2시간 36분 7초**가 걸렸습니다. B 작업의 겹침, 보존한 `WorkspaceBusy` orchestration 거부·복구, 동시 진단을 포함합니다. 위 A checkpoint도 포함하므로 구간을 중복 합산하지 않습니다. 최종 Library 복원에는 **24분 33초**가 걸렸습니다. Splinter 두 결과를 보존하고 소유 자원을 회수했으며, 원본 Library 복원과 원본 소스 1,602개 전부의 바이트 불변을 확인했습니다. 수명주기 막대는 기록한 Splinter 실행 순서이며, 같은 경계의 Codex 전체 비용은 확인하지 못했습니다.
+
+Windows/NTFS에서 방식별 한 묶음만 측정했고, OS 캐시를 비우지 않은 채 Codex 다음 Splinter 순서로 실행했습니다. 선택한 코드의 컴파일·에셋 로딩·렌더링을 확인했으며 Play Mode·테스트·게임 빌드는 실행하지 않았습니다. 일반적인 속도·RAM·최대 저장 공간 절감을 입증하는 결과는 아닙니다. [측정 방법·정확한 수치·실패·정리의 검증 범위](docs/ko/verification/readme-unity-comparison.md), [측정 데이터](reports/benchmarks/unity-workspace-comparison-20261007.json), [그래프 생성 스크립트](scripts/plot-unity-workspace-comparison.py)를 참고하세요.
+
 ## 동작 원리
 
 **기준본**은 작업을 시작할 때 고정한 데이터입니다. **비공개 저널**은 해당 작업이 바꾼 바이트 범위와 파일 메타데이터를 기록합니다. 두 데이터를 조합한 프로젝트 트리를 쓰기 가능한 WinFsp 파일시스템으로 제공합니다.
@@ -148,5 +181,6 @@ Splinter는 다음 프로젝트와 기여자들의 작업을 사용합니다.
 - **[json-everything](https://github.com/json-everything/json-everything)**: schema 검증과 JSON 처리를 위한 JsonSchema.Net·JsonPointer.Net·Json.More.Net. 소스는 MIT이며, 고정한 NuGet 바이너리에는 별도의 Open Source Maintenance Fee 약정이 포함되어 있습니다.
 - **[Humanizer](https://github.com/Humanizr/Humanizer)**: JSON 패키지가 간접 참조하는 MIT 런타임 의존성.
 - **[xUnit.net](https://github.com/xunit/xunit)**·**[Microsoft.Testing.Platform](https://github.com/microsoft/testfx)**: 자동 시험과 TRX 보고. 각각 Apache 2.0·MIT를 적용합니다.
+- **[Matplotlib](https://matplotlib.org/)**: 선택적인 문서용 스크립트로 기록된 비교 그래프를 렌더링합니다.
 
 설치된 Git·PowerShell·Unity·Plastic 도구에는 각 도구의 라이선스가 적용됩니다. 직접·간접 패키지의 정확한 버전, 원본 라이선스 링크, 표기 조건과 재배포 시 고려사항은 [서드파티 고지](THIRD_PARTY_NOTICES.md)에 정리했습니다.

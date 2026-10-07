@@ -420,6 +420,9 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         string id = (await f.Ensure(ct)).Workspace.Id;
         await f.New().StartAsync(id, ct); await f.New().StatusAsync(id, ct);
         var previous = (await f.New().CheckpointAsync(id, "result", ct)).Workspace.Snapshot!.Result;
+        // A changed journal requires recollection; an unchanged independent
+        // result is verified in place without repeating PreserveAsync.
+        f.Backend.AcknowledgeWrite();
         f.Source.AfterPreserve = f.Backend.AcknowledgeWrite;
         Assert.Equal("DeltaChangedAfterCollection", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(id, ct))).Code);
         Assert.Equal(previous, new WorkspaceStore(f.Home).Get(id).Snapshot!.Result);
@@ -601,25 +604,29 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
             return Task.FromResult(new SnapshotReclamation(w.Snapshot!.Reference!.Id, Guid.NewGuid().ToString("N"), "released", DateTimeOffset.UtcNow, []));
         }
     }
-    private sealed class Source : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider
+    private class Source : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider
     {
         public int Registers; public bool Dirty; public string Fingerprint = "source"; private bool registered;
+        public int InspectCalls, PreserveCalls, VerifyCalls;
+        public string? RevisionOverride;
         public string? LoseReply;
         public Action? AfterPreserve;
+        public Action? AfterInspect;
         private void FailOnce(string boundary) { if (LoseReply == boundary) { LoseReply = null; throw new WorkspaceException("ReplyLost", boundary); } }
         public Task<string> PreflightAsync(WorkspaceRecord w, CancellationToken ct = default) => Task.FromResult("base");
         public Task RegisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { if (!registered) { Registers++; registered = true; } FailOnce("register"); return Task.CompletedTask; }
         public Task AttachAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("attach"); return Task.CompletedTask; }
-        public Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("preserve"); AfterPreserve?.Invoke(); return Task.FromResult("result-ref"); }
+        public Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { PreserveCalls++; FailOnce("preserve"); AfterPreserve?.Invoke(); return Task.FromResult("result-ref"); }
         public bool InvalidResult;
         public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
-        { if (InvalidResult) throw new WorkspaceException("ResultMissing", "Preserved result is unavailable."); return Task.CompletedTask; }
+        { VerifyCalls++; if (InvalidResult) throw new WorkspaceException("ResultMissing", "Preserved result is unavailable."); return Task.CompletedTask; }
         public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("unregister"); return Task.CompletedTask; }
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(r);
         public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new InvalidOperationException("No clone/checkout fallback");
         public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)
-        { if (InspectionError is not null) throw new WorkspaceException(InspectionError, "fixture cache failure");
-            FailOnce("inspect"); return Task.FromResult(new SourceState(w.ResultRevision ?? "base", Fingerprint, Dirty, [])); }
+        { InspectCalls++; if (InspectionError is not null) throw new WorkspaceException(InspectionError, "fixture cache failure");
+            FailOnce("inspect"); var state = new SourceState(RevisionOverride ?? w.ResultRevision ?? "base", Fingerprint, Dirty, []);
+            AfterInspect?.Invoke(); return Task.FromResult(state); }
         public string? InspectionError;
         public Task<string> CheckpointAsync(WorkspaceRecord w, string message, CancellationToken ct = default) { Dirty = false; return Task.FromResult("result"); }
         public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string target, CancellationToken ct = default) => throw new InvalidOperationException("Do not force integration");

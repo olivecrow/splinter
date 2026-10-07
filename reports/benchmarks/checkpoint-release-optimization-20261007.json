@@ -1,0 +1,250 @@
+{
+  "version": 1,
+  "measuredDate": "2026-10-07",
+  "qualification": "CO-01\u201304; bounded Editor-free checkpoint/release optimization",
+  "repositoryBase": "74518fd453ea9e191c5b5efc1e2ad82a17ffe427",
+  "instrumentationAdded": false,
+  "fixture": {
+    "sourceRevision": "9ce955de5787a89ef38056e480c6e1617aef5c44",
+    "trackedFiles": 64,
+    "sourceBytes": 5510,
+    "libraryFiles": 256,
+    "libraryBytes": 65536,
+    "editorExecuted": false,
+    "storage": "git-snapshot",
+    "application": "unity",
+    "maxJournalBytes": 67108864
+  },
+  "workload": {
+    "sourceFilesChanged": 1,
+    "privateLibraryFilesChanged": 128,
+    "libraryBytesChangedPerFile": 1,
+    "workloadOrder": "before then after, one pass each; source/basis payload identical; no OS cache clearing; after build/tests finished",
+    "commandObservationBoundSeconds": 240,
+    "timedOperations": [
+      "checkpoint",
+      "release"
+    ]
+  },
+  "candidates": {
+    "before": {
+      "binarySha256": {
+        "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+        "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+        "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+        "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+        "Splinter.Application.Unity.dll": "ca9a50b06e6e285189e3342bdf12584d567d92a65bcdf096dec1b480a0ca2e2b",
+        "Splinter.Core.dll": "8d26a03953fd20b9c37b626ebf3b592316d41ec5b8fac49479cc6c54941228bb",
+        "splinter.dll": "1c65d153c0e5de104e5ca727569dcf106e2cfdd8d7f76e001e623e3d8bef06bc",
+        "Splinter.Host.dll": "c0834cb46fb6db3a833e10a2521920f4071ad2fa971a90f65238bef0b69de228",
+        "Splinter.Platform.Windows.dll": "6f76e01ecaed3611e2569215d192b78a9830ebbcd04929613c7c8f4495327bef",
+        "Splinter.Protocol.dll": "61c0f0f8fe95fb2e3038cf58d31f265b170f7a690f27d4509dce9c878a2f6346",
+        "Splinter.Runtime.dll": "62e8168a8e7d19e04b8342e7746f401ebb6097bc71658300dc5b9929e58e302d",
+        "Splinter.SourceControl.Files.dll": "db50909c78ae32fda8c1fd828e5c30c263dc9124bb902a6baedcfcb013d57ac4",
+        "Splinter.SourceControl.Git.dll": "a2c932f28cbc668d27c314dd0bdce6b3ec0fddef1e5fac0df1dfc568d1150c75",
+        "Splinter.Workflows.Windows.dll": "764b5ead836bb03d7298d9156bf67d14ff701c692929a050c043cf5b6f86fe96",
+        "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+        "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+      },
+      "checkpoint": {
+        "cost": {
+          "beganUtc": "2026-10-07T08:30:12.056044+00:00",
+          "endedUtc": "2026-10-07T08:30:54.358596+00:00",
+          "elapsedSeconds": 42.3045497000021,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null
+        },
+        "sourceInspection": {
+          "count": 7,
+          "seconds": 33.8402722,
+          "payloadBytesHashed": 89
+        },
+        "seal": {
+          "count": 2,
+          "seconds": 0.41808209999999996
+        }
+      },
+      "release": {
+        "cost": {
+          "beganUtc": "2026-10-07T08:30:54.448570+00:00",
+          "endedUtc": "2026-10-07T08:31:15.103628+00:00",
+          "elapsedSeconds": 20.65580409999893,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null
+        },
+        "sourceInspection": {
+          "count": 2,
+          "seconds": 10.0436519,
+          "payloadBytesHashed": 0
+        },
+        "seal": {
+          "count": 4,
+          "seconds": 0.743998
+        }
+      },
+      "checkpointResponseSourceVerification": "verified",
+      "resultFingerprint": "6758cb7c91ae4a853ebc6a824269f0877720a91339b744b05f45d1346a4489f8",
+      "closure": {
+        "status": "completed",
+        "originalTrackedFilesVerified": 64,
+        "originalLibraryFilesVerified": 256,
+        "originalSourceClean": true,
+        "ownedGitBasisRefsAbsent": true,
+        "originalLibraryRestored": true,
+        "originalUnityFixtureModified": false,
+        "resultPreserved": true,
+        "changedSourcePaths": [
+          "Assets/File000.cs"
+        ],
+        "phase": "released",
+        "mountAbsent": true,
+        "deltaAbsent": true,
+        "ownershipVerified": true,
+        "openHandles": 0,
+        "workingSetBytes": 0,
+        "privateBytes": 0
+      }
+    },
+    "after": {
+      "binarySha256": {
+        "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+        "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+        "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+        "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+        "Splinter.Application.Unity.dll": "ca9a50b06e6e285189e3342bdf12584d567d92a65bcdf096dec1b480a0ca2e2b",
+        "Splinter.Core.dll": "8d26a03953fd20b9c37b626ebf3b592316d41ec5b8fac49479cc6c54941228bb",
+        "splinter.dll": "18f639f35ae104a295825789f5b5274138a2729ac6dd456566c55b15ccfb58c6",
+        "Splinter.Host.dll": "c0834cb46fb6db3a833e10a2521920f4071ad2fa971a90f65238bef0b69de228",
+        "Splinter.Platform.Windows.dll": "81a1d75cbe15d4a392bd927aa56ae65995f84de191edcd0d0a5db64f91a35c24",
+        "Splinter.Protocol.dll": "61c0f0f8fe95fb2e3038cf58d31f265b170f7a690f27d4509dce9c878a2f6346",
+        "Splinter.Runtime.dll": "99736e84392faf01f7df00c8ee4f91f732ac4634683cb946f1bcf6fef3ac026f",
+        "Splinter.SourceControl.Files.dll": "7101730c61c1b37591e48a2d18426e162168a2b2a534cad603004db276d6e758",
+        "Splinter.SourceControl.Git.dll": "fd064f9afc71c82e550c97b9e51a20579380a8b3c1bfffc1191611abfd041ba3",
+        "Splinter.Workflows.Windows.dll": "1db2aa4fa6bf7c9e50d944a2d2d64655c8072921a6e76c367d4714a96c8f3cef",
+        "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+        "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+      },
+      "checkpoint": {
+        "cost": {
+          "beganUtc": "2026-10-07T08:38:07.035882+00:00",
+          "endedUtc": "2026-10-07T08:38:38.911866+00:00",
+          "elapsedSeconds": 31.87740589999885,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null
+        },
+        "sourceInspection": {
+          "count": 5,
+          "seconds": 24.2086525,
+          "payloadBytesHashed": 89
+        },
+        "seal": {
+          "count": 2,
+          "seconds": 0.4027425
+        }
+      },
+      "release": {
+        "cost": {
+          "beganUtc": "2026-10-07T08:38:39.008514+00:00",
+          "endedUtc": "2026-10-07T08:38:53.551915+00:00",
+          "elapsedSeconds": 14.543889600001421,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null
+        },
+        "sourceInspection": {
+          "count": 1,
+          "seconds": 4.718515099999999,
+          "payloadBytesHashed": 0
+        },
+        "seal": {
+          "count": 4,
+          "seconds": 0.7196585
+        }
+      },
+      "checkpointResponseSourceVerification": "not-checked",
+      "resultFingerprint": "6758cb7c91ae4a853ebc6a824269f0877720a91339b744b05f45d1346a4489f8",
+      "closure": {
+        "status": "completed",
+        "originalTrackedFilesVerified": 64,
+        "originalLibraryFilesVerified": 256,
+        "originalSourceClean": true,
+        "ownedGitBasisRefsAbsent": true,
+        "originalLibraryRestored": true,
+        "originalUnityFixtureModified": false,
+        "resultPreserved": true,
+        "changedSourcePaths": [
+          "Assets/File000.cs"
+        ],
+        "phase": "released",
+        "mountAbsent": true,
+        "deltaAbsent": true,
+        "ownershipVerified": true,
+        "openHandles": 0,
+        "workingSetBytes": 0,
+        "privateBytes": 0
+      }
+    }
+  },
+  "reductionsPercent": {
+    "checkpoint": 24.647807089181086,
+    "release": 29.58933223034308,
+    "combined": 26.269004701813625
+  },
+  "fenceMembershipProbe": {
+    "version": 1,
+    "measuredAt": "2026-10-07T08:33:51.5710182+00:00",
+    "scope": "Real tiny NTFS files, one old-loop then indexed-loop pass; not product release wall time",
+    "observations": [
+      {
+        "files": 32,
+        "warmup": true,
+        "comparisons": 528,
+        "indexedLookups": 32,
+        "beforeMilliseconds": 3.8249,
+        "afterMilliseconds": 1.658,
+        "indexConstructionIncluded": true
+      },
+      {
+        "files": 1024,
+        "warmup": false,
+        "comparisons": 524800,
+        "indexedLookups": 1024,
+        "beforeMilliseconds": 760.3767,
+        "afterMilliseconds": 63.2675,
+        "indexConstructionIncluded": true
+      }
+    ]
+  },
+  "candidateSourceSha256": {
+    "src/Splinter.Runtime/WorkspaceCoordinator.cs": "0821fc28d47af10716c3d920d22b39efb91845578ea6759a9f75c7443a5466ed",
+    "src/Splinter.Runtime/SnapshotWorkspaces.cs": "9cd770943dc5978b2d338808bc939cac3ae26632b1b52b22dbeb80dadb745893",
+    "src/Splinter.Runtime/LatestJournalReclamation.cs": "3ca1dba72a1d82a599ed18d3bc85e3a5e1f059ad01d964fdfd3aabf01db379ef",
+    "src/Splinter.SourceControl.Git/GitSourceFingerprint.cs": "133fdc9755aa6d534a6a42abed9382d511e273c8ec5ac73c590e1290d2233871",
+    "src/Splinter.SourceControl.Git/GitSnapshotWorkspaces.cs": "307a118894451ff8fad503a4a39fd920d84124bcabd4a5eff9f54b16c4a69bd3",
+    "src/Splinter.SourceControl.Git/GitAttributeQueries.cs": "1a644047194b9b1796b931f639fbde853b051edd592c6067258325c12d7c4f09"
+  },
+  "limits": [
+    "One ordered tiny workload per binary, not a statistical median or SLA",
+    "Process startup and up to 100ms driver polling included",
+    "No new Unity Editor/import/compile/Play/Test/build or large-project timing",
+    "No whole-disk peak, RAM attribution, VSS, OS failure or expanded support qualification",
+    "Per-file hashing/validation and journal inventory observations remain; no flush batching or writer cache policy change"
+  ],
+  "verification": {
+    "failed": 0,
+    "command": "pwsh -File scripts/build.ps1",
+    "skipped": 19,
+    "buildWarnings": 0,
+    "trxSha256": "c6571f21e26c8fb7f0e47e13f1dcc5a6beb8d1a971b378b51e7e5d9961fe36bb",
+    "lockedRestore": true,
+    "passed": 1160,
+    "total": 1179,
+    "buildErrors": 0,
+    "newCases": 26,
+    "nativeResponsesValidated": 10,
+    "nativeResponseSchemaTestsPassed": 1
+  }
+}

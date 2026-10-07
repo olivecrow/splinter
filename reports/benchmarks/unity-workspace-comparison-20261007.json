@@ -1,0 +1,1036 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-07",
+  "experiment": "RB-01–05",
+  "productRevision": "74518fd453ea9e191c5b5efc1e2ad82a17ffe427",
+  "productBinaries": [
+    {
+      "name": "Splinter.Application.Unity.dll",
+      "sha256": "3bddc7e847a3ecc99a3ad24a22ee497a7b59e6ebaba64085c615f4a555f87016"
+    },
+    {
+      "name": "Splinter.Core.dll",
+      "sha256": "8e8efd3b182b5f5eaa7dfd4bf948e36338646819c2bcf421d15fc7b7dc755f06"
+    },
+    {
+      "name": "splinter.dll",
+      "sha256": "d9a176611b67161da2010abfc7829454dc5779125598f1d41b6ab072a7760fd5"
+    },
+    {
+      "name": "Splinter.Host.dll",
+      "sha256": "8377d4064159ba8dd8dc05446d55c95d13ef962186aa9a6b620d5d413d9cdb15"
+    },
+    {
+      "name": "Splinter.Platform.Windows.dll",
+      "sha256": "d80fe2f822be52ea7d82e22fd549db76703af741ba7aa4553bb1298da98b52e5"
+    },
+    {
+      "name": "Splinter.Protocol.dll",
+      "sha256": "448e69a73f1f67f285be7d5c6a158d74fc821eef4b2dd54aa0d69984e51b0de6"
+    },
+    {
+      "name": "Splinter.Runtime.dll",
+      "sha256": "a2fb486731ed6c450ad4836b2c1a1eb22ac4e01ca125190349cc895bfd4b7333"
+    },
+    {
+      "name": "Splinter.SourceControl.Files.dll",
+      "sha256": "c18b17e07a225c62b9fd8effc987968afcbc3071a4a4e84dfd5eb3fc7855fbe8"
+    },
+    {
+      "name": "Splinter.SourceControl.Git.dll",
+      "sha256": "ddaee13a1c53541bf6f079592fda968c00266bfed8bd9950ba2bf5e40773548c"
+    },
+    {
+      "name": "Splinter.Workflows.Windows.dll",
+      "sha256": "d08cff0c538d8e53692d54e2201b3620df3435182d7118f53dba2f35fab4c1a7"
+    }
+  ],
+  "sourceRevision": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+  "trackedSourceFiles": 1602,
+  "sourceWorkingBytes": 2804772822,
+  "unityVersion": "6000.3.22f1",
+  "platform": {
+    "os": "10.0.26200",
+    "filesystem": "NTFS",
+    "cpu": "AMD Ryzen 5 5600X 6-Core Processor",
+    "installedRamBytes": 68628553728
+  },
+  "workersPerMethod": 2,
+  "methods": {
+    "codex": "Actual Codex app-managed Git worktrees, new per-worktree Libraries",
+    "splinter": "git-snapshot + original Library basis, current default SJL4 journal optimization ON"
+  },
+  "allocation": {
+    "codex": {
+      "additionalAllocatedBytes": 11297124336,
+      "sampleAtUtc": "2026-10-07T03:17:58.717666+00:00",
+      "roots": [
+        {
+          "category": "source-and-Library",
+          "allocatedBytes": 5646841168,
+          "files": 33768,
+          "categories": {
+            "other": {
+              "files": 142,
+              "allocatedBytes": 8766216,
+              "logicalBytes": 8513493
+            },
+            "project-source": {
+              "files": 1594,
+              "allocatedBytes": 2807174328,
+              "logicalBytes": 2804743981
+            },
+            "Library": {
+              "files": 31813,
+              "allocatedBytes": 2822909232,
+              "logicalBytes": 2785890254
+            },
+            "generated-other": {
+              "files": 219,
+              "allocatedBytes": 7991392,
+              "logicalBytes": 7222832
+            }
+          }
+        },
+        {
+          "category": "source-and-Library",
+          "allocatedBytes": 5646996832,
+          "files": 33768,
+          "categories": {
+            "other": {
+              "files": 142,
+              "allocatedBytes": 8766224,
+              "logicalBytes": 8513494
+            },
+            "project-source": {
+              "files": 1594,
+              "allocatedBytes": 2807174336,
+              "logicalBytes": 2804743989
+            },
+            "Library": {
+              "files": 31813,
+              "allocatedBytes": 2822729008,
+              "logicalBytes": 2785711264
+            },
+            "generated-other": {
+              "files": 219,
+              "allocatedBytes": 8327264,
+              "logicalBytes": 7222819
+            }
+          }
+        },
+        {
+          "category": "observer-controls",
+          "allocatedBytes": 1421392,
+          "files": 5,
+          "categories": {
+            "other": {
+              "files": 5,
+              "allocatedBytes": 1421392,
+              "logicalBytes": 1355939
+            }
+          }
+        },
+        {
+          "category": "observer-controls",
+          "allocatedBytes": 1421472,
+          "files": 6,
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 1421472,
+              "logicalBytes": 1355770
+            }
+          }
+        },
+        {
+          "category": "source-and-Library",
+          "allocatedBytes": 221736,
+          "files": 9,
+          "categories": {
+            "other": {
+              "files": 9,
+              "allocatedBytes": 221736,
+              "logicalBytes": 219454
+            }
+          }
+        },
+        {
+          "category": "owned-Git-registration",
+          "allocatedBytes": 221736,
+          "files": 9,
+          "categories": {
+            "other": {
+              "files": 9,
+              "allocatedBytes": 221736,
+              "logicalBytes": 219454
+            }
+          }
+        }
+      ]
+    },
+    "splinter": {
+      "additionalAllocatedBytes": 152543856,
+      "sampleAtUtc": "2026-10-07T04:01:13.890112+00:00",
+      "roots": [
+        {
+          "category": "task-record-and-private-delta",
+          "allocatedBytes": 67787936,
+          "files": 11177,
+          "categories": {
+            "other": {
+              "files": 11177,
+              "allocatedBytes": 67787936,
+              "logicalBytes": 33915049
+            }
+          }
+        },
+        {
+          "category": "owned-Git-registration",
+          "allocatedBytes": 221536,
+          "files": 6,
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 221536,
+              "logicalBytes": 219270
+            }
+          }
+        },
+        {
+          "category": "task-record-and-private-delta",
+          "allocatedBytes": 67902632,
+          "files": 11176,
+          "categories": {
+            "other": {
+              "files": 11176,
+              "allocatedBytes": 67902632,
+              "logicalBytes": 33931407
+            }
+          }
+        },
+        {
+          "category": "owned-Git-registration",
+          "allocatedBytes": 221536,
+          "files": 6,
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 221536,
+              "logicalBytes": 219270
+            }
+          }
+        },
+        {
+          "category": "shared-runner",
+          "allocatedBytes": 1630552,
+          "files": 8,
+          "categories": {
+            "other": {
+              "files": 8,
+              "allocatedBytes": 1630552,
+              "logicalBytes": 1615576
+            }
+          }
+        },
+        {
+          "category": "shared-locks",
+          "allocatedBytes": 0,
+          "files": 4,
+          "categories": {
+            "other": {
+              "files": 4,
+              "allocatedBytes": 0,
+              "logicalBytes": 0
+            }
+          }
+        },
+        {
+          "category": "shared-Library-metadata-and-original-delta",
+          "allocatedBytes": 14779664,
+          "files": 16,
+          "categories": {
+            "other": {
+              "files": 16,
+              "allocatedBytes": 14779664,
+              "logicalBytes": 14755515
+            }
+          }
+        }
+      ]
+    }
+  },
+  "stoppedAllocation": {
+    "codex": {
+      "additionalAllocatedBytes": 11288856928,
+      "sampleAtUtc": "2026-10-07T03:20:53.475814+00:00",
+      "roots": [
+        {
+          "category": "source-and-Library",
+          "allocatedBytes": 5642932528,
+          "files": 33563,
+          "categories": {
+            "other": {
+              "files": 142,
+              "allocatedBytes": 8766216,
+              "logicalBytes": 8513493
+            },
+            "project-source": {
+              "files": 1594,
+              "allocatedBytes": 2807174328,
+              "logicalBytes": 2804743981
+            },
+            "Library": {
+              "files": 31812,
+              "allocatedBytes": 2825857384,
+              "logicalBytes": 2788827459
+            },
+            "generated-other": {
+              "files": 15,
+              "allocatedBytes": 1134600,
+              "logicalBytes": 1102516
+            }
+          }
+        },
+        {
+          "category": "source-and-Library",
+          "allocatedBytes": 5642744128,
+          "files": 33563,
+          "categories": {
+            "other": {
+              "files": 142,
+              "allocatedBytes": 8766224,
+              "logicalBytes": 8513494
+            },
+            "project-source": {
+              "files": 1594,
+              "allocatedBytes": 2807174336,
+              "logicalBytes": 2804743989
+            },
+            "Library": {
+              "files": 31812,
+              "allocatedBytes": 2825673064,
+              "logicalBytes": 2788648297
+            },
+            "generated-other": {
+              "files": 15,
+              "allocatedBytes": 1130504,
+              "logicalBytes": 1102465
+            }
+          }
+        },
+        {
+          "category": "observer-controls",
+          "allocatedBytes": 1368136,
+          "files": 5,
+          "categories": {
+            "other": {
+              "files": 5,
+              "allocatedBytes": 1368136,
+              "logicalBytes": 1358019
+            }
+          }
+        },
+        {
+          "category": "observer-controls",
+          "allocatedBytes": 1368216,
+          "files": 6,
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 1368216,
+              "logicalBytes": 1357849
+            }
+          }
+        },
+        {
+          "category": "source-and-Library",
+          "allocatedBytes": 221960,
+          "files": 10,
+          "categories": {
+            "other": {
+              "files": 10,
+              "allocatedBytes": 221960,
+              "logicalBytes": 219674
+            }
+          }
+        },
+        {
+          "category": "owned-Git-registration",
+          "allocatedBytes": 221960,
+          "files": 10,
+          "categories": {
+            "other": {
+              "files": 10,
+              "allocatedBytes": 221960,
+              "logicalBytes": 219674
+            }
+          }
+        }
+      ]
+    },
+    "splinter": {
+      "additionalAllocatedBytes": 197453080,
+      "sampleAtUtc": "2026-10-07T04:14:36.820655+00:00",
+      "roots": [
+        {
+          "category": "task-record-and-private-delta",
+          "allocatedBytes": 90271224,
+          "files": 16299,
+          "categories": {
+            "other": {
+              "files": 16299,
+              "allocatedBytes": 90271224,
+              "logicalBytes": 37225157
+            }
+          }
+        },
+        {
+          "category": "owned-Git-registration",
+          "allocatedBytes": 221536,
+          "files": 6,
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 221536,
+              "logicalBytes": 219270
+            }
+          }
+        },
+        {
+          "category": "task-record-and-private-delta",
+          "allocatedBytes": 90328568,
+          "files": 16295,
+          "categories": {
+            "other": {
+              "files": 16295,
+              "allocatedBytes": 90328568,
+              "logicalBytes": 37241143
+            }
+          }
+        },
+        {
+          "category": "owned-Git-registration",
+          "allocatedBytes": 221536,
+          "files": 6,
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 221536,
+              "logicalBytes": 219270
+            }
+          }
+        },
+        {
+          "category": "shared-runner",
+          "allocatedBytes": 1630552,
+          "files": 8,
+          "categories": {
+            "other": {
+              "files": 8,
+              "allocatedBytes": 1630552,
+              "logicalBytes": 1615576
+            }
+          }
+        },
+        {
+          "category": "shared-locks",
+          "allocatedBytes": 0,
+          "files": 4,
+          "categories": {
+            "other": {
+              "files": 4,
+              "allocatedBytes": 0,
+              "logicalBytes": 0
+            }
+          }
+        },
+        {
+          "category": "shared-Library-metadata-and-original-delta",
+          "allocatedBytes": 14779664,
+          "files": 16,
+          "categories": {
+            "other": {
+              "files": 16,
+              "allocatedBytes": 14779664,
+              "logicalBytes": 14755515
+            }
+          }
+        }
+      ]
+    }
+  },
+  "timing": {
+    "codex": {
+      "initialEditorCohortSeconds": 887.1240662999999,
+      "editCohortSeconds": 19.012087500001144,
+      "stopObservationCohortSeconds": 2.811290999999983,
+      "stopQualification": "normal shutdown observed",
+      "initialStopCliOutcome": "not used; external normal shutdown",
+      "rawInputNormalizationAndVerificationSeconds": 12.017525199999909
+    },
+    "splinter": {
+      "initialEditorCohortSeconds": 1753.48925,
+      "editCohortSeconds": 554.4163686000011,
+      "stopObservationCohortSeconds": 741.3975098,
+      "stopQualification": "upper bound: exit observed after CLI timeout, exact exit timestamp unavailable",
+      "initialStopCliOutcome": "EditorStopTimeout",
+      "libraryPreparationSeconds": 272.9365612,
+      "workspaceEnsureCohortSeconds": 766.4307133,
+      "workspaceEnsureWorkerSeconds": [
+        381.1842476,
+        385.2464657
+      ],
+      "preserveReleaseCohortSeconds": 9367.0702618,
+      "libraryRestorationSeconds": 1473.2435808,
+      "parallelBSourceCommitSeconds": 64.33625749999919,
+      "cleanupSequence": "A checkpoint/release; B external exact-file Git commit and regular checkpoint overlapped A checks/release. Original B checkpoint retry refused WorkspaceBusy; recovery uses successful parallel checkpoint receipt, then regular B release. Includes recovery and concurrent diagnostic probes, retains all product guards; not an identical-procedure cleanup comparison.",
+      "parallelBCheckpointSeconds": 2914.6685034,
+      "lifecycleCalls": {
+        "a-checkpoint": {
+          "elapsedSeconds": 5723.60831,
+          "status": "Succeeded",
+          "error": null
+        },
+        "a-release": {
+          "elapsedSeconds": 1662.4729290000032,
+          "status": "Succeeded",
+          "error": null
+        },
+        "b-checkpoint": {
+          "elapsedSeconds": 5.859497900000861,
+          "status": "Failed",
+          "error": "WorkspaceBusy"
+        },
+        "b-release": {
+          "elapsedSeconds": 1163.3742298,
+          "status": "Succeeded",
+          "error": null
+        }
+      }
+    }
+  },
+  "observations": {
+    "codex": [
+      {
+        "worker": "A",
+        "initialSeconds": 887.1221913999998,
+        "editSeconds": 18.40628000000106,
+        "initialValues": {
+          "a": 4,
+          "b": 6,
+          "original": 13
+        },
+        "editedValues": {
+          "a": 5,
+          "b": 6,
+          "original": 13
+        },
+        "compiled": true,
+        "domainGenerationChanged": true,
+        "assemblyMvidChanged": true,
+        "assets": {
+          "meshCount": 3,
+          "vertices": 3001,
+          "triangles": 2441,
+          "width": 2048,
+          "height": 2048,
+          "sceneExists": true,
+          "sceneMeshes": 3,
+          "missingSceneMeshes": 0,
+          "sceneStateRestored": true,
+          "foregroundPixels": 9457,
+          "previewContract": "qualification-urp-v1"
+        }
+      },
+      {
+        "worker": "B",
+        "initialSeconds": 887.1084852000013,
+        "editSeconds": 19.007966099999976,
+        "initialValues": {
+          "a": 4,
+          "b": 6,
+          "original": 13
+        },
+        "editedValues": {
+          "a": 4,
+          "b": 9,
+          "original": 13
+        },
+        "compiled": true,
+        "domainGenerationChanged": true,
+        "assemblyMvidChanged": true,
+        "assets": {
+          "meshCount": 3,
+          "vertices": 3001,
+          "triangles": 2441,
+          "width": 2048,
+          "height": 2048,
+          "sceneExists": true,
+          "sceneMeshes": 3,
+          "missingSceneMeshes": 0,
+          "sceneStateRestored": true,
+          "foregroundPixels": 9457,
+          "previewContract": "qualification-urp-v1"
+        }
+      }
+    ],
+    "splinter": [
+      {
+        "worker": "A",
+        "initialSeconds": 1753.4899197000013,
+        "editSeconds": 554.4151464999995,
+        "initialValues": {
+          "a": 4,
+          "b": 6,
+          "original": 13
+        },
+        "editedValues": {
+          "a": 5,
+          "b": 6,
+          "original": 13
+        },
+        "compiled": true,
+        "domainGenerationChanged": true,
+        "assemblyMvidChanged": true,
+        "assets": {
+          "meshCount": 3,
+          "vertices": 3001,
+          "triangles": 2441,
+          "width": 2048,
+          "height": 2048,
+          "sceneExists": true,
+          "sceneMeshes": 3,
+          "missingSceneMeshes": 0,
+          "sceneStateRestored": true,
+          "foregroundPixels": 9529,
+          "previewContract": "qualification-urp-v1"
+        }
+      },
+      {
+        "worker": "B",
+        "initialSeconds": 1752.8876779000002,
+        "editSeconds": 548.5568499000001,
+        "initialValues": {
+          "a": 4,
+          "b": 6,
+          "original": 13
+        },
+        "editedValues": {
+          "a": 4,
+          "b": 9,
+          "original": 13
+        },
+        "compiled": true,
+        "domainGenerationChanged": true,
+        "assemblyMvidChanged": true,
+        "assets": {
+          "meshCount": 3,
+          "vertices": 3001,
+          "triangles": 2441,
+          "width": 2048,
+          "height": 2048,
+          "sceneExists": true,
+          "sceneMeshes": 3,
+          "missingSceneMeshes": 0,
+          "sceneStateRestored": true,
+          "foregroundPixels": 9529,
+          "previewContract": "qualification-urp-v1"
+        }
+      }
+    ]
+  },
+  "limitations": [
+    "One A/B cohort per method, Codex then Splinter; no cache clearing or uncertainty distribution.",
+    "Existing original source, original Library payload and shared existing Git objects excluded from additional file allocation.",
+    "Shared runner and Library metadata/original delta counted once for Splinter. Owned Git registration and observer/control files included.",
+    "NTFS FILE_STANDARD_INFO data allocation; excludes MFT/directory metadata, OS caches and whole-disk peaks.",
+    "Editor bars start from created workspaces and include launch plus readiness polling; selected compilation/asset observations only, no Play/Test/game build or full Medieval asset-pack qualification.",
+    "Codex task UI creation completion time unavailable: app returned queued client IDs. Checkout index timestamps are a proxy only and excluded from time bars.",
+    "Library prepare elapsed was observed during setup and overlapped a brief input audit; not an isolated microbenchmark.",
+    "Benchmark observer publication and Accepted-response interpretation were repaired without repeating editor-start or edit requests. They do not establish product defects."
+  ],
+  "cleanup": {
+    "status": "scoped-complete-with-limitations",
+    "observedAtUtc": "2026-10-07T07:17:03.249967+00:00",
+    "splinterResults": [
+      {
+        "worker": "A",
+        "id": "2ed73c2da4454dab4e1d1634",
+        "revision": "3d4eb870ddb3e469d4feb32c838bf97775fa6af1",
+        "phase": "released",
+        "resultTreeMatchesCodex": true,
+        "deltaPresent": false,
+        "ownedGitRegistrationPresent": false,
+        "sourceInspectionObservations": [
+          {
+            "measuredAtUtc": "2026-10-07T02:52:37.2322754+00:00",
+            "mode": "initial",
+            "payloadBytesHashed": 2804769928,
+            "filesHashed": 1602,
+            "filesReused": 0,
+            "elapsedMilliseconds": 124793.2032
+          },
+          {
+            "measuredAtUtc": "2026-10-07T02:53:05.1941192+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 27359.3158
+          },
+          {
+            "measuredAtUtc": "2026-10-07T04:22:12.7038715+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 143,
+            "filesHashed": 1,
+            "filesReused": 1601,
+            "elapsedMilliseconds": 408118.3865
+          },
+          {
+            "measuredAtUtc": "2026-10-07T04:31:50.901849+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 405245.9299
+          },
+          {
+            "measuredAtUtc": "2026-10-07T04:41:14.9616414+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 382133.3262
+          },
+          {
+            "measuredAtUtc": "2026-10-07T04:49:19.0039259+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 478326.7188
+          },
+          {
+            "measuredAtUtc": "2026-10-07T05:17:28.7435425+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 1429708.6236
+          },
+          {
+            "measuredAtUtc": "2026-10-07T05:36:43.5496272+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 819163.3061
+          },
+          {
+            "measuredAtUtc": "2026-10-07T05:50:44.229557+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 750422.8656
+          },
+          {
+            "measuredAtUtc": "2026-10-07T06:00:57.7780114+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 556531.7619
+          },
+          {
+            "measuredAtUtc": "2026-10-07T06:12:38.8814567+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 484732.6865
+          }
+        ]
+      },
+      {
+        "worker": "B",
+        "id": "06534c4c9d22ee2efef169a2",
+        "revision": "2bbfe63731eecd83d1af91dd8fc529c28c6f2521",
+        "phase": "released",
+        "resultTreeMatchesCodex": true,
+        "deltaPresent": false,
+        "ownedGitRegistrationPresent": false,
+        "sourceInspectionObservations": [
+          {
+            "measuredAtUtc": "2026-10-07T02:59:00.9037371+00:00",
+            "mode": "initial",
+            "payloadBytesHashed": 2804769928,
+            "filesHashed": 1602,
+            "filesReused": 0,
+            "elapsedMilliseconds": 122229.001
+          },
+          {
+            "measuredAtUtc": "2026-10-07T02:59:30.4795168+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 28947.1152
+          },
+          {
+            "measuredAtUtc": "2026-10-07T05:55:43.7443141+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 152,
+            "filesHashed": 1,
+            "filesReused": 1601,
+            "elapsedMilliseconds": 732487.5709
+          },
+          {
+            "measuredAtUtc": "2026-10-07T06:07:13.2548203+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 497627.5249
+          },
+          {
+            "measuredAtUtc": "2026-10-07T06:15:48.4991746+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 474047.6636
+          },
+          {
+            "measuredAtUtc": "2026-10-07T06:25:07.036613+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 373938.6433
+          },
+          {
+            "measuredAtUtc": "2026-10-07T06:31:58.6214286+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 372261.8903
+          },
+          {
+            "measuredAtUtc": "2026-10-07T06:38:33.7931478+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 361437.4002
+          },
+          {
+            "measuredAtUtc": "2026-10-07T06:47:15.4746375+00:00",
+            "mode": "incremental",
+            "payloadBytesHashed": 0,
+            "filesHashed": 0,
+            "filesReused": 1602,
+            "elapsedMilliseconds": 368475.0412
+          }
+        ]
+      }
+    ],
+    "splinterNormalExitReceipts": [
+      {
+        "worker": "A",
+        "observedAtUtc": "2026-10-07T04:09:41.237011+00:00",
+        "rootExitCode": 0,
+        "activeJobProcesses": 0
+      },
+      {
+        "worker": "B",
+        "observedAtUtc": "2026-10-07T04:09:36.9754697+00:00",
+        "rootExitCode": 0,
+        "activeJobProcesses": 0
+      }
+    ],
+    "originalLibraryOrdinaryNtfs": true,
+    "libraryRestoreSucceeded": true,
+    "localAutocrlfOverrideRemoved": true,
+    "globalAutocrlfUnchanged": true,
+    "originalSourceHeadUnchanged": true,
+    "originalSourceBranchUnchanged": true,
+    "originalSourceClean": true,
+    "originalTrackedFilesByteVerified": 1602,
+    "originalSourceVerificationSeconds": 13.47594730000128,
+    "preexistingRefsUnchanged": true,
+    "measuredBinariesStillMatch": true,
+    "ownedEditorsRemaining": 0,
+    "codexRecordedChildrenRemaining": 0,
+    "codexWorktreesRetained": true,
+    "codexRetentionReason": "Owned by measurement chats; cross-task attachment rejected. Independent results and generated Libraries retained."
+  },
+  "postMeasurementValidation": {
+    "observedAtUtc": "2026-10-07T07:24:26.423807+00:00",
+    "scope": "Working checkout after measurement and cleanup, including pre-existing unrelated changes; frozen measured binaries were verified before this build.",
+    "command": "pwsh ./scripts/build.ps1",
+    "exitCode": 0,
+    "lockedRestore": "passed",
+    "releaseBuild": {
+      "status": "passed",
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "total": 1153,
+      "passed": 1134,
+      "failed": 0,
+      "skipped": 19
+    },
+    "documentation": {
+      "files": 9,
+      "localLinks": 538,
+      "broken": [],
+      "numericAndQualificationChecks": "passed",
+      "publicDatasetSensitiveFields": "absent",
+      "figureFiles": 6,
+      "finalCleanup": "verified"
+    }
+  },
+  "preservationDiagnostics": {
+    "scope": "Single bounded read-only probes after plotted Editor phases, during A checkpoint; no implementation change or causal apportionment of earlier Unity delay",
+    "metadata": {
+      "schemaVersion": 1,
+      "purpose": "Read-only metadata diagnosis during A checkpoint; not a new Editor or chart cohort",
+      "beganUtc": "2026-10-07T05:24:31.748091+00:00",
+      "pathCount": 50,
+      "rows": [
+        {
+          "target": "ordinary-ntfs",
+          "operation": "all-working-tree",
+          "elapsedSeconds": 0.22773659999802476,
+          "outputBytes": 6676
+        },
+        {
+          "target": "ordinary-ntfs",
+          "operation": "filter-encoding-index",
+          "elapsedSeconds": 0.22740429999976186,
+          "outputBytes": 10182
+        },
+        {
+          "target": "ordinary-ntfs",
+          "operation": "existing-stat",
+          "pathCount": 10,
+          "found": 10,
+          "elapsedSeconds": 0.00254299999869545
+        },
+        {
+          "target": "ordinary-ntfs",
+          "operation": "missing-attribute-stat",
+          "pathCount": 10,
+          "found": 0,
+          "elapsedSeconds": 0.0009268000030715484
+        },
+        {
+          "target": "splinter-a",
+          "operation": "all-working-tree",
+          "elapsedSeconds": 12.833736800002953,
+          "outputBytes": 6676
+        },
+        {
+          "target": "splinter-a",
+          "operation": "filter-encoding-index",
+          "elapsedSeconds": 12.574863499998173,
+          "outputBytes": 10182
+        },
+        {
+          "target": "splinter-a",
+          "operation": "existing-stat",
+          "pathCount": 10,
+          "found": 10,
+          "elapsedSeconds": 24.062588999997388
+        },
+        {
+          "target": "splinter-a",
+          "operation": "missing-attribute-stat",
+          "pathCount": 10,
+          "found": 0,
+          "elapsedSeconds": 0.007186099999671569
+        }
+      ],
+      "endedUtc": "2026-10-07T05:25:21.683785+00:00"
+    },
+    "gitStartup": {
+      "schemaVersion": 1,
+      "purpose": "Read-only Git startup diagnosis during A checkpoint; not a chart timer",
+      "beganUtc": "2026-10-07T05:28:12.564575+00:00",
+      "rows": [
+        {
+          "operation": "ordinary-revision",
+          "elapsedSeconds": 0.17381919999752427,
+          "outputBytes": 41
+        },
+        {
+          "operation": "splinter-revision",
+          "elapsedSeconds": 5.893454699998983,
+          "outputBytes": 41
+        },
+        {
+          "operation": "splinter-one-attribute",
+          "elapsedSeconds": 7.760540700001002,
+          "outputBytes": 66
+        },
+        {
+          "operation": "explicit-admin-revision",
+          "elapsedSeconds": 2.6365306000006967,
+          "outputBytes": 41
+        }
+      ],
+      "endedUtc": "2026-10-07T05:28:29.028115+00:00"
+    },
+    "journalInventory": {
+      "schemaVersion": 1,
+      "purpose": "Read-only exact LatestJournalStorage.Bytes inventory body outside provider gate; diagnosis only",
+      "inventory": {
+        "files": 16259,
+        "logicalFileBytes": 36694054,
+        "elapsedSeconds": 0.8914007
+      },
+      "before": {
+        "at": "2026-10-07T14:29:28.6185043+09:00",
+        "lockAcquisitions": 1666303,
+        "lockWaitTicks": 94277304862,
+        "readBytes": 13719822015,
+        "durableSequence": 28554
+      },
+      "after": {
+        "at": "2026-10-07T14:29:31.4255951+09:00",
+        "lockAcquisitions": 1666336,
+        "lockWaitTicks": 94289851234,
+        "readBytes": 13719822384,
+        "durableSequence": 28554
+      },
+      "stopwatchFrequency": 10000000
+    },
+    "sequentialAttributeCommandsPer1602FileInspection": 132
+  },
+  "derived": {
+    "savedAdditionalBytes": 11144580480,
+    "additionalAllocationReductionPercent": 98.6497107452921,
+    "initialEditorExtraSeconds": 866.3651837000002,
+    "editExtraSeconds": 535.4042810999999
+  },
+  "codexResults": [
+    {
+      "worker": "a",
+      "revision": "022376235d10ec293fe05cb69aa3dfd4910da0ca",
+      "rawResultFilesVerified": 1602,
+      "contentDiffFiles": 0,
+      "newFiles": 0
+    },
+    {
+      "worker": "b",
+      "revision": "3194c94e9fb7500de30801b0ec759188c748295b",
+      "rawResultFilesVerified": 1602,
+      "contentDiffFiles": 0,
+      "newFiles": 0
+    }
+  ]
+}

@@ -1590,6 +1590,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "journalBytesBasis": { "enum": ["current-files", "writer-accounting"] },
         "journalOptimizationEnabled": { "type": "boolean" },
         "id": {
           "type": "string",

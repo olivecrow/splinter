@@ -47,6 +47,7 @@ internal sealed class LatestJournalStorage
         directory = Path.Combine(Path.GetDirectoryName(path)!, Current.Objects); WorkspaceStore.EnsurePlainPath(directory);
         if (!Directory.Exists(directory)) throw Corrupt("The owned object directory is missing.");
         if (Capsule(path)) { head = ReadFrame(path); generation = head.Commit.Generation; }
+        var generations = new HashSet<long>();
         foreach (string entry in Directory.EnumerateFileSystemEntries(directory))
         {
             WorkspaceStore.EnsurePlainPath(entry); string name = Path.GetFileName(entry);
@@ -61,7 +62,7 @@ internal sealed class LatestJournalStorage
                     continue;
                 }
                 var frame = ReadFrame(entry, allowPrefix: true);
-                if (head is null || frame.Commit.Generation >= generation || frames.Values.Any(f => f.Commit.Generation == frame.Commit.Generation))
+                if (head is null || frame.Commit.Generation >= generation || !generations.Add(frame.Commit.Generation))
                     throw Corrupt("A backup has an unexpected generation.");
                 frames.Add(entry, frame);
             }
@@ -253,13 +254,20 @@ internal sealed class LatestJournalStorage
     private void Inventory()
     {
         if (objects.Count != Current.FileCount || objects.Values.Sum(l => (long)l.Length) != Current.FileBytes || Bytes > limit || !objects.TryGetValue("owner.lock", out var o) || o.Length != 0) throw Corrupt("Current inventory differs.");
+        var payloadByPath = new Dictionary<string, long>(StringComparer.Ordinal);
+        var referencedPaths = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var location in objects.Values)
+        {
+            referencedPaths.Add(location.Path);
+            if (location.Metadata is null)
+                payloadByPath[location.Path] = checked(payloadByPath.GetValueOrDefault(location.Path) + location.Length);
+        }
         foreach (var frame in frames.Values)
         {
-            var entries = objects.Where(v => v.Value.Path == frame.Path).ToArray();
             if (frame.Commit.Items.Any(i => i.Metadata is not null && (!objects.TryGetValue(i.Name, out var l) || l.Path != frame.Path))) throw Corrupt("A capsule retains superseded metadata.");
-            if (entries.Where(v => v.Value.Metadata is null).Sum(v => (long)v.Value.Length) != frame.DataEnd - HeaderBytes) throw Corrupt("A capsule retains superseded payload.");
+            if (payloadByPath.GetValueOrDefault(frame.Path) != frame.DataEnd - HeaderBytes) throw Corrupt("A capsule retains superseded payload.");
         }
-        foreach (string p in Directory.EnumerateFiles(directory).Where(p => Plain(Path.GetFileName(p)))) if (!objects.Values.Any(l => l.Path == p)) throw Corrupt("An obsolete seed file remains; reconnect its writer.");
+        foreach (string p in Directory.EnumerateFiles(directory).Where(p => Plain(Path.GetFileName(p)))) if (!referencedPaths.Contains(p)) throw Corrupt("An obsolete seed file remains; reconnect its writer.");
     }
     internal static SnapshotDeltaSeal Seal(string path)
     {

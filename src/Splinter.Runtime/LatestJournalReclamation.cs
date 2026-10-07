@@ -36,9 +36,16 @@ public static class LatestJournalReclamation
             Validate(plan, root, seal, wholeDirectory); return;
         }
         var fences = new List<FileStream>();
+        var fencedPaths = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        void Fence(string path, FileAccess access)
+        {
+            var fence = new FileStream(path, FileMode.Open, access, FileShare.Read | FileShare.Delete);
+            fences.Add(fence);
+            fencedPaths.Add(CanonicalPath(fence.Name));
+        }
         try
         {
-            if (File.Exists(root)) fences.Add(new(root, FileMode.Open, FileAccess.ReadWrite, FileShare.Read | FileShare.Delete));
+            if (File.Exists(root)) Fence(root, FileAccess.ReadWrite);
             if (plan is null)
             {
                 if (!File.Exists(root) || JournalDeltaStore.SealJournal(root, seal.DurableSequence) != seal)
@@ -65,7 +72,7 @@ public static class LatestJournalReclamation
                         }
                     }
                 }
-                foreach (string file in names.Where(p => p != root)) fences.Add(new(file, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete));
+                foreach (string file in names.Where(p => p != root)) Fence(file, FileAccess.Read);
                 plan = new(1, root, seal, current.Objects, names.ToDictionary(p => Path.GetRelativePath(directory, p), Hash, StringComparer.Ordinal), wholeDirectory);
                 byte[] bytes = LatestJournalStorage.Encode(plan, "SJM1");
                 using (var file = new FileStream(receipt, FileMode.CreateNew, FileAccess.Write, FileShare.Read)) { file.Write(bytes); file.Flush(true); }
@@ -74,8 +81,8 @@ public static class LatestJournalReclamation
             foreach (string name in plan.Files.Keys)
             {
                 string file = Path.Combine(directory, name);
-                if (File.Exists(file) && !fences.Any(f => WorkspaceStore.SamePath(f.Name, file)))
-                    fences.Add(new(file, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete));
+                if (File.Exists(file) && !fencedPaths.Contains(CanonicalPath(file)))
+                    Fence(file, FileAccess.Read);
             }
             Validate(plan, root, seal, wholeDirectory);
             boundary?.Invoke("intent");
@@ -101,6 +108,7 @@ public static class LatestJournalReclamation
         }
         finally { foreach (var fence in fences) fence.Dispose(); }
     }
+    private static string CanonicalPath(string path) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
     private static void Validate(Plan plan, string root, SnapshotDeltaSeal seal, bool wholeDirectory)
     {
         if (plan.Version != 1 || !WorkspaceStore.SamePath(plan.Root, root) || plan.Seal != seal || plan.WholeDirectory != wholeDirectory ||

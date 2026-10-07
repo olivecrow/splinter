@@ -22,7 +22,7 @@ public sealed class FoundationGateway(
         workspaceStatus = "process-provider-poll; source-only-on-verify-source",
         sourceVerification = new { fingerprint = "source-fingerprint-v1", ntfsMode = "journal-file-manifest-v1",
             audit = "workspace status --audit-source", cacheTrust = "same-snapshot-provider-epoch-and-source-generation",
-            measurements = "per-inspection-payload-and-manifest; batched-Git-hash-process-count; provider-epoch-I/O-and-read-range-search-counters; storage-reads.jsonl; scripts/measure-workspace-storage.ps1 (read-only development sampler)" },
+            measurements = "per-inspection-payload-and-manifest; batched-Git-hash-process-count; provider-epoch-I/O-and-read-range-search-counters; live journalBytesBasis=writer-accounting versus current-files audit; storage-reads.jsonl; scripts/measure-workspace-storage.ps1 (read-only development sampler)" },
         storageModes = development ? new[] { "ntfs-snapshot", "git-snapshot", "plastic-snapshot", "project-snapshot", "git-checkout" } : ["ntfs-snapshot", "git-snapshot", "plastic-snapshot", "project-snapshot"],
         plainProjectBasis = new { storage = "project-snapshot", source = "none", lifecycle = "project prepare/status/restore; same-volume rename; original writable managed view; exact project-basis dependency",
             initialPayloadCopiedBytes = 0, vss = false, readCache = false, library = "same immutable project tree and task-private ranges", qualification = "docs/verification/plain-project-basis.md" },

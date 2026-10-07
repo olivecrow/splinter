@@ -53,6 +53,14 @@ xUnit package metadata identifies the .NET Foundation as the copyright holder. I
 
 ## Runtime and external tools
 
+The recorded README charts were rendered with **Matplotlib 3.11.2** through
+[`scripts/plot-unity-workspace-comparison.py`](scripts/plot-unity-workspace-comparison.py).
+The installed Python package's `METADATA` includes the Matplotlib license agreement
+and **Copyright (c) 2012- Matplotlib Development Team; All Rights Reserved**.
+See the [Matplotlib project](https://matplotlib.org/). This is an optional chart
+authoring dependency; the local Python packages are excluded from the repository
+and the Splinter product binaries.
+
 | Project or tool | Use in Splinter | License source |
 | --- | --- | --- |
 | [.NET](https://github.com/dotnet/runtime) | Product runtime and standard APIs, including Brotli through `System.IO.Compression` | [Runtime MIT license](https://github.com/dotnet/runtime/blob/main/LICENSE.TXT) and [third party notices](https://github.com/dotnet/runtime/blob/main/THIRD-PARTY-NOTICES.TXT); use the notices for the actual runtime being redistributed |

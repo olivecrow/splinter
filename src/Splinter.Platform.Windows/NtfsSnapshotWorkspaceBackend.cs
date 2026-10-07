@@ -250,17 +250,29 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         if (observed is not { Mounted: false, ProviderAlive: false, OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
             throw new WorkspaceException("OverlayCleanupIncomplete", "Observe provider and mount absence before delta removal.");
         string delta = DeltaPath(control), intentPath = Path.Combine(control, "delta-reclaim.json");
+        string currentJournal = Path.Combine(delta, "delta.journal"), latestReceipt = Path.Combine(control, "latest-delta-reclaim.json");
         WindowsProcessWorkspaceProvider.CheckPath(delta);
         var intent = await WindowsProcessWorkspaceProvider.ReadAsync<SnapshotResult>(intentPath, ct);
         if (intent is null)
         {
-            if (await SealAsync(w, control, ct) != result.Seal) throw new WorkspaceException("DeltaChangedAfterCollection", "Journal changed after the result was sealed.");
+            WindowsProcessWorkspaceProvider.CheckPath(currentJournal);
+            if (File.Exists(currentJournal) && LatestJournalReclamation.IsLatest(currentJournal))
+            {
+                _ = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Preserve the delta without a request.");
+                if (observed.Storage is null || observed.Storage.DurableSequence != result.Seal.DurableSequence ||
+                    observed.Storage.JournalBytes != result.Seal.JournalBytes)
+                    throw new WorkspaceException("DeltaChangedAfterCollection", "Journal bytes or sequence differ from the stopped writer receipt.");
+                // The intent fixes the expected result, not deletion authority.
+                // ReclaimDirectory verifies the full seal and durable inventory
+                // before any deletion, including retries after this publication.
+            }
+            else if (await SealAsync(w, control, ct) != result.Seal)
+                throw new WorkspaceException("DeltaChangedAfterCollection", "Journal changed after the result was sealed.");
             await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, result, ct);
         }
         else if (intent != result) throw new WorkspaceException("OverlayResultRequired", "Reclamation intent differs from the retained result.");
         if (File.Exists(delta)) throw new WorkspaceException("UnownedDeltaFiles", "A file replaced the owned delta directory; preserve it.");
         if (!Directory.Exists(delta)) return;
-        string currentJournal = Path.Combine(delta, "delta.journal"), latestReceipt = Path.Combine(control, "latest-delta-reclaim.json");
         if (File.Exists(latestReceipt) || File.Exists(currentJournal) && LatestJournalReclamation.IsLatest(currentJournal))
         {
             LatestJournalReclamation.ReclaimDirectory(delta, result.Seal, ["identity.json"], latestReceipt);

@@ -441,6 +441,18 @@ public sealed class ContractAndCliTests
     }
 
     [Fact]
+    public void PoisonedLiveWriterCanReportUnknownStorageWithoutClaimingZeroOrExit()
+    {
+        var observation = JsonSerializer.SerializeToElement(new
+        {
+            version = 1, token = "test", id = "test", phase = "mounted", observedAt = DateTimeOffset.UtcNow,
+            processId = 1, snapshotId = "snapshot", snapshotAvailability = "available", openHandles = 3,
+            storage = (object?)null, lastFailureCode = "DeltaReconnectRequired"
+        });
+        Assert.True(contracts.Validate("urn:splinter:v1:overlay-observation", observation).IsValid);
+    }
+
+    [Fact]
     public void OverlayReplayStateAndMetricsMatchThePublishedObservationContract()
     {
         using var dir = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();

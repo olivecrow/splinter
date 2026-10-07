@@ -114,28 +114,36 @@ public static class WinFspOverlayServer
             });
             using (var host = new FileSystemHost(fileSystem))
             {
+                using var wakeup = new OverlayRequestWakeup(request.ControlPath);
+                long nextObservation = 0;
                 string? lastFlushRequest = null, lastSourceRequest = null;
                 int status = host.MountEx(mountPath, 8, null, false, 0);
                 if (status < 0) throw new WorkspaceException("OverlayMountFailed", $"WinFsp mount returned 0x{status:x8}.");
                 while (true)
                 {
-                    self.Refresh();
-                    var snapshotObservation = await WinFspOverlayClient.ObserveSnapshotAsync(request);
-                    Volatile.Write(ref health, snapshotObservation);
-                    await WindowsProcessWorkspaceProvider.WriteAsync(statePath, new
+                    if (Stopwatch.GetTimestamp() >= nextObservation)
                     {
-                        version = 1, request.Token, request.Identity.Id,
-                        phase = snapshotObservation.Available switch { true => "mounted", false => "snapshot-missing", null => "snapshot-unknown" },
-                        snapshotAvailability = snapshotObservation.Availability, snapshotFailureCode = snapshotObservation.FailureCode,
-                        observedAt = DateTimeOffset.UtcNow,
-                        snapshotId = request.Identity.Snapshot.Id, mountPath, deltaPath,
-                        processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks,
-                        openHandles = fileSystem.OpenHandles, retainedFileContexts = fileSystem.RetainedFileContexts,
-                        workingSetBytes = self.WorkingSet64, privateBytes = self.PrivateMemorySize64,
-                        ioFailures = Volatile.Read(ref failures), lastFailureCode = Volatile.Read(ref lastFailureCode), storage = store.Observe(),
-                        sourceView = (store as SourceViewDeltaStore)?.ObservePartitions(),
-                        preparation = new { storeReadyTicks, stopwatchFrequency = Stopwatch.Frequency }
-                    });
+                        self.Refresh();
+                        var snapshotObservation = await WinFspOverlayClient.ObserveSnapshotAsync(request);
+                        Volatile.Write(ref health, snapshotObservation);
+                        var storage = store.ObserveActivity();
+                        if (storage is null) Volatile.Write(ref lastFailureCode, "DeltaReconnectRequired");
+                        await WindowsProcessWorkspaceProvider.WriteAsync(statePath, new
+                        {
+                            version = 1, request.Token, request.Identity.Id,
+                            phase = snapshotObservation.Available switch { true => "mounted", false => "snapshot-missing", null => "snapshot-unknown" },
+                            snapshotAvailability = snapshotObservation.Availability, snapshotFailureCode = snapshotObservation.FailureCode,
+                            observedAt = DateTimeOffset.UtcNow,
+                            snapshotId = request.Identity.Snapshot.Id, mountPath, deltaPath,
+                            processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks,
+                            openHandles = fileSystem.OpenHandles, retainedFileContexts = fileSystem.RetainedFileContexts,
+                            workingSetBytes = self.WorkingSet64, privateBytes = self.PrivateMemorySize64,
+                            ioFailures = Volatile.Read(ref failures), lastFailureCode = Volatile.Read(ref lastFailureCode), storage,
+                            sourceView = (store as SourceViewDeltaStore)?.ObservePartitions(),
+                            preparation = new { storeReadyTicks, stopwatchFrequency = Stopwatch.Frequency }
+                        });
+                        nextObservation = Stopwatch.GetTimestamp() + Stopwatch.Frequency;
+                    }
                     var stop = await WindowsProcessWorkspaceProvider.ReadAsync<StopRequest>(Path.Combine(request.ControlPath, "stop.json"), waitForPublication: false);
                     if (stop?.Token == request.Token)
                     {
@@ -150,7 +158,7 @@ public static class WinFspOverlayServer
                     {
                         store.Flush();
                         await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "flush-result.json"),
-                            new { request.Token, flush.RequestId, observedAt = DateTimeOffset.UtcNow, storage = store.Observe() });
+                            new { request.Token, flush.RequestId, observedAt = DateTimeOffset.UtcNow, storage = store.ObserveActivity() });
                         lastFlushRequest = flush.RequestId;
                     }
                     var sourceQuery = await WindowsProcessWorkspaceProvider.ReadAsync<SourceChangeRequest>(Path.Combine(request.ControlPath, "source-query.json"), waitForPublication: false);
@@ -166,7 +174,8 @@ public static class WinFspOverlayServer
                                 self.StartTime.ToUniversalTime().Ticks, view, sourceError));
                         lastSourceRequest = sourceQuery.RequestId;
                     }
-                    await Task.Delay(1000);
+                    double remaining = Math.Max(0, nextObservation - Stopwatch.GetTimestamp()) / (double)Stopwatch.Frequency;
+                    await wakeup.WaitAsync(TimeSpan.FromSeconds(remaining));
                 }
             }
             await WindowsProcessWorkspaceProvider.WriteAsync(statePath, new

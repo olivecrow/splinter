@@ -1,0 +1,1663 @@
+{
+  "version": 1,
+  "measuredDate": "2026-10-07",
+  "qualification": "CO-05–08; bounded Editor-free checkpoint/release follow-up",
+  "repositoryBase": "74518fd453ea9e191c5b5efc1e2ad82a17ffe427",
+  "fixture": {
+    "sourceRevision": "877d670513368fcf535b8caff03817adeb9a65ba",
+    "trackedFiles": 64,
+    "sourceBytes": 5510,
+    "libraryFiles": 256,
+    "libraryBytes": 65536,
+    "editorExecuted": false,
+    "storage": "git-snapshot",
+    "application": "unity",
+    "maxJournalBytes": 67108864
+  },
+  "workload": {
+    "sourceFilesChanged": 1,
+    "privateLibraryFilesChanged": 128,
+    "libraryBytesChangedPerFile": 1,
+    "order": [
+      "before",
+      "after",
+      "after-wakeup",
+      "after-router"
+    ],
+    "samplesPerCandidate": 1,
+    "commandObservationBoundSeconds": 120,
+    "forcedTerminationOrRetry": false,
+    "cacheClearing": false,
+    "processStartupIncluded": true,
+    "driverPollingMilliseconds": 100,
+    "baseline": "exact CO-01–04 optimized distribution, newly measured on this fixture",
+    "intermediate": "after includes follow-up except request notifications",
+    "after-wakeup": "optional request notification wakeup; router still used the separate checkpoint path",
+    "final": "after-router wires the capability through the selected source router; final 2-inspection path"
+  },
+  "candidates": {
+    "before": {
+      "binarySha256": {
+        "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+        "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+        "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+        "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+        "Splinter.Application.Unity.dll": "ca9a50b06e6e285189e3342bdf12584d567d92a65bcdf096dec1b480a0ca2e2b",
+        "Splinter.Core.dll": "8d26a03953fd20b9c37b626ebf3b592316d41ec5b8fac49479cc6c54941228bb",
+        "splinter.dll": "18f639f35ae104a295825789f5b5274138a2729ac6dd456566c55b15ccfb58c6",
+        "Splinter.Host.dll": "c0834cb46fb6db3a833e10a2521920f4071ad2fa971a90f65238bef0b69de228",
+        "Splinter.Platform.Windows.dll": "81a1d75cbe15d4a392bd927aa56ae65995f84de191edcd0d0a5db64f91a35c24",
+        "Splinter.Protocol.dll": "61c0f0f8fe95fb2e3038cf58d31f265b170f7a690f27d4509dce9c878a2f6346",
+        "Splinter.Runtime.dll": "99736e84392faf01f7df00c8ee4f91f732ac4634683cb946f1bcf6fef3ac026f",
+        "Splinter.SourceControl.Files.dll": "7101730c61c1b37591e48a2d18426e162168a2b2a534cad603004db276d6e758",
+        "Splinter.SourceControl.Git.dll": "fd064f9afc71c82e550c97b9e51a20579380a8b3c1bfffc1191611abfd041ba3",
+        "Splinter.Workflows.Windows.dll": "1db2aa4fa6bf7c9e50d944a2d2d64655c8072921a6e76c367d4714a96c8f3cef",
+        "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+        "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+      },
+      "identity": {
+        "id": "926cb99c6f7bc138ee0dfe08",
+        "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\lco7\\home-before\\workspaces\\926cb99c6f7bc138ee0dfe08",
+        "requestDigest": "0f1a022c9937d61fdf3fbb9b",
+        "base": "877d670513368fcf535b8caff03817adeb9a65ba"
+      },
+      "closure": {
+        "status": "completed",
+        "originalTrackedFilesVerified": 64,
+        "originalLibraryFilesVerified": 256,
+        "originalSourceClean": true,
+        "ownedGitBasisRefsAbsent": true,
+        "originalLibraryRestored": true,
+        "originalUnityFixtureModified": false
+      },
+      "taskClosure": {
+        "phase": "released",
+        "resultRevision": "4a4d3d95edb48c7a1a31b14490a27ef365c43b9b",
+        "changedSourcePaths": [
+          "Assets/File000.cs"
+        ],
+        "resultContentVerified": true,
+        "mountAbsent": true,
+        "deltaAbsent": true,
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "storage": {
+            "id": "926cb99c6f7bc138ee0dfe08",
+            "snapshotId": "git-926cb99c6f7bc138ee0dfe08-877d670513368fcf535b8caff03817adeb9a65ba",
+            "initialPayloadCopiedBytes": 0,
+            "journalBytes": 254387,
+            "payloadBytes": 9032,
+            "metadataBytes": 245355,
+            "readBytes": 108177,
+            "readCacheBytes": 0,
+            "maxTransferBytes": 1048576,
+            "indexedNodes": 326,
+            "durableSequence": 389,
+            "metrics": {
+              "epoch": "c47fa17813a944138711920aa814a3a8",
+              "lockAcquisitions": 33079,
+              "lockWaitTicks": 465454,
+              "flushCount": 394,
+              "flushTicks": 9048205,
+              "commitCount": 389,
+              "journalAppendedBytes": 198014,
+              "replayBytes": 0,
+              "replayTicks": 185468,
+              "journalReadBytes": 19493,
+              "baseReadBytes": 88684,
+              "stopwatchFrequency": 10000000,
+              "replayFrames": 0,
+              "replayReadCalls": 0,
+              "replayReadTicks": 0,
+              "replayValidationTicks": 0,
+              "replayIndexTicks": 0,
+              "replayBufferBytes": 65536,
+              "replayIndexOperations": [],
+              "replayWriteRangeIndex": {
+                "replaceCalls": 0,
+                "priorExtents": 0,
+                "maxPriorExtents": 0,
+                "visitedExtents": 0,
+                "copiedExtents": 0,
+                "locateAndReplaceTicks": 0,
+                "sortTicks": 0,
+                "priorExtentBuckets": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "liveJournalWrites": {
+                "mutationGateCalls": 5314,
+                "mutationGateWaitTicks": 4865,
+                "operations": [
+                  {
+                    "operation": "create",
+                    "attempts": 1,
+                    "durableCommits": 1,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 353,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 32054,
+                    "applyTicks": 0,
+                    "totalTicks": 467900,
+                    "flushCalls": 1,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "metadata",
+                    "attempts": 129,
+                    "durableCommits": 129,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 50029,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 2905271,
+                    "applyTicks": 0,
+                    "totalTicks": 9242554,
+                    "flushCalls": 129,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "resize",
+                    "attempts": 129,
+                    "durableCommits": 129,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 50027,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 3026648,
+                    "applyTicks": 0,
+                    "totalTicks": 7352580,
+                    "flushCalls": 129,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "write",
+                    "attempts": 130,
+                    "durableCommits": 130,
+                    "failedCalls": 0,
+                    "payloadBytes": 32968,
+                    "journalBytes": 97605,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 2986764,
+                    "applyTicks": 0,
+                    "totalTicks": 9805028,
+                    "flushCalls": 130,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              "readRangeIndex": {
+                "readCalls": 1306,
+                "searchProbes": 177,
+                "visitedExtents": 177
+              }
+            },
+            "journalOptimizationEnabled": true
+          },
+          "hostFreeBytes": 268498685952,
+          "journalRemainingBytes": 66854477,
+          "snapshotStorage": {
+            "id": "git-926cb99c6f7bc138ee0dfe08-877d670513368fcf535b8caff03817adeb9a65ba",
+            "available": false,
+            "preservedBytes": 0,
+            "availability": "missing"
+          },
+          "deltaPresent": false,
+          "snapshotAvailability": "missing"
+        }
+      },
+      "checkpointResult": {
+        "snapshotId": "git-926cb99c6f7bc138ee0dfe08-877d670513368fcf535b8caff03817adeb9a65ba",
+        "revision": "4a4d3d95edb48c7a1a31b14490a27ef365c43b9b",
+        "fingerprint": "6758cb7c91ae4a853ebc6a824269f0877720a91339b744b05f45d1346a4489f8",
+        "resultReference": "refs/splinter/snapshot-results/926cb99c6f7bc138ee0dfe08",
+        "seal": {
+          "durableSequence": 389,
+          "journalBytes": 254387,
+          "journalHash": "dc85d434e0f561b224f2109825db503945ecd5d66d2b66f07d91b677a6d9c11c"
+        },
+        "independentOfSnapshot": true,
+        "collectionProtocol": "stable-journal-v1"
+      },
+      "commands": {
+        "library-prepare": {
+          "beganUtc": "2026-10-07T09:18:11.515926+00:00",
+          "endedUtc": "2026-10-07T09:18:19.267148+00:00",
+          "elapsedSeconds": 7.751306599999225,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 0,
+          "sourceInspectionMilliseconds": 0,
+          "outerSealMeasurements": 0
+        },
+        "private-library-ensure": {
+          "beganUtc": "2026-10-07T09:18:19.269208+00:00",
+          "endedUtc": "2026-10-07T09:18:47.222354+00:00",
+          "elapsedSeconds": 27.953998600001796,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 2,
+          "sourceInspectionMilliseconds": 7602.8937,
+          "outerSealMeasurements": 0
+        },
+        "private-library-checkpoint": {
+          "beganUtc": "2026-10-07T09:18:51.056450+00:00",
+          "endedUtc": "2026-10-07T09:19:19.711476+00:00",
+          "elapsedSeconds": 28.6559828999998,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 5,
+          "sourceInspectionMilliseconds": 21585.1348,
+          "outerSealMeasurements": 2
+        },
+        "private-library-release": {
+          "beganUtc": "2026-10-07T09:19:19.799309+00:00",
+          "endedUtc": "2026-10-07T09:19:33.479721+00:00",
+          "elapsedSeconds": 13.680709600001137,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 1,
+          "sourceInspectionMilliseconds": 4729.6974,
+          "outerSealMeasurements": 4
+        },
+        "library-restore": {
+          "beganUtc": "2026-10-07T09:19:33.574051+00:00",
+          "endedUtc": "2026-10-07T09:19:42.932700+00:00",
+          "elapsedSeconds": 9.358808600001794,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 0,
+          "sourceInspectionMilliseconds": 0,
+          "outerSealMeasurements": 0
+        }
+      },
+      "rawEvidenceHashes": {
+        "closure.json": "9e924fc4f0816e34c1060f9363f0b48137b6ea64bdc593c0cb0f17693ce2b829",
+        "diagnostic-binaries.json": "2ed02313750d839edc799e58889a449faa0b47a43b30a8d03d1e472e461f3323",
+        "fixture.json": "e3c8914a5733f6deb1b0076f984476903f409b32fdcb5c8535ffb176dc3ead32",
+        "identity.json": "3dce111be4fc9cab9ed71e85c3b212bdc6d3fd6cae21518677d0ddd6ba147e9f",
+        "library-prepare-cost.json": "51298d8358b2b6f2fb8819ea8ab26c7dabb2e51d03a82309631839d9ba1d912f",
+        "library-prepare-process.json": "252bfca66ad242b477666172c8566394f508e5e95b8b94b0b8a024d0aac4d7c6",
+        "library-prepare-response.json": "464b6478160727c776cf55ed8a9307b1041d146b6f05e6557e3643c9a45d101b",
+        "library-prepare-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "library-prepare-stdout.json": "2d81e15c5516d56d85e31bf5b116333b2ad1767693feef6bce8ba4143171e252",
+        "library-restore-cost.json": "5400d12c0fed1fbed157ce914ad8b1ada12b9e7ad681556e63e53e3f9e439fef",
+        "library-restore-process.json": "56f54f93cfeec32a7dcc4d98e3704cf441ad23c1acfe9a890a36698b0ef69821",
+        "library-restore-response.json": "444d94a5dba22d36ca55f0b0cede083ba0451bc2ca6d7a2d3d908105dd1af60d",
+        "library-restore-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "library-restore-stdout.json": "d27e503c449c446f8ff307b2a3838a7cde42779206c51e1465ba5f8aba483034",
+        "private-library-after-checkpoint-events.jsonl": "95c9a03cac570825ebb8edf541ce3be56eca7a9546ddd0a65d979fcdc6339dd2",
+        "private-library-after-checkpoint-source-inspections.jsonl": "4f9d83cae57bc91066bc68b7a7ee4cb33a8b500633e529e64c82c8e90be12a9c",
+        "private-library-after-checkpoint-storage-reads.jsonl": "1febffc14c5f1f7561c363eb7a8edab65167e5cfb16aeff9c739aaeea82c7ce1",
+        "private-library-checkpoint-cost.json": "6f1e5acdc3ced5818e4fe56256f85cbec90cab02f09929a67428c09848c93bb2",
+        "private-library-checkpoint-process.json": "d15902d9932f289466d9b9ad5a51e062e26a4e6dce1d47030adebacea79e56ea",
+        "private-library-checkpoint-response.json": "febc82fca248e08e4652dab83fe63bc9d041e09176ffdd7ee10e59751a9d92b5",
+        "private-library-checkpoint-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-checkpoint-stdout.json": "5693c9db884c61c92d91a5c8ea1f738c372abad22ec99fc587860ad6e9d2e0ec",
+        "private-library-closure.json": "ccbae389261c58935c5a89d054d322e78244bd35af71559bad944c938b9dc59f",
+        "private-library-ensure-cost.json": "3b83c4fbff0ab3f06eabb3faf31d2f07bebac4760daa8deeaecef2d09fd961c9",
+        "private-library-ensure-process.json": "742d5eea94f3f42bb574b3e23ecfe25ebcdcba5ad1f43befbc7fc747279a354f",
+        "private-library-ensure-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-ensure-stdout.json": "d51564e09418973a147d7213568ffdec49cfa1566abcf7aa22c8e0407669fa43",
+        "private-library-final-events.jsonl": "5d1fb90e55ca5aa5d70d400878670414cb6ec509c8e85d3dd2c44ae6d3fd63ed",
+        "private-library-final-source-inspections.jsonl": "2016c6cca42e520ae5a57152b9f0058af76103ad535d2a99947ddeb5966e707d",
+        "private-library-final-storage-reads.jsonl": "bf117f52de6eb6a2eed67ee26444a22bcc9cdf6c70ad697ee5f0add05f9be056",
+        "private-library-identity.json": "a0ba71954d89e920cd820201ec1510be6fedb7e09931631ca33e2d5a85e93e46",
+        "private-library-release-cost.json": "8bb18ebb81cf18f422991f28dcfeb603bfa7de6a1f04d68a71e563a7282e7832",
+        "private-library-release-process.json": "8a1ef6090dd98850aa4936ac6534eaa61552cf6ec431371737100caff03a01d6",
+        "private-library-release-response.json": "119f5a54763f08b9109104e7b7c4ce4b1c6632123b2dcf3fa05bd75ab1c541b4",
+        "private-library-release-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-release-stdout.json": "1e8414bbfa9f8306b32509d65d32dbdc7d80d6c2342fa4cb4a023f706c04ae54"
+      }
+    },
+    "after": {
+      "binarySha256": {
+        "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+        "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+        "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+        "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+        "Splinter.Application.Unity.dll": "f1fcbcc58735e18c6063331879e0916b09d8ac0dcf69f9e3df9e177f48ac1f46",
+        "Splinter.Core.dll": "d4bea41537ce05c6d107d321dffb463caa3e361f16469f5f6b1cb8087b6c01ab",
+        "splinter.dll": "5470f6c3a811a5677e0884143d63c0f4e67459d9852e1d2315f3a8e0b50167be",
+        "Splinter.Host.dll": "a73f9a58dcf7d8ac4280885c0bf83fdb0a86561be31374d0961c904c7251e930",
+        "Splinter.Platform.Windows.dll": "abde35ae2cc0388c1ed521f1b208f18840ff73916aa91e7a39174ba061a1b892",
+        "Splinter.Protocol.dll": "d40c9d34143516ed03f507d56a04aa93b9b07926d1933f9c2f2e88362114443e",
+        "Splinter.Runtime.dll": "1a3ccf29e0ba3bc4265aa16390d0cb238f36571a176cff4edd6ebde302be207c",
+        "Splinter.SourceControl.Files.dll": "e226c1f570757f7972c8fe0046bb20e84501a88c2d1ac62aacb2455a179914be",
+        "Splinter.SourceControl.Git.dll": "2f15f0a3860a2f1da0f8fd1826036e9dbdfd0c0c7e137615525bbbbea6df5f9e",
+        "Splinter.Workflows.Windows.dll": "5674ce8e9e6064f22552340f58e671d8c3813a8e47889fa5e0b6127e66135d55",
+        "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+        "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+      },
+      "identity": {
+        "id": "23b7533b1b0f4adc2394f315",
+        "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\lco7\\home-after\\workspaces\\23b7533b1b0f4adc2394f315",
+        "requestDigest": "8bab7ff163ba864431526f80",
+        "base": "877d670513368fcf535b8caff03817adeb9a65ba"
+      },
+      "closure": {
+        "status": "completed",
+        "originalTrackedFilesVerified": 64,
+        "originalLibraryFilesVerified": 256,
+        "originalSourceClean": true,
+        "ownedGitBasisRefsAbsent": true,
+        "originalLibraryRestored": true,
+        "originalUnityFixtureModified": false
+      },
+      "taskClosure": {
+        "phase": "released",
+        "resultRevision": "4094f5ffac85ef99797fb20d880ae9d4e6d77171",
+        "changedSourcePaths": [
+          "Assets/File000.cs"
+        ],
+        "resultContentVerified": true,
+        "mountAbsent": true,
+        "deltaAbsent": true,
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "storage": {
+            "id": "23b7533b1b0f4adc2394f315",
+            "snapshotId": "git-23b7533b1b0f4adc2394f315-877d670513368fcf535b8caff03817adeb9a65ba",
+            "initialPayloadCopiedBytes": 0,
+            "journalBytes": 254387,
+            "payloadBytes": 9032,
+            "metadataBytes": 245355,
+            "readBytes": 107229,
+            "readCacheBytes": 0,
+            "maxTransferBytes": 1048576,
+            "indexedNodes": 326,
+            "durableSequence": 389,
+            "metrics": {
+              "epoch": "bdcbcdf894ae4a919845e45710747fc0",
+              "lockAcquisitions": 30662,
+              "lockWaitTicks": 321262,
+              "flushCount": 394,
+              "flushTicks": 8565034,
+              "commitCount": 389,
+              "journalAppendedBytes": 198014,
+              "replayBytes": 0,
+              "replayTicks": 186393,
+              "journalReadBytes": 18605,
+              "baseReadBytes": 88624,
+              "stopwatchFrequency": 10000000,
+              "replayFrames": 0,
+              "replayReadCalls": 0,
+              "replayReadTicks": 0,
+              "replayValidationTicks": 0,
+              "replayIndexTicks": 0,
+              "replayBufferBytes": 65536,
+              "replayIndexOperations": [],
+              "replayWriteRangeIndex": {
+                "replaceCalls": 0,
+                "priorExtents": 0,
+                "maxPriorExtents": 0,
+                "visitedExtents": 0,
+                "copiedExtents": 0,
+                "locateAndReplaceTicks": 0,
+                "sortTicks": 0,
+                "priorExtentBuckets": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "liveJournalWrites": {
+                "mutationGateCalls": 4891,
+                "mutationGateWaitTicks": 4294,
+                "operations": [
+                  {
+                    "operation": "create",
+                    "attempts": 1,
+                    "durableCommits": 1,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 353,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 36198,
+                    "applyTicks": 0,
+                    "totalTicks": 487000,
+                    "flushCalls": 1,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "metadata",
+                    "attempts": 129,
+                    "durableCommits": 129,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 50029,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 2746160,
+                    "applyTicks": 0,
+                    "totalTicks": 9231600,
+                    "flushCalls": 129,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "resize",
+                    "attempts": 129,
+                    "durableCommits": 129,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 50027,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 2840439,
+                    "applyTicks": 0,
+                    "totalTicks": 7336975,
+                    "flushCalls": 129,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "write",
+                    "attempts": 130,
+                    "durableCommits": 130,
+                    "failedCalls": 0,
+                    "payloadBytes": 32968,
+                    "journalBytes": 97605,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 2846865,
+                    "applyTicks": 0,
+                    "totalTicks": 9613461,
+                    "flushCalls": 130,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              "readRangeIndex": {
+                "readCalls": 1296,
+                "searchProbes": 169,
+                "visitedExtents": 169
+              }
+            },
+            "journalOptimizationEnabled": true,
+            "journalBytesBasis": "current-files"
+          },
+          "hostFreeBytes": 268483522560,
+          "journalRemainingBytes": 66854477,
+          "snapshotStorage": {
+            "id": "git-23b7533b1b0f4adc2394f315-877d670513368fcf535b8caff03817adeb9a65ba",
+            "available": false,
+            "preservedBytes": 0,
+            "availability": "missing"
+          },
+          "deltaPresent": false,
+          "snapshotAvailability": "missing"
+        }
+      },
+      "checkpointResult": {
+        "snapshotId": "git-23b7533b1b0f4adc2394f315-877d670513368fcf535b8caff03817adeb9a65ba",
+        "revision": "4094f5ffac85ef99797fb20d880ae9d4e6d77171",
+        "fingerprint": "6758cb7c91ae4a853ebc6a824269f0877720a91339b744b05f45d1346a4489f8",
+        "resultReference": "refs/splinter/snapshot-results/23b7533b1b0f4adc2394f315",
+        "seal": {
+          "durableSequence": 389,
+          "journalBytes": 254387,
+          "journalHash": "583f8db025a1fa9a3cf3d65b09d51bd705cf143f3eeffcc2912f519a7bcf5886"
+        },
+        "independentOfSnapshot": true,
+        "collectionProtocol": "stable-journal-v1"
+      },
+      "commands": {
+        "library-prepare": {
+          "beganUtc": "2026-10-07T09:39:51.223513+00:00",
+          "endedUtc": "2026-10-07T09:39:58.870238+00:00",
+          "elapsedSeconds": 7.646767600002931,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 0,
+          "sourceInspectionMilliseconds": 0,
+          "outerSealMeasurements": 0
+        },
+        "private-library-ensure": {
+          "beganUtc": "2026-10-07T09:39:58.872338+00:00",
+          "endedUtc": "2026-10-07T09:40:25.717450+00:00",
+          "elapsedSeconds": 26.84590880000178,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 2,
+          "sourceInspectionMilliseconds": 7726.3307,
+          "outerSealMeasurements": 0
+        },
+        "private-library-checkpoint": {
+          "beganUtc": "2026-10-07T09:40:29.030368+00:00",
+          "endedUtc": "2026-10-07T09:40:50.151232+00:00",
+          "elapsedSeconds": 21.121430000002874,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 4,
+          "sourceInspectionMilliseconds": 13268.764,
+          "outerSealMeasurements": 2
+        },
+        "private-library-release": {
+          "beganUtc": "2026-10-07T09:40:50.226071+00:00",
+          "endedUtc": "2026-10-07T09:41:02.095589+00:00",
+          "elapsedSeconds": 11.8697007999981,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 1,
+          "sourceInspectionMilliseconds": 3316.452,
+          "outerSealMeasurements": 3
+        },
+        "library-restore": {
+          "beganUtc": "2026-10-07T09:41:02.172044+00:00",
+          "endedUtc": "2026-10-07T09:41:11.431757+00:00",
+          "elapsedSeconds": 9.259854500000074,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 0,
+          "sourceInspectionMilliseconds": 0,
+          "outerSealMeasurements": 0
+        }
+      },
+      "rawEvidenceHashes": {
+        "closure.json": "9e924fc4f0816e34c1060f9363f0b48137b6ea64bdc593c0cb0f17693ce2b829",
+        "diagnostic-binaries.json": "a852edcb50e23b65783935d9d7927be6117f7c88e86ea979c6039081e53255f0",
+        "fixture.json": "e3c8914a5733f6deb1b0076f984476903f409b32fdcb5c8535ffb176dc3ead32",
+        "identity.json": "13163a0df6c240452da8f13904aaaaa90ae28cdda98ae429494829f252bb9644",
+        "library-prepare-cost.json": "cc372e8af6a5c36933418675be22709cefb01b2b0376560770abbb447b4e247c",
+        "library-prepare-process.json": "a4687123aade80a3724303b0ac79c404183f930c4c00e8001dd62b01d65bebb0",
+        "library-prepare-response.json": "bfbdd86668d2eee2a42be30e075ec52efbf08f5624a76fe5957636eee8f69837",
+        "library-prepare-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "library-prepare-stdout.json": "a14429cd8c9ba844a08a380bdaba05ebd70c250351d5a5a62d620a19a430a186",
+        "library-restore-cost.json": "c892f264add55fb3c9730ef91bd847fec5a78fd4031fc152a1b65644585e012c",
+        "library-restore-process.json": "42e72c9d2e68c8b3f9f0de76733dbfd2b91ac4f01f0d408ec1fc494db12ce641",
+        "library-restore-response.json": "a825abf0c98ee7ee06367dcd7032e8d4acfdbdbfd69e210af6e2bef462049ed3",
+        "library-restore-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "library-restore-stdout.json": "a01195a7e83c1f613a1196d9773bd0008dec57924ec2c15ec09ab71bf09636d1",
+        "private-library-after-checkpoint-events.jsonl": "ec916d08a30c1a782284693eb9396b98f0efd2b289ecbaf3ef3b47109797b684",
+        "private-library-after-checkpoint-source-inspections.jsonl": "92e3792c6d27a4150c678c8e5d7d6812d91faa066010c7ad63d3fbd311c3e292",
+        "private-library-after-checkpoint-storage-reads.jsonl": "a4284b83d37ee3b4f3163301d2e489f473ef7743800f3708f037996ed8cffe76",
+        "private-library-checkpoint-cost.json": "0e383cee46560d11e1b8ceda544820f55b2006c1ce68eff29b3288442507361c",
+        "private-library-checkpoint-process.json": "081b5546b38242109cec76d18fc7721590181808060a82c1a0a3b2733326f9a8",
+        "private-library-checkpoint-response.json": "c17708e9ac78d51fcb5b5d0e200d6ebb480504de74459d87dd2ad17e659d129a",
+        "private-library-checkpoint-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-checkpoint-stdout.json": "ff7f771fa98612513efb0e4f7fad9fbe9c4e1ebfb2938fecbcc5c747a2776e42",
+        "private-library-closure.json": "8fdf57230f73a9ed17223d59aa6cc692fba17db2dc89a5193279e0cc14b1dd3f",
+        "private-library-ensure-cost.json": "d0732ad4e69ff52086485b1686f5d64c4d2bd2d83ccf870b308cf1d569f7a45a",
+        "private-library-ensure-process.json": "b50460b52873ba645a734df114815ffdcd06b577b04d8ba5ae28459687180325",
+        "private-library-ensure-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-ensure-stdout.json": "a2e697f5f90b587986c5eea3d03fe81e206a4768d797a763780b1138182ad362",
+        "private-library-final-events.jsonl": "a8564939f45d14aaf99ec4be3f652d0b31df39b2701a256ebf127341563d9e78",
+        "private-library-final-source-inspections.jsonl": "396389e4434214f6bf952c1db456a08accfcc3ecf48c98f1285feec87cfaf27c",
+        "private-library-final-storage-reads.jsonl": "a5fa4bd03b2607edf53c340805a7841e619d0b68100daa1af8d0d819f4d3fa52",
+        "private-library-identity.json": "11f3107551054ec41f0b24285cc9c2b08b04f14f53ebc055c9257daaac5ceb2b",
+        "private-library-release-cost.json": "dc90de85aa27234b6f72c3838e6d128843d544b106b192a6456b7a5fb34c1042",
+        "private-library-release-process.json": "659aabda49590b65aec44ce81c03d8d5628c04cbb4c43b52fd32da6b706f8b20",
+        "private-library-release-response.json": "a13aa0bfde3c5f7e322b304d3097c942c2db3702c212e70029a23cd823da4470",
+        "private-library-release-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-release-stdout.json": "0cd2c11a7ae20833c1ff87abc7423c2a4fa8e4d67153664e19965b98b4f5f140"
+      }
+    },
+    "after-wakeup": {
+      "binarySha256": {
+        "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+        "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+        "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+        "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+        "Splinter.Application.Unity.dll": "f1fcbcc58735e18c6063331879e0916b09d8ac0dcf69f9e3df9e177f48ac1f46",
+        "Splinter.Core.dll": "d4bea41537ce05c6d107d321dffb463caa3e361f16469f5f6b1cb8087b6c01ab",
+        "splinter.dll": "8f94f0ef30ff87089d32ae94712758f7479a79bfae50e9551c6f7a5dd7f58b23",
+        "Splinter.Host.dll": "c2d3fa357c9f5fd01e09b5aa8b486d757b75fbe609d558cb64065f7994f0597f",
+        "Splinter.Platform.Windows.dll": "a83dbd25fbe319d6ab0569debd966e58c1c3e62c0bc22652f534e6a1da43e63e",
+        "Splinter.Protocol.dll": "d40c9d34143516ed03f507d56a04aa93b9b07926d1933f9c2f2e88362114443e",
+        "Splinter.Runtime.dll": "1a3ccf29e0ba3bc4265aa16390d0cb238f36571a176cff4edd6ebde302be207c",
+        "Splinter.SourceControl.Files.dll": "e226c1f570757f7972c8fe0046bb20e84501a88c2d1ac62aacb2455a179914be",
+        "Splinter.SourceControl.Git.dll": "2f15f0a3860a2f1da0f8fd1826036e9dbdfd0c0c7e137615525bbbbea6df5f9e",
+        "Splinter.Workflows.Windows.dll": "6c11e3de44cb04fec48cb4e54a658b0e635aabe9eba6dcffd92726d7709b85a2",
+        "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+        "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+      },
+      "identity": {
+        "id": "39a90854bea0b41ae68d84b7",
+        "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\lco7\\home-after-wakeup\\workspaces\\39a90854bea0b41ae68d84b7",
+        "requestDigest": "a5843da26528bdb3ffdbf234",
+        "base": "877d670513368fcf535b8caff03817adeb9a65ba"
+      },
+      "closure": {
+        "status": "completed",
+        "originalTrackedFilesVerified": 64,
+        "originalLibraryFilesVerified": 256,
+        "originalSourceClean": true,
+        "ownedGitBasisRefsAbsent": true,
+        "originalLibraryRestored": true,
+        "originalUnityFixtureModified": false
+      },
+      "taskClosure": {
+        "phase": "released",
+        "resultRevision": "b25a140d5d5a25649c1b9e89d99e969d031f8c45",
+        "changedSourcePaths": [
+          "Assets/File000.cs"
+        ],
+        "resultContentVerified": true,
+        "mountAbsent": true,
+        "deltaAbsent": true,
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "storage": {
+            "id": "39a90854bea0b41ae68d84b7",
+            "snapshotId": "git-39a90854bea0b41ae68d84b7-877d670513368fcf535b8caff03817adeb9a65ba",
+            "initialPayloadCopiedBytes": 0,
+            "journalBytes": 254387,
+            "payloadBytes": 9032,
+            "metadataBytes": 245355,
+            "readBytes": 107229,
+            "readCacheBytes": 0,
+            "maxTransferBytes": 1048576,
+            "indexedNodes": 326,
+            "durableSequence": 389,
+            "metrics": {
+              "epoch": "e0262703f02d41abacdc01c156cf86b1",
+              "lockAcquisitions": 30657,
+              "lockWaitTicks": 299000,
+              "flushCount": 394,
+              "flushTicks": 8884154,
+              "commitCount": 389,
+              "journalAppendedBytes": 198014,
+              "replayBytes": 0,
+              "replayTicks": 192469,
+              "journalReadBytes": 18605,
+              "baseReadBytes": 88624,
+              "stopwatchFrequency": 10000000,
+              "replayFrames": 0,
+              "replayReadCalls": 0,
+              "replayReadTicks": 0,
+              "replayValidationTicks": 0,
+              "replayIndexTicks": 0,
+              "replayBufferBytes": 65536,
+              "replayIndexOperations": [],
+              "replayWriteRangeIndex": {
+                "replaceCalls": 0,
+                "priorExtents": 0,
+                "maxPriorExtents": 0,
+                "visitedExtents": 0,
+                "copiedExtents": 0,
+                "locateAndReplaceTicks": 0,
+                "sortTicks": 0,
+                "priorExtentBuckets": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "liveJournalWrites": {
+                "mutationGateCalls": 4892,
+                "mutationGateWaitTicks": 4869,
+                "operations": [
+                  {
+                    "operation": "create",
+                    "attempts": 1,
+                    "durableCommits": 1,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 353,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 46725,
+                    "applyTicks": 0,
+                    "totalTicks": 474556,
+                    "flushCalls": 1,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "metadata",
+                    "attempts": 129,
+                    "durableCommits": 129,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 50029,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 2868358,
+                    "applyTicks": 0,
+                    "totalTicks": 9553369,
+                    "flushCalls": 129,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "resize",
+                    "attempts": 129,
+                    "durableCommits": 129,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 50027,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 2989745,
+                    "applyTicks": 0,
+                    "totalTicks": 7578046,
+                    "flushCalls": 129,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "write",
+                    "attempts": 130,
+                    "durableCommits": 130,
+                    "failedCalls": 0,
+                    "payloadBytes": 32968,
+                    "journalBytes": 97605,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 2874977,
+                    "applyTicks": 0,
+                    "totalTicks": 9790579,
+                    "flushCalls": 130,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              "readRangeIndex": {
+                "readCalls": 1296,
+                "searchProbes": 169,
+                "visitedExtents": 169
+              }
+            },
+            "journalOptimizationEnabled": true,
+            "journalBytesBasis": "current-files"
+          },
+          "hostFreeBytes": 268223614976,
+          "journalRemainingBytes": 66854477,
+          "snapshotStorage": {
+            "id": "git-39a90854bea0b41ae68d84b7-877d670513368fcf535b8caff03817adeb9a65ba",
+            "available": false,
+            "preservedBytes": 0,
+            "availability": "missing"
+          },
+          "deltaPresent": false,
+          "snapshotAvailability": "missing"
+        }
+      },
+      "checkpointResult": {
+        "snapshotId": "git-39a90854bea0b41ae68d84b7-877d670513368fcf535b8caff03817adeb9a65ba",
+        "revision": "b25a140d5d5a25649c1b9e89d99e969d031f8c45",
+        "fingerprint": "6758cb7c91ae4a853ebc6a824269f0877720a91339b744b05f45d1346a4489f8",
+        "resultReference": "refs/splinter/snapshot-results/39a90854bea0b41ae68d84b7",
+        "seal": {
+          "durableSequence": 389,
+          "journalBytes": 254387,
+          "journalHash": "93f81ccc725cfa123b9b61fb57444183641c0015c734be68fe48997adefe5b74"
+        },
+        "independentOfSnapshot": true,
+        "collectionProtocol": "stable-journal-v1"
+      },
+      "commands": {
+        "library-prepare": {
+          "beganUtc": "2026-10-07T10:03:02.563768+00:00",
+          "endedUtc": "2026-10-07T10:03:10.208153+00:00",
+          "elapsedSeconds": 7.644388299995626,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 0,
+          "sourceInspectionMilliseconds": 0,
+          "outerSealMeasurements": 0
+        },
+        "private-library-ensure": {
+          "beganUtc": "2026-10-07T10:03:10.210085+00:00",
+          "endedUtc": "2026-10-07T10:03:35.148047+00:00",
+          "elapsedSeconds": 24.938605800001824,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 2,
+          "sourceInspectionMilliseconds": 5711.2006,
+          "outerSealMeasurements": 0
+        },
+        "private-library-checkpoint": {
+          "beganUtc": "2026-10-07T10:03:38.563795+00:00",
+          "endedUtc": "2026-10-07T10:03:56.471897+00:00",
+          "elapsedSeconds": 17.90845740000077,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 4,
+          "sourceInspectionMilliseconds": 10929.7917,
+          "outerSealMeasurements": 2
+        },
+        "private-library-release": {
+          "beganUtc": "2026-10-07T10:03:56.548160+00:00",
+          "endedUtc": "2026-10-07T10:04:06.511840+00:00",
+          "elapsedSeconds": 9.96374850000575,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 1,
+          "sourceInspectionMilliseconds": 2981.9712,
+          "outerSealMeasurements": 3
+        },
+        "library-restore": {
+          "beganUtc": "2026-10-07T10:04:06.585709+00:00",
+          "endedUtc": "2026-10-07T10:04:15.239576+00:00",
+          "elapsedSeconds": 8.653946799997357,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 0,
+          "sourceInspectionMilliseconds": 0,
+          "outerSealMeasurements": 0
+        }
+      },
+      "rawEvidenceHashes": {
+        "closure.json": "9e924fc4f0816e34c1060f9363f0b48137b6ea64bdc593c0cb0f17693ce2b829",
+        "diagnostic-binaries.json": "8494e43178cee9c07ef3b9bab21d851308da7f2b245afdc53a8fdb6ff35e6cfc",
+        "fixture.json": "e3c8914a5733f6deb1b0076f984476903f409b32fdcb5c8535ffb176dc3ead32",
+        "identity.json": "2b5517f5d0885466a0b21f31dec2a88cd500e124c577e860336b4ec95e7b774d",
+        "library-prepare-cost.json": "a7b2f24d5c63f099fcf9e39ef982567207598b990c97b26e08f3ded7f6ef2970",
+        "library-prepare-process.json": "9a68ec9417a465aeba8c709a48e5f8c2a699f2796a1fa5dc0dc754632f34a0c8",
+        "library-prepare-response.json": "d0439b1b612af00002c1a066355548d435669930b4cb53db68066fcceb0adb91",
+        "library-prepare-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "library-prepare-stdout.json": "708a9c5d05af12e028389da26904998df32b10095addc98c575eb2b452319e6d",
+        "library-restore-cost.json": "69b667ae9ef624bff7d025da486d30b1f35c6cf83fd0d61910c0e1b9535f4018",
+        "library-restore-process.json": "78ac2572e36afdb1670b186676290fffdb169db47cd6f9a21ed9f14cbdf52cfb",
+        "library-restore-response.json": "5c2f3a72ea7b0935427427a21321cce6465cecd7f23c0aece9eb2b78338bdf2e",
+        "library-restore-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "library-restore-stdout.json": "4bc3e4df662ca0a137b7d9d1e709c1d035a4a592aa65468194ba3bb4e3061537",
+        "private-library-after-checkpoint-events.jsonl": "86ca469dee7021b7e791777bbbc64600e9ec1692f3b92bb54da72c955884cd80",
+        "private-library-after-checkpoint-source-inspections.jsonl": "8bd93cf132c18b116c29502fbfa461b1873a18710ae80e7b07d661fe56858400",
+        "private-library-after-checkpoint-storage-reads.jsonl": "6bda79e14894cec6f3bf2d2562cbd062822a0ec7b09195af12a866436609b37f",
+        "private-library-checkpoint-cost.json": "aa8217aff981ecb8f68702775424abf643b42dbfac6c1b60ef629e2cecde3152",
+        "private-library-checkpoint-process.json": "47f5c023c29eab8e9ac4289c83f44269cc280dd0f58718f0dba163e176170a26",
+        "private-library-checkpoint-response.json": "c2f5eb89d4b44691daa0b5e8bca722fc15ec70a084fe80bb713fb101ee955295",
+        "private-library-checkpoint-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-checkpoint-stdout.json": "13ffd0778633f4c30c50cf3c000e15ee3f4ddf135bc2b5506a22f11aff2765d2",
+        "private-library-closure.json": "af82f5f84f6320d939e6146b917f74f2e510d35c41f6531291395833488a2ec0",
+        "private-library-ensure-cost.json": "23182ed6b98171135572f074ba9d5f46bccf1a10127c2baca15d9d22ce89e283",
+        "private-library-ensure-process.json": "d3257064c840dccf784cbe675e52640fbbaae0f443a7790ab80f0d0da1587e33",
+        "private-library-ensure-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-ensure-stdout.json": "0cb13361d0a8bd70a692c33d9f224bcebc01106ff366a0d8e2c43ae72636aab7",
+        "private-library-final-events.jsonl": "2471c29b8d097d565bd439aee05443e7f0ab02a2d6317a73a8c6091c76878c68",
+        "private-library-final-source-inspections.jsonl": "0102e134b21c2c6988acb46132942673061c72da19d09a213bf8f78e26df6db8",
+        "private-library-final-storage-reads.jsonl": "052a189332c06ddcd9ac0b844390806aa5060edadb64be95c69970d5d2709adc",
+        "private-library-identity.json": "06f9f01c12da50781ff93d96bb0859dee0e4e8d46d036b4841f705b6cb95d017",
+        "private-library-release-cost.json": "b4d13555bed1b2649f01b95031f86fb976b4a6acb7a99b458a3bf256390b5544",
+        "private-library-release-process.json": "d068a5bf93b620b5bc1024d55db87bc030c76c46c1de19277d5ddbe5d1275316",
+        "private-library-release-response.json": "7f0eebda1a27454b28f56f09ffc3bb6c7827ac46ccc399777d802a6e00577c4c",
+        "private-library-release-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-release-stdout.json": "09f35b468ba68fb67cabe2ef803bc2234ecad5a91c30dcacba67434c8dd694c3"
+      }
+    },
+    "after-router": {
+      "binarySha256": {
+        "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+        "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+        "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+        "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+        "Splinter.Application.Unity.dll": "147d75898da81273e889b12c8b722d1dc4e602d96cc11c182ca93e66f6b02b4e",
+        "Splinter.Core.dll": "aa939f832e423891ae2c3ca1debd1822cd12bbc4bb61e2852feeed61f352ef1b",
+        "splinter.dll": "51e8da0d01fe30c2185e4663ed46485ac71cb32a7ffb6c42989fb7e790608257",
+        "Splinter.Host.dll": "04da968ae20cf60a82da8c17f4e9ed3c8eacbc13e0ad13a8e8cd5ede6844949e",
+        "Splinter.Platform.Windows.dll": "4d8fa9aaa6d9ab0396736c54622e60ea84cd680a334631d81328a0f77a602404",
+        "Splinter.Protocol.dll": "809ee67a7dcb93ef48ab0812f278eacdfc76305f0d6349148483365864336bc5",
+        "Splinter.Runtime.dll": "937fe627c86465556a53a3720dee872d82a338b6df2b7a0b7360337162e5e724",
+        "Splinter.SourceControl.Files.dll": "60bc59828fd789c8bb65256f3917ed46b16854d774d58dd4d7975efc94a61e38",
+        "Splinter.SourceControl.Git.dll": "6b45648265c7599fb74090f030aa6dcd10952d5f94febf6b6749cbbbf82f470b",
+        "Splinter.Workflows.Windows.dll": "855e5a3bb1dbdef007ec376ac04448b12ed9820d32f1199ec8c312ec43c67cd5",
+        "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+        "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+      },
+      "identity": {
+        "id": "d37248095922d719c47218f0",
+        "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\lco7\\home-after-router\\workspaces\\d37248095922d719c47218f0",
+        "requestDigest": "82493f9257450bb141bcd13b",
+        "base": "877d670513368fcf535b8caff03817adeb9a65ba"
+      },
+      "closure": {
+        "status": "completed",
+        "originalTrackedFilesVerified": 64,
+        "originalLibraryFilesVerified": 256,
+        "originalSourceClean": true,
+        "ownedGitBasisRefsAbsent": true,
+        "originalLibraryRestored": true,
+        "originalUnityFixtureModified": false
+      },
+      "taskClosure": {
+        "phase": "released",
+        "resultRevision": "921fb879d6c53dac3f9b177ba95de8fa856f8c63",
+        "changedSourcePaths": [
+          "Assets/File000.cs"
+        ],
+        "resultContentVerified": true,
+        "mountAbsent": true,
+        "deltaAbsent": true,
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "storage": {
+            "id": "d37248095922d719c47218f0",
+            "snapshotId": "git-d37248095922d719c47218f0-877d670513368fcf535b8caff03817adeb9a65ba",
+            "initialPayloadCopiedBytes": 0,
+            "journalBytes": 254387,
+            "payloadBytes": 9032,
+            "metadataBytes": 245355,
+            "readBytes": 104334,
+            "readCacheBytes": 0,
+            "maxTransferBytes": 1048576,
+            "indexedNodes": 326,
+            "durableSequence": 389,
+            "metrics": {
+              "epoch": "896cb030168b4ce9a399b5f9d5baa1df",
+              "lockAcquisitions": 25462,
+              "lockWaitTicks": 194439,
+              "flushCount": 394,
+              "flushTicks": 8927789,
+              "commitCount": 389,
+              "journalAppendedBytes": 198014,
+              "replayBytes": 0,
+              "replayTicks": 183894,
+              "journalReadBytes": 15830,
+              "baseReadBytes": 88504,
+              "stopwatchFrequency": 10000000,
+              "replayFrames": 0,
+              "replayReadCalls": 0,
+              "replayReadTicks": 0,
+              "replayValidationTicks": 0,
+              "replayIndexTicks": 0,
+              "replayBufferBytes": 65536,
+              "replayIndexOperations": [],
+              "replayWriteRangeIndex": {
+                "replaceCalls": 0,
+                "priorExtents": 0,
+                "maxPriorExtents": 0,
+                "visitedExtents": 0,
+                "copiedExtents": 0,
+                "locateAndReplaceTicks": 0,
+                "sortTicks": 0,
+                "priorExtentBuckets": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "liveJournalWrites": {
+                "mutationGateCalls": 4010,
+                "mutationGateWaitTicks": 3813,
+                "operations": [
+                  {
+                    "operation": "create",
+                    "attempts": 1,
+                    "durableCommits": 1,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 353,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 46384,
+                    "applyTicks": 0,
+                    "totalTicks": 477688,
+                    "flushCalls": 1,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "metadata",
+                    "attempts": 129,
+                    "durableCommits": 129,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 50029,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 2940163,
+                    "applyTicks": 0,
+                    "totalTicks": 9702043,
+                    "flushCalls": 129,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "resize",
+                    "attempts": 129,
+                    "durableCommits": 129,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 50027,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 2920431,
+                    "applyTicks": 0,
+                    "totalTicks": 7556721,
+                    "flushCalls": 129,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "write",
+                    "attempts": 130,
+                    "durableCommits": 130,
+                    "failedCalls": 0,
+                    "payloadBytes": 32968,
+                    "journalBytes": 97605,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 2917465,
+                    "applyTicks": 0,
+                    "totalTicks": 9820709,
+                    "flushCalls": 130,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              "readRangeIndex": {
+                "readCalls": 1267,
+                "searchProbes": 144,
+                "visitedExtents": 144
+              }
+            },
+            "journalOptimizationEnabled": true,
+            "journalBytesBasis": "current-files"
+          },
+          "hostFreeBytes": 268261175296,
+          "journalRemainingBytes": 66854477,
+          "snapshotStorage": {
+            "id": "git-d37248095922d719c47218f0-877d670513368fcf535b8caff03817adeb9a65ba",
+            "available": false,
+            "preservedBytes": 0,
+            "availability": "missing"
+          },
+          "deltaPresent": false,
+          "snapshotAvailability": "missing"
+        }
+      },
+      "checkpointResult": {
+        "snapshotId": "git-d37248095922d719c47218f0-877d670513368fcf535b8caff03817adeb9a65ba",
+        "revision": "921fb879d6c53dac3f9b177ba95de8fa856f8c63",
+        "fingerprint": "6758cb7c91ae4a853ebc6a824269f0877720a91339b744b05f45d1346a4489f8",
+        "resultReference": "refs/splinter/snapshot-results/d37248095922d719c47218f0",
+        "seal": {
+          "durableSequence": 389,
+          "journalBytes": 254387,
+          "journalHash": "2e0f3eb1cfdc4c525686c601a558f48cb846aa87f5c51de220c800da0600bbd9"
+        },
+        "independentOfSnapshot": true,
+        "collectionProtocol": "stable-journal-v1"
+      },
+      "commands": {
+        "library-prepare": {
+          "beganUtc": "2026-10-07T10:11:26.705119+00:00",
+          "endedUtc": "2026-10-07T10:11:34.352932+00:00",
+          "elapsedSeconds": 7.647794800002885,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 0,
+          "sourceInspectionMilliseconds": 0,
+          "outerSealMeasurements": 0
+        },
+        "private-library-ensure": {
+          "beganUtc": "2026-10-07T10:11:34.355054+00:00",
+          "endedUtc": "2026-10-07T10:11:58.988448+00:00",
+          "elapsedSeconds": 24.633940699997765,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 2,
+          "sourceInspectionMilliseconds": 5707.2083,
+          "outerSealMeasurements": 0
+        },
+        "private-library-checkpoint": {
+          "beganUtc": "2026-10-07T10:12:02.418671+00:00",
+          "endedUtc": "2026-10-07T10:12:16.505500+00:00",
+          "elapsedSeconds": 14.086983399996825,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 2,
+          "sourceInspectionMilliseconds": 5405.162,
+          "outerSealMeasurements": 2
+        },
+        "private-library-release": {
+          "beganUtc": "2026-10-07T10:12:16.577691+00:00",
+          "endedUtc": "2026-10-07T10:12:26.237258+00:00",
+          "elapsedSeconds": 9.659570799994981,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 1,
+          "sourceInspectionMilliseconds": 2665.293,
+          "outerSealMeasurements": 3
+        },
+        "library-restore": {
+          "beganUtc": "2026-10-07T10:12:26.313121+00:00",
+          "endedUtc": "2026-10-07T10:12:35.068502+00:00",
+          "elapsedSeconds": 8.755423299997346,
+          "exitCode": 0,
+          "status": "Succeeded",
+          "error": null,
+          "sourceInspections": 0,
+          "sourceInspectionMilliseconds": 0,
+          "outerSealMeasurements": 0
+        }
+      },
+      "rawEvidenceHashes": {
+        "closure.json": "9e924fc4f0816e34c1060f9363f0b48137b6ea64bdc593c0cb0f17693ce2b829",
+        "diagnostic-binaries.json": "0c9a4ea827d77b2222cb6a02ecdb53048ebc3010033fe4be2388233fb3f6111e",
+        "fixture.json": "e3c8914a5733f6deb1b0076f984476903f409b32fdcb5c8535ffb176dc3ead32",
+        "identity.json": "1b73d18f406dd5c42e01672a0b45a8f23c99bc9db9c602bd8cccdc54c68d4561",
+        "library-prepare-cost.json": "9ba4cea7e59c52e6f02dbec7046c64c3fe5dee4a8882194fd96f09df5a5a37be",
+        "library-prepare-process.json": "e97eaada9ce4aba0cde8bf116490114bed491f713e3a6881fa272a4f1c1a3ac8",
+        "library-prepare-response.json": "90e1c3db0b078417d25ea3c2e6131834fa062974a787c6fa957eed174ed56903",
+        "library-prepare-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "library-prepare-stdout.json": "0d5d0942b734faa09d3abe73f5150142f059d255e52028567e388a095c3130e0",
+        "library-restore-cost.json": "ba20f6b8621fe60cedc75281199473fed3c93b4d113838b7eed14801735f59e5",
+        "library-restore-process.json": "9f042e5d9e3c0aacf61746a71bbfa9fad6b59b6389abb761951b5a9a5e4bb7fc",
+        "library-restore-response.json": "1a182ef6932acbac88a7e770d91f2d2bed3317c1ecbe8df98198cfb73ac9e12c",
+        "library-restore-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "library-restore-stdout.json": "dd046e7fcb3e73ad2d7687a05eb38fe7672f5c5fe70b16124f1961c0ce8b4d5e",
+        "private-library-after-checkpoint-events.jsonl": "dc1a0892b0feef5d206aa71b8656af4a22713e5a57d2f01dd0c0a7715945858d",
+        "private-library-after-checkpoint-source-inspections.jsonl": "d95c1e480c4f79e46245160f0abe5174aca42e29402e288262ae15ee47daf718",
+        "private-library-after-checkpoint-storage-reads.jsonl": "37ad15add3c984bd422cf1349dfd5aae4d245461d35a3fc4696892a527d489d6",
+        "private-library-checkpoint-cost.json": "7b6079357680230eb74e8aeb9b5c5e39966f7820bc17c5edbcc7f1b5b81f5b85",
+        "private-library-checkpoint-process.json": "3a5b5f0adffa0549637468d6ffd6708f0ae594ceafb0f0efbfb0bd5e61ca5f80",
+        "private-library-checkpoint-response.json": "e8d10e27eb201c58406caef5eca3500959e1bee90cafb98c61c01ba47dd6b2d3",
+        "private-library-checkpoint-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-checkpoint-stdout.json": "489ee7bd52c9ef55f53745850856b842d7a80a522927cd985e2b8e32f2845876",
+        "private-library-closure.json": "1acbb4c983f12b0a5b03761ef7c38e6b00c0cee37520e9ac41d36fd6fb248f88",
+        "private-library-ensure-cost.json": "4887c1725ab9812bb08069feb79d72d0a8a68c0b454645d49d972cb80ed52e63",
+        "private-library-ensure-process.json": "5de07570f019d0a95a94eb688376d8c4fa0e1a713589e8d749d17df3cb216a9b",
+        "private-library-ensure-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-ensure-stdout.json": "1e734a0663ad572ea33426d8432bf1ad275a06cba0410ac022147a9e37798d42",
+        "private-library-final-events.jsonl": "0408ec0f9a43dab89c1db46fdaf77323cafe54da3d12df169c85756730a31f63",
+        "private-library-final-source-inspections.jsonl": "efe2ac74cc0392d99ddd1b1c2a1aa1b44b09c796bca1541264c0d666a72a1bf6",
+        "private-library-final-storage-reads.jsonl": "9d36f3a05fbdf9a741d5e9581201d9ca22b0ab3d239e019b5589d856eeca05df",
+        "private-library-identity.json": "9990d9c8548d0e0549930ed5fae2e7689583e8e0250e2ad903940a7316dd622d",
+        "private-library-release-cost.json": "6a3898d3228df2e0de12c2a12b2dc132066327e1175510b0ec39952818567d3c",
+        "private-library-release-process.json": "6d02f64e47120c3898a53edd2c63a0a33a06f208e9cc9346e4b5bec6df582eef",
+        "private-library-release-response.json": "f63dfb903a24ec76f9f6dbfa534d5792dac1a0bae6f3d420734df33a08a09e3d",
+        "private-library-release-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "private-library-release-stdout.json": "49317952f4c2879f3b1c9f6d95d4c62ff1e25c5a66db28825759d4b702389a55"
+      }
+    }
+  },
+  "comparison": {
+    "private-library-checkpoint": {
+      "beforeSeconds": 28.6559828999998,
+      "afterSeconds": 14.086983399996825,
+      "reductionPercent": 50.841039202333825,
+      "speedup": 2.0342171269972718
+    },
+    "private-library-release": {
+      "beforeSeconds": 13.680709600001137,
+      "afterSeconds": 9.659570799994981,
+      "reductionPercent": 29.392764831480832,
+      "speedup": 1.4162854523524218
+    },
+    "combined": {
+      "beforeSeconds": 42.336692500000936,
+      "afterSeconds": 23.746554199991806,
+      "reductionPercent": 43.910228225808424,
+      "speedup": 1.7828562469924814
+    }
+  },
+  "offline": {
+    "samples": [
+      {
+        "operation": "measure",
+        "constructorMilliseconds": 593.9489,
+        "sealIncludingConstructorMilliseconds": 612.3981,
+        "seal": {
+          "DurableSequence": 1024,
+          "JournalBytes": 943628,
+          "JournalHash": "d9fe6170d2c21b0bd62bebd0ebd797fa7f741590d750ced0bf4a2df3f5e4e004"
+        },
+        "accountingIterations": 16,
+        "accountingMilliseconds": 274.4681,
+        "accountingKind": "actual-file-inventory",
+        "inventory": {
+          "Version": 4,
+          "IdentityHash": "a3cab40be09b25f852f42f88f6b33405a6019a84e8ca2f2cd7ab4714ca8ed30d",
+          "Objects": "latest-ba5a10a8ce9f410c9ae16272a40bd8d9",
+          "Sequence": 1024,
+          "NextBlock": 513,
+          "FileBytes": 332527,
+          "FileCount": 1025,
+          "PayloadBytes": 512,
+          "LogicalBytes": 512,
+          "ProjectionUnsafe": []
+        },
+        "phase": "before",
+        "inputFiles": 512,
+        "retainedBackupFiles": 511,
+        "inputUnchanged": true
+      },
+      {
+        "operation": "measure",
+        "constructorMilliseconds": 535.8092,
+        "sealIncludingConstructorMilliseconds": 537.9753,
+        "seal": {
+          "DurableSequence": 1024,
+          "JournalBytes": 943628,
+          "JournalHash": "d9fe6170d2c21b0bd62bebd0ebd797fa7f741590d750ced0bf4a2df3f5e4e004"
+        },
+        "accountingIterations": 16,
+        "accountingMilliseconds": 0.1719,
+        "accountingKind": "exclusive-writer-counter",
+        "inventory": {
+          "Version": 4,
+          "IdentityHash": "a3cab40be09b25f852f42f88f6b33405a6019a84e8ca2f2cd7ab4714ca8ed30d",
+          "Objects": "latest-ba5a10a8ce9f410c9ae16272a40bd8d9",
+          "Sequence": 1024,
+          "NextBlock": 513,
+          "FileBytes": 332527,
+          "FileCount": 1025,
+          "PayloadBytes": 512,
+          "LogicalBytes": 512,
+          "ProjectionUnsafe": []
+        },
+        "phase": "after",
+        "inputFiles": 512,
+        "retainedBackupFiles": 511,
+        "inputUnchanged": true
+      },
+      {
+        "operation": "measure",
+        "constructorMilliseconds": 2418.8014,
+        "sealIncludingConstructorMilliseconds": 2178.6386,
+        "seal": {
+          "DurableSequence": 4096,
+          "JournalBytes": 3791962,
+          "JournalHash": "31ee1b76e10142d0166904afd9ddeea2e7d69d29b44b92fcf94621d9a8c68a99"
+        },
+        "accountingIterations": 16,
+        "accountingMilliseconds": 1081.2229,
+        "accountingKind": "actual-file-inventory",
+        "inventory": {
+          "Version": 4,
+          "IdentityHash": "70594e01dbd0bec32f7c40b164473a53ff7cdae9695aba703cba51f5fdc95afe",
+          "Objects": "latest-2b7bf34d550e43b89278c87601d7cde1",
+          "Sequence": 4096,
+          "NextBlock": 2049,
+          "FileBytes": 1336096,
+          "FileCount": 4097,
+          "PayloadBytes": 2048,
+          "LogicalBytes": 2048,
+          "ProjectionUnsafe": []
+        },
+        "phase": "before",
+        "inputFiles": 2048,
+        "retainedBackupFiles": 2047,
+        "inputUnchanged": true
+      },
+      {
+        "operation": "measure",
+        "constructorMilliseconds": 2068.0361,
+        "sealIncludingConstructorMilliseconds": 2033.5423,
+        "seal": {
+          "DurableSequence": 4096,
+          "JournalBytes": 3791962,
+          "JournalHash": "31ee1b76e10142d0166904afd9ddeea2e7d69d29b44b92fcf94621d9a8c68a99"
+        },
+        "accountingIterations": 16,
+        "accountingMilliseconds": 0.1642,
+        "accountingKind": "exclusive-writer-counter",
+        "inventory": {
+          "Version": 4,
+          "IdentityHash": "70594e01dbd0bec32f7c40b164473a53ff7cdae9695aba703cba51f5fdc95afe",
+          "Objects": "latest-2b7bf34d550e43b89278c87601d7cde1",
+          "Sequence": 4096,
+          "NextBlock": 2049,
+          "FileBytes": 1336096,
+          "FileCount": 4097,
+          "PayloadBytes": 2048,
+          "LogicalBytes": 2048,
+          "ProjectionUnsafe": []
+        },
+        "phase": "after",
+        "inputFiles": 2048,
+        "retainedBackupFiles": 2047,
+        "inputUnchanged": true
+      }
+    ],
+    "scope": "512/2048 one-byte private files; separate CLR processes; old Bytes inventory versus CommittedBytes getter 16 times; same physical files and full seals; no mount/provider/Editor; Core/Runtime hashes match after-wakeup; intermediate storage evidence; final router-only changes were not separately microbenchmarked",
+    "order": "before then after for each size; single pass; cache/JIT order not controlled; seal includes another constructor"
+  },
+  "permissions": {
+    "administratorElevation": false,
+    "uac": false,
+    "serviceInstallationOrUpdate": false,
+    "originalUnityProjectModified": false
+  },
+  "limits": [
+    "large Unity lifecycle NotRun",
+    "Editor/import/compile/Play/Test/build NotRun",
+    "new native plain-folder/Plastic/peer/interruption matrix NotRun",
+    "VSS NotRun",
+    "whole-disk peak and RAM attribution unknown",
+    "single tiny workload, not a median or SLA",
+    "remaining per-file metadata and full hash/seal/result graph costs"
+  ],
+  "validation": {
+    "command": "pwsh -NoProfile -File ./scripts/build.ps1",
+    "testCounters": {
+      "total": "1222",
+      "executed": "1203",
+      "passed": "1203",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "19",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "testTrxSha256": "aa3276257e6cb11e4639399598587bb066361431abb27e072aceef5ebdfb3daa",
+    "buildWarnings": 0,
+    "buildErrors": 0,
+    "responseSchemaSamples": 20,
+    "responseSchemaResult": {
+      "passed": 1,
+      "failed": 0,
+      "responses": 20,
+      "evidenceSha256": "095331071f048c12baf9a7dfc0ad0a2b9165ca209477185c743e44518fbcfcae"
+    }
+  }
+}

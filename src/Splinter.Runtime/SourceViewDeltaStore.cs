@@ -178,15 +178,21 @@ public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore
     public object ObservePartitions()
     { lock (gate) return new { candidate = Candidate.Id, candidateSeal = Candidate.Seal, transferPending = transferIncomplete,
         transferCount, transferredPrivateBytes, lastTransferFrom, lastTransferTo,
-        source = source.Observe(), cache = cache.Observe() }; }
-    public OverlayStorageObservation Observe()
+        source = source.ObserveActivity(), cache = cache.ObserveActivity() }; }
+    public long GetJournalBytes() { lock (gate) return checked(source.GetJournalBytes() + cache.GetJournalBytes()); }
+    public OverlayStorageObservation? ObserveActivity() => ObserveStorage(inspectFiles: false);
+    public OverlayStorageObservation Observe() => ObserveStorage(inspectFiles: true)!;
+    private OverlayStorageObservation? ObserveStorage(bool inspectFiles)
     {
         lock (gate)
         {
-            var a = source.Observe(); var b = cache.Observe();
+            var a = inspectFiles ? source.Observe() : source.ObserveActivity();
+            var b = inspectFiles ? cache.Observe() : cache.ObserveActivity();
+            if (a is null || b is null) return null;
             return new(Identity.Id, Identity.Snapshot.Id, 0, a.JournalBytes + b.JournalBytes,
                 a.PayloadBytes + b.PayloadBytes, a.MetadataBytes + b.MetadataBytes, a.ReadBytes + b.ReadBytes,
-                0, Identity.MaxTransferBytes, a.IndexedNodes + b.IndexedNodes, a.DurableSequence + b.DurableSequence);
+                0, Identity.MaxTransferBytes, a.IndexedNodes + b.IndexedNodes, a.DurableSequence + b.DurableSequence)
+                { JournalBytesBasis = inspectFiles ? "current-files" : "writer-accounting" };
         }
     }
     public void Dispose() { lock (gate) { source.Dispose(); cache.Dispose(); candidate.Dispose(); } }

@@ -57,6 +57,7 @@ public sealed record OverlayStorageObservation(string Id, string SnapshotId, lon
 {
     public OverlayIoMetrics? Metrics { get; init; }
     public bool JournalOptimizationEnabled { get; init; }
+    public string JournalBytesBasis { get; init; } = "current-files";
 }
 public sealed record DeltaEntry(Guid Id, string Path, bool Directory, long Length, uint Attributes,
     long CreationTime, long LastAccessTime, long LastWriteTime, string? BasePath, long BaseLength,
@@ -82,6 +83,10 @@ public interface IWorkspaceDeltaStore : IDisposable
     void ReleaseUnlinkedFile(Guid id) { }
     void Flush();
     OverlayStorageObservation Observe();
+    // Live accounting is rebuilt on reconnect and maintained by the exclusive
+    // writer. It is not a disk audit or a result-preservation proof.
+    long GetJournalBytes();
+    OverlayStorageObservation? ObserveActivity();
 }
 public sealed record OverlayMount(string Id, string Path, string DeltaPath, SnapshotReference Snapshot,
     int ProviderProcessId, long ProviderStartTimeUtcTicks);
