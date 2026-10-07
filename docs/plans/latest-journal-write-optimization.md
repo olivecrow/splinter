@@ -1,18 +1,22 @@
-# 현재본 저널의 쓰기 경로 최적화
+<a id="현재본-저널의-쓰기-경로-최적화"></a>
+# Optimizing the current-state journal write path
 
-2026-10-06 사용자의 명시적 쓰기 경로 최적화 요청이다. 원본 + 최신 변경본과 개별 mutation의 durable ACK를 유지하면서 SJL2/SJT2의 중복 C 기록과 직렬 파일 flush 대기를 줄인다. 초기 구현에서는 기본 OFF를 유지했으며 commit/push·서비스/ACL/설치·원본/Unity Editor·기존 closed A/B를 변경하지 않는다.
+[한국어](../ko/plans/latest-journal-write-optimization.md)
 
-- 현재 후보는 SJL4/root v4 capsule·SJB1 owner header다. 이전 SJL1/2/3·SJT2/3는 보존·거부한다. overlay/workspace v2·candidate v3/SJR2·compact intent v3는 유지한다.
-- C payload와 metadata를 한 pending capsule에 한 번 기록하고 개별 mutation마다 한 durable flush한 뒤 현재 root에 게시한다. 이전 root는 복사 없이 소유 backup으로 이동하고 대체된 payload/metadata를 회수한다. 다른 mutation의 flush/ACK를 묶지 않는다.
-- 불완전 C/no publication은 B 유지, 완전 C는 같은 writer 복구, 손상/unknown/게시 뒤 누락은 보존·거부한다. 변경한 file/process 경계·candidate/OFF/restore/seal·WinFsp 정상 callback만 검증한다. OS 전원/Unity/VSS/대형 장애 행렬은 열지 않는다.
-- 동일 8/32 committed PNG, 128KiB 범위 B→C 반복 입력에서 ON/OFF 각 3회를 비교한다. 파일 hash·경로 sequence·metadata·seal·현재 payload/NTFS 할당과 쓰기 latency를 확인한다. hash/할당 계측은 timed writes 밖에 있으며 benchmark와 build/test를 겹치지 않는다.
+This is the user's explicit write-path optimization request of 2026-10-06. Reduce duplicate C writes and serialized file-flush waits in SJL2/SJT2 while retaining original + latest changes and individual mutation durable ACKs. The initial implementation keeps default OFF; do not change commit/push, service/ACL/installation, original/Unity Editors, or existing closed A/B runs.
 
-중간 SJL3 후보는 payload 한 번 기록과 독립 파일 4개 flush 병행으로 시간 7~8%만 개선했다. 해당 runner/입력/수치는 보존하고 단일 flush capsule로 개선한다. 종료 기준은 단일 payload 기록의 복구 근거, 같은 입력의 공간/시간 개선과 잔여 비용, 필수 `pwsh scripts/build.ps1`·현재 계약/capabilities/계측 문서 갱신이다. [검증](../verification/latest-journal-write-optimization.md)이 입력·수치와 남은 제한을 소유한다.
+- The current candidate uses SJL4/root v4 capsules and SJB1 owner headers. Preserve/reject earlier SJL1/2/3 and SJT2/3. Keep overlay/workspace v2, candidate v3/SJR2, and compact intent v3.
+- Write C payload and metadata once into one pending capsule; perform one durable flush per individual mutation, then publish to the current root. Move the previous root to an owned backup without copying, and reclaim replaced payload/metadata. Do not group different mutations' flush/ACK.
+- Incomplete C/no publication retains B; complete C recovers through the same writer; corruption/unknown/missing data after publication is preserved and rejected. Verify only changed file/process boundaries, candidate/OFF/restore/seal, and normal WinFsp callbacks. Do not open an OS power/Unity/VSS/large failure matrix.
+- Compare three ON/OFF runs each on the same 8/32 committed PNGs with repeated B→C 128KiB range inputs. Confirm file hashes, path sequences, metadata, seals, current payload/NTFS allocation, and write latency. Hash/allocation measurement stays outside timed writes; do not overlap benchmarks with build/test.
 
-## 마감
+The intermediate SJL3 candidate wrote payload once and flushed four independent files concurrently, improving time by only 7–8%. Preserve that runner/input/figures and improve with a single-flush capsule. Completion requires recovery evidence for a single payload write, space/time improvements and residual costs for the same input, required `pwsh scripts/build.ps1`, and current contract/capabilities/measurement documentation updates. [Verification](../verification/latest-journal-write-optimization.md) owns inputs, figures, and remaining limits.
 
-사용자의 후속 요청으로 새 작업의 초기 기본값을 ON으로 바꾼다. 기존 작업과 옵션을 생략한 compact는 저장된 선택을 유지하고 명시적 false는 OFF를 선택한다. 새 ON 생성의 identity/seed/root 게시 중단 복구, 기존 빈/비어 있지 않은 OFF 재연결, 기본 ON의 반복 저장·compact·OFF 전환과 필요한 WinFsp callback을 검증한다. 서비스/설치/원본/기존 A/B는 변경하지 않는다.
+<a id="마감"></a>
+## Closure
 
-기본값 후속 변경도 마감했다. 필수 locked restore·전체 Release build 경고/오류 0, 전체 1,165개 중 1,155 통과·실패 0·opt-in 10 skip과 기본 ON의 실제 WinFsp/fake 기준 1/1·composite seal/accounting 일치를 확인했다. [후속 검증](../verification/latest-journal-write-optimization.md#새-작업-기본-on)의 현재 소스/로그와 기존 성능 입력의 근거를 구분한다.
+At the user's subsequent request, change initial default for new tasks to ON. Existing tasks and compaction with options omitted retain stored selections; explicit false selects OFF. Verify interruption recovery during identity/seed/root publication of new ON creation, empty/non-empty existing OFF reconnection, repeated saves/compact/OFF transition with default ON, and necessary WinFsp callbacks. Do not change service/installation/original/existing A/B.
 
-2026-10-06 scoped-complete-with-limitations. 단일 payload/metadata capsule과 mutation마다 한 durable flush, 증분 writer 바이트 장부·실제 관측/seal/재연결 검사·이전 payload/metadata 회수를 연결했다. 같은 실제 PNG 8/32파일 각 3회의 ON 쓰기는 29.5%/30.7% 감소했고 ON/OFF 파일 데이터 할당은 -91.75%/-93.61%, 모든 cycle의 ON 할당은 일정했다. 12 accounting/product seal과 원본 보존/소유 basis release, 필요한 WinFsp 1/1과 전체 1,144개 중 1,134 통과·실패 0·opt-in 10 skip을 확인했다. ON은 OFF의 5.6–5.8배이며 관리 누적 할당은 늘었다. 당시에는 기본 OFF를 유지했다. 이후 사용자가 개별 쓰기의 절대 시간과 파일 할당 감소를 근거로 새 작업의 기본 ON을 명시적으로 선택했다. RAM 절감은 주장하지 않는다. [검증](../verification/latest-journal-write-optimization.md)에 전후 수치·원시 근거·미자격을 남겼다.
+The subsequent default change also closed. Confirmed required locked restore, full Release build with 0 warnings/errors, 1,155 passed, 0 failed, 10 opt-in skipped out of 1,165 total, and 1/1 actual WinFsp/fake-basis check plus matching composite seal/accounting for default ON. Distinguish current source/logs in [subsequent verification](../verification/latest-journal-write-optimization.md#default-on-for-new-tasks) from existing performance-input evidence.
+
+2026-10-06 scoped-complete-with-limitations. Connected a single payload/metadata capsule and one durable flush per mutation, incremental writer byte accounting, actual observation/seal/reconnection checks, and previous payload/metadata reclamation. Three runs each of the same real 8/32 PNG files reduced ON write time by 29.5%/30.7%; ON/OFF file-data allocation was -91.75%/-93.61%, and ON allocation stayed constant across all cycles. Confirmed 12 accounting/product seals, original preservation/owned basis release, necessary WinFsp 1/1, and 1,134 passed, 0 failed, 10 opt-in skipped out of 1,144 total. ON costs 5.6–5.8 times OFF, and cumulative managed allocations increased. Default OFF was retained then. Subsequently, the user explicitly selected default ON for new tasks based on absolute individual-write times and reduced file allocation. No RAM savings are claimed. [Verification](../verification/latest-journal-write-optimization.md) preserves before/after figures, raw evidence, and unqualified boundaries.

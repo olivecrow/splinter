@@ -1,40 +1,45 @@
-# 범위 payload codec
+<a id="범위-payload-codec"></a>
+# Range payload codec
 
-`IWorkspacePayloadCodec`는 한 변경 범위의 독립적인 byte 표현과 부분 읽기 계약이다. `BrotliWorkspacePayloadCodec`를 Core/fake 적합성과 함께 제공하며 [현재 압축 저널](journal-payload-compression.md)의 저장 표현으로 사용한다. codec 자체에는 파일·VCS·snapshot·Editor 접근과 내구성 정책이 없다. 제품 연결 자격은 [JP 검증](verification/journal-payload-compression.md), 독립 표본은 [codec 검증](verification/workspace-payload-codec.md)으로 구분한다. 새 codec 실행 명령은 없다.
+[한국어](ko/workspace-payload-codec.md)
 
-## 입력·출력 계약
+`IWorkspacePayloadCodec` defines an independent byte representation and partial-read contract for one changed range. `BrotliWorkspacePayloadCodec` is provided with Core/fake conformance tests and used as the storage representation of the [current compressed journal](journal-payload-compression.md). The codec itself has no file, VCS, snapshot, or Editor access or durability policy. [JP verification](verification/journal-payload-compression.md) covers product integration; [codec verification](verification/workspace-payload-codec.md) covers independent samples. There is no new codec execution command.
 
-- `MaxDecodedBytes`는 한 범위의 최대 복원 길이다. Runtime은 1~1,048,576B 사이의 고정 상한을 받고 기본값은 1MiB다. 파일 전체 길이와 무관하다.
-- `GetMaxEncodedBytes(n)`은 raw 표현을 포함한 필요한 목적 버퍼 길이를 반환한다. 범위를 초과하거나 음수인 `n`은 `PayloadBlockLimit`이다.
-- `Encode(decoded, destination)`는 caller가 제공한 별도 버퍼에 쓰고 초기화한 prefix 길이를 반환한다. 원본 span과 결과 버퍼는 겹칠 수 없다. 목적 버퍼가 부족하면 쓰기 전에 거부하며 반환 prefix 뒤의 bytes는 그대로 둔다.
-- `Read(encoded, offset, destination)`는 전체 block의 길이·형식·checksum·복원 결과를 검증한 뒤 요청 bytes를 게시한다. offset은 음수일 수 없으며 EOF 이상의 읽기는 0이다. 빈/EOF 읽기도 검증한다. 실패 시 destination을 변경하지 않는다.
+<a id="입력출력-계약"></a>
+## Input/output contract
 
-입력은 caller가 호출 동안 고정한 메모리 span이다. codec은 파일·VCS·snapshot·Editor를 읽거나 유지하지 않는다. raw 선택도 받은 범위만 표현하며 파일 전체 copy-up이나 snapshot payload 비교 읽기를 하지 않는다. encoded와 출력은 겹칠 수 없다.
+- `MaxDecodedBytes` is the maximum decoded length of one range. Runtime accepts a fixed limit from 1 to 1,048,576B, defaulting to 1MiB, regardless of whole-file length.
+- `GetMaxEncodedBytes(n)` returns the required destination-buffer length, including a raw representation. Negative or over-limit `n` produces `PayloadBlockLimit`.
+- `Encode(decoded, destination)` writes into a separate caller-provided buffer and returns the initialized prefix length. The source span and result buffer must not overlap. An insufficient destination is rejected before writing; bytes beyond the returned prefix remain unchanged.
+- `Read(encoded, offset, destination)` validates the entire block's length, format, checksum, and decoded result before publishing requested bytes. Offset must be nonnegative; reads at or beyond EOF return 0. Empty/EOF reads also validate. Failure leaves destination unchanged.
+
+Input is a memory span kept stable by the caller for the duration of the call. The codec neither reads nor retains files, VCS, snapshots, or Editors. Raw selection also represents only the supplied range, without whole-file copy-up or snapshot-payload comparison reads. Encoded input and output must not overlap.
 
 ## Runtime block schema v1
 
-codec identity는 `splinter-range-brotli-v1`이다. 아래 **현재 binary 표현 하나만** 읽으며 다른 magic/encoding은 보존 후 `PayloadBlockUnsupported`로 거부한다. CLI 입력/출력 JSON schema나 durable workspace 형식으로 공개한 계약이 아니다.
+Codec identity is `splinter-range-brotli-v1`. Only the **single current binary representation** below is read. Other magic/encoding values are preserved and rejected with `PayloadBlockUnsupported`. This is not a contract published as a CLI input/output JSON schema or durable workspace format.
 
-| 위치 | 길이 | 값/검사 |
+| Position | Length | Value/check |
 | --- | ---: | --- |
-| 0 | 4B | ASCII `SPB1` |
-| 4 | 4B | little-endian signed int의 decoded 길이, 0~고정 상한 |
-| 8 | 4B | little-endian signed int의 stored payload 길이 |
-| 12 | 1B | 0 raw, 1 Brotli |
-| 13 | 3B | 모두 0, 예약 값은 거부 |
-| 16 | stored 길이 | raw bytes 또는 하나의 독립 Brotli stream |
-| 16 + stored 길이 | 32B | 첫 16B와 stored payload 전체의 SHA-256 |
+| 0 | 4B | ASCII `SPB1`. |
+| 4 | 4B | Decoded length as a little-endian signed int, from 0 to the fixed limit. |
+| 8 | 4B | Stored payload length as a little-endian signed int. |
+| 12 | 1B | 0 raw, 1 Brotli. |
+| 13 | 3B | All 0; reserved values are rejected. |
+| 16 | stored length | Raw bytes or one independent Brotli stream. |
+| 16 + stored length | 32B | SHA-256 of the first 16B and entire stored payload. |
 
-총 길이는 `48 + stored`다. raw는 stored=decoded다. 압축은 quality 1/window 22로 시도하며 payload가 적어도 64B 작을 때만 선택한다. 그 외에는 같은 표현의 raw를 사용한다. **48B overhead는 raw와 compressed 양쪽에 모두 있다.** bare payload나 현재 journal frame보다 항상 작다는 뜻이 아니다. 실제 journal 연결에서 기존 metadata와 중복 비용을 다시 계산해야 한다.
+Total length is `48 + stored`. For raw, stored=decoded. Compression is attempted with quality 1/window 22 and selected only when payload is at least 64B smaller. Otherwise the same representation uses raw. **Both raw and compressed representations have 48B overhead.** This does not mean they are always smaller than bare payloads or current journal frames. Existing metadata and duplicate costs must be recalculated at actual journal integration.
 
-checksum은 길이·encoding·payload를 함께 보호하며 decoder가 소비한 bytes와 복원 길이를 정확히 확인한다. trailing bytes·잘림·checksum 불일치·지나친 선언 길이·잘못된 reserved 값은 `PayloadBlockCorrupt`다. buffer/offset 입력 거부는 `PayloadBufferTooSmall`·`InvalidPayloadBuffer`·`InvalidPayloadRange`다. 실패를 부분 복원 성공이나 raw fallback으로 바꾸지 않는다.
+The checksum protects length, encoding, and payload together. Decoder input consumption and decoded length are checked exactly. Trailing bytes, truncation, checksum mismatch, excessive declared lengths, and invalid reserved values produce `PayloadBlockCorrupt`. Buffer/offset input rejection uses `PayloadBufferTooSmall`, `InvalidPayloadBuffer`, and `InvalidPayloadRange`. Failure is not converted into partial-decoding success or a raw fallback.
 
-## 버퍼와 수명
+<a id="버퍼와-수명"></a>
+## Buffers and lifetime
 
-공통 Encode는 caller 입력 길이만큼의 scratch를 대여하고 유익한 encoded prefix만 결과로 옮긴다. 압축이 비효율적이면 raw로 선택하며 모든 경로에서 scratch를 반환한다. journal의 내부 Encode는 raw fallback용 encoded buffer를 빌리지 않고 전체 block 절감 기준을 만족할 압축 용량만 대여해 정확한 결과 배열을 만든다. 공통 API/형식/quality/window/바이트/선택 기준은 유지한다.
+Common Encode rents scratch matching the caller's input length and copies only the beneficial encoded prefix into the result. Inefficient compression selects raw; scratch is returned on every path. Journal-internal Encode does not rent an encoded buffer for raw fallback. It rents only the compression capacity that can satisfy whole-block savings and creates an exact result array. The common API, format, quality/window, bytes, and selection criteria remain unchanged.
 
-raw read는 checksum 검사 뒤 span을 직접 읽는다. compressed read에서 decoded가 16KiB보다 크고 요청 길이가 그 절반 이하이면 **16KiB chunk + 실제 요청 길이**의 scratch 하나를 사용한다. 전체 stream을 순차 복원하며 요청분만 scratch 뒤에 보존하고 decoder 완료·정확한 입력 소비/복원 길이를 검증한 뒤 출력에 게시한다. 빈/EOF 읽기는 chunk만 필요하다. 작은 block/큰 요청은 declared decoded 길이의 전체 scratch를 사용한다. 재서명된 trailing/초과 복원/잘림도 출력 게시 전에 거부하고 성공/실패 뒤 임대를 반환한다. decoded 블록을 codec에 저장하지 않는다.
+Raw read accesses the span directly after checksum verification. For compressed reads with decoded length above 16KiB and a request no larger than half that length, one scratch buffer holds **a 16KiB chunk + actual request length**. The whole stream is decoded sequentially; only the requested bytes are retained after the scratch chunk. Output is published after checking decoder completion and exact input consumption/decoded length. Empty/EOF reads need only the chunk. Small blocks/large requests use scratch for the full declared decoded length. Re-signed trailing data, excess decoded output, and truncation are also rejected before output publication; leases return after success/failure. The codec retains no decoded blocks.
 
-ArrayPool은 요청보다 큰 배열을 줄 수 있다. 기본 상한 1MiB의 power-of-two 요청에서는 대여 크기도 그 상한 안이지만 임의의 더 작은 configured 상한을 byte 단위의 pool 할당 상한으로 해석하지 않는다. caller가 제공한 input/encoded/read 버퍼·pool 잔류·Brotli native state는 별도 메모리 비용이다. 작은 부분 읽기에도 블록 전체 복원이 필요할 수 있어 read amplification을 숨기지 않는다. 전역 decoded cache/dictionary·persistent codec state는 없다.
+ArrayPool may provide an array larger than requested. Power-of-two requests at the default 1MiB limit keep rented sizes within that limit, but an arbitrary smaller configured limit is not a byte-exact pool-allocation cap. Caller-provided input/encoded/read buffers, pool retention, and Brotli native state are separate memory costs. Even a small partial read may require decoding the whole block; read amplification must be reported. There is no global decoded cache/dictionary or persistent codec state.
 
-공통 fake/적합성, malformed stream·임대 반환/누적 관리 할당과 실제 Bee 입력의 선행 근거는 [codec 검증](verification/workspace-payload-codec.md)을 따른다. 현재 메모리 경로의 범위/직접 근거는 [ME 계획](plans/memory-completion.md)·[ME 검증](verification/memory-completion.md)이 소유한다. journal replay/compaction/candidate/독립 결과·budget·native 중단/NTFS 물리 절감은 별도 JP 검증을 따른다.
+[Codec verification](verification/workspace-payload-codec.md) owns common fake/conformance tests, malformed streams, lease return/cumulative managed allocation, and preceding evidence from actual Bee inputs. The [ME plan](plans/memory-completion.md) and [ME verification](verification/memory-completion.md) own the current memory path's scope and direct evidence. Journal replay/compaction/candidates/independent results, budgets, native interruptions, and NTFS physical savings follow separate JP verification.

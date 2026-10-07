@@ -1,64 +1,152 @@
 # Splinter
 
-AI 에이전트가 Unity처럼 독립 실행이 제약되는 환경에서 병렬 작업공간을 효율적으로 만들고, 이어가며, 원할 때 폐기하도록 돕는 로컬 도구다. 현재 한정 실행 환경은 **Windows/NTFS + Unity의 작은 Git·Plastic 프로젝트 또는 VCS 없는 폴더**다. 최초 전체 복제·읽기 hydration 없이 불변 기준과 작업별 범위 변경분을 사용하며, 원본은 작업 중 계속 수정할 수 있다. 명시적으로 승인한 Library 또는 VCS 없는 프로젝트의 관리형 mount는 같은 NTFS 볼륨에서 데이터를 복사 없이 이동하고 기존 경로를 유지한 뒤 최종 복원한다.
+**Efficient, isolated workspaces for parallel AI development.**
 
-제품 요구는 **외부 VCS가 있건 없건 Splinter 자체가 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리하는 것**이다. VCS별 처리는 작업공간의 격리·효율·원본/peer 보호를 위한 호환 책임이다. 현재 CLI는 `--source git|none|plastic`을 선택한다. 일반 폴더의 기준·결과·회수는 [현재 계약](docs/vcs-independent-workspaces.md), Plastic의 관리 정보/등록 보호는 [호환 계약](docs/plastic-compatibility.md)을 따른다.
+[한국어](README.ko.md)
 
-각 대화가 필요할 때만 자신의 작업공간을 사용한다. 같은 작업은 여러 대화와 CLI 실행에 걸쳐 유지하며, 대화나 Editor 종료는 반영·회수·폐기의 승인이 아니다.
+Splinter is a local workspace and storage tool for AI agents working on Unity projects and ordinary project folders. Each task gets its own writable project path, while unchanged files are read from a fixed project basis and edits are stored as private byte ranges. Multiple tasks can work independently, the original project stays editable, and results are preserved or integrated explicitly.
 
-MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 때 선택하는 선택적 외부 도구다. 없어도 Splinter의 저장 격리·기준본·Library/미변경 파일 참조·범위 변경·독립 결과·안전한 원본 반영과 소유 자원 수명 기능은 성립한다. 특정 도구 이름·버전·내부 API는 제품 전제나 gate가 아니다. 도구 선택·연결·refresh·컴파일·Play/Test/build·캡처와 결과 판단은 에이전트가 맡는다. 외부 도구 설치·다운그레이드·수정·별도 수정본 생성/운영은 Splinter 범위에서 제외한다. 외부 도구를 사용할 때는 [반환 경로와 실제 대상/PID 확인](docs/alpha-workspaces.md#unity-cli의-정확한-대상-선택)을 따른다. 과거 도구 실행 기록은 현재 필수 조건으로 승계하지 않는다.
+**Current status:** an internal alpha for Windows and NTFS, with bounded validation on small Git, Unity Version Control / Plastic SCM, and VCS-free projects. See the [validation guide](docs/verification/README.md) for the tested inputs and remaining limits.
 
-제공물은 저장소 checkout에서 실행하는 기본 CLI·소스 스킬과 [AI 시작 안내](docs/agent-start.md)다. 후속 책임은 [구현 계획](docs/plans/implementation-plan.md#프로그램과-에이전트의-책임)에서 프로그램 구현·AI 사용 절차·필요 시 지원 검증으로 구분한다.
+## Why Splinter
 
-Splinter는 작업공간과 소유 Editor의 수명·범위 저장·독립 결과·안전한 반영/회수/폐기를 담당한다. 설치 연결·대화 인계·도구/모드 선택·충돌 해결·게임 검증은 AI와 기존 Git·MCP·Unity CLI가 수행한다. 전용 installer·Codex 자동 binding·큐/자동 모드·일반 임대 인수·원본 Editor 공유·범용 Unity 작업 API·AI Runner/DAG·상주 DB는 구현 범위에서 제외한다. 현재 외부 도구 인계는 [도구 선택·연결과 peer 보호의 한정 범위](docs/plans/session-workflow-and-installation.md#외부-도구-인계의-한정-범위)를 먼저 확인해야 한다.
+Parallel development becomes expensive when every task needs a complete project copy, its own generated data, and an independent application instance. Unity makes this especially visible: source isolation alone does not address the cost of assets, the `Library` directory, and multiple Editors.
 
-## 현재 제공하는 기능
+Splinter separates the data a task can reuse from the data it changes. Its range journals avoid an initial full project copy, a disk cache of files merely read, and copying an entire base file just to modify part of it. An explicitly prepared Library basis can also share unchanged generated data while keeping each task's writes private.
 
-- .NET CLI, atomic JSON 상태와 작업 잠금, 공통 Core 계약 및 fake 적합성 시험.
-- [OS와 앱 확장 계약](docs/extensibility-boundaries.md): 불변 경로 정책·권한 metadata·앱별 원본 보호/동반 파일/생성 디렉터리 정책. 실제 다른 OS·앱 어댑터는 미구현이다.
-- 저장소에 포함한 [AI 사용 스킬](skills/splinter/SKILL.md): 필요성 판단·반환 경로 사용·같은 요청 재개·명시적 종료·실패 처리. 현재 CLI와 대화의 작업 식별자를 사용한다.
-- [명시적 폐기](docs/workspace-discard.md)의 고정 intent·중단 재개와 Git/Windows provider·`workspace discard`. 실제 서비스 적용/폐기 자격은 별도로 표시한다.
-- `ntfs-snapshot` workspace의 VSS·WinFsp 범위 저널, 선택한 Git/파일 기준, 작업별 프로세스 그룹과 Editor start/stop, 독립 결과 보존과 명시적 회수.
-- [Git 프로젝트 기준본](docs/git-project-basis.md)의 `git-snapshot`: 기록된 commit/tree/blob을 VSS·전체 checkout·읽기 disk cache 없이 기존 범위 저널에 연결한다. ignored 소스는 제외하며 Library는 [명시적 원본 참조](docs/git-library-reference.md)로 연결할 수 있다. 실제 자격은 [별도 검증](docs/verification/git-project-basis.md)을 따른다.
-- [Plastic 프로젝트 기준본](docs/plastic-project-basis.md)의 `plastic-snapshot`: 고정 changeset/revision을 VSS·checkout·payload disk cache 없이 읽고 공통 Library 참조를 연결한다. [전체/선택 원본 반영](docs/plastic-original-apply.md)은 고정 계획/intent와 조건부 NTFS 게시를 사용하며 [실제 자격](docs/verification/plastic-original-apply.md)을 별도로 확인한다.
-- [VCS 없는 프로젝트 기준본](docs/plain-project-basis.md)의 `project-snapshot`: 승인한 원본 관리형 mount·같은 볼륨 이동·source/Library 불변 참조와 원본/A/B private 범위·독립 결과·전체/선택 원본 반영·명시적 NTFS 복원. VSS를 사용하지 않으며 [현재 후보 자격](docs/verification/plain-project-basis.md)을 확인한다.
-- [현재 압축 저널](docs/journal-payload-compression.md): bounded raw/Brotli 범위·overlay v2·candidate v3. 실제 자격은 [별도 검증](docs/verification/journal-payload-compression.md)을 따른다.
-- 변경 기반 소스 검증, 명시적 저널 정리와 선택적 중첩량 예산, snapshot 지연 회수. [저널 최적화 ON](docs/latest-only-journal.md)은 후속 저장에서 현재 private 범위만 유지하고, 명시적 정리에서는 기준본과 같은 범위도 제거한다. 새 작업의 기본값은 ON이며 기존 작업은 저장된 선택을 유지한다.
-- VSS 전용 Windows 권한 서비스와 명시적 설치 도구. 실제 설치·반복 UAC 0의 자격은 [UA 검증](docs/verification/storage-privilege-service.md)을 따른다.
-- `checkpoint`는 현재 소스를 독립 결과로 보존한다. 컴파일·Play·테스트·빌드·캡처와 합격 판단은 AI가 MCP·Unity CLI 등으로 수행하며 Splinter는 그 성공을 판정하지 않는다.
-- diagnostic checkout·후보/공통 Library view·spike/probe는 [개발용 CLI](docs/development-cli.md)의 별도 경로다. 기본 CLI의 명령 발견·작업 생성에서 제외한다. view는 불변 후보·소스 세대·공통 Library와 독립 결과의 수명 및 회수 의존성을 관리한다.
+The intended workflow is simple: use a workspace when a task needs independent execution, continue that same task across conversations, then explicitly preserve, integrate, or discard it. Each agent works in the path returned by Splinter and can use its existing file tools, Git tools, and application tooling there.
 
-현재 지원은 작은 fixture의 내부 알파 범위다. 과거 실행 기록은 지정한 후보·입력의 근거이며 변경된 계약의 native 실행 통과로 자동 승계하지 않는다. 대형·ARM·OS 장애 등 미실행 범위와 도구별 제한은 [검증 안내](docs/verification/README.md)를 따른다. 전용 제품 설치·대화 자동 연결은 제공하지 않는다. 실제 discard 자격은 [폐기 검증](docs/verification/workspace-discard.md), 현재 계약은 [기반 구조](docs/foundation.md)에서 확인한다.
+## How it works
 
-## 실행
+A **basis** is the fixed data from which a workspace starts. A **private journal** records that workspace's changed byte ranges and file metadata. Together, they form the project tree exposed through a writable WinFsp filesystem.
 
-.NET SDK `10.0.112` 호환 패치, Git 경로에서만 Git, PowerShell 7.2 이상이 필요하다. 저장소 루트에서 실행한다.
-
-```powershell
-pwsh ./scripts/build.ps1
-pwsh ./scripts/splinter.ps1 capabilities
-pwsh ./scripts/splinter.ps1 schema workspace.ensure
-pwsh ./scripts/splinter.ps1 doctor --project ../splinter-unity
-pwsh ./scripts/splinter.ps1 workspace ensure --project ../splinter-unity --key <task-key> --storage ntfs-snapshot --base development --home <NTFS-home>
+```text
+Fixed project basis
+  + task A's private changes  ->  workspace A
+  + task B's private changes  ->  workspace B
 ```
 
-CLI는 stdout에 JSON 응답 하나를 반환한다. VSS 작업은 [제한 권한 서비스](docs/storage-privilege-service.md)를 사용하며, 서비스 부재나 미등록 범위는 설치/구성 필요 상태를 반환한다. [NTFS 사용법](docs/ntfs-workspaces.md)을 먼저 읽고 반환된 작업공간 경로에서 편집한다. 일반 CLI·Git·Unity 전체를 관리자 권한으로 실행하지 않는다.
+Edits in A do not change B's files or silently update the original. A checkpoint preserves a stable, independent source result; integration applies that result through the selected source adapter's guards. Releasing a workspace preserves its result while reclaiming resources owned by that task. Discarding is a separate, explicit operation.
 
-각 대화의 에이전트는 [시작 안내](docs/agent-start.md)와 [스킬 원본](skills/splinter/SKILL.md)을 읽고 시작한다. 프로젝트 정책에 지정한 CLI·등록 project/home을 사용하고, 응답의 `data.workspace.path`에서 편집한다. 같은 작업은 key/id/home·기준·request digest를 대화나 인계에 남겨 같은 ensure 입력으로 재개한다. 현재 경로에서 독립 실행 없이 작업할 수 있으면 새 workspace를 만들지 않는다.
+The original remains usable during task work. For the optional managed Library or VCS-free project basis, preparation moves existing data within the same NTFS volume without copying it and exposes a writable view at the original path. Preparation and final restoration require the original Editor to save and stop normally; restoration returns the original's current contents to an ordinary NTFS directory.
 
-`main`은 출시용, `development`는 개발용이다. 형제 `../splinter-unity`는 별도 Git 저장소이며 submodule이 아니다. 실제 Git 등록 시험은 `pwsh ./scripts/test-worktree-lifecycle.ps1 -Repository ../splinter-unity`로 실행한다. 이 시험은 Unity Editor·CoW 시험과 구별한다.
+## Main capabilities
 
-## 문서
+- **Independent task workspaces.** Separate writable paths, private changes, task state, and owned application processes, with protection for the original and other tasks.
+- **Storage that follows changes.** Shared immutable data, bounded raw or Brotli payloads, and journal compaction. New workspaces use the current-state journal optimization by default; explicit compaction can also remove ranges that match the basis again.
+- **Work that survives a conversation.** Stable task identities, atomic JSON state, and recovery using the same request after interruption or a lost response.
+- **Independent results and guarded integration.** Source checkpoints, Git result integration, and planned full or selected file application for supported plain-folder and recorded Plastic paths. Changed targets and conflicting inputs are rejected for explicit resolution.
+- **Explicit resource ownership.** Unity Editor start/stop, provider and mount tracking, dependency guards, and release or discard of the task's own resources.
+- **An interface for agents.** One JSON response on stdout, discoverable capabilities, command schemas, structured errors, and a repository-provided [agent skill](skills/splinter/SKILL.md).
 
-- [문서 지도](docs/README.md): 현재 기능별 계약과 사용법.
-- [용어집](docs/glossary.md): 기준본·변경분·seal·intent와 보존/반영/회수/폐기의 차이.
-- [제품 요구사항](plan.html): 제품이 달성해야 할 목표.
-- [구현 계획](docs/plans/implementation-plan.md): 프로그램/에이전트 책임과 축소한 후속 작업·종료 기준.
-- [저장공간 우선 설계](docs/plans/storage-priority-and-editor-modes.md): 용량·준비·재개 비용과 Editor 실행 방식의 판단 기준.
-- [VCS 프로젝트 단위 기준본 전환 계획](docs/plans/project-scoped-basis-and-reclamation-review.md): Git·Plastic 버전 재사용과 범위 저널 연결의 확정 범위. VCS 없는 새 방식은 [별도 NP 범위](docs/plans/plain-project-basis.md)의 관리형 프로젝트 기준본으로 연결한다.
-- [물리 저장 단계 마감](docs/verification/physical-storage-completion.md): 현재 NTFS 알파의 최종 A/B·정리·독립 결과/회수·잔여 비용을 한정 확인했다.
-- [메모리 단계 마감](docs/verification/memory-completion.md): 압축 쓰기/부분 읽기 buffer·같은 실제 저널·provider/Editor 비용과 최종 A/B 회수를 한정 확인했다.
-- [병렬 안정성의 선택 단위 마감](docs/verification/stable-parallel-completion.md): 잠금 경로 오류와 실제 A checkpoint/release 중 B 조회·재개·64개 쓰기/독립 결과/회수를 확인했다. Editor 없는 경계이며 기존 Unity 자격과 구분한다.
-- [검증 추적표](docs/plans/validation-matrix.md): 첫 버전 M0와 장기 지원·확장 카탈로그.
+Splinter manages workspace storage and resource lifetimes. Agents and their chosen tools perform editing, refresh, compilation, Play Mode, tests, builds, and assessment of the result. A checkpoint establishes source stability; compilation and test results come from those external tools. MCP and Unity CLI are optional integrations selected by the agent.
 
-배포 전에는 현재 데이터 계약만 지원한다. 지원하지 않는 형식은 원본과 결과를 보존한 채 명시적으로 거부하며 자동 이관하지 않는다. 변경 이력은 Git에서 확인한다.
+## Storage options
+
+The source kind is explicit: `git`, `plastic`, or `none`. Choose a storage path for the actual project and read its prerequisites before creating a workspace.
+
+| Storage | Project basis | Preparation |
+| --- | --- | --- |
+| [`git-snapshot`](docs/git-project-basis.md) | A fixed local Git commit, tree, and blobs | A supported clean repository at the requested commit; WinFsp. No VSS service is required. |
+| [`plastic-snapshot`](docs/plastic-project-basis.md) | A fixed recorded Plastic changeset and file revisions | Read access through the qualified installed Plastic client; WinFsp. No new Plastic workspace registration or VSS service is required. |
+| [`project-snapshot`](docs/plain-project-basis.md) | A managed basis for a VCS-free project, including its generated data | Explicit `project prepare`, a move within the same NTFS volume, and a writable view at the original path. No VSS service is required. |
+| [`ntfs-snapshot`](docs/ntfs-workspaces.md) | A VSS snapshot of a Git, Plastic, or VCS-free project | WinFsp and the restricted storage service with the exact project/home identities registered. |
+
+Git and Plastic tasks can attach an explicitly prepared [Library basis](docs/git-library-reference.md). Git commit bases contain committed raw bytes and exclude ignored files; checkout filters, LFS, and unsupported special files require attention to the route's input restrictions. The recorded Plastic reader currently requires client version `11.0.16.9915`.
+
+## Getting started
+
+The current entry point is a source checkout and the PowerShell CLI wrapper.
+
+### Requirements
+
+- Windows with NTFS for the workspace storage paths above.
+- PowerShell 7.2 or later.
+- .NET SDK `10.0.112`, or a compatible patch allowed by [global.json](global.json).
+- [WinFsp](https://github.com/winfsp/winfsp) for mounted workspaces; the .NET binding is pinned to `2.2.26215`.
+- Git for Git sources, or the qualified installed Plastic client for Plastic sources. Unity is needed only when using Unity projects and Editors.
+- The [restricted storage service](docs/storage-privilege-service.md) and registered access scope for `ntfs-snapshot` only.
+
+Run from the Splinter repository root:
+
+```powershell
+# Locked dependency restore, Release build, and automated tests.
+pwsh ./scripts/build.ps1
+
+# Discover the interface before issuing a new command.
+pwsh ./scripts/splinter.ps1 capabilities
+pwsh ./scripts/splinter.ps1 schema workspace.ensure
+```
+
+For a first Git workspace without an Editor, use a supported clean repository whose current HEAD matches the chosen base. Replace these example values with your actual project, existing base branch, and an NTFS home outside the original project and any VCS-managed tree:
+
+```powershell
+$project = 'C:/Projects/MyProject'
+$workspaceHome = 'C:/Splinter/MyProject'
+$taskKey = 'feature-a'
+$base = 'development'
+
+pwsh ./scripts/splinter.ps1 doctor --project $project
+
+$reply = (& pwsh ./scripts/splinter.ps1 workspace ensure `
+    --project $project --key $taskKey --base $base `
+    --source git --application none --storage git-snapshot `
+    --home $workspaceHome) | ConvertFrom-Json
+$reply
+```
+
+Inspect `status`, `error`, and any `nextActions`. Only after the request succeeds and the workspace is ready, use **`data.workspace.path`** as your editing directory and the target for file and application tools. `doctor` is a metadata diagnostic; it does not certify an actual workspace run.
+
+For Unity, choose `--application unity` in the initial request and follow the [agent start guide](docs/agent-start.md) and [Unity workflow](docs/alpha-workspaces.md). Keep ordinary CLI, Git, and Unity processes under normal user permissions. Service installation and basis preparation have their own explicit setup procedures.
+
+### Continuing and finishing a task
+
+Keep the same project, home, key, workspace ID, storage choice, base, and request digest in the conversation or handoff. Resume with the same `workspace ensure` inputs; use one writer per workspace path. Read `schema <command>` before each new command and retain the saved ID and home.
+
+| Intent | Command and behavior |
+| --- | --- |
+| Continue later | Keep the workspace; use `unity stop` if only the owned Editor should stop. |
+| Preserve a result | `workspace checkpoint` collects stable source into an independent result. |
+| Apply a result | `workspace integrate` uses the source adapter's target, conflict, and ownership guards. Plain-folder and recorded Plastic application require an explicit plan and fixed intent. |
+| Preserve the result and free task resources | `workspace release` requires the independent result and reclaims only owned resources. |
+| Abandon a task | `workspace discard` requires the exact task and a fixed discard intent. |
+
+Closing a conversation or Editor does not approve integration, release, or discard. See the [agent guide](docs/agent-start.md), [discard contract](docs/workspace-discard.md), and [glossary](docs/glossary.md) for exact lifecycle and recovery rules.
+
+## Scope and limits
+
+The implementation and recorded validation target Windows/NTFS alpha use with small projects. Large projects, macOS/Linux adapters, comprehensive ARM coverage, and reboot, power-loss, or general OS-failure guarantees remain outside that qualification. The [validation guide](docs/verification/README.md) distinguishes automated contract tests from actual filesystem and Unity runs.
+
+Sharing unchanged data reduces duplication in the storage model. Each Unity Editor still has its own memory and import costs; the current evidence does not establish general reductions in total system RAM or peak disk usage. Unsupported file types and metadata are documented per storage route.
+
+Splinter provides a CLI and agent guidance. Dedicated installation, automatic conversation binding, task scheduling, automatic mode selection, shared-original-Editor orchestration, and an AI execution platform are outside the current implementation. Workspace isolation protects storage and resource ownership; it is not an OS security sandbox for untrusted code. Unsupported or damaged state is preserved and explicitly rejected, without automatic migration.
+
+## Documentation and development
+
+Start with the [documentation map](docs/README.md). English is the default for feature, architecture, plan, and verification documents; [Korean documentation](docs/ko/README.md) is available separately, with a language link on each page.
+
+| Read this | For |
+| --- | --- |
+| [Agent start guide](docs/agent-start.md) and [agent skill](skills/splinter/SKILL.md) | Prerequisites, returned paths, task resumption, and explicit completion |
+| [Glossary](docs/glossary.md) | Basis, private ranges, seals, intents, and lifecycle terms |
+| [Current foundation](docs/foundation.md) | Modules, contracts, and the implemented architecture |
+| [Product requirements](plan.html) and [implementation plan](docs/plans/implementation-plan.md) | Product goals, ownership boundaries, and remaining work |
+| [Validation guide](docs/verification/README.md) | Evidence, tested environments, and support limits |
+| [Development CLI](docs/development-cli.md) | Diagnostic checkouts, views, and probes |
+| [Third party notices](THIRD_PARTY_NOTICES.md) | Dependency versions, upstream projects, and license conditions |
+
+The code separates common contracts and lifecycle logic (`Core`, `Runtime`, `Protocol`) from source adapters, the Unity application policy, and Windows storage/process implementations. `src/` contains the product, `tests/` its automated tests, `scripts/` the command wrappers and validation tools, and `tools/` development-only utilities.
+
+Use `development` for ordinary development and integration; `main` is the release branch. Run `pwsh ./scripts/build.ps1` for the required checks. Dependency changes must update central versions and the corresponding lockfiles together. The optional sibling `../splinter-unity` is a separate Git/Unity test project, not a submodule or a requirement for CLI discovery.
+
+## Credits
+
+Splinter builds on the work of these projects and their contributors:
+
+- **[WinFsp](https://github.com/winfsp/winfsp)** supplies the writable filesystem views and .NET binding. **WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos.** Its license is GPLv3 with a conditional exception for linking from free and open source software.
+- **[.NET](https://github.com/dotnet/runtime)** and **[System.CommandLine](https://github.com/dotnet/command-line-api)** provide the runtime and CLI infrastructure. Brotli compression is used through .NET's `System.IO.Compression` APIs.
+- **[json-everything](https://github.com/json-everything/json-everything)** provides JsonSchema.Net, JsonPointer.Net, and Json.More.Net for schema validation and JSON handling. Its source is MIT-licensed; the pinned NuGet binaries also include an Open Source Maintenance Fee agreement.
+- **[Humanizer](https://github.com/Humanizr/Humanizer)** is an indirect runtime dependency of the JSON packages, under the MIT license.
+- **[xUnit.net](https://github.com/xunit/xunit)** and **[Microsoft.Testing.Platform](https://github.com/microsoft/testfx)** provide automated testing and TRX reports, under Apache 2.0 and MIT respectively.
+
+Installed Git, PowerShell, Unity, and Plastic tools retain their own licenses. Exact direct and indirect package versions, upstream license links, attribution conditions, and redistribution considerations are recorded in [Third party notices](THIRD_PARTY_NOTICES.md).

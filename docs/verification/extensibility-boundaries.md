@@ -1,17 +1,20 @@
-# 확장 계약 검증
+<a id="확장-계약-검증"></a>
+# Extension-contract verification
 
-입력은 `ef97330` 위의 확장 경계 수정과 저장소의 자동 fixture다. 실제 다른 OS·앱의 구현이나 새로운 Unity/VSS/서비스/제품 A/B를 실행하는 범위는 포함하지 않는다. 현재 계약은 [OS와 앱의 확장 경계](../extensibility-boundaries.md)를 따른다.
+[한국어](../ko/verification/extensibility-boundaries.md)
 
-| 경계 | 증거 | 자격 |
+Inputs are extension-boundary changes on `ef97330` and repository automated fixtures. This scope does not implement actual other OSes/apps or run new Unity/VSS/service/product A/B. The current contract follows [OS and application extension boundaries](../extensibility-boundaries.md).
+
+| Boundary | Evidence | Qualification |
 | --- | --- | --- |
-| 경로 정책 | 대소문자 구분 fake tree의 독립 경로·이동·숨김·재생·후보와 정책 불일치 거부 | 자동 적합성; 실제 POSIX mount NotRun |
-| 권한 metadata | Git 실행 파일 mode·저널 metadata·후보 roundtrip | 자동 적합성; 실제 Unix ACL/소유자/게시 NotRun |
-| 앱 선택/원본 보호 | 주입한 가짜 정책의 별도 동반 파일 guard·원본 접근 거부·lease 회수, 미등록 정책 거부 | fake 정책 + 일반 권한 Windows 파일 게시 시험; 다른 앱 NotRun |
-| 기존 Unity 동작 | 기존 Plastic 원본 반영 시험의 `.meta`·UnityLockfile·고정 intent·등록/잠금 보호, 임시 reservation 소유 정리 | 자동 파일 회귀; 새 Unity Editor 실행 NotRun |
-| 생성 디렉터리 | 주입한 Cache descriptor·고정 앱/종류·v1 보존 거부, 기존 prepare/restore 회귀 | 자동 파일 적합성; 새 native mount/A/B NotRun |
+| Path policy | Independent paths, move, hide, replay, candidates, and rejection of policy mismatch in a case-sensitive fake tree | Automated conformance; actual POSIX mount NotRun |
+| Permission metadata | Git executable-file mode, journal metadata, candidate roundtrip | Automated conformance; actual Unix ACL/owner/publication NotRun |
+| Application selection/original protection | Injected fake policy's separate companion-file guard, denial of original access, lease reclamation, rejection of unregistered policy | Fake policy + ordinary-permission Windows file-publication tests; other apps NotRun |
+| Existing Unity behavior | Existing Plastic original-apply tests for `.meta`, UnityLockfile, fixed intent, registration/lock protection, owned cleanup of temporary reservation | Automated file regression; new Unity Editor execution NotRun |
+| Generated directories | Injected Cache descriptor, fixed application/kind, preservation/rejection of v1, existing prepare/restore regressions | Automated file conformance; new native mount/A/B NotRun |
 
-2026-10-05의 `pwsh ./scripts/build.ps1`은 locked restore·Release build를 경고/오류 0개로 완료했다. 전체 회귀는 **1,052개: 통과 1,042·실패 0·조건부 건너뜀 10**이며 시험 실행 시간은 4분 44초다. TRX는 `artifacts/test-results/Splinter.Tests_net10.0_x64.trx`다. 건너뜀은 당시 backend·외부 실행/자식 전용 진입점의 조건이며 새 지원 통과로 표시하지 않는다.
+On 2026-10-05, `pwsh ./scripts/build.ps1` completed locked restore and Release build with 0 warnings/errors. Full regression was **1,052 tests: 1,042 passed, 0 failed, 10 conditionally skipped**, taking 4 minutes 44 seconds. TRX is `artifacts/test-results/Splinter.Tests_net10.0_x64.trx`. Skips reflect conditions for backend/external-run/child-only entry points at that time; they are not marked as new support passes.
 
-집중 검사는 파일시스템/Git/후보 56개, 생성 디렉터리/프로젝트/복원 34개, 앱 정책/Plastic 원본 반영 21개와 CLI 계약 59개를 확인했다. 이 집합은 전체 회귀와 겹치므로 합산하지 않는다. 최종 전체 회귀에는 추가한 잘못된 projection 경로·손상 권한 metadata 사례와 응답 capabilities schema도 포함한다.
+Focused checks covered 56 filesystem/Git/candidate tests, 34 generated-directory/project/restore tests, 21 application-policy/Plastic original-apply tests, and 59 CLI contracts. These sets overlap the full regression and are not summed. Final full regression also includes added invalid-projection-path, corrupted-permission-metadata cases, and the response capabilities schema.
 
-UTF-8 문서 검사와 `git diff --check`를 통과했다. 기존 verification의 native 자격을 이번 후보의 실제 실행 통과로 승계하지 않는다.
+Document UTF-8 checks and `git diff --check` passed. Existing verification's native qualification is not inherited as an actual execution pass for this candidate.

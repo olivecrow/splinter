@@ -1,48 +1,55 @@
-# 병렬 Unity 작업공간과 Editor 수명
+<a id="병렬-unity-작업공간과-editor-수명"></a>
+# Parallel Unity workspaces and Editor lifetime
 
-제품은 NTFS 작업공간과 그 Editor의 수명을 관리한다. 생성·재개·범위 저장·독립 결과·통합·회수/폐기는 [NTFS 계약](ntfs-workspaces.md)을 따른다. Library view는 [개발 CLI](development-cli.md)에 분리돼 있다.
+[한국어](ko/alpha-workspaces.md)
 
-## 에이전트의 기본 흐름
+The product manages NTFS workspaces and their Editor lifetime. Creation, resumption, range storage, independent results, integration, reclamation, and discard follow the [NTFS contract](ntfs-workspaces.md). Library views are separated into the [development CLI](development-cli.md).
 
-빌드된 제품의 `scripts/splinter.ps1`을 절대 경로로 호출하고 등록된 프로젝트/home·명시적 base·안정된 task key를 사용한다. home은 원본 프로젝트 밖에 두고 모든 작업자가 같은 등록 home을 공유한다.
+<a id="에이전트의-기본-흐름"></a>
+## Default agent workflow
+
+Invoke the built product's `scripts/splinter.ps1` by absolute path, using the registered project/home, explicit base, and stable task key. Home lives outside the original project; all workers share the same registered home.
 
 ```text
-splinter workspace ensure --project <Unity 저장소> --key <작업 key> --storage ntfs-snapshot --base development --editor --home <등록 home>
-splinter workspace status --id <반환 id> --home <등록 home>
+splinter workspace ensure --project <Unity repository> --key <task key> --storage ntfs-snapshot --base development --editor --home <registered home>
+splinter workspace status --id <returned id> --home <registered home>
 ```
 
-`data.workspace.path`에서 편집하고 외부 MCP·Unity CLI의 projectRoot도 이 경로와 일치시킨다. `application.running`·`ready`는 실행/준비 관측이며 컴파일·테스트 성공이 아니다. Editor 준비 중 에이전트가 소스 분석·계획을 진행할 수 있다. 같은 key/id/home·기준·request digest를 다음 대화에 보존한다.
+Edit at `data.workspace.path` and make external MCP/Unity CLI projectRoot match this path. `application.running`/`ready` are execution/readiness observations, not compile/test success. The agent may analyze source and plan while the Editor prepares. Preserve the same key/id/home, basis, and request digest for the next conversation.
 
-제품은 `unity start`와 `unity stop`을 제공한다. refresh·컴파일 분석·씬/에셋 편집·Play·테스트·빌드·캡처는 에이전트가 Editor UI 또는 선택한 외부 도구로 수행한다. `unity refresh`와 자체 컴파일 성공 판정은 제공하지 않는다. 과거 작은 T: Plastic CLI 인계는 [UH](verification/unity-cli-handoff.md), 작은 Git C/S의 MCP 편집·현재 상태 테스트는 [UP](verification/unity-parallel-editor-validation.md)의 지정 입력 기록이며 현재 도구 설치/버전 요구가 아니다.
+The product provides `unity start` and `unity stop`. Agents perform refresh, compile analysis, scene/asset editing, Play, tests, builds, and capture through Editor UI or selected external tools. There is no `unity refresh` or internal compile-success decision. Historical small T: Plastic CLI handoff in [UH](verification/unity-cli-handoff.md), and small Git C/S MCP editing/current-state tests in [UP](verification/unity-parallel-editor-validation.md), are records for specified inputs, not current tool-installation/version requirements.
 
-## Unity CLI의 정확한 대상 선택
+<a id="unity-cli의-정확한-대상-선택"></a>
+## Exact target selection with Unity CLI
 
-MCP·Unity CLI는 필요할 때 에이전트가 선택하는 외부 도구다. Splinter 사용에 설치나 고정 버전이 필요하지 않으며 Editor의 UI 또는 기존 파일 도구를 통한 작업도 가능하다. 선택한 도구의 현재 도움말·schema와 사용자 프로젝트 설정을 읽고 연결한다. 특정 패키지를 설치·다운그레이드·패치하거나 수정본을 생성/운영하지 않는다.
+MCP and Unity CLI are external tools selected by agents when needed. Splinter requires neither their installation nor a fixed version; work through Editor UI or existing file tools is also possible. Read the selected tool's current help/schema and user project settings before connecting. Do not install, downgrade, patch, or create/operate modified versions of specific packages.
 
-외부 명령의 실제 프로젝트 절대 경로·PID/시작 시각을 `data.workspace.path`와 소유 Editor identity에 대조한 뒤 편집한다. Unity CLI가 정확한 project-path 선택을 제공하면 매 요청에 반환 경로를 전달하고, MCP가 per-call target을 제공하면 현재 discovery의 정확한 대상을 사용한다. 세션 기본 대상이나 목록의 substring 필터를 정확한 대상 증거로 쓰지 않는다. 목록 누락은 Editor 부재가 아니며 reload 후 포트/session을 추측해 고정하지 않는다.
+Before editing, compare each external command's actual absolute project path, PID, and start time with `data.workspace.path` and owned-Editor identity. If Unity CLI provides exact project-path selection, pass the returned path on every request. If MCP provides a per-call target, use the exact target from current discovery. Session defaults or substring filters in lists are not exact-target evidence. Missing list entries do not mean the Editor is absent; do not guess or pin ports/sessions after reload.
 
-요청 접수·연결·컴파일 완료·테스트 결과를 각각 확인하고 중요한 request/job ID와 결과를 보존한다. timeout이나 unknown 응답만으로 쓰기·테스트를 반복하지 않는다. 연결 실패 때 작업과 소유 상태를 보존하고 해당 도구의 절차로 조사한다. 원본 fallback·서버 탈취·자동 패키지 교체는 하지 않는다. 한 Editor 종료 뒤 다음 외부 요청 전에 남은 대상의 연결을 확인하는 책임도 에이전트에 있다. 상세 경계는 [외부 도구 안내](unity-mcp-response-recovery.md)를 따른다.
+Verify request acceptance, connection, compilation completion, and test results separately; preserve important request/job IDs and results. Do not repeat writes/tests solely because of timeout or unknown responses. On connection failure, preserve the task and ownership state and investigate through that tool's procedure. Do not fall back to the original, take over a server, or automatically replace packages. Agents also check connections to remaining targets after one Editor exits and before the next external request. See the [external-tool guide](unity-mcp-response-recovery.md) for detailed boundaries.
 
-과거 Unity CLI 명령/버전·Pipeline과 고정 MCP 후보의 실행·실패·재시도는 [UH](verification/unity-cli-handoff.md), [UP](verification/unity-parallel-editor-validation.md), [GL](verification/git-library-reference.md), [PPB](verification/plastic-project-basis.md), [VR/MR](verification/vss-and-mcp-remediation.md)에 보존한다. 그 기록을 현재 필수 도구나 다른 버전의 통과로 승계하지 않는다.
+[UH](verification/unity-cli-handoff.md), [UP](verification/unity-parallel-editor-validation.md), [GL](verification/git-library-reference.md), [PPB](verification/plastic-project-basis.md), and [VR/MR](verification/vss-and-mcp-remediation.md) preserve historical Unity CLI commands/versions/Pipeline and fixed MCP candidate execution, failures, and retries. These records do not become current required tools or passes for other versions.
 
-## 결과와 명시적 종료
+<a id="결과와-명시적-종료"></a>
+## Results and explicit completion
 
 ```text
-splinter workspace checkpoint --id <id> --message <보존할 결과 설명> --home <home>
+splinter workspace checkpoint --id <id> --message <result description to preserve> --home <home>
 splinter workspace integrate --id <id> --target development --home <home>
 splinter workspace release --id <id> --home <home>
 ```
 
-checkpoint는 컴파일 성공 없는 작업도 보존한다. 소유 Editor를 정상 종료하고 자식 자원 0을 확인한 뒤 소유 bridge를 제거한다. Git 수집의 전후 내용 일치와 독립 result ref, 수집·unmount의 저널 seal을 확인한다. 작업 내용의 합격 여부는 에이전트가 판단하며 checkpoint 자체로 컴파일·테스트 성공을 주장하지 않는다. 결과 수집 뒤에는 같은 작업의 새 편집을 시작하지 않는다.
+Checkpoint also preserves work without compile success. It normally shuts down the owned Editor, checks zero child resources, then removes the owned bridge. It checks content equivalence before/after Git collection, the independent result ref, and journal seals for collection/unmount. The agent decides work acceptance; checkpoint itself does not claim compile/test success. Do not begin new edits in the same task after result collection.
 
-integrate는 정확한 수집 revision과 현재 소스의 일치, 깨끗한 요청 대상 branch, 저장소 잠금을 확인하고 Git merge를 수행한다. 이 명령이 시작한 충돌 merge만 중단하며 결과는 보존한다. 통합 전략·충돌 해결·원본 Editor의 통합 후 검증은 에이전트의 책임이다. 보존만 원하면 integrate 없이 release할 수 있다.
+Integrate checks the exact collected revision against current source, a clean requested target branch, and repository locks, then performs Git merge. It aborts only a conflicting merge started by this command and preserves results. Integration strategy, conflict resolution, and post-integration validation in the original Editor are the agent's responsibility. To preserve only, release without integrating.
 
-release는 독립 결과를 남긴 뒤 소유 Editor/provider/mount/Git/delta·마지막 소유 snapshot을 회수한다. `reclaim-pending`은 명시적인 같은 작업 재시도가 필요한 물리 회수 대기다. 작업을 버리려면 [명시적 discard](workspace-discard.md)를 사용한다. 대화/Editor 종료·timeout은 반영이나 폐기 승인이 아니다.
+Release retains the independent result, then reclaims the owned Editor/provider/mount/Git/delta and last owned snapshot. `reclaim-pending` means physical reclamation is waiting for an explicit retry of the same task. To abandon work, use [explicit discard](workspace-discard.md). Conversation/Editor termination and timeouts do not authorize application or discard.
 
-## 실행 격리와 정상 종료
+<a id="실행-격리와-정상-종료"></a>
+## Execution isolation and normal shutdown
 
-Unity 어댑터는 PID·시작 시각·실행 파일·토큰·프로젝트 경로와 Job Object 자식을 확인한다. 소유 `Assets/__Splinter__` 브리지는 liveness·import/compile 중 상태 관측과 정상 종료만 제공하고 프로젝트 함수를 실행하지 않는다. Play·미저장 씬·진행 중 import/compile은 정상 종료를 막는다. 최대 2분의 종료 대기 뒤에도 강제 종료/회수하지 않으며 작업과 로그를 보존한다.
+The Unity adapter checks PID, start time, executable, token, project path, and Job Object children. The owned `Assets/__Splinter__` bridge provides only liveness, import/compile-in-progress observations, and normal shutdown; it does not run project functions. Play, unsaved scenes, and ongoing import/compile block normal shutdown. Even after the maximum 2-minute shutdown wait, no forced termination/reclamation occurs; the task and logs are preserved.
 
-Splinter는 외부 패키지의 초기화·종료 callback을 조회하거나 해제하지 않고 서버나 패키지 전용 run-state 파일도 관리하지 않는다. 외부 도구가 자체 공유 서버를 종료하는 결함은 해당 도구/에이전트 절차의 책임이다. 소유 Editor의 정상 종료와 결과/자원 guard는 유지하며 외부 연결 성공을 요구하지 않는다.
+Splinter does not inspect or remove external-package initialization/shutdown callbacks, or manage servers or package-specific run-state files. Defects where an external tool stops its own shared server belong to that tool/agent procedure. Owned-Editor normal shutdown and result/resource guards remain without requiring external-connection success.
 
-사용자 설정·라이선스·CPU/GPU·외부 서비스는 공유된다. 보안 샌드박스가 아니다. source hash 확인은 `workspace status --verify-source`, 전체 감사는 `--audit-source`다. 일반 status는 파일 내용을 읽지 않고 실행 자원을 관측한다. 실제 한정 실행 근거와 실패·재시도/비용은 [대표 사용](verification/representative-agent-workflow.md)에 보존하며 새 외부 도구 경로의 성공으로 승계하지 않는다.
+User settings, licenses, CPU/GPU, and external services are shared. This is not a security sandbox. Use `workspace status --verify-source` for source-hash checks and `--audit-source` for a full audit. Ordinary status observes execution resources without reading file contents. [Representative usage](verification/representative-agent-workflow.md) preserves actual bounded execution evidence, failures/retries, and costs; it does not qualify new external-tool paths.

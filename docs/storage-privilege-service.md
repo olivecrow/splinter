@@ -1,48 +1,54 @@
-# Windows 저장소 권한 서비스
+<a id="windows-저장소-권한-서비스"></a>
+# Windows storage-privilege service
 
-현재 `--source none`의 일반 폴더 경로와 v2 상태/서비스 패키지는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
+[한국어](ko/storage-privilege-service.md)
 
-`VssSnapshotProvider`는 일반 사용자 CLI에서 `SplinterStorageAuthority` Windows 서비스에 고정 `Capture`·`Observe`·`Release` 요청을 보낸다. CLI·Git·Unity는 일반 사용자 권한을 유지한다. Host는 기존 읽기 전용 in-process 조합 계층이며 이 서비스가 Host나 작업 배정 daemon을 대신하지 않는다. 현재 실제 설치·반복 실행 자격은 [UA 검증](verification/storage-privilege-service.md)을 따른다.
+The current ordinary-folder path for `--source none` and v2 state/service packages follows [VCS-free workspaces](vcs-independent-workspaces.md). Git paths and historical native qualification below do not qualify ordinary-folder support.
 
-## 설치와 발견
+`VssSnapshotProvider` sends fixed `Capture`, `Observe`, and `Release` requests from standard-user CLI to the `SplinterStorageAuthority` Windows service. CLI, Git, and Unity retain standard-user privileges. Host remains the read-only in-process composition layer; this service replaces neither Host nor a task-assignment daemon. [UA verification](verification/storage-privilege-service.md) owns current actual installation/repeated-execution qualification.
 
-서비스 실행 파일은 `%ProgramFiles%/Splinter/StorageAuthority`, 소유권·요청·VSS 영수증은 `%ProgramData%/SplinterStorageAuthority`에 둔다. 상태는 SYSTEM/Administrators만 수정·열람하며 실행 파일은 일반 사용자에게 읽기·실행만 허용한다. 서비스는 SCM이 LocalSystem으로 실행한다. 설치된 PowerShell 7과 패키지에 고정된 VSS 스크립트만 실행한다.
+<a id="설치와-발견"></a>
+## Installation and discovery
 
-- `pwsh scripts/package-storage-service.ps1 -OutputPath <새 패키지 경로>`: Release 패키지와 파일별 SHA-256 목록을 만든다. 기존 패키지를 덮어쓰지 않는다.
-- 패키지의 `Splinter.Platform.Windows.exe storage-grant <프로젝트 절대 경로> <home 절대 경로> <사용자 SID>`: 기존 디렉터리의 파일 ID·볼륨 ID를 읽는 설치용 진입점이다. 출력 grant 객체들을 JSON 배열로 저장한다. 프로젝트와 home을 생성하거나 권한을 변경하지 않는다.
-- `pwsh scripts/setup-storage-service.ps1 -PackagePath <패키지> -GrantFile <grant 배열 JSON>`: 기본값은 읽기 전용 설치 계획이다. 검토한 요청에 `-Apply`를 붙인 관리자 실행만 머신 구성을 변경한다.
-- `pwsh scripts/splinter.ps1 storage service status`: SCM 상태·설치 경로·현재 CLI 승격 여부를 읽는다. VSS를 만들거나 권한 상승을 요청하지 않는다.
+Service executables live in `%ProgramFiles%/Splinter/StorageAuthority`; ownership, request, and VSS receipts live in `%ProgramData%/SplinterStorageAuthority`. Only SYSTEM/Administrators may modify/read state; standard users have only read/execute access to executables. SCM runs the service as LocalSystem. It executes only installed PowerShell 7 and VSS scripts fixed in the package.
 
-최초 설치·권한 범위 구성과 명시적 `-Action Update`·`-Action Remove`는 관리자 작업이다. 이미 등록한 사용자·프로젝트·볼륨·home의 정상 workspace 명령에는 권한 상승 코드가 없다. 등록되지 않은 프로젝트/home은 `StorageScopeDenied`로 거부한다. 경로 문자열이 같아도 디렉터리를 교체했거나 볼륨이 바뀌면 기존 grant로 실행하지 않는다.
+- `pwsh scripts/package-storage-service.ps1 -OutputPath <new package path>` creates a Release package and per-file SHA-256 list, without overwriting existing packages.
+- Packaged `Splinter.Platform.Windows.exe storage-grant <absolute project path> <absolute home path> <user SID>` is an installation entry point reading file/volume IDs of existing directories. Save grant objects as a JSON array. It neither creates project/home nor changes permissions.
+- `pwsh scripts/setup-storage-service.ps1 -PackagePath <package> -GrantFile <grant array JSON>` defaults to a read-only installation plan. Only administrator execution adding `-Apply` to the reviewed request changes machine configuration.
+- `pwsh scripts/splinter.ps1 storage service status` reads SCM state, installation path, and current CLI elevation. It neither creates VSS nor requests elevation.
 
-설치 계획은 관리자 권한을 요청하기 전에 입력을 검사한다. grant는 한 개여도 JSON 배열이며 필드 이름·SID·볼륨/파일 ID 형식·기존 canonical 디렉터리와 중복 범위를 검사한다. 패키지의 필수 실행 파일·DLL·runtime 설정·스크립트와 hash, 중복 파일 이름을 확인한다. 중복 JSON 속성·알 수 없는 필드·대소문자가 다른 필드는 거부한다. 계획 검사는 패키지 안의 실행 파일을 실행하거나 시스템에 파일을 설치하지 않는다. 실제 grant의 파일·볼륨 identity 대조와 실행 성공은 설치 후 서비스 검증이 계속 필요하다.
+Initial installation/scope configuration and explicit `-Action Update`/`-Action Remove` are administrator actions. Ordinary workspace commands for already registered user/project/volume/home have no elevation code. Unregistered projects/homes are rejected with `StorageScopeDenied`. Identical path strings do not permit an existing grant after directory replacement or volume change.
 
-업데이트는 같은 프로토콜의 기존 grant와 보호된 상태를 보존한다. 제거는 활성 capture나 미완료 요청이 있으면 거부한다. 서비스 등록을 제거해도 패키지·소유권 기록·독립 결과를 자동 삭제하지 않는다. 구버전 자동 이관이나 기존 수동 helper 영수증의 자동 인수는 없다.
+Installation planning validates inputs before requesting administrator privileges. Grants are JSON arrays even with one entry; field names, SID, volume/file-ID format, existing canonical directories, and duplicate scopes are checked. Required package executables, DLLs, runtime settings, scripts, hashes, and duplicate filenames are checked. Duplicate JSON properties, unknown fields, and differently cased fields are rejected. Plan validation neither runs package executables nor installs system files. Actual grant file/volume-identity comparison and execution success still require service verification after installation.
 
-## 요청 경계
+Update preserves existing grants/protected state of the same protocol. Removal is rejected if captures or requests remain active/incomplete. Removing service registration does not automatically delete packages, ownership records, or independent results. There is no automatic old-version migration or adoption of existing manual-helper receipts.
 
-설치와 서비스 시작 시 경로 소유자는 SYSTEM/Administrators여야 하며, 경로 자체뿐 아니라 자식에 상속되는 쓰기 권한도 검사한다. 일반 사용자의 `InheritOnly` 쓰기도 거부한다. `CREATOR OWNER`의 상속 전용 규칙은 신뢰한 생성 토큰으로 치환되는 경우로 취급한다. 기존 설치 파일과 configuration도 설치 시 개별 소유자/쓰기 권한을 확인하며 불안전한 ACL을 자동 수정하지 않는다.
+<a id="요청-경계"></a>
+## Request boundaries
 
-IPC는 로컬 named pipe `Splinter.StorageAuthority.v1`이다. ACL은 등록된 사용자 SID와 SYSTEM만 허용하고 Network SID는 거부한다. 등록 사용자는 클라이언트 읽기·쓰기만 가능하며 서버 instance 생성 권한은 없다. 클라이언트는 SCM의 LocalSystem 계정·고정 실행 경로·독립 프로세스 구성과 pipe 서버 PID를 확인한다. 서비스는 클라이언트를 impersonate해 실제 SID를 얻으며 요청 본문의 사용자 이름은 신뢰하지 않는다. 첫 pipe instance만 생성하므로 다른 서버의 같은 이름을 공유하지 않는다.
+At installation/service startup, path owners must be SYSTEM/Administrators. Check both the path and write permissions inherited by children. Even standard-user `InheritOnly` writes are rejected. Inherit-only `CREATOR OWNER` rules are treated as substituted by the trusted creation token. Existing installation files/configuration also receive individual owner/write-permission checks; unsafe ACLs are not automatically repaired.
 
-사용자 프로젝트·home·workspace의 읽기는 요청자의 토큰으로 한다. 서비스는 reparse·경로 대체를 거부하고 디렉터리 ID를 등록값과 대조한다. 조상 경로와 검사한 기록은 작업 동안 rename/delete가 안 되는 핸들로 유지한다. 원본 내부의 일반 파일 편집은 계속 가능하다.
+IPC uses local named pipe `Splinter.StorageAuthority.v1`. ACL permits registered user SIDs and SYSTEM only, denying Network SID. Registered users may read/write as clients but cannot create server instances. Clients verify SCM LocalSystem account, fixed executable path, independent process configuration, and pipe-server PID. The service impersonates the client to obtain its actual SID, without trusting usernames in request bodies. It creates only the first pipe instance, avoiding sharing the same name with another server.
 
-요청은 현재 버전·고정 operation·owner·프로젝트·home·snapshot ID·boot에 묶인 검증/회수 ID만 받는다. 임의 코드·명령·실행 파일·관리자 쓰기 목적지는 없다. 중복/알 수 없는 JSON 필드·필수 필드 누락·크기 초과를 거부한다. 입력/출력은 `storage-authority-request.schema.json`과 `storage-authority-response.schema.json`이 소유한다.
+User project/home/workspace reads use the requester's token. The service rejects reparse/path substitution and compares directory IDs with registered values. Ancestor paths and inspected records remain protected during the operation by handles preventing rename/delete. Ordinary file edits inside the original remain possible.
 
-## 보존과 재시도
+Requests accept only current version, fixed operation, owner, project, home, snapshot ID, and boot-bound verification/reclamation IDs. There is no arbitrary code, command, executable, or administrator-write destination. Duplicate/unknown JSON fields, missing required fields, and excessive sizes are rejected. `storage-authority-request.schema.json` and `storage-authority-response.schema.json` own inputs/outputs.
 
-요청 frame 전체 수신은 연결 후 1초, 인증된 작업은 별도 3분, 응답 쓰기는 별도 1초로 제한한다. 미완성 header/body는 자원 작업에 진입하지 않고 연결을 종료한다. 등록된 악성 계정의 모든 서비스 남용을 방지하는 rate limit/보안 sandbox 계약은 아니다.
+<a id="보존과-재시도"></a>
+## Preservation and retries
 
-VSS 회수의 공통 잠금은 보호된 `%ProgramData%/SplinterStorageAuthority/vss-release.lock`의 독점 파일 핸들이다. 프로세스 종료로 핸들이 닫히면 다시 얻을 수 있으며 파일은 자동 삭제하지 않는다. 다른 로컬 사용자의 전역 mutex 선점에 의존하지 않는다. 승인한 수동 helper 회수도 이 설치된 보호 경로를 요구하며, 부재·불안전한 소유자/상속 ACL·reparse는 보존·거부한다. 기존 snapshot inventory·삭제 격리·동일 요청 guard는 유지한다.
+Full request-frame reception is limited to 1 second after connection; authenticated operations have a separate 3-minute limit; response writing has a separate 1-second limit. Incomplete headers/bodies terminate connection without entering resource operations. This is not a rate-limit/security-sandbox contract preventing all service abuse by malicious registered accounts.
 
-서비스는 자신이 캡처한 snapshot만 소유권 기록에 연결한다. 다른 workspace의 snapshot ID나 사용자 파일에서 가져온 capture 영수증으로 권한을 얻을 수 없다. 서비스의 영수증은 보호된 디렉터리에만 쓰며, 응답의 고정 영수증 이름을 workspace 폴더에 저장하는 주체는 일반 CLI다.
+The common VSS reclamation lock is an exclusive file handle at protected `%ProgramData%/SplinterStorageAuthority/vss-release.lock`. It can be reacquired when process exit closes the handle; the file is not automatically deleted. It does not depend on another local user's ability to preempt a global mutex. Authorized manual-helper reclamation also requires this installed protected path. Absence, unsafe owner/inherited ACLs, or reparse preserve/reject. Existing snapshot inventories, deletion isolation, and same-request guards remain.
 
-같은 요청 ID의 입력이 바뀌면 `StorageRequestConflict`, 다른 미완료 요청이 있으면 `StorageRequestPending`이다. 완료 응답 유실 뒤 재시도는 저장된 응답을 반환한다. 중단된 요청은 같은 intent로 재개하며 이미 캡처한 snapshot을 새로 만들지 않는다. 보호된 상태의 완전한 `.pending` JSON은 재시작 시 flush 후 게시하고, 손상/불완전한 파일은 보존 후 거부한다. native capture 결과가 불명확하면 `CaptureReconcileRequired`로 보존한다.
+The service links only snapshots it captured to ownership records. A snapshot ID belonging to another workspace or a capture receipt from user files cannot grant privileges. Service receipts are written only to protected directories; ordinary CLI stores the response's fixed receipt names in workspace folders.
 
-일반 CLI는 성공한 응답의 검증 영수증을 먼저 게시하고 `snapshot.json`을 마지막에 게시한다. 비종결 실패는 이 완료 표지를 갱신하지 않는다. 응답 저장 중 종료해도 기존 capture/release 요청을 재시도한다. Runtime의 `capture-intent` 단계와 서비스의 소유 영수증이 남아 있으면 아직 workspace에 반환 ID를 게시하지 못한 capture도 읽기 검증을 재개할 수 있다.
+Changed input for the same request ID produces `StorageRequestConflict`; another incomplete request produces `StorageRequestPending`. Retry after losing a completed response returns the stored response. Interrupted requests resume with the same intent without creating another captured snapshot. Complete `.pending` JSON in protected state is flushed/published on restart; damaged/incomplete files are preserved/rejected. Unclear native capture results are preserved with `CaptureReconcileRequired`.
 
-명시적 workspace 폐기는 같은 `Release` operation의 별도 `release.discard` 계약이다. 서비스는 고정 intent/seal·완료 Git 폐기 receipt와 실제 task branch/등록 부재·mount/delta 부재·소유 자원 0·공유 의존성·reader fence를 확인한다. 보호된 `discard-authorized.json`만 게시하고 결과 보존을 주장하지 않는다. 현재 CLI와 일치하는 서비스 패키지를 명시적으로 업데이트한 뒤 사용할 수 있으며 실제 자격은 [폐기 검증](verification/workspace-discard.md)을 따른다.
+Ordinary CLI publishes successful-response verification receipts first and `snapshot.json` last. Nonterminal failure does not update this completion marker. Termination during response storage still retries the existing capture/release request. When Runtime `capture-intent` stage and service ownership receipts remain, read verification can resume even for a capture whose returned ID was not yet published into workspace state.
 
-보존형 회수는 Runtime의 `stable-journal-v1` 결과 검증·Git 객체 완전성·unmount 후 seal 일치를 거친다. 서비스는 durable `release-snapshot` 단계, 독립 결과와 고정 Git refs, 소유 프로세스·메모리·핸들 0, mount/delta 부재, 다른 workspace와 validation 의존성, 독점 reader fence를 추가 확인한다. 기존 VSS live identity·삭제 격리 guard와 `reclaim-pending`을 유지한다. 시간이 지났다는 이유로 snapshot을 삭제하지 않는다.
+Explicit workspace discard is a separate `release.discard` contract under the same `Release` operation. The service checks fixed intent/seal, completed Git-discard receipt, actual absent task branch/registration/mount/delta, zero owned resources, shared dependencies, and reader fence. It publishes only protected `discard-authorized.json` without claiming result preservation. Use after explicitly updating the service package to match current CLI; [discard verification](verification/workspace-discard.md) owns actual qualification.
 
-서비스 부재·정지·버전 불일치는 설치/복구 필요 상태다. 자동 `RunAs`, 관리자 CLI, 이전 helper로 우회하는 fallback은 없다. `scripts/vss-snapshot.ps1`은 별도로 승인한 개발 진단·수동 복구에만 직접 사용하며 정상 workspace 경로의 대체 권한 방식으로 자동 선택하지 않는다.
+Preserving reclamation passes Runtime `stable-journal-v1` result verification, Git-object integrity, and matching post-unmount seals. The service additionally checks durable `release-snapshot` stage, independent results/fixed Git refs, zero owned processes/memory/handles, absent mount/delta, other workspace/validation dependencies, and exclusive reader fence. Existing VSS live identity, deletion-isolation guards, and `reclaim-pending` remain. Elapsed time alone does not delete snapshots.
+
+An absent/stopped/version-mismatched service requires installation/recovery. There is no automatic `RunAs`, administrator CLI, or fallback bypass through previous helpers. Direct `scripts/vss-snapshot.ps1` use is limited to separately authorized development diagnostics/manual recovery; it is not automatically selected as an alternate privilege mechanism for normal workspaces.

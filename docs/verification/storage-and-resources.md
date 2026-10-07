@@ -1,62 +1,69 @@
-# 폐기한 ReFS 기준본의 과거 검증
+<a id="폐기한-refs-기준본의-과거-검증"></a>
+# Historical verification of the retired ReFS basis
 
-> **폐기된 기능의 과거 기록이다.** 현재 기능·개발 경로·후속 과제로 사용하지 않는다. 폐기 이유와 범위는 [결정 원본](../plans/refs-retirement.md)을 따른다.
+[한국어](../ko/verification/storage-and-resources.md)
+
+> **Historical record of a retired feature.** Do not use it as current functionality, a development route, or a follow-up task. Reasons and scope follow the [decision source](../plans/refs-retirement.md).
 >
-> 이 기록은 최초 전체 ReFS 기준본이 준비된 조건의 내부 알파 증거다. NTFS 최초 복제 없음·읽기 복제 없음·원본 동시 수정 스냅샷의 SO 관문 통과를 뜻하지 않는다. 약 297MiB는 기준본 준비 이후 A 생성의 증가량이다.
+> This is internal-alpha evidence under conditions where the initial full ReFS basis was prepared. It does not pass SO gates for no initial NTFS copying, no read copying, or snapshots with concurrent original edits. About 297MiB is A-creation growth after basis preparation.
 
-2026-09-21의 내부 알파 검증이다. 큰 파일의 반복 물리 복사를 피하고, worktree 회수 완료 시 소유 프로세스와 메모리를 남기지 않는 조건을 검사했다. 전체 공개 시나리오·성능 SLA의 통과를 뜻하지 않는다. 작은 기계용 결과 묶음은 [실행 증거](storage-and-resources.evidence.json)에 있다. 원시 JSON은 무시된 `artifacts/resource-alpha/`에 보관한다.
+Internal-alpha verification from 2026-09-21. It checked avoidance of repeated physical copying of large files and absence of owned processes/memory after completed worktree reclamation. It does not pass all public scenarios or performance SLAs. A small machine-readable result bundle is in [execution evidence](storage-and-resources.evidence.json). Raw JSON is stored in ignored `artifacts/resource-alpha/`.
 
-## 환경과 소스
+<a id="환경과-소스"></a>
+## Environment and source
 
 - Windows 11 Home build 26200, .NET SDK `10.0.112`, Unity `6000.3.22f1`, Coplay `10.2.0`.
-- 원본 fixture/common Git directory는 NTFS의 `../splinter-unity`. 원본 development는 `66820470038c85319bc4d47d1ff2859cab82e928`이며 HEAD·index·작업 파일을 보존했다.
-- 사용자가 승인한 새 동적 64GiB VHDX를 `.local/dev-drive/splinter.vhdx`에 만들고 **S: ReFS Dev Drive**로 연결했다. 클러스터는 4096 bytes. 기존 파티션은 변경하지 않았고 자동 시작 mount도 등록하지 않았다.
-- 시험 home은 `S:\splinter-resource-alpha`, 대용량 자동 시험은 `S:\splinter-tests`다. 실행 당시 제품 기준 commit과 수정 소스 digest·실행 파일/TRX hash는 기계용 증거에 기록한다.
-- 스크립트 한 파일만 다른 시험 commit `79a367c27c3419d37758af67d454652f901dc58c`는 별도 `splinter/resource-cache-seed` ref에 만들었다. 원본 checkout·index·development/main은 바꾸지 않았다.
+- Original fixture/common Git directory: NTFS `../splinter-unity`. Original development is `66820470038c85319bc4d47d1ff2859cab82e928`; HEAD, index, and working files were preserved.
+- A user-approved new dynamic 64GiB VHDX was created at `.local/dev-drive/splinter.vhdx` and attached as **S: ReFS Dev Drive**. Cluster size is 4096 bytes. Existing partitions were unchanged; no startup mount was registered.
+- Test home is `S:\splinter-resource-alpha`; large automated tests use `S:\splinter-tests`. Product baseline commit, modified-source digest, and executable/TRX hashes at execution are in machine-readable evidence.
+- Test commit `79a367c27c3419d37758af67d454652f901dc58c`, differing by only one script, was created in separate `splinter/resource-cache-seed` ref. Original checkout/index/development/main were unchanged.
 
-## 결과
+<a id="결과"></a>
+## Results
 
-| ID | 시험 | 상태 | 근거와 범위 |
+| ID | Test | Status | Evidence and scope |
 | --- | --- | --- | --- |
-| SR-01 | 루트보다 오래 사는 자식과 감시 프로세스 회수 | Passed | 실제 Windows job, PowerShell 루트/64MiB 자식/별도 sentinel. 재관측 후 소유 프로세스·메모리 0, sentinel 생존 |
-| SR-02 | 자식 잔류·소유권 불명 상태에서 worktree 삭제 차단 | Passed | Runtime fake. source release 미호출, 상태 회복 후 회수 |
-| SR-03 | CoW 불가 시 전체 복사 fallback 차단 | Passed | NTFS 실제 probe와 fake Runtime. Git 생성 전 거부 |
-| SR-04 | 무-checkout worktree·독립 index·증분 소스 반영 | Passed | 실제 임시 Git + fake clone. 생성 직전 `.git`만 존재, 재접속 중복 clone 없음, 새 revision의 변경 파일만 갱신 |
-| SR-05 | 기준본 검증·변경 감지·소비자 보호 | Passed | fake/파일 시험 및 실제 활성 seed의 `BaselineInUse` 거부. 유효한 검증 없는 봉인과 변경 캐시 삭제 차단 |
-| SR-06 | 실제 대용량 ReFS clone·중첩 clone·쓰기 격리 | Passed | 512MiB+3 bytes, 정렬 파일, 0바이트·빈 디렉터리. A에서 복제한 B도 보존, hash 검사, 추가 할당량 상한 검사 |
-| SR-07 | 예열 Library로 두 GUI Editor 동시 실행 | Passed | A/B의 서로 다른 PID·GUI 창·제어 경로. A 변경·컴파일 중 B/원본/기준본 소스와 B/원본 assembly hash 유지. B도 검증 성공 |
-| SR-08 | 실제 Unity 전체 프로세스·worktree 회수 | Passed | A/B 각각 releasedResources의 0 증거, 관측한 소유 프로세스 40개 모두 종료, 두 폴더·Git 등록 제거. 원본 Editor/MCP 유지 및 실제 호출 성공 |
-| SR-09 | 소스 변경 커밋의 기준본 재사용·봉인·명시적 GC | Passed | 실제 변경 소스 커밋을 refs-cow로 준비·compile·봉인. 준비 Editor/폴더 회수와 새 캐시 삭제, 기존 기준본 재요청 시 재예열 없음 |
-| SR-10 | Editor가 살아 있는 동안 CLI 종료·출력 완료 | Passed | 최종 감시 구현의 A/B start 응답 1,979/2,054ms. 상속 가능한 익명 pipe를 닫는 실제 Windows 회귀 시험 포함 |
+| SR-01 | Reclaim child outliving root and supervisor | Passed | Actual Windows job, PowerShell root/64MiB child/separate sentinel. Reobservation shows owned processes/memory 0; sentinel alive |
+| SR-02 | Block worktree deletion with remaining child/unknown ownership | Passed | Runtime fake. Source release not called; reclaimed after state recovery |
+| SR-03 | Block full-copy fallback when CoW unavailable | Passed | Actual NTFS probe/fake Runtime. Rejected before Git creation |
+| SR-04 | No-checkout worktree, independent index, incremental source application | Passed | Actual temporary Git + fake clone. Only `.git` before creation; no duplicate clone on reconnect; only changed files updated for new revision |
+| SR-05 | Basis validation/change detection/consumer protection | Passed | Fake/file tests and actual active seed `BaselineInUse` rejection. Sealing without valid verification and deletion of changed cache blocked |
+| SR-06 | Actual large ReFS clone/nested clone/write isolation | Passed | 512MiB+3 bytes, aligned files, 0-byte files/empty directories. B cloned from A also preserved; hashes/additional-allocation upper bound checked |
+| SR-07 | Two concurrent GUI Editors with warm Library | Passed | Distinct A/B PIDs, GUI windows, control paths. During A editing/compilation, B/original/basis source and B/original assembly hashes retained. B validation also succeeded |
+| SR-08 | Reclaim actual Unity process group/worktree | Passed | Each A/B has releasedResources evidence of 0; all 40 observed owned processes exited; both folders/Git registrations removed. Original Editor/MCP retained; actual calls succeeded |
+| SR-09 | Reuse basis for changed-source commit/seal/explicit GC | Passed | Actual changed-source commit prepared with refs-cow, compiled, sealed. Preparation Editor/folder reclaimed/new cache deleted; requesting existing basis does not warm again |
+| SR-10 | CLI exit/output completion while Editor remains alive | Passed | Final supervisor implementation A/B start responses 1,979/2,054ms. Includes actual Windows regression closing inheritable anonymous pipes |
 
-`SPLINTER_TEST_REFS_ROOT=S:\splinter-tests`로 실행한 `pwsh ./scripts/build.ps1`은 locked restore, 경고/오류 0, **56 passed / 0 failed / 0 skipped**다. 당시 ReFS 경로를 생략한 실행은 SR-06을 Skipped로 처리했다. 현재는 해당 시험과 환경변수 연결을 제거했다. 실제 GUI 검증은 이 자동 시험 수에 포함하지 않는다. 이전 일반 checkout의 [AA 검증](README.md)과 이번 CoW 증거도 구분한다.
+`pwsh ./scripts/build.ps1` with `SPLINTER_TEST_REFS_ROOT=S:\splinter-tests` completed locked restore, 0 warnings/errors, and **56 passed / 0 failed / 0 skipped**. Runs omitting the ReFS path at that time treated SR-06 as Skipped. Those tests/environment-variable wiring are now removed. Actual GUI verification is outside this automated-test count. Previous ordinary-checkout [AA verification](README.md) and this CoW evidence are also distinct.
 
-## 저장소 측정
+<a id="저장소-측정"></a>
+## Storage measurements
 
-최초 cold 준비를 검증·종료한 뒤 기준본 `51f7ee1d3abfc7c859cee60b`에 소스와 Library를 봉인했다. 원본의 실행 중인 Library는 사용하지 않았다.
+After initial cold preparation was verified and stopped, source/Library were sealed in basis `51f7ee1d3abfc7c859cee60b`. The original's running Library was not used.
 
-| 항목 | A | B |
+| Item | A | B |
 | --- | ---: | ---: |
-| 논리 파일 bytes | 2,017,545,775 | 2,017,545,775 |
-| 성공한 native clone bytes | 1,963,737,088 | 1,963,737,088 |
-| 꼬리·작은 파일 copy bytes | 53,808,687 | 53,808,687 |
-| 파일 수 | 41,604 | 41,604 |
-| clone 호출 시간 | 51,741ms | 63,199ms |
-| ensure 전체 시간 | 78,885ms | 91,113ms |
-| 정상 release 전체 시간 | 13,395ms | 12,226ms |
+| Logical file bytes | 2,017,545,775 | 2,017,545,775 |
+| Successful native clone bytes | 1,963,737,088 | 1,963,737,088 |
+| Tail/small-file copy bytes | 53,808,687 | 53,808,687 |
+| File count | 41,604 | 41,604 |
+| Clone-call time | 51,741ms | 63,199ms |
+| Total ensure time | 78,885ms | 91,113ms |
+| Total normal release time | 13,395ms | 12,226ms |
 
-파일 내용의 약 **97.3% 범위**가 native block clone이었다. 이는 물리 디스크 절감률이 아니다. A의 생성 전후 S: 여유 공간 감소는 **311,017,472 bytes(약 296.6MiB)**였다. 약 1.88GiB의 논리 파일과 별도로 파일·디렉터리 메타데이터와 작은 쓰기의 비용이 있다. B 측정에는 A Editor 시작이 겹쳤으므로 디스크 증가량 비교의 독립 표본으로 사용하지 않는다.
+About **97.3% of file-content ranges** used native block cloning. This is not a physical-disk saving rate. S: free-space decrease before/after A creation was **311,017,472 bytes (about 296.6MiB)**. Beyond about 1.88GiB of logical files, file/directory metadata and small writes have costs. B measurement overlapped A Editor startup, so it is not an independent sample for disk-growth comparison.
 
-대용량 합성 시험의 조용한 측정에서는 약 1GiB의 두 clone을 만든 추가 할당량이 **557,056 bytes**였다. 최종 빌드의 동일 시험에서도 물리 할당 상한과 쓰기 격리가 통과했다. 실행 시점별 값은 증거 JSON에 구분한다. 삭제 직후 여유 공간 수치는 ReFS의 지연 회수를 포함하며 VHDX 파일이 즉시 작아진다는 뜻도 아니다. 준비 시간은 단일 fixture 관측이며 일반 복사 대비 속도 배수나 대형 프로젝트 SLA를 주장하지 않는다.
+Quiet measurement in the large synthetic test showed **557,056 bytes** of additional allocation for two clones totaling about 1GiB. The same test in the final build also passed physical-allocation bounds/write isolation. Values by execution time are separated in evidence JSON. Free-space figures immediately after deletion include ReFS deferred reclamation and do not mean the VHDX file shrinks immediately. Preparation time is one fixture observation; no speed multiplier over ordinary copying or large-project SLA is claimed.
 
-기준본은 개발 중 CRLF/LF 호환 키 문제를 발견하기 전에 봉인했다. 기존 키가 정확한 버전·브리지 내용과 일치함을 검사한 후 이 시험 캐시의 메타데이터 키만 정규화했다. 트리 내용과 manifest는 바꾸지 않았다. 새 구현은 처음부터 정규화된 키를 생성한다. 이 한 번의 시험 데이터 보정은 일반 캐시 migration 지원의 증거가 아니다.
+The basis was sealed before discovering a CRLF/LF compatibility-key issue during development. After checking that the old key matched the exact version/bridge content, only this test cache's metadata key was normalized. Tree content/manifest were unchanged. New implementation generates normalized keys initially. This one-time test-data correction is not evidence of general cache-migration support.
 
-## 종료 상태와 다음 범위
+<a id="종료-상태와-다음-범위"></a>
+## End state and next scope
 
-A/B의 종료 결과는 `ownershipVerified=true`, `rootRunning=false`, `activeProcesses=0`, `workingSetBytes=0`, `privateBytes=0`이다. OS의 파일 캐시·standby RAM을 비우거나 전체 PC 사용량을 동일하게 맞춘 결과가 아니다. 원본 Editor PID `25756`과 MCP PID `19096`은 보존했고, 회수 후 MCP에서 `Increment(3)=4`, `Double(3)=6`을 확인했다.
+A/B end results are `ownershipVerified=true`, `rootRunning=false`, `activeProcesses=0`, `workingSetBytes=0`, `privateBytes=0`. This neither clears OS file cache/standby RAM nor equalizes whole-PC usage. Original Editor PID `25756` and MCP PID `19096` were retained; MCP confirmed `Increment(3)=4`, `Double(3)=6` after reclamation.
 
-최초 준비, A/B, 증분 준비의 네 worktree가 모두 `released`이며 모든 경로와 소유 root/supervisor가 사라졌다. 최종 home의 workspaces는 비어 있고 원본만 Git에 등록돼 있다. 증분 기준본 `b285120ac7846a909ecc09c7`의 캐시도 명시적으로 삭제했다. 최초 기준본 재요청은 기존 ID를 반환했다.
+All four worktrees—initial preparation, A/B, incremental preparation—are `released`; all paths and owned roots/supervisors are absent. Final home workspaces are empty; only the original is registered in Git. Incremental basis `b285120ac7846a909ecc09c7` cache was explicitly deleted. Requesting the initial basis returns its existing ID.
 
-이 시험 종료 시점에는 최초 기준본 하나와 작은 기록·로그·결과 ref를 디스크에 유지했다. 이후 사용자의 정리 요청에 따라 기준본과 시험 VHDX를 회수한 현재 상태는 [정리 기록](README.md)에 있다. 기준본 자체에는 상주 프로세스가 없다. 당시 캐시 삭제는 별도 명령의 독립 계약이었다. 실행 과정에서 만들어진 파생 파일을 사용자 결과와 함께 강제로 정리하지 않는다.
+At test end, one initial basis and small records/logs/result refs remained on disk. Current state after the user's subsequent cleanup request reclaimed the basis/test VHDX is in the [cleanup record](README.md). The basis itself has no resident process. Cache deletion at that time was an independent contract of a separate command. Derived files created during execution are not forcibly cleaned together with user results.
 
-제품 NTFS의 범위 저장·원본/A/B Unity·재연결·실패 보호 증거와 실제 dirty 원본 통합 차단·완료한 최종 VSS 회수은 [NI 검증](ntfs-workspace-integration.md)에 있다. SO-01~06은 별도 fixture 증거로 유지한다. SR 결과는 실행 당시의 좁은 범위로 보존한다.
+Product NTFS range-storage, original/A/B Unity, reconnect/failure-protection evidence, actual dirty-original integration blocking, and completed final VSS reclamation are in [NI verification](ntfs-workspace-integration.md). SO-01–06 remain separate fixture evidence. SR results are preserved for their narrow scope at execution.

@@ -1,35 +1,39 @@
-# 저널 변경 범위 압축
+<a id="저널-변경-범위-압축"></a>
+# Journal changed-range compression
 
-`JournalDeltaStore`는 overlay **v2**, OFF의 **SJR2**와 [최적화 ON의 SJL4 현재본 저널](latest-only-journal.md)을 지원한다. write callback 하나의 최대 1MiB 변경 범위를 raw 또는 독립 `splinter-range-brotli-v1` 블록으로 저장한다. 이전 overlay/저널은 보존 후 명시적으로 거부하며 자동 이관하지 않는다. workspace 상태는 v2이고 독립 후보는 v3/SJR2다. 아래 frame append/선택 설명은 OFF의 일반 SJR2 경로이며 ON은 payload/metadata의 단일 capsule 기록·mutation마다 한 durable flush·게시/회수를 사용한다.
+[한국어](ko/journal-payload-compression.md)
 
-## 현재 frame
+`JournalDeltaStore` supports overlay **v2**, OFF's **SJR2**, and the [SJL4 latest-state journal with optimization ON](latest-only-journal.md). It stores the changed range of one write callback, at most 1MiB, as raw or an independent `splinter-range-brotli-v1` block. Older overlays/journals are preserved and explicitly rejected without automatic migration. Workspace state is v2 and independent candidates are v3/SJR2. The frame append/selection description below covers the ordinary OFF SJR2 path; ON uses a single capsule record for payload/metadata, one durable flush per mutation, and publication/reclamation.
 
-| 위치 | 길이 | 의미 |
+<a id="현재-frame"></a>
+## Current frame
+
+| Position | Length | Meaning |
 | --- | ---: | --- |
-| 0 | 4B | ASCII `SJR2` |
-| 4 | 4B | little-endian metadata 길이, 1~65,536B |
-| 8 | 4B | 실제 stored payload 길이 |
-| 12 | 4B | 복원 후 decoded payload 길이, 0~MaxTransferBytes |
-| 16 | metadata 길이 | 현재 Mutation JSON |
-| 이후 | stored 길이 | raw 바이트 또는 codec의 완전한 SPB1 표현 |
-| 마지막 | 32B | header·metadata·stored payload 전체 SHA-256 |
+| 0 | 4B | ASCII `SJR2`. |
+| 4 | 4B | Little-endian metadata length, 1–65,536B. |
+| 8 | 4B | Actual stored payload length. |
+| 12 | 4B | Decoded payload length after restoration, 0–MaxTransferBytes. |
+| 16 | metadata length | Current Mutation JSON. |
+| Following | stored length | Raw bytes or the codec's complete SPB1 representation. |
+| Last | 32B | SHA-256 of the entire header, metadata, and stored payload. |
 
-`stored=decoded`는 raw이고 `0<stored<decoded`는 codec이다. metadata 연산은 두 길이가 0이다. 압축 선택은 codec의 **48B 전체 비용까지 포함해 raw보다 최소 64B 작은 경우**뿐이다. raw에는 codec header/checksum을 추가하지 않는다. 새 raw frame은 이전 frame보다 header 8B가 추가되므로 이전 raw보다 항상 작다고 주장하지 않는다. encoded에는 외부 frame checksum과 codec checksum이 모두 있으며 계측에 포함한다.
+`stored=decoded` means raw; `0<stored<decoded` means codec. Metadata operations have both lengths 0. Compression is selected only when **at least 64B smaller than raw, including the codec's entire 48B cost**. Raw gains no codec header/checksum. A new raw frame adds 8B of header compared with the previous frame, so it is not always smaller than previous raw. Encoded data has both outer frame and codec checksums, included in measurements.
 
-Core `WorkspaceJournalPayload`는 저장/복원 길이와 논리 fragment의 범위를 검사한다. extent는 고정 block 시작·두 길이·decoded fragment offset을 보존한다. 부분 덮어쓰기와 잘라내기는 압축 stream 내부의 물리 offset을 계산하지 않는다. 압축된 블록의 부분 읽기도 전체 bounded 블록을 검증·복원하며 블록 cache를 유지하지 않는다. snapshot은 미덮인 범위에서만 읽는다.
+Core `WorkspaceJournalPayload` checks stored/decoded lengths and logical-fragment ranges. Extents retain fixed block start, both lengths, and decoded-fragment offset. Partial overwrites and truncation do not calculate physical offsets inside compressed streams. Partial reads of compressed blocks also validate/decode the whole bounded block, without keeping a block cache. Snapshots are read only for uncovered ranges.
 
-승인 쓰기는 기존 순서대로 frame append·개별 durable flush·index 반영·callback 반환을 유지한다. 압축을 위해 callback을 여러 승인으로 나누거나 group flush를 추가하지 않는다. private 동일 바이트/앞뒤 범위 재사용을 먼저 수행한다. journal budget은 실제 header/metadata/stored/checksum 길이로 검사한다. 재생은 외부 checksum과 내부 codec/선언 길이 일치를 확인한 뒤 논리 extent를 연결한다. 손상된 완전한 frame은 보존·거부하며 불완전한 마지막 미승인 frame만 기존 정책으로 제거한다.
+Acknowledged writes retain the existing order: frame append, individual durable flush, index application, and callback return. Compression does not split one callback into multiple acknowledgements or add group flush. Private identical-byte/leading-and-trailing-range reuse runs first. Journal budgets use actual header/metadata/stored/checksum lengths. Replay connects logical extents only after validating the outer checksum and matching inner codec/declared lengths. Damaged complete frames are preserved/rejected; only an incomplete final unacknowledged frame is removed under the existing policy.
 
-Mutation JSON은 `Offset=0`·`Destination=null`·`Replace=false`를 생략한다. 현재 reader는 명시적 기본값과 생략을 같은 의미로 읽으며 비기본값·Entry·Sequence·Operation·fragment/skip 범위는 유지한다. 생성/재연결/읽기에서 저장된 저널을 다시 쓰지 않는다. 이 기본값 생략은 형식과 기존 입력 의미를 유지한다. 선택적 [기준본 복귀 정리](journal-base-reversion.md)의 추가 CLI/응답 필드는 별도 계약을 따른다.
+Mutation JSON omits `Offset=0`, `Destination=null`, and `Replace=false`. The current reader treats explicit defaults and omission identically while preserving nondefault values, Entry, Sequence, Operation, and fragment/skip ranges. Creation/reconnect/read do not rewrite stored journals. Default omission retains format and existing input semantics. Additional CLI/response fields for optional [base-reversion compaction](journal-base-reversion.md) follow a separate contract.
 
-기본 compaction/candidate는 유효 논리 fragment를 모아 현재 frame으로 표현하고 원래 저장 frame보다 작을 때만 선택한다. fragment metadata가 더 비싸면 원래 frame을 보존한다. 내용/sequence/소스 seal·같은 intent 재시도와 명시적 겹침 예산은 유지한다. 독립 결과 수집은 기존 파일/소스 provider를 통해 decoded 내용을 읽으며 회수할 저널/VSS에 의존하지 않는다.
+Default compaction/candidate creation collects valid logical fragments into current frames and selects them only when smaller than the original stored frame. More expensive fragment metadata retains the original frame. Content/sequence/source seals, same-intent retries, and explicit overlap budgets remain. Independent-result collection reads decoded content through existing file/source providers, without depending on the journal/VSS to be reclaimed.
 
-명시적 compaction/candidate는 유지할 frame의 decoded mutation을 현재 JSON으로 직렬화해 더 작을 때만 메타데이터를 선택한다. 유지하는 payload의 raw/encoded 바이트와 두 길이는 그대로이며 외부 checksum은 새 metadata에 맞춰 작성한다. 생략된 기본값의 실제 저장 자격과 추가 직렬화 비용은 [JM 검증](verification/journal-metadata-storage.md), 한정 범위는 [JM 계획](plans/journal-metadata-storage.md)을 따른다.
+Explicit compaction/candidate creation serializes decoded mutations of retained frames into current JSON, selecting metadata only when smaller. Retained raw/encoded payload bytes and both lengths remain; the outer checksum is rewritten for the new metadata. [JM verification](verification/journal-metadata-storage.md) owns actual storage qualification and additional serialization cost of omitted defaults; the [JM plan](plans/journal-metadata-storage.md) fixes the bounded scope.
 
-`PayloadBytes`/`RetainedPayloadBytes`는 실제 stored 길이이며 codec 48B도 포함한다. `LivePrivateBytes`·`RetainedLogicalPayloadBytes`는 논리 길이다. `LiveStoredPayloadBytes`는 참조되는 block을 한 번씩 합산하고 `ObsoletePayloadBytes`는 완전히 미참조된 block의 stored 합계다. 일부만 유효한 압축 block은 전체 저장 비용을 유지하므로 논리 길이를 물리 길이에서 빼지 않는다. frame 비용은 header·metadata·외부 checksum이며 VSS·전체 workspace 비용과 구분한다.
+`PayloadBytes`/`RetainedPayloadBytes` are actual stored lengths, including the codec's 48B. `LivePrivateBytes`/`RetainedLogicalPayloadBytes` are logical lengths. `LiveStoredPayloadBytes` counts each referenced block once; `ObsoletePayloadBytes` sums stored lengths of wholly unreferenced blocks. A partially valid compressed block retains its full storage cost, so logical length is not subtracted from physical length. Frame cost includes header, metadata, and outer checksum, separate from VSS/whole-workspace costs.
 
-압축 준비는 유익한 block의 최대 stored 용량(decoded−48−64B)만 scratch 하나로 대여하고 선택한 정확한 encoded 배열을 만든다. raw를 선택하면 결과 배열을 만들지 않는다. 중복 decoded+48B encoded 임시 buffer는 사용하지 않는다. codec/선택/바이트와 budget/개별 durable flush/ACK는 유지한다. read/replay의 작은/빈 요청은 16KiB chunk와 요청분 staging으로 전체 stream을 검증하며 decoded cache를 두지 않는다. 전체 요청은 전체 bounded scratch를 유지한다.
+Compression preparation rents one scratch buffer only for the maximum stored capacity of a beneficial block (decoded−48−64B), then creates the exact selected encoded array. Raw selection creates no result array. No duplicate decoded+48B encoded temporary buffer is used. Codec/selection/bytes, budgets, and individual durable flush/ACK remain. Small/empty read/replay requests validate the full stream using a 16KiB chunk and requested-range staging, without a decoded cache. Whole requests retain whole bounded scratch.
 
-내부 상태 hash와 private 비교는 encoded extent 하나를 저장 블록 읽기 한 번·16KiB 복원 chunk 순회 한 번으로 처리한다. 정리/후보의 같은 물리 블록에 속한 유효 slice는 전체 블록을 한 번 복원해 모으며 64KiB 청크나 slice마다 전체 stream을 다시 읽지 않는다. 별도 extent/검증 단계는 다시 검사하고 decoded cache를 남기지 않는다. header/checksum·완전한 stream과 tail/선언 길이 검증이 끝나기 전의 digest/비교와 미게시 후보는 임시 결과다. 실패하면 승인 쓰기나 후보 세대를 게시하지 않는다. 공개 range read는 검증 성공 뒤 destination에 복사하는 기존 staging 규칙을 유지한다. [자동 회귀](verification/code-quality-optimization.md)는 블록 읽기 수·최대 크기/fragment의 바이트와 기존 실패 미게시 규칙을 검증하며 실제 Unity 시간·전체 RAM 절감률을 주장하지 않는다.
+Internal state hashing and private comparison process one encoded extent with one stored-block read and one pass of 16KiB decoded chunks. Valid slices from the same physical block in compaction/candidate creation are collected by decoding the entire block once, without rereading the whole stream for each 64KiB chunk or slice. Separate extents/validation stages revalidate and retain no decoded cache. Digests/comparisons and unpublished candidates are temporary until header/checksum, complete stream, tail, and declared-length validation finish. Failure publishes neither acknowledged writes nor candidate generations. Public range reads retain existing staging: copy into destination only after validation succeeds. [Automated regressions](verification/code-quality-optimization.md) check block-read counts, bytes for maximum-size/fragment cases, and existing failure-without-publication rules; they do not claim real Unity timing or total-RAM improvement percentages.
 
-pool 임대 반환은 pool 잔류·native codec state·caller 요청/result/index를 제거한다는 뜻이 아니다. [ME 범위](plans/memory-completion.md)·[현재 메모리 근거](verification/memory-completion.md)는 lease·관리 할당/heap·소유 provider/Editor와 시스템 공유 비용을 구분한다. 선행 공간/수명주기 자격은 [JP 검증](verification/journal-payload-compression.md)·[JP 종료 범위](plans/journal-payload-compression.md)를 유지한다.
+Returning pool leases does not remove pool retention, native codec state, or caller request/result/index memory. The [ME scope](plans/memory-completion.md) and [current memory evidence](verification/memory-completion.md) distinguish leases, managed allocations/heap, owned provider/Editor, and shared-system costs. Prior storage/lifecycle qualification remains under [JP verification](verification/journal-payload-compression.md) and [JP exit scope](plans/journal-payload-compression.md).

@@ -1,167 +1,183 @@
-# 저장공간 우선 설계와 Editor 실행 방식
+<a id="저장공간-우선-설계와-editor-실행-방식"></a>
+# Storage-first design and Editor execution methods
 
-현재 기본 CLI는 NTFS workspace 수명과 Editor start/stop을 제공한다. 자체 refresh·컴파일/포커스 처리·내부 성공 gate는 제거했고 결과 보존은 checkpoint로 통일했다. 선택적 단일 view/Library cache·probe는 [개발용 CLI](../development-cli.md)로 분리했다. 아래 기존 M0/WF/LB·시나리오 상태는 당시 후보의 증거이며 이번 후보의 native 실행 통과로 자동 승계하지 않는다. 현재 자동 회귀의 한도는 [범위 검증](../verification/workspace-product-scope.md)을 따른다.
+[한국어](../ko/plans/storage-priority-and-editor-modes.md)
 
-대형 Unity 프로젝트의 작업공간 용량과 생성·편집 준비·재개 시간을 함께 판단하고 Editor 동시성은 그 뒤에 둔다. 기본 CLI는 작업별 독립 Editor 수명을 관리한다. 선택적 단일 Editor용 소스 view/Library cache는 `splinter-dev.ps1 view`의 저장소 경로다. 프로젝트 검증과 모드 선택은 AI·외부 도구의 책임이며 자동 모드 선택은 구현 제외다.
+Current default CLI manages NTFS workspace lifetimes/Editor start-stop. Built-in refresh/compilation-focus/internal success gates were removed; checkpoint unifies result preservation. Optional single-view/Library caches/probes moved to [development CLI](../development-cli.md). Existing M0/WF/LB/scenario states below are historical candidate evidence, not automatic native passes for this candidate. Current regression limits follow [scope verification](../verification/workspace-product-scope.md).
 
-첫 한정 실사용 버전 [M0](implementation-plan.md)는 **폐기·최소 AI 연결·대표 사용 흐름과 비용 판단**을 마감했다. [대표 사용](../verification/representative-agent-workflow.md)의 작은 warm 입력·준비/메모리 비용·총 물리 공간/대형 효율 미확인을 유지한다. Library/validation은 기존 명시적 저장 경로로 유지한다. 작업 순서·Editor 수·모드 선택·source 반환 병합은 AI 절차이며 일반 임대 인수·큐/Coordination·자동 모드 선택·원본 Editor 공유는 프로그램 구현에서 제외한다. 책임 경계는 [구현 계획](implementation-plan.md#프로그램과-에이전트의-책임)을 따른다.
+Judge large Unity workspace capacity and creation/edit-readiness/resumption times together; Editor concurrency comes afterward. Default CLI manages independent Editors per task. Optional single-Editor source views/Library caches are storage paths under `splinter-dev.ps1 view`. AI/external tools verify projects/select modes; automatic mode selection excluded.
 
-## 후속 개발 우선순위
+First scoped practical-use [M0](implementation-plan.md) closed **discard/minimal AI connection/representative workflow/cost decisions**. Preserve [representative use](../verification/representative-agent-workflow.md) small warm inputs/preparation-memory costs/unconfirmed total physical space-large efficiency. Library/validation remain existing explicit storage paths. Task ordering/Editor counts/modes/source-return merging are AI procedures; general lease takeover/queues-Coordination/automatic modes/shared original Editors excluded. Responsibilities follow [implementation plan](implementation-plan.md#program-and-agent-responsibilities).
 
-**현재 Windows/NTFS 알파의 물리 저장은 [PS](physical-storage-completion.md)·[직접 근거](../verification/physical-storage-completion.md), 메모리는 [ME](memory-completion.md)·[직접 근거](../verification/memory-completion.md), 병렬 안정성의 선택 단위는 [SP](stable-parallel-completion.md)·[직접 근거](../verification/stable-parallel-completion.md)로 scoped-complete-with-limitations 마감했다.** 아래 순서는 제품의 판단 기준이다. 새 실사용 부족·누수/지속 증가·보존 결함/작업 차단·명시적 지원 확대 요청에서만 해당 입력/질문/종료 기준으로 다음 작업을 고른다. 기존 SF-02/03 Partial·대형/OS/ARM NotRun과 전체 순간 peak/VSS/시스템 RAM 귀속 unknown을 유지한다.
+<a id="후속-개발-우선순위"></a>
+## Follow-up development priorities
 
-| 순위 | 목표 | 판단할 내용 |
+**Current Windows/NTFS alpha physical storage closed scoped-complete-with-limitations under [PS](physical-storage-completion.md)/[direct evidence](../verification/physical-storage-completion.md), memory under [ME](memory-completion.md)/[direct evidence](../verification/memory-completion.md), selected parallel stability under [SP](stable-parallel-completion.md)/[direct evidence](../verification/stable-parallel-completion.md).** Order below guides product decisions. Select next tasks only for new actual shortages/leaks-sustained growth/preservation defects-work blockers/explicit support expansion, with fixed inputs/questions/completion criteria. Retain SF-02/03 Partial/large-OS-ARM NotRun/unknown whole instantaneous peak-VSS-system RAM attribution.
+
+| Priority | Goal | Assessment |
 | --- | --- | --- |
-| 1: 현재 알파 한정 마감 | 물리 공간 절감 | 범위 저장·private 재사용/압축·명시적 정리·작은 metadata와 최종 A/B의 회수/잔여 비용을 PS로 확인. 파일 할당·Library·독립 결과/임시 evidence와 공유 VSS를 구분하며 지원 확대는 별도 |
-| 2: 현재 알파 한정 마감 | 메모리 절감 | ME의 쓰기 중복 buffer·작은 read scratch·같은 실제 입력/실패 계약·소유 비용/회수. provider·Editor/cache·pool/관리 heap·시스템 값을 분리하며 전체 RAM 감소율과 별도 지원 상태를 만들지 않음 |
-| 3: 선택 단위 한정 마감 | 안정적인 병렬 작업 | SP의 오류 분류·같은/다른 작업의 잠금·A 수집/회수 중 B 조회/재개/64개 쓰기와 독립 결과/회수. Editor 없는 경계와 이전 Unity 자격을 구분하며 실제 새 차단/안전 결함에서 다음 단위를 선정 |
+| 1: current alpha scoped closure | Physical space reduction | PS confirmed range storage/private reuse-compression/explicit compaction/small metadata/final A-B reclamation-residual costs. Separate allocation/Library/independent results-temporary evidence/shared VSS; support expansion separate |
+| 2: current alpha scoped closure | Memory reduction | ME duplicate-write buffers/small-read scratch/same actual inputs-failure contracts/owned costs-reclamation. Separate providers/Editors-caches/pools-managed heap/system values; no whole RAM-reduction rates/new support states |
+| 3: selected scoped closure | Stable parallel work | SP error classification/same-other-task locks/B queries-resumption-64 writes during A collection-reclamation/independent results-reclamation. Distinguish editorless boundary/earlier Unity qualification; select next units from actual new blockers-safety defects |
 
-원본·타 작업·승인 쓰기와 결과 보존은 모든 절감 판단의 필수 조건이다. 기존 SF/NR/SW 범위를 유지하며 위 순서로 실제 사용 입력의 필요한 경계만 선택한다.
+Original/other tasks/acknowledged writes/result preservation are prerequisites for every savings decision. Retain existing SF/NR/SW scope; select only needed real-input boundaries in this order.
 
-사용자가 선택한 다음 공간 단위는 [VCS 프로젝트 단위 기준본 전환](project-scoped-basis-and-reclamation-review.md)의 VP-01~05다. 프로젝트 작업과 볼륨 VSS의 단위 불일치를 해결하도록 Git·Plastic의 고정 버전을 재사용하고 기존 범위 저널에 연결한다. VCS 없는 새 기준본과 기존 snapshot의 독립 회수 문제는 후순위/별도 보존한다. 기존 한정 마감을 새 backend 자격으로 바꾸거나 kernel driver·Unity 전체 검증을 자동 시작하지 않는다.
+User selected [VCS project-scoped basis transition](project-scoped-basis-and-reclamation-review.md) VP-01–05 as next space unit. Resolve project-work/volume-VSS mismatch by reusing fixed Git/Plastic versions in existing range journals. VCS-free new bases/existing independent-snapshot reclamation have lower priority/separate preservation. Closed units do not qualify new backends; no automatic kernel-driver/full Unity verification.
 
-새 Editor 준비가 **몇 분 이내**인 것은 허용 비용이며 높은 우선순위의 최적화 대상이 아니다. 에이전트는 준비 중 코딩 계획·소스 분석을 진행할 수 있다. workspace 사용 가능 상태와 Editor ready·현재 검증 성공은 기존 판정으로 확인하며 새로운 Runner/스케줄러를 추가하지 않는다. **수십 분 이상**의 지연, 반복되는 정체 또는 진행 불능이 실제 작업을 막을 때 원인을 확인하고 해당 병목만 개선한다. 준비 시간 계측은 유지하되 몇 분의 단축을 위해 물리 공간·메모리·안정성 작업보다 먼저 새 비교나 반복 벤치마크를 열지 않는다.
+New Editor preparation **within minutes** is acceptable, not high-priority optimization. Agents can plan code/analyze source during preparation. Existing decisions assess workspace usability/Editor ready/current verification success; no new Runner/scheduler. Investigate/improve only observed bottlenecks when **tens of minutes or longer**, repeated stalls, or inability to progress blocks actual work. Keep timings, but a few minutes' reduction does not precede space-memory-stability with new comparisons/repeated benchmarks.
 
-## 별도 지원 확대의 남은 범위
+<a id="별도-지원-확대의-남은-범위"></a>
+## Remaining separate support expansion
 
-| 단위 | 기존 실행 상태 | 축소한 후속 책임 |
+| Unit | Existing execution status | Reduced follow-up responsibility |
 | --- | --- | --- |
-| SF-01 변경 기반 소스 검증 | 정의한 소스 검증 범위 Passed | 일반 파일/입력 지원은 NR 검증과 별도 |
-| SF-02 journal·저장량 | 작은 Library 수명주기 LB 마감. 전체 Partial | 실제 사용할 입력의 저장 병목만 개선. 대형 목표·순간 물리 peak는 필요 시 검증이며 미확인 상태 유지 |
-| SF-03 단일 Library 검증 | 기존 WF/LB 범위 마감. 전체 Partial | 기존 cache·후보/세대·명시적 전환의 수명/회수 유지. 외부 도구 인계는 최소 연결 범위. 큐·일반 임대 인수·원본 공유는 제외, 생성 소스 병합은 AI/Git 절차 |
-| SF-04 작업 재개·독립 결과 | NotRun | 사용할 후보/worker의 같은 요청 재개·결과 보존과 기준 소실/원본 변경 경계만 선택. 전체 특수 조합은 필수 아님 |
-| SF-05 대형 입력 적합성 | NotRun | 사용할 입력의 mount/Git·파일 I/O 정확성만 선택. 에셋/패키지 저작은 외부 도구 책임, LFS/filter 등의 비지원 거부 유지 |
-| SF-06 기본 방식 선택 | NotRun | AI가 기존 경로의 비용으로 선택하는 사용 절차. 제품 자동 선택 구현 제외, 전체 비교 실행은 필요 시에만 선택 |
+| SF-01 change-based source verification | Defined source-verification scope Passed | General file-input support separate NR |
+| SF-02 journal/storage | Small Library LB closed; overall Partial | Improve only real-input storage bottlenecks. Large targets/instantaneous physical peaks verified when needed, unconfirmed retained |
+| SF-03 single Library verification | Existing WF/LB closed; overall Partial | Retain cache/candidate-generation/explicit-transition lifecycle-reclamation. Minimum external-tool connection. Queues/general lease takeover/original sharing excluded; generated-source merging AI-Git |
+| SF-04 task resumption/independent results | NotRun | Select only used candidate-worker same-request/result/basis-loss-original-change boundaries. Full special combinations not mandatory |
+| SF-05 large-input conformance | NotRun | Select used-input mount-Git/file I/O accuracy only. External tools author assets-packages; retain LFS-filter unsupported rejection |
+| SF-06 default method selection | NotRun | AI procedure chooses using existing-path costs. Product automatic selection excluded; whole comparisons only when needed |
 
-개발용 후보와 현재 계약은 [validation view](../source-view.md)를 따른다. 완료된 작은 시험과 제한은 [검증 안내](../verification/README.md)에서 확인하며 새 대형 PV를 자동 시작하지 않는다.
+Development candidates/current contracts follow [validation view](../source-view.md). [Verification guide](../verification/README.md) records completed small tests/limits; no automatic large PV.
 
-SF-02/03 Partial·SF-04~06 NotRun은 증거 상태이며 미완성 프로그램 기능의 수가 아니다. AI 절차/구현 제외로 분류한 항목도 과거 미실행을 통과로 바꾸지 않는다. 저장·메모리 개선은 실제 입력의 병목 하나와 종료 기준을 고르고, 기존 cache가 있다는 이유로 작업 큐·게임 검증 자동화까지 확장하지 않는다.
+SF-02/03 Partial/SF-04–06 NotRun are evidence states, not unfinished-program counts. AI procedures/excluded implementation do not turn historical unexecuted items into passes. Select one actual bottleneck/completion criteria for storage-memory work; existing caches do not justify task queues/game automation expansion.
 
-## 다음 판단에 필요한 근거
+<a id="다음-판단에-필요한-근거"></a>
+## Evidence needed for next decisions
 
-- [BQ 저장량](../verification/journal-budget-and-growth-qualification.md): 작은 fixture 유효 payload의 약 99.5%가 Library다. 대체 기록 정리만으로 용량 목표를 달성할 수 없다.
-- [정리 크기 회귀](../verification/journal-compaction-size.md): 작은 덮어쓰기의 범위 메타데이터가 공간을 늘리는 조건을 보존한다. 더 작은 기존 frame을 유지해 증가를 막는 범위이며 대형 Library 전체 절감으로 환산하지 않는다.
-- [동일 private 쓰기](../verification/duplicate-private-writes.md): 이미 저장한 같은 범위/바이트의 반복 저장 억제와 개별 flush를 대조한다. 합성 반복 입력의 실제 저널 할당 감소이며 실제 Library의 동일 쓰기 비중·전체 절감은 미측정이다.
-- [VC](../verification/immutable-validation-view.md): 후보 게시 약 1.3초와 반복 replay 21~29초·Editor ready 75~84초·정상 stop 31~33초를 구분한다. 게시 시간만으로 작업 준비 시간을 대표하지 않는다.
-- [JW](../verification/live-journal-write-cost.md): 첫 import commit 내부 848.16초 중 flush 828.38초를 관측했다. Windows callback의 선행 직렬화 때문에 Runtime 단독 group flush는 미선정이다. callback 원자성·대기/완료 경계·acknowledged write 내구성을 별도로 검토해야 한다.
-- [WI](../verification/cumulative-write-range-index.md), [RI](../verification/replay-index-cost.md), [RU](../verification/unity-replay-comparison.md): 같은 닫힌 저널·합성·누적 Editor 재개를 구별한다. 합성 개선이나 warm cache 소수 표본을 전체 Editor 개선·Library 물리 절감으로 환산하지 않는다.
-- [VSS 보호 근거](../verification/storage-recovery.md): 정확한 ID 삭제만으로 타 snapshot 보존이 보장되지 않는다. 현재 격리 guard와 명시적 지연 회수 계약을 유지한다.
-- [PS 단계 마감](../verification/physical-storage-completion.md): 최신 JM 후보의 고정 T: A/B·정리·독립 결과/회수와 1,048,304B의 선택 task 잔여량. 공유 runner/기존 records/evidence·원본 Library는 분리하며 전체 공간 절감률·물리 순간 peak는 unknown이다. 과거 SF 전체를 Passed로 변경하지 않는다.
+- [BQ storage](../verification/journal-budget-and-growth-qualification.md): approximately 99.5% of small fixture live payload is Library. Replaced-record compaction alone cannot meet capacity targets.
+- [Compaction-size regression](../verification/journal-compaction-size.md): preserve conditions where small-overwrite metadata increases space. Keeping smaller existing frames prevents growth; not whole-large-Library savings.
+- [Identical private writes](../verification/duplicate-private-writes.md): compare repeated identical saved-range suppression/individual flush. Actual synthetic-journal allocation savings; actual Library duplicate share/whole savings unmeasured.
+- [VC](../verification/immutable-validation-view.md): separate candidate publication ~1.3 seconds/repeated replay 21–29 seconds/Editor ready 75–84 seconds/normal stop 31–33 seconds. Publication time is not overall readiness.
+- [JW](../verification/live-journal-write-cost.md): initial-import internal commit 848.16 seconds, flush 828.38. Preceding Windows callback serialization leaves Runtime-only group flush unselected. Callback atomicity/wait-completion/acknowledged-write durability need separate review.
+- [WI](../verification/cumulative-write-range-index.md), [RI](../verification/replay-index-cost.md), [RU](../verification/unity-replay-comparison.md): distinguish identical closed journals/synthetic inputs/cumulative Editor resumes. Synthetic improvements/few warm samples are not whole-Editor/Library physical savings.
+- [VSS protection](../verification/storage-recovery.md): exact-ID deletion alone does not guarantee other snapshots survive. Retain isolation guards/explicit delayed reclamation.
+- [PS closure](../verification/physical-storage-completion.md): latest JM fixed T: A-B/compaction/independent results-reclamation/selected-task residual 1,048,304B. Separate shared runner/existing records-evidence/original Library; whole-space savings/instantaneous peak unknown. No whole-SF promotion to Passed.
 
-## SF-03 제품 연결과 남은 관문
+<a id="sf-03-제품-연결과-남은-관문"></a>
+## SF-03 product integration and remaining gates
 
-제품 `validation` CLI와 실제 Windows/Git/Unity provider, 서로 다른 VSS의 A/B/A와 같은 경로/캐시, worker 게시의 쓰기 차단, 독립 Git 결과, 제품 snapshot 회수 의존성 검사는 [WF 실행](../verification/product-validation-workflow.md)에서 선택 범위 완료로 판정했다. 기존 첫 cold import 중단·복구 기록은 유지한다. 최종 후보의 두 빈 cache 반복·원시 응답 schema·전체 비용과 보존/회수는 [WF-06~08](../verification/product-validation-cold-cost.md)의 별도 근거로 판정한다.
+Product `validation` CLI/actual Windows-Git-Unity providers/A-B-A across distinct VSS/same path-cache/worker-publication write blocking/independent Git results/product snapshot reclamation dependency checks were selected-scope complete in [WF execution](../verification/product-validation-workflow.md). Retain first cold-import interruption/recovery history. Final candidate two empty-cache repeats/raw response schemas/whole costs/preservation-reclamation judged separately in [WF-06–08](../verification/product-validation-cold-cost.md).
 
+Common lifecycle/actual provider-CLI follow [candidate lifecycle](../view-workflow.md). [WF matrix](validation-matrix.md#sf-03-product-workflow-integration) judges these integration boundaries:
 
-공통 수명주기와 실제 provider·CLI는 [검증 후보 수명주기](../view-workflow.md)를 따른다. 연결 자격은 [WF 추적표](validation-matrix.md#sf-03-제품-workflow-연결)에서 아래 범위를 판정한다.
+- Actual VSS confirms registered Git-pointer detachment/worker-write blocking/same owner-request publication recovery. Preserve existing `ExportCandidate` `.git` rejection/user-file protection.
+- Separate A-B-snapshot-dependent candidate/source generations/view-owned caches. Cache retains first candidate's Library snapshot. Switch candidates across snapshots only with same project/compatibility/partition/budget/owner; no initial full copies/read hydration.
+- Verify independent Git object existence/product snapshot dependency blocking. Test actual CLI interruption/lost responses; fake-exception injection passes are not actual-process outcomes.
+- Final small actual A-B-A verifies normal stop/no mounts/same-path restart/actual code-assets/result independence/original-other tasks/owned reclamation. Separate whole additional file allocation/peaks/replay-preparation-resumption times.
 
-- 등록된 Git 포인터의 분리·worker 쓰기 차단·같은 owner/request 게시 복구를 실제 VSS에서 확인한다. 기존 `ExportCandidate`의 `.git` 거부와 사용자 파일 보호는 유지한다.
-- 독립 A/B snapshot에 의존하는 candidate/source 세대와 view 소유 cache를 구분한다. cache는 최초 후보의 Library snapshot을 유지한다. 동일 프로젝트·compatibility·partition·예산·owner일 때 다른 snapshot 후보로 전환하며 최초 전체 복제·읽기 hydration을 사용하지 않는다.
-- 독립 Git 결과의 객체 존재와 제품 snapshot 의존성 차단을 확인한다. 실제 CLI 중단과 응답 유실을 시험하며 fake나 예외 주입의 성공을 실제 프로세스 결과로 승계하지 않는다.
-- 최종 후보의 작은 실제 A/B/A에서 정상 stop·mount 부재·같은 경로 재시작, 실제 코드/에셋·결과 독립성·원본/타 작업 보존·소유 자원 회수를 확인한다. 전체 추가 파일 할당과 최고치, replay·준비·재개 시간을 구분한다.
+Retain overall SF-03 Partial. FIFO/Coordination/general lease takeover/shared original Editors/automatic modes/dedicated installer-automatic binding excluded. Generated-source return merging/execution selection are AI procedures. Group flush unadopted; large PV/full NR support only when needed. Scoped M0 is not full SF pass. Retain [UA](../verification/storage-privilege-service.md), historical WF/LB qualifications/current same-request-lost-response-restart recovery.
 
-SF-03 전체 Partial은 유지한다. FIFO/Coordination·일반 임대 인수·원본 Editor 공유·자동 모드·전용 installer·자동 binding은 구현 제외다. 생성 source 반환 병합과 실행 방식 선택은 AI 절차다. group flush는 채택하지 않았으며 대형 PV/NR 전체는 필요 시 지원 검증이다. 한정 M0를 전체 SF 통과로 읽지 않는다. [UA](../verification/storage-privilege-service.md)와 아래 WF/LB의 기존 자격·현재 계약의 동일 요청/응답 유실/재시작 복구는 유지한다.
+<a id="다음-범위-판단"></a>
+## Selecting the next scope
 
-## 다음 범위 판단
+Preserved real JP journals led to separate JM-01–04 [default-metadata physical storage improvement](journal-metadata-storage.md), closed scoped-complete-with-limitations. Retain current SJR2 meaning/individual flush/results-reclamation guards; reduce default representations only in new writes/explicit compaction-candidates. [Direct evidence](../verification/journal-metadata-storage.md) is offline same-A-B NTFS allocation/extra serialization costs, not new native A-B/whole-workspace-RAM qualification.
 
-JP의 보존된 실제 저널에서 [기본값 메타데이터의 물리 저장 개선](journal-metadata-storage.md)을 별도 JM-01~04로 확정하고 scoped-complete-with-limitations로 마감했다. 현재 SJR2 의미·개별 flush·결과/회수 guard를 유지하며 새 쓰기와 명시적 정리/후보에서 기본값 표현만 줄인다. [직접 근거](../verification/journal-metadata-storage.md)는 같은 A/B 저널의 오프라인 NTFS 할당과 추가 직렬화 비용이며 새 native A/B/전체 workspace·RAM 자격으로 승계하지 않는다.
+Selected space work closed [Bee standalone-block candidate](../verification/library-block-compression-feasibility.md)/[standalone codec](../verification/workspace-payload-codec.md), then [compressed product journals](../verification/journal-payload-compression.md) small T: A-B/same-journal raw control. Distinguish model-standalone logical ratios/actual product file allocation. Retain whole-workspace space-RAM/large-OS/overall SF Partial; select next bottlenecks separately from needed real inputs.
 
-선택한 공간 개선은 [Bee 입력의 독립 블록 압축 후보](../verification/library-block-compression-feasibility.md)와 [독립 codec](../verification/workspace-payload-codec.md) 뒤 [압축 저널 제품 연결](../verification/journal-payload-compression.md)의 작은 T: A/B·동일 journal raw 대조를 한정 마감했다. 후보 모델/standalone 논리 압축률과 제품의 실제 journal 파일 할당을 구분한다. 전체 workspace 공간/RAM·대형/OS 자격과 SF 전체 Partial은 유지하며 다음 병목은 필요한 실제 입력으로 별도 선정한다.
+[Partial-write/buffer/start improvements](../verification/resource-efficiency-followup.md) closed matching-prefix-suffix reuse in private overwrites/small I/O buffers/Editor start-current-source verification separation. New/extended/whole-content-change Library costs remain; judgment limited to fixed same-input space-rented-buffer comparisons/small local Unity lifecycle. No inheritance of whole Library savings/Editor-system RAM/readiness SLA/OS failures. Next targets are real new-fully changed Library records; no automatic repeated comparison/large-remote-installation/failure matrices.
 
-[부분 쓰기·버퍼·시작 개선](../verification/resource-efficiency-followup.md)은 private 덮어쓰기의 일치 앞뒤 재사용, 작은 I/O 버퍼 제한, Editor 시작과 현재 소스 검증의 분리 범위를 마감했다. 새/확장/전체 내용 변경의 Library 부담은 남으며 동일 입력의 고정 공간/대여 버퍼 대조와 작은 로컬 Unity 수명주기로만 판정한다. 전체 Library 절감률·Editor/시스템 RAM·준비 시간 SLA·OS 장애 지원을 승계하지 않는다. 다음 공간 대상은 실제 새/전체 변경 Library 기록에서 선택하며 같은 비교 반복·대형/원격/설치·장애 행렬을 자동 추가하지 않는다.
+[Small warm Unity comparison](../verification/unity-duplicate-private-writes.md) owns two edits/same ensure/normal restart/independent results-release/fixed Runtime before-after allocation on one registered input. Closed pair showed only small pre-completion journal differences; identical-private-write optimization does not achieve Library capacity targets. Most live private data is Library; choose one actual remaining new-changed Library target. No automatic repeats/large-cold-remote/new failure matrices/install-privilege-volume changes/original integration. Synthetic 96.1%/time SLA/memory savings are not actual results.
 
-[작은 Unity warm 비교](../verification/unity-duplicate-private-writes.md)는 같은 등록 입력의 두 편집·같은 ensure·정상 Editor 재시작·독립 결과 보존/release와 고정 Runtime 전후 파일 할당을 소유한다. 이 한 쌍을 마감했으며 종료 직전 저널의 관측 차이가 작아 동일 private 쓰기만으로 Library 용량 목표를 달성했다고 판정하지 않는다. 유효 private 데이터의 대부분이 Library라 후속 공간 작업은 남은 새/변경 Library 기록에서 실제 개선 대상 하나를 고른다. 같은 비교의 반복·대형/cold/원격·새 장애 행렬·설치/권한/볼륨 변경·원본 통합을 자동 추가하지 않는다. 합성 96.1%·시간 SLA·메모리 절감을 실제 결과로 승계하지 않는다.
+[NR-01/02 preparation interruption recovery](ntfs-recovery-and-support.md#fixed-scope-nr-0102-preparation-interruption-recovery), fixed after Library closure, closed with retained limitations at [26 actual current-candidate boundaries](../verification/preparation-recovery.md). Confirmed same-request resume/independent results/original-other tasks; unresolved publication-failure causes/large-capacity-mode SF gates retained.
 
-Library의 마감 뒤 확정한 [NR-01/02 준비 단계 중단 복구](ntfs-recovery-and-support.md#확정-범위-nr-0102-준비-단계-중단-복구)는 [현재 후보의 실제 경계 26개](../verification/preparation-recovery.md)로 제한을 유지해 마감했다. 동일 요청 재개·독립 결과·원본/타 작업 보존을 확인했으며, 게시 실패 원인 미확정과 대형 용량 목표·모드 채택의 SF 관문은 유지한다.
+[WF-06–08](../verification/product-validation-cold-cost.md) gives final two-empty-cache A-B-A/owned allocation-time/independent results-reclamation evidence. Rendering setup writes settings, so same generation restarts after configuration saves; extra Editor starts-stops count in repeat costs. Retain first-two-attempt failures/instantaneous physical peaks between observations/shared VSS attribution limits.
 
-[WF-06~08](../verification/product-validation-cold-cost.md)은 최종 후보의 두 빈 cache A/B/A·소유 파일 할당/시간·독립 결과/회수 근거를 제공한다. 렌더 준비에서 발생하는 설정 저장을 마친 뒤 같은 세대를 다시 시작해 검증하므로 이 추가 Editor 시작/종료도 반복 비용에 포함한다. 첫 두 시도의 실패와 관측 사이 순간 물리 최고치·공유 VSS 귀속의 한계를 유지한다.
+Small Library live amount/compaction-regrowth/new-resumed costs closed in [WF/LB](../verification/product-validation-unelevated.md); M0 costs in [scoped delivery](../verification/m0-delivery.md). Select cost follow-ups only from actual-input/path bottlenecks. Preserve [IPC](../verification/control-file-read-races.md) historical t2/unresolved heartbeat publication causes. Large space/full NR-PV only when needed; no preceding new backends/flush policies. Installation is AI procedure/automatic binding excluded.
 
-작은 Library 유효량·정리·재증가와 신규/재개 비용은 [WF/LB](../verification/product-validation-unelevated.md), M0 비용 판단은 [한정 납품](../verification/m0-delivery.md)의 범위로 마감했다. 후속 비용 작업은 실제 입력과 경로의 관측 병목만 고른다. [IPC](../verification/control-file-read-races.md)의 과거 t2 지점과 heartbeat 게시 오류 원인 미확정은 유지한다. 대형 공간·전체 NR/PV는 필요 시 검증이며 새 backend/flush 정책을 선행하지 않는다. 설치는 AI 절차이고 자동 binding은 구현 제외다.
+<a id="범위-payload-codec과-다음-제품-연결"></a>
+## Range payload codec and next product integration
 
-## 범위 payload codec과 다음 제품 연결
+Before product integration, **standalone range-codec common contracts/fakes/accuracy/corruption-partial reads/size-buffer boundaries/fixed Bee controls** closed scoped-complete-with-limitations. [Codec verification](../verification/workspace-payload-codec.md) owns implementation/decision. Only standalone state added to development capabilities/schema; default workspaces/current journals/installed service unchanged. Logical codec representation savings are not actual workspace/NTFS savings.
 
-제품 연결 전 **독립 범위 codec의 공통 계약/fake·정확성·손상/부분 읽기·크기/버퍼 경계와 고정 Bee 입력 대조**는 scoped-complete-with-limitations로 마감했다. 구현과 한정 판정은 [codec 검증](../verification/workspace-payload-codec.md)이 소유한다. 개발 capabilities/schema에 standalone 상태만 추가했고 기본 workspace·현재 저널 형식·설치된 서비스를 바꾸지 않았다. codec의 논리 표현 절감을 실제 workspace/NTFS 절감으로 읽지 않는다.
+Product integration closed scoped-complete-with-limitations under [fixed scope](journal-payload-compression.md)/[JP verification](../verification/journal-payload-compression.md). Question: **can compressed ranges connect to current append-ACK/independent results/original-peer protection and reduce actual journal file allocation?** Below are closed inclusions/completion criteria, not repeat instructions.
 
-[확정 범위](journal-payload-compression.md)와 [JP 검증](../verification/journal-payload-compression.md)의 직접 근거로 제품 연결을 scoped-complete-with-limitations로 마감했다. 질문은 **압축 범위를 현재 append/ACK·독립 결과·원본/peer 보호에 연결해 실제 저널 파일 할당을 줄일 수 있는가**였다. 아래는 마감한 포함/종료 기준이며 추가 반복 지시가 아니다.
-
-| 포함 | 종료 기준 |
+| Inclusion | Completion criteria |
 | --- | --- |
-| 먼저 공통 frame/범위 계약과 fake 적합성 | encoded 물리 길이·decoded 논리 길이·fragment offset·metadata/checksum 비용·한 callback의 단일 승인/flush를 명시. codec 48B와 기존 checksum의 중복 비용을 계수하고 raw 선택이 같은 새 frame을 늘리지 않음. 부분 읽기의 block 전체 복원 비용/버퍼 상한을 유지 |
-| Runtime의 write/read/replay·정리/candidate 연결 | 현재 private 일치 앞뒤 재사용·부분 overlap/resize/delete/rename·내용/sequence/seal·동일 요청 재개·후보/정리 겹침 예산·독립 결과를 유지. 초기 전체 복제·snapshot 비교 읽기·read hydration·파일 전체 copy-up을 하지 않음 |
-| 현재 계약의 단일 버전 경계 | 필요한 현재 형식/version과 schema·fake·오류를 함께 갱신. 지원하지 않는 기존 기록/후보/저널은 변환/덮어쓰기 없이 보존·명시적 거부. 현재 보류 자원·결과를 임의 재작성/회수하거나 구버전 reader/fallback을 추가하지 않음 |
-| 변경된 실제 부작용의 작은 한 묶음 | 먼저 기존 고정 경계의 checksum/부분 frame/ACK/재생을 대조하고, 등록된 T: Plastic 입력/기존 home의 대표 A/B 한 쌍만 고정. 같은 작업 재개·정상 Editor stop·독립 결과·A 회수 중 B 지속·원본/등록/기존 결과·소유 자원 회수를 확인. 실행 전 정확한 key/바이너리/기준/예산을 보존 |
-| 실제 공간/메모리 판단 | raw/현재 후보의 같은 입력에서 정확한 journal 파일 할당·유효/대체 payload와 추가 metadata·buffer/소유 메모리·실패 비용을 분리. 공유 VSS/전체 peak·native codec memory의 미측정을 0으로 읽지 않음. 필수 빌드·schema/문서/UTF-8·diff 검사 |
+| Common frame-range contracts/fake conformance first | Specify encoded physical length/decoded logical length/fragment offset/metadata-checksum costs/single callback acknowledgment-flush. Count codec 48B/existing checksum duplication; raw selection cannot enlarge identical new frames. Retain whole-block restoration costs/buffer bounds for partial reads |
+| Runtime write-read-replay/compaction-candidate integration | Retain current private-prefix-suffix reuse/partial overlap-resize-delete-rename/content-sequence-seal/same-request resumption/candidate-compaction overlap budgets/independent results. No initial full copies/snapshot comparison reads/read hydration/whole-file copy-up |
+| Single current-version boundary | Update required current formats-versions/schemas-fakes-errors together. Preserve-explicitly reject unsupported old records-candidates-journals without conversion-overwrite. No arbitrary pending-resource-result rewriting-reclamation/old readers-fallback |
+| Small actual changed-side-effect run | Compare existing fixed checksum/partial-frame/ACK-replay boundaries first, then fix only one registered T: Plastic/existing-home representative pair. Verify same-task resume/normal stop/independent results/B continuing during A reclamation/original-registrations-existing results/owned reclamation. Preserve exact keys-binaries-bases-budgets before execution |
+| Actual space-memory decisions | Separate exact journal allocation/live-replaced payload/extra metadata/buffers-owned memory/failure costs on identical raw-candidate inputs. Unmeasured shared VSS/whole peak/native codec memory are not zero. Required build/schema-docs-UTF-8-diff |
 
-계약·내용/복구·한정 A/B·파일 할당의 전후 근거가 모두 있으면 이 제품 연결 단위만 마감한다. 수치가 증가하거나 기능/회수 실패가 남으면 실패 증거를 보존하고 해당 경계만 수정한다. 후보 선정의 83% 모델이나 standalone codec 표를 제품 절감률로 승계하지 않는다.
+Close only integration unit with contracts/content-recovery/scoped A-B/before-after allocation evidence. Preserve failures/fix only relevant boundaries if figures increase or functional-reclamation failures remain. Candidate 83% model/standalone tables are not product savings.
 
-제품 연결은 선행 독립 codec 구현과 별도 단위로 확정/실행했다. 새 UAC/서비스/grant/볼륨·원본 통합/check-in·MCP·대형/ARM/OS 장애·flush/group commit·새 backend·작업 모드/큐/스케줄러·전체 메모리 최적화는 포함하지 않았다. 설치/권한 변경이 실제로 필요하면 구체적 계획을 별도로 작성한다. 기존 C: 비소유 blocker와 보류 snapshot은 그대로 유지한다.
+Product integration fixed/executed separately from standalone codec. Excluded new UAC/service-grant-volume/original integration-check-in/MCP/large-ARM-OS failures/flush-group commit/new backends/modes-queues-schedulers/comprehensive memory optimization. If installation/privileges actually needed, separately draft concrete plans. Existing C: non-owned blockers/pending snapshots unchanged.
 
-## 보존한 한정 범위: 일반 권한 Unity 검증 흐름
+<a id="보존한-한정-범위-일반-권한-unity-검증-흐름"></a>
+## Preserved scoped unit: normal-user Unity verification workflow
 
-아래 조건은 WF/LB의 기존 마감과 재현 경계를 설명한다. 다음 작업 지시가 아니며 코드 변경이 해당 경계에 영향을 주거나 실제 결함이 재발할 때 필요한 하위 조건만 선택해 다시 실행한다.
+Conditions below explain WF/LB closure/reproduction boundaries. They are not next-task instructions; rerun only needed subconditions if code affects boundaries or actual defects recur.
 
-실행 단위는 **제한 권한 서비스와 IPC 수정을 포함한 제품에서 작은 Unity A/B/A의 준비·검증·재개·독립 결과 보존·회수를 일반 사용자 권한으로 완주하고 Library 저장 수명주기를 구현·실측하는 것**이다. `development @ 183118b`에 적용한 고정 후보로 아래 다섯 Library 기준과 WF-09~12를 실행했고 [검증 근거](../verification/product-validation-unelevated.md)에 따라 scoped-complete-with-limitations로 마감했다. 아래는 이 마감의 범위와 재검증 기준이다.
+Unit: **complete small Unity A-B-A preparation/verification/resumption/independent result preservation/reclamation under normal-user permissions on the product including restricted service/IPC fixes, implementing/measuring Library storage lifecycle**. Fixed candidate applied to `development @ 183118b` executed five Library criteria/WF-09–12 and closed scoped-complete-with-limitations under [verification evidence](../verification/product-validation-unelevated.md). Below defines that closure/reverification criteria.
 
-### 이번 단계의 Library 완료 기준
+<a id="이번-단계의-library-완료-기준"></a>
+### Library completion criteria for this phase
 
-1. 첫 검증 view가 고정한 불변 snapshot의 기존 Library를 직접 읽고 작업별 Library 전체 복제·읽기 hydration·전체 파일 copy-up을 하지 않는다. 원본 Library가 없을 때의 실제 cold import는 별도 비용으로 기록한다. 후보 A/B가 달라도 cache 기준 snapshot을 바꾸지 않는다.
-2. 고정 경로의 Library 하나를 세대와 새 CLI에 걸쳐 재사용한다. 기준 Library의 원본 변경과 작업 간 쓰기를 격리하며, 정확한 snapshot/read proof와 수명 의존성을 보존한다. cache가 남아 있으면 그 기준 snapshot의 회수를 차단한다.
-3. 반복 쓰기의 현재 유효 범위와 대체 기록을 구분하고, Editor/provider/mount가 없는 경계에서 예산·중단 복구·내용 동등성을 검증하는 cache 정리를 제공한다. 정리 전후와 재개 후 증가량·겹침 최고치를 측정하며, 오래된 기록만 줄이고 필요한 Library 데이터를 임의 삭제하지 않는다.
-4. 같은 고정 입력의 cold와 기존 Library 재사용, A/B/A 및 재개/반복 편집을 실제 Unity로 확인한다. 총 추가 할당·Library·VSS 공유량·Git/임시/결과와 준비/재개/정리 시간을 공개하고, Library 존재가 단지 새 경로의 전체 재생성으로 바뀌지 않았는지 확인한다. 작은 합성 범위 시험만으로 완료하지 않는다.
-5. source/후보 결과를 독립 보존한 뒤 cache와 기준 snapshot을 정확한 순서로 회수한다. 새 계약·schema·fake·복구/손상 거부 시험·capability·에이전트 절차와 지원표를 함께 갱신한다. 위 기준이 미충족이면 Library 완료로 표시하지 않는다.
+1. First verification view directly reads existing Library from its fixed immutable snapshot; no per-task whole-Library copies/read hydration/whole-file copy-up. Record actual cold imports with missing original Library separately. Keep cache basis snapshot across A-B candidates.
+2. Reuse one fixed-path Library across generations/new CLIs. Isolate original-basis changes/inter-task writes, retaining exact snapshot/read proofs/lifecycle dependencies. Cache existence blocks its basis snapshot reclamation.
+3. Separate current live ranges/replaced records; provide cache compaction verifying budgets/interruption recovery/content equivalence without Editor-provider-mount. Measure before-after/resumption growth/overlap peaks; reduce old records, never arbitrarily delete necessary Library data.
+4. Actual Unity verifies cold/existing-Library reuse/A-B-A/resumption-repeated edits on identical input. Disclose total extra allocation/Library/shared VSS/Git-temporary-results/preparation-resumption-compaction times; check Library reuse did not merely recreate everything at a new path. Small synthetic tests alone cannot complete.
+5. Independently preserve source-candidate results, then reclaim cache/basis snapshot in exact order. Update contracts/schemas/fakes/recovery-corruption rejection/capabilities/agent procedures/support matrices together. Unmet criteria mean Library incomplete.
 
-### 선택 근거
+<a id="선택-근거"></a>
+### Selection evidence
 
-- WF-06~08은 작은 두 빈 cache의 비용과 결과를 확인했지만 IPC 수정·권한 서비스 도입 전 후보의 증거다. 최신 제품의 실행 성공으로 승계할 수 없다.
-- IPC-01~03은 실제 Windows 파일 경합과 합성 client의 보존을 확인했다. 새 후보의 실제 `prepare-worker`와 Unity 연결은 남아 있다.
-- UA-01~04는 일반 CLI의 NTFS/Git A/B와 추가 UAC 0을 확인했다. Unity는 실행하지 않았고 worker 결과도 `validationClaimed=false`로 보존했다.
-- 이 변경들이 함께 동작하는 근거와 Library 개선 전후 근거를 함께 만든다. 기존 작은 입력의 동일 조건 비교를 우선하고, 이미 마감된 대형 PV를 자동 재개하지 않는다.
+- WF-06–08 confirmed small two-empty-cache costs/results, but before IPC fixes/privilege service. Not latest-product execution passes.
+- IPC-01–03 confirmed actual Windows contention/synthetic-client preservation. New actual `prepare-worker`/Unity integration remain.
+- UA-01–04 confirmed normal CLI NTFS-Git A-B/zero additional UAC. No Unity; worker results preserved with `validationClaimed=false`.
+- Establish evidence of these changes working together and before-after Library improvement. Prefer identical existing-small-input conditions; no automatic closed-large-PV resumption.
 
-### 입력과 자원 경계
+<a id="입력과-자원-경계"></a>
+### Input and resource boundaries
 
-- Windows x64·NTFS·VSS·WinFsp와 기존 작은 `splinter-unity` fixture의 Unity `6000.3.22f1`을 사용한다. 실제 사용 시 형제 저장소의 AGENTS.md를 읽고 기준 revision·입력 hash를 고정한다. 기존 모델의 3개 mesh와 텍스처/코드 차이를 재사용하며 유료 에셋·대표 대형 프로젝트·새 ARM Editor를 추가하지 않는다.
-- cold와 기존 Library trial을 순차 실행한다. 각 trial은 서로 다른 key와 VSS를 가진 worker A/B 두 개, 고정 view/cache 하나, A→B→A 세 source generation을 사용한다. 기존 Library trial에는 정리 뒤 새 A 세대를 추가해 실제 재증가를 확인한다. 원본 Library 준비 비용을 따로 기록하며 cold/warm 소스 내용·Unity 버전은 같게 고정한다. 각 generation의 준비/최종 검증에 필요한 정상 stop/restart와 재시도도 비용에 포함한다. 동시 Unity Editor는 검증 view의 하나이며 Codex 별도 worktree·Coordination·새 조정 에이전트를 추가하지 않는다.
-- UA에서 기록한 기존 project/home grant는 재사용 후보일 뿐 현재 사용 가능하다고 가정하지 않는다. 실행 전에 읽기 전용으로 설치 패키지/현재 바이너리·프로토콜·grant identity·서비스 상태·Editor 점유·원본/비소유 snapshot과 회수 guard를 확인한다. 문서만 바뀐 경우 불필요한 서비스 업데이트를 하지 않는다.
-- 정확한 project/home과 소스 볼륨, 여유 공간·저널 예산·계측 위치를 실행 manifest에 확정한다. 기존 C: snapshot이나 UA의 T: fixture·독립 결과를 초기화하지 않는다. 승인된 환경으로 완전 회수가 불가능하면 환경 차단을 기록하고 새 자원 생성을 시작하지 않는다. 새 VHD·포맷·VSS 예산·grant/서비스 변경이 필요하면 구체적인 준비안을 별도 작업으로 분리한다.
-- 원본 위치·파일시스템·계속 편집 가능한 조건을 유지한다. 최초 전체 복제·읽기 hydration·전체 파일 copy-up으로 준비를 우회하지 않는다. 원본과 타 작업의 기존 변경·결과 refs를 사전 기록하고 보호한다.
+- Use Windows x64/NTFS/VSS/WinFsp/existing small `splinter-unity` fixture Unity `6000.3.22f1`. Read sibling AGENTS.md and fix basis revision/input hashes. Reuse existing three meshes/texture-code differences; no paid assets/representative large projects/new ARM Editors.
+- Run cold/existing-Library trials sequentially. Each has workers A-B with distinct keys-VSS, one fixed view-cache, A→B→A source generations. Existing-Library trial adds new A generation after compaction to verify regrowth. Record original Library preparation separately; fix identical cold-warm source/Unity. Include required normal stop-restart/retry costs per generation preparation/final verification. One concurrent verification-view Editor; no Codex worktrees/Coordination/new coordinating agent.
+- UA project-home grants are reuse candidates, not assumed currently usable. Read-only check installed package/current binaries/protocol/grant identities/service state/Editor occupancy/original-non-owned snapshots/reclamation guards before execution. No unnecessary service update for docs-only changes.
+- Fix exact project-home/source volume/free space/journal budgets/measurement locations in manifest. Do not initialize existing C: snapshots/UA T: fixtures/independent results. If approved environment cannot fully reclaim, record blocker/create no new resources. Separate concrete new VHD-format-VSS budgets-grants-service preparation.
+- Preserve original location/filesystem/continuous editing. No initial full copies/read hydration/whole-file copy-up bypass. Prerecord/protect original-other-task changes/result refs.
 
-### 실행 단위와 완료 기준
+<a id="실행-단위와-완료-기준"></a>
+### Execution units and completion criteria
 
-| ID | 포함하는 작업 | 완료에 필요한 증거 |
+| ID | Included work | Required evidence |
 | --- | --- | --- |
-| WF-09 | 현재 후보와 설치 서비스의 일반 권한 연결 | 최종 source/CLI/provider/bridge 및 설치 서비스 package hash·환경 manifest, 실제 A/B 생성·게시·검증·회수에서 호출 CLI/Git/Unity의 비승격 증거와 정상 반복 추가 UAC 0. 서비스의 SYSTEM 권한과 최초 관리자 구성을 별도 기록 |
-| WF-10 | 빈 cache 하나의 실제 A/B/A와 세대별 Unity 검증 | 같은 view 경로/cache, 정상 stop·실제 mount 부재 뒤 전환, A/B의 기대 코드·모델·텍스처와 fingerprint/domain/MVID·요청/sequence/seal 일치. A 전용 파일·이전 generation 출력의 유입 없음, 실행 중 원시 입력/응답 schema 및 Accepted 후속 관측 |
-| WF-11 | 정상 unmount 경계와 같은 작업 재개 | 실제 `prepare-worker` 정상 unmount 직후 관측과 동일 owner/request 재호출, 새 CLI에서 같은 key/ID/snapshot/delta 재연결. 게시 뒤 A의 후속 편집은 원래 후보·B를 바꾸지 않고 후보 검증 성공도 승계하지 않음. 같은 snapshot의 reader가 있으면 정상 stop/unmount 뒤 재시도 |
-| WF-12 | 독립 결과·원본/타 작업 보존·회수와 전체 비용 | candidate·source generation·worker 후속 편집을 정확한 seal의 독립 Git 결과로 보존. 의존 artifact→view/cache→worker 순으로 회수, 필요한 같은 workspace의 명시적 release 재시도. snapshot 없이 결과 객체/내용/hash 재확인, 소유 자원 0/부재·원본/타 작업/비소유 snapshot 보존 및 전체 할당/시간/실패 비용 |
+| WF-09 | Normal-user current candidate/installed-service connection | Final source-CLI-provider-bridge/installed package hashes/environment manifest, unelevated calling CLI-Git-Unity in actual creation-publication-verification-reclamation/zero normal repeated UAC. Record service SYSTEM/initial administrator configuration separately |
+| WF-10 | Actual one-empty-cache A-B-A/per-generation Unity verification | Same view-cache/normal stop-actual mount absence before switches/expected A-B code-models-textures/fingerprint-domain-MVID/request-sequence-seal matches. No A-only files/previous-generation outputs, raw schemas/Accepted follow-up observations |
+| WF-11 | Normal unmount/same-task resumption | Observe immediately after actual `prepare-worker` unmount/reinvoke identical owner-request/new-CLI same key-ID-snapshot-delta reconnect. A subsequent edits do not change original candidate-B or inherit verification. With same-snapshot readers, retry after normal stop-unmount |
+| WF-12 | Independent results/original-other-task protection/reclamation/whole costs | Preserve candidate/source generations/worker follow-up edits as exact-seal independent Git results. Reclaim dependent artifact→view-cache→worker; explicit same-workspace release retries when necessary. Reverify objects-content-hashes without snapshots/zero-absent owned resources/original-other-task-non-owned snapshots/whole allocation-time-failure costs |
 
-미리보기는 기존 [fixture 계약](../unity-render-qualification.md)에 따라 요청당 최대 두 번 중 첫 유효 PNG를 사용하고 경로·hash·pass별 픽셀을 남긴다. 준비 Editor가 설정을 저장하면 정상 stop 뒤 같은 세대를 재시작해 최종 검증한다. 일반 설정 파일을 검증에서 제외하거나 source sequence 검사를 완화하지 않는다.
+Preview follows existing [fixture contract](../unity-render-qualification.md): first valid PNG from maximum two attempts per request; retain paths/hashes/per-pass pixels. If preparation Editor saves settings, normal stop/restart same generation for final verification. No ordinary-settings exclusions/weakened source-sequence checks.
 
-WF-11은 정상 경계·동일 요청의 재호출·새 CLI 재연결에 한정한다. 일시적 경합을 이번 실행에서 관측하지 못하면 재현하지 못했다고 기록한다. 과거 t2의 정확한 원인 해결, 강제 종료·응답 유실의 모든 경계, 재부팅 복구까지 검증했다고 하지 않는다. 손상·접근 거부·다른 owner를 재시도로 숨기지 않는 자동 회귀는 계속 유지한다.
+WF-11 is limited to normal boundaries/same-request reinvocation/new-CLI reconnection. Unobserved transient contention is recorded unreproduced. No claims resolving historical t2 exact causes/all forced-stop-lost-response/reboot recovery. Retain automated regressions that do not hide corruption/access denial/other owners through retries.
 
-### 수정 허용 범위와 산출물
+<a id="수정-허용-범위와-산출물"></a>
+### Permitted fixes and deliverables
 
-Library 완료 기준의 구현과 이를 막는 재현 가능한 결함을 기존 Runtime·CLI/Windows workflow·Unity 어댑터/브리지·IPC·권한 서비스 연결 및 해당 시험에서 수정한다. 원인 확인 없이 timeout·권한·보존 조건을 완화하지 않는다. 공개 계약이 바뀌면 schema·fake·적합성·현재 기능 문서를 함께 갱신한다. 새 backend·flush 정책·범용 임대/큐 설계를 바꿔야 하면 별도 범위를 먼저 정한다.
+Implement Library criteria/fix reproducible blockers in existing Runtime/CLI-Windows workflow/Unity adapters-bridges/IPC/privilege-service integration/tests. Do not weaken timeouts/privileges/preservation without causes. Public changes update schemas/fakes/conformance/current features together. New backend/flush/general lease-queue redesign needs separate scope first.
 
-원시 증거는 `artifacts/storage-foundation/library-20260929/`에 보존한다. 요청·응답 원문, command/운영 개입, 준비/재시작/검증/재개/보존/회수 시간, PNG·TRX, 원본/작업/독립 결과 hash와 자원 관측을 연결한다. 기존 UA/WF/IPC artifacts를 덮어쓰거나 삭제하지 않는다. 해석과 제한은 `docs/verification/product-validation-unelevated.md`가 소유하며 추적표에서 연결한다.
+Preserve raw evidence in `artifacts/storage-foundation/library-20260929/`: raw requests-responses/commands-operational interventions/preparation-restart-verification-resumption-preservation-reclamation times/PNG-TRX/original-task-result hashes/resource observations. Do not overwrite/delete existing UA-WF-IPC artifacts. `docs/verification/product-validation-unelevated.md` owns interpretation/limits, linked from matrix.
 
-저장량은 worker·후보·source·Library/cache·Git/독립 결과·임시/증거 파일의 추가 파일 할당과 관측 최고치를 구분한다. 초기 준비·A/B/A·A 후속 편집·회수 후를 비교하고 Library 재증가를 기록한다. 공유 VSS는 볼륨 관측으로 분리하며 workspace 귀속은 unknown이다. 파일 할당 표본을 순간 물리 peak나 공간 절감 목표 달성으로 표현하지 않는다. 이번에는 성능 우위나 기본 모드를 선정하지 않는다.
+Separate extra allocation/observed maxima for worker/candidate/source/Library-cache/Git-independent results/temporary-evidence files. Compare initial/A-B-A/A follow-up/post-reclamation, recording Library regrowth. Shared VSS is separate volume observation; task attribution unknown. File-allocation samples are neither instantaneous physical peaks nor achieved savings targets. No performance winner/default mode selection here.
 
-최종 실행 후보에 `pwsh ./scripts/build.ps1`의 locked restore·Release 빌드·자동 시험과 문서 UTF-8·diff 검사를 수행한다. 실행 파일이 바뀌면 이전 trial의 통과를 승계하지 않고 최종 후보로 필요한 전체 흐름을 다시 확인한다. 실패·진단 시도도 원시 기록과 전체 비용에 포함한다.
+Run final `pwsh ./scripts/build.ps1` locked restore/Release/tests/docs UTF-8-diff. If executables change, earlier trial passes are not inherited; reverify necessary whole flow on final candidate. Failure/diagnosis attempts count in raw records/whole costs.
 
-### 마감과 제외 범위
+<a id="마감과-제외-범위"></a>
+### Closure and exclusions
 
-WF-09~12의 모든 증거가 있을 때 이 작은 실행 단위만 `scoped-complete-with-limitations`로 마감한다. `reclaim-pending`, 관측 unknown, 환경 차단이나 미보존 결과가 남으면 완료로 처리하지 않고 남은 정확한 조건을 기록한다. 비소유 snapshot 삭제·자동 sweep·강제 프로세스 종료로 완료 조건을 맞추지 않는다.
+Close only this small unit `scoped-complete-with-limitations` when all WF-09–12 evidence exists. Remaining `reclaim-pending`/unknown/environment blocks/unpreserved results mean incomplete; record exact remaining criteria. No non-owned snapshot deletion/automatic sweeps/forced termination to satisfy completion.
 
-Library 완료는 위 다섯 조건의 실제 근거로만 판정하고 일반 cold·SF/SW 전체·대형 지원으로 확대하지 않는다. 기존 SF/SW 실행 상태를 보존하며 각 행의 AI 절차/구현 제외/필요 시 검증 분류를 따른다. 이 마감 범위에 대형 PV·OS/ARM 시험·설치/게시를 추가하지 않는다. 자동 모드·큐·일반 임대 인수·원본 공유는 구현 제외이고 source 반환 병합·게임 검증은 AI와 외부 도구 책임이다.
+Judge Library completion only from five actual criteria; no expansion to general cold/full SF-SW/large support. Preserve historical SF-SW states/follow AI-excluded-verification classifications. Add no large PV/OS-ARM/installation-publication. Automatic modes/queues/general lease takeover/original sharing excluded; source-return merging/game verification belong to AI/external tools.
 
-이번 Library 구현·검증의 마감은 위 다섯 기준에 한정한다. 새 입력이나 후보에서 보존 결함이 드러나면 해당 경계를 함께 수정·검증한다. 별도 NR 전체 장애나 공개 운영 범위를 자동으로 실행하지 않는다.
+Library implementation-verification closure is limited to five criteria. New-input/candidate preservation defects require relevant fixes/verification. No automatic full NR/public-operation runs.
 
-## 공통 저장소와 Editor 정책
+<a id="공통-저장소와-editor-정책"></a>
+## Common storage and Editor policy
 
-작업자는 Editor 없이 독립 소스를 편집하고 기존 불변 후보 경로를 명시적으로 사용할 수 있다. 검증 view는 정상 Editor stop·mount 부재 뒤 같은 경로/Library로 재시작한다. AI가 작업 순서와 모드를 선택하며 실제 대기·replay·재시작 비용을 기록한다. 사용자 원본 Editor는 별도 소유로 보존하고 제품 공유/인수 계약을 추가하지 않는다. 작업 기간 전체의 원본 쓰기를 막지 않는다.
+Workers edit independent sources without Editors/use existing immutable candidates explicitly. Verification views restart at same paths/Library only after normal Editor stop/no mounts. AI selects task order/modes; record actual waits/replay-restart costs. Preserve user original Editor ownership; no product sharing/takeover contracts. Do not block original writes throughout work.
 
-전체 논리 파일 트리와 GUID/.meta·패키지 의존성을 유지하며 범위 읽기와 실제 변경만 저장한다. 현재 씬이 참조하는 파일만 선택하는 방식이나 파일 전체 복사로 대체하지 않는다. 도구가 전체 파일을 다시 쓰면 그 쓰기는 누적되므로 정리·독립 Git 결과의 materialization 비용까지 포함한다.
+Retain whole logical tree/GUID-meta/package dependencies, storing range reads/actual changes. No selecting only current-scene referenced files/whole-file copying substitute. Tools rewriting whole files accumulate writes; include compaction/independent Git result materialization costs.
 
-첫 비교 지표는 **원본을 제외한 총 추가 물리 공간과 최고치**다. worker delta, 검증 view/Library, Git·LFS·독립 결과, 임시 파일, 공유 VSS를 분리한다. VSS는 볼륨 공유 관측이며 workspace 비용으로 귀속하거나 중복 합산하지 않는다. 논리 길이·누적 관리 할당·working set은 물리 공간과 다르고 unknown을 0으로 바꾸지 않는다.
+First comparison metric is **total extra physical space/peak excluding original**. Separate worker deltas/view-Library/Git-LFS-independent results/temporary files/shared VSS. VSS is shared-volume observation, neither task attribution nor double-counted. Logical length/cumulative managed allocations/working set differ from physical space; unknown stays unknown.
 
-원본·결과 보존과 입력 적합성을 전제로, 위 우선순위인 물리 공간 → 메모리 → 안정적인 병렬 작업을 따른다. 독립 Editor는 병렬 실행 이익이 추가 비용을 감당하는 경우의 선택지로 평가하며 몇 분 이내 준비 시간 자체를 채택 실패나 최우선 병목으로 보지 않는다.
+With original-result preservation/input conformance prerequisites, follow physical space → memory → stable parallel work. Evaluate independent Editors when parallel gains justify added costs; preparation within minutes alone is neither adoption failure nor highest-priority bottleneck.

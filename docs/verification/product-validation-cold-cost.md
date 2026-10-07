@@ -1,38 +1,44 @@
-# 제품 validation의 새 cache 반복과 비용
+<a id="제품-validation의-새-cache-반복과-비용"></a>
+# Product validation repeated new-cache runs and cost
 
-WF-06~08은 **scoped-complete-with-limitations**다. 같은 최종 제품 바이너리에서 서로 다른 빈 cache 두 개의 A/B/A를 완료하고, 실행 중 원시 응답 schema·실제 코드/에셋/PNG·독립 결과·소유 자원 회수를 확인했다. 각 세대는 렌더 준비를 정상 종료한 뒤 같은 source/cache에서 다시 시작하여 최종 검증하므로, A/B/A당 Editor 시작은 6회다. 앞선 두 시도의 `ValidationSourceChanged`·`EditorStopTimeout`과 진단 복구는 따로 보존하고 최종 두 실행에 합산하지 않았다. t1 종료 검사 보정과 t2의 첫 Editor 시작 전 준비 요청 재시도도 아래에 기록한다. **SF-02/03 전체는 Partial**이며 대형 프로젝트의 공간 절감이나 기본 방식 채택은 판정하지 않는다.
+[한국어](../ko/verification/product-validation-cold-cost.md)
 
-## 입력과 재현 경계
+WF-06–08 are **scoped-complete-with-limitations**. Completed A/B/A with two different empty caches using identical final product binaries; verified raw response schemas/actual code/assets/PNGs/independent results/owned-resource reclaim. Each generation normally stops render preparation, restarts same source/cache for final validation: 6 Editor starts per A/B/A. Prior two attempts' `ValidationSourceChanged`/`EditorStopTimeout`/diagnostic recovery preserved separately, not added to two final runs. t1 closeout-check correction/t2 pre-first-Editor preparation retry recorded below. **Full SF-02/03 Partial**; large-project savings/default-method adoption not judged.
 
-- 제품 기준 `3573bba78d8382f42c2e32a60745274e7599f9fa`의 작업 트리에 정상 종료 대기 수정을 적용했다. 최종 소스/계약/스크립트/회귀 시험 152개와 바이너리 21개의 hash를 실행 전후 대조했다. 종료 대기는 단조 시간 기준 최대 2분이며 미저장 상태 거부·취소·timeout 시 보존을 유지한다. source sequence 검사와 flush 정책은 바꾸지 않았다.
-- Windows x64 10.0.26200, Ryzen 5 5600X 6코어/12스레드, RAM 약 64 GiB, .NET SDK 10.0.112, Unity x64 `6000.3.22f1`이다. 작은 fixture 기준은 `58f81b5`, 추적 파일 90개·payload 6,235,231 bytes이며 원본 Library는 없다. probe/render의 세 파일은 `splinter-unity` `6a54974`의 실제 바이트를 worker에 넣은 뒤 게시했다.
-- A의 코드 값/텍스처 설정은 23/1024, B는 33/2048이다. A 전용 파일은 B에서 없고, 각 세대의 `Validation*.txt`는 다음 세대로 넘어가지 않는다. worker A의 후속 편집 값 24는 후보 검증 성공을 승계하지 않는다. 두 실행에서 같은 후보 라벨의 입력 파일 hash가 일치하고 네 worker의 VSS ID는 모두 다르다.
-- t1의 정상 실행은 앞선 두 실패 view를 명시적으로 닫은 뒤 **다른 빈 view/cache**에서 시작했다. t1 worker/snapshot과 불변 후보의 생성·게시에는 수정 전 제품을 사용했고, 그 입력을 보존하여 최종 제품의 새 cache 반복에 재사용했다. t2는 최종 제품으로 별도 home·새 worker/snapshot·빈 cache를 만들었다. 두 정상 A/B/A의 선택 이후 실행은 같은 최종 바이너리이며, 각 trial 안에서는 같은 경로/cache를 유지하고 정상 stop·mount 부재 뒤 재시작했다. cold는 Unity Library 부재이며 OS·사용자 공용 cache가 비었다는 뜻이 아니다.
-- 기존 소유 NTFS VHD를 재사용했다. 원본 위치/파일시스템을 바꾸지 않았으며 최초 데이터 복제와 읽기 cache는 provider 관측상 0이다. 관리자 helper는 이 VHD와 고정된 네 worker의 VSS 작업으로 제한했다. 일반 CLI·Git·Unity는 비관리자로 실행했다.
+<a id="입력과-재현-경계"></a>
+## Input and reproduction boundaries
 
-원시 근거는 [실행 디렉터리](../../artifacts/storage-foundation/wf-cold-20260928/), [최종 후보 manifest](../../artifacts/storage-foundation/wf-cold-20260928/final-candidate-manifest.json), [전체 교차 검증](../../artifacts/storage-foundation/wf-cold-20260928/verified-run.json), [비용 JSON](../../artifacts/storage-foundation/wf-cold-20260928/cost-summary.json)이다. 이전 `candidate-manifest.json`, harness 두 이전 판과 최종 `run-trial.ps1`, 진단·회수 스크립트 및 raw JSON/PNG/TRX를 보존한다. 고정 ID·소유권·현재 파일이 전제인 실행 기록이며 그대로 재실행하거나 기존 증거를 덮어쓰지 않는다.
+- Applied normal-shutdown wait fix to product `3573bba78d8382f42c2e32a60745274e7599f9fa` working tree. Compared before/after execution hashes for 152 final source/contract/script/regression files/21 binaries. Shutdown wait monotonic, maximum 2 minutes; unsaved-state rejection/cancellation/timeout preservation retained. Source-sequence checks/flush policy unchanged.
+- Windows x64 10.0.26200/Ryzen 5 5600X 6 cores/12 threads/~64 GiB RAM/.NET SDK 10.0.112/Unity x64 `6000.3.22f1`. Small fixture basis `58f81b5`, 90 tracked files/payload 6,235,231 bytes/no original Library. Three probe/render files inserted as actual `splinter-unity` `6a54974` bytes into workers before publication.
+- A code/texture 23/1024; B 33/2048. A-only file absent from B; each generation's `Validation*.txt` not transferred. Later worker A value 24 does not inherit candidate validation success. Same-candidate-label input hashes match across runs; all four worker VSS IDs differ.
+- Normal t1 started in **different empty view/cache** after explicitly closing two prior failed views. t1 worker/snapshot/immutable-candidate creation/publication used pre-fix product, preserving inputs for final-product new-cache repetition. t2 final product created separate home/new worker/snapshot/empty cache. After selection, both normal A/B/A runs use same final binaries; same path/cache per trial, restart after normal stop/mount absence. Cold means no Unity Library, not empty OS/user shared caches.
+- Reused existing owned NTFS VHD. Original location/filesystem unchanged; initial duplication/read cache 0 per provider observations. Administrator helper limited to VHD/four fixed worker VSS operations. Ordinary CLI/Git/Unity non-administrator.
 
-[PNG 시각 확인](../../artifacts/storage-foundation/wf-cold-20260928/preview-visual-review.json)과 [회수 후 증거 파일 해시 목록](../../artifacts/storage-foundation/wf-cold-20260928/evidence-manifest.json)으로 보존 파일을 식별한다.
+Raw evidence: [execution directory](../../artifacts/storage-foundation/wf-cold-20260928/), [final candidate manifest](../../artifacts/storage-foundation/wf-cold-20260928/final-candidate-manifest.json), [full cross-validation](../../artifacts/storage-foundation/wf-cold-20260928/verified-run.json), [cost JSON](../../artifacts/storage-foundation/wf-cold-20260928/cost-summary.json). Preserves previous `candidate-manifest.json`, two prior harness versions/final `run-trial.ps1`, diagnostic/reclaim scripts/raw JSON/PNG/TRX. Fixed-ID/ownership/current-file-dependent execution record: not replayed verbatim/old evidence overwritten.
 
-## 두 빈 cache 검증 실행
+Preserved files identified by [PNG visual check](../../artifacts/storage-foundation/wf-cold-20260928/preview-visual-review.json)/[post-reclaim evidence-file hashes](../../artifacts/storage-foundation/wf-cold-20260928/evidence-manifest.json).
 
-| 실행 | 준비 시작→ready A1 / B / A2 (초) | 검증 재시작→ready A1 / B / A2 (초) | 소유 host 파일 할당 관측 최고 (GiB) | 회수 후 해당 home (GiB) | 채택 실행 / 실패·진단 포함 전체 (초) |
+<a id="두-빈-cache-검증-실행"></a>
+## Verification runs with two empty caches
+
+| Run | Preparation start→ready A1 / B / A2 (s) | Validation restart→ready A1 / B / A2 (s) | Observed max owned host allocation (GiB) | Corresponding home after reclaim (GiB) | Adopted run / total including failures/diagnosis (s) |
 | --- | --- | --- | ---: | ---: | --- |
 | t1 | 949.19 / 75.06 / 71.43 | 59.23 / 61.25 / 59.50 | 2.247 | 0.003 | 2025.28 / 5346.05 |
 | t2 | 929.20 / 75.91 / 73.65 | 61.43 / 59.55 / 59.48 | 2.264 | 0.002 | 2170.19 / 2170.19 |
 
-host 합계는 C:의 두 home·전체 실행 artifacts/독립 결과와 VHD backing 파일의 시험 시작 대비 증가량이다. 두 번째 실행의 합계에는 첫 실행의 보존 결과가 남는다. t1 정상 구간은 새 cache 준비부터이며 최초 ensure/publish와 실패·진단 비용은 전체 구간과 원시 명령 시간에 남긴다. Editor ready 이후의 PNG·설정 준비 종료와 재시작·최종 refresh·보존·회수도 전체 시간에 포함한다. ready만으로 최종 검증 완료를 뜻하지 않는다.
+Host total: two C: homes/all execution artifacts/independent results/VHD backing-file increase since test start. Second-run total retains first-run results. Normal t1 starts with new-cache preparation; initial ensure/publish/failure/diagnosis costs retained in total/raw command times. PNG/settings preparation exit/restart/final refresh/preservation/reclaim after ready also included in total. Ready alone not final validation completion.
 
-여섯 세대 모두 모델 3 mesh·3,001 vertices·2,441 triangles, 씬의 누락 mesh 0, 원래 씬 상태 복구를 확인했다. 640×480 PNG는 요청 경로 hash·파일 SHA-256·각 pass의 foreground pixel을 검사하고 첫 유효 이미지를 채택했다. 최대 두 번 규칙은 유지하며 Unity 내부 첫 draw 원인은 여기서 확정하지 않는다. `inspect-*.json`, `preparation-*.json`, `validated-*.json`, `observe-*-1.json`과 세대별 보존 receipt가 실제 코드·domain/MVID·후보 seal·output seal을 연결한다.
+All six generations verified 3 model meshes/3,001 vertices/2,441 triangles/0 missing scene meshes/original scene restoration. 640×480 PNGs checked request-path hash/file SHA-256/per-pass foreground pixels, selected first valid image. Maximum-two rule retained; no Unity internal first-draw cause established. `inspect-*.json`, `preparation-*.json`, `validated-*.json`, `observe-*-1.json`, generation preservation receipts link actual code/domain/MVID/candidate seal/output seal.
 
-최종 두 실행의 원시 응답 schema 169건, 실제 입력/후속 payload 146건을 포함한 461건이 통과했다. 앞선 실패·진단까지 합친 전체는 응답 245건, 입력/후속 217건, 총 677건이다. 실행 중 출력한 원문을 검사했고 최종 두 실행의 Accepted 후속 status를 실제 호출했다. 이전 WF의 formatter 재직렬화 결과를 새 실행으로 세지 않았다.
+461 checks passed for final two runs, including 169 raw response schemas/146 actual input/subsequent payloads. Overall including prior failures/diagnosis: 245 responses/217 inputs/subsequent payloads/677 total. Original runtime outputs checked; actual Accepted follow-up status called in final runs. Previous WF formatter reserialization not counted as new execution.
 
-- t1: CLI 응답 156회, Accepted 후속 status 13회. 실패 응답의 code별 횟수: SnapshotPrivilegeRequired 9회, EditorStopTimeout 1회, ValidationSourceChanged 1회. `SnapshotPrivilegeRequired`는 비관리자 CLI에서 고정 helper로 넘기는 권한 경계다.
-- t2: CLI 응답 89회, Accepted 후속 status 9회. 실패 응답의 code별 횟수: SnapshotPrivilegeRequired 8회, InputUnavailable 1회. `SnapshotPrivilegeRequired`는 비관리자 CLI에서 고정 helper로 넘기는 권한 경계다.
+- t1: 156 CLI responses/13 Accepted follow-up statuses. Failed-response counts: SnapshotPrivilegeRequired 9, EditorStopTimeout 1, ValidationSourceChanged 1. `SnapshotPrivilegeRequired` is non-administrator CLI handoff to fixed helper privilege boundary.
+- t2: 89 CLI responses/9 Accepted follow-up statuses. Failed-response counts: SnapshotPrivilegeRequired 8, InputUnavailable 1. `SnapshotPrivilegeRequired` is non-administrator CLI handoff to fixed helper privilege boundary.
 
-## 추가 파일 할당과 측정 한계
+<a id="추가-파일-할당과-측정-한계"></a>
+## Additional allocation and measurement limits
 
-| 시점 | 해당 home (GiB) | 그 중 cache journal (GiB) | 전체 증거·독립 결과 (GiB) | VHD backing 증가 (GiB) | 내부 Git 증가 (KiB, 별도 층) |
+| Point | Corresponding home (GiB) | Cache journal therein (GiB) | All evidence/independent results (GiB) | VHD backing increase (GiB) | Internal Git increase (KiB, separate layer) |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | t1 a1-stopped | 2.131 | 2.119 | 0.039 | 0.000 | 34.61 |
 | t1 b-stopped | 2.167 | 2.145 | 0.040 | 0.000 | 39.31 |
@@ -45,44 +51,47 @@ host 합계는 C:의 두 home·전체 실행 artifacts/독립 결과와 VHD back
 | t2 results-preserved | 0.002 | 0.000 | 0.070 | 0.000 | 41.09 |
 | t2 released | 0.002 | 0.000 | 0.070 | 0.000 | 15.91 |
 
-파일 할당은 Windows `FILE_STANDARD_INFO.AllocationSize`를 5초 대기와 계측 시간을 합친 주기로 관측했다. worker·candidate·세대 source·cache journal·영수증/로그·TEMP/TMP·독립 bundle/bare Git·계측 artifacts를 겹치지 않는 root에서 읽었다. 실제 mount는 순회하지 않아 읽기 hydration을 유발하지 않는다. 공유 삭제를 허용한 handle을 사용한다. 불완전한 표본은 비용 JSON에 따로 남기고 최고치 계산은 완전한 표본으로 한다. t1의 불완전 표본 1개는 열기 전에 사라진 heartbeat 게시용 임시 파일 때문에 전체 합계에서 제외했다.
+File allocation observed via Windows `FILE_STANDARD_INFO.AllocationSize`, cadence 5-second wait+measurement time. Worker/candidate/generation source/cache journals/receipts/logs/TEMP/TMP/independent bundles/bare Git/measurement artifacts read from nonoverlapping roots. Actual mounts not traversed, avoiding read hydration. Handles permit delete sharing. Incomplete samples separately recorded in cost JSON; maxima use complete samples. t1's one incomplete sample excluded because heartbeat publication temporary file vanished before open.
 
-- t1: 표본 1046개 중 완전 관측 1045개, 전체 표본 사이 최대 간격 5.80초, 완전 표본 사이 최대 간격 10.30초. 파일 계측 1회 중앙값 99.81 ms, 누적 벽시계 112.41초. Editor 본체 working set 관측 최고 3.071 GiB, 제품 status의 소유 앱 그룹 관측 최고 4.304 GiB. V: 공유 VSS used/allocated 관측 최고는 2,703,360 / 34,209,792 bytes.
-- t2: 표본 415개 중 완전 관측 415개, 전체 표본 사이 최대 간격 6.07초, 완전 표본 사이 최대 간격 6.07초. 파일 계측 1회 중앙값 227.26 ms, 누적 벽시계 96.78초. Editor 본체 working set 관측 최고 2.945 GiB, 제품 status의 소유 앱 그룹 관측 최고 4.232 GiB. V: 공유 VSS used/allocated 관측 최고는 2,473,984 / 34,242,560 bytes.
+- t1: 1046 samples/1045 complete; maximum all-sample gap 5.80s/complete gap 10.30s. File-measurement median 99.81 ms/cumulative wall 112.41s. Editor-body working-set observed maximum 3.071 GiB/product-owned-app-group maximum 4.304 GiB. V: shared VSS observed maximum used/allocated 2,703,360 / 34,209,792 bytes.
+- t2: 415/415 complete; maximum all-sample gap 6.07s/complete-sample gap 6.07s. File-measurement median 227.26 ms/cumulative wall 96.78s. Editor-body working-set observed maximum 2.945 GiB/product-owned-app-group maximum 4.232 GiB. V: shared VSS observed maximum used/allocated 2,473,984 / 34,242,560 bytes.
 
-이 값은 **파일 할당의 관측 최고치**이며 모든 순간의 물리 최고치가 아니다. MFT/디렉터리 metadata, kernel/OS cache와 작업 전부터 공유하는 Unity 사용자 cache는 별도 계측하지 않았다. 기존 VHD backing 기준 할당 5,104,467,968 bytes는 새 사용량에 다시 더하지 않는다. V: 내부 Git과 VSS를 backing 증가에 중복 합산하지 않는다. VSS는 볼륨 공유량이며 `workspaceAttribution=unknown`; C:의 비소유 snapshot과 공유 VSS 관측도 원시 기록에 남겼다. 이 작은 입력과 두 표본으로 일반 성능 분포·대형 공간 절감·C/S/Q 우위를 주장하지 않는다.
+These are **observed file-allocation maxima**, not physical maxima at every instant. MFT/directory metadata/kernel/OS caches/preexisting shared Unity user caches not separately measured. Existing VHD backing baseline 5,104,467,968 bytes not readded as new usage. V: internal Git/VSS not double-counted in backing growth. VSS volume shared, `workspaceAttribution=unknown`; C: non-owned snapshots/shared VSS also in raw records. Small input/two samples do not establish general performance distributions/large savings/C/S/Q superiority.
 
-## 첫 시도의 거부와 운영 개입
+<a id="첫-시도의-거부와-운영-개입"></a>
+## First-attempt rejection and operational intervention
 
-첫 cold import 자체와 코드/에셋/PNG·정상 stop은 진행됐지만, 검증 요청의 source sequence 2361 뒤 `ProjectSettings/ShaderGraphSettings.asset` 저장으로 stop 전 2397, stop 후 2405가 관측되어 `observe-validation`이 `ValidationSourceChanged`를 반환했다. 임시 directory-monitor 파일과 다른 **일반 설정 파일 쓰기**이므로 검사를 완화하지 않았다. 원본과 진단 후 설정 SHA-256은 같았지만 현재 계약은 요청 이후의 쓰기 sequence를 검사한다.
+Initial cold import/code/assets/PNG/normal stop proceeded, but after validation-request source sequence 2361, `ProjectSettings/ShaderGraphSettings.asset` save produced pre-stop 2397/post-stop 2405; `observe-validation` returned `ValidationSourceChanged`. An **ordinary settings-file write**, distinct from temporary directory-monitor file, so checks not relaxed. Original/post-diagnostic settings SHA-256 identical, but current contract checks writes after request by sequence.
 
-첫 실패와 원시 제어 파일을 보존하고 같은 세대를 명시적으로 start/refresh/stop했다. 같은 pending observe 요청의 재시도가 성공한 뒤 독립 결과를 보존하고 source/cache를 회수했다. 두 번째 빈 cache 시도에서 렌더를 먼저 실행하고 reload해도 ShaderGraph의 `OnDisable → Save` 때문에 sequence 2401→2413의 쓰기가 남았다. 또한 Editor는 정상 종료 코드 0으로 끝났지만 `exiting`부터 약 54.05초가 걸려 기존 30초 대기의 `EditorStopTimeout`이 반환됐다. 자연 종료 확인 후 같은 stop을 재시도하고 이 결과도 독립 보존·source/cache 회수했다. 두 번째 결과에는 validation 성공을 주장하지 않는다.
+Preserved first failure/raw control files; explicitly start/refresh/stop same generation. Same pending observe retry succeeded, then independent results preserved/source/cache reclaimed. In second empty-cache attempt, render-before-reload still left ShaderGraph `OnDisable → Save` sequence 2401→2413. Editor also exited normally code 0 but took ~54.05s from `exiting`, yielding `EditorStopTimeout` under old 30s wait. Verified natural exit/retried same stop; independently preserved result/reclaimed source/cache. Second result claims no validation success.
 
-종료 대기를 단조 시간 기준 최대 2분으로 수정하고 네 자동 회귀를 추가했다. 미저장 상태 거부와 취소는 즉시 반영하며 timeout은 강제 종료·회수가 아니다. 최종 두 실행에서는 준비 Editor를 정상 종료·unmount한 뒤 같은 세대를 재시작해 최종 refresh를 수행한다. ShaderGraph 설정을 불러오는 렌더 준비를 검증 뒤 반복하지 않는다. 이전 두 실패의 결과를 최종 후보의 통과로 합산하지 않았고 t1 전체 비용에는 실패·진단·수정 검증 대기·새 cache 반복을 포함한다. 단순한 세 번의 Editor 시작으로 끝나는 A/B/A보다 추가 비용이 있으며 기본 모드 적합성의 제한으로 남긴다.
+Changed shutdown wait to monotonic maximum 2 minutes/added four automatic regressions. Unsaved rejection/cancellation immediate; timeout not forced termination/reclaim. Final two runs normally close/unmount preparation Editor, restart same generation for final refresh. Render preparation loading ShaderGraph settings not repeated after validation. Previous two failures not added to final-candidate passes; total t1 includes failures/diagnosis/fix-verification wait/new-cache repetition. Extra cost over A/B/A with only 3 Editor starts remains default-mode suitability limitation.
 
-최종 t1의 제품 A/B/A·보존·회수 뒤에는 종료 검증 스크립트가 재사용 worker의 임시 branch 두 개를 기존 보호 ref로 잘못 계산하여 `OriginalChanged`를 반환했다. 원본 HEAD/index/90개 파일은 같았고, 빠진 ref는 해당 두 worker의 정상 release로 삭제되는 소유 branch뿐이었다. `trial-failure.json`을 보존하고 `source-audit-closeout.json`에서 첫 ensure 전의 기존 ref와 정확한 소유 branch를 대조했다. 제품·Editor 재시작이나 파일 구조 복구 없이 나머지 종료 관측을 완료했으며, 이 점검 시간도 t1 전체 구간에 포함한다.
+After final t1 product A/B/A/preservation/reclaim, closeout script miscounted two reused-worker temporary branches as preexisting protected refs, returned `OriginalChanged`. Original HEAD/index/90 files identical; missing refs exactly owned branches removed by normal worker release. Preserved `trial-failure.json`; `source-audit-closeout.json` compared pre-first-ensure existing refs/exact owned branches. Completed remaining closeout without product/Editor restart/file-structure repair; check time included in t1 total.
 
-t2에서는 첫 Editor 시작 전 `prepare-worker`의 정상 unmount 직후 `state.json` 읽기가 한 번 `InputUnavailable`로 실패했다. 이어 확인한 상태는 같은 소유 provider의 `unmounted`, I/O 실패 0이었으며 mount는 없고 journal은 보존돼 있었다. 같은 prepare 요청 원문을 재시도하여 성공한 뒤 게시와 빈 cache A/B/A를 진행했다. 제품/입력/제어 파일을 수동 복구하지 않았고 `preparation-retry.json`, 원시 실패·재시도·이어 실행한 스크립트와 그 비용을 남겼다. 순간 읽기 실패의 정확한 원인은 미확정이며 무오류 준비 경로의 증거로 사용하지 않는다.
+In t2, before first Editor launch, `state.json` read immediately after normal `prepare-worker` unmount once failed `InputUnavailable`. Next state same owned provider `unmounted`/I/O failure 0/no mount/journal preserved. Retried exact preparation request, succeeded, then publication/empty-cache A/B/A. No manual product/input/control-file repair; preserved `preparation-retry.json`, raw failure/retry/subsequent script/cost. Transient-read cause unresolved, not error-free preparation evidence.
 
-제품 호출 전 PowerShell `File.Replace` backup 인자 오류와 진단 대기 스크립트의 heartbeat 생성 전 읽기도 `setup-deviations.json`에 남겼다. sandbox 밖 실행은 관리자 CLI 실행과 구분한다. 고정 VSS helper 요청의 시간/횟수, 모든 CLI 상태/시간과 schema 검사를 보존했다. timeout·Editor 종료를 discard 승인으로 사용하지 않았다.
+Pre-product-call PowerShell `File.Replace` backup-argument error/diagnostic wait-script reading heartbeat before creation recorded in `setup-deviations.json`. Outside-sandbox execution distinguished from administrator CLI. Fixed VSS-helper request times/counts/all CLI state/time/schema checks preserved. Timeout/Editor exit not discard authorization.
 
-## 독립 결과와 회수
+<a id="독립-결과와-회수"></a>
+## Independent results and reclaim
 
-두 정상 실행의 source A1/B/A2·candidate A/B·worker A/B **14개**, 앞선 두 시도의 source **2개**를 독립 bundle/bare Git에 보존했다. VHD를 분리한 뒤 16개 결과의 객체 존재·commit hash·코드/에셋·생성 파일을 확인했다. 원본 HEAD/index/90개 추적 파일과 기존 refs, 시작 때 있던 C: 비소유 snapshot은 유지됐다.
+Preserved **14** source A1/B/A2/candidate A/B/worker A/B results from two normal runs plus **2** source results from prior attempts as independent bundles/bare Git. After VHD detach verified object existence/commit hashes/code/assets/generated files for 16 results. Original HEAD/index/90 tracked files/existing refs/initial non-owned C: snapshots retained.
 
-각 trial의 소유 앱/provider 프로세스·메모리·handle·mount·Git worktree 등록·source/cache/worker journal·V: snapshot은 0/부재를 확인했다. retained metadata와 독립 결과는 삭제하지 않았고 할당 표에 포함했다. `verified-after-detach.json`, `response-finish.json`, `session-stopped.json`, `sample-detached.json`, `final-environment.json`이 종료 근거다. VHD는 삭제하지 않고 분리했고 관리자 helper와 계측기를 종료했다.
+Each trial verified owned app/provider processes/memory/handles/mounts/Git worktree registrations/source/cache/worker journals/V: snapshots 0/absent. Retained metadata/independent results not deleted, included in allocation table. Closure evidence `verified-after-detach.json`, `response-finish.json`, `session-stopped.json`, `sample-detached.json`, `final-environment.json`. VHD detached, not deleted; administrator helper/measurer exited.
 
-VHD 분리 직후 남은 두 home의 합은 0.006 GiB, 당시 실행 증거·독립 결과는 0.070 GiB, VHD backing의 시작 대비 증가는 0.000 GiB다. 전체 계측 구간의 host 파일 할당 관측 최고는 2.264 GiB다. 계측 종료 뒤 작성한 집계 JSON·문서·최종 해시 목록은 이 종료 표본 이후의 작은 산출물이며 당시 할당으로 소급 계산하지 않는다.
+Immediately post-detach two homes total 0.006 GiB/evidence+independent results 0.070 GiB/VHD backing increase from start 0.000 GiB. Whole measurement host allocation observed max 2.264 GiB. Aggregation JSON/documents/final hashes written after measurement are small later outputs, not retroactively counted in closing allocation.
 
-최종 `pwsh -NoProfile -File scripts/build.ps1`은 locked restore·Release 빌드와 **515 Passed / 0 Failed / 1 Skipped**다. 당시 제외 시험 root가 없는 시험은 Skipped로 유지했다. 시험 전 자동 baseline과 이번 최종 TRX를 구별해 보존했다.
+Final `pwsh -NoProfile -File scripts/build.ps1`: locked restore/Release/**515 Passed / 0 Failed / 1 Skipped**. Test lacking retired-at-the-time root remains Skipped. Pre-test automatic baseline/final TRX separately preserved.
 
-제품 기본 모드, 일반 임대 복구·생성 source 반환 병합·큐/Coordination, 설치·binding·discard·권한 서비스, 대형 PV와 NR의 재부팅/전원/공간/ARM A/B는 [남은 계획](../plans/storage-priority-and-editor-modes.md)에 있다. [기존 WF-01~05](product-validation-workflow.md)의 cold 중단·복구 기록은 이 실행으로 소급 변경하지 않는다.
+Product default modes/general lease recovery/generated-source return merge/queues/Coordination/installation/binding/discard/privilege service/large PV/NR reboot/power/storage/ARM A/B in [remaining plan](../plans/storage-priority-and-editor-modes.md). Existing [WF-01–05](product-validation-workflow.md) cold interruption/recovery records not retroactively changed.
 
-## 단계별 CLI 시간
+<a id="단계별-cli-시간"></a>
+## Per-stage CLI timing
 
-모든 시작의 CLI 진입부터 Editor 프로세스 생성까지는 아래와 같다. mount/replay와 CLI·소유권 검사·프로세스 시작 준비를 합친 구간이며 순수 replay 시간은 아니다. Accepted를 반환한 시도 기준이고, 선행 권한 요청·helper·재시도는 별도 명령 목록과 전체 벽시계에 포함한다.
+CLI entry→Editor process creation for every start below combines mount/replay/CLI/ownership checks/process preparation, not pure replay. Accepted attempts listed; preceding privilege request/helper/retry included separately in command lists/whole wall time.
 
-| 실행·세대 | 준비 Editor 생성 전 (초) | 검증 Editor 생성 전 (초) |
+| Run/generation | Before preparation Editor creation (s) | Before validation Editor creation (s) |
 | --- | ---: | ---: |
 | t1 a1 | 3.52 | 8.50 |
 | t1 b | 8.81 | 8.89 |
@@ -91,9 +100,9 @@ VHD 분리 직후 남은 두 home의 합은 0.006 GiB, 당시 실행 증거·독
 | t2 b | 9.34 | 8.97 |
 | t2 a2 | 9.29 | 9.20 |
 
-관측한 provider 세대의 내부 store 준비와 source/cache replay는 다음과 같다. 상태 표본이 있는 세대만 기록하며 전체 `start` 응답 시간·Editor ready 시간과 구별한다. PID는 Editor가 아닌 해당 mount provider다. 같은 provider 세대의 반복 표본을 중복 합산하지 않았다. 표본이 없는 세대의 세부 replay는 추정하지 않으며 모든 start 명령 시간은 아래에 보존한다.
+Observed provider-generation internal store preparation/source/cache replay below. Only generations with state samples recorded; distinguished from whole `start` response/Editor ready time. PIDs are mount providers, not Editors. Repeated same-generation samples not summed twice. Missing generation replay details not estimated; all start times preserved below.
 
-| 실행·관측 라벨 / provider PID | store 준비 (초) | source replay (초) | cache replay (초) |
+| Run/observation label / provider PID | Store preparation (s) | Source replay (s) | Cache replay (s) |
 | --- | ---: | ---: | ---: |
 | t1 a1-preparation-started / 59344 | 0.05 | 0.00 | 0.00 |
 | t1 b-preparation-started / 71616 | 5.34 | 0.00 | 5.29 |
@@ -105,9 +114,9 @@ VHD 분리 직후 남은 두 home의 합은 0.006 GiB, 당시 실행 증거·독
 | t2 a2-preparation-started / 61840 | 5.79 | 0.00 | 5.74 |
 | t2 a2-started / 68804 | 6.03 | 0.01 | 5.97 |
 
-Accepted start/refresh는 명령 응답 시간이며 Editor ready·검증 완료 대기와 다르다. snapshot/helper·ensure/publish·후속 status와 재시도는 `cost-summary.json`의 전체 명령/관리자 작업 목록에서 확인한다.
+Accepted start/refresh times are command responses, distinct from Editor-ready/validation-completion waits. Snapshot/helper/ensure/publish/follow-up status/retries in full command/administrator list in `cost-summary.json`.
 
-| 실행·명령 | 응답 시간 (초) |
+| Run/command | Response time (s) |
 | --- | ---: |
 | t1 select-a1 | 2.11 |
 | t1 select-b | 7.09 |

@@ -1,47 +1,56 @@
-# Git 소스·원본 Library 참조와 MCP/RAM 검증
+<a id="git-소스원본-library-참조와-mcpram-검증"></a>
+# Git source, original Library references, and MCP/RAM verification
 
-2026-10-04 사용자 요청은 Git 프로젝트의 Library도 원본 데이터를 참조하고 각 병렬 작업의 변경은 따로 저장하며, 실제 A/B의 MCP 연결과 RAM 절감 여부를 확인하는 것이다. 기존 cold Git A/B의 [검증](../verification/git-unity-validation.md)은 비교 근거이며 새 warm 경로의 통과로 승계하지 않는다. HTML은 작성하지 않는다.
+[한국어](../ko/plans/git-library-reference.md)
 
-## 고정 요구와 발견한 경계
+On 2026-10-04 the user requested that Git projects also reference original Library data, store each parallel task's changes separately, and verify actual A/B MCP connections and RAM savings. Existing cold Git A/B [verification](../verification/git-unity-validation.md) is comparison evidence, not a pass for the new warm path. Produce no HTML.
 
-- Git 소스는 현재 fixed commit/tree/blob과 source/target/dirty/peer guard를 유지한다.
-- 기존 원본 Library를 기준으로 읽되 초기 전체 복사·읽기 hydration·파일 전체 copy-up·VSS 재도입으로 우회하지 않는다. 각 작업의 Library 쓰기는 별도 범위 저널이다.
-- 원본이 계속 수정돼도 시작 세대의 Library 바이트가 유지돼야 한다. mtime/길이·감시 알림·하드링크만으로 불변성을 주장하지 않는다.
-- 현재 WinFsp는 mount를 통해 오는 쓰기만 처리한다. 원본의 직접 NTFS 쓰기와 mmap 덮어쓰기는 현재 provider를 통과하지 않는다. Git ignored Library에는 이전 내용을 복원할 객체가 없다.
-- [oplock](https://learn.microsoft.com/en-us/windows/win32/fileio/types-of-opportunistic-locks)은 접근/쓰기 충돌 통지이며 변경 범위의 이전 내용 저장 구현을 대신하지 않는다.
+<a id="고정-요구와-발견한-경계"></a>
+## Fixed requirements and observed boundaries
 
-## 검토 가능한 두 실행 경로
+- Git source retains current fixed commit/tree/blob and source/target/dirty/peer guards.
+- Read from the existing original Library basis without bypassing through initial full copies, read hydration, whole-file copy-up, or reintroduced VSS. Each task's Library writes use a separate range journal.
+- Starting-generation Library bytes must remain stable while the original continues changing. Do not claim immutability from mtime/length, watch notifications, or hardlinks alone.
+- Current WinFsp handles only writes through the mount. Direct original NTFS writes and mmap overwrites bypass the current provider. Git ignored Library has no objects to restore earlier contents.
+- [Oplocks](https://learn.microsoft.com/en-us/windows/win32/fileio/types-of-opportunistic-locks) notify access/write conflicts; they do not replace implementation for preserving earlier changed-range contents.
 
-### A: 원본 Library만 관리형 mount로 연결
+<a id="검토-가능한-두-실행-경로"></a>
+## Two reviewable execution paths
 
-사용자가 **Library만 관리형 mount 허용**으로 이 경로를 승인했다. 제품/소스 프로젝트 root·Assets·Packages·ProjectSettings는 같은 NTFS 위치에 남는다. 원본 Library의 접근 경로도 `<project>/Library`를 유지하지만 해당 디렉터리는 WinFsp가 제공하게 된다. 이 Library의 파일시스템/물리 배치 변경만 기존 요구의 예외다.
+<a id="a-원본-library만-관리형-mount로-연결"></a>
+### A: Connect only the original Library through a managed mount
 
-1. 정확한 원본 Editor/PID·시작 시각·dirty scene·MCP/서버 소유권을 확인한다. 최초 연결에는 원본 Editor의 저장/정상 종료가 필요하다. dirty 변경을 자동 폐기하지 않는다.
-2. 원본 Library를 같은 NTFS 볼륨의 소유 home 아래 고정 base 디렉터리로 **rename**한다. 데이터 전체 복사 없이 최초 바이트를 보존한다. 예시 시험 home은 `.local/glr1004/home`, base는 `library-bases/<id>/base`다. 원본 source 경로의 이동은 없다.
-3. 원본의 기존 Library 경로에 별도 writable overlay를 연결한다. 원본 Editor도 이 경로를 통해 변경 범위만 쓰므로 A/B의 고정 base를 덮어쓰지 않는다. A/B는 같은 불변 Library 기준+각 private delta를 사용한다. 모든 owner·기준·호환 키와 의존성은 durable receipt로 유지한다.
-4. 첫 이동/mount·중단 재개·동일 요청·basis reader 보호를 먼저 fake/작은 실제 폴더로 검증한다. 사용자 원본의 첫 전환은 이 검토된 구현이 준비된 뒤 수행한다.
-5. 마지막 peer 회수 후 원본의 최종 변경 범위를 기준에 반영하고 정상 NTFS Library로 복원한다. 다른 작업/원본 변경·미완료 게시 intent가 있으면 보존하고 복원을 거부한다. 새 전체 Library materialization/파일 전체 copy-up으로 복원하지 않는다.
+The user approved this path by **allowing a managed mount for Library only**. Product/source project root, Assets, Packages, and ProjectSettings stay at the same NTFS locations. Original Library access remains `<project>/Library`, but WinFsp provides that directory. Only this Library filesystem/physical-layout change is an exception to existing requirements.
 
-이 경로는 원본 Library를 수정 가능한 관리형 경로로 만드는 새로운 수명주기다. 기존 `git-snapshot`의 mutable-source fallback이나 원본 mount 숨기기로 구현하지 않는다. 원본 Editor의 첫 정상 종료와 cache 위치/파일시스템 변경을 기존 읽기 권한으로 해석하지 않는다.
+1. Verify exact original Editor/PID/start time/dirty scenes/MCP/server ownership. Initial connection requires saving and normal original Editor shutdown. Do not automatically discard dirty changes.
+2. **Rename** original Library to a fixed base directory under an owned home on the same NTFS volume. Preserve initial bytes without a full data copy. Example test home is `.local/glr1004/home`, base `library-bases/<id>/base`. Do not move original source paths.
+3. Attach a separate writable overlay at the original Library path. Original Editor writes ranges through this path, so it cannot overwrite the A/B fixed base. A/B use the same immutable Library basis plus respective private deltas. Keep every owner/basis/compatibility key and dependency in durable receipts.
+4. First verify initial move/mount, interruption resumption, identical requests, and basis-reader protection with fakes/small real folders. Perform the user's first original transition only after this reviewed implementation is ready.
+5. After final peer reclamation, apply the original's final changed ranges to the basis and restore ordinary NTFS Library. Preserve/reject restoration with other-task/original changes or incomplete publication intent. Do not restore through new full Library materialization/whole-file copy-up.
 
-### B: 원본 Library의 NTFS 위치/파일시스템을 완전히 유지
+This path introduces a new lifecycle making original Library a writable managed path. Do not implement it as mutable-source fallback in existing `git-snapshot` or by hiding the original mount. Do not treat initial normal original Editor shutdown and cache-location/filesystem changes as existing read authorization.
 
-원본 NTFS의 쓰기·paging I/O·truncate·rename/delete 전에 필요한 이전 범위/메타데이터를 보존하는 별도 파일시스템 필터가 필요하다. WDK·드라이버 서명/설치·paging I/O와 전원/중단 보존은 기존 일반 사용자 WinFsp 코드의 연결 작업으로 포함하지 않는다. 필요한 개발/설치 조건과 한정 시험을 먼저 확인하며 현재 PC에 드라이버를 자동 설치하지 않는다.
+<a id="b-원본-library의-ntfs-위치파일시스템을-완전히-유지"></a>
+### B: Fully retain original Library NTFS location/filesystem
 
-## 구현과 검증의 종료 기준
+A separate filesystem filter must preserve needed previous ranges/metadata before original NTFS writes, paging I/O, truncate, rename/delete. WDK, driver signing/installation, paging I/O, and power/interruption preservation are not part of connecting existing normal-user WinFsp code. First establish development/installation prerequisites and bounded tests; do not automatically install a driver on the current PC.
 
-경로 선택 뒤 공통 불변 생성 데이터 기준·조합 tree·작업별 range store·owner/dependency/release/discard를 연결한다. 현재 schema/fake/적합성·capabilities/기능 문서·AGENTS를 함께 갱신하며 구형 상태를 자동 이관하지 않는다.
+<a id="구현과-검증의-종료-기준"></a>
+## Implementation and verification completion criteria
 
-| ID | 질문 | 종료 증거 |
+After path selection, connect common immutable generated-data basis/composed tree/per-task range store/owner/dependency/release/discard. Update current schema/fake/conformance, capabilities/feature documentation/AGENTS together; do not automatically migrate legacy state.
+
+| ID | Question | Completion evidence |
 | --- | --- | --- |
-| GL-01 | 원본 Library 기준을 복제 없이 안전하게 참조하는가 | Git commit+Library 세대의 정확한 identity·원본 후속 범위 쓰기 중 기존 A/B 바이트 유지·payload 복사/read hydration 0·private 쓰기 분리 |
-| GL-02 | 원본/peer와 기준의 수명이 보호되는가 | 같은 요청 복구·basis reader/dependent guard·A 회수 중 B 지속·마지막 회수와 원본 Library 복원 또는 필터 분리·독립 결과/원본 refs 유지 |
-| GL-03 | 각 Editor의 MCP가 reload 뒤에도 정확한가 | 호출별 실제 project/PID/start 확인·사전 refresh/reload 완료와 재발견·유실 job 확인·쓰기 무조건 반복 없음·전체 결과를 외부 저장 |
-| GL-04 | 실제 RAM 비용이 줄었는가 | 동일 source/Unity/package/scene/task의 비교·idle/작업 구간별 Editor/provider/reader·private/공유 resident/PSS 추정·프로세스 identity fencing. 미절감/unknown을 그대로 보고 |
-| GL-05 | 최종 결과와 소유 자원이 보존/회수되는가 | 독립 결과·정확한 A/B editor/provider/mount/등록/delta/basis refs 부재·원본 Editor/공유 MCP/기존 refs/config 보호·필수 build/UTF-8 |
+| GL-01 | Safely reference original Library basis without copying? | Exact Git commit+Library generation identity, existing A/B bytes retained during original subsequent range writes, zero payload copying/read hydration, separate private writes |
+| GL-02 | Protect original/peer and basis lifetimes? | Same-request recovery, basis reader/dependent guards, B continuing during A reclamation, final reclamation and original Library restoration or filter detachment, independent results/original refs retained |
+| GL-03 | Exact MCP target for each Editor after reload? | Actual project/PID/start per call, prior refresh/reload completion and rediscovery, lost-job checking, no unconditional write repetition, full results externally saved |
+| GL-04 | Actual RAM costs reduced? | Same source/Unity/package/scene/task comparison, Editor/provider/reader per idle/work interval, private/shared residency/PSS estimates, process identity fencing. Report no savings/unknown unchanged |
+| GL-05 | Final results/owned resources preserved/reclaimed? | Independent results, absence of exact A/B editors/providers/mounts/registrations/deltas/basis refs, original Editor/shared MCP/existing refs/config protected, required build/UTF-8 |
 
-RAM 측정에서는 Private Bytes·working set·공유 page 귀속과 전체 순간 peak를 구별한다. Library 파일 참조만으로 Unity 관리 heap/scene/graphics 메모리가 공유된다고 주장하지 않는다. 새 읽기 전용 process 계측은 원본에 대한 쓰기/정지 없이 준비할 수 있다. 실제 A/B·원본 Library 전환은 선택한 경로의 계약과 복구 구현 뒤 진행한다.
+Distinguish Private Bytes, working set, shared-page attribution, and total instantaneous peak in RAM measurement. Library references alone do not establish shared Unity managed heap/scene/graphics memory. Prepare new read-only process measurements without original writes/stops. Actual A/B and original Library transition follow the selected path's contract/recovery implementation.
 
-## 종료 판정
+<a id="종료-판정"></a>
+## Completion decision
 
-승인한 A 경로의 구현·GL-01~05와 한 실제 Git/Unity A/B를 [검증](../verification/git-library-reference.md)의 scoped-complete-with-limitations로 마감했다. 초기 payload 복사/read cache 0·공통 기준/각 범위 쓰기·MCP exact/reload/리소스/씬/current-state tests·독립 결과/소유 회수와 원본 NTFS 복원·재열기를 확인했다. 실제 RAM은 cold와 비슷해 절감을 확인하지 못했고, 준비/복원 비용·MCP 실패 상세 소실·전체 peak/공유 귀속 unknown은 후속 판단에 남긴다. 이 결과를 일반 RAM 절감이나 추가 VCS/환경 지원으로 확대하지 않는다.
+Approved path A implementation, GL-01–05, and one actual Git/Unity A/B closed as scoped-complete-with-limitations in [verification](../verification/git-library-reference.md). Confirmed zero initial payload copying/read cache, common basis/per-task range writes, exact MCP/reload/resources/scenes/current-state tests, independent results/owned reclamation, original NTFS restoration/reopening. Actual RAM resembled cold runs, so savings were unconfirmed; preparation/restoration costs, lost MCP failure details, and unknown total peak/shared attribution remain for future decisions. Do not expand this result to general RAM savings or additional VCS/environment support.

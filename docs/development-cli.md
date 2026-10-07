@@ -1,8 +1,11 @@
-# 개발 CLI와 선택적 저장 경로
+<a id="개발-cli와-선택적-저장-경로"></a>
+# Development CLI and optional storage paths
 
-제품 진입점은 `scripts/splinter.ps1`이며 NTFS 작업공간 생성/재개·소스 보존/통합·회수/폐기와 소유 Unity Editor의 start/status/stop만 제공한다. 컴파일·refresh·Play·테스트·빌드·캡처와 합격 판단은 에이전트와 외부 도구가 수행한다. `checkpoint`는 안정된 데이터를 보존하며 작업 내용의 성공을 선언하지 않는다.
+[한국어](ko/development-cli.md)
 
-개발·선택 기능은 별도 `scripts/splinter-dev.ps1`과 `tools/Splinter.Development`에서 발견한다. 같은 필수 빌드로 준비하며 자동 설치·실행·정리는 없다.
+The product entry point, `scripts/splinter.ps1`, provides NTFS workspace creation/resumption, source preservation/integration, reclamation/discard, and start/status/stop for the owned Unity Editor. Agents and external tools perform compilation, refresh, Play, tests, builds, capture, and acceptance decisions. `checkpoint` preserves stable data without declaring the work successful.
+
+Discover development and optional features through the separate `scripts/splinter-dev.ps1` and `tools/Splinter.Development`. The same required build prepares them; installation, execution, and cleanup are not automatic.
 
 ```powershell
 pwsh ./scripts/build.ps1
@@ -10,19 +13,19 @@ pwsh ./scripts/splinter-dev.ps1 capabilities
 pwsh ./scripts/splinter-dev.ps1 schema view.execute
 ```
 
-| 개발 경로 | 범위 |
+| Development path | Scope |
 | --- | --- |
-| `workspace ensure --storage git-checkout` | 명시적 Git checkout 진단 경로. 제품 스냅샷 실패의 fallback으로 사용하지 않음 |
-| `view --input` (`view.execute`) | [불변 소스·공통 Library](view-workflow.md)의 명시적 수명 관리. 자체 refresh/검증 수집·합격 판정·worker 결과 보존의 중복 경로는 없음 |
-| `snapshot-spike --input` | [독립 overlay 실험](snapshot-overlay.md)과 후보 게시. 제품 작업공간 명령과 구별 |
-| `preparation-probe --input` | [준비 중단 개발 시험](ntfs-workspaces.md#개발용-준비-중단-시험)의 한정 gate |
+| `workspace ensure --storage git-checkout` | Explicit Git checkout diagnostic path. Do not use it as a fallback when a product snapshot fails. |
+| `view --input` (`view.execute`) | Explicit lifetime management for [immutable source and a shared Library](view-workflow.md). No duplicate path for internal refresh/validation collection, acceptance decisions, or preservation of worker results. |
+| `snapshot-spike --input` | [Independent overlay experiment](snapshot-overlay.md) and candidate publication, separate from product workspace commands. |
+| `preparation-probe --input` | Bounded gate for [development preparation-interruption tests](ntfs-workspaces.md#development-preparation-interruption-tests). |
 
-기존 replay/write·저널/kernel/제품 쓰기 복구 도구와 시험은 해당 문서에서 실행 조건을 확인한다. 제품 capabilities는 이 개발 목록을 광고하지 않으며 별도 개발 진입점만 알린다.
+Consult the corresponding documents for execution conditions of the existing replay/write tools and journal/kernel/product-write recovery tests. Product capabilities do not advertise this development catalog; they identify only the separate development entry point.
 
-view와 열린 cache가 의존하는 snapshot은 제품 release/discard에서도 보호한다. 현재 계약의 workspace·후보·cache·영수증만 읽으며 지원하지 않는 필드·형식, 손상·미완료 요청은 보존하고 명시적으로 거부한다. 같은 요청의 중단 복구는 해당 intent와 receipt로 수행한다.
+Product release/discard also protects snapshots referenced by a view or an open cache. Only workspace, candidate, cache, and receipt formats in the current contract are read. Unsupported fields/formats and damaged or incomplete requests are preserved and explicitly rejected. Recovery of an interrupted request uses that request's intent and receipt.
 
-verification의 Unity·WF/LB 실행 기록은 명시한 후보·입력의 근거다. 현재 계약에서 변경된 외부 도구 연결이나 native 실행 자격으로 자동 승계하지 않는다.
+Unity and WF/LB execution records in verification are evidence for the specified candidate and input. They do not automatically qualify changes to external-tool connections or native execution under the current contract.
 
-[기준본 복귀의 한정 계측](verification/journal-base-reversion.md)은 `JournalBaseReversionEvidenceTests`·`NativeEvidenceTests`·`ProductEvidenceTests`의 명시적 환경 입력으로 수행한다. 일반 실행은 gate/실제 제품 시험을 자동 활성화하지 않는다. 고정 입력과 새 evidence 경로에서만 실행하며 제품 명령 발견에 별도 probe를 추가하지 않는다.
+[Bounded base-reversion measurement](verification/journal-base-reversion.md) uses explicit environment inputs for `JournalBaseReversionEvidenceTests`, `NativeEvidenceTests`, and `ProductEvidenceTests`. Ordinary execution does not automatically activate these gates or real product tests. Run only with fixed inputs and a new evidence path; no separate probe is added to product command discovery.
 
-[다수 파일 시간 계측](verification/journal-base-reversion-optimization.md)은 `JournalBaseReversionManyFileEvidenceTests`의 `SPLINTER_BASE_REVERSION_MANY_FILES` JSON 입력으로만 활성화한다. input은 정확한 source/revision/owner/receipt/output/variant/files/profiles를 고정하며 `before`는 소유 Git 기준 ref를 보존하고 `after`가 전후 내용 검증 뒤 그 ref만 release한다. 입력이 없는 필수 build는 이 실제 계측을 실행하지 않는다. 사전에 [파일 수·쓰기·소유 기준·종료 조건](plans/journal-base-reversion-optimization.md)을 고정하며 기존 evidence를 덮어쓰거나 실패한 기준을 자동 회수하지 않는다.
+[Many-file timing measurement](verification/journal-base-reversion-optimization.md) is activated only by the `SPLINTER_BASE_REVERSION_MANY_FILES` JSON input for `JournalBaseReversionManyFileEvidenceTests`. The input fixes the exact source/revision/owner/receipt/output/variant/files/profiles. `before` retains the owned Git basis ref; `after` releases only that ref after verifying content before and after. The required build without this input does not run the real measurement. Fix the [file count, writes, owned basis, and exit criteria](plans/journal-base-reversion-optimization.md) in advance. Do not overwrite existing evidence or automatically reclaim a failed basis.

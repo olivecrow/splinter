@@ -1,59 +1,67 @@
-# 한정 마감: VCS 없는 일반 폴더의 안전한 원본 반영
+<a id="한정-마감-vcs-없는-일반-폴더의-안전한-원본-반영"></a>
+# Scoped closure: safe original application for VCS-free plain folders
 
-2026-10-02에 확정한 다음 프로그램 개발 단위다. **`source=none`의 독립 결과를 정확한 원본에 명시적으로 반영하고, 원본의 이후 수정·peer 작업·보존 결과를 보호한다.** Splinter 자체의 병렬 작업 수명주기를 완성하는 범위이며 외부 VCS 사용 환경의 호환 처리는 다음 별도 단위다.
+[한국어](../ko/plans/plain-folder-original-apply.md)
 
-선행 일반 폴더 수명주기는 [한정 검증](../verification/vcs-independent-workspaces.md)을 마감했다. 사용자의 구현 요청으로 [현재 원본 반영 계약](../plain-folder-original-apply.md)을 연결하며 실행 상태는 [원본 반영 추적표](validation-matrix.md#vcs-없는-원본-반영)가 소유한다. 사용자 복귀 후 승인한 서비스 Update·등록과 작은 Editor 없는 제품 A/B 한 묶음을 수행해 scoped-complete-with-limitations로 마감했다. 자동 파일/중단 주입 시험과 실제 제품 자격을 구분하고 제외한 전체 native 장애/Unity/Plastic 자격으로 확대하지 않는다.
+This is the next program development unit fixed on 2026-10-02. **Explicitly apply independent `source=none` results to the exact original, protecting subsequent original edits, peer tasks, and preserved results.** This completes Splinter's own parallel-task lifecycle; external VCS compatibility is the next separate unit.
 
-## 선택 이유와 고정 범위
+The preceding plain-folder lifecycle closed its [scoped verification](../verification/vcs-independent-workspaces.md). The user's implementation request connects the [current original-application contract](../plain-folder-original-apply.md); the [original-application matrix](validation-matrix.md#vcs-free-original-application) owns execution status. After user return, approved service Update/registration and one small editorless product A/B run closed scoped-complete-with-limitations. Distinguish automated file/interruption-injection tests from actual product qualification; do not expand to excluded full native failure/Unity/Plastic qualification.
 
-확정 당시 독립 작업과 결과 보관은 가능했지만 Git 없이 그 결과를 원본에 안전하게 돌려주는 제품 경로가 비어 있어 이 경계를 선택했다. 기존 Git 보호와 회귀를 유지한다. 저장 공간 → 메모리 → 병렬 안정성의 [우선순위](storage-priority-and-editor-modes.md#후속-개발-우선순위)는 그대로 적용한다. 이번에는 반영 때문에 생기는 추가 복제·임시 공간·메모리 비용을 제한하고 관측하며, 아직 고르지 않은 Library/Editor 최적화를 함께 시작하지 않는다.
+<a id="선택-이유와-고정-범위"></a>
+## Selection rationale and fixed scope
 
-| 항목 | 확정 범위 |
+At scope selection, independent work and result storage were possible, but no product path safely returned results to the original without Git; that missing boundary was selected. Preserve existing Git protection/regressions. The [priority](storage-priority-and-editor-modes.md#follow-up-development-priorities) remains storage → memory → parallel stability. Limit/observe extra copying, temporary space, and memory costs caused by application; do not also begin unselected Library/Editor optimizations.
+
+| Item | Fixed scope |
 | --- | --- |
-| 첫 실행 환경 | Windows x64·로컬 NTFS·등록된 VCS 없는 작은 일반 폴더, `source=none`·`application=none`·`ntfs-snapshot` task |
-| 대상 | 해당 작업의 고정 `ProjectPath`와 원본 경로 identity. 임의 다른 폴더로 export/apply하거나 Git branch로 대체하지 않음 |
-| 반영할 내용 | 해당 작업의 정확한 checkpoint 기준/결과 manifest와 실제 독립 payload. 현재 작업 내용이 수집 결과와 달라졌다면 반영 거부 |
-| 파일 연산 | 일반 파일의 내용 수정·생성·삭제, 필요한 디렉터리 생성과 확인된 빈 디렉터리 삭제. rename은 이전 경로 삭제/새 경로 생성으로 비교하며 다중 경로 원자성을 주장하지 않음 |
-| 검사 경계 | 경로·유형·길이·실제 내용 hash, 소유권·현재 원본 identity. mtime만으로 일치를 선언하지 않음. 기존 파일 유형/속성·경로/manifest 한도를 유지하고 지원하지 않는 메타데이터 변경은 보존 후 거부 |
-| 수명 | checkpoint → 반영 계획 확인/명시적 실행 → 같은 intent 재개 또는 보존 → 명시적 release/discard. 반영이 자동 회수·폐기를 승인하지 않음 |
+| First execution environment | Windows x64/local NTFS/registered small VCS-free plain folder, `source=none`/`application=none`/`ntfs-snapshot` task |
+| Target | Task's fixed `ProjectPath` and original path identity. No export/apply to arbitrary other folders or substitution with Git branches |
+| Applied content | Exact task checkpoint basis/result manifests and actual independent payload. Reject if current task contents differ from collected result |
+| File operations | Regular-file content changes/creation/deletion, necessary directory creation/confirmed empty-directory deletion. Compare rename as old-path deletion/new-path creation; claim no multipath atomicity |
+| Verification boundary | Paths/types/lengths/actual-content hashes/ownership/current original identity. No match declaration from mtime alone. Preserve existing file-type/attribute/path/manifest limits; preserve/reject unsupported metadata changes |
+| Lifecycle | checkpoint → review application plan/explicit execution → same-intent resume or preserve → explicit release/discard. Application does not approve automatic reclamation/discard |
 
-처음 실제 자격은 Editor 없는 일반 폴더에 한정한다. 공통 application/소유 Editor 계약과 기존 Unity 경로를 깨뜨리지 않지만 Unity 원본 Editor·Library/생성 소스의 실제 반영 자격은 이번 통과로 승계하지 않는다. 이미 release한 결과의 별도 가져오기/반영도 이번 범위에서 제외한다.
+Initial actual qualification is limited to editorless plain folders. Do not break common application/owned-Editor contracts or existing Unity paths, but do not inherit this pass for actual original Unity Editor/Library/generated-source application. Separate import/application of already released results is also excluded.
 
-## 포함할 구현과 안전 계약
+<a id="포함할-구현과-안전-계약"></a>
+## Included implementation and safety contracts
 
-1. **VCS 중립 반영 계약과 명시적 대상.** Core/fake에서 고정 workspace ID·request digest·basis/result identity·원본 identity·반영 intent를 정의한다. 기존 `workspace integrate`의 소스별 대상/기본값·읽기 전용 반영 계획·실행 입력과 응답을 정리한다. `none`에 Git branch나 기본 `development`를 요구하지 않는다. 실제 port/필드/옵션 이름은 입력·출력 schema와 함께 계약 설계에서 확정한다.
-2. **기준/결과/현재 원본 비교.** 독립 payload의 hash/owner와 현재 원본을 확인해 아래 판정으로 변경 경로만 고른다. 반영 전 전체 변경 집합을 검사하고 하나라도 충돌·미지원·소유권 unknown이면 원본에 쓰지 않는다. 계획에는 대상·basis/result·변경 경로·충돌·최신 원본 guard를 반환한다. 변경 집합 밖의 원본 수정·새 파일을 유지하며 원본 전체를 기준 상태로 되돌리지 않는다. 무관한 원본 수정 때문에 폴더 전체의 clean 상태를 요구하지 않는다.
-3. **조건부 게시와 외부 writer 보호.** 반영 작업은 같은 원본에 대해 직렬화한다. 각 경로의 실제 게시 전에도 파일/부모 identity·유형·내용·경로 탈출과 최신 guard를 확인한다. 검사와 게시 사이에 외부 쓰기/교체가 끼어들어 덮어쓰지 못하도록 검증한 파일시스템 경계를 사용한다. Splinter 잠금만으로 임의 외부 writer를 막았다고 주장하지 않는다. 안전한 게시를 확인할 수 없는 sharing/잠금·경로/유형 변경은 보존·거부한다. 원본의 다른 경로와 B의 작업은 계속 수정 가능해야 한다.
-4. **durable intent와 부분 반영 복구.** 원본 쓰기 전에 정확한 계획과 intent를 게시하고 경로별 수행/관측 영수증을 남긴다. 응답 유실·게시/기록 실패·같은 버전 프로세스 재시작은 같은 ID/home·intent·basis/result·target guard로만 재조정한다. 검증되는 완료 경로는 중복 쓰지 않고 남은 경로만 처리한다. 중단 후 원본이 다시 바뀌었거나 수행 여부를 확인할 수 없으면 부분 상태와 결과를 보존하고 중지한다. 미해결 반영 intent나 소유 임시 게시 자원이 남아 있으면 release/discard 완료를 차단하고 복구 근거를 유지한다. discard는 이미 반영한 원본 변경을 취소하지 않는다. 자동 rollback·원본 reset·새 intent로 덮어쓰기·임시 파일 sweep은 하지 않는다. 여러 경로 전체의 원자성이나 OS/전원 장애 자격을 주장하지 않는다.
-5. **범위와 비용 유지.** 기존 VSS/WinFsp 범위 저널·ACK flush·seal·독립 결과/회수 guard를 유지한다. 원본 전체 backup/clone을 만들지 않는다. 명시적 반영에 필요한 변경 파일의 임시 게시 payload는 workspace 생성/hydration/copy-up과 구분하고 실제 추가 할당을 관측한다. payload는 고정 크기 스트림으로 처리하고 파일/프로젝트 전체를 메모리에 올리는 경로를 추가하지 않는다.
-6. **조합과 사용자 안내.** Runtime·파일 공급자·CLI/Protocol에 필요한 경계를 연결하고 Windows 전용 게시/identity 처리는 플랫폼 경계에 둔다. Core에 Git/Unity/Win32 전용 API를 넣지 않는다. 입력/출력 schema·capabilities·fake/적합성·현재 기능 문서·시작 안내·source skill·AGENTS·검증표를 구현과 함께 갱신한다. 현재 단일 형식 정책과 이전/손상 상태의 보존·거부를 유지하며 자동 이관·호환 fallback은 추가하지 않는다.
+1. **VCS-neutral application contract and explicit target.** Define fixed workspace ID/request digest/basis-result identity/original identity/application intent in Core/fakes. Clarify source-specific targets/defaults of existing `workspace integrate`, read-only application plans, execution inputs/responses. `none` requires neither Git branches nor default `development`. Finalize actual ports/fields/options during contract design alongside input/output schemas.
+2. **Basis/result/current-original comparison.** Verify independent payload hash/owner and current original; select only changed paths according to rules below. Inspect the entire change set before application; write nothing if any conflict/unsupported/unknown ownership appears. Return target/basis-result/changed paths/conflicts/fresh original guards in plans. Preserve original modifications/new files outside the change set; do not reset whole original to basis. Unrelated original edits do not require a clean whole folder.
+3. **Conditional publication and external-writer protection.** Serialize application against the same original. Recheck actual file/parent identities/types/contents/path escape/fresh guards immediately before each publication. Use verified filesystem boundaries preventing intervening external writes/replacements from being overwritten. Splinter locks alone do not block arbitrary external writers. Preserve/reject sharing-lock/path-type changes where safe publication cannot be verified. Other original paths and B work must stay editable.
+4. **Durable intent and partial-application recovery.** Publish exact plan/intent before original writes; record per-path execution/observation receipts. Reconcile lost responses/publication-record failures/same-version process restart only through identical ID/home/intent/basis-result/target guard. Do not rewrite verified completed paths; process only remaining paths. If original changes again after interruption or execution cannot be verified, preserve partial state/results and stop. Block release/discard completion and retain recovery evidence while unresolved application intents/owned temporary publication resources remain. Discard does not undo already applied original changes. No automatic rollback/original reset/new-intent overwrite/temporary-file sweeps. Claim neither whole-multipath atomicity nor OS/power-failure qualification.
+5. **Preserve scope and costs.** Retain existing VSS/WinFsp range journals/ACK flush/seals/independent result-reclamation guards. Create no whole-original backup/clone. Distinguish changed-file temporary publication payload needed for explicit application from workspace creation/hydration/copy-up; observe actual extra allocation. Stream fixed-size payloads; add no whole-file/project in-memory paths.
+6. **Composition and guidance.** Connect needed Runtime/file provider/CLI-Protocol boundaries; keep Windows publication/identity handling at platform boundaries. Add no Git/Unity/Win32-specific APIs to Core. Update input-output schemas/capabilities/fake-conformance/current features/start guide/source skill/AGENTS/verification matrix together. Retain single-current-format policy and old/corrupt-state preservation-rejection; add no automatic migration/compatibility fallback.
 
-### 경로별 비교 규칙
+<a id="경로별-비교-규칙"></a>
+### Per-path comparison rules
 
-| 기준·결과·현재 원본 | 판정 |
+| Basis/result/current original | Decision |
 | --- | --- |
-| 작업 결과가 기준과 같음 | 그 경로는 건드리지 않음. 원본의 이후 변경을 유지 |
-| 작업이 변경했고 현재 원본이 기준과 같음 | 해당 결과를 조건부 반영할 후보. 생성은 기준/현재 모두 부재, 삭제는 현재가 정확한 기준일 때만 허용 |
-| 현재 원본이 결과와 같음 | 추가 쓰기 없이 확인. 이것만으로 이전 실행의 성공을 추정하지 않고 같은 intent의 durable 근거와 구분 |
-| 원본과 작업이 서로 다르게 변경됨 | 충돌. 시작 전 발견하면 전체 반영을 쓰기 전에 거부; 부분 반영 뒤 발견하면 완료/미완료 경로를 보존하고 중지 |
-| 파일/디렉터리 유형 충돌·미소유 경로·비어 있지 않은 삭제 디렉터리·VCS 관리 정보·미지원/손상/unknown | 보존·거부. 재귀 삭제나 일반 폴더 fallback으로 우회하지 않음 |
+| Task result equals basis | Leave path untouched; preserve subsequent original changes |
+| Task changed; current original equals basis | Candidate for conditional result application. Creation only if absent from basis/current; deletion only if current exactly equals basis |
+| Current original equals result | Verify without extra writes. This alone does not infer earlier execution success; distinguish durable evidence of identical intent |
+| Original and task changed differently | Conflict. Before-start detection rejects all application before writes; detection after partial application preserves completed/incomplete paths and stops |
+| File-directory type conflicts/non-owned paths/nonempty deleted directories/VCS management information/unsupported-corrupt-unknown | Preserve/reject. No recursive deletion/plain-folder fallback bypass |
 
-충돌 해결과 내용 병합은 AI/기존 도구의 책임이다. 충돌을 없애기 위해 원본 변경을 자동 폐기하거나 최신 원본을 새 basis로 삼지 않는다. 계획 확인 뒤 원본이 바뀌면 기존 실행 입력으로 무조건 반영하지 않는다.
+Conflict resolution/content merging belong to AI/existing tools. Do not automatically discard original changes or adopt latest original as new basis to remove conflicts. If original changes after plan review, do not unconditionally apply existing execution inputs.
 
-## 검증량과 종료 기준
+<a id="검증량과-종료-기준"></a>
+## Verification volume and completion criteria
 
-질문은 **Git 없는 일반 폴더에서 A의 변경만 안전하게 원본에 반영하고, B의 고정 기준·편집을 유지하며, 충돌과 중단 후에도 원본/독립 결과를 잃지 않고 명시적으로 회수할 수 있는가**다.
+The question is **whether A changes alone can safely apply to a Git-free plain-folder original, B fixed basis/edits remain, original/independent results survive conflicts/interruption, and resources can explicitly reclaim**.
 
-- 계약/fake와 실제 파일 공급자의 자동 시험은 변경 경계에 한정한다. 생성/수정/삭제·빈 디렉터리/유형 충돌·원본의 무관한 변경과 같은 경로 충돌·동시 원본 쓰기/교체·동일/변경 intent·내용 손상·응답/영수증 실패·부분 수행 재개를 확인한다. 동시 writer와 실제 게시 검증을 fake 성공만으로 대신하지 않는다. 새 전체 장애 harness/경계 조합 행렬은 만들지 않는다.
-- 실제 검증은 **작은 NTFS의 Editor 없는 A/B 한 묶음**으로 제한한다. A/B 생성·동일 A 재개 → 원본의 무관한 경로 수정 → A checkpoint/반영/명시적 release 동안 B 편집 지속 → B의 겹치는 변경 checkpoint/반영 충돌 거부와 원본/B 결과 보존 → 명시적 B 종료와 소유 자원 회수를 확인한다. 실패/중단 복구의 추가 native 강제 종료 행렬이나 Unity/MCP 전체 인계는 포함하지 않는다.
-- 실제 실행 전에 최종 후보·고정 source/home·A/B key·파일 집합/hash·기존 서비스/등록과 비소유 자원을 확인한다. 이미 등록된 적절한 작은 입력을 우선한다. 새 등록/서비스 업데이트/외부 원본 쓰기가 필요하면 검토 가능한 실행 계획과 해당 승인을 먼저 갖춘다. 앞선 특정 fixture의 관리자 Apply 승인을 다른 경로/설정으로 확대하지 않는다.
-- `pwsh ./scripts/build.ps1`의 locked restore·Release·기존 Git/Windows·파일/계약 회귀, 문서 UTF-8·링크·diff 검사를 통과한다. Git refs/worktree·dirty/결과/peer guard와 일반 폴더 release/discard의 기존 자격을 약화하지 않는다.
-- 추가 파일 할당·임시 게시 payload·독립 결과·journal과 관리 메모리/프로세스 메모리를 구분해 기록한다. 측정하지 않은 전체 물리 peak·공유 VSS 귀속은 unknown이다. 고정 절감률·시간 SLA·대형 성능을 완료 기준에 넣지 않는다.
+- Contract/fake and actual-file-provider automated tests cover only changed boundaries. Check creation/modification/deletion, empty-directory/type conflicts, unrelated original edits/same-path conflicts, concurrent original writes/replacements, identical/changed intents, content corruption, response/receipt failures, partial execution resumption. Do not substitute fake passes for concurrent-writer/actual-publication verification. Create no new whole failure harness/boundary-combination matrix.
+- Actual verification is limited to **one small NTFS editorless A/B run**: create A/B/resume identical A → edit unrelated original path → B continues editing during A checkpoint/application/explicit release → B overlapping-change checkpoint/application conflict rejection and original/B result preservation → explicit B completion/owned-resource reclamation. No additional native forced-termination matrix for failure/recovery or full Unity/MCP handoff.
+- Before actual execution, verify final candidate/fixed source-home/A-B keys/file set-hashes/existing service-registrations/non-owned resources. Prefer an already registered appropriate small input. If new registration/service updates/external-original writes are needed, prepare reviewable execution plans and relevant approval first. Do not expand earlier fixture-specific administrator Apply approval to other paths/settings.
+- Pass `pwsh ./scripts/build.ps1` locked restore/Release/existing Git-Windows/file-contract regressions and documentation UTF-8/link/diff checks. Do not weaken Git refs/worktree/dirty-result-peer guards or existing plain-folder release/discard qualification.
+- Record extra file allocation/temporary publication payload/independent results/journals separately from managed/process memory. Unmeasured whole physical peak/shared VSS attribution are unknown. Add no fixed savings/time SLA/large performance completion conditions.
 
-종료는 [AP-01~06](validation-matrix.md#vcs-없는-원본-반영)의 필수 관문과 이 한 실행 묶음의 근거·제한을 갖춘 **scoped-complete-with-limitations**다. 승인 쓰기 손실·원본/peer 훼손은 먼저 경로를 차단하고 해당 결함을 수정한다. 그 외에는 실패와 자원을 보존하고 동일 원인의 필요한 재현/회귀만 수행한다. 성공 뒤 새 행렬·다른 입력으로 반복 확대하거나 M0를 다시 열지 않는다.
+Completion is **scoped-complete-with-limitations** with required [AP-01–06](validation-matrix.md#vcs-free-original-application) gates and evidence/limits for this run. First block affected paths/fix defects for acknowledged-write loss or original/peer damage. Otherwise preserve failures/resources and reproduce/regress only the necessary same cause. After success, do not expand repeated new matrices/inputs or reopen M0.
 
-## 제외와 이후 순서
+<a id="제외와-이후-순서"></a>
+## Exclusions and subsequent order
 
-Plastic 사용 환경의 호환 처리와 다른 VCS/서버/check-in 기능, Git 경로 재설계, 자동 내용 병합/충돌 해결, 임의 대상 export·release한 결과의 import, Unity 원본 Editor/생성 소스 반영 자격, 외부 도구 전체 A/B 인계, Library/view 확장·대형/ARM/원격/OS/전원 장애 시험, installer·자동 binding·큐/모드 선택·Runner/DAG는 제외한다.
+Exclude Plastic environment compatibility/other VCS-server-check-in features, Git redesign, automatic content merging/conflict resolution, arbitrary-target export/released-result import, original Unity Editor/generated-source application qualification, full external-tool A/B handoff, Library/view expansion, large/ARM/remote/OS/power-failure tests, installer/automatic binding/queues-mode selection/Runner-DAG.
 
-이 단위를 마감한 뒤 실제 사용할 Plastic 환경의 관리 정보·등록·잠금·공유 기준과 추가 저장/메모리 비용을 별도 범위로 고른다. 완료 기준은 계속 Splinter의 병렬 격리·원본/peer 보호·효율이다. 외부 도구 인계와 관측한 저장/메모리 병목은 각각의 소유 계획에서 선택한다.
+After this unit closes, separately select management-data/registration/lock/shared-basis and extra storage-memory costs for the actual Plastic environment. Completion criteria remain Splinter parallel isolation/original-peer protection/efficiency. External-tool handoff and observed storage-memory bottlenecks are selected in their owning plans.

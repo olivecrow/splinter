@@ -1,209 +1,230 @@
-# NTFS 복구와 지원 확대
+<a id="ntfs-복구와-지원-확대"></a>
+# NTFS recovery and support expansion
 
-현재 NR-01/03/05/07은 부분 구현/검증 상태다. 나머지 명령 경계·일반 파일·OS 장애·ARM A/B의 미자격은 유지한다. 아래는 보존할 지원 검증 조건이며 전체를 남은 프로그램 구현으로 세지 않는다. 현재 계약은 [NTFS](../ntfs-workspaces.md), 확인한 범위는 [검증 안내](../verification/README.md)를 따른다.
+[한국어](../ko/plans/ntfs-recovery-and-support.md)
 
-## 첫 버전과 지원 확대의 경계
+NR-01/03/05/07 currently have partial implementation/verification. Retain qualification gaps for remaining command boundaries/general files/OS failures/ARM A-B. Below preserves support-verification conditions, not a count of unfinished program implementation. Current contracts follow [NTFS](../ntfs-workspaces.md); confirmed scope follows [verification guide](../verification/README.md).
 
-한정 [M0](implementation-plan.md)는 마감했다. 후속은 실제 사용할 입력/환경의 파일 I/O·Git·재개/회수 경계와 지원 경로의 재현된 안전 결함에 필요한 NR만 고른다. 안전 거부·승인 쓰기 지속성·원본/peer/공유 자원 보호·같은 버전 재개는 프로그램 책임으로 유지하고 AI의 주의나 수동 JSON 수정으로 대체하지 않는다. OS 장애 전체·ARM·파일 특성 전체의 NotRun은 제한으로 보존하며 일괄 필수 구현/시험으로 열지 않는다.
+<a id="첫-버전과-지원-확대의-경계"></a>
+## First-version and support-expansion boundary
 
-AI는 기존 명령의 동일 요청 재시도·관측·증거 보존과 외부 도구 선택을 수행한다. Unity 에셋 저작·Play·테스트·빌드 자체의 구현은 NR 범위가 아니다. 그 외부 작업의 일반 파일 쓰기/rename/flush가 지원 mount에서 정확히 보존되는 경계만 Splinter가 담당한다. 지원 입력의 승인 쓰기 손실·원본/peer 훼손이 재현되면 그 결함은 선택적 지원 확대보다 먼저 수정한다.
+Scoped [M0](implementation-plan.md) closed. Select only NR needed for actual input-environment file I/O/Git/resumption-reclamation/reproduced supported-path safety defects. Safe rejection/acknowledged-write durability/original-peer-shared resource protection/same-version resumption stay program duties, not AI caution/manual JSON edits. Preserve whole OS/ARM/all file-feature NotRun as limits, not blanket required tasks.
 
-마감한 준비·저널·kernel·client·진단 단위는 원래 후보/입력의 근거로 보존한다. 새 probe·전체 내부/replay/동시 I/O 조합 확대에는 답할 질문·수정 범위·종료 조건을 먼저 정한다. 과거 원인 unknown 하나만으로 모든 장애 행렬을 재개하지 않는다.
+AI performs identical-request retry/observation/evidence preservation/tool selection. Asset authoring/Play/tests/build implementations are outside NR. Splinter preserves only their supported-mount ordinary writes/rename/flush boundaries. Reproduced acknowledged-write loss/original-peer damage on supported inputs precedes optional support expansion.
 
-## 확정 범위: NR-01 상태 쓰기 실패 진단
+Closed preparation/journal/kernel/client/diagnostic units remain evidence for original candidates-inputs. Fix questions/fix scope/completion criteria before new probes/full internal-replay-concurrent I/O expansions. One historical unknown cause does not reopen all failure matrices.
 
-`10eaad7` 이후의 이번 단위는 `WorkspaceStore.Save`가 반환하는 `StateWriteIncomplete`의 실패 단계·예외 형식/HResult와 확인 가능한 native 오류를 기계용 응답에 보존하는 것이다. 준비/임시 파일 작성·flush/close·상태 게시·이벤트 append를 구분하며, 게시 호출이 실패하면 현재 기록의 교체 여부는 unknown으로 남긴다. 게시 뒤 이벤트 기록이 실패한 경우에는 상태 게시 완료와 명령 실패를 구분한다. 원래 작업 오류를 기록하다 실패한 응답도 같은 진단을 유지한다.
+<a id="확정-범위-nr-01-상태-쓰기-실패-진단"></a>
+## Fixed scope: NR-01 state-write failure diagnostics
 
-공통 데이터 계약·응답 schema 적합성부터 연결하고 새 소유 임시 디렉터리의 실제 파일 잠금·읽기 전용 파일·이벤트 기록 차단으로 이전/새 기록과 임시 파일 보존, 접근 복구 뒤 같은 작업 재개를 검증한다. `pwsh ./scripts/build.ps1`·UTF-8·diff 검사를 완료한다. 기존 실패의 하위 원인은 새 진단 추가만으로 확정하지 않는다. 별도 retry/flush/atomic 게시 정책 변경, 임시 파일 삭제·자동 승계, 서비스/설치/grant/볼륨/예산 변경, VSS·WinFsp·Unity·VIVOBOOK 실행, 재부팅·전원·물리 공간 장애는 이번 범위에서 제외한다. 승인이나 사용자 입력이 필요한 환경 작업은 진행하지 않는다.
+This unit after `10eaad7` preserves `WorkspaceStore.Save` `StateWriteIncomplete` failure stages/exception types-HResult/confirmed native errors in machine responses. Distinguish preparation/temporary writes/flush-close/state publication/event append; publication failure leaves current-record replacement unknown. Event failure after publication distinguishes completed publication/failed command. Responses failing while recording original errors retain diagnostics too.
 
-이 단위는 [최종 16개 진단 시험과 필수 build/감사](../verification/state-write-diagnostics.md)로 **scoped-complete-with-limitations** 판정했다. NR-01 전체와 이전 실제 준비 실패의 원인은 미완료/unknown으로 유지한다. 같은 실제 준비 작업에서 재발하면 새 진단을 수집한다. NR-03 내부/replay/동시 I/O·원격·OS/공간은 필요 시 지원 검증이며 마감한 M0를 재개할 선행 관문이 아니다.
+Connect common contracts/response-schema conformance first; verify actual locks/read-only files/blocked events in new owned temporary directories, preserving old-new records/temp files and same-task resumption after access restored. Complete `pwsh ./scripts/build.ps1`/UTF-8/diff. New diagnostics do not establish historical underlying causes. Exclude retry-flush-atomic-policy changes/temp deletion/automatic takeover/service-install-grant-volume-budget/VSS-WinFsp-Unity-VIVOBOOK/reboot-power-physical space. Perform no environment actions requiring approval/user input.
 
-## 확정 범위: NR-03 제품 VSS·CLI의 클라이언트 경계
+Unit judged **scoped-complete-with-limitations** by [final 16 diagnostic tests/required build-audit](../verification/state-write-diagnostics.md). Whole NR-01 and earlier actual preparation-failure causes remain incomplete/unknown. Collect diagnostics if same real task recurs. NR-03 internal-replay-concurrency/remote-OS-space are support when needed, not prerequisites reopening M0.
 
-이 단위는 기존 등록한 로컬 `T:/ua-source`·`.local/wl29`·제한 권한 서비스에서 일반 제품 `workspace ensure`가 생성한 실제 VSS/WinFsp/Git 작업의 중단과 재연결이다. write/rename/replace/truncate/명시적 flush의 연산 전·외부 ACK 후 10개, write 반환 뒤 명시적 file flush 전 1개, mmap view flush 전·view/file flush와 외부 ACK 후 2개, 총 13개 클라이언트 경계를 고정한다. 일반 provider에 개발 observer를 연결하거나 gate용 제품 요청 필드를 추가하지 않는다. VSS를 쓰는 내부 callback 전후·OS 내부 종료는 이 단위와 별도다.
+<a id="확정-범위-nr-03-제품-vsscli의-클라이언트-경계"></a>
+## Fixed scope: NR-03 product VSS/CLI client boundaries
 
-기존 tracked FBX/PNG의 바이트를 oracle로 고정하고 workspace의 4KiB 범위 쓰기·rename/replace/truncate만 수행한다. beta는 `*.png binary` 경로를 사용한다. 이전 inputactions 후보의 정규화·준비 실패와 재검증 조건은 [소유 검증 기록](../verification/ntfs-recovery.md#보존한-실패와-재검증-조건)을 따른다. source의 HEAD/index/파일·이전 refs/worktree·비소유 snapshot을 보존한다. 새 key마다 승인 prefix 이후 외부 client를 멈추고 token·workspace/snapshot ID·provider generation·PID/시작 시각을 대조해 그 provider만 종료한다. 같은 ensure의 현재 VSS 검증 tuple·같은 snapshot/delta/Git 등록·새 provider로 읽기/쓰기 재개, 외부 ACK 데이터 보존·journal 재생 불변, 명시적 `workspace checkpoint`의 독립 Git 결과와 일반 release의 전체 자원 회수가 완료 기준이다. editorless 보존은 Unity validation 성공이 아니다. unknown·reclaim-pending이나 identity 불일치를 성공으로 읽지 않는다.
+Interrupt/reconnect actual VSS-WinFsp-Git work created by normal `workspace ensure` on registered local `T:/ua-source`/`.local/wl29`/restricted service. Fix 13 client boundaries: ten before operations/after external ACK for write-rename-replace-truncate-explicit flush; one after write return/before file flush; two before mmap view flush/after view-file flush and external ACK. No development observers in normal providers/product gate fields. VSS internal callbacks/OS termination separate.
 
-기본 읽기 전용 계획과 schema/fake/필수 build/UTF-8부터 고정하며 실행·실패·원시 journal·result refs를 새 `artifacts/ntfs-recovery/<runId>/`에 보존한다. 기존 서비스/패키지/grant·볼륨/예산·원본 fixture·다른 작업을 변경하지 않는다. VIVOBOOK/Unity·ARM·재부팅·전원·물리 공간은 제외하고, VIVOBOOK 시험이 필요하면 실행 전에 알린다. 일반 사용자로 전역 VSS 목록을 직접 조회할 수 없는 경우 unknown을 유지하고 제한 서비스의 정확한 release-isolation 전후 목록과 ID 보존 근거를 사용한다.
+Fix tracked FBX-PNG bytes as oracle; only workspace 4KiB writes/rename-replace-truncate. Beta uses `*.png binary`. Earlier inputactions normalization/preparation failures/reverification follow [owning record](../verification/ntfs-recovery.md#preserved-failures-and-revalidation-conditions). Preserve HEAD-index-files/earlier refs-worktrees/non-owned snapshots. Per new key, stop external clients after approved prefix; compare token/workspace-snapshot IDs/provider generation/PID-start; terminate only that provider. Completion: same ensure/current VSS verification tuple/same snapshot-delta-Git/new provider read-write resume/external ACK preserved/immutable journal replay/independent Git result from explicit `workspace checkpoint`/normal release all resources. Editorless preservation is not Unity validation. Unknown/reclaim-pending/mismatched identities cannot pass.
 
-이 단위는 [최종 13개 실제 종료·독립 결과·자원 감사](../verification/ntfs-recovery.md#nr-03-제품-vsscli의-클라이언트-경계)로 **scoped-complete-with-limitations** 판정했다. 준비 게시 오류 원인 미확정·Git text fixture 실패와 NR-03 전체 InProgress는 유지한다. VSS 내부 callback·OS flush·replay 종료·동시 I/O는 필요 시 선택할 지원 검증이다. 게시 오류가 같은 실제 작업에서 재발하면 진단을 수집하고 retry/flush 정책을 추측 변경하지 않는다. 자동으로 다음 장애 단위를 열지 않는다.
+Fix default read-only plans/schema-fakes/required build-UTF-8 first; preserve runs-failures/raw journals/result refs in new `artifacts/ntfs-recovery/<runId>/`. No existing service-package-grant/volume-budget/original fixture/other-task changes. Exclude VIVOBOOK-Unity/ARM/reboot-power/physical space; inform user before any needed VIVOBOOK tests. If normal user cannot inventory global VSS, retain unknown/use restricted-service exact release-isolation before-after ID-list preservation evidence.
 
-## 확정 범위: NR-03 로컬 WinFsp callback·mmap·재연결
+Unit judged **scoped-complete-with-limitations** by [final 13 actual terminations/independent results/resource audit](../verification/ntfs-recovery.md#nr-03-client-boundaries-for-product-vss-and-cli). Preserve unresolved preparation-publication causes/Git text-fixture failures/whole NR-03 InProgress. Internal VSS callbacks/OS flush/replay termination/concurrency need separately selected support. Recurring actual publication errors collect diagnostics, no guessed retry-flush changes. No automatic next failure unit.
 
-`ab9c94e`의 공통 저널 단위 다음으로 **실제 로컬 WinFsp mount의 응답 경계**를 시험한다. 제품 `WinFspOverlayFileSystem`/`JournalDeltaStore`와 결정적 fake 불변 트리를 사용한다. write/rename/replace/truncate/명시적 flush의 callback 전·부작용 후 응답 전·클라이언트 ACK 후를 구분하고, mmap은 view flush 전·파일 flush callback 전/후·명시적 flush와 ACK 후를 분리한다. 총 19건이며 일반 provider에는 개발 observer를 연결하지 않는다.
+<a id="확정-범위-nr-03-로컬-winfsp-callbackmmap재연결"></a>
+## Fixed scope: NR-03 local WinFsp callbacks, mmap, and reconnection
 
-완료 기준은 외부 승인 prefix 보존, 부작용 후/ACK 후 새 데이터 보존, 종료의 정확한 PID/시작 시각·nonce 일치, 실제 mount 부재 확인 뒤 같은 경로·같은 delta의 새 provider에서 읽기/쓰기·정상 stop/unmount, 소유 자식/핸들/mount 0과 저널 증거 보존이다. write callback 부작용 후에는 미리 열린 다른 파일의 동시 Read 응답을 확인하고, Close/프로세스 종료는 provider 종료 뒤 따로 확인한다. 새 open과 같은 파일의 동시 쓰기 자격으로 확대하지 않는다. mmap 미승인 페이지는 생존을 보장하지 않고 명시적 view/file flush가 모두 끝난 ACK만 승인으로 센다. 동일 후보의 fake callback 적합성·schema·필수 build·UTF-8을 통과한다.
+After `ab9c94e` common journals, test **actual local WinFsp mount response boundaries** using product `WinFspOverlayFileSystem`/`JournalDeltaStore`/deterministic fake immutable trees. Separate before callback/after side effects-before responses/after client ACK for writes-rename-replace-truncate-explicit flush; mmap before view flush/before-after file flush callback/after explicit flush-ACK. Nineteen cases; no observers in normal providers.
 
-기존 로컬 WinFsp 설치와 새 소유 mount/private delta만 사용하며 VSS·Git 등록·Unity·서비스/설치/볼륨 변경은 포함하지 않는다. 원본·다른 작업·기존 artifacts를 보존한다. VIVOBOOK은 이번 로컬 단위의 필수 조건이 아니며 ARM/VIVOBOOK 시험이 필요해지면 실행 전에 사용자에게 알린다. 실제 제품 VSS server/CLI의 재연결·OS flush 내부·전원/재부팅/물리 공간·동일 파일의 동시 쓰기 원자성은 별도 미실행 관문으로 유지한다.
+Completion: approved external prefix/after-side-effect-after-ACK new data preserved/exact terminated PID-start-nonce/actual mount absence then same path-delta new provider read-write/normal stop-unmount/zero children-handles-mount/evidence preserved. After write-callback side effects, check concurrent Read responses of another pre-opened file; check Close/process termination separately after provider exit. No qualification for new opens/same-file concurrent writes. Unacknowledged mmap pages not guaranteed; ACK counts only after explicit view/file flushes both finish. Pass same-candidate fake callbacks/schemas/required build-UTF-8.
 
-이 단위는 [최종 19개 실제 종료와 자원 감사](../verification/ntfs-recovery.md#nr-03-로컬-winfsp-callbackmmap새-provider-연결)로 **scoped-complete-with-limitations** 판정했다. reader의 최초 타임아웃과 새 open/close의 동시 응답 미자격을 보존한다. 제품 VSS/CLI의 외부 client 경계는 위 별도 범위·후보로 추적하며 이 kernel 후보의 통과를 승계하지 않는다. VSS 내부 callback·OS flush 내부·재부팅/전원/공간 장애 관문은 여전히 미실행이다.
+Only installed local WinFsp/new owned mounts-private deltas; exclude VSS/Git registrations/Unity/service-install-volume changes. Preserve original/other tasks/artifacts. VIVOBOOK is no local prerequisite; tell user before needed ARM-VIVOBOOK. Product VSS server-CLI reconnect/internal OS flush/power-reboot-space/same-file concurrent write atomicity remain separate unexecuted gates.
 
-## 확정 범위: NR-03 공통 저널 쓰기/flush 중단
+Unit judged **scoped-complete-with-limitations** by [final 19 actual terminations/resource audit](../verification/ntfs-recovery.md#nr-03-local-winfsp-callback-mmap-and-new-provider-connection). Preserve reader first timeout/new-open-close concurrent-response qualification gap. Above product VSS-CLI external clients use separate scope-candidate, no kernel-pass inheritance. VSS-internal callbacks/OS-internal flush/reboot-power-space remain unexecuted.
 
-다음 실행 단위는 실제 자식 프로세스의 **공통 저널 내부 경계**다. 제품 `JournalDeltaStore`와 결정적 fake 불변 트리를 사용해 write/rename/replace/truncate/create/delete, 명시적 flush의 58개 경계에서 자식을 종료한다. 입력·gate·결과 schema와 공통 observer/fake 적합성부터 연결하고, 일반 store에는 gate를 연결하지 않는다. 정상 transaction의 개별 durable flush 정책은 유지한다. 진입점과 경계는 [저널 중단 시험](../journal-recovery.md)이 소유한다.
+<a id="확정-범위-nr-03-공통-저널-쓰기flush-중단"></a>
+## Fixed scope: NR-03 common journal write/flush interruption
 
-완료 기준은 동일 최종 바이너리의 전체 행렬에서 승인 prefix 바이트 보존, 불완전 tail만 절단, 완전 미승인 frame의 전부 적용 또는 부재, flush 완료/외부 ACK 후 새 내용 보존, 두 번째 재생 hash 불변이다. 기존 완전 frame의 checksum/sequence/JSON 손상 보존·거부 회귀와 `pwsh ./scripts/build.ps1`·UTF-8도 통과해야 한다. 새 `artifacts/ntfs-recovery/<runId>/`에 candidate hash·58개 request/signal/종료·외부 ACK·재생 전 원문과 결과를 보존한다. 실패 run은 삭제하지 않는다.
+Next execution unit is actual child-process **internal common-journal boundaries**. Product `JournalDeltaStore`/deterministic immutable fake trees terminate children at 58 write-rename-replace-truncate-create-delete/explicit-flush boundaries. Connect input-gate-result schemas/common observer-fake conformance first; no gates in normal stores. Retain per-transaction durable flush. [Journal interruption tests](../journal-recovery.md) own entry/boundaries.
 
-실제 WinFsp callback 응답/중단, mmap 명시적 flush, 동시 reader/writer 재연결, OS flush 내부 종료, VSS 재연결, 재부팅·전원·물리 공간 장애는 이 공통 단위의 증거로 승계하지 않는다. 별도 실제 backend 단위로 남으며 NR-03 전체는 InProgress다. 원본·타 작업·snapshot·Git 등록과 설치/서비스/볼륨 설정을 변경하지 않는다. 준비 단계의 상태 게시 실패 원인 미확정도 별도 유지한다.
+Completion on identical final binaries/full matrix: preserved approved-prefix bytes/truncate only incomplete tails/complete unacknowledged frames all-present or absent/new contents after flush-ACK/second-replay hashes unchanged. Pass complete-frame checksum-sequence-JSON preserve-reject regressions/`pwsh ./scripts/build.ps1`/UTF-8. Preserve candidate hashes/58 request-signal-termination/external ACK/pre-replay raw/results in new `artifacts/ntfs-recovery/<runId>/`; no failed-run deletion.
 
-공통 단위는 [같은 후보의 58개 실제 종료와 최종 감사](../verification/ntfs-recovery.md#nr-03-공통-저널-경계의-실제-프로세스-종료)로 **scoped-complete-with-limitations** 판정했다. 뒤의 로컬 WinFsp 단위는 위 별도 범위와 후보로 구분한다. 같은 후보의 일반 회귀만으로 이전 VSS/Unity의 실행 자격을 갱신하지 않는다.
+Actual WinFsp callback responses-interruption/mmap flush/concurrent reader-writer reconnect/OS flush termination/VSS reconnect/reboot-power-space cannot inherit common-unit evidence. Remain actual-backend units; overall NR-03 InProgress. No original-other tasks-snapshot-Git registrations/install-service-volume changes. Unresolved preparation-publication failures separate.
 
-## 확정 범위: NR-01/02 준비 단계 중단 복구
+Common unit judged **scoped-complete-with-limitations** by [same-candidate 58 actual terminations/final audit](../verification/ntfs-recovery.md#nr-03-actual-process-termination-at-common-journal-boundaries). Later local WinFsp is distinct scope-candidate above. Normal same-candidate regressions do not update previous VSS-Unity execution qualification.
 
-이번 확정 단위는 **`workspace ensure`의 준비 단계에서 CLI 종료·응답 유실 뒤 같은 작업을 재개하고 중복 자원을 만들지 않는 복구**다. 작은 입력의 WF-09~12/LB-01~05는 [제한을 유지해 마감](../verification/product-validation-unelevated.md)했으며, 정상 재연결·후보 게시 복구를 준비 단계 전체의 실제 중단 증거로 승계하지 않는다. NR-02의 현재 후보와 실제 실행은 [준비 복구 검증](../verification/preparation-recovery.md)이 소유한다.
+<a id="확정-범위-nr-0102-준비-단계-중단-복구"></a>
+## Fixed scope: NR-01/02 preparation interruption recovery
 
-확정된 준비 단위는 [26개 실제 경계와 최종 감사](../verification/preparation-recovery.md)로 **scoped-complete-with-limitations** 판정했다. `development`의 현재 계약·atomic JSON·잠금을 재사용하고 원본과 타 작업의 변경·결과·snapshot을 보존했다. 아래는 재자격의 경계이며 NR 전체 완료가 아니다. NR-03의 나머지 중단은 실제 필요나 재현 결함에 따라 별도 선택한다. 게시 실패 1건의 하위 원인/진단은 미해결로 보존하고 설치/서비스 변경을 자동 시작하지 않는다.
+Fixed unit: **resume identical tasks after CLI termination/lost responses during `workspace ensure` preparation without duplicate resources**. Small WF-09–12/LB-01–05 [closed with retained limits](../verification/product-validation-unelevated.md); normal reconnection/candidate-publication recovery do not qualify full preparation interruption. [Preparation verification](../verification/preparation-recovery.md) owns current NR-02 candidate/actual runs.
 
-### 포함 경계와 순서
+Fixed preparation unit judged **scoped-complete-with-limitations** by [26 actual boundaries/final audit](../verification/preparation-recovery.md). Reused current `development` contracts/atomic JSON/locks; preserved original-other-task changes-results-snapshots. Below defines requalification, not whole NR completion. Select other NR-03 interruptions from actual need/reproduced defects. Preserve one unresolved publication underlying cause/diagnosis; no automatic service-install changes.
 
-| 순서 | 포함 작업 | 범위 경계 |
+<a id="포함-경계와-순서"></a>
+### Included boundaries and sequence
+
+| Order | Included work | Scope boundary |
 | --- | --- | --- |
-| 1 | 기존 코드와 영속 기록에서 준비 경계·소유권·재시도 응답을 확인하고 NR-01의 필요한 계약을 고정 | 현재 버전만 지원. 구버전 자동 이관·호환 fallback이나 새 상태 체계 전면 도입 없음 |
-| 2 | VSS capture/반환 ID 저장, Git 등록, delta identity 생성, provider 시작/mount 관측, 독립 index 연결, Ready 저장의 중단 행렬과 fake 적합성 | 각 경계의 실행 전, 부작용 후 영속 기록 전, 기록 후 응답 전을 구분. 적용 불가능한 조합은 이유를 명시 |
-| 3 | 일반 권한 제품 CLI와 실제 제한 서비스·VSS·WinFsp·Git에서 CLI 종료/응답 유실 및 동일 key의 새 CLI·동시 재호출 | 준비의 실제 외부 부작용에 한정. native VSS 호출 내부 강제 종료·서비스 장애 확대·OS 장애는 후속 |
-| 4 | 복구 결과·원본/타 작업 보존·시험 소유 자원의 정상 회수를 확인 | NR-07은 사용자 쓰기 없는 부분 준비의 재조정만 필요한 만큼 포함. 결과 수집/전체 release 중단 행렬은 후속 |
+| 1 | Existing code/persistent records establish preparation-ownership-retry responses; fix needed NR-01 contracts | Current version only; no old automatic migration-fallback/new complete state framework |
+| 2 | VSS capture-return-ID save/Git registration/delta identity/provider start-mount/index connection/Ready save interruption matrix-fakes | Separate preexecution/post-side-effect-before-persistence/post-record-before-response; explain impossible combinations |
+| 3 | Normal CLI/actual restricted service-VSS-WinFsp-Git CLI termination-lost response/new CLI-concurrent same-key reinvocation | Actual external preparation effects only. Native VSS internal termination/expanded service-OS failures later |
+| 4 | Recovery/original-other-task preservation/normal owned reclamation | Include only necessary NR-07 partially prepared no-user-write reconciliation. Result/full-release interruption later |
 
-먼저 공통 계약/fake를 고정하고 재현된 복구 결함만 Runtime·Windows·Git 어댑터와 관련 schema·시험에서 수정한다. 영수증 직접 편집이나 내부 provider 수동 시작을 정상 복구 경로로 요구하지 않는다. 명령 경계 주입은 개발 시험에만 두며 일반 실행에서 활성화하지 않는다.
+Fix common contracts/fakes first; only reproduced recovery defects in Runtime/Windows/Git/schemas-tests. No direct receipt edits/manual internal-provider starts as normal recovery. Command injections only development tests, inactive normally.
 
-### 입력과 실행 조건
+<a id="입력과-실행-조건"></a>
+### Inputs and execution conditions
 
-작은 clean NTFS/Git fixture와 기존에 등록된 제한 서비스 범위를 우선 사용한다. Unity Editor 없이 저장소 준비를 시험하며 일반 Unity 저작·Play·테스트나 ARM A/B 자격으로 집계하지 않는다. 실제 project/home·볼륨·grant·바이너리 identity, 여유 공간과 기존 snapshot·Git refs·작업 점유는 실행 manifest에서 먼저 고정한다. 초기 전체 복제·읽기 hydration·전체 파일 copy-up을 복구 수단으로 추가하지 않는다.
+Prefer small clean NTFS-Git fixture/existing registered service. Storage preparation without Unity Editors is not Unity authoring-Play-tests/ARM qualification. Fix exact project-home/volume-grant/binary identities/free space/existing snapshots-Git refs-occupancy in manifest first. No initial full copies/read hydration/whole-file copy-up recovery.
 
-중단 대상 CLI와 그 시험의 소유 자원만 제어한다. 회수 guard를 유지하고 비소유 snapshot·기존 결과를 초기화하지 않는다. 새 서비스 설치/업데이트·grant·VHD/포맷·VSS 예산 변경이 필요하면 구체적인 환경 준비를 별도 작업으로 분리한다. 원격 장애 환경·재부팅·전원 제어 준비는 이번 단위의 선행 조건이 아니다.
+Control only target CLI/owned resources. Retain guards; no non-owned snapshots/results initialization. Separate concrete new service install-update/grants/VHD-format/VSS budget preparation. Remote failures/reboot-power preparation are not prerequisites.
 
-### 완료 기준과 산출물
+<a id="완료-기준과-산출물"></a>
+### Completion criteria and deliverables
 
-1. 위 준비 경계마다 동일 후보의 fake/실제 실행 여부·중단 위치·요청 hash·영속 intent/receipt·관측 결과를 연결한다. 예외 주입만 통과한 사례를 실제 CLI 종료 통과로 표시하지 않는다.
-2. 같은 key/owner/입력의 새 CLI 및 동시 재호출에서 같은 workspace/snapshot/delta/Git 등록으로 이어지고 중복 capture·등록·provider가 없다. 유효한 기준과 소유권을 확인한 사례는 실제 Ready까지 재개해야 한다.
-3. capture 완료 여부나 소유권이 unknown인 사례는 새 자원을 추측 생성하지 않고 보존/차단과 기계용 `nextActions`를 반환한다. 손상·다른 owner·입력 불일치를 재시도로 숨기지 않는다. 이 거부 계약을 유효한 작업 재개의 대체 통과로 사용하지 않는다.
-4. 원본 HEAD/index/사용자 파일, 타 작업·비소유 snapshot·기존 결과가 유지된다. 시험의 미보존 변경이 없음을 확인한 뒤 명시적으로 회수하고 소유 프로세스·mount·Git 등록·delta·마지막 소유 snapshot의 0/부재를 입증한다. unknown·reclaim-pending이 남으면 실제 실행 단위를 마감하지 않는다.
-5. 변경 후보의 `pwsh ./scripts/build.ps1`, 필요한 schema/fake/적합성, 현재 사용법·추적표와 UTF-8 검사를 통과한다. 원시 증거는 기존 `artifacts/ntfs-recovery/<runId>/` 규칙으로 보존한다. 정확한 실행 목록이 있어야 NR-02 완료를 판정하며 NR-01/07 전체나 NR 전체의 완료로 확대하지 않는다.
+1. Connect same-candidate fake-actual coverage/interruption locations/request hashes/durable intents-receipts/observations per boundary. Exception-injection passes are not actual CLI-termination passes.
+2. New/concurrent same key-owner-input CLIs continue identical workspace-snapshot-delta-Git, no duplicate capture-registration-provider. Valid bases-ownership must actually resume to Ready.
+3. Unknown capture completion/ownership preserves-blocks/returns machine `nextActions`, no guessed new resources. Retries do not hide corruption-other owner-input mismatch. Rejection cannot substitute valid-task resumption passes.
+4. Retain original HEAD-index-user files/other tasks/non-owned snapshots/results. Confirm no unpreserved test changes, explicitly reclaim/prove zero-absent processes-mount-Git-delta-final owned snapshot. Remaining unknown/reclaim-pending prevents actual closure.
+5. Pass changed-candidate `pwsh ./scripts/build.ps1`/needed schema-fake-conformance/current guidance-matrix/UTF-8. Preserve raw existing `artifacts/ntfs-recovery/<runId>/` conventions. Exact coverage list required for NR-02 completion; no whole NR-01/07/NR expansion.
 
-쓰기/flush/승인 데이터 중단(NR-03), 결과·회수의 나머지 경계(NR-07), 일반 파일/ACL/경로(NR-05), 재부팅·전원·물리 공간/소실(NR-04/06), 최종 Unity/ARM A/B(NR-08)는 후속이다. 대형 PV·SF-04~06/기본 모드 선택, 일반 설치·binding·discard, 큐/Coordination·source 반환 병합·일반 임대 인수, backend/flush 정책 변경·daemon/DB·Runner/DAG·게시/릴리스도 이번 단위에 포함하지 않는다.
+Later: write-flush-approved data NR-03/results-reclamation remaining NR-07/general files-ACL-paths NR-05/reboot-power-space-loss NR-04/06/final Unity-ARM NR-08. Exclude large PV/SF-04–06/default modes/general installer-binding-discard/queues-Coordination/source-return merging/general lease takeover/backend-flush changes/daemon-DB/Runner-DAG/publication-release.
 
-착수 전 기준 시험의 미해결 회수 관측과 harness 준비 실패는 [준비 복구 검증의 실패 근거](../verification/preparation-recovery.md#보존한-실패와-재검증-조건)에 보존한다. 새 전체 시험의 통과를 그 원인의 해결이나 NR 전체 자격으로 읽지 않는다.
+Pre-start unresolved reclamation/harness preparation failures remain [preparation failure evidence](../verification/preparation-recovery.md#preserved-failures-and-requalification-conditions). New matrix passes neither resolve those causes nor qualify whole NR.
 
-## 필요 시 선택할 NR 지원 검증 카탈로그
+<a id="필요-시-선택할-nr-지원-검증-카탈로그"></a>
+## NR support-verification catalogue for selection when needed
 
-아래 조건은 원래 ID·실패·재현 질문을 찾기 위한 카탈로그다. 선택한 실제 입력/환경과 변경 경계에 해당하는 하위 단위만 실행한다. 모든 경계·파일 조합·OS 장애·ARM을 한 번에 구현하거나 시험하는 계획이 아니다.
+Catalogue finds original IDs/failures/reproduction questions. Run only selected actual input-environment/changed-boundary subunits, not all combinations/files/OS failures/ARM at once.
 
-### 1. 공통 복구 계약과 기계용 응답
+<a id="1-공통-복구-계약과-기계용-응답"></a>
+### 1. Common recovery contracts and machine responses
 
-- 기존 `workspace ensure/status/checkpoint/release`를 정상 진입점으로 유지한다. 에이전트가 영수증 JSON을 직접 고치거나 내부 `overlay-serve`를 수동 실행해야만 복구되는 절차를 정상 경로로 만들지 않는다.
-- 작업·snapshot·delta·Git 등록·결과·프로세스의 identity와 실행 세대를 대조한다. PID만 같거나 경로만 존재한다는 이유로 소유권과 같은 기준을 인정하지 않는다. 재부팅 전후에는 VSS ID와 현재 공급자·볼륨·기준 경로를 다시 확인한다.
-- 관측 가능한 재개, 관측/권한 대기, 지원 불가, 영수증/데이터 손상, 소실된 기준, 회수 진행을 구분하고 안정된 오류와 `nextActions`로 연결한다. 관측 불가를 부재나 0으로 변환하지 않는다. 구체 schema와 오류 이름은 NR-01에서 기존 계약과 맞춰 고정한다.
-- 같은 snapshot과 정상 저널·소유권을 확인할 수 있는 사례는 실제 재개까지 성공해야 한다. 기준 소실·손상·실행 여부 불명확 사례의 보존/차단을 정상 재개의 대체 통과 조건으로 사용하지 않는다.
-- 부작용 전 intent, 실행 결과, 후속 상태 저장이 각각 어디까지 남았는지 판정한다. 실행 여부가 불명확하면 새 snapshot·provider·worktree를 만들지 않고 조사 가능한 보존 상태를 반환한다.
-- 현재 atomic JSON·파일 잠금 구조를 보강한다. 현재 버전에서의 중단·응답 유실·재시작 복구를 유지하며, 지원하지 않는 이전 형식은 보존 후 명시적으로 거부한다. 자동 이관·호환 fallback을 추가하지 않는다. Core에는 OS/Git/Unity API를 넣지 않으며 daemon·SQLite 전환은 이번 범위에 넣지 않는다.
+- Keep `workspace ensure/status/checkpoint/release` normal entry points. No normal recovery requiring manual receipt JSON/internal `overlay-serve`.
+- Compare task/snapshot/delta/Git registration/result/process identities/execution generations. Same PIDs/existing paths alone do not prove ownership/basis. Recheck VSS IDs/current providers-volumes-basis paths around reboot.
+- Distinguish observable resumption/observation-permission waits/unsupported/corrupt receipts-data/lost bases/reclamation, with stable errors/`nextActions`. Unobservable is not absent-zero. NR-01 fixes exact schemas/error names against contracts.
+- Verified identical snapshot/healthy journals-ownership must actually resume. Preservation-blocking on loss-corrupt-uncertain does not substitute valid resumption.
+- Determine retained preeffect intent/execution result/subsequent state boundaries. Uncertain execution creates no new snapshots/providers/worktrees; return investigable preservation.
+- Strengthen current atomic JSON/file locks. Retain same-version interruption/lost-response/restart recovery; preserve-explicitly reject unsupported old formats. No automatic migration/fallback/Core OS-Git-Unity/daemon-SQLite conversion.
 
-기존 공통 계약과 자동 시험을 재사용하고 선택한 경계의 부족한 상태·장애 사례만 추가한다. 새 상태 체계 전면 도입이나 정상 경로 재작성으로 확대하지 않는다.
+Reuse contracts/tests; add only missing selected-boundary states/failures. No whole-state framework/normal-route rewrite.
 
-현재 VSS 계약은 capture identity와 현재 읽기 위치를 분리하고, current boot·native provider·volume·소유권을 확인한다. [NTFS 계약](../ntfs-workspaces.md)을 따르며 아래의 나머지 중단·파일 조건과 NR-04/06/08은 미완료다.
+Current VSS separates capture identity/current read location, verifying boot/native provider/volume/ownership. Follow [NTFS](../ntfs-workspaces.md); other interruption-files/NR-04/06/08 unfinished.
 
-현재 `SplinterSnapshotProbe` 자체 callback은 값·generation·PID를 기록하고 assembly MVID는 기록하지 않는다. 제품 WorkspaceBridge heartbeat는 프로젝트/fixture 코드를 실행하지 않는다. NR-08과 PV의 loaded-code 증거는 공통 Qualification fixture의 새 `inspect` 응답에서 같은 요청 ID·PID·경로·generation·assemblyMvid·시각과 실제 바꾼 함수의 실행 값을 확인한다. 이전 callback이나 준비되지 않은 필드를 최신 증거로 보고하지 않는다.
+Current `SplinterSnapshotProbe` callback records values/generation/PID, no MVID. WorkspaceBridge heartbeat runs no fixture/project code. NR-08/PV loaded evidence uses fresh common Qualification `inspect`, matching request ID/PID/path/generation/assemblyMvid/time/actually changed function values. Old callbacks/unprepared fields are not current evidence.
 
-### 2. 지원 확대 시의 명령 경계와 데이터 지속성
+<a id="2-지원-확대-시의-명령-경계와-데이터-지속성"></a>
+### 2. Command boundaries and durability during support expansion
 
-선택한 경계에서 **실행 전, 부작용 완료 후 영수증/상태 저장 전, 상태 저장 후 응답 전**을 구분한다. 필요한 fake 적합성을 먼저 고정하고 실제 어댑터의 해당 중단·응답 유실만 재현한다. 아래 모든 조합이나 커널 내부 모든 위치의 시험을 요구하거나 완료했다고 주장하지 않는다.
+Separate selected **before execution/after side effects-before receipt-state persistence/after state-before response**. Fix needed fake conformance first/reproduce only relevant actual interruption-lost responses. Do not require/claim all combinations/every kernel location.
 
-| 경계 집합 | 실제 중단 지점과 대조 자료 |
+| Boundary group | Actual interruption locations/comparison data |
 | --- | --- |
-| 준비 | VSS capture와 반환 ID 저장, Git 등록, delta identity 생성, provider 시작·mount 관측, 독립 index 연결, Ready 저장 |
-| 쓰기 | 저널 header/payload/checksum 쓰기와 flush, rename/replace/truncate, mmap의 명시적 flush, 동시 읽기와 writer 재연결 |
-| 결과 | 소스 고정·앱 종료, 결과 commit/ref, manifest와 전체 저널 seal 저장. 결과 ref만 있거나 manifest만 있는 경우 포함 |
-| 회수 | 앱/자식 종료, flush/seal, unmount/provider 종료, Git 등록 해제, delta 삭제 intent/부분 삭제, VSS 해제와 released 기록 |
+| Preparation | VSS capture-return ID save/Git registration/delta identity/provider start-mount/index connection/Ready save |
+| Writes | Journal header-payload-checksum writes-flush/rename-replace-truncate/mmap explicit flush/concurrent readers-writer reconnect |
+| Results | Source fixation/app shutdown/result commits-refs/manifest-whole journal seal. Include ref-only/manifest-only |
+| Reclamation | App-children exit/flush-seal/unmount-provider exit/Git unregister/delta delete intents-partial delete/VSS release/released records |
 
-- 저널에서 승인 완료된 쓰기와 flush 전 mmap/아직 응답하지 않은 쓰기를 구분해 oracle을 만든다. 완료된 레코드의 checksum·sequence 불일치는 보존/차단하고, 불완전한 마지막 레코드의 처리 규칙은 먼저 계약으로 고정한다. 손상을 조용히 정상 데이터로 취급하지 않는다.
-- 정상 재부팅, provider/CLI 강제 종료, VM 강제 전원 종료를 별도 사례로 기록한다. 정상 종료나 hypervisor의 저장·일시 중지는 강제 전원 종료 증거가 아니다. VM 시험의 결과를 실제 하드웨어 전원 장애 전체 보장으로 확대하지 않는다.
-- 재부팅 뒤 원본을 변경하고 기존 key가 여전히 이전 snapshot/delta 내용을 반환하는지 확인한다. 새 작업의 새 캡처와 기존 작업의 재개를 구분한다. 원본을 장기간 잠그지 않는다.
-- 준비 실패로 Ready에 도달하지 못한 작업의 복구도 포함한다. 사용자 쓰기 없음과 소유 자원을 입증할 수 있을 때의 재개/회수 경로를 정한다. 입증할 수 없으면 영수증·delta·snapshot을 보존한다. 포괄적인 강제 삭제 옵션은 만들지 않는다.
+- Build oracles distinguishing acknowledged journal writes/preflush mmap/unanswered writes. Preserve-block complete checksum-sequence corruption; first contract incomplete-final-record rules. No silent corruption acceptance.
+- Record normal reboot/provider-CLI forced exit/VM forced power-off separately. Normal stops/hypervisor save-pause are not forced power loss. VM outcomes do not guarantee all hardware power failures.
+- Change original after reboot/check identical keys still return previous snapshot-delta. Separate new captures/old resumes. No long original locks.
+- Include pre-Ready recovery. Define resume-reclaim when no user writes/ownership proven; otherwise preserve receipts-deltas-snapshots. No broad forced delete.
 
-### 3. 물리 공간 부족과 결과 보존
+<a id="3-물리-공간-부족과-결과-보존"></a>
+### 3. Physical space shortages and result preservation
 
-- 현재 quota `DeltaFull`과 구분하여 격리된 시험 볼륨의 실제 공간을 소진한다. 원본/VSS 보존 공간, delta·상태 저장 공간, 결과 Git 객체 공간을 각각 따로 시험한다.
-- 상태 저장 자체가 실패할 때도 성공 응답을 발행하지 않고, 공간이 회복된 뒤 마지막으로 확인된 영수증·저널·결과 객체로 조정한다. 압박만으로 유일한 결과나 소유하지 않은 snapshot을 삭제하지 않는다.
-- snapshot이 사라진 경우 미보존 변경, 보존 완료 결과, 보존 뒤 늦은 쓰기를 나눈다. 결과 ref/tree/manifest와 seal을 확인한 경우에만 기존 회수 계약에 따라 진행한다.
-- 일시적으로 offline인 볼륨, 접근 거부, 삭제 확인을 구분한다. 경로가 안 보이는 것만으로 결과/등록을 정리하지 않는다. 다시 연결한 볼륨이 같은 identity인지 확인한다.
-- 회수 완료는 앱/자식/provider와 소유 메모리·핸들 0, 실제 mount·Git 등록·delta·마지막 소유 VSS 부재, 독립 결과 및 다른 작업 보존으로 판정한다. 재부팅 전 캐시된 영수증만으로 완료를 발행하지 않는다.
+- Exhaust actual isolated-test-volume space separately from quota `DeltaFull`. Test original-VSS reserve/delta-state/result Git object space separately.
+- No success when state writes fail; after space recovery reconcile last confirmed receipts-journals-result objects. Pressure never deletes sole results/non-owned snapshots.
+- Missing snapshots separate unpreserved changes/preserved results/late writes. Proceed only after result ref-tree-manifest/seal verification under existing reclaim contract.
+- Distinguish temporarily offline/access denied/confirmed deleted. Invisible paths alone do not clean results-registrations. Reattached volume identity must match.
+- Completion requires zero app-children-provider/owned memory-handles/no mounts-Git registrations-deltas-final owned VSS/independent results-other tasks retained. Preboot cached receipts alone cannot complete.
 
-### 4. 파일 지원표와 짧은 경로
+<a id="4-파일-지원표와-짧은-경로"></a>
+### 4. File support matrix and short paths
 
-이번 목표는 일반 NTFS 특성 전부의 구현이 아니라 **현재 허용하는 조합과 거부하는 조합을 실행 증거로 고정하는 것**이다. 아래는 목표 정책이며 현재 지원 완료 목록이 아니다.
+Goal is **execution evidence for currently allowed/rejected combinations**, not implementing all NTFS features. Below is target policy, not completed support.
 
-| 조합 | 이번 목표 | 검증할 경계 |
+| Combination | Target | Verification boundary |
 | --- | --- | --- |
-| 일반 파일·디렉터리, 0바이트·경계 크기·큰 파일 | 현재 동작 유지 | 범위 쓰기·mmap flush·rename/replace/truncate, 재연결 후 길이/hash와 초기 payload/hydration 0 |
-| ADS, hardlink, 일반 symlink/junction/reparse, EFS, 압축·희소 | 지원 확대 없이 명시적 거부 | 원본 preflight, 캡처한 기준, 작업 중 생성/속성 변경 시도. 다른 경로와 기존 바이트 불변 |
-| 원본 파일별 ACL·소유자·명시적 deny/상속 차이 | 허용 ACL 전제와 미지원 조합을 정의하고 위반 시 차단 | 현재 overlay의 단일 보안 descriptor와 차이를 조사. ACL을 조용히 평탄화하고 원본 의미를 재현했다고 표시하지 않음 |
-| WinFsp mount root와 일반 링크 | 관측한 소유 mount root만 허용 | 내부 링크·상위 경로 바꿔치기·회수 직전 소유권 변경 거부 |
-| 한글·공백·대소문자·긴 경로 | 검증한 짧은 home 조합과 진단 정책 확정 | 기존 244자/270자 관측을 재현하고 실제 실패 경로를 기록. 보편적인 단일 길이 제한이나 OS 설정 변경으로 해결됐다고 간주하지 않음 |
-| dirty/staged/untracked 입력, LFS·추가 filter, linked-worktree 원본·하위 Unity 프로젝트 | 현재 미지원 경계 유지 | 안정된 사전 거부·원본 보존을 회귀. 실제 사용할 입력이 필요로 할 때만 상속/필터 지원의 별도 범위를 선택 |
+| Regular files-directories/zero-byte/boundary-large sizes | Keep behavior | Range writes/mmap flush/rename-replace-truncate/reconnect lengths-hashes/zero initial payload-hydration |
+| ADS/hardlinks/general symlink-junction-reparse/EFS/compressed-sparse | Explicit rejection without support expansion | Original preflight/captured basis/in-task creation-attribute changes; other paths-existing bytes unchanged |
+| Per-file original ACL-owner/explicit deny-inheritance differences | Define allowed ACL/unsupported combinations/block violations | Compare single overlay security descriptor. No silent flattening/false original-semantic reproduction |
+| WinFsp mount roots/general links | Only observed owned mount roots | Reject internal links/ancestor substitutions/ownership changes before reclaim |
+| Korean/spaces/case/long paths | Fix verified short-home combinations/diagnostics | Reproduce 244/270-character observations/actual failures. No universal length-limit/OS-setting assumed fix |
+| dirty-staged-untracked/LFS-extra filters/linked-worktree originals/nested Unity | Keep unsupported boundaries | Stable pre-rejection/original preservation regressions; inheritance-filter scope only when actual input needs |
 
-새 원본에서 사전 거부할 수 있는 경우 캡처·Git 등록·Editor 시작 전에 중단한다. 캡처한 기준에서 뒤늦게 발견한 경우에는 부분 준비 복구 계약을 따른다. 파일 지원표는 OS/WinFsp/파일 특성별 실제 실행 조합을 명시하며 CoW를 보안 샌드박스로 표현하지 않는다.
+Reject new originals before capture/Git registration/Editor if possible. Late captured-basis discovery follows partial-preparation recovery. Support tables specify actual OS-WinFsp-file-feature combinations; CoW is no security sandbox.
 
-## 구현 단위와 담당 경계
+<a id="구현-단위와-담당-경계"></a>
+## Implementation units and ownership boundaries
 
-검증 상태의 원본은 [NR 추적표](validation-matrix.md#ntfs-지원-확대-관문)다. 아래 파일은 우선 조사·변경할 기존 경계이며 모든 파일을 수정하라는 뜻은 아니다.
+[NR matrix](validation-matrix.md#ntfs-support-expansion-gates) owns status. Files below are initial investigation-change boundaries, not instructions to edit all.
 
-| 순서 / ID | 작업과 주요 파일 | 완료 조건 |
+| Order/ID | Work/main files | Completion criteria |
 | --- | --- | --- |
-| 1 / NR-01 | `Core/SnapshotWorkspaces.cs`, `Core/SnapshotOverlay.cs`, `Runtime/WorkspaceStore.cs`, `contracts/v1`, Protocol, fake | 복구 상태·identity·지속성·오류/nextActions와 중단 지점 목록 고정. 오래된 기록을 손실 없이 읽거나 명시 보존 |
-| 2 / NR-02 | `Runtime/SnapshotWorkspaces.cs`, Windows VSS/backend/mount, Git snapshot/registration, `scripts/vss-snapshot.ps1` | 준비의 각 외부 부작용 전후 실제 중단·같은 key 동시 재호출에 중복 캡처/등록/provider 없음 |
-| 3 / NR-03 | `Runtime/JournalDeltaStore.cs`, Windows WinFsp server/filesystem, 저널·프로세스 시험 | 승인된 쓰기 유지, 불완전 tail·손상 구분, flush 중단 후 재개/보존. 범위 저장 회귀 통과 |
-| 4 / NR-05 | `Windows/SnapshotInputChecks.cs`, WinFsp 파일 작업, Git preflight, doctor/CLI 진단 | 허용/거부 파일·경로·ACL 표의 실제 증거. 원본·외부 경로 보존 |
-| 5 / NR-07 | Runtime release/result, `Git/GitSnapshotWorkspaces.cs`, Windows backend, WorkspaceStore | 부분 준비·부분 결과·부분 회수 조정, 독립 결과 검증, 마지막 의존성 보호와 실제 자원 회수 |
-| 6 / NR-04 | 위 구현과 격리 Windows 시험 harness | Ready/미수집 변경, checkpoint 완료, 회수 도중의 정상 재부팅·강제 전원 종료를 구분. 유효한 같은 snapshot/delta는 실제 재개, 소실/손상은 근거 있는 보존 상태 |
-| 7 / NR-06 | 공간 관측·admission·저널/상태/결과 실패 처리와 격리 볼륨 harness | quota와 별개인 실제 공간 고갈·offline·snapshot 소실 시험, 다른 작업/기존 복원 지점/유일한 결과 보존 |
-| 8 / NR-08 | build 진입점, 일반 CLI의 실제 Unity 회귀, 현재 계약·검증 문서 | 같은 최종 후보의 자동/실환경 증거와 완전한 회수. 재부팅 뒤 실제 Unity 재검증 포함 |
+| 1 / NR-01 | `Core/SnapshotWorkspaces.cs`, `Core/SnapshotOverlay.cs`, `Runtime/WorkspaceStore.cs`, `contracts/v1`, Protocol, fake | Fix recovery states-identities-durability/errors-nextActions/interruption list. Read old records losslessly or explicitly preserve |
+| 2 / NR-02 | `Runtime/SnapshotWorkspaces.cs`, Windows VSS/backend/mount, Git snapshot/registration, `scripts/vss-snapshot.ps1` | Actual before-after preparation effects/same-key concurrency: no duplicate capture-registration-provider |
+| 3 / NR-03 | `Runtime/JournalDeltaStore.cs`, Windows WinFsp server/filesystem, journal-process tests | Preserve approved writes/distinguish incomplete tails-corrupt/flush-interruption resumption-preservation/range regressions |
+| 4 / NR-05 | `Windows/SnapshotInputChecks.cs`, WinFsp files, Git preflight, doctor/CLI diagnostics | Actual allowed-rejected files-paths-ACL evidence/original-external path preservation |
+| 5 / NR-07 | Runtime release/result, `Git/GitSnapshotWorkspaces.cs`, Windows backend, WorkspaceStore | Partial preparation-results-reclamation reconciliation/independent results/final dependencies/actual resources |
+| 6 / NR-04 | Above/isolated Windows harness | Separate Ready-uncollected/checkpointed/reclaiming normal reboot-forced power loss. Actual valid same snapshot-delta resumes; evidence-based lost-corrupt preservation |
+| 7 / NR-06 | Space/admission/journal-state-result failures/isolated volume harness | Actual exhaustion-offline-snapshot loss apart from quota; preserve other tasks-restore points-sole results |
+| 8 / NR-08 | build entry/normal-CLI actual Unity/current contracts-verification | Same-final-candidate automated-real evidence/full reclaim; actual Unity after reboot |
 
-파일 표의 모듈 약칭은 `src/Splinter.<모듈>/`을 뜻한다. Windows는 `Splinter.Platform.Windows`, Git은 `Splinter.SourceControl.Git`이다. 새 개발용 harness는 제품 workspace 명령과 구분하고 기본값을 계획/관측으로 둔다. 실패 주입을 일반 사용자의 정상 실행에서 활성화하지 않는다. 실행 가능한 스크립트를 추가할 때 AGENTS·문서 지도·capabilities의 현재 상태도 함께 갱신한다.
+Module abbreviations mean `src/Splinter.<module>/`; Windows `Splinter.Platform.Windows`, Git `Splinter.SourceControl.Git`. Development harnesses separate from product commands/default plan-observe. No normal fault injection. New runnable scripts update AGENTS/map/capabilities too.
 
-지원 확대를 명시적으로 시작하면 위 표에서 대상 입력/장애 조합을 선택하고 필요한 계약·자동 시험·실제 경계·최종 회귀를 수행한다. 첫 버전은 M0 순서로 진행하며 전원/공간/ARM 전체 완료를 기다리지 않는다. 지원 경로의 데이터 손실·원본 오염·타 작업 종료/삭제가 재현되면 그 경로를 차단하고 먼저 수정한다. PV/M0 통과가 NR 미실행을 해소하지 않으며 선택하지 않은 지원 조합은 NotRun으로 유지한다.
+Explicit support expansion selects target input-failure combinations, then needed contracts/automation/actual boundaries/final regression. First version follows M0, not full power-space-ARM waits. Reproduced supported-path loss/original pollution/other-task stop-delete blocks/fix first. PV-M0 passes do not resolve NR NotRun; unselected combinations remain NotRun.
 
-## 시험 환경과 필요한 자원
+<a id="시험-환경과-필요한-자원"></a>
+## Test environments and resources
 
-**NR 장애·파일 경계 시험에는 외부 에셋 구매·다운로드가 필요하지 않다.** 기존 Unity 스크립트와 직접 생성한 비희소·비압축 16MiB/256MiB/1GiB 파일, 작은 파일 트리·파일 특성별 fixture를 사용한다. 별도 PV-02에는 사용 조건을 확인한 실제 모델·텍스처 묶음을 준비하며 구성·규모·예산은 [직접 비교 계획](parallel-workflow-qualification.md)에 따른다. 유료 구매는 전제하지 않는다. 대형 난수 파일은 저장소 시험용이며 실제 에셋 임포트 성능의 증거로 사용하지 않는다.
+**NR failure/file-boundary tests need no external asset purchases/downloads.** Use existing Unity scripts/self-created nonsparse-uncompressed 16MiB/256MiB/1GiB files/small trees/file-feature fixtures. Separate PV-02 prepares licensed actual model-texture bundles; composition-scale-budget follow [direct comparison](parallel-workflow-qualification.md). No paid-purchase prerequisite. Large random files test storage, not actual import performance.
 
-사용자가 제공한 **VIVOBOOK 테스트 PC**를 다음 조건으로 준비한다. 준비와 두 작업 사이의 결과 전달은 에이전트가 담당한다. Unity fixture는 `splinter-test-vivobook/splinter-unity`, 제품 소스는 그 형제 `splinter`로 전달한다. 최초 fixture/Library 준비와 제품 workspace 생성 비용을 구분한다.
+Prepare user-provided **VIVOBOOK test PC** under conditions below. Agents prepare/transfer results between tasks. Unity fixture goes to `splinter-test-vivobook/splinter-unity`, product source to sibling `splinter`. Distinguish initial fixture-Library/product-workspace costs.
 
-| 자원 | 준비 조건과 용도 |
+| Resource | Preparation/use |
 | --- | --- |
-| 격리 Windows | NTFS/VSS 시스템 공급자/WinFsp를 시험할 수 있고 관리자 helper·정상 재부팅·강제 전원 종료를 통제할 수 있어야 함. Windows 에디션/build·드라이버 버전은 실제 조회 후 기록 |
-| 시험 볼륨 | 시스템 및 중요한 데이터와 분리한 소유 NTFS 데이터 볼륨. 원본/VSS와 delta·상태/결과의 압박을 따로 만들고, 증거는 압박 대상 밖에 보존 |
-| 공간 예산 | 생성 시 현재 제품의 상태 볼륨 여유 2GiB와 VSS 상한 여유 8GiB를 충족. 실제 데이터·VSS 증가·반복 횟수를 측정해 용량 결정. 시험 볼륨만 채우며 VM 호스트 볼륨을 고갈시키지 않음 |
-| 복구 제어 | VM이면 게스트 밖에서 중단 시점과 강제 전원 종료를 제어하고 증거 회수 가능. 테스트 PC이면 해당 장비만 재부팅·전원 제어할 수 있는 일정과 복구 수단 필요 |
-| Unity 최종 회귀 | 정확한 `6000.3.22f1`과 현재 fixture 패키지, GUI Editor를 실행할 수 있는 환경·라이선스. 원본/A/B 동시 실행 자원 확인. NI의 A/B working set 표본만 합쳐도 약 9GiB였으므로 OS·원본 Editor·import 여유를 별도로 산정 |
-| 짧은 home | 예: 시험 상태 볼륨의 `S:\s`. 긴 증거 폴더를 workspace home으로 사용하지 않음. 경로·볼륨명은 환경 확인 뒤 정함 |
+| Isolated Windows | NTFS/VSS system provider/WinFsp testing/admin helpers/normal reboot-forced power control. Query/record actual edition-build/driver versions |
+| Test volume | Owned NTFS data volume separate from system/important data. Independently pressure original-VSS/delta-state-results; evidence outside pressured region |
+| Space budget | Current creation conditions: 2GiB state-volume free/8GiB VSS-limit headroom. Measure actual data-VSS growth-repeat counts for capacity. Fill only test volume, not VM host |
+| Recovery control | VM interruption-power managed externally/evidence recoverable. PC needs equipment-only reboot-power schedule/recovery |
+| Final Unity regression | Exact `6000.3.22f1`/current packages/GUI-license/environment. Original-A-B concurrent capacity. NI A-B sampled working sets alone ~9GiB; budget OS-original-import separately |
+| Short home | E.g. test-state `S:\s`. Evidence long folders are not workspace homes; set paths-volumes after environment checks |
 
-환경 착수 시 필요한 정보는 Windows 버전, VM/PC 접근 방법, 사용 가능한 RAM/디스크, 전원 제어 가능 범위다. 이미 있는 도구는 재사용하고 신규 설치·볼륨 설정·전원 조작은 실제 대상과 변경 내용을 정한 실행 작업에서 처리한다. 준비 가능 응답을 설치나 현재 PC 재부팅을 수행했다는 의미로 기록하지 않는다.
+Before environment work, establish Windows version/VM-PC access/RAM-disk/power-control scope. Reuse tools; new installation-volumes-power actions belong to exact-target/change execution tasks. Readiness responses are not performed installation/current-PC reboot.
 
-별도 머신의 fixture·Library 최초 준비는 시험 환경 구축 비용으로 따로 기록한다. 그 준비 비용을 workspace 최초 생성량에서 숨기거나 제품의 작업별 전체 복제 fallback으로 사용하지 않는다.
+Initial remote-machine fixture/Library are separate environment costs, not hidden workspace creation/per-task copying fallback.
 
-저장소 장애 시험은 Unity 없이 먼저 할 수 있다. 그러나 그 결과와 기존 호스트의 일반 Unity 재시작을 합쳐 **재부팅 후 Unity 지원**으로 집계하지 않는다. NR-08에는 실제 재부팅한 지원 환경에서 저장된 작업의 새 PID/domain/MVID와 loaded-code, fingerprint·validation 일치를 남긴다. 해당 환경이 없으면 그 하위 사례는 NotRun이고 NR 전체 완료도 보류한다.
+Storage failures can run without Unity first; do not combine them with existing-host ordinary restarts as **post-reboot Unity support**. NR-08 needs actual rebooted supported environment/new PID-domain-MVID/loaded code/fingerprint-validation matches. Missing environments mean subcase NotRun/whole NR incomplete.
 
-## 실행 증거와 완료 판정
+<a id="실행-증거와-완료-판정"></a>
+## Execution evidence and completion decisions
 
-- 새 run은 `artifacts/ntfs-recovery/<runId>/`에 계획, 환경/소스 manifest, 명령·응답, 중단 경계, 시작/종료 상태, 원시 hash·자원 계측, 결과와 회수 기록을 남긴다. 짧은 workspace home과 증거 경로를 분리한다.
-- 재부팅/전원 시험은 전후 boot 식별·시간, workspace/key와 요청 hash, VSS/delta identity, 마지막으로 외부에서 확인한 쓰기·seal, Git ref/tree, 새 프로세스 시작 시각을 연결한다. 증거를 대상 VM 밖에 회수한 뒤 다음 trial로 초기화한다.
-- 장애 전후 원본 HEAD·index·staged/unstaged/untracked 내용, 비소유 worktree·snapshot, 다른 작업의 hash를 대조한다. 모든 장애 시험은 자기 소유 fixture·프로세스·볼륨만 대상으로 한다.
-- 저장 계약 회귀는 최초 payload·읽기 hydration 0, 같은 4KiB 쓰기의 payload 증가, metadata/할당 단위·VSS·Git 저장량을 분리한다. 읽기 I/O나 Unity의 실제 Library 재작성 비용을 0으로 보고하지 않는다.
-- 최종 변경 후보에 `pwsh ./scripts/build.ps1`을 실행하고 같은 source hash의 실환경 시험을 연결한다. Windows·Unity 미실행을 각각 표기한다. 변경된 입력/출력 schema, fake, 적합성 시험, 사용법·지원표·검증 추적표와 UTF-8을 확인한다.
-- NR-01~08의 필수 하위 사례에 실행 근거가 모두 있어야 **전체 NR 지원 범위 완료**다. 미지원 파일의 안전한 거부 시험은 그 거부 계약의 Passed이며 해당 파일 지원의 Passed가 아니다. 환경 미비·미실행·실패는 각각 이유와 다음 조건을 남긴다.
-- 전체 NR 완료는 마감한 M0나 다음 인계/저장 개선의 선행 조건이 아니다. 지원 경로의 안전 결함은 먼저 수정하고 실제 사용할 환경의 필요한 조건만 선택한다. NR 완료도 장기 48개 전체나 물리 장치 전원 장애 일반 지원을 뜻하지 않는다.
+- New runs preserve plans/environment-source manifests/commands-responses/interruption boundaries/start-end states/raw hashes-resources/results-reclamation in `artifacts/ntfs-recovery/<runId>/`. Short home separate.
+- Reboot-power connects boot IDs-times/key-workspace/request hash/VSS-delta/last externally confirmed writes-seals/Git refs-trees/new start times. Retrieve evidence outside VM before next reset.
+- Compare original HEAD-index/staged-unstaged-untracked contents/non-owned worktrees-snapshots/other-task hashes before-after. Failures target own fixtures-processes-volumes only.
+- Storage regressions separate zero initial payload-read hydration/same-4KiB payload growth/metadata-allocation units/VSS-Git. Do not report zero read I/O/actual Library rewrites.
+- Final `pwsh ./scripts/build.ps1` links actual same-source-hash environment tests. Mark Windows/Unity NotRun separately. Verify schemas/fakes/conformance/guidance-support-matrix/UTF-8.
+- **Whole NR support completion** needs execution evidence for all required NR-01–08 subcases. Unsupported-file safe rejection passes rejection, not file support. Environment gaps/NotRun/failure record reasons/next criteria.
+- Whole NR completion is no prerequisite for closed M0/next handoff-storage work. Fix safety defects first/select actual environments. NR completion is neither all 48 scenarios nor general hardware power support.
 
-## 별도 지원 확대와 제외 범위
+<a id="별도-지원-확대와-제외-범위"></a>
+## Separate support expansion and exclusions
 
-한정 M0는 마감했고 후속은 [축소한 구현 계획](implementation-plan.md#남길-후속-작업과-종료-기준)의 책임/종료 기준을 따른다. 아래는 실제 입력/환경이 필요로 할 때 선택할 지원 카탈로그이며 순서대로 모두 수행하는 로드맵이 아니다.
+M0 closed; follow [reduced implementation](implementation-plan.md#retained-follow-ups-and-completion-criteria) responsibilities/completion. Catalogue below selects actual input-environment needs, not sequential full roadmap.
 
-| 후속 영역 | 선택한 지원 범위의 확인 흐름 | 자원 |
+| Follow-up | Selected support verification flow | Resources |
 | --- | --- | --- |
-| 일반 Unity 파일 작업 | 직접 만든 ScriptableObject/프리팹/씬/텍스처, asmdef·로컬 시험 패키지 변경의 mount 통과·저장·재개방·독립 결과·회수. 필요한 compile/import·Play·테스트는 기존 Unity 도구로 확인 | 기존 fixture를 선택한 시험 소스로 확장. 자체 생성 에셋부터 사용 |
-| Git 입력·통합 확대 | staged/unstaged/untracked와 `.meta` 상속, LFS/attributes, linked-worktree·하위 프로젝트, clean 통합 성공·두 NTFS 결과 충돌·최신 통합 후보 재검증 | 별도 Git fixture와 자체 생성 LFS 바이너리. 현재 dirty 원본 거부 증거를 상속 지원으로 바꾸지 않음 |
-| 대표 에셋·성능 확대 | PV-02의 모델·텍스처 직접 비교 이후 더 다양한 에셋/오디오·실사용 프로젝트의 초기 import·반복 변경·metadata/저널 비용으로 확대. 측정한 병목부터 개선 | 필요 시 사용자 보유 2D/3D·오디오 또는 대표 프로젝트 일부를 종류·규모·허용 범위를 지정해 요청. 유료/개인 데이터는 공개 fixture와 분리 |
-| 설치 연결·외부 도구 인계 | AI가 기존 배포물/스킬을 연결하고 반환 workspace의 정확한 Editor를 MCP/Unity CLI로 선택. 자동 installer·Codex binding은 구현 제외 | SW의 AI 절차와 도구 하나의 최소 공존 검증. 서비스/driver의 명시적 구성 도구는 유지 |
+| General Unity files | Self-created ScriptableObjects-prefabs-scenes-textures/asmdef-local test packages through mounts/save-reopen/independent results-reclamation. Compile-import/Play-tests via existing tools | Extend selected fixture; self-created assets first |
+| Git inputs/integration | staged-unstaged-untracked/`.meta` inheritance/LFS-attributes/linked-worktrees-nested projects/clean integration/two NTFS result conflicts/latest-candidate reverify | Separate Git fixtures/self-created LFS binary. Dirty-original rejection is not inheritance support |
+| Representative assets/performance | After PV-02 model-texture comparison, diverse assets-audio/real-project initial imports/repeated changes/metadata-journals; observed bottlenecks first | Request user-owned 2D-3D-audio/project subset with types-size-permission when needed. Private-paid data separate from public fixtures |
+| Installation/external handoff | AI connects distributions-skills/exact returned Editor through MCP-Unity CLI. Automatic installer-Codex binding excluded | SW AI/minimum one-tool coexistence. Retain explicit service-driver tools |
 
-AI Runner/DAG·daemon/DB·범용 Unity 저작/Play/Test Runner API는 제품 범위에서 제외한다. 임의 에셋 구매·수집, 범용 특수 파일 지원, LFS/dirty 입력 구현, 추가 저널 정리와 성능 SLA, 다른 OS, 원격 게시·릴리스는 M0에 포함하지 않는다. 지원하는 일반 파일/에셋을 안전하게 읽고 변경하는 요구와 기존 도구로 작업 결과를 확인하는 책임은 유지한다.
+AI Runner-DAG/daemon-DB/general Unity authoring-Play-Test APIs excluded. Arbitrary purchases-collection/general special files/LFS-dirty implementation/more compaction-performance SLA/other OS/remote publication-release outside M0. Retain safe supported file-asset reads-edits/existing-tool result verification.
 
-PV-02의 추가 비교군은 Codex worktree 코드 병렬 작업과 Unity Agent Coordination 단일 Editor 순차 검증이다. 큐 대기·후보 전달·공용 Library와 두 소스 checkout의 비용을 별도로 측정하며 Splinter 실행에는 Coordination을 사용하지 않는다. 상세 조건과 실제 실행 여부는 [PV 범위](parallel-workflow-qualification.md)와 실행 기록을 따른다.
+Extra PV-02 control: parallel Codex coding/Coordination single-Editor serial verification. Measure queue wait/candidate transfer/shared Library/two checkouts separately; no Coordination in Splinter. [PV scope](parallel-workflow-qualification.md)/records own conditions/execution.
 
-지연 회수의 현재 실행 단위는 [별도 범위](../ntfs-workspaces.md)와 [검증](../verification/deferred-snapshot-reclamation.md)을 따른다. `reclaim-pending`·명시적 재시도·공유 볼륨 공간 관측은 NR 전체 완료나 비소유 백업 공존의 보존 보장을 뜻하지 않는다.
+Current deferred-reclamation unit follows [separate scope](../ntfs-workspaces.md)/[verification](../verification/deferred-snapshot-reclamation.md). `reclaim-pending`/explicit retries/shared-volume observation do not finish NR or guarantee non-owned backup coexistence.

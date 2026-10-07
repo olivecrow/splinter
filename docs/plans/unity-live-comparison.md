@@ -1,38 +1,45 @@
-# Unity 실제 공간·메모리와 Codex worktree 비교 범위
+<a id="unity-실제-공간메모리와-codex-worktree-비교-범위"></a>
+# Scope of actual Unity storage/memory comparison with Codex worktrees
 
-사용자는 최신 구현에서 실제 Unity 저장공간·메모리를 검증하고 기존 Codex Git worktree 방식과의 차이를 HTML 보고서로 요청했다. 추가 조건은 **로컬 원본 L + 독립 작업 A/B, 총 세 작업의 동시 진행·필요한 만큼의 자원 사용·상호 간섭 부재**다. Codex 비교군은 Splinter를 전혀 사용하지 않는다.
+[한국어](../ko/plans/unity-live-comparison.md)
 
-## 고정 비교
+The user requested actual Unity storage/memory verification on the latest implementation and an HTML report comparing existing Codex Git worktrees. An additional condition is **concurrent local original L + independent A/B, three total tasks, using needed resources without mutual interference**. The Codex control uses no Splinter.
 
-| 구분 | C: 기존 Codex 방식 | S: Splinter 방식 |
+<a id="고정-비교"></a>
+## Fixed comparison
+
+| Category | C: existing Codex method | S: Splinter method |
 | --- | --- | --- |
-| A/B 생성 | Codex 앱의 실제 Git worktree 작업 두 개 | 현재 제품 CLI의 독립 NTFS snapshot workspace 두 개 |
-| L | 같은 기존 원본 `T:\ua-source`의 소유 Unity Editor | 같은 원본의 소유 Unity Editor |
-| 실행/검증 | 기존 Unity CLI·일반 Git·파일 도구만 사용. Splinter CLI/서비스 요청/provider/bridge/Coordination 사용 금지 | Splinter는 workspace/Editor 수명·결과/회수만 담당. 실제 코드·에셋 확인은 같은 Unity CLI |
-| 계측 | 별도 읽기 전용 OS 파일 할당·프로세스 계측 | 동일 계측으로 실제 records/delta/provider를 추가 분리 |
+| A/B creation | Two actual Git worktree tasks in Codex app | Two independent NTFS snapshot workspaces through current product CLI |
+| L | Owned Unity Editor on the same existing original `T:\ua-source` | Owned Unity Editor on the same original |
+| Execution/verification | Existing Unity CLI/normal Git/file tools only. No Splinter CLI-service requests/provider/bridge/Coordination | Splinter handles only workspace-Editor lifecycles/results-reclamation. Same Unity CLI verifies actual code/assets |
+| Measurement | Separate read-only OS file-allocation/process measurements | Identical measurements, additionally separating actual records/deltas/providers |
 
-공통 입력은 기존 등록 Git 원본의 clean `f71e4e244ba9b085aa0fc439336e4c60ee3d5d5d`, Unity `6000.3.22f1`·URP `17.3.0`·기존 Pipeline `0.7.0-exp.1`, 실제 Qualification FBX/2048 텍스처/재질/씬이다. Medieval 전체 팩과 기존 PV의 실패/전체 raw 동등성 unknown은 이번 작은 입력의 통과로 해소하지 않는다. C worktree용 저장소에 이 실제 commit/ref만 가져오며 canonical `development`와 기존 refs/작업은 보존한다. Editor 시작 전 두 방식의 추적 source 파일 bytes/hash를 원본과 직접 대조한다.
+Common input is existing registered clean Git original `f71e4e244ba9b085aa0fc439336e4c60ee3d5d5d`, Unity `6000.3.22f1`, URP `17.3.0`, existing Pipeline `0.7.0-exp.1`, actual Qualification FBX/2048 textures/materials/scenes. This small input pass does not resolve full Medieval-pack or existing PV failures/unknown full-raw equivalence. Import only this actual commit/ref into the C worktree repository; preserve canonical `development` and existing refs/tasks. Before Editor starts, compare both methods' tracked source bytes/hashes directly with original.
 
-S는 기존 등록 home `C:\Users\olive\Desktop\Development\splinter\.local\wl29`, 새 keys `uc-s-a-20261003`·`uc-s-b-20261003`, Git/Unity/NTFS와 고정 journal budget을 사용한다. C는 Library 없는 기본 Codex worktree, S는 원본의 기존 warm Library를 snapshot으로 읽는 현재 사용 방식이다. 이 의도된 출발 차이를 밝히고 원본 Library와 cache 이력을 기록한다. 동시 세 Editor 조건은 같으며 C/S cohort는 순차 실행한다. 새 서비스/등록/설치·VSS 예산/볼륨·전역 Git 설정을 변경하지 않는다.
+S uses existing registered home `C:\Users\olive\Desktop\Development\splinter\.local\wl29`, new keys `uc-s-a-20261003`/`uc-s-b-20261003`, Git/Unity/NTFS and fixed journal budgets. C uses default Codex worktrees without Library; S uses current workflow reading original warm Library through snapshots. Disclose this intended starting difference and record original Library/cache history. Three concurrent Editor conditions match; C/S cohorts execute sequentially. No new service/registration/installation/VSS budgets-volume/global Git settings changes.
 
-## 질문·실행과 종료 기준
+<a id="질문실행과-종료-기준"></a>
+## Questions, execution, and completion criteria
 
-| ID | 질문/실행 | 완료 증거 |
+| ID | Question/execution | Completion evidence |
 | --- | --- | --- |
-| UC-01 | 현재 후보·환경·동일 입력과 실제 C 생성 | Runtime hash·원본/기존 작업/Editor·Git refs/등록·파일 allocation·OS RAM 기준선. 실제 앱 C의 경로/작업 identity/생성 시간과 원본 byte/hash 일치 |
-| UC-02 | L/A/B 실제 사용과 격리 | 세 실제 project/PID/start/MVID와 코드 baseline, FBX mesh·texture 실제 load. L/A/B 서로 다른 스크립트 수정·reload/실행 값, 원본의 이후 수정이 A/B 기준에 전파되지 않음 |
-| UC-03 | 필요한 저장/메모리와 지속 | 생성·첫 ready·수정 후·정상 stop/동일 작업 재개·세 작업 idle의 allocation과 2초 간격 process 표본. C source/Library와 S delta/records/runner, 기존 공통 Git·원본 Library와 증거 비용 분리. 바이트/할당과 private/working set·시스템 사용량을 서로 대체하지 않음 |
-| UC-04 | A 종료 중 L/B 지속 | A 독립 결과 보존·정상 stop/회수, 같은 L/B의 후속 코드 실행·해시·identity 유지. B 결과 보존·회수. 시험 소유 원본 변경만 독립 보존 후 기준 source 복원; 기존 원본 작업/프로세스는 건드리지 않음 |
-| UC-05 | 실제 근거와 HTML 보고서 | 같은 성공한 코드/에셋 범위·실측 시간/공간/메모리·비용 원인/제약·raw JSON 연결과 브라우저 검증. 미완료/실패는 그대로 표시하고 0/통과로 대체하지 않음 |
+| UC-01 | Current candidate/environment/identical inputs/actual C creation | Runtime hashes/original-existing tasks-Editors/Git refs-registrations/file allocation/OS RAM baseline. Actual app C paths/task identities/creation times/original bytes-hashes match |
+| UC-02 | L/A/B actual usage/isolation | Three actual project-PID-start-MVID and code baselines, actual FBX meshes/textures loaded. Distinct L-A-B script edits/reload-execution values, subsequent original changes do not propagate to A-B bases |
+| UC-03 | Necessary storage-memory/continuation | Allocation and two-second process samples at creation/first-ready/after edits/normal stop-same-task resume/three-task idle. Separate C source-Library/S delta-records-runner/common existing Git/original Library/evidence costs. Bytes-allocation/private-working set/system usage are not interchangeable |
+| UC-04 | L/B continue during A completion | Preserve A independent results/normal stop-reclamation; same L-B subsequent code execution/hashes/identities retained. Preserve-reclaim B result. Independently preserve only test-owned original changes then restore basis source; do not touch existing original work/processes |
+| UC-05 | Actual evidence/HTML report | Same successful code-asset scope/measured time-space-memory/cost causes-limits/raw JSON links/browser verification. Show incomplete-failures unchanged, never replace with zero-pass |
 
-원시 증거는 `artifacts/unity-live-comparison-20261003/`, [HTML 보고서](../../reports/unity-live-comparison-20261003.html)와 [직접 검증](../verification/unity-live-comparison.md)이 결과와 종료 상태를 소유한다. 이번 한 번의 작은 실제 입력 L/A/B 묶음을 각 방식에서 수행하고 종료한다. 생성·파일 읽기/수정·Editor 재개·결과 보존/회수는 요청된 검증의 일부다. C는 보존된 Git 결과 뒤 recoverable archive를 요청한다. 앱이 primary worktree 보관을 거부한 경우 source/결과/증거를 유지하고 소유 Editor 부재·정확한 경로·dry-run을 확인한 공식 Unity CLI로 Library/Logs만 정리한다. 해당 제한과 잔여/삭제 비용을 기록하며 전체 checkout 삭제로 우회하지 않는다. S는 같은 요청/id/home·seal·독립 결과 뒤 정확한 소유 자원만 release한다. 실패·보류·기존 C: snapshot은 보존한다.
+Raw evidence is `artifacts/unity-live-comparison-20261003/`; [HTML report](../../reports/unity-live-comparison-20261003.html) and [direct verification](../verification/unity-live-comparison.md) own results/completion. Execute this one small actual-input L/A/B run per method, then stop. Creation/file reads-edits/Editor resumption/result preservation-reclamation are requested verification. C requests recoverable archives after preserved Git results. If app refuses primary-worktree archival, preserve source-results-evidence, verify owned Editor absence/exact paths/dry-run, then use official Unity CLI to clean only Library/Logs. Record limitation/residual-deleted costs; no whole-checkout deletion bypass. S releases only exact owned resources after identical request-id-home/seals/independent results. Preserve failures/pending/existing C: snapshots.
 
-원본 반영/merge·discard·Play/Test/build·큰 모델/텍스처 교체·대형/ARM/원격/전원/전체 장애 행렬은 제외한다. 몇 분의 준비 비용 자체를 새 최적화/큐 도입 이유로 삼지 않는다. 프로세스 합계를 물리 RAM 절감률로 표현하거나 전역 VSS/OS cache의 귀속을 추측하지 않는다. 전체 머신/미관측 순간 peak와 기본 입력을 넘는 지원은 별도다.
+Exclude original application-merge/discard/Play-Test-build/large model-texture replacement/large-ARM-remote-power-full failure matrices. A few minutes' preparation alone does not justify new optimization/queues. Do not present process sums as physical RAM savings or guess global VSS/OS cache attribution. Whole-machine/unobserved instantaneous peaks/support beyond fixed inputs are separate.
 
-## 관측 후 승인한 도구 버전 변경
+<a id="관측-후-승인한-도구-버전-변경"></a>
+## Tool-version change approved after observation
 
-기존 Pipeline `0.7.0-exp.1`의 로컬 L은 `0.0.0.0:7800`, 보존 대상 기존 `0.8.0-exp.1` Editor는 `127.0.0.1:7800`을 점유했다. 정확한 L 경로의 CLI catalog 연결도 실패했다. 주소 겹침 관측과 실패를 보존하며 내부 인과를 확정하지 않는다. 사용자는 시험 대상만 Pipeline `0.8.0-exp.1`로 올리고 검증을 계속하되 0.7의 실패를 기록하도록 명시적으로 승인했다. 이 변경은 L 및 C/S A/B의 같은 입력에 한정하고 기존 Editor·프로젝트는 유지한다. 0.7 준비·변경 비용과 0.8 실제 성공 구간을 분리하며 변경 후 source bytes와 실제 Editor identity를 다시 대조한다. Unity Editor/다른 패키지·서비스·grant·볼륨은 변경하지 않는다.
+Local L with existing Pipeline `0.7.0-exp.1` occupied `0.0.0.0:7800`; protected existing `0.8.0-exp.1` Editor occupied `127.0.0.1:7800`. CLI catalog connection to exact L path also failed. Preserve address-overlap observations/failures without declaring internal causality. The user explicitly approved upgrading only test subjects to Pipeline `0.8.0-exp.1`, continuing verification, and recording 0.7 failure. Limit change to identical L/C-S A-B inputs; retain existing Editors/projects. Separate 0.7 preparation/change costs from actual successful 0.8 intervals; recompare source bytes/actual Editor identities after change. No Unity Editor/other packages/service/grant/volume changes.
 
-## 종료 경계
+<a id="종료-경계"></a>
+## Completion boundary
 
-실행한 비교·HTML 납품은 마감하며 UC-04의 마지막 회수는 Partial로 남긴다. 같은 home의 과거 기록이 현재 필수 필드를 누락해 의존성 조회를 차단한 실제 원인·새 A/B의 독립 결과·snapshot 보존·소유 mount/delta 회수는 검증 문서가 소유한다. 구형 기록을 자동 이관·삭제하거나 새로운 home/grant·서비스 설치로 이번 시험을 우회하지 않는다. 그 회수 후속을 진행할 때는 기존 기록의 보존·같은 작업 identity·승인한 변경 경계와 종료 기준을 먼저 확정한다. 이번 한 묶음의 실패를 해결하려고 대형/PV/새 A/B 전체 시험을 자동 반복하지 않는다.
+Executed comparison/HTML delivery closes; final UC-04 reclamation remains Partial. Verification owns actual cause: historical same-home records lacked current mandatory fields and blocked dependency lookup; new A/B independent results/snapshots preserved/owned mounts-deltas reclaimed. Do not automatically migrate/delete legacy records or bypass through new home-grant/service installation. Before reclamation follow-up, fix existing-record preservation/same-task identities/approved changed boundaries/completion criteria. Do not automatically repeat large/PV/new full A/B tests to resolve this run's failure.
