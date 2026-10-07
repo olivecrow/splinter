@@ -221,8 +221,16 @@ public sealed partial class WorkspaceStore
     public static void EnsurePlainPath(string path)
     {
         for (string? current = Path.GetFullPath(path); current is not null; current = Path.GetDirectoryName(current))
-            if ((Directory.Exists(current) || File.Exists(current)) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+        {
+            FileAttributes attributes;
+            try { attributes = File.GetAttributes(current); }
+            catch (FileNotFoundException) { continue; }
+            catch (DirectoryNotFoundException) { continue; }
+            // One metadata query per ancestor. Missing children do not skip
+            // their parents; access errors are not evidence of a plain path.
+            if ((attributes & FileAttributes.ReparsePoint) != 0)
                 throw new WorkspaceException("UnsafePath", $"Reparse points are not supported: {current}");
+        }
     }
 
     private static void CheckId(string id)

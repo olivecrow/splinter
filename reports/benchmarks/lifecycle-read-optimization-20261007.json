@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "qualification": "LO-01\u201305; bounded Git/NTFS tests and restore costs",
+  "baselineCommit": "38b6803d6599872908881df31dbe3d4d902259cf",
+  "candidateSourceSha256": {
+    "src/Splinter.Runtime/WorkspaceStore.cs": "e6442f5feb6f4a26f063084477b90487dbdb7eb2e7b8c109ffa03cdaff9f4648",
+    "src/Splinter.Runtime/LatestJournalStorage.cs": "d6d319a7744e3370844e885b357d02fc513fd792e9579dd4f7ef91a710ce592a",
+    "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs": "f4d25cfaaeb8b0744ea9c4c10c7c03716c3519b2a6835a26fafb4073ed229eed",
+    "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs": "5925ff6730ac336862e790cc90887f1b15e2e196a65cd9e8462a90b35cf1da77",
+    "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs": "9d311acd58d1c2f9e80fd3ec41eed60d10ed1f80ad31186d6afeb8b0636daf75",
+    "tests/Splinter.Tests/GitProofReuseTests.cs": "3d2e0fb9cb62330d63a78b01f898f82b75073e46fae8c323e46e15d4a852897b",
+    "tests/Splinter.Tests/ManagedDirectoryRestoreOptimizationTests.cs": "b11b4c2bde25ca2ceea8ff86f78261026d1212ef2eff13917aa67103e47aa9b3",
+    "tests/Splinter.Tests/JournalSealReadFusionTests.cs": "f0553750c6917e0dd42ed826b6c97ca56435e5088c77566f17f71cddec307e95"
+  },
+  "restore": {
+    "order": [
+      "before-1",
+      "after-1",
+      "after-2",
+      "before-2"
+    ],
+    "runs": {
+      "before-1": {
+        "method": "existing owned-file restore fixture; general unchanged SJL4 path; setup/assertion outside timer",
+        "files": 260,
+        "bytesPerFile": 65536,
+        "elapsedSeconds": 8.1916679,
+        "moves": 260,
+        "cursorAdvancementObservations": 0,
+        "cursorNote": "baseline has no publication observer; code publishes every file",
+        "finalContentAndReclamationVerified": true,
+        "productHashes": {
+          "Splinter.Application.Unity.dll": "147d75898da81273e889b12c8b722d1dc4e602d96cc11c182ca93e66f6b02b4e",
+          "Splinter.Core.dll": "aa939f832e423891ae2c3ca1debd1822cd12bbc4bb61e2852feeed61f352ef1b",
+          "Splinter.Host.dll": "04da968ae20cf60a82da8c17f4e9ed3c8eacbc13e0ad13a8e8cd5ede6844949e",
+          "Splinter.Platform.Windows.dll": "4d8fa9aaa6d9ab0396736c54622e60ea84cd680a334631d81328a0f77a602404",
+          "Splinter.Protocol.dll": "809ee67a7dcb93ef48ab0812f278eacdfc76305f0d6349148483365864336bc5",
+          "Splinter.Runtime.dll": "937fe627c86465556a53a3720dee872d82a338b6df2b7a0b7360337162e5e724",
+          "Splinter.SourceControl.Files.dll": "60bc59828fd789c8bb65256f3917ed46b16854d774d58dd4d7975efc94a61e38",
+          "Splinter.SourceControl.Git.dll": "6b45648265c7599fb74090f030aa6dcd10952d5f94febf6b6749cbbbf82f470b",
+          "Splinter.Workflows.Windows.dll": "855e5a3bb1dbdef007ec376ac04448b12ed9820d32f1199ec8c312ec43c67cd5"
+        }
+      },
+      "after-1": {
+        "method": "existing owned-file restore fixture; general unchanged SJL4 path; setup/assertion outside timer",
+        "files": 260,
+        "bytesPerFile": 65536,
+        "elapsedSeconds": 4.2431171,
+        "moves": 260,
+        "cursorAdvancementObservations": 3,
+        "cursorNote": "successful batch-advancement observer; excludes initial/final cursor records",
+        "finalContentAndReclamationVerified": true,
+        "productHashes": {
+          "Splinter.Application.Unity.dll": "081226ba2d99b7f84a92c6ec97848f94c4dc5a6436dc570fbdc43de6bbcd7d85",
+          "Splinter.Core.dll": "df1800fbd3a23e84bdb30bdfda5dac6f04f0e90489a5ba73f8396dbedfaf9fcb",
+          "Splinter.Host.dll": "70360371f7ec112a9573245bf70216eb12f0fa85ca85a71e6b9712f333412e47",
+          "Splinter.Platform.Windows.dll": "bcc00ac652187cb68c59285f2cf2bafc235a9ab176a4cd641884dcf612fb9ab7",
+          "Splinter.Protocol.dll": "b47d2c2952a7d1fdffe8f6e1fd63053ef4e187989fc4d41172bf787eb68d1b41",
+          "Splinter.Runtime.dll": "b4e4920a9cd1841ff06a3d3bb68e3c78a7b42d085ce72edcad2c56ab4f931343",
+          "Splinter.SourceControl.Files.dll": "f403da3b3b077dee9a5fdc2be7e695eb87657b22935b3f4205e5460fa484de28",
+          "Splinter.SourceControl.Git.dll": "954b8a6f902853fd4fa4381472757985661f2da9ecd3758e9a2af8e8a8fb439d",
+          "Splinter.Tests.dll": "4878816207330206e1c39f25f8b30b4851e3f3aedfd02e423ecb4b2c3dafdf03",
+          "Splinter.Workflows.Windows.dll": "07dc2e95bec049c0bb99dd0d057f9f216cbc27c9343ffa0833a87a8ff6609f86"
+        }
+      },
+      "after-2": {
+        "method": "existing owned-file restore fixture; general unchanged SJL4 path; setup/assertion outside timer",
+        "files": 260,
+        "bytesPerFile": 65536,
+        "elapsedSeconds": 4.2286261,
+        "moves": 260,
+        "cursorAdvancementObservations": 3,
+        "cursorNote": "successful batch-advancement observer; excludes initial/final cursor records",
+        "finalContentAndReclamationVerified": true,
+        "productHashes": {
+          "Splinter.Application.Unity.dll": "081226ba2d99b7f84a92c6ec97848f94c4dc5a6436dc570fbdc43de6bbcd7d85",
+          "Splinter.Core.dll": "df1800fbd3a23e84bdb30bdfda5dac6f04f0e90489a5ba73f8396dbedfaf9fcb",
+          "Splinter.Host.dll": "70360371f7ec112a9573245bf70216eb12f0fa85ca85a71e6b9712f333412e47",
+          "Splinter.Platform.Windows.dll": "bcc00ac652187cb68c59285f2cf2bafc235a9ab176a4cd641884dcf612fb9ab7",
+          "Splinter.Protocol.dll": "b47d2c2952a7d1fdffe8f6e1fd63053ef4e187989fc4d41172bf787eb68d1b41",
+          "Splinter.Runtime.dll": "b4e4920a9cd1841ff06a3d3bb68e3c78a7b42d085ce72edcad2c56ab4f931343",
+          "Splinter.SourceControl.Files.dll": "f403da3b3b077dee9a5fdc2be7e695eb87657b22935b3f4205e5460fa484de28",
+          "Splinter.SourceControl.Git.dll": "954b8a6f902853fd4fa4381472757985661f2da9ecd3758e9a2af8e8a8fb439d",
+          "Splinter.Tests.dll": "4878816207330206e1c39f25f8b30b4851e3f3aedfd02e423ecb4b2c3dafdf03",
+          "Splinter.Workflows.Windows.dll": "07dc2e95bec049c0bb99dd0d057f9f216cbc27c9343ffa0833a87a8ff6609f86"
+        }
+      },
+      "before-2": {
+        "method": "existing owned-file restore fixture; general unchanged SJL4 path; setup/assertion outside timer",
+        "files": 260,
+        "bytesPerFile": 65536,
+        "elapsedSeconds": 8.1460838,
+        "moves": 260,
+        "cursorAdvancementObservations": 0,
+        "cursorNote": "baseline has no publication observer; code publishes every file",
+        "finalContentAndReclamationVerified": true,
+        "productHashes": {
+          "Splinter.Application.Unity.dll": "147d75898da81273e889b12c8b722d1dc4e602d96cc11c182ca93e66f6b02b4e",
+          "Splinter.Core.dll": "aa939f832e423891ae2c3ca1debd1822cd12bbc4bb61e2852feeed61f352ef1b",
+          "Splinter.Host.dll": "04da968ae20cf60a82da8c17f4e9ed3c8eacbc13e0ad13a8e8cd5ede6844949e",
+          "Splinter.Platform.Windows.dll": "4d8fa9aaa6d9ab0396736c54622e60ea84cd680a334631d81328a0f77a602404",
+          "Splinter.Protocol.dll": "809ee67a7dcb93ef48ab0812f278eacdfc76305f0d6349148483365864336bc5",
+          "Splinter.Runtime.dll": "937fe627c86465556a53a3720dee872d82a338b6df2b7a0b7360337162e5e724",
+          "Splinter.SourceControl.Files.dll": "60bc59828fd789c8bb65256f3917ed46b16854d774d58dd4d7975efc94a61e38",
+          "Splinter.SourceControl.Git.dll": "6b45648265c7599fb74090f030aa6dcd10952d5f94febf6b6749cbbbf82f470b",
+          "Splinter.Workflows.Windows.dll": "855e5a3bb1dbdef007ec376ac04448b12ed9820d32f1199ec8c312ec43c67cd5"
+        }
+      }
+    },
+    "beforeMeanSeconds": 8.16887585,
+    "afterMeanSeconds": 4.235871599999999,
+    "meanReductionPercent": 48.146211574509366,
+    "files": 260,
+    "payloadBytes": 17039360,
+    "baselineCursorAdvancements": 260,
+    "baselineCursorEvidence": "code path; baseline has no publication observer",
+    "candidateCursorAdvancements": 3
+  },
+  "gitProof": {
+    "test": "real loose/packed A/B/A, 1MiB per blob",
+    "returnToADecodedBytes": 65536,
+    "previousFullProofBytes": 1048576,
+    "previousBytesEvidence": "previous full-blob code path, not a new baseline counter run",
+    "totalProofBudgetBytes": 4194304,
+    "maxEntries": 4096,
+    "payloadChunkBytes": 65536,
+    "requestStagingLimitBytes": 1048576
+  },
+  "requiredBuild": {
+    "passed": 1224,
+    "failed": 0,
+    "skipped": 19,
+    "warnings": 0,
+    "errors": 0
+  },
+  "limits": [
+    "Two fresh fixture runs per binary, interleaved order, OS caches not cleared; no statistical speed guarantee.",
+    "Preparation and final independent assertions excluded from restore timing; planning/moves/verification/cursor/reclamation included.",
+    "No new Unity/Editor/workspace A/B, physical allocation/RAM/peak or OS power-loss qualification.",
+    "Whole-directory restore and Git reader-session/gate redesign are not implemented."
+  ]
+}

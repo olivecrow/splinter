@@ -39,6 +39,8 @@ SJL4의 최초 `delta.journal` root는 같은 delta 안의 `latest-<attempt GUID
 
 seal의 bytes/hash는 root **및 전체 현재 object 파일**을 포함한다. 관측 `journalOptimizationEnabled`는 실제 writer 저장 형식을 나타낸다. `snapshot.compaction.journalOptimizationEnabled`는 완료한 선택의 receipt다. `JournalBytes`·payload/metadata·allocation은 다중 파일 합계이며 root 하나의 길이를 비용으로 보고하지 않는다. read-only restore, checkpoint의 stable seal, release/discard의 정확한 inventory·중단 재개, peer·dirty/target guard를 유지한다.
 
+SJL4 seal은 capsule 검증 때 읽는 정확한 바이트를 물리 파일명 ordinal 순서대로 함께 해시한다. root 바이트와 기존 이름·길이 framing, 전체·보존 prefix capsule checksum, seed 파일, 마지막 head/구성원/pending 검사와 별도의 전후·unmount 후 seal은 유지한다. 이전 seal이나 writer 계수로 현재 내용 읽기를 대체하지 않는다. 경로 검사는 조상마다 속성을 한 번 조회하며 reparse와 접근 불확실성을 계속 거부한다. [읽기 비용 검증](verification/lifecycle-read-optimization.md)은 이 변경과 과거 Unity 시간을 구분한다.
+
 독립 candidate와 명시적 OFF 전환에는 SJR2의 단일 **현재 상태 초기화 prefix**를 쓴다. node/write/hidden/path sequence/projection 상태와 완전한 footer로 현재 상태를 복원하고, OFF의 후속 mutation은 원래 append 방식으로 이어간다. footer 없는 부분 초기화는 손상으로 보존·거부한다. ON에서 OFF로 전환하는 표현은 metadata 비용 때문에 더 클 수 있다.
 
 [기준본 복귀](journal-base-reversion.md)는 명시적 compact에서만 고정 기준과 동일한 4KiB 단위를 제거한다. 매 저장에서 원본 기준을 다시 비교하지 않는다. 따라서 live B→C→원본 bytes로 돌아와도 최신 private 범위 하나는 다음 명시적 compact 전까지 남을 수 있다. 반복 저장 횟수와 관계없이 현재 payload만 유지하는 것과 기준본과 같은 payload를 없애는 것은 별도의 비용이다.

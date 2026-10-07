@@ -33,6 +33,31 @@ internal sealed class LatestJournalStorage
     // Size accounting for the exclusive writer, rebuilt from the full inventory
     // on reconnect. Explicit observations and seals still inspect actual files.
     private long committedBytes;
+    private readonly SealHash? sealing;
+    private sealed class SealHash(string root) : IDisposable
+    {
+        internal readonly IncrementalHash Hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        internal readonly List<string> Files = [];
+        internal long Bytes;
+        internal long Begin(FileStream file)
+        {
+            long length = file.Length; Files.Add(file.Name); Bytes = checked(Bytes + length);
+            if (file.Name != root)
+            {
+                byte[] name = Encoding.UTF8.GetBytes(Path.GetFileName(file.Name)); Span<byte> size = stackalloc byte[8];
+                BinaryPrimitives.WriteInt64LittleEndian(size, name.Length); Hash.AppendData(size); Hash.AppendData(name);
+                BinaryPrimitives.WriteInt64LittleEndian(size, length); Hash.AppendData(size);
+            }
+            return length;
+        }
+        internal void AddFile(string path)
+        {
+            using var file = Open(path); long length = Begin(file); byte[] buffer = new byte[65536];
+            for (int n; (n = file.Read(buffer)) != 0;) Hash.AppendData(buffer.AsSpan(0, n));
+            if (file.Position != length || file.Length != length) throw Corrupt("A journal file changed during seal.");
+        }
+        public void Dispose() => Hash.Dispose();
+    }
     internal Action<long>? FlushObserver;
     internal Root Current { get; private set; }
     internal string ObjectDirectory => directory;
@@ -41,24 +66,30 @@ internal sealed class LatestJournalStorage
     private static FileStream Open(string path) => new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
     internal static bool IsLatest(string path) { using var f = Open(path); Span<byte> b = stackalloc byte[4]; return f.Read(b) == 4 && b[..3].SequenceEqual("SJL"u8); }
     internal LatestJournalStorage(string path, OverlayIdentity identity, bool readOnly)
+        : this(path, identity, readOnly, null) { }
+    private LatestJournalStorage(string path, OverlayIdentity identity, bool readOnly, SealHash? sealing)
     {
+        this.sealing = sealing;
         rootPath = path; owner = Hash(JsonSerializer.SerializeToUtf8Bytes(identity)); limit = identity.MaxJournalBytes;
         Current = ReadRoot(path); if (Current.IdentityHash != owner) throw Corrupt("The journal has another identity.");
         directory = Path.Combine(Path.GetDirectoryName(path)!, Current.Objects); WorkspaceStore.EnsurePlainPath(directory);
         if (!Directory.Exists(directory)) throw Corrupt("The owned object directory is missing.");
         if (Capsule(path)) { head = ReadFrame(path); generation = head.Commit.Generation; }
+        else sealing?.AddFile(path);
         var generations = new HashSet<long>();
-        foreach (string entry in Directory.EnumerateFileSystemEntries(directory))
+        IEnumerable<string> inventory = Directory.EnumerateFileSystemEntries(directory);
+        if (sealing is not null) inventory = inventory.OrderBy(Path.GetFileName, StringComparer.Ordinal);
+        foreach (string entry in inventory)
         {
             WorkspaceStore.EnsurePlainPath(entry); string name = Path.GetFileName(entry);
             if (!File.Exists(entry) || !Plain(name) && !Backup(name) && name != Pending) throw Corrupt("An unowned object is present.");
-            if (Plain(name)) objects.Add(name, new(entry, 0, checked((int)new FileInfo(entry).Length), null, null));
+            if (Plain(name)) { objects.Add(name, new(entry, 0, checked((int)new FileInfo(entry).Length), null, null)); sealing?.AddFile(entry); }
             else if (Backup(name))
             {
                 if (!Capsule(entry))
                 {
                     var plan = head?.Commit.Retires.SingleOrDefault(r => r.Name == name && r.KeepBytes == 0);
-                    if (plan is null || HashFile(entry) != plan.Hash) throw Corrupt("An unowned seed backup is present.");
+                    if (plan is null || HashFile(entry, sealing: sealing) != plan.Hash) throw Corrupt("An unowned seed backup is present.");
                     continue;
                 }
                 var frame = ReadFrame(entry, allowPrefix: true);
@@ -113,10 +144,15 @@ internal sealed class LatestJournalStorage
     }
     private static byte[] ReadShared(string path, long bound) { using var f = Open(path); if (f.Length > bound) throw Corrupt("A record exceeds its bound."); byte[] b = new byte[checked((int)f.Length)]; f.ReadExactly(b); return b; }
     internal static string Hash(byte[] b) => Convert.ToHexStringLower(SHA256.HashData(b));
-    private static string HashFile(string path, long? prefix = null)
+    private static string HashFile(string path, long? prefix = null, SealHash? sealing = null)
     {
-        using var f = Open(path); using var h = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); long left = prefix ?? f.Length; byte[] b = new byte[65536];
-        while (left != 0) { int n = f.Read(b, 0, (int)Math.Min(left, b.Length)); if (n == 0) throw Corrupt("A file is short."); h.AppendData(b.AsSpan(0, n)); left -= n; } return Convert.ToHexStringLower(h.GetHashAndReset());
+        if (sealing is not null && prefix is not null) throw Corrupt("A composite seal requires complete physical files.");
+        using var f = Open(path); using var h = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); byte[] b = new byte[65536];
+        long length = sealing?.Begin(f) ?? f.Length;
+        long left = prefix ?? length;
+        while (left != 0) { int n = f.Read(b, 0, (int)Math.Min(left, b.Length)); if (n == 0) throw Corrupt("A file is short."); h.AppendData(b.AsSpan(0, n)); sealing?.Hash.AppendData(b.AsSpan(0, n)); left -= n; }
+        if (sealing is not null && (f.Length != length || f.Position != length)) throw Corrupt("A journal file changed during seal.");
+        return Convert.ToHexStringLower(h.GetHashAndReset());
     }
     private static bool Plain(string n) => n.Length < 80 && n.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '.') &&
         ((n.StartsWith("node-", StringComparison.Ordinal) || n.StartsWith("bucket-", StringComparison.Ordinal)) && n.EndsWith(".json", StringComparison.Ordinal) || n.StartsWith("block-", StringComparison.Ordinal) && n.EndsWith(".bin", StringComparison.Ordinal) || n == "owner.lock");
@@ -144,17 +180,25 @@ internal sealed class LatestJournalStorage
     private static void Footer(Frame frame) { using var f = Open(frame.Path); if (f.Length != frame.Length) throw Corrupt("Current metadata changed."); f.Position = frame.DataEnd; byte[] m = new byte[frame.Metadata.Length]; f.ReadExactly(m); if (!m.AsSpan().SequenceEqual(frame.Metadata)) throw Corrupt("Current metadata changed."); }
     private Frame ReadFrame(string path, bool allowPrefix = false)
     {
-        using var f = Open(path); byte[] header = new byte[HeaderBytes]; f.ReadExactly(header);
+        using var f = Open(path); long physicalLength = sealing?.Begin(f) ?? f.Length;
+        byte[] header = new byte[HeaderBytes]; f.ReadExactly(header); sealing?.Hash.AppendData(header);
         if (!header.AsSpan(0, 4).SequenceEqual("SJL4"u8) || BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(4)) != 4 || !header.AsSpan(32, 32).SequenceEqual(Convert.FromHexString(owner))) throw Corrupt("A capsule has another owner or format.");
         long id = BinaryPrimitives.ReadInt64LittleEndian(header.AsSpan(8)), data = BinaryPrimitives.ReadInt64LittleEndian(header.AsSpan(16)); int count = BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(24));
         long end = checked(HeaderBytes + data), expected = checked(end + count + 32L);
         if (id < 1 || data < 0 || count < 1 || expected > MaxFrame || BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(28)) != 0) throw Corrupt("Capsule bounds are invalid.");
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); hash.AppendData(header); using var dh = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); long left = data; byte[] b = new byte[65536];
-        while (left != 0) { int n = f.Read(b, 0, (int)Math.Min(left, b.Length)); if (n == 0) throw Corrupt("Capsule data is short."); hash.AppendData(b.AsSpan(0, n)); dh.AppendData(b.AsSpan(0, n)); left -= n; }
+        while (left != 0) { int n = f.Read(b, 0, (int)Math.Min(left, b.Length)); if (n == 0) throw Corrupt("Capsule data is short."); hash.AppendData(b.AsSpan(0, n)); dh.AppendData(b.AsSpan(0, n)); sealing?.Hash.AppendData(b.AsSpan(0, n)); left -= n; }
+        if (f.Length != physicalLength) throw Corrupt("A capsule changed during validation.");
         if (!dh.GetHashAndReset().AsSpan().SequenceEqual(header.AsSpan(96, 32))) throw Corrupt("Capsule data checksum differs.");
-        if (allowPrefix && f.Length == end && data > 0) return new(path, header, new(1, id, Current, [], [], []), [], end, end);
+        if (allowPrefix && physicalLength == end && data > 0)
+        {
+            if (f.Length != physicalLength) throw Corrupt("A capsule changed during validation.");
+            return new(path, header, new(1, id, Current, [], [], []), [], end, end);
+        }
         if (f.Length != expected) throw Corrupt("A committed capsule footer is incomplete.");
         byte[] m = new byte[count]; f.ReadExactly(m); hash.AppendData(m); byte[] checksum = new byte[32]; f.ReadExactly(checksum); if (!hash.GetHashAndReset().AsSpan().SequenceEqual(checksum)) throw Corrupt("A complete capsule is damaged.");
+        sealing?.Hash.AppendData(m); sealing?.Hash.AppendData(checksum);
+        if (f.Length != physicalLength) throw Corrupt("A capsule changed during validation.");
         CommitRecord c; try { c = JsonSerializer.Deserialize<CommitRecord>(m, Json) ?? throw Corrupt("A capsule is empty."); } catch (JsonException) { throw Corrupt("Capsule metadata is invalid."); }
         ValidateRoot(c.After); if (c.Version != 1 || c.Generation != id || c.After.IdentityHash != owner || c.After.Objects != Current.Objects || c.Items is null || c.Removes is null || c.Retires is null || c.Items.Select(i => i.Name).Distinct(StringComparer.Ordinal).Count() != c.Items.Length) throw Corrupt("Capsule identity differs.");
         return new(path, header, c, m, end, expected);
@@ -271,22 +315,20 @@ internal sealed class LatestJournalStorage
     }
     internal static SnapshotDeltaSeal Seal(string path)
     {
+        path = Path.GetFullPath(path);
         var identity = JsonSerializer.Deserialize<OverlayIdentity>(ReadShared(Path.Combine(Path.GetDirectoryName(path)!, "identity.json"), 1048576)) ?? throw Corrupt("The seal identity is absent.");
-        var store = new LatestJournalStorage(path, identity, true); string[] files = Files(path); using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); long bytes = 0; Span<byte> size = stackalloc byte[8]; byte[] buffer = new byte[65536];
-        foreach (string p in files)
-        {
-            using var f = Open(p); long count = f.Length;
-            if (p != path) { byte[] name = Encoding.UTF8.GetBytes(Path.GetFileName(p)); BinaryPrimitives.WriteInt64LittleEndian(size, name.Length); hash.AppendData(size); hash.AppendData(name); BinaryPrimitives.WriteInt64LittleEndian(size, count); hash.AppendData(size); }
-            int n; while ((n = f.Read(buffer)) != 0) hash.AppendData(buffer.AsSpan(0, n)); if (f.Length != count) throw Corrupt("A journal file changed during seal."); bytes += count;
-        }
+        // Preserve the composite byte format while hashing the exact bytes
+        // already read for capsule validation, in physical-name order.
+        using var sealing = new SealHash(path);
+        var store = new LatestJournalStorage(path, identity, true, sealing);
         using (var current = Open(path))
         {
             byte[] header = new byte[store.head?.Header.Length ?? checked((int)current.Length)]; current.ReadExactly(header);
             if (store.head is not null && !header.AsSpan().SequenceEqual(store.head.Header) || store.head is null && !header.AsSpan().SequenceEqual(Encode(store.Current, "SJL4")))
                 throw Corrupt("Current generation changed during seal.");
         }
-        if (!files.SequenceEqual(Files(path), StringComparer.Ordinal) || File.Exists(Path.Combine(store.directory, Pending))) throw Corrupt("Journal changed during seal.");
-        return new(store.Current.Sequence, bytes, Convert.ToHexStringLower(hash.GetHashAndReset()));
+        if (!sealing.Files.SequenceEqual(Files(path), StringComparer.Ordinal) || File.Exists(Path.Combine(store.directory, Pending))) throw Corrupt("Journal changed during seal.");
+        return new(store.Current.Sequence, sealing.Bytes, Convert.ToHexStringLower(sealing.Hash.GetHashAndReset()));
     }
     internal static string[] Files(string path) { if (!IsLatest(path)) return [path]; var r = ReadRoot(path); string d = Path.Combine(Path.GetDirectoryName(path)!, r.Objects); WorkspaceStore.EnsurePlainPath(d); return [path, .. Directory.EnumerateFiles(d).OrderBy(Path.GetFileName, StringComparer.Ordinal)]; }
     internal static WorkspaceException Corrupt(string m) => new("DeltaCorrupt", m + " Preserve current journal storage.");

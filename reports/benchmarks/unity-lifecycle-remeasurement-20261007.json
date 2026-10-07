@@ -1,0 +1,2349 @@
+{
+  "version": 1,
+  "qualification": "UR-01\u201304; one profiled real Unity A/B remeasurement",
+  "sourceCommit": "38b6803d6599872908881df31dbe3d4d902259cf",
+  "binarySha256": {
+    "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+    "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+    "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+    "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+    "Splinter.Application.Unity.dll": "147d75898da81273e889b12c8b722d1dc4e602d96cc11c182ca93e66f6b02b4e",
+    "Splinter.Core.dll": "aa939f832e423891ae2c3ca1debd1822cd12bbc4bb61e2852feeed61f352ef1b",
+    "splinter.dll": "51e8da0d01fe30c2185e4663ed46485ac71cb32a7ffb6c42989fb7e790608257",
+    "Splinter.Host.dll": "04da968ae20cf60a82da8c17f4e9ed3c8eacbc13e0ad13a8e8cd5ede6844949e",
+    "Splinter.Platform.Windows.dll": "4d8fa9aaa6d9ab0396736c54622e60ea84cd680a334631d81328a0f77a602404",
+    "Splinter.Protocol.dll": "809ee67a7dcb93ef48ab0812f278eacdfc76305f0d6349148483365864336bc5",
+    "Splinter.Runtime.dll": "937fe627c86465556a53a3720dee872d82a338b6df2b7a0b7360337162e5e724",
+    "Splinter.SourceControl.Files.dll": "60bc59828fd789c8bb65256f3917ed46b16854d774d58dd4d7975efc94a61e38",
+    "Splinter.SourceControl.Git.dll": "6b45648265c7599fb74090f030aa6dcd10952d5f94febf6b6749cbbbf82f470b",
+    "Splinter.Workflows.Windows.dll": "855e5a3bb1dbdef007ec376ac04448b12ed9820d32f1199ec8c312ec43c67cd5",
+    "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+    "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+  },
+  "original": {
+    "revision": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+    "trackedFiles": 1602,
+    "trackedBytes": 2804772822,
+    "library": {
+      "entries": 44860,
+      "files": 42420,
+      "directories": 2440,
+      "logicalBytes": 3141660252,
+      "allEntryMetadataAndPayloadHashesEqual": true,
+      "normalizedItemsSha256": "7f5e1f210d8a3d5e40e15169063a67c41e53305b197efc4b99b57790ada9e5a4"
+    }
+  },
+  "workload": {
+    "unityVersion": "6000.3.22f1",
+    "storage": "git-snapshot",
+    "libraryReference": true,
+    "cohorts": 1,
+    "sourceFilesChangedPerWorker": 1,
+    "order": "sequential ensure; concurrent Editors/refresh; sequential A checkpoint/release then B checkpoint/release; final Library restore",
+    "cacheClearing": false,
+    "externalProfiler": "dotnet-trace 10.0.745401; sampled managed-thread residence; bounded 60-second CLI/provider windows, including A initial reads, A shutdown overlapping early checkpoint, late B release and late Library restoration",
+    "profilingOverheadIncluded": true
+  },
+  "timingSeconds": {
+    "historicalSplinter": {
+      "libraryPrepare": 272.9365612,
+      "ensureA": 381.1842,
+      "ensureB": 385.2465,
+      "initial": 1753.4893,
+      "edit": 554.4164,
+      "checkpointA": 5723.60831,
+      "releaseA": 1662.472929,
+      "checkpointB": 2914.6685034,
+      "releaseB": 1163.3742298,
+      "preserveRelease": 9367.0703,
+      "libraryRestore": 1473.2436
+    },
+    "currentSplinter": {
+      "libraryPrepare": 240.32827139999426,
+      "ensureA": 322.3461143999957,
+      "ensureB": 319.4375244999974,
+      "checkpointA": 83.50095969999529,
+      "releaseA": 130.58568179999565,
+      "checkpointB": 81.64046909999888,
+      "releaseB": 125.6493527000057,
+      "libraryRestore": 1404.9755522999985,
+      "initial": 1041.8830822999953,
+      "edit": 76.91292500000418,
+      "stop": 278.321283,
+      "preserveRelease": 421.38058560000354,
+      "workflowFromLibraryPrepareThroughRestore": 4107.959139,
+      "assetInspectionInterval": 2.41863
+    },
+    "historicalCodex": {
+      "initial": 887.1241,
+      "edit": 19.0121
+    }
+  },
+  "commandCosts": {
+    "library-prepare": {
+      "beganUtc": "2026-10-07T11:42:17.432395+00:00",
+      "endedUtc": "2026-10-07T11:46:17.756292+00:00",
+      "elapsedSeconds": 240.32827139999426,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": true
+    },
+    "library-restore": {
+      "beganUtc": "2026-10-07T12:27:20.430580+00:00",
+      "endedUtc": "2026-10-07T12:50:45.391534+00:00",
+      "elapsedSeconds": 1404.9755522999985,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": true
+    },
+    "s-a-checkpoint": {
+      "beganUtc": "2026-10-07T12:20:19.053900+00:00",
+      "endedUtc": "2026-10-07T12:21:42.554075+00:00",
+      "elapsedSeconds": 83.50095969999529,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": true
+    },
+    "s-a-ensure-corrected": {
+      "beganUtc": "2026-10-07T11:46:17.757352+00:00",
+      "endedUtc": "2026-10-07T11:51:40.098312+00:00",
+      "elapsedSeconds": 322.3461143999957,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": true
+    },
+    "s-a-release": {
+      "beganUtc": "2026-10-07T12:21:42.554895+00:00",
+      "endedUtc": "2026-10-07T12:23:53.139416+00:00",
+      "elapsedSeconds": 130.58568179999565,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": true
+    },
+    "s-a-unity-start": {
+      "beganUtc": "2026-10-07T11:56:59.533040+00:00",
+      "endedUtc": "2026-10-07T11:57:02.880759+00:00",
+      "elapsedSeconds": 3.3473460000022897,
+      "exitCode": 0,
+      "status": "Accepted",
+      "sampledThreadTrace": false
+    },
+    "s-a-unity-stop": {
+      "beganUtc": "2026-10-07T12:15:40.731211+00:00",
+      "endedUtc": "2026-10-07T12:17:41.284525+00:00",
+      "elapsedSeconds": 120.55462039999838,
+      "exitCode": 2,
+      "status": "Failed",
+      "sampledThreadTrace": false
+    },
+    "s-b-checkpoint": {
+      "beganUtc": "2026-10-07T12:23:53.139997+00:00",
+      "endedUtc": "2026-10-07T12:25:14.779906+00:00",
+      "elapsedSeconds": 81.64046909999888,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": true
+    },
+    "s-b-ensure-corrected": {
+      "beganUtc": "2026-10-07T11:51:40.098910+00:00",
+      "endedUtc": "2026-10-07T11:56:59.531587+00:00",
+      "elapsedSeconds": 319.4375244999974,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": true
+    },
+    "s-b-release": {
+      "beganUtc": "2026-10-07T12:25:14.780602+00:00",
+      "endedUtc": "2026-10-07T12:27:20.428813+00:00",
+      "elapsedSeconds": 125.6493527000057,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": true
+    },
+    "s-b-unity-start": {
+      "beganUtc": "2026-10-07T11:56:59.533247+00:00",
+      "endedUtc": "2026-10-07T11:57:02.880976+00:00",
+      "elapsedSeconds": 3.3472249999977066,
+      "exitCode": 0,
+      "status": "Accepted",
+      "sampledThreadTrace": false
+    },
+    "s-b-unity-stop": {
+      "beganUtc": "2026-10-07T12:15:40.731507+00:00",
+      "endedUtc": "2026-10-07T12:17:41.288548+00:00",
+      "elapsedSeconds": 120.55838260000019,
+      "exitCode": 2,
+      "status": "Failed",
+      "sampledThreadTrace": false
+    }
+  },
+  "cohortCosts": {
+    "initial": {
+      "beganUtc": "2026-10-07T11:56:59.532730+00:00",
+      "endedUtc": "2026-10-07T12:14:21.400287+00:00",
+      "elapsedSeconds": 1041.8830822999953
+    },
+    "edit": {
+      "beganUtc": "2026-10-07T12:14:21.400725+00:00",
+      "endedUtc": "2026-10-07T12:15:38.312581+00:00",
+      "elapsedSeconds": 76.91292500000418
+    },
+    "stop": {
+      "beganUtc": "2026-10-07T12:15:40.731211+00:00",
+      "endedUtc": "2026-10-07T12:20:19.052508+00:00",
+      "elapsedSeconds": 278.321283,
+      "ownedEditorCount": 0,
+      "initialCliOutcome": "EditorStopTimeout",
+      "elapsedQualification": "normal exit observed on same PID/start, resumed250ms polling; UTC original request clock, no repeated stop or forced termination"
+    },
+    "preserve-release": {
+      "beganUtc": "2026-10-07T12:20:19.053883+00:00",
+      "endedUtc": "2026-10-07T12:27:20.429361+00:00",
+      "elapsedSeconds": 421.38058560000354
+    }
+  },
+  "nestedMeasurements": {
+    "s-a-checkpoint": {
+      "sourceInspections": [
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 143,
+          "filesHashed": 1,
+          "filesReused": 1601,
+          "manifestBytes": 332353,
+          "elapsedMilliseconds": 12921.9707,
+          "epoch": "d7fa033b5c0b4926bf80711707e3b1c7",
+          "sequence": 16843,
+          "gitHashInputBytes": 143,
+          "gitHashProcesses": 1
+        },
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332353,
+          "elapsedMilliseconds": 12544.8627,
+          "epoch": "d7fa033b5c0b4926bf80711707e3b1c7",
+          "sequence": 16843,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        }
+      ],
+      "sourceInspectionCount": 2,
+      "sourceInspectionSeconds": 25.4668334,
+      "storageReads": [
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36671169,
+          "elapsedMilliseconds": 26383.0227,
+          "measuredAt": "2026-10-07T12:20:47.6329442+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36671169,
+          "elapsedMilliseconds": 17579.375,
+          "measuredAt": "2026-10-07T12:21:42.0411253+00:00"
+        }
+      ],
+      "storageReadSeconds": 43.962397700000004
+    },
+    "s-a-release": {
+      "sourceInspections": [
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332353,
+          "elapsedMilliseconds": 12807.3234,
+          "epoch": "d7fa033b5c0b4926bf80711707e3b1c7",
+          "sequence": 16843,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        }
+      ],
+      "sourceInspectionCount": 1,
+      "sourceInspectionSeconds": 12.8073234,
+      "storageReads": [
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36671169,
+          "elapsedMilliseconds": 18915.622,
+          "measuredAt": "2026-10-07T12:22:02.8393554+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36671169,
+          "elapsedMilliseconds": 18418.4209,
+          "measuredAt": "2026-10-07T12:22:34.7462716+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36671169,
+          "elapsedMilliseconds": 17890.9766,
+          "measuredAt": "2026-10-07T12:22:57.7716206+00:00"
+        }
+      ],
+      "storageReadSeconds": 55.2250195,
+      "deltaReclamationIntervalSeconds": 53.619389,
+      "deltaReclamationIntervalIncludes": "durable event interval around delta removal, including inner seal; separate from the three outer storage-read seal measurements"
+    },
+    "s-b-checkpoint": {
+      "sourceInspections": [
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 152,
+          "filesHashed": 1,
+          "filesReused": 1601,
+          "manifestBytes": 332353,
+          "elapsedMilliseconds": 12655.5523,
+          "epoch": "0040330e7c93422fbf9e34676ee95c5d",
+          "sequence": 16892,
+          "gitHashInputBytes": 152,
+          "gitHashProcesses": 1
+        },
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332353,
+          "elapsedMilliseconds": 12359.0149,
+          "epoch": "0040330e7c93422fbf9e34676ee95c5d",
+          "sequence": 16892,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        }
+      ],
+      "sourceInspectionCount": 2,
+      "sourceInspectionSeconds": 25.0145672,
+      "storageReads": [
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36738522,
+          "elapsedMilliseconds": 25048.6994,
+          "measuredAt": "2026-10-07T12:24:20.5035434+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36738522,
+          "elapsedMilliseconds": 17658.8266,
+          "measuredAt": "2026-10-07T12:25:14.3540138+00:00"
+        }
+      ],
+      "storageReadSeconds": 42.707526
+    },
+    "s-b-release": {
+      "sourceInspections": [
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332353,
+          "elapsedMilliseconds": 12421.8207,
+          "epoch": "0040330e7c93422fbf9e34676ee95c5d",
+          "sequence": 16892,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        }
+      ],
+      "sourceInspectionCount": 1,
+      "sourceInspectionSeconds": 12.4218207,
+      "storageReads": [
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36738522,
+          "elapsedMilliseconds": 17873.3778,
+          "measuredAt": "2026-10-07T12:25:34.072424+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36738522,
+          "elapsedMilliseconds": 17853.7633,
+          "measuredAt": "2026-10-07T12:26:05.0484993+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36738522,
+          "elapsedMilliseconds": 17900.1692,
+          "measuredAt": "2026-10-07T12:26:25.3526737+00:00"
+        }
+      ],
+      "storageReadSeconds": 53.6273103,
+      "deltaReclamationIntervalSeconds": 53.347786,
+      "deltaReclamationIntervalIncludes": "durable event interval around delta removal, including inner seal; separate from the three outer storage-read seal measurements"
+    }
+  },
+  "profiles": {
+    "library-prepare": {
+      "denominatorMilliseconds": 60026.65234375,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.IO.PathHelper.TryExpandShortFileName(value class System.Text.ValueStringBuilder&,class System.String)",
+          "sampledResidenceMilliseconds": 21616.9943,
+          "percent": 36.0123
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 10234.5309,
+          "percent": 17.05
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 9711.2849,
+          "percent": 16.1783
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.<Capture>g__Walk|12_0(class System.String,value class <>c__DisplayClass12_0&)",
+          "sampledResidenceMilliseconds": 5127.14,
+          "percent": 8.5414
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.SnapshotInputChecks.Verify(class System.String)",
+          "sampledResidenceMilliseconds": 4547.5855,
+          "percent": 7.5759
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.FileSystem.FillAttributeInfo(class System.String,value class WIN32_FILE_ATTRIBUTE_DATA&,bool)",
+          "sampledResidenceMilliseconds": 2422.5227,
+          "percent": 4.0357
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Hash(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 1224.4903,
+          "percent": 2.0399
+        },
+        {
+          "method": "System.Security.Cryptography.il!System.Security.Cryptography.HashProviderCng.AppendHashData(value class System.ReadOnlySpan`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 1213.5938,
+          "percent": 2.0218
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 1003.6554,
+          "percent": 1.672
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.PathHelper.Normalize(class System.String)",
+          "sampledResidenceMilliseconds": 747.5916,
+          "percent": 1.2454
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.CloseHandle(int)",
+          "sampledResidenceMilliseconds": 379.2515,
+          "percent": 0.6318
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Thread.<PollGC>g__PollGCWorker|70_0()",
+          "sampledResidenceMilliseconds": 375.8435,
+          "percent": 0.6261
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.GetAttributes(class System.String)",
+          "sampledResidenceMilliseconds": 289.6855,
+          "percent": 0.4826
+        },
+        {
+          "method": "System.Private.CoreLib.il!Microsoft.Win32.SafeHandles.SafeFileHandle.ReleaseHandle()",
+          "sampledResidenceMilliseconds": 241.9347,
+          "percent": 0.403
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.GetFileAttributesExPrivate(class System.String,value class GET_FILEEX_INFO_LEVELS,value class WIN32_FILE_ATTRIBUTE_DATA&)",
+          "sampledResidenceMilliseconds": 183.9338,
+          "percent": 0.3064
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "splinter!Splinter.Cli.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60026.6523,
+          "percent": 100.0
+        },
+        {
+          "method": "splinter!Splinter.Cli.Program.Main(class System.String[])",
+          "sampledResidenceMilliseconds": 60026.6523,
+          "percent": 100.0
+        },
+        {
+          "method": "splinter!Splinter.Cli.Program.RunEntryPointAsync(class System.String[],bool)",
+          "sampledResidenceMilliseconds": 60026.6523,
+          "percent": 100.0
+        },
+        {
+          "method": "splinter!Splinter.Cli.Program+<RunEntryPointAsync>d__2.MoveNext()",
+          "sampledResidenceMilliseconds": 60026.6523,
+          "percent": 100.0
+        },
+        {
+          "method": "splinter!Splinter.Cli.Program.RunAsync(class System.String[],class System.IO.TextWriter,value class System.Threading.CancellationToken,class Splinter.Core.IWorkspacePreparationObserver,bool)",
+          "sampledResidenceMilliseconds": 60026.6523,
+          "percent": 100.0
+        },
+        {
+          "method": "splinter!Splinter.Cli.Program+<RunAsync>d__3.MoveNext()",
+          "sampledResidenceMilliseconds": 60026.6523,
+          "percent": 100.0
+        },
+        {
+          "method": "splinter!Splinter.Cli.GeneratedDirectoryCommands+<>c__DisplayClass0_2.<Add>b__1(class System.CommandLine.ParseResult)",
+          "sampledResidenceMilliseconds": 59978.2383,
+          "percent": 99.9193
+        },
+        {
+          "method": "splinter!Splinter.Cli.GeneratedDirectoryCommands+<>c__DisplayClass0_2+<<Add>b__1>d.MoveNext()",
+          "sampledResidenceMilliseconds": 59978.2383,
+          "percent": 99.9193
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedDirectoryBasis.PrepareAsync(class System.String,class System.String,class System.String,value class System.Threading.CancellationToken)",
+          "sampledResidenceMilliseconds": 59938.2344,
+          "percent": 99.8527
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedDirectoryBasis+<PrepareAsync>d__17.MoveNext()",
+          "sampledResidenceMilliseconds": 59934.2461,
+          "percent": 99.8461
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Capture(class Splinter.Core.SnapshotReference,class System.String)",
+          "sampledResidenceMilliseconds": 46633.3149,
+          "percent": 77.6877
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.<Capture>g__Walk|12_0(class System.String,value class <>c__DisplayClass12_0&)",
+          "sampledResidenceMilliseconds": 46633.3149,
+          "percent": 77.6877
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 33476.3983,
+          "percent": 55.7692
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.SnapshotInputChecks.VerifyTree(class System.String,value class System.Threading.CancellationToken,bool,bool)",
+          "sampledResidenceMilliseconds": 13272.2881,
+          "percent": 22.1107
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.SnapshotInputChecks.Verify(class System.String)",
+          "sampledResidenceMilliseconds": 9591.0228,
+          "percent": 15.9779
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Hash(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 2633.0611,
+          "percent": 4.3865
+        },
+        {
+          "method": "Splinter.Protocol!Splinter.Protocol.ContractCatalog..ctor(bool)",
+          "sampledResidenceMilliseconds": 25.8835,
+          "percent": 0.0431
+        }
+      ]
+    },
+    "library-restore-late": {
+      "denominatorMilliseconds": 240077.01357508512,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 120038.5703,
+          "percent": 50.0
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 60019.1641,
+          "percent": 25.0
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 16208.1756,
+          "percent": 6.7512
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 14365.5755,
+          "percent": 5.9837
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.FileStreamHelpers.FlushToDisk(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 13700.4822,
+          "percent": 5.7067
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider+<WriteAsync>d__6`1[System.__Canon].MoveNext()",
+          "sampledResidenceMilliseconds": 5806.2752,
+          "percent": 2.4185
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedRestoreFileAccess..ctor(class System.String[])",
+          "sampledResidenceMilliseconds": 1432.0003,
+          "percent": 0.5965
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.OSFileStreamStrategy..ctor(class System.String,value class System.IO.FileMode,value class System.IO.FileAccess,value class System.IO.FileShare,value class System.IO.FileOptions,int64,value class System.Nullable`1<value class System.IO.UnixFileMode>)",
+          "sampledResidenceMilliseconds": 1089.259,
+          "percent": 0.4537
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedRestoreFileAccess.Move(class System.IO.FileStream,class System.String)",
+          "sampledResidenceMilliseconds": 1001.0031,
+          "percent": 0.417
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider.CheckPath(class System.String)",
+          "sampledResidenceMilliseconds": 991.9582,
+          "percent": 0.4132
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 951.0346,
+          "percent": 0.3961
+        },
+        {
+          "method": "System.Private.CoreLib.il!Microsoft.Win32.SafeHandles.SafeFileHandle.ReleaseHandle()",
+          "sampledResidenceMilliseconds": 774.7713,
+          "percent": 0.3227
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedRestoreFileAccess.Read(class System.String,bool)",
+          "sampledResidenceMilliseconds": 769.6692,
+          "percent": 0.3206
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.PathHelper.Normalize(class System.String)",
+          "sampledResidenceMilliseconds": 735.309,
+          "percent": 0.3063
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Thread.<PollGC>g__PollGCWorker|70_0()",
+          "sampledResidenceMilliseconds": 584.6907,
+          "percent": 0.2435
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider+<WriteAsync>d__6`1[System.__Canon].MoveNext()",
+          "sampledResidenceMilliseconds": 60019.2792,
+          "percent": 25.0
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedDirectoryRestore+<ExecuteAsync>d__5.MoveNext()",
+          "sampledResidenceMilliseconds": 60019.2792,
+          "percent": 25.0
+        },
+        {
+          "method": "splinter!Splinter.Cli.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60019.1641,
+          "percent": 25.0
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 31049.9232,
+          "percent": 12.9333
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedRestoreFileAccess..ctor(class System.String[])",
+          "sampledResidenceMilliseconds": 23085.1176,
+          "percent": 9.6157
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider.WriteAsync(class System.String,!!0,value class System.Threading.CancellationToken)",
+          "sampledResidenceMilliseconds": 22906.03,
+          "percent": 9.5411
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedRestoreFileAccess.Read(class System.String,bool)",
+          "sampledResidenceMilliseconds": 5453.0715,
+          "percent": 2.2714
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedDirectoryRestore.PathOf(class System.String,class System.String)",
+          "sampledResidenceMilliseconds": 4752.8365,
+          "percent": 1.9797
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedRestoreFileAccess.Write(class System.String,class System.String,class System.Action`1<class System.IO.FileStream>)",
+          "sampledResidenceMilliseconds": 3688.3318,
+          "percent": 1.5363
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider.CheckPath(class System.String)",
+          "sampledResidenceMilliseconds": 2249.5567,
+          "percent": 0.937
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedRestoreFileAccess.Move(class System.IO.FileStream,class System.String)",
+          "sampledResidenceMilliseconds": 1011.0438,
+          "percent": 0.4211
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedDirectoryRestore.Hash(class System.IO.FileStream)",
+          "sampledResidenceMilliseconds": 811.0772,
+          "percent": 0.3378
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedRestoreFileAccess.Dispose()",
+          "sampledResidenceMilliseconds": 460.2632,
+          "percent": 0.1917
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedDirectoryRestore+<>c__DisplayClass5_0.<ExecuteAsync>b__10(class System.IO.FileStream)",
+          "sampledResidenceMilliseconds": 257.6981,
+          "percent": 0.1073
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedDirectoryRestore.RetainedHash(class System.IO.FileStream,int64,class Splinter.Core.DeltaRestoreRange[])",
+          "sampledResidenceMilliseconds": 257.6981,
+          "percent": 0.1073
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedRestoreFileAccess.Metadata(class System.IO.FileStream,unsigned int32,int64,int64,int64)",
+          "sampledResidenceMilliseconds": 79.3005,
+          "percent": 0.033
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedRestoreFileAccess.SetBasic(class Microsoft.Win32.SafeHandles.SafeFileHandle,value class BasicInfo)",
+          "sampledResidenceMilliseconds": 77.3063,
+          "percent": 0.0322
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.SnapshotInputChecks.FileIdentity(class Microsoft.Win32.SafeHandles.SafeFileHandle,bool)",
+          "sampledResidenceMilliseconds": 32.5793,
+          "percent": 0.0136
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedRestoreFileAccess.Require(class System.IO.FileStream,class System.String)",
+          "sampledResidenceMilliseconds": 22.659,
+          "percent": 0.0094
+        }
+      ]
+    },
+    "library-restore": {
+      "denominatorMilliseconds": 302979.26908750064,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 119469.2834,
+          "percent": 39.4315
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 59815.293,
+          "percent": 19.7424
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.GetQueuedCompletionStatus(int,unsigned int32&,unsigned int&,int&,int32)",
+          "sampledResidenceMilliseconds": 42559.5387,
+          "percent": 14.047
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Hash(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 38638.3435,
+          "percent": 12.7528
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.LowLevelLifoSemaphore.WaitForSignal(int32)",
+          "sampledResidenceMilliseconds": 23318.4761,
+          "percent": 7.6964
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 7169.6828,
+          "percent": 2.3664
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 5573.5159,
+          "percent": 1.8396
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.PathHelper.TryExpandShortFileName(value class System.Text.ValueStringBuilder&,class System.String)",
+          "sampledResidenceMilliseconds": 1189.9202,
+          "percent": 0.3927
+        },
+        {
+          "method": "System.Security.Cryptography.il!System.Security.Cryptography.HashProviderCng.AppendHashData(value class System.ReadOnlySpan`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 923.1386,
+          "percent": 0.3047
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.OpenHandle(class System.String,value class System.IO.FileMode,value class System.IO.FileAccess,value class System.IO.FileShare,value class System.IO.FileOptions,int64)",
+          "sampledResidenceMilliseconds": 783.6214,
+          "percent": 0.2586
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 543.5721,
+          "percent": 0.1794
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Thread.<PollGC>g__PollGCWorker|70_0()",
+          "sampledResidenceMilliseconds": 490.9826,
+          "percent": 0.1621
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess.Read(class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Span`1<unsigned int8>,int64)",
+          "sampledResidenceMilliseconds": 430.9014,
+          "percent": 0.1422
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.GetAttributes(class System.String)",
+          "sampledResidenceMilliseconds": 397.0789,
+          "percent": 0.1311
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree..ctor(class Splinter.Platform.Windows.OwnedDirectoryManifest,class Splinter.Core.SnapshotReference,bool)",
+          "sampledResidenceMilliseconds": 371.2031,
+          "percent": 0.1225
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "splinter!Splinter.Cli.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60021.5612,
+          "percent": 19.8105
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider+<ReadAsync>d__8`1[System.__Canon].MoveNext()",
+          "sampledResidenceMilliseconds": 57538.643,
+          "percent": 18.991
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedDirectoryRestore+<ExecuteAsync>d__5.MoveNext()",
+          "sampledResidenceMilliseconds": 57377.2861,
+          "percent": 18.9377
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree..ctor(class Splinter.Platform.Windows.OwnedDirectoryManifest,class Splinter.Core.SnapshotReference,bool)",
+          "sampledResidenceMilliseconds": 57001.8789,
+          "percent": 18.8138
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Hash(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 40160.4258,
+          "percent": 13.2552
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 14819.1618,
+          "percent": 4.8911
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Resolve(class System.String)",
+          "sampledResidenceMilliseconds": 14819.1461,
+          "percent": 4.8911
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.ManagedDirectoryBasis+<RestoreAsync>d__20.MoveNext()",
+          "sampledResidenceMilliseconds": 504.9692,
+          "percent": 0.1667
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayClient+<ObserveAsync>d__6.MoveNext()",
+          "sampledResidenceMilliseconds": 429.7227,
+          "percent": 0.1418
+        }
+      ]
+    },
+    "s-a-checkpoint": {
+      "denominatorMilliseconds": 593435.4102756558,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.LowLevelLifoSemaphore.WaitForSignal(int32)",
+          "sampledResidenceMilliseconds": 173430.0149,
+          "percent": 29.2247
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 119236.7875,
+          "percent": 20.0926
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.GetQueuedCompletionStatus(int,unsigned int32&,unsigned int&,int&,int32)",
+          "sampledResidenceMilliseconds": 84057.7464,
+          "percent": 14.1646
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 59619.4999,
+          "percent": 10.0465
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitAnyMultiple(value class System.ReadOnlySpan`1<class Microsoft.Win32.SafeHandles.SafeWaitHandle>,int32)",
+          "sampledResidenceMilliseconds": 53161.1565,
+          "percent": 8.9582
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.PortableThreadPool+IOCompletionPoller.Poll()",
+          "sampledResidenceMilliseconds": 31646.1914,
+          "percent": 5.3327
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess+<>c.<ReadAtOffsetAsync>b__19_0(value class System.ValueTuple`4<class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Memory`1<unsigned int8>,int64,class System.IO.Strategies.OSFileStreamStrategy>)",
+          "sampledResidenceMilliseconds": 17924.1862,
+          "percent": 3.0204
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 13396.3679,
+          "percent": 2.2574
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 8733.1341,
+          "percent": 1.4716
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.FileSystem.FillAttributeInfo(class System.String,value class WIN32_FILE_ATTRIBUTE_DATA&,bool)",
+          "sampledResidenceMilliseconds": 6340.4405,
+          "percent": 1.0684
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 5352.7252,
+          "percent": 0.902
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Capsule(class System.String)",
+          "sampledResidenceMilliseconds": 3551.6381,
+          "percent": 0.5985
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess.ReadAtOffset(class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Span`1<unsigned int8>,int64)",
+          "sampledResidenceMilliseconds": 3445.7736,
+          "percent": 0.5806
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.OSFileStreamStrategy..ctor(class System.String,value class System.IO.FileMode,value class System.IO.FileAccess,value class System.IO.FileShare,value class System.IO.FileOptions,int64,value class System.Nullable`1<value class System.IO.UnixFileMode>)",
+          "sampledResidenceMilliseconds": 3381.7807,
+          "percent": 0.5699
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.ReadFile(class System.Runtime.InteropServices.SafeHandle,unsigned int8*,int32,int32&,value class System.Threading.NativeOverlapped*)",
+          "sampledResidenceMilliseconds": 1364.486,
+          "percent": 0.2299
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "splinter!Splinter.Cli.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60025.8848,
+          "percent": 10.115
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider+<ReadAsync>d__8`1[System.Text.Json.JsonElement].MoveNext()",
+          "sampledResidenceMilliseconds": 26424.5049,
+          "percent": 4.4528
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.NtfsSnapshotWorkspaceBackend+<SealAsync>d__17.MoveNext()",
+          "sampledResidenceMilliseconds": 26408.4637,
+          "percent": 4.4501
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.SealJournal(class System.String,int64)",
+          "sampledResidenceMilliseconds": 26381.0644,
+          "percent": 4.4455
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Seal(class System.String)",
+          "sampledResidenceMilliseconds": 26373.0629,
+          "percent": 4.4441
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage..ctor(class System.String,class Splinter.Core.OverlayIdentity,bool)",
+          "sampledResidenceMilliseconds": 25246.7118,
+          "percent": 4.2543
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitWorkspaceProvider+<InspectSourceAsync>d__20.MoveNext()",
+          "sampledResidenceMilliseconds": 19742.8035,
+          "percent": 3.3269
+        }
+      ]
+    },
+    "s-a-checkpoint-provider": {
+      "denominatorMilliseconds": 785447.8361857601,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.LowLevelLifoSemaphore.WaitForSignal(int32)",
+          "sampledResidenceMilliseconds": 241708.7069,
+          "percent": 30.7734
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 119983.907,
+          "percent": 15.2759
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 114171.429,
+          "percent": 14.5358
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess+<>c.<ReadAtOffsetAsync>b__19_0(value class System.ValueTuple`4<class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Memory`1<unsigned int8>,int64,class System.IO.Strategies.OSFileStreamStrategy>)",
+          "sampledResidenceMilliseconds": 76496.6136,
+          "percent": 9.7392
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 60025.8984,
+          "percent": 7.6423
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.PortableThreadPool+IOCompletionPoller.Poll()",
+          "sampledResidenceMilliseconds": 60025.6875,
+          "percent": 7.6422
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitAnyMultiple(value class System.ReadOnlySpan`1<class Microsoft.Win32.SafeHandles.SafeWaitHandle>,int32)",
+          "sampledResidenceMilliseconds": 60025.4185,
+          "percent": 7.6422
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Enter_Slowpath(class System.Object)",
+          "sampledResidenceMilliseconds": 34727.637,
+          "percent": 4.4214
+        },
+        {
+          "method": "System.Private.CoreLib.il!Microsoft.Win32.SafeHandles.SafeFileHandle.<GetFileLength>g__GetFileLengthCore|28_0()",
+          "sampledResidenceMilliseconds": 12160.292,
+          "percent": 1.5482
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.PathHelper.Normalize(class System.String)",
+          "sampledResidenceMilliseconds": 1559.7906,
+          "percent": 0.1986
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Thread.<PollGC>g__PollGCWorker|70_0()",
+          "sampledResidenceMilliseconds": 1531.0135,
+          "percent": 0.1949
+        },
+        {
+          "method": "System.Diagnostics.Process.il!System.Diagnostics.Process.StartWithCreateProcess(class System.Diagnostics.ProcessStartInfo)",
+          "sampledResidenceMilliseconds": 850.305,
+          "percent": 0.1083
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Footer(class Frame)",
+          "sampledResidenceMilliseconds": 190.1866,
+          "percent": 0.0242
+        },
+        {
+          "method": "System.Diagnostics.Process.il!System.Diagnostics.ProcessManager.GetProcessInfo(int32,class System.String)",
+          "sampledResidenceMilliseconds": 186.2328,
+          "percent": 0.0237
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.FileStreamHelpers.FlushToDisk(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 182.1226,
+          "percent": 0.0232
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.EnsureAvailable()",
+          "sampledResidenceMilliseconds": 86898.0138,
+          "percent": 11.0635
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60025.8984,
+          "percent": 7.6423
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.CommitLatest(class Mutation,value class System.ReadOnlySpan`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 28944.2869,
+          "percent": 3.6851
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Commit(class Root,class Put[],class Remove[],class System.Action`1<class System.String>)",
+          "sampledResidenceMilliseconds": 28931.4794,
+          "percent": 3.6834
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Finish(class System.Action`1<class System.String>)",
+          "sampledResidenceMilliseconds": 28276.5344,
+          "percent": 3.6001
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 28163.3134,
+          "percent": 3.5856
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.List(class System.String)",
+          "sampledResidenceMilliseconds": 16738.0868,
+          "percent": 2.131
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.Check()",
+          "sampledResidenceMilliseconds": 8261.9816,
+          "percent": 1.0519
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.GraftedSnapshotTree.List(class System.String)",
+          "sampledResidenceMilliseconds": 4934.0858,
+          "percent": 0.6282
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.Lookup(class System.String)",
+          "sampledResidenceMilliseconds": 1731.216,
+          "percent": 0.2204
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.GraftedSnapshotTree.Stat(class System.String)",
+          "sampledResidenceMilliseconds": 1627.2226,
+          "percent": 0.2072
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<ObserveAsync>d__12.MoveNext()",
+          "sampledResidenceMilliseconds": 1387.1465,
+          "percent": 0.1766
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<Command>d__28.MoveNext()",
+          "sampledResidenceMilliseconds": 1295.0671,
+          "percent": 0.1649
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayServer+<RunAsync>d__1.MoveNext()",
+          "sampledResidenceMilliseconds": 1201.2986,
+          "percent": 0.1529
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<FindRef>d__17.MoveNext()",
+          "sampledResidenceMilliseconds": 970.804,
+          "percent": 0.1236
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayClient+<ObserveSnapshotAsync>d__4.MoveNext()",
+          "sampledResidenceMilliseconds": 956.7126,
+          "percent": 0.1218
+        }
+      ]
+    },
+    "s-a-ensure-corrected": {
+      "denominatorMilliseconds": 552316.3012359358,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.LowLevelLifoSemaphore.WaitForSignal(int32)",
+          "sampledResidenceMilliseconds": 185415.9785,
+          "percent": 33.5706
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 119126.5348,
+          "percent": 21.5685
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 61011.1277,
+          "percent": 11.0464
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.PortableThreadPool+IOCompletionPoller.Poll()",
+          "sampledResidenceMilliseconds": 56148.0469,
+          "percent": 10.1659
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitAnyMultiple(value class System.ReadOnlySpan`1<class Microsoft.Win32.SafeHandles.SafeWaitHandle>,int32)",
+          "sampledResidenceMilliseconds": 34719.6797,
+          "percent": 6.2862
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.GetQueuedCompletionStatus(int,unsigned int32&,unsigned int&,int&,int32)",
+          "sampledResidenceMilliseconds": 27032.2209,
+          "percent": 4.8943
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Buffers.SharedArrayPool`1+<>c[System.Text.Json.JsonProperty].<InitializeTlsBucketsAndTrimming>b__11_0(class System.Object)",
+          "sampledResidenceMilliseconds": 14173.1807,
+          "percent": 2.5661
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 13617.1858,
+          "percent": 2.4655
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 12828.2531,
+          "percent": 2.3226
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.PathHelper.TryExpandShortFileName(value class System.Text.ValueStringBuilder&,class System.String)",
+          "sampledResidenceMilliseconds": 12104.38,
+          "percent": 2.1916
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess+<>c.<ReadAtOffsetAsync>b__19_0(value class System.ValueTuple`4<class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Memory`1<unsigned int8>,int64,class System.IO.Strategies.OSFileStreamStrategy>)",
+          "sampledResidenceMilliseconds": 3221.6237,
+          "percent": 0.5833
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess.ReadAtOffset(class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Span`1<unsigned int8>,int64)",
+          "sampledResidenceMilliseconds": 2809.0263,
+          "percent": 0.5086
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Hash(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 2119.0913,
+          "percent": 0.3837
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.ReadFile(class System.Runtime.InteropServices.SafeHandle,unsigned int8*,int32,int32&,value class System.Threading.NativeOverlapped*)",
+          "sampledResidenceMilliseconds": 2059.0052,
+          "percent": 0.3728
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 1073.8021,
+          "percent": 0.1944
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "splinter!Splinter.Cli.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60014.8207,
+          "percent": 10.866
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<Command>d__28.MoveNext()",
+          "sampledResidenceMilliseconds": 46939.5327,
+          "percent": 8.4987
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<ObserveAsync>d__12.MoveNext()",
+          "sampledResidenceMilliseconds": 46528.5014,
+          "percent": 8.4242
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayClient+<StartAsync>d__7.MoveNext()",
+          "sampledResidenceMilliseconds": 46407.0669,
+          "percent": 8.4023
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayClient+<ObserveSnapshotAsync>d__4.MoveNext()",
+          "sampledResidenceMilliseconds": 46405.078,
+          "percent": 8.4019
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WorkspaceSnapshotBasis.OpenTree(class Splinter.Core.SnapshotReference,class Splinter.Core.SnapshotReadAccess,class System.String,class System.String,class System.Func`1<class Splinter.Core.SnapshotObservation>)",
+          "sampledResidenceMilliseconds": 46226.0174,
+          "percent": 8.3695
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WorkspaceSnapshotBasis+GeneratedTreeScope..ctor(class Splinter.Core.ISnapshotTree,class Splinter.Platform.Windows.OverlayServeRequest)",
+          "sampledResidenceMilliseconds": 45035.7701,
+          "percent": 8.154
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree..ctor(class Splinter.Platform.Windows.OwnedDirectoryManifest,class Splinter.Core.SnapshotReference,bool)",
+          "sampledResidenceMilliseconds": 44908.7305,
+          "percent": 8.131
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 38368.6275,
+          "percent": 6.9469
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Resolve(class System.String)",
+          "sampledResidenceMilliseconds": 38347.072,
+          "percent": 6.943
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Hash(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 2270.1054,
+          "percent": 0.411
+        }
+      ]
+    },
+    "s-a-initial-provider": {
+      "denominatorMilliseconds": 1080368.682879785,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Enter_Slowpath(class System.Object)",
+          "sampledResidenceMilliseconds": 433146.9721,
+          "percent": 40.0925
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.LowLevelLifoSemaphore.WaitForSignal(int32)",
+          "sampledResidenceMilliseconds": 213161.7785,
+          "percent": 19.7305
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 119978.6571,
+          "percent": 11.1053
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess+<>c.<ReadAtOffsetAsync>b__19_0(value class System.ValueTuple`4<class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Memory`1<unsigned int8>,int64,class System.IO.Strategies.OSFileStreamStrategy>)",
+          "sampledResidenceMilliseconds": 72318.1908,
+          "percent": 6.6938
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 60020.668,
+          "percent": 5.5556
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.PortableThreadPool+IOCompletionPoller.Poll()",
+          "sampledResidenceMilliseconds": 60020.6133,
+          "percent": 5.5556
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitAnyMultiple(value class System.ReadOnlySpan`1<class Microsoft.Win32.SafeHandles.SafeWaitHandle>,int32)",
+          "sampledResidenceMilliseconds": 60020.4883,
+          "percent": 5.5556
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.BufferedFileStreamStrategy.ReadSpan(value class System.Span`1<unsigned int8>,value class System.ArraySegment`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 32625.7964,
+          "percent": 3.0199
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotTree.Read(class System.String,int64,value class System.Span`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 25279.6446,
+          "percent": 2.3399
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitProgressReadStream.ReadByte()",
+          "sampledResidenceMilliseconds": 1379.4753,
+          "percent": 0.1277
+        },
+        {
+          "method": "System.Diagnostics.Process.il!System.Diagnostics.Process.StartWithCreateProcess(class System.Diagnostics.ProcessStartInfo)",
+          "sampledResidenceMilliseconds": 834.338,
+          "percent": 0.0772
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 287.5281,
+          "percent": 0.0266
+        },
+        {
+          "method": "System.Diagnostics.Process.il!System.Diagnostics.ProcessManager.GetProcessInfo(int32,class System.String)",
+          "sampledResidenceMilliseconds": 186.6547,
+          "percent": 0.0173
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.FileStreamHelpers.FlushToDisk(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 138.0573,
+          "percent": 0.0128
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Buffer.MemmoveInternal(unsigned int8&,unsigned int8&,unsigned int)",
+          "sampledResidenceMilliseconds": 117.7032,
+          "percent": 0.0109
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60020.668,
+          "percent": 5.5556
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotTree.Read(class System.String,int64,value class System.Span`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 59906.6929,
+          "percent": 5.545
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<ObserveAsync>d__12.MoveNext()",
+          "sampledResidenceMilliseconds": 14488.8742,
+          "percent": 1.3411
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<Command>d__28.MoveNext()",
+          "sampledResidenceMilliseconds": 14390.2627,
+          "percent": 1.332
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayServer+<RunAsync>d__1.MoveNext()",
+          "sampledResidenceMilliseconds": 14157.5568,
+          "percent": 1.3104
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayClient+<ObserveSnapshotAsync>d__4.MoveNext()",
+          "sampledResidenceMilliseconds": 14090.2174,
+          "percent": 1.3042
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.ObserveStorage(bool)",
+          "sampledResidenceMilliseconds": 12932.2444,
+          "percent": 1.197
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitProgressReadStream.ReadByte()",
+          "sampledResidenceMilliseconds": 1382.4828,
+          "percent": 0.128
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotTree.BeginBlob(class System.String,int64)",
+          "sampledResidenceMilliseconds": 873.1023,
+          "percent": 0.0808
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<FindRef>d__17.MoveNext()",
+          "sampledResidenceMilliseconds": 819.2279,
+          "percent": 0.0758
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotTree.Header(class System.IO.Stream)",
+          "sampledResidenceMilliseconds": 763.8591,
+          "percent": 0.0707
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotTree.LoadProvedChunk(class System.String,int64,int64)",
+          "sampledResidenceMilliseconds": 703.2916,
+          "percent": 0.0651
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider+<ReadAsync>d__8`1[System.__Canon].MoveNext()",
+          "sampledResidenceMilliseconds": 673.1827,
+          "percent": 0.0623
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayClient.ObserveSnapshotAsync(class Splinter.Platform.Windows.OverlayServeRequest,value class System.Threading.CancellationToken)",
+          "sampledResidenceMilliseconds": 531.7995,
+          "percent": 0.0492
+        }
+      ]
+    },
+    "s-a-release": {
+      "denominatorMilliseconds": 610408.685546875,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.GetQueuedCompletionStatus(int,unsigned int32&,unsigned int&,int&,int32)",
+          "sampledResidenceMilliseconds": 141265.5048,
+          "percent": 23.1428
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.LowLevelLifoSemaphore.WaitForSignal(int32)",
+          "sampledResidenceMilliseconds": 124670.3333,
+          "percent": 20.4241
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 119428.043,
+          "percent": 19.5653
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 59732.6797,
+          "percent": 9.7857
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitAnyMultiple(value class System.ReadOnlySpan`1<class Microsoft.Win32.SafeHandles.SafeWaitHandle>,int32)",
+          "sampledResidenceMilliseconds": 59704.293,
+          "percent": 9.781
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.PortableThreadPool+IOCompletionPoller.Poll()",
+          "sampledResidenceMilliseconds": 39855.7422,
+          "percent": 6.5294
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 15828.6346,
+          "percent": 2.5931
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 11198.7344,
+          "percent": 1.8346
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess+<>c.<ReadAtOffsetAsync>b__19_0(value class System.ValueTuple`4<class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Memory`1<unsigned int8>,int64,class System.IO.Strategies.OSFileStreamStrategy>)",
+          "sampledResidenceMilliseconds": 8502.9779,
+          "percent": 1.393
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 5873.6387,
+          "percent": 0.9622
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess.ReadAtOffset(class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Span`1<unsigned int8>,int64)",
+          "sampledResidenceMilliseconds": 4138.7747,
+          "percent": 0.678
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.OSFileStreamStrategy..ctor(class System.String,value class System.IO.FileMode,value class System.IO.FileAccess,value class System.IO.FileShare,value class System.IO.FileOptions,int64,value class System.Nullable`1<value class System.IO.UnixFileMode>)",
+          "sampledResidenceMilliseconds": 3949.3816,
+          "percent": 0.647
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.GetFileAttributesEx(class System.String,value class GET_FILEEX_INFO_LEVELS,value class WIN32_FILE_ATTRIBUTE_DATA&)",
+          "sampledResidenceMilliseconds": 2848.5782,
+          "percent": 0.4667
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage+<>c.<get_Bytes>b__30_0(class System.String)",
+          "sampledResidenceMilliseconds": 1968.3478,
+          "percent": 0.3225
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.FileSystem.FillAttributeInfo(class System.String,value class WIN32_FILE_ATTRIBUTE_DATA&,bool)",
+          "sampledResidenceMilliseconds": 1577.9561,
+          "percent": 0.2585
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "splinter!Splinter.Cli.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60008.4297,
+          "percent": 9.8309
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.NtfsSnapshotWorkspaceBackend+<SealAsync>d__17.MoveNext()",
+          "sampledResidenceMilliseconds": 40218.1482,
+          "percent": 6.5887
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.SealJournal(class System.String,int64)",
+          "sampledResidenceMilliseconds": 40153.1429,
+          "percent": 6.5781
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Seal(class System.String)",
+          "sampledResidenceMilliseconds": 40145.1389,
+          "percent": 6.5768
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage..ctor(class System.String,class Splinter.Core.OverlayIdentity,bool)",
+          "sampledResidenceMilliseconds": 37895.6093,
+          "percent": 6.2082
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider+<ReadAsync>d__8`1[System.Text.Json.JsonElement].MoveNext()",
+          "sampledResidenceMilliseconds": 37385.8563,
+          "percent": 6.1247
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 27694.862,
+          "percent": 4.5371
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitWorkspaceProvider+<InspectSourceAsync>d__20.MoveNext()",
+          "sampledResidenceMilliseconds": 9786.3683,
+          "percent": 1.6032
+        }
+      ]
+    },
+    "s-a-stop-provider": {
+      "denominatorMilliseconds": 698742.712598618,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.LowLevelLifoSemaphore.WaitForSignal(int32)",
+          "sampledResidenceMilliseconds": 219686.287,
+          "percent": 31.4402
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 120019.9818,
+          "percent": 17.1766
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess+<>c.<ReadAtOffsetAsync>b__19_0(value class System.ValueTuple`4<class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Memory`1<unsigned int8>,int64,class System.IO.Strategies.OSFileStreamStrategy>)",
+          "sampledResidenceMilliseconds": 78371.1427,
+          "percent": 11.216
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 60035.9844,
+          "percent": 8.592
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitAnyMultiple(value class System.ReadOnlySpan`1<class Microsoft.Win32.SafeHandles.SafeWaitHandle>,int32)",
+          "sampledResidenceMilliseconds": 60035.7898,
+          "percent": 8.592
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.PortableThreadPool+IOCompletionPoller.Poll()",
+          "sampledResidenceMilliseconds": 60035.7895,
+          "percent": 8.592
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 41183.4585,
+          "percent": 5.8939
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Enter_Slowpath(class System.Object)",
+          "sampledResidenceMilliseconds": 29443.2093,
+          "percent": 4.2137
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.FileStreamHelpers.FlushToDisk(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 6048.1612,
+          "percent": 0.8656
+        },
+        {
+          "method": "System.Linq.il!System.Linq.Enumerable+IEnumerableWhereIterator`1[System.Collections.Generic.KeyValuePair`2[System.__Canon,System.__Canon]].ToArray()",
+          "sampledResidenceMilliseconds": 3097.2034,
+          "percent": 0.4433
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Thread.<PollGC>g__PollGCWorker|70_0()",
+          "sampledResidenceMilliseconds": 2816.2265,
+          "percent": 0.403
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.OSFileStreamStrategy..ctor(class System.String,value class System.IO.FileMode,value class System.IO.FileAccess,value class System.IO.FileShare,value class System.IO.FileOptions,int64,value class System.Nullable`1<value class System.IO.UnixFileMode>)",
+          "sampledResidenceMilliseconds": 1740.7621,
+          "percent": 0.2491
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Footer(class Frame)",
+          "sampledResidenceMilliseconds": 1638.5106,
+          "percent": 0.2345
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Publish(class System.String,class System.String,class System.Action`1<class System.String>)",
+          "sampledResidenceMilliseconds": 1169.0573,
+          "percent": 0.1673
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Buffer.MemmoveInternal(unsigned int8&,unsigned int8&,unsigned int)",
+          "sampledResidenceMilliseconds": 1081.8393,
+          "percent": 0.1548
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60035.9844,
+          "percent": 8.592
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.CommitLatest(class Mutation,value class System.ReadOnlySpan`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 57743.9202,
+          "percent": 8.264
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Commit(class Root,class Put[],class Remove[],class System.Action`1<class System.String>)",
+          "sampledResidenceMilliseconds": 52877.0534,
+          "percent": 7.5675
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Finish(class System.Action`1<class System.String>)",
+          "sampledResidenceMilliseconds": 33044.8125,
+          "percent": 4.7292
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 32588.4155,
+          "percent": 4.6639
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.Commit(class Mutation,value class System.ReadOnlySpan`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 24812.63,
+          "percent": 3.551
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.EnsureAvailable()",
+          "sampledResidenceMilliseconds": 10166.2699,
+          "percent": 1.4549
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Publish(class System.String,class System.String,class System.Action`1<class System.String>)",
+          "sampledResidenceMilliseconds": 4541.2552,
+          "percent": 0.6499
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Footer(class Frame)",
+          "sampledResidenceMilliseconds": 2604.7457,
+          "percent": 0.3728
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Read(class System.String)",
+          "sampledResidenceMilliseconds": 2400.852,
+          "percent": 0.3436
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<ObserveAsync>d__12.MoveNext()",
+          "sampledResidenceMilliseconds": 2004.0116,
+          "percent": 0.2868
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.Delete(value class System.Guid)",
+          "sampledResidenceMilliseconds": 2000.331,
+          "percent": 0.2863
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.HashFile(class System.String,value class System.Nullable`1<int64>)",
+          "sampledResidenceMilliseconds": 1945.4918,
+          "percent": 0.2784
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<Command>d__28.MoveNext()",
+          "sampledResidenceMilliseconds": 1905.7666,
+          "percent": 0.2727
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayServer+<RunAsync>d__1.MoveNext()",
+          "sampledResidenceMilliseconds": 1726.9684,
+          "percent": 0.2472
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.ReadFrame(class System.String,bool)",
+          "sampledResidenceMilliseconds": 1621.0791,
+          "percent": 0.232
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayClient+<ObserveSnapshotAsync>d__4.MoveNext()",
+          "sampledResidenceMilliseconds": 1511.4511,
+          "percent": 0.2163
+        }
+      ]
+    },
+    "s-b-checkpoint": {
+      "denominatorMilliseconds": 572622.3219500027,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.LowLevelLifoSemaphore.WaitForSignal(int32)",
+          "sampledResidenceMilliseconds": 167450.5521,
+          "percent": 29.2428
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 119471.5306,
+          "percent": 20.8639
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.GetQueuedCompletionStatus(int,unsigned int32&,unsigned int&,int&,int32)",
+          "sampledResidenceMilliseconds": 64896.3965,
+          "percent": 11.3332
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 59733.9726,
+          "percent": 10.4317
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitAnyMultiple(value class System.ReadOnlySpan`1<class Microsoft.Win32.SafeHandles.SafeWaitHandle>,int32)",
+          "sampledResidenceMilliseconds": 54613.4057,
+          "percent": 9.5374
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.PortableThreadPool+IOCompletionPoller.Poll()",
+          "sampledResidenceMilliseconds": 32818.3164,
+          "percent": 5.7312
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess+<>c.<ReadAtOffsetAsync>b__19_0(value class System.ValueTuple`4<class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Memory`1<unsigned int8>,int64,class System.IO.Strategies.OSFileStreamStrategy>)",
+          "sampledResidenceMilliseconds": 22196.7017,
+          "percent": 3.8763
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 12118.1113,
+          "percent": 2.1162
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 8327.018,
+          "percent": 1.4542
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.FileSystem.FillAttributeInfo(class System.String,value class WIN32_FILE_ATTRIBUTE_DATA&,bool)",
+          "sampledResidenceMilliseconds": 6490.7308,
+          "percent": 1.1335
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 5078.0111,
+          "percent": 0.8868
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.OSFileStreamStrategy..ctor(class System.String,value class System.IO.FileMode,value class System.IO.FileAccess,value class System.IO.FileShare,value class System.IO.FileOptions,int64,value class System.Nullable`1<value class System.IO.UnixFileMode>)",
+          "sampledResidenceMilliseconds": 3492.8469,
+          "percent": 0.61
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Capsule(class System.String)",
+          "sampledResidenceMilliseconds": 3257.0261,
+          "percent": 0.5688
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess.ReadAtOffset(class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Span`1<unsigned int8>,int64)",
+          "sampledResidenceMilliseconds": 2147.5608,
+          "percent": 0.375
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.ReadFile(class System.Runtime.InteropServices.SafeHandle,unsigned int8*,int32,int32&,value class System.Threading.NativeOverlapped*)",
+          "sampledResidenceMilliseconds": 1364.3631,
+          "percent": 0.2383
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "splinter!Splinter.Cli.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60018.9492,
+          "percent": 10.4814
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider+<ReadAsync>d__8`1[System.Text.Json.JsonElement].MoveNext()",
+          "sampledResidenceMilliseconds": 25086.8014,
+          "percent": 4.381
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.NtfsSnapshotWorkspaceBackend+<SealAsync>d__17.MoveNext()",
+          "sampledResidenceMilliseconds": 25071.0018,
+          "percent": 4.3783
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.SealJournal(class System.String,int64)",
+          "sampledResidenceMilliseconds": 25049.545,
+          "percent": 4.3745
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Seal(class System.String)",
+          "sampledResidenceMilliseconds": 25043.5059,
+          "percent": 4.3735
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage..ctor(class System.String,class Splinter.Core.OverlayIdentity,bool)",
+          "sampledResidenceMilliseconds": 23894.1895,
+          "percent": 4.1728
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitWorkspaceProvider+<InspectSourceAsync>d__20.MoveNext()",
+          "sampledResidenceMilliseconds": 19325.3643,
+          "percent": 3.3749
+        }
+      ]
+    },
+    "s-b-ensure-corrected": {
+      "denominatorMilliseconds": 536814.244959373,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.LowLevelLifoSemaphore.WaitForSignal(int32)",
+          "sampledResidenceMilliseconds": 174712.3304,
+          "percent": 32.5461
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 119090.6882,
+          "percent": 22.1847
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 60493.4097,
+          "percent": 11.269
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.PortableThreadPool+IOCompletionPoller.Poll()",
+          "sampledResidenceMilliseconds": 56070.7109,
+          "percent": 10.4451
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.GetQueuedCompletionStatus(int,unsigned int32&,unsigned int&,int&,int32)",
+          "sampledResidenceMilliseconds": 37960.4014,
+          "percent": 7.0714
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitAnyMultiple(value class System.ReadOnlySpan`1<class Microsoft.Win32.SafeHandles.SafeWaitHandle>,int32)",
+          "sampledResidenceMilliseconds": 34291.3989,
+          "percent": 6.3879
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 14670.7872,
+          "percent": 2.7329
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 12581.4736,
+          "percent": 2.3437
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.PathHelper.TryExpandShortFileName(value class System.Text.ValueStringBuilder&,class System.String)",
+          "sampledResidenceMilliseconds": 11507.6199,
+          "percent": 2.1437
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess.ReadAtOffset(class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Span`1<unsigned int8>,int64)",
+          "sampledResidenceMilliseconds": 2732.344,
+          "percent": 0.509
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess+<>c.<ReadAtOffsetAsync>b__19_0(value class System.ValueTuple`4<class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Memory`1<unsigned int8>,int64,class System.IO.Strategies.OSFileStreamStrategy>)",
+          "sampledResidenceMilliseconds": 2259.7476,
+          "percent": 0.421
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Hash(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 2160.6757,
+          "percent": 0.4025
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.ReadFile(class System.Runtime.InteropServices.SafeHandle,unsigned int8*,int32,int32&,value class System.Threading.NativeOverlapped*)",
+          "sampledResidenceMilliseconds": 2134.0549,
+          "percent": 0.3975
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 1097.0371,
+          "percent": 0.2044
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.PathHelper.Normalize(class System.String)",
+          "sampledResidenceMilliseconds": 781.5132,
+          "percent": 0.1456
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "splinter!Splinter.Cli.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60015.3912,
+          "percent": 11.1799
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<Command>d__28.MoveNext()",
+          "sampledResidenceMilliseconds": 46869.0836,
+          "percent": 8.731
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<ObserveAsync>d__12.MoveNext()",
+          "sampledResidenceMilliseconds": 46446.0646,
+          "percent": 8.6522
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayClient+<StartAsync>d__7.MoveNext()",
+          "sampledResidenceMilliseconds": 46319.6156,
+          "percent": 8.6286
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayClient+<ObserveSnapshotAsync>d__4.MoveNext()",
+          "sampledResidenceMilliseconds": 46315.6497,
+          "percent": 8.6279
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WorkspaceSnapshotBasis.OpenTree(class Splinter.Core.SnapshotReference,class Splinter.Core.SnapshotReadAccess,class System.String,class System.String,class System.Func`1<class Splinter.Core.SnapshotObservation>)",
+          "sampledResidenceMilliseconds": 46118.5925,
+          "percent": 8.5912
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WorkspaceSnapshotBasis+GeneratedTreeScope..ctor(class Splinter.Core.ISnapshotTree,class Splinter.Platform.Windows.OverlayServeRequest)",
+          "sampledResidenceMilliseconds": 45436.4001,
+          "percent": 8.4641
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree..ctor(class Splinter.Platform.Windows.OwnedDirectoryManifest,class Splinter.Core.SnapshotReference,bool)",
+          "sampledResidenceMilliseconds": 45296.8203,
+          "percent": 8.4381
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 38853.4055,
+          "percent": 7.2378
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Resolve(class System.String)",
+          "sampledResidenceMilliseconds": 38839.5143,
+          "percent": 7.2352
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.OwnedDirectorySnapshotTree.Hash(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 2291.2327,
+          "percent": 0.4268
+        }
+      ]
+    },
+    "s-b-release": {
+      "denominatorMilliseconds": 609174.6192765632,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.LowLevelLifoSemaphore.WaitForSignal(int32)",
+          "sampledResidenceMilliseconds": 207020.9201,
+          "percent": 33.9838
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 119451.6019,
+          "percent": 19.6088
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 59737.9727,
+          "percent": 9.8064
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitAnyMultiple(value class System.ReadOnlySpan`1<class Microsoft.Win32.SafeHandles.SafeWaitHandle>,int32)",
+          "sampledResidenceMilliseconds": 59702.3125,
+          "percent": 9.8005
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.GetQueuedCompletionStatus(int,unsigned int32&,unsigned int&,int&,int32)",
+          "sampledResidenceMilliseconds": 57726.1996,
+          "percent": 9.4761
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.PortableThreadPool+IOCompletionPoller.Poll()",
+          "sampledResidenceMilliseconds": 40861.6367,
+          "percent": 6.7077
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 16992.0324,
+          "percent": 2.7894
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 13094.2803,
+          "percent": 2.1495
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 6276.161,
+          "percent": 1.0303
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess+<>c.<ReadAtOffsetAsync>b__19_0(value class System.ValueTuple`4<class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Memory`1<unsigned int8>,int64,class System.IO.Strategies.OSFileStreamStrategy>)",
+          "sampledResidenceMilliseconds": 5924.5196,
+          "percent": 0.9725
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.OSFileStreamStrategy..ctor(class System.String,value class System.IO.FileMode,value class System.IO.FileAccess,value class System.IO.FileShare,value class System.IO.FileOptions,int64,value class System.Nullable`1<value class System.IO.UnixFileMode>)",
+          "sampledResidenceMilliseconds": 4265.5238,
+          "percent": 0.7002
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.FileSystem.FillAttributeInfo(class System.String,value class WIN32_FILE_ATTRIBUTE_DATA&,bool)",
+          "sampledResidenceMilliseconds": 3593.1151,
+          "percent": 0.5898
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess.ReadAtOffset(class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Span`1<unsigned int8>,int64)",
+          "sampledResidenceMilliseconds": 3161.1246,
+          "percent": 0.5189
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.ReadFile(class System.Runtime.InteropServices.SafeHandle,unsigned int8*,int32,int32&,value class System.Threading.NativeOverlapped*)",
+          "sampledResidenceMilliseconds": 2725.4468,
+          "percent": 0.4474
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage+<>c.<get_Bytes>b__30_0(class System.String)",
+          "sampledResidenceMilliseconds": 1928.5954,
+          "percent": 0.3166
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "splinter!Splinter.Cli.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60013.6146,
+          "percent": 9.8516
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.NtfsSnapshotWorkspaceBackend+<SealAsync>d__17.MoveNext()",
+          "sampledResidenceMilliseconds": 43279.1523,
+          "percent": 7.1046
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.SealJournal(class System.String,int64)",
+          "sampledResidenceMilliseconds": 43211.7622,
+          "percent": 7.0935
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Seal(class System.String)",
+          "sampledResidenceMilliseconds": 43203.758,
+          "percent": 7.0922
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage..ctor(class System.String,class Splinter.Core.OverlayIdentity,bool)",
+          "sampledResidenceMilliseconds": 41021.6722,
+          "percent": 6.734
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider+<ReadAsync>d__8`1[System.Text.Json.JsonElement].MoveNext()",
+          "sampledResidenceMilliseconds": 35760.6539,
+          "percent": 5.8703
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 30379.4421,
+          "percent": 4.987
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitWorkspaceProvider+<InspectSourceAsync>d__20.MoveNext()",
+          "sampledResidenceMilliseconds": 9624.996,
+          "percent": 1.58
+        }
+      ]
+    },
+    "s-b-release-tail": {
+      "denominatorMilliseconds": 549522.2255859378,
+      "measurement": "sampled managed-thread stack residence, not exact CPU/disk time; excludes Speedscope CPU_TIME/UNMANAGED_CODE_TIME leaf markers",
+      "exclusive": [
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.LowLevelLifoSemaphore.WaitForSignal(int32)",
+          "sampledResidenceMilliseconds": 198943.254,
+          "percent": 36.2029
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOneNoCheck(int32,bool,class System.Object,value class WaitHandleWaitSourceMap)",
+          "sampledResidenceMilliseconds": 119958.6715,
+          "percent": 21.8296
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.PortableThreadPool+IOCompletionPoller.Poll()",
+          "sampledResidenceMilliseconds": 60008.5898,
+          "percent": 10.9201
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.Monitor.Wait(class System.Object,int32)",
+          "sampledResidenceMilliseconds": 60008.5586,
+          "percent": 10.9201
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitAnyMultiple(value class System.ReadOnlySpan`1<class Microsoft.Win32.SafeHandles.SafeWaitHandle>,int32)",
+          "sampledResidenceMilliseconds": 40546.7832,
+          "percent": 7.3786
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 19980.0401,
+          "percent": 3.6359
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 18001.2402,
+          "percent": 3.2758
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.CloseHandle(int)",
+          "sampledResidenceMilliseconds": 10349.0957,
+          "percent": 1.8833
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.OSFileStreamStrategy..ctor(class System.String,value class System.IO.FileMode,value class System.IO.FileAccess,value class System.IO.FileShare,value class System.IO.FileOptions,int64,value class System.Nullable`1<value class System.IO.UnixFileMode>)",
+          "sampledResidenceMilliseconds": 5464.4758,
+          "percent": 0.9944
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.RandomAccess+<>c.<ReadAtOffsetAsync>b__19_0(value class System.ValueTuple`4<class Microsoft.Win32.SafeHandles.SafeFileHandle,value class System.Memory`1<unsigned int8>,int64,class System.IO.Strategies.OSFileStreamStrategy>)",
+          "sampledResidenceMilliseconds": 4142.1527,
+          "percent": 0.7538
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 4109.4454,
+          "percent": 0.7478
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage+<>c.<get_Bytes>b__30_0(class System.String)",
+          "sampledResidenceMilliseconds": 2118.7933,
+          "percent": 0.3856
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.PathHelper.Normalize(class System.String)",
+          "sampledResidenceMilliseconds": 1379.3153,
+          "percent": 0.251
+        },
+        {
+          "method": "System.Private.CoreLib.il!Interop+Kernel32.ReadFile(class System.Runtime.InteropServices.SafeHandle,unsigned int8*,int32,int32&,value class System.Threading.NativeOverlapped*)",
+          "sampledResidenceMilliseconds": 1290.2025,
+          "percent": 0.2348
+        },
+        {
+          "method": "System.Private.CoreLib.il!System.IO.Strategies.OSFileStreamStrategy.Read(value class System.Span`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 1212.2346,
+          "percent": 0.2206
+        }
+      ],
+      "inclusiveProduct": [
+        {
+          "method": "splinter!Splinter.Cli.Program.<Main>(class System.String[])",
+          "sampledResidenceMilliseconds": 60008.5586,
+          "percent": 10.9201
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 41004.4403,
+          "percent": 7.4618
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WindowsProcessWorkspaceProvider+<ReadAsync>d__8`1[System.__Canon].MoveNext()",
+          "sampledResidenceMilliseconds": 38540.3006,
+          "percent": 7.0134
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.NtfsSnapshotWorkspaceBackend+<RemoveDeltaAsync>d__25.MoveNext()",
+          "sampledResidenceMilliseconds": 38475.8266,
+          "percent": 7.0017
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.NtfsSnapshotWorkspaceBackend+<Request>d__27.MoveNext()",
+          "sampledResidenceMilliseconds": 38459.3883,
+          "percent": 6.9987
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalReclamation.ReclaimDirectory(class System.String,class Splinter.Core.SnapshotDeltaSeal,class System.String[],class System.String,class System.Action`1<class System.String>)",
+          "sampledResidenceMilliseconds": 38444.8462,
+          "percent": 6.996
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalReclamation.Reclaim(class System.String,class Splinter.Core.SnapshotDeltaSeal,class System.String[],class System.String,bool,class System.Action`1<class System.String>)",
+          "sampledResidenceMilliseconds": 38438.8697,
+          "percent": 6.995
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.SealJournal(class System.String,int64)",
+          "sampledResidenceMilliseconds": 35364.61,
+          "percent": 6.4355
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Seal(class System.String)",
+          "sampledResidenceMilliseconds": 35364.61,
+          "percent": 6.4355
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage..ctor(class System.String,class Splinter.Core.OverlayIdentity,bool)",
+          "sampledResidenceMilliseconds": 33205.551,
+          "percent": 6.0426
+        },
+        {
+          "method": "Splinter.Runtime!Splinter.Runtime.LatestJournalReclamation.Validate(class Plan,class System.String,class Splinter.Core.SnapshotDeltaSeal,bool)",
+          "sampledResidenceMilliseconds": 18855.774,
+          "percent": 3.4313
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<ObserveAsync>d__12.MoveNext()",
+          "sampledResidenceMilliseconds": 18088.2446,
+          "percent": 3.2916
+        },
+        {
+          "method": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider+<Command>d__28.MoveNext()",
+          "sampledResidenceMilliseconds": 18065.6771,
+          "percent": 3.2875
+        },
+        {
+          "method": "Splinter.Platform.Windows!Splinter.Platform.Windows.WinFspOverlayClient+<ObserveAsync>d__6.MoveNext()",
+          "sampledResidenceMilliseconds": 17994.949,
+          "percent": 3.2747
+        }
+      ]
+    }
+  },
+  "closure": {
+    "results": [
+      {
+        "worker": "a",
+        "id": "0dc06d8b4d02ded6252f22b6",
+        "revision": "0b08dc65c785d54716d3121596b3a4b2ac0888af",
+        "resultTreeMatchesHistoricalCodex": true,
+        "phase": "released",
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        }
+      },
+      {
+        "worker": "b",
+        "id": "fe4461f054dd52a42c1d226e",
+        "revision": "cc7aa5ec11e5f4a2f7dc70a1b778405e0150bba8",
+        "resultTreeMatchesHistoricalCodex": true,
+        "phase": "released",
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        }
+      }
+    ],
+    "status": "completed",
+    "originalTrackedFilesByteVerified": 1602,
+    "originalClean": true,
+    "originalLibraryOrdinaryNtfs": true,
+    "preexistingRefsUnchanged": true,
+    "localGitConfigRestored": true,
+    "globalGitConfigUnchanged": true,
+    "administratorOrServiceChanges": false,
+    "nativeChecks": {
+      "ordinaryOriginalVolume": true,
+      "filesystem": "NTFS",
+      "reparsePoint": false,
+      "libraryRestored": true,
+      "worktreeRegistrationsEqualPreflight": true,
+      "localAutocrlfAbsent": true,
+      "ownedEditorsAbsent": true,
+      "frozenProductHashesUnchanged": true
+    }
+  },
+  "limits": [
+    "Historical lifecycle includes overlapping B work, external B commit, recovery and concurrent diagnostics; current lifecycle is sequential. Do not treat wall reduction as an isolated causal optimization percentage.",
+    "Profiles cover bounded windows, not whole command CPU or I/O attribution; sampled all-thread residence includes idle/waiting threads.",
+    "One cohort per candidate, no statistical confidence interval or cache-order isolation.",
+    "No new Codex run, Play Mode, tests, game build, allocation/RAM/whole-disk peak measurement.",
+    "Frozen schemas rejected four actual checkpoint/release responses; all twelve responses validate only after the separately recorded post-measurement schema correction."
+  ],
+  "validation": {
+    "frozenResponseSchema": {
+      "valid": 8,
+      "rejected": 4,
+      "rejectedFiles": [
+        "s-a-checkpoint.json",
+        "s-a-release.json",
+        "s-b-checkpoint.json",
+        "s-b-release.json"
+      ],
+      "cause": "Live metrics already emit forget-unlinked, but response/overlay schemas allowed only six operations and omitted that enum value."
+    },
+    "postMeasurementCorrection": {
+      "scope": "Two contract schemas admit all seven existing operations; a real optimized-journal regression validates final unlinked close and rejects unknown operation names. No performance implementation or frozen binary changed.",
+      "requiredBuild": {
+        "passed": 1204,
+        "failed": 0,
+        "skipped": 19,
+        "warnings": 0,
+        "errors": 0
+      },
+      "recordedResponseSchema": {
+        "responses": 12,
+        "valid": 12,
+        "validatorTestsPassed": 1
+      },
+      "schemaSha256": {
+        "contracts/v1/response.schema.json": "b11990565f95f16426cdd1a179417aad4a268de28888c669afb09510532af17c",
+        "contracts/v1/overlay-observation.schema.json": "16635ca4e17fd2e1738a7e29760e74672d0deb6f6240bca9258cac3deda8ce59"
+      }
+    }
+  }
+}

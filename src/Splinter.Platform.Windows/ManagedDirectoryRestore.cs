@@ -16,6 +16,10 @@ internal static class ManagedDirectoryRestore
     private sealed record RestoreCursor(string PlanHash, int CompletedFiles, bool FilesVerified = false);
     private sealed record FileReceipt(int Version, string PlanHash, Guid EntryId, string Identity);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    private const int CursorBatchSize = 128;
+    private static bool Unchanged(DeltaRestoreEntry delta, OwnedDirectoryItem? original) =>
+        delta.Entry.BasePath is not null && delta.Ranges.Length == 0 && original?.Hash is not null &&
+        delta.Entry.BaseLength == delta.Entry.Length && delta.Entry.Length == original.Entry.Length;
     public static async Task ExecuteAsync(ManagedDirectoryState state, OverlayServeRequest request, CancellationToken ct, Action<string>? boundary = null)
     {
         string root = state.Basis.ReceiptDirectory, planPath = Path.Combine(root, "restore-plan.json"), cursorPath = Path.Combine(root, "restore-cursor.json");
@@ -51,6 +55,16 @@ internal static class ManagedDirectoryRestore
                 var files = new List<RestoreFile>(); byte[] buffer = new byte[1024 * 1024];
                 foreach (var entry in entries.Where(e => !e.Entry.Directory).OrderBy(e => e.Entry.Path, StringComparer.OrdinalIgnoreCase))
                 {
+                    ct.ThrowIfCancellationRequested();
+                    var original = entry.Entry.BasePath is { } path ? manifestItems.GetValueOrDefault(path) : null;
+                    if (Unchanged(entry, original))
+                    {
+                        // The verified basis still fences these exact bytes.
+                        // Rename/metadata-only changes need no second payload scan.
+                        using var pin = ManagedRestoreFileAccess.Read(PathOf(state.Basis.Snapshot.RootPath, entry.Entry.BasePath!));
+                        files.Add(new(entry, original!.Hash!, original.Hash!, ManagedRestoreFileAccess.Identity(pin)));
+                        continue;
+                    }
                     using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); long offset = 0;
                     while (offset < entry.Entry.Length)
                     {
@@ -94,6 +108,17 @@ internal static class ManagedDirectoryRestore
             if (Directory.Exists(state.OriginalPath)) RejectForeign(state.OriginalPath, allowedFiles, allowedDirectories);
             foreach (var directory in plan.Directories) Directory.CreateDirectory(PathOf(state.OriginalPath, directory.Path));
             byte[] buffer = new byte[1024 * 1024];
+            async Task CompleteFileAsync(int completed)
+            {
+                cursor = cursor with { CompletedFiles = completed };
+                if (completed % CursorBatchSize == 0 || completed == plan.Files.Length)
+                {
+                    boundary?.Invoke("restore.before-cursor");
+                    await WindowsProcessWorkspaceProvider.WriteAsync(cursorPath, cursor, ct);
+                    boundary?.Invoke("restore.after-cursor");
+                }
+                boundary?.Invoke("file.after-complete");
+            }
             for (int i = 0; i < plan.Files.Length; i++)
             {
                 ct.ThrowIfCancellationRequested(); var file = plan.Files[i]; var entry = file.Delta.Entry; string target = PathOf(state.OriginalPath, entry.Path);
@@ -104,6 +129,23 @@ internal static class ManagedDirectoryRestore
                     using var completed = ManagedRestoreFileAccess.Read(target);
                     ManagedRestoreFileAccess.Require(completed, await FileIdentityAsync(root, planHash, file, ct));
                     if (Hash(completed) != file.FinalHash) throw new WorkspaceException("GeneratedRestoreConflict", "A completed restore file changed.");
+                    continue;
+                }
+                var unchangedOriginal = entry.BasePath is { } unchangedPath ? manifestItems.GetValueOrDefault(unchangedPath) : null;
+                if (Unchanged(file.Delta, unchangedOriginal) && file.FinalHash == unchangedOriginal!.Hash && file.RetainedHash == file.FinalHash)
+                {
+                    bool move = File.Exists(source!);
+                    if (file.BasisIdentity is null || move && File.Exists(target))
+                        throw new WorkspaceException("GeneratedRestoreConflict", "Preserve ambiguous unchanged restore files.");
+                    // One exclusive identity/content proof covers hash, no-replace
+                    // move and metadata. Never close/reopen between these effects.
+                    using var pin = ManagedRestoreFileAccess.Read(move ? source! : target, moving: move);
+                    ManagedRestoreFileAccess.Require(pin, file.BasisIdentity);
+                    if (Hash(pin) != file.FinalHash)
+                        throw new WorkspaceException(move ? "GeneratedBasisChanged" : "GeneratedRestoreConflict", "An unchanged restore file changed.");
+                    if (move) { ManagedRestoreFileAccess.Move(pin, target); boundary?.Invoke("file.after-move"); }
+                    ManagedRestoreFileAccess.Metadata(pin, entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime);
+                    await CompleteFileAsync(i + 1);
                     continue;
                 }
                 if (entry.BasePath is { } basePath)
@@ -143,7 +185,8 @@ internal static class ManagedDirectoryRestore
                 // A started range effect is redoable from the fixed private
                 // journal. Reset only the non-retained tail, never copy a file.
                 bool needsWrite = file.Delta.Ranges.Length != 0 || output.Length != entry.Length || entry.BaseLength < entry.Length;
-                if (needsWrite && Hash(output) != file.FinalHash)
+                bool finalVerified = needsWrite && Hash(output) == file.FinalHash;
+                if (needsWrite && !finalVerified)
                 {
                     boundary?.Invoke("file.before-ranges-write");
                     output.SetLength(entry.BaseLength); output.SetLength(entry.Length);
@@ -157,9 +200,9 @@ internal static class ManagedDirectoryRestore
                     output.Flush(true);
                     boundary?.Invoke("file.after-ranges-flush");
                 }
-                if (Hash(output) != file.FinalHash) throw new WorkspaceException("GeneratedRestoreConflict", "Restored range content differs from its fixed result.");
+                if (!finalVerified && Hash(output) != file.FinalHash) throw new WorkspaceException("GeneratedRestoreConflict", "Restored range content differs from its fixed result.");
                 ManagedRestoreFileAccess.Metadata(output, entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime);
-                cursor = cursor with { CompletedFiles = i + 1 }; await WindowsProcessWorkspaceProvider.WriteAsync(cursorPath, cursor, ct);
+                await CompleteFileAsync(i + 1);
             }
             RejectForeign(state.OriginalPath, allowedFiles, allowedDirectories);
             foreach (var directory in plan.Directories.OrderByDescending(e => e.Path.Length))

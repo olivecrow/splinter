@@ -4,6 +4,8 @@
 
 This document owns **CO-01–08**, the bounded 2026-10-07 optimization following [LP profiling](checkpoint-release-profiling.md). The first [measurements and candidate hashes](../../reports/benchmarks/checkpoint-release-optimization-20261007.json) distinguish the original normal distribution from the CO-01–04 optimized distribution, both based on `74518fd`. CO-05–08 below measure a further candidate against that optimized distribution. The earlier Unity timing remains historical evidence.
 
+Subsequent real Unity costs, profiles and cleanup are recorded separately in [UR-01–04](unity-lifecycle-remeasurement.md). Large-Unity NotRun statements in the CO records below describe those earlier tiny measurements.
+
 ## Changes and safety
 
 - **CO-01:** Replace 50-path Git attribute subprocesses with UTF-8 NUL stdin batches targeting 256 KiB. Preserve current/cached filter and encoding checks, before/after interpretation digest bytes, HEAD/index/path membership and provider-generation checks. For 1,602 paths fitting one input batch, attribute process count per full inspection changes from 132 to 4; this is a code-derived count, not a new large-project timing.

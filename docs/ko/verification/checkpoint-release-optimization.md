@@ -4,6 +4,8 @@
 
 이 문서는 [LP 프로파일링](checkpoint-release-profiling.md) 이후 2026-10-07의 한정 최적화 **CO-01–08**을 소유한다. 첫 [측정과 후보 hash](../../../reports/benchmarks/checkpoint-release-optimization-20261007.json)는 `74518fd`를 기준으로 한 변경 전 일반 배포본과 CO-01–04 최적화 배포본을 구분한다. 아래 CO-05–08은 그 최적화 배포본과 후속 후보를 비교한다. 이전 Unity 시간은 과거 근거로 유지한다.
 
+후속 실제 Unity 입력의 비용·프로파일·회수는 [UR-01–04](unity-lifecycle-remeasurement.md)에 별도로 기록한다. 아래 CO 기록의 대형 Unity NotRun은 해당 소형 측정 당시의 자격이다.
+
 ## 변경과 보호 경계
 
 - **CO-01:** 경로 50개마다 실행하던 Git 속성 프로세스를 UTF-8 NUL stdin, 256 KiB를 목표로 한 묶음으로 바꾼다. 현재/cached filter·encoding 검사, 전후 해석 digest 바이트, HEAD/index/경로 목록·provider 세대 검사를 유지한다. 1,602개 경로가 한 입력 묶음에 들어가면 전체 검사당 속성 프로세스 수는 132에서 4로 줄어든다. 코드에서 도출한 횟수이며 새 대형 프로젝트 시간 측정이 아니다.

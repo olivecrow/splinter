@@ -10,7 +10,7 @@ namespace Splinter.SourceControl.Git;
 
 // cat-file streams raw object bytes, including packed objects. A requested range
 // is staged until a full blob proof or its verified chunk proofs match. Only
-// one blob's bounded proof and one 64KiB chunk are retained, never disk payload.
+// bounded blob proofs and one 64KiB chunk are retained, never disk payload.
 public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
 {
     public SnapshotReference Snapshot { get; }
@@ -25,6 +25,16 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     private Task<string>? stderr;
     private bool disposed;
     private const int ChunkBytes = 65536, MaxProofBytes = 4 * 1024 * 1024;
+    private const int MaxProofEntries = 4096;
+    private sealed record BlobProof(string ObjectId, long Length, byte[] Chunks);
+    private readonly Dictionary<string, LinkedListNode<BlobProof>> proofs = new(StringComparer.Ordinal);
+    private readonly LinkedList<BlobProof> proofLru = new();
+    private int proofBytes;
+    private readonly int proofByteLimit, proofEntryLimit;
+    internal int CachedProofBytes => proofBytes;
+    internal int CachedProofCount => proofs.Count;
+    internal int PeakProofBytes { get; private set; }
+    internal int FullBlobProofs { get; private set; }
     private string? provedObject;
     private byte[]? chunkProofs;
     private readonly byte[] chunk = new byte[ChunkBytes];
@@ -33,8 +43,12 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     private bool streaming;
     public long DecodedBlobBytes { get; private set; }
 
-    internal GitObjectSnapshotTree(SnapshotReference snapshot, string tree, string revision, string reference, Func<SnapshotObservation> health)
+    internal GitObjectSnapshotTree(SnapshotReference snapshot, string tree, string revision, string reference, Func<SnapshotObservation> health,
+        int proofByteLimit = MaxProofBytes, int proofEntryLimit = MaxProofEntries)
     {
+        if (proofByteLimit is < 1 or > MaxProofBytes || proofEntryLimit is < 1 or > MaxProofEntries)
+            throw new ArgumentOutOfRangeException(nameof(proofByteLimit));
+        this.proofByteLimit = proofByteLimit; this.proofEntryLimit = proofEntryLimit;
         Snapshot = snapshot; this.health = health;
         policy = WorkspacePathPolicy.For(snapshot);
         entries = new(policy.Comparer); blobs = new(policy.Comparer); children = new(policy.Comparer);
@@ -172,10 +186,28 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
             {
                 if (provedObject != objectId)
                 {
-                    ResetProof(streaming);
+                    ResetActive(streaming);
+                    if (proofs.TryGetValue(objectId, out var cached))
+                    {
+                        if (cached.Value.Length != length) throw Failure("GitBasisObjectInvalid", "The fixed blob proof length changed.");
+                        proofLru.Remove(cached); proofLru.AddLast(cached);
+                        provedObject = objectId; chunkProofs = cached.Value.Chunks;
+                    }
+                }
+                if (provedObject != objectId)
+                {
                     long proofLength = ((length - 1) / ChunkBytes + 1) * 32;
-                    if (proofLength > MaxProofBytes) throw Failure("GitBasisUnsupported", "A recorded blob exceeds the bounded 8GiB chunk-proof limit.");
+                    if (proofLength > proofByteLimit) throw Failure("GitBasisUnsupported", "A recorded blob exceeds the bounded chunk-proof limit.");
+                    // Include the in-flight proof in the original 4MiB budget.
+                    // A failed proof never enters the cache or reaches callers.
+                    while (proofBytes + proofLength > proofByteLimit || proofs.Count >= proofEntryLimit)
+                    {
+                        var oldest = proofLru.First!;
+                        proofBytes -= oldest.Value.Chunks.Length;
+                        proofs.Remove(oldest.Value.ObjectId); proofLru.RemoveFirst();
+                    }
                     byte[] proof = new byte[(int)proofLength];
+                    PeakProofBytes = Math.Max(PeakProofBytes, proofBytes + proof.Length);
                     var output = BeginBlob(objectId, length);
                     using var hash = IncrementalHash.CreateHash(objectId.Length == 40 ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256);
                     hash.AppendData(Encoding.ASCII.GetBytes("blob " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
@@ -191,6 +223,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
                     }
                     if (output.ReadByte() != '\n' || Convert.ToHexStringLower(hash.GetHashAndReset()) != objectId)
                         throw Failure("GitBasisObjectInvalid", "The recorded blob hash failed; no requested bytes are published.");
+                    proofs.Add(objectId, proofLru.AddLast(new BlobProof(objectId, length, proof))); proofBytes += proof.Length; FullBlobProofs++;
                     provedObject = objectId; chunkProofs = proof; streaming = false;
                 }
                 else
@@ -205,7 +238,11 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
                 staged.AsSpan(0, count).CopyTo(destination); return count;
             }
             catch (Exception ex) when (ex is IOException or InvalidOperationException or WorkspaceException)
-            { ResetProof(); throw ex is WorkspaceException ? ex : Failure("GitBasisObjectInvalid", "The owned blob reader failed; preserve the basis and journal."); }
+            {
+                try { ResetProof(); }
+                catch (Exception cleanup) when (cleanup is IOException or InvalidOperationException or System.ComponentModel.Win32Exception) { }
+                throw ex is WorkspaceException ? ex : Failure("GitBasisObjectInvalid", "The owned blob reader failed; preserve the basis and journal.");
+            }
             finally { ArrayPool<byte>.Shared.Return(staged); }
         }
     }
@@ -245,8 +282,13 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     }
     private void ResetProof(bool stopReader = true)
     {
-        if (stopReader) StopReader();
-        provedObject = null; chunkProofs = null; chunkOffset = -1; chunkLength = 0; streaming = false;
+        try { ResetActive(stopReader); }
+        finally { proofs.Clear(); proofLru.Clear(); proofBytes = 0; }
+    }
+    private void ResetActive(bool stopReader = true)
+    {
+        try { if (stopReader) StopReader(); }
+        finally { provedObject = null; chunkProofs = null; chunkOffset = -1; chunkLength = 0; streaming = false; }
     }
     private static string Header(Stream stream)
     {
@@ -307,5 +349,5 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     }
     private static GitProgressReadStream ProgressOutput(Process process) => new(process.StandardOutput.BaseStream,
         () => { try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } });
-    public void Dispose() { lock (readGate) { ResetProof(); disposed = true; } }
+    public void Dispose() { lock (readGate) { try { ResetProof(); } finally { disposed = true; } } }
 }

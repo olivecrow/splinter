@@ -2247,12 +2247,12 @@
             "mutationGateCalls": {"type":"integer", "minimum":0},
             "mutationGateWaitTicks": {"type":"integer", "minimum":0},
             "operations": {
-              "type":"array", "maxItems":6,
+              "type":"array", "maxItems":7,
               "items": {
                 "type":"object", "additionalProperties":false,
                 "required":["operation","attempts","durableCommits","failedCalls","payloadBytes","journalBytes","prepareTicks","appendTicks","flushTicks","applyTicks","totalTicks","flushCalls","maxWaitingMutations","waitingMutationsAtFlushStart","waitingMutationsAtFlushEnd"],
                 "properties": {
-                  "operation": {"enum":["create","write","resize","metadata","rename","delete"]},
+                  "operation": {"enum":["create","write","resize","metadata","rename","delete","forget-unlinked"]},
                   "attempts": {"type":"integer", "minimum":0},
                   "durableCommits": {"type":"integer", "minimum":0},
                   "failedCalls": {"type":"integer", "minimum":0},

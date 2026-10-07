@@ -17,7 +17,11 @@
 
 [Checkpoint/release profiling](checkpoint-release-profiling.md) owns LP-01–04: reused Unity phase records, tiny Editor-free Git/Library tasks with scratch-only timing scopes, and a bounded fence-membership microprobe. It identifies repeated verification/recollection and quadratic reclamation; no optimization or expanded support pass is claimed.
 
-[Checkpoint/release optimization](checkpoint-release-optimization.md) owns CO-01–08: attribute batching, result reuse, combined checkpoint/preservation, live accounting, indexed inventory and request wakeup. The follow-up tiny comparison reduced checkpoint 50.84% and release 29.39% against the already optimized binary. Guard/schema regression and original/owned cleanup passed; large Unity remeasurement and expanded support remain NotRun.
+[Checkpoint/release optimization](checkpoint-release-optimization.md) owns CO-01–08: attribute batching, result reuse, combined checkpoint/preservation, live accounting, indexed inventory and request wakeup. The follow-up tiny comparison reduced checkpoint 50.84% and release 29.39% against the already optimized binary. Guard/schema regression and original/owned cleanup passed; CO remains tiny-fixture qualification; subsequent real Unity remeasurement is recorded separately in UR-01–04. Expanded support remains NotRun.
+
+[Unity lifecycle remeasurement](unity-lifecycle-remeasurement.md) owns UR-01–04: identical source/Library input, A/B checkpoint/release 421.3806s, initial compilation 1,041.8831s and edit recompilation 76.9s. Stop-command timeout, same-task continuation, profiler overhead, scheduling differences, original restoration and further opportunities remain explicit.
+
+[Lifecycle read/restoration optimization](lifecycle-read-optimization.md) owns LO-01–05: bounded Git proof reuse, fused seal reads, path checks and unchanged restore/cursor batching following UR. It records small real NTFS costs and full corruption/recovery regression, not a new Unity timing qualification.
 
 [Actual Unity C/S comparison](unity-live-comparison.md)/[HTML report](../../reports/unity-live-comparison-20261003.html) compare designated-input/file-allocation/Editor/provider memory/isolation/resumption in Codex app worktrees/product workspaces. Missing historical home fields/authorized follow-up reclaim distinguished in owning verification. Total physical/VSS attribution/minimum RAM unknown; no full SF/PV support expansion.
 

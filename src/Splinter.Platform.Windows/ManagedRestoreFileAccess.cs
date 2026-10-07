@@ -16,12 +16,13 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
     {
         var directories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string file in files)
-            for (string? parent = Path.GetDirectoryName(file); parent is not null; parent = Path.GetDirectoryName(parent)) directories.Add(parent);
+            for (string? parent = Path.GetDirectoryName(Path.GetFullPath(file)); parent is not null; parent = Path.GetDirectoryName(parent)) directories.Add(parent);
         try
         {
             foreach (string path in directories.OrderBy(p => p.Length))
             {
-                WorkspaceStore.EnsurePlainPath(path);
+                // Ancestors are already pinned, root first. Open this component
+                // without following reparses and validate its handle attributes.
                 var handle = OpenHandle(path, 0x80, directory: true);
                 parents.Add(handle); _ = SnapshotInputChecks.FileIdentity(handle, directory: true);
             }

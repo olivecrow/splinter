@@ -31,7 +31,7 @@ Record hashes of the same probe DLL and baseline/instrumented Runtime/Core, and 
 <a id="제품-관측의-해석"></a>
 ## Interpreting product observations
 
-The contract for `OverlayIoMetrics.liveJournalWrites` follows [source verification and instrumentation](source-verification.md). Only the fixed 6 live-commit operations are counted; replay is excluded. Per-operation stage times are costs after obtaining the gate, while gate waits are cumulative per-call values. Waiter times can overlap, so do not add them to Editor wall time.
+The contract for `OverlayIoMetrics.liveJournalWrites` follows [source verification and instrumentation](source-verification.md). Only the fixed 7 live-commit operations, including final unlinked-context reclamation (`forget-unlinked`), are counted; replay is excluded. Per-operation stage times are costs after obtaining the gate, while gate waits are cumulative per-call values. Waiter times can overlap, so do not add them to Editor wall time.
 
 Counts of other mutation calls before/after flush are samples of calls waiting ahead of the Runtime gate. They exclude reads, waits inside WinFsp/OS, and peak concurrency between samples. Waiting calls may later finish without changes or with rejected input, so they do not guarantee a number of durable commits that can be grouped. Every current acknowledged commit completes its own durable flush before responding.
 

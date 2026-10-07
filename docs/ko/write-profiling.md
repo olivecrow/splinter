@@ -28,7 +28,7 @@ dotnet run --project tools/Splinter.WriteProbe --configuration Release --no-buil
 
 ## 제품 관측의 해석
 
-`OverlayIoMetrics.liveJournalWrites`의 계약은 [소스 검증·계측](source-verification.md)을 따른다. live commit의 고정 6개 연산만 집계하며 replay는 포함하지 않는다. 연산별 단계 시간은 gate를 얻은 뒤의 비용이고 gate 대기는 호출별 누적값이다. 여러 대기자의 시간이 겹칠 수 있으므로 Editor 벽시계와 더하지 않는다.
+`OverlayIoMetrics.liveJournalWrites`의 계약은 [소스 검증·계측](source-verification.md)을 따른다. 최종 unlinked context 회수(`forget-unlinked`)를 포함한 live commit의 고정 7개 연산만 집계하며 replay는 포함하지 않는다. 연산별 단계 시간은 gate를 얻은 뒤의 비용이고 gate 대기는 호출별 누적값이다. 여러 대기자의 시간이 겹칠 수 있으므로 Editor 벽시계와 더하지 않는다.
 
 flush 전후 다른 mutation 호출 수는 Runtime gate 앞에서 기다리는 호출의 표본이다. 읽기 요청, WinFsp나 OS 안의 대기, 표본 사이에 발생한 최대 동시성은 포함하지 않는다. 대기 호출은 나중에 변경 없음이나 입력 거부로 끝날 수 있어 묶을 수 있는 durable commit 수를 보장하지 않는다. 현재 모든 acknowledged commit은 개별 durable flush를 완료한 뒤 응답한다.
 
