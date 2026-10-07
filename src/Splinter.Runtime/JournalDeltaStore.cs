@@ -33,6 +33,10 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     public const int MaxIndexedExtents = 1000000;
     public const int MaxHiddenPaths = 250000;
     private readonly object gate = new();
+    // Immutable readers may own a sequential decoder. Serialize their payload
+    // calls separately, without holding up journal metadata or mutations.
+    private readonly object baseReadGate = new();
+    private int activeBaseReads;
     private readonly ISnapshotTree snapshot;
     private readonly WorkspacePathPolicy pathPolicy;
     private FileStream journal;
@@ -79,7 +83,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         finally { flushCount++; flushTicks += Stopwatch.GetTimestamp() - started; }
     }
     private int extentCount;
-    private bool poisoned, disposed;
+    private bool poisoned, disposed, closing;
     private readonly bool readOnly;
     public OverlayIdentity Identity { get; }
 
@@ -189,11 +193,15 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
 
     public int Read(Guid id, long offset, Span<byte> destination)
     {
+        DeltaEntry entry;
+        List<(long From, long To)>? baseRanges = null;
+        int count;
         using (EnterGate())
         {
             Check(); Node node = RequiredFile(id);
+            entry = node.Entry;
             if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
-            int count = (int)Math.Min(destination.Length, Math.Max(0, node.Entry.Length - offset));
+            count = (int)Math.Min(destination.Length, Math.Max(0, entry.Length - offset));
             Span<byte> output = destination[..count]; output.Clear();
             rangeReadCalls++;
             if (count == 0) return 0;
@@ -208,12 +216,42 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 if (extent.Start >= end) break;
                 long from = Math.Max(offset, extent.Start), to = Math.Min(end, extent.Start + extent.Length);
                 if (from >= to) continue;
-                ReadBase(node, cursor, from, output, offset);
+                CaptureBaseRange(cursor, from);
                 ReadExtent(extent, (int)(from - extent.Start), output.Slice((int)(from - offset), (int)(to - from)));
                 cursor = to;
             }
-            ReadBase(node, cursor, end, output, offset);
-            readBytes += count; return count;
+            CaptureBaseRange(cursor, end);
+            if (baseRanges is null) { readBytes += count; return count; }
+            // Private bytes have been copied while their payloads are protected.
+            // The remaining coordinates refer only to the immutable basis. A
+            // concurrent overwrite/resize/rename/unlink cannot mix generations.
+            activeBaseReads++;
+        }
+        try
+        {
+            lock (baseReadGate)
+                foreach (var range in baseRanges)
+                    ReadBase(entry.BasePath!, range.From, range.To, destination[..count], offset);
+            using (EnterGate())
+            {
+                Check(allowClosing: true);
+                readBytes += count; return count;
+            }
+        }
+        finally
+        {
+            using (EnterGate())
+            {
+                activeBaseReads--;
+                Monitor.PulseAll(gate);
+            }
+        }
+
+        void CaptureBaseRange(long from, long to)
+        {
+            to = Math.Min(to, entry.BaseLength);
+            if (from < to && entry.BasePath is not null)
+                (baseRanges ??= []).Add((from, to));
         }
     }
 
@@ -375,7 +413,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     {
         using (EnterGate())
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
+            ObjectDisposedException.ThrowIf(disposed || closing, this);
             if (poisoned) throw new WorkspaceException("DeltaReconnectRequired", "Replay the preserved journal after a failed append.");
             // Flushing acknowledged private data does not need a surviving base.
             if (!readOnly)
@@ -392,7 +430,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     }
     private long AccountedJournalBytes()
     {
-        ObjectDisposedException.ThrowIf(disposed, this);
+        ObjectDisposedException.ThrowIf(disposed || closing, this);
         if (poisoned) throw new WorkspaceException("DeltaReconnectRequired", "Replay the failed writer before observing its accounting.");
         return latest?.CommittedBytes ?? expectedJournalBytes;
     }
@@ -402,7 +440,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     {
         using (EnterGate())
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
+            ObjectDisposedException.ThrowIf(disposed || closing, this);
             if (!inspectFiles && poisoned) return null;
             long bytes = inspectFiles ? CurrentJournalBytes : AccountedJournalBytes();
             long stored = latest?.Current.PayloadBytes ?? payloadBytes;
@@ -412,7 +450,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 JournalOptimizationEnabled = latest is not null,
                 JournalBytesBasis = inspectFiles ? "current-files" : "writer-accounting",
                 Metrics = new(epoch, lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount,
-                    appendedBytes, replayBytes, replayTicks, journalReadBytes, baseReadBytes, Stopwatch.Frequency,
+                    appendedBytes, replayBytes, replayTicks, journalReadBytes, Interlocked.Read(ref baseReadBytes), Stopwatch.Frequency,
                     replayFrames, replayReadCalls, replayReadTicks, replayValidationTicks, replayIndexTicks, ReplayReadBufferBytes,
                     replayIndexOperations.OrderBy(pair => pair.Key, StringComparer.Ordinal)
                         .Select(pair => new ReplayIndexOperationMetrics(pair.Key, pair.Value.Frames, pair.Value.ApplyTicks)).ToArray(),
@@ -438,18 +476,32 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 changes.Length == 0 ? 0 : changes.Max(p => p.Sequence), changes);
         }
     }
-    public void Dispose() { using (EnterGate()) { if (disposed) return; disposed = true; journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); } }
-
-    private void ReadBase(Node node, long from, long to, Span<byte> output, long outputOffset)
+    public void Dispose()
     {
-        to = Math.Min(to, node.Entry.BaseLength);
-        if (from >= to || node.Entry.BasePath is not { } path) return;
+        using (EnterGate())
+        {
+            // Concurrent Dispose callers must also wait: their owner may close
+            // the snapshot and its reclamation fence as soon as this returns.
+            while (closing) Monitor.Wait(gate);
+            if (disposed) return;
+            closing = true;
+            try
+            {
+                while (activeBaseReads != 0) Monitor.Wait(gate);
+                journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose();
+            }
+            finally { disposed = true; closing = false; Monitor.PulseAll(gate); }
+        }
+    }
+
+    private void ReadBase(string path, long from, long to, Span<byte> output, long outputOffset)
+    {
         while (from < to)
         {
             int count = (int)Math.Min(to - from, Identity.MaxTransferBytes);
             int read = snapshot.Read(path, from, output.Slice((int)(from - outputOffset), count));
             if (read <= 0 || read > count) throw new WorkspaceException("SnapshotReadFailed", "Immutable base returned an unexpected short file.");
-            baseReadBytes += read; from += read;
+            Interlocked.Add(ref baseReadBytes, read); from += read;
         }
     }
     private void ReadExactly(long offset, Span<byte> output)
@@ -464,9 +516,9 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             offset += count; output = output[count..];
         }
     }
-    private void Check()
+    private void Check(bool allowClosing = false)
     {
-        ObjectDisposedException.ThrowIf(disposed, this);
+        ObjectDisposedException.ThrowIf(disposed || closing && !allowClosing, this);
         if (poisoned) throw new WorkspaceException("DeltaReconnectRequired", "A failed append requires closing and replaying the preserved delta.");
         if (!replaying && journal.Length != expectedJournalBytes)
             throw new WorkspaceException("DeltaCorrupt", "Journal length changed outside the owned writer; preserve it.");

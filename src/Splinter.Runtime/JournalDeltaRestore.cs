@@ -9,7 +9,7 @@ public sealed partial class JournalDeltaStore
     {
         using (EnterGate())
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
+            ObjectDisposedException.ThrowIf(disposed || closing, this);
             if (!readOnly || SealCurrent() != seal) throw new WorkspaceException("RestoreSealMismatch", "Use the exact stopped journal seal.");
             restoreReadSeal = seal;
         }
@@ -37,7 +37,7 @@ public sealed partial class JournalDeltaStore
     {
         using (EnterGate())
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
+            ObjectDisposedException.ThrowIf(disposed || closing, this);
             if (!readOnly || restoreReadSeal != seal || CurrentJournalBytes != seal.JournalBytes || sequence != seal.DurableSequence)
                 throw new WorkspaceException("RestoreSealMismatch", "Retain a changed restoration journal.");
             var node = nodes[id]; int copied = 0;

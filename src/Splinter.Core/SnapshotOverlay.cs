@@ -38,6 +38,8 @@ public sealed record SnapshotEntry(string Path, bool Directory, long Length, uin
 
 // Implementations must read one immutable snapshot ID, never the mutable original.
 // A missing snapshot fails reads; reconnect must not capture a replacement.
+// Metadata and availability queries may overlap a payload read. Owners must
+// drain their delta-store reads before disposing the tree or its basis lease.
 public interface ISnapshotTree
 {
     SnapshotReference Snapshot { get; }

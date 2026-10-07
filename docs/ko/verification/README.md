@@ -20,7 +20,7 @@
 
 [Unity 수명주기 재측정](unity-lifecycle-remeasurement.md)은 UR-01–04를 소유한다. 같은 소스·Library 입력에서 A/B checkpoint·release 421.3806초, 초기 컴파일 1,041.8831초와 재컴파일 76.9초를 기록했다. 실제 종료 명령의 시간 제한·같은 작업 지속·계측 부하·순서 차이·원본 복원과 후속 개선 후보를 구분한다.
 
-[수명주기 읽기·복원 최적화](lifecycle-read-optimization.md)는 LO-01–05를 소유한다. UR 병목의 제한된 Git proof 재사용·seal 읽기 통합·경로 검사·변경 없는 복원/cursor 묶음을 구현했다. 작은 실제 NTFS 비용과 전체 손상·복구 회귀를 기록하며 새 Unity 시간으로 승계하지 않는다.
+[수명주기 읽기·복원 최적화](lifecycle-read-optimization.md)는 LO-01–08를 소유한다. UR 병목의 제한된 Git proof·reader 세션 재사용과 기준 읽기 gate 분리·seal 읽기 통합·경로 검사·변경 없는 복원/cursor 묶음을 구현했다. 작은 실제 NTFS 비용과 전체 손상·복구 회귀를 기록하며 새 Unity 시간으로 승계하지 않는다.
 
 [Unity 실제 C/S 비교](unity-live-comparison.md)와 [HTML 보고서](../../../reports/unity-live-comparison-20261003.html)는 Codex 앱 worktree와 제품 workspace의 지정 입력·파일 할당·Editor/provider 메모리·격리와 재개를 비교한다. 과거 home 기록 누락과 승인한 후속 회수의 근거는 소유 검증에서 구분한다. 전체 물리/VSS 귀속·최소 RAM은 unknown이며 SF/PV 전체 지원으로 확대하지 않는다.
 

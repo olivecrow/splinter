@@ -106,6 +106,8 @@ provider가 끝나면 앱/자식이 남지 않았음을 확인한 후 같은 ens
 
 새 NTFS 작업은 provider 실행 전에 검증된 snapshot에 대한 빈 delta identity를 게시한다. 기존 identity가 있으면 caller에서 저널을 다시 재생하지 않고 provider가 기존 저널을 검증한다. private `overlay-serve`는 정확한 launch generation을 필수 인자로 받으며 token·workspace·generation이 durable intent와 일치하는지 검사한 뒤 자신의 PID·시작 시각·generation 영수증을 게시한다. parent CLI가 프로세스 생성 직후 종료돼도 같은 ensure는 이 자식 영수증을 대조해 기존 provider를 관측한다. intent만 있고 실행 여부를 확인할 수 없는 간격은 계속 보존/차단하며 추측 재실행하지 않는다.
 
+읽기는 저널 gate 안에서 파일 메타데이터·private 바이트·덮이지 않은 불변 기준 범위를 고정한 뒤, 별도 직렬 reader gate에서 기준 범위를 읽는다. 느린 기준 I/O 중 조회·변경이 진행되며 덮어쓰기·truncate·rename·unlink와 겹쳐도 읽기는 고정한 파일 상태를 반환한다. private payload 접근·회수는 저널 gate 안에 유지한다. 완료 때 writer poison·저널 길이·기준 가용성을 재검사한다. 종료는 새 호출을 거부하고 모든 동시 종료 호출이 진행 중 읽기를 기다린 뒤 저널·소유 fence를 닫는다. disk payload cache나 별도 파일 복제는 만들지 않는다. 일반 저널 경로에 적용하며 개발용 source view는 외부 gate를 유지한다. [LO-06–08 검증](verification/lifecycle-read-optimization.md)을 따른다.
+
 ## 동일한 private 범위의 반복 쓰기
 
 일반 파일 rename은 해당 node만 이름 변경하며 전체 경로/whiteout을 검색하지 않는다. 디렉터리 rename은 경계 `/`를 포함한 접두사로 알려진 하위 경로와 whiteout을 이동한다. 재생에는 변경되지 않은 부모 node 없이 하위 파일만 존재할 수 있으므로 이 경우 직접 자식 목록 index만으로 대체하지 않는다. 모든 이전 이름을 제거한 뒤 새 이름을 등록하며 대소문자 변경·열린 파일 ID·lazy 기준 자식을 유지한다.

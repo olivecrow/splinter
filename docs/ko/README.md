@@ -77,7 +77,7 @@
 | [Checkpoint/release 프로파일링](verification/checkpoint-release-profiling.md), [데이터](../../reports/benchmarks/checkpoint-release-profile-20261007.json) | 기존 Unity 단계 귀속·작은 Editor 없는 task; 반복 검증/재수집·저널 inventory·제곱 비례 fence 검색; 제품 최적화 없는 진단 복사본 |
 | [Checkpoint/release 최적화](verification/checkpoint-release-optimization.md), [첫 데이터](../../reports/benchmarks/checkpoint-release-optimization-20261007.json), [후속 데이터](../../reports/benchmarks/checkpoint-release-followup-20261007.json) | CO-01–08: Git 묶음/통합 보존·seal 결과 재사용·fence/inventory 인덱스·구분한 live 계수·요청 wake; 작은 일반 배포본 비용·guard 회귀·소유 회수 |
 | [Unity 수명주기 재측정](verification/unity-lifecycle-remeasurement.md) | UR-01–04: 같은 실제 입력의 최적화 후 A/B 시간·제한된 프로파일, 종료 시간 제한과 같은 작업 지속, 독립 결과·원본 복원, 남은 병목 |
-| [수명주기 읽기·복원 최적화](verification/lifecycle-read-optimization.md) | LO-01–05: 제한된 Git proof 재사용, SJL4 검증·seal 읽기 통합, 경로 조회·변경 없는 파일 복원·cursor 묶음, 한정 NTFS 비용과 손상·복구 회귀 |
+| [수명주기 읽기·복원 최적화](verification/lifecycle-read-optimization.md) | LO-01–08: 제한된 Git proof·reader 세션 재사용과 기준 읽기 gate 분리, SJL4 검증·seal 읽기 통합, 경로 조회·변경 없는 파일 복원·cursor 묶음, 한정 NTFS 비용과 손상·복구 회귀 |
 | [Unity 실제 C/S 비교 범위](plans/unity-live-comparison.md), [검증](verification/unity-live-comparison.md), [HTML](../../reports/unity-live-comparison-20261003.html) | Codex worktree와 제품 workspace의 코드/에셋·파일 할당/메모리·격리/재개·회수 비교. 입력/버전과 실패·후속 복구의 근거는 소유 검증에서 구분 |
 | [Unity 병렬 편집 확정 범위](plans/unity-parallel-editor-validation.md), [검증](verification/unity-parallel-editor-validation.md), [S HTML](../../reports/unity-parallel-editor-validation-20261003.html) | C/S A/B의 정확한 MCP 대상·리소스/씬/테스트·원본 반영·소유 회수와 비용 비교. HTML은 S까지이며 후속 실행과 제한은 텍스트 검증이 소유 |
 

@@ -32,7 +32,7 @@ Splinter는 작업이 재사용할 데이터와 변경할 데이터를 분리합
 
 Library 준비·복원을 모두 포함한 이번 관측 구간은 **68분 28초**이며, 마지막 Library 복원만 **23분 25초**가 걸렸습니다. 종료 명령 두 개의 2분 시간 제한 뒤 같은 Editor의 정상 종료를 관측해 계속했습니다. 이전 보존 구간에는 중첩·복구·동시 진단이 있었고 현재는 A→B 순차 실행이므로, 순수 최적화 배율로 해석하지 않습니다. 프로파일 부하를 포함한 한 번의 실측이며, Codex와 위 저장 공간 수치는 과거 비교군입니다. [정확한 비용·프로파일·실패·복원 검증](docs/ko/verification/unity-lifecycle-remeasurement.md)과 [데이터](reports/benchmarks/unity-lifecycle-remeasurement-20261007.json)를 참고하세요.
 
-[후속 읽기·복원 최적화](docs/ko/verification/lifecycle-read-optimization.md)는 Git 검증 정보 재사용, seal 읽기 통합과 변경 없는 Library 파일 복원·진행 기록 묶음을 적용했습니다. 작은 NTFS 복원 비교는 평균 **8.17초 → 4.24초**였으며, 위 Unity 전체 시간은 이 추가 변경 전의 기록입니다.
+[후속 읽기·복원 최적화](docs/ko/verification/lifecycle-read-optimization.md)는 Git 검증 정보·reader 세션 재사용, 느린 기준 읽기와 저널 메타데이터 잠금 분리, seal 읽기 통합과 변경 없는 Library 파일 복원·진행 기록 묶음을 적용했습니다. 작은 NTFS 복원 비교는 평균 **8.17초 → 4.24초**였으며, 위 Unity 전체 시간은 이 추가 변경 전의 기록입니다.
 
 <details>
 <summary>이전 시간 측정과 최적화 과정</summary>

@@ -101,6 +101,8 @@ rename의 index 적용은 기존의 경로·whiteout 순회를 유지하며 같�
 
 ## Live write 비용
 
+`lockWaitTicks`는 공통 저널 gate만 측정하며 별도의 불변 기준 reader gate·Git decoder/pipe·OS queue 대기는 포함하지 않는다. 기준 payload 읽기는 공통 gate 밖에서 계속되고 그동안 조회·변경이 진행되며 `baseReadBytes`는 원자적 누적 계수다. 공통 gate 대기가 작다는 사실을 전체 읽기 지연이 작다는 증거로 읽지 않는다.
+
 `liveJournalWrites`는 현재 provider에서 발생한 쓰기 계측이다. `mutationGateCalls`와 `mutationGateWaitTicks`는 중첩되지 않은 변경 API 호출과 해당 gate 대기의 누적값이며 no-op·입력 거부도 포함한다. 읽기 호출과 replay는 제외한다. `operations`는 `create/write/resize/metadata/rename/delete/forget-unlinked`의 최대 7개 집계다. 마지막 연산은 최종 unlinked 파일 context를 닫을 때 최적화 저널의 소유 데이터를 회수한 기록이다. `attempts`는 commit 진입, `durableCommits`는 durable flush 뒤 기록한 commit, `failedCalls`는 commit 내부 예외 수다. gate 내부의 사전 거부처럼 commit에 들어오지 않은 실패는 여기에 포함하지 않는다.
 
 연산별 `prepareTicks/appendTicks/flushTicks/applyTicks/totalTicks`는 입장 검사·직렬화·checksum, journal append, durable flush, index 적용, 전체 commit 호출의 누적 시간이다. `payloadBytes/journalBytes`는 durable commit의 기록량이고 `flushCalls`는 해당 commit의 flush 시도 수다. 명시적 Flush나 incomplete tail 복구 flush는 전체 flush 계수에만 들어간다. `waitingMutationsAtFlushStart/End`의 고정 5칸은 다른 mutation 대기 호출 0, 1, 2~3, 4~7, 8개 이상이며 `maxWaitingMutations`는 이 두 시점 표본의 최댓값이다. no-op/거부될 호출을 포함할 수 있고 gate 밖의 OS/WinFsp 대기는 측정하지 않는다. 묶을 수 있는 transaction 수나 실현 가능한 절감률을 뜻하지 않는다.

@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "date": "2026-10-08",
+  "scope": "LO-06 to LO-08: bounded Git reads and journal read lifetime",
+  "baselineCommit": "0e707edd552d2cec598856169ce234cfd45c1eec",
+  "fixture": {
+    "files": 2,
+    "bytesPerFile": 1048576,
+    "requestedBytesPerRead": 16,
+    "chunkBytes": 65536,
+    "forwardOffsets": [
+      0,
+      65536,
+      131072,
+      196608
+    ],
+    "order": "A then B at each offset; full proofs warmed first",
+    "backwardOffset": 131072,
+    "objectStores": [
+      "loose",
+      "packed"
+    ],
+    "runOrder": [
+      "baseline loose",
+      "baseline packed",
+      "candidate loose",
+      "candidate packed"
+    ]
+  },
+  "metricBoundaries": {
+    "warmProofBytes": "Initial full proofs, before timed interleaving",
+    "interleavedDecodedBytes": "Only four A/B forward rounds, excluding initial proofs",
+    "interleavedSeconds": "Warm fixed fixture forward rounds only, including result/PID checks; one run per object store/candidate, not a general wall-time estimate",
+    "observedReaderStarts": "Distinct owned reader PIDs observed from initial proofs through forward rounds; excludes metadata/setup Git commands",
+    "backwardDecodedBytes": "One nearby backward read in each A/B file after forward rounds",
+    "peakOwnedReaders": "Observed payload readers only; not total product/Editor processes or RAM"
+  },
+  "before": [
+    {
+      "kind": "loose",
+      "revision": "01f7e6efc2197c3a893fb1d7b8b177ea2f5879bb",
+      "warmProofBytes": 2097152,
+      "interleavedDecodedBytes": 1310720,
+      "interleavedSeconds": 0.6057428,
+      "observedReaderStarts": 8,
+      "peakOwnedReaders": 1,
+      "backwardDecodedBytes": 393216,
+      "backwardReaderStarts": 2,
+      "cleanupVerified": true
+    },
+    {
+      "kind": "packed",
+      "revision": "646923491d192527ca188992de999f74fe396959",
+      "warmProofBytes": 2097152,
+      "interleavedDecodedBytes": 1310720,
+      "interleavedSeconds": 0.5899848,
+      "observedReaderStarts": 8,
+      "peakOwnedReaders": 1,
+      "backwardDecodedBytes": 393216,
+      "backwardReaderStarts": 2,
+      "cleanupVerified": true
+    }
+  ],
+  "after": [
+    {
+      "kind": "loose",
+      "revision": "01f7e6efc2197c3a893fb1d7b8b177ea2f5879bb",
+      "warmProofBytes": 2097152,
+      "interleavedDecodedBytes": 524288,
+      "interleavedSeconds": 0.003358,
+      "observedReaderStarts": 2,
+      "peakOwnedReaders": 2,
+      "backwardDecodedBytes": 0,
+      "backwardReaderStarts": 0,
+      "cleanupVerified": true
+    },
+    {
+      "kind": "packed",
+      "revision": "646923491d192527ca188992de999f74fe396959",
+      "warmProofBytes": 2097152,
+      "interleavedDecodedBytes": 524288,
+      "interleavedSeconds": 0.0031412,
+      "observedReaderStarts": 2,
+      "peakOwnedReaders": 2,
+      "backwardDecodedBytes": 0,
+      "backwardReaderStarts": 0,
+      "cleanupVerified": true
+    }
+  ],
+  "limits": {
+    "proofBytes": 4194304,
+    "proofEntries": 4096,
+    "readerSessions": 2,
+    "managedPayloadBufferBytes": 262144,
+    "requestStagingBytes": 1048576,
+    "gitChildAndPipeMemory": "not bounded by managed buffer limits",
+    "oldBackwardPrefixDecoding": "still required outside retained chunks",
+    "unityEditorCompilerTime": "NotRun",
+    "nativeWinFspConcurrency": "NotRun",
+    "wholeProjectRam": "NotRun",
+    "diskHydration": false
+  },
+  "evidenceHashes": {
+    "git-session-baseline.jsonl": "c212c893fcee43c93cfc22031f0e6a5cf709a51f4595af00c826abd3495ba387",
+    "git-session-candidate.jsonl": "3b40903ae5a2dfe3a44187f5a59769c04c669de850019ad9181ac62ef2e111b6",
+    "Program.cs": "77b321c075fee761ec1a6fb391c823ee81f6e9b0a33511ac3d930bc026116f9f",
+    "full-build.log": "a42b46be6496d677ec816a2643473eb1e590eb39ba83fb8c41b3a91e3babc735",
+    "full-suite.trx": "ec2f4edff295c76d8857137e8cdd047b9a82211fdcfc4274afcd78427a34468a"
+  },
+  "validation": {
+    "targetedPassed": 38,
+    "targetedFailed": 0,
+    "targetedSkipped": 0,
+    "newGitCases": 8,
+    "newJournalCases": 8,
+    "fullSuite": "Passed",
+    "command": "pwsh -NoProfile -File ./scripts/build.ps1",
+    "fullPassed": 1240,
+    "fullFailed": 0,
+    "fullSkipped": 19,
+    "buildWarnings": 0,
+    "buildErrors": 0,
+    "lockedRestore": "Passed"
+  },
+  "sourceAndBinarySha256": {
+    "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs": "a2f4b062d3b740a0bfed3cc9e6b143b823b09f3de132cfa48c36d08efaac57fb",
+    "tests/Splinter.Tests/GitReadSessionTests.cs": "67ff2921a6eff1dab57f8b10ffb8ce4f84aa2ed0165ef1ff7abb1d608d37407e",
+    "artifacts/read-concurrency-20261008/git-baseline/Splinter.SourceControl.Git.dll": "954b8a6f902853fd4fa4381472757985661f2da9ecd3758e9a2af8e8a8fb439d",
+    "artifacts/read-concurrency-20261008/git-session-measure/bin/Release/net10.0/Splinter.SourceControl.Git.dll": "f6b7d445c1c6cc11474e2e2df001c25c979d5db89cb572d14dadf448410a1df9",
+    "src/Splinter.Core/SnapshotOverlay.cs": "480a00be10c721196bc6ea73b9c1376892a57c5b5d67162efbb4fb804f1fb191",
+    "src/Splinter.Runtime/JournalDeltaStore.cs": "624393f58048f5698a58b7ae375ec821b09e72c2f86423b64db04c0f9cb04749",
+    "src/Splinter.Runtime/JournalDeltaRestore.cs": "089637ff5dbca17556b5dbab21f3734ee0e228168cb7f859eb0b2057f8504351",
+    "tests/Splinter.Tests/JournalReadConcurrencyTests.cs": "4eb079c6e4dfb7b330a8575ffa8473861190c13b06e88a9fb799a9ea4f36637b",
+    "src/Splinter.Runtime/bin/Release/net10.0/Splinter.Runtime.dll": "9d9b7d670008e9318d805a69b5f8ff8dd8172e4b2e3c6878aa3b585083054e83",
+    "src/Splinter.Core/bin/Release/net10.0/Splinter.Core.dll": "8ace4b9dd254037c4ca3cc83b9270b5b07cbbc77fc590bf2a6b00601eb90a9db",
+    "src/Splinter.SourceControl.Git/bin/Release/net10.0/Splinter.SourceControl.Git.dll": "f6b7d445c1c6cc11474e2e2df001c25c979d5db89cb572d14dadf448410a1df9"
+  }
+}

@@ -32,7 +32,7 @@ After both edits compiled, additional file allocation was **10.52 GiB for Codex 
 
 The complete observed run, including Library preparation and restoration, takes **68m 28s**; final Library restoration alone takes **23m 25s**. Both stop commands exceed their two-minute limit; the same Editors subsequently exit normally and preservation continues. Earlier preservation includes overlap, recovery and concurrent diagnostics; current preservation runs sequentially A then B, so this is not an isolated causal speedup ratio. This is one profiled run. Codex and the allocation numbers above remain historical baselines. See [exact costs, profiling, failures and restoration qualification](docs/verification/unity-lifecycle-remeasurement.md) and the [dataset](reports/benchmarks/unity-lifecycle-remeasurement-20261007.json).
 
-[Subsequent read/restoration optimization](docs/verification/lifecycle-read-optimization.md) adds bounded Git proof reuse, fused seal reads and unchanged Library file restoration with batched progress records. A small NTFS restore comparison averages **8.17s → 4.24s**; the full Unity timings above precede these additional changes.
+[Subsequent read/restoration optimization](docs/verification/lifecycle-read-optimization.md) adds bounded Git proof/reader-session reuse, separates slow basis reads from the journal metadata lock, fuses seal reads and restores unchanged Library files with batched progress records. A small NTFS restore comparison averages **8.17s → 4.24s**; the full Unity timings above precede these additional changes.
 
 <details>
 <summary>Earlier timings and optimization history</summary>
