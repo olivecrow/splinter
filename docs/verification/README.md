@@ -21,7 +21,7 @@
 
 [Unity lifecycle remeasurement](unity-lifecycle-remeasurement.md) owns UR-01–04: identical source/Library input, A/B checkpoint/release 421.3806s, initial compilation 1,041.8831s and edit recompilation 76.9s. Stop-command timeout, same-task continuation, profiler overhead, scheduling differences, original restoration and further opportunities remain explicit.
 
-[Lifecycle read/restoration optimization](lifecycle-read-optimization.md) owns LO-01–08: bounded Git proof/session reuse and separated base-read gating, fused seal reads, path checks and unchanged restore/cursor batching following UR. It records small real NTFS costs and full corruption/recovery regression, not a new Unity timing qualification.
+[Lifecycle read/restoration optimization](lifecycle-read-optimization.md) owns LO-01–11: bounded Git proof/session reuse and separated base-read gating, fused seal reads, path checks and unchanged restore/cursor batching, whole-Library restoration and immutable listing reuse following UR. It records small real NTFS costs and full corruption/recovery regression, not a new Unity timing qualification.
 
 [Actual Unity C/S comparison](unity-live-comparison.md)/[HTML report](../../reports/unity-live-comparison-20261003.html) compare designated-input/file-allocation/Editor/provider memory/isolation/resumption in Codex app worktrees/product workspaces. Missing historical home fields/authorized follow-up reclaim distinguished in owning verification. Total physical/VSS attribution/minimum RAM unknown; no full SF/PV support expansion.
 

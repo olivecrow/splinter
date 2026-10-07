@@ -108,6 +108,8 @@ provider가 끝나면 앱/자식이 남지 않았음을 확인한 후 같은 ens
 
 읽기는 저널 gate 안에서 파일 메타데이터·private 바이트·덮이지 않은 불변 기준 범위를 고정한 뒤, 별도 직렬 reader gate에서 기준 범위를 읽는다. 느린 기준 I/O 중 조회·변경이 진행되며 덮어쓰기·truncate·rename·unlink와 겹쳐도 읽기는 고정한 파일 상태를 반환한다. private payload 접근·회수는 저널 gate 안에 유지한다. 완료 때 writer poison·저널 길이·기준 가용성을 재검사한다. 종료는 새 호출을 거부하고 모든 동시 종료 호출이 진행 중 읽기를 기다린 뒤 저널·소유 fence를 닫는다. disk payload cache나 별도 파일 복제는 만들지 않는다. 일반 저널 경로에 적용하며 개발용 source view는 외부 gate를 유지한다. [LO-06–08 검증](verification/lifecycle-read-optimization.md)을 따른다.
 
+디렉터리 목록은 정확한 기준 경로가 일치할 때만 불변 자식 메타데이터를 재사용한다. private·이름 변경·삭제와 포함/제외/금지 정책의 우선순위를 유지하고 예상 밖 경로는 정확한 `Stat` 조회를 수행하며 목록 뒤 기준본을 다시 검사한다. cache 추가나 timestamp 변경 없이 중복 자식 조회를 제거한다. [LO-10](verification/lifecycle-read-optimization.md)이 실제 NTFS 작업량 비교를 기록한다.
+
 ## 동일한 private 범위의 반복 쓰기
 
 일반 파일 rename은 해당 node만 이름 변경하며 전체 경로/whiteout을 검색하지 않는다. 디렉터리 rename은 경계 `/`를 포함한 접두사로 알려진 하위 경로와 whiteout을 이동한다. 재생에는 변경되지 않은 부모 node 없이 하위 파일만 존재할 수 있으므로 이 경우 직접 자식 목록 index만으로 대체하지 않는다. 모든 이전 이름을 제거한 뒤 새 이름을 등록하며 대소문자 변경·열린 파일 ID·lazy 기준 자식을 유지한다.

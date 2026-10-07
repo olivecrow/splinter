@@ -25,9 +25,17 @@ internal static class ManagedDirectoryRestore
         string root = state.Basis.ReceiptDirectory, planPath = Path.Combine(root, "restore-plan.json"), cursorPath = Path.Combine(root, "restore-cursor.json");
         var manifest = new OwnedDirectorySnapshotProvider(root, state.Basis.OwnerId).Read(state.Basis.Snapshot);
         var manifestItems = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.OrdinalIgnoreCase);
-        RestorePlan? plan = await WindowsProcessWorkspaceProvider.ReadAsync<RestorePlan>(planPath, ct);
+        if (ManagedUnchangedDirectoryRestore.HasPlan(root))
+        {
+            if (File.Exists(planPath) || File.Exists(cursorPath)) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting restore modes.");
+            await ManagedUnchangedDirectoryRestore.ResumeAsync(state, request, manifest, ct, boundary); return;
+        }
+        // These optional records are read under the serialized restore lease;
+        // absence means initialization, not an in-flight remote publication.
+        RestorePlan? plan = await WindowsProcessWorkspaceProvider.ReadAsync<RestorePlan>(planPath, ct, waitForPublication: false);
         if (plan is not null && plan.Version != 2) throw new WorkspaceException("RestoreSealMismatch", "Preserve an unsupported restore plan without migration.");
-        var savedCursor = await WindowsProcessWorkspaceProvider.ReadAsync<RestoreCursor>(cursorPath, ct);
+        var savedCursor = await WindowsProcessWorkspaceProvider.ReadAsync<RestoreCursor>(cursorPath, ct, waitForPublication: false);
+        if (plan is null && savedCursor is not null) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve a restore cursor without its plan.");
         if (plan is not null && savedCursor is { FilesVerified: true })
         {
             if (plan.Basis != state.Basis || savedCursor.PlanHash != ManagedDirectoryBasis.HashFile(planPath) || savedCursor.CompletedFiles != plan.Files.Length)
@@ -52,6 +60,13 @@ internal static class ManagedDirectoryRestore
             try
             {
                 var seal = journal.Seal(); var entries = journal.DescribeRestore();
+                if (savedCursor is null && ManagedUnchangedDirectoryRestore.Eligible(state, request, manifest, seal, entries))
+                {
+                    // This path takes ownership of closing both readers before
+                    // the directory rename; their outer disposals are idempotent.
+                    await ManagedUnchangedDirectoryRestore.CreateAsync(state, request, manifest, seal, basis, journal, ct, boundary);
+                    return;
+                }
                 var files = new List<RestoreFile>(); byte[] buffer = new byte[1024 * 1024];
                 foreach (var entry in entries.Where(e => !e.Entry.Directory).OrderBy(e => e.Entry.Path, StringComparer.OrdinalIgnoreCase))
                 {
@@ -99,7 +114,7 @@ internal static class ManagedDirectoryRestore
                 throw new WorkspaceException("RestoreSealMismatch", "Retain a mismatched restore plan/journal.");
             string planHash = ManagedDirectoryBasis.HashFile(planPath);
             journal.PrepareRestoreReads(plan.Seal);
-            var cursor = await WindowsProcessWorkspaceProvider.ReadAsync<RestoreCursor>(cursorPath, ct);
+            var cursor = savedCursor;
             if (cursor is null) { cursor = new(planHash, 0); await WindowsProcessWorkspaceProvider.WriteAsync(cursorPath, cursor, ct); }
             if (cursor.PlanHash != planHash || cursor.CompletedFiles < 0 || cursor.CompletedFiles > plan.Files.Length)
                 throw new WorkspaceException("GeneratedRestoreConflict", "Retain an inconsistent restore cursor.");

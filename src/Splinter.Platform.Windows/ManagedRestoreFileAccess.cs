@@ -59,6 +59,8 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         if (Identity(file) != identity) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve an unowned or replaced restore target.");
     }
     internal static void Move(FileStream source, string target)
+        => Move(source.SafeFileHandle, target);
+    internal static void Move(SafeFileHandle source, string target)
     {
         // FILE_RENAME_INFO uses an absolute, NUL-terminated Windows name.
         // https://learn.microsoft.com/windows/win32/api/winbase/ns-winbase-file_rename_info
@@ -72,12 +74,20 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
             Marshal.WriteIntPtr(buffer, rootOffset, IntPtr.Zero); Marshal.WriteInt32(buffer, lengthOffset, name.Length);
             Marshal.Copy(name, 0, buffer + nameOffset, name.Length);
             Marshal.WriteInt16(buffer, nameOffset + name.Length, 0);
-            Check(SetFileInformationByHandle(source.SafeFileHandle, 3, buffer, (uint)size));
+            Check(SetFileInformationByHandle(source, 3, buffer, (uint)size));
         }
         finally { Marshal.FreeHGlobal(buffer); }
     }
     internal static void Metadata(FileStream file, uint attributes, long created, long accessed, long written) =>
         SetBasic(file.SafeFileHandle, new() { Creation = created, Access = accessed, Write = written, Attributes = attributes });
+    internal static void Metadata(SafeFileHandle handle, SnapshotEntry entry) =>
+        SetBasic(handle, new() { Creation = entry.CreationTime, Access = entry.LastAccessTime, Write = entry.LastWriteTime, Attributes = entry.Attributes });
+    internal static SafeFileHandle DirectoryHandle(string path, bool moving = false)
+    {
+        var handle = OpenHandle(path, 0x80 | 0x100u | (moving ? 0x10000u : 0u), directory: true);
+        try { _ = SnapshotInputChecks.FileIdentity(handle, directory: true); return handle; }
+        catch { handle.Dispose(); throw; }
+    }
     private static void SetBasic(SafeFileHandle handle, BasicInfo info)
     {
         nint buffer = Marshal.AllocHGlobal(Marshal.SizeOf<BasicInfo>());

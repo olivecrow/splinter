@@ -112,6 +112,8 @@ New NTFS tasks publish empty delta identity for verified snapshots before provid
 
 Reads capture file metadata, private bytes and uncovered immutable-base intervals under the journal gate, then read those base intervals under a separate serialized reader gate. Metadata queries and mutations can proceed during slow base I/O; each read returns one captured file state even across overwrite, truncate, rename or unlink. Private payload access/reclamation stays under the journal gate. Completion rechecks writer poison, journal length and basis availability. Close rejects new operations and every concurrent close caller waits for admitted reads before releasing the journal and ownership fences. No disk payload cache or extra file copy is created. This applies to the ordinary journal path; development source views retain their outer gate. See [LO-06–08 verification](verification/lifecycle-read-optimization.md).
 
+Directory listings reuse immutable child metadata only for an exact base-path match. Private/renamed/deleted entries and inclusion/exclusion/denial policy retain precedence, unexpected paths fall back to exact `Stat`, and the basis is checked again after listing. This removes duplicate child lookups without adding a cache or changing timestamps; [LO-10](verification/lifecycle-read-optimization.md) records the counted NTFS comparison.
+
 <a id="동일한-private-범위의-반복-쓰기"></a>
 ## Repeated writes to the same private range
 

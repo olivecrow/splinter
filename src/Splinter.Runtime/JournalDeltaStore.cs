@@ -168,7 +168,13 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             Check(); Node parent = Lookup(NormalizePath(directory)) ?? throw new DirectoryNotFoundException(directory);
             if (!parent.Entry.Directory) throw new IOException("Not a directory.");
             if (parent.Entry.BasePath is { } lower)
-                foreach (var item in snapshot.List(lower)) _ = Lookup(Join(parent.Entry.Path, Name(item.Path)));
+            {
+                // The immutable listing already contains each child's metadata.
+                // Reuse only its exact base path; Lookup still owns private/hidden
+                // precedence, path policy and renamed-parent translation.
+                foreach (var item in snapshot.List(lower)) _ = Lookup(Join(parent.Entry.Path, Name(item.Path)), item);
+                snapshot.EnsureAvailable();
+            }
             return children.TryGetValue(parent.Entry.Path, out var entries)
                 ? entries.Select(id => nodes[id].Entry).OrderBy(e => e.Path, pathPolicy.Comparer).ToArray()
                 : [];
@@ -534,7 +540,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     {
         if (nodes.Count >= MaxIndexedNodes) throw new WorkspaceException("OverlayMetadataLimit", "The bounded metadata index is full; preserve the delta.");
     }
-    private Node? Lookup(string path)
+    private Node? Lookup(string path, SnapshotEntry? listedEntry = null)
     {
         if (Denied(path)) return null;
         if (paths.TryGetValue(path, out var id)) return nodes[id];
@@ -543,7 +549,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         if (Identity.IncludedTopLevel is { } included && !included.Contains(path.Split('/')[0], pathPolicy.Comparer)) return null;
         var parent = Lookup(Parent(path));
         if (parent is not { Entry.Directory: true, Entry.BasePath: { } baseParent }) return null;
-        var entry = snapshot.Stat(Join(baseParent, Name(path)));
+        string basePath = Join(baseParent, Name(path));
+        var entry = listedEntry?.Path == basePath ? listedEntry : snapshot.Stat(basePath);
         return entry is null ? null : AddBaseNode(entry, path);
     }
     private bool Denied(string path) => Identity.DeniedTopLevel?.Contains(path.Split('/')[0], pathPolicy.Comparer) == true;

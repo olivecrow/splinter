@@ -81,7 +81,7 @@ public sealed class ManagedDirectoryRestoreOptimizationTests
         Assert.True(Directory.Exists(f.Request.DeltaPath));
     }
 
-    private sealed class Fixture : IDisposable
+    internal sealed class Fixture : IDisposable
     {
         private readonly TestDirectory directory = new();
         private readonly int count;
@@ -91,14 +91,15 @@ public sealed class ManagedDirectoryRestoreOptimizationTests
         public ManagedDirectoryState State { get; }
         public OverlayServeRequest Request { get; }
         public long FinalWriteTime { get; } = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc).ToFileTimeUtc();
-        public Fixture(int count, bool optimized, bool rename = false, int payloadBytes = 64)
+        public Fixture(int count, bool optimized, bool rename = false, int payloadBytes = 64, bool unchangedDirectory = false)
         {
             if (!OperatingSystem.IsWindows()) Assert.Skip("Windows owned-file identity contract.");
             this.count = count; this.rename = rename; this.payloadBytes = payloadBytes;
             string root = Path.Combine(directory.Path, "owned"), basis = Path.Combine(root, "base");
+            Directory.CreateDirectory(Path.Combine(directory.Path, "original"));
             Directory.CreateDirectory(Path.Combine(basis, "dir"));
             for (int i = 0; i < count; i++) File.WriteAllBytes(Path.Combine(basis, "dir", $"f{i:D4}"), Bytes(i));
-            if (rename) File.SetAttributes(Path.Combine(basis, "dir", "f0000"), FileAttributes.ReadOnly);
+            if ((rename || unchangedDirectory) && count > 0) File.SetAttributes(Path.Combine(basis, "dir", "f0000"), FileAttributes.ReadOnly);
             var snapshot = new SnapshotReference("012345678901234567890123", OwnedDirectorySnapshotTree.ProviderName, basis, basis, DateTimeOffset.UnixEpoch, true, true, "stopped-original-owned-directory");
             var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, snapshot.Id); var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
             File.WriteAllText(Path.Combine(root, "manifest.json"), JsonSerializer.Serialize(manifest, json));
@@ -114,6 +115,13 @@ public sealed class ManagedDirectoryRestoreOptimizationTests
                 journal.Rename(journal.Stat("dir")!.Id, "renamed", false);
                 var file = journal.Stat("renamed/f0000")!;
                 journal.SetMetadata(file.Id, file.Attributes, file.CreationTime, file.LastAccessTime, FinalWriteTime);
+            }
+            else if (!unchangedDirectory)
+            {
+                // Keep file cursor tests on the general path with a directory
+                // timestamp mutation; every file's payload stays unchanged.
+                var entry = journal.Stat("")!;
+                journal.SetMetadata(entry.Id, entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime + 1);
             }
         }
         private byte[] Bytes(int i) => Enumerable.Range(0, payloadBytes).Select(j => (byte)(i + j)).ToArray();

@@ -2,7 +2,7 @@
 
 [English](../../verification/lifecycle-read-optimization.md)
 
-이 문서는 [UR-01–04 실제 Unity 프로파일](unity-lifecycle-remeasurement.md) 이후 구현한 **LO-01–08**을 소유한다. LO-01–05의 비교 기준은 UR에서 사용한 고정 `38b6803` 배포본이며 `0e707ed`로 커밋했다. 아래 LO-06–08은 `0e707ed`를 기준으로 한다. 현재 후보는 데이터의 소스·바이너리 hash로 식별한다. 원시 근거는 ignored `artifacts/lifecycle-read-optimization-20261007/`에 보존한다.
+이 문서는 [UR-01–04 실제 Unity 프로파일](unity-lifecycle-remeasurement.md) 이후 구현한 **LO-01–11**을 소유한다. LO-01–05의 비교 기준은 UR에서 사용한 고정 `38b6803` 배포본이며 `0e707ed`로 커밋했다. 아래 LO-06–08은 `0e707ed`를 기준으로 한다. 현재 후보는 데이터의 소스·바이너리 hash로 식별한다. 원시 근거는 ignored `artifacts/lifecycle-read-optimization-20261007/`에 보존한다.
 
 ## 제한된 Git proof 재사용 — LO-01
 
@@ -28,7 +28,7 @@ SJL4 capsule 검증 중 읽는 정확한 바이트를 composite seal에 함께 �
 
 완료 cursor는 기존 계획·cursor 형식으로 **128개마다**와 마지막 파일에서 전진한다. 초기·최종 기록, 생성 영수증과 payload flush는 개별 내구성을 유지한다. 묶음 게시 실패 시 완료 효과 128개가 기록되지 않을 수 있으며 진행 중 효과와 함께 재개 때 identity·내용을 다시 확인한다. 새 260파일 시험은 127/128/129개 효과 뒤, cursor 게시 전후의 중단, 동일 바이트 교체, read-only 바이트 변경과 같은 핸들의 쓰기·삭제 차단을 검증한다. 127/128/129파일의 정상 실행은 전진 게시 1/1/2회를 관측한다.
 
-디렉터리 전체 복원 모드나 시작한 intent의 이관은 추가하지 않았다. 전체 디렉터리 rename에는 별도의 복구·identity 작업이 필요하다.
+LO-03은 파일별 복원이다. 아래 LO-09는 변경 없는 Library의 별도 디렉터리 복원 모드를 추가하며, 시작한 v2 파일 계획은 전환하지 않는다.
 
 ## 일반 배포본의 한정 비용 — LO-04
 
@@ -81,3 +81,39 @@ object별 LRU 세션 두 개가 decoder 위치와 검증된 64KiB chunk 두 개�
 새 Unity/Editor/컴파일 프로파일, native WinFsp 동시성, 전체 프로젝트 RAM과 OS 장애 자격은 **NotRun**이다. 이전 초기 준비 **17분 22초**는 UR의 당시 후보 값으로 유지한다. 원본 Unity 프로젝트·설치 서비스·UAC 설정은 변경하지 않았다.
 
 최종 `pwsh -NoProfile -File ./scripts/build.ps1`: locked restore 통과, **통과 1,240개·실패 0개·조건부 제외 19개**, **빌드 경고·오류 0개**다. 새 회귀 16개는 집중 실행 38개에서도 통과했다. 소스와 측정 Git 바이너리 hash가 최종 빌드와 일치한다.
+
+## 변경 없는 Library 디렉터리 복원 — LO-09
+
+새 빠른 경로는 원본 **SJL4** 저널의 durable sequence가 0이고 모든 논리 항목이 고정 manifest와 같은 Unity `Library`에 한정한다. 경로/base 경로·길이·종류·속성·모든 timestamp·UnixMode와 private 범위/삭제 부재를 대조한다. 최종 내용이 다시 같아져도 실제 변경 기록이 있으면 일반 경로다. 다른 저널 형식·관리형 전체 프로젝트 기준본·시작한 v2 파일 계획도 기존 경로를 유지한다. CLI 옵션·관리자 권한·서비스 변경은 필요 없다.
+
+별도의 현재 **v1 디렉터리 계획**은 basis, 원본/delta 경로, overlay identity hash, seal과 root/모든 디렉터리/파일의 NTFS identity를 고정한다. 원본 manifest는 일반 manifest/proof 대조 외에 `Basis.ManifestHash`와도 같아야 한다. 최초 전체 hash 검증을 마친 basis 핸들을 유지한 채 계획을 durable 게시한다. 정확한 root와 양쪽 조상 경로를 핸들로 보호하며 같은 볼륨에서 대상 덮어쓰기 없이 한 번 이동한다. Windows 디렉터리 rename은 하위 파일 핸들이 닫혀 있어야 한다([Microsoft rename 규칙](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_rename_information)). 그 간격 뒤 모든 하위 항목을 다시 열어 identity·전체 내용·정확한 구성원을 검증한 다음에만 메타데이터 복원과 회수로 진행한다. 변경·교체·외부 항목은 이동한 원본 경로와 저널에 보존하고 실패한다. 기준본 경로에 다시 나타난 디렉터리를 재귀 삭제하지 않는다.
+
+최종 파일/디렉터리 핸들은 메타데이터 적용과 소유 delta 회수까지 유지한다. 원본 identity 파일은 쓰기·삭제를 막고, SJL4의 정확한 파일별 회수 inventory가 durable 게시·검증된 intent 경계에서 보호를 넘긴다. v1 완료 검증 영수증은 계획 hash에 결합하며, 중단된 회수는 고정 inventory를 사용한다. 매 재시도는 최종 identity·내용을 새로 증명하고 계획한 메타데이터를 다시 적용한다. 이동 전 재개는 원본 내용도 이동 전에 재검증한다. 누락/모호한 root, manifest/identity/seal 변경, 충돌하는 모드와 고아 cursor/영수증은 보존·거부한다. intent 이관은 없다. 신규 복원은 변경 없는 payload를 여전히 두 번 읽으며 중단 재시도는 전체 읽기를 추가할 수 있다. payload cache·복사·hash 생략·data 내구성 완화·전원 장애 보장은 추가하지 않는다.
+
+선택적 초기 파일 계획/cursor 읽기는 기존 직렬 복원 임대 안에서 부재를 즉시 반환하고 읽은 cursor를 재사용한다. 이전 신규 일반 복원은 약 **1초의 게시 대기를 세 번** 수행했다. 공유 오류 재시도와 손상 기록 거부는 유지하고, 필수 프로세스 간 게시 reader의 대기는 바꾸지 않는다.
+
+새 시험 26개는 빈/비지 않은 Library, root/파일 메타데이터·identity, 핸들 유지 중 쓰기·삭제 거부, 부분/최종 delta 회수를 포함한 중단 경계 7개, rename 간격의 변경, 동일 내용 파일/디렉터리 교체, 외부 항목, 기준본 재생성, seal/identity/manifest-proof 동시 변경, 재시도 메타데이터 복원, 일반 경로 선택과 고아 cursor 거부를 검증한다. 기존 일반 복원/cursor 시험은 디렉터리 timestamp 변경을 넣어 파일별 경로의 범위를 유지한다.
+
+## 불변 디렉터리 목록 메타데이터 재사용 — LO-10
+
+`JournalDeltaStore.List`는 불변 목록이 반환한 `SnapshotEntry`의 경로가 일반 조회로 계산한 기준 경로와 정확히 같을 때만 그 메타데이터를 재사용한다. private 항목·삭제·이름을 바꾼 부모의 기준 좌표·제외/포함/금지 root와 경로 정책의 우선순위를 유지하며, 예상 밖 목록 경로는 기존의 정확한 경로 `Stat` 조회를 수행한다. 목록 처리 뒤 기준본 가용성을 다시 검사한다. 영속 cache·timestamp 변경·저널 또는 payload guard 완화는 추가하지 않는다.
+
+Editor 없는 고정 NTFS 비교는 각 64바이트의 소유 파일 256개를 사용하고, 일반 `5b70e61` assembly와 새 Runtime assembly를 차례로 실행했다. Core/Windows assembly는 고정했다. 첫 목록의 중복 자식 `Stat` 호출은 **256 → 0**, `List`는 양쪽 모두 한 번이다. 반복 목록의 자식 Stat은 양쪽 모두 0이다. 반환한 모든 메타데이터를 불변 manifest와 대조하고 표본 payload 내용도 확인했다. 프레임 메타데이터 hash는 양쪽 모두 `1ebb6ff2c1e53b76839988a87e58e4fb93290136547fac9a29506143c44660d2`다. warm 단일 관측의 첫 목록은 0.012483 → 0.0040691초이며, 이는 작업량 계측이지 Unity 속도 개선 추정이 아니다. 원시 기록·계측기·바이너리 hash는 ignored `artifacts/startup-listing-20261008/`에 보존한다.
+
+새 시험 7개가 실패/제외 없이 통과했다. 두 저널 형식, 이름 변경·수정/삭제/신규 항목, 정책 제외, 예상 밖 목록 경로, 목록 뒤 기준본 소실, 실제 소유 NTFS 핸들과 내용을 확인한다. 좁은 빌드는 경고/오류 0개다. 통합 전체 검증은 아래 LO-11에 기록한다.
+
+기존 UR Editor 로그는 이전 후보 기록이다. `Scan`은 536.446218초, `CompileScripts`는 342.981118초이며, 첫 Bee backend는 539개를 평가하고 0개를 갱신한 뒤 60.86초에 DAG 재작성으로 돌아갔다. 그래프 생성과 다음 backend는 반올림된 2분00초·2분28초로 기록됐다. 로그는 `Library/Bee/*-inputdata.json` timestamp 변경을 보고하지만 새 workspace 경로가 생성 입력을 바꿀 수 있으므로 불필요한 재작성이라고 단정할 수 없다. Git 기준본은 현재 캡처 시각을 파일 메타데이터로 사용한다. 내용/identity를 증명하는 새 메타데이터 계약 없이 원본 timestamp를 복사하거나 Unity 쓰기를 억제하고 Bee cache를 바꾸는 작업은 포함하지 않는다. Unity 컴파일러 CPU 시간, 최신 후보 초기 refresh, 실제 WinFsp scan 시간은 **NotRun**이다.
+
+## 한정 비교와 통합 검증 — LO-11
+
+[관측값·소스·바이너리 hash](../../../reports/benchmarks/unchanged-library-startup-20261008.json)는 `5b70e61` 이전 후보와 현재 후보를 고정한다. 같은 기존 fixture 바이너리를 사용해 NTFS의 파일 260개 × 65,536바이트와 변경 없는 원본 SJL4 저널을 비교했다. 준비와 독립 최종 내용/회수 검증은 timer 밖, 계획·전체 내용 검증·메타데이터·이동·회수는 안이다. cache 제거 없이 이전 1 → 현재 1 → 보조 일반 경로 1 → 보조 일반 경로 2 → 현재 2 → 이전 2 순서로 실행했다.
+
+| 복원 입력/경로 | 1회, 초 | 2회, 초 | 평균, 초 |
+| --- | ---: | ---: | ---: |
+| 5b70e61, 변경 없는 Library, 파일별 경로 | 4.2121 | 4.2077 | 4.2099 |
+| 현재, 변경 없는 Library, 디렉터리 경로 | 0.5141 | 0.5168 | 0.5155 |
+| 현재, 부모 rename, 일반 파일별 경로 | 1.2516 | 1.2610 | 1.2563 |
+
+동일한 변경 없는 입력은 **이 작은 비교에서 87.76% 빨라졌다**. 파일 이동 260회가 디렉터리 이동 1회로 바뀌며 파일 cursor는 없다. 약 3초의 선택적 기록 고정 대기 제거 효과도 포함하므로 디렉터리 rename만의 절감률이 아니다. 보조 표본은 payload를 유지하며 부모 디렉터리 이름과 read-only 파일 하나의 메타데이터를 바꿨다. 일반 경로와 이동 260회의 유지 확인이며 동일 입력의 인과 비교가 아니다. 원시 첫 이벤트 시각은 이전 첫 파일 이동 3.439초, 현재 계획 게시 0.302초·디렉터리 이동 0.316초를 구분한다.
+
+집중 검증은 **통과 44개·실패 0개·제외 0개**다(새 디렉터리 26개, 새 목록 7개, 기존 일반 복원 11개). 최종 `pwsh -NoProfile -File ./scripts/build.ps1`: locked restore 통과, **통과 1,273개·실패 0개·조건부 제외 19개**, **빌드 경고·오류 0개**다. 측정 바이너리 hash가 최종 빌드와 일치하고 기존 다른 작업의 미커밋 파일 27개는 변경되지 않았다. 이 후보의 대형 Unity 초기 Editor/컴파일 시간과 원본 Library 42,420개 파일 복원은 **NotRun**이며 과거 UR 수치는 바꾸지 않는다. 원본 Unity 데이터·관리자/UAC 설정·설치 서비스·Defender 예외·외부 도구 cache를 변경하지 않았다.

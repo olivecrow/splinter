@@ -1,0 +1,319 @@
+{
+  "qualifications": [
+    "LO-09",
+    "LO-10",
+    "LO-11"
+  ],
+  "baseline": "5b70e618bd20564cbf3982041c343898c13bb0b5",
+  "scope": "Editor-free, local NTFS, normal Release assemblies. No Unity, UAC, service changes, whole-system peak or OS power-loss qualification.",
+  "restore": {
+    "runOrder": [
+      "before-1",
+      "after-1",
+      "general-1",
+      "general-2",
+      "after-2",
+      "before-2"
+    ],
+    "input": {
+      "files": 260,
+      "bytesPerFile": 65536,
+      "journal": "SJL4",
+      "originalMutations": 0
+    },
+    "method": "Frozen existing test fixture in both candidates; setup and independent final content/cleanup assertions outside timer. Baseline uses per-file restoration, candidate uses unchanged-directory restoration. Separate candidate-only parent-rename samples retain the general route; not an isolated same-input rename comparison.",
+    "beforeMeanSeconds": 4.209872900000001,
+    "afterMeanSeconds": 0.51547415,
+    "reductionPercent": 87.75558877323826,
+    "fixedWaitNote": "Baseline has three optional missing-record waits of about one second each; removed under the serialized restore lease. Combined benefit must not be attributed entirely to directory rename or extrapolated to a large Library.",
+    "runs": {
+      "before-1": {
+        "method": "same frozen existing owned-file fixture; SJL4; setup/assertion outside timer",
+        "workload": "unchanged",
+        "phases": {
+          "file.after-move": 3.4389717,
+          "file.after-complete": 3.4399684,
+          "restore.before-cursor": 3.7219111,
+          "restore.after-cursor": 3.7347535,
+          "restore.after-verified": 4.1793335,
+          "restore.after-basis-reclaim": 4.1821202,
+          "restore.after-delta-reclaim": 4.2117846
+        },
+        "directoryMoves": 0,
+        "files": 260,
+        "bytesPerFile": 65536,
+        "elapsedSeconds": 4.2120786,
+        "moves": 260,
+        "cursorAdvancementObservations": 3,
+        "cursorNote": "successful batch-advancement observer; excludes initial/final records; directory mode uses no file cursor",
+        "finalContentAndReclamationVerified": true,
+        "productHashes": {
+          "Splinter.Application.Unity.dll": "02244ef42a9adbb6ecd52b74ea4db3a19ca233e11e48b13b679d843b81cfdeba",
+          "Splinter.Core.dll": "8ace4b9dd254037c4ca3cc83b9270b5b07cbbc77fc590bf2a6b00601eb90a9db",
+          "Splinter.Host.dll": "c9044d5e6af4061b08673f0bce5a59867d550f227e3ce880575889e609f8911b",
+          "Splinter.Platform.Windows.dll": "3a0d645d85791655c24a7993c502d290c4cd7c5e6f0e64af3212648f05af74d0",
+          "Splinter.Protocol.dll": "e143bdf6931a4b5a3e559228e6cfcd2f8b6a39e371f509dfcf2b1669b24b0616",
+          "Splinter.Runtime.dll": "9d9b7d670008e9318d805a69b5f8ff8dd8172e4b2e3c6878aa3b585083054e83",
+          "Splinter.SourceControl.Files.dll": "00b8d26c210ef21303631021ce7f37d51e5d42822719a1dc7114192b191e1fc6",
+          "Splinter.SourceControl.Git.dll": "f6b7d445c1c6cc11474e2e2df001c25c979d5db89cb572d14dadf448410a1df9",
+          "Splinter.Workflows.Windows.dll": "8594d0f1b2a3aca418157d77a24b5f5f8633d27b27884e9d94f199d5b22da460"
+        }
+      },
+      "after-1": {
+        "method": "same frozen existing owned-file fixture; SJL4; setup/assertion outside timer",
+        "workload": "unchanged",
+        "phases": {
+          "directory.after-plan": 0.301854,
+          "directory.before-move": 0.3135401,
+          "directory.after-move": 0.3155043,
+          "directory.after-proof": 0.4603944,
+          "directory.after-verified": 0.475422,
+          "directory.reclaim.intent": 0.5074324,
+          "directory.reclaim.object-removed": 0.5089747,
+          "directory.reclaim.journal-removed": 0.5094553,
+          "directory.after-reclaim": 0.5103916
+        },
+        "directoryMoves": 1,
+        "files": 260,
+        "bytesPerFile": 65536,
+        "elapsedSeconds": 0.5141155,
+        "moves": 0,
+        "cursorAdvancementObservations": 0,
+        "cursorNote": "successful batch-advancement observer; excludes initial/final records; directory mode uses no file cursor",
+        "finalContentAndReclamationVerified": true,
+        "productHashes": {
+          "Splinter.Application.Unity.dll": "ea05f7a347923cb437ad2e092eb1a69197631fcf6b3a1ce24e7821c22f2370c2",
+          "Splinter.Core.dll": "929cd328abd0f64bff5f82e45434025c9c7e27553c014b49250d5d56ec8a70ea",
+          "Splinter.Host.dll": "134d7f1cdaf287e248b583e99406ae79cc72b035658c6d1bf6c79e9ce98a433c",
+          "Splinter.Platform.Windows.dll": "90f6ecb9aba417f0aa16f4d5691dc69ca015af7e4ec819f3c88b00102353f559",
+          "Splinter.Protocol.dll": "9f70b3e7ebda79150ee8a4fcffdd89dee0e235b0de4fab50fb22e111ba00424c",
+          "Splinter.Runtime.dll": "2e08cc65f9893c5d5cd41cb9ffbfbb549e32a44105cc13882c03655920d2cc0f",
+          "Splinter.SourceControl.Files.dll": "5d0032033e30d0aaedaf85873ef027abb3c94a0373fe42fd7d48d5f5ec830580",
+          "Splinter.SourceControl.Git.dll": "95789f2b73b25e405edb26c64698b1fd903e1e557edaabb5eb881170eba3bb74",
+          "Splinter.Workflows.Windows.dll": "f785507971257c9a196041de2a45dbbefd00eb35aec669817e5de146b7f35101"
+        }
+      },
+      "general-1": {
+        "method": "same frozen existing owned-file fixture; SJL4; setup/assertion outside timer",
+        "workload": "renamed",
+        "phases": {
+          "file.after-move": 0.448127,
+          "file.after-complete": 0.44913,
+          "restore.before-cursor": 0.7352339,
+          "restore.after-cursor": 0.7486146,
+          "restore.after-verified": 1.2177434,
+          "restore.after-basis-reclaim": 1.2206011,
+          "restore.after-delta-reclaim": 1.251351
+        },
+        "directoryMoves": 0,
+        "files": 260,
+        "bytesPerFile": 65536,
+        "elapsedSeconds": 1.2516465,
+        "moves": 260,
+        "cursorAdvancementObservations": 3,
+        "cursorNote": "successful batch-advancement observer; excludes initial/final records; directory mode uses no file cursor",
+        "finalContentAndReclamationVerified": true,
+        "productHashes": {
+          "Splinter.Application.Unity.dll": "ea05f7a347923cb437ad2e092eb1a69197631fcf6b3a1ce24e7821c22f2370c2",
+          "Splinter.Core.dll": "929cd328abd0f64bff5f82e45434025c9c7e27553c014b49250d5d56ec8a70ea",
+          "Splinter.Host.dll": "134d7f1cdaf287e248b583e99406ae79cc72b035658c6d1bf6c79e9ce98a433c",
+          "Splinter.Platform.Windows.dll": "90f6ecb9aba417f0aa16f4d5691dc69ca015af7e4ec819f3c88b00102353f559",
+          "Splinter.Protocol.dll": "9f70b3e7ebda79150ee8a4fcffdd89dee0e235b0de4fab50fb22e111ba00424c",
+          "Splinter.Runtime.dll": "2e08cc65f9893c5d5cd41cb9ffbfbb549e32a44105cc13882c03655920d2cc0f",
+          "Splinter.SourceControl.Files.dll": "5d0032033e30d0aaedaf85873ef027abb3c94a0373fe42fd7d48d5f5ec830580",
+          "Splinter.SourceControl.Git.dll": "95789f2b73b25e405edb26c64698b1fd903e1e557edaabb5eb881170eba3bb74",
+          "Splinter.Workflows.Windows.dll": "f785507971257c9a196041de2a45dbbefd00eb35aec669817e5de146b7f35101"
+        }
+      },
+      "general-2": {
+        "method": "same frozen existing owned-file fixture; SJL4; setup/assertion outside timer",
+        "workload": "renamed",
+        "phases": {
+          "file.after-move": 0.4632554,
+          "file.after-complete": 0.4642534,
+          "restore.before-cursor": 0.7579472,
+          "restore.after-cursor": 0.7715898,
+          "restore.after-verified": 1.2271953,
+          "restore.after-basis-reclaim": 1.2300512,
+          "restore.after-delta-reclaim": 1.2607256
+        },
+        "directoryMoves": 0,
+        "files": 260,
+        "bytesPerFile": 65536,
+        "elapsedSeconds": 1.2610198,
+        "moves": 260,
+        "cursorAdvancementObservations": 3,
+        "cursorNote": "successful batch-advancement observer; excludes initial/final records; directory mode uses no file cursor",
+        "finalContentAndReclamationVerified": true,
+        "productHashes": {
+          "Splinter.Application.Unity.dll": "ea05f7a347923cb437ad2e092eb1a69197631fcf6b3a1ce24e7821c22f2370c2",
+          "Splinter.Core.dll": "929cd328abd0f64bff5f82e45434025c9c7e27553c014b49250d5d56ec8a70ea",
+          "Splinter.Host.dll": "134d7f1cdaf287e248b583e99406ae79cc72b035658c6d1bf6c79e9ce98a433c",
+          "Splinter.Platform.Windows.dll": "90f6ecb9aba417f0aa16f4d5691dc69ca015af7e4ec819f3c88b00102353f559",
+          "Splinter.Protocol.dll": "9f70b3e7ebda79150ee8a4fcffdd89dee0e235b0de4fab50fb22e111ba00424c",
+          "Splinter.Runtime.dll": "2e08cc65f9893c5d5cd41cb9ffbfbb549e32a44105cc13882c03655920d2cc0f",
+          "Splinter.SourceControl.Files.dll": "5d0032033e30d0aaedaf85873ef027abb3c94a0373fe42fd7d48d5f5ec830580",
+          "Splinter.SourceControl.Git.dll": "95789f2b73b25e405edb26c64698b1fd903e1e557edaabb5eb881170eba3bb74",
+          "Splinter.Workflows.Windows.dll": "f785507971257c9a196041de2a45dbbefd00eb35aec669817e5de146b7f35101"
+        }
+      },
+      "after-2": {
+        "method": "same frozen existing owned-file fixture; SJL4; setup/assertion outside timer",
+        "workload": "unchanged",
+        "phases": {
+          "directory.after-plan": 0.3120929,
+          "directory.before-move": 0.3233025,
+          "directory.after-move": 0.3250186,
+          "directory.after-proof": 0.4697857,
+          "directory.after-verified": 0.4843694,
+          "directory.reclaim.intent": 0.5103676,
+          "directory.reclaim.object-removed": 0.5119555,
+          "directory.reclaim.journal-removed": 0.512468,
+          "directory.after-reclaim": 0.5134495
+        },
+        "directoryMoves": 1,
+        "files": 260,
+        "bytesPerFile": 65536,
+        "elapsedSeconds": 0.5168328,
+        "moves": 0,
+        "cursorAdvancementObservations": 0,
+        "cursorNote": "successful batch-advancement observer; excludes initial/final records; directory mode uses no file cursor",
+        "finalContentAndReclamationVerified": true,
+        "productHashes": {
+          "Splinter.Application.Unity.dll": "ea05f7a347923cb437ad2e092eb1a69197631fcf6b3a1ce24e7821c22f2370c2",
+          "Splinter.Core.dll": "929cd328abd0f64bff5f82e45434025c9c7e27553c014b49250d5d56ec8a70ea",
+          "Splinter.Host.dll": "134d7f1cdaf287e248b583e99406ae79cc72b035658c6d1bf6c79e9ce98a433c",
+          "Splinter.Platform.Windows.dll": "90f6ecb9aba417f0aa16f4d5691dc69ca015af7e4ec819f3c88b00102353f559",
+          "Splinter.Protocol.dll": "9f70b3e7ebda79150ee8a4fcffdd89dee0e235b0de4fab50fb22e111ba00424c",
+          "Splinter.Runtime.dll": "2e08cc65f9893c5d5cd41cb9ffbfbb549e32a44105cc13882c03655920d2cc0f",
+          "Splinter.SourceControl.Files.dll": "5d0032033e30d0aaedaf85873ef027abb3c94a0373fe42fd7d48d5f5ec830580",
+          "Splinter.SourceControl.Git.dll": "95789f2b73b25e405edb26c64698b1fd903e1e557edaabb5eb881170eba3bb74",
+          "Splinter.Workflows.Windows.dll": "f785507971257c9a196041de2a45dbbefd00eb35aec669817e5de146b7f35101"
+        }
+      },
+      "before-2": {
+        "method": "same frozen existing owned-file fixture; SJL4; setup/assertion outside timer",
+        "workload": "unchanged",
+        "phases": {
+          "file.after-move": 3.4293362,
+          "file.after-complete": 3.4302864,
+          "restore.before-cursor": 3.7184178,
+          "restore.after-cursor": 3.7316485,
+          "restore.after-verified": 4.1755603,
+          "restore.after-basis-reclaim": 4.1782383,
+          "restore.after-delta-reclaim": 4.2073705
+        },
+        "directoryMoves": 0,
+        "files": 260,
+        "bytesPerFile": 65536,
+        "elapsedSeconds": 4.2076672,
+        "moves": 260,
+        "cursorAdvancementObservations": 3,
+        "cursorNote": "successful batch-advancement observer; excludes initial/final records; directory mode uses no file cursor",
+        "finalContentAndReclamationVerified": true,
+        "productHashes": {
+          "Splinter.Application.Unity.dll": "02244ef42a9adbb6ecd52b74ea4db3a19ca233e11e48b13b679d843b81cfdeba",
+          "Splinter.Core.dll": "8ace4b9dd254037c4ca3cc83b9270b5b07cbbc77fc590bf2a6b00601eb90a9db",
+          "Splinter.Host.dll": "c9044d5e6af4061b08673f0bce5a59867d550f227e3ce880575889e609f8911b",
+          "Splinter.Platform.Windows.dll": "3a0d645d85791655c24a7993c502d290c4cd7c5e6f0e64af3212648f05af74d0",
+          "Splinter.Protocol.dll": "e143bdf6931a4b5a3e559228e6cfcd2f8b6a39e371f509dfcf2b1669b24b0616",
+          "Splinter.Runtime.dll": "9d9b7d670008e9318d805a69b5f8ff8dd8172e4b2e3c6878aa3b585083054e83",
+          "Splinter.SourceControl.Files.dll": "00b8d26c210ef21303631021ce7f37d51e5d42822719a1dc7114192b191e1fc6",
+          "Splinter.SourceControl.Git.dll": "f6b7d445c1c6cc11474e2e2df001c25c979d5db89cb572d14dadf448410a1df9",
+          "Splinter.Workflows.Windows.dll": "8594d0f1b2a3aca418157d77a24b5f5f8633d27b27884e9d94f199d5b22da460"
+        }
+      }
+    }
+  },
+  "listing": {
+    "qualification": "LO-10",
+    "baseline": "5b70e61",
+    "before": {
+      "candidate": "5b70e61",
+      "input": {
+        "files": 256,
+        "bytes": 16384,
+        "provider": "owned-directory",
+        "optimizedJournal": true
+      },
+      "first": {
+        "statCalls": 256,
+        "listCalls": 1,
+        "seconds": 0.012483
+      },
+      "repeated": {
+        "statCalls": 0,
+        "listCalls": 1,
+        "seconds": 0.0002192
+      },
+      "returnedMetadataMatchesManifest": true,
+      "sampledPayloadMatches": true,
+      "metadataHash": "1ebb6ff2c1e53b76839988a87e58e4fb93290136547fac9a29506143c44660d2",
+      "assemblyHashes": {
+        "runtime": "9d9b7d670008e9318d805a69b5f8ff8dd8172e4b2e3c6878aa3b585083054e83",
+        "core": "8ace4b9dd254037c4ca3cc83b9270b5b07cbbc77fc590bf2a6b00601eb90a9db",
+        "windows": "3a0d645d85791655c24a7993c502d290c4cd7c5e6f0e64af3212648f05af74d0"
+      }
+    },
+    "after": {
+      "candidate": "current",
+      "input": {
+        "files": 256,
+        "bytes": 16384,
+        "provider": "owned-directory",
+        "optimizedJournal": true
+      },
+      "first": {
+        "statCalls": 0,
+        "listCalls": 1,
+        "seconds": 0.0040691
+      },
+      "repeated": {
+        "statCalls": 0,
+        "listCalls": 1,
+        "seconds": 0.0002706
+      },
+      "returnedMetadataMatchesManifest": true,
+      "sampledPayloadMatches": true,
+      "metadataHash": "1ebb6ff2c1e53b76839988a87e58e4fb93290136547fac9a29506143c44660d2",
+      "assemblyHashes": {
+        "runtime": "2e08cc65f9893c5d5cd41cb9ffbfbb549e32a44105cc13882c03655920d2cc0f",
+        "core": "8ace4b9dd254037c4ca3cc83b9270b5b07cbbc77fc590bf2a6b00601eb90a9db",
+        "windows": "3a0d645d85791655c24a7993c502d290c4cd7c5e6f0e64af3212648f05af74d0"
+      }
+    },
+    "sourceHashes": {
+      "runtime": "e790333f9e7a7580e600c29c4286c4a5c930e98f2e02b0638542cf38665853ff",
+      "tests": "56d327d4e80020020789c752731b838cfcb704acac3f421d1b76118f6d272ae1"
+    },
+    "scope": "Editor-free local NTFS, normal assemblies; initial listing only; not a Unity timing claim",
+    "tests": {
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "sourceHashes": {
+    "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs": "556f6d5a2a26383a2338bda1338191fc8b244a1addfab19e1083d33fd64155be",
+    "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs": "aeabf9650bba8881267744b18606945cd0ce269c763902820a6ba2edaf77c231",
+    "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs": "bc3796d485243c7c7d707aefc0db27fe9571ccee9eda8b49a43b3d4ba8c91ca8",
+    "src/Splinter.Runtime/JournalDeltaStore.cs": "e790333f9e7a7580e600c29c4286c4a5c930e98f2e02b0638542cf38665853ff",
+    "tests/Splinter.Tests/UnchangedDirectoryRestoreTests.cs": "b3606594ac3785a31057fcff492ffa25f023ef748b881e1ca6cd75ebb910e753",
+    "tests/Splinter.Tests/ManagedDirectoryRestoreOptimizationTests.cs": "cabb1032ac7238c0a87462135a4c03d93bf39c9a275e73078aba69578bd6956a",
+    "tests/Splinter.Tests/JournalDirectoryListingTests.cs": "56d327d4e80020020789c752731b838cfcb704acac3f421d1b76118f6d272ae1"
+  },
+  "validation": {
+    "focusedPassed": 44,
+    "focusedFailed": 0,
+    "focusedSkipped": 0,
+    "fullSuite": "passed",
+    "fullPassed": 1273,
+    "fullFailed": 0,
+    "fullConditionalSkips": 19,
+    "lockedRestore": "passed",
+    "buildWarnings": 0,
+    "buildErrors": 0,
+    "measuredProductHashesMatchFinalBuild": true,
+    "excludedDirtyFilesUnchanged": 27
+  }
+}
