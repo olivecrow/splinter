@@ -216,7 +216,12 @@ internal sealed class LatestJournalStorage
     }
     private Frame ReadFrame(string path, bool allowPrefix = false)
     {
-        using var f = Open(path); long physicalLength = sealing?.Begin(f) ?? f.Length;
+        using var f = Open(path);
+        return ReadFrame(path, f, allowPrefix);
+    }
+    private Frame ReadFrame(string path, FileStream f, bool allowPrefix = false)
+    {
+        long physicalLength = sealing?.Begin(f) ?? f.Length;
         byte[] header = new byte[HeaderBytes]; f.ReadExactly(header); sealing?.Hash.AppendData(header);
         if (!header.AsSpan(0, 4).SequenceEqual("SJL4"u8) || BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(4)) != 4 || !header.AsSpan(32, 32).SequenceEqual(Convert.FromHexString(owner))) throw Corrupt("A capsule has another owner or format.");
         long id = BinaryPrimitives.ReadInt64LittleEndian(header.AsSpan(8)), data = BinaryPrimitives.ReadInt64LittleEndian(header.AsSpan(16)); int count = BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(24));
@@ -241,7 +246,12 @@ internal sealed class LatestJournalStorage
     }
     private void Index(Frame frame)
     {
-        using var f = Open(frame.Path); long at = HeaderBytes;
+        using var f = Open(frame.Path);
+        Index(frame, f);
+    }
+    private void Index(Frame frame, FileStream f)
+    {
+        long at = HeaderBytes;
         while (at < frame.DataEnd) { f.Position = at; byte[] h = new byte[BlockHeaderBytes]; f.ReadExactly(h); long id = BinaryPrimitives.ReadInt64LittleEndian(h.AsSpan(4)); int n = BinaryPrimitives.ReadInt32LittleEndian(h.AsSpan(12)); BlockHeader(h, id, n); if (at + BlockHeaderBytes + n > frame.DataEnd) throw Corrupt("A block exceeds its capsule."); SetLocation(BlockName(id), new(frame.Path, at, BlockHeaderBytes + n, null)); at += BlockHeaderBytes + n; }
         foreach (var i in frame.Commit.Items)
         {
@@ -325,7 +335,19 @@ internal sealed class LatestJournalStorage
             frames[oldPath] = oldFrame with { Path = oldPath };
             foreach (var entry in Members(rootPath)) SetLocation(entry.Key, entry.Value with { Path = oldPath });
         }
-        head = ReadFrame(rootPath); committedBytes += head.Length; generation = head.Commit.Generation; frames[rootPath] = head; Index(head); boundary("latest.after-root-publication");
+        // Validate and index the exact published file through one short-lived
+        // handle. On Windows its share mode also prevents a write or namespace
+        // replacement between the checksum pass and the block/reference pass.
+        // Dispose before reclamation or the next publication; retain every
+        // existing capsule and index check without caching payload bytes.
+        using (var published = new FileStream(rootPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            head = ReadFrame(rootPath, published);
+            boundary("latest.after-root-validation");
+            committedBytes += head.Length; generation = head.Commit.Generation; frames[rootPath] = head;
+            Index(head, published);
+        }
+        boundary("latest.after-root-publication");
     }
     private void Recover(string path)
     {

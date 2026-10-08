@@ -7,8 +7,9 @@ using Splinter.Runtime;
 
 namespace Splinter.Platform.Windows;
 
-// Pin ancestors and the exact file for each move/write. Only metadata is
-// retained in receipts; restoration still moves files and writes private ranges.
+// Pin ancestor names and the exact file for each move/write. Mutable parents
+// permit child renames and can become empty, so operations retain path/reparse
+// checks rather than treating these namespace handles as immutable tree proof.
 internal sealed class ManagedRestoreFileAccess : IDisposable
 {
     private readonly List<SafeFileHandle> parents = [];
@@ -23,9 +24,12 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
             {
                 // Ancestors are already pinned, root first. Open this component
                 // without following reparses and validate its handle attributes.
-                var handle = OpenHandle(path, 0x80, directory: true);
+                // Include FILE_LIST_DIRECTORY so Windows enforces sharing;
+                // FILE_READ_ATTRIBUTES alone does not prevent directory moves.
+                var handle = OpenHandle(path, 0x81, directory: true, mutable: true);
                 parents.Add(handle); _ = SnapshotInputChecks.FileIdentity(handle, directory: true);
             }
+            foreach (var parent in parents) _ = SnapshotInputChecks.FileIdentity(parent, directory: true);
         }
         catch { Dispose(); throw; }
     }
@@ -33,7 +37,7 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
     {
         WorkspaceStore.EnsurePlainPath(path);
         var handle = OpenHandle(path, 0x80000000 | 0x100u | (moving ? 0x10000u : 0u));
-        try { _ = SnapshotInputChecks.FileIdentity(handle); return new(handle, FileAccess.Read); }
+        try { _ = SnapshotInputChecks.FileIdentity(handle); WindowsOwnedDirectoryLease.RequirePath(handle, path); return new(handle, FileAccess.Read); }
         catch { handle.Dispose(); throw; }
     }
     internal static FileStream Write(string path, string identity, Action<FileStream> validate)
@@ -62,6 +66,7 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         => Move(source.SafeFileHandle, target);
     internal static void Move(SafeFileHandle source, string target)
     {
+        WorkspaceStore.EnsurePlainPath(target);
         // FILE_RENAME_INFO uses an absolute, NUL-terminated Windows name.
         // https://learn.microsoft.com/windows/win32/api/winbase/ns-winbase-file_rename_info
         byte[] name = Encoding.Unicode.GetBytes(Path.GetFullPath(target));
@@ -84,8 +89,9 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         SetBasic(handle, new() { Creation = entry.CreationTime, Access = entry.LastAccessTime, Write = entry.LastWriteTime, Attributes = entry.Attributes });
     internal static SafeFileHandle DirectoryHandle(string path, bool moving = false)
     {
-        var handle = OpenHandle(path, 0x80 | 0x100u | (moving ? 0x10000u : 0u), directory: true);
-        try { _ = SnapshotInputChecks.FileIdentity(handle, directory: true); return handle; }
+        WorkspaceStore.EnsurePlainPath(path);
+        var handle = OpenHandle(path, 0x81 | 0x100u | (moving ? 0x10000u : 0u), directory: true);
+        try { _ = SnapshotInputChecks.FileIdentity(handle, directory: true); WindowsOwnedDirectoryLease.RequirePath(handle, path); return handle; }
         catch { handle.Dispose(); throw; }
     }
     private static void SetBasic(SafeFileHandle handle, BasicInfo info)
@@ -94,9 +100,9 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         try { Marshal.StructureToPtr(info, buffer, false); Check(SetFileInformationByHandle(handle, 0, buffer, (uint)Marshal.SizeOf<BasicInfo>())); }
         finally { Marshal.FreeHGlobal(buffer); }
     }
-    private static SafeFileHandle OpenHandle(string path, uint access, bool directory = false)
+    private static SafeFileHandle OpenHandle(string path, uint access, bool directory = false, bool mutable = false)
     {
-        var handle = CreateFileW(path, access, 1, 0, 3, 0x00200000u | (directory ? 0x02000000u : 0u), 0);
+        var handle = CreateFileW(path, access, mutable ? 3u : 1u, 0, 3, 0x00200000u | (directory ? 0x02000000u : 0u), 0);
         if (!handle.IsInvalid) return handle;
         int error = Marshal.GetLastWin32Error(); handle.Dispose(); throw Native(error);
     }

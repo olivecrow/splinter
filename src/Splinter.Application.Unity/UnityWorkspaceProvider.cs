@@ -31,6 +31,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
             .FirstOrDefault(line => line.StartsWith("m_EditorVersion:", StringComparison.Ordinal))?.Split(':', 2)[1].Trim()
             ?? throw new WorkspaceException("UnityVersionMissing", "ProjectVersion.txt has no Editor version.");
         string executable = ResolveEditor(version);
+        InvalidateCapturedBeeGraphForFirstLaunch(workspace, prior, ct);
         ResetCapturedUnityProcessAddresses(workspace);
         await PrepareInfrastructureAsync(workspace, ct);
         string token = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
@@ -87,6 +88,52 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         {
             string file = Path.Combine(root, relative); PlainPath(file, workspace);
             if (File.Exists(file)) File.Delete(file);
+        }
+    }
+
+    internal static void InvalidateCapturedBeeGraphForFirstLaunch(WorkspaceRecord workspace, ApplicationLease? prior,
+        CancellationToken ct = default)
+    {
+        // Only the first launch of an explicitly grafted Library can inherit
+        // another Editor's compiled graph and its process-specific actions.
+        // Existing launch receipts, ordinary workspaces and whole-project bases
+        // retain their graphs; the caller rejects uncertain launch intents first.
+        if (prior is not null || !WorkspaceStorage.HasRangeJournal(workspace.StorageMode) ||
+            workspace.GeneratedDirectory is not { RelativePath: "Library" } basis) return;
+        if (workspace.GeneratedDirectoryId != basis.Id || string.IsNullOrEmpty(basis.Id) ||
+            !SamePath(basis.ProjectPath, workspace.ProjectPath) || SamePath(workspace.Path, workspace.ProjectPath))
+            throw new WorkspaceException("GeneratedBasisMismatch", "The captured Library does not belong to this isolated workspace.");
+
+        string root = ValidateRoot(workspace), bee = Path.Combine(root, "Library", "Bee");
+        PlainPath(bee, workspace);
+        if (!Directory.Exists(bee))
+        {
+            if (File.Exists(bee)) throw new WorkspaceException("ManagedFilesChanged", "The captured Bee directory is not a directory.");
+            return;
+        }
+        ct.ThrowIfCancellationRequested();
+        string[] graphs = Directory.EnumerateFileSystemEntries(bee)
+            .Where(path => Path.GetFileName(path).EndsWith(".dag", StringComparison.OrdinalIgnoreCase))
+            .Order(StringComparer.Ordinal).ToArray();
+        // Check the complete set before removing anything. Never recurse into
+        // artifacts, edit graph JSON/payloads, or discard Tundra's output state.
+        foreach (string graph in graphs)
+        {
+            ct.ThrowIfCancellationRequested();
+            CheckGraph(graph);
+        }
+        foreach (string graph in graphs)
+        {
+            ct.ThrowIfCancellationRequested();
+            CheckGraph(graph);
+            File.Delete(graph);
+        }
+
+        void CheckGraph(string graph)
+        {
+            PlainPath(graph, workspace);
+            if ((File.GetAttributes(graph) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != 0)
+                throw new WorkspaceException("UnsafePath", "A captured Bee graph is not a plain file: " + graph);
         }
     }
 

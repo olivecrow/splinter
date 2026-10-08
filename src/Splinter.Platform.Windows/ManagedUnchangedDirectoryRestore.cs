@@ -48,7 +48,7 @@ internal static class ManagedUnchangedDirectoryRestore
         RequireAbsent(state.OriginalPath);
         Directory.CreateDirectory(Path.GetDirectoryName(state.OriginalPath)!);
         using var parents = new ManagedRestoreFileAccess(state.Basis.Snapshot.RootPath, state.OriginalPath);
-        using var root = ManagedRestoreFileAccess.DirectoryHandle(state.Basis.Snapshot.RootPath, moving: true);
+        using var root = basis.TransferRootToRestore(() => boundary?.Invoke("directory.root-unpinned"));
         Plan plan;
         using (var pins = new TreePins(state.Basis.Snapshot.RootPath, manifest, root, null, verifyContent: false, ct))
         {

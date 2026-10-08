@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/startup-profile-optimization.md)
 
+Current directory-handle correction: [SA-01–02](startup-additional-optimization.md) replaces attribute-only pin assumptions with native-tested access/sharing and owned-file lifetime protection. The SU costs and candidate qualifications below remain historical.
+
 **SU-01–05** implements the user-mode findings from [UP-01](unity-startup-profile.md). UP measured 766.9024 seconds to initial readiness, including approximately 447 seconds of scanning; it is the previous candidate's evidence. Subsequent actual timing belongs to [US-01](unity-startup-remeasurement.md), including its admission correction and mixed-runtime resumption. No UAC, installed-service update, external-package change, or original-project modification is needed for these changes.
 
 ## Independent Git decoder progress — SU-01

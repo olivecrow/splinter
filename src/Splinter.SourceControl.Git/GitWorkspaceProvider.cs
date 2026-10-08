@@ -8,7 +8,7 @@ using Splinter.Core;
 namespace Splinter.SourceControl.Git;
 
 public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceChanges = null, bool auditSource = false,
-    IWorkspacePreparationObserver? preparationObserver = null) : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, ISnapshotCheckpointSourceProvider
+    IWorkspacePreparationObserver? preparationObserver = null) : ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, ISnapshotCheckpointSourceProvider, ISourceInspectionProofProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public Task<string> ResolveRevisionAsync(string project, string reference, CancellationToken ct = default) =>

@@ -125,6 +125,7 @@ public sealed class JournalPathProofTests
     {
         RequireWindows(); using var fixture = new TestDirectory();
         string directory = Path.Combine(fixture.Path, "objects"); Directory.CreateDirectory(directory);
+        File.WriteAllBytes(Path.Combine(directory, "owner.lock"), []);
         var proof = new WindowsJournalDirectoryGuard(directory);
         proof.EnsureFile(Path.Combine(directory, "missing.bin"));
         Assert.Equal("UnsafePath", Assert.Throws<WorkspaceException>(() => proof.EnsureFile(Path.Combine(fixture.Path, "foreign.bin"))).Code);
@@ -192,6 +193,7 @@ public sealed class JournalPathProofTests
     {
         RequireWindows(); using var fixture = new TestDirectory();
         string delta = Path.Combine(fixture.Path, "delta"), wrong = Path.Combine(fixture.Path, "wrong"); Directory.CreateDirectory(wrong);
+        File.WriteAllBytes(Path.Combine(wrong, "owner.lock"), []);
         var tree = new SnapshotOverlayTests.FakeSnapshotTree(); var identity = Identity(tree);
         Assert.Equal("UnsafePath", Assert.Throws<WorkspaceException>(() => new JournalDeltaStore(delta, identity, tree,
             directoryGuardFactory: _ => Pin(wrong))).Code);

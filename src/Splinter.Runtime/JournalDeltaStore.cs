@@ -542,11 +542,15 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     }
     private void Check(bool allowClosing = false)
     {
+        CheckLocal(allowClosing);
+        snapshot.EnsureAvailable();
+    }
+    private void CheckLocal(bool allowClosing = false)
+    {
         ObjectDisposedException.ThrowIf(disposed || closing && !allowClosing, this);
         if (poisoned) throw new WorkspaceException("DeltaReconnectRequired", "A failed append requires closing and replaying the preserved delta.");
         if (!replaying && journal.Length != expectedJournalBytes)
             throw new WorkspaceException("DeltaCorrupt", "Journal length changed outside the owned writer; preserve it.");
-        snapshot.EnsureAvailable();
     }
     private Node Required(Guid id) => nodes.TryGetValue(id, out var node) ? node : throw new FileNotFoundException("Unknown open file identity.");
     private Node RequiredFile(Guid id) { var node = Required(id); return !node.Entry.Directory ? node : throw new IOException("Cannot read or write a directory."); }

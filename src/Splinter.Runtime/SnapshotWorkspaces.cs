@@ -17,8 +17,9 @@ public sealed partial class WorkspaceCoordinator
         WorkspaceStorage.HasRangeJournal(w.StorageMode) && preparationObserver is not null
             ? preparationObserver.ReachedAsync(boundary, w, ct) : Task.CompletedTask;
 
-    private async Task EnsureSnapshotAsync(WorkspaceRecord w, CancellationToken ct)
+    private async Task<ISourceInspectionProof?> EnsureSnapshotAsync(WorkspaceRecord w, CancellationToken ct)
     {
+        ISourceInspectionProof? responseProof = null;
         var state = RequireSnapshot(w);
         if (state.MaxJournalBytes is < 4096 or > 1099511627776) throw new WorkspaceException("InvalidJournalBudget", "Journal budget must be between 4096 bytes and 1 TiB.");
         if (state.Step.StartsWith("release-", StringComparison.Ordinal))
@@ -62,9 +63,13 @@ public sealed partial class WorkspaceCoordinator
             await SnapshotSources.AttachAsync(w, control, ct);
             w.BaseRevision = await SnapshotSources.EstablishBaselineAsync(w, control, ct);
             await PreparationPointAsync("attach.after-effect", w, ct);
-            var source = await sources.InspectAsync(w, ct);
+            var inspection = sources is ISourceInspectionProofProvider provider
+                ? await provider.InspectWithProofAsync(w, ct)
+                : new ProvedSourceInspection(await sources.InspectAsync(w, ct), null);
+            var source = inspection.Source;
             if (source.Revision != w.BaseRevision || source.HasChanges)
                 throw new WorkspaceException("SnapshotCheckpointMismatch", "Captured files do not match the clean source checkpoint. Preserve the snapshot and delta.");
+            responseProof = inspection.Proof;
             state.Attached = true;
             w.Phase = "ready";
             await PreparationPointAsync("ready.before-record", w, ct);
@@ -73,6 +78,7 @@ public sealed partial class WorkspaceCoordinator
         }
         w.LastError = null;
         store.Save(w, "snapshot-ensured");
+        return responseProof;
     }
 
     private async Task ConnectSnapshotAsync(WorkspaceRecord w, CancellationToken ct)

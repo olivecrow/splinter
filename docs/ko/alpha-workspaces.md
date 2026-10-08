@@ -47,6 +47,10 @@ release는 독립 결과를 남긴 뒤 소유 Editor/provider/mount/Git/delta·�
 
 Unity 어댑터는 PID·시작 시각·실행 파일·토큰·프로젝트 경로와 Job Object 자식을 확인한다. 소유 `Assets/__Splinter__` 브리지는 liveness·import/compile 중 상태 관측과 정상 종료만 제공하고 프로젝트 함수를 실행하지 않는다. Play·미저장 씬·진행 중 import/compile은 정상 종료를 막는다. 최대 2분의 종료 대기 뒤에도 강제 종료/회수하지 않으며 작업과 로그를 보존한다.
 
+명시적 `Library` graft가 있는 범위 저널 workspace의 최초 Editor 시작 전에는 그 workspace의 private view에서 `Library/Bee/*.dag` 직속 일반 compiled graph 파일만 삭제한다. Library ID/프로젝트 연결과 서로 다른 원본/workspace 경로가 일치해야 한다. 전체 대상의 경로·reparse·형식을 먼저 검사하고, 각 삭제 직전에도 다시 검사한다. 일부 삭제 뒤 중단하면 같은 작업으로 재개할 수 있다. 기존 launch receipt가 있으면 이 단계를 생략하고, receipt 없는 intent는 계속 시작을 거부한다. 일반 checkout·Library 이외 참조·전체 프로젝트 기준본에는 적용하지 않는다.
+
+`TundraBuildState.state`, `bee_backend.info`, graph JSON/payload, response file, artifact와 하위 파일을 보존하며 원본·peer도 변경하지 않는다. Unity는 자체 frontend를 통해 compiled graph를 다시 만든다. Splinter는 Unity를 패치하거나 외부 도구 설정·서버 수명을 조작하지 않는다. [SA-05](verification/startup-additional-optimization.md#한정-bee-실험)의 작은 실제 Bee backend fixture에서 compiled graph가 없으면 과거 action 실행 없이 frontend 작업을 요청하고 명시적 baking이 성공함을 확인했다. 이 fixture는 Unity frontend/Editor를 실행하지 않았으며 관측된 ILPP 60초 지연의 제거나 전체 준비 시간 절감을 측정하지 않았다.
+
 Splinter는 외부 패키지의 초기화·종료 callback을 조회하거나 해제하지 않고 서버나 패키지 전용 run-state 파일도 관리하지 않는다. 외부 도구가 자체 공유 서버를 종료하는 결함은 해당 도구/에이전트 절차의 책임이다. 소유 Editor의 정상 종료와 결과/자원 guard는 유지하며 외부 연결 성공을 요구하지 않는다.
 
 사용자 설정·라이선스·CPU/GPU·외부 서비스는 공유된다. 보안 샌드박스가 아니다. source hash 확인은 `workspace status --verify-source`, 전체 감사는 `--audit-source`다. 일반 status는 파일 내용을 읽지 않고 실행 자원을 관측한다. 실제 한정 실행 근거와 실패·재시도/비용은 [대표 사용](verification/representative-agent-workflow.md)에 보존하며 새 외부 도구 경로의 성공으로 승계하지 않는다.

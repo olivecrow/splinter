@@ -5,7 +5,7 @@ namespace Splinter.SourceControl.Files;
 // Selection is durable. An adapter failure is propagated, never reinterpreted
 // as a request for another source mode.
 public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWorkspaceProvider files, ISourceWorkspaceProvider? plastic = null) :
-    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISnapshotCheckpointSourceProvider
+    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISnapshotCheckpointSourceProvider, ISourceInspectionProofProvider
 {
     private ISourceWorkspaceProvider For(WorkspaceRecord w) => w.SourceKind switch
     { "git" => git, "none" => files, "plastic" when plastic is not null => plastic, _ => throw new WorkspaceException("SourceSelectionUnsupported", "Unknown or unavailable durable source kind.") };
@@ -14,6 +14,9 @@ public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWork
     public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => git.ResolveRevisionAsync(p, r, ct);
     public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => For(w).CreateAsync(w, ct);
     public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default) => For(w).InspectAsync(w, ct);
+    public async Task<ProvedSourceInspection> InspectWithProofAsync(WorkspaceRecord w, CancellationToken ct = default) =>
+        For(w) is ISourceInspectionProofProvider provider
+            ? await provider.InspectWithProofAsync(w, ct) : new(await For(w).InspectAsync(w, ct), null);
     public Task<string> CheckpointAsync(WorkspaceRecord w, string message, CancellationToken ct = default) => For(w).CheckpointAsync(w, message, ct);
     public bool SupportsCheckpointAndPreserve(WorkspaceRecord w) =>
         For(w) is ISnapshotCheckpointSourceProvider provider && provider.SupportsCheckpointAndPreserve(w);

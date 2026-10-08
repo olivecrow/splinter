@@ -8,9 +8,13 @@
 
 range journal의 명시적 전체 raw hash는 pooled 1MiB buffer를 한 파일씩 재사용해 읽기 callback 수를 제한한다. 파일을 끝까지 읽는 SHA-256 값·취소/실패와 검사 전후 세대 guard는 유지하며 payload를 디스크에 저장하지 않는다. 작은 파일도 이 buffer를 재사용하고 파일 수에 비례하는 payload 배열을 만들지 않는다.
 
+`git-snapshot`은 clean 변환이 바이트를 보존한다고 증명된 파일의 raw SHA-256과 Git SHA-1/SHA-256 blob hash를 같은 읽기에서 계산한다. blob hash에는 `blob <length>\0` header를 포함하며 실제 읽은 바이트 수와 같은 stream의 최종 길이를 확인한다. 현재 내용을 끝까지 읽는 것은 그대로다. mounted 내용을 HEAD·시각·index·원본 프로젝트 바이트로 대체하지 않는다.
+
+증명은 해석 digest에 포함한 것과 같은 유효 config/attribute 출력을 사용한다. filter·working-tree-encoding·ident 속성이 없어야 하고 `core.safecrlf`가 비활성이어야 한다. 한정된 변환 비활성 설정은 내용 조건 없이 허용하며, 그 외에는 전체 내용에 CR이 없으면 EOL 변환이 바이트를 바꾸지 않음을 증명한다. 자동 text 변환은 파일 어느 위치에서든 NUL이 발견되는 경우도 허용하되, Git 변환 통계의 overflow를 피하도록 길이를 최대 4,294,967,295바이트로 제한한다. 명시적 text는 이 binary 증명을 사용할 수 없다. 모호한 `unset` 출력은 보수적으로 처리한다. 증명하지 못한 경우와 해석 변경 뒤 새 Git hash가 필요한 cached raw hash는 기존 Git filtered hashing을 사용한다. Git의 모든 변환 규칙을 재구현하지 않는다. 자격은 [SA-03](verification/startup-additional-optimization.md)이 소유하며, 이번 변경의 실제 Unity 준비 시간은 **NotRun**이다.
+
 ## 검증 흐름과 소유 경계
 
-`unity start`와 `workspace ensure --editor`는 실행 상태만 관측한다. 시작 후 현재 소스 검사나 컴파일 성공을 요구하지 않는다. Editor 없는 ensure·명시적 `--verify-source`/감사·checkpoint/integrate의 현재 내용 검사와 결과 seal은 유지한다.
+`unity start`는 응답을 위한 현재 소스 검사를 추가하지 않고 실행/자원 관측을 반환한다. 필수 준비 검사는 유지한다. 범위 저널이 아닌 `workspace ensure --editor`도 같은 응답 정책을 따른다. 범위 저널 ensure는 처음 attach한 소스를 검증하며, `--editor`는 Editor 시작 뒤 응답을 위한 새로운 현재 소스 검사를 유지한다. 이 응답은 새 `.meta` 같은 변경을 보고할 수 있다. 어느 연산도 컴파일 성공을 인증하지 않는다. Editor 없는 ensure·명시적 `--verify-source`/감사·checkpoint/integrate의 현재 내용 검사와 결과 seal은 유지한다.
 
 Core의 `ISourceChangeProvider`/`SourceChangeView`는 workspace ID, snapshot ID, provider epoch, 마지막 소스 sequence, 경로별 마지막 변경 sequence를 제공한다. Runtime의 `JournalDeltaStore`는 acknowledged journal 기록에서 이 집합을 만들고 재생 시 다시 구성한다. 새 provider의 epoch는 항상 다르다. Core는 Git·Unity·Win32 API를 참조하지 않는다.
 
@@ -23,12 +27,14 @@ Git 어댑터는 다음 순서로 검사한다.
 1. provider의 소스 세대를 확인하고 현재 HEAD·관리 대상 경로·staged 변경 목록과 전체 index 항목을 열거한다. worktree `git status`로 변경 없는 payload를 다시 읽게 하지 않는다.
 2. 관리 경로 정책, 유효 Git attributes와 config의 digest를 확인한다. config 원문은 manifest나 계측 로그에 저장하지 않는다. 미지원 filter/LFS·working-tree-encoding은 계속 거부한다.
 3. 같은 snapshot/epoch/policy에서 변경되지 않은 파일의 raw hash를 재사용하고, 변경된 파일만 전체 raw 내용을 해시한다. 디렉터리 rename은 하위 경로도 무효화한다. 추가·삭제·`.meta`·truncate·원자적 교체는 경로/세대와 재열거로 검출한다.
-4. Git 내용 hash도 재사용하거나 최대 256개 경로씩 `git hash-object --stdin-paths`로 계산한다. UTF-8 경로를 Git의 C 인용 형식으로 전달해 공백·비ASCII 이름을 보존하고 경로별 attributes/EOL 변환을 유지한다. 각 경로에 대응하는 유효 hash가 정확히 하나씩 반환돼야 한다. HEAD의 blob ID와 비교해 `changedPaths`/`hasChanges`를 보완한다. 같은 크기/mtime으로 Git이 clean을 반환해도 내용이 다르면 변경으로 판정한다. attributes/config 해석이 바뀌면 raw hash와 별도로 Git 내용 hash를 다시 계산한다.
+4. Git 내용 hash를 재사용하거나, `git-snapshot`에서 clean identity가 증명되면 현재 raw 읽기에서 함께 계산하고, 나머지는 최대 256개 경로씩 `git hash-object --stdin-paths`로 계산한다. UTF-8 경로를 Git의 C 인용 형식으로 전달해 공백·비ASCII 이름을 보존하고 경로별 attributes/EOL 변환을 유지한다. 전달한 각 경로에 대응하는 유효 hash가 정확히 하나씩 반환돼야 한다. HEAD의 blob ID와 비교해 `changedPaths`/`hasChanges`를 보완한다. 같은 크기/mtime으로 Git이 clean을 반환해도 내용이 다르면 변경으로 판정한다. attributes/config 해석 변경은 raw hash 재사용과 별도로 Git hash 재사용을 무효화한다.
 5. HEAD·경로 집합·staged 변경 목록·전체 index 항목·해석 digest와 provider 세대를 다시 확인한다. 도중 변경은 `SourceChanged`이며 manifest와 현재 검증 성공을 갱신하지 않는다.
 
 수집 시 변경된 기존 파일에는 `git add --renormalize`를 경로별로 적용해 stat cache가 숨긴 내용도 index에 반영한다. 그 뒤 raw fingerprint와 실제 커밋을 다시 검사한다. 새 파일/삭제는 기존 `git add -A` 경로를 유지한다. 결과 수집의 `stable-journal-v1`, 전후·unmount 후 seal 검사와 독립 결과 검증은 그대로 필요하다.
 
 속성 검사는 경로 50개마다 프로세스를 실행하는 대신, UTF-8 NUL 구분 경로를 `git check-attr --stdin -z`에 256 KiB를 목표로 묶어 전달한다. 현재 파일과 cached index의 filter/encoding 검사, 전후 전체 속성 해석 digest를 유지하며 출력 순서와 digest 바이트도 같다. 속성 결과 cache로 이 검사를 대체하지 않는다.
+
+Editor 없는 범위 저널 ensure에서 새로 attach할 때는 선택적 `ISourceInspectionProofProvider` 계약으로 첫 Git 검사 결과를 그 연산의 응답까지 유지할 수 있다. 한 번만 사용하는 증명은 등록·workspace/project/snapshot identity·관리 경로 정책·HEAD·전체 index·구성원·유효 해석과 provider epoch/sequence/전체 변경 이력을 재검증한 뒤 검사한 소스를 반환한다. 증거가 바뀌거나 unknown이면 거부한다. 증명은 같은 연산의 메모리에만 유지하며 직렬화·계측값에서 재구성·명령/재시작 간 전달을 하지 않는다. 감사·불완전한 구성원·미지원 adapter·이미 attach한 요청은 일반 검사 경로를 유지한다. `--editor`는 이 응답 증명을 버리고 위에서 설명한 새로운 검사를 수행한다. 자격은 [SA-04](verification/startup-additional-optimization.md)가 소유하며 새로운 실제 Unity 시간 측정은 **NotRun**이다.
 
 범위 저널의 첫 checkpoint는 앱 종료 전에 자원 준비 상태를 관측하고, checkpoint adapter와 seal을 갖춘 독립 결과 수집으로 소스를 검증한다. 최종 응답은 자원만 관측하여 `sourceVerification=not-checked`이고 `source`를 생략하며, 검증한 결과 revision/fingerprint/seal은 `workspace.snapshot.result`에 남는다. 수집 뒤 현재 소스를 다시 검사했다고 주장하지 않으면서 추가 소스 검사 두 번을 줄인다. 기존 revision이 있는 checkpoint 재요청은 현재 소스를 계속 검사한다. 새 현재 소스 관측이 필요하면 `workspace status --verify-source`를 요청한다.
 
@@ -58,9 +64,11 @@ release는 infrastructure 제거 후 저장한 저널 seal과 정확히 일치�
 
 `source.inspection.gitHashProcesses`와 `storage.metrics` 안의 replay·범위 index·live write 계수는 현재 형식에서 필수다. provider가 아직 계측을 제공하지 못한 경우 `metrics` 객체 자체의 부재는 가능하지만, 존재하는 객체의 필드 누락을 구형 형식으로 수용하지 않는다. OS·공유 저장소의 실제 관측 불가 값은 계속 unknown이다.
 
+초기 ensure의 증명 응답은 첫 검사의 mode·바이트·파일 수·소요 시간 등 계측값을 그대로 반환한다. 이는 두 번째 검사나 증명 재검증 시간의 별도 측정값이 아니다. 재검증은 `source-inspections.jsonl`에 검사 기록을 추가하지 않는다. 반환 계측값과 첫 기록을 두 번의 소스 검사로 합산하지 않는다.
+
 | 위치 | 측정 항목 | 해석 경계 |
 | --- | --- | --- |
-| `source.inspection`, `source-inspections.jsonl` | mode, raw payload bytes, 해시/재사용 파일 수, manifest bytes, 시간, epoch/sequence, `gitHashInputBytes`, `gitHashProcesses` | Git 바이트는 내용 hash에 넘긴 파일의 raw 논리 길이이며 프로세스 수는 해당 검사의 hash-object 호출 수다. 전체 Git 명령 수·I/O·물리 디스크 읽기량과 다르다. 초기/감사/재개 비용도 기록하며 현재 계측 객체의 프로세스 수는 필수다 |
+| `source.inspection`, `source-inspections.jsonl` | mode, raw payload bytes, 해시/재사용 파일 수, manifest bytes, 시간, epoch/sequence, `gitHashInputBytes`, `gitHashProcesses` | Git 바이트와 프로세스는 fallback `hash-object` 입력과 호출만 센다. 전달한 파일의 raw 논리 길이와 실제 hash-object 프로세스 수다. 같은 pass에서 계산한 Git hash는 Git 입력 바이트/프로세스를 늘리지 않으며 읽은 현재 바이트는 raw payload bytes에 포함된다. 전체 Git 명령 수·I/O·물리 디스크 읽기량과 다르다. 초기/감사/재개 비용을 기록하며 현재 계측 객체의 프로세스 수는 필수다. 증명 응답은 위 설명처럼 첫 계측값을 재사용한다 |
 | `storage.metrics` | provider epoch, lock 횟수/대기 tick, flush 횟수/tick, commit/append bytes, replay bytes/tick·프레임·읽기 호출·단계별 tick, base/journal read bytes | 현재 provider 프로세스의 누적 계수다. 재시작 뒤 다른 epoch끼리 단순 차감하지 않는다. tick은 `stopwatchFrequency`로 환산한다 |
 | `storage-reads.jsonl` | seal과 최종 delta 삭제 전 확인의 실제 stream bytes와 해시 시간 | delta 밖의 진단 기록이다. seal 값·삭제 권한의 근거를 대신하지 않는다 |
 | `scripts/measure-workspace-storage.ps1` | FILE_STANDARD_INFO 파일 할당, 논리 길이, 정확한 task/shared root별 분류, 공유 볼륨 여유/VSS 관측 | 읽기 전용 개발 도구다. source/application·workspace 선택을 받으며 mount를 순회하거나 논리 트리를 실제 복제량으로 합산하지 않는다 |
@@ -115,4 +123,4 @@ Windows 어댑터의 `WinFspOverlayFileSystem.mutationGate`는 변경 callback �
 
 ## 계약과 진입점
 
-`contracts/v1/source-change-{request,response,view}.schema.json`, `workspace-status-request.schema.json`, `response.schema.json`, `overlay-observation.schema.json`, `storage-read-measurement.schema.json`이 입력·출력·계측 계약이다. `capabilities.sourceVerification`에 현재 방식과 감사 명령·계측 위치가 있다. 구현은 `Core/SourceChanges.cs`, `Runtime/JournalDeltaStore.cs`·`JournalWriteMetrics.cs`, `SourceControl.Git/GitSourceFingerprint.cs`, `Platform.Windows/WindowsSourceChanges.cs`와 `NtfsSnapshotWorkspaceBackend.cs`에 나뉜다.
+`contracts/v1/source-change-{request,response,view}.schema.json`, `workspace-status-request.schema.json`, `response.schema.json`, `overlay-observation.schema.json`, `storage-read-measurement.schema.json`이 입력·출력·계측 계약이다. `capabilities.sourceVerification`에 현재 방식과 감사 명령·계측 위치가 있다. 구현은 `Core/SourceChanges.cs`·`SourceInspectionProof.cs`, `Runtime/JournalDeltaStore.cs`·`JournalWriteMetrics.cs`·`SnapshotWorkspaces.cs`·`WorkspaceCoordinator.cs`, `SourceControl.Git/GitSourceFingerprint.cs`·`GitCleanIdentity.cs`·`GitInspectionProof.cs`, `Platform.Windows/WindowsSourceChanges.cs`와 `NtfsSnapshotWorkspaceBackend.cs`에 나뉜다.

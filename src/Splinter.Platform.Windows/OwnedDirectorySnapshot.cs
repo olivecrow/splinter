@@ -23,20 +23,28 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
     private readonly Dictionary<string, OwnedDirectoryItem> items;
     private readonly Dictionary<string, SafeFileHandle> files = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, SnapshotEntry[]> children;
-    private bool disposed;
+    private readonly object gate = new();
+    private readonly Action? readAdmitted;
+    private WindowsOwnedDirectoryLease? directoryLease;
+    private bool closing, disposed, handingOff;
+    private int activeReads;
+    private Exception? readFailure;
     public OwnedDirectoryManifest Manifest { get; }
     public OwnedDirectorySnapshotTree(OwnedDirectoryManifest manifest, SnapshotReference snapshot, bool verifyContent = true)
+        : this(manifest, snapshot, verifyContent, null) { }
+    internal OwnedDirectorySnapshotTree(OwnedDirectoryManifest manifest, SnapshotReference snapshot, bool verifyContent, Action? readAdmitted)
     {
         if (manifest.Version != 1 || manifest.Snapshot != snapshot || snapshot.Provider != ProviderName || !snapshot.Persistent || !snapshot.Differential ||
             snapshot.Consistency != "stopped-original-owned-directory")
             throw new WorkspaceException("GeneratedBasisMismatch", "Preserve an unsupported or changed generated basis.");
-        Manifest = manifest; Snapshot = snapshot;
+        Manifest = manifest; Snapshot = snapshot; this.readAdmitted = readAdmitted;
         items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.OrdinalIgnoreCase);
         children = manifest.Items.Where(i => i.Entry.Path.Length != 0).GroupBy(i => Parent(i.Entry.Path), StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.Select(i => i.Entry).ToArray(), StringComparer.OrdinalIgnoreCase);
         if (items.Count > JournalDeltaStore.MaxIndexedNodes || !items.ContainsKey("")) throw new WorkspaceException("GeneratedBasisCorrupt", "Invalid generated metadata bounds/root.");
         try
         {
+            if (OperatingSystem.IsWindows()) directoryLease = new(snapshot.RootPath);
             foreach (var item in manifest.Items)
             {
                 string path = Resolve(item.Entry.Path); var attrs = File.GetAttributes(path);
@@ -82,21 +90,82 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
         }
         finally { ArrayPool<byte>.Shared.Return(buffer); }
     }
-    public void EnsureAvailable() { ObjectDisposedException.ThrowIf(disposed, this); if (!Directory.Exists(Snapshot.RootPath)) throw new WorkspaceException("SnapshotMissing", "Retain the missing generated basis."); }
-    public SnapshotEntry? Stat(string path) { EnsureAvailable(); return items.GetValueOrDefault(JournalDeltaStore.Normalize(path))?.Entry; }
+    private void Check()
+    {
+        ObjectDisposedException.ThrowIf(closing || disposed, this);
+        if (readFailure is not null) throw new WorkspaceException("SnapshotReadFailed", "Preserve the generated basis after a failed read or root handoff.");
+        if (handingOff) throw new WorkspaceException("SnapshotReadFailed", "The generated root is being handed to restoration.");
+        if (directoryLease is not null) directoryLease.EnsureAvailable();
+        else if (!Directory.Exists(Snapshot.RootPath)) throw new WorkspaceException("SnapshotMissing", "Retain the missing generated basis.");
+    }
+    public void EnsureAvailable() { lock (gate) Check(); }
+    public SnapshotEntry? Stat(string path) { lock (gate) { Check(); return items.GetValueOrDefault(JournalDeltaStore.Normalize(path))?.Entry; } }
     public IReadOnlyList<SnapshotEntry> List(string path)
     {
-        path = JournalDeltaStore.Normalize(path); EnsureAvailable();
-        if (Stat(path) is not { Directory: true }) throw new DirectoryNotFoundException(path);
-        return children.GetValueOrDefault(path) ?? [];
+        lock (gate)
+        {
+            Check(); path = JournalDeltaStore.Normalize(path);
+            if (items.GetValueOrDefault(path)?.Entry is not { Directory: true }) throw new DirectoryNotFoundException(path);
+            return children.GetValueOrDefault(path) ?? [];
+        }
     }
-    public int Read(string path, long offset, Span<byte> destination) { EnsureAvailable(); return RandomAccess.Read(files[JournalDeltaStore.Normalize(path)], destination, offset); }
+    public int Read(string path, long offset, Span<byte> destination)
+    {
+        SafeFileHandle handle;
+        lock (gate) { Check(); handle = files[JournalDeltaStore.Normalize(path)]; activeReads++; }
+        try
+        {
+            readAdmitted?.Invoke();
+            int read = RandomAccess.Read(handle, destination, offset);
+            lock (gate)
+            {
+                // An admitted read can finish while Dispose waits, but another
+                // concurrent I/O failure invalidates its completion proof.
+                if (readFailure is not null) throw new WorkspaceException("SnapshotReadFailed", "A concurrent generated-basis read failed.");
+                directoryLease?.EnsureAvailable();
+            }
+            return read;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or WorkspaceException)
+        { lock (gate) readFailure ??= ex; throw; }
+        finally { lock (gate) { activeReads--; Monitor.PulseAll(gate); } }
+    }
     private string Resolve(string path)
     {
         if (JournalDeltaStore.Normalize(path) != path) throw new WorkspaceException("GeneratedBasisCorrupt", "Invalid manifest path.");
         string result = Path.Combine(Snapshot.RootPath, path.Replace('/', Path.DirectorySeparatorChar)); WorkspaceStore.EnsurePlainPath(result); return result;
     }
-    public void Dispose() { disposed = true; foreach (var file in files.Values) file.Dispose(); files.Clear(); }
+    internal SafeFileHandle TransferRootToRestore(Action? rootUnpinned = null)
+    {
+        lock (gate)
+        {
+            Check();
+            if (directoryLease is null) throw new PlatformNotSupportedException();
+            handingOff = true;
+            try
+            {
+                while (activeReads != 0) Monitor.Wait(gate);
+                ObjectDisposedException.ThrowIf(closing || disposed, this);
+                if (readFailure is not null) throw new WorkspaceException("SnapshotReadFailed", "A generated-basis read failed before restoration.");
+                return directoryLease.TransferToRestore(rootUnpinned);
+            }
+            catch (Exception ex) { readFailure ??= ex; throw; }
+            finally { handingOff = false; Monitor.PulseAll(gate); }
+        }
+    }
+    public void Dispose()
+    {
+        lock (gate)
+        {
+            if (disposed) return;
+            closing = true;
+            while (activeReads != 0 || handingOff) Monitor.Wait(gate);
+            if (disposed) return;
+            foreach (var file in files.Values) file.Dispose();
+            files.Clear(); directoryLease?.Dispose(); disposed = true;
+            Monitor.PulseAll(gate);
+        }
+    }
     private static string Parent(string path) { int slash = path.LastIndexOf('/'); return slash < 0 ? "" : path[..slash]; }
 }
 

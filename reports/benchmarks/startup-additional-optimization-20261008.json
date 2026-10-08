@@ -1,0 +1,460 @@
+{
+  "verificationIds": [
+    "SA-01",
+    "SA-02",
+    "SA-03",
+    "SA-04",
+    "SA-05"
+  ],
+  "candidate": {
+    "baseCommit": "49d86797e532149ad0fbbfc3f9b123a7024ad0d6",
+    "state": "uncommitted working tree",
+    "filesSha256": {
+      "src/Splinter.Application.Unity/UnityWorkspaceProvider.cs": "a6f9ae6d23cce4e4662faea28b665b33c1df85d2f7e34bca9316b3bbf9969e7b",
+      "src/Splinter.Core/SourceInspectionProof.cs": "7e946c9558a43816867a2c57c1baabd5eefac95dd4d29b1d5f896435aac44f3d",
+      "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs": "33f4a01ca26ce26a499d5aee2f36c5104ceace9e2028631bebc556dc3d11b6ec",
+      "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs": "7e47ee76f344530c8e892e903b1d4c146ac3c456a13c815439c2961f214f22dd",
+      "src/Splinter.Platform.Windows/OwnedDirectorySnapshot.cs": "1453576af755db8c31a231e322d9d6ea16c3880626c53abacc44f377d111ed6d",
+      "src/Splinter.Platform.Windows/WindowsJournalDirectoryGuard.cs": "508c6433afd2a0cf4b31dfe33c0df211e11ea170fd8822b365418bdfb539321a",
+      "src/Splinter.Platform.Windows/WindowsOwnedDirectoryLease.cs": "333e253538dc0d91274a5164ed36a05b42edefa63a3ff3b1db1a5d5b4cb9cc15",
+      "src/Splinter.Runtime/JournalDeltaLatest.cs": "c198ea4c55f6ed6ac72d6f688b90733c6bc7476621f1e3bfa72974e0a5cb12e7",
+      "src/Splinter.Runtime/JournalDeltaStore.cs": "129a152ffbed21a61f6c8e490c82a3a8c2a6c3e54884b8ca6674832b22466e35",
+      "src/Splinter.Runtime/LatestJournalStorage.cs": "1506ce63e1d91e6f6970447519c7586fe5538a46011acaadbec3132e52526cf7",
+      "src/Splinter.Runtime/SnapshotWorkspaces.cs": "f1938e940d0a299466dd0996b24a54a7f012529ddf9e49ff063653abeebf917a",
+      "src/Splinter.Runtime/WorkspaceCoordinator.cs": "11f90f6a61940784eca1508eae8969aa80358d79527ac2e47b4ccce0974e2c7d",
+      "src/Splinter.SourceControl.Files/SourceWorkspaceRouter.cs": "de79e7ec8256cb565f8f50245bfa43a0171f943efd26261333c29411b6908703",
+      "src/Splinter.SourceControl.Git/GitCleanIdentity.cs": "bf9ad51a7ce7ca6f17a1a2929c2989ae388e5867304538de1b0156d536af3b2b",
+      "src/Splinter.SourceControl.Git/GitInspectionProof.cs": "4f59bd4b40685cf9353137ea7cb5d30af5b46b313943d533ef689f9b0b7e55ff",
+      "src/Splinter.SourceControl.Git/GitSourceFingerprint.cs": "172bca258b8932092a14b1f67bd9f08e9b1c8874b403a862fd3b8a02c8e86e24",
+      "src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs": "be0e6357572ba50acd2e20308463582be2bb25116ec1aa9372972e2db0fa189e",
+      "tests/Splinter.Tests/GitCleanIdentityTests.cs": "1fdbc3334249b28bb947c25fc3f99df53d48b9825d16c924cca11181dcc50c76",
+      "tests/Splinter.Tests/JournalCloseAvailabilityTests.cs": "67229789e2f294fccea34c9881d4694acb9f587fe442e7362b6f121a7419206b",
+      "tests/Splinter.Tests/JournalPathProofTests.cs": "ddf5e83fff7dfec14461ac7b452f8a2f845e02ccac56c4585adc832d1f829639",
+      "tests/Splinter.Tests/JournalPublicationHandleTests.cs": "8444a28875aadc051edb20e3e5aa0a603eb73cc892cd23f98996dd60301aded6",
+      "tests/Splinter.Tests/OwnedDirectoryLifetimeTests.cs": "9b3ccd3d23c4a6480228bf76fa332175642ce1396ba0f52721eb094af6a71902",
+      "tests/Splinter.Tests/SnapshotEnsureProofTests.cs": "0d7fc5934129ba95afcf8ee063a3b6ca831e40b96589bf9c19015d2c48e76442",
+      "tests/Splinter.Tests/SourceInspectionProofTests.cs": "21b0fae3c3fdff51ab774952366e32c29a92a899fbc645ec08050145ed9acd2a",
+      "tests/Splinter.Tests/UnityCapturedBeeGraphTests.cs": "b4733f058ef21cd3d6300363c4c4b38e473d822ae0d3d4e1a167ad7411e61641"
+    },
+    "frozenRuntime": [
+      {
+        "name": "Humanizer.dll",
+        "length": 643760,
+        "sha256": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39"
+      },
+      {
+        "name": "Json.More.dll",
+        "length": 54272,
+        "sha256": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f"
+      },
+      {
+        "name": "JsonPointer.Net.dll",
+        "length": 25088,
+        "sha256": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8"
+      },
+      {
+        "name": "JsonSchema.Net.dll",
+        "length": 294400,
+        "sha256": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c"
+      },
+      {
+        "name": "Splinter.Application.Unity.dll",
+        "length": 51712,
+        "sha256": "4ccfcb074391c628ae3909bef74225d14f3a5fe52bfcedbbefad5d3298aa530c"
+      },
+      {
+        "name": "Splinter.Application.Unity.pdb",
+        "length": 18368,
+        "sha256": "e3d5f3e20843f1d140b7cdf493ddf7ae227462e06e4adc21e24df83de3e06676"
+      },
+      {
+        "name": "Splinter.Core.dll",
+        "length": 255488,
+        "sha256": "c487902c783dc326cca4faca8ff0ff41230b385a7a2887d6ff7eb085adc7d043"
+      },
+      {
+        "name": "Splinter.Core.pdb",
+        "length": 51228,
+        "sha256": "c5abb85a237d1ad01ec72c5dbe495dd4bc25685d3ab89a514ab3d3df2dcb192c"
+      },
+      {
+        "name": "splinter.deps.json",
+        "length": 9888,
+        "sha256": "ffeee71a0f0aca6909ef5253ebff532fd34f59d6b2028bf236f6afc6a923d8db"
+      },
+      {
+        "name": "splinter.dll",
+        "length": 117760,
+        "sha256": "ccb956fef60b6559bc7d3cbbc7229a5e9410edb0aed01a418b773180a35fc220"
+      },
+      {
+        "name": "splinter.exe",
+        "length": 162304,
+        "sha256": "06484b537497f4e763c1b1fe37f4895a0b89a32ce8b4d890957383ddb105f7bc"
+      },
+      {
+        "name": "Splinter.Host.dll",
+        "length": 75776,
+        "sha256": "d0095284153896723b8c9c552bc8734b9665951b5f20551c4faa115c517f149e"
+      },
+      {
+        "name": "Splinter.Host.pdb",
+        "length": 13264,
+        "sha256": "d7d961d1dae04134c37dc90cd6213822ec96a5e7423a2ab07574a6a59fa085f1"
+      },
+      {
+        "name": "splinter.pdb",
+        "length": 24212,
+        "sha256": "7e9a0c5ab43b579fbc2cecf5f502f1cc45be88160def757a8da1937709513695"
+      },
+      {
+        "name": "Splinter.Platform.Windows.deps.json",
+        "length": 2946,
+        "sha256": "ee3448c0bf432243eb1f7e43c831f141623f33d528d48be4f5e61a6b1acc7000"
+      },
+      {
+        "name": "Splinter.Platform.Windows.dll",
+        "length": 467456,
+        "sha256": "ebea9381366b0d043bbde05d2e21e74bc0c2d22eaa6a255c3d5e02c30891b61e"
+      },
+      {
+        "name": "Splinter.Platform.Windows.exe",
+        "length": 162816,
+        "sha256": "e0e43f6efcfbed29e91a23b0b325cf909115e3a1be2d1224b0e9f590a4e580ff"
+      },
+      {
+        "name": "Splinter.Platform.Windows.pdb",
+        "length": 94424,
+        "sha256": "2eefaf391056aa3f4b96acb785541e9dcea63d1eb1ceba83808ef0c9aea7c63b"
+      },
+      {
+        "name": "Splinter.Platform.Windows.runtimeconfig.json",
+        "length": 342,
+        "sha256": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097"
+      },
+      {
+        "name": "Splinter.Protocol.dll",
+        "length": 258048,
+        "sha256": "97fb171b2d086179174b70e7063d4addc100c2616a47fe204a0e0d87616b2ea2"
+      },
+      {
+        "name": "Splinter.Protocol.pdb",
+        "length": 14500,
+        "sha256": "4ffeb146fb6639e425ae2feaa8b89e064f080f93b57bd0f698b09a9c811b600f"
+      },
+      {
+        "name": "Splinter.Runtime.dll",
+        "length": 431104,
+        "sha256": "b3ab16345dd85d0b13cf3d2d1d174e2fd7d00a2ec24f33a692f01234efcc8825"
+      },
+      {
+        "name": "Splinter.Runtime.pdb",
+        "length": 96872,
+        "sha256": "326e693ba8b08d11dfd0c5a73ac3e21bf6bc3b6e91c09621e42b60c48cedb0e2"
+      },
+      {
+        "name": "splinter.runtimeconfig.json",
+        "length": 342,
+        "sha256": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097"
+      },
+      {
+        "name": "Splinter.SourceControl.Files.dll",
+        "length": 152576,
+        "sha256": "74369bf13cad6169e2cec11ddea50768d88f00c3c056d5535c83ad2957895075"
+      },
+      {
+        "name": "Splinter.SourceControl.Files.pdb",
+        "length": 39700,
+        "sha256": "9a12eaf2ced3730f72da21acb271aa33aeccb5dc0e525778de0093d96f0bab38"
+      },
+      {
+        "name": "Splinter.SourceControl.Git.dll",
+        "length": 239104,
+        "sha256": "8874bf4bb86be00f6bb530010ca0ac47d325f3ba2999e9871c3c86b0eda8f608"
+      },
+      {
+        "name": "Splinter.SourceControl.Git.pdb",
+        "length": 51380,
+        "sha256": "857225135b498f7dff50b467dc6b0378e7bd31284bbdcdaaec63b6bc30f7dd46"
+      },
+      {
+        "name": "Splinter.Workflows.Windows.dll",
+        "length": 110592,
+        "sha256": "bfc5b485a4857aa1209af44d3edbaa32c97b7c22b97573ebcb9fa2986e49a19d"
+      },
+      {
+        "name": "Splinter.Workflows.Windows.pdb",
+        "length": 26468,
+        "sha256": "1cc6b32d6d995105f1120fab46c5197dbe936530eabc5a140296fc423d9c4260"
+      },
+      {
+        "name": "System.CommandLine.dll",
+        "length": 151352,
+        "sha256": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e"
+      },
+      {
+        "name": "winfsp-msil.dll",
+        "length": 180736,
+        "sha256": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+      }
+    ]
+  },
+  "validation": {
+    "requiredCommand": "pwsh -NoProfile -File scripts/build.ps1",
+    "counters": {
+      "total": "1473",
+      "executed": "1453",
+      "passed": "1453",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "20",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "trxSha256": "50974a0b415534dbbc3df6023b703187d43d27fe208ce887063d8ccfc6b61844",
+    "protectedUnrelatedDirtyFiles": 27,
+    "unitySiblingStatus": "",
+    "administratorServiceGlobalToolChanges": false
+  },
+  "ntfsCost": {
+    "order": [
+      "before-3",
+      "after-3",
+      "after-4",
+      "before-4"
+    ],
+    "baselineRuntimeCommit": "9c09f04c38f5b9cc8f65f159298744f1c79d833d",
+    "runs": [
+      {
+        "label": "before-3",
+        "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\us8-runtime-fixed",
+        "runtimeSha256": "2cafece30febae3c7796945ba487a5eb8787ccacb0ca5b77265ef910871a1d00",
+        "windowsSha256": "7e63110994955ce015c2befb54a19820a8fb6d29ebf2ef9dcf7a00ad87a06654",
+        "availabilityCalls": 20000,
+        "availabilitySeconds": 0.532863,
+        "linkedCloseCalls": 20000,
+        "closeSeconds": 0.6583317,
+        "appendCalls": 512,
+        "appendBytes": 2097152,
+        "appendSeconds": 3.0872849,
+        "flushes": 512,
+        "contentAndReopenedSealVerified": true,
+        "basisFiles": 64,
+        "basisBytes": 4194304,
+        "qualification": "Warm ordinary NTFS bounded microbenchmark with the runtime's Windows journal directory guard; setup/content checks outside timers; not Unity or physical I/O qualification"
+      },
+      {
+        "label": "after-3",
+        "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\sa8-runtime",
+        "runtimeSha256": "b3ab16345dd85d0b13cf3d2d1d174e2fd7d00a2ec24f33a692f01234efcc8825",
+        "windowsSha256": "ebea9381366b0d043bbde05d2e21e74bc0c2d22eaa6a255c3d5e02c30891b61e",
+        "availabilityCalls": 20000,
+        "availabilitySeconds": 0.016233,
+        "linkedCloseCalls": 20000,
+        "closeSeconds": 0.0260807,
+        "appendCalls": 512,
+        "appendBytes": 2097152,
+        "appendSeconds": 3.1316298,
+        "flushes": 512,
+        "contentAndReopenedSealVerified": true,
+        "basisFiles": 64,
+        "basisBytes": 4194304,
+        "qualification": "Warm ordinary NTFS bounded microbenchmark with the runtime's Windows journal directory guard; setup/content checks outside timers; not Unity or physical I/O qualification"
+      },
+      {
+        "label": "after-4",
+        "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\sa8-runtime",
+        "runtimeSha256": "b3ab16345dd85d0b13cf3d2d1d174e2fd7d00a2ec24f33a692f01234efcc8825",
+        "windowsSha256": "ebea9381366b0d043bbde05d2e21e74bc0c2d22eaa6a255c3d5e02c30891b61e",
+        "availabilityCalls": 20000,
+        "availabilitySeconds": 0.0165181,
+        "linkedCloseCalls": 20000,
+        "closeSeconds": 0.024112,
+        "appendCalls": 512,
+        "appendBytes": 2097152,
+        "appendSeconds": 3.0487518,
+        "flushes": 512,
+        "contentAndReopenedSealVerified": true,
+        "basisFiles": 64,
+        "basisBytes": 4194304,
+        "qualification": "Warm ordinary NTFS bounded microbenchmark with the runtime's Windows journal directory guard; setup/content checks outside timers; not Unity or physical I/O qualification"
+      },
+      {
+        "label": "before-4",
+        "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\us8-runtime-fixed",
+        "runtimeSha256": "2cafece30febae3c7796945ba487a5eb8787ccacb0ca5b77265ef910871a1d00",
+        "windowsSha256": "7e63110994955ce015c2befb54a19820a8fb6d29ebf2ef9dcf7a00ad87a06654",
+        "availabilityCalls": 20000,
+        "availabilitySeconds": 0.5426407,
+        "linkedCloseCalls": 20000,
+        "closeSeconds": 0.6384373,
+        "appendCalls": 512,
+        "appendBytes": 2097152,
+        "appendSeconds": 3.2695112,
+        "flushes": 512,
+        "contentAndReopenedSealVerified": true,
+        "basisFiles": 64,
+        "basisBytes": 4194304,
+        "qualification": "Warm ordinary NTFS bounded microbenchmark with the runtime's Windows journal directory guard; setup/content checks outside timers; not Unity or physical I/O qualification"
+      }
+    ],
+    "means": {
+      "availabilitySeconds": {
+        "beforeMeanSeconds": 0.53775185,
+        "afterMeanSeconds": 0.016375550000000003,
+        "reductionPercent": 96.95481289371668
+      },
+      "closeSeconds": {
+        "beforeMeanSeconds": 0.6483844999999999,
+        "afterMeanSeconds": 0.02509635,
+        "reductionPercent": 96.12940315507234
+      },
+      "appendSeconds": {
+        "beforeMeanSeconds": 3.17839805,
+        "afterMeanSeconds": 3.0901908,
+        "reductionPercent": 2.775210927404148
+      }
+    },
+    "exploratoryRuns": [
+      {
+        "label": "before-1",
+        "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\us8-runtime-fixed",
+        "runtimeSha256": "2cafece30febae3c7796945ba487a5eb8787ccacb0ca5b77265ef910871a1d00",
+        "windowsSha256": "7e63110994955ce015c2befb54a19820a8fb6d29ebf2ef9dcf7a00ad87a06654",
+        "availabilityCalls": 20000,
+        "availabilitySeconds": 0.6211373,
+        "linkedCloseCalls": 20000,
+        "closeSeconds": 0.7467498,
+        "appendCalls": 512,
+        "appendBytes": 2097152,
+        "appendSeconds": 2.9292543,
+        "flushes": 512,
+        "contentAndReopenedSealVerified": true,
+        "basisFiles": 64,
+        "basisBytes": 4194304,
+        "qualification": "Warm ordinary NTFS bounded microbenchmark with the runtime's Windows journal directory guard; setup/content checks outside timers; not Unity or physical I/O qualification"
+      },
+      {
+        "label": "after-1",
+        "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\sa8-runtime",
+        "runtimeSha256": "b3ab16345dd85d0b13cf3d2d1d174e2fd7d00a2ec24f33a692f01234efcc8825",
+        "windowsSha256": "ebea9381366b0d043bbde05d2e21e74bc0c2d22eaa6a255c3d5e02c30891b61e",
+        "availabilityCalls": 20000,
+        "availabilitySeconds": 0.0158448,
+        "linkedCloseCalls": 20000,
+        "closeSeconds": 0.0240633,
+        "appendCalls": 512,
+        "appendBytes": 2097152,
+        "appendSeconds": 2.9628774,
+        "flushes": 512,
+        "contentAndReopenedSealVerified": true,
+        "basisFiles": 64,
+        "basisBytes": 4194304,
+        "qualification": "Warm ordinary NTFS bounded microbenchmark with the runtime's Windows journal directory guard; setup/content checks outside timers; not Unity or physical I/O qualification"
+      },
+      {
+        "label": "after-2",
+        "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\sa8-runtime",
+        "runtimeSha256": "b3ab16345dd85d0b13cf3d2d1d174e2fd7d00a2ec24f33a692f01234efcc8825",
+        "windowsSha256": "ebea9381366b0d043bbde05d2e21e74bc0c2d22eaa6a255c3d5e02c30891b61e",
+        "availabilityCalls": 20000,
+        "availabilitySeconds": 0.0162887,
+        "linkedCloseCalls": 20000,
+        "closeSeconds": 0.0248931,
+        "appendCalls": 512,
+        "appendBytes": 2097152,
+        "appendSeconds": 2.946811,
+        "flushes": 512,
+        "contentAndReopenedSealVerified": true,
+        "basisFiles": 64,
+        "basisBytes": 4194304,
+        "qualification": "Warm ordinary NTFS bounded microbenchmark with the runtime's Windows journal directory guard; setup/content checks outside timers; not Unity or physical I/O qualification"
+      },
+      {
+        "label": "before-2",
+        "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\us8-runtime-fixed",
+        "runtimeSha256": "2cafece30febae3c7796945ba487a5eb8787ccacb0ca5b77265ef910871a1d00",
+        "windowsSha256": "7e63110994955ce015c2befb54a19820a8fb6d29ebf2ef9dcf7a00ad87a06654",
+        "availabilityCalls": 20000,
+        "availabilitySeconds": 0.5600534,
+        "linkedCloseCalls": 20000,
+        "closeSeconds": 0.6328128,
+        "appendCalls": 512,
+        "appendBytes": 2097152,
+        "appendSeconds": 3.2953262,
+        "flushes": 512,
+        "contentAndReopenedSealVerified": true,
+        "basisFiles": 64,
+        "basisBytes": 4194304,
+        "qualification": "Warm ordinary NTFS bounded microbenchmark with the runtime's Windows journal directory guard; setup/content checks outside timers; not Unity or physical I/O qualification"
+      }
+    ],
+    "exploratoryLimit": "First cohort partly overlapped read-only UTF-8 validation. Preserved separately; final cohort ran without simultaneous agent tool work.",
+    "qualification": "Warm, ordinary NTFS 4 MiB basis, 20000 availability/Close calls and 512 x 4 KiB individual writes; setup and full content/seal verification excluded from timers. Two repeats per candidate, not physical I/O or real Unity."
+  },
+  "beeCanary": {
+    "unityVersion": "6000.3.22f1",
+    "backendSha256": "221652679a0b4fc289978da683003511c34b2fffba1b894fd9359bd78c756953",
+    "rawSummarySha256": "edfaff1553fdeae3bfd801a59f36d545fd29d6d85907e01388e42ce913ebe3ec",
+    "scope": "Synthetic one-action graph only; no Unity Editor or existing project graph executed.",
+    "runs": [
+      {
+        "name": "01-bake-and-execute",
+        "exitCode": 0,
+        "actionsBefore": 0,
+        "actionsBeforeVerificationSignal": null,
+        "actionsAfter": 1
+      },
+      {
+        "name": "02-retained-compiled-graph-deferred",
+        "exitCode": 0,
+        "actionsBefore": 1,
+        "actionsBeforeVerificationSignal": 2,
+        "actionsAfter": 2
+      },
+      {
+        "name": "03-missing-compiled-graph-deferred",
+        "exitCode": 4,
+        "actionsBefore": 2,
+        "actionsBeforeVerificationSignal": 2,
+        "actionsAfter": 2
+      },
+      {
+        "name": "04-explicit-rebake-preserving-state",
+        "exitCode": 0,
+        "actionsBefore": 2,
+        "actionsBeforeVerificationSignal": null,
+        "actionsAfter": 3
+      }
+    ],
+    "onlyCompiledGraphMoved": true,
+    "stateJsonPayloadPreserved": true,
+    "unityFrontendOrIlppTimeoutValidated": false
+  },
+  "initialFailures": [
+    "Solution restore exited without diagnostics in sandbox; ordinary-user unsandboxed invocation used, without elevation.",
+    "New test omitted cancellation token; corrected before native suite.",
+    "Native suite: 1445 passed / 5 failed / 20 conditional skips. Four failures exposed metadata-only directory pins; one test injection hook did not run.",
+    "Focused access correction blocked child publication; directory sharing/lifetime scope was corrected with bounded native evidence."
+  ],
+  "notRun": [
+    "Full Unity A/B readiness on current candidate",
+    "Actual Unity ILPP timeout reduction",
+    "Current real Unity checkpoint/release/restore timing",
+    "Play/Test/game build",
+    "OS failure/forced volume removal",
+    "Whole physical peak/RAM"
+  ],
+  "rawEvidence": [
+    "artifacts/startup-additional-optimization-20261008/",
+    "artifacts/ilpp-dag-metadata-probe-20261008/"
+  ]
+}

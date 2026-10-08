@@ -33,6 +33,8 @@ SJN2 node는 완성된 이어 쓰기 앞부분을 32개 extent 단위 불변 페
 3. `File.Replace`로 pending을 현재 root에 게시하고 기존 root는 같은 소유 디렉터리의 generation별 backup으로 이동한다. 기존 root를 복사하거나 C payload를 다시 기록하지 않는다.
 4. 정확한 hash의 이전 파일을 삭제하거나, 아직 유효한 private block만 남으면 metadata footer를 truncate한다. 대체된 payload와 metadata는 성공 반환 전에 회수한다. private 읽기/root 핸들을 게시 전에 닫고 성공 뒤 현재 root로 다시 연다. payload byte cache는 없다.
 
+원자적 게시 뒤 capsule 검증과 block/참조 인덱싱은 정확한 게시 root의 짧은 수명 읽기 핸들 하나를 사용하여 두 번째 open/close를 줄인다. Windows의 공유 모드는 두 검사 사이 쓰기와 경로 교체를 막는다. 검증 실패·중단을 포함해 회수 전에 핸들을 닫는다. 전체 checksum·owner·형식·namespace·metadata·길이·범위·generation 검사를 유지하며 검증 단계나 mutation별 durable flush/ACK를 생략하지 않는다. 실패한 writer는 같은 저널을 재연결할 때까지 poison 상태를 유지한다. [SA-02](verification/startup-additional-optimization.md#변경과-보호-조건)를 따르며 이 변경의 전체 Unity 준비 시간 절감은 NotRun이다.
+
 한 번의 flush로 **데이터와 metadata 모두** durable해진 뒤 게시한다. 압축 선택·checksum·전체 encoded stream 검증·개별 mutation ACK를 유지한다. 회수의 삭제/truncate는 기존 durable C에 의해 재시도 가능한 소유 정리이며 별도의 payload 복사나 flush를 추가하지 않는다. 파일 게시/회수와 남은 private slice 재작성 비용 때문에 OFF보다 느릴 수 있다. 소유 writer의 예산/ACK용 바이트 수는 최초 inventory에서 고정하고 게시·회수한 정확한 길이만 증분 갱신한다. 명시적 관측·seal·재연결은 실제 파일 inventory를 검사하며 metadata 장부로 내용 hash 검증을 대체하지 않는다.
 
 같은 writer 재연결은 generation 순서와 정확한 owner·이전 상태 hash·capsule bounds/checksum을 확인한다. known pending의 미완료 tail과 아직 B인 root에서는 pending만 회수하고 B를 유지한다. 완전한 C는 재flush·게시·소유 회수를 마무리하며, 응답 전에 중단한 완전한 쓰기가 살아 있을 수 있는 기존 계약을 유지한다. 게시 뒤에는 root의 정확한 회수 계획만 재개한다. 이미 metadata를 잘라낸 backup은 retained payload prefix hash를 확인한다. 완전한 checksum 손상·다른 identity·unknown 파일·게시 뒤 현재 root 누락·변경된 회수 대상은 보존·거부한다. root가 없을 때 과거 backup을 B로 선택하거나 OFF로 새로 만들지 않는다. 이전 SJL1/2/3·SJT2/3는 보존·거부하며 자동 이관하지 않는다. Windows 게시의 확인된 sharing/lock/replace-remove 오류(32/33/1175)는 같은 flushed 임시 파일만 최대 1초 재시도한다. OS 전원 손실에서의 디렉터리/삭제/truncate 내구성은 NotRun이다.
@@ -40,6 +42,8 @@ SJN2 node는 완성된 이어 쓰기 앞부분을 32개 extent 단위 불변 페
 ## 삭제, 결과와 관측
 
 삭제된 파일은 마지막 열린 파일 context가 남은 동안 현재 내용으로 읽을 수 있다. WinFsp는 파일 ID별 context를 세고 마지막 Close에서 `ReleaseUnlinkedFile`을 호출한다. ON은 삭제된 현재 ID의 payload/node만 회수하고 whiteout·경로의 마지막 변경 sequence를 유지한다. 아직 열린 교체 대상도 같은 원칙을 따른다. Runtime 직접 사용자는 마지막 context 종료를 명시해야 한다. 중단 때문에 닫힘 통지를 받지 못한 unlinked 기록은 다음 명시적 stopped compact/release에서 정리하며 자동 sweep하지 않는다.
+
+일반 연결 파일이나 unknown ID의 `ReleaseUnlinkedFile`은 mutation gate 안에서 로컬 disposed/poison/journal-length 상태를 검사한 뒤 회수 대상이 없으므로 기준본 availability를 조회하지 않고 반환한다. 실제 unlinked 회수에는 전체 기준본 availability 검사와 직렬화된 commit을 유지한다. WinFsp의 외부 mutation/retention 잠금도 유지한다. [SA-02](verification/startup-additional-optimization.md#변경과-보호-조건)의 빠른 반환은 읽기·mutation·seal·복구 증명을 면제하지 않는다.
 
 seal의 bytes/hash는 root **및 전체 현재 object 파일**을 포함한다. 관측 `journalOptimizationEnabled`는 실제 writer 저장 형식을 나타낸다. `snapshot.compaction.journalOptimizationEnabled`는 완료한 선택의 receipt다. `JournalBytes`·payload/metadata·allocation은 다중 파일 합계이며 root 하나의 길이를 비용으로 보고하지 않는다. read-only restore, checkpoint의 stable seal, release/discard의 정확한 inventory·중단 재개, peer·dirty/target guard를 유지한다.
 

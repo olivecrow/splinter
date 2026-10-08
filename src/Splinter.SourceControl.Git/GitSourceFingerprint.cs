@@ -29,7 +29,17 @@ public sealed partial class GitWorkspaceProvider
         string indexState = before is null ? "" : await Required(workspace.Path, ["ls-files", "--stage", "-z"], ct);
         string[] files = await SourceFiles(workspace, ct);
         if (before is not null) await CheckSnapshotGitFiles(workspace.Path, ct);
-        string interpretation = before is null ? "" : await Interpretation(workspace, files, ct);
+        GitCleanIdentity? cleanIdentity = null;
+        string interpretation = before is null ? "" : await Interpretation(workspace, files, ct,
+            workspace.StorageMode == "git-snapshot" ? value => cleanIdentity = value : null);
+        HashAlgorithmName gitAlgorithm = default;
+        if (cleanIdentity is not null && files.Any(path => cleanIdentity.Requirement(path) != GitCleanRequirement.None))
+            gitAlgorithm = (await Required(workspace.Path, ["rev-parse", "--show-object-format"], ct)) switch
+            {
+                "sha1" => HashAlgorithmName.SHA1,
+                "sha256" => HashAlgorithmName.SHA256,
+                _ => throw Error("GitHashOutputInvalid", "The Git object hash format is unsupported.")
+            };
         string policy = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(
             "source-fingerprint-v1\0" + string.Join('\0', workspace.ManagedPaths))));
         string? cachePath = tracker?.CachePath(workspace);
@@ -60,24 +70,32 @@ public sealed partial class GitWorkspaceProvider
             PlainPath(full, WorkspaceMountAccess.ObservedRoot(workspace));
             if (!File.Exists(full)) continue;
             string fileHash;
+            string? gitHash = null;
             bool unchanged = cached.TryGetValue(relative, out var item) && !invalidated.Any(path => SourcePathPolicy.Affects(path, relative));
             if (unchanged)
             { fileHash = item!.Hash; reusedFiles++; }
             else
             {
                 await using var stream = File.OpenRead(full);
-                fileHash = tracker is null ? Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct)) :
-                    await HashRangeSourceAsync(stream, ct);
+                var requirement = cleanIdentity?.Requirement(relative) ?? GitCleanRequirement.None;
+                if (requirement != GitCleanRequirement.None)
+                {
+                    var pair = await GitCleanIdentity.HashAsync(stream, requirement, gitAlgorithm, ct);
+                    fileHash = pair.RawHash;
+                    gitHash = pair.GitHash;
+                }
+                else
+                    fileHash = tracker is null ? Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct)) :
+                        await HashRangeSourceAsync(stream, ct);
                 payload += stream.Position; readFiles++;
             }
-            string? gitHash = null;
             if (before is not null)
             {
                 if (unchanged && prior!.Interpretation == interpretation) gitHash = item!.GitHash;
-                else
+                else if (gitHash is null)
                 {
-                    // Keep raw and Git hashes separate. Batch names through stdin
-                    // so every file retains its own attributes/EOL interpretation.
+                    // Unproved conversion identity (including reused raw hashes
+                    // under changed attributes/config) still uses Git's filters.
                     needsGitHash.Add(relative);
                     gitHashInput += new FileInfo(full).Length;
                 }
@@ -245,13 +263,17 @@ public sealed partial class GitWorkspaceProvider
     private static string ManifestHash(SourceManifest manifest) =>
         Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(manifest, Json)));
 
-    private static async Task<string> Interpretation(WorkspaceRecord workspace, string[] files, CancellationToken ct)
+    private static async Task<string> Interpretation(WorkspaceRecord workspace, string[] files, CancellationToken ct,
+        Action<GitCleanIdentity>? captureIdentity = null)
     {
         using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         // Only a digest is persisted: config may contain private values.
-        digest.AppendData(Encoding.UTF8.GetBytes(await Required(workspace.Path, ["config", "--null", "--list"], ct)));
+        string config = await Required(workspace.Path, ["config", "--null", "--list"], ct);
+        digest.AppendData(Encoding.UTF8.GetBytes(config));
+        var identity = captureIdentity is null ? null : new GitCleanIdentity(config);
         await AttributeOutputAsync(workspace.Path, files, cached: false, all: true,
-            output => digest.AppendData(Encoding.UTF8.GetBytes(output)), ct);
+            output => { digest.AppendData(Encoding.UTF8.GetBytes(output)); identity?.AddAttributes(output); }, ct);
+        if (identity is not null) captureIdentity!(identity);
         return Convert.ToHexStringLower(digest.GetHashAndReset());
     }
 

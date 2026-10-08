@@ -2,6 +2,8 @@
 
 [English](../../verification/startup-profile-optimization.md)
 
+현재 디렉터리 핸들 보정: [SA-01–02](startup-additional-optimization.md)는 속성 전용 핸들의 고정 가정을 실제 native access/sharing·소유 파일 수명 보호로 바로잡는다. 아래 SU 비용과 후보 자격은 과거 기록으로 유지한다.
+
 **SU-01–05**는 [UP-01](unity-startup-profile.md)에서 확인한 사용자 모드 병목을 개선한다. UP의 최초 준비 766.9024초·약 447초 스캔은 이전 후보의 근거다. 이후 실제 시간은 시작 판독 수정과 서로 다른 runtime 재개를 포함한 [US-01](unity-startup-remeasurement.md)이 소유한다. UAC·설치 서비스 업데이트·외부 패키지 변경·원본 프로젝트 수정 없이 적용한다.
 
 ## 독립 Git decoder 진행 — SU-01

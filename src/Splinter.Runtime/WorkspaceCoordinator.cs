@@ -73,9 +73,15 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         {
             if (WorkspaceStorage.HasRangeJournal(storageMode))
             {
-                await EnsureSnapshotAsync(record, ct);
-                if (editor) await StartCoreAsync(record, ct);
-                var view = await ViewAsync(record, ct);
+                var responseProof = await EnsureSnapshotAsync(record, ct);
+                if (editor)
+                {
+                    await StartCoreAsync(record, ct);
+                    // An Editor may legitimately create source .meta files.
+                    // Keep the existing fresh (possibly dirty) response here.
+                    responseProof = null;
+                }
+                var view = await ViewAsync(record, ct, inspectionProof: responseProof);
                 await PreparationPointAsync("response.before-publish", record, ct);
                 return view;
             }
@@ -294,7 +300,8 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         catch (Exception ex) { RecordFailure(record, ex); throw; }
     }
 
-    private async Task<WorkspaceView> ViewAsync(WorkspaceRecord record, CancellationToken ct, bool verifySource = true)
+    private async Task<WorkspaceView> ViewAsync(WorkspaceRecord record, CancellationToken ct, bool verifySource = true,
+        ISourceInspectionProof? inspectionProof = null)
     {
         if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(record.Id), "workspace.list");
         if (record.Discard is not null)
@@ -318,7 +325,8 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         if (record.BaseRevision is null) return new(record, null, null, store.ControlPath(record.Id), "workspace.ensure");
         var app = await applications.ObserveAsync(record, store.ControlPath(record.Id), ct);
         // Ordinary polls observe resources without reading project assets.
-        var source = verifySource ? await sources.InspectAsync(record, ct) : null;
+        var source = verifySource ? inspectionProof is null
+            ? await sources.InspectAsync(record, ct) : await inspectionProof.RevalidateAsync(record, ct) : null;
         bool changed = false;
         if (app.Lease is not null && app.Lease != record.Application) { record.Application = app.Lease; changed = true; }
         if (record.Phase == "editor-starting" && app.Ready) { record.Phase = "active"; changed = true; }

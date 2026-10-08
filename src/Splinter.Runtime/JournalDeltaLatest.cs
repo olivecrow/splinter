@@ -27,8 +27,11 @@ public sealed partial class JournalDeltaStore
     {
         using (EnterGate(mutation: true))
         {
-            Check();
+            // A linked/unknown identity has no storage to reclaim. Keep local
+            // writer health checks, without querying an unused immutable basis.
+            CheckLocal();
             if (latest is null || !nodes.TryGetValue(id, out var node) || !node.Entry.Deleted) return;
+            snapshot.EnsureAvailable();
             // Storage reclamation has no new source mutation or path sequence.
             // Keep the whiteout and last path change, but retire the closed ID.
             CommitLatest(new(sequence, "forget-unlinked", node.Entry), []);

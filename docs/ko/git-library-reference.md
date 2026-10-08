@@ -18,6 +18,8 @@
 
 같은 key/id/home/호환 키·manifest·요청을 사용한다. 준비 중 원본과 base가 둘 다 있거나, 복원 대상에 예상 밖 파일/변경된 보존 영역/다른 seal이 있으면 보존하고 거부한다. 초기 file hash와 고정 metadata를 확인하고 reader가 기존 basis 파일의 직접 쓰기·삭제를 차단한다. 읽기는 manifest와 열린 basis 핸들에서만 수행한다. 생성 데이터의 탈락·손상은 mutable 원본이나 빈 Library로 fallback하지 않는다.
 
+소유 reader는 native 디렉터리 읽기 권한과 쓰기/삭제 공유 없는 핸들로 불변 root를 고정한다. 조상 핸들은 삭제를 막되 일반 자식 파일 게시를 허용하며, 고정한 하위 경로 사슬이 조상을 비워 junction으로 바꾸는 것을 막는다. 가용성은 디렉터리 존재를 반복 조회하는 대신 이 핸들을 사용한다. 입장 시 reparse를 거부하고 모든 close가 진행 중 읽기를 기다릴 때까지 파일 핸들을 유지하며 관측한 읽기 오류는 가용성 실패로 남긴다. 변경 없는 디렉터리 복원은 이동 핸들로 root를 명시적으로 인계하며 좁은 인계 간격 전후 같은 볼륨/파일 identity를 확인한다. 중단/교체는 보존·거부하고 새 reader로 같은 계획 복구를 유지한다. 빈 root/조상 보호와 한정 자격은 [SA-01](verification/startup-additional-optimization.md)을 따른다.
+
 준비 metadata보다 먼저 현재 버전의 `prepare-intent.json`에 project/key/경로/호환 키를 고정한다. 원본을 아직 이동하지 않은 내용 읽기 실패는 정확한 intent와 분류된 metadata만 남았을 때 같은 요청으로 재개한다. intent 없는 root·다른 요청·provider 실행 흔적·불명 데이터는 보존하고 거부한다. 공개되지 않은 `preparing` 상태의 명시적 restore는 원본 또는 이동한 base를 그대로 돌려놓을 수 있으며, 불명 실행/비어 있지 않은 delta는 취소하지 않는다.
 
 Library 안에 외부 서버의 계속 쓰는 로그가 있으면 기준본을 고정할 수 없다. 외부 서버의 수명/로그 위치는 호출자의 별도 승인 절차로 먼저 정리한다. Splinter는 그 서버를 자동 종료하거나 입력 파일을 생략하지 않는다.
