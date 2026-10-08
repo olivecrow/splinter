@@ -50,6 +50,7 @@ public static class WorkspaceSnapshotBasis
     {
         public SnapshotReference Snapshot => tree.Snapshot;
         public SnapshotGraft? Graft => tree.Graft;
+        public bool SupportsConcurrentReads => tree.SupportsConcurrentReads;
         public void EnsureAvailable() => tree.EnsureAvailable();
         public SnapshotEntry? Stat(string path) => tree.Stat(path);
         public IReadOnlyList<SnapshotEntry> List(string path) => tree.List(path);
@@ -74,6 +75,7 @@ public static class WorkspaceSnapshotBasis
         }
         public SnapshotReference Snapshot => tree.Snapshot;
         public SnapshotGraft? Graft => tree.Graft;
+        public bool SupportsConcurrentReads => tree.SupportsConcurrentReads;
         public void EnsureAvailable() => tree.EnsureAvailable();
         public SnapshotEntry? Stat(string path) => tree.Stat(path);
         public IReadOnlyList<SnapshotEntry> List(string path) => tree.List(path);

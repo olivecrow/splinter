@@ -2,6 +2,8 @@
 
 [English](../alpha-workspaces.md)
 
+같은 workspace를 다시 시작할 때 동일한 소유 bridge·marker는 소유권/내용/경로 전체 검증 뒤 재사용하여 에셋 시각을 유지한다. 내용이 다른 검증된 소유 bridge는 일반 갱신 경로를 따른다. token과 시작 제어 기록은 새로 만들며 최초 컴파일은 그대로다. [준비 시간 검증](verification/startup-time-optimization.md)을 따른다.
+
 제품은 NTFS 작업공간과 그 Editor의 수명을 관리한다. 생성·재개·범위 저장·독립 결과·통합·회수/폐기는 [NTFS 계약](ntfs-workspaces.md)을 따른다. Library view는 [개발 CLI](development-cli.md)에 분리돼 있다.
 
 ## 에이전트의 기본 흐름

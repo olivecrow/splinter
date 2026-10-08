@@ -5,6 +5,8 @@
 
 The current execution adapters and CLI support Windows/NTFS and `unity|none`. Mount, process, and publication adapters for macOS/Linux, and adapters for Blender/Unreal/Godot, are not implemented. Synthetic tests of common contracts do not establish actual support for those environments. See [extension-contract verification](verification/extensibility-boundaries.md) for the verification scope.
 
+`ISnapshotTree.SupportsConcurrentReads` defaults to `false`. A provider may opt in for its entire lifetime only when simultaneous payload reads are safe; it keeps any decoder synchronization internally. Grafts require both providers to opt in, and ownership wrappers forward the capability. The journal otherwise retains its serial basis-read gate. In both cases it captures private bytes and fixed basis coordinates under its mutation gate, checks completion, and drains all active reads before releasing ownership. See [startup-time verification](verification/startup-time-optimization.md).
+
 <a id="경로와-파일-metadata"></a>
 ## Paths and file metadata
 

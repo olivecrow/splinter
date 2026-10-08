@@ -31,18 +31,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
             ?? throw new WorkspaceException("UnityVersionMissing", "ProjectVersion.txt has no Editor version.");
         string executable = ResolveEditor(version);
         ResetCapturedUnityProcessAddresses(workspace);
-        string infrastructure = Path.Combine(root, "Assets", "__Splinter__");
-        string markerPath = Path.Combine(infrastructure, "workspace.marker");
-        if (Directory.Exists(infrastructure)) VerifyInfrastructure(workspace, infrastructure);
-        else if (File.Exists(infrastructure) || File.Exists(infrastructure + ".meta"))
-            throw new WorkspaceException("ManagedPathConflict", "The reserved bridge path already exists.");
-        Directory.CreateDirectory(Path.Combine(infrastructure, "Editor"));
-        using Stream resource = typeof(UnityWorkspaceProvider).Assembly.GetManifestResourceStream("Splinter.Editor.WorkspaceBridge.cs")
-            ?? throw new WorkspaceException("BridgeMissing", "The embedded Unity bridge is missing.");
-        using var reader = new StreamReader(resource);
-        string code = await reader.ReadToEndAsync(ct);
-        await File.WriteAllTextAsync(Path.Combine(infrastructure, "Editor", "WorkspaceBridge.cs"), code, ct);
-        await File.WriteAllTextAsync(markerPath, JsonSerializer.Serialize(new InfrastructureMarker(workspace.Id, Hash(code)), Json), ct);
+        await PrepareInfrastructureAsync(workspace, ct);
         string token = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
         await Atomic(controlPath, "launch-intent.json", new { workspace.Id, token, executable, projectPath = root }, ct);
         foreach (string name in new[] { "heartbeat.json", "stop-request.json", "stop-result.json" })
@@ -54,6 +43,28 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         return await Processes.StartAsync(new ProcessLaunch(executable,
             ["-projectPath", root, "-logFile", Path.Combine(controlPath, "editor.log"),
              "-splinterControlPath", Path.GetFullPath(controlPath), "-splinterToken", token], root, token), controlPath, ct);
+    }
+
+    internal static async Task PrepareInfrastructureAsync(WorkspaceRecord workspace, CancellationToken ct)
+    {
+        string root = ValidateRoot(workspace);
+        string infrastructure = Path.Combine(root, "Assets", "__Splinter__");
+        string markerPath = Path.Combine(infrastructure, "workspace.marker");
+        InfrastructureMarker? prior = null;
+        if (Directory.Exists(infrastructure)) prior = VerifyInfrastructure(workspace, infrastructure);
+        else if (File.Exists(infrastructure) || File.Exists(infrastructure + ".meta"))
+            throw new WorkspaceException("ManagedPathConflict", "The reserved bridge path already exists.");
+        using Stream resource = typeof(UnityWorkspaceProvider).Assembly.GetManifestResourceStream("Splinter.Editor.WorkspaceBridge.cs")
+            ?? throw new WorkspaceException("BridgeMissing", "The embedded Unity bridge is missing.");
+        using var reader = new StreamReader(resource);
+        string code = await reader.ReadToEndAsync(ct);
+        string codeHash = Hash(code);
+        // Ownership, all descendants and the existing content must be checked
+        // before reusing it. A restart needs a new launch token, not new assets.
+        if (prior?.CodeHash == codeHash) return;
+        Directory.CreateDirectory(Path.Combine(infrastructure, "Editor"));
+        await File.WriteAllTextAsync(Path.Combine(infrastructure, "Editor", "WorkspaceBridge.cs"), code, ct);
+        await File.WriteAllTextAsync(markerPath, JsonSerializer.Serialize(new InfrastructureMarker(workspace.Id, codeHash), Json), ct);
     }
 
     internal static void ResetCapturedUnityProcessAddresses(WorkspaceRecord workspace)
@@ -150,7 +161,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         if (File.Exists(meta)) File.Delete(meta);
     }
 
-    private static void VerifyInfrastructure(WorkspaceRecord workspace, string path)
+    private static InfrastructureMarker VerifyInfrastructure(WorkspaceRecord workspace, string path)
     {
         string expected = Path.GetFullPath(Path.Combine(workspace.Path, "Assets", "__Splinter__"));
         if (!SamePath(path, expected)) throw new WorkspaceException("UnsafePath", "Infrastructure path mismatch.");
@@ -182,6 +193,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
                 else if (!allowed.Contains(relative)) throw new WorkspaceException("ManagedFilesChanged", "Unexpected bridge file: " + relative);
             }
         }
+        return marker;
     }
 
     private static string ValidateRoot(WorkspaceRecord workspace)

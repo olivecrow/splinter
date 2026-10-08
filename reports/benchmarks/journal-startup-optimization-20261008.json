@@ -1,0 +1,235 @@
+{
+  "version": 1,
+  "qualification": "JS-01 through JS-04; small editor-free SJL4 append workload",
+  "baselineSourceCommit": "168081c349d87d9767d44ce0a741ec61279c2706",
+  "candidateBasedOn": "4989f27",
+  "candidateSourceSha256": {
+    "src/Splinter.Runtime/LatestJournalStorage.cs": "e3b33034c6af6ede9780ec6ca3cf25b9fea598b91148b38543b86b71038c3c8e",
+    "tests/Splinter.Tests/JournalStartupOptimizationTests.cs": "3daf85899e773dd63df27055e58366f4d01e38e19ae5fd09ad7bb4f2435ff1bd"
+  },
+  "probeSha256": "5829e151cf64cfc57ece62cf129ebf965f7d384e1b0e09b4ee75df82698c0f02",
+  "workload": {
+    "unrelatedFiles": 128,
+    "appendBlockBytes": 4096,
+    "appendCounts": [
+      256,
+      512
+    ],
+    "timed": "append mutations only; fixture setup, memory graph inspection, content/seal/reconnect verification excluded",
+    "runOrder": [
+      "normal-before-256",
+      "normal-before-512",
+      "normal-after-512",
+      "normal-after-256",
+      "normal-after-512-r2",
+      "normal-before-512-r2"
+    ],
+    "runtime": "normal Release assemblies on local NTFS",
+    "cacheCleared": false,
+    "forcedGCInTiming": false
+  },
+  "runs": [
+    {
+      "count": 256,
+      "blockSize": 4096,
+      "unrelated": 128,
+      "elapsedSeconds": 1.7955822,
+      "threadAllocatedBytes": 186093504,
+      "last32Seconds": 0.26695979999999997,
+      "last32ThreadAllocatedBytes": 34796976,
+      "retention": {
+        "reachableFrameCount": 639,
+        "fullMetadataFrameCount": 384,
+        "uniqueFooterAndItemByteArrays": 769,
+        "retainedFooterAndItemBytes": 17981848,
+        "scope": "Exact reachable footer/item byte arrays, excludes object overhead and total process RAM"
+      },
+      "flushDelta": 256,
+      "logicalPutBytes": 8555747,
+      "currentJournalBytes": 1415341,
+      "payloadHash": "38b989153f7d7e4c01d9a48503a69c72d329b4c206842de313b3d520b63dea77",
+      "contentAndReconnectAndSealVerified": true,
+      "runtimeSha256": "2e08cc65f9893c5d5cd41cb9ffbfbb549e32a44105cc13882c03655920d2cc0f",
+      "label": "normal-before-256",
+      "candidate": "before"
+    },
+    {
+      "count": 512,
+      "blockSize": 4096,
+      "unrelated": 128,
+      "elapsedSeconds": 3.9032258,
+      "threadAllocatedBytes": 581415208,
+      "last32Seconds": 0.2763781999999999,
+      "last32ThreadAllocatedBytes": 61384032,
+      "retention": {
+        "reachableFrameCount": 1151,
+        "fullMetadataFrameCount": 640,
+        "uniqueFooterAndItemByteArrays": 1281,
+        "retainedFooterAndItemBytes": 70208305,
+        "scope": "Exact reachable footer/item byte arrays, excludes object overhead and total process RAM"
+      },
+      "flushDelta": 512,
+      "logicalPutBytes": 31906237,
+      "currentJournalBytes": 2594526,
+      "payloadHash": "da070fbe7b788025206484a19254382c06c4fe8e72b54b23539a8548f9602cef",
+      "contentAndReconnectAndSealVerified": true,
+      "runtimeSha256": "2e08cc65f9893c5d5cd41cb9ffbfbb549e32a44105cc13882c03655920d2cc0f",
+      "label": "normal-before-512",
+      "candidate": "before"
+    },
+    {
+      "count": 512,
+      "blockSize": 4096,
+      "unrelated": 128,
+      "elapsedSeconds": 3.7890565,
+      "threadAllocatedBytes": 402541832,
+      "last32Seconds": 0.26620109999999997,
+      "last32ThreadAllocatedBytes": 39766728,
+      "retention": {
+        "reachableFrameCount": 640,
+        "fullMetadataFrameCount": 129,
+        "uniqueFooterAndItemByteArrays": 259,
+        "retainedFooterAndItemBytes": 548599,
+        "scope": "Exact reachable footer/item byte arrays, excludes object overhead and total process RAM"
+      },
+      "flushDelta": 512,
+      "logicalPutBytes": 31906237,
+      "currentJournalBytes": 2594526,
+      "payloadHash": "da070fbe7b788025206484a19254382c06c4fe8e72b54b23539a8548f9602cef",
+      "contentAndReconnectAndSealVerified": true,
+      "runtimeSha256": "6b84697766a2e8f013d2a8e6c4e40d4d80d1d1d0395eeb55bdb1978dcf1ef223",
+      "label": "normal-after-512",
+      "candidate": "after"
+    },
+    {
+      "count": 256,
+      "blockSize": 4096,
+      "unrelated": 128,
+      "elapsedSeconds": 1.7650943,
+      "threadAllocatedBytes": 141039248,
+      "last32Seconds": 0.24049029999999982,
+      "last32ThreadAllocatedBytes": 24345752,
+      "retention": {
+        "reachableFrameCount": 384,
+        "fullMetadataFrameCount": 129,
+        "uniqueFooterAndItemByteArrays": 259,
+        "retainedFooterAndItemBytes": 413218,
+        "scope": "Exact reachable footer/item byte arrays, excludes object overhead and total process RAM"
+      },
+      "flushDelta": 256,
+      "logicalPutBytes": 8555747,
+      "currentJournalBytes": 1415341,
+      "payloadHash": "38b989153f7d7e4c01d9a48503a69c72d329b4c206842de313b3d520b63dea77",
+      "contentAndReconnectAndSealVerified": true,
+      "runtimeSha256": "6b84697766a2e8f013d2a8e6c4e40d4d80d1d1d0395eeb55bdb1978dcf1ef223",
+      "label": "normal-after-256",
+      "candidate": "after"
+    },
+    {
+      "count": 512,
+      "blockSize": 4096,
+      "unrelated": 128,
+      "elapsedSeconds": 3.6907556,
+      "threadAllocatedBytes": 402580112,
+      "last32Seconds": 0.2261641000000001,
+      "last32ThreadAllocatedBytes": 39790464,
+      "retention": {
+        "reachableFrameCount": 640,
+        "fullMetadataFrameCount": 129,
+        "uniqueFooterAndItemByteArrays": 259,
+        "retainedFooterAndItemBytes": 548599,
+        "scope": "Exact reachable footer/item byte arrays, excludes object overhead and total process RAM"
+      },
+      "flushDelta": 512,
+      "logicalPutBytes": 31906237,
+      "currentJournalBytes": 2594526,
+      "payloadHash": "da070fbe7b788025206484a19254382c06c4fe8e72b54b23539a8548f9602cef",
+      "contentAndReconnectAndSealVerified": true,
+      "runtimeSha256": "6b84697766a2e8f013d2a8e6c4e40d4d80d1d1d0395eeb55bdb1978dcf1ef223",
+      "label": "normal-after-512-r2",
+      "candidate": "after"
+    },
+    {
+      "count": 512,
+      "blockSize": 4096,
+      "unrelated": 128,
+      "elapsedSeconds": 3.8569945,
+      "threadAllocatedBytes": 581458512,
+      "last32Seconds": 0.2903525,
+      "last32ThreadAllocatedBytes": 61388032,
+      "retention": {
+        "reachableFrameCount": 1151,
+        "fullMetadataFrameCount": 640,
+        "uniqueFooterAndItemByteArrays": 1281,
+        "retainedFooterAndItemBytes": 70208305,
+        "scope": "Exact reachable footer/item byte arrays, excludes object overhead and total process RAM"
+      },
+      "flushDelta": 512,
+      "logicalPutBytes": 31906237,
+      "currentJournalBytes": 2594526,
+      "payloadHash": "da070fbe7b788025206484a19254382c06c4fe8e72b54b23539a8548f9602cef",
+      "contentAndReconnectAndSealVerified": true,
+      "runtimeSha256": "2e08cc65f9893c5d5cd41cb9ffbfbb549e32a44105cc13882c03655920d2cc0f",
+      "label": "normal-before-512-r2",
+      "candidate": "before"
+    }
+  ],
+  "summary512": {
+    "before": {
+      "elapsedSeconds": 3.88011015,
+      "threadAllocatedBytes": 581436860,
+      "last32Seconds": 0.28336534999999996,
+      "last32ThreadAllocatedBytes": 61386032,
+      "retainedFooterAndItemBytes": 70208305
+    },
+    "after": {
+      "elapsedSeconds": 3.73990605,
+      "threadAllocatedBytes": 402560972,
+      "last32Seconds": 0.24618260000000003,
+      "last32ThreadAllocatedBytes": 39778596,
+      "retainedFooterAndItemBytes": 548599
+    },
+    "observedReductionPercent": {
+      "elapsedSeconds": 3.6134051503666775,
+      "threadAllocatedBytes": 30.764456178440426,
+      "last32Seconds": 13.1218407614057,
+      "last32ThreadAllocatedBytes": 35.1992713912507,
+      "retainedFooterAndItemBytes": 99.2186123849593
+    }
+  },
+  "validation": {
+    "requiredBuild": "pwsh -NoProfile -File ./scripts/build.ps1",
+    "passed": 1277,
+    "failed": 0,
+    "conditionalSkipped": 19,
+    "newCases": 4,
+    "newCaseResults": [
+      {
+        "testName": "Splinter.Tests.JournalStartupOptimizationTests.AppendingKeepsPayloadButReleasesRetiredFooterAndItemMetadataWhileWriterLives",
+        "outcome": "Passed"
+      },
+      {
+        "testName": "Splinter.Tests.JournalStartupOptimizationTests.ChangedMetadataBeyondFirstFooterBufferIsPreservedAndRejected(finalByte: False)",
+        "outcome": "Passed"
+      },
+      {
+        "testName": "Splinter.Tests.JournalStartupOptimizationTests.ChangedMetadataBeyondFirstFooterBufferIsPreservedAndRejected(finalByte: True)",
+        "outcome": "Passed"
+      },
+      {
+        "testName": "Splinter.Tests.JournalStartupOptimizationTests.MixedCapsuleReclamationKeepsUnrelatedPayloadAndSurvivesWritableReconnect",
+        "outcome": "Passed"
+      }
+    ],
+    "warnings": 0,
+    "errors": 0
+  },
+  "limits": [
+    "Retained metadata counts only distinct footer and item byte arrays reachable through journal frames/locations. It excludes object overhead and total process/system RAM.",
+    "Thread allocation is cumulative allocation during synchronous writes, not retained memory.",
+    "Logical put counts are not physical disk I/O and remain unchanged; complete current-node metadata is still serialized.",
+    "One256-write pair and two512-write runs per candidate; single machine, warm ordered runs, no statistical general speedup.",
+    "No new Unity launch/import/compile, full startup timing, total RAM/peak storage, service/UAC change or OS failure matrix.",
+    "Initial sandbox attempt failed File.Replace with UnauthorizedAccessException; incomplete fixture preserved, exact owned failed probe terminated, normal-user samples used fresh fixture directories."
+  ]
+}

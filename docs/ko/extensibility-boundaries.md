@@ -2,6 +2,8 @@
 
 [English](../extensibility-boundaries.md)
 
+`ISnapshotTree.SupportsConcurrentReads`의 기본값은 `false`다. 공급자는 전체 수명 동안 동시 payload 읽기가 안전할 때만 이를 켜며 decoder 동기화는 내부에서 유지한다. graft는 두 공급자가 모두 지원할 때만 동시 읽기를 허용하고 소유권 wrapper는 이 선택을 전달한다. 그 외에는 저널의 직렬 기준 읽기 gate를 유지한다. 양쪽 모두 mutation gate 안에서 private bytes와 고정 기준 좌표를 확보하고 완료 검사를 수행하며, 모든 진행 중 읽기가 끝난 뒤 소유권을 회수한다. [준비 시간 검증](verification/startup-time-optimization.md)을 따른다.
+
 현재 실행 어댑터와 CLI의 지원 선택은 Windows/NTFS, `unity|none`이다. macOS/Linux의 mount·프로세스·게시 어댑터와 Blender/Unreal/Godot 어댑터는 구현하지 않았다. 공통 계약의 합성 시험은 이 환경의 실제 지원을 의미하지 않는다. 검증 범위는 [확장 계약 시험](verification/extensibility-boundaries.md)을 따른다.
 
 ## 경로와 파일 metadata

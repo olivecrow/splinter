@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "verification": "ST-01–04",
+  "baseline": "Previous JS candidate based on 4989f27; normal runtime 6b84697766a2e8f013d2a8e6c4e40d4d80d1d1d0395eeb55bdb1978dcf1ef223",
+  "candidate": "Uncommitted startup-time implementation based on 4989f27; source and normal runtime hashes fixed below",
+  "input": {
+    "appendCount": 1024,
+    "blockBytes": 4096,
+    "unrelatedPrivateFiles": 128,
+    "randomSeed": 127,
+    "filesystem": "local Windows NTFS"
+  },
+  "method": "Same frozen JS probe executable, replacing only Core/Runtime normal Release assemblies. Setup, byte/peer validation, seal, reconnect and retention inspection excluded from append timer. Sequential run order before1, after1, after2, before2, without cache clearing. Full tests and benchmark samples do not overlap.",
+  "limits": [
+    "One fixed editor-free append workload, two warm samples per candidate; not a causal Unity startup speedup.",
+    "Logical put counts are not physical disk I/O and exclude storage-internal carried objects; append regression separately proves no earlier payload copied.",
+    "First paged-prefix overwrite can carry the retained user payload in each invalidated page capsule once; live repaging then disabled until explicit compact.",
+    "Independent read progress and bridge no-write behavior validated by tests, not a native Editor startup timing.",
+    "New Unity readiness, overall RAM/disk peaks, OS power-loss and installed-service qualification remain NotRun."
+  ],
+  "runOrder": [
+    "before-1024-1",
+    "after-1024-1",
+    "after-1024-2",
+    "before-1024-2"
+  ],
+  "runs": [
+    {
+      "label": "before-1024-1",
+      "count": 1024,
+      "blockSize": 4096,
+      "unrelated": 128,
+      "elapsedSeconds": 7.9540492,
+      "threadAllocatedBytes": 1286971192,
+      "last32Seconds": 0.26140130000000017,
+      "last32ThreadAllocatedBytes": 71019936,
+      "retention": {
+        "reachableFrameCount": 1152,
+        "fullMetadataFrameCount": 129,
+        "uniqueFooterAndItemByteArrays": 259,
+        "retainedFooterAndItemBytes": 820149,
+        "scope": "Exact reachable footer/item byte arrays, excludes object overhead and total process RAM"
+      },
+      "flushDelta": 1024,
+      "logicalPutBytes": 123240924,
+      "currentJournalBytes": 4953346,
+      "payloadHash": "a494b0d8911fc21dab3b6de65dffc14415c6f7622c957cd9c785ff4004c72596",
+      "contentAndReconnectAndSealVerified": true,
+      "runtimeSha256": "6b84697766a2e8f013d2a8e6c4e40d4d80d1d1d0395eeb55bdb1978dcf1ef223"
+    },
+    {
+      "label": "after-1024-1",
+      "count": 1024,
+      "blockSize": 4096,
+      "unrelated": 128,
+      "elapsedSeconds": 5.9864649,
+      "threadAllocatedBytes": 586120392,
+      "last32Seconds": 0.19153339999999996,
+      "last32ThreadAllocatedBytes": 26598952,
+      "retention": {
+        "reachableFrameCount": 1152,
+        "fullMetadataFrameCount": 129,
+        "uniqueFooterAndItemByteArrays": 259,
+        "retainedFooterAndItemBytes": 298711,
+        "scope": "Exact reachable footer/item byte arrays, excludes object overhead and total process RAM"
+      },
+      "flushDelta": 1024,
+      "logicalPutBytes": 9872201,
+      "currentJournalBytes": 4894541,
+      "payloadHash": "a494b0d8911fc21dab3b6de65dffc14415c6f7622c957cd9c785ff4004c72596",
+      "contentAndReconnectAndSealVerified": true,
+      "runtimeSha256": "3661d876c091b774965ecaddcbd9be080ec432378f561ee843647d5519b50537"
+    },
+    {
+      "label": "after-1024-2",
+      "count": 1024,
+      "blockSize": 4096,
+      "unrelated": 128,
+      "elapsedSeconds": 6.4040472,
+      "threadAllocatedBytes": 586356608,
+      "last32Seconds": 0.2250867000000003,
+      "last32ThreadAllocatedBytes": 26599976,
+      "retention": {
+        "reachableFrameCount": 1152,
+        "fullMetadataFrameCount": 129,
+        "uniqueFooterAndItemByteArrays": 259,
+        "retainedFooterAndItemBytes": 298711,
+        "scope": "Exact reachable footer/item byte arrays, excludes object overhead and total process RAM"
+      },
+      "flushDelta": 1024,
+      "logicalPutBytes": 9872201,
+      "currentJournalBytes": 4894541,
+      "payloadHash": "a494b0d8911fc21dab3b6de65dffc14415c6f7622c957cd9c785ff4004c72596",
+      "contentAndReconnectAndSealVerified": true,
+      "runtimeSha256": "3661d876c091b774965ecaddcbd9be080ec432378f561ee843647d5519b50537"
+    },
+    {
+      "label": "before-1024-2",
+      "count": 1024,
+      "blockSize": 4096,
+      "unrelated": 128,
+      "elapsedSeconds": 7.9696674,
+      "threadAllocatedBytes": 1286975888,
+      "last32Seconds": 0.2781645999999993,
+      "last32ThreadAllocatedBytes": 71028416,
+      "retention": {
+        "reachableFrameCount": 1152,
+        "fullMetadataFrameCount": 129,
+        "uniqueFooterAndItemByteArrays": 259,
+        "retainedFooterAndItemBytes": 820149,
+        "scope": "Exact reachable footer/item byte arrays, excludes object overhead and total process RAM"
+      },
+      "flushDelta": 1024,
+      "logicalPutBytes": 123240924,
+      "currentJournalBytes": 4953346,
+      "payloadHash": "a494b0d8911fc21dab3b6de65dffc14415c6f7622c957cd9c785ff4004c72596",
+      "contentAndReconnectAndSealVerified": true,
+      "runtimeSha256": "6b84697766a2e8f013d2a8e6c4e40d4d80d1d1d0395eeb55bdb1978dcf1ef223"
+    }
+  ],
+  "metrics": {
+    "elapsedSeconds": {
+      "beforeMean": 7.961858299999999,
+      "afterMean": 6.195256049999999,
+      "reductionPercent": 22.18831563480601
+    },
+    "logicalPutBytes": {
+      "beforeMean": 123240924,
+      "afterMean": 9872201,
+      "reductionPercent": 91.98951072453822
+    },
+    "threadAllocatedBytes": {
+      "beforeMean": 1286973540,
+      "afterMean": 586238500,
+      "reductionPercent": 54.44828648147653
+    },
+    "currentJournalBytes": {
+      "beforeMean": 4953346,
+      "afterMean": 4894541,
+      "reductionPercent": 1.187177314082244
+    }
+  },
+  "sourceSha256": {
+    "src/Splinter.Core/SnapshotOverlay.cs": "1e0d84c476cd80c37d38db94145b46c4f8130148ad5fead1d0069aa9fef0b10b",
+    "src/Splinter.Runtime/JournalDeltaStore.cs": "9b47191342a0db642d50b021024116ce506b4ece918a61c8002603a2497efd9b",
+    "src/Splinter.Runtime/GraftedSnapshotTree.cs": "5676502e62a1e771f206049f4dbe93a342d57182df9101f9f8e827422a19e3e8",
+    "src/Splinter.Runtime/JournalDeltaLatest.cs": "76c0d3e1a6daeea633c07cb24c554c424ca2d3e030ce4487a376ec9d063b3402",
+    "src/Splinter.Runtime/JournalDeltaMetadataPages.cs": "e2d1f68fdbbc84a49bffd743bc6878a9d4e9b7cc938997f067fc9bea1e1b1160",
+    "src/Splinter.Runtime/JournalDeltaInitialization.cs": "eac86cde957d14d5651c3b37bb61d854721dd826874e535d3c0c3b1c35feb81c",
+    "src/Splinter.Runtime/LatestJournalStorage.cs": "860ff0f84b350bb88dcdb0c2da510ecd46f52e0d9ad5a22b837366ea47a2f281",
+    "src/Splinter.Platform.Windows/OwnedDirectorySnapshot.cs": "3fe385f070326207eaf2007175b4906544427252269595fdcfe6b544c71b44e0",
+    "src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs": "0f49435b58ee71d093c20ea22f8da2c320847ece8fe83c2227633044a862674c",
+    "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs": "74b070d2be252afa49c06ca4d0b6b1b27634fdb19c3a4174c16dd87c954904aa",
+    "src/Splinter.Application.Unity/UnityWorkspaceProvider.cs": "f28e8b986f8bdd2614b1d40c69d37ad194b44dd739264cb1d655c81e1c6ac9bd",
+    "tests/Splinter.Tests/JournalMetadataPageTests.cs": "c2b9a67526a23968f22476b193da3fc1836e5328806ebdb1b7cbffa2a6e5d131",
+    "tests/Splinter.Tests/SnapshotReadParallelismTests.cs": "e9ca87a6c216d632a7d5b7510328b9400c9e96846f43707bd4b0f43bf2513066",
+    "tests/Splinter.Tests/UnityInfrastructureReuseTests.cs": "f80114631e77cf34c8981698342f7de30ed31f71c3eee15cab5650fa5def011d",
+    "tests/Splinter.Tests/JournalStartupOptimizationTests.cs": "01a11cd52e0162e9861dd7091a143d09c4aca4ca644ca24ac403e3e14b897ca6"
+  },
+  "probeSha256": "5042c4ebd8b201125ec34c946054ab5cd15a39234b90ebebfa2e648fd67820d2",
+  "candidateRuntimeSha256": "3661d876c091b774965ecaddcbd9be080ec432378f561ee843647d5519b50537",
+  "validation": {
+    "command": "pwsh -NoProfile -File ./scripts/build.ps1",
+    "lockedRestore": "Passed",
+    "buildWarnings": 0,
+    "buildErrors": 0,
+    "passed": 1315,
+    "failed": 0,
+    "conditionalSkips": 19,
+    "trxSha256": "b0b5bd14dd56c3cdc4ae925d271fc3137ef31852048eb0bcfca1e5212d68e36b"
+  },
+  "rawEvidence": "artifacts/startup-time-20261008/"
+}

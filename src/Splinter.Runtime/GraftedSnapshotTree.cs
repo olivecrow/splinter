@@ -11,6 +11,7 @@ public sealed class GraftedSnapshotTree : ISnapshotTree
     private readonly WorkspacePathPolicy policy;
     public SnapshotReference Snapshot => source.Snapshot;
     public SnapshotGraft? Graft { get; }
+    public bool SupportsConcurrentReads => source.SupportsConcurrentReads && generated.SupportsConcurrentReads;
     public GraftedSnapshotTree(ISnapshotTree source, ISnapshotTree generated, SnapshotGraft graft)
     {
         policy = WorkspacePathPolicy.For(source.Snapshot);

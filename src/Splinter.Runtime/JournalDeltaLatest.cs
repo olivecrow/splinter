@@ -82,6 +82,10 @@ public sealed partial class JournalDeltaStore
         WorkspaceStore.EnsurePlainPath(objects);
         latestObjectsLock = new FileStream(Path.Combine(objects, "owner.lock"), FileMode.Open,
             readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 1);
+        // Recovery may publish this root as a backup and truncate its retired
+        // footer. Keep the writer/object guards, but not a read-only-sharing
+        // root handle that would block our own exact recovery write.
+        journal.Dispose();
         latest = new(path, Identity, readOnly);
         latest.FlushObserver = ticks => { Interlocked.Increment(ref flushCount); Interlocked.Add(ref flushTicks, ticks); };
         foreach (string unsafePath in latest.Current.ProjectionUnsafe)
@@ -89,8 +93,7 @@ public sealed partial class JournalDeltaStore
             if (Identity.ExcludedTopLevel?.Contains(unsafePath, pathPolicy.Comparer) != true || !projectionUnsafe.Add(unsafePath))
                 throw LatestJournalStorage.Corrupt("A projection guard differs from the overlay identity.");
         }
-        // Recovery may have replaced the root while this handle held the old one.
-        journal.Dispose();
+        // Only reopen the current root after publication/reclamation completes.
         journal = new FileStream(path, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite,
             FileShare.Read | FileShare.Delete, 4096, FileOptions.RandomAccess);
         var blockOwners = new Dictionary<long, Guid>();
@@ -98,7 +101,7 @@ public sealed partial class JournalDeltaStore
         {
             if (name.StartsWith("node-", StringComparison.Ordinal))
             {
-                var record = LatestJournalStorage.Decode<LatestNode>(latest.Read(name), "SJN1", int.MaxValue);
+                var record = ReadLatestNode(name);
                 if (record.Entry is null || record.Extents is null || record.Blocks is null || name != LatestNodeName(record.Entry.Id))
                     throw LatestJournalStorage.Corrupt("A current node record has invalid identity.");
                 _ = DecodeMutation(JsonSerializer.SerializeToUtf8Bytes(new Mutation(0, "metadata", record.Entry)), 0);
@@ -138,7 +141,8 @@ public sealed partial class JournalDeltaStore
                     }
                     if (blockEnd != descriptor.DecodedBytes) throw LatestJournalStorage.Corrupt("A current block retains unused payload.");
                     if (latest.FileLength(LatestJournalStorage.BlockName(block.Id)) != descriptor.StoredBytes + LatestJournalStorage.BlockHeaderBytes ||
-                        latest.FileHash(LatestJournalStorage.BlockName(block.Id)) != block.Hash || !latestBlockHashes.TryAdd(block.Id, block.Hash))
+                        latest.FileHash(LatestJournalStorage.BlockName(block.Id)) != block.Hash || latestPageHashes.ContainsKey(block.Id) ||
+                        !latestBlockHashes.TryAdd(block.Id, block.Hash))
                         throw LatestJournalStorage.Corrupt("A current private payload is missing or damaged.");
                     latest.ValidateBlock(block.Id, descriptor.StoredBytes);
                     replayBytes += descriptor.StoredBytes;
@@ -174,7 +178,7 @@ public sealed partial class JournalDeltaStore
             }
         }
         if (hidden.Count > MaxHiddenPaths || pathChanges.Count > MaxHiddenPaths ||
-            latest.Names().Count(n => n.StartsWith("block-", StringComparison.Ordinal)) != latestBlockHashes.Count)
+            latest.Names().Count(n => n.StartsWith("block-", StringComparison.Ordinal)) != latestBlockHashes.Count + latestPageHashes.Count)
             throw LatestJournalStorage.Corrupt("The current indexes or payload inventory differ.");
         sequence = latest.Current.Sequence;
         payloadBytes = latest.Current.PayloadBytes; logicalPayloadBytes = latest.Current.LogicalBytes;
@@ -213,9 +217,6 @@ public sealed partial class JournalDeltaStore
             position += count; output = output[count..];
         }
     }
-    private LatestNode LatestRecord(Node node) => new(node.Entry, [.. node.Extents],
-        node.Extents.Select(e => e.JournalOffset / LatestBlockStride).Distinct().Order()
-            .Select(id => new LatestBlock(id, latestBlockHashes[id])).ToArray(), node.Entry.Deleted ? 0 : pathChanges.GetValueOrDefault(node.Entry.Path));
     private LatestBucket BucketRecord(int bucket) => new(
         latestHiddenBuckets.GetValueOrDefault(bucket)?.Order(pathPolicy.Comparer).ToArray() ?? [],
         latestChangeBuckets.GetValueOrDefault(bucket)?.OrderBy(p => p.Key, pathPolicy.Comparer)
@@ -240,6 +241,9 @@ public sealed partial class JournalDeltaStore
                 .GroupBy(e => e.JournalOffset).ToDictionary(g => g.Key, g => g.First().Payload);
             var previousPaths = affected.Where(nodes.ContainsKey).Select(id => nodes[id].Entry.Path).ToArray();
             var puts = new Dictionary<string, LatestJournalStorage.Put>(StringComparer.Ordinal);
+            var pageRemoves = new List<LatestJournalStorage.Remove>();
+            bool append = mutation.Operation == "write" && nodes.TryGetValue(mutation.Entry.Id, out var appendNode) &&
+                mutation.Offset >= appendNode.Entry.Length;
             long next = latest!.Current.NextBlock;
             (long Address, WorkspaceJournalPayload Payload) AddBlock(ReadOnlySpan<byte> data)
             {
@@ -307,7 +311,8 @@ public sealed partial class JournalDeltaStore
                 }
                 node.Extents = merged; extentCount += merged.Count - priorExtents;
                 string name = LatestNodeName(id);
-                puts[name] = new(name, latest.FileHash(name), LatestJournalStorage.Encode(LatestRecord(node), "SJN1"));
+                byte[] record = WriteLatestNode(node, append && id == mutation.Entry.Id, ref next, puts, pageRemoves);
+                puts[name] = new(name, latest.FileHash(name), record);
             }
             foreach (int bucket in latestDirtyBuckets)
             {
@@ -318,10 +323,12 @@ public sealed partial class JournalDeltaStore
             var removed = beforeBlocks.Where(p => !retained.Contains(p.Key)).ToArray();
             var removes = removed.Select(p => new LatestJournalStorage.Remove(LatestJournalStorage.BlockName(p.Key / LatestBlockStride),
                 latestBlockHashes[p.Key / LatestBlockStride])).ToList();
+            removes.AddRange(pageRemoves);
             if (mutation.Operation == "forget-unlinked")
             {
                 string name = LatestNodeName(mutation.Entry.Id);
                 removes.Add(new(name, latest.FileHash(name) ?? throw LatestJournalStorage.Corrupt("A closed node record disappeared.")));
+                RetireLatestPages(mutation.Entry.Id, removes);
             }
             long fileBytes = latest.Current.FileBytes, stored = latest.Current.PayloadBytes, decoded = latest.Current.LogicalBytes;
             int fileCount = latest.Current.FileCount;
@@ -334,8 +341,9 @@ public sealed partial class JournalDeltaStore
             foreach (var p in removed) { stored -= p.Value.StoredBytes; decoded -= p.Value.DecodedBytes; }
             foreach (var block in puts.Values.Where(p => p.Name.StartsWith("block-", StringComparison.Ordinal)))
             {
-                stored += block.Bytes.Length - LatestJournalStorage.BlockHeaderBytes;
                 long id = Convert.ToInt64(block.Name[6..22], 16);
+                if (latestPageHashes.ContainsKey(id)) continue;
+                stored += block.Bytes.Length - LatestJournalStorage.BlockHeaderBytes;
                 decoded += affected.Where(nodes.ContainsKey).SelectMany(n => nodes[n].Extents)
                     .First(e => e.JournalOffset / LatestBlockStride == id).Payload.DecodedBytes;
             }
@@ -420,9 +428,21 @@ public sealed partial class JournalDeltaStore
                 { extents.Add(new(range.Logical, range.Length, id * LatestBlockStride, payload, cursor)); cursor += range.Length; }
             }
             extents.Sort((a, b) => a.Start.CompareTo(b.Start));
-            var record = new LatestNode(node.Entry, [.. extents], extents.Select(e => e.JournalOffset / LatestBlockStride)
-                .Distinct().Order().Select(id => new LatestBlock(id, hashes[id])).ToArray(), node.Entry.Deleted ? 0 : pathChanges.GetValueOrDefault(node.Entry.Path));
-            FileObject(LatestNodeName(node.Entry.Id), LatestJournalStorage.Encode(record, "SJN1"));
+            var pages = new List<LatestPageReference>();
+            int paged = extents.Count / LatestPageExtents * LatestPageExtents;
+            for (int start = 0; start < paged; start += LatestPageExtents)
+            {
+                var page = MakeLatestPage(node.Entry.Id, extents.GetRange(start, LatestPageExtents).ToArray(), hashes);
+                long id = next++;
+                byte[] bytes = LatestJournalStorage.EncodeBlock(id,
+                    LatestJournalStorage.Hash(JsonSerializer.SerializeToUtf8Bytes(Identity)), LatestJournalStorage.Encode(page, "SJP1"));
+                FileObject(LatestJournalStorage.BlockName(id), bytes);
+                pages.Add(new(id, LatestJournalStorage.Hash(bytes)));
+            }
+            var tail = extents.Skip(paged).ToArray();
+            var record = new LatestPagedNode(node.Entry, [.. pages], tail, LatestBlocks(tail, hashes),
+                node.Entry.Deleted ? 0 : pathChanges.GetValueOrDefault(node.Entry.Path), true);
+            FileObject(LatestNodeName(node.Entry.Id), LatestJournalStorage.Encode(record, "SJN2"));
         }
         var hiddenBuckets = hidden.GroupBy(LatestBucketId).ToDictionary(g => g.Key, g => g.Order(pathPolicy.Comparer).ToArray());
         var changeBuckets = pathChanges.Where(p => !paths.ContainsKey(p.Key)).GroupBy(p => LatestBucketId(p.Key)).ToDictionary(g => g.Key,
@@ -431,7 +451,7 @@ public sealed partial class JournalDeltaStore
             FileObject(LatestBucketName(bucket), LatestJournalStorage.Encode(new LatestBucket(
                 hiddenBuckets.GetValueOrDefault(bucket) ?? [], changeBuckets.GetValueOrDefault(bucket) ?? []), "SJK1"));
         FileObject("owner.lock", []);
-        var root = new LatestJournalStorage.Root(4, LatestJournalStorage.Hash(JsonSerializer.SerializeToUtf8Bytes(Identity)), objects,
+        var root = new LatestJournalStorage.Root(4, 2, LatestJournalStorage.Hash(JsonSerializer.SerializeToUtf8Bytes(Identity)), objects,
             sequence, next, fileBytes, fileCount, storedBytes, decodedBytes, projectionUnsafe.Order(pathPolicy.Comparer).ToArray());
         byte[] rootBytes = LatestJournalStorage.Encode(root, "SJL4");
         if (write)

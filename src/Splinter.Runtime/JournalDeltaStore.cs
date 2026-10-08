@@ -33,9 +33,11 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     public const int MaxIndexedExtents = 1000000;
     public const int MaxHiddenPaths = 250000;
     private readonly object gate = new();
-    // Immutable readers may own a sequential decoder. Serialize their payload
-    // calls separately, without holding up journal metadata or mutations.
+    // Unknown immutable readers may own an unsynchronized sequential decoder.
+    // Opted-in providers protect their own state and can read separate bases
+    // concurrently without holding up journal metadata or mutations.
     private readonly object baseReadGate = new();
+    private readonly bool concurrentBaseReads;
     private int activeBaseReads;
     private readonly ISnapshotTree snapshot;
     private readonly WorkspacePathPolicy pathPolicy;
@@ -116,6 +118,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             throw new WorkspaceException("SnapshotIdentityMismatch", "Reconnect requires the exact persistent differential snapshot reference.");
         snapshot.EnsureAvailable();
         this.snapshot = snapshot;
+        concurrentBaseReads = snapshot.SupportsConcurrentReads;
         this.readOnly = readOnly;
         Identity = identity;
         if (!readOnly) Directory.CreateDirectory(directory);
@@ -235,9 +238,13 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         }
         try
         {
-            lock (baseReadGate)
+            if (concurrentBaseReads)
                 foreach (var range in baseRanges)
                     ReadBase(entry.BasePath!, range.From, range.To, destination[..count], offset);
+            else
+                lock (baseReadGate)
+                    foreach (var range in baseRanges)
+                        ReadBase(entry.BasePath!, range.From, range.To, destination[..count], offset);
             using (EnterGate())
             {
                 Check(allowClosing: true);

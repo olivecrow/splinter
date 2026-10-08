@@ -3,6 +3,8 @@
 
 [한국어](ko/alpha-workspaces.md)
 
+On a same-workspace restart, an identical owned bridge and marker are reused after full ownership/content/path validation, preserving asset timestamps. Different verified owned bridge code is updated normally. Tokens and launch control remain fresh; first-start compilation is unchanged. See [startup-time verification](verification/startup-time-optimization.md).
+
 The product manages NTFS workspaces and their Editor lifetime. Creation, resumption, range storage, independent results, integration, reclamation, and discard follow the [NTFS contract](ntfs-workspaces.md). Library views are separated into the [development CLI](development-cli.md).
 
 <a id="에이전트의-기본-흐름"></a>

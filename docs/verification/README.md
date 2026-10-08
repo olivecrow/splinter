@@ -25,6 +25,10 @@
 
 [Current Unity checkpoint/release measurement](unity-checkpoint-release-remeasurement.md) owns UC-01: committed candidate `168081c`, unchanged real source/Library input, 304.9s for sequential A/B checkpoint/release and 180.9s for original Library restoration. Independent results, original protection, owned resource cleanup and 12 response schemas pass. Stop commands still time out before normal exit; the earlier profiled/current unprofiled single cohorts do not establish an isolated causal speedup.
 
+[Startup journal optimization](journal-startup-optimization.md) owns JS-01–04: retired footer references, affected-file membership lookup and bounded metadata verification. It records small normal-binary append costs and byte/seal/reconnect/corruption regression; it does not replace UC-01 with an unmeasured Unity startup speedup.
+
+[Startup time optimization](startup-time-optimization.md) owns ST-01–04: independent immutable reads, SJN2 append metadata pages and identical owned bridge reuse. It records the current format boundary, bounded time comparison and concurrency/recovery regressions; UC-01 remains historical.
+
 [Actual Unity C/S comparison](unity-live-comparison.md)/[HTML report](../../reports/unity-live-comparison-20261003.html) compare designated-input/file-allocation/Editor/provider memory/isolation/resumption in Codex app worktrees/product workspaces. Missing historical home fields/authorized follow-up reclaim distinguished in owning verification. Total physical/VSS attribution/minimum RAM unknown; no full SF/PV support expansion.
 
 [Unity parallel-edit verification](unity-parallel-editor-validation.md) owns bounded C/S A/B exact MCP targets/resources/scenes/current-state tests/original apply/reclaim. Actual test overlap/reload-result preservation/reconnect/owned reclaim/initial failure/recovery costs follow text verification. [HTML](../../reports/unity-parallel-editor-validation-20261003.html) records through S. Editor RAM savings unconfirmed/full physical peak/VSS attribution unknown retained.

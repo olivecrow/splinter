@@ -18,6 +18,8 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
 {
     public const string ProviderName = "owned-directory";
     public SnapshotReference Snapshot { get; }
+    // Pinned read-only handles and immutable indexes have no shared position.
+    public bool SupportsConcurrentReads => true;
     private readonly Dictionary<string, OwnedDirectoryItem> items;
     private readonly Dictionary<string, SafeFileHandle> files = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, SnapshotEntry[]> children;

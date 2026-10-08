@@ -44,6 +44,10 @@ public interface ISnapshotTree
 {
     SnapshotReference Snapshot { get; }
     SnapshotGraft? Graft => null;
+    // Opt in only when simultaneous Read calls are safe for every path. The
+    // value is fixed for this tree's lifetime; any internal decoder remains
+    // synchronized by its provider. Owners still drain reads before disposal.
+    bool SupportsConcurrentReads => false;
     void EnsureAvailable();
     SnapshotEntry? Stat(string relativePath);
     IReadOnlyList<SnapshotEntry> List(string relativeDirectory);

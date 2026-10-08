@@ -12,15 +12,19 @@ pwsh ./scripts/splinter.ps1 workspace compact --id <id> --home <home> --optimize
 
 기본 ON은 2026-10-06 사용자의 명시적 선택이다. 실제 32 PNG의 128KiB 범위 쓰기 1,536회 전체 22.389s(평균 약 14.6ms)와 파일 데이터 할당 93.61% 감소를 함께 판단했다. 이 값은 Unity Editor의 저장/import 시간이 아니며 관리 누적 할당/RAM 개선을 뜻하지 않는다. 개발용 Library cache와 고정 SJR2 쓰기 probe는 별도 계약의 OFF를 유지한다.
 
-새 ON 저널은 `journal-initialization.json`의 정확한 identity/attempt 선택을 먼저 고정한다. 빈 object seed·identity·SJL4 root를 같은 디렉터리에서 각각 flush 후 최초 move로 게시하고 intent를 제거한 뒤 쓰기를 허용한다. 완료 전에 중단하면 같은 identity/attempt의 생성만 재개한다. 기존 빈 SJR2도 OFF 선택을 유지한다. 손상 seed·다른 owner·unknown object는 보존·거부하며 초기화 intent는 v1 하나만 지원한다.
+새 ON 저널은 `journal-initialization.json`의 정확한 identity/attempt 선택을 먼저 고정한다. 빈 object seed·identity·SJL4 root를 같은 디렉터리에서 각각 flush 후 최초 move로 게시하고 intent를 제거한 뒤 쓰기를 허용한다. 완료 전에 중단하면 같은 identity/attempt의 생성만 재개한다. 기존 빈 SJR2도 OFF 선택을 유지한다. 손상 seed·다른 owner·unknown object는 보존·거부하며 초기화 intent는 필수 NodeFormat=2를 포함한 v1만 지원한다. root·초기화 intent의 node 형식 식별자가 없거나 이전 값이면 복구·게시 전에 보존·거부하며 이관하지 않는다.
 
 ON의 목적은 불변 원본 기준과 **현재 private 변경 범위**만 남기는 것이다. B를 C로 대체하는 도중에는 B와 미완료 C의 복구 기록이 함께 있다. C의 durable 게시와 이전 payload 회수가 끝나야 쓰기 성공을 반환한다. 완료 뒤에는 B의 superseded payload나 이전 metadata 버전을 남기지 않는다. 다른 파일·peer·원본 기준은 회수하지 않는다. 작업 전체의 완료를 추정하지 않으며 개별 mutation의 승인 경계를 사용한다.
 
 ## 현재 표현과 쓰기
 
-overlay identity/workspace는 v2, ON 저널은 **SJL4/root v4**, OFF와 독립 candidate v3의 저널은 **SJR2**다. 현재 compaction intent는 **v3 하나만** 지원한다. 이전 SJL1/SJL2/SJL3·SJT2/SJT3와 다른 pending/root/intent 버전은 보존·거부하며 자동 이관하지 않는다. OFF 저널을 ensure나 읽기만으로 ON으로 변환하지 않는다.
+overlay identity/workspace는 v2, ON 저널은 **SJL4/root v4와 필수 NodeFormat=2, SJN2 node·SJP1 metadata page**, OFF와 독립 candidate v3의 저널은 **SJR2**다. 현재 compaction intent는 **v3 하나만** 지원한다. 이전 SJL1/SJL2/SJL3·SJT2/SJT3와 다른 pending/root/intent 버전은 보존·거부하며 자동 이관하지 않는다. OFF 저널을 ensure나 읽기만으로 ON으로 변환하지 않는다.
 
 SJL4의 최초 `delta.journal` root는 같은 delta 안의 `latest-<attempt GUID>` 디렉터리와 현재 seed node/bucket/block을 지정한다. 첫 mutation 이후 root 자체가 현재 mutation의 capsule이다. capsule에는 128B owner/generation/이전 상태/데이터 hash header, bounded private block, 현재 node/bucket metadata와 전체 checksum이 있다. 각 SJB1 block은 최대 transfer 한도(최대 1MiB)의 raw/Brotli payload와 80B identity·block ID·길이·hash header를 포함한다. 현재 범위의 위치를 가리키는 node와 마지막 path sequence/whiteout은 현재 상태이며 편집 이력 stack이 아니다.
+
+payload 위치는 물리 주소·길이와 선택적인 현재 metadata만 유지하며 과거 capsule frame을 참조하지 않는다. metadata 검증은 해당 물리 파일의 현재 frame을 조회한다. 메모리의 파일별 object 인덱스로 게시·회수의 항목 검색을 변경된 파일에 한정하고, 재연결에서는 검증한 저장소에서 다시 구성한다. footer 비교는 최대 64KiB의 임시 버퍼를 쓰고 metadata hash는 검증한 byte 배열을 복제하지 않는다. SJL4 형식·전체 검증·개별 mutation flush/ACK를 유지하며 [시작 단계 저널 최적화 검증](verification/journal-startup-optimization.md)을 따른다.
+
+SJN2 node는 완성된 이어 쓰기 앞부분을 32개 extent 단위 불변 페이지로 재사용하고 미완성 뒷부분과 페이지 참조를 갱신한다. 페이지는 bounded SJB1 block이며 metadata로 집계한다. 실제 이어 쓰기는 이전 payload를 다시 쓰지 않고 페이지를 최대 하나 추가한다. 페이지 앞부분을 변경하면 일치하지 않는 뒷부분을 회수하고 명시적 stopped compact까지 추가 live paging을 끈다. 기존 capsule 회수는 함께 있는 현재 private payload를 한 번 옮길 수 있다. 정확한 page/node 소유권·hash·범위·inventory 검증, 개별 flush/ACK와 독립 후보 export를 유지한다. 한정 비교와 덮어쓰기·복구의 제한은 [준비 시간 검증](verification/startup-time-optimization.md)을 따른다.
 
 쓰기 순서는 다음과 같다.
 

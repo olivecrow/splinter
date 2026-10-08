@@ -14,6 +14,9 @@ namespace Splinter.SourceControl.Git;
 public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
 {
     public SnapshotReference Snapshot { get; }
+    // Decoder/proof state remains serialized by readGate; callers need not
+    // serialize independent grafted bases behind this tree's slow reads.
+    public bool SupportsConcurrentReads => true;
     private readonly Func<SnapshotObservation> health;
     private readonly WorkspacePathPolicy policy;
     private readonly Dictionary<string, SnapshotEntry> entries;

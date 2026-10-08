@@ -79,6 +79,8 @@
 | [Unity 수명주기 재측정](verification/unity-lifecycle-remeasurement.md) | UR-01–04: 같은 실제 입력의 최적화 후 A/B 시간·제한된 프로파일, 종료 시간 제한과 같은 작업 지속, 독립 결과·원본 복원, 남은 병목 |
 | [수명주기 읽기·복원 최적화](verification/lifecycle-read-optimization.md) | LO-01–11: 제한된 Git proof·reader 세션 재사용과 기준 읽기 gate 분리, SJL4 검증·seal 읽기 통합, 경로 조회·변경 없는 파일 복원·cursor 묶음·전체 Library 복원·불변 목록 재사용, 한정 NTFS 비용과 손상·복구 회귀 |
 | [현재 Unity checkpoint/release 측정](verification/unity-checkpoint-release-remeasurement.md) | UC-01: 커밋한 최적화 후보의 같은 실제 Unity A/B 입력, checkpoint/release 304.9초·Library 복원 180.9초, 종료 시간 제한과 결과·원본·자원 검증. |
+| [시작 단계 저널 최적화](verification/journal-startup-optimization.md) | JS-01–04: 회수된 metadata 수명·파일별 object 인덱스·bounded footer 비교, 작은 이어 쓰기 비용과 손상·재연결 회귀. 새 Unity 준비 시간은 NotRun. |
+| [준비 시간 최적화](verification/startup-time-optimization.md) | ST-01–04: 독립 불변 읽기, SJN2 이어 쓰기 metadata 페이지, 동일 bridge 재사용과 한정 경과 시간·guard 검증. 새 Unity 준비 시간은 NotRun. |
 | [Unity 실제 C/S 비교 범위](plans/unity-live-comparison.md), [검증](verification/unity-live-comparison.md), [HTML](../../reports/unity-live-comparison-20261003.html) | Codex worktree와 제품 workspace의 코드/에셋·파일 할당/메모리·격리/재개·회수 비교. 입력/버전과 실패·후속 복구의 근거는 소유 검증에서 구분 |
 | [Unity 병렬 편집 확정 범위](plans/unity-parallel-editor-validation.md), [검증](verification/unity-parallel-editor-validation.md), [S HTML](../../reports/unity-parallel-editor-validation-20261003.html) | C/S A/B의 정확한 MCP 대상·리소스/씬/테스트·원본 반영·소유 회수와 비용 비교. HTML은 S까지이며 후속 실행과 제한은 텍스트 검증이 소유 |
 

@@ -6,7 +6,7 @@ namespace Splinter.Runtime;
 
 public sealed partial class JournalDeltaStore
 {
-    private sealed record JournalInitialization(int Version, OverlayIdentity Identity, string Attempt);
+    private sealed record JournalInitialization(int Version, int NodeFormat, OverlayIdentity Identity, string Attempt);
     private static readonly JsonSerializerOptions InitializationJson = new()
     { RespectRequiredConstructorParameters = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
     private static string InitializationPath(string directory) => Path.Combine(directory, "journal-initialization.json");
@@ -35,12 +35,12 @@ public sealed partial class JournalDeltaStore
         {
             if (Directory.EnumerateFileSystemEntries(directory).Any())
                 throw LatestJournalStorage.Corrupt("A new journal directory contains unowned entries.");
-            intent = new(1, identity, Guid.NewGuid().ToString("N"));
+            intent = new(1, 2, identity, Guid.NewGuid().ToString("N"));
             using (var pending = new FileStream(intentPath + ".pending", FileMode.CreateNew, FileAccess.Write, FileShare.Read))
             { JsonSerializer.Serialize(pending, intent, InitializationJson); pending.Flush(true); }
             observer?.Observe(new("latest.initialize.intent-flushed", "initialize", 0, 0, 0, 0));
         }
-        if (intent.Version != 1 || !Guid.TryParseExact(intent.Attempt, "N", out _) ||
+        if (intent.Version != 1 || intent.NodeFormat != 2 || !Guid.TryParseExact(intent.Attempt, "N", out _) ||
             JsonSerializer.Serialize(intent.Identity) != JsonSerializer.Serialize(identity))
             throw LatestJournalStorage.Corrupt("The initialization intent has another identity or format.");
         if (!File.Exists(intentPath))
@@ -65,7 +65,7 @@ public sealed partial class JournalDeltaStore
         using (var owner = new FileStream(Path.Combine(objectsPath, "owner.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read))
             owner.Flush(true);
         Visit("latest.initialize.objects");
-        var root = new LatestJournalStorage.Root(4, LatestJournalStorage.Hash(JsonSerializer.SerializeToUtf8Bytes(identity)),
+        var root = new LatestJournalStorage.Root(4, 2, LatestJournalStorage.Hash(JsonSerializer.SerializeToUtf8Bytes(identity)),
             objectsName, 0, 1, 0, 1, 0, 0, []);
         byte[] rootBytes = LatestJournalStorage.Encode(root, "SJL4");
         if (rootBytes.Length > identity.MaxJournalBytes) throw new WorkspaceException("DeltaFull", "The initial journal exceeds its budget.");

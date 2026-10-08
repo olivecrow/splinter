@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
@@ -10,14 +11,14 @@ namespace Splinter.Runtime;
 // flush. ReplaceFile moves the old head to an owned backup without copying it.
 internal sealed class LatestJournalStorage
 {
-    internal sealed record Root(int Version, string IdentityHash, string Objects, long Sequence, long NextBlock,
+    internal sealed record Root(int Version, int NodeFormat, string IdentityHash, string Objects, long Sequence, long NextBlock,
         long FileBytes, int FileCount, long PayloadBytes, long LogicalBytes, string[] ProjectionUnsafe);
     internal sealed record Put(string Name, string? BeforeHash, byte[] Bytes);
     internal sealed record Remove(string Name, string Hash);
     private sealed record Item(string Name, int Length, string Hash, long Offset, byte[]? Metadata);
     private sealed record Retire(string Name, string Hash, long KeepBytes, string? PrefixHash);
     private sealed record CommitRecord(int Version, long Generation, Root After, Item[] Items, string[] Removes, Retire[] Retires);
-    private sealed record Location(string Path, long Offset, int Length, byte[]? Metadata, Frame? Frame);
+    private sealed record Location(string Path, long Offset, int Length, byte[]? Metadata);
     private sealed record Frame(string Path, byte[] Header, CommitRecord Commit, byte[] Metadata, long DataEnd, long Length);
     private static readonly JsonSerializerOptions Json = new() { RespectRequiredConstructorParameters = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
     internal const int BlockHeaderBytes = 80;
@@ -27,6 +28,7 @@ internal sealed class LatestJournalStorage
     private readonly string rootPath, directory, owner;
     private readonly long limit;
     private readonly Dictionary<string, Location> objects = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HashSet<string>> objectsByPath = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Frame> frames = new(StringComparer.Ordinal);
     private Frame? head;
     private long generation;
@@ -83,7 +85,7 @@ internal sealed class LatestJournalStorage
         {
             WorkspaceStore.EnsurePlainPath(entry); string name = Path.GetFileName(entry);
             if (!File.Exists(entry) || !Plain(name) && !Backup(name) && name != Pending) throw Corrupt("An unowned object is present.");
-            if (Plain(name)) { objects.Add(name, new(entry, 0, checked((int)new FileInfo(entry).Length), null, null)); sealing?.AddFile(entry); }
+            if (Plain(name)) { SetLocation(name, new(entry, 0, checked((int)new FileInfo(entry).Length), null)); sealing?.AddFile(entry); }
             else if (Backup(name))
             {
                 if (!Capsule(entry))
@@ -126,7 +128,7 @@ internal sealed class LatestJournalStorage
     }
     private static void ValidateRoot(Root r)
     {
-        if (r.Version != 4 || r.IdentityHash.Length != 64 || !r.IdentityHash.All(Uri.IsHexDigit) || r.Objects.Length != 39 ||
+        if (r.Version != 4 || r.NodeFormat != 2 || r.IdentityHash.Length != 64 || !r.IdentityHash.All(Uri.IsHexDigit) || r.Objects.Length != 39 ||
             !r.Objects.StartsWith("latest-", StringComparison.Ordinal) || !Guid.TryParseExact(r.Objects[7..], "N", out _) ||
             r.Sequence < 0 || r.NextBlock < 1 || r.NextBlock >= long.MaxValue / JournalDeltaStore.LatestBlockStride || r.FileBytes < 0 ||
             r.FileCount < 0 || r.PayloadBytes < 0 || r.LogicalBytes < 0 || r.PayloadBytes > r.FileBytes || r.ProjectionUnsafe is null) throw Corrupt("Current root fields are invalid.");
@@ -163,10 +165,16 @@ internal sealed class LatestJournalStorage
     internal byte[] Read(string n)
     {
         if (!objects.TryGetValue(n, out var l)) throw Corrupt("A current object is missing.");
-        if (l.Metadata is not null) { Footer(l.Frame!); return (byte[])l.Metadata.Clone(); }
+        if (l.Metadata is not null) { Footer(frames[l.Path]); return (byte[])l.Metadata.Clone(); }
         using var f = Open(l.Path); f.Position = l.Offset; byte[] b = new byte[l.Length]; f.ReadExactly(b); return b;
     }
-    internal string? FileHash(string n) => objects.ContainsKey(n) ? Hash(Read(n)) : null;
+    internal string? FileHash(string n)
+    {
+        if (!objects.TryGetValue(n, out var location)) return null;
+        if (location.Metadata is null) return Hash(Read(n));
+        Footer(frames[location.Path]);
+        return Hash(location.Metadata);
+    }
     internal FileStream OpenBlock(long id) { if (!objects.TryGetValue(BlockName(id), out var l)) throw Corrupt("A private block is missing."); var f = new FileStream(l.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.RandomAccess); f.Position = l.Offset; return f; }
     internal long BlockOffset(long id) => objects[BlockName(id)].Offset + BlockHeaderBytes;
     internal static string BlockName(long id) => $"block-{id:x16}.bin";
@@ -177,7 +185,26 @@ internal sealed class LatestJournalStorage
     }
     internal void ValidateBlock(long id, int count) { using var f = OpenBlock(id); byte[] h = new byte[BlockHeaderBytes]; f.ReadExactly(h); BlockHeader(h, id, count); }
     private void BlockHeader(byte[] b, long id, int count) { if (b.Length != BlockHeaderBytes || !b.AsSpan(0, 4).SequenceEqual("SJB1"u8) || BinaryPrimitives.ReadInt64LittleEndian(b.AsSpan(4)) != id || BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(12)) != count || count <= 0 || count > 1048576 || !b.AsSpan(16, 32).SequenceEqual(Convert.FromHexString(owner))) throw Corrupt("A private block has another owner or address."); }
-    private static void Footer(Frame frame) { using var f = Open(frame.Path); if (f.Length != frame.Length) throw Corrupt("Current metadata changed."); f.Position = frame.DataEnd; byte[] m = new byte[frame.Metadata.Length]; f.ReadExactly(m); if (!m.AsSpan().SequenceEqual(frame.Metadata)) throw Corrupt("Current metadata changed."); }
+    private static void Footer(Frame frame)
+    {
+        using var f = Open(frame.Path);
+        if (f.Length != frame.Length) throw Corrupt("Current metadata changed.");
+        f.Position = frame.DataEnd;
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Min(65536, frame.Metadata.Length));
+        try
+        {
+            for (int offset = 0; offset < frame.Metadata.Length;)
+            {
+                int count = Math.Min(65536, frame.Metadata.Length - offset);
+                f.ReadExactly(buffer.AsSpan(0, count));
+                if (!buffer.AsSpan(0, count).SequenceEqual(frame.Metadata.AsSpan(offset, count)))
+                    throw Corrupt("Current metadata changed.");
+                offset += count;
+            }
+            if (f.Length != frame.Length) throw Corrupt("Current metadata changed.");
+        }
+        finally { ArrayPool<byte>.Shared.Return(buffer); }
+    }
     private Frame ReadFrame(string path, bool allowPrefix = false)
     {
         using var f = Open(path); long physicalLength = sealing?.Begin(f) ?? f.Length;
@@ -206,16 +233,38 @@ internal sealed class LatestJournalStorage
     private void Index(Frame frame)
     {
         using var f = Open(frame.Path); long at = HeaderBytes;
-        while (at < frame.DataEnd) { f.Position = at; byte[] h = new byte[BlockHeaderBytes]; f.ReadExactly(h); long id = BinaryPrimitives.ReadInt64LittleEndian(h.AsSpan(4)); int n = BinaryPrimitives.ReadInt32LittleEndian(h.AsSpan(12)); BlockHeader(h, id, n); if (at + BlockHeaderBytes + n > frame.DataEnd) throw Corrupt("A block exceeds its capsule."); objects[BlockName(id)] = new(frame.Path, at, BlockHeaderBytes + n, null, frame); at += BlockHeaderBytes + n; }
+        while (at < frame.DataEnd) { f.Position = at; byte[] h = new byte[BlockHeaderBytes]; f.ReadExactly(h); long id = BinaryPrimitives.ReadInt64LittleEndian(h.AsSpan(4)); int n = BinaryPrimitives.ReadInt32LittleEndian(h.AsSpan(12)); BlockHeader(h, id, n); if (at + BlockHeaderBytes + n > frame.DataEnd) throw Corrupt("A block exceeds its capsule."); SetLocation(BlockName(id), new(frame.Path, at, BlockHeaderBytes + n, null)); at += BlockHeaderBytes + n; }
         foreach (var i in frame.Commit.Items)
         {
             if (!Plain(i.Name) || i.Name == "owner.lock" || i.Length < 0) throw Corrupt("A capsule item is outside its namespace.");
-            if (i.Metadata is { } m) { if (i.Length != m.Length || Hash(m) != i.Hash || i.Name.StartsWith("block-", StringComparison.Ordinal)) throw Corrupt("Metadata checksum differs."); objects[i.Name] = new(frame.Path, 0, i.Length, m, frame); }
+            if (i.Metadata is { } m) { if (i.Length != m.Length || Hash(m) != i.Hash || i.Name.StartsWith("block-", StringComparison.Ordinal)) throw Corrupt("Metadata checksum differs."); SetLocation(i.Name, new(frame.Path, 0, i.Length, m)); }
             else if (!objects.TryGetValue(i.Name, out var loc) || loc.Path != frame.Path || loc.Offset != i.Offset || loc.Length != i.Length) throw Corrupt("Payload references differ.");
         }
-        foreach (string n in frame.Commit.Removes) { if (!Plain(n) || n == "owner.lock") throw Corrupt("A removed name is invalid."); objects.Remove(n); }
+        foreach (string n in frame.Commit.Removes) { if (!Plain(n) || n == "owner.lock") throw Corrupt("A removed name is invalid."); RemoveLocation(n); }
         if (frame.Path == rootPath) Current = frame.Commit.After;
     }
+    private void SetLocation(string name, Location location)
+    {
+        if (objects.TryGetValue(name, out var prior) && prior.Path != location.Path)
+            RemoveMembership(prior.Path, name);
+        objects[name] = location;
+        if (!objectsByPath.TryGetValue(location.Path, out var names))
+            objectsByPath.Add(location.Path, names = new(StringComparer.Ordinal));
+        names.Add(name);
+    }
+    private void RemoveLocation(string name)
+    {
+        if (objects.Remove(name, out var prior)) RemoveMembership(prior.Path, name);
+    }
+    private void RemoveMembership(string path, string name)
+    {
+        var names = objectsByPath[path];
+        names.Remove(name);
+        if (names.Count == 0) objectsByPath.Remove(path);
+    }
+    private KeyValuePair<string, Location>[] Members(string path) =>
+        objectsByPath.TryGetValue(path, out var names)
+            ? names.Select(name => new KeyValuePair<string, Location>(name, objects[name])).ToArray() : [];
     internal void Commit(Root after, Put[] writes, Remove[] removes, Action<string> boundary)
     {
         boundary("latest.before-storage-prepare");
@@ -226,14 +275,14 @@ internal sealed class LatestJournalStorage
         var touched = writes.Select(p => objects.GetValueOrDefault(p.Name)?.Path).Concat(removes.Select(r => objects[r.Name].Path)).Where(p => p is not null).Cast<string>().ToHashSet(StringComparer.Ordinal);
         foreach (string p in touched.ToArray())
         {
-            if (!frames.ContainsKey(p)) continue; var entries = objects.Where(v => v.Value.Path == p).ToArray();
+            if (!frames.ContainsKey(p)) continue; var entries = Members(p);
             bool mt = entries.Any(v => v.Value.Metadata is not null && (puts.ContainsKey(v.Key) || removed.Contains(v.Key))), dt = entries.Any(v => v.Value.Metadata is null && (puts.ContainsKey(v.Key) || removed.Contains(v.Key)));
             foreach (var v in entries) if (!puts.ContainsKey(v.Key) && !removed.Contains(v.Key) && (v.Value.Metadata is not null ? mt || dt : dt)) puts.Add(v.Key, new(v.Key, FileHash(v.Key), Read(v.Key)));
         }
         string oldHead = $"commit-{generation:x16}-{Guid.NewGuid():N}.bin"; touched.Add(rootPath); var retires = new List<Retire>();
         foreach (string p in touched)
         {
-            string name = p == rootPath ? oldHead : Path.GetFileName(p); var remaining = objects.Where(v => v.Value.Path == p && !puts.ContainsKey(v.Key) && !removed.Contains(v.Key)).ToArray();
+            string name = p == rootPath ? oldHead : Path.GetFileName(p); var remaining = Members(p).Where(v => !puts.ContainsKey(v.Key) && !removed.Contains(v.Key)).ToArray();
             if (remaining.Any(v => v.Value.Metadata is not null)) continue;
             if (remaining.Length == 0) retires.Add(new(name, HashFile(p), 0, null));
             else if (frames.TryGetValue(p, out var frame) && frame.Metadata.Length != 0) retires.Add(new(name, HashFile(p), frame.DataEnd, HashFile(p, frame.DataEnd)));
@@ -262,7 +311,11 @@ internal sealed class LatestJournalStorage
         for (int retry = 0;;retry++) { try { File.Replace(pending, rootPath, oldPath); break; } catch (IOException ex) when (OperatingSystem.IsWindows() && retry < 20 && (ex.HResult & 65535) is 32 or 33 or 1175 && File.Exists(pending)) { Thread.Sleep(50); } }
         boundary("latest.after-object-publication");
         var oldFrame = head; frames.Remove(rootPath);
-        if (oldFrame is not null) { var moved = oldFrame with { Path = oldPath }; frames[oldPath] = moved; foreach (string name in objects.Where(v => v.Value.Path == rootPath).Select(v => v.Key).ToArray()) objects[name] = objects[name] with { Path = oldPath, Frame = moved }; }
+        if (oldFrame is not null)
+        {
+            frames[oldPath] = oldFrame with { Path = oldPath };
+            foreach (var entry in Members(rootPath)) SetLocation(entry.Key, entry.Value with { Path = oldPath });
+        }
         head = ReadFrame(rootPath); committedBytes += head.Length; generation = head.Commit.Generation; frames[rootPath] = head; Index(head); boundary("latest.after-root-publication");
     }
     private void Recover(string path)
