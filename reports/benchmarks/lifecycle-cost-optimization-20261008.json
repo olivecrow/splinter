@@ -1,0 +1,667 @@
+{
+  "verificationIds": [
+    "LC-01",
+    "LC-02",
+    "LC-03"
+  ],
+  "candidate": {
+    "baseCommit": "76f8f7f22c5fe00249e0b0a76e8faabed7708425",
+    "state": "uncommitted working tree",
+    "filesSha256": {
+      "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs": "29efde20d523ce448eac963642926e2a7568edc8858f1ed519c47745a4667dff",
+      "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs": "2a431c904fe28b2449eaf2af491087909f445d84b76715223a4ac2c9a2036280",
+      "src/Splinter.Platform.Windows/NtfsSnapshotWorkspaceBackend.cs": "f4c09fe2f959b2f6384423a06f76c51e2efb3bd5c31ce2f02d870b286181e45f",
+      "src/Splinter.Platform.Windows/OverlayDeltaInitialization.cs": "d98949b6a003c35f00bcbc047e5ed43a22c1d724f8b26bda910127a26cb6c87a",
+      "src/Splinter.Platform.Windows/WinFspOverlayClient.cs": "bb569260b2778413760ae3db159c455b3923a49106d6baf08018e628acdde6f6",
+      "src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs": "2948911bf388b87e9d64c9f6a4f018c038a9af7afd1ffac3dbba9170e76092f9",
+      "src/Splinter.Runtime/IJournalDirectoryGuard.cs": "2924d15598f91760323c6442d9b2b9ce1115569346fde6e5edc5afbf1cb79ec1",
+      "src/Splinter.Runtime/JournalDeltaCompaction.cs": "b47ccd635ccdc9c93f7e881288b30f33741a91a77a8d2ad086ff387116af37e7",
+      "src/Splinter.Runtime/JournalDeltaInitialization.cs": "0b1eec5217f549745fd294271fcef49259ebce26131d7f82182a6242d9d81b28",
+      "src/Splinter.Runtime/JournalDeltaLatest.cs": "2a40c92fa4c2acbc761cffb02b90dcf5895577fdcf26c340f7341cb012e6f05f",
+      "src/Splinter.Runtime/JournalDeltaMetadataPages.cs": "9b73d6abbcce2523f7d12267aa6076e358dfb4c0372192ded82de5665f47fcc4",
+      "src/Splinter.Runtime/LatestJournalReclamation.cs": "fcb3fb138a99c94ae13fc356b07fd545e6e67ab4a4607411f2e481847b9bfb92",
+      "src/Splinter.Runtime/LatestJournalStorage.cs": "bb6f09bc0bc42328153037a345894b763eb3db39fb56ea4a80f3d8340003e30b",
+      "tests/Splinter.Tests/JournalMetadataPageTests.cs": "3cda8d98c82148d84dff2972185b449f1a4a16f9dca5704371911527d05efd4a",
+      "tests/Splinter.Tests/JournalRandomWritePageTests.cs": "d091af7276c84801c7f6abdafb6b30581a6c5b73e84c8b2e42b446b20120f1cd",
+      "tests/Splinter.Tests/JournalSealNamespaceTests.cs": "b8c783a50018e2fa776a92b57633c5ac0d4b5fdaea87e26a02d56fabd7424d13",
+      "tests/Splinter.Tests/JournalStartupOptimizationTests.cs": "edb8b7dbce4d426da03536c1b9214a063ccc7812a0bb3fdec0213c46ad10e817",
+      "tests/Splinter.Tests/OverlayDeltaInitializationTests.cs": "eebb105dc9f5df677f7275ef586bd47a0b964ddf6e54cde7613844a3323c49a7"
+    },
+    "frozenRuntime": [
+      {
+        "path": "cs/System.CommandLine.resources.dll",
+        "sha256": "9db74abed424f28057b2b946df78f892f14dd8683c74906c4e79a7b454303415"
+      },
+      {
+        "path": "de/System.CommandLine.resources.dll",
+        "sha256": "017380f95f4c1057b701311342e5921ed5bdf5013d8553cb5ac4a8889d132081"
+      },
+      {
+        "path": "es/System.CommandLine.resources.dll",
+        "sha256": "0277fb8bfbf2ec45923a20e34935356b6988f83cff9e3d5ffc985f9ab3c53b0d"
+      },
+      {
+        "path": "fr/System.CommandLine.resources.dll",
+        "sha256": "511dbc4ce34e929433b206b32912db5562f8cb53b46b483468ae770bbd75f00e"
+      },
+      {
+        "path": "Humanizer.dll",
+        "sha256": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39"
+      },
+      {
+        "path": "it/System.CommandLine.resources.dll",
+        "sha256": "58c2f07c08d99a4823e441a0f9402a3a07e4f8902543ec97ea6bbc8961af5330"
+      },
+      {
+        "path": "ja/System.CommandLine.resources.dll",
+        "sha256": "6f30fcd99bb1597f7b81f4bc26ed9582dc33d013aab211feaf96ab491a35a0b3"
+      },
+      {
+        "path": "Json.More.dll",
+        "sha256": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f"
+      },
+      {
+        "path": "JsonPointer.Net.dll",
+        "sha256": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8"
+      },
+      {
+        "path": "JsonSchema.Net.dll",
+        "sha256": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c"
+      },
+      {
+        "path": "ko/System.CommandLine.resources.dll",
+        "sha256": "ab5c8b013a53f7a02fef7068434ffc46345f1f07963dd0ef6e26e3ff4b46b763"
+      },
+      {
+        "path": "pl/System.CommandLine.resources.dll",
+        "sha256": "fa37fc6307053ace1003e6dcc72a33cc972dac719a0e1a40965936e1e8413bde"
+      },
+      {
+        "path": "pt-BR/System.CommandLine.resources.dll",
+        "sha256": "f648dfab8b24d44177a4455ff9bcd4fefa06210ee5c06e4c6e447fd6f4963d51"
+      },
+      {
+        "path": "ru/System.CommandLine.resources.dll",
+        "sha256": "e3984a1494df49ecccf720346fa3096f5ec546aff797e2e6d9b86df9686ed260"
+      },
+      {
+        "path": "Splinter.Application.Unity.dll",
+        "sha256": "d337be48f24368a880e27e93c7d179d464d72537d2bd30cd803a9945514d3ab0"
+      },
+      {
+        "path": "Splinter.Application.Unity.pdb",
+        "sha256": "9d9979e4d45d43bc318c814a6d190246601a1d2c7478505f21b3222d2408a37c"
+      },
+      {
+        "path": "Splinter.Core.dll",
+        "sha256": "ac6489964f4746bd68201d01ad99e6c39e7412badd3ba2d16f5db02542080c43"
+      },
+      {
+        "path": "Splinter.Core.pdb",
+        "sha256": "683209d7d3b616d8e70eb0a35299122d2b34d6c45c2643a983d626401ee77e94"
+      },
+      {
+        "path": "splinter.deps.json",
+        "sha256": "ffeee71a0f0aca6909ef5253ebff532fd34f59d6b2028bf236f6afc6a923d8db"
+      },
+      {
+        "path": "splinter.dll",
+        "sha256": "9428bbc07de186949a1c07d73bf2447ccb7f655c9d774b7a1a2aef598037e2f9"
+      },
+      {
+        "path": "splinter.exe",
+        "sha256": "ddfb8c0692d524b536dcabd9e0e1cc51761b26ef7a6d8acbfda5bfc38fa37114"
+      },
+      {
+        "path": "Splinter.Host.dll",
+        "sha256": "61a211d6756349bd37c6ffcedc288981ca67f78fbfd35ab496b5454fa9d8e9f9"
+      },
+      {
+        "path": "Splinter.Host.pdb",
+        "sha256": "f9bcff47e4cd5be23fe2731b01f9734217d90ee05002bd3aa739ccc403a27177"
+      },
+      {
+        "path": "splinter.pdb",
+        "sha256": "6c2a2389652b9e7a9732ddbe7c4986cb00846f5e35f43cc36f278d834c25d538"
+      },
+      {
+        "path": "Splinter.Platform.Windows.deps.json",
+        "sha256": "ee3448c0bf432243eb1f7e43c831f141623f33d528d48be4f5e61a6b1acc7000"
+      },
+      {
+        "path": "Splinter.Platform.Windows.dll",
+        "sha256": "4cb9684a0ccaae4d1d04c60fcbb56daf28a84857f8f34121177b94025cbda365"
+      },
+      {
+        "path": "Splinter.Platform.Windows.exe",
+        "sha256": "087e7178f9f091e9e1ad77e2e84f22fc90732d136851682ed736bf1759d208a8"
+      },
+      {
+        "path": "Splinter.Platform.Windows.pdb",
+        "sha256": "215b7e9ee4b33c6071232f8dd211dfa5e0be3d6f9c9655f055cd1b60f370f27e"
+      },
+      {
+        "path": "Splinter.Platform.Windows.runtimeconfig.json",
+        "sha256": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097"
+      },
+      {
+        "path": "Splinter.Protocol.dll",
+        "sha256": "2b0a92b8243dd326becbc27bf7ff080d53c63fffb3b03de86632849db33d20a9"
+      },
+      {
+        "path": "Splinter.Protocol.pdb",
+        "sha256": "3c159b38a888192a038ba58733acfe05959d73a1971b2fd06d3eeeaa2764becf"
+      },
+      {
+        "path": "Splinter.Runtime.dll",
+        "sha256": "7041a40b6395c1707672ab7c096d135c0bceb7c1eb022d17b51efe75f83cbe71"
+      },
+      {
+        "path": "Splinter.Runtime.pdb",
+        "sha256": "0ad1edc7918d05705317278a722fc8d3268eb4ebf4a686885f09d0a7f2b3c314"
+      },
+      {
+        "path": "splinter.runtimeconfig.json",
+        "sha256": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097"
+      },
+      {
+        "path": "Splinter.SourceControl.Files.dll",
+        "sha256": "5a55a751c7d2b59ce338d266681ef632b520c644e013893218d7f49af91d510f"
+      },
+      {
+        "path": "Splinter.SourceControl.Files.pdb",
+        "sha256": "17ff146b6db454a8fb0c2255aebc4c50d1f4ffa0f89ae649cf2cd167751fb48f"
+      },
+      {
+        "path": "Splinter.SourceControl.Git.dll",
+        "sha256": "4fcb5c2f1f1ccc8e84b3e29d745f873624a0048c9f6245ed3662d7f662f98083"
+      },
+      {
+        "path": "Splinter.SourceControl.Git.pdb",
+        "sha256": "ae48403d5f3fad73a3a1e514dc63e285195f142f26714de23c9d33eeca3ef9d3"
+      },
+      {
+        "path": "Splinter.Workflows.Windows.dll",
+        "sha256": "f692a14fce65df3bf91353f489383450bc3a2923fa7a1c5847d548c757a52bc4"
+      },
+      {
+        "path": "Splinter.Workflows.Windows.pdb",
+        "sha256": "e82a00698752821d6604a10ce5122fbf64583467fd4e87a8f6d39beba3017c97"
+      },
+      {
+        "path": "System.CommandLine.dll",
+        "sha256": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e"
+      },
+      {
+        "path": "tr/System.CommandLine.resources.dll",
+        "sha256": "38361ec14998f14dbefb3f75e8793830a56e6e18d3a5737b238a6247cfcd72a2"
+      },
+      {
+        "path": "winfsp-msil.dll",
+        "sha256": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+      },
+      {
+        "path": "zh-Hans/System.CommandLine.resources.dll",
+        "sha256": "425e40dd37692cc9c4fe2d75af4c39d884f7c982bb6ac80e2e34e341331437b6"
+      },
+      {
+        "path": "zh-Hant/System.CommandLine.resources.dll",
+        "sha256": "b3a5d4992b4729d3f9bc1bde92f5bda23cbab6515af11f3cc317ae48a3cfed9c"
+      }
+    ]
+  },
+  "validation": {
+    "command": "pwsh -NoProfile -File scripts/build.ps1",
+    "lockedRestore": "Passed",
+    "releaseBuild": "Passed",
+    "warnings": 0,
+    "errors": 0,
+    "total": 1518,
+    "passed": 1498,
+    "failed": 0,
+    "conditionalSkipped": 20,
+    "seconds": 320.306,
+    "log": {
+      "path": "artifacts/lifecycle-cost-followup-20261008/build-final.log",
+      "sha256": "48f00c0bc32555c3c5995f35cb3806b1fbb4abf8e5b5071b2b243e1796e10b1a"
+    },
+    "trx": {
+      "path": "artifacts/lifecycle-cost-followup-20261008/final-tests.trx",
+      "sha256": "84eb140c5e435eb1a3795cf1b0777c1390aea75a73ad1f29790821d99ddfb5a8"
+    },
+    "protectedUnrelatedFiles": 27,
+    "protectedFileHashesUnchanged": true,
+    "siblingUnityWorktree": "clean, untouched",
+    "documentation": {
+      "utf8FilesChecked": 296,
+      "invalidUtf8": 0,
+      "localFileLinksChecked": 558,
+      "missingLocalTargets": 0,
+      "gitDiffCheck": "Passed"
+    }
+  },
+  "boundedCosts": {
+    "cohort": "final-lc8-runtime-final-with-earlier-frozen-baseline",
+    "order": "The two existing baseline runs from the earlier exploratory cohort are reused. Two final-candidate runs follow the source refinements; this is not a new balanced ABBA cohort. The 8,192-write scaling pair is separately run once before then once after.",
+    "harnessFiles": [
+      {
+        "path": "Program.cs",
+        "sha256": "0df49b2159921a109d72273803050441fb6f11b32bf94f6a67c77e47a896e1de"
+      },
+      {
+        "path": "CostProbe.csproj",
+        "sha256": "1c22a1ff605af89a16c90af69b36b21a7ac26d5776d6f59e173568b4c1c242f5"
+      },
+      {
+        "path": "bin/Release/net10.0/CostProbe.dll",
+        "sha256": "8f9ea5bff5c6ecf081207f3c496dd87e247e12aa87d573ee932056810162f710"
+      }
+    ],
+    "priorHarnessAndFailureQualification": "comparison.json records the prior helper API adaptation, probe versions and preserved failed fixtures; final scatter-only mode preserves the same seed, 128 initial appends and content/seal/flush checks while omitting redundant append control.",
+    "runtimeFiles": {
+      "before": [
+        {
+          "name": "Splinter.Core.dll",
+          "sha256": "c487902c783dc326cca4faca8ff0ff41230b385a7a2887d6ff7eb085adc7d043"
+        },
+        {
+          "name": "Splinter.Runtime.dll",
+          "sha256": "b3ab16345dd85d0b13cf3d2d1d174e2fd7d00a2ec24f33a692f01234efcc8825"
+        },
+        {
+          "name": "Splinter.Platform.Windows.dll",
+          "sha256": "ebea9381366b0d043bbde05d2e21e74bc0c2d22eaa6a255c3d5e02c30891b61e"
+        }
+      ],
+      "after": [
+        {
+          "name": "Splinter.Core.dll",
+          "sha256": "ac6489964f4746bd68201d01ad99e6c39e7412badd3ba2d16f5db02542080c43"
+        },
+        {
+          "name": "Splinter.Runtime.dll",
+          "sha256": "7041a40b6395c1707672ab7c096d135c0bceb7c1eb022d17b51efe75f83cbe71"
+        },
+        {
+          "name": "Splinter.Platform.Windows.dll",
+          "sha256": "4cb9684a0ccaae4d1d04c60fcbb56daf28a84857f8f34121177b94025cbda365"
+        }
+      ]
+    },
+    "writes": {
+      "scatteredSeconds": {
+        "before": [
+          13.5595806,
+          13.6568433
+        ],
+        "after": [
+          13.7335092,
+          13.6838331
+        ],
+        "beforeMean": 13.608211950000001,
+        "afterMean": 13.70867115,
+        "reductionPercent": -0.7382248334249344
+      },
+      "scatteredLogicalPutBytes": {
+        "before": [
+          64419073,
+          64419073
+        ],
+        "after": [
+          21065407,
+          21065407
+        ],
+        "beforeMean": 64419073,
+        "afterMean": 21065407,
+        "reductionPercent": 67.29942543569355
+      },
+      "appendSeconds": {
+        "before": [
+          11.1897482,
+          11.3980105
+        ],
+        "after": [
+          11.5557873,
+          11.2413125
+        ],
+        "beforeMean": 11.293879350000001,
+        "afterMean": 11.398549899999999,
+        "reductionPercent": -0.9267900493376354
+      },
+      "appendLogicalPutBytes": {
+        "before": [
+          14037338,
+          14037338
+        ],
+        "after": [
+          13982042,
+          13982042
+        ],
+        "beforeMean": 14037338,
+        "afterMean": 13982042,
+        "reductionPercent": 0.39392084168665026
+      }
+    },
+    "seal": {
+      "sealSeconds": {
+        "before": [
+          0.2085775,
+          0.2183768
+        ],
+        "after": [
+          0.1198626,
+          0.1188146
+        ],
+        "beforeMean": 0.21347715,
+        "afterMean": 0.1193386,
+        "reductionPercent": 44.09771724983212
+      },
+      "reclaimSeconds": {
+        "before": [
+          0.6403229,
+          0.6167529
+        ],
+        "after": [
+          0.3323045,
+          0.3241715
+        ],
+        "beforeMean": 0.6285379,
+        "afterMean": 0.32823800000000003,
+        "reductionPercent": 47.77753258793145
+      }
+    },
+    "library": {
+      "initializationSeconds": {
+        "before": [
+          0.2075012,
+          0.20253
+        ],
+        "after": [
+          0.0727722,
+          0.0721996
+        ],
+        "beforeMean": 0.2050156,
+        "afterMean": 0.07248589999999999,
+        "reductionPercent": 64.64371491730385
+      },
+      "providerAdmissionSeconds": {
+        "before": [
+          0.1402476,
+          0.1366289
+        ],
+        "after": [
+          0.1482813,
+          0.1495617
+        ],
+        "beforeMean": 0.13843824999999998,
+        "afterMean": 0.14892149999999998,
+        "reductionPercent": -7.572509765184117
+      }
+    },
+    "scaling8192": {
+      "seconds": {
+        "before": [
+          53.8009917
+        ],
+        "after": [
+          55.6614326
+        ],
+        "beforeMean": 53.8009917,
+        "afterMean": 55.6614326,
+        "reductionPercent": -3.45800484566161
+      },
+      "logicalPutBytes": {
+        "before": [
+          309962047
+        ],
+        "after": [
+          135101755
+        ],
+        "beforeMean": 309962047,
+        "afterMean": 135101755,
+        "reductionPercent": 56.413452450841504
+      },
+      "flushSeconds": {
+        "before": [
+          18.6359659
+        ],
+        "after": [
+          18.0500637
+        ],
+        "beforeMean": 18.6359659,
+        "afterMean": 18.0500637,
+        "reductionPercent": 3.143932561069988
+      }
+    },
+    "evidence": [
+      {
+        "path": "before-writes-1.json",
+        "sha256": "b3babed2e1321d771005ff655ad6c0862f6e897c2045c4343a9d5ed6594b3c14"
+      },
+      {
+        "path": "before-writes-2.json",
+        "sha256": "afafd7ffd7a01cfee83dc06a9f922b18e9a8142ef24b5b25ccbd5bc91c865de1"
+      },
+      {
+        "path": "final/after-writes-1.json",
+        "sha256": "40acbf211128a6613fd487e7b63057923687f182230d8a4d8420894d9940f222"
+      },
+      {
+        "path": "final/after-writes-2.json",
+        "sha256": "c7b4b452c7d48ab67165dca1eea760e43a147d2f93bcdb31df20b67bc2644c1c"
+      },
+      {
+        "path": "before-seal-1.json",
+        "sha256": "477567bad5a4af02ce8fef1f5d4656691116e82fc0fb7d561d3cb28bc84ff148"
+      },
+      {
+        "path": "before-seal-2.json",
+        "sha256": "dc02c6daa78cd499f08c721635710e5396f06aeb1e937741e83532540bccc085"
+      },
+      {
+        "path": "final/after-seal-1.json",
+        "sha256": "9db73190898c6e758c6eb37ceba640aac598fdf051fcf89b5b92e11f086e41d9"
+      },
+      {
+        "path": "final/after-seal-2.json",
+        "sha256": "f48fae67d79edce85480cab93db1d9a37b2468c8754c6667343e85f176f882e8"
+      },
+      {
+        "path": "before-library-1.json",
+        "sha256": "187b6cb62a69f9f8e862ac78206e438fbfb471b8613074b4074c508ad9e7bf27"
+      },
+      {
+        "path": "before-library-2.json",
+        "sha256": "ff23b80b2fefff9078e92bcd9126f4aeab279679267a4a99782b057e04cc0717"
+      },
+      {
+        "path": "final/after-library-1.json",
+        "sha256": "b1b5d0383a2188accaa2107706329207ed3f9dcbfe3d75545d5e6eb5fa3d76c2"
+      },
+      {
+        "path": "final/after-library-2.json",
+        "sha256": "fe0884cf213e9fa752cb2ea742df448ce3d15b6414b1b40ae28720eb5e6c5a25"
+      },
+      {
+        "path": "final/before-scatter-8192.json",
+        "sha256": "80f288e67efd86709683e4a1061fc9ab26eea6114ca8f5ffb9670090af50e9ee"
+      },
+      {
+        "path": "final/after-scatter-8192.json",
+        "sha256": "7d4026fad1e1b644ebdb1ce1c172ba87b2dbeb3f21f45e40bd1c7c5596dd2f21"
+      }
+    ],
+    "qualification": "Bounded synthetic fresh-input operations, ordinary-user NTFS and runtime-native formats. Exact bytes, individual durable flush/commit, reopened seal, full provider admission and owned reclamation are verified. Logical puts do not measure physical I/O or retained allocation. Initial fixture creation and verification are outside operation timers. No Unity shutdown or end-to-end qualification; one scaling pair does not establish general performance."
+  },
+  "growingRanges": {
+    "cohort": "single-growing-sparse-range-pair",
+    "order": "One fresh baseline run followed by one fresh final-candidate run; no concurrent build or other probe workload.",
+    "harnessFiles": [
+      {
+        "path": "Program.cs",
+        "sha256": "8b884ac126a4e2485e8b0cd02f9754edeb049647ffbfcec671eefaf09d022fa5"
+      },
+      {
+        "path": "CostProbe.csproj",
+        "sha256": "1c22a1ff605af89a16c90af69b36b21a7ac26d5776d6f59e173568b4c1c242f5"
+      },
+      {
+        "path": "bin/Release/net10.0/CostProbe.dll",
+        "sha256": "a881cda4bf6cb937f534a30a4dda79fd7c95378e0d3ffdd109ef62863c226d92"
+      }
+    ],
+    "runtimeFiles": {
+      "before": [
+        {
+          "name": "Splinter.Core.dll",
+          "sha256": "c487902c783dc326cca4faca8ff0ff41230b385a7a2887d6ff7eb085adc7d043"
+        },
+        {
+          "name": "Splinter.Runtime.dll",
+          "sha256": "b3ab16345dd85d0b13cf3d2d1d174e2fd7d00a2ec24f33a692f01234efcc8825"
+        },
+        {
+          "name": "Splinter.Platform.Windows.dll",
+          "sha256": "ebea9381366b0d043bbde05d2e21e74bc0c2d22eaa6a255c3d5e02c30891b61e"
+        }
+      ],
+      "after": [
+        {
+          "name": "Splinter.Core.dll",
+          "sha256": "ac6489964f4746bd68201d01ad99e6c39e7412badd3ba2d16f5db02542080c43"
+        },
+        {
+          "name": "Splinter.Runtime.dll",
+          "sha256": "7041a40b6395c1707672ab7c096d135c0bceb7c1eb022d17b51efe75f83cbe71"
+        },
+        {
+          "name": "Splinter.Platform.Windows.dll",
+          "sha256": "4cb9684a0ccaae4d1d04c60fcbb56daf28a84857f8f34121177b94025cbda365"
+        }
+      ]
+    },
+    "input": {
+      "logicalLength": 262144,
+      "setLengthHoles": true,
+      "initialSeeds": 128,
+      "timedWrites": 2048,
+      "writeBytes": 64,
+      "strideBytes": 128,
+      "timedPayloadBytes": 131072,
+      "initialExtentCount": 128,
+      "finalAndReplayedExtentCount": 2048
+    },
+    "metrics": {
+      "seconds": {
+        "before": 17.210355,
+        "after": 14.1256822,
+        "reductionPercent": 17.923353701884707
+      },
+      "logicalPutBytes": {
+        "before": 490134535,
+        "after": 32151320,
+        "reductionPercent": 93.44030715974748
+      },
+      "flushSeconds": {
+        "before": 5.183885,
+        "after": 4.7059209,
+        "reductionPercent": 9.220191034330437
+      }
+    },
+    "proof": {
+      "finalSha256": "30e3506e264afb5e3f03d30b04d7adbdfde6b8ac1796bcb51f1ec66fa4402c32",
+      "exactBytesVerified": true,
+      "individualFlushAndCommitCount": 2048,
+      "reopenedSealsMatch": true,
+      "initialFinalAndReplayedExtentCountsAsserted": true,
+      "basisPreserved": true
+    },
+    "priorFixtureInspections": [
+      {
+        "fixture": "artifacts/lifecycle-cost-followup-20261008/cost-probe/before-writes-2",
+        "runtime": ".local/sa8-runtime",
+        "extentCount": 128,
+        "length": 262144,
+        "durableSequence": 2177,
+        "qualification": "Read-only replay of the preserved stopped fixture, outside all operation timers; no journal mutation."
+      },
+      {
+        "fixture": "artifacts/lifecycle-cost-followup-20261008/cost-probe/final/before-scatter-8192",
+        "runtime": ".local/sa8-runtime",
+        "extentCount": 128,
+        "length": 1048576,
+        "durableSequence": 8321,
+        "qualification": "Read-only replay of the preserved stopped fixture, outside all operation timers; no journal mutation."
+      },
+      {
+        "fixture": "artifacts/lifecycle-cost-followup-20261008/cost-probe/final/after-writes-2",
+        "runtime": ".local/lc8-runtime-final",
+        "extentCount": 128,
+        "length": 262144,
+        "durableSequence": 2177,
+        "qualification": "Read-only replay of the preserved stopped fixture, outside all operation timers; no journal mutation."
+      },
+      {
+        "fixture": "artifacts/lifecycle-cost-followup-20261008/cost-probe/final/after-scatter-8192",
+        "runtime": ".local/lc8-runtime-final",
+        "extentCount": 128,
+        "length": 1048576,
+        "durableSequence": 8321,
+        "qualification": "Read-only replay of the preserved stopped fixture, outside all operation timers; no journal mutation."
+      }
+    ],
+    "scopeCorrection": "The prior2048/8192 scattered writes seeded the complete file using128 contiguous private chunks. Partial overwrite repacks old slices with incoming payload and then merges contiguous extents, so both versions remain at128 extents. Those prior measurements are valid fully-private overwrite overhead, including the observed time regressions, but do not measure growing metadata range count. The new sparse fixture leaves64-byte holes between ranges and proves actual128-to2048 extent growth. Previous reports remain preserved.",
+    "evidence": [
+      {
+        "path": "final/before-growing-2048.json",
+        "sha256": "4e756dea8d03c42c4fd5994aa530396cb881c4303515deca5c10e5ce99cc409c"
+      },
+      {
+        "path": "final/after-growing-2048.json",
+        "sha256": "27992057b60a0565427f1b0795ad81879c8e29ce247035fe56b06497dd9cd057"
+      },
+      {
+        "path": "final/inspect-before-2048.json",
+        "sha256": "04b1a6e262bda0750ec9b316fe04702a4071fbb4b12cb7e9fb5f31f0484d2468"
+      },
+      {
+        "path": "final/inspect-before-8192.json",
+        "sha256": "5a6b07c7bddab0baef96b42fa37ea80706ac9a53a39759be60e82be8150cd0c5"
+      },
+      {
+        "path": "final/inspect-after-2048.json",
+        "sha256": "6c50ba6b45f71fda52161a5670ab8a8593504f5351404f89614ac219de5c8700"
+      },
+      {
+        "path": "final/inspect-after-8192.json",
+        "sha256": "ecd3cea5ac0a2ed5d9b0df63aad88034978de623263eb3ada2d3217b759c4128"
+      }
+    ],
+    "qualification": "Single bounded synthetic NTFS pair on runtime-native formats with actual Windows journal directory guard. Setup, extent inspection and full byte/seal verification are outside operation timers. Logical puts are not physical writes or retained allocation. This does not establish Unity shutdown time, end-to-end improvement or a general scaling curve."
+  },
+  "scopeCorrection": "The earlier scaling8192 key preserves its original label: both fully-private overwrite fixtures retain 128 extents. It tests more overwrite calls, not increasing range count. Only growingRanges proves 128-to-2048 extent growth.",
+  "qualification": {
+    "unityFullLifecycle": "NotRun",
+    "unityShutdownTime": "NotRun",
+    "physicalDiskIO": "NotMeasured",
+    "retainedDiskAllocation": "NotMeasured",
+    "osPowerLoss": "NotRun",
+    "serviceOrUacChanges": false,
+    "format": "NodeFormat3 / SJN3 / SJP2 / SJM2; older NodeFormat2 preserved and rejected; OFF SJR2 and independent candidate v3 unchanged",
+    "remainingCost": "Per-mutation durable flush, complete provider payload admission, current page-reference array and predelete content checks remain. Fully-private overwrite timings regressed slightly in these bounded samples."
+  },
+  "rawSummaryEvidence": [
+    {
+      "path": "artifacts/lifecycle-cost-followup-20261008/cost-probe/comparison.json",
+      "sha256": "bb9d2fb4d97358e63ac7c5c7e43637e8eac9690fc32e2ea10d508ec2d83da3e7"
+    },
+    {
+      "path": "artifacts/lifecycle-cost-followup-20261008/cost-probe/final/comparison.json",
+      "sha256": "8a8af4721a65d0813a0744eb245e8804bddfeb3cc2270a3a0f10b44a520ab109"
+    },
+    {
+      "path": "artifacts/lifecycle-cost-followup-20261008/cost-probe/final/growing-comparison.json",
+      "sha256": "ca2c672622f11386c977d7e44cc499200ae2bf98a2f1b2e33955869269891ca7"
+    }
+  ]
+}

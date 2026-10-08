@@ -57,29 +57,4 @@ public static class WorkspaceSnapshotBasis
         public int Read(string path, long offset, Span<byte> destination) => tree.Read(path, offset, destination);
         public void Dispose() => (tree as IDisposable)?.Dispose();
     }
-    public sealed class GeneratedTreeScope : ISnapshotTree, IDisposable
-    {
-        private readonly IDisposable? lease;
-        private readonly DisposableSnapshotTree? generated;
-        private readonly ISnapshotTree tree;
-        public GeneratedTreeScope(ISnapshotTree source, OverlayServeRequest request)
-        {
-            if (request.Identity.Graft is not { } graft) { tree = source; return; }
-            try
-            {
-                lease = AcquireReadLease(graft.Basis.Snapshot, graft.Basis.ReceiptDirectory, graft.Basis.OwnerId);
-                generated = OpenTree(graft.Basis.Snapshot, request.GeneratedSnapshot!.ReadAccess, graft.Basis.ReceiptDirectory, graft.Basis.OwnerId);
-                tree = new Splinter.Runtime.GraftedSnapshotTree(source, generated, graft);
-            }
-            catch { Dispose(); throw; }
-        }
-        public SnapshotReference Snapshot => tree.Snapshot;
-        public SnapshotGraft? Graft => tree.Graft;
-        public bool SupportsConcurrentReads => tree.SupportsConcurrentReads;
-        public void EnsureAvailable() => tree.EnsureAvailable();
-        public SnapshotEntry? Stat(string path) => tree.Stat(path);
-        public IReadOnlyList<SnapshotEntry> List(string path) => tree.List(path);
-        public int Read(string path, long offset, Span<byte> destination) => tree.Read(path, offset, destination);
-        public void Dispose() { generated?.Dispose(); lease?.Dispose(); }
-    }
 }

@@ -23,9 +23,9 @@ public sealed class JournalMetadataPageTests
             {
                 writer.Write(id, i * data.Length, data);
                 var blocks = HeadBlocks(root.Path);
-                Assert.Single(blocks, b => !b.AsSpan().StartsWith("SJP1"u8));
-                Assert.Equal(data, blocks.Single(b => !b.AsSpan().StartsWith("SJP1"u8)));
-                Assert.Equal((i + 1) % 32 == 0 ? 1 : 0, blocks.Count(b => b.AsSpan().StartsWith("SJP1"u8)));
+                Assert.Single(blocks, b => !b.AsSpan().StartsWith("SJP2"u8));
+                Assert.Equal(data, blocks.Single(b => !b.AsSpan().StartsWith("SJP2"u8)));
+                Assert.Equal((i + 1) % 32 == 0 ? 1 : 0, blocks.Count(b => b.AsSpan().StartsWith("SJP2"u8)));
             }
             Assert.Equal(128, writer.Observe().Metrics!.FlushCount - flushes);
             Assert.InRange(writer.Observe().Metrics!.JournalAppendedBytes - written, 128 * 4096, 128 * 12000);
@@ -37,7 +37,7 @@ public sealed class JournalMetadataPageTests
     }
 
     [Fact]
-    public void ChangedPrefixRetiresEachPageOnceAndDisablesLiveRepagingAcrossReconnect()
+    public void ChangedPrefixReusesUnaffectedPagesWithoutCopyingTheirPrivatePayloadAcrossReconnect()
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree); byte[] expected = Bytes(96 * 4096, 17); Guid id;
@@ -46,18 +46,17 @@ public sealed class JournalMetadataPageTests
             id = writer.Create("file", false, 32).Id;
             for (int i = 0; i < 96; i++) writer.Write(id, i * 4096, expected.AsSpan(i * 4096, 4096));
             expected[0] ^= 47; writer.Write(id, 0, expected.AsSpan(0, 1));
-            // Three retired page capsules can carry only their three final
-            // append blocks, alongside the repacked first private block.
-            Assert.InRange(HeadBlocks(root.Path).Sum(b => b.Length), 4096, 4 * 4096);
-            Assert.DoesNotContain(HeadBlocks(root.Path), b => b.AsSpan().StartsWith("SJP1"u8));
+            // The first private block is repacked, but the untouched page
+            // payloads remain in their original capsule prefixes.
+            Assert.Equal(4096, HeadBlocks(root.Path).Where(b => !b.AsSpan().StartsWith("SJP2"u8)).Sum(b => b.Length));
         }
         using (var writer = new JournalDeltaStore(root.Path, identity, tree))
         {
             for (int i = 0; i < 64; i++)
             {
                 byte[] extra = Bytes(4096, i); writer.Write(id, expected.Length, extra); expected = [.. expected, .. extra];
-                Assert.Single(HeadBlocks(root.Path));
-                Assert.Equal(extra, HeadBlocks(root.Path)[0]);
+                Assert.Single(HeadBlocks(root.Path), b => !b.AsSpan().StartsWith("SJP2"u8));
+                Assert.Equal(extra, HeadBlocks(root.Path).Single(b => !b.AsSpan().StartsWith("SJP2"u8)));
             }
             writer.Rename(id, "renamed", false);
             writer.SetLength(id, 5000); expected = expected[..5000];
@@ -145,31 +144,31 @@ public sealed class JournalMetadataPageTests
         string nodePath = Path.Combine(directory, $"node-{id:N}.json");
         var node = Decode(File.ReadAllBytes(nodePath));
         long pageId = node["Pages"]![0]!["Id"]!.GetValue<long>();
-        string pagePath = Path.Combine(directory, $"block-{pageId:x16}.bin");
+        string pagePath = Path.Combine(directory, $"page-{pageId:x16}.bin");
         byte[] page = File.ReadAllBytes(pagePath);
         if (kind == "missing") File.Delete(pagePath);
         else if (kind == "corrupt") { page[^1] ^= 47; File.WriteAllBytes(pagePath, page); }
-        else if (kind == "extra") File.Copy(pagePath, Path.Combine(directory, "block-000000000000ffff.bin"));
+        else if (kind == "extra") File.Copy(pagePath, Path.Combine(directory, "page-000000000000ffff.bin"));
         else if (kind == "previous-node-format") File.WriteAllBytes(nodePath, Encode(node, "SJN1"));
         else if (kind == "duplicate")
         {
-            node["Pages"]![1] = node["Pages"]![0]!.DeepClone(); File.WriteAllBytes(nodePath, Encode(node, "SJN2"));
+            node["Pages"]![1] = node["Pages"]![0]!.DeepClone(); File.WriteAllBytes(nodePath, Encode(node, "SJN3"));
         }
         else if (kind == "payload-alias")
         {
             byte[] payload = File.ReadAllBytes(Path.Combine(directory, "block-000000000000000a.bin"));
             node["Pages"]![0]!["Id"] = 10;
             node["Pages"]![0]!["Hash"] = Convert.ToHexStringLower(SHA256.HashData(payload));
-            File.WriteAllBytes(nodePath, Encode(node, "SJN2"));
+            File.WriteAllBytes(nodePath, Encode(node, "SJN3"));
         }
         else
         {
             var body = Decode(page[80..]); body["NodeId"] = Guid.NewGuid();
-            byte[] changed = Encode(body, "SJP1"); Assert.Equal(page.Length - 80, changed.Length);
+            byte[] changed = Encode(body, "SJP2"); Assert.Equal(page.Length - 80, changed.Length);
             changed.CopyTo(page, 80); SHA256.HashData(changed, page.AsSpan(48, 32));
             File.WriteAllBytes(pagePath, page);
             node["Pages"]![0]!["Hash"] = Convert.ToHexStringLower(SHA256.HashData(page));
-            File.WriteAllBytes(nodePath, Encode(node, "SJN2"));
+            File.WriteAllBytes(nodePath, Encode(node, "SJN3"));
         }
         var before = Directory.GetFiles(root.Path, "*", SearchOption.AllDirectories).ToDictionary(p => p, File.ReadAllBytes);
         Assert.Equal("DeltaCorrupt", Assert.Throws<WorkspaceException>(() => new JournalDeltaStore(root.Path, identity, tree)).Code);
@@ -177,11 +176,15 @@ public sealed class JournalMetadataPageTests
     }
 
     [Theory]
-    [InlineData("empty")]
-    [InlineData("pending")]
-    [InlineData("published")]
-    [InlineData("initializing")]
-    public void PreviousNodeFormatIsRejectedBeforeAnyRecoveryOrSeedPublication(string stage)
+    [InlineData("empty", false)]
+    [InlineData("pending", false)]
+    [InlineData("published", false)]
+    [InlineData("initializing", false)]
+    [InlineData("empty", true)]
+    [InlineData("pending", true)]
+    [InlineData("published", true)]
+    [InlineData("initializing", true)]
+    public void PreviousNodeFormatIsRejectedBeforeAnyRecoveryOrSeedPublication(string stage, bool previous)
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree); var observer = new Interruption();
@@ -190,7 +193,7 @@ public sealed class JournalMetadataPageTests
             observer.Boundary = "latest.initialize.intent-flushed";
             Assert.Throws<IOException>(() => new JournalDeltaStore(root.Path, identity, tree, observer));
             string intent = Path.Combine(root.Path, "journal-initialization.json.pending");
-            var value = JsonNode.Parse(File.ReadAllBytes(intent))!.AsObject(); value.Remove("NodeFormat");
+            var value = JsonNode.Parse(File.ReadAllBytes(intent))!.AsObject(); if (previous) value["NodeFormat"] = 2; else value.Remove("NodeFormat");
             File.WriteAllBytes(intent, System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(value));
         }
         else
@@ -209,7 +212,7 @@ public sealed class JournalMetadataPageTests
                 int dataEnd = checked(128 + (int)BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(16)));
                 int count = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(24));
                 var capsule = JsonNode.Parse(bytes.AsSpan(dataEnd, count))!;
-                capsule["After"]!.AsObject().Remove("NodeFormat");
+                if (previous) capsule["After"]!["NodeFormat"] = 2; else capsule["After"]!.AsObject().Remove("NodeFormat");
                 byte[] metadata = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(capsule);
                 byte[] changed = new byte[dataEnd + metadata.Length + 32]; bytes.AsSpan(0, dataEnd).CopyTo(changed);
                 BinaryPrimitives.WriteInt32LittleEndian(changed.AsSpan(24), metadata.Length); metadata.CopyTo(changed, dataEnd);
@@ -218,7 +221,7 @@ public sealed class JournalMetadataPageTests
             }
             else
             {
-                var value = Decode(bytes).AsObject(); value.Remove("NodeFormat"); File.WriteAllBytes(path, Encode(value, "SJL4"));
+                var value = Decode(bytes).AsObject(); if (previous) value["NodeFormat"] = 2; else value.Remove("NodeFormat"); File.WriteAllBytes(path, Encode(value, "SJL4"));
             }
         }
         var before = Directory.GetFiles(root.Path, "*", SearchOption.AllDirectories).ToDictionary(p => p, File.ReadAllBytes);
@@ -240,7 +243,7 @@ public sealed class JournalMetadataPageTests
         long end = 128 + BinaryPrimitives.ReadInt64LittleEndian(header.AsSpan(16)); var result = new List<byte[]>();
         while (input.Position < end)
         {
-            byte[] block = new byte[80]; input.ReadExactly(block); Assert.True(block.AsSpan().StartsWith("SJB1"u8));
+            byte[] block = new byte[80]; input.ReadExactly(block); Assert.True(block.AsSpan().StartsWith("SJB1"u8) || block.AsSpan().StartsWith("SJM2"u8));
             byte[] payload = new byte[BinaryPrimitives.ReadInt32LittleEndian(block.AsSpan(12))]; input.ReadExactly(payload); result.Add(payload);
         }
         Assert.Equal(end, input.Position); return result;

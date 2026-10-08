@@ -27,7 +27,7 @@
 
 [Startup journal optimization](journal-startup-optimization.md) owns JS-01–04: retired footer references, affected-file membership lookup and bounded metadata verification. It records small normal-binary append costs and byte/seal/reconnect/corruption regression; it does not replace UC-01 with an unmeasured Unity startup speedup.
 
-[Startup time optimization](startup-time-optimization.md) owns ST-01–04: independent immutable reads, SJN2 append metadata pages and identical owned bridge reuse. It records the current format boundary, bounded time comparison and concurrency/recovery regressions; UC-01 remains historical.
+[Startup time optimization](startup-time-optimization.md) owns ST-01–04: independent immutable reads, SJN2 append metadata pages and identical owned bridge reuse. It records the historical SJN2 format boundary, bounded time comparison and concurrency/recovery regressions; UC-01 remains historical.
 
 [Actual Unity startup profile](unity-startup-profile.md) owns UP-01: the committed JS/ST candidate reaches initial readiness in 766.9s on the same source and Library entries. It separates unchanged Git-read-dominated scanning from faster compile/output work, records sampled CPU/I/O and exact Bee input differences, and verifies owned reclamation/original restoration. One profiled cohort does not establish an isolated speedup; further optimizations are analysis only.
 
@@ -36,6 +36,8 @@
 [Unity startup remeasurement after SU](unity-startup-remeasurement.md) owns US-01: 349.8s initial readiness versus UP's 766.9s, 16s scanning and about 210s compile preparation. It preserves the initial admission failure, committed correction, same-workspace mixed-runtime resumption, repair pause and slow stop. ILPP verification delay, Library availability, source proof and journal publication are remaining analysis targets. All 14 responses and original/owned closure pass; one cohort is not an isolated causal speedup.
 
 [Additional startup optimization](startup-additional-optimization.md) owns SA-01–05: pinned Library lifetimes and restoration handoff, local Close checks, single-handle publication, content-proven Git hashing, operation-local ensure proof and first-launch inherited Bee graph invalidation. Bounded native/Git/Bee evidence does not qualify new full Unity readiness or a 60-second ILPP saving.
+
+[Shutdown and preparation costs](lifecycle-cost-optimization.md) owns LC-01–03: small-write metadata scaling, client root-metadata initialization and scoped seal/reclamation checks. It distinguishes bounded NTFS costs/recovery from historical US times and unexecuted new Unity runs.
 
 [Actual Unity C/S comparison](unity-live-comparison.md)/[HTML report](../../reports/unity-live-comparison-20261003.html) compare designated-input/file-allocation/Editor/provider memory/isolation/resumption in Codex app worktrees/product workspaces. Missing historical home fields/authorized follow-up reclaim distinguished in owning verification. Total physical/VSS attribution/minimum RAM unknown; no full SF/PV support expansion.
 

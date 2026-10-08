@@ -18,6 +18,8 @@
 
 같은 key/id/home/호환 키·manifest·요청을 사용한다. 준비 중 원본과 base가 둘 다 있거나, 복원 대상에 예상 밖 파일/변경된 보존 영역/다른 seal이 있으면 보존하고 거부한다. 초기 file hash와 고정 metadata를 확인하고 reader가 기존 basis 파일의 직접 쓰기·삭제를 차단한다. 읽기는 manifest와 열린 basis 핸들에서만 수행한다. 생성 데이터의 탈락·손상은 mutable 원본이나 빈 Library로 fallback하지 않는다.
 
+신규 delta에서는 client가 정확히 고정된 root와 Library manifest/read proof의 metadata 임대 및 root namespace 핸들을 유지하며 저널 metadata를 초기화한다. Library payload 파일은 열지 않고 payload reader도 제공하지 않으며, 초기화 증명은 root metadata만 허용한다. 따라서 delta 생성은 내용 검증이나 mount 준비 완료의 증거가 아니다. Provider가 mount를 게시하기 전에 모든 Library 파일을 열어 변경을 막고 hash를 검증한다. 현재 identity·초기화 intent·개별 durable flush·같은 요청의 중단 복구는 유지하며 metadata나 identity가 다르면 보존·거부한다. 최초 Library capture는 여전히 내용 hash를 기록하고 payload 복사나 cache를 만들지 않는다. 이 경계와 한정 검증은 [수명주기 비용 최적화](verification/lifecycle-cost-optimization.md)를 따른다.
+
 소유 reader는 native 디렉터리 읽기 권한과 쓰기/삭제 공유 없는 핸들로 불변 root를 고정한다. 조상 핸들은 삭제를 막되 일반 자식 파일 게시를 허용하며, 고정한 하위 경로 사슬이 조상을 비워 junction으로 바꾸는 것을 막는다. 가용성은 디렉터리 존재를 반복 조회하는 대신 이 핸들을 사용한다. 입장 시 reparse를 거부하고 모든 close가 진행 중 읽기를 기다릴 때까지 파일 핸들을 유지하며 관측한 읽기 오류는 가용성 실패로 남긴다. 변경 없는 디렉터리 복원은 이동 핸들로 root를 명시적으로 인계하며 좁은 인계 간격 전후 같은 볼륨/파일 identity를 확인한다. 중단/교체는 보존·거부하고 새 reader로 같은 계획 복구를 유지한다. 빈 root/조상 보호와 한정 자격은 [SA-01](verification/startup-additional-optimization.md)을 따른다.
 
 준비 metadata보다 먼저 현재 버전의 `prepare-intent.json`에 project/key/경로/호환 키를 고정한다. 원본을 아직 이동하지 않은 내용 읽기 실패는 정확한 intent와 분류된 metadata만 남았을 때 같은 요청으로 재개한다. intent 없는 root·다른 요청·provider 실행 흔적·불명 데이터는 보존하고 거부한다. 공개되지 않은 `preparing` 상태의 명시적 restore는 원본 또는 이동한 base를 그대로 돌려놓을 수 있으며, 불명 실행/비어 있지 않은 delta는 취소하지 않는다.

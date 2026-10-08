@@ -85,6 +85,7 @@
 | [준비 프로파일 후속 최적화](verification/startup-profile-optimization.md) | SU-01–05: 두 Git decoder의 독립 진행, 고정 저널 경로, Cleanup 잠금 제거, bridge assembly 분리와 내용으로 증명한 소스 시각; 한정 비용과 회귀 검증. |
 | [SU 이후 Unity 준비 재측정](verification/unity-startup-remeasurement.md) | US-01: 준비 349.8초·스캔 16초·컴파일 준비 210초, 시작 판독 오류 복구와 서로 다른 runtime, 남은 ILPP/Library/소스 증명/게시 비용 및 원본 복원 확인. |
 | [추가 준비 최적화](verification/startup-additional-optimization.md) | SA-01–05: Library 수명 고정·로컬 Close·단일 핸들 게시·단일 읽기 Git hash/ensure 증명·첫 시작 Bee 그래프 무효화, 한정 검증과 전체 Unity 시간 NotRun. |
+| [종료와 준비 단계 비용](verification/lifecycle-cost-optimization.md) | LC-01–03: 작은 쓰기 메타데이터 제한·root 전용 client 초기화·seal/회수 검사 재사용·작은 NTFS 비용/복구 근거, 전체 Unity 시간 NotRun. |
 | [Unity 실제 C/S 비교 범위](plans/unity-live-comparison.md), [검증](verification/unity-live-comparison.md), [HTML](../../reports/unity-live-comparison-20261003.html) | Codex worktree와 제품 workspace의 코드/에셋·파일 할당/메모리·격리/재개·회수 비교. 입력/버전과 실패·후속 복구의 근거는 소유 검증에서 구분 |
 | [Unity 병렬 편집 확정 범위](plans/unity-parallel-editor-validation.md), [검증](verification/unity-parallel-editor-validation.md), [S HTML](../../reports/unity-parallel-editor-validation-20261003.html) | C/S A/B의 정확한 MCP 대상·리소스/씬/테스트·원본 반영·소유 회수와 비용 비교. HTML은 S까지이며 후속 실행과 제한은 텍스트 검증이 소유 |
 

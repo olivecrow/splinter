@@ -132,7 +132,7 @@ internal sealed class LatestJournalStorage
     }
     private static void ValidateRoot(Root r)
     {
-        if (r.Version != 4 || r.NodeFormat != 2 || r.IdentityHash.Length != 64 || !r.IdentityHash.All(Uri.IsHexDigit) || r.Objects.Length != 39 ||
+        if (r.Version != 4 || r.NodeFormat != 3 || r.IdentityHash.Length != 64 || !r.IdentityHash.All(Uri.IsHexDigit) || r.Objects.Length != 39 ||
             !r.Objects.StartsWith("latest-", StringComparison.Ordinal) || !Guid.TryParseExact(r.Objects[7..], "N", out _) ||
             r.Sequence < 0 || r.NextBlock < 1 || r.NextBlock >= long.MaxValue / JournalDeltaStore.LatestBlockStride || r.FileBytes < 0 ||
             r.FileCount < 0 || r.PayloadBytes < 0 || r.LogicalBytes < 0 || r.PayloadBytes > r.FileBytes || r.ProjectionUnsafe is null) throw Corrupt("Current root fields are invalid.");
@@ -160,9 +160,31 @@ internal sealed class LatestJournalStorage
         if (sealing is not null && (f.Length != length || f.Position != length)) throw Corrupt("A journal file changed during seal.");
         return Convert.ToHexStringLower(h.GetHashAndReset());
     }
+    private static (string Full, string Prefix) HashRetainedFile(string path, long prefix)
+    {
+        using var file = Open(path);
+        long length = file.Length;
+        if (prefix <= 0 || prefix >= length) throw Corrupt("A retained prefix is outside its file.");
+        using var full = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        using var retained = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        byte[] buffer = new byte[65536]; long left = length, prefixLeft = prefix;
+        while (left != 0)
+        {
+            int count = file.Read(buffer, 0, (int)Math.Min(left, buffer.Length));
+            if (count == 0) throw Corrupt("A retirement target is short.");
+            full.AppendData(buffer.AsSpan(0, count));
+            int prefixCount = (int)Math.Min(prefixLeft, count);
+            if (prefixCount != 0) retained.AppendData(buffer.AsSpan(0, prefixCount));
+            prefixLeft -= prefixCount; left -= count;
+        }
+        if (file.Length != length) throw Corrupt("A retirement target changed length during hashing.");
+        return (Convert.ToHexStringLower(full.GetHashAndReset()), Convert.ToHexStringLower(retained.GetHashAndReset()));
+    }
     private static bool Plain(string n) => n.Length < 80 && n.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '.') &&
-        ((n.StartsWith("node-", StringComparison.Ordinal) || n.StartsWith("bucket-", StringComparison.Ordinal)) && n.EndsWith(".json", StringComparison.Ordinal) || n.StartsWith("block-", StringComparison.Ordinal) && n.EndsWith(".bin", StringComparison.Ordinal) || n == "owner.lock");
-    private static bool Backup(string n) => n.Length == 60 && n.StartsWith("commit-", StringComparison.Ordinal) && n[23] == '-' && n.EndsWith(".bin", StringComparison.Ordinal) && n.AsSpan(7, 16).ToString().All(Uri.IsHexDigit) && Guid.TryParseExact(n.AsSpan(24, 32), "N", out _);
+        ((n.StartsWith("node-", StringComparison.Ordinal) || n.StartsWith("bucket-", StringComparison.Ordinal)) && n.EndsWith(".json", StringComparison.Ordinal) || DataName(n) && n.EndsWith(".bin", StringComparison.Ordinal) || n == "owner.lock");
+    private static bool DataName(string n) => n.StartsWith("block-", StringComparison.Ordinal) || n.StartsWith("page-", StringComparison.Ordinal);
+    private static bool Backup(string n) => n.Length == 125 && n.StartsWith("commit-", StringComparison.Ordinal) && n[23] == '-' && n[56] == '-' && n.EndsWith(".bin", StringComparison.Ordinal) && n.AsSpan(7, 16).ToString().All(Uri.IsHexDigit) && Guid.TryParseExact(n.AsSpan(24, 32), "N", out _) && n.AsSpan(57, 64).ToString().All(Uri.IsHexDigit);
+    private string BackupName() => $"commit-{generation:x16}-{Guid.NewGuid():N}-{(head is null ? HashFile(rootPath) : Hash(head.Header))}.bin";
     private void EnsureObjectPath(string path)
     {
         if (directoryGuard is null) WorkspaceStore.EnsurePlainPath(path);
@@ -187,13 +209,24 @@ internal sealed class LatestJournalStorage
     internal FileStream OpenBlock(long id) { if (!objects.TryGetValue(BlockName(id), out var l)) throw Corrupt("A private block is missing."); var f = new FileStream(l.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.RandomAccess); f.Position = l.Offset; return f; }
     internal long BlockOffset(long id) => objects[BlockName(id)].Offset + BlockHeaderBytes;
     internal static string BlockName(long id) => $"block-{id:x16}.bin";
+    internal static string PageName(long id) => $"page-{id:x16}.bin";
+    internal static byte[] EncodePage(long id, string owner, ReadOnlySpan<byte> payload)
+    {
+        byte[] bytes = EncodeBlock(id, owner, payload); "SJM2"u8.CopyTo(bytes); return bytes;
+    }
     internal static byte[] EncodeBlock(long id, string owner, ReadOnlySpan<byte> payload)
     {
         byte[] b = new byte[checked(BlockHeaderBytes + payload.Length)]; "SJB1"u8.CopyTo(b); BinaryPrimitives.WriteInt64LittleEndian(b.AsSpan(4), id); BinaryPrimitives.WriteInt32LittleEndian(b.AsSpan(12), payload.Length);
         Convert.FromHexString(owner).CopyTo(b, 16); SHA256.HashData(payload, b.AsSpan(48, 32)); payload.CopyTo(b.AsSpan(BlockHeaderBytes)); return b;
     }
     internal void ValidateBlock(long id, int count) { using var f = OpenBlock(id); byte[] h = new byte[BlockHeaderBytes]; f.ReadExactly(h); BlockHeader(h, id, count); }
-    private void BlockHeader(byte[] b, long id, int count) { if (b.Length != BlockHeaderBytes || !b.AsSpan(0, 4).SequenceEqual("SJB1"u8) || BinaryPrimitives.ReadInt64LittleEndian(b.AsSpan(4)) != id || BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(12)) != count || count <= 0 || count > 1048576 || !b.AsSpan(16, 32).SequenceEqual(Convert.FromHexString(owner))) throw Corrupt("A private block has another owner or address."); }
+    internal void ValidatePage(long id, int count)
+    {
+        if (!objects.TryGetValue(PageName(id), out var location)) throw Corrupt("A metadata page is missing.");
+        using var file = Open(location.Path); file.Position = location.Offset;
+        byte[] header = new byte[BlockHeaderBytes]; file.ReadExactly(header); BlockHeader(header, id, count, page: true);
+    }
+    private void BlockHeader(byte[] b, long id, int count, bool page = false) { if (b.Length != BlockHeaderBytes || !b.AsSpan(0, 4).SequenceEqual(page ? "SJM2"u8 : "SJB1"u8) || BinaryPrimitives.ReadInt64LittleEndian(b.AsSpan(4)) != id || BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(12)) != count || id < 1 || count <= 0 || count > 1048576 || !b.AsSpan(16, 32).SequenceEqual(Convert.FromHexString(owner))) throw Corrupt("A private block has another owner or address."); }
     private static void Footer(Frame frame)
     {
         using var f = Open(frame.Path);
@@ -223,10 +256,40 @@ internal sealed class LatestJournalStorage
     {
         long physicalLength = sealing?.Begin(f) ?? f.Length;
         byte[] header = new byte[HeaderBytes]; f.ReadExactly(header); sealing?.Hash.AppendData(header);
+        if (allowPrefix && (!Backup(Path.GetFileName(path)) || Hash(header) != Path.GetFileName(path).Substring(57, 64)))
+            throw Corrupt("A retained capsule header differs from its owned name.");
         if (!header.AsSpan(0, 4).SequenceEqual("SJL4"u8) || BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(4)) != 4 || !header.AsSpan(32, 32).SequenceEqual(Convert.FromHexString(owner))) throw Corrupt("A capsule has another owner or format.");
         long id = BinaryPrimitives.ReadInt64LittleEndian(header.AsSpan(8)), data = BinaryPrimitives.ReadInt64LittleEndian(header.AsSpan(16)); int count = BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(24));
         long end = checked(HeaderBytes + data), expected = checked(end + count + 32L);
         if (id < 1 || data < 0 || count < 1 || expected > MaxFrame || BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(28)) != 0) throw Corrupt("Capsule bounds are invalid.");
+        if (allowPrefix && physicalLength < end)
+        {
+            // A durable retirement may remove a suffix of metadata-page blocks
+            // while leaving the earlier private bytes in place. The immutable
+            // header is bound to the owned backup name; validate every retained
+            // block's owner, complete boundary and payload checksum afresh.
+            if (physicalLength <= HeaderBytes) throw Corrupt("A retained capsule is empty.");
+            byte[] buffer = new byte[65536];
+            while (f.Position < physicalLength)
+            {
+                byte[] block = new byte[BlockHeaderBytes];
+                if (physicalLength - f.Position < block.Length) throw Corrupt("A retained block header is partial.");
+                f.ReadExactly(block); sealing?.Hash.AppendData(block);
+                int length = BinaryPrimitives.ReadInt32LittleEndian(block.AsSpan(12));
+                BlockHeader(block, BinaryPrimitives.ReadInt64LittleEndian(block.AsSpan(4)), length, block.AsSpan(0, 4).SequenceEqual("SJM2"u8));
+                if (length > physicalLength - f.Position) throw Corrupt("A retained block is partial.");
+                using var payloadHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                for (int leftBytes = length; leftBytes != 0;)
+                {
+                    int n = f.Read(buffer, 0, Math.Min(leftBytes, buffer.Length));
+                    if (n == 0) throw Corrupt("A retained block is short.");
+                    payloadHash.AppendData(buffer.AsSpan(0, n)); sealing?.Hash.AppendData(buffer.AsSpan(0, n)); leftBytes -= n;
+                }
+                if (!payloadHash.GetHashAndReset().AsSpan().SequenceEqual(block.AsSpan(48, 32))) throw Corrupt("A retained block checksum differs.");
+            }
+            if (f.Length != physicalLength) throw Corrupt("A retained capsule changed during validation.");
+            return new(path, header, new(1, id, Current, [], [], []), [], physicalLength, physicalLength);
+        }
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); hash.AppendData(header); using var dh = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); long left = data; byte[] b = new byte[65536];
         while (left != 0) { int n = f.Read(b, 0, (int)Math.Min(left, b.Length)); if (n == 0) throw Corrupt("Capsule data is short."); hash.AppendData(b.AsSpan(0, n)); dh.AppendData(b.AsSpan(0, n)); sealing?.Hash.AppendData(b.AsSpan(0, n)); left -= n; }
         if (f.Length != physicalLength) throw Corrupt("A capsule changed during validation.");
@@ -252,11 +315,11 @@ internal sealed class LatestJournalStorage
     private void Index(Frame frame, FileStream f)
     {
         long at = HeaderBytes;
-        while (at < frame.DataEnd) { f.Position = at; byte[] h = new byte[BlockHeaderBytes]; f.ReadExactly(h); long id = BinaryPrimitives.ReadInt64LittleEndian(h.AsSpan(4)); int n = BinaryPrimitives.ReadInt32LittleEndian(h.AsSpan(12)); BlockHeader(h, id, n); if (at + BlockHeaderBytes + n > frame.DataEnd) throw Corrupt("A block exceeds its capsule."); SetLocation(BlockName(id), new(frame.Path, at, BlockHeaderBytes + n, null)); at += BlockHeaderBytes + n; }
+        while (at < frame.DataEnd) { f.Position = at; byte[] h = new byte[BlockHeaderBytes]; f.ReadExactly(h); long id = BinaryPrimitives.ReadInt64LittleEndian(h.AsSpan(4)); int n = BinaryPrimitives.ReadInt32LittleEndian(h.AsSpan(12)); bool page = h.AsSpan(0, 4).SequenceEqual("SJM2"u8); BlockHeader(h, id, n, page); if (at + BlockHeaderBytes + n > frame.DataEnd) throw Corrupt("A block exceeds its capsule."); SetLocation(page ? PageName(id) : BlockName(id), new(frame.Path, at, BlockHeaderBytes + n, null)); at += BlockHeaderBytes + n; }
         foreach (var i in frame.Commit.Items)
         {
             if (!Plain(i.Name) || i.Name == "owner.lock" || i.Length < 0) throw Corrupt("A capsule item is outside its namespace.");
-            if (i.Metadata is { } m) { if (i.Length != m.Length || Hash(m) != i.Hash || i.Name.StartsWith("block-", StringComparison.Ordinal)) throw Corrupt("Metadata checksum differs."); SetLocation(i.Name, new(frame.Path, 0, i.Length, m)); }
+            if (i.Metadata is { } m) { if (i.Length != m.Length || Hash(m) != i.Hash || DataName(i.Name)) throw Corrupt("Metadata checksum differs."); SetLocation(i.Name, new(frame.Path, 0, i.Length, m)); }
             else if (!objects.TryGetValue(i.Name, out var loc) || loc.Path != frame.Path || loc.Offset != i.Offset || loc.Length != i.Length) throw Corrupt("Payload references differ.");
         }
         foreach (string n in frame.Commit.Removes) { if (!Plain(n) || n == "owner.lock") throw Corrupt("A removed name is invalid."); RemoveLocation(n); }
@@ -295,19 +358,39 @@ internal sealed class LatestJournalStorage
         foreach (string p in touched.ToArray())
         {
             if (!frames.ContainsKey(p)) continue; var entries = Members(p);
-            bool mt = entries.Any(v => v.Value.Metadata is not null && (puts.ContainsKey(v.Key) || removed.Contains(v.Key))), dt = entries.Any(v => v.Value.Metadata is null && (puts.ContainsKey(v.Key) || removed.Contains(v.Key)));
-            foreach (var v in entries) if (!puts.ContainsKey(v.Key) && !removed.Contains(v.Key) && (v.Value.Metadata is not null ? mt || dt : dt)) puts.Add(v.Key, new(v.Key, FileHash(v.Key), Read(v.Key)));
+            bool mt = entries.Any(v => v.Value.Metadata is not null && (puts.ContainsKey(v.Key) || removed.Contains(v.Key)));
+            long cut = entries.Where(v => v.Value.Metadata is null && (puts.ContainsKey(v.Key) || removed.Contains(v.Key)))
+                .Select(v => v.Value.Offset).DefaultIfEmpty(long.MaxValue).Min();
+            foreach (var v in entries)
+                if (!puts.ContainsKey(v.Key) && !removed.Contains(v.Key) &&
+                    (v.Value.Metadata is not null ? mt || cut != long.MaxValue : v.Value.Offset >= cut))
+                {
+                    // Capture and hash the same current bytes. Carried objects
+                    // enter after the explicit replacement checks above; their
+                    // before hash never justified a second independent read.
+                    byte[] bytes = Read(v.Key);
+                    puts.Add(v.Key, new(v.Key, Hash(bytes), bytes));
+                }
         }
-        string oldHead = $"commit-{generation:x16}-{Guid.NewGuid():N}.bin"; touched.Add(rootPath); var retires = new List<Retire>();
+        string oldHead = BackupName(); touched.Add(rootPath); var retires = new List<Retire>();
         foreach (string p in touched)
         {
             string name = p == rootPath ? oldHead : Path.GetFileName(p); var remaining = Members(p).Where(v => !puts.ContainsKey(v.Key) && !removed.Contains(v.Key)).ToArray();
             if (remaining.Any(v => v.Value.Metadata is not null)) continue;
             if (remaining.Length == 0) retires.Add(new(name, HashFile(p), 0, null));
-            else if (frames.TryGetValue(p, out var frame) && frame.Metadata.Length != 0) retires.Add(new(name, HashFile(p), frame.DataEnd, HashFile(p, frame.DataEnd)));
+            else if (frames.TryGetValue(p, out var frame))
+            {
+                long keep = remaining.Max(v => v.Value.Offset + v.Value.Length);
+                if (keep < frame.Length)
+                {
+                    var hashes = HashRetainedFile(p, keep);
+                    retires.Add(new(name, hashes.Full, keep, hashes.Prefix));
+                }
+            }
         }
         boundary("latest.after-retirement-plan");
-        long id = checked(generation + 1), offset = HeaderBytes; var data = puts.Values.Where(p => p.Name.StartsWith("block-", StringComparison.Ordinal)).ToArray(); var items = new List<Item>();
+        long id = checked(generation + 1), offset = HeaderBytes;
+        var data = puts.Values.Where(p => DataName(p.Name)).OrderBy(p => p.Name.StartsWith("page-", StringComparison.Ordinal) ? 1 : 0).ToArray(); var items = new List<Item>();
         foreach (var p in data) { items.Add(new(p.Name, p.Bytes.Length, Hash(p.Bytes), offset, null)); offset += p.Bytes.Length; } foreach (var p in puts.Values.Except(data)) items.Add(new(p.Name, p.Bytes.Length, Hash(p.Bytes), 0, p.Bytes));
         var record = new CommitRecord(1, id, after, [.. items], [.. removed], [.. retires]); byte[] meta = JsonSerializer.SerializeToUtf8Bytes(record); long expected = checked(offset + meta.Length + 32);
         if (expected > MaxFrame || committedBytes + expected - retires.Sum(r => new FileInfo(r.Name == oldHead ? rootPath : PathOf(r.Name)).Length - r.KeepBytes) > limit) throw new WorkspaceException("DeltaFull", "The current capsule exceeds its budget; preserve it.");
@@ -359,7 +442,7 @@ internal sealed class LatestJournalStorage
         using (var f = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) f.Flush(true);
         // The exact backup name was persisted in the retirement inventory when
         // required. If the old head remains current, it has no retirement entry.
-        string backup = frame.Commit.Retires.FirstOrDefault(r => r.Name.StartsWith($"commit-{generation:x16}-", StringComparison.Ordinal))?.Name ?? $"commit-{generation:x16}-{Guid.NewGuid():N}.bin";
+        string backup = frame.Commit.Retires.FirstOrDefault(r => r.Name.StartsWith($"commit-{generation:x16}-", StringComparison.Ordinal))?.Name ?? BackupName();
         Publish(path, backup, _ => { });
     }
     private void Finish(Action<string>? boundary = null)
@@ -375,7 +458,7 @@ internal sealed class LatestJournalStorage
                 else { if (HashFile(p) != r.Hash) throw Corrupt("A retired file changed outside its writer."); if (r.KeepBytes == 0) File.Delete(p); else using (var f = new FileStream(p, FileMode.Open, FileAccess.Write, FileShare.Read)) f.SetLength(r.KeepBytes); committedBytes -= priorLength - r.KeepBytes; }
             }
             else if (r.KeepBytes != 0) throw Corrupt("A retained prefix disappeared.");
-            if (r.KeepBytes == 0) frames.Remove(p); else if (frames.TryGetValue(p, out var frame)) frames[p] = frame with { Metadata = [], Commit = frame.Commit with { Items = [], Removes = [], Retires = [] }, Length = r.KeepBytes };
+            if (r.KeepBytes == 0) frames.Remove(p); else if (frames.TryGetValue(p, out var frame)) frames[p] = frame with { Metadata = [], Commit = frame.Commit with { Items = [], Removes = [], Retires = [] }, DataEnd = r.KeepBytes, Length = r.KeepBytes };
             boundary?.Invoke("latest.after-object-reclamation");
         }
     }
@@ -397,14 +480,17 @@ internal sealed class LatestJournalStorage
         }
         foreach (string p in Directory.EnumerateFiles(directory).Where(p => Plain(Path.GetFileName(p)))) if (!referencedPaths.Contains(p)) throw Corrupt("An obsolete seed file remains; reconnect its writer.");
     }
-    internal static SnapshotDeltaSeal Seal(string path)
+    internal static SnapshotDeltaSeal Seal(string path, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
     {
         path = Path.GetFullPath(path);
         var identity = JsonSerializer.Deserialize<OverlayIdentity>(ReadShared(Path.Combine(Path.GetDirectoryName(path)!, "identity.json"), 1048576)) ?? throw Corrupt("The seal identity is absent.");
+        // The proof pins namespace ancestry only. Every file's content, the
+        // current head and final inventory still belong to this fresh seal.
+        using var guard = directoryGuardFactory?.Invoke(Path.Combine(Path.GetDirectoryName(path)!, ReadRoot(path).Objects));
         // Preserve the composite byte format while hashing the exact bytes
         // already read for capsule validation, in physical-name order.
         using var sealing = new SealHash(path);
-        var store = new LatestJournalStorage(path, identity, true, sealing, null);
+        var store = new LatestJournalStorage(path, identity, true, sealing, guard);
         using (var current = Open(path))
         {
             byte[] header = new byte[store.head?.Header.Length ?? checked((int)current.Length)]; current.ReadExactly(header);

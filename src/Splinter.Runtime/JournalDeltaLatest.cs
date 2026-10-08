@@ -184,7 +184,8 @@ public sealed partial class JournalDeltaStore
             }
         }
         if (hidden.Count > MaxHiddenPaths || pathChanges.Count > MaxHiddenPaths ||
-            latest.Names().Count(n => n.StartsWith("block-", StringComparison.Ordinal)) != latestBlockHashes.Count + latestPageHashes.Count)
+            latest.Names().Count(n => n.StartsWith("block-", StringComparison.Ordinal)) != latestBlockHashes.Count ||
+            latest.Names().Count(n => n.StartsWith("page-", StringComparison.Ordinal)) != latestPageHashes.Count)
             throw LatestJournalStorage.Corrupt("The current indexes or payload inventory differ.");
         sequence = latest.Current.Sequence;
         payloadBytes = latest.Current.PayloadBytes; logicalPayloadBytes = latest.Current.LogicalBytes;
@@ -248,8 +249,6 @@ public sealed partial class JournalDeltaStore
             var previousPaths = affected.Where(nodes.ContainsKey).Select(id => nodes[id].Entry.Path).ToArray();
             var puts = new Dictionary<string, LatestJournalStorage.Put>(StringComparer.Ordinal);
             var pageRemoves = new List<LatestJournalStorage.Remove>();
-            bool append = mutation.Operation == "write" && nodes.TryGetValue(mutation.Entry.Id, out var appendNode) &&
-                mutation.Offset >= appendNode.Entry.Length;
             long next = latest!.Current.NextBlock;
             (long Address, WorkspaceJournalPayload Payload) AddBlock(ReadOnlySpan<byte> data)
             {
@@ -317,7 +316,7 @@ public sealed partial class JournalDeltaStore
                 }
                 node.Extents = merged; extentCount += merged.Count - priorExtents;
                 string name = LatestNodeName(id);
-                byte[] record = WriteLatestNode(node, append && id == mutation.Entry.Id, ref next, puts, pageRemoves);
+                byte[] record = WriteLatestNode(node, ref next, puts, pageRemoves);
                 puts[name] = new(name, latest.FileHash(name), record);
             }
             foreach (int bucket in latestDirtyBuckets)
@@ -405,7 +404,7 @@ public sealed partial class JournalDeltaStore
                     string name = Path.GetFileName(entry);
                     if (!File.Exists(entry) || !((name.StartsWith("node-", StringComparison.Ordinal) ||
                         name.StartsWith("bucket-", StringComparison.Ordinal)) && name.EndsWith(".json", StringComparison.Ordinal) ||
-                        name.StartsWith("block-", StringComparison.Ordinal) && name.EndsWith(".bin", StringComparison.Ordinal) ||
+                        (name.StartsWith("block-", StringComparison.Ordinal) || name.StartsWith("page-", StringComparison.Ordinal)) && name.EndsWith(".bin", StringComparison.Ordinal) ||
                         name == "owner.lock" && new FileInfo(entry).Length == 0))
                         throw LatestJournalStorage.Corrupt("An unpublished candidate contains an unowned entry.");
                 }
@@ -440,15 +439,15 @@ public sealed partial class JournalDeltaStore
             {
                 var page = MakeLatestPage(node.Entry.Id, extents.GetRange(start, LatestPageExtents).ToArray(), hashes);
                 long id = next++;
-                byte[] bytes = LatestJournalStorage.EncodeBlock(id,
-                    LatestJournalStorage.Hash(JsonSerializer.SerializeToUtf8Bytes(Identity)), LatestJournalStorage.Encode(page, "SJP1"));
-                FileObject(LatestJournalStorage.BlockName(id), bytes);
+                byte[] bytes = LatestJournalStorage.EncodePage(id,
+                    LatestJournalStorage.Hash(JsonSerializer.SerializeToUtf8Bytes(Identity)), LatestJournalStorage.Encode(page, "SJP2"));
+                FileObject(LatestJournalStorage.PageName(id), bytes);
                 pages.Add(new(id, LatestJournalStorage.Hash(bytes)));
             }
             var tail = extents.Skip(paged).ToArray();
             var record = new LatestPagedNode(node.Entry, [.. pages], tail, LatestBlocks(tail, hashes),
-                node.Entry.Deleted ? 0 : pathChanges.GetValueOrDefault(node.Entry.Path), true);
-            FileObject(LatestNodeName(node.Entry.Id), LatestJournalStorage.Encode(record, "SJN2"));
+                node.Entry.Deleted ? 0 : pathChanges.GetValueOrDefault(node.Entry.Path));
+            FileObject(LatestNodeName(node.Entry.Id), LatestJournalStorage.Encode(record, "SJN3"));
         }
         var hiddenBuckets = hidden.GroupBy(LatestBucketId).ToDictionary(g => g.Key, g => g.Order(pathPolicy.Comparer).ToArray());
         var changeBuckets = pathChanges.Where(p => !paths.ContainsKey(p.Key)).GroupBy(p => LatestBucketId(p.Key)).ToDictionary(g => g.Key,
@@ -457,7 +456,7 @@ public sealed partial class JournalDeltaStore
             FileObject(LatestBucketName(bucket), LatestJournalStorage.Encode(new LatestBucket(
                 hiddenBuckets.GetValueOrDefault(bucket) ?? [], changeBuckets.GetValueOrDefault(bucket) ?? []), "SJK1"));
         FileObject("owner.lock", []);
-        var root = new LatestJournalStorage.Root(4, 2, LatestJournalStorage.Hash(JsonSerializer.SerializeToUtf8Bytes(Identity)), objects,
+        var root = new LatestJournalStorage.Root(4, 3, LatestJournalStorage.Hash(JsonSerializer.SerializeToUtf8Bytes(Identity)), objects,
             sequence, next, fileBytes, fileCount, storedBytes, decodedBytes, projectionUnsafe.Order(pathPolicy.Comparer).ToArray());
         byte[] rootBytes = LatestJournalStorage.Encode(root, "SJL4");
         if (write)
@@ -475,11 +474,11 @@ public sealed partial class JournalDeltaStore
         }
         return fileBytes + rootBytes.Length;
     }
-    public static SnapshotDeltaSeal SealJournal(string path, long durableSequence)
+    public static SnapshotDeltaSeal SealJournal(string path, long durableSequence, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
     {
         if (LatestJournalStorage.IsLatest(path))
         {
-            var seal = LatestJournalStorage.Seal(path);
+            var seal = LatestJournalStorage.Seal(path, directoryGuardFactory);
             if (seal.DurableSequence != durableSequence) throw new WorkspaceException("DeltaChangedAfterCollection", "Current journal sequence differs from its flush receipt.");
             return seal;
         }

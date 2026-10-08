@@ -133,18 +133,16 @@ public static class WinFspOverlayClient
             throw new WorkspaceException("MountReconcileRequired", "A stale mount remains. Preserve its journal and inspect ownership before reconnecting.");
         var verified = await ObserveSnapshotAsync(request, ct);
         if (verified.Available != true) throw new WorkspaceException(verified.FailureCode ?? "SnapshotObservationUnknown", "Verify snapshot access before starting a provider.");
-        using (var snapshot = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess, request.SnapshotReceiptDirectory, request.SnapshotOwnerId))
+        if (request.SourceView is null)
         {
+            if (preparationPoint is not null) await preparationPoint("delta.before-effect");
+            if (!File.Exists(Path.Combine(request.DeltaPath, "identity.json")))
+                OverlayDeltaInitialization.Create(request);
+        }
+        else
+        {
+            using var snapshot = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess, request.SnapshotReceiptDirectory, request.SnapshotOwnerId);
             snapshot.EnsureAvailable();
-            if (request.SourceView is null)
-            {
-                if (preparationPoint is not null) await preparationPoint("delta.before-effect");
-                if (!File.Exists(Path.Combine(request.DeltaPath, "identity.json")))
-                {
-                    using var composed = new WorkspaceSnapshotBasis.GeneratedTreeScope(snapshot, request);
-                    using var delta = new JournalDeltaStore(request.DeltaPath, request.Identity, composed);
-                }
-            }
         }
         if (preparationPoint is not null) await preparationPoint("delta.after-record");
         if (request.CacheSnapshot is { } cache)

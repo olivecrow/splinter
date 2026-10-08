@@ -128,13 +128,14 @@ internal static class ManagedUnchangedDirectoryRestore
                 // inventory before allowing its conditional deletion.
                 if (stage == "intent") identityFence?.Dispose();
                 boundary?.Invoke("directory.reclaim." + stage);
-            });
+            }, path => new WindowsJournalDirectoryGuard(path));
         boundary?.Invoke("directory.after-reclaim");
     }
 
     private static void RequireSeal(OverlayServeRequest request, SnapshotDeltaSeal seal)
     {
-        if (JournalDeltaStore.SealJournal(Path.Combine(request.DeltaPath, "delta.journal"), seal.DurableSequence) != seal) throw Conflict();
+        if (JournalDeltaStore.SealJournal(Path.Combine(request.DeltaPath, "delta.journal"), seal.DurableSequence,
+            path => new WindowsJournalDirectoryGuard(path)) != seal) throw Conflict();
     }
     private static void ValidateManifest(ManagedDirectoryState state, OwnedDirectoryManifest manifest)
     {

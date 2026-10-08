@@ -26,7 +26,7 @@
 
 [시작 단계 저널 최적화](journal-startup-optimization.md)는 JS-01–04를 소유한다. 회수된 footer 참조·변경 파일의 항목 조회·bounded metadata 검증과 작은 일반 배포본 이어 쓰기 비용, 바이트·seal·재연결·손상 회귀를 기록한다. UC-01을 미측정 Unity 준비 시간 개선으로 대체하지 않는다.
 
-[준비 시간 최적화](startup-time-optimization.md)는 ST-01–04를 소유한다. 독립 불변 읽기·SJN2 이어 쓰기 metadata 페이지·같은 소유 bridge 재사용의 현재 형식 경계, 한정 시간 비교와 동시성·복구 회귀를 기록한다. UC-01은 과거 근거로 유지한다.
+[준비 시간 최적화](startup-time-optimization.md)는 ST-01–04를 소유한다. 독립 불변 읽기·SJN2 이어 쓰기 metadata 페이지·같은 소유 bridge 재사용의 과거 SJN2 형식 경계, 한정 시간 비교와 동시성·복구 회귀를 기록한다. UC-01은 과거 근거로 유지한다.
 
 [실제 Unity 준비 프로파일](unity-startup-profile.md)은 UP-01을 소유한다. 커밋한 JS/ST 후보에서 같은 소스와 Library 항목으로 최초 준비 766.9초를 측정했다. 거의 그대로인 Git 읽기 중심 스캔과 빨라진 컴파일/출력을 구분하고, CPU/I/O 표본·정확한 Bee 입력 차이·소유 회수/원본 복원을 기록한다. 추적을 포함한 한 실행으로 고립된 개선율을 주장하지 않으며 추가 최적화는 분석 단계다.
 
@@ -35,6 +35,8 @@
 [SU 이후 Unity 준비 재측정](unity-startup-remeasurement.md)은 US-01을 소유한다. 최초 준비는 UP의 766.9초에서 349.8초, 스캔은 16초이며 컴파일 준비는 약 210초다. 최초 시작 판독 실패·커밋 수정·같은 작업공간의 서로 다른 runtime 재개·수정 중단·느린 종료를 보존한다. 남은 분석 대상은 ILPP 검증 지연·Library 존재 확인·소스 증명·저널 게시다. 응답 14개와 원본/소유 회수를 확인했으며 단일 실행을 순수 인과적 개선율로 읽지 않는다.
 
 [추가 준비 최적화](startup-additional-optimization.md)는 SA-01–05를 소유한다. Library 수명 고정/복원 인계·로컬 Close 검사·단일 핸들 게시·내용 증명 Git hash·연산 한정 ensure 증명·첫 시작 상속 Bee 그래프 무효화다. 한정 native/Git/Bee 근거를 새 전체 Unity 준비 시간이나 60초 ILPP 절감으로 확대하지 않는다.
+
+[종료와 준비 단계 비용](lifecycle-cost-optimization.md)은 LC-01–03을 소유한다. 작은 쓰기 메타데이터 증가·client root metadata 초기화·seal/회수 검사를 다룬다. 작은 NTFS 비용/복구와 과거 US 시간·새 Unity 미실행을 구분한다.
 
 [Unity 실제 C/S 비교](unity-live-comparison.md)와 [HTML 보고서](../../../reports/unity-live-comparison-20261003.html)는 Codex 앱 worktree와 제품 workspace의 지정 입력·파일 할당·Editor/provider 메모리·격리와 재개를 비교한다. 과거 home 기록 누락과 승인한 후속 회수의 근거는 소유 검증에서 구분한다. 전체 물리/VSS 귀속·최소 RAM은 unknown이며 SF/PV 전체 지원으로 확대하지 않는다.
 

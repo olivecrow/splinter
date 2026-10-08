@@ -255,7 +255,8 @@ internal static class ManagedDirectoryRestore
         string journalPath = Path.Combine(request.DeltaPath, "delta.journal"), reclaim = Path.Combine(state.Basis.ReceiptDirectory, "latest-restore-delta-reclaim.json");
         if (File.Exists(reclaim) || File.Exists(journalPath) && LatestJournalReclamation.IsLatest(journalPath))
         {
-            LatestJournalReclamation.ReclaimDirectory(request.DeltaPath, seal, ["identity.json"], reclaim);
+            LatestJournalReclamation.ReclaimDirectory(request.DeltaPath, seal, ["identity.json"], reclaim,
+                directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path));
             boundary?.Invoke("restore.after-delta-reclaim"); return;
         }
         var actual = Directory.EnumerateFileSystemEntries(request.DeltaPath).ToArray();

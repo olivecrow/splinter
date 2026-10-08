@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/startup-time-optimization.md)
 
+Current SJN3 format and overwrite-page reuse are owned by [LC-01](lifecycle-cost-optimization.md); the SJN2 results below remain historical.
+
 **ST-01–04** targets storage work on the preparation path identified in [UC-01](unity-checkpoint-release-remeasurement.md). That historical Unity run took 848.3379 seconds to initial readiness; its A log records 448.330154 seconds in Scan and 250.873981 seconds in CompileScripts. These are Unity phase measurements, not isolated compiler CPU time. The subsequent [UP-01 actual startup profile](unity-startup-profile.md) measures the committed candidate at 766.9024 seconds; its one-cohort profiling/input/closure limits are separate from the bounded ST evidence below.
 
 ## Independent immutable reads — ST-01
@@ -12,7 +14,7 @@ Private bytes and immutable coordinates are captured under the journal gate befo
 
 ## Reuse completed append metadata — ST-02
 
-The current SJL4/root v4 and initialization v1 now require **`NodeFormat=2`**. Nodes use **SJN2** and immutable 32-extent metadata pages use **SJP1** within ordinary SJB1 blocks. Missing/older format discriminators are rejected before initialization publication or pending recovery/reclamation, including empty old roots. Earlier SJN1 state is preserved without migration. Overlay/workspace v2, OFF SJR2 and independent candidate v3 remain unchanged.
+The ST candidate SJL4/root v4 and initialization v1 require **`NodeFormat=2`**. Nodes use **SJN2** and immutable 32-extent metadata pages use **SJP1** within ordinary SJB1 blocks. Missing/older format discriminators are rejected before initialization publication or pending recovery/reclamation, including empty old roots. Earlier SJN1 state is preserved without migration. Overlay/workspace v2, OFF SJR2 and independent candidate v3 remain unchanged.
 
 A true append publishes at most one newly completed page and keeps the unfinished suffix inline. Earlier pages remain referenced without rewriting their full extent/hash arrays or copying their payload. Pages count as metadata, not private user payload. Ownership, exact references, hashes, complete range coverage and total object inventory are checked on reconnect. Each mutation still durably flushes once before publication, retirement and ACK.
 

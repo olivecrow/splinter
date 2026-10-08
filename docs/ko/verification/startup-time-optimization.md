@@ -2,6 +2,8 @@
 
 [English](../../verification/startup-time-optimization.md)
 
+현재 SJN3 형식과 덮어쓰기 페이지 재사용은 [LC-01](lifecycle-cost-optimization.md)이 소유한다. 아래 SJN2 결과는 과거 근거로 유지한다.
+
 **ST-01–04**는 [UC-01](unity-checkpoint-release-remeasurement.md)에서 확인한 준비 경로의 저장 작업을 줄인다. 당시 실제 Unity의 최초 준비는 848.3379초였고 A 로그의 Scan은 448.330154초, CompileScripts는 250.873981초였다. 이는 Unity 단계별 관측이며 순수 컴파일러 CPU 시간이 아니다. 후속 [UP-01 실제 준비 프로파일](unity-startup-profile.md)은 커밋한 후보에서 766.9024초를 측정했다. 한 실행 묶음의 추적·입력·회수 한계는 아래의 한정 ST 근거와 구분한다.
 
 ## 독립적인 불변 기준 읽기 — ST-01
@@ -12,7 +14,7 @@
 
 ## 확정된 이어 쓰기 메타데이터 재사용 — ST-02
 
-현재 SJL4/root v4와 초기화 v1에는 **`NodeFormat=2`**가 필수다. 노드는 **SJN2**, 불변 32-extent 메타데이터 페이지는 일반 SJB1 블록 안의 **SJP1**을 사용한다. 없거나 이전 형식의 식별자는 초기화 게시나 pending 복구·회수 전에 거부하며 비어 있는 이전 root도 포함한다. 이전 SJN1 상태는 이관하지 않고 보존한다. overlay/workspace v2, OFF SJR2, 독립 candidate v3는 유지한다.
+ST 후보의 SJL4/root v4와 초기화 v1에는 **`NodeFormat=2`**가 필수다. 노드는 **SJN2**, 불변 32-extent 메타데이터 페이지는 일반 SJB1 블록 안의 **SJP1**을 사용한다. 없거나 이전 형식의 식별자는 초기화 게시나 pending 복구·회수 전에 거부하며 비어 있는 이전 root도 포함한다. 이전 SJN1 상태는 이관하지 않고 보존한다. overlay/workspace v2, OFF SJR2, 독립 candidate v3는 유지한다.
 
 실제 이어 쓰기는 새로 완성된 페이지를 최대 하나 게시하고 미완성 뒷부분은 inline으로 유지한다. 앞선 페이지의 전체 extent/hash 배열이나 payload를 다시 쓰지 않고 참조한다. 페이지는 사용자 private payload가 아닌 metadata로 집계한다. 재연결에서 소유권, 정확한 참조, hash, 전체 범위 구성과 object inventory를 검사한다. 각 mutation은 여전히 한 번 durable flush한 뒤 게시·회수·ACK한다.
 

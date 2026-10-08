@@ -244,7 +244,7 @@ public sealed partial class JournalDeltaStore
 
     private SnapshotDeltaSeal SealCurrent()
     {
-        return SealJournal(journal.Name, sequence);
+        return SealJournal(journal.Name, sequence, directoryGuardFactory);
     }
 
     private string StateHash() => StateHash(null);

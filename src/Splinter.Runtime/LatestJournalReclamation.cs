@@ -21,11 +21,14 @@ public static class LatestJournalReclamation
         if (!File.Exists(receipt)) return false;
         Validate(Read(receipt), root, seal, false); return true;
     }
-    public static void ReclaimDirectory(string directory, SnapshotDeltaSeal seal, string[] metadataNames, string receipt, Action<string>? boundary = null) =>
-        Reclaim(Path.Combine(directory, "delta.journal"), seal, metadataNames, receipt, true, boundary);
-    internal static void ReclaimGeneration(string root, SnapshotDeltaSeal seal, string receipt, Action<string>? boundary = null) =>
-        Reclaim(root, seal, [], receipt, false, boundary);
-    private static void Reclaim(string root, SnapshotDeltaSeal seal, string[] metadataNames, string receipt, bool wholeDirectory, Action<string>? boundary)
+    public static void ReclaimDirectory(string directory, SnapshotDeltaSeal seal, string[] metadataNames, string receipt, Action<string>? boundary = null,
+        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null) =>
+        Reclaim(Path.Combine(directory, "delta.journal"), seal, metadataNames, receipt, true, boundary, directoryGuardFactory);
+    internal static void ReclaimGeneration(string root, SnapshotDeltaSeal seal, string receipt, Action<string>? boundary = null,
+        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null) =>
+        Reclaim(root, seal, [], receipt, false, boundary, directoryGuardFactory);
+    private static void Reclaim(string root, SnapshotDeltaSeal seal, string[] metadataNames, string receipt, bool wholeDirectory, Action<string>? boundary,
+        Func<string, IJournalDirectoryGuard>? directoryGuardFactory)
     {
         root = Path.GetFullPath(root); WorkspaceStore.EnsurePlainPath(root); WorkspaceStore.EnsurePlainPath(receipt);
         string directory = Path.GetDirectoryName(root)!;
@@ -48,7 +51,7 @@ public static class LatestJournalReclamation
             if (File.Exists(root)) Fence(root, FileAccess.ReadWrite);
             if (plan is null)
             {
-                if (!File.Exists(root) || JournalDeltaStore.SealJournal(root, seal.DurableSequence) != seal)
+                if (!File.Exists(root) || JournalDeltaStore.SealJournal(root, seal.DurableSequence, directoryGuardFactory) != seal)
                     throw new WorkspaceException("ViewSourceChanged", "The current generation differs from its retained seal.");
                 var current = LatestJournalStorage.ReadRoot(root);
                 var names = LatestJournalStorage.Files(root).ToList();
@@ -77,14 +80,17 @@ public static class LatestJournalReclamation
                 byte[] bytes = LatestJournalStorage.Encode(plan, "SJM1");
                 using (var file = new FileStream(receipt, FileMode.CreateNew, FileAccess.Write, FileShare.Read)) { file.Write(bytes); file.Flush(true); }
             }
-            Validate(plan, root, seal, wholeDirectory);
+            // Validate names before using a saved inventory. Content admission
+            // belongs after all remaining files are fenced; doing it before
+            // fence acquisition duplicated the same complete hash traversal.
+            ValidatePlan(plan, root, seal, wholeDirectory);
             foreach (string name in plan.Files.Keys)
             {
                 string file = Path.Combine(directory, name);
                 if (File.Exists(file) && !fencedPaths.Contains(CanonicalPath(file)))
                     Fence(file, FileAccess.Read);
             }
-            Validate(plan, root, seal, wholeDirectory);
+            Validate(plan, root, seal, wholeDirectory, directoryGuardFactory);
             boundary?.Invoke("intent");
             string objects = Path.Combine(directory, plan.Objects);
             foreach (var pair in plan.Files.Where(p => p.Key.StartsWith(plan.Objects + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
@@ -109,13 +115,12 @@ public static class LatestJournalReclamation
         finally { foreach (var fence in fences) fence.Dispose(); }
     }
     private static string CanonicalPath(string path) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
-    private static void Validate(Plan plan, string root, SnapshotDeltaSeal seal, bool wholeDirectory)
+    private static void ValidatePlan(Plan plan, string root, SnapshotDeltaSeal seal, bool wholeDirectory)
     {
         if (plan.Version != 1 || !WorkspaceStore.SamePath(plan.Root, root) || plan.Seal != seal || plan.WholeDirectory != wholeDirectory ||
             plan.Objects is not { Length: 39 } || !plan.Objects.StartsWith("latest-", StringComparison.Ordinal) ||
             !Guid.TryParseExact(plan.Objects[7..], "N", out _) || plan.Files is null || !plan.Files.ContainsKey(Path.GetFileName(root)))
             throw new WorkspaceException("ViewReceiptMismatch", "Only the same sealed generation can resume reclamation.");
-        string directory = Path.GetDirectoryName(root)!;
         foreach (string name in plan.Files.Keys)
         {
             if (Path.IsPathRooted(name) || name.Split(Path.DirectorySeparatorChar).Any(p => p is "" or "." or "..") ||
@@ -123,12 +128,27 @@ public static class LatestJournalReclamation
                 name.Contains(Path.DirectorySeparatorChar) && !name.StartsWith(plan.Objects + Path.DirectorySeparatorChar, StringComparison.Ordinal))
                 throw new WorkspaceException("ViewReceiptMismatch", "A reclamation inventory path is outside its generation.");
         }
+    }
+    private static void Validate(Plan plan, string root, SnapshotDeltaSeal seal, bool wholeDirectory,
+        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
+    {
+        ValidatePlan(plan, root, seal, wholeDirectory);
+        string directory = Path.GetDirectoryName(root)!;
         string objects = Path.Combine(directory, plan.Objects); WorkspaceStore.EnsurePlainPath(objects);
+        // A partial reclaim can already have removed owner.lock. It must then
+        // retain complete path walks, rather than recreate a lock or a proof.
+        using var guard = directoryGuardFactory is not null && File.Exists(Path.Combine(objects, "owner.lock"))
+            ? directoryGuardFactory(objects) : null;
+        if (guard is not null && !WorkspaceStore.SamePath(guard.DirectoryPath, objects))
+            throw new WorkspaceException("UnsafePath", "Reclamation proof belongs to another object directory.");
         var remaining = new List<string>();
         if (Directory.Exists(objects))
         {
             foreach (string entry in Directory.EnumerateFileSystemEntries(objects))
-            { WorkspaceStore.EnsurePlainPath(entry); if (!File.Exists(entry)) throw LatestJournalStorage.Corrupt("A reclamation object is no longer a file."); remaining.Add(entry); }
+            {
+                if (guard is null) WorkspaceStore.EnsurePlainPath(entry); else guard.EnsureFile(entry);
+                if (!File.Exists(entry)) throw LatestJournalStorage.Corrupt("A reclamation object is no longer a file."); remaining.Add(entry);
+            }
         }
         if (wholeDirectory && Directory.Exists(directory))
         {

@@ -165,20 +165,17 @@ public sealed class JournalStartupOptimizationTests
         byte[] changed;
         using (var writer = new JournalDeltaStore(root.Path, identity, tree))
         {
-            Guid id = writer.Create("many-extents", false, 32).Id;
-            int count = 0, metadataLength = 0;
-            do
+            Guid id = writer.Create("many-nodes", true, 16).Id;
+            for (int i = 0; i < 160; i++) writer.Create($"many-nodes/{i:D4}-file", false, 32);
+            // A subtree rename legitimately publishes many node records in one
+            // footer even though per-file extent metadata is now paged.
+            writer.Rename(id, "renamed-many-nodes", false);
+            int metadataLength;
+            using (var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
             {
-                for (int i = 0; i < 16; i++, count++)
-                    writer.Write(id, count * 32, Bytes(32, count));
-                // Editing the first completed page disables live append paging;
-                // this fixture still exercises a footer larger than 64KiB.
-                if (count == 32) writer.Write(id, 0, [(byte)(Bytes(32, 0)[0] ^ 1)]);
-                using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                byte[] header = new byte[128];
-                source.ReadExactly(header);
+                byte[] header = new byte[128]; source.ReadExactly(header);
                 metadataLength = BinaryPrimitives.ReadInt32LittleEndian(header.AsSpan(24));
-            } while (metadataLength <= 65536 + 128 && count < 256);
+            }
             Assert.True(metadataLength > 65536 + 128, "The fixture must exercise more than one footer buffer.");
             writer.Seal();
             changed = ReadSharedBytes(path);

@@ -164,7 +164,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         WindowsProcessWorkspaceProvider.CheckPath(journal);
         if (storage is null) throw new WorkspaceException("DeltaChangedAfterCollection", "The journal flush receipt is missing.");
         var timer = Stopwatch.StartNew();
-        var seal = JournalDeltaStore.SealJournal(journal, storage.DurableSequence);
+        var seal = JournalDeltaStore.SealJournal(journal, storage.DurableSequence, path => new WindowsJournalDirectoryGuard(path));
         if (seal.JournalBytes != storage.JournalBytes) throw new WorkspaceException("DeltaChangedAfterCollection", "Journal bytes and flush receipt differ; preserve it.");
         await RecordRead(control, w, "seal", seal.JournalBytes, timer.Elapsed.TotalMilliseconds, ct);
         return seal;
@@ -275,7 +275,8 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         if (!Directory.Exists(delta)) return;
         if (File.Exists(latestReceipt) || File.Exists(currentJournal) && LatestJournalReclamation.IsLatest(currentJournal))
         {
-            LatestJournalReclamation.ReclaimDirectory(delta, result.Seal, ["identity.json"], latestReceipt);
+            LatestJournalReclamation.ReclaimDirectory(delta, result.Seal, ["identity.json"], latestReceipt,
+                directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path));
             return;
         }
         foreach (string entry in Directory.EnumerateFileSystemEntries(delta))
