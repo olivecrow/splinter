@@ -2,6 +2,8 @@
 
 [English](../../verification/unity-startup-remeasurement.md)
 
+> **현재 시간 기준:** 아래는 해당 후보/단계에서 기록한 과거 근거이며, 수치와 당시 NotRun 경계는 그대로 보존합니다. 이후 최적화를 합친 `116fd44`의 [UF-01 실측](unity-final-lifecycle.md)은 전체 **18분 3.0초**, Editor 준비 **3분 36.1초**, A/B 보존·회수 **2분 52.0초**, Library 복원 **2분 6.0초**입니다. UF가 개별 최적화의 효과나 별도 미실행 항목을 모두 검증한 것은 아닙니다.
+
 구현 후속: 추가 Library/소스/게시/Bee 변경과 한정 근거는 [SA-01–05](startup-additional-optimization.md)를 따른다. 아래 수치와 분석은 당시 US 후보의 기록이며 현재 후보의 시간이 아니다.
 
 **US-01:** 실제 Unity Editor 두 개가 최초 준비를 마치는 데 **349.7933초(5분 49.8초)**가 걸렸습니다. [UP-01](unity-startup-profile.md)의 766.9024초(12분 46.9초)보다 **417.1091초 / 54.39% 짧게 관측**됐습니다. 스캔은 약 447초에서 16초로 줄었지만 CompileScripts는 약 210초로 개선되지 않았습니다. 시작 실패를 복구한 단일 cohort이며 순수 인과적 개선율이 아닙니다. [데이터셋](../../../reports/benchmarks/unity-startup-remeasurement-20261008.json)에 시간·runtime hash·실패·계측 경계를 보존합니다.

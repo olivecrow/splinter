@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/unity-checkpoint-release-remeasurement.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 **UC-01** records one real Unity A/B cohort after committing the [LO-01–11 optimizations](lifecycle-read-optimization.md) as `168081c349d87d9767d44ce0a741ec61279c2706`. The tested normal Release binaries were frozen before execution. Source and Library inputs match the earlier [UR-01–04 run](unity-lifecycle-remeasurement.md). Raw evidence remains under ignored `artifacts/unity-checkpoint-release-20261008/` and `.local/uc8/`; the [public dataset](../../reports/benchmarks/unity-checkpoint-release-20261008.json) retains exact timings, hashes and qualification boundaries.
 
 ## Same input and bounded procedure

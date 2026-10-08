@@ -2,6 +2,8 @@
 
 [English](../../verification/journal-startup-optimization.md)
 
+> **현재 시간 기준:** 아래는 해당 후보/단계에서 기록한 과거 근거이며, 수치와 당시 NotRun 경계는 그대로 보존합니다. 이후 최적화를 합친 `116fd44`의 [UF-01 실측](unity-final-lifecycle.md)은 전체 **18분 3.0초**, Editor 준비 **3분 36.1초**, A/B 보존·회수 **2분 52.0초**, Library 복원 **2분 6.0초**입니다. UF가 개별 최적화의 효과나 별도 미실행 항목을 모두 검증한 것은 아닙니다.
+
 **JS-01–04**는 [UC-01 Unity 시작 단계 검토](unity-checkpoint-release-remeasurement.md)에서 확인한 저장 경로 문제를 다룬다. 이전 Unity 준비 시간 **848.3379초**는 당시 후보의 기록이다. 이번 변경의 자격은 작은 Editor 없는 시험이며 새 Unity 준비 시간을 뜻하지 않는다.
 
 ## 회수한 metadata의 수명 — JS-01

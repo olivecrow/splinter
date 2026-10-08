@@ -2,6 +2,8 @@
 
 [English](../../verification/lifecycle-cost-optimization.md)
 
+> **현재 시간 기준:** 아래는 해당 후보/단계에서 기록한 과거 근거이며, 수치와 당시 NotRun 경계는 그대로 보존합니다. 이후 최적화를 합친 `116fd44`의 [UF-01 실측](unity-final-lifecycle.md)은 전체 **18분 3.0초**, Editor 준비 **3분 36.1초**, A/B 보존·회수 **2분 52.0초**, Library 복원 **2분 6.0초**입니다. UF가 개별 최적화의 효과나 별도 미실행 항목을 모두 검증한 것은 아닙니다.
+
 LC-01–03은 [US-01](unity-startup-remeasurement.md)의 남은 수명주기 비용을 다룬다. 소스 기준은 `76f8f7f`, 비교 대상은 `.local/sa8-runtime`에 고정한 일반 실행 파일이다. 작은 쓰기의 메타데이터·Library 초기화·seal/회수 비용을 대상으로 한다. 새 전체 Unity 시작·종료·checkpoint/release·Library 복원 시간은 **NotRun**이다. 과거 US 시간을 현재 후보의 결과로 읽지 않는다.
 
 ## 입력 근거

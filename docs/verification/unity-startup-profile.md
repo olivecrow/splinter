@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/unity-startup-profile.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 **UP-01** profiles one real A/B startup on committed candidate `8709ba27574a2de8d0ecaee1a1413f42358d53ec`, after [JS](journal-startup-optimization.md) and [ST](startup-time-optimization.md). Initial readiness is **766.9024 seconds (12m 46.9s)**, versus [UC-01](unity-checkpoint-release-remeasurement.md)'s 848.3379 seconds: an observed **81.4355-second / 9.60%** reduction. Most remaining time is in scanning, not C# compiler computation. The [dataset](../../reports/benchmarks/unity-startup-profile-20261008.json) preserves exact counters, trace qualifications and lifecycle evidence.
 
 ## Input and measurement boundary

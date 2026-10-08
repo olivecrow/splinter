@@ -2,6 +2,8 @@
 
 [English](../../verification/readme-unity-comparison.md)
 
+> **현재 시간 기준:** 아래는 해당 후보/단계에서 기록한 과거 근거이며, 수치와 당시 NotRun 경계는 그대로 보존합니다. 이후 최적화를 합친 `116fd44`의 [UF-01 실측](unity-final-lifecycle.md)은 전체 **18분 3.0초**, Editor 준비 **3분 36.1초**, A/B 보존·회수 **2분 52.0초**, Library 복원 **2분 6.0초**입니다. UF가 개별 최적화의 효과나 별도 미실행 항목을 모두 검증한 것은 아닙니다.
+
 이 문서는 2026-10-07 README 비교 **RB-01–05**를 소유한다. 실제 Codex 앱 관리 워크트리와 원본 Library 기준본을 참조하는 현재 Splinter 구현을 한 묶음으로 측정했다. 과거 [Unity 비교](unity-live-comparison.md), SF/PV 행렬, 마감한 공간·메모리 단위를 다시 여는 작업이 아니다.
 
 편집·컴파일 완료 시점의 추가 파일 할당은 **11,297,124,336 B에서 152,543,856 B로 98.65% 감소**했다. Splinter의 Editor 준비와 후속 코드 refresh·컴파일은 더 오래 걸렸다. [공개 수치 데이터](../../../reports/benchmarks/unity-workspace-comparison-20261007.json)를 README 그래프의 입력으로 사용하며, [생성 스크립트](../../../scripts/plot-unity-workspace-comparison.py)가 PNG와 SVG를 만든다.

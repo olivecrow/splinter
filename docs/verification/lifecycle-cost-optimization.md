@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/lifecycle-cost-optimization.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 LC-01–03 follow the remaining lifecycle costs in [US-01](unity-startup-remeasurement.md), using source baseline `76f8f7f` and its frozen normal runtime in `.local/sa8-runtime`. The changes target small-write metadata, Library initialization and seal/reclamation work. New full Unity startup, shutdown, checkpoint/release and Library restoration timings are **NotRun**. Historical US times are not current-candidate results.
 
 ## Input evidence

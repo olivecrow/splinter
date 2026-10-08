@@ -16,51 +16,52 @@ Splinter separates the data a task can reuse from the data it changes. Its range
 
 The intended workflow is simple: use a workspace when a task needs independent execution, continue that same task across conversations, then explicitly preserve, integrate, or discard it. Each agent works in the path returned by Splinter and can use its existing file tools, Git tools, and application tooling there.
 
-## Measured storage and time tradeoff
+<a id="measured-storage-and-time-tradeoff"></a>
+## Measured storage and time
 
-We compared two actual Codex app worktrees with two Splinter workspaces on the same Unity project: **1,602 tracked files, about 2.8 GB of source, Unity 6000.3.22f1**. Each method ran two independent Editors and the same isolated A/B code changes. Codex created a new Library per worktree; Splinter used `git-snapshot`, the existing original Library basis, and the default SJL4 journal optimization.
+**The current measured Unity A/B workflow takes 18m 03.0s, from Library preparation through final restoration.** This is the optimized `116fd44` candidate (UF-01, 2026-10-08), on Windows/NTFS with Unity 6000.3.22f1: **1,602 tracked files, 2.80 GB of source and the existing 3.14 GB Library**. Two independent Editors each make and compile one isolated one-line C# change. No assets were removed.
 
-The source work was deliberately minimal: A changed `value + 1` to `value + 2` in one C# file, and B changed `value + value` to `value + value + value` in another. Each result contained one changed line. The preservation/release interval below begins after editing, compilation and Editor shutdown; it is overhead for preserving these small results and reclaiming resources. **The measured delays are performance blockers for interactive development on this input.**
+![Current Splinter workflow: 18m 03.0s from preparation through restoration](docs/images/unity-current-workflow.png)
 
-![Additional file allocation for two Unity workspaces: Codex 10.52 GiB, Splinter 0.14 GiB](docs/images/unity-workspace-storage.png)
+| Current A/B stage | Observed wall time |
+| --- | ---: |
+| Library basis preparation | 1m 55.9s |
+| Create A + B workspaces | 5m 32.7s |
+| Launch both Editors → compiled readiness | 3m 36.1s |
+| A/B one-line edits → compiled readiness | 29.9s |
+| Selected asset inspection | 2.4s |
+| Normal shutdown of both Editors | 1m 27.9s |
+| A/B checkpoint + release | 2m 52.0s |
+| Restore original Library | 2m 06.0s |
+| **Complete workflow** | **18m 03.0s** |
 
-After both edits compiled, additional file allocation was **10.52 GiB for Codex and 0.14 GiB for Splinter: a 98.65% reduction**. This counts task files, owned Git registration, and shared Splinter runner/Library metadata once. Existing original source, Library payload, and shared Git objects are excluded; this is a measured stage, not peak disk usage.
+A/B checkpoints take **37.7s / 37.4s**, and releases **49.4s / 47.6s**; these are already included in the preservation row. Both Editors shut down normally within the two-minute command limit. Independent result trees, all 1,602 unchanged original files, owned resource reclamation and ordinary NTFS Library restoration were verified. Editor readiness includes scanning/importing/compilation and observation; stage totals include small dispatch gaps.
 
-**An earlier optimized run remeasured the same Unity project.** Initial Editor readiness changed from **29m 13s → 17m 22s**, one-line edits to compiled readiness from **9m 14s → 1m 17s**, and A/B checkpoint/release from **2h 36m 7s → 7m 01s**. That run recorded A/B checkpoints of 83.5s / 81.6s and releases of 130.6s / 125.6s.
+### Codex worktrees and optimized Splinter
 
-![Same Unity input: earlier and current timings with the historical Codex baseline](docs/images/unity-lifecycle-remeasurement.png)
+![Recorded Codex worktree timings versus optimized Splinter: initial preparation and edit recompilation](docs/images/unity-current-editor-comparison.png)
 
-That complete observed run, including Library preparation and restoration, took **68m 28s**; final Library restoration alone takes **23m 25s**. Both stop commands exceed their two-minute limit; the same Editors subsequently exit normally and preservation continues. Earlier preservation includes overlap, recovery and concurrent diagnostics; current preservation runs sequentially A then B, so this is not an isolated causal speedup ratio. This is one profiled run. Codex and the allocation numbers above remain historical baselines. See [exact costs, profiling, failures and restoration qualification](docs/verification/unity-lifecycle-remeasurement.md) and the [dataset](reports/benchmarks/unity-lifecycle-remeasurement-20261007.json).
+| A/B Editor interval, after workspace creation | Codex worktrees (RB, 2026-10-07) | Optimized Splinter (UF, 2026-10-08) |
+| --- | ---: | ---: |
+| Launch → compiled readiness | 14m 47.1s | 3m 36.1s |
+| One-line edits → compiled readiness | 19.0s | 29.9s |
 
-[Subsequent read/restoration optimization](docs/verification/lifecycle-read-optimization.md) reuses bounded Git readers and directory metadata, separates slow basis reads from the journal lock, and returns an entirely unchanged Library with one verified directory move. The latest small NTFS comparison (260 files, about 16MiB) averages **4.21s → 0.52s**, including removal of fixed record waits. These are fixture results; the full Unity timings above precede the additional changes.
+The recorded Codex worktrees create new Libraries; Splinter references the existing original Library. In these runs Splinter's initial readiness is 11m 11.1s shorter, while edit/recompile takes **10.9s longer**. Splinter's separate Library/workspace setup takes **7m 28.6s**. Codex was not rerun for UF, and comparable complete Codex creation/preservation times are unavailable. These bars compare the recorded phase boundaries, not an end-to-end Codex speedup.
 
-**Latest real Unity startup measurement:** both Editors became ready in **5m 49.8s**, versus **12m 46.9s** in the preceding profile (54.4% shorter in this one cohort). Fresh Library/workspace setup adds **10m 45.2s** before starting the Editors. Scanning fell from about 447s to 16s; compile preparation remained about 210s. A/B checkpoint/release took **5m 21.5s**, normal Editor exit **4m 47.4s**, and original Library restoration **1m 54.8s**. Original source and owned cleanup were verified. The run resumed the same workspaces after a committed launch-admission fix; it is not a fresh uninterrupted single-runtime benchmark or an isolated causal speedup. See [the measurement, remaining bottlenecks and exact timing boundaries](docs/verification/unity-startup-remeasurement.md). The [earlier lifecycle measurement](docs/verification/unity-checkpoint-release-remeasurement.md) remains historical evidence.
+### Recorded storage savings
+
+![Historical RB allocation: Codex 10.52 GiB, Splinter 0.14 GiB; allocation not remeasured in UF](docs/images/unity-recorded-storage.png)
+
+The earlier **RB measurement on 2026-10-07** recorded **10.52 GiB for Codex and 0.14 GiB for Splinter: 98.65% less additional file allocation** after both edits compiled. It counts task files, owned Git registration, and shared runner/Library metadata once; original source, original Library payload and shared Git objects are excluded. **Storage was not remeasured in UF**, so this remains the earlier candidate's stage allocation, not current-candidate allocation or peak disk usage.
+
+UF is one uninterrupted cohort on the same source and Library contents, without clearing OS caches. It confirms the selected source compilation and asset checks, not Play Mode, Unity tests or a game build. The timings are measured costs for this input, not a general runtime guarantee. See the [complete current measurement and limits](docs/verification/unity-final-lifecycle.md), [exact UF dataset](reports/benchmarks/unity-final-lifecycle-20261008.json), [historical Codex/storage methodology](docs/verification/readme-unity-comparison.md) and [chart renderer](scripts/plot-unity-final-lifecycle.py).
 
 <details>
-<summary>Earlier timings and optimization history</summary>
+<summary>Original timings and optimization history</summary>
 
-![Time tradeoff for the same Unity task: Editor preparation and code edit to compiled readiness](docs/images/unity-workspace-time.png)
+Original RB preservation/release took **2h 36m 07.1s**, versus **2m 52.0s** in UF. Library restoration changed from **24m 33.2s to 2m 06.0s**. Original preservation overlapped B work and included diagnostics, an external B commit and recovery; UF preserves/releases A then B normally. The observed reductions are not isolated causal speedup ratios. Original individual command durations overlap and must not be summed.
 
-| Observed A/B cohort time | Codex worktrees | Splinter + Library basis | Splinter difference |
-| --- | ---: | ---: | ---: |
-| Editor launch to compiled readiness, after workspace creation | 14m 47s | 29m 13s | +14m 26s |
-| Code change / refresh to compiled readiness | 19s | 9m 14s | +8m 55s |
-
-**Storage savings came with a substantial time cost in this run.** Splinter also took 4m 33s to prepare the Library basis once and 12m 46s for the two sequential workspace creation calls; these setup costs are separate from the Editor bars. End-to-end Codex task creation time was unavailable and is excluded.
-
-**Result preservation was also slow: A's checkpoint alone took 95m 23s after Editor shutdown**, outside the Editor bars. It exposed repeated full Git attribute checks and journal-inventory observations under the store lock. A later read-only probe of the same 50 paths took 0.23s on ordinary NTFS and 12.83s on Splinter. The [delay diagnosis and lifecycle costs](docs/verification/readme-unity-comparison.md#preservation-delay-diagnosis) separate these findings from the earlier Unity timings; a comparable end-to-end Codex preservation time was not obtained.
-
-[Follow-up profiling](docs/verification/checkpoint-release-profiling.md) reused those records and tiny Editor-free tasks: checkpoint repeated source inspection seven times, release recollected the preserved result, and journal reclamation contained quadratic file-fence lookup. The original product was not optimized in that diagnosis.
-
-[Subsequent lifecycle optimization](docs/verification/checkpoint-release-optimization.md) batches Git attribute queries, removes response-only source scans, reuses unchanged sealed results and indexes reclamation fences. On the same tiny Editor-free workload, checkpoint improved **42.30s → 31.88s (24.65%)** and release **20.66s → 14.54s (29.59%)**. These are small-fixture measurements; the later real Unity rerun is qualified separately as UR-01–04.
-
-[Further optimization CO-05–08](docs/verification/checkpoint-release-optimization.md#final-product-measurement-co-07) combines checkpoint/preservation verification and removes repeated inventory work and fixed request delays. A fresh comparison on the same tiny workload, against the already optimized distribution, measured checkpoint **28.66s → 14.09s (50.84% less)** and release **13.68s → 9.66s (29.39% less)**. The large Unity chart below retains the historical measurement.
-
-![Separate Splinter lifecycle costs in minutes: Library preparation 4.5, workspace creation 12.8, recorded A/B preservation and release 156.1, Library restoration 24.6](docs/images/unity-workspace-lifecycle.png)
-
-The recorded preservation/release sequence took **2h 36m 7s**, including overlapping B work, the retained `WorkspaceBusy` orchestration refusal and recovery, and concurrent diagnostic probes. This includes A's checkpoint above; the intervals must not be added twice. Final Library restoration took **24m 33s**. Both Splinter results were preserved, owned resources reclaimed, the original Library restored, and all 1,602 original source files verified unchanged. These lifecycle bars show the recorded Splinter sequence; comparable Codex totals were unavailable.
-
-This is one cohort per method on Windows/NTFS, run Codex then Splinter without clearing OS caches. It verifies selected compilation, asset loading, and rendering, with no Play Mode, tests, or game build. It does not establish general speed, RAM, or peak storage savings. See the [methodology, exact values, failures, and cleanup qualification](docs/verification/readme-unity-comparison.md), [recorded dataset](reports/benchmarks/unity-workspace-comparison-20261007.json), and [chart renderer](scripts/plot-unity-workspace-comparison.py).
+Historical measurements remain in [RB: original Codex/Splinter comparison](docs/verification/readme-unity-comparison.md), [UR: first lifecycle remeasurement](docs/verification/unity-lifecycle-remeasurement.md), [UC: read/restoration follow-up](docs/verification/unity-checkpoint-release-remeasurement.md), [UP: startup profile](docs/verification/unity-startup-profile.md) and [US: startup follow-up](docs/verification/unity-startup-remeasurement.md). [UF](docs/verification/unity-final-lifecycle.md) is the current timing reference.
 
 </details>
 

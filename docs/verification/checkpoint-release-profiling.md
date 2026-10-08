@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/checkpoint-release-profiling.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 This document owns **LP-01–04**, the bounded 2026-10-07 diagnosis requested after the [README Unity comparison](readme-unity-comparison.md). It separates checkpoint, release and their internal costs. [Public measurements](../../reports/benchmarks/checkpoint-release-profile-20261007.json) contain phase aggregates and diagnostic binary identities. No product optimization, new Unity run, failure matrix or support pass is claimed.
 
 The subsequent implementation and normal-binary before/after measurements belong to [CO-01–04](checkpoint-release-optimization.md). The diagnostic numbers below remain unchanged.

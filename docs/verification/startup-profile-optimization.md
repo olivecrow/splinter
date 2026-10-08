@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/startup-profile-optimization.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 Current directory-handle correction: [SA-01–02](startup-additional-optimization.md) replaces attribute-only pin assumptions with native-tested access/sharing and owned-file lifetime protection. The SU costs and candidate qualifications below remain historical.
 
 **SU-01–05** implements the user-mode findings from [UP-01](unity-startup-profile.md). UP measured 766.9024 seconds to initial readiness, including approximately 447 seconds of scanning; it is the previous candidate's evidence. Subsequent actual timing belongs to [US-01](unity-startup-remeasurement.md), including its admission correction and mixed-runtime resumption. No UAC, installed-service update, external-package change, or original-project modification is needed for these changes.

@@ -2,6 +2,8 @@
 
 [English](../../verification/README.md)
 
+**현재 Unity 시간은 [UF-01](unity-final-lifecycle.md)이 기준이다.** 커밋 `116fd44`에서 전체 18분 3.0초, Editor 준비 3분 36.1초, 보존·회수 2분 52.0초, Library 복원 2분 6.0초를 측정했다. 최초와 같은 소스/Library·A/B 편집이며 종료 시간 제한 없이 원본과 소유 자원 회수를 검증했다. 아래 RB/UR/UC/UP/US 수치는 해당 후보의 과거 근거다.
+
 [외부 도구 결합 제거](external-tool-boundaries.md)는 MCP 부재/내부 API 변경에 독립적인 bridge 초기화·정상 종료와 패키지 run-state 보존의 자동 회귀를 소유한다. MCP·Unity CLI의 이름/버전·패치·연결 성공은 제품 전제가 아니다. 아래 도구별 실행 기록은 당시 후보/입력의 사실이며 현재 지원이나 설치 요구로 승계하지 않는다.
 
 [현재본 쓰기 경로 최적화](latest-journal-write-optimization.md)는 현재 SJL4 capsule의 단일 payload/metadata 기록·mutation마다 한 durable flush·정확한 이전 payload/metadata 회수와 동일 8/32 PNG 반복 입력의 ON 쓰기 -29.5%/-30.7%와 ON/OFF 파일 할당 -91.75%/-93.61%를 소유한다. ON은 OFF보다 5.6–5.8배 느리고 관리 누적 할당은 늘었다. 사용자가 1,536회 전체 22.389s·개별 평균 약 14.6ms와 파일 할당 감소를 근거로 새 작업의 기본 ON을 선택했으며 기존 OFF/ON은 유지한다. SJL2 당시 비용과 SJL3 중간 후보의 7~8% 시간 개선은 별도 보존한다. 파일/소유 프로세스 중단·WinFsp fake 기준 자격이며 Unity/VSS/OS 전원/전체 peak 자격은 승계하지 않는다.
@@ -20,9 +22,9 @@
 
 [Unity 수명주기 재측정](unity-lifecycle-remeasurement.md)은 UR-01–04를 소유한다. 같은 소스·Library 입력에서 A/B checkpoint·release 421.3806초, 초기 컴파일 1,041.8831초와 재컴파일 76.9초를 기록했다. 실제 종료 명령의 시간 제한·같은 작업 지속·계측 부하·순서 차이·원본 복원과 후속 개선 후보를 구분한다.
 
-[수명주기 읽기·복원 최적화](lifecycle-read-optimization.md)는 LO-01–11를 소유한다. UR 병목의 제한된 Git proof·reader 세션 재사용과 기준 읽기 gate 분리·seal 읽기 통합·경로 검사·변경 없는 복원/cursor 묶음·전체 Library 복원·불변 목록 재사용을 구현했다. 작은 실제 NTFS 비용과 전체 손상·복구 회귀를 기록하며 새 Unity 시간으로 승계하지 않는다.
+[수명주기 읽기·복원 최적화](lifecycle-read-optimization.md)는 LO-01–11를 소유한다. UR 병목의 제한된 Git proof·reader 세션 재사용과 기준 읽기 gate 분리·seal 읽기 통합·경로 검사·변경 없는 복원/cursor 묶음·전체 Library 복원·불변 목록 재사용을 구현했다. 작은 실제 NTFS 비용과 전체 손상·복구 회귀를 기록하며 그 자체를 새 Unity 시간으로 승계하지 않으며 합친 후보의 후속 실행은 UF-01이다.
 
-[현재 Unity checkpoint/release 측정](unity-checkpoint-release-remeasurement.md)은 UC-01을 소유한다. 커밋한 후보 `168081c`와 같은 실제 소스·Library 입력에서 A/B 순차 checkpoint/release는 304.9초, 원본 Library 복원은 180.9초였다. 독립 결과·원본 보호·소유 자원 회수와 실제 응답 12개의 schema를 검증했다. 종료 명령은 정상 종료 전에 여전히 시간 제한에 걸렸으며, 이전 프로파일 포함/현재 미포함 단일 실행의 차이를 순수 최적화 배율로 읽지 않는다.
+[과거 Unity checkpoint/release 측정](unity-checkpoint-release-remeasurement.md)은 UC-01을 소유한다. 커밋한 후보 `168081c`와 같은 실제 소스·Library 입력에서 A/B 순차 checkpoint/release는 304.9초, 원본 Library 복원은 180.9초였다. 독립 결과·원본 보호·소유 자원 회수와 실제 응답 12개의 schema를 검증했다. 종료 명령은 정상 종료 전에 여전히 시간 제한에 걸렸으며, 이전 프로파일 포함/현재 미포함 단일 실행의 차이를 순수 최적화 배율로 읽지 않는다.
 
 [시작 단계 저널 최적화](journal-startup-optimization.md)는 JS-01–04를 소유한다. 회수된 footer 참조·변경 파일의 항목 조회·bounded metadata 검증과 작은 일반 배포본 이어 쓰기 비용, 바이트·seal·재연결·손상 회귀를 기록한다. UC-01을 미측정 Unity 준비 시간 개선으로 대체하지 않는다.
 
@@ -36,7 +38,8 @@
 
 [추가 준비 최적화](startup-additional-optimization.md)는 SA-01–05를 소유한다. Library 수명 고정/복원 인계·로컬 Close 검사·단일 핸들 게시·내용 증명 Git hash·연산 한정 ensure 증명·첫 시작 상속 Bee 그래프 무효화다. 한정 native/Git/Bee 근거를 새 전체 Unity 준비 시간이나 60초 ILPP 절감으로 확대하지 않는다.
 
-[종료와 준비 단계 비용](lifecycle-cost-optimization.md)은 LC-01–03을 소유한다. 작은 쓰기 메타데이터 증가·client root metadata 초기화·seal/회수 검사를 다룬다. 작은 NTFS 비용/복구와 과거 US 시간·새 Unity 미실행을 구분한다.
+[종료와 준비 단계 비용](lifecycle-cost-optimization.md)은 LC-01–03을 소유한다. 작은 쓰기 메타데이터 증가·client root metadata 초기화·seal/회수 검사를 다룬다. 작은 NTFS 비용/복구와 과거 US 시간을 구분하며 합친 후보의 후속 Unity 실행은 UF-01이다.
+
 
 [Unity 실제 C/S 비교](unity-live-comparison.md)와 [HTML 보고서](../../../reports/unity-live-comparison-20261003.html)는 Codex 앱 worktree와 제품 workspace의 지정 입력·파일 할당·Editor/provider 메모리·격리와 재개를 비교한다. 과거 home 기록 누락과 승인한 후속 회수의 근거는 소유 검증에서 구분한다. 전체 물리/VSS 귀속·최소 RAM은 unknown이며 SF/PV 전체 지원으로 확대하지 않는다.
 

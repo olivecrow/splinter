@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/startup-time-optimization.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 Current SJN3 format and overwrite-page reuse are owned by [LC-01](lifecycle-cost-optimization.md); the SJN2 results below remain historical.
 
 **ST-01–04** targets storage work on the preparation path identified in [UC-01](unity-checkpoint-release-remeasurement.md). That historical Unity run took 848.3379 seconds to initial readiness; its A log records 448.330154 seconds in Scan and 250.873981 seconds in CompileScripts. These are Unity phase measurements, not isolated compiler CPU time. The subsequent [UP-01 actual startup profile](unity-startup-profile.md) measures the committed candidate at 766.9024 seconds; its one-cohort profiling/input/closure limits are separate from the bounded ST evidence below.

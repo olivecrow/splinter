@@ -2,6 +2,8 @@
 
 [English](../../verification/unity-startup-profile.md)
 
+> **현재 시간 기준:** 아래는 해당 후보/단계에서 기록한 과거 근거이며, 수치와 당시 NotRun 경계는 그대로 보존합니다. 이후 최적화를 합친 `116fd44`의 [UF-01 실측](unity-final-lifecycle.md)은 전체 **18분 3.0초**, Editor 준비 **3분 36.1초**, A/B 보존·회수 **2분 52.0초**, Library 복원 **2분 6.0초**입니다. UF가 개별 최적화의 효과나 별도 미실행 항목을 모두 검증한 것은 아닙니다.
+
 **UP-01**은 [JS](journal-startup-optimization.md)·[ST](startup-time-optimization.md) 최적화를 커밋한 `8709ba27574a2de8d0ecaee1a1413f42358d53ec` 후보의 실제 A/B 초기 준비 1회다. 준비 완료는 **766.9024초(12분 46.9초)**로, [UC-01](unity-checkpoint-release-remeasurement.md)의 848.3379초보다 **81.4355초 / 9.60%** 짧았다. 남은 시간의 큰 부분은 C# 컴파일러 계산보다 스캔이다. 정확한 계수·추적 범위·수명주기 근거는 [데이터셋](../../../reports/benchmarks/unity-startup-profile-20261008.json)에 보존한다.
 
 ## 입력과 측정 범위

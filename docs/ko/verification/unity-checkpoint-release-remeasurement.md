@@ -2,6 +2,8 @@
 
 [English](../../verification/unity-checkpoint-release-remeasurement.md)
 
+> **현재 시간 기준:** 아래는 해당 후보/단계에서 기록한 과거 근거이며, 수치와 당시 NotRun 경계는 그대로 보존합니다. 이후 최적화를 합친 `116fd44`의 [UF-01 실측](unity-final-lifecycle.md)은 전체 **18분 3.0초**, Editor 준비 **3분 36.1초**, A/B 보존·회수 **2분 52.0초**, Library 복원 **2분 6.0초**입니다. UF가 개별 최적화의 효과나 별도 미실행 항목을 모두 검증한 것은 아닙니다.
+
 **UC-01**은 [LO-01–11 최적화](lifecycle-read-optimization.md)를 `168081c349d87d9767d44ce0a741ec61279c2706`으로 커밋한 뒤 수행한 실제 Unity A/B 한 묶음이다. 검증한 일반 Release 바이너리를 실행 전에 고정했다. 소스·Library 입력은 이전 [UR-01–04](unity-lifecycle-remeasurement.md)와 같다. 원시는 ignored `artifacts/unity-checkpoint-release-20261008/`·`.local/uc8/`, 정확한 시간·hash·자격 경계는 [공개 데이터](../../../reports/benchmarks/unity-checkpoint-release-20261008.json)에 보존한다.
 
 ## 같은 입력과 한정 절차

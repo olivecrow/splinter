@@ -2,6 +2,8 @@
 
 [English](../../verification/unity-lifecycle-remeasurement.md)
 
+> **현재 시간 기준:** 아래는 해당 후보/단계에서 기록한 과거 근거이며, 수치와 당시 NotRun 경계는 그대로 보존합니다. 이후 최적화를 합친 `116fd44`의 [UF-01 실측](unity-final-lifecycle.md)은 전체 **18분 3.0초**, Editor 준비 **3분 36.1초**, A/B 보존·회수 **2분 52.0초**, Library 복원 **2분 6.0초**입니다. UF가 개별 최적화의 효과나 별도 미실행 항목을 모두 검증한 것은 아닙니다.
+
 이 문서는 [CO-01–08](checkpoint-release-optimization.md) 이후 실제 Unity로 진행한 **UR-01–04**를 소유한다. 측정 전에 제품 소스를 `38b6803`으로 커밋했다. 고정한 일반 배포본은 검증한 CO-08 후보이며 실행 중 제품을 다시 빌드하거나 계측 코드를 삽입하지 않았다. 원시 근거는 ignored `artifacts/unity-remeasure-20261007/`와 `.local/ur7/`에 보존한다.
 
 ## 입력과 절차 — UR-01

@@ -3,6 +3,8 @@
 
 [한국어](../ko/verification/README.md)
 
+**Use [UF-01](unity-final-lifecycle.md) for current Unity timings.** Committed `116fd44` measured 18m 03.0s total, 3m 36.1s Editor readiness, 2m 52.0s preservation/release and 2m 06.0s Library restoration. Original source/Library and A/B edits match; normal shutdown and original/owned closure pass without stop timeouts. RB/UR/UC/UP/US figures below are historical candidate evidence.
+
 [External-tool coupling removal](external-tool-boundaries.md) owns automatic regression of bridge initialization/normal shutdown independent of missing MCP/internal API changes, and package run-state preservation. MCP/Unity CLI names/versions/patches/connection success are not product prerequisites. Tool-specific records below are historical candidate/input facts, not inherited as current support/installation requirements.
 
 [Latest-only write-path optimization](latest-journal-write-optimization.md) owns current SJL4 capsule single payload/metadata recording, one durable flush per mutation, exact previous payload/metadata reclaim, and ON write -29.5%/-30.7% and ON/OFF file allocation -91.75%/-93.61% for identical repeated 8/32 PNG inputs. ON is 5.6–5.8× slower than OFF; cumulative managed allocation increased. User selected default ON for new tasks based on 1,536 writes totaling 22.389s/~14.6ms average and file-allocation reduction; existing OFF/ON retained. SJL2 historical costs/SJL3 intermediate 7–8% improvement preserved separately. File/owned-process interruption/WinFsp fake-basis qualification, not inherited Unity/VSS/OS-power/full-peak qualification.
@@ -13,7 +15,7 @@
 
 [Plastic original apply](plastic-original-apply.md) separately qualifies recorded-basis full/selected publication, registration/lock/Editor protection, same-intent recovery.
 
-[README Unity comparison](readme-unity-comparison.md) owns RB-01–05: actual Codex app worktrees versus current default-ON Splinter with the original Library basis, two independent Editors per method, identical A/B edits, additional file allocation and separately measured setup/Editor time. The single run reduced edited-ready allocation by 98.65% with longer Editor preparation and recompilation. Failures, cleanup, one-cohort/cache limits, unmeasured RAM/whole-disk peak, and unexecuted Play/Test/build remain explicit.
+[README Unity comparison](readme-unity-comparison.md) owns RB-01–05: actual Codex app worktrees versus the then-current default-ON Splinter candidate with the original Library basis, two independent Editors per method, identical A/B edits, additional file allocation and separately measured setup/Editor time. The single run reduced edited-ready allocation by 98.65% with longer Editor preparation and recompilation. Failures, cleanup, one-cohort/cache limits, unmeasured RAM/whole-disk peak, and unexecuted Play/Test/build remain explicit.
 
 [Checkpoint/release profiling](checkpoint-release-profiling.md) owns LP-01–04: reused Unity phase records, tiny Editor-free Git/Library tasks with scratch-only timing scopes, and a bounded fence-membership microprobe. It identifies repeated verification/recollection and quadratic reclamation; no optimization or expanded support pass is claimed.
 
@@ -21,9 +23,9 @@
 
 [Unity lifecycle remeasurement](unity-lifecycle-remeasurement.md) owns UR-01–04: identical source/Library input, A/B checkpoint/release 421.3806s, initial compilation 1,041.8831s and edit recompilation 76.9s. Stop-command timeout, same-task continuation, profiler overhead, scheduling differences, original restoration and further opportunities remain explicit.
 
-[Lifecycle read/restoration optimization](lifecycle-read-optimization.md) owns LO-01–11: bounded Git proof/session reuse and separated base-read gating, fused seal reads, path checks and unchanged restore/cursor batching, whole-Library restoration and immutable listing reuse following UR. It records small real NTFS costs and full corruption/recovery regression, not a new Unity timing qualification.
+[Lifecycle read/restoration optimization](lifecycle-read-optimization.md) owns LO-01–11: bounded Git proof/session reuse and separated base-read gating, fused seal reads, path checks and unchanged restore/cursor batching, whole-Library restoration and immutable listing reuse following UR. It records small real NTFS costs and full corruption/recovery regression, not its own Unity timing qualification; later combined timings are UF-01.
 
-[Current Unity checkpoint/release measurement](unity-checkpoint-release-remeasurement.md) owns UC-01: committed candidate `168081c`, unchanged real source/Library input, 304.9s for sequential A/B checkpoint/release and 180.9s for original Library restoration. Independent results, original protection, owned resource cleanup and 12 response schemas pass. Stop commands still time out before normal exit; the earlier profiled/current unprofiled single cohorts do not establish an isolated causal speedup.
+[Historical Unity checkpoint/release measurement](unity-checkpoint-release-remeasurement.md) owns UC-01: committed candidate `168081c`, unchanged real source/Library input, 304.9s for sequential A/B checkpoint/release and 180.9s for original Library restoration. Independent results, original protection, owned resource cleanup and 12 response schemas pass. Stop commands still time out before normal exit; the earlier profiled/current unprofiled single cohorts do not establish an isolated causal speedup.
 
 [Startup journal optimization](journal-startup-optimization.md) owns JS-01–04: retired footer references, affected-file membership lookup and bounded metadata verification. It records small normal-binary append costs and byte/seal/reconnect/corruption regression; it does not replace UC-01 with an unmeasured Unity startup speedup.
 
@@ -37,7 +39,8 @@
 
 [Additional startup optimization](startup-additional-optimization.md) owns SA-01–05: pinned Library lifetimes and restoration handoff, local Close checks, single-handle publication, content-proven Git hashing, operation-local ensure proof and first-launch inherited Bee graph invalidation. Bounded native/Git/Bee evidence does not qualify new full Unity readiness or a 60-second ILPP saving.
 
-[Shutdown and preparation costs](lifecycle-cost-optimization.md) owns LC-01–03: small-write metadata scaling, client root-metadata initialization and scoped seal/reclamation checks. It distinguishes bounded NTFS costs/recovery from historical US times and unexecuted new Unity runs.
+[Shutdown and preparation costs](lifecycle-cost-optimization.md) owns LC-01–03: small-write metadata scaling, client root-metadata initialization and scoped seal/reclamation checks. It distinguishes bounded NTFS costs/recovery from historical US times; subsequent combined Unity execution is UF-01.
+
 
 [Actual Unity C/S comparison](unity-live-comparison.md)/[HTML report](../../reports/unity-live-comparison-20261003.html) compare designated-input/file-allocation/Editor/provider memory/isolation/resumption in Codex app worktrees/product workspaces. Missing historical home fields/authorized follow-up reclaim distinguished in owning verification. Total physical/VSS attribution/minimum RAM unknown; no full SF/PV support expansion.
 

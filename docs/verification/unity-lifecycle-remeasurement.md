@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/unity-lifecycle-remeasurement.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 This document owns **UR-01–04**, the real Unity follow-up to [CO-01–08](checkpoint-release-optimization.md). Product source was committed as `38b6803` before measurement. The frozen normal distribution is the tested CO-08 candidate; no product rebuild or instrumentation was inserted during the run. Raw evidence remains in ignored `artifacts/unity-remeasure-20261007/` and `.local/ur7/`.
 
 ## Input and procedure — UR-01

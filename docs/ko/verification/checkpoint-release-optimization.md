@@ -2,6 +2,8 @@
 
 [English](../../verification/checkpoint-release-optimization.md)
 
+> **현재 시간 기준:** 아래는 해당 후보/단계에서 기록한 과거 근거이며, 수치와 당시 NotRun 경계는 그대로 보존합니다. 이후 최적화를 합친 `116fd44`의 [UF-01 실측](unity-final-lifecycle.md)은 전체 **18분 3.0초**, Editor 준비 **3분 36.1초**, A/B 보존·회수 **2분 52.0초**, Library 복원 **2분 6.0초**입니다. UF가 개별 최적화의 효과나 별도 미실행 항목을 모두 검증한 것은 아닙니다.
+
 이 문서는 [LP 프로파일링](checkpoint-release-profiling.md) 이후 2026-10-07의 한정 최적화 **CO-01–08**을 소유한다. 첫 [측정과 후보 hash](../../../reports/benchmarks/checkpoint-release-optimization-20261007.json)는 `74518fd`를 기준으로 한 변경 전 일반 배포본과 CO-01–04 최적화 배포본을 구분한다. 아래 CO-05–08은 그 최적화 배포본과 후속 후보를 비교한다. 이전 Unity 시간은 과거 근거로 유지한다.
 
 후속 실제 Unity 입력의 비용·프로파일·회수는 [UR-01–04](unity-lifecycle-remeasurement.md)에 별도로 기록한다. 아래 CO 기록의 대형 Unity NotRun은 해당 소형 측정 당시의 자격이다.

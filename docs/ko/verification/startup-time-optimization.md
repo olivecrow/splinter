@@ -2,6 +2,8 @@
 
 [English](../../verification/startup-time-optimization.md)
 
+> **현재 시간 기준:** 아래는 해당 후보/단계에서 기록한 과거 근거이며, 수치와 당시 NotRun 경계는 그대로 보존합니다. 이후 최적화를 합친 `116fd44`의 [UF-01 실측](unity-final-lifecycle.md)은 전체 **18분 3.0초**, Editor 준비 **3분 36.1초**, A/B 보존·회수 **2분 52.0초**, Library 복원 **2분 6.0초**입니다. UF가 개별 최적화의 효과나 별도 미실행 항목을 모두 검증한 것은 아닙니다.
+
 현재 SJN3 형식과 덮어쓰기 페이지 재사용은 [LC-01](lifecycle-cost-optimization.md)이 소유한다. 아래 SJN2 결과는 과거 근거로 유지한다.
 
 **ST-01–04**는 [UC-01](unity-checkpoint-release-remeasurement.md)에서 확인한 준비 경로의 저장 작업을 줄인다. 당시 실제 Unity의 최초 준비는 848.3379초였고 A 로그의 Scan은 448.330154초, CompileScripts는 250.873981초였다. 이는 Unity 단계별 관측이며 순수 컴파일러 CPU 시간이 아니다. 후속 [UP-01 실제 준비 프로파일](unity-startup-profile.md)은 커밋한 후보에서 766.9024초를 측정했다. 한 실행 묶음의 추적·입력·회수 한계는 아래의 한정 ST 근거와 구분한다.

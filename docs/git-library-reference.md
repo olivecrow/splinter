@@ -3,6 +3,8 @@
 
 [한국어](ko/git-library-reference.md)
 
+**Current measured costs:** [UF-01](verification/unity-final-lifecycle.md) prepared the original Library in **115.9s** and restored it to ordinary NTFS in **126.0s**. This is one `116fd44` run using the 3,141,660,252-byte original Library; the complete A/B workflow took **1,083.0s**. It does not expand the separate small-fixture or historical qualifications below.
+
 The Git commit/tree/blob basis of `git-snapshot` can be read together with an immutable basis of the original Library. Even though Git does not track Library, its separate basis's exact id, owner, manifest, and read proof are fixed in the mount and journal. No initial full copy, read hydration, whole-file copy-up, or VSS is used. Original and A/B read the same Library basis and write to their own range journals.
 
 <a id="명시적-수명주기"></a>

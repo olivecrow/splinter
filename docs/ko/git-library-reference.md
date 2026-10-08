@@ -2,6 +2,8 @@
 
 [English](../git-library-reference.md)
 
+**현재 측정 비용:** 같은 원본 Library를 사용한 [UF-01](verification/unity-final-lifecycle.md)에서 준비는 **115.9초**, 최종 일반 NTFS 복원은 **126.0초**였다. `116fd44`, 원본 Library 3,141,660,252바이트의 한 실행이며 전체 A/B 과정은 **1,083.0초**다. 아래 기능별 소형 시험과 과거 검증의 자격을 이 실행으로 확대하지 않는다.
+
 `git-snapshot`의 Git commit/tree/blob 기준과 원본 Library의 불변 기준을 함께 읽을 수 있다. Git이 추적하지 않는 Library도 별도 기준의 정확한 id·owner·manifest·read proof를 mount와 저널에 고정한다. 초기 전체 복사·읽기 hydration·파일 전체 copy-up·VSS는 사용하지 않는다. 원본·A/B는 같은 Library 기준을 읽고 각각의 범위 저널에 쓴다.
 
 ## 명시적 수명주기

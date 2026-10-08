@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="835.2pt" height="338.4pt" viewBox="0 0 835.2 338.4" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-09T00:05:07.070308</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 338.4
+L 835.2 338.4
+L 835.2 0
+L 0 0
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 192.096 223.344
+L 776.736 223.344
+L 776.736 101.52
+L 192.096 101.52
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1">
+      <path d="M 192.096 223.344
+L 192.096 101.52
+" clip-path="url(#p575fb4e6e2)" style="fill: none; stroke: #e5e8ed; stroke-width: 0.8; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_2">
+      <defs>
+       <path id="md98f73436c" d="M 0 0
+L 0 3.5
+" style="stroke: #000000; stroke-width: 0.8"/>
+      </defs>
+      <g>
+       <use xlink:href="#md98f73436c" x="192.096" y="223.344" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_1">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="192.096" y="238.701422" transform="rotate(-0 192.096 238.701422)">0</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_3">
+      <path d="M 284.708421 223.344
+L 284.708421 101.52
+" clip-path="url(#p575fb4e6e2)" style="fill: none; stroke: #e5e8ed; stroke-width: 0.8; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_4">
+      <g>
+       <use xlink:href="#md98f73436c" x="284.708421" y="223.344" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_2">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="284.708421" y="238.701422" transform="rotate(-0 284.708421 238.701422)">2</text>
+     </g>
+    </g>
+    <g id="xtick_3">
+     <g id="line2d_5">
+      <path d="M 377.320842 223.344
+L 377.320842 101.52
+" clip-path="url(#p575fb4e6e2)" style="fill: none; stroke: #e5e8ed; stroke-width: 0.8; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_6">
+      <g>
+       <use xlink:href="#md98f73436c" x="377.320842" y="223.344" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_3">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="377.320842" y="238.701422" transform="rotate(-0 377.320842 238.701422)">4</text>
+     </g>
+    </g>
+    <g id="xtick_4">
+     <g id="line2d_7">
+      <path d="M 469.933263 223.344
+L 469.933263 101.52
+" clip-path="url(#p575fb4e6e2)" style="fill: none; stroke: #e5e8ed; stroke-width: 0.8; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_8">
+      <g>
+       <use xlink:href="#md98f73436c" x="469.933263" y="223.344" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_4">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="469.933263" y="238.701422" transform="rotate(-0 469.933263 238.701422)">6</text>
+     </g>
+    </g>
+    <g id="xtick_5">
+     <g id="line2d_9">
+      <path d="M 562.545683 223.344
+L 562.545683 101.52
+" clip-path="url(#p575fb4e6e2)" style="fill: none; stroke: #e5e8ed; stroke-width: 0.8; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_10">
+      <g>
+       <use xlink:href="#md98f73436c" x="562.545683" y="223.344" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_5">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="562.545683" y="238.701422" transform="rotate(-0 562.545683 238.701422)">8</text>
+     </g>
+    </g>
+    <g id="xtick_6">
+     <g id="line2d_11">
+      <path d="M 655.158104 223.344
+L 655.158104 101.52
+" clip-path="url(#p575fb4e6e2)" style="fill: none; stroke: #e5e8ed; stroke-width: 0.8; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_12">
+      <g>
+       <use xlink:href="#md98f73436c" x="655.158104" y="223.344" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_6">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="655.158104" y="238.701422" transform="rotate(-0 655.158104 238.701422)">10</text>
+     </g>
+    </g>
+    <g id="xtick_7">
+     <g id="line2d_13">
+      <path d="M 747.770525 223.344
+L 747.770525 101.52
+" clip-path="url(#p575fb4e6e2)" style="fill: none; stroke: #e5e8ed; stroke-width: 0.8; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_14">
+      <g>
+       <use xlink:href="#md98f73436c" x="747.770525" y="223.344" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_7">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle" x="747.770525" y="238.701422" transform="rotate(-0 747.770525 238.701422)">12</text>
+     </g>
+    </g>
+    <g id="text_8">
+     <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #243043" x="484.416" y="258.702281" transform="rotate(-0 484.416 258.702281)">Additional file allocation (GiB)</text>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_15"/>
+     <g id="text_9">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end" x="182.096" y="128.156595" transform="rotate(-0 182.096 128.156595)">Codex (RB)</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_16"/>
+     <g id="text_10">
+      <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: end" x="182.096" y="205.065686" transform="rotate(-0 182.096 205.065686)">Splinter (RB)</text>
+     </g>
+    </g>
+   </g>
+   <g id="patch_3">
+    <path d="M 192.096 140.897455
+L 679.296 140.897455
+L 679.296 107.057455
+L 192.096 107.057455
+z
+" clip-path="url(#p575fb4e6e2)" style="fill: #4a6894"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 192.096 217.806545
+L 198.674609 217.806545
+L 198.674609 183.966545
+L 192.096 183.966545
+z
+" clip-path="url(#p575fb4e6e2)" style="fill: #237c66"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 192.096 223.344
+L 776.736 223.344
+" style="fill: none; stroke: #c4cbd4; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="text_11">
+    <text style="font-weight: 700; font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243043" x="686.241932" y="126.835306" transform="rotate(-0 686.241932 126.835306)">10.52 GiB</text>
+   </g>
+   <g id="text_12">
+    <text style="font-weight: 700; font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243043" x="205.620541" y="203.744397" transform="rotate(-0 205.620541 203.744397)">0.14 GiB</text>
+   </g>
+  </g>
+  <g id="text_13">
+   <text style="font-weight: 700; font-size: 21px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243043" x="37.584" y="20.304" transform="rotate(-0 37.584 20.304)">Recorded storage saving: 98.65%</text>
+  </g>
+  <g id="text_14">
+   <text style="font-size: 13px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243043" x="37.584" y="52.452" transform="rotate(-0 37.584 52.452)">Historical RB measurement · 2026-10-07 · Storage was not remeasured in UF</text>
+  </g>
+  <g id="text_15">
+   <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243043" x="37.584" y="280.872" transform="rotate(-0 37.584 280.872)">Two workspaces after editing and compilation. Task files and owned/shared metadata counted once.</text>
+  </g>
+  <g id="text_16">
+   <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243043" x="37.584" y="304.56" transform="rotate(-0 37.584 304.56)">Original source, original Library payload and shared Git objects excluded. This is stage allocation, not peak disk use.</text>
+  </g>
+  <g id="text_17">
+   <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #243043" x="37.584" y="326.556" transform="rotate(-0 37.584 326.556)">The earlier candidate recorded these values; they are not an allocation measurement of optimized 116fd44.</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p575fb4e6e2">
+   <rect x="192.096" y="101.52" width="584.64" height="121.824"/>
+  </clipPath>
+ </defs>
+</svg>

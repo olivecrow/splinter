@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/journal-startup-optimization.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 **JS-01–04** addresses concrete storage-path findings from the [UC-01 Unity startup review](unity-checkpoint-release-remeasurement.md). The prior Unity readiness measurement remains **848.3379 seconds** on its recorded candidate. This change has small Editor-free qualification, not a new Unity startup timing.
 
 ## Retired metadata lifetime — JS-01

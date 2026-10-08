@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/lifecycle-read-optimization.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 This document owns **LO-01–11**, implementation following the [UR-01–04 real Unity profiles](unity-lifecycle-remeasurement.md). LO-01–05 compare against the frozen `38b6803` product used by UR and were committed as `0e707ed`; LO-06–08 below use `0e707ed` as their baseline. The candidate is identified by source/binary hashes in the dataset. Raw evidence is retained under ignored `artifacts/lifecycle-read-optimization-20261007/`.
 
 ## Bounded Git proof reuse — LO-01

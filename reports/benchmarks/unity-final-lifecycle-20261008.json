@@ -1,0 +1,387 @@
+{
+  "verificationIds": [
+    "UF-01"
+  ],
+  "candidateCommit": "116fd447086a825bf6d5b424ff9a4aad41dd8642",
+  "binarySha256": {
+    "cs/System.CommandLine.resources.dll": "9db74abed424f28057b2b946df78f892f14dd8683c74906c4e79a7b454303415",
+    "de/System.CommandLine.resources.dll": "017380f95f4c1057b701311342e5921ed5bdf5013d8553cb5ac4a8889d132081",
+    "es/System.CommandLine.resources.dll": "0277fb8bfbf2ec45923a20e34935356b6988f83cff9e3d5ffc985f9ab3c53b0d",
+    "fr/System.CommandLine.resources.dll": "511dbc4ce34e929433b206b32912db5562f8cb53b46b483468ae770bbd75f00e",
+    "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+    "it/System.CommandLine.resources.dll": "58c2f07c08d99a4823e441a0f9402a3a07e4f8902543ec97ea6bbc8961af5330",
+    "ja/System.CommandLine.resources.dll": "6f30fcd99bb1597f7b81f4bc26ed9582dc33d013aab211feaf96ab491a35a0b3",
+    "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+    "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+    "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+    "ko/System.CommandLine.resources.dll": "ab5c8b013a53f7a02fef7068434ffc46345f1f07963dd0ef6e26e3ff4b46b763",
+    "pl/System.CommandLine.resources.dll": "fa37fc6307053ace1003e6dcc72a33cc972dac719a0e1a40965936e1e8413bde",
+    "pt-BR/System.CommandLine.resources.dll": "f648dfab8b24d44177a4455ff9bcd4fefa06210ee5c06e4c6e447fd6f4963d51",
+    "ru/System.CommandLine.resources.dll": "e3984a1494df49ecccf720346fa3096f5ec546aff797e2e6d9b86df9686ed260",
+    "Splinter.Application.Unity.dll": "d337be48f24368a880e27e93c7d179d464d72537d2bd30cd803a9945514d3ab0",
+    "Splinter.Application.Unity.pdb": "9d9979e4d45d43bc318c814a6d190246601a1d2c7478505f21b3222d2408a37c",
+    "Splinter.Core.dll": "ac6489964f4746bd68201d01ad99e6c39e7412badd3ba2d16f5db02542080c43",
+    "Splinter.Core.pdb": "683209d7d3b616d8e70eb0a35299122d2b34d6c45c2643a983d626401ee77e94",
+    "splinter.deps.json": "ffeee71a0f0aca6909ef5253ebff532fd34f59d6b2028bf236f6afc6a923d8db",
+    "splinter.dll": "9428bbc07de186949a1c07d73bf2447ccb7f655c9d774b7a1a2aef598037e2f9",
+    "splinter.exe": "ddfb8c0692d524b536dcabd9e0e1cc51761b26ef7a6d8acbfda5bfc38fa37114",
+    "Splinter.Host.dll": "61a211d6756349bd37c6ffcedc288981ca67f78fbfd35ab496b5454fa9d8e9f9",
+    "Splinter.Host.pdb": "f9bcff47e4cd5be23fe2731b01f9734217d90ee05002bd3aa739ccc403a27177",
+    "splinter.pdb": "6c2a2389652b9e7a9732ddbe7c4986cb00846f5e35f43cc36f278d834c25d538",
+    "Splinter.Platform.Windows.deps.json": "ee3448c0bf432243eb1f7e43c831f141623f33d528d48be4f5e61a6b1acc7000",
+    "Splinter.Platform.Windows.dll": "4cb9684a0ccaae4d1d04c60fcbb56daf28a84857f8f34121177b94025cbda365",
+    "Splinter.Platform.Windows.exe": "087e7178f9f091e9e1ad77e2e84f22fc90732d136851682ed736bf1759d208a8",
+    "Splinter.Platform.Windows.pdb": "215b7e9ee4b33c6071232f8dd211dfa5e0be3d6f9c9655f055cd1b60f370f27e",
+    "Splinter.Platform.Windows.runtimeconfig.json": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097",
+    "Splinter.Protocol.dll": "2b0a92b8243dd326becbc27bf7ff080d53c63fffb3b03de86632849db33d20a9",
+    "Splinter.Protocol.pdb": "3c159b38a888192a038ba58733acfe05959d73a1971b2fd06d3eeeaa2764becf",
+    "Splinter.Runtime.dll": "7041a40b6395c1707672ab7c096d135c0bceb7c1eb022d17b51efe75f83cbe71",
+    "Splinter.Runtime.pdb": "0ad1edc7918d05705317278a722fc8d3268eb4ebf4a686885f09d0a7f2b3c314",
+    "splinter.runtimeconfig.json": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097",
+    "Splinter.SourceControl.Files.dll": "5a55a751c7d2b59ce338d266681ef632b520c644e013893218d7f49af91d510f",
+    "Splinter.SourceControl.Files.pdb": "17ff146b6db454a8fb0c2255aebc4c50d1f4ffa0f89ae649cf2cd167751fb48f",
+    "Splinter.SourceControl.Git.dll": "4fcb5c2f1f1ccc8e84b3e29d745f873624a0048c9f6245ed3662d7f662f98083",
+    "Splinter.SourceControl.Git.pdb": "ae48403d5f3fad73a3a1e514dc63e285195f142f26714de23c9d33eeca3ef9d3",
+    "Splinter.Workflows.Windows.dll": "f692a14fce65df3bf91353f489383450bc3a2923fa7a1c5847d548c757a52bc4",
+    "Splinter.Workflows.Windows.pdb": "e82a00698752821d6604a10ce5122fbf64583467fd4e87a8f6d39beba3017c97",
+    "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+    "tr/System.CommandLine.resources.dll": "38361ec14998f14dbefb3f75e8793830a56e6e18d3a5737b238a6247cfcd72a2",
+    "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908",
+    "zh-Hans/System.CommandLine.resources.dll": "425e40dd37692cc9c4fe2d75af4c39d884f7c982bb6ac80e2e34e341331437b6",
+    "zh-Hant/System.CommandLine.resources.dll": "b3a5d4992b4729d3f9bc1bde92f5bda23cbab6515af11f3cc317ae48a3cfed9c"
+  },
+  "original": {
+    "commit": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+    "trackedFiles": 1602,
+    "trackedBytes": 2804772822,
+    "unity": "6000.3.22f1",
+    "libraryEntries": 44860,
+    "libraryFiles": 42420,
+    "libraryBytes": 3141660252,
+    "libraryMatchesOriginalRb": true
+  },
+  "workload": {
+    "a": "Assets/SplinterAlphaA.cs: value + 1 -> value + 2",
+    "b": "Assets/SplinterAlphaB.cs: value + value -> value + value + value",
+    "compile": "Exact project/PID/start identity, fresh state, request-matched error-free refresh, new generation/MVID and expected values",
+    "schedule": "A checkpoint/release then B checkpoint/release; historical diagnostics/Busy retries not reproduced"
+  },
+  "timingSeconds": {
+    "libraryPrepare": 115.8615839999984,
+    "ensureA": 163.48136750000413,
+    "ensureB": 169.25421689997893,
+    "checkpointA": 37.670750899997074,
+    "releaseA": 49.39223519997904,
+    "checkpointB": 37.37089190000552,
+    "releaseB": 47.585369599983096,
+    "libraryRestore": 125.97146189998602,
+    "initial": 216.06141320001916,
+    "edit": 29.871942900004797,
+    "stop": 87.87247930001467,
+    "preserveRelease": 172.02296719999867,
+    "assetInspection": 2.416564,
+    "fullLifecycle": 1083.0235981000005,
+    "postEditorThroughRestore": 298.000355
+  },
+  "originalComparison": {
+    "checkpointA": {
+      "originalSeconds": 5723.60831,
+      "currentSeconds": 37.670750899997074,
+      "observedReductionPercent": 99.34183562431795
+    },
+    "releaseA": {
+      "originalSeconds": 1662.472929,
+      "currentSeconds": 49.39223519997904,
+      "observedReductionPercent": 97.02899010634182
+    },
+    "checkpointB": {
+      "originalSeconds": 2914.6685034,
+      "currentSeconds": 37.37089190000552,
+      "observedReductionPercent": 98.71783388552036
+    },
+    "releaseB": {
+      "originalSeconds": 1163.3742298,
+      "currentSeconds": 47.585369599983096,
+      "observedReductionPercent": 95.90971087539359
+    },
+    "preserveRelease": {
+      "originalSeconds": 9367.0702618,
+      "currentSeconds": 172.02296719999867,
+      "observedReductionPercent": 98.16353499661972
+    },
+    "libraryRestore": {
+      "originalSeconds": 1473.2435808,
+      "currentSeconds": 125.97146189998602,
+      "observedReductionPercent": 91.44937988926576
+    },
+    "postEditorThroughRestore": {
+      "originalSeconds": 10840.3138426,
+      "currentSeconds": 298.000355,
+      "observedReductionPercent": 97.25099882413988
+    }
+  },
+  "commandCosts": {
+    "library-prepare": {
+      "beganUtc": "2026-10-08T13:32:26.694179+00:00",
+      "endedUtc": "2026-10-08T13:34:22.558015+00:00",
+      "elapsedSeconds": 115.8615839999984,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-a-ensure-corrected": {
+      "beganUtc": "2026-10-08T13:34:22.759689+00:00",
+      "endedUtc": "2026-10-08T13:37:06.244334+00:00",
+      "elapsedSeconds": 163.48136750000413,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-b-ensure-corrected": {
+      "beganUtc": "2026-10-08T13:37:06.245172+00:00",
+      "endedUtc": "2026-10-08T13:39:55.502562+00:00",
+      "elapsedSeconds": 169.25421689997893,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-a-unity-start": {
+      "beganUtc": "2026-10-08T13:39:55.503884+00:00",
+      "endedUtc": "2026-10-08T13:39:58.925146+00:00",
+      "elapsedSeconds": 3.4206955000117887,
+      "exitCode": 0,
+      "status": "Accepted",
+      "sampledThreadTrace": false
+    },
+    "s-b-unity-start": {
+      "beganUtc": "2026-10-08T13:39:55.504070+00:00",
+      "endedUtc": "2026-10-08T13:39:58.925281+00:00",
+      "elapsedSeconds": 3.4204655999783427,
+      "exitCode": 0,
+      "status": "Accepted",
+      "sampledThreadTrace": false
+    },
+    "s-a-unity-stop": {
+      "beganUtc": "2026-10-08T13:44:03.858524+00:00",
+      "endedUtc": "2026-10-08T13:45:31.728280+00:00",
+      "elapsedSeconds": 87.86790569999721,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-b-unity-stop": {
+      "beganUtc": "2026-10-08T13:44:03.858788+00:00",
+      "endedUtc": "2026-10-08T13:45:30.225690+00:00",
+      "elapsedSeconds": 86.36505629998283,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-a-checkpoint": {
+      "beganUtc": "2026-10-08T13:45:31.735000+00:00",
+      "endedUtc": "2026-10-08T13:46:09.406764+00:00",
+      "elapsedSeconds": 37.670750899997074,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-a-release": {
+      "beganUtc": "2026-10-08T13:46:09.407311+00:00",
+      "endedUtc": "2026-10-08T13:46:58.800737+00:00",
+      "elapsedSeconds": 49.39223519997904,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-b-checkpoint": {
+      "beganUtc": "2026-10-08T13:46:58.801276+00:00",
+      "endedUtc": "2026-10-08T13:47:36.173113+00:00",
+      "elapsedSeconds": 37.37089190000552,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-b-release": {
+      "beganUtc": "2026-10-08T13:47:36.173797+00:00",
+      "endedUtc": "2026-10-08T13:48:23.760320+00:00",
+      "elapsedSeconds": 47.585369599983096,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "library-restore": {
+      "beganUtc": "2026-10-08T13:48:23.761455+00:00",
+      "endedUtc": "2026-10-08T13:50:29.735340+00:00",
+      "elapsedSeconds": 125.97146189998602,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    }
+  },
+  "commandOutcomes": {
+    "library-prepare": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-a-ensure-corrected": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-b-ensure-corrected": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-a-unity-start": {
+      "status": "Accepted",
+      "errorCode": null
+    },
+    "s-b-unity-start": {
+      "status": "Accepted",
+      "errorCode": null
+    },
+    "s-a-unity-stop": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-b-unity-stop": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-a-checkpoint": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-a-release": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-b-checkpoint": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-b-release": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "library-restore": {
+      "status": "Succeeded",
+      "errorCode": null
+    }
+  },
+  "cohortCosts": {
+    "initial": {
+      "beganUtc": "2026-10-08T13:39:55.503579+00:00",
+      "endedUtc": "2026-10-08T13:43:31.568627+00:00",
+      "elapsedSeconds": 216.06141320001916
+    },
+    "edit": {
+      "beganUtc": "2026-10-08T13:43:31.569155+00:00",
+      "endedUtc": "2026-10-08T13:44:01.441596+00:00",
+      "elapsedSeconds": 29.871942900004797
+    },
+    "stop": {
+      "beganUtc": "2026-10-08T13:44:03.858160+00:00",
+      "endedUtc": "2026-10-08T13:45:31.732124+00:00",
+      "elapsedSeconds": 87.87247930001467,
+      "ownedEditorCount": 0,
+      "cliOutcomes": [
+        "Succeeded",
+        "Succeeded"
+      ],
+      "requestsRepeated": false,
+      "forcedTermination": false
+    },
+    "preserve-release": {
+      "beganUtc": "2026-10-08T13:45:31.734985+00:00",
+      "endedUtc": "2026-10-08T13:48:23.760853+00:00",
+      "elapsedSeconds": 172.02296719999867
+    }
+  },
+  "nestedMeasurements": {
+    "s-a-checkpoint": {
+      "sourceInspectionCount": 2,
+      "sourceInspectionSeconds": 15.403580400000001,
+      "sourcePayloadBytesHashed": 0,
+      "outerStorageReadCount": 2,
+      "outerStorageReadSeconds": 12.1772446
+    },
+    "s-a-release": {
+      "sourceInspectionCount": 1,
+      "sourceInspectionSeconds": 7.785328000000001,
+      "sourcePayloadBytesHashed": 0,
+      "outerStorageReadCount": 3,
+      "outerStorageReadSeconds": 16.8887416
+    },
+    "s-b-checkpoint": {
+      "sourceInspectionCount": 2,
+      "sourceInspectionSeconds": 15.687387,
+      "sourcePayloadBytesHashed": 0,
+      "outerStorageReadCount": 2,
+      "outerStorageReadSeconds": 11.5218489
+    },
+    "s-b-release": {
+      "sourceInspectionCount": 1,
+      "sourceInspectionSeconds": 7.6063302,
+      "sourcePayloadBytesHashed": 0,
+      "outerStorageReadCount": 3,
+      "outerStorageReadSeconds": 16.827007700000003
+    }
+  },
+  "closure": {
+    "sourceFilesByteVerified": 1602,
+    "originalClean": true,
+    "libraryRestored": true,
+    "ownedEditorsAndProvidersAbsent": true,
+    "preexistingRefsUnchanged": true,
+    "localGitConfigRestored": true,
+    "globalGitConfigUnchanged": true,
+    "protectedDirtyFilesByteIdentical": 27,
+    "results": [
+      {
+        "worker": "a",
+        "id": "97b4c1b30485a9c2f3d3f5bc",
+        "revision": "bbc35b08bc004bd3a6a0f9b78a528dc25a6afc3c",
+        "resultTreeMatchesHistoricalCodex": true,
+        "phase": "released",
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        }
+      },
+      {
+        "worker": "b",
+        "id": "a4d8b18e05b742eea75dcba0",
+        "revision": "1b14da499b8a42adb2231dc6960edd30ed4d225d",
+        "resultTreeMatchesHistoricalCodex": true,
+        "phase": "released",
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        }
+      }
+    ]
+  },
+  "validation": {
+    "validatorTestsPassed": 1,
+    "valid": 12,
+    "failed": 0,
+    "test": "JournalBaseReversionProductEvidenceTests.RecordedProductResponsesMatchCurrentSchema",
+    "responses": 12
+  },
+  "rawEvidence": "artifacts/unity-final-lifecycle-20261008/",
+  "limits": [
+    "One cohort; OS caches not cleared; no randomized repeat or isolated causal speedup claim.",
+    "RB preservation overlapped B work and included diagnostics, Busy refusal and recovery; UF runs A then B normally.",
+    "RB B was externally Git-committed before checkpoint (64.3362575s, overlapping A); UF B checkpoint performs the commit. Individual B checkpoint procedures differ.",
+    "RB published preservation wall differs from stored UTC endpoints by 0.95 seconds; published historical value retained.",
+    "Initial preparation, Editor shutdown and Library restoration are separate from checkpoint/release.",
+    "No current allocation/RAM/peak measurement, Codex rerun, Play, tests, game build, OS-failure matrix, UAC, service or package changes."
+  ],
+  "originalProductCommit": "74518fd453ea9e191c5b5efc1e2ad82a17ffe427"
+}

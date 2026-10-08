@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/unity-startup-remeasurement.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 Implementation follow-up: [SA-01–05](startup-additional-optimization.md) now covers the additional Library/source/publication/Bee changes with bounded evidence. The measurements and analysis below describe the historical US candidate; they are not current-candidate timings.
 
 **US-01:** the two real Unity Editors reached initial readiness in **349.7933 seconds (5m 49.8s)**, compared with [UP-01](unity-startup-profile.md)'s 766.9024 seconds (12m 46.9s): an observed **417.1091-second / 54.39% reduction**. Scanning fell from about 447s to 16s. CompileScripts remained about 210s and did not improve. This is one cohort with a recovered launch failure, not an isolated causal percentage. The [dataset](../../reports/benchmarks/unity-startup-remeasurement-20261008.json) preserves timings, runtime hashes, failures and profiling boundaries.

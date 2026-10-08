@@ -2,6 +2,8 @@
 
 [English](../../verification/startup-profile-optimization.md)
 
+> **현재 시간 기준:** 아래는 해당 후보/단계에서 기록한 과거 근거이며, 수치와 당시 NotRun 경계는 그대로 보존합니다. 이후 최적화를 합친 `116fd44`의 [UF-01 실측](unity-final-lifecycle.md)은 전체 **18분 3.0초**, Editor 준비 **3분 36.1초**, A/B 보존·회수 **2분 52.0초**, Library 복원 **2분 6.0초**입니다. UF가 개별 최적화의 효과나 별도 미실행 항목을 모두 검증한 것은 아닙니다.
+
 현재 디렉터리 핸들 보정: [SA-01–02](startup-additional-optimization.md)는 속성 전용 핸들의 고정 가정을 실제 native access/sharing·소유 파일 수명 보호로 바로잡는다. 아래 SU 비용과 후보 자격은 과거 기록으로 유지한다.
 
 **SU-01–05**는 [UP-01](unity-startup-profile.md)에서 확인한 사용자 모드 병목을 개선한다. UP의 최초 준비 766.9024초·약 447초 스캔은 이전 후보의 근거다. 이후 실제 시간은 시작 판독 수정과 서로 다른 runtime 재개를 포함한 [US-01](unity-startup-remeasurement.md)이 소유한다. UAC·설치 서비스 업데이트·외부 패키지 변경·원본 프로젝트 수정 없이 적용한다.

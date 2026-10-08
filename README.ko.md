@@ -16,51 +16,52 @@ Splinter는 작업이 재사용할 데이터와 변경할 데이터를 분리합
 
 기본 사용 흐름은 간단합니다. 독립 실행이 필요할 때 작업공간을 만들고, 여러 대화에 걸쳐 같은 작업을 이어간 뒤, 명시적으로 보존·반영·폐기합니다. 에이전트는 Splinter가 반환한 경로에서 기존 파일 도구·Git 도구·애플리케이션 도구로 작업합니다.
 
-## 실제 측정한 저장 공간과 시간의 트레이드 오프
+<a id="실제-측정한-저장-공간과-시간의-트레이드-오프"></a>
+## 실제 측정한 저장 공간과 시간
 
-같은 Unity 프로젝트에서 **실제 Codex 앱 워크트리 두 개와 Splinter 작업공간 두 개**를 비교했습니다. 입력은 추적 파일 1,602개, 소스 약 2.8 GB, Unity 6000.3.22f1입니다. 각 방식에서 독립 Editor 두 개를 실행하고 동일한 A/B 코드 변경을 수행했습니다. Codex는 워크트리마다 새 Library를 생성했고, Splinter는 `git-snapshot`, 기존 원본 Library 기준본, 기본 SJL4 저널 최적화를 사용했습니다.
+**현재 Unity A/B 작업은 Library 준비부터 최종 복원까지 18분 3.0초가 걸렸습니다.** 최적화한 `116fd44` 후보의 UF-01 측정(2026-10-08)이며 Windows/NTFS, Unity 6000.3.22f1에서 **추적 파일 1,602개, 소스 2.80 GB와 기존 Library 3.14 GB**를 사용했습니다. 독립 Editor 두 개가 각각 격리된 C# 한 줄을 수정하고 컴파일했습니다. 에셋은 줄이지 않았습니다.
 
-소스 작업은 의도적으로 작게 제한했습니다. A는 C# 파일 하나에서 `value + 1`을 `value + 2`로, B는 다른 파일에서 `value + value`를 `value + value + value`로 바꿨습니다. 결과마다 변경한 줄은 한 줄입니다. 아래 보존·회수 구간은 편집·컴파일·Editor 종료 이후부터이며, 이 작은 결과를 보존하고 자원을 회수하는 부가 비용입니다. **측정한 지연은 이 입력에서 대화형 개발의 실사용을 가로막는 성능 문제입니다.**
+![현재 Splinter 전체 과정: 준비부터 복원까지 18분 3.0초](docs/images/unity-current-workflow.png)
 
-![Unity 작업공간 두 개의 추가 파일 할당: Codex 10.52 GiB, Splinter 0.14 GiB](docs/images/unity-workspace-storage.png)
+| 현재 A/B 단계 | 관측 경과 시간 |
+| --- | ---: |
+| Library 기준본 준비 | 1분 55.9초 |
+| A + B 작업공간 생성 | 5분 32.7초 |
+| 두 Editor 시작 → 초기 컴파일 준비 | 3분 36.1초 |
+| A/B 한 줄 수정 → 재컴파일 | 29.9초 |
+| 선택 에셋 확인 | 2.4초 |
+| 두 Editor 정상 종료 | 1분 27.9초 |
+| A/B checkpoint + release | 2분 52.0초 |
+| 원본 Library 복원 | 2분 6.0초 |
+| **전체 과정** | **18분 3.0초** |
 
-두 변경의 컴파일을 확인한 시점의 추가 파일 할당은 **Codex 10.52 GiB, Splinter 0.14 GiB로, 98.65% 감소**했습니다. 작업 파일과 소유 Git 등록을 포함하고, Splinter의 공유 runner와 Library 메타데이터는 한 번만 합산했습니다. 기존 원본 소스·Library 본문·공유 Git 객체는 제외했습니다. 특정 시점의 실측값이며 디스크 최대 사용량은 아닙니다.
+A/B checkpoint는 **37.7초 / 37.4초**, release는 **49.4초 / 47.6초**이며 위 보존·회수 행에 포함됩니다. 두 Editor 모두 2분의 명령 제한 안에 정상 종료했습니다. 독립 결과 tree, 원본 파일 1,602개 보존, 소유 자원 회수와 Library의 일반 NTFS 복원을 확인했습니다. Editor 준비에는 스캔·임포트·컴파일·완료 관측이 포함되며 전체 시간에는 짧은 명령 전달 간격도 포함됩니다.
 
-**앞선 최적화 실행에서 같은 Unity 프로젝트를 다시 측정했습니다.** 초기 Editor 준비는 **29분 13초 → 17분 22초**, 한 줄 수정 후 컴파일은 **9분 14초 → 1분 17초**, A/B checkpoint·release는 **2시간 36분 7초 → 7분 1초**였습니다. 당시 A/B checkpoint는 각각 83.5초·81.6초, release는 130.6초·125.6초였습니다.
+### Codex 워크트리와 최적화한 Splinter
 
-![같은 Unity 입력의 이전·현재 시간과 과거 Codex 비교](docs/images/unity-lifecycle-remeasurement.png)
+![과거 Codex 워크트리와 최적화한 Splinter의 초기 준비·수정 재컴파일 시간](docs/images/unity-current-editor-comparison.png)
 
-Library 준비·복원을 모두 포함한 당시 관측 구간은 **68분 28초**이며, 마지막 Library 복원만 **23분 25초**가 걸렸습니다. 종료 명령 두 개의 2분 시간 제한 뒤 같은 Editor의 정상 종료를 관측해 계속했습니다. 이전 보존 구간에는 중첩·복구·동시 진단이 있었고 현재는 A→B 순차 실행이므로, 순수 최적화 배율로 해석하지 않습니다. 프로파일 부하를 포함한 한 번의 실측이며, Codex와 위 저장 공간 수치는 과거 비교군입니다. [정확한 비용·프로파일·실패·복원 검증](docs/ko/verification/unity-lifecycle-remeasurement.md)과 [데이터](reports/benchmarks/unity-lifecycle-remeasurement-20261007.json)를 참고하세요.
+| 작업공간 생성 이후 A/B Editor 구간 | Codex 워크트리 (RB, 2026-10-07) | 최적화한 Splinter (UF, 2026-10-08) |
+| --- | ---: | ---: |
+| 시작 → 초기 컴파일 준비 | 14분 47.1초 | 3분 36.1초 |
+| 한 줄 수정 → 재컴파일 | 19.0초 | 29.9초 |
 
-[후속 읽기·복원 최적화](docs/ko/verification/lifecycle-read-optimization.md)는 제한된 Git reader·디렉터리 메타데이터 재사용, 느린 기준 읽기의 잠금 분리와 완전히 변경 없는 Library의 검증된 디렉터리 이동을 적용했습니다. 최신 작은 NTFS 비교(260개 파일, 약 16MiB)는 고정 기록 대기 제거를 포함해 평균 **4.21초 → 0.52초**입니다. 이 값은 fixture 결과이며 위 Unity 전체 시간은 추가 변경 전의 기록입니다.
+기록된 Codex 워크트리는 새 Library를 만들고, Splinter는 기존 원본 Library를 참조합니다. 이 실행들에서 Splinter의 초기 준비는 11분 11.1초 짧았고, 수정·재컴파일은 **10.9초 더 걸렸습니다**. Splinter의 별도 Library·작업공간 준비는 **7분 28.6초**입니다. UF에서 Codex를 다시 실행하지 않았고, 비교 가능한 Codex 전체 생성·보존 시간은 없습니다. 그래프는 기록된 단계 경계의 비교이며 Codex 대비 전체 작업 속도 향상률은 아닙니다.
 
-**최신 실제 Unity 준비 측정:** 두 Editor의 준비는 **5분 49.8초**로, 직전 프로파일의 **12분 46.9초**보다 이번 한 실행에서 54.4% 짧았습니다. Editor 시작 전 새 Library/작업공간 준비에는 **10분 45.2초**가 추가됩니다. 스캔은 약 447초에서 16초로 줄었지만 컴파일 준비는 약 210초였습니다. A/B checkpoint/release는 **5분 21.5초**, Editor 정상 종료는 **4분 47.4초**, 원본 Library 복원은 **1분 54.8초**였습니다. 원본 소스와 소유 자원 회수를 확인했습니다. 시작 상태 판독 오류를 커밋으로 수정하고 같은 작업공간을 재개한 실행이므로, 단일 runtime의 중단 없는 새 벤치마크나 순수 인과적 개선율은 아닙니다. [측정·남은 병목·정확한 시간 경계](docs/ko/verification/unity-startup-remeasurement.md)를 참고하세요. [이전 수명주기 측정](docs/ko/verification/unity-checkpoint-release-remeasurement.md)은 과거 근거로 보존합니다.
+### 기록된 저장 공간 절감
+
+![과거 RB 할당: Codex 10.52 GiB, Splinter 0.14 GiB. UF에서는 저장 공간을 재측정하지 않음](docs/images/unity-recorded-storage.png)
+
+이전 **2026-10-07 RB 측정**에서 두 수정의 컴파일을 확인한 시점의 추가 파일 할당은 **Codex 10.52 GiB, Splinter 0.14 GiB로 98.65% 감소**했습니다. 작업 파일·소유 Git 등록·공유 runner/Library 메타데이터는 한 번만 합산하고 원본 소스·원본 Library 본문·공유 Git 객체는 제외했습니다. **UF에서는 저장 공간을 재측정하지 않았으므로**, 이 값은 과거 후보의 특정 시점 할당이며 현재 후보의 할당이나 최대 디스크 사용량을 의미하지 않습니다.
+
+UF는 같은 소스·Library 내용에서 OS 캐시를 비우지 않고 중단 없이 실행한 한 묶음입니다. 선택한 코드의 컴파일과 에셋을 확인했으며 Play Mode·Unity 테스트·게임 빌드는 실행하지 않았습니다. 이 입력의 실제 비용이며 일반적인 소요 시간을 보장하지 않습니다. [현재 전체 측정과 한계](docs/ko/verification/unity-final-lifecycle.md), [정확한 UF 데이터](reports/benchmarks/unity-final-lifecycle-20261008.json), [과거 Codex·저장 공간 측정 방법](docs/ko/verification/readme-unity-comparison.md), [그래프 생성 스크립트](scripts/plot-unity-final-lifecycle.py)를 참고하세요.
 
 <details>
-<summary>이전 시간 측정과 최적화 과정</summary>
+<summary>최초 시간과 최적화 이력</summary>
 
-![같은 Unity 작업의 시간 비용: Editor 준비 및 코드 변경 후 컴파일 준비](docs/images/unity-workspace-time.png)
+최초 RB 보존·회수는 **2시간 36분 7.1초**, UF는 **2분 52.0초**였습니다. Library 복원은 **24분 33.2초 → 2분 6.0초**로 바뀌었습니다. 최초 보존에는 B 작업 중첩·진단·B의 별도 커밋·복구가 포함됐고 UF는 A 다음 B를 정상 순차 보존·회수했습니다. 관측 감소율을 순수 인과적 개선율로 해석하지 않습니다. 최초 개별 명령 시간은 겹치므로 합산하면 안 됩니다.
 
-| A/B 두 작업의 관측 시간 | Codex 워크트리 | Splinter + Library 기준본 | Splinter 추가 시간 |
-| --- | ---: | ---: | ---: |
-| 작업공간 생성 후 Editor 시작부터 컴파일 준비까지 | 14분 47초 | 29분 13초 | +14분 26초 |
-| 코드 변경·refresh부터 컴파일 준비까지 | 19초 | 9분 14초 | +8분 55초 |
-
-**이번 실행에서는 공간 절감과 함께 상당한 시간 비용이 발생했습니다.** Splinter는 별도로 최초 Library 기준본 준비에 4분 33초, 작업공간 두 개의 순차 생성에 12분 46초가 걸렸습니다. 이 준비 비용은 Editor 그래프에 포함하지 않았습니다. Codex 대화 생성의 전체 완료 시간은 확인할 수 없어 제외했습니다.
-
-**결과 보존도 느렸습니다. Editor 종료 후 A의 checkpoint만 95분 23초가 걸렸으며 Editor 그래프의 범위 밖입니다.** 전체 Git attribute 검사의 반복과 store 잠금 안의 journal 파일 순회로 추가 metadata 비용이 드러났습니다. 이후 같은 50개 경로를 읽기 전용으로 조회했을 때 일반 NTFS는 0.23초, Splinter는 12.83초가 걸렸습니다. [지연 원인과 수명주기 비용](docs/ko/verification/readme-unity-comparison.md#보존-단계-지연-원인)은 이 결과와 앞선 Unity 시간을 구분합니다. 같은 경계의 Codex 전체 보존 시간은 측정하지 못했습니다.
-
-[후속 프로파일링](docs/ko/verification/checkpoint-release-profiling.md)은 해당 기록과 작은 Editor 없는 task를 사용했습니다. checkpoint는 소스 검사를 일곱 번 반복하고, release는 보존한 결과를 재수집하며, 저널 회수에는 파일 fence의 제곱 비례 검색이 있었습니다. 이 진단에서 원래 제품을 최적화하지 않았습니다.
-
-[이후 수명주기 최적화](docs/ko/verification/checkpoint-release-optimization.md)로 Git 속성 검사를 묶고, 응답만을 위한 소스 검사를 줄이며, 변경 없는 seal 결과를 재사용하고 회수 fence를 인덱스로 찾습니다. 같은 작은 Editor 없는 workload에서 checkpoint는 **42.30초 → 31.88초 (24.65%)**, release는 **20.66초 → 14.54초 (29.59%)**로 개선됐습니다. 작은 fixture의 측정이며 후속 실제 Unity 재측정은 UR-01–04에서 별도로 검증합니다.
-
-[추가 최적화 CO-05–08](docs/ko/verification/checkpoint-release-optimization.md#최종-제품-측정-co-07)는 checkpoint/보존 검증을 결합하고 반복 inventory와 고정 요청 대기를 줄였습니다. 같은 작은 workload의 새 비교에서 앞서 최적화한 배포본 대비 checkpoint **28.66초 → 14.09초 (50.84% 감소)**, release **13.68초 → 9.66초 (29.39% 감소)**였습니다. 아래 대형 Unity 그래프는 과거 측정을 그대로 보여줍니다.
-
-![Splinter의 별도 수명주기 비용(분): Library 준비 4.5, 작업공간 생성 12.8, 기록한 A/B 보존·회수 156.1, Library 복원 24.6](docs/images/unity-workspace-lifecycle.png)
-
-기록한 보존·회수 순서는 **2시간 36분 7초**가 걸렸습니다. B 작업의 겹침, 보존한 `WorkspaceBusy` orchestration 거부·복구, 동시 진단을 포함합니다. 위 A checkpoint도 포함하므로 구간을 중복 합산하지 않습니다. 최종 Library 복원에는 **24분 33초**가 걸렸습니다. Splinter 두 결과를 보존하고 소유 자원을 회수했으며, 원본 Library 복원과 원본 소스 1,602개 전부의 바이트 불변을 확인했습니다. 수명주기 막대는 기록한 Splinter 실행 순서이며, 같은 경계의 Codex 전체 비용은 확인하지 못했습니다.
-
-Windows/NTFS에서 방식별 한 묶음만 측정했고, OS 캐시를 비우지 않은 채 Codex 다음 Splinter 순서로 실행했습니다. 선택한 코드의 컴파일·에셋 로딩·렌더링을 확인했으며 Play Mode·테스트·게임 빌드는 실행하지 않았습니다. 일반적인 속도·RAM·최대 저장 공간 절감을 입증하는 결과는 아닙니다. [측정 방법·정확한 수치·실패·정리의 검증 범위](docs/ko/verification/readme-unity-comparison.md), [측정 데이터](reports/benchmarks/unity-workspace-comparison-20261007.json), [그래프 생성 스크립트](scripts/plot-unity-workspace-comparison.py)를 참고하세요.
+과거 기록은 [RB: 최초 Codex/Splinter 비교](docs/ko/verification/readme-unity-comparison.md), [UR: 첫 수명주기 재측정](docs/ko/verification/unity-lifecycle-remeasurement.md), [UC: 읽기·복원 후속](docs/ko/verification/unity-checkpoint-release-remeasurement.md), [UP: 준비 프로파일](docs/ko/verification/unity-startup-profile.md), [US: 준비 후속](docs/ko/verification/unity-startup-remeasurement.md)에 남습니다. 현재 시간의 기준은 [UF](docs/ko/verification/unity-final-lifecycle.md)입니다.
 
 </details>
 

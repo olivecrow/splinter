@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/startup-additional-optimization.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 SA-01–05 implement the remaining Library, Close, source-proof, publication and inherited Bee-graph opportunities from [US-01](unity-startup-remeasurement.md). The source baseline is `49d8679`; the comparison binary is the frozen `9c09f04` CLI bundle from US. **New full Unity A/B readiness, ILPP timeout reduction, checkpoint/release and original Library restoration times are NotRun.** US's 349.7933 seconds remains historical evidence, not this candidate's time.
 
 ## Changes and guards

@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/readme-unity-comparison.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 This document owns **RB-01–05**, the 2026-10-07 README comparison of actual Codex app-managed worktrees and the current Splinter implementation with an original Library basis. It adds one bounded measurement set; it does not reopen the historical [Unity comparison](unity-live-comparison.md), SF/PV matrix, or completed storage/memory stages.
 
 The measured edited-ready additional file allocation fell from **11,297,124,336 B to 152,543,856 B (98.65%)**. Splinter's Editor preparation and subsequent code refresh/compilation took longer. [Public numeric evidence](../../reports/benchmarks/unity-workspace-comparison-20261007.json) supplies the README charts; [the renderer](../../scripts/plot-unity-workspace-comparison.py) produces PNG and SVG from that dataset.

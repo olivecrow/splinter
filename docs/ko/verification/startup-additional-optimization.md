@@ -2,6 +2,8 @@
 
 [English](../../verification/startup-additional-optimization.md)
 
+> **현재 시간 기준:** 아래는 해당 후보/단계에서 기록한 과거 근거이며, 수치와 당시 NotRun 경계는 그대로 보존합니다. 이후 최적화를 합친 `116fd44`의 [UF-01 실측](unity-final-lifecycle.md)은 전체 **18분 3.0초**, Editor 준비 **3분 36.1초**, A/B 보존·회수 **2분 52.0초**, Library 복원 **2분 6.0초**입니다. UF가 개별 최적화의 효과나 별도 미실행 항목을 모두 검증한 것은 아닙니다.
+
 SA-01–05는 [US-01](unity-startup-remeasurement.md)의 남은 Library·Close·소스 증명·게시·상속 Bee 그래프 비용을 개선한다. 소스 기준은 `49d8679`, 비교 배포본은 US에서 고정한 `9c09f04` CLI 묶음이다. **새 전체 Unity A/B 준비 시간·ILPP 대기 감소·checkpoint/release·원본 Library 복원 시간은 NotRun이다.** US의 349.7933초는 과거 근거이며 이번 후보의 시간이 아니다.
 
 ## 변경과 보호 조건

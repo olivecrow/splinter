@@ -73,19 +73,20 @@
 | [물리 저장 단계 최종 범위](plans/physical-storage-completion.md), [검증](verification/physical-storage-completion.md) | 현재 SJR2 장부·정확한 task 파일 할당·최종 제품 A/B·정리/독립 결과/회수와 물리 저장 단계의 종료 경계 |
 | [메모리 단계 최종 범위](plans/memory-completion.md), [검증](verification/memory-completion.md) | 압축 쓰기 중복 buffer·부분/빈 읽기 scratch·같은 실제 저널 대조와 소유 provider/Editor·공유 시스템 비용/회수의 종료 경계 |
 | [병렬 안정성의 확정 범위](plans/stable-parallel-completion.md), [검증](verification/stable-parallel-completion.md) | 잠금 오류의 점유 오인 수정·실제 A 수집/회수와 B 조회/재개·파일 쓰기 겹침·독립 결과/소유 회수. Editor 없는 경계와 기존 자격 구분 |
-| [README Unity 공간·시간 비교](verification/readme-unity-comparison.md), [데이터](../../reports/benchmarks/unity-workspace-comparison-20261007.json) | 실제 Codex 앱 워크트리와 기본 ON인 현재 Splinter·원본 Library 기준본의 동일 A/B 편집, 추가 파일 할당, 별도 준비·Editor 비용, 한정 컴파일·에셋 검증 |
+| [현재 Unity 실제 시간](verification/unity-final-lifecycle.md), [데이터](../../reports/benchmarks/unity-final-lifecycle-20261008.json) | UF-01: `116fd44` 전체 1,083.0초·Editor 준비 216.1초·보존/회수 172.0초·Library 복원 126.0초, 최초와 같은 편집·입력 및 정상 종료/원본/소유 회수 검증. |
+| [과거 Codex/공간 비교 기준 (RB)](verification/readme-unity-comparison.md), [데이터](../../reports/benchmarks/unity-workspace-comparison-20261007.json) | 실제 Codex 앱 워크트리와 당시 기본 ON Splinter·원본 Library 기준본의 동일 A/B 편집, 추가 파일 할당, 별도 준비·Editor 비용, 한정 컴파일·에셋 검증 |
 | [Checkpoint/release 프로파일링](verification/checkpoint-release-profiling.md), [데이터](../../reports/benchmarks/checkpoint-release-profile-20261007.json) | 기존 Unity 단계 귀속·작은 Editor 없는 task; 반복 검증/재수집·저널 inventory·제곱 비례 fence 검색; 제품 최적화 없는 진단 복사본 |
 | [Checkpoint/release 최적화](verification/checkpoint-release-optimization.md), [첫 데이터](../../reports/benchmarks/checkpoint-release-optimization-20261007.json), [후속 데이터](../../reports/benchmarks/checkpoint-release-followup-20261007.json) | CO-01–08: Git 묶음/통합 보존·seal 결과 재사용·fence/inventory 인덱스·구분한 live 계수·요청 wake; 작은 일반 배포본 비용·guard 회귀·소유 회수 |
-| [Unity 수명주기 재측정](verification/unity-lifecycle-remeasurement.md) | UR-01–04: 같은 실제 입력의 최적화 후 A/B 시간·제한된 프로파일, 종료 시간 제한과 같은 작업 지속, 독립 결과·원본 복원, 남은 병목 |
+| [Unity 수명주기 재측정](verification/unity-lifecycle-remeasurement.md) | 과거 UR-01–04: 같은 실제 입력의 최적화 후 A/B 시간·제한된 프로파일, 종료 시간 제한과 같은 작업 지속, 독립 결과·원본 복원, 남은 병목 |
 | [수명주기 읽기·복원 최적화](verification/lifecycle-read-optimization.md) | LO-01–11: 제한된 Git proof·reader 세션 재사용과 기준 읽기 gate 분리, SJL4 검증·seal 읽기 통합, 경로 조회·변경 없는 파일 복원·cursor 묶음·전체 Library 복원·불변 목록 재사용, 한정 NTFS 비용과 손상·복구 회귀 |
-| [현재 Unity checkpoint/release 측정](verification/unity-checkpoint-release-remeasurement.md) | UC-01: 커밋한 최적화 후보의 같은 실제 Unity A/B 입력, checkpoint/release 304.9초·Library 복원 180.9초, 종료 시간 제한과 결과·원본·자원 검증. |
+| [과거 checkpoint/release 측정 (UC)](verification/unity-checkpoint-release-remeasurement.md) | UC-01: 커밋한 최적화 후보의 같은 실제 Unity A/B 입력, checkpoint/release 304.9초·Library 복원 180.9초, 종료 시간 제한과 결과·원본·자원 검증. |
 | [시작 단계 저널 최적화](verification/journal-startup-optimization.md) | JS-01–04: 회수된 metadata 수명·파일별 object 인덱스·bounded footer 비교, 작은 이어 쓰기 비용과 손상·재연결 회귀. 결합 후보의 실제 준비는 UP-01 참조. |
 | [준비 시간 최적화](verification/startup-time-optimization.md) | ST-01–04: 독립 불변 읽기, SJN2 이어 쓰기 metadata 페이지, 동일 bridge 재사용과 한정 경과 시간·guard 검증. 실제 준비는 UP-01 참조. |
-| [실제 Unity 준비 프로파일](verification/unity-startup-profile.md) | UP-01: 최초 준비 766.9초, 거의 그대로인 약 447초 스캔, Git reader 대기·Bee 출력 비용, 정확한 입력·소유 회수 확인과 후속 우선순위 분석. |
+| [실제 Unity 준비 프로파일](verification/unity-startup-profile.md) | 과거 UP-01: 최초 준비 766.9초, 거의 그대로인 약 447초 스캔, Git reader 대기·Bee 출력 비용, 정확한 입력·소유 회수 확인과 후속 우선순위 분석. |
 | [준비 프로파일 후속 최적화](verification/startup-profile-optimization.md) | SU-01–05: 두 Git decoder의 독립 진행, 고정 저널 경로, Cleanup 잠금 제거, bridge assembly 분리와 내용으로 증명한 소스 시각; 한정 비용과 회귀 검증. |
-| [SU 이후 Unity 준비 재측정](verification/unity-startup-remeasurement.md) | US-01: 준비 349.8초·스캔 16초·컴파일 준비 210초, 시작 판독 오류 복구와 서로 다른 runtime, 남은 ILPP/Library/소스 증명/게시 비용 및 원본 복원 확인. |
-| [추가 준비 최적화](verification/startup-additional-optimization.md) | SA-01–05: Library 수명 고정·로컬 Close·단일 핸들 게시·단일 읽기 Git hash/ensure 증명·첫 시작 Bee 그래프 무효화, 한정 검증과 전체 Unity 시간 NotRun. |
-| [종료와 준비 단계 비용](verification/lifecycle-cost-optimization.md) | LC-01–03: 작은 쓰기 메타데이터 제한·root 전용 client 초기화·seal/회수 검사 재사용·작은 NTFS 비용/복구 근거, 전체 Unity 시간 NotRun. |
+| [SU 이후 Unity 준비 재측정](verification/unity-startup-remeasurement.md) | 과거 US-01: 준비 349.8초·스캔 16초·컴파일 준비 210초, 시작 판독 오류 복구와 서로 다른 runtime, 남은 ILPP/Library/소스 증명/게시 비용 및 원본 복원 확인. |
+| [추가 준비 최적화](verification/startup-additional-optimization.md) | SA-01–05: Library 수명 고정·로컬 Close·단일 핸들 게시·단일 읽기 Git hash/ensure 증명·첫 시작 Bee 그래프 무효화, 한정 검증과 합친 후보의 실제 Unity 시간은 UF-01에 별도 기록. |
+| [종료와 준비 단계 비용](verification/lifecycle-cost-optimization.md) | LC-01–03: 작은 쓰기 메타데이터 제한·root 전용 client 초기화·seal/회수 검사 재사용·작은 NTFS 비용/복구 근거, 합친 후보의 실제 Unity 시간은 UF-01에 별도 기록. |
 | [Unity 실제 C/S 비교 범위](plans/unity-live-comparison.md), [검증](verification/unity-live-comparison.md), [HTML](../../reports/unity-live-comparison-20261003.html) | Codex worktree와 제품 workspace의 코드/에셋·파일 할당/메모리·격리/재개·회수 비교. 입력/버전과 실패·후속 복구의 근거는 소유 검증에서 구분 |
 | [Unity 병렬 편집 확정 범위](plans/unity-parallel-editor-validation.md), [검증](verification/unity-parallel-editor-validation.md), [S HTML](../../reports/unity-parallel-editor-validation-20261003.html) | C/S A/B의 정확한 MCP 대상·리소스/씬/테스트·원본 반영·소유 회수와 비용 비교. HTML은 S까지이며 후속 실행과 제한은 텍스트 검증이 소유 |
 

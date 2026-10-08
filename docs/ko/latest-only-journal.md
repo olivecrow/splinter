@@ -33,7 +33,7 @@ SJN3 node는 이어 쓰기와 덮어쓰기 모두에서 내용이 같은 논리 
 3. `File.Replace`로 pending을 현재 root에 게시하고 기존 root는 같은 소유 디렉터리의 generation별 backup으로 이동한다. 기존 root를 복사하거나 C payload를 다시 기록하지 않는다.
 4. 정확한 hash의 이전 파일을 삭제하거나, 아직 유효한 private block만 남으면 교체된 metadata-page/footer suffix를 truncate한다. 대체된 payload와 metadata는 성공 반환 전에 회수한다. private 읽기/root 핸들을 게시 전에 닫고 성공 뒤 현재 root로 다시 연다. payload byte cache는 없다.
 
-원자적 게시 뒤 capsule 검증과 block/참조 인덱싱은 정확한 게시 root의 짧은 수명 읽기 핸들 하나를 사용하여 두 번째 open/close를 줄인다. Windows의 공유 모드는 두 검사 사이 쓰기와 경로 교체를 막는다. 검증 실패·중단을 포함해 회수 전에 핸들을 닫는다. 전체 checksum·owner·형식·namespace·metadata·길이·범위·generation 검사를 유지하며 검증 단계나 mutation별 durable flush/ACK를 생략하지 않는다. 실패한 writer는 같은 저널을 재연결할 때까지 poison 상태를 유지한다. [SA-02](verification/startup-additional-optimization.md#변경과-보호-조건)를 따르며 이 변경의 전체 Unity 준비 시간 절감은 NotRun이다.
+원자적 게시 뒤 capsule 검증과 block/참조 인덱싱은 정확한 게시 root의 짧은 수명 읽기 핸들 하나를 사용하여 두 번째 open/close를 줄인다. Windows의 공유 모드는 두 검사 사이 쓰기와 경로 교체를 막는다. 검증 실패·중단을 포함해 회수 전에 핸들을 닫는다. 전체 checksum·owner·형식·namespace·metadata·길이·범위·generation 검사를 유지하며 검증 단계나 mutation별 durable flush/ACK를 생략하지 않는다. 실패한 writer는 같은 저널을 재연결할 때까지 poison 상태를 유지한다. [SA-02](verification/startup-additional-optimization.md#변경과-보호-조건)를 따르며 이 변경만의 전체 Unity 준비 시간 절감은 분리 측정하지 않았다. 후속 최적화를 합친 후보의 실제 시간은 [UF-01](verification/unity-final-lifecycle.md)에 기록한다.
 
 한 번의 flush로 **데이터와 metadata 모두** durable해진 뒤 게시한다. 압축 선택·checksum·전체 encoded stream 검증·개별 mutation ACK를 유지한다. 회수의 삭제/truncate는 기존 durable C에 의해 재시도 가능한 소유 정리이며 별도의 payload 복사나 flush를 추가하지 않는다. 파일 게시/회수와 남은 private slice 재작성 비용 때문에 OFF보다 느릴 수 있다. 소유 writer의 예산/ACK용 바이트 수는 최초 inventory에서 고정하고 게시·회수한 정확한 길이만 증분 갱신한다. 명시적 관측·seal·재연결은 실제 파일 inventory를 검사하며 metadata 장부로 내용 hash 검증을 대체하지 않는다.
 

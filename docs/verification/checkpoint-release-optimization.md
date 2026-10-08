@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/checkpoint-release-optimization.md)
 
+> **Current timing reference:** the record below preserves its original candidate/stage measurements and then-unexecuted boundaries. The subsequent combined `116fd44` candidate is measured in [UF-01](unity-final-lifecycle.md): **18m 03.0s** complete workflow, **3m 36.1s** Editor readiness, **2m 52.0s** A/B preservation/release and **2m 06.0s** Library restoration. UF does not isolate each optimization or qualify the separate unexecuted scenarios below.
+
 This document owns **CO-01–08**, the bounded 2026-10-07 optimization following [LP profiling](checkpoint-release-profiling.md). The first [measurements and candidate hashes](../../reports/benchmarks/checkpoint-release-optimization-20261007.json) distinguish the original normal distribution from the CO-01–04 optimized distribution, both based on `74518fd`. CO-05–08 below measure a further candidate against that optimized distribution. The earlier Unity timing remains historical evidence.
 
 Subsequent real Unity costs, profiles and cleanup are recorded separately in [UR-01–04](unity-lifecycle-remeasurement.md). Large-Unity NotRun statements in the CO records below describe those earlier tiny measurements.
