@@ -80,3 +80,5 @@ Bee의 세부 A 추적은 **BuildProgram 67.550초** 중 **Backend.Write 66.500�
 두 stop 명령은 약 120초에 **EditorStopTimeout**을 반환했고 같은 정상 종료가 226.6012초에 완료됐다. 실패 응답은 실패로 유지하며 종료 요청 반복·강제 종료는 없다. **실제 CLI 응답 12개** 모두 기존 현재-schema 검사를 통과했다(집중 검사 1개 통과). 실행 전 커밋 후보의 필수 build 결과는 **1,315 passed, 0 failed, 19 conditional skips**다. 관련 없는 dirty 파일 27개는 보존했다. 새 Play/Test/build·물리 디스크 peak·전체 RAM peak·OS 장애 자격은 **NotRun**이다.
 
 현재 구현 후속은 [SU-01–05](startup-profile-optimization.md)가 소유한다. 이 문서의 당시 입력·후보·시간 자격을 새 구현으로 승계하지 않는다.
+
+이후 [US-01 측정](unity-startup-remeasurement.md)에 최초 준비 349.7933초, 시작 판독 수정과 남은 비용을 기록한다. 위 UP 근거는 당시 후보에 한정한다.

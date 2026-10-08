@@ -2,7 +2,7 @@
 
 [English](../../verification/startup-profile-optimization.md)
 
-**SU-01–05**는 [UP-01](unity-startup-profile.md)에서 확인한 사용자 모드 병목을 개선한다. UP의 최초 준비 766.9024초·약 447초 스캔은 이전 후보의 근거다. 새 후보의 전체 Unity A/B 준비 시간은 **NotRun**이다. UAC·설치 서비스 업데이트·외부 패키지 변경·원본 프로젝트 수정 없이 적용한다.
+**SU-01–05**는 [UP-01](unity-startup-profile.md)에서 확인한 사용자 모드 병목을 개선한다. UP의 최초 준비 766.9024초·약 447초 스캔은 이전 후보의 근거다. 이후 실제 시간은 시작 판독 수정과 서로 다른 runtime 재개를 포함한 [US-01](unity-startup-remeasurement.md)이 소유한다. UAC·설치 서비스 업데이트·외부 패키지 변경·원본 프로젝트 수정 없이 적용한다.
 
 ## 독립 Git decoder 진행 — SU-01
 
@@ -55,6 +55,6 @@ Git 비교는 고정한 UP runtime과 최종 runtime으로 같은 packed tree를
 
 실제 원본 Unity 소스의 읽기 전용 시각 캡처는 **목록 1,602개 / 2,804,673,377 bytes**를 검사했고 map 검증을 포함해 **5.489146초**, 목록/내용 읽기는 5.438930초였다. **C# 일곱 개 전체를 포함한 1,568개 파일**이 raw Git blob과 일치했다. 합성 Library tuple을 쓴 계측 map은 **397,543 bytes**였다. Warm 표본 한 번으로 추가되는 최초 준비 작업을 잰 것이다. Library 준비·이동·mount·상태 게시·Editor 실행은 없었으며 이후 scan 절감량을 측정한 것은 아니다.
 
-작은 실제 Unity bridge 실행은 SU-04만 한정 검증한다. 모든 SU 변경을 적용한 전체 Unity A/B 준비·checkpoint/release·최종 복원은 **NotRun**이며 UP-01의 766.9024초를 현재 결과로 승계하지 않는다. 원본 Unity tree는 clean을 유지했고, 관련 없는 dirty 파일 27개는 작업 전 hash와 같았다. Git staging·UAC·서비스·외부 패키지 변경은 없었다.
+작은 실제 Unity bridge 실행은 SU-04만 한정 검증한다. 모든 SU 변경을 적용한 전체 Unity A/B 준비·checkpoint/release·최종 복원은 **이 한정 측정 당시 NotRun**이었고 이후 [US-01](unity-startup-remeasurement.md)에 실제 cohort를 별도 기록한다. UP-01의 766.9024초를 현재 결과로 승계하지 않는다. 원본 Unity tree는 clean을 유지했고, 관련 없는 dirty 파일 27개는 작업 전 hash와 같았다. 한정 측정 중 Git staging·UAC·서비스·외부 패키지 변경은 없었다.
 
 [기계 판독 결과](../../../reports/benchmarks/startup-profile-optimization-20261008.json)에 입력/runtime hash·개별 표본·검증 경계를 기록했다. 원시 로그·계측 도구·실패 실행 진단은 ignored `artifacts/startup-read-followup-20261008/`에 보존한다.

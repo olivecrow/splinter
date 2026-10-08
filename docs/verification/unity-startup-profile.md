@@ -80,3 +80,5 @@ Both tasks are `released`; independent result trees equal the unchanged source t
 Both stop commands return **EditorStopTimeout** at approximately 120 seconds; the same normal exit completes at 226.6012s. Failed responses remain failed, with no repeated stop or forced termination. All **12 actual CLI responses** pass the existing current-schema validator (one targeted test passed). Before this run, the committed candidate passed the required build with **1,315 passed, 0 failed, 19 conditional skips**. All 27 unrelated dirty files are preserved. New Play/Test/build, physical disk peak, whole-machine RAM peak and OS-failure qualification remain **NotRun**.
 
 Current implementation follow-up belongs to [SU-01–05](startup-profile-optimization.md). The candidate, inputs and timings recorded here do not qualify that new implementation.
+
+The subsequent [US-01 measurement](unity-startup-remeasurement.md) records 349.7933s readiness, its launch-admission correction and remaining costs. UP's evidence above remains tied to its original candidate.

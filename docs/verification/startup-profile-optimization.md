@@ -2,7 +2,7 @@
 
 [한국어](../ko/verification/startup-profile-optimization.md)
 
-**SU-01–05** implements the user-mode findings from [UP-01](unity-startup-profile.md). UP measured 766.9024 seconds to initial readiness, including approximately 447 seconds of scanning; it is the previous candidate's evidence. The new candidate's full Unity A/B preparation time remains **NotRun**. No UAC, installed-service update, external-package change, or original-project modification is needed for these changes.
+**SU-01–05** implements the user-mode findings from [UP-01](unity-startup-profile.md). UP measured 766.9024 seconds to initial readiness, including approximately 447 seconds of scanning; it is the previous candidate's evidence. Subsequent actual timing belongs to [US-01](unity-startup-remeasurement.md), including its admission correction and mixed-runtime resumption. No UAC, installed-service update, external-package change, or original-project modification is needed for these changes.
 
 ## Independent Git decoder progress — SU-01
 
@@ -55,6 +55,6 @@ The journal comparison uses the same final binary with full ancestry walks or pi
 
 Read-only timestamp capture against the actual original Unity source examined **1,602 catalog entries / 2,804,673,377 bytes** in **5.489146s**, including map validation; the catalog/content-read portion was 5.438930s. **1,568 files, including all seven C# files**, matched their raw Git blob. The diagnostic map with a synthetic Library tuple was **397,543 bytes**. This single warm sample measures added one-time preparation work. It did not prepare/move/mount the Library, publish state or run an Editor, and does not measure the later scan savings.
 
-The small actual Unity bridge run qualifies SU-04 only. Full Unity A/B preparation, checkpoint/release and final restoration with all SU changes remain **NotRun**; UP-01's 766.9024s is not a current result. The original Unity tree remained clean, 27 unrelated dirty files retained their exact pre-task hashes, and no Git staging, UAC, service or external-package change occurred.
+The small actual Unity bridge run qualifies SU-04 only. Full Unity A/B preparation, checkpoint/release and final restoration were **NotRun at this bounded measurement**; subsequent [US-01](unity-startup-remeasurement.md) records the actual cohort separately. UP-01's 766.9024s is not a current result. The original Unity tree remained clean, 27 unrelated dirty files retained their exact pre-task hashes, and no Git staging, UAC, service or external-package change occurred during the bounded measurement.
 
 [Machine-readable results](../../reports/benchmarks/startup-profile-optimization-20261008.json) include input/runtime hashes, individual samples and validation boundaries. Raw logs, harnesses and the failed-run diagnosis remain in ignored `artifacts/startup-read-followup-20261008/`.

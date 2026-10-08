@@ -34,7 +34,7 @@ Library 준비·복원을 모두 포함한 당시 관측 구간은 **68분 28초
 
 [후속 읽기·복원 최적화](docs/ko/verification/lifecycle-read-optimization.md)는 제한된 Git reader·디렉터리 메타데이터 재사용, 느린 기준 읽기의 잠금 분리와 완전히 변경 없는 Library의 검증된 디렉터리 이동을 적용했습니다. 최신 작은 NTFS 비교(260개 파일, 약 16MiB)는 고정 기록 대기 제거를 포함해 평균 **4.21초 → 0.52초**입니다. 이 값은 fixture 결과이며 위 Unity 전체 시간은 추가 변경 전의 기록입니다.
 
-**최신 실제 Unity 실행(`168081c`):** A/B checkpoint는 **66.8초·65.1초**, release는 **88.3초·84.7초**로, 합계 **5분 5초**였습니다. 위 실행의 7분 1초보다 짧아졌습니다. 초기 Editor 준비는 **14분 8초**, 원본 Library 복원은 **3분 1초**, 준비부터 복원까지 전체는 **38분 7초**였습니다. 두 종료 명령은 여전히 120초 제한을 초과했고 같은 Editor가 4분 22초 뒤 정상 종료했습니다. 독립 결과·원본 소스 유지·소유 자원 회수를 확인했습니다. 앞선 실행의 외부 프로파일러를 제외한 단일 실행이므로 관측 차이를 순수 최적화 비율로 해석하지 않습니다. [현재 측정과 제한](docs/ko/verification/unity-checkpoint-release-remeasurement.md)을 참고하세요.
+**최신 실제 Unity 준비 측정:** 두 Editor의 준비는 **5분 49.8초**로, 직전 프로파일의 **12분 46.9초**보다 이번 한 실행에서 54.4% 짧았습니다. Editor 시작 전 새 Library/작업공간 준비에는 **10분 45.2초**가 추가됩니다. 스캔은 약 447초에서 16초로 줄었지만 컴파일 준비는 약 210초였습니다. A/B checkpoint/release는 **5분 21.5초**, Editor 정상 종료는 **4분 47.4초**, 원본 Library 복원은 **1분 54.8초**였습니다. 원본 소스와 소유 자원 회수를 확인했습니다. 시작 상태 판독 오류를 커밋으로 수정하고 같은 작업공간을 재개한 실행이므로, 단일 runtime의 중단 없는 새 벤치마크나 순수 인과적 개선율은 아닙니다. [측정·남은 병목·정확한 시간 경계](docs/ko/verification/unity-startup-remeasurement.md)를 참고하세요. [이전 수명주기 측정](docs/ko/verification/unity-checkpoint-release-remeasurement.md)은 과거 근거로 보존합니다.
 
 <details>
 <summary>이전 시간 측정과 최적화 과정</summary>
