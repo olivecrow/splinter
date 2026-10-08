@@ -134,7 +134,9 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     }
     public override void Cleanup(object fileNode, object fileDesc, string fileName, uint flags)
     {
-        try { lock (mutationGate) { if ((flags & CleanupDelete) != 0) store.Delete((Guid)fileNode); } }
+        // A non-delete cleanup changes only the handle counter. The retained
+        // context still belongs to Close, which serializes unlink reclamation.
+        try { if ((flags & CleanupDelete) != 0) { lock (mutationGate) store.Delete((Guid)fileNode); } }
         finally { if (Interlocked.Exchange(ref ((HandleContext)fileDesc).Cleaned, 1) == 0) Interlocked.Decrement(ref handles); }
     }
     public override void Close(object fileNode, object fileDesc)

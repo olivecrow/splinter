@@ -8,6 +8,7 @@ namespace Splinter.Application.Unity;
 
 public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes = null) : IApplicationWorkspaceProvider
 {
+    private const string AssemblyDefinition = "Splinter.Workspace.Editor.asmdef";
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public string[] ManagedPaths => ["Assets/__Splinter__", "Assets/__Splinter__.meta", "Library", "Temp", "Logs", "UserSettings", "obj", ".vs", ".idea", "*.csproj", "*.sln", "*.slnx"];
 
@@ -54,17 +55,26 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         if (Directory.Exists(infrastructure)) prior = VerifyInfrastructure(workspace, infrastructure);
         else if (File.Exists(infrastructure) || File.Exists(infrastructure + ".meta"))
             throw new WorkspaceException("ManagedPathConflict", "The reserved bridge path already exists.");
-        using Stream resource = typeof(UnityWorkspaceProvider).Assembly.GetManifestResourceStream("Splinter.Editor.WorkspaceBridge.cs")
-            ?? throw new WorkspaceException("BridgeMissing", "The embedded Unity bridge is missing.");
-        using var reader = new StreamReader(resource);
-        string code = await reader.ReadToEndAsync(ct);
-        string codeHash = Hash(code);
+        string code = await ReadBridgeResource("Splinter.Editor.WorkspaceBridge.cs", ct);
+        string assembly = await ReadBridgeResource("Splinter.Editor.WorkspaceBridge.asmdef", ct);
+        string codeHash = Hash(code), assemblyHash = Hash(assembly);
         // Ownership, all descendants and the existing content must be checked
         // before reusing it. A restart needs a new launch token, not new assets.
-        if (prior?.CodeHash == codeHash) return;
+        if (prior?.CodeHash == codeHash && prior.AssemblyHash == assemblyHash) return;
         Directory.CreateDirectory(Path.Combine(infrastructure, "Editor"));
-        await File.WriteAllTextAsync(Path.Combine(infrastructure, "Editor", "WorkspaceBridge.cs"), code, ct);
-        await File.WriteAllTextAsync(markerPath, JsonSerializer.Serialize(new InfrastructureMarker(workspace.Id, codeHash), Json), ct);
+        if (prior?.CodeHash != codeHash)
+            await File.WriteAllTextAsync(Path.Combine(infrastructure, "Editor", "WorkspaceBridge.cs"), code, ct);
+        if (prior?.AssemblyHash != assemblyHash)
+            await File.WriteAllTextAsync(Path.Combine(infrastructure, "Editor", AssemblyDefinition), assembly, ct);
+        await File.WriteAllTextAsync(markerPath, JsonSerializer.Serialize(new InfrastructureMarker(2, workspace.Id, codeHash, assemblyHash), Json), ct);
+    }
+
+    private static async Task<string> ReadBridgeResource(string name, CancellationToken ct)
+    {
+        using Stream resource = typeof(UnityWorkspaceProvider).Assembly.GetManifestResourceStream(name)
+            ?? throw new WorkspaceException("BridgeMissing", "An embedded Unity bridge resource is missing.");
+        using var reader = new StreamReader(resource);
+        return await reader.ReadToEndAsync(ct);
     }
 
     internal static void ResetCapturedUnityProcessAddresses(WorkspaceRecord workspace)
@@ -171,11 +181,15 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         if (!File.Exists(markerPath)) throw new WorkspaceException("ManagedPathConflict", "Existing bridge directory has no ownership marker.");
         var marker = JsonSerializer.Deserialize<InfrastructureMarker>(File.ReadAllText(markerPath), Json);
         string bridge = Path.Combine(path, "Editor", "WorkspaceBridge.cs");
+        string assembly = Path.Combine(path, "Editor", AssemblyDefinition);
         PlainPath(bridge, workspace);
-        if (marker?.WorkspaceId != workspace.Id || !File.Exists(bridge) || marker.CodeHash != Hash(File.ReadAllText(bridge)))
-            throw new WorkspaceException("ManagedFilesChanged", "Bridge ownership or code changed; preserve it for inspection.");
+        PlainPath(assembly, workspace);
+        if (marker?.Version != 2 || marker.WorkspaceId != workspace.Id || !File.Exists(bridge) ||
+            !File.Exists(assembly) || marker.CodeHash != Hash(File.ReadAllText(bridge)) || marker.AssemblyHash != Hash(File.ReadAllText(assembly)))
+            throw new WorkspaceException("ManagedFilesChanged", "Bridge version, ownership, code or assembly definition changed; preserve it for inspection.");
         var allowed = new HashSet<string>(StringComparer.Ordinal)
-        { "workspace.marker", "workspace.marker.meta", "Editor.meta", "Editor/WorkspaceBridge.cs", "Editor/WorkspaceBridge.cs.meta" };
+        { "workspace.marker", "workspace.marker.meta", "Editor.meta", "Editor/WorkspaceBridge.cs", "Editor/WorkspaceBridge.cs.meta",
+          "Editor/" + AssemblyDefinition, "Editor/" + AssemblyDefinition + ".meta" };
         var pending = new Stack<string>(); pending.Push(path);
         while (pending.Count != 0)
         {
@@ -252,7 +266,7 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
         await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(value, Json), ct);
         File.Move(temporary, path, overwrite: true);
     }
-    private sealed record InfrastructureMarker(string WorkspaceId, string CodeHash);
+    private sealed record InfrastructureMarker(int Version, string WorkspaceId, string CodeHash, string AssemblyHash);
     private sealed record Heartbeat(string Token, int Pid, long StartTimeUtcTicks, string ProjectPath,
         string Phase, bool Ready, DateTimeOffset ObservedAt);
     private sealed record StopResult(string RequestId, string Error);

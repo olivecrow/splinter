@@ -7,7 +7,8 @@ namespace Splinter.SourceControl.Git;
 
 // A project commit is already immutable. Only identity/ownership metadata and a
 // reachability ref are published here; no checkout, payload cache or VSS exists.
-public sealed class GitObjectSnapshotProvider(string receiptDirectory, string ownerId, string? revision = null) : ISourceSnapshotProvider
+public sealed class GitObjectSnapshotProvider(string receiptDirectory, string ownerId, string? revision = null,
+    GeneratedDirectoryReference? sourceMetadata = null) : ISourceSnapshotProvider
 {
     public const string ProviderName = "git-objects";
     public const string Consistency = "recorded-project-commit-raw-blobs";
@@ -23,6 +24,7 @@ public sealed class GitObjectSnapshotProvider(string receiptDirectory, string ow
             throw Failure("SnapshotIdentityMismatch", "A fixed project revision and exact basis owner are required.");
         Plain(receiptDirectory); Plain(request.SourcePath); Directory.CreateDirectory(receiptDirectory);
         using var operation = Fence("operation.lock", true);
+        var selectedMetadata = sourceMetadata?.SourceMetadataHash is null ? null : sourceMetadata;
         var prior = ReadReceipt();
         if (prior is null)
         {
@@ -38,14 +40,15 @@ public sealed class GitObjectSnapshotProvider(string receiptDirectory, string ow
             string tree = await Command(common, ["rev-parse", fixedCommit + "^{tree}"], ct);
             GitObjectSnapshotTree.VerifyObject(common, fixedCommit, "commit");
             GitObjectSnapshotTree.VerifyObject(common, tree, "tree");
-            var snapshot = new SnapshotReference("git-" + ownerId + "-" + fixedCommit, ProviderName, project, common,
+            if (selectedMetadata is not null) _ = GitSourceMetadata.Read(selectedMetadata, project);
+            var snapshot = new SnapshotReference("git-" + ownerId + "-" + fixedCommit + MetadataSuffix(selectedMetadata), ProviderName, project, common,
                 DateTimeOffset.UtcNow, true, true, Consistency);
-            prior = new(1, ownerId, snapshot, fixedCommit, tree, Reference, false, false);
+            prior = new(1, ownerId, snapshot, fixedCommit, tree, Reference, false, false, selectedMetadata);
             // Intent before the external effect supports a lost create-ref reply.
             Save(ReceiptPath, prior);
         }
         Require(prior, prior.Snapshot);
-        if (!Same(prior.Snapshot.SourcePath, request.SourcePath) || prior.Revision != revision || prior.Released)
+        if (!Same(prior.Snapshot.SourcePath, request.SourcePath) || prior.Revision != revision || prior.Released || prior.SourceMetadata != selectedMetadata)
             throw Failure("SnapshotIdentityMismatch", "Never replace this task's fixed basis.");
         if (!prior.Pinned)
         {
@@ -95,8 +98,9 @@ public sealed class GitObjectSnapshotProvider(string receiptDirectory, string ow
         Require(receipt, snapshot); access.RequireMatch(snapshot);
         if (!receipt.Pinned || receipt.Released || access.RootPath != snapshot.RootPath || access.VerificationId != receipt.Tree)
             throw Failure("SnapshotIdentityMismatch", "Retain the owned basis and its exact tree proof.");
+        var metadata = receipt.SourceMetadata is { } basis ? GitSourceMetadata.ValidateFiles(GitSourceMetadata.Read(basis, snapshot.SourcePath).Files) : null;
         return new(snapshot, receipt.Tree, receipt.Revision, receipt.Reference,
-            health ?? (() => ObserveAsync(snapshot).GetAwaiter().GetResult()));
+            health ?? (() => ObserveAsync(snapshot).GetAwaiter().GetResult()), sourceMetadata: metadata);
     }
 
     public async Task<SnapshotReclamation> ReleaseAsync(SnapshotReference snapshot, CancellationToken ct = default, string? previousAttemptId = null)
@@ -144,10 +148,12 @@ public sealed class GitObjectSnapshotProvider(string receiptDirectory, string ow
         Plain(snapshot.RootPath); Plain(snapshot.SourcePath);
         if (r.Version != 1 || r.OwnerId != ownerId || r.Snapshot != snapshot || r.Reference != Reference ||
             snapshot.Provider != ProviderName || snapshot.Consistency != Consistency || !snapshot.Persistent || !snapshot.Differential ||
-            snapshot.Id != "git-" + ownerId + "-" + r.Revision)
+            snapshot.Id != "git-" + ownerId + "-" + r.Revision + MetadataSuffix(r.SourceMetadata))
             throw Failure("SnapshotIdentityMismatch", "Basis receipt, provider and owner must match.");
         RequireObjectId(r.Revision); RequireObjectId(r.Tree);
+        if (r.SourceMetadata is { } basis) GitSourceMetadata.RequireBasis(basis, snapshot.SourcePath);
     }
+    private static string MetadataSuffix(GeneratedDirectoryReference? basis) => basis is null ? "" : "-metadata-" + basis.SourceMetadataHash;
     private FileStream Fence(string name, bool exclusive)
     {
         string path = Path.Combine(receiptDirectory, name); Plain(path);
@@ -219,5 +225,6 @@ public sealed class GitObjectSnapshotProvider(string receiptDirectory, string ow
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     private sealed record Receipt([property: JsonRequired] int Version, [property: JsonRequired] string OwnerId,
         [property: JsonRequired] SnapshotReference Snapshot, [property: JsonRequired] string Revision, [property: JsonRequired] string Tree,
-        [property: JsonRequired] string Reference, [property: JsonRequired] bool Pinned, [property: JsonRequired] bool Released);
+        [property: JsonRequired] string Reference, [property: JsonRequired] bool Pinned, [property: JsonRequired] bool Released,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] GeneratedDirectoryReference? SourceMetadata = null);
 }

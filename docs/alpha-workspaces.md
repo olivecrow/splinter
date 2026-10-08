@@ -3,7 +3,7 @@
 
 [한국어](ko/alpha-workspaces.md)
 
-On a same-workspace restart, an identical owned bridge and marker are reused after full ownership/content/path validation, preserving asset timestamps. Different verified owned bridge code is updated normally. Tokens and launch control remain fresh; first-start compilation is unchanged. See [startup-time verification](verification/startup-time-optimization.md).
+On a same-workspace restart, identical owned bridge resources and their marker are reused after full ownership/content/path validation, preserving asset timestamps. The Editor-only `Splinter.Workspace.Editor` assembly has automatic references disabled. Marker version 2 binds the C# and assembly-definition hashes; changed verified owned resources are updated, while previous markers and unknown/changed files are preserved and refused. Tokens and launch control remain fresh. See [startup profile follow-up](verification/startup-profile-optimization.md) for the tiny actual Unity assembly/lifetime check; full A/B startup time for this candidate is NotRun.
 
 The product manages NTFS workspaces and their Editor lifetime. Creation, resumption, range storage, independent results, integration, reclamation, and discard follow the [NTFS contract](ntfs-workspaces.md). Library views are separated into the [development CLI](development-cli.md).
 

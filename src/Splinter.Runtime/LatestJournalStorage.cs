@@ -27,6 +27,7 @@ internal sealed class LatestJournalStorage
     private const string Pending = "transaction.pending";
     private readonly string rootPath, directory, owner;
     private readonly long limit;
+    private readonly IJournalDirectoryGuard? directoryGuard;
     private readonly Dictionary<string, Location> objects = new(StringComparer.Ordinal);
     private readonly Dictionary<string, HashSet<string>> objectsByPath = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Frame> frames = new(StringComparer.Ordinal);
@@ -67,14 +68,17 @@ internal sealed class LatestJournalStorage
     internal long CommittedBytes => committedBytes;
     private static FileStream Open(string path) => new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
     internal static bool IsLatest(string path) { using var f = Open(path); Span<byte> b = stackalloc byte[4]; return f.Read(b) == 4 && b[..3].SequenceEqual("SJL"u8); }
-    internal LatestJournalStorage(string path, OverlayIdentity identity, bool readOnly)
-        : this(path, identity, readOnly, null) { }
-    private LatestJournalStorage(string path, OverlayIdentity identity, bool readOnly, SealHash? sealing)
+    internal LatestJournalStorage(string path, OverlayIdentity identity, bool readOnly, IJournalDirectoryGuard? directoryGuard = null)
+        : this(path, identity, readOnly, null, directoryGuard) { }
+    private LatestJournalStorage(string path, OverlayIdentity identity, bool readOnly, SealHash? sealing, IJournalDirectoryGuard? directoryGuard)
     {
         this.sealing = sealing;
+        this.directoryGuard = directoryGuard;
         rootPath = path; owner = Hash(JsonSerializer.SerializeToUtf8Bytes(identity)); limit = identity.MaxJournalBytes;
         Current = ReadRoot(path); if (Current.IdentityHash != owner) throw Corrupt("The journal has another identity.");
         directory = Path.Combine(Path.GetDirectoryName(path)!, Current.Objects); WorkspaceStore.EnsurePlainPath(directory);
+        if (directoryGuard is not null && !WorkspaceStore.SamePath(directoryGuard.DirectoryPath, directory))
+            throw Corrupt("The directory proof belongs to another object generation.");
         if (!Directory.Exists(directory)) throw Corrupt("The owned object directory is missing.");
         if (Capsule(path)) { head = ReadFrame(path); generation = head.Commit.Generation; }
         else sealing?.AddFile(path);
@@ -83,7 +87,7 @@ internal sealed class LatestJournalStorage
         if (sealing is not null) inventory = inventory.OrderBy(Path.GetFileName, StringComparer.Ordinal);
         foreach (string entry in inventory)
         {
-            WorkspaceStore.EnsurePlainPath(entry); string name = Path.GetFileName(entry);
+            EnsureObjectPath(entry); string name = Path.GetFileName(entry);
             if (!File.Exists(entry) || !Plain(name) && !Backup(name) && name != Pending) throw Corrupt("An unowned object is present.");
             if (Plain(name)) { SetLocation(name, new(entry, 0, checked((int)new FileInfo(entry).Length), null)); sealing?.AddFile(entry); }
             else if (Backup(name))
@@ -159,7 +163,12 @@ internal sealed class LatestJournalStorage
     private static bool Plain(string n) => n.Length < 80 && n.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '.') &&
         ((n.StartsWith("node-", StringComparison.Ordinal) || n.StartsWith("bucket-", StringComparison.Ordinal)) && n.EndsWith(".json", StringComparison.Ordinal) || n.StartsWith("block-", StringComparison.Ordinal) && n.EndsWith(".bin", StringComparison.Ordinal) || n == "owner.lock");
     private static bool Backup(string n) => n.Length == 60 && n.StartsWith("commit-", StringComparison.Ordinal) && n[23] == '-' && n.EndsWith(".bin", StringComparison.Ordinal) && n.AsSpan(7, 16).ToString().All(Uri.IsHexDigit) && Guid.TryParseExact(n.AsSpan(24, 32), "N", out _);
-    private string PathOf(string name) { if (!Plain(name) && !Backup(name) && name != Pending) throw Corrupt("An object is outside its owned namespace."); string p = Path.Combine(directory, name); WorkspaceStore.EnsurePlainPath(p); return p; }
+    private void EnsureObjectPath(string path)
+    {
+        if (directoryGuard is null) WorkspaceStore.EnsurePlainPath(path);
+        else directoryGuard.EnsureFile(path);
+    }
+    private string PathOf(string name) { if (!Plain(name) && !Backup(name) && name != Pending) throw Corrupt("An object is outside its owned namespace."); string p = Path.Combine(directory, name); EnsureObjectPath(p); return p; }
     internal IEnumerable<string> Names() => objects.Keys;
     internal long FileLength(string n) => objects.TryGetValue(n, out var l) ? l.Length : throw Corrupt("An object is missing.");
     internal byte[] Read(string n)
@@ -373,7 +382,7 @@ internal sealed class LatestJournalStorage
         // Preserve the composite byte format while hashing the exact bytes
         // already read for capsule validation, in physical-name order.
         using var sealing = new SealHash(path);
-        var store = new LatestJournalStorage(path, identity, true, sealing);
+        var store = new LatestJournalStorage(path, identity, true, sealing, null);
         using (var current = Open(path))
         {
             byte[] header = new byte[store.head?.Header.Length ?? checked((int)current.Length)]; current.ReadExactly(header);

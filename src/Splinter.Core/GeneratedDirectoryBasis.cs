@@ -1,10 +1,13 @@
+using System.Text.Json.Serialization;
+
 namespace Splinter.Core;
 
 // "Library" denotes a generated subtree independent of its VCS source basis;
 // an empty relative path denotes the explicitly managed whole-project basis.
 // The platform owns freezing, write interception and restoration of the original.
 public sealed record GeneratedDirectoryReference(string Id, string ProjectPath, string RelativePath,
-    SnapshotReference Snapshot, string ReceiptDirectory, string OwnerId, string ManifestHash);
+    SnapshotReference Snapshot, string ReceiptDirectory, string OwnerId, string ManifestHash,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? SourceMetadataHash = null);
 public sealed record SnapshotGraft(string RelativePath, GeneratedDirectoryReference Basis);
 public sealed record DeltaRestoreRange(long Offset, int Length);
 public sealed record DeltaRestoreEntry(DeltaEntry Entry, DeltaRestoreRange[] Ranges);

@@ -2,7 +2,7 @@
 
 [한국어](../ko/verification/startup-time-optimization.md)
 
-**ST-01–04** targets storage work on the preparation path identified in [UC-01](unity-checkpoint-release-remeasurement.md). That historical Unity run took 848.3379 seconds to initial readiness; its A log records 448.330154 seconds in Scan and 250.873981 seconds in CompileScripts. These are Unity phase measurements, not isolated compiler CPU time. New real Unity readiness is **NotRun** for this candidate.
+**ST-01–04** targets storage work on the preparation path identified in [UC-01](unity-checkpoint-release-remeasurement.md). That historical Unity run took 848.3379 seconds to initial readiness; its A log records 448.330154 seconds in Scan and 250.873981 seconds in CompileScripts. These are Unity phase measurements, not isolated compiler CPU time. The subsequent [UP-01 actual startup profile](unity-startup-profile.md) measures the committed candidate at 766.9024 seconds; its one-cohort profiling/input/closure limits are separate from the bounded ST evidence below.
 
 ## Independent immutable reads — ST-01
 
@@ -39,4 +39,6 @@ All samples verify exact payload, unchanged unrelated files, current seals and r
 
 Final `pwsh -NoProfile -File ./scripts/build.ps1` passed locked restore and Release build with **0 warnings/errors**, then **1,315 passed, 0 failed, 19 conditional skips**. The 38 new cases cover independent reads (10), owned bridge reuse (10), and metadata pages/current-format refusal (18). Existing large-footer corruption coverage remains through an input that deliberately disables paging. A new interrupted-publication case exposed the old root handle blocking its own backup truncation; recovery now closes that handle while retaining writer/object guards, then reopens the current root. The initial failure is retained in the raw evidence. An overlapping build attempt hit a test-DLL lock; the final build/test run completed alone, before measurement.
 
-Raw runs/build logs and probe evidence remain under ignored `artifacts/startup-time-20261008/`. All 27 unrelated dirty files remain unchanged; the sibling Unity repository is clean. English/Korean contracts and navigation are synchronized. No administrator/UAC action, installed service change, original Unity edit or full Unity run occurred. New real Editor/compile time, overall RAM/disk peaks, installed-service compatibility and OS power-loss qualification remain **NotRun**. Previous-format journals are preserved and rejected; they are not automatically upgraded.
+Raw runs/build logs and probe evidence remain under ignored `artifacts/startup-time-20261008/`. All 27 unrelated dirty files remain unchanged; the sibling Unity repository is clean. English/Korean contracts and navigation are synchronized. The ST unit itself performed no administrator/UAC action, installed service change, original Unity edit or full Unity run. Its real Editor/compile-time follow-up is [UP-01](unity-startup-profile.md); overall RAM/disk peaks, installed-service compatibility and OS power-loss qualification remain **NotRun**. Previous-format journals are preserved and rejected; they are not automatically upgraded.
+
+Current implementation follow-up belongs to [SU-01–05](startup-profile-optimization.md). The candidate, inputs and timings recorded here do not qualify that new implementation.

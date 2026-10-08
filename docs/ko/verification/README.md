@@ -28,6 +28,10 @@
 
 [준비 시간 최적화](startup-time-optimization.md)는 ST-01–04를 소유한다. 독립 불변 읽기·SJN2 이어 쓰기 metadata 페이지·같은 소유 bridge 재사용의 현재 형식 경계, 한정 시간 비교와 동시성·복구 회귀를 기록한다. UC-01은 과거 근거로 유지한다.
 
+[실제 Unity 준비 프로파일](unity-startup-profile.md)은 UP-01을 소유한다. 커밋한 JS/ST 후보에서 같은 소스와 Library 항목으로 최초 준비 766.9초를 측정했다. 거의 그대로인 Git 읽기 중심 스캔과 빨라진 컴파일/출력을 구분하고, CPU/I/O 표본·정확한 Bee 입력 차이·소유 회수/원본 복원을 기록한다. 추적을 포함한 한 실행으로 고립된 개선율을 주장하지 않으며 추가 최적화는 분석 단계다.
+
+[준비 프로파일 후속 최적화](startup-profile-optimization.md)는 SU-01–05를 소유한다. UP에서 확인한 Git 직렬 읽기·반복 저널 경로 검사·불필요한 Cleanup gate·bridge 재컴파일·소스 시각 문제를 구현하고 한정 비용/guard를 검증한다. 소형 실제 Unity assembly 검증과 읽기 전용 원본 capture 비용을 구분하며 새 전체 A/B 준비 시간은 NotRun이다.
+
 [Unity 실제 C/S 비교](unity-live-comparison.md)와 [HTML 보고서](../../../reports/unity-live-comparison-20261003.html)는 Codex 앱 worktree와 제품 workspace의 지정 입력·파일 할당·Editor/provider 메모리·격리와 재개를 비교한다. 과거 home 기록 누락과 승인한 후속 회수의 근거는 소유 검증에서 구분한다. 전체 물리/VSS 귀속·최소 RAM은 unknown이며 SF/PV 전체 지원으로 확대하지 않는다.
 
 [Unity 병렬 편집 검증](unity-parallel-editor-validation.md)은 C/S A/B의 정확한 MCP 대상·리소스/씬·현재 상태 시험·원본 반영과 회수의 한정 자격을 소유한다. 실제 테스트 겹침·reload 결과 보존/재연결·소유 회수와 초기 실패/복구 비용은 텍스트 검증을 따른다. [HTML](../../../reports/unity-parallel-editor-validation-20261003.html)은 S까지의 기록이다. Editor RAM 절감 미확인·전체 물리 peak/VSS 귀속 unknown은 유지한다.

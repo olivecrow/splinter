@@ -29,6 +29,10 @@
 
 [Startup time optimization](startup-time-optimization.md) owns ST-01–04: independent immutable reads, SJN2 append metadata pages and identical owned bridge reuse. It records the current format boundary, bounded time comparison and concurrency/recovery regressions; UC-01 remains historical.
 
+[Actual Unity startup profile](unity-startup-profile.md) owns UP-01: the committed JS/ST candidate reaches initial readiness in 766.9s on the same source and Library entries. It separates unchanged Git-read-dominated scanning from faster compile/output work, records sampled CPU/I/O and exact Bee input differences, and verifies owned reclamation/original restoration. One profiled cohort does not establish an isolated speedup; further optimizations are analysis only.
+
+[Startup profile follow-up](startup-profile-optimization.md) owns SU-01–05: implementation and bounded cost/guard verification for the Git read gate, repeated journal path checks, no-op Cleanup, bridge assembly and source timestamps found in UP. The tiny actual Unity assembly check and read-only original capture cost remain separate from a new full A/B startup measurement, which is NotRun.
+
 [Actual Unity C/S comparison](unity-live-comparison.md)/[HTML report](../../reports/unity-live-comparison-20261003.html) compare designated-input/file-allocation/Editor/provider memory/isolation/resumption in Codex app worktrees/product workspaces. Missing historical home fields/authorized follow-up reclaim distinguished in owning verification. Total physical/VSS attribution/minimum RAM unknown; no full SF/PV support expansion.
 
 [Unity parallel-edit verification](unity-parallel-editor-validation.md) owns bounded C/S A/B exact MCP targets/resources/scenes/current-state tests/original apply/reclaim. Actual test overlap/reload-result preservation/reconnect/owned reclaim/initial failure/recovery costs follow text verification. [HTML](../../reports/unity-parallel-editor-validation-20261003.html) records through S. Editor RAM savings unconfirmed/full physical peak/VSS attribution unknown retained.

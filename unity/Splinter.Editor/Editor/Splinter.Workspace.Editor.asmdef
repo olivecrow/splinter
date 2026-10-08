@@ -1,0 +1,6 @@
+{
+    "name": "Splinter.Workspace.Editor",
+    "references": [],
+    "includePlatforms": ["Editor"],
+    "autoReferenced": false
+}

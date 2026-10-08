@@ -85,6 +85,12 @@
     },
     "released": {
       "type": "boolean"
+    },
+    "sourceMetadata": {
+      "allOf": [
+        { "$ref": "urn:splinter:v1:generated-directory-reference" },
+        { "required": ["sourceMetadataHash"] }
+      ]
     }
   }
 }

@@ -17,22 +17,25 @@ public sealed class UnityInfrastructureReuseTests
         var ct = TestContext.Current.CancellationToken;
         await UnityWorkspaceProvider.PrepareInfrastructureAsync(workspace, ct);
         string infrastructure = Infrastructure(workspace), bridge = Bridge(workspace), marker = Marker(workspace);
+        string assembly = AssemblyDefinition(workspace);
         string meta = bridge + ".meta";
         await File.WriteAllTextAsync(meta, "guid: owned-existing-meta", ct);
+        await File.WriteAllTextAsync(assembly + ".meta", "guid: owned-assembly-meta", ct);
         string code = await File.ReadAllTextAsync(bridge, ct), receipt = await File.ReadAllTextAsync(marker, ct);
         var timestamp = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
-        foreach (string path in new[] { bridge, marker, meta }) File.SetLastWriteTimeUtc(path, timestamp);
+        foreach (string path in new[] { bridge, assembly, assembly + ".meta", marker, meta }) File.SetLastWriteTimeUtc(path, timestamp);
         Directory.SetLastWriteTimeUtc(infrastructure, timestamp);
         Directory.SetLastWriteTimeUtc(Path.GetDirectoryName(bridge)!, timestamp);
         // Windows share modes make an accidental same-content rewrite fail,
         // independently of filesystem timestamp granularity.
         using var bridgeRead = new FileStream(bridge, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var markerRead = new FileStream(marker, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var assemblyRead = new FileStream(assembly, FileMode.Open, FileAccess.Read, FileShare.Read);
         await UnityWorkspaceProvider.PrepareInfrastructureAsync(workspace, ct);
         Assert.Equal(code, await File.ReadAllTextAsync(bridge, ct));
         Assert.Equal(receipt, await File.ReadAllTextAsync(marker, ct));
         Assert.Equal("guid: owned-existing-meta", await File.ReadAllTextAsync(meta, ct));
-        foreach (string path in new[] { bridge, marker, meta }) Assert.Equal(timestamp, File.GetLastWriteTimeUtc(path));
+        foreach (string path in new[] { bridge, assembly, assembly + ".meta", marker, meta }) Assert.Equal(timestamp, File.GetLastWriteTimeUtc(path));
         Assert.Equal(timestamp, Directory.GetLastWriteTimeUtc(infrastructure));
         Assert.Equal(timestamp, Directory.GetLastWriteTimeUtc(Path.GetDirectoryName(bridge)!));
     }
@@ -61,6 +64,9 @@ public sealed class UnityInfrastructureReuseTests
     [InlineData("missing-marker", "ManagedPathConflict")]
     [InlineData("extra-file", "ManagedFilesChanged")]
     [InlineData("extra-directory", "ManagedFilesChanged")]
+    [InlineData("assembly", "ManagedFilesChanged")]
+    [InlineData("missing-assembly", "ManagedFilesChanged")]
+    [InlineData("old-marker", "ManagedFilesChanged")]
     public async Task ReuseStillRejectsChangedOwnershipOrInfrastructure(string change, string error)
     {
         using var directory = new TestDirectory();
@@ -76,6 +82,10 @@ public sealed class UnityInfrastructureReuseTests
             case "missing-marker": File.Delete(marker); break;
             case "extra-file": await File.WriteAllTextAsync(Path.Combine(infrastructure, "user.txt"), "retained", ct); break;
             case "extra-directory": Directory.CreateDirectory(Path.Combine(infrastructure, "User")); break;
+            case "assembly": await File.AppendAllTextAsync(AssemblyDefinition(workspace), " ", ct); break;
+            case "missing-assembly": File.Delete(AssemblyDefinition(workspace)); break;
+            case "old-marker": await File.WriteAllTextAsync(marker, JsonSerializer.Serialize(new
+            { workspaceId = workspace.Id, codeHash = Convert.ToHexStringLower(SHA256.HashData(await File.ReadAllBytesAsync(bridge, ct))) }), ct); break;
         }
         var before = await Files(infrastructure);
         Assert.Equal(error, (await Assert.ThrowsAsync<WorkspaceException>(() =>
@@ -119,11 +129,13 @@ public sealed class UnityInfrastructureReuseTests
     }
     private static string Infrastructure(WorkspaceRecord workspace) => Path.Combine(workspace.Path, "Assets", "__Splinter__");
     private static string Bridge(WorkspaceRecord workspace) => Path.Combine(Infrastructure(workspace), "Editor", "WorkspaceBridge.cs");
+    private static string AssemblyDefinition(WorkspaceRecord workspace) => Path.Combine(Infrastructure(workspace), "Editor", "Splinter.Workspace.Editor.asmdef");
     private static string Marker(WorkspaceRecord workspace) => Path.Combine(Infrastructure(workspace), "workspace.marker");
     private static Task WriteMarker(WorkspaceRecord workspace, string owner, string code) =>
         File.WriteAllTextAsync(Marker(workspace), JsonSerializer.Serialize(new
         {
-            workspaceId = owner, codeHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(code)))
+            version = 2, workspaceId = owner, codeHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(code))),
+            assemblyHash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(AssemblyDefinition(workspace))))
         }), TestContext.Current.CancellationToken);
     private static async Task<string[]> Files(string root)
     {

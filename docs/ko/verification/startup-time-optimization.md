@@ -2,7 +2,7 @@
 
 [English](../../verification/startup-time-optimization.md)
 
-**ST-01–04**는 [UC-01](unity-checkpoint-release-remeasurement.md)에서 확인한 준비 경로의 저장 작업을 줄인다. 당시 실제 Unity의 최초 준비는 848.3379초였고 A 로그의 Scan은 448.330154초, CompileScripts는 250.873981초였다. 이는 Unity 단계별 관측이며 순수 컴파일러 CPU 시간이 아니다. 이번 후보의 새 실제 Unity 준비 시간은 **NotRun**이다.
+**ST-01–04**는 [UC-01](unity-checkpoint-release-remeasurement.md)에서 확인한 준비 경로의 저장 작업을 줄인다. 당시 실제 Unity의 최초 준비는 848.3379초였고 A 로그의 Scan은 448.330154초, CompileScripts는 250.873981초였다. 이는 Unity 단계별 관측이며 순수 컴파일러 CPU 시간이 아니다. 후속 [UP-01 실제 준비 프로파일](unity-startup-profile.md)은 커밋한 후보에서 766.9024초를 측정했다. 한 실행 묶음의 추적·입력·회수 한계는 아래의 한정 ST 근거와 구분한다.
 
 ## 독립적인 불변 기준 읽기 — ST-01
 
@@ -39,4 +39,6 @@
 
 최종 `pwsh -NoProfile -File ./scripts/build.ps1`은 locked restore·Release 빌드에서 **경고/오류 0개**, 시험 **1,315개 통과·실패 0개·조건부 skip 19개**였다. 신규 38개는 독립 읽기 10개, 소유 bridge 재사용 10개, metadata 페이지/현재 형식 거부 18개다. 기존 큰 footer 손상 검사는 paging을 의도적으로 끄는 입력으로 유지했다. 새 게시 중단 시험에서 이전 root 핸들이 자기 backup의 축소를 막는 문제를 발견해, writer/object guard를 유지한 채 해당 핸들을 닫고 복구한 뒤 현재 root를 다시 열도록 수정했다. 최초 실패 근거도 보존했다. 시험과 겹친 빌드 시도는 테스트 DLL 잠금으로 실패했으며 최종 빌드/시험은 단독 완료한 뒤 성능을 측정했다.
 
-원시 실행/빌드 로그와 probe는 ignored `artifacts/startup-time-20261008/`에 보존한다. 관련 없는 기존 변경 27개는 그대로이며 형제 Unity 저장소도 clean이다. 영어/한국어 계약과 문서 지도를 함께 갱신했다. 관리자/UAC 작업·설치 서비스 변경·원본 Unity 편집·전체 Unity 재실행은 없었다. 새 실제 Editor/컴파일 시간, 전체 RAM/디스크 peak, 설치 서비스 호환성과 OS 전원 장애 자격은 **NotRun**이다. 이전 형식 저널은 자동 업그레이드하지 않고 보존·거부한다.
+원시 실행/빌드 로그와 probe는 ignored `artifacts/startup-time-20261008/`에 보존한다. 관련 없는 기존 변경 27개는 그대로이며 형제 Unity 저장소도 clean이다. 영어/한국어 계약과 문서 지도를 함께 갱신했다. ST 단위 자체에서는 관리자/UAC 작업·설치 서비스 변경·원본 Unity 편집·전체 Unity 재실행이 없었다. 실제 Editor/컴파일 시간의 후속은 [UP-01](unity-startup-profile.md)이며 전체 RAM/디스크 peak, 설치 서비스 호환성과 OS 전원 장애 자격은 **NotRun**이다. 이전 형식 저널은 자동 업그레이드하지 않고 보존·거부한다.
+
+현재 구현 후속은 [SU-01–05](startup-profile-optimization.md)가 소유한다. 이 문서의 당시 입력·후보·시간 자격을 새 구현으로 승계하지 않는다.

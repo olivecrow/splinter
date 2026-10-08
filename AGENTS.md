@@ -23,6 +23,7 @@
 ## 현재 기능의 소유 문서
 
 - 준비 시간 최적화는 `docs/verification/startup-time-optimization.md`의 ST-01–04를 따른다. SJN2는 32-extent 불변 append 앞부분을 재사용하고 앞부분 변경 뒤 live repaging을 끈다. 페이지 소유권·hash·범위·inventory와 개별 flush/ACK를 유지하며 최초 페이지 무효화의 소유 capsule payload 이동과 임의 덮어쓰기 비용을 구분한다. 동일 소유 Unity bridge는 전체 guard 뒤 재사용하며 원본 시각·Bee cache는 변경하지 않는다. 작은 NTFS 비용·자동 회귀를 실제 Unity 준비 시간으로 승계하지 않는다.
+- 프로파일 후속은 `docs/verification/startup-profile-optimization.md`의 SU-01–05를 따른다. Git은 두 decoder를 독립 임대하고 진행 중 proof 예산·실패 게시 차단·drain을 유지한다. 제품 SJL4는 Windows에서 정확한 object 조상을 핸들로 고정해 leaf 검사만 반복하며, 삭제 없는 Cleanup만 mutation gate를 생략한다. Unity bridge는 자동 참조 없는 Editor assembly와 version 2 소유/hash marker를 사용하고 이전 marker는 보존·거부한다. Git 원본의 내용과 같은 핸들 시각을 Library 준비 시 증명·고정한 metadata만 재사용하며 원본 재조회·mtime만의 신뢰·Bee cache 변경은 없다. 한정 Git/NTFS 비용·소형 Unity assembly 검증을 전체 A/B 준비 절감률로 승계하지 않는다.
 
 - 보안 경계 변경의 한정 자격은 `docs/verification/security-boundaries.md`다. recorded Plastic 내용은 고정 Windows cm `11.0.16.9915` 라이브러리와 tree-owned private stdio 자식을 사용하며 인증 없는 `cm api`·payload disk cache로 fallback하지 않는다. 과거 외부 MCP 후보 v2의 인증 시험은 SB-02의 역사적 근거이며 현재 제품의 토큰·설치 요구가 아니다. 전역 환경/Codex 설정·실행 중 Editor·설치된 서비스는 자동 변경하지 않으며 기존 Unity 자격을 현재 후보로 승계하지 않는다. 서비스는 자식 상속 쓰기 ACL도 거부하고 회수는 보호된 ledger의 파일 잠금을 사용한다. 저장 격리를 악성 코드의 OS 보안 sandbox로 읽지 않는다.
 

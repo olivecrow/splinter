@@ -14,8 +14,8 @@ namespace Splinter.SourceControl.Git;
 public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
 {
     public SnapshotReference Snapshot { get; }
-    // Decoder/proof state remains serialized by readGate; callers need not
-    // serialize independent grafted bases behind this tree's slow reads.
+    // The gate protects leases/proof ownership, not decoding. Each of the two
+    // readers can progress independently; aliases lease the same reader.
     public bool SupportsConcurrentReads => true;
     private readonly Func<SnapshotObservation> health;
     private readonly WorkspacePathPolicy policy;
@@ -23,7 +23,9 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     private readonly Dictionary<string, string> blobs;
     private readonly Dictionary<string, List<SnapshotEntry>> children;
     private readonly object readGate = new();
-    private bool disposed;
+    private volatile bool disposed, closing;
+    private bool resetting;
+    private int activeReads, pendingProofs, waitingReads;
     private const int ChunkBytes = 65536, MaxProofBytes = 4 * 1024 * 1024;
     private const int MaxProofEntries = 4096, MaxReaderSessions = 2;
     private sealed record BlobProof(string ObjectId, long Length, byte[] Chunks);
@@ -31,8 +33,8 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     private readonly LinkedList<BlobProof> proofLru = new();
     private int proofBytes;
     private readonly int proofByteLimit, proofEntryLimit;
-    internal int CachedProofBytes => proofBytes;
-    internal int CachedProofCount => proofs.Count;
+    internal int CachedProofBytes { get { lock (readGate) return proofBytes; } }
+    internal int CachedProofCount { get { lock (readGate) return proofs.Count; } }
     internal int PeakProofBytes { get; private set; }
     internal int FullBlobProofs { get; private set; }
     private sealed class PayloadChunk
@@ -51,19 +53,35 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         internal int Newest = -1;
         internal long Position;
         internal bool Streaming;
+        internal bool Busy;
         internal PayloadChunk NextChunk() => Chunks[Newest = (Newest + 1) % Chunks.Length];
+    }
+    private sealed class ReaderLease(ReaderSession session, byte[] proof, bool createProof)
+    {
+        internal ReaderSession Session { get; } = session;
+        internal byte[] Proof { get; } = proof;
+        internal bool CreateProof { get; } = createProof;
+        internal bool Published;
     }
     private readonly Dictionary<string, LinkedListNode<ReaderSession>> sessions = new(StringComparer.Ordinal);
     private readonly LinkedList<ReaderSession> sessionLru = new();
     internal int ReaderProcessStarts { get; private set; }
     internal int ActiveReaderProcesses { get; private set; }
     internal int PeakReaderProcesses { get; private set; }
-    internal int CachedPayloadBytes => sessions.Count * 2 * ChunkBytes;
-    internal int[] ReaderProcessIds => sessions.Values.Where(s => s.Value.Reader is not null).Select(s => s.Value.Reader!.Id).ToArray();
-    public long DecodedBlobBytes { get; private set; }
+    internal int CachedPayloadBytes { get { lock (readGate) return sessions.Count * 2 * ChunkBytes; } }
+    internal int[] ReaderProcessIds { get { lock (readGate) return sessions.Values.Where(s => s.Value.Reader is not null).Select(s => s.Value.Reader!.Id).ToArray(); } }
+    private long decodedBlobBytes;
+    public long DecodedBlobBytes => Interlocked.Read(ref decodedBlobBytes);
+    internal int ActiveReadCount { get { lock (readGate) return activeReads; } }
+    internal int WaitingReadCount { get { lock (readGate) return waitingReads; } }
+    internal bool IsClosing => closing;
+    internal bool IsResetting { get { lock (readGate) return resetting; } }
+    // Deterministic boundary observation for tests; production leaves this null.
+    internal Action<string, string>? ReadObserver { get; set; }
 
     internal GitObjectSnapshotTree(SnapshotReference snapshot, string tree, string revision, string reference, Func<SnapshotObservation> health,
-        int proofByteLimit = MaxProofBytes, int proofEntryLimit = MaxProofEntries)
+        int proofByteLimit = MaxProofBytes, int proofEntryLimit = MaxProofEntries,
+        IReadOnlyDictionary<string, GitSourceMetadataFile>? sourceMetadata = null)
     {
         if (proofByteLimit is < 1 or > MaxProofBytes || proofEntryLimit is < 1 or > MaxProofEntries)
             throw new ArgumentOutOfRangeException(nameof(proofByteLimit));
@@ -71,6 +89,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         Snapshot = snapshot; this.health = health;
         policy = WorkspacePathPolicy.For(snapshot);
         entries = new(policy.Comparer); blobs = new(policy.Comparer); children = new(policy.Comparer);
+        var metadata = sourceMetadata is null ? null : GitSourceMetadata.ValidateFiles(sourceMetadata.Values);
         EnsureAvailable();
         long timestamp = snapshot.CapturedAt.UtcDateTime.ToFileTimeUtc();
         Add(new("", true, 0, (uint)FileAttributes.Directory, timestamp, timestamp, timestamp));
@@ -96,7 +115,11 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
                 throw Failure("GitBasisUnsupported", "Only regular committed files are supported; no symlink/submodule fallback.");
             RequireObjectId(fields[2]); ValidateRecordedPath(path);
             EnsureParents(path, timestamp);
-            Add(new(path, false, length, (uint)FileAttributes.Archive, timestamp, timestamp, timestamp,
+            long creation = timestamp, access = timestamp, write = timestamp;
+            if (metadata is not null && metadata.TryGetValue(path, out var original) &&
+                original.Path == path && original.ObjectId == fields[2] && original.Length == length)
+            { creation = original.CreationTime; access = original.LastAccessTime; write = original.LastWriteTime; }
+            Add(new(path, false, length, (uint)FileAttributes.Archive, creation, access, write,
                 fields[0] == "100755" ? 0x1EDu : 0x1A4u));
             blobs.Add(path, fields[2]);
         }
@@ -137,7 +160,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     }
     public void EnsureAvailable()
     {
-        ObjectDisposedException.ThrowIf(disposed, this);
+        ObjectDisposedException.ThrowIf(disposed || closing, this);
         var observed = health();
         if (observed.Id != Snapshot.Id || observed.Available != true)
             throw Failure(observed.FailureCode ?? "SnapshotObservationUnknown", "Preserve this task's immutable object basis.");
@@ -197,74 +220,145 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         long length = entries[path].Length;
         int count = offset >= length ? 0 : (int)Math.Min(destination.Length, length - offset);
         if (count == 0) return 0;
+        ReaderLease? lease = null;
+        byte[]? staged = null;
+        try
+        {
+            lease = AcquireReader(objectId, length);
+            staged = ArrayPool<byte>.Shared.Rent(count);
+            ReadObserver?.Invoke(objectId, "leased");
+            var session = lease.Session;
+            if (lease.CreateProof)
+            {
+                var output = BeginBlob(session, length);
+                using var hash = IncrementalHash.CreateHash(objectId.Length == 40 ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256);
+                hash.AppendData(Encoding.ASCII.GetBytes("blob " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
+                for (long position = 0; position < length;)
+                {
+                    var chunk = session.NextChunk();
+                    int n = (int)Math.Min(ChunkBytes, length - position);
+                    output.ReadExactly(chunk.Bytes.AsSpan(0, n)); Interlocked.Add(ref decodedBlobBytes, n);
+                    hash.AppendData(chunk.Bytes.AsSpan(0, n));
+                    SHA256.HashData(chunk.Bytes.AsSpan(0, n), lease.Proof.AsSpan((int)(position / ChunkBytes) * 32, 32));
+                    long begin = Math.Max(position, offset), end = Math.Min(position + n, offset + count);
+                    if (end > begin) chunk.Bytes.AsSpan((int)(begin - position), (int)(end - begin)).CopyTo(staged.AsSpan((int)(begin - offset)));
+                    chunk.Offset = position; chunk.Length = n; position += n;
+                }
+                if (output.ReadByte() != '\n' || Convert.ToHexStringLower(hash.GetHashAndReset()) != objectId)
+                    throw Failure("GitBasisObjectInvalid", "The recorded blob hash failed; no requested bytes are published.");
+                session.Streaming = false; session.Position = length;
+            }
+            else
+            {
+                for (long at = offset; at < offset + count;)
+                {
+                    var chunk = LoadProvedChunk(session, length, lease.Proof, at);
+                    int n = (int)Math.Min(offset + count - at, chunk.Offset + chunk.Length - at);
+                    chunk.Bytes.AsSpan((int)(at - chunk.Offset), n).CopyTo(staged.AsSpan((int)(at - offset))); at += n;
+                }
+            }
+            ReadObserver?.Invoke(objectId, "verified");
+            lock (readGate)
+            {
+                if (resetting) throw Failure("GitBasisObjectInvalid", "Another owned reader failed; no requested bytes are published.");
+                EnsureAvailable();
+                if (lease.CreateProof)
+                {
+                    proofs.Add(objectId, proofLru.AddLast(new BlobProof(objectId, length, lease.Proof)));
+                    lease.Published = true; FullBlobProofs++;
+                }
+                staged.AsSpan(0, count).CopyTo(destination);
+            }
+            return count;
+        }
+        catch (Exception ex)
+        {
+            // Classify only after unwinding the nested bookkeeping locks.
+            // Every failure must reach the lease-retirement finally below.
+            if (ex is ObjectDisposedException) throw;
+            if (ex is not (IOException or InvalidOperationException or WorkspaceException or System.ComponentModel.Win32Exception)) throw;
+            lock (readGate) { resetting = true; Monitor.PulseAll(readGate); }
+            throw ex is WorkspaceException ? ex : Failure("GitBasisObjectInvalid", "The owned blob reader failed; preserve the basis and journal.");
+        }
+        finally
+        {
+            // Return staging before admitting a replacement lease, keeping
+            // requested-range buffers bounded even if completion is preempted.
+            try { if (staged is not null) ArrayPool<byte>.Shared.Return(staged); }
+            finally { CompleteReader(lease); }
+        }
+    }
+    private ReaderLease AcquireReader(string objectId, long length)
+    {
         lock (readGate)
         {
-            EnsureAvailable();
-            byte[] staged = ArrayPool<byte>.Shared.Rent(count);
-            try
+            while (true)
             {
-                bool proved = proofs.TryGetValue(objectId, out var cached);
-                if (proved)
+                EnsureAvailable();
+                if (resetting || sessions.TryGetValue(objectId, out var existing) && existing.Value.Busy ||
+                    !sessions.ContainsKey(objectId) && sessions.Count == MaxReaderSessions && sessions.Values.All(s => s.Value.Busy))
+                { WaitForReader(); continue; }
+                if (proofs.TryGetValue(objectId, out var cached))
                 {
-                    if (cached!.Value.Length != length) throw Failure("GitBasisObjectInvalid", "The fixed blob proof length changed.");
+                    if (cached.Value.Length != length) throw Failure("GitBasisObjectInvalid", "The fixed blob proof length changed.");
                     proofLru.Remove(cached); proofLru.AddLast(cached);
+                    var session = GetSession(objectId);
+                    session.Busy = true; activeReads++;
+                    return new(session, cached.Value.Chunks, false);
                 }
-                else
+                long proofLength = ((length - 1) / ChunkBytes + 1) * 32;
+                if (proofLength > proofByteLimit) throw Failure("GitBasisUnsupported", "A recorded blob exceeds the bounded chunk-proof limit.");
+                // Active leases pin their proofs. Both reservations count before
+                // allocation; waiting callers allocate neither proofs nor readers.
+                if (proofBytes + proofLength > proofByteLimit || proofs.Count + pendingProofs >= proofEntryLimit)
                 {
-                    long proofLength = ((length - 1) / ChunkBytes + 1) * 32;
-                    if (proofLength > proofByteLimit) throw Failure("GitBasisUnsupported", "A recorded blob exceeds the bounded chunk-proof limit.");
-                    // Include the in-flight proof in the original 4MiB budget.
-                    // Retire its reader too: no retained payload outlives its proof.
-                    while (proofBytes + proofLength > proofByteLimit || proofs.Count >= proofEntryLimit)
-                    {
-                        var oldest = proofLru.First!;
-                        RemoveSession(oldest.Value.ObjectId);
-                        proofBytes -= oldest.Value.Chunks.Length;
-                        proofs.Remove(oldest.Value.ObjectId); proofLru.RemoveFirst();
-                    }
+                    var oldest = proofLru.First;
+                    while (oldest is not null && sessions.TryGetValue(oldest.Value.ObjectId, out var owner) && owner.Value.Busy)
+                        oldest = oldest.Next;
+                    if (oldest is null) { WaitForReader(); continue; }
+                    RemoveSession(oldest.Value.ObjectId);
+                    proofBytes -= oldest.Value.Chunks.Length;
+                    proofs.Remove(oldest.Value.ObjectId); proofLru.Remove(oldest);
+                    continue;
                 }
-                var session = GetSession(objectId);
-                if (!proved)
-                {
-                    byte[] proof = new byte[(int)(((length - 1) / ChunkBytes + 1) * 32)];
-                    PeakProofBytes = Math.Max(PeakProofBytes, proofBytes + proof.Length);
-                    var output = BeginBlob(session, length);
-                    using var hash = IncrementalHash.CreateHash(objectId.Length == 40 ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256);
-                    hash.AppendData(Encoding.ASCII.GetBytes("blob " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
-                    for (long position = 0; position < length;)
-                    {
-                        var chunk = session.NextChunk();
-                        int n = (int)Math.Min(ChunkBytes, length - position);
-                        output.ReadExactly(chunk.Bytes.AsSpan(0, n)); DecodedBlobBytes += n;
-                        hash.AppendData(chunk.Bytes.AsSpan(0, n));
-                        SHA256.HashData(chunk.Bytes.AsSpan(0, n), proof.AsSpan((int)(position / ChunkBytes) * 32, 32));
-                        long begin = Math.Max(position, offset), end = Math.Min(position + n, offset + count);
-                        if (end > begin) chunk.Bytes.AsSpan((int)(begin - position), (int)(end - begin)).CopyTo(staged.AsSpan((int)(begin - offset)));
-                        chunk.Offset = position; chunk.Length = n; position += n;
-                    }
-                    if (output.ReadByte() != '\n' || Convert.ToHexStringLower(hash.GetHashAndReset()) != objectId)
-                        throw Failure("GitBasisObjectInvalid", "The recorded blob hash failed; no requested bytes are published.");
-                    proofs.Add(objectId, proofLru.AddLast(new BlobProof(objectId, length, proof))); proofBytes += proof.Length; FullBlobProofs++;
-                    session.Streaming = false; session.Position = length;
-                }
-                else
-                {
-                    for (long at = offset; at < offset + count;)
-                    {
-                        var chunk = LoadProvedChunk(session, length, cached!.Value.Chunks, at);
-                        int n = (int)Math.Min(offset + count - at, chunk.Offset + chunk.Length - at);
-                        chunk.Bytes.AsSpan((int)(at - chunk.Offset), n).CopyTo(staged.AsSpan((int)(at - offset))); at += n;
-                    }
-                }
-                staged.AsSpan(0, count).CopyTo(destination); return count;
+                var selected = GetSession(objectId);
+                byte[] proof = new byte[(int)proofLength];
+                proofBytes += proof.Length; pendingProofs++;
+                PeakProofBytes = Math.Max(PeakProofBytes, proofBytes);
+                selected.Busy = true; activeReads++;
+                return new(selected, proof, true);
             }
-            catch (Exception ex) when (ex is IOException or InvalidOperationException or WorkspaceException or System.ComponentModel.Win32Exception)
+        }
+    }
+    private void WaitForReader()
+    {
+        waitingReads++;
+        try { Monitor.Wait(readGate); }
+        finally { waitingReads--; }
+    }
+    private void CompleteReader(ReaderLease? lease)
+    {
+        lock (readGate)
+        {
+            if (lease is not null)
+            {
+                lease.Session.Busy = false; activeReads--;
+                if (lease.CreateProof)
+                {
+                    pendingProofs--;
+                    if (!lease.Published) proofBytes -= lease.Proof.Length;
+                }
+            }
+            Monitor.PulseAll(readGate);
+            // A failed generation cannot publish any later read. Drain all
+            // leases before closing either decoder or dropping shared proofs.
+            if (resetting && activeReads == 0)
             {
                 try { ResetProof(); }
                 catch (Exception cleanup) when (cleanup is IOException or InvalidOperationException or System.ComponentModel.Win32Exception) { }
-                throw ex is WorkspaceException ? ex : Failure("GitBasisObjectInvalid", "The owned blob reader failed; preserve the basis and journal.");
+                finally { resetting = false; Monitor.PulseAll(readGate); }
             }
-            finally { ArrayPool<byte>.Shared.Return(staged); }
+            else while (resetting) Monitor.Wait(readGate);
         }
     }
     private ReaderSession GetSession(string objectId)
@@ -277,6 +371,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         if (sessions.Count == MaxReaderSessions)
         {
             var oldest = sessionLru.First!;
+            while (oldest.Value.Busy) oldest = oldest.Next!;
             session = oldest.Value;
             sessions.Remove(session.ObjectId); sessionLru.Remove(oldest);
             try
@@ -307,17 +402,22 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         if (session.Streaming) StopReader(session);
         if (session.Reader is null)
         {
-            session.Reader = Process.Start(StartInfo(Snapshot.RootPath, ["cat-file", "--batch"])) ?? throw Failure("GitBasisUnavailable", "Git reader did not start.");
-            ReaderProcessStarts++; ActiveReaderProcesses++;
-            PeakReaderProcesses = Math.Max(PeakReaderProcesses, ActiveReaderProcesses);
+            var reader = Process.Start(StartInfo(Snapshot.RootPath, ["cat-file", "--batch"])) ?? throw Failure("GitBasisUnavailable", "Git reader did not start.");
+            lock (readGate)
+            {
+                session.Reader = reader; ReaderProcessStarts++; ActiveReaderProcesses++;
+                PeakReaderProcesses = Math.Max(PeakReaderProcesses, ActiveReaderProcesses);
+            }
             session.Error = session.Reader.StandardError.ReadToEndAsync();
             session.Output = ProgressOutput(session.Reader);
         }
         session.Reader.StandardInput.Write(session.ObjectId + "\n"); session.Reader.StandardInput.Flush();
         var output = session.Output!;
-        if (Header(output) != session.ObjectId + " blob " + length.ToString(CultureInfo.InvariantCulture)) throw Failure("GitBasisObjectInvalid", "The fixed blob is missing or its header changed.");
+        ReadBlobHeader(output, session.ObjectId, length);
         foreach (var chunk in session.Chunks) { chunk.Offset = -1; chunk.Length = 0; }
-        session.Position = 0; session.Streaming = true; return output;
+        session.Position = 0; session.Streaming = true;
+        ReadObserver?.Invoke(session.ObjectId, "header");
+        return output;
     }
     private PayloadChunk LoadProvedChunk(ReaderSession session, long length, byte[] proof, long at)
     {
@@ -331,7 +431,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         {
             chunk = session.NextChunk();
             int n = (int)Math.Min(ChunkBytes, length - session.Position);
-            output.ReadExactly(chunk.Bytes.AsSpan(0, n)); DecodedBlobBytes += n;
+            output.ReadExactly(chunk.Bytes.AsSpan(0, n)); Interlocked.Add(ref decodedBlobBytes, n);
             SHA256.HashData(chunk.Bytes.AsSpan(0, n), digest);
             if (!digest.SequenceEqual(proof.AsSpan((int)(session.Position / ChunkBytes) * 32, 32))) throw Failure("GitBasisObjectInvalid", "The requested chunk does not match the fully verified fixed blob; no bytes are published.");
             chunk.Offset = session.Position; chunk.Length = n; session.Position += n;
@@ -366,6 +466,30 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
             header[i] = (byte)b;
         }
         throw Failure("GitBasisObjectInvalid", "Invalid bounded cat-file header.");
+    }
+    internal static void ReadBlobHeader(Stream stream, string objectId, long length)
+    {
+        // The exact fixed blob header is known. Read it in bounded spans rather
+        // than entering the no-progress timer and pipe once for every byte.
+        // An early newline (including "missing") fails immediately: requesting
+        // the rest with ReadExactly would wait on an idle batch reader.
+        string expected = objectId + " blob " + length.ToString(CultureInfo.InvariantCulture) + "\n";
+        Span<byte> header = stackalloc byte[256];
+        if (expected.Length > header.Length) throw Failure("GitBasisObjectInvalid", "Invalid bounded cat-file header.");
+        int read = 0;
+        while (read < expected.Length)
+        {
+            int n = stream.Read(header.Slice(read, expected.Length - read));
+            if (n == 0) throw Failure("GitBasisObjectInvalid", "The fixed blob header is incomplete.");
+            int newline = header.Slice(read, n).IndexOf((byte)'\n');
+            if (newline >= 0 && read + newline != expected.Length - 1)
+                throw Failure("GitBasisObjectInvalid", "The fixed blob is missing or its header changed.");
+            read += n;
+        }
+        Span<byte> expectedBytes = stackalloc byte[256];
+        int expectedCount = Encoding.ASCII.GetBytes(expected, expectedBytes);
+        if (!header[..read].SequenceEqual(expectedBytes[..expectedCount]))
+            throw Failure("GitBasisObjectInvalid", "The fixed blob is missing or its header changed.");
     }
     private void Add(SnapshotEntry entry)
     {
@@ -417,12 +541,26 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
             }
             finally
             {
-                reader.Dispose(); session.Reader = null; session.Output = null; session.Error = null;
-                session.Streaming = false; ActiveReaderProcesses--;
+                lock (readGate)
+                {
+                    reader.Dispose(); session.Reader = null; session.Output = null; session.Error = null;
+                    session.Streaming = false; ActiveReaderProcesses--;
+                }
             }
         }
     }
     private static GitProgressReadStream ProgressOutput(Process process) => new(process.StandardOutput.BaseStream,
         () => { try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } });
-    public void Dispose() { lock (readGate) { try { ResetProof(); } finally { disposed = true; } } }
+    public void Dispose()
+    {
+        lock (readGate)
+        {
+            if (closing) { while (!disposed) Monitor.Wait(readGate); return; }
+            if (disposed) return;
+            closing = true; Monitor.PulseAll(readGate);
+            while (activeReads != 0) Monitor.Wait(readGate);
+            try { ResetProof(); }
+            finally { disposed = true; Monitor.PulseAll(readGate); }
+        }
+    }
 }

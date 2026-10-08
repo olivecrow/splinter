@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:git-source-metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "basis", "revision", "tree", "files", "examinedBytes", "examinedFiles", "captureTicks", "clockFrequency", "contentHash"],
+  "properties": {
+    "version": { "const": 1 },
+    "basis": {
+      "allOf": [
+        { "$ref": "urn:splinter:v1:generated-directory-reference" },
+        { "not": { "required": ["sourceMetadataHash"] } }
+      ]
+    },
+    "revision": { "type": "string", "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$" },
+    "tree": { "type": "string", "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$" },
+    "files": {
+      "type": "array",
+      "maxItems": 250000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "objectId", "length", "creationTime", "lastAccessTime", "lastWriteTime"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "maxLength": 32000 },
+          "objectId": { "type": "string", "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$" },
+          "length": { "type": "integer", "minimum": 0 },
+          "creationTime": { "type": "integer", "minimum": 0, "maximum": 2650467743999999999 },
+          "lastAccessTime": { "type": "integer", "minimum": 0, "maximum": 2650467743999999999 },
+          "lastWriteTime": { "type": "integer", "minimum": 0, "maximum": 2650467743999999999 }
+        }
+      }
+    },
+    "examinedBytes": { "type": "integer", "minimum": 0 },
+    "examinedFiles": { "type": "integer", "minimum": 0, "maximum": 250000 },
+    "captureTicks": { "type": "integer", "minimum": 0 },
+    "clockFrequency": { "type": "integer", "minimum": 1 },
+    "contentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

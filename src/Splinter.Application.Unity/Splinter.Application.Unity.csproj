@@ -3,5 +3,6 @@
     <InternalsVisibleTo Include="Splinter.Tests" />
     <ProjectReference Include="../Splinter.Core/Splinter.Core.csproj" />
     <EmbeddedResource Include="../../unity/Splinter.Editor/Editor/WorkspaceBridge.cs" LogicalName="Splinter.Editor.WorkspaceBridge.cs" />
+    <EmbeddedResource Include="../../unity/Splinter.Editor/Editor/Splinter.Workspace.Editor.asmdef" LogicalName="Splinter.Editor.WorkspaceBridge.asmdef" />
   </ItemGroup>
 </Project>

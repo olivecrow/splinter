@@ -37,3 +37,9 @@ Library 안에 외부 서버의 계속 쓰는 로그가 있으면 기준본을 �
 파일 할당 계측은 기존 `scripts/measure-workspace-storage.ps1`에 정확한 `-WorkspaceIds`와 `-GeneratedDirectoryIds <basis-id> -SkipOriginalLibrary`를 전달한다. 선택한 state/project/owner/경로를 대조하고 공유 basis root를 한 번만 센다. Win32 조회에는 긴 NTFS 경로도 전달한다. `moved-original-Library-payload`는 원래 있던 데이터의 이동이며 추가 비용에서 제외한다. 원본 delta·basis metadata·각 작업 delta·공유 runner/Git·증거 비용은 구별한다. 전체 물리 peak/VSS 귀속은 이 파일 표본으로 확정하지 않는다.
 
 일반 NTFS 파일/디렉터리만 대상으로 한다. reparse·hardlink·ADS·EFS·NTFS compression·sparse 입력과 별도 보안 descriptor/OS 장애는 추가 자격이 필요하다. 기존 VSS·개발용 single-view Library cache의 자격을 이 경로로 승계하지 않는다. 선택 범위와 현재 자격은 [실행 계획](plans/git-library-reference.md)과 [검증](verification/git-library-reference.md)을 따른다.
+
+## 내용 검증 소스 시각
+
+새 Unity Library를 일반 Git repository root에서 준비할 때 고정 commit/tree를 기록하고, 원본 파일을 write/delete 공유 없는 같은 핸들로 읽어 raw Git blob hash와 일치한 파일의 시각만 수집한다. 작업 디렉터리의 CRLF 변환·내용 변경·누락·점유 파일은 재사용하지 않는다. 원본 핸들은 준비 뒤 닫으므로 이후 원본 편집은 가능하다. 별도 payload 복사나 cache 없이 소스 내용 전체 읽기 1회를 추가한다. Git이 아닌 입력과 `.git` 파일인 linked root는 이 최적화를 선택하지 않으며 기존 입력 판정은 그대로다. 손상된 일반 Git root·partial clone·shallow·alternates는 보존·거부한다.
+
+원자 게시하는 `source-metadata.json` v1은 현재 canonical 내용의 `contentHash`를 포함한다. Library 전체 tuple·manifest hash와 전체 map의 `sourceMetadataHash`를 기준 참조와 Git receipt/snapshot identity에 고정한다. 상태 게시 전 재시도도 같은 intent·Library manifest/proof·map 내부 내용 증명을 확인하고 기존 bytes를 재사용한다. 원본 재조회·자동 손상 복구는 없다. 같은 경로/blob/길이만 시각을 적용하며 다른 항목/디렉터리는 snapshot capture 시각을 유지한다. Map 없는 기존 기준은 자동 보충하지 않는다. Schema·회귀·추가 읽기 비용과 새 전체 A/B 미실행 경계는 [SU-05](verification/startup-profile-optimization.md)를 따른다.

@@ -1,0 +1,341 @@
+{
+  "verificationIds": [
+    "SU-01",
+    "SU-02",
+    "SU-03",
+    "SU-04",
+    "SU-05"
+  ],
+  "candidate": {
+    "baseCommit": "8709ba27574a2de8d0ecaee1a1413f42358d53ec",
+    "state": "uncommitted working tree",
+    "filesSha256": {
+      "contracts/v1/generated-directory-reference.schema.json": "884415abd52b6df7f9ce92bd4c4c7e44252dd4c0005666588c03c78acbe0e265",
+      "contracts/v1/git-project-basis-receipt.schema.json": "926b8716bff51c4368d8da0628582e7f4c774ffaa1315ad7960e6978db853451",
+      "contracts/v1/git-source-metadata.schema.json": "7482cbe766e9eeb8ce0c8174354c49054e7a1d6612a7a807d154680dd44e03b9",
+      "src/Splinter.Application.Unity/Splinter.Application.Unity.csproj": "9c3fc7bc2fe27550afa4190cc32f78c06ad4daf59c50df8dc9f7b4ad362b0b75",
+      "src/Splinter.Application.Unity/UnityWorkspaceProvider.cs": "1fbe8f0bda9c8fbc01b583a28f90ea10f06a74f5b62ad0553d5fa33d8ccc759c",
+      "src/Splinter.Core/GeneratedDirectoryBasis.cs": "5067fbf2be422261a6e9580c003ce3d5f31dacac27594f57375e2620a6cc298b",
+      "src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs": "981e53ff1b6b6d2bf6155fe053494d47e6ead2bb50e0d2c7d18ca940a5d2a70c",
+      "src/Splinter.Platform.Windows/NtfsSnapshotWorkspaceBackend.cs": "64a1ebf4182526afadd2d1ed6f22aba62d4712a7e0bd9aa99fb4b41ec084bbce",
+      "src/Splinter.Platform.Windows/WinFspOverlayFileSystem.cs": "b9962afd1e1eba625d570a756d46a0315dac53b6027b2ed23e2ce07b01b974ac",
+      "src/Splinter.Platform.Windows/WinFspOverlayServer.cs": "646ebb9a18e0fa61b1e3a7645c9b630607c03fedf77362b42fe0959f6258a469",
+      "src/Splinter.Platform.Windows/WindowsGitSourceMetadata.cs": "3297e8205cb54bb0eab2ca23e46c394cb241858eb80866132f1a855a11241113",
+      "src/Splinter.Platform.Windows/WindowsJournalDirectoryGuard.cs": "788c5757bee724051ef7d9525926ac402a2ed4c38e1773f64def72edba561825",
+      "src/Splinter.Runtime/IJournalDirectoryGuard.cs": "525cc9a7abc942f5614b7636d3f06a4534880d1ed99bb53b47de58129e6022d4",
+      "src/Splinter.Runtime/JournalDeltaLatest.cs": "edd07783e5ef6f3024dceb638a6d53436d8059a8becc37485dedc6c92181e69a",
+      "src/Splinter.Runtime/JournalDeltaStore.cs": "0c51366e27847b220bd7242186fa4e9223b0cee8445c2ab22b1786465be3e832",
+      "src/Splinter.Runtime/LatestJournalStorage.cs": "0ff8351fa0846afd27db1ff8187f6b8d0f969ceaf581c332dacfa8f63533d6ba",
+      "src/Splinter.SourceControl.Git/GitObjectSnapshotProvider.cs": "868e01b2a907fe0f133d37e451bae24bf22e5df78154c7b09dab9cb1dcb79892",
+      "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs": "371cab4df805d3d3e524491cc4d39fdf5b5a164c74579826a8f623779d412c5d",
+      "src/Splinter.SourceControl.Git/GitSourceMetadata.cs": "0c9e05774ff183219754fd00775664f53c2172cd9c0646b8ce24d6e098218838",
+      "tests/Splinter.Tests/GitReaderConcurrencyTests.cs": "7fb925f5637ae98068816f64d94f933a650760bacceb18837b0939750bb4da6f",
+      "tests/Splinter.Tests/GitSourceMetadataTests.cs": "a8d32e11bb2f70b8fb6eedcb105ea7d7e48f05bae5acfa27f147a543da8f940e",
+      "tests/Splinter.Tests/JournalPathProofTests.cs": "a520052168b38b085d7e9329cb69c874cae583a42c98d77dbe9d90a2840fe1cd",
+      "tests/Splinter.Tests/UnityInfrastructureReuseTests.cs": "626888dd19db47bd5a2501a6cf317a2fab61457ca08a506ededd5ec16eac7d27",
+      "tests/Splinter.Tests/WinFspCleanupConcurrencyTests.cs": "ccd6890c987da688fe55b00dc9a8440f85f4b10f7c666a3e2e7af4312980ece6",
+      "unity/Splinter.Editor/Editor/Splinter.Workspace.Editor.asmdef": "3f091dfbd0e72be751a2a7901d3e21a392b393c8fe2797c692cb95580919b9e7"
+    }
+  },
+  "gitRead": {
+    "comparison": {
+      "beforeSeconds": 0.26836605,
+      "afterSeconds": 0.14993305,
+      "reductionPercent": 44.13114102920247,
+      "beforeSamplesSeconds": [
+        0.2684117,
+        0.2683204
+      ],
+      "afterSamplesSeconds": [
+        0.1489191,
+        0.150947
+      ]
+    },
+    "samples": [
+      {
+        "label": "before-final1",
+        "scenario": "two-packed-8MiB-blobs-overlapping-4KiB-ranges",
+        "commit": "a50dfa77bd26339b76796198c34fd573fe615a58",
+        "treeId": "7421c355dedcfe36f1d15691310ee1b9cb2d4000",
+        "elapsedReadSeconds": 0.2684117,
+        "sourceBytes": 16777216,
+        "decodedBlobBytes": 33554432,
+        "requestedBytes": 16777216,
+        "rangeBytes": 4096,
+        "counters": {
+          "ReaderProcessStarts": 2,
+          "FullBlobProofs": 2,
+          "PeakReaderProcesses": 2,
+          "CachedPayloadBytes": 262144,
+          "PeakProofBytes": 8192,
+          "CachedProofBytes": 8192
+        },
+        "productSha256": "5a9d865993678760367485fa65f9938c186cee7d4c6c722aceceee93c403cdb8",
+        "rawBlobSha256": [
+          "c6a0c9bed0f2d10cd947ba54df396038a1f5881b920e2c0618b16e60f4f9aa1a",
+          "4c47bb68e6315b338efae16553488ff325cc002a39f0a720399871f46e638ebd"
+        ],
+        "hashesMatch": true,
+        "ownedReadersAfterClose": 0,
+        "boundary": "Fixed real packed Git tree only; setup/hash checking/close excluded from read timer; barriers included; no Unity or mounted-filesystem claim.",
+        "evidence": "artifacts/startup-read-followup-20261008/git-cost-probe/results/before-final1.json"
+      },
+      {
+        "label": "after-final1",
+        "scenario": "two-packed-8MiB-blobs-overlapping-4KiB-ranges",
+        "commit": "a50dfa77bd26339b76796198c34fd573fe615a58",
+        "treeId": "7421c355dedcfe36f1d15691310ee1b9cb2d4000",
+        "elapsedReadSeconds": 0.1489191,
+        "sourceBytes": 16777216,
+        "decodedBlobBytes": 33554432,
+        "requestedBytes": 16777216,
+        "rangeBytes": 4096,
+        "counters": {
+          "ReaderProcessStarts": 2,
+          "FullBlobProofs": 2,
+          "PeakReaderProcesses": 2,
+          "CachedPayloadBytes": 262144,
+          "PeakProofBytes": 8192,
+          "CachedProofBytes": 8192
+        },
+        "productSha256": "a047acf714e99f3ab6ff089723291d3aefc33e2f390a6bbb7a62b956ccabc38e",
+        "rawBlobSha256": [
+          "c6a0c9bed0f2d10cd947ba54df396038a1f5881b920e2c0618b16e60f4f9aa1a",
+          "4c47bb68e6315b338efae16553488ff325cc002a39f0a720399871f46e638ebd"
+        ],
+        "hashesMatch": true,
+        "ownedReadersAfterClose": 0,
+        "boundary": "Fixed real packed Git tree only; setup/hash checking/close excluded from read timer; barriers included; no Unity or mounted-filesystem claim.",
+        "evidence": "artifacts/startup-read-followup-20261008/git-cost-probe/results/after-final1.json"
+      },
+      {
+        "label": "after-final2",
+        "scenario": "two-packed-8MiB-blobs-overlapping-4KiB-ranges",
+        "commit": "a50dfa77bd26339b76796198c34fd573fe615a58",
+        "treeId": "7421c355dedcfe36f1d15691310ee1b9cb2d4000",
+        "elapsedReadSeconds": 0.150947,
+        "sourceBytes": 16777216,
+        "decodedBlobBytes": 33554432,
+        "requestedBytes": 16777216,
+        "rangeBytes": 4096,
+        "counters": {
+          "ReaderProcessStarts": 2,
+          "FullBlobProofs": 2,
+          "PeakReaderProcesses": 2,
+          "CachedPayloadBytes": 262144,
+          "PeakProofBytes": 8192,
+          "CachedProofBytes": 8192
+        },
+        "productSha256": "a047acf714e99f3ab6ff089723291d3aefc33e2f390a6bbb7a62b956ccabc38e",
+        "rawBlobSha256": [
+          "c6a0c9bed0f2d10cd947ba54df396038a1f5881b920e2c0618b16e60f4f9aa1a",
+          "4c47bb68e6315b338efae16553488ff325cc002a39f0a720399871f46e638ebd"
+        ],
+        "hashesMatch": true,
+        "ownedReadersAfterClose": 0,
+        "boundary": "Fixed real packed Git tree only; setup/hash checking/close excluded from read timer; barriers included; no Unity or mounted-filesystem claim.",
+        "evidence": "artifacts/startup-read-followup-20261008/git-cost-probe/results/after-final2.json"
+      },
+      {
+        "label": "before-final2",
+        "scenario": "two-packed-8MiB-blobs-overlapping-4KiB-ranges",
+        "commit": "a50dfa77bd26339b76796198c34fd573fe615a58",
+        "treeId": "7421c355dedcfe36f1d15691310ee1b9cb2d4000",
+        "elapsedReadSeconds": 0.2683204,
+        "sourceBytes": 16777216,
+        "decodedBlobBytes": 33554432,
+        "requestedBytes": 16777216,
+        "rangeBytes": 4096,
+        "counters": {
+          "ReaderProcessStarts": 2,
+          "FullBlobProofs": 2,
+          "PeakReaderProcesses": 2,
+          "CachedPayloadBytes": 262144,
+          "PeakProofBytes": 8192,
+          "CachedProofBytes": 8192
+        },
+        "productSha256": "5a9d865993678760367485fa65f9938c186cee7d4c6c722aceceee93c403cdb8",
+        "rawBlobSha256": [
+          "c6a0c9bed0f2d10cd947ba54df396038a1f5881b920e2c0618b16e60f4f9aa1a",
+          "4c47bb68e6315b338efae16553488ff325cc002a39f0a720399871f46e638ebd"
+        ],
+        "hashesMatch": true,
+        "ownedReadersAfterClose": 0,
+        "boundary": "Fixed real packed Git tree only; setup/hash checking/close excluded from read timer; barriers included; no Unity or mounted-filesystem claim.",
+        "evidence": "artifacts/startup-read-followup-20261008/git-cost-probe/results/before-final2.json"
+      }
+    ],
+    "limitations": "Two samples per candidate in balanced order; fixed two packed blobs. No Unity/WinFsp or statistical confidence claim."
+  },
+  "journalPath": {
+    "comparison": {
+      "beforeSeconds": 3.8473484,
+      "afterSeconds": 2.9539978,
+      "reductionPercent": 23.21990386937664,
+      "beforeSamplesSeconds": [
+        3.9962391,
+        3.6984577
+      ],
+      "afterSamplesSeconds": [
+        2.9568939,
+        2.9511017
+      ]
+    },
+    "evidence": {
+      "measuredAt": "2026-10-08T04:42:07.685706+00:00",
+      "runtimeSha256": "bbeba7b8b1f1dbbaad8e68882a79e0eb301e40435d5ad204fc5261e65254fcad",
+      "scope": "Four fresh ordinary NTFS fixtures; current binary full walk/pinned/pinned/full walk; append time only, not Unity or physical I/O.",
+      "results": [
+        {
+          "mode": "full-walk",
+          "elapsedSeconds": 3.9962391,
+          "writes": 512,
+          "bytesPerWrite": 4096,
+          "inputBytes": 2097152,
+          "flushes": 512,
+          "appended": 4576784,
+          "journalBytes": 2386404,
+          "pinnedAncestors": null,
+          "measuredLeafChecks": null,
+          "baselineAttributeQueryCount": null,
+          "seal": {
+            "DurableSequence": 577,
+            "JournalBytes": 2386404,
+            "JournalHash": "56425a51d0104d460c1847b3344513e89e4d4276b76f309098c1ec248f07de79"
+          },
+          "contentVerified": true,
+          "peerFilesVerified": 32,
+          "reconnectSealVerified": true
+        },
+        {
+          "mode": "pinned-ancestry",
+          "elapsedSeconds": 2.9568939,
+          "writes": 512,
+          "bytesPerWrite": 4096,
+          "inputBytes": 2097152,
+          "flushes": 512,
+          "appended": 4576784,
+          "journalBytes": 2386404,
+          "pinnedAncestors": 16,
+          "measuredLeafChecks": 1536,
+          "baselineAttributeQueryCount": null,
+          "seal": {
+            "DurableSequence": 577,
+            "JournalBytes": 2386404,
+            "JournalHash": "2a1031ec99f6af3c39ca492ff3e6b5efee35207d76a461b2f045cef0a1f7ac3c"
+          },
+          "contentVerified": true,
+          "peerFilesVerified": 32,
+          "reconnectSealVerified": true
+        },
+        {
+          "mode": "pinned-ancestry",
+          "elapsedSeconds": 2.9511017,
+          "writes": 512,
+          "bytesPerWrite": 4096,
+          "inputBytes": 2097152,
+          "flushes": 512,
+          "appended": 4576784,
+          "journalBytes": 2386404,
+          "pinnedAncestors": 16,
+          "measuredLeafChecks": 1536,
+          "baselineAttributeQueryCount": null,
+          "seal": {
+            "DurableSequence": 577,
+            "JournalBytes": 2386404,
+            "JournalHash": "d01bddca335bf9c160151f1335d3df9e3242bd01aa624fd7c2d1d639b97a6461"
+          },
+          "contentVerified": true,
+          "peerFilesVerified": 32,
+          "reconnectSealVerified": true
+        },
+        {
+          "mode": "full-walk",
+          "elapsedSeconds": 3.6984577,
+          "writes": 512,
+          "bytesPerWrite": 4096,
+          "inputBytes": 2097152,
+          "flushes": 512,
+          "appended": 4576784,
+          "journalBytes": 2386404,
+          "pinnedAncestors": null,
+          "measuredLeafChecks": null,
+          "baselineAttributeQueryCount": null,
+          "seal": {
+            "DurableSequence": 577,
+            "JournalBytes": 2386404,
+            "JournalHash": "f539604538547ccb363a712eba49f79c73f6ce79468e9f94bda149370d6fe77c"
+          },
+          "contentVerified": true,
+          "peerFilesVerified": 32,
+          "reconnectSealVerified": true
+        }
+      ]
+    },
+    "limitations": "Same final binary, full-walk versus pinned ancestry; append loop only, not a previous-release or physical-I/O comparison."
+  },
+  "originalSourceMetadata": {
+    "Revision": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+    "Tree": "e2def19117c5906a9b18a4e7f3d9f5a1916c839f",
+    "ExaminedBytes": 2804673377,
+    "ExaminedFiles": 1602,
+    "matchedFiles": 1568,
+    "matchedCSharpFiles": 7,
+    "elapsedSeconds": 5.4891464,
+    "catalogAndSourceReadSeconds": 5.4389298,
+    "manifestBytes": 397543,
+    "productSha256": "f8869bcde4e9981ebd4e6a74c68072e666937bd8d6334c07fa9642de67edf34e",
+    "boundary": "Read-only actual original source capture with synthetic Library tuple. No Library preparation, move, mount, Editor, service, workspace or state publication. One warm sample; overhead is not a measured startup saving."
+  },
+  "unityBridge": {
+    "version": "6000.3.22f1",
+    "input": "tiny ordinary NTFS fixture with no package dependencies",
+    "runtimeHash": "6a8a26bc3bd8b6a6663fe976757cb2118bbaf7a9040b9643909ba5541f702253",
+    "editorHash": "7c1862b99edb685cc80940070b189819377cd91e79ff23903857512f3dac952b",
+    "predefinedHashesUnchanged": true,
+    "assembly": "Splinter.Workspace.Editor",
+    "sourceCount": 1,
+    "predefinedReferencesBridge": false,
+    "compileScriptsSeconds": 1.181846,
+    "onlyCscTarget": "Splinter.Workspace.Editor.dll",
+    "readyHeartbeatObserved": true,
+    "normalStopObserved": true,
+    "limitations": "Cold baseline and warm second start are different conditions; no total startup speedup claim. Play/Test/build NotRun."
+  },
+  "validation": {
+    "requiredBuild": "pwsh -NoProfile -File scripts/build.ps1",
+    "log": "artifacts/startup-read-followup-20261008/build-final.log",
+    "counts": {
+      "total": 1382,
+      "executed": 1362,
+      "passed": 1362,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 20,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "focusedGitPassed": 13,
+    "explicitJournalCostPassed": 1,
+    "firstIntegratedRun": "Interrupted after a reproduced shutdown hang; retained as failed evidence. Catch-body exception classification fixed it before final validation."
+  },
+  "boundaries": {
+    "largeUnityABStartup": "NotRun",
+    "priorUP01StartupSeconds": 766.9023723999999,
+    "priorResultIsNewQualification": false,
+    "uac": false,
+    "installedServiceChanged": false,
+    "externalPackagesChanged": false,
+    "originalProjectEdited": false,
+    "originalLibraryMovedOrMounted": false,
+    "originalSourceReadOnly": true
+  }
+}

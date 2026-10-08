@@ -80,13 +80,16 @@ public sealed partial class JournalDeltaStore
         var root = LatestJournalStorage.ReadRoot(path);
         string objects = Path.Combine(Path.GetDirectoryName(path)!, root.Objects);
         WorkspaceStore.EnsurePlainPath(objects);
+        latestDirectoryGuard = directoryGuardFactory?.Invoke(objects);
+        if (latestDirectoryGuard is not null && !WorkspaceStore.SamePath(latestDirectoryGuard.DirectoryPath, objects))
+            throw new WorkspaceException("UnsafePath", "The journal directory proof belongs to another generation.");
         latestObjectsLock = new FileStream(Path.Combine(objects, "owner.lock"), FileMode.Open,
             readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 1);
         // Recovery may publish this root as a backup and truncate its retired
         // footer. Keep the writer/object guards, but not a read-only-sharing
         // root handle that would block our own exact recovery write.
         journal.Dispose();
-        latest = new(path, Identity, readOnly);
+        latest = new(path, Identity, readOnly, latestDirectoryGuard);
         latest.FlushObserver = ticks => { Interlocked.Increment(ref flushCount); Interlocked.Add(ref flushTicks, ticks); };
         foreach (string unsafePath in latest.Current.ProjectionUnsafe)
         {

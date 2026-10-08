@@ -43,6 +43,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private readonly WorkspacePathPolicy pathPolicy;
     private FileStream journal;
     private readonly IJournalMutationObserver? mutationObserver;
+    private readonly Func<string, IJournalDirectoryGuard>? directoryGuardFactory;
+    private IJournalDirectoryGuard? latestDirectoryGuard;
     private readonly Dictionary<Guid, Node> nodes = [];
     private readonly Dictionary<string, Guid> paths;
     private readonly Dictionary<string, HashSet<Guid>> children;
@@ -89,20 +91,23 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private readonly bool readOnly;
     public OverlayIdentity Identity { get; }
 
-    public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, bool optimizeJournal = true)
-        : this(directory, identity, snapshot, "delta.journal", false, null, optimizeJournal) { }
+    public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, bool optimizeJournal = true,
+        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
+        : this(directory, identity, snapshot, "delta.journal", false, null, optimizeJournal, directoryGuardFactory) { }
 
     public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot,
-        IJournalMutationObserver mutationObserver, bool optimizeJournal = true)
-        : this(directory, identity, snapshot, "delta.journal", false, mutationObserver, optimizeJournal) { }
+        IJournalMutationObserver mutationObserver, bool optimizeJournal = true, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
+        : this(directory, identity, snapshot, "delta.journal", false, mutationObserver, optimizeJournal, directoryGuardFactory) { }
 
     private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName, bool readOnly = false)
         : this(directory, identity, snapshot, journalName, readOnly, null) { }
 
     private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName,
-        bool readOnly, IJournalMutationObserver? mutationObserver, bool optimizeJournal = false)
+        bool readOnly, IJournalMutationObserver? mutationObserver, bool optimizeJournal = false,
+        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
     {
         this.mutationObserver = mutationObserver;
+        this.directoryGuardFactory = directoryGuardFactory;
         pathPolicy = WorkspacePathPolicy.For(identity.Snapshot);
         paths = new(pathPolicy.Comparer); children = new(pathPolicy.Comparer);
         hidden = new(pathPolicy.Comparer); pathChanges = new(pathPolicy.Comparer);
@@ -159,7 +164,12 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             replayTicks = Stopwatch.GetTimestamp() - replayStarted;
             expectedJournalBytes = journal.Length;
         }
-        catch { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); throw; }
+        catch
+        {
+            try { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); }
+            finally { latestDirectoryGuard?.Dispose(); }
+            throw;
+        }
     }
 
     public DeltaEntry? Stat(string path) { using (EnterGate()) { Check(); return Lookup(NormalizePath(path))?.Entry; } }
@@ -501,7 +511,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             try
             {
                 while (activeBaseReads != 0) Monitor.Wait(gate);
-                journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose();
+                try { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); }
+                finally { latestDirectoryGuard?.Dispose(); }
             }
             finally { disposed = true; closing = false; Monitor.PulseAll(gate); }
         }

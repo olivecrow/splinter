@@ -2,7 +2,7 @@
 
 [English](../alpha-workspaces.md)
 
-같은 workspace를 다시 시작할 때 동일한 소유 bridge·marker는 소유권/내용/경로 전체 검증 뒤 재사용하여 에셋 시각을 유지한다. 내용이 다른 검증된 소유 bridge는 일반 갱신 경로를 따른다. token과 시작 제어 기록은 새로 만들며 최초 컴파일은 그대로다. [준비 시간 검증](verification/startup-time-optimization.md)을 따른다.
+같은 workspace를 다시 시작할 때 동일한 소유 bridge resource·marker는 소유권/내용/경로 전체 검증 뒤 재사용하여 에셋 시각을 유지한다. Editor 전용 `Splinter.Workspace.Editor` assembly는 자동 참조를 끈다. Marker version 2는 C#·assembly definition hash를 묶으며, 내용이 달라진 검증된 소유 resource만 갱신하고 이전 marker·unknown/변경 파일은 보존·거부한다. token과 시작 제어 기록은 새로 만든다. 작은 실제 Unity assembly/수명 검증은 [준비 프로파일 후속 최적화](verification/startup-profile-optimization.md)를 따른다. 이 후보의 전체 A/B 준비 시간은 NotRun이다.
 
 제품은 NTFS 작업공간과 그 Editor의 수명을 관리한다. 생성·재개·범위 저장·독립 결과·통합·회수/폐기는 [NTFS 계약](ntfs-workspaces.md)을 따른다. Library view는 [개발 CLI](development-cli.md)에 분리돼 있다.
 

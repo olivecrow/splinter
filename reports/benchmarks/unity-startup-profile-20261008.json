@@ -1,0 +1,3576 @@
+{
+  "verificationId": "UP-01",
+  "candidateCommit": "8709ba27574a2de8d0ecaee1a1413f42358d53ec",
+  "runtimeSha256": "3661d876c091b774965ecaddcbd9be080ec432378f561ee843647d5519b50537",
+  "sourceCommit": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+  "unityVersion": "6000.3.22f1",
+  "sourceFiles": 1602,
+  "sourceBytes": 2804772822,
+  "libraryFiles": 42420,
+  "libraryDirectories": 2440,
+  "libraryBytes": 3141660252,
+  "libraryEntriesMatchPrior": 44860,
+  "libraryEntryDifferences": 0,
+  "libraryManifestHashes": {
+    "UC": "e65d38b616c4817fae234800980ee928d17495d2592c875e80865f1e97943244",
+    "UP": "a138097ae82b48ecece5b1a82833c438060e3369e86f4ba9a8ac8d6f0b95f4c6"
+  },
+  "observationComparison": {
+    "priorId": "UC-01",
+    "priorSeconds": 848.3379124999992,
+    "currentSeconds": 766.9023723999999,
+    "reductionSeconds": 81.43554009999934,
+    "reductionPercent": 9.599422458913082,
+    "isolatedCausalSpeedup": false,
+    "note": "One profiled cohort versus prior unprofiled cohort; no randomized repeat/cache clearing; A/B are separate tasks, not statistical repetitions."
+  },
+  "cost": {
+    "commands": {
+      "library-prepare": {
+        "beganUtc": "2026-10-08T02:51:56.777115+00:00",
+        "endedUtc": "2026-10-08T02:54:32.400886+00:00",
+        "elapsedSeconds": 155.62092129999655,
+        "exitCode": 0,
+        "status": "Succeeded",
+        "sampledThreadTrace": false
+      },
+      "s-a-ensure-corrected": {
+        "beganUtc": "2026-10-08T02:54:32.406232+00:00",
+        "endedUtc": "2026-10-08T02:58:29.518340+00:00",
+        "elapsedSeconds": 237.10784370001056,
+        "exitCode": 0,
+        "status": "Succeeded",
+        "sampledThreadTrace": false
+      },
+      "s-b-ensure-corrected": {
+        "beganUtc": "2026-10-08T02:58:29.519722+00:00",
+        "endedUtc": "2026-10-08T03:02:22.686573+00:00",
+        "elapsedSeconds": 233.16266040000482,
+        "exitCode": 0,
+        "status": "Succeeded",
+        "sampledThreadTrace": false
+      },
+      "s-a-unity-start": {
+        "beganUtc": "2026-10-08T03:02:22.688253+00:00",
+        "endedUtc": "2026-10-08T03:02:25.906040+00:00",
+        "elapsedSeconds": 3.2171746999956667,
+        "exitCode": 0,
+        "status": "Accepted",
+        "sampledThreadTrace": false
+      },
+      "s-b-unity-start": {
+        "beganUtc": "2026-10-08T03:02:22.688474+00:00",
+        "endedUtc": "2026-10-08T03:02:25.905840+00:00",
+        "elapsedSeconds": 3.216904999993858,
+        "exitCode": 0,
+        "status": "Accepted",
+        "sampledThreadTrace": false
+      },
+      "s-a-unity-stop": {
+        "beganUtc": "2026-10-08T03:15:09.606018+00:00",
+        "endedUtc": "2026-10-08T03:17:10.181329+00:00",
+        "elapsedSeconds": 120.57312119999551,
+        "exitCode": 2,
+        "status": "Failed",
+        "sampledThreadTrace": false
+      },
+      "s-b-unity-stop": {
+        "beganUtc": "2026-10-08T03:15:09.606224+00:00",
+        "endedUtc": "2026-10-08T03:17:10.188544+00:00",
+        "elapsedSeconds": 120.58010370000557,
+        "exitCode": 2,
+        "status": "Failed",
+        "sampledThreadTrace": false
+      },
+      "s-a-checkpoint": {
+        "beganUtc": "2026-10-08T03:18:57.691336+00:00",
+        "endedUtc": "2026-10-08T03:19:57.611938+00:00",
+        "elapsedSeconds": 59.91927379999834,
+        "exitCode": 0,
+        "status": "Succeeded",
+        "sampledThreadTrace": false
+      },
+      "s-a-release": {
+        "beganUtc": "2026-10-08T03:19:57.612835+00:00",
+        "endedUtc": "2026-10-08T03:21:41.476279+00:00",
+        "elapsedSeconds": 103.86144429999695,
+        "exitCode": 0,
+        "status": "Succeeded",
+        "sampledThreadTrace": false
+      },
+      "s-b-checkpoint": {
+        "beganUtc": "2026-10-08T03:21:41.479580+00:00",
+        "endedUtc": "2026-10-08T03:22:40.186343+00:00",
+        "elapsedSeconds": 58.70538100000704,
+        "exitCode": 0,
+        "status": "Succeeded",
+        "sampledThreadTrace": false
+      },
+      "s-b-release": {
+        "beganUtc": "2026-10-08T03:22:40.187788+00:00",
+        "endedUtc": "2026-10-08T03:24:20.351848+00:00",
+        "elapsedSeconds": 100.16209250000247,
+        "exitCode": 0,
+        "status": "Succeeded",
+        "sampledThreadTrace": false
+      },
+      "library-restore": {
+        "beganUtc": "2026-10-08T03:24:20.355185+00:00",
+        "endedUtc": "2026-10-08T03:26:14.323767+00:00",
+        "elapsedSeconds": 113.96645739999076,
+        "exitCode": 0,
+        "status": "Succeeded",
+        "sampledThreadTrace": false
+      }
+    },
+    "initialCohort": {
+      "beganUtc": "2026-10-08T03:02:22.687983+00:00",
+      "endedUtc": "2026-10-08T03:15:09.602930+00:00",
+      "elapsedSeconds": 766.9023723999999
+    },
+    "normalStop": {
+      "beganUtc": "2026-10-08T03:15:09.605579+00:00",
+      "endedUtc": "2026-10-08T03:18:56.210522+00:00",
+      "elapsedSeconds": 226.60124430000724,
+      "ownedEditorCount": 0,
+      "cliOutcomes": [
+        "Failed",
+        "Failed"
+      ],
+      "requestsRepeated": false,
+      "forcedTermination": false
+    },
+    "preserveRelease": {
+      "beganUtc": "2026-10-08T03:18:57.691320+00:00",
+      "endedUtc": "2026-10-08T03:24:20.354632+00:00",
+      "elapsedSeconds": 322.6580615999992
+    },
+    "prepareThroughRestorationSeconds": 2057.54665184021
+  },
+  "editors": {
+    "a": {
+      "elapsedSeconds": 766.8983993000002,
+      "processId": 25072,
+      "assemblyMvid": "a39c509e-609a-439d-a0fe-3d5c7936351d",
+      "generation": "591e7226024c4e13a086e4d001065142",
+      "qualification": "exact owned path/PID/start and fresh external fixture ready/noncompiling/nonupdating; code values4/6/13; no edit/Play/Test/build",
+      "projectInfo": [
+        {
+          "type": "ProjectInfo",
+          "version": 2,
+          "phase": "Immediate",
+          "time": 1791429303286,
+          "processId": 25072,
+          "projectLoad": 757.8448807999999,
+          "projectInit": 754.0737539,
+          "templateInit": 0.0,
+          "packageManagerInit": 2.3434218,
+          "assetDatabaseInit": 1.9742959,
+          "globalIlluminationInit": 0.0125186,
+          "assembliesLoad": 8.8989775,
+          "unityExtensionsInit": 0.0173742,
+          "assetDatabaseRefresh": 732.1866847,
+          "sceneOpening": 3.3394256
+        }
+      ],
+      "refreshes": [
+        {
+          "id": "be5e8c3c95dfe3d42ac7a108927ad508",
+          "totalSeconds": 732.187,
+          "reason": "InitialRefreshV2(ForceSynchronousImport)",
+          "phases": [
+            {
+              "depth": 1,
+              "name": "InvokeCustomDependenciesCallbacks",
+              "seconds": 2e-06,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "InvokePackagesCallback",
+              "seconds": 3.099483,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "ApplyChangesToAssetFolders",
+              "seconds": 0.0023380000000000002,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "Scan",
+              "seconds": 446.948627,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "OnSourceAssetsModified",
+              "seconds": 0.018164000000000003,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "CategorizeAssetsWithTransientArtifact",
+              "seconds": 2.3121660000000004,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "ProcessAssetsWithTransientArtifactChanges",
+              "seconds": 0.15230000000000002,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "CategorizeAssets",
+              "seconds": 0.065081,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "ImportOutOfDateAssets",
+              "seconds": 67.725119,
+              "withoutChildrenSeconds": -134.012616
+            },
+            {
+              "depth": 2,
+              "name": "ImportManagerImport",
+              "seconds": 11.916996,
+              "withoutChildrenSeconds": 0.091901
+            },
+            {
+              "depth": 3,
+              "name": "ImportInProcess",
+              "seconds": 11.807463,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 3,
+              "name": "UpdateCategorizedAssets",
+              "seconds": 0.017631,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "CompileScripts",
+              "seconds": 189.758552,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "ReloadNativeAssets",
+              "seconds": 0.05958,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "UnloadImportedAssets",
+              "seconds": 0.001335,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "ReloadImportedAssets",
+              "seconds": 6e-06,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "EnsureUptoDateAssetsAreRegisteredWithGuidPM",
+              "seconds": 0.000853,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "InitializingProgressBar",
+              "seconds": 3e-06,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "PostProcessAllAssetNotificationsAddChangedAssets",
+              "seconds": 1e-06,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "OnDemandSchedulerStart",
+              "seconds": 0.00040899999999999997,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "PostProcessAllAssets",
+              "seconds": 2.815412,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "Hotreload",
+              "seconds": 0.042790999999999996,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "GatherAllCurrentPrimaryArtifactRevisions",
+              "seconds": 3e-06,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "UnloadStreamsBegin",
+              "seconds": 0.00229,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "PersistCurrentRevisions",
+              "seconds": 0.228863,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "UnloadStreamsEnd",
+              "seconds": 3e-06,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "GenerateScriptTypeHashes",
+              "seconds": 0.002114,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "Untracked",
+              "seconds": 208.773929,
+              "withoutChildrenSeconds": null
+            }
+          ],
+          "imports": {
+            "total": 30,
+            "actual": 30,
+            "localCache": 0,
+            "cacheServer": 0
+          },
+          "fileChanges": {
+            "new": 4,
+            "changed": 31,
+            "moved": 0,
+            "deleted": 0
+          }
+        }
+      ],
+      "bee": [
+        {
+          "eventCount": 5726,
+          "completeCount": 5725,
+          "timelineSpanSeconds": 14.563807,
+          "timestampMin": 1791429015123296,
+          "scopesAreNonadditive": true,
+          "summaries": [
+            {
+              "name": "EarlyStatNonGeneratedFile",
+              "count": 255,
+              "sumSeconds": 109.387372,
+              "unionSeconds": 10.049460887908936,
+              "maximumSeconds": 0.757557
+            },
+            {
+              "name": "File",
+              "count": 4423,
+              "sumSeconds": 109.29475,
+              "unionSeconds": 10.049460887908936,
+              "maximumSeconds": 0.07719
+            },
+            {
+              "name": "CheckInputSignature",
+              "count": 354,
+              "sumSeconds": 12.534734,
+              "unionSeconds": 10.64021110534668,
+              "maximumSeconds": 8.385493
+            },
+            {
+              "name": "WaitForBuildFinished",
+              "count": 1,
+              "sumSeconds": 10.466169,
+              "unionSeconds": 10.466168880462646,
+              "maximumSeconds": 10.466169
+            },
+            {
+              "name": "FirstLock",
+              "count": 12,
+              "sumSeconds": 7.943783,
+              "unionSeconds": 0.662255048751831,
+              "maximumSeconds": 0.662124
+            },
+            {
+              "name": "OutputFilesMissingFor",
+              "count": 614,
+              "sumSeconds": 4.660872,
+              "unionSeconds": 0.915673017501831,
+              "maximumSeconds": 0.102752
+            },
+            {
+              "name": "ProfilerWriteOutput",
+              "count": 1,
+              "sumSeconds": 2.618,
+              "unionSeconds": 2.618000030517578,
+              "maximumSeconds": 2.618
+            },
+            {
+              "name": "EnqueueRequestedNodes",
+              "count": 1,
+              "sumSeconds": 0.662334,
+              "unionSeconds": 0.6623339653015137,
+              "maximumSeconds": 0.662334
+            },
+            {
+              "name": "JoinBuildThread",
+              "count": 4,
+              "sumSeconds": 0.496677,
+              "unionSeconds": 0.4966769218444824,
+              "maximumSeconds": 0.394735
+            },
+            {
+              "name": "Tundra",
+              "count": 2,
+              "sumSeconds": 0.10927,
+              "unionSeconds": 0.10927009582519531,
+              "maximumSeconds": 0.10913
+            },
+            {
+              "name": "DriverInitData",
+              "count": 1,
+              "sumSeconds": 0.067724,
+              "unionSeconds": 0.06772398948669434,
+              "maximumSeconds": 0.067724
+            },
+            {
+              "name": "RemoveStaleOutputs",
+              "count": 1,
+              "sumSeconds": 0.044158,
+              "unionSeconds": 0.044157981872558594,
+              "maximumSeconds": 0.044158
+            },
+            {
+              "name": "CheckDagSignatures",
+              "count": 1,
+              "sumSeconds": 0.009344,
+              "unionSeconds": 0.009344100952148438,
+              "maximumSeconds": 0.009344
+            },
+            {
+              "name": "EmitFirstTimeEnqueue",
+              "count": 52,
+              "sumSeconds": 0.007547,
+              "unionSeconds": 0.007545948028564453,
+              "maximumSeconds": 0.000531
+            },
+            {
+              "name": "BuildQueueInit",
+              "count": 1,
+              "sumSeconds": 0.000628,
+              "unionSeconds": 0.0006279945373535156,
+              "maximumSeconds": 0.000628
+            },
+            {
+              "name": "BuildQueueDestroyTail",
+              "count": 1,
+              "sumSeconds": 8.2e-05,
+              "unionSeconds": 8.20159912109375e-05,
+              "maximumSeconds": 8.2e-05
+            },
+            {
+              "name": "EmitNodeUpToDate",
+              "count": 1,
+              "sumSeconds": 7.6e-05,
+              "unionSeconds": 7.605552673339844e-05,
+              "maximumSeconds": 7.6e-05
+            }
+          ],
+          "file": "backend1.traceevents"
+        },
+        {
+          "eventCount": 6710,
+          "completeCount": 6709,
+          "timelineSpanSeconds": 97.237514,
+          "timestampMin": 1791429098427833,
+          "scopesAreNonadditive": true,
+          "summaries": [
+            {
+              "name": "ILPostProcess",
+              "count": 67,
+              "sumSeconds": 235.585402,
+              "unionSeconds": 58.770243644714355,
+              "maximumSeconds": 8.432394
+            },
+            {
+              "name": "CheckInputSignature",
+              "count": 639,
+              "sumSeconds": 142.262671,
+              "unionSeconds": 43.601667404174805,
+              "maximumSeconds": 9.900912
+            },
+            {
+              "name": "ComputeFileSignatureSha1",
+              "count": 206,
+              "sumSeconds": 95.957032,
+              "unionSeconds": 21.474091291427612,
+              "maximumSeconds": 5.202133
+            },
+            {
+              "name": "WaitForBuildFinished",
+              "count": 1,
+              "sumSeconds": 91.319717,
+              "unionSeconds": 91.31971716880798,
+              "maximumSeconds": 91.319717
+            },
+            {
+              "name": "WriteResponseFile",
+              "count": 68,
+              "sumSeconds": 56.043948,
+              "unionSeconds": 10.3677659034729,
+              "maximumSeconds": 1.383969
+            },
+            {
+              "name": "Csc",
+              "count": 2,
+              "sumSeconds": 54.974061,
+              "unionSeconds": 54.974061012268066,
+              "maximumSeconds": 36.484725
+            },
+            {
+              "name": "WriteText",
+              "count": 147,
+              "sumSeconds": 45.624259,
+              "unionSeconds": 5.926576137542725,
+              "maximumSeconds": 1.221304
+            },
+            {
+              "name": "EarlyStatNonGeneratedFile",
+              "count": 263,
+              "sumSeconds": 22.954756,
+              "unionSeconds": 2.97043776512146,
+              "maximumSeconds": 0.615817
+            },
+            {
+              "name": "File",
+              "count": 4473,
+              "sumSeconds": 22.913579,
+              "unionSeconds": 2.9704270362854004,
+              "maximumSeconds": 0.168742
+            },
+            {
+              "name": "StoreTimestampsOfNonGeneratedInputFiles",
+              "count": 70,
+              "sumSeconds": 18.086301,
+              "unionSeconds": 16.87193012237549,
+              "maximumSeconds": 2.511943
+            },
+            {
+              "name": "OutputFilesMissingFor",
+              "count": 656,
+              "sumSeconds": 16.360897,
+              "unionSeconds": 9.509955883026123,
+              "maximumSeconds": 0.275171
+            },
+            {
+              "name": "FirstLock",
+              "count": 12,
+              "sumSeconds": 7.53454,
+              "unionSeconds": 0.6281909942626953,
+              "maximumSeconds": 0.628062
+            },
+            {
+              "name": "WaitingForWork",
+              "count": 32,
+              "sumSeconds": 6.045345,
+              "unionSeconds": 0.7034001350402832,
+              "maximumSeconds": 0.349482
+            },
+            {
+              "name": "ProfilerWriteOutput",
+              "count": 1,
+              "sumSeconds": 3.016571,
+              "unionSeconds": 3.016571044921875,
+              "maximumSeconds": 3.016571
+            },
+            {
+              "name": "CopyFiles",
+              "count": 4,
+              "sumSeconds": 2.966912,
+              "unionSeconds": 2.966911792755127,
+              "maximumSeconds": 1.913693
+            },
+            {
+              "name": "DriverInitData",
+              "count": 1,
+              "sumSeconds": 2.048301,
+              "unionSeconds": 2.0483009815216064,
+              "maximumSeconds": 2.048301
+            },
+            {
+              "name": "ILPP-Configuration",
+              "count": 1,
+              "sumSeconds": 1.236251,
+              "unionSeconds": 1.236250877380371,
+              "maximumSeconds": 1.236251
+            },
+            {
+              "name": "CheckDagSignatures",
+              "count": 1,
+              "sumSeconds": 0.81033,
+              "unionSeconds": 0.8103301525115967,
+              "maximumSeconds": 0.81033
+            },
+            {
+              "name": "EnqueueRequestedNodes",
+              "count": 1,
+              "sumSeconds": 0.628129,
+              "unionSeconds": 0.6281290054321289,
+              "maximumSeconds": 0.628129
+            },
+            {
+              "name": "Tundra",
+              "count": 2,
+              "sumSeconds": 0.108109,
+              "unionSeconds": 0.1081089973449707,
+              "maximumSeconds": 0.108015
+            },
+            {
+              "name": "EmitFirstTimeEnqueue",
+              "count": 45,
+              "sumSeconds": 0.003042,
+              "unionSeconds": 0.0030434131622314453,
+              "maximumSeconds": 0.000108
+            },
+            {
+              "name": "RemoveStaleOutputs",
+              "count": 1,
+              "sumSeconds": 0.002948,
+              "unionSeconds": 0.0029480457305908203,
+              "maximumSeconds": 0.002948
+            },
+            {
+              "name": "CheckGlobSignature",
+              "count": 3,
+              "sumSeconds": 0.00182,
+              "unionSeconds": 0.0018198490142822266,
+              "maximumSeconds": 0.001335
+            },
+            {
+              "name": "BuildQueueInit",
+              "count": 1,
+              "sumSeconds": 0.00066,
+              "unionSeconds": 0.000659942626953125,
+              "maximumSeconds": 0.00066
+            },
+            {
+              "name": "EmitNodeFinish",
+              "count": 6,
+              "sumSeconds": 0.000392,
+              "unionSeconds": 0.0003921985626220703,
+              "maximumSeconds": 8.3e-05
+            },
+            {
+              "name": "JoinBuildThread",
+              "count": 2,
+              "sumSeconds": 0.000308,
+              "unionSeconds": 0.0003077983856201172,
+              "maximumSeconds": 0.000191
+            },
+            {
+              "name": "EmitNodeUpToDate",
+              "count": 2,
+              "sumSeconds": 0.000135,
+              "unionSeconds": 0.00013494491577148438,
+              "maximumSeconds": 7.2e-05
+            },
+            {
+              "name": "EmitNodeStart",
+              "count": 2,
+              "sumSeconds": 0.000124,
+              "unionSeconds": 7.295608520507812e-05,
+              "maximumSeconds": 6.5e-05
+            }
+          ],
+          "file": "backend2.traceevents"
+        },
+        {
+          "eventCount": 10,
+          "completeCount": 7,
+          "timelineSpanSeconds": 67.569906,
+          "timestampMin": 1791429030751419,
+          "scopesAreNonadditive": true,
+          "summaries": [
+            {
+              "name": "BuildProgram",
+              "count": 1,
+              "sumSeconds": 67.550215,
+              "unionSeconds": 67.55021500587463,
+              "maximumSeconds": 67.550215
+            },
+            {
+              "name": "Backend.Write",
+              "count": 1,
+              "sumSeconds": 66.500118,
+              "unionSeconds": 66.50011801719666,
+              "maximumSeconds": 66.500118
+            },
+            {
+              "name": "JsonToString",
+              "count": 1,
+              "sumSeconds": 3.939606,
+              "unionSeconds": 3.939605951309204,
+              "maximumSeconds": 3.939606
+            },
+            {
+              "name": "BuildProgramContextConstructor",
+              "count": 1,
+              "sumSeconds": 0.500687,
+              "unionSeconds": 0.5006871223449707,
+              "maximumSeconds": 0.500687
+            },
+            {
+              "name": "OutputData.Write",
+              "count": 1,
+              "sumSeconds": 0.110434,
+              "unionSeconds": 0.11043405532836914,
+              "maximumSeconds": 0.110434
+            },
+            {
+              "name": "Write chrome-trace events",
+              "count": 1,
+              "sumSeconds": 0.001646,
+              "unionSeconds": 0.0016460418701171875,
+              "maximumSeconds": 0.001646
+            },
+            {
+              "name": "",
+              "count": 1,
+              "sumSeconds": 0.001096,
+              "unionSeconds": 0.0010960102081298828,
+              "maximumSeconds": 0.001096
+            }
+          ],
+          "file": "buildprogram0.traceevents"
+        }
+      ]
+    },
+    "b": {
+      "elapsedSeconds": 766.9003011000023,
+      "processId": 10412,
+      "assemblyMvid": "0f22c6ea-66cd-4c9e-8d55-57c5723b7af1",
+      "generation": "120c67702bd44667a30f228dab682e79",
+      "qualification": "exact owned path/PID/start and fresh external fixture ready/noncompiling/nonupdating; code values4/6/13; no edit/Play/Test/build",
+      "projectInfo": [
+        {
+          "type": "ProjectInfo",
+          "version": 2,
+          "phase": "Immediate",
+          "time": 1791429303555,
+          "processId": 10412,
+          "projectLoad": 758.1553933,
+          "projectInit": 755.3080733,
+          "templateInit": 0.0,
+          "packageManagerInit": 2.303569,
+          "assetDatabaseInit": 1.9772989,
+          "globalIlluminationInit": 0.0125219,
+          "assembliesLoad": 8.8900786,
+          "unityExtensionsInit": 0.0145035,
+          "assetDatabaseRefresh": 733.7372601,
+          "sceneOpening": 2.6721784
+        }
+      ],
+      "refreshes": [
+        {
+          "id": "ca54c4be498c7dd4aad27703a62128a2",
+          "totalSeconds": 733.737,
+          "reason": "InitialRefreshV2(ForceSynchronousImport)",
+          "phases": [
+            {
+              "depth": 1,
+              "name": "InvokeCustomDependenciesCallbacks",
+              "seconds": 2e-06,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "InvokePackagesCallback",
+              "seconds": 3.080426,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "ApplyChangesToAssetFolders",
+              "seconds": 0.002342,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "Scan",
+              "seconds": 447.59696,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "OnSourceAssetsModified",
+              "seconds": 0.019619,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "CategorizeAssetsWithTransientArtifact",
+              "seconds": 2.174727,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "ProcessAssetsWithTransientArtifactChanges",
+              "seconds": 0.17929499999999998,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "CategorizeAssets",
+              "seconds": 0.080504,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "ImportOutOfDateAssets",
+              "seconds": 68.31834500000001,
+              "withoutChildrenSeconds": -136.026824
+            },
+            {
+              "depth": 2,
+              "name": "ImportManagerImport",
+              "seconds": 11.901301,
+              "withoutChildrenSeconds": 0.094253
+            },
+            {
+              "depth": 3,
+              "name": "ImportInProcess",
+              "seconds": 11.789901,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 3,
+              "name": "UpdateCategorizedAssets",
+              "seconds": 0.017147,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "CompileScripts",
+              "seconds": 192.432725,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "ReloadNativeAssets",
+              "seconds": 0.008922000000000001,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "UnloadImportedAssets",
+              "seconds": 0.001139,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "ReloadImportedAssets",
+              "seconds": 1.2e-05,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "EnsureUptoDateAssetsAreRegisteredWithGuidPM",
+              "seconds": 0.0007,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "InitializingProgressBar",
+              "seconds": 2e-06,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "PostProcessAllAssetNotificationsAddChangedAssets",
+              "seconds": 1e-06,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 2,
+              "name": "OnDemandSchedulerStart",
+              "seconds": 0.00036899999999999997,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "PostProcessAllAssets",
+              "seconds": 2.753572,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "Hotreload",
+              "seconds": 0.044758000000000006,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "GatherAllCurrentPrimaryArtifactRevisions",
+              "seconds": 3e-06,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "UnloadStreamsBegin",
+              "seconds": 0.00239,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "PersistCurrentRevisions",
+              "seconds": 0.226941,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "UnloadStreamsEnd",
+              "seconds": 3e-06,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "GenerateScriptTypeHashes",
+              "seconds": 0.0027589999999999997,
+              "withoutChildrenSeconds": null
+            },
+            {
+              "depth": 1,
+              "name": "Untracked",
+              "seconds": 209.257228,
+              "withoutChildrenSeconds": null
+            }
+          ],
+          "imports": {
+            "total": 30,
+            "actual": 30,
+            "localCache": 0,
+            "cacheServer": 0
+          },
+          "fileChanges": {
+            "new": 4,
+            "changed": 31,
+            "moved": 0,
+            "deleted": 0
+          }
+        }
+      ],
+      "bee": [
+        {
+          "eventCount": 5705,
+          "completeCount": 5704,
+          "timelineSpanSeconds": 14.55324,
+          "timestampMin": 1791429015123244,
+          "scopesAreNonadditive": true,
+          "summaries": [
+            {
+              "name": "EarlyStatNonGeneratedFile",
+              "count": 254,
+              "sumSeconds": 109.469587,
+              "unionSeconds": 10.055176973342896,
+              "maximumSeconds": 0.759278
+            },
+            {
+              "name": "File",
+              "count": 4403,
+              "sumSeconds": 109.371447,
+              "unionSeconds": 10.055174827575684,
+              "maximumSeconds": 0.090928
+            },
+            {
+              "name": "CheckInputSignature",
+              "count": 347,
+              "sumSeconds": 12.590326,
+              "unionSeconds": 10.709341764450073,
+              "maximumSeconds": 8.294026
+            },
+            {
+              "name": "WaitForBuildFinished",
+              "count": 1,
+              "sumSeconds": 10.467098,
+              "unionSeconds": 10.467097997665405,
+              "maximumSeconds": 10.467098
+            },
+            {
+              "name": "FirstLock",
+              "count": 12,
+              "sumSeconds": 7.961238,
+              "unionSeconds": 0.6637721061706543,
+              "maximumSeconds": 0.663628
+            },
+            {
+              "name": "OutputFilesMissingFor",
+              "count": 614,
+              "sumSeconds": 4.526397,
+              "unionSeconds": 0.8335156440734863,
+              "maximumSeconds": 0.083975
+            },
+            {
+              "name": "ProfilerWriteOutput",
+              "count": 1,
+              "sumSeconds": 2.611667,
+              "unionSeconds": 2.6116671562194824,
+              "maximumSeconds": 2.611667
+            },
+            {
+              "name": "EnqueueRequestedNodes",
+              "count": 1,
+              "sumSeconds": 0.66355,
+              "unionSeconds": 0.6635501384735107,
+              "maximumSeconds": 0.66355
+            },
+            {
+              "name": "JoinBuildThread",
+              "count": 2,
+              "sumSeconds": 0.49207,
+              "unionSeconds": 0.49206995964050293,
+              "maximumSeconds": 0.325321
+            },
+            {
+              "name": "Tundra",
+              "count": 2,
+              "sumSeconds": 0.109232,
+              "unionSeconds": 0.10923194885253906,
+              "maximumSeconds": 0.109132
+            },
+            {
+              "name": "DriverInitData",
+              "count": 1,
+              "sumSeconds": 0.068808,
+              "unionSeconds": 0.06880784034729004,
+              "maximumSeconds": 0.068808
+            },
+            {
+              "name": "RemoveStaleOutputs",
+              "count": 1,
+              "sumSeconds": 0.043599,
+              "unionSeconds": 0.04359912872314453,
+              "maximumSeconds": 0.043599
+            },
+            {
+              "name": "EmitFirstTimeEnqueue",
+              "count": 56,
+              "sumSeconds": 0.006807,
+              "unionSeconds": 0.006806850433349609,
+              "maximumSeconds": 0.000448
+            },
+            {
+              "name": "CheckDagSignatures",
+              "count": 1,
+              "sumSeconds": 0.006432,
+              "unionSeconds": 0.006432056427001953,
+              "maximumSeconds": 0.006432
+            },
+            {
+              "name": "BuildQueueInit",
+              "count": 1,
+              "sumSeconds": 0.000681,
+              "unionSeconds": 0.0006811618804931641,
+              "maximumSeconds": 0.000681
+            },
+            {
+              "name": "EmitNodeUpToDate",
+              "count": 6,
+              "sumSeconds": 0.000419,
+              "unionSeconds": 0.0003509521484375,
+              "maximumSeconds": 7.7e-05
+            },
+            {
+              "name": "BuildQueueDestroyTail",
+              "count": 1,
+              "sumSeconds": 7e-05,
+              "unionSeconds": 6.985664367675781e-05,
+              "maximumSeconds": 7e-05
+            }
+          ],
+          "file": "backend1.traceevents"
+        },
+        {
+          "eventCount": 6684,
+          "completeCount": 6683,
+          "timelineSpanSeconds": 100.003769,
+          "timestampMin": 1791429098427830,
+          "scopesAreNonadditive": true,
+          "summaries": [
+            {
+              "name": "ILPostProcess",
+              "count": 67,
+              "sumSeconds": 321.371004,
+              "unionSeconds": 52.18590044975281,
+              "maximumSeconds": 6.271081
+            },
+            {
+              "name": "CheckInputSignature",
+              "count": 640,
+              "sumSeconds": 136.847844,
+              "unionSeconds": 35.59620690345764,
+              "maximumSeconds": 10.389241
+            },
+            {
+              "name": "ComputeFileSignatureSha1",
+              "count": 206,
+              "sumSeconds": 99.184833,
+              "unionSeconds": 17.695454120635986,
+              "maximumSeconds": 4.893849
+            },
+            {
+              "name": "WaitForBuildFinished",
+              "count": 1,
+              "sumSeconds": 93.959537,
+              "unionSeconds": 93.95953702926636,
+              "maximumSeconds": 93.959537
+            },
+            {
+              "name": "WriteResponseFile",
+              "count": 68,
+              "sumSeconds": 57.138727,
+              "unionSeconds": 10.468311786651611,
+              "maximumSeconds": 1.497288
+            },
+            {
+              "name": "WriteText",
+              "count": 147,
+              "sumSeconds": 45.645213,
+              "unionSeconds": 5.383541107177734,
+              "maximumSeconds": 0.737005
+            },
+            {
+              "name": "Csc",
+              "count": 2,
+              "sumSeconds": 29.602438,
+              "unionSeconds": 29.60243797302246,
+              "maximumSeconds": 19.046499
+            },
+            {
+              "name": "EarlyStatNonGeneratedFile",
+              "count": 262,
+              "sumSeconds": 22.693973,
+              "unionSeconds": 2.836589813232422,
+              "maximumSeconds": 0.459854
+            },
+            {
+              "name": "File",
+              "count": 4449,
+              "sumSeconds": 22.6512,
+              "unionSeconds": 2.8361520767211914,
+              "maximumSeconds": 0.090273
+            },
+            {
+              "name": "OutputFilesMissingFor",
+              "count": 656,
+              "sumSeconds": 18.165579,
+              "unionSeconds": 10.550294399261475,
+              "maximumSeconds": 0.215146
+            },
+            {
+              "name": "FirstLock",
+              "count": 12,
+              "sumSeconds": 7.832147,
+              "unionSeconds": 0.6530179977416992,
+              "maximumSeconds": 0.652848
+            },
+            {
+              "name": "CopyFiles",
+              "count": 4,
+              "sumSeconds": 4.182553,
+              "unionSeconds": 2.9293408393859863,
+              "maximumSeconds": 1.367584
+            },
+            {
+              "name": "WaitingForWork",
+              "count": 31,
+              "sumSeconds": 3.985576,
+              "unionSeconds": 0.49651479721069336,
+              "maximumSeconds": 0.310311
+            },
+            {
+              "name": "ProfilerWriteOutput",
+              "count": 1,
+              "sumSeconds": 3.13737,
+              "unionSeconds": 3.1373698711395264,
+              "maximumSeconds": 3.13737
+            },
+            {
+              "name": "DriverInitData",
+              "count": 1,
+              "sumSeconds": 2.02907,
+              "unionSeconds": 2.0290699005126953,
+              "maximumSeconds": 2.02907
+            },
+            {
+              "name": "ILPP-Configuration",
+              "count": 1,
+              "sumSeconds": 1.210146,
+              "unionSeconds": 1.2101459503173828,
+              "maximumSeconds": 1.210146
+            },
+            {
+              "name": "CheckDagSignatures",
+              "count": 1,
+              "sumSeconds": 0.734193,
+              "unionSeconds": 0.7341930866241455,
+              "maximumSeconds": 0.734193
+            },
+            {
+              "name": "EnqueueRequestedNodes",
+              "count": 1,
+              "sumSeconds": 0.653264,
+              "unionSeconds": 0.653264045715332,
+              "maximumSeconds": 0.653264
+            },
+            {
+              "name": "Tundra",
+              "count": 2,
+              "sumSeconds": 0.113374,
+              "unionSeconds": 0.11337399482727051,
+              "maximumSeconds": 0.113292
+            },
+            {
+              "name": "StoreTimestampsOfNonGeneratedInputFiles",
+              "count": 70,
+              "sumSeconds": 0.067147,
+              "unionSeconds": 0.06714582443237305,
+              "maximumSeconds": 0.029345
+            },
+            {
+              "name": "EmitFirstTimeEnqueue",
+              "count": 46,
+              "sumSeconds": 0.0034,
+              "unionSeconds": 0.0034003257751464844,
+              "maximumSeconds": 0.000163
+            },
+            {
+              "name": "RemoveStaleOutputs",
+              "count": 1,
+              "sumSeconds": 0.002673,
+              "unionSeconds": 0.002672910690307617,
+              "maximumSeconds": 0.002673
+            },
+            {
+              "name": "CheckGlobSignature",
+              "count": 3,
+              "sumSeconds": 0.001741,
+              "unionSeconds": 0.0017409324645996094,
+              "maximumSeconds": 0.001297
+            },
+            {
+              "name": "BuildQueueInit",
+              "count": 1,
+              "sumSeconds": 0.000661,
+              "unionSeconds": 0.0006611347198486328,
+              "maximumSeconds": 0.000661
+            },
+            {
+              "name": "JoinBuildThread",
+              "count": 1,
+              "sumSeconds": 0.00036,
+              "unionSeconds": 0.0003600120544433594,
+              "maximumSeconds": 0.00036
+            },
+            {
+              "name": "EmitNodeFinish",
+              "count": 2,
+              "sumSeconds": 0.000274,
+              "unionSeconds": 0.0002741813659667969,
+              "maximumSeconds": 0.000218
+            },
+            {
+              "name": "EmitNodeStart",
+              "count": 3,
+              "sumSeconds": 0.000179,
+              "unionSeconds": 0.00017905235290527344,
+              "maximumSeconds": 6.6e-05
+            },
+            {
+              "name": "EmitNodeUpToDate",
+              "count": 2,
+              "sumSeconds": 0.000113,
+              "unionSeconds": 0.00011301040649414062,
+              "maximumSeconds": 6.2e-05
+            },
+            {
+              "name": "ThreadStateDestroy",
+              "count": 1,
+              "sumSeconds": 7.3e-05,
+              "unionSeconds": 7.319450378417969e-05,
+              "maximumSeconds": 7.3e-05
+            },
+            {
+              "name": "BuildQueueDestroyTail",
+              "count": 1,
+              "sumSeconds": 6.4e-05,
+              "unionSeconds": 6.389617919921875e-05,
+              "maximumSeconds": 6.4e-05
+            }
+          ],
+          "file": "backend2.traceevents"
+        },
+        {
+          "eventCount": 10,
+          "completeCount": 7,
+          "timelineSpanSeconds": 67.570678,
+          "timestampMin": 1791429030751388,
+          "scopesAreNonadditive": true,
+          "summaries": [
+            {
+              "name": "BuildProgram",
+              "count": 1,
+              "sumSeconds": 67.553437,
+              "unionSeconds": 67.55343699455261,
+              "maximumSeconds": 67.553437
+            },
+            {
+              "name": "Backend.Write",
+              "count": 1,
+              "sumSeconds": 66.50562,
+              "unionSeconds": 66.50562000274658,
+              "maximumSeconds": 66.50562
+            },
+            {
+              "name": "JsonToString",
+              "count": 1,
+              "sumSeconds": 3.956588,
+              "unionSeconds": 3.95658802986145,
+              "maximumSeconds": 3.956588
+            },
+            {
+              "name": "BuildProgramContextConstructor",
+              "count": 1,
+              "sumSeconds": 0.499878,
+              "unionSeconds": 0.4998779296875,
+              "maximumSeconds": 0.499878
+            },
+            {
+              "name": "OutputData.Write",
+              "count": 1,
+              "sumSeconds": 0.108137,
+              "unionSeconds": 0.10813689231872559,
+              "maximumSeconds": 0.108137
+            },
+            {
+              "name": "Write chrome-trace events",
+              "count": 1,
+              "sumSeconds": 0.001646,
+              "unionSeconds": 0.0016460418701171875,
+              "maximumSeconds": 0.001646
+            },
+            {
+              "name": "",
+              "count": 1,
+              "sumSeconds": 0.001113,
+              "unionSeconds": 0.0011129379272460938,
+              "maximumSeconds": 0.001113
+            }
+          ],
+          "file": "buildprogram0.traceevents"
+        }
+      ]
+    }
+  },
+  "processGroups": {
+    "a:provider": {
+      "processCount": 1,
+      "sampleCount": 378,
+      "cpuSecondsLowerBound": 307.125,
+      "kernelSecondsLowerBound": 217.0,
+      "transferReadBytesLowerBound": 74504584181,
+      "transferWriteBytesLowerBound": 2366721490,
+      "readOperationsLowerBound": 3849556,
+      "writeOperationsLowerBound": 100222,
+      "otherOperationsLowerBound": 5940600,
+      "sampledSimultaneousPeakPrivateBytes": 538476544
+    },
+    "a:conhost.exe": {
+      "processCount": 460,
+      "sampleCount": 2094,
+      "cpuSecondsLowerBound": 5.109375,
+      "kernelSecondsLowerBound": 2.65625,
+      "transferReadBytesLowerBound": 309974,
+      "transferWriteBytesLowerBound": 0,
+      "readOperationsLowerBound": 34,
+      "writeOperationsLowerBound": 0,
+      "otherOperationsLowerBound": 35692,
+      "sampledSimultaneousPeakPrivateBytes": 13500416
+    },
+    "a:git": {
+      "processCount": 839,
+      "sampleCount": 1492,
+      "cpuSecondsLowerBound": 40.96875,
+      "kernelSecondsLowerBound": 21.65625,
+      "transferReadBytesLowerBound": 117741080,
+      "transferWriteBytesLowerBound": 4222859294,
+      "readOperationsLowerBound": 13979,
+      "writeOperationsLowerBound": 260724,
+      "otherOperationsLowerBound": 166892,
+      "sampledSimultaneousPeakPrivateBytes": 117231616
+    },
+    "b:provider": {
+      "processCount": 1,
+      "sampleCount": 378,
+      "cpuSecondsLowerBound": 299.359375,
+      "kernelSecondsLowerBound": 213.53125,
+      "transferReadBytesLowerBound": 76791841377,
+      "transferWriteBytesLowerBound": 2342802198,
+      "readOperationsLowerBound": 3896827,
+      "writeOperationsLowerBound": 51247,
+      "otherOperationsLowerBound": 5932364,
+      "sampledSimultaneousPeakPrivateBytes": 445640704
+    },
+    "b:conhost.exe": {
+      "processCount": 450,
+      "sampleCount": 1989,
+      "cpuSecondsLowerBound": 4.984375,
+      "kernelSecondsLowerBound": 2.890625,
+      "transferReadBytesLowerBound": 309974,
+      "transferWriteBytesLowerBound": 0,
+      "readOperationsLowerBound": 34,
+      "writeOperationsLowerBound": 0,
+      "otherOperationsLowerBound": 35258,
+      "sampledSimultaneousPeakPrivateBytes": 12648448
+    },
+    "b:git": {
+      "processCount": 832,
+      "sampleCount": 1482,
+      "cpuSecondsLowerBound": 43.59375,
+      "kernelSecondsLowerBound": 22.5,
+      "transferReadBytesLowerBound": 117940743,
+      "transferWriteBytesLowerBound": 4907441626,
+      "readOperationsLowerBound": 14357,
+      "writeOperationsLowerBound": 302468,
+      "otherOperationsLowerBound": 169015,
+      "sampledSimultaneousPeakPrivateBytes": 117641216
+    },
+    "b:UnityCrashHandler64.exe": {
+      "processCount": 1,
+      "sampleCount": 376,
+      "cpuSecondsLowerBound": 0.09375,
+      "kernelSecondsLowerBound": 0.046875,
+      "transferReadBytesLowerBound": 185650,
+      "transferWriteBytesLowerBound": 140,
+      "readOperationsLowerBound": 58,
+      "writeOperationsLowerBound": 1,
+      "otherOperationsLowerBound": 189,
+      "sampledSimultaneousPeakPrivateBytes": 2519040
+    },
+    "b:UnityPackageManager.exe": {
+      "processCount": 1,
+      "sampleCount": 376,
+      "cpuSecondsLowerBound": 4.1875,
+      "kernelSecondsLowerBound": 1.546875,
+      "transferReadBytesLowerBound": 51842951,
+      "transferWriteBytesLowerBound": 852685,
+      "readOperationsLowerBound": 2587,
+      "writeOperationsLowerBound": 48,
+      "otherOperationsLowerBound": 36617,
+      "sampledSimultaneousPeakPrivateBytes": 296914944
+    },
+    "b:editor": {
+      "processCount": 1,
+      "sampleCount": 376,
+      "cpuSecondsLowerBound": 112.609375,
+      "kernelSecondsLowerBound": 14.4375,
+      "transferReadBytesLowerBound": 3638765039,
+      "transferWriteBytesLowerBound": 27406522,
+      "readOperationsLowerBound": 207298,
+      "writeOperationsLowerBound": 6318,
+      "otherOperationsLowerBound": 295056,
+      "sampledSimultaneousPeakPrivateBytes": 2965651456
+    },
+    "b:Unity.Licensing.Client.exe": {
+      "processCount": 1,
+      "sampleCount": 1,
+      "cpuSecondsLowerBound": 0.453125,
+      "kernelSecondsLowerBound": 0.046875,
+      "transferReadBytesLowerBound": 417194,
+      "transferWriteBytesLowerBound": 146,
+      "readOperationsLowerBound": 78,
+      "writeOperationsLowerBound": 3,
+      "otherOperationsLowerBound": 1023,
+      "sampledSimultaneousPeakPrivateBytes": 15204352
+    },
+    "a:Unity.Licensing.Client.exe": {
+      "processCount": 1,
+      "sampleCount": 376,
+      "cpuSecondsLowerBound": 1.65625,
+      "kernelSecondsLowerBound": 0.453125,
+      "transferReadBytesLowerBound": 422052,
+      "transferWriteBytesLowerBound": 86042,
+      "readOperationsLowerBound": 124,
+      "writeOperationsLowerBound": 292,
+      "otherOperationsLowerBound": 8124,
+      "sampledSimultaneousPeakPrivateBytes": 35987456
+    },
+    "a:UnityPackageManager.exe": {
+      "processCount": 1,
+      "sampleCount": 376,
+      "cpuSecondsLowerBound": 4.53125,
+      "kernelSecondsLowerBound": 1.828125,
+      "transferReadBytesLowerBound": 51866645,
+      "transferWriteBytesLowerBound": 852685,
+      "readOperationsLowerBound": 2588,
+      "writeOperationsLowerBound": 48,
+      "otherOperationsLowerBound": 36442,
+      "sampledSimultaneousPeakPrivateBytes": 312090624
+    },
+    "a:editor": {
+      "processCount": 1,
+      "sampleCount": 376,
+      "cpuSecondsLowerBound": 62.921875,
+      "kernelSecondsLowerBound": 13.609375,
+      "transferReadBytesLowerBound": 3679364475,
+      "transferWriteBytesLowerBound": 27381481,
+      "readOperationsLowerBound": 120225,
+      "writeOperationsLowerBound": 6337,
+      "otherOperationsLowerBound": 203970,
+      "sampledSimultaneousPeakPrivateBytes": 2911256576
+    },
+    "a:UnityCrashHandler64.exe": {
+      "processCount": 1,
+      "sampleCount": 376,
+      "cpuSecondsLowerBound": 0.015625,
+      "kernelSecondsLowerBound": 0.015625,
+      "transferReadBytesLowerBound": 167228,
+      "transferWriteBytesLowerBound": 140,
+      "readOperationsLowerBound": 57,
+      "writeOperationsLowerBound": 1,
+      "otherOperationsLowerBound": 179,
+      "sampledSimultaneousPeakPrivateBytes": 2510848
+    },
+    "a:ilpostprocess": {
+      "processCount": 1,
+      "sampleCount": 145,
+      "cpuSecondsLowerBound": 4.578125,
+      "kernelSecondsLowerBound": 1.0625,
+      "transferReadBytesLowerBound": 205757825,
+      "transferWriteBytesLowerBound": 29483059,
+      "readOperationsLowerBound": 2461,
+      "writeOperationsLowerBound": 1904,
+      "otherOperationsLowerBound": 14129,
+      "sampledSimultaneousPeakPrivateBytes": 231206912
+    },
+    "a:UnityAutoQuitter.exe": {
+      "processCount": 1,
+      "sampleCount": 145,
+      "cpuSecondsLowerBound": 0.03125,
+      "kernelSecondsLowerBound": 0.03125,
+      "transferReadBytesLowerBound": 162693,
+      "transferWriteBytesLowerBound": 286,
+      "readOperationsLowerBound": 7,
+      "writeOperationsLowerBound": 2,
+      "otherOperationsLowerBound": 123,
+      "sampledSimultaneousPeakPrivateBytes": 2117632
+    },
+    "b:ilpostprocess": {
+      "processCount": 1,
+      "sampleCount": 145,
+      "cpuSecondsLowerBound": 4.484375,
+      "kernelSecondsLowerBound": 1.03125,
+      "transferReadBytesLowerBound": 205752186,
+      "transferWriteBytesLowerBound": 29483269,
+      "readOperationsLowerBound": 2482,
+      "writeOperationsLowerBound": 1936,
+      "otherOperationsLowerBound": 14123,
+      "sampledSimultaneousPeakPrivateBytes": 253194240
+    },
+    "b:UnityAutoQuitter.exe": {
+      "processCount": 1,
+      "sampleCount": 145,
+      "cpuSecondsLowerBound": 0.03125,
+      "kernelSecondsLowerBound": 0.03125,
+      "transferReadBytesLowerBound": 157499,
+      "transferWriteBytesLowerBound": 286,
+      "readOperationsLowerBound": 6,
+      "writeOperationsLowerBound": 2,
+      "otherOperationsLowerBound": 125,
+      "sampledSimultaneousPeakPrivateBytes": 2084864
+    },
+    "a:bee-backend": {
+      "processCount": 2,
+      "sampleCount": 55,
+      "cpuSecondsLowerBound": 9.109375,
+      "kernelSecondsLowerBound": 7.71875,
+      "transferReadBytesLowerBound": 50844425,
+      "transferWriteBytesLowerBound": 48433572,
+      "readOperationsLowerBound": 4831,
+      "writeOperationsLowerBound": 45758,
+      "otherOperationsLowerBound": 206201,
+      "sampledSimultaneousPeakPrivateBytes": 137756672
+    },
+    "b:bee-backend": {
+      "processCount": 2,
+      "sampleCount": 56,
+      "cpuSecondsLowerBound": 8.78125,
+      "kernelSecondsLowerBound": 7.34375,
+      "transferReadBytesLowerBound": 50790083,
+      "transferWriteBytesLowerBound": 48108375,
+      "readOperationsLowerBound": 4832,
+      "writeOperationsLowerBound": 45678,
+      "otherOperationsLowerBound": 204171,
+      "sampledSimultaneousPeakPrivateBytes": 137908224
+    },
+    "a:bee-build-program": {
+      "processCount": 1,
+      "sampleCount": 34,
+      "cpuSecondsLowerBound": 1.046875,
+      "kernelSecondsLowerBound": 0.421875,
+      "transferReadBytesLowerBound": 3875894,
+      "transferWriteBytesLowerBound": 25485575,
+      "readOperationsLowerBound": 923,
+      "writeOperationsLowerBound": 4853,
+      "otherOperationsLowerBound": 1149,
+      "sampledSimultaneousPeakPrivateBytes": 183615488
+    },
+    "b:bee-build-program": {
+      "processCount": 1,
+      "sampleCount": 34,
+      "cpuSecondsLowerBound": 0.984375,
+      "kernelSecondsLowerBound": 0.28125,
+      "transferReadBytesLowerBound": 3930396,
+      "transferWriteBytesLowerBound": 25481479,
+      "readOperationsLowerBound": 924,
+      "writeOperationsLowerBound": 4852,
+      "otherOperationsLowerBound": 1145,
+      "sampledSimultaneousPeakPrivateBytes": 183664640
+    },
+    "b:cmd.exe": {
+      "processCount": 66,
+      "sampleCount": 97,
+      "cpuSecondsLowerBound": 1.3125,
+      "kernelSecondsLowerBound": 0.640625,
+      "transferReadBytesLowerBound": 0,
+      "transferWriteBytesLowerBound": 0,
+      "readOperationsLowerBound": 0,
+      "writeOperationsLowerBound": 0,
+      "otherOperationsLowerBound": 6006,
+      "sampledSimultaneousPeakPrivateBytes": 80900096
+    },
+    "a:csc-server": {
+      "processCount": 1,
+      "sampleCount": 94,
+      "cpuSecondsLowerBound": 6.890625,
+      "kernelSecondsLowerBound": 1.828125,
+      "transferReadBytesLowerBound": 138508856,
+      "transferWriteBytesLowerBound": 529376,
+      "readOperationsLowerBound": 2159,
+      "writeOperationsLowerBound": 45,
+      "otherOperationsLowerBound": 12170,
+      "sampledSimultaneousPeakPrivateBytes": 358543360
+    },
+    "a:csc": {
+      "processCount": 2,
+      "sampleCount": 25,
+      "cpuSecondsLowerBound": 0.515625,
+      "kernelSecondsLowerBound": 0.203125,
+      "transferReadBytesLowerBound": 534163,
+      "transferWriteBytesLowerBound": 1646,
+      "readOperationsLowerBound": 93,
+      "writeOperationsLowerBound": 8,
+      "otherOperationsLowerBound": 1028,
+      "sampledSimultaneousPeakPrivateBytes": 62308352
+    },
+    "a:cmd.exe": {
+      "processCount": 62,
+      "sampleCount": 105,
+      "cpuSecondsLowerBound": 1.078125,
+      "kernelSecondsLowerBound": 0.640625,
+      "transferReadBytesLowerBound": 0,
+      "transferWriteBytesLowerBound": 0,
+      "readOperationsLowerBound": 0,
+      "writeOperationsLowerBound": 0,
+      "otherOperationsLowerBound": 4707,
+      "sampledSimultaneousPeakPrivateBytes": 71159808
+    },
+    "b:csc": {
+      "processCount": 2,
+      "sampleCount": 12,
+      "cpuSecondsLowerBound": 0.40625,
+      "kernelSecondsLowerBound": 0.140625,
+      "transferReadBytesLowerBound": 508666,
+      "transferWriteBytesLowerBound": 1646,
+      "readOperationsLowerBound": 92,
+      "writeOperationsLowerBound": 8,
+      "otherOperationsLowerBound": 1012,
+      "sampledSimultaneousPeakPrivateBytes": 62259200
+    },
+    "b:Unity.ILPP.Trigger.exe": {
+      "processCount": 62,
+      "sampleCount": 73,
+      "cpuSecondsLowerBound": 3.96875,
+      "kernelSecondsLowerBound": 2.40625,
+      "transferReadBytesLowerBound": 11805265,
+      "transferWriteBytesLowerBound": 2019208,
+      "readOperationsLowerBound": 1468,
+      "writeOperationsLowerBound": 603,
+      "otherOperationsLowerBound": 14009,
+      "sampledSimultaneousPeakPrivateBytes": 71200768
+    },
+    "a:Unity.ILPP.Trigger.exe": {
+      "processCount": 46,
+      "sampleCount": 65,
+      "cpuSecondsLowerBound": 2.84375,
+      "kernelSecondsLowerBound": 1.9375,
+      "transferReadBytesLowerBound": 8902081,
+      "transferWriteBytesLowerBound": 1604409,
+      "readOperationsLowerBound": 1109,
+      "writeOperationsLowerBound": 469,
+      "otherOperationsLowerBound": 10462,
+      "sampledSimultaneousPeakPrivateBytes": 58322944
+    },
+    "a:UnityShaderCompiler.exe": {
+      "processCount": 1,
+      "sampleCount": 8,
+      "cpuSecondsLowerBound": 0.03125,
+      "kernelSecondsLowerBound": 0.015625,
+      "transferReadBytesLowerBound": 4678027,
+      "transferWriteBytesLowerBound": 918,
+      "readOperationsLowerBound": 386,
+      "writeOperationsLowerBound": 120,
+      "otherOperationsLowerBound": 241,
+      "sampledSimultaneousPeakPrivateBytes": 18661376
+    },
+    "b:UnityShaderCompiler.exe": {
+      "processCount": 1,
+      "sampleCount": 7,
+      "cpuSecondsLowerBound": 0.046875,
+      "kernelSecondsLowerBound": 0.03125,
+      "transferReadBytesLowerBound": 4651836,
+      "transferWriteBytesLowerBound": 918,
+      "readOperationsLowerBound": 385,
+      "writeOperationsLowerBound": 120,
+      "otherOperationsLowerBound": 232,
+      "sampledSimultaneousPeakPrivateBytes": 18653184
+    }
+  },
+  "providerIntervals": {
+    "a": {
+      "requestedBeganUtc": "2026-10-08T03:02:22.687983+00:00",
+      "requestedEndedUtc": "2026-10-08T03:15:09.602930+00:00",
+      "insideSampleCount": 77,
+      "inner": {
+        "beganUtc": "2026-10-08T03:02:27.209411+00:00",
+        "endedUtc": "2026-10-08T03:15:08.113080+00:00",
+        "elapsedSeconds": 760.9036691188812,
+        "startOffsetSeconds": 4.521427869796753,
+        "endOffsetSeconds": -1.4898500442504883,
+        "delta": {
+          "lockAcquisitions": 442044,
+          "lockWaitSeconds": 265.1837795,
+          "flushCount": 17162,
+          "flushSeconds": 62.5098646,
+          "commitCount": 17160,
+          "journalAppendedBytes": 1713471765,
+          "journalReadBytes": 1090170021,
+          "baseReadBytes": 4741929650,
+          "mutationGateCalls": 56138,
+          "mutationGateWaitSeconds": 9.2712761,
+          "operations.create.attempts": 510,
+          "operations.create.durableCommits": 510,
+          "operations.create.failedCalls": 0,
+          "operations.create.payloadBytes": 0,
+          "operations.create.journalBytes": 256856,
+          "operations.create.prepareSeconds": 0.0,
+          "operations.create.appendSeconds": 0.0,
+          "operations.create.flushSeconds": 1.2976721,
+          "operations.create.applySeconds": 0.0,
+          "operations.create.totalSeconds": 4.036508,
+          "operations.create.flushCalls": 510,
+          "operations.delete.attempts": 336,
+          "operations.delete.durableCommits": 336,
+          "operations.delete.failedCalls": 0,
+          "operations.delete.payloadBytes": 0,
+          "operations.delete.journalBytes": 308315,
+          "operations.delete.prepareSeconds": 0.0,
+          "operations.delete.appendSeconds": 0.0,
+          "operations.delete.flushSeconds": 0.83513,
+          "operations.delete.applySeconds": 0.0,
+          "operations.delete.totalSeconds": 5.2711474,
+          "operations.delete.flushCalls": 336,
+          "operations.forget-unlinked.attempts": 345,
+          "operations.forget-unlinked.durableCommits": 345,
+          "operations.forget-unlinked.failedCalls": 0,
+          "operations.forget-unlinked.payloadBytes": 0,
+          "operations.forget-unlinked.journalBytes": 102773,
+          "operations.forget-unlinked.prepareSeconds": 0.0,
+          "operations.forget-unlinked.appendSeconds": 0.0,
+          "operations.forget-unlinked.flushSeconds": 0.8879204,
+          "operations.forget-unlinked.applySeconds": 0.0,
+          "operations.forget-unlinked.totalSeconds": 5.6929905000000005,
+          "operations.forget-unlinked.flushCalls": 345,
+          "operations.metadata.attempts": 401,
+          "operations.metadata.durableCommits": 401,
+          "operations.metadata.failedCalls": 0,
+          "operations.metadata.payloadBytes": 0,
+          "operations.metadata.journalBytes": 231221,
+          "operations.metadata.prepareSeconds": 0.0,
+          "operations.metadata.appendSeconds": 0.0,
+          "operations.metadata.flushSeconds": 1.0501855999999998,
+          "operations.metadata.applySeconds": 0.0,
+          "operations.metadata.totalSeconds": 5.2846106,
+          "operations.metadata.flushCalls": 401,
+          "operations.rename.attempts": 156,
+          "operations.rename.durableCommits": 156,
+          "operations.rename.failedCalls": 0,
+          "operations.rename.payloadBytes": 0,
+          "operations.rename.journalBytes": 192685,
+          "operations.rename.prepareSeconds": 0.0,
+          "operations.rename.appendSeconds": 0.0,
+          "operations.rename.flushSeconds": 0.411002,
+          "operations.rename.applySeconds": 0.0,
+          "operations.rename.totalSeconds": 3.7114629,
+          "operations.rename.flushCalls": 156,
+          "operations.resize.attempts": 243,
+          "operations.resize.durableCommits": 243,
+          "operations.resize.failedCalls": 0,
+          "operations.resize.payloadBytes": 0,
+          "operations.resize.journalBytes": 126695,
+          "operations.resize.prepareSeconds": 0.0,
+          "operations.resize.appendSeconds": 0.0,
+          "operations.resize.flushSeconds": 0.6774159,
+          "operations.resize.applySeconds": 0.0,
+          "operations.resize.totalSeconds": 1.9121939,
+          "operations.resize.flushCalls": 243,
+          "operations.write.attempts": 15169,
+          "operations.write.durableCommits": 15169,
+          "operations.write.failedCalls": 0,
+          "operations.write.payloadBytes": 131043939,
+          "operations.write.journalBytes": 1712253220,
+          "operations.write.prepareSeconds": 0.0,
+          "operations.write.appendSeconds": 0.0,
+          "operations.write.flushSeconds": 57.3455903,
+          "operations.write.applySeconds": 0.0,
+          "operations.write.totalSeconds": 182.74131609999998,
+          "operations.write.flushCalls": 15169,
+          "readRangeIndex.readCalls": 50337,
+          "readRangeIndex.searchProbes": 58084,
+          "readRangeIndex.visitedExtents": 38609
+        }
+      },
+      "outer": {
+        "beganUtc": "2026-10-08T03:02:16.348927+00:00",
+        "endedUtc": "2026-10-08T03:15:18.231496+00:00",
+        "elapsedSeconds": 781.8825690746307,
+        "startOffsetSeconds": -6.339056015014648,
+        "endOffsetSeconds": 8.628566026687622,
+        "delta": {
+          "lockAcquisitions": 450478,
+          "lockWaitSeconds": 266.18033920000005,
+          "flushCount": 17829,
+          "flushSeconds": 64.09830550000001,
+          "commitCount": 17827,
+          "journalAppendedBytes": 1730058213,
+          "journalReadBytes": 1090340212,
+          "baseReadBytes": 4744626105,
+          "mutationGateCalls": 57724,
+          "mutationGateWaitSeconds": 9.2745172,
+          "operations.create.attempts": 538,
+          "operations.create.durableCommits": 538,
+          "operations.create.failedCalls": 0,
+          "operations.create.payloadBytes": 0,
+          "operations.create.journalBytes": 268955,
+          "operations.create.prepareSeconds": 0.0,
+          "operations.create.appendSeconds": 0.0,
+          "operations.create.flushSeconds": 1.3642614,
+          "operations.create.applySeconds": 0.0,
+          "operations.create.totalSeconds": 4.2253452000000005,
+          "operations.create.flushCalls": 538,
+          "operations.delete.attempts": 353,
+          "operations.delete.durableCommits": 353,
+          "operations.delete.failedCalls": 0,
+          "operations.delete.payloadBytes": 0,
+          "operations.delete.journalBytes": 323726,
+          "operations.delete.prepareSeconds": 0.0,
+          "operations.delete.appendSeconds": 0.0,
+          "operations.delete.flushSeconds": 0.8792542,
+          "operations.delete.applySeconds": 0.0,
+          "operations.delete.totalSeconds": 5.6218424,
+          "operations.delete.flushCalls": 353,
+          "operations.forget-unlinked.attempts": 368,
+          "operations.forget-unlinked.durableCommits": 368,
+          "operations.forget-unlinked.failedCalls": 0,
+          "operations.forget-unlinked.payloadBytes": 0,
+          "operations.forget-unlinked.journalBytes": 108099,
+          "operations.forget-unlinked.prepareSeconds": 0.0,
+          "operations.forget-unlinked.appendSeconds": 0.0,
+          "operations.forget-unlinked.flushSeconds": 0.9443898,
+          "operations.forget-unlinked.applySeconds": 0.0,
+          "operations.forget-unlinked.totalSeconds": 6.2315869,
+          "operations.forget-unlinked.flushCalls": 368,
+          "operations.metadata.attempts": 426,
+          "operations.metadata.durableCommits": 426,
+          "operations.metadata.failedCalls": 0,
+          "operations.metadata.payloadBytes": 0,
+          "operations.metadata.journalBytes": 246098,
+          "operations.metadata.prepareSeconds": 0.0,
+          "operations.metadata.appendSeconds": 0.0,
+          "operations.metadata.flushSeconds": 1.1088593,
+          "operations.metadata.applySeconds": 0.0,
+          "operations.metadata.totalSeconds": 5.8613171,
+          "operations.metadata.flushCalls": 426,
+          "operations.rename.attempts": 169,
+          "operations.rename.durableCommits": 169,
+          "operations.rename.failedCalls": 0,
+          "operations.rename.payloadBytes": 0,
+          "operations.rename.journalBytes": 211062,
+          "operations.rename.prepareSeconds": 0.0,
+          "operations.rename.appendSeconds": 0.0,
+          "operations.rename.flushSeconds": 0.4402105,
+          "operations.rename.applySeconds": 0.0,
+          "operations.rename.totalSeconds": 4.0999341,
+          "operations.rename.flushCalls": 169,
+          "operations.resize.attempts": 246,
+          "operations.resize.durableCommits": 246,
+          "operations.resize.failedCalls": 0,
+          "operations.resize.payloadBytes": 0,
+          "operations.resize.journalBytes": 128231,
+          "operations.resize.prepareSeconds": 0.0,
+          "operations.resize.appendSeconds": 0.0,
+          "operations.resize.flushSeconds": 0.683692,
+          "operations.resize.applySeconds": 0.0,
+          "operations.resize.totalSeconds": 1.9423665,
+          "operations.resize.flushCalls": 246,
+          "operations.write.attempts": 15727,
+          "operations.write.durableCommits": 15727,
+          "operations.write.failedCalls": 0,
+          "operations.write.payloadBytes": 131412590,
+          "operations.write.journalBytes": 1728772042,
+          "operations.write.prepareSeconds": 0.0,
+          "operations.write.appendSeconds": 0.0,
+          "operations.write.flushSeconds": 58.672689999999996,
+          "operations.write.applySeconds": 0.0,
+          "operations.write.totalSeconds": 187.45578989999998,
+          "operations.write.flushCalls": 15727,
+          "readRangeIndex.readCalls": 50715,
+          "readRangeIndex.searchProbes": 58137,
+          "readRangeIndex.visitedExtents": 38664
+        }
+      },
+      "sampledPeakPrivateBytes": 525459456,
+      "sampledPeakOpenHandles": 71,
+      "latestInsideGauges": {
+        "journalBytes": 36608829,
+        "payloadBytes": 28603599,
+        "metadataBytes": 8005230,
+        "durableSequence": 16832,
+        "indexedNodes": 39219
+      }
+    },
+    "b": {
+      "requestedBeganUtc": "2026-10-08T03:02:22.687983+00:00",
+      "requestedEndedUtc": "2026-10-08T03:15:09.602930+00:00",
+      "insideSampleCount": 77,
+      "inner": {
+        "beganUtc": "2026-10-08T03:02:26.471198+00:00",
+        "endedUtc": "2026-10-08T03:15:07.572717+00:00",
+        "elapsedSeconds": 761.1015188694,
+        "startOffsetSeconds": 3.783215045928955,
+        "endOffsetSeconds": -2.0302131175994873,
+        "delta": {
+          "lockAcquisitions": 437052,
+          "lockWaitSeconds": 233.73482239999998,
+          "flushCount": 17163,
+          "flushSeconds": 63.0454187,
+          "commitCount": 17161,
+          "journalAppendedBytes": 1713692258,
+          "journalReadBytes": 1102936355,
+          "baseReadBytes": 4669614157,
+          "mutationGateCalls": 55678,
+          "mutationGateWaitSeconds": 9.9979499,
+          "operations.create.attempts": 510,
+          "operations.create.durableCommits": 510,
+          "operations.create.failedCalls": 0,
+          "operations.create.payloadBytes": 0,
+          "operations.create.journalBytes": 256889,
+          "operations.create.prepareSeconds": 0.0,
+          "operations.create.appendSeconds": 0.0,
+          "operations.create.flushSeconds": 1.3184731,
+          "operations.create.applySeconds": 0.0,
+          "operations.create.totalSeconds": 4.0544158,
+          "operations.create.flushCalls": 510,
+          "operations.delete.attempts": 336,
+          "operations.delete.durableCommits": 336,
+          "operations.delete.failedCalls": 0,
+          "operations.delete.payloadBytes": 0,
+          "operations.delete.journalBytes": 307795,
+          "operations.delete.prepareSeconds": 0.0,
+          "operations.delete.appendSeconds": 0.0,
+          "operations.delete.flushSeconds": 0.8789712000000001,
+          "operations.delete.applySeconds": 0.0,
+          "operations.delete.totalSeconds": 5.5720944999999995,
+          "operations.delete.flushCalls": 336,
+          "operations.forget-unlinked.attempts": 345,
+          "operations.forget-unlinked.durableCommits": 345,
+          "operations.forget-unlinked.failedCalls": 0,
+          "operations.forget-unlinked.payloadBytes": 0,
+          "operations.forget-unlinked.journalBytes": 102253,
+          "operations.forget-unlinked.prepareSeconds": 0.0,
+          "operations.forget-unlinked.appendSeconds": 0.0,
+          "operations.forget-unlinked.flushSeconds": 0.8979140999999999,
+          "operations.forget-unlinked.applySeconds": 0.0,
+          "operations.forget-unlinked.totalSeconds": 5.9444666,
+          "operations.forget-unlinked.flushCalls": 345,
+          "operations.metadata.attempts": 401,
+          "operations.metadata.durableCommits": 401,
+          "operations.metadata.failedCalls": 0,
+          "operations.metadata.payloadBytes": 0,
+          "operations.metadata.journalBytes": 231221,
+          "operations.metadata.prepareSeconds": 0.0,
+          "operations.metadata.appendSeconds": 0.0,
+          "operations.metadata.flushSeconds": 1.1018836,
+          "operations.metadata.applySeconds": 0.0,
+          "operations.metadata.totalSeconds": 5.5462435,
+          "operations.metadata.flushCalls": 401,
+          "operations.rename.attempts": 156,
+          "operations.rename.durableCommits": 156,
+          "operations.rename.failedCalls": 0,
+          "operations.rename.payloadBytes": 0,
+          "operations.rename.journalBytes": 190376,
+          "operations.rename.prepareSeconds": 0.0,
+          "operations.rename.appendSeconds": 0.0,
+          "operations.rename.flushSeconds": 0.4017375,
+          "operations.rename.applySeconds": 0.0,
+          "operations.rename.totalSeconds": 3.8438965,
+          "operations.rename.flushCalls": 156,
+          "operations.resize.attempts": 243,
+          "operations.resize.durableCommits": 243,
+          "operations.resize.failedCalls": 0,
+          "operations.resize.payloadBytes": 0,
+          "operations.resize.journalBytes": 126695,
+          "operations.resize.prepareSeconds": 0.0,
+          "operations.resize.appendSeconds": 0.0,
+          "operations.resize.flushSeconds": 0.6285935,
+          "operations.resize.applySeconds": 0.0,
+          "operations.resize.totalSeconds": 1.8629805,
+          "operations.resize.flushCalls": 243,
+          "operations.write.attempts": 15170,
+          "operations.write.durableCommits": 15170,
+          "operations.write.failedCalls": 0,
+          "operations.write.payloadBytes": 131058949,
+          "operations.write.journalBytes": 1712477029,
+          "operations.write.prepareSeconds": 0.0,
+          "operations.write.appendSeconds": 0.0,
+          "operations.write.flushSeconds": 57.8139031,
+          "operations.write.applySeconds": 0.0,
+          "operations.write.totalSeconds": 183.4381045,
+          "operations.write.flushCalls": 15170,
+          "readRangeIndex.readCalls": 49838,
+          "readRangeIndex.searchProbes": 58082,
+          "readRangeIndex.visitedExtents": 38577
+        }
+      },
+      "outer": {
+        "beganUtc": "2026-10-08T03:02:16.753605+00:00",
+        "endedUtc": "2026-10-08T03:15:17.677868+00:00",
+        "elapsedSeconds": 780.9242630004883,
+        "startOffsetSeconds": -5.934378147125244,
+        "endOffsetSeconds": 8.07493782043457,
+        "delta": {
+          "lockAcquisitions": 575605,
+          "lockWaitSeconds": 235.27278189999998,
+          "flushCount": 17300,
+          "flushSeconds": 63.4225495,
+          "commitCount": 17297,
+          "journalAppendedBytes": 1713823445,
+          "journalReadBytes": 1103081603,
+          "baseReadBytes": 4695074806,
+          "mutationGateCalls": 82542,
+          "mutationGateWaitSeconds": 10.0181892,
+          "operations.create.attempts": 540,
+          "operations.create.durableCommits": 540,
+          "operations.create.failedCalls": 0,
+          "operations.create.payloadBytes": 0,
+          "operations.create.journalBytes": 270260,
+          "operations.create.prepareSeconds": 0.0,
+          "operations.create.appendSeconds": 0.0,
+          "operations.create.flushSeconds": 1.4292203,
+          "operations.create.applySeconds": 0.0,
+          "operations.create.totalSeconds": 4.3564627,
+          "operations.create.flushCalls": 540,
+          "operations.delete.attempts": 352,
+          "operations.delete.durableCommits": 352,
+          "operations.delete.failedCalls": 0,
+          "operations.delete.payloadBytes": 0,
+          "operations.delete.journalBytes": 321433,
+          "operations.delete.prepareSeconds": 0.0,
+          "operations.delete.appendSeconds": 0.0,
+          "operations.delete.flushSeconds": 0.9245395,
+          "operations.delete.applySeconds": 0.0,
+          "operations.delete.totalSeconds": 5.9089044,
+          "operations.delete.flushCalls": 352,
+          "operations.forget-unlinked.attempts": 366,
+          "operations.forget-unlinked.durableCommits": 366,
+          "operations.forget-unlinked.failedCalls": 0,
+          "operations.forget-unlinked.payloadBytes": 0,
+          "operations.forget-unlinked.journalBytes": 106136,
+          "operations.forget-unlinked.prepareSeconds": 0.0,
+          "operations.forget-unlinked.appendSeconds": 0.0,
+          "operations.forget-unlinked.flushSeconds": 0.9537446,
+          "operations.forget-unlinked.applySeconds": 0.0,
+          "operations.forget-unlinked.totalSeconds": 6.3960213,
+          "operations.forget-unlinked.flushCalls": 366,
+          "operations.metadata.attempts": 426,
+          "operations.metadata.durableCommits": 426,
+          "operations.metadata.failedCalls": 0,
+          "operations.metadata.payloadBytes": 0,
+          "operations.metadata.journalBytes": 245862,
+          "operations.metadata.prepareSeconds": 0.0,
+          "operations.metadata.appendSeconds": 0.0,
+          "operations.metadata.flushSeconds": 1.1604609,
+          "operations.metadata.applySeconds": 0.0,
+          "operations.metadata.totalSeconds": 6.0488832,
+          "operations.metadata.flushCalls": 426,
+          "operations.rename.attempts": 168,
+          "operations.rename.durableCommits": 168,
+          "operations.rename.failedCalls": 0,
+          "operations.rename.payloadBytes": 0,
+          "operations.rename.journalBytes": 207464,
+          "operations.rename.prepareSeconds": 0.0,
+          "operations.rename.appendSeconds": 0.0,
+          "operations.rename.flushSeconds": 0.4312127,
+          "operations.rename.applySeconds": 0.0,
+          "operations.rename.totalSeconds": 4.2447226,
+          "operations.rename.flushCalls": 168,
+          "operations.resize.attempts": 247,
+          "operations.resize.durableCommits": 247,
+          "operations.resize.failedCalls": 0,
+          "operations.resize.payloadBytes": 0,
+          "operations.resize.journalBytes": 128650,
+          "operations.resize.prepareSeconds": 0.0,
+          "operations.resize.appendSeconds": 0.0,
+          "operations.resize.flushSeconds": 0.6372797,
+          "operations.resize.applySeconds": 0.0,
+          "operations.resize.totalSeconds": 1.8904647,
+          "operations.resize.flushCalls": 247,
+          "operations.write.attempts": 15198,
+          "operations.write.durableCommits": 15198,
+          "operations.write.failedCalls": 0,
+          "operations.write.payloadBytes": 131399166,
+          "operations.write.journalBytes": 1712543640,
+          "operations.write.prepareSeconds": 0.0,
+          "operations.write.appendSeconds": 0.0,
+          "operations.write.flushSeconds": 57.879848800000005,
+          "operations.write.applySeconds": 0.0,
+          "operations.write.totalSeconds": 183.72798279999998,
+          "operations.write.flushCalls": 15198,
+          "readRangeIndex.readCalls": 50616,
+          "readRangeIndex.searchProbes": 58142,
+          "readRangeIndex.visitedExtents": 38637
+        }
+      },
+      "sampledPeakPrivateBytes": 446042112,
+      "sampledPeakOpenHandles": 79,
+      "latestInsideGauges": {
+        "journalBytes": 36672807,
+        "payloadBytes": 28664750,
+        "metadataBytes": 8008057,
+        "durableSequence": 16833,
+        "indexedNodes": 39219
+      }
+    }
+  },
+  "traceWindows": [
+    {
+      "beganUtc": "2026-10-08T03:10:16.346000+00:00",
+      "endedUtc": "2026-10-08T03:11:16.476655+00:00",
+      "seconds": 60.13065505027771,
+      "groups": {
+        "a:provider": {
+          "processCount": 1,
+          "sampleCount": 29,
+          "cpuSecondsLowerBound": 36.546875,
+          "kernelSecondsLowerBound": 29.9375,
+          "transferReadBytesLowerBound": 337830404,
+          "transferWriteBytesLowerBound": 57213667,
+          "readOperationsLowerBound": 48975,
+          "writeOperationsLowerBound": 28963,
+          "otherOperationsLowerBound": 1140034,
+          "sampledSimultaneousPeakPrivateBytes": 331702272
+        },
+        "a:editor": {
+          "processCount": 1,
+          "sampleCount": 29,
+          "cpuSecondsLowerBound": 0.90625,
+          "kernelSecondsLowerBound": 0.375,
+          "transferReadBytesLowerBound": 1482,
+          "transferWriteBytesLowerBound": 3081923,
+          "readOperationsLowerBound": 4358,
+          "writeOperationsLowerBound": 761,
+          "otherOperationsLowerBound": 4284,
+          "sampledSimultaneousPeakPrivateBytes": 1060999168
+        },
+        "a:git": {
+          "processCount": 10,
+          "sampleCount": 122,
+          "cpuSecondsLowerBound": 0.09375,
+          "kernelSecondsLowerBound": 0.03125,
+          "transferReadBytesLowerBound": 779755,
+          "transferWriteBytesLowerBound": 484,
+          "readOperationsLowerBound": 48,
+          "writeOperationsLowerBound": 4,
+          "otherOperationsLowerBound": 785,
+          "sampledSimultaneousPeakPrivateBytes": 82874368
+        },
+        "a:bee-backend": {
+          "processCount": 1,
+          "sampleCount": 6,
+          "cpuSecondsLowerBound": 0.703125,
+          "kernelSecondsLowerBound": 0.625,
+          "transferReadBytesLowerBound": 1,
+          "transferWriteBytesLowerBound": 2094628,
+          "readOperationsLowerBound": 1,
+          "writeOperationsLowerBound": 323,
+          "otherOperationsLowerBound": 9131,
+          "sampledSimultaneousPeakPrivateBytes": 132067328
+        },
+        "a:bee-build-program": {
+          "processCount": 1,
+          "sampleCount": 23,
+          "cpuSecondsLowerBound": 1.0,
+          "kernelSecondsLowerBound": 0.375,
+          "transferReadBytesLowerBound": 3875894,
+          "transferWriteBytesLowerBound": 19923207,
+          "readOperationsLowerBound": 923,
+          "writeOperationsLowerBound": 3495,
+          "otherOperationsLowerBound": 1149,
+          "sampledSimultaneousPeakPrivateBytes": 183615488
+        }
+      },
+      "trace": "provider-a-compile",
+      "alignment": "EventPipe session start/end UTC from offline TraceEvent metadata.",
+      "providers": {
+        "a": {
+          "requestedBeganUtc": "2026-10-08T03:10:16.346000+00:00",
+          "requestedEndedUtc": "2026-10-08T03:11:16.476655+00:00",
+          "insideSampleCount": 6,
+          "inner": {
+            "beganUtc": "2026-10-08T03:10:16.932174+00:00",
+            "endedUtc": "2026-10-08T03:11:07.944901+00:00",
+            "elapsedSeconds": 51.01272702217102,
+            "startOffsetSeconds": 0.5861740112304688,
+            "endOffsetSeconds": -8.53175401687622,
+            "delta": {
+              "flushCount": 4330,
+              "flushSeconds": 17.0354735,
+              "journalAppendedBytes": 32952814,
+              "journalReadBytes": 2165685,
+              "baseReadBytes": 223692,
+              "operations.write.attempts": 4315,
+              "operations.write.totalSeconds": 45.635135
+            }
+          }
+        },
+        "b": {
+          "requestedBeganUtc": "2026-10-08T03:10:16.346000+00:00",
+          "requestedEndedUtc": "2026-10-08T03:11:16.476655+00:00",
+          "insideSampleCount": 6,
+          "inner": {
+            "beganUtc": "2026-10-08T03:10:17.417208+00:00",
+            "endedUtc": "2026-10-08T03:11:07.581448+00:00",
+            "elapsedSeconds": 50.16424012184143,
+            "startOffsetSeconds": 1.0712080001831055,
+            "endOffsetSeconds": -8.895206928253174,
+            "delta": {
+              "flushCount": 4261,
+              "flushSeconds": 16.9825725,
+              "journalAppendedBytes": 32488281,
+              "journalReadBytes": 2165891,
+              "baseReadBytes": 223692,
+              "operations.write.attempts": 4246,
+              "operations.write.totalSeconds": 44.9387883
+            }
+          }
+        }
+      }
+    },
+    {
+      "beganUtc": "2026-10-08T03:02:55.247000+00:00",
+      "endedUtc": "2026-10-08T03:03:55.386773+00:00",
+      "seconds": 60.13977313041687,
+      "groups": {
+        "a:provider": {
+          "processCount": 1,
+          "sampleCount": 29,
+          "cpuSecondsLowerBound": 12.46875,
+          "kernelSecondsLowerBound": 7.8125,
+          "transferReadBytesLowerBound": 5234355876,
+          "transferWriteBytesLowerBound": 6340868,
+          "readOperationsLowerBound": 380223,
+          "writeOperationsLowerBound": 14971,
+          "otherOperationsLowerBound": 97573,
+          "sampledSimultaneousPeakPrivateBytes": 218095616
+        },
+        "a:editor": {
+          "processCount": 1,
+          "sampleCount": 29,
+          "cpuSecondsLowerBound": 0.453125,
+          "kernelSecondsLowerBound": 0.1875,
+          "transferReadBytesLowerBound": 401875379,
+          "transferWriteBytesLowerBound": 0,
+          "readOperationsLowerBound": 4914,
+          "writeOperationsLowerBound": 0,
+          "otherOperationsLowerBound": 4913,
+          "sampledSimultaneousPeakPrivateBytes": 989495296
+        },
+        "a:git": {
+          "processCount": 110,
+          "sampleCount": 110,
+          "cpuSecondsLowerBound": 5.3125,
+          "kernelSecondsLowerBound": 2.828125,
+          "transferReadBytesLowerBound": 15068126,
+          "transferWriteBytesLowerBound": 473450715,
+          "readOperationsLowerBound": 1864,
+          "writeOperationsLowerBound": 29380,
+          "otherOperationsLowerBound": 22084,
+          "sampledSimultaneousPeakPrivateBytes": 80703488
+        }
+      },
+      "trace": "provider-a-early-scan",
+      "alignment": "EventPipe session start/end UTC from offline TraceEvent metadata.",
+      "providers": {
+        "a": {
+          "requestedBeganUtc": "2026-10-08T03:02:55.247000+00:00",
+          "requestedEndedUtc": "2026-10-08T03:03:55.386773+00:00",
+          "insideSampleCount": 6,
+          "inner": {
+            "beganUtc": "2026-10-08T03:02:56.394534+00:00",
+            "endedUtc": "2026-10-08T03:03:47.507957+00:00",
+            "elapsedSeconds": 51.113422870635986,
+            "startOffsetSeconds": 1.1475341320037842,
+            "endOffsetSeconds": -7.8788161277771,
+            "delta": {
+              "flushCount": 0,
+              "flushSeconds": 0.0,
+              "journalAppendedBytes": 0,
+              "journalReadBytes": 0,
+              "baseReadBytes": 489492938,
+              "operations.write.attempts": 0,
+              "operations.write.totalSeconds": 0.0
+            }
+          }
+        },
+        "b": {
+          "requestedBeganUtc": "2026-10-08T03:02:55.247000+00:00",
+          "requestedEndedUtc": "2026-10-08T03:03:55.386773+00:00",
+          "insideSampleCount": 6,
+          "inner": {
+            "beganUtc": "2026-10-08T03:02:56.560382+00:00",
+            "endedUtc": "2026-10-08T03:03:46.516353+00:00",
+            "elapsedSeconds": 49.955971002578735,
+            "startOffsetSeconds": 1.3133819103240967,
+            "endOffsetSeconds": -8.870420217514038,
+            "delta": {
+              "flushCount": 0,
+              "flushSeconds": 0.0,
+              "journalAppendedBytes": 0,
+              "journalReadBytes": 0,
+              "baseReadBytes": 472910307,
+              "operations.write.attempts": 0,
+              "operations.write.totalSeconds": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "beganUtc": "2026-10-08T03:05:24.624000+00:00",
+      "endedUtc": "2026-10-08T03:06:24.762654+00:00",
+      "seconds": 60.13865399360657,
+      "groups": {
+        "a:provider": {
+          "processCount": 1,
+          "sampleCount": 29,
+          "cpuSecondsLowerBound": 11.96875,
+          "kernelSecondsLowerBound": 7.171875,
+          "transferReadBytesLowerBound": 4931085254,
+          "transferWriteBytesLowerBound": 6299211,
+          "readOperationsLowerBound": 337524,
+          "writeOperationsLowerBound": 14487,
+          "otherOperationsLowerBound": 89088,
+          "sampledSimultaneousPeakPrivateBytes": 223391744
+        },
+        "a:editor": {
+          "processCount": 1,
+          "sampleCount": 29,
+          "cpuSecondsLowerBound": 0.484375,
+          "kernelSecondsLowerBound": 0.203125,
+          "transferReadBytesLowerBound": 382724819,
+          "transferWriteBytesLowerBound": 0,
+          "readOperationsLowerBound": 4683,
+          "writeOperationsLowerBound": 0,
+          "otherOperationsLowerBound": 4473,
+          "sampledSimultaneousPeakPrivateBytes": 989323264
+        },
+        "a:git": {
+          "processCount": 106,
+          "sampleCount": 106,
+          "cpuSecondsLowerBound": 5.03125,
+          "kernelSecondsLowerBound": 2.953125,
+          "transferReadBytesLowerBound": 15684278,
+          "transferWriteBytesLowerBound": 356874004,
+          "readOperationsLowerBound": 1786,
+          "writeOperationsLowerBound": 22015,
+          "otherOperationsLowerBound": 21498,
+          "sampledSimultaneousPeakPrivateBytes": 83800064
+        }
+      },
+      "trace": "provider-a-late-scan",
+      "alignment": "EventPipe session start/end UTC from offline TraceEvent metadata.",
+      "providers": {
+        "a": {
+          "requestedBeganUtc": "2026-10-08T03:05:24.624000+00:00",
+          "requestedEndedUtc": "2026-10-08T03:06:24.762654+00:00",
+          "insideSampleCount": 6,
+          "inner": {
+            "beganUtc": "2026-10-08T03:05:27.048095+00:00",
+            "endedUtc": "2026-10-08T03:06:17.774809+00:00",
+            "elapsedSeconds": 50.72671389579773,
+            "startOffsetSeconds": 2.4240949153900146,
+            "endOffsetSeconds": -6.987845182418823,
+            "delta": {
+              "flushCount": 0,
+              "flushSeconds": 0.0,
+              "journalAppendedBytes": 0,
+              "journalReadBytes": 0,
+              "baseReadBytes": 544299325,
+              "operations.write.attempts": 0,
+              "operations.write.totalSeconds": 0.0
+            }
+          }
+        },
+        "b": {
+          "requestedBeganUtc": "2026-10-08T03:05:24.624000+00:00",
+          "requestedEndedUtc": "2026-10-08T03:06:24.762654+00:00",
+          "insideSampleCount": 6,
+          "inner": {
+            "beganUtc": "2026-10-08T03:05:27.144528+00:00",
+            "endedUtc": "2026-10-08T03:06:16.904705+00:00",
+            "elapsedSeconds": 49.76017713546753,
+            "startOffsetSeconds": 2.5205278396606445,
+            "endOffsetSeconds": -7.8579490184783936,
+            "delta": {
+              "flushCount": 0,
+              "flushSeconds": 0.0,
+              "journalAppendedBytes": 0,
+              "journalReadBytes": 0,
+              "baseReadBytes": 540804052,
+              "operations.write.attempts": 0,
+              "operations.write.totalSeconds": 0.0
+            }
+          }
+        }
+      }
+    }
+  ],
+  "traceContexts": {
+    "early-scan": {
+      "measurement": "sampled managed-thread stack residence; overlapping threads, not exact CPU, wall, or physical disk time",
+      "qualifications": [
+        "The all-thread denominator includes idle service/threadpool/event-loop residence.",
+        "The filesystem-callback denominator excludes background/idle threads by requiring a named FileSystemHost or WinFspOverlayFileSystem callback frame.",
+        "Callback percentages also exclude helper I/O work on other threads and stacks without a named callback; this is not all non-idle work.",
+        "Inclusive method/context times overlap and must not be added together.",
+        "Monitor entry context identifies visible callers, not the actual lock object; JIT inlining can omit product frames.",
+        "Leaf labels identify sampled method names, not whether that thread consumed CPU throughout each sample interval.",
+        "CPU_TIME and UNMANAGED_CODE_TIME synthetic leaf markers are excluded from method ranking."
+      ],
+      "allThreadResidenceMilliseconds": 1195655.0882,
+      "filesystemCallbackResidenceMilliseconds": 480115.6282,
+      "filesystemCallbackMonitorEntryMilliseconds": 419399.3481,
+      "filesystemCallbackKinds": [
+        {
+          "name": "Read",
+          "sampledResidenceMilliseconds": 473469.1526,
+          "percentOfDenominator": 98.6157
+        },
+        {
+          "name": "ReadDirectory",
+          "sampledResidenceMilliseconds": 1529.7629,
+          "percentOfDenominator": 0.3186
+        },
+        {
+          "name": "GetFileInfo",
+          "sampledResidenceMilliseconds": 1438.204,
+          "percentOfDenominator": 0.2996
+        },
+        {
+          "name": "Open",
+          "sampledResidenceMilliseconds": 1291.158,
+          "percentOfDenominator": 0.2689
+        },
+        {
+          "name": "Cleanup",
+          "sampledResidenceMilliseconds": 1020.3443,
+          "percentOfDenominator": 0.2125
+        },
+        {
+          "name": "Close",
+          "sampledResidenceMilliseconds": 942.0424,
+          "percentOfDenominator": 0.1962
+        },
+        {
+          "name": "GetSecurityByName",
+          "sampledResidenceMilliseconds": 424.9639,
+          "percentOfDenominator": 0.0885
+        }
+      ],
+      "filesystemCallbackLeafKinds": [
+        {
+          "name": "monitor-entry",
+          "sampledResidenceMilliseconds": 419399.3481,
+          "percentOfDenominator": 87.3538
+        },
+        {
+          "name": "other-leaf",
+          "sampledResidenceMilliseconds": 42738.1884,
+          "percentOfDenominator": 8.9016
+        },
+        {
+          "name": "file-io-leaf",
+          "sampledResidenceMilliseconds": 17759.7947,
+          "percentOfDenominator": 3.6991
+        },
+        {
+          "name": "other-named-wait",
+          "sampledResidenceMilliseconds": 218.2969,
+          "percentOfDenominator": 0.0455
+        }
+      ],
+      "monitorEntryByCallback": [
+        {
+          "name": "Read",
+          "sampledResidenceMilliseconds": 413815.565,
+          "percentOfDenominator": 98.6686
+        },
+        {
+          "name": "Open",
+          "sampledResidenceMilliseconds": 1197.3644,
+          "percentOfDenominator": 0.2855
+        },
+        {
+          "name": "GetFileInfo",
+          "sampledResidenceMilliseconds": 1171.498,
+          "percentOfDenominator": 0.2793
+        },
+        {
+          "name": "Cleanup",
+          "sampledResidenceMilliseconds": 1018.8321,
+          "percentOfDenominator": 0.2429
+        },
+        {
+          "name": "ReadDirectory",
+          "sampledResidenceMilliseconds": 992.7679,
+          "percentOfDenominator": 0.2367
+        },
+        {
+          "name": "Close",
+          "sampledResidenceMilliseconds": 860.4949,
+          "percentOfDenominator": 0.2052
+        },
+        {
+          "name": "GetSecurityByName",
+          "sampledResidenceMilliseconds": 342.8258,
+          "percentOfDenominator": 0.0817
+        }
+      ],
+      "monitorEntryByNearestVisibleProductContext": [
+        {
+          "name": "GitObjectSnapshotTree.Read",
+          "sampledResidenceMilliseconds": 413337.5499,
+          "percentOfDenominator": 98.544
+        },
+        {
+          "name": "<no named product frame>",
+          "sampledResidenceMilliseconds": 5622.9881,
+          "percentOfDenominator": 1.3406
+        },
+        {
+          "name": "JournalDeltaStore.Read",
+          "sampledResidenceMilliseconds": 278.8263,
+          "percentOfDenominator": 0.0665
+        },
+        {
+          "name": "GitProgressReadStream.Begin",
+          "sampledResidenceMilliseconds": 85.4926,
+          "percentOfDenominator": 0.0204
+        },
+        {
+          "name": "GitProgressReadStream.End",
+          "sampledResidenceMilliseconds": 73.8897,
+          "percentOfDenominator": 0.0176
+        },
+        {
+          "name": "GitObjectSnapshotTree.BeginBlob",
+          "sampledResidenceMilliseconds": 36.7575,
+          "percentOfDenominator": 0.0088
+        },
+        {
+          "name": "JournalDeltaStore.List",
+          "sampledResidenceMilliseconds": 5.9474,
+          "percentOfDenominator": 0.0014
+        },
+        {
+          "name": "GitProgressReadStream.Dispose",
+          "sampledResidenceMilliseconds": 1.5343,
+          "percentOfDenominator": 0.0004
+        },
+        {
+          "name": "GitObjectSnapshotTree.StopReader",
+          "sampledResidenceMilliseconds": 1.5148,
+          "percentOfDenominator": 0.0004
+        }
+      ],
+      "inclusiveProductContexts": [
+        {
+          "name": "JournalDeltaStore.Read",
+          "sampledResidenceMilliseconds": 473355.6628,
+          "percentOfDenominator": 39.5896
+        },
+        {
+          "name": "GitObjectSnapshotTree.Read",
+          "sampledResidenceMilliseconds": 472707.3755,
+          "percentOfDenominator": 39.5354
+        },
+        {
+          "name": "GitObjectSnapshotTree.LoadProvedChunk",
+          "sampledResidenceMilliseconds": 56578.2027,
+          "percentOfDenominator": 4.732
+        },
+        {
+          "name": "GitObjectSnapshotTree.BeginBlob",
+          "sampledResidenceMilliseconds": 35684.2304,
+          "percentOfDenominator": 2.9845
+        },
+        {
+          "name": "GitProgressReadStream.ReadByte",
+          "sampledResidenceMilliseconds": 31784.3568,
+          "percentOfDenominator": 2.6583
+        },
+        {
+          "name": "GitObjectSnapshotTree.Header",
+          "sampledResidenceMilliseconds": 31692.8512,
+          "percentOfDenominator": 2.6507
+        },
+        {
+          "name": "GitObjectSnapshotTree.StopReader",
+          "sampledResidenceMilliseconds": 2718.8883,
+          "percentOfDenominator": 0.2274
+        },
+        {
+          "name": "GitObjectSnapshotTree.GetSession",
+          "sampledResidenceMilliseconds": 2704.3243,
+          "percentOfDenominator": 0.2262
+        },
+        {
+          "name": "JournalDeltaStore.List",
+          "sampledResidenceMilliseconds": 391.6971,
+          "percentOfDenominator": 0.0328
+        },
+        {
+          "name": "GraftedSnapshotTree.List",
+          "sampledResidenceMilliseconds": 217.1368,
+          "percentOfDenominator": 0.0182
+        },
+        {
+          "name": "GitProgressReadStream.Begin",
+          "sampledResidenceMilliseconds": 190.4527,
+          "percentOfDenominator": 0.0159
+        },
+        {
+          "name": "GitProgressReadStream.End",
+          "sampledResidenceMilliseconds": 73.8897,
+          "percentOfDenominator": 0.0062
+        },
+        {
+          "name": "JournalDeltaStore.Lookup",
+          "sampledResidenceMilliseconds": 14.6007,
+          "percentOfDenominator": 0.0012
+        },
+        {
+          "name": "JournalDeltaStore.AddBaseNode",
+          "sampledResidenceMilliseconds": 13.1206,
+          "percentOfDenominator": 0.0011
+        },
+        {
+          "name": "JournalDeltaStore.Check",
+          "sampledResidenceMilliseconds": 9.3109,
+          "percentOfDenominator": 0.0008
+        },
+        {
+          "name": "GitProgressReadStream.Dispose",
+          "sampledResidenceMilliseconds": 1.5343,
+          "percentOfDenominator": 0.0001
+        },
+        {
+          "name": "GitObjectSnapshotTree.ProgressOutput",
+          "sampledResidenceMilliseconds": 1.4921,
+          "percentOfDenominator": 0.0001
+        },
+        {
+          "name": "GitProgressReadStream..ctor",
+          "sampledResidenceMilliseconds": 1.4921,
+          "percentOfDenominator": 0.0001
+        },
+        {
+          "name": "JournalDeltaStore.IndexPath",
+          "sampledResidenceMilliseconds": 1.4772,
+          "percentOfDenominator": 0.0001
+        }
+      ],
+      "filesystemCallbackExclusiveTop12": [
+        {
+          "name": "System.Private.CoreLib.il!System.Threading.Monitor.Enter_Slowpath(class System.Object)",
+          "sampledResidenceMilliseconds": 419399.3481,
+          "percentOfDenominator": 87.3538
+        },
+        {
+          "name": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitProgressReadStream.ReadByte()",
+          "sampledResidenceMilliseconds": 31767.3339,
+          "percentOfDenominator": 6.6166
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.IO.Strategies.BufferedFileStreamStrategy.ReadSpan(value class System.Span`1<unsigned int8>,value class System.ArraySegment`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 17754.8827,
+          "percentOfDenominator": 3.698
+        },
+        {
+          "name": "System.Diagnostics.Process.il!System.Diagnostics.Process.StartWithCreateProcess(class System.Diagnostics.ProcessStartInfo)",
+          "sampledResidenceMilliseconds": 3625.9652,
+          "percentOfDenominator": 0.7552
+        },
+        {
+          "name": "System.Security.Cryptography.il!System.Security.Cryptography.HashProviderDispenser+OneShotHashProvider.HashDataUsingPseudoHandle(class System.String,value class System.ReadOnlySpan`1<unsigned int8>,value class System.ReadOnlySpan`1<unsigned int8>,bool,value class System.Span`1<unsigned int8>,int32&)",
+          "sampledResidenceMilliseconds": 2798.9066,
+          "percentOfDenominator": 0.583
+        },
+        {
+          "name": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotTree.StopReader(class ReaderSession)",
+          "sampledResidenceMilliseconds": 2485.561,
+          "percentOfDenominator": 0.5177
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 1244.5698,
+          "percentOfDenominator": 0.2592
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.Buffer.MemmoveInternal(unsigned int8&,unsigned int8&,unsigned int)",
+          "sampledResidenceMilliseconds": 198.6193,
+          "percentOfDenominator": 0.0414
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.Threading.WaitHandle.WaitOne(int32)",
+          "sampledResidenceMilliseconds": 197.5553,
+          "percentOfDenominator": 0.0411
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 85.6121,
+          "percentOfDenominator": 0.0178
+        },
+        {
+          "name": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider.Plain(class System.String)",
+          "sampledResidenceMilliseconds": 78.7445,
+          "percentOfDenominator": 0.0164
+        },
+        {
+          "name": "System.Private.CoreLib.il!Microsoft.Win32.SafeHandles.SafeFileHandle.<GetFileLength>g__GetFileLengthCore|28_0()",
+          "sampledResidenceMilliseconds": 77.5975,
+          "percentOfDenominator": 0.0162
+        }
+      ]
+    },
+    "late-scan": {
+      "measurement": "sampled managed-thread stack residence; overlapping threads, not exact CPU, wall, or physical disk time",
+      "qualifications": [
+        "The all-thread denominator includes idle service/threadpool/event-loop residence.",
+        "The filesystem-callback denominator excludes background/idle threads by requiring a named FileSystemHost or WinFspOverlayFileSystem callback frame.",
+        "Callback percentages also exclude helper I/O work on other threads and stacks without a named callback; this is not all non-idle work.",
+        "Inclusive method/context times overlap and must not be added together.",
+        "Monitor entry context identifies visible callers, not the actual lock object; JIT inlining can omit product frames.",
+        "Leaf labels identify sampled method names, not whether that thread consumed CPU throughout each sample interval.",
+        "CPU_TIME and UNMANAGED_CODE_TIME synthetic leaf markers are excluded from method ranking."
+      ],
+      "allThreadResidenceMilliseconds": 1140333.1505,
+      "filesystemCallbackResidenceMilliseconds": 480139.0474,
+      "filesystemCallbackMonitorEntryMilliseconds": 419811.3633,
+      "filesystemCallbackKinds": [
+        {
+          "name": "Read",
+          "sampledResidenceMilliseconds": 480022.0402,
+          "percentOfDenominator": 99.9756
+        },
+        {
+          "name": "GetFileInfo",
+          "sampledResidenceMilliseconds": 82.4091,
+          "percentOfDenominator": 0.0172
+        },
+        {
+          "name": "Close",
+          "sampledResidenceMilliseconds": 12.9971,
+          "percentOfDenominator": 0.0027
+        },
+        {
+          "name": "GetSecurityByName",
+          "sampledResidenceMilliseconds": 12.5703,
+          "percentOfDenominator": 0.0026
+        },
+        {
+          "name": "Open",
+          "sampledResidenceMilliseconds": 7.5162,
+          "percentOfDenominator": 0.0016
+        },
+        {
+          "name": "Cleanup",
+          "sampledResidenceMilliseconds": 1.5146,
+          "percentOfDenominator": 0.0003
+        }
+      ],
+      "filesystemCallbackLeafKinds": [
+        {
+          "name": "monitor-entry",
+          "sampledResidenceMilliseconds": 419811.3633,
+          "percentOfDenominator": 87.4354
+        },
+        {
+          "name": "other-leaf",
+          "sampledResidenceMilliseconds": 39431.6813,
+          "percentOfDenominator": 8.2126
+        },
+        {
+          "name": "file-io-leaf",
+          "sampledResidenceMilliseconds": 20896.0028,
+          "percentOfDenominator": 4.3521
+        }
+      ],
+      "monitorEntryByCallback": [
+        {
+          "name": "Read",
+          "sampledResidenceMilliseconds": 419776.3429,
+          "percentOfDenominator": 99.9917
+        },
+        {
+          "name": "GetFileInfo",
+          "sampledResidenceMilliseconds": 20.9711,
+          "percentOfDenominator": 0.005
+        },
+        {
+          "name": "GetSecurityByName",
+          "sampledResidenceMilliseconds": 4.5452,
+          "percentOfDenominator": 0.0011
+        },
+        {
+          "name": "Open",
+          "sampledResidenceMilliseconds": 4.5129,
+          "percentOfDenominator": 0.0011
+        },
+        {
+          "name": "Close",
+          "sampledResidenceMilliseconds": 3.4765,
+          "percentOfDenominator": 0.0008
+        },
+        {
+          "name": "Cleanup",
+          "sampledResidenceMilliseconds": 1.5146,
+          "percentOfDenominator": 0.0004
+        }
+      ],
+      "monitorEntryByNearestVisibleProductContext": [
+        {
+          "name": "GitObjectSnapshotTree.Read",
+          "sampledResidenceMilliseconds": 419538.6813,
+          "percentOfDenominator": 99.9274
+        },
+        {
+          "name": "GitProgressReadStream.End",
+          "sampledResidenceMilliseconds": 99.4179,
+          "percentOfDenominator": 0.0237
+        },
+        {
+          "name": "GitProgressReadStream.Begin",
+          "sampledResidenceMilliseconds": 91.3773,
+          "percentOfDenominator": 0.0218
+        },
+        {
+          "name": "<no named product frame>",
+          "sampledResidenceMilliseconds": 67.2823,
+          "percentOfDenominator": 0.016
+        },
+        {
+          "name": "GitObjectSnapshotTree.BeginBlob",
+          "sampledResidenceMilliseconds": 37.9562,
+          "percentOfDenominator": 0.009
+        },
+        {
+          "name": "JournalDeltaStore.Read",
+          "sampledResidenceMilliseconds": 6.9138,
+          "percentOfDenominator": 0.0016
+        },
+        {
+          "name": "GitProgressReadStream.Dispose",
+          "sampledResidenceMilliseconds": 1.9964,
+          "percentOfDenominator": 0.0005
+        }
+      ],
+      "inclusiveProductContexts": [
+        {
+          "name": "JournalDeltaStore.Read",
+          "sampledResidenceMilliseconds": 479869.8072,
+          "percentOfDenominator": 42.0815
+        },
+        {
+          "name": "GitObjectSnapshotTree.Read",
+          "sampledResidenceMilliseconds": 479661.2185,
+          "percentOfDenominator": 42.0633
+        },
+        {
+          "name": "GitObjectSnapshotTree.LoadProvedChunk",
+          "sampledResidenceMilliseconds": 57516.6208,
+          "percentOfDenominator": 5.0438
+        },
+        {
+          "name": "GitObjectSnapshotTree.BeginBlob",
+          "sampledResidenceMilliseconds": 33424.6132,
+          "percentOfDenominator": 2.9311
+        },
+        {
+          "name": "GitProgressReadStream.ReadByte",
+          "sampledResidenceMilliseconds": 29781.041,
+          "percentOfDenominator": 2.6116
+        },
+        {
+          "name": "GitObjectSnapshotTree.Header",
+          "sampledResidenceMilliseconds": 29696.1426,
+          "percentOfDenominator": 2.6042
+        },
+        {
+          "name": "GitObjectSnapshotTree.GetSession",
+          "sampledResidenceMilliseconds": 2508.0594,
+          "percentOfDenominator": 0.2199
+        },
+        {
+          "name": "GitObjectSnapshotTree.StopReader",
+          "sampledResidenceMilliseconds": 2508.0594,
+          "percentOfDenominator": 0.2199
+        },
+        {
+          "name": "GitProgressReadStream.Begin",
+          "sampledResidenceMilliseconds": 196.2637,
+          "percentOfDenominator": 0.0172
+        },
+        {
+          "name": "GitProgressReadStream.End",
+          "sampledResidenceMilliseconds": 100.7369,
+          "percentOfDenominator": 0.0088
+        },
+        {
+          "name": "GitProgressReadStream.Dispose",
+          "sampledResidenceMilliseconds": 1.9964,
+          "percentOfDenominator": 0.0002
+        },
+        {
+          "name": "JournalDeltaStore.ObserveStorage",
+          "sampledResidenceMilliseconds": 1.4868,
+          "percentOfDenominator": 0.0001
+        }
+      ],
+      "filesystemCallbackExclusiveTop12": [
+        {
+          "name": "System.Private.CoreLib.il!System.Threading.Monitor.Enter_Slowpath(class System.Object)",
+          "sampledResidenceMilliseconds": 419811.3633,
+          "percentOfDenominator": 87.4354
+        },
+        {
+          "name": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitProgressReadStream.ReadByte()",
+          "sampledResidenceMilliseconds": 29777.0411,
+          "percentOfDenominator": 6.2018
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.IO.Strategies.BufferedFileStreamStrategy.ReadSpan(value class System.Span`1<unsigned int8>,value class System.ArraySegment`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 20882.4806,
+          "percentOfDenominator": 4.3493
+        },
+        {
+          "name": "System.Diagnostics.Process.il!System.Diagnostics.Process.StartWithCreateProcess(class System.Diagnostics.ProcessStartInfo)",
+          "sampledResidenceMilliseconds": 3334.3777,
+          "percentOfDenominator": 0.6945
+        },
+        {
+          "name": "System.Security.Cryptography.il!System.Security.Cryptography.HashProviderDispenser+OneShotHashProvider.HashDataUsingPseudoHandle(class System.String,value class System.ReadOnlySpan`1<unsigned int8>,value class System.ReadOnlySpan`1<unsigned int8>,bool,value class System.Span`1<unsigned int8>,int32&)",
+          "sampledResidenceMilliseconds": 2831.6247,
+          "percentOfDenominator": 0.5898
+        },
+        {
+          "name": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotTree.StopReader(class ReaderSession)",
+          "sampledResidenceMilliseconds": 2494.435,
+          "percentOfDenominator": 0.5195
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 315.0293,
+          "percentOfDenominator": 0.0656
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.Buffer.MemmoveInternal(unsigned int8&,unsigned int8&,unsigned int)",
+          "sampledResidenceMilliseconds": 245.715,
+          "percentOfDenominator": 0.0512
+        },
+        {
+          "name": "Splinter.SourceControl.Git!Splinter.SourceControl.Git.GitObjectSnapshotProvider.Plain(class System.String)",
+          "sampledResidenceMilliseconds": 103.922,
+          "percentOfDenominator": 0.0216
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.IO.File.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 100.5899,
+          "percentOfDenominator": 0.021
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.Threading.Thread.<PollGC>g__PollGCWorker|70_0()",
+          "sampledResidenceMilliseconds": 57.7665,
+          "percentOfDenominator": 0.012
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.TimeProvider+SystemTimeProviderTimer.Change(value class System.TimeSpan,value class System.TimeSpan)",
+          "sampledResidenceMilliseconds": 42.0541,
+          "percentOfDenominator": 0.0088
+        }
+      ]
+    },
+    "compile": {
+      "measurement": "sampled managed-thread stack residence; overlapping threads, not exact CPU, wall, or physical disk time",
+      "qualifications": [
+        "The all-thread denominator includes idle service/threadpool/event-loop residence.",
+        "The filesystem-callback denominator excludes background/idle threads by requiring a named FileSystemHost or WinFspOverlayFileSystem callback frame.",
+        "Callback percentages also exclude helper I/O work on other threads and stacks without a named callback; this is not all non-idle work.",
+        "Inclusive method/context times overlap and must not be added together.",
+        "Monitor entry context identifies visible callers, not the actual lock object; JIT inlining can omit product frames.",
+        "Leaf labels identify sampled method names, not whether that thread consumed CPU throughout each sample interval.",
+        "CPU_TIME and UNMANAGED_CODE_TIME synthetic leaf markers are excluded from method ranking."
+      ],
+      "allThreadResidenceMilliseconds": 895282.809,
+      "filesystemCallbackResidenceMilliseconds": 192340.9553,
+      "filesystemCallbackMonitorEntryMilliseconds": 105189.8232,
+      "filesystemCallbackKinds": [
+        {
+          "name": "Write",
+          "sampledResidenceMilliseconds": 64368.8358,
+          "percentOfDenominator": 33.466
+        },
+        {
+          "name": "GetSecurityByName",
+          "sampledResidenceMilliseconds": 31741.8148,
+          "percentOfDenominator": 16.5029
+        },
+        {
+          "name": "Close",
+          "sampledResidenceMilliseconds": 29068.1986,
+          "percentOfDenominator": 15.1128
+        },
+        {
+          "name": "Open",
+          "sampledResidenceMilliseconds": 20120.1502,
+          "percentOfDenominator": 10.4607
+        },
+        {
+          "name": "Cleanup",
+          "sampledResidenceMilliseconds": 18580.5709,
+          "percentOfDenominator": 9.6602
+        },
+        {
+          "name": "GetFileInfo",
+          "sampledResidenceMilliseconds": 10845.7619,
+          "percentOfDenominator": 5.6388
+        },
+        {
+          "name": "Read",
+          "sampledResidenceMilliseconds": 9741.6563,
+          "percentOfDenominator": 5.0648
+        },
+        {
+          "name": "Overwrite",
+          "sampledResidenceMilliseconds": 7830.1377,
+          "percentOfDenominator": 4.071
+        },
+        {
+          "name": "Rename",
+          "sampledResidenceMilliseconds": 29.171,
+          "percentOfDenominator": 0.0152
+        },
+        {
+          "name": "Create",
+          "sampledResidenceMilliseconds": 14.658,
+          "percentOfDenominator": 0.0076
+        }
+      ],
+      "filesystemCallbackLeafKinds": [
+        {
+          "name": "monitor-entry",
+          "sampledResidenceMilliseconds": 105189.8232,
+          "percentOfDenominator": 54.6892
+        },
+        {
+          "name": "other-leaf",
+          "sampledResidenceMilliseconds": 58479.7043,
+          "percentOfDenominator": 30.4042
+        },
+        {
+          "name": "flush-leaf",
+          "sampledResidenceMilliseconds": 21873.9161,
+          "percentOfDenominator": 11.3725
+        },
+        {
+          "name": "file-io-leaf",
+          "sampledResidenceMilliseconds": 6797.5116,
+          "percentOfDenominator": 3.5341
+        }
+      ],
+      "monitorEntryByCallback": [
+        {
+          "name": "GetSecurityByName",
+          "sampledResidenceMilliseconds": 30663.339,
+          "percentOfDenominator": 29.1505
+        },
+        {
+          "name": "Close",
+          "sampledResidenceMilliseconds": 26134.3804,
+          "percentOfDenominator": 24.845
+        },
+        {
+          "name": "Open",
+          "sampledResidenceMilliseconds": 19401.4763,
+          "percentOfDenominator": 18.4443
+        },
+        {
+          "name": "Cleanup",
+          "sampledResidenceMilliseconds": 18555.9364,
+          "percentOfDenominator": 17.6404
+        },
+        {
+          "name": "GetFileInfo",
+          "sampledResidenceMilliseconds": 9677.4196,
+          "percentOfDenominator": 9.2
+        },
+        {
+          "name": "Write",
+          "sampledResidenceMilliseconds": 597.1207,
+          "percentOfDenominator": 0.5677
+        },
+        {
+          "name": "Read",
+          "sampledResidenceMilliseconds": 158.6374,
+          "percentOfDenominator": 0.1508
+        },
+        {
+          "name": "Overwrite",
+          "sampledResidenceMilliseconds": 1.5134,
+          "percentOfDenominator": 0.0014
+        }
+      ],
+      "monitorEntryByNearestVisibleProductContext": [
+        {
+          "name": "<no named product frame>",
+          "sampledResidenceMilliseconds": 105013.771,
+          "percentOfDenominator": 99.554
+        },
+        {
+          "name": "JournalDeltaStore.ObserveStorage",
+          "sampledResidenceMilliseconds": 291.8845,
+          "percentOfDenominator": 0.2767
+        },
+        {
+          "name": "JournalDeltaStore.Read",
+          "sampledResidenceMilliseconds": 158.6374,
+          "percentOfDenominator": 0.1504
+        },
+        {
+          "name": "LatestJournalStorage.PathOf",
+          "sampledResidenceMilliseconds": 11.3995,
+          "percentOfDenominator": 0.0108
+        },
+        {
+          "name": "LatestJournalStorage.Publish",
+          "sampledResidenceMilliseconds": 7.0055,
+          "percentOfDenominator": 0.0066
+        },
+        {
+          "name": "JournalDeltaStore.Get",
+          "sampledResidenceMilliseconds": 1.5134,
+          "percentOfDenominator": 0.0014
+        }
+      ],
+      "inclusiveProductContexts": [
+        {
+          "name": "JournalDeltaStore.CommitLatest",
+          "sampledResidenceMilliseconds": 72838.4143,
+          "percentOfDenominator": 8.1358
+        },
+        {
+          "name": "JournalDeltaStore.Commit",
+          "sampledResidenceMilliseconds": 70868.1565,
+          "percentOfDenominator": 7.9157
+        },
+        {
+          "name": "LatestJournalStorage.Commit",
+          "sampledResidenceMilliseconds": 69712.7356,
+          "percentOfDenominator": 7.7867
+        },
+        {
+          "name": "LatestJournalStorage.Publish",
+          "sampledResidenceMilliseconds": 22777.9679,
+          "percentOfDenominator": 2.5442
+        },
+        {
+          "name": "LatestJournalStorage.Finish",
+          "sampledResidenceMilliseconds": 16961.2378,
+          "percentOfDenominator": 1.8945
+        },
+        {
+          "name": "JournalDeltaStore.Read",
+          "sampledResidenceMilliseconds": 9741.6563,
+          "percentOfDenominator": 1.0881
+        },
+        {
+          "name": "JournalDeltaStore.ReadExtent",
+          "sampledResidenceMilliseconds": 9240.1118,
+          "percentOfDenominator": 1.0321
+        },
+        {
+          "name": "WinFspOverlayFileSystem.Overwrite",
+          "sampledResidenceMilliseconds": 7830.1377,
+          "percentOfDenominator": 0.8746
+        },
+        {
+          "name": "JournalDeltaStore.SetMetadata",
+          "sampledResidenceMilliseconds": 7792.3242,
+          "percentOfDenominator": 0.8704
+        },
+        {
+          "name": "JournalDeltaStore.ReadEncoded",
+          "sampledResidenceMilliseconds": 6319.6132,
+          "percentOfDenominator": 0.7059
+        },
+        {
+          "name": "JournalDeltaStore.ReadLatestExactly",
+          "sampledResidenceMilliseconds": 6319.6132,
+          "percentOfDenominator": 0.7059
+        },
+        {
+          "name": "LatestJournalStorage.PathOf",
+          "sampledResidenceMilliseconds": 3078.3517,
+          "percentOfDenominator": 0.3438
+        },
+        {
+          "name": "LatestJournalStorage.ReadFrame",
+          "sampledResidenceMilliseconds": 1941.0414,
+          "percentOfDenominator": 0.2168
+        },
+        {
+          "name": "LatestJournalStorage.HashFile",
+          "sampledResidenceMilliseconds": 1902.5444,
+          "percentOfDenominator": 0.2125
+        },
+        {
+          "name": "LatestJournalStorage.Footer",
+          "sampledResidenceMilliseconds": 916.7422,
+          "percentOfDenominator": 0.1024
+        },
+        {
+          "name": "LatestJournalStorage.Index",
+          "sampledResidenceMilliseconds": 405.3059,
+          "percentOfDenominator": 0.0453
+        },
+        {
+          "name": "LatestJournalStorage.FileHash",
+          "sampledResidenceMilliseconds": 363.2708,
+          "percentOfDenominator": 0.0406
+        },
+        {
+          "name": "JournalDeltaStore.WriteLatestNode",
+          "sampledResidenceMilliseconds": 320.3238,
+          "percentOfDenominator": 0.0358
+        },
+        {
+          "name": "JournalDeltaStore.ObserveStorage",
+          "sampledResidenceMilliseconds": 291.8845,
+          "percentOfDenominator": 0.0326
+        },
+        {
+          "name": "JournalDeltaStore.Get",
+          "sampledResidenceMilliseconds": 286.5673,
+          "percentOfDenominator": 0.032
+        },
+        {
+          "name": "WinFspOverlayFileSystem.Info",
+          "sampledResidenceMilliseconds": 285.0539,
+          "percentOfDenominator": 0.0318
+        },
+        {
+          "name": "LatestJournalStorage.Encode",
+          "sampledResidenceMilliseconds": 208.6805,
+          "percentOfDenominator": 0.0233
+        },
+        {
+          "name": "LatestJournalStorage.OpenBlock",
+          "sampledResidenceMilliseconds": 154.8669,
+          "percentOfDenominator": 0.0173
+        },
+        {
+          "name": "GraftedSnapshotTree.Stat",
+          "sampledResidenceMilliseconds": 98.7261,
+          "percentOfDenominator": 0.011
+        },
+        {
+          "name": "JournalDeltaStore.Apply",
+          "sampledResidenceMilliseconds": 37.0965,
+          "percentOfDenominator": 0.0041
+        },
+        {
+          "name": "JournalDeltaStore.SetLength",
+          "sampledResidenceMilliseconds": 36.3,
+          "percentOfDenominator": 0.0041
+        },
+        {
+          "name": "JournalDeltaStore.SetPathChange",
+          "sampledResidenceMilliseconds": 32.2544,
+          "percentOfDenominator": 0.0036
+        },
+        {
+          "name": "WinFspOverlayFileSystem.Rename",
+          "sampledResidenceMilliseconds": 29.171,
+          "percentOfDenominator": 0.0033
+        },
+        {
+          "name": "JournalDeltaStore.ReplaceRange",
+          "sampledResidenceMilliseconds": 22.4868,
+          "percentOfDenominator": 0.0025
+        },
+        {
+          "name": "JournalDeltaStore.Rename",
+          "sampledResidenceMilliseconds": 21.6278,
+          "percentOfDenominator": 0.0024
+        },
+        {
+          "name": "JournalDeltaStore.Create",
+          "sampledResidenceMilliseconds": 14.658,
+          "percentOfDenominator": 0.0016
+        },
+        {
+          "name": "WinFspOverlayFileSystem.Create",
+          "sampledResidenceMilliseconds": 14.658,
+          "percentOfDenominator": 0.0016
+        },
+        {
+          "name": "JournalDeltaStore.ReleaseUnlinkedFile",
+          "sampledResidenceMilliseconds": 7.5432,
+          "percentOfDenominator": 0.0008
+        },
+        {
+          "name": "JournalDeltaStore.PageMatches",
+          "sampledResidenceMilliseconds": 6.3975,
+          "percentOfDenominator": 0.0007
+        },
+        {
+          "name": "JournalDeltaStore.Delete",
+          "sampledResidenceMilliseconds": 5.5262,
+          "percentOfDenominator": 0.0006
+        },
+        {
+          "name": "LatestJournalStorage.Members",
+          "sampledResidenceMilliseconds": 3.5246,
+          "percentOfDenominator": 0.0004
+        },
+        {
+          "name": "LatestJournalStorage.FileLength",
+          "sampledResidenceMilliseconds": 1.4841,
+          "percentOfDenominator": 0.0002
+        }
+      ],
+      "filesystemCallbackExclusiveTop12": [
+        {
+          "name": "System.Private.CoreLib.il!System.Threading.Monitor.Enter_Slowpath(class System.Object)",
+          "sampledResidenceMilliseconds": 105189.8232,
+          "percentOfDenominator": 54.6892
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.IO.Strategies.FileStreamHelpers.FlushToDisk(class Microsoft.Win32.SafeHandles.SafeFileHandle)",
+          "sampledResidenceMilliseconds": 21873.9161,
+          "percentOfDenominator": 11.3725
+        },
+        {
+          "name": "Splinter.Runtime!Splinter.Runtime.WorkspaceStore.EnsurePlainPath(class System.String)",
+          "sampledResidenceMilliseconds": 16701.3602,
+          "percentOfDenominator": 8.6832
+        },
+        {
+          "name": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Publish(class System.String,class System.String,class System.Action`1<class System.String>)",
+          "sampledResidenceMilliseconds": 12605.9781,
+          "percentOfDenominator": 6.554
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.Threading.Thread.<PollGC>g__PollGCWorker|70_0()",
+          "sampledResidenceMilliseconds": 6636.5912,
+          "percentOfDenominator": 3.4504
+        },
+        {
+          "name": "Splinter.Runtime!Splinter.Runtime.JournalDeltaStore.ReadLatestExactly(int64,value class System.Span`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 6133.205,
+          "percentOfDenominator": 3.1887
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.IO.Strategies.OSFileStreamStrategy..ctor(class System.String,value class System.IO.FileMode,value class System.IO.FileAccess,value class System.IO.FileShare,value class System.IO.FileOptions,int64,value class System.Nullable`1<value class System.IO.UnixFileMode>)",
+          "sampledResidenceMilliseconds": 5138.4773,
+          "percentOfDenominator": 2.6715
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.IO.Directory.Exists(class System.String)",
+          "sampledResidenceMilliseconds": 4452.6711,
+          "percentOfDenominator": 2.315
+        },
+        {
+          "name": "Splinter.Runtime!Splinter.Runtime.LatestJournalStorage.Finish(class System.Action`1<class System.String>)",
+          "sampledResidenceMilliseconds": 3034.2923,
+          "percentOfDenominator": 1.5776
+        },
+        {
+          "name": "System.IO.Compression.Brotli.il!System.IO.Compression.BrotliDecoder.Decompress(value class System.ReadOnlySpan`1<unsigned int8>,value class System.Span`1<unsigned int8>,int32&,int32&)",
+          "sampledResidenceMilliseconds": 2912.5406,
+          "percentOfDenominator": 1.5143
+        },
+        {
+          "name": "System.Private.CoreLib.il!Microsoft.Win32.SafeHandles.SafeFileHandle.ReleaseHandle()",
+          "sampledResidenceMilliseconds": 1888.1108,
+          "percentOfDenominator": 0.9816
+        },
+        {
+          "name": "System.Private.CoreLib.il!System.IO.Strategies.OSFileStreamStrategy.Write(value class System.ReadOnlySpan`1<unsigned int8>)",
+          "sampledResidenceMilliseconds": 684.2745,
+          "percentOfDenominator": 0.3558
+        }
+      ]
+    }
+  },
+  "beeInputChanges": {
+    "assemblyPaths": 74,
+    "addedEditorSourceFiles": 1,
+    "ownedIlppEndpointChanged": true,
+    "changedPayloads": 216,
+    "onlyProjectRootReplacement": 147,
+    "onlyOwnedIlppPipe": 68,
+    "bridgeEditorResponseChange": 1,
+    "perActionBeeWhy": "NotRun",
+    "oldEndpointReusePermitted": false
+  },
+  "closure": {
+    "status": "completed",
+    "at": "2026-10-08T03:26:20.786813+00:00",
+    "originalTrackedFilesByteVerified": 1602,
+    "originalClean": true,
+    "originalLibraryOrdinaryNtfs": true,
+    "preexistingRefsUnchanged": true,
+    "localGitConfigRestored": true,
+    "globalGitConfigUnchanged": true,
+    "administratorOrServiceChanges": false
+  },
+  "results": [
+    {
+      "worker": "a",
+      "id": "7fb60da863047977c33b84f8",
+      "revision": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+      "resultTreeUnchanged": true,
+      "phase": "released",
+      "releasedResources": {
+        "ownershipVerified": true,
+        "rootRunning": false,
+        "activeProcesses": 0,
+        "workingSetBytes": 0,
+        "privateBytes": 0
+      }
+    },
+    {
+      "worker": "b",
+      "id": "0adc72786bacb78c0dda78c6",
+      "revision": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+      "resultTreeUnchanged": true,
+      "phase": "released",
+      "releasedResources": {
+        "ownershipVerified": true,
+        "rootRunning": false,
+        "activeProcesses": 0,
+        "workingSetBytes": 0,
+        "privateBytes": 0
+      }
+    }
+  ],
+  "nativeClosure": {
+    "at": "2026-10-08T03:27:46.982815+00:00",
+    "ordinaryOriginalVolume": true,
+    "filesystem": "NTFS",
+    "reparsePoint": false,
+    "libraryRestored": true,
+    "worktreeRegistrationsEqualPreflight": true,
+    "localAutocrlfAbsent": true,
+    "ownedEditorsAndProvidersAbsent": true,
+    "frozenProductHashesUnchanged": true
+  },
+  "responseSchema": {
+    "responses": 12,
+    "valid": 12,
+    "validatorTestsPassed": 1,
+    "stopFailuresPreserved": 2
+  },
+  "measurementLimits": [
+    "Unity, Bee and provider phase scopes overlap and are nonadditive.",
+    "Win32 CPU seconds accumulate threads, not wall-clock time.",
+    "Win32 I/O transfer bytes include pipes/devices and cache traffic; they are not physical disk bytes.",
+    "Two-second process observations omit short-lived or inaccessible processes and final counter tails. Deltas are lower bounds.",
+    "Provider inner/outer deltas use actual observedAt endpoints with explicit boundary offsets; no interpolation.",
+    "Private-byte peaks are observed sample peaks, not full-system peak memory.",
+    "Command-line role classification is only available for identity-matched observed command lines.",
+    "Process ancestry attributes ownership, not every caller of a compiler server; server CPU is not attributed to individual compilation requests.",
+    "Bee event names and durations preserve event scope; absolute trace timestamp alignment is not assumed.",
+    "EventPipe is sampled overlapping thread residence, not CPU attribution or removable wall time.",
+    "GetProcessIoCounters transfer bytes include pipes/device/cache reads and are not physical disk bytes or exact decoded blob bytes.",
+    "Git process identities include Windows launcher/child pairs and missed short processes, not decoder-start counts.",
+    "No source edits, new Play/Test/build, whole physical allocation/RAM peak or OS failure qualification.",
+    "Post-startup analysis/log copies overlap shutdown/reclamation; cleanup is not an isolated performance comparison."
+  ],
+  "evidenceSha256": {
+    "scope.md": "c0a808f622f276ec6807003a4177b2cbe55c53017284a5399763a181b6c47a46",
+    "run.py": "80d1f3aec1f369b0fe417fbfba6c7de83e92ed482e2b4bf63ede96b1e6a7e08a",
+    "analyze-phases.py": "dcb8cb824270fe5d12a43a7cd726227c6e3635f47ca33604ea24af4fe0b466f4",
+    "analyze-startup-stacks.py": "f30d571cff59a039f126071aece187ed4ee0238bd22c031c883ab25b5d0f3538",
+    "analyze-startup-details.py": "75bb3684e1a231890bcb4196a240db29c341e07d75a1bb2d34afd06de5d03de4",
+    "compare-bee.py": "d6ca0f03593a2e44e6bb512f1c39335c385444f257c7627d45b39799b3882e08",
+    "phase-analysis.json": "43046ae5407c8502bfe81d331a8955b2b5bf4a8785ceea5aef909fe31ac44938",
+    "trace-context-details.json": "4dea363d36013620f4fb37dee2fd1f22277310a4298e00ef4ba718d4150c67dc",
+    "trace-session-times.json": "9a54167e5e2ab6a7fb0bc702d4f59c2973ed533c0e72c43444b39c154fe2a512",
+    "library-input-comparison.json": "fae8eae3c85d1c635c154feb6583caf0489cc09335a49ab67c0a34285e86466f",
+    "bee-input-comparison.json": "c49dd2cc32053db80c746006432c15688718cb8292b0f12b31bdd9754d4d06c5",
+    "bee-payload-diff-summary.json": "a3dcbc3ead9d90ef8dc1d9a2f393eedf030b0a3e5587c6fcb409305c7326a82a",
+    "historical-source-invalidations.json": "c9a684be45893dfeb58750938f9d3c119503c6ec3f2896fd854800a9c9c6a4a2",
+    "closure.json": "a01c5519827a8dd959cee89e635ceef83f07e0803dd94124b4c3be6c70b595b1",
+    "closure-native.json": "745a365b08f48490e1836993e288a762163e897b20beb1378167dd82f72a79ea",
+    "response-schema-validation.xml": "a0df3fad8e00b36d579e5042eb653565b400e2a826d477dc519a82c8518a7eba",
+    "frozen-product.json": "d7b443646f819c4b78c3a4f10892533cca98a36af8e2c0edbb352320a323a02b",
+    "provider-a-early-scan.nettrace": "0351fed9bbb93517f689ac560a47293334551f2d2707362671ccab8174c6fd21",
+    "provider-a-late-scan.nettrace": "d2d42bda674ebb8d64f9de5590c78f366822809dfcc68e9bad7c45724ad16557",
+    "provider-a-compile.nettrace": "d7cfb685c6c1ad89b0180c2e9a41224a43432487dfe75f60651771072207356b"
+  }
+}

@@ -52,7 +52,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
                 return await new PlasticRevisionSnapshotProvider(Path.Combine(control, "snapshot"), w.Id, w.BaseReference)
                     .CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(control, "snapshot")), ct);
             if (w.SourceKind != "git" || w.BaseRevision is null) throw new WorkspaceException("GitBasisUnsupported", "Fix a Git project commit before capture.");
-            return await new GitObjectSnapshotProvider(Path.Combine(control, "snapshot"), w.Id, w.BaseRevision)
+            return await new GitObjectSnapshotProvider(Path.Combine(control, "snapshot"), w.Id, w.BaseRevision, w.GeneratedDirectory)
                 .CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(control, "snapshot")), ct);
         }
         // Reject unsupported live input before requesting a privileged capture.
