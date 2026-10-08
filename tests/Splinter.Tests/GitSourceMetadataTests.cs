@@ -13,6 +13,89 @@ public sealed class GitSourceMetadataTests
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
+    [Theory]
+    [InlineData("none")]
+    [InlineData("library-only")]
+    [InlineData("metadata")]
+    public async Task SeparateWorkspaceStoreReopensActualProviderIdentityWithExactOptionalMetadata(string selection)
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Requires Windows same-handle source capture.");
+        using var f = await Fixture.Create();
+        GeneratedDirectoryReference? basis = selection == "none" ? null : f.Basis;
+        if (selection == "metadata") basis = f.Save((await WindowsGitSourceMetadata.CaptureAsync(f.Source, f.Basis, TestContext.Current.CancellationToken))!);
+        var store = new WorkspaceStore(Path.Combine(Path.GetDirectoryName(f.Source)!, "home"));
+        string id = WorkspaceStore.Key("separate-store");
+        var provider = new GitObjectSnapshotProvider(f.Receipt, id, f.Revision, basis);
+        var snapshot = await provider.CaptureAsync(new(f.Source, id, f.Receipt), TestContext.Current.CancellationToken);
+        var record = MetadataWorkspace(store, id, f.Source, f.Revision, basis, snapshot);
+        store.Save(record, "fixture-attached");
+        var reopened = new WorkspaceStore(store.Root).Get(id);
+        Assert.Equal(snapshot, reopened.Snapshot!.Reference);
+        Assert.Equal(basis, reopened.GeneratedDirectory);
+        Assert.Equal(record.Snapshot!.Mount, reopened.Snapshot.Mount);
+        using (var reader = new GitObjectSnapshotProvider(f.Receipt, id).OpenTree(reopened.Snapshot.Reference!,
+            await provider.ResolveReadAccessAsync(snapshot, TestContext.Current.CancellationToken)))
+            Assert.Equal(f.Data.Length, reader.Stat("data.bin")!.Length);
+        await provider.ReleaseAsync(snapshot, TestContext.Current.CancellationToken);
+    }
+
+    [Theory]
+    [InlineData("hash-mismatch")]
+    [InlineData("hash-removed")]
+    [InlineData("hash-injected")]
+    [InlineData("hash-empty")]
+    [InlineData("hash-short")]
+    [InlineData("hash-upper")]
+    [InlineData("hash-nonhex")]
+    [InlineData("provider")]
+    [InlineData("consistency")]
+    [InlineData("source")]
+    [InlineData("revision")]
+    public void SeparateWorkspaceStoreRejectsMetadataIdentityChangesWithoutMutatingRecord(string change)
+    {
+        using var directory = new TestDirectory();
+        var store = new WorkspaceStore(Path.Combine(directory.Path, "home"));
+        string id = WorkspaceStore.Key("task"), project = Path.Combine(directory.Path, "source"), revision = new('a', 40);
+        string libraryId = WorkspaceStore.Key("library"), libraryRoot = Path.Combine(directory.Path, "library");
+        var library = new GeneratedDirectoryReference(libraryId, project, "Library",
+            new(libraryId, "owned-directory", libraryRoot, libraryRoot, DateTimeOffset.UnixEpoch, true, true, "stopped-original-owned-directory"),
+            libraryRoot, libraryId, new('b', 64), new('c', 64));
+        string baseId = "git-" + id + "-" + revision;
+        var snapshot = new SnapshotReference(baseId + "-metadata-" + library.SourceMetadataHash, "git-objects", project,
+            Path.Combine(project, ".git"), DateTimeOffset.UnixEpoch, true, true, "recorded-project-commit-raw-blobs");
+        if (change == "hash-mismatch") library = library with { SourceMetadataHash = new('d', 64) };
+        else if (change == "hash-removed") library = library with { SourceMetadataHash = null };
+        else if (change == "hash-injected") snapshot = snapshot with { Id = baseId };
+        else if (change.StartsWith("hash-", StringComparison.Ordinal))
+        {
+            string invalid = change switch { "hash-empty" => "", "hash-short" => new('c', 63), "hash-upper" => new('C', 64), _ => new('z', 64) };
+            library = library with { SourceMetadataHash = invalid };
+            // Even an ID carrying the same malformed digest must be rejected.
+            snapshot = snapshot with { Id = baseId + "-metadata-" + invalid };
+        }
+        else if (change == "provider") snapshot = snapshot with { Provider = "foreign" };
+        else if (change == "consistency") snapshot = snapshot with { Consistency = "foreign" };
+        else if (change == "source") snapshot = snapshot with { SourcePath = project + "-foreign" };
+        else revision = new('d', 40);
+        var record = MetadataWorkspace(store, id, project, revision, library, snapshot);
+        store.Save(record, "fixture-corrupt");
+        string statePath = Path.Combine(store.ControlPath(id), "workspace.json");
+        byte[] before = File.ReadAllBytes(statePath);
+        Assert.Equal("SnapshotIdentityMismatch", Assert.Throws<WorkspaceException>(() => new WorkspaceStore(store.Root).Get(id)).Code);
+        Assert.Equal(before, File.ReadAllBytes(statePath));
+    }
+
+    private static WorkspaceRecord MetadataWorkspace(WorkspaceStore store, string id, string project, string revision,
+        GeneratedDirectoryReference? library, SnapshotReference snapshot) => new()
+    {
+        Id = id, RequestKey = "metadata-store", ProjectPath = project, Path = store.WorkPath(id),
+        SourceReference = "splinter/" + id, BaseReference = "development", BaseRevision = revision,
+        SourceKind = "git", ApplicationKind = "unity", StorageMode = "git-snapshot", Phase = "ready",
+        GeneratedDirectoryId = library?.Id, GeneratedDirectory = library,
+        Snapshot = new() { Attached = true, Reference = snapshot,
+            Mount = new(id, store.WorkPath(id), Path.Combine(store.ControlPath(id), "delta"), snapshot, 123, 1) }
+    };
+
     [Fact]
     public async Task PublishedMetadataReferenceAndReceiptMatchTheirStrictSchemas()
     {

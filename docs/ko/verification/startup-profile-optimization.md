@@ -36,9 +36,11 @@ Git reader는 최대 두 decoder 세션에 독립 임대를 부여한다. 공통
 
 Reader를 열 때 고정 map을 한 번 검증하고 mutable 원본을 조회하지 않으며, 빈번한 읽기 health callback에서도 map을 다시 읽지 않는다. 같은 경로/blob/길이만 캡처 시각을 사용하며 이후 commit의 미변경 파일도 해당한다. 다른 항목·디렉터리는 일반 capture 시각을 유지한다. Map 없는 기존 기준은 자동 보충하지 않는다. Payload는 계속 raw Git object에서 읽는다. 최초 Library 준비에 소스 전체 내용 읽기 1회의 비용을 추가하며, 데이터 복사·payload cache·바이트 검증 약화·Bee cache/이전 ILPP endpoint/외부 도구 상태 대체는 없다.
 
+후속 실제 A/B 측정에서 별도 CLI의 영속 작업공간 읽기 누락을 발견했다. `ensure`는 metadata를 포함한 올바른 snapshot ID를 저장했지만 다음 CLI의 `WorkspaceStore.Find`는 metadata 접미사가 없는 ID만 기대했다. 첫 `unity start` 두 개는 Editor 실행 전에 실패했다. 정확한 소문자 64자리 map hash를 기대 ID에 묶도록 수정하고 원본/provider/consistency/revision·mount guard는 유지했다. 실제 provider 재열기 3개와 잘못되거나 바뀐 identity 11개를 시험에 추가했다. 상태 파일 수정 없이 같은 task record와 mount를 이어 쓰며, 실패한 start 응답은 실패 근거로 보존한다. 이 수정은 record 허용 검증이며 decoder/저널 동작 변경이 아니다.
+
 ## 검증과 비용
 
-최종 `pwsh -NoProfile -File scripts/build.ps1`의 locked restore·Release build는 **경고/오류 0개**, 시험은 **1,362개 통과 / 실패 0개 / 조건부 skip 20개**, 시험 실행 시간 258.697초로 완료했다. Git 동시성 집중 시험 13개도 통과했고, 선택적 저널 비용 시험 1개는 이후 별도로 통과했다. 조건부 skip은 해당 외부/native 입력의 자격이 아니다. 최종 build 뒤 구현 변경은 없다.
+구현의 `pwsh -NoProfile -File scripts/build.ps1`은 locked restore·Release build **경고/오류 0개**, 시험 **1,362개 통과 / 실패 0개 / 조건부 skip 20개**, 시험 실행 시간 258.697초로 완료했다. 영속 record 읽기 수정 뒤 같은 필수 build는 **1,376 / 0 / 20**, 256.381초로 통과했다. Git 동시성 집중 시험 13개와 선택적 저널 비용 시험 1개도 별도로 통과했다. 조건부 skip은 해당 외부/native 입력의 자격이 아니다. 아래 한정 비용은 record 허용 검증 수정 전의 수치이며 decoder·저널 알고리즘은 그대로다.
 
 비용은 전체 시험이 끝난 뒤 단독 측정했다. 각 비교는 모드별 표본 두 개를 before/after/after/before 순서로 실행했다. 작은 warm 표본의 한정 비용 근거이며 통계적·Unity 전체 시간 절감률이 아니다.
 

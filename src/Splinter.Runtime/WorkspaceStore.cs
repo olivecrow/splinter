@@ -130,10 +130,19 @@ public sealed partial class WorkspaceStore
         if (record.StorageMode == "plastic-snapshot" && (record.SourceKind != "plastic" || record.Purpose != "task" || record.BaseReference == "snapshot" ||
             record.Snapshot?.Reference is { } plasticBasis && (plasticBasis.Provider != "plastic-revisions" || plasticBasis.Consistency != "recorded-project-changeset-raw-revisions" || !SamePath(plasticBasis.SourcePath, record.ProjectPath))))
             throw new WorkspaceException("SnapshotIdentityMismatch", "Preserve the Plastic task recorded basis and source selection.");
-        if (record.StorageMode == "git-snapshot" && record.Snapshot?.Reference is { } basis &&
-            (basis.Provider != "git-objects" || basis.Consistency != "recorded-project-commit-raw-blobs" ||
-             !SamePath(basis.SourcePath, record.ProjectPath) || record.BaseRevision is null || basis.Id != "git-" + record.Id + "-" + record.BaseRevision))
-            throw new WorkspaceException("SnapshotIdentityMismatch", "Preserve the Git task's original recorded basis.");
+        if (record.StorageMode == "git-snapshot")
+        {
+            string? metadataHash = record.GeneratedDirectory?.SourceMetadataHash;
+            // A metadata-bearing snapshot is bound to the exact Library map.
+            // Neither removing nor injecting that map may select another ID.
+            string expectedId = "git-" + record.Id + "-" + record.BaseRevision +
+                (metadataHash is null ? "" : "-metadata-" + metadataHash);
+            if (metadataHash is not null && (metadataHash.Length != 64 || metadataHash.Any(c => !char.IsAsciiHexDigit(c) || char.IsUpper(c))) ||
+                record.Snapshot?.Reference is { } basis &&
+                (basis.Provider != "git-objects" || basis.Consistency != "recorded-project-commit-raw-blobs" ||
+                 !SamePath(basis.SourcePath, record.ProjectPath) || record.BaseRevision is null || basis.Id != expectedId))
+                throw new WorkspaceException("SnapshotIdentityMismatch", "Preserve the Git task's original recorded basis.");
+        }
         // Reading durable metadata must also work while an overlay is mounted
         // or a mount reply was lost. The backend verifies the root's live
         // ownership before any source access; all registry ancestors stay plain.
