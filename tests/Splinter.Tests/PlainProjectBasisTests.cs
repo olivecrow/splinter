@@ -83,7 +83,7 @@ public sealed class PlainProjectBasisTests
     [Fact]
     public void VcsAdministrationRefusalPrecedesAnySourceMove()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var d = new TestDirectory(); string source = Path.Combine(d.Path, "source"); Directory.CreateDirectory(source);
         File.WriteAllText(Path.Combine(source, "keep"), "intact"); Directory.CreateDirectory(Path.Combine(source, ".git"));
         var manager = new ManagedDirectoryBasis(new WorkspaceStore(Path.Combine(d.Path, "home")), ApplicationProjectPolicies.None, projectBasis: true);

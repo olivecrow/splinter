@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using Splinter.Core;
 using Splinter.Runtime;
@@ -8,23 +7,6 @@ namespace Splinter.Tests;
 public sealed class JournalDefaultTests
 {
     private static OverlayIdentity Identity(ISnapshotTree tree) => new(2, "journal-default", tree.Snapshot, 16L * 1048576, 1048576);
-    [Fact]
-    public void NewJournalDefaultsOnAndRetainsOnlyLatestDataAcrossReconnect()
-    {
-        using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = Identity(tree); byte[] data = RandomNumberGenerator.GetBytes(65536); SnapshotDeltaSeal seal;
-        using (var writer = new JournalDeltaStore(directory.Path, identity, tree))
-        {
-            Assert.True(writer.JournalOptimizationEnabled); Assert.Equal(0, writer.Observe().PayloadBytes);
-            Guid id = writer.Create("file", false, 32).Id;
-            for (int i = 0; i < 6; i++)
-            { data[0] = (byte)i; writer.Write(id, 0, data); Assert.Equal(data.Length, writer.Observe().PayloadBytes); }
-            seal = writer.Seal(); Assert.Equal(0, tree.ReadBytes);
-        }
-        using var resumed = new JournalDeltaStore(directory.Path, identity, tree, optimizeJournal: false);
-        Assert.True(resumed.JournalOptimizationEnabled); Assert.Equal(seal, resumed.Seal());
-        byte[] actual = new byte[data.Length]; resumed.Read(resumed.Stat("file")!.Id, 0, actual); Assert.Equal(data, actual);
-    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

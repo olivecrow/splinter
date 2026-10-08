@@ -112,7 +112,9 @@ pwsh ./scripts/build.ps1
 
 Runs locked restore, Release build, and automated contract/fake/Git/Windows regressions. Maintain central dependency versions/lockfiles. Automated tests do not qualify native VSS/Unity, ARM, or OS failures. [Verification guide](verification/README.md) preserves raw evidence/support limitations.
 
-External recovery-test `EvidenceRun` entry points and child-only `ChildWriter`, `ChildProvider`, `ChildClient`, `ChildReader`, `ClientActor`, and `ChildEnsure` are Skipped without the specified execution environment variables. The scripts or parent tests invoke those same entry points when they supply the variables. Default automated execution also runs synthetic journal and preparation-interruption regressions invoked by parent tests; these are distinct from qualification for external kernel and product-write recovery execution.
+External recovery/performance measurement/preserved-measurement recovery entry points and child-only `Child`, `ChildWriter`, `ChildProvider`, `ChildClient`, `ChildReader`, `ClientActor`, and `ChildEnsure` are Skipped without specified execution environment variables. Scripts/parent tests invoke those same entry points with the variables. Default automated execution also runs synthetic journal/preparation-interruption regressions invoked by parent tests, separately from external kernel/product-write recovery execution qualification. Behavior/metadata/guard tests use small inputs; only tests validating large-file reuse, chunk boundaries, or storage costs specify required large inputs.
+
+Windows-only file-sharing/native-contract tests are Skipped on other OSes. When standalone fixed-response/error-mapping/instrumentation tests repeat behavior, combine unique assertions into actual create/resume/reject/replay tests. Retain regression protections such as renames beneath unchanged intermediate parents, request digests, individual durable flush, and original/independent-result protection.
 
 <a id="실제-저장소의-git-수명주기-시험"></a>
 ### Git lifecycle tests in actual repositories

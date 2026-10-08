@@ -45,25 +45,8 @@ public sealed partial class SnapshotOverlayTests
     }
 
     [Fact]
-    public void RepeatedWritesRetainJournalAllocationAndCountersDoNotConfuseLiveContentWithHistory()
-    {
-        using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["large"] = new byte[16 * 1024 * 1024];
-        using var store = New(d, tree); var file = store.Stat("large")!;
-        byte[] block = new byte[4096];
-        for (int i = 0; i < 100; i++) { block[0] = (byte)i; store.Write(file.Id, 8192, block); }
-        var before = store.Observe(); Assert.Equal(409600, store.ObservePrivateUsage().RetainedLogicalPayloadBytes);
-        Assert.Equal(100, before.Metrics!.CommitCount); Assert.Equal(100, before.Metrics.FlushCount);
-        store.SetLength(file.Id, 4096); store.Delete(file.Id);
-        var after = store.Observe(); Assert.Equal(before.PayloadBytes, after.PayloadBytes);
-        Assert.True(after.JournalBytes > before.JournalBytes); Assert.Equal(0, after.ReadCacheBytes);
-        Assert.Equal(after.JournalBytes, after.Metrics!.JournalAppendedBytes);
-        Assert.True(after.Metrics.LockAcquisitions > 100);
-    }
-
-    [Fact]
     public void CompactionKeepsCurrentRangesAndMetadataWithoutReadingBasePayload()
     {
-        if (!OperatingSystem.IsWindows()) return;
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree();
         tree.Files["large"] = new byte[16 * 1024 * 1024]; tree.Files["dir/code.cs"] = [1, 2, 3];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
@@ -78,14 +61,25 @@ public sealed partial class SnapshotOverlayTests
                 byte[] block = new byte[4096]; block[0] = (byte)i;
                 store.Write(large.Id, 8192, block);
             }
+            var repeated = store.Observe();
+            Assert.Equal(409600, store.ObservePrivateUsage().RetainedLogicalPayloadBytes);
+            Assert.Equal(100, repeated.Metrics!.CommitCount); Assert.Equal(100, repeated.Metrics.FlushCount);
             var fragmented = store.Create("fragmented", false, 32);
             store.Write(fragmented.Id, 0, fragmentedBytes);
             store.Write(fragmented.Id, 2048, Enumerable.Repeat((byte)2, 4096).ToArray());
             var scratch = store.Create("scratch", false, 32);
-            store.Write(scratch.Id, 0, new byte[4096]); store.Delete(scratch.Id);
+            store.Write(scratch.Id, 0, new byte[4096]);
+            var before = store.Observe();
+            store.SetLength(scratch.Id, 0); store.Delete(scratch.Id);
+            var after = store.Observe();
+            Assert.Equal(before.PayloadBytes, after.PayloadBytes);
+            Assert.True(after.JournalBytes > before.JournalBytes); Assert.Equal(0, after.ReadCacheBytes);
+            Assert.Equal(after.JournalBytes, after.Metrics!.JournalAppendedBytes);
+            Assert.True(after.Metrics.LockAcquisitions > 100);
             store.Rename(store.Stat("dir")!.Id, "moved", false);
             original = store.Observe().JournalBytes;
         }
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Compaction publication requires Windows file sharing semantics.");
         var compacted = JournalDeltaStore.CompactDirectory(delta, identity, tree);
         Assert.Equal(0, tree.ReadBytes);
         Assert.True(compacted.After.JournalBytes < original / 2);
@@ -125,7 +119,7 @@ public sealed partial class SnapshotOverlayTests
     [Fact]
     public void OverlapBudgetRejectsBeforeCandidateAndPreservesExactJournalForRetry()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = new byte[4096];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");
@@ -170,7 +164,7 @@ public sealed partial class SnapshotOverlayTests
     [InlineData("published")]
     public void CompactionResumesAcrossEachDurabilityBoundary(string cut)
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = new byte[8192];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");
@@ -196,7 +190,7 @@ public sealed partial class SnapshotOverlayTests
     [Fact]
     public void PartialCandidateAndInterruptedPreviousGenerationCleanupRemainRecoverable()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");
@@ -226,7 +220,7 @@ public sealed partial class SnapshotOverlayTests
     [Fact]
     public void VerifiedGenerationCanBeCompletedWithReconnectedProviderHandleOpen()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");
@@ -251,7 +245,7 @@ public sealed partial class SnapshotOverlayTests
     [Fact]
     public void WholeFileRewritesAndTruncatePreserveOnlyTheLiveFourMegabytes()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree();
         tree.Files["large"] = new byte[16 * 1024 * 1024]; tree.Files["large.meta"] = [1, 2, 3];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
@@ -323,7 +317,7 @@ public sealed partial class SnapshotOverlayTests
     [Fact]
     public void ChangedPreparedCandidatePreservesTheOriginalJournal()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree(); tree.Files["file"] = [1, 2];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");

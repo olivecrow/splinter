@@ -33,6 +33,10 @@ public sealed class ContractAndCliTests
         Assert.Empty(response.RootElement.GetProperty("data").GetProperty("missingPrerequisites").EnumerateArray());
         Assert.False(response.RootElement.GetProperty("data").TryGetProperty("repository", out _));
         Assert.False(response.RootElement.GetProperty("data").TryGetProperty("application", out _));
+        Assert.True(catalog.Validate("urn:splinter:v1:response", response.RootElement).IsValid);
+        var falseSuccess = JsonNode.Parse(response.RootElement.GetRawText())!;
+        falseSuccess["data"]!["readyForExecution"] = true;
+        Assert.False(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(falseSuccess)).IsValid);
     }
     private readonly ContractCatalog contracts = new(development: true);
 
@@ -260,6 +264,10 @@ public sealed class ContractAndCliTests
         var (created, response) = await Run("workspace", "ensure", "--project", project, "--key", "poll", "--storage", "git-checkout", "--home", home);
         Assert.Equal(0, created);
         string id = response.GetProperty("data").GetProperty("workspace").GetProperty("id").GetString()!;
+        var accepted = JsonNode.Parse(response.GetRawText())!;
+        accepted["status"] = "Accepted"; accepted["terminal"] = false;
+        accepted["nextActions"] = JsonSerializer.SerializeToNode(new[] { new NextAction("workspace.status", new { id }) }, ApiJson.Options);
+        Assert.True(contracts.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(accepted)).IsValid);
         var store = new WorkspaceStore(home); var record = store.Get(id);
 
         string file = Path.Combine(record.Path, "asset.bin");
@@ -312,16 +320,16 @@ public sealed class ContractAndCliTests
     }
 
     [Theory]
-    [InlineData("complete", true)] [InlineData("missing-tuple", false)]
+    [InlineData("complete", true)]
     [InlineData("no-owner", false)] [InlineData("no-directory", false)] [InlineData("no-access", false)]
     public void OverlayReadAccessRequiresTheWholeVerificationTuple(string variant, bool valid)
     {
         var request = JsonSerializer.SerializeToNode(new Splinter.Platform.Windows.OverlayServeRequest(
             new(2, "workspace", VssLiveIdentityTests.Snapshot, 1048576, 1048576), "delta", "mount", "control", new string('a', 64),
             new(VssLiveIdentityTests.Snapshot.Id, VssLiveIdentityTests.Snapshot.RootPath, "verified"), "receipt", "owner"), ApiJson.Options)!;
-        if (variant is "no-owner" or "missing-tuple") request.AsObject().Remove("snapshotOwnerId");
-        if (variant is "no-directory" or "missing-tuple") request.AsObject().Remove("snapshotReceiptDirectory");
-        if (variant is "no-access" or "missing-tuple") request.AsObject().Remove("readAccess");
+        if (variant == "no-owner") request.AsObject().Remove("snapshotOwnerId");
+        if (variant == "no-directory") request.AsObject().Remove("snapshotReceiptDirectory");
+        if (variant == "no-access") request.AsObject().Remove("readAccess");
         Assert.Equal(valid, contracts.Validate("urn:splinter:v1:overlay-serve-request", JsonSerializer.SerializeToElement(request)).IsValid);
     }
 
@@ -370,16 +378,8 @@ public sealed class ContractAndCliTests
         Assert.DoesNotContain("plan.submit", unavailable);
         Assert.DoesNotContain("agent.start", unavailable);
         foreach (var descriptor in response.GetProperty("data").GetProperty("commands").EnumerateArray())
-            Assert.Contains(descriptor.GetProperty("sideEffects").GetString(), contracts.Commands.Select(x => x.SideEffects));
-    }
-
-    [Fact]
-    public void AcceptedWorkspaceResponseMatchesContract()
-    {
-        using var document = JsonDocument.Parse("""
-        {"schemaVersion":"1.0","requestId":"00000000000000000000000000000000","command":"workspace.ensure","status":"Accepted","terminal":false,"retryDisposition":"not-needed","nextActions":[{"command":"workspace.status","arguments":{"id":"aaaaaaaaaaaaaaaaaaaaaaaa"},"requiresUserAction":false}],"data":{"workspace":{"version":2,"sourceKind":"git","applicationKind":"unity","id":"aaaaaaaaaaaaaaaaaaaaaaaa","requestKey":"task","projectPath":"C:/project","path":"C:/workspace","sourceReference":"development","baseReference":"development","phase":"creating","createdAt":"2026-09-21T00:00:00Z","updatedAt":"2026-09-21T00:00:00Z","storageMode":"git-checkout"},"controlPath":"C:/control","nextCommand":"workspace.status","isolation":"private"}}
-        """);
-        Assert.True(contracts.Validate("urn:splinter:v1:response", document.RootElement).IsValid);
+            Assert.Equal(contracts.Commands.Single(x => x.Id == descriptor.GetProperty("id").GetString()).SideEffects,
+                descriptor.GetProperty("sideEffects").GetString());
     }
 
     [Theory]
@@ -623,19 +623,6 @@ public sealed class ContractAndCliTests
         var (exitCode, response) = await Run("schema", "workspace.create");
         Assert.Equal(9, exitCode);
         Assert.Equal("capabilities", response.GetProperty("nextActions")[0].GetProperty("command").GetString());
-    }
-
-    [Fact]
-    public void ResponseSchemaRejectsFalseExecutionSuccessAndMissingErrors()
-    {
-        using var invalid = JsonDocument.Parse("""
-            {"schemaVersion":"1.0","requestId":"00000000000000000000000000000000",
-             "command":"doctor","status":"Succeeded","terminal":true,
-             "retryDisposition":"not-needed","nextActions":[],
-             "data":{"path":"x","hasCommit":true,"readyForExecution":true,
-                     "checksNotRun":[],"missingPrerequisites":[]}}
-            """);
-        Assert.False(contracts.Validate("urn:splinter:v1:response", invalid.RootElement).IsValid);
     }
 
     [Fact]

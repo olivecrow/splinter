@@ -112,7 +112,7 @@ public sealed class ImmutableCandidateTests
     [Fact]
     public void CacheSnapshotCannotExposeSourceAndCompactsOnlyPrivateRepeatedRanges()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var dir = new TestDirectory(); var tree = Tree();
         tree.Files["Library/large"] = new byte[16 * 1024 * 1024];
         var basis = new CacheSnapshotTree(tree, tree.Snapshot, CacheRoots);

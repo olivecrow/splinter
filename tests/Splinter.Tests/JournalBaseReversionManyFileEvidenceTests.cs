@@ -78,7 +78,7 @@ public sealed class JournalBaseReversionManyFileEvidenceTests
     public async Task Benchmark()
     {
         string? config = Environment.GetEnvironmentVariable("SPLINTER_BASE_REVERSION_MANY_FILES");
-        if (config is null) return;
+        if (config is null) Assert.Skip("Explicit benchmark requires SPLINTER_BASE_REVERSION_MANY_FILES.");
         var ct = TestContext.Current.CancellationToken;
         var input = JsonSerializer.Deserialize<Input>(File.ReadAllText(config), Json)!;
         Assert.Contains(input.Variant, new[] { "before", "after" });

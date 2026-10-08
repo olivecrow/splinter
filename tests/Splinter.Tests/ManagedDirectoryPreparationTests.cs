@@ -9,7 +9,7 @@ public sealed class ManagedDirectoryPreparationTests
     [Fact]
     public async Task FailedCaptureKeepsOriginalAndSameOwnedIntentCanRetry()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var directory = new TestDirectory();
         string project = Path.Combine(directory.Path, "project"), library = Path.Combine(project, "Library");
         Directory.CreateDirectory(library); string file = Path.Combine(library, "shared-log"); File.WriteAllBytes(file, [1, 2]);

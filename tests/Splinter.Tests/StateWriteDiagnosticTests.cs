@@ -57,7 +57,7 @@ public sealed class StateWriteDiagnosticTests
     [Fact]
     public void BlockedReplacementKeepsOldStateFlushedTemporaryAndOtherWorkspace()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var dir = new TestDirectory(); var store = new WorkspaceStore(dir.Path);
         var record = Record(store, "replacement"); store.Save(record, "initial");
         var other = Record(store, "other"); store.Save(other, "initial");
@@ -86,7 +86,7 @@ public sealed class StateWriteDiagnosticTests
     [Fact]
     public void ReadOnlyReplacementRetainsAttributesAndDiagnosticEvidence()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var dir = new TestDirectory(); var store = new WorkspaceStore(dir.Path);
         var record = Record(store, "read-only"); store.Save(record, "initial");
         string control = store.ControlPath(record.Id), target = Path.Combine(control, "workspace.json");
@@ -104,7 +104,7 @@ public sealed class StateWriteDiagnosticTests
     [Fact]
     public void BlockedEventAppendReportsCompletedStatePublicationAndFailedCommand()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var dir = new TestDirectory(); var store = new WorkspaceStore(dir.Path);
         var record = Record(store, "events"); store.Save(record, "initial");
         string control = store.ControlPath(record.Id), journal = Path.Combine(control, "events.jsonl");
@@ -152,7 +152,7 @@ public sealed class StateWriteDiagnosticTests
     [Fact]
     public async Task CliReportsDiagnosticAndResumesSameOwnedGitFixture()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var dir = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
         string project = Path.Combine(dir.Path, "project"), home = Path.Combine(dir.Path, "home"); Directory.CreateDirectory(project);
         await TestDirectory.Git(project, "init", "-b", "development");

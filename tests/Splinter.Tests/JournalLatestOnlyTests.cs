@@ -11,9 +11,10 @@ public sealed class JournalLatestOnlyTests
     {
         using var store = new JournalDeltaStore(directory, identity, tree);
         Assert.True(store.JournalOptimizationEnabled);
+        Assert.Equal(0, store.Observe().PayloadBytes);
     }
     [Fact]
-    public void ManyFilesKeepOnlyCurrentPayloadAfterEveryAcknowledgedWriteAndReconnect()
+    public void NewJournalFlushesEachMutationAndKeepsCurrentPayloadAndSavedChoiceAcrossReconnect()
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree); Enable(root.Path, identity, tree);
@@ -22,11 +23,18 @@ public sealed class JournalLatestOnlyTests
         using (var writer = new JournalDeltaStore(root.Path, identity, tree))
         {
             Assert.True(writer.Observe().JournalOptimizationEnabled);
-            Guid[] ids = Enumerable.Range(0, 16).Select(i => writer.Create($"file-{i}", false, 32).Id).ToArray();
+            long flushes = writer.Observe().Metrics!.FlushCount;
+            Guid[] ids = new Guid[current.Length];
+            for (int i = 0; i < ids.Length; i++)
+            {
+                ids[i] = writer.Create($"file-{i}", false, 32).Id;
+                Assert.Equal(++flushes, writer.Observe().Metrics!.FlushCount);
+            }
             for (int cycle = 0; cycle < 12; cycle++)
             for (int i = 0; i < ids.Length; i++)
             {
                 RandomNumberGenerator.Fill(current[i]); writer.Write(ids[i], 0, current[i]);
+                Assert.Equal(++flushes, writer.Observe().Metrics!.FlushCount);
                 Assert.Equal(Math.Min(16, cycle * 16 + i + 1) * 16384, writer.Observe().PayloadBytes);
                 Assert.DoesNotContain(Directory.EnumerateFiles(root.Path, "*", SearchOption.AllDirectories), p => p.EndsWith(".pending", StringComparison.Ordinal));
             }
@@ -34,28 +42,12 @@ public sealed class JournalLatestOnlyTests
             Assert.Equal(16 * 16384, writer.Observe().PayloadBytes);
             Assert.Equal(seal.JournalBytes, writer.Observe().JournalBytes);
         }
-        using var resumed = new JournalDeltaStore(root.Path, identity, tree);
+        using var resumed = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false);
         Assert.True(resumed.JournalOptimizationEnabled); Assert.Equal(seal, resumed.Seal());
         Assert.Equal(changes.Changes, resumed.ObserveChanges([]).Changes);
         for (int i = 0; i < current.Length; i++)
         { byte[] actual = new byte[16384]; resumed.Read(resumed.Stat($"file-{i}")!.Id, 0, actual); Assert.Equal(current[i], actual); }
         Assert.Equal(0, tree.ReadBytes);
-    }
-    [Fact]
-    public void EachPayloadAndMetadataMutationHasOneDurableFlush()
-    {
-        using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        var identity = Identity(tree); Enable(root.Path, identity, tree);
-        using var writer = new JournalDeltaStore(root.Path, identity, tree);
-        long count = writer.Observe().Metrics!.FlushCount;
-        Guid id = writer.Create("file", false, 32).Id;
-        Assert.Equal(++count, writer.Observe().Metrics!.FlushCount);
-        writer.Write(id, 0, RandomNumberGenerator.GetBytes(131072));
-        Assert.Equal(++count, writer.Observe().Metrics!.FlushCount);
-        writer.SetMetadata(id, 33, 11, 22, 33);
-        Assert.Equal(++count, writer.Observe().Metrics!.FlushCount);
-        writer.Write(id, 0, RandomNumberGenerator.GetBytes(131072));
-        Assert.Equal(++count, writer.Observe().Metrics!.FlushCount);
     }
     [Fact]
     public void PartialRetirementMovesOnlyStillCurrentPrivateBlocksOfTheCapsule()
@@ -66,18 +58,25 @@ public sealed class JournalLatestOnlyTests
         byte[] expected = RandomNumberGenerator.GetBytes(1572864); Guid id;
         using (var writer = new JournalDeltaStore(root.Path, identity, tree, observer))
         {
-            id = writer.Create("file", false, 32).Id; writer.Write(id, 0, expected.AsSpan(0, 1048576));
+            id = writer.Create("file", false, 32).Id;
+            long flushes = writer.Observe().Metrics!.FlushCount;
+            writer.Write(id, 0, expected.AsSpan(0, 1048576));
+            Assert.Equal(++flushes, writer.Observe().Metrics!.FlushCount);
             writer.Write(id, 524288, expected.AsSpan(524288, 1048576));
+            Assert.Equal(++flushes, writer.Observe().Metrics!.FlushCount);
             for (int i = 0; i < 8; i++)
             {
                 RandomNumberGenerator.Fill(expected.AsSpan(0, 524288)); writer.Write(id, 0, expected.AsSpan(0, 524288));
+                Assert.Equal(++flushes, writer.Observe().Metrics!.FlushCount);
                 Assert.Equal(expected.Length, writer.Observe().PayloadBytes);
                 Assert.InRange(writer.Observe().JournalBytes, expected.Length, expected.Length + 32768L);
                 Assert.Equal(writer.Observe().JournalBytes, observer.LastAckBytes);
             }
         }
         using var resumed = new JournalDeltaStore(root.Path, identity, tree, observer);
+        long resumedFlushes = resumed.Observe().Metrics!.FlushCount;
         RandomNumberGenerator.Fill(expected.AsSpan(0, 524288)); resumed.Write(id, 0, expected.AsSpan(0, 524288));
+        Assert.Equal(resumedFlushes + 1, resumed.Observe().Metrics!.FlushCount);
         Assert.Equal(resumed.Observe().JournalBytes, observer.LastAckBytes);
         byte[] actual = new byte[expected.Length];
         resumed.Read(id, 0, actual.AsSpan(0, 1048576)); resumed.Read(id, 1048576, actual.AsSpan(1048576));
@@ -121,7 +120,10 @@ public sealed class JournalLatestOnlyTests
         {
             writer.Create("dir", true, 16); Guid id = writer.Create("dir/file", false, 32).Id;
             writer.Write(id, 0, [1, 2, 3]); writer.Rename(writer.Stat("dir")!.Id, "moved", false);
-            writer.Delete(writer.Stat("base")!.Id); writer.SetMetadata(id, 33, 11, 22, 33);
+            writer.Delete(writer.Stat("base")!.Id);
+            long flushes = writer.Observe().Metrics!.FlushCount;
+            writer.SetMetadata(id, 33, 11, 22, 33);
+            Assert.Equal(flushes + 1, writer.Observe().Metrics!.FlushCount);
             expected = writer.Get(id); changes = writer.ObserveChanges([]);
         }
         string destination = Path.Combine(candidate.Path, "export");
@@ -350,7 +352,7 @@ public sealed class JournalLatestOnlyTests
     [Fact]
     public async Task BriefMetadataReaderWithoutDeleteSharingPublishesTheSameFlushedWrite()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree); Enable(root.Path, identity, tree);
         using var writer = new JournalDeltaStore(root.Path, identity, tree);

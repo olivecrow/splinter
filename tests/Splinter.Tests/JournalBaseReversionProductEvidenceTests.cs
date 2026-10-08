@@ -14,7 +14,8 @@ public sealed class JournalBaseReversionProductEvidenceTests
     [Fact]
     public void RecordedProductResponsesMatchCurrentSchema()
     {
-        string? directory=Environment.GetEnvironmentVariable("SPLINTER_BASE_REVERSION_RESPONSES");if(directory is null)return;
+        string? directory=Environment.GetEnvironmentVariable("SPLINTER_BASE_REVERSION_RESPONSES");
+        if(directory is null)Assert.Skip("Explicit response evidence requires SPLINTER_BASE_REVERSION_RESPONSES.");
         var catalog=new ContractCatalog();int checkedResponses=0;
         foreach(string path in Directory.EnumerateFiles(directory,"*.json"))
         {
@@ -28,7 +29,8 @@ public sealed class JournalBaseReversionProductEvidenceTests
     [Fact]
     public async Task OwnedWinFspPeerAndIndependentResults()
     {
-        string? config=Environment.GetEnvironmentVariable("SPLINTER_BASE_REVERSION_PRODUCT");if(config is null)return;
+        string? config=Environment.GetEnvironmentVariable("SPLINTER_BASE_REVERSION_PRODUCT");
+        if(config is null)Assert.Skip("Explicit owned product evidence requires SPLINTER_BASE_REVERSION_PRODUCT.");
         var input=JsonSerializer.Deserialize<Input>(File.ReadAllText(config),Json)!;
         Assert.False(Directory.Exists(input.Output));Directory.CreateDirectory(input.Output);
         var store=new WorkspaceStore(input.Home);var a=store.Get(input.A);var b=store.Get(input.B);

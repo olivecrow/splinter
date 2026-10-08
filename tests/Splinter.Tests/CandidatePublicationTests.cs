@@ -291,10 +291,13 @@ public sealed class CandidatePublicationTests
     [InlineData(1, "request with spaces")]
     public void InvalidRequestsCannotCreatePublicationArtifacts(int version, string key)
     {
-        using var f = new Fixture();
+        using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        var identity = new OverlayIdentity(2, "worker", tree.Snapshot, 10_000_000, 65536);
+        string worker = Path.Combine(directory.Path, "worker"), candidate = Path.Combine(directory.Path, "candidate");
         Assert.Equal("CandidateRequestInvalid", Assert.Throws<WorkspaceException>(() => JournalDeltaStore.PublishCandidate(
-            f.Worker, f.Identity, f.Tree, f.Candidate, new(version, key), Forbidden, f.Projection)).Code);
-        Assert.False(Directory.Exists(f.Candidate)); Assert.False(File.Exists(f.Candidate + ".publication.lock"));
+            worker, identity, tree, candidate, new(version, key), Forbidden)).Code);
+        Assert.False(Directory.Exists(worker)); Assert.False(Directory.Exists(candidate));
+        Assert.False(File.Exists(candidate + ".publication.lock"));
     }
 
     [Theory]

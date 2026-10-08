@@ -52,7 +52,7 @@ public sealed partial class SourceFingerprintTests
     [Fact]
     public async Task NewCliReusesLargeFilesAndDetectsSameSizeSameTimeWrites()
     {
-        using var f = await Fixture.Create();
+        using var f = await Fixture.Create(16 * 1024 * 1024);
         var first = await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken);
         Assert.Equal("initial", first.Inspection!.Mode);
         Assert.True(first.Inspection.PayloadBytesHashed >= 16 * 1024 * 1024);
@@ -91,7 +91,7 @@ public sealed partial class SourceFingerprintTests
         var binary = await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken);
         Assert.Contains("code.cs", binary.ChangedPaths);
         Assert.NotEqual(originalBlob, CachedGitHash());
-        Assert.True(binary.Inspection!.GitHashInputBytes >= 16 * 1024 * 1024);
+        Assert.True(binary.Inspection!.GitHashInputBytes >= new FileInfo(f.Path("large.bin")).Length);
         Assert.True(binary.Inspection.PayloadBytesHashed < 1024);
         byte[] prior = File.ReadAllBytes(f.Tracker.CachePath(f.Workspace));
         File.WriteAllText(f.Path(".gitattributes"), "*.cs filter=lfs\n"); f.Tracker.Mark(".gitattributes");
@@ -222,7 +222,7 @@ public sealed partial class SourceFingerprintTests
         public Tracker Tracker = null!;
         public string Path(string file) => System.IO.Path.Combine(Workspace.Path, file);
         public GitWorkspaceProvider Provider(bool audit = false) => new(sourceChanges: Tracker, auditSource: audit);
-        public static async Task<Fixture> Create()
+        public static async Task<Fixture> Create(int largeFileBytes = 8192)
         {
             var f = new Fixture(); string repo = System.IO.Path.Combine(f.Directory.Path, "repo");
             System.IO.Directory.CreateDirectory(repo);
@@ -232,7 +232,7 @@ public sealed partial class SourceFingerprintTests
             File.WriteAllText(System.IO.Path.Combine(repo, "code.cs"), "return 1;\n");
             File.WriteAllText(System.IO.Path.Combine(repo, "code.cs.meta"), "guid: initial");
             File.WriteAllText(System.IO.Path.Combine(repo, ".gitignore"), "Library/\n");
-            File.WriteAllBytes(System.IO.Path.Combine(repo, "large.bin"), new byte[16 * 1024 * 1024]);
+            File.WriteAllBytes(System.IO.Path.Combine(repo, "large.bin"), new byte[largeFileBytes]);
             await TestDirectory.Git(repo, "add", "."); await TestDirectory.Git(repo, "commit", "-m", "fixture");
             f.Workspace = new() { Id = "fingerprint-fixture", RequestKey = "test", ProjectPath = repo,
                 Path = System.IO.Path.Combine(f.Directory.Path, "worker"), SourceReference = "splinter/test", BaseReference = "development", ManagedPaths = ["Library"] };

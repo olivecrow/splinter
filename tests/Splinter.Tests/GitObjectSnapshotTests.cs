@@ -12,7 +12,7 @@ public sealed class GitObjectSnapshotTests
     [Fact]
     public async Task ExecutableGitModeSurvivesJournalRenameCandidateAndIndependentGitResult()
     {
-        using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
+        using var f = await Fixture.Create(4096); var ct = TestContext.Current.CancellationToken;
         await TestDirectory.Git(f.Source, "update-index", "--chmod=+x", "file.bin");
         await TestDirectory.Git(f.Source, "commit", "-m", "executable basis");
         f.Revision = await TestDirectory.Git(f.Source, "rev-parse", "HEAD");
@@ -70,7 +70,7 @@ public sealed class GitObjectSnapshotTests
         var snapshot = await f.Capture();
         var tree = f.Provider.OpenTree(snapshot, await f.Provider.ResolveReadAccessAsync(snapshot, ct),
             () => new(snapshot.Id, true, null, 0, null));
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var stopwatch = new System.Diagnostics.Stopwatch();
         try
         {
             byte[] bytes = new byte[4096];
@@ -82,11 +82,24 @@ public sealed class GitObjectSnapshotTests
                 // proved stream with an unread suffix larger than the pipe.
                 Assert.Equal(bytes.Length, tree.Read("file.bin", 4096, bytes));
                 Assert.Equal(f.Data.AsSpan(4096, bytes.Length).ToArray(), bytes);
-                if (pass != 5) Assert.Equal(20, tree.Read("Assets/nested.txt", 0, new byte[20]));
+                if (pass != 5)
+                {
+                    int read;
+                    stopwatch.Start();
+                    try { read = tree.Read("Assets/nested.txt", 0, new byte[20]); }
+                    finally { stopwatch.Stop(); }
+                    Assert.Equal(20, read);
+                }
             }
         }
-        finally { tree.Dispose(); }
-        // Six formerly deterministic one-second waits, with ample launch margin.
+        finally
+        {
+            stopwatch.Start();
+            try { tree.Dispose(); }
+            finally { stopwatch.Stop(); }
+        }
+        // Time the five partial-reader switches and final close, excluding the
+        // six full large-blob proofs. Six one-second grace waits still fail.
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(4), $"Partial-reader cancellation took {stopwatch.Elapsed}.");
         Assert.Throws<ObjectDisposedException>(() => tree.Read("file.bin", 0, new byte[1]));
     }
@@ -281,12 +294,13 @@ public sealed class GitObjectSnapshotTests
         public string Source => Path.Combine(Root, "source");
         public string Receipt => Path.Combine(Root, "receipt");
         public string Revision { get; set; } = "";
-        public byte[] Data { get; } = Enumerable.Range(0, 1024 * 1024).Select(i => (byte)(i * 31)).ToArray();
+        public byte[] Data { get; }
+        private Fixture(int dataBytes) => Data = Enumerable.Range(0, dataBytes).Select(i => (byte)(i * 31)).ToArray();
         public GitObjectSnapshotProvider Provider => new(Receipt, "task", Revision);
         public Task<SnapshotReference> Capture() => Provider.CaptureAsync(new(Source, "task", Receipt), TestContext.Current.CancellationToken);
-        public static async Task<Fixture> Create()
+        public static async Task<Fixture> Create(int dataBytes = 1024 * 1024)
         {
-            var f = new Fixture(); Directory.CreateDirectory(f.Source);
+            var f = new Fixture(dataBytes); Directory.CreateDirectory(f.Source);
             await TestDirectory.Git(f.Source, "init", "-b", "development");
             await TestDirectory.Git(f.Source, "config", "core.autocrlf", "false");
             await TestDirectory.Git(f.Source, "config", "user.name", "Fixture");

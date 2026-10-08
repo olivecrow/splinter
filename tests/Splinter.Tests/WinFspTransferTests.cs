@@ -15,7 +15,7 @@ public sealed class WinFspTransferTests
     [InlineData(131072)]
     public void RequestSizedBuffersPreserveSmallEmptyAndMultiChunkCallbacks(int length)
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "transfer", tree.Snapshot, 4 * 1024 * 1024, 65536);
         using var store = new JournalDeltaStore(root.Path, identity, tree);

@@ -36,25 +36,6 @@ public sealed class JournalRenameReplayTests
 
     [Theory]
     [InlineData("dir", "moved")]
-    [InlineData("dir", "DIR")]
-    public void DirectoryRenameMovesReplayedDescendantsWhoseParentsHaveNoMutations(string from, string to)
-    {
-        using var d = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        tree.Files[from + "/nested/deeper/file"] = [1]; tree.Files[from + "-sibling/file"] = [2];
-        var identity = new OverlayIdentity(2, "deep-rename", tree.Snapshot, 1_000_000, 4096); Guid file;
-        using (var writer = new JournalDeltaStore(d.Path, identity, tree, optimizeJournal: false))
-        {
-            file = writer.Stat(from + "/nested/deeper/file")!.Id; writer.Write(file, 0, [9]);
-            writer.Rename(writer.Stat(from)!.Id, to, false);
-        }
-        using var reader = new JournalDeltaStore(d.Path, identity, tree, optimizeJournal: false);
-        Assert.Equal(file, reader.Stat(to + "/nested/deeper/file")!.Id);
-        Assert.Equal(new byte[] { 9 }, Read(reader, to + "/nested/deeper/file"));
-        Assert.Equal(new byte[] { 2 }, Read(reader, from + "-sibling/file"));
-        if (!from.Equals(to, StringComparison.OrdinalIgnoreCase)) Assert.Null(reader.Stat(from + "/nested/deeper/file"));
-    }
-    [Theory]
-    [InlineData("dir", "moved")]
     [InlineData("Dír", "Ünicode")]
     [InlineData("MiXeD", "mixed")]
     public void RenameKeepsBoundarySiblingsLazyChildrenAndWhiteoutsAcrossReplay(string from, string to)
@@ -62,28 +43,34 @@ public sealed class JournalRenameReplayTests
         using var d = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         tree.Files[from + "/loaded"] = [1]; tree.Files[from + "/lazy"] = [2];
         tree.Files[from + "/nested/removed"] = [3]; tree.Files[from + "/nested/kept"] = [4];
+        tree.Files[from + "/unloaded/deeper/file"] = [7];
         tree.Files[from + "-sibling/untouched"] = [5];
         tree.Files[from + "/removed"] = [6];
         var identity = new OverlayIdentity(2, "rename", tree.Snapshot, 1_000_000, 4096);
-        string delta = Path.Combine(d.Path, "delta"); Guid openFile;
+        string delta = Path.Combine(d.Path, "delta"); Guid openFile, deepFile = Guid.Empty;
         void Check(JournalDeltaStore store)
         {
             foreach (var (path, expected) in new[] { (to + "/loaded", (byte)9), (to + "/lazy", (byte)2),
-                (to + "/nested/kept", (byte)4), (from + "-sibling/untouched", (byte)5) })
+                (to + "/nested/kept", (byte)4), (to + "/unloaded/deeper/file", (byte)8), (from + "-sibling/untouched", (byte)5) })
             {
                 byte[] bytes = new byte[1]; store.Read(store.Stat(path)!.Id, 0, bytes); Assert.Equal(expected, bytes[0]);
             }
             Assert.Null(store.Stat(to + "/nested/removed"));
             Assert.Null(store.Stat(to + "/removed"));
-            Assert.Equal(new[] { to + "/lazy", to + "/loaded", to + "/nested" },
+            Assert.Equal(deepFile, store.Stat(to + "/unloaded/deeper/file")!.Id);
+            Assert.Equal(new[] { to + "/lazy", to + "/loaded", to + "/nested", to + "/unloaded" },
                 store.List(to).Select(e => e.Path).Order(StringComparer.Ordinal).ToArray());
             Assert.Equal(new[] { to + "/nested/kept" }, store.List(to + "/nested").Select(e => e.Path).ToArray());
             if (!from.Equals(to, StringComparison.OrdinalIgnoreCase))
-            { Assert.Null(store.Stat(to + "-sibling/untouched")); Assert.Null(store.Stat(from)); }
+            {
+                Assert.Null(store.Stat(to + "-sibling/untouched")); Assert.Null(store.Stat(from));
+                Assert.Null(store.Stat(from + "/unloaded/deeper/file"));
+            }
         }
         using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             openFile = store.Stat(from + "/loaded")!.Id; store.Write(openFile, 0, [9]);
+            deepFile = store.Stat(from + "/unloaded/deeper/file")!.Id; store.Write(deepFile, 0, [8]);
             store.Delete(store.Stat(from + "/nested/removed")!.Id);
             store.Delete(store.Stat(from + "/removed")!.Id);
             _ = store.Stat(from + "-sibling/untouched");
@@ -95,5 +82,6 @@ public sealed class JournalRenameReplayTests
         Assert.Equal(1, Assert.Single(replayed.Observe().Metrics!.ReplayIndexOperations!, x => x.Operation == "rename").Frames);
         Assert.Equal(new byte[] { 1 }, tree.Files[from + "/loaded"]);
         Assert.Equal(new byte[] { 3 }, tree.Files[from + "/nested/removed"]);
+        Assert.Equal(new byte[] { 7 }, tree.Files[from + "/unloaded/deeper/file"]);
     }
 }

@@ -11,7 +11,7 @@ public sealed class ControlFilePublicationTests
     [Fact]
     public async Task BriefReaderWithoutDeleteSharingDoesNotFailLiveStatePublication()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var directory = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
         string path = Path.Combine(directory.Path, "state.json");
         await WindowsProcessWorkspaceProvider.WriteAsync(path, new Receipt(1, "before"), ct);
@@ -50,7 +50,7 @@ public sealed class ControlFilePublicationTests
     [Fact]
     public async Task DeniedPublicationPreservesOldReceiptAndFlushedTemporary()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var directory = new TestDirectory();
         string path = Path.Combine(directory.Path, "flush-result.json");
         var ct = TestContext.Current.CancellationToken;
@@ -77,7 +77,7 @@ public sealed class ControlFilePublicationTests
     [Fact]
     public async Task ReadOnlyReceiptIsNotMadeWritableOrOverwritten()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var directory = new TestDirectory();
         string path = Path.Combine(directory.Path, "state.json");
         var ct = TestContext.Current.CancellationToken;

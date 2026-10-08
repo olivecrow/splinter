@@ -39,21 +39,6 @@ public sealed class WorkspaceCoordinatorTests
         Assert.Equal(0, sources.ReleaseCalls); Assert.Equal(0, apps.RemoveCalls);
     }
 
-    [Fact]
-    public async Task ExistingRequestDigestAndResumeIdentityStayUnchanged()
-    {
-        using var d = new TestDirectory(); var sources = new FakeSources(); var apps = new FakeApplications(); string project = Project(d);
-        var w = (await New(d, sources, apps).EnsureAsync(project, "retained-request", "main", "git-checkout", false,
-            TestContext.Current.CancellationToken)).Workspace;
-        string previousDigest = WorkspaceStore.Key(project + "\nretained-request\nmain\ngit-checkout\n\ntask\n" +
-            SnapshotWorkspaceState.DefaultJournalBytes + "\ngit\nunity");
-        Assert.Equal(previousDigest, w.RequestDigest);
-        var resumed = await New(d, sources, apps).EnsureAsync(project, "retained-request", "main", "git-checkout", false,
-            TestContext.Current.CancellationToken);
-        Assert.Equal(w.Id, resumed.Workspace.Id); Assert.Equal(previousDigest, resumed.Workspace.RequestDigest);
-        Assert.Equal(1, sources.CreateCalls);
-    }
-
     [Theory]
     [InlineData("unexpected", "null")]
     [InlineData("unexpected", "{}")]
@@ -97,7 +82,7 @@ public sealed class WorkspaceCoordinatorTests
     [Fact]
     public async Task OriginalOperationErrorSurvivesAStateFailureWhileRecordingIt()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var dir = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
         var store = new WorkspaceStore(Path.Combine(dir.Path, "state"));
         FileStream? held = null;
@@ -159,9 +144,14 @@ public sealed class WorkspaceCoordinatorTests
         var ct = TestContext.Current.CancellationToken;
         using var d = new TestDirectory();
         var sources = new FakeSources(); var apps = new FakeApplications();
-        var first = await New(d, sources, apps).EnsureAsync(Project(d), "task", "main", "git-checkout", false, ct);
-        var second = await New(d, sources, apps).EnsureAsync(Project(d), "task", "main", "git-checkout", false, ct);
+        string project = Project(d);
+        string expectedDigest = WorkspaceStore.Key(project + "\ntask\nmain\ngit-checkout\n\ntask\n" +
+            SnapshotWorkspaceState.DefaultJournalBytes + "\ngit\nunity");
+        var first = await New(d, sources, apps).EnsureAsync(project, "task", "main", "git-checkout", false, ct);
+        var second = await New(d, sources, apps).EnsureAsync(project, "task", "main", "git-checkout", false, ct);
         Assert.Equal(first.Workspace.Id, second.Workspace.Id);
+        Assert.Equal(expectedDigest, first.Workspace.RequestDigest);
+        Assert.Equal(expectedDigest, second.Workspace.RequestDigest);
         Assert.Equal(1, sources.CreateCalls);
         var error = await Assert.ThrowsAsync<WorkspaceException>(() => New(d, sources, apps).EnsureAsync(Project(d), "task", "other", "git-checkout", false, ct));
         Assert.Equal("RequestKeyConflict", error.Code);

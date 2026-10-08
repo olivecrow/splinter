@@ -44,7 +44,7 @@ public sealed class JournalBaseReversionNativeEvidenceTests
     public void Benchmark()
     {
         string? config = Environment.GetEnvironmentVariable("SPLINTER_BASE_REVERSION_NATIVE_BENCHMARK");
-        if (config is null) return;
+        if (config is null) Assert.Skip("Explicit native benchmark requires SPLINTER_BASE_REVERSION_NATIVE_BENCHMARK.");
         var input = JsonSerializer.Deserialize<Input>(File.ReadAllText(config),Json)!;
         Assert.False(Directory.Exists(input.Output)); Directory.CreateDirectory(input.Output);
         var results = new List<object>();

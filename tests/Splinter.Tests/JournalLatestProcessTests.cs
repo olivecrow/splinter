@@ -28,7 +28,7 @@ public sealed class JournalLatestProcessTests
     public void Child()
     {
         string? input = Environment.GetEnvironmentVariable("SPLINTER_LATEST_JOURNAL_CHILD");
-        if (input is null) return;
+        if (input is null) Assert.Skip("Subprocess-only entrypoint requires SPLINTER_LATEST_JOURNAL_CHILD.");
         var request = JsonSerializer.Deserialize<Request>(File.ReadAllText(input))!;
         var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         using var writer = new JournalDeltaStore(Path.Combine(request.Directory, "delta"), Identity(tree), tree, new Gate(request));

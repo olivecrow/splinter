@@ -9,13 +9,16 @@ namespace Splinter.Tests;
 public sealed class GeneratedDirectoryTests
 {
     [Fact]
-    public void SourceAndGeneratedBasisAreFixedAndThreeWritersRemainIndependent()
+    public void TrackedLibraryIsRejectedAndSourceAndGeneratedWritersRemainIndependent()
     {
         using var directory = new TestDirectory();
         var source = new SnapshotOverlayTests.FakeSnapshotTree(); source.Files["Assets/code.cs"] = [1, 2];
         var generated = new SnapshotOverlayTests.FakeSnapshotTree { Snapshot = new("cache", "fake-memory", "cache-source", "cache-root", DateTimeOffset.UnixEpoch, true, true, "fixture") };
         generated.Files["db/cache"] = [3, 4, 5];
         var basis = new GeneratedDirectoryReference("cache", "project", "Library", generated.Snapshot, "receipt", "owner", "manifest"); var graft = new SnapshotGraft("Library", basis);
+        source.Files["Library/tracked"] = [1];
+        Assert.Equal("GeneratedBasisTracked", Assert.Throws<WorkspaceException>(() => new GraftedSnapshotTree(source, generated, graft)).Code);
+        source.Files.Remove("Library/tracked");
         var tree = new GraftedSnapshotTree(source, generated, graft);
         Assert.Contains(tree.List(""), e => e.Path == "Library"); Assert.Equal("Library/db/cache", tree.List("Library/db").Single().Path);
         for (int index = 0; index < 3; index++)
@@ -34,14 +37,6 @@ public sealed class GeneratedDirectoryTests
         }
         Assert.Equal(new byte[] { 3, 4, 5 }, generated.Files["db/cache"]);
         generated.Available = false; Assert.Equal("SnapshotMissing", Assert.Throws<WorkspaceException>(() => tree.Stat("Assets/code.cs")).Code);
-    }
-    [Fact]
-    public void TrackedGeneratedDirectoryCannotBeShadowed()
-    {
-        var source = new SnapshotOverlayTests.FakeSnapshotTree(); source.Files["Library/tracked"] = [1];
-        var generated = new SnapshotOverlayTests.FakeSnapshotTree();
-        var basis = new GeneratedDirectoryReference("cache", "project", "Library", generated.Snapshot, "receipt", "owner", "manifest");
-        Assert.Equal("GeneratedBasisTracked", Assert.Throws<WorkspaceException>(() => new GraftedSnapshotTree(source, generated, new("Library", basis))).Code);
     }
     [Fact]
     public void RestoreRangesNeverHydrateUnchangedDataOrReadFromALostBasis()
@@ -64,7 +59,7 @@ public sealed class GeneratedDirectoryTests
     [Fact]
     public void OwnedDirectoryFencesWritesAndRejectsChangedPayloadOnReopen()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var directory = new TestDirectory(); File.WriteAllBytes(Path.Combine(directory.Path, "file"), [1, 2]);
         var snapshot = new SnapshotReference("owned", OwnedDirectorySnapshotTree.ProviderName, directory.Path, directory.Path, DateTimeOffset.UnixEpoch, true, true, "stopped-original-owned-directory");
         var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, "owner");

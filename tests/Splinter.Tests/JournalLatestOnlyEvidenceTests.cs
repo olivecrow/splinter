@@ -71,7 +71,7 @@ public sealed class JournalLatestOnlyEvidenceTests
     public async Task RecoverPreservedMeasurement()
     {
         string? config = Environment.GetEnvironmentVariable("SPLINTER_LATEST_ONLY_RECOVER_EVIDENCE");
-        if (config is null) return;
+        if (config is null) Assert.Skip("Explicit measurement recovery requires SPLINTER_LATEST_ONLY_RECOVER_EVIDENCE.");
         var input = JsonSerializer.Deserialize<Input>(File.ReadAllText(config), Json)!;
         var provider = new GitObjectSnapshotProvider(input.Receipt, input.Owner, input.Revision);
         var recovered = new List<object>(); SnapshotReference? snapshot = null;
@@ -93,7 +93,7 @@ public sealed class JournalLatestOnlyEvidenceTests
     public async Task Benchmark()
     {
         string? config = Environment.GetEnvironmentVariable("SPLINTER_LATEST_ONLY_MANY_FILES");
-        if (config is null) return;
+        if (config is null) Assert.Skip("Explicit benchmark requires SPLINTER_LATEST_ONLY_MANY_FILES.");
         var input = JsonSerializer.Deserialize<Input>(File.ReadAllText(config), Json)!;
         Assert.False(Directory.Exists(input.Output)); Directory.CreateDirectory(input.Output);
         var ct = TestContext.Current.CancellationToken;

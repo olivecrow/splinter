@@ -105,7 +105,9 @@ pwsh ./scripts/build.ps1
 
 locked restore·Release·자동 계약/fake/Git/Windows 회귀를 수행한다. 의존성은 중앙 버전과 lockfile을 유지한다. 자동 시험을 native VSS/Unity·ARM/OS 장애 자격으로 승계하지 않는다. 원시 근거와 지원 제한은 [검증 안내](verification/README.md)에 보존한다.
 
-외부 복구 시험의 `EvidenceRun`과 자식 전용 `ChildWriter`·`ChildProvider`·`ChildClient`·`ChildReader`·`ClientActor`·`ChildEnsure`는 지정된 실행 환경 변수가 없으면 Skipped다. 해당 스크립트나 부모 시험이 환경 변수를 전달할 때 같은 진입점이 실행된다. 기본 자동 실행에서도 부모 시험이 호출하는 합성 저널·준비 중단 회귀는 실행하며, 외부 kernel·제품 쓰기 복구의 실행 자격과 구분한다.
+외부 복구·성능 계측·보존한 계측의 복구 진입점과 자식 전용 `Child`·`ChildWriter`·`ChildProvider`·`ChildClient`·`ChildReader`·`ClientActor`·`ChildEnsure`는 지정된 실행 환경 변수가 없으면 Skipped다. 해당 스크립트나 부모 시험이 환경 변수를 전달할 때 같은 진입점이 실행된다. 기본 자동 실행에서도 부모 시험이 호출하는 합성 저널·준비 중단 회귀는 실행하며, 외부 kernel·제품 쓰기 복구의 실행 자격과 구분한다. 동작·metadata·guard 시험에는 작은 입력을 쓰고, 큰 파일 재사용·chunk 경계·저장 비용을 검증하는 시험에서만 필요한 큰 입력을 명시한다.
+
+Windows 전용 파일 공유·native 계약 시험은 다른 OS에서 Skipped다. 단독 고정 응답·오류 매핑·계측 시험이 같은 동작을 반복하면 실제 생성·재개·거부·재생 시험에 고유 assertion을 합친다. 변경 없는 중간 부모 아래의 rename·요청 digest·개별 durable flush·원본/독립 결과 보호처럼 회귀를 막는 검증은 함께 유지한다.
 
 ### 실제 저장소의 Git 수명주기 시험
 

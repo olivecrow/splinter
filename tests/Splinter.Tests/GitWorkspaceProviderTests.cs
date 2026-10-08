@@ -25,7 +25,10 @@ public sealed class GitWorkspaceProviderTests
         var resumed = await p.CreateAsync(w, ct); Assert.Equal(created.Path, resumed.Path);
         w.ResultRevision = await p.CheckpointAsync(w, "worker result", ct);
         var unintegrated = await Assert.ThrowsAsync<WorkspaceException>(() => p.ReleaseAsync(w, ct)); Assert.Equal("GitReleaseResultNotIntegrated", unintegrated.Code);
-        var integrated = await p.IntegrateAsync(w, "main", ct); w.IntegratedRevision = integrated.Revision; await p.ReleaseAsync(w, ct);
+        var integrated = await p.IntegrateAsync(w, "main", ct); Assert.False(integrated.AlreadyIntegrated);
+        Assert.Equal(w.ResultRevision, await TestDirectory.Git(repo, "merge-base", w.ResultRevision, integrated.Revision));
+        w.IntegratedRevision = integrated.Revision; await p.ReleaseAsync(w, ct);
+        Assert.False(Directory.Exists(wt));
     }
 
     [Fact]
@@ -38,18 +41,6 @@ public sealed class GitWorkspaceProviderTests
         File.Delete(System.IO.Path.Combine(repo, "dirty.txt")); var created = await p.CreateAsync(w, ct); w.BaseRevision = created.BaseRevision;
         await File.WriteAllTextAsync(System.IO.Path.Combine(wt, "dirty.txt"), "dirty", ct);
         ex = await Assert.ThrowsAsync<WorkspaceException>(() => p.ReleaseAsync(w, ct)); Assert.Equal("GitDirtyWorktree", ex.Code);
-    }
-
-    [Fact]
-    public async Task Commits_integrates_and_releases()
-    {
-        var ct = TestContext.Current.CancellationToken; using var d = new TestDirectory(); string repo = await Repo(d.Path, ct); string wt = System.IO.Path.Combine(d.Path, "worker");
-        var w = Record(repo, wt, "splinter/work-3"); var p = new GitWorkspaceProvider(); var created = await p.CreateAsync(w, ct); w.BaseRevision = created.BaseRevision;
-        await File.WriteAllTextAsync(System.IO.Path.Combine(wt, "result.txt"), "result", ct); string result = await p.CheckpointAsync(w, "result", ct); w.ResultRevision = result;
-        var integrated = await p.IntegrateAsync(w, "main", ct); Assert.False(integrated.AlreadyIntegrated);
-        Assert.Equal(result, await TestDirectory.Git(repo, "merge-base", result, integrated.Revision));
-        w.IntegratedRevision = integrated.Revision; await p.ReleaseAsync(w, ct);
-        Assert.False(Directory.Exists(wt));
     }
 
     [Fact]

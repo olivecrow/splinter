@@ -56,7 +56,7 @@ public sealed class JournalBaseReversionEvidenceTests
     public void Child()
     {
         string? path = Environment.GetEnvironmentVariable("SPLINTER_BASE_REVERSION_CHILD");
-        if (path is null) return;
+        if (path is null) Assert.Skip("Subprocess-only entrypoint requires SPLINTER_BASE_REVERSION_CHILD.");
         var request = JsonSerializer.Deserialize<Request>(File.ReadAllText(path), Json)!;
         void Gate(string stage)
         {
@@ -147,7 +147,7 @@ public sealed class JournalBaseReversionEvidenceTests
     public void Benchmark()
     {
         string? root = Environment.GetEnvironmentVariable("SPLINTER_BASE_REVERSION_BENCHMARK");
-        if (root is null) return;
+        if (root is null) Assert.Skip("Explicit benchmark requires SPLINTER_BASE_REVERSION_BENCHMARK.");
         Assert.False(Directory.Exists(root)); Directory.CreateDirectory(root);
         var results = new List<object>();
         foreach (string profile in new[] { "random-4k", "random-1m", "repeat-1m", "mixed-8x4k" })

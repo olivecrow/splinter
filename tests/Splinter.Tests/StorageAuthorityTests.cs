@@ -24,17 +24,9 @@ public sealed partial class StorageAuthorityTests
     private static IDisposable Authorize(StorageGrant _, StorageAuthorityRequest __) => new Lease();
 
     [Fact]
-    public void SchemasDescribeTheActualPrivateMessages()
-    {
-        using var d = new TestDirectory(); var contracts = new ContractCatalog();
-        Assert.True(contracts.Validate("urn:splinter:v1:storage-authority-request", JsonSerializer.SerializeToElement(Capture(d.Path), StorageAuthorityProtocol.Json)).IsValid);
-        Assert.True(contracts.Validate("urn:splinter:v1:storage-authority-response", JsonSerializer.SerializeToElement(new StorageAuthorityResponse(1, "", "", "StorageRequestInvalid", []), StorageAuthorityProtocol.Json)).IsValid);
-    }
-
-    [Fact]
     public void APathCannotBeRenamedOrTurnedIntoAnotherDirectoryDuringAuthorization()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var d = new TestDirectory(); string path = Path.Combine(d.Path, "project"); Directory.CreateDirectory(path);
         string original;
         using (var pinned = new StorageAuthorityPaths())
@@ -70,8 +62,11 @@ public sealed partial class StorageAuthorityTests
     public async Task LostReplyAndNewServiceInstanceDoNotRepeatThePrivilegedOperation()
     {
         using var d = new TestDirectory(); var request = Capture(d.Path); var fake = new FakeOperations();
+        var contracts = new ContractCatalog();
+        Assert.True(contracts.Validate("urn:splinter:v1:storage-authority-request", JsonSerializer.SerializeToElement(request, StorageAuthorityProtocol.Json)).IsValid);
         var first = await Processor(d.Path, request, fake).ProcessAsync(Sid, request, Authorize, TestContext.Current.CancellationToken);
         var second = await Processor(d.Path, request, fake).ProcessAsync(Sid, request, Authorize, TestContext.Current.CancellationToken);
+        Assert.True(contracts.Validate("urn:splinter:v1:storage-authority-response", JsonSerializer.SerializeToElement(first, StorageAuthorityProtocol.Json)).IsValid);
         Assert.Equal(1, fake.Captures); Assert.True(JsonElement.DeepEquals(first.Receipts["snapshot.json"], second.Receipts["snapshot.json"]));
         var changed = request with { Verification = request.Verification with { RequestedAt = DateTimeOffset.UtcNow.AddMinutes(1) } };
         var error = await Assert.ThrowsAsync<WorkspaceException>(() => Processor(d.Path, request, fake).ProcessAsync(Sid, changed, Authorize, TestContext.Current.CancellationToken));
@@ -237,6 +232,9 @@ public sealed partial class StorageAuthorityTests
             _ => "{\"version\":1}"
         };
         Assert.Throws<JsonException>(() => StorageAuthorityProtocol.Decode<StorageAuthorityRequest>(Encoding.UTF8.GetBytes(json)));
+        var rejected = new StorageAuthorityResponse(1, "", "", "StorageRequestInvalid", []);
+        Assert.True(new ContractCatalog().Validate("urn:splinter:v1:storage-authority-response",
+            JsonSerializer.SerializeToElement(rejected, StorageAuthorityProtocol.Json)).IsValid);
     }
 
     [Fact]
@@ -254,6 +252,9 @@ public sealed partial class StorageAuthorityTests
         fake.Error = null;
         var retried = await Processor(d.Path, capture, fake).ProcessAsync(Sid, release, Authorize, TestContext.Current.CancellationToken);
         Assert.Equal("SnapshotReleaseIsolationRequired", first.ErrorCode); Assert.Equal(first.ErrorCode, retried.ErrorCode);
+        var contracts = new ContractCatalog();
+        foreach (var failure in new[] { first, retried })
+            Assert.True(contracts.Validate("urn:splinter:v1:storage-authority-response", JsonSerializer.SerializeToElement(failure, StorageAuthorityProtocol.Json)).IsValid);
         Assert.Equal(2, fake.Calls);
     }
 

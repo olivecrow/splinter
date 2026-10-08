@@ -41,7 +41,13 @@ public sealed class ViewWorkflowTests
         public async Task<string> Selected(string candidate, string key = "select-a") => (await Run(Select(candidate, key))).Selection!.Intent.GenerationId;
         public void Dispose() => Directory.Dispose();
     }
-    private static async Task Error(string expected, Func<Task> action) => Assert.Equal(expected, (await Assert.ThrowsAsync<WorkspaceException>(action)).Code);
+    private static async Task Error(string expected, Func<Task> action, string? disposition = null)
+    {
+        var error = await Assert.ThrowsAsync<WorkspaceException>(action);
+        Assert.Equal(expected, error.Code);
+        if (disposition is not null)
+            Assert.Equal(disposition, ApiResponse.Failure("view.execute", error.Code, error.Message, error.Details).RetryDisposition);
+    }
     private static Action<string> Crash(string point) => current => { if (current == point) throw new IOException("Interrupted at " + point); };
 
     [Fact]
@@ -209,7 +215,7 @@ public sealed class ViewWorkflowTests
         var selection = h.Select(a);
         await Assert.ThrowsAsync<IOException>(() => h.Runtime(Crash("select:intent")).ExecuteAsync(selection, h.Ct));
         string b = await h.Published("publish-b", "worker-b");
-        await Error("ViewOperationPending", () => h.Run(h.Select(b, "other-selection")));
+        await Error("ViewOperationPending", () => h.Run(h.Select(b, "other-selection")), "requires-user-action");
         await h.Run(selection);
         await h.Selected(b, "other-selection");
         Assert.Equal(2, h.World.Effects["select"]);
@@ -304,7 +310,7 @@ public sealed class ViewWorkflowTests
             "application" => cache with { CompatibilityKey = "other-version" },
             _ => cache with { ViewId = "other-view" }
         } };
-        await Error("ViewCacheMismatch", () => h.Run(request));
+        await Error("ViewCacheMismatch", () => h.Run(request), "correct-request");
         Assert.Equal(1, h.World.Effects["select"]);
         Assert.DoesNotContain("mismatch", (await h.Runtime().InspectAsync("project", h.Ct)).Operations.Keys);
     }
@@ -333,10 +339,11 @@ public sealed class ViewWorkflowTests
             "handles" => quiet with { OpenHandles = 1 },
             _ => quiet with { Mounted = true }
         };
+        string disposition = error == "ViewResourcesUnknown" ? "requires-user-action" : "safe-to-retry";
         h.World.ViewResources = resources;
-        await Error(error, () => h.Run(h.Select(a)));
+        await Error(error, () => h.Run(h.Select(a)), disposition);
         h.World.Workers["worker-b"] = h.World.Workers["worker-b"] with { Resources = resources };
-        await Error(error, () => h.Run(h.Publish("b", "worker-b")));
+        await Error(error, () => h.Run(h.Publish("b", "worker-b")), disposition);
         Assert.Equal(1, h.World.Effects["publish"]); Assert.False(h.World.Effects.ContainsKey("select"));
     }
 
@@ -394,7 +401,7 @@ public sealed class ViewWorkflowTests
         using var h = new Harness(); string a = await h.Published();
         var result = (await h.Run(h.Artifact("preserve", "candidate", a, "keep"))).Result!;
         File.WriteAllText(result.Reference, "damaged");
-        await Error("ViewResultInvalid", () => h.Run(h.Artifact("release", "candidate", a, "release")));
+        await Error("ViewResultInvalid", () => h.Run(h.Artifact("release", "candidate", a, "release")), "requires-user-action");
         Assert.True(File.Exists(h.Provider.PayloadPath(new("candidate", a))));
     }
 
@@ -427,7 +434,7 @@ public sealed class ViewWorkflowTests
             case "identity": node["projectId"] = "another-project"; break;
         }
         string content = damage == "truncated" ? "{" : node.ToJsonString(); File.WriteAllText(path, content);
-        await Error("ViewStateCorrupt", () => h.Run(request));
+        await Error("ViewStateCorrupt", () => h.Run(request), "requires-user-action");
         Assert.Equal(content, File.ReadAllText(path)); Assert.Equal(1, h.World.Effects["publish"]);
     }
 
@@ -562,18 +569,6 @@ public sealed class ViewWorkflowTests
         File.WriteAllText(path, original);
         Assert.Equal(id, (await h.Run(request)).Candidate!.Intent.CandidateId);
         Assert.Equal(1, h.World.Effects["publish"]);
-    }
-
-    [Theory]
-    [InlineData("ViewStateCorrupt", "requires-user-action")]
-    [InlineData("ViewResultInvalid", "requires-user-action")]
-    [InlineData("ViewResourcesUnknown", "requires-user-action")]
-    [InlineData("ViewResourcesBusy", "safe-to-retry")]
-    [InlineData("ViewOperationPending", "requires-user-action")]
-    [InlineData("ViewCacheMismatch", "correct-request")]
-    public void SharedFailureResponsesKeepPreservationAndRequestCorrectionDistinct(string code, string disposition)
-    {
-        Assert.Equal(disposition, ApiResponse.Failure("contract-test", code, "test").RetryDisposition);
     }
 
     [Fact]
