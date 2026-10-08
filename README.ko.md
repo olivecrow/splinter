@@ -26,13 +26,15 @@ Splinter는 작업이 재사용할 데이터와 변경할 데이터를 분리합
 
 두 변경의 컴파일을 확인한 시점의 추가 파일 할당은 **Codex 10.52 GiB, Splinter 0.14 GiB로, 98.65% 감소**했습니다. 작업 파일과 소유 Git 등록을 포함하고, Splinter의 공유 runner와 Library 메타데이터는 한 번만 합산했습니다. 기존 원본 소스·Library 본문·공유 Git 객체는 제외했습니다. 특정 시점의 실측값이며 디스크 최대 사용량은 아닙니다.
 
-**최적화 후 같은 Unity 프로젝트를 다시 측정했습니다.** 초기 Editor 준비는 **29분 13초 → 17분 22초**, 한 줄 수정 후 컴파일은 **9분 14초 → 1분 17초**, A/B checkpoint·release는 **2시간 36분 7초 → 7분 1초**였습니다. 현재 A/B checkpoint는 각각 83.5초·81.6초, release는 130.6초·125.6초입니다.
+**앞선 최적화 실행에서 같은 Unity 프로젝트를 다시 측정했습니다.** 초기 Editor 준비는 **29분 13초 → 17분 22초**, 한 줄 수정 후 컴파일은 **9분 14초 → 1분 17초**, A/B checkpoint·release는 **2시간 36분 7초 → 7분 1초**였습니다. 당시 A/B checkpoint는 각각 83.5초·81.6초, release는 130.6초·125.6초였습니다.
 
 ![같은 Unity 입력의 이전·현재 시간과 과거 Codex 비교](docs/images/unity-lifecycle-remeasurement.png)
 
-Library 준비·복원을 모두 포함한 이번 관측 구간은 **68분 28초**이며, 마지막 Library 복원만 **23분 25초**가 걸렸습니다. 종료 명령 두 개의 2분 시간 제한 뒤 같은 Editor의 정상 종료를 관측해 계속했습니다. 이전 보존 구간에는 중첩·복구·동시 진단이 있었고 현재는 A→B 순차 실행이므로, 순수 최적화 배율로 해석하지 않습니다. 프로파일 부하를 포함한 한 번의 실측이며, Codex와 위 저장 공간 수치는 과거 비교군입니다. [정확한 비용·프로파일·실패·복원 검증](docs/ko/verification/unity-lifecycle-remeasurement.md)과 [데이터](reports/benchmarks/unity-lifecycle-remeasurement-20261007.json)를 참고하세요.
+Library 준비·복원을 모두 포함한 당시 관측 구간은 **68분 28초**이며, 마지막 Library 복원만 **23분 25초**가 걸렸습니다. 종료 명령 두 개의 2분 시간 제한 뒤 같은 Editor의 정상 종료를 관측해 계속했습니다. 이전 보존 구간에는 중첩·복구·동시 진단이 있었고 현재는 A→B 순차 실행이므로, 순수 최적화 배율로 해석하지 않습니다. 프로파일 부하를 포함한 한 번의 실측이며, Codex와 위 저장 공간 수치는 과거 비교군입니다. [정확한 비용·프로파일·실패·복원 검증](docs/ko/verification/unity-lifecycle-remeasurement.md)과 [데이터](reports/benchmarks/unity-lifecycle-remeasurement-20261007.json)를 참고하세요.
 
 [후속 읽기·복원 최적화](docs/ko/verification/lifecycle-read-optimization.md)는 제한된 Git reader·디렉터리 메타데이터 재사용, 느린 기준 읽기의 잠금 분리와 완전히 변경 없는 Library의 검증된 디렉터리 이동을 적용했습니다. 최신 작은 NTFS 비교(260개 파일, 약 16MiB)는 고정 기록 대기 제거를 포함해 평균 **4.21초 → 0.52초**입니다. 이 값은 fixture 결과이며 위 Unity 전체 시간은 추가 변경 전의 기록입니다.
+
+**최신 실제 Unity 실행(`168081c`):** A/B checkpoint는 **66.8초·65.1초**, release는 **88.3초·84.7초**로, 합계 **5분 5초**였습니다. 위 실행의 7분 1초보다 짧아졌습니다. 초기 Editor 준비는 **14분 8초**, 원본 Library 복원은 **3분 1초**, 준비부터 복원까지 전체는 **38분 7초**였습니다. 두 종료 명령은 여전히 120초 제한을 초과했고 같은 Editor가 4분 22초 뒤 정상 종료했습니다. 독립 결과·원본 소스 유지·소유 자원 회수를 확인했습니다. 앞선 실행의 외부 프로파일러를 제외한 단일 실행이므로 관측 차이를 순수 최적화 비율로 해석하지 않습니다. [현재 측정과 제한](docs/ko/verification/unity-checkpoint-release-remeasurement.md)을 참고하세요.
 
 <details>
 <summary>이전 시간 측정과 최적화 과정</summary>

@@ -1,0 +1,593 @@
+{
+  "version": 1,
+  "qualification": "UC-01; one unprofiled real Unity A/B checkpoint/release remeasurement",
+  "sourceCommit": "168081c349d87d9767d44ce0a741ec61279c2706",
+  "binarySha256": {
+    "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+    "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+    "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+    "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+    "Splinter.Application.Unity.dll": "ea05f7a347923cb437ad2e092eb1a69197631fcf6b3a1ce24e7821c22f2370c2",
+    "Splinter.Core.dll": "929cd328abd0f64bff5f82e45434025c9c7e27553c014b49250d5d56ec8a70ea",
+    "splinter.dll": "8bc09624d15164c273f253b490d128ca2f1ba8931458b7346905e4dee76e39aa",
+    "Splinter.Host.dll": "134d7f1cdaf287e248b583e99406ae79cc72b035658c6d1bf6c79e9ce98a433c",
+    "Splinter.Platform.Windows.dll": "90f6ecb9aba417f0aa16f4d5691dc69ca015af7e4ec819f3c88b00102353f559",
+    "Splinter.Protocol.dll": "9f70b3e7ebda79150ee8a4fcffdd89dee0e235b0de4fab50fb22e111ba00424c",
+    "Splinter.Runtime.dll": "2e08cc65f9893c5d5cd41cb9ffbfbb549e32a44105cc13882c03655920d2cc0f",
+    "Splinter.SourceControl.Files.dll": "5d0032033e30d0aaedaf85873ef027abb3c94a0373fe42fd7d48d5f5ec830580",
+    "Splinter.SourceControl.Git.dll": "95789f2b73b25e405edb26c64698b1fd903e1e557edaabb5eb881170eba3bb74",
+    "Splinter.Workflows.Windows.dll": "f785507971257c9a196041de2a45dbbefd00eb35aec669817e5de146b7f35101",
+    "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+    "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+  },
+  "original": {
+    "revision": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+    "trackedFiles": 1602,
+    "trackedBytes": 2804772822,
+    "library": {
+      "entries": 44860,
+      "files": 42420,
+      "directories": 2440,
+      "logicalBytes": 3141660252,
+      "allEntryMetadataAndPayloadHashesEqual": true,
+      "normalizedItemsSha256": "7e14234c43e7c7c9783314de1b14c2ae955ead2015c91bde9c0b9ac890d898af",
+      "normalizedItemsMethod": "map keyed by path; sorted JSON keys; compact UTF-8, ensure_ascii=False"
+    }
+  },
+  "workload": {
+    "unityVersion": "6000.3.22f1",
+    "storage": "git-snapshot",
+    "libraryReference": true,
+    "cohorts": 1,
+    "sourceFilesChangedPerWorker": 1,
+    "edits": {
+      "a": "value + 1 to value + 2",
+      "b": "value + value to value + value + value"
+    },
+    "order": "sequential ensure; concurrent Editors/refresh; normal owned Editor stop; sequential A checkpoint/release then B checkpoint/release; final Library restore",
+    "cacheClearing": false,
+    "externalProfiler": null,
+    "externalProfilingOverheadIncluded": false,
+    "builtInMeasurements": "source inspections, storage/seal timings, durable lifecycle events; read-only provider observations every 10 seconds",
+    "comparison": "Prior UR includes bounded external EventPipe profiling; current run does not. These are observed costs, not an isolated causal optimization ratio."
+  },
+  "timingSeconds": {
+    "priorProfiledUR": {
+      "libraryPrepare": 240.32827139999426,
+      "ensureA": 322.3461143999957,
+      "ensureB": 319.4375244999974,
+      "checkpointA": 83.50095969999529,
+      "releaseA": 130.58568179999565,
+      "checkpointB": 81.64046909999888,
+      "releaseB": 125.6493527000057,
+      "libraryRestore": 1404.9755522999985,
+      "initial": 1041.8830822999953,
+      "edit": 76.91292500000418,
+      "stop": 278.321283,
+      "preserveRelease": 421.38058560000354,
+      "workflowFromLibraryPrepareThroughRestore": 4107.959139,
+      "assetInspectionInterval": 2.41863
+    },
+    "currentUnprofiledUC": {
+      "libraryPrepare": 153.1847917999985,
+      "ensureA": 238.41720019999775,
+      "ensureB": 232.4926262000008,
+      "checkpointA": 66.75142340000457,
+      "releaseA": 88.25978110000142,
+      "checkpointB": 65.13588930000697,
+      "releaseB": 84.74323279999953,
+      "libraryRestore": 180.9023709999965,
+      "initial": 848.3379124999992,
+      "edit": 65.25436679999984,
+      "stop": 262.0236309999964,
+      "preserveRelease": 304.8955625999952,
+      "checkpointReleaseCommandsSum": 304.8903266000125,
+      "workflowFromLibraryPrepareThroughRestore": 2286.949242,
+      "assetInspectionInterval": 1.41401
+    }
+  },
+  "commandCosts": {
+    "library-prepare": {
+      "beganUtc": "2026-10-07T16:35:47.485982+00:00",
+      "endedUtc": "2026-10-07T16:38:20.672257+00:00",
+      "elapsedSeconds": 153.1847917999985,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-a-ensure-corrected": {
+      "beganUtc": "2026-10-07T16:38:20.673980+00:00",
+      "endedUtc": "2026-10-07T16:42:19.093462+00:00",
+      "elapsedSeconds": 238.41720019999775,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-b-ensure-corrected": {
+      "beganUtc": "2026-10-07T16:42:19.094129+00:00",
+      "endedUtc": "2026-10-07T16:46:11.588991+00:00",
+      "elapsedSeconds": 232.4926262000008,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-a-unity-start": {
+      "beganUtc": "2026-10-07T16:46:11.590233+00:00",
+      "endedUtc": "2026-10-07T16:46:14.719393+00:00",
+      "elapsedSeconds": 3.128391300000658,
+      "exitCode": 0,
+      "status": "Accepted",
+      "sampledThreadTrace": false
+    },
+    "s-b-unity-start": {
+      "beganUtc": "2026-10-07T16:46:11.590408+00:00",
+      "endedUtc": "2026-10-07T16:46:14.719597+00:00",
+      "elapsedSeconds": 3.1284855000048992,
+      "exitCode": 0,
+      "status": "Accepted",
+      "sampledThreadTrace": false
+    },
+    "s-a-unity-stop": {
+      "beganUtc": "2026-10-07T17:01:26.605364+00:00",
+      "endedUtc": "2026-10-07T17:03:27.119422+00:00",
+      "elapsedSeconds": 120.51263139999355,
+      "exitCode": 2,
+      "status": "Failed",
+      "sampledThreadTrace": false
+    },
+    "s-b-unity-stop": {
+      "beganUtc": "2026-10-07T17:01:26.605600+00:00",
+      "endedUtc": "2026-10-07T17:03:27.119295+00:00",
+      "elapsedSeconds": 120.51234519999707,
+      "exitCode": 2,
+      "status": "Failed",
+      "sampledThreadTrace": false
+    },
+    "s-a-checkpoint": {
+      "beganUtc": "2026-10-07T17:05:48.632110+00:00",
+      "endedUtc": "2026-10-07T17:06:55.384603+00:00",
+      "elapsedSeconds": 66.75142340000457,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-a-release": {
+      "beganUtc": "2026-10-07T17:06:55.385585+00:00",
+      "endedUtc": "2026-10-07T17:08:23.646493+00:00",
+      "elapsedSeconds": 88.25978110000142,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-b-checkpoint": {
+      "beganUtc": "2026-10-07T17:08:23.647008+00:00",
+      "endedUtc": "2026-10-07T17:09:28.783993+00:00",
+      "elapsedSeconds": 65.13588930000697,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-b-release": {
+      "beganUtc": "2026-10-07T17:09:28.784969+00:00",
+      "endedUtc": "2026-10-07T17:10:53.529423+00:00",
+      "elapsedSeconds": 84.74323279999953,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "library-restore": {
+      "beganUtc": "2026-10-07T17:10:53.530933+00:00",
+      "endedUtc": "2026-10-07T17:13:54.435224+00:00",
+      "elapsedSeconds": 180.9023709999965,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    }
+  },
+  "commandOutcomes": {
+    "library-prepare": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-a-ensure-corrected": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-b-ensure-corrected": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-a-unity-start": {
+      "status": "Accepted",
+      "errorCode": null
+    },
+    "s-b-unity-start": {
+      "status": "Accepted",
+      "errorCode": null
+    },
+    "s-a-unity-stop": {
+      "status": "Failed",
+      "errorCode": "EditorStopTimeout"
+    },
+    "s-b-unity-stop": {
+      "status": "Failed",
+      "errorCode": "EditorStopTimeout"
+    },
+    "s-a-checkpoint": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-a-release": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-b-checkpoint": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "s-b-release": {
+      "status": "Succeeded",
+      "errorCode": null
+    },
+    "library-restore": {
+      "status": "Succeeded",
+      "errorCode": null
+    }
+  },
+  "cohortCosts": {
+    "initial": {
+      "beganUtc": "2026-10-07T16:46:11.589976+00:00",
+      "endedUtc": "2026-10-07T17:00:19.935049+00:00",
+      "elapsedSeconds": 848.3379124999992
+    },
+    "edit": {
+      "beganUtc": "2026-10-07T17:00:19.935917+00:00",
+      "endedUtc": "2026-10-07T17:01:25.190863+00:00",
+      "elapsedSeconds": 65.25436679999984
+    },
+    "stop": {
+      "beganUtc": "2026-10-07T17:01:26.604873+00:00",
+      "endedUtc": "2026-10-07T17:05:48.630867+00:00",
+      "elapsedSeconds": 262.0236309999964,
+      "ownedEditorCount": 0,
+      "cliOutcomes": [
+        "Failed",
+        "Failed"
+      ],
+      "requestsRepeated": false,
+      "forcedTermination": false
+    },
+    "preserve-release": {
+      "beganUtc": "2026-10-07T17:05:48.632097+00:00",
+      "endedUtc": "2026-10-07T17:10:53.530396+00:00",
+      "elapsedSeconds": 304.8955625999952
+    }
+  },
+  "nestedMeasurements": {
+    "s-a-checkpoint": {
+      "sourceInspections": [
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 143,
+          "filesHashed": 1,
+          "filesReused": 1601,
+          "manifestBytes": 332352,
+          "elapsedMilliseconds": 12690.5602,
+          "epoch": "edd9ed86bfbf470b85dc2947949c5795",
+          "sequence": 16948,
+          "gitHashInputBytes": 143,
+          "gitHashProcesses": 1
+        },
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332352,
+          "elapsedMilliseconds": 12527.6061,
+          "epoch": "edd9ed86bfbf470b85dc2947949c5795",
+          "sequence": 16948,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        }
+      ],
+      "sourceInspectionCount": 2,
+      "sourceInspectionSeconds": 25.2181663,
+      "sourcePayloadBytesHashed": 143,
+      "storageReads": [
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36605657,
+          "elapsedMilliseconds": 17305.8882,
+          "measuredAt": "2026-10-07T17:06:07.9465308+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36605657,
+          "elapsedMilliseconds": 10581.5284,
+          "measuredAt": "2026-10-07T17:06:54.911052+00:00"
+        }
+      ],
+      "storageReadCount": 2,
+      "storageReadSeconds": 27.8874166
+    },
+    "s-a-release": {
+      "sourceInspections": [
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332352,
+          "elapsedMilliseconds": 12392.9461,
+          "epoch": "edd9ed86bfbf470b85dc2947949c5795",
+          "sequence": 16948,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        }
+      ],
+      "sourceInspectionCount": 1,
+      "sourceInspectionSeconds": 12.3929461,
+      "sourcePayloadBytesHashed": 0,
+      "storageReads": [
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36605657,
+          "elapsedMilliseconds": 10843.9211,
+          "measuredAt": "2026-10-07T17:07:07.5478484+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36605657,
+          "elapsedMilliseconds": 10497.4684,
+          "measuredAt": "2026-10-07T17:07:31.1341303+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36605657,
+          "elapsedMilliseconds": 10570.2741,
+          "measuredAt": "2026-10-07T17:07:47.7034958+00:00"
+        }
+      ],
+      "storageReadCount": 3,
+      "storageReadSeconds": 31.9116636,
+      "deltaReclamationIntervalSeconds": 34.21521,
+      "deltaReclamationIntervalIncludes": "durable release-delta to release-snapshot event interval, including inner seal; separate from outer storage-read seal measurements"
+    },
+    "s-b-checkpoint": {
+      "sourceInspections": [
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 152,
+          "filesHashed": 1,
+          "filesReused": 1601,
+          "manifestBytes": 332353,
+          "elapsedMilliseconds": 12395.6514,
+          "epoch": "9dc1dc2bf0d24481b2f798fcb4759f2e",
+          "sequence": 16963,
+          "gitHashInputBytes": 152,
+          "gitHashProcesses": 1
+        },
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332353,
+          "elapsedMilliseconds": 12088.7636,
+          "epoch": "9dc1dc2bf0d24481b2f798fcb4759f2e",
+          "sequence": 16963,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        }
+      ],
+      "sourceInspectionCount": 2,
+      "sourceInspectionSeconds": 24.484415000000002,
+      "sourcePayloadBytesHashed": 152,
+      "storageReads": [
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36703538,
+          "elapsedMilliseconds": 16893.6097,
+          "measuredAt": "2026-10-07T17:08:42.5870446+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36703538,
+          "elapsedMilliseconds": 10386.3099,
+          "measuredAt": "2026-10-07T17:09:28.3663866+00:00"
+        }
+      ],
+      "storageReadCount": 2,
+      "storageReadSeconds": 27.2799196
+    },
+    "s-b-release": {
+      "sourceInspections": [
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332353,
+          "elapsedMilliseconds": 12148.0518,
+          "epoch": "9dc1dc2bf0d24481b2f798fcb4759f2e",
+          "sequence": 16963,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        }
+      ],
+      "sourceInspectionCount": 1,
+      "sourceInspectionSeconds": 12.1480518,
+      "sourcePayloadBytesHashed": 0,
+      "storageReads": [
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36703538,
+          "elapsedMilliseconds": 10786.949,
+          "measuredAt": "2026-10-07T17:09:40.8783678+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36703538,
+          "elapsedMilliseconds": 10482.2809,
+          "measuredAt": "2026-10-07T17:10:04.1933805+00:00"
+        },
+        {
+          "version": 1,
+          "operation": "seal",
+          "bytes": 36703538,
+          "elapsedMilliseconds": 10807.1943,
+          "measuredAt": "2026-10-07T17:10:17.0374756+00:00"
+        }
+      ],
+      "storageReadCount": 3,
+      "storageReadSeconds": 32.0764242,
+      "deltaReclamationIntervalSeconds": 34.725703,
+      "deltaReclamationIntervalIncludes": "durable release-delta to release-snapshot event interval, including inner seal; separate from outer storage-read seal measurements"
+    }
+  },
+  "closure": {
+    "results": [
+      {
+        "worker": "a",
+        "id": "5b8dc136ac5552a8f58a451b",
+        "revision": "08d043cdd2f86356ed502fcab0617b8d9981a8e6",
+        "resultTreeMatchesHistoricalCodex": true,
+        "phase": "released",
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "ownedMountObservation": {
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        }
+      },
+      {
+        "worker": "b",
+        "id": "83a90eb88cf60856fb455f54",
+        "revision": "1b407c00bd3278a1ff899dcfac2437bd082256ce",
+        "resultTreeMatchesHistoricalCodex": true,
+        "phase": "released",
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "ownedMountObservation": {
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        }
+      }
+    ],
+    "status": "completed",
+    "originalTrackedFilesByteVerified": 1602,
+    "originalClean": true,
+    "originalLibraryOrdinaryNtfs": true,
+    "preexistingRefsUnchanged": true,
+    "localGitConfigRestored": true,
+    "globalGitConfigUnchanged": true,
+    "administratorOrServiceChanges": false,
+    "nativeChecks": {
+      "ordinaryOriginalVolume": true,
+      "filesystem": "NTFS",
+      "reparsePoint": false,
+      "libraryRestored": true,
+      "worktreeRegistrationsEqualPreflight": true,
+      "localAutocrlfAbsent": true,
+      "ownedEditorsAbsent": true,
+      "frozenProductHashesUnchanged": true
+    },
+    "providerAndRestoreAudit": {
+      "providers": [
+        {
+          "id": "5b8dc136ac5552a8f58a451b",
+          "pid": 32136,
+          "startTimeUtcTicks": 639269879587935603,
+          "sameProcessAbsent": true,
+          "phase": "unmounted",
+          "openHandles": 0
+        },
+        {
+          "id": "83a90eb88cf60856fb455f54",
+          "pid": 30184,
+          "startTimeUtcTicks": 639269881970060918,
+          "sameProcessAbsent": true,
+          "phase": "unmounted",
+          "openHandles": 0
+        },
+        {
+          "id": "08ace158af58af3a93d6d246",
+          "pid": 12576,
+          "startTimeUtcTicks": 639269878568233432,
+          "sameProcessAbsent": true,
+          "phase": "unmounted",
+          "openHandles": 0
+        }
+      ],
+      "unchangedDirectoryMode": true,
+      "originalDurableSequence": 0,
+      "fixedIdentities": 44860
+    }
+  },
+  "validation": {
+    "premeasurementRequiredBuild": {
+      "passed": 1273,
+      "failed": 0,
+      "conditionalSkips": 19
+    },
+    "recordedResponseSchema": {
+      "responses": 12,
+      "valid": 12,
+      "validatorTestsPassed": 1
+    },
+    "schemaSha256": {
+      "contracts/v1/response.schema.json": "b11990565f95f16426cdd1a179417aad4a268de28888c669afb09510532af17c",
+      "contracts/v1/overlay-observation.schema.json": "16635ca4e17fd2e1738a7e29760e74672d0deb6f6240bca9258cac3deda8ce59"
+    },
+    "recordedResponseSha256": {
+      "library-prepare.json": "0f49713348ebde046b42ca2af55c6d1b9c1d516b2842d52fd94d095a807516b9",
+      "library-restore.json": "1d999dc111f8e8f96b44d4851f076b5100364b6961ad7b6b4d9dca58977a30da",
+      "s-a-checkpoint.json": "7d2ce42bb505dc94f426a1fbc62298c8bd87ef75d3f26e15f6b6354387365266",
+      "s-a-ensure-corrected.json": "8ff92e306c29ad39dbc70e82f3e34f1af2617d0c0adcf3d05deabe43cb168d4d",
+      "s-a-release.json": "cb36c42668b46b5d3c8a8680e87d38d473f3ee59275747853e5f0fbc2aad97a6",
+      "s-a-unity-start.json": "82deaaad4e3e748ce5cc8d8722f740b3ec3d7fc557f26fd1a89bf25a7b4da1e3",
+      "s-a-unity-stop.json": "b48ad49391d374db1ef277f99cb5262543b50407f8c814acc54364919f283247",
+      "s-b-checkpoint.json": "26e6a7da81405a1c5c27d0e410721b1a74ee097590a378706a35b3be12d7e66d",
+      "s-b-ensure-corrected.json": "9f810ff33b7277f98e5942494653740a8aa02670103b596f98cf6e49985d6852",
+      "s-b-release.json": "1bda809206a2e1a008ac6a2d8ee2c12bec93e3d2cd279c6501a40e6daadec819",
+      "s-b-unity-start.json": "b3cb1feae607d9d63db3c36950d25338592ad860c409287e25cc48e434f5f817",
+      "s-b-unity-stop.json": "fee1f848b44b183929e139e6e83e905a95e68aaf0ed83358bc8ec530ba576e21"
+    }
+  },
+  "limits": [
+    "Prior UR was externally profiled; this run uses only built-in metrics and ten-second read-only samples. Do not attribute every difference to code changes or calculate an isolated causal optimization percentage.",
+    "Checkpoint/release timings begin after editing, compilation and normal Editor shutdown. Setup, compiled readiness, asset inspection, stop and Library restoration are separate costs.",
+    "Nested source, outer-seal and reclamation intervals are already inside command totals. Reclamation includes its inner seal; do not add these to total elapsed time.",
+    "One cohort, no cache clearing, randomized repetitions, confidence interval or new Codex worktree baseline.",
+    "No new Play Mode, Unity tests, game build, full allocation/RAM/whole-disk peak or OS power-loss qualification. Historical storage savings are not remeasured here.",
+    "Initial compiled readiness includes file scanning, importing and compilation. Pure compiler CPU time was not independently measured."
+  ]
+}
