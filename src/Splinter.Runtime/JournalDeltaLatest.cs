@@ -375,7 +375,7 @@ public sealed partial class JournalDeltaStore
             cost.DurableCommits++; cost.PayloadBytes += payload.Length; cost.JournalBytes += puts.Values.Sum(p => (long)p.Bytes.Length);
             Visit("latest.after-ack-ready", mutation.Operation, sequence, 0, latest.CommittedBytes, payload.Length);
         }
-        catch { if (applied) poisoned = true; cost.FailedCalls++; throw; }
+        catch { if (applied) Poison(); cost.FailedCalls++; throw; }
         finally { cost.TotalTicks += Stopwatch.GetTimestamp() - started; }
     }
     private long WriteLatestCandidate(string path, string attempt, List<LiveRange> live, bool write)

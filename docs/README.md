@@ -16,6 +16,8 @@ Find current implementation in feature documents below and subsequent responsibi
 
 | Document | Owned content |
 | --- | --- |
+
+| [Time and RAM optimization](verification/time-memory-optimization.md) | Scoped Library admission, bounded Git/journal RAM caches, independent parallel ensure, guard regressions and small-fixture costs. Full Unity timing remains candidate-specific UF-01. |
 | [Glossary](glossary.md) | Plain explanations and owning documents for tasks/bases/storage, identifiers, preservation/application/reclamation, responses, and verification status. |
 | [Current foundation](foundation.md) | Modules, dependencies, commands, build, and tests. |
 | [OS/application extension boundaries](extensibility-boundaries.md), [verification](verification/extensibility-boundaries.md) | Immutable path policy, Unix-permission metadata, application original/companion/generated-directory policies; distinctions between synthetic tests and unimplemented real other-OS/application adapters. |

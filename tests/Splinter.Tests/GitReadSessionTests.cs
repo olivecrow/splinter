@@ -99,10 +99,12 @@ public sealed class GitReadSessionTests
         Assert.Equal(1, tree.PeakReaderProcesses);
     }
 
-    [Fact]
-    public async Task FailedChunkPublishesNoPartialRequestAndClosesEveryReader()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1048576)]
+    public async Task FailedChunkPublishesNoPartialRequestAndClosesEveryReader(int payloadBytes)
     {
-        using var f = await Fixture.Create(); using var tree = f.Open();
+        using var f = await Fixture.Create(); using var tree = f.Open(payloadBytes: payloadBytes);
         Read(f, tree, "a.bin", 0); Read(f, tree, "b.bin", 0); Read(f, tree, "b.bin", 0);
         int[] pids = tree.ReaderProcessIds;
         string id = await TestDirectory.Git(f.Source, "rev-parse", "HEAD:a.bin");
@@ -150,8 +152,9 @@ public sealed class GitReadSessionTests
             { byte[] different = bytes.ToArray(); different[0] = (byte)name[0]; data.Add(name, different); }
         }
         public byte[] Data(string name) => data[name];
-        public GitObjectSnapshotTree Open(int proofEntries = 4096) =>
-            new(snapshot, tree, "", "", () => new(snapshot.Id, true, null, 0, null), proofEntryLimit: proofEntries);
+        // Decoder-window regressions deliberately bypass the optional RAM LRU.
+        public GitObjectSnapshotTree Open(int proofEntries = 4096, int payloadBytes = 0) =>
+            new(snapshot, tree, "", "", () => new(snapshot.Id, true, null, 0, null), proofEntryLimit: proofEntries, payloadByteLimit: payloadBytes);
         public static async Task<Fixture> Create(bool packed = false)
         {
             var f = new Fixture(); Directory.CreateDirectory(f.Source);

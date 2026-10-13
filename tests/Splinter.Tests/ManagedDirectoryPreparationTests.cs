@@ -18,7 +18,8 @@ public sealed class ManagedDirectoryPreparationTests
         using var writer = new FileStream(file, FileMode.Open, FileAccess.Write, FileShare.Read);
         for (int attempt = 0; attempt < 2; attempt++)
         {
-            await Assert.ThrowsAsync<IOException>(() => manager.PrepareAsync(project, "fixed", "unity", TestContext.Current.CancellationToken));
+            var error = await Assert.ThrowsAsync<IOException>(() => manager.PrepareAsync(project, "fixed", "unity", TestContext.Current.CancellationToken));
+            Assert.Equal(unchecked((int)0x80070020), error.HResult); // Native sharing violation remains actionable before capture.
             Assert.True(File.Exists(Path.Combine(store.Root, "library-bases", id, "prepare-intent.json")));
             Assert.True(File.Exists(file)); Assert.False(Directory.Exists(Path.Combine(store.Root, "library-bases", id, "base")));
         }

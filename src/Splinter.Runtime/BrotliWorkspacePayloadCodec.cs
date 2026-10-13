@@ -92,7 +92,14 @@ public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
     {
         if (offset < 0) throw new WorkspaceException("InvalidPayloadRange", "A range offset cannot be negative.");
         RequireSeparate(encoded, destination);
-        var (decoded, stored, compressed) = Validate(encoded);
+        return ReadValidated(encoded, offset, destination, Validate(encoded));
+    }
+    // The caller must have validated these same, unchanged encoded bytes.
+    internal int ReadValidated(ReadOnlySpan<byte> encoded, int offset, Span<byte> destination,
+        (int Decoded, int Stored, bool Compressed) block)
+    {
+        RequireSeparate(encoded, destination);
+        var (decoded, stored, compressed) = block;
         int count = offset >= decoded ? 0 : Math.Min(destination.Length, decoded - offset);
         ReadOnlySpan<byte> payload = encoded.Slice(PrefixBytes, stored);
         if (!compressed)
@@ -115,7 +122,7 @@ public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
         }
         finally { scratchPool.Return(scratch); }
     }
-    private (int Decoded, int Stored, bool Compressed) Validate(ReadOnlySpan<byte> encoded)
+    internal (int Decoded, int Stored, bool Compressed) Validate(ReadOnlySpan<byte> encoded)
     {
         if (encoded.Length < BlockOverheadBytes || encoded.Length > GetMaxEncodedBytes(MaxDecodedBytes)) throw Corrupt();
         if (!encoded[..4].SequenceEqual("SPB1"u8) || encoded[12] > 1)
@@ -131,6 +138,23 @@ public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
         SHA256.HashData(encoded[..(PrefixBytes + stored)], checksum);
         if (!CryptographicOperations.FixedTimeEquals(checksum, encoded[(PrefixBytes + stored)..])) throw Corrupt();
         return (decoded, stored, compressed);
+    }
+
+    // Only an unpublished, exact-sized cache buffer is accepted here. Unlike a
+    // client read, a failed decode may leave tentative bytes in that buffer;
+    // its caller must discard them and must not publish a cache entry. The
+    // descriptor must come from Validate on these same, unchanged bytes.
+    internal void DecodeForCache(ReadOnlySpan<byte> encoded, Span<byte> destination,
+        (int Decoded, int Stored, bool Compressed) block)
+    {
+        RequireSeparate(encoded, destination);
+        var (decoded, stored, compressed) = block;
+        if (destination.Length != decoded) throw Corrupt();
+        var payload = encoded.Slice(PrefixBytes, stored);
+        if (!compressed) { payload.CopyTo(destination); return; }
+        using var decoder = new BrotliDecoder();
+        if (decoder.Decompress(payload, destination, out int consumed, out int written) != OperationStatus.Done ||
+            consumed != stored || written != decoded) throw Corrupt();
     }
 
     // Internal consumers retain tentative digests/comparisons or an unpublished

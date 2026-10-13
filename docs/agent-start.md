@@ -64,6 +64,8 @@ Read response `status`, `terminal`, `error`, `retryDisposition`, and `nextAction
 
 Preserve `$cli/$project/$workspaceHome/$base/$key`, ID, returned root/control, `requestDigest`, `baseRevision`, snapshot, and explicit budget options in conversation/handoff. Resume with **the same ensure inputs**, checking identical ID/root/digest/basis/snapshot. There is no per-conversation exclusive lock for arbitrary file edits, so use only one writer per task path.
 
+For independent Git tasks, the agent can overlap two `workspace ensure` calls with different stable keys and the same fixed project/home/base/Library basis. Prepare that Library once before dispatch; use one writer per returned task path. Check each response independently and wait for both to succeed before treating the pair as ready. A failed or lost response preserves that task: inspect its supplied next action and resume the same identity; a timeout alone never authorizes a duplicate write. One failure does not authorize releasing the peer. This is agent orchestration of existing commands, not a product queue or automatic mode. The [bounded parallel preparation verification](verification/time-memory-optimization.md) uses small Editor-free A/B; it does not measure full Unity readiness.
+
 <a id="편집editor종료"></a>
 ## Editing, Editor use, and completion
 

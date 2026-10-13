@@ -121,10 +121,13 @@ public sealed class GitReaderConcurrencyTests
         Assert.Equal(1, tree.PeakReaderProcesses);
     }
 
-    [Fact]
-    public async Task FailedReaderDrainsTheOtherLeaseBeforeResetAndBlocksItsStagedPublication()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1048576)]
+    public async Task FailedReaderDrainsTheOtherLeaseBeforeResetAndBlocksItsStagedPublication(int payloadBytes)
     {
-        using var f = await Fixture.Create(); using var tree = f.Open();
+        using var f = await Fixture.Create(); using var tree = f.Open(payloadBytes: payloadBytes);
+        if (payloadBytes != 0) await ReadTask(f, tree, "a.bin");
         using var verified = new ManualResetEventSlim(); using var resume = new ManualResetEventSlim();
         tree.ReadObserver = (id, stage) =>
         {
@@ -153,19 +156,24 @@ public sealed class GitReaderConcurrencyTests
         Assert.Equal(0, tree.ActiveReadCount); Assert.Equal(0, tree.ActiveReaderProcesses);
         Assert.Equal(0, tree.CachedProofBytes); Assert.Equal(0, tree.CachedPayloadBytes);
         tree.ReadObserver = null; await ReadTask(f, tree, "c.bin");
-        Assert.Equal(1, tree.FullBlobProofs);
+        Assert.Equal(payloadBytes == 0 ? 1 : 2, tree.FullBlobProofs);
+        if (payloadBytes != 0) Assert.Equal(1, tree.PayloadCacheHits);
     }
 
-    [Fact]
-    public async Task EveryDisposeWaitsForBothOwnedLeasesAndNoBytesPublishAfterCloseStarts()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1048576)]
+    public async Task EveryDisposeWaitsForBothOwnedLeasesAndNoBytesPublishAfterCloseStarts(int payloadBytes)
     {
-        using var f = await Fixture.Create(); using var tree = f.Open();
+        using var f = await Fixture.Create(); using var tree = f.Open(payloadBytes: payloadBytes);
+        if (payloadBytes != 0)
+        { await ReadTask(f, tree, "a.bin"); await ReadTask(f, tree, "b.bin"); }
         using var aEntered = new ManualResetEventSlim(); using var bEntered = new ManualResetEventSlim();
         using var resumeA = new ManualResetEventSlim(); using var resumeB = new ManualResetEventSlim();
         using var secondEntered = new ManualResetEventSlim();
         tree.ReadObserver = (id, stage) =>
         {
-            if (stage != "header") return;
+            if (stage != (payloadBytes == 0 ? "header" : "verified")) return;
             bool isA = id == f.Blobs["a.bin"];
             (isA ? aEntered : bEntered).Set(); Wait(isA ? resumeA : resumeB);
         };
@@ -194,6 +202,7 @@ public sealed class GitReaderConcurrencyTests
         Assert.All(bBytes, value => Assert.Equal((byte)217, value));
         Assert.Equal(0, tree.ActiveReadCount); Assert.Equal(0, tree.ActiveReaderProcesses);
         Assert.Equal(0, tree.CachedProofBytes); Assert.Equal(0, tree.CachedPayloadBytes);
+        if (payloadBytes != 0) Assert.Equal(2, tree.PayloadCacheHits);
         foreach (int pid in pids)
         {
             try { using var process = Process.GetProcessById(pid); Assert.True(process.HasExited); }
@@ -201,16 +210,19 @@ public sealed class GitReaderConcurrencyTests
         }
     }
 
-    [Fact]
-    public async Task UnclassifiedCompletionFailureUnwindsTheGateAndRetiresItsLease()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1048576)]
+    public async Task UnclassifiedCompletionFailureUnwindsTheGateAndRetiresItsLease(int payloadBytes)
     {
-        using var f = await Fixture.Create(); using var tree = f.Open();
+        using var f = await Fixture.Create(); using var tree = f.Open(payloadBytes: payloadBytes);
         tree.ReadObserver = (_, stage) => { if (stage == "verified") f.ObservationFailure = new ApplicationException("Injected completion failure"); };
         byte[] destination = Enumerable.Repeat((byte)217, 16).ToArray();
         var failure = CaptureReadFailure(tree, "a.bin", destination);
         Assert.IsType<ApplicationException>(failure.Error);
         Assert.False(failure.GateLeaked);
         Assert.Equal(0, tree.ActiveReadCount);
+        Assert.Equal(0, tree.CachedChunkPayloadBytes);
         Assert.All(destination, value => Assert.Equal((byte)217, value));
         f.ObservationFailure = null; tree.ReadObserver = null;
         await ReadTask(f, tree, "a.bin");
@@ -330,8 +342,9 @@ public sealed class GitReaderConcurrencyTests
         internal Dictionary<string, string> Blobs { get; } = new();
         internal Dictionary<string, byte[]> Data { get; } = new();
         internal Exception? ObservationFailure;
-        internal GitObjectSnapshotTree Open(int bytes = 4194304, int entries = 4096) =>
-            new(snapshot, tree, "", "", () => ObservationFailure is { } failure ? throw failure : new(snapshot.Id, true, null, 0, null), bytes, entries);
+        internal GitObjectSnapshotTree Open(int bytes = 4194304, int entries = 4096, int payloadBytes = 0) =>
+            new(snapshot, tree, "", "", () => ObservationFailure is { } failure ? throw failure : new(snapshot.Id, true, null, 0, null), bytes, entries,
+                payloadByteLimit: payloadBytes);
         internal static async Task<Fixture> Create(bool packed = false)
         {
             var f = new Fixture(); Directory.CreateDirectory(f.Source);

@@ -48,14 +48,16 @@ public sealed partial class JournalDeltaStore
     {
         payload.RequireFragment(offset, output.Length);
         if (!payload.Encoded) { ReadExactly(physical + offset, output); return; }
-        byte[] encoded = ReadEncoded(physical, payload);
+        byte[]? encoded = null;
         try
         {
+            encoded = ReadEncoded(physical, payload);
             var bytes = encoded.AsSpan(0, payload.StoredBytes);
-            if (payloadCodec.Read(bytes, offset, output) != output.Length)
+            if (decodedPayloadCache.Read(payloadCodec, bytes, offset, output) != output.Length)
                 throw new WorkspaceException("DeltaCorrupt", "The decoded journal fragment is incomplete.");
         }
-        finally { ArrayPool<byte>.Shared.Return(encoded); }
+        catch { decodedPayloadCache.Clear(); throw; }
+        finally { if (encoded is not null) ArrayPool<byte>.Shared.Return(encoded); }
     }
     private void ReadExtent(Extent extent, int relative, Span<byte> output) =>
         ReadPayload(extent.JournalOffset, extent.Payload, extent.BlockOffset + relative, output);

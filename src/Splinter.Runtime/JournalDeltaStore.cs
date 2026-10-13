@@ -43,6 +43,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private readonly WorkspacePathPolicy pathPolicy;
     private FileStream journal;
     private readonly IJournalMutationObserver? mutationObserver;
+    private readonly JournalDecodedPayloadCache decodedPayloadCache;
+    internal JournalDecodedPayloadCache DecodedPayloadCache => decodedPayloadCache;
     private readonly Func<string, IJournalDirectoryGuard>? directoryGuardFactory;
     private IJournalDirectoryGuard? latestDirectoryGuard;
     private readonly Dictionary<Guid, Node> nodes = [];
@@ -102,10 +104,16 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName, bool readOnly = false)
         : this(directory, identity, snapshot, journalName, readOnly, null) { }
 
+    internal JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, long decodedPayloadCacheBytes,
+        bool optimizeJournal = true)
+        : this(directory, identity, snapshot, "delta.journal", false, null, optimizeJournal, null, decodedPayloadCacheBytes) { }
+
     private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName,
         bool readOnly, IJournalMutationObserver? mutationObserver, bool optimizeJournal = false,
-        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
+        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null,
+        long decodedPayloadCacheBytes = JournalDecodedPayloadCache.DefaultBudgetBytes)
     {
+        decodedPayloadCache = new(decodedPayloadCacheBytes);
         this.mutationObserver = mutationObserver;
         this.directoryGuardFactory = directoryGuardFactory;
         pathPolicy = WorkspacePathPolicy.For(identity.Snapshot);
@@ -166,6 +174,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         }
         catch
         {
+            decodedPayloadCache.Clear();
             try { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); }
             finally { latestDirectoryGuard?.Dispose(); }
             throw;
@@ -514,7 +523,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 try { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); }
                 finally { latestDirectoryGuard?.Dispose(); }
             }
-            finally { disposed = true; closing = false; Monitor.PulseAll(gate); }
+            finally { decodedPayloadCache.Clear(); disposed = true; closing = false; Monitor.PulseAll(gate); }
         }
     }
 
@@ -709,7 +718,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     SampleWaitingMutations(cost, cost.WaitingAtEnd);
                 }
             }
-            catch { poisoned = true; throw; }
+            catch { Poison(); throw; }
             expectedJournalBytes = journal.Length;
             commitCount++; appendedBytes += required;
             cost.DurableCommits++; cost.PayloadBytes += payload.Length; cost.JournalBytes += required;
@@ -725,8 +734,9 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     {
         if (mutationObserver is null) return;
         try { mutationObserver.Observe(new(boundary, operation, nextSequence, frameStart, frameBytes, bytes)); }
-        catch { poisoned = true; throw; }
+        catch { Poison(); throw; }
     }
+    private void Poison() { poisoned = true; decodedPayloadCache.Clear(); }
     private void Replay()
     {
         long cursor = 0;

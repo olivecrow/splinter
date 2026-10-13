@@ -33,11 +33,17 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         }
         catch { Dispose(); throw; }
     }
-    internal static FileStream Read(string path, bool moving = false)
+    internal static FileStream Read(string path, bool moving = false, WindowsDirectoryTreeProof? proof = null)
     {
-        WorkspaceStore.EnsurePlainPath(path);
-        var handle = OpenHandle(path, 0x80000000 | 0x100u | (moving ? 0x10000u : 0u));
-        try { _ = SnapshotInputChecks.FileIdentity(handle); WindowsOwnedDirectoryLease.RequirePath(handle, path); return new(handle, FileAccess.Read); }
+        var handle = ReadHandle(path, moving, proof);
+        try { return new(handle, FileAccess.Read); }
+        catch { handle.Dispose(); throw; }
+    }
+    internal static SafeFileHandle ReadHandle(string path, bool moving = false, WindowsDirectoryTreeProof? proof = null, bool metadataWrite = true)
+    {
+        if (proof is null) WorkspaceStore.EnsurePlainPath(path); else proof.RequireParent(path);
+        var handle = OpenHandle(path, 0x80000000 | (metadataWrite ? 0x100u : 0u) | (moving ? 0x10000u : 0u), restoreErrors: metadataWrite || moving);
+        try { _ = SnapshotInputChecks.FileIdentity(handle); WindowsOwnedDirectoryLease.RequirePath(handle, path); return handle; }
         catch { handle.Dispose(); throw; }
     }
     internal static FileStream Write(string path, string identity, Action<FileStream> validate)
@@ -87,10 +93,10 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         SetBasic(file.SafeFileHandle, new() { Creation = created, Access = accessed, Write = written, Attributes = attributes });
     internal static void Metadata(SafeFileHandle handle, SnapshotEntry entry) =>
         SetBasic(handle, new() { Creation = entry.CreationTime, Access = entry.LastAccessTime, Write = entry.LastWriteTime, Attributes = entry.Attributes });
-    internal static SafeFileHandle DirectoryHandle(string path, bool moving = false)
+    internal static SafeFileHandle DirectoryHandle(string path, bool moving = false, WindowsDirectoryTreeProof? proof = null, bool metadataWrite = true)
     {
-        WorkspaceStore.EnsurePlainPath(path);
-        var handle = OpenHandle(path, 0x81 | 0x100u | (moving ? 0x10000u : 0u), directory: true);
+        if (proof is null) WorkspaceStore.EnsurePlainPath(path); else proof.RequireParent(path);
+        var handle = OpenHandle(path, 0x81 | (metadataWrite ? 0x100u : 0u) | (moving ? 0x10000u : 0u), directory: true);
         try { _ = SnapshotInputChecks.FileIdentity(handle, directory: true); WindowsOwnedDirectoryLease.RequirePath(handle, path); return handle; }
         catch { handle.Dispose(); throw; }
     }
@@ -100,11 +106,24 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         try { Marshal.StructureToPtr(info, buffer, false); Check(SetFileInformationByHandle(handle, 0, buffer, (uint)Marshal.SizeOf<BasicInfo>())); }
         finally { Marshal.FreeHGlobal(buffer); }
     }
-    private static SafeFileHandle OpenHandle(string path, uint access, bool directory = false, bool mutable = false)
+    private static SafeFileHandle OpenHandle(string path, uint access, bool directory = false, bool mutable = false, bool restoreErrors = true)
     {
         var handle = CreateFileW(path, access, mutable ? 3u : 1u, 0, 3, 0x00200000u | (directory ? 0x02000000u : 0u), 0);
         if (!handle.IsInvalid) return handle;
-        int error = Marshal.GetLastWin32Error(); handle.Dispose(); throw Native(error);
+        int error = Marshal.GetLastWin32Error(); handle.Dispose();
+        if (restoreErrors) throw Native(error);
+        // Read-only capture/admission previously used File.OpenHandle. Keep its
+        // ordinary filesystem failure category and native HRESULT: a writer
+        // sharing conflict before capture is not a restoration conflict.
+        string message = new Win32Exception(error).Message;
+        Exception failure = error switch
+        {
+            2 => new FileNotFoundException(message, path),
+            3 => new DirectoryNotFoundException(message),
+            5 => new UnauthorizedAccessException(message),
+            _ => new IOException(message, unchecked((int)(0x80070000u | (uint)error)))
+        };
+        throw failure;
     }
     private static void Check(bool success) { if (!success) throw Native(Marshal.GetLastWin32Error()); }
     private static WorkspaceException Native(int error) => new("GeneratedRestoreConflict", "Cannot pin or mutate the owned restore file: " + new Win32Exception(error).Message, new { nativeError = error });

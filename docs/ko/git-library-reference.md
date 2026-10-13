@@ -2,7 +2,7 @@
 
 [English](../git-library-reference.md)
 
-**현재 측정 비용:** 같은 원본 Library를 사용한 [UF-01](verification/unity-final-lifecycle.md)에서 준비는 **115.9초**, 최종 일반 NTFS 복원은 **126.0초**였다. `116fd44`, 원본 Library 3,141,660,252바이트의 한 실행이며 전체 A/B 과정은 **1,083.0초**다. 아래 기능별 소형 시험과 과거 검증의 자격을 이 실행으로 확대하지 않는다.
+**기록된 Unity 비용:** 같은 원본 Library를 사용한 [UF-01](verification/unity-final-lifecycle.md)에서 준비는 **115.9초**, 최종 일반 NTFS 복원은 **126.0초**였다. 과거 후보 `116fd44`, 원본 Library 3,141,660,252바이트의 한 실행이며 전체 A/B 과정은 **1,083.0초**다. 후속 [시간·메모리 최적화](verification/time-memory-optimization.md)를 적용한 상태에서는 이 시간을 다시 측정하지 않았으며, 아래 기능별 소형 시험의 자격을 이 실행으로 확대하지 않는다.
 
 `git-snapshot`의 Git commit/tree/blob 기준과 원본 Library의 불변 기준을 함께 읽을 수 있다. Git이 추적하지 않는 Library도 별도 기준의 정확한 id·owner·manifest·read proof를 mount와 저널에 고정한다. 초기 전체 복사·읽기 hydration·파일 전체 copy-up·VSS는 사용하지 않는다. 원본·A/B는 같은 Library 기준을 읽고 각각의 범위 저널에 쓴다.
 
@@ -23,6 +23,10 @@
 신규 delta에서는 client가 정확히 고정된 root와 Library manifest/read proof의 metadata 임대 및 root namespace 핸들을 유지하며 저널 metadata를 초기화한다. Library payload 파일은 열지 않고 payload reader도 제공하지 않으며, 초기화 증명은 root metadata만 허용한다. 따라서 delta 생성은 내용 검증이나 mount 준비 완료의 증거가 아니다. Provider가 mount를 게시하기 전에 모든 Library 파일을 열어 변경을 막고 hash를 검증한다. 현재 identity·초기화 intent·개별 durable flush·같은 요청의 중단 복구는 유지하며 metadata나 identity가 다르면 보존·거부한다. 최초 Library capture는 여전히 내용 hash를 기록하고 payload 복사나 cache를 만들지 않는다. 이 경계와 한정 검증은 [수명주기 비용 최적화](verification/lifecycle-cost-optimization.md)를 따른다.
 
 소유 reader는 native 디렉터리 읽기 권한과 쓰기/삭제 공유 없는 핸들로 불변 root를 고정한다. 조상 핸들은 삭제를 막되 일반 자식 파일 게시를 허용하며, 고정한 하위 경로 사슬이 조상을 비워 junction으로 바꾸는 것을 막는다. 가용성은 디렉터리 존재를 반복 조회하는 대신 이 핸들을 사용한다. 입장 시 reparse를 거부하고 모든 close가 진행 중 읽기를 기다릴 때까지 파일 핸들을 유지하며 관측한 읽기 오류는 가용성 실패로 남긴다. 변경 없는 디렉터리 복원은 이동 핸들로 root를 명시적으로 인계하며 좁은 인계 간격 전후 같은 볼륨/파일 identity를 확인한다. 중단/교체는 보존·거부하고 새 reader로 같은 계획 복구를 유지한다. 빈 root/조상 보호와 한정 자격은 [SA-01](verification/startup-additional-optimization.md)을 따른다.
+
+Capture·provider 입장·변경 없는 디렉터리 복원은 빈 디렉터리를 포함한 모든 하위 디렉터리도 root부터 고정한다. 이 범위 안에서 자식 항목을 열 때에는 전체 조상 순회를 반복하는 대신 직속 부모의 핸들이 유지되는지 확인한다. Native leaf open은 여전히 reparse·지원하지 않는 종류·hardlink를 거부하고 같은 핸들의 identity와 최종 경로를 검증한다. 하위 디렉터리마다 핸들 하나를 추가로 사용하며 파일 내용 cache는 만들지 않는다. 증명은 해당 핸들을 유지하는 동안만 유효하고, 복원을 위해 핸들을 닫는 인계 간격을 넘겨 재사용하지 않는다. 이동 뒤의 최종 증명은 하위 identity·전체 내용·정확한 구성원을 새로 검증한 다음에만 메타데이터 복원과 회수를 허용한다.
+
+Provider 입장은 이미 변경을 막은 파일의 hash를 **최대 worker 2개, 각각 64KiB scratch buffer**로 검증한다. 실패·취소 시 모든 worker가 끝난 뒤 핸들을 회수하며, 필요한 내용 hash가 모두 통과하기 전에는 mount를 게시하지 않는다. 최초 capture와 이동 뒤 최종 복원의 hash 검사는 직렬을 유지한다. [시간·메모리 최적화 검증](verification/time-memory-optimization.md)은 512개 파일·64MiB fixture에서 이전 입장 반복문과 worker 1·2·4개를 비교한다. 그 한정 비용을 새로운 Unity 준비·복원·전체 과정의 소요시간으로 읽지 않는다.
 
 준비 metadata보다 먼저 현재 버전의 `prepare-intent.json`에 project/key/경로/호환 키를 고정한다. 원본을 아직 이동하지 않은 내용 읽기 실패는 정확한 intent와 분류된 metadata만 남았을 때 같은 요청으로 재개한다. intent 없는 root·다른 요청·provider 실행 흔적·불명 데이터는 보존하고 거부한다. 공개되지 않은 `preparing` 상태의 명시적 restore는 원본 또는 이동한 base를 그대로 돌려놓을 수 있으며, 불명 실행/비어 있지 않은 delta는 취소하지 않는다.
 

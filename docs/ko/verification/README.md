@@ -2,6 +2,8 @@
 
 [English](../../verification/README.md)
 
+[시간·RAM 최적화](time-memory-optimization.md)는 TM-01–04를 소유한다. Library 검증 범위 고정, Git/저널 RAM cache와 독립 병렬 준비의 작은 Editor 없는 입력·현재 회귀 근거이며, UF-01의 기록된 전체 Unity 시간을 대체하지 않는다.
+
 **현재 Unity 시간은 [UF-01](unity-final-lifecycle.md)이 기준이다.** 커밋 `116fd44`에서 전체 18분 3.0초, Editor 준비 3분 36.1초, 보존·회수 2분 52.0초, Library 복원 2분 6.0초를 측정했다. 최초와 같은 소스/Library·A/B 편집이며 종료 시간 제한 없이 원본과 소유 자원 회수를 검증했다. 아래 RB/UR/UC/UP/US 수치는 해당 후보의 과거 근거다.
 
 [외부 도구 결합 제거](external-tool-boundaries.md)는 MCP 부재/내부 API 변경에 독립적인 bridge 초기화·정상 종료와 패키지 run-state 보존의 자동 회귀를 소유한다. MCP·Unity CLI의 이름/버전·패치·연결 성공은 제품 전제가 아니다. 아래 도구별 실행 기록은 당시 후보/입력의 사실이며 현재 지원이나 설치 요구로 승계하지 않는다.

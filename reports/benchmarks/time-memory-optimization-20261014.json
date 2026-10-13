@@ -1,0 +1,608 @@
+{
+  "version": 1,
+  "dateLocal": "2026-10-14",
+  "scope": "Bounded time/RAM tradeoffs; no new full Unity or total-process peak-memory qualification",
+  "sourceBaseCommit": "5fab5786c6f23775fb71ba5d1a9b129d828bee8f",
+  "frozenBeforeProductCommit": "116fd447086a825bf6d5b424ff9a4aad41dd8642",
+  "candidateSourceSha256": {
+    "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs": "edc92cb468730862db286ac7aec8d36504adaf371a233fbc7f80910c44a3eba4",
+    "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs": "be47e07b73335bca5cee3db018f44f92f3d17b2d421648a955282203dd5f1aa8",
+    "src/Splinter.Platform.Windows/OwnedDirectorySnapshot.cs": "d569ad5990f65651833a9828b23950ae1319c471f43a36f9adc04d3210a6f583",
+    "src/Splinter.Platform.Windows/WindowsOwnedDirectoryLease.cs": "73e88a1f0bb16ca95ef8f9a084fefe6583caa9fa6efae01f4d1a403f3054241b",
+    "src/Splinter.Runtime/BrotliWorkspacePayloadCodec.cs": "c5f42c7152e1fc5834726fed988a1ce8ebafc13939069daf7631e98a4466ca5d",
+    "src/Splinter.Runtime/JournalDeltaLatest.cs": "7e7ffa68d2ca1c080d9fa599a4d4b02902edbe9deb7c09e0976fe50791440b49",
+    "src/Splinter.Runtime/JournalDeltaStore.cs": "1dc7165949016c08445916c0986d63cf94ca53d1cdf1dcaee4a8f5cc3976fa7f",
+    "src/Splinter.Runtime/JournalPayloadFrames.cs": "2011a4ed00c4d951cd9a0812684561c5a53e088681a45599d9c58ed6b4fb83cb",
+    "src/Splinter.Runtime/Splinter.Runtime.csproj": "fc298ecf37c3a953976be90230f31c0fecb8440002e8c68fb34907d269cd9e05",
+    "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs": "168fad9ce8c8ea14e41e2f4964a260e873cce576b34faf9f81f727f1fcd3c301",
+    "tests/Splinter.Tests/GitObjectSnapshotTests.cs": "0037c4e17f8306edc51b8cf255a626ed76c30c5f990b7da60c0f283a684e5916",
+    "tests/Splinter.Tests/GitProofReuseTests.cs": "f7aeef1b9811981fdc077e5b23a777154a58b5c382e01ab1a9ae5ec57d88675d",
+    "tests/Splinter.Tests/GitReadSessionTests.cs": "f0ad5ff9693009a4113e0c51f3d7894447d7e5b58d772dc97995bd130affe1fc",
+    "tests/Splinter.Tests/GitReaderConcurrencyTests.cs": "ead7c834e4c6273ed3b6f9cb78c4d4047479282e71c70ecd39e6485b479e76a3",
+    "tests/Splinter.Tests/ManagedDirectoryPreparationTests.cs": "e17ea9db7e07e1558535b0af559a59a66565ef92b2f501b44d14401f6e5a4ae6",
+    "tests/Splinter.Tests/OwnedDirectoryLifetimeTests.cs": "6592b41dd1f96a740637b40aea0d989cac6169b0cc09e27fcf1e402137d31b9b",
+    "src/Splinter.Platform.Windows/WindowsDirectoryTreeProof.cs": "6dbdb8643eaf2e2cfe92b493cdc5d58ab78e6134c916ac197efb06a1bff7ba26",
+    "src/Splinter.Runtime/JournalDecodedPayloadCache.cs": "50e7e82242597a8a1408fbdad6e97f5a4a29da934eacbe0b4d866ff0a3570ff3",
+    "tests/Splinter.Tests/GitPayloadCacheTests.cs": "6b6093047d4295d02aeb2645b2faa3c48d54fd2bdf29800786d406b40d7f73a5",
+    "tests/Splinter.Tests/JournalDecodedPayloadCacheTests.cs": "8393c6492492311bf962d3025418ec2fb389e3f956b5ded3c39277d9a9d96fad",
+    "tests/Splinter.Tests/OwnedDirectoryAdmissionTests.cs": "fc69469b6944ffdb0ace23897954378002a577fd14ddcbe23886b65b067a62f5",
+    "tests/Splinter.Tests/ParallelSnapshotPreparationTests.cs": "908cd944836febaea54ab758157e27a31e61a206135b1fc4dbccf39bb64cd527"
+  },
+  "finalRuntimeSha256": {
+    "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+    "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+    "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+    "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+    "Splinter.Application.Unity.dll": "b4252298c6a6f12a7a238eefbd5df867cedcd30c2adfc697862bc34cd6d4c690",
+    "Splinter.Core.dll": "467e371b9109d25382b860e47d25c25bfd52eb71379fa759424b51bb1aa9a091",
+    "splinter.dll": "a7c665c1abb61ff24bc2447b599c376b306e6742f3a29bce5df9d885e040e646",
+    "Splinter.Host.dll": "9d7909df74c9e12657733b59344e6a39e008e9f16c968a567bba556424e94f35",
+    "Splinter.Platform.Windows.dll": "541dd0d03e47215755e6b2f035fa1c06de74e858a279015039c92c4fe1021fd1",
+    "Splinter.Protocol.dll": "410b4058a8f738b0a3c6255eba5aa77671fd847fb452950acee116c1d1d5be24",
+    "Splinter.Runtime.dll": "53971199ad047fbacff49c25296f36d19a9a6f2c45050719793bca93b0f47403",
+    "Splinter.SourceControl.Files.dll": "39a5d24263be7e6b113931aeb4dd76a8dfc0035055f69dced8af7a20501cacf1",
+    "Splinter.SourceControl.Git.dll": "7e7914c02f8c55e4628f6dc4362069ef74423b44d7cb83bda4d5f32a9eea97e9",
+    "Splinter.Workflows.Windows.dll": "08fbfb56a46a65c4a05d64355e1e5dc8f644a3687a37169e5b3991a7dd428558",
+    "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+    "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+  },
+  "gitProbe": {
+    "scenario": "two-4MiB-packed-blobs-repeated-backward-4KiB-ranges",
+    "includes": "Read and exact returned-byte assertion; two initial full proofs reported separately",
+    "limitations": "One cache-off then cache-on observation; no OS cache clearing, whole-process RAM or Unity qualification",
+    "results": [
+      {
+        "payloadBudgetBytes": 0,
+        "initialSeconds": 0.2556841,
+        "initialDecodedBytes": 8388608,
+        "repeatedSeconds": 7.7517262,
+        "repeatedDecodedBytes": 48234496,
+        "PayloadCacheHits": 0,
+        "PayloadCacheMisses": 0,
+        "ReaderProcessStarts": 64,
+        "FullBlobProofs": 2,
+        "PeakReaderProcesses": 2,
+        "PeakChunkPayloadBytes": 0,
+        "CachedPayloadBytes": 262144
+      },
+      {
+        "payloadBudgetBytes": 16777216,
+        "initialSeconds": 0.2548366,
+        "initialDecodedBytes": 8388608,
+        "repeatedSeconds": 0.7575311,
+        "repeatedDecodedBytes": 6029312,
+        "PayloadCacheHits": 114,
+        "PayloadCacheMisses": 14,
+        "ReaderProcessStarts": 8,
+        "FullBlobProofs": 2,
+        "PeakReaderProcesses": 2,
+        "PeakChunkPayloadBytes": 1048576,
+        "CachedPayloadBytes": 1310720
+      }
+    ]
+  },
+  "journalProbe": {
+    "version": 1,
+    "scope": "SJL4 synthetic repeated partial reads; not Unity timing",
+    "rows": [
+      {
+        "budgetMiB": 0,
+        "elapsedMs": 702.8418,
+        "allocatedBytes": 268200,
+        "encodedReadBytes": 1099648,
+        "payloadBytes": 0,
+        "accountedBytes": 0,
+        "peakAccountedBytes": 0,
+        "entryCount": 0,
+        "hits": 0,
+        "misses": 512,
+        "decodes": 512,
+        "evictions": 0
+      },
+      {
+        "budgetMiB": 32,
+        "elapsedMs": 29.6208,
+        "allocatedBytes": 8622768,
+        "encodedReadBytes": 1099648,
+        "payloadBytes": 8388608,
+        "accountedBytes": 8392704,
+        "peakAccountedBytes": 8392704,
+        "entryCount": 8,
+        "hits": 504,
+        "misses": 8,
+        "decodes": 8,
+        "evictions": 0
+      },
+      {
+        "budgetMiB": 64,
+        "elapsedMs": 27.1653,
+        "allocatedBytes": 8627072,
+        "encodedReadBytes": 1099648,
+        "payloadBytes": 8388608,
+        "accountedBytes": 8392704,
+        "peakAccountedBytes": 8392704,
+        "entryCount": 8,
+        "hits": 504,
+        "misses": 8,
+        "decodes": 8,
+        "evictions": 0
+      },
+      {
+        "budgetMiB": 128,
+        "elapsedMs": 32.5975,
+        "allocatedBytes": 8622680,
+        "encodedReadBytes": 1099648,
+        "payloadBytes": 8388608,
+        "accountedBytes": 8392704,
+        "peakAccountedBytes": 8392704,
+        "entryCount": 8,
+        "hits": 504,
+        "misses": 8,
+        "decodes": 8,
+        "evictions": 0
+      },
+      {
+        "budgetMiB": 64,
+        "elapsedMs": 27.4224,
+        "allocatedBytes": 8622680,
+        "encodedReadBytes": 1099648,
+        "payloadBytes": 8388608,
+        "accountedBytes": 8392704,
+        "peakAccountedBytes": 8392704,
+        "entryCount": 8,
+        "hits": 504,
+        "misses": 8,
+        "decodes": 8,
+        "evictions": 0
+      },
+      {
+        "budgetMiB": 0,
+        "elapsedMs": 645.9028,
+        "allocatedBytes": 241840,
+        "encodedReadBytes": 1099648,
+        "payloadBytes": 0,
+        "accountedBytes": 0,
+        "peakAccountedBytes": 0,
+        "entryCount": 0,
+        "hits": 0,
+        "misses": 512,
+        "decodes": 512,
+        "evictions": 0
+      }
+    ]
+  },
+  "finalLibraryProbe": {
+    "measuredAt": "2026-10-13T15:43:27.258219+00:00",
+    "runtimeSha256": "541dd0d03e47215755e6b2f035fa1c06de74e858a279015039c92c4fe1021fd1",
+    "fixtureFiles": 512,
+    "fileBytes": 131072,
+    "directoryCount": 5,
+    "hashScratchBytesPerWorker": 65536,
+    "scope": "Small warm NTFS admission only; workers=0 is the previous serial full-ancestor loop. No Unity, mount or end-to-end timing qualification.",
+    "samples": [
+      {
+        "round": 0,
+        "workers": 0,
+        "seconds": 0.3702113,
+        "allocatedBytes": 1238200
+      },
+      {
+        "round": 0,
+        "workers": 1,
+        "seconds": 0.1513704,
+        "allocatedBytes": 1789784
+      },
+      {
+        "round": 0,
+        "workers": 2,
+        "seconds": 0.1298284,
+        "allocatedBytes": 1874184
+      },
+      {
+        "round": 0,
+        "workers": 4,
+        "seconds": 0.1105348,
+        "allocatedBytes": 1863264
+      },
+      {
+        "round": 1,
+        "workers": 1,
+        "seconds": 0.1577705,
+        "allocatedBytes": 1705808
+      },
+      {
+        "round": 1,
+        "workers": 2,
+        "seconds": 0.1216883,
+        "allocatedBytes": 1714296
+      },
+      {
+        "round": 1,
+        "workers": 4,
+        "seconds": 0.1097579,
+        "allocatedBytes": 1705616
+      },
+      {
+        "round": 1,
+        "workers": 0,
+        "seconds": 0.3447771,
+        "allocatedBytes": 1238144
+      },
+      {
+        "round": 2,
+        "workers": 2,
+        "seconds": 0.1204796,
+        "allocatedBytes": 1721840
+      },
+      {
+        "round": 2,
+        "workers": 4,
+        "seconds": 0.1090386,
+        "allocatedBytes": 1716584
+      },
+      {
+        "round": 2,
+        "workers": 0,
+        "seconds": 0.3853587,
+        "allocatedBytes": 1238152
+      },
+      {
+        "round": 2,
+        "workers": 1,
+        "seconds": 0.1450394,
+        "allocatedBytes": 1680712
+      }
+    ]
+  },
+  "libraryMeanSecondsByWorkers": {
+    "0": 0.3667823666666667,
+    "1": 0.15139343333333333,
+    "2": 0.12399876666666668,
+    "4": 0.1097771
+  },
+  "comparisons": {
+    "gitRepeated": {
+      "beforeSeconds": 7.7517262,
+      "afterSeconds": 0.7575311,
+      "shorterPercent": 90.227581825581
+    },
+    "journalRepeated": {
+      "beforeSeconds": 0.6743723,
+      "afterSeconds": 0.027293849999999998,
+      "shorterPercent": 95.95270298023807
+    },
+    "libraryAdmission": {
+      "beforeSeconds": 0.3667823666666667,
+      "afterSeconds": 0.12399876666666668,
+      "shorterPercent": 66.1928222467256
+    },
+    "nativeCodeEnsure": {
+      "beforeSeconds": 58.30802510003559,
+      "afterSeconds": 57.87037220003549,
+      "shorterPercent": 0.7505877608600997
+    },
+    "nativeParallelEnsure": {
+      "beforeSeconds": 57.87037220003549,
+      "afterSeconds": 32.19144900003448,
+      "shorterPercent": 44.373177886672146
+    },
+    "nativeOverall": {
+      "beforeSeconds": 128.2568010999821,
+      "afterSeconds": 106.00433949998114,
+      "shorterPercent": 17.34992718448837
+    }
+  },
+  "nativeRuns": [
+    {
+      "name": "before-serial-1",
+      "parallel": false,
+      "runtimeSha256": "9428bbc07de186949a1c07d73bf2447ccb7f655c9d774b7a1a2aef598037e2f9",
+      "libraryFiles": 512,
+      "libraryBytes": 33554432,
+      "seconds": {
+        "prepare": 9.11811169993598,
+        "ensure-a": 28.763464899966493,
+        "ensure-b": 29.54100969992578,
+        "ensure-cohort": 58.30802510003559,
+        "checkpoint-a": 18.507411299971864,
+        "release-a": 10.97695050004404,
+        "checkpoint-b": 18.116663399967365,
+        "release-b": 11.02427500009071,
+        "restore": 1.7488496999721974,
+        "complete": 128.2568010999821
+      },
+      "independentResults": true,
+      "peerSurvivedFirstRelease": true,
+      "originalRestored": true,
+      "releases": [
+        {
+          "id": "614eadddd35b742c372e953c",
+          "resultRevision": "762ad6deeadc12415d1287ff2d76b1c98cdd0892",
+          "resultReference": "refs/splinter/snapshot-results/614eadddd35b742c372e953c",
+          "ownedResourcesZero": true,
+          "mountProviderDeltaBasisAbsent": true,
+          "diskReadCacheBytes": 0,
+          "initialPayloadCopiedBytes": 0
+        },
+        {
+          "id": "a4635a5e91199779d2c7788e",
+          "resultRevision": "a8abf302df9ac8b045625823ff263cfc7358f31e",
+          "resultReference": "refs/splinter/snapshot-results/a4635a5e91199779d2c7788e",
+          "ownedResourcesZero": true,
+          "mountProviderDeltaBasisAbsent": true,
+          "diskReadCacheBytes": 0,
+          "initialPayloadCopiedBytes": 0
+        }
+      ],
+      "primaryWorktreeOnly": true,
+      "basisRefsAbsent": true
+    },
+    {
+      "name": "after-serial-1",
+      "parallel": false,
+      "runtimeSha256": "a7c665c1abb61ff24bc2447b599c376b306e6742f3a29bce5df9d885e040e646",
+      "libraryFiles": 512,
+      "libraryBytes": 33554432,
+      "seconds": {
+        "prepare": 8.800910599995404,
+        "ensure-a": 29.271718899952248,
+        "ensure-b": 28.59505290002562,
+        "ensure-cohort": 57.87037220003549,
+        "checkpoint-a": 18.80131370003801,
+        "release-a": 12.310281899990514,
+        "checkpoint-b": 18.52812259993516,
+        "release-b": 11.814558700076304,
+        "restore": 1.0190490999957547,
+        "complete": 129.66514739999548
+      },
+      "independentResults": true,
+      "peerSurvivedFirstRelease": true,
+      "originalRestored": true,
+      "releases": [
+        {
+          "id": "12e357e14181f88def2500ff",
+          "resultRevision": "39cdf205b978ab07570b07fec37d35a6d670d3a4",
+          "resultReference": "refs/splinter/snapshot-results/12e357e14181f88def2500ff",
+          "ownedResourcesZero": true,
+          "mountProviderDeltaBasisAbsent": true,
+          "diskReadCacheBytes": 0,
+          "initialPayloadCopiedBytes": 0
+        },
+        {
+          "id": "b6a318cb5f32f2c3cf9fba0c",
+          "resultRevision": "5461e006222c8bc91c9ce617300bc330cbbf7f18",
+          "resultReference": "refs/splinter/snapshot-results/b6a318cb5f32f2c3cf9fba0c",
+          "ownedResourcesZero": true,
+          "mountProviderDeltaBasisAbsent": true,
+          "diskReadCacheBytes": 0,
+          "initialPayloadCopiedBytes": 0
+        }
+      ],
+      "primaryWorktreeOnly": true,
+      "basisRefsAbsent": true
+    },
+    {
+      "name": "after-parallel-1",
+      "parallel": false,
+      "runtimeSha256": "a7c665c1abb61ff24bc2447b599c376b306e6742f3a29bce5df9d885e040e646",
+      "libraryFiles": 512,
+      "libraryBytes": 33554432,
+      "seconds": {
+        "prepare": 8.813870699959807,
+        "ensure-a": 29.785607900004834,
+        "ensure-b": 30.147385300020687,
+        "ensure-cohort": 59.936786900041625,
+        "checkpoint-a": 19.417918000021018,
+        "release-a": 12.595406100037508,
+        "checkpoint-b": 18.918621900025755,
+        "release-b": 12.067854200024158,
+        "restore": 1.0520310000283644,
+        "complete": 133.2699147000676
+      },
+      "independentResults": true,
+      "peerSurvivedFirstRelease": true,
+      "originalRestored": true,
+      "releases": [
+        {
+          "id": "902eebc900cd7720033933a0",
+          "resultRevision": "992c40124a2be9a92193ca9c7736f0bb93b531cf",
+          "resultReference": "refs/splinter/snapshot-results/902eebc900cd7720033933a0",
+          "ownedResourcesZero": true,
+          "mountProviderDeltaBasisAbsent": true,
+          "diskReadCacheBytes": 0,
+          "initialPayloadCopiedBytes": 0
+        },
+        {
+          "id": "0825d05c6147dbb3707e03bf",
+          "resultRevision": "903733bc52f708bf7b5ffed105f0e749a106d2d5",
+          "resultReference": "refs/splinter/snapshot-results/0825d05c6147dbb3707e03bf",
+          "ownedResourcesZero": true,
+          "mountProviderDeltaBasisAbsent": true,
+          "diskReadCacheBytes": 0,
+          "initialPayloadCopiedBytes": 0
+        }
+      ],
+      "primaryWorktreeOnly": true,
+      "basisRefsAbsent": true
+    },
+    {
+      "name": "after-parallel-2",
+      "parallel": true,
+      "runtimeSha256": "a7c665c1abb61ff24bc2447b599c376b306e6742f3a29bce5df9d885e040e646",
+      "libraryFiles": 512,
+      "libraryBytes": 33554432,
+      "seconds": {
+        "prepare": 8.85936879995279,
+        "ensure-a": 30.104341799975373,
+        "ensure-b": 32.15165419992991,
+        "ensure-cohort": 32.19144900003448,
+        "checkpoint-a": 19.561607900075614,
+        "release-a": 12.236785299959593,
+        "checkpoint-b": 19.292717600008473,
+        "release-b": 12.232847299892455,
+        "restore": 1.1565327000571415,
+        "complete": 106.00433949998114
+      },
+      "independentResults": true,
+      "peerSurvivedFirstRelease": true,
+      "originalRestored": true,
+      "releases": [
+        {
+          "id": "759e4a344e4aae0055af27a4",
+          "resultRevision": "d06c7999889df2021aefa0c7d77fea09bef958d8",
+          "resultReference": "refs/splinter/snapshot-results/759e4a344e4aae0055af27a4",
+          "ownedResourcesZero": true,
+          "mountProviderDeltaBasisAbsent": true,
+          "diskReadCacheBytes": 0,
+          "initialPayloadCopiedBytes": 0
+        },
+        {
+          "id": "530a7a7200dfab9fe0ff3993",
+          "resultRevision": "ba7e99656ab059b491a8f10e4c9e9540bbce07bf",
+          "resultReference": "refs/splinter/snapshot-results/530a7a7200dfab9fe0ff3993",
+          "ownedResourcesZero": true,
+          "mountProviderDeltaBasisAbsent": true,
+          "diskReadCacheBytes": 0,
+          "initialPayloadCopiedBytes": 0
+        }
+      ],
+      "primaryWorktreeOnly": true,
+      "basisRefsAbsent": true
+    }
+  ],
+  "validation": {
+    "command": "pwsh -NoProfile -File scripts/build.ps1",
+    "lockedRestore": true,
+    "buildWarnings": 0,
+    "buildErrors": 0,
+    "passed": 1531,
+    "failed": 0,
+    "skipped": 23,
+    "total": 1554,
+    "testSeconds": 434.028,
+    "initialFocused": {
+      "passed": 294,
+      "failed": 1,
+      "skipped": 3,
+      "total": 298,
+      "correction": "Read-only native sharing errors preserve IOException and HRESULT; full regression passed after the fix."
+    },
+    "costTestsPassed": 3,
+    "finalLibraryProbePassed": 1,
+    "nativeTerminalResponses": 32,
+    "nativeResponseSchema": "Passed: 32 terminal responses",
+    "retainedResultRefsVerifiedAfterRestore": 8
+  },
+  "administrativePreflight": {
+    "readOnly": true,
+    "elevated": true,
+    "existingCSnapshots": 3,
+    "serviceRunning": true,
+    "grantCount": 7,
+    "previousTDrivePresent": false,
+    "serviceUpdated": false,
+    "vssComparison": "NotRun; unrelated C: snapshots preserved, fixture not granted"
+  },
+  "limits": [
+    "Small native runs: baseline serial, current serial, extra current serial (parallel option omitted, recorded parallel=false), then explicitly parallel current run. No randomization or OS cache clearing.",
+    "Full Unity import/compile/stop and whole-process peak RAM NotRun.",
+    "Git caches requested chunks, not entire verified prefixes. Journal retains decoded bytes but reads and verifies current encoded data on every hit.",
+    "Library final cost uses the final native-error-preserving code; the earlier library probe is retained as historical raw evidence.",
+    "Retained per-tree/store byte/entry bounds are not workspace-wide memory caps or GC residency limits.",
+    "The 8MiB journal fixture fits all 32/64/128MiB cache budgets; it cannot select an optimal size."
+  ],
+  "rawEvidenceSha256": {
+    "artifacts/time-memory-optimization-20261014/admin-preflight.json": "fbc1e32872bdf7f4802d2deb171d9d93c477511afd7eba2b97aabcfe86a6b0b3",
+    "artifacts/time-memory-optimization-20261014/admin-preflight.ps1": "47e5777453d4cacbf375bef1836f4f860c40093fa84e83e149a72fec1429755e",
+    "artifacts/time-memory-optimization-20261014/build-first.log": "1ff4c70f7a710d665ac81664187ef3155bc94fc6b63cec4f158aefd4c5285ae5",
+    "artifacts/time-memory-optimization-20261014/build-second.log": "d790e1bbdbb2786bff6364b5b263f2bd22e68900d2ba788d20666710de7b9ec1",
+    "artifacts/time-memory-optimization-20261014/cost-tests.log": "c59ed032a372a3a28c0499aba49bcf0298307e0e13102e434fe1c0a5323f12e5",
+    "artifacts/time-memory-optimization-20261014/cost-tests.xml": "a074c4f54561c90e6d36dbcba30120a781074661e0781c022e0df262d69285d9",
+    "artifacts/time-memory-optimization-20261014/focused.log": "c101e69ec217499cb38d77c089f4399eb983738050d9d0f315d434770705c0cd",
+    "artifacts/time-memory-optimization-20261014/focused.xml": "66915c6e6b1e7e10415bb5cb411a9bcf7e41e3b7c60e160605e7350a8dddd9be",
+    "artifacts/time-memory-optimization-20261014/full-build.log": "151ae20d4e2a5951bca41378ad45a81e6f540863517d857dcf58db6a4f7de99c",
+    "artifacts/time-memory-optimization-20261014/git-payload-cost.json": "ac0a8a17c4075fbb1266ebdd7ab2e5194b1010e214c66d73ca8479df7c989b0a",
+    "artifacts/time-memory-optimization-20261014/journal-cache-cost.json": "f1f0de263a3b180c77417235423501088a625ca12dbc83ff400e5bd8ac5e9186",
+    "artifacts/time-memory-optimization-20261014/library-admission-cost.json": "b16acbed755b5027d3410af612ddefaf8b357f2e3d3522df374eae8c0a42ac39",
+    "artifacts/time-memory-optimization-20261014/library-admission-final.json": "baa38051a9a5e216905d659945472a8eb3e513569245f4f997abb4b1fc2509b9",
+    "artifacts/time-memory-optimization-20261014/library-cost-final.log": "cba3a838f9c598fb3a58bd841521ec6b3c1066250e1b5a16de04c1d0e4b174d0",
+    "artifacts/time-memory-optimization-20261014/library-cost-final.xml": "e692d9c5e1fcc03e40e27877f561ff397ed89c7ede73d463c2ab2b581b7aaa1b",
+    "artifacts/time-memory-optimization-20261014/native-pair.py": "345d1b5d713aef4e51d2c314d2ce56b9d282c5a70ec71eca597af2a7c34da699",
+    "artifacts/time-memory-optimization-20261014/schema-checkpoint.json": "9dd36c0b5f3a18ad9ec78044ff087e5512b72dfb224bf5c586ded84f2d8cd5d1",
+    "artifacts/time-memory-optimization-20261014/schema-ensure.json": "a30fc70bcba65ca6dbed8745c77ecd51e92fa6897eb68135caa4cd62c899bc5a",
+    "artifacts/time-memory-optimization-20261014/schema-library-prepare.json": "e2b9fe509da2d93c4796b402556be6108cf69643df65339bb696f1132422421e",
+    "artifacts/time-memory-optimization-20261014/schema-library-restore.json": "21c61ed0ae6e4edcbb02a58dc13f9ea9ead7986d426c0267560bed8b0b3c2625",
+    "artifacts/time-memory-optimization-20261014/schema-release.json": "4f34535b187d38210fb13dbc4a1b5af5d4454221dbd8270889dd15b742b68976",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/checkpoint-a.cost.json": "954b5986daaa7ea92417475ab3c4b40362b86b1d93fd3e8df996083977743e54",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/checkpoint-a.stdout.json": "d2d46b9fd30a0ed17f8cdacce06dd22be54fbcb48bbed165b8ef4b7191b2a8b3",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/checkpoint-b.cost.json": "537f16a698813218b1ce35c9f0007e0844139844115c7e9d9e338730e58c6e15",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/checkpoint-b.stdout.json": "12dbce962e705430e412c02fbfaaf7f1a16d382d808d5a660940478e29d728e0",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/ensure-a.cost.json": "1524eb8c81c325adc63e141ff0349c392287629bd461c1a668e9c9d63bb84e10",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/ensure-a.stdout.json": "8fe3917185574c062909a413de58ff48a6783941f9511ca0795e1cd6606e3f82",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/ensure-b.cost.json": "f6201a53f97a4b03f9c487736cf4fb12e730bd7411b1546980baec20b1eebbd5",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/ensure-b.stdout.json": "88728cfe9658a26fe1e1b9e85df14b10c2d68affc8b6647fda6483f925baa877",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/prepare.cost.json": "2f3eefc2488adc5345e67b632fdc88ba7abf951f616852ead7ae4270dafdc970",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/prepare.stdout.json": "37375544632ff85f7084bccd829d1ec4234d1702c887dd57314220f60f943cdd",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/release-a.cost.json": "b943b38adcb3b9b27e9c9e8ddaf34eca1e8fd1bc2f0e2fe9b110fa8d997c1a88",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/release-a.stdout.json": "4b20bf45cd691474c67876f72393daa6499fa062c8a731f2232f4b6bf463c069",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/release-b.cost.json": "3674b1e872e6eeec11ac154ceaaaaca94cb045aa2f791767baa6f700c91f2ace",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/release-b.stdout.json": "caafc2a7f8debf351986bf7ac70bdb6027898e7f543d3068e758232962308975",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/restore.cost.json": "ff0c3a74347a21cef34c241c45388f3ee05f7a9cff18f82fe2d0db013a91931b",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/restore.stdout.json": "5f5063abac9559560a69b4d9d0c129db161de259a98754ab47274170b2338960",
+    "artifacts/time-memory-optimization-20261014/after-parallel-1/result.json": "82c66792c49d38f55ab257327a3953bc344b306161ce38406b877634b146f2c4",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/checkpoint-a.cost.json": "dce06c8b0c9731ed21fe350653a5298fb75fddb12eaf1668871d4ccb723e0e69",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/checkpoint-a.stdout.json": "9bcc1391c775285259f3080727e075481b123e1889c3950fe009fd6286eaacd4",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/checkpoint-b.cost.json": "bc73c0d48e731f88763c8046fbf1a782fe9d0eb33fb8b2309da88ef730ac8a33",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/checkpoint-b.stdout.json": "044fa6d58957ca544ed41ae1f642bd2c81e85628afae4545949a19960933f7b5",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/ensure-a.cost.json": "4d4fe007e3128a54d2456b5775bf78ddcf9917708b5181f9b8d26d9f49d01bbc",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/ensure-a.stdout.json": "a4da9388fcd1012ccd7d931aa4a76825af152ee47044d4d691a48223498bd56f",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/ensure-b.cost.json": "b113601570c7429097448950fe0a224df7dccda72525315742124e9267fec65d",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/ensure-b.stdout.json": "275add36a5f943ba4e19a7acdde692d75c17f4208e45f0ab241808ade6c019b1",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/prepare.cost.json": "83a93d4dc479b48940901b9904442e2b17fac2bcdfcfbe79142b942fd91dd194",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/prepare.stdout.json": "07e43b9e9c5e890f868988096151c197fcb2c3007504ada628e18efc4e3eab8a",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/release-a.cost.json": "c46fa2e14b8ba5a218439a092ec0f6289ed8418b194fb2b6856c2ff0d9850936",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/release-a.stdout.json": "29c4be69e4e8d9ea270b2d601aa63f2de52c4e9531d49ca6388e3caf01c06192",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/release-b.cost.json": "2fe717733310c76b79c1996d443fd6cc3d93bf5e827c4acec4efd2f1058bfa80",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/release-b.stdout.json": "3e5e3aff21e57d0905baab488f36d6de42815c8288d6e946193aaf1373605b44",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/restore.cost.json": "7ad381f6cfb67a164751c730ca9f89d3fa77955d97cf25064867e9e1958e0596",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/restore.stdout.json": "aee951ca42870db87d9758489191e0e6e4653c7e9d43d7ea52f06e3571293037",
+    "artifacts/time-memory-optimization-20261014/after-parallel-2/result.json": "7bec187a3aefca999a492a8c9734df02a9adf3117c86d9552e972675187474e4",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/checkpoint-a.cost.json": "44903d01ce7b77f9667fbe78b4f13bd88b8c58e4624cbe423bbd1e0a2c68b825",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/checkpoint-a.stdout.json": "8d4333f9cc676ac8bf35200f37dd8ce788db860c6d79a0c0da12eef50807a9fd",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/checkpoint-b.cost.json": "8e3116ab677647fb03cfb57d3c105d8876441bd145eabbeb586ebea0eb0793de",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/checkpoint-b.stdout.json": "5425d0d35596f1a0c07f22314986d6cdf9be1043c54e1f55a2092cff679b7822",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/ensure-a.cost.json": "bf7bb805f63d7b4ee01040e5b5cda907f661cad79ed4e74319a48a7311b6480c",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/ensure-a.stdout.json": "113d3651d3effced4cf033adbbf291f0325394671cb33b05988794ac56864e20",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/ensure-b.cost.json": "462d5312c0ac164c38fbdb6674b0daffe031c3959554226c8cbcea5fecdcd92f",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/ensure-b.stdout.json": "94e3a7b73e9325a89b1f298e761925b69d994f361d8cf734f55d28e3180df674",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/prepare.cost.json": "751332f471738287bd83b841041df58e05ce8c79df50ccbec605c74328f573a3",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/prepare.stdout.json": "6eae142020ef8ecad4cbc4d300c2c6eb42a5be22c82e29d7d42d791a9202e3fd",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/release-a.cost.json": "7bd90b3fc83be546e0f674bc47bd4e3d5a41bbbe646878d296dd6f969ded3bf0",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/release-a.stdout.json": "fc1f33b9c709419c8ca6526ce912117f8efff2ad12ab080e0281a41597eb7f08",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/release-b.cost.json": "6e939e38a76ee488bcfdb2b88a007123d3b64796bc64c43b7cdab6d7c98f3f9a",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/release-b.stdout.json": "cb1ecc85a7e48d05a8c82d21be9a8d07d3228aaee1642197f42d3e3143b9f0f3",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/restore.cost.json": "4f4daac959aed8e02407ac0c4a9bd8601cae7566a728ffa400bb71b5877d84bb",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/restore.stdout.json": "773ef38d42fcc584a677f0c52e1624aaea70efdf8a7f1befb18b49a2c5521473",
+    "artifacts/time-memory-optimization-20261014/after-serial-1/result.json": "ff22aca09f26cc8240c8c79fe9119f4b936c9a5728ea2273d918eaa226e178f5",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/checkpoint-a.cost.json": "f72f52969b3fd86531ce35072b9e093b10dbd42f986bc7af3ea320699338985c",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/checkpoint-a.stdout.json": "018ffe02f4b62e68dab3558952cd30a3709b8f4b3a1fdd6f30c1c6edf510d25d",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/checkpoint-b.cost.json": "1e3a3900074f0c3cb26408e27fa3e810d1a7bf2b4ddec24955cf916005a8aa5a",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/checkpoint-b.stdout.json": "020f9c4cdc7db7e176b1f7b5eb75ee99023b48c2a6dd9216208188410de48add",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/ensure-a.cost.json": "9a4dc7593a3d3979baff134fbe082b13498e99cf9b199c83aeda992d6dc32685",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/ensure-a.stdout.json": "736a236067fb6079979892c4a53ba08bed65437a908c5e580d53af8174500359",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/ensure-b.cost.json": "be9d26b6364e9fc008ab1bd66d9322e14fbdbc44f3e411f498ee05ba57482d2a",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/ensure-b.stdout.json": "a0cc961aec88176ec01a3221ef6dd556ec5c752cc4d1427ee4dc096a11d041fe",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/prepare.cost.json": "cba437bf6a49ced581a3c1a83d7e5a4335eec0a02ffd4aa0e1f248cec0a69f78",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/prepare.stdout.json": "ee230862fc99ba660d4217636a78d405e6067300f8fc8da1d3cd5cb39d380064",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/release-a.cost.json": "fbe201d090a10ce1ed30675d99e0d1cc90045ec474fad286d34ba0a874602213",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/release-a.stdout.json": "bc0de76977468718f98d6f6eaa818b0c6e22d683487d88c54a16da64d1f5e108",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/release-b.cost.json": "981f661b09d29b843a7bf44bf366e6558f1642235cdea7c952203eab543e12d1",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/release-b.stdout.json": "6e2868021ca75893c7ee0c75912bc2b79149534a31f574df725c35fda9841712",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/restore.cost.json": "0c4c4ab064d663eb593dd596f3a7d1419094c3a2fbef8a62dc1aa304bac97561",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/restore.stdout.json": "bd527002081423a49a60974d0e5861952c7b139b4077f4c6fe1102e3e046cfdd",
+    "artifacts/time-memory-optimization-20261014/before-serial-1/result.json": "ef4c483abdc6c5327c3d5597002875aa6fbcbc854ad814bbcdcf3c1c61c55a9b",
+    "artifacts/time-memory-optimization-20261014/response-schema.log": "21d25f3cddc1716c7fb5cc3cadc2b4b4e2383e17113d12e18407d5bd1614a615",
+    "artifacts/time-memory-optimization-20261014/response-schema.xml": "de3e286d3afa20b7bcbf8626f99c92ab8405151d567d52918ea7b6c1b315f8de",
+    "artifacts/test-results/Splinter.Tests_net10.0_x64.trx": "4d3584ea7b55943f9f4e92a70ad9679d5e6ec9ce37ea1ceef158f3c39fe6ef37"
+  }
+}

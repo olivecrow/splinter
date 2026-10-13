@@ -60,6 +60,8 @@ $reply
 
 대화/인계에는 `$cli/$project/$workspaceHome/$base/$key`, ID·반환 root/control·`requestDigest`·`baseRevision`·snapshot과 명시한 budget 옵션을 남긴다. 재개는 **같은 ensure 입력**으로 하고 ID/root/digest/기준/snapshot이 같은지 확인한다. 임의 파일 편집의 대화별 배타 잠금은 없으므로 한 작업 경로에는 한 작성자만 둔다.
 
+독립 Git 작업은 에이전트가 서로 다른 고정 key와 동일한 project/home/base/Library 기준으로 `workspace ensure` 두 개를 겹쳐 실행할 수 있다. Library는 먼저 한 번 준비하고 반환 작업 경로마다 작성자를 한 명만 둔다. 각 응답을 따로 확인하고 둘 다 성공해야 A/B 전체가 준비된 것으로 판단한다. 실패·응답 유실 시 해당 작업을 보존하고 반환 next action을 확인한 뒤 같은 identity로 재개하며, 타임아웃만으로 쓰기를 중복 실행하지 않는다. 한쪽 실패는 peer 회수의 승인이 아니다. 기존 명령을 조율하는 에이전트 절차이며 제품 큐나 자동 모드가 아니다. [한정 병렬 준비 검증](verification/time-memory-optimization.md)은 작은 Editor 없는 A/B이며 전체 Unity 준비 시간은 측정하지 않는다.
+
 ## 편집·Editor·종료
 
 MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 때 선택하는 선택적 외부 도구다. 없어도 Splinter의 저장 격리·기준본·Library/미변경 파일 참조·범위 변경·독립 결과·안전한 원본 반영과 소유 자원 수명 기능은 성립한다. 특정 도구 이름·버전·내부 API는 제품 전제나 gate가 아니다. 도구 선택·연결·refresh·컴파일·Play/Test/build·캡처와 결과 판단은 에이전트가 맡는다. 외부 도구 설치·다운그레이드·수정·별도 수정본 생성/운영은 Splinter 범위에서 제외한다. 선택한 도구의 실제 project/PID/start를 반환 workspace/소유 Editor와 대조한다. 목록 누락만으로 Editor 부재를 판단하지 않고 현재 도구의 도움말/schema를 읽는다. Splinter 브리지는 수명 관측·정상 종료만 담당한다. [대상 선택](alpha-workspaces.md#unity-cli의-정확한-대상-선택)을 참고한다.

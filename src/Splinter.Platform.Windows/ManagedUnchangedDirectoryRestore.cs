@@ -168,6 +168,7 @@ internal static class ManagedUnchangedDirectoryRestore
         private readonly string path;
         private readonly OwnedDirectoryManifest manifest;
         private readonly SafeFileHandle root;
+        private readonly WindowsDirectoryTreeProof proof;
         private readonly Dictionary<string, SafeFileHandle> directories = new(StringComparer.Ordinal);
         private readonly Dictionary<string, FileStream> files = new(StringComparer.Ordinal);
         internal Dictionary<string, string> Identities { get; } = new(StringComparer.Ordinal);
@@ -175,23 +176,23 @@ internal static class ManagedUnchangedDirectoryRestore
             bool verifyContent, CancellationToken ct)
         {
             this.path = path; this.manifest = manifest; this.root = root;
+            proof = new(path, root);
             try
             {
                 foreach (var item in manifest.Items.OrderBy(i => i.Entry.Path.Length))
                 {
                     ct.ThrowIfCancellationRequested(); var entry = item.Entry;
                     if (JournalDeltaStore.Normalize(entry.Path) != entry.Path) throw Conflict();
-                    string full = Path.Combine(path, entry.Path.Replace('/', Path.DirectorySeparatorChar));
                     SafeFileHandle handle;
                     if (entry.Directory)
                     {
-                        handle = entry.Path.Length == 0 ? root : ManagedRestoreFileAccess.DirectoryHandle(full);
+                        handle = proof.PinDirectory(entry.Path);
                         if (entry.Path.Length != 0) directories.Add(entry.Path, handle);
                     }
                     else
                     {
-                        var file = ManagedRestoreFileAccess.Read(full); files.Add(entry.Path, file); handle = file.SafeFileHandle;
-                        if (file.Length != entry.Length || verifyContent && OwnedDirectorySnapshotTree.Hash(handle) != item.Hash) throw Conflict();
+                        var file = proof.Read(entry.Path); files.Add(entry.Path, file); handle = file.SafeFileHandle;
+                        if (file.Length != entry.Length || verifyContent && OwnedDirectorySnapshotTree.Hash(handle, ct) != item.Hash) throw Conflict();
                     }
                     string identity = SnapshotInputChecks.FileIdentity(handle, entry.Directory);
                     if (expected is not null && (!expected.TryGetValue(entry.Path, out string? saved) || saved != identity)) throw Conflict();
@@ -223,7 +224,7 @@ internal static class ManagedUnchangedDirectoryRestore
         public void Dispose()
         {
             foreach (var file in files.Values) file.Dispose(); files.Clear();
-            foreach (var directory in directories.Values.Reverse()) directory.Dispose(); directories.Clear();
+            proof.Dispose(); directories.Clear();
         }
     }
 }

@@ -81,7 +81,7 @@ public sealed class GitProofReuseTests
         private SnapshotReference snapshot = null!;
         private string tree = "";
         public GitObjectSnapshotTree Open(int bytes = 4194304, int entries = 4096) =>
-            new(snapshot, tree, "", "", () => new(snapshot.Id, true, null, 0, null), bytes, entries);
+            new(snapshot, tree, "", "", () => new(snapshot.Id, true, null, 0, null), bytes, entries, payloadByteLimit: 0);
         public static async Task<Fixture> Create(bool packed = false)
         {
             var f = new Fixture(); Directory.CreateDirectory(f.Source);

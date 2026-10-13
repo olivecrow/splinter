@@ -80,8 +80,8 @@ public sealed class GitObjectSnapshotTests
                 Assert.Equal(f.Data.AsSpan(0, bytes.Length).ToArray(), bytes);
                 // The full proof ended at EOF; rereading the prefix starts a
                 // proved stream with an unread suffix larger than the pipe.
-                Assert.Equal(bytes.Length, tree.Read("file.bin", 4096, bytes));
-                Assert.Equal(f.Data.AsSpan(4096, bytes.Length).ToArray(), bytes);
+                Assert.Equal(bytes.Length, tree.Read("file.bin", 65536 + 4096, bytes));
+                Assert.Equal(f.Data.AsSpan(65536 + 4096, bytes.Length).ToArray(), bytes);
                 if (pass != 5)
                 {
                     int read;

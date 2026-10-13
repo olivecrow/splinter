@@ -15,6 +15,7 @@ internal sealed class WindowsOwnedDirectoryLease : IDisposable
     private readonly string path, identity;
     private SafeFileHandle? root;
     private bool transferred;
+    internal SafeFileHandle RootHandle { get { EnsureAvailable(); return root!; } }
 
     internal WindowsOwnedDirectoryLease(string directory)
     {

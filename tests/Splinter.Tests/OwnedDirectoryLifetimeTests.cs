@@ -274,9 +274,9 @@ public sealed class OwnedDirectoryLifetimeTests(ITestOutputHelper output)
     private static Task Run(Action action) => Task.Run(action, TestContext.Current.CancellationToken);
     private static Task<T> Run<T>(Func<T> action) => Task.Run(action, TestContext.Current.CancellationToken);
     private static SafeFileHandle OpenDirectoryForReparse(string path) => CreateFileW(path, 0x40000000, 7, 0, 3, 0x02200000, 0);
-    private static void SetJunction(string path, string target)
+    internal static void SetJunction(string path, string target)
         => Assert.Equal(0, TrySetJunction(path, target));
-    private static int TrySetJunction(string path, string target)
+    internal static int TrySetJunction(string path, string target)
     {
         byte[] substitute = Encoding.Unicode.GetBytes(@"\??\" + Path.GetFullPath(target)), print = Encoding.Unicode.GetBytes(Path.GetFullPath(target));
         byte[] buffer = new byte[16 + substitute.Length + 2 + print.Length + 2];
