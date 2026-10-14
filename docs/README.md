@@ -16,7 +16,9 @@ Find current implementation in feature documents below and subsequent responsibi
 
 | Document | Owned content |
 | --- | --- |
+| [Finalization and decoded-payload reuse](verification/lifecycle-finalization-optimization.md) | LF-01–05: bounded path/capsule RAM reuse, explicit checkpoint with release, cached payload visitors, guard regressions and small-fixture costs. |
 | [Current Unity parallel workflow and storage comparison](verification/unity-current-comparison.md) | RC-01: same-input ordinary Codex/Git worktrees 819.7s versus Splinter 935.2s, current file allocation, identical combined source results, excluded observation periods and retained empty Codex directories. |
+| [Parallel coding with a shared Unity Editor](verification/unity-shared-editor.md) | SE-01: one Editor validates independent A/B candidates in 102.5s accounted workflow time; B waits 16.0s. Comparison reuses RC-01 Splinter after input/runtime proof. Editor queue versus code parallelism, original recovery, and unmeasured long-task crossover. |
 | [Time and RAM optimization](verification/time-memory-optimization.md) | Scoped Library admission, bounded Git/journal RAM caches, independent parallel ensure, guard regressions and small-fixture costs. Full Unity timing is candidate-specific: [UF-01](verification/unity-final-lifecycle.md) and subsequent [UT-01](verification/unity-time-memory.md). |
 | [Glossary](glossary.md) | Plain explanations and owning documents for tasks/bases/storage, identifiers, preservation/application/reclamation, responses, and verification status. |
 | [Current foundation](foundation.md) | Modules, dependencies, commands, build, and tests. |

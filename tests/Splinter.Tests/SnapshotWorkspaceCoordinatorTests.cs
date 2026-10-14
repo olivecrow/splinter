@@ -551,7 +551,8 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
             return Task.CompletedTask;
         }
         public int Captures; public bool LoseCaptureReply, LoseMountReply, Mounted, DeltaRemoved, SnapshotReleased, WriteDuringUnmount, UnknownResources, LoseRemoveReply, KeepReleaseUnknown;
-        public int CompactCalls; public bool Compacted, CompletedCompaction;
+        public int CompactCalls, SealCalls; public bool Compacted, CompletedCompaction;
+        public Action<int>? AfterSeal;
         public string? CompactionFailure;
         public long? MinimumOverlap;
         public List<long?> SeenOverlapBudgets = [];
@@ -577,8 +578,13 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         public Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) =>
             Task.FromResult(new SnapshotWorkspaceObservation(Available, Mounted, Mounted, true, UnknownResources ? null : 0,
                 UnknownResources ? null : 0, UnknownResources ? null : 0, DeltaPresent: UnknownDelta ? null : !DeltaRemoved));
-        public Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string c, CancellationToken ct = default) =>
-            Task.FromResult(new SnapshotDeltaSeal(sequence, Compacted ? 50 : 100, (Compacted ? "compact" : "hash") + sequence));
+        public Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        {
+            var seal = new SnapshotDeltaSeal(sequence, Compacted ? 50 : 100, (Compacted ? "compact" : "hash") + sequence);
+            SealCalls++;
+            AfterSeal?.Invoke(SealCalls);
+            return Task.FromResult(seal);
+        }
         public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { Mounted = false; if (Directory.Exists(w.Path)) Directory.Delete(w.Path); if (WriteDuringUnmount) sequence++; FailOnce("unmount"); return Task.CompletedTask; }
         public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default,
@@ -612,6 +618,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         public string? LoseReply;
         public Action? AfterPreserve;
         public Action? AfterInspect;
+        public Func<Task>? AfterInspectAsync;
         private void FailOnce(string boundary) { if (LoseReply == boundary) { LoseReply = null; throw new WorkspaceException("ReplyLost", boundary); } }
         public Task<string> PreflightAsync(WorkspaceRecord w, CancellationToken ct = default) => Task.FromResult("base");
         public Task RegisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { if (!registered) { Registers++; registered = true; } FailOnce("register"); return Task.CompletedTask; }
@@ -623,10 +630,10 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("unregister"); return Task.CompletedTask; }
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(r);
         public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new InvalidOperationException("No clone/checkout fallback");
-        public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)
+        public async Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)
         { InspectCalls++; if (InspectionError is not null) throw new WorkspaceException(InspectionError, "fixture cache failure");
             FailOnce("inspect"); var state = new SourceState(RevisionOverride ?? w.ResultRevision ?? "base", Fingerprint, Dirty, []);
-            AfterInspect?.Invoke(); return Task.FromResult(state); }
+            AfterInspect?.Invoke(); if (AfterInspectAsync is not null) await AfterInspectAsync(); return state; }
         public string? InspectionError;
         public Task<string> CheckpointAsync(WorkspaceRecord w, string message, CancellationToken ct = default) { Dirty = false; return Task.FromResult("result"); }
         public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string target, CancellationToken ct = default) => throw new InvalidOperationException("Do not force integration");
@@ -635,7 +642,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     private sealed class App : IApplicationWorkspaceProvider
     {
         public int Starts, Children; public bool Running;
-        public int Stops; public bool LoseStopReply;
+        public int Stops, InfrastructureRemovals; public bool LoseStopReply;
         public Action? AfterRemoveInfrastructure;
         public string[] ManagedPaths => [];
         public string CompatibilityKey(string project) => "fake";
@@ -644,6 +651,6 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
             Resources: new(true, Running, Children + (Running ? 1 : 0), Children, Children)));
         public Task StopAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { Stops++; Running = false; if (LoseStopReply) { LoseStopReply = false; throw new WorkspaceException("ReplyLost", "after stop"); } return Task.CompletedTask; }
-        public Task RemoveInfrastructureAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { AfterRemoveInfrastructure?.Invoke(); return Task.CompletedTask; }
+        public Task RemoveInfrastructureAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { InfrastructureRemovals++; AfterRemoveInfrastructure?.Invoke(); return Task.CompletedTask; }
     }
 }

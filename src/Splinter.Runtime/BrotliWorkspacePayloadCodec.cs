@@ -160,8 +160,13 @@ public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
     // Internal consumers retain tentative digests/comparisons or an unpublished
     // candidate. They may publish only after full-block validation returns.
     internal void VisitDecoded(ReadOnlySpan<byte> encoded, DecodedChunkVisitor visit, ReadOnlySpan<byte> context = default)
+        => VisitDecodedValidated(encoded, visit, context, Validate(encoded));
+
+    // The caller has validated these same, unchanged encoded bytes.
+    internal void VisitDecodedValidated(ReadOnlySpan<byte> encoded, DecodedChunkVisitor visit, ReadOnlySpan<byte> context,
+        (int Decoded, int Stored, bool Compressed) block)
     {
-        var (decoded, stored, compressed) = Validate(encoded);
+        var (decoded, stored, compressed) = block;
         var payload = encoded.Slice(PrefixBytes, stored);
         if (!compressed)
         {

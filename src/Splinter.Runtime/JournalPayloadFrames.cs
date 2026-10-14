@@ -78,9 +78,14 @@ public sealed partial class JournalDeltaStore
     private void VisitPayload(long physical, WorkspaceJournalPayload payload,
         BrotliWorkspacePayloadCodec.DecodedChunkVisitor visit, ReadOnlySpan<byte> context = default)
     {
-        byte[] encoded = ReadEncoded(physical, payload);
-        try { payloadCodec.VisitDecoded(encoded.AsSpan(0, payload.StoredBytes), visit, context); }
-        finally { ArrayPool<byte>.Shared.Return(encoded); }
+        byte[]? encoded = null;
+        try
+        {
+            encoded = ReadEncoded(physical, payload);
+            decodedPayloadCache.Visit(payloadCodec, encoded.AsSpan(0, payload.StoredBytes), visit, context);
+        }
+        catch { decodedPayloadCache.Clear(); throw; }
+        finally { if (encoded is not null) ArrayPool<byte>.Shared.Return(encoded); }
     }
     private void VisitExtent(Extent extent, BrotliWorkspacePayloadCodec.DecodedChunkVisitor visit,
         ReadOnlySpan<byte> context = default)

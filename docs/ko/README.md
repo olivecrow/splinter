@@ -14,7 +14,9 @@
 
 | 문서 | 소유하는 내용 |
 | --- | --- |
+| [최종화와 압축 해제 데이터 재사용](verification/lifecycle-finalization-optimization.md) | LF-01–05: 유한 경로/capsule RAM 재사용, 명시적 checkpoint와 release 통합, payload visitor cache, guard 회귀와 작은 fixture 비용. |
 | [현재 Unity 병렬 작업·저장 비용 비교](verification/unity-current-comparison.md) | RC-01: 같은 입력의 일반 Codex/Git 워크트리 819.7s와 Splinter 935.2s, 현재 파일 할당, 동일 병합 결과, 측정 제외 구간·빈 Codex 폴더 잔여 한계. |
+| [병렬 코드 작성과 공유 Unity Editor](verification/unity-shared-editor.md) | SE-01: Editor 하나가 독립 A/B 후보를 검증하는 계측 작업 합계 102.5s, B 대기 16.0s. 입력/실행 파일 대조 후 RC-01 Splinter를 재사용하며 Editor 대기열과 코드 병렬화·원본 복구·긴 작업 손익분기 미측정을 구분한다. |
 | [시간·RAM 최적화](verification/time-memory-optimization.md) | Library 검증 범위 고정, 제한된 Git/저널 RAM cache, 독립 ensure 병렬 실행, 보호 회귀와 작은 입력 비용. 전체 Unity 시간은 후보별 [UF-01](verification/unity-final-lifecycle.md)·후속 [UT-01](verification/unity-time-memory.md)과 구분한다. |
 | [용어집](glossary.md) | 작업/기준/저장·식별자·보존/반영/회수·응답과 검증 상태의 쉬운 설명과 소유 문서 |
 | [현재 기반](foundation.md) | 모듈·의존성·명령·빌드와 시험 |

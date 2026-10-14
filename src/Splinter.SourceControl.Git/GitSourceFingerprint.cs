@@ -60,6 +60,7 @@ public sealed partial class GitWorkspaceProvider
         var needsGitHash = new List<string>();
         long payload = 0, gitHashInput = 0;
         int readFiles = 0, reusedFiles = 0;
+        var paths = new GitSourcePathInspection(WorkspaceMountAccess.ObservedRoot(workspace), journalBound: before is not null);
         using var fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         foreach (string relative in files)
         {
@@ -67,8 +68,8 @@ public sealed partial class GitWorkspaceProvider
             string full = Path.GetFullPath(Path.Combine(workspace.Path, relative));
             if (!full.StartsWith(Path.TrimEndingDirectorySeparator(workspace.Path) + Path.DirectorySeparatorChar, Comparison))
                 throw Error("GitUnsafePath", "Source path escapes the workspace.");
-            PlainPath(full, WorkspaceMountAccess.ObservedRoot(workspace));
-            if (!File.Exists(full)) continue;
+            var attributes = paths.Inspect(full);
+            if (attributes is null || (attributes & FileAttributes.Directory) != 0) continue;
             string fileHash;
             string? gitHash = null;
             bool unchanged = cached.TryGetValue(relative, out var item) && !invalidated.Any(path => SourcePathPolicy.Affects(path, relative));

@@ -3,6 +3,8 @@
 
 [한국어](ko/source-verification.md)
 
+The current bounded path cache and combined finalization are qualified in [LF-01–05](verification/lifecycle-finalization-optimization.md). An inspection may reuse at most 4,096 plain ancestor directories / 1,048,576 path characters inside its observed mount and authoritative journal barrier. Leaf/native ancestors and external Git state remain fresh. `checkpoint --release` reuses only the same invocation's completed checkpoint seal as release's starting seal; its fresh source inspection and subsequent seals remain mandatory.
+
 The current ordinary-folder path for `--source none` and v2 state/service packages follows [VCS-free workspaces](vcs-independent-workspaces.md). Git paths and historical native qualification below do not qualify ordinary-folder support.
 
 Product Git adapters for `ntfs-snapshot` and `git-snapshot` reuse per-file raw SHA-256 and Git content hashes bound to the same snapshot/provider generation/source-change history. File size, mtime, or Git stat cache alone do not establish content equality. Full-fingerprint path ordering and `source-fingerprint-v1` values remain. The diagnostic backend retains full raw reads.

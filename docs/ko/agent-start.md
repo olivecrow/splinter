@@ -75,7 +75,7 @@ MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 �
 | 명시적 의도 | 사용할 경로 |
 | --- | --- |
 | 나중에 계속 작업 | 같은 workspace 유지. 필요한 경우 `unity stop --id <id> --home <home>`으로 Editor만 정상 종료 |
-| 결과 보존 뒤 자원 회수 | 필요한 외부 검증 → `workspace checkpoint --id <id> --message <설명> --home <home>` → 명시적 `workspace release`. 원본 통합은 필수가 아님 |
+| 결과 보존 뒤 자원 회수 | 필요한 외부 검증 → 범위 저널 작업은 `workspace checkpoint --id <id> --message <설명> --release --home <home>`. 보존과 회수를 함께 명시적으로 승인하며 원본 통합은 필수가 아님. 별도 checkpoint와 release도 유지 |
 | 원본 반영 뒤 자원 회수 | checkpoint → 요청한 깨끗한 현재 원본 branch에 `workspace integrate --id <id> --target <branch> --home <home>` → 명시적 release. 원본 Editor의 통합 후 검증은 별도이며 push/배포 승인이 아님 |
 | 실패/미커밋 작업 폐기 | `workspace discard --id <id> --intent-key <고정 intent> --expected-request-digest <저장 digest> --home <home>`. 성공 검증/checkpoint 불필요; 정확한 대상과 기존 폐기 승인을 사용 |
 

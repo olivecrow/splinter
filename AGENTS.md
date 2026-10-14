@@ -22,7 +22,10 @@
 
 ## 현재 기능의 소유 문서
 
+- 최종화·cache 후속은 `docs/verification/lifecycle-finalization-optimization.md`의 LF-01–05가 소유한다. 범위 저널의 명시적 `checkpoint --release`는 같은 task 잠금과 이번 호출 post-seal을 이어 쓰며 새 소스 검사·후속/unmount seal·독립 결과·회수 guard를 유지한다. Git 상위 경로 cache는 관측 mount/저널 세대에 묶인 연산 한정이고 capsule 주소 cache는 유한 replay 범위다. 압축 visitor는 기존 store별64MiB RAM을 읽기와 공유하되 매 hit의 현재 encoded 검증·개별 flush/ACK를 유지한다. 한정 비용과 새 전체 Unity 시간은 구분한다.
+
 - README의 현재 Codex/Splinter 시간·저장 비교는 `docs/verification/unity-current-comparison.md`의 RC-01이 소유한다. 같은 raw Git 입력·A/B 병렬·한 줄 수정과 충돌 없는 소스 병합/회수에 한정한다. 대화 시작·입력 확인/할당 계측 제외, 첫 진단 실행과 최종 비교의 구분, Git 파일/등록 회수 뒤 남은 빈 Codex root를 유지한다. 양쪽 모두 병렬 가능하며 긴 작업의 손익분기를 실측한 것으로 확대하지 않는다.
+- 병렬 코드 작성 뒤 공유 Editor 하나에서 순차 검증하는 비교는 `docs/verification/unity-shared-editor.md`의 SE-01이 소유한다. 같은 소스/Library·제품 hash를 확인하고 RC-01 Splinter 935.2s를 재사용한 새 공유 Editor 102.5s이며, 양쪽 새 실행으로 읽지 않는다. 실제 A/B 하위 에이전트 코드 작업·하나의 외부 계측 제어자·기준 복구 컴파일을 포함하고 AI 추론/전달 대기·입력 검사는 제외한다. 과거 Q 패키지 자격을 재개하지 않았다. 코드 작성은 양쪽 병렬이며 Editor 점유 구간의 중첩만 시간 이득 후보다. 긴 테스트/빌드 손익분기·공유 Editor 대비 공간 절감은 NotRun이다. SE 이후 원본 소스는 그대로지만 정상 사용한 Library 캐시는 재생성됐으므로 다음 동일 입력 비교에서 과거 RC Library와 같다고 가정하지 않는다.
 
 - TM 후속 실제 Unity 전체 비용은 `docs/verification/unity-time-memory.md`의 UT-01을 따른다. `7630970`·같은 RB/UF 소스/Library/편집·병렬 ensure 한 묶음에서 875.2s를 측정했다. 준비·복원 절감과 Editor/보존 비용 증가를 함께 기록하며 cache별 인과 효과·새 외부 도구/Play/Test/build 자격으로 확대하지 않는다.
 

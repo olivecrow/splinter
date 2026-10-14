@@ -3,6 +3,10 @@
 
 [한국어](../ko/verification/README.md)
 
+[Finalization and decoded-payload reuse](lifecycle-finalization-optimization.md) owns LF-01–05. Its bounded measurements do not replace RC-01/SE-01 Unity results below.
+
+**Shared-Editor comparison:** [SE-01](unity-shared-editor.md) measures parallel coding followed by one Editor's serial validation: 102.5s accounted workflow, including original-source recovery and cleanup; B waits 16.0s. It reuses RC-01's 935.2s Splinter result after input/runtime verification. Code writing is parallel in both methods; long Editor-operation crossover and shared-Editor storage savings are unmeasured.
+
 **Current comparison:** [RC-01](unity-current-comparison.md) records ordinary Codex/Git worktrees at 819.7s and Splinter at 935.2s with current additional file allocation on the same source input. Both run A/B concurrently and preserve identical combined results. Input/allocation observation and chat startup exclusions, plus retained empty Codex roots, remain explicit.
 
 **Previous Unity timing:** [UT-01](unity-time-memory.md), `7630970`, **14m 35.2s**, versus UF's 18m 03.0s. Same original source/Library and edits, now with overlapping A/B creation. Preparation/restoration improved while Editor and preservation stages grew; one run does not isolate each change's effect. The UF record below remains historical.

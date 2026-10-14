@@ -113,9 +113,12 @@ public sealed partial class WorkspaceCoordinator
         await PreparationPointAsync("mount.after-record", w, ct);
     }
 
-    private async Task<WorkspaceView> ReleaseSnapshotWorkspaceAsync(WorkspaceRecord w, CancellationToken ct)
+    private async Task<WorkspaceView> ReleaseSnapshotWorkspaceAsync(WorkspaceRecord w, CancellationToken ct,
+        SnapshotResult? checkpointResult = null)
     {
         var state = RequireSnapshot(w);
+        if (checkpointResult is not null && (w.Phase != "collected" || !ReferenceEquals(checkpointResult, state.Result)))
+            throw new WorkspaceException("SnapshotResultInvalid", "Only this operation's completed checkpoint can continue directly into release.");
         if (state.Step.StartsWith("compact-", StringComparison.Ordinal))
             throw new WorkspaceException("WorkspaceCompacting", "Resume workspace compact before release.");
         string control = store.ControlPath(w.Id);
@@ -127,7 +130,7 @@ public sealed partial class WorkspaceCoordinator
             if (!state.Step.StartsWith("release-", StringComparison.Ordinal))
             {
                 if (!state.Attached) throw new WorkspaceException("SnapshotPreparationIncomplete", "Preserve incomplete preparation and resume ensure before release.");
-                await applications.StopAsync(w, control, ct);
+                if (checkpointResult is null) await applications.StopAsync(w, control, ct);
                 await RequireStopped(w, ct);
                 state.Observation = await Snapshots.ObserveAsync(w, control, ct);
                 RequireSnapshotObservation(w, state.Observation);
@@ -145,8 +148,8 @@ public sealed partial class WorkspaceCoordinator
                 {
                     // Infrastructure removal legitimately appends to the journal.
                     // Complete it before the stable source-collection interval.
-                    await applications.RemoveInfrastructureAsync(w, control, ct);
-                    if (!await ReuseSnapshotResultAsync(w, ct))
+                    if (checkpointResult is null) await applications.RemoveInfrastructureAsync(w, control, ct);
+                    if (!await ReuseSnapshotResultAsync(w, ct, checkpointResult?.Seal))
                         await CollectSnapshotResultAsync(w, ct);
                 }
                 w.Phase = "releasing";
@@ -247,13 +250,18 @@ public sealed partial class WorkspaceCoordinator
                 [new("workspace.status", new { id = w.Id, home = store.Root }, true)]);
     }
 
-    private async Task<bool> ReuseSnapshotResultAsync(WorkspaceRecord w, CancellationToken ct)
+    private async Task<bool> ReuseSnapshotResultAsync(WorkspaceRecord w, CancellationToken ct,
+        SnapshotDeltaSeal? checkpointSeal = null)
     {
         var state = RequireSnapshot(w);
         if (state.Result is null) return false;
         RequireStableCollection(state);
         string control = store.ControlPath(w.Id);
-        var before = await Snapshots.SealAsync(w, control, ct);
+        // A just-completed checkpoint already ended with this full seal under
+        // the same task lock. Extending that interval retains detection of all
+        // writes through the fresh source inspection and following full seal.
+        // Persisted results and retries always obtain a new pre-seal instead.
+        var before = checkpointSeal ?? await Snapshots.SealAsync(w, control, ct);
         // Changed generated data or infrastructure still follows full collection,
         // including the source adapter's ignored-file and preservation guards.
         if (before != state.Result.Seal) return false;

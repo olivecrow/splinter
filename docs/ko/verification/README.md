@@ -2,6 +2,10 @@
 
 [English](../../verification/README.md)
 
+[최종화와 압축 해제 데이터 재사용](lifecycle-finalization-optimization.md)이 LF-01–05를 소유한다. 한정 비용 측정은 아래 RC-01/SE-01 Unity 결과를 대체하지 않는다.
+
+**공유 Editor 비교:** [SE-01](unity-shared-editor.md)은 병렬 코드 작성 뒤 Editor 하나의 순차 검증을 측정한다. 원본 소스 복구·정리를 포함한 계측 합계 102.5s, B 대기 16.0s이며 입력/실행 파일 대조 후 RC-01 Splinter 935.2s를 재사용한다. 코드 작성은 양쪽 병렬이고 긴 Editor 연산의 손익분기·공유 Editor 대비 공간 절감은 미측정이다.
+
 **현재 비교:** [RC-01](unity-current-comparison.md)은 같은 원본 입력에서 일반 Codex/Git 워크트리 819.7s, Splinter 935.2s와 현재 추가 파일 할당을 기록한다. 양쪽 A/B 병렬·같은 소스 병합 결과이며 입력 확인/할당 계측·대화 시작 시간의 제외와 빈 Codex root 잔여를 구분한다.
 
 **이전 Unity 측정:** [UT-01](unity-time-memory.md), `7630970`, **14분 35.2초**로 UF의 18분 3.0초와 비교한다. 같은 원본 소스/Library·편집이며 A/B 생성을 병렬 실행했다. 준비·복원은 줄었지만 Editor·보존 단계는 늘었고, 단일 실행으로 각 변경의 효과를 분리하지 않는다. 아래 UF 기록은 과거 근거다.

@@ -2,6 +2,8 @@
 
 [English](../ntfs-workspaces.md)
 
+중간 원본 통합 없이 보존과 회수를 명시적으로 요청할 때는 `workspace checkpoint --id <id> --message <설명> --release --home <home>`으로 같은 task 잠금 아래 함께 수행한다. 소유 Editor의 정상 종료를 포함한다. 별도 integrate 단계가 필요하면 `--release`를 생략한다. 같은 요청의 복구와 유지하는 무결성 경계는 [LF-01–05](verification/lifecycle-finalization-optimization.md)를 따른다.
+
 이 문서는 기존 `ntfs-snapshot`의 VSS 경로를 소유한다. VSS 없이 Git commit을 프로젝트 기준본으로 사용하는 `git-snapshot`은 [별도 계약](git-project-basis.md)과 [검증](verification/git-project-basis.md)을 따른다. 두 경로의 기준본·ignored/Library 입력 의미·권한/회수 자격을 섞지 않는다.
 
 현재 `--source none`의 일반 폴더 경로와 v2 상태/서비스 패키지는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.

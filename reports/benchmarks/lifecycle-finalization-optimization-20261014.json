@@ -1,0 +1,367 @@
+{
+  "verificationIds": [
+    "LF-01",
+    "LF-02",
+    "LF-03",
+    "LF-04",
+    "LF-05"
+  ],
+  "date": "2026-10-14",
+  "scope": "Bounded source-path and journal probes plus Editor-free Git/Library WinFsp A/B; not a new Unity timing",
+  "measurementHarness": [
+    {
+      "path": "artifacts/lifecycle-finalization-20261014/native-pair.py",
+      "sha256": "8eb15c69079444ea9791194192ec6395bffccc7b07137fb5de7958ac2b48d86c"
+    },
+    {
+      "path": "artifacts/finalization-optimization-20261014/journal-probe/Program.cs",
+      "sha256": "c34c446c65b0a11553afc65ed89754b6bf62cc5c76c051ffc7da4826d9c38529"
+    },
+    {
+      "path": "artifacts/finalization-optimization-20261014/journal-probe/Probe.csproj",
+      "sha256": "fdd13d14696c4b00d76d62f163cb5ffef568d5869b798d2e275188fe37d87b86"
+    }
+  ],
+  "baselineProductCommit": "7630970f9e13bfaa500af2dbf6c6c6d978406d3e",
+  "candidate": {
+    "candidateBaseCommit": "37cfa0147a6f284282f5a878c9b82520ca6d121a",
+    "sourceSha256": {
+      "contracts/v1/commands.json": "7d31c4e9ed9f6438241fb0222f17a5823e5e7ac4d12d463f0aa4043a695a204a",
+      "contracts/v1/response.schema.json": "7e4880fef63e87731a2b9d28634c4b19e854ac0cba8b18dbb22d32f315ad94b9",
+      "contracts/v1/workspace-checkpoint-request.schema.json": "5ac29224f1a5534c36980747d389c087cb8c3ee76910b4e8031d1f1d6480c1c6",
+      "src/Splinter.Cli/WorkspaceCommands.cs": "bfac8a8a6a49018a31bc8ee5eb77aea8e702ea9f86e364bc4e4de4ca9c63b6f6",
+      "src/Splinter.Runtime/BrotliWorkspacePayloadCodec.cs": "1c5e8ba99d5b90ad27fcc69d3fa554b19bc26a2baf5e573598396ed241700dcb",
+      "src/Splinter.Runtime/JournalDecodedPayloadCache.cs": "1a545c9a45d3eb18fb5d7c7bb5bdb70f65b8ae7b6891d100d3d6c0b40959e49e",
+      "src/Splinter.Runtime/JournalPayloadFrames.cs": "4fec32ef4b77535da38ac807fc065afe101685c943a9b0df534b2b1b041c827e",
+      "src/Splinter.Runtime/LatestJournalStorage.cs": "094db1eff7c93a1959aed071904b7f62ab35c07e86390c7abf144a4e691782a1",
+      "src/Splinter.Runtime/SnapshotWorkspaces.cs": "dc34733502297821959acba18df445fd3a6232e2158540f0799e3ac08c63fe7b",
+      "src/Splinter.Runtime/WorkspaceCoordinator.cs": "767fbeffc714f21ea899f4200c03a27679581426f59d9d0238509693d3c0df5f",
+      "src/Splinter.SourceControl.Git/GitSourceFingerprint.cs": "c5f74ef22425fd8dc0f7c87e7020f436b15e546ca8dac1513d30bac28e2dd332",
+      "src/Splinter.SourceControl.Git/GitSourcePathInspection.cs": "f5ca28c61f0c72c0232e3c8376ff10b2c4f945e1518c6a60d516a94a46f503c8",
+      "src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs": "93b4503f4155cfbc8114c9e0e967877d4dd56f9d26dfd921dc62c2ef18fbce02"
+    },
+    "runtimeSha256": {
+      "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+      "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+      "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+      "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+      "Splinter.Application.Unity.dll": "fa667d4a10fd4e1a727aa4d39f36d0e05a496fd7346599f27b9f4d974abff35c",
+      "Splinter.Core.dll": "ed9af5d6133ece1927b8bbd716e42ebcdbeb96b547ba526ff57ebf373aba1040",
+      "splinter.dll": "ed04b022b6a7ff0f696909161f270a5b775c8ce7d85f714ad9873441a0ea6d57",
+      "Splinter.Host.dll": "62776a5f915e85b814c0ac08d9ebbcd587fb794046d709a89cbbbec6310ca375",
+      "Splinter.Platform.Windows.dll": "f3f30f6128976fc7d7ec8bb6704fbe095c7b73155426bf8d9aa52975491a4c35",
+      "Splinter.Protocol.dll": "8c961340892deaba1eea53080f9f2dff20d4afa7064de1430619296cec0f9f05",
+      "Splinter.Runtime.dll": "50cf58ae9c6678635d88c1303ef0d3b138c69acd75fd5eb6818ad014a4afbb95",
+      "Splinter.SourceControl.Files.dll": "674837725114b82038a3dd9096b586050bb7354f659e56909d7c72fc0b01f08f",
+      "Splinter.SourceControl.Git.dll": "653a1aceb2e8ed2acf1b219891d001475cd3b782fb8ad0e211bd238db42eb2b2",
+      "Splinter.Workflows.Windows.dll": "38ecf6dc6ff5eaae581d94de8b42cd958eee520814ca9c41013b77d56a9137e5",
+      "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+      "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+    }
+  },
+  "gitPathInspection": {
+    "scope": "ordinary NTFS path-validation-only, synthetic observed-mount and journal barrier; not real WinFsp or full source inspection",
+    "files": 1602,
+    "repetitions": 5,
+    "beforeMilliseconds": [
+      2458.3735,
+      2944.4922,
+      3160.6376,
+      2636.237,
+      2727.3436
+    ],
+    "afterMilliseconds": [
+      643.3204,
+      679.5969,
+      782.1452,
+      714.7873,
+      707.4697
+    ],
+    "beforeMetadataQueriesPerPass": 76896,
+    "afterMetadataQueriesPerPass": 19348,
+    "medianBeforeMilliseconds": 2727.3436,
+    "medianAfterMilliseconds": 707.4697,
+    "reductionPercent": 74.06011842438922,
+    "evidence": {
+      "path": "artifacts/git-path-cost-native-20261014.json",
+      "sha256": "6ba2e815b3d8a21647d2d57c159ad061c47b5beeceafa4cc915cda866b468c58"
+    }
+  },
+  "journalCapsules": {
+    "logicalFiles": 512,
+    "physicalFiles": 515,
+    "journalBytes": 992579,
+    "method": "Same stopped SJL4 fixture; ordinary-user NTFS; before then after; median of iterations 1-3, first JIT observation excluded; manifest and full seal equality checked",
+    "medians": {
+      "constructorMilliseconds": {
+        "before": 400.3507,
+        "after": 311.3204,
+        "reductionPercent": 22.238077765319254
+      },
+      "sealMilliseconds": {
+        "before": 418.4753,
+        "after": 329.8117,
+        "reductionPercent": 21.187295881023328
+      },
+      "constructorAllocatedBytes": {
+        "before": 49643680,
+        "after": 10425152,
+        "reductionPercent": 79.00004189858608
+      },
+      "sealAllocatedBytes": {
+        "before": 50583360,
+        "after": 11363216,
+        "reductionPercent": 77.53566390212117
+      }
+    },
+    "beforeObservations": [
+      {
+        "iteration": 0,
+        "constructorMilliseconds": 432.2987,
+        "constructorAllocatedBytes": 50010552,
+        "sealMilliseconds": 411.0756,
+        "sealAllocatedBytes": 50596440
+      },
+      {
+        "iteration": 1,
+        "constructorMilliseconds": 400.3507,
+        "constructorAllocatedBytes": 49645808,
+        "sealMilliseconds": 401.7726,
+        "sealAllocatedBytes": 50583360
+      },
+      {
+        "iteration": 2,
+        "constructorMilliseconds": 405.4523,
+        "constructorAllocatedBytes": 49643680,
+        "sealMilliseconds": 418.4753,
+        "sealAllocatedBytes": 50594032
+      },
+      {
+        "iteration": 3,
+        "constructorMilliseconds": 384.8017,
+        "constructorAllocatedBytes": 49580064,
+        "sealMilliseconds": 428.8831,
+        "sealAllocatedBytes": 50446472
+      }
+    ],
+    "afterObservations": [
+      {
+        "iteration": 0,
+        "constructorMilliseconds": 327.26,
+        "constructorAllocatedBytes": 10810896,
+        "sealMilliseconds": 302.8278,
+        "sealAllocatedBytes": 11378024
+      },
+      {
+        "iteration": 1,
+        "constructorMilliseconds": 311.3204,
+        "constructorAllocatedBytes": 10427384,
+        "sealMilliseconds": 299.7656,
+        "sealAllocatedBytes": 11364640
+      },
+      {
+        "iteration": 2,
+        "constructorMilliseconds": 293.4098,
+        "constructorAllocatedBytes": 10425152,
+        "sealMilliseconds": 329.8117,
+        "sealAllocatedBytes": 11363216
+      },
+      {
+        "iteration": 3,
+        "constructorMilliseconds": 341.3516,
+        "constructorAllocatedBytes": 10424704,
+        "sealMilliseconds": 336.8188,
+        "sealAllocatedBytes": 11363216
+      }
+    ],
+    "temporaryAddressLimit": 131072,
+    "addressStructBytesAtLimit": 3145728,
+    "addressMemoryLimitScope": "Descriptor struct content only; list capacity/object overhead and other process memory excluded; budget overflow rereads addresses",
+    "evidence": [
+      {
+        "path": "artifacts/finalization-optimization-20261014/journal-before-native.json",
+        "sha256": "3edabc27d8d7f9e10be9b374edf3ae5cf7b8c2930de4016cde28df536329fd98"
+      },
+      {
+        "path": "artifacts/finalization-optimization-20261014/journal-after-native.json",
+        "sha256": "64618bba9d5ae42a847cfce1137655ba30b4e8896487851072ef5473db2e90d9"
+      }
+    ]
+  },
+  "decodedVisitors": {
+    "version": 1,
+    "scope": "Same compressed blocks; repeated comparison/visitor CPU cost, not Unity or filesystem timing",
+    "rows": [
+      {
+        "budgetBytes": 0,
+        "elapsedMs": 168.2615,
+        "allocatedBytes": 12840,
+        "hits": 0,
+        "misses": 128,
+        "decodes": 128,
+        "payloadBytes": 0,
+        "peakAccountedBytes": 0
+      },
+      {
+        "budgetBytes": 67108864,
+        "elapsedMs": 15.3446,
+        "allocatedBytes": 8408952,
+        "hits": 120,
+        "misses": 8,
+        "decodes": 8,
+        "payloadBytes": 8388608,
+        "peakAccountedBytes": 8392704
+      },
+      {
+        "budgetBytes": 67108864,
+        "elapsedMs": 14.0625,
+        "allocatedBytes": 8400472,
+        "hits": 120,
+        "misses": 8,
+        "decodes": 8,
+        "payloadBytes": 8388608,
+        "peakAccountedBytes": 8392704
+      },
+      {
+        "budgetBytes": 0,
+        "elapsedMs": 128.5573,
+        "allocatedBytes": 12840,
+        "hits": 0,
+        "misses": 128,
+        "decodes": 128,
+        "payloadBytes": 0,
+        "peakAccountedBytes": 0
+      }
+    ],
+    "compressedBlocks": 8,
+    "decodedBytesPerBlock": 1048576,
+    "visitsPerBlock": 16,
+    "medianWithoutCacheMilliseconds": 148.4094,
+    "medianWithCacheMilliseconds": 14.70355,
+    "reductionPercent": 90.09257499861869,
+    "cacheBudgetBytes": 67108864,
+    "retainedPayloadBytes": 8388608,
+    "tradeoff": "Reuse existing per-store cache for visitors; RAM increases for this workload, encoded bytes still read/validated every time; not whole-process RAM or filesystem cost",
+    "evidence": {
+      "path": "artifacts/lifecycle-finalization-20261014/visitor-cost.json",
+      "sha256": "6fd8a58ca37e11fa3acbf80a43b4e814f144527ea0a3615dbf9be19eb0097fc2"
+    }
+  },
+  "nativeFinalization": {
+    "input": {
+      "trackedFiles": 68,
+      "sourcePayloadFiles": 64,
+      "sourcePayloadBytesPerFile": 1024,
+      "libraryFiles": 128,
+      "libraryBytesPerFile": 1024,
+      "changesPerTask": "One new source result file and one byte at offset 17 in each private Library file"
+    },
+    "method": "Fresh separate homes with identical committed source and Library bytes; sequential ensure; baseline separate checkpoint/release, candidate combined completion sequentially, candidate combined A/B concurrently; one cohort per method, no statistical confidence or isolated causal claim",
+    "timingScope": "Finalization cohort measures completion CLI calls; excludes prepare/ensure, fixture edits, result validation and Library restore. These command times are recorded separately.",
+    "cohorts": {
+      "before": {
+        "mode": "separate",
+        "runtimeSha256": "a7c665c1abb61ff24bc2447b599c376b306e6742f3a29bce5df9d885e040e646",
+        "baseCommit": "609c929f39a3ba1ed55f87d6f9ecf0a85628fb1c",
+        "seconds": {
+          "prepare": 8.69143400003668,
+          "ensure-a": 30.5059559000656,
+          "ensure-b": 30.460666400031187,
+          "checkpoint-a": 20.491757499985397,
+          "release-a": 12.989418299985118,
+          "checkpoint-b": 19.42443289991934,
+          "release-b": 12.851084799971431,
+          "finalization-cohort": 65.77101100003347,
+          "restore": 0.8772638000082225
+        },
+        "independentResults": true,
+        "originalRestored": true,
+        "ownedResourcesAbsent": true,
+        "evidence": {
+          "path": "artifacts/lifecycle-finalization-20261014/before/result.json",
+          "sha256": "1bcb2aa04ff7d3b07a42cd90d23279f37d1ccec4664080549e74ce93fc7485c5"
+        }
+      },
+      "after": {
+        "mode": "combined",
+        "runtimeSha256": "ed04b022b6a7ff0f696909161f270a5b775c8ce7d85f714ad9873441a0ea6d57",
+        "baseCommit": "609c929f39a3ba1ed55f87d6f9ecf0a85628fb1c",
+        "seconds": {
+          "prepare": 8.746646600076929,
+          "ensure-a": 30.549777399981394,
+          "ensure-b": 30.041470099939033,
+          "checkpoint-a": 30.27772300003562,
+          "checkpoint-b": 29.614100000006147,
+          "finalization-cohort": 59.897808099980466,
+          "restore": 0.8289305000798777
+        },
+        "independentResults": true,
+        "originalRestored": true,
+        "ownedResourcesAbsent": true,
+        "evidence": {
+          "path": "artifacts/lifecycle-finalization-20261014/after/result.json",
+          "sha256": "fc4b56e551ef3d57afffa83474bc163706d791bb7219156cdf8c9fec5ff32091"
+        }
+      },
+      "parallel": {
+        "mode": "parallel",
+        "runtimeSha256": "ed04b022b6a7ff0f696909161f270a5b775c8ce7d85f714ad9873441a0ea6d57",
+        "baseCommit": "609c929f39a3ba1ed55f87d6f9ecf0a85628fb1c",
+        "seconds": {
+          "prepare": 8.722842999966815,
+          "ensure-a": 31.370425899978727,
+          "ensure-b": 35.4373294999823,
+          "checkpoint-b": 36.50559739989694,
+          "checkpoint-a": 37.73014370002784,
+          "finalization-cohort": 37.740029499982484,
+          "restore": 0.8424445999553427
+        },
+        "independentResults": true,
+        "originalRestored": true,
+        "ownedResourcesAbsent": true,
+        "evidence": {
+          "path": "artifacts/lifecycle-finalization-20261014/parallel/result.json",
+          "sha256": "61d5152c4dc76728150fe989ba73554f2c7277eabed47239bef6a746f03326bd"
+        }
+      }
+    },
+    "combinedReductionPercent": 8.929774395668044,
+    "parallelReductionPercent": 42.61905218400356,
+    "closure": "Each result contains its own source change and no peer change; sequential variants preserve live B after A release; resources absent/zero, original hashes/HEAD/clean state restored, Git worktree list contains only original."
+  },
+  "validation": {
+    "command": "pwsh -NoProfile -File ./scripts/build.ps1",
+    "total": 1595,
+    "passed": 1571,
+    "failed": 0,
+    "conditionalSkipped": 24,
+    "elapsedSeconds": 441.499,
+    "notes": "First suite exposed only newly added test-harness defects: a null-conditional counter and a hash query before closing its writer. Corrected before final suite. No product change after the passing build.",
+    "recordedNativeResponseSchemas": {
+      "responses": 20,
+      "passed": true,
+      "test": "JournalBaseReversionProductEvidenceTests.RecordedProductResponsesMatchCurrentSchema",
+      "evidence": {
+        "path": "artifacts/lifecycle-finalization-20261014/response-schemas.xml",
+        "sha256": "dcc8ab8b397052c3d79487efe93d67a150f43481fb7396a38d7d84ef11c00428"
+      }
+    },
+    "evidence": [
+      {
+        "path": "artifacts/lifecycle-finalization-20261014/full-build-final.log",
+        "sha256": "2c27c61c3f5204ffff03a0265d27ba6b414db87b713993bdeeb3ccf629130304"
+      },
+      {
+        "path": "artifacts/lifecycle-finalization-20261014/final-suite.trx",
+        "sha256": "ebc3ec1771003cea9b337cb2beae84a297f85b020dba75cfa2bc78a7447ef42f"
+      }
+    ]
+  },
+  "limits": [
+    "No new actual Unity Editor/compile/Play/Test/build timing",
+    "No whole-system RAM or storage-peak measurement",
+    "No expanded OS-crash or large-project matrix",
+    "A/B costs bundle several changes and scheduling; do not project microprobe percentages onto RC-01",
+    "Past README benchmark remains historical observed data; current candidate not remeasured on its Unity input"
+  ]
+}

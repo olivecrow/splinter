@@ -84,13 +84,13 @@
     },
     {
       "id": "workspace.checkpoint",
-      "description": "Stop the owned application and preserve an independent source result; no compile claim.",
-      "cliUsage": "splinter workspace checkpoint --id <id> --message <message> [--home <state-root>]",
+      "description": "Stop the owned application and preserve an independent source result; optionally release the range-journal workspace without integrating. No compile claim.",
+      "cliUsage": "splinter workspace checkpoint --id <id> --message <message> [--release] [--home <state-root>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-checkpoint-request",
       "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "owned-source-commit",
-      "retry": "same-workspace-and-source"
+      "sideEffects": "owned-source-commit; release:true also reclaims owned workspace resources",
+      "retry": "same-workspace-and-source; release:true resumes the same owned release"
     },
     {
       "id": "workspace.integrate",

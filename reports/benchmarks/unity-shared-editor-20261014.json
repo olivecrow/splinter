@@ -1,0 +1,194 @@
+{
+  "verificationId": "SE-01",
+  "date": "2026-10-14",
+  "productCodeCommit": "7630970f9e13bfaa500af2dbf6c6c6d978406d3e",
+  "documentationCommit": "37cfa0147a6f284282f5a878c9b82520ca6d121a",
+  "original": {
+    "commit": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+    "trackedFiles": 1602,
+    "trackedBytes": 2804772822,
+    "unity": "6000.3.22f1",
+    "libraryEntries": 44860,
+    "libraryFiles": 42420,
+    "libraryBytes": 3141660252,
+    "libraryMatchesOriginalRb": true
+  },
+  "environment": {
+    "memory": {
+      "TotalPhysicalMemory": 68628553728
+    },
+    "os": {
+      "Caption": "Microsoft Windows 11 Home",
+      "Version": "10.0.26200",
+      "BuildNumber": "26200"
+    },
+    "cpu": {
+      "Name": "AMD Ryzen 5 5600X 6-Core Processor             ",
+      "NumberOfCores": 6,
+      "NumberOfLogicalProcessors": 12
+    },
+    "observedUtc": "2026-10-13T20:05:52.7501519Z"
+  },
+  "method": "Two independent Codex subagent coding sessions in editorless Git worktrees; one controller validates isolated A then B in the original Editor with its existing Library.",
+  "toolBoundary": "Existing external qualification probe, no new package/MCP/Unity CLI or Unity Agent Coordination integration. Not a rerun of historical Q qualification.",
+  "scheduling": "Candidates prepared independently; both available before the validation gate. A->B source restoration and application use one refresh. Original baseline compiled again before normal exit.",
+  "timingSeconds": {
+    "create": 13.390459800022654,
+    "candidateEditAndPreserve": 1.4194858074188232,
+    "initial": 40.577375900000334,
+    "validate": 29.718209099955857,
+    "originalRestoreAndCompile": 12.040012300014496,
+    "stop": 2.574263299931772,
+    "editorWorkflow": 84.91271699999925,
+    "merge": 0.4029041000176221,
+    "reclaim": 2.3794385000364855,
+    "total": 102.50500520749483
+  },
+  "queue": {
+    "rows": [
+      {
+        "letter": "a",
+        "queuedUtc": "2026-10-14T04:01:03.404164+00:00",
+        "startedUtc": "2026-10-14T04:01:03.404175+00:00",
+        "finishedUtc": "2026-10-14T04:01:19.357262+00:00",
+        "queueWaitSeconds": 1.0999967344105244e-05,
+        "transferSeconds": 0.0009686000412330031,
+        "transferAndCompileSeconds": 14.7426130999811,
+        "assetSeconds": 1.2102219000225887,
+        "serviceSeconds": 15.952836200012825,
+        "completedSinceQueueSeconds": 15.952847299980931
+      },
+      {
+        "letter": "b",
+        "queuedUtc": "2026-10-14T04:01:03.404164+00:00",
+        "startedUtc": "2026-10-14T04:01:19.357285+00:00",
+        "finishedUtc": "2026-10-14T04:01:33.122858+00:00",
+        "queueWaitSeconds": 15.952852400019765,
+        "transferSeconds": 0.0016428999369964004,
+        "transferAndCompileSeconds": 12.356795899919234,
+        "assetSeconds": 1.408556199981831,
+        "serviceSeconds": 13.76535309990868,
+        "completedSinceQueueSeconds": 29.71820579993073
+      }
+    ],
+    "elapsedSeconds": 29.718209099955857,
+    "singlePid": 51996,
+    "queueOrder": [
+      "a",
+      "b"
+    ],
+    "bothCandidatesReadyAtGate": true
+  },
+  "candidates": [
+    {
+      "letter": "a",
+      "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\se14-code\\a",
+      "revision": "3fc085588117a2d52093a19c868ce959b26e7993",
+      "resultRef": "refs/splinter-benchmark/20261014-shared/a",
+      "sourcePath": "Assets/SplinterAlphaA.cs",
+      "sha256": "c16d97f1539b638db4030e0e84f997c487c8b4be0cc3ecc2730d854554f287c6",
+      "beganUtc": "2026-10-14T03:59:51.480331+00:00",
+      "endedUtc": "2026-10-14T03:59:52.201583+00:00",
+      "editSeconds": 0.0003823000006377697,
+      "preservationSeconds": 0.4896030999952927
+    },
+    {
+      "letter": "b",
+      "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\se14-code\\b",
+      "revision": "79ac646af81f70d057b42acb48805bf4c0fdca6b",
+      "resultRef": "refs/splinter-benchmark/20261014-shared/b",
+      "sourcePath": "Assets/SplinterAlphaB.cs",
+      "sha256": "e2cb89bd7d9d4ff2b541c8003961b9002ee4cc758852c362ae9a86f29a77d9db",
+      "beganUtc": "2026-10-14T04:00:02.356826+00:00",
+      "endedUtc": "2026-10-14T04:00:03.055060+00:00",
+      "editSeconds": 0.0003874000394716859,
+      "preservationSeconds": 0.48025759996380657
+    }
+  ],
+  "comparison": {
+    "splinterDataset": "reports/benchmarks/unity-current-comparison-20261014.json",
+    "splinterDatasetSha256": "d6e315474a4733f8383d801bd07bfd8cee1ecfa281508bfea38b6f4eab726cc5",
+    "splinterFreshRun": false,
+    "comparisonBasis": {
+      "at": "2026-10-14T03:58:23.538886+00:00",
+      "source": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+      "sourceFiles": 1602,
+      "libraryFiles": 42420,
+      "libraryBytes": 3141660252,
+      "sourceAndLibraryMatchRC01": true,
+      "unchangedSplinterRuntime": true,
+      "productCommit": "37cfa0147a6f284282f5a878c9b82520ca6d121a",
+      "branch": "development"
+    },
+    "splinterTotalSeconds": 935.246187999961,
+    "splinterCompileAndAssetsSeconds": 32.911476499998074,
+    "sharedCompileAndAssetsSeconds": 29.718209099955857,
+    "splinterMinusSharedTotalSeconds": 832.7411827924661,
+    "sameCombinedTree": true,
+    "combinedTree": "756e0a926577c9bcff036c823b4816b3b2d5fb19"
+  },
+  "totalDefinition": "Sum of parallel code-worktree creation, union of worker edit/preservation spans, uninterrupted Editor launch-through-normal-exit, merge and reclamation. Excludes agent reasoning/dispatch gaps and read-only input/final proofs; not elapsed chat time.",
+  "closure": {
+    "at": "2026-10-14T04:01:53.753666+00:00",
+    "originalSourceFilesVerified": 1602,
+    "originalClean": true,
+    "originalLibraryOrdinaryNtfs": true,
+    "originalLibraryRegeneratedBySharedEditor": true,
+    "baselineRecompiled": true,
+    "ownedEditorExited": true,
+    "oldRefsUnchanged": true,
+    "candidatesPreserved": true,
+    "codeWorktreesRemoved": true,
+    "packageOrServiceChanges": false
+  },
+  "merge": {
+    "elapsedSeconds": 0.4029041000176221,
+    "tree": "756e0a926577c9bcff036c823b4816b3b2d5fb19",
+    "revision": "3a6e78a43254cfc01d1bf297441ad7f3eacd316d",
+    "resultRef": "refs/splinter-benchmark/20261014-shared/combined",
+    "combinedCompilationRun": false
+  },
+  "limits": [
+    "One new shared-Editor cohort compared with the earlier RC-01 Splinter cohort, not a newly paired or randomized repeated trial.",
+    "Source and original Library contents plus product source/runtime hashes were reverified before the new run. OS caches were not cleared.",
+    "No performance inference from AI reasoning duration; both methods can write code concurrently.",
+    "No Play Mode, Unity test, game build, merged-result compilation or measured long-task crossover.",
+    "Existing original Library was reused and normally regenerated by the shared Editor; original source was restored byte-for-byte. Original Library cache bytes were not rolled back.",
+    "No new shared-Editor storage or peak RAM measurement; RC-01 allocation remains the independent-Editor comparison."
+  ],
+  "rawEvidence": "artifacts/unity-shared-editor-20261014",
+  "evidence": {
+    "a-assets.json": "5c6d895218dac17377ec620fca33926025ccfea9ad5f3a644b450e725e122d1b",
+    "a-candidate.json": "a824c5b0dd93312d8696192b4391c00c696b07859651b287f5d91f2a83c1798f",
+    "a-created.json": "82ccb5cb208ecbebfc5ffd4cbb65355c91a36620c1532e65992584664f7acf87",
+    "b-assets.json": "14f6e76455c8eb4832074996c8617ceff862102e9b0d00a67e0decdc7bd0d449",
+    "b-candidate.json": "c267aa18f26e3d4219de9529db21ddb2c390b74e14dc306fd4eace8611f275a1",
+    "b-created.json": "12e59e2228aa848416515f1496759da438dd37b248bdd2b46279ec60d416cc19",
+    "closure.json": "068575a32e046dbd47a9aa466601184c5a3e5543079a4a69dd8aea2206b9949c",
+    "control/editor.log": "b88d6c119f6e68254ee7ec0ec2e32de72719813883fb7a1b1ab115a186f510ac",
+    "control/preview-0b173c127618b0ea6667e5538fd0edd74eacc5ae5ce662bdb8df758e9399eafb.png": "9cdd94c73629ebbe4f5cc83765d77a3aa3186599ca7dd8a9a0c9328462b7fdcd",
+    "control/preview-30978c3126fb3f66f7423aa85e277630e0ba882fb2bdba32f8ca4746d64897e3.png": "9cdd94c73629ebbe4f5cc83765d77a3aa3186599ca7dd8a9a0c9328462b7fdcd",
+    "control/qualification-command.json": "093dfae5638be6ce5454ad26e465378f0180928f151a404896436375fbb802e5",
+    "control/qualification-response.json": "bfa3dcdc641dd237a610cc1fa634d1e592f619210e062845f875923fb81998bd",
+    "control/qualification-state.json": "0ebca3894cb39d8513ce02ddca642ded05ea7161bd7c6170139d7a49016545d6",
+    "create-cohort.json": "928b5604dcb36fd3832797764628566ff6301d168104ae09681c957591fc4274",
+    "editor-workflow-cost.json": "01590d6c48afebeae3ced782aadfd28c60af8692f7f6b3dac7c4a0e55332610f",
+    "initial-cost.json": "313a710459193fe63b774dae4d18f16effbe8c18116185506af36af850ffa020",
+    "launch.json": "207ad7d5ece257f96ef989231d8c2cee103bcbc6211f99e55bb7c3b993bcc9b3",
+    "merge-cost.json": "172c77152a889d183cc1b69c2b6c5412905796560023d815a1264d3aaa6999a9",
+    "preflight.json": "9e4cd9141b698862e005061df783dc0d1e0cf93d0d18056f19d6b0266f21a3d6",
+    "reclaim-cost.json": "4e75931b06b780ec9024bd58b3cf5e56073eac6e4347a7b1ddbb93cf39d325c6",
+    "restore-cost.json": "45a122c5dbaf7adef5efecdeb8bbecda398bbf0bc0359630e98c02d7c7cbede3",
+    "run.py": "32e8fce623b690c945f161394579a746a3d20be701f4d2d1a9d6c4adc15a1326",
+    "shared-a-q-edit.json": "0b70b5b9f28ff7a203be2d9d7c44a17a06abb90170ec3236bd3c14b34cc19253",
+    "shared-a-q-refresh-response.json": "36ded1640f3d38386ec2d7809662a38e94a2345c6f98f0c0865b4699104e58ca",
+    "shared-b-q-edit.json": "a5b8e9d05d0f55c691a16e7ac3a0f6b27ba02d212826b02bd24de26a73c3625c",
+    "shared-b-q-refresh-response.json": "6fc227ec37b3729b594a81573bb06ba99455ec36539f716f6a036cffbb07c727",
+    "shared-q-initial.json": "7a8536a8766cab66bca945ac36dbc132b558a2bf5d23e05c3766f3fd2d010b43",
+    "shared-restore-q-edit.json": "10672cef89cb81f66af2c7f3b24247aa041aaf6e75e2db5f0cc6d5a8fb3ff74f",
+    "shared-restore-q-refresh-response.json": "7f1120602ac0efb517652ed4ab2fee9371d145d69246a61714556130a2d51040",
+    "stop-cost.json": "afb8558cd53a41010c60b6e744d205c381bda27b82200eb42093cbfbd71f9989",
+    "summarize.py": "c4fcd9e644af1b5f7bd743b9245b92fffc3ad5ce2a4440391c0a521df8b1c209",
+    "validation-cohort.json": "0c46c632aa6e87b7d3e97d831c863155e82f1b77ab91cbaaad7e49ff78e9d1be"
+  }
+}

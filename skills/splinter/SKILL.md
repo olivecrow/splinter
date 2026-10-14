@@ -91,10 +91,12 @@ Only when an external tool is in use, check known remaining original/peer connec
 
 ## Match termination to the user's intent
 
+When preservation and reclamation are both authorized and no integration is needed between them, use `workspace checkpoint --id <id> --message <description> --release --home <home>` for a range-journal workspace. It normally stops its owned Editor and retains the final result while reclaiming resources. Reuse the same invocation only as documented; earlier checkpoints/retries are freshly verified. A separate `unity stop` immediately beforehand is unnecessary unless a stopped-state observation is needed. For apply-before-release, keep checkpoint → integrate → release. See [LF-01–05](../../docs/verification/lifecycle-finalization-optimization.md).
+
 | Intent | Operation |
 | --- | --- |
 | Continue later / keep the current work | Retain the same workspace and identity; stop its Editor only when needed. Conversation/Editor end is not release or discard. |
-| Preserve a result without applying it | Use the applicable independent-result path, then explicit `workspace release` if cleanup was requested. |
+| Preserve a result without applying it | Use the applicable independent-result path. For a range-journal workspace, use `workspace checkpoint --release` when cleanup is also requested; otherwise retain the checkpoint and release only when requested. |
 | Apply the result | Use external validation as needed, checkpoint, and explicit integration to the requested target, checking current original/dirty/conflict guards; then release when requested. A commit request alone does not authorize integration or remote push. |
 | Throw away this workspace's work | Use explicit `workspace discard` with the exact ID, intent key, expected digest, and home. A successful validation/checkpoint is not required. |
 

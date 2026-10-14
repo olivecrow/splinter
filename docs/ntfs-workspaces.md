@@ -3,6 +3,8 @@
 
 [한국어](ko/ntfs-workspaces.md)
 
+For explicit preservation **and** reclamation without intervening integration, `workspace checkpoint --id <id> --message <message> --release --home <home>` completes both under one task lock. It already normally stops the owned Editor. Omit `--release` to retain resources for an explicit integrate step. Same-request recovery and the retained integrity boundaries are specified in [LF-01–05](verification/lifecycle-finalization-optimization.md).
+
 This document owns the existing `ntfs-snapshot` VSS path. VSS-free `git-snapshot`, which uses a Git commit as project basis, follows a [separate contract](git-project-basis.md) and [verification](verification/git-project-basis.md). Do not mix basis, ignored/Library input semantics, privileges, or reclamation qualification between the paths.
 
 The current ordinary-folder path for `--source none` and v2 state/service packages follows [VCS-free workspaces](vcs-independent-workspaces.md). Git paths/historical native qualification below do not qualify ordinary-folder support.

@@ -178,13 +178,19 @@ internal static class WorkspaceCommands
             var idOption = new Option<string>("--id") { Required = true };
             command.Options.Add(idOption);
             Option<string>? extra = null;
-            Option<bool>? verifySource = null, auditSource = null;
+            Option<bool>? verifySource = null, auditSource = null, releaseAfterCheckpoint = null;
             if (commandId == "workspace.status")
             {
                 verifySource = new Option<bool>("--verify-source") { Description = "Read source contents to verify the current fingerprint; ordinary polls only inspect process and provider state." };
                 command.Options.Add(verifySource);
                 auditSource = new Option<bool>("--audit-source") { Description = "Read all source and rebuild the fingerprint manifest; preserve a corrupt manifest before replacement. Implies --verify-source." };
                 command.Options.Add(auditSource);
+            }
+            if (commandId == "workspace.checkpoint")
+            {
+                releaseAfterCheckpoint = new Option<bool>("--release")
+                { Description = "Preserve the source and immediately reclaim this range-journal workspace under one task lock. Retain the independent result; never integrate it automatically." };
+                command.Options.Add(releaseAfterCheckpoint);
             }
             if (extraName is not null)
             {
@@ -200,6 +206,7 @@ internal static class WorkspaceCommands
                 if (extraName is not null) parameters[extraName[2..]] = value ?? "development";
                 if (verifySource is not null) parameters["verifySource"] = parse.GetValue(verifySource);
                 if (auditSource is not null) parameters["auditSource"] = parse.GetValue(auditSource);
+                if (releaseAfterCheckpoint is not null) parameters["release"] = parse.GetValue(releaseAfterCheckpoint);
                 if (!Validate(commandId, parameters)) return;
                 bool audit = auditSource is not null && parse.GetValue(auditSource);
                 WorkspaceView view;
@@ -207,6 +214,8 @@ internal static class WorkspaceCommands
                 {
                     view = verifySource is not null
                         ? await Runtime(parse, audit).StatusAsync(id, ct, audit || parse.GetValue(verifySource))
+                        : releaseAfterCheckpoint is not null && parse.GetValue(releaseAfterCheckpoint)
+                        ? await Runtime(parse).CheckpointAndReleaseAsync(id, value!, ct)
                         : await action(Runtime(parse), id, value);
                 }
                 catch (WorkspaceException ex) when (ex.Code == "SourceCacheRevalidationRequired")

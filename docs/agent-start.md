@@ -80,7 +80,7 @@ When an Editor using external tools exits, the agent checks remaining target con
 | Explicit intent | Path to use |
 | --- | --- |
 | Continue later | Keep the same workspace. If needed, normally stop only the Editor with `unity stop --id <id> --home <home>`. |
-| Preserve results and reclaim resources | Needed external validation → `workspace checkpoint --id <id> --message <description> --home <home>` → explicit `workspace release`. Original integration is optional. |
+| Preserve results and reclaim resources | Needed external validation → `workspace checkpoint --id <id> --message <description> --release --home <home>` for a range-journal workspace. This explicitly authorizes preservation and reclamation together; original integration is optional. Separate checkpoint and release remain available. |
 | Apply to original and reclaim resources | Checkpoint → `workspace integrate --id <id> --target <branch> --home <home>` to the requested clean current original branch → explicit release. Post-integration original-Editor validation is separate; this authorizes neither push nor deployment. |
 | Discard failed/uncommitted work | `workspace discard --id <id> --intent-key <fixed intent> --expected-request-digest <saved digest> --home <home>`. Successful validation/checkpoint is unnecessary; use the exact target and existing discard authorization. |
 

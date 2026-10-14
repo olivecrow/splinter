@@ -11,6 +11,11 @@
     "message": {
       "type": "string",
       "minLength": 1
+    },
+    "release": {
+      "type": "boolean",
+      "default": false,
+      "description": "Immediately release the range-journal workspace after preserving its independent result. Retries resume the same release; no automatic integration."
     }
   },
   "required": [

@@ -259,23 +259,16 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
         PlainPath(workspace.ProjectPath); PlainPath(workspace.Path, WorkspaceMountAccess.ObservedRoot(workspace));
     }
     private static void PlainPath(string path, string? ownedMountRoot = null)
-    {
-        for (string? p = Path.GetFullPath(path); p is not null; p = Path.GetDirectoryName(p))
-            // A directory-mounted filesystem is itself a reparse point. Only
-            // its observed, identity-bound root is allowed; ancestors and
-            // source entries inside it still must be plain paths.
-            if (ownedMountRoot is null || !SamePath(p, ownedMountRoot))
-            if ((File.Exists(p) || Directory.Exists(p)) && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0)
-                throw Error("GitSymlinkRejected", "Source path contains a reparse point: " + p);
-    }
+        => new GitSourcePathInspection(ownedMountRoot).Inspect(path);
     private static void RejectTreeLinks(string root)
     {
         var remaining = new Stack<string>(); remaining.Push(root);
         while (remaining.Count > 0)
             foreach (string entry in Directory.EnumerateFileSystemEntries(remaining.Pop()))
             {
-                if ((File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0) throw Error("GitSymlinkRejected", entry);
-                if (Directory.Exists(entry)) remaining.Push(entry);
+                var attributes = File.GetAttributes(entry);
+                if ((attributes & FileAttributes.ReparsePoint) != 0) throw Error("GitSymlinkRejected", entry);
+                if ((attributes & FileAttributes.Directory) != 0) remaining.Push(entry);
             }
     }
     private static async Task<bool> IsAncestor(string path, string ancestor, string descendant, CancellationToken ct)

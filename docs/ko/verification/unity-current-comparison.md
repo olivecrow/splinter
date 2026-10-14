@@ -2,6 +2,8 @@
 
 [English](../../verification/unity-current-comparison.md)
 
+병렬 코드 작성 뒤 **공유 Editor 하나로 순차 검증**하는 별도 비교는 [SE-01](unity-shared-editor.md)을 따른다. 소스/Library 입력과 동일 실행 파일을 확인하고 이 Splinter 실행을 재사용했으며, RC-01 자체는 계속 방식별 독립 Editor 두 개의 기록이다.
+
 RC-01 · 2026-10-14 · 제품 `7630970`. Codex 앱의 A/B 대화 경로에 새로 만든 일반 Git 워크트리와 원본 Library를 참조하는 새 Splinter A/B를 같은 고정 소스·한 줄 수정으로 비교한다. Codex는 새 Library를 임포트하고 Splinter는 기존 원본 Library를 참조한다. 완료한 Splinter 실행과 후속 Codex 재측정을 비교하며, 이전 진단 시도는 보존하되 제외한다. 이전 UT의 875.2초에 이번 Codex 측정을 단순 연결하지 않고 양쪽을 다시 측정했다.
 
 AMD Ryzen 5 5600X (6 cores / 12 threads), 68,628,553,728 bytes physical memory; Windows 11 Home 10.0.26200; NTFS; Unity 6000.3.22f1.

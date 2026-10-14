@@ -2,6 +2,8 @@
 
 [English](../source-verification.md)
 
+현재 유한 경로 cache와 통합 종료의 자격은 [LF-01–05](verification/lifecycle-finalization-optimization.md)를 따른다. 관측한 mount와 신뢰할 수 있는 저널 세대 경계 안에서 검사 하나가 plain 상위 디렉터리 최대 4,096개 / 경로 1,048,576자를 재사용한다. leaf/native 조상과 외부 Git 상태는 새로 확인한다. `checkpoint --release`는 같은 호출의 성공한 checkpoint seal만 release의 시작 seal로 재사용하며 새 소스 검사와 이후 seal을 유지한다.
+
 현재 `--source none`의 일반 폴더 경로와 v2 상태/서비스 패키지는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
 
 제품 `ntfs-snapshot`과 `git-snapshot`의 Git 어댑터는 파일 단위 raw SHA-256과 Git 내용 hash를 같은 snapshot·provider 세대·소스 변경 이력에 묶어 재사용한다. 파일 크기·수정 시간·Git stat cache만으로 내용이 같다고 판단하지 않는다. 전체 fingerprint의 경로 정렬과 `source-fingerprint-v1` 값은 유지한다. 진단 backend는 기존 전체 raw 읽기 경로다.

@@ -63,38 +63,73 @@ internal sealed class JournalDecodedPayloadCache
             var block = codec.Validate(encoded);
             var (decoded, _, compressed) = block;
             int count = offset >= decoded ? 0 : Math.Min(output.Length, decoded - offset);
-            var key = Key.From(encoded, decoded);
-            if (entries.TryGetValue(key, out var cached))
-            {
-                Hits++; lru.Remove(cached); lru.AddFirst(cached);
-                if (count != 0) cached.Value.Bytes.AsSpan(offset, count).CopyTo(output);
-                return count;
-            }
-            Misses++;
-            long charge = decoded + EntryChargeBytes;
-            if (!compressed || charge > budgetBytes)
+            byte[]? bytes = GetDecoded(codec, encoded, block);
+            if (bytes is null)
             {
                 if (compressed) Decodes++;
                 return codec.ReadValidated(encoded, offset, output, block);
             }
-            while (accountedBytes > budgetBytes - charge || entries.Count >= MaximumEntries)
-                EvictLast();
-            accountedBytes += charge;
-            PeakAccountedBytes = Math.Max(PeakAccountedBytes, accountedBytes);
-            bool published = false;
-            try
-            {
-                byte[] bytes = new byte[decoded];
-                Decodes++; codec.DecodeForCache(encoded, bytes, block);
-                var node = new LinkedListNode<Entry>(new(key, bytes));
-                entries.Add(key, node); lru.AddFirst(node);
-                payloadBytes += decoded; published = true;
-                if (count != 0) bytes.AsSpan(offset, count).CopyTo(output);
-                return count;
-            }
-            finally { if (!published) accountedBytes -= charge; }
+            if (count != 0) bytes.AsSpan(offset, count).CopyTo(output);
+            return count;
         }
         catch { Clear(); throw; }
+    }
+
+    // Comparisons, logical hashes and compaction visit the same bounded blocks
+    // as reads. Reuse decoded RAM here too, but validate the currently read
+    // encoded bytes before a hit and never expose an incomplete cache fill.
+    internal void Visit(BrotliWorkspacePayloadCodec codec, ReadOnlySpan<byte> encoded,
+        BrotliWorkspacePayloadCodec.DecodedChunkVisitor visit, ReadOnlySpan<byte> context = default)
+    {
+        try
+        {
+            if (budgetBytes == 0)
+            {
+                Misses++;
+                if (encoded.Length > 12 && encoded[12] == 1) Decodes++;
+                codec.VisitDecoded(encoded, visit, context); return;
+            }
+            var block = codec.Validate(encoded);
+            byte[]? bytes = GetDecoded(codec, encoded, block);
+            if (bytes is null)
+            {
+                if (block.Compressed) Decodes++;
+                codec.VisitDecodedValidated(encoded, visit, context, block); return;
+            }
+            const int chunkBytes = 16384;
+            for (int at = 0; at < bytes.Length; at += chunkBytes)
+                visit(at, bytes.AsSpan(at, Math.Min(chunkBytes, bytes.Length - at)), context);
+        }
+        catch { Clear(); throw; }
+    }
+
+    private byte[]? GetDecoded(BrotliWorkspacePayloadCodec codec, ReadOnlySpan<byte> encoded,
+        (int Decoded, int Stored, bool Compressed) block)
+    {
+        var key = Key.From(encoded, block.Decoded);
+        if (entries.TryGetValue(key, out var cached))
+        {
+            Hits++; lru.Remove(cached); lru.AddFirst(cached);
+            return cached.Value.Bytes;
+        }
+        Misses++;
+        long charge = block.Decoded + EntryChargeBytes;
+        if (!block.Compressed || charge > budgetBytes) return null;
+        while (accountedBytes > budgetBytes - charge || entries.Count >= MaximumEntries)
+            EvictLast();
+        accountedBytes += charge;
+        PeakAccountedBytes = Math.Max(PeakAccountedBytes, accountedBytes);
+        bool published = false;
+        try
+        {
+            byte[] bytes = new byte[block.Decoded];
+            Decodes++; codec.DecodeForCache(encoded, bytes, block);
+            var node = new LinkedListNode<Entry>(new(key, bytes));
+            entries.Add(key, node); lru.AddFirst(node);
+            payloadBytes += block.Decoded; published = true;
+            return bytes;
+        }
+        finally { if (!published) accountedBytes -= charge; }
     }
 
     private void EvictLast()

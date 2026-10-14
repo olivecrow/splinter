@@ -157,12 +157,30 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         store.Save(record, "editor-started");
     }
 
-    public async Task<WorkspaceView> CheckpointAsync(string id, string message, CancellationToken ct = default)
+    public Task<WorkspaceView> CheckpointAsync(string id, string message, CancellationToken ct = default) =>
+        CheckpointAsync(id, message, release: false, ct);
+
+    public Task<WorkspaceView> CheckpointAndReleaseAsync(string id, string message, CancellationToken ct = default) =>
+        CheckpointAsync(id, message, release: true, ct);
+
+    private async Task<WorkspaceView> CheckpointAsync(string id, string message, bool release, CancellationToken ct)
     {
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
-        RequireLive(record);
         bool rangeJournal = WorkspaceStorage.HasRangeJournal(record.StorageMode);
+        if (release)
+        {
+            RequireNotDiscarding(record);
+            record.OriginalApply?.RequireReclaimable(record);
+            if (!rangeJournal)
+                throw new WorkspaceException("UnsupportedStorageMode", "Checkpoint with release requires a range-journal workspace.");
+            if (record.Phase == "released") return new(record, null, null, store.ControlPath(id), "workspace.list");
+            // A resumed release uses its durable result and existing recovery
+            // guards. A prior invocation never supplies an in-memory seal proof.
+            if (RequireSnapshot(record).Step.StartsWith("release-", StringComparison.Ordinal))
+                return await ReleaseSnapshotWorkspaceAsync(record, ct);
+        }
+        RequireLive(record);
         // A first checkpoint is verified by the source adapter after application
         // shutdown. Only an existing result needs source inspection here to
         // decide whether this is the same checkpoint or a new generation.
@@ -182,7 +200,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 }
                 catch (Exception ex) { RecordFailure(record, ex); throw; }
             }
-            return current;
+            return release ? await ReleaseSnapshotWorkspaceAsync(record, ct) : current;
         }
         if (record.OriginalApply is not null)
             throw new WorkspaceException("OriginalApplyResultFixed", "Preserve the fixed applied result and later edits; use a new task for another apply generation.");
@@ -211,9 +229,10 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             // Observe resources for the response without another full scan;
             // Source remains null rather than claiming a later current-source
             // verification that this response did not perform.
-            return await ViewAsync(record, ct, verifySource: !rangeJournal);
+            if (!release) return await ViewAsync(record, ct, verifySource: !rangeJournal);
         }
         catch (Exception ex) { RecordFailure(record, ex); throw; }
+        return await ReleaseSnapshotWorkspaceAsync(record, ct, RequireSnapshot(record).Result!);
     }
 
     public async Task<WorkspaceView> IntegrateAsync(string id, string target, CancellationToken ct = default)
