@@ -1,0 +1,423 @@
+{
+  "id": "SX-01-04",
+  "date": "2026-10-15",
+  "status": "BoundedLogPromising_NativeGraftCompilationRejected",
+  "baseCommit": "dd188e1291afe8cd8ef1624425898894b4ae87ec",
+  "developmentOnly": true,
+  "productStoragePolicyChanged": false,
+  "sourceSha256": {
+    "scripts/measure-bee-prototype.py": "cd5b5ca1435a8848d98fa994bdfdef697026f6a48236686844954c0bdd08f524",
+    "tools/Splinter.BeeProbe/BeeFileSystem.cs": "68cf5ff29af7bb7aa0fd5a8a4e7fad90d107cdcb91a558cdc2485eda48d8c11a",
+    "tools/Splinter.BeeProbe/NativeFiles.cs": "cd407f7ed8dac5194781dc8ac5d4de377013b83f17f56ed7ea733f9e190d069a",
+    "tools/Splinter.BeeProbe/Program.cs": "ecb57130ceacd1998451482dcd7439ba086f636bba587645337df04963536e5a",
+    "tools/Splinter.BeeProbe/Splinter.BeeProbe.csproj": "f3e1c0874548812e1b6696e1b42f406362fdf7999b4b2c1d65cd041fefd4549b",
+    "tools/Splinter.BeeProbe/packages.lock.json": "b4eb9381fd93c05a16b6479c434ace4f632334e9017bc03592b31ef1ad058737",
+    "tools/Splinter.BoundedLogProbe/BoundedWal.cs": "245d3ab7726d89457a2b9bc31f6795135728427d3c1c739ca9b573b63d9c5b06",
+    "tools/Splinter.BoundedLogProbe/Fixture.cs": "1bccbe9a1f58215409275363e1cd564dbcda19588991a8602648b091eb21e4a7",
+    "tools/Splinter.BoundedLogProbe/Program.cs": "dce6f32bbd93a082f03a8c2a55e2a91fb3bd6b081f986eb3ff42b55a6ac4ba84",
+    "tools/Splinter.BoundedLogProbe/Splinter.BoundedLogProbe.csproj": "09521f827ba4eaaeee906e3c3c5dba2c22dc5d2dd1186c677209ba760a766c43",
+    "tools/Splinter.BoundedLogProbe/packages.lock.json": "68e2ec3f279741ded88fe1882549bb2523ef82485402302d3671db8cbab61fd8"
+  },
+  "boundedLog": {
+    "scope": "One serial cohort, current SJL4 versus fixed-object bounded WAL component; no whole Unity claim",
+    "objects": 20000,
+    "hotObjects": 256,
+    "currentPrivateBytes": 50331648,
+    "writes": 4096,
+    "rows": [
+      {
+        "case": "measured-0-sjl4",
+        "raw": "artifacts/bounded-log-probe-20261015/measured-0-sjl4/result.json",
+        "rawSha256": "449cb4f37272c57ceeb1e41f106305093e60131ab7ca8b92c6bbdcb4be44d7c2",
+        "method": "sjl4",
+        "capMiB": 4.0,
+        "initializationSeconds": 70.5819974,
+        "writeAndFinalCheckpointSeconds": 92.8706057,
+        "validationSeconds": 1.0317404,
+        "reopenAndValidationSeconds": 6.8932263,
+        "independentExportSeconds": 0.9826932,
+        "teardownSeconds": 1.206056,
+        "accountedSeconds": 173.566319,
+        "processPeakWorkingSetBytes": 104820736,
+        "privateRamBytes": null,
+        "managedAllocationDuringWrites": 744591000,
+        "currentFileBytes": 52245386,
+        "sampledPeakFileBytes": null,
+        "peakPhysicalAllocation": "NotMeasured",
+        "mutationPayloadBytes": 39141376,
+        "recordedWriteBytes": 109158796,
+        "flushCount": 4096,
+        "flushSeconds": 15.1484341,
+        "ackP50Milliseconds": 20.6198,
+        "ackP95Milliseconds": 35.3848,
+        "ackMaxMilliseconds": 183.278,
+        "originalUnchanged": true,
+        "logicalHash": "64be12dd6fd8d5a29f3dae6c78c130bf8f3a1f7abac91d5ec512ea2a98b7e96e",
+        "independentResultSurvivesTeardown": true,
+        "recordedWriteAmplification": 2.7888338928094916
+      },
+      {
+        "case": "measured-1-wal4",
+        "raw": "artifacts/bounded-log-probe-20261015/measured-1-wal4/result.json",
+        "rawSha256": "40ac87c72b75eb267da34d7555b9924fc2f3a085cdd856c57b218f8d213727f3",
+        "method": "wal",
+        "capMiB": 4.0,
+        "initializationSeconds": 21.9487761,
+        "writeAndFinalCheckpointSeconds": 26.9701366,
+        "validationSeconds": 0.5160906,
+        "reopenAndValidationSeconds": 0.7374524,
+        "independentExportSeconds": 0.2977279,
+        "teardownSeconds": 0.0099256,
+        "accountedSeconds": 50.4801092,
+        "processPeakWorkingSetBytes": 169824256,
+        "privateRamBytes": 50331648,
+        "managedAllocationDuringWrites": 676481128,
+        "currentFileBytes": 51087985,
+        "sampledPeakFileBytes": 106334207,
+        "peakPhysicalAllocation": "NotMeasured",
+        "mutationPayloadBytes": 39141376,
+        "recordedWriteBytes": 549490616,
+        "flushCount": 4136,
+        "flushSeconds": 19.7706512,
+        "ackP50Milliseconds": 3.4001,
+        "ackP95Milliseconds": 11.1262,
+        "ackMaxMilliseconds": 942.8819,
+        "originalUnchanged": true,
+        "logicalHash": "64be12dd6fd8d5a29f3dae6c78c130bf8f3a1f7abac91d5ec512ea2a98b7e96e",
+        "independentResultSurvivesTeardown": true,
+        "recordedWriteAmplification": 14.038612643561637
+      },
+      {
+        "case": "measured-2-wal16",
+        "raw": "artifacts/bounded-log-probe-20261015/measured-2-wal16/result.json",
+        "rawSha256": "31cb560a7c479812ee86d9ef7f235976408dfb1103f5878fbacde687d9cde0c5",
+        "method": "wal",
+        "capMiB": 16.0,
+        "initializationSeconds": 11.0902112,
+        "writeAndFinalCheckpointSeconds": 13.8719672,
+        "validationSeconds": 0.6831167,
+        "reopenAndValidationSeconds": 0.7459141,
+        "independentExportSeconds": 0.3891452,
+        "teardownSeconds": 0.0092412,
+        "accountedSeconds": 26.789595600000002,
+        "processPeakWorkingSetBytes": 170348544,
+        "privateRamBytes": 50331648,
+        "managedAllocationDuringWrites": 318650368,
+        "currentFileBytes": 51087985,
+        "sampledPeakFileBytes": 118788384,
+        "peakPhysicalAllocation": "NotMeasured",
+        "mutationPayloadBytes": 39141376,
+        "recordedWriteBytes": 192785689,
+        "flushCount": 4108,
+        "flushSeconds": 8.5161649,
+        "ackP50Milliseconds": 3.0685,
+        "ackP95Milliseconds": 3.7121,
+        "ackMaxMilliseconds": 349.384,
+        "originalUnchanged": true,
+        "logicalHash": "64be12dd6fd8d5a29f3dae6c78c130bf8f3a1f7abac91d5ec512ea2a98b7e96e",
+        "independentResultSurvivesTeardown": true,
+        "recordedWriteAmplification": 4.9253682088233175
+      }
+    ],
+    "writeReductionPercent": {
+      "measured-1-wal4": 70.959447936496,
+      "measured-2-wal16": 85.06312401492177
+    },
+    "excludedOverlappingRuns": [
+      "full-0-sjl4",
+      "full-1-wal4",
+      "full-2-wal16"
+    ],
+    "limits": [
+      "No cache reset or order crossover; single sample per cap",
+      "SJL4 manages real file metadata, WAL fixture supports fixed objects/ranges only",
+      "WAL live reads use RAM; restart validates the disk; no concurrent external mutation or power-loss qualification",
+      "SJL4 raw inventory lists root members only; complete current file bytes use its checked Observe journalBytes counter",
+      "Accounted sum excludes fixture generation and process launch; this is not workspace lifecycle time"
+    ],
+    "probeAssemblySha256": "48b904b2b5ae2b78e8c8c531b3ed63f935cb47e58c0b7721251e62bc40561041"
+  },
+  "nativeBee": {
+    "scope": "Actual Unity 6000.3.22f1 three-assembly zero-package graph generation only; actual backend publication fails",
+    "primaryRaw": {
+      "path": "artifacts/sx-20261015/bee-measured-02/result.json",
+      "sha256": "b75e0f9e99828d590e435bef278fd28cd28a9c6c4198c2a43ce71f22773f3781"
+    },
+    "inputIdentity": {
+      "path": "artifacts/sx-20261015/bee-measured-02/input.json",
+      "sha256": "3ba501a9c6f5146f1368544e07e3fbaf9aaa4c9b29034fba5a6b066778706bea"
+    },
+    "probeAssemblySha256": "d0efd1dbd85fd5e0d823cf99b28a1636ae451fabd7d821c578f53a997332f22c",
+    "order": [
+      "overlay",
+      "native-bee",
+      "native-bee",
+      "overlay"
+    ],
+    "roundsPerFreshView": 3,
+    "osCacheReset": false,
+    "timingOverlappedBuildOrTests": false,
+    "rows": [
+      {
+        "mode": "overlay",
+        "run": 0,
+        "graphsSeconds": [
+          1.3125607999973,
+          1.6098031000001356,
+          1.5750163000775501
+        ],
+        "prepareSeconds": 0.32408719998784363,
+        "inputSeconds": 0.09853930003009737,
+        "sourceEditSeconds": 0.025751000037416816,
+        "closureSeconds": 0.36349630006588995,
+        "accountedLifecycleSeconds": 5.309254000196233,
+        "lifecycleWallSeconds": 5.573113300022669,
+        "finalAllocation": {
+          "directories": [
+            {
+              "directory": "delta",
+              "files": 112,
+              "logicalBytes": 159455,
+              "allocatedBytes": 487424
+            }
+          ],
+          "logicalBytes": 159455,
+          "allocatedBytes": 487424,
+          "boundary": "Final retained regular-file allocation after normal provider exit, not peak: only this run's delta and native-bee directories. Shared fixture, tools, source export, receipts, measurement copies and filesystem directory metadata are excluded.",
+          "method": "GetFileInformationByHandleEx(FileStandardInfo).AllocationSize",
+          "peakTemporaryAllocation": "NotMeasured"
+        },
+        "passed": true
+      },
+      {
+        "mode": "overlay",
+        "run": 3,
+        "graphsSeconds": [
+          1.3093970000045374,
+          1.4596792000811547,
+          1.5922300000675023
+        ],
+        "prepareSeconds": 0.32023840001784265,
+        "inputSeconds": 0.10559720010496676,
+        "sourceEditSeconds": 0.029160400037653744,
+        "closureSeconds": 0.5560791000025347,
+        "accountedLifecycleSeconds": 5.372381300316192,
+        "lifecycleWallSeconds": 5.656099100015126,
+        "finalAllocation": {
+          "directories": [
+            {
+              "directory": "delta",
+              "files": 112,
+              "logicalBytes": 159462,
+              "allocatedBytes": 487424
+            }
+          ],
+          "logicalBytes": 159462,
+          "allocatedBytes": 487424,
+          "boundary": "Final retained regular-file allocation after normal provider exit, not peak: only this run's delta and native-bee directories. Shared fixture, tools, source export, receipts, measurement copies and filesystem directory metadata are excluded.",
+          "method": "GetFileInformationByHandleEx(FileStandardInfo).AllocationSize",
+          "peakTemporaryAllocation": "NotMeasured"
+        },
+        "passed": true
+      },
+      {
+        "mode": "native-bee",
+        "run": 1,
+        "graphsSeconds": [
+          0.47893240000121295,
+          0.6289882999844849,
+          0.45786879991646856
+        ],
+        "prepareSeconds": 0.37130859994795173,
+        "inputSeconds": 0.008676200057379901,
+        "sourceEditSeconds": 0.10590019996743649,
+        "closureSeconds": 0.15234979998786002,
+        "accountedLifecycleSeconds": 2.2040242998627946,
+        "lifecycleWallSeconds": 2.3485171999782324,
+        "finalAllocation": {
+          "directories": [
+            {
+              "directory": "delta",
+              "files": 4,
+              "logicalBytes": 2665,
+              "allocatedBytes": 8192
+            },
+            {
+              "directory": "native-bee",
+              "files": 7,
+              "logicalBytes": 624406,
+              "allocatedBytes": 643072
+            }
+          ],
+          "logicalBytes": 627071,
+          "allocatedBytes": 651264,
+          "boundary": "Final retained regular-file allocation after normal provider exit, not peak: only this run's delta and native-bee directories. Shared fixture, tools, source export, receipts, measurement copies and filesystem directory metadata are excluded.",
+          "method": "GetFileInformationByHandleEx(FileStandardInfo).AllocationSize",
+          "peakTemporaryAllocation": "NotMeasured"
+        },
+        "passed": true
+      },
+      {
+        "mode": "native-bee",
+        "run": 2,
+        "graphsSeconds": [
+          0.4728557999478653,
+          0.4431857999879867,
+          0.4444096999941394
+        ],
+        "prepareSeconds": 0.3765806999290362,
+        "inputSeconds": 0.009526400011964142,
+        "sourceEditSeconds": 0.09756479994393885,
+        "closureSeconds": 0.15298610005993396,
+        "accountedLifecycleSeconds": 1.9971092998748645,
+        "lifecycleWallSeconds": 2.102158199995756,
+        "finalAllocation": {
+          "directories": [
+            {
+              "directory": "delta",
+              "files": 4,
+              "logicalBytes": 2665,
+              "allocatedBytes": 8192
+            },
+            {
+              "directory": "native-bee",
+              "files": 7,
+              "logicalBytes": 624405,
+              "allocatedBytes": 643072
+            }
+          ],
+          "logicalBytes": 627070,
+          "allocatedBytes": 651264,
+          "boundary": "Final retained regular-file allocation after normal provider exit, not peak: only this run's delta and native-bee directories. Shared fixture, tools, source export, receipts, measurement copies and filesystem directory metadata are excluded.",
+          "method": "GetFileInformationByHandleEx(FileStandardInfo).AllocationSize",
+          "peakTemporaryAllocation": "NotMeasured"
+        },
+        "passed": true
+      }
+    ],
+    "means": {
+      "overlay": {
+        "initialGraphSeconds": 1.3109789000009187,
+        "rewriteGraphSeconds": 1.5591821500565857,
+        "allGraphSeconds": 1.4764477333713633,
+        "allGraphRangeSeconds": [
+          1.3093970000045374,
+          1.6098031000001356
+        ],
+        "accountedLifecycleSeconds": 5.340817650256213,
+        "lifecycleWallSeconds": 5.614606200018898,
+        "finalAllocatedBytes": 487424,
+        "finalLogicalBytes": 159458.5,
+        "prepareSeconds": 0.32216280000284314,
+        "closureSeconds": 0.4597877000342123
+      },
+      "native-bee": {
+        "initialGraphSeconds": 0.47589409997453913,
+        "rewriteGraphSeconds": 0.4936131499707699,
+        "allGraphSeconds": 0.4877067999720263,
+        "allGraphRangeSeconds": [
+          0.4431857999879867,
+          0.6289882999844849
+        ],
+        "accountedLifecycleSeconds": 2.1005667998688295,
+        "lifecycleWallSeconds": 2.2253376999869943,
+        "finalAllocatedBytes": 651264,
+        "finalLogicalBytes": 627070.5,
+        "prepareSeconds": 0.37394464993849397,
+        "closureSeconds": 0.152667950023897
+      }
+    },
+    "allGraphTimeReductionPercent": 66.96755401842891,
+    "equalNormalizedGraphAndPayload": true,
+    "normalizedGraphSha256": "3678d662809aac85614133038389b840bf58122133681abb73e6ed672253110b",
+    "originalInputAndIndependentSourceResultsVerified": true,
+    "allProvidersExitedNormally": true,
+    "nativeDurability": "Native Bee uses ordinary NTFS buffered durability, not SJL4 per-write durable ACKs. Source and other Library paths retain the range journal. These component timings do not establish equal-durability or complete Unity performance.",
+    "physicalAllocationMethod": "GetFileInformationByHandleEx(FileStandardInfo).AllocationSize",
+    "allocationBoundary": "Final retained regular-file allocation after normal provider exit, not peak: only this run's delta and native-bee directories. Shared fixture, tools, source export, receipts, measurement copies and filesystem directory metadata are excluded.",
+    "peakTemporaryAllocation": "NotMeasured",
+    "priorTimedCohort": {
+      "raw": {
+        "path": "artifacts/sx-20261015/bee-measured-01/result.json",
+        "sha256": "68a16095fae762e00e17140013bca456bc361022ccabfbe2f08394e0b9c2ba86"
+      },
+      "meanGraphSeconds": {
+        "overlay": 1.507265499967616,
+        "native-bee": 0.5301973333504671
+      },
+      "limit": "Timing remains valid; raw allocatedBytes used GetCompressedFileSizeW, not NTFS AllocationSize. Excluded from physical-space conclusions; final harness fixes the meter."
+    },
+    "actualCompilation": {
+      "status": "Failed_NotQualified",
+      "failedNodes": "Tundra state and digest-cache atomic publication",
+      "win32Error": 17,
+      "symbol": "ERROR_NOT_SAME_DEVICE",
+      "relativeAndAbsoluteViewPathsFail": true,
+      "copyAllowedChangesFileIdentity": true,
+      "directNativeRenamePreservesFileIdentity": true,
+      "copyFallbackAdopted": false,
+      "toolchainModified": false,
+      "raw": {
+        "path": "artifacts/sx-20261015/native-rename-diagnostic-exact/rename.json",
+        "sha256": "f720baf16b04ddcd67ac71a113ca6df3d1e48c5ccda5503d38a3eeb54ec186c4"
+      },
+      "failedReplay": {
+        "path": "artifacts/sx-20261015/bee-correctness-04/run-0-native-bee-failure.json",
+        "sha256": "9fc04da0423e947df9ac5f21055efca9d2af281055bb632b5d4b1d9dcb0d00cc"
+      }
+    },
+    "limits": [
+      "Two fresh views per variant, three graphs per view; not statistical or cache-reset qualification",
+      "No Editor, ILPP, Play, or whole workflow speedup",
+      "Native Bee buffering differs from per-write journal durability",
+      "Graph-only lifetime includes preparation, source proof/export and normal closure; no build or mapped-build cleanup"
+    ]
+  },
+  "verification": {
+    "boundedLogSelfTest": {
+      "path": "artifacts/bounded-log-probe-20261015/selftest-02/selftest-result.json",
+      "sha256": "8dc12422dd81056e35d9d730de176ba3bcb01e0957b45134600e5a0a5a6e31a2"
+    },
+    "boundedLogSelfTestPassed": 24,
+    "nativeSelfTest": {
+      "path": ".local/sx-bee-selftest-06/selftest-result.json",
+      "sha256": "69025d4ef58beebb9e54ab0fbb41c90137619ed70c602882f06bba54d2eaa522"
+    },
+    "nativeSelfTestPassed": true,
+    "nativeUnsupportedAtomicRenamePreservesInputs": true,
+    "fullBuild": {
+      "path": "artifacts/sx-20261015/build.log",
+      "sha256": "6d02761f65fe6db41b75c66cb07a6faf15aace67a21f6b73abc92553867d5f83"
+    },
+    "fullTrx": {
+      "path": "artifacts/sx-20261015/full-regression.trx",
+      "sha256": "d842aa182a6d3f641a93eba809128c5ca2496be83f934161b136310b34a22132"
+    },
+    "fullBuildExitCode": 0,
+    "passed": 1615,
+    "failed": 0,
+    "skipped": 24,
+    "total": 1639,
+    "finalProbeOnlyFollowup": "Rebuilt and actual mounted selftest-06 after full solution build; no further product storage change",
+    "powerLoss": "NotRun",
+    "finalResourceObservation": {
+      "ownedProbeProcesses": 0,
+      "finalFourViewsAbsent": true,
+      "siblingUnityHead": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+      "siblingUnityGitClean": true,
+      "scope": "Live read-only host process query and exact final-cohort paths after both exec sessions exited; no global process reclamation"
+    }
+  },
+  "decision": {
+    "boundedLog": "Advance only with full metadata/lifecycle/recovery semantics and explicit RAM/disk/write-amplification budget",
+    "nativeGraft": "Rejected for actual Bee compilation; graph-only gain does not qualify workflow",
+    "alternativesNotImplemented": [
+      "Native project root with separately protected overlay sources",
+      "Native Bee backing within one virtual-volume namespace"
+    ],
+    "wholeUnityAgainstSharedEditor": "NotRun",
+    "sharedEditorHistoricalSeconds": 313.1508,
+    "doNotSumComponentReductions": true,
+    "readmeWholeWorkflowMetricsChanged": false
+  }
+}

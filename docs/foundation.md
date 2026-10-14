@@ -44,6 +44,7 @@ Common Library/project restore uses v2 plans, existing file identities, new-file
 | `unity/Splinter.Editor` | Liveness/import/compile-progress observations, unsaved-scene/Play protection, normal shutdown. | Unity Editor API; included only in owned workspaces |
 | `Splinter.Tests`, `tests/Splinter.UnityBridgeHarness` | Contracts/fakes, actual Git/Windows children, bridge-source conformance. | xUnit v3, MTP; bridge uses Unity API stubs |
 | `tools/Splinter.ReplayProbe`, `tools/Splinter.WriteProbe` | Read/write costs and correctness instrumentation for fixed synthetic inputs. | Runtime; development tools |
+| `tools/Splinter.BeeProbe`, `tools/Splinter.BoundedLogProbe` | Small native Bee and bounded range-log [structural prototypes](plans/structural-throughput-prototypes.md); no product backend selection. | Runtime; Bee also Windows; development tools |
 
 CLI is a short-lived process. Host is a read-only in-process layer, not a daemon/DB writer. Runtime durably publishes intent before effects and same-request receipts. Provider-specific APIs stay in adapters; Core contains no Unity/Win32/Git/Codex APIs.
 

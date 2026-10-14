@@ -22,6 +22,8 @@
 
 ## 현재 기능의 소유 문서
 
+- 구조적 처리량 시제품은 `docs/plans/structural-throughput-prototypes.md`·`docs/verification/structural-throughput-prototypes.md`의 SX-01–04를 따른다. `tools/Splinter.BeeProbe`·`tools/Splinter.BoundedLogProbe`의 `capabilities`와 `scripts/measure-bee-prototype.py --help`가 개발 전용 진입점이다. 새 작은 fixture의 native NTFS Bee와 제한된 과거 범위 로그를 비교하며 원본·독립 결과·소스/로그 응답 전 flush를 보호한다. 재생성 가능한 native Bee는 일반 NTFS buffering을 사용한다. 제품 backend·기본값·형식 변경이나 전체 Unity 속도 자격으로 승계하지 않는다.
+
 - Unity 처리 시간 후속은 `docs/verification/unity-throughput-optimization.md`의 TP-01–06이 소유한다. 경로별 Git 해석 manifest v3·최초 검증 내용의 1회 admission·연산 한정 capsule 핸들·읽기당 4MiB/64개 private encoded capture를 사용하며 이전 manifest는 이관 없이 보존·거부한다. Windows cache 유지 실험은 실제 Unity 종료 뒤 각 작업의 Burst DLL image 문맥11개가 남아 정상 회수에 실패하여 철회했다. 제품은 cleanup purge를 유지하고 실패한 flush/응답 게시에서는 live provider를 보존한다. 전체 읽기 증명·개별 durable flush/ACK·최종 seal/회수는 유지하며 작은 비용이나 실패 후보의 일부 단계 개선을 전체 Unity 이점으로 승계하지 않는다. TP-06의 복구 비용과 정상 전체 시간은 구별한다.
 
 - 다단계 Unity 미로 작업 비교는 `docs/verification/unity-maze-workflow.md`의 MW-01이 소유한다. `07bc2de`·동일 원본/초기 Library·같은 A/B 기능 소스로 여섯 단계와 통합 미로 세 장면의 저장/재열기·실제 입력/이동/클리어/재시작을 확인했다. 복구 포함 관찰 시간은 Splinter 1,501.9초·공유 Editor 787.5초이며 정상 처리 속도 비율로 쓰지 않는다. S의 정상 종료 영수증 계측 경쟁·60.7초 별도 대기와 Q의 material 저장 대화상자·476.5초 오염 구간/전환 절차 보완을 유지한다. 외부 fixture의 한정 Play 근거이며 제품 Unity API·일반 도구/빌드/공간/RAM·긴 작업 손익분기 자격으로 확대하지 않는다.

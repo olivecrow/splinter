@@ -16,6 +16,7 @@ Find current implementation in feature documents below and subsequent responsibi
 
 | Document | Owned content |
 | --- | --- |
+| [Structural throughput prototypes](plans/structural-throughput-prototypes.md), [verification](verification/structural-throughput-prototypes.md) | SX-01–04: development-only native NTFS Bee and bounded durable range-log experiments, fixed small inputs, original/result safety and component timing boundaries. |
 | [Unity throughput optimization](verification/unity-throughput-optimization.md) | TP-01–06: Git proof reuse and bounded journal improvements; the cache-retention experiment was withdrawn after a real Unity reclamation failure. Component evidence, recovery and shared-Editor comparison are separated. |
 | [Multi-stage Unity maze workflow](verification/unity-maze-workflow.md) | MW-01: real maze generation, saved scenes, character/input and Play validation in parallel A/B versus one shared Editor. Completed workflows include recovery; normal stage costs, equivalent outcomes and timing limits are separated. |
 | [Unity workflow with parallel combined completion](verification/unity-finalization-rerun.md) | FU-01: committed `07bc2de`, 768.3s complete Splinter workflow and 94.0s shared Editor on the same current input; parallel `checkpoint --release`, historical input differences and verified cleanup. |

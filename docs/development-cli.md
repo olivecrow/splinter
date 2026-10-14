@@ -22,6 +22,8 @@ pwsh ./scripts/splinter-dev.ps1 schema view.execute
 
 Consult the corresponding documents for execution conditions of the existing replay/write tools and journal/kernel/product-write recovery tests. Product capabilities do not advertise this development catalog; they identify only the separate development entry point.
 
+The [structural throughput prototypes](plans/structural-throughput-prototypes.md) are separate executables, not workspace storage modes. `tools/Splinter.BeeProbe` and `tools/Splinter.BoundedLogProbe` each expose a read-only `capabilities` command. The former experiments with an owned native `Library/Bee` subtree; the latter experiments with bounded obsolete range history and generation checkpoints. `scripts/measure-bee-prototype.py --help` describes the bounded actual Bee replay. Run only against a new explicitly selected fixture/output. These tools do not change product defaults or qualify complete Unity workflow speed.
+
 Product release/discard also protects snapshots referenced by a view or an open cache. Only workspace, candidate, cache, and receipt formats in the current contract are read. Unsupported fields/formats and damaged or incomplete requests are preserved and explicitly rejected. Recovery of an interrupted request uses that request's intent and receipt.
 
 Unity and WF/LB execution records in verification are evidence for the specified candidate and input. They do not automatically qualify changes to external-tool connections or native execution under the current contract.

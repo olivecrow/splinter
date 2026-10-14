@@ -14,6 +14,7 @@
 
 | 문서 | 소유하는 내용 |
 | --- | --- |
+| [구조적 처리량 시제품](plans/structural-throughput-prototypes.md), [검증](verification/structural-throughput-prototypes.md) | SX-01–04: 개발 전용 native NTFS Bee·제한된 durable 범위 로그, 고정한 작은 입력·원본/결과 보호와 구성 요소 시간 측정의 경계. |
 | [Unity 작업 시간 최적화](verification/unity-throughput-optimization.md) | TP-01–06: Git 증명 재사용과 제한된 저널 개선. cache 유지 실험은 실제 Unity 회수 실패 뒤 철회했다. 구성 요소 근거·복구·공유 Editor 비교를 구분한다. |
 | [다단계 Unity 미로 작업 비교](verification/unity-maze-workflow.md) | MW-01: 실제 미로 생성·장면 저장·캐릭터/입력·Play 검증을 병렬 A/B와 공유 Editor로 수행. 복구를 포함한 완료 기록과 정상 단계 비용·동등한 결과·시간 해석 한계를 구분한다. |
 | [병렬 통합 종료를 사용한 Unity 전체 작업](verification/unity-finalization-rerun.md) | FU-01: 커밋 `07bc2de`, 같은 현재 입력의 Splinter 전체 768.3초와 공유 Editor 94.0초. 병렬 `checkpoint --release`, 과거 입력 차이와 회수 검증. |

@@ -1060,6 +1060,18 @@
             "measurements": {"type":"string", "minLength":1}
           }
         },
+        "developmentStructuralThroughputProbes": {
+          "type": "object", "additionalProperties": false,
+          "required": ["stage", "bee", "boundedLog", "measurement", "scope", "boundaries"],
+          "properties": {
+            "stage": {"const": "isolated-prototypes-not-product-backends"},
+            "bee": {"type": "string", "minLength": 1},
+            "boundedLog": {"type": "string", "minLength": 1},
+            "measurement": {"type": "string", "minLength": 1},
+            "scope": {"const": "docs/plans/structural-throughput-prototypes.md"},
+            "boundaries": {"type": "string", "minLength": 1}
+          }
+        },
         "developmentPayloadCodec": {
           "type": "object", "additionalProperties": false,
           "required": ["stage", "contract", "codec", "maxDecodedBytes", "blockOverheadBytes", "scope", "specification", "qualification"],

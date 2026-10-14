@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Splinter.Core/Splinter.Core.csproj" />
+    <ProjectReference Include="../../src/Splinter.Runtime/Splinter.Runtime.csproj" />
+  </ItemGroup>
+</Project>

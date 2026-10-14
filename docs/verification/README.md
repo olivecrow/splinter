@@ -3,6 +3,8 @@
 
 [한국어](../ko/verification/README.md)
 
+[Structural throughput prototypes](structural-throughput-prototypes.md) owns SX-01–04: native NTFS Bee and a bounded durable range log on isolated small inputs. Component timing, extra RAM/temporary space, successful source/result protection and failed-pilot recovery are separated from unmeasured full Unity speed.
+
 [Unity throughput optimization](unity-throughput-optimization.md) TP-01–06: Git proof reuse and bounded journal improvements; the cache-retention experiment was withdrawn after a real Unity reclamation failure. Component evidence, recovery and shared-Editor comparison are separated.
 
 [Multi-stage Unity maze workflow](unity-maze-workflow.md) owns MW-01: six feature stages and three integrated playable mazes pass in both methods. The observed 1,501.9s Splinter / 787.5s shared-Editor workflows include recovery and do not establish a clean throughput ratio. Normal preparation/integration costs and original/resource closure are recorded separately.

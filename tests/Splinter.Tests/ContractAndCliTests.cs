@@ -346,6 +346,9 @@ public sealed class ContractAndCliTests
         var data = response.RootElement.GetProperty("data");
         if (development)
         {
+            var probes = data.GetProperty("developmentStructuralThroughputProbes");
+            Assert.Equal("isolated-prototypes-not-product-backends", probes.GetProperty("stage").GetString());
+            Assert.Equal("docs/plans/structural-throughput-prototypes.md", probes.GetProperty("scope").GetString());
             var codec = data.GetProperty("developmentPayloadCodec");
             Assert.Equal("workspace-internal-alpha", codec.GetProperty("stage").GetString());
             Assert.Equal("docs/journal-payload-compression.md", codec.GetProperty("specification").GetString());
@@ -356,7 +359,11 @@ public sealed class ContractAndCliTests
             unsupported["data"]!["developmentPayloadCodec"]!["stage"] = "standalone-unqualified";
             Assert.False(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(unsupported)).IsValid);
         }
-        else Assert.True(!data.TryGetProperty("developmentPayloadCodec", out var hidden) || hidden.ValueKind == JsonValueKind.Null);
+        else
+        {
+            Assert.True(!data.TryGetProperty("developmentPayloadCodec", out var hidden) || hidden.ValueKind == JsonValueKind.Null);
+            Assert.True(!data.TryGetProperty("developmentStructuralThroughputProbes", out var probes) || probes.ValueKind == JsonValueKind.Null);
+        }
         Assert.DoesNotContain(catalog.Commands, command => command.Id.Contains("codec", StringComparison.Ordinal));
     }
 

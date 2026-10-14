@@ -2,6 +2,8 @@
 
 [English](../../verification/README.md)
 
+[구조적 처리 시간 시제품](structural-throughput-prototypes.md)이 SX-01–04를 소유한다. 작은 격리 입력의 native NTFS Bee·제한 durable 범위 로그를 비교하며, 구성 요소 시간·추가 RAM/임시 공간·원본/결과 보호·실패 pilot 복구와 미측정 전체 Unity 속도를 구분한다.
+
 [Unity 작업 시간 최적화](unity-throughput-optimization.md) TP-01–06: Git 증명 재사용과 제한된 저널 개선. cache 유지 실험은 실제 Unity 회수 실패 뒤 철회했다. 구성 요소 근거·복구·공유 Editor 비교를 구분한다.
 
 [다단계 Unity 미로 작업 비교](unity-maze-workflow.md)가 MW-01을 소유한다. 여섯 기능 단계와 통합 미로 세 장면의 실제 Play 검증이 양쪽에서 통과했다. 관찰된 Splinter 1,501.9초·공유 Editor 787.5초는 복구를 포함하므로 정상 처리 속도 비율을 입증하지 않는다. 정상 준비/통합 비용과 원본/자원 회수는 별도로 기록한다.
