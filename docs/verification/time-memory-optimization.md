@@ -2,7 +2,7 @@
 
 [한국어](../ko/verification/time-memory-optimization.md)
 
-TM-01–04 implement the follow-up to [UF-01](unity-final-lifecycle.md). UF's full Unity workflow remains the recorded **1,083.0s at `116fd44`**; the new candidate has not been timed with two Unity Editors. The [dataset](../../reports/benchmarks/time-memory-optimization-20261014.json) records small-fixture costs, runtime/source hashes, validation and limitations. The source baseline is `5fab578`; the frozen native comparison runtime is UF's `116fd44`.
+TM-01–04 implement the follow-up to [UF-01](unity-final-lifecycle.md). At this bounded verification, the new candidate had not been timed with two Unity Editors. The subsequent [UT-01 actual Unity run](unity-time-memory.md) at committed `7630970` measured **875.2s**, versus UF's **1,083.0s at `116fd44`**; its faster preparation/restoration and slower Editor/preservation stages are recorded separately. The [dataset](../../reports/benchmarks/time-memory-optimization-20261014.json) below retains the original small-fixture costs, runtime/source hashes, validation and limitations. The source baseline is `5fab578`; the frozen native comparison runtime is UF's `116fd44`.
 
 ## Changes and retained guards
 

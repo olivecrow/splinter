@@ -22,6 +22,10 @@
 
 ## 현재 기능의 소유 문서
 
+- README의 현재 Codex/Splinter 시간·저장 비교는 `docs/verification/unity-current-comparison.md`의 RC-01이 소유한다. 같은 raw Git 입력·A/B 병렬·한 줄 수정과 충돌 없는 소스 병합/회수에 한정한다. 대화 시작·입력 확인/할당 계측 제외, 첫 진단 실행과 최종 비교의 구분, Git 파일/등록 회수 뒤 남은 빈 Codex root를 유지한다. 양쪽 모두 병렬 가능하며 긴 작업의 손익분기를 실측한 것으로 확대하지 않는다.
+
+- TM 후속 실제 Unity 전체 비용은 `docs/verification/unity-time-memory.md`의 UT-01을 따른다. `7630970`·같은 RB/UF 소스/Library/편집·병렬 ensure 한 묶음에서 875.2s를 측정했다. 준비·복원 절감과 Editor/보존 비용 증가를 함께 기록하며 cache별 인과 효과·새 외부 도구/Play/Test/build 자격으로 확대하지 않는다.
+
 - 시간·RAM 최적화는 `docs/verification/time-memory-optimization.md`의 TM-01–04를 따른다. Library 하위 디렉터리 namespace를 연산/수명 범위에서 고정하고 provider admission만 최대 2개 hash worker를 사용한다. Git은 tree당 16MiB/4,096-entry 요청 청크 RAM LRU를 기존 proof/두 decoder에 더하며 최초 전체 검증·proof 퇴출·실패 drain을 유지한다. 저널은 store당 64MiB/4,096-entry decoded RAM cache를 쓰되 매 hit의 현재 encoded bytes/hash와 전체 seal/replay·개별 flush/ACK를 유지한다. `readCacheBytes=0`은 디스크 cache이며 전체 RAM이 아니다. 독립 key의 병렬 ensure는 에이전트 절차이며 제품 scheduler가 아니다. 작은 비용/Editor 없는 A/B를 전체 Unity 절감률로 승계하지 않는다.
 
 - 준비 시간 최적화는 `docs/verification/startup-time-optimization.md`의 ST-01–04를 따른다. 당시 SJN2는 32-extent 불변 append 앞부분을 재사용하고 앞부분 변경 뒤 live repaging을 끈다. 현재 형식과 덮어쓰기 개선은 LC-01이 소유한다. 페이지 소유권·hash·범위·inventory와 개별 flush/ACK를 유지하며 최초 페이지 무효화의 소유 capsule payload 이동과 임의 덮어쓰기 비용을 구분한다. 동일 소유 Unity bridge는 전체 guard 뒤 재사용하며 원본 시각·Bee cache는 변경하지 않는다. 작은 NTFS 비용·자동 회귀를 실제 Unity 준비 시간으로 승계하지 않는다.

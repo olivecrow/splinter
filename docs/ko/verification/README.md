@@ -2,9 +2,13 @@
 
 [English](../../verification/README.md)
 
+**현재 비교:** [RC-01](unity-current-comparison.md)은 같은 원본 입력에서 일반 Codex/Git 워크트리 819.7s, Splinter 935.2s와 현재 추가 파일 할당을 기록한다. 양쪽 A/B 병렬·같은 소스 병합 결과이며 입력 확인/할당 계측·대화 시작 시간의 제외와 빈 Codex root 잔여를 구분한다.
+
+**이전 Unity 측정:** [UT-01](unity-time-memory.md), `7630970`, **14분 35.2초**로 UF의 18분 3.0초와 비교한다. 같은 원본 소스/Library·편집이며 A/B 생성을 병렬 실행했다. 준비·복원은 줄었지만 Editor·보존 단계는 늘었고, 단일 실행으로 각 변경의 효과를 분리하지 않는다. 아래 UF 기록은 과거 근거다.
+
 [시간·RAM 최적화](time-memory-optimization.md)는 TM-01–04를 소유한다. Library 검증 범위 고정, Git/저널 RAM cache와 독립 병렬 준비의 작은 Editor 없는 입력·현재 회귀 근거이며, UF-01의 기록된 전체 Unity 시간을 대체하지 않는다.
 
-**현재 Unity 시간은 [UF-01](unity-final-lifecycle.md)이 기준이다.** 커밋 `116fd44`에서 전체 18분 3.0초, Editor 준비 3분 36.1초, 보존·회수 2분 52.0초, Library 복원 2분 6.0초를 측정했다. 최초와 같은 소스/Library·A/B 편집이며 종료 시간 제한 없이 원본과 소유 자원 회수를 검증했다. 아래 RB/UR/UC/UP/US 수치는 해당 후보의 과거 근거다.
+**이전 전체 작업 비교 기준은 [UF-01](unity-final-lifecycle.md)이다.** 커밋 `116fd44`에서 전체 18분 3.0초, Editor 준비 3분 36.1초, 보존·회수 2분 52.0초, Library 복원 2분 6.0초를 측정했다. 최초와 같은 소스/Library·A/B 편집이며 종료 시간 제한 없이 원본과 소유 자원 회수를 검증했다. 아래 RB/UR/UC/UP/US 수치는 해당 후보의 과거 근거다.
 
 [외부 도구 결합 제거](external-tool-boundaries.md)는 MCP 부재/내부 API 변경에 독립적인 bridge 초기화·정상 종료와 패키지 run-state 보존의 자동 회귀를 소유한다. MCP·Unity CLI의 이름/버전·패치·연결 성공은 제품 전제가 아니다. 아래 도구별 실행 기록은 당시 후보/입력의 사실이며 현재 지원이나 설치 요구로 승계하지 않는다.
 

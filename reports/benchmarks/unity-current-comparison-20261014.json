@@ -1,0 +1,1319 @@
+{
+  "verificationId": "RC-01",
+  "candidateCommit": "7630970f9e13bfaa500af2dbf6c6c6d978406d3e",
+  "date": "2026-10-14",
+  "original": {
+    "commit": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+    "trackedFiles": 1602,
+    "trackedBytes": 2804772822,
+    "unity": "6000.3.22f1",
+    "libraryEntries": 44860,
+    "libraryFiles": 42420,
+    "libraryBytes": 3141660252,
+    "libraryMatchesOriginalRb": true
+  },
+  "environment": {
+    "memory": {
+      "TotalPhysicalMemory": 68628553728
+    },
+    "os": {
+      "Caption": "Microsoft Windows 11 Home",
+      "Version": "10.0.26200",
+      "BuildNumber": "26200"
+    },
+    "cpu": {
+      "Name": "AMD Ryzen 5 5600X 6-Core Processor             ",
+      "NumberOfCores": 6,
+      "NumberOfLogicalProcessors": 12
+    },
+    "observedUtc": "2026-10-13T20:05:52.7501519Z"
+  },
+  "scheduling": "A/B independent Editor work concurrent for BOTH methods. Initial Codex diagnostic cohort preserved; final comparison uses Splinter then uninterrupted Codex repeat. No OS cache clearing/order randomization.",
+  "timingSeconds": {
+    "c": {
+      "libraryPrepare": 0,
+      "create": 13.410214299918152,
+      "initial": 761.7128611999797,
+      "edit": 9.365580499987118,
+      "assets": 7.642682999963625,
+      "stop": 3.626547500025481,
+      "preserveRelease": 23.26557409996167,
+      "merge": 0.681186500005424,
+      "libraryRestore": 0,
+      "total": 819.7175484999316
+    },
+    "s": {
+      "libraryPrepare": 60.21960489999037,
+      "create": 168.7671132000396,
+      "initial": 310.5419377000071,
+      "edit": 31.699268800090067,
+      "assets": 1.21220769990801,
+      "stop": 116.81087450007908,
+      "preserveRelease": 199.53541350003798,
+      "merge": 0.7042305000359192,
+      "libraryRestore": 45.47352789994329,
+      "total": 935.246187999961
+    }
+  },
+  "storage": {
+    "c": {
+      "at": "2026-10-13T20:14:36.434134+00:00",
+      "roots": [
+        {
+          "path": "C:\\Users\\olive\\.codex\\worktrees\\d6ad\\splinter-unity",
+          "categories": {
+            "other": {
+              "files": 142,
+              "allocatedBytes": 8766224,
+              "logicalBytes": 8513494
+            },
+            "project-source": {
+              "files": 1594,
+              "allocatedBytes": 2807174328,
+              "logicalBytes": 2804743981
+            },
+            "Library": {
+              "files": 31814,
+              "allocatedBytes": 2826612104,
+              "logicalBytes": 2789601794
+            },
+            "generated-other": {
+              "files": 229,
+              "allocatedBytes": 8143920,
+              "logicalBytes": 7264181
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 5650696576,
+          "observedSubtotal": 5650696576,
+          "errors": []
+        },
+        {
+          "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\unity-readme-current-20261014\\codex-repeat\\c-a-control",
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 1421600,
+              "logicalBytes": 1353428
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 1421600,
+          "observedSubtotal": 1421600,
+          "errors": []
+        },
+        {
+          "path": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity\\.git\\worktrees\\splinter-unity3",
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 221496,
+              "logicalBytes": 219221
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 221496,
+          "observedSubtotal": 221496,
+          "errors": []
+        },
+        {
+          "path": "C:\\Users\\olive\\.codex\\worktrees\\5d98\\splinter-unity",
+          "categories": {
+            "other": {
+              "files": 142,
+              "allocatedBytes": 8766224,
+              "logicalBytes": 8513494
+            },
+            "project-source": {
+              "files": 1594,
+              "allocatedBytes": 2807174336,
+              "logicalBytes": 2804743989
+            },
+            "Library": {
+              "files": 31810,
+              "allocatedBytes": 2822413632,
+              "logicalBytes": 2785405373
+            },
+            "generated-other": {
+              "files": 219,
+              "allocatedBytes": 8130656,
+              "logicalBytes": 7216818
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 5646484848,
+          "observedSubtotal": 5646484848,
+          "errors": []
+        },
+        {
+          "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\unity-readme-current-20261014\\codex-repeat\\c-b-control",
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 1364048,
+              "logicalBytes": 1352542
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 1364048,
+          "observedSubtotal": 1364048,
+          "errors": []
+        },
+        {
+          "path": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity\\.git\\worktrees\\splinter-unity2",
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 221496,
+              "logicalBytes": 219221
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 221496,
+          "observedSubtotal": 221496,
+          "errors": []
+        }
+      ],
+      "totalAllocatedBytes": 11300410064,
+      "elapsedSeconds": 33.052506000036374,
+      "stage": "after both edits compiled; Editors idle",
+      "baselineExcluded": "original source, moved original Library payload and shared Git objects",
+      "peak": false
+    },
+    "s": {
+      "at": "2026-10-13T19:52:53.740538+00:00",
+      "roots": [
+        {
+          "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\rm14\\records\\50890702b2f684f4e975a632",
+          "categories": {
+            "other": {
+              "files": 11397,
+              "allocatedBytes": 67972784,
+              "logicalBytes": 33737060
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 67972784,
+          "observedSubtotal": 67972784,
+          "errors": []
+        },
+        {
+          "path": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity\\.git\\worktrees\\50890702b2f684f4e975a632",
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 221544,
+              "logicalBytes": 219271
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 221544,
+          "observedSubtotal": 221544,
+          "errors": []
+        },
+        {
+          "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\rm14\\records\\e065abe8107b0eec17ff9392",
+          "categories": {
+            "other": {
+              "files": 11416,
+              "allocatedBytes": 68038568,
+              "logicalBytes": 33775724
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 68038568,
+          "observedSubtotal": 68038568,
+          "errors": []
+        },
+        {
+          "path": "C:\\Users\\olive\\Desktop\\Development\\splinter-unity\\.git\\worktrees\\e065abe8107b0eec17ff9392",
+          "categories": {
+            "other": {
+              "files": 6,
+              "allocatedBytes": 221544,
+              "logicalBytes": 219271
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 221544,
+          "observedSubtotal": 221544,
+          "errors": []
+        },
+        {
+          "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\rm14\\runners",
+          "categories": {
+            "other": {
+              "files": 8,
+              "allocatedBytes": 1773912,
+              "logicalBytes": 1758936
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 1773912,
+          "observedSubtotal": 1773912,
+          "errors": []
+        },
+        {
+          "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\rm14\\locks",
+          "categories": {
+            "other": {
+              "files": 4,
+              "allocatedBytes": 0,
+              "logicalBytes": 0
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 0,
+          "observedSubtotal": 0,
+          "errors": []
+        },
+        {
+          "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\rm14\\library-bases\\5c74553191811a36d4f19631",
+          "categories": {
+            "other": {
+              "files": 17,
+              "allocatedBytes": 15181080,
+              "logicalBytes": 15153434
+            }
+          },
+          "complete": true,
+          "allocatedBytes": 15181080,
+          "observedSubtotal": 15181080,
+          "errors": []
+        }
+      ],
+      "totalAllocatedBytes": 153409432,
+      "elapsedSeconds": 9.51157030009199,
+      "stage": "after both edits compiled; Editors idle",
+      "baselineExcluded": "original source, moved original Library payload and shared Git objects",
+      "peak": false
+    }
+  },
+  "additionalAllocationReductionPercent": 98.64244367123702,
+  "totalTimeReductionPercent": -14.09371309805978,
+  "codexCreation": {
+    "elapsedSeconds": 13.410214299918152,
+    "parallel": true,
+    "appOwnedPaths": true,
+    "creationMethod": "git worktree add in existing empty Codex task paths; no new chat startup cost"
+  },
+  "codexReclamation": {
+    "elapsedSeconds": 21.228532999986783,
+    "results": [
+      {
+        "path": "C:\\Users\\olive\\.codex\\worktrees\\d6ad\\splinter-unity",
+        "elapsedSeconds": 10.208193900063634,
+        "exitCode": 255,
+        "stderr": "error: failed to delete 'C:/Users/olive/.codex/worktrees/d6ad/splinter-unity': Permission denied\n",
+        "emptyDirectoryRemains": true
+      },
+      {
+        "path": "C:\\Users\\olive\\.codex\\worktrees\\5d98\\splinter-unity",
+        "elapsedSeconds": 10.812401999952272,
+        "exitCode": 255,
+        "stderr": "error: failed to delete 'C:/Users/olive/.codex/worktrees/5d98/splinter-unity': Permission denied\n",
+        "emptyDirectoryRemains": true
+      }
+    ],
+    "workspacePayloadsRemoved": true,
+    "registrationsRemoved": true,
+    "emptyHostHeldDirectoriesRetained": true
+  },
+  "excludedMeasurementSeconds": {
+    "c": 33.052506000036374,
+    "cInputProof": 24.094596299924888,
+    "s": 9.51157030009199
+  },
+  "totalDefinition": "Codex total is measured parallel creation plus uninterrupted Editor-through-cleanup elapsed time minus allocation observation. Its pre-Editor input proof/preparation gaps are excluded. Splinter total is uninterrupted prepare-through-restore elapsed time minus allocation observation. Codex uses fresh git worktree add in the two app-created task paths, through independent results/merge and payload/registration reclamation. Splinter uses Library prepare through original restore. Chat startup and diagnostic waits excluded. Overlapping A/B counted once.",
+  "combinedResults": {
+    "codex": {
+      "tree": "756e0a926577c9bcff036c823b4816b3b2d5fb19",
+      "revision": "f1e3646b0ce127f1f56a12c26b1d4dc6e4c66899",
+      "resultRef": "refs/splinter-benchmark/20261014-current/codex-repeat-combined",
+      "elapsedSeconds": 0.681186500005424,
+      "conflicts": false,
+      "originalCheckoutUnchanged": true,
+      "combinedCompilationRun": false
+    },
+    "splinter": {
+      "tree": "756e0a926577c9bcff036c823b4816b3b2d5fb19",
+      "revision": "192a082ff90c3fcc965dada82747bf27b4e8ed42",
+      "resultRef": "refs/splinter-benchmark/20261014-current/splinter-combined",
+      "elapsedSeconds": 0.7042305000359192,
+      "conflicts": false,
+      "originalCheckoutUnchanged": true,
+      "combinedCompilationRun": false
+    },
+    "sameTree": true
+  },
+  "closure": {
+    "status": "completed",
+    "at": "2026-10-13T19:59:03.541024+00:00",
+    "results": [
+      {
+        "worker": "a",
+        "id": "50890702b2f684f4e975a632",
+        "revision": "adce3337f02bc25faeacd6a28053199fae039c80",
+        "resultTreeMatchesHistoricalCodex": true,
+        "phase": "released",
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "storage": {
+            "id": "50890702b2f684f4e975a632",
+            "snapshotId": "git-50890702b2f684f4e975a632-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-869e588e0b569999e8bc9dd46d93caaab6a5f2df77ec1d213860ffb490fdede8",
+            "initialPayloadCopiedBytes": 0,
+            "journalBytes": 36181297,
+            "payloadBytes": 27743247,
+            "metadataBytes": 8438050,
+            "readBytes": 7423343925,
+            "readCacheBytes": 0,
+            "maxTransferBytes": 1048576,
+            "indexedNodes": 46714,
+            "durableSequence": 28490,
+            "metrics": {
+              "epoch": "e57c25eb5f90456a98ffc41365c7d7ad",
+              "lockAcquisitions": 1501528,
+              "lockWaitTicks": 2492816667,
+              "flushCount": 28953,
+              "flushTicks": 1587528911,
+              "commitCount": 28941,
+              "journalAppendedBytes": 267989068,
+              "replayBytes": 0,
+              "replayTicks": 248076,
+              "journalReadBytes": 1134012844,
+              "baseReadBytes": 7167589725,
+              "stopwatchFrequency": 10000000,
+              "replayFrames": 0,
+              "replayReadCalls": 0,
+              "replayReadTicks": 0,
+              "replayValidationTicks": 0,
+              "replayIndexTicks": 0,
+              "replayBufferBytes": 65536,
+              "replayIndexOperations": [],
+              "replayWriteRangeIndex": {
+                "replaceCalls": 0,
+                "priorExtents": 0,
+                "maxPriorExtents": 0,
+                "visitedExtents": 0,
+                "copiedExtents": 0,
+                "locateAndReplaceTicks": 0,
+                "sortTicks": 0,
+                "priorExtentBuckets": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "liveJournalWrites": {
+                "mutationGateCalls": 225924,
+                "mutationGateWaitTicks": 9075195,
+                "operations": [
+                  {
+                    "operation": "create",
+                    "attempts": 606,
+                    "durableCommits": 606,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 282975,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 50186885,
+                    "applyTicks": 0,
+                    "totalTicks": 72539111,
+                    "flushCalls": 606,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "delete",
+                    "attempts": 433,
+                    "durableCommits": 433,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 396072,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 28137370,
+                    "applyTicks": 0,
+                    "totalTicks": 70365925,
+                    "flushCalls": 433,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "forget-unlinked",
+                    "attempts": 451,
+                    "durableCommits": 451,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 151495,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 28029381,
+                    "applyTicks": 0,
+                    "totalTicks": 73285558,
+                    "flushCalls": 451,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "metadata",
+                    "attempts": 455,
+                    "durableCommits": 455,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 250604,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 26240588,
+                    "applyTicks": 0,
+                    "totalTicks": 58788310,
+                    "flushCalls": 455,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "rename",
+                    "attempts": 181,
+                    "durableCommits": 181,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 239405,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 17738282,
+                    "applyTicks": 0,
+                    "totalTicks": 42968642,
+                    "flushCalls": 181,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "resize",
+                    "attempts": 261,
+                    "durableCommits": 261,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 128011,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 6575604,
+                    "applyTicks": 0,
+                    "totalTicks": 49331807,
+                    "flushCalls": 261,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "write",
+                    "attempts": 26554,
+                    "durableCommits": 26554,
+                    "failedCalls": 0,
+                    "payloadBytes": 137447995,
+                    "journalBytes": 266540506,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 1430361551,
+                    "applyTicks": 0,
+                    "totalTicks": 2724250455,
+                    "flushCalls": 26554,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              "readRangeIndex": {
+                "readCalls": 112811,
+                "searchProbes": 74774,
+                "visitedExtents": 44936
+              }
+            },
+            "journalOptimizationEnabled": true,
+            "journalBytesBasis": "current-files"
+          },
+          "hostFreeBytes": 254106066944,
+          "journalRemainingBytes": 17143687887,
+          "snapshotStorage": {
+            "id": "git-50890702b2f684f4e975a632-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-869e588e0b569999e8bc9dd46d93caaab6a5f2df77ec1d213860ffb490fdede8",
+            "available": false,
+            "preservedBytes": 0,
+            "availability": "missing"
+          },
+          "deltaPresent": false,
+          "snapshotAvailability": "missing"
+        }
+      },
+      {
+        "worker": "b",
+        "id": "e065abe8107b0eec17ff9392",
+        "revision": "749c632886bd6be7a5d1a26b17311d793fe3fca5",
+        "resultTreeMatchesHistoricalCodex": true,
+        "phase": "released",
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "storage": {
+            "id": "e065abe8107b0eec17ff9392",
+            "snapshotId": "git-e065abe8107b0eec17ff9392-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-869e588e0b569999e8bc9dd46d93caaab6a5f2df77ec1d213860ffb490fdede8",
+            "initialPayloadCopiedBytes": 0,
+            "journalBytes": 36217191,
+            "payloadBytes": 27769294,
+            "metadataBytes": 8447897,
+            "readBytes": 7446621810,
+            "readCacheBytes": 0,
+            "maxTransferBytes": 1048576,
+            "indexedNodes": 46717,
+            "durableSequence": 28487,
+            "metrics": {
+              "epoch": "fb486bf9eb32416387d3910af82b69a2",
+              "lockAcquisitions": 1565846,
+              "lockWaitTicks": 2512704139,
+              "flushCount": 28947,
+              "flushTicks": 1588902220,
+              "commitCount": 28936,
+              "journalAppendedBytes": 267870696,
+              "replayBytes": 0,
+              "replayTicks": 251337,
+              "journalReadBytes": 1135920659,
+              "baseReadBytes": 7191680957,
+              "stopwatchFrequency": 10000000,
+              "replayFrames": 0,
+              "replayReadCalls": 0,
+              "replayReadTicks": 0,
+              "replayValidationTicks": 0,
+              "replayIndexTicks": 0,
+              "replayBufferBytes": 65536,
+              "replayIndexOperations": [],
+              "replayWriteRangeIndex": {
+                "replaceCalls": 0,
+                "priorExtents": 0,
+                "maxPriorExtents": 0,
+                "visitedExtents": 0,
+                "copiedExtents": 0,
+                "locateAndReplaceTicks": 0,
+                "sortTicks": 0,
+                "priorExtentBuckets": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "liveJournalWrites": {
+                "mutationGateCalls": 238344,
+                "mutationGateWaitTicks": 12348632,
+                "operations": [
+                  {
+                    "operation": "create",
+                    "attempts": 607,
+                    "durableCommits": 607,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 284900,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 51272490,
+                    "applyTicks": 0,
+                    "totalTicks": 73484372,
+                    "flushCalls": 607,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "delete",
+                    "attempts": 431,
+                    "durableCommits": 431,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 377241,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 26364663,
+                    "applyTicks": 0,
+                    "totalTicks": 68151011,
+                    "flushCalls": 431,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "forget-unlinked",
+                    "attempts": 449,
+                    "durableCommits": 449,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 133945,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 27080294,
+                    "applyTicks": 0,
+                    "totalTicks": 71157013,
+                    "flushCalls": 449,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "metadata",
+                    "attempts": 452,
+                    "durableCommits": 452,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 248842,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 27432953,
+                    "applyTicks": 0,
+                    "totalTicks": 60078063,
+                    "flushCalls": 452,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "rename",
+                    "attempts": 181,
+                    "durableCommits": 181,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 220258,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 19587797,
+                    "applyTicks": 0,
+                    "totalTicks": 44966413,
+                    "flushCalls": 181,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "resize",
+                    "attempts": 258,
+                    "durableCommits": 258,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 126675,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 6603299,
+                    "applyTicks": 0,
+                    "totalTicks": 49143544,
+                    "flushCalls": 258,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "write",
+                    "attempts": 26558,
+                    "durableCommits": 26558,
+                    "failedCalls": 0,
+                    "payloadBytes": 137464788,
+                    "journalBytes": 266478835,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 1430340466,
+                    "applyTicks": 0,
+                    "totalTicks": 2711076118,
+                    "flushCalls": 26558,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              "readRangeIndex": {
+                "readCalls": 113396,
+                "searchProbes": 74853,
+                "visitedExtents": 44765
+              }
+            },
+            "journalOptimizationEnabled": true,
+            "journalBytesBasis": "current-files"
+          },
+          "hostFreeBytes": 254204579840,
+          "journalRemainingBytes": 17143651993,
+          "snapshotStorage": {
+            "id": "git-e065abe8107b0eec17ff9392-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-869e588e0b569999e8bc9dd46d93caaab6a5f2df77ec1d213860ffb490fdede8",
+            "available": false,
+            "preservedBytes": 0,
+            "availability": "missing"
+          },
+          "deltaPresent": false,
+          "snapshotAvailability": "missing"
+        }
+      }
+    ],
+    "originalTrackedFilesByteVerified": 1602,
+    "originalClean": true,
+    "originalLibraryOrdinaryNtfs": true,
+    "preexistingRefsUnchanged": true,
+    "localGitConfigRestored": true,
+    "globalGitConfigUnchanged": true,
+    "administratorOrServiceChanges": false
+  },
+  "nativeClosure": {
+    "at": "2026-10-13T19:59:05.276470+00:00",
+    "ordinaryOriginalVolume": true,
+    "filesystem": "NTFS",
+    "reparsePoint": false,
+    "libraryRestored": true,
+    "worktreeRegistrationsEqualPreflight": true,
+    "localAutocrlfAbsent": true,
+    "ownedEditorsAndProvidersAbsent": true,
+    "providers": [
+      {
+        "pid": 3900,
+        "startTimeUtcTicks": 639275174716629393,
+        "absent": true
+      },
+      {
+        "pid": 18380,
+        "startTimeUtcTicks": 639275174699396258,
+        "absent": true
+      },
+      {
+        "pid": 28264,
+        "startTimeUtcTicks": 639275174396377058,
+        "absent": true
+      }
+    ],
+    "frozenProductHashesUnchanged": true,
+    "protectedDirtyFilesByteIdentical": 0
+  },
+  "codexClosure": {
+    "status": "completed",
+    "originalHashesUnchanged": true,
+    "originalHeadAndBranchUnchanged": true,
+    "preexistingRefsUnchanged": true,
+    "worktreeRegistrationsRestored": true,
+    "ownedEditorsAbsent": true,
+    "resultTreeMatchesSplinter": true,
+    "emptyHostHeldDirectoriesRetained": true
+  },
+  "responseSchemas": {
+    "failed": 0,
+    "responses": 12,
+    "valid": 12,
+    "validatorTestsPassed": 1,
+    "test": "JournalBaseReversionProductEvidenceTests.RecordedProductResponsesMatchCurrentSchema"
+  },
+  "preliminaryCodex": {
+    "usedForMainComparison": false,
+    "harnessRecovery": {
+      "reason": "status stat flags after raw-EOL normalization; content diff empty",
+      "firstResultsRetained": [
+        {
+          "letter": "a",
+          "firstHead": "a662dbc5d399ac282a5bd205b1fbb8c6296ec78f",
+          "exactNormalizedPaths": [
+            ".gitattributes",
+            ".gitignore",
+            "Assets/TutorialInfo/Layout.wlt",
+            "ProjectSettings/ProjectVersion.txt",
+            "Assets/Medieval village/Environment/Meshes/Animation/Lantern.controller",
+            "Assets/Medieval village/Environment/Meshes/Animation/Lantern_Idle.anim",
+            "Assets/Medieval village/Environment/Meshes/Animation/WindMill.anim",
+            "Assets/Medieval village/Environment/Meshes/Animation/WindMill.controller",
+            "Assets/Medieval village/Update/Animation/Bird.controller",
+            "Assets/Medieval village/Update/Animation/BirdFly.anim",
+            "Assets/Medieval village/Update/Animation/Bird_Root.controller",
+            "Assets/Medieval village/Update/Animation/Bird_Trans.anim",
+            "Assets/Medieval village/Update/Animation/CandleFlikering.anim",
+            "Assets/Medieval village/Update/Animation/Light_anim.controller",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Bkack_ground_Base_ColorBkack_ground_Normal(2.000,2.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Branches_dirt2_Base_ColorBranches_dirt2_Normal(3.000,3.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Dry_mud_Base_ColorDry_mud_Normal(2.000,2.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Grassy_Ground_01_basecolorGrassy_Ground_01_normal(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Ground_Dirt_BCGround_Dirt_N(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Ground_Grassy_01Ground_Grassy_01N(2.000,2.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Ground_Grassy_02Ground_Grassy_02N(1.000,1.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Ground_Rock_01(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Ground_Rock_02(8.000,8.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Mud_basecolorMud_normal(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Mud_dry_basecolorMud_dry_normal(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Mudd_solo_wet_basecolorMudd_solo_wet_normal(10.000,10.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Muddy_basecolorMuddy_normal(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Road_ground_Base_ColorRoad_ground_Normal(3.000,3.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_SandPebbles2_Base_ColorSandPebbles2_Normal22(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Sandy_basecolorSandy_normal(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Wet_mud_Base_ColorWet_mud_Normal(2.000,2.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer"
+          ]
+        },
+        {
+          "letter": "b",
+          "firstHead": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+          "exactNormalizedPaths": [
+            ".gitattributes",
+            ".gitignore",
+            "Assets/TutorialInfo/Layout.wlt",
+            "ProjectSettings/ProjectVersion.txt",
+            "Assets/Medieval village/Environment/Meshes/Animation/Lantern.controller",
+            "Assets/Medieval village/Environment/Meshes/Animation/Lantern_Idle.anim",
+            "Assets/Medieval village/Environment/Meshes/Animation/WindMill.anim",
+            "Assets/Medieval village/Environment/Meshes/Animation/WindMill.controller",
+            "Assets/Medieval village/Update/Animation/Bird.controller",
+            "Assets/Medieval village/Update/Animation/BirdFly.anim",
+            "Assets/Medieval village/Update/Animation/Bird_Root.controller",
+            "Assets/Medieval village/Update/Animation/Bird_Trans.anim",
+            "Assets/Medieval village/Update/Animation/CandleFlikering.anim",
+            "Assets/Medieval village/Update/Animation/Light_anim.controller",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Bkack_ground_Base_ColorBkack_ground_Normal(2.000,2.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Branches_dirt2_Base_ColorBranches_dirt2_Normal(3.000,3.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Dry_mud_Base_ColorDry_mud_Normal(2.000,2.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Grassy_Ground_01_basecolorGrassy_Ground_01_normal(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Ground_Dirt_BCGround_Dirt_N(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Ground_Grassy_01Ground_Grassy_01N(2.000,2.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Ground_Grassy_02Ground_Grassy_02N(1.000,1.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Ground_Rock_01(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Ground_Rock_02(8.000,8.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Mud_basecolorMud_normal(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Mud_dry_basecolorMud_dry_normal(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Mudd_solo_wet_basecolorMudd_solo_wet_normal(10.000,10.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Muddy_basecolorMuddy_normal(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Road_ground_Base_ColorRoad_ground_Normal(3.000,3.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_SandPebbles2_Base_ColorSandPebbles2_Normal22(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Sandy_basecolorSandy_normal(5.000,5.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer",
+            "Assets/Medieval village/_TerrainAutoUpgrade/layer_Wet_mud_Base_ColorWet_mud_Normal(2.000,2.000)(0.000,0.000)(0.000,0.000,0.000),0.000,0.000.terrainlayer"
+          ]
+        }
+      ],
+      "originalUnaffected": true,
+      "normalPreservationRemeasured": true,
+      "diagnosticWaitExcluded": true
+    },
+    "appArchiveReceipts": [
+      {
+        "at": 1791920261.34,
+        "path": "C:\\Users\\olive\\.codex\\worktrees\\d6ad\\splinter-unity",
+        "result": {
+          "error": "list_artifacts returned an empty artifacts array; no exact managed worktree identity was available. Preserved the checkout without attempting archive.",
+          "stage": "list_artifacts",
+          "archiveAttempted": false,
+          "listArtifactsResult": {
+            "artifacts": []
+          },
+          "helperExitCode": 0,
+          "helperOutput": "ARCHIVE_READY C:\\Users\\olive\\.codex\\worktrees\\d6ad\\splinter-unity"
+        },
+        "success": false
+      },
+      {
+        "at": 1791920261.624,
+        "path": "C:\\Users\\olive\\.codex\\worktrees\\5d98\\splinter-unity",
+        "result": {
+          "stage": "list_artifacts",
+          "error": "No attached worktree artifact was returned for this task; exact archive identity could not be verified. Worktree preserved and archive_worktree was not called.",
+          "helper": {
+            "exit_code": 0,
+            "output": "ARCHIVE_READY C:\\Users\\olive\\.codex\\worktrees\\5d98\\splinter-unity"
+          },
+          "toolResult": {
+            "content": [
+              {
+                "type": "text",
+                "text": "{\"artifacts\":[]}"
+              }
+            ],
+            "isError": false
+          }
+        },
+        "success": false
+      }
+    ],
+    "reclaim": {
+      "results": [
+        {
+          "path": "C:\\Users\\olive\\.codex\\worktrees\\5d98\\splinter-unity",
+          "seconds": 16.572278999956325,
+          "exitCode": 255,
+          "error": "error: failed to delete 'C:/Users/olive/.codex/worktrees/5d98/splinter-unity': Permission denied\n"
+        }
+      ],
+      "emptyDirectoriesRetained": true,
+      "reason": "Codex host keeps its working directory open; only empty directories remain; no Unity children or worktree registrations remain",
+      "firstAAttemptTimeNotCaptured": true
+    }
+  },
+  "limits": [
+    "One small fixed source edit per task; no long coding-session benchmark or causal crossover measurement.",
+    "Both methods support parallel work; no exclusive parallel speedup attributed to Splinter.",
+    "Combined Git trees verified; merge-result Editor compilation, Play/Test/build not run.",
+    "Storage is file allocation at edited-ready stage, excludes shared Git object store, directory/MFT metadata, original source and original Library payload; not peak disk.",
+    "Codex app created the task paths but exposed no archive attachment. Repeat preparation/reclamation uses ordinary Git in those paths; no full app startup/archive timing claim.",
+    "Git removed both Codex payload trees and worktree registrations but returned exit255 because empty task root directories were still held open (holder not identified). Two empty directories remain; no full root-directory cleanup claim.",
+    "Command-local core.autocrlf=input makes Codex raw source identical to Splinter; source/global configuration preserved.",
+    "First Codex interrupted cohort and diagnostic waits are preserved but excluded; compared cohorts are uninterrupted."
+  ],
+  "rawEvidence": "artifacts/unity-readme-current-20261014/",
+  "evidence": {
+    "after-codex.py": "b27b50d4eeb8990eaa5b53f2475790b38ef0d57b644214cc3df937da8e7f81fc",
+    "after-splinter.py": "ddd75a08a3dac01fd07a6a528d212c6dbf40bf2f1b194e54f5b10595124cf57b",
+    "basis-identity.json": "8e8111bba867c0552027fd0a374ba60cfea324f69916669740510f5a01690e5b",
+    "c-a-archive-authorized.json": "8117f0fd2adffa39b63fa1076e227703432ee60d97175c39cf322a69d8a116c0",
+    "c-a-archive-ready.json": "bc4df6cbf2c756858aff6a1d514c2042b92d57f6826d314aa31fb6527129be49",
+    "c-a-archived.json": "2f6b1719ad31d6c0cf8dd198e234db242cb197cf98ad2f54baeb9ade3fe047ea",
+    "c-a-assets.json": "776d14c9c3551d02d2a36af1476844f20b87ad543ca13a241d03bab589ed7bb2",
+    "c-a-edit.json": "21695f4080d7f66f43bf0312c273a909b501e4347efde4ace9bf915ac0d91d6e",
+    "c-a-initial.json": "fba9a7579fcbb9f219477daef90fb0c351cac39efdba10da36b7e3cfdb3b44b1",
+    "c-a-launch.json": "e14c9961199cfa0f88ca9bc3a1319ff67c26fe07f27c644b5e3e7c3213a2ae02",
+    "c-a-refresh-response.json": "a703165bdda61cdb5742f971592b0d48ac4092f328dc84e2b14b499bdce367c8",
+    "c-a-registered.json": "68a3af5dcd483ece4b1aae5f8d3ef475c937014f20723c01b52ce53dd4a52219",
+    "c-active-cost.json": "a0b2d41145c3db44f4d38d91b816c3abea8e831938e54b780e74684085a4d6ae",
+    "c-archive-dispatch.json": "03624d521d2835d78c4cba4d9d6dc08ee4418431264331f87f64d1e9f7c9b704",
+    "c-b-archive-authorized.json": "5631c778070e8c141b78f5e543ebc7b5fffcf918c265a4be166b203d371f2f01",
+    "c-b-archive-ready.json": "356ad316da477cde646a94631983fe58af021e9bf41f4e753f60a545cb84917a",
+    "c-b-archived.json": "d829ff568add64f41fadf62c45e72ffdbf3ffdd04267a5c2a355b49e14c1e3e1",
+    "c-b-assets.json": "b3e4e641ec727581f8bdd9f3317952a90acad44ef2af24e552cb6e5d4b5d9a85",
+    "c-b-edit.json": "10eed0d390d3b1bb2956813683beb6f719dc602dd55643f086472958933030a6",
+    "c-b-initial.json": "0c24d7e51fa7b445d39c4d4d95529541a23312738d5d7aa2db23b677d6a5a78f",
+    "c-b-launch.json": "d010e3eb29bd160ccd91c08e5204915848a37d0ab635f2fdd08a20f7b34c50b8",
+    "c-b-refresh-response.json": "02676e63b0c92512a234727f1781e68e72bd5168665873df9d8f67733a5cce80",
+    "c-b-registered.json": "564dbb56c7385f79f4bf48897d4747f81375496c19938db121a3bbb17e924126",
+    "c-dispatch.json": "1d46eb0a6086614874d1c19cc0857a28eda108ba7760ccf636ce4c3b6f990038",
+    "c-edit-cohort.json": "6c1cbd305ccdd19cec8ac39d32688c5173c8656c4901ba184d42a23493abb909",
+    "c-edited-ready-allocation.json": "b0b095024a988e0a91962c4b590de0d98deabdd12adc17c095f5b9ced91518c8",
+    "c-first-reclaim-outcome.json": "59bfe94aedd6e58913b3d82d4c786744d16665b78c92fec374acaf6ff9255a49",
+    "c-harness-recovery.json": "a958c56a17be1347b93f2fe45f5114b1bd9d432917ba95d13bf1d041495d2925",
+    "c-initial-cohort.json": "2b2a62f649473ce80daa01cdc01ab348bab73ca3bab9a90112e229186aea4d6f",
+    "c-native-reclaim-proof.json": "7c7fa1b6bbd0acd7010e31091ffc41f09598ab9d6af9d0e1418e30633af94d15",
+    "c-preflight.json": "a7bcc0e46d0531eacd8dcf86fdbaffaacba9578acb3601b3eabd1bb478d42147",
+    "c-preserve.json": "5ce3075f3723367c8820774f392f0167af1317f21e38171d0b1f21bcb8c31b86",
+    "c-stop-cohort.json": "d118c761d099aef6d5d5b3c865352167f1bff974b0907e33ebc0e9a6082d5ca1",
+    "c-targets.json": "3ce30420a8770aa54ea1d30ac69e8866502c1c75e473cac4dceb00dd63c74815",
+    "candidate.json": "66c9247e4fe5683a51c4230d9c6f4c75d9967837f5c56fa5ca37666efec423ca",
+    "closure-native.json": "3bddc15f5052ae4ce3b226b5e30dfb31fdc4ad1764e70f045731887488a922d8",
+    "closure.json": "1f3e3a93a9b4272de84d315ce3f91ee51381e141da8712868845314cca2ba0e3",
+    "codex-merge.json": "0df542884dc4c873b3e0cf53700b69fb0c120600cce1ea99cf9082181a39b73a",
+    "codex-owner.py": "87b4d0bce7653e69a6830377258d43d69949489378ae91b941b983871be9edbf",
+    "codex-raw-input-normalization.json": "fc21413bf0eeda4e599412712ca6c587f9ccb0d4be447153b1bc31f18950dc13",
+    "codex-repeat/c-a-assets.json": "f840e7678e1756f836372302045c33fd264706e48676b1c99a47edcd94520ffb",
+    "codex-repeat/c-a-edit.json": "8192c6da44fd98c863148ae404d328ba49a2e1eb44066b1d364a906d34ba9d23",
+    "codex-repeat/c-a-initial.json": "d401629c61008773b691b5b1438c04c171726933341ecb882fde9b9028def0cf",
+    "codex-repeat/c-a-launch.json": "6f911de44ddbac6e5e61a4a71d76761a604faf625b63d8f588d340339ac07d49",
+    "codex-repeat/c-a-refresh-response.json": "c2cccc2d766e6be1f423393f6185731d89f579c3bd7f152b5737763c5d2cd0af",
+    "codex-repeat/c-b-assets.json": "1bf8b2e4d3acf10ec8c77d7baffbb485c0ebea29495cef5d6fe0a02280c53d44",
+    "codex-repeat/c-b-edit.json": "8e7ae150a5589078f3cdb27198660be0c3d050d348509fae0a0fcbde8dcbe3c3",
+    "codex-repeat/c-b-initial.json": "71e9d0ffd32c8fcee19d15fd013ecb01b6a254acb5388d38f8095903c7afb747",
+    "codex-repeat/c-b-launch.json": "f90e25a74b4751e0d0a654adf3cf663f35ae1b84e7ca968718ef7bd8ff88b8a2",
+    "codex-repeat/c-b-refresh-response.json": "007bba67ebba4e336dcb839d3f493d8b3c19103ca9d3c95b8ad803af1fee528b",
+    "codex-repeat/c-create-cohort.json": "96a63c994225212494937f748734c6f1920f908e8761d36caa54711b86da30db",
+    "codex-repeat/c-edit-cohort.json": "6a9ca683889d9332f0013f3f582c5a592bb8f75e9c7bc38dd9267af45eb440c3",
+    "codex-repeat/c-edited-ready-allocation.json": "6b26a8c6da7c95b6afc06ac8616fb8afe4c0bd0c8b28b87dcb1ddcfbd1dc94b8",
+    "codex-repeat/c-full-lifecycle-cost.json": "1fc7c26863f2e05256499e41b8eddefd52b609a25081ca6559cc8961f94474a4",
+    "codex-repeat/c-initial-cohort.json": "aeec2c3cfa4819e3b53175aaf3de991fd49e6890d3a8881ab75af919bb5a7bf9",
+    "codex-repeat/c-preserve.json": "4f433ddf7431b23ce0b3c1d60166510575661ccfb87e0f076863d2728fc1f408",
+    "codex-repeat/c-reclaim.json": "4e99c62c8f68da72aefafeeb94044f3f25ac0b860c48b3790b12a9c0a1d72e9b",
+    "codex-repeat/c-stop-cohort.json": "2e21fd7848e6987d74f142547c899163059dfc8b8661cf838ca5c54876449b55",
+    "codex-repeat/c-targets.json": "165d434002c46e781700ac27f497493fe76c3f6c3b1ea85414c6c2600bc44ef0",
+    "codex-repeat/closure.json": "b9aa218315ae51dc52e961475136ffad0290ffbf68c95f639d8d5da4a528c2d8",
+    "codex-repeat/codex-repeat-merge.json": "491abe8ebccbf5da0bae711e49fe777e355b11418c406d030de5f345e2b8505e",
+    "codex-repeat/create-5d98.json": "61e20be9b3b69cb113b3803f621ca30358f9cfe5960f1ffe910e984148d985f7",
+    "codex-repeat/create-d6ad.json": "483779a79ae35e5062a6512106e5f7026fd0202394a043f3d5ee31d1a4a7fc51",
+    "codex-repeat/input-proof.json": "a7c8fa14394864adc8c83d6489f2b90655c7ac62468de94fedc764cd171aa3e9",
+    "codex-repeat/preflight.json": "6824c0264887c5d8625b6f3918422534fbfa527aad30a96edd73161acbc8179d",
+    "codex-repeat/reclaim-5d98.json": "733c098395727726a53dc90f5aaae78c1f183367b7b3ef498705e6b5c65c28f7",
+    "codex-repeat/reclaim-d6ad.json": "7efab352cf71fcc4a4352e8256b0effa475464567daed27d28b8aaa89261f63d",
+    "codex-repeat-resume.py": "c052e009eae2d29e37240e3ae4ff592ee565d9d79e35772974e39dbb9714ef3d",
+    "codex-repeat.py": "655246614a6a4721781d9e01c5878b03debd2fe7cd0f7309595aa6a174a6b91a",
+    "environment-cim-sandbox-unavailable.json": "4ca3cdb58e90e54688c99d59cc21b1681a9507f2ee9c3b5fddd1332960ac8dfe",
+    "environment.json": "9d217ae196bdb51aa8283cb6ae3df36879b7c83dc777a854bdb0d1417fb914cd",
+    "finish-codex-finalize.py": "0874bcb0c7b646d81f3effb45ae8b7505dfe15d94093c650c1dc111dd2e6f165",
+    "finish-codex.py": "c0889a2324661ac31cde9370af56bc358dd400dd5c267d84785bfd5f390ed091",
+    "finish-first-cleanup.py": "f67b5cae3c2c68c40b436cb72c8779f08e5572a00baad368b34d2c2a81a3e835",
+    "full-lifecycle-cost.json": "2eedf7546f7a6846057711ef9e4831f5a0d16082a77fcde4fe9a0a0f6a81e626",
+    "library-input-comparison.json": "0362b1ab2bce28a8df94aacf1125befd2e74e14e06b34a5835361bb2e5c16aa3",
+    "library-prepare-cost.json": "ec133e343ad69dc25e3dbe61562fd54aee7f3daede8884b2605fa89bf95460a4",
+    "library-prepare-process.json": "3cc5c08afc1482419c12c5bc81bb6e0fb2b362825e300590c9aca2d51afe4ad4",
+    "library-prepare.json": "b87a28308c251c533754b837c6562bc12ffef0eb6e8a323e4c9edb2946621a68",
+    "library-restore-cost.json": "b17f9f823d6bda286f15c32ff4ebc70763277d9dc830d4e5322a573eaa096c07",
+    "library-restore-process.json": "e9078e47928a027b8e86d3b04005f22109e45546f20204bf2085a132b6580b65",
+    "library-restore.json": "d3aa51f9566a9997a58927f6c912a432b8dabf4e4fe041985114d52a415aee4c",
+    "local-git-config-change.json": "01b6f4fad57ab1329fa4e692e871b7d63d164d4993801e394b4bea39b3c52a4c",
+    "local-git-config-restored.json": "ee9ff08098ade35fecd0bff5ce574f8966c57917f9a0694c66eb3ace1d765e23",
+    "navigation.py": "9bf10989363f36590f282dd2d3396548a3d21dc580804c869e8c8d34e4d143bb",
+    "preflight.json": "40fd94c4c244c8b847bca5890688d09d8ba49c2f6691d1b3e611eea70a42f84e",
+    "publish.py": "575b552a8b8b4f1fb9c25ecb9ffe81628fb232387df28f524a529da21d636701",
+    "reclaim-codex.py": "623b4b8dd5c2f6bae6118b216151c8f1c07f71f782f3292c5afe15683cc6b5be",
+    "response-schema-input/library-prepare.json": "b87a28308c251c533754b837c6562bc12ffef0eb6e8a323e4c9edb2946621a68",
+    "response-schema-input/library-restore.json": "d3aa51f9566a9997a58927f6c912a432b8dabf4e4fe041985114d52a415aee4c",
+    "response-schema-input/s-a-checkpoint.json": "1767266f0e94ab8cf5f95bf17f9d08677710dc19cfc7b2a4cfb2b3c61565bfb2",
+    "response-schema-input/s-a-ensure-corrected.json": "3545bc3c9f207256c3ece29fad8051f4f8c76622909abe42f8850bad2fb8a276",
+    "response-schema-input/s-a-release.json": "a5963611f04d4cdb8cb530605b4c74f70f362adbbbdfb845adcfe7ad3d66e7df",
+    "response-schema-input/s-a-unity-start.json": "2a8de9c8643c525c15223a36174d342c96d61aa93f3dc6e7245fe8916e179370",
+    "response-schema-input/s-a-unity-stop.json": "1cfa39459108ed583eff4966788774c77d34687836e8c85a2f86b53a6d5f5ec7",
+    "response-schema-input/s-b-checkpoint.json": "610a62c86340de3e68a701aab408136742d83f9ce787471c3a5b8f2449df1bd5",
+    "response-schema-input/s-b-ensure-corrected.json": "ec385551b977b0bf1565591a85fb77ddd724b9a3e3776ecf8d511fe3880478bd",
+    "response-schema-input/s-b-release.json": "2e6b29568a314f891871a4d22e2f948abf74fbcbe248f9bd8ee6fb909e3fec41",
+    "response-schema-input/s-b-unity-start.json": "bcceb21b8f305d198080abef55c27ac91236fa2ad7d6620f1656216690e74f98",
+    "response-schema-input/s-b-unity-stop.json": "b9c61de7205459e864eb3ef9df38778c978ca1c179b10d5f2c2c21f6efc339dd",
+    "response-schema-validation.json": "c30ef004eb077dade60178ebee07b604fd6b3269fb9e7219846469fdd6ba44f6",
+    "run.py": "5f9757d7a3d5b6637ee1fa5a854e40caa12c3dbd97964f15ddd85b17d86a065d",
+    "s-a-assets.json": "4b275d636ad72926f7758797534f8b693027969126468a7b2f678d8eae75e21c",
+    "s-a-checkpoint-cost.json": "fc2fa31ca0da96c604e0afd7419584b7d2fb909cbc4b43990cd998ab82c9412f",
+    "s-a-checkpoint-process.json": "f2319c098d962d25f053a38b7e6edf076b247a9840859b6e2cee8959327dc90a",
+    "s-a-checkpoint.json": "1767266f0e94ab8cf5f95bf17f9d08677710dc19cfc7b2a4cfb2b3c61565bfb2",
+    "s-a-edit.json": "e105d91077ca771bbf9a447faf1f428f86c88bfe24a7fd70108612ceeb96fd00",
+    "s-a-ensure-corrected-cost.json": "8385ef6d2f150759a7f0774969b2f3d3473bbecd0545662d5860a32513cd3037",
+    "s-a-ensure-corrected-process.json": "27ae11dab0da2b73214adb7d2c20b741ee0b4a5a859264ff88c73d154017608e",
+    "s-a-ensure-corrected.json": "3545bc3c9f207256c3ece29fad8051f4f8c76622909abe42f8850bad2fb8a276",
+    "s-a-initial.json": "3fb8f9e68220aae5b6a1c4ab73dca04db8ea2be926f96069320c1f5da74b5bfb",
+    "s-a-launch.json": "9f2ddbf9bba8a104aa2ee5fccdb9286940574190a197e873b62bf315c21f7270",
+    "s-a-refresh-response.json": "9374dbd6cf6ce1161d623347107dcf5e11a78ed1327e8091151d9de416c3d058",
+    "s-a-release-cost.json": "13bba3e4e7e338e86d4072f857396cd6aba58aa78db3dccef992c897a4ed1ec5",
+    "s-a-release-process.json": "a1dd8c817d2ac6d67eb689bb409dd4928d8884b3c0f16611cfccd1366923a47b",
+    "s-a-release.json": "a5963611f04d4cdb8cb530605b4c74f70f362adbbbdfb845adcfe7ad3d66e7df",
+    "s-a-unity-start-cost.json": "18b7c09b44469213d3a1e2e8af00d7215a16990d2fc240cc634893c78e1f29c1",
+    "s-a-unity-start-process.json": "2d39797783c04d09186cf8ddec1fcd6a437bb2f2cf4545b564c79fdd926181b7",
+    "s-a-unity-start.json": "2a8de9c8643c525c15223a36174d342c96d61aa93f3dc6e7245fe8916e179370",
+    "s-a-unity-stop-cost.json": "184d2def9caafa5fa650cf73f6901dbd7e69c604afdf2b5ed4ed7add6f42e38e",
+    "s-a-unity-stop-process.json": "904dd60c5e499779393646233167f9ca269251df03f3d7dabb47649b5ad122f3",
+    "s-a-unity-stop.json": "1cfa39459108ed583eff4966788774c77d34687836e8c85a2f86b53a6d5f5ec7",
+    "s-b-assets.json": "9f721055d5de3a33413de13c00aad823b844a78103f5e14b7bd54f2be6db84ed",
+    "s-b-checkpoint-cost.json": "b2b761e15f53082cfdf18c206401de8578a92364c947532a09d4de2476e12e94",
+    "s-b-checkpoint-process.json": "c4299efa62bea0720116cdcce839b513eb152355c05696a399c9972248e0ad64",
+    "s-b-checkpoint.json": "610a62c86340de3e68a701aab408136742d83f9ce787471c3a5b8f2449df1bd5",
+    "s-b-edit.json": "980bd71aa4cfc7f8b7070ac0e7b193eeceda9793b0647853f31a118cddda5fb7",
+    "s-b-ensure-corrected-cost.json": "9c6f9a88b70f5b98577968bcbaada404555d0179f3fb8d929e17f355457c1c57",
+    "s-b-ensure-corrected-process.json": "f9ab7f2115451f289019d113e68219a1ea8ad3597c514798b33831be34b525a9",
+    "s-b-ensure-corrected.json": "ec385551b977b0bf1565591a85fb77ddd724b9a3e3776ecf8d511fe3880478bd",
+    "s-b-initial.json": "4e12d5704a5b67fba8e3292dd1f32703e381309921873a9fef02a041958ee7c2",
+    "s-b-launch.json": "f9dd65339107e0cdd032610f69917e2c8d7bcc84ae311dd3dc0005ce74b6ce12",
+    "s-b-refresh-response.json": "81ee356028df013f75f6750a7f56c502ca900f2ae30c82de85331749b8231e62",
+    "s-b-release-cost.json": "f53e82816ace21dfe3fc2530c41bdc18026a16d18287e829e428a1aed8c7ba12",
+    "s-b-release-process.json": "af42f0929bb5987547d2f940372c317a7da8cc1771c7d2ff624f48f3bf8e4394",
+    "s-b-release.json": "2e6b29568a314f891871a4d22e2f948abf74fbcbe248f9bd8ee6fb909e3fec41",
+    "s-b-unity-start-cost.json": "c85438d94e614b0973af277d0062217666426b46564ea3d9d362cbdc60ff5d71",
+    "s-b-unity-start-process.json": "82933263c253e36b7ab935611775a46ed2d64c8148ef1bdd2cf8ba27717eafd4",
+    "s-b-unity-start.json": "bcceb21b8f305d198080abef55c27ac91236fa2ad7d6620f1656216690e74f98",
+    "s-b-unity-stop-cost.json": "510eb26b58f8525c1375b43d54a4950b8de336516fda0b344cfd24d9d3a44dce",
+    "s-b-unity-stop-process.json": "6c3b3e4f4ccc89c6c0973a28c7972429f9e09eb5ca85aeedcbb1675c81be056a",
+    "s-b-unity-stop.json": "b9c61de7205459e864eb3ef9df38778c978ca1c179b10d5f2c2c21f6efc339dd",
+    "s-edit-cohort.json": "0db539bd5ce2bf0edb90b7db1dc0cd5aea8ba41774fb06c0fad046ae7308cd32",
+    "s-edited-ready-allocation.json": "8078a149fcb37b6d1be3166a6ccfc5c48495f6b1fb2975c7f7704b585bde582d",
+    "s-ensure-cohort.json": "5098254d1b40773fb520c1790a8aec5238d8710f56c7b78d01fb012c60c9e651",
+    "s-initial-cohort.json": "49bd3d91ead2434652bc31693a2e80b7b728bd8fb6b6cb9c30c7afefb95f9765",
+    "s-preserve-release-cohort.json": "8e6dc91cc09799d54c4f29fb2ceb4577eafd50f2537e32b89cf3e9a31a1258af",
+    "s-stop-cohort.json": "6a5fb75f4657a54385af6174c8c2593b146c765759af4ff4b06be7de0eeff6b2",
+    "s-targets.json": "11e2d7fab11068b37bd98ca2a4e9485fb48eab8cd4d7b1c4415e93960b3b45e1",
+    "schema-library.prepare.json": "a1b2f0f08cbb09dac6df66cddecc04b552b80c3a1e050515242b4363b32ce8f1",
+    "schema-library.restore.json": "61087d6aa162a074b9cc978154b34780d37784b894991258a074bbd60f508f19",
+    "schema-unity.start.json": "f732f039f3fd27d10d3a352d3a321c84b013ae46490bb6ef2addfb095b1e376f",
+    "schema-unity.stop.json": "fd022617989d5aac15710e1db2c42ee4c3185a92d1c4dffe8e8fdcb097d07112",
+    "schema-workspace.checkpoint.json": "924845eac3067515ae0e2151b366758eac95bdd08e2099fdd078b34f5f2e95de",
+    "schema-workspace.ensure.json": "9f3a8c1cf886194442d1e2b8987cdd4765f24d067e34037620122d8b5c11402d",
+    "schema-workspace.release.json": "f3a10820c451faa4157e4e18cbcc4134b660b8db4a06b6bbc415c518b2931cee",
+    "source-before.json": "97623f7757c295ae53e13a71f4eb88d6e1a70e4c8fef26de703aece62a8c4b98",
+    "splinter-merge.json": "d7e20e02bc5d45c34a7dfc86c432801c58f63eef3f8e5c077093891f6e4a42bd",
+    "summarize.py": "dd41e671fb645b0c5ca5fd07bea9b4f01e8f11b5cda698ed8f3d7991ccf51c0c",
+    "validate-responses.ps1": "2b2916431b5d2a846d62c6752ada38c9edb662d50153a59d72030a6d203cda69",
+    "verify.py": "4f863b4558631cd09367927004a8afdb7f59842e26136eed6cdc09d291149cce"
+  }
+}

@@ -19,51 +19,57 @@ Splinter는 작업이 재사용할 데이터와 변경할 데이터를 분리합
 <a id="실제-측정한-저장-공간과-시간의-트레이드-오프"></a>
 ## 실제 측정한 저장 공간과 시간
 
-**현재 Unity A/B 작업은 Library 준비부터 최종 복원까지 18분 3.0초가 걸렸습니다.** 최적화한 `116fd44` 후보의 UF-01 측정(2026-10-08)이며 Windows/NTFS, Unity 6000.3.22f1에서 **추적 파일 1,602개, 소스 2.80 GB와 기존 Library 3.14 GB**를 사용했습니다. 독립 Editor 두 개가 각각 격리된 C# 한 줄을 수정하고 컴파일했습니다. 에셋은 줄이지 않았습니다.
+독립 Unity Editor 두 개가 **추적 파일 1,602개·소스 2.80 GB·기존 Library 3.14 GB**인 프로젝트에서 각각 격리된 C# 한 줄을 수정하고 컴파일했습니다(Windows/NTFS, Unity 6000.3.22f1). **양쪽 모두 A/B를 병렬 실행**했습니다. Codex 작업 경로의 일반 Git 워크트리는 새 Library를 생성하고, Splinter 작업공간은 원본 Library를 참조합니다.
 
-![현재 Splinter 전체 과정: 준비부터 복원까지 18분 3.0초](docs/images/unity-current-workflow.png)
+### 전체 작업 시간 비교
 
-| 현재 A/B 단계 | 관측 경과 시간 |
-| --- | ---: |
-| Library 기준본 준비 | 1분 55.9초 |
-| A + B 작업공간 생성 | 5분 32.7초 |
-| 두 Editor 시작 → 초기 컴파일 준비 | 3분 36.1초 |
-| A/B 한 줄 수정 → 재컴파일 | 29.9초 |
-| 선택 에셋 확인 | 2.4초 |
-| 두 Editor 정상 종료 | 1분 27.9초 |
-| A/B checkpoint + release | 2분 52.0초 |
-| 원본 Library 복원 | 2분 6.0초 |
-| **전체 과정** | **18분 3.0초** |
+같은 작업의 준비·편집·컴파일·결과 보존·소스 결과 합치기·정리까지 **Codex 워크트리 13분 39.7초, Splinter 15분 35.2초**가 걸렸습니다. 이 실행에서 Splinter의 전체 시간은 **14.1% 길었습니다**.
 
-A/B checkpoint는 **37.7초 / 37.4초**, release는 **49.4초 / 47.6초**이며 위 보존·회수 행에 포함됩니다. 두 Editor 모두 2분의 명령 제한 안에 정상 종료했습니다. 독립 결과 tree, 원본 파일 1,602개 보존, 소유 자원 회수와 Library의 일반 NTFS 복원을 확인했습니다. Editor 준비에는 스캔·임포트·컴파일·완료 관측이 포함되며 전체 시간에는 짧은 명령 전달 간격도 포함됩니다.
+![Codex 워크트리와 Splinter의 전체 작업 시간](docs/images/unity-readme-workflow.png)
 
-### Codex 워크트리와 최적화한 Splinter
-
-![과거 Codex 워크트리와 최적화한 Splinter의 초기 준비·수정 재컴파일 시간](docs/images/unity-current-editor-comparison.png)
-
-| 작업공간 생성 이후 A/B Editor 구간 | Codex 워크트리 (RB, 2026-10-07) | 최적화한 Splinter (UF, 2026-10-08) |
+| A/B 단계 | Codex 워크트리 | Splinter |
 | --- | ---: | ---: |
-| 시작 → 초기 컴파일 준비 | 14분 47.1초 | 3분 36.1초 |
-| 한 줄 수정 → 재컴파일 | 19.0초 | 29.9초 |
+| Library 기준본 준비 | 해당 없음 | 1분 0.2초 |
+| A + B 작업공간 생성 | 13.4초 | 2분 48.8초 |
+| 두 Editor 시작 → 초기 컴파일 준비 | 12분 41.7초 | 5분 10.5초 |
+| 한 줄 수정 → 재컴파일 | 9.4초 | 31.7초 |
+| 선택 에셋 확인 | 7.6초 | 1.2초 |
+| 두 Editor 정상 종료 | 3.6초 | 1분 56.8초 |
+| 결과 보존 + 작업공간 파일 회수 | 23.3초 | 3분 19.5초 |
+| A/B 소스 결과 합치기 | 0.7초 | 0.7초 |
+| 원본 Library 복원 | 해당 없음 | 45.5초 |
+| **전체 과정** | 13분 39.7초 | 15분 35.2초 |
 
-기록된 Codex 워크트리는 새 Library를 만들고, Splinter는 기존 원본 Library를 참조합니다. 이 실행들에서 Splinter의 초기 준비는 11분 11.1초 짧았고, 수정·재컴파일은 **10.9초 더 걸렸습니다**. Splinter의 별도 Library·작업공간 준비는 **7분 28.6초**입니다. UF에서 Codex를 다시 실행하지 않았고, 비교 가능한 Codex 전체 생성·보존 시간은 없습니다. 그래프는 기록된 단계 경계의 비교이며 Codex 대비 전체 작업 속도 향상률은 아닙니다.
+Codex 시간은 앱의 작업 경로에서 병렬 `git worktree add`로 생성한 시간과 Editor 작업부터 결과 보존·`git worktree remove`까지를 포함합니다. Splinter는 Library 준비부터 복원까지입니다. 대화 생성·앱 아카이브·읽기 전용 입력 확인·저장 공간 조사 시간은 제외했습니다. 빈 Codex 작업 폴더 두 개는 삭제하지 못했으며, 작업 파일과 Git 등록은 회수됐습니다. A/B가 겹치는 시간은 한 번만 계산하고 짧은 명령 전달 간격은 포함했습니다. 자세한 범위는 [측정 보고서](docs/ko/verification/unity-current-comparison.md)에 기록했습니다.
 
-### 기록된 저장 공간 절감
+두 방식 모두 충돌 없이 A/B를 합친 동일한 Git 결과를 별도로 보존했고 원본 소스는 변경하지 않았습니다. 각 A/B의 컴파일·에셋 확인, 정상 Editor 종료, 소유 작업공간 회수와 원본 Library 복원을 확인했습니다. 합친 결과를 Editor에서 다시 컴파일하거나 Play Mode·Unity 테스트·게임 빌드를 실행하지는 않았습니다.
 
-![과거 RB 할당: Codex 10.52 GiB, Splinter 0.14 GiB. UF에서는 저장 공간을 재측정하지 않음](docs/images/unity-recorded-storage.png)
+### 초기 준비와 반복 편집
 
-이전 **2026-10-07 RB 측정**에서 두 수정의 컴파일을 확인한 시점의 추가 파일 할당은 **Codex 10.52 GiB, Splinter 0.14 GiB로 98.65% 감소**했습니다. 작업 파일·소유 Git 등록·공유 runner/Library 메타데이터는 한 번만 합산하고 원본 소스·원본 Library 본문·공유 Git 객체는 제외했습니다. **UF에서는 저장 공간을 재측정하지 않았으므로**, 이 값은 과거 후보의 특정 시점 할당이며 현재 후보의 할당이나 최대 디스크 사용량을 의미하지 않습니다.
+![Codex 워크트리와 Splinter의 초기 Editor 준비·수정 재컴파일 시간](docs/images/unity-readme-editor-comparison.png)
 
-UF는 같은 소스·Library 내용에서 OS 캐시를 비우지 않고 중단 없이 실행한 한 묶음입니다. 선택한 코드의 컴파일과 에셋을 확인했으며 Play Mode·Unity 테스트·게임 빌드는 실행하지 않았습니다. 이 입력의 실제 비용이며 일반적인 소요 시간을 보장하지 않습니다. [현재 전체 측정과 한계](docs/ko/verification/unity-final-lifecycle.md), [정확한 UF 데이터](reports/benchmarks/unity-final-lifecycle-20261008.json), [과거 Codex·저장 공간 측정 방법](docs/ko/verification/readme-unity-comparison.md), [그래프 생성 스크립트](scripts/plot-unity-final-lifecycle.py)를 참고하세요.
+| 작업공간 생성 이후 A/B 구간 | Codex 워크트리 | Splinter |
+| --- | ---: | ---: |
+| 초기 컴파일 준비 | 12분 41.7초 | 5분 10.5초 |
+| 한 줄 수정 후 재컴파일 | 9.4초 | 31.7초 |
 
-<details>
-<summary>최초 시간과 최적화 이력</summary>
+기존 Library를 참조하면 새 작업공간의 임포트 부담을 줄일 수 있지만, 반복 편집의 비용도 함께 고려해야 합니다. 이미 준비된 작업공간을 계속 사용하는 경우와 새 작업공간을 만드는 경우의 비용은 다릅니다. 같은 작업을 이어갈 때는 작업공간을 재사용해 최초 준비·최종 정리 비용을 여러 편집에 나눠 부담할 수 있습니다.
 
-최초 RB 보존·회수는 **2시간 36분 7.1초**, UF는 **2분 52.0초**였습니다. Library 복원은 **24분 33.2초 → 2분 6.0초**로 바뀌었습니다. 최초 보존에는 B 작업 중첩·진단·B의 별도 커밋·복구가 포함됐고 UF는 A 다음 B를 정상 순차 보존·회수했습니다. 관측 감소율을 순수 인과적 개선율로 해석하지 않습니다. 최초 개별 명령 시간은 겹치므로 합산하면 안 됩니다.
+### 저장 공간
 
-과거 기록은 [RB: 최초 Codex/Splinter 비교](docs/ko/verification/readme-unity-comparison.md), [UR: 첫 수명주기 재측정](docs/ko/verification/unity-lifecycle-remeasurement.md), [UC: 읽기·복원 후속](docs/ko/verification/unity-checkpoint-release-remeasurement.md), [UP: 준비 프로파일](docs/ko/verification/unity-startup-profile.md), [US: 준비 후속](docs/ko/verification/unity-startup-remeasurement.md)에 남습니다. 현재 시간의 기준은 [UF](docs/ko/verification/unity-final-lifecycle.md)입니다.
+![Codex 워크트리와 Splinter의 현재 추가 파일 할당](docs/images/unity-readme-storage.png)
 
-</details>
+**2026-10-14 현재 버전 실측:** 두 수정의 컴파일 완료 시점에 추가 파일 할당은 **Codex 10.52 GiB, Splinter 0.14 GiB로 98.64% 적었습니다**. 작업·제어 파일, 소유 Git 등록, 공유 runner/Library 메타데이터는 한 번만 합산합니다. 원본 소스·원본 Library 본문·공유 Git 객체·파일시스템 디렉터리 메타데이터는 제외하며, 최대 디스크 사용량은 아닙니다.
+
+### 짧은 작업과 긴 작업에서의 선택
+
+이미 준비된 Editor에서 끝낼 수 있는 작은 수정이라면 병렬 작업공간의 생성·보존·병합·정리 비용이 더 클 수 있습니다. 독립 실행이 필요하지 않다면 원본에서 바로 작업하는 편이 간단하고 빠를 수 있습니다.
+
+개별 작업 속도가 같다는 가정에서, 서로 독립인 작업 A/B를 순차 실행하면 작업 시간은 대략 `A + B`, 병렬 실행하면 `max(A, B)`입니다. **겹쳐 실행해 아끼는 `min(A, B)`가 추가 준비·병합·정리·자원 경쟁 비용보다 커질 때** 병렬화가 시간을 줄입니다. 예를 들어 두 작업이 각각 30분이고 병렬 실행의 추가 비용이 10분이라면, 작업과 추가 비용은 순차 60분 대비 병렬 40분입니다. 이는 원리를 설명하는 가정이며 실측값이 아닙니다.
+
+일반 Codex 워크트리도 이 병렬화 이득을 얻습니다. Splinter는 소스·Library 중복 저장을 줄여 독립 작업공간을 운영하는 비용을 낮추는 데 목적이 있습니다. 양쪽 모두 같은 수의 작업을 병렬 실행할 때는 **작업이 길다는 이유만으로 Splinter가 반드시 더 빨라지지는 않습니다**. 실제 읽기·쓰기·컴파일 비용, 메모리·디스크 경쟁, 결과 병합의 난이도가 결정합니다. 이번 한 줄 수정 실측으로 긴 작업의 손익분기 시간을 확정할 수는 없습니다.
+
+자동화한 동일 한 줄 수정으로 작업공간·Unity 비용을 비교했으며 AI 추론·실제 기능 개발 시간은 포함하지 않았습니다. 같은 원본 입력에서 각 방식을 한 번씩 측정했으며 OS 캐시를 비우거나 순서를 무작위화하지 않았습니다. 자세한 조건·원시 근거는 [측정 보고서](docs/ko/verification/unity-current-comparison.md)와 [정확한 데이터](reports/benchmarks/unity-current-comparison-20261014.json)를 참고하세요.
 
 ## 동작 원리
 
@@ -105,62 +111,11 @@ Git·Plastic 작업에는 명시적으로 준비한 [Library 기준본](docs/ko/
 
 ## 시작하기
 
-현재 진입점은 소스 checkout과 PowerShell CLI wrapper입니다.
+현재 Splinter는 소스 checkout에 포함된 PowerShell CLI로 사용합니다. 독립 작업공간을 만들고, 반환된 프로젝트 경로에서 기존 편집·Git·Unity 도구로 작업한 뒤, 결과를 명시적으로 보존·반영·폐기하는 흐름입니다. 같은 작업은 기존 작업공간에서 이어갈 수 있습니다.
 
-### 요구 환경
+필요한 환경은 Windows/NTFS, PowerShell 7.2 이상, [global.json](global.json)에 명시한 .NET SDK, [WinFsp](https://github.com/winfsp/winfsp)입니다. Git·Plastic·Unity는 해당 프로젝트에서 사용할 때 필요하며, `ntfs-snapshot`에는 별도의 [제한 권한 서비스](docs/ko/storage-privilege-service.md)가 필요합니다.
 
-- 위 작업공간 저장 경로를 위한 Windows와 NTFS.
-- PowerShell 7.2 이상.
-- .NET SDK `10.0.112` 또는 [global.json](global.json)이 허용하는 호환 패치.
-- mount 작업공간을 위한 [WinFsp](https://github.com/winfsp/winfsp). .NET binding은 `2.2.26215`로 고정되어 있습니다.
-- Git 소스에는 Git, Plastic 소스에는 검증한 설치 버전의 Plastic client. Unity는 Unity 프로젝트·Editor를 사용할 때 필요합니다.
-- `ntfs-snapshot` 경로에만 [제한 권한 서비스](docs/ko/storage-privilege-service.md)와 등록된 접근 범위.
-
-Splinter 저장소 루트에서 실행합니다.
-
-```powershell
-# 고정 의존성 restore, Release 빌드, 자동 시험.
-pwsh ./scripts/build.ps1
-
-# 새 명령을 실행하기 전에 인터페이스를 확인합니다.
-pwsh ./scripts/splinter.ps1 capabilities
-pwsh ./scripts/splinter.ps1 schema workspace.ensure
-```
-
-첫 Git 작업공간은 Editor 없이 시작할 수 있습니다. 지원 조건을 만족하는 clean 저장소에서 현재 HEAD와 선택한 기준이 일치해야 합니다. 아래 값은 실제 프로젝트·기존 기준 branch·원본과 VCS 관리 트리 밖의 NTFS home으로 바꾸세요.
-
-```powershell
-$project = 'C:/Projects/MyProject'
-$workspaceHome = 'C:/Splinter/MyProject'
-$taskKey = 'feature-a'
-$base = 'development'
-
-pwsh ./scripts/splinter.ps1 doctor --project $project
-
-$reply = (& pwsh ./scripts/splinter.ps1 workspace ensure `
-    --project $project --key $taskKey --base $base `
-    --source git --application none --storage git-snapshot `
-    --home $workspaceHome) | ConvertFrom-Json
-$reply
-```
-
-`status`, `error`, `nextActions`를 확인하세요. 요청 성공과 실제 준비 상태를 확인한 뒤 **`data.workspace.path`**를 편집 디렉터리와 파일·애플리케이션 도구의 대상으로 사용합니다. `doctor`는 메타데이터 진단이며 실제 작업공간 실행을 보증하지 않습니다.
-
-Unity 작업은 최초 요청에 `--application unity`를 지정하고 [AI 시작 안내](docs/ko/agent-start.md)와 [Unity 사용 절차](docs/ko/alpha-workspaces.md)를 따릅니다. 일반 CLI·Git·Unity는 일반 사용자 권한으로 실행합니다. 서비스 설치와 기준본 준비에는 각각 명시적 준비 절차가 있습니다.
-
-### 작업을 이어가고 마무리하기
-
-project·home·key·workspace ID·storage·base·request digest를 대화나 인계에 보존하세요. 같은 `workspace ensure` 입력으로 재개하고, 한 작업공간 경로에는 한 작성자만 둡니다. 새 명령은 `schema <command>`를 먼저 읽고 저장한 ID와 home을 사용합니다.
-
-| 의도 | 명령과 동작 |
-| --- | --- |
-| 나중에 계속 작업 | 작업공간을 유지합니다. 소유 Editor만 종료하려면 `unity stop`을 사용합니다. |
-| 결과 보존 | `workspace checkpoint`로 안정된 소스를 독립 결과로 수집합니다. |
-| 결과 반영 | `workspace integrate`가 소스별 대상·충돌·소유권 보호 조건을 확인합니다. 일반 폴더·기록된 Plastic의 반영에는 명시적 계획과 고정 intent가 필요합니다. |
-| 결과를 유지하며 작업 자원 회수 | `workspace release`는 독립 결과를 확인하고 자기 자원만 회수합니다. |
-| 작업 폐기 | `workspace discard`는 정확한 작업과 고정 폐기 intent를 요구합니다. |
-
-대화나 Editor를 닫는 것은 반영·회수·폐기의 승인이 아닙니다. 정확한 수명주기와 복구 조건은 [AI 안내](docs/ko/agent-start.md), [폐기 계약](docs/ko/workspace-discard.md), [용어집](docs/ko/glossary.md)을 참고하세요.
+설정과 첫 작업공간 생성은 [시작 안내](docs/ko/agent-start.md)를, Unity 프로젝트의 Editor 사용은 [Unity 사용 안내](docs/ko/alpha-workspaces.md)를 참고하세요. AI 에이전트가 따를 상세 절차는 [에이전트 스킬](skills/splinter/SKILL.md)에 정리되어 있습니다.
 
 ## 지원 범위와 한계
 
@@ -170,23 +125,18 @@ project·home·key·workspace ID·storage·base·request digest를 대화나 인
 
 Splinter는 CLI와 에이전트 지침을 제공합니다. 전용 설치·대화 자동 연결·작업 스케줄링·자동 모드 선택·원본 Editor 공유·AI 실행 플랫폼은 현재 구현 범위 밖입니다. 작업공간 격리는 저장과 자원 소유권을 보호하며, 신뢰할 수 없는 코드를 실행하는 OS 보안 sandbox는 아닙니다. 지원하지 않거나 손상된 상태는 보존하고 명시적으로 거부하며 자동 이관하지 않습니다.
 
-## 문서와 개발
+## 문서
 
-[한국어 문서 지도](docs/ko/README.md)에서 기능별 상세 문서로 이동할 수 있습니다. 기능·아키텍처·계획·검증 문서의 기본 언어는 영어이며, 각 문서의 언어 링크로 전환할 수 있습니다. [영문 문서 지도](docs/README.md)도 제공합니다.
+[한국어 문서 지도](docs/ko/README.md)에서 기능별 상세 문서를 찾아볼 수 있습니다. 기본 문서는 영어이며, [영문 문서 지도](docs/README.md)와 각 문서의 언어 링크로 전환할 수 있습니다.
 
-| 문서 | 용도 |
+| 문서 | 내용 |
 | --- | --- |
-| [AI 시작 안내](docs/ko/agent-start.md)와 [에이전트 스킬](skills/splinter/SKILL.md) | 준비 조건·반환 경로·같은 작업 재개·명시적 종료 |
-| [용어집](docs/ko/glossary.md) | 기준본·비공개 범위·seal·intent·수명주기 용어 |
-| [현재 기반](docs/ko/foundation.md) | 모듈·계약·구현 구조 |
-| [제품 요구사항](plan.ko.html)과 [구현 계획](docs/ko/plans/implementation-plan.md) | 제품 목표·책임 경계·후속 작업 |
-| [검증 안내](docs/ko/verification/README.md) | 실제 근거·검증 환경·지원 한계 |
-| [개발용 CLI](docs/ko/development-cli.md) | 진단 checkout·view·probe |
-| [서드파티 고지](THIRD_PARTY_NOTICES.md) | 의존성 버전·출처·라이선스 조건 |
-
-코드는 공통 계약·수명주기(`Core`, `Runtime`, `Protocol`)와 소스 어댑터·Unity 애플리케이션 정책·Windows 저장/프로세스 구현을 분리합니다. `src/`는 제품, `tests/`는 자동 시험, `scripts/`는 명령 wrapper와 검증 도구, `tools/`는 개발 전용 유틸리티입니다.
-
-일반 개발과 통합은 `development`, 출시는 `main`을 사용합니다. 필수 검증은 `pwsh ./scripts/build.ps1`입니다. 의존성을 변경하면 중앙 버전과 해당 lockfile을 함께 갱신합니다. 선택적인 형제 `../splinter-unity`는 별도의 Git/Unity 시험 프로젝트이며 submodule이나 CLI 발견의 필수 조건이 아닙니다.
+| [시작 안내](docs/ko/agent-start.md) | 설정, 첫 작업공간 생성, 작업 이어가기와 마무리 |
+| [Unity 사용 안내](docs/ko/alpha-workspaces.md) | 독립 Editor에서 Unity 프로젝트 작업 |
+| [용어집](docs/ko/glossary.md) | 기준본, 비공개 변경 범위, 결과 보존과 자원 회수 |
+| [구조와 동작](docs/ko/foundation.md) | Splinter를 구성하는 요소와 상호 작용 |
+| [검증 범위](docs/ko/verification/README.md) | 검증한 환경, 측정 근거와 지원 한계 |
+| [서드파티 고지](THIRD_PARTY_NOTICES.md) | 의존성 출처, 버전과 라이선스 조건 |
 
 ## 크레딧
 

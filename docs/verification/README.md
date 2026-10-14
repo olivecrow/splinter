@@ -3,9 +3,13 @@
 
 [한국어](../ko/verification/README.md)
 
+**Current comparison:** [RC-01](unity-current-comparison.md) records ordinary Codex/Git worktrees at 819.7s and Splinter at 935.2s with current additional file allocation on the same source input. Both run A/B concurrently and preserve identical combined results. Input/allocation observation and chat startup exclusions, plus retained empty Codex roots, remain explicit.
+
+**Previous Unity timing:** [UT-01](unity-time-memory.md), `7630970`, **14m 35.2s**, versus UF's 18m 03.0s. Same original source/Library and edits, now with overlapping A/B creation. Preparation/restoration improved while Editor and preservation stages grew; one run does not isolate each change's effect. The UF record below remains historical.
+
 [Time and RAM optimization](time-memory-optimization.md) owns TM-01–04: scoped Library admission, Git/journal RAM caches and independent parallel preparation. Its small Editor-free fixtures and current regression evidence do not replace the recorded UF-01 full Unity timings.
 
-**Use [UF-01](unity-final-lifecycle.md) for current Unity timings.** Committed `116fd44` measured 18m 03.0s total, 3m 36.1s Editor readiness, 2m 52.0s preservation/release and 2m 06.0s Library restoration. Original source/Library and A/B edits match; normal shutdown and original/owned closure pass without stop timeouts. RB/UR/UC/UP/US figures below are historical candidate evidence.
+**Previous full-workflow baseline: [UF-01](unity-final-lifecycle.md).** Committed `116fd44` measured 18m 03.0s total, 3m 36.1s Editor readiness, 2m 52.0s preservation/release and 2m 06.0s Library restoration. Original source/Library and A/B edits match; normal shutdown and original/owned closure pass without stop timeouts. RB/UR/UC/UP/US figures below are historical candidate evidence.
 
 [External-tool coupling removal](external-tool-boundaries.md) owns automatic regression of bridge initialization/normal shutdown independent of missing MCP/internal API changes, and package run-state preservation. MCP/Unity CLI names/versions/patches/connection success are not product prerequisites. Tool-specific records below are historical candidate/input facts, not inherited as current support/installation requirements.
 

@@ -14,7 +14,8 @@
 
 | 문서 | 소유하는 내용 |
 | --- | --- |
-| [시간·RAM 최적화](verification/time-memory-optimization.md) | Library 검증 범위 고정, 제한된 Git/저널 RAM cache, 독립 ensure 병렬 실행, 보호 회귀와 작은 입력 비용. 전체 Unity 시간은 후보별 UF-01과 구분한다. |
+| [현재 Unity 병렬 작업·저장 비용 비교](verification/unity-current-comparison.md) | RC-01: 같은 입력의 일반 Codex/Git 워크트리 819.7s와 Splinter 935.2s, 현재 파일 할당, 동일 병합 결과, 측정 제외 구간·빈 Codex 폴더 잔여 한계. |
+| [시간·RAM 최적화](verification/time-memory-optimization.md) | Library 검증 범위 고정, 제한된 Git/저널 RAM cache, 독립 ensure 병렬 실행, 보호 회귀와 작은 입력 비용. 전체 Unity 시간은 후보별 [UF-01](verification/unity-final-lifecycle.md)·후속 [UT-01](verification/unity-time-memory.md)과 구분한다. |
 | [용어집](glossary.md) | 작업/기준/저장·식별자·보존/반영/회수·응답과 검증 상태의 쉬운 설명과 소유 문서 |
 | [현재 기반](foundation.md) | 모듈·의존성·명령·빌드와 시험 |
 | [OS와 앱 확장 경계](extensibility-boundaries.md), [검증](verification/extensibility-boundaries.md) | 불변 경로 정책·Unix 권한 metadata·앱별 원본/동반 파일/생성 디렉터리 정책, 실제 다른 OS·앱 미구현과 합성 시험의 구분 |
@@ -74,7 +75,7 @@
 | [물리 저장 단계 최종 범위](plans/physical-storage-completion.md), [검증](verification/physical-storage-completion.md) | 현재 SJR2 장부·정확한 task 파일 할당·최종 제품 A/B·정리/독립 결과/회수와 물리 저장 단계의 종료 경계 |
 | [메모리 단계 최종 범위](plans/memory-completion.md), [검증](verification/memory-completion.md) | 압축 쓰기 중복 buffer·부분/빈 읽기 scratch·같은 실제 저널 대조와 소유 provider/Editor·공유 시스템 비용/회수의 종료 경계 |
 | [병렬 안정성의 확정 범위](plans/stable-parallel-completion.md), [검증](verification/stable-parallel-completion.md) | 잠금 오류의 점유 오인 수정·실제 A 수집/회수와 B 조회/재개·파일 쓰기 겹침·독립 결과/소유 회수. Editor 없는 경계와 기존 자격 구분 |
-| [현재 Unity 실제 시간](verification/unity-final-lifecycle.md), [데이터](../../reports/benchmarks/unity-final-lifecycle-20261008.json) | UF-01: `116fd44` 전체 1,083.0초·Editor 준비 216.1초·보존/회수 172.0초·Library 복원 126.0초, 최초와 같은 편집·입력 및 정상 종료/원본/소유 회수 검증. |
+| [이전 Unity 실측 시간(UF)](verification/unity-final-lifecycle.md), [데이터](../../reports/benchmarks/unity-final-lifecycle-20261008.json) | UF-01: `116fd44` 전체 1,083.0초·Editor 준비 216.1초·보존/회수 172.0초·Library 복원 126.0초, 최초와 같은 편집·입력 및 정상 종료/원본/소유 회수 검증. |
 | [과거 Codex/공간 비교 기준 (RB)](verification/readme-unity-comparison.md), [데이터](../../reports/benchmarks/unity-workspace-comparison-20261007.json) | 실제 Codex 앱 워크트리와 당시 기본 ON Splinter·원본 Library 기준본의 동일 A/B 편집, 추가 파일 할당, 별도 준비·Editor 비용, 한정 컴파일·에셋 검증 |
 | [Checkpoint/release 프로파일링](verification/checkpoint-release-profiling.md), [데이터](../../reports/benchmarks/checkpoint-release-profile-20261007.json) | 기존 Unity 단계 귀속·작은 Editor 없는 task; 반복 검증/재수집·저널 inventory·제곱 비례 fence 검색; 제품 최적화 없는 진단 복사본 |
 | [Checkpoint/release 최적화](verification/checkpoint-release-optimization.md), [첫 데이터](../../reports/benchmarks/checkpoint-release-optimization-20261007.json), [후속 데이터](../../reports/benchmarks/checkpoint-release-followup-20261007.json) | CO-01–08: Git 묶음/통합 보존·seal 결과 재사용·fence/inventory 인덱스·구분한 live 계수·요청 wake; 작은 일반 배포본 비용·guard 회귀·소유 회수 |

@@ -19,51 +19,59 @@ The intended workflow is simple: use a workspace when a task needs independent e
 <a id="measured-storage-and-time-tradeoff"></a>
 ## Measured storage and time
 
-**The current measured Unity A/B workflow takes 18m 03.0s, from Library preparation through final restoration.** This is the optimized `116fd44` candidate (UF-01, 2026-10-08), on Windows/NTFS with Unity 6000.3.22f1: **1,602 tracked files, 2.80 GB of source and the existing 3.14 GB Library**. Two independent Editors each make and compile one isolated one-line C# change. No assets were removed.
+Two independent Unity Editors each make and compile one isolated one-line C# change in a **2.80 GB project with 1,602 tracked files and an existing 3.14 GB Library** (Windows/NTFS, Unity 6000.3.22f1). **Both methods run A/B in parallel.** Ordinary Git worktrees in the Codex task paths build new Libraries; Splinter workspaces reference the original Library.
 
-![Current Splinter workflow: 18m 03.0s from preparation through restoration](docs/images/unity-current-workflow.png)
+### Complete workflow comparison
 
-| Current A/B stage | Observed wall time |
-| --- | ---: |
-| Library basis preparation | 1m 55.9s |
-| Create A + B workspaces | 5m 32.7s |
-| Launch both Editors → compiled readiness | 3m 36.1s |
-| A/B one-line edits → compiled readiness | 29.9s |
-| Selected asset inspection | 2.4s |
-| Normal shutdown of both Editors | 1m 27.9s |
-| A/B checkpoint + release | 2m 52.0s |
-| Restore original Library | 2m 06.0s |
-| **Complete workflow** | **18m 03.0s** |
+Preparation, editing, compilation, result preservation, combining source results, and cleanup took **13m 39.7s with Codex worktrees and 15m 35.2s with Splinter**. Splinter's complete time was **14.1% longer** in this run.
 
-A/B checkpoints take **37.7s / 37.4s**, and releases **49.4s / 47.6s**; these are already included in the preservation row. Both Editors shut down normally within the two-minute command limit. Independent result trees, all 1,602 unchanged original files, owned resource reclamation and ordinary NTFS Library restoration were verified. Editor readiness includes scanning/importing/compilation and observation; stage totals include small dispatch gaps.
+![Complete workflow time with Codex worktrees and Splinter](docs/images/unity-readme-workflow.png)
 
-### Codex worktrees and optimized Splinter
-
-![Recorded Codex worktree timings versus optimized Splinter: initial preparation and edit recompilation](docs/images/unity-current-editor-comparison.png)
-
-| A/B Editor interval, after workspace creation | Codex worktrees (RB, 2026-10-07) | Optimized Splinter (UF, 2026-10-08) |
+| A/B stage | Codex worktrees | Splinter |
 | --- | ---: | ---: |
-| Launch → compiled readiness | 14m 47.1s | 3m 36.1s |
-| One-line edits → compiled readiness | 19.0s | 29.9s |
+| Library basis preparation | Not needed | 1m 00.2s |
+| Create A + B workspaces | 13.4s | 2m 48.8s |
+| Launch both Editors → compiled readiness | 12m 41.7s | 5m 10.5s |
+| One-line edits → recompiled readiness | 9.4s | 31.7s |
+| Selected asset inspection | 7.6s | 1.2s |
+| Normal shutdown of both Editors | 3.6s | 1m 56.8s |
+| Preserve results + reclaim workspace files | 23.3s | 3m 19.5s |
+| Combine A/B source results | 0.7s | 0.7s |
+| Restore original Library | Not needed | 45.5s |
+| **Complete workflow** | 13m 39.7s | 15m 35.2s |
 
-The recorded Codex worktrees create new Libraries; Splinter references the existing original Library. In these runs Splinter's initial readiness is 11m 11.1s shorter, while edit/recompile takes **10.9s longer**. Splinter's separate Library/workspace setup takes **7m 28.6s**. Codex was not rerun for UF, and comparable complete Codex creation/preservation times are unavailable. These bars compare the recorded phase boundaries, not an end-to-end Codex speedup.
+Codex timing covers parallel `git worktree add` in the app's task paths, then Editor work through result preservation and `git worktree remove`. Splinter timing spans Library preparation through restoration. Chat creation, app archive, read-only input checks, and allocation scans are excluded. Two empty Codex task directories could not be removed; their files and Git registrations were reclaimed. Overlapping A/B intervals are counted once, and totals include small command-dispatch gaps. The [measurement report](docs/verification/unity-current-comparison.md) details these boundaries.
 
-### Recorded storage savings
+Both methods combined A/B into the same conflict-free Git result, preserved separately without changing the original source. Each A/B compilation and asset check, normal Editor exit, owned workspace reclamation, and original Library restoration were verified. The combined result was not recompiled in an Editor, and Play Mode, Unity tests, and a game build were not run.
 
-![Historical RB allocation: Codex 10.52 GiB, Splinter 0.14 GiB; allocation not remeasured in UF](docs/images/unity-recorded-storage.png)
+### Initial readiness and repeated editing
 
-The earlier **RB measurement on 2026-10-07** recorded **10.52 GiB for Codex and 0.14 GiB for Splinter: 98.65% less additional file allocation** after both edits compiled. It counts task files, owned Git registration, and shared runner/Library metadata once; original source, original Library payload and shared Git objects are excluded. **Storage was not remeasured in UF**, so this remains the earlier candidate's stage allocation, not current-candidate allocation or peak disk usage.
+![Initial Editor readiness and edit recompilation with Codex worktrees and Splinter](docs/images/unity-readme-editor-comparison.png)
 
-UF is one uninterrupted cohort on the same source and Library contents, without clearing OS caches. It confirms the selected source compilation and asset checks, not Play Mode, Unity tests or a game build. The timings are measured costs for this input, not a general runtime guarantee. See the [complete current measurement and limits](docs/verification/unity-final-lifecycle.md), [exact UF dataset](reports/benchmarks/unity-final-lifecycle-20261008.json), [historical Codex/storage methodology](docs/verification/readme-unity-comparison.md) and [chart renderer](scripts/plot-unity-final-lifecycle.py).
+| A/B interval after workspace creation | Codex worktrees | Splinter |
+| --- | ---: | ---: |
+| Initial compiled readiness | 12m 41.7s | 5m 10.5s |
+| One-line edits → recompiled readiness | 9.4s | 31.7s |
 
-<details>
-<summary>Original timings and optimization history</summary>
+Referencing an existing Library can reduce fresh-workspace import costs, but repeated-edit costs matter too. Continuing a prepared workspace has a different cost from creating a new one. Reusing the same workspace while continuing a task spreads its initial setup and final cleanup costs across more work.
 
-Original RB preservation/release took **2h 36m 07.1s**, versus **2m 52.0s** in UF. Library restoration changed from **24m 33.2s to 2m 06.0s**. Original preservation overlapped B work and included diagnostics, an external B commit and recovery; UF preserves/releases A then B normally. The observed reductions are not isolated causal speedup ratios. Original individual command durations overlap and must not be summed.
+### Storage footprint
 
-Historical measurements remain in [RB: original Codex/Splinter comparison](docs/verification/readme-unity-comparison.md), [UR: first lifecycle remeasurement](docs/verification/unity-lifecycle-remeasurement.md), [UC: read/restoration follow-up](docs/verification/unity-checkpoint-release-remeasurement.md), [UP: startup profile](docs/verification/unity-startup-profile.md) and [US: startup follow-up](docs/verification/unity-startup-remeasurement.md). [UF](docs/verification/unity-final-lifecycle.md) is the current timing reference.
+**Current-version measurement, 2026-10-14:** additional file allocation after both edits compiled was **10.52 GiB for Codex and 0.14 GiB for Splinter: 98.64% less**.
 
-</details>
+![Current additional file allocation with Codex worktrees and Splinter](docs/images/unity-readme-storage.png)
+
+Task and control files, owned Git registration, and shared runner/Library metadata are counted once. Original source, original Library payload, shared Git objects, and filesystem directory metadata are excluded. This is a stage measurement, not peak disk use.
+
+### Choosing between short and long tasks
+
+For a small change in an already-ready Editor, creating, preserving, merging, and cleaning up parallel workspaces can cost more than the edit itself. Working directly in the original can be simpler and faster when independent execution is unnecessary.
+
+Assuming unchanged per-task execution speed, independent tasks A/B take roughly `A + B` sequentially or `max(A, B)` in parallel. **Parallel work saves time when the overlap, `min(A, B)`, exceeds its extra setup, merge, cleanup, and resource-contention costs.** For example, two 30-minute tasks with 10 minutes of extra parallel overhead take 40 minutes instead of 60. This is an illustrative assumption, not a measured result.
+
+Ordinary Codex worktrees can gain the same parallelism. Splinter aims to lower the cost of maintaining independent workspaces by reducing duplicated source and Library storage. With equal concurrency, **longer tasks do not automatically make Splinter faster**: actual reads, writes, compilation, memory/disk contention, and merge complexity determine the outcome. This one-line-edit benchmark does not establish a long-task break-even time.
+
+The scripted one-line changes measure workspace and Unity costs, excluding AI reasoning and feature-development time. Each method was measured once on the same original input, without clearing OS caches or randomizing order. See the [measurement report](docs/verification/unity-current-comparison.md) and [exact dataset](reports/benchmarks/unity-current-comparison-20261014.json) for conditions and evidence.
 
 ## How it works
 
@@ -105,62 +113,11 @@ Git and Plastic tasks can attach an explicitly prepared [Library basis](docs/git
 
 ## Getting started
 
-The current entry point is a source checkout and the PowerShell CLI wrapper.
+Splinter is currently used through the PowerShell CLI included in a source checkout. Create an independent workspace, use your existing editing, Git, and Unity tools in the returned project path, then explicitly preserve, integrate, or discard the result. Continue an ongoing task in the same workspace.
 
-### Requirements
+Requirements are Windows/NTFS, PowerShell 7.2 or later, the .NET SDK specified by [global.json](global.json), and [WinFsp](https://github.com/winfsp/winfsp). Git, Plastic, and Unity are needed when used by your project; `ntfs-snapshot` additionally requires the [restricted storage service](docs/storage-privilege-service.md).
 
-- Windows with NTFS for the workspace storage paths above.
-- PowerShell 7.2 or later.
-- .NET SDK `10.0.112`, or a compatible patch allowed by [global.json](global.json).
-- [WinFsp](https://github.com/winfsp/winfsp) for mounted workspaces; the .NET binding is pinned to `2.2.26215`.
-- Git for Git sources, or the qualified installed Plastic client for Plastic sources. Unity is needed only when using Unity projects and Editors.
-- The [restricted storage service](docs/storage-privilege-service.md) and registered access scope for `ntfs-snapshot` only.
-
-Run from the Splinter repository root:
-
-```powershell
-# Locked dependency restore, Release build, and automated tests.
-pwsh ./scripts/build.ps1
-
-# Discover the interface before issuing a new command.
-pwsh ./scripts/splinter.ps1 capabilities
-pwsh ./scripts/splinter.ps1 schema workspace.ensure
-```
-
-For a first Git workspace without an Editor, use a supported clean repository whose current HEAD matches the chosen base. Replace these example values with your actual project, existing base branch, and an NTFS home outside the original project and any VCS-managed tree:
-
-```powershell
-$project = 'C:/Projects/MyProject'
-$workspaceHome = 'C:/Splinter/MyProject'
-$taskKey = 'feature-a'
-$base = 'development'
-
-pwsh ./scripts/splinter.ps1 doctor --project $project
-
-$reply = (& pwsh ./scripts/splinter.ps1 workspace ensure `
-    --project $project --key $taskKey --base $base `
-    --source git --application none --storage git-snapshot `
-    --home $workspaceHome) | ConvertFrom-Json
-$reply
-```
-
-Inspect `status`, `error`, and any `nextActions`. Only after the request succeeds and the workspace is ready, use **`data.workspace.path`** as your editing directory and the target for file and application tools. `doctor` is a metadata diagnostic; it does not certify an actual workspace run.
-
-For Unity, choose `--application unity` in the initial request and follow the [agent start guide](docs/agent-start.md) and [Unity workflow](docs/alpha-workspaces.md). Keep ordinary CLI, Git, and Unity processes under normal user permissions. Service installation and basis preparation have their own explicit setup procedures.
-
-### Continuing and finishing a task
-
-Keep the same project, home, key, workspace ID, storage choice, base, and request digest in the conversation or handoff. Resume with the same `workspace ensure` inputs; use one writer per workspace path. Read `schema <command>` before each new command and retain the saved ID and home.
-
-| Intent | Command and behavior |
-| --- | --- |
-| Continue later | Keep the workspace; use `unity stop` if only the owned Editor should stop. |
-| Preserve a result | `workspace checkpoint` collects stable source into an independent result. |
-| Apply a result | `workspace integrate` uses the source adapter's target, conflict, and ownership guards. Plain-folder and recorded Plastic application require an explicit plan and fixed intent. |
-| Preserve the result and free task resources | `workspace release` requires the independent result and reclaims only owned resources. |
-| Abandon a task | `workspace discard` requires the exact task and a fixed discard intent. |
-
-Closing a conversation or Editor does not approve integration, release, or discard. See the [agent guide](docs/agent-start.md), [discard contract](docs/workspace-discard.md), and [glossary](docs/glossary.md) for exact lifecycle and recovery rules.
+Follow the [getting started guide](docs/agent-start.md) for setup and your first workspace, or the [Unity guide](docs/alpha-workspaces.md) for Editor use. The [agent skill](skills/splinter/SKILL.md) provides detailed operating instructions for AI agents.
 
 ## Scope and limits
 
@@ -170,23 +127,18 @@ Sharing unchanged data reduces duplication in the storage model. Each Unity Edit
 
 Splinter provides a CLI and agent guidance. Dedicated installation, automatic conversation binding, task scheduling, automatic mode selection, shared-original-Editor orchestration, and an AI execution platform are outside the current implementation. Workspace isolation protects storage and resource ownership; it is not an OS security sandbox for untrusted code. Unsupported or damaged state is preserved and explicitly rejected, without automatic migration.
 
-## Documentation and development
+## Documentation
 
-Start with the [documentation map](docs/README.md). English is the default for feature, architecture, plan, and verification documents; [Korean documentation](docs/ko/README.md) is available separately, with a language link on each page.
+Explore the [documentation map](docs/README.md) for detailed feature guides. English is the default; [Korean documentation](docs/ko/README.md) is available separately, with language links on each page.
 
-| Read this | For |
+| Document | Contents |
 | --- | --- |
-| [Agent start guide](docs/agent-start.md) and [agent skill](skills/splinter/SKILL.md) | Prerequisites, returned paths, task resumption, and explicit completion |
-| [Glossary](docs/glossary.md) | Basis, private ranges, seals, intents, and lifecycle terms |
-| [Current foundation](docs/foundation.md) | Modules, contracts, and the implemented architecture |
-| [Product requirements](plan.html) and [implementation plan](docs/plans/implementation-plan.md) | Product goals, ownership boundaries, and remaining work |
-| [Validation guide](docs/verification/README.md) | Evidence, tested environments, and support limits |
-| [Development CLI](docs/development-cli.md) | Diagnostic checkouts, views, and probes |
-| [Third party notices](THIRD_PARTY_NOTICES.md) | Dependency versions, upstream projects, and license conditions |
-
-The code separates common contracts and lifecycle logic (`Core`, `Runtime`, `Protocol`) from source adapters, the Unity application policy, and Windows storage/process implementations. `src/` contains the product, `tests/` its automated tests, `scripts/` the command wrappers and validation tools, and `tools/` development-only utilities.
-
-Use `development` for ordinary development and integration; `main` is the release branch. Run `pwsh ./scripts/build.ps1` for the required checks. Dependency changes must update central versions and the corresponding lockfiles together. The optional sibling `../splinter-unity` is a separate Git/Unity test project, not a submodule or a requirement for CLI discovery.
+| [Getting started](docs/agent-start.md) | Setup, your first workspace, continuing and finishing a task |
+| [Unity guide](docs/alpha-workspaces.md) | Working on Unity projects in independent Editors |
+| [Glossary](docs/glossary.md) | Bases, private changes, result preservation, and resource reclamation |
+| [Architecture](docs/foundation.md) | Splinter's components and how they work together |
+| [Validation scope](docs/verification/README.md) | Tested environments, measurement evidence, and support limits |
+| [Third-party notices](THIRD_PARTY_NOTICES.md) | Dependency sources, versions, and license conditions |
 
 ## Credits
 

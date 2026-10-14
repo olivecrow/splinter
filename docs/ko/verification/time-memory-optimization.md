@@ -2,7 +2,7 @@
 
 [English](../../verification/time-memory-optimization.md)
 
-TM-01–04는 [UF-01](unity-final-lifecycle.md)의 후속 최적화다. 전체 Unity 작업 시간은 **`116fd44`에서 기록한 1,083.0s**이며, 새 후보의 Unity Editor 두 개 실행 시간은 측정하지 않았다. [데이터](../../../reports/benchmarks/time-memory-optimization-20261014.json)에 작은 입력 비용, runtime/source hash, 검증과 한계를 기록한다. 소스 기준은 `5fab578`, 실제 전후 비교의 고정 기준 runtime은 UF의 `116fd44`다.
+TM-01–04는 [UF-01](unity-final-lifecycle.md)의 후속 최적화다. 이 한정 검증 당시에는 새 후보의 Unity Editor 두 개 실행 시간을 측정하지 않았다. 이후 커밋 `7630970`의 [UT-01 실제 Unity 실행](unity-time-memory.md)은 **875.2s**로, UF의 **`116fd44`에서 기록한 1,083.0s**와 비교했다. 빨라진 준비·복원과 느려진 Editor·보존 단계를 별도로 기록한다. 아래 [데이터](../../../reports/benchmarks/time-memory-optimization-20261014.json)는 당시 작은 입력 비용, runtime/source hash, 검증과 한계를 보존한다. 소스 기준은 `5fab578`, 실제 전후 비교의 고정 기준 runtime은 UF의 `116fd44`다.
 
 ## 변경과 유지한 보호
 

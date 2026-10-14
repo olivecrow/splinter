@@ -1,0 +1,1102 @@
+{
+  "verificationIds": [
+    "UT-01"
+  ],
+  "candidateCommit": "7630970f9e13bfaa500af2dbf6c6c6d978406d3e",
+  "previousCommit": "116fd447086a825bf6d5b424ff9a4aad41dd8642",
+  "original": {
+    "commit": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+    "trackedFiles": 1602,
+    "trackedBytes": 2804772822,
+    "unity": "6000.3.22f1",
+    "libraryEntries": 44860,
+    "libraryFiles": 42420,
+    "libraryBytes": 3141660252,
+    "libraryMatchesOriginalRb": true
+  },
+  "libraryInput": {
+    "originalBasis": "7b23e317476ebafd72f03c3a",
+    "currentBasis": "35e19d5ff52104b810a6570c",
+    "entries": 44860,
+    "allEntriesIdentical": true
+  },
+  "timingSeconds": {
+    "libraryPrepare": 66.59584019996691,
+    "ensureA": 151.2440274999244,
+    "ensureB": 152.85087000008207,
+    "checkpointA": 44.59192419995088,
+    "releaseA": 57.7161770000821,
+    "checkpointB": 43.89299560000654,
+    "releaseB": 56.51972959993873,
+    "libraryRestore": 55.03596739994828,
+    "ensureCohort": 152.85582099994645,
+    "initial": 242.73923920001835,
+    "edit": 48.067147800000384,
+    "stop": 105.51174559991341,
+    "preserveRelease": 202.7266196999699,
+    "assetInspection": 1.412671,
+    "fullLifecycle": 875.1664718999527,
+    "postEditorThroughRestore": 257.767858
+  },
+  "previousComparison": {
+    "libraryPrepare": {
+      "beforeSeconds": 115.8615839999984,
+      "afterSeconds": 66.59584019996691,
+      "reductionPercent": 42.52120685665075
+    },
+    "ensureA": {
+      "beforeSeconds": 163.48136750000413,
+      "afterSeconds": 151.2440274999244,
+      "reductionPercent": 7.485464666228337
+    },
+    "ensureB": {
+      "beforeSeconds": 169.25421689997893,
+      "afterSeconds": 152.85087000008207,
+      "reductionPercent": 9.691543998333852
+    },
+    "checkpointA": {
+      "beforeSeconds": 37.670750899997074,
+      "afterSeconds": 44.59192419995088,
+      "reductionPercent": -18.37280419051679
+    },
+    "releaseA": {
+      "beforeSeconds": 49.39223519997904,
+      "afterSeconds": 57.7161770000821,
+      "reductionPercent": -16.85273356510617
+    },
+    "checkpointB": {
+      "beforeSeconds": 37.37089190000552,
+      "afterSeconds": 43.89299560000654,
+      "reductionPercent": -17.452362971299774
+    },
+    "releaseB": {
+      "beforeSeconds": 47.585369599983096,
+      "afterSeconds": 56.51972959993873,
+      "reductionPercent": -18.775434708315906
+    },
+    "libraryRestore": {
+      "beforeSeconds": 125.97146189998602,
+      "afterSeconds": 55.03596739994828,
+      "reductionPercent": 56.310765494137385
+    },
+    "ensureCohort": {
+      "beforeSeconds": 332.73558439998305,
+      "afterSeconds": 152.85582099994645,
+      "reductionPercent": 54.060873508437936
+    },
+    "initial": {
+      "beforeSeconds": 216.06141320001916,
+      "afterSeconds": 242.73923920001835,
+      "reductionPercent": -12.347334771573548
+    },
+    "edit": {
+      "beforeSeconds": 29.871942900004797,
+      "afterSeconds": 48.067147800000384,
+      "reductionPercent": -60.910684520599645
+    },
+    "stop": {
+      "beforeSeconds": 87.87247930001467,
+      "afterSeconds": 105.51174559991341,
+      "reductionPercent": -20.07370958508483
+    },
+    "preserveRelease": {
+      "beforeSeconds": 172.02296719999867,
+      "afterSeconds": 202.7266196999699,
+      "reductionPercent": -17.848577431102154
+    },
+    "assetInspection": {
+      "beforeSeconds": 2.416564,
+      "afterSeconds": 1.412671,
+      "reductionPercent": 41.54216482576088
+    },
+    "fullLifecycle": {
+      "beforeSeconds": 1083.0235981000005,
+      "afterSeconds": 875.1664718999527,
+      "reductionPercent": 19.192298908786597
+    },
+    "postEditorThroughRestore": {
+      "beforeSeconds": 298.000355,
+      "afterSeconds": 257.767858,
+      "reductionPercent": 13.500821836269294
+    }
+  },
+  "originalRbComparison": {
+    "checkpointA": {
+      "beforeSeconds": 5723.60831,
+      "afterSeconds": 44.59192419995088,
+      "reductionPercent": 99.22091237232216
+    },
+    "releaseA": {
+      "beforeSeconds": 1662.472929,
+      "afterSeconds": 57.7161770000821,
+      "reductionPercent": 96.52829372477065
+    },
+    "checkpointB": {
+      "beforeSeconds": 2914.6685034,
+      "afterSeconds": 43.89299560000654,
+      "reductionPercent": 98.49406560132637
+    },
+    "releaseB": {
+      "beforeSeconds": 1163.3742298,
+      "afterSeconds": 56.51972959993873,
+      "reductionPercent": 95.14174131142175
+    },
+    "preserveRelease": {
+      "beforeSeconds": 9367.0702618,
+      "afterSeconds": 202.7266196999699,
+      "reductionPercent": 97.8357521184963
+    },
+    "libraryRestore": {
+      "beforeSeconds": 1473.2435808,
+      "afterSeconds": 55.03596739994828,
+      "reductionPercent": 96.26429952811587
+    },
+    "postEditorThroughRestore": {
+      "beforeSeconds": 10840.3138426,
+      "afterSeconds": 257.767858,
+      "reductionPercent": 97.62213657516972
+    }
+  },
+  "commandCosts": {
+    "library-prepare": {
+      "beganUtc": "2026-10-13T17:33:53.291750+00:00",
+      "endedUtc": "2026-10-13T17:34:59.889068+00:00",
+      "elapsedSeconds": 66.59584019996691,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-a-ensure-corrected": {
+      "beganUtc": "2026-10-13T17:35:00.103784+00:00",
+      "endedUtc": "2026-10-13T17:37:31.350973+00:00",
+      "elapsedSeconds": 151.2440274999244,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-b-ensure-corrected": {
+      "beganUtc": "2026-10-13T17:35:00.103992+00:00",
+      "endedUtc": "2026-10-13T17:37:32.957878+00:00",
+      "elapsedSeconds": 152.85087000008207,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-a-checkpoint": {
+      "beganUtc": "2026-10-13T17:44:10.704445+00:00",
+      "endedUtc": "2026-10-13T17:44:55.297549+00:00",
+      "elapsedSeconds": 44.59192419995088,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-a-release": {
+      "beganUtc": "2026-10-13T17:44:55.298269+00:00",
+      "endedUtc": "2026-10-13T17:45:53.015890+00:00",
+      "elapsedSeconds": 57.7161770000821,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-b-checkpoint": {
+      "beganUtc": "2026-10-13T17:45:53.016637+00:00",
+      "endedUtc": "2026-10-13T17:46:36.910833+00:00",
+      "elapsedSeconds": 43.89299560000654,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "s-b-release": {
+      "beganUtc": "2026-10-13T17:46:36.911672+00:00",
+      "endedUtc": "2026-10-13T17:47:33.433257+00:00",
+      "elapsedSeconds": 56.51972959993873,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    },
+    "library-restore": {
+      "beganUtc": "2026-10-13T17:47:33.435091+00:00",
+      "endedUtc": "2026-10-13T17:48:28.472290+00:00",
+      "elapsedSeconds": 55.03596739994828,
+      "exitCode": 0,
+      "status": "Succeeded",
+      "sampledThreadTrace": false
+    }
+  },
+  "cohorts": {
+    "ensure": {
+      "beganUtc": "2026-10-13T17:35:00.103407+00:00",
+      "endedUtc": "2026-10-13T17:37:32.961887+00:00",
+      "elapsedSeconds": 152.85582099994645,
+      "parallel": true
+    },
+    "initial": {
+      "beganUtc": "2026-10-13T17:37:32.962681+00:00",
+      "endedUtc": "2026-10-13T17:41:35.706155+00:00",
+      "elapsedSeconds": 242.73923920001835
+    },
+    "edit": {
+      "beganUtc": "2026-10-13T17:41:35.707810+00:00",
+      "endedUtc": "2026-10-13T17:42:23.775774+00:00",
+      "elapsedSeconds": 48.067147800000384
+    },
+    "stop": {
+      "beganUtc": "2026-10-13T17:42:25.188445+00:00",
+      "endedUtc": "2026-10-13T17:44:10.701983+00:00",
+      "elapsedSeconds": 105.51174559991341,
+      "ownedEditorCount": 0,
+      "cliOutcomes": [
+        "Succeeded",
+        "Succeeded"
+      ],
+      "requestsRepeated": false,
+      "forcedTermination": false
+    },
+    "preserve-release": {
+      "beganUtc": "2026-10-13T17:44:10.704432+00:00",
+      "endedUtc": "2026-10-13T17:47:33.434489+00:00",
+      "elapsedSeconds": 202.7266196999699
+    }
+  },
+  "binarySha256": {
+    "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+    "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+    "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+    "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+    "Splinter.Application.Unity.dll": "b4252298c6a6f12a7a238eefbd5df867cedcd30c2adfc697862bc34cd6d4c690",
+    "Splinter.Application.Unity.pdb": "dc3db096c49134b71aabcbaae949131e25676fe02f6a9b605ebb986dd8740297",
+    "Splinter.Core.dll": "467e371b9109d25382b860e47d25c25bfd52eb71379fa759424b51bb1aa9a091",
+    "Splinter.Core.pdb": "e456a91d32704f83c86ab47228376d4c05c84b3322ff1cfb6cfab41dacc297dc",
+    "splinter.deps.json": "ffeee71a0f0aca6909ef5253ebff532fd34f59d6b2028bf236f6afc6a923d8db",
+    "splinter.dll": "a7c665c1abb61ff24bc2447b599c376b306e6742f3a29bce5df9d885e040e646",
+    "splinter.exe": "b9760714f9bd19ce403674bdc1216fec44f105deb77e19286e82a44f03a686bc",
+    "Splinter.Host.dll": "9d7909df74c9e12657733b59344e6a39e008e9f16c968a567bba556424e94f35",
+    "Splinter.Host.pdb": "e159f4ea445b2c6ac33378fb877ac41e9639e1dc721d2bae1f00314a9e7b25ca",
+    "splinter.pdb": "a368d437871f1456bd782f3b9941b4448233b0692408ece399032fa13b00009e",
+    "Splinter.Platform.Windows.deps.json": "ee3448c0bf432243eb1f7e43c831f141623f33d528d48be4f5e61a6b1acc7000",
+    "Splinter.Platform.Windows.dll": "541dd0d03e47215755e6b2f035fa1c06de74e858a279015039c92c4fe1021fd1",
+    "Splinter.Platform.Windows.exe": "bf308e1d4b77104cf7a7c56ff75bd49efa37e7dcb4c7505e184afe736ee7816f",
+    "Splinter.Platform.Windows.pdb": "09b10e4b1eb1270e39ab3e052605ed196f3394cafa21479846e285e7cf142349",
+    "Splinter.Platform.Windows.runtimeconfig.json": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097",
+    "Splinter.Protocol.dll": "410b4058a8f738b0a3c6255eba5aa77671fd847fb452950acee116c1d1d5be24",
+    "Splinter.Protocol.pdb": "a07e34a9c1c523636dbdf5466d202573eeba987001081e305546129818e7e90a",
+    "Splinter.Runtime.dll": "53971199ad047fbacff49c25296f36d19a9a6f2c45050719793bca93b0f47403",
+    "Splinter.Runtime.pdb": "fcfd12787fcbcfe6cc7e849ec6224f37f1da422c23b21cf53545ed97ab0fecba",
+    "splinter.runtimeconfig.json": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097",
+    "Splinter.SourceControl.Files.dll": "39a5d24263be7e6b113931aeb4dd76a8dfc0035055f69dced8af7a20501cacf1",
+    "Splinter.SourceControl.Files.pdb": "6eb72c7c06ce5d7ff6e6b5c2a06c5b8f2e2b093216b0845ac5ad515a320b47d1",
+    "Splinter.SourceControl.Git.dll": "7e7914c02f8c55e4628f6dc4362069ef74423b44d7cb83bda4d5f32a9eea97e9",
+    "Splinter.SourceControl.Git.pdb": "7a1d638143e16051bb5f66ffd0e9443d8a1adc9ebf5b19f8c0cdb9f3c2ceedf0",
+    "Splinter.Workflows.Windows.dll": "08fbfb56a46a65c4a05d64355e1e5dc8f644a3687a37169e5b3991a7dd428558",
+    "Splinter.Workflows.Windows.pdb": "1ace0503542ec3d9a898f73e63b25a62e9fee9a5b76187a3d9b4a3479ff9caba",
+    "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+    "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+  },
+  "closure": {
+    "status": "completed",
+    "at": "2026-10-13T17:48:36.000500+00:00",
+    "results": [
+      {
+        "worker": "a",
+        "id": "f73f857a381232551ab4fd77",
+        "revision": "8f23a418b478765d3402d06ddf49336028ca15c7",
+        "resultTreeMatchesHistoricalCodex": true,
+        "phase": "released",
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "storage": {
+            "id": "f73f857a381232551ab4fd77",
+            "snapshotId": "git-f73f857a381232551ab4fd77-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-330b7735a81280fa15c64eb41730ee19c84dda13b596319248cc14bb07a3ab5e",
+            "initialPayloadCopiedBytes": 0,
+            "journalBytes": 36024186,
+            "payloadBytes": 27606446,
+            "metadataBytes": 8417740,
+            "readBytes": 7663685818,
+            "readCacheBytes": 0,
+            "maxTransferBytes": 1048576,
+            "indexedNodes": 46717,
+            "durableSequence": 28458,
+            "metrics": {
+              "epoch": "f68df448d0cb4efb90a58fd64f2c65c0",
+              "lockAcquisitions": 1567312,
+              "lockWaitTicks": 2287876361,
+              "flushCount": 28922,
+              "flushTicks": 1005520591,
+              "commitCount": 28909,
+              "journalAppendedBytes": 267503242,
+              "replayBytes": 0,
+              "replayTicks": 186663,
+              "journalReadBytes": 1149317515,
+              "baseReadBytes": 7409251003,
+              "stopwatchFrequency": 10000000,
+              "replayFrames": 0,
+              "replayReadCalls": 0,
+              "replayReadTicks": 0,
+              "replayValidationTicks": 0,
+              "replayIndexTicks": 0,
+              "replayBufferBytes": 65536,
+              "replayIndexOperations": [],
+              "replayWriteRangeIndex": {
+                "replaceCalls": 0,
+                "priorExtents": 0,
+                "maxPriorExtents": 0,
+                "visitedExtents": 0,
+                "copiedExtents": 0,
+                "locateAndReplaceTicks": 0,
+                "sortTicks": 0,
+                "priorExtentBuckets": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "liveJournalWrites": {
+                "mutationGateCalls": 238490,
+                "mutationGateWaitTicks": 9666105,
+                "operations": [
+                  {
+                    "operation": "create",
+                    "attempts": 609,
+                    "durableCommits": 609,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 286357,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 27016895,
+                    "applyTicks": 0,
+                    "totalTicks": 48010903,
+                    "flushCalls": 609,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "delete",
+                    "attempts": 433,
+                    "durableCommits": 433,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 380896,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 18853797,
+                    "applyTicks": 0,
+                    "totalTicks": 55404146,
+                    "flushCalls": 433,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "forget-unlinked",
+                    "attempts": 451,
+                    "durableCommits": 451,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 136316,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 20236005,
+                    "applyTicks": 0,
+                    "totalTicks": 58429502,
+                    "flushCalls": 451,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "metadata",
+                    "attempts": 456,
+                    "durableCommits": 456,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 250996,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 22650727,
+                    "applyTicks": 0,
+                    "totalTicks": 50992365,
+                    "flushCalls": 456,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "rename",
+                    "attempts": 181,
+                    "durableCommits": 181,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 220265,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 8680138,
+                    "applyTicks": 0,
+                    "totalTicks": 30497276,
+                    "flushCalls": 181,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "resize",
+                    "attempts": 262,
+                    "durableCommits": 262,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 128403,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 11768559,
+                    "applyTicks": 0,
+                    "totalTicks": 57394091,
+                    "flushCalls": 262,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "write",
+                    "attempts": 26517,
+                    "durableCommits": 26517,
+                    "failedCalls": 0,
+                    "payloadBytes": 137253030,
+                    "journalBytes": 266100009,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 895228914,
+                    "applyTicks": 0,
+                    "totalTicks": 2160459206,
+                    "flushCalls": 26517,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              "readRangeIndex": {
+                "readCalls": 113961,
+                "searchProbes": 74708,
+                "visitedExtents": 44743
+              }
+            },
+            "journalOptimizationEnabled": true,
+            "journalBytesBasis": "current-files"
+          },
+          "hostFreeBytes": 254396764160,
+          "journalRemainingBytes": 17143844998,
+          "snapshotStorage": {
+            "id": "git-f73f857a381232551ab4fd77-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-330b7735a81280fa15c64eb41730ee19c84dda13b596319248cc14bb07a3ab5e",
+            "available": false,
+            "preservedBytes": 0,
+            "availability": "missing"
+          },
+          "deltaPresent": false,
+          "snapshotAvailability": "missing"
+        }
+      },
+      {
+        "worker": "b",
+        "id": "653befdde01a98fd16c08c96",
+        "revision": "739b7f45d46ab114a7c308f88329538c9f6078e4",
+        "resultTreeMatchesHistoricalCodex": true,
+        "phase": "released",
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "storage": {
+            "id": "653befdde01a98fd16c08c96",
+            "snapshotId": "git-653befdde01a98fd16c08c96-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-330b7735a81280fa15c64eb41730ee19c84dda13b596319248cc14bb07a3ab5e",
+            "initialPayloadCopiedBytes": 0,
+            "journalBytes": 36067534,
+            "payloadBytes": 27702779,
+            "metadataBytes": 8364755,
+            "readBytes": 7707597475,
+            "readCacheBytes": 0,
+            "maxTransferBytes": 1048576,
+            "indexedNodes": 46717,
+            "durableSequence": 28270,
+            "metrics": {
+              "epoch": "6fd407c292864f04b1186580150b35c2",
+              "lockAcquisitions": 1565583,
+              "lockWaitTicks": 2492772376,
+              "flushCount": 28734,
+              "flushTicks": 1009129393,
+              "commitCount": 28721,
+              "journalAppendedBytes": 266326866,
+              "replayBytes": 0,
+              "replayTicks": 193932,
+              "journalReadBytes": 1138884022,
+              "baseReadBytes": 7452893675,
+              "stopwatchFrequency": 10000000,
+              "replayFrames": 0,
+              "replayReadCalls": 0,
+              "replayReadTicks": 0,
+              "replayValidationTicks": 0,
+              "replayIndexTicks": 0,
+              "replayBufferBytes": 65536,
+              "replayIndexOperations": [],
+              "replayWriteRangeIndex": {
+                "replaceCalls": 0,
+                "priorExtents": 0,
+                "maxPriorExtents": 0,
+                "visitedExtents": 0,
+                "copiedExtents": 0,
+                "locateAndReplaceTicks": 0,
+                "sortTicks": 0,
+                "priorExtentBuckets": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "liveJournalWrites": {
+                "mutationGateCalls": 238120,
+                "mutationGateWaitTicks": 11258359,
+                "operations": [
+                  {
+                    "operation": "create",
+                    "attempts": 609,
+                    "durableCommits": 609,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 283608,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 27106667,
+                    "applyTicks": 0,
+                    "totalTicks": 46882708,
+                    "flushCalls": 609,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "delete",
+                    "attempts": 433,
+                    "durableCommits": 433,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 394228,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 20161728,
+                    "applyTicks": 0,
+                    "totalTicks": 61048703,
+                    "flushCalls": 433,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "forget-unlinked",
+                    "attempts": 451,
+                    "durableCommits": 451,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 149648,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 20927188,
+                    "applyTicks": 0,
+                    "totalTicks": 63530494,
+                    "flushCalls": 451,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "metadata",
+                    "attempts": 456,
+                    "durableCommits": 456,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 250996,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 23470243,
+                    "applyTicks": 0,
+                    "totalTicks": 53976871,
+                    "flushCalls": 456,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "rename",
+                    "attempts": 181,
+                    "durableCommits": 181,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 234625,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 9455941,
+                    "applyTicks": 0,
+                    "totalTicks": 32667918,
+                    "flushCalls": 181,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "resize",
+                    "attempts": 262,
+                    "durableCommits": 262,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 128403,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 12265755,
+                    "applyTicks": 0,
+                    "totalTicks": 60424634,
+                    "flushCalls": 262,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "write",
+                    "attempts": 26329,
+                    "durableCommits": 26329,
+                    "failedCalls": 0,
+                    "payloadBytes": 136493163,
+                    "journalBytes": 264885358,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 894788081,
+                    "applyTicks": 0,
+                    "totalTicks": 2172551159,
+                    "flushCalls": 26329,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              "readRangeIndex": {
+                "readCalls": 113465,
+                "searchProbes": 73419,
+                "visitedExtents": 44557
+              }
+            },
+            "journalOptimizationEnabled": true,
+            "journalBytesBasis": "current-files"
+          },
+          "hostFreeBytes": 254496907264,
+          "journalRemainingBytes": 17143801650,
+          "snapshotStorage": {
+            "id": "git-653befdde01a98fd16c08c96-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-330b7735a81280fa15c64eb41730ee19c84dda13b596319248cc14bb07a3ab5e",
+            "available": false,
+            "preservedBytes": 0,
+            "availability": "missing"
+          },
+          "deltaPresent": false,
+          "snapshotAvailability": "missing"
+        }
+      }
+    ],
+    "originalTrackedFilesByteVerified": 1602,
+    "originalClean": true,
+    "originalLibraryOrdinaryNtfs": true,
+    "preexistingRefsUnchanged": true,
+    "localGitConfigRestored": true,
+    "globalGitConfigUnchanged": true,
+    "administratorOrServiceChanges": false
+  },
+  "nativeClosure": {
+    "at": "2026-10-13T17:48:56.141318+00:00",
+    "ordinaryOriginalVolume": true,
+    "filesystem": "NTFS",
+    "reparsePoint": false,
+    "libraryRestored": true,
+    "worktreeRegistrationsEqualPreflight": true,
+    "localAutocrlfAbsent": true,
+    "ownedEditorsAndProvidersAbsent": true,
+    "providers": [
+      {
+        "pid": 9900,
+        "startTimeUtcTicks": 639275097195033151,
+        "absent": true
+      },
+      {
+        "pid": 50944,
+        "startTimeUtcTicks": 639275097178562158,
+        "absent": true
+      },
+      {
+        "pid": 16220,
+        "startTimeUtcTicks": 639275096843099008,
+        "absent": true
+      }
+    ],
+    "frozenProductHashesUnchanged": true,
+    "protectedDirtyFilesByteIdentical": 0
+  },
+  "responseValidation": {
+    "responses": 12,
+    "validatorTestsPassed": 1,
+    "failed": 0,
+    "test": "JournalBaseReversionProductEvidenceTests.RecordedProductResponsesMatchCurrentSchema",
+    "valid": 12
+  },
+  "rawEvidence": "artifacts/unity-time-memory-20261014/",
+  "rawSha256": {
+    "basis-identity.json": "ba4996ec7b3f0c4ae919d86eec63f790b7cc0ffd8a78db22123bad584c0b2294",
+    "candidate.json": "66c9247e4fe5683a51c4230d9c6f4c75d9967837f5c56fa5ca37666efec423ca",
+    "closure-native.json": "c296eb3a6f4b9b5c3196476d03836bb183331116f46a8f166fabdf83377e6cda",
+    "closure.json": "daf0a95f1a18c729f7bdc7b58d6407418e6e546829f550336e279b391f07693c",
+    "driver.log": "82bc5ede955c94534beaf4d18475bf78ff1f33b6f0353b73c4c69a365a726736",
+    "full-lifecycle-cost.json": "4276d4565e0f4e305fd2f06faddc839291bb705a0c118b3e20b816cc9f4ed2c3",
+    "library-input-comparison.json": "7301e3c59ab80c0421d21cd3bbb3ade78248b34263a559c15f5f61d7ef58994c",
+    "library-prepare-cost.json": "3bf90bcd1861ea5bd79b051656b619baae0761234c7627e7279db7ae7c552542",
+    "library-prepare-process.json": "924577c240a34c83fc1ba3b5b017587454bd9782bd9702d27aefd8b7b4163233",
+    "library-prepare.json": "965717c2448bd8fc6a5130dea15ca125f101be9dabfa2b80e853788965cdf77a",
+    "library-restore-cost.json": "c089c5417000ccbd4ee1de8a9d6eb1568d152489aa16c7a105ea98f8de86638c",
+    "library-restore-process.json": "eab16ec7bebe978b8a00ef1faf92512cab4c9389f26b1465fe62135fd043e9b7",
+    "library-restore.json": "199824b566190c8f24b48da9d23493c23c7385b7e95c91247f7240ddc3bca634",
+    "local-git-config-change.json": "01b6f4fad57ab1329fa4e692e871b7d63d164d4993801e394b4bea39b3c52a4c",
+    "local-git-config-restored.json": "2211ba9b11a0707a00a0e370cf1898dbae6129b7458a910f22274d9b431731ee",
+    "preflight.json": "85bafcfa35ad19b01596621c311320c51f9b05a19fe50e1f91b599b3f3e45618",
+    "report.py": "d674b909e3a921d69fd1686ea803ca7caddb70a986fd3c9718bccf2159f9aaf1",
+    "response-schema-test.log": "6f8caf1d8c74ab60d0e8d47bdbcb15be1d1a00c803dfb7f5f7446627ca4a2d6d",
+    "response-schema-validation.json": "bd55c39d17c5d5953b67918a15adeaed4cb189f9819e4b7fcffe1c159567471d",
+    "response-schema-validation.xml": "a93f9333f6f2c04e0c9f8ca32962c18640382d0cdf81da812fe961b9d8ecf77d",
+    "run.py": "46e72fa03478fe46ca40fe8992cac5a1784778f635bf76b8a6d182a10c7d9799",
+    "s-a-assets.json": "523ed1fc5d0518c705aa52ca271a5992a61fb5e85182adce1a8ec90691b05e50",
+    "s-a-checkpoint-cost.json": "cc57df1782ff4f64ff88f2b37b098894b2c7137babad84fa73447e51800c7320",
+    "s-a-checkpoint-process.json": "58c6b93d3ef11aba41bf25454e99e021816d79245054b3554472749766763758",
+    "s-a-checkpoint.json": "97a331beda95c7c03177d4ef3b5491accab4914307f3d2451236db134c1b4798",
+    "s-a-edit.json": "b8b7ffaa6cd3c7fce68314edb4c0e70c5577eefd4685b0e46819455b8046aba2",
+    "s-a-editor.log": "af0fbff6dcce8b07a663dfc4fc8ebc31408f5542813083e5248e29dc7057b221",
+    "s-a-ensure-corrected-cost.json": "280267c5b493717df6834ca4652ad391d7f2ee370ccdd543c547cbe953b4d4ab",
+    "s-a-ensure-corrected-process.json": "b13b5c561f71a69a12fa84f2bb654235f74eee1c5603cb8a27c4a9224faff7c9",
+    "s-a-ensure-corrected.json": "50ba8f23bbab655d84f3bb74af4e12e15cf50167a8fca4fae31a87ea631d7003",
+    "s-a-initial.json": "6e886e189cefbd08fcef148e6b48ddbbde04c345c995e27ce00004e834d90354",
+    "s-a-launch.json": "5ca983b496bbe3db82bb8ed7f29e6e0439db6aaeb2488342fea2223b89cc1c53",
+    "s-a-refresh-response.json": "397097dbdc52e9efd2e884f2b107339da2ee0beb31a846d042482355d0eed058",
+    "s-a-release-cost.json": "3c2528ee018306991b041ddfbc337e31a111e4c9e05488f97a50c46531e5da44",
+    "s-a-release-process.json": "0cd7d4b3919b478c6ac59a2532a2cbdbfe4743ac26992bd060614afc9551fe16",
+    "s-a-release.json": "0789e26be516c8ba637dc82d241dd697a6b8b56c7f3e9909fca31609a7be0418",
+    "s-a-unity-start-cost.json": "8c9095e79bfb26d8f29cee3e238b91cf682dd13783366e0808fdb56f48092ae7",
+    "s-a-unity-start-process.json": "2cbbd5d47290672ab710427ee59f03f2db2a9d5a95b8d3cd6392222d96384d14",
+    "s-a-unity-start.json": "e0857afcf873911029703b19fc9603ec9c5c86cad8fd99a2f5f836a1f38c9e5e",
+    "s-a-unity-stop-cost.json": "028ce3a2c5e5682548bf8713d4ec25c952a0a5c69b0b137113ad965940b8c82a",
+    "s-a-unity-stop-process.json": "9035f2be138116bdcba100d41a3f7410b7bf935b8e8a53ef96a953223fd21fa6",
+    "s-a-unity-stop.json": "47821124ec7cfe6118b417baca53b4b396cac4aebca15d322f1fa3032ea1691f",
+    "s-b-assets.json": "6402cfe2472c2339b8cee2fc00a02a36c415d98e5dc92b514587175cb0d650af",
+    "s-b-checkpoint-cost.json": "8f2f20ce2ba496c0e855da30756e6d31ef8d0f9f426ff20c9a76bb01bb3342ea",
+    "s-b-checkpoint-process.json": "043b1bc74761979b75307e3e6c45c16056184e5cae0ece5dc1d8f4f2078ba779",
+    "s-b-checkpoint.json": "9cc59d90b3327daad472d9a05244ee68bff9c0966023f3b808f8852017943afa",
+    "s-b-edit.json": "70f1f707f46d752287f20b6a67dadda61582f4448106f416e184af2c08805377",
+    "s-b-editor.log": "e5d8e19b11a25b91bd2b3737092ceffd365cd5a48fea6d3cc2f2d0e6d6356974",
+    "s-b-ensure-corrected-cost.json": "a562e69de7e1fef30891f155b255b59bb8ea4099a4037aa9a8078cfd0f3a0a75",
+    "s-b-ensure-corrected-process.json": "fbe88f9052d5a7d7d52d8740b2a883c68508134f32cfd82274b289c897c53a8d",
+    "s-b-ensure-corrected.json": "83adda3693310576237209d1256c056e20ab999cb7308d6139a3c2c9d4f1b81e",
+    "s-b-initial.json": "901070307a9c7234938924a2dcba29d240bfc067ce7a714e398f75d14bd9793b",
+    "s-b-launch.json": "f29ab43f2fef1dbcb2d9fc2672bfcc08ed180a6e165e295ec3006b066bbcd72f",
+    "s-b-refresh-response.json": "2a3e15f295cee6b66b5814488aa43eda7eafde8bd1262a8b041e31a3881f0dde",
+    "s-b-release-cost.json": "75a6de4093ab8db4bec487ba5a0165bcef460cfba1de8a80486574b29f4867a3",
+    "s-b-release-process.json": "fb36832bfb01efc03c1812360293a869cfd1889ed45db25530e09c7078281aea",
+    "s-b-release.json": "349fd10141420d95fbc32b04052bd68db831f199389cfab7fa0868b45e2b8bba",
+    "s-b-unity-start-cost.json": "b9b752959ebf13558754322bf0cbdaef2e86dfde8bcbf3a00ed9acc0e5c07c2f",
+    "s-b-unity-start-process.json": "9cf2c626af742fe1191ce21d6a7eeb5c4c1ac52bc5737b00a96be7b1cc3e7ca5",
+    "s-b-unity-start.json": "39b0e76f0e8c0675ec9ab4bd0729e6b1364fea671fd5236a5b647b9c96f99215",
+    "s-b-unity-stop-cost.json": "c9df56af10cca103da017fe697af337b0811427970d7b9e91ef88e02158110b1",
+    "s-b-unity-stop-process.json": "4e618882aedc0441b7dccbeeb4b9010fd3d3d209fe89d735b2ac017151fdc356",
+    "s-b-unity-stop.json": "5a26b7b22c80319c9d20a3e5b89dc9ea85b03910d682980b9a8a9bd1296c9a37",
+    "s-edit-cohort.json": "20e1646cae428cf8de9a836200b728b144105db48b9354be369b89ed0549b409",
+    "s-ensure-cohort.json": "63d45b46d3fadde2589da85068c1db7597a923c2c7eb71c52da39e6fc212005a",
+    "s-initial-cohort.json": "d1edbfc191089d4c51767945ae6f0bbc6229477453b8fcdf79a6d4dbd0f3f882",
+    "s-preserve-release-cohort.json": "a91b957aa5706ef0ab59caeb65fda04e3078529465639be8c511b6d9b0d93d63",
+    "s-stop-cohort.json": "1cbb3cbd852e460210cbbc47ce31e0a4f99ab3765281dd9eab873898e3335a5f",
+    "s-targets.json": "f81f062b6922fd6c317f418542b6cec905e29418de262786debe5dc987ece979",
+    "schema-library.prepare.json": "bd9a31f5e071d593902b304a15a1a7c7f836b582bbe6ae2aeb932b5357914846",
+    "schema-library.restore.json": "1d30395f1514e00307c5bbc50176824680eba8935dcca37efd348efc989e2a02",
+    "schema-unity.start.json": "19c5810a1cb42ac25845053ca9651c7076067d830563d519bc1dfde921969526",
+    "schema-unity.stop.json": "9c92c1bfd928e9f59f4cc4b8a04a2a0fff8754605b3ae35d6527feb280bc629b",
+    "schema-workspace.checkpoint.json": "fcea1a9b98ad03122d26d6110039df068dd89d2bad63dfcb8f04994d290fe763",
+    "schema-workspace.ensure.json": "d843e771b07cd11b4cc8aeafb3868da553da6f87fbcae85d42791348face6f74",
+    "schema-workspace.release.json": "9c38e048dbd944bc686fd6ba54397b16c534ee2ec9fcc4129378e9aa9a2eca7c",
+    "source-before.json": "97623f7757c295ae53e13a71f4eb88d6e1a70e4c8fef26de703aece62a8c4b98",
+    "verify.py": "84a0dfcb2a6554bb865a8953f5717afa25b712f6aefdd05b459cb186c813b8a5"
+  },
+  "limits": [
+    "One cohort per candidate; OS caches not cleared and no randomized repeat.",
+    "Current ensure calls overlap; previous UF ensure calls were sequential. Individual current A/B creation times overlap and must not be summed.",
+    "Same historical qualification fixture and installed project dependencies; not qualification of optional external tooling.",
+    "No new Play/Test/build, VSS/service/global configuration change, whole-machine peak RAM or storage-allocation comparison.",
+    "RB post-Editor operations overlapped, included diagnostics/recovery and externally committed B; only comparable intervals are shown, not an invented original full lifecycle."
+  ],
+  "editorLogObservations": {
+    "previous": {
+      "a": {
+        "scriptCompilationSeconds": [
+          103.34952,
+          0.000614
+        ],
+        "tundraBuildSeconds": [
+          55.75,
+          9.74
+        ],
+        "domainReloadMilliseconds": [
+          9689,
+          55169,
+          13304
+        ],
+        "compilerErrorLines": []
+      },
+      "b": {
+        "scriptCompilationSeconds": [
+          102.261024,
+          0.000636
+        ],
+        "tundraBuildSeconds": [
+          54.87,
+          10.08
+        ],
+        "domainReloadMilliseconds": [
+          9733,
+          56679,
+          13729
+        ],
+        "compilerErrorLines": []
+      }
+    },
+    "current": {
+      "a": {
+        "scriptCompilationSeconds": [
+          128.85704,
+          0.000872
+        ],
+        "tundraBuildSeconds": [
+          74.21,
+          19.14
+        ],
+        "domainReloadMilliseconds": [
+          9065,
+          57146,
+          15709
+        ],
+        "compilerErrorLines": []
+      },
+      "b": {
+        "scriptCompilationSeconds": [
+          123.763428,
+          0.00089
+        ],
+        "tundraBuildSeconds": [
+          68.48,
+          19.41
+        ],
+        "domainReloadMilliseconds": [
+          9058,
+          57722,
+          15428
+        ],
+        "compilerErrorLines": []
+      }
+    }
+  }
+}
