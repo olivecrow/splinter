@@ -1,0 +1,55 @@
+{
+  "required": [
+    "snapshot",
+    "generation",
+    "files"
+  ],
+  "$id": "urn:splinter:v1:source-content-summary-view",
+  "additionalProperties": false,
+  "properties": {
+    "generation": {
+      "$ref": "urn:splinter:v1:source-change-view"
+    },
+    "snapshot": {
+      "$ref": "urn:splinter:v1:overlay-serve-request#/properties/identity/properties/snapshot"
+    },
+    "files": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "containsNul": {
+            "type": "boolean"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{64}$"
+          },
+          "path": {
+            "minLength": 1,
+            "maxLength": 32000,
+            "type": "string"
+          },
+          "containsCarriageReturn": {
+            "type": "boolean"
+          },
+          "length": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "path",
+          "length",
+          "sha256",
+          "containsCarriageReturn",
+          "containsNul"
+        ],
+        "type": "object"
+      },
+      "maxItems": 4096,
+      "type": "array"
+    }
+  },
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

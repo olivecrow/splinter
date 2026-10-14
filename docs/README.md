@@ -16,6 +16,9 @@ Find current implementation in feature documents below and subsequent responsibi
 
 | Document | Owned content |
 | --- | --- |
+| [Unity throughput optimization](verification/unity-throughput-optimization.md) | TP-01–06: Git proof reuse and bounded journal improvements; the cache-retention experiment was withdrawn after a real Unity reclamation failure. Component evidence, recovery and shared-Editor comparison are separated. |
+| [Multi-stage Unity maze workflow](verification/unity-maze-workflow.md) | MW-01: real maze generation, saved scenes, character/input and Play validation in parallel A/B versus one shared Editor. Completed workflows include recovery; normal stage costs, equivalent outcomes and timing limits are separated. |
+| [Unity workflow with parallel combined completion](verification/unity-finalization-rerun.md) | FU-01: committed `07bc2de`, 768.3s complete Splinter workflow and 94.0s shared Editor on the same current input; parallel `checkpoint --release`, historical input differences and verified cleanup. |
 | [Finalization and decoded-payload reuse](verification/lifecycle-finalization-optimization.md) | LF-01–05: bounded path/capsule RAM reuse, explicit checkpoint with release, cached payload visitors, guard regressions and small-fixture costs. |
 | [Current Unity parallel workflow and storage comparison](verification/unity-current-comparison.md) | RC-01: same-input ordinary Codex/Git worktrees 819.7s versus Splinter 935.2s, current file allocation, identical combined source results, excluded observation periods and retained empty Codex directories. |
 | [Parallel coding with a shared Unity Editor](verification/unity-shared-editor.md) | SE-01: one Editor validates independent A/B candidates in 102.5s accounted workflow time; B waits 16.0s. Comparison reuses RC-01 Splinter after input/runtime proof. Editor queue versus code parallelism, original recovery, and unmeasured long-task crossover. |

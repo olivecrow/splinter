@@ -2,7 +2,13 @@
 
 [English](../../verification/README.md)
 
-[최종화와 압축 해제 데이터 재사용](lifecycle-finalization-optimization.md)이 LF-01–05를 소유한다. 한정 비용 측정은 아래 RC-01/SE-01 Unity 결과를 대체하지 않는다.
+[Unity 작업 시간 최적화](unity-throughput-optimization.md) TP-01–06: Git 증명 재사용과 제한된 저널 개선. cache 유지 실험은 실제 Unity 회수 실패 뒤 철회했다. 구성 요소 근거·복구·공유 Editor 비교를 구분한다.
+
+[다단계 Unity 미로 작업 비교](unity-maze-workflow.md)가 MW-01을 소유한다. 여섯 기능 단계와 통합 미로 세 장면의 실제 Play 검증이 양쪽에서 통과했다. 관찰된 Splinter 1,501.9초·공유 Editor 787.5초는 복구를 포함하므로 정상 처리 속도 비율을 입증하지 않는다. 정상 준비/통합 비용과 원본/자원 회수는 별도로 기록한다.
+
+[병렬 통합 종료를 사용한 Unity 전체 작업](unity-finalization-rerun.md)이 FU-01을 소유한다. `07bc2de`의 실제 Unity 전체 시간은 768.3초로 RC-01의 935.2초와 비교하며, 같은 입력으로 새로 측정한 공유 Editor는 94.0초다. 병렬 `checkpoint --release`에 Editor 정상 종료를 포함하고 과거 입력 차이와 한 묶음의 한계를 구분한다.
+
+[최종화와 압축 해제 데이터 재사용](lifecycle-finalization-optimization.md)이 LF-01–05를 소유한다. 한정 비용 측정은 FU-01 및 아래 과거 RC-01/SE-01 Unity 결과와 구분한다.
 
 **공유 Editor 비교:** [SE-01](unity-shared-editor.md)은 병렬 코드 작성 뒤 Editor 하나의 순차 검증을 측정한다. 원본 소스 복구·정리를 포함한 계측 합계 102.5s, B 대기 16.0s이며 입력/실행 파일 대조 후 RC-01 Splinter 935.2s를 재사용한다. 코드 작성은 양쪽 병렬이고 긴 Editor 연산의 손익분기·공유 Editor 대비 공간 절감은 미측정이다.
 

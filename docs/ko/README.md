@@ -14,6 +14,9 @@
 
 | 문서 | 소유하는 내용 |
 | --- | --- |
+| [Unity 작업 시간 최적화](verification/unity-throughput-optimization.md) | TP-01–06: Git 증명 재사용과 제한된 저널 개선. cache 유지 실험은 실제 Unity 회수 실패 뒤 철회했다. 구성 요소 근거·복구·공유 Editor 비교를 구분한다. |
+| [다단계 Unity 미로 작업 비교](verification/unity-maze-workflow.md) | MW-01: 실제 미로 생성·장면 저장·캐릭터/입력·Play 검증을 병렬 A/B와 공유 Editor로 수행. 복구를 포함한 완료 기록과 정상 단계 비용·동등한 결과·시간 해석 한계를 구분한다. |
+| [병렬 통합 종료를 사용한 Unity 전체 작업](verification/unity-finalization-rerun.md) | FU-01: 커밋 `07bc2de`, 같은 현재 입력의 Splinter 전체 768.3초와 공유 Editor 94.0초. 병렬 `checkpoint --release`, 과거 입력 차이와 회수 검증. |
 | [최종화와 압축 해제 데이터 재사용](verification/lifecycle-finalization-optimization.md) | LF-01–05: 유한 경로/capsule RAM 재사용, 명시적 checkpoint와 release 통합, payload visitor cache, guard 회귀와 작은 fixture 비용. |
 | [현재 Unity 병렬 작업·저장 비용 비교](verification/unity-current-comparison.md) | RC-01: 같은 입력의 일반 Codex/Git 워크트리 819.7s와 Splinter 935.2s, 현재 파일 할당, 동일 병합 결과, 측정 제외 구간·빈 Codex 폴더 잔여 한계. |
 | [병렬 코드 작성과 공유 Unity Editor](verification/unity-shared-editor.md) | SE-01: Editor 하나가 독립 A/B 후보를 검증하는 계측 작업 합계 102.5s, B 대기 16.0s. 입력/실행 파일 대조 후 RC-01 Splinter를 재사용하며 Editor 대기열과 코드 병렬화·원본 복구·긴 작업 손익분기 미측정을 구분한다. |

@@ -1,0 +1,1790 @@
+{
+  "id": "TP-06",
+  "date": "2026-10-15",
+  "status": "FailedCandidateRecovered",
+  "candidate": {
+    "baseCommit": "07bc2de591d5deaf3d363a557f0a8cb895df3ee5",
+    "uncommittedCandidate": true,
+    "sourceSha256": {
+      "contracts/v1/candidate-export-intent.schema.json": "d9570e4b89051493348eab62676e6bc671d1c6b6acc1ecd1b0393eccefdc5094",
+      "contracts/v1/candidate-export-request.schema.json": "7f2721a27efe9862091be3b0773de9815eb0f365211a7778320f0eb619e8d693",
+      "contracts/v1/candidate-source-projection.schema.json": "95fdf454e999e22076693f98563ad984be78af8e71f60ace8db6d5837af72baa",
+      "contracts/v1/commands.json": "7d31c4e9ed9f6438241fb0222f17a5823e5e7ac4d12d463f0aa4043a695a204a",
+      "contracts/v1/doctor-request.schema.json": "73a61237ee695e05bdebd20d2d98b8883c4a314e081d03a4dd26ed96936a328c",
+      "contracts/v1/empty-request.schema.json": "7f81bded3622303f1adc598bd2e96299c7c6040d76907c3815f8fee4b7f299a9",
+      "contracts/v1/file-source-manifest.schema.json": "0b9b3b3be97c3360f7737d6d2b4cea8ff28fc27e0b8751ceb39d2d7b90968f49",
+      "contracts/v1/generated-directory-reference.schema.json": "884415abd52b6df7f9ce92bd4c4c7e44252dd4c0005666588c03c78acbe0e265",
+      "contracts/v1/git-project-basis-receipt.schema.json": "926b8716bff51c4368d8da0628582e7f4c774ffaa1315ad7960e6978db853451",
+      "contracts/v1/git-source-metadata.schema.json": "7482cbe766e9eeb8ce0c8174354c49054e7a1d6612a7a807d154680dd44e03b9",
+      "contracts/v1/immutable-candidate.schema.json": "00f7fa7e3991352d9c81ac1649d4785549bac13378ffcf74d206a0051ff2b0cd",
+      "contracts/v1/journal-recovery-probe-request.schema.json": "c2e8d0c4fc3d96e6de99173625fa5ae9f0132a31b8744042179b1762b80bdf24",
+      "contracts/v1/journal-recovery-probe-result.schema.json": "afde78ade9e368cd439d96c2d15e0bc0202323e5dc0491cc86e92719e1a5e490",
+      "contracts/v1/journal-recovery-probe-signal.schema.json": "77868b76b95793400043cf1109d00dd86dfdc33c5127a403643b0d5f0bbaa301",
+      "contracts/v1/kernel-recovery-probe-request.schema.json": "8e5983efe6f669a3fcac8a53a4b2d9c4353f490bae09f1e9960767fee5cf0067",
+      "contracts/v1/kernel-recovery-probe-result.schema.json": "4d92f537cd4a5c67d0269632ef65afe9b5338b2f01b9698fd7c0173ea52bec9c",
+      "contracts/v1/kernel-recovery-probe-signal.schema.json": "b49700b7d258d151effdfb4e2689cc354401695ac67c620f75e6461895447a90",
+      "contracts/v1/library-prepare-request.schema.json": "405f419c742299f7b45420fd5303f289e6370331d9663be52e30c3eb4eff12cd",
+      "contracts/v1/library-restore-request.schema.json": "6e1002930cd228e90fbcf9c47bc65a184b7565f95801350e77391b4e08dc51fa",
+      "contracts/v1/library-status-request.schema.json": "2f5b5cc59a73d6f3c990a037a3e4ff78b25657375b2b37c8a59cfb09af656184",
+      "contracts/v1/managed-directory-preparation-intent.schema.json": "9af6d7f7284ac9b1b87db0b0f9c62e41dc988cf6db7aa0136b6dec4a765c20da",
+      "contracts/v1/managed-directory-state.schema.json": "1895630c3b778c8958598fc7bc90e33d591b1d9a3d63753ab0984cd97914a32e",
+      "contracts/v1/original-apply-plan.schema.json": "87d7adc7299175bcecf650d91d1e149d4baaa1ae551c93fa17406177340db0cc",
+      "contracts/v1/original-apply-state.schema.json": "0894bf055fcf769f831faa377f591845f9224f5b43f7893bbd5e8bb39d0229a7",
+      "contracts/v1/overlay-observation.schema.json": "16635ca4e17fd2e1738a7e29760e74672d0deb6f6240bca9258cac3deda8ce59",
+      "contracts/v1/overlay-serve-request.schema.json": "c57b378bff9f2c421f275a91f6e1176ce183da273f63b657101cae19cb40363e",
+      "contracts/v1/plastic-project-basis-receipt.schema.json": "067b5a935d5b69752de2027e1058acfa2374cfa8ca1f075a606475ab2cbe10bc",
+      "contracts/v1/plastic-source-admission.schema.json": "8c360fbf89cbbf1b5bf1484f3d5790edc97d36a1c7148b0fec2b5f8c0ceb6fee",
+      "contracts/v1/plastic-source-receipt.schema.json": "52c73f542c4d19a35f610c512b7fa71a973f170cf36a6568b82df331fecf7ae9",
+      "contracts/v1/preparation-probe-request.schema.json": "13f19ace0f2665f59c7aa54ea9cfaf1bec9cf5471d8250a8e9843f3f2a7b231c",
+      "contracts/v1/preparation-probe-signal.schema.json": "09aae22cd6622041f70f48d321a2110dfef545b2c261ef23bd96cc7d351831e4",
+      "contracts/v1/product-write-recovery-probe-request.schema.json": "8149fedc9bd459839baa4381b42000c68c3590ad8df663b873b7f00869a70e84",
+      "contracts/v1/product-write-recovery-probe-result.schema.json": "1b6d3af9f4045e4cbfcdced696955e7e94a76c00d746fe64ee294624d230a994",
+      "contracts/v1/product-write-recovery-probe-signal.schema.json": "90a66e6393ef6d5b49b40c4ceceb45897bf83a2c7f06c998f07202aa27b96ee3",
+      "contracts/v1/project-prepare-request.schema.json": "a6f91ae16d5c6dc1fc32a2a0c138470d31f0b5dbd305a91bfc3b90ba3f69d0ef",
+      "contracts/v1/project-restore-request.schema.json": "005210420e2daada39b335b92a6db999a803bc41723c08c1a929e984b061fe1c",
+      "contracts/v1/project-status-request.schema.json": "e7afde70df5e41466ceee4609a3381964a4789974c018aa08392ca370e56828d",
+      "contracts/v1/response.schema.json": "7e4880fef63e87731a2b9d28634c4b19e854ac0cba8b18dbb22d32f315ad94b9",
+      "contracts/v1/schema-request.schema.json": "59cf1955dcfc896ecb02555f931b81d1e257bca89b57a8d628f0a97487fc8ee3",
+      "contracts/v1/snapshot-spike-request.schema.json": "20a3e54564c803eef28108ba25400ded47b4f0e531bae217b1c26ae1710012e1",
+      "contracts/v1/source-change-request.schema.json": "c162005d87830d0b8815106ea5f70f48acd986973fae90815850af70169a8a6e",
+      "contracts/v1/source-change-response.schema.json": "24185808a2ba90a83cf187947bd94ec3ad19bb9a40f1f638c5d1b45be556ce7a",
+      "contracts/v1/source-change-view.schema.json": "4444222eb92700d6ee804bf81d532c8cfe4e33ac0bf2a0cd73af75915fa8432d",
+      "contracts/v1/source-content-summary-view.schema.json": "86269dbbc04bcfd5260c4883ff79e8ed49feb3a46eeb15c16ff8fcd51993010e",
+      "contracts/v1/state-write-failure-details.schema.json": "c14d2b89b8642d4b09d028738f297d8bdbf496d3c4d45604a646b9038b627a9c",
+      "contracts/v1/storage-authority-request.schema.json": "7ea3cd7a867390b4dc2ad1591e4b6c3fc31f5755f7e0a9087d183f8071728415",
+      "contracts/v1/storage-authority-response.schema.json": "9e58960958a286de959770e3b0d08086629202a1c62a41583dfab08547e8d81a",
+      "contracts/v1/storage-read-measurement.schema.json": "8d81663b5f2553b9809d1b4dce999409f2af8962fb0e06aee2ed82cdbb65cea4",
+      "contracts/v1/storage-service-status-request.schema.json": "62cde7e7aa60e03c0bdbe93ba06751a2ff643704c3c00df36612eeb65fce7ab0",
+      "contracts/v1/unity-start-request.schema.json": "b9ef4b6a057a587ec0d497f8971117f60a825badde5119cb3ade970ebe7319fe",
+      "contracts/v1/unity-stop-request.schema.json": "f38a7e9d515656ee5951518c242aaa65cbf1d7b761572e14f9d27a809045eeb5",
+      "contracts/v1/view-lifecycle-data.schema.json": "3d3251322a63bdf44123f349f5a5e3f005948d2f44b05f7bc09a9b9fe959b0ee",
+      "contracts/v1/view-lifecycle-request.schema.json": "dac4f3eb7d681acb16180a2a421be6a780fa8161ce2c3369b6ab915e0097f753",
+      "contracts/v1/view-workflow-contract.schema.json": "b7fd9b4cc89435a5c8734a55eeff019e40aef607f6552785f3e6fc609ee27140",
+      "contracts/v1/view-workflow-request.schema.json": "d5e1d4496bf51643c95ff40a209a5b591c96c14fbe07b73774a2c23cbf13b24e",
+      "contracts/v1/view-workflow-response.schema.json": "41bc9915b1aa3973050985529bb8df6ffaea66e288274e2ede17ced36bfde37b",
+      "contracts/v1/view-workflow-state.schema.json": "b89e78d17c7ec6d74b1a0535e983b01d22ca304c69c3a62ee8253328aed25de0",
+      "contracts/v1/workspace-checkpoint-request.schema.json": "5ac29224f1a5534c36980747d389c087cb8c3ee76910b4e8031d1f1d6480c1c6",
+      "contracts/v1/workspace-compact-request.schema.json": "ec946ba28d7efd5d09b2ea77c11a7ef0e5a55694c9d447ed5148bc3fdc86649e",
+      "contracts/v1/workspace-development-ensure-request.schema.json": "283deaaf9b019a7aa07f3d52535d2fcde3fcd52aa341db4b4b633ba3b037aa69",
+      "contracts/v1/workspace-discard-request.schema.json": "3fab568a787021c10df8f856d8ce14fd67aff92bdaa752004ec3137477c6a087",
+      "contracts/v1/workspace-discard-state.schema.json": "0a2c89b256aa4397d79ef33ce7e19a21846aa6fa16d851d53c67a3d2b86fc1ec",
+      "contracts/v1/workspace-ensure-request.schema.json": "6d99fefc4da0b7242c281002936b6231b7fb59c9a9dda615dd1ef3c4aa334283",
+      "contracts/v1/workspace-integrate-request.schema.json": "670cdf610e022cf7c48ba1e3b2067487db06c42f0e53051ccc1ae6b92856e8c5",
+      "contracts/v1/workspace-list-request.schema.json": "b8189341f3068aa6a85bcf4240a69c419915e9b8beb2c8a30fbc1dd7bee837e8",
+      "contracts/v1/workspace-release-request.schema.json": "b2acbc7fff9514d8abc30d2331b8f58d409f7f2282412cea3ae4f5347508c856",
+      "contracts/v1/workspace-status-request.schema.json": "be12bc968d4885dfa9d2af0edd5c32932d2c5ad143a61573f228eedea201edf4",
+      "Directory.Build.props": "c362ad12393ebaf538a5ff8565e909fa70f85eaa142bf933ab65ab6c53f8c9be",
+      "Directory.Packages.props": "1a335e448e8de202b058f7a1ae6451d7aafcc4a4ea61d8c48493d5fad769aede",
+      "global.json": "1e69f16d2941c26965e21e4fb70fb17739bb26030ba38cbabc1dc59012da6cbf",
+      "src/Splinter.Application.Unity/packages.lock.json": "dc1c5c5e013c389f94e1929c758cf723ef22f5f3e6800795c0a18fd17a66cbd3",
+      "src/Splinter.Application.Unity/Splinter.Application.Unity.csproj": "9c3fc7bc2fe27550afa4190cc32f78c06ad4daf59c50df8dc9f7b4ad362b0b75",
+      "src/Splinter.Application.Unity/UnityProjectInspector.cs": "1a4115491b10bb3dba17b5c4a68c76f217fa770057db41811fcb3019fbc28ae9",
+      "src/Splinter.Application.Unity/UnityProjectPolicy.cs": "8a3ba62213cc30ba300f9bf3de5bbdb8a04e0d2d62296853cc475d695f1d3ac9",
+      "src/Splinter.Application.Unity/UnityWorkspaceProvider.cs": "a6f9ae6d23cce4e4662faea28b665b33c1df85d2f7e34bca9316b3bbf9969e7b",
+      "src/Splinter.Cli/DevelopmentPreparationProbe.cs": "849e86dad8e75079d0d5b3acecd74ba1cec8a956b735407a54208f12facb2745",
+      "src/Splinter.Cli/GeneratedDirectoryCommands.cs": "84f753671db6457fbce7d67d42b098ac00d806ad0b446b4a740ca1d211afdc68",
+      "src/Splinter.Cli/OverlayExperimentCommands.cs": "b048f559a9220449dbabf1b0dce5f1badd7259ee125ba73fe41183c1fff62738",
+      "src/Splinter.Cli/packages.lock.json": "68e149a8dbf1c90ed5f619401055c82eaca0f3a45c440274e112170dc24e4c7f",
+      "src/Splinter.Cli/Program.cs": "897dbed6e0aa5a8efe55e09d2610be75de4ad7a8ae15967990abf7e1ae785ddb",
+      "src/Splinter.Cli/SelectedApplicationProvider.cs": "f3e07ca4655fa3007c6d5c06a199164c21c9abb881a6bb26c787f291c588b6dc",
+      "src/Splinter.Cli/Splinter.Cli.csproj": "5d5f533b0be39373a12c7e4e8d859013baab26d9b64e436e5ed040a76a57d805",
+      "src/Splinter.Cli/ViewCommands.cs": "c73603b75a66a896ce13a030204365d07efe3ada9fea689d9ecd06babf2475f9",
+      "src/Splinter.Cli/WorkspaceCommands.cs": "bfac8a8a6a49018a31bc8ee5eb77aea8e702ea9f86e364bc4e4de4ca9c63b6f6",
+      "src/Splinter.Core/ApplicationProjectPolicy.cs": "41f67487f0e7ec8808cd8fbb5ac412b6df0574b335fa101753f380fc3da002ec",
+      "src/Splinter.Core/GeneratedDirectoryBasis.cs": "5067fbf2be422261a6e9580c003ce3d5f31dacac27594f57375e2620a6cc298b",
+      "src/Splinter.Core/ImmutableCandidates.cs": "2643cf95e7eec83e0c173482c9b0c0fd2966af1438cadce013755d0b78f90756",
+      "src/Splinter.Core/Inspection.cs": "5edc2322b698e8a9b45fea033cadffe7706ab16fe5aa220e4f6263cdae4e2d30",
+      "src/Splinter.Core/JournalMutationObserver.cs": "e23d723ca180e15dd2526e48a1f2e75867619b611b539f016fe6ef399a48d7f0",
+      "src/Splinter.Core/OriginalApply.cs": "76350bfa243b87d4fd9ecee35872778c48cf0b79a038fca83e173688a319e774",
+      "src/Splinter.Core/OverlayMutationObserver.cs": "0362a377be86f2753782ccd49eef38aad67d9513c6acdd716433452f27c4b226",
+      "src/Splinter.Core/packages.lock.json": "03eeadc5ef377c17f787ab65f41fb4c8a9c936bb7f7f4171111fdeec8a81cb46",
+      "src/Splinter.Core/Resources.cs": "2c6fcc87f0bae704cbad47a3bf1f7ec22707130ecdacdb01356d48f06d67a371",
+      "src/Splinter.Core/SnapshotOverlay.cs": "1e0d84c476cd80c37d38db94145b46c4f8130148ad5fead1d0069aa9fef0b10b",
+      "src/Splinter.Core/SnapshotReclamation.cs": "1b3bed208e19f88f0fa5844919c335872979a7766a66e35fe225b8fb1bf6794e",
+      "src/Splinter.Core/SnapshotWorkspaces.cs": "192728ce64a1c74dc4e5b3b9be96db084214d506607052b62ba7dfd0744b3b57",
+      "src/Splinter.Core/SourceChanges.cs": "cffd1458a21572df7fbbd710ebf630a3080e172bfc4d204edef6c5a281cb4557",
+      "src/Splinter.Core/SourceInspectionProof.cs": "7e946c9558a43816867a2c57c1baabd5eefac95dd4d29b1d5f896435aac44f3d",
+      "src/Splinter.Core/Splinter.Core.csproj": "8d654c44b7bebb6b31a9f2f606927f45b5072193adc4eef8cce3f3cf3b278df3",
+      "src/Splinter.Core/StateWriteFailure.cs": "e00afd772f7216a254e892f981c9d916e26958e4a41397afadd802a664aa6651",
+      "src/Splinter.Core/ViewWorkflow.cs": "bc2b87817cef2cdf50c210784fec63c040a051c782111dad44d59d0badaccf3d",
+      "src/Splinter.Core/WorkspaceDiscard.cs": "db55d78bd333ac353f30e66d0a31af36778c8deefea3a0ef3265b916accf8148",
+      "src/Splinter.Core/WorkspaceFailurePolicy.cs": "851e5b33db93520233c542e019336d1f7d87e7a0a3293e23a6e7ef22928aaded",
+      "src/Splinter.Core/WorkspaceJournalPayload.cs": "3a4d096297fb8748b1fa65d02652eaa18e9665f3714bfacbdebfd2c67e1f3b54",
+      "src/Splinter.Core/WorkspaceMountAccess.cs": "e1a3afa73bcebd55ee589f12fedd4fac938ac2e8e25bafacb3dc6762d69d4720",
+      "src/Splinter.Core/WorkspacePathPolicy.cs": "939736087d7978e8b840b9f05f33c6c8b4e4a202853e00acd6f09b097312782d",
+      "src/Splinter.Core/WorkspacePayloadCodec.cs": "87eab53bd8de576f5f527b39fb7ec0bc6a987096f2c7fcdf8e11c08db1178b79",
+      "src/Splinter.Core/WorkspacePreparationObserver.cs": "386d1c1f402f954ed99932fe3b3823dcb2eaa9a54b721c8908f78cd5b1c575bf",
+      "src/Splinter.Core/Workspaces.cs": "3d7a1a5f994c3d200cf8e30785c0e65caa35b1459c471e38eb95c2c2645a7152",
+      "src/Splinter.Core/WorkspaceStorage.cs": "5ba8988c54161c6f592604b1eab2678ec601880884201b76516e783fe117e44d",
+      "src/Splinter.Host/FoundationGateway.cs": "89051e577943b35a35271249bbd9d803c88cffbe9a44f5a7032718026a66c073",
+      "src/Splinter.Host/packages.lock.json": "2254b994526af9eef5af77d506fadc29b2e2cec5b383f5ada01a2a2cf12db12b",
+      "src/Splinter.Host/Splinter.Host.csproj": "b4d02b6af35be38987e54da0d2c9c13ea08e218315102cef5ca56e3635d103e8",
+      "src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs": "981e53ff1b6b6d2bf6155fe053494d47e6ead2bb50e0d2c7d18ca940a5d2a70c",
+      "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs": "29efde20d523ce448eac963642926e2a7568edc8858f1ed519c47745a4667dff",
+      "src/Splinter.Platform.Windows/ManagedMountIdentity.cs": "9cb6b0165e43607b7ef5e6bed82a491283217c18e52011da7668e8d7294f031c",
+      "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs": "edc92cb468730862db286ac7aec8d36504adaf371a233fbc7f80910c44a3eba4",
+      "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs": "be47e07b73335bca5cee3db018f44f92f3d17b2d421648a955282203dd5f1aa8",
+      "src/Splinter.Platform.Windows/NtfsSnapshotWorkspaceBackend.cs": "f4c09fe2f959b2f6384423a06f76c51e2efb3bd5c31ce2f02d870b286181e45f",
+      "src/Splinter.Platform.Windows/OverlayDeltaInitialization.cs": "d98949b6a003c35f00bcbc047e5ed43a22c1d724f8b26bda910127a26cb6c87a",
+      "src/Splinter.Platform.Windows/OverlayRequestWakeup.cs": "b80bc08939db2b0795c2f755708f4eb17481b4c85bf88ac38b568556f1a1d212",
+      "src/Splinter.Platform.Windows/OwnedDirectorySnapshot.cs": "d569ad5990f65651833a9828b23950ae1319c471f43a36f9adc04d3210a6f583",
+      "src/Splinter.Platform.Windows/packages.lock.json": "680575795867f9300f7bf176ce9c052d345f521bf0753986a63095ebbf8f5093",
+      "src/Splinter.Platform.Windows/Program.cs": "a6cf7e1a934840cb03673ef4167226ba2159c6f182ac8f1c1125c9eed4820e3f",
+      "src/Splinter.Platform.Windows/ProjectDirectorySnapshotProvider.cs": "0481222dcfb807a20e0058464454ac47020c0d800f047dc61b405e3793378e60",
+      "src/Splinter.Platform.Windows/SnapshotAvailabilityProbe.cs": "2b32f3e8f5ce748ad7e33752f92b210b8f80835d43be8943b07e4a9a231e32b5",
+      "src/Splinter.Platform.Windows/SnapshotInputChecks.cs": "f4c9aa0936d8b45d3a94f78fdf156c44a84e555f277ec69a6367f5efd06d9382",
+      "src/Splinter.Platform.Windows/Splinter.Platform.Windows.csproj": "8547bfb862660bcc8171a70789d4980b67a3051d9cdbe8c84c839bc30e363a38",
+      "src/Splinter.Platform.Windows/StorageAuthorityClient.cs": "585c27bf94aad874cfdf60d241d1ece3099a3daa001c22ed0572daff4d902d61",
+      "src/Splinter.Platform.Windows/StorageAuthorityPaths.cs": "2e1b55739f4bd17edb8e10ff88d1732003ebac113297a86cccf4b65cb756fed9",
+      "src/Splinter.Platform.Windows/StorageAuthorityProcessor.cs": "c83d58d6ed0e1ce79d2ea944419878738f3300af71555a85a95527fc00e4590d",
+      "src/Splinter.Platform.Windows/StorageAuthorityProtocol.cs": "f0f2923e4704982fed04b9a6b7f87449a1e8891b9ffbd5b633f8e4549b07747f",
+      "src/Splinter.Platform.Windows/StorageAuthorityScm.cs": "3d9e3911ae1d844ea77ee152724693a15728ca7e0b10b4fcf71e17fe2a84b406",
+      "src/Splinter.Platform.Windows/StorageAuthorityServer.cs": "5e942ea0067c5215969b7f96c02c60358490ca72c75ea8689e4c17b727d97e7d",
+      "src/Splinter.Platform.Windows/VssSnapshotAccess.cs": "e2c6dd0c37e8d554bdeead9e08b0d799f3059b2a177cd0af7aedc94528ab5bb9",
+      "src/Splinter.Platform.Windows/VssSnapshotProvider.cs": "c6a02f06f8cebda00ba2b1959e9f124011f75b3acd435edd90b709575e401979",
+      "src/Splinter.Platform.Windows/VssSnapshotReclamation.cs": "8f38b5b889893178602cebd471b3ae770c695f4fb79074d684034042453da49c",
+      "src/Splinter.Platform.Windows/VssSnapshotTree.cs": "f00c8e5006c6b00f218dbf114eea00e99d44202e41afc2118a1248140cc37583",
+      "src/Splinter.Platform.Windows/VssSnapshotVerification.cs": "6f45bf4700ad19d000e06440b22e748c114cb20d63d25233c8a32fce9ed06fbe",
+      "src/Splinter.Platform.Windows/WindowsDirectoryTreeProof.cs": "6dbdb8643eaf2e2cfe92b493cdc5d58ab78e6134c916ac197efb06a1bff7ba26",
+      "src/Splinter.Platform.Windows/WindowsGitSourceMetadata.cs": "3297e8205cb54bb0eab2ca23e46c394cb241858eb80866132f1a855a11241113",
+      "src/Splinter.Platform.Windows/WindowsJournalDirectoryGuard.cs": "508c6433afd2a0cf4b31dfe33c0df211e11ea170fd8822b365418bdfb539321a",
+      "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs": "43aca9efd333dad6cc557f62fd9521e4375dd96b73cdc26605a79ae010584a8b",
+      "src/Splinter.Platform.Windows/WindowsOwnedDirectoryLease.cs": "73e88a1f0bb16ca95ef8f9a084fefe6583caa9fa6efae01f4d1a403f3054241b",
+      "src/Splinter.Platform.Windows/WindowsProcessGroup.cs": "ead09b7fefb06238c18ef2e938b8c94265b04698a30d5319cf8db9150f7f3404",
+      "src/Splinter.Platform.Windows/WindowsProcessWorkspaceProvider.cs": "5a4901e017a2fb673d147849cfd127e019033f25013ee135ede1ee4807d9e806",
+      "src/Splinter.Platform.Windows/WindowsSnapshotPolicy.cs": "d252802c1a9a3a5a45a947be7511b03ed033a38e33a09bda742af6c3a7f9f396",
+      "src/Splinter.Platform.Windows/WindowsSourceChanges.cs": "8e397de3a598a424edd6cbc12f216168e71c7857877fb92fd3f08ad1900008f5",
+      "src/Splinter.Platform.Windows/WinFspKernelCacheBarrier.cs": "f4ab4b8d2c5054e37be383e82b3f9757d50fd8ff73007e8fa60f61d1e592ee1e",
+      "src/Splinter.Platform.Windows/WinFspOverlayClient.cs": "fe9e8539063f244ea6478d0370b19316da18af36e1a8135144fef502de728b81",
+      "src/Splinter.Platform.Windows/WinFspOverlayFileSystem.cs": "664a8c15520c5a0495c39e64901d6fab6430b4d63f2bb0cd1055d63f951f2f57",
+      "src/Splinter.Platform.Windows/WinFspOverlayMountProvider.cs": "82f3dc85a9f266728d6dd4d13dc5c4f38192ec0768df8bfdedc8cc2e3ed42e1f",
+      "src/Splinter.Platform.Windows/WinFspOverlayServer.cs": "c6787924ccdcf051eb9df9a8cb7e28f7bd4f9fec775d33d3cc3656300549e967",
+      "src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs": "93b2aade77120ed4f231c5d6825302a803a17130845f49a9bc545d3d3d16d76a",
+      "src/Splinter.Protocol/ApiResponse.cs": "e0eb4bb76f72656c4180a210610390d73b98d5d8c9fa6ba16c7e71902b53bb42",
+      "src/Splinter.Protocol/ContractCatalog.cs": "062031b1edcd04b4963fc7ff87bc20e7b0caca03ff9e0844efd762a28cfb6d78",
+      "src/Splinter.Protocol/packages.lock.json": "9bf560113deb3bd823e0fcae42eec606e6afc3826749cda73d8e3f547e2d3737",
+      "src/Splinter.Protocol/Splinter.Protocol.csproj": "ae83edc62d0a1c91cd3275044c99a8e3b2e0f3ff992e1d20a049157067d6a1cd",
+      "src/Splinter.Runtime/AtomicFilePublication.cs": "879941e3673d14247e2ebaa19a1798981e9b235ce9d9bc798917f481bf169ed5",
+      "src/Splinter.Runtime/BrotliWorkspacePayloadCodec.cs": "1c5e8ba99d5b90ad27fcc69d3fa554b19bc26a2baf5e573598396ed241700dcb",
+      "src/Splinter.Runtime/CacheSnapshotTree.cs": "69e92ac8a97d81d2fcaaa1262e32c0faa64c4f0cde982bf017e01556dfe96008",
+      "src/Splinter.Runtime/CandidatePrefixWriter.cs": "e4694264d705b6034461fccea4542a775c43cf3a4c16132264bb46ba2fd2b838",
+      "src/Splinter.Runtime/GraftedSnapshotTree.cs": "527b04fb3e717013f9fc183972ffd22d4ccf6a28a2d724bfac8d058eaad4bac6",
+      "src/Splinter.Runtime/IJournalDirectoryGuard.cs": "2924d15598f91760323c6442d9b2b9ce1115569346fde6e5edc5afbf1cb79ec1",
+      "src/Splinter.Runtime/JournalCandidateProjection.cs": "14bdc9fda87fdc3a43468b10f7e86315da03a5cfa1b3303b9d6189346f7e8a78",
+      "src/Splinter.Runtime/JournalCandidatePublication.cs": "65e1b879ec68bc8fdf8775ba37ea665075ea526323f58e28eb703defaab1aa0f",
+      "src/Splinter.Runtime/JournalDecodedPayloadCache.cs": "d90f74773b8d9c6a6db2effeab10437462467c6e5f87a4a600aad42f29125c8f",
+      "src/Splinter.Runtime/JournalDeltaCandidates.cs": "7e79b7c9d1d5f93a46a2d2645c28f621cdda8632a155d0ff88106dcc359c27db",
+      "src/Splinter.Runtime/JournalDeltaCompaction.cs": "b47ccd635ccdc9c93f7e881288b30f33741a91a77a8d2ad086ff387116af37e7",
+      "src/Splinter.Runtime/JournalDeltaInitialization.cs": "0b1eec5217f549745fd294271fcef49259ebce26131d7f82182a6242d9d81b28",
+      "src/Splinter.Runtime/JournalDeltaLatest.cs": "7e7ffa68d2ca1c080d9fa599a4d4b02902edbe9deb7c09e0976fe50791440b49",
+      "src/Splinter.Runtime/JournalDeltaMetadataPages.cs": "9b73d6abbcce2523f7d12267aa6076e358dfb4c0372192ded82de5665f47fcc4",
+      "src/Splinter.Runtime/JournalDeltaRestore.cs": "089637ff5dbca17556b5dbab21f3734ee0e228168cb7f859eb0b2057f8504351",
+      "src/Splinter.Runtime/JournalDeltaStore.cs": "380d3967e40017b931477fb652cc320a9b43c097c626c791d20c38e75fdede14",
+      "src/Splinter.Runtime/JournalInitialContent.cs": "5bd6b475bf5b2f1dbb20d1fde3f14b79d6e36ef6fabd8b70d4af15ae44cba691",
+      "src/Splinter.Runtime/JournalPayloadFrames.cs": "e60fa54599920368e4eff066630bd5fbb8f0bbec7094719cabb6ee8733e6e437",
+      "src/Splinter.Runtime/JournalPrivateFiles.cs": "7253b361708158a25f51dd83bdb3f28ad6dbdefb6a95d06ec3fade7c77735385",
+      "src/Splinter.Runtime/JournalReplayReader.cs": "d641f8e3068d39bc067a57d14d8c479b816307f923d1c90ffa080fc75dbf08a8",
+      "src/Splinter.Runtime/JournalStateFrames.cs": "98bd88b12cc9b44e1c77567818f59cc0b6da22da10e03c085b677dfdae8acf7b",
+      "src/Splinter.Runtime/JournalWriteMetrics.cs": "920f1fc112beb4f5962832cbac0adfca6715d72bbaa070ea339b4ff2aa682a32",
+      "src/Splinter.Runtime/JsonPropertyValidation.cs": "51c972718c0108cc6e2193ac3a4e88a692f62a2b4b2c9d89708f0e991d73ed80",
+      "src/Splinter.Runtime/LatestJournalReclamation.cs": "fcb3fb138a99c94ae13fc356b07fd545e6e67ab4a4607411f2e481847b9bfb92",
+      "src/Splinter.Runtime/LatestJournalStorage.cs": "ca2855a42b0ae4adf6402cc8e856a2d6c50f1ab507517d556d4726b9d1ff8db2",
+      "src/Splinter.Runtime/packages.lock.json": "dc1c5c5e013c389f94e1929c758cf723ef22f5f3e6800795c0a18fd17a66cbd3",
+      "src/Splinter.Runtime/SnapshotWorkspaces.cs": "dc34733502297821959acba18df445fd3a6232e2158540f0799e3ac08c63fe7b",
+      "src/Splinter.Runtime/SourceViewDeltaStore.cs": "75bf113761bb4b7e63c423aa5a105d8eda64ea1a234ad4e36aa505b4a6cbf2a8",
+      "src/Splinter.Runtime/Splinter.Runtime.csproj": "fc298ecf37c3a953976be90230f31c0fecb8440002e8c68fb34907d269cd9e05",
+      "src/Splinter.Runtime/ViewWorkflowCoordinator.cs": "9fed31548989ef6fe30e3df45ee6f49bdfadc64c5b21abac268652d6aea39653",
+      "src/Splinter.Runtime/ViewWorkflowRules.cs": "f6db1ace4e507ab65dc38f702d672ce84ef691ddd2108e4dba309de587507cb1",
+      "src/Splinter.Runtime/ViewWorkflowStore.cs": "d5e34b3692bea8e90f991d3a3c2c1a80b8621d8b2c5fbbb4f285c096de5aa542",
+      "src/Splinter.Runtime/WorkspaceActions.cs": "5fd3a7a05fe4f6e3238c78e88e281aedf53d9bf10c35f4ad501a8ef2ec557ce0",
+      "src/Splinter.Runtime/WorkspaceCoordinator.cs": "767fbeffc714f21ea899f4200c03a27679581426f59d9d0238509693d3c0df5f",
+      "src/Splinter.Runtime/WorkspaceDiscard.cs": "7edf6557c7774e2490fea59c7fd472ebff85f7c765493539bdd6f6f257b94b8d",
+      "src/Splinter.Runtime/WorkspaceOriginalApply.cs": "4ec51f7cd7004e5c894b7976424d1b1db09fc0d496cf215eb06673a84b2b4c94",
+      "src/Splinter.Runtime/WorkspaceStore.cs": "929cb5d2adb554508d9f71d3e5453db77aa0b12ef3c52ab1dc83d17ccdc51f47",
+      "src/Splinter.SourceControl.Files/FileOriginalApply.cs": "071dd7d317e5d9bb6db5829dd875e4ad3a8bb8ee67454d70ccda957dcd696cf3",
+      "src/Splinter.SourceControl.Files/FileRecordedBasis.cs": "59b225ff2f811a31ef69b57aa4bc5867e5de36f6632cb235a289b500cc00e1a9",
+      "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs": "aa41d1091a08280348f9f012d15212063df22c3f5fa045538302489301ff24ee",
+      "src/Splinter.SourceControl.Files/packages.lock.json": "0ed87533834d917f5ba556b9860c85ce8a544791d56796e9e72a5c0895a3c165",
+      "src/Splinter.SourceControl.Files/PlasticOriginalGuard.cs": "d8bc1cfe861f4964e69781c8b59dd3bedb0ea149f5b7f1edc446007bcb7c08b8",
+      "src/Splinter.SourceControl.Files/PlasticRevisionBridge.cs": "3e935c2ff8e18bf48cb49c6d3f2b11fdb972458f33b2a3d7b17bb8f2fd780ed9",
+      "src/Splinter.SourceControl.Files/PlasticRevisionClient.cs": "4cef2c8989644e28f2e7f09159e631aa41b6cb23ce119c2c03a66f29727b8441",
+      "src/Splinter.SourceControl.Files/PlasticRevisionSnapshotProvider.cs": "45b4b6c239f9c30753dc7c3c5e0563e4ff6ec525d22797bed7f123d22d9c4fe8",
+      "src/Splinter.SourceControl.Files/PlasticRevisionSnapshotTree.cs": "c3b889723f62addb05b2fb8660832f293a2a4fd3e85ee5798be36c86787ed268",
+      "src/Splinter.SourceControl.Files/PlasticRevisionStreamSession.cs": "67364f4ca3e2d5d71caee9c0695e1ded9262a0abc6bd9fb3d4543576cdde6688",
+      "src/Splinter.SourceControl.Files/PlasticWorkspaceClient.cs": "87b716085eafe831567d883eca8c179f5e16af7491f2eea1788e4af811d2dc67",
+      "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs": "386ad76dba9ca9770c0e651eb139b5f164cf18fa76dc71af54ed8ed142be2c79",
+      "src/Splinter.SourceControl.Files/SourceWorkspaceRouter.cs": "de79e7ec8256cb565f8f50245bfa43a0171f943efd26261333c29411b6908703",
+      "src/Splinter.SourceControl.Files/Splinter.SourceControl.Files.csproj": "39ab85cb25a066ff35866f9cb0316f50c9e875c9a8e587805b698795abdf408c",
+      "src/Splinter.SourceControl.Git/GitAttributeQueries.cs": "1a644047194b9b1796b931f639fbde853b051edd592c6067258325c12d7c4f09",
+      "src/Splinter.SourceControl.Git/GitCleanIdentity.cs": "101f2795c72524e064f0c761217b60fe9f1a57242b69bdb593905eac4ad744ea",
+      "src/Splinter.SourceControl.Git/GitInitialContent.cs": "46b7d2d8677b291e14469c23ecbea3ae39a72c58632aef8e8564b84a0caca44f",
+      "src/Splinter.SourceControl.Git/GitInspectionProof.cs": "4f59bd4b40685cf9353137ea7cb5d30af5b46b313943d533ef689f9b0b7e55ff",
+      "src/Splinter.SourceControl.Git/GitObjectSnapshotProvider.cs": "868e01b2a907fe0f133d37e451bae24bf22e5df78154c7b09dab9cb1dcb79892",
+      "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs": "cb664843ce629fac35c66f16940aeebaf0adf08ca8a2c2e5fe62c9984783815b",
+      "src/Splinter.SourceControl.Git/GitOverlayRegistration.cs": "372e1d21968a0d9d6b6e08cf63dd40a7d627ae3593373f012a8c91e97b0ee15c",
+      "src/Splinter.SourceControl.Git/GitProgressReadStream.cs": "c800912fd7e1a39574ccc16e3330bf64bd15d7b946b646808f0829cd21bfb016",
+      "src/Splinter.SourceControl.Git/GitRepositoryInspector.cs": "10b867d00a3da0b02c62e8d7483e8426716d9120c73774e3d84f416d9c599fc5",
+      "src/Splinter.SourceControl.Git/GitSnapshotWorkspaces.cs": "1018dbd38e3b8242290868419e08ab029599b30b7da4f46ba1b8d33901589873",
+      "src/Splinter.SourceControl.Git/GitSourceFingerprint.cs": "06c0ec745ae80a3feca7a2167a225f0c1d7daa969f1124b50f1909486d38da2d",
+      "src/Splinter.SourceControl.Git/GitSourceMetadata.cs": "0c9e05774ff183219754fd00775664f53c2172cd9c0646b8ce24d6e098218838",
+      "src/Splinter.SourceControl.Git/GitSourcePathInspection.cs": "f5ca28c61f0c72c0232e3c8376ff10b2c4f945e1518c6a60d516a94a46f503c8",
+      "src/Splinter.SourceControl.Git/GitSourceResult.cs": "747e83e5bec328f62fc99249072aebc8dbe1ea9c067652e7e465930c2459f35d",
+      "src/Splinter.SourceControl.Git/GitWorkspaceDiscard.cs": "b2274e1ee119062f31b101b6f8b816f97ed537d62276dd4befa29ba3d875851b",
+      "src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs": "93b4503f4155cfbc8114c9e0e967877d4dd56f9d26dfd921dc62c2ef18fbce02",
+      "src/Splinter.SourceControl.Git/packages.lock.json": "dc1c5c5e013c389f94e1929c758cf723ef22f5f3e6800795c0a18fd17a66cbd3",
+      "src/Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj": "fc298ecf37c3a953976be90230f31c0fecb8440002e8c68fb34907d269cd9e05",
+      "src/Splinter.Workflows.Windows/JournalReclamation.cs": "fe062e5f3ad5c95a88c0d2da38ba19a02f4c8f4990bfeac24747c6b50394c7f3",
+      "src/Splinter.Workflows.Windows/packages.lock.json": "4061d995bc3d2ae1e69aa4cc0714b6205f952fd050f7bc34f861d3d36740a1bc",
+      "src/Splinter.Workflows.Windows/Splinter.Workflows.Windows.csproj": "4c520f4e822569f19d6d0e6327317b91c2a15f02e23c4486871994e78a59e7e0",
+      "src/Splinter.Workflows.Windows/ViewLifecycle.cs": "733ea83156697fe28be88a83ab41a6dc080c5d0f806b1d564e7944d01f1ccad1",
+      "src/Splinter.Workflows.Windows/ViewLifecycleState.cs": "af69147c90b5eff7b2d848ec1edcb92add168fbc440ab1e8549884886fb1a53e",
+      "src/Splinter.Workflows.Windows/WindowsViewArtifacts.cs": "9692f8c5c81ae9e5ac9754519441dc350480c956f1bfa8961bb390e6a1154c8b",
+      "src/Splinter.Workflows.Windows/WindowsViewCache.cs": "3d1fdcf11338b0d89ba004768eec13c5ab0feede1cba61357cf355c80bc47ea2",
+      "src/Splinter.Workflows.Windows/WindowsViewProvider.cs": "e34747227a8153488e619b9ec3f09522fffbf7a1c11130303fe73f156aef5641",
+      "src/Splinter.Workflows.Windows/WindowsWorkspaceDiscardProvider.cs": "d62484993cd5716d836f3043cc5cb7bcac0dcd153ed4a2909b78845dea23e2ca"
+    },
+    "runtimeSha256": {
+      "cs/System.CommandLine.resources.dll": "9db74abed424f28057b2b946df78f892f14dd8683c74906c4e79a7b454303415",
+      "de/System.CommandLine.resources.dll": "017380f95f4c1057b701311342e5921ed5bdf5013d8553cb5ac4a8889d132081",
+      "es/System.CommandLine.resources.dll": "0277fb8bfbf2ec45923a20e34935356b6988f83cff9e3d5ffc985f9ab3c53b0d",
+      "fr/System.CommandLine.resources.dll": "511dbc4ce34e929433b206b32912db5562f8cb53b46b483468ae770bbd75f00e",
+      "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+      "it/System.CommandLine.resources.dll": "58c2f07c08d99a4823e441a0f9402a3a07e4f8902543ec97ea6bbc8961af5330",
+      "ja/System.CommandLine.resources.dll": "6f30fcd99bb1597f7b81f4bc26ed9582dc33d013aab211feaf96ab491a35a0b3",
+      "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+      "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+      "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+      "ko/System.CommandLine.resources.dll": "ab5c8b013a53f7a02fef7068434ffc46345f1f07963dd0ef6e26e3ff4b46b763",
+      "pl/System.CommandLine.resources.dll": "fa37fc6307053ace1003e6dcc72a33cc972dac719a0e1a40965936e1e8413bde",
+      "pt-BR/System.CommandLine.resources.dll": "f648dfab8b24d44177a4455ff9bcd4fefa06210ee5c06e4c6e447fd6f4963d51",
+      "ru/System.CommandLine.resources.dll": "e3984a1494df49ecccf720346fa3096f5ec546aff797e2e6d9b86df9686ed260",
+      "Splinter.Application.Unity.dll": "8fea5001e386a03d09bb22e63b836ddb17bbf44f2df7c9b8c96a134b204bee8e",
+      "Splinter.Application.Unity.pdb": "a445637b84219a8625059285f72b1391a81e389bf024836e0bde2f2f25b7e8d7",
+      "Splinter.Core.dll": "eaaae4926b3bae1c6c0b49898de3df3259e8ed16838a33bf90b002b51a7c5b83",
+      "Splinter.Core.pdb": "4ae8c2a4b0471cdd39f524dd5feb83c8f4e6b2c5866a5d5055ca2019d7ab5770",
+      "splinter.deps.json": "ffeee71a0f0aca6909ef5253ebff532fd34f59d6b2028bf236f6afc6a923d8db",
+      "splinter.dll": "3a99625444c9235111da715dab19b7b838cec86ad48b9476f10ff9c147a49abc",
+      "splinter.exe": "2e9623d42075153a6ed75e53a28be6ff922ad8559848bab5431bfa16ba9d3973",
+      "Splinter.Host.dll": "b628d88a8f88f3e144dbeaaf82461132385d7750a6d0ea1627330670622ff76a",
+      "Splinter.Host.pdb": "d3f90814b9f98d1b9c5dd8e5172ba45568684a3f58d358b1cc25d5e0d82a81c4",
+      "splinter.pdb": "a495677cc7cdba9308e56ed5171a681935bc68cac0c1ed061f8ca2c3775cf974",
+      "Splinter.Platform.Windows.deps.json": "ee3448c0bf432243eb1f7e43c831f141623f33d528d48be4f5e61a6b1acc7000",
+      "Splinter.Platform.Windows.dll": "4201c2af3ba2c21a3535fc06ebc5fb60aa871a7f5924e60bb39cff890f6c8e64",
+      "Splinter.Platform.Windows.exe": "42847aa163e32b4be542e2b92795abf08a77516fa70e2b28d4ef4a8e7d329fc9",
+      "Splinter.Platform.Windows.pdb": "585d677e333eb6387548bff5ab15d748c162cbe71fe0e659d0e24055b1cc2fe2",
+      "Splinter.Platform.Windows.runtimeconfig.json": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097",
+      "Splinter.Protocol.dll": "ee785a486d35bf2e801306c69944cc3152f5787b649da8fd20ea76dab6470729",
+      "Splinter.Protocol.pdb": "f7369ddd26c04fccb99b822453237d54b6cfd2a288089b22cfc3abbd81a71327",
+      "Splinter.Runtime.dll": "b21d96899d763b6c5335b03f98d3249fc608d8f93f1f2503a0c8a4be17b08d39",
+      "Splinter.Runtime.pdb": "4934920aefe0f1052bd72d09a663ea1fcf99f2858877cb1996a731115c169978",
+      "splinter.runtimeconfig.json": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097",
+      "Splinter.SourceControl.Files.dll": "184502c3e83b15720d2983151d5ac2f764766ae0a2ef61a97ee1e2da50e27b3c",
+      "Splinter.SourceControl.Files.pdb": "508e15905f862b22986196912617d9e3bb584bb6028ea850c466b09ef5dddc15",
+      "Splinter.SourceControl.Git.dll": "a1a2468527ae1cacad917a2357c8bd6ad8fbb73c867b421624de142585e5d55f",
+      "Splinter.SourceControl.Git.pdb": "ad4b3709fffa862104f3b6b3fbc905dfed6bbfac21b9ad79afca45921a1c18e1",
+      "Splinter.Workflows.Windows.dll": "cf08a070fb6feca814686686caaa1bf0af413e0e7d7cc6f326825a82ccbbfc88",
+      "Splinter.Workflows.Windows.pdb": "188b3adc65a0eaacec025265ce3f9a7111034df0deb557ba57d69b6805c294d4",
+      "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+      "tr/System.CommandLine.resources.dll": "38361ec14998f14dbefb3f75e8793830a56e6e18d3a5737b238a6247cfcd72a2",
+      "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908",
+      "zh-Hans/System.CommandLine.resources.dll": "425e40dd37692cc9c4fe2d75af4c39d884f7c982bb6ac80e2e34e341331437b6",
+      "zh-Hant/System.CommandLine.resources.dll": "b3a5d4992b4729d3f9bc1bde92f5bda23cbab6515af11f3cc317ae48a3cfed9c"
+    }
+  },
+  "scope": {
+    "id": "TP-06",
+    "question": "Does multi-stage real Unity maze authoring and gameplay validation amortize Splinter's preparation/completion costs versus parallel code work with one sequential Editor?",
+    "methods": [
+      "Splinter independent A/B Editors with parallel checkpoint --release",
+      "Two code worktrees with one shared original Editor and alternating A/B leases"
+    ],
+    "input": "Same committed 2.80GB Unity source and byte-verified current Library in the paired methods; new optimized frozen candidate identified by source/runtime hashes.",
+    "a": [
+      "Implement and compile seeded 15x15 perfect-maze generator; validate graph",
+      "Implement authoring; generate, save and reopen three maze scenes",
+      "Improve farthest-goal selection and wall height; regenerate and verify persistence"
+    ],
+    "b": [
+      "Implement and compile CharacterController, InputSystem keyboard and stage state machine",
+      "Save prefab/sandbox; Play validation of keyboard movement, collision, entry and clear",
+      "Add restart and second stage; compile, save and repeat Play validation"
+    ],
+    "integration": "Combine B into prepared A/original Editor, compile, save three playable integrated maze scenes, physically follow solution routes, validate clear/restart, render preview",
+    "seeds": [
+      1729,
+      2718,
+      31415
+    ],
+    "timing": "Source code authored once by parallel agents; same cumulative source snapshots replayed in both methods. AI implementation and benchmark harness development recorded separately, not claimed as per-method elapsed time. No artificial task delay.",
+    "acceptance": [
+      "Actual fresh compilation response and Editor path/PID identity",
+      "Saved/reopened layouts, scenes, GUIDs and references",
+      "Real Play Mode with public virtual keyboard event injection, CharacterController motion and physical triggers",
+      "Equivalent graph/gameplay outcomes across methods",
+      "Independent durable source results, normal shutdown, reclamation and original source restoration"
+    ],
+    "bounds": "One successful cohort per method after any explicitly retained diagnostic failures; no service/global/package configuration edits, no game build or broad compatibility matrix. Original Library transition uses previously authorized exact lifecycle. No forced Editor exit. Repaired shared handoff is identical for both methods; native exit observation waits for the exact owned process receipt."
+  },
+  "sourceBase": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+  "library": {
+    "files": 42422,
+    "bytes": 3142530954
+  },
+  "historicalLibraryDifference": {
+    "added": 6,
+    "removed": 0,
+    "changed": 35
+  },
+  "stages": {
+    "splinter": {
+      "libraryPrepare": 69.69214110006578,
+      "workspaceCreate": 105.47900870000012,
+      "initialEditor": 272.73175159993116,
+      "development": 355.2927473000018,
+      "integration": 218.8672443999676,
+      "completedPhasesSubtotal": 1022.0628930999665,
+      "failedElapsed": 1296.0852095000446,
+      "normalCompletionSeconds": null
+    },
+    "shared": {
+      "workspaceCreate": 14.263279799954034,
+      "initialEditor": 24.090469799935818,
+      "development": 136.2225591999013,
+      "preserve": 0.937508299946785,
+      "integration": 113.2919503999874,
+      "baselineRestoreCompile": 15.277787599945441,
+      "normalExit": 3.660286400001496,
+      "sourceRestore": 0.005315000074915588,
+      "reclaim": 5.387067099916749,
+      "accountedTotal": 313.15081280004233
+    }
+  },
+  "stepCosts": {
+    "s": {
+      "a1": {
+        "compile": 117.50705360004213,
+        "authoring": 1.608901400002651,
+        "wholeStep": 119.28632969991304
+      },
+      "a2": {
+        "compile": 28.14910190005321,
+        "authoring": 35.14650689996779,
+        "wholeStep": 63.363448399933986
+      },
+      "a3": {
+        "compile": 36.971627600025386,
+        "authoring": 39.41620640002657,
+        "wholeStep": 76.51969699992333
+      },
+      "b1": {
+        "compile": 118.358600400039,
+        "authoring": 1.6093894999939948,
+        "wholeStep": 120.28924650000408
+      },
+      "b2": {
+        "compile": 124.76764749991708,
+        "authoring": 31.17688350006938,
+        "play": 24.13867650006432,
+        "wholeStep": 180.22890280000865
+      },
+      "b3": {
+        "compile": 26.956910300068557,
+        "authoring": 6.0240636999951676,
+        "play": 21.072722500073723,
+        "wholeStep": 54.16653500008397
+      }
+    },
+    "q": {
+      "a1": {
+        "compile": 13.839204099960625,
+        "authoring": 1.206734599894844
+      },
+      "a2": {
+        "compile": 13.853119099978358,
+        "authoring": 4.619303300045431
+      },
+      "a3": {
+        "compile": 16.290467499988154,
+        "authoring": 4.216167000005953
+      },
+      "b1": {
+        "compile": 13.648855800041929,
+        "authoring": 1.2062195999315009
+      },
+      "b2": {
+        "compile": 14.462980600073934,
+        "authoring": 2.2100888999411836,
+        "play": 15.245658399886452
+      },
+      "b3": {
+        "compile": 13.871246900060214,
+        "authoring": 2.2112389999674633,
+        "play": 16.648895999998786
+      }
+    }
+  },
+  "sharedQueue": [
+    {
+      "letter": "a",
+      "stage": 1,
+      "queuedUtc": "2026-10-14T16:50:48.026171+00:00",
+      "queueWaitSeconds": 5.100038833916187e-06,
+      "startedAfterRoundSeconds": 3.100023604929447e-06,
+      "serviceSeconds": 15.077870900044218,
+      "finishedAfterRoundSeconds": 15.077874000067823
+    },
+    {
+      "letter": "b",
+      "stage": 1,
+      "queuedUtc": "2026-10-14T16:50:48.026171+00:00",
+      "queueWaitSeconds": 15.07790830009617,
+      "startedAfterRoundSeconds": 15.077907100087032,
+      "serviceSeconds": 15.345161699922755,
+      "finishedAfterRoundSeconds": 30.423068800009787
+    },
+    {
+      "letter": "a",
+      "stage": 2,
+      "queuedUtc": "2026-10-14T16:51:18.449795+00:00",
+      "queueWaitSeconds": 15.34523769991938,
+      "startedAfterRoundSeconds": 1.309998333454132e-05,
+      "serviceSeconds": 18.749961200053804,
+      "finishedAfterRoundSeconds": 18.749974300037138
+    },
+    {
+      "letter": "b",
+      "stage": 2,
+      "queuedUtc": "2026-10-14T16:51:18.449795+00:00",
+      "queueWaitSeconds": 18.750026099965908,
+      "startedAfterRoundSeconds": 18.749996299971826,
+      "serviceSeconds": 32.45246520009823,
+      "finishedAfterRoundSeconds": 51.20246150007006
+    },
+    {
+      "letter": "a",
+      "stage": 3,
+      "queuedUtc": "2026-10-14T16:52:09.653169+00:00",
+      "queueWaitSeconds": 32.45253120001871,
+      "startedAfterRoundSeconds": 1.3399985618889332e-05,
+      "serviceSeconds": 21.2251487999456,
+      "finishedAfterRoundSeconds": 21.22516219993122
+    },
+    {
+      "letter": "b",
+      "stage": 3,
+      "queuedUtc": "2026-10-14T16:52:09.653169+00:00",
+      "queueWaitSeconds": 21.225214099977165,
+      "startedAfterRoundSeconds": 21.225183499976993,
+      "serviceSeconds": 33.3717415999854,
+      "finishedAfterRoundSeconds": 54.59692509996239
+    }
+  ],
+  "historicalMaze": {
+    "report": "unity-maze-workflow-20261014.json",
+    "stages": {
+      "splinter": {
+        "libraryPrepare": 64.14665189990774,
+        "workspaceCreate": 169.8600155999884,
+        "initialEditor": 267.79514159995597,
+        "development": 382.90704540000297,
+        "integration": 239.80074249999598,
+        "completion": 263.983693,
+        "libraryRestore": 52.64961590000894,
+        "evidenceExportExcluded": 0.20810599997639656,
+        "rawTotal": 1502.064097,
+        "orchestrationPauseExcluded": 60.681268,
+        "accountedTotal": 1501.8559910000236,
+        "withoutKnownMeasurementPause": 1441.1747230000235
+      },
+      "shared": {
+        "workspaceCreate": 14.503978900029324,
+        "initialEditor": 37.926630200003274,
+        "development": 602.4595490999054,
+        "preserve": 0.9055236999411136,
+        "integration": 110.11592050001491,
+        "baselineRestoreCompile": 15.281928300042637,
+        "normalExit": 3.617888499982655,
+        "sourceRestore": 0.008919500047340989,
+        "reclaim": 2.623333099996671,
+        "evidenceExportExcluded": 0.06421270000282675,
+        "rawTotal": 787.5238112999359,
+        "orchestrationPauseExcluded": 0,
+        "accountedTotal": 787.4595985999331,
+        "withoutKnownMeasurementPause": null
+      }
+    },
+    "limits": "Observed completed workflows with recovery, not clean automated throughput. Both primary totals include recovery/diagnosis elapsed; evidence export excluded. Splinter secondary value removes its separately timestamped60.681268s measurement pause. Shared476.4673525s B2 compile/handoff interval contains modal recovery and cannot be interpreted as pure compile cost."
+  },
+  "normalSplinterCompletion": false,
+  "semanticallyEquivalentFeatureResults": true,
+  "playChecks": [
+    {
+      "stage": "b2",
+      "splinter": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "b2",
+        "revision": 2,
+        "failure": "",
+        "completedUtc": "2026-10-14T16:21:32.8047087Z",
+        "wallSeconds": 23.36792760000003,
+        "observedFrames": 90,
+        "simulationSeconds": 0.9305257201194763,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 2,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 90,
+            "keyboardFrames": 2,
+            "wallContacts": 1,
+            "travelled": 10.149822235107422,
+            "simulationSeconds": 0.9305257201194763,
+            "wallSeconds": 1.7159863000000541,
+            "observedFrames": 90,
+            "largestFrameDelta": 0.3333333432674408,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      },
+      "shared": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "b2",
+        "revision": 2,
+        "failure": "",
+        "completedUtc": "2026-10-14T16:52:09.4880237Z",
+        "wallSeconds": 14.799817799999985,
+        "observedFrames": 194,
+        "simulationSeconds": 0.7561047077178955,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 2,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 194,
+            "keyboardFrames": 2,
+            "wallContacts": 1,
+            "travelled": 9.328838348388672,
+            "simulationSeconds": 0.7561047077178955,
+            "wallSeconds": 1.3067911000000123,
+            "observedFrames": 194,
+            "largestFrameDelta": 0.23148949444293976,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      }
+    },
+    {
+      "stage": "b3",
+      "splinter": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "b3",
+        "revision": 3,
+        "failure": "",
+        "completedUtc": "2026-10-14T16:22:26.9975254Z",
+        "wallSeconds": 20.71810849999997,
+        "observedFrames": 620,
+        "simulationSeconds": 1.8493472337722778,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 2,
+            "routePasses": 2,
+            "entryCount": 2,
+            "clearCount": 2,
+            "restartCount": 1,
+            "motorFrames": 331,
+            "keyboardFrames": 2,
+            "wallContacts": 1,
+            "travelled": 14.043388366699219,
+            "simulationSeconds": 0.891215980052948,
+            "wallSeconds": 1.3021956999999704,
+            "observedFrames": 331,
+            "largestFrameDelta": 0.04345070198178291,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": true
+          },
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage2.unity",
+            "stageNumber": 2,
+            "waypoints": 2,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 289,
+            "keyboardFrames": 4,
+            "wallContacts": 1,
+            "travelled": 11.83293628692627,
+            "simulationSeconds": 0.9581312537193298,
+            "wallSeconds": 1.3954551000000492,
+            "observedFrames": 289,
+            "largestFrameDelta": 0.2524835169315338,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      },
+      "shared": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "b3",
+        "revision": 3,
+        "failure": "",
+        "completedUtc": "2026-10-14T16:53:04.1919132Z",
+        "wallSeconds": 16.367122300000005,
+        "observedFrames": 726,
+        "simulationSeconds": 1.8670982122421265,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 2,
+            "routePasses": 2,
+            "entryCount": 2,
+            "clearCount": 2,
+            "restartCount": 1,
+            "motorFrames": 332,
+            "keyboardFrames": 2,
+            "wallContacts": 1,
+            "travelled": 13.914802551269531,
+            "simulationSeconds": 0.8892059922218323,
+            "wallSeconds": 1.3085135000000037,
+            "observedFrames": 332,
+            "largestFrameDelta": 0.05388510599732399,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": true
+          },
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage2.unity",
+            "stageNumber": 2,
+            "waypoints": 2,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 394,
+            "keyboardFrames": 15,
+            "wallContacts": 1,
+            "travelled": 11.736659049987793,
+            "simulationSeconds": 0.9778922200202942,
+            "wallSeconds": 1.4345556999999758,
+            "observedFrames": 394,
+            "largestFrameDelta": 0.25230151414871216,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      }
+    },
+    {
+      "stage": "integration",
+      "splinter": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "integrated",
+        "revision": 3,
+        "failure": "",
+        "completedUtc": "2026-10-14T16:26:05.3791349Z",
+        "wallSeconds": 96.47884700000009,
+        "observedFrames": 23827,
+        "simulationSeconds": 75.24751281738281,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 161,
+            "routePasses": 2,
+            "entryCount": 2,
+            "clearCount": 2,
+            "restartCount": 1,
+            "motorFrames": 12826,
+            "keyboardFrames": 2,
+            "wallContacts": 1,
+            "travelled": 636.4996948242188,
+            "simulationSeconds": 40.67530822753906,
+            "wallSeconds": 41.269176000000016,
+            "observedFrames": 12826,
+            "largestFrameDelta": 0.3333333432674408,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": true
+          },
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage2.unity",
+            "stageNumber": 2,
+            "waypoints": 131,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 5624,
+            "keyboardFrames": 1,
+            "wallContacts": 0,
+            "travelled": 258.88494873046875,
+            "simulationSeconds": 16.61341094970703,
+            "wallSeconds": 17.25078789999998,
+            "observedFrames": 5624,
+            "largestFrameDelta": 0.25613629817962646,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          },
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage3.unity",
+            "stageNumber": 3,
+            "waypoints": 142,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 5377,
+            "keyboardFrames": 2,
+            "wallContacts": 0,
+            "travelled": 280.63629150390625,
+            "simulationSeconds": 17.95879364013672,
+            "wallSeconds": 18.31630610000002,
+            "observedFrames": 5377,
+            "largestFrameDelta": 0.2571485936641693,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      },
+      "shared": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "integrated",
+        "revision": 3,
+        "failure": "",
+        "completedUtc": "2026-10-14T16:54:56.3302606Z",
+        "wallSeconds": 90.4100535,
+        "observedFrames": 31966,
+        "simulationSeconds": 74.30877685546875,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 161,
+            "routePasses": 2,
+            "entryCount": 2,
+            "clearCount": 2,
+            "restartCount": 1,
+            "motorFrames": 17406,
+            "keyboardFrames": 2,
+            "wallContacts": 0,
+            "travelled": 634.6710205078125,
+            "simulationSeconds": 40.16746139526367,
+            "wallSeconds": 40.55932569999999,
+            "observedFrames": 17406,
+            "largestFrameDelta": 0.2550528049468994,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": true
+          },
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage2.unity",
+            "stageNumber": 2,
+            "waypoints": 131,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 6921,
+            "keyboardFrames": 2,
+            "wallContacts": 0,
+            "travelled": 258.1436767578125,
+            "simulationSeconds": 16.301105499267578,
+            "wallSeconds": 16.69055799999998,
+            "observedFrames": 6921,
+            "largestFrameDelta": 0.253092497587204,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          },
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage3.unity",
+            "stageNumber": 3,
+            "waypoints": 142,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 7639,
+            "keyboardFrames": 2,
+            "wallContacts": 0,
+            "travelled": 279.7155456542969,
+            "simulationSeconds": 17.8402099609375,
+            "wallSeconds": 18.218650700000012,
+            "observedFrames": 7639,
+            "largestFrameDelta": 0.2531436085700989,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      }
+    }
+  ],
+  "recovery": {
+    "qualification": {
+      "at": "2026-10-14T16:45:34.970834+00:00",
+      "normalBenchmarkCompletion": false,
+      "reason": "Experimental retained executable-image cache prevented the normal stop; exact unchanged linked images were opened without writing to release idle image sections, then the same IDs completed normally.",
+      "failedCandidate": {
+        "beganUtc": "2026-10-14T16:09:04.460402+00:00",
+        "endedUtc": "2026-10-14T16:30:40.567877+00:00",
+        "elapsedSeconds": 1296.0852095000446,
+        "error": "RuntimeError('Preserve failed operation s-a-checkpoint-release-same-id-retry')"
+      },
+      "originalRestored": true
+    },
+    "completionSeconds": 43.16571919992566,
+    "libraryRestoreSeconds": 51.961562199983746,
+    "libraryAudit": {
+      "files": 42422,
+      "bytes": 3142530954,
+      "allHashesEqual": true
+    }
+  },
+  "closure": {
+    "splinter": {
+      "at": "2026-10-14T16:45:34.969841+00:00",
+      "originalClean": true,
+      "originalSourceBytesVerified": 1602,
+      "originalLibraryOrdinaryNtfs": true,
+      "oldRefsWorktreesConfigPreserved": true,
+      "ownedEditorsExited": true
+    },
+    "shared": {
+      "at": "2026-10-14T16:55:26.805930+00:00",
+      "originalClean": true,
+      "originalSourceBytesVerified": 1602,
+      "originalLibraryOrdinaryNtfs": true,
+      "oldRefsWorktreesConfigPreserved": true,
+      "ownedEditorsExited": true
+    }
+  },
+  "sharedNativeExit": {
+    "pid": 20580,
+    "startTimeUtcTicks": 639275934239358890,
+    "exitCode": 0,
+    "observedAt": "2026-10-14T16:55:17.512792+00:00",
+    "method": "Owned subprocess handle retained through natural exit"
+  },
+  "results": {
+    "splinter": [
+      {
+        "id": "7def94eebad8a8a7aaae5073",
+        "revision": "a3c6840a31bed31131890a523e86db1c263617ff",
+        "phase": "released"
+      },
+      {
+        "id": "f3f123758bb922274ea1ca27",
+        "revision": "2202bc03ece2a0e996d4e9d832cb22c4d7aad801",
+        "phase": "released"
+      }
+    ],
+    "shared": {
+      "tree": "a49b6779b96092192ec2bafaaac4c13f7f8ec441",
+      "revision": "208995249cde51218f632317afec01aa694e7ea3",
+      "ref": "refs/splinter-benchmark/20261015-throughput-maze/q-combined"
+    }
+  },
+  "durableResultVerification": [
+    {
+      "label": "s-a",
+      "revision": "a3c6840a31bed31131890a523e86db1c263617ff",
+      "payloadFilesVerified": 23,
+      "exportedFilesVerified": 74,
+      "externalFixtureEolNormalized": [
+        "Assets/MazeBenchmark/Editor/MazeBenchmarkProbe.cs"
+      ]
+    },
+    {
+      "label": "s-b",
+      "revision": "2202bc03ece2a0e996d4e9d832cb22c4d7aad801",
+      "payloadFilesVerified": 15,
+      "exportedFilesVerified": 37,
+      "externalFixtureEolNormalized": [
+        "Assets/MazeBenchmark/Editor/MazeBenchmarkProbe.cs"
+      ]
+    },
+    {
+      "label": "q-combined",
+      "revision": "208995249cde51218f632317afec01aa694e7ea3",
+      "payloadFilesVerified": 23,
+      "exportedFilesVerified": 74,
+      "externalFixtureEolNormalized": [
+        "Assets/MazeBenchmark/Editor/MazeBenchmarkProbe.cs"
+      ]
+    },
+    {
+      "label": "q-b",
+      "revision": "9cf36afb76faf1d69e02d33704f2bd2f3feeab38",
+      "payloadFilesVerified": 15,
+      "exportedFilesVerified": 0,
+      "externalFixtureEolNormalized": []
+    }
+  ],
+  "builtInLogMetrics": {
+    "s-a": {
+      "scriptCompilationSeconds": [
+        129.656136,
+        0.000877,
+        0.000852,
+        0.00094,
+        0.000888
+      ],
+      "inputSettingsAssertionCount": 0,
+      "searchIndexOutOfRangeExceptions": 1,
+      "fontCallbackUnregistrationMessages": 1
+    },
+    "s-b": {
+      "scriptCompilationSeconds": [
+        129.782294,
+        0.00084,
+        0.001002,
+        0.0013
+      ],
+      "inputSettingsAssertionCount": 0,
+      "searchIndexOutOfRangeExceptions": 2,
+      "fontCallbackUnregistrationMessages": 1
+    },
+    "q": {
+      "scriptCompilationSeconds": [
+        3.03697,
+        0.000734,
+        0.000543,
+        0.000718,
+        0.000751,
+        0.00118,
+        0.000591,
+        0.000782,
+        0.000526
+      ],
+      "inputSettingsAssertionCount": 0,
+      "searchIndexOutOfRangeExceptions": 0,
+      "fontCallbackUnregistrationMessages": 1
+    }
+  },
+  "demo": {
+    "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\unity-throughput-maze-20261015\\maze-demo-assets.zip",
+    "bytes": 226351,
+    "sha256": "1e2730f81cc76d807f00b31356368fd3791b6486d59018ad578665bfeeac365d"
+  },
+  "comparison": {
+    "completedSplinterPhasesToWholeSharedRatio": 3.263804056458219,
+    "normalEndToEndRatio": null,
+    "developmentDifferenceSeconds": 219.0701881001005
+  },
+  "timingQualification": "One frozen candidate and one shared-Editor replay of the same fixed multi-stage feature. The experimental retained-cache candidate failed normal completion with eleven linked Burst executable-image contexts per branch. Recovery and human/diagnostic delay are separate; no successful Splinter whole-workflow time or final retained-cache-off product speedup is claimed. Both paths use the corrected scene handoff. AI code authoring, input inventory and evidence export are excluded. No OS cache reset, randomized order or repeated sample.",
+  "evidence": {
+    "a-image-context-final-state.json": {
+      "bytes": 8111,
+      "sha256": "d8b2d7b4fe7e0827dd0ec32fc7ffe6523179d61a4f704414c0ac9fc4d80e2ef8"
+    },
+    "a-image-context-recovery.json": {
+      "bytes": 6552,
+      "sha256": "dba3104489f45452d961ca64f7904d12655c230553d0cb78f7263c348a335660"
+    },
+    "b-image-context-final-state.json": {
+      "bytes": 8106,
+      "sha256": "7264ed27c123505a0488db0e3ca07ef22feb83cab6801c3a3e20d280095bc6d1"
+    },
+    "b-image-context-recovery.json": {
+      "bytes": 6561,
+      "sha256": "55682c8cf9f0cf4322ab61c6a8c2106236e286abbb80b51e76d333522eb97cd9"
+    },
+    "basis.json": {
+      "bytes": 40,
+      "sha256": "c94d8028ea0f025e636895efa9edfc5f0f987217b6fb1ce0e55035df2a154eba"
+    },
+    "built-in-log-metrics.json": {
+      "bytes": 866,
+      "sha256": "8f0082556e590778972b020f2a316dc93e3fb4f203b537a4390c944e7119b673"
+    },
+    "candidate.json": {
+      "bytes": 34420,
+      "sha256": "2c3456ea5bc3d2e23acfc74f791afa4c88fae5335b226d15f477164bd7117f05"
+    },
+    "demo-archive.json": {
+      "bytes": 232,
+      "sha256": "889c5c9125f30e4d02ae84ff828905fb967626c37430ddb0c2f34bd6676ab99a"
+    },
+    "driver-freeze.json": {
+      "bytes": 547,
+      "sha256": "f0d62a0310fa19a407e324daebf4d7024c8c0a6a5da853c8293153ec6dc2b133"
+    },
+    "image-context-recovery-summary.json": {
+      "bytes": 284,
+      "sha256": "8f3e3ca20d2e10a4bd3c2bc16ca90af1ce261576e9bc0df9dc72b5ede973b38d"
+    },
+    "library-before.json": {
+      "bytes": 8447724,
+      "sha256": "d918272b58172eefb6db9615dddc9214a62bc83805354650d9f12fe2f4ca0163"
+    },
+    "original-probe-stat.json": {
+      "bytes": 69,
+      "sha256": "2bbdedc0cd0c304271b12acaa5c952c741850a7e5ce2bf4b4f73b5f1492eecd0"
+    },
+    "payload-frozen.json": {
+      "bytes": 17454,
+      "sha256": "63261c5bc90cd12ab1939b16a6685447fd679f276ec318a67fa2d873b7afd927"
+    },
+    "preflight.json": {
+      "bytes": 51129,
+      "sha256": "1e64b6db493ec544aa87a44952b6e97fdff2c45733faaeeb3d225a8e08b47cdd"
+    },
+    "preservation-verification.json": {
+      "bytes": 1004,
+      "sha256": "d571dba57caddd1c739bb59e53500e51d40e24130746ccced9cdd4df372d54d7"
+    },
+    "q-a1-author-cost.json": {
+      "bytes": 145,
+      "sha256": "d25dd11ea13cf1a8ff031f5a82d4e0c307c7dbc840c2bc2e2c15b8ba6f91a86f"
+    },
+    "q-a1-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "99179da15eece42db8f260e67b821c2098c51e1ec1d68d861fc295814bbcb440"
+    },
+    "q-a1-refresh.json": {
+      "bytes": 1593,
+      "sha256": "32440affa0892357a51b1c45c9ec37cfc79777b8f0bbea83b1e1f629602e9485"
+    },
+    "q-a1-result.json": {
+      "bytes": 1091,
+      "sha256": "d73112360ce22e6142cabef17427956b4ab28a332ff16db2127fdefb24b2e141"
+    },
+    "q-a2-author-cost.json": {
+      "bytes": 145,
+      "sha256": "5d533285d748a4713dc373a612615290d91c56e32aa9b74d0213ed66dcf909ca"
+    },
+    "q-a2-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "9586aeb9abe32e03c27c0235f0ba6483bf330950832c9ff144d46914161320ff"
+    },
+    "q-a2-refresh.json": {
+      "bytes": 1593,
+      "sha256": "6834d74f4c71d6332f3683dfa511c17d5cdd3817d73fb017acee595a8ffc8b96"
+    },
+    "q-a2-result.json": {
+      "bytes": 1250,
+      "sha256": "7e05341d6f72b4d83df1ba58ca7daa7ecea321ea3cafa0b65d11dbc4d3581fd2"
+    },
+    "q-a3-author-cost.json": {
+      "bytes": 145,
+      "sha256": "2574cf784ad23d17d6a937a8ca8300cfaf057b55108aa384019bbc7f4f5b04d0"
+    },
+    "q-a3-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "a10f5c0485a7795ad8ddd97da9cd40392efae155ba03723dffeca129713907c9"
+    },
+    "q-a3-refresh.json": {
+      "bytes": 1593,
+      "sha256": "7d9622cf33a8e601f28025f66603744da987c51daac84f65798e472b5f6ec8c2"
+    },
+    "q-a3-result.json": {
+      "bytes": 1249,
+      "sha256": "907dcb21ac6c0a5bc6ca47fa4fdcb9df91cfed9caf717708ca2f0a25553b111c"
+    },
+    "q-b-preserved.json": {
+      "bytes": 183,
+      "sha256": "f8a65128bddc4da48bce91f579d4e1e3c017090668b83355ad0067f6b9315b47"
+    },
+    "q-b1-author-cost.json": {
+      "bytes": 146,
+      "sha256": "6c123213ec18c8e99ef783b37b0fc3420c0a76153928b94efa4368c16e66edff"
+    },
+    "q-b1-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "58d39ebe176d9a4d0db8d2f387af3e6145537f0817cfd49c39f02567842c0219"
+    },
+    "q-b1-refresh.json": {
+      "bytes": 1593,
+      "sha256": "0afa703f5302f5ba897ad081fa6103406fcc20ff9a25bf6b1d445b60a0f57019"
+    },
+    "q-b1-result.json": {
+      "bytes": 562,
+      "sha256": "6b63b8e55f06820fb348eb0524da2dc39f332d785ec593e56bbeb92c7e98e377"
+    },
+    "q-b2-accepted.json": {
+      "bytes": 663,
+      "sha256": "ac9469327832f4fd0d5696cf9ea73daf0bd04d32597f2a4d78e6cfa37155fcfb"
+    },
+    "q-b2-author-cost.json": {
+      "bytes": 146,
+      "sha256": "be323ec3572b16661633758e173b3fd7e32ad6f7b410fa5fded27dadbd54416e"
+    },
+    "q-b2-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "f9431c81474333114c717c4982be0a76c489d566b8a50d609640e3c4bea9bebf"
+    },
+    "q-b2-play-cost.json": {
+      "bytes": 146,
+      "sha256": "5ccb9768b5699991045d965faca928ff97e226da556bf7092ef3b61378836765"
+    },
+    "q-b2-play.json": {
+      "bytes": 1160,
+      "sha256": "f1ab936460d58f0def10c28ca2caeee9fac9ee7d9d322c54e9e3921c46a1aa1b"
+    },
+    "q-b2-refresh.json": {
+      "bytes": 1593,
+      "sha256": "34b4e0eea6f2a2d07109d697e505c57e57512832f4a49caef40f173682aa6a53"
+    },
+    "q-b2-result.json": {
+      "bytes": 721,
+      "sha256": "a88049bcda5b62b3cdc1475633405111ccfa49389f6659af5ba09589abe735bd"
+    },
+    "q-b3-accepted.json": {
+      "bytes": 663,
+      "sha256": "d30c048c303ad6b782943b06952a7823a16615b9018afe5806eb39af24a2dc68"
+    },
+    "q-b3-author-cost.json": {
+      "bytes": 146,
+      "sha256": "6a6e19f54ac36f489ee378a549f22086b6d52307f57ae7768e63edb4c557917c"
+    },
+    "q-b3-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "8daf6f63d64c243bd311dba2af0f4f926db78d10025a3d23ff9cf5260ce9f5f5"
+    },
+    "q-b3-play-cost.json": {
+      "bytes": 146,
+      "sha256": "3cff81223fb80f96a8d71bf329a0e7c39fd853749178603de3efe6b42b122986"
+    },
+    "q-b3-play.json": {
+      "bytes": 1877,
+      "sha256": "ced4b62d5e4c4a8d936c9a5d42959a723d822f67b29fc5ea8a297fd7a5fc33df"
+    },
+    "q-b3-refresh.json": {
+      "bytes": 1593,
+      "sha256": "73f8029620c6fa903a635710840bb0225baf7b36f14c0ed37bb9bc372e54ef31"
+    },
+    "q-b3-result.json": {
+      "bytes": 780,
+      "sha256": "f956c3965c1262eacc4bc23efeb79a489b24cc11457f868da8393dd972f17b6f"
+    },
+    "q-baseline-refresh.json": {
+      "bytes": 1593,
+      "sha256": "c78d47e5ce34f6aea1d3ff8695240e504d7a8b9112120c1c9a1a77ee8641f53a"
+    },
+    "q-baseline-restore-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "0734d1aa004ba5a4970ce1ab5dddbad1f92486a8715bcc0f5ddac227da32a116"
+    },
+    "q-closure.json": {
+      "bytes": 229,
+      "sha256": "c411275b661a72ec983d235f1c36bc128676165686ec832eb96cf4dc8e593848"
+    },
+    "q-combined-preserved.json": {
+      "bytes": 190,
+      "sha256": "20e478cdf887232339c2ddb313ec7f939d8f41988a48edb52bccba9c986ecff0"
+    },
+    "q-create-cost.json": {
+      "bytes": 146,
+      "sha256": "8e088a37e10ce6ef4abf15d2ceb6a15ca42f3552ad744743b7fc70350941e6d1"
+    },
+    "q-development-cost.json": {
+      "bytes": 145,
+      "sha256": "f8c497903a0dca7348bf52244ddcb70cf58671003de9d5e193699ffe164c756f"
+    },
+    "q-evidence-export-cost.json": {
+      "bytes": 147,
+      "sha256": "add628af0e84494fa733b7b80df999d463d4e6e3715d05853da7b86361fecf03"
+    },
+    "q-full-cost.json": {
+      "bytes": 146,
+      "sha256": "0c1a5ecd79dacf82ae06f3be59870d09b265973f4a8db1760a21be2cb0693be4"
+    },
+    "q-initial-cost.json": {
+      "bytes": 146,
+      "sha256": "54829925bc84a092bcadfa79d69f65e5296ea8ff03be7e84539da2096d2bcbb3"
+    },
+    "q-integration-accepted.json": {
+      "bytes": 663,
+      "sha256": "a07c0342aa25852d4ee3fe28f122955a6e66c368c10d7401367afa5c2ee64123"
+    },
+    "q-integration-author-cost.json": {
+      "bytes": 145,
+      "sha256": "d67835a4ca30810cca7a98476ab1dea93ac3bcab7634889626262a54fabf74ac"
+    },
+    "q-integration-compile-cost.json": {
+      "bytes": 145,
+      "sha256": "0c361ccab8e9628c3d5c46cab8c27f25fdd27c3b5132b4f01313fd0ea21dc89c"
+    },
+    "q-integration-cost.json": {
+      "bytes": 145,
+      "sha256": "d758cb70db3d73e524582f476fae8458397771062666b87fc59387d94426d6bd"
+    },
+    "q-integration-play-cost.json": {
+      "bytes": 145,
+      "sha256": "61215b3970ea23d931519c927a997580c6c6ec7652e4af63603c0f83e0612a07"
+    },
+    "q-integration-play.json": {
+      "bytes": 2586,
+      "sha256": "f83c4fe78b8c15e31f8ee9810021eb8ad77939906378f59a39798ae9d2462821"
+    },
+    "q-integration-preview-cost.json": {
+      "bytes": 147,
+      "sha256": "5084d9604c80124b3d3bef3a454a18deda3f20efcb16ca7ee598c6093f4163cf"
+    },
+    "q-integration-preview-result.json": {
+      "bytes": 762,
+      "sha256": "6fb7b6f19f7e97911569b804a9d91ccbb89ee43c09936044a8d6b8aa244b0844"
+    },
+    "q-integration-refresh.json": {
+      "bytes": 1593,
+      "sha256": "6d208d6b25c70bd3a8036e84423054707882bf4da889e97f3d59d8816cd9e66d"
+    },
+    "q-integration-result.json": {
+      "bytes": 840,
+      "sha256": "12d1b2337bea903ffbd9662440a7260eba5a08c0386417925ce91f18fdcefc0c"
+    },
+    "q-native-exit.json": {
+      "bytes": 205,
+      "sha256": "4a3b3cd27a3aa385ca9d8883f0d8a424f5ae5ffde887db3d4038ef9b6ea57767"
+    },
+    "q-normal-exit.json": {
+      "bytes": 509,
+      "sha256": "63b04700bd4d19198d8353ee1f3fbb002a2e3820cd3d9f289a910dc0e48a568c"
+    },
+    "q-original-restore-cost.json": {
+      "bytes": 148,
+      "sha256": "831f3360e5c4d403ade576c7b1d5d2e403edc667016c38a99adc26d27844c050"
+    },
+    "q-preservation-cost.json": {
+      "bytes": 145,
+      "sha256": "884dd380c98e3678caa58aec3b8d091daac56b55c3cbb27bc1e115a4ec823677"
+    },
+    "q-queue.json": {
+      "bytes": 1781,
+      "sha256": "ba6e3a333eb6bf011eb8a400f6e825b4b282c3d5034228d2ade84567f38e61e4"
+    },
+    "q-reclaim-cost.json": {
+      "bytes": 145,
+      "sha256": "0d6557d75e328386bd8688b51826f5ac32df7f930e8e69783c50874b21048c15"
+    },
+    "q-stop-cost.json": {
+      "bytes": 145,
+      "sha256": "96ccb59fa1909512f864aabfb63fadc194933e60c4921159ca65815955b0e4ce"
+    },
+    "q-target.json": {
+      "bytes": 270,
+      "sha256": "41838709d6d9e0e19d7e6c3e944ab1b0a7618aaeb8baac8bc4680f32f5c60353"
+    },
+    "s-a-a1-author-cost.json": {
+      "bytes": 145,
+      "sha256": "bfcdee0b6f9fde5182c40d4fd2e22ff5871883a23b52f0711fa06f918ef7cec1"
+    },
+    "s-a-a1-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "76b8d5a0852008195e957c71938c0bca515162577982ac87167847dafd8117a6"
+    },
+    "s-a-a1-cost.json": {
+      "bytes": 146,
+      "sha256": "9574e2544bae24cb7f0957c770b40685360475aa01a03980a8ee9f63f69afbdb"
+    },
+    "s-a-a1-refresh.json": {
+      "bytes": 1731,
+      "sha256": "51d26374493aa2f2d7e552bd0bbdac156b651cd77c9403b1d4c3c22bd24da426"
+    },
+    "s-a-a1-result.json": {
+      "bytes": 1137,
+      "sha256": "eb500cc2537f38268bba112b7e7ed95f7ee9ea49383ccdb498a3cafebab0455a"
+    },
+    "s-a-a2-author-cost.json": {
+      "bytes": 145,
+      "sha256": "2a6ad048c0cda59784238feb99aa0848ceee5ee19172475194ca58dfc48518c2"
+    },
+    "s-a-a2-compile-cost.json": {
+      "bytes": 145,
+      "sha256": "f27324ac56e5d9e4529a41dd0af09377110559f6cff3450987fe5ce00685fb1c"
+    },
+    "s-a-a2-cost.json": {
+      "bytes": 146,
+      "sha256": "1e2d85ef86fab80684afdc14e2371cc4648931c464c6804aa632644c43750923"
+    },
+    "s-a-a2-refresh.json": {
+      "bytes": 1731,
+      "sha256": "783b4dfd5e9a2749285bb4bee38c51ac6be0c814768a2292c796836eea09d719"
+    },
+    "s-a-a2-result.json": {
+      "bytes": 1296,
+      "sha256": "2aa74b6767f1939bd4dbae85c3200d10da59e4ec479365cc9da6ea287464e901"
+    },
+    "s-a-a3-author-cost.json": {
+      "bytes": 145,
+      "sha256": "7f6adbadf4bc3edcc94ac9aa4e0cdf4a20636a272f32d3ebe5d6053c13faec05"
+    },
+    "s-a-a3-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "12c3a87ce0c70002093430aace47c59588e526bd01958f841f7ffb227d351173"
+    },
+    "s-a-a3-cost.json": {
+      "bytes": 145,
+      "sha256": "c9d8e0454885ba10902c1d45bb4e5c9bb0d0f120ea71694e47cc56970bedb476"
+    },
+    "s-a-a3-refresh.json": {
+      "bytes": 1731,
+      "sha256": "d1aead9a0dcd72a186b64bddf1b4f732767a31a0d3aa071e70097781b6a26ee1"
+    },
+    "s-a-a3-result.json": {
+      "bytes": 1295,
+      "sha256": "bc907b9a319b97ff6e49f49c314bea4474c98f0d72b7b60fa3b48a6ac46d36a7"
+    },
+    "s-a-checkpoint-release-cost.json": {
+      "bytes": 219,
+      "sha256": "64ed91ddfb2e4bfd78f6123e37fa1f508216c819bc140ac66393f955628755cd"
+    },
+    "s-a-checkpoint-release-normal-exit-wait-cost.json": {
+      "bytes": 145,
+      "sha256": "c9dfbb8fabab4a9cde921a85c3ba5b38196065bb072a4eafdf4a49643f9976cb"
+    },
+    "s-a-checkpoint-release-process.json": {
+      "bytes": 287,
+      "sha256": "05a5cbe92d24866b1c72991a8aee46cd202fa199371e94a83f80fe3e5ef1e57f"
+    },
+    "s-a-checkpoint-release-recovered-cost.json": {
+      "bytes": 222,
+      "sha256": "3a8a14cf78c6746cc4782d4eae00c2bb161e71a23f444808510ad12f5db77728"
+    },
+    "s-a-checkpoint-release-recovered-process.json": {
+      "bytes": 287,
+      "sha256": "9e1cee27c1be57ce7b05900f5cd3926ee9ed26a556987175318802786b1dd881"
+    },
+    "s-a-checkpoint-release-recovered.json": {
+      "bytes": 8082,
+      "sha256": "58b92cf52985ac80aae4fe1c49c1d40531b3039e30dafc163ae705cbc150fdc8"
+    },
+    "s-a-checkpoint-release-retry-precheck.json": {
+      "bytes": 993,
+      "sha256": "3a4472bde8614dd8735fc9252b8df0f97e82a05b0d02af3b6911a131e7e6b555"
+    },
+    "s-a-checkpoint-release-same-id-retry-cost.json": {
+      "bytes": 219,
+      "sha256": "f898c7d943ef15089a515adbb5ca0de3512e83aa75b72d21cace426b2ed18c8f"
+    },
+    "s-a-checkpoint-release-same-id-retry-process.json": {
+      "bytes": 287,
+      "sha256": "b9e96c22a736e71b9d64d8d74ffad28be4bb2d129691a281692d529e1d18d625"
+    },
+    "s-a-checkpoint-release-same-id-retry.json": {
+      "bytes": 483,
+      "sha256": "32ff2256fee356dc1acb92171c78a755a17ffe062f7d82b4ac102b01cb9d2915"
+    },
+    "s-a-checkpoint-release.json": {
+      "bytes": 497,
+      "sha256": "8d7aadb7c416f426bdb2eb91c5add1207af9fbd7725cacded3144aad15199c74"
+    },
+    "s-a-ensure-cost.json": {
+      "bytes": 221,
+      "sha256": "a4cbe4cbd10f46121291b826cd1c0c8b286bd4186288afe6477b33bf94e41d3c"
+    },
+    "s-a-ensure-process.json": {
+      "bytes": 554,
+      "sha256": "866fa21ecb9f20f21f1edb23c76caad8fb50aa42c09e6bdbd0041eebd3d0a65c"
+    },
+    "s-a-ensure.json": {
+      "bytes": 6171,
+      "sha256": "acfa2bcdf09874b2309be98056727b2ffdd6f3aa73e3facb50c2feb8f3219548"
+    },
+    "s-a-process-exit.json": {
+      "bytes": 202,
+      "sha256": "482c17a21d4b2ced60a8ef76ca712323fa4cb4de1851d58937ad18a34f8f6749"
+    },
+    "s-a-start-cost.json": {
+      "bytes": 219,
+      "sha256": "5603857d93e895cb45fc7e0e1313d46a823e12fe9bcebed1eb3ea825355a3ec2"
+    },
+    "s-a-start-process.json": {
+      "bytes": 212,
+      "sha256": "62b7f687aa72958a6ccda9b2c38d7d4ab8cb7a344090eb80c45b624083bac434"
+    },
+    "s-a-start.json": {
+      "bytes": 7103,
+      "sha256": "63f0f45a474772aacd429729a4eba8cc713078eeed89529804e3ebd7eedc21da"
+    },
+    "s-a-target.json": {
+      "bytes": 368,
+      "sha256": "96e6ba78129b3b73642770f4c5edf9b6f0eec569bb721a870198e5ccdc1f14ed"
+    },
+    "s-b-b1-author-cost.json": {
+      "bytes": 146,
+      "sha256": "1cc79ce8d69fa8d9e0198deeae0ffad89505f7e730246af4cfba53d2e746da42"
+    },
+    "s-b-b1-compile-cost.json": {
+      "bytes": 144,
+      "sha256": "19977a647abd6b927f678c04f1a814f211b7573d7f416f893213a31d5c9b71c8"
+    },
+    "s-b-b1-cost.json": {
+      "bytes": 146,
+      "sha256": "97cd32c8e0d2e7ac524c438145d0b69cbcd989ec24362af3e0fb7648cb7416fd"
+    },
+    "s-b-b1-refresh.json": {
+      "bytes": 1731,
+      "sha256": "3561d4beba4cd08a18953a626e99e7ebedf37f30663e05707ae0c67e48ac25d1"
+    },
+    "s-b-b1-result.json": {
+      "bytes": 608,
+      "sha256": "ba4f497714c3eea2aaaae1f27f118c92b8247a308bdc02f989efdf6790e5d25a"
+    },
+    "s-b-b2-accepted.json": {
+      "bytes": 704,
+      "sha256": "5671ad7711962f7819a49916e5a0b44cd703a026c1875d1e72c736a72466d576"
+    },
+    "s-b-b2-author-cost.json": {
+      "bytes": 145,
+      "sha256": "ba9c141bbc47b44544e0e87e0591d8177f5c9db548c3b0d378d20b4df0301e60"
+    },
+    "s-b-b2-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "43f5a725eda4475df068470c4ec3824e334c6afdf28f95aadd19d45ddb072117"
+    },
+    "s-b-b2-cost.json": {
+      "bytes": 146,
+      "sha256": "afb411669fbe7a47f7ec31fa978e0eea10852c94d0cb98088f2864d2b039e134"
+    },
+    "s-b-b2-play-cost.json": {
+      "bytes": 145,
+      "sha256": "f0e93462a261f8fb55ed06d43e73ff9d3fdc5cd1e07cd9951b1231eae21b8ac4"
+    },
+    "s-b-b2-play.json": {
+      "bytes": 1156,
+      "sha256": "0a755bc25d95b7140891824ff6ce7892aefef5b5ecdb47073608944ba6d6d573"
+    },
+    "s-b-b2-refresh.json": {
+      "bytes": 1731,
+      "sha256": "0c32097c545f958aa9aeb7c444106aa1fdc0b3f12b419af2f9bb3bd8171ed580"
+    },
+    "s-b-b2-result.json": {
+      "bytes": 767,
+      "sha256": "fd12bedd6fcaf3dc0267f45c0c51470f9de50983c96eab0dac9faca2343fc9df"
+    },
+    "s-b-b3-accepted.json": {
+      "bytes": 704,
+      "sha256": "f39fff684795fcdb580fb7450d13337526a1aa0e14975a3b40a9e55373d45294"
+    },
+    "s-b-b3-author-cost.json": {
+      "bytes": 146,
+      "sha256": "55571e11fca1143d5048bcb23711816e991ac8bb2b88a004bb189141718689a5"
+    },
+    "s-b-b3-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "2ba03067e54a52373a7d6731a9792352345221419c2334d5962c19cfe4d51af1"
+    },
+    "s-b-b3-cost.json": {
+      "bytes": 145,
+      "sha256": "22a3fe6efbc0d90e1811b9454f4a800ff18ac0af7dcf8e341e838cf7fff33498"
+    },
+    "s-b-b3-play-cost.json": {
+      "bytes": 146,
+      "sha256": "858508aec4184550085808e998e23112ccf238b16fdc7f6e0bb28dc3bc6ab88b"
+    },
+    "s-b-b3-play.json": {
+      "bytes": 1872,
+      "sha256": "3c9a4d825d7e6784aa16bf41286dc917ef6adf27984a1ba78cecbc2235c2d00f"
+    },
+    "s-b-b3-refresh.json": {
+      "bytes": 1731,
+      "sha256": "1f515172d5c5bf42f3360948c5f50c1d32398fd43d86f3d3867a422d5d4fe58a"
+    },
+    "s-b-b3-result.json": {
+      "bytes": 826,
+      "sha256": "5e9ae84275bdea3c08fc4b85005dc241ce6efe0f01726480b239bcb39ef981df"
+    },
+    "s-b-checkpoint-release-cost.json": {
+      "bytes": 219,
+      "sha256": "e93616c853608faf7c85d607f877a36b39f79e68b5f1690027e1d6f3d8a5b2a2"
+    },
+    "s-b-checkpoint-release-normal-exit-wait-cost.json": {
+      "bytes": 145,
+      "sha256": "c84c3ac7e57d26fa56b898b002017032cc2175ef669b2826990785e98fea353c"
+    },
+    "s-b-checkpoint-release-process.json": {
+      "bytes": 287,
+      "sha256": "9e78d9dfa5ff97c387390539a69b8d070c83facbaaa4803434d9fee27f7227cb"
+    },
+    "s-b-checkpoint-release-recovered-cost.json": {
+      "bytes": 222,
+      "sha256": "2818afef781d2ee23ce65052ea2c98f83c37238d3b362fcf606f5661b6dc5d3a"
+    },
+    "s-b-checkpoint-release-recovered-process.json": {
+      "bytes": 287,
+      "sha256": "1792c847c53df2dcc53a8b1b0049e5c8a371b49df9026fae9fc0ba662407d5c6"
+    },
+    "s-b-checkpoint-release-recovered.json": {
+      "bytes": 8077,
+      "sha256": "e9f0cb82f79a218699a2f6baec3fdb8a427cfb2db01de06217a975d611697b4a"
+    },
+    "s-b-checkpoint-release-retry-precheck.json": {
+      "bytes": 993,
+      "sha256": "2635ee579a7f87095694cd136dc52eb3799eafe95588d61b13c628cf2bc84147"
+    },
+    "s-b-checkpoint-release-same-id-retry-cost.json": {
+      "bytes": 219,
+      "sha256": "fcd106df72560fa229ce7a6b6339fdb4c157ca02a511ac69eab793a52d94f397"
+    },
+    "s-b-checkpoint-release-same-id-retry-process.json": {
+      "bytes": 287,
+      "sha256": "389df311b47ebbe12a1b14ce2d2cb96ec1db670f6cb9767b4f53520519961c97"
+    },
+    "s-b-checkpoint-release-same-id-retry.json": {
+      "bytes": 483,
+      "sha256": "e63b293e4ec038317e3c512852bdf7922bccf02eeb7bc973ba1d421022d08b51"
+    },
+    "s-b-checkpoint-release.json": {
+      "bytes": 497,
+      "sha256": "1db0ca73370877dd75846415e5922b4ede3b96e7734c00cb3949c687b7f82d1d"
+    },
+    "s-b-ensure-cost.json": {
+      "bytes": 222,
+      "sha256": "235d19037d34f65056093ebbefbbe96cde892538fcde9fbdb1e23335ff44fc07"
+    },
+    "s-b-ensure-process.json": {
+      "bytes": 554,
+      "sha256": "57837bef5673284c08683c0a82d797457d24992a773a6de4ecaed5e57e545a9b"
+    },
+    "s-b-ensure.json": {
+      "bytes": 6170,
+      "sha256": "9b9a5e13dd821e4c74e9f97d5fb2168ad48f211802ffa8f25285ab254d3cf5c6"
+    },
+    "s-b-process-exit.json": {
+      "bytes": 202,
+      "sha256": "dbf97cb540c5f627fe70b88afb61bfd714d6c254531856cbf6308ce2112a2873"
+    },
+    "s-b-start-cost.json": {
+      "bytes": 219,
+      "sha256": "767403a64c5000d2bae8fd643e8f1fb0d13c8b5b72a4436994f873e1c253d991"
+    },
+    "s-b-start-process.json": {
+      "bytes": 212,
+      "sha256": "195d934f87d4ced45d5caa70f558e42eab17d7c82a4c63cc43cbe991684567d2"
+    },
+    "s-b-start.json": {
+      "bytes": 7102,
+      "sha256": "444c456fdc6a1135277f9c3a2ea4f167a3534ee761f4d1d7e7e7138a035d15cf"
+    },
+    "s-b-target.json": {
+      "bytes": 368,
+      "sha256": "54559e723d55fddd0f43ea4b2914bfe4702a3c466d73873f4dc94000b6ff11e4"
+    },
+    "s-closure.json": {
+      "bytes": 229,
+      "sha256": "ccc8f79348f6ce4cae424b740c2ed60ea79bf7f2bd856966dd87044f7cbb3c1c"
+    },
+    "s-completion-failed.json": {
+      "bytes": 239,
+      "sha256": "9aa9099e1004c39d8954eeea9745675ba68264d30fd2ca8081e7964c0837a95d"
+    },
+    "s-create-cost.json": {
+      "bytes": 146,
+      "sha256": "ea0c4aeaf0d25ddb9cb0363d3e7139edfffb0c3feb4e58569a49476e07685d68"
+    },
+    "s-development-cost.json": {
+      "bytes": 145,
+      "sha256": "f2bcfbe16601938b19e6ebdf7e6a1d18d7b48af6663c9623d7a2e61bd8d35fc6"
+    },
+    "s-evidence-export-cost.json": {
+      "bytes": 146,
+      "sha256": "450af5e69a2e9cef25892435e646475faf3f25734aa7f56407e17787d4c7595d"
+    },
+    "s-full-failed.json": {
+      "bytes": 240,
+      "sha256": "cda40318bc0b1c3840d74ec6c551610f70de19521b81d6a93b73d40e804d6a96"
+    },
+    "s-initial-cost.json": {
+      "bytes": 146,
+      "sha256": "01ec72a9a0dc7e9c285031772501e037e313f88140a6bfb281ed6e1635d6ec42"
+    },
+    "s-integration-accepted.json": {
+      "bytes": 704,
+      "sha256": "27404f47cec058bba26642dbeb86821db5410b6f7179ac29cb8a5c5649fe92ea"
+    },
+    "s-integration-author-cost.json": {
+      "bytes": 146,
+      "sha256": "f660d10fb9435ed89ce4b1d738f92f319b56785229abda865a375a561bc7f253"
+    },
+    "s-integration-compile-cost.json": {
+      "bytes": 145,
+      "sha256": "1f7e6bad23c59c65c5fef51500316e39a1700c90b5c65041bde94ac1c1d429bd"
+    },
+    "s-integration-cost.json": {
+      "bytes": 145,
+      "sha256": "45b42d4af7f03ea8885e7d5a9fac3090f4aa2070b95b5ad2f3885d7182b057a7"
+    },
+    "s-integration-play-cost.json": {
+      "bytes": 145,
+      "sha256": "5832859ebb08af5281d52efcde1c56b6993c375c1e028779ab163f47e0c96ff5"
+    },
+    "s-integration-play.json": {
+      "bytes": 2597,
+      "sha256": "a16622a7d6df998d9b9aaba916bd536bfcf9645dd7703bda3b349fedb931764e"
+    },
+    "s-integration-preview-cost.json": {
+      "bytes": 147,
+      "sha256": "50a2965a0ca9d92493a189f8834cf277b98c6e907576569af3f950cbd3a9f504"
+    },
+    "s-integration-preview-result.json": {
+      "bytes": 808,
+      "sha256": "63e3c224b409283611048900c1320029afcf367423a71f9b0e7580aa3a2560fd"
+    },
+    "s-integration-refresh.json": {
+      "bytes": 1731,
+      "sha256": "c148c82f7b976c5377d7bf93f6f5f83282fad4d78006aa79ee7aaeee55f58ca0"
+    },
+    "s-integration-result.json": {
+      "bytes": 886,
+      "sha256": "b21816bb101276fe6247e5615bf124cf84b61d72e00574c4337d556f4a2530a8"
+    },
+    "s-library-prepare-cost.json": {
+      "bytes": 221,
+      "sha256": "0e0b6449d6b3653ad4a572bff06cde2bb20d517e57382f9103fe5f921e8aa295"
+    },
+    "s-library-prepare-process.json": {
+      "bytes": 286,
+      "sha256": "b268f26a7c8a5369c87f44d4f61ca3ba3bb25ee626f1cc7bdf73b34739c3ff83"
+    },
+    "s-library-prepare.json": {
+      "bytes": 2274,
+      "sha256": "c800897c507fc6b2cc2c6c874e4a60451ffd34bea51f9a76a7e4f9161ea71f72"
+    },
+    "s-library-restore-recovery-cost.json": {
+      "bytes": 222,
+      "sha256": "7a77ff3e3a98099381ddac37f4c6296587bff3a94a54216bde1af37fea37de26"
+    },
+    "s-library-restore-recovery-process.json": {
+      "bytes": 216,
+      "sha256": "876812f1da82e6f8129ee95598b613a2336f6cae8c83d65430796171ff18b6e5"
+    },
+    "s-library-restore-recovery.json": {
+      "bytes": 1506,
+      "sha256": "f290683032ef0c7694b4564900baa2baa331fd31ab69ac2302be9400d54b9c22"
+    },
+    "s-recovery-completion-cost.json": {
+      "bytes": 145,
+      "sha256": "ee0f4add037861bc62a3e6d0b93e49806f194b211b16cd5ab1d91d5bb07a03c5"
+    },
+    "s-recovery-library-audit-cost.json": {
+      "bytes": 146,
+      "sha256": "769ca229d45eae9f39f29e659504887c653e7369971e0bcd3eae17de72009305"
+    },
+    "s-recovery-library-verified.json": {
+      "bytes": 73,
+      "sha256": "5edf3066ab783d7459fa2eee1567dad04c8270c817b64c44dac26e0e336e0062"
+    },
+    "s-recovery-qualified.json": {
+      "bytes": 606,
+      "sha256": "793f922d881a0ceeb932d764e12be32ed4a4e620d7bd803fbd7ad3d341a874a8"
+    },
+    "s-results.json": {
+      "bytes": 27082,
+      "sha256": "7f84b82bc0524cc19b84f381e432d3fd6637bbb8994aa02dccf2977a18ceb921"
+    },
+    "s-workspaces.json": {
+      "bytes": 651,
+      "sha256": "d69e4daa2d3e76cdafe25852618d1f4f7a0555d69bfcd6a9c51dc4ce4e7622f3"
+    },
+    "schema-library.prepare.json": {
+      "bytes": 38264,
+      "sha256": "af6a872799cca3c7cf67e9fdf0f11ce3b95e47c2265b57793559335feae392fb"
+    },
+    "schema-library.restore.json": {
+      "bytes": 38192,
+      "sha256": "57ae03b5de471a924ef401a0f159cadbde161a1b52f0253b2ba72a92afe7f3ba"
+    },
+    "schema-unity.start.json": {
+      "bytes": 38112,
+      "sha256": "7404b473aa6300620a4464740cee3da08e331aee11a5632ddfa078d0eb75900d"
+    },
+    "schema-workspace.checkpoint.json": {
+      "bytes": 38635,
+      "sha256": "2b431e397a39b88328b8abff8aa01caffb8ef8a436b9d4a3a372303631d88edd"
+    },
+    "schema-workspace.ensure.json": {
+      "bytes": 41009,
+      "sha256": "731eb3a79f67ac0803d06bb142b9795a04ce9b7e20f2934de0d866986a68217f"
+    },
+    "scope.json": {
+      "bytes": 2462,
+      "sha256": "4c0bc6668168b8385c8a38b40d29da782b4be62456cbee2b8ca1d869bd357b77"
+    },
+    "source-before.json": {
+      "bytes": 334165,
+      "sha256": "97623f7757c295ae53e13a71f4eb88d6e1a70e4c8fef26de703aece62a8c4b98"
+    }
+  },
+  "splinterBranchSeconds": {
+    "a": 259.16947509977035,
+    "b": 354.6846843000967
+  },
+  "splinterInternalOverlapSeconds": 258.56141209986527,
+  "sharedQueueBoundary": "Queue delay measures Editor access for fixed cumulative feature snapshots; AI writing time is excluded and queue delay is not added to wall time.",
+  "responseSchemaValidation": {
+    "responses": 17,
+    "passed": 1,
+    "failed": 0,
+    "evidence": "actual-response-schema-valid-input.xml",
+    "inputCorrection": "The first schema-only test mistakenly used the mixed artifact directory and rejected an array; rerun selects only actual CLI response objects. Both logs are retained."
+  },
+  "finalProductQualification": {
+    "evidence": "artifacts/unity-throughput-optimization-20261015/final-validation.json",
+    "cleanupPurgeEnabled": true,
+    "fullUnityTimingNotRun": true
+  }
+}

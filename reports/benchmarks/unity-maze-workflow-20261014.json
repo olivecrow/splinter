@@ -1,0 +1,2036 @@
+{
+  "id": "MW-01",
+  "date": "2026-10-14",
+  "candidate": "07bc2de591d5deaf3d363a557f0a8cb895df3ee5",
+  "sourceBase": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+  "scope": {
+    "id": "MW-01",
+    "question": "Does multi-stage real Unity maze authoring and gameplay validation amortize Splinter's preparation/completion costs versus parallel code work with one sequential Editor?",
+    "methods": [
+      "Splinter independent A/B Editors with parallel checkpoint --release",
+      "Two code worktrees with one shared original Editor and alternating A/B leases"
+    ],
+    "input": "Same committed real 2.80GB Unity project and identical current Library before both runs; frozen product 07bc2de",
+    "a": [
+      "Implement and compile seeded 15x15 perfect-maze generator; validate graph",
+      "Implement authoring; generate, save and reopen three maze scenes",
+      "Improve farthest-goal selection and wall height; regenerate and verify persistence"
+    ],
+    "b": [
+      "Implement and compile CharacterController, InputSystem keyboard and stage state machine",
+      "Save prefab/sandbox; Play validation of keyboard movement, collision, entry and clear",
+      "Add restart and second stage; compile, save and repeat Play validation"
+    ],
+    "integration": "Combine B into prepared A/original Editor, compile, save three playable integrated maze scenes, physically follow solution routes, validate clear/restart, render preview",
+    "seeds": [
+      1729,
+      2718,
+      31415
+    ],
+    "timing": "Source code authored once by parallel agents; same cumulative source snapshots replayed in both methods. AI implementation and benchmark harness development recorded separately, not claimed as per-method elapsed time. No artificial task delay.",
+    "acceptance": [
+      "Actual fresh compilation response and Editor path/PID identity",
+      "Saved/reopened layouts, scenes, GUIDs and references",
+      "Real Play Mode with public virtual keyboard event injection, CharacterController motion and physical triggers",
+      "Equivalent graph/gameplay outcomes across methods",
+      "Independent durable source results, normal shutdown, reclamation and original source restoration"
+    ],
+    "bounds": "One successful cohort per method after any explicitly retained diagnostic failures; no service/global/package configuration edits, no game build or broad compatibility matrix. Original Library transition uses previously authorized exact lifecycle. No forced Editor exit."
+  },
+  "sourceFiles": 1602,
+  "library": {
+    "files": 42416,
+    "bytes": 3141770387,
+    "sha256": "8bb1eb3171651cf6c67efbf556c787126feaa687db36c8d18d4dd71d490df30e"
+  },
+  "stages": {
+    "splinter": {
+      "libraryPrepare": 64.14665189990774,
+      "workspaceCreate": 169.8600155999884,
+      "initialEditor": 267.79514159995597,
+      "development": 382.90704540000297,
+      "integration": 239.80074249999598,
+      "completion": 263.983693,
+      "libraryRestore": 52.64961590000894,
+      "evidenceExportExcluded": 0.20810599997639656,
+      "rawTotal": 1502.064097,
+      "orchestrationPauseExcluded": 60.681268,
+      "accountedTotal": 1501.8559910000236,
+      "withoutKnownMeasurementPause": 1441.1747230000235
+    },
+    "shared": {
+      "workspaceCreate": 14.503978900029324,
+      "initialEditor": 37.926630200003274,
+      "development": 602.4595490999054,
+      "preserve": 0.9055236999411136,
+      "integration": 110.11592050001491,
+      "baselineRestoreCompile": 15.281928300042637,
+      "normalExit": 3.617888499982655,
+      "sourceRestore": 0.008919500047340989,
+      "reclaim": 2.623333099996671,
+      "evidenceExportExcluded": 0.06421270000282675,
+      "rawTotal": 787.5238112999359,
+      "orchestrationPauseExcluded": 0,
+      "accountedTotal": 787.4595985999331,
+      "withoutKnownMeasurementPause": null
+    }
+  },
+  "stepCosts": {
+    "s": {
+      "a1": {
+        "compile": 124.88098859996535,
+        "authoring": 1.6085925999796018,
+        "wholeStep": 126.65701270010322
+      },
+      "a2": {
+        "compile": 43.451181600103155,
+        "authoring": 35.79383019998204,
+        "wholeStep": 79.32139850000385
+      },
+      "a3": {
+        "compile": 42.393045100034215,
+        "authoring": 36.086335200001486,
+        "wholeStep": 78.63625940005295
+      },
+      "b1": {
+        "compile": 128.5061894999817,
+        "authoring": 2.8940365000162274,
+        "wholeStep": 131.6741717000259
+      },
+      "b2": {
+        "compile": 112.43034610000905,
+        "authoring": 24.23205880005844,
+        "play": 33.56822759995703,
+        "wholeStep": 170.39552769996226
+      },
+      "b3": {
+        "compile": 43.980255800066516,
+        "authoring": 7.031870999955572,
+        "play": 29.489778900053352,
+        "wholeStep": 80.62797699996736
+      }
+    },
+    "q": {
+      "a1": {
+        "compile": 15.047663099947385,
+        "authoring": 1.4062818000093102
+      },
+      "a2": {
+        "compile": 14.653612299938686,
+        "authoring": 4.819930600002408
+      },
+      "a3": {
+        "compile": 15.081819499959238,
+        "authoring": 4.417850799974985
+      },
+      "b1": {
+        "compile": 15.058186400099657,
+        "authoring": 1.4077263999497518
+      },
+      "b2": {
+        "compile": 476.46735250006896,
+        "authoring": 2.4101776001043618,
+        "play": 15.446376999956556
+      },
+      "b3": {
+        "compile": 14.464522200054489,
+        "authoring": 2.410247200052254,
+        "play": 17.051477800006978
+      }
+    }
+  },
+  "sharedQueue": [
+    {
+      "letter": "a",
+      "stage": 1,
+      "queuedUtc": "2026-10-14T11:57:06.009563+00:00",
+      "queueWaitSeconds": 7.300055585801601e-06,
+      "startedAfterRoundSeconds": 4.300032742321491e-06,
+      "serviceSeconds": 16.504138099960983,
+      "finishedAfterRoundSeconds": 16.504142399993725
+    },
+    {
+      "letter": "b",
+      "stage": 1,
+      "queuedUtc": "2026-10-14T11:57:06.009563+00:00",
+      "queueWaitSeconds": 16.504198500071652,
+      "startedAfterRoundSeconds": 16.504197100060992,
+      "serviceSeconds": 16.966817499953322,
+      "finishedAfterRoundSeconds": 33.471014600014314
+    },
+    {
+      "letter": "a",
+      "stage": 2,
+      "queuedUtc": "2026-10-14T11:57:39.481189+00:00",
+      "queueWaitSeconds": 16.966922900057398,
+      "startedAfterRoundSeconds": 1.4999997802078724e-05,
+      "serviceSeconds": 19.756025100010447,
+      "finishedAfterRoundSeconds": 19.75604010000825
+    },
+    {
+      "letter": "b",
+      "stage": 2,
+      "queuedUtc": "2026-10-14T11:57:39.481189+00:00",
+      "queueWaitSeconds": 19.756108900066465,
+      "startedAfterRoundSeconds": 19.75607320002746,
+      "serviceSeconds": 494.6668708999641,
+      "finishedAfterRoundSeconds": 514.4229440999916
+    },
+    {
+      "letter": "a",
+      "stage": 3,
+      "queuedUtc": "2026-10-14T12:06:13.912993+00:00",
+      "queueWaitSeconds": 494.6669854000211,
+      "startedAfterRoundSeconds": 1.8400023691356182e-05,
+      "serviceSeconds": 19.988478899933398,
+      "finishedAfterRoundSeconds": 19.98849729995709
+    },
+    {
+      "letter": "b",
+      "stage": 3,
+      "queuedUtc": "2026-10-14T12:06:13.912993+00:00",
+      "queueWaitSeconds": 19.98859610001091,
+      "startedAfterRoundSeconds": 19.988533099996857,
+      "serviceSeconds": 34.57690009998623,
+      "finishedAfterRoundSeconds": 54.56543319998309
+    }
+  ],
+  "authoringChecks": {
+    "a": [
+      {
+        "success": true,
+        "operation": "a1",
+        "version": 1,
+        "layouts": 3,
+        "scenes": 0,
+        "cellsPerMaze": 225,
+        "edgesPerMaze": 224,
+        "wallsPerScene": 0,
+        "goalCells": [
+          224,
+          224,
+          224
+        ],
+        "solutionLengths": [
+          59,
+          131,
+          103
+        ],
+        "wallHeight": 1.600000023841858,
+        "layoutHashes": [
+          "d333c51dc79daf5495d837cb9ca5a721595c124d5d9a367d86334d7a0a8c3523",
+          "8bb5e21ad5c2221b5b650c657adaa59e57c306dfdc4de6600c66e3e9e0c0fa68",
+          "f5dbe2a3ec50cdec1ed2dbad73ade3528e9a768f8de6ea2d947aa8a73bbba7ed"
+        ],
+        "scenePaths": [],
+        "deterministic": true,
+        "persistenceVerified": false,
+        "farthestGoal": false,
+        "assetGuidsStable": false
+      },
+      {
+        "success": true,
+        "operation": "a2",
+        "version": 2,
+        "layouts": 3,
+        "scenes": 3,
+        "cellsPerMaze": 225,
+        "edgesPerMaze": 224,
+        "wallsPerScene": 256,
+        "goalCells": [
+          224,
+          224,
+          224
+        ],
+        "solutionLengths": [
+          59,
+          131,
+          103
+        ],
+        "wallHeight": 1.600000023841858,
+        "layoutHashes": [
+          "d333c51dc79daf5495d837cb9ca5a721595c124d5d9a367d86334d7a0a8c3523",
+          "8bb5e21ad5c2221b5b650c657adaa59e57c306dfdc4de6600c66e3e9e0c0fa68",
+          "f5dbe2a3ec50cdec1ed2dbad73ade3528e9a768f8de6ea2d947aa8a73bbba7ed"
+        ],
+        "scenePaths": [
+          "Assets/MazeBenchmark/A/Generated/Maze_1729.unity",
+          "Assets/MazeBenchmark/A/Generated/Maze_2718.unity",
+          "Assets/MazeBenchmark/A/Generated/Maze_31415.unity"
+        ],
+        "deterministic": true,
+        "persistenceVerified": true,
+        "farthestGoal": false,
+        "assetGuidsStable": true
+      },
+      {
+        "success": true,
+        "operation": "a3",
+        "version": 3,
+        "layouts": 3,
+        "scenes": 3,
+        "cellsPerMaze": 225,
+        "edgesPerMaze": 224,
+        "wallsPerScene": 256,
+        "goalCells": [
+          100,
+          224,
+          85
+        ],
+        "solutionLengths": [
+          161,
+          131,
+          142
+        ],
+        "wallHeight": 2.200000047683716,
+        "layoutHashes": [
+          "b7d0ed834337c3b79dfdb2ebc9c4be51d81b4eab6b30e04627a30ad41ac17cea",
+          "8bb5e21ad5c2221b5b650c657adaa59e57c306dfdc4de6600c66e3e9e0c0fa68",
+          "d48aa0553ada938a30a4681e848c02a5d470126ebacdc48f37d598c9f606c752"
+        ],
+        "scenePaths": [
+          "Assets/MazeBenchmark/A/Generated/Maze_1729.unity",
+          "Assets/MazeBenchmark/A/Generated/Maze_2718.unity",
+          "Assets/MazeBenchmark/A/Generated/Maze_31415.unity"
+        ],
+        "deterministic": true,
+        "persistenceVerified": true,
+        "farthestGoal": true,
+        "assetGuidsStable": true
+      }
+    ],
+    "b": [
+      {
+        "success": true,
+        "operation": "b1",
+        "revision": 1
+      },
+      {
+        "success": true,
+        "operation": "b2",
+        "revision": 2,
+        "scenes": [
+          "Assets/MazeBenchmark/B/Generated/SandboxStage1.unity"
+        ],
+        "waypointCounts": [
+          2
+        ],
+        "prefab": "Assets/MazeBenchmark/B/Generated/MazePlayer.prefab"
+      },
+      {
+        "success": true,
+        "operation": "b3",
+        "revision": 3,
+        "scenes": [
+          "Assets/MazeBenchmark/B/Generated/SandboxStage1.unity",
+          "Assets/MazeBenchmark/B/Generated/SandboxStage2.unity"
+        ],
+        "waypointCounts": [
+          2,
+          2
+        ],
+        "prefab": "Assets/MazeBenchmark/B/Generated/MazePlayer.prefab"
+      }
+    ],
+    "integration": {
+      "success": true,
+      "operation": "integrate",
+      "revision": 3,
+      "scenes": [
+        "Assets/MazeBenchmark/Integrated/MazeStage1.unity",
+        "Assets/MazeBenchmark/Integrated/MazeStage2.unity",
+        "Assets/MazeBenchmark/Integrated/MazeStage3.unity"
+      ],
+      "waypointCounts": [
+        161,
+        131,
+        142
+      ],
+      "prefab": "Assets/MazeBenchmark/B/Generated/MazePlayer.prefab"
+    }
+  },
+  "playChecks": [
+    {
+      "operation": "b2",
+      "splinter": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "b2",
+        "revision": 2,
+        "failure": "",
+        "completedUtc": "2026-10-14T11:44:03.7650883Z",
+        "wallSeconds": 32.36071009999989,
+        "observedFrames": 173,
+        "simulationSeconds": 0.8606848120689392,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 2,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 173,
+            "keyboardFrames": 2,
+            "wallContacts": 1,
+            "travelled": 9.986560821533203,
+            "simulationSeconds": 0.8606848120689392,
+            "wallSeconds": 1.9009793000000172,
+            "observedFrames": 173,
+            "largestFrameDelta": 0.30102071166038513,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      },
+      "shared": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "b2",
+        "revision": 2,
+        "failure": "",
+        "completedUtc": "2026-10-14T12:06:13.7954503Z",
+        "wallSeconds": 15.231966599999964,
+        "observedFrames": 195,
+        "simulationSeconds": 0.5330299735069275,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 2,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 195,
+            "keyboardFrames": 2,
+            "wallContacts": 1,
+            "travelled": 8.00475788116455,
+            "simulationSeconds": 0.5330299735069275,
+            "wallSeconds": 0.9194813999999952,
+            "observedFrames": 195,
+            "largestFrameDelta": 0.047762997448444366,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      }
+    },
+    {
+      "operation": "b3",
+      "splinter": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "b3",
+        "revision": 3,
+        "failure": "",
+        "completedUtc": "2026-10-14T11:45:24.4234149Z",
+        "wallSeconds": 28.961551999999983,
+        "observedFrames": 596,
+        "simulationSeconds": 1.909745454788208,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 2,
+            "routePasses": 2,
+            "entryCount": 2,
+            "clearCount": 2,
+            "restartCount": 1,
+            "motorFrames": 342,
+            "keyboardFrames": 2,
+            "wallContacts": 1,
+            "travelled": 14.319488525390625,
+            "simulationSeconds": 0.9503610134124756,
+            "wallSeconds": 1.414445999999998,
+            "observedFrames": 342,
+            "largestFrameDelta": 0.09055709093809128,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": true
+          },
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage2.unity",
+            "stageNumber": 2,
+            "waypoints": 2,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 254,
+            "keyboardFrames": 2,
+            "wallContacts": 1,
+            "travelled": 11.751083374023438,
+            "simulationSeconds": 0.9593844413757324,
+            "wallSeconds": 1.3775104000000056,
+            "observedFrames": 254,
+            "largestFrameDelta": 0.2522489130496979,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      },
+      "shared": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "b3",
+        "revision": 3,
+        "failure": "",
+        "completedUtc": "2026-10-14T12:07:08.3449514Z",
+        "wallSeconds": 16.69174989999999,
+        "observedFrames": 697,
+        "simulationSeconds": 1.869670033454895,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 2,
+            "routePasses": 2,
+            "entryCount": 2,
+            "clearCount": 2,
+            "restartCount": 1,
+            "motorFrames": 373,
+            "keyboardFrames": 2,
+            "wallContacts": 1,
+            "travelled": 14.01715087890625,
+            "simulationSeconds": 0.8897911906242371,
+            "wallSeconds": 1.2737895999999864,
+            "observedFrames": 373,
+            "largestFrameDelta": 0.04375310242176056,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": true
+          },
+          {
+            "scene": "Assets/MazeBenchmark/B/Generated/SandboxStage2.unity",
+            "stageNumber": 2,
+            "waypoints": 2,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 324,
+            "keyboardFrames": 8,
+            "wallContacts": 1,
+            "travelled": 11.718904495239258,
+            "simulationSeconds": 0.979878842830658,
+            "wallSeconds": 1.3704645000000255,
+            "observedFrames": 324,
+            "largestFrameDelta": 0.25343769788742065,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": true,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      }
+    },
+    {
+      "operation": "integration",
+      "splinter": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "integrated",
+        "revision": 3,
+        "failure": "",
+        "completedUtc": "2026-10-14T11:49:23.4305769Z",
+        "wallSeconds": 105.67592160000004,
+        "observedFrames": 22166,
+        "simulationSeconds": 75.96920776367188,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 161,
+            "routePasses": 2,
+            "entryCount": 2,
+            "clearCount": 2,
+            "restartCount": 1,
+            "motorFrames": 12503,
+            "keyboardFrames": 2,
+            "wallContacts": 1,
+            "travelled": 636.9212036132812,
+            "simulationSeconds": 41.33319091796875,
+            "wallSeconds": 42.13621929999999,
+            "observedFrames": 12503,
+            "largestFrameDelta": 0.3333333432674408,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": true
+          },
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage2.unity",
+            "stageNumber": 2,
+            "waypoints": 131,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 4475,
+            "keyboardFrames": 1,
+            "wallContacts": 0,
+            "travelled": 259.20697021484375,
+            "simulationSeconds": 16.58090591430664,
+            "wallSeconds": 17.573984900000028,
+            "observedFrames": 4475,
+            "largestFrameDelta": 0.3333333432674408,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          },
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage3.unity",
+            "stageNumber": 3,
+            "waypoints": 142,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 5188,
+            "keyboardFrames": 1,
+            "wallContacts": 0,
+            "travelled": 281.7427978515625,
+            "simulationSeconds": 18.055110931396484,
+            "wallSeconds": 18.611079099999984,
+            "observedFrames": 5188,
+            "largestFrameDelta": 0.26190268993377686,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      },
+      "shared": {
+        "success": true,
+        "playModeExited": true,
+        "mode": "integrated",
+        "revision": 3,
+        "failure": "",
+        "completedUtc": "2026-10-14T12:08:57.8995584Z",
+        "wallSeconds": 89.11651359999996,
+        "observedFrames": 29501,
+        "simulationSeconds": 74.24809265136719,
+        "inputConfiguration": "Play-only cloned InputSettings; queued virtual Keyboard; background processing; restored before exit",
+        "inputSettingsRestored": true,
+        "scenes": [
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage1.unity",
+            "stageNumber": 1,
+            "waypoints": 161,
+            "routePasses": 2,
+            "entryCount": 2,
+            "clearCount": 2,
+            "restartCount": 1,
+            "motorFrames": 15898,
+            "keyboardFrames": 2,
+            "wallContacts": 0,
+            "travelled": 634.9945068359375,
+            "simulationSeconds": 40.188812255859375,
+            "wallSeconds": 40.58898999999997,
+            "observedFrames": 15898,
+            "largestFrameDelta": 0.2549577057361603,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": true
+          },
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage2.unity",
+            "stageNumber": 2,
+            "waypoints": 131,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 6540,
+            "keyboardFrames": 2,
+            "wallContacts": 0,
+            "travelled": 258.2611999511719,
+            "simulationSeconds": 16.302169799804688,
+            "wallSeconds": 16.657060800000068,
+            "observedFrames": 6540,
+            "largestFrameDelta": 0.25433459877967834,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          },
+          {
+            "scene": "Assets/MazeBenchmark/Integrated/MazeStage3.unity",
+            "stageNumber": 3,
+            "waypoints": 142,
+            "routePasses": 1,
+            "entryCount": 1,
+            "clearCount": 1,
+            "restartCount": 0,
+            "motorFrames": 7063,
+            "keyboardFrames": 2,
+            "wallContacts": 0,
+            "travelled": 279.9997253417969,
+            "simulationSeconds": 17.757110595703125,
+            "wallSeconds": 18.111488200000057,
+            "observedFrames": 7063,
+            "largestFrameDelta": 0.25385528802871704,
+            "keyboardEventMovedController": true,
+            "wallBlockedController": false,
+            "inputDisabledAfterClear": true,
+            "clearIsIdempotent": true,
+            "restartViaKeyboard": false
+          }
+        ]
+      }
+    }
+  ],
+  "semanticallyEquivalent": true,
+  "results": {
+    "splinter": [
+      {
+        "id": "6cbcacfe1f8729e2b4a39f75",
+        "revision": "b7475e1fedaf9993a2fdbe7c52ea9aa36b5dbe14",
+        "phase": "released"
+      },
+      {
+        "id": "8a01d147325023317bf682f6",
+        "revision": "845f22801b0ad559aa9c55c739aa48e15934dedf",
+        "phase": "released"
+      }
+    ],
+    "shared": {
+      "tree": "b9cde20cca80cb8948a46ae8a62d217ce083fc16",
+      "revision": "e590536d9d61aeb510a8762155d75c0a9b26d587",
+      "ref": "refs/splinter-benchmark/20261014-maze-final/q-combined"
+    }
+  },
+  "closure": {
+    "splinter": {
+      "at": "2026-10-14T11:55:59.571568+00:00",
+      "originalClean": true,
+      "originalSourceBytesVerified": 1602,
+      "originalLibraryOrdinaryNtfs": true,
+      "oldRefsWorktreesConfigPreserved": true,
+      "ownedEditorsExited": true
+    },
+    "shared": {
+      "at": "2026-10-14T12:09:24.788305+00:00",
+      "originalClean": true,
+      "originalSourceBytesVerified": 1602,
+      "originalLibraryOrdinaryNtfs": true,
+      "oldRefsWorktreesConfigPreserved": true,
+      "ownedEditorsExited": true
+    }
+  },
+  "coding": [
+    {
+      "task": "A maze generator and persisted scenes",
+      "startedUtc": "2026-10-14T10:47:59Z",
+      "completedUtc": "2026-10-14T10:56:06Z",
+      "editingScope": "artifacts/unity-maze-workflow-20261014/payload-a only",
+      "liveEditorOrSourceTouched": false,
+      "stages": 3,
+      "staticUnityReferenceCompilePassed": true,
+      "staticCompileDefine": "UNITY_EDITOR",
+      "liveUnityValidation": "Parent-run pending"
+    },
+    {
+      "startedUtc": "2026-10-14T10:48:02Z",
+      "completedUtc": "2026-10-14T10:58:02.3723429Z",
+      "agent": "/root/maze_gameplay",
+      "liveProjectChanged": false,
+      "staticCompilation": "Passed using actual Unity6000.3.22f1/InputSystem1.20/URP17.3 references",
+      "liveCompilation": "ParentPending",
+      "playValidation": "ParentPending",
+      "stages": [
+        1,
+        2,
+        3
+      ],
+      "scope": "Assets/MazeBenchmark/B and integration authoring code; payload files only"
+    }
+  ],
+  "comparison": {
+    "kind": "observed-with-recovery",
+    "normalThroughputRatio": null,
+    "observedSplinterToSharedRatio": 1.9072165653580886,
+    "observedSplinterMinusSharedSeconds": 714.3963924000905,
+    "developmentDifferenceSeconds": -219.55250369990245,
+    "integrationDifferenceSeconds": 129.68482199998107
+  },
+  "historicalOneLine": {
+    "report": "unity-finalization-rerun-20261014.json",
+    "splinterSeconds": 768.2520215,
+    "sharedSeconds": 93.9694134,
+    "comparableWorkload": false
+  },
+  "evidence": {
+    "actual-response-schema-tests.xml": {
+      "bytes": 1736,
+      "sha256": "52ed2c02845bbd40b4b7565984f969d2facc8296d480191f46b66734abb07b95"
+    },
+    "basis.json": {
+      "bytes": 40,
+      "sha256": "bb5e49757345cb2a9eb1ffdaf1293e403ccdd53fb7442ef84617718a1ae345be"
+    },
+    "built-in-log-metrics.json": {
+      "bytes": 870,
+      "sha256": "6e4fe985574d99496969a948ca28f5f137874681299d1ccc815577bd0dd9a798"
+    },
+    "collect.py": {
+      "bytes": 3884,
+      "sha256": "690e03ae535492832c7c75de84cc120daf3d674db05ea868c00e63cd9ba23502"
+    },
+    "demo-archive.json": {
+      "bytes": 236,
+      "sha256": "9f8f876a5c82a927351d809da1503bebdce063bdd1102c63409742b77a114771"
+    },
+    "driver-freeze.json": {
+      "bytes": 521,
+      "sha256": "5f876f4e9981a445e004225813e76fe16a9c818aff9cba5d346c9ddbfcab3f2b"
+    },
+    "library-before.json": {
+      "bytes": 8446752,
+      "sha256": "8bb1eb3171651cf6c67efbf556c787126feaa687db36c8d18d4dd71d490df30e"
+    },
+    "MazeBenchmarkProbe.cs": {
+      "bytes": 5681,
+      "sha256": "decb31877a9443c9f50877674a910d29c94527a149f20f8a47fd92d6b0aa964a"
+    },
+    "MazeBenchmarkProbe.shared-recovery.cs": {
+      "bytes": 5860,
+      "sha256": "45c83bf58367a2ea26f547732595f7a61aa20a0daad05deeba986a78fcc187d6"
+    },
+    "original-probe-stat.json": {
+      "bytes": 69,
+      "sha256": "2bbdedc0cd0c304271b12acaa5c952c741850a7e5ce2bf4b4f73b5f1492eecd0"
+    },
+    "original-probe.cs": {
+      "bytes": 9857,
+      "sha256": "d3403b3d3a5ded57013ebcd885938283ca8d75efc9ed2443743d59b49c6dd725"
+    },
+    "payload-a/assemble.py": {
+      "bytes": 5884,
+      "sha256": "3ec164df32dfad9ee61e9498fc90c14501944ca5ec313e4a54e96cff94c78f1a"
+    },
+    "payload-a/authoring-log.json": {
+      "bytes": 397,
+      "sha256": "73b0e86b50a5550b2996405548598ad2b6ab906a3a2bc025bfb9659a23dbf802"
+    },
+    "payload-a/check_compile.py": {
+      "bytes": 2397,
+      "sha256": "265e69c96ac6e1bc3cb702479189191535d3eb255fd57bad71a583bc82e0a4e0"
+    },
+    "payload-a/manifest.json": {
+      "bytes": 7799,
+      "sha256": "8e4435bdd09a514466acad32cc38abb7a3d22f3b7509906cecfa4ac5200341c8"
+    },
+    "payload-a/stage1/Assets/MazeBenchmark/A/Editor/MazeAuthoring.cs": {
+      "bytes": 3624,
+      "sha256": "00f3285f4855eb6c9396aef10af8e19eb8e6f2e2e9304c1a7f79549580e9a4f9"
+    },
+    "payload-a/stage1/Assets/MazeBenchmark/A/MazeLayout.cs": {
+      "bytes": 8095,
+      "sha256": "f58e1d6ea5912c7581c5f54f1fe9a41b2c79017fc157d3a9cb86876f359fb388"
+    },
+    "payload-a/stage1/Assets/MazeBenchmark/A/MazeSceneData.cs": {
+      "bytes": 305,
+      "sha256": "045220a283a419802da196a6f9373fa5fea4ae6574a5be2d043c982fbd4b7b65"
+    },
+    "payload-a/stage2/Assets/MazeBenchmark/A/Editor/MazeAuthoring.cs": {
+      "bytes": 14404,
+      "sha256": "2323f7f30c9bd278bcf54486d47bb8571774e3ed0a6e97940b6e702763c07494"
+    },
+    "payload-a/stage2/Assets/MazeBenchmark/A/MazeLayout.cs": {
+      "bytes": 8095,
+      "sha256": "f58e1d6ea5912c7581c5f54f1fe9a41b2c79017fc157d3a9cb86876f359fb388"
+    },
+    "payload-a/stage2/Assets/MazeBenchmark/A/MazeSceneData.cs": {
+      "bytes": 305,
+      "sha256": "045220a283a419802da196a6f9373fa5fea4ae6574a5be2d043c982fbd4b7b65"
+    },
+    "payload-a/stage3/Assets/MazeBenchmark/A/Editor/MazeAuthoring.cs": {
+      "bytes": 14404,
+      "sha256": "b806732131875dd71147bd433f436663dd62e0a6acdb62863b0d930b125791eb"
+    },
+    "payload-a/stage3/Assets/MazeBenchmark/A/MazeLayout.cs": {
+      "bytes": 8094,
+      "sha256": "3ecc10f930cf8f2040a987d158c86e85343990436600c184fd1521e07a4797c7"
+    },
+    "payload-a/stage3/Assets/MazeBenchmark/A/MazeSceneData.cs": {
+      "bytes": 305,
+      "sha256": "045220a283a419802da196a6f9373fa5fea4ae6574a5be2d043c982fbd4b7b65"
+    },
+    "payload-a/static-common.log": {
+      "bytes": 163,
+      "sha256": "dcb8f50554e1d802aa0b24d37c361dddecb3343fde4b71bf58743aa95af51af9"
+    },
+    "payload-a/static-compile.json": {
+      "bytes": 815,
+      "sha256": "bc9bf4f59117e92c7e7c397e9f69a46480ad65e05a271a593c09c7fc1fc51bbc"
+    },
+    "payload-a/static-stage1.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "payload-a/static-stage2.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "payload-a/static-stage3.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "payload-b/coding-evidence.json": {
+      "bytes": 473,
+      "sha256": "804e64bc429ae945f1ecf348c6545b3e370b8ea2f1fb951c176bd65d2103dce0"
+    },
+    "payload-b/manifest.json": {
+      "bytes": 5387,
+      "sha256": "e7762b2d2dc80c7acb38816b911bc05a1aa7865b618ed38ea5b296ec1cc62745"
+    },
+    "payload-b/package.py": {
+      "bytes": 3072,
+      "sha256": "3381558c5ed6adbce6b1fa581bf1482e10172394651fd89fc1f7004801cfea5e"
+    },
+    "payload-b/src/Editor/GameAuthoring.cs": {
+      "bytes": 16947,
+      "sha256": "007f8971e7069d91c19ed36d7db680f6045f71e7b289bf23c58721ee190dd3ab"
+    },
+    "payload-b/src/Editor/MazePlayValidation.cs": {
+      "bytes": 18457,
+      "sha256": "4fe46e9dddff86db2531cb363ffc38c400a9af1baac02f2fbc25b5d46629f54a"
+    },
+    "payload-b/src/Runtime/MazeGameFlow.cs": {
+      "bytes": 1793,
+      "sha256": "3d4ecf303f8d88377161a0257102f2f237422cb92691c108c506b214f527125a"
+    },
+    "payload-b/src/Runtime/MazePlayerController.cs": {
+      "bytes": 3683,
+      "sha256": "fac6581e333c9e0aa39908df54b6562b3888b7ac67c291df8fe73b31e1f010a1"
+    },
+    "payload-b/src/Runtime/MazeRoute.cs": {
+      "bytes": 270,
+      "sha256": "bb4bccf12d2b116be445dfc8d0b812ee61f69b58e436748c89a2aac4012f2475"
+    },
+    "payload-b/src/Runtime/MazeStageTrigger.cs": {
+      "bytes": 695,
+      "sha256": "19d89311727f3af2920ac81a67846c7751dd3e591d62d70f1a4c6f7d7a3efe61"
+    },
+    "payload-b/stage1/Assets/MazeBenchmark/B/Editor/GameAuthoring.cs": {
+      "bytes": 1265,
+      "sha256": "f617bd2aeed8b7d798fb880e02c6b739f6628d3f6925b5e636cdf4cf80d74fc2"
+    },
+    "payload-b/stage1/Assets/MazeBenchmark/B/Runtime/MazeGameFlow.cs": {
+      "bytes": 1793,
+      "sha256": "9c412164cd8dce31d7bb9eb0fc8044c3753b16656c1aec9d119943b3517668d4"
+    },
+    "payload-b/stage1/Assets/MazeBenchmark/B/Runtime/MazePlayerController.cs": {
+      "bytes": 3683,
+      "sha256": "fac6581e333c9e0aa39908df54b6562b3888b7ac67c291df8fe73b31e1f010a1"
+    },
+    "payload-b/stage1/Assets/MazeBenchmark/B/Runtime/MazeRoute.cs": {
+      "bytes": 270,
+      "sha256": "bb4bccf12d2b116be445dfc8d0b812ee61f69b58e436748c89a2aac4012f2475"
+    },
+    "payload-b/stage1/Assets/MazeBenchmark/B/Runtime/MazeStageTrigger.cs": {
+      "bytes": 695,
+      "sha256": "19d89311727f3af2920ac81a67846c7751dd3e591d62d70f1a4c6f7d7a3efe61"
+    },
+    "payload-b/stage2/Assets/MazeBenchmark/B/Editor/GameAuthoring.cs": {
+      "bytes": 16947,
+      "sha256": "007f8971e7069d91c19ed36d7db680f6045f71e7b289bf23c58721ee190dd3ab"
+    },
+    "payload-b/stage2/Assets/MazeBenchmark/B/Editor/MazePlayValidation.cs": {
+      "bytes": 18457,
+      "sha256": "4fe46e9dddff86db2531cb363ffc38c400a9af1baac02f2fbc25b5d46629f54a"
+    },
+    "payload-b/stage2/Assets/MazeBenchmark/B/Runtime/MazeGameFlow.cs": {
+      "bytes": 1793,
+      "sha256": "6820cc53777d2ffc4d64b8b481a1c51ba8dd77bb7c9eddbf33a4b34c5a5d633d"
+    },
+    "payload-b/stage2/Assets/MazeBenchmark/B/Runtime/MazePlayerController.cs": {
+      "bytes": 3683,
+      "sha256": "fac6581e333c9e0aa39908df54b6562b3888b7ac67c291df8fe73b31e1f010a1"
+    },
+    "payload-b/stage2/Assets/MazeBenchmark/B/Runtime/MazeRoute.cs": {
+      "bytes": 270,
+      "sha256": "bb4bccf12d2b116be445dfc8d0b812ee61f69b58e436748c89a2aac4012f2475"
+    },
+    "payload-b/stage2/Assets/MazeBenchmark/B/Runtime/MazeStageTrigger.cs": {
+      "bytes": 695,
+      "sha256": "19d89311727f3af2920ac81a67846c7751dd3e591d62d70f1a4c6f7d7a3efe61"
+    },
+    "payload-b/stage3/Assets/MazeBenchmark/B/Editor/GameAuthoring.cs": {
+      "bytes": 16947,
+      "sha256": "007f8971e7069d91c19ed36d7db680f6045f71e7b289bf23c58721ee190dd3ab"
+    },
+    "payload-b/stage3/Assets/MazeBenchmark/B/Editor/MazePlayValidation.cs": {
+      "bytes": 18457,
+      "sha256": "4fe46e9dddff86db2531cb363ffc38c400a9af1baac02f2fbc25b5d46629f54a"
+    },
+    "payload-b/stage3/Assets/MazeBenchmark/B/Runtime/MazeGameFlow.cs": {
+      "bytes": 1793,
+      "sha256": "3d4ecf303f8d88377161a0257102f2f237422cb92691c108c506b214f527125a"
+    },
+    "payload-b/stage3/Assets/MazeBenchmark/B/Runtime/MazePlayerController.cs": {
+      "bytes": 3683,
+      "sha256": "fac6581e333c9e0aa39908df54b6562b3888b7ac67c291df8fe73b31e1f010a1"
+    },
+    "payload-b/stage3/Assets/MazeBenchmark/B/Runtime/MazeRoute.cs": {
+      "bytes": 270,
+      "sha256": "bb4bccf12d2b116be445dfc8d0b812ee61f69b58e436748c89a2aac4012f2475"
+    },
+    "payload-b/stage3/Assets/MazeBenchmark/B/Runtime/MazeStageTrigger.cs": {
+      "bytes": 695,
+      "sha256": "19d89311727f3af2920ac81a67846c7751dd3e591d62d70f1a4c6f7d7a3efe61"
+    },
+    "payload-frozen.json": {
+      "bytes": 17454,
+      "sha256": "eef46af0808a1487515c92c6d42320d73e99798953b7c600d7a913ce72a8d3f8"
+    },
+    "preflight.json": {
+      "bytes": 18890,
+      "sha256": "2f66a88618005980d2d8c491d43c93c2b99b6380536fc442ee275350cdc63f98"
+    },
+    "preservation-verification.json": {
+      "bytes": 874,
+      "sha256": "d6a36519c704a1a4039fec09f4fbb1aae21d8ab6d90436fd506a2aeb0f480872"
+    },
+    "q-a1-author-cost.json": {
+      "bytes": 146,
+      "sha256": "b07857835469172dd72b5e3185f2e916af561b2709f053a5d80494f2cef68657"
+    },
+    "q-a1-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "799623085dd0c495228c08cfea1ac68d88e86cf117d305e78479fdec1182347b"
+    },
+    "q-a1-refresh.json": {
+      "bytes": 1593,
+      "sha256": "1088e9693310f908ccd0cda9b1e91a5e54ae5fafbfd2e0da2e21bc99db67576f"
+    },
+    "q-a1-result.json": {
+      "bytes": 1091,
+      "sha256": "7c54cb4db02782a504504c4e9360c8bcd2bed8cde2cddda1aad8cb5b98adb219"
+    },
+    "q-a2-author-cost.json": {
+      "bytes": 145,
+      "sha256": "627797fe0702b52d4db4ff15493c3db71c9d702be32fc70a1c4e776898d6a5f1"
+    },
+    "q-a2-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "c3c63a29bfebd313b060e58616d501e08839a66a35760b3c17db86694e9f2e71"
+    },
+    "q-a2-refresh.json": {
+      "bytes": 1593,
+      "sha256": "8c2ec0c2267970fc702a90705fb57a9ab9743a3af2769d3f5807c30c3d31560f"
+    },
+    "q-a2-result.json": {
+      "bytes": 1250,
+      "sha256": "591d1a0b555e84a5f5103b3f125d9ab3aa5eea7ec8c7484352082ae1b8a20afc"
+    },
+    "q-a3-author-cost.json": {
+      "bytes": 145,
+      "sha256": "13bbfea98b306970c96aad6fc07145c2d1447d1ea2cb0911205cc0b377d84b0e"
+    },
+    "q-a3-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "815b8d7c15892e0c9b432316fb2dc60157b868c56be61b9125adad05faddcb13"
+    },
+    "q-a3-refresh.json": {
+      "bytes": 1593,
+      "sha256": "dcc5da3cf7bd01fd506ceff249c04170066e62c12353810e2fe42a1fc08aa963"
+    },
+    "q-a3-result.json": {
+      "bytes": 1249,
+      "sha256": "d883036da94fb1b984ee9801e9e196534ca62b20209ff92cecc614d795c0f34c"
+    },
+    "q-b-preserved.json": {
+      "bytes": 178,
+      "sha256": "4a710f926b377ce4489c314bf15a5a6d58f1f64f2d2080e7f4783c3ca12bbc27"
+    },
+    "q-b1-author-cost.json": {
+      "bytes": 146,
+      "sha256": "bf14ce0457414dc7ab8c64c5b0675461f63b967a435c6a9d410f30781574ca4f"
+    },
+    "q-b1-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "5d32321e3ddc684688422f44f315019fb7511ef8b4c8b3b20b69923c83b4029a"
+    },
+    "q-b1-refresh.json": {
+      "bytes": 1593,
+      "sha256": "4e38f36da8094900296f28dc02a5e7f6cc64402fa61663f3dcdaee5a082342b7"
+    },
+    "q-b1-result.json": {
+      "bytes": 562,
+      "sha256": "3808b5d93b152e73c521e6ea84d82f1771ee8704c29de8b0a30f69d17ff04f51"
+    },
+    "q-b2-accepted.json": {
+      "bytes": 667,
+      "sha256": "fc0e61c05657f7e963b6d48fb3f919c3ae0260a74826a48ad3dd0b0a7db9b4e9"
+    },
+    "q-b2-author-cost.json": {
+      "bytes": 146,
+      "sha256": "3c57664012d2ee0e628167fb1654cde2a059fbd074b5a3b35240ac811934cba5"
+    },
+    "q-b2-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "e6d6e6b09d09742d2137ce7bcc7ad036a01c2857a3fe3091b26b1b9e7676364e"
+    },
+    "q-b2-play-cost.json": {
+      "bytes": 146,
+      "sha256": "68bafca425848b698a959a7806e03e900ef0e71ed36bf03cfc7a5c518eca7f22"
+    },
+    "q-b2-play.json": {
+      "bytes": 1160,
+      "sha256": "33f2127fae3bc31ad2b384d1909eab3777ac53f7e94ce771b2fe43eac7e94cab"
+    },
+    "q-b2-refresh.json": {
+      "bytes": 1593,
+      "sha256": "d6b05e25e24afb43fceb8ba9bd1f5880fe148203798fa03e626bc68a509564c3"
+    },
+    "q-b2-result.json": {
+      "bytes": 721,
+      "sha256": "26d90c75ec1f5227be4bae3dce8932a092685fa20a9a6548848f85b9b35a2e74"
+    },
+    "q-b3-accepted.json": {
+      "bytes": 667,
+      "sha256": "7e847686e34b0c59c9c7691b80dbda3f8db75b7e98753f8cb5fbfbf1be492558"
+    },
+    "q-b3-author-cost.json": {
+      "bytes": 145,
+      "sha256": "9a9a20da1f747b2b3163b79b279d2a8f36f886bf874fd8fb0361f409a3ad829e"
+    },
+    "q-b3-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "8ab32f2644fc3b1e8978c6423f4ffa9d727895e59350e8441baa6589b10ccb45"
+    },
+    "q-b3-play-cost.json": {
+      "bytes": 146,
+      "sha256": "3ced2f8965491805229941300f3cd236209ababbadfa2e60ac1fa2f335c3ab1e"
+    },
+    "q-b3-play.json": {
+      "bytes": 1872,
+      "sha256": "4b280e677b32e2dcfaa06bd0c4bee522204d5bdf832fe5fe1336bd956a5400e8"
+    },
+    "q-b3-refresh.json": {
+      "bytes": 1593,
+      "sha256": "07f844dcc8a6a8b88a21979cc7b735de979083f66339f4a00410633c18425f15"
+    },
+    "q-b3-result.json": {
+      "bytes": 780,
+      "sha256": "c7b83e993899fba072d13c58a3874f2af9c45361c6fe6d2fe776407184c9ce8f"
+    },
+    "q-baseline-refresh.json": {
+      "bytes": 1593,
+      "sha256": "8a3359a8b7e7865730ab0415e9dd25d56d2f1fcc3b4a1bc6a8cb91904b4683a6"
+    },
+    "q-baseline-restore-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "def93328a922a228a8501e758f2373f7968ad68f63040619e36f6cb734ce31ca"
+    },
+    "q-closure.json": {
+      "bytes": 229,
+      "sha256": "cebc3ec402247d2843ac4bf813f87a30f1ac10484de1635ffef232d207605ee0"
+    },
+    "q-combined-preserved.json": {
+      "bytes": 185,
+      "sha256": "2f3ee20cbced5c1a3504c2e577b0ff3900619f8b1e67f52cfea8aba2ea32360a"
+    },
+    "q-control/editor.log": {
+      "bytes": 213387,
+      "sha256": "47bab0ec5032b866f2385b9a3844e6a2bd2f3e3df57d2e9d3c3d7b78fa6be0fd"
+    },
+    "q-control/maze-command.json": {
+      "bytes": 92,
+      "sha256": "4dea09ad85db6f306b17eb0ea1551b47a2d4de931f506e84c4d0659cc9d50308"
+    },
+    "q-control/maze-play-mz-165d157a33e6415e830402c825e96a56.json": {
+      "bytes": 2930,
+      "sha256": "772dc7cbd058c89e76016df097f6443b9f3ff282f29eab8cd3364b719205fca1"
+    },
+    "q-control/maze-play-mz-aa7afd6591b84f39bcae1c09c3ca05fb.json": {
+      "bytes": 2096,
+      "sha256": "99d16b3f2fcbd550d879fdb11b3c815a0f604ee2e88b5b0e02a17fa6110a0c0a"
+    },
+    "q-control/maze-play-mz-da6cd08d185140e19fe6c868e7e37570.json": {
+      "bytes": 1278,
+      "sha256": "7033689061a78063caaf362c9bac4817dbc9ed47109e3772252bfdcbec23a8ae"
+    },
+    "q-control/maze-response.json": {
+      "bytes": 437,
+      "sha256": "e07086e4a7f98d20922dfe2480b21168127a9d785bb06b32931868119e0b7aef"
+    },
+    "q-control/maze-state.json": {
+      "bytes": 399,
+      "sha256": "7827c45e17d89db13a024fa3bf86c67336d6577aece722cdad61c034823051a8"
+    },
+    "q-create-cost.json": {
+      "bytes": 146,
+      "sha256": "15f9dc9b37bf4cd07bdda2d950398853a7b206a6f98820929c7b428bb0ca6f8b"
+    },
+    "q-development-cost.json": {
+      "bytes": 145,
+      "sha256": "a0f153a61c070b2c2f78fe73148e5771ee8677ec88053161886e4e70372803b6"
+    },
+    "q-evidence-export-cost.json": {
+      "bytes": 147,
+      "sha256": "89dc748ad857eef0969a43ae25fe98c8ced135adc24eedc82517735edd1aa529"
+    },
+    "q-full-cost.json": {
+      "bytes": 145,
+      "sha256": "b8e637f35e5332d60db6130a0a1d22f77c7f9fc440bef355e510a51a1019a639"
+    },
+    "q-initial-cost.json": {
+      "bytes": 146,
+      "sha256": "be253ba58008c2d13ca1c96b247c4ed5638a272b16b54cf14889e1bcf1de9092"
+    },
+    "q-integration-accepted.json": {
+      "bytes": 667,
+      "sha256": "8c0a96ea2291a10f236aaae01568311efb02e16e73bf3aa7e57fd332502d5720"
+    },
+    "q-integration-author-cost.json": {
+      "bytes": 146,
+      "sha256": "0e8f9901162490ac561db2ae208198cd786e728035359557714da27d1c24f88f"
+    },
+    "q-integration-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "09c32b01d9c5d73a38f4286dce5b190ed6474ea71753545e1a0686ec1496f5f5"
+    },
+    "q-integration-cost.json": {
+      "bytes": 146,
+      "sha256": "2056ef594ec2d1411f060180f4cc1694611144e5ec941fcfb29f2d471fcef9c9"
+    },
+    "q-integration-play-cost.json": {
+      "bytes": 145,
+      "sha256": "af880b38bb0270c39a6706324800ae9a13c171a222ae02ed88fbf5a112b56472"
+    },
+    "q-integration-play.json": {
+      "bytes": 2600,
+      "sha256": "e0d0dc576b3f3fd4b8405805af36ac1298bf7216f8f45314d70def525c91ad36"
+    },
+    "q-integration-preview-cost.json": {
+      "bytes": 147,
+      "sha256": "7b954bf45a021b49a1318077321a71233c9c7043b195eee624af75533b3a46ed"
+    },
+    "q-integration-preview-result.json": {
+      "bytes": 766,
+      "sha256": "d65e43b18205198dcfc7112d1013e744c05491b06956b4f321446df99fb91dfa"
+    },
+    "q-integration-refresh.json": {
+      "bytes": 1593,
+      "sha256": "0f81d03ecab72dfe5168f5542d41a7b3c8dabd3179f66bdddaf0203940509624"
+    },
+    "q-integration-result.json": {
+      "bytes": 840,
+      "sha256": "e760c0e077e87d39137b799cc1dd534d7c3388b3be37705346e1885545e6756e"
+    },
+    "q-integration.png": {
+      "bytes": 19422,
+      "sha256": "e7b499179ee71dadaffca444408c0d20ac5d6e58673e96719ecea5e10a6d7a5f"
+    },
+    "q-modal-recovery.json": {
+      "bytes": 1315,
+      "sha256": "151a5edf929b84c59185c5ebed14a34dbf0cb6f2f4c881b05eec466f234814e7"
+    },
+    "q-native-exit.json": {
+      "bytes": 279,
+      "sha256": "6420aa759edc6d7422639d2c4e57f29971680fe6cfc53396a9de7702b51ed3ce"
+    },
+    "q-normal-exit.json": {
+      "bytes": 509,
+      "sha256": "6c5a20981fc2873fe3104ceed96cc22886defcbf7b7dcb308fc6b86edc8d8af1"
+    },
+    "q-original-restore-cost.json": {
+      "bytes": 148,
+      "sha256": "af5337dd34cb57d6703acb4628248f0a33737741d6a7a58087939cac68df7aa4"
+    },
+    "q-preservation-cost.json": {
+      "bytes": 146,
+      "sha256": "e43861c36e86bbb41edcded0c729753278162b2b8bfd40f57cd3cf127c1f907f"
+    },
+    "q-queue.json": {
+      "bytes": 1784,
+      "sha256": "6940f85631567c1344b7d5eee548c3a6b6aa089c459a5f06b62180e4335e80e4"
+    },
+    "q-reclaim-cost.json": {
+      "bytes": 145,
+      "sha256": "339a261533828f783591d0b5158781e7d886d778bddddf8136b95cfcba18dd58"
+    },
+    "q-stop-cost.json": {
+      "bytes": 145,
+      "sha256": "0d28c82b33d832a9e6daf002ccae37bd1fe4e88b58a007c14003a5e2c98a34db"
+    },
+    "q-target.json": {
+      "bytes": 274,
+      "sha256": "e56819be1404d2e0d260e8b290ed7e74377406acfdce470dd3a222d1126b2f1b"
+    },
+    "response-schema-input/s-a-checkpoint-release-same-id-retry.json": {
+      "bytes": 8094,
+      "sha256": "a237472f7ac13a38fc416bd2710d404529b7fecceffd8c4d55f92d25098d3734"
+    },
+    "response-schema-input/s-a-checkpoint-release.json": {
+      "bytes": 498,
+      "sha256": "b79df409f57445637f4869afc75f25ba5e39229dd1c0e468bf3ead2fb1761c3c"
+    },
+    "response-schema-input/s-a-ensure.json": {
+      "bytes": 6186,
+      "sha256": "80c0a836f988aedc42101e7520f13cc8e6cb82ccafe005b9ac4c0512520a73b6"
+    },
+    "response-schema-input/s-a-start.json": {
+      "bytes": 6462,
+      "sha256": "f1602872c2e90cf6795d8cb009616589a525bd6c622de93d4f2743641192555d"
+    },
+    "response-schema-input/s-b-checkpoint-release-same-id-retry.json": {
+      "bytes": 8085,
+      "sha256": "1de7b5f254b72a11dbfc6a338401410b598b8732e2d0fb87b943d9e4629da340"
+    },
+    "response-schema-input/s-b-checkpoint-release.json": {
+      "bytes": 498,
+      "sha256": "b9c0790a52e9d381fc191eac98170395c304fa8fdea6c8ad0955996b8c33cd80"
+    },
+    "response-schema-input/s-b-ensure.json": {
+      "bytes": 6183,
+      "sha256": "1841e9b539317aa2f20ed45b1298754f546c8e1d5b379eb041dfaaabc630210b"
+    },
+    "response-schema-input/s-b-start.json": {
+      "bytes": 6461,
+      "sha256": "dbc769e24b6c263f0bdfbd15cbaac2d68b803747875f3901abc8ed0086dbd635"
+    },
+    "response-schema-input/s-library-prepare.json": {
+      "bytes": 2282,
+      "sha256": "be3fddbd0e2b6ab11813aac8dd920ee0862dacd7468305cfc5745b99b47fea4b"
+    },
+    "response-schema-input/s-library-restore.json": {
+      "bytes": 1511,
+      "sha256": "6dcf748b57ee32b0c9ee9aa299066e0b064e01ac84ababb9eee928f37af4818e"
+    },
+    "response-schema-input/schema-library.prepare.json": {
+      "bytes": 38264,
+      "sha256": "df4a328938b32c029c20bbd1b604c981fdfaf28bf666e05a655373f8c5f3583c"
+    },
+    "response-schema-input/schema-library.restore.json": {
+      "bytes": 38192,
+      "sha256": "ee759accc324938f671557ae0c5fed51285be03c200334af77bfb1f24092ff29"
+    },
+    "response-schema-input/schema-unity.start.json": {
+      "bytes": 38112,
+      "sha256": "e565bea22a6c15d0beab10e37fe9a871bf2adc219ff9d099d5df7754d4212c59"
+    },
+    "response-schema-input/schema-workspace.checkpoint.json": {
+      "bytes": 38635,
+      "sha256": "94dd46b8a6057913a37d7c8ef8a4a37a4f9d73cb000d1ad781e2dc976ae02e0f"
+    },
+    "response-schema-input/schema-workspace.ensure.json": {
+      "bytes": 41009,
+      "sha256": "2d81e58aee6e29003e7ead2ffa5294c71a35f2873d11843e9198c538df2cc63e"
+    },
+    "response-schema-tests.xml": {
+      "bytes": 2759,
+      "sha256": "94b4393076478150e1bdbdea0c813a64dc8d50bd7456ad166efbb6d092680e3b"
+    },
+    "resume.py": {
+      "bytes": 2156,
+      "sha256": "493a9d4a9d2c21c58ca8b91fd5fc7db8f177a7b1f69e5c1a21825c6e1c51df41"
+    },
+    "run.py": {
+      "bytes": 22149,
+      "sha256": "228a649c0c3be3ee748e551676c0acf74c89aa078a8975ba96ab032aa5a8ba1f"
+    },
+    "s-a-a1-author-cost.json": {
+      "bytes": 146,
+      "sha256": "9fd721d4a0dd66d5fd6b4fa39a49fbb1104b2b74a6b851e39c7d730a9b0dd0ed"
+    },
+    "s-a-a1-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "b96ea0bb07b8a12a65eaf3cd644227847913ae2ab9c516f6e17184f232bebeab"
+    },
+    "s-a-a1-cost.json": {
+      "bytes": 146,
+      "sha256": "72e1b2d7335edf5a91d44ca3de819e360dfcb634845432885a68c290d20ddd66"
+    },
+    "s-a-a1-refresh.json": {
+      "bytes": 1734,
+      "sha256": "e84d49c995f1ab4f61cf31288e077f38a0b1df72d1950fc4b348fd175425aa21"
+    },
+    "s-a-a1-result.json": {
+      "bytes": 1138,
+      "sha256": "fd08437ceb90d5ec1b062b9763f39878264eff41f6e3ee8a265d9b59e45cfa8d"
+    },
+    "s-a-a2-author-cost.json": {
+      "bytes": 145,
+      "sha256": "a284f35efbcd51a1cfa0ab20eed5da6eff69290276a13b9bd063a048325a4177"
+    },
+    "s-a-a2-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "7819d7bdc1a2a0f2c09a4439d3fe192c669572061c555e5fe29abcfb22a3b824"
+    },
+    "s-a-a2-cost.json": {
+      "bytes": 145,
+      "sha256": "5a2a991e90a3a68e0a9fd07a5befb3f4593870eb5984e8780a2b883948574fa9"
+    },
+    "s-a-a2-refresh.json": {
+      "bytes": 1734,
+      "sha256": "c6951fe615fda849fde2ad54588b847ec9b207d0ea41a194ede204ee60808eeb"
+    },
+    "s-a-a2-result.json": {
+      "bytes": 1297,
+      "sha256": "e5f3cd9f062c1c7c861a4116440d9828d5c96c41d4fbd504333550b4c35411b3"
+    },
+    "s-a-a3-author-cost.json": {
+      "bytes": 146,
+      "sha256": "35b8becf7a6adc8adbc7b3834ef156169a8ec73ca1eb057725a951d4eb8125f0"
+    },
+    "s-a-a3-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "a59924e9a7f247903f6d7912259c031363bbe9f6f80942b070f30283544383ed"
+    },
+    "s-a-a3-cost.json": {
+      "bytes": 145,
+      "sha256": "2afedc49369f1ef916093fac2ead00ac73d07061aed2f2a3b8ae98faf2d4d34f"
+    },
+    "s-a-a3-refresh.json": {
+      "bytes": 1734,
+      "sha256": "8f3410e21523688ccdb1ff9941ed92168546628c33d6fde705e65bcc1f4e5175"
+    },
+    "s-a-a3-result.json": {
+      "bytes": 1296,
+      "sha256": "309049e5c93cab7270f1b81f1247f584dd298b5b37a34a842bcb86df88bab4ef"
+    },
+    "s-a-checkpoint-release-cost.json": {
+      "bytes": 219,
+      "sha256": "8a695a6d1857ae6132d8b876b6d9996595465ef14371aacc79ced379e3045d2a"
+    },
+    "s-a-checkpoint-release-normal-exit-wait-failed.json": {
+      "bytes": 181,
+      "sha256": "6cd5a185a6f837b555a84a5b434d126cbaee989e4543619454e00f37b7606ec8"
+    },
+    "s-a-checkpoint-release-process.json": {
+      "bytes": 287,
+      "sha256": "a57644c80080399273e4e51fca9e6771d87ac80feccdd8c2638e90b1e62eb418"
+    },
+    "s-a-checkpoint-release-same-id-retry-cost.json": {
+      "bytes": 222,
+      "sha256": "29048de0b2fefb29ee686c9823e7a0e763e8b9ac8d9114504f9d2c3eaba1567f"
+    },
+    "s-a-checkpoint-release-same-id-retry-process.json": {
+      "bytes": 287,
+      "sha256": "8bce3cf95a82d8556d10a94e449db2f04bb0f21c2a0f1fe4bca099d1e616bdd3"
+    },
+    "s-a-checkpoint-release-same-id-retry.json": {
+      "bytes": 8094,
+      "sha256": "a237472f7ac13a38fc416bd2710d404529b7fecceffd8c4d55f92d25098d3734"
+    },
+    "s-a-checkpoint-release.json": {
+      "bytes": 498,
+      "sha256": "b79df409f57445637f4869afc75f25ba5e39229dd1c0e468bf3ead2fb1761c3c"
+    },
+    "s-a-editor.log": {
+      "bytes": 248290,
+      "sha256": "b02c20f30fdee3714fca6b52f14df24444e4598a1926affdcbde0a2133f6334e"
+    },
+    "s-a-ensure-cost.json": {
+      "bytes": 221,
+      "sha256": "66230242a7731d3d10ecaea255172226e633b501887c4e292a810cd7375ba9dc"
+    },
+    "s-a-ensure-process.json": {
+      "bytes": 555,
+      "sha256": "d8119e63bff388c6ddb1176640bde360620ba75ff8a2a9731b24f77b708834b7"
+    },
+    "s-a-ensure.json": {
+      "bytes": 6186,
+      "sha256": "80c0a836f988aedc42101e7520f13cc8e6cb82ccafe005b9ac4c0512520a73b6"
+    },
+    "s-a-process-exit.json": {
+      "bytes": 202,
+      "sha256": "5ac63a729f4198c4199c0800d76c3ae74380d49c58902f10061c5bbca6d4a459"
+    },
+    "s-a-start-cost.json": {
+      "bytes": 220,
+      "sha256": "b117a38d4229ac9de99a8dc959bff08e2c3922157486182664ca4b0c893216b3"
+    },
+    "s-a-start-process.json": {
+      "bytes": 212,
+      "sha256": "c33d089035f7bdd4ec4ab1444858057a1ff7b99bf764d2a658f1505a61e129d9"
+    },
+    "s-a-start.json": {
+      "bytes": 6462,
+      "sha256": "f1602872c2e90cf6795d8cb009616589a525bd6c622de93d4f2743641192555d"
+    },
+    "s-a-target.json": {
+      "bytes": 370,
+      "sha256": "050a7a7353982affbf36b4d2a58a79c9da5c69932558e125f26c8f4f0635ce58"
+    },
+    "s-b-b1-author-cost.json": {
+      "bytes": 146,
+      "sha256": "236cf8707358fecd8d83e009291bf7ec58680d886d770998b7ba2110cdc9eeaa"
+    },
+    "s-b-b1-compile-cost.json": {
+      "bytes": 145,
+      "sha256": "36a4536553b06dac40bedcff0b7d028134ef5f049c5c155c3eb862d32aab35ce"
+    },
+    "s-b-b1-cost.json": {
+      "bytes": 145,
+      "sha256": "7da7a0abb7b11f0087cc5f05e0050061f5ac53ce51e3d98f7fb7eeae91364887"
+    },
+    "s-b-b1-refresh.json": {
+      "bytes": 1734,
+      "sha256": "60763a09b38460d670201891b6e974bfeca867468e1d761431bceb8c13aa086c"
+    },
+    "s-b-b1-result.json": {
+      "bytes": 609,
+      "sha256": "24ac809ec5d9929c812544ea4f440bf4c39fbe5b69ef32b59ff9733f97ee7600"
+    },
+    "s-b-b2-accepted.json": {
+      "bytes": 706,
+      "sha256": "a534f73c42862069effa9b80f5919ffbc8db36d5e5835454ae2cf4234a1bbfb4"
+    },
+    "s-b-b2-author-cost.json": {
+      "bytes": 145,
+      "sha256": "e7b7d84bcd6abd3ed060236794f09bee8d2d2af82aeb119a9ec26009506a33c7"
+    },
+    "s-b-b2-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "7e220144b149f99a61e5c00640dd432cd92172d59758d248bf1ccb5be0020c60"
+    },
+    "s-b-b2-cost.json": {
+      "bytes": 146,
+      "sha256": "e720480560939d98425e495c253bd5efe182a40a985c506298cc2261420a9eb2"
+    },
+    "s-b-b2-play-cost.json": {
+      "bytes": 145,
+      "sha256": "7b37551441c618138c989dc668158046386fb50494f66d5cdd2eaf1f513b4a6d"
+    },
+    "s-b-b2-play.json": {
+      "bytes": 1159,
+      "sha256": "69ef70e4d09d6241534b5cffd5cfd624be485b5e322d75ba7aff77b82edf9dd7"
+    },
+    "s-b-b2-refresh.json": {
+      "bytes": 1734,
+      "sha256": "5e14d3e2f58f5f5f9976d8a5bfe0fde064b50bbd71bcb915397da78d3f586c7a"
+    },
+    "s-b-b2-result.json": {
+      "bytes": 768,
+      "sha256": "68c985b3c8ce684378a0e78ef6277f775fa2da74ecabf7b644ff37676b487794"
+    },
+    "s-b-b3-accepted.json": {
+      "bytes": 706,
+      "sha256": "202460d46c8f64e2dc7204a79ab4f49f09be8001848e25bb8339547a9d7ab1b8"
+    },
+    "s-b-b3-author-cost.json": {
+      "bytes": 145,
+      "sha256": "af4319aa07dfcf0305b8a29ea5981031110e3d946f1cff4694292cd945fc278d"
+    },
+    "s-b-b3-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "ce8362d9ddc6a16d2404bd24e154e37a2b1bc6a93782ba41e75ee7df6c491ff2"
+    },
+    "s-b-b3-cost.json": {
+      "bytes": 145,
+      "sha256": "1a581326ccd1cceeac5db856b7cd10752e07ccdd17c7d7bfdfd74dc92c56d2c3"
+    },
+    "s-b-b3-play-cost.json": {
+      "bytes": 146,
+      "sha256": "ccf0fd3fcb52ef56936557c201858f50c01434f6bbd0a458cd5ca051b2f68ce7"
+    },
+    "s-b-b3-play.json": {
+      "bytes": 1873,
+      "sha256": "639ec9fe2bb307e23b8a77386d35303cdacf9e4db7666e05c1760c13ef9c60df"
+    },
+    "s-b-b3-refresh.json": {
+      "bytes": 1734,
+      "sha256": "aa28d8c1025e056cc523cb717c616c08ff743a6fff4dee406dc109712bec9bf5"
+    },
+    "s-b-b3-result.json": {
+      "bytes": 827,
+      "sha256": "31356a267451d5ee1ef1f6f2bdd31832a425a259d8252ad3525e22797f4e485a"
+    },
+    "s-b-checkpoint-release-cost.json": {
+      "bytes": 219,
+      "sha256": "d072c504c19b030028bdfa3527a05783e2f6536d0152fa2dc0e7b6bc478de63c"
+    },
+    "s-b-checkpoint-release-normal-exit-wait-failed.json": {
+      "bytes": 181,
+      "sha256": "6298406dfe2cab44698969b4c6192b7fcd7a54ecfa8ebcae410e36531bd64eb5"
+    },
+    "s-b-checkpoint-release-process.json": {
+      "bytes": 287,
+      "sha256": "ceb90eb2b33eb2ac0705fbede240597f55ec411ccdb055a3b775b52fec3ea166"
+    },
+    "s-b-checkpoint-release-same-id-retry-cost.json": {
+      "bytes": 221,
+      "sha256": "8d7a506b5374342decb6b076dd80eb447884e5766489ed5cf81f66178301fe25"
+    },
+    "s-b-checkpoint-release-same-id-retry-process.json": {
+      "bytes": 287,
+      "sha256": "73310da95d08eaa49c58e7eccede36f893faef609570727024356a68c4561376"
+    },
+    "s-b-checkpoint-release-same-id-retry.json": {
+      "bytes": 8085,
+      "sha256": "1de7b5f254b72a11dbfc6a338401410b598b8732e2d0fb87b943d9e4629da340"
+    },
+    "s-b-checkpoint-release.json": {
+      "bytes": 498,
+      "sha256": "b9c0790a52e9d381fc191eac98170395c304fa8fdea6c8ad0955996b8c33cd80"
+    },
+    "s-b-editor.log": {
+      "bytes": 192946,
+      "sha256": "f3de18f58e0b3a32a3f9169a3609e48f118a60ea5cfff23bf3ea4bfe9da8b221"
+    },
+    "s-b-ensure-cost.json": {
+      "bytes": 222,
+      "sha256": "257851d8f4f8e26b06e17792d3848cb1827f21bfee40fc9c5c2d99489814f9b7"
+    },
+    "s-b-ensure-process.json": {
+      "bytes": 555,
+      "sha256": "654f33e7a7a5ff805b7e9e2b25d00513face908fc765d5b1020c8c4e08bc7e26"
+    },
+    "s-b-ensure.json": {
+      "bytes": 6183,
+      "sha256": "1841e9b539317aa2f20ed45b1298754f546c8e1d5b379eb041dfaaabc630210b"
+    },
+    "s-b-process-exit.json": {
+      "bytes": 202,
+      "sha256": "ee1972f8cf2a4bfbc3b3408ce850c22da0e0ee84de9eba66ec48e74279c04ec8"
+    },
+    "s-b-start-cost.json": {
+      "bytes": 220,
+      "sha256": "934b4ce073bf10ede48e8762b858bac0059343baad7ec6e6c77a428371df60cd"
+    },
+    "s-b-start-process.json": {
+      "bytes": 212,
+      "sha256": "7a9a29acad6e305361899a94ee79c12048d83eda005923cc3470723f38e8036d"
+    },
+    "s-b-start.json": {
+      "bytes": 6461,
+      "sha256": "dbc769e24b6c263f0bdfbd15cbaac2d68b803747875f3901abc8ed0086dbd635"
+    },
+    "s-b-target.json": {
+      "bytes": 370,
+      "sha256": "c6e47a4498e9609a86f081d78c37766e879d1f0b8b409c6d5f9366b6d679c128"
+    },
+    "s-closure.json": {
+      "bytes": 229,
+      "sha256": "32bb4a552f3c4bcdcfe4ca42d6f801e2dc10cf6905c88602f8d58a552902ccdb"
+    },
+    "s-completion-continuation-cost.json": {
+      "bytes": 146,
+      "sha256": "a5f1cdbcc734e91180ece2194529ad3f704323e4ad3c5bdce2c23d02b92f6265"
+    },
+    "s-completion-cost.json": {
+      "bytes": 293,
+      "sha256": "02c6ee339cc4105d717a5bfb72e3416f54278139821618325eb3b7432b0df04c"
+    },
+    "s-completion-failed.json": {
+      "bytes": 182,
+      "sha256": "fee0056b96d45029dd72e61efeb38de75b3369c35b4117fc9cd347f31b6d3d42"
+    },
+    "s-create-cost.json": {
+      "bytes": 145,
+      "sha256": "677e003d6333359d027564c8384f8462ab255d2f4bf1b1baa4d515697fe3844c"
+    },
+    "s-development-cost.json": {
+      "bytes": 146,
+      "sha256": "e1a0cf649de656a2043763a750a52afc4b3bc14e3f7b87a6dae99849b39da62c"
+    },
+    "s-evidence-export-cost.json": {
+      "bytes": 147,
+      "sha256": "e4735b1cd216412abe8a301d820e76645540936820f0185b02cbf9187ebd098e"
+    },
+    "s-full-cost.json": {
+      "bytes": 258,
+      "sha256": "47c893dfac33be2e2a3229ee6d528c50f4fcbe64f1972723dcdfa2b275b84269"
+    },
+    "s-full-failed.json": {
+      "bytes": 181,
+      "sha256": "eb9e86a7f79398e36ad08fb68ce805f0a4c03306ca1496048019ee590554f30f"
+    },
+    "s-initial-cost.json": {
+      "bytes": 146,
+      "sha256": "bd86c119a7c4e2656e0186a9efc402eb82b0703032419b32afdb7bc3534c614b"
+    },
+    "s-integration-accepted.json": {
+      "bytes": 706,
+      "sha256": "ca40fd3a4698ccc050378cb4814e14cdc62d4caa240f975785721ec6194a9343"
+    },
+    "s-integration-author-cost.json": {
+      "bytes": 146,
+      "sha256": "7d04aeae8ba3ad109ade7aaebe7549400ce324ecf1f946dc8dde8333c6cfde75"
+    },
+    "s-integration-compile-cost.json": {
+      "bytes": 146,
+      "sha256": "a985511203837360c17206f5d427622a8bb52fd523a720f98752d14fb30d5111"
+    },
+    "s-integration-cost.json": {
+      "bytes": 146,
+      "sha256": "36b6cc46ec0b95095417c572332db7e3d98561b9375c4eee6177d5e5cea66c46"
+    },
+    "s-integration-play-cost.json": {
+      "bytes": 146,
+      "sha256": "778beea4c8bf60d7ee14f664bf0d88e2cc67046cc9e18c775a08e696bf65cd5e"
+    },
+    "s-integration-play.json": {
+      "bytes": 2599,
+      "sha256": "f3cc304675b32bebddaaf68f3a6b54c0af452a92917e4ec7d1d69c55bfddaef2"
+    },
+    "s-integration-preview-cost.json": {
+      "bytes": 146,
+      "sha256": "e4ca2d2d59ec0bd5c9556b8d9af64bb2d5c266af8910e1bc813f2ffcdac83351"
+    },
+    "s-integration-preview-result.json": {
+      "bytes": 813,
+      "sha256": "045e6a10056ac61c010fb14f87c6a46c1eabc1cc5c877db9b6fd70167afb59bb"
+    },
+    "s-integration-refresh.json": {
+      "bytes": 1734,
+      "sha256": "0a5486ebbdcaedc7ea35ee32a259c83b86ee1dab324a820b8b74b84713e152f8"
+    },
+    "s-integration-result.json": {
+      "bytes": 887,
+      "sha256": "0e2090f5fec6b5f3030fde3b2d5024108e005f83404ed1bbc41a4ce824152d31"
+    },
+    "s-integration.png": {
+      "bytes": 19422,
+      "sha256": "e7b499179ee71dadaffca444408c0d20ac5d6e58673e96719ecea5e10a6d7a5f"
+    },
+    "s-library-prepare-cost.json": {
+      "bytes": 221,
+      "sha256": "22547d66080fd3d3b32cfada2514c6cb2f982a6d63e651a7eec452683779987a"
+    },
+    "s-library-prepare-process.json": {
+      "bytes": 287,
+      "sha256": "8fa9bd1ddcd5908c071aca1db45fccc4164b3b3547e18243e6095ff38b286ca9"
+    },
+    "s-library-prepare.json": {
+      "bytes": 2282,
+      "sha256": "be3fddbd0e2b6ab11813aac8dd920ee0862dacd7468305cfc5745b99b47fea4b"
+    },
+    "s-library-restore-cost.json": {
+      "bytes": 221,
+      "sha256": "ee35c6df3a044a9df53ab81ac5b182aa4443d9b864f5bd81c4cdfd65c15448f4"
+    },
+    "s-library-restore-process.json": {
+      "bytes": 216,
+      "sha256": "c9bb62c89779835dd75f845af255024aca9dd03d0be645798d9b4a60ef1bad1c"
+    },
+    "s-library-restore.json": {
+      "bytes": 1511,
+      "sha256": "6dcf748b57ee32b0c9ee9aa299066e0b064e01ac84ababb9eee928f37af4818e"
+    },
+    "s-measurement-recovery.json": {
+      "bytes": 892,
+      "sha256": "322672e31a00ebc55ee8c774b40b29fbd622cce7a4235f0ada0c3f9c9ee03e19"
+    },
+    "s-results.json": {
+      "bytes": 27098,
+      "sha256": "dc060b5fe7b26600daad9b83d32a7df320f2f6e56e75dd348a34a3b1d7baea7a"
+    },
+    "s-workspaces.json": {
+      "bytes": 655,
+      "sha256": "5830045600aa4a422a162b5f54009bbe7c9ca727c83bd3281e84af11aab66190"
+    },
+    "schema-library.prepare.json": {
+      "bytes": 38264,
+      "sha256": "df4a328938b32c029c20bbd1b604c981fdfaf28bf666e05a655373f8c5f3583c"
+    },
+    "schema-library.restore.json": {
+      "bytes": 38192,
+      "sha256": "ee759accc324938f671557ae0c5fed51285be03c200334af77bfb1f24092ff29"
+    },
+    "schema-unity.start.json": {
+      "bytes": 38112,
+      "sha256": "e565bea22a6c15d0beab10e37fe9a871bf2adc219ff9d099d5df7754d4212c59"
+    },
+    "schema-workspace.checkpoint.json": {
+      "bytes": 38635,
+      "sha256": "94dd46b8a6057913a37d7c8ef8a4a37a4f9d73cb000d1ad781e2dc976ae02e0f"
+    },
+    "schema-workspace.ensure.json": {
+      "bytes": 41009,
+      "sha256": "2d81e58aee6e29003e7ead2ffa5294c71a35f2873d11843e9198c538df2cc63e"
+    },
+    "scope.json": {
+      "bytes": 2176,
+      "sha256": "bae7c65aa3da45e536f269734e82026b3dc4518887130038aba17d39e77931fe"
+    },
+    "source-before.json": {
+      "bytes": 334165,
+      "sha256": "97623f7757c295ae53e13a71f4eb88d6e1a70e4c8fef26de703aece62a8c4b98"
+    },
+    "summarize.py": {
+      "bytes": 8702,
+      "sha256": "041fbf5f0098518e63de9b1069007626051e66d9d9069cbaa18aebe32544dc67"
+    }
+  },
+  "timingQualification": "Observed completed workflows with recovery, not clean automated throughput. Both primary totals include recovery/diagnosis elapsed; evidence export excluded. Splinter secondary value removes its separately timestamped60.681268s measurement pause. Shared476.4673525s B2 compile/handoff interval contains modal recovery and cannot be interpreted as pure compile cost.",
+  "sharedModalRecovery": {
+    "recordedUtc": "2026-10-14T12:06:29.926469+00:00",
+    "oldSha256": "decb31877a9443c9f50877674a910d29c94527a149f20f8a47fd92d6b0aa964a",
+    "newSha256": "45c83bf58367a2ea26f547732595f7a61aa20a0daad05deeba986a78fcc187d6",
+    "scope": "Shared Editor control fixture only; feature A/B snapshots unchanged",
+    "reason": "Unity attempted to save cached A Floor/Wall materials after task subtree removal. Subsequent idle-scene saves assets before/after unloading unused objects.",
+    "modal": "Moving file failed: Temp UnityTempFile to Assets/MazeBenchmark/A/Generated/Materials/Floor.mat or Wall.mat: path not found",
+    "recovery": "Observed exact Unity modal; four successful Escape cancellations after raising its owned dialog (one earlier Escape did not dismiss it); no force quit. A saved assets already copied to its worktree.",
+    "timing": "Keep full modal/diagnosis wait in raw elapsed. This is not a clean automated throughput benchmark; no precise prompt-open timestamp was recorded.",
+    "currentCommandPublicationUtc": "2026-10-14T12:06:29.457526+00:00",
+    "affectedRefreshRequest": "mz-06fa3e7393ff4182b048cc988e01acaa",
+    "affectedInterval": {
+      "beganUtc": "2026-10-14T11:57:59.544424+00:00",
+      "endedUtc": "2026-10-14T12:05:56.019924+00:00",
+      "elapsedSeconds": 476.46735250006896
+    }
+  },
+  "measurementRecovery": {
+    "retryStartedUtc": "2026-10-14T11:52:36.092021+00:00",
+    "normalExitReceipts": [
+      {
+        "token": "69547484850bf3dcb7335058f38fbaea3bf8bed1ac256588b973e3f5c4aa7111",
+        "observedAt": "2026-10-14T11:51:34.8494854+00:00",
+        "rootExitCode": 0,
+        "activeJobProcesses": 0,
+        "workingSetBytes": 0,
+        "privateBytes": 0
+      },
+      {
+        "token": "7d4f64fe2598106562f751cf051a9d017ad082e2fdfc69393cfc487f714bfac7",
+        "observedAt": "2026-10-14T11:51:35.4107536+00:00",
+        "rootExitCode": 0,
+        "activeJobProcesses": 0,
+        "workingSetBytes": 0,
+        "privateBytes": 0
+      }
+    ],
+    "orchestrationPauseExcludedSeconds": 60.681268,
+    "reason": "Process absence preceded asynchronous normal-exit receipt publication. Measurement reader asserted too early. Product results and workspace identity preserved; first operation timeout retained."
+  },
+  "sharedNativeExit": {
+    "pid": 44024,
+    "startTimeUtcTicks": 639275757880827180,
+    "observedStartUtc": "2026-10-14T11:56:28.5287301+00:00",
+    "observedExitUtc": "2026-10-14T12:09:18.5311207+00:00",
+    "exitCode": 0,
+    "method": "Held native process handle; read exit code after natural exit"
+  },
+  "builtInLogMetrics": {
+    "s-a": {
+      "scriptCompilationSeconds": [
+        139.170975,
+        0.001077,
+        0.00105,
+        0.001285,
+        0.000924
+      ],
+      "inputSettingsAssertionCount": 0,
+      "searchIndexOutOfRangeExceptions": 1,
+      "fontCallbackUnregistrationMessages": 1
+    },
+    "s-b": {
+      "scriptCompilationSeconds": [
+        139.293426,
+        0.001202,
+        0.001028,
+        0.000827
+      ],
+      "inputSettingsAssertionCount": 0,
+      "searchIndexOutOfRangeExceptions": 2,
+      "fontCallbackUnregistrationMessages": 1
+    },
+    "q": {
+      "scriptCompilationSeconds": [
+        6.106958,
+        0.000748,
+        0.000791,
+        0.000808,
+        0.000736,
+        0.000816,
+        0.000833,
+        0.000858,
+        0.00072
+      ],
+      "inputSettingsAssertionCount": 0,
+      "searchIndexOutOfRangeExceptions": 0,
+      "fontCallbackUnregistrationMessages": 1
+    }
+  },
+  "durableResultVerification": [
+    {
+      "label": "s-a",
+      "revision": "b7475e1fedaf9993a2fdbe7c52ea9aa36b5dbe14",
+      "payloadFilesVerified": 23,
+      "exportedFilesVerified": 74,
+      "externalFixtureEolNormalized": []
+    },
+    {
+      "label": "s-b",
+      "revision": "845f22801b0ad559aa9c55c739aa48e15934dedf",
+      "payloadFilesVerified": 15,
+      "exportedFilesVerified": 37,
+      "externalFixtureEolNormalized": []
+    },
+    {
+      "label": "q-combined",
+      "revision": "e590536d9d61aeb510a8762155d75c0a9b26d587",
+      "payloadFilesVerified": 23,
+      "exportedFilesVerified": 74,
+      "externalFixtureEolNormalized": [
+        "Assets/MazeBenchmark/Editor/MazeBenchmarkProbe.cs"
+      ]
+    },
+    {
+      "label": "q-b",
+      "revision": "435e71c5df8b62b61a299b557958132e378853aa",
+      "payloadFilesVerified": 15,
+      "exportedFilesVerified": 0,
+      "externalFixtureEolNormalized": []
+    }
+  ],
+  "demo": {
+    "path": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\unity-maze-workflow-final-20261014\\maze-demo-assets.zip",
+    "bytes": 226087,
+    "sha256": "29739d1ac59fc256dcdc3a5e683f4f70a26eea45fcb49fff538fed56bfe43eb3"
+  },
+  "diagnostic": {
+    "directory": "artifacts/unity-maze-workflow-20261014",
+    "includedInFormalTotals": false,
+    "summary": {
+      "comparableTiming": false,
+      "reason": "Generated asset GUID assumption corrected; Play functions passed, InputSystem exit assertion needs fixture correction; first combined completion exceeded120s but both Editors exited normally, same-id retry used.",
+      "playFunctionsValidated": true,
+      "originalLibraryBytesRestored": true
+    },
+    "repairs": [
+      "Generated asset GUID ownership assumption",
+      "InputSettings temporary-object lifetime"
+    ]
+  },
+  "completionAttempts": {
+    "a": [
+      {
+        "schemaVersion": "1.0",
+        "requestId": "b02b08957fa74e06aff6c81dc7ea48a9",
+        "command": "workspace.checkpoint",
+        "status": "Failed",
+        "terminal": true,
+        "error": {
+          "code": "EditorStopTimeout",
+          "message": "Owned Editor did not exit within two minutes. Worktree and results are retained; inspect its log before retrying."
+        }
+      },
+      {
+        "schemaVersion": "1.0",
+        "requestId": "f063c8355a1e4d178b9f0566ec9ad22b",
+        "command": "workspace.checkpoint",
+        "status": "Succeeded",
+        "terminal": true
+      }
+    ],
+    "b": [
+      {
+        "schemaVersion": "1.0",
+        "requestId": "1ac77f97351a494f992d7825c81bbeb9",
+        "command": "workspace.checkpoint",
+        "status": "Failed",
+        "terminal": true,
+        "error": {
+          "code": "EditorStopTimeout",
+          "message": "Owned Editor did not exit within two minutes. Worktree and results are retained; inspect its log before retrying."
+        }
+      },
+      {
+        "schemaVersion": "1.0",
+        "requestId": "e814083013f247b4a2dbc524afa474e2",
+        "command": "workspace.checkpoint",
+        "status": "Succeeded",
+        "terminal": true
+      }
+    ]
+  },
+  "previewVerification": {
+    "splinterSha256": "e7b499179ee71dadaffca444408c0d20ac5d6e58673e96719ecea5e10a6d7a5f",
+    "sharedSha256": "e7b499179ee71dadaffca444408c0d20ac5d6e58673e96719ecea5e10a6d7a5f",
+    "sameImageBytes": true
+  },
+  "responseSchemaValidation": {
+    "responses": 15,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "evidence": "actual-response-schema-tests.xml"
+  },
+  "splinterBranchSeconds": {
+    "a": 284.61467060016,
+    "b": 382.6976763999555
+  },
+  "splinterInternalOverlapSeconds": 284.4053016001126,
+  "sharedQueueWaitByWorker": {
+    "a": 511.63391560013406,
+    "b": 56.24890350014903
+  },
+  "sharedQueueBoundary": "Each next cumulative snapshot is eligible immediately after that worker previous stage; queuedUtc denotes round timestamp, not the tick used for queueWaitSeconds. AI writing time is excluded. Shared waits include the A2-to-B2 modal incident and are not clean contention measurements.",
+  "candidateProof": {
+    "candidateBaseCommit": "37cfa0147a6f284282f5a878c9b82520ca6d121a",
+    "sourceSha256": {
+      "contracts/v1/commands.json": "7d31c4e9ed9f6438241fb0222f17a5823e5e7ac4d12d463f0aa4043a695a204a",
+      "contracts/v1/response.schema.json": "7e4880fef63e87731a2b9d28634c4b19e854ac0cba8b18dbb22d32f315ad94b9",
+      "contracts/v1/workspace-checkpoint-request.schema.json": "5ac29224f1a5534c36980747d389c087cb8c3ee76910b4e8031d1f1d6480c1c6",
+      "src/Splinter.Cli/WorkspaceCommands.cs": "bfac8a8a6a49018a31bc8ee5eb77aea8e702ea9f86e364bc4e4de4ca9c63b6f6",
+      "src/Splinter.Runtime/BrotliWorkspacePayloadCodec.cs": "1c5e8ba99d5b90ad27fcc69d3fa554b19bc26a2baf5e573598396ed241700dcb",
+      "src/Splinter.Runtime/JournalDecodedPayloadCache.cs": "1a545c9a45d3eb18fb5d7c7bb5bdb70f65b8ae7b6891d100d3d6c0b40959e49e",
+      "src/Splinter.Runtime/JournalPayloadFrames.cs": "4fec32ef4b77535da38ac807fc065afe101685c943a9b0df534b2b1b041c827e",
+      "src/Splinter.Runtime/LatestJournalStorage.cs": "094db1eff7c93a1959aed071904b7f62ab35c07e86390c7abf144a4e691782a1",
+      "src/Splinter.Runtime/SnapshotWorkspaces.cs": "dc34733502297821959acba18df445fd3a6232e2158540f0799e3ac08c63fe7b",
+      "src/Splinter.Runtime/WorkspaceCoordinator.cs": "767fbeffc714f21ea899f4200c03a27679581426f59d9d0238509693d3c0df5f",
+      "src/Splinter.SourceControl.Git/GitSourceFingerprint.cs": "c5f74ef22425fd8dc0f7c87e7020f436b15e546ca8dac1513d30bac28e2dd332",
+      "src/Splinter.SourceControl.Git/GitSourcePathInspection.cs": "f5ca28c61f0c72c0232e3c8376ff10b2c4f945e1518c6a60d516a94a46f503c8",
+      "src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs": "93b4503f4155cfbc8114c9e0e967877d4dd56f9d26dfd921dc62c2ef18fbce02"
+    },
+    "runtimeSha256": {
+      "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+      "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+      "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+      "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+      "Splinter.Application.Unity.dll": "fa667d4a10fd4e1a727aa4d39f36d0e05a496fd7346599f27b9f4d974abff35c",
+      "Splinter.Core.dll": "ed9af5d6133ece1927b8bbd716e42ebcdbeb96b547ba526ff57ebf373aba1040",
+      "splinter.dll": "ed04b022b6a7ff0f696909161f270a5b775c8ce7d85f714ad9873441a0ea6d57",
+      "Splinter.Host.dll": "62776a5f915e85b814c0ac08d9ebbcd587fb794046d709a89cbbbec6310ca375",
+      "Splinter.Platform.Windows.dll": "f3f30f6128976fc7d7ec8bb6704fbe095c7b73155426bf8d9aa52975491a4c35",
+      "Splinter.Protocol.dll": "8c961340892deaba1eea53080f9f2dff20d4afa7064de1430619296cec0f9f05",
+      "Splinter.Runtime.dll": "50cf58ae9c6678635d88c1303ef0d3b138c69acd75fd5eb6818ad014a4afbb95",
+      "Splinter.SourceControl.Files.dll": "674837725114b82038a3dd9096b586050bb7354f659e56909d7c72fc0b01f08f",
+      "Splinter.SourceControl.Git.dll": "653a1aceb2e8ed2acf1b219891d001475cd3b782fb8ad0e211bd238db42eb2b2",
+      "Splinter.Workflows.Windows.dll": "38ecf6dc6ff5eaae581d94de8b42cd958eee520814ca9c41013b77d56a9137e5",
+      "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+      "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+    }
+  },
+  "sourceBytes": 2804772822
+}

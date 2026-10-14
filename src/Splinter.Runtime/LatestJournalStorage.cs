@@ -30,6 +30,7 @@ internal sealed class LatestJournalStorage
     // replay. Bound the temporary cache; unusually dense inputs retain the
     // ordinary same-content index pass once this budget is exhausted.
     private const int MaxBufferedBlockAddresses = 131072;
+    private const int MaxPreparationFiles = 64;
     private readonly string rootPath, directory, owner;
     private readonly byte[] ownerBytes;
     private readonly long limit;
@@ -43,6 +44,34 @@ internal sealed class LatestJournalStorage
     // on reconnect. Explicit observations and seals still inspect actual files.
     private long committedBytes;
     private readonly SealHash? sealing;
+    // The Windows sharing mode fixes each admitted file's bytes and name for
+    // this preparation only. No proof survives publication or reclamation.
+    // Other platforms and entries beyond the bound retain fresh reads.
+    private sealed class PreparationReads : IDisposable
+    {
+        private readonly Dictionary<string, FileStream> files = new(StringComparer.Ordinal);
+        private readonly HashSet<string> footers = new(StringComparer.Ordinal);
+        internal T Read<T>(string path, Func<FileStream, T> read)
+        {
+            if (files.TryGetValue(path, out var retained)) return read(retained);
+            if (!OperatingSystem.IsWindows() || files.Count == MaxPreparationFiles)
+            { using var transient = Open(path); return read(transient); }
+            var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            try { files.Add(path, file); } catch { file.Dispose(); throw; }
+            return read(file);
+        }
+        internal void Footer(Frame frame)
+        {
+            if (footers.Contains(frame.Path)) return;
+            Read(frame.Path, file =>
+            {
+                LatestJournalStorage.Footer(frame, file);
+                if (files.ContainsKey(frame.Path)) footers.Add(frame.Path);
+                return 0;
+            });
+        }
+        public void Dispose() { foreach (var file in files.Values) file.Dispose(); files.Clear(); footers.Clear(); }
+    }
     private sealed class SealHash(string root) : IDisposable
     {
         internal readonly IncrementalHash Hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -182,32 +211,40 @@ internal sealed class LatestJournalStorage
     private static string HashFile(FileStream f, long? prefix = null, SealHash? sealing = null)
     {
         if (sealing is not null && prefix is not null) throw Corrupt("A composite seal requires complete physical files.");
-        f.Position = 0; using var h = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); byte[] b = new byte[65536];
-        long length = sealing?.Begin(f) ?? f.Length;
-        long left = prefix ?? length;
-        while (left != 0) { int n = f.Read(b, 0, (int)Math.Min(left, b.Length)); if (n == 0) throw Corrupt("A file is short."); h.AppendData(b.AsSpan(0, n)); sealing?.Hash.AppendData(b.AsSpan(0, n)); left -= n; }
-        if (sealing is not null && (f.Length != length || f.Position != length)) throw Corrupt("A journal file changed during seal.");
-        return Convert.ToHexStringLower(h.GetHashAndReset());
+        f.Position = 0; using var h = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); byte[] b = ArrayPool<byte>.Shared.Rent(65536);
+        try
+        {
+            long length = sealing?.Begin(f) ?? f.Length;
+            long left = prefix ?? length;
+            while (left != 0) { int n = f.Read(b, 0, (int)Math.Min(left, b.Length)); if (n == 0) throw Corrupt("A file is short."); h.AppendData(b.AsSpan(0, n)); sealing?.Hash.AppendData(b.AsSpan(0, n)); left -= n; }
+            if (sealing is not null && (f.Length != length || f.Position != length)) throw Corrupt("A journal file changed during seal.");
+            return Convert.ToHexStringLower(h.GetHashAndReset());
+        }
+        finally { ArrayPool<byte>.Shared.Return(b); }
     }
-    private static (string Full, string Prefix) HashRetainedFile(string path, long prefix)
+    private static (string Full, string Prefix) HashRetainedFile(FileStream file, long prefix)
     {
-        using var file = Open(path);
+        file.Position = 0;
         long length = file.Length;
         if (prefix <= 0 || prefix >= length) throw Corrupt("A retained prefix is outside its file.");
         using var full = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         using var retained = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        byte[] buffer = new byte[65536]; long left = length, prefixLeft = prefix;
-        while (left != 0)
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(65536); long left = length, prefixLeft = prefix;
+        try
         {
-            int count = file.Read(buffer, 0, (int)Math.Min(left, buffer.Length));
-            if (count == 0) throw Corrupt("A retirement target is short.");
-            full.AppendData(buffer.AsSpan(0, count));
-            int prefixCount = (int)Math.Min(prefixLeft, count);
-            if (prefixCount != 0) retained.AppendData(buffer.AsSpan(0, prefixCount));
-            prefixLeft -= prefixCount; left -= count;
+            while (left != 0)
+            {
+                int count = file.Read(buffer, 0, (int)Math.Min(left, buffer.Length));
+                if (count == 0) throw Corrupt("A retirement target is short.");
+                full.AppendData(buffer.AsSpan(0, count));
+                int prefixCount = (int)Math.Min(prefixLeft, count);
+                if (prefixCount != 0) retained.AppendData(buffer.AsSpan(0, prefixCount));
+                prefixLeft -= prefixCount; left -= count;
+            }
+            if (file.Length != length) throw Corrupt("A retirement target changed length during hashing.");
+            return (Convert.ToHexStringLower(full.GetHashAndReset()), Convert.ToHexStringLower(retained.GetHashAndReset()));
         }
-        if (file.Length != length) throw Corrupt("A retirement target changed length during hashing.");
-        return (Convert.ToHexStringLower(full.GetHashAndReset()), Convert.ToHexStringLower(retained.GetHashAndReset()));
+        finally { ArrayPool<byte>.Shared.Return(buffer); }
     }
     private static bool Plain(string n) => n.Length < 80 && n.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '.') &&
         ((n.StartsWith("node-", StringComparison.Ordinal) || n.StartsWith("bucket-", StringComparison.Ordinal)) && n.EndsWith(".json", StringComparison.Ordinal) || DataName(n) && n.EndsWith(".bin", StringComparison.Ordinal) || n == "owner.lock");
@@ -222,17 +259,20 @@ internal sealed class LatestJournalStorage
     private string PathOf(string name) { if (!Plain(name) && !Backup(name) && name != Pending) throw Corrupt("An object is outside its owned namespace."); string p = Path.Combine(directory, name); EnsureObjectPath(p); return p; }
     internal IEnumerable<string> Names() => objects.Keys;
     internal long FileLength(string n) => objects.TryGetValue(n, out var l) ? l.Length : throw Corrupt("An object is missing.");
-    internal byte[] Read(string n)
+    internal byte[] Read(string n) => Read(n, null);
+    private byte[] Read(string n, PreparationReads? reads)
     {
         if (!objects.TryGetValue(n, out var l)) throw Corrupt("A current object is missing.");
-        if (l.Metadata is not null) { Footer(frames[l.Path]); return (byte[])l.Metadata.Clone(); }
+        if (l.Metadata is not null) { if (reads is null) Footer(frames[l.Path]); else reads.Footer(frames[l.Path]); return (byte[])l.Metadata.Clone(); }
+        if (reads is not null) return reads.Read(l.Path, file => { file.Position = l.Offset; byte[] bytes = new byte[l.Length]; file.ReadExactly(bytes); return bytes; });
         using var f = Open(l.Path); f.Position = l.Offset; byte[] b = new byte[l.Length]; f.ReadExactly(b); return b;
     }
-    internal string? FileHash(string n)
+    internal string? FileHash(string n) => FileHash(n, null);
+    private string? FileHash(string n, PreparationReads? reads)
     {
         if (!objects.TryGetValue(n, out var location)) return null;
-        if (location.Metadata is null) return Hash(Read(n));
-        Footer(frames[location.Path]);
+        if (location.Metadata is null) return Hash(Read(n, reads));
+        if (reads is null) Footer(frames[location.Path]); else reads.Footer(frames[location.Path]);
         return Hash(location.Metadata);
     }
     internal FileStream OpenBlock(long id) { if (!objects.TryGetValue(BlockName(id), out var l)) throw Corrupt("A private block is missing."); var f = new FileStream(l.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.RandomAccess); f.Position = l.Offset; return f; }
@@ -258,7 +298,10 @@ internal sealed class LatestJournalStorage
     private void BlockHeader(byte[] b, long id, int count, bool page = false) { if (b.Length != BlockHeaderBytes || !b.AsSpan(0, 4).SequenceEqual(page ? "SJM2"u8 : "SJB1"u8) || BinaryPrimitives.ReadInt64LittleEndian(b.AsSpan(4)) != id || BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(12)) != count || id < 1 || count <= 0 || count > 1048576 || !b.AsSpan(16, 32).SequenceEqual(ownerBytes)) throw Corrupt("A private block has another owner or address."); }
     private static void Footer(Frame frame)
     {
-        using var f = Open(frame.Path);
+        using var f = Open(frame.Path); Footer(frame, f);
+    }
+    private static void Footer(Frame frame, FileStream f)
+    {
         if (f.Length != frame.Length) throw Corrupt("Current metadata changed.");
         f.Position = frame.DataEnd;
         byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Min(65536, frame.Metadata.Length));
@@ -416,41 +459,46 @@ internal sealed class LatestJournalStorage
     internal void Commit(Root after, Put[] writes, Remove[] removes, Action<string> boundary)
     {
         boundary("latest.before-storage-prepare");
-        ValidateRoot(after); if (head is not null) Footer(head);
-        if (after.IdentityHash != owner || after.Objects != Current.Objects || after.Sequence < Current.Sequence || after.Sequence - Current.Sequence > 1) throw Corrupt("The mutation root differs.");
-        foreach (var p in writes) if (FileHash(p.Name) != p.BeforeHash) throw Corrupt("A replaced object changed."); foreach (var r in removes) if (FileHash(r.Name) != r.Hash) throw Corrupt("A reclaimed object changed.");
-        var puts = writes.ToDictionary(p => p.Name, StringComparer.Ordinal); var removed = removes.Select(r => r.Name).ToHashSet(StringComparer.Ordinal);
-        var touched = writes.Select(p => objects.GetValueOrDefault(p.Name)?.Path).Concat(removes.Select(r => objects[r.Name].Path)).Where(p => p is not null).Cast<string>().ToHashSet(StringComparer.Ordinal);
-        foreach (string p in touched.ToArray())
+        Dictionary<string, Put> puts; HashSet<string> removed; string oldHead; var retires = new List<Retire>();
+        using (var reads = new PreparationReads())
         {
-            if (!frames.ContainsKey(p)) continue; var entries = Members(p);
-            bool mt = entries.Any(v => v.Value.Metadata is not null && (puts.ContainsKey(v.Key) || removed.Contains(v.Key)));
-            long cut = entries.Where(v => v.Value.Metadata is null && (puts.ContainsKey(v.Key) || removed.Contains(v.Key)))
-                .Select(v => v.Value.Offset).DefaultIfEmpty(long.MaxValue).Min();
-            foreach (var v in entries)
-                if (!puts.ContainsKey(v.Key) && !removed.Contains(v.Key) &&
-                    (v.Value.Metadata is not null ? mt || cut != long.MaxValue : v.Value.Offset >= cut))
-                {
-                    // Capture and hash the same current bytes. Carried objects
-                    // enter after the explicit replacement checks above; their
-                    // before hash never justified a second independent read.
-                    byte[] bytes = Read(v.Key);
-                    puts.Add(v.Key, new(v.Key, Hash(bytes), bytes));
-                }
-        }
-        string oldHead = BackupName(); touched.Add(rootPath); var retires = new List<Retire>();
-        foreach (string p in touched)
-        {
-            string name = p == rootPath ? oldHead : Path.GetFileName(p); var remaining = Members(p).Where(v => !puts.ContainsKey(v.Key) && !removed.Contains(v.Key)).ToArray();
-            if (remaining.Any(v => v.Value.Metadata is not null)) continue;
-            if (remaining.Length == 0) retires.Add(new(name, HashFile(p), 0, null));
-            else if (frames.TryGetValue(p, out var frame))
+            ValidateRoot(after); if (head is not null) reads.Footer(head);
+            if (after.IdentityHash != owner || after.Objects != Current.Objects || after.Sequence < Current.Sequence || after.Sequence - Current.Sequence > 1) throw Corrupt("The mutation root differs.");
+            foreach (var p in writes) if (FileHash(p.Name, reads) != p.BeforeHash) throw Corrupt("A replaced object changed."); foreach (var r in removes) if (FileHash(r.Name, reads) != r.Hash) throw Corrupt("A reclaimed object changed.");
+            boundary("latest.after-preparation-proof");
+            puts = writes.ToDictionary(p => p.Name, StringComparer.Ordinal); removed = removes.Select(r => r.Name).ToHashSet(StringComparer.Ordinal);
+            var touched = writes.Select(p => objects.GetValueOrDefault(p.Name)?.Path).Concat(removes.Select(r => objects[r.Name].Path)).Where(p => p is not null).Cast<string>().ToHashSet(StringComparer.Ordinal);
+            foreach (string p in touched.ToArray())
             {
-                long keep = remaining.Max(v => v.Value.Offset + v.Value.Length);
-                if (keep < frame.Length)
+                if (!frames.ContainsKey(p)) continue; var entries = Members(p);
+                bool mt = entries.Any(v => v.Value.Metadata is not null && (puts.ContainsKey(v.Key) || removed.Contains(v.Key)));
+                long cut = entries.Where(v => v.Value.Metadata is null && (puts.ContainsKey(v.Key) || removed.Contains(v.Key)))
+                    .Select(v => v.Value.Offset).DefaultIfEmpty(long.MaxValue).Min();
+                foreach (var v in entries)
+                    if (!puts.ContainsKey(v.Key) && !removed.Contains(v.Key) &&
+                        (v.Value.Metadata is not null ? mt || cut != long.MaxValue : v.Value.Offset >= cut))
+                    {
+                        // Capture and hash the same current bytes. Carried objects
+                        // enter after the explicit replacement checks above; their
+                        // before hash never justified a second independent read.
+                        byte[] bytes = Read(v.Key, reads);
+                        puts.Add(v.Key, new(v.Key, Hash(bytes), bytes));
+                    }
+            }
+            oldHead = BackupName(); touched.Add(rootPath);
+            foreach (string p in touched)
+            {
+                string name = p == rootPath ? oldHead : Path.GetFileName(p); var remaining = Members(p).Where(v => !puts.ContainsKey(v.Key) && !removed.Contains(v.Key)).ToArray();
+                if (remaining.Any(v => v.Value.Metadata is not null)) continue;
+                if (remaining.Length == 0) retires.Add(new(name, reads.Read(p, file => HashFile(file)), 0, null));
+                else if (frames.TryGetValue(p, out var frame))
                 {
-                    var hashes = HashRetainedFile(p, keep);
-                    retires.Add(new(name, hashes.Full, keep, hashes.Prefix));
+                    long keep = remaining.Max(v => v.Value.Offset + v.Value.Length);
+                    if (keep < frame.Length)
+                    {
+                        var hashes = reads.Read(p, file => HashRetainedFile(file, keep));
+                        retires.Add(new(name, hashes.Full, keep, hashes.Prefix));
+                    }
                 }
             }
         }
@@ -519,9 +567,23 @@ internal sealed class LatestJournalStorage
             string p = PathOf(r.Name);
             if (File.Exists(p))
             {
-                long priorLength = new FileInfo(p).Length;
-                if (r.KeepBytes > 0 && priorLength == r.KeepBytes) { if (HashFile(p) != r.PrefixHash) throw Corrupt("A retained prefix changed."); }
-                else { if (HashFile(p) != r.Hash) throw Corrupt("A retired file changed outside its writer."); if (r.KeepBytes == 0) File.Delete(p); else using (var f = new FileStream(p, FileMode.Open, FileAccess.Write, FileShare.Read)) f.SetLength(r.KeepBytes); committedBytes -= priorLength - r.KeepBytes; }
+                long reclaimed = 0;
+                // Revalidate the current physical target after publication.
+                // Keep the same deny-write/delete handle through truncation;
+                // deletion closes it immediately before the existing path delete.
+                using (var file = new FileStream(p, FileMode.Open, r.KeepBytes == 0 ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read))
+                {
+                    long priorLength = file.Length;
+                    if (r.KeepBytes > 0 && priorLength == r.KeepBytes) { if (HashFile(file) != r.PrefixHash) throw Corrupt("A retained prefix changed."); }
+                    else
+                    {
+                        if (HashFile(file) != r.Hash) throw Corrupt("A retired file changed outside its writer.");
+                        if (r.KeepBytes != 0) file.SetLength(r.KeepBytes);
+                        reclaimed = priorLength - r.KeepBytes;
+                    }
+                }
+                if (r.KeepBytes == 0) File.Delete(p);
+                committedBytes -= reclaimed;
             }
             else if (r.KeepBytes != 0) throw Corrupt("A retained prefix disappeared.");
             if (r.KeepBytes == 0) frames.Remove(p); else if (frames.TryGetValue(p, out var frame)) frames[p] = frame with { Metadata = [], Commit = frame.Commit with { Items = [], Removes = [], Retires = [] }, DataEnd = r.KeepBytes, Length = r.KeepBytes };

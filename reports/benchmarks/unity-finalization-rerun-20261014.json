@@ -1,0 +1,1125 @@
+{
+  "verificationId": "FU-01",
+  "date": "2026-10-14",
+  "candidateCommit": "07bc2de591d5deaf3d363a557f0a8cb895df3ee5",
+  "candidate": {
+    "commit": "07bc2de591d5deaf3d363a557f0a8cb895df3ee5",
+    "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\lf14-runtime",
+    "sourceSha256": {
+      "contracts/v1/commands.json": "7d31c4e9ed9f6438241fb0222f17a5823e5e7ac4d12d463f0aa4043a695a204a",
+      "contracts/v1/response.schema.json": "7e4880fef63e87731a2b9d28634c4b19e854ac0cba8b18dbb22d32f315ad94b9",
+      "contracts/v1/workspace-checkpoint-request.schema.json": "5ac29224f1a5534c36980747d389c087cb8c3ee76910b4e8031d1f1d6480c1c6",
+      "src/Splinter.Cli/WorkspaceCommands.cs": "bfac8a8a6a49018a31bc8ee5eb77aea8e702ea9f86e364bc4e4de4ca9c63b6f6",
+      "src/Splinter.Runtime/BrotliWorkspacePayloadCodec.cs": "1c5e8ba99d5b90ad27fcc69d3fa554b19bc26a2baf5e573598396ed241700dcb",
+      "src/Splinter.Runtime/JournalDecodedPayloadCache.cs": "1a545c9a45d3eb18fb5d7c7bb5bdb70f65b8ae7b6891d100d3d6c0b40959e49e",
+      "src/Splinter.Runtime/JournalPayloadFrames.cs": "4fec32ef4b77535da38ac807fc065afe101685c943a9b0df534b2b1b041c827e",
+      "src/Splinter.Runtime/LatestJournalStorage.cs": "094db1eff7c93a1959aed071904b7f62ab35c07e86390c7abf144a4e691782a1",
+      "src/Splinter.Runtime/SnapshotWorkspaces.cs": "dc34733502297821959acba18df445fd3a6232e2158540f0799e3ac08c63fe7b",
+      "src/Splinter.Runtime/WorkspaceCoordinator.cs": "767fbeffc714f21ea899f4200c03a27679581426f59d9d0238509693d3c0df5f",
+      "src/Splinter.SourceControl.Git/GitSourceFingerprint.cs": "c5f74ef22425fd8dc0f7c87e7020f436b15e546ca8dac1513d30bac28e2dd332",
+      "src/Splinter.SourceControl.Git/GitSourcePathInspection.cs": "f5ca28c61f0c72c0232e3c8376ff10b2c4f945e1518c6a60d516a94a46f503c8",
+      "src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs": "93b4503f4155cfbc8114c9e0e967877d4dd56f9d26dfd921dc62c2ef18fbce02"
+    },
+    "runtimeSha256": {
+      "Humanizer.dll": "2769ed8265b691a5482c72506ed274dc52446fa1641997a8c12c66f5b9263d39",
+      "Json.More.dll": "80b6cd50331fa2ded4fbacdbf80dcedd2b142dee679df227c30299d2a3c3840f",
+      "JsonPointer.Net.dll": "1f6f178e6f5b36c4e3cddb6f0acbcc0a70a20d09798053277a434ffb78b1b5d8",
+      "JsonSchema.Net.dll": "7d22c2e73a2b9c60e53c8265f3638c64352759e1ab776f7ad776ae67c3e4a18c",
+      "Splinter.Application.Unity.dll": "fa667d4a10fd4e1a727aa4d39f36d0e05a496fd7346599f27b9f4d974abff35c",
+      "Splinter.Core.dll": "ed9af5d6133ece1927b8bbd716e42ebcdbeb96b547ba526ff57ebf373aba1040",
+      "splinter.dll": "ed04b022b6a7ff0f696909161f270a5b775c8ce7d85f714ad9873441a0ea6d57",
+      "Splinter.Host.dll": "62776a5f915e85b814c0ac08d9ebbcd587fb794046d709a89cbbbec6310ca375",
+      "Splinter.Platform.Windows.dll": "f3f30f6128976fc7d7ec8bb6704fbe095c7b73155426bf8d9aa52975491a4c35",
+      "Splinter.Protocol.dll": "8c961340892deaba1eea53080f9f2dff20d4afa7064de1430619296cec0f9f05",
+      "Splinter.Runtime.dll": "50cf58ae9c6678635d88c1303ef0d3b138c69acd75fd5eb6818ad014a4afbb95",
+      "Splinter.SourceControl.Files.dll": "674837725114b82038a3dd9096b586050bb7354f659e56909d7c72fc0b01f08f",
+      "Splinter.SourceControl.Git.dll": "653a1aceb2e8ed2acf1b219891d001475cd3b782fb8ad0e211bd238db42eb2b2",
+      "Splinter.Workflows.Windows.dll": "38ecf6dc6ff5eaae581d94de8b42cd958eee520814ca9c41013b77d56a9137e5",
+      "System.CommandLine.dll": "2b5ee7c20fdbd08af6c5dd7271c4e6b53fedab72864ee85abee94a647aba704e",
+      "winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+    },
+    "combinedCompletion": true,
+    "parallelCompletion": true
+  },
+  "original": {
+    "commit": "b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1",
+    "trackedFiles": 1602,
+    "trackedBytes": 2804772822,
+    "unity": "6000.3.22f1",
+    "libraryFiles": 42418,
+    "libraryBytes": 3141789464,
+    "libraryMatchesHistoricalRC01": false
+  },
+  "environment": {
+    "cpu": {
+      "Name": "AMD Ryzen 5 5600X 6-Core Processor             ",
+      "NumberOfCores": 6,
+      "NumberOfLogicalProcessors": 12
+    },
+    "memory": {
+      "TotalPhysicalMemory": 68628553728
+    },
+    "os": {
+      "Caption": "Microsoft Windows 11 Home",
+      "Version": "10.0.26200",
+      "BuildNumber": "26200"
+    },
+    "at": "2026-10-14T08:36:58.4810865+00:00"
+  },
+  "libraryHistoricalDifference": {
+    "files": 42418,
+    "bytes": 3141789464,
+    "priorFiles": 42420,
+    "priorBytes": 3141660252,
+    "added": [],
+    "removed": [
+      "UndoData.bin",
+      "UndoStack.bin"
+    ],
+    "changed": [
+      "ArtifactDB",
+      "ArtifactDB-lock",
+      "Bee/TundraBuildState.state",
+      "Bee/TundraBuildState.state.map",
+      "Bee/backend1.traceevents",
+      "Bee/fullprofile.json",
+      "Bee/tundra.digestcache",
+      "Bee/tundra.log.json",
+      "BurstCache/JIT/Hashes/a110ffe6b760e4b56cb86ae44bc7857d.bhc",
+      "PreviousActionData.bin",
+      "PreviousActionStack.bin",
+      "SceneVisibilityState.asset",
+      "Search/transactions.db",
+      "ShaderCache.db",
+      "SourceAssetDB",
+      "SourceAssetDB-lock",
+      "ilpp.pid"
+    ],
+    "identical": false
+  },
+  "method": "Fresh Splinter A/B first; after byte-identical Library restoration, fresh code worktrees and one original Editor validate A then B. Same current source and Library input. Parallel scripted candidate preparation excludes AI reasoning.",
+  "scheduling": "Splinter ensure and Editor launch overlap. After both individual compilations and asset checks, checkpoint --release A/B run concurrently, including normal Editor shutdown. No separate unity stop. One shared Editor restores A while applying B in one refresh, then restores and recompiles the original baseline.",
+  "timingSeconds": {
+    "splinter": {
+      "libraryPrepare": 61.967320299940184,
+      "create": 162.51976599998306,
+      "initial": 248.7873442999553,
+      "edit": 43.26900089997798,
+      "completionIncludingStop": 190.86830819991883,
+      "merge": 0.357965899980627,
+      "libraryRestore": 58.65704099996947,
+      "assetInspectionAndDispatch": 1.8208129405975342,
+      "total": 768.2520214999095
+    },
+    "sharedEditor": {
+      "create": 12.600872799986973,
+      "initial": 34.87152599997353,
+      "validate": 27.694352600025013,
+      "originalRestoreAndCompile": 12.340945799951442,
+      "stop": 2.448344099917449,
+      "editorWorkflow": 77.35719720006455,
+      "merge": 0.3525704999919981,
+      "reclaim": 2.1658307999605313,
+      "candidateEditAndPreserve": 1.4929420948028564,
+      "total": 93.9694133948069
+    }
+  },
+  "historicalTimingSeconds": {
+    "splinterRC01": {
+      "libraryPrepare": 60.21960489999037,
+      "create": 168.7671132000396,
+      "initial": 310.5419377000071,
+      "edit": 31.699268800090067,
+      "assets": 1.21220769990801,
+      "stop": 116.81087450007908,
+      "preserveRelease": 199.53541350003798,
+      "merge": 0.7042305000359192,
+      "libraryRestore": 45.47352789994329,
+      "total": 935.246187999961
+    },
+    "sharedEditorSE01": {
+      "create": 13.390459800022654,
+      "candidateEditAndPreserve": 1.4194858074188232,
+      "initial": 40.577375900000334,
+      "validate": 29.718209099955857,
+      "originalRestoreAndCompile": 12.040012300014496,
+      "stop": 2.574263299931772,
+      "editorWorkflow": 84.91271699999925,
+      "merge": 0.4029041000176221,
+      "reclaim": 2.3794385000364855,
+      "total": 102.50500520749483
+    }
+  },
+  "comparison": {
+    "splinterSecondsSavedVsRC01": 166.9941665000515,
+    "splinterReductionPercentVsRC01": 17.855637226083886,
+    "historicalStopAndPreserveReleaseSeconds": 316.34628800011706,
+    "completionReductionPercentVsRC01": 39.66475490938961,
+    "splinterMinusCurrentSharedSeconds": 674.2826081051026,
+    "splinterOverCurrentSharedRatio": 8.175554084520504,
+    "splinterCompileAndAssetSeconds": 45.089813840575516,
+    "sharedCompileAndAssetSeconds": 27.694352600025013,
+    "currentSharedBQueueWaitSeconds": 13.84662450000178
+  },
+  "timingBoundary": {
+    "splinter": {
+      "beganUtc": "2026-10-14T08:37:15.352286+00:00",
+      "endedUtc": "2026-10-14T08:50:03.770197+00:00",
+      "elapsedSeconds": 768.4046979999403,
+      "excludedReadOnlyChecksSeconds": 0.15267650003079325,
+      "accountedSeconds": 768.2520214999095
+    },
+    "sharedEditor": "Sum of parallel code-worktree creation, union of active candidate edit/preservation spans, uninterrupted Editor workflow, merge and reclamation. Excludes controller preparation, AI reasoning, input and final read-only checks. No new Codex app chat/dispatch timing.",
+    "assetInterval": "Splinter asset inspection includes small dispatch and read-only comparison overhead. Complete total separately excludes measured read-only input/comparison checks.",
+    "overlap": "A/B overlap counted once. Editor exits occur within combined completion; exit times must not be added again."
+  },
+  "normalEditorExits": {
+    "observations": {
+      "a": {
+        "seconds": 110.66149630001746,
+        "at": "2026-10-14T08:47:44.543930+00:00"
+      },
+      "b": {
+        "seconds": 112.69562799995765,
+        "at": "2026-10-14T08:47:46.578097+00:00"
+      }
+    },
+    "includesCommandDispatch": true,
+    "observationResolutionSeconds": 0.2
+  },
+  "combinedCompletion": {
+    "beganUtc": "2026-10-14T08:45:53.880528+00:00",
+    "endedUtc": "2026-10-14T08:49:04.752105+00:00",
+    "elapsedSeconds": 190.86830819991883,
+    "parallel": true,
+    "combined": true,
+    "includesNormalEditorShutdown": true
+  },
+  "selectedBuiltInMetrics": {
+    "a": {
+      "scriptCompilationSeconds": [
+        127.875693,
+        0.000886
+      ],
+      "initializeOnLoadAttributeMilliseconds": [
+        176,
+        45587,
+        1252
+      ],
+      "sourceInspections": [
+        {
+          "mode": "initial",
+          "payloadBytesHashed": 2804769928,
+          "filesHashed": 1602,
+          "filesReused": 0,
+          "manifestBytes": 332423,
+          "elapsedMilliseconds": 75316.1954,
+          "epoch": "700e820ad1dd4a1985afe2f1f3312134",
+          "sequence": 2,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        },
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 143,
+          "filesHashed": 1,
+          "filesReused": 1601,
+          "manifestBytes": 332427,
+          "elapsedMilliseconds": 5469.4806,
+          "epoch": "700e820ad1dd4a1985afe2f1f3312134",
+          "sequence": 15963,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        },
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332427,
+          "elapsedMilliseconds": 5244.2251,
+          "epoch": "700e820ad1dd4a1985afe2f1f3312134",
+          "sequence": 15963,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        },
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332427,
+          "elapsedMilliseconds": 5323.9219,
+          "epoch": "700e820ad1dd4a1985afe2f1f3312134",
+          "sequence": 15963,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        }
+      ]
+    },
+    "b": {
+      "scriptCompilationSeconds": [
+        127.064897,
+        0.000994
+      ],
+      "initializeOnLoadAttributeMilliseconds": [
+        187,
+        45648,
+        1286
+      ],
+      "sourceInspections": [
+        {
+          "mode": "initial",
+          "payloadBytesHashed": 2804769928,
+          "filesHashed": 1602,
+          "filesReused": 0,
+          "manifestBytes": 332423,
+          "elapsedMilliseconds": 75050.9761,
+          "epoch": "b8a0ff776b1348a189c6e4fefee9a22a",
+          "sequence": 2,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        },
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 152,
+          "filesHashed": 1,
+          "filesReused": 1601,
+          "manifestBytes": 332427,
+          "elapsedMilliseconds": 5612.0322,
+          "epoch": "b8a0ff776b1348a189c6e4fefee9a22a",
+          "sequence": 15988,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        },
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332427,
+          "elapsedMilliseconds": 5241.3217,
+          "epoch": "b8a0ff776b1348a189c6e4fefee9a22a",
+          "sequence": 15988,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        },
+        {
+          "mode": "incremental",
+          "payloadBytesHashed": 0,
+          "filesHashed": 0,
+          "filesReused": 1602,
+          "manifestBytes": 332427,
+          "elapsedMilliseconds": 5532.6967,
+          "epoch": "b8a0ff776b1348a189c6e4fefee9a22a",
+          "sequence": 15988,
+          "gitHashInputBytes": 0,
+          "gitHashProcesses": 0
+        }
+      ]
+    }
+  },
+  "sharedQueue": {
+    "rows": [
+      {
+        "letter": "a",
+        "queuedUtc": "2026-10-14T08:55:04.149700+00:00",
+        "startedUtc": "2026-10-14T08:55:04.149708+00:00",
+        "finishedUtc": "2026-10-14T08:55:17.996545+00:00",
+        "queueWaitSeconds": 8.100061677396297e-06,
+        "transferSeconds": 0.0008220000891014934,
+        "transferAndCompileSeconds": 12.638453099993058,
+        "assetSeconds": 1.20815840002615,
+        "serviceSeconds": 13.846612600027584,
+        "completedSinceQueueSeconds": 13.846620900090784
+      },
+      {
+        "letter": "b",
+        "queuedUtc": "2026-10-14T08:55:04.149700+00:00",
+        "startedUtc": "2026-10-14T08:55:17.996563+00:00",
+        "finishedUtc": "2026-10-14T08:55:31.844511+00:00",
+        "queueWaitSeconds": 13.84662450000178,
+        "transferSeconds": 0.00123109994456172,
+        "transferAndCompileSeconds": 12.640118800103664,
+        "assetSeconds": 1.2076041999971494,
+        "serviceSeconds": 13.84772410010919,
+        "completedSinceQueueSeconds": 27.694348800112493
+      }
+    ],
+    "elapsedSeconds": 27.694352600025013,
+    "singlePid": 5292,
+    "queueOrder": [
+      "a",
+      "b"
+    ],
+    "bothCandidatesReadyAtGate": true
+  },
+  "splinterClosure": {
+    "status": "completed",
+    "at": "2026-10-14T08:51:56.424020+00:00",
+    "results": [
+      {
+        "letter": "a",
+        "id": "a7c750ef7dfcb6e09a7e5ddf",
+        "revision": "ba3bba416aa14757837ea2123123e05d86eb680d",
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "storage": {
+            "id": "a7c750ef7dfcb6e09a7e5ddf",
+            "snapshotId": "git-a7c750ef7dfcb6e09a7e5ddf-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-c3cd5e0a8a6ce86afa6e2b212440da9b1bd58bf80a3c79577f3cfd0b81c23940",
+            "initialPayloadCopiedBytes": 0,
+            "journalBytes": 35596776,
+            "payloadBytes": 27413133,
+            "metadataBytes": 8183643,
+            "readBytes": 7452829646,
+            "readCacheBytes": 0,
+            "maxTransferBytes": 1048576,
+            "indexedNodes": 46712,
+            "durableSequence": 27363,
+            "metrics": {
+              "epoch": "700e820ad1dd4a1985afe2f1f3312134",
+              "lockAcquisitions": 674381,
+              "lockWaitTicks": 1882260852,
+              "flushCount": 27827,
+              "flushTicks": 974663582,
+              "commitCount": 27816,
+              "journalAppendedBytes": 258294192,
+              "replayBytes": 0,
+              "replayTicks": 223743,
+              "journalReadBytes": 1111063299,
+              "baseReadBytes": 7193674923,
+              "stopwatchFrequency": 10000000,
+              "replayFrames": 0,
+              "replayReadCalls": 0,
+              "replayReadTicks": 0,
+              "replayValidationTicks": 0,
+              "replayIndexTicks": 0,
+              "replayBufferBytes": 65536,
+              "replayIndexOperations": [],
+              "replayWriteRangeIndex": {
+                "replaceCalls": 0,
+                "priorExtents": 0,
+                "maxPriorExtents": 0,
+                "visitedExtents": 0,
+                "copiedExtents": 0,
+                "locateAndReplaceTicks": 0,
+                "sortTicks": 0,
+                "priorExtentBuckets": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "liveJournalWrites": {
+                "mutationGateCalls": 86619,
+                "mutationGateWaitTicks": 7157712,
+                "operations": [
+                  {
+                    "operation": "create",
+                    "attempts": 608,
+                    "durableCommits": 608,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 285837,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 23692324,
+                    "applyTicks": 0,
+                    "totalTicks": 47615564,
+                    "flushCalls": 608,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "delete",
+                    "attempts": 436,
+                    "durableCommits": 436,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 385334,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 22826859,
+                    "applyTicks": 0,
+                    "totalTicks": 69880469,
+                    "flushCalls": 436,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "forget-unlinked",
+                    "attempts": 453,
+                    "durableCommits": 453,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 138166,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 23904781,
+                    "applyTicks": 0,
+                    "totalTicks": 73701775,
+                    "flushCalls": 453,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "metadata",
+                    "attempts": 461,
+                    "durableCommits": 461,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 254122,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 12925495,
+                    "applyTicks": 0,
+                    "totalTicks": 49497144,
+                    "flushCalls": 461,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "rename",
+                    "attempts": 178,
+                    "durableCommits": 178,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 216977,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 5222108,
+                    "applyTicks": 0,
+                    "totalTicks": 33904358,
+                    "flushCalls": 178,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "resize",
+                    "attempts": 266,
+                    "durableCommits": 266,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 130327,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 7726773,
+                    "applyTicks": 0,
+                    "totalTicks": 52245363,
+                    "flushCalls": 266,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "write",
+                    "attempts": 25414,
+                    "durableCommits": 25414,
+                    "failedCalls": 0,
+                    "payloadBytes": 132826600,
+                    "journalBytes": 256883429,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 878043402,
+                    "applyTicks": 0,
+                    "totalTicks": 2369164573,
+                    "flushCalls": 25414,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              "readRangeIndex": {
+                "readCalls": 61301,
+                "searchProbes": 70712,
+                "visitedExtents": 43467
+              }
+            },
+            "journalOptimizationEnabled": true,
+            "journalBytesBasis": "current-files"
+          },
+          "hostFreeBytes": 232730714112,
+          "journalRemainingBytes": 17144272408,
+          "snapshotStorage": {
+            "id": "git-a7c750ef7dfcb6e09a7e5ddf-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-c3cd5e0a8a6ce86afa6e2b212440da9b1bd58bf80a3c79577f3cfd0b81c23940",
+            "available": false,
+            "preservedBytes": 0,
+            "availability": "missing"
+          },
+          "deltaPresent": false,
+          "snapshotAvailability": "missing"
+        },
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "normalEditorExit": true
+      },
+      {
+        "letter": "b",
+        "id": "c5179fb44566ec0fe9dae297",
+        "revision": "6e9509d6514a117f83cc4a2a5cf8a3cd3a11d941",
+        "observation": {
+          "snapshotAvailable": false,
+          "mounted": false,
+          "providerAlive": false,
+          "ownershipVerified": true,
+          "openHandles": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0,
+          "storage": {
+            "id": "c5179fb44566ec0fe9dae297",
+            "snapshotId": "git-c5179fb44566ec0fe9dae297-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-c3cd5e0a8a6ce86afa6e2b212440da9b1bd58bf80a3c79577f3cfd0b81c23940",
+            "initialPayloadCopiedBytes": 0,
+            "journalBytes": 35625118,
+            "payloadBytes": 27435315,
+            "metadataBytes": 8189803,
+            "readBytes": 7450122464,
+            "readCacheBytes": 0,
+            "maxTransferBytes": 1048576,
+            "indexedNodes": 46712,
+            "durableSequence": 27405,
+            "metrics": {
+              "epoch": "b8a0ff776b1348a189c6e4fefee9a22a",
+              "lockAcquisitions": 675604,
+              "lockWaitTicks": 2196760283,
+              "flushCount": 27869,
+              "flushTicks": 982558922,
+              "commitCount": 27858,
+              "journalAppendedBytes": 258386347,
+              "replayBytes": 0,
+              "replayTicks": 252796,
+              "journalReadBytes": 1129470374,
+              "baseReadBytes": 7192389677,
+              "stopwatchFrequency": 10000000,
+              "replayFrames": 0,
+              "replayReadCalls": 0,
+              "replayReadTicks": 0,
+              "replayValidationTicks": 0,
+              "replayIndexTicks": 0,
+              "replayBufferBytes": 65536,
+              "replayIndexOperations": [],
+              "replayWriteRangeIndex": {
+                "replaceCalls": 0,
+                "priorExtents": 0,
+                "maxPriorExtents": 0,
+                "visitedExtents": 0,
+                "copiedExtents": 0,
+                "locateAndReplaceTicks": 0,
+                "sortTicks": 0,
+                "priorExtentBuckets": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "liveJournalWrites": {
+                "mutationGateCalls": 86774,
+                "mutationGateWaitTicks": 14989654,
+                "operations": [
+                  {
+                    "operation": "create",
+                    "attempts": 608,
+                    "durableCommits": 608,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 286113,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 24314554,
+                    "applyTicks": 0,
+                    "totalTicks": 47637005,
+                    "flushCalls": 608,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "delete",
+                    "attempts": 436,
+                    "durableCommits": 436,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 384070,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 24363581,
+                    "applyTicks": 0,
+                    "totalTicks": 71500099,
+                    "flushCalls": 436,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "forget-unlinked",
+                    "attempts": 453,
+                    "durableCommits": 453,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 136904,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 24169841,
+                    "applyTicks": 0,
+                    "totalTicks": 74526338,
+                    "flushCalls": 453,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "metadata",
+                    "attempts": 461,
+                    "durableCommits": 461,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 254122,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 12816048,
+                    "applyTicks": 0,
+                    "totalTicks": 49347951,
+                    "flushCalls": 461,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "rename",
+                    "attempts": 178,
+                    "durableCommits": 178,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 217501,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 5255198,
+                    "applyTicks": 0,
+                    "totalTicks": 33479165,
+                    "flushCalls": 178,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "resize",
+                    "attempts": 266,
+                    "durableCommits": 266,
+                    "failedCalls": 0,
+                    "payloadBytes": 0,
+                    "journalBytes": 130327,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 7359637,
+                    "applyTicks": 0,
+                    "totalTicks": 52107598,
+                    "flushCalls": 266,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "operation": "write",
+                    "attempts": 25456,
+                    "durableCommits": 25456,
+                    "failedCalls": 0,
+                    "payloadBytes": 133011862,
+                    "journalBytes": 256977310,
+                    "prepareTicks": 0,
+                    "appendTicks": 0,
+                    "flushTicks": 883982209,
+                    "applyTicks": 0,
+                    "totalTicks": 2398488788,
+                    "flushCalls": 25456,
+                    "maxWaitingMutations": 0,
+                    "waitingMutationsAtFlushStart": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "waitingMutationsAtFlushEnd": [
+                      0,
+                      0,
+                      0,
+                      0,
+                      0
+                    ]
+                  }
+                ]
+              },
+              "readRangeIndex": {
+                "readCalls": 61440,
+                "searchProbes": 70676,
+                "visitedExtents": 43792
+              }
+            },
+            "journalOptimizationEnabled": true,
+            "journalBytesBasis": "current-files"
+          },
+          "hostFreeBytes": 232832499712,
+          "journalRemainingBytes": 17144244066,
+          "snapshotStorage": {
+            "id": "git-c5179fb44566ec0fe9dae297-b09fa58e9d40a560d4fe1af7a213f8ac23e8e3b1-metadata-c3cd5e0a8a6ce86afa6e2b212440da9b1bd58bf80a3c79577f3cfd0b81c23940",
+            "available": false,
+            "preservedBytes": 0,
+            "availability": "missing"
+          },
+          "deltaPresent": false,
+          "snapshotAvailability": "missing"
+        },
+        "releasedResources": {
+          "ownershipVerified": true,
+          "rootRunning": false,
+          "activeProcesses": 0,
+          "workingSetBytes": 0,
+          "privateBytes": 0
+        },
+        "normalEditorExit": true
+      }
+    ],
+    "ownedProvidersExited": [
+      35576,
+      49784,
+      50528
+    ],
+    "originalSourceFiles": 1602,
+    "originalLibraryBytesIdentical": true,
+    "originalLibraryOrdinaryNtfs": true,
+    "originalClean": true,
+    "oldRefsWorktreesConfigPreserved": true
+  },
+  "sharedClosure": {
+    "at": "2026-10-14T08:55:52.437366+00:00",
+    "originalSourceFilesVerified": 1602,
+    "originalClean": true,
+    "originalLibraryOrdinaryNtfs": true,
+    "originalLibraryRegeneratedBySharedEditor": true,
+    "baselineRecompiled": true,
+    "ownedEditorExited": true,
+    "oldRefsUnchanged": true,
+    "candidatesPreserved": true,
+    "codeWorktreesRemoved": true,
+    "packageOrServiceChanges": false
+  },
+  "results": {
+    "splinter": {
+      "elapsedSeconds": 0.357965899980627,
+      "tree": "756e0a926577c9bcff036c823b4816b3b2d5fb19",
+      "revision": "e250e4798e6387ebc5244b4910c798a256b46184",
+      "resultRef": "refs/splinter-benchmark/20261014-finalization/splinter-combined",
+      "combinedCompilationRun": false
+    },
+    "shared": {
+      "elapsedSeconds": 0.3525704999919981,
+      "tree": "756e0a926577c9bcff036c823b4816b3b2d5fb19",
+      "revision": "d45741e368a3adb31e23b2346b45e5ef2483c565",
+      "resultRef": "refs/splinter-benchmark/20261014-finalization-shared/combined",
+      "combinedCompilationRun": false
+    },
+    "sameTree": true
+  },
+  "responseSchemaValidation": {
+    "valid": 13,
+    "failed": 0,
+    "runtimeCommands": 8,
+    "schemaResponses": 5,
+    "test": "JournalBaseReversionProductEvidenceTests.RecordedProductResponsesMatchCurrentSchema"
+  },
+  "limits": [
+    "One current cohort per method; no cache clearing or randomized order. Historical comparison changes implementation/scheduling and a small set of Library cache files, so it is not an isolated causal optimization percentage.",
+    "No new ordinary-worktree two-Editor cohort; RC-01 is historical context.",
+    "No new storage-peak or whole-system RAM measurement.",
+    "No Play Mode, Unity tests, game build, combined-result compilation or measured long-task crossover.",
+    "Shared Editor regenerates its Library normally; original source and configuration are restored, but shared-Editor-generated cache bytes are not rolled back."
+  ],
+  "rawEvidence": "artifacts/unity-finalization-rerun-20261014",
+  "evidence": {
+    "basis-identity.json": "e62e52f48fcee39ab2e27bd9b5ffa17ac26f90276b8869cb14887adf7a6c4669",
+    "candidate.json": "81867ab6670e0ec46fa07bee6d27dbb75c0b5f1ea75e5333c0bfab2b68a035db",
+    "closure.json": "91a317aeae2c05d889e0cab9d4b1a8a40138cc13955f76482e96a0b70b336f82",
+    "environment.json": "16f4426252fa4f9206c2cd5b06555dd3284e1fdc5af6f812b962be9cb9117f1d",
+    "full-lifecycle-cost.json": "8f64a0ae3659e5ba71224a9cb2a265017afe883223aa108a7c90d094c559fc3d",
+    "library-before.json": "d9d786dff11689aabe152e21c0bacb5bca19c5318cbe4d472793bb1cf815d33f",
+    "library-historical-comparison.json": "86d1674a9a8511bf312a79a8258a820bd7f8e0b5b4118f2d9a37841f9a39200c",
+    "library-prepare-cost.json": "ccc385b3e41354d3147d39412649a91aef8ccdea296277700ceabf3590472cd5",
+    "library-prepare-process.json": "f29be25a36fb8ee4d228a418e563b9149fc6c8f3cf016911540fa593120ab9f8",
+    "library-prepare.json": "686abb8e1c2357202a7cbcf49e5ace4875afeecfa9c1c48d752a94af710b63dc",
+    "library-restore-cost.json": "785be4d42c9d2294a4f73440e6dc5719cb36d7001823f0479b6c56d5b3331292",
+    "library-restore-process.json": "0e05965540bbe4b95b66e99d98c924a2e9635a9d686aa946a8f774b92c56c268",
+    "library-restore.json": "92495a147cfe8279c77c2f09d18fb8c1870b6ede3c028fe8ed0916c30a4fc339",
+    "local-git-config-change.json": "d68c0c8df707c40657f8956ce830a202574cbe29ff218903565f1d4a9099d586",
+    "preflight.json": "5df8e6917a4088895cc13ea24ec3e1cec9265dc021241b8ae488085204f61da8",
+    "provider-samples.jsonl": "d67911c5bb08022d79ea0f0a9855d04493a2febbfa4a56b96d3cc9fec6b4385d",
+    "response-schema-input/library-prepare.json": "686abb8e1c2357202a7cbcf49e5ace4875afeecfa9c1c48d752a94af710b63dc",
+    "response-schema-input/library-restore.json": "92495a147cfe8279c77c2f09d18fb8c1870b6ede3c028fe8ed0916c30a4fc339",
+    "response-schema-input/s-a-checkpoint-release.json": "a8814a9fce1247e15b0ea77381c555a46ee2570fc0aab5963c7dc26247e01924",
+    "response-schema-input/s-a-ensure-corrected.json": "ce856bdf4296de64ad3616ffa3d7125e3ba543ae3cb0134353332c5c6b99b177",
+    "response-schema-input/s-a-unity-start.json": "cd7198c1f0f5a267ce01475615577eb71a89cf48f55f41880dc0b0fe34b57dcd",
+    "response-schema-input/s-b-checkpoint-release.json": "c94e8e49132507af34ab364e8aad5de13d6fbe6ad5856e5f7de97a33ba88e707",
+    "response-schema-input/s-b-ensure-corrected.json": "c4349117f0b0aabc974df23fe5c1bfd3d4a6bb25f2266bf8c24d2bea986beed0",
+    "response-schema-input/s-b-unity-start.json": "438a904ea17c85b859ef80bd4917959eee4b136943b344c2d79132ee1a6c9000",
+    "response-schema-input/schema-library.prepare.json": "d2f8b3c8be2b4f76f5626075ba8a253eb433be32467eae363ba84736f5338a92",
+    "response-schema-input/schema-library.restore.json": "374c3b8d4ca04bf22fb25f7d429273074d4ce7767405108cee737489eb5a7f17",
+    "response-schema-input/schema-unity.start.json": "2beb7ccf8eb18aa8afa094daacbe4ff0a0e9a86af9df3cf597d20d3c7130aaa7",
+    "response-schema-input/schema-workspace.checkpoint.json": "2eb17f9c3a2acd8705378c52c58ad8863782549706b10237efc4f8fa224c8a8a",
+    "response-schema-input/schema-workspace.ensure.json": "58edd6de43ca381363f19fc5034355cb28b35388cff5c7a4b49b0447995eed2d",
+    "response-schema-validation.json": "6f018ca982ac028adf5d24b79869b04075fa45ff5f18231d2eb0dd428dc86fb8",
+    "response-schemas.xml": "b94c7ea1c3791280ad2be261087359fef06c33ecf4db54e69b800f8d2fd27ca6",
+    "run.py": "68ce2147f5565756c9c3d8f2eefa4fe4ba6958a0e23f25ce4ee190eb46fb8638",
+    "s-a-assets.json": "9d204177b774c8cbe42d0a001d52ceb238486e84d33e1130420e01765d9a7906",
+    "s-a-checkpoint-release-cost.json": "010add550120e3b6a63804fba6054423768820afe5dc4f65dfb72751b9fd6922",
+    "s-a-checkpoint-release-process.json": "8b67170782041df686f32e8b2f120793680d4e7379a4f084bb6db9451c72fb71",
+    "s-a-checkpoint-release.json": "a8814a9fce1247e15b0ea77381c555a46ee2570fc0aab5963c7dc26247e01924",
+    "s-a-edit.json": "55da41ace76f2513fcadc32921f12032c8906cca440f16a07e6b13fa584d5546",
+    "s-a-editor.log": "23474dc76a638588daf5525bc9f46fd44561901b86510edd7266d2f25ea14191",
+    "s-a-ensure-corrected-cost.json": "4c6095cca63a142819dd3d809546a79a4da899ff96ca93dd0db6a72e2cf36de9",
+    "s-a-ensure-corrected-process.json": "6b6d1cadd21510ab43e4320191434596bc12db4bcf25e7616f4cdbf94cee1818",
+    "s-a-ensure-corrected.json": "ce856bdf4296de64ad3616ffa3d7125e3ba543ae3cb0134353332c5c6b99b177",
+    "s-a-events.jsonl": "d75735e090b28b0984191f6aa0e52130df391ccac882ca70c956f322bcba49ef",
+    "s-a-initial.json": "1127898f034fed5ee760bfbe7b20176954cd7084a900893ca9b1b434faa1ab5c",
+    "s-a-launch.json": "f9903a41d70356e967a6421dd07686fdc6ed1590dfadb0c34d3e1ad5a4de455b",
+    "s-a-refresh-response.json": "376a0731af2ca0adcfe0655015751dd5bf711b792320bd477e7137b7f19a5d76",
+    "s-a-source-inspections.jsonl": "a1bc95b3f42c1e5e93e6f6e8927f4d8fb9b2aa3273d80827a63a4a7d922124cb",
+    "s-a-storage-reads.jsonl": "b2f6e46ea4ca6215b3d0aa7ca719462d8a5dd8197e265722810d0a93828e3b3a",
+    "s-a-unity-start-cost.json": "b3351f1665ac0177a94de0e89f44d903a060cf995a98eb80232b6732ae8fa01b",
+    "s-a-unity-start-process.json": "e6f5f80c3638dadef619114198f7357fcf31ca9da6545e58d8443724cd810836",
+    "s-a-unity-start.json": "cd7198c1f0f5a267ce01475615577eb71a89cf48f55f41880dc0b0fe34b57dcd",
+    "s-b-assets.json": "adc70b76f977bb8026c706594dda7613c12344a22c7e6e194d642535ad855d5d",
+    "s-b-checkpoint-release-cost.json": "7bc9888801fced23ed9327b410643d15c94bb84d36dcc7050dce042c203c39e8",
+    "s-b-checkpoint-release-process.json": "c6d0a68093a8610feb0b9ae446ee84b8d19af776796e31b8764cd655567b0094",
+    "s-b-checkpoint-release.json": "c94e8e49132507af34ab364e8aad5de13d6fbe6ad5856e5f7de97a33ba88e707",
+    "s-b-edit.json": "7f624a7dc7a05a3834f259f1a9fbf60b559ad8e55fc5c2e72fe420740678e22a",
+    "s-b-editor.log": "8564e90eb5c9a12f7ba527015739975769faed3366b98b40b0ae9c1857b10857",
+    "s-b-ensure-corrected-cost.json": "34aee7d23aa553d6cfbc887107e8ec60bcbc9be2b9ec8fad462ce3800ad3343d",
+    "s-b-ensure-corrected-process.json": "d4c3998d8de84d94af6c04c22ec783cb6656d01379e6d97323a63109ae67071b",
+    "s-b-ensure-corrected.json": "c4349117f0b0aabc974df23fe5c1bfd3d4a6bb25f2266bf8c24d2bea986beed0",
+    "s-b-events.jsonl": "4148c49c9e9ae01c5446b7fccde25c3724cccae0ac1fd66fcaaa89fc312ae47f",
+    "s-b-initial.json": "95a5229ecd86a5d2c1c276b95a6b7188ebfd5280dfae18d1fdf63fd680c4b091",
+    "s-b-launch.json": "52e8eeb53724c12937db8cf980803eb36bbfce0e7b4df1ca367b89618f24bc5e",
+    "s-b-refresh-response.json": "9731fc4ca196fc4c0993f9f1e2f714413c68581e01a22351a93947e8a55fb4c4",
+    "s-b-source-inspections.jsonl": "68ceb717fd076d55581c5395a6318dc520ea4932247c6a5ae10c26e5d72ffd47",
+    "s-b-storage-reads.jsonl": "df2b2e7513a2c07a06768c4c76982c1d044f084dcdf1b5db50478f385442397f",
+    "s-b-unity-start-cost.json": "371fa4593b326cac4cc5934d839246232b55b71775c271db8a511e6c71851e0d",
+    "s-b-unity-start-process.json": "efc710a481bd19085510fc895f514cce88424b3b894afe2f984080fa5a653fa6",
+    "s-b-unity-start.json": "438a904ea17c85b859ef80bd4917959eee4b136943b344c2d79132ee1a6c9000",
+    "s-completion-cohort.json": "f69ac08899802facbe5b43cfca39ab50ab83f2845584649a384380d2f1f8b0ad",
+    "s-edit-cohort.json": "9103b3d19ecbc7405b784f92077125945498c9b2b18c594b0b699fedecb88cd8",
+    "s-ensure-cohort.json": "0c1ee94b3299e31af68b55746d7e8f5ef43378a920ca0523bc5e58e982cb3fe9",
+    "s-initial-cohort.json": "2408fda47e25b3268f2698d4af2dd275b6227473663cb4f3f17f5c2acb5336a9",
+    "s-merge.json": "ac4fbac119bac517af1d1b36288fe18cb17aff86ed3bd5e44ced57bde1c92948",
+    "s-normal-exits.json": "e03758293ea54fa39417e4368787a8229e73924cf58ff5e77461ccc69bb823bf",
+    "s-targets.json": "3eea9c980962c123757b79d3dee96ee0d3f43de018ca564d96dc11d196842cb4",
+    "schema-library.prepare.json": "d2f8b3c8be2b4f76f5626075ba8a253eb433be32467eae363ba84736f5338a92",
+    "schema-library.restore.json": "374c3b8d4ca04bf22fb25f7d429273074d4ce7767405108cee737489eb5a7f17",
+    "schema-unity.start.json": "2beb7ccf8eb18aa8afa094daacbe4ff0a0e9a86af9df3cf597d20d3c7130aaa7",
+    "schema-workspace.checkpoint.json": "2eb17f9c3a2acd8705378c52c58ad8863782549706b10237efc4f8fa224c8a8a",
+    "schema-workspace.ensure.json": "58edd6de43ca381363f19fc5034355cb28b35388cff5c7a4b49b0447995eed2d",
+    "shared/a-assets.json": "61b65326d5eee2a5e59e3eb09971514c03fab9b69ff4bdc32f96f9ec4bd612a3",
+    "shared/a-candidate.json": "5ed7a532c4338baf2cdc89b5b1c649478b526f325741b96b64f59e6235d9a1c1",
+    "shared/a-created.json": "78b2be72d38c91106d27e706796b28a5e5da0030e14b06bf1a82eb205f9e09a3",
+    "shared/b-assets.json": "b633c5b1e1f60a68d3a30146d63e02144933627772dd4718286689166922df65",
+    "shared/b-candidate.json": "efb5b4e89ba1b3ac2d0602265fb3cd6c5e80b6ef15182eecbc26312526fc654d",
+    "shared/b-created.json": "ddcbd98f81a9fa0ade018277bc265c3bc2117480f4edf52d5f9f636451298695",
+    "shared/closure.json": "fdc605bbb53e8326a0095ff5d6cf01a700d2704c4b9c27491a7c2d45b60e5df9",
+    "shared/create-cohort.json": "eb216c2764ce730de3cbb6fd825f66ec7d27868f7aa1cafe8833c1e08c575183",
+    "shared/editor-workflow-cost.json": "3c62790579adaa713036f6d6f5b4512376b62bc17b61400cb5bd1a515d94aa78",
+    "shared/initial-cost.json": "e81ed1723c6b7dd1dda7a6e11ee99fef1d9dbaff9ef22c3f1c7a019f6ae27693",
+    "shared/launch.json": "76510224e6879aa13c21d24457acfdb5dfbc72e29e28bdf4cd94e2de57fd812a",
+    "shared/merge-cost.json": "cd9287efb4a627bb74b13ad1be47c8de0e6f18a7823ff4287f65bc33ec716c7f",
+    "shared/preflight.json": "8f3944011b335c49f22b9e0a4531c0f90f500e24b81a2c3d8c81f51fc2c9d678",
+    "shared/reclaim-cost.json": "fecf5bba9591733fc58b04e81356db8fb82e8d511fa8d691f75a889bce0ab8c5",
+    "shared/restore-cost.json": "547075cea6f784c8bd4673dd96da61f953a6b4620a462c687c86e3ef3bdd3216",
+    "shared/shared-a-q-edit.json": "48b46d03087a793a369f1797b329a3ad89bcc8b7436b1ae4a8e684292828dc26",
+    "shared/shared-a-q-refresh-response.json": "96c61732d2c80825d7353665b7bda51b4cb3e9b7069f9f55d08c6892b9e7f490",
+    "shared/shared-b-q-edit.json": "72c6477e00a8d5fcd168650ef69f161020685b50b76fdf234998998ccaefb5cb",
+    "shared/shared-b-q-refresh-response.json": "630abe633f667ad3276d0e29dbc9b62e3397030c0f2479808713aeeecb9575fb",
+    "shared/shared-q-initial.json": "a9fc12fad596dba7c7d4d42eb376283ba13aff2f246b759621522fc9e77fe4e6",
+    "shared/shared-restore-q-edit.json": "562474cb6286f335283ffa05d50753f59aae7f330fc531edc3115a3d5b4d6e31",
+    "shared/shared-restore-q-refresh-response.json": "8f8fc0c9c6958f4d8cfbf09e7455d5cfc2e9561abacaeea8f92254d7c4cdca1e",
+    "shared/stop-cost.json": "c87f6cafe6ec1298a5672fe667e10189a2e0d8505fb5bf408f933491a2f85e25",
+    "shared/validation-cohort.json": "5892ae316d8f0905306a1d4ad49f4445d58ddd7d1c889737114dcfd242106f48",
+    "shared-driver.py": "ef3de0470d69aa3143c134b11e67db251cf78489e5b144572cb4c26e17353c89",
+    "source-before.json": "97623f7757c295ae53e13a71f4eb88d6e1a70e4c8fef26de703aece62a8c4b98",
+    "summarize.py": "124f9cead5a1f42159949201f7e6189c105a0e1fc4a34ab8178696d5004f48de"
+  }
+}

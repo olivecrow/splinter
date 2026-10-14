@@ -3,7 +3,13 @@
 
 [한국어](../ko/verification/README.md)
 
-[Finalization and decoded-payload reuse](lifecycle-finalization-optimization.md) owns LF-01–05. Its bounded measurements do not replace RC-01/SE-01 Unity results below.
+[Unity throughput optimization](unity-throughput-optimization.md) TP-01–06: Git proof reuse and bounded journal improvements; the cache-retention experiment was withdrawn after a real Unity reclamation failure. Component evidence, recovery and shared-Editor comparison are separated.
+
+[Multi-stage Unity maze workflow](unity-maze-workflow.md) owns MW-01: six feature stages and three integrated playable mazes pass in both methods. The observed 1,501.9s Splinter / 787.5s shared-Editor workflows include recovery and do not establish a clean throughput ratio. Normal preparation/integration costs and original/resource closure are recorded separately.
+
+[Unity workflow with parallel combined completion](unity-finalization-rerun.md) owns FU-01: `07bc2de` completes the actual Unity workflow in 768.3s, versus RC-01's 935.2s. A fresh paired shared-Editor run takes 94.0s. Parallel `checkpoint --release` includes normal Editor shutdown; input differences from history and the one-cohort limitation remain explicit.
+
+[Finalization and decoded-payload reuse](lifecycle-finalization-optimization.md) owns LF-01–05. Its bounded measurements remain separate from FU-01 and the historical RC-01/SE-01 Unity results below.
 
 **Shared-Editor comparison:** [SE-01](unity-shared-editor.md) measures parallel coding followed by one Editor's serial validation: 102.5s accounted workflow, including original-source recovery and cleanup; B waits 16.0s. It reuses RC-01's 935.2s Splinter result after input/runtime verification. Code writing is parallel in both methods; long Editor-operation crossover and shared-Editor storage savings are unmeasured.
 

@@ -12,7 +12,7 @@ namespace Splinter.SourceControl.Git;
 // is staged until a full blob proof or its verified chunk proofs match. Only
 // bounded blob proofs, two reader windows and a bounded verified-chunk RAM LRU
 // are retained, never disk payload.
-public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
+public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSummaryProvider, IDisposable
 {
     public SnapshotReference Snapshot { get; }
     // The gate protects leases/proof ownership, not decoding. Each of the two
@@ -41,7 +41,8 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
     internal int PeakChunkPayloadBytes { get; private set; }
     internal long PayloadCacheHits { get; private set; }
     internal long PayloadCacheMisses { get; private set; }
-    private sealed record BlobProof(string ObjectId, long Length, byte[] Chunks);
+    // The final 32 bytes retain the raw SHA256, within the same proof budget.
+    private sealed record BlobProof(string ObjectId, long Length, byte[] Chunks, bool ContainsCarriageReturn, bool ContainsNul);
     private readonly Dictionary<string, LinkedListNode<BlobProof>> proofs = new(StringComparer.Ordinal);
     private readonly LinkedList<BlobProof> proofLru = new();
     private int proofBytes;
@@ -227,6 +228,20 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
         if (!entry.Directory) throw new IOException("Not a directory.");
         return children[path].ToArray();
     }
+    public SnapshotContentSummary? GetVerifiedContentSummary(string relativePath)
+    {
+        lock (readGate)
+        {
+            EnsureAvailable();
+            if (resetting) throw Failure("GitBasisObjectInvalid", "The owned reader generation is being invalidated.");
+            string path = Normalize(relativePath);
+            if (!blobs.TryGetValue(path, out string? objectId) || !proofs.TryGetValue(objectId, out var proof)) return null;
+            if (proof.Value.Length != entries[path].Length)
+                throw Failure("GitBasisObjectInvalid", "The fixed blob proof length changed.");
+            return new(path, proof.Value.Length, Convert.ToHexStringLower(proof.Value.Chunks.AsSpan(^32)),
+                proof.Value.ContainsCarriageReturn, proof.Value.ContainsNul);
+        }
+    }
     public int Read(string relativePath, long offset, Span<byte> destination)
     {
         EnsureAvailable(); string path = Normalize(relativePath);
@@ -243,10 +258,12 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
             staged = ArrayPool<byte>.Shared.Rent(count);
             ReadObserver?.Invoke(objectId, "leased");
             var session = lease.Session;
+            bool hasCr = false, hasNul = false;
             if (lease.CreateProof)
             {
                 var output = BeginBlob(session, length);
                 using var hash = IncrementalHash.CreateHash(objectId.Length == 40 ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256);
+                using var rawHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                 hash.AppendData(Encoding.ASCII.GetBytes("blob " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
                 for (long position = 0; position < length;)
                 {
@@ -254,6 +271,9 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
                     int n = (int)Math.Min(ChunkBytes, length - position);
                     output.ReadExactly(chunk.Bytes.AsSpan(0, n)); Interlocked.Add(ref decodedBlobBytes, n);
                     hash.AppendData(chunk.Bytes.AsSpan(0, n));
+                    rawHash.AppendData(chunk.Bytes.AsSpan(0, n));
+                    if (!hasCr) hasCr = chunk.Bytes.AsSpan(0, n).Contains((byte)'\r');
+                    if (!hasNul) hasNul = chunk.Bytes.AsSpan(0, n).Contains((byte)0);
                     SHA256.HashData(chunk.Bytes.AsSpan(0, n), lease.Proof.AsSpan((int)(position / ChunkBytes) * 32, 32));
                     long begin = Math.Max(position, offset), end = Math.Min(position + n, offset + count);
                     chunk.Offset = position; chunk.Length = n;
@@ -269,6 +289,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
                 }
                 if (output.ReadByte() != '\n' || Convert.ToHexStringLower(hash.GetHashAndReset()) != objectId)
                     throw Failure("GitBasisObjectInvalid", "The recorded blob hash failed; no requested bytes are published.");
+                rawHash.GetHashAndReset(lease.Proof.AsSpan(^32));
                 session.Streaming = false; session.Position = length;
             }
             else
@@ -287,7 +308,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
                 EnsureAvailable();
                 if (lease.CreateProof)
                 {
-                    proofs.Add(objectId, proofLru.AddLast(new BlobProof(objectId, length, lease.Proof)));
+                    proofs.Add(objectId, proofLru.AddLast(new BlobProof(objectId, length, lease.Proof, hasCr, hasNul)));
                     lease.Published = true; FullBlobProofs++;
                 }
                 staged.AsSpan(0, count).CopyTo(destination);
@@ -329,7 +350,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, IDisposable
                     session.Busy = true; activeReads++;
                     return new(session, cached.Value.Chunks, false);
                 }
-                long proofLength = ((length - 1) / ChunkBytes + 1) * 32;
+                long proofLength = ((length - 1) / ChunkBytes + 1) * 32 + 32;
                 if (proofLength > proofByteLimit) throw Failure("GitBasisUnsupported", "A recorded blob exceeds the bounded chunk-proof limit.");
                 // Active leases pin their proofs. Both reservations count before
                 // allocation; waiting callers allocate neither proofs nor readers.

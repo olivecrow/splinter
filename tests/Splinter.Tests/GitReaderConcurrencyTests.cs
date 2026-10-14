@@ -33,7 +33,7 @@ public sealed class GitReaderConcurrencyTests
             Assert.Equal(1, tree.ActiveReadCount);
             Assert.Equal(2, tree.PeakReaderProcesses);
             Assert.Equal(4 * Chunk, tree.CachedPayloadBytes);
-            Assert.Equal(512, tree.CachedProofBytes); // Both in-flight and completed proofs.
+            Assert.Equal(576, tree.CachedProofBytes); // Both in-flight and completed proofs.
         }
         finally { resume.Set(); await a; }
         Assert.Equal(2, tree.FullBlobProofs);
@@ -59,7 +59,7 @@ public sealed class GitReaderConcurrencyTests
             await Until(() => tree.WaitingReadCount == 1);
             Assert.Equal(1, tree.ActiveReadCount);
             Assert.Equal(2 * Chunk, tree.CachedPayloadBytes);
-            Assert.Equal(256, tree.CachedProofBytes);
+            Assert.Equal(288, tree.CachedProofBytes);
             Assert.False(alias.IsCompleted);
         }
         finally { resume.Set(); await a; if (alias is not null) await alias; }
@@ -86,7 +86,7 @@ public sealed class GitReaderConcurrencyTests
             await Until(() => tree.WaitingReadCount == 1);
             Assert.Equal(2, tree.ActiveReadCount);
             Assert.Equal(4 * Chunk, tree.CachedPayloadBytes);
-            Assert.Equal(512, tree.CachedProofBytes);
+            Assert.Equal(576, tree.CachedProofBytes);
             Assert.False(c.IsCompleted);
         }
         finally { resume.Set(); await Task.WhenAll(a, b); if (c is not null) await c; }
@@ -95,7 +95,7 @@ public sealed class GitReaderConcurrencyTests
     }
 
     [Theory]
-    [InlineData(256, 4096)]
+    [InlineData(288, 4096)]
     [InlineData(4194304, 1)]
     public async Task PendingProofReservationsApplyBothBudgetsBeforeAllocation(int bytes, int entries)
     {
@@ -111,12 +111,12 @@ public sealed class GitReaderConcurrencyTests
         {
             await Until(() => entered.IsSet);
             b = ReadTask(f, tree, "b.bin"); await Until(() => tree.WaitingReadCount == 1);
-            Assert.Equal(256, tree.CachedProofBytes);
+            Assert.Equal(288, tree.CachedProofBytes);
             Assert.Equal(2 * Chunk, tree.CachedPayloadBytes);
             Assert.Equal(1, tree.ActiveReadCount);
         }
         finally { resume.Set(); await a; if (b is not null) await b; }
-        Assert.Equal(256, tree.PeakProofBytes);
+        Assert.Equal(288, tree.PeakProofBytes);
         Assert.Equal(1, tree.CachedProofCount);
         Assert.Equal(1, tree.PeakReaderProcesses);
     }
@@ -253,7 +253,7 @@ public sealed class GitReaderConcurrencyTests
         stopwatch.Stop();
         Assert.Equal(2, tree.FullBlobProofs); Assert.Equal(2, tree.ReaderProcessStarts);
         Assert.InRange(tree.DecodedBlobBytes, 16L * Chunk, 32L * Chunk);
-        Assert.Equal(4 * Chunk, tree.CachedPayloadBytes); Assert.Equal(512, tree.PeakProofBytes);
+        Assert.Equal(4 * Chunk, tree.CachedPayloadBytes); Assert.Equal(576, tree.PeakProofBytes);
         TestContext.Current.TestOutputHelper!.WriteLine(JsonSerializer.Serialize(new
         {
             scenario = "two-packed-blobs-overlapping-4k-ranges",

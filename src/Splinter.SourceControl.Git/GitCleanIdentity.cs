@@ -114,13 +114,16 @@ internal sealed class GitCleanIdentity
             // identity from Git's separate diff binary-prefix heuristic. Limit
             // this sufficient condition to avoid overflow of Git's unsigned
             // statistics (and unsigned-long input length on Windows).
-            bool identity = requirement == GitCleanRequirement.Always || !hasCr ||
-                requirement == GitCleanRequirement.NoCarriageReturnOrNul && hasNul && expectedLength <= uint.MaxValue;
+            bool identity = IsRawIdentity(requirement, expectedLength, hasCr, hasNul);
             return (Convert.ToHexStringLower(raw.GetHashAndReset()),
                 identity ? Convert.ToHexStringLower(git.GetHashAndReset()) : null);
         }
         finally { ArrayPool<byte>.Shared.Return(buffer); }
     }
+
+    internal static bool IsRawIdentity(GitCleanRequirement requirement, long length, bool hasCr, bool hasNul) =>
+        requirement != GitCleanRequirement.None && (requirement == GitCleanRequirement.Always || !hasCr ||
+            requirement == GitCleanRequirement.NoCarriageReturnOrNul && hasNul && length <= uint.MaxValue);
 
     private static WorkspaceException Changed() => new("SourceChanged", "Source length changed during content verification; preserve edits and retry.");
     private static bool IsFalse(string? value) => value is not null && (value.Equals("false", StringComparison.OrdinalIgnoreCase) ||

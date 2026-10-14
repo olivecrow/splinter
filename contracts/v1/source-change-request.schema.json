@@ -18,11 +18,32 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "expectedGeneration": {
+      "$ref": "urn:splinter:v1:source-change-view"
+    },
+    "contentPaths": {
+      "uniqueItems": true,
+      "maxItems": 4096,
+      "items": {
+        "minLength": 1,
+        "maxLength": 32000,
+        "type": "string"
+      },
+      "type": "array"
     }
   },
   "required": [
     "token",
     "requestId",
     "managedPaths"
-  ]
+  ],
+  "dependentRequired": {
+    "contentPaths": [
+      "expectedGeneration"
+    ],
+    "expectedGeneration": [
+      "contentPaths"
+    ]
+  }
 }

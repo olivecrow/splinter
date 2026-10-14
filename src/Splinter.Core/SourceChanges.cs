@@ -14,6 +14,24 @@ public interface ISourceChangeProvider
     string CachePath(WorkspaceRecord workspace);
 }
 
+// Optional immutable-reader evidence, retained only after complete content
+// verification. A missing/evicted proof requires the ordinary payload read.
+public sealed record SnapshotContentSummary(string Path, long Length, string Sha256,
+    bool ContainsCarriageReturn, bool ContainsNul);
+public interface ISnapshotContentSummaryProvider
+{
+    SnapshotContentSummary? GetVerifiedContentSummary(string path);
+}
+public sealed record SourceContentSummaryView(SnapshotReference Snapshot, SourceChangeView Generation,
+    SnapshotContentSummary[] Files);
+public interface ISourceContentSummaryProvider
+{
+    // Only the first live provider generation may supply initial-admission
+    // evidence. The caller must bind this request to its same-operation barrier.
+    Task<SourceContentSummaryView?> ObserveInitialContentAsync(WorkspaceRecord workspace,
+        SourceChangeView expected, string[] paths, CancellationToken ct = default);
+}
+
 public sealed record SourceInspectionMetrics(string Mode, long PayloadBytesHashed, int FilesHashed,
     int FilesReused, long ManifestBytes, double ElapsedMilliseconds, string? Epoch = null, long? Sequence = null,
     long GitHashInputBytes = 0, [property: JsonRequired] int GitHashProcesses = 0);

@@ -3,6 +3,10 @@
 
 [한국어](ko/source-verification.md)
 
+The throughput follow-up is tracked in [TP-01–06](verification/unity-throughput-optimization.md). A fresh Git mount can reuse raw hashes and content characteristics already proved by full immutable-blob validation. This one-use initial admission is bound to the exact snapshot, mount, managed paths, revision and provider generation; changed paths are excluded. The first index refresh, fresh inspection barriers and final collection remain. Reconnects, prior launch intents, existing manifests and explicit audits do not use this admission proof. The common summary contains raw SHA-256, length, CR/NUL observations and path; Git object identity is interpreted only by the Git adapter.
+
+Product Windows mounts retain kernel file cache across Cleanup. Each source query and explicit flush first flushes the exact owned volume through a root handle whose native volume name and root identity match the live WinFsp host. Stop fences new opens, flushes, invalidates retained linked caches and waits for actual final context closure before unmount. Live mapped contexts or failed barriers preserve the running provider; they do not authorize forced unmount or a successful receipt. Direct diagnostic hosts keep their previous purge policy. Kernel cache memory is OS-managed, separate from the bounded decoded-payload cache.
+
 The current bounded path cache and combined finalization are qualified in [LF-01–05](verification/lifecycle-finalization-optimization.md). An inspection may reuse at most 4,096 plain ancestor directories / 1,048,576 path characters inside its observed mount and authoritative journal barrier. Leaf/native ancestors and external Git state remain fresh. `checkpoint --release` reuses only the same invocation's completed checkpoint seal as release's starting seal; its fresh source inspection and subsequent seals remain mandatory.
 
 The current ordinary-folder path for `--source none` and v2 state/service packages follows [VCS-free workspaces](vcs-independent-workspaces.md). Git paths and historical native qualification below do not qualify ordinary-folder support.
@@ -55,12 +59,13 @@ Writes in managed paths such as `Library`, `Temp`, and the owned Unity bridge do
 <a id="manifest와-복구"></a>
 ## Manifests and recovery
 
-`records/<id>/source-fingerprint.json` is an internal checksummed version 2 manifest storing exact `SnapshotReference`, workspace ID, managed-policy digest, interpretation digest, epoch/sequence, and per-path raw/Git hashes. It stores no payload copies and has a 64MiB size limit. Flush temporary files before replacement.
+`records/<id>/source-fingerprint.json` is an internal checksummed version 3 manifest storing exact `SnapshotReference`, workspace ID, managed-policy digest, configuration digest, epoch/sequence, and per-path raw/Git hashes and attribute-interpretation digests. Unchanged files reuse their Git hash only when both configuration and that path's interpretation match. New unrelated paths do not invalidate every existing conversion hash. The complete operation interpretation digest still guards staging and final validation. No raw configuration/attribute values or payload copies are stored; the limit remains 64MiB. Flush temporary files before replacement.
 
 - A new invocation of the same CLI reuses it if the live provider generation matches.
 - Provider restart requires full-read `rebuild` for the new epoch, without substituting a new original snapshot.
-- Missing manifests use full-read `initial`; damaged/older formats produce `SourceCacheRevalidationRequired`. Historical success is not automatically reused.
-- `workspace status --audit-source --id <id> --home <home>` reads the full source and rewrites the manifest. First preserve rejected manifests as `.rejected-<id>`. It includes `--verify-source` behavior.
+- Missing manifests use full-read `initial`; damaged current manifests produce `SourceCacheRevalidationRequired`. Historical success is not automatically reused.
+- An explicitly different manifest version produces `SourceCacheVersionUnsupported` and is preserved unchanged, including with `--audit-source`. There is no automatic migration.
+- `workspace status --audit-source --id <id> --home <home>` reads the full source and rewrites a current-format manifest. First preserve damaged current manifests as `.rejected-<id>`. It includes `--verify-source` behavior.
 - Unknown snapshot/provider observations, complete-journal corruption, and mismatched before/after source generations block successful publication. Existing rules for incomplete final-frame replay and acknowledged-write preservation remain.
 
 Ordinary status observes owned application/provider without reading source content. Explicit current checks use `--verify-source`; check `sourceVerification=verified` and the returned source fingerprint. This verifies stored content; external tools separately evaluate compile/test success.

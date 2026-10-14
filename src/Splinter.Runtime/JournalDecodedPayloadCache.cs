@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 
 namespace Splinter.Runtime;
 
-// Owned by one journal and protected by its gate. This is RAM only: callers
+// Owned by one journal and protected by its payload-cache gate. This is RAM only: callers
 // still read the current encoded bytes through the owned journal on every use.
 internal sealed class JournalDecodedPayloadCache
 {

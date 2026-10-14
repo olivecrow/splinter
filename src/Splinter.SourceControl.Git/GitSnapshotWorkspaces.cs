@@ -55,8 +55,13 @@ public sealed partial class GitWorkspaceProvider
             ReceiptPath(control), ct, capturedSource: true,
             preparationPoint: boundary => preparationObserver?.ReachedAsync(boundary, w, ct) ?? Task.CompletedTask);
     }
-    public async Task AttachAsync(WorkspaceRecord w, string control, CancellationToken ct = default) =>
-        await GitOverlayRegistration.AttachAsync(await Receipt(w, control, ct), ct);
+    public async Task AttachAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
+    {
+        var receipt = await Receipt(w, control, ct);
+        initialContentAdmissions.TryRemove(w.Id, out _);
+        await GitOverlayRegistration.AttachAsync(receipt, ct);
+        await BeginInitialContentInspectionAsync(w, ct);
+    }
 
     public async Task<string> PreserveAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {

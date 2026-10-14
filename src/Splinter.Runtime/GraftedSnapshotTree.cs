@@ -4,7 +4,7 @@ namespace Splinter.Runtime;
 
 // A fixed source tree and a fixed generated subtree have separate identities.
 // Every mount/journal persists both; this never reads a mutable source directory.
-public sealed class GraftedSnapshotTree : ISnapshotTree
+public sealed class GraftedSnapshotTree : ISnapshotTree, ISnapshotContentSummaryProvider
 {
     private readonly ISnapshotTree source, generated;
     private readonly string root;
@@ -42,5 +42,13 @@ public sealed class GraftedSnapshotTree : ISnapshotTree
     {
         path = policy.Normalize(path); EnsureAvailable();
         return Lower(path) is { } lower ? generated.Read(lower, offset, destination) : source.Read(path, offset, destination);
+    }
+    public SnapshotContentSummary? GetVerifiedContentSummary(string path)
+    {
+        path = policy.Normalize(path); EnsureAvailable();
+        // Generated content belongs to a separate basis and cannot become
+        // evidence for a source file in this snapshot.
+        return Lower(path) is null && source is ISnapshotContentSummaryProvider provider
+            ? provider.GetVerifiedContentSummary(path) : null;
     }
 }

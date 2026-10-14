@@ -2,6 +2,8 @@
 
 [English](../../verification/unity-shared-editor.md)
 
+후속 [FU-01](unity-finalization-rerun.md)은 커밋 `07bc2de`와 현재 Library로 양쪽을 새로 측정한다. 아래 SE-01 관측은 기록한 그대로 보존한다.
+
 SE-01 · 2026-10-14. 독립 Codex 하위 에이전트 두 세션이 Editor 없는 Git 워크트리에서 코드를 준비하고, 기존 프로젝트의 Editor 하나가 결과를 순차 검증한다. 일반 워크트리와 Splinter **양쪽 모두** 독립 Editor 두 개를 사용한 [RC-01](unity-current-comparison.md)과 구분한다.
 
 ## 입력과 방법

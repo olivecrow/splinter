@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/unity-shared-editor.md)
 
+The later [FU-01](unity-finalization-rerun.md) runs a new paired comparison with committed `07bc2de` and the current Library. The SE-01 observations below are preserved as recorded.
+
 SE-01 · 2026-10-14. Two independent Codex subagent sessions prepare code in editorless Git worktrees; one existing-project Editor validates their results sequentially. This answers a different question from [RC-01](unity-current-comparison.md), where **both** ordinary worktrees and Splinter run two independent Editors.
 
 ## Input and method

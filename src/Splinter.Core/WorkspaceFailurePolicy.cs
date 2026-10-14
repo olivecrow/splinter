@@ -7,6 +7,7 @@ public static class WorkspaceFailurePolicy
         "ProjectBasisMismatch" or "GeneratedBasisChanged" or "GeneratedRestoreConflict" or "RestoreSealMismatch" or "PlasticBasisInvalid" or
         "GitBasisReadTimeout" or
         "GitBasisRefChanged" or "GitBasisReceiptInvalid" or "GitBasisObjectInvalid" or
+        "SourceCacheVersionUnsupported" or "GitAttributeOutputInvalid" or
         "FileSourceStateInvalid" or "FileResultIncomplete" or
         "OriginalApplyStateInvalid" or "OriginalApplyPending" or "OriginalApplyRequestConflict" or "OriginalApplyConflict" or
         "OriginalApplyNativeFailure" or "OriginalApplyPlanChanged" or "OriginalApplyResultFixed" or "OriginalApplyResourcesPresent" or

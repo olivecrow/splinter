@@ -2,6 +2,10 @@
 
 [English](../source-verification.md)
 
+처리 시간 후속은 [TP-01–06](verification/unity-throughput-optimization.md)이 추적한다. 새 Git mount는 불변 blob 전체 내용 검증으로 이미 증명한 raw hash와 내용 특성을 재사용할 수 있다. 최초 1회 admission은 정확한 snapshot·mount·관리 경로·revision·provider 세대에 묶이고 변경 경로는 제외한다. 첫 index refresh·새 검사 장벽·최종 수집은 유지한다. 재연결·이전 launch intent·기존 manifest·명시적 감사는 이 증명을 사용하지 않는다. 공통 summary는 경로·raw SHA-256·길이·CR/NUL 관측만 포함하고 Git object identity는 Git adapter만 해석한다.
+
+제품 Windows mount는 Cleanup 뒤에도 kernel 파일 cache를 유지한다. 소스 요청과 명시적 flush마다 root 핸들의 native volume 이름·root identity를 현재 WinFsp host와 대조하고 정확한 소유 volume을 먼저 flush한다. 종료는 새 open을 차단하고 flush·연결된 cache 무효화·실제 마지막 context 종료를 확인한 뒤 unmount한다. 사용 중인 mapped context나 장벽 실패는 실행 중 provider를 보존하며 강제 unmount나 성공 영수증을 허용하지 않는다. 직접 사용하는 진단 host는 이전 purge 정책을 유지한다. kernel cache 메모리는 OS가 관리하며 제한된 decoded payload cache와 별개다.
+
 현재 유한 경로 cache와 통합 종료의 자격은 [LF-01–05](verification/lifecycle-finalization-optimization.md)를 따른다. 관측한 mount와 신뢰할 수 있는 저널 세대 경계 안에서 검사 하나가 plain 상위 디렉터리 최대 4,096개 / 경로 1,048,576자를 재사용한다. leaf/native 조상과 외부 Git 상태는 새로 확인한다. `checkpoint --release`는 같은 호출의 성공한 checkpoint seal만 release의 시작 seal로 재사용하며 새 소스 검사와 이후 seal을 유지한다.
 
 현재 `--source none`의 일반 폴더 경로와 v2 상태/서비스 패키지는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
@@ -52,12 +56,13 @@ release는 infrastructure 제거 후 저장한 저널 seal과 정확히 일치�
 
 ## manifest와 복구
 
-`records/<id>/source-fingerprint.json`은 checksum을 가진 내부 version 2 manifest다. 정확한 `SnapshotReference`, workspace ID, 관리 정책 digest, 해석 digest, epoch/sequence, 경로별 raw/Git hash를 저장한다. payload 사본은 저장하지 않으며 크기 상한은 64MiB다. 임시 파일을 flush한 뒤 교체한다.
+`records/<id>/source-fingerprint.json`은 checksum을 가진 내부 version 3 manifest다. 정확한 `SnapshotReference`, workspace ID, 관리 정책 digest, 설정 digest, epoch/sequence, 경로별 raw/Git hash와 속성 해석 digest를 저장한다. 미변경 파일의 Git hash는 설정과 해당 경로의 해석이 모두 같을 때만 재사용한다. 무관한 새 경로가 모든 기존 변환 hash를 무효화하지 않는다. 전체 연산 해석 digest는 staging과 최종 검증을 계속 보호한다. 설정/속성 원문과 payload 사본은 저장하지 않으며 크기 상한은 64MiB다. 임시 파일을 flush한 뒤 교체한다.
 
 - 같은 CLI를 새로 실행해도 살아 있는 provider 세대가 같으면 재사용한다.
 - provider 재시작은 새 epoch의 전체 읽기 `rebuild`를 요구한다. 원본의 새 snapshot으로 대체하지 않는다.
-- manifest 누락은 전체 읽기 `initial`, 손상·이전 형식은 `SourceCacheRevalidationRequired`다. 자동으로 과거 성공을 재사용하지 않는다.
-- `workspace status --audit-source --id <id> --home <home>`은 전체 소스를 읽고 다시 작성한다. 거부된 manifest는 `.rejected-<id>`로 먼저 보존한다. `--verify-source`를 포함하는 동작이다.
+- manifest 누락은 전체 읽기 `initial`, 현재 형식의 손상은 `SourceCacheRevalidationRequired`다. 자동으로 과거 성공을 재사용하지 않는다.
+- 명시적으로 다른 manifest 버전은 `SourceCacheVersionUnsupported`로 원문을 보존·거부하며 `--audit-source`에도 동일하게 적용한다. 자동 이관은 없다.
+- `workspace status --audit-source --id <id> --home <home>`은 전체 소스를 읽고 현재 형식 manifest를 다시 작성한다. 손상된 현재 manifest는 `.rejected-<id>`로 먼저 보존한다. `--verify-source`를 포함하는 동작이다.
 - snapshot/provider 관측 unknown, 완결 저널 손상, 앞뒤 소스 세대 불일치는 성공 발행을 차단한다. 불완전한 마지막 journal frame의 재생 규칙과 acknowledged write 보존은 기존 계약을 유지한다.
 
 일반 status는 소스 내용을 읽지 않고 소유 앱/provider를 관측한다. 명시적 현재 검사는 `--verify-source`이며 `sourceVerification=verified`와 반환 source fingerprint를 확인한다. 이는 저장 내용 검사다. 컴파일·테스트 성공은 외부 도구에서 별도로 판단한다.

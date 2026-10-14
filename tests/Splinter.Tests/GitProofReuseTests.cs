@@ -5,7 +5,7 @@ using Splinter.SourceControl.Git;
 
 namespace Splinter.Tests;
 
-public sealed class GitProofReuseTests
+public sealed partial class GitProofReuseTests
 {
     [Fact]
     public async Task InsufficientProofBudgetRejectsBeforePayloadDecoding()
@@ -30,7 +30,7 @@ public sealed class GitProofReuseTests
         Assert.Equal(f.A[..16], bytes);
         Assert.Equal(65536, tree.DecodedBlobBytes - before);
         Assert.Equal(2, tree.FullBlobProofs); Assert.Equal(2, tree.CachedProofCount);
-        Assert.Equal(1024, tree.CachedProofBytes);
+        Assert.Equal(1088, tree.CachedProofBytes);
         before = tree.DecodedBlobBytes;
         tree.Read("alias.bin", 0, bytes);
         Assert.Equal(f.A[..16], bytes); Assert.Equal(before, tree.DecodedBlobBytes);
@@ -40,7 +40,7 @@ public sealed class GitProofReuseTests
     }
 
     [Theory]
-    [InlineData(1024, 4096)]
+    [InlineData(1088, 4096)]
     [InlineData(4194304, 2)]
     public async Task EvictionIsLruAndInflightProofStaysWithinTheByteBudget(int bytes, int entries)
     {
@@ -49,7 +49,7 @@ public sealed class GitProofReuseTests
         Assert.Equal(3, tree.FullBlobProofs);
         tree.Read("a.bin", 0, new byte[16]); Assert.Equal(3, tree.FullBlobProofs);
         tree.Read("b.bin", 0, new byte[16]); Assert.Equal(4, tree.FullBlobProofs);
-        Assert.InRange(tree.CachedProofCount, 1, 2); Assert.InRange(tree.PeakProofBytes, 512, bytes);
+        Assert.InRange(tree.CachedProofCount, 1, 2); Assert.InRange(tree.PeakProofBytes, 544, bytes);
         tree.Dispose(); Assert.Equal(0, tree.CachedProofBytes); Assert.Equal(0, tree.CachedProofCount);
     }
 
@@ -69,6 +69,8 @@ public sealed class GitProofReuseTests
         Assert.Equal("GitBasisObjectInvalid", Assert.Throws<WorkspaceException>(() => tree.Read("a.bin", 0, destination)).Code);
         Assert.All(destination, b => Assert.Equal((byte)217, b));
         Assert.Equal(0, tree.CachedProofBytes); Assert.Equal(0, tree.CachedProofCount);
+        Assert.Null(tree.GetVerifiedContentSummary("a.bin"));
+        Assert.Null(tree.GetVerifiedContentSummary("b.bin"));
         tree.Read("b.bin", 0, new byte[16]); Assert.Equal(3, tree.FullBlobProofs);
     }
 

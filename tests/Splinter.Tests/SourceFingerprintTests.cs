@@ -91,7 +91,8 @@ public sealed partial class SourceFingerprintTests
         var binary = await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken);
         Assert.Contains("code.cs", binary.ChangedPaths);
         Assert.NotEqual(originalBlob, CachedGitHash());
-        Assert.True(binary.Inspection!.GitHashInputBytes >= new FileInfo(f.Path("large.bin")).Length);
+        Assert.Equal(new FileInfo(f.Path(".gitattributes")).Length + new FileInfo(f.Path("code.cs")).Length,
+            binary.Inspection!.GitHashInputBytes);
         Assert.True(binary.Inspection.PayloadBytesHashed < 1024);
         byte[] prior = File.ReadAllBytes(f.Tracker.CachePath(f.Workspace));
         File.WriteAllText(f.Path(".gitattributes"), "*.cs filter=lfs\n"); f.Tracker.Mark(".gitattributes");
@@ -196,7 +197,7 @@ public sealed partial class SourceFingerprintTests
         Assert.False(contracts.Validate("urn:splinter:v1:source-change-response", JsonSerializer.SerializeToElement(response with { Error = "failed" }, json)).IsValid);
     }
 
-    private sealed class Tracker(string cache) : ISourceChangeProvider
+    private sealed partial class Tracker(string cache) : ISourceChangeProvider
     {
         public string Epoch = "first-provider";
         public Action<int>? OnObserve;

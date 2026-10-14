@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/lifecycle-finalization-optimization.md)
 
+The subsequent real Unity run of committed `07bc2de` is recorded separately in [FU-01](unity-finalization-rerun.md), including parallel combined completion and a fresh shared-Editor comparison. The bounded LF costs below retain their original scope.
+
 This document owns LF-01–05, the bounded follow-up to [RC-01](unity-current-comparison.md). RC-01 recorded 199.5 seconds for serial A/B checkpoint/release. Its source inspections reused all 1,602 content hashes but still took about nine seconds each; each roughly 36 MB journal contained about 16,500 files. Those observations motivate the changes below; they are not timings of this candidate.
 
 ## Scope and preserved boundaries

@@ -144,7 +144,7 @@ public sealed class GitCleanIdentityTests
         await f.AssertGitHashes();
         File.AppendAllText(f.Path(".gitattributes"), "code.cs -text\n"); f.Tracker.Mark(".gitattributes");
         var attributesChanged = await f.Provider().InspectAsync(f.Workspace, ct);
-        Assert.True(attributesChanged.Inspection!.GitHashInputBytes > 1024 * 1024);
+        Assert.Equal(new FileInfo(f.Path("code.cs")).Length, attributesChanged.Inspection!.GitHashInputBytes);
         Assert.True(attributesChanged.Inspection.PayloadBytesHashed < 1024);
         await f.AssertGitHashes();
         f.Tracker.Epoch = "restart";

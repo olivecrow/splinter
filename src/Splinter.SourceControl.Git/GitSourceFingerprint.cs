@@ -9,10 +9,13 @@ namespace Splinter.SourceControl.Git;
 
 public sealed partial class GitWorkspaceProvider
 {
-    private sealed record FileHash(string Path, string Hash, string? GitHash);
+    private sealed record FileHash(string Path, string Hash, string? GitHash, string Interpretation);
     private sealed record SourceManifest(int Version, string WorkspaceId, SnapshotReference Snapshot,
-        string Policy, string Epoch, long Sequence, FileHash[] Files, string Interpretation);
+        string Policy, string Epoch, long Sequence, FileHash[] Files, string Configuration);
     private sealed record SourceManifestEnvelope(SourceManifest Value, string Sha256);
+    private sealed record SourceInterpretation(string Configuration, Dictionary<string, string> Paths);
+    private static readonly string EmptyPathInterpretation = Convert.ToHexStringLower(SHA256.HashData(ReadOnlySpan<byte>.Empty));
+    private const int SourceManifestVersion = 3;
     private const long MaxManifestBytes = 64 * 1024 * 1024;
     private sealed record SourceProof(SourceChangeView View, string Revision, string[] Files, string Interpretation,
         string Index, string Path, string ProjectPath, SnapshotReference Snapshot, string[] ManagedPaths, bool CompleteMembership);
@@ -21,6 +24,7 @@ public sealed partial class GitWorkspaceProvider
         Action<SourceProof>? capture = null)
     {
         var clock = Stopwatch.StartNew();
+        initialContentAdmissions.TryRemove(workspace.Id, out var initialAdmission);
         var tracker = WorkspaceStorage.HasRangeJournal(workspace.StorageMode) ? sourceChanges : null;
         var before = tracker is null ? null : await tracker.ObserveChangesAsync(workspace, ct);
         if (before is not null) RequireView(workspace, before);
@@ -30,8 +34,10 @@ public sealed partial class GitWorkspaceProvider
         string[] files = await SourceFiles(workspace, ct);
         if (before is not null) await CheckSnapshotGitFiles(workspace.Path, ct);
         GitCleanIdentity? cleanIdentity = null;
+        SourceInterpretation? sourceInterpretation = null;
         string interpretation = before is null ? "" : await Interpretation(workspace, files, ct,
-            workspace.StorageMode == "git-snapshot" ? value => cleanIdentity = value : null);
+            workspace.StorageMode == "git-snapshot" ? value => cleanIdentity = value : null,
+            value => sourceInterpretation = value);
         HashAlgorithmName gitAlgorithm = default;
         if (cleanIdentity is not null && files.Any(path => cleanIdentity.Requirement(path) != GitCleanRequirement.None))
             gitAlgorithm = (await Required(workspace.Path, ["rev-parse", "--show-object-format"], ct)) switch
@@ -51,11 +57,12 @@ public sealed partial class GitWorkspaceProvider
             try { prior = await ReadManifest(cachePath, ct); }
             catch (WorkspaceException ex) when (ex.Code == "SourceCacheRevalidationRequired" && auditSource) { corrupt = true; }
         }
-        bool reusable = !auditSource && prior is not null && before is not null && prior.Version == 2 &&
+        bool reusable = !auditSource && prior is not null && before is not null && prior.Version == SourceManifestVersion &&
             prior.WorkspaceId == workspace.Id && prior.Snapshot == workspace.Snapshot!.Reference &&
             prior.Policy == policy && prior.Epoch == before.Epoch && prior.Sequence <= before.Sequence;
         var cached = reusable ? prior!.Files.ToDictionary(f => f.Path, StringComparer.Ordinal) : [];
         var invalidated = reusable ? before!.Changes.Where(p => p.Sequence > prior!.Sequence).Select(p => p.Path).ToArray() : [];
+        var initialContent = await InitialContentAsync(workspace, initialAdmission, before, revision, files, prior is not null || corrupt, ct);
         var hashes = new List<FileHash>(files.Length);
         var needsGitHash = new List<string>();
         long payload = 0, gitHashInput = 0;
@@ -72,9 +79,19 @@ public sealed partial class GitWorkspaceProvider
             if (attributes is null || (attributes & FileAttributes.Directory) != 0) continue;
             string fileHash;
             string? gitHash = null;
+            string pathInterpretation = sourceInterpretation?.Paths.GetValueOrDefault(relative, EmptyPathInterpretation) ?? "";
             bool unchanged = cached.TryGetValue(relative, out var item) && !invalidated.Any(path => SourcePathPolicy.Affects(path, relative));
             if (unchanged)
             { fileHash = item!.Hash; reusedFiles++; }
+            else if (initialContent.TryGetValue(relative, out var initial))
+            {
+                if (new FileInfo(full).Length != initial.Summary.Length)
+                    throw Error("SourceChanged", "Initial source length changed after its fixed content proof.");
+                fileHash = initial.Summary.Sha256; reusedFiles++;
+                if (GitCleanIdentity.IsRawIdentity(cleanIdentity?.Requirement(relative) ?? GitCleanRequirement.None,
+                    initial.Summary.Length, initial.Summary.ContainsCarriageReturn, initial.Summary.ContainsNul))
+                    gitHash = initial.ObjectId;
+            }
             else
             {
                 await using var stream = File.OpenRead(full);
@@ -92,7 +109,8 @@ public sealed partial class GitWorkspaceProvider
             }
             if (before is not null)
             {
-                if (unchanged && prior!.Interpretation == interpretation) gitHash = item!.GitHash;
+                if (unchanged && prior!.Configuration == sourceInterpretation!.Configuration && item!.Interpretation == pathInterpretation)
+                    gitHash = item.GitHash;
                 else if (gitHash is null)
                 {
                     // Unproved conversion identity (including reused raw hashes
@@ -101,7 +119,7 @@ public sealed partial class GitWorkspaceProvider
                     gitHashInput += new FileInfo(full).Length;
                 }
             }
-            hashes.Add(new(relative, fileHash, gitHash));
+            hashes.Add(new(relative, fileHash, gitHash, pathInterpretation));
             byte[] name = Encoding.UTF8.GetBytes(relative);
             fingerprint.AppendData(BitConverter.GetBytes(name.Length)); fingerprint.AppendData(name);
             fingerprint.AppendData([1]); fingerprint.AppendData(Convert.FromHexString(fileHash));
@@ -154,7 +172,8 @@ public sealed partial class GitWorkspaceProvider
         long manifestBytes = 0;
         if (cachePath is not null && before is not null)
         {
-            var manifest = new SourceManifest(2, workspace.Id, workspace.Snapshot!.Reference!, policy, before.Epoch, before.Sequence, hashes.ToArray(), interpretation);
+            var manifest = new SourceManifest(SourceManifestVersion, workspace.Id, workspace.Snapshot!.Reference!, policy, before.Epoch,
+                before.Sequence, hashes.ToArray(), sourceInterpretation!.Configuration);
             byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(new SourceManifestEnvelope(manifest, ManifestHash(manifest)), Json);
             if (bytes.Length > MaxManifestBytes) throw Error("SourceManifestLimit", "Source metadata exceeds the bounded manifest size; preserve the workspace.");
             string temporary = cachePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
@@ -265,17 +284,53 @@ public sealed partial class GitWorkspaceProvider
         Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(manifest, Json)));
 
     private static async Task<string> Interpretation(WorkspaceRecord workspace, string[] files, CancellationToken ct,
-        Action<GitCleanIdentity>? captureIdentity = null)
+        Action<GitCleanIdentity>? captureIdentity = null, Action<SourceInterpretation>? captureInterpretation = null)
     {
         using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         // Only a digest is persisted: config may contain private values.
         string config = await Required(workspace.Path, ["config", "--null", "--list"], ct);
         digest.AppendData(Encoding.UTF8.GetBytes(config));
         var identity = captureIdentity is null ? null : new GitCleanIdentity(config);
+        var paths = captureInterpretation is null ? null : new Dictionary<string, string>(StringComparer.Ordinal);
+        var membership = paths is null ? null : files.ToHashSet(StringComparer.Ordinal);
         await AttributeOutputAsync(workspace.Path, files, cached: false, all: true,
-            output => { digest.AppendData(Encoding.UTF8.GetBytes(output)); identity?.AddAttributes(output); }, ct);
+            output =>
+            {
+                // Keep the operation-wide digest unchanged for fresh staging
+                // and generation barriers. Only persistent reuse is path-scoped.
+                digest.AppendData(Encoding.UTF8.GetBytes(output)); identity?.AddAttributes(output);
+                if (paths is not null) CapturePathInterpretations(output, membership!, paths);
+            }, ct);
         if (identity is not null) captureIdentity!(identity);
+        if (paths is not null) captureInterpretation!(new(
+            Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(config))), paths));
         return Convert.ToHexStringLower(digest.GetHashAndReset());
+    }
+
+    private static void CapturePathInterpretations(string output, HashSet<string> membership, Dictionary<string, string> paths)
+    {
+        if (output.Length == 0) return;
+        string[] fields = output.Split('\0');
+        if (fields[^1] != "" || (fields.Length - 1) % 3 != 0)
+            throw Error("GitAttributeOutputInvalid", "Git returned an incomplete attribute interpretation; preserve the source.");
+        var attributes = new Dictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+        for (int i = 0; i < fields.Length - 1; i += 3)
+        {
+            string path = fields[i], name = fields[i + 1];
+            if (!membership.Contains(path) || name.Length == 0)
+                throw Error("GitAttributeOutputInvalid", "Git returned an invalid path or attribute interpretation; preserve the source.");
+            if (!attributes.TryGetValue(path, out var values)) attributes.Add(path, values = new(StringComparer.Ordinal));
+            if (!values.TryAdd(name, fields[i + 2]))
+                throw Error("GitAttributeOutputInvalid", "Git returned a duplicate attribute interpretation; preserve the source.");
+        }
+        foreach (var entry in attributes)
+        {
+            using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            foreach (var attribute in entry.Value)
+                digest.AppendData(Encoding.UTF8.GetBytes(attribute.Key + "\0" + attribute.Value + "\0"));
+            if (!paths.TryAdd(entry.Key, Convert.ToHexStringLower(digest.GetHashAndReset())))
+                throw Error("GitAttributeOutputInvalid", "Git repeated a path across attribute batches; preserve the source.");
+        }
     }
 
     private static async Task<SourceManifest?> ReadManifest(string path, CancellationToken ct)
@@ -284,11 +339,22 @@ public sealed partial class GitWorkspaceProvider
         try
         {
             if (new FileInfo(path).Length > MaxManifestBytes) throw new JsonException();
-            var envelope = JsonSerializer.Deserialize<SourceManifestEnvelope>(await File.ReadAllTextAsync(path, ct), Json);
-            if (envelope?.Value is not { } value || envelope.Sha256 != ManifestHash(value) || value.Version != 2 ||
+            string text = await File.ReadAllTextAsync(path, ct);
+            using (var document = JsonDocument.Parse(text))
+            {
+                if (document.RootElement.ValueKind != JsonValueKind.Object) throw new JsonException();
+                if (document.RootElement.TryGetProperty("value", out var stored) && stored.ValueKind == JsonValueKind.Object &&
+                    stored.TryGetProperty("version", out var version) && version.ValueKind == JsonValueKind.Number &&
+                    version.TryGetInt32(out int found) && found != SourceManifestVersion)
+                    throw new WorkspaceException("SourceCacheVersionUnsupported",
+                        "Preserve the source manifest: only version 3 is supported; older formats are not migrated by audit.", new { path, version = found });
+            }
+            var envelope = JsonSerializer.Deserialize<SourceManifestEnvelope>(text, Json);
+            if (envelope?.Value is not { } value || envelope.Sha256 != ManifestHash(value) || value.Version != SourceManifestVersion ||
                 value.Snapshot is null || string.IsNullOrWhiteSpace(value.WorkspaceId) || string.IsNullOrWhiteSpace(value.Epoch) ||
-                value.Sequence < 0 || string.IsNullOrEmpty(value.Interpretation) || value.Files is null || value.Files.Any(f => f is null || string.IsNullOrEmpty(f.Path) ||
+                value.Sequence < 0 || !IsInterpretationHash(value.Configuration) || value.Files is null || value.Files.Any(f => f is null || string.IsNullOrEmpty(f.Path) ||
                     f.Hash is null || f.Hash.Length != 64 || !f.Hash.All(char.IsAsciiHexDigit) ||
+                    !IsInterpretationHash(f.Interpretation) ||
                     f.GitHash is null || f.GitHash.Length is not (40 or 64) || !f.GitHash.All(char.IsAsciiHexDigit)) ||
                 value.Files.Select(f => f.Path).Distinct(StringComparer.Ordinal).Count() != value.Files.Length)
                 throw new JsonException();
@@ -300,6 +366,8 @@ public sealed partial class GitWorkspaceProvider
                 "Preserve the invalid source manifest and run workspace status --audit-source to rebuild it by reading all source.", new { path });
         }
     }
+
+    private static bool IsInterpretationHash(string? value) => value is { Length: 64 } && value.All(char.IsAsciiHexDigit);
 
     private static void RequireView(WorkspaceRecord workspace, SourceChangeView view)
     {

@@ -13,6 +13,8 @@ public sealed class RecoveryContractTests
     [InlineData("RestoreSealMismatch")]
     [InlineData("PlasticBasisInvalid")]
     [InlineData("GitBasisReadTimeout")]
+    [InlineData("SourceCacheVersionUnsupported")]
+    [InlineData("GitAttributeOutputInvalid")]
     public void BasisProtectionErrorsAgreeAcrossResponseAndDurableRecovery(string code)
     {
         Assert.True(WorkspaceFailurePolicy.RequiresPreservation(code));

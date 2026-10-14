@@ -3,17 +3,91 @@
   "$id": "urn:splinter:v1:source-change-response",
   "type": "object",
   "additionalProperties": false,
-  "required": ["token", "requestId", "processId", "processStartTimeUtcTicks", "view", "error"],
+  "required": [
+    "token",
+    "requestId",
+    "processId",
+    "processStartTimeUtcTicks",
+    "view",
+    "error"
+  ],
   "properties": {
-    "token": { "type": "string", "minLength": 1 },
-    "requestId": { "type": "string", "minLength": 1 },
-    "processId": { "type": "integer", "minimum": 1 },
-    "processStartTimeUtcTicks": { "type": "integer", "minimum": 1 },
-    "view": { "anyOf": [{ "$ref": "urn:splinter:v1:source-change-view" }, { "type": "null" }] },
-    "error": { "type": ["string", "null"], "minLength": 1 }
+    "token": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requestId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "processId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "processStartTimeUtcTicks": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "view": {
+      "anyOf": [
+        {
+          "$ref": "urn:splinter:v1:source-change-view"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "initialContent": {
+      "$ref": "urn:splinter:v1:source-content-summary-view"
+    }
   },
   "oneOf": [
-    { "properties": { "view": { "type": "object" }, "error": { "type": "null" } } },
-    { "properties": { "view": { "type": "null" }, "error": { "type": "string" } } }
+    {
+      "properties": {
+        "view": {
+          "type": "object"
+        },
+        "error": {
+          "type": "null"
+        }
+      }
+    },
+    {
+      "properties": {
+        "view": {
+          "type": "null"
+        },
+        "error": {
+          "type": "string"
+        }
+      }
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "initialContent"
+        ]
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "type": "null"
+          },
+          "view": {
+            "type": "object"
+          }
+        }
+      }
+    }
   ]
 }

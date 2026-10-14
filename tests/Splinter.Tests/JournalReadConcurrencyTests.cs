@@ -8,6 +8,91 @@ public sealed class JournalReadConcurrencyTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task FragmentBudgetUsesImmediateCopiesForOverflowWithoutMixingGenerations(bool optimized)
+    {
+        using var directory = new TestDirectory(); using var tree = new BlockingTree { Length = 66 * 8192 };
+        using var store = Open(directory.Path, tree, optimized);
+        var file = store.Stat("base")!;
+        byte[] expected = Enumerable.Range(0, tree.Length).Select(i => (byte)i).ToArray();
+        for (int i = 0; i < 66; i++)
+        {
+            byte[] payload = Enumerable.Repeat((byte)(i + 1), 4096).ToArray();
+            store.Write(file.Id, i * 8192 + 1024, payload);
+            payload.CopyTo(expected, i * 8192 + 1024);
+        }
+        store.DecodedPayloadCache.Clear();
+        long decoded = store.DecodedPayloadCache.Decodes;
+        byte[] output = new byte[tree.Length];
+        var read = Run(() => store.Read(file.Id, 0, output));
+        try
+        {
+            Assert.True(tree.Entered.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+            // Only the two fragments beyond the 64-fragment capture bound have
+            // been decoded when the first immutable gap blocks this read.
+            Assert.Equal(2, store.DecodedPayloadCache.Decodes - decoded);
+            await Run(() => { store.SetLength(file.Id, 0); store.Delete(file.Id); store.ReleaseUnlinkedFile(file.Id); })
+                .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        }
+        finally { tree.Continue.Set(); }
+        Assert.Equal(output.Length, await read.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+        Assert.Equal(expected, output);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task CapturedCompressedReadSurvivesRetirementAndRejectsPoison(bool optimized, bool poison)
+    {
+        using var directory = new TestDirectory(); using var tree = new BlockingTree { Length = 8192 };
+        var observer = new FailingMutation();
+        using var store = new JournalDeltaStore(directory.Path, Identity(tree), tree, observer, optimized);
+        var file = store.Stat("base")!;
+        byte[] compressed = Enumerable.Repeat((byte)93, 4096).ToArray();
+        store.Write(file.Id, 1024, compressed);
+        byte[] output = new byte[8192];
+        var read = Run(() => Record.Exception(() => store.Read(file.Id, 0, output)));
+        try
+        {
+            Assert.True(tree.Entered.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+            await Run(() =>
+            {
+                if (poison)
+                {
+                    observer.Fail = true;
+                    Assert.Throws<IOException>(() => store.Write(file.Id, 1024, [8, 9]));
+                }
+                else
+                {
+                    store.Write(file.Id, 1024, Enumerable.Repeat((byte)27, 4096).ToArray());
+                    store.SetLength(file.Id, 1);
+                    store.Rename(file.Id, "retired", false);
+                    store.Delete(file.Id);
+                    store.ReleaseUnlinkedFile(file.Id);
+                }
+            }).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            Assert.False(read.IsCompleted);
+        }
+        finally { tree.Continue.Set(); }
+        var error = await read.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        if (poison)
+        {
+            Assert.Equal("DeltaReconnectRequired", Assert.IsType<WorkspaceException>(error).Code);
+            Assert.Equal(0, store.DecodedPayloadCache.EntryCount);
+        }
+        else
+        {
+            Assert.Null(error);
+            byte[] expected = Enumerable.Range(0, 8192).Select(i => (byte)i).ToArray();
+            compressed.CopyTo(expected, 1024);
+            Assert.Equal(expected, output);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task BlockedBaseReadAllowsMetadataAndMutationsWithoutMixingFileGenerations(bool optimized)
     {
         using var directory = new TestDirectory(); using var tree = new BlockingTree();
@@ -185,13 +270,14 @@ public sealed class JournalReadConcurrencyTests
         public ManualResetEventSlim Entered { get; } = new();
         public ManualResetEventSlim Continue { get; } = new();
         public bool FailRead;
+        public int Length = 8;
         private int activeReads;
         public int PeakReads;
         public void EnsureAvailable() { }
         public SnapshotEntry? Stat(string path) => path switch
         {
             "" => new("", true, 0, 16, 1, 1, 1),
-            "base" => new("base", false, 8, 32, 1, 1, 1),
+            "base" => new("base", false, Length, 32, 1, 1, 1),
             _ => null
         };
         public IReadOnlyList<SnapshotEntry> List(string path) => path == "" ? [Stat("base")!] : [];
@@ -204,7 +290,7 @@ public sealed class JournalReadConcurrencyTests
                 Entered.Set();
                 if (!Continue.Wait(TimeSpan.FromSeconds(20))) throw new TimeoutException("Test reader was not released.");
                 if (FailRead) throw new IOException("Injected immutable read failure.");
-                int count = (int)Math.Min(destination.Length, 8 - offset);
+                int count = (int)Math.Min(destination.Length, Length - offset);
                 for (int i = 0; i < count; i++) destination[i] = (byte)(offset + i);
                 return count;
             }

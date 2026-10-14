@@ -2,6 +2,8 @@
 
 [English](../../verification/lifecycle-finalization-optimization.md)
 
+커밋 `07bc2de`의 후속 실제 Unity 실행은 [FU-01](unity-finalization-rerun.md)에 별도로 기록한다. 병렬 통합 종료와 새 공유 Editor 비교를 포함하며 아래 LF의 한정 비용은 원래 범위를 유지한다.
+
 이 문서는 [RC-01](unity-current-comparison.md)의 한정 후속 LF-01–05를 소유한다. RC-01의 직렬 A/B checkpoint/release는 199.5초였다. 소스 검사는 1,602개 내용 해시를 모두 재사용해도 회당 약 9초였고, 약 36 MB 저널마다 약 16,500개 파일이 있었다. 이 관측은 아래 변경의 근거이며 이번 후보의 시간은 아니다.
 
 ## 범위와 유지하는 경계

@@ -133,6 +133,7 @@ public static class WinFspOverlayClient
             throw new WorkspaceException("MountReconcileRequired", "A stale mount remains. Preserve its journal and inspect ownership before reconnecting.");
         var verified = await ObserveSnapshotAsync(request, ct);
         if (verified.Available != true) throw new WorkspaceException(verified.FailureCode ?? "SnapshotObservationUnknown", "Verify snapshot access before starting a provider.");
+        bool initialContentGeneration = IsInitialContentGeneration(request, priorIntent, priorLaunch);
         if (request.SourceView is null)
         {
             if (preparationPoint is not null) await preparationPoint("delta.before-effect");
@@ -153,7 +154,7 @@ public static class WinFspOverlayClient
         string generation = Guid.NewGuid().ToString("N");
         if (preparationPoint is not null) await preparationPoint("provider.before-effect");
         await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, new ProviderIntent(request.Token, request.Identity.Id, generation, DateTimeOffset.UtcNow,
-            request.ReadAccess?.VerificationId, request.CacheSnapshot?.ReadAccess.VerificationId), ct);
+            request.ReadAccess?.VerificationId, request.CacheSnapshot?.ReadAccess.VerificationId, initialContentGeneration), ct);
         using var process = WindowsProcessGroup.StartSupervisor("dotnet", [runner, "overlay-serve", Path.GetFullPath(requestPath), generation], request.ControlPath);
         if (preparationPoint is not null) await preparationPoint("provider.after-effect");
         await WindowsProcessWorkspaceProvider.WriteAsync(receiptPath, new ProviderLaunch(request.Token, process.Id, process.StartTime.ToUniversalTime().Ticks, generation), CancellationToken.None);
@@ -207,6 +208,11 @@ public static class WinFspOverlayClient
         }
         throw new WorkspaceException("OverlayStopPending", "Clients or provider remain; files and snapshot are retained. Query status and close owned clients.");
     }
-    internal sealed record ProviderIntent(string Token, string Id, string? Generation, DateTimeOffset RequestedAt, string? VerificationId = null, string? CacheVerificationId = null);
+    internal sealed record ProviderIntent(string Token, string Id, string? Generation, DateTimeOffset RequestedAt,
+        string? VerificationId = null, string? CacheVerificationId = null, bool InitialContentGeneration = false);
     internal sealed record ProviderLaunch(string Token, int ProcessId, long StartTimeUtcTicks, string? Generation = null);
+
+    internal static bool IsInitialContentGeneration(OverlayServeRequest request, ProviderIntent? priorIntent, ProviderLaunch? priorLaunch) =>
+        priorIntent is null && priorLaunch is null && request.SourceView is null &&
+        (!Directory.Exists(request.DeltaPath) || !Directory.EnumerateFileSystemEntries(request.DeltaPath).Any());
 }

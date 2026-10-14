@@ -8,6 +8,20 @@ public sealed partial class JournalDeltaStore
 {
     public const int FrameHeaderBytes = 16, FrameChecksumBytes = 32;
     private readonly BrotliWorkspacePayloadCodec payloadCodec = new();
+    private sealed record CapturedPayloadRead(byte[] Encoded, WorkspaceJournalPayload Payload,
+        int BlockOffset, int OutputOffset, int Count);
+
+    private void ClearPayloadCache() { lock (payloadCacheGate) decodedPayloadCache.Clear(); }
+
+    private void ReadCapturedPayload(CapturedPayloadRead fragment, Span<byte> output)
+    {
+        lock (payloadCacheGate)
+        {
+            if (decodedPayloadCache.Read(payloadCodec, fragment.Encoded.AsSpan(0, fragment.Payload.StoredBytes),
+                fragment.BlockOffset, output) != output.Length)
+                throw new WorkspaceException("DeltaCorrupt", "The decoded journal fragment is incomplete.");
+        }
+    }
 
     private static void WriteHeader(Span<byte> header, int metadata, WorkspaceJournalPayload payload)
     {
@@ -53,10 +67,11 @@ public sealed partial class JournalDeltaStore
         {
             encoded = ReadEncoded(physical, payload);
             var bytes = encoded.AsSpan(0, payload.StoredBytes);
-            if (decodedPayloadCache.Read(payloadCodec, bytes, offset, output) != output.Length)
-                throw new WorkspaceException("DeltaCorrupt", "The decoded journal fragment is incomplete.");
+            lock (payloadCacheGate)
+                if (decodedPayloadCache.Read(payloadCodec, bytes, offset, output) != output.Length)
+                    throw new WorkspaceException("DeltaCorrupt", "The decoded journal fragment is incomplete.");
         }
-        catch { decodedPayloadCache.Clear(); throw; }
+        catch { ClearPayloadCache(); throw; }
         finally { if (encoded is not null) ArrayPool<byte>.Shared.Return(encoded); }
     }
     private void ReadExtent(Extent extent, int relative, Span<byte> output) =>
@@ -82,9 +97,10 @@ public sealed partial class JournalDeltaStore
         try
         {
             encoded = ReadEncoded(physical, payload);
-            decodedPayloadCache.Visit(payloadCodec, encoded.AsSpan(0, payload.StoredBytes), visit, context);
+            lock (payloadCacheGate)
+                decodedPayloadCache.Visit(payloadCodec, encoded.AsSpan(0, payload.StoredBytes), visit, context);
         }
-        catch { decodedPayloadCache.Clear(); throw; }
+        catch { ClearPayloadCache(); throw; }
         finally { if (encoded is not null) ArrayPool<byte>.Shared.Return(encoded); }
     }
     private void VisitExtent(Extent extent, BrotliWorkspacePayloadCodec.DecodedChunkVisitor visit,

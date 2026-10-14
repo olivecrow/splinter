@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/unity-current-comparison.md)
 
+For the later `07bc2de` time measurement with parallel combined completion and a fresh shared-Editor cohort, see [FU-01](unity-finalization-rerun.md). RC-01's timings and allocation figures below retain their recorded version and input.
+
 For parallel code writing followed by **one shared Editor's sequential validation**, see [SE-01](unity-shared-editor.md). That separate comparison reuses this Splinter cohort after verifying its source/Library input and unchanged runtime; this RC-01 record continues to describe two independent Editors per method.
 
 RC-01 · 2026-10-14 · product `7630970`. Fresh ordinary Git worktrees in Codex-app A/B task paths and fresh Library-referencing Splinter A/B use the same fixed source and one-line edits. Codex imports new Libraries; Splinter references the existing original Library. The comparison uses the completed Splinter cohort and subsequent Codex repeat; earlier diagnostic attempts are retained and excluded. Both methods were remeasured instead of attaching a new Codex result to the previous UT 875.2s observation.

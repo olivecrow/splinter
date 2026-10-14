@@ -46,7 +46,7 @@ public static class WorkspaceSnapshotBasis
             _ => throw new WorkspaceException("SnapshotProviderUnsupported", "Retain the unsupported immutable basis.")
         });
     }
-    public sealed class DisposableSnapshotTree(ISnapshotTree tree) : ISnapshotTree, IDisposable
+    public sealed class DisposableSnapshotTree(ISnapshotTree tree) : ISnapshotTree, ISnapshotContentSummaryProvider, IDisposable
     {
         public SnapshotReference Snapshot => tree.Snapshot;
         public SnapshotGraft? Graft => tree.Graft;
@@ -55,6 +55,8 @@ public static class WorkspaceSnapshotBasis
         public SnapshotEntry? Stat(string path) => tree.Stat(path);
         public IReadOnlyList<SnapshotEntry> List(string path) => tree.List(path);
         public int Read(string path, long offset, Span<byte> destination) => tree.Read(path, offset, destination);
+        public SnapshotContentSummary? GetVerifiedContentSummary(string path) =>
+            tree is ISnapshotContentSummaryProvider provider ? provider.GetVerifiedContentSummary(path) : null;
         public void Dispose() => (tree as IDisposable)?.Dispose();
     }
 }
