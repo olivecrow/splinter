@@ -19,7 +19,6 @@
     <Project Path="tools/Splinter.Development/Splinter.Development.csproj" />
     <Project Path="tools/Splinter.ReplayProbe/Splinter.ReplayProbe.csproj" />
     <Project Path="tools/Splinter.WriteProbe/Splinter.WriteProbe.csproj" />
-    <Project Path="tools/Splinter.BeeProbe/Splinter.BeeProbe.csproj" />
     <Project Path="tools/Splinter.BoundedLogProbe/Splinter.BoundedLogProbe.csproj" />
   </Folder>
 </Solution>

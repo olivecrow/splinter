@@ -91,9 +91,7 @@ public sealed class FoundationGateway(
             measurements = "per-operation live commit stages and waiting mutation samples; output bytes and read-only replay verified; no batching policy change" } : null,
         developmentStructuralThroughputProbes = development ? new {
             stage = "isolated-prototypes-not-product-backends",
-            bee = "dotnet run --project tools/Splinter.BeeProbe --configuration Release --no-build -- capabilities",
             boundedLog = "dotnet run --project tools/Splinter.BoundedLogProbe --configuration Release --no-build -- capabilities",
-            measurement = "python scripts/measure-bee-prototype.py --help",
             scope = "docs/plans/structural-throughput-prototypes.md",
             boundaries = "explicit-new-fixture-only; no-original-project-mutation; no-automatic-Editor-or-service-operation; no-whole-Unity-speed-qualification"
         } : null,

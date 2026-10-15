@@ -2,7 +2,7 @@
 
 [English](../../plans/bounded-journal.md)
 
-사용자는 기존 실험 커밋 후 원본·결과 안전성을 유지한 제한 로그의 제품 적용과 원자 게시가 가능한 Bee 구조 검토를 승인했다. 선행 실험 커밋은 `a8eb778`이다. 새 provider 기본값은 [제품 계약](../bounded-journal.md)이 소유하며 [Bee 설계](bee-native-storage-design.md)는 이 범위에서 검토에 한정했다. 후속 [BN 실험](../verification/bee-internal-native.md)은 별도로 구현·측정한 개발 후보이며 제품 활성화가 아니다.
+사용자는 기존 실험 커밋 후 원본·결과 안전성을 유지한 제한 로그의 제품 적용과 원자 게시가 가능한 Bee 구조 검토를 승인했다. 선행 실험 커밋은 `a8eb778`이다. 새 provider 기본값은 [제품 계약](../bounded-journal.md)이 소유하며 [Bee 설계](bee-native-storage-design.md)는 이 범위에서 검토에 한정했다. 후속 [BN 실험](../verification/bee-internal-native.md)은 별도로 측정한 뒤 시간·공간 기준 실패로 폐기·제거했다. 성공한 제품 제한 로그 경로는 유지한다.
 
 | ID | 범위와 종료 근거 |
 | --- | --- |

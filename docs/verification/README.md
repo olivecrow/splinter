@@ -3,11 +3,11 @@
 
 [한국어](../ko/verification/README.md)
 
-[Internal native Bee backing](bee-internal-native.md) owns BN-01–05: the development-only single-volume candidate, native publication, inherited range/source safety, owned interruption recovery and actual small Bee timing. Its lifecycle and storage evidence do not qualify full Unity Editor speed or a product backend.
+[Retired native Bee backing](bee-internal-native.md) owns historical BN-01–05: the single-volume candidate passed bounded safety checks but was slower and larger, and its implementation and commands were removed. Measurements and recovery evidence remain; they do not qualify a current backend or full Unity Editor speed.
 
 [Product bounded journal](bounded-journal.md) owns BL-01–05: actual journal metadata/lifecycle/recovery, bounded component costs and the new Windows-provider default. Full Unity and OS power-loss qualification remain separate.
 
-[Structural throughput prototypes](structural-throughput-prototypes.md) owns SX-01–04: native NTFS Bee and a bounded durable range log on isolated small inputs. Component timing, extra RAM/temporary space, successful source/result protection and failed-pilot recovery are separated from unmeasured full Unity speed.
+[Structural throughput experiments](structural-throughput-prototypes.md) owns SX-01–04: historical native NTFS Bee and retained bounded durable range-log tooling on isolated small inputs. The rejected Bee code is removed; component timing, extra RAM/temporary space and source/result protection remain historical evidence, separate from unmeasured full Unity speed.
 
 [Unity throughput optimization](unity-throughput-optimization.md) TP-01–06: Git proof reuse and bounded journal improvements; the cache-retention experiment was withdrawn after a real Unity reclamation failure. Component evidence, recovery and shared-Editor comparison are separated.
 

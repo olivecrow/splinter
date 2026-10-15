@@ -2,7 +2,7 @@
 
 [English](../../verification/bounded-journal.md)
 
-**2026-10-15: scoped-complete-with-limitations.** [고정 범위](../plans/bounded-journal.md)와 [제품 계약](../bounded-journal.md)의 BL-01–05를 소유한다. 이전 고정 object 시제품은 `a8eb778`로 커밋했으며 SX 시간은 과거 기록으로 유지한다. 이번 후보는 실제 mutation/state/복구 구현과 새 일반 Windows provider 기본값을 사용한다. BL 마감 당시 Bee native backing은 [미구현 설계](../plans/bee-native-storage-design.md)였다. 이후 [BN 실험](bee-internal-native.md)에서 개발 후보를 구현했으며 성능 기준 실패는 별도로 기록한다.
+**2026-10-15: scoped-complete-with-limitations.** [고정 범위](../plans/bounded-journal.md)와 [제품 계약](../bounded-journal.md)의 BL-01–05를 소유한다. 이전 고정 object 시제품은 `a8eb778`로 커밋했으며 SX 시간은 과거 기록으로 유지한다. 이번 후보는 실제 mutation/state/복구 구현과 새 일반 Windows provider 기본값을 사용한다. BL 마감 당시 Bee native backing은 [미구현 설계](../plans/bee-native-storage-design.md)였다. 이후 [BN 실험](bee-internal-native.md)에서 구현·측정한 후보는 성능 기준 실패로 폐기·제거했으며 제품 제한 로그 경로는 유지한다.
 
 ## 근거 상태
 

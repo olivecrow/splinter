@@ -1,12 +1,14 @@
 # Splinter
 
-**Efficient, isolated workspaces for parallel AI development.**
+**Isolated workspaces that share unchanged data for parallel AI development.**
 
 [한국어](README.ko.md)
 
 Splinter is a local workspace and storage tool for AI agents working on Unity projects and ordinary project folders. Each task gets its own writable project path, while unchanged files are read from a fixed project basis and edits are stored as private byte ranges. Multiple tasks can work independently, the original project stays editable, and results are preserved or integrated explicitly.
 
-**Current status:** an internal alpha for Windows and NTFS, with bounded validation on small Git, Unity Version Control / Plastic SCM, and VCS-free projects. See the [validation guide](docs/verification/README.md) for the tested inputs and remaining limits.
+**Current status:** a research alpha for Windows and NTFS, with bounded validation on small Git, Unity Version Control / Plastic SCM, and VCS-free projects. The source and recorded evidence are available for others to inspect, reproduce, and extend. See the [validation guide](docs/verification/README.md) for tested inputs and remaining limits.
+
+**Time is the main limitation: Splinter has not demonstrated a throughput advantage over reusing one shared Unity Editor.** Workspace preparation, Editor startup/compilation, checkpoint/release, and original Library restoration can outweigh the benefit of overlapping Editor work. The latest successful full-workflow comparison without recovery, [FU-01](docs/verification/unity-finalization-rerun.md), took **12m 48.3s with Splinter versus 1m 34.0s with one shared Editor** for two one-line changes. This is a historical SJL4 result; a full Unity workflow with the current [bounded-journal default](docs/bounded-journal.md) has not been timed.
 
 ## Why Splinter
 
@@ -19,7 +21,7 @@ The intended workflow is simple: use a workspace when a task needs independent e
 <a id="measured-storage-and-time-tradeoff"></a>
 ## Measured storage and time
 
-The figures below use the SJL4 configuration measured on 2026-10-14. Unity time and storage for the [bounded-journal default](docs/bounded-journal.md) have not yet been measured.
+The charts and Codex comparison tables below retain the **historical RC-01/SE-01 measurements from 2026-10-14**, using SJL4. They provide the paired time/storage comparison with ordinary worktrees; they are not current-default measurements or the later FU-01 timing quoted above. Unity time and storage for the [bounded-journal default](docs/bounded-journal.md) have not yet been measured.
 
 Two independent Unity Editors each make and compile one isolated one-line C# change in a **2.80 GB project with 1,602 tracked files and an existing 3.14 GB Library** (Windows/NTFS, Unity 6000.3.22f1). **Both methods run A/B in parallel.** Ordinary Git worktrees in the Codex task paths build new Libraries; Splinter workspaces reference the original Library.
 
@@ -65,7 +67,7 @@ Referencing an existing Library can reduce fresh-workspace import costs, but rep
 
 ![Additional file allocation in the measured Codex worktree and Splinter configuration](docs/images/unity-readme-storage.png)
 
-Task and control files, owned Git registration, and shared runner/Library metadata are counted once. Original source, original Library payload, shared Git objects, and filesystem directory metadata are excluded. This is a stage measurement, not peak disk use.
+Task and control files, owned Git registration, and shared runner/Library metadata are counted once. Original source, original Library payload, shared Git objects, and filesystem directory metadata are excluded. This is a stage measurement, not peak disk use. The saving is against two independently initialized worktrees; storage savings against one shared Editor have not been measured.
 
 ### Parallel coding with one shared Editor
 
@@ -79,7 +81,7 @@ Two independent Codex agents prepare A/B in separate code worktrees. One Editor 
 
 B waits **16.0s** for A to release the shared Editor, then takes **13.8s** to validate. Splinter removes that shared-Editor queue, but its parallel validation still takes longer in this small case; preparation and cleanup add further cost. Reusing one Editor is faster for this workload.
 
-The shared-Editor run is new; Splinter's RC-01 measurement is reused after verifying identical source/Library contents and unchanged product/runtime hashes. Totals count workspace and Editor operations, excluding AI reasoning, agent-dispatch gaps, and read-only input checks. This is one observation per workflow, not a long-test or build benchmark. See [SE-01](docs/verification/unity-shared-editor.md) for stage timings and evidence.
+SE-01 measured the shared-Editor workflow separately and reused Splinter's RC-01 measurement after verifying identical source/Library contents and unchanged product/runtime hashes. Totals count workspace and Editor operations, excluding AI reasoning, agent-dispatch gaps, and read-only input checks. This is one observation per workflow, not a long-test or build benchmark. See [SE-01](docs/verification/unity-shared-editor.md) for stage timings and evidence.
 
 ### Choosing between short and long tasks
 
@@ -87,7 +89,21 @@ For a small change in an already-ready Editor, creating, preserving, merging, an
 
 Code can be written in parallel even when validation uses one shared Editor. The potential saving from independent Editors comes from overlapping **Editor work**—imports, compilation, tests, or builds that would otherwise wait for that Editor. Longer AI reasoning or code-writing time alone does not create this saving.
 
-Once both candidates are ready, Editor operations taking `E_A` and `E_B` require roughly `E_A + E_B` with one Editor or `max(E_A, E_B)` with two, assuming unchanged per-task speed. The overlap, `min(E_A, E_B)`, must outweigh the extra preparation, preservation, merge, cleanup, and resource contention. For example, two 30-minute Editor operations with 10 minutes of extra parallel overhead would take 40 minutes instead of 60. This is a model, not a measured crossover; concurrent imports or builds can slow each other down.
+For two equally long Editor tasks, let `E` be each task's duration when run alone and `r` its duration multiplier under parallel execution. After cancelling common costs, a simple model compares `2E` with `H + rE`, where `H` is the extra preparation, preservation, merge, and cleanup cost. Splinter is faster only when `E > H / (2 - r)` and `r < 2`.
+
+The following **conditional illustration** assumes `H ≈ 11 minutes`. Removing each method's edit/asset-validation interval from FU-01's complete time gives `(768.3 - 45.090) - (93.969 - 27.694) = 656.935 seconds` of additional lifecycle cost. This estimate comes from that small workload; it is not a measured fixed cost for longer tasks or the current bounded-journal default. Holding the same assumed `H` across all rows:
+
+| Parallel duration multiplier `r` | Each Editor task must exceed approximately |
+| --- | ---: |
+| 1.00× — unchanged duration | 11 minutes |
+| 1.25× — 25% longer | 15 minutes |
+| 1.50× — 50% longer | 22 minutes |
+| 1.80× — 80% longer | 55 minutes |
+| 2.00× or more | No crossover under this model |
+
+Both tasks must actually overlap. Unequal tasks offer less overlap; with a common multiplier, the condition becomes `E_A + E_B > H + r × max(E_A, E_B)`. AI coding time is excluded because both workflows can write code in parallel. No long-task crossover or scaling to three or four Editors has been measured.
+
+The [multi-stage maze study](docs/verification/unity-maze-workflow.md) includes recovery and does not establish a normal throughput advantage. A [subsequent cache experiment](docs/verification/unity-throughput-optimization.md#tp-06-time-comparison) failed normal reclamation and was withdrawn; its completed stages were also slower than shared-Editor validation. Those observations do not supply a successful whole-workflow timing for the current product.
 
 Ordinary worktrees with separate project paths and Libraries can also use independent Unity Editors. Splinter reduces duplicated source and Library storage; it is not required merely to launch two Editors. An application-wide singleton, a shared external-tool session, or an exclusive GPU/device can still serialize work. This compile-and-asset-check benchmark does not establish parallel Play Mode, test, or build performance.
 
@@ -159,6 +175,10 @@ Explore the [documentation map](docs/README.md) for detailed feature guides. Eng
 | [Architecture](docs/foundation.md) | Splinter's components and how they work together |
 | [Validation scope](docs/verification/README.md) | Tested environments, measurement evidence, and support limits |
 | [Third-party notices](THIRD_PARTY_NOTICES.md) | Dependency sources, versions, and license conditions |
+
+## License
+
+Splinter's own code and documentation are available under the [MIT license](LICENSE). Third-party components retain their own licenses and conditions; see [Third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Credits
 

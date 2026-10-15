@@ -1,14 +1,14 @@
-# Bee storage with atomic publication
+# Retired Bee storage design
 
 [한국어](../ko/plans/bee-native-storage-design.md)
 
-This design follows the committed structural prototypes (`a8eb778`). The [SX record](../verification/structural-throughput-prototypes.md) owns their measured results and failures. The bounded product journal is committed separately as `d0ac0a2`. The user subsequently authorized implementation and real performance measurement of this design. The first implementation is a development-only, single-volume native-backing candidate; product default activation and a whole Unity Editor benchmark are separate qualification boundaries.
+**2026-10-15: RETIRED / REMOVED.** The user rejected the slower native Bee method after measurement. Both the single-volume candidate and earlier junction implementation were removed with `tools/Splinter.BeeProbe` and `scripts/measure-bee-prototype.py`. Commit `93a7395` preserves their code; [BN-01–05](../verification/bee-internal-native.md) and the [SX record](../verification/structural-throughput-prototypes.md) preserve their evidence. The successful bounded product journal remains. The design and validation sequence below are historical rationale, not a current optional backend, execution guide or follow-up implementation plan.
 
-## Recommendation
+## Evaluated design (historical)
 
-Keep one WinFsp project volume and evaluate **internal native backing for newly generated Bee files**. Do not expose that backing through a junction. Keep the logical namespace, file identity, source tracking and resource ownership in the provider. Buffered Bee writes would be a separately declared generated-data durability policy, not a change to source write acknowledgements.
+The evaluated design kept one WinFsp project volume with **internal native backing for newly generated Bee files**, without exposing it through a junction. The provider retained the logical namespace, file identity, source tracking and resource ownership. Buffered Bee writes used a separately declared generated-data durability policy without changing source write acknowledgements.
 
-The first single-volume candidate is implemented and measured in [BN-01–05](../verification/bee-internal-native.md). Its small namespace/source/mapping/recovery checks pass, but its performance gate fails: the ABBA mean accounted lifecycle grows from 11.18s to 18.88s and retained allocation from 0.92MiB to 2.13MiB. Keep it development-only; it is not selected for product adoption. A physical NTFS root with source overlays remains unimplemented and would require the larger source-boundary redesign below.
+The first single-volume candidate was implemented and measured in [BN-01–05](../verification/bee-internal-native.md). Its small namespace/source/mapping/recovery checks passed, but its performance gate failed: the ABBA mean accounted lifecycle grew from 11.18s to 18.88s and retained allocation from 0.92MiB to 2.13MiB. It is now removed, including its development entry point. A physical NTFS root with source overlays was not implemented and is not an approved replacement path.
 
 ## Evidence and comparison
 
@@ -75,7 +75,7 @@ Editors and code tools can create a temporary file outside its eventual destinat
 
 Representing every possible root file with a separate link does not solve arbitrary creation, enumeration, directory moves or link replacement. A complete solution would need a new namespace interception/layout contract. Initial full copy, ReFS, external-tool patches and an assumption that tools always write temporary files beside their destination are excluded. This alternative should remain deferred unless the smaller single-volume approach fails a meaningful correctness or cost gate.
 
-## Authorized implementation and small validation sequence
+## Historical implementation scope and validation sequence
 
 The fixed experiment uses the existing three-assembly Unity 6000.3.22f1 Bee input, without starting an Editor or changing the original Unity project. `overlay` uses the current default bounded SJR2 journal. `internal-native` keeps that namespace and journal, but adds empty, opaque NTFS payloads only for newly created Bee files. Both variants retain cleanup purge. The historical junction mode is diagnostic evidence only.
 
@@ -97,6 +97,6 @@ Generated file promotion must preserve source durability and route subsequent ex
 
 Measure native and journal allocation separately, including namespace metadata and temporary replacement files. Report logical bytes, allocated bytes, buffering/RAM observations and timing boundaries; final allocation is not peak. A useful result must beat the current complete small backend lifecycle, not merely its graph phase. No numeric speedup is predicted by this review.
 
-## Decision after the first candidate
+## Retirement decision
 
-[BN-01–05](../verification/bee-internal-native.md) rejects product adoption on measured cost, while retaining the working atomic-publication and safety evidence. A next structural candidate would place the native association in the same authoritative namespace mutation/replay record, reducing the cross-store per-file intents without removing owner, source durability or recovery proofs. The current extra control-publication cost is not individually timed, and this alternative is unimplemented; no speedup is predicted. Dirty-only native flushing may remove repeated clean-file work, but cannot replace the final flush after retained contexts drain.
+[BN-01–05](../verification/bee-internal-native.md) rejected adoption on measured cost. The user's subsequent removal decision closes this implementation path, including development commands and the failed junction alternative. Atomic-publication and safety evidence remain historical. Suggestions about merging native associations into namespace mutations or flushing only dirty payloads were not implemented or measured; they are not approved follow-up work and do not justify retaining the rejected backend.

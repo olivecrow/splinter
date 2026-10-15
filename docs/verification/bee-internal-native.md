@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/bee-internal-native.md)
 
+**Current status: RETIRED / REMOVED.** Following the failed time/storage gate, the user requested removal of this candidate and the earlier junction approach. `tools/Splinter.BeeProbe` and `scripts/measure-bee-prototype.py` are absent from current code; `93a7395` preserves the implementation. The dated results, numbers, qualification limits and raw reports below are unchanged historical evidence. They are not current commands, an optional backend or a follow-up implementation plan. The bounded product journal and its successful tooling remain.
+
 **2026-10-15: small correctness gates passed; complete performance gate failed.** This record owns BN-01–05 under the [atomic Bee storage design](../plans/bee-native-storage-design.md). The bounded product journal is committed as `d0ac0a2`. This candidate implements the selected single-volume structure in `tools/Splinter.BeeProbe`; it does not activate native Bee storage in ordinary product workspaces. The previous junction experiment and its atomic-rename failure remain in the [SX record](structural-throughput-prototypes.md).
 
 The new structure completes actual Bee compilation and preserves source/results, but the mean measured phase sum rises from **11.184s to 18.883s (+68.8%)**, and retained allocation rises from **0.918MiB to 2.128MiB (2.318×)**. This candidate does not justify product adoption. [Exact data, hashes and provenance](../../reports/benchmarks/bee-internal-native-20261015.json) retain all four successful runs separately from the failed pilot.

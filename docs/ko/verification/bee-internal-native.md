@@ -2,6 +2,8 @@
 
 [English](../../verification/bee-internal-native.md)
 
+**현재 상태: 폐기 / 제거 완료.** 시간·저장 기준 실패 뒤 사용자가 이 후보와 이전 junction 방식의 제거를 요청했다. 현재 코드에서 `tools/Splinter.BeeProbe`와 `scripts/measure-bee-prototype.py`를 제거했으며 구현은 `93a7395`에 보존한다. 아래 당시 결과·수치·자격 경계와 원시 보고서는 변경하지 않은 역사적 근거다. 현재 명령·선택적 backend·후속 구현 계획이 아니다. 제품 제한 저널과 성공한 도구는 유지한다.
+
 **2026-10-15: 소형 정확성 gate 통과, 전체 성능 gate 실패.** 이 문서는 [원자적 Bee 저장 설계](../plans/bee-native-storage-design.md)의 BN-01–05를 소유한다. 제품 제한 저널은 `d0ac0a2`로 커밋했다. 이번 후보는 선택한 단일 볼륨 구조를 `tools/Splinter.BeeProbe`에 구현하며, 일반 제품 작업공간에서 native Bee 저장을 활성화하지 않는다. 이전 junction 실험과 원자 rename 실패는 [SX 기록](structural-throughput-prototypes.md)에 보존한다.
 
 새 구조는 실제 Bee 컴파일과 소스/결과 보존을 완료했지만, 측정 구간 평균 합계가 **11.184초에서 18.883초로 증가(+68.8%)**하고 최종 할당도 **0.918MiB에서 2.128MiB로 증가(2.318배)**했다. 이 후보를 제품에 채택할 근거는 없다. [정확한 수치·hash·provenance](../../../reports/benchmarks/bee-internal-native-20261015.json)는 성공한 4개 실행과 실패 pilot을 구분해 보존한다.

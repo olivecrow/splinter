@@ -2,6 +2,8 @@
 
 [English](../../verification/structural-throughput-prototypes.md)
 
+**현재 처리 상태:** 두 Bee 구현을 모두 폐기·제거했다. 이 junction은 원자 게시에 실패했고 후속 [BN 후보](bee-internal-native.md)는 시간·공간 기준에 실패했다. 구현은 커밋 `93a7395`에 보존한다. 아래 결과는 과거 근거이며 당시 Bee 명령은 현재 코드에서 사용할 수 없다. 제한 로그 도구와 [제품 제한 저널](../bounded-journal.md)은 유지한다.
+
 이 개발 전용 실험은 [TP-06](unity-throughput-optimization.md)과 [SX 고정 범위](../plans/structural-throughput-prototypes.md)의 후속이다. 제품 저널 형식·저장 기본 정책·작업공간 수명은 변경하지 않았다. 소스 기준은 `dd188e1`이며 실행 파일·원시 결과 hash로 측정 후보와 이후 빌드를 구분한다.
 
 [고정 비교 데이터](../../../reports/benchmarks/structural-throughput-prototypes-20261015.json). SX-02는 한정한 내용·복구 실험을 통과했다. SX-01은 그래프·소스 보호 실험을 통과했지만 **실제 Bee 컴파일은 실패**했다. SX-03은 이 경계를 구분하며 SX-04는 제품 backend 채택이나 전체 작업 속도 향상을 승인하지 않는다.
@@ -79,7 +81,7 @@ Native Bee는 SJL4의 매 쓰기 durable 저널 ACK 대신 일반 NTFS buffering
 
 제한 로그는 RAM·임시 공간·쓰기 증폭을 감수하면 구성 요소에서 큰 이득이 있음을 보였다. 제품 적용에는 빠진 metadata·수명·복구 의미를 연결해야 한다. NTFS graft는 그래프 생성 이득과 별개로 실제 Bee 컴파일용으로 불합격이다. 경로 guard를 완화해도 볼륨 경계를 넘는 원자 rename 실패는 해결되지 않는다.
 
-후속 구조로 실제 프로젝트 root와 Bee를 NTFS에 두거나, 같은 가상 볼륨 안에서 native Bee 파일을 처리하는 방법을 검토할 수 있다. 둘 다 이번에 구현하지 않았다. 전자는 소스 쪽 rename과 root 파일 보호도 증명해야 한다. 후자는 사용자 모드 파일시스템 요청 처리를 유지하며 native handle·mapping·수명 구현이 필요하다. 실측한 개선이 아닌 설계 대안이다.
+SX 마감 당시 대안은 물리 NTFS 프로젝트 root 또는 같은 가상 볼륨 안의 native Bee payload였다. 후자는 이후 [BN](bee-internal-native.md)에서 구현·측정했으나 시간·공간 증가로 제거했다. 물리 root 대안은 구현하지 않았다. 이러한 과거 대안은 현재 선택적 경로나 승인한 후속 작업이 아니다.
 
 이전 313.1508초 공유 Editor 대비 전체 Unity 속도 우위는 **NotRun**이다. 이 부품 수치로 README의 전체 작업 시간을 교체하거나 두 시제품의 단축률을 합산하지 않는다.
 

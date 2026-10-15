@@ -42,7 +42,7 @@ Library/프로젝트의 공통 restore는 v2 계획·기존 파일 identity·신
 | `unity/Splinter.Editor` | liveness·import/compile 진행 관측·미저장 씬/Play 보호와 정상 종료 | Unity Editor API; 소유 workspace에만 포함 |
 | `Splinter.Tests`, `tests/Splinter.UnityBridgeHarness` | 계약/fake·실제 Git·Windows 자식·bridge 소스 적합성 | xUnit v3, MTP; bridge에는 Unity API stub 사용 |
 | `tools/Splinter.ReplayProbe`, `tools/Splinter.WriteProbe` | 고정 합성 입력의 읽기/쓰기 비용과 정확성 계측 | Runtime; 개발 도구 |
-| `tools/Splinter.BeeProbe`, `tools/Splinter.BoundedLogProbe` | 작은 native Bee·제한 범위 로그 [구조 시제품](plans/structural-throughput-prototypes.md). 제품 backend 선택은 제공하지 않음 | Runtime; Bee는 Windows 추가; 개발 도구 |
+| `tools/Splinter.BoundedLogProbe` | 제한 범위 로그 [실험](plans/structural-throughput-prototypes.md)과 [제품 저널 계측](verification/bounded-journal.md). 폐기한 Bee 도구는 제거했으며 코드는 `93a7395`에 보존 | Runtime; 개발 도구 |
 
 CLI는 짧은 프로세스다. Host는 읽기 전용 in-process 계층이며 daemon/DB writer가 아니다. Runtime은 부작용 전 intent와 같은 요청 영수증을 durable 상태에 게시한다. 공급자 전용 API는 어댑터에 있고 Core에는 Unity/Win32/Git/Codex API를 넣지 않는다.
 

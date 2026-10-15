@@ -21,9 +21,9 @@ pwsh ./scripts/splinter-dev.ps1 schema view.execute
 
 기존 replay/write·저널/kernel/제품 쓰기 복구 도구와 시험은 해당 문서에서 실행 조건을 확인한다. 제품 capabilities는 이 개발 목록을 광고하지 않으며 별도 개발 진입점만 알린다.
 
-[구조적 처리량 시제품](plans/structural-throughput-prototypes.md)은 독립 실행 파일 `tools/Splinter.BeeProbe`와 `tools/Splinter.BoundedLogProbe`에서 각각 `capabilities`로 발견한다. 소유한 native `Library/Bee`와 제한된 과거 범위를 남기는 로그를 새 작은 fixture에서만 비교한다. 실제 Bee 그래프·선택적 Csc 비교는 `python scripts/measure-bee-prototype.py --help`를 따른다. 제품 기본값·전체 Unity 속도 검증으로 읽지 않는다.
+유지하는 [제한 범위 로그 실험](plans/structural-throughput-prototypes.md)의 `tools/Splinter.BoundedLogProbe`는 읽기 전용 `capabilities` 명령을 제공한다. 명시적으로 선택한 새 fixture/output에서 제한된 과거 범위와 세대 checkpoint를 측정한다. 개발 도구이며 작업공간 저장 모드나 전체 Unity 속도 검증은 아니다.
 
-[Bee 내부 native 후보](verification/bee-internal-native.md)는 native 매핑/소스와 소유 프로세스 중단 검증에 `internal-selftest --root <새-경로>`와 `internal-recovery --root <새-경로>`를 사용한다. `serve` 요청의 `mode: "internal-native"`를 지원하며 `overlay`는 현재 bounded 비교군, `native-bee`는 실패한 과거 junction 진단이다. 측정 스크립트는 실제 첫 빌드·변경 없는 빌드·증분 빌드를 ABBA 순서로 실행한다. 새 Bee payload는 단일 가상 볼륨 내부의 buffered NTFS 저장을 사용하고 정상 종료에서 일반적인 소유 문맥 drain을 수행한다. native 자식을 포함한 디렉터리의 소스 이동은 거부하며 투명한 제품 backend는 아니다. 정확한 자격과 시간/공간 경계는 검증 기록을 따른다.
+[Native Bee 실험](verification/bee-internal-native.md)은 작은 전체 수명주기와 저장 공간이 bounded 저장보다 나빠 폐기했다. `tools/Splinter.BeeProbe`, 이전 junction 모드와 `scripts/measure-bee-prototype.py`를 제거했다. 과거 구현은 커밋 `93a7395`에 보존하며 현재 checkout에는 Bee probe 명령이나 선택적 native 저장 경로가 없다.
 
 같은 로그 측정 실행 파일의 `measure --method bounded --cap-mib 16`은 실제 제품 `JournalDeltaStore`를 사용하고 `product-selftest --root <새-경로>`는 선택한 durable 게시 경계에서 소유 제품 store 자식을 종료한다. `wal`은 이전 고정 object 시제품을 유지한다. 제품 bounded 시간은 자동 상태 체크포인트를 포함하고 일반 동작처럼 마지막 bounded suffix를 유지한다. [SX](verification/structural-throughput-prototypes.md)와 구분한 [BL](verification/bounded-journal.md)이 이 근거를 소유한다.
 

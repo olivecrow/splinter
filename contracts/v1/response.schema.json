@@ -1062,12 +1062,10 @@
         },
         "developmentStructuralThroughputProbes": {
           "type": "object", "additionalProperties": false,
-          "required": ["stage", "bee", "boundedLog", "measurement", "scope", "boundaries"],
+          "required": ["stage", "boundedLog", "scope", "boundaries"],
           "properties": {
             "stage": {"const": "isolated-prototypes-not-product-backends"},
-            "bee": {"type": "string", "minLength": 1},
             "boundedLog": {"type": "string", "minLength": 1},
-            "measurement": {"type": "string", "minLength": 1},
             "scope": {"const": "docs/plans/structural-throughput-prototypes.md"},
             "boundaries": {"type": "string", "minLength": 1}
           }

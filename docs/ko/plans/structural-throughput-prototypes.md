@@ -2,6 +2,8 @@
 
 [English](../../plans/structural-throughput-prototypes.md)
 
+**현재 처리 상태:** Bee junction과 후속 내부 native 후보를 폐기·제거했다. 과거 구현은 `93a7395`에 보존하며 이후 성능 채택 실패는 [BN](../verification/bee-internal-native.md)이 기록한다. `tools/Splinter.BoundedLogProbe`와 성공한 [제품 제한 저널](../bounded-journal.md)은 유지한다. 아래 SX 범위는 당시 실험 기록이며 제거한 Bee 경로의 복원·재실행 승인이 아니다.
+
 사용자가 승인한 이 실험은 [TP-06](../verification/unity-throughput-optimization.md)의 후속이다. 전체 Unity 작업을 다시 실행하기 전에 작은 개발 전용 구현 두 가지를 비교한다. 제품의 새 backend를 선정하거나 현재 저널 형식·작업공간 수명·기본 내구성 정책을 바꾸지 않는다.
 
 ## 고정 범위
@@ -27,4 +29,4 @@ native target과 namespace는 실험이 소유한다. mount-point 시제품은 O
 
 작은 시험의 성공은 구성요소 결과다. 이전 공유 Editor 전체 작업은 313.1508초였으며, 이후 동일 작업의 최초 준비·통합·보존·복원을 포함한 정상 전체 실행만 완전한 속도 우위를 입증할 수 있다.
 
-기록한 결과: 시도한 native Csc backend는 graft를 통한 상태 원자 게시에서 `ERROR_NOT_SAME_DEVICE`로 실패했다. 따라서 최종 같은 조건의 Bee 시간 비교는 그래프 생성에 한정한다. `--compile`은 진단 재현이며 지원하는 빌드 절차가 아니다. [검증 기록](../verification/structural-throughput-prototypes.md)을 따른다. 복사·삭제는 게시 보장을 바꾸며 두 번째 namespace 구조는 미구현이다.
+기록한 결과: 시도한 native Csc backend는 graft를 통한 상태 원자 게시에서 `ERROR_NOT_SAME_DEVICE`로 실패했다. 따라서 최종 같은 조건의 SX Bee 시간 비교는 그래프 생성에 한정했으며 당시 `--compile` 진단 명령은 현재 없다. [검증 기록](../verification/structural-throughput-prototypes.md)을 따른다. 이후 단일 볼륨 구조는 [BN](../verification/bee-internal-native.md)에서 시험했으나 시간·공간 기준에 실패하여 함께 제거했다. 어느 Bee 구현도 선택적 개발 경로로 남기지 않는다.

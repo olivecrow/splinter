@@ -2,7 +2,7 @@
 
 [한국어](../ko/plans/bounded-journal.md)
 
-The user authorized committing the existing experiments, applying the bounded log to the real product while preserving original/result safety, and reviewing an atomic-publication-capable Bee architecture. The preceding experiment is committed as `a8eb778`. The [product contract](../bounded-journal.md) owns the new provider default; [Bee design](bee-native-storage-design.md) was review-only in this scope. The subsequent [BN experiment](../verification/bee-internal-native.md) is a separately implemented and measured development candidate, not product activation.
+The user authorized committing the existing experiments, applying the bounded log to the real product while preserving original/result safety, and reviewing an atomic-publication-capable Bee architecture. The preceding experiment is committed as `a8eb778`. The [product contract](../bounded-journal.md) owns the new provider default; [Bee design](bee-native-storage-design.md) was review-only in this scope. The subsequent [BN experiment](../verification/bee-internal-native.md) was measured separately, then retired and removed after its time/storage gate failed. The successful bounded product path remains.
 
 | ID | Scope and completion evidence |
 | --- | --- |

@@ -1,6 +1,6 @@
 # Third party notices
 
-Splinter uses the projects listed below. Versions are taken from [Directory.Packages.props](Directory.Packages.props) and the checked-in `packages.lock.json` files. Each component retains its upstream license and copyright; these credits do not assign a license to Splinter itself.
+Splinter's own code and documentation are licensed under [MIT](LICENSE). Splinter uses the projects listed below. Versions are taken from [Directory.Packages.props](Directory.Packages.props) and the checked-in `packages.lock.json` files. Each component retains its upstream license and copyright; Splinter's MIT license does not replace those terms.
 
 ## WinFsp
 
@@ -75,4 +75,4 @@ Windows VSS and other Windows APIs are supplied by the operating system. Optiona
 
 Keep upstream copyright, license, and any required notice files with the corresponding redistributed components. MIT attribution, Apache 2.0 notices, the WinFsp exception, and the json-everything binary agreement have different conditions; a project link by itself is not a replacement for those terms.
 
-This file records dependency credits for the source checkout. It does not establish a distribution license for Splinter, add WinFsp attribution to CLI output, or certify a binary release package. A binary distribution must carry the licenses and notices for its actual contents and satisfy the applicable WinFsp conditions.
+This file records dependency credits for the source checkout. Splinter's own license is in [LICENSE](LICENSE). This notice does not add WinFsp attribution to CLI output or certify a binary release package. A binary distribution must carry the licenses and notices for its actual contents and satisfy the applicable WinFsp conditions.

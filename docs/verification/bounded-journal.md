@@ -2,7 +2,7 @@
 
 [한국어](../ko/verification/bounded-journal.md)
 
-**2026-10-15: scoped-complete-with-limitations.** This record owns BL-01–05 under the [fixed scope](../plans/bounded-journal.md) and [product contract](../bounded-journal.md). The previous fixed-object experiment is committed as `a8eb778`; its SX timings remain historical. This candidate uses the real mutation/state/recovery engine and a new ordinary Windows-provider default. Bee native backing was an [unimplemented design](../plans/bee-native-storage-design.md) at the BL gate. The later [BN experiment](bee-internal-native.md) implements a development candidate and records its failed performance gate separately.
+**2026-10-15: scoped-complete-with-limitations.** This record owns BL-01–05 under the [fixed scope](../plans/bounded-journal.md) and [product contract](../bounded-journal.md). The previous fixed-object experiment is committed as `a8eb778`; its SX timings remain historical. This candidate uses the real mutation/state/recovery engine and a new ordinary Windows-provider default. Bee native backing was an [unimplemented design](../plans/bee-native-storage-design.md) at the BL gate. The later [BN experiment](bee-internal-native.md) was implemented, measured and then retired and removed after failing its performance gate; the bounded product path remains.
 
 ## Evidence status
 

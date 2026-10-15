@@ -349,6 +349,12 @@ public sealed class ContractAndCliTests
             var probes = data.GetProperty("developmentStructuralThroughputProbes");
             Assert.Equal("isolated-prototypes-not-product-backends", probes.GetProperty("stage").GetString());
             Assert.Equal("docs/plans/structural-throughput-prototypes.md", probes.GetProperty("scope").GetString());
+            Assert.False(probes.TryGetProperty("bee", out _));
+            Assert.False(probes.TryGetProperty("measurement", out _));
+            Assert.Contains("Splinter.BoundedLogProbe", probes.GetProperty("boundedLog").GetString());
+            var retiredProbe = JsonNode.Parse(response.RootElement.GetRawText())!;
+            retiredProbe["data"]!["developmentStructuralThroughputProbes"]!["bee"] = "retired-native-bee";
+            Assert.False(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(retiredProbe)).IsValid);
             var codec = data.GetProperty("developmentPayloadCodec");
             Assert.Equal("workspace-internal-alpha", codec.GetProperty("stage").GetString());
             Assert.Equal("docs/journal-payload-compression.md", codec.GetProperty("specification").GetString());

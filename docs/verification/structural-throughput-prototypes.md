@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/structural-throughput-prototypes.md)
 
+**Current disposition:** both Bee implementations were retired and removed: this junction failed atomic publication, and the later [BN candidate](bee-internal-native.md) failed its time/storage gate. Commit `93a7395` preserves their implementation. The results below remain historical evidence; their Bee commands are unavailable in current code. Bounded-log tooling and the [bounded product journal](../bounded-journal.md) remain.
+
 This development-only experiment follows [TP-06](unity-throughput-optimization.md) and the [fixed SX scope](../plans/structural-throughput-prototypes.md). The product journal format, default storage policy and workspace lifecycle are unchanged. The source baseline is `dd188e1`; executable hashes and raw-result hashes identify the measured candidates separately from later builds.
 
 [Pinned comparison dataset](../../reports/benchmarks/structural-throughput-prototypes-20261015.json). SX-02 passes its bounded content/recovery experiment; SX-01 passes the graph/source-protection experiment but **fails actual Bee compilation**. SX-03 reports those distinct boundaries, and SX-04 does not approve a production backend or claim a whole-workflow speedup.
@@ -79,7 +81,7 @@ Native Bee uses ordinary NTFS buffering and a final output flush, rather than SJ
 
 The bounded log provides a substantial component gain with explicit RAM, temporary-space and write-amplification costs. Production adoption requires the missing metadata/lifecycle/recovery semantics. The NTFS graft is rejected for actual Bee compilation despite any graph-generation gain. Merely loosening path guards cannot fix its cross-volume atomic rename failure.
 
-A subsequent architecture could keep the actual project root and Bee on NTFS, or serve native Bee files through the same virtual volume. Neither is implemented here. The former must also prove source-side rename and root-file protection; the latter keeps user-mode filesystem dispatch and needs its own native-handle, mapping and lifecycle implementation. These are design alternatives, not measured improvements.
+At the SX gate, alternatives were a physical NTFS project root or native Bee payloads inside the same virtual volume. The latter was subsequently implemented and measured in [BN](bee-internal-native.md), then removed after worse time/storage results. The physical-root alternative was not implemented. These historical alternatives are not current optional paths or approved follow-up work.
 
 A whole Unity speed advantage against the previous 313.1508s shared-Editor workflow remains **NotRun**. Do not replace README workflow timings with these component measurements or add the two prototype speedups together.
 

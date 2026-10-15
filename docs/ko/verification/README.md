@@ -2,11 +2,11 @@
 
 [English](../../verification/README.md)
 
-[Bee 내부 native backing](bee-internal-native.md)이 BN-01–05를 소유한다. 개발 전용 단일 볼륨 후보·native 게시·상속 범위/소스 보호·소유 프로세스 중단 복구·작은 실제 Bee 시간을 다룬다. 이 수명주기·저장 근거는 전체 Unity Editor 속도나 제품 backend를 입증하지 않는다.
+[폐기한 native Bee backing](bee-internal-native.md)이 과거 BN-01–05를 소유한다. 단일 볼륨 후보는 한정 안전성 검사를 통과했으나 더 느리고 공간도 증가하여 구현과 명령을 제거했다. 측정·복구 근거는 보존하며 현재 backend나 전체 Unity Editor 속도를 입증하지 않는다.
 
 [제품 제한 로그](bounded-journal.md)가 BL-01–05를 소유한다. 실제 저널 metadata/수명주기/복구·한정 구성 요소 비용·새 Windows provider 기본값을 다루며 전체 Unity와 OS 전원 장애 자격은 별도로 유지한다.
 
-[구조적 처리 시간 시제품](structural-throughput-prototypes.md)이 SX-01–04를 소유한다. 작은 격리 입력의 native NTFS Bee·제한 durable 범위 로그를 비교하며, 구성 요소 시간·추가 RAM/임시 공간·원본/결과 보호·실패 pilot 복구와 미측정 전체 Unity 속도를 구분한다.
+[구조적 처리 시간 실험](structural-throughput-prototypes.md)이 SX-01–04를 소유한다. 작은 격리 입력의 과거 native NTFS Bee와 유지하는 제한 durable 범위 로그 도구를 다룬다. 폐기한 Bee 코드는 제거했으며 구성 요소 시간·추가 RAM/임시 공간·원본/결과 보호는 과거 근거로 보존하고 미측정 전체 Unity 속도와 구분한다.
 
 [Unity 작업 시간 최적화](unity-throughput-optimization.md) TP-01–06: Git 증명 재사용과 제한된 저널 개선. cache 유지 실험은 실제 Unity 회수 실패 뒤 철회했다. 구성 요소 근거·복구·공유 Editor 비교를 구분한다.
 

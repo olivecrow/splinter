@@ -1,14 +1,14 @@
-# 원자적 게시를 유지하는 Bee 저장 설계
+# 폐기한 Bee 저장 설계
 
 [English](../../plans/bee-native-storage-design.md)
 
-커밋한 구조 시제품(`a8eb778`) 이후의 설계다. 당시 실측과 실패는 [SX 기록](../verification/structural-throughput-prototypes.md)이 소유한다. 제한 로그의 제품 적용은 별도 커밋 `d0ac0a2`다. 이후 사용자가 이 설계의 구현과 실제 성능 측정을 승인했다. 첫 구현은 가상 볼륨 하나에서 native backing을 사용하는 개발 전용 후보이며, 제품 기본값 적용과 전체 Unity Editor 벤치마크는 별도 자격 경계다.
+**2026-10-15: 폐기 / 제거 완료.** 측정 뒤 사용자가 더 느린 native Bee 방식을 폐기했다. 단일 볼륨 후보와 이전 junction 구현을 `tools/Splinter.BeeProbe`·`scripts/measure-bee-prototype.py`와 함께 제거했다. 코드는 커밋 `93a7395`, 근거는 [BN-01–05](../verification/bee-internal-native.md)와 [SX 기록](../verification/structural-throughput-prototypes.md)에 보존한다. 성공한 제품 제한 저널은 유지한다. 아래 설계와 검증 순서는 과거 판단 근거이며 현재 선택적 backend·실행 지침·후속 구현 계획이 아니다.
 
-## 권고
+## 평가했던 설계(과거 기록)
 
-WinFsp 프로젝트 볼륨 하나를 유지하고 **새로 생성되는 Bee 파일의 내부 native backing**을 검토한다. backing을 junction으로 노출하지 않는다. 논리 namespace, 파일 identity, 소스 변경 추적과 자원 소유권은 provider가 관리한다. Bee의 buffered write는 별도로 선언한 재생성 데이터 내구성 정책이며 소스 쓰기 ACK 정책을 바꾸지 않는다.
+평가한 설계는 WinFsp 프로젝트 볼륨 하나에서 **새로 생성되는 Bee 파일의 내부 native backing**을 사용했으며 junction으로 노출하지 않았다. 논리 namespace, 파일 identity, 소스 변경 추적과 자원 소유권은 provider가 관리했다. Bee의 buffered write는 별도로 선언한 재생성 데이터 내구성 정책이며 소스 쓰기 ACK 정책은 유지했다.
 
-첫 단일 볼륨 후보를 구현하고 [BN-01–05](../verification/bee-internal-native.md)에서 측정했다. 작은 namespace/소스/매핑/복구 검증은 통과했지만 성능 기준은 실패했다. ABBA 평균 단계 합계는 11.18초에서 18.88초로, 최종 할당은 0.92MiB에서 2.13MiB로 늘었다. 개발 전용으로 유지하며 제품 채택 후보로 선정하지 않는다. 물리 NTFS root와 소스 overlay 대안은 미구현이며 아래의 더 큰 소스 경계 재설계가 필요하다.
+첫 단일 볼륨 후보를 구현하고 [BN-01–05](../verification/bee-internal-native.md)에서 측정했다. 작은 namespace/소스/매핑/복구 검증은 통과했지만 성능 기준은 실패했다. ABBA 평균 단계 합계는 11.18초에서 18.88초로, 최종 할당은 0.92MiB에서 2.13MiB로 늘었다. 현재는 개발 진입점까지 제거했다. 물리 NTFS root와 소스 overlay는 구현하지 않았으며 승인한 대체 경로도 아니다.
 
 ## 근거와 비교
 
@@ -75,7 +75,7 @@ Editor와 코드 도구는 최종 목적지 디렉터리 밖에 임시 파일을
 
 root 파일마다 링크를 만드는 것으로 임의 생성·열거·디렉터리 이동·링크 교체가 해결되지 않는다. 완전한 해결에는 새로운 namespace 가로채기·배치 계약이 필요하다. 최초 전체 복사, ReFS, 외부 도구 패치와 도구가 항상 목적지 옆에 임시 파일을 만든다는 가정은 제외한다. 작은 단일 볼륨안이 유의미한 정확성·비용 기준을 통과하지 못하기 전에는 보류한다.
 
-## 승인한 구현과 작은 검증 순서
+## 과거 구현 범위와 검증 순서
 
 고정 실험은 기존 Unity 6000.3.22f1의 assembly 세 개짜리 Bee 입력을 사용한다. Editor를 시작하거나 원본 Unity 프로젝트를 변경하지 않는다. `overlay`는 현재 기본 bounded SJR2 저널이다. `internal-native`는 같은 namespace·저널을 유지하면서 새로 생성되는 Bee 파일에만 빈 opaque NTFS payload를 추가한다. 양쪽 모두 cleanup purge를 유지한다. 과거 junction 모드는 진단 근거만 보존한다.
 
@@ -97,6 +97,6 @@ root 파일마다 링크를 만드는 것으로 임의 생성·열거·디렉터
 
 namespace metadata와 임시 교체 파일을 포함해 native·journal 할당을 나눠 잰다. 논리 바이트·할당 바이트·buffering/RAM 관측·시간 경계를 보고하고 최종 할당을 peak라고 부르지 않는다. 유효한 개선은 graph 구간만이 아니라 현재 작은 backend 전체 수명주기보다 나아야 한다. 이 검토는 수치 개선률을 예측하지 않는다.
 
-## 첫 후보 측정 이후 결정
+## 폐기 결정
 
-[BN-01–05](../verification/bee-internal-native.md)는 실측 비용을 근거로 제품 채택을 거부하며, 성공한 원자 게시와 안전성 근거는 유지한다. 다음 구조 후보는 native association을 동일한 namespace mutation/재생 기록에 포함하는 것이다. owner·소스 내구성·복구 증명을 제거하지 않고 두 저장소 사이의 파일별 intent를 줄이는 방향이다. 현재 추가 control 게시 비용은 개별 계측하지 않았고 이 대안은 미구현이므로 속도 개선을 예측하지 않는다. 변경된 native 파일만 flush하면 변경 없는 파일의 반복 처리를 줄일 가능성이 있지만, retained context가 종료된 뒤의 최종 flush를 생략하는 근거는 아니다.
+[BN-01–05](../verification/bee-internal-native.md)는 실측 비용으로 채택을 거부했다. 이후 사용자의 제거 결정으로 개발 명령과 실패한 junction 대안까지 이 구현 경로를 마감했다. 원자 게시·안전성 근거는 과거 기록으로 남긴다. native association의 namespace mutation 통합이나 변경된 payload만 flush하는 제안은 구현·측정하지 않았고 승인한 후속 작업도 아니며, 폐기한 backend를 유지하는 근거가 아니다.
