@@ -18,12 +18,19 @@ public sealed partial class JournalDeltaStore
         WorkspaceJournalPayload Payload, byte[]? Encoded = null, CompactionFrame? Fallback = null);
     private sealed record CompactionIntent(int Version, string WorkspaceId, string SnapshotId, string AttemptId,
         DateTimeOffset StartedAt, SnapshotDeltaSeal Before, string StateHash, string ExpectedStateHash,
-        bool RevertBaseRanges, long BaseComparedBytes, long RevertedPayloadBytes, SnapshotDeltaSeal? Candidate = null);
+        bool RevertBaseRanges, long BaseComparedBytes, long RevertedPayloadBytes, SnapshotDeltaSeal? Candidate = null,
+        BoundedLogSettings? Bounded = null);
 
     private const string CandidateName = "delta.journal.compacting";
     private const string BackupName = "delta.journal.previous";
     private const string IntentName = "compaction-intent.json";
     private Dictionary<Guid, long>? lastCompactionWrites;
+    private sealed class BoundedSwitchFence : IDisposable
+    {
+        internal FileStream? Writer;
+        internal IJournalDirectoryGuard? Directory;
+        public void Dispose() { try { Directory?.Dispose(); } finally { Writer?.Dispose(); } }
+    }
 
     private sealed class CompactionCostBuilder
     {
@@ -54,12 +61,22 @@ public sealed partial class JournalDeltaStore
     }
 
     public static SnapshotJournalCompaction CompactDirectory(string directory, OverlayIdentity identity, ISnapshotTree snapshot,
-        Action<string>? boundary = null, long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null)
+        Action<string>? boundary = null, long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null,
+        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
     {
         if (maxEstimatedJournalOverlapBytes is <= 0)
             throw new WorkspaceException("InvalidCompactionBudget", "The estimated journal overlap budget must be positive.");
         long totalStarted = Stopwatch.GetTimestamp();
         var cost = new CompactionCostBuilder();
+        using var boundedSwitchFence = new BoundedSwitchFence();
+        // A bounded owner marker belongs to the journal root, while a latest
+        // owner marker belongs to its generation's object directory. Hold the
+        // former across stopped verification and publication, including retries
+        // after conversion has already published a non-bounded current file.
+        using var boundedDirectoryPin = File.Exists(Path.Combine(directory, BoundedGuardName))
+            ? directoryGuardFactory?.Invoke(directory) : null;
+        if (boundedDirectoryPin is not null && !WorkspaceStore.SamePath(boundedDirectoryPin.DirectoryPath, directory))
+            throw new WorkspaceException("UnsafePath", "The compacted bounded directory proof belongs to another root.");
         string current = Path.Combine(directory, "delta.journal"), candidate = Path.Combine(directory, CandidateName);
         string backup = Path.Combine(directory, BackupName), intentPath = Path.Combine(directory, IntentName);
         if (!File.Exists(current)) throw new WorkspaceException("DeltaMissing", "Preserve the workspace: its journal is missing.");
@@ -71,25 +88,28 @@ public sealed partial class JournalDeltaStore
             throw new WorkspaceException("CompactionIntentMismatch", "Resume the saved compaction option; preserve both generations.");
         bool revert = intent?.RevertBaseRanges ?? revertBaseRanges ?? LatestJournalStorage.IsLatest(current);
         string attempt = intent?.AttemptId ?? Guid.NewGuid().ToString("N");
-        if (intent?.Candidate is { } ready && Matches(current, ready) && !File.Exists(candidate))
+        if (intent?.Candidate is { } ready && Matches(current, ready, directoryGuardFactory) && !File.Exists(candidate))
         {
-            if (File.Exists(backup) && !LatestJournalReclamation.MatchesPendingGeneration(backup, intent.Before, backup + ".reclaim") && !Matches(backup, intent.Before))
+            if (File.Exists(backup) && !LatestJournalReclamation.MatchesPendingGeneration(backup, intent.Before, backup + ".reclaim") && !Matches(backup, intent.Before, directoryGuardFactory))
                 throw new WorkspaceException("CompactionGenerationMismatch", "The retained previous journal differs from its intent.");
-            using var verified = new JournalDeltaStore(directory, identity, snapshot);
-            if (verified.StateHash() != intent.ExpectedStateHash)
+            using var verified = new JournalDeltaStore(directory, identity, snapshot, "delta.journal", false, null,
+                directoryGuardFactory: directoryGuardFactory, skipBoundedPreparation: true);
+            if ((intent.Bounded is null ? verified.StateHash() : verified.BoundedStateHash()) != intent.ExpectedStateHash)
                 throw new WorkspaceException("CompactionStateMismatch", "The published journal does not reconstruct the original state.");
             return Receipt(intent);
         }
-        if (intent is not null && !Matches(current, intent.Before))
+        if (intent is not null && !Matches(current, intent.Before, directoryGuardFactory))
             throw new WorkspaceException("CompactionGenerationMismatch", "The active journal differs from its compaction intent; preserve every generation.");
         if (File.Exists(backup))
             throw new WorkspaceException("CompactionGenerationMismatch", "An unverified previous journal exists; preserve it.");
         long replayStarted = Stopwatch.GetTimestamp();
-        using (var old = new JournalDeltaStore(directory, identity, snapshot))
+        using (var old = new JournalDeltaStore(directory, identity, snapshot, directoryGuardFactory: directoryGuardFactory))
         {
+            BoundedLogSettings? bounded = intent?.Bounded ?? (intent is null && revertBaseRanges is null && old.boundedSettings is { } retained
+                ? retained with { Generation = Guid.NewGuid().ToString("N") } : null);
             cost.Add("source-replay", Stopwatch.GetTimestamp() - replayStarted, old.replayBytes);
             var before = cost.Measure("before-seal", old, old.SealCurrent, directReadBytes: _ => old.CurrentJournalBytes);
-            string stateHash = cost.Measure("before-state-hash", old, old.StateHash);
+            string stateHash = cost.Measure("before-state-hash", old, () => bounded is null ? old.StateHash() : old.BoundedStateHash());
             if (intent is not null && (before != intent.Before || stateHash != intent.StateHash))
                 throw new WorkspaceException("CompactionGenerationMismatch", "The source journal changed since compaction started.");
             List<LiveRange>? live = null;
@@ -98,7 +118,7 @@ public sealed partial class JournalDeltaStore
             long compared = intent?.BaseComparedBytes ?? 0, reverted = intent?.RevertedPayloadBytes ?? 0;
             if (intent?.Candidate is null)
             {
-                live = cost.Measure("live-range-index", old, old.LiveRanges);
+                live = cost.Measure("live-range-index", old, () => bounded is null ? old.LiveRanges() : old.BoundedLiveRanges());
                 if (revert)
                 {
                     if (old.latest is null && !old.hasStatePrefix) cost.Measure("last-write-index", old, old.IndexLastCompactionWrites);
@@ -110,7 +130,7 @@ public sealed partial class JournalDeltaStore
                     if (intent is not null && (expectedStateHash != intent.ExpectedStateHash || compared != intent.BaseComparedBytes || reverted != intent.RevertedPayloadBytes))
                         throw new WorkspaceException("CompactionStateMismatch", "The immutable base comparison differs from the saved intent.");
                 }
-                estimated = cost.Measure("candidate-scan", old, () => revert ? old.WriteLatestCandidate(candidate, attempt, live, false) : old.WalkFrames(live, null));
+                estimated = cost.Measure("candidate-scan", old, () => revert ? old.WriteLatestCandidate(candidate, attempt, live, false) : old.WalkFrames(live, null, bounded: bounded));
                 if (estimated > identity.MaxJournalBytes)
                     throw new WorkspaceException("DeltaFull", "The compacted generation exceeds this workspace journal budget.");
                 long projected = checked(old.CurrentJournalBytes + estimated);
@@ -123,7 +143,7 @@ public sealed partial class JournalDeltaStore
             if (intent is null)
             {
                 intent = new(3, identity.Id, identity.Snapshot.Id, attempt,
-                    DateTimeOffset.UtcNow, before, stateHash, expectedStateHash, revert, compared, reverted);
+                    DateTimeOffset.UtcNow, before, stateHash, expectedStateHash, revert, compared, reverted, Bounded: bounded);
                 cost.Measure("intent-publication", null, () => WriteIntent(intentPath, intent), flushCount: 1);
                 boundary?.Invoke("intent");
             }
@@ -141,25 +161,37 @@ public sealed partial class JournalDeltaStore
                     if (cost.Measure("after-source-seal", old, old.SealCurrent, directReadBytes: _ => old.CurrentJournalBytes) != before)
                         throw new WorkspaceException("CompactionGenerationMismatch", "The source changed while writing its current-state candidate.");
                 }
-                else old.WriteCompactedCandidate(candidate, before, live!, estimated, cost);
+                else old.WriteCompactedCandidate(candidate, before, live!, estimated, cost, bounded: bounded);
                 boundary?.Invoke("candidate-flushed");
                 long candidateReplayStarted = Stopwatch.GetTimestamp();
-                using var check = new JournalDeltaStore(directory, identity, snapshot, CandidateName);
+                // Bounded/append candidates share the already pinned root.
+                // Only an SJL4 candidate asks the constructor to pin its own
+                // generation object directory through this factory.
+                using var check = new JournalDeltaStore(directory, identity, snapshot, CandidateName, false, null,
+                    directoryGuardFactory: directoryGuardFactory);
                 cost.Add("candidate-replay", Stopwatch.GetTimestamp() - candidateReplayStarted, check.replayBytes);
-                if (cost.Measure("candidate-state-hash", check, check.StateHash) != intent.ExpectedStateHash || check.sequence != old.sequence)
+                if (cost.Measure("candidate-state-hash", check, () => bounded is null ? check.StateHash() : check.BoundedStateHash()) != intent.ExpectedStateHash || check.sequence != old.sequence ||
+                    check.boundedSettings != bounded)
                     throw new WorkspaceException("CompactionStateMismatch", "Candidate replay differs from the active journal; preserve both.");
                 intent = intent with { Candidate = cost.Measure("candidate-seal", check, check.SealCurrent,
                     directReadBytes: _ => check.CurrentJournalBytes) };
                 cost.Measure("prepared-intent-publication", null, () => WriteIntent(intentPath, intent), flushCount: 1);
                 boundary?.Invoke("prepared");
             }
+            // Keep the bounded lifetime fence across the main-file handle gap
+            // and atomic replacement, including an explicit mode conversion.
+            if (old.boundedWriterLock is not null)
+            {
+                boundedSwitchFence.Writer = old.boundedWriterLock; old.boundedWriterLock = null;
+                boundedSwitchFence.Directory = old.latestDirectoryGuard; old.latestDirectoryGuard = null;
+            }
         }
-        if (intent.Candidate is not { } proposed || !Matches(candidate, proposed))
+        if (intent.Candidate is not { } proposed || !Matches(candidate, proposed, directoryGuardFactory))
             throw new WorkspaceException("CompactionCandidateMismatch", "The prepared candidate is missing or changed; preserve the original journal.");
         cost.Measure("generation-publication", null, () => File.Replace(candidate, current, backup));
         boundary?.Invoke("published");
         bool publishedMatches = cost.Measure("published-generation-verify", null,
-            () => Matches(current, proposed) && Matches(backup, intent.Before),
+            () => Matches(current, proposed, directoryGuardFactory) && Matches(backup, intent.Before, directoryGuardFactory),
             directReadBytes: _ => proposed.JournalBytes + intent.Before.JournalBytes);
         if (!publishedMatches)
             throw new WorkspaceException("CompactionGenerationMismatch", "The generation switch is uncertain; preserve all remaining files.");
@@ -176,6 +208,20 @@ public sealed partial class JournalDeltaStore
             File.Exists(Path.Combine(directory, CandidateName)) ||
             !Matches(current, candidate) || File.Exists(backup) && !LatestJournalReclamation.MatchesPendingGeneration(backup, intent.Before, backup + ".reclaim") && !Matches(backup, intent.Before))
             throw new WorkspaceException("CompactionGenerationMismatch", "The selected journal or previous generation differs from the intent.");
+        string boundedLock = Path.Combine(directory, BoundedGuardName);
+        if (!IsBoundedJournal(current) && File.Exists(boundedLock))
+        {
+            // Retire the old marker while its exact previous generation still
+            // exists. An interruption after deleting the previous file must not
+            // strand a marker whose mode-transition proof can no longer replay.
+            // Both paths stay fenced until the marker becomes delete-pending.
+            using var selected = new FileStream(current, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+            using var guard = new FileStream(boundedLock, FileMode.Open, FileAccess.ReadWrite, FileShare.Read | FileShare.Delete);
+            if (guard.Length != 0) throw LatestJournalStorage.Corrupt("The old bounded guard changed.");
+            if (RequireBoundedModeTransition(directory, expectedIdentity: identity) != intent)
+                throw LatestJournalStorage.Corrupt("The bounded compaction intent changed during completion.");
+            File.Delete(boundedLock);
+        }
         boundary?.Invoke("before-previous-delete");
         if (File.Exists(backup) && LatestJournalStorage.IsLatest(backup) || File.Exists(backup + ".reclaim"))
         {
@@ -234,12 +280,12 @@ public sealed partial class JournalDeltaStore
         AtomicFilePublication.Publish(temp, path);
     }
 
-    private static bool Matches(string path, SnapshotDeltaSeal seal)
+    private static bool Matches(string path, SnapshotDeltaSeal seal, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
     {
         if (!File.Exists(path)) return false;
         // The reconnected provider owns a read/write handle while its verified
         // generation is being checked. This reader must share that handle.
-        return SealJournal(path, seal.DurableSequence) == seal;
+        return SealJournal(path, seal.DurableSequence, directoryGuardFactory) == seal;
     }
 
     private SnapshotDeltaSeal SealCurrent()
@@ -396,7 +442,8 @@ public sealed partial class JournalDeltaStore
     }
 
     private void WriteCompactedCandidate(string path, SnapshotDeltaSeal originalSeal, List<LiveRange> live,
-        long estimated, CompactionCostBuilder cost, IReadOnlySet<string>? projectedFiles = null, bool revertBaseRanges = false)
+        long estimated, CompactionCostBuilder cost, IReadOnlySet<string>? projectedFiles = null, bool revertBaseRanges = false,
+        BoundedLogSettings? bounded = null)
     {
         string root = Path.GetPathRoot(Path.GetFullPath(path))!;
         // ConnectAsync also requires 2 GiB after the candidate is written.
@@ -406,7 +453,7 @@ public sealed partial class JournalDeltaStore
             throw new WorkspaceException("CompactionHeadroomRequired", "Free space cannot hold the compacted generation and safety headroom.");
         using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536))
         {
-            long actual = cost.Measure("candidate-write", this, () => WalkFrames(live, output, projectedFiles, revertBaseRanges), writtenBytes: bytes => bytes);
+            long actual = cost.Measure("candidate-write", this, () => WalkFrames(live, output, projectedFiles, revertBaseRanges, bounded), writtenBytes: bytes => bytes);
             if (actual != estimated || output.Length != actual)
                 throw new WorkspaceException("CompactionCandidateMismatch", "Candidate length changed during compaction.");
             cost.Measure("candidate-flush", null, () => output.Flush(true), flushCount: 1);
@@ -415,9 +462,10 @@ public sealed partial class JournalDeltaStore
             throw new WorkspaceException("CompactionGenerationMismatch", "The original journal changed during compaction.");
     }
 
-    private long WalkFrames(List<LiveRange> live, Stream? output, IReadOnlySet<string>? projectedFiles = null, bool revertBaseRanges = false)
+    private long WalkFrames(List<LiveRange> live, Stream? output, IReadOnlySet<string>? projectedFiles = null, bool revertBaseRanges = false,
+        BoundedLogSettings? bounded = null)
     {
-        if (latest is not null || hasStatePrefix) return WriteStateFrames(live, output, projectedFiles);
+        if (latest is not null || hasStatePrefix) return WriteStateFrames(live, output, projectedFiles, bounded);
         long cursor = 0, total = 0;
         int liveIndex = 0;
         CompactionFrame? pending = null;

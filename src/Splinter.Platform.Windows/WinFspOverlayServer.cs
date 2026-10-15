@@ -103,7 +103,8 @@ public static class WinFspOverlayServer
             using IWorkspaceDeltaStore store = request.SourceView is { } selectedView
                 ? new SourceViewDeltaStore(deltaPath, request.Identity, snapshot, selectedView, cacheBasis: cacheSnapshot)
                 : new JournalDeltaStore(deltaPath, request.Identity, basisTree, directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path),
-                    initialContentGeneration: intent.InitialContentGeneration);
+                    initialContentGeneration: intent.InitialContentGeneration,
+                    boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes);
             long storeReadyTicks = Stopwatch.GetTimestamp() - replayStarted;
             var fileSystem = new WinFspOverlayFileSystem(store, ex =>
             {

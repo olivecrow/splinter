@@ -2,7 +2,7 @@
 
 [English](../latest-only-journal.md)
 
-`workspace compact --optimize-journal true`는 정상 stop/unmount 뒤 현재 저널을 현재본 저장으로 선택한다. `--revert-base-ranges true`도 같은 입력 `revertBaseRanges`를 선택한다. 새 작업의 최초 기본값은 ON이다. 기존 작업은 저장된 OFF/ON을 유지하며, 같은 ID/home의 writer 재연결도 그 선택을 유지한다. 이후 `compact`에서 옵션을 생략하면 현재 선택을 유지하며 `false`를 명시하면 OFF로 전환한다. 진행 중에는 저장된 선택을 바꿀 수 없다.
+`workspace compact --optimize-journal true`는 정상 stop/unmount 뒤 현재 저널을 현재본 저장으로 선택한다. `--revert-base-ranges true`도 같은 입력 `revertBaseRanges`를 선택한다. 새 일반 Windows provider의 기본값은 [제한 로그](bounded-journal.md)다. 기존 작업은 저장된 형식을 유지하며, 같은 ID/home의 writer 재연결도 그 선택을 유지한다. 이후 `compact`에서 옵션을 생략하면 현재 선택을 유지하며 `false`를 명시하면 OFF로 전환한다. 진행 중에는 저장된 선택을 바꿀 수 없다.
 
 ```powershell
 pwsh ./scripts/splinter.ps1 schema workspace.compact
@@ -10,7 +10,7 @@ pwsh ./scripts/splinter.ps1 workspace compact --id <id> --home <home> --optimize
 pwsh ./scripts/splinter.ps1 workspace compact --id <id> --home <home> --optimize-journal false
 ```
 
-기본 ON은 2026-10-06 사용자의 명시적 선택이다. 실제 32 PNG의 128KiB 범위 쓰기 1,536회 전체 22.389s(평균 약 14.6ms)와 파일 데이터 할당 93.61% 감소를 함께 판단했다. 이 값은 Unity Editor의 저장/import 시간이 아니며 관리 누적 할당/RAM 개선을 뜻하지 않는다. 개발용 Library cache와 고정 SJR2 쓰기 probe는 별도 계약의 OFF를 유지한다.
+이전 기본 ON은 2026-10-06 사용자의 명시적 선택이었다. 실제 32 PNG의 128KiB 범위 쓰기 1,536회 전체 22.389s(평균 약 14.6ms)와 파일 데이터 할당 93.61% 감소를 함께 판단했다. 이 값은 Unity Editor의 저장/import 시간이 아니며 관리 누적 할당/RAM 개선을 뜻하지 않는다. 개발용 Library cache와 고정 SJR2 쓰기 probe는 별도 계약의 OFF를 유지한다.
 
 새 ON 저널은 `journal-initialization.json`의 정확한 identity/attempt 선택을 먼저 고정한다. 빈 object seed·identity·SJL4 root를 같은 디렉터리에서 각각 flush 후 최초 move로 게시하고 intent를 제거한 뒤 쓰기를 허용한다. 완료 전에 중단하면 같은 identity/attempt의 생성만 재개한다. 기존 빈 SJR2도 OFF 선택을 유지한다. 손상 seed·다른 owner·unknown object는 보존·거부하며 초기화 intent는 필수 NodeFormat=3을 포함한 v1만 지원한다. root·초기화 intent의 node 형식 식별자가 없거나 이전 값이면 복구·게시 전에 보존·거부하며 이관하지 않는다.
 

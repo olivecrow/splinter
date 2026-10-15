@@ -346,7 +346,7 @@ public sealed partial class WorkspaceCoordinator
         try
         {
             if (state.Step.StartsWith("compact-", StringComparison.Ordinal) && revertBaseRanges is { } requestedReversion &&
-                requestedReversion != (state.PendingCompactionRevertBaseRanges ?? false))
+                requestedReversion != state.PendingCompactionRevertBaseRanges)
                 throw new WorkspaceException("CompactionIntentMismatch", "Resume the saved base-reversion option.");
             if (!state.Step.StartsWith("compact-", StringComparison.Ordinal))
             {
@@ -361,11 +361,16 @@ public sealed partial class WorkspaceCoordinator
                 // explicit compaction of the same workspace.
                 if (state.Compaction is { } completed &&
                     (!completed.RevertBaseRanges || completed.JournalOptimizationEnabled) &&
+                    (revertBaseRanges is null || state.Observation.Storage?.JournalStorageMode != "bounded") &&
                     (revertBaseRanges is null || revertBaseRanges == completed.RevertBaseRanges) &&
                     await Snapshots.SealAsync(w, control, ct) == completed.After)
                     return await ViewAsync(w, ct);
                 state.PendingCompactionMaxEstimatedJournalOverlapBytes = maxEstimatedJournalOverlapBytes;
-                state.PendingCompactionRevertBaseRanges = revertBaseRanges ?? state.Observation?.Storage?.JournalOptimizationEnabled ?? state.Compaction?.JournalOptimizationEnabled ?? false;
+                // Omission preserves the bounded writer's format. A false
+                // value is an explicit request for the append-only format.
+                state.PendingCompactionRevertBaseRanges = revertBaseRanges ??
+                    (state.Observation?.Storage?.JournalStorageMode == "bounded" ? null :
+                        state.Observation?.Storage?.JournalOptimizationEnabled ?? state.Compaction?.JournalOptimizationEnabled ?? false);
                 SnapshotStep(w, "compact-unmount");
             }
             else if (state.Step == "compact-unmount" || state.Step == "compact-write")

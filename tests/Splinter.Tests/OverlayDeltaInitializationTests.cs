@@ -19,7 +19,7 @@ public sealed class OverlayDeltaInitializationTests
         // OS caching or an observer that could miss an I/O path.
         using (f.DenyPayloadAccess()) OverlayDeltaInitialization.Create(f.Request);
         Assert.True(File.Exists(Path.Combine(f.Request.DeltaPath, "identity.json")));
-        Assert.False(File.Exists(Path.Combine(f.Request.DeltaPath, "journal-initialization.json")));
+        Assert.False(File.Exists(Path.Combine(f.Request.DeltaPath, "bounded-initialization.json")));
         using var provider = new ProviderScope(f.Request);
         using var journal = new JournalDeltaStore(f.Request.DeltaPath, f.Request.Identity, provider.Tree);
         byte[] bytes = new byte[f.Bytes.Length];
@@ -27,6 +27,8 @@ public sealed class OverlayDeltaInitializationTests
         Assert.Equal(bytes.Length, journal.Read(file.Id, 0, bytes));
         Assert.Equal(f.Bytes, bytes);
         Assert.Equal(0, journal.Observe().DurableSequence);
+        Assert.Equal("bounded", journal.Observe().JournalStorageMode);
+        Assert.Equal(f.Request.Identity.MaxJournalBytes, journal.Observe().BoundedLogBytesLimit);
     }
 
     [Fact]
@@ -174,16 +176,16 @@ public sealed class OverlayDeltaInitializationTests
     }
 
     [Theory]
-    [InlineData("latest.initialize.intent-flushed")]
-    [InlineData("latest.initialize.identity")]
-    [InlineData("latest.initialize.published")]
+    [InlineData("bounded.initialize.intent-flushed")]
+    [InlineData("bounded.initialize.identity")]
+    [InlineData("bounded.initialize.published")]
     public void SameInitializationIntentResumesWithoutPayloadAccess(string boundary)
     {
         using var f = new Fixture(graft: true);
         using (f.DenyPayloadAccess())
         {
             Assert.Throws<InjectedStop>(() => OverlayDeltaInitialization.Create(f.Request, new StopAt(boundary)));
-            string path = Path.Combine(f.Request.DeltaPath, "journal-initialization.json");
+            string path = Path.Combine(f.Request.DeltaPath, "bounded-initialization.json");
             if (!File.Exists(path)) path += ".pending";
             string intent = File.ReadAllText(path);
             var changed = f.Request with { Identity = f.Request.Identity with { Id = "another-task" } };
@@ -194,6 +196,8 @@ public sealed class OverlayDeltaInitializationTests
         using var provider = new ProviderScope(f.Request);
         using var journal = new JournalDeltaStore(f.Request.DeltaPath, f.Request.Identity, provider.Tree);
         Assert.Equal(0, journal.Observe().DurableSequence);
+        Assert.Equal("bounded", journal.Observe().JournalStorageMode);
+        Assert.Equal(f.Request.Identity.MaxJournalBytes, journal.Observe().BoundedLogBytesLimit);
         Assert.NotNull(journal.Stat("Library/data"));
     }
 

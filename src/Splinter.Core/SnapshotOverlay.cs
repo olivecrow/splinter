@@ -64,6 +64,15 @@ public sealed record OverlayStorageObservation(string Id, string SnapshotId, lon
     public OverlayIoMetrics? Metrics { get; init; }
     public bool JournalOptimizationEnabled { get; init; }
     public string JournalBytesBasis { get; init; } = "current-files";
+    public string JournalStorageMode { get; init; } = "append";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? BoundedLogBytesLimit { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? BoundedLogFrameLimit { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? BoundedLogAppendedBytes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? BoundedLogAppendedFrames { get; init; }
 }
 public sealed record DeltaEntry(Guid Id, string Path, bool Directory, long Length, uint Attributes,
     long CreationTime, long LastAccessTime, long LastWriteTime, string? BasePath, long BaseLength,

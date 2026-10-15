@@ -2,6 +2,8 @@
 
 [English](../../verification/README.md)
 
+[제품 제한 로그](bounded-journal.md)가 BL-01–05를 소유한다. 실제 저널 metadata/수명주기/복구·한정 구성 요소 비용·새 Windows provider 기본값을 다루며 전체 Unity와 OS 전원 장애 자격은 별도로 유지한다.
+
 [구조적 처리 시간 시제품](structural-throughput-prototypes.md)이 SX-01–04를 소유한다. 작은 격리 입력의 native NTFS Bee·제한 durable 범위 로그를 비교하며, 구성 요소 시간·추가 RAM/임시 공간·원본/결과 보호·실패 pilot 복구와 미측정 전체 Unity 속도를 구분한다.
 
 [Unity 작업 시간 최적화](unity-throughput-optimization.md) TP-01–06: Git 증명 재사용과 제한된 저널 개선. cache 유지 실험은 실제 Unity 회수 실패 뒤 철회했다. 구성 요소 근거·복구·공유 Editor 비교를 구분한다.
@@ -24,7 +26,7 @@
 
 [외부 도구 결합 제거](external-tool-boundaries.md)는 MCP 부재/내부 API 변경에 독립적인 bridge 초기화·정상 종료와 패키지 run-state 보존의 자동 회귀를 소유한다. MCP·Unity CLI의 이름/버전·패치·연결 성공은 제품 전제가 아니다. 아래 도구별 실행 기록은 당시 후보/입력의 사실이며 현재 지원이나 설치 요구로 승계하지 않는다.
 
-[현재본 쓰기 경로 최적화](latest-journal-write-optimization.md)는 현재 SJL4 capsule의 단일 payload/metadata 기록·mutation마다 한 durable flush·정확한 이전 payload/metadata 회수와 동일 8/32 PNG 반복 입력의 ON 쓰기 -29.5%/-30.7%와 ON/OFF 파일 할당 -91.75%/-93.61%를 소유한다. ON은 OFF보다 5.6–5.8배 느리고 관리 누적 할당은 늘었다. 사용자가 1,536회 전체 22.389s·개별 평균 약 14.6ms와 파일 할당 감소를 근거로 새 작업의 기본 ON을 선택했으며 기존 OFF/ON은 유지한다. SJL2 당시 비용과 SJL3 중간 후보의 7~8% 시간 개선은 별도 보존한다. 파일/소유 프로세스 중단·WinFsp fake 기준 자격이며 Unity/VSS/OS 전원/전체 peak 자격은 승계하지 않는다.
+[현재본 쓰기 경로 최적화](latest-journal-write-optimization.md)는 현재 SJL4 capsule의 단일 payload/metadata 기록·mutation마다 한 durable flush·정확한 이전 payload/metadata 회수와 동일 8/32 PNG 반복 입력의 ON 쓰기 -29.5%/-30.7%와 ON/OFF 파일 할당 -91.75%/-93.61%를 소유한다. ON은 OFF보다 5.6–5.8배 느리고 관리 누적 할당은 늘었다. 당시 사용자가 1,536회 전체 22.389s·개별 평균 약 14.6ms와 파일 할당 감소를 근거로 새 작업의 기본 ON을 선택했다. 현재 새 Windows provider의 bounded 기본값은 [BL](bounded-journal.md)이 소유하며 기존 저장 선택은 유지한다. SJL2 당시 비용과 SJL3 중간 후보의 7~8% 시간 개선은 별도 보존한다. 파일/소유 프로세스 중단·WinFsp fake 기준 자격이며 Unity/VSS/OS 전원/전체 peak 자격은 승계하지 않는다.
 
 [보안 경계 검증](security-boundaries.md)은 Plastic private reader·MCP 인증·서비스 ACL/잠금/수신 제한의 변경된 경계만 다룬다. 과거 Unity A/B 자격은 유지하며, 현재 reader의 Unity 실행과 설치된 서비스 업데이트를 자동 통과로 표시하지 않는다. MCP v2는 현재 제공 범위에서 제거한 과거 외부 후보의 기록이다.
 

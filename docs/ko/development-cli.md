@@ -23,6 +23,8 @@ pwsh ./scripts/splinter-dev.ps1 schema view.execute
 
 [구조적 처리량 시제품](plans/structural-throughput-prototypes.md)은 독립 실행 파일 `tools/Splinter.BeeProbe`와 `tools/Splinter.BoundedLogProbe`에서 각각 `capabilities`로 발견한다. 소유한 native `Library/Bee`와 제한된 과거 범위를 남기는 로그를 새 작은 fixture에서만 비교한다. 실제 Bee 그래프·선택적 Csc 비교는 `python scripts/measure-bee-prototype.py --help`를 따른다. 제품 기본값·전체 Unity 속도 검증으로 읽지 않는다.
 
+같은 로그 측정 실행 파일의 `measure --method bounded --cap-mib 16`은 실제 제품 `JournalDeltaStore`를 사용하고 `product-selftest --root <새-경로>`는 선택한 durable 게시 경계에서 소유 제품 store 자식을 종료한다. `wal`은 이전 고정 object 시제품을 유지한다. 제품 bounded 시간은 자동 상태 체크포인트를 포함하고 일반 동작처럼 마지막 bounded suffix를 유지한다. [SX](verification/structural-throughput-prototypes.md)와 구분한 [BL](verification/bounded-journal.md)이 이 근거를 소유한다.
+
 view와 열린 cache가 의존하는 snapshot은 제품 release/discard에서도 보호한다. 현재 계약의 workspace·후보·cache·영수증만 읽으며 지원하지 않는 필드·형식, 손상·미완료 요청은 보존하고 명시적으로 거부한다. 같은 요청의 중단 복구는 해당 intent와 receipt로 수행한다.
 
 verification의 Unity·WF/LB 실행 기록은 명시한 후보·입력의 근거다. 현재 계약에서 변경된 외부 도구 연결이나 native 실행 자격으로 자동 승계하지 않는다.

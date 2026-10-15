@@ -10,7 +10,7 @@ public sealed partial class JournalDeltaStore
     // A sealed current-state prefix preserves identities and path sequences
     // when exporting to a standalone SJR2 candidate or explicitly selecting OFF.
     // It is initialization, never an acknowledged mutation history.
-    private long WriteStateFrames(List<LiveRange> live, Stream? output, IReadOnlySet<string>? projectedFiles)
+    private long WriteStateFrames(List<LiveRange> live, Stream? output, IReadOnlySet<string>? projectedFiles, BoundedLogSettings? bounded = null)
     {
         long bytes = 0;
         void Frame(Mutation mutation, ReadOnlySpan<byte> data)
@@ -28,8 +28,10 @@ public sealed partial class JournalDeltaStore
             digest.AppendData(header); digest.AppendData(metadata); digest.AppendData(stored);
             output.Write(header); output.Write(metadata); output.Write(stored); output.Write(digest.GetHashAndReset());
         }
+        var root = nodes[paths[""]].Entry;
+        if (bounded is not null) Frame(new(0, "state-bounded", root, Bounded: bounded), []);
         var ranges = live.GroupBy(r => r.NodeId).ToDictionary(g => g.Key, g => g.OrderBy(r => r.Logical).ToArray());
-        foreach (var node in nodes.Values.OrderBy(n => n.Entry.Path, pathPolicy.Comparer).ThenBy(n => n.Entry.Id))
+        foreach (var node in (bounded is null ? nodes.Values : BoundedNodes()).OrderBy(n => n.Entry.Path, pathPolicy.Comparer).ThenBy(n => n.Entry.Id))
         {
             if (projectedFiles?.Contains(node.Entry.Path) == true) continue;
             Frame(new(0, "state-node", node.Entry), []);
@@ -40,7 +42,6 @@ public sealed partial class JournalDeltaStore
                 Frame(new(0, "state-write", node.Entry, range.Logical), data);
             }
         }
-        var root = nodes[paths[""]].Entry;
         foreach (string path in hidden.Order(pathPolicy.Comparer))
             if (projectedFiles?.Contains(path) != true) Frame(new(0, "state-hidden", root with { Path = path }), []);
         foreach (var change in pathChanges.OrderBy(p => p.Key, pathPolicy.Comparer))
@@ -56,6 +57,13 @@ public sealed partial class JournalDeltaStore
         if (mutation.Entry.BasePath is { } basis) RequireAllowed(basis);
         switch (mutation.Operation)
         {
+            case "state-bounded":
+                RequireBoundedSettings(mutation.Bounded!, Identity);
+                if (boundedSettings is not null || mutation.Entry.Id != nodes[paths[""]].Entry.Id ||
+                    mutation.Entry.Path.Length != 0 || !mutation.Entry.Directory || mutation.Entry.Deleted)
+                    throw LatestJournalStorage.Corrupt("The bounded initial mode or root identity differs.");
+                boundedSettings = mutation.Bounded;
+                break;
             case "state-node":
                 if (nodes.TryGetValue(mutation.Entry.Id, out var prior))
                 {
@@ -65,6 +73,7 @@ public sealed partial class JournalDeltaStore
                 }
                 else RequireNodeCapacity();
                 var node = new Node(mutation.Entry); nodes[mutation.Entry.Id] = node;
+                if (boundedSettings is not null) boundedDurableNodes.Add(mutation.Entry.Id);
                 if (!node.Entry.Deleted)
                 {
                     if (paths.ContainsKey(node.Entry.Path)) throw LatestJournalStorage.Corrupt("A current-state path is duplicated.");

@@ -1,0 +1,986 @@
+{
+  "version": 1,
+  "date": "2026-10-15",
+  "qualification": "BL-01 through BL-05 scoped-complete-with-limitations",
+  "scope": "Real product JournalDeltaStore component, small actual editorless Windows Git A/B, automated regression and owned child termination; no new whole-Unity or OS power-loss claim.",
+  "candidate": {
+    "baseCommit": "a8eb7780cf8a59aef7ceaab0216307fe66bf17b2",
+    "files": {
+      "contracts/v1/overlay-observation.schema.json": "668073aa0b6d528dc8e1ea8b8408f56cd2dbd79edf430ff16bbb61187ccfda0a",
+      "contracts/v1/response.schema.json": "b7a440f2d9d9a73dec46309af90f9e4fdc486b57a69b733dc94d3844f73e321d",
+      "contracts/v1/workspace-compact-request.schema.json": "b198a322329b93ee4d8330e72056638b72960ff8f5d8e9c4bdc27d9a6aab73ba",
+      "src/Splinter.Core/SnapshotOverlay.cs": "0a5f36a6d0282f478970b6685aa463fcaa2962035f66e978470a3801b46766a7",
+      "src/Splinter.Host/FoundationGateway.cs": "ea75eb569b66a934e798fe795f9a01953777d35f62afb839a32cb7d2fb9b84f1",
+      "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs": "1f3919211e4c4da27da5b7d657469887dd90e8a1566043157fba82929f15a693",
+      "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs": "f59464319d88f29c1acc41615afcdb92704f6d18e8ef243d174ba45893e2ee85",
+      "src/Splinter.Platform.Windows/NtfsSnapshotWorkspaceBackend.cs": "b22105354f48c1e40d55d3480ddb53c812db12b550f4c3d4c399e10d92c59682",
+      "src/Splinter.Platform.Windows/OverlayDeltaInitialization.cs": "3ef261d4ebd984ab3c64b78235d84253f11c0b739b35d76e969c84b8ebafb671",
+      "src/Splinter.Platform.Windows/WinFspOverlayServer.cs": "549de28993a48dcdd2b008888df41567de012b09e614f46fead0dfd0bf9d56e6",
+      "src/Splinter.Platform.Windows/WindowsJournalDirectoryGuard.cs": "6db9a7221fe977eb9ea88a784cf0b6c405323650877ffc9888745bb5b1bb1204",
+      "src/Splinter.Runtime/BoundedJournalReclamation.cs": "34dacf4883f6cde0918046aaa455b17c52338baf0e7e3fbf55cad09c474a56d8",
+      "src/Splinter.Runtime/JournalDeltaBounded.cs": "733db885b9b68bbedfc0c794b72f0fee4bd7fcd0fff4dfbd03764b11f9e8d056",
+      "src/Splinter.Runtime/JournalDeltaCompaction.cs": "d55ad3253c0490bb5e7aac9a0f31a1432c7c667e418391bc69f307aea9ff50bd",
+      "src/Splinter.Runtime/JournalDeltaLatest.cs": "fa1a68986245bdef07ac24e3b6dce126f2451deb3a1f05411f7dcd046cfa1a36",
+      "src/Splinter.Runtime/JournalDeltaStore.cs": "1dad373d4f43d36a6088eb1773cf2bbb82ccb99269576a0a1f73626793a4c090",
+      "src/Splinter.Runtime/JournalStateFrames.cs": "8de72b38912bc31db624fbdce3c83b68f19b1df80c1eaf7f40b861158dad60f3",
+      "src/Splinter.Runtime/SnapshotWorkspaces.cs": "10c2c59ee1c6a90569a167081406bbbf4dab694dcdd076291fe5a23db9fc06b0",
+      "tests/Splinter.Tests/BoundedJournalModeTransitionTests.cs": "5f769239e89cab147a072a7f97efa7b35e78db89fa20801826a29c71a93d35a9",
+      "tests/Splinter.Tests/BoundedJournalReclamationTests.cs": "adc04fd20b967cc12cd00bfa1694c0a6fb6e80aef30b58b16322a32a7733f7d0",
+      "tests/Splinter.Tests/BoundedJournalTests.cs": "e17da6ae915c043256dae7b07558502f2974cd1310f096b2d81354c360081c52",
+      "tests/Splinter.Tests/ManagedDirectoryRestoreOptimizationTests.cs": "9689a0160e50cb2257a0d654d3f667a899a1e64486477ecf9d7fabf28d63611d",
+      "tests/Splinter.Tests/OverlayDeltaInitializationTests.cs": "e794a204474dd9e433216aabaec1b13364a8776ef7095ba0653091c2732a1ee1",
+      "tests/Splinter.Tests/SnapshotWorkspaceCoordinatorTests.cs": "212820a4b15fa135ebb9ee98e299078e7e3fd4fbf21c6a9ff4ee7daa209c3f7f",
+      "tools/Splinter.BoundedLogProbe/Fixture.cs": "69fb60560ef83c30b38f292719c311e2b0decd2e72b2640cb3cad5b13ff4ff02",
+      "tools/Splinter.BoundedLogProbe/Program.cs": "11263549dad29ee320714b4ac551d4a6a37c3ce3637a56cbbdd0eeb51aa6cbc1"
+    }
+  },
+  "binaries": [
+    {
+      "path": "src/Splinter.Cli/bin/Release/net10.0/Splinter.Runtime.dll",
+      "sha256": "a8c03203733f23edbd01437ef4656d02165efcc5fcc987a29edeac7ee5cc2f89"
+    },
+    {
+      "path": "src/Splinter.Cli/bin/Release/net10.0/Splinter.Platform.Windows.dll",
+      "sha256": "a163d1710294d350e564945929b84cad5c3d89d5b2183db1f315268a196c2788"
+    },
+    {
+      "path": "tools/Splinter.BoundedLogProbe/bin/Release/net10.0/Splinter.Runtime.dll",
+      "sha256": "a8c03203733f23edbd01437ef4656d02165efcc5fcc987a29edeac7ee5cc2f89"
+    },
+    {
+      "path": "tools/Splinter.BoundedLogProbe/bin/Release/net10.0/Splinter.BoundedLogProbe.dll",
+      "sha256": "a9ee3ed3d0348e1601e2f51ba367b6db97d8a3b8481812f6669389483b8fa2b6"
+    }
+  ],
+  "fullRegression": {
+    "total": 1715,
+    "executed": 1691,
+    "passed": 1691,
+    "failed": 0,
+    "error": 0,
+    "timeout": 0,
+    "aborted": 0,
+    "inconclusive": 0,
+    "passedButRunAborted": 0,
+    "notRunnable": 0,
+    "notExecuted": 24,
+    "disconnected": 0,
+    "warning": 0,
+    "completed": 0,
+    "inProgress": 0,
+    "pending": 0
+  },
+  "runtimeCopies": [
+    {
+      "path": "src/Splinter.Cli/bin/Release/net10.0/Splinter.Runtime.dll",
+      "sha256": "a8c03203733f23edbd01437ef4656d02165efcc5fcc987a29edeac7ee5cc2f89"
+    },
+    {
+      "path": "tests/Splinter.Tests/bin/Release/net10.0/Splinter.Runtime.dll",
+      "sha256": "a8c03203733f23edbd01437ef4656d02165efcc5fcc987a29edeac7ee5cc2f89"
+    },
+    {
+      "path": "tools/Splinter.BoundedLogProbe/bin/Release/net10.0/Splinter.Runtime.dll",
+      "sha256": "a8c03203733f23edbd01437ef4656d02165efcc5fcc987a29edeac7ee5cc2f89"
+    },
+    {
+      "path": "artifacts/bl-20261015/native-final/home/runners/e64c511750846e5dfdd0e893eb0d176ddd59ad49e7157a117ffd331f7413d598/Splinter.Runtime.dll",
+      "sha256": "a8c03203733f23edbd01437ef4656d02165efcc5fcc987a29edeac7ee5cc2f89"
+    }
+  ],
+  "processTermination": {
+    "version": 1,
+    "passed": 12,
+    "failed": 0,
+    "originalUnchanged": true,
+    "results": [
+      {
+        "boundary": "commit.after-header",
+        "acknowledged": 1,
+        "recovered": 1,
+        "passed": true
+      },
+      {
+        "boundary": "commit.after-metadata",
+        "acknowledged": 1,
+        "recovered": 1,
+        "passed": true
+      },
+      {
+        "boundary": "commit.after-payload",
+        "acknowledged": 1,
+        "recovered": 1,
+        "passed": true
+      },
+      {
+        "boundary": "commit.after-checksum",
+        "acknowledged": 1,
+        "recovered": 1,
+        "passed": true
+      },
+      {
+        "boundary": "commit.after-flush",
+        "acknowledged": 1,
+        "recovered": 2,
+        "passed": true
+      },
+      {
+        "boundary": "bounded.checkpoint.intent",
+        "acknowledged": 1,
+        "recovered": 1,
+        "passed": true
+      },
+      {
+        "boundary": "bounded.checkpoint.candidate-flushed",
+        "acknowledged": 1,
+        "recovered": 1,
+        "passed": true
+      },
+      {
+        "boundary": "bounded.checkpoint.prepared",
+        "acknowledged": 1,
+        "recovered": 1,
+        "passed": true
+      },
+      {
+        "boundary": "bounded.checkpoint.published",
+        "acknowledged": 1,
+        "recovered": 1,
+        "passed": true
+      },
+      {
+        "boundary": "bounded.checkpoint.reopened",
+        "acknowledged": 1,
+        "recovered": 1,
+        "passed": true
+      },
+      {
+        "boundary": "bounded.checkpoint.previous-deleted",
+        "acknowledged": 1,
+        "recovered": 1,
+        "passed": true
+      },
+      {
+        "boundary": "bounded.checkpoint.completed",
+        "acknowledged": 1,
+        "recovered": 1,
+        "passed": true
+      }
+    ],
+    "limits": [
+      "Actual product JournalDeltaStore under externally terminated owned processes",
+      "Small fixed range input; metadata and lifecycle covered separately",
+      "No OS power loss or Unity qualification",
+      "ACKs observed in a separate durable parent-readable file"
+    ]
+  },
+  "nativeProduct": {
+    "root": "artifacts/bl-20261015/native-final",
+    "baseCommit": "3ab1eb9eadaa70109edb7ec6ff5ffd1b03da0168",
+    "originalDataSha256": "ac96e42fbad31d3871231e61b78f2d8023c054ed3bdf086d1db7fd2b72596d36",
+    "a": {
+      "id": "ca62657d74bfb6f4b3351886",
+      "phase": "released",
+      "resultBlob": "f72903ceff54915a38d9f5fead833bb1d85acd9f"
+    },
+    "b": {
+      "id": "8de9b0357ce77381b761c55e",
+      "phase": "released",
+      "compactionModes": [
+        "bounded",
+        "append"
+      ]
+    },
+    "writePressure": {
+      "calls": 384,
+      "bytesPerCall": 65536,
+      "totalPayloadBytes": 25165824,
+      "observation": {
+        "id": "ca62657d74bfb6f4b3351886",
+        "snapshotId": "git-ca62657d74bfb6f4b3351886-3ab1eb9eadaa70109edb7ec6ff5ffd1b03da0168",
+        "initialPayloadCopiedBytes": 0,
+        "journalBytes": 9630034,
+        "payloadBytes": 9568390,
+        "metadataBytes": 61644,
+        "readBytes": 1185017,
+        "readCacheBytes": 0,
+        "maxTransferBytes": 1048576,
+        "indexedNodes": 4,
+        "durableSequence": 386,
+        "metrics": {
+          "epoch": "7c650956a5f24a1a8a64fcc873b6fd65",
+          "lockAcquisitions": 3851,
+          "lockWaitTicks": 23865,
+          "flushCount": 773,
+          "flushTicks": 15072505,
+          "commitCount": 386,
+          "journalAppendedBytes": 25320509,
+          "replayBytes": 1235,
+          "replayTicks": 96105,
+          "journalReadBytes": 27401045,
+          "baseReadBytes": 1048585,
+          "stopwatchFrequency": 10000000,
+          "replayFrames": 3,
+          "replayReadCalls": 1,
+          "replayReadTicks": 514,
+          "replayValidationTicks": 15555,
+          "replayIndexTicks": 45949,
+          "replayBufferBytes": 65536,
+          "replayIndexOperations": [
+            {
+              "operation": "state-bounded",
+              "frames": 1,
+              "applyTicks": 14303
+            },
+            {
+              "operation": "state-complete",
+              "frames": 1,
+              "applyTicks": 25734
+            },
+            {
+              "operation": "state-node",
+              "frames": 1,
+              "applyTicks": 5912
+            }
+          ],
+          "replayWriteRangeIndex": {
+            "replaceCalls": 0,
+            "priorExtents": 0,
+            "maxPriorExtents": 0,
+            "visitedExtents": 0,
+            "copiedExtents": 0,
+            "locateAndReplaceTicks": 0,
+            "sortTicks": 0,
+            "priorExtentBuckets": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "liveJournalWrites": {
+            "mutationGateCalls": 552,
+            "mutationGateWaitTicks": 1114,
+            "operations": [
+              {
+                "operation": "create",
+                "attempts": 1,
+                "durableCommits": 1,
+                "failedCalls": 0,
+                "payloadBytes": 0,
+                "journalBytes": 347,
+                "prepareTicks": 38508,
+                "appendTicks": 1386,
+                "flushTicks": 24562,
+                "applyTicks": 16624,
+                "totalTicks": 82700,
+                "flushCalls": 1,
+                "maxWaitingMutations": 0,
+                "waitingMutationsAtFlushStart": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "waitingMutationsAtFlushEnd": [
+                  1,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              {
+                "operation": "write",
+                "attempts": 385,
+                "durableCommits": 385,
+                "failedCalls": 0,
+                "payloadBytes": 25165958,
+                "journalBytes": 25320162,
+                "prepareTicks": 1734451,
+                "appendTicks": 208564,
+                "flushTicks": 8096956,
+                "applyTicks": 31834,
+                "totalTicks": 10097359,
+                "flushCalls": 385,
+                "maxWaitingMutations": 0,
+                "waitingMutationsAtFlushStart": [
+                  385,
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "waitingMutationsAtFlushEnd": [
+                  385,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              }
+            ]
+          },
+          "readRangeIndex": {
+            "readCalls": 49,
+            "searchProbes": 49,
+            "visitedExtents": 43
+          }
+        },
+        "journalOptimizationEnabled": false,
+        "journalBytesBasis": "writer-accounting",
+        "journalStorageMode": "bounded",
+        "boundedLogBytesLimit": 16777216,
+        "boundedLogFrameLimit": 4096,
+        "boundedLogAppendedBytes": 8571804,
+        "boundedLogAppendedFrames": 130
+      }
+    },
+    "originalUnchanged": true,
+    "peerContinuedAfterARelease": true,
+    "independentResultsSurvive": true,
+    "ownedMountsAndDeltasAbsent": true,
+    "ownedBasisRefsAbsent": true,
+    "unity": "NotRun",
+    "timing": "Not used; correctness overlapped full regression"
+  },
+  "measurements": {
+    "order": [
+      "sjl4",
+      "bounded"
+    ],
+    "repetitionsPerMethod": 1,
+    "concurrentBuildOrTests": false,
+    "sjl4": {
+      "method": "sjl4",
+      "identity": {
+        "version": 1,
+        "owner": "bounded-probe",
+        "basisHash": "debb0ec593584750950788cc585b41c4dba91db40b9e25f23c6883d35f2912f0",
+        "basisBytes": 68372480,
+        "objects": 20000,
+        "hotObjects": 256,
+        "hotFileBytes": 262144,
+        "coldFileBytes": 64,
+        "walCapBytes": 16777216
+      },
+      "writes": 4096,
+      "seedWrites": 3072,
+      "liveSeedPrivateBytes": 50331648,
+      "seedBytesPerHotFile": 196608,
+      "payload": "deterministic incompressible 4/8/16KiB; immutable original in one pinned physical file with logical objects",
+      "initializationSeconds": 47.3104904,
+      "elapsedSeconds": 53.2140268,
+      "validationSeconds": 0.728456,
+      "reopenSeconds": 2.972733,
+      "exportSeconds": 0.4923436,
+      "teardownSeconds": 0.54784,
+      "independentVerificationSeconds": 0.1043809,
+      "writesPerSecond": 76.97218658896905,
+      "ackP50Milliseconds": 10.8426,
+      "ackP95Milliseconds": 21.3448,
+      "ackMaxMilliseconds": 148.6758,
+      "finalCheckpointIncluded": true,
+      "automaticCheckpointsIncluded": true,
+      "allocatedManagedBytes": 695075464,
+      "processPeakWorkingSetBytes": 104251392,
+      "originalUnchanged": true,
+      "logicalHash": "64be12dd6fd8d5a29f3dae6c78c130bf8f3a1f7abac91d5ec512ea2a98b7e96e",
+      "independentResult": {
+        "resultHash": "90a33908ff6213e1703c0f0489a6a962c725ac04828898e060f2751662fee8cf",
+        "independentPayload": 68372480,
+        "survivesStoreTeardown": true
+      },
+      "limits": [
+        "Single ordered run; OS cache not reset",
+        "Product file inventory is final logical length, not peak or NTFS allocation; only toy wal samples owned-file peaks",
+        "Process peak working set is observed through the write phase, not the whole workflow",
+        "Fixture construction and input hash admission are outside the reported phase sum",
+        "No global memory bound; only toy wal retains all current private bytes in RAM",
+        "Bounded suffix is not a whole-store obsolete byte limit; checkpoint duplicates current private bytes",
+        "Serial per-ACK durability, no group commit",
+        "sjl4 and bounded use product JournalDeltaStore; wal is a fixed-object prototype",
+        "bounded includes automatic checkpoints; remaining suffix is retained as in normal product operation"
+      ],
+      "measuredPhaseSumSeconds": 105.37027069999999,
+      "topLevelInventoryBytes": 39065,
+      "topLevelInventoryFiles": 3,
+      "topLevelInventoryScope": "Diagnostic top-level files only; excludes nested SJL4 objects and is not a storage total.",
+      "postWriteJournalBytes": 52245386,
+      "postWriteJournalBytesBasis": "current-files",
+      "before": {
+        "storage": {
+          "id": "bounded-probe",
+          "snapshotId": "basis-debb0ec593584750950788cc585b41c4dba91db40b9e25f23c6883d35f2912f0",
+          "initialPayloadCopiedBytes": 0,
+          "journalBytes": 52306477,
+          "payloadBytes": 50331648,
+          "metadataBytes": 1974829,
+          "readBytes": 0,
+          "readCacheBytes": 0,
+          "maxTransferBytes": 1048576,
+          "indexedNodes": 20001,
+          "durableSequence": 3072,
+          "metrics": {
+            "epoch": "421d1c3002684eb8b730c22b075cd035",
+            "lockAcquisitions": 23073,
+            "lockWaitTicks": 11208,
+            "flushCount": 3072,
+            "flushTicks": 321705456,
+            "commitCount": 3072,
+            "journalAppendedBytes": 56327906,
+            "replayBytes": 0,
+            "replayTicks": 257344,
+            "journalReadBytes": 0,
+            "baseReadBytes": 0,
+            "stopwatchFrequency": 10000000,
+            "replayFrames": 0,
+            "replayReadCalls": 0,
+            "replayReadTicks": 0,
+            "replayValidationTicks": 0,
+            "replayIndexTicks": 0,
+            "replayBufferBytes": 65536,
+            "replayIndexOperations": [],
+            "replayWriteRangeIndex": {
+              "replaceCalls": 0,
+              "priorExtents": 0,
+              "maxPriorExtents": 0,
+              "visitedExtents": 0,
+              "copiedExtents": 0,
+              "locateAndReplaceTicks": 0,
+              "sortTicks": 0,
+              "priorExtentBuckets": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "liveJournalWrites": {
+              "mutationGateCalls": 3072,
+              "mutationGateWaitTicks": 5417,
+              "operations": [
+                {
+                  "operation": "write",
+                  "attempts": 3072,
+                  "durableCommits": 3072,
+                  "failedCalls": 0,
+                  "payloadBytes": 50331648,
+                  "journalBytes": 56327906,
+                  "prepareTicks": 0,
+                  "appendTicks": 0,
+                  "flushTicks": 321705456,
+                  "applyTicks": 0,
+                  "totalTicks": 469705722,
+                  "flushCalls": 3072,
+                  "maxWaitingMutations": 0,
+                  "waitingMutationsAtFlushStart": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "waitingMutationsAtFlushEnd": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            "readRangeIndex": {
+              "readCalls": 0,
+              "searchProbes": 0,
+              "visitedExtents": 0
+            }
+          },
+          "journalOptimizationEnabled": true,
+          "journalBytesBasis": "current-files",
+          "journalStorageMode": "latest"
+        },
+        "boundedCheckpointCount": 0,
+        "boundedCheckpointWrittenBytes": 0,
+        "boundedCheckpointTicks": 0
+      },
+      "after": {
+        "storage": {
+          "id": "bounded-probe",
+          "snapshotId": "basis-debb0ec593584750950788cc585b41c4dba91db40b9e25f23c6883d35f2912f0",
+          "initialPayloadCopiedBytes": 0,
+          "journalBytes": 52245386,
+          "payloadBytes": 50331648,
+          "metadataBytes": 1913738,
+          "readBytes": 0,
+          "readCacheBytes": 0,
+          "maxTransferBytes": 1048576,
+          "indexedNodes": 20001,
+          "durableSequence": 7168,
+          "metrics": {
+            "epoch": "421d1c3002684eb8b730c22b075cd035",
+            "lockAcquisitions": 27170,
+            "lockWaitTicks": 18256,
+            "flushCount": 7168,
+            "flushTicks": 515298220,
+            "commitCount": 7168,
+            "journalAppendedBytes": 165486702,
+            "replayBytes": 0,
+            "replayTicks": 257344,
+            "journalReadBytes": 96038912,
+            "baseReadBytes": 0,
+            "stopwatchFrequency": 10000000,
+            "replayFrames": 0,
+            "replayReadCalls": 0,
+            "replayReadTicks": 0,
+            "replayValidationTicks": 0,
+            "replayIndexTicks": 0,
+            "replayBufferBytes": 65536,
+            "replayIndexOperations": [],
+            "replayWriteRangeIndex": {
+              "replaceCalls": 0,
+              "priorExtents": 0,
+              "maxPriorExtents": 0,
+              "visitedExtents": 0,
+              "copiedExtents": 0,
+              "locateAndReplaceTicks": 0,
+              "sortTicks": 0,
+              "priorExtentBuckets": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "liveJournalWrites": {
+              "mutationGateCalls": 7168,
+              "mutationGateWaitTicks": 12464,
+              "operations": [
+                {
+                  "operation": "write",
+                  "attempts": 7168,
+                  "durableCommits": 7168,
+                  "failedCalls": 0,
+                  "payloadBytes": 89473024,
+                  "journalBytes": 165486702,
+                  "prepareTicks": 0,
+                  "appendTicks": 0,
+                  "flushTicks": 515298220,
+                  "applyTicks": 0,
+                  "totalTicks": 995647644,
+                  "flushCalls": 7168,
+                  "maxWaitingMutations": 0,
+                  "waitingMutationsAtFlushStart": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "waitingMutationsAtFlushEnd": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            "readRangeIndex": {
+              "readCalls": 0,
+              "searchProbes": 0,
+              "visitedExtents": 0
+            }
+          },
+          "journalOptimizationEnabled": true,
+          "journalBytesBasis": "current-files",
+          "journalStorageMode": "latest"
+        },
+        "boundedCheckpointCount": 0,
+        "boundedCheckpointWrittenBytes": 0,
+        "boundedCheckpointTicks": 0
+      }
+    },
+    "bounded": {
+      "method": "bounded",
+      "identity": {
+        "version": 1,
+        "owner": "bounded-probe",
+        "basisHash": "debb0ec593584750950788cc585b41c4dba91db40b9e25f23c6883d35f2912f0",
+        "basisBytes": 68372480,
+        "objects": 20000,
+        "hotObjects": 256,
+        "hotFileBytes": 262144,
+        "coldFileBytes": 64,
+        "walCapBytes": 16777216
+      },
+      "writes": 4096,
+      "seedWrites": 3072,
+      "liveSeedPrivateBytes": 50331648,
+      "seedBytesPerHotFile": 196608,
+      "payload": "deterministic incompressible 4/8/16KiB; immutable original in one pinned physical file with logical objects",
+      "initializationSeconds": 9.5035663,
+      "elapsedSeconds": 11.3345996,
+      "validationSeconds": 0.7518634,
+      "reopenSeconds": 0.6248094,
+      "exportSeconds": 0.2957452,
+      "teardownSeconds": 0.0060927,
+      "independentVerificationSeconds": 0.102419,
+      "writesPerSecond": 361.3713888931727,
+      "ackP50Milliseconds": 2.0645,
+      "ackP95Milliseconds": 2.5007,
+      "ackMaxMilliseconds": 1211.8527,
+      "finalCheckpointIncluded": false,
+      "automaticCheckpointsIncluded": true,
+      "allocatedManagedBytes": 314801376,
+      "processPeakWorkingSetBytes": 86114304,
+      "originalUnchanged": true,
+      "logicalHash": "64be12dd6fd8d5a29f3dae6c78c130bf8f3a1f7abac91d5ec512ea2a98b7e96e",
+      "independentResult": {
+        "resultHash": "90a33908ff6213e1703c0f0489a6a962c725ac04828898e060f2751662fee8cf",
+        "independentPayload": 68372480,
+        "survivesStoreTeardown": true
+      },
+      "limits": [
+        "Single ordered run; OS cache not reset",
+        "Product file inventory is final logical length, not peak or NTFS allocation; only toy wal samples owned-file peaks",
+        "Process peak working set is observed through the write phase, not the whole workflow",
+        "Fixture construction and input hash admission are outside the reported phase sum",
+        "No global memory bound; only toy wal retains all current private bytes in RAM",
+        "Bounded suffix is not a whole-store obsolete byte limit; checkpoint duplicates current private bytes",
+        "Serial per-ACK durability, no group commit",
+        "sjl4 and bounded use product JournalDeltaStore; wal is a fixed-object prototype",
+        "bounded includes automatic checkpoints; remaining suffix is retained as in normal product operation"
+      ],
+      "measuredPhaseSumSeconds": 22.6190956,
+      "topLevelInventoryBytes": 61088867,
+      "topLevelInventoryFiles": 3,
+      "topLevelInventoryScope": "Diagnostic top-level files only; excludes nested SJL4 objects and is not a storage total.",
+      "postWriteJournalBytes": 61088213,
+      "postWriteJournalBytesBasis": "current-files",
+      "before": {
+        "storage": {
+          "id": "bounded-probe",
+          "snapshotId": "basis-debb0ec593584750950788cc585b41c4dba91db40b9e25f23c6883d35f2912f0",
+          "initialPayloadCopiedBytes": 0,
+          "journalBytes": 51718243,
+          "payloadBytes": 50331648,
+          "metadataBytes": 1386595,
+          "readBytes": 0,
+          "readCacheBytes": 0,
+          "maxTransferBytes": 1048576,
+          "indexedNodes": 20001,
+          "durableSequence": 3072,
+          "metrics": {
+            "epoch": "6df7e5bbfeaf427c8835d720aa9f387e",
+            "lockAcquisitions": 23073,
+            "lockWaitTicks": 10057,
+            "flushCount": 3081,
+            "flushTicks": 64776577,
+            "commitCount": 3072,
+            "journalAppendedBytes": 51522989,
+            "replayBytes": 1235,
+            "replayTicks": 72477,
+            "journalReadBytes": 294913235,
+            "baseReadBytes": 0,
+            "stopwatchFrequency": 10000000,
+            "replayFrames": 3,
+            "replayReadCalls": 1,
+            "replayReadTicks": 439,
+            "replayValidationTicks": 11738,
+            "replayIndexTicks": 32315,
+            "replayBufferBytes": 65536,
+            "replayIndexOperations": [
+              {
+                "operation": "state-bounded",
+                "frames": 1,
+                "applyTicks": 9204
+              },
+              {
+                "operation": "state-complete",
+                "frames": 1,
+                "applyTicks": 18371
+              },
+              {
+                "operation": "state-node",
+                "frames": 1,
+                "applyTicks": 4740
+              }
+            ],
+            "replayWriteRangeIndex": {
+              "replaceCalls": 0,
+              "priorExtents": 0,
+              "maxPriorExtents": 0,
+              "visitedExtents": 0,
+              "copiedExtents": 0,
+              "locateAndReplaceTicks": 0,
+              "sortTicks": 0,
+              "priorExtentBuckets": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "liveJournalWrites": {
+              "mutationGateCalls": 3072,
+              "mutationGateWaitTicks": 4181,
+              "operations": [
+                {
+                  "operation": "write",
+                  "attempts": 3072,
+                  "durableCommits": 3072,
+                  "failedCalls": 0,
+                  "payloadBytes": 50331648,
+                  "journalBytes": 51522989,
+                  "prepareTicks": 26245401,
+                  "appendTicks": 1321085,
+                  "flushTicks": 64285575,
+                  "applyTicks": 96300,
+                  "totalTicks": 92130573,
+                  "flushCalls": 3072,
+                  "maxWaitingMutations": 0,
+                  "waitingMutationsAtFlushStart": [
+                    3072,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "waitingMutationsAtFlushEnd": [
+                    3072,
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            "readRangeIndex": {
+              "readCalls": 0,
+              "searchProbes": 0,
+              "visitedExtents": 0
+            }
+          },
+          "journalOptimizationEnabled": false,
+          "journalBytesBasis": "current-files",
+          "journalStorageMode": "bounded",
+          "boundedLogBytesLimit": 16777216,
+          "boundedLogFrameLimit": 4096,
+          "boundedLogAppendedBytes": 1207596,
+          "boundedLogAppendedFrames": 72
+        },
+        "boundedCheckpointCount": 3,
+        "boundedCheckpointWrittenBytes": 101023158,
+        "boundedCheckpointTicks": 23536948
+      },
+      "after": {
+        "storage": {
+          "id": "bounded-probe",
+          "snapshotId": "basis-debb0ec593584750950788cc585b41c4dba91db40b9e25f23c6883d35f2912f0",
+          "initialPayloadCopiedBytes": 0,
+          "journalBytes": 61088213,
+          "payloadBytes": 58408960,
+          "metadataBytes": 2679253,
+          "readBytes": 0,
+          "readCacheBytes": 0,
+          "maxTransferBytes": 1048576,
+          "indexedNodes": 20001,
+          "durableSequence": 7168,
+          "metrics": {
+            "epoch": "6df7e5bbfeaf427c8835d720aa9f387e",
+            "lockAcquisitions": 27170,
+            "lockWaitTicks": 13684,
+            "flushCount": 7183,
+            "flushTicks": 148736735,
+            "commitCount": 7168,
+            "journalAppendedBytes": 92258117,
+            "replayBytes": 1235,
+            "replayTicks": 72477,
+            "journalReadBytes": 636044499,
+            "baseReadBytes": 0,
+            "stopwatchFrequency": 10000000,
+            "replayFrames": 3,
+            "replayReadCalls": 1,
+            "replayReadTicks": 439,
+            "replayValidationTicks": 11738,
+            "replayIndexTicks": 32315,
+            "replayBufferBytes": 65536,
+            "replayIndexOperations": [
+              {
+                "operation": "state-bounded",
+                "frames": 1,
+                "applyTicks": 9204
+              },
+              {
+                "operation": "state-complete",
+                "frames": 1,
+                "applyTicks": 18371
+              },
+              {
+                "operation": "state-node",
+                "frames": 1,
+                "applyTicks": 4740
+              }
+            ],
+            "replayWriteRangeIndex": {
+              "replaceCalls": 0,
+              "priorExtents": 0,
+              "maxPriorExtents": 0,
+              "visitedExtents": 0,
+              "copiedExtents": 0,
+              "locateAndReplaceTicks": 0,
+              "sortTicks": 0,
+              "priorExtentBuckets": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "liveJournalWrites": {
+              "mutationGateCalls": 7168,
+              "mutationGateWaitTicks": 7807,
+              "operations": [
+                {
+                  "operation": "write",
+                  "attempts": 7168,
+                  "durableCommits": 7168,
+                  "failedCalls": 0,
+                  "payloadBytes": 89473024,
+                  "journalBytes": 92258117,
+                  "prepareTicks": 52977241,
+                  "appendTicks": 2595223,
+                  "flushTicks": 147649444,
+                  "applyTicks": 241624,
+                  "totalTicks": 203871036,
+                  "flushCalls": 7168,
+                  "maxWaitingMutations": 0,
+                  "waitingMutationsAtFlushStart": [
+                    7168,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "waitingMutationsAtFlushEnd": [
+                    7168,
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            "readRangeIndex": {
+              "readCalls": 0,
+              "searchProbes": 0,
+              "visitedExtents": 0
+            }
+          },
+          "journalOptimizationEnabled": false,
+          "journalBytesBasis": "current-files",
+          "journalStorageMode": "bounded",
+          "boundedLogBytesLimit": 16777216,
+          "boundedLogFrameLimit": 4096,
+          "boundedLogAppendedBytes": 8406086,
+          "boundedLogAppendedFrames": 845
+        },
+        "boundedCheckpointCount": 5,
+        "boundedCheckpointWrittenBytes": 206007109,
+        "boundedCheckpointTicks": 47661105
+      }
+    }
+  },
+  "comparison": {
+    "writeReductionPercent": 78.6999776532604,
+    "measuredPhaseSumReductionPercent": 78.53370267558779,
+    "workingSetRatio": 0.826025459688826,
+    "postWriteJournalBytesRatio": 1.1692556544610466
+  },
+  "correctionsDuringValidation": [
+    "Initial focused run: Windows path-junction error classification failed twice; restored path checks before owner-marker selection; later full regression passed.",
+    "First process harness run hit transient Windows ACK-file sharing after child exit; exact ACK read now retries only sharing/lock violations for at most two seconds.",
+    "Second process run exposed read-only Stat/List cache nodes in durable checkpoint hash. Recorded ID tracking fixes restart proof while retaining live read identities. The failed fixture is preserved; final 12-boundary run passed.",
+    "Explicit bounded mode conversion now passes Windows directory guard through stopped compaction. Native true/false regression covers publication fences and reconnect/cleanup."
+  ],
+  "limits": [
+    "16MiB/4096 is an appended suffix bound, not total obsolete bytes, total RAM, or total disk usage.",
+    "Each mutation retains its own flush and ACK; checkpoint temporarily duplicates current private state.",
+    "Component runs use product Runtime without WinFsp dispatch/native ancestor pins and do not predict Unity timing.",
+    "Component phase sum excludes fixed-fixture construction, input hash admission, process launch and report generation.",
+    "Working set is process high-water observed through writes; managed allocation is cumulative during writes. Journal observation is current-files logical journal length, not peak or physical NTFS allocation. Top-level diagnostic inventory omits nested SJL4 objects and is never used as total storage.",
+    "A normal bounded final suffix is retained; automatic checkpoints are included. No extra final consolidation is required by this mode.",
+    "No OS cache reset/randomized order, no statistical distribution of run-to-run variance.",
+    "Bee internal native backing is design-only; original Unity source/Library, services and external tools were not modified."
+  ],
+  "rawEvidence": [
+    {
+      "path": "artifacts/bl-20261015/build-final.log",
+      "sha256": "04c375ac9702ae703a3df69bfd88cc16380cf07f8202c91860c76d4f930630c7"
+    },
+    {
+      "path": "artifacts/bl-20261015/full-regression.trx",
+      "sha256": "c630c4842ad745024b1611b7cdf403fbb2ff896df41d0d79bce30456bdf26b12"
+    },
+    {
+      "path": "artifacts/bl-20261015/final-source-identity.json",
+      "sha256": "82979e313a637cb9edc0b669b8300dfa9e81a291cafed599f6b15e2590890557"
+    },
+    {
+      "path": "artifacts/bl-20261015/process-recovery-01.log",
+      "sha256": "055b9047d16beef6bc4550896fc967c83f53ba3dc575989794dd228bd6287319"
+    },
+    {
+      "path": "artifacts/bl-20261015/process-recovery-02.log",
+      "sha256": "d7a559f7bc417691c1a03027ad992f874b7739568246ef8c6f54f12b9ca67b47"
+    },
+    {
+      "path": "artifacts/bl-20261015/process-recovery-03/product-selftest-result.json",
+      "sha256": "a3bc3139072a1b754709bd451d719e76c56a042e8750bda72da30b2a428f438f"
+    },
+    {
+      "path": "artifacts/bl-20261015/native-final/run.json",
+      "sha256": "994125a578efcfe9317924e245214ef9b8a30bbed9414383d0cc5ff1a10ae5aa"
+    },
+    {
+      "path": "artifacts/bl-20261015/native-final/native-result.json",
+      "sha256": "ed450c230d29b622a1eedaf1fe48d1df31004c3e2025a88a2ba5a36934c08ff9"
+    },
+    {
+      "path": "artifacts/bl-20261015/measured-sjl4/result.json",
+      "sha256": "a63a5229357d7be52c61f61548359bafdc206f9180997ff2435263cc690d1ee9"
+    },
+    {
+      "path": "artifacts/bl-20261015/measured-bounded/result.json",
+      "sha256": "d26214e91e4247038c4f8b0eb510d7fc9d5ead2508aebf2a4021f42110985a5f"
+    },
+    {
+      "path": "artifacts/bl-20261015/final-binary-hashes.json",
+      "sha256": "165cfba7882e9489813a549c296736e93e6ce152149e355145c4c2d4bd601c06"
+    },
+    {
+      "path": "artifacts/bl-20261015/runtime-copy-hashes.json",
+      "sha256": "ada3048f191c20f20ffd88930f5d03e4fe2310e827e0f695e2791e82e5262e0a"
+    },
+    {
+      "path": "artifacts/bl-20261015/measurement-run.json",
+      "sha256": "1016219c8e14b8651a3c0ee435df034f6f4ebd819fbdd0709ae9192d78537e6d"
+    }
+  ]
+}

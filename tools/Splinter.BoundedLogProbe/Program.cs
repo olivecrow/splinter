@@ -16,8 +16,8 @@ internal static class Program
         {
             if (args.Length == 0 || args[0] == "capabilities")
             {
-                Print(new { developmentOnly = true, productBackend = false, format = "probe-bounded-wal-v1",
-                    commands = new[] { "capabilities", "selftest --root NEW_DIRECTORY", "measure --root NEW_DIRECTORY --method sjl4|wal [--writes 4096 --objects 20000 --hot 256 --seed-kib 192 --cap-mib 4]" },
+                Print(new { developmentOnly = true, productBackend = false, format = "wal=probe-bounded-wal-v1; sjl4/bounded=product-JournalDeltaStore",
+                    commands = new[] { "capabilities", "selftest --root NEW_DIRECTORY", "product-selftest --root NEW_DIRECTORY", "measure --root NEW_DIRECTORY --method sjl4|wal|bounded [--writes 4096 --objects 20000 --hot 256 --seed-kib 192 --cap-mib 4]" },
                     profiles = new[] { "serial-per-ack-durable; incompressible deterministic partial ranges", "process-termination and exact-owner recovery" },
                     bounds = new { objectsMaximum = 20000, hotObjectsMaximum = 256, basisMaximumMiB = 128, payloadMaximumBytes = 1048576, walCapMiB = "4 by default; 1..64 accepted for measurement", ram = "current private ranges plus bounded frame/checkpoint scratch; not total-process capped" },
                     contractChange = "Obsolete WAL bytes are bounded, not zero after ACK. Checkpoint temporarily duplicates current private ranges. One flush per write, plus separately counted checkpoint flushes. No group commit.",
@@ -25,12 +25,13 @@ internal static class Program
                 return 0;
             }
             if (args[0] == "worker") { Worker(args[1]); return 0; }
-            if (args[0] is not ("selftest" or "measure")) throw new ArgumentException("Unknown development probe command.");
+            if (args[0] is not ("selftest" or "product-selftest" or "measure")) throw new ArgumentException("Unknown development probe command.");
             var options = Options(args[1..]);
-            string[] allowed = args[0] == "selftest" ? ["root"] : ["root", "method", "writes", "objects", "hot", "seed-kib", "cap-mib"];
+            string[] allowed = args[0] is "selftest" or "product-selftest" ? ["root"] : ["root", "method", "writes", "objects", "hot", "seed-kib", "cap-mib"];
             if (options.Keys.Except(allowed, StringComparer.Ordinal).Any()) throw new ArgumentException("Unknown probe option.");
             string root = NewRoot(Required(options, "root"));
             if (args[0] == "selftest") { await SelfTest(root); return 0; }
+            if (args[0] == "product-selftest") { await ProductSelfTest(root); return 0; }
             if (args[0] == "measure") { Measure(root, options); return 0; }
             throw new ArgumentException("Unknown development probe command.");
         }
@@ -54,12 +55,14 @@ internal static class Program
         return root;
     }
     private static IProbeStore Open(string method, string path, BasisFixture basis, bool create, Action<string>? boundary = null) => method switch
-    { "wal" => new WalProbeStore(path, basis, create, boundary), "sjl4" => new SjlProbeStore(path, basis, boundary), _ => throw new ArgumentException("Method must be wal or sjl4.") };
+    { "wal" => new WalProbeStore(path, basis, create, boundary), "sjl4" => new SjlProbeStore(path, basis, boundary),
+        "bounded" => new SjlProbeStore(path, basis, boundary, bounded: true),
+        _ => throw new ArgumentException("Method must be wal, sjl4 or bounded.") };
 
     private static void Measure(string root, Dictionary<string, string> options)
     {
         string method = Required(options, "method");
-        if (method is not ("wal" or "sjl4")) throw new ArgumentException("Method must be wal or sjl4.");
+        if (method is not ("wal" or "sjl4" or "bounded")) throw new ArgumentException("Method must be wal, sjl4 or bounded.");
         int objects = Number(options, "objects", 20000), hot = Number(options, "hot", 256);
         int seed = checked(Number(options, "seed-kib", 192) * 1024), writes = Number(options, "writes", 4096);
         long cap = checked(Number(options, "cap-mib", 4) * 1048576L);
@@ -106,22 +109,25 @@ internal static class Program
         if (basisAfter != identity.BasisHash) throw new InvalidDataException("Original was modified.");
         var inventory = Inventory(storePath);
         var teardown = Stopwatch.StartNew(); DeleteOwnedStore(root, storePath); teardownSeconds = teardown.Elapsed.TotalSeconds;
+        var independentVerification = Stopwatch.StartNew();
         long independentPayload = ResultArchive.Verify(resultPath, resultHash, identity);
+        double independentVerificationSeconds = independentVerification.Elapsed.TotalSeconds;
         Array.Sort(latencies);
         var report = new
         {
-            version = 1, method, scope = "Development serial range-write fixture; not a product, Unity, kernel or power-loss qualification.",
+            version = 1, method, scope = "Serial component fixture: sjl4/bounded use the product JournalDeltaStore; wal is a fixed-object prototype. Not a whole workspace, Unity, kernel or power-loss qualification.",
             identity, writes, seedWrites, liveSeedPrivateBytes = (long)seed * hot, seedBytesPerHotFile = seed,
             payload = "deterministic incompressible 4/8/16KiB; immutable original in one pinned physical file with logical objects",
             initializationSeconds, elapsedSeconds, writesPerSecond = writes / elapsedSeconds,
             ackP50Milliseconds = latencies[writes / 2] * 1000.0 / Stopwatch.Frequency,
             ackP95Milliseconds = latencies[Math.Min(writes - 1, (int)(writes * .95))] * 1000.0 / Stopwatch.Frequency,
             ackMaxMilliseconds = latencies[^1] * 1000.0 / Stopwatch.Frequency,
-            finalCheckpointIncluded = true, allocatedManagedBytes = allocated, processPeakWorkingSetBytes = peakWorkingSet,
-            before, after, inventory, validationSeconds, reopenSeconds, exportSeconds, teardownSeconds,
+            finalCheckpointIncluded = method != "bounded", automaticCheckpointsIncluded = true,
+            allocatedManagedBytes = allocated, processPeakWorkingSetBytes = peakWorkingSet,
+            before, after, inventory, validationSeconds, reopenSeconds, exportSeconds, teardownSeconds, independentVerificationSeconds,
             originalUnchanged = true, logicalHash, independentResult = new { resultHash, independentPayload, survivesStoreTeardown = true },
             stopwatchFrequency = Stopwatch.Frequency,
-            limits = new[] { "Single ordered run; OS cache not reset", "Peak owned file bytes sampled at transaction/checkpoint boundaries, not NTFS allocation peak", "No global memory bound; current private bytes retained in RAM", "WAL allows capped obsolete history and checkpoint duplicate private bytes", "Serial per-ACK durability, no group commit", "Current SJL4 production path compared directly" }
+            limits = new[] { "Single ordered run; OS cache not reset", "Product file inventory is final logical length, not peak or NTFS allocation; only toy wal samples owned-file peaks", "Process peak working set is observed through the write phase, not the whole workflow", "Fixture construction and input hash admission are outside the reported phase sum", "No global memory bound; only toy wal retains all current private bytes in RAM", "Bounded suffix is not a whole-store obsolete byte limit; checkpoint duplicates current private bytes", "Serial per-ACK durability, no group commit", "sjl4 and bounded use product JournalDeltaStore; wal is a fixed-object prototype", "bounded includes automatic checkpoints; remaining suffix is retained as in normal product operation" }
         };
         WriteJson(Path.Combine(root, "result.json"), report); Print(report);
     }
@@ -189,7 +195,7 @@ internal static class Program
             var config = new WorkerConfig(method, directory, basisPath, identity, acks, boundary, boundary.StartsWith("checkpoint.", StringComparison.Ordinal) ? 1 : 2, 8);
             WriteJson(configPath, config);
             await KillAtBoundary(configPath, boundary);
-            long[] acknowledged = File.Exists(acks) ? File.ReadAllLines(acks).Select(long.Parse).ToArray() : [];
+            long[] acknowledged = await ReadAcknowledgedAfterExit(acks);
             if (!acknowledged.SequenceEqual(Enumerable.Range(1, acknowledged.Length).Select(i => (long)i))) throw new InvalidDataException("External ACKs are not a prefix.");
             using var basis = new BasisFixture(basisPath, identity);
             using var resumed = Open(method, directory, basis, false);
@@ -244,6 +250,40 @@ internal static class Program
         WriteJson(Path.Combine(root, "selftest-result.json"), report); Print(report);
     }
 
+    private static async Task ProductSelfTest(string root)
+    {
+        string basisPath = Path.Combine(root, "original.bin");
+        var identity = BasisFixture.Create(basisPath, "product-bounded", 16, 4, 16384, 8192);
+        string[] boundaries = ["commit.after-header", "commit.after-metadata", "commit.after-payload", "commit.after-checksum",
+            "commit.after-flush", "bounded.checkpoint.intent", "bounded.checkpoint.candidate-flushed",
+            "bounded.checkpoint.prepared", "bounded.checkpoint.published", "bounded.checkpoint.reopened",
+            "bounded.checkpoint.previous-deleted", "bounded.checkpoint.completed"];
+        var results = new List<object>();
+        foreach (string boundary in boundaries)
+        {
+            string directory = Path.Combine(root, boundary.Replace('.', '-'));
+            using (var basis = new BasisFixture(basisPath, identity))
+            using (var initial = Open("bounded", directory, basis, true)) { }
+            string acks = directory + ".acks", config = directory + ".worker.json";
+            WriteJson(config, new WorkerConfig("bounded", directory, basisPath, identity, acks, boundary,
+                boundary.StartsWith("commit.", StringComparison.Ordinal) ? 2 : 1, 8));
+            await KillAtBoundary(config, boundary);
+            long[] acknowledged = await ReadAcknowledgedAfterExit(acks);
+            if (!acknowledged.SequenceEqual(Enumerable.Range(1, acknowledged.Length).Select(i => (long)i)))
+                throw new InvalidDataException("Observed product ACKs are not a prefix.");
+            using var reopenedBasis = new BasisFixture(basisPath, identity);
+            using var resumed = Open("bounded", directory, reopenedBasis, false);
+            if (resumed.Sequence < acknowledged.Length || resumed.Sequence > acknowledged.Length + 1)
+                throw new InvalidDataException("Product recovery lost an acknowledged mutation.");
+            Verify(resumed, identity, 4096, checked((int)resumed.Sequence), false);
+            results.Add(new { boundary, acknowledged = acknowledged.Length, recovered = resumed.Sequence, passed = true });
+        }
+        if (BoundedWal.HashFile(basisPath) != identity.BasisHash) throw new InvalidDataException("Original changed.");
+        var report = new { version = 1, passed = results.Count, failed = 0, originalUnchanged = true, results,
+            limits = new[] { "Actual product JournalDeltaStore under externally terminated owned processes", "Small fixed range input; metadata and lifecycle covered separately", "No OS power loss or Unity qualification", "ACKs observed in a separate durable parent-readable file" } };
+        WriteJson(Path.Combine(root, "product-selftest-result.json"), report); Print(report);
+    }
+
     private static void Worker(string configPath)
     {
         var config = JsonSerializer.Deserialize<WorkerConfig>(File.ReadAllText(configPath), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
@@ -277,6 +317,22 @@ internal static class Program
             process.Kill(entireProcessTree: true); await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
         }
         finally { if (!process.HasExited) { process.Kill(entireProcessTree: true); await process.WaitForExitAsync(); } }
+    }
+    private static async Task<long[]> ReadAcknowledgedAfterExit(string path)
+    {
+        if (!File.Exists(path)) return [];
+        long started = Stopwatch.GetTimestamp();
+        while (true)
+        {
+            try { return File.ReadAllLines(path).Select(long.Parse).ToArray(); }
+            catch (IOException error) when ((error.HResult & 0xffff) is 32 or 33 &&
+                Stopwatch.GetElapsedTime(started) < TimeSpan.FromSeconds(2))
+            {
+                // Process exit may precede the final Windows file-handle teardown.
+                // Retry only sharing/lock violations on this child's exact ACK file.
+                await Task.Delay(20);
+            }
+        }
     }
     private static void ExpectReject(Action action)
     { try { action(); } catch (InvalidDataException) { return; } throw new InvalidDataException("Unsafe state was accepted."); }

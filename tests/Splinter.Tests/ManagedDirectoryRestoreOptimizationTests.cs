@@ -91,7 +91,7 @@ public sealed class ManagedDirectoryRestoreOptimizationTests
         public ManagedDirectoryState State { get; }
         public OverlayServeRequest Request { get; }
         public long FinalWriteTime { get; } = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc).ToFileTimeUtc();
-        public Fixture(int count, bool optimized, bool rename = false, int payloadBytes = 64, bool unchangedDirectory = false)
+        public Fixture(int count, bool optimized, bool rename = false, int payloadBytes = 64, bool unchangedDirectory = false, bool bounded = false)
         {
             if (!OperatingSystem.IsWindows()) Assert.Skip("Windows owned-file identity contract.");
             this.count = count; this.rename = rename; this.payloadBytes = payloadBytes;
@@ -109,7 +109,8 @@ public sealed class ManagedDirectoryRestoreOptimizationTests
                 Basis = new(snapshot.Id, Path.Combine(directory.Path, "original"), "Library", snapshot, root, snapshot.Id, hash) };
             Request = new(new(2, snapshot.Id, snapshot, 4 * 1048576, 65536), Path.Combine(root, "delta"), State.OriginalPath, Path.Combine(root, "overlay"), "token", new(snapshot.Id, basis, hash), root, snapshot.Id);
             using var tree = new OwnedDirectorySnapshotTree(manifest, snapshot);
-            using var journal = new JournalDeltaStore(Request.DeltaPath, Request.Identity, tree, optimizeJournal: optimized);
+            using var journal = new JournalDeltaStore(Request.DeltaPath, Request.Identity, tree, optimizeJournal: optimized,
+                boundedLogBytes: bounded ? 8192 : null);
             if (rename)
             {
                 journal.Rename(journal.Stat("dir")!.Id, "renamed", false);

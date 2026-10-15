@@ -3,6 +3,8 @@
 
 [한국어](../ko/verification/README.md)
 
+[Product bounded journal](bounded-journal.md) owns BL-01–05: actual journal metadata/lifecycle/recovery, bounded component costs and the new Windows-provider default. Full Unity and OS power-loss qualification remain separate.
+
 [Structural throughput prototypes](structural-throughput-prototypes.md) owns SX-01–04: native NTFS Bee and a bounded durable range log on isolated small inputs. Component timing, extra RAM/temporary space, successful source/result protection and failed-pilot recovery are separated from unmeasured full Unity speed.
 
 [Unity throughput optimization](unity-throughput-optimization.md) TP-01–06: Git proof reuse and bounded journal improvements; the cache-retention experiment was withdrawn after a real Unity reclamation failure. Component evidence, recovery and shared-Editor comparison are separated.
@@ -25,7 +27,7 @@
 
 [External-tool coupling removal](external-tool-boundaries.md) owns automatic regression of bridge initialization/normal shutdown independent of missing MCP/internal API changes, and package run-state preservation. MCP/Unity CLI names/versions/patches/connection success are not product prerequisites. Tool-specific records below are historical candidate/input facts, not inherited as current support/installation requirements.
 
-[Latest-only write-path optimization](latest-journal-write-optimization.md) owns current SJL4 capsule single payload/metadata recording, one durable flush per mutation, exact previous payload/metadata reclaim, and ON write -29.5%/-30.7% and ON/OFF file allocation -91.75%/-93.61% for identical repeated 8/32 PNG inputs. ON is 5.6–5.8× slower than OFF; cumulative managed allocation increased. User selected default ON for new tasks based on 1,536 writes totaling 22.389s/~14.6ms average and file-allocation reduction; existing OFF/ON retained. SJL2 historical costs/SJL3 intermediate 7–8% improvement preserved separately. File/owned-process interruption/WinFsp fake-basis qualification, not inherited Unity/VSS/OS-power/full-peak qualification.
+[Latest-only write-path optimization](latest-journal-write-optimization.md) owns current SJL4 capsule single payload/metadata recording, one durable flush per mutation, exact previous payload/metadata reclaim, and ON write -29.5%/-30.7% and ON/OFF file allocation -91.75%/-93.61% for identical repeated 8/32 PNG inputs. ON is 5.6–5.8× slower than OFF; cumulative managed allocation increased. The user selected default ON at that time based on 1,536 writes totaling 22.389s/~14.6ms average and file-allocation reduction. [BL](bounded-journal.md) owns the current bounded default for new Windows providers; existing stored selections remain unchanged. SJL2 historical costs/SJL3 intermediate 7–8% improvement preserved separately. File/owned-process interruption/WinFsp fake-basis qualification, not inherited Unity/VSS/OS-power/full-peak qualification.
 
 [Security boundary verification](security-boundaries.md) covers only changed Plastic private-reader/MCP authentication/service ACL/lock/reception-limit boundaries. Historical Unity A/B qualification retained; current-reader Unity execution/installed-service updates not automatically passed. MCP v2 records historical external candidate removed from current scope.
 

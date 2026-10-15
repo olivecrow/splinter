@@ -3,7 +3,7 @@
 
 [한국어](ko/latest-only-journal.md)
 
-`workspace compact --optimize-journal true` selects latest-state storage for the current journal after normal stop/unmount. `--revert-base-ranges true` selects the same input `revertBaseRanges`. New tasks initially default to ON. Existing tasks retain stored OFF/ON, including writer reconnects with the same ID/home. Later `compact` calls with the option omitted retain the current choice; explicit `false` switches to OFF. The stored choice cannot change during an operation.
+`workspace compact --optimize-journal true` selects latest-state storage for the current journal after normal stop/unmount. `--revert-base-ranges true` selects the same input `revertBaseRanges`. New ordinary Windows providers default to the [bounded journal](bounded-journal.md). Existing tasks retain their saved format, including writer reconnects with the same ID/home. Later `compact` calls with the option omitted retain the current choice; explicit `false` switches to OFF. The stored choice cannot change during an operation.
 
 ```powershell
 pwsh ./scripts/splinter.ps1 schema workspace.compact
@@ -11,7 +11,7 @@ pwsh ./scripts/splinter.ps1 workspace compact --id <id> --home <home> --optimize
 pwsh ./scripts/splinter.ps1 workspace compact --id <id> --home <home> --optimize-journal false
 ```
 
-Default ON was explicitly selected by the user on 2026-10-06, considering both 1,536 actual 128KiB range writes across 32 PNGs taking 22.389s total (about 14.6ms average) and a 93.61% reduction in file-data allocation. These figures are not Unity Editor save/import times or improvements in cumulative managed allocation/RAM. Development Library caches and fixed SJR2 write probes retain OFF under separate contracts.
+The earlier default ON was explicitly selected by the user on 2026-10-06, considering both 1,536 actual 128KiB range writes across 32 PNGs taking 22.389s total (about 14.6ms average) and a 93.61% reduction in file-data allocation. These figures are not Unity Editor save/import times or improvements in cumulative managed allocation/RAM. Development Library caches and fixed SJR2 write probes retain OFF under separate contracts.
 
 A new ON journal first fixes the exact identity/attempt choice in `journal-initialization.json`. Empty object seed, identity, and SJL4 root are each flushed and published by an initial move in the same directory; writes are allowed only after removing intent. Interruption before completion resumes creation only for the same identity/attempt. Existing empty SJR2 journals retain OFF. Damaged seeds, different owners, and unknown objects are preserved/rejected; initialization intent supports v1 with required NodeFormat=3 only. Missing/older node-format discriminators in roots and initialization intents are rejected before recovery or publication, without migration.
 

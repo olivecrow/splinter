@@ -7,7 +7,7 @@ using Splinter.Runtime;
 namespace Splinter.Platform.Windows;
 
 // A writer's object directory is flat and immutable in identity. Directory
-// namespace pins permit child publication. The existing owner.lock is pinned
+// namespace pins permit child publication. The existing format marker is pinned
 // against deletion so the root and its ancestors cannot become empty reparses.
 internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard
 {
@@ -17,9 +17,11 @@ internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard
     private bool disposed;
     public string DirectoryPath { get; }
 
-    internal WindowsJournalDirectoryGuard(string directory)
+    internal WindowsJournalDirectoryGuard(string directory, string? existingOwnerName = null)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        if (existingOwnerName is not (null or "owner.lock" or BoundedJournalReclamation.GuardName))
+            throw new ArgumentException("Require the existing format-owned marker.", nameof(existingOwnerName));
         DirectoryPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory));
         try
         {
@@ -44,9 +46,19 @@ internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard
                 if ((info.Attributes & 0x400) != 0 || (info.Attributes & 0x10) == 0)
                     throw new WorkspaceException("UnsafePath", "Journal ancestry must remain ordinary directories: " + path);
             }
+            // Classify only after the full ordinary-directory proof. In
+            // particular, a reparse path must retain its UnsafePath refusal.
+            if (existingOwnerName is null)
+            {
+                bool latest = File.Exists(Path.Combine(DirectoryPath, "owner.lock"));
+                bool bounded = File.Exists(Path.Combine(DirectoryPath, BoundedJournalReclamation.GuardName));
+                if (latest == bounded)
+                    throw new WorkspaceException("JournalPathUnpinned", "Require exactly one existing format-owned journal marker; preserve missing or ambiguous ownership.");
+                existingOwnerName = bounded ? BoundedJournalReclamation.GuardName : "owner.lock";
+            }
             // Existing format-owned file; never create a marker or alter its
             // bytes. Share write with Runtime's owner lock but deny deletion.
-            owner = CreateFileW(Path.Combine(DirectoryPath, "owner.lock"), 0x80000000, 3, 0, 3, 0x00200000, 0);
+            owner = CreateFileW(Path.Combine(DirectoryPath, existingOwnerName), 0x80000000, 3, 0, 3, 0x00200000, 0);
             if (owner.IsInvalid || !GetFileInformationByHandle(owner, out var ownerInfo))
                 throw new WorkspaceException("JournalPathUnpinned", "Cannot pin the existing journal owner lock.");
             if ((ownerInfo.Attributes & (0x400 | 0x10)) != 0)
@@ -61,7 +73,7 @@ internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard
                     throw new WorkspaceException("UnsafePath", "Journal ancestry must remain ordinary directories.");
             }
             WindowsOwnedDirectoryLease.RequirePath(handles[^1], DirectoryPath);
-            WindowsOwnedDirectoryLease.RequirePath(owner, Path.Combine(DirectoryPath, "owner.lock"));
+            WindowsOwnedDirectoryLease.RequirePath(owner, Path.Combine(DirectoryPath, existingOwnerName));
         }
         catch { Dispose(); throw; }
     }

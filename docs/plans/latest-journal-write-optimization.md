@@ -3,6 +3,8 @@
 
 [한국어](../ko/plans/latest-journal-write-optimization.md)
 
+The recorded ON-default decision below is historical. New ordinary Windows providers now use the [bounded journal](../bounded-journal.md); explicitly selected SJL4 and existing task formats remain supported.
+
 This is the user's explicit write-path optimization request of 2026-10-06. Reduce duplicate C writes and serialized file-flush waits in SJL2/SJT2 while retaining original + latest changes and individual mutation durable ACKs. The initial implementation keeps default OFF; do not change commit/push, service/ACL/installation, original/Unity Editors, or existing closed A/B runs.
 
 - The current candidate uses SJL4/root v4 capsules and SJB1 owner headers. Preserve/reject earlier SJL1/2/3 and SJT2/3. Keep overlay/workspace v2, candidate v3/SJR2, and compact intent v3.

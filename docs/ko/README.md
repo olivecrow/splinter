@@ -14,6 +14,8 @@
 
 | 문서 | 소유하는 내용 |
 | --- | --- |
+| [제품 제한 로그](bounded-journal.md), [범위](plans/bounded-journal.md), [검증](verification/bounded-journal.md) | BL-01–05: mutation별 durable SJR2·제한 suffix/체크포인트 복구·provider 선택·원본/결과 보호와 작은 제품 비용 근거. |
+| [원자 게시가 가능한 Bee 저장 설계](plans/bee-native-storage-design.md) | 단일 가상 볼륨과 내부 native backing 대안·안전성 gate·미구현/미측정 경계. |
 | [구조적 처리량 시제품](plans/structural-throughput-prototypes.md), [검증](verification/structural-throughput-prototypes.md) | SX-01–04: 개발 전용 native NTFS Bee·제한된 durable 범위 로그, 고정한 작은 입력·원본/결과 보호와 구성 요소 시간 측정의 경계. |
 | [Unity 작업 시간 최적화](verification/unity-throughput-optimization.md) | TP-01–06: Git 증명 재사용과 제한된 저널 개선. cache 유지 실험은 실제 Unity 회수 실패 뒤 철회했다. 구성 요소 근거·복구·공유 Editor 비교를 구분한다. |
 | [다단계 Unity 미로 작업 비교](verification/unity-maze-workflow.md) | MW-01: 실제 미로 생성·장면 저장·캐릭터/입력·Play 검증을 병렬 A/B와 공유 Editor로 수행. 복구를 포함한 완료 기록과 정상 단계 비용·동등한 결과·시간 해석 한계를 구분한다. |
@@ -52,7 +54,7 @@
 | [저장소와 자원](storage-and-resources.md) | 프로세스 그룹·자원 관측 |
 | [실행 파일 묶음의 메모리 검증](verification/runner-bundle-memory.md) | 동일 빌드의 디스크 재사용·스트림 준비의 관리 할당·손상/소실 거부·동시 게시와 실제 프로세스 회귀 |
 | [쓰기 경로 최적화](plans/latest-journal-write-optimization.md)·[검증](verification/latest-journal-write-optimization.md) | SJL4 payload/metadata capsule·mutation마다 한 durable flush·이전 현재본 회수·동일 PNG 반복 입력의 전후 비교 |
-| [현재본 저널 ON](latest-only-journal.md)·[현재 범위](plans/latest-journal-write-optimization.md)·[검증](verification/latest-journal-write-optimization.md) | SJL4 현재 범위·단일 capsule 기록/개별 mutation durable flush/게시/회수·새 작업 기본 ON·기존 OFF/ON 유지·생성 중단 복구·v3 compact intent·실제 PNG 반복 저장 및 필요한 WinFsp/프로세스 경계 |
+| [현재본 저널 ON](latest-only-journal.md)·[현재 범위](plans/latest-journal-write-optimization.md)·[검증](verification/latest-journal-write-optimization.md) | SJL4 현재 범위·단일 capsule 기록/개별 mutation durable flush/게시/회수·명시적 ON·새 provider 기본 [bounded](bounded-journal.md)·기존 OFF/ON 유지·생성 중단 복구·v3 compact intent·실제 PNG 반복 저장 및 필요한 WinFsp/프로세스 경계 |
 | [기준본 복귀 정리](journal-base-reversion.md), [이전 범위](plans/journal-base-reversion.md), [당시 검증](verification/journal-base-reversion.md), [이전 시간 최적화](plans/journal-base-reversion-optimization.md)·[당시 계측](verification/journal-base-reversion-optimization.md) | 명시적 compact의 기준 동일 범위 제거·원래/기대 hash·과거 v2 intent/append 구현의 OFF/ON 및 강제 중단/peer 근거 |
 | [저널 정리 크기 회귀](verification/journal-compaction-size.md) | 작은 덮어쓰기의 메타데이터 증가 재현·더 작은 frame 선택·같은 입력의 NTFS 할당 비교 |
 | [동일 private 쓰기](verification/duplicate-private-writes.md) | 승인된 private 범위의 중복 payload 억제·메타데이터/flush 유지·NTFS 할당과 작은 WinFsp client 검증 |

@@ -19,6 +19,8 @@ The intended workflow is simple: use a workspace when a task needs independent e
 <a id="measured-storage-and-time-tradeoff"></a>
 ## Measured storage and time
 
+The figures below use the SJL4 configuration measured on 2026-10-14. Unity time and storage for the [bounded-journal default](docs/bounded-journal.md) have not yet been measured.
+
 Two independent Unity Editors each make and compile one isolated one-line C# change in a **2.80 GB project with 1,602 tracked files and an existing 3.14 GB Library** (Windows/NTFS, Unity 6000.3.22f1). **Both methods run A/B in parallel.** Ordinary Git worktrees in the Codex task paths build new Libraries; Splinter workspaces reference the original Library.
 
 ### Complete workflow comparison
@@ -59,9 +61,9 @@ Referencing an existing Library can reduce fresh-workspace import costs, but rep
 
 ### Storage footprint
 
-**Current-version measurement, 2026-10-14:** additional file allocation after both edits compiled was **10.52 GiB for Codex and 0.14 GiB for Splinter: 98.64% less**.
+**Measured SJL4 configuration, 2026-10-14:** additional file allocation after both edits compiled was **10.52 GiB for Codex and 0.14 GiB for Splinter: 98.64% less**.
 
-![Current additional file allocation with Codex worktrees and Splinter](docs/images/unity-readme-storage.png)
+![Additional file allocation in the measured Codex worktree and Splinter configuration](docs/images/unity-readme-storage.png)
 
 Task and control files, owned Git registration, and shared runner/Library metadata are counted once. Original source, original Library payload, shared Git objects, and filesystem directory metadata are excluded. This is a stage measurement, not peak disk use.
 
@@ -108,7 +110,7 @@ The original remains usable during task work. For the optional managed Library o
 ## Main capabilities
 
 - **Independent task workspaces.** Separate writable paths, private changes, task state, and owned application processes, with protection for the original and other tasks.
-- **Storage that follows changes.** Shared immutable data, bounded raw or Brotli payloads, and journal compaction. New workspaces use the current-state journal optimization by default; explicit compaction can also remove ranges that match the basis again.
+- **Storage that follows changes.** Shared immutable data, bounded raw or Brotli payloads, and journal compaction. New workspaces use a [bounded durable journal](docs/bounded-journal.md); explicit compaction can also remove ranges that match the basis again.
 - **Work that survives a conversation.** Stable task identities, atomic JSON state, and recovery using the same request after interruption or a lost response.
 - **Independent results and guarded integration.** Source checkpoints, Git result integration, and planned full or selected file application for supported plain-folder and recorded Plastic paths. Changed targets and conflicting inputs are rejected for explicit resolution.
 - **Explicit resource ownership.** Unity Editor start/stop, provider and mount tracking, dependency guards, and release or discard of the task's own resources.

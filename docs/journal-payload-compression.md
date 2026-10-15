@@ -3,7 +3,7 @@
 
 [한국어](ko/journal-payload-compression.md)
 
-`JournalDeltaStore` supports overlay **v2**, OFF's **SJR2**, and the [SJL4 latest-state journal with optimization ON](latest-only-journal.md). It stores the changed range of one write callback, at most 1MiB, as raw or an independent `splinter-range-brotli-v1` block. Older overlays/journals are preserved and explicitly rejected without automatic migration. Workspace state is v2 and independent candidates are v3/SJR2. The frame append/selection description below covers the ordinary OFF SJR2 path; ON uses a single capsule record for payload/metadata, one durable flush per mutation, and publication/reclamation.
+`JournalDeltaStore` supports overlay **v2**, the [default bounded SJR2](bounded-journal.md), explicit OFF's **SJR2**, and the [SJL4 latest-state journal with optimization ON](latest-only-journal.md). It stores the changed range of one write callback, at most 1MiB, as raw or an independent `splinter-range-brotli-v1` block. Older overlays/journals are preserved and explicitly rejected without automatic migration. Workspace state is v2 and independent candidates are v3/SJR2. The frame append/selection description below covers the ordinary OFF SJR2 path; ON uses a single capsule record for payload/metadata, one durable flush per mutation, and publication/reclamation.
 
 <a id="현재-frame"></a>
 ## Current frame

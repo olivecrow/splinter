@@ -2,6 +2,8 @@
 
 [English](../../plans/latest-journal-write-optimization.md)
 
+아래 ON 기본값 결정은 과거 기록이다. 새 일반 Windows provider는 [제한 로그](../bounded-journal.md)를 기본 사용하며 명시적으로 선택한 SJL4와 기존 작업 형식은 유지한다.
+
 2026-10-06 사용자의 명시적 쓰기 경로 최적화 요청이다. 원본 + 최신 변경본과 개별 mutation의 durable ACK를 유지하면서 SJL2/SJT2의 중복 C 기록과 직렬 파일 flush 대기를 줄인다. 초기 구현에서는 기본 OFF를 유지했으며 commit/push·서비스/ACL/설치·원본/Unity Editor·기존 closed A/B를 변경하지 않는다.
 
 - 현재 후보는 SJL4/root v4 capsule·SJB1 owner header다. 이전 SJL1/2/3·SJT2/3는 보존·거부한다. overlay/workspace v2·candidate v3/SJR2·compact intent v3는 유지한다.

@@ -25,8 +25,10 @@ internal static class OverlayDeltaInitialization
             _ = new GraftedSnapshotTree(source, generated!, admitted);
         var tree = new InitializationRoot(request.Identity, source, generated);
         using var delta = observer is null
-            ? new JournalDeltaStore(request.DeltaPath, request.Identity, tree)
-            : new JournalDeltaStore(request.DeltaPath, request.Identity, tree, observer);
+            ? new JournalDeltaStore(request.DeltaPath, request.Identity, tree,
+                boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes)
+            : new JournalDeltaStore(request.DeltaPath, request.Identity, tree, observer,
+                boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes);
     }
 
     private sealed class InitializationRoot(OverlayIdentity identity, RootProof source, RootProof? generated) : ISnapshotTree

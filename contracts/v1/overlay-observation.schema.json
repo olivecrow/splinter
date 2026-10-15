@@ -90,6 +90,11 @@
       "properties": {
         "journalOptimizationEnabled": { "type": "boolean" },
         "journalBytesBasis": { "enum": ["current-files", "writer-accounting"] },
+        "journalStorageMode": { "enum": ["append", "latest", "bounded"] },
+        "boundedLogBytesLimit": { "type": "integer", "minimum": 4096, "maximum": 16777216 },
+        "boundedLogFrameLimit": { "const": 4096 },
+        "boundedLogAppendedBytes": { "type": "integer", "minimum": 0 },
+        "boundedLogAppendedFrames": { "type": "integer", "minimum": 0, "maximum": 4096 },
         "initialPayloadCopiedBytes": {
           "const": 0
         },
@@ -163,12 +168,12 @@
             "replayIndexTicks": {"type":"integer", "minimum":0},
             "replayBufferBytes": {"type":"integer", "minimum":0},
             "replayIndexOperations": {
-              "type": "array", "maxItems": 9,
+              "type": "array", "maxItems": 17,
               "items": {
                 "type": "object", "additionalProperties": false,
                 "required": ["operation", "frames", "applyTicks"],
                 "properties": {
-                  "operation": {"enum":["create","metadata","resize","write","write-compacted","rename","delete","skip-write","skip-range"]},
+                  "operation": {"enum":["create","metadata","resize","write","write-compacted","rename","delete","skip-write","skip-range","state-bounded","state-node","state-write","state-hidden","state-change","state-complete","state-projection-unsafe","forget-unlinked"]},
                   "frames": {"type":"integer", "minimum":1},
                   "applyTicks": {"type":"integer", "minimum":0}
                 }

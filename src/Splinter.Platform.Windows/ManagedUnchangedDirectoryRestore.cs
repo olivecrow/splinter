@@ -11,7 +11,7 @@ namespace Splinter.Platform.Windows;
 internal static class ManagedUnchangedDirectoryRestore
 {
     private sealed record Plan(int Version, GeneratedDirectoryReference Basis, string OriginalPath,
-        string DeltaPath, string IdentityHash, SnapshotDeltaSeal Seal, Dictionary<string, string> Identities);
+        string DeltaPath, string IdentityHash, SnapshotDeltaSeal Seal, Dictionary<string, string> Identities, string JournalMode);
     private sealed record Verified(int Version, string PlanHash);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static string PlanPath(string root) => Path.Combine(root, "restore-directory-plan.json");
@@ -20,7 +20,7 @@ internal static class ManagedUnchangedDirectoryRestore
     internal static bool HasPlan(string root)
     {
         bool exists = File.Exists(PlanPath(root));
-        if (!exists && (File.Exists(VerifiedPath(root)) || File.Exists(ReclaimPath(root)))) throw Conflict();
+        if (!exists && (File.Exists(VerifiedPath(root)) || BoundedJournalReclamation.HasIntent(ReclaimPath(root)))) throw Conflict();
         return exists;
     }
     private static WorkspaceException Conflict() => new("GeneratedRestoreConflict", "Preserve an inconsistent unchanged-directory restoration.");
@@ -29,10 +29,10 @@ internal static class ManagedUnchangedDirectoryRestore
     internal static bool Eligible(ManagedDirectoryState state, OverlayServeRequest request, OwnedDirectoryManifest manifest,
         SnapshotDeltaSeal seal, DeltaRestoreEntry[] entries)
     {
-        // SJL4 already has an exact, resumable multi-file reclamation inventory.
-        // Other journals and any logical mutation retain the general v2 route.
+        // Both current-state formats have exact resumable reclamation inventories.
+        // Append journals and any logical mutation retain the general v2 route.
         if (state.ApplicationKind != "unity" || state.DirectoryKind != "Library" || state.Basis.RelativePath != "Library" ||
-            seal.DurableSequence != 0 || !LatestJournalReclamation.IsLatest(Path.Combine(request.DeltaPath, "delta.journal")) ||
+            seal.DurableSequence != 0 || JournalMode(request) is null ||
             entries.Length != manifest.Items.Length) return false;
         var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
         return entries.All(d => items.TryGetValue(d.Entry.Path, out var item) && d.Ranges.Length == 0 && !d.Entry.Deleted &&
@@ -54,7 +54,8 @@ internal static class ManagedUnchangedDirectoryRestore
         {
             // The caller's fully hashed basis reader still denies file writes
             // and deletion while these identities and the intent are captured.
-            plan = new(1, state.Basis, state.OriginalPath, request.DeltaPath, IdentityHash(request.Identity), seal, pins.Identities);
+            plan = new(2, state.Basis, state.OriginalPath, request.DeltaPath, IdentityHash(request.Identity), seal, pins.Identities,
+                JournalMode(request) ?? throw Conflict());
             if (journal.Seal() != seal) throw Conflict();
             await WindowsProcessWorkspaceProvider.WriteAsync(PlanPath(state.Basis.ReceiptDirectory), plan, ct);
             boundary?.Invoke("directory.after-plan");
@@ -68,7 +69,7 @@ internal static class ManagedUnchangedDirectoryRestore
     {
         ValidateManifest(state, manifest);
         var plan = await WindowsProcessWorkspaceProvider.ReadAsync<Plan>(PlanPath(state.Basis.ReceiptDirectory), ct) ?? throw Conflict();
-        if (plan.Version != 1 || plan.Basis != state.Basis || plan.OriginalPath != state.OriginalPath || plan.DeltaPath != request.DeltaPath ||
+        if (plan.Version != 2 || plan.JournalMode is not ("latest" or "bounded") || plan.Basis != state.Basis || plan.OriginalPath != state.OriginalPath || plan.DeltaPath != request.DeltaPath ||
             plan.IdentityHash != IdentityHash(request.Identity) || plan.Seal.DurableSequence != 0 || plan.Identities is null ||
             plan.Identities.Count != manifest.Items.Length || manifest.Items.Any(i => !plan.Identities.ContainsKey(i.Entry.Path))) throw Conflict();
         bool move = Exists(state.Basis.Snapshot.RootPath);
@@ -78,7 +79,8 @@ internal static class ManagedUnchangedDirectoryRestore
         using var root = ManagedRestoreFileAccess.DirectoryHandle(path, moving: move);
         if (move)
         {
-            if (File.Exists(VerifiedPath(state.Basis.ReceiptDirectory)) || File.Exists(ReclaimPath(state.Basis.ReceiptDirectory))) throw Conflict();
+            if (File.Exists(VerifiedPath(state.Basis.ReceiptDirectory)) || BoundedJournalReclamation.HasIntent(ReclaimPath(state.Basis.ReceiptDirectory))) throw Conflict();
+            if (JournalMode(request) != plan.JournalMode) throw Conflict();
             RequireSeal(request, plan.Seal);
             // Retry cannot inherit the initial reader's proof or open handles.
             using var pins = new TreePins(path, manifest, root, plan.Identities, verifyContent: true, ct);
@@ -90,7 +92,9 @@ internal static class ManagedUnchangedDirectoryRestore
         Plan plan, SafeFileHandle root, bool move, CancellationToken ct, Action<string>? boundary)
     {
         string receiptRoot = state.Basis.ReceiptDirectory;
-        using var identityFence = File.Exists(ReclaimPath(receiptRoot)) ? null : PinIdentity(request, plan.IdentityHash);
+        bool reclaimPending = BoundedJournalReclamation.HasIntent(ReclaimPath(receiptRoot));
+        using var identityFence = reclaimPending ? null : PinIdentity(request, plan.IdentityHash);
+        if (!reclaimPending && JournalMode(request) != plan.JournalMode) throw Conflict();
         if (SnapshotInputChecks.FileIdentity(root, directory: true) != plan.Identities[""]) throw Conflict();
         if (move)
         {
@@ -116,20 +120,31 @@ internal static class ManagedUnchangedDirectoryRestore
         }
         else
         {
-            if (!File.Exists(ReclaimPath(receiptRoot))) RequireSeal(request, plan.Seal);
+            if (!reclaimPending) RequireSeal(request, plan.Seal);
             final.ApplyMetadata();
         }
         final.RequireMembership(); RequireAbsent(state.Basis.Snapshot.RootPath);
         ct.ThrowIfCancellationRequested();
-        LatestJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], ReclaimPath(receiptRoot),
-            stage =>
-            {
-                // Transfer metadata protection to the durable exact-file
-                // inventory before allowing its conditional deletion.
-                if (stage == "intent") identityFence?.Dispose();
-                boundary?.Invoke("directory.reclaim." + stage);
-            }, path => new WindowsJournalDirectoryGuard(path));
+        void ReclaimBoundary(string stage)
+        {
+            // Transfer metadata protection to the durable exact-file inventory
+            // before allowing its conditional deletion.
+            if (stage == "intent") identityFence?.Dispose();
+            boundary?.Invoke("directory.reclaim." + stage);
+        }
+        if (plan.JournalMode == "bounded")
+            BoundedJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], ReclaimPath(receiptRoot),
+                ReclaimBoundary, path => new WindowsJournalDirectoryGuard(path, BoundedJournalReclamation.GuardName));
+        else
+            LatestJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], ReclaimPath(receiptRoot),
+                ReclaimBoundary, path => new WindowsJournalDirectoryGuard(path));
         boundary?.Invoke("directory.after-reclaim");
+    }
+
+    private static string? JournalMode(OverlayServeRequest request)
+    {
+        string path = Path.Combine(request.DeltaPath, "delta.journal");
+        return LatestJournalReclamation.IsLatest(path) ? "latest" : JournalDeltaStore.IsBoundedJournal(path) ? "bounded" : null;
     }
 
     private static void RequireSeal(OverlayServeRequest request, SnapshotDeltaSeal seal)

@@ -118,16 +118,19 @@ internal sealed class SjlProbeStore : IProbeStore
 {
     private readonly JournalDeltaStore store;
     private readonly Guid[] ids;
-    internal SjlProbeStore(string root, BasisFixture basis, Action<string>? boundary = null)
+    internal SjlProbeStore(string root, BasisFixture basis, Action<string>? boundary = null, bool bounded = false)
     {
         var identity = new OverlayIdentity(2, basis.Identity.Owner, basis.Snapshot, 512L * 1048576, 1048576);
-        store = boundary is null ? new(root, identity, basis) : new(root, identity, basis, new Observer(boundary));
+        long? cap = bounded ? basis.Identity.WalCapBytes : null;
+        store = boundary is null ? new(root, identity, basis, boundedLogBytes: cap)
+            : new(root, identity, basis, new Observer(boundary), boundedLogBytes: cap);
         ids = Enumerable.Range(0, basis.Identity.Objects).Select(i => store.Stat(BasisFixture.Name(i))!.Id).ToArray();
     }
     public long Sequence => store.Observe().DurableSequence;
     public void Write(int file, long offset, byte[] bytes) => store.Write(ids[file], offset, bytes);
     public int Read(int file, long offset, Span<byte> bytes) => store.Read(ids[file], offset, bytes);
-    public object Metrics() => store.Observe();
+    public object Metrics() => new { storage = store.Observe(), store.BoundedCheckpointCount,
+        store.BoundedCheckpointWrittenBytes, store.BoundedCheckpointTicks };
     public void Dispose() => store.Dispose();
     private sealed class Observer(Action<string> boundary) : IJournalMutationObserver
     { public void Observe(JournalMutationBoundary value) => boundary(value.Boundary); }

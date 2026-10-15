@@ -27,7 +27,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Destination = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Replace = false,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CompactionFragment[]? Fragments = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? FromSequence = null);
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? FromSequence = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] BoundedLogSettings? Bounded = null);
     private const int MaxMetadataBytes = 65536;
     public const int MaxIndexedNodes = 250000;
     public const int MaxIndexedExtents = 1000000;
@@ -95,13 +96,13 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     public OverlayIdentity Identity { get; }
 
     public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, bool optimizeJournal = true,
-        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null, bool initialContentGeneration = false)
+        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null, bool initialContentGeneration = false, long? boundedLogBytes = null)
         : this(directory, identity, snapshot, "delta.journal", false, null, optimizeJournal, directoryGuardFactory,
-            initialContentGeneration: initialContentGeneration) { }
+            initialContentGeneration: initialContentGeneration, boundedLogBytes: boundedLogBytes) { }
 
     public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot,
-        IJournalMutationObserver mutationObserver, bool optimizeJournal = true, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
-        : this(directory, identity, snapshot, "delta.journal", false, mutationObserver, optimizeJournal, directoryGuardFactory) { }
+        IJournalMutationObserver mutationObserver, bool optimizeJournal = true, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null, long? boundedLogBytes = null)
+        : this(directory, identity, snapshot, "delta.journal", false, mutationObserver, optimizeJournal, directoryGuardFactory, boundedLogBytes: boundedLogBytes) { }
 
     private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName, bool readOnly = false)
         : this(directory, identity, snapshot, journalName, readOnly, null) { }
@@ -113,7 +114,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName,
         bool readOnly, IJournalMutationObserver? mutationObserver, bool optimizeJournal = false,
         Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null,
-        long decodedPayloadCacheBytes = JournalDecodedPayloadCache.DefaultBudgetBytes, bool initialContentGeneration = false)
+        long decodedPayloadCacheBytes = JournalDecodedPayloadCache.DefaultBudgetBytes, bool initialContentGeneration = false, long? boundedLogBytes = null,
+        bool skipBoundedPreparation = false)
     {
         decodedPayloadCache = new(decodedPayloadCacheBytes);
         this.mutationObserver = mutationObserver;
@@ -150,14 +152,22 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 throw new WorkspaceException("OverlayIdentityMismatch", "Delta identity and limits cannot change on reconnect.");
         }
         string journalPath = System.IO.Path.Combine(directory, journalName);
+        AddBaseNode(snapshot.Stat("") ?? throw new WorkspaceException("SnapshotMissing", "Snapshot root is unavailable."), "");
+        try { if (!skipBoundedPreparation) PrepareBoundedOpen(directory, journalName, boundedLogBytes); }
+        catch { boundedWriterLock?.Dispose(); latestDirectoryGuard?.Dispose(); boundedTransitionDirectoryGuard?.Dispose(); throw; }
         if (!readOnly && (File.Exists(InitializationPath(directory)) || File.Exists(InitializationPath(directory) + ".pending") ||
             optimizeJournal && !File.Exists(identityPath) && !File.Exists(journalPath)))
             InitializeLatest(directory, identity, mutationObserver);
         if (File.Exists(journalPath + ".writer.lock") && (!File.Exists(journalPath) || new FileInfo(journalPath).Length == 0))
             throw LatestJournalStorage.Corrupt("The guarded current root is missing.");
         // FileShare.Read excludes concurrent writers across provider processes.
-        journal = new FileStream(System.IO.Path.Combine(directory, journalName), readOnly ? FileMode.Open : FileMode.OpenOrCreate,
-            readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.RandomAccess);
+        try
+        {
+            journal = new FileStream(System.IO.Path.Combine(directory, journalName), readOnly ? FileMode.Open : FileMode.OpenOrCreate,
+                readOnly ? FileAccess.Read : FileAccess.ReadWrite, skipBoundedPreparation && readOnly ? FileShare.ReadWrite | FileShare.Delete :
+                FileShare.Read | (boundedWriterLock is null || boundedModeTransition is not null ? FileShare.None : FileShare.Delete), 4096, FileOptions.RandomAccess);
+        }
+        catch { boundedWriterLock?.Dispose(); latestDirectoryGuard?.Dispose(); boundedTransitionDirectoryGuard?.Dispose(); throw; }
         try
         {
             if (!File.Exists(identityPath))
@@ -167,19 +177,21 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 using var identityFile = new FileStream(identityPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
                 JsonSerializer.Serialize(identityFile, identity); identityFile.Flush(true);
             }
-            AddBaseNode(snapshot.Stat("") ?? throw new WorkspaceException("SnapshotMissing", "Snapshot root is unavailable."), "");
             long replayStarted = Stopwatch.GetTimestamp();
             replaying = true;
             if (LatestJournalStorage.IsLatest(journal.Name)) OpenLatest(); else Replay();
             replaying = false;
             replayTicks = Stopwatch.GetTimestamp() - replayStarted;
             expectedJournalBytes = journal.Length;
+            if (boundedWriterLock is not null && boundedSettings is null && boundedModeTransition is null)
+                throw LatestJournalStorage.Corrupt("The bounded writer guard does not match the persisted journal mode.");
+            CompleteBoundedModeTransition();
         }
         catch
         {
             ClearPayloadCache();
-            try { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); }
-            finally { latestDirectoryGuard?.Dispose(); }
+            try { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); boundedWriterLock?.Dispose(); }
+            finally { latestDirectoryGuard?.Dispose(); boundedTransitionDirectoryGuard?.Dispose(); }
             throw;
         }
     }
@@ -516,6 +528,11 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 bytes - stored, readBytes, 0, Identity.MaxTransferBytes, nodes.Count, latest?.Current.Sequence ?? sequence)
             {
                 JournalOptimizationEnabled = latest is not null,
+                JournalStorageMode = JournalStorageMode,
+                BoundedLogBytesLimit = boundedSettings?.ByteLimit,
+                BoundedLogFrameLimit = boundedSettings?.FrameLimit,
+                BoundedLogAppendedBytes = boundedSettings is null ? null : expectedJournalBytes - boundedPrefixBytes,
+                BoundedLogAppendedFrames = boundedSettings is null ? null : boundedFrames,
                 JournalBytesBasis = inspectFiles ? "current-files" : "writer-accounting",
                 Metrics = new(epoch, lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount,
                     appendedBytes, replayBytes, replayTicks, journalReadBytes, Interlocked.Read(ref baseReadBytes), Stopwatch.Frequency,
@@ -556,8 +573,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             try
             {
                 while (activeReads != 0) Monitor.Wait(gate);
-                try { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); }
-                finally { latestDirectoryGuard?.Dispose(); }
+                try { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); boundedWriterLock?.Dispose(); }
+                finally { latestDirectoryGuard?.Dispose(); boundedTransitionDirectoryGuard?.Dispose(); }
             }
             finally { ClearPayloadCache(); disposed = true; closing = false; Monitor.PulseAll(gate); }
         }
@@ -706,7 +723,9 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 descriptor = new WorkspaceJournalPayload(storedPayload.Length, payload.Length);
                 metadata = JsonSerializer.SerializeToUtf8Bytes(mutation);
                 if (metadata.Length > MaxMetadataBytes) throw new WorkspaceException("OverlayMetadataLimit", "Mutation metadata exceeds the transaction limit.");
-                start = journal.Length; required = FrameHeaderBytes + (long)metadata.Length + storedPayload.Length + FrameChecksumBytes;
+                required = FrameHeaderBytes + (long)metadata.Length + storedPayload.Length + FrameChecksumBytes;
+                EnsureBoundedAppendCapacity(required);
+                start = journal.Length;
                 if (start > Identity.MaxJournalBytes - required)
                     throw new WorkspaceException("DeltaFull", "The delta journal budget is exhausted. Existing data remains intact; no automatic deletion or full-copy fallback.");
                 WriteHeader(header, metadata.Length, descriptor);
@@ -756,6 +775,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             }
             catch { Poison(); throw; }
             expectedJournalBytes = journal.Length;
+            if (boundedSettings is not null) boundedFrames++;
             commitCount++; appendedBytes += required;
             cost.DurableCommits++; cost.PayloadBytes += payload.Length; cost.JournalBytes += required;
             stage = Stopwatch.GetTimestamp();
@@ -805,11 +825,14 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     mutation = DecodeMutation(metadata, descriptor.DecodedBytes);
                     if (mutation.Operation.StartsWith("state-", StringComparison.Ordinal))
                     {
-                        if (cursor == 0 && mutation.Operation == "state-node") { hasStatePrefix = true; stateOpen = true; }
+                        if (cursor == 0 && mutation.Operation is "state-node" or "state-bounded") { hasStatePrefix = true; stateOpen = true; }
+                        if (mutation.Operation == "state-bounded" && cursor != 0)
+                            throw LatestJournalStorage.Corrupt("Bounded mode must be the first journal frame.");
                         if (!stateOpen || stateComplete || mutation.Operation is not ("state-change" or "state-complete") && mutation.Sequence != 0)
                             throw new WorkspaceException("DeltaCorrupt", "Current-state initialization is misplaced or incomplete.");
                     }
-                    else if (stateOpen && !stateComplete || (mutation.Operation == "skip-range" ? mutation.FromSequence != sequence + 1 : mutation.Sequence != sequence + 1))
+                    else if (stateOpen && !stateComplete || (mutation.Operation == "forget-unlinked" ? boundedSettings is null || mutation.Sequence != sequence :
+                        mutation.Operation == "skip-range" ? mutation.FromSequence != sequence + 1 : mutation.Sequence != sequence + 1))
                         throw new WorkspaceException("DeltaCorrupt", "Journal sequence mismatch.");
                 }
                 finally { replayValidationTicks += Stopwatch.GetTimestamp() - started; }
@@ -821,9 +844,9 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 if (mutation.Operation.StartsWith("state-", StringComparison.Ordinal))
                 {
                     ApplyState(mutation, cursor + FrameHeaderBytes + metadataLength, descriptor);
-                    if (mutation.Operation == "state-complete") stateComplete = true;
+                    if (mutation.Operation == "state-complete") { stateComplete = true; boundedPrefixBytes = cursor + frameLength; }
                 }
-                else Apply(mutation, cursor + FrameHeaderBytes + metadataLength, descriptor);
+                else { Apply(mutation, cursor + FrameHeaderBytes + metadataLength, descriptor); if (boundedSettings is not null) boundedFrames++; }
             }
             finally
             {
@@ -838,6 +861,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         // Only an incomplete trailing transaction is unacknowledged. Corrupt
         // complete transactions above fail closed and remain byte-for-byte intact.
         if (stateOpen && !stateComplete) throw new WorkspaceException("DeltaCorrupt", "Preserve an incomplete current-state initialization.");
+        if (boundedSettings is not null && (cursor - boundedPrefixBytes > boundedSettings.ByteLimit || boundedFrames > boundedSettings.FrameLimit))
+            throw LatestJournalStorage.Corrupt("The bounded journal suffix exceeds its persisted byte or frame limit.");
         if (cursor != length)
         {
             if (readOnly) throw new WorkspaceException("CandidateIncomplete", "Preserve an incomplete immutable journal without truncation.");
@@ -850,6 +875,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         try { mutation = JsonSerializer.Deserialize<Mutation>(metadata); }
         catch (JsonException) { throw new WorkspaceException("DeltaCorrupt", "Journal metadata JSON is corrupt; preserve the complete frame."); }
         static WorkspaceException Invalid() => new("DeltaCorrupt", "Journal mutation metadata is invalid; preserve the complete frame.");
+        if (mutation is not null && (mutation.Operation == "state-bounded" ? mutation.Bounded is null : mutation.Bounded is not null)) throw Invalid();
         if (mutation?.Entry is not { } entry || entry.Id == Guid.Empty || entry.Path is null ||
             entry.Length < 0 || entry.BaseLength < 0 || entry.BaseLength > entry.Length ||
             entry.BasePath is null && entry.BaseLength != 0 || entry.Directory && entry.Length != 0 || entry.UnixMode is > 0xFFF)
@@ -887,12 +913,19 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         }
         else if (mutation.FromSequence is not null || mutation.Fragments is not null || payloadLength != 0 ||
             mutation.Operation is not ("create" or "resize" or "metadata" or "delete" or "rename" or "skip-write" or
-                "state-node" or "state-hidden" or "state-change" or "state-complete" or "state-projection-unsafe"))
+                "state-node" or "state-hidden" or "state-change" or "state-complete" or "state-projection-unsafe" or "state-bounded" or "forget-unlinked"))
             throw Invalid();
         return mutation;
     }
     private void Apply(Mutation mutation, long payloadOffset, WorkspaceJournalPayload payload)
     {
+        if (mutation.Operation == "forget-unlinked")
+        {
+            if (boundedSettings is null || mutation.Sequence != sequence || !nodes.TryGetValue(mutation.Entry.Id, out var forgotten) ||
+                !forgotten.Entry.Deleted || forgotten.Entry != mutation.Entry)
+                throw LatestJournalStorage.Corrupt("A bounded unlinked retirement differs from its live identity.");
+            extentCount -= forgotten.Extents.Count; nodes.Remove(mutation.Entry.Id); boundedDurableNodes.Remove(mutation.Entry.Id); return;
+        }
         RequireMutationCapacity(mutation);
         RecordProjectionMutation(mutation);
         if (mutation.Operation is "skip-write" or "skip-range")
@@ -901,6 +934,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             sequence = mutation.Sequence;
             return;
         }
+        if (boundedSettings is not null) boundedDurableNodes.Add(mutation.Entry.Id);
         if (!nodes.TryGetValue(mutation.Entry.Id, out var node))
         {
             RequireNodeCapacity(); node = new Node(mutation.Entry); nodes.Add(mutation.Entry.Id, node);

@@ -193,7 +193,8 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         string delta = DeltaPath(control);
         WindowsProcessWorkspaceProvider.CheckPath(delta);
         var result = JournalDeltaStore.CompactDirectory(delta, request.Identity, basisTree,
-            maxEstimatedJournalOverlapBytes: maxEstimatedJournalOverlapBytes, revertBaseRanges: revertBaseRanges);
+            maxEstimatedJournalOverlapBytes: maxEstimatedJournalOverlapBytes, revertBaseRanges: revertBaseRanges,
+            directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path));
         string journal = Path.Combine(delta, "delta.journal"), previous = Path.Combine(delta, "delta.journal.previous");
         long? oldAllocation = JournalAllocation(previous), newAllocation = JournalAllocation(journal);
         return result with { BeforeAllocatedBytes = oldAllocation, AfterAllocatedBytes = newAllocation,
@@ -250,13 +251,19 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         if (observed is not { Mounted: false, ProviderAlive: false, OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
             throw new WorkspaceException("OverlayCleanupIncomplete", "Observe provider and mount absence before delta removal.");
         string delta = DeltaPath(control), intentPath = Path.Combine(control, "delta-reclaim.json");
-        string currentJournal = Path.Combine(delta, "delta.journal"), latestReceipt = Path.Combine(control, "latest-delta-reclaim.json");
+        string currentJournal = Path.Combine(delta, "delta.journal"), latestReceipt = Path.Combine(control, "latest-delta-reclaim.json"),
+            boundedReceipt = Path.Combine(control, "bounded-delta-reclaim.bin");
         WindowsProcessWorkspaceProvider.CheckPath(delta);
+        bool latestIntent = File.Exists(latestReceipt), boundedIntent = BoundedJournalReclamation.HasIntent(boundedReceipt);
+        bool currentLatest = File.Exists(currentJournal) && LatestJournalReclamation.IsLatest(currentJournal);
+        bool currentBounded = File.Exists(currentJournal) && JournalDeltaStore.IsBoundedJournal(currentJournal);
+        if (latestIntent && (boundedIntent || currentBounded) || boundedIntent && currentLatest)
+            throw new WorkspaceException("UnownedDeltaFiles", "Conflicting journal modes or reclamation inventories are preserved.");
         var intent = await WindowsProcessWorkspaceProvider.ReadAsync<SnapshotResult>(intentPath, ct);
         if (intent is null)
         {
             WindowsProcessWorkspaceProvider.CheckPath(currentJournal);
-            if (File.Exists(currentJournal) && LatestJournalReclamation.IsLatest(currentJournal))
+            if (File.Exists(currentJournal) && (LatestJournalReclamation.IsLatest(currentJournal) || JournalDeltaStore.IsBoundedJournal(currentJournal)))
             {
                 _ = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Preserve the delta without a request.");
                 if (observed.Storage is null || observed.Storage.DurableSequence != result.Seal.DurableSequence ||
@@ -273,6 +280,12 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
         else if (intent != result) throw new WorkspaceException("OverlayResultRequired", "Reclamation intent differs from the retained result.");
         if (File.Exists(delta)) throw new WorkspaceException("UnownedDeltaFiles", "A file replaced the owned delta directory; preserve it.");
         if (!Directory.Exists(delta)) return;
+        if (BoundedJournalReclamation.HasIntent(boundedReceipt) || File.Exists(currentJournal) && JournalDeltaStore.IsBoundedJournal(currentJournal))
+        {
+            BoundedJournalReclamation.ReclaimDirectory(delta, result.Seal, ["identity.json"], boundedReceipt,
+                directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path, BoundedJournalReclamation.GuardName));
+            return;
+        }
         if (File.Exists(latestReceipt) || File.Exists(currentJournal) && LatestJournalReclamation.IsLatest(currentJournal))
         {
             LatestJournalReclamation.ReclaimDirectory(delta, result.Seal, ["identity.json"], latestReceipt,

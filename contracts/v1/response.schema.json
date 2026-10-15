@@ -1121,7 +1121,7 @@
               "const": "verified-location-separate-from-immutable-delta-identity"
             },
             "deltaStore": {
-              "const": "bounded-checksummed-range-journal-v2; raw-or-brotli; default-current-state-SJL4-with-single-flush-capsule-and-superseded-range-reclamation; explicit-compaction-and-same-request-recovery"
+              "const": "bounded-checksummed-range-journal-v2; raw-or-brotli; new-provider-default-bounded-SJR2-16MiB-or-4096-frame-suffix-with-individual-durable-flush; retained-explicit-SJL4-or-append; atomic-current-state-checkpoint-and-same-request-recovery"
             },
             "resultCollection": {
               "const": "stable-journal-v1"
@@ -1603,6 +1603,11 @@
       "additionalProperties": false,
       "properties": {
         "journalBytesBasis": { "enum": ["current-files", "writer-accounting"] },
+        "journalStorageMode": { "enum": ["append", "latest", "bounded"] },
+        "boundedLogBytesLimit": { "type": "integer", "minimum": 4096, "maximum": 16777216 },
+        "boundedLogFrameLimit": { "const": 4096 },
+        "boundedLogAppendedBytes": { "type": "integer", "minimum": 0 },
+        "boundedLogAppendedFrames": { "type": "integer", "minimum": 0, "maximum": 4096 },
         "journalOptimizationEnabled": { "type": "boolean" },
         "id": {
           "type": "string",
@@ -2212,12 +2217,12 @@
         "replayIndexTicks": {"type":"integer", "minimum":0},
         "replayBufferBytes": {"type":"integer", "minimum":0},
         "replayIndexOperations": {
-          "type": "array", "maxItems": 9,
+          "type": "array", "maxItems": 17,
           "items": {
             "type": "object", "additionalProperties": false,
             "required": ["operation", "frames", "applyTicks"],
             "properties": {
-              "operation": {"enum":["create","metadata","resize","write","write-compacted","rename","delete","skip-write","skip-range"]},
+              "operation": {"enum":["create","metadata","resize","write","write-compacted","rename","delete","skip-write","skip-range","state-bounded","state-node","state-write","state-hidden","state-change","state-complete","state-projection-unsafe","forget-unlinked"]},
               "frames": {"type":"integer", "minimum":1},
               "applyTicks": {"type":"integer", "minimum":0}
             }

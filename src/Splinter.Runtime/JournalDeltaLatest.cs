@@ -30,11 +30,20 @@ public sealed partial class JournalDeltaStore
             // A linked/unknown identity has no storage to reclaim. Keep local
             // writer health checks, without querying an unused immutable basis.
             CheckLocal();
-            if (latest is null || !nodes.TryGetValue(id, out var node) || !node.Entry.Deleted) return;
+            if (latest is null && boundedSettings is null || !nodes.TryGetValue(id, out var node) || !node.Entry.Deleted) return;
             snapshot.EnsureAvailable();
+            if (boundedSettings is not null && !boundedDurableNodes.Contains(id))
+            {
+                // A replaced immutable file may have been opened only for
+                // reading. Its cached identity was never recorded, so emitting
+                // a forget frame would refer to a node replay cannot contain.
+                if (node.Extents.Count != 0) throw LatestJournalStorage.Corrupt("An unrecorded node owns private payload.");
+                nodes.Remove(id); return;
+            }
             // Storage reclamation has no new source mutation or path sequence.
             // Keep the whiteout and last path change, but retire the closed ID.
-            CommitLatest(new(sequence, "forget-unlinked", node.Entry), []);
+            if (boundedSettings is not null) Commit(new(sequence, "forget-unlinked", node.Entry), []);
+            else CommitLatest(new(sequence, "forget-unlinked", node.Entry), []);
         }
     }
     private static string LatestNodeName(Guid id) => $"node-{id:N}.json";
@@ -476,6 +485,15 @@ public sealed partial class JournalDeltaStore
     }
     public static SnapshotDeltaSeal SealJournal(string path, long durableSequence, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
     {
+        bool bounded = IsBoundedJournal(path);
+        if (bounded) RequireBoundedIdle(path);
+        else if (Path.GetFileName(path) == "delta.journal" && File.Exists(Path.Combine(Path.GetDirectoryName(path)!, BoundedGuardName)))
+        {
+            var transition = RequireBoundedModeTransition(Path.GetDirectoryName(path)!, directoryGuardFactory);
+            if (transition.Candidate!.DurableSequence != durableSequence)
+                throw new WorkspaceException("DeltaChangedAfterCollection", "The converted journal sequence differs from its flush receipt.");
+            return transition.Candidate;
+        }
         if (LatestJournalStorage.IsLatest(path))
         {
             var seal = LatestJournalStorage.Seal(path, directoryGuardFactory);
@@ -488,5 +506,19 @@ public sealed partial class JournalDeltaStore
         if (bytes != file.Length) throw new WorkspaceException("DeltaChangedAfterCollection", "Journal grew during its seal.");
         return new(durableSequence, bytes, hash);
     }
-    public static IReadOnlyList<string> JournalStorageFiles(string path) => LatestJournalStorage.Files(path);
+    public static IReadOnlyList<string> JournalStorageFiles(string path)
+    {
+        if (!IsBoundedJournal(path))
+        {
+            if (Path.GetFileName(path) == "delta.journal" && File.Exists(Path.Combine(Path.GetDirectoryName(path)!, BoundedGuardName)))
+            {
+                RequireBoundedModeTransition(Path.GetDirectoryName(path)!);
+                return [.. LatestJournalStorage.Files(path), Path.Combine(Path.GetDirectoryName(path)!, BoundedGuardName)];
+            }
+            return LatestJournalStorage.Files(path);
+        }
+        RequireBoundedIdle(path);
+        return Path.GetFileName(path) == "delta.journal"
+            ? [path, Path.Combine(Path.GetDirectoryName(path)!, BoundedGuardName)] : [path];
+    }
 }

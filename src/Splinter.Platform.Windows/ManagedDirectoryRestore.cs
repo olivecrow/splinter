@@ -252,7 +252,19 @@ internal static class ManagedDirectoryRestore
             boundary?.Invoke("restore.after-basis-reclaim");
         }
         if (!Directory.Exists(request.DeltaPath)) return;
-        string journalPath = Path.Combine(request.DeltaPath, "delta.journal"), reclaim = Path.Combine(state.Basis.ReceiptDirectory, "latest-restore-delta-reclaim.json");
+        string journalPath = Path.Combine(request.DeltaPath, "delta.journal"), reclaim = Path.Combine(state.Basis.ReceiptDirectory, "latest-restore-delta-reclaim.json"),
+            boundedReclaim = Path.Combine(state.Basis.ReceiptDirectory, "bounded-restore-delta-reclaim.bin");
+        bool latestIntent = File.Exists(reclaim), boundedIntent = BoundedJournalReclamation.HasIntent(boundedReclaim);
+        bool currentLatest = File.Exists(journalPath) && LatestJournalReclamation.IsLatest(journalPath);
+        bool currentBounded = File.Exists(journalPath) && JournalDeltaStore.IsBoundedJournal(journalPath);
+        if (latestIntent && (boundedIntent || currentBounded) || boundedIntent && currentLatest)
+            throw new WorkspaceException("UnownedDeltaFiles", "Conflicting original-delta modes or reclamation inventories are preserved.");
+        if (BoundedJournalReclamation.HasIntent(boundedReclaim) || File.Exists(journalPath) && JournalDeltaStore.IsBoundedJournal(journalPath))
+        {
+            BoundedJournalReclamation.ReclaimDirectory(request.DeltaPath, seal, ["identity.json"], boundedReclaim,
+                directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path, BoundedJournalReclamation.GuardName));
+            boundary?.Invoke("restore.after-delta-reclaim"); return;
+        }
         if (File.Exists(reclaim) || File.Exists(journalPath) && LatestJournalReclamation.IsLatest(journalPath))
         {
             LatestJournalReclamation.ReclaimDirectory(request.DeltaPath, seal, ["identity.json"], reclaim,

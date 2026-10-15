@@ -2,7 +2,7 @@
 
 [English](../journal-payload-compression.md)
 
-`JournalDeltaStore`는 overlay **v2**, OFF의 **SJR2**와 [최적화 ON의 SJL4 현재본 저널](latest-only-journal.md)을 지원한다. write callback 하나의 최대 1MiB 변경 범위를 raw 또는 독립 `splinter-range-brotli-v1` 블록으로 저장한다. 이전 overlay/저널은 보존 후 명시적으로 거부하며 자동 이관하지 않는다. workspace 상태는 v2이고 독립 후보는 v3/SJR2다. 아래 frame append/선택 설명은 OFF의 일반 SJR2 경로이며 ON은 payload/metadata의 단일 capsule 기록·mutation마다 한 durable flush·게시/회수를 사용한다.
+`JournalDeltaStore`는 overlay **v2**, [기본 bounded SJR2](bounded-journal.md), 명시적 OFF의 **SJR2**와 [최적화 ON의 SJL4 현재본 저널](latest-only-journal.md)을 지원한다. write callback 하나의 최대 1MiB 변경 범위를 raw 또는 독립 `splinter-range-brotli-v1` 블록으로 저장한다. 이전 overlay/저널은 보존 후 명시적으로 거부하며 자동 이관하지 않는다. workspace 상태는 v2이고 독립 후보는 v3/SJR2다. 아래 frame append/선택 설명은 OFF의 일반 SJR2 경로이며 ON은 payload/metadata의 단일 capsule 기록·mutation마다 한 durable flush·게시/회수를 사용한다.
 
 ## 현재 frame
 
