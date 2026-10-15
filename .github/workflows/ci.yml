@@ -7,6 +7,7 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
@@ -15,6 +16,17 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - name: Restore, build and test
+      - name: Restore, build and test on Windows
+        if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/build.ps1
+      # Linux compilation checks shared contracts, not runtime support. The
+      # lifecycle suite relies on Windows file-sharing and process semantics.
+      - name: Restore and compile on Linux (no runtime qualification)
+        if: runner.os == 'Linux'
+        shell: pwsh
+        run: |
+          dotnet restore Splinter.slnx --locked-mode --disable-build-servers --nologo
+          if ($LASTEXITCODE -ne 0) { throw "Restore failed: $LASTEXITCODE" }
+          dotnet build Splinter.slnx --no-restore --disable-build-servers --nologo --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "Build failed: $LASTEXITCODE" }

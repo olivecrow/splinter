@@ -3,6 +3,8 @@
 
 [한국어](../ko/verification/README.md)
 
+GitHub CI runs the full regression suite on Windows and checks locked restore/compilation on Linux. Linux runtime support is not qualified. The [first public Linux test run](https://github.com/olivecrow/splinter/actions/runs/38688426300) at `fc33088` recorded 1,301 passes, 101 failures and 313 skips, including Windows file-sharing/locking expectations and process-start timestamp identity checks. These failures remain unresolved for Linux; compilation-only CI must not be read as a Linux runtime pass. The local Windows publication check passed 1,691 tests with 24 skips and no failures.
+
 [Retired native Bee backing](bee-internal-native.md) owns historical BN-01–05: the single-volume candidate passed bounded safety checks but was slower and larger, and its implementation and commands were removed. Measurements and recovery evidence remain; they do not qualify a current backend or full Unity Editor speed.
 
 [Product bounded journal](bounded-journal.md) owns BL-01–05: actual journal metadata/lifecycle/recovery, bounded component costs and the new Windows-provider default. Full Unity and OS power-loss qualification remain separate.

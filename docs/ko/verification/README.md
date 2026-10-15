@@ -2,6 +2,8 @@
 
 [English](../../verification/README.md)
 
+GitHub CI는 Windows에서 전체 회귀 검사를 실행하고 Linux에서는 locked restore와 컴파일을 확인한다. Linux 런타임 지원은 검증하지 않았다. `fc33088`의 [첫 공개 Linux 검사](https://github.com/olivecrow/splinter/actions/runs/38688426300)는 1,301개 통과·101개 실패·313개 건너뜀을 기록했으며, Windows 파일 공유·잠금 기대와 프로세스 시작 시각 identity 검사 등이 실패했다. Linux에서의 실패는 해결되지 않았고 컴파일 전용 CI를 Linux 런타임 통과로 읽지 않는다. 게시 시점의 로컬 Windows 검사는 1,691개 통과·24개 건너뜀·실패 0개였다.
+
 [폐기한 native Bee backing](bee-internal-native.md)이 과거 BN-01–05를 소유한다. 단일 볼륨 후보는 한정 안전성 검사를 통과했으나 더 느리고 공간도 증가하여 구현과 명령을 제거했다. 측정·복구 근거는 보존하며 현재 backend나 전체 Unity Editor 속도를 입증하지 않는다.
 
 [제품 제한 로그](bounded-journal.md)가 BL-01–05를 소유한다. 실제 저널 metadata/수명주기/복구·한정 구성 요소 비용·새 Windows provider 기본값을 다루며 전체 Unity와 OS 전원 장애 자격은 별도로 유지한다.
