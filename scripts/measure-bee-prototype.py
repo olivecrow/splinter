@@ -1,12 +1,12 @@
-"""Replay one preserved tiny Unity Bee input without starting an Editor.
+"""Measure the fixed real three-assembly Unity Bee build without an Editor.
 
-Graph-only pilot: --rounds 1 --order overlay native-bee --budget-seconds 180.
-Default ABBA budget: 300 seconds. Live children and failed outputs are preserved.
-The native graft fails actual Bee atomic state publication (Win32 error 17).
---compile retains that diagnostic path; it is not a supported native build workflow.
+Default: bounded-overlay/internal-native/internal-native/bounded-overlay, with cold,
+unchanged and one-source-change builds. --no-compile is a graph-only diagnostic.
+The old native-bee junction remains an explicit diagnostic; its atomic publication
+failure is not a supported build workflow. No filename-specific mapping cleanup is
+performed. Live providers, clients and failed evidence are preserved.
 """
 import argparse
-from contextlib import ExitStack
 import ctypes
 import hashlib
 import json
@@ -34,8 +34,9 @@ GRAPH_OUTPUT_KEYS = (
     "CachedNodeOutputDirectoryName", "PayloadsFile", "Identifier",
 )
 NATIVE_DURABILITY = (
-    "Native Bee uses ordinary NTFS buffered durability, not SJL4 per-write durable ACKs. "
-    "Source and other Library paths retain the range journal. These component timings "
+    "New internal-native Bee output uses ordinary NTFS buffered durability, not the "
+    "bounded comparator's per-write durable ACKs. Source, inherited Bee files and "
+    "other Library paths retain the bounded range journal. These component timings "
     "do not establish equal-durability or complete Unity performance."
 )
 ALLOCATION_BOUNDARY = (
@@ -43,12 +44,15 @@ ALLOCATION_BOUNDARY = (
     "this run's delta and native-bee directories. Shared fixture, tools, source export, "
     "receipts, measurement copies and filesystem directory metadata are excluded."
 )
-MAPPING_CLEANUP_BOUNDARY = (
-    "Explicit cleanup of this fixed Bee fixture's Library/Bee/1900b0aE.dag_derived only, "
-    "after every known client exits: OPEN_EXISTING FILE_WRITE_DATA|READ_ATTRIBUTES, then "
-    "close, without data/metadata writes, flush, rename or deletion. Both variants use "
-    "the same procedure. This is not a product filename rule, power-loss qualification "
-    "or proof that foreign data mappings are absent."
+CLOSURE_BOUNDARY = (
+    "Normal provider stop only; no filename-specific reopen, forced unmap, process "
+    "kill or output deletion. Held file contexts fail qualification and preserve "
+    "the provider and its outputs."
+)
+MEMORY_BOUNDARY = (
+    "Sampled provider and directly launched client process working sets/private "
+    "bytes only. Compiler descendants, system/NTFS cache and complete machine RAM "
+    "are not measured. Sampled maxima are not a simultaneous process-tree peak."
 )
 
 
@@ -232,17 +236,24 @@ def start(args, **kwargs):
     return subprocess.Popen(args, creationflags=subprocess.CREATE_NO_WINDOW, **kwargs)
 
 
-def run_client(command, view, label, evidence, clients, budget, limit):
+def run_client(command, view, label, evidence, clients, budget, limit, trace):
     allowance = budget.remaining(limit, reserve=20)
     save(evidence / (label + "-request.json"), dict(command=[str(x) for x in command], cwd=str(view), waitLimitSeconds=allowance))
     with (evidence / (label + ".stdout")).open("xb") as stdout, (evidence / (label + ".stderr")).open("xb") as stderr:
         began = time.perf_counter()
         child = start(command, cwd=view, stdout=stdout, stderr=stderr)
         clients.append((label, child))
-        try:
-            code = child.wait(timeout=allowance)
-        except subprocess.TimeoutExpired as error:
-            raise TimeoutError(f"Preserve live {label} PID {child.pid}; no stop/unmount requested.") from error
+        deadline = time.monotonic() + allowance
+        while True:
+            trace.memory(label, child)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(f"Preserve live {label} PID {child.pid}; no stop/unmount requested.")
+            try:
+                code = child.wait(timeout=min(.1, remaining))
+                break
+            except subprocess.TimeoutExpired:
+                pass
         seconds = time.perf_counter() - began
     save(evidence / (label + "-process.json"), dict(command=[str(x) for x in command], cwd=str(view),
          processId=child.pid, exitCode=code, seconds=seconds))
@@ -268,212 +279,17 @@ def validate_ready(ready, nonce, mode, root, provider, before, basis):
             Path(ready["view"]) != root / "view"):
         raise ValueError("Provider ready identity/path mismatch.")
     native = ready.get("nativeBee")
-    if (mode == "native-bee" and (not native or Path(native) != root / "native-bee" or not ready.get("nativeTargetIdentity"))) or (mode == "overlay" and native is not None):
+    if (mode in {"native-bee", "internal-native"} and
+            (not native or Path(native) != root / "native-bee" or not ready.get("nativeTargetIdentity"))) or (mode == "overlay" and native is not None):
         raise ValueError("Provider native target mismatch.")
+    if ready.get("journalStorageMode") != "bounded":
+        raise ValueError("The comparator and source journal must use the current bounded mode.")
+    if mode in {"overlay", "internal-native"}:
+        if ready.get("nativeClientReparsePoint") is not False:
+            raise ValueError("The current candidates must share one virtual namespace without a Bee junction.")
+        if (root / "view/Library/Bee").lstat().st_file_attributes & 0x400:
+            raise ValueError("Unexpected client-visible Bee reparse point.")
     source_file_records(ready["sourceFiles"], before, basis)
-
-
-def cleanup_fixed_bee_mapping(root, nonce, mode, ready, provider, clients, basis, before, request, evidence, budget):
-    """Bounded fixture procedure based on preserved recovery-pilot02 evidence."""
-    began = time.perf_counter()
-    evidence.mkdir()
-    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
-    handle_type, uint = ctypes.c_void_p, ctypes.c_uint32
-
-    class FileTime(ctypes.Structure):
-        _fields_ = [("low", uint), ("high", uint)]
-
-    class FileInfo(ctypes.Structure):
-        _fields_ = [("attrs", uint), ("creation", FileTime), ("access", FileTime),
-                    ("write", FileTime), ("volume", uint), ("sizeHigh", uint),
-                    ("sizeLow", uint), ("links", uint), ("indexHigh", uint), ("indexLow", uint)]
-
-    signatures = {
-        "CreateFileW": ([ctypes.c_wchar_p, uint, uint, handle_type, uint, uint, handle_type], handle_type),
-        "CloseHandle": ([handle_type], ctypes.c_int),
-        "GetFileInformationByHandle": ([handle_type, ctypes.POINTER(FileInfo)], ctypes.c_int),
-        "GetFinalPathNameByHandleW": ([handle_type, ctypes.c_wchar_p, uint, uint], uint),
-        "GetVolumeInformationByHandleW": ([handle_type, ctypes.c_wchar_p, uint, ctypes.POINTER(uint),
-            ctypes.POINTER(uint), ctypes.POINTER(uint), ctypes.c_wchar_p, uint], ctypes.c_int),
-        "OpenProcess": ([uint, ctypes.c_int, uint], handle_type),
-        "GetProcessTimes": ([handle_type, *([ctypes.POINTER(FileTime)] * 4)], ctypes.c_int),
-        "GetExitCodeProcess": ([handle_type, ctypes.POINTER(uint)], ctypes.c_int),
-    }
-    for name, (arguments, result) in signatures.items():
-        getattr(kernel, name).argtypes = arguments
-        getattr(kernel, name).restype = result
-
-    def close(handle):
-        if not kernel.CloseHandle(handle):
-            raise ctypes.WinError(ctypes.get_last_error())
-
-    def opened(path, access, flags=0, sharing=7):
-        handle = kernel.CreateFileW(str(path), access, sharing, None, 3, flags, None)
-        if handle == ctypes.c_void_p(-1).value:
-            raise ctypes.WinError(ctypes.get_last_error())
-        return handle
-
-    def info(handle):
-        value = FileInfo()
-        if not kernel.GetFileInformationByHandle(handle, ctypes.byref(value)):
-            raise ctypes.WinError(ctypes.get_last_error())
-        return dict(attrs=value.attrs, creation=(value.creation.high << 32) | value.creation.low,
-                    access=(value.access.high << 32) | value.access.low,
-                    write=(value.write.high << 32) | value.write.low, volume=value.volume,
-                    size=(value.sizeHigh << 32) | value.sizeLow, links=value.links,
-                    index=(value.indexHigh << 32) | value.indexLow)
-
-    def native_path(handle):
-        buffer = ctypes.create_unicode_buffer(32768)
-        length = kernel.GetFinalPathNameByHandleW(handle, buffer, len(buffer), 2)
-        if length == 0 or length >= len(buffer):
-            raise ctypes.WinError(ctypes.get_last_error())
-        return buffer.value.rstrip("\\")
-
-    def inspect_file(path):
-        handle = opened(path, 0x80)
-        try:
-            return info(handle), native_path(handle)
-        finally:
-            close(handle)
-
-    def volume(handle):
-        fs = ctypes.create_unicode_buffer(64)
-        serial, maximum, flags = uint(), uint(), uint()
-        if not kernel.GetVolumeInformationByHandleW(handle, None, 0, ctypes.byref(serial),
-                ctypes.byref(maximum), ctypes.byref(flags), fs, len(fs)):
-            raise ctypes.WinError(ctypes.get_last_error())
-        return fs.value, serial.value
-
-    def verify_lifetime(process_handle):
-        if provider.poll() is not None or any(child.poll() is None for _, child in clients):
-            raise ValueError("Mapping cleanup requires the original live provider and all known clients exited.")
-        times = [FileTime() for _ in range(4)]
-        status = uint()
-        if not kernel.GetProcessTimes(process_handle, *[ctypes.byref(value) for value in times]):
-            raise ctypes.WinError(ctypes.get_last_error())
-        if not kernel.GetExitCodeProcess(process_handle, ctypes.byref(status)):
-            raise ctypes.WinError(ctypes.get_last_error())
-        ticks = ((times[0].high << 32) | times[0].low) + 504911232000000000
-        if ticks != ready["processStartTimeUtcTicks"] or status.value != 259:
-            raise ValueError("Provider process generation changed or exited.")
-        if read(root / "ready.json") != ready or read(request) != dict(root=str(root), basis=str(basis), mode=mode, nonce=nonce):
-            raise ValueError("Mapping cleanup request/ready identity changed.")
-
-    def physical_inventory(directory):
-        if not directory.exists():
-            return dict(exists=False, directories=[], files=[])
-        no_reparse_ancestors(directory)
-        directories, files = [], []
-        for path in sorted(directory.rglob("*")):
-            budget.remaining(1, reserve=20)
-            no_reparse_ancestors(path)
-            relative = path.relative_to(directory).as_posix()
-            if path.is_dir():
-                directories.append(relative)
-                continue
-            handle = opened(path, 0x80)
-            try:
-                metadata = info(handle)
-                if metadata["links"] != 1 or metadata["attrs"] & 0x410:
-                    raise ValueError("Unsupported mapping-cleanup inventory entry: " + str(path))
-                file_hash = sha(path)
-                if info(handle) != metadata:
-                    raise ValueError("Inventory metadata changed while reading: " + str(path))
-            finally:
-                close(handle)
-            files.append(dict(path=relative, metadata=metadata, sha256=file_hash))
-        return dict(exists=True, directories=directories, files=files)
-
-    def protected_inventory():
-        return {name: physical_inventory(path) for name, path in (
-            ("basis", basis), ("delta", root / "delta"), ("existingSourceResult", root / "source-result"),
-            ("nativeBee", root / "native-bee"))}
-
-    operation = dict(boundary=MAPPING_CLEANUP_BOUNDARY, processId=provider.pid,
-                     processStartTimeUtcTicks=ready["processStartTimeUtcTicks"], nonce=nonce, mode=mode,
-                     knownClients=[dict(stage=name, processId=child.pid, exitCode=child.poll()) for name, child in clients])
-    try:
-        budget.remaining(1, reserve=20)
-        validate_ready(ready, nonce, mode, root, provider, before, basis)
-        if (root / "stop.json").exists():
-            raise ValueError("Mapping cleanup must precede this run's normal stop request.")
-        with ExitStack() as lifetime:
-            process_handle = kernel.OpenProcess(0x1000, False, provider.pid)
-            if not process_handle:
-                raise ctypes.WinError(ctypes.get_last_error())
-            lifetime.callback(close, process_handle)
-            verify_lifetime(process_handle)
-            # Retain directory handles without delete sharing until all checks finish.
-            view = root / "view"
-            root_handle = opened(view, 0x81, 0x02000000, sharing=3)
-            lifetime.callback(close, root_handle)
-            root_info, root_native = info(root_handle), native_path(root_handle)
-            expected_serial = int.from_bytes(hashlib.sha256(("bee-probe-" + nonce).encode()).digest()[:4], "little")
-            expected_root_index = int.from_bytes(hashlib.sha256(("bee-probe-" + nonce + "/").encode()).digest()[:8], "little")
-            if (volume(root_handle) != ("SplinterSO", expected_serial) or root_info["index"] != expected_root_index or
-                    root_info["attrs"] & 0x410 != 0x10 or not root_native.startswith("\\Device\\Volume{")):
-                raise ValueError("Mounted fixture root identity differs.")
-            relative = "Library/Bee/1900b0aE.dag_derived"
-            path = view / relative
-            expected_native = root_native + "\\" + relative.replace("/", "\\")
-            expected_volume = expected_serial
-            native_root_handle, native_root_info = None, None
-            if mode == "native-bee":
-                native_root = root / "native-bee"
-                no_reparse_ancestors(native_root)
-                native_root_handle = opened(native_root, 0x81, 0x02000000, sharing=3)
-                lifetime.callback(close, native_root_handle)
-                native_root_info = info(native_root_handle)
-                target = ready["nativeTargetIdentity"]
-                if (volume(native_root_handle) != ("NTFS", target["volumeSerial"]) or
-                        native_root_info["index"] != target["fileIndex"] or native_root_info["attrs"] & 0x410 != 0x10):
-                    raise ValueError("Owned native Bee target identity differs.")
-                expected_native = native_path(native_root_handle) + "\\1900b0aE.dag_derived"
-                expected_volume = target["volumeSerial"]
-            # Match the validated recovery: no extra leaf handle stays open during
-            # the write-access open/close. Verify the exact identity on every open;
-            # retained process and directory handles protect the owned lifetime.
-            before_info, before_native = inspect_file(path)
-            if (before_info["attrs"] & 0x410 or before_info["links"] != 1 or
-                    not 0 < before_info["size"] <= 16 * 1024 * 1024 or before_info["volume"] != expected_volume or
-                    before_native.casefold() != expected_native.casefold()):
-                raise ValueError("Fixed Bee mapping file identity/path differs.")
-            before_hash = digest(bounded_bytes(path))
-            before_inventory = protected_inventory()
-            if inventory(basis) != before or inspect_file(path) != (before_info, before_native):
-                raise ValueError("Protected input or mapping metadata changed before cleanup.")
-            save(evidence / "before.json", dict(**operation, rootIdentity=root_info, nativeRoot=root_native,
-                 nativeBeeRootIdentity=native_root_info, path=str(path), fileNativePath=before_native,
-                 metadata=before_info, sha256=before_hash, inventory=before_inventory))
-            verify_lifetime(process_handle)
-            tick = time.perf_counter()
-            handle = opened(path, 0x82)
-            try:
-                if info(handle) != before_info or native_path(handle) != before_native:
-                    raise ValueError("Existing write-access open resolved a different file.")
-            finally:
-                close(handle)
-            operation["existingFileOpenCloseSeconds"] = time.perf_counter() - tick
-            operation["openSucceeded"] = True
-            after_hash = digest(bounded_bytes(path))
-            after_inventory = protected_inventory()
-            if (inspect_file(path) != (before_info, before_native) or after_hash != before_hash or
-                    info(root_handle) != root_info or after_inventory != before_inventory or
-                    (native_root_handle is not None and info(native_root_handle) != native_root_info)):
-                raise ValueError("Mapping cleanup changed protected identity, metadata, content or inventory.")
-            verify_lifetime(process_handle)
-            operation.update(contentAndMetadataUnchanged=True, protectedInventoriesUnchanged=True,
-                             providerGenerationUnchanged=True, inventory=after_inventory)
-        # All owned proof handles are closed before the caller requests normal stop.
-        operation["mappingCleanupSeconds"] = time.perf_counter() - began
-        operation["proofHandlesClosed"] = True
-        save(evidence / "result.json", operation)
-        return {**{key: value for key, value in operation.items() if key != "inventory"}, "evidence": str(evidence)}
-    except BaseException as error:
-        save(evidence / "failure.json", dict(**operation, errorType=type(error).__name__, error=str(error),
-             elapsedSeconds=time.perf_counter() - began, outputsPreserved=True))
-        raise
 
 
 def publish_stop(root, nonce):
@@ -491,8 +307,12 @@ def validate_result(result, nonce, mode, root, before, basis, expected_sources):
     if (result.get("nonce") != nonce or result.get("mode") != mode or
             result.get("sourceUnchanged") is not True or result.get("normalUnmount") is not True or result.get("passed") is not True or
             result.get("openHandles") != 0 or result.get("retainedFileContexts") != 0 or
-            result.get("errors") != [] or result.get("nativeOutputsPreserved") != (mode == "native-bee")):
+            result.get("errors") != [] or result.get("nativeOutputsPreserved") != (mode in {"native-bee", "internal-native"})):
         raise ValueError("Provider result did not satisfy identity/source/normal-closure/error gates.")
+    for name in ("flushSeconds", "preserveSeconds", "cleanupSeconds"):
+        value = result.get("timings", {}).get(name)
+        if not isinstance(value, (int, float)) or isinstance(value, bool) or value < 0:
+            raise ValueError("Missing provider completion timing: " + name)
     source_file_records(result["sourceFiles"], before, basis)
     records = {}
     for item in result["independentSourceResults"]:
@@ -513,7 +333,7 @@ def validate_result(result, nonce, mode, root, before, basis, expected_sources):
         raise ValueError("Immutable basis changed.")
 
 
-def final_allocation(root):
+def final_allocation(root, stopped=True):
     kernel = ctypes.WinDLL("kernel32", use_last_error=True)
     class StandardInfo(ctypes.Structure):
         _fields_ = [("allocation", ctypes.c_int64), ("end", ctypes.c_int64),
@@ -562,9 +382,149 @@ def final_allocation(root):
             count += 1
         rows.append(dict(directory=name, files=count, logicalBytes=logical, allocatedBytes=allocated))
     return dict(directories=rows, logicalBytes=sum(r["logicalBytes"] for r in rows),
-                allocatedBytes=sum(r["allocatedBytes"] for r in rows), boundary=ALLOCATION_BOUNDARY,
+                allocatedBytes=sum(r["allocatedBytes"] for r in rows),
+                boundary=ALLOCATION_BOUNDARY if stopped else
+                    "Recursive point sample between client phases of delta/native-bee regular files; not a peak. Same exclusions as final allocation.",
                 method="GetFileInformationByHandleEx(FileStandardInfo).AllocationSize",
                 peakTemporaryAllocation="NotMeasured")
+
+
+class ResourceTrace:
+    """Small point samples; never confuse them with a process-tree/space peak."""
+    def __init__(self, root, provider):
+        self.root, self.provider = root, provider
+        self.started = time.perf_counter()
+        self.memory_samples, self.phases = [], []
+        self.kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        self.psapi = ctypes.WinDLL("psapi", use_last_error=True)
+        self.kernel.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
+        self.kernel.OpenProcess.restype = ctypes.c_void_p
+        self.kernel.CloseHandle.argtypes = [ctypes.c_void_p]
+        self.kernel.CloseHandle.restype = ctypes.c_int
+        self.psapi.GetProcessMemoryInfo.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint32]
+        self.psapi.GetProcessMemoryInfo.restype = ctypes.c_int
+
+    def process_memory(self, child, role):
+        if child.poll() is not None:
+            return dict(role=role, processId=child.pid, status="exited", exitCode=child.returncode)
+        class MemoryCounters(ctypes.Structure):
+            _fields_ = [("cb", ctypes.c_uint32), ("pageFaultCount", ctypes.c_uint32),
+                        *[(name, ctypes.c_size_t) for name in (
+                            "peakWorkingSet", "workingSet", "peakPagedPool", "pagedPool",
+                            "peakNonPagedPool", "nonPagedPool", "pagefile", "peakPagefile", "private")]]
+        handle = self.kernel.OpenProcess(0x410, False, child.pid)
+        if not handle:
+            return dict(role=role, processId=child.pid, status="unavailable", win32Error=ctypes.get_last_error())
+        try:
+            counters = MemoryCounters()
+            counters.cb = ctypes.sizeof(counters)
+            if not self.psapi.GetProcessMemoryInfo(handle, ctypes.byref(counters), ctypes.sizeof(counters)):
+                return dict(role=role, processId=child.pid, status="unavailable", win32Error=ctypes.get_last_error())
+            return dict(role=role, processId=child.pid, status="sampled", workingSetBytes=counters.workingSet,
+                        privateBytes=counters.private, processPeakWorkingSetBytes=counters.peakWorkingSet)
+        finally:
+            self.kernel.CloseHandle(handle)
+
+    def memory(self, label, client=None):
+        began = time.perf_counter()
+        rows = [self.process_memory(self.provider, "provider")]
+        if client is not None:
+            rows.append(self.process_memory(client, "direct-client"))
+        self.memory_samples.append(dict(phase=label, elapsedSeconds=began - self.started,
+            processes=rows, samplingSeconds=time.perf_counter() - began))
+
+    def phase(self, label):
+        began = time.perf_counter()
+        self.memory(label)
+        item = dict(phase=label, elapsedSeconds=began - self.started,
+                    allocation=final_allocation(self.root, stopped=False))
+        item["samplingSeconds"] = time.perf_counter() - began
+        self.phases.append(item)
+        save(self.root / f"resource-phase-{len(self.phases):02}.json", item)
+
+    def summary(self):
+        observations = [item for row in self.memory_samples for item in row["processes"] if item["status"] == "sampled"]
+        by_role = {}
+        for role in ("provider", "direct-client"):
+            rows = [item for item in observations if item["role"] == role]
+            by_role[role] = None if not rows else dict(
+                observedMaximumWorkingSetBytes=max(item["workingSetBytes"] for item in rows),
+                observedMaximumPrivateBytes=max(item["privateBytes"] for item in rows),
+                maximumReportedProcessPeakWorkingSetBytes=max(item["processPeakWorkingSetBytes"] for item in rows))
+        return dict(memoryBoundary=MEMORY_BOUNDARY, memorySamplingIntervalMilliseconds=100,
+                    memorySamples=self.memory_samples, observedMemory=by_role,
+                    phaseAllocationSamples=self.phases,
+                    sampledMaximumAllocatedBytes=max((row["allocation"]["allocatedBytes"] for row in self.phases), default=0),
+                    sampledMaximumAllocationBoundary="Point samples only, not peak temporary allocation.",
+                    memorySamplingSeconds=sum(row["samplingSeconds"] for row in self.memory_samples),
+                    phaseSamplingSeconds=sum(row["samplingSeconds"] for row in self.phases))
+
+
+def file_identity(path):
+    """Read the Windows volume/file identity through the application's exact path."""
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    class FileTime(ctypes.Structure):
+        _fields_ = [("low", ctypes.c_uint32), ("high", ctypes.c_uint32)]
+    class FileInfo(ctypes.Structure):
+        _fields_ = [("attributes", ctypes.c_uint32), ("creation", FileTime), ("access", FileTime),
+                    ("write", FileTime), ("volume", ctypes.c_uint32), ("sizeHigh", ctypes.c_uint32),
+                    ("sizeLow", ctypes.c_uint32), ("links", ctypes.c_uint32),
+                    ("indexHigh", ctypes.c_uint32), ("indexLow", ctypes.c_uint32)]
+    kernel.CreateFileW.argtypes = [ctypes.c_wchar_p, ctypes.c_uint32, ctypes.c_uint32,
+        ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p]
+    kernel.CreateFileW.restype = ctypes.c_void_p
+    kernel.GetFileInformationByHandle.argtypes = [ctypes.c_void_p, ctypes.POINTER(FileInfo)]
+    kernel.GetFileInformationByHandle.restype = ctypes.c_int
+    kernel.CloseHandle.argtypes = [ctypes.c_void_p]
+    kernel.CloseHandle.restype = ctypes.c_int
+    # Follow the project mount itself; OPEN_REPARSE_POINT would inspect its NTFS
+    # mountpoint instead of the virtual volume presented to the Bee process.
+    handle = kernel.CreateFileW(str(path), 0x80, 7, None, 3, 0x02000000, None)
+    if handle == ctypes.c_void_p(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        info = FileInfo()
+        if not kernel.GetFileInformationByHandle(handle, ctypes.byref(info)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        return dict(volumeSerial=info.volume, fileIndex=(info.indexHigh << 32) | info.indexLow,
+                    length=(info.sizeHigh << 32) | info.sizeLow, links=info.links, attributes=info.attributes)
+    finally:
+        kernel.CloseHandle(handle)
+
+
+def bee_publication_files(view, graph, evidence, mode):
+    root_identity = file_identity(view)
+    rows = []
+    for key, temporary_key in (("StateFileName", "StateFileNameTmp"), ("DigestCacheFileName", "DigestCacheFileNameTmp")):
+        path, temporary = view_output(graph[key], view), view_output(graph[temporary_key], view)
+        contents = capture(path, evidence / (key + ".bin"))
+        identity = file_identity(path)
+        if not contents or identity["length"] != len(contents) or identity["attributes"] & 0x410 or identity["links"] != 1:
+            raise ValueError("Unsupported or empty published Bee state/cache: " + str(path))
+        if mode != "native-bee" and identity["volumeSerial"] != root_identity["volumeSerial"]:
+            raise ValueError("Published Bee output does not belong to the single virtual volume.")
+        if temporary.exists():
+            raise ValueError("Successful Bee build left an unpublished state/digest temporary file: " + str(temporary))
+        rows.append(dict(path=path.relative_to(view).as_posix(), sha256=digest(contents), identity=identity,
+                         temporaryPath=temporary.relative_to(view).as_posix(), temporaryAbsent=True))
+    return dict(files=rows, sameVirtualVolume=mode != "native-bee",
+                boundary="Successful backend output and same-volume identity. Atomic logical publication additionally requires provider rename telemetry and the native rename correctness gate.")
+
+
+def validate_bee_publications(result, mode, builds):
+    if not builds or mode != "internal-native":
+        return dict(status="NotApplicable", boundary="Only the internal-native complete build candidate has this telemetry gate.")
+    publications = result.get("nativeStorage", {}).get("publications", [])
+    matched = []
+    for name in ("Library/Bee/TundraBuildState.state", "Library/Bee/tundra.digestcache"):
+        records = [row for row in publications if row.get("destinationPath") == name]
+        if not records or any(row.get("sourcePath") != name + ".tmp" or
+            not row.get("sourceId") or row.get("sourceId") != row.get("publishedId") or
+            row.get("atomicNamespacePublication") is not True for row in records):
+            raise ValueError("Missing or invalid actual Bee atomic publication telemetry for " + name)
+        matched.extend(records)
+    return dict(status="Passed", publications=matched,
+                boundary="Actual Bee state/digest temporary-file publication preserves logical file identity within the provider namespace; not a power-loss proof.")
 
 
 def fail_preserving(error, root, nonce, mode, provider, ready_valid, clients, budget, before, basis, expected_sources):
@@ -600,10 +560,12 @@ def main():
     parser.add_argument("--probe", type=Path, required=True)
     parser.add_argument("--seed", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--rounds", type=int, default=3)
+    parser.add_argument("--rounds", type=int, default=1)
     parser.add_argument("--budget-seconds", type=float, default=300)
-    parser.add_argument("--compile", action="store_true", help="Diagnostic only: native-bee currently fails atomic state rename (Win32 17). Overlay can build empty/unchanged/one-change inputs; no ILPP.")
-    parser.add_argument("--order", nargs="+", choices=["overlay", "native-bee"], default=["overlay", "native-bee", "native-bee", "overlay"])
+    parser.add_argument("--compile", action=argparse.BooleanOptionalAction, default=True,
+                        help="Run real cold/unchanged/incremental Bee builds (default); --no-compile is graph-only. No Editor or ILPP.")
+    parser.add_argument("--order", nargs="+", choices=["overlay", "internal-native", "native-bee"],
+                        default=["overlay", "internal-native", "internal-native", "overlay"])
     args = parser.parse_args()
     if not 1 <= args.rounds <= 6 or not 1 <= len(args.order) <= 4 or not 30 <= args.budget_seconds <= 300:
         raise ValueError("Allow 1-6 graph rounds, 1-4 mounts and a 30-300 second whole-run budget.")
@@ -642,22 +604,23 @@ def main():
         destination.write_bytes((seed / relative).read_bytes())
     (basis / "Assets/prototype-sentinel.txt").write_bytes(b"immutable-source\n")
     before = inventory(basis)
-    save(output / "input.json", dict(scope="Fixed real three-assembly Bee graph/optional Csc; no Editor, ILPP or Play",
+    save(output / "input.json", dict(scope="Fixed real three-assembly Bee graph and Csc; no Editor, ILPP or Play",
          seed=str(seed), seedFilesSha256=SEED_HASHES, basisFilesSha256=before,
          copiedFixtureBytes=sum((basis / p).stat().st_size for p in before), runtimeFilesSha256=identities,
-         order=args.order, rounds=args.rounds, budgetSeconds=args.budget_seconds, osCacheReset=False,
+         order=args.order, rounds=args.rounds, compile=args.compile, budgetSeconds=args.budget_seconds, osCacheReset=False,
          compilerServerReset=False,
          backendInvocation="Standalone explicit DAG; no parent IPC or deferred stdin gate",
          coldDefinition="Empty per-mount generated outputs; OS and compiler server caches are not reset",
+         comparatorJournalStorageMode="bounded", clientBeeJunction="Only historical native-bee diagnostic",
          nativeDurability=NATIVE_DURABILITY, allocationBoundary=ALLOCATION_BOUNDARY,
-         mappingCleanupBoundary=MAPPING_CLEANUP_BOUNDARY))
+         closureBoundary=CLOSURE_BOUNDARY, memoryBoundary=MEMORY_BOUNDARY))
     rows, canonical = [], None
     for index, mode in enumerate(args.order):
         root = output / f"run-{index}-{mode}"
         nonce = uuid.uuid4().hex
         request = output / f"request-{index}.json"
         save(request, dict(root=str(root), basis=str(basis), mode=mode, nonce=nonce))
-        provider, ready_valid, clients, expected_sources = None, False, [], {}
+        provider, ready_valid, clients, expected_sources, trace = None, False, [], {}, None
         with (output / f"provider-{index}.stdout").open("xb") as stdout, (output / f"provider-{index}.stderr").open("xb") as stderr:
             try:
                 budget.remaining(1, reserve=20)
@@ -667,19 +630,22 @@ def main():
                 prepare_seconds = time.perf_counter() - began
                 validate_ready(ready, nonce, mode, root, provider, before, basis)
                 ready_valid = True
+                trace = ResourceTrace(root, provider)
+                trace.phase("prepared")
                 view = root / "view"
                 remapped = replace_paths(original_input, seed, view)
                 validate_recipe(remapped, view)
                 tick = time.perf_counter()
                 (view / INPUT_RELATIVE).write_text(json.dumps(remapped, separators=(",", ":")), encoding="utf-8")
                 input_seconds = time.perf_counter() - tick
+                trace.phase("input-published")
                 costs, builds = [], []
                 for iteration in range(args.rounds):
                     evidence = output / f"graph-{index}-{iteration}"
                     evidence.mkdir()
                     profile = f"Library/Bee/buildprogram-{iteration}.traceevents"
                     seconds = run_client([str(launcher), str(tool), "Library/Bee/1900b0aE.dag.json", INPUT_RELATIVE, profile],
-                                         view, "graph", evidence, clients, budget, 30)
+                                         view, "graph", evidence, clients, budget, 30, trace)
                     graph_digest, graph_data = semantic_graph(view, evidence, profile)
                     if canonical is None:
                         canonical = graph_digest
@@ -688,7 +654,9 @@ def main():
                         raise ValueError(f"Semantic graph/payload differs; preserve evidence {evidence}")
                     costs.append(dict(iteration=iteration, phase="empty-Bee-output" if iteration == 0 else "graph-rewrite",
                                       seconds=seconds, normalizedGraphSha256=graph_digest, evidence=str(evidence)))
+                    trace.phase("graph-" + str(iteration))
                     print(json.dumps(dict(mode=mode, run=index, **costs[-1])), flush=True)
+                graph = read(output / f"graph-{index}-{args.rounds - 1}" / "dag.json")
                 if args.compile:
                     for phase, expected in [("empty-compile-output", 42), ("unchanged", 42), ("incremental", 43)]:
                         incremental_source_edit_seconds = 0
@@ -710,7 +678,7 @@ def main():
                         seconds = run_client([str(backend),
                             "--dagfile=Library/Bee/1900b0aE.dag", "--continue-on-failure",
                             "--dagfilejson=Library/Bee/1900b0aE.dag.json", "--profile=" + profile, "ScriptAssemblies"],
-                            view, "compile", evidence, clients, budget, 45)
+                            view, "compile", evidence, clients, budget, 45, trace)
                         capture_if_present(view / profile, evidence / "backend.traceevents")
                         capture_if_present(view / "Library/Bee/tundra.log.json", evidence / "tundra.log.json")
                         assembly_hashes = {}
@@ -718,14 +686,17 @@ def main():
                             file = view / "Library/ScriptAssemblies" / (name + ".dll")
                             assembly_hashes[name] = digest(capture(file, evidence / (name + ".dll")))
                         inspection_seconds = run_client(["dotnet", str(probe), "inspect-assembly", str(view / "Library/ScriptAssemblies/Assembly-CSharp.dll")],
-                                                        view, "inspect", evidence, clients, budget, 15)
+                                                        view, "inspect", evidence, clients, budget, 15, trace)
                         proof = read(evidence / "inspect.stdout")
                         if proof != dict(type="RuntimeSentinel", field="Value", value=expected, loadedExecutableImage=False):
                             raise ValueError("Compiled constant proof differs from the requested source.")
+                        publication = bee_publication_files(view, graph, evidence, mode)
                         build_row = dict(phase=phase, seconds=seconds, inspectionSeconds=inspection_seconds,
                                          incrementalSourceEditSeconds=incremental_source_edit_seconds,
-                                         assemblyProof=proof, assemblySha256=assembly_hashes, evidence=str(evidence))
+                                         assemblyProof=proof, assemblySha256=assembly_hashes,
+                                         beeStatePublication=publication, evidence=str(evidence))
                         builds.append(build_row)
+                        trace.phase("compile-" + phase)
                         print(json.dumps(dict(mode=mode, run=index, **build_row)), flush=True)
                 tick = time.perf_counter()
                 changed = b"independent-result\n"
@@ -734,11 +705,7 @@ def main():
                     raise ValueError("Source write/isolation proof differs.")
                 expected_sources["Assets/prototype-sentinel.txt"] = changed
                 source_edit_seconds = time.perf_counter() - tick
-                mapping_cleanup = dict(mappingCleanupSeconds=0, status="NotRun: compilation not requested",
-                                       boundary=MAPPING_CLEANUP_BOUNDARY)
-                if args.compile:
-                    mapping_cleanup = cleanup_fixed_bee_mapping(root, nonce, mode, ready, provider, clients, basis,
-                        before, request, output / f"mapping-cleanup-{index}", budget)
+                trace.phase("before-normal-stop")
                 tick = time.perf_counter()
                 publish_stop(root, nonce)
                 result = wait_json(root / "result.json", provider, budget, seconds=60)
@@ -747,23 +714,26 @@ def main():
                 closure_seconds = time.perf_counter() - tick
                 lifecycle_wall_seconds = time.perf_counter() - began
                 validate_result(result, nonce, mode, root, before, basis, expected_sources)
+                atomic_publication = validate_bee_publications(result, mode, builds)
                 accounted_phases = dict(prepareSeconds=prepare_seconds, inputSeconds=input_seconds,
                     graphSeconds=sum(item["seconds"] for item in costs), compileSeconds=sum(item["seconds"] for item in builds),
                     inspectionSeconds=sum(item["inspectionSeconds"] for item in builds),
                     incrementalSourceEditSeconds=sum(item["incrementalSourceEditSeconds"] for item in builds),
-                    sourceEditSeconds=source_edit_seconds, mappingCleanupSeconds=mapping_cleanup["mappingCleanupSeconds"],
-                    closureSeconds=closure_seconds)
+                    sourceEditSeconds=source_edit_seconds, closureSeconds=closure_seconds)
                 row = dict(mode=mode, run=index, prepareSeconds=prepare_seconds, inputSeconds=input_seconds,
                            graphs=costs, builds=builds, sourceEditSeconds=source_edit_seconds,
-                           mappingCleanupSeconds=mapping_cleanup["mappingCleanupSeconds"], mappingCleanup=mapping_cleanup,
                            closureSeconds=closure_seconds, provider=result, finalAllocation=final_allocation(root),
+                           providerCompletionPhases=result["timings"], actualBeeAtomicPublication=atomic_publication,
+                           resourceTrace=trace.summary(), closureBoundary=CLOSURE_BOUNDARY,
                            accountedPhases=accounted_phases, accountedLifecycleSeconds=sum(accounted_phases.values()),
                            lifecycleWallSeconds=lifecycle_wall_seconds,
-                           accountedLifecycleBoundary="Sum of named phases including mapping cleanup and its guards; excludes graph/build raw capture and graph comparison, dispatch gaps and final allocation. Wall interval spans provider start through normal exit.",
+                           accountedLifecycleBoundary="Sum of named phases including normal closure once; provider flush/preserve/cleanup are subphases of closure and must not be added again. Excludes raw capture, comparison, phase allocation samples, dispatch gaps and final allocation; periodic process-memory sampling is included in client phases. Wall interval spans provider start through normal exit.",
                            nativeDurability=NATIVE_DURABILITY)
                 rows.append(row)
                 save(output / f"run-{index}-summary.json", row)
             except BaseException as error:
+                if trace is not None:
+                    save(output / f"run-{index}-resource-failure.json", trace.summary())
                 fail_preserving(error, root, nonce, mode, provider, ready_valid, clients, budget, before, basis, expected_sources)
                 raise
     try:
@@ -776,11 +746,14 @@ def main():
         save(output / "final-validation-failure.json", dict(errorType=type(error).__name__, error=str(error),
              completedRuns=len(rows), elapsedSeconds=time.monotonic() - budget.started, outputsPreserved=True))
         raise
-    save(output / "result.json", dict(scope="Bounded real Bee graph/optional Csc replay, not complete Unity performance",
+    save(output / "result.json", dict(scope="Bounded real Bee graph/Csc replay, not complete Unity performance",
          basisAndHistoricalInputUnchanged=True, frozenRuntimeUnchanged=True, equalNormalizedGraphAndPayload=True,
-         matchedVariants=set(args.order) == {"overlay", "native-bee"}, rows=rows,
+         matchedVariants=set(args.order) == {"overlay", "internal-native"},
+         balancedAbba=args.order in (["overlay", "internal-native", "internal-native", "overlay"],
+                                    ["internal-native", "overlay", "overlay", "internal-native"]),
+         actualBuildsCompleted=args.compile, comparatorJournalStorageMode="bounded", rows=rows,
          nativeDurability=NATIVE_DURABILITY, allocationBoundary=ALLOCATION_BOUNDARY,
-         mappingCleanupBoundary=MAPPING_CLEANUP_BOUNDARY,
+         closureBoundary=CLOSURE_BOUNDARY, memoryBoundary=MEMORY_BOUNDARY,
          peakTemporaryAllocation="NotMeasured", elapsedSeconds=time.monotonic() - budget.started))
 
 

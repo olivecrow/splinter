@@ -2,6 +2,8 @@
 
 [English](../../verification/README.md)
 
+[Bee 내부 native backing](bee-internal-native.md)이 BN-01–05를 소유한다. 개발 전용 단일 볼륨 후보·native 게시·상속 범위/소스 보호·소유 프로세스 중단 복구·작은 실제 Bee 시간을 다룬다. 이 수명주기·저장 근거는 전체 Unity Editor 속도나 제품 backend를 입증하지 않는다.
+
 [제품 제한 로그](bounded-journal.md)가 BL-01–05를 소유한다. 실제 저널 metadata/수명주기/복구·한정 구성 요소 비용·새 Windows provider 기본값을 다루며 전체 Unity와 OS 전원 장애 자격은 별도로 유지한다.
 
 [구조적 처리 시간 시제품](structural-throughput-prototypes.md)이 SX-01–04를 소유한다. 작은 격리 입력의 native NTFS Bee·제한 durable 범위 로그를 비교하며, 구성 요소 시간·추가 RAM/임시 공간·원본/결과 보호·실패 pilot 복구와 미측정 전체 Unity 속도를 구분한다.

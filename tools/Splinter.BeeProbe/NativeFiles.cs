@@ -103,14 +103,14 @@ internal sealed class PinnedBasis : ISnapshotTree, IDisposable
     public SnapshotReference Snapshot { get; }
     public bool SupportsConcurrentReads => true;
     private bool closed;
-    public PinnedBasis(string directory, string nonce)
+    public PinnedBasis(string directory, string nonce, bool allowNonemptyBee = false)
     {
         directory = Path.GetFullPath(directory);
         Snapshot = new("bee-probe-" + nonce, "development-pinned-ntfs", directory, directory, DateTimeOffset.UtcNow, true, true, "fixture-pinned-no-write-no-delete");
         try
         {
             Visit(directory, "");
-            if (Stat("Library/Bee") is not { Directory: true } || List("Library/Bee").Count != 0)
+            if (Stat("Library/Bee") is not { Directory: true } || !allowNonemptyBee && List("Library/Bee").Count != 0)
                 throw new IOException("Fixture requires empty Library/Bee for both modes.");
         }
         catch { Dispose(); throw; }

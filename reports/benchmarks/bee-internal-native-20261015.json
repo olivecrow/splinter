@@ -1,0 +1,1481 @@
+{
+  "date": "2026-10-15",
+  "baseCommit": "d0ac0a2",
+  "scope": "Bounded real Bee graph/Csc replay, not complete Unity performance",
+  "developmentOnly": true,
+  "productBackendIntegrated": false,
+  "originalUnityProjectUsed": false,
+  "cohortInput": {
+    "scope": "Fixed real three-assembly Bee graph and Csc; no Editor, ILPP or Play",
+    "seed": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\startup-read-followup-20261008\\unity-probe",
+    "seedFilesSha256": {
+      "Library/Bee/1900b0aE-inputdata.json": "80af13551306ef2aa6cf43ba11b2ec4cf98951ed19447e6c1e55cb33d6a413d3",
+      "Assets/Editor/StartupProbe.cs": "45e1599deaa74e6bb6cef0c208321e6da3da702b0d05f24428e4be62f5d2fb21",
+      "Assets/RuntimeSentinel.cs": "24e92a12b499761583a60947225c56f65af5a5e5cb1b01df9ee49cfff99a56e1",
+      "Assets/__Splinter__/Editor/WorkspaceBridge.cs": "62697e223b1e62ca437ef7eddbc3f0bf3550697c2a2bd297aed2aae22c5cfb29",
+      "Assets/__Splinter__/Editor/Splinter.Workspace.Editor.asmdef": "3f091dfbd0e72be751a2a7901d3e21a392b393c8fe2797c692cb95580919b9e7"
+    },
+    "basisFilesSha256": {
+      "Assets/__Splinter__/Editor/Splinter.Workspace.Editor.asmdef": "3f091dfbd0e72be751a2a7901d3e21a392b393c8fe2797c692cb95580919b9e7",
+      "Assets/__Splinter__/Editor/WorkspaceBridge.cs": "62697e223b1e62ca437ef7eddbc3f0bf3550697c2a2bd297aed2aae22c5cfb29",
+      "Assets/Editor/StartupProbe.cs": "45e1599deaa74e6bb6cef0c208321e6da3da702b0d05f24428e4be62f5d2fb21",
+      "Assets/prototype-sentinel.txt": "8f78c8f3dc8f400152e0ad2856f01757f958b037c79a78bee8c93ba56dc63411",
+      "Assets/RuntimeSentinel.cs": "24e92a12b499761583a60947225c56f65af5a5e5cb1b01df9ee49cfff99a56e1"
+    },
+    "copiedFixtureBytes": 8150,
+    "runtimeFilesSha256": {
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\scripts\\measure-bee-prototype.py": "82600a498f1e25d0c7416e199b68402398979ea735442e81f126d4a8aaa47dab",
+      "C:\\Program Files\\Unity\\Hub\\Editor\\6000.3.22f1\\Editor\\Data\\netcorerun\\netcorerun.exe": "d4f76464d34da3c5ebbbf4b31a3e52ab17cba410d072d65d8fa17fe4354f3bfa",
+      "C:\\Program Files\\Unity\\Hub\\Editor\\6000.3.22f1\\Editor\\Data\\Tools\\BuildPipeline\\bee_backend.exe": "221652679a0b4fc289978da683003511c34b2fffba1b894fd9359bd78c756953",
+      "C:\\Program Files\\Unity\\Hub\\Editor\\6000.3.22f1\\Editor\\Data\\Tools\\BuildPipeline\\ScriptCompilationBuildProgram.exe": "25367ced8dce512c1eabd38c2b265c2111edce2779e9e1f30f36ba9e36238a00",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.BeeProbe.dll": "f3a2112cba83ab114d2e492f90643b4a73b27257056df84d96c991d3335f1474",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.BeeProbe.deps.json": "fd5759afbe4ade72fe49246517babaf5f912b8781b7e76f769c364e6d03f037f",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.BeeProbe.exe": "2b9f09a47e33835ab86153ad93540dad9274dd0e0dc0d0df5966a2f9caab49d5",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.BeeProbe.runtimeconfig.json": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.Core.dll": "88ef2b21583234cf46a9bcac18d29fd05a47d901b7a40b6bc3b82da02cb90edb",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.Platform.Windows.deps.json": "ee3448c0bf432243eb1f7e43c831f141623f33d528d48be4f5e61a6b1acc7000",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.Platform.Windows.dll": "08a26adf5e752b23449c8940d89a7fc517125c175102b89b6cc346e1738661ad",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.Platform.Windows.exe": "af67694c1dfc878cfd272411754d6aad3957b4abd49be5081931835d70cb5686",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.Platform.Windows.runtimeconfig.json": "c230a317a54dd960bcbeb5f347f52e18dc665a26f7efda2159fced9a5ac7e097",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.Runtime.dll": "4006e7d1fee01c4681c26baa2140941b3ea6d4c4e871aff81bce9701d5948e19",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.SourceControl.Files.dll": "498c353f84099c4ec3718721abcbb9c65d119eb527343224a21ba6cd1dd98cb7",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\Splinter.SourceControl.Git.dll": "65bdfa578065683f6101a92c1a7c11ac6507bc38ca13f7483987225f0ff30117",
+      "C:\\Users\\olive\\Desktop\\Development\\splinter\\tools\\Splinter.BeeProbe\\bin\\Release\\net10.0\\winfsp-msil.dll": "066d25e610f2ffa180fa8773052b0c4d041eb04d8303a4f498e63eed47202908"
+    },
+    "order": [
+      "overlay",
+      "internal-native",
+      "internal-native",
+      "overlay"
+    ],
+    "rounds": 1,
+    "compile": true,
+    "budgetSeconds": 300.0,
+    "osCacheReset": false,
+    "compilerServerReset": false,
+    "backendInvocation": "Standalone explicit DAG; no parent IPC or deferred stdin gate",
+    "coldDefinition": "Empty per-mount generated outputs; OS and compiler server caches are not reset",
+    "comparatorJournalStorageMode": "bounded",
+    "clientBeeJunction": "Only historical native-bee diagnostic",
+    "nativeDurability": "New internal-native Bee output uses ordinary NTFS buffered durability, not the bounded comparator's per-write durable ACKs. Source, inherited Bee files and other Library paths retain the bounded range journal. These component timings do not establish equal-durability or complete Unity performance.",
+    "allocationBoundary": "Final retained regular-file allocation after normal provider exit, not peak: only this run's delta and native-bee directories. Shared fixture, tools, source export, receipts, measurement copies and filesystem directory metadata are excluded.",
+    "closureBoundary": "Normal provider stop only; no filename-specific reopen, forced unmap, process kill or output deletion. Held file contexts fail qualification and preserve the provider and its outputs.",
+    "memoryBoundary": "Sampled provider and directly launched client process working sets/private bytes only. Compiler descendants, system/NTFS cache and complete machine RAM are not measured. Sampled maxima are not a simultaneous process-tree peak."
+  },
+  "rows": [
+    {
+      "run": 0,
+      "mode": "overlay",
+      "accountedLifecycleSeconds": 12.900233100051992,
+      "lifecycleWallSeconds": 13.288857399951667,
+      "phases": {
+        "prepareSeconds": 0.3705383000196889,
+        "inputSeconds": 0.04650309996213764,
+        "graphSeconds": 1.6879401999758556,
+        "compileSeconds": 10.007803000044078,
+        "inspectionSeconds": 0.486446600058116,
+        "incrementalSourceEditSeconds": 0.02717740007210523,
+        "sourceEditSeconds": 0.021195199922658503,
+        "closureSeconds": 0.25262929999735206
+      },
+      "providerCompletionPhases": {
+        "drainSeconds": 0.0176697,
+        "flushSeconds": 0.0049105,
+        "preserveSeconds": 0.0653877,
+        "cleanupSeconds": 0.0249589
+      },
+      "builds": [
+        {
+          "phase": "empty-compile-output",
+          "seconds": 7.822239900007844,
+          "inspectionSeconds": 0.17565620003733784,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 42,
+            "loadedExecutableImage": false
+          }
+        },
+        {
+          "phase": "unchanged",
+          "seconds": 0.5139595000073314,
+          "inspectionSeconds": 0.15473079995717853,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 42,
+            "loadedExecutableImage": false
+          }
+        },
+        {
+          "phase": "incremental",
+          "seconds": 1.6716036000289023,
+          "inspectionSeconds": 0.15605960006359965,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 43,
+            "loadedExecutableImage": false
+          }
+        }
+      ],
+      "finalAllocation": {
+        "directories": [
+          {
+            "directory": "delta",
+            "files": 3,
+            "logicalBytes": 954816,
+            "allocatedBytes": 958464
+          }
+        ],
+        "logicalBytes": 954816,
+        "allocatedBytes": 958464,
+        "boundary": "Final retained regular-file allocation after normal provider exit, not peak: only this run's delta and native-bee directories. Shared fixture, tools, source export, receipts, measurement copies and filesystem directory metadata are excluded.",
+        "method": "GetFileInformationByHandleEx(FileStandardInfo).AllocationSize",
+        "peakTemporaryAllocation": "NotMeasured"
+      },
+      "observedMemory": {
+        "provider": {
+          "observedMaximumWorkingSetBytes": 64892928,
+          "observedMaximumPrivateBytes": 30670848,
+          "maximumReportedProcessPeakWorkingSetBytes": 65024000
+        },
+        "direct-client": {
+          "observedMaximumWorkingSetBytes": 48513024,
+          "observedMaximumPrivateBytes": 63184896,
+          "maximumReportedProcessPeakWorkingSetBytes": 48513024
+        }
+      },
+      "sampledMaximumAllocatedBytes": 958464,
+      "normalUnmount": true,
+      "sourceUnchanged": true,
+      "openHandles": 0,
+      "retainedFileContexts": 0,
+      "actualBeeAtomicPublication": {
+        "status": "NotApplicable",
+        "boundary": "Only the internal-native complete build candidate has this telemetry gate."
+      },
+      "journalBytes": 954145,
+      "journalFlushCount": 721,
+      "journalFlushSeconds": 5.0565906,
+      "nativeStorage": null
+    },
+    {
+      "run": 1,
+      "mode": "internal-native",
+      "accountedLifecycleSeconds": 23.60597080003936,
+      "lifecycleWallSeconds": 25.833665700047277,
+      "phases": {
+        "prepareSeconds": 0.41920939995907247,
+        "inputSeconds": 0.0790119000012055,
+        "graphSeconds": 0.7301235999912024,
+        "compileSeconds": 16.59691299998667,
+        "inspectionSeconds": 0.6334669999778271,
+        "incrementalSourceEditSeconds": 0.028422800009138882,
+        "sourceEditSeconds": 0.021796600078232586,
+        "closureSeconds": 5.097026500036009
+      },
+      "providerCompletionPhases": {
+        "drainSeconds": 1.1244557,
+        "flushSeconds": 1.1542726,
+        "preserveSeconds": 0.2037511,
+        "cleanupSeconds": 2.4366657
+      },
+      "builds": [
+        {
+          "phase": "empty-compile-output",
+          "seconds": 14.389371400000528,
+          "inspectionSeconds": 0.27632089995313436,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 42,
+            "loadedExecutableImage": false
+          }
+        },
+        {
+          "phase": "unchanged",
+          "seconds": 0.5420003000181168,
+          "inspectionSeconds": 0.18323510000482202,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 42,
+            "loadedExecutableImage": false
+          }
+        },
+        {
+          "phase": "incremental",
+          "seconds": 1.6655412999680266,
+          "inspectionSeconds": 0.1739110000198707,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 43,
+            "loadedExecutableImage": false
+          }
+        }
+      ],
+      "finalAllocation": {
+        "directories": [
+          {
+            "directory": "delta",
+            "files": 3,
+            "logicalBytes": 198416,
+            "allocatedBytes": 204800
+          },
+          {
+            "directory": "native-bee",
+            "files": 358,
+            "logicalBytes": 1952687,
+            "allocatedBytes": 2022488
+          }
+        ],
+        "logicalBytes": 2151103,
+        "allocatedBytes": 2227288,
+        "boundary": "Final retained regular-file allocation after normal provider exit, not peak: only this run's delta and native-bee directories. Shared fixture, tools, source export, receipts, measurement copies and filesystem directory metadata are excluded.",
+        "method": "GetFileInformationByHandleEx(FileStandardInfo).AllocationSize",
+        "peakTemporaryAllocation": "NotMeasured"
+      },
+      "observedMemory": {
+        "provider": {
+          "observedMaximumWorkingSetBytes": 66072576,
+          "observedMaximumPrivateBytes": 36999168,
+          "maximumReportedProcessPeakWorkingSetBytes": 66428928
+        },
+        "direct-client": {
+          "observedMaximumWorkingSetBytes": 48132096,
+          "observedMaximumPrivateBytes": 62033920,
+          "maximumReportedProcessPeakWorkingSetBytes": 48132096
+        }
+      },
+      "sampledMaximumAllocatedBytes": 3681368,
+      "normalUnmount": true,
+      "sourceUnchanged": true,
+      "openHandles": 0,
+      "retainedFileContexts": 0,
+      "actualBeeAtomicPublication": {
+        "status": "Passed",
+        "publications": [
+          {
+            "sourcePath": "Library/Bee/TundraBuildState.state.tmp",
+            "destinationPath": "Library/Bee/TundraBuildState.state",
+            "sourceId": "6a8f7579-01f2-4cc8-8450-f1f9e1f74f5d",
+            "publishedId": "6a8f7579-01f2-4cc8-8450-f1f9e1f74f5d",
+            "atomicNamespacePublication": true
+          },
+          {
+            "sourcePath": "Library/Bee/TundraBuildState.state.tmp",
+            "destinationPath": "Library/Bee/TundraBuildState.state",
+            "sourceId": "6d99d908-3c1d-45df-9c03-d4643b976191",
+            "publishedId": "6d99d908-3c1d-45df-9c03-d4643b976191",
+            "atomicNamespacePublication": true
+          },
+          {
+            "sourcePath": "Library/Bee/TundraBuildState.state.tmp",
+            "destinationPath": "Library/Bee/TundraBuildState.state",
+            "sourceId": "0e44dd4d-f25c-4594-ae7c-32b83bcfbf61",
+            "publishedId": "0e44dd4d-f25c-4594-ae7c-32b83bcfbf61",
+            "atomicNamespacePublication": true
+          },
+          {
+            "sourcePath": "Library/Bee/tundra.digestcache.tmp",
+            "destinationPath": "Library/Bee/tundra.digestcache",
+            "sourceId": "082b8731-6c67-495b-a951-d5bf2d0ec06d",
+            "publishedId": "082b8731-6c67-495b-a951-d5bf2d0ec06d",
+            "atomicNamespacePublication": true
+          },
+          {
+            "sourcePath": "Library/Bee/tundra.digestcache.tmp",
+            "destinationPath": "Library/Bee/tundra.digestcache",
+            "sourceId": "5deb9cbf-624d-493b-bd7d-e5f5d8b9ac4e",
+            "publishedId": "5deb9cbf-624d-493b-bd7d-e5f5d8b9ac4e",
+            "atomicNamespacePublication": true
+          },
+          {
+            "sourcePath": "Library/Bee/tundra.digestcache.tmp",
+            "destinationPath": "Library/Bee/tundra.digestcache",
+            "sourceId": "4ea9f77f-8dac-45ed-83a9-dec99443ba4f",
+            "publishedId": "4ea9f77f-8dac-45ed-83a9-dec99443ba4f",
+            "atomicNamespacePublication": true
+          }
+        ],
+        "boundary": "Actual Bee state/digest temporary-file publication preserves logical file identity within the provider namespace; not a power-loss proof."
+      },
+      "journalBytes": 197745,
+      "journalFlushCount": 295,
+      "journalFlushSeconds": 2.1407214,
+      "nativeStorage": {
+        "nativeReadBytes": 9692245,
+        "nativeWriteBytes": 3306779,
+        "nativeWriteCalls": 414,
+        "nativeFlushes": 356,
+        "nativeFlushSeconds": 2.2571505,
+        "promotions": 0,
+        "publicationOverflow": 0,
+        "buffering": "generated payload only; Flush reaches every native file and journal"
+      }
+    },
+    {
+      "run": 2,
+      "mode": "internal-native",
+      "accountedLifecycleSeconds": 14.159798199892975,
+      "lifecycleWallSeconds": 15.988103999989107,
+      "phases": {
+        "prepareSeconds": 0.41902659996412694,
+        "inputSeconds": 0.07858329999726266,
+        "graphSeconds": 0.7102505998918787,
+        "compileSeconds": 10.6104764000047,
+        "inspectionSeconds": 0.49710580008104444,
+        "incrementalSourceEditSeconds": 0.020111699937842786,
+        "sourceEditSeconds": 0.011394000030122697,
+        "closureSeconds": 1.8128497999859974
+      },
+      "providerCompletionPhases": {
+        "drainSeconds": 0.3366741,
+        "flushSeconds": 0.3308755,
+        "preserveSeconds": 0.1675963,
+        "cleanupSeconds": 0.8192944
+      },
+      "builds": [
+        {
+          "phase": "empty-compile-output",
+          "seconds": 9.103098600055091,
+          "inspectionSeconds": 0.16672650002874434,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 42,
+            "loadedExecutableImage": false
+          }
+        },
+        {
+          "phase": "unchanged",
+          "seconds": 0.29007959994487464,
+          "inspectionSeconds": 0.16429840005002916,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 42,
+            "loadedExecutableImage": false
+          }
+        },
+        {
+          "phase": "incremental",
+          "seconds": 1.217298200004734,
+          "inspectionSeconds": 0.16608090000227094,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 43,
+            "loadedExecutableImage": false
+          }
+        }
+      ],
+      "finalAllocation": {
+        "directories": [
+          {
+            "directory": "delta",
+            "files": 3,
+            "logicalBytes": 198418,
+            "allocatedBytes": 204800
+          },
+          {
+            "directory": "native-bee",
+            "files": 358,
+            "logicalBytes": 1958548,
+            "allocatedBytes": 2030680
+          }
+        ],
+        "logicalBytes": 2156966,
+        "allocatedBytes": 2235480,
+        "boundary": "Final retained regular-file allocation after normal provider exit, not peak: only this run's delta and native-bee directories. Shared fixture, tools, source export, receipts, measurement copies and filesystem directory metadata are excluded.",
+        "method": "GetFileInformationByHandleEx(FileStandardInfo).AllocationSize",
+        "peakTemporaryAllocation": "NotMeasured"
+      },
+      "observedMemory": {
+        "provider": {
+          "observedMaximumWorkingSetBytes": 70418432,
+          "observedMaximumPrivateBytes": 38608896,
+          "maximumReportedProcessPeakWorkingSetBytes": 70463488
+        },
+        "direct-client": {
+          "observedMaximumWorkingSetBytes": 48041984,
+          "observedMaximumPrivateBytes": 61841408,
+          "maximumReportedProcessPeakWorkingSetBytes": 48041984
+        }
+      },
+      "sampledMaximumAllocatedBytes": 3210328,
+      "normalUnmount": true,
+      "sourceUnchanged": true,
+      "openHandles": 0,
+      "retainedFileContexts": 0,
+      "actualBeeAtomicPublication": {
+        "status": "Passed",
+        "publications": [
+          {
+            "sourcePath": "Library/Bee/TundraBuildState.state.tmp",
+            "destinationPath": "Library/Bee/TundraBuildState.state",
+            "sourceId": "be88b779-b6d3-4a99-94da-ac750fcf51a6",
+            "publishedId": "be88b779-b6d3-4a99-94da-ac750fcf51a6",
+            "atomicNamespacePublication": true
+          },
+          {
+            "sourcePath": "Library/Bee/TundraBuildState.state.tmp",
+            "destinationPath": "Library/Bee/TundraBuildState.state",
+            "sourceId": "e31d7370-a184-4318-85ab-05fcfc7f539b",
+            "publishedId": "e31d7370-a184-4318-85ab-05fcfc7f539b",
+            "atomicNamespacePublication": true
+          },
+          {
+            "sourcePath": "Library/Bee/TundraBuildState.state.tmp",
+            "destinationPath": "Library/Bee/TundraBuildState.state",
+            "sourceId": "5f95b6be-30ee-43b0-b28f-35f0b9bedc41",
+            "publishedId": "5f95b6be-30ee-43b0-b28f-35f0b9bedc41",
+            "atomicNamespacePublication": true
+          },
+          {
+            "sourcePath": "Library/Bee/tundra.digestcache.tmp",
+            "destinationPath": "Library/Bee/tundra.digestcache",
+            "sourceId": "ff926341-8340-43d6-92bb-81c8e6c7400c",
+            "publishedId": "ff926341-8340-43d6-92bb-81c8e6c7400c",
+            "atomicNamespacePublication": true
+          },
+          {
+            "sourcePath": "Library/Bee/tundra.digestcache.tmp",
+            "destinationPath": "Library/Bee/tundra.digestcache",
+            "sourceId": "5a1ffde1-7c75-48d5-af16-549d87a5d24e",
+            "publishedId": "5a1ffde1-7c75-48d5-af16-549d87a5d24e",
+            "atomicNamespacePublication": true
+          },
+          {
+            "sourcePath": "Library/Bee/tundra.digestcache.tmp",
+            "destinationPath": "Library/Bee/tundra.digestcache",
+            "sourceId": "6e7c5e78-f2d3-4119-829a-916cec3331b9",
+            "publishedId": "6e7c5e78-f2d3-4119-829a-916cec3331b9",
+            "atomicNamespacePublication": true
+          }
+        ],
+        "boundary": "Actual Bee state/digest temporary-file publication preserves logical file identity within the provider namespace; not a power-loss proof."
+      },
+      "journalBytes": 197747,
+      "journalFlushCount": 295,
+      "journalFlushSeconds": 0.793197,
+      "nativeStorage": {
+        "nativeReadBytes": 9701858,
+        "nativeWriteBytes": 3312797,
+        "nativeWriteCalls": 416,
+        "nativeFlushes": 356,
+        "nativeFlushSeconds": 0.6546097,
+        "promotions": 0,
+        "publicationOverflow": 0,
+        "buffering": "generated payload only; Flush reaches every native file and journal"
+      }
+    },
+    {
+      "run": 3,
+      "mode": "overlay",
+      "accountedLifecycleSeconds": 9.468459300114773,
+      "lifecycleWallSeconds": 9.85666710010264,
+      "phases": {
+        "prepareSeconds": 0.31831820006482303,
+        "inputSeconds": 0.017879199935123324,
+        "graphSeconds": 0.7267390999477357,
+        "compileSeconds": 7.679842700017616,
+        "inspectionSeconds": 0.48949050006922334,
+        "incrementalSourceEditSeconds": 0.01691110001411289,
+        "sourceEditSeconds": 0.009960600058548152,
+        "closureSeconds": 0.20931790000759065
+      },
+      "providerCompletionPhases": {
+        "drainSeconds": 0.0108675,
+        "flushSeconds": 0.0018344,
+        "preserveSeconds": 0.0324118,
+        "cleanupSeconds": 0.0272542
+      },
+      "builds": [
+        {
+          "phase": "empty-compile-output",
+          "seconds": 6.303178800037131,
+          "inspectionSeconds": 0.17351290001533926,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 42,
+            "loadedExecutableImage": false
+          }
+        },
+        {
+          "phase": "unchanged",
+          "seconds": 0.3299858000827953,
+          "inspectionSeconds": 0.15716420009266585,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 42,
+            "loadedExecutableImage": false
+          }
+        },
+        {
+          "phase": "incremental",
+          "seconds": 1.0466780998976901,
+          "inspectionSeconds": 0.15881339996121824,
+          "assemblyProof": {
+            "type": "RuntimeSentinel",
+            "field": "Value",
+            "value": 43,
+            "loadedExecutableImage": false
+          }
+        }
+      ],
+      "finalAllocation": {
+        "directories": [
+          {
+            "directory": "delta",
+            "files": 3,
+            "logicalBytes": 962478,
+            "allocatedBytes": 966656
+          }
+        ],
+        "logicalBytes": 962478,
+        "allocatedBytes": 966656,
+        "boundary": "Final retained regular-file allocation after normal provider exit, not peak: only this run's delta and native-bee directories. Shared fixture, tools, source export, receipts, measurement copies and filesystem directory metadata are excluded.",
+        "method": "GetFileInformationByHandleEx(FileStandardInfo).AllocationSize",
+        "peakTemporaryAllocation": "NotMeasured"
+      },
+      "observedMemory": {
+        "provider": {
+          "observedMaximumWorkingSetBytes": 66646016,
+          "observedMaximumPrivateBytes": 32227328,
+          "maximumReportedProcessPeakWorkingSetBytes": 66871296
+        },
+        "direct-client": {
+          "observedMaximumWorkingSetBytes": 48402432,
+          "observedMaximumPrivateBytes": 62238720,
+          "maximumReportedProcessPeakWorkingSetBytes": 48402432
+        }
+      },
+      "sampledMaximumAllocatedBytes": 1052672,
+      "normalUnmount": true,
+      "sourceUnchanged": true,
+      "openHandles": 0,
+      "retainedFileContexts": 0,
+      "actualBeeAtomicPublication": {
+        "status": "NotApplicable",
+        "boundary": "Only the internal-native complete build candidate has this telemetry gate."
+      },
+      "journalBytes": 961807,
+      "journalFlushCount": 728,
+      "journalFlushSeconds": 1.6076507,
+      "nativeStorage": null
+    }
+  ],
+  "means": {
+    "overlay": {
+      "prepareSeconds": 0.34442825004225597,
+      "inputSeconds": 0.03219114994863048,
+      "graphSeconds": 1.2073396499617957,
+      "compileSeconds": 8.843822850030847,
+      "inspectionSeconds": 0.4879685500636697,
+      "incrementalSourceEditSeconds": 0.02204425004310906,
+      "sourceEditSeconds": 0.015577899990603328,
+      "closureSeconds": 0.23097360000247136,
+      "empty-compile-outputSeconds": 7.062709350022487,
+      "unchangedSeconds": 0.42197265004506335,
+      "incrementalSeconds": 1.3591408499632962,
+      "accountedLifecycleSeconds": 11.184346200083382,
+      "lifecycleWallSeconds": 11.572762250027154,
+      "finalAllocatedBytes": 962560
+    },
+    "internal-native": {
+      "prepareSeconds": 0.4191179999615997,
+      "inputSeconds": 0.07879759999923408,
+      "graphSeconds": 0.7201870999415405,
+      "compileSeconds": 13.603694699995685,
+      "inspectionSeconds": 0.5652864000294358,
+      "incrementalSourceEditSeconds": 0.024267249973490834,
+      "sourceEditSeconds": 0.016595300054177642,
+      "closureSeconds": 3.454938150011003,
+      "empty-compile-outputSeconds": 11.74623500002781,
+      "unchangedSeconds": 0.41603994998149574,
+      "incrementalSeconds": 1.4414197499863803,
+      "accountedLifecycleSeconds": 18.882884499966167,
+      "lifecycleWallSeconds": 20.910884850018192,
+      "finalAllocatedBytes": 2231384
+    }
+  },
+  "reductionsPercent": {
+    "prepareSeconds": -21.68514049302881,
+    "inputSeconds": -144.78032044514268,
+    "graphSeconds": 40.349254663811486,
+    "compileSeconds": -53.821429156603195,
+    "inspectionSeconds": -15.844842860401087,
+    "incrementalSourceEditSeconds": -10.08426200045156,
+    "sourceEditSeconds": -6.531047600690809,
+    "closureSeconds": -1395.8151710732466,
+    "empty-compile-outputSeconds": -66.3134417387629,
+    "unchangedSeconds": 1.4059442153262824,
+    "incrementalSeconds": -6.0537434383865385,
+    "accountedLifecycleSeconds": -68.8331545014709,
+    "lifecycleWallSeconds": -80.69052485692538,
+    "finalAllocatedBytes": -131.81765292553195
+  },
+  "safety": {
+    "passed": true,
+    "result": {
+      "passed": true,
+      "checks": [
+        {
+          "check": "MoveFileExW",
+          "relative": false,
+          "replace": false,
+          "copyAllowed": false,
+          "sourceFileIndex": 5411461816311793742,
+          "publishedFileIndex": 5411461816311793742,
+          "volumeSerial": 459289169,
+          "destinationClosedBeforeReplace": false,
+          "sha256": "7676e38988923da77a125043362cf7c9364e9363fb5c3c86c9dd1a8fdc81e400"
+        },
+        {
+          "check": "MoveFileExW",
+          "relative": false,
+          "replace": true,
+          "copyAllowed": false,
+          "sourceFileIndex": 4928963520692865242,
+          "publishedFileIndex": 4928963520692865242,
+          "volumeSerial": 459289169,
+          "destinationClosedBeforeReplace": true,
+          "sha256": "4a70799b98c8454dabe126eb4da30e913b66480a04652871b835565da9c99b93"
+        },
+        {
+          "check": "MoveFileExW",
+          "relative": true,
+          "replace": false,
+          "copyAllowed": false,
+          "sourceFileIndex": 5097594027221066005,
+          "publishedFileIndex": 5097594027221066005,
+          "volumeSerial": 459289169,
+          "destinationClosedBeforeReplace": false,
+          "sha256": "702c6c6fc29e90cdfc2fc432dfb96ae3480637869183dadc83ec10f0abc88cfe"
+        },
+        {
+          "check": "MoveFileExW",
+          "relative": true,
+          "replace": true,
+          "copyAllowed": false,
+          "sourceFileIndex": 4887181589599806832,
+          "publishedFileIndex": 4887181589599806832,
+          "volumeSerial": 459289169,
+          "destinationClosedBeforeReplace": true,
+          "sha256": "ffed5636fce7e0a06693fed9fbbc8720f42457c9824154f4bcea47b35baca716"
+        },
+        {
+          "check": "retained-replaced-logical-identities",
+          "outcomes": [
+            {
+              "inheritedDestination": false,
+              "oldIdentityPreservedUntilRelease": true,
+              "replacementIdentityPreserved": true
+            },
+            {
+              "inheritedDestination": true,
+              "oldIdentityPreservedUntilRelease": true,
+              "replacementIdentityPreserved": true
+            }
+          ],
+          "boundary": "Direct delta contract. Standard MoveFileExW rejects an open destination on NTFS and this view; no POSIX replacement claim."
+        },
+        {
+          "check": "directory-retained-logical-identities",
+          "directoryAndDescendantIdentityPreserved": true,
+          "boundary": "Direct delta contract. Native MoveFileExW directory publication is checked with descendant handles closed, as required by ordinary NTFS semantics."
+        },
+        {
+          "check": "directory-and-case-rename",
+          "directoryIdentityPreserved": true,
+          "descendantIdentityPreserved": true,
+          "descendantClosedBeforeDirectoryMove": true,
+          "retainedHandleReadableAfterCaseOnlyRename": true,
+          "casePreserved": true
+        },
+        {
+          "check": "write-shapes-and-metadata",
+          "zeroShortMultiChunkOffset": true,
+          "holesAreZero": true,
+          "truncateReextendIsZero": true,
+          "lastWriteUtc": "2020-02-03T04:05:06Z"
+        },
+        {
+          "check": "inherited-no-copy",
+          "inheritedBytes": 67108864,
+          "writtenBytes": 4096,
+          "offset": 17825915,
+          "nativePayloadGrowth": 0,
+          "nativeFileGrowth": 0,
+          "journalGrowthBytes": 760,
+          "initialPayloadCopiedBytes": 0
+        },
+        {
+          "check": "native-replaces-inherited",
+          "sourceIdentityPreserved": true,
+          "destinationClosedBeforeReplace": true
+        },
+        {
+          "check": "mapping-and-unlink-lifetime",
+          "retainedContextsWhileMapped": 1,
+          "renamedWhileMapped": true,
+          "writeAfterHandleClosed": true,
+          "deletedOpenIdentityReadable": true,
+          "nameVisibleWhileDeletePending": true,
+          "nameAbsentAfterFinalHandleClosed": true,
+          "posixUnlinkSemanticsClaimed": false,
+          "stopWithLiveDataMappingRefused": true,
+          "mappedWriteAfterRefusedStopVerified": true
+        },
+        {
+          "check": "executable-image-lifetime",
+          "retainedContextsWhileLoaded": 1,
+          "stopWithLoadedImageRefused": true,
+          "loadedImageStillReadableAfterRefusal": true,
+          "unloadSucceeded": true,
+          "normalStopAfterUnload": true,
+          "imageOutputPreserved": true,
+          "foreignMappingAbsenceProven": false
+        },
+        {
+          "check": "source-classification-and-existing-handles",
+          "nativeToSourcePromotion": true,
+          "sourceToBeeRemainsJournal": true,
+          "identityPreserved": true,
+          "sourceChangesVisible": true,
+          "expectedResults": [
+            {
+              "path": "Assets/promoted.txt",
+              "length": 27,
+              "sha256": "fdc0da4960e06d622554565c10e2458ee84b5b65e5a4417c489be30a7195f85b"
+            },
+            {
+              "path": "Assets/source-roundtrip.txt",
+              "length": 27,
+              "sha256": "513cbb135ebe26fa3f64a8862e3d5674c12ad1b58451d5bf179d1ef71f7382a0"
+            }
+          ]
+        },
+        {
+          "check": "directory-source-crossing",
+          "supported": false,
+          "rejectedBeforePublication": true,
+          "invocation": "Direct store; does not claim Windows directory transfer support."
+        },
+        {
+          "check": "original-and-separate-peer",
+          "originalFiles": 4,
+          "peerSha256": "63d987d1c6d69751c17297f410f5b3547a65d096a8993b35bcb4f9cad054f176",
+          "unchanged": true
+        }
+      ],
+      "independentSourceResults": [
+        {
+          "path": "Assets/promoted.txt",
+          "length": 27,
+          "sha256": "fdc0da4960e06d622554565c10e2458ee84b5b65e5a4417c489be30a7195f85b"
+        },
+        {
+          "path": "Assets/source-roundtrip.txt",
+          "length": 27,
+          "sha256": "513cbb135ebe26fa3f64a8862e3d5674c12ad1b58451d5bf179d1ef71f7382a0"
+        }
+      ],
+      "nativeInventory": [
+        {
+          "id": "1058fdf5-de48-421b-9118-7be64ac40b05",
+          "logicalPath": "Library/Bee/io-shapes.bin",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\1058fdf5de48421b91187be64ac40b05.payload",
+          "length": 4096,
+          "sha256": "7d5e4dd50243da40c8646811a1c5e052506b58c5f6e2aa02a5cf6eb737c97711",
+          "volumeSerial": 2965972179,
+          "fileIndex": 1125899911313828,
+          "promoted": false
+        },
+        {
+          "id": "11c1c8da-3235-4467-8242-69dcdc420908",
+          "logicalPath": "Library/Bee/absolute-replace.state",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\11c1c8da32354467824269dcdc420908.payload",
+          "length": 20,
+          "sha256": "4a70799b98c8454dabe126eb4da30e913b66480a04652871b835565da9c99b93",
+          "volumeSerial": 2965972179,
+          "fileIndex": 12384898979706444,
+          "promoted": false
+        },
+        {
+          "id": "21b2feef-41eb-4ff3-971e-362cf06c7075",
+          "logicalPath": "Library/Bee/owned-version-image.dll",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\21b2feef41eb4ff3971e362cf06c7075.payload",
+          "length": 55192,
+          "sha256": "cea99f212af557a9613150c5509631403ed0f05f5d9a06ac42039bd59b40e39a",
+          "volumeSerial": 2965972179,
+          "fileIndex": 1688849864735144,
+          "promoted": false
+        },
+        {
+          "id": "22ac6492-47aa-4ffe-a91c-d4c8a903795d",
+          "logicalPath": "Library/Bee/directory-after/child/CASE.bin",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\22ac649247aa4ffea91cd4c8a903795d.payload",
+          "length": 4,
+          "sha256": "e6e8cb429864b8e8d7fe95e53360dbd00756316813fb1e4a03a778d4632dbde6",
+          "volumeSerial": 2965972179,
+          "fileIndex": 1125899911313826,
+          "promoted": false
+        },
+        {
+          "id": "28ece570-c1c3-43d2-a398-a2695f4f5f12",
+          "logicalPath": "Library/Bee/relative-replace.state",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\28ece570c1c343d2a398a2695f4f5f12.payload",
+          "length": 20,
+          "sha256": "ffed5636fce7e0a06693fed9fbbc8720f42457c9824154f4bcea47b35baca716",
+          "volumeSerial": 2965972179,
+          "fileIndex": 6755399445493625,
+          "promoted": false
+        },
+        {
+          "id": "2de5b773-e70a-4117-a852-f24007119b78",
+          "logicalPath": "Library/Bee/inherited-state.bin",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\2de5b773e70a4117a852f24007119b78.payload",
+          "length": 24,
+          "sha256": "f7982fa97074070b0d683d5a15e5ed1d54c22006e727f68ed1167d5cda18409d",
+          "volumeSerial": 2965972179,
+          "fileIndex": 1125899911313830,
+          "promoted": false
+        },
+        {
+          "id": "71aa2115-4ac2-46be-aec8-134c1b0386a2",
+          "logicalPath": "Library/Bee/relative-rename.state",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\71aa21154ac246beaec8134c1b0386a2.payload",
+          "length": 19,
+          "sha256": "702c6c6fc29e90cdfc2fc432dfb96ae3480637869183dadc83ec10f0abc88cfe",
+          "volumeSerial": 2965972179,
+          "fileIndex": 6755399445493404,
+          "promoted": false
+        },
+        {
+          "id": "75a98e77-7352-4aef-be86-80115e9fdc5a",
+          "logicalPath": "Library/Bee/inherited-handle-state.bin",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\75a98e7773524aefbe8680115e9fdc5a.payload",
+          "length": 20,
+          "sha256": "2be8c8802c383bf5cc6b0c3ff4c128ec4036c60f105cd2e7ab7feb9089bcc0d7",
+          "volumeSerial": 2965972179,
+          "fileIndex": 2533274794849813,
+          "promoted": false
+        },
+        {
+          "id": "84d6168c-0f97-4fe6-9ab1-d8c3bca34016",
+          "logicalPath": "Assets/promoted.txt",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\84d6168c0f974fe69ab1d8c3bca34016.payload",
+          "length": 13,
+          "sha256": "46b215acd728ad6bce3ee9919c1a3c48e763694b8b29420e05e4bd83017cab83",
+          "volumeSerial": 2965972179,
+          "fileIndex": 1688849864735146,
+          "promoted": true
+        },
+        {
+          "id": "92322692-c851-430f-9e86-3e9db493e360",
+          "logicalPath": "Library/Bee/directory-boundary/private.bin",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\92322692c851430f9e863e9db493e360.payload",
+          "length": 4,
+          "sha256": "79f076abdd19a752db7267bfff2f9022161d120dea919fdaca2ffdfc24ca8c96",
+          "volumeSerial": 2965972179,
+          "fileIndex": 1407374888024492,
+          "promoted": false
+        },
+        {
+          "id": "995aed53-6d61-40f4-88cd-0ac672afe4c7",
+          "logicalPath": "Library/Bee/direct-directory-renamed/child.bin",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\995aed536d6140f488cd0ac672afe4c7.payload",
+          "length": 4,
+          "sha256": "4d8fccc89fbad95e95cb0ad5632f2815e5eb56b75b61dbc8e6ed4b947df082c5",
+          "volumeSerial": 2965972179,
+          "fileIndex": 79094468460163977,
+          "promoted": false
+        },
+        {
+          "id": "ccdac84e-5fd9-4b19-ab33-f2cfa5526cae",
+          "logicalPath": "Library/Bee/absolute-rename.state",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\ccdac84e5fd94b19ab33f2cfa5526cae.payload",
+          "length": 19,
+          "sha256": "7676e38988923da77a125043362cf7c9364e9363fb5c3c86c9dd1a8fdc81e400",
+          "volumeSerial": 2965972179,
+          "fileIndex": 6192449492071976,
+          "promoted": false
+        },
+        {
+          "id": "dec0d9bb-7752-4d05-a5c4-cebf8cd97e3f",
+          "logicalPath": "Library/Bee/direct-old.state",
+          "deleted": false,
+          "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\native-safety-06\\internal-native\\native-bee\\dec0d9bb77524d05a5c4cebf8cd97e3f.payload",
+          "length": 20,
+          "sha256": "2be8c8802c383bf5cc6b0c3ff4c128ec4036c60f105cd2e7ab7feb9089bcc0d7",
+          "volumeSerial": 2965972179,
+          "fileIndex": 1970324841432247,
+          "promoted": false
+        }
+      ],
+      "scope": "Real small WinFsp/NTFS namespace and mapping checks; no Editor, power-loss or transparent cross-boundary directory qualification."
+    },
+    "independentSourceResultsVerifiedAfterUnmount": true,
+    "independentResultsReadableWithAllInputsDenied": true,
+    "normalClosure": true
+  },
+  "recovery": {
+    "passed": true,
+    "interruptionCases": 10,
+    "rows": [
+      {
+        "operation": "create",
+        "boundary": "create.namespace-durable",
+        "stopped": {
+          "processId": 14000,
+          "processStartTimeUtcTicks": 639276345501932087,
+          "exitCode": -1,
+          "exactCreatedChildTerminated": true,
+          "stderr": ""
+        },
+        "recovered": {
+          "priorFileId": null,
+          "recoveredId": "f9b5ff05-1d98-49d8-82af-3b02c07fa307",
+          "inventoryBeforeRetry": [
+            {
+              "id": "f9b5ff05-1d98-49d8-82af-3b02c07fa307",
+              "logicalPath": "Library/Bee/item.tmp",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\create-namespace-durable\\native\\f9b5ff051d9849d882af3b02c07fa307.payload",
+              "length": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3940649678156694,
+              "promoted": false
+            }
+          ],
+          "inventoryAfterRetry": [
+            {
+              "id": "f9b5ff05-1d98-49d8-82af-3b02c07fa307",
+              "logicalPath": "Library/Bee/item.tmp",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\create-namespace-durable\\native\\f9b5ff051d9849d882af3b02c07fa307.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3940649678156694,
+              "promoted": false
+            }
+          ],
+          "durableSourcePreserved": true,
+          "independentExportSha256": null
+        },
+        "sameOwnerSecondReopen": true,
+        "passed": true
+      },
+      {
+        "operation": "create",
+        "boundary": "create.association-durable",
+        "stopped": {
+          "processId": 32692,
+          "processStartTimeUtcTicks": 639276345506673603,
+          "exitCode": -1,
+          "exactCreatedChildTerminated": true,
+          "stderr": ""
+        },
+        "recovered": {
+          "priorFileId": null,
+          "recoveredId": "e09e91c9-1c90-46b9-8b02-f5ca17f2090c",
+          "inventoryBeforeRetry": [
+            {
+              "id": "e09e91c9-1c90-46b9-8b02-f5ca17f2090c",
+              "logicalPath": "Library/Bee/item.tmp",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\create-association-durable\\native\\e09e91c91c9046b98b02f5ca17f2090c.payload",
+              "length": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "volumeSerial": 2965972179,
+              "fileIndex": 4222124654867467,
+              "promoted": false
+            }
+          ],
+          "inventoryAfterRetry": [
+            {
+              "id": "e09e91c9-1c90-46b9-8b02-f5ca17f2090c",
+              "logicalPath": "Library/Bee/item.tmp",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\create-association-durable\\native\\e09e91c91c9046b98b02f5ca17f2090c.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 4222124654867467,
+              "promoted": false
+            }
+          ],
+          "durableSourcePreserved": true,
+          "independentExportSha256": null
+        },
+        "sameOwnerSecondReopen": true,
+        "passed": true
+      },
+      {
+        "operation": "flush",
+        "boundary": "native.after-payload-flush",
+        "stopped": {
+          "processId": 24424,
+          "processStartTimeUtcTicks": 639276345510636047,
+          "exitCode": -1,
+          "exactCreatedChildTerminated": true,
+          "stderr": ""
+        },
+        "recovered": {
+          "priorFileId": "42bf4b49-805e-460a-bdbf-811adc92c04d",
+          "recoveredId": "42bf4b49-805e-460a-bdbf-811adc92c04d",
+          "inventoryBeforeRetry": [
+            {
+              "id": "42bf4b49-805e-460a-bdbf-811adc92c04d",
+              "logicalPath": "Library/Bee/item.tmp",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\native-after-payload-flush\\native\\42bf4b49805e460abdbf811adc92c04d.payload",
+              "length": 131089,
+              "sha256": "78e8aa86afdab35bb055d8879c500eae062b0226cf5c31108e4abc35c50ed15b",
+              "volumeSerial": 2965972179,
+              "fileIndex": 12384898979476655,
+              "promoted": false
+            }
+          ],
+          "inventoryAfterRetry": [
+            {
+              "id": "42bf4b49-805e-460a-bdbf-811adc92c04d",
+              "logicalPath": "Library/Bee/item.tmp",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\native-after-payload-flush\\native\\42bf4b49805e460abdbf811adc92c04d.payload",
+              "length": 131089,
+              "sha256": "78e8aa86afdab35bb055d8879c500eae062b0226cf5c31108e4abc35c50ed15b",
+              "volumeSerial": 2965972179,
+              "fileIndex": 12384898979476655,
+              "promoted": false
+            }
+          ],
+          "durableSourcePreserved": true,
+          "independentExportSha256": null
+        },
+        "sameOwnerSecondReopen": true,
+        "passed": true
+      },
+      {
+        "operation": "rename",
+        "boundary": "rename.namespace-published",
+        "stopped": {
+          "processId": 39492,
+          "processStartTimeUtcTicks": 639276345514211503,
+          "exitCode": -1,
+          "exactCreatedChildTerminated": true,
+          "stderr": ""
+        },
+        "recovered": {
+          "priorFileId": "d36e53e3-88b3-4e5c-895f-becb225d2705",
+          "recoveredId": "d36e53e3-88b3-4e5c-895f-becb225d2705",
+          "inventoryBeforeRetry": [
+            {
+              "id": "d36e53e3-88b3-4e5c-895f-becb225d2705",
+              "logicalPath": "Library/Bee/item.state",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\rename-namespace-published\\native\\d36e53e388b34e5c895fbecb225d2705.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3659174701446377,
+              "promoted": false
+            }
+          ],
+          "inventoryAfterRetry": [
+            {
+              "id": "d36e53e3-88b3-4e5c-895f-becb225d2705",
+              "logicalPath": "Library/Bee/item.state",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\rename-namespace-published\\native\\d36e53e388b34e5c895fbecb225d2705.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3659174701446377,
+              "promoted": false
+            }
+          ],
+          "durableSourcePreserved": true,
+          "independentExportSha256": null
+        },
+        "sameOwnerSecondReopen": true,
+        "passed": true
+      },
+      {
+        "operation": "promote",
+        "boundary": "promotion.intent-durable",
+        "stopped": {
+          "processId": 5236,
+          "processStartTimeUtcTicks": 639276345517731141,
+          "exitCode": -1,
+          "exactCreatedChildTerminated": true,
+          "stderr": ""
+        },
+        "recovered": {
+          "priorFileId": "26f7f829-f952-4cfc-8429-20eafe484018",
+          "recoveredId": "26f7f829-f952-4cfc-8429-20eafe484018",
+          "inventoryBeforeRetry": [
+            {
+              "id": "26f7f829-f952-4cfc-8429-20eafe484018",
+              "logicalPath": "Assets/promoted.bin",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\promotion-intent-durable\\native\\26f7f829f9524cfc842920eafe484018.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3659174701446392,
+              "promoted": true
+            }
+          ],
+          "inventoryAfterRetry": [
+            {
+              "id": "26f7f829-f952-4cfc-8429-20eafe484018",
+              "logicalPath": "Assets/promoted.bin",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\promotion-intent-durable\\native\\26f7f829f9524cfc842920eafe484018.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3659174701446392,
+              "promoted": true
+            }
+          ],
+          "durableSourcePreserved": true,
+          "independentExportSha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3"
+        },
+        "sameOwnerSecondReopen": true,
+        "passed": true
+      },
+      {
+        "operation": "promote",
+        "boundary": "promotion.journal-imported",
+        "stopped": {
+          "processId": 47672,
+          "processStartTimeUtcTicks": 639276345521748308,
+          "exitCode": -1,
+          "exactCreatedChildTerminated": true,
+          "stderr": ""
+        },
+        "recovered": {
+          "priorFileId": "a897ebfc-849d-4095-b337-e6aa87d69be1",
+          "recoveredId": "a897ebfc-849d-4095-b337-e6aa87d69be1",
+          "inventoryBeforeRetry": [
+            {
+              "id": "a897ebfc-849d-4095-b337-e6aa87d69be1",
+              "logicalPath": "Assets/promoted.bin",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\promotion-journal-imported\\native\\a897ebfc849d4095b337e6aa87d69be1.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3659174701446435,
+              "promoted": true
+            }
+          ],
+          "inventoryAfterRetry": [
+            {
+              "id": "a897ebfc-849d-4095-b337-e6aa87d69be1",
+              "logicalPath": "Assets/promoted.bin",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\promotion-journal-imported\\native\\a897ebfc849d4095b337e6aa87d69be1.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3659174701446435,
+              "promoted": true
+            }
+          ],
+          "durableSourcePreserved": true,
+          "independentExportSha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3"
+        },
+        "sameOwnerSecondReopen": true,
+        "passed": true
+      },
+      {
+        "operation": "promote",
+        "boundary": "promotion.marker-durable",
+        "stopped": {
+          "processId": 56176,
+          "processStartTimeUtcTicks": 639276345526094527,
+          "exitCode": -1,
+          "exactCreatedChildTerminated": true,
+          "stderr": ""
+        },
+        "recovered": {
+          "priorFileId": "88cd83f1-b4c6-4c20-ac71-5ab268449930",
+          "recoveredId": "88cd83f1-b4c6-4c20-ac71-5ab268449930",
+          "inventoryBeforeRetry": [
+            {
+              "id": "88cd83f1-b4c6-4c20-ac71-5ab268449930",
+              "logicalPath": "Assets/promoted.bin",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\promotion-marker-durable\\native\\88cd83f1b4c64c20ac715ab268449930.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3659174701446449,
+              "promoted": true
+            }
+          ],
+          "inventoryAfterRetry": [
+            {
+              "id": "88cd83f1-b4c6-4c20-ac71-5ab268449930",
+              "logicalPath": "Assets/promoted.bin",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\promotion-marker-durable\\native\\88cd83f1b4c64c20ac715ab268449930.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3659174701446449,
+              "promoted": true
+            }
+          ],
+          "durableSourcePreserved": true,
+          "independentExportSha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3"
+        },
+        "sameOwnerSecondReopen": true,
+        "passed": true
+      },
+      {
+        "operation": "promote",
+        "boundary": "promotion.namespace-published",
+        "stopped": {
+          "processId": 23392,
+          "processStartTimeUtcTicks": 639276345530010959,
+          "exitCode": -1,
+          "exactCreatedChildTerminated": true,
+          "stderr": ""
+        },
+        "recovered": {
+          "priorFileId": "a598b456-9775-4f12-a12e-123a33e99d64",
+          "recoveredId": "a598b456-9775-4f12-a12e-123a33e99d64",
+          "inventoryBeforeRetry": [
+            {
+              "id": "a598b456-9775-4f12-a12e-123a33e99d64",
+              "logicalPath": "Assets/promoted.bin",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\promotion-namespace-published\\native\\a598b45697754f12a12e123a33e99d64.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3377699724735808,
+              "promoted": true
+            }
+          ],
+          "inventoryAfterRetry": [
+            {
+              "id": "a598b456-9775-4f12-a12e-123a33e99d64",
+              "logicalPath": "Assets/promoted.bin",
+              "deleted": false,
+              "backingPath": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\bee-internal-20261015\\recovery-02\\promotion-namespace-published\\native\\a598b45697754f12a12e123a33e99d64.payload",
+              "length": 131089,
+              "sha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3",
+              "volumeSerial": 2965972179,
+              "fileIndex": 3377699724735808,
+              "promoted": true
+            }
+          ],
+          "durableSourcePreserved": true,
+          "independentExportSha256": "1ec3437cee3cccf3647e130524ade52848571960a3340ae33573beef17d330b3"
+        },
+        "sameOwnerSecondReopen": true,
+        "passed": true
+      },
+      {
+        "operation": "reclaim",
+        "boundary": "reclaim.before-payload-delete",
+        "stopped": {
+          "processId": 47136,
+          "processStartTimeUtcTicks": 639276345534161456,
+          "exitCode": -1,
+          "exactCreatedChildTerminated": true,
+          "stderr": ""
+        },
+        "recovered": {
+          "priorFileId": "69c4dc2b-a83a-443f-894a-f5b70722e1f5",
+          "recoveredId": "69c4dc2b-a83a-443f-894a-f5b70722e1f5",
+          "inventoryBeforeRetry": [],
+          "inventoryAfterRetry": [],
+          "durableSourcePreserved": true,
+          "independentExportSha256": null
+        },
+        "sameOwnerSecondReopen": true,
+        "passed": true
+      },
+      {
+        "operation": "reclaim",
+        "boundary": "reclaim.after-payload-delete",
+        "stopped": {
+          "processId": 46164,
+          "processStartTimeUtcTicks": 639276345539234383,
+          "exitCode": -1,
+          "exactCreatedChildTerminated": true,
+          "stderr": ""
+        },
+        "recovered": {
+          "priorFileId": "75f3798c-aa04-4f2e-b7c1-d2284d1a0f8d",
+          "recoveredId": "75f3798c-aa04-4f2e-b7c1-d2284d1a0f8d",
+          "inventoryBeforeRetry": [],
+          "inventoryAfterRetry": [],
+          "durableSourcePreserved": true,
+          "independentExportSha256": null
+        },
+        "sameOwnerSecondReopen": true,
+        "passed": true
+      }
+    ],
+    "guards": {
+      "unknownFilePreservedAndRejected": true,
+      "differentJournalOwnerRejected": true,
+      "mismatchedPendingOwnerPreservesBothGenerations": true,
+      "wrongNativeIdentityPendingAssociationPreservesBothGenerations": true,
+      "unrelatedSameOwnerPendingOperationPreservesBothGenerations": true,
+      "hardlinkPreservedAndRejected": true,
+      "activeNativeRootPinned": true,
+      "reparseInjection": "NotRun; does not claim an exhaustive filesystem attack matrix."
+    },
+    "originalSha256": "d9b60b4aeb85ae3715b95ae582e468cd580fcd6e4ce642eb48311e533416800f",
+    "scope": "Exact owned child termination; physical NTFS journal/backing; fixed small pinned source; no mount/Editor kill, OS crash, power loss or foreign mapping absence proof."
+  },
+  "boundaries": {
+    "nativeDurability": "New internal-native Bee output uses ordinary NTFS buffered durability, not the bounded comparator's per-write durable ACKs. Source, inherited Bee files and other Library paths retain the bounded range journal. These component timings do not establish equal-durability or complete Unity performance.",
+    "allocationBoundary": "Final retained regular-file allocation after normal provider exit, not peak: only this run's delta and native-bee directories. Shared fixture, tools, source export, receipts, measurement copies and filesystem directory metadata are excluded.",
+    "closureBoundary": "Normal provider stop only; no filename-specific reopen, forced unmap, process kill or output deletion. Held file contexts fail qualification and preserve the provider and its outputs.",
+    "memoryBoundary": "Sampled provider and directly launched client process working sets/private bytes only. Compiler descendants, system/NTFS cache and complete machine RAM are not measured. Sampled maxima are not a simultaneous process-tree peak.",
+    "peakTemporaryAllocation": "NotMeasured"
+  },
+  "rawEvidence": [
+    {
+      "path": "artifacts/bee-internal-20261015/bee-abba-01/input.json",
+      "sha256": "380dd8aeaee3757e290d4a8dae8eefa32669efc6525664ce9e76c9ab6acf78fe"
+    },
+    {
+      "path": "artifacts/bee-internal-20261015/bee-abba-01/result.json",
+      "sha256": "652c6ee7ad4bc0cdf1b7bf2f880e0faf786d6b7454f78a10107dbac78ff04394"
+    },
+    {
+      "path": "artifacts/bee-internal-20261015/native-safety-06/selftest-result.json",
+      "sha256": "3d4482ef4e89f7c91a90cf3da1a86d5d0734bec6bdf50c537eaa95e9b901359e"
+    },
+    {
+      "path": "artifacts/bee-internal-20261015/recovery-02/recovery-result.json",
+      "sha256": "85014f914a012102736a73d37ee3bb0309d979b76d975dd44b1dec1115271032"
+    },
+    {
+      "path": "artifacts/bee-internal-20261015/build-final.log",
+      "sha256": "aeee149d455eeab56cb7ce13b60aedfd096cc49af8862754781494f6fff39c0a"
+    },
+    {
+      "path": "artifacts/bee-internal-20261015/bee-pilot-01/run-0-internal-native-failure.json",
+      "sha256": "3d274452e848b4d5c7e7ccb41aef6991025aa43c03b4f31174de946f59776e42"
+    },
+    {
+      "path": "artifacts/bee-internal-20261015/bee-pilot-01/run-0-internal-native/result.json",
+      "sha256": "fba642f62d0075fe451340323950b02491e7eabaaba45158bd2cfa5f493aa62c"
+    },
+    {
+      "path": "artifacts/bee-internal-20261015/bee-abba-01/closure-audit.json",
+      "sha256": "40cbb222dac7cd7086daed2e76b3b3966eb4084736999f2519ed7e4668ca56fb"
+    }
+  ],
+  "sourceHashes": {
+    "tools/Splinter.BeeProbe/BeeFileSystem.cs": "efde6bf2b6615e59aa6af0899d19abfe935fd7e6fd2d02c740511e08a4a3e152",
+    "tools/Splinter.BeeProbe/InternalNativeCacheDrain.cs": "dd880e9e845c66e914de7455e6fafc9c0e7f93d8da13c828408082f49ea10b40",
+    "tools/Splinter.BeeProbe/InternalNativeDeltaStore.cs": "234b2537f39310eabafccdba650baf26164c76b3dd420555d62df09f614625d2",
+    "tools/Splinter.BeeProbe/InternalNativeRecovery.cs": "988063b19d88150b56b9dc211846e13777f059bd3be69cb16f4c12d94d830976",
+    "tools/Splinter.BeeProbe/InternalNativeSafety.cs": "664022079dcaed4d83de393733baf80981054edd625468530088a4350afb96fe",
+    "tools/Splinter.BeeProbe/NativeFiles.cs": "018807f5d619261feb3a903c24c815eacf7b7e9db45c419f575e3b768379bde6",
+    "tools/Splinter.BeeProbe/Program.cs": "0f220d1b1ee14a838407b12491dcc868bee4a4c5b4548eb8c3dce8e92b7465bc",
+    "scripts/measure-bee-prototype.py": "82600a498f1e25d0c7416e199b68402398979ea735442e81f126d4a8aaa47dab"
+  },
+  "build": {
+    "command": "pwsh -NoProfile -File ./scripts/build.ps1",
+    "exitCode": 0,
+    "passed": 1691,
+    "failed": 0,
+    "skipped": 24
+  },
+  "failedPilot": {
+    "path": "artifacts/bee-internal-20261015/bee-pilot-01",
+    "excludedFromTiming": true,
+    "initialFailure": "Zero handles but one retained virtual context blocked normal stop.",
+    "recovery": "Exact-owned historical helper recovery; original stop request completed with zero contexts. No failed timing was qualified."
+  },
+  "decision": {
+    "correctnessGate": "Passed within BN-01 through BN-04 small fixture boundaries",
+    "performanceGate": "Failed: both native runs took longer and retained more allocation than either bounded overlay run.",
+    "adoptProductBackend": false,
+    "measuredCohorts": 1,
+    "runsPerVariant": 2,
+    "timingInterpretation": "Observed one-cohort differences; OS/compiler caches not reset, substantial within-variant variation; not statistical or full Editor qualification."
+  },
+  "remainingCostEvidence": {
+    "sourceJournalFlushes": [
+      721,
+      295,
+      295,
+      728
+    ],
+    "nativeFlushesPerNativeRun": 356,
+    "survivingNativePayloadsPerRun": 178,
+    "flushExplanation": "Kernel root flush and the post-context-drain flush both reach native payloads. The latter cannot be omitted merely by assuming no late paging writes.",
+    "nativeCreateStructure": "Each new native file has a durable journal namespace create, three sidecar JSON publications, and an empty native payload flush. Those control/creation flush durations are not separately measured.",
+    "otherRemainingWork": [
+      "WinFsp callbacks and transfer-buffer copies",
+      "native handle identity checks and per-write timestamps",
+      "wrapper gate serializes native/inherited reads",
+      "pre/post-stop inventory and content checks"
+    ],
+    "nextDesignCandidate": "Put native association in the same authoritative namespace mutation/replay record to reduce cross-store intents, with a new explicit ownership/recovery/accounting design. No estimated speedup."
+  },
+  "closureAudit": [
+    {
+      "root": "run-0-overlay",
+      "providerPid": 54660,
+      "pidAbsent": true,
+      "viewExists": false,
+      "viewAttributes": null
+    },
+    {
+      "root": "run-1-internal-native",
+      "providerPid": 27428,
+      "pidAbsent": true,
+      "viewExists": false,
+      "viewAttributes": null
+    },
+    {
+      "root": "run-2-internal-native",
+      "providerPid": 5400,
+      "pidAbsent": true,
+      "viewExists": false,
+      "viewAttributes": null
+    },
+    {
+      "root": "run-3-overlay",
+      "providerPid": 54280,
+      "pidAbsent": true,
+      "viewExists": false,
+      "viewAttributes": null
+    }
+  ]
+}

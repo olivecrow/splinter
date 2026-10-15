@@ -25,17 +25,22 @@ internal static class Program
             {
                 Console.WriteLine(JsonSerializer.Serialize(new
                 {
-                    scope = "Development-only actual WinFsp Library/Bee NTFS graft; not a product backend",
-                    commands = new[] { "serve --input request.json", "selftest --root NEW_DIRECTORY", "inspect-assembly ASSEMBLY_PATH", "capabilities" },
+                    scope = "Development-only single-volume internal native Bee backing and historical junction diagnostic; not a product backend",
+                    commands = new[] { "serve --input request.json", "selftest --root NEW_DIRECTORY", "internal-selftest --root NEW_DIRECTORY", "internal-recovery --root NEW_DIRECTORY", "inspect-assembly ASSEMBLY_PATH", "capabilities" },
+                    modes = new[] { "overlay", "internal-native", "native-bee" },
                     source = "Pinned immutable small NTFS fixture and existing range journal; no original Unity project",
-                    nativeBee = "Cold empty owned directory; ordinary NTFS buffered durability; outputs preserved",
-                    atomicRenameAcrossGraft = false,
-                    actualBeeCompilation = "Unsupported: ERROR_NOT_SAME_DEVICE; no copy fallback",
-                    limits = "No security sandbox; no arbitrary native-to-native rename boundary; no foreign data-mapping absence proof; no Editor lifecycle"
+                    journalStorageMode = "bounded",
+                    nativeBee = "New generated files only; ordinary NTFS buffered payload with explicit flush; inherited files retain immutable reads and private ranges",
+                    internalNativeNamespace = "One virtual volume, stable logical IDs, opaque private payloads; no client reparse point",
+                    historicalJunctionAtomicRename = "Unsupported: ERROR_NOT_SAME_DEVICE; no copy fallback",
+                    limits = "No security sandbox, power-loss or Editor lifecycle qualification; directory boundary promotion is not implemented"
                 }, Json)); return 0;
             }
             if (args is ["inspect-assembly", var assembly]) { InspectAssembly(assembly); return 0; }
             if (args is ["selftest", "--root", var testRoot]) { SelfTest(AllowedPath(testRoot)); return 0; }
+            if (args is ["internal-selftest", "--root", var internalRoot]) { InternalSelfTest(AllowedPath(internalRoot)); return 0; }
+            if (args is ["internal-recovery", "--root", var recoveryRoot]) { InternalNativeRecovery.Run(AllowedPath(recoveryRoot)); return 0; }
+            if (args is ["internal-recovery-child", var recoveryInput]) { InternalNativeRecovery.RunChild(AllowedPath(recoveryInput)); return 0; }
             if (args is not ["serve", "--input", var input]) throw new ArgumentException("Use capabilities for the development-only command schema.");
             var request = JsonSerializer.Deserialize<Request>(File.ReadAllText(input), Json) ?? throw new ArgumentException("Missing request.");
             return Serve(new Session(request));
@@ -50,6 +55,7 @@ internal static class Program
     }
     private static int Serve(Session session)
     {
+        string? lastBlocked = null;
         for (;;)
         {
             try
@@ -65,13 +71,23 @@ internal static class Program
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(ex.Message);
                 // Post-unmount proof/publication failures return failure; never
                 // try to Resume a disposed store. Durable prepared evidence stays.
                 if (!session.Mounted) return 1;
                 session.Resume();
-                try { Write(Path.Combine(session.Root, "stop-blocked.json"), new { nonce = session.Nonce, error = ex.Message, type = ex.GetType().FullName, observedAt = DateTimeOffset.UtcNow }); }
-                catch (Exception publication) { Console.Error.WriteLine(publication.Message); }
+                string blocked = ex.GetType().FullName + ": " + ex.Message + ": " + session.ContextCounts;
+                if (blocked != lastBlocked)
+                {
+                    Console.Error.WriteLine(ex.Message);
+                    try
+                    {
+                        Write(Path.Combine(session.Root, "stop-blocked.json"), new { nonce = session.Nonce, error = ex.Message,
+                            type = ex.GetType().FullName, openHandles = session.ContextCounts.OpenHandles,
+                            retainedFileContexts = session.ContextCounts.RetainedFileContexts, observedAt = DateTimeOffset.UtcNow });
+                        lastBlocked = blocked;
+                    }
+                    catch (Exception publication) { Console.Error.WriteLine(publication.Message); }
+                }
             }
             Thread.Sleep(100);
         }
@@ -115,7 +131,9 @@ internal static class Program
         private readonly Request request;
         private readonly PinnedBasis basis;
         private readonly OverlayIdentity identity;
-        private readonly JournalDeltaStore store;
+        private readonly JournalDeltaStore journal;
+        private readonly IWorkspaceDeltaStore store;
+        private readonly InternalNativeDeltaStore? native;
         private readonly NativePin rootPin;
         private readonly NativePin? target;
         private readonly BeeFileSystem fs;
@@ -128,19 +146,24 @@ internal static class Program
         public bool HadErrors => !errors.IsEmpty;
         public bool Mounted { get; private set; }
         public string Nonce => request.Nonce;
+        public (int OpenHandles, int RetainedFileContexts) ContextCounts => (fs.OpenHandles, fs.RetainedFileContexts);
+        public InternalNativeDeltaStore? Native => native;
         public void Report(Exception error) => errors.Enqueue(error.ToString());
-        public Session(Request request)
+        public Session(Request request, bool allowNonemptyBee = false)
         {
             this.request = request;
-            if (request.Mode is not "overlay" and not "native-bee" || !Guid.TryParseExact(request.Nonce, "N", out _)) throw new ArgumentException("Require mode overlay/native-bee and a new 32-digit nonce.");
+            if (request.Mode is not "overlay" and not "native-bee" and not "internal-native" || !Guid.TryParseExact(request.Nonce, "N", out _)) throw new ArgumentException("Require mode overlay/internal-native/native-bee and a new 32-digit nonce.");
             Root = AllowedPath(request.Root); string input = AllowedPath(request.Basis);
             if (Root.Equals(input, StringComparison.OrdinalIgnoreCase) || Root.StartsWith(input + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || input.StartsWith(Root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 throw new IOException("Basis and owned output must be separate trees.");
             if (Path.Exists(Root)) throw new IOException("Preserve existing probe output; choose a new root.");
             Directory.CreateDirectory(Root); rootPin = new NativePin(Root);
-            basis = new PinnedBasis(input, request.Nonce);
+            basis = new PinnedBasis(input, request.Nonce, allowNonemptyBee);
             identity = new(2, "bee-probe-" + request.Nonce, basis.Snapshot, 1L << 30, 65536);
-            store = new JournalDeltaStore(Path.Combine(Root, "delta"), identity, basis);
+            journal = new JournalDeltaStore(Path.Combine(Root, "delta"), identity, basis,
+                boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes);
+            store = journal;
+            if (request.Mode == "internal-native") store = native = new InternalNativeDeltaStore(journal, NativeBee);
             if (request.Mode == "native-bee") { Directory.CreateDirectory(NativeBee); target = new NativePin(NativeBee); }
             fs = new BeeFileSystem(store, target, ex => errors.Enqueue(ex.ToString())); host = new FileSystemHost(fs);
             int status = host.MountEx(View, 8, null, false, 0);
@@ -152,19 +175,30 @@ internal static class Program
             if (ready) return;
             Write(Path.Combine(Root, "ready.json"), new
             {
-                request.Nonce, request.Mode, root = Root, view = View, nativeBee = target is null ? null : NativeBee,
+                request.Nonce, request.Mode, root = Root, view = View, nativeBee = target is null && native is null ? null : NativeBee,
                 processId = Environment.ProcessId, processStartTimeUtcTicks = Process.GetCurrentProcess().StartTime.ToUniversalTime().Ticks,
-                nativeTargetIdentity = target?.Evidence, sourceFiles = basis.Verify(),
+                nativeTargetIdentity = target?.Evidence ?? native?.NativeRootIdentity, sourceFiles = basis.Verify(),
+                journalStorageMode = journal.ObserveActivity()?.JournalStorageMode,
+                nativeClientReparsePoint = target is not null,
                 scope = "Small pinned fixture; Bee native outputs are outside range ACK/result semantics; no source payload copied"
             }); ready = true;
         }
         public void Resume() => fs.Resume();
+        public void ProbeStop()
+        { using var fence = InternalNativeCacheDrain.PrepareStop(host, fs, View, TimeSpan.FromMilliseconds(500)); }
         public void Complete()
         {
-            fs.BeginStop(); rootPin.Verify(); target?.Verify();
+            var phase = Stopwatch.StartNew();
+            using var stopFence = InternalNativeCacheDrain.PrepareStop(host, fs, View, TimeSpan.FromSeconds(3));
+            double drainSeconds = phase.Elapsed.TotalSeconds; phase.Restart();
+            rootPin.Verify(); target?.Verify();
             using var proof = target is null ? null : new NativeOutputProof(NativeBee);
-            var source = basis.Verify(); store.Flush(); var before = store.Seal(); var storage = store.Observe();
-            var changes = store.ObserveChanges(["Library", "Temp", "Logs", "obj"]);
+            store.Flush(); double flushSeconds = phase.Elapsed.TotalSeconds; phase.Restart();
+            var source = basis.Verify(); var before = journal.Seal(); var storage = journal.Observe();
+            var nativeFiles = native?.NativeInventory();
+            var nativeStorage = native?.Metrics;
+            var nativeBacking = native?.NativeStatistics();
+            var changes = journal.ObserveChanges(["Library", "Temp", "Logs", "obj"]);
             string resultRoot = Path.Combine(Root, "source-result");
             Directory.CreateDirectory(resultRoot); var results = new List<object>();
             foreach (var change in changes.Changes)
@@ -183,23 +217,61 @@ internal static class Program
             }
             // Publish complete bounded results before releasing the provider. A
             // publication failure at this point leaves it mounted for retry.
-            Write(Path.Combine(Root, "prepared-result.json"), new { request.Nonce, seal = before, independentSourceResults = results });
+            Write(Path.Combine(Root, "prepared-result.json"), new { request.Nonce, seal = before, independentSourceResults = results, nativeFiles });
+            double preserveSeconds = phase.Elapsed.TotalSeconds; phase.Restart();
             host.Unmount();
             Mounted = false;
             if (fs.OpenHandles != 0 || fs.RetainedFileContexts != 0) throw new IOException("Unmount did not drain the owned overlay.");
             host.Dispose(); store.Dispose();
             using (var reopened = JournalDeltaStore.OpenReadOnly(Path.Combine(Root, "delta"), identity, basis))
                 if (reopened.Seal() != before) throw new IOException("Independent stopped journal seal differs.");
+            var stoppedNativeProof = nativeFiles is null ? null : InternalNativeDeltaStore.VerifyStoppedInventory(NativeBee, identity, nativeFiles);
             Write(Path.Combine(Root, "result.json"), new
             {
                 request.Nonce, request.Mode, sourceUnchanged = true, sourceFiles = source, independentSourceResults = results,
-                nativeBeeFiles = proof?.Files, nativeOutputsPreserved = target is not null,
+                nativeBeeFiles = nativeFiles is null ? (object?)proof?.Files : nativeFiles,
+                nativeOutputsPreserved = target is not null || native is not null, nativeStorage, nativeBacking,
+                stoppedNativeProof,
                 seal = before, storage, openHandles = fs.OpenHandles, retainedFileContexts = fs.RetainedFileContexts,
+                timings = new { drainSeconds, flushSeconds, preserveSeconds, cleanupSeconds = phase.Elapsed.TotalSeconds },
                 normalUnmount = true, passed = !HadErrors, errors = errors.ToArray(),
                 nativeBoundary = "Exclusive native file proof rejects open files/live image sections; no forced deletion or foreign data-map absence claim"
             });
             target?.Dispose(); basis.Dispose(); rootPin.Dispose();
         }
+    }
+
+    private static void InternalSelfTest(string root)
+    {
+        var fixture = InternalNativeSafety.CreateFixture(root);
+        var session = new Session(new(Path.Combine(root, "internal-native"), fixture.Basis,
+            "internal-native", Guid.NewGuid().ToString("N")), allowNonemptyBee: true);
+        session.PublishReady();
+        var result = InternalNativeSafety.RunMounted(session.View, fixture, session.Native!, () => session.ContextCounts, session.ProbeStop);
+        Write(Path.Combine(root, "mounted-safety.json"), result);
+        if (!SpinWait.SpinUntil(() =>
+        {
+            try { session.Complete(); return true; }
+            catch (IOException) when (session.Mounted) { session.Resume(); return false; }
+        }, TimeSpan.FromSeconds(10))) throw new IOException("Internal-native safety session did not close; preserve mount and evidence.");
+        if (session.HadErrors) throw new IOException("Internal-native filesystem callback errors were observed.");
+        // The result must be readable while every immutable input and native
+        // payload is unavailable for another reader. Keep the original bytes.
+        var inputFences = new List<Microsoft.Win32.SafeHandles.SafeFileHandle>();
+        try
+        {
+            using var sourcePin = new NativePin(fixture.Basis);
+            using var nativeFence = new NativeOutputProof(session.NativeBee);
+            foreach (string relative in fixture.OriginalHashes.Keys)
+                inputFences.Add(NativeMethods.Open(Path.Combine(fixture.Basis, relative.Replace('/', Path.DirectorySeparatorChar)),
+                    0x80000000, 0, false));
+            InternalNativeSafety.VerifyIndependentResults(Path.Combine(session.Root, "source-result"), result);
+        }
+        finally { foreach (var fence in inputFences) fence.Dispose(); }
+        InternalNativeSafety.RequireUnchanged(fixture);
+        Write(Path.Combine(root, "selftest-result.json"), new { passed = true, result,
+            independentSourceResultsVerifiedAfterUnmount = true, independentResultsReadableWithAllInputsDenied = true,
+            normalClosure = true });
     }
 
     private static void SelfTest(string root)

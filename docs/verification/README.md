@@ -3,6 +3,8 @@
 
 [한국어](../ko/verification/README.md)
 
+[Internal native Bee backing](bee-internal-native.md) owns BN-01–05: the development-only single-volume candidate, native publication, inherited range/source safety, owned interruption recovery and actual small Bee timing. Its lifecycle and storage evidence do not qualify full Unity Editor speed or a product backend.
+
 [Product bounded journal](bounded-journal.md) owns BL-01–05: actual journal metadata/lifecycle/recovery, bounded component costs and the new Windows-provider default. Full Unity and OS power-loss qualification remain separate.
 
 [Structural throughput prototypes](structural-throughput-prototypes.md) owns SX-01–04: native NTFS Bee and a bounded durable range log on isolated small inputs. Component timing, extra RAM/temporary space, successful source/result protection and failed-pilot recovery are separated from unmeasured full Unity speed.

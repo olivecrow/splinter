@@ -22,7 +22,7 @@
 
 ## 현재 기능의 소유 문서
 
-- 제품 제한 로그는 `docs/bounded-journal.md`·`docs/plans/bounded-journal.md`·`docs/verification/bounded-journal.md`의 BL-01–05가 소유한다. 새 일반 Windows provider 기본 bounded SJR2·16MiB/4,096-frame suffix와 개별 durable ACK·현재 private 상태의 원자 checkpoint·동일 owner 복구·정확한 회수 inventory를 연결한다. 기존 SJL4/append는 자동 이관하지 않으며 생략 compact는 저장 모드를 유지한다. suffix 제한은 prefix/임시 중복/전체 RAM 제한이 아니며 실제 전체 Unity/OS 장애 자격으로 확대하지 않는다. Bee의 단일 가상 볼륨·내부 native backing은 `docs/plans/bee-native-storage-design.md`의 미구현 설계다.
+- 제품 제한 로그는 `docs/bounded-journal.md`·`docs/plans/bounded-journal.md`·`docs/verification/bounded-journal.md`의 BL-01–05가 소유한다. 새 일반 Windows provider 기본 bounded SJR2·16MiB/4,096-frame suffix와 개별 durable ACK·현재 private 상태의 원자 checkpoint·동일 owner 복구·정확한 회수 inventory를 연결한다. 기존 SJL4/append는 자동 이관하지 않으며 생략 compact는 저장 모드를 유지한다. suffix 제한은 prefix/임시 중복/전체 RAM 제한이 아니며 실제 전체 Unity/OS 장애 자격으로 확대하지 않는다. Bee의 단일 가상 볼륨·내부 native backing은 `docs/plans/bee-native-storage-design.md`·`docs/verification/bee-internal-native.md`의 BN-01–05 개발 전용 후보다. 작은 안전성 검증과 실제 Bee 빌드는 통과했지만 ABBA 단계 합계 11.18→18.88초·할당 0.92→2.13MiB로 성능 채택 기준은 실패했다. 새 Bee 파일만 native buffering을 사용하고 상속 범위·소스 durable ACK·소유 매핑/독립 결과를 유지한다. 실제 작은 Bee와 중단 복구 근거를 제품 backend/전체 Editor 속도로 승계하지 않는다. native 자식이 있는 디렉터리의 소스 이동과 제품 수명주기 연결은 미구현이다.
 
 - 구조적 처리량 시제품은 `docs/plans/structural-throughput-prototypes.md`·`docs/verification/structural-throughput-prototypes.md`의 SX-01–04를 따른다. `tools/Splinter.BeeProbe`·`tools/Splinter.BoundedLogProbe`의 `capabilities`와 `scripts/measure-bee-prototype.py --help`가 개발 전용 진입점이다. 새 작은 fixture의 native NTFS Bee와 제한된 과거 범위 로그를 비교하며 원본·독립 결과·소스/로그 응답 전 flush를 보호한다. 재생성 가능한 native Bee는 일반 NTFS buffering을 사용한다. 제품 backend·기본값·형식 변경이나 전체 Unity 속도 자격으로 승계하지 않는다.
 

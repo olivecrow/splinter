@@ -20,9 +20,11 @@ internal sealed class BeeFileSystem : FileSystemBase
     private readonly NativePin? target;
     private readonly byte[] reparse = [];
     private readonly object admission = new();
+    private readonly Dictionary<Guid, int> retainedContexts = [];
     private bool stopping;
     public int OpenHandles => inner.OpenHandles;
     public int RetainedFileContexts => inner.RetainedFileContexts;
+    internal ulong RootIndexNumber => BitConverter.ToUInt64(store.Stat("")!.Id.ToByteArray(), 0);
 
     public BeeFileSystem(IWorkspaceDeltaStore store, NativePin? target, Action<Exception> report)
     {
@@ -65,6 +67,54 @@ internal sealed class BeeFileSystem : FileSystemBase
         }
     }
     public void Resume() { lock (admission) stopping = false; }
+    internal IDisposable? TryFenceNewOpens(int ownedOpenHandles)
+    {
+        lock (admission)
+        {
+            if (stopping || OpenHandles != ownedOpenHandles) return null;
+            stopping = true; return new AdmissionFence(this);
+        }
+    }
+    internal string[] RetainedLinkedPaths()
+    {
+        lock (admission)
+            return retainedContexts.Keys.Select(store.Get).Where(entry => !entry.Deleted)
+                .Select(entry => "\\" + entry.Path.Replace('/', '\\')).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+    public object[] RetainedContextDiagnostics()
+    {
+        lock (admission)
+            return retainedContexts.Select(pair =>
+            {
+                try
+                {
+                    var entry = store.Get(pair.Key);
+                    return (object)new { id = pair.Key, contexts = pair.Value, path = entry.Path, entry.Deleted, entry.Directory };
+                }
+                catch (Exception error) { return new { id = pair.Key, contexts = pair.Value, unavailable = error.Message }; }
+            }).ToArray();
+    }
+    internal bool WaitForContextDrain(TimeSpan timeout)
+    {
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        lock (admission)
+        {
+            while (RetainedFileContexts != 0 || retainedContexts.Count != 0)
+            {
+                TimeSpan remaining = timeout - System.Diagnostics.Stopwatch.GetElapsedTime(started);
+                if (remaining <= TimeSpan.Zero) return false;
+                Monitor.Wait(admission, remaining);
+            }
+            return OpenHandles == 0;
+        }
+    }
+    private void Retain(object node)
+    { var id = (Guid)node; retainedContexts[id] = retainedContexts.GetValueOrDefault(id) + 1; }
+    private sealed class AdmissionFence(BeeFileSystem owner) : IDisposable
+    {
+        private BeeFileSystem? owner = owner;
+        public void Dispose() => Interlocked.Exchange(ref owner, null)?.Resume();
+    }
     public override int ExceptionHandler(Exception ex) => inner.ExceptionHandler(ex);
     public override int GetVolumeInfo(out VolumeInfo info) => inner.GetVolumeInfo(out info);
     public override int GetSecurityByName(string name, out uint attributes, ref byte[] security)
@@ -101,7 +151,8 @@ internal sealed class BeeFileSystem : FileSystemBase
                 return !stopping && store.Stat(name) is { Directory: true }
                     ? STATUS_OBJECT_NAME_COLLISION : STATUS_ACCESS_DENIED;
             }
-            return inner.Create(name, options, access, attributes, security, allocation, out node, out desc, out info, out normalized);
+            int status = inner.Create(name, options, access, attributes, security, allocation, out node, out desc, out info, out normalized);
+            if (status >= 0) Retain(node); return status;
         }
     }
     public override int Open(string name, uint options, uint access, out object node, out object desc, out FileInfo info, out string normalized)
@@ -110,7 +161,7 @@ internal sealed class BeeFileSystem : FileSystemBase
         {
             if (stopping) { node = desc = null!; info = default; normalized = null!; return STATUS_ACCESS_DENIED; }
             int status = inner.Open(name, options, access, out node, out desc, out info, out normalized);
-            if (status >= 0) Decorate(name, ref info); return status;
+            if (status >= 0) { Retain(node); Decorate(name, ref info); } return status;
         }
     }
     public override int Overwrite(object node, object desc, uint attributes, bool replace, ulong allocation, out FileInfo info)
@@ -121,7 +172,20 @@ internal sealed class BeeFileSystem : FileSystemBase
         // allow an unexpected delete cleanup to mutate the underlying journal.
         inner.Cleanup(node, desc, name, Protected(node) ? flags & ~CleanupDelete : flags);
     }
-    public override void Close(object node, object desc) => inner.Close(node, desc);
+    public override void Close(object node, object desc)
+    {
+        lock (admission)
+        {
+            try { inner.Close(node, desc); }
+            finally
+            {
+                var id = (Guid)node;
+                if (retainedContexts.TryGetValue(id, out int count))
+                { if (count > 1) retainedContexts[id] = count - 1; else retainedContexts.Remove(id); }
+                Monitor.PulseAll(admission);
+            }
+        }
+    }
     public override int Read(object node, object desc, IntPtr buffer, ulong offset, uint length, out uint transferred) => inner.Read(node, desc, buffer, offset, length, out transferred);
     public override int Write(object node, object desc, IntPtr buffer, ulong offset, uint length, bool end, bool constrained, out uint transferred, out FileInfo info)
     { if (Protected(node)) { transferred = 0; info = default; return STATUS_ACCESS_DENIED; } return inner.Write(node, desc, buffer, offset, length, end, constrained, out transferred, out info); }

@@ -2,13 +2,13 @@
 
 [한국어](../ko/plans/bee-native-storage-design.md)
 
-This is a design review following the committed structural prototypes (`a8eb778`), not an implemented backend or permission to run another Unity benchmark. The [SX record](../verification/structural-throughput-prototypes.md) owns the measured results and failures. Product integration of the bounded range log is a separate change.
+This design follows the committed structural prototypes (`a8eb778`). The [SX record](../verification/structural-throughput-prototypes.md) owns their measured results and failures. The bounded product journal is committed separately as `d0ac0a2`. The user subsequently authorized implementation and real performance measurement of this design. The first implementation is a development-only, single-volume native-backing candidate; product default activation and a whole Unity Editor benchmark are separate qualification boundaries.
 
 ## Recommendation
 
 Keep one WinFsp project volume and evaluate **internal native backing for newly generated Bee files**. Do not expose that backing through a junction. Keep the logical namespace, file identity, source tracking and resource ownership in the provider. Buffered Bee writes would be a separately declared generated-data durability policy, not a change to source write acknowledgements.
 
-A physical NTFS project root with source subtrees mounted into it has a larger possible dispatch saving, but moves the filesystem boundary into ordinary source editing. It is not the preferred next experiment. Neither alternative has current correctness or speed qualification.
+The first single-volume candidate is implemented and measured in [BN-01–05](../verification/bee-internal-native.md). Its small namespace/source/mapping/recovery checks pass, but its performance gate fails: the ABBA mean accounted lifecycle grows from 11.18s to 18.88s and retained allocation from 0.92MiB to 2.13MiB. Keep it development-only; it is not selected for product adoption. A physical NTFS root with source overlays remains unimplemented and would require the larger source-boundary redesign below.
 
 ## Evidence and comparison
 
@@ -75,7 +75,19 @@ Editors and code tools can create a temporary file outside its eventual destinat
 
 Representing every possible root file with a separate link does not solve arbitrary creation, enumeration, directory moves or link replacement. A complete solution would need a new namespace interception/layout contract. Initial full copy, ReFS, external-tool patches and an assumption that tools always write temporary files beside their destination are excluded. This alternative should remain deferred unless the smaller single-volume approach fails a meaningful correctness or cost gate.
 
-## Small validation sequence if implementation is later authorized
+## Authorized implementation and small validation sequence
+
+The fixed experiment uses the existing three-assembly Unity 6000.3.22f1 Bee input, without starting an Editor or changing the original Unity project. `overlay` uses the current default bounded SJR2 journal. `internal-native` keeps that namespace and journal, but adds empty, opaque NTFS payloads only for newly created Bee files. Both variants retain cleanup purge. The historical junction mode is diagnostic evidence only.
+
+| ID | Acceptance boundary |
+| --- | --- |
+| BN-01 | Stable namespace IDs, no client reparse point, native no-copy rename/replacement, old destination handles, inherited range writes, source durability and original/peer protection |
+| BN-02 | Exact owner/policy/inventory, explicit flush, same-owner recovery and failure preservation; no power-loss qualification |
+| BN-03 | Native mapped-file and image lifetime; normal stop with zero retained contexts; no filename-specific cleanup workaround |
+| BN-04 | Actual cold/unchanged/incremental Bee builds and constants `42 → 43`; serial ABBA whole small lifecycle versus current bounded storage, with separate time/storage/RAM boundaries |
+| BN-05 | Required build, reviewed implementation and paired documentation; failed runs remain evidence and cannot become successful timing samples |
+
+Generated file promotion must preserve source durability and route subsequent existing-handle writes through the source journal. Unsupported directory moves with native descendants must fail before any namespace mutation. That limitation and the absence of product lifecycle integration prevent this candidate from being advertised as a transparent product backend.
 
 1. **Namespace proof before timing:** on an empty owned Bee fixture, use native `MoveFileExW` with copy fallback disabled for new-name rename and replacement, both relative and absolute project paths. Check unchanged file identity, old destination handles, content, case/directory moves, failure preservation and original/peer sentinel hashes. A .NET move alone is insufficient.
 2. **File and mapping behavior:** zero/short/multi-chunk and offset writes, holes, truncation, metadata, concurrent read/rename/delete, memory-mapped writes and executable-image lifetime. Preserve the callback contracts in `WinFspTransferTests` and `WinFspCleanupConcurrencyTests`; use a real mount for cache/mapping evidence. Require normal provider exit and zero retained contexts, not a filename-specific reopen workaround.
@@ -84,3 +96,7 @@ Representing every possible root file with a separate link does not solve arbitr
 5. **Actual small Bee:** only after those gates, replay the existing three-assembly input. Require successful cold, unchanged and one-source-change backend builds, compiled constants `42 → 43`, atomic state/digest-cache publication and normal closure. Then perform a bounded serial ABBA timing with preparation, graph, compile, flush, preservation and cleanup separately. Preserve failed attempts. No Editor, ILPP or large-project claim follows.
 
 Measure native and journal allocation separately, including namespace metadata and temporary replacement files. Report logical bytes, allocated bytes, buffering/RAM observations and timing boundaries; final allocation is not peak. A useful result must beat the current complete small backend lifecycle, not merely its graph phase. No numeric speedup is predicted by this review.
+
+## Decision after the first candidate
+
+[BN-01–05](../verification/bee-internal-native.md) rejects product adoption on measured cost, while retaining the working atomic-publication and safety evidence. A next structural candidate would place the native association in the same authoritative namespace mutation/replay record, reducing the cross-store per-file intents without removing owner, source durability or recovery proofs. The current extra control-publication cost is not individually timed, and this alternative is unimplemented; no speedup is predicted. Dirty-only native flushing may remove repeated clean-file work, but cannot replace the final flush after retained contexts drain.

@@ -2,13 +2,13 @@
 
 [English](../../plans/bee-native-storage-design.md)
 
-커밋한 구조 시제품(`a8eb778`) 이후의 설계 검토다. 구현된 backend나 추가 Unity 벤치마크 실행 승인이 아니다. 실측과 실패는 [SX 기록](../verification/structural-throughput-prototypes.md)이 소유한다. 제한 범위 로그의 제품 적용은 별도 변경이다.
+커밋한 구조 시제품(`a8eb778`) 이후의 설계다. 당시 실측과 실패는 [SX 기록](../verification/structural-throughput-prototypes.md)이 소유한다. 제한 로그의 제품 적용은 별도 커밋 `d0ac0a2`다. 이후 사용자가 이 설계의 구현과 실제 성능 측정을 승인했다. 첫 구현은 가상 볼륨 하나에서 native backing을 사용하는 개발 전용 후보이며, 제품 기본값 적용과 전체 Unity Editor 벤치마크는 별도 자격 경계다.
 
 ## 권고
 
 WinFsp 프로젝트 볼륨 하나를 유지하고 **새로 생성되는 Bee 파일의 내부 native backing**을 검토한다. backing을 junction으로 노출하지 않는다. 논리 namespace, 파일 identity, 소스 변경 추적과 자원 소유권은 provider가 관리한다. Bee의 buffered write는 별도로 선언한 재생성 데이터 내구성 정책이며 소스 쓰기 ACK 정책을 바꾸지 않는다.
 
-물리 NTFS 프로젝트 root에 소스 하위 트리를 mount하는 구조는 callback 비용을 더 줄일 가능성이 있지만 파일시스템 경계를 일반 소스 편집 안으로 옮긴다. 다음 실험의 우선안으로 권고하지 않는다. 두 대안 모두 현재 정확성·속도 자격은 없다.
+첫 단일 볼륨 후보를 구현하고 [BN-01–05](../verification/bee-internal-native.md)에서 측정했다. 작은 namespace/소스/매핑/복구 검증은 통과했지만 성능 기준은 실패했다. ABBA 평균 단계 합계는 11.18초에서 18.88초로, 최종 할당은 0.92MiB에서 2.13MiB로 늘었다. 개발 전용으로 유지하며 제품 채택 후보로 선정하지 않는다. 물리 NTFS root와 소스 overlay 대안은 미구현이며 아래의 더 큰 소스 경계 재설계가 필요하다.
 
 ## 근거와 비교
 
@@ -75,7 +75,19 @@ Editor와 코드 도구는 최종 목적지 디렉터리 밖에 임시 파일을
 
 root 파일마다 링크를 만드는 것으로 임의 생성·열거·디렉터리 이동·링크 교체가 해결되지 않는다. 완전한 해결에는 새로운 namespace 가로채기·배치 계약이 필요하다. 최초 전체 복사, ReFS, 외부 도구 패치와 도구가 항상 목적지 옆에 임시 파일을 만든다는 가정은 제외한다. 작은 단일 볼륨안이 유의미한 정확성·비용 기준을 통과하지 못하기 전에는 보류한다.
 
-## 추후 구현 승인 시 작은 검증 순서
+## 승인한 구현과 작은 검증 순서
+
+고정 실험은 기존 Unity 6000.3.22f1의 assembly 세 개짜리 Bee 입력을 사용한다. Editor를 시작하거나 원본 Unity 프로젝트를 변경하지 않는다. `overlay`는 현재 기본 bounded SJR2 저널이다. `internal-native`는 같은 namespace·저널을 유지하면서 새로 생성되는 Bee 파일에만 빈 opaque NTFS payload를 추가한다. 양쪽 모두 cleanup purge를 유지한다. 과거 junction 모드는 진단 근거만 보존한다.
+
+| ID | 종료 기준 |
+| --- | --- |
+| BN-01 | 안정된 namespace ID, client reparse point 없음, native 복사 없는 rename/replacement, 이전 대상의 열린 핸들, 기준본 범위 쓰기, 소스 내구성과 원본·peer 보호 |
+| BN-02 | 정확한 owner/policy/inventory, 명시적 flush, 동일 owner 복구와 실패 보존; 전원 장애 자격 아님 |
+| BN-03 | 실제 mapped file·image 수명, retained context 0으로 정상 종료, 파일명별 정리 우회 없음 |
+| BN-04 | 실제 cold/unchanged/incremental Bee 빌드와 상수 `42 → 43`, 현재 bounded 저장과 직렬 ABBA 전체 소형 수명주기 비교, 시간·공간·RAM 경계 분리 |
+| BN-05 | 필수 빌드, 구현 검토와 양쪽 문서, 실패 실행을 성공한 시간 표본으로 사용하지 않음 |
+
+생성 파일을 소스로 승격할 때는 소스 내구성을 유지하고 기존 핸들의 후속 쓰기도 소스 저널로 보낸다. native 하위 파일을 포함하는 미지원 디렉터리 경계 이동은 namespace 변경 전에 거부한다. 이 제한과 제품 수명주기 미연결 때문에 이 후보를 투명한 제품 backend로 소개할 수 없다.
 
 1. **계측 전 namespace 증명:** 빈 소유 Bee에서 copy fallback 없는 native `MoveFileExW`로 신규 이름·교체, 상대·절대 프로젝트 경로를 확인한다. 동일 파일 identity, 이전 목적지 핸들, 내용, 대소문자·디렉터리 이동, 실패 보존과 원본·peer sentinel hash를 검사한다. .NET move만으로 충분하지 않다.
 2. **파일·mapping 동작:** 0/짧은/multi-chunk·offset 쓰기, hole, truncate, metadata, 동시 읽기·rename·delete, memory-mapped write와 executable-image 수명. `WinFspTransferTests`·`WinFspCleanupConcurrencyTests`의 계약을 유지하고 cache·mapping은 실제 mount로 증명한다. 특정 파일을 다시 여는 우회 없이 정상 provider 종료와 잔존 context 0을 요구한다.
@@ -84,3 +96,7 @@ root 파일마다 링크를 만드는 것으로 임의 생성·열거·디렉터
 5. **실제 작은 Bee:** 앞선 기준을 통과한 후 기존 3 assembly 입력을 재생한다. cold·unchanged·소스 한 번 변경 backend 빌드 성공, 컴파일 상수 `42 → 43`, state·digest-cache 원자 게시와 정상 종료를 요구한다. 그 후 제한 시간 내 직렬 ABBA로 준비·graph·compile·flush·보존·회수를 나눠 측정하고 실패 기록을 유지한다. Editor·ILPP·대형 프로젝트 자격으로 확대하지 않는다.
 
 namespace metadata와 임시 교체 파일을 포함해 native·journal 할당을 나눠 잰다. 논리 바이트·할당 바이트·buffering/RAM 관측·시간 경계를 보고하고 최종 할당을 peak라고 부르지 않는다. 유효한 개선은 graph 구간만이 아니라 현재 작은 backend 전체 수명주기보다 나아야 한다. 이 검토는 수치 개선률을 예측하지 않는다.
+
+## 첫 후보 측정 이후 결정
+
+[BN-01–05](../verification/bee-internal-native.md)는 실측 비용을 근거로 제품 채택을 거부하며, 성공한 원자 게시와 안전성 근거는 유지한다. 다음 구조 후보는 native association을 동일한 namespace mutation/재생 기록에 포함하는 것이다. owner·소스 내구성·복구 증명을 제거하지 않고 두 저장소 사이의 파일별 intent를 줄이는 방향이다. 현재 추가 control 게시 비용은 개별 계측하지 않았고 이 대안은 미구현이므로 속도 개선을 예측하지 않는다. 변경된 native 파일만 flush하면 변경 없는 파일의 반복 처리를 줄일 가능성이 있지만, retained context가 종료된 뒤의 최종 flush를 생략하는 근거는 아니다.

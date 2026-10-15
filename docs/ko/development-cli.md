@@ -23,6 +23,8 @@ pwsh ./scripts/splinter-dev.ps1 schema view.execute
 
 [구조적 처리량 시제품](plans/structural-throughput-prototypes.md)은 독립 실행 파일 `tools/Splinter.BeeProbe`와 `tools/Splinter.BoundedLogProbe`에서 각각 `capabilities`로 발견한다. 소유한 native `Library/Bee`와 제한된 과거 범위를 남기는 로그를 새 작은 fixture에서만 비교한다. 실제 Bee 그래프·선택적 Csc 비교는 `python scripts/measure-bee-prototype.py --help`를 따른다. 제품 기본값·전체 Unity 속도 검증으로 읽지 않는다.
 
+[Bee 내부 native 후보](verification/bee-internal-native.md)는 native 매핑/소스와 소유 프로세스 중단 검증에 `internal-selftest --root <새-경로>`와 `internal-recovery --root <새-경로>`를 사용한다. `serve` 요청의 `mode: "internal-native"`를 지원하며 `overlay`는 현재 bounded 비교군, `native-bee`는 실패한 과거 junction 진단이다. 측정 스크립트는 실제 첫 빌드·변경 없는 빌드·증분 빌드를 ABBA 순서로 실행한다. 새 Bee payload는 단일 가상 볼륨 내부의 buffered NTFS 저장을 사용하고 정상 종료에서 일반적인 소유 문맥 drain을 수행한다. native 자식을 포함한 디렉터리의 소스 이동은 거부하며 투명한 제품 backend는 아니다. 정확한 자격과 시간/공간 경계는 검증 기록을 따른다.
+
 같은 로그 측정 실행 파일의 `measure --method bounded --cap-mib 16`은 실제 제품 `JournalDeltaStore`를 사용하고 `product-selftest --root <새-경로>`는 선택한 durable 게시 경계에서 소유 제품 store 자식을 종료한다. `wal`은 이전 고정 object 시제품을 유지한다. 제품 bounded 시간은 자동 상태 체크포인트를 포함하고 일반 동작처럼 마지막 bounded suffix를 유지한다. [SX](verification/structural-throughput-prototypes.md)와 구분한 [BL](verification/bounded-journal.md)이 이 근거를 소유한다.
 
 view와 열린 cache가 의존하는 snapshot은 제품 release/discard에서도 보호한다. 현재 계약의 workspace·후보·cache·영수증만 읽으며 지원하지 않는 필드·형식, 손상·미완료 요청은 보존하고 명시적으로 거부한다. 같은 요청의 중단 복구는 해당 intent와 receipt로 수행한다.
