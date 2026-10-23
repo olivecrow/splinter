@@ -2,7 +2,13 @@
 
 [English](../../verification/README.md)
 
+[Unity 종료 지연 진단](unity-shutdown-diagnosis.md)이 SD-01을 소유한다. 시작 소스·Library·로드된 어셈블리가 동일한 일반 NTFS 5개 사례에서 메서드 16,384개를 64개 클래스로 나누자 종료가 17.34초에서 1.60초로 줄었다. 관리 함수는 미확정, 마지막 디버거 시도의 회수는 미확인이며 중단한 전체 비교는 작업량별 성능 자격이 아니다.
+
+[이전 bounded 저널 작업량 관측](unity-bounded-scaling.md)은 BS-01의 세션 유지 데이터·이전 상태 편차·5바이트 stale PID 입력 예외·일반 복원 비용을 보존한다. SD-01은 합성 코드 배치의 한계도 확인했다. BS-01 표와 조건부 손익분기는 현재 루트 README 주장에서는 제외하고 과거 측정은 보존한다.
+
 GitHub CI는 Windows에서 전체 회귀 검사를 실행하고 Linux에서는 locked restore와 컴파일을 확인한다. Linux 런타임 지원은 검증하지 않았다. `fc33088`의 [첫 공개 Linux 검사](https://github.com/olivecrow/splinter/actions/runs/38688426300)는 1,301개 통과·101개 실패·313개 건너뜀을 기록했으며, Windows 파일 공유·잠금 기대와 프로세스 시작 시각 identity 검사 등이 실패했다. Linux에서의 실패는 해결되지 않았고 컴파일 전용 CI를 Linux 런타임 통과로 읽지 않는다. 게시 시점의 로컬 Windows 검사는 1,691개 통과·24개 건너뜀·실패 0개였다.
+
+[현재 bounded 저널 Unity 비교](unity-bounded-comparison.md)가 BC-01을 소유한다. `c4fa506`에서 같은 입력의 양쪽을 새로 측정해 Splinter 537.6초 / 공유 Editor 82.1초와 정상 회수를 확인했다. 추가 수명주기 비용 추정은 449.6초이며 손익분기는 조건부다. 중단 진단·과거 Library 차이·순서가 고정된 한 묶음/캐시 한계를 보존한다.
 
 [폐기한 native Bee backing](bee-internal-native.md)이 과거 BN-01–05를 소유한다. 단일 볼륨 후보는 한정 안전성 검사를 통과했으나 더 느리고 공간도 증가하여 구현과 명령을 제거했다. 측정·복구 근거는 보존하며 현재 backend나 전체 Unity Editor 속도를 입증하지 않는다.
 

@@ -14,6 +14,9 @@
 
 | 문서 | 소유하는 내용 |
 | --- | --- |
+| [Unity 종료 지연 진단](verification/unity-shutdown-diagnosis.md) | SD-01: 시작 소스/Library/로드된 어셈블리가 동일한 일반 NTFS 5개 사례. 16,384개 메서드의 단일/64개 클래스 종료 17.34초/1.60초. 현재 종료/회수 경계·미확정 관리 함수·마지막 디버거 시도 회수 미확인이며 완료된 작업량별 성능 자격은 아님. |
+| [이전 bounded 저널 작업량 실험](verification/unity-bounded-scaling.md) | BS-01: 세션 유지 관측·이전 상태 편차·5바이트 stale PID 예외·복원 비용을 보존한다. SD-01에서 합성 코드 배치의 한계도 확인해 표와 조건부 손익분기를 현재 README 주장에서는 제외했다. |
+| [현재 bounded 저널 Unity 비교](verification/unity-bounded-comparison.md) | BC-01: `c4fa506`, 같은 입력의 새 양쪽 측정, Splinter 537.6초 / 공유 Editor 82.1초. 추가 수명주기 추정 449.6초·조건부 손익분기·별도 진단 복구와 한 묶음/캐시 한계. |
 | [제품 제한 로그](bounded-journal.md), [범위](plans/bounded-journal.md), [검증](verification/bounded-journal.md) | BL-01–05: mutation별 durable SJR2·제한 suffix/체크포인트 복구·provider 선택·원본/결과 보호와 작은 제품 비용 근거. |
 | [폐기한 Bee 저장 설계](plans/bee-native-storage-design.md), [과거 검증](verification/bee-internal-native.md) | BN-01–05: 더 느리고 공간도 증가한 native 후보와 이전 junction 구현을 제거했다. 안전성·복구·실제 Bee 측정 기록을 보존하며 현재 실행 경로는 없다. |
 | [구조적 처리량 실험](plans/structural-throughput-prototypes.md), [검증](verification/structural-throughput-prototypes.md) | SX-01–04: 과거 Bee 실험과 유지하는 제한 durable 범위 로그 도구. 고정한 작은 입력·원본/결과 보호와 구성 요소 시간 측정의 경계. |

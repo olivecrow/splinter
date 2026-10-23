@@ -33,3 +33,9 @@ writer는 세대 교체 동안 수명 guard를 유지한다. 저널 gate 안에�
 내부 상태 체크포인트는 `workspace checkpoint`와 다르다. 후자는 여전히 독립 소스 결과를 수집하고 수집 전후·unmount 뒤 seal을 대조한다. release에는 일치하는 독립 결과·소유 프로세스/핸들 종료·정확한 파일 inventory·조건부 회수가 필요하다. 변경 없는 원본 Library도 bounded의 정확한 회수 inventory를 통해 기존 identity 검증 디렉터리 복원을 사용할 수 있다. 변경 없는 디렉터리 복원 plan은 v2이며 `JournalMode`(`latest` 또는 `bounded`)를 고정한다. 누락/이전 plan은 이관 없이 보존·거부한다. 기존 파일별 v2 복원 plan은 별도다.
 
 [구현·검증 범위](plans/bounded-journal.md)와 [검증 기록](verification/bounded-journal.md)은 자동 복구·작은 실제 제품 A/B·구성 요소 시간·미실행 경계를 구분한다. 이전 고정 object 로그 시간은 [시제품 근거](verification/structural-throughput-prototypes.md)이며 제품이나 Unity 성능이 아니다. 전체 Unity Editor/미로 시간과 OS 전원 장애 자격은 별도 근거가 필요하다.
+
+현재 후보의 Unity 한 줄 수정 전체 시간은 [BC-01](verification/unity-bounded-comparison.md)에 별도로 기록한다. 정상 회수를 확인한 Splinter 537.6초 / 공유 Editor 82.1초이며 긴 작업 손익분기·미로 시간·공간/RAM peak·OS 전원 장애 자격으로 확대하지 않는다.
+
+[BS-01](verification/unity-bounded-scaling.md)은 세션을 유지하며 실제 생성 C# 컴파일 작업량을 네 수준으로 바꿨다. 검증 8개 구간은 142.0초 절약했지만 stale PID 삭제 뒤 일반 Library 복원 405.4초를 포함해 수명주기가 783.7초 추가됐다. 이전 상태 편차와 5바이트 입력 예외를 유지하며 보편적인 고정 지연이나 비례 배수를 확정하지 않는다.
+
+후속 통제 비교는 비정상 종료 지연을 진단하기 위해 중단했다. [SD-01](verification/unity-shutdown-diagnosis.md)은 Splinter 없이도 코드 배치에 따라 종료 시간이 달라짐을 재현하고 현재 종료/회수 경계를 기록한다. BS-01은 과거 근거로 보존하며 표와 조건부 손익분기는 현재 README 성능 주장에 사용하지 않는다. 정확한 관리 함수와 마지막 디버거 진단의 회수 상태는 미확정이다.

@@ -3,7 +3,13 @@
 
 [한국어](../ko/verification/README.md)
 
+[Unity shutdown diagnosis](unity-shutdown-diagnosis.md) owns SD-01: five native NTFS cases with identical starting source, Library and loaded assembly. Distributing 16,384 methods across 64 classes reduced observed exit time from 17.34s to 1.60s. The managed caller remains unresolved, the final debugger attempt's closure is unverified, and the canceled full comparison is not a workload-scaling qualification.
+
+[Earlier bounded-journal workload observations](unity-bounded-scaling.md) retain BS-01's continuing-session data, prior-state variation, five-byte stale-PID input exception and general restoration cost. SD-01 identifies an additional synthetic code-shape limitation. BS-01's table and conditional crossover are excluded from the current root README claims; historical measurements are preserved.
+
 GitHub CI runs the full regression suite on Windows and checks locked restore/compilation on Linux. Linux runtime support is not qualified. The [first public Linux test run](https://github.com/olivecrow/splinter/actions/runs/38688426300) at `fc33088` recorded 1,301 passes, 101 failures and 313 skips, including Windows file-sharing/locking expectations and process-start timestamp identity checks. These failures remain unresolved for Linux; compilation-only CI must not be read as a Linux runtime pass. The local Windows publication check passed 1,691 tests with 24 skips and no failures.
+
+[Current bounded-journal Unity comparison](unity-bounded-comparison.md) owns BC-01: `c4fa506`, a fresh same-input pair at 537.6s Splinter / 82.1s shared Editor, with normal closure. Additional lifecycle cost is estimated at 449.6s; crossover remains conditional. The interrupted diagnostic, historical Library differences and ordered single-pair/cache limits are preserved.
 
 [Retired native Bee backing](bee-internal-native.md) owns historical BN-01–05: the single-volume candidate passed bounded safety checks but was slower and larger, and its implementation and commands were removed. Measurements and recovery evidence remain; they do not qualify a current backend or full Unity Editor speed.
 

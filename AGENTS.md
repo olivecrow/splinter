@@ -22,6 +22,12 @@
 
 ## 현재 기능의 소유 문서
 
+- Unity 종료 지연 진단은 `docs/verification/unity-shutdown-diagnosis.md`의 SD-01이 소유한다. 사용자가 전체 비교를 중단한 뒤 같은 시작 소스/Library/로드된 어셈블리의 일반 NTFS 5개 사례를 확인했다. 16,384개 메서드의 단일/64개 클래스 정상 종료는 17.34초/1.60초로 코드 배치 영향을 보였으며 일반 작업량 증가 법칙이 아니다. 현재 checkpoint/integrate의 stop 대기와 회수 guard를 유지한다. 관리 함수는 미확정이고 마지막 디버거 시도의 정상 종료/최종 복원 영수증은 없어 회수 미확인으로 남긴다. 이전 BS-01 표·조건부 7회 계산은 현재 README에서 제외하며 원시 기록은 보존한다. 중단한 비교나 추가 계측을 자동 재개하지 않는다.
+
+- 현재 bounded 저널의 작업량별 Unity 실측은 `docs/verification/unity-bounded-scaling.md`의 BS-01이 소유한다. `c4fa506`·생성 메서드 4개 수준·수준별 2회·세션 유지 비교에서 검증 142.0초 절약, 추가 수명주기 783.7초, 전체 641.8초 추가를 관측했다. 사전 선언한 완전한 Library 일치 검사는 stale 서버 PID 5바이트 삭제로 실패했고 나머지 42,420개 파일·소스 일치의 예외를 명시해 공유 측정을 이어 갔다. 승인한 서버 종료·같은 준비 요청 재개, 일반 Library 복원 405.4초와 이전 상태/순서 편차를 보존한다. 고정 가산·일정 배수·일반 장기 손익분기를 확정하지 않고 최대 부하 절약 129.3초·7회 회수는 당시 조건부 계산으로 보존한다. 후속 SD-01의 코드 배치 한계에 따라 현재 README 성능 주장에서는 제외한다. 새 Play/Test/build·공간/RAM·일반 도구 자격으로 확대하거나 이 측정을 자동 반복하지 않는다.
+
+- 현재 bounded 저널의 Unity 전체 시간·공유 Editor 재비교는 `docs/verification/unity-bounded-comparison.md`의 BC-01이 소유한다. `c4fa506`·같은 새 소스/Library 입력의 Splinter 537.6초·공유 82.1초, 정상 종료/원본 복원/소유 회수를 확인했다. 과거 FU 대비 전체 -30.0%·추가 수명주기 추정 656.9→449.6초와 조건부 손익분기를 기록하되 저널만의 인과 효과·긴 작업 실측으로 확대하지 않는다. 중단된 진단의 렌더 차이·Unity 환경설정 팝업/같은 요청 복구, 새 비교의 정상 시간, 순서/캐시 편차와 과거 Library 차이를 구분한다. 새 공간/RAM·Play/Test/build·일반 도구 자격은 없다.
+
 - 제품 제한 로그는 `docs/bounded-journal.md`·`docs/plans/bounded-journal.md`·`docs/verification/bounded-journal.md`의 BL-01–05가 소유한다. 새 일반 Windows provider 기본 bounded SJR2·16MiB/4,096-frame suffix와 개별 durable ACK·현재 private 상태의 원자 checkpoint·동일 owner 복구·정확한 회수 inventory를 연결한다. 기존 SJL4/append는 자동 이관하지 않으며 생략 compact는 저장 모드를 유지한다. suffix 제한은 prefix/임시 중복/전체 RAM 제한이 아니며 실제 전체 Unity/OS 장애 자격으로 확대하지 않는다. Bee native backing은 BN-01–05의 ABBA 단계 합계 11.18→18.88초·할당 0.92→2.13MiB로 성능 채택 기준에 실패하여 사용자 지시로 폐기했다. `tools/Splinter.BeeProbe`·`scripts/measure-bee-prototype.py`와 실패한 junction 경로도 제거했으며 선택적 개발 경로나 후속 구현으로 다시 분류하지 않는다. 설계·실측은 `docs/plans/bee-native-storage-design.md`·`docs/verification/bee-internal-native.md`, 제거 전 코드는 커밋 `93a7395`에 역사적 근거로 보존한다. 원자 게시·소형 안전성 통과를 현재 제품 backend나 전체 Editor 속도로 승계하지 않는다.
 
 - 구조적 처리량 시제품 기록은 `docs/plans/structural-throughput-prototypes.md`·`docs/verification/structural-throughput-prototypes.md`의 SX-01–04를 따른다. 현재 남은 개발 진입점은 `tools/Splinter.BoundedLogProbe capabilities`이며 성공한 제한 로그 검증과 제품 bounded 측정을 유지한다. SX의 native NTFS Bee는 원자 게시 실패, 후속 BN은 시간·공간 증가로 폐기·제거했다. 과거 코드·명령·측정 기록은 현재 실행 경로가 아니며 자동 재구현·재검증하지 않는다. 작은 로그 근거를 전체 Unity 속도 자격으로 승계하지 않는다.
@@ -34,7 +40,7 @@
 
 - 최종화·cache 후속은 `docs/verification/lifecycle-finalization-optimization.md`의 LF-01–05가 소유한다. 범위 저널의 명시적 `checkpoint --release`는 같은 task 잠금과 이번 호출 post-seal을 이어 쓰며 새 소스 검사·후속/unmount seal·독립 결과·회수 guard를 유지한다. Git 상위 경로 cache는 관측 mount/저널 세대에 묶인 연산 한정이고 capsule 주소 cache는 유한 replay 범위다. 압축 visitor는 기존 store별64MiB RAM을 읽기와 공유하되 매 hit의 현재 encoded 검증·개별 flush/ACK를 유지한다. 한정 비용과 새 전체 Unity 시간은 구분한다.
 
-- README의 현재 Codex/Splinter 시간·저장 비교는 `docs/verification/unity-current-comparison.md`의 RC-01이 소유한다. 같은 raw Git 입력·A/B 병렬·한 줄 수정과 충돌 없는 소스 병합/회수에 한정한다. 대화 시작·입력 확인/할당 계측 제외, 첫 진단 실행과 최종 비교의 구분, Git 파일/등록 회수 뒤 남은 빈 Codex root를 유지한다. 양쪽 모두 병렬 가능하며 긴 작업의 손익분기를 실측한 것으로 확대하지 않는다.
+- 과거 Codex/Splinter 시간·저장 비교는 `docs/verification/unity-current-comparison.md`의 RC-01이 소유한다. 같은 raw Git 입력·A/B 병렬·한 줄 수정과 충돌 없는 소스 병합/회수에 한정한다. 대화 시작·입력 확인/할당 계측 제외, 첫 진단 실행과 최종 비교의 구분, Git 파일/등록 회수 뒤 남은 빈 Codex root를 유지한다. 양쪽 모두 병렬 가능하며 긴 작업의 손익분기를 실측한 것으로 확대하지 않는다.
 - 병렬 코드 작성 뒤 공유 Editor 하나에서 순차 검증하는 비교는 `docs/verification/unity-shared-editor.md`의 SE-01이 소유한다. 같은 소스/Library·제품 hash를 확인하고 RC-01 Splinter 935.2s를 재사용한 새 공유 Editor 102.5s이며, 양쪽 새 실행으로 읽지 않는다. 실제 A/B 하위 에이전트 코드 작업·하나의 외부 계측 제어자·기준 복구 컴파일을 포함하고 AI 추론/전달 대기·입력 검사는 제외한다. 과거 Q 패키지 자격을 재개하지 않았다. 코드 작성은 양쪽 병렬이며 Editor 점유 구간의 중첩만 시간 이득 후보다. 긴 테스트/빌드 손익분기·공유 Editor 대비 공간 절감은 NotRun이다. SE 이후 원본 소스는 그대로지만 정상 사용한 Library 캐시는 재생성됐으므로 다음 동일 입력 비교에서 과거 RC Library와 같다고 가정하지 않는다.
 
 - TM 후속 실제 Unity 전체 비용은 `docs/verification/unity-time-memory.md`의 UT-01을 따른다. `7630970`·같은 RB/UF 소스/Library/편집·병렬 ensure 한 묶음에서 875.2s를 측정했다. 준비·복원 절감과 Editor/보존 비용 증가를 함께 기록하며 cache별 인과 효과·새 외부 도구/Play/Test/build 자격으로 확대하지 않는다.
