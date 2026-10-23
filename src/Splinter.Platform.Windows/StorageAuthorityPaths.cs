@@ -15,6 +15,8 @@ namespace Splinter.Platform.Windows;
 internal sealed class StorageAuthorityPaths : IDisposable
 {
     private readonly List<IDisposable> leases = [];
+    private readonly Dictionary<string, string> identities = new(StringComparer.OrdinalIgnoreCase);
+    internal IReadOnlyDictionary<string, string> Identities => identities;
     internal static StorageAuthorityPaths Authorize(StorageGrant grant, StorageAuthorityRequest request)
     {
         var guard = new StorageAuthorityPaths();
@@ -173,7 +175,7 @@ internal sealed class StorageAuthorityPaths : IDisposable
         return ReadText(packed).Split('\n').Select(l => l.Trim().Split(' ', 2)).SingleOrDefault(p => p.Length == 2 && p[1] == reference)?[0]
             ?? throw StorageAuthorityProtocol.Error("GitResultIncomplete", "The preserved reference is missing.");
     }
-    private T Read<T>(string path)
+    internal T Read<T>(string path)
     {
         var stream = OpenRead(path);
         using var bytes = new MemoryStream(); stream.CopyTo(bytes);
@@ -216,7 +218,9 @@ internal sealed class StorageAuthorityPaths : IDisposable
         if (!GetFileInformationByHandle(handle, out var info)) throw new Win32Exception(Marshal.GetLastWin32Error());
         if ((info.Attributes & 0x400) != 0 || directory != ((info.Attributes & 0x10) != 0) || !directory && info.Links != 1)
             throw StorageAuthorityProtocol.Error("StoragePathRejected", "Reparse points and path-type substitutions are rejected.");
-        return $"{info.VolumeSerial:X8}:{info.IndexHigh:X8}{info.IndexLow:X8}";
+        string identity = $"{info.VolumeSerial:X8}:{info.IndexHigh:X8}{info.IndexLow:X8}";
+        identities[path] = identity;
+        return identity;
     }
     internal static string Volume(string path)
     {

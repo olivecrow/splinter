@@ -51,7 +51,7 @@
 | [Git 원본 Library 참조](git-library-reference.md), [검증](verification/git-library-reference.md) | 명시적 Library prepare/status/restore·원본 관리형 mount·Git 소스와 불변 Library graft·작업 의존성·파일 이동/범위 복원과 MCP/RAM 자격 |
 | [Git Unity 실제 실행 범위](plans/git-unity-validation.md), [검증](verification/git-unity-validation.md) | 현재 원본 Git/Unity의 새 기준 A/B·cold Library·exact HTTP MCP·리소스/씬/현재 상태 시험과 소유 회수. 준비 병목/동일 요청 복구와 이전 VSS 자격을 구분 |
 | [명시적 폐기](workspace-discard.md) | Core/Runtime intent·Git/Windows provider·CLI·서비스 별도 authorization·중단 재개 |
-| [Windows 저장소 권한 서비스](storage-privilege-service.md) | 설치 범위·고정 VSS IPC·사용자/경로/소유권·보호된 재시도 상태 |
+| [Windows 저장소 권한 서비스](storage-privilege-service.md) | 설치 범위·고정 VSS IPC·사용자/경로/소유권·보호된 재시도 상태·요청 범위 경로 핸들·대기 후 identity 재검증([UA-05](verification/storage-privilege-service.md#ua-05-idle-path-handles)) |
 | [Unity 알파 작업공간](alpha-workspaces.md) | 외부 도구로 편집·검증, 같은 작업 재개·독립 결과·통합과 Editor 수명 |
 | [Unity CLI A/B 인계 검증](verification/unity-cli-handoff.md) | 정확한 반환 경로의 catalog/loaded 코드·A stop/release 뒤 B 후속 작업·두 독립 결과/회수의 작은 T: 한정 자격과 목록 누락/타임아웃 제한 |
 | [저장소와 자원](storage-and-resources.md) | 프로세스 그룹·자원 관측 |

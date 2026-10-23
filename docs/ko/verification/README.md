@@ -157,6 +157,7 @@ GitHub CI는 Windows에서 전체 회귀 검사를 실행하고 Linux에서는 l
 | M0, SW-03/06 | [최소 AI 지침·direct](agent-workflow.md)·[대표 Editor 사용/종료·비용](representative-agent-workflow.md)와 [현재 복구 회귀/한정 납품](m0-delivery.md) | 한정 M0 마감·현재 모든 native/OS 장애 통과 아님. SW-03/06 전체 Partial, busy/unknown 점유·새/동시 대화·자동 설치/binding은 미실행 |
 | SF-04~06, SW-01/02/04/05/07/08/10 | 보존한 시나리오·후속 책임 분류 | NotRun 유지. 대형/특수 지원은 필요 시 검증, 모드/설치/인계는 AI 절차, 자동 모드/전용 installer/binding은 구현 제외. 전체 대화/Editor 흐름은 미자격 |
 | UA-01~04 | [제한 권한 서비스](storage-privilege-service.md)의 실제 설치·일반 CLI A/B 추가 UAC 0·회수·서비스 재시작/응답 유실 | 등록된 Windows x64 NTFS/Git fixture 범위 Passed. 일반 Unity·ARM·실제 전원/재부팅과 native VSS 호출 도중 강제 종료로 확대하지 않음 |
+| UA-05 | [대기 중 경로 핸들 수명](storage-privilege-service.md#ua-05-idle-path-handles): 요청 범위 핸들·바꿔치기 거부·구형 서비스 정리·수정 서비스 설치 | native 핸들/실제 파이프 11개 사례 Passed, 전체 1,702 통과/24 생략. 실제 VSS 작업 보존/회수·설치 서비스 대기/완료/재시작의 접근 132회 성공; 최종 서비스 실행·시험 디스크 분리. OS 재부팅/Update 재시도 NotRun |
 
 새 후보에서 필요한 실제 환경 시험을 실행하기 전에는 아래 기록을 현재 후보의 통과로 승계하지 않는다. GUI Unity·VSS·격리 디스크 시험은 정의된 범위와 소유 자원을 확인한 뒤 실행한다. 현재 원본·다른 작업·기존 결과 refs와 비소유 snapshot을 보존한다.
 

@@ -16,25 +16,23 @@ internal static class StorageAuthorityServer
         using var identity = WindowsIdentity.GetCurrent();
         if (identity.User?.Value != "S-1-5-18" || !StorageAuthorityProcessor.Same(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory), StorageAuthorityProtocol.InstallPath))
             throw StorageAuthorityProtocol.Error("StorageServiceUnsafe", "Run only the installed SCM service as LocalSystem.");
-        using var pinned = new StorageAuthorityPaths();
-        pinned.Pin(StorageAuthorityProtocol.InstallPath); pinned.Pin(StorageAuthorityProtocol.StatePath);
-        StorageAuthorityPaths.RequireProtectedDirectory(StorageAuthorityProtocol.InstallPath);
-        StorageAuthorityPaths.RequireProtectedDirectory(StorageAuthorityProtocol.StatePath);
-        var config = StorageAuthorityProcessor.Read<StorageAuthorityConfiguration>(Path.Combine(StorageAuthorityProtocol.StatePath, "configuration.json"))
-            ?? throw new IOException("Missing authority configuration.");
-        if (config.Version != 1 || config.Grants.Length == 0) throw StorageAuthorityProtocol.Error("StorageServiceVersionMismatch", "Repair the current service configuration.");
-        string expectedPowerShell = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "PowerShell", "7", "pwsh.exe");
-        if (!StorageAuthorityProcessor.Same(config.PowerShellPath, expectedPowerShell)) throw new IOException("Only the installed PowerShell 7 host is permitted.");
-        pinned.Pin(Path.GetDirectoryName(config.PowerShellPath)!); pinned.Pin(config.PowerShellPath, directory: false);
-        StorageAuthorityPaths.RequireProtectedDirectory(Path.GetDirectoryName(config.PowerShellPath)!, allowWindowsInstaller: true);
-        var processor = new StorageAuthorityProcessor(StorageAuthorityProtocol.StatePath, config, new Operations(config.PowerShellPath));
+        var environment = StorageAuthorityEnvironment.LoadInstalled();
+        await ServeAsync(environment, StorageAuthorityProtocol.PipeName, new Operations(environment.Configuration.PowerShellPath), ready, ct);
+    }
+
+    internal static async Task ServeAsync(StorageAuthorityEnvironment environment, string pipeName,
+        IStorageAuthorityOperations operations, Action ready, CancellationToken ct)
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        var config = environment.Configuration;
+        var processor = new StorageAuthorityProcessor(environment.StatePath, config, operations);
         var security = PipeSecurityFor(config.Grants.Select(g => g.UserSid));
         bool first = true;
         while (!ct.IsCancellationRequested)
         {
             // One instance serializes authority mutations. FirstPipeInstance
             // rejects an already occupied name rather than joining a fake server.
-            using var pipe = NamedPipeServerStreamAcl.Create(StorageAuthorityProtocol.PipeName, PipeDirection.InOut, 1,
+            using var pipe = NamedPipeServerStreamAcl.Create(pipeName, PipeDirection.InOut, 1,
                 PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.FirstPipeInstance, 65536, 65536, security);
             if (first) { ready(); first = false; }
             await pipe.WaitForConnectionAsync(ct);
@@ -53,7 +51,11 @@ internal static class StorageAuthorityServer
                     return guard ?? throw new UnauthorizedAccessException();
                 }
                 using var operation = CancellationTokenSource.CreateLinkedTokenSource(ct); operation.CancelAfter(TimeSpan.FromMinutes(3));
-                var response = await processor.ProcessAsync(sid, request, Authorize, operation.Token);
+                StorageAuthorityResponse response;
+                using (environment.Acquire())
+                    response = await processor.ProcessAsync(sid, request, Authorize, operation.Token);
+                // All directory/evidence pins are closed before the response,
+                // including on failure/cancellation, and before the next wait.
                 using var reply = CancellationTokenSource.CreateLinkedTokenSource(ct); reply.CancelAfter(TimeSpan.FromSeconds(1));
                 await WriteFrameAsync(pipe, JsonSerializer.SerializeToUtf8Bytes(response, StorageAuthorityProtocol.Json), reply.Token);
             }

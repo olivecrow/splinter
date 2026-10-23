@@ -30,7 +30,13 @@ internal static class StorageAuthorityScm
         catch (Exception ex)
         {
             error = 1066;
-            try { StorageAuthorityProcessor.Write(Path.Combine(StorageAuthorityProtocol.StatePath, "last-error.json"), new { code = ex.GetType().Name, message = ex.Message, at = DateTimeOffset.UtcNow }); }
+            try
+            {
+                using var guard = new StorageAuthorityPaths();
+                guard.Pin(StorageAuthorityProtocol.StatePath);
+                StorageAuthorityPaths.RequireProtectedDirectory(StorageAuthorityProtocol.StatePath);
+                StorageAuthorityProcessor.Write(Path.Combine(StorageAuthorityProtocol.StatePath, "last-error.json"), new { code = ex.GetType().Name, message = ex.Message, at = DateTimeOffset.UtcNow });
+            }
             catch (Exception) { /* A broken protected ledger cannot be repaired by deleting it. */ }
         }
         Report(1, error);

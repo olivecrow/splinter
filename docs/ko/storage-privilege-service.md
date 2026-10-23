@@ -29,6 +29,10 @@ IPC는 로컬 named pipe `Splinter.StorageAuthority.v1`이다. ACL은 등록된 
 
 사용자 프로젝트·home·workspace의 읽기는 요청자의 토큰으로 한다. 서비스는 reparse·경로 대체를 거부하고 디렉터리 ID를 등록값과 대조한다. 조상 경로와 검사한 기록은 작업 동안 rename/delete가 안 되는 핸들로 유지한다. 원본 내부의 일반 파일 편집은 계속 가능하다.
 
+서비스 시작 시 설치·상태·PowerShell 경로와 설정을 기존 쓰기/삭제 공유 차단 핸들로 검사하고, 모든 조상의 볼륨/파일 identity와 설정을 기록한 뒤 연결 대기 전에 핸들을 닫는다. 인증된 각 요청은 같은 핸들을 다시 확보하고 보호 디렉터리 ACL·모든 기록 identity·설정을 재검증하며, 요청 처리와 영수증의 durable 게시까지 유지한다. 대기 중 교체는 보존·거부하고 명시적 재시작은 새로 검증한 환경을 설정한다. 성공·거부·실패·취소 모두 응답 전송이나 다음 연결 대기 전에 핸들을 닫는다. 시작 실패와 서비스 오류 기록도 한정된 범위를 사용한다. 서비스 실행 중이거나 workspace가 끝났다는 이유만으로 경로 고정 핸들을 유지하지 않는다. 실제 요청 처리 중에는 엄격한 조상 핸들이 디렉터리 쓰기 접근과 일시적으로 충돌할 수 있으며 공유 모드와 reparse/identity 방어는 완화하지 않는다.
+
+workspace 자원 계수는 task/provider를 설명하며 서비스 공통 핸들을 포함하지 않는다. 서비스 대기/완료 수명은 [UA-05](verification/storage-privilege-service.md#ua-05-idle-path-handles)에서 별도로 검증한다. 기존 설치에는 명시적 패키지 Update가 필요하다. 구형 서비스를 중지하면 ledger나 snapshot을 삭제하지 않고 현재 핸들을 해제한다.
+
 요청은 현재 버전·고정 operation·owner·프로젝트·home·snapshot ID·boot에 묶인 검증/회수 ID만 받는다. 임의 코드·명령·실행 파일·관리자 쓰기 목적지는 없다. 중복/알 수 없는 JSON 필드·필수 필드 누락·크기 초과를 거부한다. 입력/출력은 `storage-authority-request.schema.json`과 `storage-authority-response.schema.json`이 소유한다.
 
 ## 보존과 재시도

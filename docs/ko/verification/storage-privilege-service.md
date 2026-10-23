@@ -46,3 +46,40 @@ Unity Editor를 시작하지 않았으므로 `workspace checkpoint`의 `Validati
 최종 빌드 로그는 `build-setup-preflight.log`, 전체 결과는 `artifacts/test-results/Splinter.Tests_net10.0_x64.trx`다. 앞선 `build-final.log`, `authority-final.trx`, `setup-preflight.trx`도 보존한다. 기존 파일 교체 경합 시험은 중간에 한 번 30초 제한에 걸렸으나 시험/기한을 바꾸지 않은 별도 재실행과 최종 전체 실행에서 통과했다. 원인이 해결됐다고 단정하지 않는다.
 
 현재 서비스 계약은 [기능 문서](../storage-privilege-service.md), 완료 범위는 [UA 계획](../plans/storage-privilege-service.md)을 따른다.
+
+<a id="ua-05-idle-path-handles"></a>
+## UA-05: 대기 중 경로 핸들 수명, 2026-10-23
+
+범위: 설치·상태·PowerShell 조상 핸들을 서비스 전체 수명에서 시작/요청 범위로 줄이고, 기존 쓰기/삭제 공유 차단·reparse/타입 검사·요청자 토큰의 프로젝트/home 권한 검증을 유지한다. 모든 조상의 identity와 설정값을 보관하고 요청마다 핸들을 다시 확보해 identity·설정·보호 디렉터리 ACL을 재검증한 뒤 응답 전에 모든 경로/증거 핸들을 닫는다. 시작 실패·admission 거부·연산 오류·취소와 한정된 서비스 오류 기록에서도 해제한다. 프로토콜·grant·보호 영수증 형식·snapshot 회수 조건은 바꾸지 않았다.
+
+`StorageAuthorityLifetimeTests` 11개 사례는 실제 파이프 서버와 Windows 핸들, 독립 디렉터리 fixture, 합성 보호 ACL 판정과 fake VSS 부수 효과를 사용한다. 대기/시작·미완성 입력·성공 응답/재전송·요청 거부·실패/취소 연산·서비스 취소를 다룬다. 요청 중 조상 쓰기·디렉터리 이름 변경·junction 전환은 계속 차단한다. 요청 사이에는 fixture 조상을 CBS와 같은 접근 `0x12019F`, 공유 7, `OPEN_EXISTING`으로 열며 파일을 변경하지 않는다. leaf identity가 같은 대기 중 조상 교체, 디렉터리/PowerShell/설정 파일 교체, 설정 내용 변경, ACL 변경과 reparse 대체는 거부한다. 독립 조상은 다른 프로세스의 C: 핸들이 회귀를 가리는 일을 피하기 위한 것이며 실제 C: 근거는 아래와 구분한다.
+
+설치된 구형 서비스의 정확한 LocalSystem PID **4968**을 승인된 정상 중지로 종료하자 C: 디렉터리 접근은 **32(`ERROR_SHARING_VIOLATION`)에서 0(성공)**으로 바뀌었다. 확인 시 자식 프로세스와 미완료 `active.json` 요청은 없었다. 보호 ledger 파일 **1,721개**의 경로/내용 hash는 그대로였으며 snapshot/자원 삭제·Windows Update 설치·DISM/SFC·재부팅은 실행하지 않았다. 이 서비스 중지로 관측된 루트 접근 충돌이 해소됨을 입증하며 Windows Update나 구성요소 복구 성공을 뜻하지 않는다. 근거는 `artifacts/storage-authority-idle-20261023/stop-result.json`과 고정된 중지 스크립트다.
+
+최종 `pwsh ./scripts/build.ps1`의 locked restore·Release 빌드와 **1,702 통과·0 실패·24 생략(총 1,726개)**을 확인했으며 새 사례 11개가 모두 포함된다. 근거는 동일 디렉터리의 `required-build-final.log`와 `authority-lifetime-final.trx`다. 최초 실행에서 드러난 시험 자체의 JSON 예외 하위 타입·루프 정상 종료 기대를 수정한 뒤 전체 실행이 통과했다.
+
+동일 근거 디렉터리의 `package/`에 새 서비스 패키지 16개 파일을 준비했다. manifest SHA-256은 `b7753ca6040a2c603867b73d636b3339b1fa2db095c1b7ddc7c35d4a27c7303e`다. 표준 Update 읽기 전용 사전검사는 T:가 연결되지 않아 보존 중인 grant를 거부했다(`update-plan.log`). T:는 UA 시험용 16GiB VHDX였으며 이후 기록된 다른 Splinter 시험에도 사용했다. `Get-DiskImage`로 `Attached=false`를 확인했다. grant 삭제/재작성·볼륨 재연결·새 설치 적용은 하지 않았다.
+
+이후 사용자가 모든 점유 정리를 요청했다. 최초 UAC 취소 후 명시적으로 재승인받아 관리자 확인을 수행했으며 **소유 기록 102개 모두 released, 활성 요청 0, 미회수 소유 기록 0, 현재 소유 snapshot 0, Splinter 실행 프로세스·예약 작업 0**이었다. 표준 `setup-storage-service.ps1 -Action Remove -Apply`로 구형 서비스 등록을 제거했고 SCM은 **1060(서비스 없음)**을 반환했다. ledger 파일 1,721개와 기존 비소유 C: snapshot 3개는 그대로 보존됐다. 시험 프로세스 종료 뒤 **C:, D:, E:, Program Files, ProgramData, 서비스 설치/상태 디렉터리, PowerShell 7**의 native 디렉터리 접근이 모두 성공했다(8개 경로, 오류 0). 근거는 `cleanup-result.json`, `service-remove.log`, `cleanup-summary.json`이다.
+
+당시 정리 시점의 archive 제외 `.local` 기록에는 **종료된 workspace 91개(released 88, discarded 3)**와 **restored 프로젝트/Library 기준본 38개**가 있었다. 확인한 두 원본 프로젝트와 각 Library는 reparse point 없는 일반 디렉터리였다. 결과·시험 VHDX·과거 영수증·실행되지 않는 설치 파일은 보존했으며 공용 WinFsp 설치는 제거하지 않았다. 위 조사 범위에서 남은 활성 Splinter 점유가 관측되지 않았다. 이후 별도 승인으로 아래 설치를 수행해 서비스 없음 상태가 바뀌었으며, 과거 UA-01~04 자격을 이번 후보의 통과로 승계하지 않는다.
+
+### 실제 설치 서비스 후속, 2026-10-23
+
+이후 사용자가 수정 서비스 설치·실제 서비스 검증·성공 후 커밋을 승인했다. UAC 취소 1회 후 재승인받아 정확한 기존 VHDX/NTFS 볼륨을 T:로 잠시 다시 연결했다. 표준 Install 사전검사/Apply는 기존 **grant 7개**와 과거 보호 소유 기록을 유지했으며 **설치 파일 16개 hash**가 위 패키지와 일치했다. 새 프로젝트/home 권한은 추가하지 않았다. 일반 CLI는 `callerElevated=false`, 서비스 PID **12548**은 LocalSystem/Automatic이었다.
+
+작은 Editor 없는 작업 하나가 기존 `T:\plain-apply-20261002` / `.local\ap1002`, `source=none`, `application=none`, `ntfs-snapshot`, 16MiB 저널 예산, key `ua05-installed-idle-20261023`을 사용했다. workspace는 **`d6b31c017bd9062ef57223de`**, 요청 digest는 `e2df5a04116b61cb16937948`, 생성 snapshot은 **`{7CD684FE-7FF2-4C29-8388-B86C5DFB9A05}`**다. 반환 작업공간에만 기록한 58바이트 파일은 `checkpoint --release` 뒤 독립 결과 `sha256:98580480db6a631f67260abf5e187cd17256590203b83a3e2b9d110537caa265`로 보존됐다. 원본 3개 파일/29바이트의 hash는 그대로였다. 최종 작업은 `released`이며 mount/delta/provider/snapshot이 없고 소유 open handle은 0이다.
+
+첫 checkpoint/release는 결과를 보존하고 provider를 종료했으나 현재의 엄격한 상태 검사가 과거 완료된 peer 기록 2개의 폐기된 필드를 거부했다(`StateCorrupt`). 보호된 released 영수증·현재 snapshot/mount/delta 부재·독립 payload hash를 확인한 뒤 정확한 기록을 내용 변경 없이 `.local/ap1002/archive/ua05-preexisting-records/<id>`로 옮겼다. A `42fdead74de65116b2669858`의 33개 파일과 B `78b313a0f90b0261a72742e9`의 31개 파일은 모든 상대 경로/내용 hash가 같았다. 같은 새 작업 ID/home/checkpoint 요청으로 재개해 회수를 완료했다. 제품 코드가 구형 필드를 이관·무시하거나 회수 guard를 완화하지 않았다. 최초 실패와 보관 manifest도 근거 디렉터리에 남겼다.
+
+| 설치 서비스 관측 시점 | 경로 × 표본 | 결과 |
+| --- | --- | --- |
+| 최초 서비스 대기 | 9 × 3 | 모두 오류 0 |
+| 실제 Capture/Observe 후, workspace provider 실행 중 | 9 × 3 | 모두 오류 0 |
+| checkpoint/release 후, 서비스 계속 실행 중 | 9 × 3 | 모두 오류 0 |
+| 명시적 서비스 재시작 후, PID **23076** | 9 × 3 | 모두 오류 0 |
+| T: 분리 후 최종 대기 | 8 × 3 | 모두 오류 0 |
+
+native 접근 **132회 모두** `0x12019F`, 공유 7, `OPEN_EXISTING`으로 열고 닫기만 했다. 경로는 C:, D:, E:, Program Files, ProgramData, 서비스 설치/상태, PowerShell 7과 연결 중인 T:다. 최종 서비스는 **Running/Automatic/LocalSystem**이며 정확한 시험 VHDX는 다시 분리됐다. 과거 보호 소유 기록과 이번 설치 시작 시 존재한 C: snapshot 4개는 그대로였고 새 작업의 T: snapshot만 회수했다. Splinter provider/workflow 프로세스는 남지 않았으며 서비스 자체는 계속 실행 중이다.
+
+근거 `artifacts/storage-authority-idle-20261023/`: `install-plan.json`, `install-apply.json`, `installed-verification.json`, 다섯 `installed-*.json` 표본, `native-ensure.json`, `native-checkpoint-release.json`, `native-checkpoint-release-retry.json`, `workspace-finished.json`, `archived-legacy-records.json`, `installed-summary.json`. 작은 Windows x64 NTFS fixture의 실제 대기/정상 작업 완료/서비스 재시작 동작으로 한정한다. OS 재부팅·native VSS 도중 강제 중단·Windows Update 재시도·DISM/SFC는 **NotRun**이다.
