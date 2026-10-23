@@ -3,7 +3,7 @@
 
 [한국어](ko/plain-folder-original-apply.md)
 
-Apply an exact independent checkpoint from an NTFS task with `source=none` and `application=none` to its fixed original `ProjectPath`. Current implementation and standard-user file tests provide the contract below. Actual product VSS/WinFsp A/B qualification follows [verification records](verification/plain-folder-original-apply.md) and the [AP traceability table](plans/validation-matrix.md#vcs-free-original-application). Unity application, Plastic environments, importing released results, and export to other targets are not provided.
+Apply an exact independent `project-snapshot` checkpoint with `source=none` to its fixed original ProjectPath. Full/selected publication for application none/unity, original mount identity and normal Editor shutdown follow the [managed project basis](plain-project-basis.md). The common conditional-publication contract and automated/native file tests below remain. Historical VSS A/B in [AP verification](verification/plain-folder-original-apply.md) does not qualify the new path. Plastic follows its [separate contract](plastic-original-apply.md); released-result import and other export targets are unsupported.
 
 <a id="계획과-실행"></a>
 ## Planning and execution
@@ -33,11 +33,11 @@ Apply the existing file's owner/group/DACL, DACL protection, and creation time, 
 
 Before original writes, publish a version 1 plan, fixed intent, and per-path receipts in v2 workspace `originalApply`. Resume only with the same id/home, intent, digest, and basis/result. Distinguish stage-creation identity, payload completion, old-file move, publication, and reclamation; recheck completed paths. Continue an incomplete owned stage only when identity and actual payload prefix match. Stages without receipts, changed temporary files, and new original conflicts after interruption are preserved and stop the operation. There is no automatic rollback/reset, different intent, or temporary-file sweep. Damaged/missing/unknown fields are preserved/rejected.
 
-Incomplete intent blocks checkpoint, ensure, Editor lifetime changes, compact, release/discard. The restricted service's separate Release authorization also checks it. After normal completion, reclamation/discard may be explicit; discard does not undo an already applied original. Completion receipts are fixed to exact results. Duplicate completed requests do not overwrite later original edits. Converting subsequent edits into another checkpoint/apply generation is not provided; preserve existing results/later edits and use a new task.
+Incomplete intent blocks checkpoint, ensure, Editor lifetime changes, compact, release/discard. After normal completion, reclamation/discard may be explicit; discard does not undo an already applied original. Completion receipts are fixed to exact results. Duplicate completed requests do not overwrite later original edits. Converting subsequent edits into another checkpoint/apply generation is not provided; preserve existing results/later edits and use a new task.
 
 <a id="비용과-자격"></a>
 ## Costs and qualification
 
 Explicit application stages one changed file, then publishes/reclaims it before moving to the next path. Existing content is retained by rename, without a separate full original backup/clone. Staging reserves only the known payload length and hashes/reads/writes with a 64KiB buffer. Independent-result objects, workspace range journals, and explicit publication files have distinct costs. This is not workspace creation/hydration/copy-up.
 
-Original application requires [ordinary-folder lifecycle](vcs-independent-workspaces.md) prerequisites and **a current restricted-service package including this pending-apply guard**. Installation/update and grants are separate explicit administrator Apply actions. Ordinary CLI neither performs them nor automatically elevates. Actual product qualification is limited to one small Editor-free Windows x64 NTFS A/B set, without extending to Unity/Plastic, large inputs, or OS failures.
+Original application follows the preparation, ownership and publication conditions of [ordinary folders](vcs-independent-workspaces.md) and [project basis](plain-project-basis.md). No VSS service/grant is required. Distinguish NP qualification from the historical AP small Editor-free Windows x64 NTFS A/B; do not extend either to large inputs or OS failures.

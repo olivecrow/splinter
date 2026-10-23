@@ -3,16 +3,16 @@
 
 [한국어](ko/workspace-discard.md)
 
-The current ordinary-folder path for `--source none` and v2 state/service packages follows [VCS-free workspaces](vcs-independent-workspaces.md). Git paths and historical native qualification below do not qualify ordinary-folder support.
+The current ordinary-folder path for `--source none` and v2 state follows [VCS-free workspaces](vcs-independent-workspaces.md). Git paths and historical native qualification below do not qualify ordinary-folder support.
 
-`workspace discard` explicitly abandons a fully prepared NTFS task worker without successful validation/checkpoint. Core/Runtime connect to actual Git/Windows providers and CLI. Real VSS discard requires a privilege-service package supporting this contract; service updates are separate administrator actions. [Discard verification](verification/workspace-discard.md) covers automated privilege boundaries, local Editor-free VSS A/B, same-intent resumption/duplicates; [representative usage](verification/representative-agent-workflow.md) covers Unity compile failure and normal stop/actual discard of an uncommitted worker. Native forced interruption and general support remain separate unexecuted scope.
+`workspace discard` explicitly abandons a fully prepared range-journal task. Git/Plastic/project bases retain owned-reference, reader and original/peer guards, using ordinary-user providers without service/grants. VSS A/B in [historical discard verification](verification/workspace-discard.md) remains an earlier record; current qualification follows each basis provider.
 
 ```powershell
 pwsh ./scripts/splinter.ps1 workspace status --id <id> --home <home>
 pwsh ./scripts/splinter.ps1 workspace discard --id <id> --intent-key <stable-discard-key> --expected-request-digest <requestDigest> --home <home>
 ```
 
-Identify the target through status/list ID, project/path, and `requestDigest`. Retry interruption/delay with the same key/digest/id/home. `Succeeded`/`discarded` means exact owned resources are absent; `Accepted`/`discard-reclaim-pending` waits for a shared VSS blocker after task payload removal. Existing preserving [release](ntfs-workspaces.md#reclamation-and-observations) continues to require independent results/seals.
+Identify the target through status/list ID, project/path, and `requestDigest`. Retry interruption/delay with the same key/digest/id/home. `Succeeded`/`discarded` means exact owned resources are absent; `Accepted`/`discard-reclaim-pending` preserves a provider-deferred owned-reference reclamation after task payload removal. Existing preserving [release](ntfs-workspaces.md#reclamation-and-observations) continues to require independent results/seals.
 
 <a id="입력과-소유권"></a>
 ## Inputs and ownership
@@ -35,7 +35,7 @@ Runtime requires application/child ownership and zero processes/memory. It compa
 
 During discard, ensure/Editor start, refresh, stop/checkpoint/integrate/release/compact cannot begin another lifecycle. Status returns observations/discard stage without reading source files or inheriting successful validation responses. Only `DiscardAsync` with the same intent key/digest continues remaining stages.
 
-Workspace, candidate, source-generation, or cache dependencies block before stop, returning exact dependencies and next actions to inspect. Recheck immediately before snapshot reclamation. Publish current absent mount/provider/delta and zero owned-resource observations in durable workspace state before requesting the separate service. State-publication failure stops before reclamation request. Other tasks, original Editor, and shared views/caches are not automatically stopped.
+Workspace, candidate, source-generation, or cache dependencies block before stop, returning exact dependencies and next actions to inspect. Recheck immediately before snapshot reclamation. Publish current absent mount/provider/delta and zero owned-resource observations in durable workspace state before requesting owned-basis reclamation. State-publication failure stops before reclamation request. Other tasks, original Editor, and shared views/caches are not automatically stopped.
 
 `discard-reclaim-pending` waits for snapshot reclamation after source/delta cleanup. Retain reclamation receipts/blockers and retry only the snapshot stage with the same intent. `discarded` is a completion receipt confirming absent exact snapshot/delta/mount/provider and zero owned resources. Unknown is neither 0 nor complete. Conversation/Editor termination, timeout, and disk pressure do not express discard intent.
 
@@ -46,6 +46,6 @@ Workspace, candidate, source-generation, or cache dependencies block before stop
 
 Windows delta records exact directory, seal, and identity hash in owner intent and `discard-delta-reclaim.json`. A journal fence excluding writers verifies hash/length, then deletes only `delta.journal` and `identity.json`. Unexpected files or changed identity/journal are rejected; after partial deletion, process only remaining files under the same record. Forced cleanup of ongoing preparation/compaction is unsupported.
 
-VSS receives separate `release.discard` authorization through the existing fixed `Release` IPC operation. The service compares authenticated user, installation scope, protected capture tuple, durable discard state/intent/seal, absent actual Git registration/branch/mount/delta, zero owned resources, shared dependencies, and an exclusive reader fence. It passes protected `discard-authorized.json` to the helper without creating `resultsPreserved=true`. Live identity, exact snapshot ID, existing deletion-isolation guards, and deferred reclamation receipts remain. No compatibility fallback to previous services or automatic elevation is added.
+Basis reclamation handles only the exact owned reference after dependent/readers finish. It first verifies discard intent/seal and owned-resource absence, without fabricating result preservation. Legacy VSS state is preserved/rejected under the [retirement decision](plans/vss-retirement.md), without automatic deletion or migration.
 
 Product completion criteria follow [M0](plans/validation-matrix.md#first-practical-use-version-m0). .NET calls without a separately composed provider are rejected with `WorkspaceDiscardUnavailable` before intent/stop.

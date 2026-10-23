@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Splinter.Core;
 
-// Private journal storage only. Immutable snapshot bytes and shared VSS are not
+// Private journal storage only. Immutable snapshot bytes and shared bases are not
 // charged here; frame bytes include retained mutation metadata and checksums.
 public sealed record JournalPrivateUsage(long JournalBytes, long RetainedPayloadBytes,
     long LivePrivateBytes, long ObsoletePayloadBytes, long FrameBytes)

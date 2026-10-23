@@ -2,6 +2,8 @@
 
 [English](../snapshot-overlay.md)
 
+> **과거 구현 기록 — 현재 실행 지침 아님.** [VSS 폐기 결정](plans/vss-retirement.md)에 따라 VSS 공급자·서비스·전용 스크립트는 제거했다. 아래 명령·권한·자격은 폐기 전 후보의 기록이며 실행을 재개하지 않는다. 공통 저널 시험과 현재 기준본은 [NTFS 계약](ntfs-workspaces.md)을 따른다.
+
 현재 명령은 [별도 개발 CLI](development-cli.md)에서 사용한다. storage 후보·source/cache·seal/회수 계약을 제공하며 프로젝트 작업과 결과 판단은 AI·외부 도구가 맡는다.
 
 **독립 저장소 실험 진입점**의 계약이다. 같은 VSS/WinFsp/저널 구현을 사용하는 일반 제품 backend는 [NTFS 작업공간](ntfs-workspaces.md)에 별도로 연결되어 있다. Windows/NTFS 한 환경의 SO-01~06 fixture 증거는 [SO 기록](verification/snapshot-overlay.md), 제품 NI 상태는 [NI 기록](verification/ntfs-workspace-integration.md)으로 구분한다. 원본 이동은 요구하지 않는다.

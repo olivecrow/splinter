@@ -77,7 +77,7 @@ public sealed class PreparationInterruptionTests
 
     private static Task<WorkspaceView> Ensure(string project, string home, IWorkspacePreparationObserver? observer, CancellationToken ct) =>
         new WorkspaceCoordinator(new(home), new Source(), new App(), snapshots: new Backend(), preparationObserver: observer)
-            .EnsureAsync(project, "interrupted", "base", "ntfs-snapshot", false, ct);
+            .EnsureAsync(project, "interrupted", "base", "git-snapshot", false, ct);
 
     private sealed class Backend : ISnapshotWorkspaceBackend
     {
@@ -86,7 +86,7 @@ public sealed class PreparationInterruptionTests
             string path = Path.Combine(c, "capture.json");
             if (!File.Exists(path))
             {
-                var reference = new SnapshotReference("snapshot-" + w.Id, "fake", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "fake");
+                var reference = new SnapshotReference("git-" + w.Id + "-" + w.BaseRevision, "git-objects", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "recorded-project-commit-raw-blobs");
                 File.WriteAllText(path, JsonSerializer.Serialize(reference));
                 File.WriteAllText(Path.Combine(c, "capture-created-" + Guid.NewGuid().ToString("N")), "");
             }

@@ -1,55 +1,36 @@
-<a id="ntfs-snapshot-작업공간"></a>
-# NTFS snapshot workspaces
+# NTFS project workspaces
 
 [한국어](ko/ntfs-workspaces.md)
 
-For explicit preservation **and** reclamation without intervening integration, `workspace checkpoint --id <id> --message <message> --release --home <home>` completes both under one task lock. It already normally stops the owned Editor. Omit `--release` to retain resources for an explicit integrate step. Same-request recovery and the retained integrity boundaries are specified in [LF-01–05](verification/lifecycle-finalization-optimization.md).
+The current product combines `git-snapshot`, `plastic-snapshot`, or `project-snapshot` bases with WinFsp range journals. Follow the input/preparation contracts for [Git](git-project-basis.md), [Plastic](plastic-project-basis.md), and [VCS-free projects](plain-project-basis.md). `ntfs-snapshot`, VSS, and the dedicated service are [retired](plans/vss-retirement.md); legacy state is preserved/rejected. Common journal, path, result and recovery guards below remain.
 
-This document owns the existing `ntfs-snapshot` VSS path. VSS-free `git-snapshot`, which uses a Git commit as project basis, follows a [separate contract](git-project-basis.md) and [verification](verification/git-project-basis.md). Do not mix basis, ignored/Library input semantics, privileges, or reclamation qualification between the paths.
+When preservation and reclamation are both authorized without intervening integration, use `workspace checkpoint --release`. Normal owned-Editor shutdown, independent results, seals and reclamation guards remain; checkpoint does not claim compilation success. See [LF-01–05](verification/lifecycle-finalization-optimization.md).
 
-The current ordinary-folder path for `--source none` and v2 state/service packages follows [VCS-free workspaces](vcs-independent-workspaces.md). Git paths/historical native qualification below do not qualify ordinary-folder support.
-
-[Explicit discard](workspace-discard.md) connects Core/Runtime, Windows/Git providers, and CLI. It requires a restricted service supporting that contract; [discard verification](verification/workspace-discard.md) owns actual discard qualification for local Editor-free dirty A/B. Preserving release below continues to require independent-result gates.
-
-`workspace ensure --storage ntfs-snapshot` connects VSS bases and WinFsp range journals to the existing workspace lifecycle. It requires neither baseline preparation nor original migration. **Ordinary product CLI has executed actual NTFS/Git/Unity creation, editing, validation, reconnect, independent-result preservation, and reclamation stages.** [NI verification records](verification/ntfs-workspace-integration.md) own final VSS-release status/support limitations. Independent SO experiment success is not counted as product-integration success.
-
-Current storage supports [compressed-journal](journal-payload-compression.md) overlay v2, OFF SJR2, and [optimization ON SJL4/root v4](latest-only-journal.md); independent candidates are v3/SJR2. Earlier identities/journals/candidates are preserved/rejected. Earlier NI/M0/JP execution does not qualify new SJL4 native passes; distinguish [LJ verification](verification/latest-journal-write-optimization.md).
-
-<a id="입력과-권한-경계"></a>
 ## Inputs and privilege boundaries
 
-Git clean/HEAD/management-registration conditions below apply to `--source git`. Ordinary folders follow the [VCS-independent contract](vcs-independent-workspaces.md); Plastic follows [management-information/registration compatibility](plastic-compatibility.md). They share common NTFS/VSS/WinFsp, owned-resource, range-storage, and reclamation guards.
+Git clean/HEAD/management-registration conditions below apply to `--source git`. Ordinary folders follow the [VCS-independent contract](vcs-independent-workspaces.md); Plastic follows [management-information/registration compatibility](plastic-compatibility.md). They share common NTFS/WinFsp, owned-resource, range-storage, and reclamation guards.
 
 - Targets are existing Windows NTFS, installed WinFsp, and a saved clean Git repository root. The first Unity validation target is separate `splinter-unity`. Original current HEAD must match `--base`, and `.git` must be inside the original.
 - Dirty/staged/untracked changes, skip-worktree/assume-unchanged, submodule/symlink, LFS/user filters/working-tree-encoding are rejected. Filters are also checked at checkpoint/result preservation. Do not stash/reset or arbitrarily commit the original.
 - Original/immutable-snapshot metadata checks reject ADS, hardlinks, reparse, EFS, compressed/sparse files with `SnapshotFileUnsupported`. `.git` is excluded from the basis tree. This check neither reads nor copies file payload. Individual ACL changes are unsupported; the overlay does not claim to reproduce all original ACL semantics.
-- Reparse/EFS/compressed/sparse attributes follow the same rejection rules for lazy basis reads and WinFsp create/overwrite/attribute changes. Overwrite checks before reducing existing length. Rejected callbacks preserve bytes/metadata/journal sequence and return OS `STATUS_NOT_SUPPORTED`. An actual ARM64 mount verified rejection of 5 ADS/hardlink/sparse/compression/mount-point-reparse requests with ordinary-NTFS positive controls. Immutable input is fake; full VSS-input/EFS/ACL/special-FSCTL verification remains. [NR records](verification/ntfs-recovery.md) own execution scope.
+- Reparse/EFS/compressed/sparse attributes follow the same rejection rules for lazy basis reads and WinFsp create/overwrite/attribute changes. Overwrite checks before reducing existing length. Rejected callbacks preserve bytes/metadata/journal sequence and return OS `STATUS_NOT_SUPPORTED`. An actual ARM64 mount verified rejection of 5 ADS/hardlink/sparse/compression/mount-point-reparse requests with ordinary-NTFS positive controls. Immutable input is fake; full EFS/ACL/special-FSCTL verification remains unqualified. The old VSS-input matrix is retired. [NR records](verification/ntfs-recovery.md) own execution scope.
 - Immediately before capture, callers check original Unity is saved and not importing/compiling/Playing. Capture supplies filesystem crash consistency without application writers, excluding unsaved memory. Original editing may continue afterward.
 - Use short `--home` paths. NI's deep test path observed an initial-load exception for a 270-character full Unity package DLL path. Script validation/execution passed, but long package paths/general asset loads are not established support. Initial import has no SLA either.
-- Creation/reconnect require 2 GiB free on the state volume; new capture requires 8 GiB headroom under existing VSS diff-area maximum. Installation, volume, and maximum settings are not automatically changed. Out-of-project writes also consume VSS space.
-
-The [Windows storage-privilege service](storage-privilege-service.md) handles VSS Capture/Observe/Release. Initial installation and user/project/volume/home registration are administrator configuration; ordinary CLI/Git/Unity remain standard-user. Missing service returns `StorageServiceMissing`, stopped service `StorageServiceUnavailable`, unregistered scope `StorageScopeDenied`. There is no automatic elevation or fallback to existing helpers.
-
-Service code and actual execution qualification are separate. [UA verification](verification/storage-privilege-service.md) owns the zero-additional-UAC verdict for ordinary repeated work after initial installation. Development administrator sessions/fake tests do not complete actual service installation/repeated usage qualification.
-
-Manual-diagnostic `scripts/vss-snapshot.ps1` is only for separately authorized administrator work. A UAC request alone is not evidence of window display/snapshot creation. Compare actual owned-process exit with `capture-intent.json`, `capture-return.json`, `snapshot.json`, and `operation-result.json`. If the window is invisible or results unclear, preserve records without starting duplicate helpers/new captures.
 
 WinFsp directory enumeration provides actual directory information, `.`/`..` entries, and marker-based continuation for nonroot directories. Even empty child directories enumerate through Win32 `FindFirstFileW(<dir>\*)`. These entries are not overlay files/journal records. [Small-Unity real-environment regressions](verification/journal-compaction-qualification-and-cost.md) compare empty-folder enumeration failure before the fix and success afterward.
 
 <a id="일반-cli-흐름"></a>
 ## Ordinary CLI flow
 
-The [product development test](product-write-recovery.md) reproducing write interruptions in registered local fixtures/homes retains ordinary providers and terminates only exact owned providers at external-client boundaries. It compares same ensure, fresh current VSS read proofs, and independent results/release; it neither enables gates automatically during ordinary use nor reclaims failed tasks.
+The [product development test](product-write-recovery.md) reproducing write interruptions in explicit clean Git fixtures/homes retains ordinary providers and terminates only exact owned providers at external-client boundaries. It compares same ensure, current immutable-basis read proofs, and independent results/release; it neither enables gates automatically during ordinary use nor reclaims failed tasks.
 
 Below, `splinter` means `pwsh ./scripts/splinter.ps1` in the product repository. Build with `pwsh ./scripts/build.ps1`. All workers share one persistent `--home` state path outside the original project.
 
 ```text
-splinter workspace ensure --project <original Unity repository> --key <unique task key> --base development --storage ntfs-snapshot --home <state path>
+splinter workspace ensure --project <original Unity repository> --key <unique task key> --base development --storage git-snapshot --home <state path>
 splinter workspace status --id <workspace.id> --home <state path>
 splinter unity start --id <id> --home <state path>
 ```
-
-Before first ensure, check `storage service status` and installation scope. After service installation/configuration, invoke ensure again with **the same inputs**. `--editor` also requests Editor execution after preparation. Check `application.ready` for Editor readiness; edit only inside returned `workspace.path`. Task key plus project determines identity; input hash, snapshot, delta, registration, and execution receipts remain in `home`. `--max-journal-bytes` defaults to 16 GiB, minimum 4096, maximum 1 TiB, immutable after task creation.
 
 Common WinFsp mount/reconnect waits at most 2 minutes for actual mount and fresh `mounted` state from the exact running provider. `starting`/`replaying` are not readiness; limits/cancellation do not delete providers/journals. Same-request retries continue observing that provider. Journals use a lifetime-bounded 64KiB read buffer with all frame validation retained; new replay-stage counters follow the [measurement contract](source-verification.md#meaning-of-measurements). This does not introduce a Unity execution mode or switch default execution methods.
 
@@ -96,7 +77,7 @@ Workspace Git commands have a 10-minute limit/caller cancellation. Initial index
 ```text
 <home>/records/<id>/workspace.json         identity, stage, previous evidence, result manifest
 <home>/records/<id>/events.jsonl           task intents and completion/failure
-<home>/records/<id>/snapshot/              owned VSS receipts, helper, input checks, release authorization
+<home>/records/<id>/snapshot/              owned project-basis receipts and release authorization
 <home>/records/<id>/git-overlay.json       no-checkout registration and private .git pointer
 <home>/records/<id>/overlay/               provider requests/execution/flush-stop observations
 <home>/records/<id>/delta/                 identity.json, delta.journal; during compaction: compaction-intent.json, delta.journal.compacting/previous
@@ -138,7 +119,7 @@ WinFsp Read/Write callbacks rent buffers sized to the smaller of request length 
 
 ```powershell
 # Default is a read-only execution plan. Actual execution uses a separate new evidence path and -Execute.
-pwsh ./scripts/test-preparation-recovery.ps1 -Project <registered clean NTFS Git fixture> -HomePath <registered home> -BaseReference <current HEAD ref> -OutputPath <new evidence path>
+pwsh ./scripts/test-preparation-recovery.ps1 -Project <clean NTFS Git fixture> -HomePath <home> -BaseReference <current HEAD ref> -OutputPath <new evidence path>
 ```
 
 `-Execute` terminates CLI at request recording, source checking, capture, Git registration, delta, provider, mount, index, Ready, and response boundaries, then runs two ordinary ensures with identical inputs. Lock `WorkspaceBusy` is rechecked with the same request after the first call finishes. Tests cover lost-response retry, input-conflict rejection, independent-result preservation, explicit release; failures retain tasks/evidence. Service installation, grants, volumes/VSS budgets, and global Git settings are unchanged. Fixture-owner differences use child-process Git settings limited to the explicit source. [Preparation-recovery verification](verification/preparation-recovery.md) owns actual per-boundary qualification/inapplicable combinations.
@@ -149,13 +130,11 @@ Basis/restore protection errors `ProjectBasisMismatch`, `GeneratedBasisChanged`,
 
 Journal directory queries sort/return only that folder's children from the per-parent child-identity index. Lazy basis entries, creation/deletion/replacement/directory movement/replay update the same index. Queries do not traverse every other folder's paths. Existing metadata limits, mutation gate, individual flush/ACK, and SJR2 format remain. The index is bounded managed-metadata cost, not a guarantee of actual Unity preparation-time or total-RAM savings.
 
-Snapshot-access failure produces `SnapshotObservationUnknown`. `snapshotAvailability`/`snapshotStorage.availability` are `available`/`missing`/`unknown`; unknown omits existing boolean fields. Ordinary ensure and prereclamation stages preserve until observations recover. Distinguish observed absence from access errors; a path changed to a file preserves with `SnapshotIdentityMismatch`. Only a successful exact-ID absence query means missing; read-path loss alone does not prove VSS absence. Live identity comparison on new connections follows the contract below.
-
-At final `release-snapshot`, revalidate independent results and confirm application/provider/mount/Git-registration/delta reclamation, then refresh exact VSS observations through the installed privilege service. A deleted device path returning Win32 21 does not mean absence from the error alone. Resolving ambiguous path observation requires a matching owner/snapshot `released` receipt, helper `observation.json` confirming absent VSS ID, and matching current OS `LastBootUpTime`. Refresh older receipts from another boot through nondestructive service `Observe`. If boot information is unavailable, preserve state. CLI itself does not run as administrator. Boot-query failure remains unknown; saving reclamation completion still checks every resource's absence. A released device path reused by another directory preserves as identity mismatch.
+Snapshot-access failure produces `SnapshotObservationUnknown`. `snapshotAvailability`/`snapshotStorage.availability` are `available`/`missing`/`unknown`; unknown omits existing boolean fields. Ordinary ensure and prereclamation stages preserve until observations recover. Distinguish observed absence from access errors; a path changed to a file preserves with `SnapshotIdentityMismatch`. Only a successful exact-identity observation means missing; read-path loss alone does not prove basis absence. Each provider validates its fixed receipt and reader identity on new connections.
 
 Provider `state.json` also uses verified access observations, recording unobservable state as `snapshot-unknown`. Invalid complete-frame checksum/sequence/JSON/path-range metadata or damaged identity JSON fail with `DeltaCorrupt`, preserving files unchanged. Replay removes only an incomplete final frame under existing contracts, without truncating complete corruption.
 
-Provider control JSON/workspace state fully write/flush a same-directory temporary file, then replace existing files through `File.Replace`. Only initial publication uses nonoverwriting move; readers allow delete sharing. VSS receipts follow the same method. Windows provider IPC retries transient sharing errors 32/33/1175 with the same temporary file for at most 1 second. It neither changes read-only attributes, deletes destination first, nor overwrites content in place. Persistent-failure temporary files remain; internal `state.json` records `errorHResult`, `errorStackTrace`, `publicationPath`, and `publicationTemporaryPath`. External workspace-response schemas/journal flush-seal contracts remain. Follow [reproduction/regression evidence](verification/storage-recovery.md).
+Provider control JSON/workspace state fully write/flush a same-directory temporary file, then replace existing files through `File.Replace`. Only initial publication uses nonoverwriting move; readers allow delete sharing. Windows provider IPC retries transient sharing errors 32/33/1175 with the same temporary file for at most 1 second. It neither changes read-only attributes, deletes destination first, nor overwrites content in place. Persistent-failure temporary files remain; internal `state.json` records `errorHResult`, `errorStackTrace`, `publicationPath`, and `publicationTemporaryPath`. External workspace-response schemas/journal flush-seal contracts remain. Follow [reproduction/regression evidence](verification/storage-recovery.md).
 
 Windows control-file readers do not decide readability through `File.Exists`; they apply path guards and open with delete sharing. Replacement-time file/directory absence and sharing errors 32/33 reopen the same path for at most 1 second of monotonic time, at intervals no longer than 25ms. Actual absence after deadline returns the existing missing contract; persistent sharing errors remain exceptions. File absence does not prove zero resources; caller launch/owner/mount checks remain necessary. Apply guards every time; do not hide JSON corruption/access denial/reparse/owner mismatches through retries. Optional provider stop/flush/source requests skip absence waiting because the next poll rereads them. [IPC-race evidence](verification/control-file-read-races.md) distinguishes actual Windows-file tests from synthetic-client tests.
 
@@ -167,46 +146,22 @@ Current `StateWriteIncomplete` details follow `urn:splinter:v1:state-write-failu
 
 Only confirmed Windows FACILITY_WIN32 HRESULTs supply `nativeErrorDomain=win32`/`nativeErrorCode`. Unconfirmed native errors omit fields without guessing 0. Diagnostics omit original exception messages/stacks/temporary-destination paths. They do not change atomic publication, flush, retries, or temporary-file preservation; validation-project ledger `ValidationStateWriteIncomplete` is outside this workspace contract. Follow [diagnostics, actual-file tests, and limitations](verification/state-write-diagnostics.md).
 
-<a id="살아-있는-vss-식별과-읽기-위치"></a>
-## Live VSS identity and read locations
-
-Version 2 `snapshot/snapshot.json` `captureIdentity` fixes original snapshot ID, system-provider ID, volume GUID path, volume-relative path, capture time, and persistent/differential/no-auto-release conditions. `verification-request.json` records owner/original ID/request generation/current boot; `live-observation.json` records queried object's actual identity/current device root/query success-failure. Current read location is `SnapshotReadAccess` built only from verified device root and fixed relative path. `SnapshotReference.RootPath`, overlay identity, and existing journal remain as captured. Available response `snapshotStorage.readAccess` provides snapshotId, rootPath, verificationId.
-
-New provider connections require current-boot observations with a verification ID different from one consumed by prior execution. `SnapshotVerificationRequired` resumes through identical ensure. Same-request retries after service Observe reuse prepared observations without duplicate capture/registration/provider. Observe changes neither VSS, original, nor volume settings; it stores only owned observation records. Ordinary status reuses same-connection verification. Provider periodically checks observations/current read paths rather than invoking CIM per file I/O. Changed access data during execution is rejected; only a new connection can change read location. This does not qualify all concurrent races or external-administrator VSS deletion/replacement.
-
-Current VSS receipts require version 2 and captureIdentity. Unsupported versions/missing capture identity reject while retaining original receipts/deltas, without automatic migration. Different owner/ID/provider/volume/relative path gives `SnapshotIdentityMismatch`; damaged JSON gives `SnapshotObservationCorrupt`; interrupted publication files give `SnapshotObservationIncomplete`. Latest-query failure, new boot, or inaccessible paths cannot substitute previous success. Actual reboot/forced power shutdown remain separate unverified gates.
-
-<a id="지연-회수와-명시적-재시도"></a>
-## Deferred reclamation and explicit retries
-
-`workspace.snapshot.reclamation` supplies `snapshotId`, `attemptId`, `disposition` (`deferred`/`released`), `observedAt`, `blockingSnapshotIds`, and optional `sharedStorage`. Save pending state only after verified independent results, zero application/provider/memory/handles, and confirmed mount/registration/delta reclamation. `snapshot.step` is `release-snapshot`; workspace phase is `reclaim-pending`. Retain result refs without remounting the task or substituting a new snapshot.
-
-Pending `workspace release` returns `Accepted`, `terminal=false`, `retryDisposition=requires-user-action`, `recovery.disposition=deferred-reclamation`, and release for the same `id/home`. This is neither automatic scheduling nor polling. `status/list` show stored deferral/last observation; successful queries do not mean completed reclamation. Retry identical release after the blocking older snapshot's owned task is separately explicitly reclaimed. Do not delete another task's/unowned snapshot instead. Standard-user retry invokes installed privilege service for the same workspace, without elevating the whole CLI/Editor.
-
-`release-request.json`/`release-deferred.json` bind full snapshot reference, owner, current boot, request ID, and time. After helper completion, a new CLI consumes not-yet-consumed pending results; an explicit retry of an already stored attempt issues a new request. Helper checks latest snapshot lists/deletion blockers each time. A global release mutex serializes deletion between Splinter homes but cannot serialize external-backup deletions. Damaged/mismatched evidence preserves with `SnapshotReclamationInvalid` or existing observation errors. Unknown resources, lost result refs, and remaining delta block retry reclamation too.
-
-`sharedStorage` supplies `volumeId/observedAt/usedBytes/allocatedBytes/limitBytes`, `scope=source-volume-shared`, and `workspaceAttribution=unknown`. These are last-helper observations of whole-volume VSS. Do not sum tasks on the same volume or label values as that task's attributed costs/bytes returned on deletion. Failed observations omit numbers and record `SnapshotStorageUnknown`. Ordinary status does not remeasure them. Released means absent snapshot ID/owned resources, not immediate zero VSS allocation/OS cache.
-
-Follow the [deferred-reclamation plan](ntfs-workspaces.md) and [verification records](verification/deferred-snapshot-reclamation.md) for scope/evidence. Automatic sweeps, shared-basis lifecycle, and immediate physical reclamation in arbitrary order are not provided.
-
-<a id="회수와-관측"></a>
 ## Reclamation and observations
 
-Incomplete publication, candidates, source generations, and open caches in development [source views/Library caches](view-workflow.md) depend on the VSS. Product release/discard blocks them with `SnapshotInUse`, without cascading deletion. Editor-free workers also preserve through product `workspace checkpoint`.
+Incomplete publication, candidates, source generations, and open caches in development [source views/Library caches](view-workflow.md) depend on the immutable basis. Product release/discard blocks them with `SnapshotInUse`, without cascading deletion. Editor-free workers also preserve through product `workspace checkpoint`.
 
-Reclamation order is application/child exit → owned-bridge removal → precollection flush/seal → current-source checks/independent-result refs → postcollection flush/seal comparison → manifest save → unmount/provider exit → seal recheck → Git-registration reclamation → delta reclamation → release owned VSS ID with no remaining dependencies. Bridge removal is a legitimate journal mutation and finishes before collection. Ignored files outside managed caches, unpreserved changes, or other dependent tasks block. Writes during/after collection changing seals stop with `DeltaChangedAfterCollection`, retaining old manifest/journal/snapshot. Lost responses during delta reclamation verify existing deletion intent/remaining files before continuing. VSS helper accepts only exact owned IDs and performs no global deletion. However, [failure records](verification/storage-foundation.md) document providers removing other older snapshots during exact-ID deletion. Current guards block before deletion with `SnapshotReleaseIsolationRequired` if the same volume has other older/same-time/unknown-time snapshots or unknown volume information. `release-isolation.json` records before/after IDs and whether deletion was attempted; another ID's disappearance is `SnapshotCollateralLoss`. Do not delete existing snapshots to bypass. Actual [isolated owned synthetic-snapshot verification](verification/storage-recovery.md) covered blocking/older-first reclamation, not all providers/general unowned-backup coexistence preservation. If an older snapshot remains in use, a later-completed task also stays `reclaim-pending` at final snapshot reclamation. Distinguish preserved results from deferred reclamation and explicitly retry the same task's release. This is not full release success.
+Reclamation order is application/child exit → owned bridge removal → precollection flush/seal → current-source checks and independent results → postcollection seal → manifest → unmount/provider exit → seal recheck → owned registration/delta → owned basis reference. Uncollected changes or other dependents block. A changed postcollection seal preserves with `DeltaChangedAfterCollection`; a lost reply resumes using the same intent and remaining inventory. Do not delete original/peer/shared bases arbitrarily.
 
 After snapshot loss, reclamation is allowed **only when an independent result collected with `stable-journal-v1` exists and Git refs/objects and whole journal seal match**. Do not reread/modify unavailable original trees; compare seals after unmount. Missing independent results or postcollection writes preserve results/journals and fail. Unmount with open handles gives `OverlayStopPending`; close handles, then retry identical release.
 
 Result-manifest `collectionProtocol` is required and allows only `stable-journal-v1`. Missing/unsupported values reject with `StateCorrupt`, preserving manifest/journal/snapshot. If current checkpoint stopped after Git commit but before collection and no result manifest exists, retry the same task's checkpoint. Automatic recollection of already published invalid manifests/manual-field-edit migration is not provided. Source checks use [change-based verification](source-verification.md), with full reads initially, on audits, and provider reconnect. Whole-journal seals/Git-object-generation reads remain at collection boundaries, measured in `source-inspections.jsonl`/`storage-reads.jsonl`.
 
-`workspace.snapshot.observation` supplies snapshot/mount/provider/delta existence, ownership, handles/working set/private bytes, host free space, and journal remaining capacity. Missing resource values are unknown, not 0. Creation payload/read cache/journal payload-metadata/sequence in `storage` are provider measurements. Journal length is neither actual NTFS file-data allocation nor VSS usage. `snapshotStorage.preservedBytes/allocatedBytes` are omitted because current ordinary calls cannot observe them; separate administrator-helper volume observations/actual allocation measurements are required.
+`workspace.snapshot.observation` observes snapshot/mount/provider/delta, ownership, handles, working set/private bytes, host free space and journal headroom. Missing values are unknown, not zero. Cumulative provider journal counters are not NTFS allocation, whole peak, or space remaining after reclamation. Report measured allocation separately from independent-result and shared-basis costs.
 
 `failureCode` shows snapshot loss/pressure/provider failure or last provider-I/O failure. `DeltaFull` retains existing data without automatically increasing quota/deleting data. Successful release retains fresh observations of zero application/child/provider/owned-memory/handles and absent mount/delta/snapshot. Cumulative `storage` writes are historical last-run values, not remaining actual space after reclamation. Released queries return final reclamation receipts. This does not empty OS standby/cache RAM.
 
 | Error | Resume action |
 | --- | --- |
-| `StorageServiceMissing` / `StorageServiceUnavailable` / `StorageScopeDenied` | Check `storage service status`/installed grants, then retry the same workspace command after explicit installation/configuration. |
 | `StorageOperationUncertain` / `StorageRequestPending` | Retain protected existing intent and retry the same workspace/request. No bypass through new capture/other-task reclamation. |
 | `RequestKeyConflict` | Invoke with stored input or use a new key for a separate task. |
 | `SnapshotMissing`, `SnapshotIdentityMismatch` | Do not substitute a new original. A lost snapshot permits release only with matching existing independent result/journal seal. |
@@ -223,6 +178,14 @@ Result-manifest `collectionProtocol` is required and allows only `stable-journal
 <a id="구현과-검증-경계"></a>
 ## Implementation and verification boundaries
 
-Core `ISnapshotWorkspaceBackend`/`ISnapshotSourceWorkspaceProvider` expose no Windows/Git APIs. Runtime owns stages, locks, result/dependency policy; Git adapter owns registration/index/result refs; Windows adapter owns VSS helpers, special-file checks, WinFsp, journal observations/reclamation. CLI composes them; Host remains read-only in-process.
+Core `ISnapshotWorkspaceBackend`/`ISnapshotSourceWorkspaceProvider` expose no Windows/Git APIs. Runtime owns stages, locks, result/dependency policy; Git adapter owns registration/index/result refs; Windows adapter owns immutable-reader composition, special-file checks, WinFsp, journal observations/reclamation. CLI composes them; Host remains read-only in-process.
 
 NTFS failure never switches to full checkout/whole-file copy-up. NI records distinguish automated fake/Git/Windows metadata evidence from actual mount/Unity execution. Common recovery responses/state-file preservation in the [NR-01–08 plan](plans/ntfs-recovery-and-support.md) are partially implemented/automatically verified; actual reboot/space failures/file support-rejection remain incomplete conditions in [NR records](verification/ntfs-recovery.md). Special-file support expansion, general assets/packages, large-project performance, and the whole public product remain later scope. Purchased assets are unnecessary for NI/next NR tests.
+
+
+Historical VSS read/deletion-order evidence belongs to the [decision](plans/vss-retirement.md) and original verification records.
+<a id="ntfs-snapshot-작업공간"></a>
+<a id="입력과-권한-경계"></a>
+<a id="살아-있는-vss-식별과-읽기-위치"></a>
+<a id="지연-회수와-명시적-재시도"></a>
+<a id="회수와-관측"></a>

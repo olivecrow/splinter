@@ -1,14 +1,14 @@
 <a id="제품-vsscli-쓰기-중단-개발-시험"></a>
-# Development product VSS/CLI write-interruption tests
+# Development product Git-basis/CLI write-interruption tests
 
 [한국어](ko/product-write-recovery.md)
 
-`scripts/test-product-write-recovery.ps1` uses a registered clean source/home and the installed restricted-privilege service. It pauses an external client in the VSS/WinFsp/Git workspace of ordinary product `workspace ensure` and terminates only the exact owned provider. Ordinary providers are not connected to development observers. CLI, Git, and client run as a standard user; service installation/grants, volumes/budgets, Unity, and VIVOBOOK are not changed.
+`scripts/test-product-write-recovery.ps1` uses a clean Git source/home and WinFsp. It exercises an external client and the exact owned provider in `workspace ensure --storage git-snapshot`, using a fixed raw Git basis and same-request recovery. No service/grant is required; ordinary providers do not use development observers. CLI/Git/client run as a standard user. New native execution of this development path after changing it from VSS is NotRun.
 
 The default is a read-only plan and creates no source/home/evidence. `-Execute` permits only new evidence, preserves existing workspace/home records, and uses a new key for each case. Prepare Release binaries with `pwsh ./scripts/build.ps1`.
 
 ```powershell
-pwsh ./scripts/test-product-write-recovery.ps1 -Project <registered-source> -HomePath <registered-home> -OutputPath artifacts/ntfs-recovery/<new-id> -BaseReference <recorded-base>
+pwsh ./scripts/test-product-write-recovery.ps1 -Project <clean-git-source> -HomePath <home> -OutputPath artifacts/ntfs-recovery/<new-id> -BaseReference <recorded-base>
 # After checking these inputs and execution conditions, add -Execute. Partial runs use -Cases '<operation>:<boundary>'.
 ```
 
@@ -24,6 +24,8 @@ Write targets 4KiB at position 8192; truncate sets a 4KiB length; replace replac
 
 Request/signal/result use `product-write-recovery-probe-{request,signal,result}.schema.json`, fixing the exact workspace/snapshot/token/generation/PID/start time. Prefix/ACK/signal are published by flushing a new temporary file and moving without overwrite. Failure terminates only the client and preserves the product provider/workspace/snapshot and delta. Immediately after termination, only journal sharing errors 32/33 are re-observed for up to 5 seconds; corruption, access denial, and unknown are not concealed.
 
-After exact provider termination and mount absence, the same ensure must continue the same snapshot/delta/Git registration. Check new current VSS read verification and a new provider generation; a second ensure must retain that same new provider and journal. After actual kernel reads and a new 4KiB write to beta, explicitly preserve an independent Git result through `workspace checkpoint`, without awarding compile success. Verify ref/blob bytes and ordinary release's source seal, mount/Git registration/delta/last-snapshot reclamation, and zero processes/handles/memory. `reclaim-pending` is not completion.
+After exact provider termination and mount absence, the same ensure must continue the same snapshot/delta/Git registration. Check current fixed Git-basis read verification and a new provider generation; a second ensure must retain that same new provider and journal. After actual kernel reads and a new 4KiB write to beta, explicitly preserve an independent Git result through `workspace checkpoint`, without awarding compile success. Verify ref/blob bytes and ordinary release's source seal, mount/Git registration/delta/last-snapshot reclamation, and zero processes/handles/memory. `reclaim-pending` is not completion.
 
-Compare original HEAD/index/tracked hashes, existing refs/worktrees, and service capture/release-isolation snapshot IDs. A standard user's failed global VSS query is unknown, not 0. Use only restricted-service guards and receipt evidence; do not directly delete unowned snapshots. [NR verification](verification/ntfs-recovery.md) owns execution, failures, current candidates, and support limitations. Do not inherit qualification from earlier fake/kernel candidates, Unity, ARM, or reboot/power/space failures. Notify the user before running VIVOBOOK tests.
+Compare original HEAD/index/tracked hashes and existing refs/worktrees, plus the exact task-owned Git basis ref and reader receipts. [NR verification](verification/ntfs-recovery.md) preserves historical VSS-input successes and failures; they do not qualify the current Git path. Unity, ARM, reboot/power/space failures remain unqualified. Fix the scope before any further native run.
+
+The current result schema requires `fixedBasisVerified` and `ownedBasisRefReleased`. The Git tree proof stays identical across reconnect; the new provider generation and exact owned-ref absence are checked. VSS verification-token changes and global snapshot-list fields are removed from the current contract; historical results are not converted.

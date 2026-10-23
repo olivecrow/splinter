@@ -23,7 +23,7 @@ public sealed class GitSnapshotCheckpointTests
         await TestDirectory.Git(source, "add", "."); await TestDirectory.Git(source, "commit", "-m", "basis");
         var w = new WorkspaceRecord { Id = "snapshot-checkpoint", RequestKey = "test", ProjectPath = source,
             Path = Path.Combine(root.Path, "worker"), SourceReference = "splinter/test", BaseReference = "development",
-            StorageMode = "ntfs-snapshot", ManagedPaths = ["Library/managed", "[cache]", "*.csproj"], Snapshot = new() };
+            StorageMode = "git-snapshot", ManagedPaths = ["Library/managed", "[cache]", "*.csproj"], Snapshot = new() };
         var tracker = new Tracker(Path.Combine(control, "source.json"));
         var git = new GitWorkspaceProvider(tracker);
         w.BaseRevision = await git.PreflightAsync(w, ct);

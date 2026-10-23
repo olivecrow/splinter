@@ -23,10 +23,10 @@ public sealed class ContractAndCliTests
     public async Task PlainFolderDiscoveryAndDoctorHaveNoGitOrUnityPrerequisite()
     {
         var catalog = new ContractCatalog();
-        var input = JsonSerializer.SerializeToElement(new { project = "folder", key = "task", storage = "ntfs-snapshot", source = "none", application = "none", baseReference = "snapshot" });
+        var input = JsonSerializer.SerializeToElement(new { project = "folder", key = "task", storage = "project-snapshot", source = "none", application = "none", baseReference = "snapshot", projectBasis = new string('a', 24) });
         Assert.True(catalog.Validate(catalog.Find("workspace.ensure")!.InputSchema, input).IsValid);
         Assert.False(catalog.Validate(catalog.Find("workspace.ensure")!.InputSchema,
-            JsonSerializer.SerializeToElement(new { project = "folder", key = "task", storage = "ntfs-snapshot", source = "none", application = "none", editor = true })).IsValid);
+            JsonSerializer.SerializeToElement(new { project = "folder", key = "task", storage = "git-snapshot", source = "none", application = "none", editor = true })).IsValid);
         using var directory = new TestDirectory(); using var output = new StringWriter();
         Assert.Equal(0, await Program.RunAsync(["doctor", "--project", directory.Path, "--source", "none"], output, TestContext.Current.CancellationToken));
         using var response = JsonDocument.Parse(output.ToString());
@@ -49,7 +49,7 @@ public sealed class ContractAndCliTests
         var catalog = new ContractCatalog();
         Assert.True(catalog.Validate("urn:splinter:v1:response", response.RootElement).IsValid, output.ToString());
         var data = response.RootElement.GetProperty("data");
-        Assert.Equal(new[] { "ntfs-snapshot", "git-snapshot", "plastic-snapshot", "project-snapshot" }, data.GetProperty("storageModes").EnumerateArray().Select(item => item.GetString()));
+        Assert.Equal(new[] { "git-snapshot", "plastic-snapshot", "project-snapshot" }, data.GetProperty("storageModes").EnumerateArray().Select(item => item.GetString()));
         foreach (string command in new[] { "unity.refresh", "validation.execute", "view.execute", "snapshot.spike", "preparation.probe", "baseline.prepare", "storage.probe" })
             Assert.Null(catalog.Find(command));
         Assert.False(data.TryGetProperty("viewWorkflowContract", out _));
@@ -104,18 +104,6 @@ public sealed class ContractAndCliTests
         Assert.False(Directory.Exists(home));
         Assert.Null(contracts.Find(command + "." + subcommand));
         Assert.DoesNotContain("urn:splinter:v1:" + command + "-" + subcommand + "-request", contracts.SchemaIds);
-    }
-
-    [Fact]
-    public async Task StorageAuthorityDiscoveryIsReadOnlyAndKeepsTheHostInProcess()
-    {
-        var (exit, response) = await Run("capabilities");
-        Assert.Equal(0, exit); Assert.False(response.GetProperty("data").GetProperty("persistentHost").GetBoolean());
-        var authority = response.GetProperty("data").GetProperty("storageAuthority");
-        Assert.Equal("unelevated", authority.GetProperty("normalCaller").GetString());
-        foreach (var schema in authority.GetProperty("schemas").EnumerateArray()) Assert.Contains(schema.GetString()!, contracts.SchemaIds);
-        var (statusExit, status) = await Run("storage", "service", "status");
-        Assert.Equal(0, statusExit); Assert.Equal("SplinterStorageAuthority", status.GetProperty("data").GetProperty("serviceName").GetString());
     }
 
     [Fact]
@@ -196,7 +184,7 @@ public sealed class ContractAndCliTests
         using var d = new TestDirectory(); var store = new WorkspaceStore(d.Path);
         string id = WorkspaceStore.Key("deferred-contract");
         var workspace = new WorkspaceRecord { Id = id, RequestKey = "deferred", RequestDigest = id, ProjectPath = d.Path,
-            Path = store.WorkPath(id), BaseReference = "development", SourceReference = "task", StorageMode = "ntfs-snapshot",
+            Path = store.WorkPath(id), BaseReference = "development", SourceReference = "task", StorageMode = "git-snapshot",
             Phase = "reclaim-pending", Snapshot = new() { Step = "release-snapshot",
                 Result = new("snapshot", "revision", "fingerprint", "result-ref", new(1, 100, "hash"), true, SnapshotResult.StableJournalProtocol),
                 Observation = new(true, false, false, true, 0, 0, 0, DeltaPresent: false),
@@ -227,7 +215,7 @@ public sealed class ContractAndCliTests
         var snapshot = new SnapshotReference("snapshot", "fake", d.Path, "snapshot-root", DateTimeOffset.UtcNow, true, true, "fake");
         var workspace = new WorkspaceRecord { Id = id, RequestKey = "discard", RequestDigest = id, ProjectPath = d.Path,
             Path = store.WorkPath(id), BaseReference = "snapshot", BaseRevision = "basis", SourceReference = "task",
-            StorageMode = "ntfs-snapshot", Phase = "discard-reclaim-pending",
+            StorageMode = "git-snapshot", Phase = "discard-reclaim-pending",
             Snapshot = new() { Step = "discard-snapshot", Reference = snapshot,
                 Observation = new(true, false, false, true, 0, 0, 0, DeltaPresent: false),
                 Reclamation = new("snapshot", "attempt", "deferred", DateTimeOffset.UtcNow, ["older"]) },
@@ -324,9 +312,10 @@ public sealed class ContractAndCliTests
     [InlineData("no-owner", false)] [InlineData("no-directory", false)] [InlineData("no-access", false)]
     public void OverlayReadAccessRequiresTheWholeVerificationTuple(string variant, bool valid)
     {
+        var basis = new SnapshotOverlayTests.FakeSnapshotTree().Snapshot with { Provider = "git-objects", Consistency = "recorded-project-commit-raw-blobs" };
         var request = JsonSerializer.SerializeToNode(new Splinter.Platform.Windows.OverlayServeRequest(
-            new(2, "workspace", VssLiveIdentityTests.Snapshot, 1048576, 1048576), "delta", "mount", "control", new string('a', 64),
-            new(VssLiveIdentityTests.Snapshot.Id, VssLiveIdentityTests.Snapshot.RootPath, "verified"), "receipt", "owner"), ApiJson.Options)!;
+            new(2, "workspace", basis, 1048576, 1048576), "delta", "mount", "control", new string('a', 64),
+            new(basis.Id, basis.RootPath, "verified"), "receipt", "owner"), ApiJson.Options)!;
         if (variant == "no-owner") request.AsObject().Remove("snapshotOwnerId");
         if (variant == "no-directory") request.AsObject().Remove("snapshotReceiptDirectory");
         if (variant == "no-access") request.AsObject().Remove("readAccess");
@@ -405,7 +394,7 @@ public sealed class ContractAndCliTests
         {
             workspace = new { version = WorkspaceRecord.CurrentVersion, sourceKind = "git", applicationKind = "unity", id = "aaaaaaaaaaaaaaaaaaaaaaaa", requestKey = "task", projectPath = "C:/project", path = "C:/work",
                 sourceReference = "task", baseReference = "development", phase = "creating", createdAt = DateTimeOffset.UtcNow,
-                updatedAt = DateTimeOffset.UtcNow, storageMode = "ntfs-snapshot", requestDigest = "aaaaaaaaaaaaaaaaaaaaaaaa",
+                updatedAt = DateTimeOffset.UtcNow, storageMode = "git-snapshot", requestDigest = "aaaaaaaaaaaaaaaaaaaaaaaa",
                 snapshot = new SnapshotWorkspaceState { Observation = new(available, false, false, false, null, null, null,
                     FailureCode: "OverlayStartUncertain", SnapshotStorage: new SnapshotObservation("snapshot", available, null, null, null)
                     { ReadAccess = available == true ? new("snapshot", "verified-read-root", "verification-id") : null }) } },
@@ -546,9 +535,9 @@ public sealed class ContractAndCliTests
     }
 
     [Theory]
-    [InlineData("ntfs-snapshot", 4096, true)]
-    [InlineData("ntfs-snapshot", 4095, false)]
-    [InlineData("ntfs-snapshot", 1099511627777, false)]
+    [InlineData("git-snapshot", 4096, true)]
+    [InlineData("git-snapshot", 4095, false)]
+    [InlineData("git-snapshot", 1099511627777, false)]
     [InlineData("git-checkout", 4096, false)]
     public void JournalBudgetBelongsOnlyToSnapshotRequests(string storage, long maxJournalBytes, bool valid)
     {
@@ -562,7 +551,7 @@ public sealed class ContractAndCliTests
         using var d = new TestDirectory(); var store = new WorkspaceStore(d.Path);
         string id = WorkspaceStore.Key("pending-snapshot");
         store.Save(new WorkspaceRecord { Id = id, RequestKey = "task", RequestDigest = id, ProjectPath = Path.Combine(d.Path, "source"),
-            Path = store.WorkPath(id), BaseReference = "development", SourceReference = "splinter/task", StorageMode = "ntfs-snapshot", Snapshot = new() }, "fixture-pending");
+            Path = store.WorkPath(id), BaseReference = "development", SourceReference = "splinter/task", StorageMode = "git-snapshot", Snapshot = new() }, "fixture-pending");
         var (exit, response) = await Run("workspace", "status", "--id", id, "--home", Path.GetRelativePath(Environment.CurrentDirectory, d.Path));
         Assert.Equal(0, exit);
         Assert.Equal(d.Path, response.GetProperty("nextActions")[0].GetProperty("arguments").GetProperty("home").GetString());
@@ -648,7 +637,7 @@ public sealed class ContractAndCliTests
              "data":{"workspace":{"version":2,"sourceKind":"git","applicationKind":"unity","id":"000000000000000000000000","requestKey":"test",
                  "projectPath":"P:","path":"W:","sourceReference":"development",
                  "baseReference":"development","phase":"ready","createdAt":"2026-09-26T00:00:00Z",
-                 "updatedAt":"2026-09-26T00:00:00Z","storageMode":"ntfs-snapshot","requestDigest":"test",
+                 "updatedAt":"2026-09-26T00:00:00Z","storageMode":"git-snapshot","requestDigest":"test",
                  "snapshot":{"maxJournalBytes":4096,"attached":false,"step":"ready",
                      "compaction":{"attemptId":"test","startedAt":"2026-09-26T00:00:00Z",
                          "before":{"durableSequence":1,"journalBytes":4096,"journalHash":"before"},

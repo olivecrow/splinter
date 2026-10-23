@@ -15,5 +15,5 @@ foreach($source in $sources) {
     $after=Get-OverlayDeltaUsage $run $Workspace
     $observations += [pscustomobject]@{fileBytes=$source.logicalBytes;writeOffset=2101247;writeBytes=4096;elapsedMilliseconds=$elapsed;before=$before;after=$after;allocatedIncreaseBytes=($after.totalAllocatedBytes-$before.totalAllocatedBytes);journalIncreaseBytes=(($after.files | Where-Object name -eq 'delta.journal').logicalBytes-($before.files | Where-Object name -eq 'delta.journal').logicalBytes)}
 }
-Save-OverlayStage $run '03-physical-small-writes' ([ordered]@{workspace=$Workspace;observations=$observations;source='non-sparse uncompressed cryptographic random fixture';measurement='FILE_STANDARD_INFO.AllocationSize; file data allocations only; volume-wide VSS/MFT recorded separately'})
+Save-OverlayStage $run '03-physical-small-writes' ([ordered]@{workspace=$Workspace;observations=$observations;source='non-sparse uncompressed cryptographic random fixture';measurement='FILE_STANDARD_INFO.AllocationSize; file data allocations only; volume free-space/MFT are outside this file-allocation sample'})
 $observations | Select-Object fileBytes,writeBytes,allocatedIncreaseBytes,journalIncreaseBytes,elapsedMilliseconds | ConvertTo-Json

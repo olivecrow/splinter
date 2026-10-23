@@ -2,6 +2,8 @@
 
 [English](../../plans/session-workflow-and-installation.md)
 
+> 현재 경로는 `git-snapshot`·`plastic-snapshot`·`project-snapshot`이다. [VSS 폐기 결정](vss-retirement.md)이 과거 VSS 서비스·설치·회수 후속 지침을 대체한다. 아래 기존 ID·수치·입력별 자격은 당시 기록으로 보존하며 VSS 실행을 재개하지 않는다.
+
 이 문서는 AI가 기존 CLI·파일/Git 도구와 외부 Unity 도구로 수행할 사용 절차를 소유한다. 전용 프로젝트/전역 installer·Codex 자동 binding은 미구현이며 프로그램 구현 범위에서 제외한다. [최소 사용 스킬](../../../skills/splinter/SKILL.md)은 지침 원본이다. SW-01/02/04/05/07/08/10의 NotRun, SW-03/06/09 전체 Partial은 기존 실행 증거의 상태로 보존하며 새 프로그램 개발 목록으로 읽지 않는다. 현재 명령과 gate는 [foundation](../foundation.md), [알파 작업공간](../alpha-workspaces.md), [폐기](../workspace-discard.md)를 따른다.
 
 첫 한정 실사용 [M0](implementation-plan.md)는 [납품 판정](../verification/m0-delivery.md)으로 마감했다. [시작 안내](../agent-start.md)의 기존 CLI·서비스 전제와 [대표 A/B](../verification/representative-agent-workflow.md)의 실행 자격을 유지한다. 프로그램과 에이전트의 책임·축소한 후속 작업은 [구현 계획](implementation-plan.md#프로그램과-에이전트의-책임)을 따른다. 설치·인계·작업 순서·게임 검증에는 AI 사용 절차를 제공하며 자동화 framework를 추가하지 않는다.

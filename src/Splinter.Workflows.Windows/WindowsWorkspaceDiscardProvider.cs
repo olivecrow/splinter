@@ -6,8 +6,8 @@ using Splinter.SourceControl.Git;
 
 namespace Splinter.Workflows.Windows;
 
-// Ordinary-user composition. Privileged VSS deletion stays in the existing
-// fixed service protocol with a separate explicit-discard authorization.
+// Ordinary-user composition. Explicit discard reclaims only the exact
+// task journal and basis references after source and resource guards.
 public sealed class WindowsWorkspaceDiscardProvider(ISourceDiscardProvider source, ISnapshotWorkspaceBackend snapshots,
     IGeneratedDirectoryDependencies? generatedDirectories = null, IGeneratedDirectoryDependencies? projectDirectories = null) : IWorkspaceDiscardProvider
 {

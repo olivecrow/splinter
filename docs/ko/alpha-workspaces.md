@@ -8,11 +8,11 @@
 
 ## 에이전트의 기본 흐름
 
-빌드된 제품의 `scripts/splinter.ps1`을 절대 경로로 호출하고 등록된 프로젝트/home·명시적 base·안정된 task key를 사용한다. home은 원본 프로젝트 밖에 두고 모든 작업자가 같은 등록 home을 공유한다.
+빌드된 제품의 `scripts/splinter.ps1`을 절대 경로로 호출하고 명시한 프로젝트/home·명시적 base·안정된 task key를 사용한다. home은 원본 프로젝트 밖에 두고 모든 작업자가 같은 home을 공유한다.
 
 ```text
-splinter workspace ensure --project <Unity 저장소> --key <작업 key> --storage ntfs-snapshot --base development --editor --home <등록 home>
-splinter workspace status --id <반환 id> --home <등록 home>
+splinter workspace ensure --project <Unity 저장소> --key <작업 key> --storage git-snapshot --base development --editor --home <home>
+splinter workspace status --id <반환 id> --home <home>
 ```
 
 `data.workspace.path`에서 편집하고 외부 MCP·Unity CLI의 projectRoot도 이 경로와 일치시킨다. `application.running`·`ready`는 실행/준비 관측이며 컴파일·테스트 성공이 아니다. Editor 준비 중 에이전트가 소스 분석·계획을 진행할 수 있다. 같은 key/id/home·기준·request digest를 다음 대화에 보존한다.

@@ -23,7 +23,7 @@
 }
 ```
 
-worker는 `workspace ensure --storage ntfs-snapshot`으로 만든다. Editor 없이 소스를 편집하고 준비·게시한다. Library 등 관리 캐시의 변경 이력이 있는 worker는 source-only 게시 적합성을 충족하지 못하면 거부한다. 데이터 생략이나 전체 파일 복제로 우회하지 않는다.
+worker는 `workspace ensure --storage git-snapshot`으로 만든다. Editor 없이 소스를 편집하고 준비·게시한다. Library 등 관리 캐시의 변경 이력이 있는 worker는 source-only 게시 적합성을 충족하지 못하면 거부한다. 데이터 생략이나 전체 파일 복제로 우회하지 않는다.
 
 `start`가 실행 중이며 application ready를 기다리면 `Accepted`, `terminal=false`다. `nextActions[].arguments.request`의 status JSON을 별도 파일로 저장하고 `pwsh ./scripts/splinter-dev.ps1 view --input <파일> --home <arguments.home>`으로 관측한다. 원래 요청 파일을 덮어쓰지 않는다. status ledger의 아직 없는 결과·frozen seal·응답은 필수 null 필드로 유지한다.
 
@@ -82,3 +82,5 @@ cache는 `Library/Temp/Logs/UserSettings/obj/.vs/.idea`의 단일 writer다. 첫
 중단 뒤에는 같은 명령·키·입력으로 재시도한다. 공통 coordinator는 먼저 기존 provider 영수증을 찾고, 게시의 부분 prefix·완전 저널·유실 receipt는 원래 source seal로만 재조정한다. 완전한 현재 형식의 다음 ledger revision만 명시적 재시도로 게시하며 read-only inspect가 pending을 자동 게시하지 않는다. `replayed=true`는 과거 응답이며 현재 실행 상태의 새 관측이 아니다.
 
 입력과 출력은 `view-lifecycle-request`/`view-lifecycle-data`, 공통 request/response/state는 `view-workflow-*` schema를 사용한다. `ViewWorkflowTests`는 fake 적합성과 CLI 응답, `ImmutableCandidateTests`는 별도 snapshot/cache 저널, `GitSourceResultTests`는 실제 Git 객체·원본 index 보존, `JournalReclamationTests`는 실제 파일 잠금과 회수 중단 복구, `SnapshotWorkspaceCoordinatorTests`는 제품 회수 의존성 연결을 검증한다. 현재 자동 회귀와 실제 실행의 한계는 [저장 view 계약 검증](verification/storage-view-contract.md)을 따른다. 재부팅·전원·물리 공간 장애·일반 에셋·대형 프로젝트는 미자격이며, 생성 source 병합과 모드 선택은 AI 절차다.
+
+개발 view는 Library graft 없는 Git worker만 받는다. 기존 VSS view 상태는 재개하지 않는다. 공통 reader 연결의 새 실제 view 자격은 미실행이며 일반 task Library 공유는 [별도 계약](git-library-reference.md)을 유지한다.

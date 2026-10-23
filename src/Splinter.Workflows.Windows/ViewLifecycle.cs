@@ -162,11 +162,11 @@ public sealed class ViewLifecycle(WorkspaceStore store)
             if (!mount.ProviderAlive)
             {
                 var consumed = await WinFspOverlayClient.ConsumedVerificationAsync(g.Request, ct);
-                var access = await provider.SnapshotProvider(g.WorkerId).ResolveReadAccessAsync(g.Request.Identity.Snapshot, consumed, ct);
+                var access = await provider.ReadAccess(g.WorkerId, g.Request.Identity.Snapshot, ct);
                 var view = provider.View(selection.Intent.Cache.ViewId);
                 var cacheConsumed = await WinFspOverlayClient.ConsumedCacheVerificationAsync(g.Request, ct);
                 var cacheAccess = view.CacheWorkerId == g.WorkerId && view.Cache.Snapshot == g.Request.Identity.Snapshot ? access
-                    : await provider.SnapshotProvider(view.CacheWorkerId).ResolveReadAccessAsync(view.Cache.Snapshot, cacheConsumed, ct);
+                    : await provider.ReadAccess(view.CacheWorkerId, view.Cache.Snapshot, ct);
                 g = g with { Request = g.Request with { ReadAccess = access, CacheSnapshot = g.Request.CacheSnapshot! with { ReadAccess = cacheAccess } } };
                 Save(Path.Combine(control, "generation.json"), g);
                 Save(Path.Combine(g.Request.ControlPath, "request.json"), g.Request);

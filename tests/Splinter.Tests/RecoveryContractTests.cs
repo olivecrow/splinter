@@ -47,7 +47,7 @@ public sealed class RecoveryContractTests
         bool attached, bool mounted, string? failure, bool independentResult, string disposition, string command)
     {
         var record = Record("aaaaaaaaaaaaaaaaaaaaaaaa", "unused");
-        record.StorageMode = "ntfs-snapshot";
+        record.StorageMode = "git-snapshot";
         record.Snapshot = new()
         {
             Step = step, Attached = attached,

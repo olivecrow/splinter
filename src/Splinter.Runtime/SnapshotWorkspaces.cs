@@ -125,7 +125,7 @@ public sealed partial class WorkspaceCoordinator
         try
         {
             // Publication holds this worker lock through its durable workflow intent.
-            // Any candidate or retained source generation keeps the original VSS alive.
+            // Any candidate or retained source generation keeps the original basis alive.
             await RequireNoViewDependenciesAsync(w, ct);
             if (!state.Step.StartsWith("release-", StringComparison.Ordinal))
             {
@@ -168,7 +168,7 @@ public sealed partial class WorkspaceCoordinator
             }
             state.Observation = await Snapshots.ObserveAsync(w, control, ct);
             // At this final step the delta and Git registration are already
-            // reclaimed. Let the exact release adapter refresh privileged
+            // reclaimed. Let the exact release adapter refresh owned-basis
             // absence evidence; unknown still cannot pass the final gate.
             if (state.Step != "release-snapshot") RequireSnapshotObservation(w, state.Observation);
             if (state.Observation is not { Mounted: false, ProviderAlive: false, OwnershipVerified: true, OpenHandles: 0, WorkingSetBytes: 0, PrivateBytes: 0 })
@@ -224,9 +224,6 @@ public sealed partial class WorkspaceCoordinator
         catch (Exception ex)
         {
             RecordFailure(w, ex);
-            if (ex is WorkspaceException { Code: "SnapshotPrivilegeRequired", RecoveryActions: not null } failure)
-                throw new WorkspaceException(failure.Code, failure.Message, failure.Details,
-                    [.. failure.RecoveryActions, new("workspace.release", new { id = w.Id, home = store.Root })]);
             throw;
         }
     }

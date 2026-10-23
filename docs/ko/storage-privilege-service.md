@@ -2,6 +2,8 @@
 
 [English](../storage-privilege-service.md)
 
+> **과거 구현 기록 — 현재 실행 지침 아님.** [VSS 폐기 결정](plans/vss-retirement.md)에 따라 VSS 공급자·서비스·전용 스크립트는 제거했다. 아래 명령·권한·자격은 폐기 전 후보의 기록이며 실행을 재개하지 않는다. 공통 저널 시험과 현재 기준본은 [NTFS 계약](ntfs-workspaces.md)을 따른다.
+
 현재 `--source none`의 일반 폴더 경로와 v2 상태/서비스 패키지는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
 
 `VssSnapshotProvider`는 일반 사용자 CLI에서 `SplinterStorageAuthority` Windows 서비스에 고정 `Capture`·`Observe`·`Release` 요청을 보낸다. CLI·Git·Unity는 일반 사용자 권한을 유지한다. Host는 기존 읽기 전용 in-process 조합 계층이며 이 서비스가 Host나 작업 배정 daemon을 대신하지 않는다. 현재 실제 설치·반복 실행 자격은 [UA 검증](verification/storage-privilege-service.md)을 따른다.

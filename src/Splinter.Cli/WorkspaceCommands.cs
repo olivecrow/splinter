@@ -53,7 +53,7 @@ internal static class WorkspaceCommands
         var basis = new Option<string>("--base") { Description = "Source branch/ref; default development." };
         var source = new Option<string>("--source") { Description = "git (default), none or plastic. Selection is durable; failures never fall back." };
         var application = new Option<string>("--application") { Description = "unity (default) or none for an ordinary folder without an Editor." };
-        var storage = new Option<string>("--storage") { Required = true, Description = "git-snapshot/plastic-snapshot read recorded project versions without VSS or checkout; ntfs-snapshot uses VSS. Both store private ranges. git-checkout is an explicit development diagnostic path." };
+        var storage = new Option<string>("--storage") { Required = true, Description = "git-snapshot/plastic-snapshot read recorded project versions; project-snapshot reads a prepared project basis. All store private ranges. git-checkout is an explicit development diagnostic path." };
         var journalBudget = new Option<long?>("--max-journal-bytes") { Description = "Immutable NTFS delta budget; defaults to 16 GiB. A changed limit requires a new task key." };
         var editor = new Option<bool>("--editor") { Description = "Also start the private Editor when this task needs it." };
         var generatedBasis = new Option<string>("--library-basis") { Description = "Exact prepared original Library basis id; fixed for this task." };
@@ -66,6 +66,8 @@ internal static class WorkspaceCommands
         {
             const string command = "workspace.ensure";
             select(command);
+            if (parse.GetValue(storage) == "ntfs-snapshot")
+                throw new WorkspaceException("StorageModeRetired", "ntfs-snapshot/VSS is retired. Preserve existing state and independent results; select a supported project basis for new work.");
             string sourceKind = parse.GetValue(source) ?? "git";
             string applicationKind = parse.GetValue(application) ?? (sourceKind == "none" ? "none" : "unity");
             string baseReference = parse.GetValue(basis) ?? (sourceKind is "none" or "plastic" ? "snapshot" : "development");
@@ -164,13 +166,6 @@ internal static class WorkspaceCommands
         Bind(unity, "start", null, (runtime, id, _) => runtime.StartAsync(id, ct));
         Bind(unity, "stop", null, (runtime, id, _) => runtime.StopAsync(id, ct));
 
-        var storageGroup = new Command("storage", "Inspect the storage privilege service."); root.Subcommands.Add(storageGroup);
-        var serviceGroup = new Command("service", "Inspect the installed VSS authority; installation is an explicit machine operation.");
-        var serviceStatus = new Command("status", "Read SCM status without elevation or VSS side effects.");
-        serviceGroup.Subcommands.Add(serviceStatus); storageGroup.Subcommands.Add(serviceGroup);
-        serviceStatus.SetAction(_ => { select("storage.service.status"); respond(ApiResponse.Success("storage.service.status", StorageServiceInspection.Observe())); });
-        serviceGroup.SetAction(_ => { select("cli"); respond(ApiResponse.Failure("cli", "InvalidArguments", "Use storage service status.")); });
-        storageGroup.SetAction(_ => { select("cli"); respond(ApiResponse.Failure("cli", "InvalidArguments", "Use storage service status.")); });
         void Bind(Command group, string name, string? extraName, Func<WorkspaceCoordinator, string, string?, Task<WorkspaceView>> action)
         {
             string commandId = group.Name + "." + name;

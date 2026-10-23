@@ -8,7 +8,7 @@ namespace Splinter.Workflows.Windows;
 
 internal sealed partial class WindowsViewProvider
 {
-    internal sealed class ArtifactTree(VssSnapshotTreeOwner owner, CandidateSnapshotTree candidate, JournalDeltaStore? source,
+    internal sealed class ArtifactTree(SnapshotTreeOwner owner, CandidateSnapshotTree candidate, JournalDeltaStore? source,
         string[] changes, string baseRevision) : ISnapshotTree, IDisposable
     {
         public SnapshotReference Snapshot => candidate.Snapshot;
@@ -24,7 +24,7 @@ internal sealed partial class WindowsViewProvider
         public void Dispose() { source?.Dispose(); candidate.Dispose(); owner.Dispose(); }
     }
     // Keeps disposal ownership explicit when construction of a layered tree fails.
-    internal sealed record VssSnapshotTreeOwner(Splinter.Platform.Windows.VssSnapshotTree Tree) : IDisposable
+    internal sealed record SnapshotTreeOwner(Splinter.Platform.Windows.WorkspaceSnapshotBasis.DisposableSnapshotTree Tree) : IDisposable
     { public void Dispose() => Tree.Dispose(); }
 
     internal async Task<ArtifactTree> OpenArtifact(ViewTarget target, CancellationToken ct)
@@ -78,7 +78,7 @@ internal sealed partial class WindowsViewProvider
     {
         Require(result.Intent.ProjectId == ProjectId && result.IndependentOfSnapshot &&
             await GitSourceResult.VerifyAsync(project, result.Reference, ct) == result.ContentHash,
-            "ViewResultInvalid", "The exact independent result must remain readable without VSS.");
+            "ViewResultInvalid", "The exact independent result must remain readable without the project basis.");
     }
     public async Task ReleaseAsync(ViewReleaseIntent intent, CancellationToken ct)
     {

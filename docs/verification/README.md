@@ -3,6 +3,10 @@
 
 [한국어](../ko/verification/README.md)
 
+> Current modes are `git-snapshot`, `plastic-snapshot`, and `project-snapshot`. The [VSS retirement decision](../plans/vss-retirement.md) supersedes earlier VSS service/installation/reclamation follow-ups. Existing IDs, figures and input-specific qualification below remain historical records and do not authorize resuming VSS execution.
+
+[VSS retirement verification](vss-retirement.md) owns VT-01–04: execution-path removal, byte-preserving legacy refusal, retained automated coverage and bilingual document checks. It does not add live VSS/Unity qualification.
+
 [Unity shutdown diagnosis](unity-shutdown-diagnosis.md) owns SD-01: five native NTFS cases with identical starting source, Library and loaded assembly. Distributing 16,384 methods across 64 classes reduced observed exit time from 17.34s to 1.60s. The managed caller remains unresolved, the final debugger attempt's closure is unverified, and the canceled full comparison is not a workload-scaling qualification.
 
 [Earlier bounded-journal workload observations](unity-bounded-scaling.md) retain BS-01's continuing-session data, prior-state variation, five-byte stale-PID input exception and general restoration cost. SD-01 identifies an additional synthetic code-shape limitation. BS-01's table and conditional crossover are excluded from the current root README claims; historical measurements are preserved.

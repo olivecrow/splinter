@@ -14,6 +14,7 @@
 
 | 문서 | 소유하는 내용 |
 | --- | --- |
+| [VSS 폐기 결정](plans/vss-retirement.md), [검증](verification/vss-retirement.md) | 프로젝트/볼륨 범위 불일치와 회수 제약. 세 프로젝트 기준본 유지, VSS 서비스·진입점 제거, 구형 상태 보존·거부. |
 | [Unity 종료 지연 진단](verification/unity-shutdown-diagnosis.md) | SD-01: 시작 소스/Library/로드된 어셈블리가 동일한 일반 NTFS 5개 사례. 16,384개 메서드의 단일/64개 클래스 종료 17.34초/1.60초. 현재 종료/회수 경계·미확정 관리 함수·마지막 디버거 시도 회수 미확인이며 완료된 작업량별 성능 자격은 아님. |
 | [이전 bounded 저널 작업량 실험](verification/unity-bounded-scaling.md) | BS-01: 세션 유지 관측·이전 상태 편차·5바이트 stale PID 예외·복원 비용을 보존한다. SD-01에서 합성 코드 배치의 한계도 확인해 표와 조건부 손익분기를 현재 README 주장에서는 제외했다. |
 | [현재 bounded 저널 Unity 비교](verification/unity-bounded-comparison.md) | BC-01: `c4fa506`, 같은 입력의 새 양쪽 측정, Splinter 537.6초 / 공유 Editor 82.1초. 추가 수명주기 추정 449.6초·조건부 손익분기·별도 진단 복구와 한 묶음/캐시 한계. |
@@ -45,13 +46,12 @@
 | [원본 반영 검증](verification/plain-folder-original-apply.md) | Core/fake·실제 일반 권한 NTFS 파일 시험과 작은 Editor 없는 제품 A/B 한정 마감·계측 |
 | [VCS 독립 검증](verification/vcs-independent-workspaces.md) | 자동 파일/fake·Git 회귀와 실제 A/B·서비스 업데이트·동일 요청 회수 복구의 한정 판정/비용 |
 | [일반 폴더 실제 실행 계획](plans/vcs-independent-validation.md) | 고정 fixture·서비스 업데이트/grant의 검토 가능한 계획·한 A/B 묶음과 중단 조건 |
-| [NTFS 작업공간](ntfs-workspaces.md) | VSS identity·범위 저널·Git·권한·제어 파일 게시/읽기·복구·결과 보존·회수 |
+| [NTFS 작업공간](ntfs-workspaces.md) | 프로젝트 기준 identity·범위 저널·Git·경로 보호·제어 파일 게시/읽기·복구·결과 보존·회수 |
 | [Plastic 프로젝트 기준본](plastic-project-basis.md), [검증](verification/plastic-project-basis.md) | fixed changeset/revision·VSS 없는 범위 저장·공통 원본 Library·독립 파일 결과와 소유 회수. 구현/reader·native·실제 Unity 자격을 구분 |
 | [Git 프로젝트 기준본](git-project-basis.md), [reader/Editor 없는 검증](verification/git-project-basis.md), [Unity 검증](verification/git-unity-validation.md) | `git-snapshot`의 fixed Git commit/tree/blob·VSS 없는 WinFsp 범위 저장·소유 ref/fence·독립 결과/회수. ignored/Library 기준 재사용과 후보별 Unity 자격을 구분 |
 | [Git 원본 Library 참조](git-library-reference.md), [검증](verification/git-library-reference.md) | 명시적 Library prepare/status/restore·원본 관리형 mount·Git 소스와 불변 Library graft·작업 의존성·파일 이동/범위 복원과 MCP/RAM 자격 |
 | [Git Unity 실제 실행 범위](plans/git-unity-validation.md), [검증](verification/git-unity-validation.md) | 현재 원본 Git/Unity의 새 기준 A/B·cold Library·exact HTTP MCP·리소스/씬/현재 상태 시험과 소유 회수. 준비 병목/동일 요청 복구와 이전 VSS 자격을 구분 |
-| [명시적 폐기](workspace-discard.md) | Core/Runtime intent·Git/Windows provider·CLI·서비스 별도 authorization·중단 재개 |
-| [Windows 저장소 권한 서비스](storage-privilege-service.md) | 설치 범위·고정 VSS IPC·사용자/경로/소유권·보호된 재시도 상태·요청 범위 경로 핸들·대기 후 identity 재검증([UA-05](verification/storage-privilege-service.md#ua-05-idle-path-handles)) |
+| [명시적 폐기](workspace-discard.md) | Core/Runtime intent·Git/Windows provider·CLI·소유 기준본 참조 회수·중단 재개 |
 | [Unity 알파 작업공간](alpha-workspaces.md) | 외부 도구로 편집·검증, 같은 작업 재개·독립 결과·통합과 Editor 수명 |
 | [Unity CLI A/B 인계 검증](verification/unity-cli-handoff.md) | 정확한 반환 경로의 catalog/loaded 코드·A stop/release 뒤 B 후속 작업·두 독립 결과/회수의 작은 T: 한정 자격과 목록 누락/타임아웃 제한 |
 | [저장소와 자원](storage-and-resources.md) | 프로세스 그룹·자원 관측 |
@@ -118,7 +118,6 @@
 | [Plastic 프로젝트 기준본·Library 범위](plans/plastic-project-basis.md) | fixed changeset reader·VSS 없는 범위 저장·공통 Library와 실제 Unity A/B·MCP/리소스/씬/현재 상태 tests·독립 결과/회수/원본 복원의 PPB-01~06 한정 마감. 초기 준비/복원·MCP 응답/실행 겹침 제한과 원본 반영/기존 VSS/비VCS 후속을 구분 |
 | [Git 원본 Library 참조·MCP/RAM](plans/git-library-reference.md) | 승인한 Library 전용 관리형 mount·원본/peer 복구와 GL-01~05 한정 마감. 실제 RAM 절감 미확인·MCP 실패 상세 소실·준비/복원 비용은 검증에 유지 |
 | [대화별 설치·사용](plans/session-workflow-and-installation.md) | AI의 설치 연결/인계/선택적 도구 사용/종료 절차·제품과 외부 도구의 책임·[과거 Unity CLI A/B 인계 범위](plans/session-workflow-and-installation.md#후속-범위-unity-cli의-ab-인계)·SW 증거 분류 |
-| [저장소 권한 서비스](plans/storage-privilege-service.md) | 반복 UAC 없는 제한 서비스의 UA-01~04 |
 | [병렬 비교 방법](plans/parallel-workflow-qualification.md) | C/S/Q 입력·작업·비용 비교를 재사용할 때 |
 
 현재 기능 문서는 구조·동작·진입점·제약만 설명한다. 검증과 계획에서 보존할 과거 기록은 지원 범위를 입증하는 후보/입력/환경·결과, 미해결 제한·재현 조건, 복구·소유권 판단과 비교에 필요한 근거다. 같은 근거는 소유 문서에 한 번만 두고 지도에서는 연결한다. 후속 판단에 쓰이지 않는 완료 순서·작업 일지·중복 시험 숫자·해결된 상태의 반복 요약은 제거하며 단순 변경 이력은 Git에서 확인한다. 완료한 계획에 남은 승인 범위·재현 조건·제외 조건이 필요하면 유지하되 현재 미완료 작업으로 표시하지 않는다. 원시 artifacts·독립 결과·snapshot은 문서 정리 대상으로 삭제하지 않는다.

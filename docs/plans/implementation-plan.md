@@ -3,6 +3,8 @@
 
 [한국어](../ko/plans/implementation-plan.md)
 
+> Current modes are `git-snapshot`, `plastic-snapshot`, and `project-snapshot`. The [VSS retirement decision](vss-retirement.md) supersedes earlier VSS service/installation/reclamation follow-ups. Existing IDs, figures and input-specific qualification below remain historical records and do not authorize resuming VSS execution.
+
 **The first scoped practical-use version M0 for registered small Windows x64 NTFS/Git/Unity environments has closed.** [Delivery decision](../verification/m0-delivery.md) is scoped-complete-with-limitations; [AI start guide](../agent-start.md) lists existing development CLI/source-skill prerequisites and next actions. Follow-ups divide into workspace-management program implementation, AI usage procedures, and support verification when needed. Do not recast all NR/SF/SW as unfinished program features or the denominator for M0 progress.
 
 <a id="목적과-완료-경계"></a>

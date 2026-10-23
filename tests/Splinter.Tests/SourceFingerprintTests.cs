@@ -66,7 +66,7 @@ public sealed partial class SourceFingerprintTests
                 var current = await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken);
                 Assert.Equal("incremental", current.Inspection!.Mode);
                 Assert.Equal(i == 0 ? 10 : 0, current.Inspection.PayloadBytesHashed);
-                Assert.Equal(i == 0 ? 10 : 0, current.Inspection.GitHashInputBytes);
+                Assert.Equal(0, current.Inspection.GitHashInputBytes);
                 Assert.True(current.HasChanges);
                 Assert.Contains("code.cs", current.ChangedPaths);
                 Assert.NotEqual(first.Fingerprint, current.Fingerprint);
@@ -91,7 +91,7 @@ public sealed partial class SourceFingerprintTests
         var binary = await f.Provider().InspectAsync(f.Workspace, TestContext.Current.CancellationToken);
         Assert.Contains("code.cs", binary.ChangedPaths);
         Assert.NotEqual(originalBlob, CachedGitHash());
-        Assert.Equal(new FileInfo(f.Path(".gitattributes")).Length + new FileInfo(f.Path("code.cs")).Length,
+        Assert.Equal(new FileInfo(f.Path("code.cs")).Length,
             binary.Inspection!.GitHashInputBytes);
         Assert.True(binary.Inspection.PayloadBytesHashed < 1024);
         byte[] prior = File.ReadAllBytes(f.Tracker.CachePath(f.Workspace));
@@ -238,7 +238,7 @@ public sealed partial class SourceFingerprintTests
             f.Workspace = new() { Id = "fingerprint-fixture", RequestKey = "test", ProjectPath = repo,
                 Path = System.IO.Path.Combine(f.Directory.Path, "worker"), SourceReference = "splinter/test", BaseReference = "development", ManagedPaths = ["Library"] };
             f.Workspace.BaseRevision = (await new GitWorkspaceProvider().CreateAsync(f.Workspace, TestContext.Current.CancellationToken)).BaseRevision;
-            f.Workspace.StorageMode = "ntfs-snapshot";
+            f.Workspace.StorageMode = "git-snapshot";
             f.Workspace.Snapshot = new() { Reference = new("fake-snapshot", "fake", repo, repo, DateTimeOffset.UtcNow, true, true, "fixture-only") };
             f.Tracker = new(System.IO.Path.Combine(f.Directory.Path, "source.json"));
             return f;

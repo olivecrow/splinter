@@ -75,7 +75,7 @@ internal static class OverlayExperimentCommands
                 CandidateSourceProjection? projection = input.Action == "candidate-source-export"
                     ? await GitOverlayRegistration.QualifyCandidateSourceAsync(await Receipt(input, overlay, ct), overlay.Identity, ct)
                     : null;
-                using (var tree = new VssSnapshotTree(overlay.Identity.Snapshot, overlay.ReadAccess))
+                using (var tree = WorkspaceSnapshotBasis.OpenTree(overlay.Identity.Snapshot, overlay.ReadAccess, overlay.SnapshotReceiptDirectory, overlay.SnapshotOwnerId))
                 {
                     string[] forbidden = [".git", "Library", "Temp", "Logs", "UserSettings", "obj"];
                     return JournalDeltaStore.PublishCandidate(overlay.DeltaPath, overlay.Identity, tree, destination,

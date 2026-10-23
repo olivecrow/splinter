@@ -49,7 +49,6 @@ Terms needed to read CLI responses and feature documents. Each entry links to th
 
 | Product storage mode | Basis reads |
 | --- | --- |
-| `ntfs-snapshot` | NTFS basis fixed through VSS. Requires restricted-privilege service and registered scope. |
 | `git-snapshot` | Fixed local Git commit/tree/blob. No VSS service/grant required. |
 | `plastic-snapshot` | Recorded Plastic changeset/revision. No VSS service/grant required. |
 | `project-snapshot` | Authorized VCS-free managed project basis. No VSS service/grant required. |
@@ -73,7 +72,6 @@ Terms needed to read CLI responses and feature documents. Each entry links to th
 | compact | Explicitly clean superseded journal ranges after normal stop/unmount and seal/budget checks. It is neither task discard nor ordinary file deletion. | [Compressed journal](journal-payload-compression.md) |
 | reclaim-pending / discard-reclaim-pending | Waiting for physical-resource reclamation on preservation/discard paths respectively. Not completed shutdown; explicitly retry the same task/request. | [AI start guide](agent-start.md#reading-failures-and-completion) |
 | lease / fence / dependency | Lease is access lifetime held during work; fence prevents concurrent read/write/reclamation conflicts; dependency is a relation to an object still using the basis. Expiry/timeouts authorize neither deletion of other tasks nor general ownership takeover. | [Development views](view-workflow.md), [discard](workspace-discard.md) |
-| grant / authorization | Grant is user/project/volume/home scope registered with the restricted service. Authorization is privilege/ownership evidence checked for a specific capture/release/discard request. It does not replace user intent or target checks. | [Privilege service](storage-privilege-service.md) |
 
 For example, to finish A while preserving its result, use checkpoint → release. To apply to original, use checkpoint → explicit integrate → release. To abandon failed A, use discard. If B still uses the same project basis, A reclamation does not permit project restore.
 

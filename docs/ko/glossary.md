@@ -46,7 +46,6 @@ CLI 응답과 기능 문서를 읽을 때 필요한 용어를 설명한다. 각 
 
 | 제품 저장 모드 | 기준을 읽는 방식 |
 | --- | --- |
-| `ntfs-snapshot` | VSS로 고정한 NTFS 기준. 제한 권한 서비스와 등록된 범위가 필요하다. |
 | `git-snapshot` | 고정 local Git commit/tree/blob을 읽는다. VSS service/grant가 필요하지 않다. |
 | `plastic-snapshot` | 기록된 Plastic changeset/revision을 읽는다. VSS service/grant가 필요하지 않다. |
 | `project-snapshot` | 승인한 VCS 없는 관리형 프로젝트 기준을 읽는다. VSS service/grant가 필요하지 않다. |
@@ -69,7 +68,6 @@ CLI 응답과 기능 문서를 읽을 때 필요한 용어를 설명한다. 각 
 | compact / 저널 정리 | 정상 stop/unmount와 seal·예산 확인 후 대체된 저널 범위를 명시적으로 정리한다. 작업 폐기나 일반 파일 삭제가 아니다. | [압축 저널](journal-payload-compression.md) |
 | reclaim-pending / discard-reclaim-pending | 각각 보존 또는 폐기 경로에서 물리 자원 회수를 기다리는 상태. 종료 완료로 읽지 않고 같은 작업·같은 요청으로 명시적으로 재시도한다. | [AI 시작 안내](agent-start.md#실패와-완료-판독) |
 | lease / fence / dependency | lease는 작업 동안 보유하는 접근 수명, fence는 읽기·쓰기·회수의 동시 충돌을 막는 경계, dependency는 기준을 아직 사용하는 객체 관계다. 만료·타임아웃은 다른 작업 삭제나 일반 소유권 인수의 승인이 아니다. | [개발용 view](view-workflow.md), [폐기](workspace-discard.md) |
-| grant / authorization | grant는 제한 서비스에 등록한 사용자·project·volume·home 범위다. authorization은 특정 capture/release/discard 요청에서 대조하는 권한과 소유 증거다. 사용자 의도와 대상 검사를 대체하지 않는다. | [권한 서비스](storage-privilege-service.md) |
 
 예를 들어 A 작업의 결과만 남기고 끝내려면 checkpoint → release를 사용한다. 원본에 반영하려면 checkpoint → 명시적 integrate → release다. 실패한 A 작업을 버리려면 discard를 사용한다. project basis를 함께 쓰는 B가 남아 있으면 A 회수 뒤에도 project restore를 진행할 수 없다.
 

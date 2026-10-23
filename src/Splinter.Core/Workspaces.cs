@@ -42,7 +42,7 @@ public sealed class WorkspaceRecord
 }
 
 // Logical payload bytes of explicit result preservation, separate from the
-// workspace journal and physical allocation/VSS accounting.
+// workspace journal and physical allocation/basis accounting.
 public sealed record SourceResultStorage(long BasisLogicalBytes, long ResultLogicalBytes, long UniquePayloadBytes, int PayloadObjects);
 
 public sealed record SourceWorkspace(string Path, string Reference, string BaseRevision);

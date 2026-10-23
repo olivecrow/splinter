@@ -74,7 +74,7 @@ internal sealed class DevelopmentPreparationProbe(string boundary, string signal
                     throw new WorkspaceException("UnsafePath", "Keep probe evidence outside source and workspace trees.");
             var observer = new DevelopmentPreparationProbe(point, signal);
             string[] args = ["workspace", "ensure", "--project", project, "--home", home, "--key", r.GetProperty("key").GetString()!,
-                "--base", r.GetProperty("baseReference").GetString()!, "--storage", "ntfs-snapshot"];
+                "--base", r.GetProperty("baseReference").GetString()!, "--storage", "git-snapshot"];
             using var writer = new StringWriter();
             await Program.RunAsync(args, writer, ct, observer);
             respond(JsonSerializer.Deserialize<ApiResponse>(writer.ToString(), ApiJson.Options)!);

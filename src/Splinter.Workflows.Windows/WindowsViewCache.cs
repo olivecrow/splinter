@@ -33,7 +33,7 @@ internal sealed partial class WindowsViewProvider
         Require(!view.Closed && budget > 0, "ViewCacheMismatch", "Compact an open cache with an explicit positive overlap budget.");
         Quiescent((await ObserveViewAsync(ProjectId, viewId, ct)).Resources);
         using var basis = await Basis(view.CacheWorkerId, view.Cache.Snapshot, ct);
-        using var lease = SnapshotProvider(view.CacheWorkerId).AcquireReadLease();
+        using var lease = ReadLease(view.CacheWorkerId);
         return CompactCacheFiles(CachePath(view.Cache.CacheId), MaintenancePath(viewId), view.Cache, requestKey, budget, basis);
     }
 
@@ -112,7 +112,7 @@ internal sealed partial class WindowsViewProvider
         SnapshotDeltaSeal? seal = Read<JournalReclamationIntent>(receipt)?.Seal;
         if (File.Exists(Path.Combine(directory, "delta.journal")))
         {
-            using var lease = SnapshotProvider(view.CacheWorkerId).AcquireReadLease();
+            using var lease = ReadLease(view.CacheWorkerId);
             using var basis = await Basis(view.CacheWorkerId, cache.Snapshot, ct);
             using var check = SourceViewDeltaStore.OpenCacheReadOnly(directory, CacheIdentity(cache), basis);
             seal = check.Seal();

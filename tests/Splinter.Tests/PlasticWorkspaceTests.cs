@@ -50,7 +50,7 @@ public sealed partial class FileWorkspaceTests
     [InlineData("ancestor")]
     [InlineData("home-registration")]
     [InlineData("home-administration")]
-    [InlineData("nested-vcs")]
+    [InlineData("recorded-nested-vcs")]
     [InlineData("unknown")]
     public async Task UnsupportedPlasticEnvironmentFailsBeforeCaptureWithoutFallback(string condition)
     {
@@ -60,7 +60,7 @@ public sealed partial class FileWorkspaceTests
         if (condition == "ancestor") f.Plastic.RootOverride = Path.GetDirectoryName(f.Project);
         if (condition == "home-registration") f.Plastic.AdditionalRoot = f.Store.Root;
         if (condition == "home-administration") Directory.CreateDirectory(Path.Combine(f.Store.Root, ".git"));
-        if (condition == "nested-vcs") Directory.CreateDirectory(Path.Combine(f.Project, "Library", ".plastic"));
+        if (condition == "recorded-nested-vcs") f.Revisions.NestedVcs = true;
         if (condition == "unknown") f.Plastic.Unavailable = true;
         await Assert.ThrowsAsync<WorkspaceException>(() => f.Ensure("rejected", TestContext.Current.CancellationToken));
         Assert.Equal(0, f.Backend.Captures); Assert.Equal(0, f.Git.Calls);

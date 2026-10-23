@@ -9,7 +9,6 @@ namespace Splinter.Tests;
 public sealed partial class SourceFingerprintTests
 {
     [Theory]
-    [InlineData("ntfs-snapshot")]
     [InlineData("git-snapshot")]
     public async Task AddedPathsKeepExistingConversionProofsWithoutReopeningUnchangedPayload(string storage)
     {
@@ -66,7 +65,8 @@ public sealed partial class SourceFingerprintTests
         using (var locked = new FileStream(f.Path("large.bin"), FileMode.Open, FileAccess.Read, FileShare.None))
             current = await f.Provider().InspectAsync(f.Workspace, ct);
         Assert.Equal(Encoding.UTF8.GetByteCount(added), current.Inspection!.PayloadBytesHashed);
-        Assert.Equal(Encoding.UTF8.GetByteCount(added) + 6, current.Inspection.GitHashInputBytes);
+        // Raw Git bases reuse direct hashes for new raw paths; only the existing path whose conversion changed is sent to Git.
+        Assert.Equal(6, current.Inspection.GitHashInputBytes);
         JsonObject after = ManifestValue(f);
         Assert.NotEqual(ManifestFile(before, "nested/a.txt")["gitHash"]!.GetValue<string>(), ManifestFile(after, "nested/a.txt")["gitHash"]!.GetValue<string>());
         Assert.Equal(ManifestFile(before, "outside.txt")["interpretation"]!.GetValue<string>(), ManifestFile(after, "outside.txt")["interpretation"]!.GetValue<string>());
@@ -132,7 +132,7 @@ public sealed partial class SourceFingerprintTests
         File.WriteAllText(f.Path("code.cs"), "return 9;\n"); File.SetLastWriteTimeUtc(f.Path("code.cs"), modified); f.Tracker.Mark("code.cs");
         File.WriteAllText(f.Path("new.cs"), "new\n"); f.Tracker.Mark("new.cs");
         var current = await f.Provider().InspectAsync(f.Workspace, ct);
-        Assert.Equal(14, current.Inspection!.PayloadBytesHashed); Assert.Equal(14, current.Inspection.GitHashInputBytes);
+        Assert.Equal(14, current.Inspection!.PayloadBytesHashed); Assert.Equal(0, current.Inspection.GitHashInputBytes);
         Assert.Contains("code.cs", current.ChangedPaths); Assert.Contains("new.cs", current.ChangedPaths);
         Assert.Equal(await f.Oracle(), current.Fingerprint);
         string revision = await f.Provider().CheckpointAsync(f.Workspace, "preserve existing and added content", ct);

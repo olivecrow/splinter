@@ -21,7 +21,7 @@ public sealed partial class GitSnapshotWorkspaceTests
         string revision = await TestDirectory.Git(source, "rev-parse", "HEAD");
         var w = new WorkspaceRecord { Id = new('a', 24), RequestKey = "discard", RequestDigest = new('b', 24), ProjectPath = source,
             Path = Path.Combine(d.Path, "mount-a"), SourceReference = "splinter/" + new string('a', 24), BaseReference = "development", BaseRevision = revision,
-            Phase = "ready", StorageMode = "ntfs-snapshot", Snapshot = new() { Reference = new("snapshot", "fake", source, "immutable", DateTimeOffset.UtcNow, true, true, "fake") } };
+            Phase = "ready", StorageMode = "git-snapshot", Snapshot = new() { Reference = new("snapshot", "fake", source, "immutable", DateTimeOffset.UtcNow, true, true, "fake") } };
         var git = new GitWorkspaceProvider(); await git.RegisterAsync(w, control, ct);
         var registration = await GitOverlayRegistration.ReadAsync(Path.Combine(control, "git-overlay.json"), ct);
         var peer = await GitOverlayRegistration.PrepareAsync(source, Path.Combine(d.Path, "mount-b"), "splinter/b", revision,

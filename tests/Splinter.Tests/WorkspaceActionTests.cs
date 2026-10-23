@@ -16,7 +16,7 @@ public sealed class WorkspaceActionTests
     [InlineData("plastic", false, true)] [InlineData("plastic", true, true)]
     public void OriginalApplyActionsRetainTargetIntentDigestAndSelectedScope(string source, bool selected, bool pending)
     {
-        var w = Record(source, source == "none" ? "ntfs-snapshot" : "plastic-snapshot");
+        var w = Record(source, source == "none" ? "project-snapshot" : "plastic-snapshot");
         string[]? paths = selected ? ["Assets/item.txt"] : null;
         var plan = new OriginalApplyPlan(1, w.Id, w.RequestDigest!, "basis", "result", w.ProjectPath, "physical", [], [], "")
             { SelectedPaths = paths, SourceIdentity = source == "plastic" ? "sha256:" + new string('c', 64) : null };

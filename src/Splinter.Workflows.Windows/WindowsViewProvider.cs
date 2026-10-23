@@ -50,7 +50,7 @@ internal sealed partial class WindowsViewProvider(WorkspaceStore store, string p
         var intent = g.Selection.Intent; var view = View(intent.Cache.ViewId); var worker = Worker(g.WorkerId);
         Require(intent.ProjectId == ProjectId && intent.GenerationId == id && g.Selection.ReceiptId == id &&
             intent.Cache == view.Cache && intent.Owner == view.Owner && intent.Candidate.Intent.Worker.WorkspaceId == worker.WorkspaceId &&
-            g.BaseRevision == worker.BaseRevision && g.Workspace.Id == id && g.Workspace.StorageMode == "ntfs-snapshot" &&
+            g.BaseRevision == worker.BaseRevision && g.Workspace.Id == id && g.Workspace.StorageMode == "git-snapshot" &&
             g.Workspace.ManagedPaths.SequenceEqual(Managed) && g.Request.Identity.ExcludedTopLevel.SequenceEqual([".git"]) &&
             g.Request.Identity.MaxJournalBytes == view.Cache.MaxJournalBytes &&
             WorkspaceStore.SamePath(g.Workspace.ProjectPath, project) && WorkspaceStore.SamePath(g.Workspace.Path, view.MountPath) &&
@@ -77,19 +77,22 @@ internal sealed partial class WindowsViewProvider(WorkspaceStore store, string p
     internal WorkspaceRecord Workspace(string id)
     {
         var w = store.Get(id);
-        Require(WorkspaceStore.SamePath(w.ProjectPath, project) && w.StorageMode == "ntfs-snapshot" && w.Snapshot?.Reference is not null,
-            "ViewWorkerMismatch", "Use this project's existing NTFS snapshot worker.");
+        Require(WorkspaceStore.SamePath(w.ProjectPath, project) && w.StorageMode == "git-snapshot" && w.GeneratedDirectory is null && w.Snapshot?.Reference is not null,
+            "ViewWorkerMismatch", "Use this project's Git snapshot worker without a Library graft; grafted view bases are unsupported.");
         return w;
     }
     internal string Delta(WorkspaceRecord w) => Path.Combine(store.ControlPath(w.Id), "delta");
     internal static OverlayIdentity Identity(WorkspaceRecord w) => new(2, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024, [".git"]);
-    internal VssSnapshotProvider SnapshotProvider(string worker) => new(Path.Combine(store.ControlPath(worker), "snapshot"), worker);
-    internal async Task<VssSnapshotTree> Basis(string worker, SnapshotReference snapshot, CancellationToken ct)
+    internal ISourceSnapshotProvider SnapshotProvider(string worker) => WorkspaceSnapshotBasis.Provider(Workspace(worker).Snapshot!.Reference!, Path.Combine(store.ControlPath(worker), "snapshot"), worker);
+    internal IDisposable ReadLease(string worker) => WorkspaceSnapshotBasis.AcquireReadLease(Workspace(worker).Snapshot!.Reference!, Path.Combine(store.ControlPath(worker), "snapshot"), worker);
+    internal Task<SnapshotReadAccess> ReadAccess(string worker, SnapshotReference snapshot, CancellationToken ct) =>
+        WorkspaceSnapshotBasis.ResolveAsync(snapshot, Path.Combine(store.ControlPath(worker), "snapshot"), worker, null, ct);
+    internal async Task<WorkspaceSnapshotBasis.DisposableSnapshotTree> Basis(string worker, SnapshotReference snapshot, CancellationToken ct)
     {
-        var access = await SnapshotProvider(worker).ResolveReadAccessAsync(snapshot, null, ct);
+        var access = await ReadAccess(worker, snapshot, ct);
         var health = await SnapshotProvider(worker).ObserveAsync(snapshot, ct);
-        Require(health.Available == true, "ViewSnapshotUnavailable", "Verify this exact VSS identity before reading source.");
-        return new(snapshot, access, () => health);
+        Require(health.Available == true, "ViewSnapshotUnavailable", "Verify this exact project basis before reading source.");
+        return WorkspaceSnapshotBasis.OpenTree(snapshot, access, Path.Combine(store.ControlPath(worker), "snapshot"), worker, () => health);
     }
     public Task VerifyOwnerAsync(string projectId, string resourceId, ViewOwner owner, CancellationToken ct)
     {
@@ -215,14 +218,14 @@ internal sealed partial class WindowsViewProvider(WorkspaceStore store, string p
         Require(worker.CompatibilityKey == view.Cache.CompatibilityKey, "ViewCacheMismatch", "The Editor/bridge compatibility key differs.");
         Quiescent((await ObserveViewAsync(intent.ProjectId, intent.Cache.ViewId, ct)).Resources);
         using var basis = await Basis(worker.WorkspaceId, intent.Candidate.Intent.Worker.Snapshot, ct);
-        var access = await SnapshotProvider(worker.WorkspaceId).ResolveReadAccessAsync(basis.Snapshot, null, ct);
+        var access = await ReadAccess(worker.WorkspaceId, basis.Snapshot, ct);
         string control = GenerationPath(intent.GenerationId), delta = Path.Combine(control, "source");
         var identity = new OverlayIdentity(2, intent.GenerationId, basis.Snapshot, intent.Cache.MaxJournalBytes, 1024 * 1024, [".git"]);
         var cacheIdentity = CacheIdentity(view.Cache);
         var cacheAccess = view.CacheWorkerId == worker.WorkspaceId && view.Cache.Snapshot == basis.Snapshot ? access
-            : await SnapshotProvider(view.CacheWorkerId).ResolveReadAccessAsync(view.Cache.Snapshot, null, ct);
-        using var cacheLease = SnapshotProvider(view.CacheWorkerId).AcquireReadLease();
-        using var cacheBasis = new VssSnapshotTree(view.Cache.Snapshot, cacheAccess);
+            : await ReadAccess(view.CacheWorkerId, view.Cache.Snapshot, ct);
+        using var cacheLease = WorkspaceSnapshotBasis.AcquireReadLease(view.Cache.Snapshot, Path.Combine(store.ControlPath(view.CacheWorkerId), "snapshot"), view.CacheWorkerId);
+        using var cacheBasis = WorkspaceSnapshotBasis.OpenTree(view.Cache.Snapshot, cacheAccess, Path.Combine(store.ControlPath(view.CacheWorkerId), "snapshot"), view.CacheWorkerId);
         var selection = new SourceViewSelection(CandidatePath(intent.Candidate.Intent.CandidateId), CachePath(intent.Cache.CacheId), CacheRoots, cacheIdentity, "snapshot");
         using (var initialize = new SourceViewDeltaStore(delta, identity, basis, selection, cacheBasis: cacheBasis)) { initialize.Flush(); }
         var request = new OverlayServeRequest(identity, delta, view.MountPath, Path.Combine(control, "overlay"),
@@ -232,7 +235,7 @@ internal sealed partial class WindowsViewProvider(WorkspaceStore store, string p
         var receipt = new ViewSelectionReceipt(intent, intent.GenerationId);
         var w = new WorkspaceRecord { Id = intent.GenerationId, RequestKey = intent.OperationId, ProjectPath = project,
             Path = view.MountPath, SourceReference = "view-source", BaseReference = worker.BaseRevision, BaseRevision = worker.BaseRevision,
-            StorageMode = "ntfs-snapshot", Purpose = "source-view", ManagedPaths = Managed, Snapshot = new() { Reference = basis.Snapshot, MaxJournalBytes = intent.Cache.MaxJournalBytes } };
+            StorageMode = "git-snapshot", Purpose = "source-view", ManagedPaths = Managed, Snapshot = new() { Reference = basis.Snapshot, MaxJournalBytes = intent.Cache.MaxJournalBytes } };
         Save(Path.Combine(control, "generation.json"), new ViewGeneration(1, receipt, worker.WorkspaceId, worker.BaseRevision, w, request));
         Save(Path.Combine(request.ControlPath, "request.json"), request);
         Save(ActivePath(intent.Cache.ViewId), new ActiveGeneration(1, intent.GenerationId));

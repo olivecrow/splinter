@@ -98,7 +98,6 @@ Splinter는 작업공간 저장과 자원 수명을 담당합니다. 편집·ref
 | [`git-snapshot`](docs/ko/git-project-basis.md) | 고정한 로컬 Git commit·tree·blob | 요청 commit과 일치하는 지원 가능한 clean 저장소, WinFsp. VSS 서비스는 필요하지 않습니다. |
 | [`plastic-snapshot`](docs/ko/plastic-project-basis.md) | 기록된 고정 Plastic changeset·파일 revision | 검증한 설치 버전의 Plastic client를 통한 읽기 접근, WinFsp. 새 Plastic 작업공간 등록이나 VSS 서비스는 필요하지 않습니다. |
 | [`project-snapshot`](docs/ko/plain-project-basis.md) | 생성 데이터를 포함한 VCS 없는 프로젝트의 관리형 기준본 | 명시적 `project prepare`, 같은 NTFS 볼륨 내 이동, 원본 경로의 쓰기 가능한 view. VSS 서비스는 필요하지 않습니다. |
-| [`ntfs-snapshot`](docs/ko/ntfs-workspaces.md) | Git·Plastic·VCS 없는 프로젝트의 VSS snapshot | WinFsp, 정확한 project/home identity가 등록된 제한 권한 서비스. |
 
 Git·Plastic 작업에는 명시적으로 준비한 [Library 기준본](docs/ko/git-library-reference.md)을 연결할 수 있습니다. Git commit 기준본은 커밋한 원시 바이트만 포함하고 ignored 파일은 제외합니다. checkout filter·LFS·특수 파일은 해당 경로의 입력 제한을 확인해야 합니다. 기록된 Plastic reader는 현재 client `11.0.16.9915`가 필요합니다.
 
@@ -106,7 +105,7 @@ Git·Plastic 작업에는 명시적으로 준비한 [Library 기준본](docs/ko/
 
 현재 Splinter는 소스 checkout에 포함된 PowerShell CLI로 사용합니다. 독립 작업공간을 만들고, 반환된 프로젝트 경로에서 기존 편집·Git·Unity 도구로 작업한 뒤, 결과를 명시적으로 보존·반영·폐기하는 흐름입니다. 같은 작업은 기존 작업공간에서 이어갈 수 있습니다.
 
-필요한 환경은 Windows/NTFS, PowerShell 7.2 이상, [global.json](global.json)에 명시한 .NET SDK, [WinFsp](https://github.com/winfsp/winfsp)입니다. Git·Plastic·Unity는 해당 프로젝트에서 사용할 때 필요하며, `ntfs-snapshot`에는 별도의 [제한 권한 서비스](docs/ko/storage-privilege-service.md)가 필요합니다.
+필요한 환경은 Windows/NTFS, PowerShell 7.2 이상, [global.json](global.json)에 명시한 .NET SDK, [WinFsp](https://github.com/winfsp/winfsp)입니다. Git·Plastic·Unity는 해당 프로젝트에서 사용할 때 필요합니다.
 
 설정과 첫 작업공간 생성은 [시작 안내](docs/ko/agent-start.md)를, Unity 프로젝트의 Editor 사용은 [Unity 사용 안내](docs/ko/alpha-workspaces.md)를 참고하세요. AI 에이전트가 따를 상세 절차는 [에이전트 스킬](skills/splinter/SKILL.md)에 정리되어 있습니다.
 

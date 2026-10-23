@@ -31,6 +31,8 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
 
     public async Task<SnapshotReference> CaptureAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
+        if (!WorkspaceStorage.HasRangeJournal(w.StorageMode))
+            throw new WorkspaceException("UnsupportedStorageMode", "Use a supported project-scoped basis; preserve unsupported state.");
         if (!OperatingSystem.IsWindows()) throw new WorkspaceException("PlatformUnsupported", "NTFS snapshots require Windows.");
         if (new DriveInfo(Path.GetPathRoot(w.ProjectPath)!).DriveFormat != "NTFS")
             throw new WorkspaceException("NtfsVolumeRequired", "Keep the source on an existing NTFS volume.");
@@ -55,20 +57,7 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
             return await new GitObjectSnapshotProvider(Path.Combine(control, "snapshot"), w.Id, w.BaseRevision, w.GeneratedDirectory)
                 .CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(control, "snapshot")), ct);
         }
-        // Reject unsupported live input before requesting a privileged capture.
-        // Repeat on the immutable tree to close the capture-time race.
-        if (!File.Exists(Path.Combine(control, "snapshot", "snapshot.json"))) SnapshotInputChecks.VerifyTree(w.ProjectPath, ct, w.SourceKind is "none" or "plastic", w.SourceKind == "plastic");
-        var snapshot = await new VssSnapshotProvider(Path.Combine(control, "snapshot"), w.Id).CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(control, "snapshot")), ct);
-        string probePath = Path.Combine(control, "snapshot", "input-check.json");
-        var prior = await WindowsProcessWorkspaceProvider.ReadAsync<InputCheck>(probePath, ct);
-        if (prior is null || prior.SnapshotId != snapshot.Id || prior.Version != 1)
-        {
-            var watch = Stopwatch.StartNew();
-            var access = await WorkspaceSnapshotBasis.ResolveAsync(snapshot, Path.Combine(control, "snapshot"), w.Id, null, ct);
-            int entries = SnapshotInputChecks.VerifyTree(access.RootPath, ct, w.SourceKind is "none" or "plastic", w.SourceKind == "plastic");
-            await WindowsProcessWorkspaceProvider.WriteAsync(probePath, new InputCheck(1, snapshot.Id, entries, watch.ElapsedMilliseconds, 0), ct);
-        }
-        return snapshot;
+        throw new WorkspaceException("UnsupportedStorageMode", "Use a supported project-scoped basis.");
     }
 
     public async Task VerifyConnectionAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
@@ -356,7 +345,6 @@ public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspaceP
             FailureCode = observed.FailureCode ?? (free < 2L * 1024 * 1024 * 1024 ? "SnapshotHeadroomRequired" : null)
         };
     }
-    private sealed record InputCheck(int Version, string SnapshotId, int Entries, long ElapsedMilliseconds, long PayloadBytesRead);
     // Diagnostic measurements live outside the delta and are never collection
     // authority. Keep the seal's equality/durability protocol unchanged.
     private static Task RecordRead(string control, WorkspaceRecord workspace, string operation, long bytes,

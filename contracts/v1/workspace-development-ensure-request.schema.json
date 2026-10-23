@@ -20,7 +20,6 @@
     },
     "storage": {
       "enum": [
-        "ntfs-snapshot",
         "git-snapshot",
         "git-checkout",
         "plastic-snapshot",
@@ -82,7 +81,6 @@
         "properties": {
           "storage": {
             "enum": [
-              "ntfs-snapshot",
               "git-snapshot",
               "plastic-snapshot",
               "project-snapshot"
@@ -106,7 +104,6 @@
         "properties": {
           "storage": {
             "enum": [
-              "ntfs-snapshot",
               "project-snapshot"
             ]
           },
@@ -166,42 +163,23 @@
         ]
       },
       "then": {
-        "oneOf": [
-          {
-            "properties": {
-              "storage": {
-                "const": "ntfs-snapshot"
-              },
-              "baseReference": {
-                "const": "snapshot"
-              }
-            },
-            "not": {
-              "required": [
-                "baseline"
-              ]
-            }
+        "properties": {
+          "storage": {
+            "const": "plastic-snapshot"
           },
-          {
-            "properties": {
-              "storage": {
-                "const": "plastic-snapshot"
-              },
-              "baseReference": {
-                "type": "string",
-                "pattern": "^[0-9]+@[^\\s]+$"
-              }
-            },
-            "required": [
-              "baseReference"
-            ],
-            "not": {
-              "required": [
-                "baseline"
-              ]
-            }
+          "baseReference": {
+            "type": "string",
+            "pattern": "^[0-9]+@[^\\s]+$"
           }
-        ]
+        },
+        "required": [
+          "baseReference"
+        ],
+        "not": {
+          "required": [
+            "baseline"
+          ]
+        }
       }
     },
     {

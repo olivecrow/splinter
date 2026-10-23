@@ -10,11 +10,11 @@ The product manages NTFS workspaces and their Editor lifetime. Creation, resumpt
 <a id="에이전트의-기본-흐름"></a>
 ## Default agent workflow
 
-Invoke the built product's `scripts/splinter.ps1` by absolute path, using the registered project/home, explicit base, and stable task key. Home lives outside the original project; all workers share the same registered home.
+Invoke the built product's `scripts/splinter.ps1` by absolute path, using the explicit project/home, explicit base, and stable task key. Home lives outside the original project; all workers share the same home.
 
 ```text
-splinter workspace ensure --project <Unity repository> --key <task key> --storage ntfs-snapshot --base development --editor --home <registered home>
-splinter workspace status --id <returned id> --home <registered home>
+splinter workspace ensure --project <Unity repository> --key <task key> --storage git-snapshot --base development --editor --home <home>
+splinter workspace status --id <returned id> --home <home>
 ```
 
 Edit at `data.workspace.path` and make external MCP/Unity CLI projectRoot match this path. `application.running`/`ready` are execution/readiness observations, not compile/test success. The agent may analyze source and plan while the Editor prepares. Preserve the same key/id/home, basis, and request digest for the next conversation.

@@ -3,26 +3,26 @@
 
 [한국어](ko/plastic-compatibility.md)
 
-The exact historical C: A/B were completed as released/discarded after separately authorized removal of blocking snapshots. [VR-01](verification/vss-and-mcp-remediation.md) distinguishes the historical pending state from current state; general unowned-snapshot protection guards remain.
+Historical VSS C:/T: A/B, reclamation and tool qualification remain in [PC](verification/plastic-compatibility.md) and [VR-01](verification/vss-and-mcp-remediation.md). After [VSS retirement](plans/vss-retirement.md), that route is no longer executable.
 
 Splinter provides parallel workspaces. Unity VCS/Plastic SCM integration is a compatibility boundary that isolates original metadata, registrations, and locks without additional checkout/copy costs. [Verification records](verification/plastic-compatibility.md) own current-candidate automated/actual qualification; the [plan](plans/plastic-compatibility.md) owns this scope.
 
-The separate `plastic-snapshot` referencing recorded changesets follows the [project basis](plastic-project-basis.md) and [current verification](verification/plastic-project-basis.md). Default snapshot selection, service, and VSS reclamation qualification below concern existing `ntfs-snapshot`.
+Current `plastic-snapshot` references recorded changesets/revisions under the [project basis](plastic-project-basis.md) and [PPB verification](verification/plastic-project-basis.md). No VSS service or grant is required.
 
 <a id="선택과-입력"></a>
 ## Selection and inputs
 
-Specify `--source plastic` in the initial request. Current state v2 fixes project/key/id/home, source/application, basis, and digest. For `plastic`, default application is `unity`, basis is `snapshot`, and only NTFS tasks are supported. `--application none` serves the common lifecycle for Editor-free inputs. There is no fallback to another source.
+Specify `--source plastic` in the initial request. Current state v2 fixes project/key/id/home, source/application, basis, and digest. For `plastic`, default application is `unity`, an explicit recorded changeset is required, and only NTFS tasks are supported. `--application none` serves the common lifecycle for Editor-free inputs. There is no fallback to another source.
 
 ```powershell
 pwsh ./scripts/splinter.ps1 doctor --project <Plastic original> --source plastic --application unity
 pwsh ./scripts/splinter.ps1 schema workspace.ensure
-pwsh ./scripts/splinter.ps1 workspace ensure --project <Plastic original> --key <same task key> --source plastic --application unity --base snapshot --storage ntfs-snapshot --home <registered short home>
+pwsh ./scripts/splinter.ps1 workspace ensure --project <Plastic original> --key <same task key> --source plastic --application unity --base <changeset@repository@server> --storage plastic-snapshot --home <short home>
 ```
 
-Read-only checks inspect local `cm` version, exact workspace root/GUID, and `regular/static` type. Admission fixes the limited content hash of root `.plastic/plastic.workspace` and owned request. Confirm the same management identity at the actual capture's verified read location before fixing the file basis. No arbitrary changeset/branch is checked out to create it; actual capture-time files are the basis. Subsequent original-file edits remain allowed.
+Read-only checks fix the local cm version, exact workspace root/GUID, regular/static type and administration hash. The reader uses an explicit fixed changeset/revisions containing required source. There is no automatic checkout/check-in or mutable-original fallback. Subsequent original-file edits remain allowed.
 
-Original must be the exact Plastic workspace root. Partial/Gluon, dynamic/plasticfs, mixed/nested VCS, and paths inheriting another workspace are rejected. Home is outside the original at a location **overlapping no Plastic registration and inheriting no Git/Plastic or other management metadata**. Product-repository `.local` inherits that repository's Git and must not serve as Plastic worker home. Do not delete/move arbitrary registrations to satisfy requirements. Windows/NTFS, WinFsp, registered restricted service, supported ordinary files, and space conditions retain the [NTFS contract](ntfs-workspaces.md).
+Original must be the exact Plastic workspace root. Partial/Gluon, dynamic/plasticfs, mixed/nested VCS, and paths inheriting another workspace are rejected. Home is outside the original at a location **overlapping no Plastic registration and inheriting no Git/Plastic or other management metadata**. Product-repository `.local` inherits that repository's Git and must not serve as Plastic worker home. Do not delete/move arbitrary registrations to satisfy requirements. Windows/NTFS, WinFsp, supported ordinary files, and space conditions retain the [NTFS contract](ntfs-workspaces.md).
 
 <a id="관리-정보와-결과"></a>
 ## Management information and results
@@ -33,9 +33,9 @@ A/B are **file workspaces unregistered with Plastic**. They neither share/change
 
 `checkpoint` preserves file manifests and actual independent basis/result payload regardless of VCS commit/check-in. Payload is not hydrated/copied before explicit collection. Required payload storage during collection is separate from creation/read/delta costs. Original management identity for results/discard remains in `plastic/admission.json`/`plastic/snapshot.json`; common file ownership/basis/results remain in `files/`. Their schemas are `urn:splinter:v1:plastic-source-admission`, `plastic-source-receipt`, and `file-source-manifest`.
 
-Release/discard retain intent, seal, independent-result, original/peer, and owned-resource reclamation guards from [common file results](vcs-independent-workspaces.md) and [explicit discard](workspace-discard.md). The privilege service verifies only request-bound receipts/payload; it does not use `cm`, original Plastic metadata, or user authentication settings as SYSTEM. A current service package is required; ordinary CLI does not automatically elevate or fall back to a helper.
+Release/discard retain intent, seal, independent-result, original/peer and owned-resource guards from [common file results](vcs-independent-workspaces.md) and [discard](workspace-discard.md). Ordinary-user providers reclaim only owned basis references/read leases, without service/helper or elevation fallback.
 
-Protection of unowned snapshots/shared source-volume storage can defer reclamation. A release returns `reclaim-pending`; explicit discard returns an Accepted/nonterminal `discard-reclaim-pending` response and same-intent next actions. Neither is completion. Final snapshot reclamation for separate small T: A/B was boundedly verified, distinct from preceding C: deferral and Unity CLI A/B discovery failure. [PC verification](verification/plastic-compatibility.md) fixes exact input/qualification.
+Historical `reclaim-pending`/`discard-reclaim-pending` from volume snapshot ordering and bounded T: reclamation belong to [PC verification](verification/plastic-compatibility.md). They do not qualify reclamation of recorded project bases.
 
 Subsequent [Unity CLI handoff verification](verification/unity-cli-handoff.md) used new A/B on the same registered T: input. It checked exact-path commands for workers absent from listings, loaded code, B work after A's normal shutdown, both results, and reclamation. It did not fix CLI list discovery or automatically qualify MCP/other inputs/versions. Actual usage follows [exact target selection](alpha-workspaces.md#exact-target-selection-with-unity-cli).
 

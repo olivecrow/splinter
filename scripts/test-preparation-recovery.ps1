@@ -24,7 +24,7 @@ if (-not $Boundaries) { $Boundaries = $known }
 if ($Boundaries | Where-Object { $_ -notin $known }) { throw 'Unsupported boundary.' }
 if (-not $Execute) {
     @{ stage='development-plan'; project=$Project; home=$HomePath; evidence=$OutputPath; boundaries=$Boundaries;
-       effects='explicit product CLI interruption; owned VSS/Git/WinFsp preparation, independent result and release; no install/elevation/volume changes' } | ConvertTo-Json -Depth 5
+       effects='explicit product CLI interruption; owned Git-basis/WinFsp preparation, independent result and release; no install/elevation/volume changes' } | ConvertTo-Json -Depth 5
     return
 }
 if (Test-Path -LiteralPath $OutputPath) { throw 'Use a new evidence directory. Existing runs are never overwritten.' }
@@ -32,6 +32,10 @@ foreach ($root in @($Project, (Join-Path $HomePath 'workspaces'))) {
     if ($OutputPath.Equals($root, [StringComparison]::OrdinalIgnoreCase) -or $OutputPath.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Evidence cannot be inside source or a workspace.' }
 }
 if (-not $BaseReference) { throw 'Execute requires an explicit recorded base reference.' }
+$caller = [Security.Principal.WindowsIdentity]::GetCurrent()
+try {
+    if ([Security.Principal.WindowsPrincipal]::new($caller).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run the development probe as an unelevated caller.' }
+} finally { $caller.Dispose() }
 New-Item -ItemType Directory -Path $OutputPath | Out-Null
 # The exception is limited to this explicitly selected fixture and inherited by
 # these children only; global/user Git configuration is never modified.
@@ -69,8 +73,6 @@ function SourceProof {
 }
 $prior=SourceProof; if ($prior.status) { throw 'Use a clean qualified source.' }
 Save (Join-Path $OutputPath 'source-before.json') $prior
-$service=Finish (StartCli @('storage','service','status')) (Join-Path $OutputPath 'service')
-if ($service.data.callerElevated -or $service.data.state -ne 'running') { throw 'Use the existing running authority from an unelevated caller.' }
 $candidate=@{}; foreach ($f in Get-ChildItem -LiteralPath (Split-Path $cli) -File | Where-Object { $_.Extension -in '.dll','.json' }) { $candidate[$f.Name]=(Get-FileHash -LiteralPath $f.FullName).Hash }
 Save (Join-Path $OutputPath 'candidate.json') $candidate
 $results=[Collections.Generic.List[object]]::new()
@@ -78,7 +80,7 @@ foreach ($point in $Boundaries) {
     $trial=Join-Path $OutputPath $point; New-Item -ItemType Directory -Path $trial | Out-Null
     $key='nr02-'+[Guid]::NewGuid().ToString('N'); $signal=Join-Path $trial 'signal.json'; $input=Join-Path $trial 'request.json'
     Save $input @{version=1;project=$Project;home=$HomePath;key=$key;baseReference=$BaseReference;boundary=$point;signalPath=$signal}
-    $args=@('workspace','ensure','--project',$Project,'--home',$HomePath,'--key',$key,'--base',$BaseReference,'--storage','ntfs-snapshot')
+    $args=@('workspace','ensure','--project',$Project,'--home',$HomePath,'--key',$key,'--base',$BaseReference,'--storage','git-snapshot')
     $probe=StartCli @('preparation-probe','--input',$input); $started=[Diagnostics.Stopwatch]::StartNew()
     while (-not (Test-Path -LiteralPath $signal) -and -not $probe.process.HasExited -and $started.Elapsed.TotalSeconds -lt 180) { Start-Sleep -Milliseconds 50 }
     if (-not (Test-Path -LiteralPath $signal)) { Finish $probe (Join-Path $trial 'unreached') | Out-Null; throw "Boundary not reached: $point" }

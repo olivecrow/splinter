@@ -172,7 +172,7 @@ public sealed partial class FileWorkspaceProvider
         {
             string path = FilePath(Control(w), "objects/" + version.Hash);
             // The opened payload is independently hashed by the publisher before
-            // publication; do not hydrate the workspace or consult the VSS.
+            // publication; do not hydrate the workspace or consult the source basis.
             return Open(path);
         }, () => store.Save(w, "original-apply-progress"), ct);
         w.OriginalApply.RequireMatch(w);

@@ -56,24 +56,6 @@ public sealed partial class FileWorkspaceTests
     }
 
     [Fact]
-    public async Task IndependentResultPathsCanBePinnedByTheNativeAuthority()
-    {
-        if (!OperatingSystem.IsWindows()) { Assert.Skip("Windows authority path guard."); return; }
-        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
-        var w = (await f.Ensure("authority", ct)).Workspace;
-        File.WriteAllText(Path.Combine(w.Path, "data.txt"), "worker-result");
-        await f.New().CheckpointAsync(w.Id, "preserve", ct);
-        await f.New().ReleaseAsync(w.Id, ct);
-        using var guard = new Splinter.Platform.Windows.StorageAuthorityPaths();
-        FileWorkspaceProvider.VerifyIndependentResult(f.Store.Get(w.Id), f.Store.ControlPath(w.Id), path =>
-        {
-            guard.Pin(path, directory: false);
-            return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        });
-        Assert.Equal(0, f.Git.Calls);
-    }
-
-    [Fact]
     public async Task DirtyDiscardRetainsPeerAndPreviousIndependentResults()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
@@ -160,8 +142,8 @@ public sealed partial class FileWorkspaceTests
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         var a = (await f.Ensure("a", ct)).Workspace;
-        Assert.Equal("RequestKeyConflict", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().EnsureAsync(f.Project, "a", "snapshot", "ntfs-snapshot", false, ct, sourceKind: "git", applicationKind: "none"))).Code);
-        Assert.Equal("GitRequiredFailure", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().EnsureAsync(f.Project, "git", "branch", "ntfs-snapshot", false, ct, applicationKind: "none"))).Code);
+        Assert.Equal("RequestKeyConflict", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().EnsureAsync(f.Project, "a", "snapshot", "git-snapshot", false, ct, sourceKind: "git", applicationKind: "none"))).Code);
+        Assert.Equal("GitRequiredFailure", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().EnsureAsync(f.Project, "git", "branch", "git-snapshot", false, ct, applicationKind: "none"))).Code);
         Assert.Equal(1, f.Git.Calls); Assert.Equal(1, f.Backend.Captures);
         Assert.Equal("ApplicationUnsupported", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().StartAsync(a.Id, ct))).Code);
         Assert.Null(f.Store.Get(a.Id).Application);
@@ -189,10 +171,12 @@ public sealed partial class FileWorkspaceTests
         public Backend Backend { get; } = new();
         public ForbiddenGit Git { get; } = new();
         public PlasticClient Plastic { get; }
+        public FixtureRevisions Revisions { get; }
         private readonly IOriginalFilePublisher? publisher;
         private readonly string sourceKind;
         public Fixture(IOriginalFilePublisher? publisher = null, string sourceKind = "none")
         {
+            Revisions = new(); Backend.Revisions = Revisions;
             this.publisher = publisher;
             this.sourceKind = sourceKind;
             Project = Path.Combine(directory.Path, "source"); Store = new(Path.Combine(directory.Path, "home"));
@@ -205,13 +189,29 @@ public sealed partial class FileWorkspaceTests
         }
         public WorkspaceCoordinator New()
         {
-            var files = new FileWorkspaceProvider(Store, publisher);
-            var sources = new SourceWorkspaceRouter(Git, files, new PlasticWorkspaceProvider(Store, Plastic));
+            var files = new FileWorkspaceProvider(Store, publisher, projectAccess: new ProjectAccess());
+            var sources = new SourceWorkspaceRouter(Git, files, new PlasticWorkspaceProvider(Store, Plastic, Revisions));
             return new(Store, sources, new SelectedApplicationProvider(new NoApplication()),
                 snapshots: Backend, discardProvider: new Discard(sources, Backend));
         }
-        public Task<WorkspaceView> Ensure(string key, CancellationToken ct) => New().EnsureAsync(Project, key, "snapshot", "ntfs-snapshot", false, ct, sourceKind: sourceKind, applicationKind: "none");
+        public Task<WorkspaceView> Ensure(string key, CancellationToken ct) => New().EnsureAsync(Project, key, sourceKind == "plastic" ? "1@repo@server" : "snapshot", sourceKind == "plastic" ? "plastic-snapshot" : "project-snapshot", false, ct, sourceKind: sourceKind, applicationKind: "none", generatedDirectoryId: sourceKind == "none" ? new string('a', 24) : null);
         public void Dispose() => directory.Dispose();
+    }
+    private sealed class ProjectAccess : IProjectSourceAccess
+    {
+        public IDisposable Acquire(WorkspaceRecord w, bool publishing, CancellationToken ct = default) => new Lease();
+        private sealed class Lease : IDisposable { public void Dispose() { } }
+    }
+    private sealed class FixtureRevisions : IPlasticRevisionClient
+    {
+        public bool NestedVcs;
+        private static readonly long Time = DateTime.UtcNow.ToFileTimeUtc();
+        public Task<PlasticRevisionManifest> ListAsync(string treeSpec, CancellationToken ct = default) => Task.FromResult(new PlasticRevisionManifest(treeSpec, "42", "1", "11111111-1111-1111-1111-111111111111", [
+            new("data.txt", false, "2", 5, Convert.ToBase64String(System.Security.Cryptography.MD5.HashData("basis"u8)), Time),
+            new("Library", true, "3", 0, "1B2M2Y8AsgTpgAmY7PhCfg==", Time),
+            new(NestedVcs ? "Library/.plastic" : "Library/user.txt", false, "4", 5, Convert.ToBase64String(System.Security.Cryptography.MD5.HashData("basis"u8)), Time)], "rep:repo@server"));
+        public Task VerifyProjectAsync(string project, PlasticRevisionManifest manifest, CancellationToken ct = default) => Task.CompletedTask;
+        public Stream OpenRevision(string treeSpec, string revision) => new MemoryStream("basis"u8.ToArray());
     }
     private sealed class NoApplication : IApplicationWorkspaceProvider
     {
@@ -249,23 +249,53 @@ public sealed partial class FileWorkspaceTests
     }
     private sealed class Backend : ISnapshotWorkspaceBackend
     {
+        public FixtureRevisions Revisions = null!;
         public int Captures; public string? Fail; public bool ChangeSeal;
         public HashSet<string> Mounted = [], Removed = [], Released = [];
         private readonly Dictionary<string, SnapshotReference> receipts = [];
         private long sequence;
         private void Lost(string boundary) { if (Fail == boundary) { Fail = null; throw new WorkspaceException("ReplyLost", boundary); } }
-        public Task<SnapshotReference> CaptureAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        public async Task<SnapshotReference> CaptureAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         {
             if (!receipts.TryGetValue(w.Id, out var r))
             {
                 string root = Path.Combine(c, "fake-immutable"); Copy(w.ProjectPath, root);
-                receipts[w.Id] = r = new(w.Id, "fake", w.ProjectPath, root, DateTimeOffset.UtcNow, true, true, "fake"); Captures++;
+                receipts[w.Id] = r = w.SourceKind == "plastic"
+                    ? await new PlasticRevisionSnapshotProvider(Path.Combine(c, "snapshot"), w.Id, w.BaseReference, client: Revisions).CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(c, "snapshot")), ct)
+                    : new(w.Id, "fake", w.ProjectPath, root, DateTimeOffset.UtcNow, true, true, "fake"); Captures++;
             }
-            Lost("capture"); return Task.FromResult(r);
+            if (w.SourceKind == "none") w.GeneratedDirectory = new(w.GeneratedDirectoryId!, w.ProjectPath, "", r, c, w.GeneratedDirectoryId!, new string('a', 64));
+            Lost("capture"); return r;
         }
         public Task VerifyConnectionAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<OverlayMount> ConnectAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
-        { if (!Directory.Exists(w.Path)) Copy(w.Snapshot!.Reference!.RootPath, w.Path, w.SourceKind == "plastic"); Mounted.Add(w.Id); Lost("connect"); return Task.FromResult(new OverlayMount(w.Id, w.Path, "fake", w.Snapshot!.Reference!, 1, 1)); }
+        public async Task<OverlayMount> ConnectAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        {
+            if (!Directory.Exists(w.Path))
+            {
+                if (w.SourceKind == "plastic")
+                {
+                    var provider = new PlasticRevisionSnapshotProvider(Path.Combine(c, "snapshot"), w.Id, client: Revisions);
+                    using var lease = provider.AcquireReadLease();
+                    using var tree = provider.OpenTree(w.Snapshot!.Reference!, await provider.ResolveReadAccessAsync(w.Snapshot.Reference!, ct));
+                    Materialize(tree, "", w.Path);
+                }
+                else Copy(Path.Combine(c, "fake-immutable"), w.Path);
+            }
+            Mounted.Add(w.Id); Lost("connect"); return new OverlayMount(w.Id, w.Path, "fake", w.Snapshot!.Reference!, 1, 1);
+        }
+        private static void Materialize(ISnapshotTree tree, string relative, string target)
+        {
+            Directory.CreateDirectory(target);
+            foreach (var entry in tree.List(relative))
+            {
+                string path = Path.Combine(target, entry.Path.Split('/')[^1]);
+                if (entry.Directory) Materialize(tree, entry.Path, path);
+                else { byte[] bytes = new byte[(int)entry.Length]; Assert.Equal(bytes.Length, tree.Read(entry.Path, 0, bytes)); File.WriteAllBytes(path, bytes); }
+                if (entry.Directory) Directory.SetLastWriteTimeUtc(path, DateTime.FromFileTimeUtc(entry.LastWriteTime));
+                else File.SetLastWriteTimeUtc(path, DateTime.FromFileTimeUtc(entry.LastWriteTime));
+                File.SetAttributes(path, (FileAttributes)entry.Attributes);
+            }
+        }
         public Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.FromResult(
             new SnapshotWorkspaceObservation(!Released.Contains(w.Id), Mounted.Contains(w.Id), Mounted.Contains(w.Id), true, 0, 0, 0,
                 SnapshotStorage: w.Snapshot?.Reference is { } r ? new SnapshotObservation(r.Id, !Released.Contains(w.Id), null, null, null) { ReadAccess = new(r.Id, r.RootPath, "fake-verified") } : null,
@@ -276,7 +306,7 @@ public sealed partial class FileWorkspaceTests
         { if (Directory.Exists(w.Path)) Directory.Delete(w.Path, true); Mounted.Remove(w.Id); Lost("unmount"); return Task.CompletedTask; }
         public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { Removed.Add(w.Id); Lost("remove"); return Task.CompletedTask; }
         public Task<SnapshotReclamation> ReleaseSnapshotAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
-        { Released.Add(w.Id); if (Directory.Exists(w.Snapshot!.Reference!.RootPath)) Directory.Delete(w.Snapshot.Reference.RootPath, true); Lost("release"); return Task.FromResult(new SnapshotReclamation(w.Snapshot.Reference.Id, "fake", "released", DateTimeOffset.UtcNow, [])); }
+        { Released.Add(w.Id); if (Directory.Exists(Path.Combine(c, "fake-immutable"))) Directory.Delete(Path.Combine(c, "fake-immutable"), true); Lost("release"); return Task.FromResult(new SnapshotReclamation(w.Snapshot!.Reference!.Id, "fake", "released", DateTimeOffset.UtcNow, [])); }
         public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default, long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null) => throw new InvalidOperationException();
         public Task CompleteCompactionAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new InvalidOperationException();
         private static void Copy(string source, string target, bool omitPlastic = false)

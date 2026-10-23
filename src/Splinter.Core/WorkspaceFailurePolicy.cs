@@ -11,25 +11,21 @@ public static class WorkspaceFailurePolicy
         "FileSourceStateInvalid" or "FileResultIncomplete" or
         "OriginalApplyStateInvalid" or "OriginalApplyPending" or "OriginalApplyRequestConflict" or "OriginalApplyConflict" or
         "OriginalApplyNativeFailure" or "OriginalApplyPlanChanged" or "OriginalApplyResultFixed" or "OriginalApplyResourcesPresent" or
-        "DiscardIntentMismatch" or "DiscardDeltaChanged" or "DiscardSourceChanged" or "DiscardRequestConflict" or "StorageDiscardNotAuthorized" or
-        "DeltaChangedAfterCollection" or "SnapshotResultInvalid" or "StateCorrupt" or
-        "SnapshotReclamationInvalid" or "SnapshotCollateralLoss" or "CompactionGenerationMismatch" or
+        "DiscardIntentMismatch" or "DiscardDeltaChanged" or "DiscardSourceChanged" or "DiscardRequestConflict" or "DeltaChangedAfterCollection" or "SnapshotResultInvalid" or "StateCorrupt" or
+        "SnapshotReclamationInvalid" or "CompactionGenerationMismatch" or
         "CompactionStateMismatch" or "CompactionCandidateMismatch" or "CompactionIntentCorrupt" or "CompactionIntentMismatch" or
         "ViewStateCorrupt" or "ViewReceiptInvalid" or "ViewReceiptMismatch" or "ViewResultInvalid" or
         "ViewSourceChanged" or "ViewReleaseUncertain" or "ViewResultChanged" or
         "CandidateProjectionMismatch" or "CandidateProjectionHistoryUnsupported" or
         "CandidatePublicationCorrupt" or "CandidatePublicationMismatch" or "CandidatePublicationUnowned" or
         "CandidateSourceChanged" or "CandidatePartialMismatch" or "CandidateStateMismatch" or "CandidateSealMismatch" or
-        "StorageStateIncomplete" or "StorageOwnerMismatch" or "StorageRequestConflict" or "StorageServiceIdentityMismatch" or "StoragePathChanged";
+        "StorageModeRetired" or "SnapshotProviderUnsupported";
 
     public static string RetryDisposition(string code) => RequiresPreservation(code) ? "requires-user-action" : code switch
     {
         "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "SourceObservationUncertain" or "SourceChanged" or "ViewResourcesBusy" or "CandidatePublicationBusy" => "safe-to-retry",
-        "StorageServiceMissing" or "StorageServiceUnavailable" or "StorageServiceVersionMismatch" or "StorageServiceUnsafe" or
-        "StorageOperationUncertain" or "StorageRequestPending" or "StorageScopeDenied" or "StorageSnapshotNotOwned" or "StorageReleaseNotAuthorized" or
         "WorkspaceDiscardUnavailable" or "WorkspaceDiscarding" or "DiscardOwnershipUnknown" or
-        "GitBasisUnavailable" or "ProcessOwnershipUnknown" or "SnapshotPrivilegeRequired" or
-        "SnapshotHeadroomRequired" or "SnapshotReleaseIsolationRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or
+        "GitBasisUnavailable" or "ProcessOwnershipUnknown" or "SnapshotHeadroomRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or
         "OverlayStartUncertain" or "SnapshotStateMissing" or "SnapshotCheckpointMismatch" or "SnapshotPreparationIncomplete" or "SnapshotOperationIncomplete" or
         "SnapshotObservationUnknown" or "StateRecoveryRequired" or "StateReadUnavailable" or "StateWriteIncomplete" or
         "DeltaCorrupt" or "DeltaReconnectRequired" or "OverlayIdentityMissing" or "OverlayIdentityMismatch" or "SnapshotIdentityMismatch" or

@@ -31,12 +31,12 @@ public sealed class ViewLifecycleStateTests
         var provider = new WindowsViewProvider(store, project);
         string workerId = new('a', 24), generation = new('b', 24), viewId = "view";
         var owner = new ViewOwner("owner", 1); var workerOwner = new ViewOwner("worker", 1);
-        var snapshot = new SnapshotReference("snapshot", "fake", project, "immutable", DateTimeOffset.UtcNow, true, true, "fixture");
+        var snapshot = new SnapshotReference("git-" + workerId + "-" + new string('c', 40), "git-objects", project, "immutable", DateTimeOffset.UtcNow, true, true, "recorded-project-commit-raw-blobs");
         var worker = new WorkerBinding(1, provider.ProjectId, workerId, workerOwner, "compatibility", new string('c', 40));
         string cacheId = WorkspaceStore.Key(provider.ProjectId + ":cache:" + viewId);
         store.Save(new WorkspaceRecord { Id = workerId, RequestKey = workerId, ProjectPath = project,
-            SourceReference = "development", BaseReference = worker.BaseRevision,
-            Path = store.WorkPath(workerId), StorageMode = "ntfs-snapshot", Snapshot = new() { Reference = snapshot } }, "fixture");
+            SourceReference = "development", BaseReference = worker.BaseRevision, BaseRevision = worker.BaseRevision,
+            Path = store.WorkPath(workerId), StorageMode = "git-snapshot", Snapshot = new() { Reference = snapshot } }, "fixture");
         var cache = new ViewCacheIdentity(viewId, cacheId, snapshot,
             worker.CompatibilityKey, "unity-top-level-v1", SnapshotWorkspaceState.DefaultJournalBytes);
         var view = new ViewBinding(1, provider.ProjectId, owner, cache, Path.Combine(store.Root, "validation-mounts", WorkspaceStore.Key(provider.ProjectId + ":" + viewId)), workerId);
@@ -52,7 +52,7 @@ public sealed class ViewLifecycleStateTests
             new(provider.CandidatePath("candidate"), provider.CachePath(cacheId), WindowsViewProvider.CacheRoots, cacheIdentity, "snapshot"),
             new(new(snapshot.Id, snapshot.RootPath, "proof"), Path.Combine(store.ControlPath(workerId), "snapshot"), workerId));
         var workspace = new WorkspaceRecord { Id = generation, RequestKey = generation, SourceReference = "view-source", BaseReference = worker.BaseRevision,
-            ProjectPath = project, Path = view.MountPath, StorageMode = "ntfs-snapshot",
+            ProjectPath = project, Path = view.MountPath, StorageMode = "git-snapshot",
             ManagedPaths = provider.Managed, Snapshot = new() { Reference = snapshot } };
         var g = new ViewGeneration(1, selection, workerId, worker.BaseRevision, workspace, request);
         string path = Path.Combine(control, "generation.json"); ProductState.Save(path, g);

@@ -10,7 +10,7 @@ $known += @('write:client.after-write-before-flush','mmap:client.before-view-flu
 if (-not $Cases) { $Cases=$known }
 if (($Cases | Where-Object { $_ -notin $known }) -or @($Cases | Select-Object -Unique).Count -ne $Cases.Count) { throw 'Unsupported/duplicate case.' }
 $config=@{version=1;project=$Project;home=$HomePath;evidencePath=$OutputPath;baseReference=$BaseReference;caseNames=@($Cases);cliPath=(Join-Path $repo 'src/Splinter.Cli/bin/Release/net10.0/splinter.dll')}
-if (-not $Execute) { @{stage='development-plan';configuration=$config;totalCases=$Cases.Count;effects='existing registered local source/home/service only; ordinary CLI/VSS/WinFsp/Git; exact owned provider interruption; same-request reconnect; explicit editorless preserve/release; no observer/install/Unity/VIVOBOOK'} | ConvertTo-Json -Depth 6; return }
+if (-not $Execute) { @{stage='development-plan';configuration=$config;totalCases=$Cases.Count;effects='existing clean Git source/home only; ordinary CLI/WinFsp/Git-basis; exact owned provider interruption; same-request reconnect; explicit editorless preserve/release; no observer/install/Unity/VIVOBOOK'} | ConvertTo-Json -Depth 6; return }
 if (Test-Path -LiteralPath $OutputPath) { throw 'Use new evidence; prior runs are preserved.' }
 foreach ($tree in @($Project,$HomePath)) { if ($OutputPath.Equals($tree,[StringComparison]::OrdinalIgnoreCase) -or $OutputPath.StartsWith($tree+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Evidence must be outside source and home.' } }
 $tests=Join-Path $repo 'tests/Splinter.Tests/bin/Release/net10.0/Splinter.Tests.dll'

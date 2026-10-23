@@ -3,6 +3,8 @@
 
 [한국어](../ko/plans/project-scoped-basis-and-reclamation-review.md)
 
+> Current modes are `git-snapshot`, `plastic-snapshot`, and `project-snapshot`. The [VSS retirement decision](vss-retirement.md) supersedes earlier VSS service/installation/reclamation follow-ups. Existing IDs, figures and input-specific qualification below remain historical records and do not authorize resuming VSS execution.
+
 User-fixed scope: resolve the mismatch of creating volume-wide VSS for work on one project. First reuse project versions already recorded in Git/Plastic; give new VCS-free basis methods lower priority. Costs of outside-project changes or existing snapshot reclamation may motivate this transition but do not replace definition of the first problem.
 
 Preserve [product requirements](../../plan.html): original NTFS location/filesystem, no initial full copies/read hydration/whole-file copy-up fallback, per-task range storage, continuously editable original. Do not delete/automatically migrate existing `source=none` features, earlier VSS tasks/independent results/pending receipts. Existing scoped PS/ME/SP/M0 closure does not qualify new backends.

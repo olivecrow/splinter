@@ -35,7 +35,7 @@ Library/프로젝트의 공통 restore는 v2 계획·기존 파일 identity·신
 | `Splinter.SourceControl.Files` | 일반 폴더/Plastic 파일 기준·독립 payload·Plastic 읽기 전용 호환 경계·고정 소스 라우팅·폐기 영수증 | Core, Runtime |
 | `Splinter.SourceControl.Git` | fixed commit/tree/blob reader·소유 기준 ref/fence·linked worktree/index·현재 소스 hash·독립 결과·guard가 있는 merge/회수 | Core |
 | `Splinter.Application.Unity` | 정확한 버전/프로젝트의 Editor 실행·준비 관측·정상 종료·소유 bridge | Core |
-| `Splinter.Platform.Windows` | VSS/Git 불변 reader 조합·WinFsp·변경 범위 저널·제한 권한 서비스·Job Object | Core, Runtime, Files, Git, WinFsp.Net; Win32 |
+| `Splinter.Platform.Windows` | Git/Plastic/project 불변 reader 조합·WinFsp·변경 범위 저널·Job Object | Core, Runtime, Files, Git, WinFsp.Net; Win32 |
 | `Splinter.Workflows.Windows` | 개발용 불변 source view·공통 Library cache·독립 결과와 회수 의존성 | Runtime와 Git/Unity/Windows |
 | `Splinter.Cli` | 제품 명령 파싱·어댑터 조합·JSON/종료 코드; 개발 진입점의 공통 조합 | Host, Runtime, Git/Unity/Windows/workflow, System.CommandLine |
 | `tools/Splinter.Development` | 별도 개발 명령 진입점 `splinter-dev` | CLI |
@@ -50,7 +50,7 @@ CLI는 짧은 프로세스다. Host는 읽기 전용 in-process 계층이며 dae
 
 Runtime의 파일 잠금은 workspace ID별 명령을 직렬화하며 프로젝트/공유 기준/snapshot 잠금은 필요한 기존 부작용 경계를 보호한다. 확인된 sharing/lock violation만 한정 대기한다. 잠금 경로·접근·다른 I/O 실패는 `StateReadUnavailable`로 즉시 거부하며 점유나 자동 복구로 해석하지 않는다. 현재 동시 CLI/파일 I/O의 한정 자격은 [SP 검증](verification/stable-parallel-completion.md)을 따른다.
 
-[읽기 전용 저장 장부](source-verification.md#계측의-의미)는 현재 SJR2의 stored/decoded·논리 유효 범위·참조 블록 전체 비용과 정확한 task/shared 파일 할당을 구별한다. 물리 저장 개발의 종료 경계와 최종 후보 자격은 [PS 범위](plans/physical-storage-completion.md)·[실행 검증](verification/physical-storage-completion.md)을 따른다. 제품 replay·seal과 VSS 소유권/회수 계약을 계측기로 대체하지 않는다.
+[읽기 전용 저장 장부](source-verification.md#계측의-의미)는 현재 SJR2의 stored/decoded·논리 유효 범위·참조 블록 전체 비용과 정확한 task/shared 파일 할당을 구별한다. 물리 저장 개발의 종료 경계와 최종 후보 자격은 [PS 범위](plans/physical-storage-completion.md)·[실행 검증](verification/physical-storage-completion.md)을 따른다. 제품 replay·seal과 기준본 소유권/회수 계약을 계측기로 대체하지 않는다.
 
 [TP-01–06](verification/unity-throughput-optimization.md)은 source manifest v3의 경로별 Git 해석·검증한 불변 내용의 최초 1회 허용·제한된 capsule 준비 및 private 읽기 snapshot을 추가한다. 전체 내용 증명·개별 durable 쓰기 승인·독립 결과 seal은 유지한다. flush나 응답 게시가 실패하면 mount된 provider를 계속 유지한다. 실험한 Windows kernel cache 유지 경로는 실제 Unity의 정상 회수에 실패하여 철회했으며 cleanup purge를 유지한다. 구성 요소 검증은 단일 공유 Editor 대비 전체 시간상 이점을 입증하지 않는다.
 
@@ -84,7 +84,6 @@ workspace 상태는 저장·소스·소유 자원·독립 결과와 반영/회�
 | `library prepare/status/restore` | 명시적으로 허용된 원본 Library의 같은 볼륨 이동·원본/A/B 범위 저장·마지막 일반 NTFS 복원. [계약](git-library-reference.md) |
 | `project prepare/status/restore` | 명시적으로 허용된 VCS 없는 전체 원본의 같은 NTFS 볼륨 이동·source/Library 공통 기준·원본/A/B 범위 저장·마지막 일반 NTFS 복원. [계약](plain-project-basis.md) |
 | `unity start/stop` | 해당 workspace Editor의 수명. 준비/종료는 상태 관측으로 확인 |
-| `storage service status` | 기존 제한 VSS 서비스의 읽기 전용 상태 |
 
 개발 계약은 `scripts/splinter-dev.ps1 capabilities/schema`에서 발견한다. `view`는 불변 후보·소스 세대·Library cache·독립 결과의 수명을 관리한다. spike/probe의 별도 입력과 실행 조건은 [개발 CLI](development-cli.md)를 따른다.
 
@@ -121,3 +120,5 @@ Windows 전용 파일 공유·native 계약 시험은 다른 OS에서 Skipped다
 [구현 계획](plans/implementation-plan.md)을 따른다. VCS 중립 계약·일반 폴더의 기본 수명주기·기존 Git 사용 환경의 보호 경계는 작은 A/B 한 묶음의 제한을 명시해 마감했다. [일반 폴더의 안전한 원본 반영](plain-folder-original-apply.md)의 구현·자동 파일 시험과 작은 Editor 없는 제품 A/B 한정 마감을 구분한다. [Plastic 호환 계약](plastic-compatibility.md)은 별도로 연결하고 작은 T: A/B의 마지막 회수까지 한정 마감했다. 선행 C: 회수 보류·외부 CLI 발견 실패는 [PC 검증](verification/plastic-compatibility.md)을 따른다. recorded Plastic의 [전체/선택 원본 반영](plastic-original-apply.md)은 [별도 한정 자격](verification/plastic-original-apply.md)을 따른다. 외부 도구의 전체 인계 자격은 필요한 입력에서 별도로 확인한다. 저장/메모리는 실제 관측 병목만 고른다. 마감한 Git 기반 M0·대형 PV·전체 장애 카탈로그를 자동 재개하지 않는다.
 
 Plastic의 `plastic-snapshot`은 `Splinter.SourceControl.Files`의 고정 revision reader와 기존 Windows overlay/공통 Library dependency를 연결한다. 현재 계약과 자격은 [프로젝트 기준본](plastic-project-basis.md)·[검증](verification/plastic-project-basis.md)을 따른다. 원본 반영은 위의 별도 계약을 따르며 새 Plastic 등록/check-in·서버 pin은 제공하지 않는다.
+
+[VSS 폐기 결정](plans/vss-retirement.md): 서비스·IPC·전용 provider/스크립트/schema를 제거했다. 공통 경로·저널·결과·소유 수명은 유지한다.

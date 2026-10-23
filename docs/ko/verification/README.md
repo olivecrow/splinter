@@ -2,6 +2,10 @@
 
 [English](../../verification/README.md)
 
+> 현재 경로는 `git-snapshot`·`plastic-snapshot`·`project-snapshot`이다. [VSS 폐기 결정](../plans/vss-retirement.md)이 과거 VSS 서비스·설치·회수 후속 지침을 대체한다. 아래 기존 ID·수치·입력별 자격은 당시 기록으로 보존하며 VSS 실행을 재개하지 않는다.
+
+[VSS 폐기 검증](vss-retirement.md)이 VT-01~04를 소유한다. 실행 경로 제거·바이트를 보존하는 구형 상태 거부·유지한 자동 회귀·양 언어 문서 검사를 다루며 새 실제 VSS/Unity 자격은 없다.
+
 [Unity 종료 지연 진단](unity-shutdown-diagnosis.md)이 SD-01을 소유한다. 시작 소스·Library·로드된 어셈블리가 동일한 일반 NTFS 5개 사례에서 메서드 16,384개를 64개 클래스로 나누자 종료가 17.34초에서 1.60초로 줄었다. 관리 함수는 미확정, 마지막 디버거 시도의 회수는 미확인이며 중단한 전체 비교는 작업량별 성능 자격이 아니다.
 
 [이전 bounded 저널 작업량 관측](unity-bounded-scaling.md)은 BS-01의 세션 유지 데이터·이전 상태 편차·5바이트 stale PID 입력 예외·일반 복원 비용을 보존한다. SD-01은 합성 코드 배치의 한계도 확인했다. BS-01 표와 조건부 손익분기는 현재 루트 README 주장에서는 제외하고 과거 측정은 보존한다.

@@ -44,8 +44,8 @@
     },
     {
       "id": "workspace.ensure",
-      "description": "Create or resume an isolated range workspace from VSS or a recorded Git/Plastic project version.",
-      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <ntfs-snapshot|git-snapshot|plastic-snapshot|project-snapshot> [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>] [--library-basis <id>] [--project-basis <id>]",
+      "description": "Create or resume an isolated range workspace from a recorded Git/Plastic version or prepared project basis.",
+      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <git-snapshot|plastic-snapshot|project-snapshot> [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>] [--library-basis <id>] [--project-basis <id>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-ensure-request",
       "outputSchema": "urn:splinter:v1:response",
@@ -141,16 +141,6 @@
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-editor-stop",
       "retry": "idempotent-stop"
-    },
-    {
-      "id": "storage.service.status",
-      "description": "Inspect the installed storage authority and caller elevation without creating snapshots or prompting for elevation.",
-      "cliUsage": "splinter storage service status",
-      "inputTransport": "options",
-      "inputSchema": "urn:splinter:v1:storage-service-status-request",
-      "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "read-only-local-process",
-      "retry": "safe-read"
     },
     {
       "id": "preparation.probe",

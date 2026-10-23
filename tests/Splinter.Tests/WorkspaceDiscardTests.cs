@@ -36,7 +36,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         var a = (await f.Ensure(ct)).Workspace;
         var peerBackend = new Backend { SnapshotId = "peer" }; var peerSource = new Source(); var peerApp = new App();
         WorkspaceCoordinator Peer() => new(new(f.Home), peerSource, peerApp, snapshots: peerBackend);
-        var b = await Peer().EnsureAsync(f.Project, "peer", "base", "ntfs-snapshot", false, ct);
+        var b = await Peer().EnsureAsync(f.Project, "peer", "base", "git-snapshot", false, ct);
         peerSource.Dirty = true;
 
         a.LastError = "SourceObservationUncertain"; new WorkspaceStore(f.Home).Save(a, "fixture-error");
@@ -134,10 +134,10 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     public async Task SharedSnapshotBlocksDiscardBeforeStoppingEitherTask()
     {
         using var f = new Fixture { WithDiscard = true }; var ct = TestContext.Current.CancellationToken;
-        var w = (await f.Ensure(ct)).Workspace;
+        var w = (await f.New().EnsureAsync(f.Project, "task", "1@repo@server", "plastic-snapshot", false, ct, sourceKind: "plastic")).Workspace;
         var peerBackend = new Backend(); var peerApp = new App();
         var peer = new WorkspaceCoordinator(new(f.Home), new Source(), peerApp, snapshots: peerBackend);
-        await peer.EnsureAsync(f.Project, "dependent", "base", "ntfs-snapshot", false, ct);
+        await peer.EnsureAsync(f.Project, "dependent", "1@repo@server", "plastic-snapshot", false, ct, sourceKind: "plastic");
         peerApp.Running = true;
         Assert.Equal("SnapshotInUse", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().DiscardAsync(DiscardRequest(w), ct))).Code);
         Assert.Null(new WorkspaceStore(f.Home).Get(w.Id).Discard); Assert.Equal(0, f.App.Stops); Assert.Equal(0, peerApp.Stops);

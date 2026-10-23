@@ -18,6 +18,7 @@ public sealed partial class GitSnapshotWorkspaceTests
         Directory.CreateDirectory(source);
         await TestDirectory.Git(source, "init", "-b", "development");
         await TestDirectory.Git(source, "config", "user.name", "Fixture");
+        await TestDirectory.Git(source, "config", "core.autocrlf", "false");
         await TestDirectory.Git(source, "config", "user.email", "fixture@example.invalid");
         await File.WriteAllTextAsync(Path.Combine(source, "file.txt"), "baseline\n", ct);
         await TestDirectory.Git(source, "add", "."); await TestDirectory.Git(source, "commit", "-m", "fixture");
@@ -56,6 +57,7 @@ public sealed partial class GitSnapshotWorkspaceTests
         Directory.CreateDirectory(source);
         await TestDirectory.Git(source, "init", "-b", "development");
         await TestDirectory.Git(source, "config", "user.name", "Fixture");
+        await TestDirectory.Git(source, "config", "core.autocrlf", "false");
         await TestDirectory.Git(source, "config", "user.email", "fixture@example.invalid");
         await File.WriteAllTextAsync(Path.Combine(source, "file.txt"), "captured payload\n", ct);
         await TestDirectory.Git(source, "add", ".");
@@ -92,7 +94,7 @@ public sealed partial class GitSnapshotWorkspaceTests
     }
 
     [Theory]
-    [InlineData("ntfs-snapshot")]
+    [InlineData("git-snapshot")]
     [InlineData("another-snapshot-provider")]
     public async Task OnlyObservedMountRootMayBeAReparsePoint(string storageMode)
     {
@@ -102,6 +104,7 @@ public sealed partial class GitSnapshotWorkspaceTests
         Directory.CreateDirectory(Path.Combine(source, "Nested")); Directory.CreateDirectory(control);
         await TestDirectory.Git(source, "init", "-b", "development");
         await TestDirectory.Git(source, "config", "user.name", "Fixture");
+        await TestDirectory.Git(source, "config", "core.autocrlf", "false");
         await TestDirectory.Git(source, "config", "user.email", "fixture@example.invalid");
         await File.WriteAllTextAsync(Path.Combine(source, "Nested", "file.txt"), "original", ct);
         await TestDirectory.Git(source, "add", "."); await TestDirectory.Git(source, "commit", "-m", "fixture");
@@ -164,13 +167,14 @@ public sealed partial class GitSnapshotWorkspaceTests
         string source = Path.Combine(d.Path, "source"); Directory.CreateDirectory(source);
         await TestDirectory.Git(source, "init", "-b", "development");
         await TestDirectory.Git(source, "config", "user.name", "Fixture");
+        await TestDirectory.Git(source, "config", "core.autocrlf", "false");
         await TestDirectory.Git(source, "config", "user.email", "fixture@example.invalid");
         await File.WriteAllTextAsync(Path.Combine(source, "README.md"), "original\n", ct);
         await TestDirectory.Git(source, "add", "."); await TestDirectory.Git(source, "commit", "-m", "fixture");
         string revision = await TestDirectory.Git(source, "rev-parse", "HEAD");
         string control = Path.Combine(d.Path, "control"); Directory.CreateDirectory(control);
         var w = new WorkspaceRecord { Id = "opaque", RequestKey = "task", ProjectPath = source, Path = Path.Combine(d.Path, "mount"),
-            BaseReference = "development", SourceReference = "codex/test", StorageMode = "ntfs-snapshot", Snapshot = new() };
+            BaseReference = "development", SourceReference = "codex/test", StorageMode = "git-snapshot", Snapshot = new() };
         var git = new GitWorkspaceProvider();
         w.BaseRevision = await git.PreflightAsync(w, ct);
         w.Snapshot.Reference = new("snapshot", "fake", source, "immutable", DateTimeOffset.UtcNow, true, true, "fake");

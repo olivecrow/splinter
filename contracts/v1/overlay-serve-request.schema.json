@@ -86,7 +86,6 @@
             },
             "provider": {
               "enum": [
-                "windows-vss-system",
                 "git-objects",
                 "owned-directory",
                 "plastic-revisions"
@@ -113,7 +112,6 @@
             },
             "consistency": {
               "enum": [
-                "filesystem-crash-consistent-no-application-writer",
                 "recorded-project-commit-raw-blobs",
                 "stopped-original-owned-directory",
                 "recorded-project-changeset-raw-revisions"

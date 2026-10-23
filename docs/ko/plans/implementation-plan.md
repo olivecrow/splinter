@@ -2,6 +2,8 @@
 
 [English](../../plans/implementation-plan.md)
 
+> 현재 경로는 `git-snapshot`·`plastic-snapshot`·`project-snapshot`이다. [VSS 폐기 결정](vss-retirement.md)이 과거 VSS 서비스·설치·회수 후속 지침을 대체한다. 아래 기존 ID·수치·입력별 자격은 당시 기록으로 보존하며 VSS 실행을 재개하지 않는다.
+
 **등록된 작은 Windows x64 NTFS/Git/Unity 환경의 첫 한정 실사용 버전 M0를 마감했다.** [납품 판정](../verification/m0-delivery.md)은 scoped-complete-with-limitations이며 [AI 시작 안내](../agent-start.md)에서 기존 개발 CLI·소스 스킬의 전제와 다음 행동을 찾는다. 후속은 작업공간 관리에 필요한 프로그램 구현, AI 사용 절차, 필요 시 지원 검증으로 구분한다. NR/SF/SW 전체를 미완성 프로그램 기능이나 M0의 진척 분모로 다시 넣지 않는다.
 
 ## 목적과 완료 경계

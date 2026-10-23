@@ -127,25 +127,6 @@
       "if": {
         "properties": {
           "command": {
-            "const": "storage.service.status"
-          },
-          "status": {
-            "const": "Succeeded"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "data": {
-            "$ref": "#/$defs/storageServiceStatus"
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "command": {
             "const": "view.execute"
           },
           "status": {
@@ -783,16 +764,6 @@
         }
       }
     },
-    "storageServiceStatus": {
-      "type": "object", "additionalProperties": false,
-      "required": ["serviceName", "state", "protocolVersion", "installPath", "statePath", "callerElevated"],
-      "properties": {
-        "serviceName": {"const":"SplinterStorageAuthority"},
-        "state": {"enum":["unsupported", "unavailable", "stopped", "running"]},
-        "protocolVersion": {"const":1}, "installPath": {"type":"string"}, "statePath": {"type":"string"},
-        "callerElevated": {"type":"boolean"}, "failureCode": {"type":"string", "minLength":1}
-      }
-    },
     "capabilitiesData": {
       "type": "object",
       "additionalProperties": false,
@@ -804,7 +775,6 @@
         "persistentState",
         "stateBackend",
         "storageModes",
-        "storageAuthority",
         "projectValidation",
         "developmentEntrypoint"
       ],
@@ -956,24 +926,11 @@
           "type": "array",
           "items": {
             "enum": [
-              "ntfs-snapshot",
               "git-snapshot",
               "plastic-snapshot",
               "git-checkout",
               "project-snapshot"
             ]
-          }
-        },
-        "storageAuthority": {
-          "type": "object", "additionalProperties": false,
-          "required": ["stage", "protocolVersion", "normalCaller", "operations", "installation", "status", "scope", "schemas", "qualification"],
-          "properties": {
-            "stage": {"const":"windows-service"}, "protocolVersion": {"const":1}, "normalCaller": {"const":"unelevated"},
-            "operations": {"const":["capture", "observe", "release"]},
-            "installation": {"type":"string", "minLength":1}, "status": {"const":"storage service status"},
-            "scope": {"type":"string", "minLength":1},
-            "schemas": {"const":["urn:splinter:v1:storage-authority-request", "urn:splinter:v1:storage-authority-response"]},
-            "qualification": {"type":"string", "minLength":1}
           }
         },
         "sourceViewExperiment": {
@@ -1107,13 +1064,13 @@
               "const": true
             },
             "sourceSnapshot": {
-              "const": "windows-vss-system"
+              "const": "project-scoped-immutable-basis"
             },
             "snapshotVerification": {
-              "const": "exact-live-id-per-connection-with-boot-bound-observe-helper"
+              "const": "fixed-provider-identity-and-owned-reader-proof"
             },
             "snapshotReleaseIsolation": {
-              "const": "preserve-when-older-or-unknown-age-same-volume-snapshots-exist; audit-other-ids-after-release; not-a-provider-wide-preservation-guarantee"
+              "const": "owned-basis-reference-and-reader-dependency-guards"
             },
             "snapshotReadAccess": {
               "const": "verified-location-separate-from-immutable-delta-identity"
@@ -1343,7 +1300,6 @@
         },
         "storageMode": {
           "enum": [
-            "ntfs-snapshot",
             "git-snapshot",
             "plastic-snapshot",
             "git-checkout",
@@ -1382,7 +1338,7 @@
           "if": {
             "properties": {
               "storageMode": {
-                "enum": ["ntfs-snapshot", "git-snapshot", "plastic-snapshot", "project-snapshot"]
+                "enum": ["git-snapshot", "plastic-snapshot", "project-snapshot"]
               }
             },
             "required": [

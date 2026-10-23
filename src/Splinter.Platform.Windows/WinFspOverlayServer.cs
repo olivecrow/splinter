@@ -65,7 +65,7 @@ public static class WinFspOverlayServer
             using var snapshotReadLease = WorkspaceSnapshotBasis.AcquireReadLease(request.Identity.Snapshot, request.SnapshotReceiptDirectory, request.SnapshotOwnerId);
             WinFspOverlayClient.ValidateCacheSnapshot(request);
             using var cacheReadLease = request.CacheSnapshot is { } cacheRead
-                ? new VssSnapshotProvider(cacheRead.ReceiptDirectory, cacheRead.OwnerId).AcquireReadLease() : null;
+                ? WorkspaceSnapshotBasis.AcquireReadLease(request.SourceView!.CacheIdentity!.Snapshot, cacheRead.ReceiptDirectory, cacheRead.OwnerId) : null;
             SnapshotObservation health = await WinFspOverlayClient.ObserveSnapshotAsync(request);
             if (health.Available != true) throw new WorkspaceException(health.FailureCode ?? "SnapshotObservationUnknown", "Snapshot read access is not verified.");
             using var snapshot = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess,
@@ -77,7 +77,7 @@ public static class WinFspOverlayServer
             ISnapshotTree basisTree = request.Identity.Graft is { } graft
                 ? new GraftedSnapshotTree(snapshot, generatedTree!, graft) : snapshot;
             using var cacheSnapshot = request.CacheSnapshot is { } cacheAccess
-                ? new VssSnapshotTree(request.SourceView!.CacheIdentity!.Snapshot, cacheAccess.ReadAccess, () => Volatile.Read(ref health)) : null;
+                ? WorkspaceSnapshotBasis.OpenTree(request.SourceView!.CacheIdentity!.Snapshot, cacheAccess.ReadAccess, cacheAccess.ReceiptDirectory, cacheAccess.OwnerId, () => Volatile.Read(ref health)) : null;
             if (request.SourceView is { } selection)
             {
                 foreach (string path in new[] { selection.CandidatePath, selection.CacheDeltaPath })

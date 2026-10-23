@@ -2,7 +2,7 @@
 
 [English](../plastic-project-basis.md)
 
-`--source plastic --storage plastic-snapshot --base <changeset@repository@server>`는 기록된 프로젝트 버전을 WinFsp 범위 저널에 연결한다. VSS·새 checkout/Plastic 등록·최초 payload 복제·읽기 disk hydration을 사용하지 않는다. 원본은 기존 NTFS 위치에서 계속 편집할 수 있다. 기존 `ntfs-snapshot`은 캡처 시점의 파일 기준이며 이 별도 경로로 자동 이관하지 않는다.
+`--source plastic --storage plastic-snapshot --base <changeset@repository@server>`는 기록된 프로젝트 버전을 WinFsp 범위 저널에 연결한다. VSS·새 checkout/Plastic 등록·최초 payload 복제·읽기 disk hydration을 사용하지 않는다. 원본은 기존 NTFS 위치에서 계속 편집할 수 있다. 구형 `ntfs-snapshot`은 폐기했으며 자동 이관 없이 보존·거부한다.
 
 ## 입력과 관리 경계
 

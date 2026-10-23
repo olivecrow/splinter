@@ -6,31 +6,30 @@
 
 ## 저장 경로별 시작점
 
-최초 요청의 source/application/storage와 기준을 고정하고 해당 경로의 문서·schema를 읽는다. 한 경로의 서비스 전제나 실제 실행 자격을 다른 경로로 옮겨 적용하지 않는다.
+최초 요청의 source/application/storage와 기준을 고정하고 해당 경로의 문서·schema를 읽는다. 한 경로의 입력 전제나 실제 실행 자격을 다른 경로로 옮겨 적용하지 않는다.
 
 | 저장 경로 | 전제와 사용법 | 실행 근거와 제한 |
 | --- | --- | --- |
-| `ntfs-snapshot`, source git/none/plastic | [NTFS 계약](ntfs-workspaces.md)과 정확한 서비스/grant·WinFsp가 필요하다. 소스별 조건은 [일반 폴더](vcs-independent-workspaces.md)와 [Plastic 호환](plastic-compatibility.md)을 따른다. | [M0](verification/m0-delivery.md), [일반 폴더](verification/vcs-independent-workspaces.md), [Plastic](verification/plastic-compatibility.md)의 후보별 한정 자격. 일반 폴더의 Editor 없는 원본 반영은 [별도 계약](plain-folder-original-apply.md)의 계획/intent·현재 서비스 guard를 확인한다. |
 | `git-snapshot`, source git | [Git 기준본](git-project-basis.md)의 고정 commit을 사용하고 ignored/private 소스는 제외한다. WinFsp가 필요하며 VSS service/grant는 불필요하다. | [reader/Editor 없는 Git](verification/git-project-basis.md), [cold Unity A/B](verification/git-unity-validation.md), [원본 Library/warm Unity](verification/git-library-reference.md)를 구분한다. 실제 Unity 기록은 지정한 후보·입력의 한정 자격이며 대형·ARM·OS 전체 지원을 뜻하지 않는다. |
 | `plastic-snapshot`, source plastic | [Plastic 기준본](plastic-project-basis.md)의 고정 changeset/revision과 일반 사용자 cm 접근·WinFsp를 사용한다. VSS service/grant는 불필요하다. | [기준본 검증](verification/plastic-project-basis.md)과 [전체/선택 원본 반영](plastic-original-apply.md)을 확인한다. 원본 반영은 정상 원본 Editor 종료와 별도 고정 계획/intent를 요구하며 서버 이력은 변경하지 않는다. |
 | `project-snapshot`, source none | [프로젝트 기준본](plain-project-basis.md)의 명시적으로 승인한 원본 관리형 mount를 사용한다. WinFsp가 필요하며 VSS service/grant는 불필요하다. | [NP 검증](verification/plain-project-basis.md)의 파일·작은 Unity 자격을 확인한다. Library만의 전환 승인으로 전체 원본 mount를 허용하지 않는다. |
 
 Git/Plastic의 원본 Library 재사용은 [별도 Library 전환](git-library-reference.md)의 승인·정상 원본 Editor 종료·반환 basis id를 요구하며 `--library-basis`에 고정한다. `project-snapshot`은 `project prepare --application none|unity`로 source/Library를 같은 NTFS 볼륨에서 복사 없이 이동하고 원본 경로에 writable view를 제공한다. 반환 basis id를 `workspace ensure --source none --storage project-snapshot --project-basis <id>`에 같은 application/home과 함께 고정한다. task 회수 뒤 모든 dependent/reader가 끝나면 명시적 `project restore`로 일반 NTFS 원본을 복원한다.
 
-## NTFS/VSS Git·Unity 경로의 전제와 예시
+## Git 기준본·Unity 경로의 전제와 예시
 
-아래 전제와 생성 예시는 `source=git`, `application=unity`, `storage=ntfs-snapshot` 경로다. 다른 경로는 위 표의 소유 문서를 사용한다.
+아래 전제와 생성 예시는 `source=git`, `application=unity`, `storage=git-snapshot` 경로다. 다른 경로는 위 표의 소유 문서를 사용한다.
 
 | 항목 | 확인할 조건 |
 | --- | --- |
 | 제품 | 기존 개발 checkout의 `scripts/splinter.ps1`과 Release build. 빌드가 없으면 에이전트가 `pwsh ./scripts/build.ps1`로 준비. .NET SDK `10.0.112` 호환 패치·Git·PowerShell 7.2 이상 |
 | 원본 | 기존 NTFS의 clean Git repository root, `.git` 디렉터리가 내부에 있고 원본 HEAD와 요청 base가 같음. 캡처 직전 Unity의 변경은 저장돼 있고 import/compile/Play 중이 아니어야 함 |
 | 입력 | dirty/staged/untracked·submodule/symlink·LFS/filter/working-tree-encoding은 거부. ADS/hardlink/reparse/EFS/압축/희소 입력과 개별 ACL 의미는 지원하지 않음. 상세 검사 경계는 [NTFS 계약](ntfs-workspaces.md#입력과-권한-경계) |
-| 시스템 | 기존 WinFsp와 현재 discard 계약을 지원하는 `SplinterStorageAuthority` 서비스. 사용자·원본·볼륨·home의 정확한 identity가 이미 등록돼 있어야 함 |
-| home/공간 | 같은 프로젝트의 모든 작업은 원본 밖의 같은 짧은 NTFS home 사용. 생성/재연결의 상태 볼륨 여유 2 GiB, 새 capture의 기존 VSS diff-area 상한 여유 8 GiB 필요. 구성은 자동 변경하지 않음 |
+| 시스템 | 기존 WinFsp. VSS 서비스·grant·관리자 실행은 필요하지 않음 |
+| home/공간 | 같은 프로젝트의 작업은 원본 밖의 같은 짧은 NTFS home 사용. 생성/재연결의 상태 볼륨 여유 2 GiB 필요. |
 | Editor | 현재 한정 실행은 Unity `6000.3.22f1`의 작은 fixture·기존 warm Library·독립 Editor 경로. 다른 입력/버전·대형 비용·ARM A/B·OS 장애 보장으로 확대하지 않음 |
 
-일반 CLI·Git·Unity는 일반 사용자 권한이다. 서비스 설치/업데이트·grant 변경이 필요하면 [서비스 설치 계획](storage-privilege-service.md#설치와-발견)을 준비하며, 관리자 Apply는 별도 승인 범위다. 일반 제품 설치·전역 PATH·스킬 자동 발견/대화 binding은 제공하지 않는다.
+일반 CLI·Git·Unity는 일반 사용자 권한이다. 일반 제품 설치·전역 PATH·스킬 자동 발견/대화 binding은 제공하지 않는다. [VSS 폐기](plans/vss-retirement.md) 뒤 구형 상태는 보존·거부하며 서비스 재설치를 요구하지 않는다.
 
 ## 발견과 생성
 
@@ -38,21 +37,20 @@ Git/Plastic의 원본 Library 재사용은 [별도 Library 전환](git-library-r
 
 ```powershell
 $cli = '<제품 checkout 절대 경로>/scripts/splinter.ps1'
-$project = '<등록된 원본 절대 경로>'
-$workspaceHome = '<등록된 공통 home 절대 경로>'
+$project = '<원본 절대 경로>'
+$workspaceHome = '<공통 home 절대 경로>'
 $base = '<원본 HEAD와 일치하는 base ref>'
 $key = '<이 작업의 고정 key>'
 
 pwsh -NoProfile -File $cli capabilities
 pwsh -NoProfile -File $cli schema workspace.ensure
-pwsh -NoProfile -File $cli storage service status
 pwsh -NoProfile -File $cli doctor --project $project
 ```
 
-`doctor`는 메타데이터 진단이고 서비스 status는 SCM 관측이다. 성공해도 grant·VSS 여유·Editor 준비·전체 실행 자격을 보증하지 않는다. `doctor.data.readyForExecution=false`와 `checksNotRun`은 실제 실행 미검사와 구분한다. Git 소유권/환경 오류가 나면 정확한 원본·기존 정책을 확인하며 전역 설정이나 소스를 자동 변경하지 않는다.
+`doctor`는 메타데이터 진단이며 Editor 준비나 전체 실행 자격을 보증하지 않는다. `doctor.data.readyForExecution=false`와 `checksNotRun`을 실제 실행 검사와 구분한다. Git 소유권/환경 오류는 정확한 원본과 기존 정책을 확인하고 전역 설정이나 소스를 자동 변경하지 않는다.
 
 ```powershell
-$reply = (& pwsh -NoProfile -File $cli workspace ensure --project $project --key $key --base $base --storage ntfs-snapshot --home $workspaceHome) | ConvertFrom-Json
+$reply = (& pwsh -NoProfile -File $cli workspace ensure --project $project --key $key --base $base --storage git-snapshot --home $workspaceHome) | ConvertFrom-Json
 $reply
 ```
 

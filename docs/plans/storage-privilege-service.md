@@ -3,6 +3,8 @@
 
 [한국어](../ko/plans/storage-privilege-service.md)
 
+> Current modes are `git-snapshot`, `plastic-snapshot`, and `project-snapshot`. The [VSS retirement decision](vss-retirement.md) supersedes earlier VSS service/installation/reclamation follow-ups. Existing IDs, figures and input-specific qualification below remain historical records and do not authorize resuming VSS execution.
+
 The usage goal is normal workspace creation/reconnection/reclamation without pressing UAC after initial installation/privilege configuration. [Service code and installation tools](../storage-privilege-service.md) are connected; actual completion follows [UA verification](../verification/storage-privilege-service.md). Disabling UAC or running the entire CLI/Unity/agent as administrator is not the default route.
 
 <a id="목표-구조"></a>

@@ -12,7 +12,7 @@ public sealed class OverlayMountObservationTests
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows process observation.");
         using var d = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
-        var snapshot = new SnapshotReference("snapshot", "windows-vss-system", d.Path, Path.Combine(d.Path, "base"), DateTimeOffset.UtcNow, true, true, "test");
+        var snapshot = new SnapshotReference("snapshot", "git-objects", d.Path, Path.Combine(d.Path, "base"), DateTimeOffset.UtcNow, true, true, "test");
         var request = new OverlayServeRequest(new(2, "overlay", snapshot, 65536, 4096), Path.Combine(d.Path, "delta"), Path.Combine(d.Path, "mount"), d.Path, "token", new(snapshot.Id, snapshot.RootPath, "verified"), Path.Combine(d.Path, "receipt"), "owner");
         string requestPath = Path.Combine(d.Path, "request.json"); var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         await File.WriteAllTextAsync(requestPath, JsonSerializer.Serialize(request, json), ct);
@@ -30,7 +30,7 @@ public sealed class OverlayMountObservationTests
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows process observation.");
         using var directory = new TestDirectory();
         using var process = Process.GetCurrentProcess();
-        var snapshot = new SnapshotReference("snapshot", "windows-vss-system", directory.Path,
+        var snapshot = new SnapshotReference("snapshot", "git-objects", directory.Path,
             Path.Combine(directory.Path, "missing-base"), DateTimeOffset.UtcNow, true, true, "test");
         var identity = new OverlayIdentity(2, "overlay", snapshot, 65536, 4096);
         var request = new OverlayServeRequest(identity, Path.Combine(directory.Path, "delta"),
@@ -61,7 +61,7 @@ public sealed class OverlayMountObservationTests
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows process observation.");
         using var directory = new TestDirectory();
-        var snapshot = new SnapshotReference("snapshot", "windows-vss-system", directory.Path,
+        var snapshot = new SnapshotReference("snapshot", "git-objects", directory.Path,
             Path.Combine(directory.Path, "missing-base"), DateTimeOffset.UtcNow, true, true, "test");
         var request = new OverlayServeRequest(new(2, "overlay", snapshot, 65536, 4096),
             Path.Combine(directory.Path, "delta"), Path.Combine(directory.Path, "mount"), directory.Path, "token", new(snapshot.Id, snapshot.RootPath, "verified"), Path.Combine(directory.Path, "receipt"), "owner");

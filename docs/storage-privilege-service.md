@@ -3,6 +3,8 @@
 
 [한국어](ko/storage-privilege-service.md)
 
+> **Historical implementation record, not current operating instructions.** The [VSS retirement decision](plans/vss-retirement.md) removes the provider, service and dedicated scripts. Commands, privileges and qualification below describe the earlier candidate and must not be resumed. Common journal tests/current bases follow the [NTFS contract](ntfs-workspaces.md).
+
 The current ordinary-folder path for `--source none` and v2 state/service packages follows [VCS-free workspaces](vcs-independent-workspaces.md). Git paths and historical native qualification below do not qualify ordinary-folder support.
 
 `VssSnapshotProvider` sends fixed `Capture`, `Observe`, and `Release` requests from standard-user CLI to the `SplinterStorageAuthority` Windows service. CLI, Git, and Unity retain standard-user privileges. Host remains the read-only in-process composition layer; this service replaces neither Host nor a task-assignment daemon. [UA verification](verification/storage-privilege-service.md) owns current actual installation/repeated-execution qualification.

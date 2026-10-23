@@ -2,7 +2,7 @@
 
 [English](../git-project-basis.md)
 
-`--storage git-snapshot --source git`은 기록된 프로젝트 commit의 tree/blob을 기준본으로 사용한다. 원본은 기존 NTFS 위치에 남고 작업 중 수정하거나 branch를 진행할 수 있다. 생성·읽기·재개·정리·회수에 VSS나 저장소 권한 서비스를 호출하지 않는다. 기존 `ntfs-snapshot`은 VSS 경로이며 자동 변환하지 않는다.
+`--storage git-snapshot --source git`은 기록된 프로젝트 commit의 tree/blob을 기준본으로 사용한다. 원본은 기존 NTFS 위치에 남고 작업 중 수정하거나 branch를 진행할 수 있다. 생성·읽기·재개·정리·회수에 VSS나 저장소 권한 서비스를 호출하지 않는다. 구형 `ntfs-snapshot` VSS 경로는 폐기했으며 자동 변환 없이 보존·거부한다.
 
 ```powershell
 pwsh ./scripts/splinter.ps1 schema workspace.ensure

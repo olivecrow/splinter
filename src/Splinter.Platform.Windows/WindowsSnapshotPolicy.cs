@@ -6,6 +6,8 @@ public static class WindowsSnapshotPolicy
 {
     public static void Require(SnapshotReference snapshot)
     {
+        if (snapshot.Provider == "windows-vss-system")
+            throw new WorkspaceException("SnapshotProviderUnsupported", "VSS bases are retired; preserve the snapshot, receipts, journals and independent results.");
         if (WorkspacePathPolicy.For(snapshot) != WorkspacePathPolicy.Windows)
             throw new WorkspaceException("PathPolicyUnsupported", "The Windows mount supports its fixed Windows path policy only; preserve other immutable trees.");
     }

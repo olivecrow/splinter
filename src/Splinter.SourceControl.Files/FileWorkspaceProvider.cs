@@ -21,7 +21,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     private static WorkspaceException Error(string message) => new("FileSourceStateInvalid", message);
     private static void Require(WorkspaceRecord w)
     {
-        if (w.SourceKind is not ("none" or "plastic") || (w.StorageMode != "ntfs-snapshot" || w.BaseReference != "snapshot") && !(w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot") && !(w.SourceKind == "none" && w.StorageMode == "project-snapshot" && w.GeneratedDirectoryId is not null) || w.Purpose != "task")
+        if (w.SourceKind is not ("none" or "plastic") || !(w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot") && !(w.SourceKind == "none" && w.StorageMode == "project-snapshot" && w.GeneratedDirectoryId is not null) || w.Purpose != "task")
             throw Error("Only the explicitly selected plain-folder NTFS task is supported.");
     }
     public Task<string> PreflightAsync(WorkspaceRecord w, CancellationToken ct = default)
@@ -135,8 +135,8 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         VerifyIndependentResult(w, control);
         return Task.CompletedTask;
     }
-    // Also used by the authority, with every evidence/object stream pinned by
-    // its impersonated guard. No original, mount or VSS read is required here.
+    // Verify only owned result records and payloads. No original, mount or
+    // source-basis read is required here.
     public static void VerifyIndependentResult(WorkspaceRecord w, string control, Func<string, Stream>? open = null)
     {
         Owner(w, control, open);

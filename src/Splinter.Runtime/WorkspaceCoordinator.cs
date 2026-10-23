@@ -22,10 +22,12 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         bool editor, CancellationToken ct = default,
         long maxJournalBytes = SnapshotWorkspaceState.DefaultJournalBytes, string sourceKind = "git", string applicationKind = "unity", string? generatedDirectoryId = null)
     {
+        if (storageMode == "ntfs-snapshot")
+            throw new WorkspaceException("StorageModeRetired", "ntfs-snapshot/VSS is retired. Preserve existing state and independent results; no migration or reclamation is performed.");
         if (sourceKind is not ("git" or "none" or "plastic") || applicationKind is not ("unity" or "none"))
             throw new WorkspaceException("SourceSelectionUnsupported", "Select git, none or plastic and unity or none explicitly; no fallback is available.");
-        if ((sourceKind == "none" && storageMode != "project-snapshot" || sourceKind == "plastic" && storageMode != "plastic-snapshot") && (storageMode != "ntfs-snapshot" || baseReference != "snapshot"))
-            throw new WorkspaceException("SourceSelectionUnsupported", "Plain folders require an NTFS task and the snapshot basis.");
+        if ((sourceKind == "none" && storageMode != "project-snapshot" || sourceKind == "plastic" && storageMode != "plastic-snapshot"))
+            throw new WorkspaceException("SourceSelectionUnsupported", "Select project-snapshot for source none or plastic-snapshot for source plastic.");
         if (storageMode == "git-snapshot" && sourceKind != "git")
             throw new WorkspaceException("SourceSelectionUnsupported", "git-snapshot requires a Git task with a fixed recorded commit.");
         if (storageMode == "plastic-snapshot" && (sourceKind != "plastic" || baseReference == "snapshot"))
@@ -38,8 +40,8 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             throw new WorkspaceException("GeneratedBasisUnsupported", "A generated directory reference requires a recorded VCS snapshot.");
         if (string.IsNullOrWhiteSpace(requestKey) || requestKey.Length > 128)
             throw new WorkspaceException("InvalidRequestKey", "Use a stable task key between 1 and 128 characters; reuse it across turns.");
-        if (storageMode is not ("git-checkout" or "ntfs-snapshot" or "git-snapshot" or "plastic-snapshot" or "project-snapshot"))
-            throw new WorkspaceException("UnsupportedStorageMode", "Choose git-snapshot, plastic-snapshot, project-snapshot, ntfs-snapshot, or explicit git-checkout for a diagnostic workspace.");
+        if (storageMode is not ("git-checkout" or "git-snapshot" or "plastic-snapshot" or "project-snapshot"))
+            throw new WorkspaceException("UnsupportedStorageMode", "Choose git-snapshot, plastic-snapshot, project-snapshot, or explicit git-checkout for a diagnostic workspace.");
         project = storageMode == "project-snapshot" ? WorkspaceStore.ManagedProjectPath(project) : WorkspaceStore.CanonicalProject(project);
         if (!Directory.Exists(project)) throw new WorkspaceException("ProjectPathNotFound", "Project directory does not exist.");
         if (WorkspaceStore.SamePath(store.Root, project) || store.Root.StartsWith(project + Path.DirectorySeparatorChar, PathComparison))
@@ -103,9 +105,6 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             if (ex is WorkspaceException { Code: "SourceCacheRevalidationRequired" } cacheFailure)
                 throw new WorkspaceException(cacheFailure.Code, cacheFailure.Message, cacheFailure.Details,
                     [new("workspace.status", new { id, home = store.Root, auditSource = true })]);
-            if (ex is WorkspaceException { Code: "SnapshotPrivilegeRequired", RecoveryActions: not null } failure)
-                throw new WorkspaceException(failure.Code, failure.Message, failure.Details,
-                    [.. failure.RecoveryActions, WorkspaceActions.Ensure(record, store.Root, editor)]);
             throw;
         }
     }
@@ -126,9 +125,6 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         catch (Exception ex)
         {
             RecordFailure(record, ex);
-            if (ex is WorkspaceException { Code: "SnapshotPrivilegeRequired", RecoveryActions: not null } failure)
-                throw new WorkspaceException(failure.Code, failure.Message, failure.Details,
-                    [.. failure.RecoveryActions, new("unity.start", new { id, home = store.Root })]);
             throw;
         }
     }

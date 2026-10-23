@@ -2,7 +2,7 @@
 
 [English](../plain-folder-original-apply.md)
 
-`source=none`·`application=none`의 NTFS task에서 정확한 독립 checkpoint를 고정 원본 `ProjectPath`에 반영한다. 현재 구현과 일반 권한 파일 시험은 아래 계약을 제공한다. 실제 제품 VSS·WinFsp A/B 자격은 [검증 기록](verification/plain-folder-original-apply.md)과 [AP 추적표](plans/validation-matrix.md#vcs-없는-원본-반영)를 따른다. Unity application, Plastic 사용 환경, release한 결과의 가져오기와 다른 대상 export는 제공하지 않는다.
+현재 `source=none`의 `project-snapshot` 독립 checkpoint를 고정 원본 `ProjectPath`에 반영한다. application none/unity의 전체·선택 게시와 원본 mount identity·Editor 정상 종료 보호는 [관리형 프로젝트 기준본](plain-project-basis.md)을 따른다. 아래 공통 조건부 파일 게시 계약과 자동/native 파일 시험은 유지한다. [AP 검증](verification/plain-folder-original-apply.md)의 과거 VSS A/B를 새 경로 자격으로 승계하지 않는다. Plastic은 [별도 계약](plastic-original-apply.md), released 결과 재수입과 다른 대상 export는 미지원이다.
 
 ## 계획과 실행
 
@@ -36,4 +36,4 @@ Core의 `IOriginalApplyProvider`·`IOriginalFilePublisher`는 대상/계획/inte
 
 명시적 반영은 변경 파일 하나의 stage를 만들고 게시/회수 후 다음 경로로 진행한다. 기존 내용은 rename으로 보존하므로 별도 전체 원본 backup/clone을 만들지 않는다. stage는 알려진 payload 길이만 예약하고 64KiB 버퍼로 hash·읽기·쓰기한다. 독립 결과 객체·workspace 범위 저널·명시적 게시 파일은 각각 다른 비용이다. 이 동작은 workspace 생성/hydration/copy-up이 아니다.
 
-원본 반영에는 [일반 폴더 수명주기](vcs-independent-workspaces.md)의 전제와 **이번 pending-apply guard를 포함한 현재 제한 서비스 패키지**가 필요하다. 설치/업데이트와 grant는 별도 명시적 관리자 Apply다. 일반 CLI는 이를 실행하거나 자동 elevation하지 않는다. 실제 제품 자격은 작은 Editor 없는 Windows x64 NTFS A/B 한 묶음에 한정하며 Unity/Plastic·대형/OS 장애로 확대하지 않는다.
+원본 반영은 [일반 폴더 수명주기](vcs-independent-workspaces.md)와 [프로젝트 기준본](plain-project-basis.md)의 준비·소유·원본 게시 조건을 따른다. VSS 서비스·grant는 필요하지 않다. 실제 자격은 NP 기록과 과거 AP의 작은 Editor 없는 Windows x64 NTFS A/B를 구분하며 대형·OS 장애로 확대하지 않는다.

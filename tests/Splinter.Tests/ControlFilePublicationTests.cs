@@ -108,43 +108,5 @@ public sealed class ControlFilePublicationTests
         Assert.Empty(Directory.GetFiles(store.ControlPath(id), "*.tmp"));
     }
 
-    [Fact]
-    public async Task VssReceiptWriterAlsoPreservesAnOpenPollingReader()
-    {
-        using var directory = new TestDirectory();
-        using var resource = typeof(VssSnapshotProvider).Assembly.GetManifestResourceStream("Splinter.VssSnapshot.ps1")!;
-        using var reader = new StreamReader(resource);
-        var ct = TestContext.Current.CancellationToken;
-        string helper = Path.Combine(directory.Path, "helper.ps1");
-        await File.WriteAllTextAsync(helper, await reader.ReadToEndAsync(ct), ct);
-        string harness = Path.Combine(directory.Path, "check.ps1");
-        await File.WriteAllTextAsync(harness, """
-            param($Helper)
-            $ErrorActionPreference='Stop'
-            $tokens=$null; $errors=$null
-            $ast=[Management.Automation.Language.Parser]::ParseFile($Helper,[ref]$tokens,[ref]$errors)
-            if($errors.Count){throw 'Invalid helper syntax'}
-            $definition=$ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Save-Json'},$false)
-            Invoke-Expression $definition.Extent.Text
-            $path=Join-Path $PSScriptRoot 'observation.json'
-            Save-Json $path @{sequence=1}
-            $held=[IO.File]::Open($path,'Open','Read',([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
-            try {
-                Save-Json $path @{sequence=2}
-                $old=([IO.StreamReader]::new($held)).ReadToEnd() | ConvertFrom-Json
-                $current=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-                if($old.sequence -ne 1 -or $current.sequence -ne 2 -or (Test-Path -LiteralPath ($path+'.new'))){throw 'Publication changed old reader or failed to publish'}
-            } finally {$held.Dispose()}
-            """, ct);
-        var start = new ProcessStartInfo("pwsh")
-        { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
-        foreach (string arg in new[] { "-NoProfile", "-NonInteractive", "-File", harness, helper }) start.ArgumentList.Add(arg);
-        using var process = Process.Start(start)!;
-        var output = process.StandardOutput.ReadToEndAsync(ct);
-        var error = process.StandardError.ReadToEndAsync(ct);
-        await process.WaitForExitAsync(ct);
-        Assert.True(process.ExitCode == 0, await error + await output);
-    }
-
     private sealed record Receipt(int Sequence, string Body);
 }

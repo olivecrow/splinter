@@ -3,6 +3,8 @@
 
 [한국어](../ko/plans/session-workflow-and-installation.md)
 
+> Current modes are `git-snapshot`, `plastic-snapshot`, and `project-snapshot`. The [VSS retirement decision](vss-retirement.md) supersedes earlier VSS service/installation/reclamation follow-ups. Existing IDs, figures and input-specific qualification below remain historical records and do not authorize resuming VSS execution.
+
 This document owns AI usage procedures through existing CLI/file-Git tools/external Unity tools. Dedicated project/global installers and automatic Codex binding are unimplemented and excluded from program scope. [Minimal skill](../../skills/splinter/SKILL.md) is the instruction source. Preserve SW-01/02/04/05/07/08/10 NotRun and overall SW-03/06/09 Partial as existing execution-evidence states, not new program tasks. Current commands/gates follow [foundation](../foundation.md), [alpha workspaces](../alpha-workspaces.md), and [discard](../workspace-discard.md).
 
 First scoped practical-use [M0](implementation-plan.md) closed through [delivery decision](../verification/m0-delivery.md). Retain existing CLI/service prerequisites from [start guide](../agent-start.md) and [representative A/B](../verification/representative-agent-workflow.md) execution qualification. Program-agent responsibilities/reduced follow-ups follow [implementation plan](implementation-plan.md#program-and-agent-responsibilities). Provide AI procedures for installation/handoff/task order/game verification without adding automation frameworks.

@@ -16,7 +16,7 @@ $plan = [ordered]@{
     installer = [IO.Path]::GetFullPath($Installer); sha256 = $installerHash
     reason = 'Latest upstream prerelease includes security fixes absent from stable v2.1.'
     changes = @('Install the signed WinFsp Core driver and user-mode runtime only.')
-    noAutomaticReboot = $true; changesVssConfiguration = $false
+    noAutomaticReboot = $true
     createsSnapshots = $false; modifiesOriginalProject = $false
 }
 if ($Action -eq 'Plan') { $plan | ConvertTo-Json -Depth 5; return }
@@ -37,14 +37,11 @@ if ($Action -eq 'InstallWinFsp') {
     if ($process.ExitCode -notin @(0, 3010)) { throw "InstallationFailed: $($process.ExitCode); see $log" }
 }
 $probe = [ordered]@{ observedAt = [DateTimeOffset]::UtcNow; elevated = $isAdmin; errors = @() }
-foreach ($class in @('Win32_OperatingSystem', 'Win32_LogicalDisk', 'Win32_ShadowProvider', 'Win32_ShadowStorage', 'Win32_ShadowCopy')) {
+foreach ($class in @('Win32_OperatingSystem', 'Win32_LogicalDisk')) {
     try {
         $probe[$class] = switch ($class) {
             'Win32_OperatingSystem' { Get-CimInstance $class | Select-Object Caption, Version, BuildNumber, FreePhysicalMemory }
             'Win32_LogicalDisk' { Get-CimInstance $class | Select-Object DeviceID, FileSystem, FreeSpace, Size }
-            'Win32_ShadowProvider' { Get-CimInstance $class | Select-Object ID, Name, Type, Version }
-            'Win32_ShadowStorage' { Get-CimInstance $class | Select-Object @{Name='Volume';Expression={$_.Volume.DeviceID}}, @{Name='DiffVolume';Expression={$_.DiffVolume.DeviceID}}, UsedSpace, AllocatedSpace, MaxSpace }
-            'Win32_ShadowCopy' { Get-CimInstance $class | Select-Object ID, ProviderID, DeviceObject, VolumeName, Persistent, NoAutoRelease, Differential, InstallDate }
         }
     } catch { $probe.errors += [ordered]@{ source = $class; message = $_.Exception.Message } }
 }

@@ -2,6 +2,8 @@
 
 [English](../../plans/storage-privilege-service.md)
 
+> 현재 경로는 `git-snapshot`·`plastic-snapshot`·`project-snapshot`이다. [VSS 폐기 결정](vss-retirement.md)이 과거 VSS 서비스·설치·회수 후속 지침을 대체한다. 아래 기존 ID·수치·입력별 자격은 당시 기록으로 보존하며 VSS 실행을 재개하지 않는다.
+
 사용 목표는 최초 설치/권한 구성 후 정상적인 workspace 생성·재연결·회수마다 UAC를 누르지 않는 것이다. [서비스 코드와 설치 도구](../storage-privilege-service.md)는 연결했으며 실제 완료 판정은 [UA 검증](../verification/storage-privilege-service.md)을 따른다. UAC 자체를 끄거나 CLI·Unity·에이전트 전체를 관리자로 실행하는 방식은 기본 경로로 삼지 않는다.
 
 ## 목표 구조

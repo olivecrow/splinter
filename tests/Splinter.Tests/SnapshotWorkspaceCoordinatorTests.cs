@@ -90,7 +90,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         var peerBackend = new Backend { SnapshotId = "peer" }; var peerSource = new Source(); var peerApp = new App();
         WorkspaceCoordinator Peer() => new(new(f.Home), peerSource, peerApp, snapshots: peerBackend);
-        string a = (await Peer().EnsureAsync(f.Project, "peer", "base", "ntfs-snapshot", false, ct)).Workspace.Id;
+        string a = (await Peer().EnsureAsync(f.Project, "peer", "base", "git-snapshot", false, ct)).Workspace.Id;
         string b = (await f.Ensure(ct)).Workspace.Id;
         f.Backend.LoseMountReply = true;
         Assert.Equal("ReplyLost", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CompactAsync(b, ct))).Code);
@@ -140,7 +140,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         var older = new Backend { SnapshotId = "older" }; var olderSource = new Source(); var olderApp = new App();
         WorkspaceCoordinator Older() => new(new(f.Home), olderSource, olderApp, snapshots: older);
-        string a = (await Older().EnsureAsync(f.Project, "older", "base", "ntfs-snapshot", false, ct)).Workspace.Id;
+        string a = (await Older().EnsureAsync(f.Project, "older", "base", "git-snapshot", false, ct)).Workspace.Id;
         string b = (await f.Ensure(ct)).Workspace.Id;
         f.Backend.Blockers = () => older.Available == true ? ["older"] : [];
         var pending = await f.New().ReleaseAsync(b, ct);
@@ -205,13 +205,13 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         Assert.Equal(1, f.Backend.Captures); Assert.True(f.Backend.Mounted);
     }
     [Fact]
-    public async Task VerificationGatePreservesCaptureAndReturnsExactEnsureRetry()
+    public async Task VerificationFailurePreservesCaptureAndResumesTheSameBasis()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         f.Backend.VerificationRequired = true;
         var failure = await Assert.ThrowsAsync<WorkspaceException>(() => f.Ensure(ct));
-        Assert.Equal("SnapshotPrivilegeRequired", failure.Code);
-        Assert.Contains(failure.RecoveryActions!, action => action.Command == "workspace.ensure");
+        Assert.Equal("SnapshotVerificationRequired", failure.Code);
+        Assert.Null(failure.RecoveryActions);
         Assert.False(f.Backend.Mounted); Assert.Equal(1, f.Backend.Captures);
         f.Backend.VerificationRequired = false;
         var ready = await Task.WhenAll(f.Ensure(ct), f.Ensure(ct));
@@ -219,7 +219,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         Assert.Equal(1, f.Backend.Captures); Assert.Equal(1, f.Source.Registers);
         f.Backend.VerificationRequired = true;
         var start = await Assert.ThrowsAsync<WorkspaceException>(() => f.New().StartAsync(ready[0].Workspace.Id, ct));
-        Assert.Contains(start.RecoveryActions!, action => action.Command == "unity.start");
+        Assert.Equal("SnapshotVerificationRequired", start.Code);
         Assert.Equal(0, f.App.Starts);
     }
     [Fact]
@@ -230,7 +230,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         Assert.Equal(views[0].Workspace.Id, views[1].Workspace.Id);
         Assert.Equal(1, f.Backend.Captures); Assert.Equal(1, f.Source.Registers);
         Assert.Equal("ready", views[1].Workspace.Phase);
-        var conflict = await Assert.ThrowsAsync<WorkspaceException>(() => f.New().EnsureAsync(f.Project, "task", "changed", "ntfs-snapshot", false, ct));
+        var conflict = await Assert.ThrowsAsync<WorkspaceException>(() => f.New().EnsureAsync(f.Project, "task", "changed", "git-snapshot", false, ct));
         Assert.Equal("RequestKeyConflict", conflict.Code);
     }
 
@@ -530,10 +530,10 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     public async Task ARemainingSnapshotDependentPreventsSnapshotDeletion()
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
-        var first = await f.Ensure(ct); var store = new WorkspaceStore(f.Home);
+        var first = await f.New().EnsureAsync(f.Project, "task", "1@repo@server", "plastic-snapshot", false, ct, sourceKind: "plastic"); var store = new WorkspaceStore(f.Home);
         string otherId = WorkspaceStore.Key("other-workspace");
         var other = new WorkspaceRecord { Id = otherId, RequestKey = "other", ProjectPath = f.Project, Path = store.WorkPath(otherId),
-            BaseReference = "base", SourceReference = "other", Phase = "ready", StorageMode = "ntfs-snapshot",
+            BaseReference = "1@repo@server", SourceReference = "other", Phase = "ready", StorageMode = "plastic-snapshot", SourceKind = "plastic",
             Snapshot = new() { Reference = first.Workspace.Snapshot!.Reference, Attached = true, Step = "ready" } };
         store.Save(other, "fixture-dependency");
         Assert.Equal("SnapshotInUse", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(first.Workspace.Id, ct))).Code);
@@ -554,7 +554,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         public DiscardProvider Discard { get; }
         public Fixture() { Directory.CreateDirectory(Project); Discard = new(Backend); }
         public WorkspaceCoordinator New() => new(new(Home), Source, App, snapshots: Backend, discardProvider: WithDiscard ? Discard : null);
-        public Task<WorkspaceView> Ensure(CancellationToken ct) => New().EnsureAsync(Project, "task", "base", "ntfs-snapshot", false, ct);
+        public Task<WorkspaceView> Ensure(CancellationToken ct) => New().EnsureAsync(Project, "task", "base", "git-snapshot", false, ct);
         public void Dispose() => directory.Dispose();
     }
     private sealed class Backend : ISnapshotWorkspaceBackend
@@ -565,8 +565,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         public bool VerificationRequired;
         public Task VerifyConnectionAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         {
-            if (VerificationRequired) throw new WorkspaceException("SnapshotPrivilegeRequired", "Observe the exact snapshot first.",
-                recoveryActions: [new("pwsh", new { action = "Observe" }, true)]);
+            if (VerificationRequired) throw new WorkspaceException("SnapshotVerificationRequired", "Observe the exact snapshot first.");
             return Task.CompletedTask;
         }
         public int Captures; public bool LoseCaptureReply, LoseMountReply, Mounted, DeltaRemoved, SnapshotReleased, WriteDuringUnmount, UnknownResources, LoseRemoveReply, KeepReleaseUnknown;
@@ -587,7 +586,9 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         {
             if (receipt is null) { Captures++; receipt = w.StorageMode == "git-snapshot"
                 ? new("git-" + w.Id + "-" + w.BaseRevision, "git-objects", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "recorded-project-commit-raw-blobs")
-                : new(SnapshotId, "fake", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "fake"); }
+                : w.StorageMode == "plastic-snapshot"
+                    ? new(SnapshotId, "plastic-revisions", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "recorded-project-changeset-raw-revisions")
+                    : new(SnapshotId, "fake", w.ProjectPath, "immutable", DateTimeOffset.UtcNow, true, true, "fake"); }
             if (w.StorageMode == "project-snapshot") w.GeneratedDirectory = new(w.GeneratedDirectoryId!, w.ProjectPath, "", receipt, "receipt", w.GeneratedDirectoryId!, new string('a', 64));
             if (LoseCaptureReply) { LoseCaptureReply = false; throw new WorkspaceException("ReplyLost", "after capture"); }
             return Task.FromResult(receipt);

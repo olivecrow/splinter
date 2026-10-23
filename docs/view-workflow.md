@@ -25,7 +25,7 @@ Current input requires `version=1`, `action`, absolute project path `project`, `
 }
 ```
 
-Create the worker with `workspace ensure --storage ntfs-snapshot`. Edit, prepare, and publish source without an Editor. A worker with mutation history in managed caches such as Library is rejected if it cannot satisfy source-only publication qualification. Do not bypass by omitting data or copying whole files.
+Create the worker with `workspace ensure --storage git-snapshot`. Edit, prepare, and publish source without an Editor. A worker with mutation history in managed caches such as Library is rejected if it cannot satisfy source-only publication qualification. Do not bypass by omitting data or copying whole files.
 
 While `start` is running and awaiting application readiness, it returns `Accepted`, `terminal=false`. Save the status JSON from `nextActions[].arguments.request` to a separate file and observe through `pwsh ./scripts/splinter-dev.ps1 view --input <file> --home <arguments.home>`. Do not overwrite the original request file. Status-ledger results, frozen seals, and responses not yet present remain required null fields.
 
@@ -86,3 +86,5 @@ Serialize view commands for the same project; worker preparation/publication als
 After interruption, retry the same command/key/input. Common coordinator first looks for existing provider receipts; partial publication prefixes, complete journals, and lost receipts are reconciled only against the original source seal. Only a complete next ledger revision in the current format is published on explicit retry; read-only inspect does not automatically publish pending state. `replayed=true` is a historical response, not a new observation of current execution state.
 
 Inputs/outputs use `view-lifecycle-request`/`view-lifecycle-data`; common requests/responses/state use `view-workflow-*` schemas. `ViewWorkflowTests` checks fake conformance/CLI responses; `ImmutableCandidateTests` checks separate snapshot/cache journals; `GitSourceResultTests` checks actual Git objects/original-index preservation; `JournalReclamationTests` checks actual file locks/interrupted reclamation recovery; `SnapshotWorkspaceCoordinatorTests` checks product reclamation dependencies. [Storage-view contract verification](verification/storage-view-contract.md) owns current automated regressions and actual-execution limitations. Reboot, power/physical-space failures, general assets, and large projects remain unqualified; generated-source merging and mode selection are AI procedures.
+
+Development views accept Git workers without a Library graft. Legacy VSS view state is not resumed. New native view qualification for common-reader composition is NotRun; ordinary task Library sharing retains its [separate contract](git-library-reference.md).

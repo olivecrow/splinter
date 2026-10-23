@@ -56,7 +56,7 @@ public static class WinFspOverlayClient
         if (proof.Available == true && request.CacheSnapshot is { } cache)
         {
             var basis = request.SourceView!.CacheIdentity!.Snapshot;
-            var cached = await new VssSnapshotProvider(cache.ReceiptDirectory, cache.OwnerId).ObserveAsync(basis, ct);
+            var cached = await WorkspaceSnapshotBasis.Provider(basis, cache.ReceiptDirectory, cache.OwnerId).ObserveAsync(basis, ct);
             if (cached.Available != true)
                 return new(request.Identity.Snapshot.Id, cached.Available, cached.FailureCode ?? "ViewCacheSnapshotUnavailable", null, null);
             if (cached.ReadAccess != cache.ReadAccess)
@@ -147,7 +147,7 @@ public static class WinFspOverlayClient
         }
         if (preparationPoint is not null) await preparationPoint("delta.after-record");
         if (request.CacheSnapshot is { } cache)
-            using (var basis = new VssSnapshotTree(request.SourceView!.CacheIdentity!.Snapshot, cache.ReadAccess)) basis.EnsureAvailable();
+            using (var basis = WorkspaceSnapshotBasis.OpenTree(request.SourceView!.CacheIdentity!.Snapshot, cache.ReadAccess, cache.ReceiptDirectory, cache.OwnerId)) basis.EnsureAvailable();
         string stop = Path.Combine(request.ControlPath, "stop.json"); WindowsProcessWorkspaceProvider.CheckPath(stop);
         if (File.Exists(stop)) File.Delete(stop);
         string runner = WindowsProcessWorkspaceProvider.PrepareRunner(runnerCache);

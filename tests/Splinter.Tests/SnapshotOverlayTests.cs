@@ -337,11 +337,11 @@ public sealed partial class SnapshotOverlayTests
     public void VerifiedReadLocationCanMoveWhileJournalIdentityAndAcknowledgedBytesStayFixed()
     {
         using var d = new TestDirectory();
-        var snapshot = VssLiveIdentityTests.Snapshot;
+        var snapshot = new FakeSnapshotTree().Snapshot;
         byte[] source = RandomNumberGenerator.GetBytes(1024 * 1024), patch = RandomNumberGenerator.GetBytes(4096);
         var locations = new Dictionary<string, byte[]> { [snapshot.RootPath] = source };
         var first = new FakeSnapshotTree { Snapshot = snapshot };
-        first.Files["file"] = locations[VssSnapshotTree.ResolveReadRoot(snapshot, new(snapshot.Id, snapshot.RootPath, "initial"))];
+        first.Files["file"] = locations[snapshot.RootPath];
         long sequence;
         using (var store = New(d, first))
         {
@@ -350,12 +350,11 @@ public sealed partial class SnapshotOverlayTests
         }
         string identity = Path.Combine(d.Path, "delta", "identity.json"), journal = Path.Combine(d.Path, "delta", "delta.journal");
         byte[] identityBefore = File.ReadAllBytes(identity), journalBefore = File.ReadAllBytes(journal);
-        var access = VssSnapshotVerification.Evaluate(snapshot, "owner", VssLiveIdentityTests.Capture,
-            VssLiveIdentityTests.Request, VssLiveIdentityTests.Live, VssLiveIdentityTests.Request.BootTimeUtc,
-            s => new(s.Id, true, null, null, null)).ReadAccess!;
+        var access = new SnapshotReadAccess(snapshot.Id, snapshot.RootPath + "-relocated", "verified");
+        access.RequireMatch(snapshot);
         locations.Remove(snapshot.RootPath); locations[access.RootPath] = source;
         var resumedTree = new FakeSnapshotTree { Snapshot = snapshot };
-        resumedTree.Files["file"] = locations[VssSnapshotTree.ResolveReadRoot(snapshot, access)];
+        resumedTree.Files["file"] = locations[access.RootPath];
         using var resumed = New(d, resumedTree);
         byte[] actual = new byte[source.Length], expected = (byte[])source.Clone(); patch.CopyTo(expected, 17);
         resumed.Read(resumed.Stat("file")!.Id, 0, actual);
@@ -366,7 +365,7 @@ public sealed partial class SnapshotOverlayTests
         Assert.Equal(identityBefore, File.ReadAllBytes(identity)); Assert.Equal(journalBefore, File.ReadAllBytes(journal));
         Assert.Equal(snapshot, resumedTree.Snapshot);
         Assert.Equal("SnapshotIdentityMismatch", Assert.Throws<WorkspaceException>(() =>
-            VssSnapshotTree.ResolveReadRoot(snapshot, access with { RootPath = access.RootPath + "\\other" })).Code);
+            (access with { SnapshotId = "another-basis" }).RequireMatch(snapshot)).Code);
     }
 
     [Fact]

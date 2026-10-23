@@ -34,7 +34,7 @@
 <tr><td>명시적 종료</td><td>반영·결과 보존형 회수·반영 없는 폐기를 구분한다. 실패하거나 미커밋인 작업도 폐기할 수 있어야 하며 A 종료는 B에 영향을 주지 않는다.</td></tr>
 <tr><td>효율과 안전</td><td>전체 생성·준비·재개·반복 편집·종료 비용을 판단한다. 승인된 쓰기·원본/peer·공유 자원을 보호하고 unknown을 성공이나 0으로 바꾸지 않는다.</td></tr>
 </tbody></table>
-<p>첫 지원 조건은 Windows x64의 등록된 로컬 NTFS/Git 프로젝트, 검증된 clean 입력과 일반 파일, 기존 제한 VSS 서비스, 정확한 Unity <code>6000.3.22f1</code> fixture다. 일반 프로젝트·다른 패치·ARM의 지원은 각각 실제 자격이 필요하다. 미지원 파일·ACL·LFS/filter/dirty 조건의 사전 거부를 유지한다.</p>
+<p>첫 지원 조건은 Windows x64의 등록된 로컬 NTFS/Git 프로젝트, 검증된 clean 입력과 일반 파일, WinFsp와 지원 프로젝트 기준본, 정확한 Unity <code>6000.3.22f1</code> fixture다. 일반 프로젝트·다른 패치·ARM의 지원은 각각 실제 자격이 필요하다. 미지원 파일·ACL·LFS/filter/dirty 조건의 사전 거부를 유지한다.</p>
 <p><strong>외부 VCS가 있건 없건 Splinter는 병렬 작업을 제공하고, Git·Unity VCS/Plastic SCM 등을 사용할 때 저장 공간·메모리·병렬 작업에 문제가 생기지 않도록 처리해야 한다.</strong> 병렬 격리는 Splinter의 기본 기능이고 VCS별 처리는 이 기능을 안전하고 효율적으로 유지하기 위한 호환 책임이다. 현재 <code>--source git|none|plastic</code>을 선택한다. 일반 폴더의 한정 자격은 <a href="docs/ko/verification/vcs-independent-workspaces.md">실행 검증</a>, Plastic regular/static 환경의 작은 T: A/B·마지막 회수는 <a href="docs/ko/verification/plastic-compatibility.md">PC 검증</a>을 따른다. 선행 C: 회수 보류와 partial/dynamic·원본 반영 미자격은 유지한다. 병렬 편집과 원본 통합을 분리하고 VCS가 없어도 독립 결과를 보존한다. 원본 반영은 시작 기준·결과·최신 원본의 내용 비교로 이후 원본 변경을 보호하며 자동 <code>git init</code>이나 단순 덮어쓰기로 대신하지 않는다.</p>
 <p>후속 개발은 <strong>1. 물리 공간 절감 → 2. 메모리 절감 → 3. 안정적인 병렬 작업</strong> 순서로 판단한다. 새 Editor의 몇 분 이내 준비는 허용 비용이며 에이전트의 코딩 계획·분석과 병행할 수 있다. 준비 시간 단축은 낮은 우선순위로 두고, 수십 분 이상 지연하거나 실제 진행을 막을 때만 해당 병목을 다룬다. 상세 기준은 <a href="docs/ko/plans/storage-priority-and-editor-modes.md#후속-개발-우선순위">저장공간 우선 계획</a>이 소유한다.</p>
 <p>현재 Windows/NTFS 알파의 <strong>물리 저장 개발 단계는 한정 마감</strong>했다. <a href="docs/ko/verification/physical-storage-completion.md">최종 A/B·정리·독립 결과/회수와 잔여 비용</a>을 확인했으며 다음 일반 개발은 메모리 절감이다. 대형/OS/ARM 지원 확대·공유 VSS 귀속/전체 순간 peak unknown·기존 회수 보류는 별도 상태로 유지한다.</p>
@@ -85,5 +85,5 @@
 <li>지원 경로의 데이터 손실·원본 오염·타 작업 종료/삭제가 재현되면 해당 경로를 차단하고 수정한다. OS 장애 미자격은 제한으로 공개하고 불확실한 상태는 보존한다.</li>
 <li>작업별 delta·Library·Git 결과·임시 파일과 공유 VSS를 구분한다. 관측하지 못한 순간 물리 peak·VSS 귀속을 0이나 임의 절감률로 표시하지 않는다.</li>
 </ul>
-<p class="meta">기능 계약: <a href="docs/ko/ntfs-workspaces.md">NTFS</a> · <a href="docs/ko/view-workflow.md">소스 view</a> · <a href="docs/ko/source-verification.md">source</a> · <a href="docs/ko/storage-privilege-service.md">VSS 권한</a>. 후속 지원: <a href="docs/ko/plans/ntfs-recovery-and-support.md">NR</a> · <a href="docs/ko/plans/storage-priority-and-editor-modes.md">SF</a> · <a href="docs/ko/plans/session-workflow-and-installation.md">SW</a>.</p>
+<p class="meta">기능 계약: <a href="docs/ko/ntfs-workspaces.md">NTFS</a> · <a href="docs/ko/view-workflow.md">소스 view</a> · <a href="docs/ko/source-verification.md">source</a> · <a href="docs/ko/plans/vss-retirement.md">VSS 폐기</a>. 후속 지원: <a href="docs/ko/plans/ntfs-recovery-and-support.md">NR</a> · <a href="docs/ko/plans/storage-priority-and-editor-modes.md">SF</a> · <a href="docs/ko/plans/session-workflow-and-installation.md">SW</a>.</p>
 </main></body></html>

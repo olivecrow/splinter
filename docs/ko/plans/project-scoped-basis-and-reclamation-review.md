@@ -2,6 +2,8 @@
 
 [English](../../plans/project-scoped-basis-and-reclamation-review.md)
 
+> 현재 경로는 `git-snapshot`·`plastic-snapshot`·`project-snapshot`이다. [VSS 폐기 결정](vss-retirement.md)이 과거 VSS 서비스·설치·회수 후속 지침을 대체한다. 아래 기존 ID·수치·입력별 자격은 당시 기록으로 보존하며 VSS 실행을 재개하지 않는다.
+
 사용자 확정 범위: 프로젝트 하나의 작업에 볼륨 전체 VSS를 만드는 단위 불일치를 해결한다. 우선 Git·Plastic에 이미 기록된 프로젝트 버전을 기준본으로 재사용하고, VCS 없는 프로젝트의 새 기준본 방식은 후순위로 둔다. 프로젝트 밖 변경의 비용이나 기존 snapshot 회수 문제는 이 전환의 동기가 될 수 있으나 이번 첫 문제의 정의를 대신하지 않는다.
 
 원본 NTFS 위치·파일시스템 유지, 최초 전체 복제·읽기 hydration·파일 전체 copy-up fallback 금지, 작업별 범위 저장, 원본 계속 편집 가능이라는 [제품 요구](../../../plan.ko.html)를 유지한다. 기존 `source=none` 기능과 이전 VSS 작업·독립 결과·pending 영수증을 삭제하거나 자동 이관하지 않는다. PS/ME/SP/M0의 기존 한정 마감을 새 backend의 통과로 승계하지 않는다.

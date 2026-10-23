@@ -92,13 +92,15 @@ public sealed partial class WorkspaceStore
         { throw new WorkspaceException("StateCorrupt", "Workspace JSON is invalid or incomplete. Preserve its record and temporary files for recovery."); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be read. Restore access before retrying the same key."); }
+        if (record.StorageMode == "ntfs-snapshot")
+            throw new WorkspaceException("StorageModeRetired", "ntfs-snapshot/VSS state is preserved and unsupported. Do not migrate, resume or reclaim its resources with this version.");
         if (record.Version != WorkspaceRecord.CurrentVersion || record.Purpose != "task" ||
             record.UnrecognizedState?.Count > 0 || record.SourceKind is not ("git" or "none" or "plastic") ||
-            record.StorageMode is not ("ntfs-snapshot" or "git-snapshot" or "plastic-snapshot" or "project-snapshot" or "git-checkout") ||
+            record.StorageMode is not ("git-snapshot" or "plastic-snapshot" or "project-snapshot" or "git-checkout") ||
             record.StorageMode == "git-snapshot" && (record.SourceKind != "git" || record.Purpose != "task") ||
             record.ApplicationKind is not ("unity" or "none") || record.ApplicationKind == "none" && record.ManagedPaths.Length != 0 &&
                 (record.GeneratedDirectory is null || !record.ManagedPaths.SequenceEqual(new[] { record.GeneratedDirectory.RelativePath })) ||
-            (record.SourceKind == "none" && record.StorageMode != "project-snapshot" || record.SourceKind == "plastic" && record.StorageMode != "plastic-snapshot") && (record.StorageMode != "ntfs-snapshot" || record.BaseReference != "snapshot" || record.Purpose != "task") ||
+            (record.SourceKind == "none" && record.StorageMode != "project-snapshot" || record.SourceKind == "plastic" && record.StorageMode != "plastic-snapshot") ||
             record.Id != id || !SamePath(record.Path, WorkPath(id)))
             throw new WorkspaceException("StateCorrupt", "Workspace identity/path/version does not match its registry.");
         if (record.GeneratedDirectoryId is not null && record.StorageMode is not ("git-snapshot" or "plastic-snapshot" or "project-snapshot") || record.GeneratedDirectory is { } generated &&

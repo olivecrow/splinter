@@ -3,7 +3,7 @@
 
 [한국어](ko/git-project-basis.md)
 
-`--storage git-snapshot --source git` uses the tree/blobs of a recorded project commit as its basis. The original stays at its existing NTFS location and can be edited or advanced to another branch state while work proceeds. Creation, reads, resumption, compaction, and reclamation invoke neither VSS nor the storage-privilege service. Existing `ntfs-snapshot` uses VSS and is not automatically converted.
+`--storage git-snapshot --source git` uses the tree/blobs of a recorded project commit as its basis. The original stays at its existing NTFS location and can be edited or advanced to another branch state while work proceeds. Creation, reads, resumption, compaction, and reclamation invoke neither VSS nor the storage-privilege service. Legacy `ntfs-snapshot` is retired and preserved/rejected without automatic conversion.
 
 ```powershell
 pwsh ./scripts/splinter.ps1 schema workspace.ensure

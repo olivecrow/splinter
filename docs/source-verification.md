@@ -9,9 +9,9 @@ Product Windows mounts retain kernel file cache across Cleanup. Each source quer
 
 The current bounded path cache and combined finalization are qualified in [LF-01–05](verification/lifecycle-finalization-optimization.md). An inspection may reuse at most 4,096 plain ancestor directories / 1,048,576 path characters inside its observed mount and authoritative journal barrier. Leaf/native ancestors and external Git state remain fresh. `checkpoint --release` reuses only the same invocation's completed checkpoint seal as release's starting seal; its fresh source inspection and subsequent seals remain mandatory.
 
-The current ordinary-folder path for `--source none` and v2 state/service packages follows [VCS-free workspaces](vcs-independent-workspaces.md). Git paths and historical native qualification below do not qualify ordinary-folder support.
+The current ordinary-folder path for `--source none` and v2 state follows [VCS-free workspaces](vcs-independent-workspaces.md). Git paths and historical native qualification below do not qualify ordinary-folder support.
 
-Product Git adapters for `ntfs-snapshot` and `git-snapshot` reuse per-file raw SHA-256 and Git content hashes bound to the same snapshot/provider generation/source-change history. File size, mtime, or Git stat cache alone do not establish content equality. Full-fingerprint path ordering and `source-fingerprint-v1` values remain. The diagnostic backend retains full raw reads.
+Product Git adapters for `git-snapshot` reuse per-file raw SHA-256 and Git content hashes bound to the same snapshot/provider generation/source-change history. File size, mtime, or Git stat cache alone do not establish content equality. Full-fingerprint path ordering and `source-fingerprint-v1` values remain. The diagnostic backend retains full raw reads.
 
 Explicit whole raw hashing of range journals reuses a pooled 1MiB buffer one file at a time to limit read callbacks. Whole-file SHA-256, cancellation/failure, and before/after generation guards remain; payload is not stored on disk. Small files reuse this buffer too, without payload arrays proportional to file count.
 
@@ -137,3 +137,5 @@ Windows adapter `WinFspOverlayFileSystem.mutationGate` first serializes whole mu
 ## Contracts and entry points
 
 `contracts/v1/source-change-{request,response,view}.schema.json`, `workspace-status-request.schema.json`, `response.schema.json`, `overlay-observation.schema.json`, and `storage-read-measurement.schema.json` define input/output/instrumentation contracts. `capabilities.sourceVerification` describes the current method, audit command, and measurement locations. Implementation is split across `Core/SourceChanges.cs`/`SourceInspectionProof.cs`, `Runtime/JournalDeltaStore.cs`/`JournalWriteMetrics.cs`/`SnapshotWorkspaces.cs`/`WorkspaceCoordinator.cs`, `SourceControl.Git/GitSourceFingerprint.cs`/`GitCleanIdentity.cs`/`GitInspectionProof.cs`, `Platform.Windows/WindowsSourceChanges.cs`, and `NtfsSnapshotWorkspaceBackend.cs`.
+
+Current `measure-workspace-storage.ps1` reports use v3, without VSS CIM queries/fields. File allocations, volume free space and unknown attribution remain. Existing v2 reports are preserved as historical evidence without conversion.

@@ -23,7 +23,10 @@ public sealed class ProductWriteRecoveryTests
     {
         string? configText = Environment.GetEnvironmentVariable("SPLINTER_PRODUCT_WRITE_RECOVERY_RUN");
         if (configText is null) Assert.Skip("External product run requires SPLINTER_PRODUCT_WRITE_RECOVERY_RUN.");
-        Assert.True(OperatingSystem.IsWindows()); var c = JsonSerializer.Deserialize<JsonElement>(configText);
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("The product recovery probe requires Windows.");
+        var c = JsonSerializer.Deserialize<JsonElement>(configText);
+        using var caller = System.Security.Principal.WindowsIdentity.GetCurrent();
+        Assert.False(new System.Security.Principal.WindowsPrincipal(caller).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator));
         string root = Path.GetFullPath(c.GetProperty("evidencePath").GetString()!), project = Path.GetFullPath(c.GetProperty("project").GetString()!),
             home = Path.GetFullPath(c.GetProperty("home").GetString()!), cli = Path.GetFullPath(c.GetProperty("cliPath").GetString()!),
             basis = c.GetProperty("baseReference").GetString()!;
@@ -45,16 +48,12 @@ public sealed class ProductWriteRecoveryTests
             .Append(typeof(ProductWriteRecoveryTests).Assembly.Location).Select(p => new { path = p, sha256 = HashFile(p) }).ToArray();
         WriteNew(Path.Combine(root, "candidate.json"), new { version = 1, binaries, os = Environment.OSVersion.ToString(), runtime = Environment.Version.ToString(),
             caseNames = cases, project, home, basis, oraclePayloadBytes = new FileInfo(alphaOracle).Length + new FileInfo(betaOracle).Length,
-            scope = "ordinary product CLI/VSS/WinFsp/Git; external client boundaries; no observer/Unity/install/remote" });
-        var service = await Cli(cli, root, ["storage", "service", "status"], Path.Combine(root, "service"), ct);
-        Assert.False(service.GetProperty("data").GetProperty("callerElevated").GetBoolean()); Assert.Equal("running", service.GetProperty("data").GetProperty("state").GetString());
-        var results = new List<JsonElement>(); string[]? priorSnapshots = null;
+            scope = "ordinary product CLI/WinFsp/Git recorded basis; external client boundaries; no observer/Unity/install/remote" });
+        var results = new List<JsonElement>();
         foreach (string name in cases)
         {
             string[] parts = name.Split(':'); string trial = Path.Combine(root, name.Replace(':', '-')); Directory.CreateDirectory(trial);
             var result = await Trial(cli, root, project, home, basis, trial, parts[0], parts[1], alphaOracle, betaOracle, ct);
-            string[] observedPrior = result.GetProperty("priorSnapshotIds").EnumerateArray().Select(e => e.GetString()!).ToArray();
-            priorSnapshots ??= observedPrior; Assert.Equal(priorSnapshots.Order(), observedPrior.Order());
             results.Add(result); WriteNew(Path.Combine(trial, "result.json"), result);
         }
         var after = await SourceProof(project, ct); WriteNew(Path.Combine(root, "source-after.json"), after);
@@ -62,8 +61,8 @@ public sealed class ProductWriteRecoveryTests
         foreach (string line in before.GetProperty("refs").GetString()!.Split('\n', StringSplitOptions.RemoveEmptyEntries)) Assert.Contains(line, after.GetProperty("refs").GetString());
         foreach (var binary in binaries) Assert.Equal(binary.sha256, HashFile(binary.path));
         WriteNew(Path.Combine(root, "result.json"), new { version = 1, passed = results.Count, failed = 0, fullMatrix = cases.Length == Cases.Length,
-            originalPreserved = true, priorRefsPreserved = true, priorSnapshotsPreserved = true, results,
-            qualification = "product-vss-external-client-boundaries-only" });
+            originalPreserved = true, priorRefsPreserved = true, results,
+            qualification = "product-git-basis-external-client-boundaries-only" });
     }
 
     [Fact]
@@ -106,15 +105,16 @@ public sealed class ProductWriteRecoveryTests
         string operation, string boundary, string alphaOracle, string betaOracle, CancellationToken ct)
     {
         string key = "nr03-" + Guid.NewGuid().ToString("N");
-        string[] ensure = ["workspace", "ensure", "--project", project, "--home", home, "--key", key, "--base", basis, "--storage", "ntfs-snapshot"];
+        string[] ensure = ["workspace", "ensure", "--project", project, "--home", home, "--key", key, "--base", basis, "--storage", "git-snapshot"];
         var initial = await Cli(cli, root, ensure, Path.Combine(dir, "ensure"), ct); var w = initial.GetProperty("data").GetProperty("workspace");
         string id = w.GetProperty("id").GetString()!, mount = w.GetProperty("path").GetString()!, control = Path.Combine(home, "records", id);
         string overlay = Path.Combine(control, "overlay"), journal = Path.Combine(control, "delta", "delta.journal");
         var providerProof = Read(Path.Combine(overlay, "provider-launch-receipt.json"));
         var providerIntent = Read(Path.Combine(overlay, "provider-launch-intent.json")); var overlayRequest = Read(Path.Combine(overlay, "request.json"));
-        var capture = Read(Path.Combine(control, "snapshot", "snapshot.json"));
+        var capture = Read(Path.Combine(control, "snapshot", "git-basis.json"));
         string snapshotId = capture.GetProperty("snapshot").GetProperty("id").GetString()!;
-        string[] priorSnapshots = capture.GetProperty("beforeSnapshotIds").EnumerateArray().Select(e => e.GetString()!).ToArray();
+        string basisRef = capture.GetProperty("reference").GetString()!;
+        Assert.Equal(capture.GetProperty("revision").GetString(), await GitText(project, ["rev-parse", basisRef], ct));
         string registrationHash = HashFile(Path.Combine(control, "git-overlay.json"));
         var r = new Request(1, dir, mount, operation, boundary, Guid.NewGuid().ToString("N"), alphaOracle, betaOracle, id, snapshotId,
             providerProof.GetProperty("processId").GetInt32(), providerProof.GetProperty("startTimeUtcTicks").GetInt64(),
@@ -124,7 +124,7 @@ public sealed class ProductWriteRecoveryTests
         Assert.Equal(snapshotId, overlayRequest.GetProperty("identity").GetProperty("snapshot").GetProperty("id").GetString());
         string input = Path.Combine(dir, "request.json"); WriteNew(input, r);
         foreach (string name in new[] { "provider-launch-intent.json", "provider-launch-receipt.json", "request.json", "state.json" }) CopyNew(Path.Combine(overlay, name), Path.Combine(dir, "before-" + name));
-        CopyNew(Path.Combine(control, "snapshot", "snapshot.json"), Path.Combine(dir, "capture.json"));
+        CopyNew(Path.Combine(control, "snapshot", "git-basis.json"), Path.Combine(dir, "capture.json"));
         using var provider = Process.GetProcessById(r.ProviderId); Assert.Equal(r.ProviderStartTimeUtcTicks, provider.StartTime.ToUniversalTime().Ticks);
         using var actor = StartActor(input); var actorOut = actor.StandardOutput.ReadToEndAsync(ct); var actorErr = actor.StandardError.ReadToEndAsync(ct);
         WriteNew(Path.Combine(dir, "client-launch.json"), new { r.Nonce, processId = actor.Id, processStartTimeUtcTicks = actor.StartTime.ToUniversalTime().Ticks });
@@ -153,7 +153,7 @@ public sealed class ProductWriteRecoveryTests
             Assert.NotEqual(r.ProviderStartTimeUtcTicks, nextProof.GetProperty("startTimeUtcTicks").GetInt64());
             Assert.Equal(r.ProviderToken, nextProof.GetProperty("token").GetString());
             Assert.Equal(overlayRequest.GetProperty("identity").GetRawText(), nextRequest.GetProperty("identity").GetRawText());
-            Assert.NotEqual(overlayRequest.GetProperty("readAccess").GetProperty("verificationId").GetString(), nextRequest.GetProperty("readAccess").GetProperty("verificationId").GetString());
+            Assert.Equal(overlayRequest.GetProperty("readAccess").GetProperty("verificationId").GetString(), nextRequest.GetProperty("readAccess").GetProperty("verificationId").GetString());
             foreach (string name in new[] { "provider-launch-intent.json", "provider-launch-receipt.json", "request.json", "state.json" }) CopyNew(Path.Combine(overlay, name), Path.Combine(dir, "after-" + name));
             string model = KernelModel(r); bool pending = operation != "flush" && model == Expected(r, true);
             if (boundary is "client.after-ack" or "client.after-write-before-flush") Assert.Equal(Expected(r, true), model);
@@ -188,17 +188,16 @@ public sealed class ProductWriteRecoveryTests
             var saved = Read(Path.Combine(control, "workspace.json")); var observation = saved.GetProperty("snapshot").GetProperty("observation");
             foreach (string field in new[] { "snapshotAvailable", "mounted", "providerAlive" }) Assert.False(observation.GetProperty(field).GetBoolean());
             foreach (string field in new[] { "openHandles", "workingSetBytes", "privateBytes" }) Assert.Equal(0, observation.GetProperty(field).GetInt64());
-            var isolation = Read(Path.Combine(control, "snapshot", "release-isolation.json"));
-            Assert.Empty(isolation.GetProperty("missingOtherIds").EnumerateArray()); Assert.True(isolation.GetProperty("deletionAttempted").GetBoolean());
-            foreach (string prior in priorSnapshots) Assert.Contains(prior, isolation.GetProperty("beforeIds").EnumerateArray().Select(e => e.GetString()));
-            CopyNew(Path.Combine(control, "snapshot", "release-isolation.json"), Path.Combine(dir, "release-isolation.json"));
+            Assert.Empty(await GitText(project, ["for-each-ref", "--format=%(refname)", basisRef], ct));
+            Assert.True(Read(Path.Combine(control, "snapshot", "git-basis.json")).GetProperty("released").GetBoolean());
+            CopyNew(Path.Combine(control, "snapshot", "git-release.json"), Path.Combine(dir, "git-release.json"));
             CopyNew(Path.Combine(control, "workspace.json"), Path.Combine(dir, "released-workspace.json"));
             Assert.Equal(revision, await GitText(project, ["rev-parse", reference], ct));
             var result = JsonSerializer.SerializeToElement(new { version = 1, operation, boundary, r.Nonce, workspaceId = id, snapshotId,
-                actualProviderTermination = true, sameSnapshotRegistrationDelta = true, newProviderGeneration = true, currentVerificationChanged = true,
+                actualProviderTermination = true, sameSnapshotRegistrationDelta = true, newProviderGeneration = true, fixedBasisVerified = true,
                 acknowledgedDataPreserved = true, repeatedEnsureJournalUnchanged = true, resumedReadWrite = true, prefixPreserved = true,
                 beforeJournalHash = Hash(journalBefore), recoveredModelHash = model, pendingWriteSurvived = pending, independentResultReference = reference,
-                independentResultRevision = revision, validationClaimed = false, priorSnapshotIds = priorSnapshots, released = true,
+                independentResultRevision = revision, validationClaimed = false, ownedBasisRefReleased = true, released = true,
                 openHandles = 0, ownedLiveChildren = 0, initialPayloadCopiedBytes = 0, readCacheBytes = 0 }, Json);
             Assert.True(new ContractCatalog().Validate("urn:splinter:v1:product-write-recovery-probe-result", result).IsValid); return result;
         }

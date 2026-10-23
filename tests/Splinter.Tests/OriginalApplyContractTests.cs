@@ -118,21 +118,15 @@ public sealed partial class FileWorkspaceTests
     }
 
     [Fact]
-    public async Task AuthorityRejectsPendingApplyBeforeAnySnapshotReleaseAuthorization()
+    public async Task PendingApplyRejectsReleaseBeforeAnyBasisReclamation()
     {
         RequireWindowsApply(); var publisher = new WindowsOriginalFilePublisher((at, _) => { if (at == "staged") throw new WorkspaceException("ReplyLost", "Pending publication."); });
         using var f = new Fixture(publisher); var ct = TestContext.Current.CancellationToken;
-        var w = (await f.Ensure("authority-pending", ct)).Workspace;
+        var w = (await f.Ensure("pending-apply", ct)).Workspace;
         File.WriteAllText(Path.Combine(w.Path, "data.txt"), "result"); await f.New().CheckpointAsync(w.Id, "result", ct);
         var plan = (await f.New().PlanOriginalAsync(w.Id, ct)).OriginalApplyPlan!;
         await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ApplyOriginalAsync(w.Id, "apply", plan.Digest, ct));
-        Directory.CreateDirectory(Path.Combine(f.Store.ControlPath(w.Id), "snapshot"));
-        StorageGrant grant;
-        using (var paths = new StorageAuthorityPaths()) grant = new("test-sid", f.Project, f.Store.Root,
-            StorageAuthorityPaths.Volume(f.Project), paths.Pin(f.Project), paths.Pin(f.Store.Root));
-        var request = new StorageAuthorityRequest(1, Guid.NewGuid().ToString("N"), "Release", w.Id, f.Project, f.Store.Root, w.Snapshot!.Reference!.Id,
-            new("request", w.Id, w.Snapshot.Reference.Id, DateTimeOffset.UtcNow, null), null);
-        Assert.Equal("OriginalApplyPending", Assert.Throws<WorkspaceException>(() => StorageAuthorityPaths.Authorize(grant, request)).Code);
+        Assert.Equal("OriginalApplyPending", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(w.Id, ct))).Code);
         Assert.Empty(f.Backend.Released);
     }
 

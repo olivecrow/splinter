@@ -16,7 +16,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         var router = new SourceWorkspaceRouter(source, new FileWorkspaceProvider(new(f.Home)));
         var coordinator = new WorkspaceCoordinator(new(f.Home), router, f.App, f.Backend,
             new ProofObserver(() => source.Changed = changed));
-        Task<WorkspaceView> Ensure() => coordinator.EnsureAsync(f.Project, "task", "base", "ntfs-snapshot", false, ct);
+        Task<WorkspaceView> Ensure() => coordinator.EnsureAsync(f.Project, "task", "base", "git-snapshot", false, ct);
         if (changed)
         {
             Assert.Equal("SourceChanged", (await Assert.ThrowsAsync<WorkspaceException>(Ensure)).Code);
@@ -40,7 +40,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         var router = new SourceWorkspaceRouter(f.Source, new FileWorkspaceProvider(new(f.Home)));
         var coordinator = new WorkspaceCoordinator(new(f.Home), router, f.App, f.Backend);
-        var result = await coordinator.EnsureAsync(f.Project, "task", "base", "ntfs-snapshot", false, ct);
+        var result = await coordinator.EnsureAsync(f.Project, "task", "base", "git-snapshot", false, ct);
         Assert.Equal("verified", result.SourceVerification); Assert.Equal(2, f.Source.InspectCalls);
     }
 
@@ -51,7 +51,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         var source = new ProvedSource();
         var coordinator = new WorkspaceCoordinator(new(f.Home), source, f.App, f.Backend,
             new ProofObserver(() => source.Dirty = true));
-        var result = await coordinator.EnsureAsync(f.Project, "task", "base", "ntfs-snapshot", true, ct);
+        var result = await coordinator.EnsureAsync(f.Project, "task", "base", "git-snapshot", true, ct);
         Assert.Equal(1, f.App.Starts); Assert.Equal(2, source.InspectCalls);
         Assert.Equal(0, source.Revalidations); Assert.True(result.Source!.HasChanges);
     }

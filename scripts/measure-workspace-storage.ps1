@@ -14,7 +14,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 # Read-only file allocation sampling. Never traverse a workspace mount or count
-# its logical view as another physical copy. Volume-wide VSS is not attributable.
+# its logical view as another physical copy. Volume-wide free-space changes are not attributable.
 if (-not ('SplinterAllocationProbe' -as [type])) {
     Add-Type -TypeDefinition @'
 using System;
@@ -141,9 +141,6 @@ $rows = foreach ($root in $roots) {
         files=$fileCount;logicalBytes=$logical;allocatedBytes=if($errorsSeen.Count){$null}else{$allocated};
         observedAllocatedSubtotal=$allocated;complete=($errorsSeen.Count -eq 0);categories=$categories;errors=@($errorsSeen)}
 }
-$vss = $null; $vssError = $null
-try { $vss = @(Get-CimInstance Win32_ShadowStorage -ErrorAction Stop | Select-Object @{n='volume';e={$_.Volume.DeviceID}},@{n='diffVolume';e={$_.DiffVolume.DeviceID}},UsedSpace,AllocatedSpace,MaxSpace) }
-catch { $vssError = $_.Exception.Message }
 $productRows = @($rows | Where-Object { $_.scope -notin @('original','measurement-overhead') })
 $completeProduct = @($productRows | Where-Object { -not $_.complete }).Count -eq 0
 $productAllocatedBytes = [long]0
@@ -151,11 +148,11 @@ if ($completeProduct) {
     foreach ($productRow in $productRows) { $productAllocatedBytes += [long]$productRow.allocatedBytes }
 }
 $volumes = @(@($stateRoot,$sourceRoot) | ForEach-Object { [IO.Path]::GetPathRoot($_) } | Select-Object -Unique | ForEach-Object { $drive=[IO.DriveInfo]::new($_); @{root=$_;freeBytes=$drive.AvailableFreeSpace;totalBytes=$drive.TotalSize;fileSystem=$drive.DriveFormat;scope='volume-shared';workspaceAttribution='unknown'} })
-$report = [ordered]@{version=2;label=$Label;atUtc=[DateTimeOffset]::UtcNow;home=$stateRoot;project=$sourceRoot;sourceKind=$SourceKind;applicationKind=$ApplicationKind;workspaceIds=@($WorkspaceIds);generatedDirectoryIds=@($GeneratedDirectoryIds);projectBasisIds=@($ProjectBasisIds);originalLibrarySampled=($ApplicationKind -eq 'unity' -and -not $SkipOriginalLibrary);
-    roots=@($rows);vssVolumeObservations=$vss;vssObservationError=$vssError;totalAttributableBytes=$null;
+$report = [ordered]@{version=3;label=$Label;atUtc=[DateTimeOffset]::UtcNow;home=$stateRoot;project=$sourceRoot;sourceKind=$SourceKind;applicationKind=$ApplicationKind;workspaceIds=@($WorkspaceIds);generatedDirectoryIds=@($GeneratedDirectoryIds);projectBasisIds=@($ProjectBasisIds);originalLibrarySampled=($ApplicationKind -eq 'unity' -and -not $SkipOriginalLibrary);
+    roots=@($rows);totalAttributableBytes=$null;
     volumeObservations=$volumes;productFileAllocationBytes=if($completeProduct){$productAllocatedBytes}else{$null};productFileAllocationComplete=$completeProduct;
     limitations=@('Subtract each category baseline before comparing additional allocation. Categories subdivide their root; do not add them again.',
-        'VSS is volume-wide and may include unrelated original writes. No per-workspace attribution or total savings claim.',
+        'Volume free-space changes may include unrelated writes. No per-workspace attribution or total savings claim.',
         'File allocations exclude MFT/directory metadata and kernel/OS caches. Stage samples can miss peaks.',
         'Original Library baseline is excluded. Workspace Library writes are already inside the delta journal.',
         'An explicitly selected moved Library basis is included once. Subtract moved-original-Library-payload as existing baseline before deriving additional allocation.',
@@ -168,4 +165,4 @@ $output = [IO.FileStream]::new($destination,[IO.FileMode]::CreateNew,[IO.FileAcc
 try {
     $bytes=[Text.UTF8Encoding]::new($false).GetBytes($json); $output.Write($bytes); $output.Flush($true)
 } finally { $output.Dispose() }
-[pscustomobject]@{label=$Label;roots=$rows.Count;completeRoots=@($rows | Where-Object complete).Count;vssKnown=($null -eq $vssError);output=$destination} | ConvertTo-Json -Compress
+[pscustomobject]@{label=$Label;roots=$rows.Count;completeRoots=@($rows | Where-Object complete).Count;output=$destination} | ConvertTo-Json -Compress

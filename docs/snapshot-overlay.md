@@ -3,6 +3,8 @@
 
 [한국어](ko/snapshot-overlay.md)
 
+> **Historical implementation record, not current operating instructions.** The [VSS retirement decision](plans/vss-retirement.md) removes the provider, service and dedicated scripts. Commands, privileges and qualification below describe the earlier candidate and must not be resumed. Common journal tests/current bases follow the [NTFS contract](ntfs-workspaces.md).
+
 Current commands use the [separate development CLI](development-cli.md). They provide storage-candidate/source-cache/seal/reclamation contracts; AI/external tools own project work and result evaluation.
 
 This is the **independent storage-experiment entry point** contract. The ordinary product backend using the same VSS/WinFsp/journal implementation is separately connected in [NTFS workspaces](ntfs-workspaces.md). [SO records](verification/snapshot-overlay.md) own SO-01–06 fixture evidence in one Windows/NTFS environment; [NI records](verification/ntfs-workspace-integration.md) separately own product NI status. No original move is required.

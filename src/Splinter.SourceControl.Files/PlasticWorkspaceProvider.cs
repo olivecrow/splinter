@@ -29,8 +29,8 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
     private static WorkspaceException Invalid(string message) => new("PlasticCompatibilityInvalid", message);
     private static void Require(WorkspaceRecord w)
     {
-        if (w.SourceKind != "plastic" || (w.StorageMode != "ntfs-snapshot" || w.BaseReference != "snapshot") && w.StorageMode != "plastic-snapshot" || w.Purpose != "task")
-            throw Invalid("Select Plastic explicitly with an NTFS task and snapshot basis.");
+        if (w.SourceKind != "plastic" || w.StorageMode != "plastic-snapshot" || w.Purpose != "task")
+            throw Invalid("Select Plastic explicitly with plastic-snapshot and a recorded changeset.");
     }
     public static void RequireIdentity(PlasticWorkspaceIdentity identity, string project)
     {
@@ -87,10 +87,9 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
                 !manifest.Entries.Any(e => e.Path == "Packages/manifest.json") || !manifest.Entries.Any(e => e.Path == "ProjectSettings/ProjectVersion.txt")))
                 throw new WorkspaceException("PlasticBasisSourceIncomplete", "Choose a recorded Unity source including Assets, Packages and ProjectSettings.");
         }
-        else await FileWorkspaceProvider.PreflightFilesAsync(w, ct);
         FileWorkspaceProvider.SaveFixed(Evidence(Control(w), "admission.json"), new PlasticSourceAdmission(w.Id, w.RequestDigest!,
             w.ProjectPath, identity.Guid, version, AdministrationHash(w.ProjectPath)));
-        return w.StorageMode == "plastic-snapshot" ? "recorded:" + w.BaseReference : "snapshot:" + w.Id;
+        return "recorded:" + w.BaseReference;
     }
     public async Task RegisterAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
@@ -116,8 +115,8 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
             throw Invalid("The immutable Plastic admission belongs to another request or is corrupt.");
         return a;
     }
-    // Authority validation reads owned receipts only. It never invokes cm or
-    // reads credentials/original Plastic metadata as the privileged service.
+    // Receipt validation reads owned records only; it does not invoke cm or
+    // read credentials or mutable original administration.
     public static void VerifyReceipt(WorkspaceRecord w, string control, Func<string, Stream>? open = null)
     {
         var admission = Admission(w, control, open);
@@ -132,8 +131,6 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
         var admission = Admission(w, c);
         var access = w.Snapshot?.Observation?.SnapshotStorage?.ReadAccess ?? throw Invalid("Verify immutable captured access before computing the basis.");
         access.RequireMatch(w.Snapshot!.Reference!);
-        if (w.StorageMode != "plastic-snapshot" && AdministrationHash(access.RootPath) != admission.AdministrationHash)
-            throw Invalid("Captured Plastic administration differs from admission; preserve this snapshot.");
         return files.EstablishBaselineAsync(w, c, ct);
     }
     public async Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)

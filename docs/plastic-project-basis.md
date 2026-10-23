@@ -3,7 +3,7 @@
 
 [한국어](ko/plastic-project-basis.md)
 
-`--source plastic --storage plastic-snapshot --base <changeset@repository@server>` connects a recorded project version to the WinFsp range journal. It uses no VSS, new checkout/Plastic registration, initial payload copying, or read disk hydration. The original remains editable at its existing NTFS location. Existing `ntfs-snapshot` is a capture-time file basis and is not automatically migrated to this separate path.
+`--source plastic --storage plastic-snapshot --base <changeset@repository@server>` connects a recorded project version to the WinFsp range journal. It uses no VSS, new checkout/Plastic registration, initial payload copying, or read disk hydration. The original remains editable at its existing NTFS location. Legacy `ntfs-snapshot` is retired and preserved/rejected without automatic migration.
 
 <a id="입력과-관리-경계"></a>
 ## Inputs and management boundaries
