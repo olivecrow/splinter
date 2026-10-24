@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Splinter.Core;
+using Splinter.Platform.Windows;
 using Splinter.Runtime;
 using static Splinter.Workflows.Windows.ProductState;
 
@@ -13,8 +14,20 @@ internal static class JournalReclamation
 {
     internal static void Reclaim(string directory, SnapshotDeltaSeal seal, string[] metadataNames, string receiptPath, Action<string>? boundary = null)
     {
-        string current = Path.Combine(directory, "delta.journal"), latestReceipt = receiptPath + ".latest";
-        if (LatestJournalReclamation.HasIntent(latestReceipt) || File.Exists(current) && LatestJournalReclamation.IsLatest(current))
+        string current = Path.Combine(directory, "delta.journal"), latestReceipt = receiptPath + ".latest", boundedReceipt = receiptPath + ".bounded";
+        bool latestIntent = LatestJournalReclamation.HasIntent(latestReceipt), boundedIntent = BoundedJournalReclamation.HasIntent(boundedReceipt);
+        bool latest = File.Exists(current) && LatestJournalReclamation.IsLatest(current);
+        bool bounded = File.Exists(current) && JournalDeltaStore.IsBoundedJournal(current);
+        Require(!(latestIntent && (boundedIntent || bounded) || boundedIntent && latest ||
+            File.Exists(receiptPath) && (latestIntent || boundedIntent || latest || bounded)),
+            "ViewReceiptMismatch", "Conflicting journal reclamation modes must be preserved.");
+        if (boundedIntent || bounded)
+        {
+            BoundedJournalReclamation.ReclaimDirectory(directory, seal, metadataNames, boundedReceipt, boundary,
+                OperatingSystem.IsWindows() ? path => new WindowsJournalDirectoryGuard(path, BoundedJournalReclamation.GuardName) : null);
+            return;
+        }
+        if (latestIntent || latest)
         {
             LatestJournalReclamation.ReclaimDirectory(directory, seal, metadataNames, latestReceipt, boundary);
             return;

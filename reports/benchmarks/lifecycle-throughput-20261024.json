@@ -1,0 +1,512 @@
+{
+  "version": 1,
+  "baselineCommit": "be761bb43032f72fbbd5ca9a3165bd937bd45a6f",
+  "rawEvidence": "artifacts/lifecycle-optimization-20261023",
+  "retained": "Parallel managed Library capture, admission and unchanged restore; at most eight workers.",
+  "excluded": "Journal flush/read overlap: 58.8650913 to 51.2065165 seconds, only 7.6585748 seconds or 13.0104 percent in the no-delay 8192-write case.",
+  "measurementOrder": "Serial ABBA: before-1, after-1, after-2, before-2. OS caches not cleared. No concurrent build/probe.",
+  "qualification": "Warm synthetic NTFS components only. No new Unity, mounted-view speed, complete apply/discard, general changed Library restore, peak RAM or OS crash qualification.",
+  "runs": [
+    {
+      "name": "before-native-1-library",
+      "data": {
+        "scope": "Single managed Library components on a warm synthetic NTFS tree; no Unity or full workspace timing.",
+        "files": 20000,
+        "bytesPerFile": 65536,
+        "logicalBytes": 1310720000,
+        "samples": [
+          {
+            "stage": "capture",
+            "seconds": 4.9029501,
+            "allocatedBytes": 89817840
+          },
+          {
+            "stage": "admission",
+            "seconds": 2.7824243,
+            "allocatedBytes": 90692544
+          },
+          {
+            "stage": "unchanged-restore",
+            "seconds": 10.9172706,
+            "allocatedBytes": 322081880
+          }
+        ],
+        "product": {
+          "measuredAt": "2026-10-24T00:00:15.6578002+09:00",
+          "processors": 12,
+          "runtimeSha256": "71f91622e08ba8e9c99315cd48e91e3e1d5729bd3cead626a220d186aefe02ff",
+          "windowsSha256": "443691d7abadc5168168279a36de2fc5e8266f1d94e9ab8f126bc5ff768cc192"
+        }
+      }
+    },
+    {
+      "name": "after-native-1-library",
+      "data": {
+        "scope": "Single managed Library components on a warm synthetic NTFS tree; no Unity or full workspace timing.",
+        "files": 20000,
+        "bytesPerFile": 65536,
+        "logicalBytes": 1310720000,
+        "samples": [
+          {
+            "stage": "capture",
+            "seconds": 2.2038625,
+            "allocatedBytes": 98366112
+          },
+          {
+            "stage": "admission",
+            "seconds": 0.9089484,
+            "allocatedBytes": 91014664
+          },
+          {
+            "stage": "unchanged-restore",
+            "seconds": 4.0507183,
+            "allocatedBytes": 318332704
+          }
+        ],
+        "product": {
+          "measuredAt": "2026-10-24T00:02:00.3377374+09:00",
+          "processors": 12,
+          "runtimeSha256": "b187b53ad5a35cd785a70ac5e5cfed5fd2451308eb87446b3a207b1c46eb6f1d",
+          "windowsSha256": "426080de93950ce0b7a9833d1cb6677698abdb98dd367dc741feaed5c68c7e8c"
+        }
+      }
+    },
+    {
+      "name": "after-native-2-library",
+      "data": {
+        "scope": "Single managed Library components on a warm synthetic NTFS tree; no Unity or full workspace timing.",
+        "files": 20000,
+        "bytesPerFile": 65536,
+        "logicalBytes": 1310720000,
+        "samples": [
+          {
+            "stage": "capture",
+            "seconds": 2.179924,
+            "allocatedBytes": 98322520
+          },
+          {
+            "stage": "admission",
+            "seconds": 0.841103,
+            "allocatedBytes": 91001728
+          },
+          {
+            "stage": "unchanged-restore",
+            "seconds": 3.3718865,
+            "allocatedBytes": 318386176
+          }
+        ],
+        "product": {
+          "measuredAt": "2026-10-24T00:03:20.9376409+09:00",
+          "processors": 12,
+          "runtimeSha256": "b187b53ad5a35cd785a70ac5e5cfed5fd2451308eb87446b3a207b1c46eb6f1d",
+          "windowsSha256": "426080de93950ce0b7a9833d1cb6677698abdb98dd367dc741feaed5c68c7e8c"
+        }
+      }
+    },
+    {
+      "name": "before-native-2-library",
+      "data": {
+        "scope": "Single managed Library components on a warm synthetic NTFS tree; no Unity or full workspace timing.",
+        "files": 20000,
+        "bytesPerFile": 65536,
+        "logicalBytes": 1310720000,
+        "samples": [
+          {
+            "stage": "capture",
+            "seconds": 4.7469887,
+            "allocatedBytes": 89803992
+          },
+          {
+            "stage": "admission",
+            "seconds": 2.2471302,
+            "allocatedBytes": 90683248
+          },
+          {
+            "stage": "unchanged-restore",
+            "seconds": 9.2589299,
+            "allocatedBytes": 322090888
+          }
+        ],
+        "product": {
+          "measuredAt": "2026-10-24T00:04:54.472241+09:00",
+          "processors": 12,
+          "runtimeSha256": "71f91622e08ba8e9c99315cd48e91e3e1d5729bd3cead626a220d186aefe02ff",
+          "windowsSha256": "443691d7abadc5168168279a36de2fc5e8266f1d94e9ab8f126bc5ff768cc192"
+        }
+      }
+    },
+    {
+      "name": "before-native-1-journal",
+      "data": {
+        "scope": "Runtime mixed reads/writes; explicit 0/5ms flush-delay and 5ms reader-work model, not Unity or mounted filesystem timing.",
+        "samples": [
+          {
+            "flushDelayMilliseconds": 0,
+            "modeledReaderWorkMilliseconds": 5,
+            "iterations": 2048,
+            "seconds": 23.5384536,
+            "readSeconds": 23.5262717,
+            "writeSeconds": 4.3651901,
+            "FlushCount": 2050,
+            "CommitCount": 2050,
+            "FlushTicks": 42647168,
+            "LockWaitTicks": 43082907
+          },
+          {
+            "flushDelayMilliseconds": 5,
+            "modeledReaderWorkMilliseconds": 5,
+            "iterations": 2048,
+            "seconds": 50.8749235,
+            "readSeconds": 50.8747692,
+            "writeSeconds": 31.0045597,
+            "FlushCount": 2050,
+            "CommitCount": 2050,
+            "FlushTicks": 41378330,
+            "LockWaitTicks": 306150270
+          }
+        ],
+        "product": {
+          "measuredAt": "2026-10-24T00:01:35.1002219+09:00",
+          "processors": 12,
+          "runtimeSha256": "71f91622e08ba8e9c99315cd48e91e3e1d5729bd3cead626a220d186aefe02ff",
+          "windowsSha256": "443691d7abadc5168168279a36de2fc5e8266f1d94e9ab8f126bc5ff768cc192"
+        }
+      }
+    },
+    {
+      "name": "after-native-1-journal",
+      "data": {
+        "scope": "Runtime mixed reads/writes; explicit 0/5ms flush-delay and 5ms reader-work model, not Unity or mounted filesystem timing.",
+        "samples": [
+          {
+            "flushDelayMilliseconds": 0,
+            "modeledReaderWorkMilliseconds": 5,
+            "iterations": 2048,
+            "seconds": 21.098168,
+            "readSeconds": 21.0789008,
+            "writeSeconds": 5.7696188,
+            "FlushCount": 2050,
+            "CommitCount": 2050,
+            "FlushTicks": 44836964,
+            "LockWaitTicks": 512188
+          },
+          {
+            "flushDelayMilliseconds": 5,
+            "modeledReaderWorkMilliseconds": 5,
+            "iterations": 2048,
+            "seconds": 31.1525138,
+            "readSeconds": 12.5410915,
+            "writeSeconds": 31.1523104,
+            "FlushCount": 2050,
+            "CommitCount": 2050,
+            "FlushTicks": 43990365,
+            "LockWaitTicks": 227350
+          }
+        ],
+        "product": {
+          "measuredAt": "2026-10-24T00:02:57.8527957+09:00",
+          "processors": 12,
+          "runtimeSha256": "b187b53ad5a35cd785a70ac5e5cfed5fd2451308eb87446b3a207b1c46eb6f1d",
+          "windowsSha256": "426080de93950ce0b7a9833d1cb6677698abdb98dd367dc741feaed5c68c7e8c"
+        }
+      }
+    },
+    {
+      "name": "after-native-2-journal",
+      "data": {
+        "scope": "Runtime mixed reads/writes; explicit 0/5ms flush-delay and 5ms reader-work model, not Unity or mounted filesystem timing.",
+        "samples": [
+          {
+            "flushDelayMilliseconds": 0,
+            "modeledReaderWorkMilliseconds": 5,
+            "iterations": 2048,
+            "seconds": 20.4888546,
+            "readSeconds": 20.4762981,
+            "writeSeconds": 5.5699655,
+            "FlushCount": 2050,
+            "CommitCount": 2050,
+            "FlushTicks": 44504605,
+            "LockWaitTicks": 351129
+          },
+          {
+            "flushDelayMilliseconds": 5,
+            "modeledReaderWorkMilliseconds": 5,
+            "iterations": 2048,
+            "seconds": 30.9916886,
+            "readSeconds": 12.4459426,
+            "writeSeconds": 30.9914813,
+            "FlushCount": 2050,
+            "CommitCount": 2050,
+            "FlushTicks": 42391011,
+            "LockWaitTicks": 242919
+          }
+        ],
+        "product": {
+          "measuredAt": "2026-10-24T00:04:17.9175876+09:00",
+          "processors": 12,
+          "runtimeSha256": "b187b53ad5a35cd785a70ac5e5cfed5fd2451308eb87446b3a207b1c46eb6f1d",
+          "windowsSha256": "426080de93950ce0b7a9833d1cb6677698abdb98dd367dc741feaed5c68c7e8c"
+        }
+      }
+    },
+    {
+      "name": "before-native-2-journal",
+      "data": {
+        "scope": "Runtime mixed reads/writes; explicit 0/5ms flush-delay and 5ms reader-work model, not Unity or mounted filesystem timing.",
+        "samples": [
+          {
+            "flushDelayMilliseconds": 0,
+            "modeledReaderWorkMilliseconds": 5,
+            "iterations": 2048,
+            "seconds": 27.1199747,
+            "readSeconds": 27.1078109,
+            "writeSeconds": 7.8134645,
+            "FlushCount": 2050,
+            "CommitCount": 2050,
+            "FlushTicks": 77082795,
+            "LockWaitTicks": 77166248
+          },
+          {
+            "flushDelayMilliseconds": 5,
+            "modeledReaderWorkMilliseconds": 5,
+            "iterations": 2048,
+            "seconds": 49.7995971,
+            "readSeconds": 49.7994576,
+            "writeSeconds": 31.1919401,
+            "FlushCount": 2050,
+            "CommitCount": 2050,
+            "FlushTicks": 43349439,
+            "LockWaitTicks": 307713505
+          }
+        ],
+        "product": {
+          "measuredAt": "2026-10-24T00:06:16.7302494+09:00",
+          "processors": 12,
+          "runtimeSha256": "71f91622e08ba8e9c99315cd48e91e3e1d5729bd3cead626a220d186aefe02ff",
+          "windowsSha256": "443691d7abadc5168168279a36de2fc5e8266f1d94e9ab8f126bc5ff768cc192"
+        }
+      }
+    },
+    {
+      "name": "before-overwrite-1",
+      "data": {
+        "scope": "8192 durable overwrites with no injected storage delay, concurrent verified reads and SHA256 work; Runtime on NTFS, not Unity or a mounted view.",
+        "sample": {
+          "requestedFlushDelayMilliseconds": 0,
+          "modeledReaderWorkMilliseconds": 5,
+          "iterations": 8192,
+          "fixedOffset": true,
+          "seconds": 59.2160321,
+          "readSeconds": 59.2039742,
+          "writeSeconds": 18.1412149,
+          "FlushCount": 8200,
+          "CommitCount": 8194,
+          "FlushTicks": 178247532,
+          "LockWaitTicks": 178850483
+        },
+        "product": {
+          "measuredAt": "2026-10-24T00:11:23.2066274+09:00",
+          "processors": 12,
+          "runtimeSha256": "71f91622e08ba8e9c99315cd48e91e3e1d5729bd3cead626a220d186aefe02ff",
+          "windowsSha256": "443691d7abadc5168168279a36de2fc5e8266f1d94e9ab8f126bc5ff768cc192"
+        }
+      }
+    },
+    {
+      "name": "after-overwrite-1",
+      "data": {
+        "scope": "8192 durable overwrites with no injected storage delay, concurrent verified reads and SHA256 work; Runtime on NTFS, not Unity or a mounted view.",
+        "sample": {
+          "requestedFlushDelayMilliseconds": 0,
+          "modeledReaderWorkMilliseconds": 5,
+          "iterations": 8192,
+          "fixedOffset": true,
+          "seconds": 48.563785,
+          "readSeconds": 48.5516891,
+          "writeSeconds": 17.5267693,
+          "FlushCount": 8200,
+          "CommitCount": 8194,
+          "FlushTicks": 170886029,
+          "LockWaitTicks": 1794454
+        },
+        "product": {
+          "measuredAt": "2026-10-24T00:12:12.403363+09:00",
+          "processors": 12,
+          "runtimeSha256": "b187b53ad5a35cd785a70ac5e5cfed5fd2451308eb87446b3a207b1c46eb6f1d",
+          "windowsSha256": "195ada1445d8ae98b396ead08b1c1fc6a026497ecde0e7d78532c7b43792d21e"
+        }
+      }
+    },
+    {
+      "name": "after-overwrite-2",
+      "data": {
+        "scope": "8192 durable overwrites with no injected storage delay, concurrent verified reads and SHA256 work; Runtime on NTFS, not Unity or a mounted view.",
+        "sample": {
+          "requestedFlushDelayMilliseconds": 0,
+          "modeledReaderWorkMilliseconds": 5,
+          "iterations": 8192,
+          "fixedOffset": true,
+          "seconds": 53.849248,
+          "readSeconds": 53.8369663,
+          "writeSeconds": 23.8694678,
+          "FlushCount": 8200,
+          "CommitCount": 8194,
+          "FlushTicks": 234023909,
+          "LockWaitTicks": 2090735
+        },
+        "product": {
+          "measuredAt": "2026-10-24T00:13:06.8748237+09:00",
+          "processors": 12,
+          "runtimeSha256": "b187b53ad5a35cd785a70ac5e5cfed5fd2451308eb87446b3a207b1c46eb6f1d",
+          "windowsSha256": "195ada1445d8ae98b396ead08b1c1fc6a026497ecde0e7d78532c7b43792d21e"
+        }
+      }
+    },
+    {
+      "name": "before-overwrite-2",
+      "data": {
+        "scope": "8192 durable overwrites with no injected storage delay, concurrent verified reads and SHA256 work; Runtime on NTFS, not Unity or a mounted view.",
+        "sample": {
+          "requestedFlushDelayMilliseconds": 0,
+          "modeledReaderWorkMilliseconds": 5,
+          "iterations": 8192,
+          "fixedOffset": true,
+          "seconds": 58.5141505,
+          "readSeconds": 58.5019313,
+          "writeSeconds": 17.4402675,
+          "FlushCount": 8200,
+          "CommitCount": 8194,
+          "FlushTicks": 171309979,
+          "LockWaitTicks": 171941716
+        },
+        "product": {
+          "measuredAt": "2026-10-24T00:14:06.0137394+09:00",
+          "processors": 12,
+          "runtimeSha256": "71f91622e08ba8e9c99315cd48e91e3e1d5729bd3cead626a220d186aefe02ff",
+          "windowsSha256": "443691d7abadc5168168279a36de2fc5e8266f1d94e9ab8f126bc5ff768cc192"
+        }
+      }
+    },
+    {
+      "name": "after-final-library",
+      "data": {
+        "scope": "Single managed Library components on a warm synthetic NTFS tree; no Unity or full workspace timing.",
+        "files": 20000,
+        "bytesPerFile": 65536,
+        "logicalBytes": 1310720000,
+        "samples": [
+          {
+            "stage": "capture",
+            "seconds": 1.9805148,
+            "allocatedBytes": 98277864
+          },
+          {
+            "stage": "admission",
+            "seconds": 0.8203896,
+            "allocatedBytes": 91008808
+          },
+          {
+            "stage": "unchanged-restore",
+            "seconds": 3.2655417,
+            "allocatedBytes": 322730864
+          }
+        ],
+        "product": {
+          "measuredAt": "2026-10-24T00:14:27.5027493+09:00",
+          "processors": 12,
+          "runtimeSha256": "b187b53ad5a35cd785a70ac5e5cfed5fd2451308eb87446b3a207b1c46eb6f1d",
+          "windowsSha256": "195ada1445d8ae98b396ead08b1c1fc6a026497ecde0e7d78532c7b43792d21e"
+        }
+      }
+    }
+  ],
+  "finalSourceHashes": [
+    {
+      "path": "src/Splinter.Platform.Windows/OwnedDirectorySnapshot.cs",
+      "sha256": "7e063750c513e62f668344dadc4abe3844dc1e7202e138bd3d028914cacd9628"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs",
+      "sha256": "31784da9431b8cf00ea24324280c67301ed0d9f5ad48669782c51f05482eedb3"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs",
+      "sha256": "663151a5617148661e70a84542526e89d51d4cdde5d734d272ff830cf6298ce4"
+    },
+    {
+      "path": "tests/Splinter.Tests/OwnedDirectoryAdmissionTests.cs",
+      "sha256": "b89ce10bafbd7bd996554834a059873736ea06d2cfb02cbfb3fa033a2d13c65a"
+    },
+    {
+      "path": "tests/Splinter.Tests/LifecycleThroughputCostTests.cs",
+      "sha256": "12d269b0473ffde1451187467b63fde7bbad456850363a002277924b0a265373"
+    }
+  ],
+  "finalLibraryOnlyConfirmation": {
+    "scope": "Single managed Library components on a warm synthetic NTFS tree; no Unity or full workspace timing.",
+    "files": 20000,
+    "bytesPerFile": 65536,
+    "logicalBytes": 1310720000,
+    "samples": [
+      {
+        "stage": "capture",
+        "seconds": 1.9352466,
+        "allocatedBytes": 80384224
+      },
+      {
+        "stage": "admission",
+        "seconds": 0.7289673,
+        "allocatedBytes": 79822472
+      },
+      {
+        "stage": "unchanged-restore",
+        "seconds": 3.00059,
+        "allocatedBytes": 286380128
+      }
+    ],
+    "product": {
+      "measuredAt": "2026-10-24T00:35:01.8767233+09:00",
+      "processors": 12,
+      "runtimeSha256": "46708b1f71f477608720d4c14ecb8a5b088138726fb2e9613a39c6fc3315418d",
+      "windowsSha256": "2330a3bfb110bb48f64439e4c002b352b945fcbe3c0c5fafc6a89749ef67b376"
+    }
+  },
+  "validation": {
+    "experimentalFocused": {
+      "skipped": 16,
+      "failed": 0,
+      "passed": 513,
+      "total": 529
+    },
+    "finalRequiredBuild": {
+      "command": "pwsh -NoProfile -File scripts/build.ps1",
+      "lockedRestore": "passed",
+      "releaseBuild": "passed",
+      "warnings": 0,
+      "errors": 0,
+      "passed": 1558,
+      "failed": 0,
+      "skipped": 25,
+      "total": 1583,
+      "seconds": 531.522,
+      "log": "retained-full-build.log",
+      "trx": "retained-full-build.trx",
+      "temp": "Ordinary user TEMP outside VCS"
+    },
+    "excludedExperimentalFullRun": {
+      "passed": 1504,
+      "failed": 67,
+      "skipped": 27,
+      "total": 1598,
+      "reason": "TEMP inside the Git checkout correctly triggered inherited VCS guards; all 67 errors had that cause.",
+      "trx": "experimental-full-inherited-vcs.trx"
+    },
+    "retainedLibraryCost": {
+      "passed": 1,
+      "failed": 0,
+      "log": "retained-library.log",
+      "seconds": 31.108,
+      "qualification": "Separate final confirmation in ordinary user TEMP, not another matched ABBA pair or a whole-workspace timing."
+    }
+  }
+}

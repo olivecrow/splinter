@@ -154,7 +154,7 @@ public sealed class GitReadSessionTests
         public byte[] Data(string name) => data[name];
         // Decoder-window regressions deliberately bypass the optional RAM LRU.
         public GitObjectSnapshotTree Open(int proofEntries = 4096, int payloadBytes = 0) =>
-            new(snapshot, tree, "", "", () => new(snapshot.Id, true, null, 0, null), proofEntryLimit: proofEntries, payloadByteLimit: payloadBytes);
+            new(snapshot, tree, "", "", () => new(snapshot.Id, true, null, 0, null), proofEntryLimit: proofEntries, payloadByteLimit: payloadBytes, proofReadAheadBytes: 0);
         public static async Task<Fixture> Create(bool packed = false)
         {
             var f = new Fixture(); Directory.CreateDirectory(f.Source);

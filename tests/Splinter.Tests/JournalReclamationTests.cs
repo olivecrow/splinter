@@ -1,11 +1,32 @@
 using System.Security.Cryptography;
 using Splinter.Core;
+using Splinter.Runtime;
 using Splinter.Workflows.Windows;
 
 namespace Splinter.Tests;
 
 public sealed class JournalReclamationTests
 {
+    [Theory]
+    [InlineData("")][InlineData(".latest")]
+    public void BoundedReclamationPreservesConflictingModeIntents(string suffix)
+    {
+        using var root = new TestDirectory();
+        string delta = Path.Combine(root.Path, "delta"), receipt = Path.Combine(root.Path, "reclaim");
+        var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        var identity = new OverlayIdentity(2, "bounded-discard", tree.Snapshot, 4 * 1048576, 65536);
+        SnapshotDeltaSeal seal;
+        using (var store = new JournalDeltaStore(delta, identity, tree, boundedLogBytes: 8192))
+        { store.Create("owned.txt", false, 32); seal = store.Seal(); }
+        File.WriteAllText(receipt + suffix, "foreign-mode-intent");
+        string[] files = Directory.GetFiles(delta);
+        Assert.Equal("ViewReceiptMismatch", Assert.Throws<WorkspaceException>(() =>
+            JournalReclamation.Reclaim(delta, seal, ["identity.json"], receipt)).Code);
+        Assert.All(files, file => Assert.True(File.Exists(file)));
+        Assert.False(BoundedJournalReclamation.HasIntent(receipt + ".bounded"));
+        Assert.Equal("foreign-mode-intent", File.ReadAllText(receipt + suffix));
+    }
+
     [Theory]
     [InlineData("intent")][InlineData("journal-removed")]
     public void InterruptedReclamationRetriesOnlyItsVerifiedFiles(string boundary)

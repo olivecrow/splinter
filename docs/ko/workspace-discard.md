@@ -42,6 +42,8 @@ workspace·candidate·source generation·cache 의존성이 있으면 정지 전
 
 Windows delta는 owner intent와 `discard-delta-reclaim.json`에 정확한 디렉터리·seal·identity hash를 기록한다. writer를 배제하는 journal fence에서 hash/길이를 확인하고 `delta.journal`·`identity.json`만 삭제한다. 예상 밖 파일·identity/journal 변경은 거부하며 부분 삭제 후 같은 기록으로 나머지 파일만 처리한다. 현재 계약은 진행 중인 preparation/compaction의 강제 정리를 지원하지 않는다.
 
+Bounded SJR2는 dispatcher가 기존의 정확한 bounded inventory인 `discard-delta-reclaim.json.bounded`를 선택한다. durable pending 게시와 0바이트 `delta.journal.bounded.lock` writer fence를 포함한다. 회수 중 Windows 디렉터리 증명을 유지하며 journal·metadata·guard 삭제 뒤에도 파일을 다시 만들지 않고 같은 inventory로 재개한다. append/latest/bounded 회수 영수증이 충돌하면 거부한다. 이는 bounded guard를 알 수 없는 append 파일로 잘못 판정하던 결함을 수정하며, 실제 Unity에서의 발견·같은 작업 복구·전후 비교 경계는 [LU-01](plans/lifecycle-throughput.md)이 기록한다.
+
 기준본 회수는 마지막 의존성과 실제 reader 종료 뒤 정확한 소유 참조만 처리한다. discard intent·seal과 소유 자원 부재를 먼저 확인하며 독립 결과 보존으로 위장하지 않는다. 구형 VSS 상태는 [폐기 결정](plans/vss-retirement.md)에 따라 보존·거부하고 자동 삭제·이관하지 않는다.
 
 제품 완료 기준은 [M0](plans/validation-matrix.md#첫-실사용-버전-m0)를 따른다. provider를 별도로 조합하지 않은 .NET 호출은 `WorkspaceDiscardUnavailable`로 intent/정지 전에 거부한다.

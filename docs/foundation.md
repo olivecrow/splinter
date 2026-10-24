@@ -73,6 +73,10 @@ Development storage contracts are owned by Core `ViewWorkflow*`, `ImmutableCandi
 <a id="에이전트용-명령-계약"></a>
 ## Agent command contracts
 
+[Workspace creation throughput](verification/workspace-creation-throughput.md) retains a forward window up to 128MiB during each complete Git blob proof, inside a shared 256MiB/4,096-chunk RAM LRU. First-index attach overlaps one large-file first-byte reader with mandatory index refresh and joins both on success/failure/cancellation. Whole object/chunk proof, two decoder leases, index-lock protection and recovery refresh remain. Existing indexes and changed candidates skip the hint. This changes neither commands nor durable formats; its editorless creation qualification is separate from LU-01's earlier full Unity lifecycle.
+
+The [single-workspace lifecycle throughput change](verification/lifecycle-throughput.md) runs managed Library capture/admission and unchanged-directory restoration with up to eight workers over pinned directory proofs, complete content/identity verification and failure drain. The smaller journal contention improvement was excluded; journal publication, checkpoint, seal and close retain their existing behavior. This adds no command, schema or storage-format version. [LU-01](verification/unity-single-lifecycle.md) separately measures the matched real Unity discard lifecycle: 359.5 → 300.0s, with 50.6s consistently saved in preparation/restoration and variable startup. The common bounded-discard routing repair preserves its mode-specific inventory, namespace proof and same-intent recovery.
+
 The development-checkout execution prefix is `pwsh ./scripts/splinter.ps1`. Stdout contains one JSON response distinguishing acceptance, success, pending reclamation, and failure. Read `schema <command>` before first use; use returned `data.workspace.path` as the editing/external-tool target.
 
 | Product command | Responsibility |

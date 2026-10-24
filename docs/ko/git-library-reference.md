@@ -26,7 +26,7 @@
 
 Capture·provider 입장·변경 없는 디렉터리 복원은 빈 디렉터리를 포함한 모든 하위 디렉터리도 root부터 고정한다. 이 범위 안에서 자식 항목을 열 때에는 전체 조상 순회를 반복하는 대신 직속 부모의 핸들이 유지되는지 확인한다. Native leaf open은 여전히 reparse·지원하지 않는 종류·hardlink를 거부하고 같은 핸들의 identity와 최종 경로를 검증한다. 하위 디렉터리마다 핸들 하나를 추가로 사용하며 파일 내용 cache는 만들지 않는다. 증명은 해당 핸들을 유지하는 동안만 유효하고, 복원을 위해 핸들을 닫는 인계 간격을 넘겨 재사용하지 않는다. 이동 뒤의 최종 증명은 하위 identity·전체 내용·정확한 구성원을 새로 검증한 다음에만 메타데이터 복원과 회수를 허용한다.
 
-Provider 입장은 이미 변경을 막은 파일의 hash를 **최대 worker 2개, 각각 64KiB scratch buffer**로 검증한다. 실패·취소 시 모든 worker가 끝난 뒤 핸들을 회수하며, 필요한 내용 hash가 모두 통과하기 전에는 mount를 게시하지 않는다. 최초 capture와 이동 뒤 최종 복원의 hash 검사는 직렬을 유지한다. [시간·메모리 최적화 검증](verification/time-memory-optimization.md)은 512개 파일·64MiB fixture에서 이전 입장 반복문과 worker 1·2·4개를 비교한다. 그 한정 비용을 새로운 Unity 준비·복원·전체 과정의 소요시간으로 읽지 않는다.
+Capture·provider 입장·변경 없는 디렉터리 복원은 전체 디렉터리 map을 먼저 고정하고 **최대 worker 8개, 각각 64KiB hash scratch buffer**를 사용한다. 실패·취소 시 모든 worker가 끝난 뒤 핸들을 회수하며, 필요한 검사가 모두 통과하기 전에는 index와 mount를 게시하지 않는다. 복원은 이동 뒤 새 identity/내용 증명과 디렉터리를 마지막에 적용하는 metadata 순서를 유지한다. 변경과 실측은 [수명주기 처리량 검증](verification/lifecycle-throughput.md)이 소유하며, 이전 2-worker 입장 측정은 과거 [시간·메모리 근거](verification/time-memory-optimization.md)로 보존한다. 원본 Library 변경 뒤 일반 파일별 복원은 기존 알고리즘을 유지한다.
 
 준비 metadata보다 먼저 현재 버전의 `prepare-intent.json`에 project/key/경로/호환 키를 고정한다. 원본을 아직 이동하지 않은 내용 읽기 실패는 정확한 intent와 분류된 metadata만 남았을 때 같은 요청으로 재개한다. intent 없는 root·다른 요청·provider 실행 흔적·불명 데이터는 보존하고 거부한다. 공개되지 않은 `preparing` 상태의 명시적 restore는 원본 또는 이동한 base를 그대로 돌려놓을 수 있으며, 불명 실행/비어 있지 않은 delta는 취소하지 않는다.
 

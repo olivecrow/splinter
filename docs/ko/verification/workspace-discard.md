@@ -6,6 +6,8 @@
 
 ## 현재 provider/CLI 연결 범위
 
+현재 snapshot 경로의 bounded 저널 Windows 폐기 어댑터는 [LU-01](unity-single-lifecycle.md)에서 실제 Unity 작업공간 하나의 폐기·정상 종료, 진단 거부의 같은 intent 복구, bounded 부분 삭제·외부 파일 회귀를 추가 확인했다. bounded 분기 누락을 수정했으며 저장 형식이나 inventory/owner/namespace guard를 바꾸거나 완화하지 않았다. 아래 과거 VSS/서비스 자격을 갱신한 결과는 아니다.
+
 - 실제 임시 Git 저장소의 정확한 task 등록/branch 삭제, unlock·등록 삭제·branch 삭제 이후 동일 intent 재개, 원본 dirty 파일·peer 등록·기존 독립 result ref 보존. 완료 뒤 다시 생긴 branch와 다른 intent는 거부한다.
 - 실제 `JournalDeltaStore` 형식의 identity/journal을 sealed 상태로 제거하고 journal/디렉터리의 부분 삭제 후 재시도한다. unknown 자원·예상 밖 파일·변경된 journal은 보존한다. snapshot/자원 관측은 이 시험에서 fake다.
 - Windows 실제 경로/파일 identity의 서비스 authorization: 별도 discard intent·zero 자원·branch/delta 부재·공유 peer·독점 reader fence. 결과 manifest와 `resultsPreserved=true` 없이 고정 snapshot 소유권을 확인한다.

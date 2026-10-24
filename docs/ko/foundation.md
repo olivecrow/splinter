@@ -70,6 +70,10 @@ workspace 상태는 저장·소스·소유 자원·독립 결과와 반영/회�
 
 ## 에이전트용 명령 계약
 
+[작업공간 생성 처리량](verification/workspace-creation-throughput.md)은 Git 전체 blob proof마다 최대 128MiB의 앞쪽 window를 공통 256MiB/4,096-chunk RAM LRU 안에 보관한다. 최초 index attach는 큰 파일의 첫 바이트 읽기 하나를 필수 index refresh와 겹치고 성공·실패·취소에서 양쪽 종료를 기다린다. 전체 object/chunk 증명·두 decoder 임대·index lock 보호·복구 시 refresh를 유지한다. 기존 index와 변경한 candidate에는 이 힌트를 사용하지 않는다. 명령·저장 형식은 바뀌지 않으며 Editor 없는 생성 자격은 앞선 LU-01 전체 Unity 수명주기와 별개다.
+
+[단일 작업공간 수명주기 처리량 변경](verification/lifecycle-throughput.md)은 관리형 Library capture/admission·변경 없는 디렉터리 복원에 고정한 조상 증명·최대 8개 worker·전체 내용/identity 검증·실패 drain을 사용한다. 절감 폭이 작은 저널 경합 개선은 제외했으며 저널 게시·checkpoint·seal·close는 기존 동작을 유지한다. 새 명령·schema·저장 형식 버전은 없다. 별도 [LU-01](verification/unity-single-lifecycle.md)의 동일 입력 실제 Unity 폐기 수명주기는 359.5 → 300.0초이며 준비·복원에서 일관된 50.6초 절감과 시작 편차를 구분한다. 양쪽 공통 bounded 폐기 경로 수정은 모드별 inventory·namespace 증명·같은 intent 복구를 유지한다.
+
 개발 checkout의 실행 접두사는 `pwsh ./scripts/splinter.ps1`이다. stdout은 JSON 응답 하나이며 acceptance·성공·회수 대기·실패를 구분한다. 첫 사용 전에 `schema <command>`를 읽고 반환된 `data.workspace.path`를 편집/외부 도구의 기준으로 사용한다.
 
 | 제품 명령 | 책임 |

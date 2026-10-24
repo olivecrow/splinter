@@ -85,14 +85,18 @@ public static partial class GitOverlayRegistration
     }
     public static async Task<OverlayGitReceipt> ReadAsync(string path, CancellationToken ct) =>
         JsonSerializer.Deserialize<OverlayGitReceipt>(await File.ReadAllTextAsync(path, ct), Json) ?? throw new WorkspaceException("GitOverlayReceiptMissing", path);
-    public static async Task<object> AttachAsync(OverlayGitReceipt receipt, CancellationToken ct, bool allowSourceChanges = false)
+    public static Task<object> AttachAsync(OverlayGitReceipt receipt, CancellationToken ct, bool allowSourceChanges = false) =>
+        AttachAsync(receipt, ct, allowSourceChanges, null);
+    internal static async Task<object> AttachAsync(OverlayGitReceipt receipt, CancellationToken ct, bool allowSourceChanges,
+        Action<string>? beforeWarmRead)
     {
         await VerifyAsync(receipt, ct);
         string pointerPath = System.IO.Path.Combine(receipt.Path, ".git");
         if (File.Exists(pointerPath) && await File.ReadAllTextAsync(pointerPath, ct) != receipt.Pointer)
             throw new WorkspaceException("GitOverlayPointerMismatch", "The mount has another Git identity.");
         if (!File.Exists(pointerPath)) await File.WriteAllTextAsync(pointerPath, receipt.Pointer, ct);
-        if (!File.Exists(System.IO.Path.Combine(receipt.GitDirectory, "index")))
+        bool firstIndex = !File.Exists(System.IO.Path.Combine(receipt.GitDirectory, "index"));
+        if (firstIndex)
         {
             await Git(receipt.Path, ["read-tree", receipt.Revision], ct);
         }
@@ -101,10 +105,42 @@ public static partial class GitOverlayRegistration
         // Git retains any outstanding lock; never remove it automatically.
         string indexLock = Path.Combine(receipt.GitDirectory, "index.lock");
         if (File.Exists(indexLock)) throw new WorkspaceException("GitCommandFailed", "Preserve the outstanding Git index lock.");
-        await GitWorkspaceProvider.RefreshOverlayIndex(receipt.Path, allowSourceChanges, ct);
+        // The first byte triggers the immutable reader's whole-blob proof.
+        // One look-ahead reader overlaps that proof with Git's normal index
+        // scan. Both operations must finish, including on failure; an existing
+        // index still always refreshes but never needs speculative work.
+        Task warm = firstIndex && !allowSourceChanges ? WarmInitialLargeFiles(receipt, ct, beforeWarmRead) : Task.CompletedTask;
+        await Task.WhenAll(warm, GitWorkspaceProvider.RefreshOverlayIndex(receipt.Path, allowSourceChanges, ct));
         if (File.Exists(indexLock)) throw new WorkspaceException("GitCommandFailed", "A concurrent Git index writer remains; preserve its lock.");
         return new { receipt, head = await Git(receipt.Path, ["rev-parse", "HEAD"], ct),
             status = await Git(receipt.Path, ["status", "--porcelain"], ct), initialPayloadCopiedBytes = 0 };
+    }
+    private static async Task WarmInitialLargeFiles(OverlayGitReceipt receipt, CancellationToken ct, Action<string>? beforeRead)
+    {
+        string listing = await Git(receipt.Path, ["ls-tree", "-r", "-l", "-z", receipt.Revision], ct);
+        await Task.Run(() =>
+        {
+            foreach (string line in listing.Split('\0', StringSplitOptions.RemoveEmptyEntries))
+            {
+                ct.ThrowIfCancellationRequested();
+                int tab = line.IndexOf('\t');
+                if (tab < 0) throw new IOException("Invalid immutable tree listing.");
+                string[] fields = line[..tab].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (fields.Length != 4 || fields[0] is not ("100644" or "100755") || fields[1] != "blob") continue;
+                if (!long.TryParse(fields[3], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out long length))
+                    throw new IOException("Invalid immutable blob length.");
+                if (length < 1024 * 1024) continue;
+                string relative = line[(tab + 1)..];
+                if (Path.IsPathRooted(relative) || relative.Split('/').Any(p => p is "" or "." or "..") ||
+                    OperatingSystem.IsWindows() && (relative.Contains('\\') || relative.Contains(':')))
+                    throw new IOException("Invalid immutable blob path.");
+                beforeRead?.Invoke(relative);
+                ct.ThrowIfCancellationRequested();
+                using var file = new FileStream(Path.Combine(receipt.Path, relative.Replace('/', Path.DirectorySeparatorChar)),
+                    FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1);
+                if (file.ReadByte() < 0) throw new EndOfStreamException();
+            }
+        }, ct);
     }
     public static async Task VerifyAsync(OverlayGitReceipt r, CancellationToken ct)
     {

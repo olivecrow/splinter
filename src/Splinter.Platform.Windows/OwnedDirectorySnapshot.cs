@@ -17,6 +17,7 @@ public sealed record OwnedDirectoryProof(int Version, SnapshotReference Snapshot
 // fixed in a manifest. No payload cache or mutable-project fallback exists.
 public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
 {
+    internal static int DefaultWorkers => Math.Clamp(Environment.ProcessorCount, 2, 8);
     public const string ProviderName = "owned-directory";
     public SnapshotReference Snapshot { get; }
     // Pinned read-only handles and immutable indexes have no shared position.
@@ -33,11 +34,11 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
     private Exception? readFailure;
     public OwnedDirectoryManifest Manifest { get; }
     public OwnedDirectorySnapshotTree(OwnedDirectoryManifest manifest, SnapshotReference snapshot, bool verifyContent = true)
-        : this(manifest, snapshot, verifyContent, null) { }
+        : this(manifest, snapshot, verifyContent, null, DefaultWorkers) { }
     internal OwnedDirectorySnapshotTree(OwnedDirectoryManifest manifest, SnapshotReference snapshot, bool verifyContent, Action? readAdmitted,
         int hashWorkers = 2, CancellationToken ct = default, Action<string>? beforeHash = null)
     {
-        if (hashWorkers is < 1 or > 4) throw new ArgumentOutOfRangeException(nameof(hashWorkers));
+        if (hashWorkers is < 1 or > 8) throw new ArgumentOutOfRangeException(nameof(hashWorkers));
         if (manifest.Version != 1 || manifest.Snapshot != snapshot || snapshot.Provider != ProviderName || !snapshot.Persistent || !snapshot.Differential ||
             snapshot.Consistency != "stopped-original-owned-directory")
             throw new WorkspaceException("GeneratedBasisMismatch", "Preserve an unsupported or changed generated basis.");
@@ -55,22 +56,29 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
                 foreach (var item in manifest.Items.Where(i => i.Entry.Directory).OrderBy(i => i.Entry.Path.Length))
                 { ct.ThrowIfCancellationRequested(); directoryProof.PinDirectory(item.Entry.Path); }
             }
-            foreach (var item in manifest.Items)
+            var fileItems = manifest.Items.Where(i => !i.Entry.Directory).ToArray();
+            var opened = new SafeFileHandle?[fileItems.Length];
+            try
             {
-                ct.ThrowIfCancellationRequested();
-                string path = Resolve(item.Entry.Path);
-                if (directoryProof is null)
+                ParallelFiles(Enumerable.Range(0, fileItems.Length), index =>
                 {
-                    var attrs = File.GetAttributes(path);
-                    if ((attrs & FileAttributes.ReparsePoint) != 0 || ((attrs & FileAttributes.Directory) != 0) != item.Entry.Directory)
+                    var item = fileItems[index]; string path = Resolve(item.Entry.Path);
+                    if (directoryProof is null && (File.GetAttributes(path) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != 0)
                         throw new WorkspaceException("GeneratedBasisChanged", "Generated basis type or path changed.");
-                }
-                if (item.Entry.Directory) continue;
-                var handle = directoryProof?.ReadHandle(item.Entry.Path) ?? File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileOptions.RandomAccess);
-                files.Add(item.Entry.Path, handle);
-                if (RandomAccess.GetLength(handle) != item.Entry.Length)
-                    throw new WorkspaceException("GeneratedBasisChanged", "Generated content differs from its frozen manifest.");
+                    var handle = directoryProof?.ReadHandle(item.Entry.Path) ?? File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileOptions.RandomAccess);
+                    opened[index] = handle;
+                    if (RandomAccess.GetLength(handle) != item.Entry.Length)
+                        throw new WorkspaceException("GeneratedBasisChanged", "Generated content differs from its frozen manifest.");
+                }, hashWorkers, ct);
+                // Every file is fenced before hashing starts. Workers only read
+                // the already-pinned directory map; ownership publishes once.
+                for (int i = 0; i < fileItems.Length; i++) files.Add(fileItems[i].Entry.Path, opened[i]!);
             }
+            catch { foreach (var handle in opened) handle?.Dispose(); throw; }
+            if (directoryProof is null)
+                foreach (var item in manifest.Items.Where(i => i.Entry.Directory))
+                    if ((File.GetAttributes(Resolve(item.Entry.Path)) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != FileAttributes.Directory)
+                        throw new WorkspaceException("GeneratedBasisChanged", "Generated basis type or path changed.");
             if (verifyContent) VerifyContents(manifest.Items, hashWorkers, ct, beforeHash);
         }
         catch { Dispose(); throw; }
@@ -83,16 +91,21 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
             if (Hash(files[item.Entry.Path], ct) != item.Hash)
                 throw new WorkspaceException("GeneratedBasisChanged", "Generated content differs from its frozen manifest.");
         }
+        ParallelFiles(entries.Where(i => !i.Entry.Directory), Verify, workers, ct);
+    }
+    internal static void ParallelFiles<T>(IEnumerable<T> entries, Action<T> action, int workers, CancellationToken ct)
+    {
         try
         {
-            if (workers == 1) foreach (var item in entries) { if (!item.Entry.Directory) Verify(item); }
-            else Parallel.ForEach(entries.Where(i => !i.Entry.Directory), new ParallelOptions { MaxDegreeOfParallelism = workers, CancellationToken = ct }, Verify);
+            if (workers == 1) foreach (var item in entries) { ct.ThrowIfCancellationRequested(); action(item); }
+            else Parallel.ForEach(entries, new ParallelOptions { MaxDegreeOfParallelism = workers, CancellationToken = ct }, action);
         }
         // Parallel.ForEach joins every worker before leaving. Constructor
         // failure therefore closes handles only after all admitted hashes end.
         catch (AggregateException ex) { ExceptionDispatchInfo.Capture(ex.Flatten().InnerExceptions[0]).Throw(); throw; }
     }
-    public static OwnedDirectoryManifest Capture(SnapshotReference snapshot, string owner)
+    public static OwnedDirectoryManifest Capture(SnapshotReference snapshot, string owner) => CaptureCancellable(snapshot, owner, default);
+    internal static OwnedDirectoryManifest CaptureCancellable(SnapshotReference snapshot, string owner, CancellationToken ct)
     {
         WorkspaceStore.EnsurePlainPath(snapshot.RootPath);
         using var lease = OperatingSystem.IsWindows() ? new WindowsOwnedDirectoryLease(snapshot.RootPath) : null;
@@ -100,6 +113,7 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
         var items = new List<OwnedDirectoryItem>();
         void Walk(string relative)
         {
+            ct.ThrowIfCancellationRequested();
             string path = Path.Combine(snapshot.RootPath, relative.Replace('/', Path.DirectorySeparatorChar));
             if (proof is null) WorkspaceStore.EnsurePlainPath(path); else if (relative.Length != 0) proof.RequireParent(path);
             var attrs = File.GetAttributes(path);
@@ -108,14 +122,23 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
             FileSystemInfo info = directory ? new DirectoryInfo(path) : new FileInfo(path);
             var entry = new SnapshotEntry(relative, directory, directory ? 0 : ((FileInfo)info).Length, (uint)attrs,
                 info.CreationTimeUtc.ToFileTimeUtc(), info.LastAccessTimeUtc.ToFileTimeUtc(), info.LastWriteTimeUtc.ToFileTimeUtc());
-            string? hash = null;
-            if (!directory) { using var h = proof?.ReadHandle(relative) ?? File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read); hash = Hash(h); }
             if (items.Count >= JournalDeltaStore.MaxIndexedNodes) throw new WorkspaceException("OverlayMetadataLimit", "Generated basis exceeds the metadata limit.");
-            items.Add(new(entry, hash));
+            items.Add(new(entry, null));
             if (directory) foreach (string child in Directory.EnumerateFileSystemEntries(path).Order(StringComparer.OrdinalIgnoreCase))
                 Walk(relative.Length == 0 ? Path.GetFileName(child) : relative + "/" + Path.GetFileName(child));
         }
-        Walk(""); return new(1, snapshot, owner, items.ToArray());
+        Walk("");
+        var captured = items.ToArray();
+        ParallelFiles(Enumerable.Range(0, captured.Length).Where(i => !captured[i].Entry.Directory), index =>
+        {
+            var item = captured[index]; string path = Path.Combine(snapshot.RootPath, item.Entry.Path.Replace('/', Path.DirectorySeparatorChar));
+            if (proof is null) WorkspaceStore.EnsurePlainPath(path);
+            using var handle = proof?.ReadHandle(item.Entry.Path) ?? File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (RandomAccess.GetLength(handle) != item.Entry.Length)
+                throw new WorkspaceException("GeneratedBasisChanged", "Generated content changed during capture.");
+            captured[index] = item with { Hash = Hash(handle, ct) };
+        }, DefaultWorkers, ct);
+        return new(1, snapshot, owner, captured);
     }
     public static string Hash(SafeFileHandle handle, CancellationToken ct = default)
     {

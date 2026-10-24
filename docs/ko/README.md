@@ -14,6 +14,8 @@
 
 | 문서 | 소유하는 내용 |
 | --- | --- |
+| [작업공간 생성 처리량](plans/workspace-creation-throughput.md), [검증](verification/workspace-creation-throughput.md) | Git 작업공간 하나의 생성: 제한 proof window 재사용과 종료를 함께 기다리는 최초 선행 읽기. 같은 입력의 Editor 없는 비교이며 전체 blob 증명·필수 index refresh·lock·폐기 보호 유지. |
+| [단일 작업공간 수명주기 처리 시간](plans/lifecycle-throughput.md), [구성 요소 검증](verification/lifecycle-throughput.md), [실제 Unity LU-01](verification/unity-single-lifecycle.md) | Library capture/admission/변경 없는 복원 병렬화. 동일 입력 단일 수명주기 359.5 → 300.0초; 준비·복원 50.6초 절감, Editor 시작 편차. 명시적 폐기와 양쪽 공통 bounded 폐기 수정이며 원본 반영은 미측정. |
 | [VSS 폐기 결정](plans/vss-retirement.md), [검증](verification/vss-retirement.md) | 프로젝트/볼륨 범위 불일치와 회수 제약. 세 프로젝트 기준본 유지, VSS 서비스·진입점 제거, 구형 상태 보존·거부. |
 | [Unity 종료 지연 진단](verification/unity-shutdown-diagnosis.md) | SD-01: 시작 소스/Library/로드된 어셈블리가 동일한 일반 NTFS 5개 사례. 16,384개 메서드의 단일/64개 클래스 종료 17.34초/1.60초. 현재 종료/회수 경계·미확정 관리 함수·마지막 디버거 시도 회수 미확인이며 완료된 작업량별 성능 자격은 아님. |
 | [이전 bounded 저널 작업량 실험](verification/unity-bounded-scaling.md) | BS-01: 세션 유지 관측·이전 상태 편차·5바이트 stale PID 예외·복원 비용을 보존한다. SD-01에서 합성 코드 배치의 한계도 확인해 표와 조건부 손익분기를 현재 README 주장에서는 제외했다. |

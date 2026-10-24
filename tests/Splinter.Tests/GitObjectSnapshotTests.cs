@@ -68,8 +68,11 @@ public sealed class GitObjectSnapshotTests
     {
         using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
         var snapshot = await f.Capture();
-        var tree = f.Provider.OpenTree(snapshot, await f.Provider.ResolveReadAccessAsync(snapshot, ct),
-            () => new(snapshot.Id, true, null, 0, null));
+        var access = await f.Provider.ResolveReadAccessAsync(snapshot, ct);
+        // Force a partial decoder even when the production read-ahead cache
+        // could retain this small fixture in full.
+        var tree = new GitObjectSnapshotTree(snapshot, access.VerificationId, f.Revision, "",
+            () => new(snapshot.Id, true, null, 0, null), proofReadAheadBytes: 0);
         var stopwatch = new System.Diagnostics.Stopwatch();
         try
         {
@@ -127,7 +130,11 @@ public sealed class GitObjectSnapshotTests
     {
         using var f = await Fixture.Create(); var ct = TestContext.Current.CancellationToken;
         var snapshot = await f.Capture();
-        using var tree = f.Provider.OpenTree(snapshot, await f.Provider.ResolveReadAccessAsync(snapshot, ct));
+        var access = await f.Provider.ResolveReadAccessAsync(snapshot, ct);
+        // This case must exercise uncached storage corruption, independently
+        // of the production cache's size. Cached immutable bytes are tested separately.
+        using var tree = new GitObjectSnapshotTree(snapshot, access.VerificationId, f.Revision, "",
+            () => f.Provider.ObserveAsync(snapshot).GetAwaiter().GetResult(), proofReadAheadBytes: 0);
         tree.Read("file.bin", 0, new byte[16]);
         string blob = await TestDirectory.Git(f.Source, "rev-parse", f.Revision + ":file.bin");
         string objectPath = Path.Combine(f.Source, ".git", "objects", blob[..2], blob[2..]);

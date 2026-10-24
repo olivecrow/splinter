@@ -6,6 +6,8 @@
 
 ## Evidence status
 
+**2026-10-24 follow-up:** [LU-01](unity-single-lifecycle.md) found and repaired the Windows **discard adapter's** missing bounded-mode routing. Its actual Unity discard now uses the existing bounded inventory/namespace/fence algorithm, including same-intent recovery after refusal. The BL checkpoint/release record below did not cover that adapter branch. LU-01 owns the new adapter regressions and single-workspace lifecycle measurements; the original BL evidence remains historical.
+
 | ID | Evidence | Status |
 | --- | --- | --- |
 | BL-01 | Mutation metadata, Unix mode, range/resize, directory and replacement rename, whiteouts, open-unlinked IDs, bounded bytes/frames, immutable read continuity, cache and original protection | Passed within stated scope |

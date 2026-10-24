@@ -1,0 +1,377 @@
+{
+  "verificationIds": [
+    "WC-01",
+    "WC-02",
+    "WC-03",
+    "WC-04",
+    "WC-05"
+  ],
+  "status": "Adopted combined bounded proof-window and initial read-ahead optimization",
+  "date": "2026-10-24",
+  "product": {
+    "head": "be761bb43032f72fbbd5ca9a3165bd937bd45a6f",
+    "files": {
+      "src\\Splinter.SourceControl.Git\\GitOverlayRegistration.cs": "24fda41eac238559e7c5fda4995014100f07eedf6bb5cbd5b109ed039d60d988",
+      "src\\Splinter.SourceControl.Git\\GitObjectSnapshotTree.cs": "24915235391443c642b3f1313fbbe55b5fe41bc7c7ad997dc3a8ccb7b8b5d424"
+    }
+  },
+  "finalComparison": {
+    "protocol": {
+      "id": "WC-03-final",
+      "order": [
+        "before",
+        "after",
+        "after",
+        "before"
+      ],
+      "source": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\wc24-source",
+      "home": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\wcf24-home",
+      "base": "fd611140aa0c22d66782c19b007f1a68c00af2a6",
+      "sourceFiles": 1602,
+      "sourceBytes": 2804769932,
+      "libraryFiles": 42038,
+      "libraryBytes": 3105800655,
+      "input": "All source and Library contents and modification times checked before and after every trial; same independent manifests as cache-only WC-03 and pilot",
+      "timing": "Fresh editorless workspace ensure; common Library prepare/restore, input proofs and post-timing edit/discard separate",
+      "candidate": "256MiB shared chunk LRU, 128MiB per-proof forward window; one first-byte large-file read-ahead task concurrent with mandatory index refresh, joined before attach completes",
+      "baseline": "LU-01 Library-parallel candidate with common bounded-discard repair; no new Git changes",
+      "closure": "Exact explicit discard of each task; original Library restore after all four",
+      "limits": [
+        "Two samples per version on one machine; OS cache not cleared",
+        "No concurrent builds/tests during series",
+        "No Editor/compile/Play/Test/build or original apply",
+        "No whole-process peak memory qualification"
+      ]
+    },
+    "runs": [
+      {
+        "trial": 1,
+        "variant": "before",
+        "id": "0bf94ec9aa1ce2bdc4ec3054",
+        "ensureSeconds": 74.16170179998153,
+        "discardSeconds": 8.148691300011706,
+        "mountConnectSeconds": 17.867846,
+        "attachInspectSeconds": 48.374087,
+        "closure": {
+          "completed": true,
+          "ownedWorkspaceProviderExited": true,
+          "taskPathAndDeltaAbsent": true,
+          "sourceAndLibraryExact": true,
+          "gitRegistrationAndRefsRestored": true
+        }
+      },
+      {
+        "trial": 2,
+        "variant": "after",
+        "id": "357a539213abf53aceac1702",
+        "ensureSeconds": 51.89334819998476,
+        "discardSeconds": 7.8931386999902315,
+        "mountConnectSeconds": 17.999629,
+        "attachInspectSeconds": 25.919234,
+        "closure": {
+          "completed": true,
+          "ownedWorkspaceProviderExited": true,
+          "taskPathAndDeltaAbsent": true,
+          "sourceAndLibraryExact": true,
+          "gitRegistrationAndRefsRestored": true
+        }
+      },
+      {
+        "trial": 3,
+        "variant": "after",
+        "id": "a00331afc45ce356e12e452f",
+        "ensureSeconds": 51.937433699989924,
+        "discardSeconds": 7.227842100022826,
+        "mountConnectSeconds": 18.051659,
+        "attachInspectSeconds": 25.942162,
+        "closure": {
+          "completed": true,
+          "ownedWorkspaceProviderExited": true,
+          "taskPathAndDeltaAbsent": true,
+          "sourceAndLibraryExact": true,
+          "gitRegistrationAndRefsRestored": true
+        }
+      },
+      {
+        "trial": 4,
+        "variant": "before",
+        "id": "8f09dca0467ae488aa957ec2",
+        "ensureSeconds": 73.74525769997854,
+        "discardSeconds": 7.426764499978162,
+        "mountConnectSeconds": 17.847021,
+        "attachInspectSeconds": 48.06553,
+        "closure": {
+          "completed": true,
+          "ownedWorkspaceProviderExited": true,
+          "taskPathAndDeltaAbsent": true,
+          "sourceAndLibraryExact": true,
+          "gitRegistrationAndRefsRestored": true
+        }
+      }
+    ],
+    "means": {
+      "before": {
+        "ensureSeconds": 73.95347974998003,
+        "discardSeconds": 7.787727899994934,
+        "mountConnectSeconds": 17.8574335,
+        "attachInspectSeconds": 48.2198085
+      },
+      "after": {
+        "ensureSeconds": 51.91539094998734,
+        "discardSeconds": 7.560490400006529,
+        "mountConnectSeconds": 18.025644,
+        "attachInspectSeconds": 25.930698
+      }
+    },
+    "savedSeconds": 22.038088799992693,
+    "reductionPercent": 29.799934870540884,
+    "commonLibraryPrepareSeconds": 43.67190539999865,
+    "commonLibraryRestoreSeconds": 21.15688220001175,
+    "differingRuntimeFiles": [
+      "Splinter.Platform.Windows.dll",
+      "Splinter.Platform.Windows.pdb",
+      "Splinter.SourceControl.Git.dll",
+      "Splinter.SourceControl.Git.pdb",
+      "Splinter.Workflows.Windows.dll",
+      "Splinter.Workflows.Windows.pdb",
+      "splinter.dll",
+      "splinter.pdb"
+    ],
+    "gitAssemblySha256": {
+      "before": "a765bf985575cdf6a5fabe236ebbb6c9d952588daee2c4fb260bd0506b4bef51",
+      "after": "7412af339b9d0d061cbe3e907ad1c0bab6dcfeb40d3116cc7c0b77c2ff238c5e"
+    },
+    "closure": {
+      "completed": true,
+      "allFourTasksDiscarded": true,
+      "libraryRestored": true,
+      "allOwnedProvidersExited": true,
+      "sourceAndLibraryBytesAndTimesExact": true
+    }
+  },
+  "cacheOnlyComparison": {
+    "protocol": {
+      "id": "WC-03",
+      "order": [
+        "before",
+        "after",
+        "after",
+        "before"
+      ],
+      "source": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\wc24-source",
+      "home": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\wc24-home",
+      "base": "fd611140aa0c22d66782c19b007f1a68c00af2a6",
+      "scope": "Editorless workspace.ensure with common prepared Library; no Editor/compile/full-lifecycle claim",
+      "sourceFiles": 1602,
+      "sourceBytes": 2804769932,
+      "libraryFiles": 42038,
+      "libraryBytes": 3105800655,
+      "input": "Complete source and Library bytes/mtime fixed, independent source fingerprint checked per creation",
+      "timing": "Fresh ensure only. Common Library preparation/restore, setup, proofs, post-ensure edit and discard separately recorded.",
+      "completion": "Explicit discard each owned task, then unchanged original Library restore. No original apply.",
+      "limits": [
+        "One machine, two observations per version, OS cache not cleared",
+        "Current Library parallelism and bounded discard fix in both variants",
+        "No concurrent builds/tests during measured series"
+      ]
+    },
+    "runs": [
+      {
+        "trial": 1,
+        "variant": "before",
+        "id": "0bf94ec9aa1ce2bdc4ec3054",
+        "ensureSeconds": 74.08035820000805,
+        "discardSeconds": 7.891273699991871,
+        "mountConnectSeconds": 17.849986,
+        "attachInspectSeconds": 48.40084,
+        "closure": {
+          "completed": true,
+          "ownedWorkspaceProviderExited": true,
+          "taskPathAndDeltaAbsent": true,
+          "sourceAndLibraryExact": true,
+          "gitRegistrationAndRefsRestored": true
+        }
+      },
+      {
+        "trial": 2,
+        "variant": "after",
+        "id": "357a539213abf53aceac1702",
+        "ensureSeconds": 65.37618759999168,
+        "discardSeconds": 7.938088700000662,
+        "mountConnectSeconds": 17.882719,
+        "attachInspectSeconds": 39.625196,
+        "closure": {
+          "completed": true,
+          "ownedWorkspaceProviderExited": true,
+          "taskPathAndDeltaAbsent": true,
+          "sourceAndLibraryExact": true,
+          "gitRegistrationAndRefsRestored": true
+        }
+      },
+      {
+        "trial": 3,
+        "variant": "after",
+        "id": "a00331afc45ce356e12e452f",
+        "ensureSeconds": 65.30467789998511,
+        "discardSeconds": 7.276991599996109,
+        "mountConnectSeconds": 17.902607,
+        "attachInspectSeconds": 39.506314,
+        "closure": {
+          "completed": true,
+          "ownedWorkspaceProviderExited": true,
+          "taskPathAndDeltaAbsent": true,
+          "sourceAndLibraryExact": true,
+          "gitRegistrationAndRefsRestored": true
+        }
+      },
+      {
+        "trial": 4,
+        "variant": "before",
+        "id": "8f09dca0467ae488aa957ec2",
+        "ensureSeconds": 73.86346599998069,
+        "discardSeconds": 6.981803400005447,
+        "mountConnectSeconds": 17.82524,
+        "attachInspectSeconds": 48.114477,
+        "closure": {
+          "completed": true,
+          "ownedWorkspaceProviderExited": true,
+          "taskPathAndDeltaAbsent": true,
+          "sourceAndLibraryExact": true,
+          "gitRegistrationAndRefsRestored": true
+        }
+      }
+    ],
+    "means": {
+      "before": {
+        "ensureSeconds": 73.97191209999437,
+        "discardSeconds": 7.436538549998659,
+        "mountConnectSeconds": 17.837613,
+        "attachInspectSeconds": 48.257658500000005
+      },
+      "after": {
+        "ensureSeconds": 65.3404327499884,
+        "discardSeconds": 7.6075401499983855,
+        "mountConnectSeconds": 17.892663,
+        "attachInspectSeconds": 39.565755
+      }
+    },
+    "savedSeconds": 8.631479350005975,
+    "reductionPercent": 11.668590286456354,
+    "commonLibraryPrepareSeconds": 43.83343279999099,
+    "commonLibraryRestoreSeconds": 21.134221000014804,
+    "differingRuntimeFiles": [
+      "Splinter.Platform.Windows.dll",
+      "Splinter.Platform.Windows.pdb",
+      "Splinter.SourceControl.Git.dll",
+      "Splinter.SourceControl.Git.pdb",
+      "Splinter.Workflows.Windows.dll",
+      "Splinter.Workflows.Windows.pdb",
+      "splinter.dll",
+      "splinter.pdb"
+    ],
+    "gitAssemblySha256": {
+      "before": "a765bf985575cdf6a5fabe236ebbb6c9d952588daee2c4fb260bd0506b4bef51",
+      "after": "05f556d0b826917bad1ef32fb2fc4627cc836bd3e4507706fcd4cac4dd55fec9"
+    },
+    "closure": {
+      "completed": true,
+      "allFourTasksDiscarded": true,
+      "libraryRestored": true,
+      "allOwnedProvidersExited": true,
+      "sourceAndLibraryBytesAndTimesExact": true
+    }
+  },
+  "pilot": {
+    "ensureSeconds": 51.77754989999812,
+    "closure": {
+      "completed": true,
+      "taskDiscarded": true,
+      "libraryRestored": true,
+      "allOwnedProvidersExited": true,
+      "sourceAndLibraryBytesAndTimesExact": true
+    },
+    "notIncludedInFinalMeans": true
+  },
+  "rejectedPipePrototype": [
+    {
+      "largePipe": false,
+      "TotalSeconds": 15.3813821,
+      "bytes": 2787030306,
+      "readCalls": 171291,
+      "verifiedBlobs": 1563
+    },
+    {
+      "largePipe": true,
+      "TotalSeconds": 11.4092873,
+      "bytes": 2787030306,
+      "readCalls": 110871,
+      "verifiedBlobs": 1563
+    }
+  ],
+  "validation": {
+    "command": "pwsh -NoProfile -File scripts/build.ps1",
+    "counts": {
+      "total": "1606",
+      "executed": "1580",
+      "passed": "1580",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "26",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "buildWarnings": 0,
+    "buildErrors": 0
+  },
+  "qualificationLimits": [
+    "Real Unity source and Library, editorless workspace creation only",
+    "Two samples per variant on one machine; OS cache not cleared",
+    "No new Editor/compile/Play/Test/build, original apply or full lifecycle result",
+    "Per-tree retained chunk payload bounded to 256MiB; no whole-process peak RAM qualification",
+    "Source/Library full bytes and mtime checks outside timing; private edit and explicit discard after timing"
+  ],
+  "readerComponent": {
+    "before": {
+      "seconds": 27.8438808,
+      "bytes": 2804769932,
+      "DecodedBlobBytes": 5570158047,
+      "FullBlobProofs": 1563,
+      "ReaderProcessStarts": 2,
+      "PeakReaderProcesses": 2,
+      "PeakChunkPayloadBytes": 16777216,
+      "PayloadCacheHits": 131,
+      "allocatedBytes": 2912595936,
+      "assemblySha256": "a765bf985575cdf6a5fabe236ebbb6c9d952588daee2c4fb260bd0506b4bef51",
+      "scope": "Complete fixed real-project content verification via sequential reader; excludes WinFsp, Git index refresh, Library and Editor. Constant health observer; no input repository writes."
+    },
+    "after": {
+      "seconds": 19.6592947,
+      "bytes": 2804769932,
+      "DecodedBlobBytes": 2792956972,
+      "FullBlobProofs": 1563,
+      "ReaderProcessStarts": 2,
+      "PeakReaderProcesses": 2,
+      "PeakChunkPayloadBytes": 267815217,
+      "PayloadCacheHits": 42376,
+      "allocatedBytes": 2912059960,
+      "assemblySha256": "05f556d0b826917bad1ef32fb2fc4627cc836bd3e4507706fcd4cac4dd55fec9",
+      "scope": "Complete fixed real-project content verification via sequential reader; excludes WinFsp, Git index refresh, Library and Editor. Constant health observer; no input repository writes."
+    }
+  },
+  "logicalProcessorCount": 12,
+  "fixtureCleanup": {
+    "completed": true,
+    "checkoutRemoved": "C:\\Users\\olive\\Desktop\\Development\\splinter\\.local\\wc24-source",
+    "gitMetadataPreserved": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\workspace-creation-20261024\\fixture-git-metadata",
+    "ownedProvidersVerifiedExited": 12,
+    "protection": "Only the verified disposable clone from this task was removed; shared Git object attributes, old fixtures, receipts and canonical Unity project retained."
+  }
+}

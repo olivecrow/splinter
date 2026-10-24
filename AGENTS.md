@@ -24,6 +24,12 @@
 
 ## 현재 기능의 소유 문서
 
+- 작업공간 생성 후속은 `docs/plans/workspace-creation-throughput.md`·`docs/verification/workspace-creation-throughput.md`의 WC-01–05가 소유한다. Git 최초 전체 proof의 최대 128MiB 선행 window를 tree별 256MiB/4,096-entry RAM LRU에 보관하고, 새 index의 변경 없는 attach는 큰 파일 첫 바이트 읽기 하나를 필수 index refresh와 겹친다. 실패·취소도 양쪽을 drain하며 기존 index 재개·변경 candidate·lock 보호·전체 hash·두 decoder·개별 ACK를 유지한다. TM 당시 16MiB 요청 chunk 한도를 대체한다. Library 준비 뒤 동일 입력의 전후후전 각 2회 생성은 73.953→51.915초(29.8%)이며 입력 일치·폐기·Library 복원·소유 회수를 확인했다. Editor 없는 Git 생성의 한정 마감이며 Unity 전체 수명주기·다른 backend·일반 대형 입력·전체 peak RAM 자격으로 확대하거나 자동 반복하지 않는다.
+
+- 단일 작업공간 수명주기 처리량은 `docs/plans/lifecycle-throughput.md`·`docs/verification/lifecycle-throughput.md`의 LT-01–04를 따른다. 관리형 Library capture/admission/변경 없는 복원은 최대 8개 worker와 고정 조상 map·전체 내용/identity 증명·실패 drain을 사용한다. TM 당시 admission의 2-worker 제한을 대체한다. SJR2 flush 중 읽기 허용 후보는 실제 무지연 혼합 부하의 평균 7.7초·13% 절감에 그쳐 이번 반영에서 제외했다. 제품 저널·개별 ACK·원본/peer·독립 결과·회수 guard는 유지한다. 구성 요소 실측을 Unity 전체 시간으로 확대하지 않는다.
+
+- 실제 단일 Unity 수명주기 비교는 `docs/verification/unity-single-lifecycle.md`의 LU-01이 소유한다. 같은 소스/Library 내용·수정 시각·초기 loaded MVID의 전후후전 각 2회에서 명시적 폐기/Library 복원까지 359.5→300.0초를 관측했다. 준비·생성·복원의 일관된 50.6초 절감과 Editor 시작 편차를 구분하며 전체 16.5%를 일반 인과 효과로 확대하지 않는다. 양쪽에 같은 bounded-discard routing 수정을 포함했고 실제 진단 실패는 같은 id/home/intent/digest로 회수했다. 초기 mtime/관측기 오류 진단은 제외·보존한다. 원본 반영·Play/Test/build·새 장애 행렬·과거 디버거 회수는 미실행이다.
+
 - Unity 종료 지연 진단은 `docs/verification/unity-shutdown-diagnosis.md`의 SD-01이 소유한다. 사용자가 전체 비교를 중단한 뒤 같은 시작 소스/Library/로드된 어셈블리의 일반 NTFS 5개 사례를 확인했다. 16,384개 메서드의 단일/64개 클래스 정상 종료는 17.34초/1.60초로 코드 배치 영향을 보였으며 일반 작업량 증가 법칙이 아니다. 현재 checkpoint/integrate의 stop 대기와 회수 guard를 유지한다. 관리 함수는 미확정이고 마지막 디버거 시도의 정상 종료/최종 복원 영수증은 없어 회수 미확인으로 남긴다. 이전 BS-01 표·조건부 7회 계산은 현재 README에서 제외하며 원시 기록은 보존한다. 중단한 비교나 추가 계측을 자동 재개하지 않는다.
 
 - 현재 bounded 저널의 작업량별 Unity 실측은 `docs/verification/unity-bounded-scaling.md`의 BS-01이 소유한다. `c4fa506`·생성 메서드 4개 수준·수준별 2회·세션 유지 비교에서 검증 142.0초 절약, 추가 수명주기 783.7초, 전체 641.8초 추가를 관측했다. 사전 선언한 완전한 Library 일치 검사는 stale 서버 PID 5바이트 삭제로 실패했고 나머지 42,420개 파일·소스 일치의 예외를 명시해 공유 측정을 이어 갔다. 승인한 서버 종료·같은 준비 요청 재개, 일반 Library 복원 405.4초와 이전 상태/순서 편차를 보존한다. 고정 가산·일정 배수·일반 장기 손익분기를 확정하지 않고 최대 부하 절약 129.3초·7회 회수는 당시 조건부 계산으로 보존한다. 후속 SD-01의 코드 배치 한계에 따라 현재 README 성능 주장에서는 제외한다. 새 Play/Test/build·공간/RAM·일반 도구 자격으로 확대하거나 이 측정을 자동 반복하지 않는다.

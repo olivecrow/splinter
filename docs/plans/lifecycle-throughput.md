@@ -1,0 +1,30 @@
+# Single-workspace lifecycle throughput
+
+[한국어](../ko/plans/lifecycle-throughput.md)
+
+The requested unit is one workspace: prepare its basis, start its owned Editor, edit/compile/use it, explicitly apply or discard its changes, and reclaim its resources. Overlapping two workspaces is not the optimization target. Prefer structural reductions in repeated or blocking work over small constant-factor tuning.
+
+## Bounded implementation
+
+| ID | Candidate | Acceptance boundary |
+| --- | --- | --- |
+| LT-01 | Allow committed SJR2 reads while an append waits for its individual durable flush. | Keep one writer, unpublished metadata/extents, exact encoded reads, per-write durable ACK, failure poisoning, checkpoint/seal/close exclusion and read drain. Test through both the Runtime and WinFsp callbacks. SJL4 and generation replacement retain their existing gates. |
+| LT-02 | Parallelize managed Library capture, admission file opens/hashes and unchanged-directory restoration with at most eight workers. | Pin the complete ancestor map first; publish indexes only after all workers join. Retain every identity/type/path/content/metadata check and fresh post-move proof. Drain failed/cancelled workers before closing handles. No full copies or persistent payload caches. |
+| LT-03 | Measure the same component harness against the pre-change and new product assemblies. | Serial ABBA processes; identical file counts/content; retain all results and assembly hashes. Separate real NTFS Library costs from an explicitly modeled mixed read/write workload. Do not call a model or component gain an Editor or complete-workflow gain. Reject a candidate without material supporting evidence. |
+| LT-04 | Run the required locked restore, Release build and complete automated suite. | Preserve original publication/discard/result/recovery guards and current schemas/formats. No new native apply/discard fault matrix or old Unity benchmark is automatically resumed. |
+
+Existing BC/BS observations identify flush waits and Library preparation/restoration as targets; they are not timings for this candidate. Thread-wait counters overlap and are not additive wall time. Increasing resource budgets alone cannot remove Unity-owned initialization/reload/shutdown work. This change does not modify external tools, plugins, Unity settings or loaded assemblies, retain unwanted Editor processes, defer durability, or reintroduce the retired Bee/VSS/ReFS paths.
+
+The [verification record](../verification/lifecycle-throughput.md) owns adopted candidates, measured costs and remaining qualification. LT-02 is adopted; LT-01 is excluded after its no-delay workload saved only 7.659s / 13.0%. General per-file restoration after original Library changes, original source application and final independent-result scans keep their existing algorithms unless separately measured evidence justifies a further change.
+
+## Requested real Unity comparison
+
+**Completed with limits:** [LU-01 results](../verification/unity-single-lifecycle.md) report 359.5 → 300.0s across four matched runs, the common discard correction, successful closure and remaining large costs. The protocol below records this completed scope, not a request to repeat it automatically.
+
+The first diagnostic is excluded before the matched series: a fresh checkout assigned new source modification times, causing additional warm-Library validation work; the observer also compared GUI render initialization with a batch reference. The measured series fixes **every source and Library file's modification time as well as its bytes**, and uses the existing GUI asset reference. The diagnostic further exposed a pre-existing bounded discard-routing defect: `JournalReclamation` treated the bounded guard as an unknown append artifact. Both timed versions include the same repair selecting the existing bounded inventory/fence/Windows-directory-guard implementation, including same-intent recovery after journal/metadata/guard deletion. Conflicting mode receipts are preserved. The baseline is therefore `be761bb` **plus this common correctness repair**, not the unchanged release. Original diagnostic binaries, failure and recovery remain separate evidence.
+
+LU-01 measures the adopted Library-only candidate against the frozen `be761bb` baseline in **before → after → after → before** order. Each run uses one fresh workspace and the product-owned GUI Editor (`6000.3.22f1`), starting from all 1,602 tracked source files and all 42,038 Library files (3,105,800,655 bytes) of the same frozen real-asset fixture. A dedicated experiment clone uses the existing MCP-free fixture commit `fd611140aa0c22d66782c19b007f1a68c00af2a6`; previous diagnostic inputs, external servers and the canonical Unity project are preserved.
+
+Measure Library preparation → workspace preparation → initial Editor readiness → one C# expression edit/refresh/compilation → selected model/texture/scene inspection and rendering → explicit discard, including normal owned Editor exit and reclamation → original Library restoration. Before every run and after restoration, compare complete source/Library bytes; no file exclusions or stale-PID exceptions are accepted. Check compiled values, fresh generation/MVID and exact process/project identity. Finish only after ordinary NTFS Library restoration, exact source/refs/configuration and zero owned Editor/provider/mount/delta resources are verified.
+
+Experimental clone/backup setup and full input/closure hash proofs are outside product timing. Record any small in-envelope proof exclusion separately; do not add overlapping stop milestones or accumulated thread waits to elapsed time. OS caches are not cleared. Two observations per version qualify this workload only. Original application, general restoration after original Library writes, Play/Test/build and whole-system RAM remain outside LU-01. A failure preserves its exact task/intent and stops the measured series; recovery is reported separately. This is a newly requested single-workspace comparison, not resumption of the cancelled generated-method comparison or debugger diagnosis.

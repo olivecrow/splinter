@@ -46,6 +46,8 @@ Workspace, candidate, source-generation, or cache dependencies block before stop
 
 Windows delta records exact directory, seal, and identity hash in owner intent and `discard-delta-reclaim.json`. A journal fence excluding writers verifies hash/length, then deletes only `delta.journal` and `identity.json`. Unexpected files or changed identity/journal are rejected; after partial deletion, process only remaining files under the same record. Forced cleanup of ongoing preparation/compaction is unsupported.
 
+For bounded SJR2, the dispatcher uses the existing exact bounded inventory at `discard-delta-reclaim.json.bounded`, including its durable pending publication and zero-byte `delta.journal.bounded.lock` writer fence. The Windows directory proof remains pinned during reclamation; retries after journal, metadata or guard deletion use that same inventory without recreating files. Mixed append/latest/bounded reclamation receipts are rejected. This repairs the bounded guard being misclassified as an unknown append artifact; [LU-01](plans/lifecycle-throughput.md) records the actual Unity discovery, same-task recovery and matched-comparison boundary.
+
 Basis reclamation handles only the exact owned reference after dependent/readers finish. It first verifies discard intent/seal and owned-resource absence, without fabricating result preservation. Legacy VSS state is preserved/rejected under the [retirement decision](plans/vss-retirement.md), without automatic deletion or migration.
 
 Product completion criteria follow [M0](plans/validation-matrix.md#first-practical-use-version-m0). .NET calls without a separately composed provider are rejected with `WorkspaceDiscardUnavailable` before intent/stop.

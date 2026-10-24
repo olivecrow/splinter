@@ -4,6 +4,7 @@
     <ProjectReference Include="../Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj" />
     <ProjectReference Include="../Splinter.SourceControl.Files/Splinter.SourceControl.Files.csproj" />
     <InternalsVisibleTo Include="Splinter.Tests" />
+    <InternalsVisibleTo Include="Splinter.Workflows.Windows" />
     <ProjectReference Include="../Splinter.Core/Splinter.Core.csproj" />
     <ProjectReference Include="../Splinter.Runtime/Splinter.Runtime.csproj" />
     <PackageReference Include="WinFsp.Net" />

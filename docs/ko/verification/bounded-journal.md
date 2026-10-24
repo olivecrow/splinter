@@ -6,6 +6,8 @@
 
 ## 근거 상태
 
+**2026-10-24 후속:** [LU-01](unity-single-lifecycle.md)에서 Windows **폐기 어댑터**의 bounded 모드 분기 누락을 발견·수정했다. 실제 Unity 폐기는 기존 bounded inventory/namespace/fence 알고리즘을 사용하며 거부 뒤 같은 intent 복구도 확인했다. 아래 BL checkpoint/release 기록은 그 어댑터 분기를 다루지 않았다. 새 어댑터 회귀·단일 수명주기 측정은 LU-01이 소유하며 기존 BL 근거는 당시 기록으로 유지한다.
+
 | ID | 근거 | 상태 |
 | --- | --- | --- |
 | BL-01 | Mutation metadata·Unix mode·범위/resize·디렉터리/교체 rename·whiteout·열린 unlink ID·byte/frame 제한·불변 읽기 지속·cache·원본 보호 | 명시한 범위 통과 |

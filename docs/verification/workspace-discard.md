@@ -8,6 +8,8 @@ Owning contract is [workspace discard](../workspace-discard.md). This candidate 
 <a id="현재-providercli-연결-범위"></a>
 ## Current provider/CLI integration scope
 
+The current snapshot-era bounded journal's Windows discard adapter is additionally qualified by [LU-01](unity-single-lifecycle.md): actual single Unity workspace discard/normal shutdown, same-intent recovery of a diagnostic refusal, and bounded partial-removal/foreign-file regressions. It corrects missing bounded dispatch without changing the storage format or lowering inventory/owner/namespace guards. This does not renew the historical VSS/service qualification below.
+
 - Exact task-registration/branch deletion in actual temporary Git repositories; same-intent resumption after unlock/registration deletion/branch deletion; preserved original dirty files/peer registrations/existing independent-result refs. Reappeared branch after completion/different intent rejected.
 - Removes sealed identity/journal in actual `JournalDeltaStore` format; retries after partial journal/directory deletion. Unknown resources/unexpected files/changed journals preserved. Snapshot/resource observation is fake in these tests.
 - Service authorization with actual Windows paths/file identities: separate discard intent, zero resources, absent branch/delta, shared peers/exclusive-reader fence. Verifies fixed snapshot ownership without result manifest or `resultsPreserved=true`.

@@ -194,25 +194,35 @@ internal static class ManagedUnchangedDirectoryRestore
             proof = new(path, root);
             try
             {
-                foreach (var item in manifest.Items.OrderBy(i => i.Entry.Path.Length))
+                foreach (var item in manifest.Items.Where(i => i.Entry.Directory).OrderBy(i => i.Entry.Path.Length))
                 {
                     ct.ThrowIfCancellationRequested(); var entry = item.Entry;
                     if (JournalDeltaStore.Normalize(entry.Path) != entry.Path) throw Conflict();
-                    SafeFileHandle handle;
-                    if (entry.Directory)
-                    {
-                        handle = proof.PinDirectory(entry.Path);
-                        if (entry.Path.Length != 0) directories.Add(entry.Path, handle);
-                    }
-                    else
-                    {
-                        var file = proof.Read(entry.Path); files.Add(entry.Path, file); handle = file.SafeFileHandle;
-                        if (file.Length != entry.Length || verifyContent && OwnedDirectorySnapshotTree.Hash(handle, ct) != item.Hash) throw Conflict();
-                    }
-                    string identity = SnapshotInputChecks.FileIdentity(handle, entry.Directory);
+                    var handle = proof.PinDirectory(entry.Path);
+                    if (entry.Path.Length != 0) directories.Add(entry.Path, handle);
+                    string identity = SnapshotInputChecks.FileIdentity(handle, directory: true);
                     if (expected is not null && (!expected.TryGetValue(entry.Path, out string? saved) || saved != identity)) throw Conflict();
                     Identities.Add(entry.Path, identity);
                 }
+                var entries = manifest.Items.Where(i => !i.Entry.Directory).ToArray();
+                var opened = new FileStream?[entries.Length];
+                var identities = new string[entries.Length];
+                try
+                {
+                    OwnedDirectorySnapshotTree.ParallelFiles(Enumerable.Range(0, entries.Length), index =>
+                    {
+                        var item = entries[index]; var entry = item.Entry;
+                        if (JournalDeltaStore.Normalize(entry.Path) != entry.Path) throw Conflict();
+                        var file = proof.Read(entry.Path); opened[index] = file;
+                        if (file.Length != entry.Length || verifyContent && OwnedDirectorySnapshotTree.Hash(file.SafeFileHandle, ct) != item.Hash) throw Conflict();
+                        string identity = SnapshotInputChecks.FileIdentity(file.SafeFileHandle);
+                        if (expected is not null && (!expected.TryGetValue(entry.Path, out string? saved) || saved != identity)) throw Conflict();
+                        identities[index] = identity;
+                    }, OwnedDirectorySnapshotTree.DefaultWorkers, ct);
+                    for (int i = 0; i < entries.Length; i++)
+                    { files.Add(entries[i].Entry.Path, opened[i]!); Identities.Add(entries[i].Entry.Path, identities[i]); }
+                }
+                catch { foreach (var file in opened) file?.Dispose(); throw; }
                 RequireMembership();
             }
             catch { Dispose(); throw; }
@@ -233,8 +243,11 @@ internal static class ManagedUnchangedDirectoryRestore
         }
         internal void ApplyMetadata()
         {
-            foreach (var entry in manifest.Items.Select(i => i.Entry).OrderByDescending(e => e.Path.Length))
-                ManagedRestoreFileAccess.Metadata(entry.Directory ? entry.Path.Length == 0 ? root : directories[entry.Path] : files[entry.Path].SafeFileHandle, entry);
+            OwnedDirectorySnapshotTree.ParallelFiles(manifest.Items.Where(i => !i.Entry.Directory),
+                item => ManagedRestoreFileAccess.Metadata(files[item.Entry.Path].SafeFileHandle, item.Entry),
+                OwnedDirectorySnapshotTree.DefaultWorkers, CancellationToken.None);
+            foreach (var entry in manifest.Items.Where(i => i.Entry.Directory).Select(i => i.Entry).OrderByDescending(e => e.Path.Length))
+                ManagedRestoreFileAccess.Metadata(entry.Path.Length == 0 ? root : directories[entry.Path], entry);
         }
         public void Dispose()
         {

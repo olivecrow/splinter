@@ -41,22 +41,24 @@ public sealed class OwnedDirectoryAdmissionTests
         {
             junction = Path.Combine(f.Root, "empty"); OwnedDirectoryLifetimeTests.SetJunction(junction, f.Outside);
         }
-        try { Assert.Throws<WorkspaceException>(() => f.Open(4, TestContext.Current.CancellationToken)); }
+        try { Assert.Throws<WorkspaceException>(() => f.Open(8, TestContext.Current.CancellationToken)); }
         finally { if (junction is not null) Directory.Delete(junction); }
         Assert.True(File.Exists(f.File(7)));
         Directory.Move(f.Root, f.Root + "-preserved");
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task FailedOrCancelledParallelHashDrainsWorkersBeforeClosingHandles(bool cancel)
+    [InlineData(false, 2)]
+    [InlineData(true, 2)]
+    [InlineData(false, 8)]
+    [InlineData(true, 8)]
+    public async Task FailedOrCancelledParallelHashDrainsWorkersBeforeClosingHandles(bool cancel, int workers)
     {
         using var f = new Fixture(16, 4096);
         using var entered = new ManualResetEventSlim(); using var failure = new ManualResetEventSlim(); using var resume = new ManualResetEventSlim();
         using var cancellation = new CancellationTokenSource();
         int count = 0;
-        var open = Task.Run(() => f.Open(2, cancellation.Token, _ =>
+        var open = Task.Run(() => f.Open(workers, cancellation.Token, _ =>
         {
             int index = Interlocked.Increment(ref count);
             if (index == 1) { entered.Set(); Wait(resume); }

@@ -29,12 +29,14 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
     private int activeReads, pendingProofs, waitingReads;
     private const int ChunkBytes = 65536, MaxProofBytes = 4 * 1024 * 1024;
     private const int MaxProofEntries = 4096, MaxReaderSessions = 2;
-    private const int MaxPayloadBytes = 16 * 1024 * 1024, MaxPayloadEntries = 4096;
+    private const int MaxPayloadBytes = 256 * 1024 * 1024, MaxPayloadEntries = 4096;
+    private const int MaxProofReadAheadBytes = 128 * 1024 * 1024;
     private sealed record CachedChunk(string ObjectId, long BlobLength, long Offset, byte[] Bytes);
     private readonly Dictionary<(string ObjectId, long Offset), LinkedListNode<CachedChunk>> payloads = new();
     private readonly Dictionary<string, HashSet<long>> payloadOffsets = new(StringComparer.Ordinal);
     private readonly LinkedList<CachedChunk> payloadLru = new();
     private readonly int payloadByteLimit;
+    private readonly int proofReadAheadBytes;
     private int payloadBytes;
     internal int CachedChunkPayloadBytes { get { lock (readGate) return payloadBytes; } }
     internal int CachedChunkCount { get { lock (readGate) return payloads.Count; } }
@@ -95,13 +97,16 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
 
     internal GitObjectSnapshotTree(SnapshotReference snapshot, string tree, string revision, string reference, Func<SnapshotObservation> health,
         int proofByteLimit = MaxProofBytes, int proofEntryLimit = MaxProofEntries,
-        IReadOnlyDictionary<string, GitSourceMetadataFile>? sourceMetadata = null, int payloadByteLimit = MaxPayloadBytes)
+        IReadOnlyDictionary<string, GitSourceMetadataFile>? sourceMetadata = null, int payloadByteLimit = MaxPayloadBytes,
+        int proofReadAheadBytes = MaxProofReadAheadBytes)
     {
         if (proofByteLimit is < 1 or > MaxProofBytes || proofEntryLimit is < 1 or > MaxProofEntries)
             throw new ArgumentOutOfRangeException(nameof(proofByteLimit));
         if (payloadByteLimit is < 0 or > MaxPayloadBytes) throw new ArgumentOutOfRangeException(nameof(payloadByteLimit));
+        if (proofReadAheadBytes is < 0 or > MaxProofReadAheadBytes) throw new ArgumentOutOfRangeException(nameof(proofReadAheadBytes));
         this.proofByteLimit = proofByteLimit; this.proofEntryLimit = proofEntryLimit;
         this.payloadByteLimit = payloadByteLimit;
+        this.proofReadAheadBytes = Math.Min(proofReadAheadBytes, payloadByteLimit / MaxReaderSessions);
         Snapshot = snapshot; this.health = health;
         policy = WorkspacePathPolicy.For(snapshot);
         entries = new(policy.Comparer); blobs = new(policy.Comparer); children = new(policy.Comparer);
@@ -265,6 +270,8 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
                 using var hash = IncrementalHash.CreateHash(objectId.Length == 40 ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256);
                 using var rawHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                 hash.AppendData(Encoding.ASCII.GetBytes("blob " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
+                long readAheadStart = offset / ChunkBytes * ChunkBytes;
+                long readAheadEnd = readAheadStart + this.proofReadAheadBytes;
                 for (long position = 0; position < length;)
                 {
                     var chunk = session.NextChunk();
@@ -280,9 +287,14 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
                     if (end > begin)
                     {
                         chunk.Bytes.AsSpan((int)(begin - position), (int)(end - begin)).CopyTo(staged.AsSpan((int)(begin - offset)));
-                        // Only useful request chunks are retained. They count
-                        // against the RAM bound now, but the exclusive blob
-                        // lease prevents reuse before the full proof publishes.
+                    }
+                    if (end > begin || position >= readAheadStart && position < readAheadEnd)
+                    {
+                        // Keep a bounded forward window from this unavoidable
+                        // full proof, avoiding a second decode for sequential
+                        // index reads. Pending chunks share the global RAM/LRU
+                        // budget and remain inaccessible until the proof and
+                        // health checks publish under the exclusive blob lease.
                         RememberChunk(objectId, length, chunk);
                     }
                     position += n;

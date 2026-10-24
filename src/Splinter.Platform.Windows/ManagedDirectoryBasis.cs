@@ -204,7 +204,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
                 Directory.CreateDirectory(root);
                 if (!File.Exists(intentPath)) await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, intent, ct);
                 var snapshot = new SnapshotReference(id, OwnedDirectorySnapshotTree.ProviderName, basisPath, basisPath, DateTimeOffset.UtcNow, true, true, "stopped-original-owned-directory");
-                var manifest = OwnedDirectorySnapshotTree.Capture(snapshot with { RootPath = original }, id) with { Snapshot = snapshot };
+                var manifest = OwnedDirectorySnapshotTree.CaptureCancellable(snapshot with { RootPath = original }, id, ct) with { Snapshot = snapshot };
                 await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(root, "manifest.json"), manifest, ct);
                 string manifestHash = HashFile(Path.Combine(root, "manifest.json"));
                 await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(root, "proof.json"), new OwnedDirectoryProof(1, snapshot, id, manifestHash, manifest.Items.Sum(i => i.Entry.Length)), ct);

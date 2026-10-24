@@ -12,6 +12,75 @@ public sealed class GitPayloadCacheTests
     private const int Chunk = 65536;
 
     [Theory]
+    [InlineData(false)][InlineData(true)]
+    public async Task ProofReadAheadServesSequentialAndAliasReadsWithoutAnotherDecode(bool packed)
+    {
+        using var f = await Fixture.Create(packed); using var tree = f.Open(64 * Chunk, readAhead: 32 * Chunk);
+        Read(f, tree, "a.bin", 0, 16);
+        Assert.Equal(f.Data["a.bin"].Length, tree.CachedChunkPayloadBytes);
+        long decoded = tree.DecodedBlobBytes;
+        for (int at = 0; at < f.Data["a.bin"].Length; at += Chunk)
+            Read(f, tree, "alias.bin", at, Math.Min(Chunk, f.Data["a.bin"].Length - at));
+        Assert.Equal(decoded, tree.DecodedBlobBytes); Assert.Equal(1, tree.FullBlobProofs);
+        tree.Dispose(); Assert.Equal(0, tree.CachedPayloadBytes); Assert.Equal(0, tree.ActiveReaderProcesses);
+    }
+
+    [Fact]
+    public async Task ProofReadAheadIsBoundedForLargeBlobsAndSurvivesSessionReassignment()
+    {
+        using var f = await Fixture.Create(); using var tree = f.Open(8 * Chunk, readAhead: 4 * Chunk);
+        foreach (string name in new[] { "a.bin", "b.bin", "c.bin" }) Read(f, tree, name, 0, 16);
+        Assert.Equal(8 * Chunk, tree.PeakChunkPayloadBytes);
+        long decoded = tree.DecodedBlobBytes;
+        Read(f, tree, "b.bin", Chunk, Chunk); // Session remains reusable; full window survives.
+        Assert.Equal(decoded, tree.DecodedBlobBytes);
+        Read(f, tree, "a.bin", Chunk, Chunk); // Its window was evicted, proof remains valid.
+        Assert.True(tree.DecodedBlobBytes > decoded); Assert.Equal(3, tree.FullBlobProofs);
+        Read(f, tree, "c.bin", 8 * Chunk, Chunk); // Beyond the speculative window.
+        Assert.InRange(tree.PeakChunkPayloadBytes, 1, 8 * Chunk);
+    }
+
+    [Fact]
+    public async Task FailedFullProofNeverPublishesReadAheadAndDrainsItsCache()
+    {
+        using var f = await Fixture.Create(); using var tree = f.Open(64 * Chunk, readAhead: 32 * Chunk);
+        await f.Corrupt("a.bin", f.Data["a.bin"].Length - 1);
+        byte[] destination = Enumerable.Repeat((byte)217, 16).ToArray();
+        Assert.Equal("GitBasisObjectInvalid", Assert.Throws<WorkspaceException>(() => tree.Read("a.bin", 0, destination)).Code);
+        Assert.All(destination, b => Assert.Equal((byte)217, b));
+        Assert.Equal(f.Data["a.bin"].Length, tree.PeakChunkPayloadBytes);
+        Assert.Equal(0, tree.CachedPayloadBytes); Assert.Equal(0, tree.CachedProofCount);
+        Assert.Equal(0, tree.ActiveReaderProcesses);
+    }
+
+    [Fact]
+    public async Task ReadAheadChunkStillRequiresItsCurrentHashBeforePublication()
+    {
+        using var f = await Fixture.Create(); using var tree = f.Open(64 * Chunk, readAhead: 32 * Chunk);
+        Read(f, tree, "a.bin", 0, 16);
+        var cache = (System.Collections.IEnumerable)typeof(GitObjectSnapshotTree)
+            .GetField("payloadLru", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(tree)!;
+        var chunk = cache.Cast<object>().Single(x => (long)x.GetType().GetProperty("Offset")!.GetValue(x)! == Chunk);
+        ((byte[])chunk.GetType().GetProperty("Bytes")!.GetValue(chunk)!)[0] ^= 1;
+        byte[] destination = Enumerable.Repeat((byte)217, 16).ToArray();
+        Assert.Equal("GitBasisObjectInvalid", Assert.Throws<WorkspaceException>(() => tree.Read("a.bin", Chunk, destination)).Code);
+        Assert.All(destination, b => Assert.Equal((byte)217, b));
+        Assert.Equal(0, tree.CachedPayloadBytes); Assert.Equal(0, tree.CachedProofCount);
+    }
+
+    [Fact]
+    public async Task ProofEvictionDiscardsItsEntireReadAheadWindow()
+    {
+        using var f = await Fixture.Create(); using var tree = f.Open(64 * Chunk, proofEntries: 1, readAhead: 32 * Chunk);
+        Read(f, tree, "a.bin", 0, 16); Read(f, tree, "b.bin", 0, 16);
+        Assert.Equal(f.Data["b.bin"].Length, tree.CachedChunkPayloadBytes);
+        long decoded = tree.DecodedBlobBytes;
+        Read(f, tree, "a.bin", Chunk, Chunk);
+        Assert.Equal(f.Data["a.bin"].Length, tree.DecodedBlobBytes - decoded);
+        Assert.Equal(3, tree.FullBlobProofs);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task FirstRequestRetainsCompleteUsefulChunksForCrossingAndAliasReads(bool packed)
@@ -178,9 +247,9 @@ public sealed class GitPayloadCacheTests
         private string tree = "";
         internal readonly Dictionary<string, byte[]> Data = new();
         internal bool Available = true;
-        internal GitObjectSnapshotTree Open(int payloadBytes = 16 * 1024 * 1024, int proofEntries = 4096) =>
+        internal GitObjectSnapshotTree Open(int payloadBytes = 16 * 1024 * 1024, int proofEntries = 4096, int readAhead = 0) =>
             new(snapshot, tree, "", "", () => new(snapshot.Id, Available, Available ? null : "GitBasisUnavailable", 0, null),
-                proofEntryLimit: proofEntries, payloadByteLimit: payloadBytes);
+                proofEntryLimit: proofEntries, payloadByteLimit: payloadBytes, proofReadAheadBytes: readAhead);
         internal static async Task<Fixture> Create(bool packed = false, int length = 16 * Chunk + 113)
         {
             var f = new Fixture(); Directory.CreateDirectory(f.Source);
