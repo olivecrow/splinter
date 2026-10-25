@@ -1027,12 +1027,12 @@
             "boundaries": {"type": "string", "minLength": 1}
           }
         },
-        "developmentPayloadCodec": {
+        "developmentPayloadReader": {
           "type": "object", "additionalProperties": false,
           "required": ["stage", "contract", "codec", "maxDecodedBytes", "blockOverheadBytes", "scope", "specification", "qualification"],
           "properties": {
             "stage": {"const": "workspace-internal-alpha"},
-            "contract": {"const": "IWorkspacePayloadCodec"},
+            "contract": {"const": "IWorkspacePayloadReader"},
             "codec": {"const": "splinter-range-brotli-v1"},
             "maxDecodedBytes": {"const": 1048576},
             "blockOverheadBytes": {"const": 48},
@@ -1076,7 +1076,7 @@
               "const": "verified-location-separate-from-immutable-delta-identity"
             },
             "deltaStore": {
-              "const": "bounded-checksummed-range-journal-v2; raw-or-brotli; new-provider-default-bounded-SJR2-16MiB-or-4096-frame-suffix-with-individual-durable-flush; retained-explicit-SJL4-or-append; atomic-current-state-checkpoint-and-same-request-recovery"
+              "const": "bounded-checksummed-range-journal-v2; raw-writes; current-encoded-reads; new-provider-default-bounded-SJR2-16MiB-or-4096-frame-suffix-with-bounded-group-flush-and-durable-ACK; retained-explicit-SJL4-or-append; atomic-current-state-checkpoint-and-same-request-recovery"
             },
             "resultCollection": {
               "const": "stable-journal-v1"

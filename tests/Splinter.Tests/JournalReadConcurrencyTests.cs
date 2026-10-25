@@ -27,9 +27,8 @@ public sealed class JournalReadConcurrencyTests
         try
         {
             Assert.True(tree.Entered.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
-            // Only the two fragments beyond the 64-fragment capture bound have
-            // been decoded when the first immutable gap blocks this read.
-            Assert.Equal(2, store.DecodedPayloadCache.Decodes - decoded);
+            // New raw payloads require no decoding, including overflow copies.
+            Assert.Equal(0, store.DecodedPayloadCache.Decodes - decoded);
             await Run(() => { store.SetLength(file.Id, 0); store.Delete(file.Id); store.ReleaseUnlinkedFile(file.Id); })
                 .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         }

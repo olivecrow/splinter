@@ -10,6 +10,8 @@ Splinter는 AI 에이전트가 Unity 프로젝트나 일반 프로젝트 폴더�
 
 **현재 시간 비용:** [BC-01](docs/ko/verification/unity-bounded-comparison.md)의 Unity 한 줄 변경 두 개는 **Splinter 537.6초, 공유 Editor 하나 82.1초로 455.5초가 더 걸렸습니다.** 차이 대부분은 준비와 종료에서 발생했습니다. 이 작은 실측으로 일반적인 속도 배수나 긴 작업의 손익분기를 확정할 수는 없습니다. 독립 Editor 세션은 다른 작업의 소스 변경·검증에 맞춰 조정해야 하는 부담도 줄이며, 이런 중단을 피하는 생산성 가치는 아직 계측하지 않았습니다.
 
+새 변경 payload는 압축하지 않는다. 동시 쓰기는 성공 응답 전에 영속 flush를 공유할 수 있으며 기존 압축 데이터는 계속 읽는다. [현재 쓰기 정책과 한정 검증](docs/ko/raw-write-batching.md)을 따른다.
+
 ## Splinter가 필요한 이유
 
 병렬 개발에서 작업마다 프로젝트 전체와 생성 데이터를 복제하고 독립 애플리케이션을 실행하면 비용이 커집니다. Unity에서는 소스만 분리해도 에셋과 `Library`, 여러 Editor의 부담이 남습니다.
@@ -113,7 +115,7 @@ A의 편집은 B의 파일이나 원본을 자동으로 변경하지 않습니�
 ## 주요 기능
 
 - **작업별 독립 공간.** 쓰기 가능한 경로·변경분·작업 상태·소유 애플리케이션 프로세스를 분리하고, 원본과 다른 작업을 보호합니다.
-- **변경량에 따른 저장.** 불변 데이터 참조, 제한된 크기의 raw/Brotli payload, 저널 정리를 제공합니다. 새 작업은 [제한된 durable 저널](docs/ko/bounded-journal.md)을 사용하며, 명시적 정리로 기준본과 다시 같아진 범위도 제거할 수 있습니다.
+- **변경량에 따른 저장.** 불변 데이터 참조, 제한된 크기의 raw 변경 payload, 저널 정리를 제공합니다. 새 작업은 [제한된 durable 저널](docs/ko/bounded-journal.md)을 사용하며, 명시적 정리로 기준본과 다시 같아진 범위도 제거할 수 있습니다.
 - **대화 이후에도 이어지는 작업.** 고정한 작업 식별자·원자적 JSON 상태·같은 요청의 복구를 통해 중단이나 응답 유실 뒤 작업을 이어갑니다.
 - **독립 결과와 보호 조건을 갖춘 반영.** 소스 checkpoint, Git 결과 통합, 지원하는 일반 폴더·기록된 Plastic 경로의 전체/선택 파일 반영을 제공합니다. 대상 변경이나 충돌은 거부하고 명시적으로 해결하도록 합니다.
 - **명시적 자원 소유권.** Unity Editor 시작/종료, provider·mount 추적, 의존성 보호, 자기 자원의 회수·폐기를 관리합니다.
@@ -171,7 +173,7 @@ Splinter 자체 코드와 문서는 [MIT 라이선스](LICENSE)로 공개합니�
 Splinter는 다음 프로젝트와 기여자들의 작업을 사용합니다.
 
 - **[WinFsp](https://github.com/winfsp/winfsp)**: 쓰기 가능한 파일시스템 view와 .NET binding. **WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos.** GPLv3와 자유·오픈소스 소프트웨어의 linking에 대한 조건부 예외를 적용합니다.
-- **[.NET](https://github.com/dotnet/runtime)**·**[System.CommandLine](https://github.com/dotnet/command-line-api)**: 런타임과 CLI 기반. Brotli 압축은 .NET의 `System.IO.Compression` API를 통해 사용합니다.
+- **[.NET](https://github.com/dotnet/runtime)**·**[System.CommandLine](https://github.com/dotnet/command-line-api)**: 런타임과 CLI 기반. 기존 Brotli payload는 .NET의 `System.IO.Compression` API로 읽으며 새 쓰기는 압축하지 않습니다.
 - **[json-everything](https://github.com/json-everything/json-everything)**: schema 검증과 JSON 처리를 위한 JsonSchema.Net·JsonPointer.Net·Json.More.Net. 소스는 MIT이며, 고정한 NuGet 바이너리에는 별도의 Open Source Maintenance Fee 약정이 포함되어 있습니다.
 - **[Humanizer](https://github.com/Humanizr/Humanizer)**: JSON 패키지가 간접 참조하는 MIT 런타임 의존성.
 - **[xUnit.net](https://github.com/xunit/xunit)**·**[Microsoft.Testing.Platform](https://github.com/microsoft/testfx)**: 자동 시험과 TRX 보고. 각각 Apache 2.0·MIT를 적용합니다.

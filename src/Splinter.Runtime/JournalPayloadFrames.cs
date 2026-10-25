@@ -7,7 +7,7 @@ namespace Splinter.Runtime;
 public sealed partial class JournalDeltaStore
 {
     public const int FrameHeaderBytes = 16, FrameChecksumBytes = 32;
-    private readonly BrotliWorkspacePayloadCodec payloadCodec = new();
+    private readonly BrotliWorkspacePayloadReader payloadCodec = new();
     private sealed record CapturedPayloadRead(byte[] Encoded, WorkspaceJournalPayload Payload,
         int BlockOffset, int OutputOffset, int Count);
 
@@ -43,17 +43,9 @@ public sealed partial class JournalDeltaStore
         return (metadata, payload);
     }
 
-    // Raw is bare bytes protected by the outer frame checksum. Select the codec
-    // only when its full 48-byte representation saves at least 64 bytes, so raw
-    // incurs no duplicate checksum/codec overhead and compression cannot expand.
-    private byte[]? EncodePayload(ReadOnlySpan<byte> decoded)
-    {
-        if (decoded.Length < BrotliWorkspacePayloadCodec.BlockOverheadBytes + 64) return null;
-        return payloadCodec.EncodeJournalPayload(decoded);
-    }
     private void ValidateEncoded(ReadOnlySpan<byte> encoded, WorkspaceJournalPayload payload)
     {
-        if (encoded.Length < BrotliWorkspacePayloadCodec.BlockOverheadBytes ||
+        if (encoded.Length < BrotliWorkspacePayloadReader.BlockOverheadBytes ||
             BinaryPrimitives.ReadInt32LittleEndian(encoded[4..]) != payload.DecodedBytes)
             throw new WorkspaceException("DeltaCorrupt", "The block and frame decoded lengths differ.");
         payloadCodec.Read(encoded, 0, Span<byte>.Empty);
@@ -83,7 +75,7 @@ public sealed partial class JournalDeltaStore
         try
         {
             var bytes = encoded.AsSpan(0, payload.StoredBytes); ReadExactly(physical, bytes);
-            if (bytes.Length < BrotliWorkspacePayloadCodec.BlockOverheadBytes ||
+            if (bytes.Length < BrotliWorkspacePayloadReader.BlockOverheadBytes ||
                 BinaryPrimitives.ReadInt32LittleEndian(bytes[4..]) != payload.DecodedBytes)
                 throw new WorkspaceException("DeltaCorrupt", "The block and frame decoded lengths differ.");
             return encoded;
@@ -91,7 +83,7 @@ public sealed partial class JournalDeltaStore
         catch { ArrayPool<byte>.Shared.Return(encoded); throw; }
     }
     private void VisitPayload(long physical, WorkspaceJournalPayload payload,
-        BrotliWorkspacePayloadCodec.DecodedChunkVisitor visit, ReadOnlySpan<byte> context = default)
+        BrotliWorkspacePayloadReader.DecodedChunkVisitor visit, ReadOnlySpan<byte> context = default)
     {
         byte[]? encoded = null;
         try
@@ -103,7 +95,7 @@ public sealed partial class JournalDeltaStore
         catch { ClearPayloadCache(); throw; }
         finally { if (encoded is not null) ArrayPool<byte>.Shared.Return(encoded); }
     }
-    private void VisitExtent(Extent extent, BrotliWorkspacePayloadCodec.DecodedChunkVisitor visit,
+    private void VisitExtent(Extent extent, BrotliWorkspacePayloadReader.DecodedChunkVisitor visit,
         ReadOnlySpan<byte> context = default)
     {
         if (extent.Payload.Encoded)

@@ -14,7 +14,7 @@ public sealed class JournalDecodedPayloadCacheTests
     [InlineData(0)] [InlineData(131328)]
     public void PartialReadsMatchAndRevalidateCurrentBytesBeforeEveryHit(long budget)
     {
-        var codec = new BrotliWorkspacePayloadCodec(); var cache = new JournalDecodedPayloadCache(budget);
+        var codec = new BrotliWorkspacePayloadReader(); var cache = new JournalDecodedPayloadCache(budget);
         byte[] input = Payload(65536, 17), encoded = Encode(codec, input), output = new byte[97];
         for (int pass = 0; pass < 4; pass++)
         {
@@ -35,7 +35,7 @@ public sealed class JournalDecodedPayloadCacheTests
     [Fact]
     public void SameBufferWithNewValidContentsCannotReturnPriorDecodedBytes()
     {
-        var codec = new BrotliWorkspacePayloadCodec(); var cache = new JournalDecodedPayloadCache();
+        var codec = new BrotliWorkspacePayloadReader(); var cache = new JournalDecodedPayloadCache();
         byte[] first = Encode(codec, new byte[65536]), second = Encode(codec, Enumerable.Repeat((byte)17, 65536).ToArray());
         byte[] output = new byte[19];
         cache.Read(codec, first, 71, output); Assert.All(output, value => Assert.Equal(0, value));
@@ -48,8 +48,11 @@ public sealed class JournalDecodedPayloadCacheTests
     public void LiveCachedReadStillReadsAndRejectsCorruptedJournalPayload()
     {
         using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        Guid id;
+        using (var writer = new JournalDeltaStore(directory.Path, Identity(tree), tree, optimizeJournal: false))
+        { id = writer.Create("file", false, 32).Id; writer.Write(id, 0, Payload(65536, 17)); }
+        EncodedPayloadFixture.CompressExistingJournal(directory.Path);
         using var store = new JournalDeltaStore(directory.Path, Identity(tree), tree, optimizeJournal: false);
-        Guid id = store.Create("file", false, 32).Id; store.Write(id, 0, Payload(65536, 17));
         store.Read(id, 0, new byte[17]); store.Read(id, 0, new byte[17]);
         Assert.Equal(1, store.DecodedPayloadCache.Hits);
         // Inject damage through the owned fixture handle: an external writer
@@ -70,7 +73,7 @@ public sealed class JournalDecodedPayloadCacheTests
     {
         const int size = 16384;
         long charge = size + JournalDecodedPayloadCache.EntryChargeBytes;
-        var codec = new BrotliWorkspacePayloadCodec(); var cache = new JournalDecodedPayloadCache(2 * charge);
+        var codec = new BrotliWorkspacePayloadReader(); var cache = new JournalDecodedPayloadCache(2 * charge);
         byte[][] blocks = Enumerable.Range(0, 3).Select(i => Encode(codec, Payload(size, i + 1))).ToArray();
         byte[] output = new byte[7];
         foreach (int index in new[] { 0, 1, 0, 2, 0, 1 }) cache.Read(codec, blocks[index], 301, output);
@@ -88,7 +91,7 @@ public sealed class JournalDecodedPayloadCacheTests
     [InlineData("reserved")] [InlineData("decoded")] [InlineData("trailing-stream")] [InlineData("format")]
     public void RechecksummedInvalidBlocksNeverPublishPartialOutputOrCacheEntries(string fault)
     {
-        var codec = new BrotliWorkspacePayloadCodec(); var cache = new JournalDecodedPayloadCache();
+        var codec = new BrotliWorkspacePayloadReader(); var cache = new JournalDecodedPayloadCache();
         byte[] encoded = Encode(codec, Payload(65536, 17)), output = new byte[17];
         cache.Read(codec, encoded, 100, output); // A prior valid entry must not bless the modified block.
         switch (fault)
@@ -124,7 +127,7 @@ public sealed class JournalDecodedPayloadCacheTests
             store.Write(id, 0, expected); store.Read(id, 0, actual); Assert.Equal(expected, actual);
             long encodedReads = store.Observe().Metrics!.JournalReadBytes;
             store.Read(id, 0, actual); Assert.Equal(expected, actual);
-            Assert.True(store.DecodedPayloadCache.Hits > 0);
+            Assert.Equal(0, store.DecodedPayloadCache.Hits);
             Assert.True(store.Observe().Metrics!.JournalReadBytes > encodedReads);
             Assert.Equal(0, store.Observe().ReadCacheBytes); // Disk hydration remains absent.
             Array.Fill(expected, (byte)7, 8192, 16384); store.Write(id, 8192, expected.AsSpan(8192, 16384));
@@ -150,6 +153,9 @@ public sealed class JournalDecodedPayloadCacheTests
         var observer = new FailingMutation();
         using var store = new JournalDeltaStore(directory.Path, Identity(tree), tree, observer, optimizeJournal: optimized);
         Guid id = store.Create("file", false, 32).Id; store.Write(id, 0, new byte[65536]); store.Read(id, 0, new byte[17]);
+        // New writes are raw; seed a current-format reader cache independently.
+        var reader = new BrotliWorkspacePayloadReader();
+        store.DecodedPayloadCache.Read(reader, Encode(reader, new byte[65536]), 0, new byte[17]);
         Assert.True(store.DecodedPayloadCache.PayloadBytes > 0);
         observer.Armed = true;
         Assert.Throws<IOException>(() => store.Write(id, 0, Payload(65536, 1)));
@@ -206,7 +212,7 @@ public sealed class JournalDecodedPayloadCacheTests
         for (int i = 0; i < size; i++) bytes[i] = (byte)((i / 113 + seed * 29) % 251);
         return bytes;
     }
-    private static byte[] Encode(BrotliWorkspacePayloadCodec codec, byte[] input)
+    private static byte[] Encode(BrotliWorkspacePayloadReader codec, byte[] input)
     {
         byte[] encoded = new byte[codec.GetMaxEncodedBytes(input.Length)];
         return encoded[..codec.Encode(input, encoded)];

@@ -9,6 +9,22 @@ namespace Splinter.Tests;
 public sealed class ImmutableCandidateTests
 {
     private static readonly string[] CacheRoots = ["Library", "Temp"];
+    [Fact]
+    public void WriteBatchRoutesOrderedSourceAndCacheRangesAndReplaysBoth()
+    {
+        using var root = new TestDirectory(); var tree = Tree();
+        string candidate = Export(root.Path, "B", tree), source = Path.Combine(root.Path, "source"), cache = Path.Combine(root.Path, "cache");
+        var selection = new SourceViewSelection(candidate, cache, CacheRoots);
+        using (var view = new SourceViewDeltaStore(source, Identity(tree), tree, selection))
+        {
+            Guid a = view.Stat("Assets/code.cs")!.Id;
+            view.Create("Library", true, 16); Guid b = view.Create("Library/data", false, 32).Id;
+            view.WriteBatch([new(a, 0, "AB"u8.ToArray()), new(b, 0, "12"u8.ToArray()), new(b, 1, "3"u8.ToArray()), new(a, 1, "C"u8.ToArray())]);
+            Assert.Equal("AC", Read(view, "Assets/code.cs")); Assert.Equal("13", Read(view, "Library/data"));
+        }
+        using var replay = new SourceViewDeltaStore(source, Identity(tree), tree, selection);
+        Assert.Equal("AC", Read(replay, "Assets/code.cs")); Assert.Equal("13", Read(replay, "Library/data"));
+    }
     private static OverlayIdentity Identity(ISnapshotTree tree) => new(2, "view", tree.Snapshot, 100_000_000, 65536, [".git"]);
     private static void Write(IWorkspaceDeltaStore store, string path, string value)
     {

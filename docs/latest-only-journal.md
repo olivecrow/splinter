@@ -3,6 +3,8 @@
 
 [한국어](ko/latest-only-journal.md)
 
+The [current raw-write policy](raw-write-batching.md) also applies to SJL4: new payloads are uncompressed, while existing current-format encoded blocks remain readable. SJL4 retains individual capsule publication barriers; shared flush applies to SJR2 batches.
+
 `workspace compact --optimize-journal true` selects latest-state storage for the current journal after normal stop/unmount. `--revert-base-ranges true` selects the same input `revertBaseRanges`. New ordinary Windows providers default to the [bounded journal](bounded-journal.md). Existing tasks retain their saved format, including writer reconnects with the same ID/home. Later `compact` calls with the option omitted retain the current choice; explicit `false` switches to OFF. The stored choice cannot change during an operation.
 
 ```powershell

@@ -55,7 +55,7 @@ public sealed class JournalMetadataStorageTests
     }
 
     [Fact]
-    public void NewRawAndEncodedWritesPreserveOneFlushAndNondefaultRenameFields()
+    public void NewRawWritesPreserveOneFlushAndNondefaultRenameFields()
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "metadata-write", tree.Snapshot, 1024 * 1024, 4096);
@@ -67,7 +67,7 @@ public sealed class JournalMetadataStorageTests
             var before = store.Observe(); store.Write(id, 0, expected); var after = store.Observe();
             Assert.Equal(before.DurableSequence + 1, after.DurableSequence);
             Assert.Equal(before.Metrics!.FlushCount + 1, after.Metrics!.FlushCount);
-            Assert.True(after.PayloadBytes < expected.Length);
+            Assert.Equal(expected.Length, after.PayloadBytes);
             store.Write(id, 2, [9]); expected[2] = 9;
             store.Rename(id, "target", true);
         }

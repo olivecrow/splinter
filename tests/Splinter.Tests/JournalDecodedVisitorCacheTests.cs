@@ -13,7 +13,7 @@ public sealed class JournalDecodedVisitorCacheTests
     [InlineData(0)] [InlineData(32768)] [InlineData(131072)]
     public void VisitorsAndReadsShareOnlyValidatedDecodedBlocks(long budget)
     {
-        var codec = new BrotliWorkspacePayloadCodec(); var cache = new JournalDecodedPayloadCache(budget);
+        var codec = new BrotliWorkspacePayloadReader(); var cache = new JournalDecodedPayloadCache(budget);
         byte[] expected = Payload(65536), encoded = Encode(codec, expected), output = new byte[65536];
         for (int pass = 0; pass < 3; pass++)
         {
@@ -35,7 +35,7 @@ public sealed class JournalDecodedVisitorCacheTests
     [InlineData(false)] [InlineData(true)]
     public void CacheHitStillRejectsCurrentCorruptionBeforeVisiting(bool rechecksum)
     {
-        var codec = new BrotliWorkspacePayloadCodec(); var cache = new JournalDecodedPayloadCache();
+        var codec = new BrotliWorkspacePayloadReader(); var cache = new JournalDecodedPayloadCache();
         byte[] encoded = Encode(codec, Payload(65536));
         cache.Visit(codec, encoded, (_, _, _) => { });
         if (rechecksum)
@@ -51,7 +51,7 @@ public sealed class JournalDecodedVisitorCacheTests
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
-    public void RepeatedIdenticalWritesReuseDecodedRamButStillCommitAndSurviveReopen(bool optimized)
+    public void RepeatedIdenticalRawWritesReusePayloadWithoutDecodeAndStillCommit(bool optimized)
     {
         using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "visitor-cache", tree.Snapshot, 8L * 1048576, 65536);
@@ -63,8 +63,8 @@ public sealed class JournalDecodedVisitorCacheTests
             long beforeDecodes = store.DecodedPayloadCache.Decodes;
             for (int pass = 0; pass < 4; pass++) store.Write(id, 0, expected);
             Assert.Equal(beforeSequence + 4, store.Observe().DurableSequence);
-            Assert.Equal(beforeDecodes + 1, store.DecodedPayloadCache.Decodes);
-            Assert.True(store.DecodedPayloadCache.Hits >= 3);
+            Assert.Equal(beforeDecodes, store.DecodedPayloadCache.Decodes);
+            Assert.Equal(0, store.DecodedPayloadCache.Hits);
             // A different generation must not inherit the prior decoded data.
             Array.Fill(expected, (byte)83, 8192, 4096); store.Write(id, 8192, expected.AsSpan(8192, 4096));
             byte[] output = new byte[expected.Length]; store.Read(id, 0, output); Assert.Equal(expected, output);
@@ -78,7 +78,7 @@ public sealed class JournalDecodedVisitorCacheTests
     [Fact]
     public void FailedVisitorClearsSharedCacheAndNextVisitStartsFromCurrentBytes()
     {
-        var codec = new BrotliWorkspacePayloadCodec(); var cache = new JournalDecodedPayloadCache();
+        var codec = new BrotliWorkspacePayloadReader(); var cache = new JournalDecodedPayloadCache();
         byte[] encoded = Encode(codec, Payload(65536));
         cache.Read(codec, encoded, 0, new byte[17]);
         Assert.Throws<IOException>(() => cache.Visit(codec, encoded, (_, _, _) => throw new IOException("visitor interrupted")));
@@ -93,7 +93,7 @@ public sealed class JournalDecodedVisitorCacheTests
     {
         string? path = Environment.GetEnvironmentVariable("SPLINTER_JOURNAL_VISITOR_COST_OUTPUT");
         if (path is null) Assert.Skip("Cost evidence requires SPLINTER_JOURNAL_VISITOR_COST_OUTPUT.");
-        var codec = new BrotliWorkspacePayloadCodec();
+        var codec = new BrotliWorkspacePayloadReader();
         byte[][] expected = Enumerable.Range(0, 8).Select(i => Payload(1048576, i)).ToArray();
         byte[][] encoded = expected.Select(p => Encode(codec, p)).ToArray();
         // Warm both paths separately; measurements use fresh bounded caches.
@@ -118,7 +118,7 @@ public sealed class JournalDecodedVisitorCacheTests
 
     private static byte[] Payload(int length, int seed = 0) =>
         Enumerable.Range(0, length).Select(i => (byte)((i / 113 + seed * 29) % 251)).ToArray();
-    private static byte[] Encode(BrotliWorkspacePayloadCodec codec, byte[] input)
+    private static byte[] Encode(BrotliWorkspacePayloadReader codec, byte[] input)
     {
         byte[] output = new byte[codec.GetMaxEncodedBytes(input.Length)]; return output[..codec.Encode(input, output)];
     }

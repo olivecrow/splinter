@@ -2,6 +2,8 @@
 
 [English](../../verification/README.md)
 
+[Raw 쓰기와 묶음 flush](raw-write-batching.md)가 RW-01–05를 소유한다. 압축 writer 폐기·현재 형식 압축 읽기 보존·순서 보장 영속 SJR2 묶음·동시 WinFsp 요청 수집·회귀 시험·한정 구성 요소/native 근거를 다룬다. 이전 압축·개별 물리 flush 요구를 대체하되 아래 과거 수치는 보존한다. 새 Unity 수명주기나 전원 장애 자격은 아니다.
+
 > 현재 경로는 `git-snapshot`·`plastic-snapshot`·`project-snapshot`이다. [VSS 폐기 결정](../plans/vss-retirement.md)이 과거 VSS 서비스·설치·회수 후속 지침을 대체한다. 아래 기존 ID·수치·입력별 자격은 당시 기록으로 보존하며 VSS 실행을 재개하지 않는다.
 
 [VSS 폐기 검증](vss-retirement.md)이 VT-01~04를 소유한다. 실행 경로 제거·바이트를 보존하는 구형 상태 거부·유지한 자동 회귀·양 언어 문서 검사를 다루며 새 실제 VSS/Unity 자격은 없다.

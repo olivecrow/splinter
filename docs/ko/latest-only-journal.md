@@ -2,6 +2,8 @@
 
 [English](../latest-only-journal.md)
 
+[현재 raw 쓰기 정책](raw-write-batching.md)은 SJL4에도 적용한다. 새 payload는 압축하지 않고 기존 현재 형식의 압축 block은 계속 읽는다. SJL4의 개별 capsule 게시 경계는 유지하며 공유 flush는 SJR2 묶음에 적용한다.
+
 `workspace compact --optimize-journal true`는 정상 stop/unmount 뒤 현재 저널을 현재본 저장으로 선택한다. `--revert-base-ranges true`도 같은 입력 `revertBaseRanges`를 선택한다. 새 일반 Windows provider의 기본값은 [제한 로그](bounded-journal.md)다. 기존 작업은 저장된 형식을 유지하며, 같은 ID/home의 writer 재연결도 그 선택을 유지한다. 이후 `compact`에서 옵션을 생략하면 현재 선택을 유지하며 `false`를 명시하면 OFF로 전환한다. 진행 중에는 저장된 선택을 바꿀 수 없다.
 
 ```powershell

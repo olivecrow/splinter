@@ -96,13 +96,11 @@ public sealed class JournalLatestOnlyTests
             for (int i = 0; i < 64; i++)
             {
                 expected[i * 811] ^= 0x55; writer.Write(id, i * 811, expected.AsSpan(i * 811, 1));
-                if (compressed) Assert.True(writer.Observe().PayloadBytes < 65536);
-                else Assert.Equal(65536, writer.Observe().PayloadBytes);
+                Assert.Equal(65536, writer.Observe().PayloadBytes);
                 Assert.DoesNotContain(JournalDeltaStore.JournalStorageFiles(Path.Combine(root.Path, "delta.journal")), p => p.EndsWith(".bin", StringComparison.Ordinal));
             }
             writer.SetLength(id, 32768); expected = expected[..32768];
-            if (compressed) Assert.True(writer.Observe().PayloadBytes < expected.Length);
-            else Assert.Equal(expected.Length, writer.Observe().PayloadBytes);
+            Assert.Equal(expected.Length, writer.Observe().PayloadBytes);
         }
         using var reader = JournalDeltaStore.OpenReadOnly(root.Path, identity, tree);
         var seal = reader.Seal(); reader.PrepareRestoreReads(seal);

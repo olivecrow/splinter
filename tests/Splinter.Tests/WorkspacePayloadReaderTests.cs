@@ -6,14 +6,14 @@ using Splinter.Runtime;
 
 namespace Splinter.Tests;
 
-public sealed class WorkspacePayloadCodecTests
+public sealed class WorkspacePayloadReaderTests
 {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void CommonContractRoundtripsEmptySmallMaximumAndIndependentPartialReads(bool runtime)
     {
-        IWorkspacePayloadCodec codec = runtime ? new BrotliWorkspacePayloadCodec(65536) : new LiteralFake(65536);
+        IWorkspacePayloadReader codec = runtime ? new BrotliWorkspacePayloadReader(65536) : new LiteralFake(65536);
         foreach (int size in new[] { 0, 1, 63, 4096, codec.MaxDecodedBytes })
         {
             byte[] input = Enumerable.Range(0, size).Select(i => (byte)(i * 31 + i / 17)).ToArray();
@@ -44,7 +44,7 @@ public sealed class WorkspacePayloadCodecTests
     [InlineData(true)]
     public void CommonContractRejectsLimitsCorruptionTruncationAndOverlapWithoutPublishing(bool runtime)
     {
-        IWorkspacePayloadCodec codec = runtime ? new BrotliWorkspacePayloadCodec(4096) : new LiteralFake(4096);
+        IWorkspacePayloadReader codec = runtime ? new BrotliWorkspacePayloadReader(4096) : new LiteralFake(4096);
         Assert.Throws<WorkspaceException>(() => codec.GetMaxEncodedBytes(-1));
         Assert.Throws<WorkspaceException>(() => codec.GetMaxEncodedBytes(4097));
         byte[] destination = Enumerable.Repeat((byte)0x77, codec.GetMaxEncodedBytes(4096)).ToArray();
@@ -68,39 +68,21 @@ public sealed class WorkspacePayloadCodecTests
     }
 
     [Fact]
-    public void IncompressibleAndTinyBlocksUseRawWithoutExpandingTheRawRepresentation()
+    public void ExistingMaximumCompressedRangeUsesChunkAndStagingForSmallRead()
     {
-        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadCodec(65536, pool);
-        var random = new Random(1936);
-        foreach (int size in new[] { 0, 1, 64, 4096, 65536 })
-        {
-            byte[] input = new byte[size]; random.NextBytes(input);
-            byte[] encoded = new byte[codec.GetMaxEncodedBytes(size)];
-            Assert.Equal(encoded.Length, codec.Encode(input, encoded));
-            Assert.Equal(0, encoded[12]);
-            int beforeRead = pool.Rents;
-            byte[] output = new byte[size]; Assert.Equal(size, codec.Read(encoded, 0, output)); Assert.Equal(input, output);
-            Assert.Equal(beforeRead, pool.Rents);
-        }
-        Assert.Equal(pool.Rents, pool.Returns);
-    }
-
-    [Fact]
-    public void RepeatedMaximumRangeCompressesAndSmallReadUsesChunkAndStagingInsteadOfFullDecodedScratch()
-    {
-        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadCodec(scratchPool: pool);
+        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadReader(scratchPool: pool);
         byte[] input = new byte[codec.MaxDecodedBytes]; Array.Fill(input, (byte)19);
         byte[] encoded = new byte[codec.GetMaxEncodedBytes(input.Length)];
         int count = codec.Encode(input, encoded); Assert.True(count < input.Length / 100);
         Assert.Equal(1, encoded[12]);
-        Assert.Equal(1, pool.Rents); Assert.Equal(1, pool.Returns);
+        Assert.Equal(0, pool.Rents); Assert.Equal(0, pool.Returns);
         pool.MaxRequest = 0;
         byte[] output = new byte[7]; Assert.Equal(7, codec.Read(encoded.AsSpan(0, count), 173, output));
         Assert.All(output, x => Assert.Equal(19, x));
-        Assert.Equal(16384 + 7, pool.MaxRequest); Assert.Equal(2, pool.Rents); Assert.Equal(2, pool.Returns);
+        Assert.Equal(16384 + 7, pool.MaxRequest); Assert.Equal(1, pool.Rents); Assert.Equal(1, pool.Returns);
         pool.MaxRequest = 0;
         Assert.Equal(0, codec.Read(encoded.AsSpan(0, count), int.MaxValue, []));
-        Assert.Equal(3, pool.Returns);
+        Assert.Equal(2, pool.Returns);
         Assert.Equal(16384, pool.MaxRequest);
     }
 
@@ -111,7 +93,7 @@ public sealed class WorkspacePayloadCodecTests
     [InlineData("truncated-stream")]
     public void ChecksummedButInvalidCompressedStreamsAreRejectedBeforePublishingAndReturnScratch(string damage)
     {
-        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadCodec(scratchPool: pool);
+        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadReader(scratchPool: pool);
         byte[] encoded = new byte[codec.GetMaxEncodedBytes(65536)]; int length = codec.Encode(new byte[65536], encoded);
         byte[] bad = encoded[..length];
         if (damage == "trailing")
@@ -130,7 +112,7 @@ public sealed class WorkspacePayloadCodecTests
         byte[] output = Enumerable.Repeat((byte)0x77, 19).ToArray();
         Assert.Equal("PayloadBlockCorrupt", Assert.Throws<WorkspaceException>(() => codec.Read(bad, 0, output)).Code);
         Assert.All(output, x => Assert.Equal(0x77, x));
-        Assert.Equal(2, pool.Rents); Assert.Equal(pool.Rents, pool.Returns); Assert.InRange(pool.MaxRequest, 1, codec.MaxDecodedBytes);
+        Assert.Equal(1, pool.Rents); Assert.Equal(pool.Rents, pool.Returns); Assert.InRange(pool.MaxRequest, 1, codec.MaxDecodedBytes);
     }
 
     [Theory]
@@ -142,7 +124,7 @@ public sealed class WorkspacePayloadCodecTests
     [InlineData("unknown-kind")]
     public void InvalidHeadersAreRejectedBeforeRentingEvenForEmptyRead(string damage)
     {
-        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadCodec(4096, pool);
+        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadReader(4096, pool);
         byte[] encoded = new byte[codec.GetMaxEncodedBytes(4096)]; int size = codec.Encode(new byte[4096], encoded);
         encoded = encoded[..size];
         if (damage == "negative-decoded") BinaryPrimitives.WriteInt32LittleEndian(encoded.AsSpan(4), -1);
@@ -152,13 +134,13 @@ public sealed class WorkspacePayloadCodecTests
         if (damage == "unknown-version") encoded[3] = (byte)'2';
         if (damage == "unknown-kind") encoded[12] = 2;
         Resign(encoded);
-        Assert.Throws<WorkspaceException>(() => codec.Read(encoded, 0, [])); Assert.Equal(1, pool.Rents); Assert.Equal(pool.Rents, pool.Returns);
+        Assert.Throws<WorkspaceException>(() => codec.Read(encoded, 0, [])); Assert.Equal(0, pool.Rents); Assert.Equal(pool.Rents, pool.Returns);
     }
 
     [Fact]
-    public async Task OneCodecKeepsConcurrentCallersBuffersAndContentIndependent()
+    public async Task OneReaderKeepsConcurrentCallersBuffersAndContentIndependent()
     {
-        var codec = new BrotliWorkspacePayloadCodec(65536);
+        var codec = new BrotliWorkspacePayloadReader(65536);
         await Task.WhenAll(Enumerable.Range(0, 8).Select(worker => Task.Run(() =>
         {
             byte[] input = Enumerable.Repeat((byte)(worker + 1), 65536).ToArray();
@@ -176,14 +158,14 @@ public sealed class WorkspacePayloadCodecTests
     [Fact]
     public void RepeatedReadsDoNotRetainDecodedBlocksOrGrowManagedAllocationWithCumulativeInput()
     {
-        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadCodec(65536, pool);
+        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadReader(65536, pool);
         byte[] encoded = new byte[codec.GetMaxEncodedBytes(65536)]; int length = codec.Encode(new byte[65536], encoded);
         byte[] output = new byte[1];
         for (int i = 0; i < 16; i++) codec.Read(encoded.AsSpan(0, length), i, output);
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 256; i++) codec.Read(encoded.AsSpan(0, length), i, output);
         Assert.InRange(GC.GetAllocatedBytesForCurrentThread() - before, 0, 32768);
-        Assert.Equal(273, pool.Rents); Assert.Equal(pool.Rents, pool.Returns);
+        Assert.Equal(272, pool.Rents); Assert.Equal(pool.Rents, pool.Returns);
     }
 
     [Theory]
@@ -194,7 +176,7 @@ public sealed class WorkspacePayloadCodecTests
     [InlineData(int.MaxValue, 19)]
     public void MaximumChunkedReadsCrossBoundariesPublishOnlyTheRequestedPrefixAndReturnOneLease(int offset, int capacity)
     {
-        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadCodec(scratchPool: pool);
+        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadReader(scratchPool: pool);
         byte[] input = Enumerable.Range(0, codec.MaxDecodedBytes).Select(i => (byte)(i / 71)).ToArray();
         byte[] encoded = new byte[codec.GetMaxEncodedBytes(input.Length)]; int stored = codec.Encode(input, encoded);
         Assert.Equal(1, encoded[12]); pool.MaxRequest = 0;
@@ -203,7 +185,7 @@ public sealed class WorkspacePayloadCodecTests
         Assert.Equal(count, codec.Read(encoded.AsSpan(0, stored), offset, output));
         if (count > 0) Assert.Equal(input.AsSpan(offset, count).ToArray(), output[..count]);
         Assert.All(output.Skip(count), b => Assert.Equal(0x77, b));
-        Assert.Equal(16384 + count, pool.MaxRequest); Assert.Equal(2, pool.Rents); Assert.Equal(pool.Rents, pool.Returns);
+        Assert.Equal(16384 + count, pool.MaxRequest); Assert.Equal(1, pool.Rents); Assert.Equal(pool.Rents, pool.Returns);
     }
 
     [Theory]
@@ -213,7 +195,7 @@ public sealed class WorkspacePayloadCodecTests
     [InlineData(int.MaxValue)]
     public void RechecksummedDamageAfterRequestedBytesNeverPublishesStagedPrefixOrLeaksScratch(int offset)
     {
-        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadCodec(scratchPool: pool);
+        var pool = new TrackingPool(); var codec = new BrotliWorkspacePayloadReader(scratchPool: pool);
         byte[] encoded = new byte[codec.GetMaxEncodedBytes(codec.MaxDecodedBytes)];
         int length = codec.Encode(new byte[codec.MaxDecodedBytes], encoded);
         byte[] invalid = encoded[..(length + 1)];
@@ -246,7 +228,7 @@ public sealed class WorkspacePayloadCodecTests
 
     // A separate literal format establishes the common API's content, bounds
     // and publish-on-success contract independently of Brotli or its header.
-    private sealed class LiteralFake(int maximum) : IWorkspacePayloadCodec
+    private sealed class LiteralFake(int maximum) : IWorkspacePayloadReader
     {
         public string CodecId => "test-literal-v1";
         public int MaxDecodedBytes => maximum;
@@ -254,13 +236,6 @@ public sealed class WorkspacePayloadCodecTests
         {
             if (decodedBytes < 0 || decodedBytes > maximum) throw new WorkspaceException("PayloadBlockLimit", "Bound.");
             return 36 + decodedBytes;
-        }
-        public int Encode(ReadOnlySpan<byte> decoded, Span<byte> destination)
-        {
-            int length = GetMaxEncodedBytes(decoded.Length);
-            if (destination.Length < length || decoded.Overlaps(destination)) throw new WorkspaceException("InvalidPayloadBuffer", "Buffer.");
-            BinaryPrimitives.WriteInt32LittleEndian(destination, decoded.Length); decoded.CopyTo(destination[4..]);
-            SHA256.HashData(destination[..(length - 32)], destination.Slice(length - 32, 32)); return length;
         }
         public int Read(ReadOnlySpan<byte> encoded, int offset, Span<byte> destination)
         {

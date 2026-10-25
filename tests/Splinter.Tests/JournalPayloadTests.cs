@@ -46,8 +46,7 @@ public sealed class JournalPayloadTests
         Assert.Single(observer.Events, x => x.Boundary == "commit.after-flush");
         Assert.All(observer.Events, x => Assert.Equal(input.Length, x.PayloadBytes));
         Assert.Equal(input.Length, store.ObservePrivateUsage().RetainedLogicalPayloadBytes);
-        Assert.Equal(compressible, after.PayloadBytes < input.Length);
-        if (!compressible) Assert.Equal(input.Length, after.PayloadBytes);
+        Assert.Equal(input.Length, after.PayloadBytes);
         byte[] actual = new byte[input.Length]; store.Read(file, 0, actual); Assert.Equal(input, actual);
         Assert.Equal(0, tree.ReadBytes);
     }
@@ -55,16 +54,13 @@ public sealed class JournalPayloadTests
     [Theory]
     [InlineData(111)] [InlineData(112)] [InlineData(113)] [InlineData(128)]
     [InlineData(4096)] [InlineData(65536)] [InlineData(1048576)]
-    public void JournalSavingDecisionAndSelectedBytesMatchStandaloneCodecIncludingThreshold(int size)
+    public void NewWritesAlwaysStoreRawAcrossFormerCompressionThresholds(int size)
     {
         using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree) with { MaxJournalBytes = 16 * 1024 * 1024, MaxTransferBytes = 1048576 };
-        var codec = new BrotliWorkspacePayloadCodec();
         foreach (int randomPrefix in new[] { 0, Math.Max(0, size - 160), size }.Distinct())
         {
             byte[] input = new byte[size]; new Random(1936).NextBytes(input.AsSpan(0, randomPrefix));
-            byte[] encoded = new byte[codec.GetMaxEncodedBytes(size)]; int length = codec.Encode(input, encoded);
-            bool compressed = size >= 112 && length <= size - 64;
             string child = Path.Combine(directory.Path, randomPrefix.ToString());
             using (var store = new JournalDeltaStore(child, identity, tree, optimizeJournal: false))
             {
@@ -77,13 +73,13 @@ public sealed class JournalPayloadTests
             int metadata = BinaryPrimitives.ReadInt32LittleEndian(frames.AsSpan(cursor + 4));
             int stored = BinaryPrimitives.ReadInt32LittleEndian(frames.AsSpan(cursor + 8));
             Assert.Equal(size, BinaryPrimitives.ReadInt32LittleEndian(frames.AsSpan(cursor + 12)));
-            Assert.Equal(compressed ? length : size, stored);
-            Assert.Equal(compressed ? encoded[..length] : input, frames.AsSpan(cursor + 16 + metadata, stored).ToArray());
+            Assert.Equal(size, stored);
+            Assert.Equal(input, frames.AsSpan(cursor + 16 + metadata, stored).ToArray());
         }
     }
 
     [Fact]
-    public void CompressedFragmentsSurvivePartialOverlapResizeRenameCandidateAndCompaction()
+    public void RawFragmentsSurvivePartialOverlapResizeRenameCandidateAndCompaction()
     {
         using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree); string delta = Path.Combine(directory.Path, "delta");
@@ -98,7 +94,7 @@ public sealed class JournalPayloadTests
             store.Rename(file.Id, "renamed", false);
             var garbage = store.Create("deleted", false, 32); store.Write(garbage.Id, 0, new byte[4096]); store.Delete(garbage.Id);
             var usage = store.ObservePrivateUsage(); Assert.True(usage.ObsoletePayloadBytes > 0);
-            Assert.True(usage.LivePrivateBytes > usage.LiveStoredPayloadBytes);
+            Assert.True(usage.LiveStoredPayloadBytes >= usage.LivePrivateBytes);
             sequence = store.Observe().DurableSequence;
             byte[] tiny = new byte[7]; store.Read(file.Id, 6550, tiny); Assert.Equal(expected[6550..6557], tiny);
         }
@@ -123,6 +119,7 @@ public sealed class JournalPayloadTests
         using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree(); var identity = Identity(tree);
         using (var store = new JournalDeltaStore(directory.Path, identity, tree, optimizeJournal: false))
             store.Write(store.Create("file", false, 32).Id, 0, new byte[65536]);
+        EncodedPayloadFixture.CompressExistingJournal(directory.Path);
         string journal = Path.Combine(directory.Path, "delta.journal"); byte[] bytes = File.ReadAllBytes(journal);
         int cursor = 0;
         int metadata = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(4));
@@ -166,6 +163,31 @@ public sealed class JournalPayloadTests
         Assert.Equal("OverlayFormatUnsupported", Assert.Throws<WorkspaceException>(() =>
             new JournalDeltaStore(directory.Path, Identity(tree), tree, optimizeJournal: false)).Code);
         Assert.Equal(saved, File.ReadAllText(identityPath)); Assert.False(File.Exists(Path.Combine(directory.Path, "delta.journal")));
+    }
+
+    [Fact]
+    public void ExistingEncodedStateCanBeReadModifiedWithRawWritesAndExported()
+    {
+        using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        string delta = Path.Combine(root.Path, "delta"); var identity = Identity(tree); Guid id;
+        byte[] expected = new byte[65536];
+        using (var writer = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
+        { id = writer.Create("file", false, 32).Id; writer.Write(id, 0, expected); }
+        EncodedPayloadFixture.CompressExistingJournal(delta);
+        using (var writer = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
+        {
+            byte[] part = new byte[17]; writer.Read(id, 53, part); Assert.Equal(new byte[17], part);
+            writer.Read(id, 71, part); Assert.True(writer.DecodedPayloadCache.Hits > 0);
+            long before = writer.Observe().PayloadBytes;
+            writer.WriteBatch([new(id, 123, Enumerable.Repeat((byte)7, 4096).ToArray()), new(id, 60000, new byte[] { 9 })]);
+            Array.Fill(expected, (byte)7, 123, 4096); expected[60000] = 9;
+            Assert.Equal(before + 4097, writer.Observe().PayloadBytes);
+        }
+        string destination = Path.Combine(root.Path, "candidate");
+        JournalDeltaStore.ExportCandidate(delta, identity, tree, destination, "encoded-preservation", []);
+        using var candidate = new CandidateSnapshotTree(destination, tree);
+        byte[] actual = new byte[expected.Length]; candidate.Read("file", 0, actual); Assert.Equal(expected, actual);
+        Assert.Equal(0, tree.ReadBytes);
     }
 
     private static OverlayIdentity Identity(ISnapshotTree tree) => new(2, "codec-journal", tree.Snapshot, 2 * 1024 * 1024, 65536);

@@ -46,7 +46,7 @@ internal sealed class JournalDecodedPayloadCache
     internal long Decodes { get; private set; }
     internal long Evictions { get; private set; }
 
-    internal int Read(BrotliWorkspacePayloadCodec codec, ReadOnlySpan<byte> encoded, int offset, Span<byte> output)
+    internal int Read(BrotliWorkspacePayloadReader codec, ReadOnlySpan<byte> encoded, int offset, Span<byte> output)
     {
         if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
         try
@@ -78,8 +78,8 @@ internal sealed class JournalDecodedPayloadCache
     // Comparisons, logical hashes and compaction visit the same bounded blocks
     // as reads. Reuse decoded RAM here too, but validate the currently read
     // encoded bytes before a hit and never expose an incomplete cache fill.
-    internal void Visit(BrotliWorkspacePayloadCodec codec, ReadOnlySpan<byte> encoded,
-        BrotliWorkspacePayloadCodec.DecodedChunkVisitor visit, ReadOnlySpan<byte> context = default)
+    internal void Visit(BrotliWorkspacePayloadReader codec, ReadOnlySpan<byte> encoded,
+        BrotliWorkspacePayloadReader.DecodedChunkVisitor visit, ReadOnlySpan<byte> context = default)
     {
         try
         {
@@ -103,7 +103,7 @@ internal sealed class JournalDecodedPayloadCache
         catch { Clear(); throw; }
     }
 
-    private byte[]? GetDecoded(BrotliWorkspacePayloadCodec codec, ReadOnlySpan<byte> encoded,
+    private byte[]? GetDecoded(BrotliWorkspacePayloadReader codec, ReadOnlySpan<byte> encoded,
         (int Decoded, int Stored, bool Compressed) block)
     {
         var key = Key.From(encoded, block.Decoded);

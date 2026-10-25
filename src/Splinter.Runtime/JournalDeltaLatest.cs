@@ -263,8 +263,7 @@ public sealed partial class JournalDeltaStore
             {
                 long id = next++;
                 if (next >= long.MaxValue / LatestBlockStride) throw new WorkspaceException("DeltaFull", "The bounded block address space is exhausted.");
-                byte[]? encoded = EncodePayload(data);
-                ReadOnlySpan<byte> bytes = encoded is null ? data : encoded;
+                ReadOnlySpan<byte> bytes = data;
                 var descriptor = new WorkspaceJournalPayload(bytes.Length, data.Length);
                 string name = LatestJournalStorage.BlockName(id);
                 if (latest.FileHash(name) is not null) throw LatestJournalStorage.Corrupt("A new private block already exists.");
@@ -431,7 +430,7 @@ public sealed partial class JournalDeltaStore
                 byte[] data = new byte[ranges.Sum(r => r.Length)]; int cursor = 0;
                 foreach (var range in ranges)
                 { ReadPayload(range.Physical, range.Payload, range.BlockOffset, data.AsSpan(cursor, range.Length)); cursor += range.Length; }
-                byte[]? encoded = EncodePayload(data); byte[] bytes = encoded ?? data;
+                byte[] bytes = data;
                 var payload = new WorkspaceJournalPayload(bytes.Length, data.Length);
                 long id = next++;
                 byte[] blockBytes = LatestJournalStorage.EncodeBlock(id, LatestJournalStorage.Hash(JsonSerializer.SerializeToUtf8Bytes(Identity)), bytes);

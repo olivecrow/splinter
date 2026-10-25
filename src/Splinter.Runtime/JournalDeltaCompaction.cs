@@ -15,7 +15,7 @@ public sealed partial class JournalDeltaStore
     private sealed record PayloadSlice(long Physical, long Logical, int Length,
         WorkspaceJournalPayload Payload, int BlockOffset = 0);
     private sealed record CompactionFrame(Mutation Mutation, byte[] Metadata, PayloadSlice[] Slices, int PayloadLength,
-        WorkspaceJournalPayload Payload, byte[]? Encoded = null, CompactionFrame? Fallback = null);
+        WorkspaceJournalPayload Payload, CompactionFrame? Fallback = null);
     private sealed record CompactionIntent(int Version, string WorkspaceId, string SnapshotId, string AttemptId,
         DateTimeOffset StartedAt, SnapshotDeltaSeal Before, string StateHash, string ExpectedStateHash,
         bool RevertBaseRanges, long BaseComparedBytes, long RevertedPayloadBytes, SnapshotDeltaSeal? Candidate = null,
@@ -579,22 +579,14 @@ public sealed partial class JournalDeltaStore
             if (revertBaseRanges) throw new WorkspaceException("OverlayMetadataLimit", "Preserve the source: base reversion produced too many fragments.");
             return original;
         }
-        byte[] decoded = ArrayPool<byte>.Shared.Rent(liveBytes);
-        byte[]? compressed;
-        try
-        {
-            VisitSlices(slices, (at, bytes, _) => bytes.CopyTo(decoded.AsSpan(at)));
-            compressed = EncodePayload(decoded.AsSpan(0, liveBytes));
-        }
-        finally { ArrayPool<byte>.Shared.Return(decoded); }
-        var nextPayload = new WorkspaceJournalPayload(compressed?.Length ?? liveBytes, liveBytes);
+        var nextPayload = new WorkspaceJournalPayload(liveBytes, liveBytes);
         if (!revertBaseRanges && encoded.Length + (long)nextPayload.StoredBytes >= metadata.Length + (long)descriptor.StoredBytes) return original;
-        return new(compacted, encoded, slices.ToArray(), liveBytes, nextPayload, compressed);
+        return new(compacted, encoded, slices.ToArray(), liveBytes, nextPayload);
     }
 
     private static long FrameBytes(CompactionFrame frame) => FrameHeaderBytes + (long)FrameChecksumBytes + frame.Metadata.Length + frame.Payload.StoredBytes;
 
-    private void VisitSlices(IReadOnlyList<PayloadSlice> slices, BrotliWorkspacePayloadCodec.DecodedChunkVisitor visit)
+    private void VisitSlices(IReadOnlyList<PayloadSlice> slices, BrotliWorkspacePayloadReader.DecodedChunkVisitor visit)
     {
         if (slices[0].Payload.Encoded)
         {
@@ -637,9 +629,7 @@ public sealed partial class JournalDeltaStore
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         output.Write(header); output.Write(frame.Metadata);
         hash.AppendData(header); hash.AppendData(frame.Metadata);
-        if (frame.Encoded is { } encoded)
-        { output.Write(encoded); hash.AppendData(encoded); }
-        else if (frame.Payload.Encoded)
+        if (frame.Payload.Encoded)
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent(65536);
             try

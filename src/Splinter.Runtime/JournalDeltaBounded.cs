@@ -318,6 +318,7 @@ public sealed partial class JournalDeltaStore
 
     private void CheckpointBounded(long nextFrameBytes)
     {
+        FlushPendingWrites();
         long checkpointStarted = Stopwatch.GetTimestamp();
         string directory = Path.GetDirectoryName(journal.Name)!, current = journal.Name;
         string candidate = Path.Combine(directory, BoundedNextName), previous = Path.Combine(directory, BoundedPreviousName);

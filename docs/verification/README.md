@@ -3,6 +3,8 @@
 
 [한국어](../ko/verification/README.md)
 
+[Raw writes and shared flush](raw-write-batching.md) owns RW-01–05: compression-writer retirement, retained current-format encoded reads, ordered durable SJR2 batches, concurrent WinFsp admission, regression tests and bounded component/native evidence. Earlier compression and individual physical-flush requirements are superseded; historical figures below remain unchanged. This is not a new Unity lifecycle or power-loss qualification.
+
 > Current modes are `git-snapshot`, `plastic-snapshot`, and `project-snapshot`. The [VSS retirement decision](../plans/vss-retirement.md) supersedes earlier VSS service/installation/reclamation follow-ups. Existing IDs, figures and input-specific qualification below remain historical records and do not authorize resuming VSS execution.
 
 [VSS retirement verification](vss-retirement.md) owns VT-01–04: execution-path removal, byte-preserving legacy refusal, retained automated coverage and bilingual document checks. It does not add live VSS/Unity qualification.

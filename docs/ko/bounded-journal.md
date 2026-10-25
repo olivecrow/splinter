@@ -2,7 +2,9 @@
 
 [English](../bounded-journal.md)
 
-새 일반 Windows workspace provider는 제한된 SJR2 저널을 사용한다. 각 mutation은 checksum이 있는 raw/Brotli frame을 추가하고 성공 반환 전에 개별 디스크 flush를 수행한다. 매 mutation의 object 게시·회수 대신 현재 상태 체크포인트를 사용한다. 원본 파일은 작업공간의 불변 입력으로 유지하며 초기 payload 복사·읽기 hydration·파일 전체 copy-up을 추가하지 않는다.
+[DF-01–05](verification/durable-flush-throughput.md)에서 개별 쓰기 I/O 대안과 RAM 준비 후보를 평가했다. 동등한 내구성을 유지하면서 큰 절감 기준을 충족한 후보가 없어 시제품을 제거했다. 이후 사용자 지시의 raw/묶음 flush 변경은 [RW](verification/raw-write-batching.md)가 소유한다.
+
+새 일반 Windows workspace provider는 제한된 SJR2 저널을 사용한다. 각 mutation은 checksum이 있는 raw frame을 추가하며 크기가 제한된 묶음은 하나의 영속 flush를 공유하고 완료 뒤 성공한다. 현재 정책은 [raw 쓰기와 묶음 flush](raw-write-batching.md)다. 매 mutation의 object 게시·회수 대신 현재 상태 체크포인트를 사용한다. 원본 파일은 작업공간의 불변 입력으로 유지하며 초기 payload 복사·읽기 hydration·파일 전체 copy-up을 추가하지 않는다.
 
 ## 선택과 한계
 
@@ -22,7 +24,7 @@ writer는 세대 교체 동안 수명 guard를 유지한다. 저널 gate 안에�
 2. identity에 묶인 checkpoint intent를 flush하고 private 범위만으로 새 상태를 쓴다. 각 frame의 checksum과 payload 증명을 유지한다.
 3. 후보를 flush하고 독립 replay로 전체 논리 상태를 검증한 뒤 양쪽 generation seal을 durable 기록한다.
 4. 같은 볼륨에서 이전 generation을 남기며 current를 원자 교체한다. 다시 열어 게시된 상태를 증명한 뒤 live extent 위치를 바꾼다.
-5. 이전 generation을 검증·회수하고 intent를 제거한 뒤 다음 mutation을 허용한다. 이후 mutation도 각각 durable flush와 ACK를 수행한다.
+5. 이전 generation을 검증·회수하고 intent를 제거한 뒤 다음 mutation을 허용한다. 이후 mutation은 제한된 묶음 flush를 공유할 수 있으며 ACK는 영속 완료 뒤 반환한다.
 
 게시 중단은 같은 identity와 정확한 generation 증명으로만 복구한다. 손상·owner 변경·불명확한 세대·unknown 파일은 보존·거부한다. 불확실한 writer는 새 검증 연결까지 poison 상태다. 초기화도 별도의 flush된 intent를 사용하며 미완료 생성이 다른 형식으로 바뀌지 않는다.
 

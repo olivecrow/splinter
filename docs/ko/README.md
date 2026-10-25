@@ -14,6 +14,8 @@
 
 | 문서 | 소유하는 내용 |
 | --- | --- |
+| [Raw 쓰기와 묶음 영속 flush](raw-write-batching.md), [범위](plans/raw-write-batching.md), [검증](verification/raw-write-batching.md) | RW-01–05: 압축 writer 폐기·현재 압축 reader 보존·순서 보장 SJR2 묶음 flush와 직렬화 전 WinFsp 요청 수집. 영속 완료 뒤 성공하며 조기 ACK 없음. |
+| [영속 flush/종료 실험](plans/durable-flush-throughput.md), [검증](verification/durable-flush-throughput.md) | DF-01–05: 개별 쓰기 I/O 대안과 bounded checkpoint RAM 후보를 평가했으나 큰 절감 기준을 충족하지 못해 제품 변경 없음. 빠른 write-through-only 결과는 동등 내구성 근거가 아님. |
 | [작업공간 생성 처리량](plans/workspace-creation-throughput.md), [검증](verification/workspace-creation-throughput.md) | Git 작업공간 하나의 생성: 제한 proof window 재사용과 종료를 함께 기다리는 최초 선행 읽기. 같은 입력의 Editor 없는 비교이며 전체 blob 증명·필수 index refresh·lock·폐기 보호 유지. |
 | [단일 작업공간 수명주기 처리 시간](plans/lifecycle-throughput.md), [구성 요소 검증](verification/lifecycle-throughput.md), [실제 Unity LU-01](verification/unity-single-lifecycle.md) | Library capture/admission/변경 없는 복원 병렬화. 동일 입력 단일 수명주기 359.5 → 300.0초; 준비·복원 50.6초 절감, Editor 시작 편차. 명시적 폐기와 양쪽 공통 bounded 폐기 수정이며 원본 반영은 미측정. |
 | [VSS 폐기 결정](plans/vss-retirement.md), [검증](verification/vss-retirement.md) | 프로젝트/볼륨 범위 불일치와 회수 제약. 세 프로젝트 기준본 유지, VSS 서비스·진입점 제거, 구형 상태 보존·거부. |
@@ -66,7 +68,7 @@
 | [작은 Unity 동일 쓰기 공간 비교](verification/unity-duplicate-private-writes.md) | 고정 Runtime의 warm 편집/재개·Library/저널 분류·실제 파일 할당·동일 독립 결과와 회수·작은 관측 차이의 한계 |
 | [부분 쓰기·버퍼·시작 개선](verification/resource-efficiency-followup.md) | private 덮어쓰기의 일치 앞뒤 재사용·요청 크기 버퍼·시작/소스 검증 분리와 고정 입력·로컬 Unity 자격 |
 | [Library payload 압축 후보 선정](verification/library-block-compression-feasibility.md) | UH 비용 재계산·현재 Bee 4개 입력의 읽기 전용 block 모델/복원·다음 codec 범위 선정. 실제 저널/물리 절감 미자격 |
-| [범위 payload codec](workspace-payload-codec.md), [검증](verification/workspace-payload-codec.md) | 공통 block API·raw/Brotli binary 표현·손상 거부·부분 읽기와 bounded buffer. 현재 [journal 연결](journal-payload-compression.md)의 block 부품; standalone 표본과 제품 자격을 구분 |
+| [현재 압축 payload reader](workspace-payload-codec.md), [과거 검증](verification/workspace-payload-codec.md) | 현재 압축 block 읽기·손상 거부·bounded 부분 읽기. Encoder는 폐기했고 새 쓰기는 RW raw 정책이다. |
 | [소스 검증](source-verification.md) | 변경 경로·hash cache·status freshness·현재 계측 형식 |
 | [불변 소스 후보와 고정 view](source-view.md) | 개발용 후보 게시·같은 요청 중단 복구·검증된 Git 포인터 분리·고정 view·공통 Library |
 | [개발용 소스 view 수명주기](view-workflow.md) | 개발 CLI의 view·snapshot Library·정지 cache 정리·독립 결과·회수 의존성. Unity 검증은 외부 도구 책임 |
@@ -82,7 +84,7 @@
 | [최소 AI 작업 연결 검증](verification/agent-workflow.md) | source skill 직접 사용·반환 경로 편집·새 CLI 재개·direct/명시적 폐기 한정 실행 |
 | [대표 AI A/B 사용·비용 검증](verification/representative-agent-workflow.md) | 독립 Editor의 오류/수정·동일 작업 재개·보존/통합/release와 실패 작업 discard·단계별 파일 할당/시간·재시도 제한 |
 | [한정 M0 납품 판정](verification/m0-delivery.md) | 현재 복구 회귀·기존 native 소스 대조와 재사용 한계·실제 시작 명령 확인·한정 완료와 지원 확대의 구분 |
-| [압축 저널](journal-payload-compression.md), [범위](plans/journal-payload-compression.md), [검증](verification/journal-payload-compression.md) | 저장/복원 길이·논리 fragment·SJR2/overlay v2/candidate v3·정리/복구·실제 A/B와 파일 할당의 한정 연결 |
+| [Raw 쓰기 / 기존 압축 payload](journal-payload-compression.md), [과거 범위](plans/journal-payload-compression.md), [과거 검증](verification/journal-payload-compression.md) | 새 payload는 raw이며 기존 압축 길이/fragment·현재 형식의 복구를 보존한다. JP는 과거 압축 근거다. |
 | [상태 쓰기 진단 검증](verification/state-write-diagnostics.md) | workspace 저장 단계·게시 완료 여부·실제 파일 잠금과 기계용 오류 계약의 자격 |
 | [저널 기본값 저장 범위](plans/journal-metadata-storage.md), [검증](verification/journal-metadata-storage.md) | 현재 SJR2 기본값 생략·명시적 정리/후보의 더 작은 메타데이터 선택·고정 실제 저널의 오프라인 NTFS 할당과 추가 비용. 새 native 수명주기 자격은 구분 |
 | [물리 저장 단계 최종 범위](plans/physical-storage-completion.md), [검증](verification/physical-storage-completion.md) | 현재 SJR2 장부·정확한 task 파일 할당·최종 제품 A/B·정리/독립 결과/회수와 물리 저장 단계의 종료 경계 |

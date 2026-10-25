@@ -6,7 +6,7 @@ namespace Splinter.Runtime;
 // An offline-selected source generation and a separately owned persistent cache.
 // The two journals are exclusive writers. A selection change requires disposal
 // of the entire mounted view; live handle rebinding is deliberately unsupported.
-public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore
+public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore, IWorkspaceWriteBatch
 {
     private readonly object gate = new();
     private readonly CandidateSnapshotTree candidate;
@@ -132,6 +132,23 @@ public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore
     { lock (gate) { var owner = ForPath(path); return Remember(owner.Create(path, directory, attributes), owner); } }
     public int Read(Guid id, long offset, Span<byte> destination) { lock (gate) return ForId(id).Read(id, offset, destination); }
     public void Write(Guid id, long offset, ReadOnlySpan<byte> data) { lock (gate) ForId(id).Write(id, offset, data); }
+    public void WriteBatch(IReadOnlyList<WorkspaceRangeWrite> writes)
+    {
+        lock (gate)
+        {
+            CheckTransfer(); JournalDeltaStore.ValidateWriteBatch(writes);
+            // Resolve all identities before mutating either partition. Distinct
+            // journals cannot share one physical flush; preserve request order.
+            var owners = writes.Select(w => ForId(w.Id)).ToArray();
+            for (int first = 0; first < writes.Count;)
+            {
+                int end = first + 1;
+                while (end < writes.Count && owners[end] == owners[first]) end++;
+                owners[first].WriteBatch(writes.Skip(first).Take(end - first).ToArray());
+                first = end;
+            }
+        }
+    }
     public void SetLength(Guid id, long length) { lock (gate) ForId(id).SetLength(id, length); }
     public void SetMetadata(Guid id, uint attributes, long creationTime, long accessTime, long writeTime)
     { lock (gate) ForId(id).SetMetadata(id, attributes, creationTime, accessTime, writeTime); }

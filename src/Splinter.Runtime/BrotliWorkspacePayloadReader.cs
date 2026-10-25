@@ -6,8 +6,8 @@ using Splinter.Core;
 
 namespace Splinter.Runtime;
 
-// An independent block codec used by the bounded journal payload caller.
-public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
+// Reads existing current-format blocks. New journal writes never compress.
+public sealed class BrotliWorkspacePayloadReader : IWorkspacePayloadReader
 {
     internal delegate void DecodedChunkVisitor(int offset, ReadOnlySpan<byte> chunk, ReadOnlySpan<byte> context);
     public const int MaximumBlockBytes = 1024 * 1024;
@@ -18,7 +18,7 @@ public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
     public string CodecId => "splinter-range-brotli-v1";
     public int MaxDecodedBytes { get; }
 
-    public BrotliWorkspacePayloadCodec(int maxDecodedBytes = MaximumBlockBytes, ArrayPool<byte>? scratchPool = null)
+    public BrotliWorkspacePayloadReader(int maxDecodedBytes = MaximumBlockBytes, ArrayPool<byte>? scratchPool = null)
     {
         if (maxDecodedBytes is < 1 or > MaximumBlockBytes)
             throw new ArgumentOutOfRangeException(nameof(maxDecodedBytes));
@@ -31,61 +31,6 @@ public sealed class BrotliWorkspacePayloadCodec : IWorkspacePayloadCodec
         if (decodedBytes < 0 || decodedBytes > MaxDecodedBytes)
             throw new WorkspaceException("PayloadBlockLimit", "One decoded range exceeds the codec bound.");
         return BlockOverheadBytes + decodedBytes;
-    }
-
-    public int Encode(ReadOnlySpan<byte> decoded, Span<byte> destination)
-    {
-        int maximum = GetMaxEncodedBytes(decoded.Length);
-        if (destination.Length < maximum)
-            throw new WorkspaceException("PayloadBufferTooSmall", "Provide capacity for the bounded raw representation.");
-        RequireSeparate(decoded, destination);
-        Span<byte> payload = destination.Slice(PrefixBytes, decoded.Length);
-        int stored = decoded.Length;
-        bool compressed = false;
-        if (decoded.Length > MinimumPayloadSavingBytes)
-        {
-            byte[] scratch = scratchPool.Rent(decoded.Length);
-            try
-            {
-                compressed = BrotliEncoder.TryCompress(decoded, scratch.AsSpan(0, decoded.Length), out stored, quality: 1, window: 22) &&
-                    stored <= decoded.Length - MinimumPayloadSavingBytes;
-                if (compressed) scratch.AsSpan(0, stored).CopyTo(payload);
-            }
-            finally { scratchPool.Return(scratch); }
-        }
-        if (!compressed) { decoded.CopyTo(payload); stored = decoded.Length; }
-        return CompleteBlock(destination, decoded.Length, stored, compressed);
-    }
-
-    // The journal keeps raw bytes bare. Rent only enough compressed capacity
-    // to meet its full-block saving threshold, then allocate the selected result.
-    internal byte[]? EncodeJournalPayload(ReadOnlySpan<byte> decoded)
-    {
-        GetMaxEncodedBytes(decoded.Length);
-        int capacity = decoded.Length - BlockOverheadBytes - MinimumPayloadSavingBytes;
-        if (capacity <= 0) return null;
-        byte[] scratch = scratchPool.Rent(capacity);
-        try
-        {
-            if (!BrotliEncoder.TryCompress(decoded, scratch.AsSpan(0, capacity), out int stored, quality: 1, window: 22))
-                return null;
-            byte[] result = new byte[BlockOverheadBytes + stored];
-            scratch.AsSpan(0, stored).CopyTo(result.AsSpan(PrefixBytes));
-            CompleteBlock(result, decoded.Length, stored, true);
-            return result;
-        }
-        finally { scratchPool.Return(scratch); }
-    }
-
-    private static int CompleteBlock(Span<byte> destination, int decoded, int stored, bool compressed)
-    {
-        Span<byte> prefix = destination[..PrefixBytes];
-        prefix.Clear(); "SPB1"u8.CopyTo(prefix);
-        BinaryPrimitives.WriteInt32LittleEndian(prefix[4..], decoded);
-        BinaryPrimitives.WriteInt32LittleEndian(prefix[8..], stored);
-        prefix[12] = compressed ? (byte)1 : (byte)0;
-        SHA256.HashData(destination[..(PrefixBytes + stored)], destination.Slice(PrefixBytes + stored, ChecksumBytes));
-        return BlockOverheadBytes + stored;
     }
 
     public int Read(ReadOnlySpan<byte> encoded, int offset, Span<byte> destination)

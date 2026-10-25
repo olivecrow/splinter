@@ -17,8 +17,7 @@ public sealed partial class JournalDeltaStore
         {
             byte[] metadata = JsonSerializer.SerializeToUtf8Bytes(mutation);
             if (metadata.Length > MaxMetadataBytes) throw new WorkspaceException("OverlayMetadataLimit", "Current-state metadata exceeds its frame bound.");
-            byte[]? encoded = EncodePayload(data);
-            ReadOnlySpan<byte> stored = encoded is null ? data : encoded;
+            ReadOnlySpan<byte> stored = data;
             var descriptor = new WorkspaceJournalPayload(stored.Length, data.Length);
             long length = FrameHeaderBytes + (long)metadata.Length + stored.Length + FrameChecksumBytes;
             bytes = checked(bytes + length);

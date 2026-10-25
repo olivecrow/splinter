@@ -344,19 +344,19 @@ public sealed class ContractAndCliTests
             var retiredProbe = JsonNode.Parse(response.RootElement.GetRawText())!;
             retiredProbe["data"]!["developmentStructuralThroughputProbes"]!["bee"] = "retired-native-bee";
             Assert.False(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(retiredProbe)).IsValid);
-            var codec = data.GetProperty("developmentPayloadCodec");
+            var codec = data.GetProperty("developmentPayloadReader");
             Assert.Equal("workspace-internal-alpha", codec.GetProperty("stage").GetString());
             Assert.Equal("docs/journal-payload-compression.md", codec.GetProperty("specification").GetString());
-            Assert.Equal(new Splinter.Runtime.BrotliWorkspacePayloadCodec().CodecId, codec.GetProperty("codec").GetString());
-            Assert.Equal(Splinter.Runtime.BrotliWorkspacePayloadCodec.MaximumBlockBytes, codec.GetProperty("maxDecodedBytes").GetInt32());
-            Assert.Equal(Splinter.Runtime.BrotliWorkspacePayloadCodec.BlockOverheadBytes, codec.GetProperty("blockOverheadBytes").GetInt32());
+            Assert.Equal(new Splinter.Runtime.BrotliWorkspacePayloadReader().CodecId, codec.GetProperty("codec").GetString());
+            Assert.Equal(Splinter.Runtime.BrotliWorkspacePayloadReader.MaximumBlockBytes, codec.GetProperty("maxDecodedBytes").GetInt32());
+            Assert.Equal(Splinter.Runtime.BrotliWorkspacePayloadReader.BlockOverheadBytes, codec.GetProperty("blockOverheadBytes").GetInt32());
             var unsupported = JsonNode.Parse(response.RootElement.GetRawText())!;
-            unsupported["data"]!["developmentPayloadCodec"]!["stage"] = "standalone-unqualified";
+            unsupported["data"]!["developmentPayloadReader"]!["stage"] = "standalone-unqualified";
             Assert.False(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(unsupported)).IsValid);
         }
         else
         {
-            Assert.True(!data.TryGetProperty("developmentPayloadCodec", out var hidden) || hidden.ValueKind == JsonValueKind.Null);
+            Assert.True(!data.TryGetProperty("developmentPayloadReader", out var hidden) || hidden.ValueKind == JsonValueKind.Null);
             Assert.True(!data.TryGetProperty("developmentStructuralThroughputProbes", out var probes) || probes.ValueKind == JsonValueKind.Null);
         }
         Assert.DoesNotContain(catalog.Commands, command => command.Id.Contains("codec", StringComparison.Ordinal));

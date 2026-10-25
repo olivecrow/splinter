@@ -11,7 +11,7 @@ using VolumeInfo = Fsp.Interop.VolumeInfo;
 
 namespace Splinter.Platform.Windows;
 
-public sealed class WinFspOverlayFileSystem : FileSystemBase
+public sealed partial class WinFspOverlayFileSystem : FileSystemBase
 {
     private readonly IWorkspaceDeltaStore store;
     private readonly byte[] security;
@@ -172,30 +172,14 @@ public sealed class WinFspOverlayFileSystem : FileSystemBase
     public override int Write(object fileNode, object fileDesc, IntPtr buffer, ulong offset, uint length,
         bool writeToEndOfFile, bool constrainedIo, out uint bytesTransferred, out FileInfo fileInfo)
     {
-        lock (mutationGate)
-        {
-            Guid id = (Guid)fileNode; var entry = store.Get(id); bytesTransferred = 0;
-            if (writeToEndOfFile) offset = (ulong)entry.Length;
-            if (constrainedIo) length = offset >= (ulong)entry.Length ? 0 : (uint)Math.Min(length, (ulong)entry.Length - offset);
-            Visit("callback.before-effect", "write", entry.Path, length, 0);
-            byte[] data = ArrayPool<byte>.Shared.Rent((int)Math.Min(Math.Max(length, 1u), (uint)store.Identity.MaxTransferBytes));
-            try
-            {
-                while (bytesTransferred < length)
-                {
-                    int count = (int)Math.Min(length - bytesTransferred, (uint)store.Identity.MaxTransferBytes);
-                    Marshal.Copy(IntPtr.Add(buffer, checked((int)bytesTransferred)), data, 0, count);
-                    store.Write(id, checked((long)(offset + bytesTransferred)), data.AsSpan(0, count)); bytesTransferred += (uint)count;
-                }
-                fileInfo = Info(id);
-                Visit("callback.after-effect", "write", entry.Path, length, bytesTransferred);
-                return STATUS_SUCCESS;
-            }
-            finally { ArrayPool<byte>.Shared.Return(data); }
-        }
+        var request = new PendingWrite((Guid)fileNode, buffer, offset, length, writeToEndOfFile, constrainedIo);
+        SubmitWrite(request);
+        bytesTransferred = request.Written; fileInfo = request.Info;
+        return STATUS_SUCCESS;
     }
     public override int Flush(object fileNode, object fileDesc, out FileInfo fileInfo)
     {
+        DrainAcceptedWrites();
         string path = mutationObserver is not null && fileNode is Guid node ? store.Get(node).Path : "";
         Visit("callback.before-effect", "flush", path, 0, 0);
         store.Flush(); fileInfo = fileNode is Guid id ? Info(id) : default;

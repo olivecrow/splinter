@@ -718,8 +718,6 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             {
                 if (readOnly) throw new WorkspaceException("CandidateReadOnly", "A published candidate cannot be edited.");
                 RequireMutationCapacity(mutation);
-                byte[]? encodedPayload = EncodePayload(payload);
-                storedPayload = encodedPayload is null ? payload : encodedPayload;
                 descriptor = new WorkspaceJournalPayload(storedPayload.Length, payload.Length);
                 metadata = JsonSerializer.SerializeToUtf8Bytes(mutation);
                 if (metadata.Length > MaxMetadataBytes) throw new WorkspaceException("OverlayMetadataLimit", "Mutation metadata exceeds the transaction limit.");
@@ -759,29 +757,37 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     Visit("commit.after-checksum", mutation.Operation, mutation.Sequence, start, required, payload.Length);
                 }
                 finally { cost.AppendTicks += Stopwatch.GetTimestamp() - stage; }
-                long beforeFlush = flushTicks;
-                SampleWaitingMutations(cost, cost.WaitingAtStart); cost.FlushCalls++;
-                try
+                if (pendingWriteBatch is null)
                 {
-                    Visit("commit.before-flush", mutation.Operation, mutation.Sequence, start, required, payload.Length);
-                    DurableFlush();
-                    Visit("commit.after-flush", mutation.Operation, mutation.Sequence, start, required, payload.Length);
-                }
-                finally
-                {
-                    cost.FlushTicks += flushTicks - beforeFlush;
-                    SampleWaitingMutations(cost, cost.WaitingAtEnd);
+                    long beforeFlush = flushTicks;
+                    SampleWaitingMutations(cost, cost.WaitingAtStart); cost.FlushCalls++;
+                    try
+                    {
+                        Visit("commit.before-flush", mutation.Operation, mutation.Sequence, start, required, payload.Length);
+                        DurableFlush();
+                        Visit("commit.after-flush", mutation.Operation, mutation.Sequence, start, required, payload.Length);
+                    }
+                    finally
+                    {
+                        cost.FlushTicks += flushTicks - beforeFlush;
+                        SampleWaitingMutations(cost, cost.WaitingAtEnd);
+                    }
                 }
             }
             catch { Poison(); throw; }
             expectedJournalBytes = journal.Length;
             if (boundedSettings is not null) boundedFrames++;
-            commitCount++; appendedBytes += required;
-            cost.DurableCommits++; cost.PayloadBytes += payload.Length; cost.JournalBytes += required;
+            if (pendingWriteBatch is null)
+            {
+                commitCount++; appendedBytes += required;
+                cost.DurableCommits++; cost.PayloadBytes += payload.Length; cost.JournalBytes += required;
+            }
+            else pendingWriteBatch.Add(new(mutation, start, required, payload.Length, cost));
             stage = Stopwatch.GetTimestamp();
             try { Apply(mutation, start + FrameHeaderBytes + metadata.Length, descriptor); }
+            catch { if (pendingWriteBatch is not null) Poison(); throw; }
             finally { cost.ApplyTicks += Stopwatch.GetTimestamp() - stage; }
-            Visit("commit.after-apply", mutation.Operation, mutation.Sequence, start, required, payload.Length);
+            if (pendingWriteBatch is null) Visit("commit.after-apply", mutation.Operation, mutation.Sequence, start, required, payload.Length);
         }
         catch { cost.FailedCalls++; throw; }
         finally { cost.TotalTicks += Stopwatch.GetTimestamp() - started; }

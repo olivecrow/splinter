@@ -90,12 +90,12 @@ public sealed class FoundationGateway(
             scope = "docs/plans/structural-throughput-prototypes.md",
             boundaries = "explicit-new-fixture-only; no-original-project-mutation; no-automatic-Editor-or-service-operation; no-whole-Unity-speed-qualification"
         } : null,
-        developmentPayloadCodec = development ? new { stage = "workspace-internal-alpha",
-            contract = "IWorkspacePayloadCodec", codec = "splinter-range-brotli-v1",
+        developmentPayloadReader = development ? new { stage = "workspace-internal-alpha",
+            contract = "IWorkspacePayloadReader", codec = "splinter-range-brotli-v1",
             maxDecodedBytes = 1048576, blockOverheadBytes = 48,
-            scope = "bounded journal v2 payload; raw or Brotli quality 1; complete block validation before partial read; no codec command; overlay v2/candidate v3",
+            scope = "current-format encoded payload reader only; new writes raw; complete block validation before partial read; no encoder or codec command; overlay v2/candidate v3",
             specification = "docs/journal-payload-compression.md",
-            qualification = "docs/verification/journal-payload-compression.md; one fixed small T: Plastic A/B and exact journal allocation comparison; not whole-workspace savings or general support" } : null,
+            qualification = "docs/verification/raw-write-batching.md; current encoded-read preservation and raw writes; no inherited Unity or power-loss qualification" } : null,
         snapshotOverlay = new
         {
             stage = "workspace-internal-alpha",
@@ -105,7 +105,7 @@ public sealed class FoundationGateway(
             snapshotReleaseIsolation = "owned-basis-reference-and-reader-dependency-guards",
             snapshotReclamation = "explicit-owned-reference-reclamation; independent-results-and-peer-protection; no-background-sweep",
             snapshotReadAccess = "verified-location-separate-from-immutable-delta-identity",
-            deltaStore = "bounded-checksummed-range-journal-v2; raw-or-brotli; new-provider-default-bounded-SJR2-16MiB-or-4096-frame-suffix-with-individual-durable-flush; retained-explicit-SJL4-or-append; atomic-current-state-checkpoint-and-same-request-recovery",
+            deltaStore = "bounded-checksummed-range-journal-v2; raw-writes; current-encoded-reads; new-provider-default-bounded-SJR2-16MiB-or-4096-frame-suffix-with-bounded-group-flush-and-durable-ACK; retained-explicit-SJL4-or-append; atomic-current-state-checkpoint-and-same-request-recovery",
             resultCollection = SnapshotResult.StableJournalProtocol,
             requestSchema = "urn:splinter:v1:overlay-serve-request",
             observationSchema = "urn:splinter:v1:overlay-observation",

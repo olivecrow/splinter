@@ -56,7 +56,7 @@ Runtime의 파일 잠금은 workspace ID별 명령을 직렬화하며 프로젝�
 
 workspace 상태와 Windows 제어 IPC는 같은 디렉터리에 flush한 임시 파일을 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader의 delete sharing, 한정 공유 오류 재시도, unknown/손상/소유권 오류 보존은 [NTFS 계약](ntfs-workspaces.md)을 따른다. 상태 쓰기 실패 단계/HResult·게시 완료 여부는 [진단 계약](verification/state-write-diagnostics.md)에 있다.
 
-[현재 압축 저널](journal-payload-compression.md)은 overlay v2, 새 일반 Windows provider의 [기본 bounded SJR2](bounded-journal.md), 명시적 OFF SJR2·candidate v3의 raw/Brotli 범위를 사용한다. Bounded는 개별 flush한 16MiB/4,096-frame suffix를 유지하고 한도에서 현재 private 상태를 원자적으로 게시하며 별도 자격은 [BL](verification/bounded-journal.md)이 소유한다. [최적화 ON](latest-only-journal.md)은 SJL4/root v4 capsule로 현재 private payload·metadata만 유지하며 mutation마다 한 durable flush·게시·이전 payload/metadata 회수 뒤 성공을 반환한다. 실제 제품 연결 자격은 [JP](verification/journal-payload-compression.md), 내부 buffer와 비용/회수는 [ME](verification/memory-completion.md), 새 현재본 표현은 [LJ](verification/latest-journal-write-optimization.md)로 구분한다. 압축 준비는 scratch 하나와 선택 결과 배열을 사용하며 작은/빈 compressed read는 chunk와 요청분 staging으로 전체 stream 검증 뒤 게시한다. 범위 저널은 승인 쓰기의 개별 durable flush·전후/unmount seal을 유지한다. 동일 private 바이트와 일치 앞뒤의 작은 변경 범위를 재사용하며 최초 전체 복제·읽기 hydration·전체 파일 copy-up fallback은 없다. source fingerprint cache는 snapshot/provider 세대·변경 이력에 묶이고 초기/감사/재연결은 전체 내용을 확인한다. [소스 검증](source-verification.md)은 저장 내용 검사이며 프로젝트 합격 판정이 아니다.
+[Raw 쓰기 계약](raw-write-batching.md)은 제품 압축 writer를 모두 폐기하고 기존 현재 형식 payload의 검증 reader를 유지한다. Overlay v2·SJR2·SJL4·candidate v3는 유지한다. `IWorkspaceWriteBatch`는 크기가 제한된 순서 보장 SJR2 쓰기에 flush를 공유하고 영속 완료 뒤 성공한다. WinFsp는 mutation gate 전에 대기 쓰기를 모은다. 단일 쓰기와 SJL4 capsule 게시 경계는 유지한다. Checksum·checkpoint 증명·source/result/unmount seal·최초 전체 복제/읽기 hydration/전체 파일 copy-up 금지·원본/peer 보호를 유지한다. 현재 변경은 [RW 검증](verification/raw-write-batching.md)이 소유하며 JP/ME/LJ는 이전 한정 근거다.
 
 private Mutation의 기본값 JSON은 생략하고 명시적 정리/후보에서는 더 작은 현재 메타데이터를 선택한다. 입력/응답·SJR2 의미를 바꾸거나 저장된 저널을 읽기 중 변환하지 않는다. 실제 Unity 저널의 오프라인 파일 할당과 새 후보 native 실행의 구분은 [JM 검증](verification/journal-metadata-storage.md)을 따른다.
 
@@ -113,7 +113,7 @@ locked restore·Release·자동 계약/fake/Git/Windows 회귀를 수행한다. 
 
 외부 복구·성능 계측·보존한 계측의 복구 진입점과 자식 전용 `Child`·`ChildWriter`·`ChildProvider`·`ChildClient`·`ChildReader`·`ClientActor`·`ChildEnsure`는 지정된 실행 환경 변수가 없으면 Skipped다. 해당 스크립트나 부모 시험이 환경 변수를 전달할 때 같은 진입점이 실행된다. 기본 자동 실행에서도 부모 시험이 호출하는 합성 저널·준비 중단 회귀는 실행하며, 외부 kernel·제품 쓰기 복구의 실행 자격과 구분한다. 동작·metadata·guard 시험에는 작은 입력을 쓰고, 큰 파일 재사용·chunk 경계·저장 비용을 검증하는 시험에서만 필요한 큰 입력을 명시한다.
 
-Windows 전용 파일 공유·native 계약 시험은 다른 OS에서 Skipped다. 단독 고정 응답·오류 매핑·계측 시험이 같은 동작을 반복하면 실제 생성·재개·거부·재생 시험에 고유 assertion을 합친다. 변경 없는 중간 부모 아래의 rename·요청 digest·개별 durable flush·원본/독립 결과 보호처럼 회귀를 막는 검증은 함께 유지한다.
+Windows 전용 파일 공유·native 계약 시험은 다른 OS에서 Skipped다. 단독 고정 응답·오류 매핑·계측 시험이 같은 동작을 반복하면 실제 생성·재개·거부·재생 시험에 고유 assertion을 합친다. 변경 없는 중간 부모 아래의 rename·요청 digest·단일/공유 flush 뒤 영속 ACK·원본/독립 결과 보호처럼 회귀를 막는 검증은 함께 유지한다.
 
 ### 실제 저장소의 Git 수명주기 시험
 

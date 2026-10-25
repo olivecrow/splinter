@@ -43,14 +43,14 @@ public sealed class JournalOptimizationTests
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
-    public void MaximumCompressedBlockAndItsFragmentsSurviveCompactionWithoutChunkRereads(bool fragmented)
+    public void MaximumRawBlockAndItsFragmentsSurviveCompactionWithoutChunkRereads(bool fragmented)
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "stream-compaction", tree.Snapshot, 4_000_000, 1024 * 1024);
-        byte[] expected = new byte[1024 * 1024]; long firstPayload, payload, frameCount; Guid id;
+        byte[] expected = new byte[1024 * 1024]; long payload, frameCount; Guid id;
         using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
-            id = store.Create("file", false, 32).Id; store.Write(id, 0, expected); firstPayload = store.Observe().PayloadBytes;
+            id = store.Create("file", false, 32).Id; store.Write(id, 0, expected);
             if (fragmented)
             {
                 new Random(527).NextBytes(expected.AsSpan(200000, 600000));
@@ -61,10 +61,10 @@ public sealed class JournalOptimizationTests
         var receipt = JournalDeltaStore.CompactDirectory(root.Path, identity, tree);
         var costs = receipt.Cost!.Stages;
         // Each extent is streamed once; fragments can share a stored block.
-        Assert.Equal(payload + (fragmented ? firstPayload : 0), Assert.Single(costs, c => c.Stage == "before-state-hash").ReadBytes);
-        // Frame metadata is scanned once; all slices of a partial encoded frame
-        // share one decode, rather than one full decode per fragment/chunk.
-        Assert.Equal(receipt.Before.JournalBytes - 32 * frameCount - payload + (fragmented ? firstPayload : 0),
+        Assert.Equal(expected.Length, Assert.Single(costs, c => c.Stage == "before-state-hash").ReadBytes);
+        // Frame metadata is scanned once; raw partial ranges
+        // are streamed without a compression preparation pass.
+        Assert.Equal(receipt.Before.JournalBytes - 32 * frameCount - payload,
             Assert.Single(costs, c => c.Stage == "candidate-scan").ReadBytes);
         Assert.True(receipt.After.JournalBytes <= receipt.Before.JournalBytes);
         using (var reader = JournalDeltaStore.OpenReadOnly(root.Path, identity, tree))

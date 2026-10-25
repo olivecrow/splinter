@@ -2,7 +2,9 @@
 
 [한국어](ko/bounded-journal.md)
 
-New ordinary Windows workspace providers use a bounded SJR2 journal. Each mutation appends a checksummed raw/Brotli frame and individually flushes it to disk before returning success. A current-state checkpoint replaces repeated per-mutation object publication and reclamation. Original files remain immutable inputs to a workspace; no initial payload copy, read hydration, or whole-file copy-up is introduced.
+New ordinary Windows workspace providers use a bounded SJR2 journal. Each mutation appends a checksummed raw frame; a bounded batch can share one durable flush before any success response. See [raw-write batching](raw-write-batching.md). A current-state checkpoint replaces repeated per-mutation object publication and reclamation. Original files remain immutable inputs to a workspace; no initial payload copy, read hydration, or whole-file copy-up is introduced.
+
+[DF-01–05](verification/durable-flush-throughput.md) evaluated per-write I/O alternatives and a RAM preparation prototype. Neither established a qualifying large gain with equivalent durability, so the prototype was removed. The subsequent user-directed raw/group-flush change is owned by [RW](verification/raw-write-batching.md).
 
 ## Selection and limits
 
@@ -22,7 +24,7 @@ The writer holds its lifetime guard across all generation changes. Under the jou
 2. Flushes an identity-bound checkpoint intent and writes a new state using only private ranges. Each frame retains its checksum and payload proof.
 3. Flushes and independently replays the candidate, verifies the complete logical state, and durably records both generation seals.
 4. Atomically replaces the current journal on the same volume, retaining the previous generation. It reopens and proves the published state before changing live extent addresses.
-5. Verifies and reclaims the previous generation, removes the intent, then admits the next mutation. Each subsequent mutation still gets its own durable flush and acknowledgement.
+5. Verifies and reclaims the previous generation, removes the intent, then admits the next mutation. Subsequent mutations may share a bounded group flush; acknowledgement still follows durable completion.
 
 Interrupted publication resumes only with the same identity and exact generation evidence. Corruption, changed owners, ambiguous generations and unknown files are preserved and rejected. An uncertain writer is poisoned until a new verified connection. Initialization has its own flushed intent; incomplete creation cannot silently become another format.
 
