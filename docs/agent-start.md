@@ -5,6 +5,8 @@
 
 Product entry points are the repository checkout's `scripts/splinter.ps1` and [skill source](../skills/splinter/SKILL.md). Views/probes belong to the [separate development CLI](development-cli.md). See the [glossary](glossary.md) for terminology. Use workspaces only for continuing work that needs independent execution; work directly when the current path is safe.
 
+For implementation/performance work, start with the [lifecycle optimization map](lifecycle-optimization-map.md) and [structured stage/code index](lifecycle-optimization-map.json). They connect preparation, I/O, Editor work, application/discard and final shared-basis restoration without authorizing a new project experiment.
+
 <a id="저장-경로별-시작점"></a>
 ## Starting points by storage path
 

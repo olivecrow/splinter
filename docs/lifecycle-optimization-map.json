@@ -1,0 +1,1627 @@
+{
+  "schemaVersion": 1,
+  "kind": "documentation-index",
+  "notARuntimeSchema": true,
+  "sourceCommit": "d00451a0c594a45c0e1bbf7d6d147e968bff6ca3",
+  "branch": "development",
+  "inspectedDate": "2026-10-26",
+  "canonicalDocument": "docs/lifecycle-optimization-map.md",
+  "koreanDocument": "docs/ko/lifecycle-optimization-map.md",
+  "pathBase": "repository-root",
+  "lineHintsAreSnapshotSpecific": true,
+  "executionAuthorization": false,
+  "scope": "One workspace, three current snapshot input routes, optional Unity; no new experiment or product command.",
+  "stages": [
+    {
+      "id": "S00",
+      "name": "Choose or resume work",
+      "owner": "agent",
+      "frequency": "once per task decision",
+      "entry": "capabilities/schema and saved task identity",
+      "sourceRefs": [
+        "K00",
+        "K24"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#s00",
+        "ko": "docs/ko/lifecycle-optimization-map.md#s00"
+      },
+      "preconditions": "Need independent execution; retain exact request identity.",
+      "work": "Choose direct work or reuse/create one task.",
+      "completion": "No lifecycle side effect from choosing a route.",
+      "costs": "Agent/tool discovery",
+      "recovery": "Unknown owner is not permission to make a replacement task."
+    },
+    {
+      "id": "P10",
+      "name": "Prepare shared Library/project basis",
+      "owner": "product + agent original transition",
+      "frequency": "once per new shared basis",
+      "entry": "library prepare / project prepare",
+      "sourceRefs": [
+        "K04",
+        "K22",
+        "K23"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#p10",
+        "ko": "docs/ko/lifecycle-optimization-map.md#p10"
+      },
+      "preconditions": "Explicit transition; exact original Editor saved/stopped; supported same-volume NTFS.",
+      "work": "Hash/manifest/proof; move basis; admit and mount original private view.",
+      "completion": "Ready basis record and original view ownership observed.",
+      "costs": "Full input hashing, per-file handles, proof writes, provider launch",
+      "recovery": "Resume same prepare intent; ambiguous moves preserve both paths."
+    },
+    {
+      "id": "P20",
+      "name": "Persist workspace request",
+      "owner": "product",
+      "frequency": "each ensure/resume command",
+      "entry": "workspace ensure / EnsureAsync",
+      "sourceRefs": [
+        "K00",
+        "K01",
+        "K24"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#p20",
+        "ko": "docs/ko/lifecycle-optimization-map.md#p20"
+      },
+      "preconditions": "Valid fixed source/application/storage/base/home/key/basis; task lock.",
+      "work": "Normalize identity, derive ID/digest, compare or publish v2 create intent.",
+      "completion": "Durably published task record; no new task from a completed ID.",
+      "costs": "Lock wait, path validation, atomic JSON publication",
+      "recovery": "Mismatch refuses; same request resumes effects."
+    },
+    {
+      "id": "P30",
+      "name": "Preflight, capture, register",
+      "owner": "product/source provider",
+      "frequency": "initial task preparation or incomplete step",
+      "entry": "EnsureSnapshotAsync",
+      "sourceRefs": [
+        "K02",
+        "K04",
+        "K05",
+        "K06",
+        "K19"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#p30",
+        "ko": "docs/ko/lifecycle-optimization-map.md#p30"
+      },
+      "preconditions": "Project source guard and fixed basis; existing task identity.",
+      "work": "Source preflight; fixed receipt/ref/dependency; owned registration without full checkout.",
+      "completion": "source-checked, capture-intent, captured, registration-intent, registered records.",
+      "costs": "Source/catalog access, admission, registration metadata",
+      "recovery": "Resume recorded step; preserve external/source mismatch."
+    },
+    {
+      "id": "P40",
+      "name": "Connect, replay, mount",
+      "owner": "product/storage provider",
+      "frequency": "first mount or eligible reconnect",
+      "entry": "ConnectSnapshotAsync",
+      "sourceRefs": [
+        "K02",
+        "K05",
+        "K07"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#p40",
+        "ko": "docs/ko/lifecycle-optimization-map.md#p40"
+      },
+      "preconditions": "Exact read access/owner/basis; no owned app clients on missing-provider reconnect.",
+      "work": "Own provider process, admit source, replay journal, mount with 8 dispatch threads.",
+      "completion": "Observed exact provider identity and mounted path; ready is not compile proof.",
+      "costs": "Launch, full admission, replay, handles/cache initialization",
+      "recovery": "No mutable-source copy fallback; uncertain owner preserved."
+    },
+    {
+      "id": "P50",
+      "name": "Attach and prove baseline",
+      "owner": "product/source provider",
+      "frequency": "initial attach or incomplete step",
+      "entry": "AttachAsync / EstablishBaselineAsync",
+      "sourceRefs": [
+        "K02",
+        "K06",
+        "K19"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#p50",
+        "ko": "docs/ko/lifecycle-optimization-map.md#p50"
+      },
+      "preconditions": "Live fixed mount and owned source registration.",
+      "work": "Refresh Git index with eligible joined read-ahead or scan file manifests; prove clean base.",
+      "completion": "Attached=true, ready, snapshot-ensured.",
+      "costs": "Index/stat/hash, first blob proofs, manifest traversal",
+      "recovery": "Drain refresh/read-ahead failures; existing index lock respected."
+    },
+    {
+      "id": "E10",
+      "name": "Start owned Editor",
+      "owner": "product + Unity",
+      "frequency": "optional initial start or stop/start before collection",
+      "entry": "unity start / ensure --editor",
+      "sourceRefs": [
+        "K01",
+        "K08",
+        "K09",
+        "K20"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#e10",
+        "ko": "docs/ko/lifecycle-optimization-map.md#e10"
+      },
+      "preconditions": "Live mounted task; no collected result; exact owned process identity.",
+      "work": "Resolve Unity, owned bridge/one-time cache handling, launch receipt, heartbeat observation.",
+      "completion": "Launch intent/receipt; heartbeat readiness is observational.",
+      "costs": "Unity imports, assembly work, reload, launch and polling",
+      "recovery": "Uncertain launch preserves intent; no duplicate automatic launch."
+    },
+    {
+      "id": "E20",
+      "name": "Edit, compile, validate",
+      "owner": "agent + installed external tools + Unity",
+      "frequency": "repeated within same uncollected task",
+      "entry": "edit returned data.workspace.path; exact-path external tool operations",
+      "sourceRefs": [
+        "K08",
+        "K20"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#e20",
+        "ko": "docs/ko/lifecycle-optimization-map.md#e20"
+      },
+      "preconditions": "Correct returned path and Editor PID/start; source/Library conditions retained for comparison.",
+      "work": "Edit; refresh; await compile/import/reload; inspect results; repeat.",
+      "completion": "Source write ACK follows W10; compilation success is externally assessed.",
+      "costs": "Actual workload, I/O, Unity compute, external connection/polling",
+      "recovery": "Timed-out external write is not blindly retried; use exact identity."
+    },
+    {
+      "id": "I10",
+      "name": "Read base/private/hole ranges",
+      "owner": "filesystem/storage provider",
+      "frequency": "nested within filesystem reads across stages",
+      "entry": "WinFsp Read / JournalDeltaStore.Read",
+      "sourceRefs": [
+        "K06",
+        "K10",
+        "K11"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#i10",
+        "ko": "docs/ko/lifecycle-optimization-map.md#i10"
+      },
+      "preconditions": "Pinned reader lifetime, current identity/integrity, nonpoisoned store.",
+      "work": "Resolve ranges; read private bytes, immutable basis or zeros; finish proofs/lifetime.",
+      "completion": "No new source result or mutation.",
+      "costs": "Requested bytes versus whole-object decode/proof and physical device reads",
+      "recovery": "Read failure/close drains; cache hits do not bypass identity checks."
+    },
+    {
+      "id": "W10",
+      "name": "Write and flush",
+      "owner": "filesystem/storage provider",
+      "frequency": "per mutation/batch or explicit flush",
+      "entry": "WinFsp Write/Flush; WriteBatch; Commit",
+      "sourceRefs": [
+        "K10",
+        "K11",
+        "K12",
+        "K13"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#w10",
+        "ko": "docs/ko/lifecycle-optimization-map.md#w10"
+      },
+      "preconditions": "Ordered live callbacks, bounded native buffers, mutation/store gates.",
+      "work": "Queue writes; compare private range; serialize metadata/raw payload/checksum; append; flush before ACK.",
+      "completion": "At most 64 ranges/16MiB per submitted batch; B10 may add barriers and SJL4 retains per-write barriers. Explicit SJR2 flush reuses only the same unchanged proven durable handle.",
+      "costs": "Queue/gate wait, comparison, preparation, append, physical flush, metadata commits",
+      "recovery": "Uncertain writes poison; unacknowledged prefix can replay; no batch rollback or early ACK."
+    },
+    {
+      "id": "B10",
+      "name": "Checkpoint bounded journal state",
+      "owner": "storage provider",
+      "frequency": "nested automatic write-capacity trigger",
+      "entry": "EnsureBoundedAppendCapacity / CheckpointBounded",
+      "sourceRefs": [
+        "K10",
+        "K13",
+        "K14",
+        "K15"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#b10",
+        "ko": "docs/ko/lifecycle-optimization-map.md#b10"
+      },
+      "preconditions": "Bounded mode; suffix/frame/budget capacity trigger; sufficient temporary space.",
+      "work": "Flush pending; size; full seals/state proofs; raw state candidate; flush/replay; replace; reopen/reprove; reclaim previous.",
+      "completion": "Durable generation intent and verified current state; next mutation still needs ACK barrier.",
+      "costs": "Live state rewrite, hashing, replay, replacement, temporary overlap",
+      "recovery": "Recover same generation; preserve corrupt/unknown state; not source checkpoint."
+    },
+    {
+      "id": "C10",
+      "name": "Stop Editor and drain",
+      "owner": "product + Unity",
+      "frequency": "before collection/release/discard, or explicit stop",
+      "entry": "StopAsync / WaitForNormalExit",
+      "sourceRefs": [
+        "K01",
+        "K08",
+        "K09",
+        "K20"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#c10",
+        "ko": "docs/ko/lifecycle-optimization-map.md#c10"
+      },
+      "preconditions": "Exact owned process/group and normal-stop token.",
+      "work": "Wait for nonbusy safe bridge stop, normal exit and child/resource zero; owned bridge cleanup for collection.",
+      "completion": "Ownership-verified zero process/Working Set/Private Bytes before stable source collection.",
+      "costs": "Busy waits, normal Unity shutdown, children and handles",
+      "recovery": "Dirty scenes/Play/timeouts preserve; no force-kill authority."
+    },
+    {
+      "id": "C20",
+      "name": "Preserve independent source result",
+      "owner": "product/source provider",
+      "frequency": "explicit final checkpoint",
+      "entry": "workspace checkpoint",
+      "sourceRefs": [
+        "K01",
+        "K02",
+        "K06",
+        "K18",
+        "K19"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#c20",
+        "ko": "docs/ko/lifecycle-optimization-map.md#c20"
+      },
+      "preconditions": "Task lock, stopped owned clients, stable journal, allowed source state.",
+      "work": "Pre-seal; Git commit/ref or full baseline/result file payload preservation; verification; post-seal.",
+      "completion": "IndependentOfSnapshot result and collected record; does not assert compile success.",
+      "costs": "Source scan/hash, full payload preservation, result verification, full seals",
+      "recovery": "Stable seal mismatch refuses; prior result retained; ordinary Editor start blocked after collection."
+    },
+    {
+      "id": "A10",
+      "name": "Apply Git result",
+      "owner": "product/Git + agent original coordination",
+      "frequency": "explicit integration after checkpoint",
+      "entry": "workspace integrate --target <branch>",
+      "sourceRefs": [
+        "K01",
+        "K18"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#a10",
+        "ko": "docs/ko/lifecycle-optimization-map.md#a10"
+      },
+      "preconditions": "Exact clean independent task result; clean original already on requested branch; project lock.",
+      "work": "Already-ancestor check or local guarded merge; verify clean original.",
+      "completion": "Integrated result state; Git command provides its own persistence semantics.",
+      "costs": "Git object/tree work and original changed-file writes",
+      "recovery": "Abort only own matching merge; no automatic original Editor operation or push."
+    },
+    {
+      "id": "A20",
+      "name": "Plan original file application",
+      "owner": "product/files + application policy",
+      "frequency": "explicit reviewed plan after checkpoint",
+      "entry": "workspace integrate --target original --plan",
+      "sourceRefs": [
+        "K16",
+        "K19"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#a20",
+        "ko": "docs/ko/lifecycle-optimization-map.md#a20"
+      },
+      "preconditions": "Exact independently preserved result; target/basis/Plastic and stopped-original guards.",
+      "work": "Compare baseline/result/current original; select paths/companions; detect conflicts; digest.",
+      "completion": "Concrete fixed plan/digest; planning does not publish source files.",
+      "costs": "Current target scan/hash, plan and identity/lock observations",
+      "recovery": "Changed target needs a valid reviewed plan; no conflict override."
+    },
+    {
+      "id": "A30",
+      "name": "Publish original file plan",
+      "owner": "product/files + Windows publisher",
+      "frequency": "explicit application with fixed intent/digest",
+      "entry": "workspace integrate --target original --intent-key ... --expected-plan-digest ...",
+      "sourceRefs": [
+        "K16",
+        "K17",
+        "K19"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#a30",
+        "ko": "docs/ko/lifecycle-optimization-map.md#a30"
+      },
+      "preconditions": "Same plan, selection, identity; whole write-set and conditional NTFS checks.",
+      "work": "Persist intent; hash/write/flush owned stages; retire/publish per file; record progress and cleanup.",
+      "completion": "Completed matching intent; recoverable per-file effects, not all-files atomicity.",
+      "costs": "Payload reads/hashes/writes, stage flushes, per-step durable receipts",
+      "recovery": "Resume same intent/digest/selection; incomplete apply blocks collection/release/discard."
+    },
+    {
+      "id": "R10",
+      "name": "Release preserving result",
+      "owner": "product",
+      "frequency": "explicit release or checkpoint --release",
+      "entry": "ReleaseSnapshotWorkspaceAsync",
+      "sourceRefs": [
+        "K01",
+        "K02",
+        "K05",
+        "K19"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#r10",
+        "ko": "docs/ko/lifecycle-optimization-map.md#r10"
+      },
+      "preconditions": "Independent result, no uncollected changes/dependent views, stopped owned app.",
+      "work": "Verify result; unmount/seal; unregister; reclaim delta; release task basis/ref/dependency; observe absence.",
+      "completion": "released only after exact absence/zero resources; result and evidence survive.",
+      "costs": "Seals/source checks, unmount/handle drain, inventory deletion, basis/ref removal",
+      "recovery": "reclaim-pending is incomplete; same task/home/result; no peer cleanup."
+    },
+    {
+      "id": "D10",
+      "name": "Discard without creating result",
+      "owner": "product",
+      "frequency": "explicit authorized discard",
+      "entry": "workspace discard with intent and expected request digest",
+      "sourceRefs": [
+        "K03",
+        "K21",
+        "K05"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#d10",
+        "ko": "docs/ko/lifecycle-optimization-map.md#d10"
+      },
+      "preconditions": "Matching identity/digest, provider support, no conflicting apply/release/compact or dependent views.",
+      "work": "Persist stop/unmount/source/delta/snapshot steps; seals and zero-resource proof; exact reclamation.",
+      "completion": "discarded after verified absence; no checkpoint or compile success needed.",
+      "costs": "Normal shutdown, full seals, unmount, exact deletion and dependency checks",
+      "recovery": "discard-reclaim-pending retries same intent; no rollback of already applied original or prior-result deletion."
+    },
+    {
+      "id": "F10",
+      "name": "Restore common original basis",
+      "owner": "product + agent original transition",
+      "frequency": "explicitly after last dependent; absent if no managed basis",
+      "entry": "library restore / project restore",
+      "sourceRefs": [
+        "K04",
+        "K22",
+        "K23"
+      ],
+      "documents": {
+        "en": "docs/lifecycle-optimization-map.md#f10",
+        "ko": "docs/ko/lifecycle-optimization-map.md#f10"
+      },
+      "preconditions": "All dependents/readers gone; exact original Editor saved/stopped; exclusive reader protection.",
+      "work": "Stop original view; unchanged-Library rename or general file/range plan; verify; reclaim owned common data.",
+      "completion": "Ordinary original current contents proven restored; receipts/results retained.",
+      "costs": "Full proof, moves, changed ranges/metadata, cursor/creation receipt writes",
+      "recovery": "Resume same plan/cursor; peers keep basis managed; task release alone is insufficient."
+    }
+  ],
+  "transitions": [
+    {
+      "source": "S00",
+      "target": "P10",
+      "condition": "isolated route; prepare or reuse"
+    },
+    {
+      "source": "P10",
+      "target": "P20",
+      "condition": "ready basis or no optional basis needed"
+    },
+    {
+      "source": "P20",
+      "target": "P30",
+      "condition": "new/incomplete task"
+    },
+    {
+      "source": "P30",
+      "target": "P40",
+      "condition": "registered"
+    },
+    {
+      "source": "P40",
+      "target": "P50",
+      "condition": "mounted"
+    },
+    {
+      "source": "P50",
+      "target": "E10",
+      "condition": "Editor requested"
+    },
+    {
+      "source": "P50",
+      "target": "E20",
+      "condition": "editorless"
+    },
+    {
+      "source": "E10",
+      "target": "E20",
+      "condition": "agent establishes required loaded baseline"
+    },
+    {
+      "source": "E20",
+      "target": "E20",
+      "condition": "continue same task"
+    },
+    {
+      "source": "E20",
+      "target": "E10",
+      "condition": "restart stopped Editor before result"
+    },
+    {
+      "source": "E20",
+      "target": "C10",
+      "condition": "explicit preserve/apply"
+    },
+    {
+      "source": "C10",
+      "target": "C20",
+      "condition": "checkpoint caller and zero resources"
+    },
+    {
+      "source": "C20",
+      "target": "A10",
+      "condition": "Git apply requested"
+    },
+    {
+      "source": "C20",
+      "target": "A20",
+      "condition": "None/Plastic apply requested"
+    },
+    {
+      "source": "A20",
+      "target": "A30",
+      "condition": "concrete plan accepted, same intent/digest/selection"
+    },
+    {
+      "source": "C20",
+      "target": "R10",
+      "condition": "preserve only; may join checkpoint --release"
+    },
+    {
+      "source": "A10",
+      "target": "R10",
+      "condition": "explicit cleanup"
+    },
+    {
+      "source": "A30",
+      "target": "R10",
+      "condition": "completed apply and explicit cleanup"
+    },
+    {
+      "source": "E20",
+      "target": "D10",
+      "condition": "explicit discard intent"
+    },
+    {
+      "source": "R10",
+      "target": "F10",
+      "condition": "managed basis exists, all dependents finished, restore requested"
+    },
+    {
+      "source": "D10",
+      "target": "F10",
+      "condition": "managed basis exists, all dependents finished, restore requested"
+    }
+  ],
+  "nestedStages": [
+    {
+      "id": "I10",
+      "context": "Filesystem reads across mount, work, collection and verification; not a once-per-task phase."
+    },
+    {
+      "id": "W10",
+      "context": "Range writes, independent metadata mutations and explicit flush; not only user source edits."
+    },
+    {
+      "id": "B10",
+      "context": "Synchronous capacity-triggered checkpoint nested in W10; W10 resumes after B10."
+    },
+    {
+      "id": "C10",
+      "context": "Stop is also called by R10 and D10 when needed; graph does not double-count it."
+    }
+  ],
+  "paths": {
+    "applyGit": [
+      "S00",
+      "P10",
+      "P20",
+      "P30",
+      "P40",
+      "P50",
+      "E10",
+      "E20",
+      "C10",
+      "C20",
+      "A10",
+      "R10",
+      "F10"
+    ],
+    "applyFiles": [
+      "S00",
+      "P10",
+      "P20",
+      "P30",
+      "P40",
+      "P50",
+      "E10",
+      "E20",
+      "C10",
+      "C20",
+      "A20",
+      "A30",
+      "R10",
+      "F10"
+    ],
+    "preserve": [
+      "S00",
+      "P10",
+      "P20",
+      "P30",
+      "P40",
+      "P50",
+      "E10",
+      "E20",
+      "C10",
+      "C20",
+      "R10",
+      "F10"
+    ],
+    "discard": [
+      "S00",
+      "P10",
+      "P20",
+      "P30",
+      "P40",
+      "P50",
+      "E10",
+      "E20",
+      "D10",
+      "F10"
+    ]
+  },
+  "pathConditions": [
+    "P10 means reuse/no-op if no new common preparation is required.",
+    "E10 is omitted for editorless work.",
+    "F10 is separate explicit cleanup, omitted without a managed basis and deferred while peers depend on it.",
+    "Paths show successful flows; persistent state and recovery guards govern interruptions."
+  ],
+  "limits": {
+    "winFspDispatchThreads": 8,
+    "managedFileWorkersMaximum": 8,
+    "gitDecoderLeases": 2,
+    "gitProofCacheBytes": 4194304,
+    "gitProofCacheBlobEntries": 4096,
+    "gitPayloadCacheBytes": 268435456,
+    "gitPayloadCacheEntries": 4096,
+    "gitInitialForwardWindowBytes": 134217728,
+    "writeBatchMaximumRanges": 64,
+    "writeBatchMaximumBytes": 16777216,
+    "providerTransferMaximumBytes": 1048576,
+    "privateWriteMinimumSavedEdgeBytes": 4096,
+    "boundedSuffixDefaultBytes": 16777216,
+    "boundedSuffixDefaultFrames": 4096,
+    "taskJournalDefaultBudgetBytes": 17179869184,
+    "normalStopTimeoutSeconds": 120,
+    "normalStopPollMilliseconds": 250,
+    "heartbeatIntervalSeconds": 0.5,
+    "heartbeatFreshnessSeconds": 15,
+    "restoreCompletionCursorFileBatch": 128,
+    "boundedCheckpointExtraDiskHeadroomBytes": 2147483648
+  },
+  "evidence": [
+    {
+      "id": "WP-01-05",
+      "path": "docs/verification/write-path-throughput.md",
+      "qualification": "Historical fixed candidate/input; not remeasured by this documentation change."
+    },
+    {
+      "id": "RW-01-05",
+      "path": "docs/verification/raw-write-batching.md",
+      "qualification": "Historical fixed candidate/input; not remeasured by this documentation change."
+    },
+    {
+      "id": "WC-01-05",
+      "path": "docs/verification/workspace-creation-throughput.md",
+      "qualification": "Historical fixed candidate/input; not remeasured by this documentation change."
+    },
+    {
+      "id": "LT-01-04",
+      "path": "docs/verification/lifecycle-throughput.md",
+      "qualification": "Historical fixed candidate/input; not remeasured by this documentation change."
+    },
+    {
+      "id": "LU-01",
+      "path": "docs/verification/unity-single-lifecycle.md",
+      "qualification": "Historical fixed candidate/input; not remeasured by this documentation change."
+    },
+    {
+      "id": "SD-01",
+      "path": "docs/verification/unity-shutdown-diagnosis.md",
+      "qualification": "Historical fixed candidate/input; not remeasured by this documentation change."
+    },
+    {
+      "id": "DF-01-05",
+      "path": "docs/verification/durable-flush-throughput.md",
+      "qualification": "Historical fixed candidate/input; not remeasured by this documentation change."
+    }
+  ],
+  "sourceRefs": [
+    {
+      "id": "K00",
+      "files": [
+        {
+          "path": "src/Splinter.Cli/WorkspaceCommands.cs",
+          "sha256": "309a2a5c854865212770639c30411fb9c4a784b70ac7ca20d9d134b1310a7acc",
+          "symbols": [
+            {
+              "name": "Add",
+              "lineHints": [
+                17
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Cli/GeneratedDirectoryCommands.cs",
+          "sha256": "84f753671db6457fbce7d67d42b098ac00d806ad0b446b4a740ca1d211afdc68",
+          "symbols": [
+            {
+              "name": "Add",
+              "lineHints": [
+                12
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K01",
+      "files": [
+        {
+          "path": "src/Splinter.Runtime/WorkspaceCoordinator.cs",
+          "sha256": "83170b73e419518ac83d01789f24f21c2dab98eb4946d5257bb9ea47c9b27eb2",
+          "symbols": [
+            {
+              "name": "EnsureAsync",
+              "lineHints": [
+                21
+              ]
+            },
+            {
+              "name": "StartCoreAsync",
+              "lineHints": [
+                132
+              ]
+            },
+            {
+              "name": "CheckpointAsync",
+              "lineHints": [
+                156,
+                162
+              ]
+            },
+            {
+              "name": "IntegrateAsync",
+              "lineHints": [
+                234
+              ]
+            },
+            {
+              "name": "ReleaseAsync",
+              "lineHints": [
+                279
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K02",
+      "files": [
+        {
+          "path": "src/Splinter.Runtime/SnapshotWorkspaces.cs",
+          "sha256": "877f6fa64a9d22cfb899ad0e5003da8bfa0096abb4877a1e81ced2e172b9bcbe",
+          "symbols": [
+            {
+              "name": "EnsureSnapshotAsync",
+              "lineHints": [
+                20
+              ]
+            },
+            {
+              "name": "ConnectSnapshotAsync",
+              "lineHints": [
+                84
+              ]
+            },
+            {
+              "name": "CheckpointSnapshotResultAsync",
+              "lineHints": [
+                277
+              ]
+            },
+            {
+              "name": "ReleaseSnapshotWorkspaceAsync",
+              "lineHints": [
+                116
+              ]
+            },
+            {
+              "name": "ReuseSnapshotResultAsync",
+              "lineHints": [
+                250
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K03",
+      "files": [
+        {
+          "path": "src/Splinter.Runtime/WorkspaceDiscard.cs",
+          "sha256": "f1b00558de5d712e260493d56a9c200fdbc4e3103b7a637e548ed675a095561e",
+          "symbols": [
+            {
+              "name": "DiscardAsync",
+              "lineHints": [
+                7
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K04",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs",
+          "sha256": "663151a5617148661e70a84542526e89d51d4cdde5d734d272ff830cf6298ce4",
+          "symbols": [
+            {
+              "name": "PrepareAsync",
+              "lineHints": [
+                135
+              ]
+            },
+            {
+              "name": "AttachAsync",
+              "lineHints": [
+                254
+              ]
+            },
+            {
+              "name": "DetachAsync",
+              "lineHints": [
+                274
+              ]
+            },
+            {
+              "name": "RestoreAsync",
+              "lineHints": [
+                292
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/OwnedDirectorySnapshot.cs",
+          "sha256": "7e063750c513e62f668344dadc4abe3844dc1e7202e138bd3d028914cacd9628",
+          "symbols": [
+            {
+              "name": "CaptureCancellable",
+              "lineHints": [
+                107,
+                108
+              ]
+            },
+            {
+              "name": "VerifyContents",
+              "lineHints": [
+                86
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K05",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/NtfsSnapshotWorkspaceBackend.cs",
+          "sha256": "f25cab8aa140a83fa1fa9004fe855afb034a982c29444ff536d44d52769043af",
+          "symbols": [
+            {
+              "name": "CaptureAsync",
+              "lineHints": [
+                32
+              ]
+            },
+            {
+              "name": "VerifyConnectionAsync",
+              "lineHints": [
+                63
+              ]
+            },
+            {
+              "name": "ConnectAsync",
+              "lineHints": [
+                97
+              ]
+            },
+            {
+              "name": "SealAsync",
+              "lineHints": [
+                139
+              ]
+            },
+            {
+              "name": "UnmountAsync",
+              "lineHints": [
+                161
+              ]
+            },
+            {
+              "name": "RemoveDeltaAsync",
+              "lineHints": [
+                236
+              ]
+            },
+            {
+              "name": "ReleaseSnapshotAsync",
+              "lineHints": [
+                309
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K06",
+      "files": [
+        {
+          "path": "src/Splinter.SourceControl.Git/GitSnapshotWorkspaces.cs",
+          "sha256": "1018dbd38e3b8242290868419e08ab029599b30b7da4f46ba1b8d33901589873",
+          "symbols": [
+            {
+              "name": "PreflightAsync",
+              "lineHints": [
+                7
+              ]
+            },
+            {
+              "name": "AttachAsync",
+              "lineHints": [
+                58
+              ]
+            },
+            {
+              "name": "CheckpointAndPreserveAsync",
+              "lineHints": [
+                83
+              ]
+            },
+            {
+              "name": "VerifyResultAsync",
+              "lineHints": [
+                115
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.SourceControl.Git/GitOverlayRegistration.cs",
+          "sha256": "24fda41eac238559e7c5fda4995014100f07eedf6bb5cbd5b109ed039d60d988",
+          "symbols": [
+            {
+              "name": "PrepareAsync",
+              "lineHints": [
+                16
+              ]
+            },
+            {
+              "name": "AttachAsync",
+              "lineHints": [
+                88,
+                90
+              ]
+            },
+            {
+              "name": "WarmInitialLargeFiles",
+              "lineHints": [
+                118
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs",
+          "sha256": "24915235391443c642b3f1313fbbe55b5fe41bc7c7ad997dc3a8ccb7b8b5d424",
+          "symbols": [
+            {
+              "name": "Read",
+              "lineHints": [
+                90,
+                250
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K07",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/WinFspOverlayMountProvider.cs",
+          "sha256": "82f3dc85a9f266728d6dd4d13dc5c4f38192ec0768df8bfdedc8cc2e3ed42e1f",
+          "symbols": [
+            {
+              "name": "MountAsync",
+              "lineHints": [
+                9
+              ]
+            },
+            {
+              "name": "UnmountAsync",
+              "lineHints": [
+                67
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/WinFspOverlayClient.cs",
+          "sha256": "71e20b883f2a2b8f3f951a1e5b4527e5a3fb875e599603f91237ccdf8b69ca51",
+          "symbols": [
+            {
+              "name": "StartAsync",
+              "lineHints": [
+                111
+              ]
+            },
+            {
+              "name": "AwaitMountedAsync",
+              "lineHints": [
+                166
+              ]
+            },
+            {
+              "name": "StopAsync",
+              "lineHints": [
+                199
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/WinFspOverlayServer.cs",
+          "sha256": "2bdb62bec649da0ddc0d162c8a4a166a672b519cfbc081e87da6c3c533b01f37",
+          "symbols": [
+            {
+              "name": "RunAsync",
+              "lineHints": [
+                25
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K08",
+      "files": [
+        {
+          "path": "src/Splinter.Application.Unity/UnityWorkspaceProvider.cs",
+          "sha256": "a6f9ae6d23cce4e4662faea28b665b33c1df85d2f7e34bca9316b3bbf9969e7b",
+          "symbols": [
+            {
+              "name": "StartAsync",
+              "lineHints": [
+                17
+              ]
+            },
+            {
+              "name": "PrepareInfrastructureAsync",
+              "lineHints": [
+                50
+              ]
+            },
+            {
+              "name": "ObserveAsync",
+              "lineHints": [
+                140
+              ]
+            },
+            {
+              "name": "StopAsync",
+              "lineHints": [
+                158
+              ]
+            },
+            {
+              "name": "WaitForNormalExitAsync",
+              "lineHints": [
+                178
+              ]
+            },
+            {
+              "name": "RemoveInfrastructureAsync",
+              "lineHints": [
+                199
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K09",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/WindowsProcessWorkspaceProvider.cs",
+          "sha256": "5a4901e017a2fb673d147849cfd127e019033f25013ee135ede1ee4807d9e806",
+          "symbols": [
+            {
+              "name": "StartAsync",
+              "lineHints": [
+                12
+              ]
+            },
+            {
+              "name": "ObserveAsync",
+              "lineHints": [
+                33
+              ]
+            },
+            {
+              "name": "WaitForExitAsync",
+              "lineHints": [
+                61
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K10",
+      "files": [
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaStore.cs",
+          "sha256": "bd165de82134e6acb87a101437ef5fd477eee1521aaba49c38099e430bc33582",
+          "symbols": [
+            {
+              "name": "Read",
+              "lineHints": [
+                246
+              ]
+            },
+            {
+              "name": "Write",
+              "lineHints": [
+                347
+              ]
+            },
+            {
+              "name": "FindPrivateChanges",
+              "lineHints": [
+                366
+              ]
+            },
+            {
+              "name": "Commit",
+              "lineHints": [
+                712
+              ]
+            },
+            {
+              "name": "Flush",
+              "lineHints": [
+                501
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaCandidates.cs",
+          "sha256": "7e79b7c9d1d5f93a46a2d2645c28f621cdda8632a155d0ff88106dcc359c27db",
+          "symbols": [
+            {
+              "name": "Seal",
+              "lineHints": [
+                12
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K11",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/WinFspOverlayFileSystem.cs",
+          "sha256": "b83fe5f779feda5959408e4fc1451d31bcf4dd6ec40f92fbe42d053ad44a4742",
+          "symbols": [
+            {
+              "name": "Read",
+              "lineHints": [
+                26,
+                27,
+                156
+              ]
+            },
+            {
+              "name": "Write",
+              "lineHints": [
+                172
+              ]
+            },
+            {
+              "name": "Flush",
+              "lineHints": [
+                180
+              ]
+            },
+            {
+              "name": "Cleanup",
+              "lineHints": [
+                135
+              ]
+            },
+            {
+              "name": "Close",
+              "lineHints": [
+                142
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K12",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/WinFspWriteBatch.cs",
+          "sha256": "37f2ca3476ac0024db07b62832daa200d2938864f928bc08ad82dd7687e2c47d",
+          "symbols": [
+            {
+              "name": "SubmitWrite",
+              "lineHints": [
+                31
+              ]
+            },
+            {
+              "name": "ExecuteWriteBatch",
+              "lineHints": [
+                102
+              ]
+            },
+            {
+              "name": "DrainAcceptedWrites",
+              "lineHints": [
+                93
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K13",
+      "files": [
+        {
+          "path": "src/Splinter.Runtime/JournalWriteBatch.cs",
+          "sha256": "8d9384822cf634195b4f8b318f03eb8cf5ddd8125af6183b39234988d59f1eb5",
+          "symbols": [
+            {
+              "name": "WriteBatch",
+              "lineHints": [
+                11
+              ]
+            },
+            {
+              "name": "FlushPendingWrites",
+              "lineHints": [
+                50
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Core/WorkspaceWriteBatch.cs",
+          "sha256": "a507474ac1b5a6f2fce6bc7eb69c543a7234f0a03cc5e4bd69b9ca0c357635b2",
+          "symbols": [
+            {
+              "name": "MaximumWrites",
+              "lineHints": [
+                10
+              ]
+            },
+            {
+              "name": "MaximumBytes",
+              "lineHints": [
+                11
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K14",
+      "files": [
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaBounded.cs",
+          "sha256": "4a3774a03c2bbdeacd19cf66a3fc0359f879f722e25d32022060cfadd1b942d9",
+          "symbols": [
+            {
+              "name": "EnsureBoundedAppendCapacity",
+              "lineHints": [
+                309
+              ]
+            },
+            {
+              "name": "CheckpointBounded",
+              "lineHints": [
+                319
+              ]
+            },
+            {
+              "name": "RecoverBoundedCheckpoint",
+              "lineHints": [
+                387
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K15",
+      "files": [
+        {
+          "path": "src/Splinter.Runtime/JournalStateFrames.cs",
+          "sha256": "b44bf0fed35ed9d1f76f4b52df914d0993c376c1c74e368b9ebe39bb2a5814c0",
+          "symbols": [
+            {
+              "name": "WriteStateFrames",
+              "lineHints": [
+                13
+              ]
+            },
+            {
+              "name": "ApplyState",
+              "lineHints": [
+                59
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K16",
+      "files": [
+        {
+          "path": "src/Splinter.Runtime/WorkspaceOriginalApply.cs",
+          "sha256": "4ec51f7cd7004e5c894b7976424d1b1db09fc0d496cf215eb06673a84b2b4c94",
+          "symbols": [
+            {
+              "name": "RequireOriginalResult",
+              "lineHints": [
+                7
+              ]
+            },
+            {
+              "name": "PlanOriginalAsync",
+              "lineHints": [
+                22
+              ]
+            },
+            {
+              "name": "ApplyOriginalAsync",
+              "lineHints": [
+                31
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K17",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs",
+          "sha256": "43aca9efd333dad6cc557f62fd9521e4375dd96b73cdc26605a79ae010584a8b",
+          "symbols": [
+            {
+              "name": "Publish",
+              "lineHints": [
+                35
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K18",
+      "files": [
+        {
+          "path": "src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs",
+          "sha256": "93b4503f4155cfbc8114c9e0e967877d4dd56f9d26dfd921dc62c2ef18fbce02",
+          "symbols": [
+            {
+              "name": "CheckpointSourceAsync",
+              "lineHints": [
+                52
+              ]
+            },
+            {
+              "name": "IntegrateAsync",
+              "lineHints": [
+                120
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K19",
+      "files": [
+        {
+          "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+          "sha256": "495951eda14d8458194967e91658e364488ebb52a0dd0fc25c35e6979fd0da00",
+          "symbols": [
+            {
+              "name": "InspectAsync",
+              "lineHints": [
+                90
+              ]
+            },
+            {
+              "name": "CheckpointAsync",
+              "lineHints": [
+                103
+              ]
+            },
+            {
+              "name": "PreserveAsync",
+              "lineHints": [
+                109
+              ]
+            },
+            {
+              "name": "VerifyResultAsync",
+              "lineHints": [
+                129
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileOriginalApply.cs",
+          "sha256": "05aa6e98ddac855556bf49167a59461d897c318785fc68e2a14e0ab803860b2f",
+          "symbols": [
+            {
+              "name": "PlanOriginalAsync",
+              "lineHints": [
+                30
+              ]
+            },
+            {
+              "name": "ApplyOriginalAsync",
+              "lineHints": [
+                140
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs",
+          "sha256": "3cd2f693c92879a6339ce25b4867abebc7d0b1bc9be98668043d18bbc09ece56",
+          "symbols": [
+            {
+              "name": "PlanOriginalAsync",
+              "lineHints": [
+                152
+              ]
+            },
+            {
+              "name": "ApplyOriginalAsync",
+              "lineHints": [
+                153
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K20",
+      "files": [
+        {
+          "path": "unity/Splinter.Editor/Editor/WorkspaceBridge.cs",
+          "sha256": "62697e223b1e62ca437ef7eddbc3f0bf3550697c2a2bd297aed2aae22c5cfb29",
+          "symbols": [
+            {
+              "name": "Tick",
+              "lineHints": [
+                32
+              ]
+            },
+            {
+              "name": "UnsavedReason",
+              "lineHints": [
+                56
+              ]
+            },
+            {
+              "name": "Heartbeat",
+              "lineHints": [
+                63
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K21",
+      "files": [
+        {
+          "path": "src/Splinter.Workflows.Windows/WindowsWorkspaceDiscardProvider.cs",
+          "sha256": "919c5af120da20a7a31ef3b7abbd64b49dd0eeca98cfa335cb84effedfc723b2",
+          "symbols": [
+            {
+              "name": "DiscardSourceAsync",
+              "lineHints": [
+                20
+              ]
+            },
+            {
+              "name": "DiscardDeltaAsync",
+              "lineHints": [
+                22
+              ]
+            },
+            {
+              "name": "DiscardSnapshotAsync",
+              "lineHints": [
+                54
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K22",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs",
+          "sha256": "1f3919211e4c4da27da5b7d657469887dd90e8a1566043157fba82929f15a693",
+          "symbols": [
+            {
+              "name": "ExecuteAsync",
+              "lineHints": [
+                23
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K23",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs",
+          "sha256": "31784da9431b8cf00ea24324280c67301ed0d9f5ad48669782c51f05482eedb3",
+          "symbols": [
+            {
+              "name": "Eligible",
+              "lineHints": [
+                29
+              ]
+            },
+            {
+              "name": "CreateAsync",
+              "lineHints": [
+                44
+              ]
+            },
+            {
+              "name": "ResumeAsync",
+              "lineHints": [
+                67
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K24",
+      "files": [
+        {
+          "path": "src/Splinter.Runtime/WorkspaceStore.cs",
+          "sha256": "9826debf3d9360ce3fd538f8d78ba2f98bbe1ed3a20165ff685869041ca8abef",
+          "symbols": [
+            {
+              "name": "Key",
+              "lineHints": [
+                29,
+                43
+              ]
+            },
+            {
+              "name": "LockAsync",
+              "lineHints": [
+                46
+              ]
+            },
+            {
+              "name": "Save",
+              "lineHints": [
+                163
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Workflows.Windows/ViewLifecycleState.cs",
+          "sha256": "af69147c90b5eff7b2d848ec1edcb92add168fbc440ab1e8549884886fb1a53e",
+          "symbols": [
+            {
+              "name": "ProductState",
+              "lineHints": [
+                24
+              ]
+            },
+            {
+              "name": "Save",
+              "lineHints": [
+                52
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "maintenance": "Update both languages and this index after lifecycle/ownership/durability/default/result/reclamation changes; refresh source hashes and line hints from the reviewed implementation commit."
+}

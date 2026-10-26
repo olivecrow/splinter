@@ -24,6 +24,8 @@
 
 ## 현재 기능의 소유 문서
 
+- 향후 수명주기 최적화의 AI 탐색 시작점은 `docs/lifecycle-optimization-map.md`·`docs/ko/lifecycle-optimization-map.md`·`docs/lifecycle-optimization-map.json`이다. 작업공간 하나의 준비·I/O·Editor·결과 보존·Git/파일 반영·폐기·공유 기준본 복원을 19개 단계 ID와 코드 symbol로 연결한다. 고정 커밋의 구조 지도이며 각 기능의 소유 계약/검증을 대체하거나 새 Unity 실험을 승인하지 않는다. 순서·내구성·결과 구체화·회수 의존성이 바뀌면 양 언어/색인을 함께 갱신한다.
+
 - 쓰기 경로 후속은 `docs/plans/write-path-throughput.md`·`docs/verification/write-path-throughput.md`의 WP-01–05가 소유한다. 같은 열린 SJR2 핸들·같은 길이·성공한 영속 flush를 증명한 명시적 flush만 재사용하며 접수된 쓰기 drain·재연결/교체·실패·SJL4 경계를 유지한다. Raw 상태 크기 계산의 payload 읽기/할당은 생략하되 실제 출력·전체 증명·replay는 유지한다. Raw 덮어쓰기 양끝 탐색 후보는 읽기 감소에도 전체 시간 이점이 없어 제거했다. 준비 스레드·새 저널 형식은 추가하지 않았으며 구성 요소 비용을 Unity 전체·전원 장애 자격으로 확대하지 않는다.
 
 - 쓰기 압축 폐기·묶음 flush는 `docs/raw-write-batching.md`·`docs/plans/raw-write-batching.md`·`docs/verification/raw-write-batching.md`의 RW-01–05가 소유한다. 2026-10-25 사용자 지시로 모든 새 payload는 raw이며 제품 압축 인코더를 제거했다. 현재 형식의 기존 압축 데이터 reader는 보존한다. `IWorkspaceWriteBatch`는 최대 64개/16MiB 순서 보장 쓰기의 SJR2 flush를 공유하고 완료 뒤 ACK하며 WinFsp는 mutation gate 앞에서 동시 요청을 모은다. 단일 순차 요청·SJL4 capsule의 기존 영속 경계는 유지한다. 이 항목이 과거 압축 writer·변경마다 별도 물리 flush 지침을 대체하며 조기 ACK·Unity 전체 절감 자격으로 확대하지 않는다.

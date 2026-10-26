@@ -4,6 +4,8 @@
 
 제품 진입점은 저장소 checkout의 `scripts/splinter.ps1`과 [스킬 원본](../../skills/splinter/SKILL.md)이다. view·probe는 [별도 개발 CLI](development-cli.md)의 경로다. 용어는 [용어집](glossary.md)을 참고한다. 독립 실행이 필요한 지속 작업에만 workspace를 사용하며 현재 경로에서 안전하게 작업할 수 있으면 direct로 작업한다.
 
+구현·성능 작업은 [수명주기 최적화 지도](lifecycle-optimization-map.md)와 [단계·코드 구조화 색인](../lifecycle-optimization-map.json)에서 시작한다. 준비·I/O·Editor 작업·반영/폐기·최종 공유 기준본 복원을 연결하며 새 프로젝트 실험을 승인하는 문서는 아니다.
+
 ## 저장 경로별 시작점
 
 최초 요청의 source/application/storage와 기준을 고정하고 해당 경로의 문서·schema를 읽는다. 한 경로의 입력 전제나 실제 실행 자격을 다른 경로로 옮겨 적용하지 않는다.
