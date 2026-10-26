@@ -32,9 +32,9 @@ internal static class WorkspaceCommands
             var generated = new ManagedDirectoryBasis(store, UnityProjectPolicy.Policies);
             var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver, generated, projects);
             var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store, new WindowsOriginalFilePublisher(managedRoot: projects.AcquireOriginal), projectAccess: projects,
-                    applicationPolicies: UnityProjectPolicy.Policies),
+                    applicationPolicies: UnityProjectPolicy.Policies, sourceChanges: auditSource ? null : new WindowsSourceChanges(store.ControlPath)),
                 new PlasticWorkspaceProvider(store, new PlasticWorkspaceClient(), originalPublisher: new WindowsOriginalFilePublisher(allowPlasticAdministration: true),
-                    applicationPolicies: UnityProjectPolicy.Policies));
+                    applicationPolicies: UnityProjectPolicy.Policies, sourceChanges: auditSource ? null : new WindowsSourceChanges(store.ControlPath)));
             return new(store, sources,
                 new SelectedApplicationProvider(new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners")))),
                 snapshots, preparationObserver, new WindowsWorkspaceDiscardProvider(sources, snapshots, generated, projects));

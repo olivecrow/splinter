@@ -91,8 +91,10 @@ public sealed class PlainProjectBasisTests
         Assert.Equal("intact", File.ReadAllText(Path.Combine(source, "keep")));
         Assert.False(Directory.Exists(Path.Combine(d.Path, "home", "project-bases")));
     }
-    [Fact]
-    public async Task SharedReferenceCannotSubstituteAnotherTaskRequest()
+    [Theory]
+    [InlineData("project-reference.json")]
+    [InlineData("project-released.json")]
+    public async Task SharedReferenceCannotSubstituteAnotherTaskRequest(string receiptName)
     {
         using var d = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
         var store = new WorkspaceStore(Path.Combine(d.Path, "home"));
@@ -107,10 +109,18 @@ public sealed class PlainProjectBasisTests
         store.Save(w, "fixed-request");
         string directory = Path.Combine(store.ControlPath(id), "snapshot");
         await ProjectDirectorySnapshotProvider.CaptureAsync(directory, w, ct);
-        string path = Path.Combine(directory, "project-reference.json");
-        File.WriteAllText(path, File.ReadAllText(path).Replace(new string('d', 24), new string('e', 24)));
         var provider = new ProjectDirectorySnapshotProvider(directory, id);
+        string path = Path.Combine(directory, receiptName);
+        if (receiptName == "project-released.json")
+        {
+            File.Copy(Path.Combine(directory, "project-reference.json"), path);
+            // Even without authorization, a present release receipt is read;
+            // only its absence grace may be skipped, never its identity check.
+            Assert.False((await provider.ObserveAsync(snapshot, ct)).Available);
+        }
+        File.WriteAllText(path, File.ReadAllText(path).Replace(new string('d', 24), new string('e', 24)));
         Assert.Equal("ProjectBasisMismatch", (await Assert.ThrowsAsync<WorkspaceException>(() => provider.ObserveAsync(snapshot, ct))).Code);
-        Assert.True(File.Exists(path)); Assert.False(File.Exists(Path.Combine(directory, "project-released.json")));
+        Assert.True(File.Exists(path));
+        if (receiptName == "project-reference.json") Assert.False(File.Exists(Path.Combine(directory, "project-released.json")));
     }
 }

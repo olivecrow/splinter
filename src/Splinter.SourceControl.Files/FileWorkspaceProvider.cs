@@ -11,8 +11,8 @@ namespace Splinter.SourceControl.Files;
 // stores payloads. This adapter never creates a checkout or invokes a VCS.
 public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOriginalFilePublisher? originalPublisher = null, IPlasticRevisionClient? revisionClient = null,
     IPlasticOriginalGuard? originalGuard = null, IProjectSourceAccess? projectAccess = null,
-    ApplicationProjectPolicies? applicationPolicies = null) : ISourceWorkspaceProvider,
-    ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider
+    ApplicationProjectPolicies? applicationPolicies = null, ISourceChangeProvider? sourceChanges = null) : ISourceWorkspaceProvider,
+    ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISourceInspectionProofProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
@@ -93,26 +93,30 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         Owner(w, Control(w));
         RequireBasis(w, Control(w));
         RequireMount(w);
-        var entries = Scan(w.Path, w.ManagedPaths, ct, mount: w.Path);
+        var entries = ScanWorkspace(w, ct);
+        return Task.FromResult(Inspect(w, entries));
+    }
+    private SourceState Inspect(WorkspaceRecord w, FileSourceEntry[] entries)
+    {
         var current = Manifest(w, entries);
         string revision = w.ResultRevision ?? w.BaseRevision!;
         bool changed = current.Identity != revision;
         var basis = ReadManifest(w, FilePath(Control(w), File.Exists(FilePath(Control(w), "result.json")) ? "result.json" : "baseline.json"));
         string[] changedPaths = changed ? Changed(basis.Entries, entries) : [];
-        return Task.FromResult(new SourceState(revision, current.Identity, changed, changedPaths));
+        return new SourceState(revision, current.Identity, changed, changedPaths);
     }
     public Task<string> CheckpointAsync(WorkspaceRecord w, string message, CancellationToken ct = default)
     {
         Owner(w, Control(w)); RequireMount(w);
         RequireBasis(w, Control(w));
-        return Task.FromResult(Manifest(w, Scan(w.Path, w.ManagedPaths, ct, mount: w.Path)).Identity);
+        return Task.FromResult(Manifest(w, ScanWorkspace(w, ct)).Identity);
     }
     public Task<string> PreserveAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
         Owner(w, control); RequireMount(w);
         var baseline = ReadManifest(w, FilePath(control, "baseline.json"));
         if (baseline.Identity != w.BaseRevision) throw Error("The captured basis differs from the durable task.");
-        var result = Manifest(w, Scan(w.Path, w.ManagedPaths, ct, mount: w.Path));
+        var result = Manifest(w, ScanWorkspace(w, ct));
         if (result.Identity != w.ResultRevision) throw new WorkspaceException("UncollectedChanges", "The source changed after checkpoint; retain the journal.");
         return Task.FromResult(Preserve(w, control, baseline, result, ct));
     }
@@ -124,7 +128,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     {
         Owner(w, control); RequireMount(w); RequireBasis(w, control);
         var baseline = ReadManifest(w, FilePath(control, "baseline.json"));
-        var result = Manifest(w, Scan(w.Path, w.ManagedPaths, ct, mount: w.Path));
+        var result = Manifest(w, ScanWorkspace(w, ct));
         // The coordinator owns the pre/post seal interval and publishes the
         // revision only after it proves that no acknowledged write overlapped.
         string reference = Preserve(w, control, baseline, result, ct);
@@ -242,7 +246,12 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
                 (mount is null || !WorkspaceStore.SamePath(current, mount)))
                 throw new WorkspaceException("UnsafePath", "Only the exact observed mount root may be a reparse point.");
     }
-    private static FileSourceEntry[] Scan(string root, string[] managed, CancellationToken ct, bool metadataOnly = false, string? mount = null, bool omitPlasticRoot = false)
+    // Plastic's fixed reader keeps a single revision proof/stream. Interleaving
+    // files would repeatedly evict it and decode the same revision in full.
+    private static FileSourceEntry[] ScanWorkspace(WorkspaceRecord w, CancellationToken ct) =>
+        Scan(w.Path, w.ManagedPaths, ct, mount: w.Path, hashWorkers: w.SourceKind == "plastic" ? 1 : 8);
+    private static FileSourceEntry[] Scan(string root, string[] managed, CancellationToken ct, bool metadataOnly = false, string? mount = null, bool omitPlasticRoot = false,
+        int hashWorkers = 8)
     {
         var entries = new List<FileSourceEntry>();
         long pathBytes = 0;
@@ -264,13 +273,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
                     throw new WorkspaceException("SnapshotFileUnsupported", "The plain-folder source supports ordinary files and directories only.");
                 bool dir = (attributes & FileAttributes.Directory) != 0;
                 long length = dir ? 0 : new FileInfo(path).Length;
-                string? hash = null;
-                if (!dir && !metadataOnly)
-                {
-                    using var stream = Open(path, mount); hash = Convert.ToHexStringLower(SHA256.HashData(stream));
-                    if (stream.Length != length) throw Error("File changed while inspecting its contents.");
-                }
-                entries.Add(new(relative, dir ? "directory" : "file", length, hash,
+                entries.Add(new(relative, dir ? "directory" : "file", length, null,
                     File.GetLastWriteTimeUtc(path).Ticks, (int)attributes));
                 pathBytes += System.Text.Encoding.UTF8.GetByteCount(relative);
                 if (entries.Count > 32768 || pathBytes > 1024 * 1024)
@@ -278,7 +281,26 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
                 if (dir) pending.Push(path);
             }
         }
-        return entries.OrderBy(e => e.Path, StringComparer.Ordinal).ToArray();
+        var sorted = entries.OrderBy(e => e.Path, StringComparer.Ordinal).ToArray();
+        if (metadataOnly) return sorted;
+        // Enumerate and bound membership first; hash distinct files concurrently.
+        // Join every worker on error/cancellation before the caller can reclaim.
+        try
+        {
+            Parallel.For(0, sorted.Length, new ParallelOptions { MaxDegreeOfParallelism = hashWorkers, CancellationToken = ct }, i =>
+            {
+                var entry = sorted[i]; if (entry.Kind != "file") return;
+                string path = Path.Combine(root, entry.Path.Replace('/', Path.DirectorySeparatorChar));
+                using var stream = Open(path, mount);
+                string hash = Convert.ToHexStringLower(SHA256.HashData(stream));
+                if (stream.Length != entry.Length || File.GetLastWriteTimeUtc(path).Ticks != entry.LastWriteUtcTicks ||
+                    (int)File.GetAttributes(path) != entry.Attributes)
+                    throw Error("File changed while inspecting its contents.");
+                sorted[i] = entry with { Hash = hash };
+            });
+        }
+        catch (AggregateException ex) { ExceptionDispatchInfo.Capture(ex.Flatten().InnerExceptions[0]).Throw(); throw; }
+        return sorted;
     }
     private static string[] Changed(FileSourceEntry[] basis, FileSourceEntry[] current)
     {

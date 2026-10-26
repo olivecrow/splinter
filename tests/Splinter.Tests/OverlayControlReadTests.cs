@@ -6,8 +6,66 @@ namespace Splinter.Tests;
 
 // Real Windows control-file/client integration using synthetic process and
 // snapshot records. These tests do not mount WinFsp or qualify VSS/Unity.
+[Collection("Windows control-file timing")]
 public sealed class OverlayControlReadTests
 {
+    [Fact]
+    public async Task FirstStartUnderClientLockDoesNotWaitForNonexistentLaunchRecords()
+    {
+        using var d = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
+        // Deliberately invalid proof stops before any native launch/effect.
+        var request = Request(d.Path) with { SnapshotReceiptDirectory = null! };
+        string path = Path.Combine(d.Path, "request.json");
+        await WindowsProcessWorkspaceProvider.WriteAsync(path, request, ct);
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() => WinFspOverlayClient.StartAsync(path, Path.Combine(d.Path, "runners"), ct));
+        Assert.Equal("SnapshotVerificationRequired", error.Code);
+        Assert.True(System.Diagnostics.Stopwatch.GetElapsedTime(started) < TimeSpan.FromSeconds(1));
+        Assert.False(Directory.Exists(request.DeltaPath));
+        Assert.False(File.Exists(Path.Combine(d.Path, "provider-launch-intent.json")));
+    }
+
+    [Fact]
+    public async Task LockedStartStillRefusesUnresolvedLaunchAndPreservesReceipt()
+    {
+        using var d = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
+        var request = Request(d.Path) with { SnapshotReceiptDirectory = null! };
+        string path = Path.Combine(d.Path, "request.json"), intent = Path.Combine(d.Path, "provider-launch-intent.json");
+        await WindowsProcessWorkspaceProvider.WriteAsync(path, request, ct);
+        await WindowsProcessWorkspaceProvider.WriteAsync(intent, new { request.Token, request.Identity.Id, generation = "unresolved" }, ct);
+        byte[] original = await File.ReadAllBytesAsync(intent, ct);
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() => WinFspOverlayClient.StartAsync(path, Path.Combine(d.Path, "runners"), ct));
+        Assert.Equal("OverlayStartUncertain", error.Code);
+        Assert.Equal(original, await File.ReadAllBytesAsync(intent, ct));
+        Assert.False(Directory.Exists(request.DeltaPath));
+    }
+
+    [Fact]
+    public async Task ChildReceiptPublishedDuringLockedObservationRemainsRecoverableWithoutRelaunch()
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows publication grace.");
+        using var d = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
+        var request = Request(d.Path) with { SnapshotReceiptDirectory = null! };
+        string path = Path.Combine(d.Path, "request.json"), receipt = Path.Combine(d.Path, "provider-launch-receipt.json");
+        await WindowsProcessWorkspaceProvider.WriteAsync(path, request, ct);
+        await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(d.Path, "provider-launch-intent.json"),
+            new { request.Token, request.Identity.Id, generation = "recovering" }, ct);
+        var pending = WinFspOverlayClient.StartAsync(path, Path.Combine(d.Path, "runners"), ct);
+        await Task.Delay(100, ct);
+        // A child can finish its receipt after the client has read its absence.
+        await WindowsProcessWorkspaceProvider.WriteAsync(receipt,
+            new { request.Token, processId = int.MaxValue, startTimeUtcTicks = 1L, generation = "recovering" }, ct);
+        byte[] original = await File.ReadAllBytesAsync(receipt, ct);
+        Assert.Equal("OverlayStartUncertain", (await Assert.ThrowsAsync<WorkspaceException>(() => pending)).Code);
+        Assert.False(Directory.Exists(request.DeltaPath));
+        // Same-request retry observes the matching receipt and reaches basis
+        // verification, which this synthetic request deliberately cannot pass.
+        Assert.Equal("SnapshotVerificationRequired", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            WinFspOverlayClient.StartAsync(path, Path.Combine(d.Path, "runners"), ct))).Code);
+        Assert.Equal(original, await File.ReadAllBytesAsync(receipt, ct));
+        Assert.False(Directory.Exists(request.DeltaPath));
+    }
+
     [Fact]
     public async Task BlockedFinalStatePreservesJournalAndAllowsTheSameStopRequest()
     {

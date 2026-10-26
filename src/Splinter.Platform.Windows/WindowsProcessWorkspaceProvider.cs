@@ -175,9 +175,9 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
             {
                 bool missing = ex is FileNotFoundException or DirectoryNotFoundException;
                 TimeSpan remaining = TimeSpan.FromSeconds(1) - Stopwatch.GetElapsedTime(started);
-                // Only repeatable request polling can treat a missing file as
-                // "no request yet" immediately. Observation/ownership readers
-                // must allow an in-flight publication to become visible first.
+                // Immediate absence requires repeatable polling or a caller's
+                // publication exclusion/lifecycle proof. Other ownership readers
+                // retain the grace for an in-flight atomic publication.
                 if (missing && (!waitForPublication || !OperatingSystem.IsWindows() || remaining <= TimeSpan.Zero)) return default;
                 if (remaining <= TimeSpan.Zero) throw;
                 await Task.Delay(remaining < TimeSpan.FromMilliseconds(25) ? remaining : TimeSpan.FromMilliseconds(25), ct);

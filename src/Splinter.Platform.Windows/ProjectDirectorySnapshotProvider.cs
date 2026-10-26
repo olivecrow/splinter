@@ -16,7 +16,8 @@ public sealed class ProjectDirectorySnapshotProvider(string directory, string ow
         var receipt = new Receipt(1, w.Id, w.RequestDigest!, w.GeneratedDirectory!);
         Directory.CreateDirectory(directory);
         string path = Path.Combine(directory, "project-reference.json");
-        var prior = await WindowsProcessWorkspaceProvider.ReadAsync<Receipt>(path, ct);
+        // Capture runs under the owning task lock; no other publisher can race.
+        var prior = await WindowsProcessWorkspaceProvider.ReadAsync<Receipt>(path, ct, waitForPublication: false);
         if (prior is not null && prior != receipt) throw new WorkspaceException("ProjectBasisMismatch", "Preserve another task's project reference.");
         if (prior is null) await WindowsProcessWorkspaceProvider.WriteAsync(path, receipt, ct);
     }
@@ -55,7 +56,12 @@ public sealed class ProjectDirectorySnapshotProvider(string directory, string ow
     public async Task<SnapshotObservation> ObserveAsync(SnapshotReference snapshot, CancellationToken ct = default)
     {
         var receipt = Read(snapshot);
-        var released = await WindowsProcessWorkspaceProvider.ReadAsync<Receipt>(Path.Combine(directory, "project-released.json"), ct);
+        // Release cannot publish before its authorization. A live task normally
+        // has neither authorization nor release receipt. Once authorized, keep
+        // the publication grace; shared-basis ownership/read leases still gate access.
+        bool releasing = File.Exists(Path.Combine(directory, "release-authorized.json")) ||
+            File.Exists(Path.Combine(directory, "discard-authorized.json"));
+        var released = await WindowsProcessWorkspaceProvider.ReadAsync<Receipt>(Path.Combine(directory, "project-released.json"), ct, waitForPublication: releasing);
         if (released is not null)
         {
             if (released != receipt) throw new WorkspaceException("ProjectBasisMismatch", "Preserve an inconsistent task release receipt.");
@@ -73,7 +79,8 @@ public sealed class ProjectDirectorySnapshotProvider(string directory, string ow
             !File.Exists(Path.Combine(directory, "release-authorized.json")) && !File.Exists(Path.Combine(directory, "discard-authorized.json")))
             throw new WorkspaceException("SnapshotInUse", "A fixed task reclamation authorization and absent delta are required.");
         string path = Path.Combine(directory, "project-released.json");
-        var prior = await WindowsProcessWorkspaceProvider.ReadAsync<Receipt>(path, ct);
+        // Release runs under the same task lock as its authorization.
+        var prior = await WindowsProcessWorkspaceProvider.ReadAsync<Receipt>(path, ct, waitForPublication: false);
         if (prior is not null && prior != receipt) throw new WorkspaceException("ProjectBasisMismatch", "Preserve another task's release receipt.");
         if (prior is null) await WindowsProcessWorkspaceProvider.WriteAsync(path, receipt, ct);
         return new(snapshot.Id, previousAttemptId ?? "project-" + owner, "released", DateTimeOffset.UtcNow, []);

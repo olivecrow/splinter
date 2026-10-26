@@ -80,9 +80,24 @@ public static class WinFspOverlayClient
     }
     public static async Task<JsonElement> ObserveAsync(OverlayServeRequest request, CancellationToken ct = default)
     {
-        JsonElement state = await WindowsProcessWorkspaceProvider.ReadAsync<JsonElement>(Path.Combine(request.ControlPath, "state.json"), ct);
-        var launch = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderLaunch>(Path.Combine(request.ControlPath, "provider-launch-receipt.json"), ct);
-        var intent = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderIntent>(Path.Combine(request.ControlPath, "provider-launch-intent.json"), ct);
+        var records = await ReadControlAsync(request, false, ct);
+        return await ObserveAsync(request, records.State, records.Launch, records.Intent, ct);
+    }
+    private static async Task<(JsonElement State, ProviderLaunch? Launch, ProviderIntent? Intent)> ReadControlAsync(
+        OverlayServeRequest request, bool launchPublicationLocked, CancellationToken ct)
+    {
+        // Only Start's exclusive client.lock excludes launch-record publishers.
+        // Ordinary observers retain each publication grace period, overlapped.
+        var launch = WindowsProcessWorkspaceProvider.ReadAsync<ProviderLaunch>(Path.Combine(request.ControlPath, "provider-launch-receipt.json"), ct, !launchPublicationLocked);
+        var intent = WindowsProcessWorkspaceProvider.ReadAsync<ProviderIntent>(Path.Combine(request.ControlPath, "provider-launch-intent.json"), ct, !launchPublicationLocked);
+        await Task.WhenAll(launch, intent);
+        var state = await WindowsProcessWorkspaceProvider.ReadAsync<JsonElement>(Path.Combine(request.ControlPath, "state.json"), ct,
+            !launchPublicationLocked || launch.Result is not null || intent.Result is not null);
+        return (state, launch.Result, intent.Result);
+    }
+    private static async Task<JsonElement> ObserveAsync(OverlayServeRequest request, JsonElement state,
+        ProviderLaunch? launch, ProviderIntent? intent, CancellationToken ct)
+    {
         if (launch is not null && launch.Token != request.Token || intent is not null && (intent.Token != request.Token || intent.Id != request.Identity.Id))
             throw new WorkspaceException("OverlayOwnerMismatch", "Provider launch records belong to another overlay.");
         bool launchAlive = launch is not null && WindowsProcessGroup.IdentityAlive(launch.ProcessId, launch.StartTimeUtcTicks);
@@ -114,11 +129,12 @@ public static class WinFspOverlayClient
         var request = await ReadRequestAsync(requestPath, ct);
         WindowsProcessWorkspaceProvider.CheckPath(request.ControlPath); Directory.CreateDirectory(request.ControlPath);
         using var operation = new FileStream(Path.Combine(request.ControlPath, "client.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-        var before = await ObserveAsync(request, ct);
+        var records = await ReadControlAsync(request, true, ct);
+        var before = await ObserveAsync(request, records.State, records.Launch, records.Intent, ct);
         string intentPath = Path.Combine(request.ControlPath, "provider-launch-intent.json");
         string receiptPath = Path.Combine(request.ControlPath, "provider-launch-receipt.json");
-        var priorLaunch = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderLaunch>(receiptPath, ct);
-        var priorIntent = await WindowsProcessWorkspaceProvider.ReadAsync<ProviderIntent>(intentPath, ct);
+        var priorLaunch = records.Launch;
+        var priorIntent = records.Intent;
         if (before.GetProperty("processAlive").GetBoolean())
         {
             if (priorLaunch is null || priorIntent?.Generation != priorLaunch.Generation)

@@ -34,6 +34,8 @@ payload 보존의 각 단계는 고유 hash 객체만 처리한다. 독립 결�
 
 파일 checkpoint 수집은 coordinator의 전체 전후 seal 구간 안에서 소스 manifest 하나를 사용한다. 로컬 전체 payload 보존과 독립 object 검증은 최대 8 worker로 처리하며 실패·취소에도 반환 전에 drain한다. 기존·pending·이후 호출의 object는 다시 증명하고 object별 영속 flush 및 모든 결과/소유 검사를 유지한다. 동일 입력 Windows 실측과 한계는 [RT-01–04](verification/result-collection-throughput.md)를 따른다.
 
+전체 파일 scan은 제한된 목록을 먼저 열거하고 None은 최대 8 worker로 hash하며 실패/취소에도 drain한다. Plastic mount scan은 reader가 revision 증명/stream 하나를 유지하므로 직렬로 남긴다. 같은 최초 editorless ensure 안에서는 최초 scan과 metadata/목록 재검사 각각의 전후에 완전한 provider 세대를 검증한 경우만 전체 검사를 한 번 재사용한다. owner·basis·mount·policy·identity·Plastic 등록 격리는 계속 검사하며 tracker 없음/audit는 전체 scan을 사용한다. 1회성 증명은 영속화하지 않고 Editor 시작/provider 재시작 뒤 재사용하지 않는다. 준비·관측 최적화와 별도 시간 한계는 [PR-01–04](verification/preparation-throughput.md)가 소유한다.
+
 ## 반영·회수·폐기
 
 `workspace integrate --target original --plan`은 고정 checkpoint·기준/결과·현재 원본을 비교한다. `project-snapshot`은 application none/unity의 전체·선택 반영을 지원하며 원본 mount identity·Editor 정상 종료·명시적 intent/digest를 요구한다. [원본 반영](plain-folder-original-apply.md)과 [프로젝트 기준본](plain-project-basis.md)의 보호 및 한정 자격을 따른다.

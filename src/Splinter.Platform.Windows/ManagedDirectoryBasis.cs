@@ -266,7 +266,8 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
             throw new WorkspaceException("GeneratedBasisOriginalMountRequired", "Restore the original's exact managed mount before attaching a task.");
         string dependent = Path.Combine(Root(id), "dependents", workspace.Id + ".json");
         var receipt = new GeneratedDependency(workspace.Id, workspace.RequestDigest!, state.Basis);
-        var saved = await WindowsProcessWorkspaceProvider.ReadAsync<GeneratedDependency>(dependent, ct);
+        // The basis gate excludes another dependency publisher for this task.
+        var saved = await WindowsProcessWorkspaceProvider.ReadAsync<GeneratedDependency>(dependent, ct, waitForPublication: false);
         if (saved is not null && saved != receipt) throw new WorkspaceException("GeneratedBasisMismatch", "Retain an inconsistent dependent receipt.");
         if (saved is null) await WindowsProcessWorkspaceProvider.WriteAsync(dependent, receipt, ct);
         return state.Basis;

@@ -24,6 +24,8 @@
 
 ## 현재 기능의 소유 문서
 
+- 준비·관측 후속은 `docs/plans/preparation-throughput.md`·`docs/verification/preparation-throughput.md`의 PR-01–04가 소유한다. 기존 잠금으로 동시 게시가 배제된 제어 파일과 authorization 전 project release receipt의 정상 부재 대기를 줄인다. 일반 게시 유예·공유 오류·소유/미해결 launch 보호는 유지한다. None 전체 파일 scan은 최대 8 worker와 실패/취소 drain을 사용하고, Plastic mount scan은 단일 revision reader의 반복 proof 퇴출을 막기 위해 직렬을 유지하며, 최초 editorless 응답에만 완전한 변경 세대·목록/metadata·identity를 재검증한 1회성 증명을 쓴다. 이후 명령·provider 재시작·Editor 시작에는 재사용하지 않는다. PR-03의 실제 NTFS/WinFsp None 비용을 Unity 전체·실제 Plastic 서버·원본 반영/폐기·전원 장애 자격으로 확대하거나 자동 반복하지 않는다.
+
 - 파일 결과 수집 최적화는 `docs/plans/result-collection-throughput.md`·`docs/verification/result-collection-throughput.md`의 RT-01–04가 소유한다. None/recorded Plastic은 기존 전후 seal 안에서 checkpoint/보존의 소스 scan을 한 번으로 합치며 로컬 payload 보존·독립 object 검증은 최대 8 worker와 실패/취소 drain을 사용한다. Plastic revision 획득은 직렬이고 파일별 영속 flush·전체 독립 결과·이후 호출의 재검증·소유 회수는 유지한다. RT-03의 실제 NTFS/WinFsp None 입력 비용을 Unity 전체·실제 Plastic 서버·원본 반영·전원 장애 자격으로 확대하거나 자동 반복하지 않는다.
 
 - 향후 수명주기 최적화의 AI 탐색 시작점은 `docs/lifecycle-optimization-map.md`·`docs/ko/lifecycle-optimization-map.md`·`docs/lifecycle-optimization-map.json`이다. 작업공간 하나의 준비·I/O·Editor·결과 보존·Git/파일 반영·폐기·공유 기준본 복원을 19개 단계 ID·6개 도식과 코드 symbol로 연결한다. C20의 단일 scan·제한 병렬 payload 단계·seal 뒤 결과 확정과 RT 실측/남은 비용을 함께 기록한다. 기준 커밋과 소스 hash로 고정한 구조 지도이며 각 기능의 소유 계약/검증을 대체하거나 새 Unity 실험을 승인하지 않는다. 순서·내구성·결과 구체화·회수 의존성이 바뀌면 양 언어/색인을 함께 갱신한다.

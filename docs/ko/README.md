@@ -14,6 +14,8 @@
 
 C20 후속은 [파일 결과 수집 처리량](plans/result-collection-throughput.md)과 [RT-01–04 검증](verification/result-collection-throughput.md)이 소유한다. seal 안에서 소스를 한 번 읽고 로컬 payload 작업을 제한 병렬화하며 실제 시간 측정과 Unity/Plastic 자격을 구분한다.
 
+준비 후속은 [준비·관측 처리량](plans/preparation-throughput.md)과 [PR-01–04 검증](verification/preparation-throughput.md)이 소유한다. 게시 조건에 따른 부재 대기·제한 병렬 파일 scan·1회성 최초 검사 증명을 Editor 없는 NTFS/WinFsp 입력에서 측정한다.
+
 | 문서 | 소유하는 내용 |
 | --- | --- |
 | [수명주기 최적화 지도](lifecycle-optimization-map.md), [기계 판독 색인](../lifecycle-optimization-map.json) | 코드 기반 AI 탐색: 작업공간 하나의 19단계·파일 결과 수집을 포함한 도식 6개, Git/파일 반영과 폐기, 잠금·내구성·복구, 코드 symbol·계측 경계. 고정 구현 스냅샷이며 새 실측이나 프로젝트 작업 실행 승인이 아님. |

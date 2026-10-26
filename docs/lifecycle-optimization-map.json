@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "documentation-index",
   "notARuntimeSchema": true,
-  "sourceCommit": "9b68a82cd89912e404d8acd6dcf7e48ce513a353",
+  "sourceCommit": "448f029a31a7c6f29d14d868c5e5f9e11aff5b19",
   "branch": "development",
   "inspectedDate": "2026-10-26",
   "canonicalDocument": "docs/lifecycle-optimization-map.md",
@@ -113,7 +113,7 @@
         "ko": "docs/ko/lifecycle-optimization-map.md#p40"
       },
       "preconditions": "Exact read access/owner/basis; no owned app clients on missing-provider reconnect.",
-      "work": "Own provider process, admit source, replay journal, mount with 8 dispatch threads.",
+      "work": "Own provider process, admit source, replay journal, mount with 8 dispatch threads. Reuse launch observations under client.lock; skip only publication-excluded absence waits; ordinary observers retain grace and unresolved-launch checks. A child may finish a prior intent receipt during observation; an unresolved intent remains uncertain and requires the same-request reobservation, never a replacement launch.",
       "completion": "Observed exact provider identity and mounted path; ready is not compile proof.",
       "costs": "Launch, full admission, replay, handles/cache initialization",
       "recovery": "No mutable-source copy fallback; uncertain owner preserved."
@@ -134,7 +134,7 @@
         "ko": "docs/ko/lifecycle-optimization-map.md#p50"
       },
       "preconditions": "Live fixed mount and owned source registration.",
-      "work": "Refresh Git index with eligible joined read-ahead or scan file manifests; prove clean base.",
+      "work": "Refresh Git index with eligible joined read-ahead or scan file manifests; prove clean base. None full hashes use up to eight workers; mounted Plastic source scans remain serial; one-use initial inspection proof revalidates metadata/membership and complete generation barriers for the same editorless response. Mounted Plastic scans remain serial to preserve its single-revision proof/stream locality.",
       "completion": "Attached=true, ready, snapshot-ensured.",
       "costs": "Index/stat/hash, first blob proofs, manifest traversal",
       "recovery": "Drain refresh/read-ahead failures; existing index lock respected."
@@ -286,7 +286,7 @@
         "ko": "docs/ko/lifecycle-optimization-map.md#c20"
       },
       "preconditions": "Task lock, stopped owned clients, stable journal, allowed source state.",
-      "work": "Pre-seal; Git commit/ref or one file-source scan plus full baseline/result preservation; up to eight local payload/proof workers, serial Plastic revision acquisition; verification; post-seal.",
+      "work": "Pre-seal; Git commit/ref or one file-source scan plus full baseline/result preservation; up to eight local payload/proof workers, serial Plastic revision acquisition; verification; post-seal. None full file scan hashes are bounded to eight workers; mounted Plastic source scans remain serial and drained before later payload work. Mounted Plastic scans remain serial to preserve its single-revision proof/stream locality.",
       "completion": "IndependentOfSnapshot result and collected record; does not assert compile success.",
       "costs": "Source scan/hash, full payload preservation, result verification, full seals",
       "recovery": "Drain admitted object workers before failure/cancellation returns. Seal mismatch preserves the prior task revision/result and all fixed intent/journal/object evidence. result.json alone is not collection completion; resume the same identity.",
@@ -704,9 +704,65 @@
     "heartbeatFreshnessSeconds": 15,
     "restoreCompletionCursorFileBatch": 128,
     "boundedCheckpointExtraDiskHeadroomBytes": 2147483648,
-    "fileResultWorkersMaximum": 8
+    "fileResultWorkersMaximum": 8,
+    "fileScanWorkersMaximum": 8,
+    "controlFilePublicationGraceSeconds": 1,
+    "plasticMountedScanWorkers": 1
   },
   "evidence": [
+    {
+      "id": "PR-01-04",
+      "path": "docs/verification/preparation-throughput.md",
+      "dataset": "reports/benchmarks/preparation-throughput-20261026.json",
+      "qualification": "Publication-aware waits, bounded full scans and one-use initial proof; actual matched editorless None NTFS/WinFsp input, not Unity/live Plastic/apply/discard timing.",
+      "observedCommandMeansSeconds": {
+        "ensure": {
+          "stageIds": [
+            "P20",
+            "P30",
+            "P40",
+            "P50"
+          ],
+          "before": 65.25813880001078,
+          "after": 20.650467499974184
+        },
+        "edit": {
+          "stageIds": [
+            "E20"
+          ],
+          "before": 0.05925874999957159,
+          "after": 0.03683080000337213
+        },
+        "checkpoint": {
+          "stageIds": [
+            "C20"
+          ],
+          "before": 38.91626049997285,
+          "after": 24.523884649999673
+        },
+        "release": {
+          "stageIds": [
+            "R10"
+          ],
+          "before": 35.07069209998008,
+          "after": 9.578449200023897
+        },
+        "workspacePhases": {
+          "stageIds": [
+            "P20",
+            "P30",
+            "P40",
+            "P50",
+            "E20",
+            "C20",
+            "R10"
+          ],
+          "before": 139.30435014996328,
+          "after": 54.789632150001125
+        }
+      },
+      "measurementBoundary": "ABBA, two observations per variant, same source bytes/mtime and edit; caches not cleared; command overhead included; common prepare/restore each once outside sums. Combined changes, not separate causal attribution."
+    },
     {
       "id": "RT-01-04",
       "path": "docs/verification/result-collection-throughput.md",
@@ -803,7 +859,7 @@
       "files": [
         {
           "path": "src/Splinter.Cli/WorkspaceCommands.cs",
-          "sha256": "309a2a5c854865212770639c30411fb9c4a784b70ac7ca20d9d134b1310a7acc",
+          "sha256": "2bb5dd5e34178259619cb8652404b417e2103bd77950354e10933d78684c8227",
           "symbols": [
             {
               "name": "Add",
@@ -932,7 +988,7 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs",
-          "sha256": "663151a5617148661e70a84542526e89d51d4cdde5d734d272ff830cf6298ce4",
+          "sha256": "aeb287433a5c28bf3b7ff76032c6500239b91beb33f2548374cdc3cf5e326c39",
           "symbols": [
             {
               "name": "PrepareAsync",
@@ -949,13 +1005,13 @@
             {
               "name": "DetachAsync",
               "lineHints": [
-                274
+                275
               ]
             },
             {
               "name": "RestoreAsync",
               "lineHints": [
-                292
+                293
               ]
             }
           ]
@@ -967,7 +1023,7 @@
             {
               "name": "CaptureCancellable",
               "lineHints": [
-                107,
+                108,
                 108
               ]
             },
@@ -1028,6 +1084,31 @@
               "name": "ReleaseSnapshotAsync",
               "lineHints": [
                 309
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/ProjectDirectorySnapshotProvider.cs",
+          "sha256": "4552164201b55a12d6a0bded952c16cecb8ce785826db2a9e67d38fc2e6d1556",
+          "symbols": [
+            {
+              "name": "CaptureAsync",
+              "lineHints": [
+                14,
+                54
+              ]
+            },
+            {
+              "name": "ObserveAsync",
+              "lineHints": [
+                56
+              ]
+            },
+            {
+              "name": "ReleaseAsync",
+              "lineHints": [
+                74
               ]
             }
           ]
@@ -1099,7 +1180,7 @@
             {
               "name": "Read",
               "lineHints": [
-                90,
+                250,
                 250
               ]
             }
@@ -1130,24 +1211,37 @@
         },
         {
           "path": "src/Splinter.Platform.Windows/WinFspOverlayClient.cs",
-          "sha256": "71e20b883f2a2b8f3f951a1e5b4527e5a3fb875e599603f91237ccdf8b69ca51",
+          "sha256": "9c43c972472a6d89ce9ed3f7c08564fd2d3ae8cdec9cdefe02cd65704c31a15b",
           "symbols": [
             {
               "name": "StartAsync",
               "lineHints": [
-                111
+                126
               ]
             },
             {
               "name": "AwaitMountedAsync",
               "lineHints": [
-                166
+                182
               ]
             },
             {
               "name": "StopAsync",
               "lineHints": [
-                199
+                215
+              ]
+            },
+            {
+              "name": "ReadControlAsync",
+              "lineHints": [
+                86
+              ]
+            },
+            {
+              "name": "ObserveAsync",
+              "lineHints": [
+                81,
+                98
               ]
             }
           ]
@@ -1218,7 +1312,7 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/WindowsProcessWorkspaceProvider.cs",
-          "sha256": "5a4901e017a2fb673d147849cfd127e019033f25013ee135ede1ee4807d9e806",
+          "sha256": "939dec4368e5f07f7e77ef7c97434fa13a6be1229cd10b8d185fda03a028d272",
           "symbols": [
             {
               "name": "StartAsync",
@@ -1305,8 +1399,8 @@
             {
               "name": "Read",
               "lineHints": [
-                26,
-                27,
+                156,
+                156,
                 156
               ]
             },
@@ -1534,7 +1628,7 @@
       "files": [
         {
           "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
-          "sha256": "26134c15e3f4bd37f10305fc26a6c5ab2a849760a36f137cbec2129706dafbe5",
+          "sha256": "0a8ee652a290a8abd6e134dc4cc4a07c7a0a85cf1e51dfb07366e4b87c193cf1",
           "symbols": [
             {
               "name": "InspectAsync",
@@ -1545,62 +1639,74 @@
             {
               "name": "CheckpointAsync",
               "lineHints": [
-                104
+                108
               ]
             },
             {
               "name": "PreserveAsync",
               "lineHints": [
-                110
+                114
               ]
             },
             {
               "name": "VerifyResultAsync",
               "lineHints": [
-                149
+                153
               ]
             },
             {
               "name": "SupportsCheckpointAndPreserve",
               "lineHints": [
-                119
+                123
               ]
             },
             {
               "name": "CheckpointAndPreserveAsync",
               "lineHints": [
-                122
+                126
               ]
             },
             {
               "name": "VerifyIndependentResult",
               "lineHints": [
-                160,
-                163
+                164,
+                167
               ]
             },
             {
               "name": "ForEachPayload",
               "lineHints": [
-                311
+                333
               ]
             },
             {
               "name": "Preserve",
               "lineHints": [
-                133
+                137
               ]
             },
             {
               "name": "PreservePayloads",
               "lineHints": [
-                290
+                312
               ]
             },
             {
               "name": "VerifyPayloads",
               "lineHints": [
-                346
+                368
+              ]
+            },
+            {
+              "name": "Scan",
+              "lineHints": [
+                253
+              ]
+            },
+            {
+              "name": "ScanWorkspace",
+              "lineHints": [
+                251
               ]
             }
           ]
@@ -1625,30 +1731,30 @@
         },
         {
           "path": "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs",
-          "sha256": "f00ed9fc4582898efd4f8a72419eb19ceb84a771bbe0437e32dcd864a48fd4a4",
+          "sha256": "bb2f38ff2f29597335adb418e5ce447b64c90112ee623148837bdb9deabe35a5",
           "symbols": [
             {
               "name": "PlanOriginalAsync",
               "lineHints": [
-                155
+                166
               ]
             },
             {
               "name": "ApplyOriginalAsync",
               "lineHints": [
-                156
+                167
               ]
             },
             {
               "name": "SupportsCheckpointAndPreserve",
               "lineHints": [
-                140
+                151
               ]
             },
             {
               "name": "CheckpointAndPreserveAsync",
               "lineHints": [
-                141
+                152
               ]
             }
           ]
@@ -1661,6 +1767,31 @@
               "name": "PreserveRecordedPayloads",
               "lineHints": [
                 43
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileInspectionProof.cs",
+          "sha256": "5f780a3540401e9b432a6c85aa3a371f8cb7d0f60107bf8aac84d32192bd255a",
+          "symbols": [
+            {
+              "name": "InspectWithProofAsync",
+              "lineHints": [
+                10
+              ]
+            },
+            {
+              "name": "RevalidateAsync",
+              "lineHints": [
+                53
+              ]
+            },
+            {
+              "name": "Generation",
+              "lineHints": [
+                30,
+                30
               ]
             }
           ]
@@ -1782,7 +1913,7 @@
               "name": "Key",
               "lineHints": [
                 29,
-                43
+                29
               ]
             },
             {
@@ -1821,9 +1952,15 @@
     }
   ],
   "maintenance": "Update both languages and this index after lifecycle/ownership/durability/default/result/reclamation changes; retain the exact base commit and source hashes, and refresh line hints from reviewed source contents.",
-  "sourceRevisionKind": "base-commit-plus-indexed-RT-01-02-source-changes",
+  "sourceRevisionKind": "base-commit-plus-indexed-PR-01-02-source-changes",
   "sourceChanges": [
+    "src/Splinter.Cli/WorkspaceCommands.cs",
     "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
-    "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs"
+    "src/Splinter.SourceControl.Files/FileInspectionProof.cs",
+    "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs",
+    "src/Splinter.Platform.Windows/WinFspOverlayClient.cs",
+    "src/Splinter.Platform.Windows/ProjectDirectorySnapshotProvider.cs",
+    "src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs",
+    "src/Splinter.Platform.Windows/WindowsProcessWorkspaceProvider.cs"
   ]
 }

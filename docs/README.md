@@ -16,6 +16,8 @@ Find current implementation in feature documents below and subsequent responsibi
 
 The C20 follow-up is [file result collection throughput](plans/result-collection-throughput.md), with [RT-01–04 verification](verification/result-collection-throughput.md): one sealed source scan and bounded local payload work, with native timing separate from Unity/Plastic qualification.
 
+The preparation follow-up is [preparation and observation throughput](plans/preparation-throughput.md), with [PR-01–04 verification](verification/preparation-throughput.md): publication-aware absence waits, bounded file scans and single-use initial inspection proofs, measured on an editorless NTFS/WinFsp input.
+
 | Document | Owned content |
 | --- | --- |
 | [Lifecycle optimization map](lifecycle-optimization-map.md), [machine-readable index](lifecycle-optimization-map.json) | Code-backed AI navigation for one workspace: 19 stages, six diagrams including file-result collection, Git/file application and discard, locks/durability/recovery, source symbols and measurement boundaries. Pinned implementation snapshot, not a new benchmark or permission to run project operations. |

@@ -18,12 +18,12 @@ public interface IPlasticWorkspaceClient
 
 public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorkspaceClient client, IPlasticRevisionClient? revisionClient = null,
     IOriginalFilePublisher? originalPublisher = null, IPlasticOriginalGuard? originalGuard = null,
-    ApplicationProjectPolicies? applicationPolicies = null) :
-    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider
+    ApplicationProjectPolicies? applicationPolicies = null, ISourceChangeProvider? sourceChanges = null) :
+    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISourceInspectionProofProvider
 {
     private readonly FileWorkspaceProvider files = new(store, originalPublisher, revisionClient, originalGuard ??
         (client is IPlasticOriginalStateClient state ? new PlasticOriginalGuard(store, client, state, revisionClient ?? new PlasticRevisionClient(), applicationPolicies) : null),
-        applicationPolicies: applicationPolicies);
+        applicationPolicies: applicationPolicies, sourceChanges: sourceChanges);
     private string Control(WorkspaceRecord w) => store.ControlPath(w.Id);
     private static string Evidence(string control, string name) => Path.Combine(control, "plastic", name);
     private static WorkspaceException Invalid(string message) => new("PlasticCompatibilityInvalid", message);
@@ -135,6 +135,17 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
     }
     public async Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)
     { await VerifyIsolationAsync(w, ct); return await files.InspectAsync(w, ct); }
+    public async Task<ProvedSourceInspection> InspectWithProofAsync(WorkspaceRecord w, CancellationToken ct = default)
+    {
+        await VerifyIsolationAsync(w, ct);
+        var inspection = await files.InspectWithProofAsync(w, ct);
+        return inspection with { Proof = inspection.Proof is { } proof ? new IsolationProof(this, proof) : null };
+    }
+    private sealed class IsolationProof(PlasticWorkspaceProvider provider, ISourceInspectionProof proof) : ISourceInspectionProof
+    {
+        public async Task<SourceState> RevalidateAsync(WorkspaceRecord w, CancellationToken ct = default)
+        { await provider.VerifyIsolationAsync(w, ct); return await proof.RevalidateAsync(w, ct); }
+    }
     public async Task<string> CheckpointAsync(WorkspaceRecord w, string m, CancellationToken ct = default)
     { await VerifyIsolationAsync(w, ct); return await files.CheckpointAsync(w, m, ct); }
     public bool SupportsCheckpointAndPreserve(WorkspaceRecord w) => files.SupportsCheckpointAndPreserve(w);

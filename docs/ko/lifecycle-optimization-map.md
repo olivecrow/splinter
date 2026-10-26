@@ -2,7 +2,7 @@
 
 [English](../lifecycle-optimization-map.md) · [기계 판독 색인](../lifecycle-optimization-map.json) · [문서 지도](README.md)
 
-**코드 기준:** 기준 커밋 `9b68a82cd89912e404d8acd6dcf7e48ce513a353`와 JSON 색인의 소스 hash로 식별한 RT-01/02 파일 결과 변경, `development`, 2026-10-26 확인. 현재 코드의 구조를 설명하며 프로젝트 작업 실행 승인이 아니다. 새 한정 실측은 별도 [RT 검증](verification/result-collection-throughput.md)이 소유한다. 작업공간 하나의 준비부터 반영/폐기·회수까지 다룬다. 다른 작업은 공유·잠금·의존성이 영향을 주는 곳에만 등장한다. symbol을 탐색 기준으로 삼고 JSON 행 번호는 색인에 기록된 소스 내용의 위치 힌트로 사용한다.
+**코드 기준:** 기준 커밋 `448f029a31a7c6f29d14d868c5e5f9e11aff5b19`와 JSON 색인의 소스 hash로 식별한 PR-01/02 준비 변경, `development`, 2026-10-26 확인. 현재 코드의 구조를 설명하며 프로젝트 작업 실행 승인이 아니다. 새 한정 실측은 [PR 검증](verification/preparation-throughput.md)이 소유하며 이전 결과 수집 비교는 [RT 검증](verification/result-collection-throughput.md)에 보존한다. 작업공간 하나의 준비부터 반영/폐기·회수까지 다룬다. 다른 작업은 공유·잠금·의존성이 영향을 주는 곳에만 등장한다. symbol을 탐색 기준으로 삼고 JSON 행 번호는 색인에 기록된 소스 내용의 위치 힌트로 사용한다.
 
 **AI 읽기 순서:** §§1–3에서 identity·경로를 파악하고, §4에서 단계별 동작, §§5–7에서 직렬화·비용·복구, §8에서 실제 코드를 확인한다. 계약 수정 전에는 연결된 기능 소유 문서를 읽는다. 명령 사용 절차 원본은 [Splinter 스킬](../../skills/splinter/SKILL.md)이다.
 
@@ -145,12 +145,16 @@ Git 객체/catalog 검사·Plastic client/server revision 접근·기준 manifes
 
 비용은 process launch·필요한 전체 admission/proof·replay·handle·cache 초기화다. 재사용은 완료가 증명된 효과만 생략한다. 새 snapshot이나 mutable 원본 복사를 통한 복구가 아니다. 소스 status/provider ready 시각은 컴파일 준비 시각과 다르다.
 
+제어 관측 [PR-01](verification/preparation-throughput.md): 일반 intent/receipt 읽기는 게시 유예를 유지하면서 겹치고 모두 drain하며, 없는 state도 대기한다. Start의 배타 `client.lock` 안에서는 경쟁 start를 배제하고 launch 기록을 한 번 관측해 재사용하며 부재 대기를 생략한다. 기존 intent의 자식은 receipt를 나중에 게시할 수 있으므로 그 intent의 receipt 부재는 unknown으로 보존하고 같은 요청으로 재관측한다. 이전 launch가 있으면 state 유예는 유지한다. Project task는 release/discard authorization 전까지만 없는 release receipt의 유예를 생략한다. capture/release·dependent attach는 기존 게시 배제 잠금을 사용한다. 존재하는 기록·공유 오류·소유/세대 검사·미해결 launch 보호는 유지한다.
+
 <a id="p50"></a>
 ### P50 — attach, baseline 증명, ready 반환
 
 `SnapshotSources.AttachAsync/EstablishBaselineAsync`와 clean 검사가 마지막 단계다 [K02]. Git [K06]은 소유 관리 정보를 연결하고 새 index에 `read-tree`를 수행하며 반드시 refresh한다. **새로운 변경 없는 index**에서만 1MiB 이상 파일의 첫 바이트 선행 읽기를 refresh와 겹친다. 이 읽기는 정상 전체 blob 증명을 유발한다. 실패해도 양쪽을 drain하며 기존 index 재개에는 적용하지 않는다. File/Plastic baseline은 고정 소스 manifest를 scan하고 관리/VCS 경로를 제외한다.
 
 clean 소스 revision이 base와 같아야 `Attached=true`, `ready`, `snapshot-ensured`를 게시한다. 연산 한정 최초 검사 증명을 editorless 응답에 재사용할 수 있지만 영구적인 무변경 증명이 아니다. `ensure --editor`는 E10 뒤 실행 관측을 반환하며 추가 전체 소스 검사를 했다고 주장하지 않는다.
+
+None/recorded Plastic [K19]의 전체 소스 scan은 제한된 목록을 먼저 확정한다. None은 최대 **8 worker**로 hash하며 실패/취소에도 모두 join한다. Plastic mount scan은 단일 revision 증명/stream의 반복 퇴출을 막기 위해 직렬을 유지한다. 최초 scan은 같은 ensure 응답에서 **한 번만** 쓰는 증명을 만들 수 있다. 전체 scan과 metadata-only 재검사 각각의 전후에 완전한 source-change barrier가 같아야 하며 owner/basis/mount/request/policy·목록·metadata·epoch·history도 일치해야 한다. Plastic 등록 격리도 다시 검사한다. tracker 없음/audit는 전체 검사이며 명령이나 provider 재시작을 넘어 증명을 재사용하지 않는다. [PR-02](verification/preparation-throughput.md) 참조.
 
 주 비용은 Git index/stat/hash 순회·최초 전체 객체 decode·소스 manifest scan·metadata 연산이다. 현재 Git reader는 두 decoder 임대, 4MiB/4,096-blob proof, 256MiB/4,096-chunk RAM payload LRU, 최대 128MiB 최초 proof 선행 window를 쓴다. 각각 tree별 제한이며 process 전체 RAM 제한이 아니다. 디스크 hydration은 없다. [WC](verification/workspace-creation-throughput.md) 참조.
 
@@ -353,7 +357,7 @@ flowchart TD
 | 읽기 수명 | 지원하는 불변 읽기 겹침, private/상태 수집 gate, close drain | 폐기한 flush/read overlap 후보는 활성화하지 않음 |
 | Git reader | 두 decoder 임대·제한 proof/payload cache | 다른 객체 decode는 겹칠 수 있으나 최초 전체 증명 유지 |
 | 관리형 파일 | capture/admission/변경 없는 복원 최대 8 worker, 실패 join/drain | 이미 병렬화됨; 추가 concurrency는 device 경합·전체 RAM 계측 필요 |
-| 독립 파일 결과 | C20 소스 scan 1회, 로컬 payload/증명 최대 8 worker와 반환 전 drain, Plastic revision 획득 직렬 | 기준/결과 전체 내용과 호출별 재검증 비용은 남음 |
+| 파일 소스 / 독립 결과 | None 전체 소스 hash·로컬 payload/증명은 단계별 최대 8 worker와 반환 전 drain, Plastic mount 소스 scan 직렬, C20 scan 1회, 최초 editorless 증명 1회성, Plastic revision 획득 직렬 | 기준/결과 전체 내용과 이후 호출의 새 증명 비용은 남음 |
 | 영속 상태 | workspace/intent/receipt 원자 게시·영속 경계; 저널 checksum/flush | heartbeat/liveness는 영속 소스 결과 commit이 아님 |
 | 종료 | Unity import/compile/자식 대기, retained handle이면 unmount 불가 | Editor exit·child exit·handle drain·unmount·회수를 분리 |
 
@@ -396,6 +400,8 @@ run별 원시 시작/종료 시각과 hash를 보존하고 정상 처리와 진�
 
 RT-03은 같은 **2.125GiB·2,112개 파일**의 소스 내용·수정 시각과 고정 편집으로 전 → 후 → 후 → 전 순서를 사용했다. P20–P50 ensure + E20 고정 편집 + C20 checkpoint + 별도 R10 release 합계는 **203.305 → 159.906초**, 관측 절감은 **43.399초 / 21.3%**다. checkpoint 명령 시간에는 명령 외곽 비용도 포함되며 내부 C20만의 타이머는 아니다. 공통 P10 준비 **9.031초**와 F10 복원 **12.018초**는 합계 밖에서 각각 한 번 수행했다. Editor·원본 반영·폐기 시간은 측정하지 않았다. 버전별 두 번·큰 절대 시간 편차·OS 캐시를 비우지 않은 조건의 한계를 유지하며 [개별 실행과 소스 hash](../../reports/benchmarks/result-collection-throughput-20261026.json)를 따른다.
 
+PR-03은 새로운 동일 **2.125 GiB / 2,112파일** 입력의 ABBA 순서로 후속 준비/관측 변경을 별도 비교했다. Ensure **65.258 → 20.650초**, checkpoint **38.916 → 24.524초**, 별도 release **35.071 → 9.578초**, 같은 작업공간 단계 합계는 **139.304 → 54.790초**로 **84.515초 / 60.7%** 줄었다. 공통 prepare **8.598초**와 restore **11.965초**는 각각 한 번 실행해 합계에서 제외했다. 모든 소스/결과 identity와 소유 회수가 일치했다. 결합한 변경의 관측이며 개별 인과 시간이나 Unity/반영/폐기 측정이 아니다. 한계는 [PR 검증](verification/preparation-throughput.md)이 소유한다. 남은 명령 비용은 20.650초 / 24.524초 / 9.578초이며 전체 admission·독립 payload 구체화·이후 호출의 새 증명을 유지한다.
+
 이 입력에서 남은 실측 비용은 **P20–P50 생성 65.599초**, **checkpoint 58.944초**, **별도 R10 release 35.326초**다. 후속 계측은 생성의 admission/baseline scan, 전체 결과 구체화/증명, release의 소스/seal/object 재검증 비용을 나누어야 한다. 이 수치는 조사 위치를 알려주며 증명 생략을 승인하거나 미구현 후보의 절감량을 입증하지 않는다.
 
 폐기/무이득 후보는 유지하지 않는다: [DF](verification/durable-flush-throughput.md) RAM checkpoint·I/O 대안, [LT](verification/lifecycle-throughput.md) flush/read 겹침, native Bee, VSS, ReFS. 조기 ACK·필수 flush 생략은 다른 내구성 정책이지 동등 최적화가 아니다. 이 지도는 backend·worker pool·명령·정책 switch를 추가하지 않는다.
@@ -429,7 +435,7 @@ JSON은 같은 단계 ID·edge·source symbol·코드 기준 행 힌트를 기�
 | K02 | [SnapshotWorkspaces](../../src/Splinter.Runtime/SnapshotWorkspaces.cs): `EnsureSnapshotAsync`, `ConnectSnapshotAsync`, `CheckpointSnapshotResultAsync`, `ReleaseSnapshotWorkspaceAsync`, `ReuseSnapshotResultAsync` |
 | K03 | [WorkspaceDiscard](../../src/Splinter.Runtime/WorkspaceDiscard.cs): `DiscardAsync`, seal/dependency/자원 0 guard |
 | K04 | [ManagedDirectoryBasis](../../src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs): `PrepareAsync`, `AttachAsync`, `DetachAsync`, `RestoreAsync`; [OwnedDirectorySnapshot](../../src/Splinter.Platform.Windows/OwnedDirectorySnapshot.cs): worker/proof |
-| K05 | [NtfsSnapshotWorkspaceBackend](../../src/Splinter.Platform.Windows/NtfsSnapshotWorkspaceBackend.cs): capture/connect/seal/unmount/delta/기준 회수 |
+| K05 | [NtfsSnapshotWorkspaceBackend](../../src/Splinter.Platform.Windows/NtfsSnapshotWorkspaceBackend.cs): capture/connect/seal/unmount/delta/기준 회수; [ProjectDirectorySnapshotProvider](../../src/Splinter.Platform.Windows/ProjectDirectorySnapshotProvider.cs): 공통 project 참조와 release 관측 |
 | K06 | [GitSnapshotWorkspaces](../../src/Splinter.SourceControl.Git/GitSnapshotWorkspaces.cs), [GitOverlayRegistration](../../src/Splinter.SourceControl.Git/GitOverlayRegistration.cs), [GitObjectSnapshotTree](../../src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs): 고정 기준·attach/proof/선행 읽기·보존 |
 | K07 | [WinFspOverlayMountProvider](../../src/Splinter.Platform.Windows/WinFspOverlayMountProvider.cs), [WinFspOverlayClient](../../src/Splinter.Platform.Windows/WinFspOverlayClient.cs), [WinFspOverlayServer](../../src/Splinter.Platform.Windows/WinFspOverlayServer.cs): 소유 provider/control/replay/mount |
 | K08 | [UnityWorkspaceProvider](../../src/Splinter.Application.Unity/UnityWorkspaceProvider.cs): start/infrastructure/관측/정상 종료 |
@@ -443,7 +449,7 @@ JSON은 같은 단계 ID·edge·source symbol·코드 기준 행 힌트를 기�
 | K16 | [WorkspaceOriginalApply](../../src/Splinter.Runtime/WorkspaceOriginalApply.cs): plan/apply 진입 guard |
 | K17 | [WindowsOriginalFilePublisher](../../src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs): NTFS 조건부 게시·receipt |
 | K18 | [GitWorkspaceProvider](../../src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs): 소스 checkpoint·target/dirty guard·merge |
-| K19 | [FileWorkspaceProvider](../../src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs), [FileRecordedBasis](../../src/Splinter.SourceControl.Files/FileRecordedBasis.cs), [FileOriginalApply](../../src/Splinter.SourceControl.Files/FileOriginalApply.cs), [PlasticWorkspaceProvider](../../src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs): manifest/전체 결과 payload/원본 plan·intent |
+| K19 | [FileWorkspaceProvider](../../src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs), [FileRecordedBasis](../../src/Splinter.SourceControl.Files/FileRecordedBasis.cs), [FileOriginalApply](../../src/Splinter.SourceControl.Files/FileOriginalApply.cs), [PlasticWorkspaceProvider](../../src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs): manifest/전체 결과 payload/원본 plan·intent; [FileInspectionProof](../../src/Splinter.SourceControl.Files/FileInspectionProof.cs): 세대에 결속된 1회성 응답 증명 |
 | K20 | [WorkspaceBridge](../../unity/Splinter.Editor/Editor/WorkspaceBridge.cs): heartbeat/busy/dirty scene/Play/정상 exit |
 | K21 | [WindowsWorkspaceDiscardProvider](../../src/Splinter.Workflows.Windows/WindowsWorkspaceDiscardProvider.cs): 정확한 소유 delta/기준/소스 폐기 |
 | K22 | [ManagedDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs): v2 파일 plan/range/128-file cursor/최종 검증 |

@@ -1,0 +1,299 @@
+{
+  "verification": "PR-01-04",
+  "date": "2026-10-26",
+  "baselineCommit": "448f029a31a7c6f29d14d868c5e5f9e11aff5b19",
+  "adopted": [
+    "Publication-excluding locks avoid absent control waits; normal observation grace, sharing failures and unresolved launch guards remain.",
+    "At most eight full-scan hash workers with failure/cancellation drain; same-operation single-use file proof bound to complete generation and metadata/membership checks."
+  ],
+  "method": {
+    "id": "PR-03",
+    "baseCommit": "448f029a31a7c6f29d14d868c5e5f9e11aff5b19",
+    "source": "C:\\Users\\olive\\AppData\\Local\\Temp\\splinter-preparation-throughput-final-20261026\\source",
+    "home": "C:\\Users\\olive\\AppData\\Local\\Temp\\splinter-preparation-throughput-final-20261026\\home",
+    "order": [
+      "before",
+      "after",
+      "after",
+      "before"
+    ],
+    "files": 2112,
+    "bytes": 2281701376,
+    "workload": "64 x 32MiB + 2048 x 64KiB unique raw files; overwrite eight bytes, add 64KiB file",
+    "scope": "Actual product project-snapshot / source none / application none; checkpoint and separate release. No Unity, Library, Plastic server or power-loss qualification.",
+    "acceptance": "At least 20% and 10 seconds mean ensure reduction, identical input/result proofs and correct reclamation; otherwise do not claim a large gain.",
+    "concurrency": "One workspace/measurement at a time; no concurrent build/tests. Eight local payload/hash workers maximum; mounted Plastic source scans remain serial.",
+    "resources": "Approximately 13GiB for this final fixture/results, approximately 26GiB including retained preliminary evidence; one common managed project basis per comparison.",
+    "limits": [
+      "Two observations per variant, ABBA, one local NTFS drive; OS cache not cleared",
+      "Setup, input proofs and common project prepare/restore are separately recorded",
+      "No published runtime schema or journal format change"
+    ]
+  },
+  "measurements": [
+    {
+      "index": 1,
+      "variant": "before",
+      "workspaceId": "64e8bf4c43c3d2a631e20756",
+      "requestDigest": "1dbd52d48074c59c39a9e5db",
+      "ensureSeconds": 65.39200210000854,
+      "editSeconds": 0.08311040000990033,
+      "checkpointSeconds": 43.10262279998278,
+      "releaseSeconds": 35.09833399998024,
+      "observedOverlayReadBytesAtCheckpoint": 7307001856,
+      "workspacePhasesSeconds": 143.67606929998146,
+      "closure": {
+        "completed": true,
+        "originalBytesAndTimesExact": true,
+        "resultRevision": "sha256:59d2a83f3b3c50349a0a761384cc87ec637ffe9b20b126343aa03e0f104ebe35",
+        "basisRevision": "sha256:d7dea40f1824594558057285fc58df333911ace8058fae49fa71478530c7cc62",
+        "resultStorage": {
+          "basisLogicalBytes": 2281701376,
+          "resultLogicalBytes": 2281766912,
+          "uniquePayloadBytes": 2315321344,
+          "payloadObjects": 2114
+        },
+        "independentPayloadHashesVerifiedAfterRelease": true,
+        "taskPathAndDeltaAbsent": true,
+        "providerAndOwnedProcessesExited": true
+      },
+      "rawEvidence": {
+        "artifacts/preparation-throughput-final-20261026/01-before/checkpoint.json": "c82e92b8365f76078713797572a1038894bfaa9d414f5cbda019a4100d5422c2",
+        "artifacts/preparation-throughput-final-20261026/01-before/closure.json": "2b28717aa72e919cf0537b21a47a6b415c5b17c849129d86b6e0c11577d32581",
+        "artifacts/preparation-throughput-final-20261026/01-before/edit.json": "1e6047933580933ed90b45c1c8252b9ab60283053fc430fcfcc89ce41bbbada4",
+        "artifacts/preparation-throughput-final-20261026/01-before/ensure.json": "6b50e2d94f48bc566970a6b06db66082373cdf03a03394ec6d44243ab263b255",
+        "artifacts/preparation-throughput-final-20261026/01-before/identity.json": "15ef2a0648fe9ba2c75876808c5ffe6a001df5db42d5ca25de1faba5619e9cb7",
+        "artifacts/preparation-throughput-final-20261026/01-before/release.json": "076355f49b33ec26c57db3e78e7c60304513caf46b905f14aa60327411e992aa"
+      }
+    },
+    {
+      "index": 2,
+      "variant": "after",
+      "workspaceId": "0ae270e9e12b3eefb3057b00",
+      "requestDigest": "cee0bd43a74c68f224b19926",
+      "ensureSeconds": 20.657102799974382,
+      "editSeconds": 0.036083799961488694,
+      "checkpointSeconds": 14.528235499979928,
+      "releaseSeconds": 9.54362150002271,
+      "observedOverlayReadBytesAtCheckpoint": 4882694144,
+      "workspacePhasesSeconds": 44.76504359993851,
+      "closure": {
+        "completed": true,
+        "originalBytesAndTimesExact": true,
+        "resultRevision": "sha256:59d2a83f3b3c50349a0a761384cc87ec637ffe9b20b126343aa03e0f104ebe35",
+        "basisRevision": "sha256:d7dea40f1824594558057285fc58df333911ace8058fae49fa71478530c7cc62",
+        "resultStorage": {
+          "basisLogicalBytes": 2281701376,
+          "resultLogicalBytes": 2281766912,
+          "uniquePayloadBytes": 2315321344,
+          "payloadObjects": 2114
+        },
+        "independentPayloadHashesVerifiedAfterRelease": true,
+        "taskPathAndDeltaAbsent": true,
+        "providerAndOwnedProcessesExited": true
+      },
+      "rawEvidence": {
+        "artifacts/preparation-throughput-final-20261026/02-after/checkpoint.json": "38d963054d68c84ed427154412bd50d19ee6f511e5019cc8dfcfb7f4de41ebfe",
+        "artifacts/preparation-throughput-final-20261026/02-after/closure.json": "2b28717aa72e919cf0537b21a47a6b415c5b17c849129d86b6e0c11577d32581",
+        "artifacts/preparation-throughput-final-20261026/02-after/edit.json": "934ab7a4c6036653c9e0e382a648f73ccf4bd6361a71811b3c87a9f81db734f3",
+        "artifacts/preparation-throughput-final-20261026/02-after/ensure.json": "b934648fba28e4887621d40ac71560a0c1318c72f596e37f8689f59672bcc788",
+        "artifacts/preparation-throughput-final-20261026/02-after/identity.json": "3da40f5fef0ba62f3899a42edf01871bb29278b5969196db78a3d37613c6246e",
+        "artifacts/preparation-throughput-final-20261026/02-after/release.json": "ad4412b0d73620b3cbeacd47114f3f1e05e8242cb0c38a11dd93d967ae625d69"
+      }
+    },
+    {
+      "index": 3,
+      "variant": "after",
+      "workspaceId": "e0e73d265f3087ebbac52796",
+      "requestDigest": "6a1bd0d05ca42b73223771a0",
+      "ensureSeconds": 20.643832199973986,
+      "editSeconds": 0.03757780004525557,
+      "checkpointSeconds": 34.51953380001942,
+      "releaseSeconds": 9.613276900025085,
+      "observedOverlayReadBytesAtCheckpoint": 4882694144,
+      "workspacePhasesSeconds": 64.81422070006374,
+      "closure": {
+        "completed": true,
+        "originalBytesAndTimesExact": true,
+        "resultRevision": "sha256:59d2a83f3b3c50349a0a761384cc87ec637ffe9b20b126343aa03e0f104ebe35",
+        "basisRevision": "sha256:d7dea40f1824594558057285fc58df333911ace8058fae49fa71478530c7cc62",
+        "resultStorage": {
+          "basisLogicalBytes": 2281701376,
+          "resultLogicalBytes": 2281766912,
+          "uniquePayloadBytes": 2315321344,
+          "payloadObjects": 2114
+        },
+        "independentPayloadHashesVerifiedAfterRelease": true,
+        "taskPathAndDeltaAbsent": true,
+        "providerAndOwnedProcessesExited": true
+      },
+      "rawEvidence": {
+        "artifacts/preparation-throughput-final-20261026/03-after/checkpoint.json": "3503580357d1250a4718802c013b8c64cf5cfcc3d304b959699f45108e60ed4c",
+        "artifacts/preparation-throughput-final-20261026/03-after/closure.json": "2b28717aa72e919cf0537b21a47a6b415c5b17c849129d86b6e0c11577d32581",
+        "artifacts/preparation-throughput-final-20261026/03-after/edit.json": "808df7c4a79912d241b66d8d429a1990c4613ee567654d3aa0d2095a20cd8a04",
+        "artifacts/preparation-throughput-final-20261026/03-after/ensure.json": "331f18e298ffe67283d696ce9d4ba80d40eb3c57beb3c2b222d56d61842ef7f3",
+        "artifacts/preparation-throughput-final-20261026/03-after/identity.json": "ec4de66d79b9225b3d34e4d3378f54022eacad3abb0ce343cb82747034d42392",
+        "artifacts/preparation-throughput-final-20261026/03-after/release.json": "957ffbcf672685e9aec8cf250ef05be7e5e9cdbbdf2aaa74665cc28f6f8ec855"
+      }
+    },
+    {
+      "index": 4,
+      "variant": "before",
+      "workspaceId": "28b565857607d63b4907dab4",
+      "requestDigest": "0c4681ec3f8a190235f45976",
+      "ensureSeconds": 65.12427550001303,
+      "editSeconds": 0.03540709998924285,
+      "checkpointSeconds": 34.72989819996292,
+      "releaseSeconds": 35.043050199979916,
+      "observedOverlayReadBytesAtCheckpoint": 7307001856,
+      "workspacePhasesSeconds": 134.9326309999451,
+      "closure": {
+        "completed": true,
+        "originalBytesAndTimesExact": true,
+        "resultRevision": "sha256:59d2a83f3b3c50349a0a761384cc87ec637ffe9b20b126343aa03e0f104ebe35",
+        "basisRevision": "sha256:d7dea40f1824594558057285fc58df333911ace8058fae49fa71478530c7cc62",
+        "resultStorage": {
+          "basisLogicalBytes": 2281701376,
+          "resultLogicalBytes": 2281766912,
+          "uniquePayloadBytes": 2315321344,
+          "payloadObjects": 2114
+        },
+        "independentPayloadHashesVerifiedAfterRelease": true,
+        "taskPathAndDeltaAbsent": true,
+        "providerAndOwnedProcessesExited": true
+      },
+      "rawEvidence": {
+        "artifacts/preparation-throughput-final-20261026/04-before/checkpoint.json": "8f1ab39472f8d96c83b451f81db61911b451f63179d5f07137722ae03144fea1",
+        "artifacts/preparation-throughput-final-20261026/04-before/closure.json": "2b28717aa72e919cf0537b21a47a6b415c5b17c849129d86b6e0c11577d32581",
+        "artifacts/preparation-throughput-final-20261026/04-before/edit.json": "eca13d34e7373bae6cec9d1fa892b0b431c82ebd04fb99695c5b619b811fdf63",
+        "artifacts/preparation-throughput-final-20261026/04-before/ensure.json": "8239c1d45ca247827be9ec7d4deb6441f8e473bb9ff15275f2246930377a2080",
+        "artifacts/preparation-throughput-final-20261026/04-before/identity.json": "a0f0dbd62d6463f86a430bab7bf482a216f1c3764282253f356004509753a0c1",
+        "artifacts/preparation-throughput-final-20261026/04-before/release.json": "cd0b14429b5a5cf32cf748c4f793536e90475e1ed850f326c99c9b06a191a759"
+      }
+    }
+  ],
+  "summary": {
+    "ensure": {
+      "beforeMeanSeconds": 65.25813880001078,
+      "afterMeanSeconds": 20.650467499974184,
+      "savedSeconds": 44.6076713000366,
+      "reductionPercent": 68.35572101855475
+    },
+    "edit": {
+      "beforeMeanSeconds": 0.05925874999957159,
+      "afterMeanSeconds": 0.03683080000337213,
+      "savedSeconds": 0.02242794999619946,
+      "reductionPercent": 37.84749087073487
+    },
+    "checkpoint": {
+      "beforeMeanSeconds": 38.91626049997285,
+      "afterMeanSeconds": 24.523884649999673,
+      "savedSeconds": 14.392375849973178,
+      "reductionPercent": 36.98293634863303
+    },
+    "release": {
+      "beforeMeanSeconds": 35.07069209998008,
+      "afterMeanSeconds": 9.578449200023897,
+      "savedSeconds": 25.49224289995618,
+      "reductionPercent": 72.68816602558768
+    },
+    "workspacePhases": {
+      "beforeMeanSeconds": 139.30435014996328,
+      "afterMeanSeconds": 54.789632150001125,
+      "savedSeconds": 84.51471799996216,
+      "reductionPercent": 60.66911615393256
+    }
+  },
+  "commonBasis": {
+    "prepareSeconds": 8.59807120001642,
+    "restoreSeconds": 11.964607100002468,
+    "note": "Prepared once before ABBA, restored once afterward; not a before/after comparison and excluded from per-workspace phase sums."
+  },
+  "input": {
+    "manifestPath": "artifacts/preparation-throughput-final-20261026/input.json",
+    "sha256": "5989a0f4ee7f5bf46a481009cda0dee7ddb443684687c4ea1973f4d744ff113a",
+    "bytes": 2281701376,
+    "files": 2112,
+    "mtimeNs": 1700000000000000000
+  },
+  "runtimeAssemblies": {
+    "before": {
+      "splinter.dll": "3be15b86f2ec51cc3eb957a21ee664a37d8caeb343fb2f2f5edad78ca312a39d",
+      "Splinter.Platform.Windows.dll": "b933b0163be4b22dc54d8c0da654e3583d425447426edd6517b47c846baa4057",
+      "Splinter.Runtime.dll": "437104266497ed939ef6c59deb6c7fafda7f2a28d2432ec464a436ab86b10193",
+      "Splinter.SourceControl.Files.dll": "9714e6f02da6cc8aaedd9bf33bd616cf155d255f109d4a816be20b988aa4bd8a"
+    },
+    "after": {
+      "splinter.dll": "1591a154f676b020f2bbe25e0ee0bd9c53b5d46ad333f84fcb44fec2b71e9f56",
+      "Splinter.Platform.Windows.dll": "4669958f707312976af5cfd45354ab83a93f7e3fbbe5aa9c5c942b7e528ed72f",
+      "Splinter.Runtime.dll": "437104266497ed939ef6c59deb6c7fafda7f2a28d2432ec464a436ab86b10193",
+      "Splinter.SourceControl.Files.dll": "1e89b95ba59e1a99f679e02ef067303a4686c10c7dcdd3c2a78eba126604caf5"
+    }
+  },
+  "sourceHashes": {
+    "src/Splinter.Cli/WorkspaceCommands.cs": "2bb5dd5e34178259619cb8652404b417e2103bd77950354e10933d78684c8227",
+    "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs": "0a8ee652a290a8abd6e134dc4cc4a07c7a0a85cf1e51dfb07366e4b87c193cf1",
+    "src/Splinter.SourceControl.Files/FileInspectionProof.cs": "5f780a3540401e9b432a6c85aa3a371f8cb7d0f60107bf8aac84d32192bd255a",
+    "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs": "bb2f38ff2f29597335adb418e5ce447b64c90112ee623148837bdb9deabe35a5",
+    "src/Splinter.Platform.Windows/WinFspOverlayClient.cs": "9c43c972472a6d89ce9ed3f7c08564fd2d3ae8cdec9cdefe02cd65704c31a15b",
+    "src/Splinter.Platform.Windows/ProjectDirectorySnapshotProvider.cs": "4552164201b55a12d6a0bded952c16cecb8ce785826db2a9e67d38fc2e6d1556",
+    "src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs": "aeb287433a5c28bf3b7ff76032c6500239b91beb33f2548374cdc3cf5e326c39",
+    "src/Splinter.Platform.Windows/WindowsProcessWorkspaceProvider.cs": "939dec4368e5f07f7e77ef7c97434fa13a6be1229cd10b8d185fda03a028d272"
+  },
+  "closure": {
+    "completed": true,
+    "tasksReleased": 4,
+    "projectRestored": true,
+    "originalExact": true,
+    "allResultIdentitiesEqual": true
+  },
+  "limits": [
+    "Actual product editorless None/NTFS/WinFsp fixture, not a full Unity lifecycle or live Plastic-server measurement.",
+    "Two runs per variant, one machine; OS cache not cleared. Per-run timing variability is retained.",
+    "Combined control-wait, scan-parallelism and initial-inspection reuse changes; separate causal contributions were not isolated.",
+    "Input/result proofs, setup, common basis prepare/restore and human/agent waiting are outside the per-workspace phase sums.",
+    "No new original apply, discard performance, Play/Test/build, peak RAM/allocation, power-loss or device-failure qualification."
+  ],
+  "evidenceDirectory": "artifacts/preparation-throughput-final-20261026",
+  "measurementScriptSha256": "d0620770930aa58812041aaf794bd3d54fa2bd74bab924ad856ffba4fedac590",
+  "logicalReadObservation": "Response readBytes is a cumulative overlay observation sampled before final response source inspection; it includes earlier operations/readahead and may lag. It is not physical traffic, a whole-command byte count or an isolated phase counter.",
+  "preliminaryEvidence": {
+    "path": "artifacts/preparation-throughput-20261026/",
+    "usedInFinalMeans": false,
+    "reason": "Final review retained mounted Plastic source scans as serial to avoid single-revision proof thrashing; the final source was rebuilt and a fresh matched ABBA comparison was run."
+  },
+  "repositoryGate": {
+    "exitCode": 0,
+    "seconds": 550.6211735,
+    "finishedAt": "2026-10-26T23:12:05.1395306+09:00",
+    "counters": {
+      "total": "1646",
+      "executed": "1618",
+      "passed": "1618",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "28",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "logSha256": "f12683813587d9012f04c869399d3e5f8ee9c7da174e471bd5871e898b31d237",
+    "trxSha256": "c01843ed97bdb7d18de8bf3b4448cab6a94832265f3ec941785a32e7d0259f38"
+  },
+  "documentationValidation": {
+    "indexedSourceFiles": 39,
+    "symbolLineHints": 132,
+    "stages": 19,
+    "diagramsPerLanguage": 6,
+    "localLinksChecked": 514,
+    "measuredSourceAndEvidenceHashesMatch": true,
+    "currentProductRuntimeMatchesMeasured": true
+  }
+}
