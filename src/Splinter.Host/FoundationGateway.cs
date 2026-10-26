@@ -105,7 +105,7 @@ public sealed class FoundationGateway(
             snapshotReleaseIsolation = "owned-basis-reference-and-reader-dependency-guards",
             snapshotReclamation = "explicit-owned-reference-reclamation; independent-results-and-peer-protection; no-background-sweep",
             snapshotReadAccess = "verified-location-separate-from-immutable-delta-identity",
-            deltaStore = "bounded-checksummed-range-journal-v2; raw-writes; current-encoded-reads; new-provider-default-bounded-SJR2-16MiB-or-4096-frame-suffix-with-bounded-group-flush-and-durable-ACK; retained-explicit-SJL4-or-append; atomic-current-state-checkpoint-and-same-request-recovery",
+            deltaStore = "bounded-checksummed-range-journal-v2; raw-writes; current-encoded-reads; new-provider-default-bounded-SJR2-16MiB-or-4096-frame-suffix-with-bounded-group-flush-and-durable-ACK; retained-explicit-SJL4-or-append; proven-clean-explicit-SJR2-flush-reuse; payload-free-state-sizing; atomic-current-state-checkpoint-and-same-request-recovery",
             resultCollection = SnapshotResult.StableJournalProtocol,
             requestSchema = "urn:splinter:v1:overlay-serve-request",
             observationSchema = "urn:splinter:v1:overlay-observation",

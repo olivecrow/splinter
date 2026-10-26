@@ -58,6 +58,8 @@ workspace 상태와 Windows 제어 IPC는 같은 디렉터리에 flush한 임시
 
 [Raw 쓰기 계약](raw-write-batching.md)은 제품 압축 writer를 모두 폐기하고 기존 현재 형식 payload의 검증 reader를 유지한다. Overlay v2·SJR2·SJL4·candidate v3는 유지한다. `IWorkspaceWriteBatch`는 크기가 제한된 순서 보장 SJR2 쓰기에 flush를 공유하고 영속 완료 뒤 성공한다. WinFsp는 mutation gate 전에 대기 쓰기를 모은다. 단일 쓰기와 SJL4 capsule 게시 경계는 유지한다. Checksum·checkpoint 증명·source/result/unmount seal·최초 전체 복제/읽기 hydration/전체 파일 copy-up 금지·원본/peer 보호를 유지한다. 현재 변경은 [RW 검증](verification/raw-write-batching.md)이 소유하며 JP/ME/LJ는 이전 한정 근거다.
 
+[WP 검증](verification/write-path-throughput.md)은 이미 영속화한 같은 핸들의 변경 없음이 증명된 명시적 SJR2 flush 재사용과 payload 읽기 없는 raw 상태 크기 계산을 소유한다. 실제 변경·접수된 쓰기 drain·신규/교체 핸들·전체 checkpoint 증명·SJL4 게시 경계는 유지한다. 덮어쓰기 양끝 탐색 후보는 전체 시간 기준을 충족하지 못해 제거했다.
+
 private Mutation의 기본값 JSON은 생략하고 명시적 정리/후보에서는 더 작은 현재 메타데이터를 선택한다. 입력/응답·SJR2 의미를 바꾸거나 저장된 저널을 읽기 중 변환하지 않는다. 실제 Unity 저널의 오프라인 파일 할당과 새 후보 native 실행의 구분은 [JM 검증](verification/journal-metadata-storage.md)을 따른다.
 
 [Checkpoint/release 최적화](verification/checkpoint-release-optimization.md)는 안정된 seal 안에서 Git checkpoint/보존을 결합하고 SJL4 inventory 검색을 인덱스로 바꾸며 새 회수의 seal 검증을 통합한다. 실행 중 writer 계수는 실제 파일 감사와 구분해 표시하고 poisoned 계수는 provider를 종료하지 않고 unknown으로 남긴다. 요청 파일 알림으로 provider를 깨우되 1초 heartbeat polling과 요청 identity 검사는 유지한다. 기존 독립 결과·내용 hash·소유권·중단 복구 검사를 유지한다.

@@ -67,6 +67,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private readonly long[] replayRangePriorExtentBuckets = new long[6];
     private long expectedJournalBytes;
     private bool replaying;
+    private FileStream? durablyFlushedJournal;
+    private long durablyFlushedBytes = -1;
 
     private GateLease EnterGate(bool mutation = false)
     {
@@ -87,7 +89,14 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private void DurableFlush()
     {
         long started = Stopwatch.GetTimestamp();
-        try { journal.Flush(true); }
+        try
+        {
+            journal.Flush(true);
+            // A sequence alone is insufficient: retirement can append without
+            // advancing it, and checkpoint publication replaces the handle.
+            durablyFlushedJournal = journal;
+            durablyFlushedBytes = journal.Length;
+        }
         finally { flushCount++; flushTicks += Stopwatch.GetTimestamp() - started; }
     }
     private int extentCount;
@@ -493,13 +502,13 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     {
         using (EnterGate())
         {
-            ObjectDisposedException.ThrowIf(disposed || closing, this);
-            if (poisoned) throw new WorkspaceException("DeltaReconnectRequired", "Replay the preserved journal after a failed append.");
+            CheckLocal();
             // Flushing acknowledged private data does not need a surviving base.
             if (!readOnly)
             {
                 Visit("flush.before", "flush", sequence, 0, 0, 0);
-                DurableFlush();
+                if (latest is not null || durablyFlushedJournal != journal || durablyFlushedBytes != journal.Length)
+                    DurableFlush();
                 Visit("flush.after", "flush", sequence, 0, 0, 0);
             }
         }

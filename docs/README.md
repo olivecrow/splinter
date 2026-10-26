@@ -16,6 +16,7 @@ Find current implementation in feature documents below and subsequent responsibi
 
 | Document | Owned content |
 | --- | --- |
+| [Write-path throughput](plans/write-path-throughput.md), [verification](verification/write-path-throughput.md) | WP-01–05: reuse proven clean SJR2 flushes and size raw state without payload reads; remove the edge-search candidate without a total-time benefit. Fixed-input component comparison, retained durability/replay. |
 | [Raw writes and shared durable flush](raw-write-batching.md), [scope](plans/raw-write-batching.md), [verification](verification/raw-write-batching.md) | RW-01–05: compression writer retired; current encoded readers retained; bounded ordered SJR2 group flush and WinFsp admission before serialization. Durable success, no early ACK. |
 | [Durable flush/shutdown experiments](plans/durable-flush-throughput.md), [verification](verification/durable-flush-throughput.md) | DF-01–05: per-write I/O alternatives and bounded checkpoint RAM prototype evaluated without a qualifying large gain. No product change; faster write-through-only results are not equivalent durability evidence. |
 | [Workspace creation throughput](plans/workspace-creation-throughput.md), [verification](verification/workspace-creation-throughput.md) | One-workspace Git creation: bounded proof-window reuse and a joined initial read-ahead task. Same-input editorless comparison; whole-blob proof, mandatory index refresh, locks and discard protection retained. |

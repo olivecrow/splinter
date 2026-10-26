@@ -18,6 +18,14 @@ WinFsp 어댑터는 mutation gate **앞에서** 동시 쓰기 callback을 모은
 
 명시적 flush는 어댑터가 이미 접수한 쓰기 ticket을 먼저 drain한다. Close·seal·회수의 내구성/소유 경계는 유지한다. 중단된 대기 스레드도 접수한 쓰기가 drain될 때까지 native 버퍼 소유권을 유지한다. 성공을 이미 반환한 callback의 미완료 쓰기는 없다. 이전 완료 뒤에만 다음 요청을 보내는 순차 호출자는 요청 사이를 묶을 기회를 주지 않는다. 하나의 callback에 포함된 여러 chunk는 flush를 공유할 수 있다. flush 스레드를 단순히 늘리는 설계가 아니다.
 
+## 쓰기 경로 후속
+
+명시적 SJR2 flush는 로컬 무결성을 확인하고 접수된 쓰기를 drain한 뒤, 같은 열린 저널 핸들과 같은 길이가 이미 성공한 영속 flush를 통과했을 때만 그 결과를 재사용한다. 새로 열거나 재연결·교체한 핸들은 자체 영속 경계를 확인해야 한다. 변경과 묶음 쓰기의 flush는 성공 반환 전에 계속 수행하며 실패한 writer의 poison도 유지한다. SJL4의 명시적 flush와 capsule 게시는 그대로다.
+
+Raw 현재 상태의 크기 계산은 알려진 payload 길이를 사용해 payload 읽기와 할당을 생략한다. 실제 checkpoint 출력·checksum·전체 상태 증명·replay는 데이터를 계속 검증한다. Raw 덮어쓰기 양끝 탐색 후보는 읽기 감소가 전체 덮어쓰기 시간 개선으로 이어지지 않아 제거했다. 기존 raw/압축 비교·전체 private 범위 확인·앞뒤 4KiB 절감 기준은 유지한다.
+
+[WP-01–05 검증](verification/write-path-throughput.md)은 동일 입력 전후 비용과 남은 checkpoint/flush 병목을 기록한다. 저널 형식·공개 메서드·버전은 바꾸지 않았다.
+
 ## 범위
 
 [RW-01–05 검증](verification/raw-write-batching.md)은 raw 표현/reader·순서/실패·callback 시험·동일 입력 구성 요소 비용·실제 WinFsp 근거를 구분한다. Unity의 실제 요청 중첩·전체 종료/수명주기 절감·장치 전원 장애·전체 프로세스 peak RAM 자격으로 확대하지 않는다. 이 작업은 원본 프로젝트·Unity Editor·외부 도구·장치 설정을 변경하지 않는다.

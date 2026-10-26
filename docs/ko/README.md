@@ -14,6 +14,7 @@
 
 | 문서 | 소유하는 내용 |
 | --- | --- |
+| [쓰기 경로 처리량](plans/write-path-throughput.md), [검증](verification/write-path-throughput.md) | WP-01–05: 변경 없는 SJR2 영속 flush 재사용·payload 읽기 없는 raw 상태 크기 계산. 전체 시간 이점 없는 양끝 탐색 후보 제거. 동일 입력 구성 요소 비교와 내구성/replay 유지. |
 | [Raw 쓰기와 묶음 영속 flush](raw-write-batching.md), [범위](plans/raw-write-batching.md), [검증](verification/raw-write-batching.md) | RW-01–05: 압축 writer 폐기·현재 압축 reader 보존·순서 보장 SJR2 묶음 flush와 직렬화 전 WinFsp 요청 수집. 영속 완료 뒤 성공하며 조기 ACK 없음. |
 | [영속 flush/종료 실험](plans/durable-flush-throughput.md), [검증](verification/durable-flush-throughput.md) | DF-01–05: 개별 쓰기 I/O 대안과 bounded checkpoint RAM 후보를 평가했으나 큰 절감 기준을 충족하지 못해 제품 변경 없음. 빠른 write-through-only 결과는 동등 내구성 근거가 아님. |
 | [작업공간 생성 처리량](plans/workspace-creation-throughput.md), [검증](verification/workspace-creation-throughput.md) | Git 작업공간 하나의 생성: 제한 proof window 재사용과 종료를 함께 기다리는 최초 선행 읽기. 같은 입력의 Editor 없는 비교이며 전체 blob 증명·필수 index refresh·lock·폐기 보호 유지. |

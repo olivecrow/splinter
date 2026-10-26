@@ -18,7 +18,7 @@ public sealed class JournalMutationObserverTests
         Assert.Single(observer.Events.Select(e => (e.FrameStart, e.FrameBytes)).Distinct());
         Assert.Equal(2, store.Observe().Metrics!.FlushCount);
         store.Flush(); Assert.Equal(new[] { "flush.before", "flush.after" }, observer.Events.TakeLast(2).Select(e => e.Boundary));
-        Assert.Equal(3, store.Observe().Metrics!.FlushCount);
+        Assert.Equal(2, store.Observe().Metrics!.FlushCount);
         Assert.Equal(4096, store.ObservePrivateUsage().RetainedLogicalPayloadBytes);
     }
 

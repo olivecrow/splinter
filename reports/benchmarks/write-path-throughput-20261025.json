@@ -1,0 +1,1247 @@
+{
+  "verification": "WP-01–05",
+  "date": "2026-10-25",
+  "baselineCommit": "9594209607dcf69e1b992419fbf265fda8b32e2b",
+  "adopted": [
+    "Reuse a successful durable explicit SJR2 flush only for the same open handle and unchanged length; local checks and accepted-write draining remain.",
+    "Estimate raw state-frame size without payload reads/allocations; actual output, proofs, replay and recovery remain."
+  ],
+  "rejected": {
+    "candidate": "Raw private overwrite edge search",
+    "baselineMeanSeconds": 1.83835285,
+    "candidateMeanSeconds": 1.88265225,
+    "baselineReadBytes": 321912832,
+    "candidateReadBytes": 69206016,
+    "reason": "Lower reads did not reduce total overwrite time. Implementation and candidate-only tests removed; binary/raw results retained."
+  },
+  "notImplemented": [
+    "Preparation threads: 0.0337048 seconds across 2048 final small writes versus 4.3176769 seconds in physical flush.",
+    "Binary metadata/new incremental checkpoint representation: no format migration introduced; whole-state checkpoint output/proofs remain the structural cost."
+  ],
+  "method": {
+    "finalOrder": [
+      "final-before1",
+      "final-after1",
+      "final-after2",
+      "final-before2"
+    ],
+    "orderPerRound": "before-after-after-before",
+    "runsPerSide": 2,
+    "commonProbeSha256": "46f9d9ea2a61967fb99edde87dce354e49c5602933cee9b1f6f85748b276cc57",
+    "probeSource": "artifacts/write-path-20261025/probe/Program.cs",
+    "probeSourceSha256": "f8ebb1d32794b4dff9f5894246cfca6b3580d778a21f4013c9b43e492babc44e",
+    "runtime": ".NET 10.0.13 Release",
+    "storage": "ordinary local Windows files, bounded SJR2 16MiB/4096-frame suffix",
+    "concurrentMeasurementWork": false,
+    "inputPreparationOutsideTimer": true,
+    "inputManifest": [
+      {
+        "path": "inputs\\checkpoint\\delta.journal",
+        "bytes": 18759670,
+        "sha256": "c14b3af9ee49d3f69ed723d3d7f45edb174e363c60f0cc5bf90f4426ed29f79b"
+      },
+      {
+        "path": "inputs\\checkpoint\\delta.journal.bounded.lock",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "inputs\\checkpoint\\identity.json",
+        "bytes": 382,
+        "sha256": "12832639b3dd0580d42d30759663a135631bf264dc085eaed1630ca9296df8a3"
+      },
+      {
+        "path": "inputs\\flush\\delta.journal",
+        "bytes": 1430,
+        "sha256": "3632474f27eb2d468d92b7bc3ee0d196b0c04a901dcbd32b6a35b5f77a94a545"
+      },
+      {
+        "path": "inputs\\flush\\delta.journal.bounded.lock",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "inputs\\flush\\identity.json",
+        "bytes": 377,
+        "sha256": "5bacfc9da045526fbe4ebaf26f82df1c88f53af8680ac69f8e0c2dd7552a7712"
+      },
+      {
+        "path": "inputs\\overwrite\\delta.journal",
+        "bytes": 1050359,
+        "sha256": "a6dc3cb95e9487d99d0170316a61f3d3d47e799d797a8b5b654786c382d214a2"
+      },
+      {
+        "path": "inputs\\overwrite\\delta.journal.bounded.lock",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "inputs\\overwrite\\identity.json",
+        "bytes": 381,
+        "sha256": "f321f84bd2788fd32573b3ac7a2bf4da53960d96e89ca74fbf92ebf397f2af47"
+      }
+    ],
+    "fixedInputsUnchanged": true,
+    "expectedLengthsAndEveryByteVerified": true,
+    "replayedFiles": 56,
+    "measured": "write/explicit-flush or state-sizing only",
+    "suppliedBatches": true,
+    "capturedUnityRequests": false,
+    "counters": "Cumulative managed allocations are not retained/peak RAM. Preparation includes nested checkpoint work; mutation totals can overlap nested batch flush accounting and must not be summed with checkpoint/flush time."
+  },
+  "finalMeans": [
+    {
+      "mode": "write-flush",
+      "before": {
+        "seconds": 8.11478915,
+        "allocated": 2520896.0,
+        "estimated": 0.0,
+        "commits": 2048.0,
+        "flushes": 4096.0,
+        "journalReadBytes": 0.0,
+        "checkpointCount": 0.0,
+        "checkpointSeconds": 0.0,
+        "flushSeconds": 8.0556542,
+        "prepareSeconds": 0.032149449999999996,
+        "appendSeconds": 0.00097635,
+        "applySeconds": 0.0034854,
+        "mutationSeconds": 4.38546045
+      },
+      "after": {
+        "seconds": 4.37466825,
+        "allocated": 2520896.0,
+        "estimated": 0.0,
+        "commits": 2048.0,
+        "flushes": 2048.0,
+        "journalReadBytes": 0.0,
+        "checkpointCount": 0.0,
+        "checkpointSeconds": 0.0,
+        "flushSeconds": 4.3176769,
+        "prepareSeconds": 0.0337048,
+        "appendSeconds": 0.0011559,
+        "applySeconds": 0.00415255,
+        "mutationSeconds": 4.3606107000000005
+      },
+      "elapsedReductionPercent": 46.09017968137841
+    },
+    {
+      "mode": "batch-flush",
+      "before": {
+        "seconds": 0.51876665,
+        "allocated": 2831168.0,
+        "estimated": 0.0,
+        "commits": 2048.0,
+        "flushes": 256.0,
+        "journalReadBytes": 0.0,
+        "checkpointCount": 0.0,
+        "checkpointSeconds": 0.0,
+        "flushSeconds": 0.488134,
+        "prepareSeconds": 0.01275335,
+        "appendSeconds": 0.00694285,
+        "applySeconds": 0.0004088,
+        "mutationSeconds": 0.27819755
+      },
+      "after": {
+        "seconds": 0.2991688,
+        "allocated": 2831168.0,
+        "estimated": 0.0,
+        "commits": 2048.0,
+        "flushes": 128.0,
+        "journalReadBytes": 0.0,
+        "checkpointCount": 0.0,
+        "checkpointSeconds": 0.0,
+        "flushSeconds": 0.26824525,
+        "prepareSeconds": 0.01279285,
+        "appendSeconds": 0.00710885,
+        "applySeconds": 0.0004126,
+        "mutationSeconds": 0.29231300000000005
+      },
+      "elapsedReductionPercent": 42.33075699835369
+    },
+    {
+      "mode": "overwrite",
+      "before": {
+        "seconds": 1.9001646,
+        "allocated": 39678368.0,
+        "estimated": 0.0,
+        "commits": 256.0,
+        "flushes": 83.0,
+        "journalReadBytes": 321912832.0,
+        "checkpointCount": 17.0,
+        "checkpointSeconds": 1.41772025,
+        "flushSeconds": 0.37817245,
+        "prepareSeconds": 1.6755502,
+        "appendSeconds": 0.06226305,
+        "applySeconds": 0.0004834,
+        "mutationSeconds": 1.99253685
+      },
+      "after": {
+        "seconds": 1.82523925,
+        "allocated": 21827392.0,
+        "estimated": 0.0,
+        "commits": 256.0,
+        "flushes": 83.0,
+        "journalReadBytes": 304087040.0,
+        "checkpointCount": 17.0,
+        "checkpointSeconds": 1.39088785,
+        "flushSeconds": 0.33365475,
+        "prepareSeconds": 1.6250999,
+        "appendSeconds": 0.058980199999999997,
+        "applySeconds": 0.0004416,
+        "mutationSeconds": 1.89350295
+      },
+      "elapsedReductionPercent": 3.94309787688919
+    },
+    {
+      "mode": "checkpoint",
+      "before": {
+        "seconds": 1.0304693,
+        "allocated": 148880144.0,
+        "estimated": 0.0,
+        "commits": 6144.0,
+        "flushes": 102.0,
+        "journalReadBytes": 104790720.0,
+        "checkpointCount": 2.0,
+        "checkpointSeconds": 0.7391075,
+        "flushSeconds": 0.2515166,
+        "prepareSeconds": 0.7724193500000001,
+        "appendSeconds": 0.02071255,
+        "applySeconds": 0.0009629,
+        "mutationSeconds": 1.02071155
+      },
+      "after": {
+        "seconds": 0.99383995,
+        "allocated": 113957860.0,
+        "estimated": 0.0,
+        "commits": 6144.0,
+        "flushes": 102.0,
+        "journalReadBytes": 69860480.0,
+        "checkpointCount": 2.0,
+        "checkpointSeconds": 0.70772035,
+        "flushSeconds": 0.2511323,
+        "prepareSeconds": 0.7406165499999999,
+        "appendSeconds": 0.0204645,
+        "applySeconds": 0.0009594499999999999,
+        "mutationSeconds": 0.98435515
+      },
+      "elapsedReductionPercent": 3.5546279738755904
+    },
+    {
+      "mode": "estimate",
+      "before": {
+        "seconds": 0.2777653,
+        "allocated": 335996436.0,
+        "estimated": 18774321.0,
+        "commits": 0.0,
+        "flushes": 0.0,
+        "journalReadBytes": 275771904.0,
+        "checkpointCount": 0.0,
+        "checkpointSeconds": 0.0,
+        "flushSeconds": 0.0,
+        "prepareSeconds": 0.0,
+        "appendSeconds": 0.0,
+        "applySeconds": 0.0,
+        "mutationSeconds": 0.0
+      },
+      "after": {
+        "seconds": 0.04948175,
+        "allocated": 59337904.0,
+        "estimated": 18774321.0,
+        "commits": 0.0,
+        "flushes": 0.0,
+        "journalReadBytes": 0.0,
+        "checkpointCount": 0.0,
+        "checkpointSeconds": 0.0,
+        "flushSeconds": 0.0,
+        "prepareSeconds": 0.0,
+        "appendSeconds": 0.0,
+        "applySeconds": 0.0,
+        "mutationSeconds": 0.0
+      },
+      "elapsedReductionPercent": 82.18576978477874
+    }
+  ],
+  "runs": [
+    {
+      "name": "before1",
+      "path": "artifacts/write-path-20261025/before1.json",
+      "sha256": "2eaa144aa47db4cc82c7f3c17aa2c6788be181a693e8fefbdf2ce3a13b34a16c",
+      "runtimeSha256": "b9751fe7be66bd428457d0daea51ef68991414ec9eb6445f24c756bd1857222c",
+      "rows": [
+        {
+          "mode": "write-flush",
+          "seconds": 8.1072836,
+          "allocated": 2520896,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 4096,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 8.0482728,
+          "prepareSeconds": 0.0320099,
+          "appendSeconds": 0.0010366,
+          "applySeconds": 0.0033518,
+          "mutationSeconds": 4.3707474
+        },
+        {
+          "mode": "batch-flush",
+          "seconds": 0.5213431,
+          "allocated": 2831168,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 256,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0.4907376,
+          "prepareSeconds": 0.0125078,
+          "appendSeconds": 0.0072811,
+          "applySeconds": 0.0003853,
+          "mutationSeconds": 0.2806916
+        },
+        {
+          "mode": "overwrite",
+          "seconds": 1.8273875,
+          "allocated": 39663704,
+          "estimated": 0,
+          "commits": 256,
+          "flushes": 83,
+          "journalReadBytes": 321912832,
+          "checkpointCount": 17,
+          "checkpointSeconds": 1.4195019,
+          "flushSeconds": 0.3203426,
+          "prepareSeconds": 1.6561213,
+          "appendSeconds": 0.0585251,
+          "applySeconds": 0.0004996,
+          "mutationSeconds": 1.8969317
+        },
+        {
+          "mode": "checkpoint",
+          "seconds": 1.009397,
+          "allocated": 149174984,
+          "estimated": 0,
+          "commits": 6144,
+          "flushes": 102,
+          "journalReadBytes": 104790720,
+          "checkpointCount": 2,
+          "checkpointSeconds": 0.7334793,
+          "flushSeconds": 0.2396416,
+          "prepareSeconds": 0.7673742,
+          "appendSeconds": 0.020744,
+          "applySeconds": 0.0009837,
+          "mutationSeconds": 0.9995234
+        },
+        {
+          "mode": "estimate",
+          "seconds": 0.2729141,
+          "allocated": 336769824,
+          "estimated": 18774321,
+          "commits": 0,
+          "flushes": 0,
+          "journalReadBytes": 275771904,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0,
+          "prepareSeconds": 0,
+          "appendSeconds": 0,
+          "applySeconds": 0,
+          "mutationSeconds": 0
+        }
+      ]
+    },
+    {
+      "name": "after1",
+      "path": "artifacts/write-path-20261025/after1.json",
+      "sha256": "c40dd16c990c47a8d7537d795b2ef984f90f8592efde7a679d5ff8b790ec99ed",
+      "runtimeSha256": "9b392e90debc3f512c55b49b3f2d8a4e612ea79b9e26db6cd5a7a2452c4e7d25",
+      "rows": [
+        {
+          "mode": "write-flush",
+          "seconds": 4.3842937,
+          "allocated": 2520896,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 2048,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 4.3254839,
+          "prepareSeconds": 0.0350227,
+          "appendSeconds": 0.0011959,
+          "applySeconds": 0.0042549,
+          "mutationSeconds": 4.3700069
+        },
+        {
+          "mode": "batch-flush",
+          "seconds": 0.2971747,
+          "allocated": 2831168,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 128,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0.2665938,
+          "prepareSeconds": 0.0126034,
+          "appendSeconds": 0.0070131,
+          "applySeconds": 0.0003906,
+          "mutationSeconds": 0.2903299
+        },
+        {
+          "mode": "overwrite",
+          "seconds": 1.892629,
+          "allocated": 21812512,
+          "estimated": 0,
+          "commits": 256,
+          "flushes": 83,
+          "journalReadBytes": 69206016,
+          "checkpointCount": 17,
+          "checkpointSeconds": 1.406329,
+          "flushSeconds": 0.389417,
+          "prepareSeconds": 1.6635684,
+          "appendSeconds": 0.0734376,
+          "applySeconds": 0.0005019,
+          "mutationSeconds": 2.0079857
+        },
+        {
+          "mode": "checkpoint",
+          "seconds": 0.9687727,
+          "allocated": 113959240,
+          "estimated": 0,
+          "commits": 6144,
+          "flushes": 102,
+          "journalReadBytes": 69860480,
+          "checkpointCount": 2,
+          "checkpointSeconds": 0.6948084,
+          "flushSeconds": 0.2314793,
+          "prepareSeconds": 0.7278592,
+          "appendSeconds": 0.0203443,
+          "applySeconds": 0.0009356,
+          "mutationSeconds": 0.9591613
+        },
+        {
+          "mode": "estimate",
+          "seconds": 0.0514323,
+          "allocated": 59337904,
+          "estimated": 18774321,
+          "commits": 0,
+          "flushes": 0,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0,
+          "prepareSeconds": 0,
+          "appendSeconds": 0,
+          "applySeconds": 0,
+          "mutationSeconds": 0
+        }
+      ]
+    },
+    {
+      "name": "after2",
+      "path": "artifacts/write-path-20261025/after2.json",
+      "sha256": "92fd7c073fe63fcbf9c0b55f29afede43f1c0e661d90998d5aa8c7ed6c4eafe1",
+      "runtimeSha256": "9b392e90debc3f512c55b49b3f2d8a4e612ea79b9e26db6cd5a7a2452c4e7d25",
+      "rows": [
+        {
+          "mode": "write-flush",
+          "seconds": 4.3651898,
+          "allocated": 2520896,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 2048,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 4.3071668,
+          "prepareSeconds": 0.034619,
+          "appendSeconds": 0.0011271,
+          "applySeconds": 0.004101,
+          "mutationSeconds": 4.3510374
+        },
+        {
+          "mode": "batch-flush",
+          "seconds": 0.2889819,
+          "allocated": 2831168,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 128,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0.2583086,
+          "prepareSeconds": 0.0125762,
+          "appendSeconds": 0.0072185,
+          "applySeconds": 0.0004038,
+          "mutationSeconds": 0.2821971
+        },
+        {
+          "mode": "overwrite",
+          "seconds": 1.8726755,
+          "allocated": 21799544,
+          "estimated": 0,
+          "commits": 256,
+          "flushes": 83,
+          "journalReadBytes": 69206016,
+          "checkpointCount": 17,
+          "checkpointSeconds": 1.4244579,
+          "flushSeconds": 0.3749459,
+          "prepareSeconds": 1.6960841,
+          "appendSeconds": 0.0645532,
+          "applySeconds": 0.0005643,
+          "mutationSeconds": 2.002056
+        },
+        {
+          "mode": "checkpoint",
+          "seconds": 0.9825732,
+          "allocated": 113959240,
+          "estimated": 0,
+          "commits": 6144,
+          "flushes": 102,
+          "journalReadBytes": 69860480,
+          "checkpointCount": 2,
+          "checkpointSeconds": 0.7023761,
+          "flushSeconds": 0.2432763,
+          "prepareSeconds": 0.7368332,
+          "appendSeconds": 0.0219313,
+          "applySeconds": 0.00103,
+          "mutationSeconds": 0.9724586
+        },
+        {
+          "mode": "estimate",
+          "seconds": 0.0489315,
+          "allocated": 59337904,
+          "estimated": 18774321,
+          "commits": 0,
+          "flushes": 0,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0,
+          "prepareSeconds": 0,
+          "appendSeconds": 0,
+          "applySeconds": 0,
+          "mutationSeconds": 0
+        }
+      ]
+    },
+    {
+      "name": "before2",
+      "path": "artifacts/write-path-20261025/before2.json",
+      "sha256": "46f67d261ef84f35097ea288d909d02ce68f0c732d4d51640ebf96dc4654b9b5",
+      "runtimeSha256": "b9751fe7be66bd428457d0daea51ef68991414ec9eb6445f24c756bd1857222c",
+      "rows": [
+        {
+          "mode": "write-flush",
+          "seconds": 8.1432571,
+          "allocated": 2520896,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 4096,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 8.0791539,
+          "prepareSeconds": 0.035368,
+          "appendSeconds": 0.0010262,
+          "applySeconds": 0.0033748,
+          "mutationSeconds": 4.3980609
+        },
+        {
+          "mode": "batch-flush",
+          "seconds": 0.512557,
+          "allocated": 2831168,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 256,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0.4822584,
+          "prepareSeconds": 0.0126325,
+          "appendSeconds": 0.0065993,
+          "applySeconds": 0.0004054,
+          "mutationSeconds": 0.2742768
+        },
+        {
+          "mode": "overwrite",
+          "seconds": 1.8493182,
+          "allocated": 39663624,
+          "estimated": 0,
+          "commits": 256,
+          "flushes": 83,
+          "journalReadBytes": 321912832,
+          "checkpointCount": 17,
+          "checkpointSeconds": 1.4239236,
+          "flushSeconds": 0.3144885,
+          "prepareSeconds": 1.6506494,
+          "appendSeconds": 0.0690043,
+          "applySeconds": 0.0005599,
+          "mutationSeconds": 1.9092872
+        },
+        {
+          "mode": "checkpoint",
+          "seconds": 1.0275952,
+          "allocated": 149174952,
+          "estimated": 0,
+          "commits": 6144,
+          "flushes": 102,
+          "journalReadBytes": 104790720,
+          "checkpointCount": 2,
+          "checkpointSeconds": 0.7603118,
+          "flushSeconds": 0.223917,
+          "prepareSeconds": 0.7931981,
+          "appendSeconds": 0.0210369,
+          "applySeconds": 0.0010487,
+          "mutationSeconds": 1.0179058
+        },
+        {
+          "mode": "estimate",
+          "seconds": 0.2985552,
+          "allocated": 336771088,
+          "estimated": 18774321,
+          "commits": 0,
+          "flushes": 0,
+          "journalReadBytes": 275771904,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0,
+          "prepareSeconds": 0,
+          "appendSeconds": 0,
+          "applySeconds": 0,
+          "mutationSeconds": 0
+        }
+      ]
+    },
+    {
+      "name": "final-before1",
+      "path": "artifacts/write-path-20261025/final-before1.json",
+      "sha256": "abd2b43c98b9a244c50c8ce450b49731175903311a4471c7eb0e264bab3fd619",
+      "runtimeSha256": "b9751fe7be66bd428457d0daea51ef68991414ec9eb6445f24c756bd1857222c",
+      "rows": [
+        {
+          "mode": "write-flush",
+          "seconds": 8.1065413,
+          "allocated": 2520896,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 4096,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 8.046651,
+          "prepareSeconds": 0.0327263,
+          "appendSeconds": 0.0009507,
+          "applySeconds": 0.0033917,
+          "mutationSeconds": 4.3827161
+        },
+        {
+          "mode": "batch-flush",
+          "seconds": 0.5135892,
+          "allocated": 2831168,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 256,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0.4834543,
+          "prepareSeconds": 0.012616,
+          "appendSeconds": 0.0065963,
+          "applySeconds": 0.0004203,
+          "mutationSeconds": 0.2743285
+        },
+        {
+          "mode": "overwrite",
+          "seconds": 1.9491777,
+          "allocated": 39678000,
+          "estimated": 0,
+          "commits": 256,
+          "flushes": 83,
+          "journalReadBytes": 321912832,
+          "checkpointCount": 17,
+          "checkpointSeconds": 1.412536,
+          "flushSeconds": 0.4280555,
+          "prepareSeconds": 1.7076089,
+          "appendSeconds": 0.0636159,
+          "applySeconds": 0.0005256,
+          "mutationSeconds": 2.0795176
+        },
+        {
+          "mode": "checkpoint",
+          "seconds": 1.0231646,
+          "allocated": 148584184,
+          "estimated": 0,
+          "commits": 6144,
+          "flushes": 102,
+          "journalReadBytes": 104790720,
+          "checkpointCount": 2,
+          "checkpointSeconds": 0.7447794,
+          "flushSeconds": 0.2384782,
+          "prepareSeconds": 0.7786469,
+          "appendSeconds": 0.0203911,
+          "applySeconds": 0.0010211,
+          "mutationSeconds": 1.0131959
+        },
+        {
+          "mode": "estimate",
+          "seconds": 0.2735241,
+          "allocated": 335192848,
+          "estimated": 18774321,
+          "commits": 0,
+          "flushes": 0,
+          "journalReadBytes": 275771904,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0,
+          "prepareSeconds": 0,
+          "appendSeconds": 0,
+          "applySeconds": 0,
+          "mutationSeconds": 0
+        }
+      ]
+    },
+    {
+      "name": "final-after1",
+      "path": "artifacts/write-path-20261025/final-after1.json",
+      "sha256": "2631c023d6da80d88c8b1b39628d91e82615b82eb743016b120954c97d325243",
+      "runtimeSha256": "94e646cfad3a8a35654d312bc54f5a33758498dfd1f41f2b14f73426f357f428",
+      "rows": [
+        {
+          "mode": "write-flush",
+          "seconds": 4.3713193,
+          "allocated": 2520896,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 2048,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 4.3146144,
+          "prepareSeconds": 0.0333562,
+          "appendSeconds": 0.001146,
+          "applySeconds": 0.0041628,
+          "mutationSeconds": 4.3572325
+        },
+        {
+          "mode": "batch-flush",
+          "seconds": 0.2877743,
+          "allocated": 2831168,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 128,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0.2574457,
+          "prepareSeconds": 0.0124409,
+          "appendSeconds": 0.0070595,
+          "applySeconds": 0.0003922,
+          "mutationSeconds": 0.2810149
+        },
+        {
+          "mode": "overwrite",
+          "seconds": 1.8399388,
+          "allocated": 21833424,
+          "estimated": 0,
+          "commits": 256,
+          "flushes": 83,
+          "journalReadBytes": 304087040,
+          "checkpointCount": 17,
+          "checkpointSeconds": 1.3851544,
+          "flushSeconds": 0.3493564,
+          "prepareSeconds": 1.6302211,
+          "appendSeconds": 0.0601855,
+          "applySeconds": 0.0004427,
+          "mutationSeconds": 1.9199378
+        },
+        {
+          "mode": "checkpoint",
+          "seconds": 0.97828,
+          "allocated": 113955328,
+          "estimated": 0,
+          "commits": 6144,
+          "flushes": 102,
+          "journalReadBytes": 69860480,
+          "checkpointCount": 2,
+          "checkpointSeconds": 0.6910982,
+          "flushSeconds": 0.2456352,
+          "prepareSeconds": 0.7238135,
+          "appendSeconds": 0.0198189,
+          "applySeconds": 0.0009922,
+          "mutationSeconds": 0.9688528
+        },
+        {
+          "mode": "estimate",
+          "seconds": 0.049905,
+          "allocated": 59337904,
+          "estimated": 18774321,
+          "commits": 0,
+          "flushes": 0,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0,
+          "prepareSeconds": 0,
+          "appendSeconds": 0,
+          "applySeconds": 0,
+          "mutationSeconds": 0
+        }
+      ]
+    },
+    {
+      "name": "final-after2",
+      "path": "artifacts/write-path-20261025/final-after2.json",
+      "sha256": "7deff3197a4698fd0443d7101ec5e30fe5878b12daac4a91a3192faf0f8d1aa7",
+      "runtimeSha256": "94e646cfad3a8a35654d312bc54f5a33758498dfd1f41f2b14f73426f357f428",
+      "rows": [
+        {
+          "mode": "write-flush",
+          "seconds": 4.3780172,
+          "allocated": 2520896,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 2048,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 4.3207394,
+          "prepareSeconds": 0.0340534,
+          "appendSeconds": 0.0011658,
+          "applySeconds": 0.0041423,
+          "mutationSeconds": 4.3639889
+        },
+        {
+          "mode": "batch-flush",
+          "seconds": 0.3105633,
+          "allocated": 2831168,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 128,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0.2790448,
+          "prepareSeconds": 0.0131448,
+          "appendSeconds": 0.0071582,
+          "applySeconds": 0.000433,
+          "mutationSeconds": 0.3036111
+        },
+        {
+          "mode": "overwrite",
+          "seconds": 1.8105397,
+          "allocated": 21821360,
+          "estimated": 0,
+          "commits": 256,
+          "flushes": 83,
+          "journalReadBytes": 304087040,
+          "checkpointCount": 17,
+          "checkpointSeconds": 1.3966213,
+          "flushSeconds": 0.3179531,
+          "prepareSeconds": 1.6199787,
+          "appendSeconds": 0.0577749,
+          "applySeconds": 0.0004405,
+          "mutationSeconds": 1.8670681
+        },
+        {
+          "mode": "checkpoint",
+          "seconds": 1.0093999,
+          "allocated": 113960392,
+          "estimated": 0,
+          "commits": 6144,
+          "flushes": 102,
+          "journalReadBytes": 69860480,
+          "checkpointCount": 2,
+          "checkpointSeconds": 0.7243425,
+          "flushSeconds": 0.2566294,
+          "prepareSeconds": 0.7574196,
+          "appendSeconds": 0.0211101,
+          "applySeconds": 0.0009267,
+          "mutationSeconds": 0.9998575
+        },
+        {
+          "mode": "estimate",
+          "seconds": 0.0490585,
+          "allocated": 59337904,
+          "estimated": 18774321,
+          "commits": 0,
+          "flushes": 0,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0,
+          "prepareSeconds": 0,
+          "appendSeconds": 0,
+          "applySeconds": 0,
+          "mutationSeconds": 0
+        }
+      ]
+    },
+    {
+      "name": "final-before2",
+      "path": "artifacts/write-path-20261025/final-before2.json",
+      "sha256": "e5c8275e1d318780ceb8cc04d99f144e7cf8383987e9e2ec0994c5c6ede05b4e",
+      "runtimeSha256": "b9751fe7be66bd428457d0daea51ef68991414ec9eb6445f24c756bd1857222c",
+      "rows": [
+        {
+          "mode": "write-flush",
+          "seconds": 8.123037,
+          "allocated": 2520896,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 4096,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 8.0646574,
+          "prepareSeconds": 0.0315726,
+          "appendSeconds": 0.001002,
+          "applySeconds": 0.0035791,
+          "mutationSeconds": 4.3882048
+        },
+        {
+          "mode": "batch-flush",
+          "seconds": 0.5239441,
+          "allocated": 2831168,
+          "estimated": 0,
+          "commits": 2048,
+          "flushes": 256,
+          "journalReadBytes": 0,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0.4928137,
+          "prepareSeconds": 0.0128907,
+          "appendSeconds": 0.0072894,
+          "applySeconds": 0.0003973,
+          "mutationSeconds": 0.2820666
+        },
+        {
+          "mode": "overwrite",
+          "seconds": 1.8511515,
+          "allocated": 39678736,
+          "estimated": 0,
+          "commits": 256,
+          "flushes": 83,
+          "journalReadBytes": 321912832,
+          "checkpointCount": 17,
+          "checkpointSeconds": 1.4229045,
+          "flushSeconds": 0.3282894,
+          "prepareSeconds": 1.6434915,
+          "appendSeconds": 0.0609102,
+          "applySeconds": 0.0004412,
+          "mutationSeconds": 1.9055561
+        },
+        {
+          "mode": "checkpoint",
+          "seconds": 1.037774,
+          "allocated": 149176104,
+          "estimated": 0,
+          "commits": 6144,
+          "flushes": 102,
+          "journalReadBytes": 104790720,
+          "checkpointCount": 2,
+          "checkpointSeconds": 0.7334356,
+          "flushSeconds": 0.264555,
+          "prepareSeconds": 0.7661918,
+          "appendSeconds": 0.021034,
+          "applySeconds": 0.0009047,
+          "mutationSeconds": 1.0282272
+        },
+        {
+          "mode": "estimate",
+          "seconds": 0.2820065,
+          "allocated": 336800024,
+          "estimated": 18774321,
+          "commits": 0,
+          "flushes": 0,
+          "journalReadBytes": 275771904,
+          "checkpointCount": 0,
+          "checkpointSeconds": 0,
+          "flushSeconds": 0,
+          "prepareSeconds": 0,
+          "appendSeconds": 0,
+          "applySeconds": 0,
+          "mutationSeconds": 0
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/Splinter.Runtime/JournalDeltaStore.cs",
+      "sha256": "bd165de82134e6acb87a101437ef5fd477eee1521aaba49c38099e430bc33582"
+    },
+    {
+      "path": "src/Splinter.Runtime/JournalStateFrames.cs",
+      "sha256": "b44bf0fed35ed9d1f76f4b52df914d0993c376c1c74e368b9ebe39bb2a5814c0"
+    },
+    {
+      "path": "src/Splinter.Host/FoundationGateway.cs",
+      "sha256": "14aa1a0035cf7f86f4d53578c218e44efa39a585aabc76e87ad558c9a017b970"
+    },
+    {
+      "path": "contracts/v1/response.schema.json",
+      "sha256": "0d5bddd8aa9ebf1e68bb344e7a5de76fd99ac5731ed271ad22ff6cb2550ca37b"
+    },
+    {
+      "path": "tests/Splinter.Tests/JournalWritePathTests.cs",
+      "sha256": "5e2996507924d644733fd0f184199e8ca292ea5c6ab537485f15283249b8932b"
+    },
+    {
+      "path": "tests/Splinter.Tests/WriteBatchTests.cs",
+      "sha256": "a9f8abb429db1a2990a4a053428f80e71c3a4ea58391ba2f06cbb949be6dc824"
+    },
+    {
+      "path": "tests/Splinter.Tests/JournalMutationObserverTests.cs",
+      "sha256": "de2e13180e9e604d587308529c3f8984a56b3e730a95faff2fd17abd235fdad2"
+    },
+    {
+      "path": "tests/Splinter.Tests/JournalWriteMetricsTests.cs",
+      "sha256": "0e39994160f34a5f19eb15b87d70bc045ebe025e247940686d6769eed2217b01"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "artifacts/write-path-20261025/baseline/Probe.dll",
+      "sha256": "46f9d9ea2a61967fb99edde87dce354e49c5602933cee9b1f6f85748b276cc57"
+    },
+    {
+      "path": "artifacts/write-path-20261025/baseline/Splinter.Core.dll",
+      "sha256": "2317bcbbe72c8c89ac83836324bb6122cfdfe002c4fb14158a89deeee283a7e7"
+    },
+    {
+      "path": "artifacts/write-path-20261025/baseline/Splinter.Runtime.dll",
+      "sha256": "b9751fe7be66bd428457d0daea51ef68991414ec9eb6445f24c756bd1857222c"
+    },
+    {
+      "path": "artifacts/write-path-20261025/candidate/Probe.dll",
+      "sha256": "46f9d9ea2a61967fb99edde87dce354e49c5602933cee9b1f6f85748b276cc57"
+    },
+    {
+      "path": "artifacts/write-path-20261025/candidate/Splinter.Core.dll",
+      "sha256": "0cb55d91dfa3bcf5ae828e5f2d8aeca6c8caa63ea382b49f442669f1991021c2"
+    },
+    {
+      "path": "artifacts/write-path-20261025/candidate/Splinter.Runtime.dll",
+      "sha256": "9b392e90debc3f512c55b49b3f2d8a4e612ea79b9e26db6cd5a7a2452c4e7d25"
+    },
+    {
+      "path": "artifacts/write-path-20261025/adopted/Probe.dll",
+      "sha256": "46f9d9ea2a61967fb99edde87dce354e49c5602933cee9b1f6f85748b276cc57"
+    },
+    {
+      "path": "artifacts/write-path-20261025/adopted/Splinter.Core.dll",
+      "sha256": "0cb55d91dfa3bcf5ae828e5f2d8aeca6c8caa63ea382b49f442669f1991021c2"
+    },
+    {
+      "path": "artifacts/write-path-20261025/adopted/Splinter.Runtime.dll",
+      "sha256": "94e646cfad3a8a35654d312bc54f5a33758498dfd1f41f2b14f73426f357f428"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "artifacts/write-path-20261025/adopted-build.log",
+      "bytes": 2349,
+      "sha256": "62c0d700820c5fcf51beb43a7f41b9fcd526024260502e0aa5215fe87f2482a4"
+    },
+    {
+      "path": "artifacts/write-path-20261025/after1.json",
+      "bytes": 2306,
+      "sha256": "c40dd16c990c47a8d7537d795b2ef984f90f8592efde7a679d5ff8b790ec99ed"
+    },
+    {
+      "path": "artifacts/write-path-20261025/after1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "artifacts/write-path-20261025/after2.json",
+      "bytes": 2304,
+      "sha256": "92fd7c073fe63fcbf9c0b55f29afede43f1c0e661d90998d5aa8c7ed6c4eafe1"
+    },
+    {
+      "path": "artifacts/write-path-20261025/after2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "artifacts/write-path-20261025/before1.json",
+      "bytes": 2318,
+      "sha256": "2eaa144aa47db4cc82c7f3c17aa2c6788be181a693e8fefbdf2ce3a13b34a16c"
+    },
+    {
+      "path": "artifacts/write-path-20261025/before1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "artifacts/write-path-20261025/before2.json",
+      "bytes": 2317,
+      "sha256": "46f67d261ef84f35097ea288d909d02ce68f0c732d4d51640ebf96dc4654b9b5"
+    },
+    {
+      "path": "artifacts/write-path-20261025/before2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "artifacts/write-path-20261025/candidate-build.log",
+      "bytes": 2349,
+      "sha256": "7bf98108a3571471a9f5046a8c5f6822d3e6a5caeabe87b6d16290085f564e09"
+    },
+    {
+      "path": "artifacts/write-path-20261025/candidate-final-build.log",
+      "bytes": 2842,
+      "sha256": "2c6670d8b74e6b7223170ba70a57717d1a2845cfaa04d6ff1a422d91fd80fc19"
+    },
+    {
+      "path": "artifacts/write-path-20261025/candidate-final-build2.log",
+      "bytes": 1776,
+      "sha256": "76e88fabc5a4d0531066015de9faad374d65ef4de6e678855aff46fc11d2be57"
+    },
+    {
+      "path": "artifacts/write-path-20261025/candidate-final-build3.log",
+      "bytes": 1776,
+      "sha256": "af68ada88b32acad517c211f86276def106173d1898eee8fa1db62f267c87751"
+    },
+    {
+      "path": "artifacts/write-path-20261025/candidate-test-build.log",
+      "bytes": 1776,
+      "sha256": "7bf2f20e8a099ccbf00135d6840a21c7b4c4f98ee9e499331634e09a7a5b5bad"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-after1.json",
+      "bytes": 2306,
+      "sha256": "2631c023d6da80d88c8b1b39628d91e82615b82eb743016b120954c97d325243"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-after1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-after2.json",
+      "bytes": 2309,
+      "sha256": "7deff3197a4698fd0443d7101ec5e30fe5878b12daac4a91a3192faf0f8d1aa7"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-after2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-before1.json",
+      "bytes": 2317,
+      "sha256": "abd2b43c98b9a244c50c8ce450b49731175903311a4471c7eb0e264bab3fd619"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-before1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-before2.json",
+      "bytes": 2315,
+      "sha256": "e5c8275e1d318780ceb8cc04d99f144e7cf8383987e9e2ec0994c5c6ede05b4e"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-before2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-targeted.log",
+      "bytes": 1659,
+      "sha256": "fb46fc056c282a32b68cb00507d9046866301e452976db7b6904de1bf80aa801"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-targeted.trx",
+      "bytes": 70245,
+      "sha256": "d03c3302903e83706531f4682901a9477d34c9bfb6dcb971a9da5b8f31e6034a"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-targeted2.log",
+      "bytes": 392,
+      "sha256": "b90b88ea564855223aac147f728e27bc6b7c42b1676fffc5286249ebb056a0c5"
+    },
+    {
+      "path": "artifacts/write-path-20261025/final-targeted2.trx",
+      "bytes": 69030,
+      "sha256": "b9180faeeb3d64ad6bb24bc7820656c0d1f92ce1e869f7f3e522b70a225d3f5a"
+    },
+    {
+      "path": "artifacts/write-path-20261025/focused.log",
+      "bytes": 5131,
+      "sha256": "64e56ebad7f6d3e49f4b5d6c78f2550cbf6099c3d490b6ff76ad1c920a6438be"
+    },
+    {
+      "path": "artifacts/write-path-20261025/focused.trx",
+      "bytes": 631861,
+      "sha256": "5eddd19e85c7403efad49c9edfffd900ef8fae866d79cb681ccbd5169281609a"
+    },
+    {
+      "path": "artifacts/write-path-20261025/init.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "artifacts/write-path-20261025/inputs.json",
+      "bytes": 1486,
+      "sha256": "235e8c34f0b0f498c555264daa8dbdd68c60d7bac91c3350bf99a119befb5758"
+    },
+    {
+      "path": "artifacts/write-path-20261025/probe-build.log",
+      "bytes": 4507,
+      "sha256": "9df644a08f698f0395bf29fbc5634dfcb7e821d8630a1aac70c7bba10c6dd0b3"
+    },
+    {
+      "path": "artifacts/write-path-20261025/probe-build2.log",
+      "bytes": 209,
+      "sha256": "e61bdc9094ea85d841eefb34bd615f6e3f2eb3d5b6ade12a2e156e0c57507d60"
+    },
+    {
+      "path": "artifacts/write-path-20261025/replay-verification.json",
+      "bytes": 11490,
+      "sha256": "08fd206c8ea901105a3b2fde7930090a50ab34d5d76574be8e0843d0a7a44ff9"
+    },
+    {
+      "path": "artifacts/write-path-20261025/replay-verification.log",
+      "bytes": 80,
+      "sha256": "ced7730402a987cf9a873f14ae1e90fe958a48193e896c82d154459bbc8aa0c6"
+    },
+    {
+      "path": "artifacts/write-path-20261025/verify-build.log",
+      "bytes": 407,
+      "sha256": "c77aeb307176ca6a0d4d89464271657c7119311878ee986805d1cf6b02b1cd52"
+    }
+  ],
+  "gate": {
+    "status": "passed",
+    "command": "pwsh -NoProfile -File scripts/build.ps1",
+    "lockedRestore": true,
+    "configuration": "Release",
+    "warnings": 0,
+    "errors": 0,
+    "total": 1626,
+    "passed": 1598,
+    "failed": 0,
+    "skipped": 28,
+    "summarySeconds": 535.407,
+    "log": "artifacts/write-path-20261025/final-gate.log",
+    "logSha256": "87d9205131a47127d71df929102143d0dd969a6f2032810ae4d7cc1a0aa42f06",
+    "trx": "artifacts/write-path-20261025/final-gate.trx",
+    "trxSha256": "9a512d8be84de820b7720531454f76be53822959187c17944797263f917ba1df",
+    "existingSharingTest": "Passed",
+    "codeChangedAfterFinalMeasurement": false
+  },
+  "limits": [
+    "Synthetic components, not Unity lifecycle.",
+    "No native WinFsp timing or original application.",
+    "No device or power-loss testing.",
+    "No ordinary single-write barrier removal, early ACK or background writer.",
+    "Existing SJL4 capsule boundaries and encoded readers retained.",
+    "Checkpoint/overwrite improvements near 4 percent are not large-total-speed claims.",
+    "No commit or push requested."
+  ]
+}

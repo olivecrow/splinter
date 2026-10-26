@@ -18,6 +18,14 @@ The WinFsp adapter queues concurrent write callbacks **before** its mutation gat
 
 An explicit flush first drains the write tickets already accepted by the adapter. Close, seal and reclamation retain their durability and ownership boundaries. Interrupted waiters retain native-buffer ownership until their queued writes drain. There are no pending writes from a callback that has already returned success. A strictly sequential client sending its next request only after the previous completion offers no cross-request batching opportunity. Multiple chunks of one callback can still share a barrier. Increasing the number of flush threads is not this design.
 
+## Write-path follow-up
+
+An explicit SJR2 flush may reuse a successful durable flush only for the same open journal handle and unchanged journal length, after local integrity checks and draining accepted writes. A new/reconnected or replaced handle must establish its own durability. Mutation and batch flushes still run before success; failed writers remain poisoned. SJL4's explicit flush and capsule publication are unchanged.
+
+Raw current-state sizing uses known payload lengths without reading or allocating payload bytes. Actual checkpoint output, checksums, full state proofs and replay still validate the data. The experimental raw overwrite edge search was removed because reduced reads did not improve total overwrite time. Existing raw/encoded comparisons, complete private coverage and the 4KiB saved-edge threshold remain.
+
+[WP-01–05 verification](verification/write-path-throughput.md) records the fixed-input before/after costs and remaining checkpoint/flush bottlenecks. No journal format, public method or version changed.
+
 ## Scope
 
 [RW-01–05 verification](verification/raw-write-batching.md) separates raw-format/reader tests, ordered/failing batch tests, callback tests, fixed-input component cost and native WinFsp evidence. None establishes Unity's actual request overlap, full shutdown/lifecycle gain, hardware power-loss qualification or whole-process peak RAM. No original project, Unity Editor, external tool or device setting is changed by this work.

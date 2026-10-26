@@ -145,7 +145,7 @@ public sealed class WriteBatchTests
             }
         }
         finally { observer.Proceed.Set(); await first; await Task.WhenAll(others); if (flush is not null) await flush; }
-        Assert.Equal(before + (explicitFlush ? 3 : 2), store.Observe().Metrics!.FlushCount);
+        Assert.Equal(before + 2, store.Observe().Metrics!.FlushCount);
         byte[] bytes = new byte[9]; Assert.Equal(9, store.Read(id, 0, bytes)); Assert.Equal(0, bytes[0]);
         Assert.Equal(Enumerable.Range(0, 9).Select(i => (byte)i), bytes.Order());
     }

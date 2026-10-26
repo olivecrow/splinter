@@ -13,13 +13,14 @@ public sealed partial class JournalDeltaStore
     private long WriteStateFrames(List<LiveRange> live, Stream? output, IReadOnlySet<string>? projectedFiles, BoundedLogSettings? bounded = null)
     {
         long bytes = 0;
-        void Frame(Mutation mutation, ReadOnlySpan<byte> data)
+        void Frame(Mutation mutation, ReadOnlySpan<byte> data, int? estimatedPayloadBytes = null)
         {
             byte[] metadata = JsonSerializer.SerializeToUtf8Bytes(mutation);
             if (metadata.Length > MaxMetadataBytes) throw new WorkspaceException("OverlayMetadataLimit", "Current-state metadata exceeds its frame bound.");
             ReadOnlySpan<byte> stored = data;
-            var descriptor = new WorkspaceJournalPayload(stored.Length, data.Length);
-            long length = FrameHeaderBytes + (long)metadata.Length + stored.Length + FrameChecksumBytes;
+            int payloadLength = estimatedPayloadBytes ?? data.Length;
+            var descriptor = new WorkspaceJournalPayload(payloadLength, payloadLength);
+            long length = FrameHeaderBytes + (long)metadata.Length + payloadLength + FrameChecksumBytes;
             bytes = checked(bytes + length);
             if (output is null) return;
             Span<byte> header = stackalloc byte[FrameHeaderBytes]; WriteHeader(header, metadata.Length, descriptor);
@@ -36,6 +37,11 @@ public sealed partial class JournalDeltaStore
             Frame(new(0, "state-node", node.Entry), []);
             foreach (var range in ranges.GetValueOrDefault(node.Entry.Id) ?? [])
             {
+                // New state payloads are raw, even when the source extent was
+                // encoded. Sizing needs lengths only; output still reads and
+                // validates every byte before candidate replay/publication.
+                if (output is null)
+                { Frame(new(0, "state-write", node.Entry, range.Logical), [], range.Length); continue; }
                 byte[] data = new byte[range.Length];
                 ReadPayload(range.Physical, range.Payload, range.BlockOffset, data);
                 Frame(new(0, "state-write", node.Entry, range.Logical), data);

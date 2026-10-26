@@ -40,7 +40,7 @@ public sealed class JournalWriteMetricsTests
         Assert.Equal(1, store.Observe().Metrics!.LiveJournalWrites!.Operations[0].WaitingMutationsAtFlushStart[0]);
         Assert.Equal(1, store.Observe().Metrics!.LiveJournalWrites!.Operations[0].WaitingMutationsAtFlushEnd[0]);
         store.Flush();
-        Assert.Equal(7, store.Observe().Metrics!.FlushCount);
+        Assert.Equal(6, store.Observe().Metrics!.FlushCount);
         Assert.Equal(6, store.Observe().Metrics!.LiveJournalWrites!.Operations.Sum(x => x.FlushCalls));
     }
 
