@@ -14,9 +14,11 @@ Find current implementation in feature documents below and subsequent responsibi
 <a id="현재-계약과-사용법"></a>
 ## Current contracts and usage
 
+The C20 follow-up is [file result collection throughput](plans/result-collection-throughput.md), with [RT-01–04 verification](verification/result-collection-throughput.md): one sealed source scan and bounded local payload work, with native timing separate from Unity/Plastic qualification.
+
 | Document | Owned content |
 | --- | --- |
-| [Lifecycle optimization map](lifecycle-optimization-map.md), [machine-readable index](lifecycle-optimization-map.json) | Code-backed AI navigation for one workspace: 19 stages, five diagrams, Git/file application and discard, locks/durability/recovery, source symbols and measurement boundaries. Pinned implementation snapshot, not a new benchmark or permission to run project operations. |
+| [Lifecycle optimization map](lifecycle-optimization-map.md), [machine-readable index](lifecycle-optimization-map.json) | Code-backed AI navigation for one workspace: 19 stages, six diagrams including file-result collection, Git/file application and discard, locks/durability/recovery, source symbols and measurement boundaries. Pinned implementation snapshot, not a new benchmark or permission to run project operations. |
 | [Write-path throughput](plans/write-path-throughput.md), [verification](verification/write-path-throughput.md) | WP-01–05: reuse proven clean SJR2 flushes and size raw state without payload reads; remove the edge-search candidate without a total-time benefit. Fixed-input component comparison, retained durability/replay. |
 | [Raw writes and shared durable flush](raw-write-batching.md), [scope](plans/raw-write-batching.md), [verification](verification/raw-write-batching.md) | RW-01–05: compression writer retired; current encoded readers retained; bounded ordered SJR2 group flush and WinFsp admission before serialization. Durable success, no early ACK. |
 | [Durable flush/shutdown experiments](plans/durable-flush-throughput.md), [verification](verification/durable-flush-throughput.md) | DF-01–05: per-write I/O alternatives and bounded checkpoint RAM prototype evaluated without a qualifying large gain. No product change; faster write-through-only results are not equivalent durability evidence. |

@@ -35,6 +35,8 @@ Git 경로와 같은 [원본 Library 수명주기](git-library-reference.md)를 
 
 독립 결과는 기존 파일 manifest와 `files/objects`에 저장한다. 생성/일반 읽기에는 payload를 저장하지 않으며 명시적 checkpoint의 결과 수집에서 기준과 결과의 실제 payload를 보존한다. 결과는 서버·원본·Library basis가 없어도 검증할 수 있다. 이 결과 보존 비용은 작업 delta와 구분한다.
 
+checkpoint와 보존은 기존 전체 전후 seal 안에서 소스 scan 한 번을 공유한다. 로컬 payload/증명은 최대 8 worker를 쓰며 recorded revision 획득은 직렬로 유지한다. 실패·취소 시 진행 중 작업을 모두 drain하고 새 object는 여전히 게시 전에 각각 영속 flush한다. [RT-01–04](verification/result-collection-throughput.md)는 합성 Plastic 계약 시험을 포함하지만 실제 시간 측정은 None 입력이므로 Plastic 서버 성능 근거는 아니다.
+
 release/discard는 seal·정상 stop/unmount·소유 provider/handle/process/delta 부재를 확인한다. 소스 기준의 로컬 release intent를 완료한 뒤만 해당 작업의 Library dependent를 제거한다. 기준 회수 뒤 dependent 제거에 실패해도 같은 요청으로 이어간다. 마지막 peer 회수 후 `library restore`로 원본 최종 범위만 반영하고 일반 NTFS Library를 복원한다. 다른 작업·기존 VSS pending·원본 등록과 독립 결과는 보존한다.
 
 현재 reader의 자동·고정 binary/BOM 읽기 자격은 [보안 경계 검증](verification/security-boundaries.md)을 따른다. 과거 [PPB 검증](verification/plastic-project-basis.md)과 [PPB 계획](plans/plastic-project-basis.md)의 실제 Unity A/B는 당시 API reader의 근거이며 새 reader의 Unity·대형 segmented 입력 통과로 승계하지 않는다.

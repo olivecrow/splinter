@@ -32,6 +32,8 @@ source/application·basis·storage·budget을 request digest와 v2 상태에 고
 
 payload 보존의 각 단계는 고유 hash 객체만 처리한다. 독립 결과를 검사하는 한 호출 안에서는 기준/결과 manifest의 객체 집합을 합쳐 동일 객체를 한 번 hash한다. 동일 hash의 선언 길이가 다르면 객체 읽기 전에 거부한다. 게시 전·게시 후 및 이후 회수 검사는 각각 다시 검증하며 이전 성공을 신뢰하는 지속 cache를 두지 않는다. manifest의 모든 경로/메타데이터·identity/owner·collection 검사는 유지한다. [최적화 회귀](verification/code-quality-optimization.md)는 공유 객체의 읽기 수와 이후 손상 거부를 구분한다.
 
+파일 checkpoint 수집은 coordinator의 전체 전후 seal 구간 안에서 소스 manifest 하나를 사용한다. 로컬 전체 payload 보존과 독립 object 검증은 최대 8 worker로 처리하며 실패·취소에도 반환 전에 drain한다. 기존·pending·이후 호출의 object는 다시 증명하고 object별 영속 flush 및 모든 결과/소유 검사를 유지한다. 동일 입력 Windows 실측과 한계는 [RT-01–04](verification/result-collection-throughput.md)를 따른다.
+
 ## 반영·회수·폐기
 
 `workspace integrate --target original --plan`은 고정 checkpoint·기준/결과·현재 원본을 비교한다. `project-snapshot`은 application none/unity의 전체·선택 반영을 지원하며 원본 mount identity·Editor 정상 종료·명시적 intent/digest를 요구한다. [원본 반영](plain-folder-original-apply.md)과 [프로젝트 기준본](plain-project-basis.md)의 보호 및 한정 자격을 따른다.

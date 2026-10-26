@@ -2,7 +2,7 @@
 
 [한국어](ko/lifecycle-optimization-map.md) · [Machine-readable index](lifecycle-optimization-map.json) · [Documentation map](README.md)
 
-**Code snapshot:** `d00451a0c594a45c0e1bbf7d6d147e968bff6ca3`, `development`, inspected 2026-10-26. This is a code-backed architecture inventory, not a new lifecycle benchmark or permission to run project operations. It covers one workspace from preparation to application/discard and reclamation. Other tasks appear only where sharing, locks or dependencies matter. Symbols in the source map are authoritative navigation anchors; line numbers in the JSON index are hints at this commit.
+**Code snapshot:** base `9b68a82cd89912e404d8acd6dcf7e48ce513a353` plus the RT-01/02 file-result changes identified by source hashes in the JSON index, `development`, inspected 2026-10-26. This is a code-backed architecture inventory, not permission to run project operations. [RT verification](verification/result-collection-throughput.md) separately owns the new bounded measurement. This map covers one workspace from preparation to application/discard and reclamation. Other tasks appear only where sharing, locks or dependencies matter. Symbols are authoritative navigation anchors; line numbers refer to the indexed source contents.
 
 **AI reading order:** §§1–3 establish identities and paths; §4 explains each stage; §§5–7 expose serialization, costs and recovery; §8 maps code. Read the owning feature documents before changing a contract. The executable usage procedure remains [the Splinter skill](../skills/splinter/SKILL.md).
 
@@ -243,7 +243,36 @@ The caller waits up to **2 minutes**, checks every **250ms**, and then requires 
 `workspace checkpoint` [K01, K02]. Under the same task lock, publish `collecting`/checkpoint intent, run C10, remove owned bridge, then preserve source between complete before/after journal seals.
 
 - **Git:** `CheckpointAndPreserveAsync` [K06] combines checkpoint source scan/commit with the independent result ref `refs/splinter/snapshot-results/<id>`, validates task/result refs and reachable objects. Managed generated paths are excluded; unclassified ignored files refuse collection.
-- **None/Plastic:** file manifests identify baseline and result; preserve distinct hash-addressed **full file payloads** needed by both, verify them, publish result manifest [K19]. This can copy substantial unchanged baseline/source data during explicit final result preservation. It is not initial hydration or a changed-range write fallback. Library/VCS/owned infrastructure are excluded by policy.
+- **None/Plastic:** `CheckpointAndPreserveAsync` [K19] scans the result once within the seal interval, replacing separate checkpoint/inspection/preservation scans. Preserve distinct hash-addressed **full file payloads** needed by baseline/result, verify them, publish the result manifest. Local payload preservation and independent-object proofs use at most **8 workers**, draining all work on failure/cancellation; recorded Plastic revision acquisition stays serial. Every new object still flushes durably and all publication/recovery proofs remain. This can copy substantial unchanged source data during explicit final preservation; it is not initial hydration or a changed-range write fallback. Library/VCS/owned infrastructure are excluded by policy. See [RT-01–04](verification/result-collection-throughput.md).
+
+The following expands the **None/recorded Plastic** branch of C20. The task lock covers this entire interval; each arrow between worker phases waits for that phase to drain.
+
+```mermaid
+flowchart TD
+  Pre["Runtime: complete pre-seal after C10"] --> Guard["Provider: owner / mount / basis; Plastic isolation guard"]
+  Guard --> Scan["Read baseline manifest; scan current source ONCE"]
+  Scan --> Intent["Fix collection.json: task / digest / baseline / result"]
+  Intent --> Route{"Baseline payload source"}
+  Route -->|None| Local["Local immutable baseline: up to 8 object workers"]
+  Route -->|Plastic| Recorded["Recorded revision acquisition: serial"]
+  Local --> Result["Current result payloads: up to 8 object workers"]
+  Recorded --> Result
+  Result --> Proof["Verify distinct baseline + result objects: up to 8 workers"]
+  Proof --> Manifest["Save result.json; verify independent records + all objects again"]
+  Manifest --> Return["Return candidate revision / reference; previous task revision retained"]
+  Return --> Post["Runtime: require clean result; complete post-seal"]
+  Post --> Equal{"Pre-seal equals post-seal?"}
+  Equal -->|Yes| Commit["Set ResultRevision + Snapshot.Result; persist collected"]
+  Equal -->|No| Retain["Refuse; retain journal / objects / intent / prior task revision"]
+  Local -.->|Failure or cancellation| Drain["Drain active workers before returning original error"]
+  Result -.->|Failure or cancellation| Drain
+  Proof -.->|Failure or cancellation| Drain
+  Drain --> Retain
+```
+
+Within a preservation worker, an existing object is verified; a new object is copied to its owned `.pending` file, durably flushed, hashed, then moved to its final hash path. Deduplication is by content hash, but full baseline/result payloads remain necessary. Baseline preservation, result preservation, pre-publication proof and independent-result proof are sequential phases; only work **within** eligible phases overlaps. Source manifest scanning and recorded revision acquisition do not gain eight-way parallelism. Injected verification readers keep their sequential lifetime contract.
+
+`result.json` can exist before the post-seal succeeds. Its presence alone is not a collected task or permission to release. A mismatch leaves the previous `ResultRevision` and `Snapshot.Result` unchanged and retains evidence; resume only the same task and fixed collection identity. Later release/apply invocations reprove the independent result. The one-scan optimization removes redundant mounted-source scans, not object hashing, journal seals or durability barriers.
 
 Require stable seals, exact revision/fingerprint and `IndependentOfSnapshot` with current collection protocol. Store the result and `collected` phase. Subsequent normal Editor start is blocked after collection; a new task is the ordinary path for more work. Compiler success is not asserted. Preserve-only plus cleanup can use `checkpoint --release`; apply requires C20 → A10 or A20/A30 → R10.
 
@@ -324,6 +353,7 @@ This restores the **original view's current contents**, including permitted orig
 | Read lifetimes | Immutable supported reads can overlap; private/state collection is gated; close drains | The rejected flush-overlapping-read candidate is not enabled |
 | Git reads | Two decoder leases, bounded proof/payload caches | Decoding different objects can overlap; first whole-object proof remains |
 | Managed files | Up to 8 workers for capture/admission/unchanged restore; join/drain failures | Higher concurrency is already present; measure device contention and total RAM |
+| Independent file results | One C20 source scan; up to 8 local payload/proof workers, joined before return; Plastic revision acquisition serial | Full baseline/result data and repeated invocation proofs still cost time |
 | Persistent state | Workspace/intents/receipts use atomic publication and durable boundaries; journals use checksummed flush | Heartbeat/liveness observation is not a durable source-result commit |
 | Exit | Unity can wait for import/compile/children; provider cannot unmount with retained handles | Distinguish Editor exit, child exit, handle drain, unmount and reclamation |
 
@@ -360,9 +390,13 @@ Store raw per-run start/end times and hashes; report normal operation separately
 | Creation, P10/P50 | [WC](verification/workspace-creation-throughput.md): matched editorless Git creation 73.953 → 51.915s after Library preparation | First proof/index/manifest costs on a newly authorized input; not a universal large-project gain |
 | One Unity lifecycle | [LU](verification/unity-single-lifecycle.md): 359.5 → 300.0s; preparation/creation/restore consistently 50.6s lower | Historical combined candidate; source apply not run; cannot assign WP/RW gain to these totals |
 | Normal Editor exit, C10 | [SD](verification/unity-shutdown-diagnosis.md): same method count, one/64 classes 17.34s / 1.60s | Exact shutdown workload/loaded state, not a general method-count scaling law |
-| File result preservation, C20 | Current None/Plastic code preserves distinct baseline+result full file payloads | Measure source bytes, dedup ratio and repeated hashing; no current comparable full Unity timing claim |
+| File result preservation, C20 | [RT-03](verification/result-collection-throughput.md): actual editorless None checkpoint **98.429 → 58.944s**, saving **39.485s / 40.1%**; one scan and bounded payload work measured together | Full baseline/result materialization and repeated object proofs remain; no separate causal attribution or Unity/live Plastic timing |
 | Metadata mutations, W10 | Current code batches range writes; independent metadata callbacks retain commits | Count create/rename/resize/metadata/delete flushes before proposing a broader ordered commit contract |
 | Release vs discard | C20 preservation skipped by discard, but stop/seal/reclaim still required | Same-state per-stage pair; no assumed zero-cost discard or measured universal saving |
+
+RT-03 used the same **2.125GiB / 2,112-file** source bytes and modification times, with fixed edits, in before → after → after → before order. P20–P50 ensure + E20 fixed edit + C20 checkpoint + separate R10 release summed to **203.305 → 159.906s**, an observed **43.399s / 21.3%** saving. Checkpoint command times include enclosing command overhead and are not isolated inner C20 timers. Common P10 preparation (**9.031s**) and F10 restoration (**12.018s**) each ran once outside those sums. No Editor, original apply or discard was timed. Two runs per variant, substantial absolute timing variation and OS caches not cleared limit inference; see the [exact runs and source hashes](../reports/benchmarks/result-collection-throughput-20261026.json).
+
+The remaining measured costs on this input are **P20–P50 creation 65.599s**, **checkpoint 58.944s** and **separate R10 release 35.326s**. Future profiling should separate creation admission/baseline scans, full result materialization/proofs and release source/seal/object revalidation. These totals identify where to investigate; they do not authorize skipping proofs or establish a measured saving for an unimplemented candidate.
 
 Retired/no-gain candidates stay retired: [DF](verification/durable-flush-throughput.md) RAM checkpoint prototype and I/O variants, [LT](verification/lifecycle-throughput.md) flush/read overlap, native Bee, VSS and ReFS. Early ACK or omitted required flush is a different durability policy, not an equivalent optimization. The map adds no backend, worker pool, command or policy switch.
 
@@ -377,6 +411,7 @@ Retired/no-gain candidates stay retired: [DF](verification/durable-flush-through
 | `reclaim-pending` / `discard-reclaim-pending` | Owned workspace removal may be done but basis reclamation remains; resume exact request/intent |
 | `released` / `discarded` | Task resources absent and owned resources zero as observed; independent results/evidence remain; F10 may remain |
 | Original apply incomplete | Same intent/digest/selection only; release/discard/new collection blocked |
+| File collection failed or seal changed | Drain admitted object workers; preserve journal, fixed intent and partial/published objects. `result.json` alone does not advance the task revision/result or authorize reclamation; resume the same identity |
 | Failed append / poison | Preserve journal and reopen/replay; no success ACK for uncertain work; no retry-as-new-task workaround |
 | Basis/source/owner mismatch, unsupported version | Preserve and refuse; no automatic migration, mutable-source fallback or manual control-file deletion |
 | Timeout / dirty original / dirty scene / shared dependency | Resolve the actual condition; no inferred force-kill, reset, discard or peer cleanup authorization |
@@ -408,7 +443,7 @@ The JSON index records the same stable stage IDs, edges, source symbols and code
 | K16 | [WorkspaceOriginalApply](../src/Splinter.Runtime/WorkspaceOriginalApply.cs): plan/apply entry guards |
 | K17 | [WindowsOriginalFilePublisher](../src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs): NTFS conditional publication and receipts |
 | K18 | [GitWorkspaceProvider](../src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs): checkpoint source, target/dirty guard, merge |
-| K19 | [FileWorkspaceProvider](../src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs), [FileOriginalApply](../src/Splinter.SourceControl.Files/FileOriginalApply.cs), [PlasticWorkspaceProvider](../src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs): manifests/full result payloads/original plan and intent |
+| K19 | [FileWorkspaceProvider](../src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs), [FileRecordedBasis](../src/Splinter.SourceControl.Files/FileRecordedBasis.cs), [FileOriginalApply](../src/Splinter.SourceControl.Files/FileOriginalApply.cs), [PlasticWorkspaceProvider](../src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs): manifests/full result payloads/original plan and intent |
 | K20 | [WorkspaceBridge](../unity/Splinter.Editor/Editor/WorkspaceBridge.cs): heartbeat/busy/dirty-scene/Play/normal exit |
 | K21 | [WindowsWorkspaceDiscardProvider](../src/Splinter.Workflows.Windows/WindowsWorkspaceDiscardProvider.cs): exact owned delta/basis/source discard |
 | K22 | [ManagedDirectoryRestore](../src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs): v2 file plan/ranges/128-file cursor/final verification |

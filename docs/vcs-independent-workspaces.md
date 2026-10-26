@@ -36,6 +36,8 @@ Independent results are published only after verifying all files, hashes, and ow
 Each payload-preservation stage processes only unique hash objects. Within one independent-result verification call, basis/result manifest object sets are combined, hashing each identical object once. Conflicting declared lengths for the same hash are rejected before object reads. Prepublication, postpublication, and subsequent reclamation checks each revalidate; there is no persistent cache trusting earlier success. All manifest path/metadata, identity/owner, and collection checks remain. [Optimization regressions](verification/code-quality-optimization.md) distinguish shared-object read counts from subsequent-corruption rejection.
 
 <a id="반영회수폐기"></a>
+File checkpoint collection uses one source manifest inside the coordinator's complete pre/post-seal interval. Local full-payload preservation and independent-object verification run with at most eight workers and drain before returning on failure/cancellation. Existing, pending and later-invocation objects are freshly proved; per-object durable flush and all result/ownership checks remain. See [RT-01–04](verification/result-collection-throughput.md) for the matched-input Windows measurement and its limits.
+
 ## Application, reclamation, and discard
 
 `workspace integrate --target original --plan` compares the exact checkpoint, basis/result and current original. `project-snapshot` supports full/selected application for application none/unity with original mount identity, normal Editor shutdown, and explicit intent/digest. Follow [original application](plain-folder-original-apply.md) and [project basis](plain-project-basis.md) for guards and bounded qualification.

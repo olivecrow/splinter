@@ -2,7 +2,7 @@
 
 [English](../lifecycle-optimization-map.md) · [기계 판독 색인](../lifecycle-optimization-map.json) · [문서 지도](README.md)
 
-**코드 기준:** `d00451a0c594a45c0e1bbf7d6d147e968bff6ca3`, `development`, 2026-10-26 확인. 현재 코드의 구조를 설명하는 문서이며 새 수명주기 실측이나 프로젝트 작업 실행 승인이 아니다. 작업공간 하나의 준비부터 반영/폐기·회수까지 다룬다. 다른 작업은 공유·잠금·의존성이 영향을 주는 곳에만 등장한다. 코드 색인의 symbol을 탐색 기준으로 삼고, JSON의 행 번호는 해당 커밋의 위치 힌트로 사용한다.
+**코드 기준:** 기준 커밋 `9b68a82cd89912e404d8acd6dcf7e48ce513a353`와 JSON 색인의 소스 hash로 식별한 RT-01/02 파일 결과 변경, `development`, 2026-10-26 확인. 현재 코드의 구조를 설명하며 프로젝트 작업 실행 승인이 아니다. 새 한정 실측은 별도 [RT 검증](verification/result-collection-throughput.md)이 소유한다. 작업공간 하나의 준비부터 반영/폐기·회수까지 다룬다. 다른 작업은 공유·잠금·의존성이 영향을 주는 곳에만 등장한다. symbol을 탐색 기준으로 삼고 JSON 행 번호는 색인에 기록된 소스 내용의 위치 힌트로 사용한다.
 
 **AI 읽기 순서:** §§1–3에서 identity·경로를 파악하고, §4에서 단계별 동작, §§5–7에서 직렬화·비용·복구, §8에서 실제 코드를 확인한다. 계약 수정 전에는 연결된 기능 소유 문서를 읽는다. 명령 사용 절차 원본은 [Splinter 스킬](../../skills/splinter/SKILL.md)이다.
 
@@ -243,7 +243,36 @@ checkpoint/release/discard가 필요에 따라 호출하며 명시적 `unity sto
 `workspace checkpoint` [K01, K02]. 같은 작업 잠금 아래 `collecting`/checkpoint intent를 게시하고 C10과 소유 bridge 제거 뒤 전체 저널의 전후 seal 사이에서 소스를 보존한다.
 
 - **Git:** `CheckpointAndPreserveAsync` [K06]가 소스 scan/commit과 독립 결과 ref `refs/splinter/snapshot-results/<id>`를 잇고 task/result ref·reachable 객체를 검증한다. 생성 관리 경로는 제외하고 미분류 ignored 파일은 거부한다.
-- **None/Plastic:** baseline/result manifest를 만들고 양쪽에 필요한 서로 다른 hash의 **파일 전체 payload**를 보존·검증한 뒤 result manifest를 게시한다 [K19]. 명시적 최종 결과 보존에서 변경 없는 baseline/source도 상당량 복사할 수 있다. 최초 hydration이나 범위 쓰기의 전체 파일 fallback은 아니다. Library/VCS/소유 infrastructure는 정책으로 제외한다.
+- **None/Plastic:** `CheckpointAndPreserveAsync` [K19]가 seal 구간 안에서 결과를 한 번 scan해 별도 checkpoint/inspection/preservation의 세 번 읽기를 대체한다. baseline/result 양쪽에 필요한 서로 다른 hash의 **파일 전체 payload**를 보존·검증한 뒤 result manifest를 게시한다. 로컬 payload 보존과 독립 object 검증은 최대 **8 worker**를 쓰고 실패/취소 시 모두 drain한다. recorded Plastic revision 획득은 직렬로 유지한다. 새 object마다 영속 flush하며 게시/복구의 전체 증명은 유지한다. 명시적 최종 보존에서 변경 없는 소스도 상당량 복사할 수 있으며 최초 hydration이나 범위 쓰기의 전체 파일 fallback은 아니다. Library/VCS/소유 infrastructure는 정책으로 제외한다. [RT-01–04](verification/result-collection-throughput.md)를 따른다.
+
+아래는 C20의 **None/recorded Plastic** 분기를 펼친 도식이다. 전체 구간에서 task 잠금을 유지하며 worker 단계 사이의 화살표는 해당 단계의 drain 완료를 기다린다.
+
+```mermaid
+flowchart TD
+  Pre["Runtime: C10 뒤 전체 pre-seal"] --> Guard["Provider: owner / mount / basis; Plastic 격리 확인"]
+  Guard --> Scan["baseline manifest 읽기; 현재 소스 한 번 scan"]
+  Scan --> Intent["collection.json 고정: task / digest / baseline / result"]
+  Intent --> Route{"baseline payload 원천"}
+  Route -->|None| Local["로컬 불변 baseline: 최대 8 object worker"]
+  Route -->|Plastic| Recorded["recorded revision 획득: 직렬"]
+  Local --> Result["현재 result payload: 최대 8 object worker"]
+  Recorded --> Result
+  Result --> Proof["baseline + result의 서로 다른 object 검증: 최대 8 worker"]
+  Proof --> Manifest["result.json 저장; 독립 record + 전체 object 재검증"]
+  Manifest --> Return["후보 revision / reference 반환; 기존 task revision 유지"]
+  Return --> Post["Runtime: clean result 요구; 전체 post-seal"]
+  Post --> Equal{"pre-seal과 post-seal 일치?"}
+  Equal -->|예| Commit["ResultRevision + Snapshot.Result 설정; collected 영속화"]
+  Equal -->|아니오| Retain["거부; journal / object / intent / 기존 task revision 보존"]
+  Local -.->|실패 또는 취소| Drain["진행 중 worker drain 뒤 기존 오류 반환"]
+  Result -.->|실패 또는 취소| Drain
+  Proof -.->|실패 또는 취소| Drain
+  Drain --> Retain
+```
+
+보존 worker는 기존 object를 검증하고, 새 object는 소유 `.pending` 파일로 복사 → 영속 flush → hash 검증 → 최종 hash 경로 이동 순서로 처리한다. 내용 hash로 중복을 제거하지만 baseline/result 전체 payload는 여전히 필요하다. baseline 보존·result 보존·게시 전 증명·독립 결과 증명은 직렬 단계이며 적격 **단계 내부**의 작업만 겹친다. 소스 manifest scan과 recorded revision 획득이 8개로 병렬화된 것은 아니다. 주입한 검증 reader는 직렬 수명 계약을 유지한다.
+
+post-seal 성공 전에 `result.json`이 존재할 수 있다. 파일 존재만으로 수집 완료나 release 가능을 판정하지 않는다. seal 불일치 시 기존 `ResultRevision`·`Snapshot.Result`를 바꾸지 않고 근거를 보존하며 같은 task와 고정 collection identity로만 재개한다. 후속 release/apply 호출은 독립 결과를 다시 증명한다. 한 번 scan 최적화는 mount 소스의 중복 scan을 제거하며 object hash·저널 seal·영속 경계는 유지한다.
 
 stable seal·정확한 revision/fingerprint·현재 collection protocol의 `IndependentOfSnapshot`을 요구하고 결과와 `collected`를 저장한다. 수집 뒤 정상 Editor start는 차단한다. 추가 작업은 새 task가 일반 경로다. 컴파일 성공을 주장하지 않는다. 보존+정리에는 `checkpoint --release`, 반영에는 C20 → A10 또는 A20/A30 → R10을 쓴다.
 
@@ -324,6 +353,7 @@ flowchart TD
 | 읽기 수명 | 지원하는 불변 읽기 겹침, private/상태 수집 gate, close drain | 폐기한 flush/read overlap 후보는 활성화하지 않음 |
 | Git reader | 두 decoder 임대·제한 proof/payload cache | 다른 객체 decode는 겹칠 수 있으나 최초 전체 증명 유지 |
 | 관리형 파일 | capture/admission/변경 없는 복원 최대 8 worker, 실패 join/drain | 이미 병렬화됨; 추가 concurrency는 device 경합·전체 RAM 계측 필요 |
+| 독립 파일 결과 | C20 소스 scan 1회, 로컬 payload/증명 최대 8 worker와 반환 전 drain, Plastic revision 획득 직렬 | 기준/결과 전체 내용과 호출별 재검증 비용은 남음 |
 | 영속 상태 | workspace/intent/receipt 원자 게시·영속 경계; 저널 checksum/flush | heartbeat/liveness는 영속 소스 결과 commit이 아님 |
 | 종료 | Unity import/compile/자식 대기, retained handle이면 unmount 불가 | Editor exit·child exit·handle drain·unmount·회수를 분리 |
 
@@ -360,9 +390,13 @@ run별 원시 시작/종료 시각과 hash를 보존하고 정상 처리와 진�
 | 생성, P10/P50 | [WC](verification/workspace-creation-throughput.md): Library 준비 후 같은 입력 editorless Git 생성 73.953 → 51.915초 | 새 승인 입력의 최초 proof/index/manifest; 일반 대형 이점 아님 |
 | Unity 수명주기 하나 | [LU](verification/unity-single-lifecycle.md): 359.5 → 300.0초; 준비/생성/복원 일관된 50.6초 절감 | 과거 결합 후보; 소스 반영 미실행; WP/RW 이득을 이 합계에 귀속 불가 |
 | 정상 Editor 종료, C10 | [SD](verification/unity-shutdown-diagnosis.md): 같은 method 수의 단일/64개 class 17.34초 / 1.60초 | 정확한 종료 workload/loaded 상태; 일반 method 수 증가 법칙 아님 |
-| 파일 결과 보존, C20 | 현재 None/Plastic은 baseline+result의 서로 다른 전체 파일 payload 보존 | 소스 bytes·중복 제거율·반복 hash 계측; 현재 비교 가능한 전체 Unity 시간 주장 없음 |
+| 파일 결과 보존, C20 | [RT-03](verification/result-collection-throughput.md): 실제 editorless None checkpoint **98.429 → 58.944초**, **39.485초 / 40.1%** 절감; 한 번 scan과 제한 병렬 payload 작업을 묶어 측정 | baseline/result 전체 구체화·반복 object 증명은 유지; 개별 인과 효과·Unity/실제 Plastic 시간은 미확인 |
 | metadata mutation, W10 | 범위 Write를 묶고 별도 metadata callback commit 유지 | 더 넓은 ordered commit 계약 전에 create/rename/resize/metadata/delete flush 집계 |
 | release / discard | discard는 C20 보존을 생략하지만 stop/seal/reclaim 필요 | 같은 상태에서 단계별 비교; 무료 폐기나 보편 절감 가정 없음 |
+
+RT-03은 같은 **2.125GiB·2,112개 파일**의 소스 내용·수정 시각과 고정 편집으로 전 → 후 → 후 → 전 순서를 사용했다. P20–P50 ensure + E20 고정 편집 + C20 checkpoint + 별도 R10 release 합계는 **203.305 → 159.906초**, 관측 절감은 **43.399초 / 21.3%**다. checkpoint 명령 시간에는 명령 외곽 비용도 포함되며 내부 C20만의 타이머는 아니다. 공통 P10 준비 **9.031초**와 F10 복원 **12.018초**는 합계 밖에서 각각 한 번 수행했다. Editor·원본 반영·폐기 시간은 측정하지 않았다. 버전별 두 번·큰 절대 시간 편차·OS 캐시를 비우지 않은 조건의 한계를 유지하며 [개별 실행과 소스 hash](../../reports/benchmarks/result-collection-throughput-20261026.json)를 따른다.
+
+이 입력에서 남은 실측 비용은 **P20–P50 생성 65.599초**, **checkpoint 58.944초**, **별도 R10 release 35.326초**다. 후속 계측은 생성의 admission/baseline scan, 전체 결과 구체화/증명, release의 소스/seal/object 재검증 비용을 나누어야 한다. 이 수치는 조사 위치를 알려주며 증명 생략을 승인하거나 미구현 후보의 절감량을 입증하지 않는다.
 
 폐기/무이득 후보는 유지하지 않는다: [DF](verification/durable-flush-throughput.md) RAM checkpoint·I/O 대안, [LT](verification/lifecycle-throughput.md) flush/read 겹침, native Bee, VSS, ReFS. 조기 ACK·필수 flush 생략은 다른 내구성 정책이지 동등 최적화가 아니다. 이 지도는 backend·worker pool·명령·정책 switch를 추가하지 않는다.
 
@@ -377,6 +411,7 @@ run별 원시 시작/종료 시각과 hash를 보존하고 정상 처리와 진�
 | `reclaim-pending` / `discard-reclaim-pending` | 작업 제거가 끝나도 기준 회수는 남을 수 있음; 같은 request/intent 재개 |
 | `released` / `discarded` | 관측된 task 자원 부재·소유 자원 0; 독립 결과/evidence 보존; F10은 남을 수 있음 |
 | 원본 apply 미완료 | 같은 intent/digest/선택만 허용; release/discard/새 수집 차단 |
+| 파일 수집 실패 또는 seal 변경 | 접수한 object worker를 drain하고 journal·고정 intent·부분/게시 object를 보존. `result.json`만으로 task revision/result를 확정하거나 회수하지 않으며 같은 identity로 재개 |
 | append 실패 / poison | 저널 보존·reopen/replay; 불확실한 작업 성공 ACK 없음; 새 task로 우회하지 않음 |
 | 기준/소스/owner 불일치·미지원 버전 | 보존·거부; 자동 이관·mutable 원본 fallback·수동 control 삭제 없음 |
 | timeout·dirty 원본/scene·공유 의존성 | 실제 조건 해결; 강제 kill/reset/discard/peer 정리 승인을 추론하지 않음 |
@@ -408,7 +443,7 @@ JSON은 같은 단계 ID·edge·source symbol·코드 기준 행 힌트를 기�
 | K16 | [WorkspaceOriginalApply](../../src/Splinter.Runtime/WorkspaceOriginalApply.cs): plan/apply 진입 guard |
 | K17 | [WindowsOriginalFilePublisher](../../src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs): NTFS 조건부 게시·receipt |
 | K18 | [GitWorkspaceProvider](../../src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs): 소스 checkpoint·target/dirty guard·merge |
-| K19 | [FileWorkspaceProvider](../../src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs), [FileOriginalApply](../../src/Splinter.SourceControl.Files/FileOriginalApply.cs), [PlasticWorkspaceProvider](../../src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs): manifest/전체 결과 payload/원본 plan·intent |
+| K19 | [FileWorkspaceProvider](../../src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs), [FileRecordedBasis](../../src/Splinter.SourceControl.Files/FileRecordedBasis.cs), [FileOriginalApply](../../src/Splinter.SourceControl.Files/FileOriginalApply.cs), [PlasticWorkspaceProvider](../../src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs): manifest/전체 결과 payload/원본 plan·intent |
 | K20 | [WorkspaceBridge](../../unity/Splinter.Editor/Editor/WorkspaceBridge.cs): heartbeat/busy/dirty scene/Play/정상 exit |
 | K21 | [WindowsWorkspaceDiscardProvider](../../src/Splinter.Workflows.Windows/WindowsWorkspaceDiscardProvider.cs): 정확한 소유 delta/기준/소스 폐기 |
 | K22 | [ManagedDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs): v2 파일 plan/range/128-file cursor/최종 검증 |

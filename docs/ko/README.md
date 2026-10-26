@@ -12,9 +12,11 @@
 
 ## 현재 계약과 사용법
 
+C20 후속은 [파일 결과 수집 처리량](plans/result-collection-throughput.md)과 [RT-01–04 검증](verification/result-collection-throughput.md)이 소유한다. seal 안에서 소스를 한 번 읽고 로컬 payload 작업을 제한 병렬화하며 실제 시간 측정과 Unity/Plastic 자격을 구분한다.
+
 | 문서 | 소유하는 내용 |
 | --- | --- |
-| [수명주기 최적화 지도](lifecycle-optimization-map.md), [기계 판독 색인](../lifecycle-optimization-map.json) | 코드 기반 AI 탐색: 작업공간 하나의 19단계·도식 5개, Git/파일 반영과 폐기, 잠금·내구성·복구, 코드 symbol·계측 경계. 고정 구현 스냅샷이며 새 실측이나 프로젝트 작업 실행 승인이 아님. |
+| [수명주기 최적화 지도](lifecycle-optimization-map.md), [기계 판독 색인](../lifecycle-optimization-map.json) | 코드 기반 AI 탐색: 작업공간 하나의 19단계·파일 결과 수집을 포함한 도식 6개, Git/파일 반영과 폐기, 잠금·내구성·복구, 코드 symbol·계측 경계. 고정 구현 스냅샷이며 새 실측이나 프로젝트 작업 실행 승인이 아님. |
 | [쓰기 경로 처리량](plans/write-path-throughput.md), [검증](verification/write-path-throughput.md) | WP-01–05: 변경 없는 SJR2 영속 flush 재사용·payload 읽기 없는 raw 상태 크기 계산. 전체 시간 이점 없는 양끝 탐색 후보 제거. 동일 입력 구성 요소 비교와 내구성/replay 유지. |
 | [Raw 쓰기와 묶음 영속 flush](raw-write-batching.md), [범위](plans/raw-write-batching.md), [검증](verification/raw-write-batching.md) | RW-01–05: 압축 writer 폐기·현재 압축 reader 보존·순서 보장 SJR2 묶음 flush와 직렬화 전 WinFsp 요청 수집. 영속 완료 뒤 성공하며 조기 ACK 없음. |
 | [영속 flush/종료 실험](plans/durable-flush-throughput.md), [검증](verification/durable-flush-throughput.md) | DF-01–05: 개별 쓰기 I/O 대안과 bounded checkpoint RAM 후보를 평가했으나 큰 절감 기준을 충족하지 못해 제품 변경 없음. 빠른 write-through-only 결과는 동등 내구성 근거가 아님. |

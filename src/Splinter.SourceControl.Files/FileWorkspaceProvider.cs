@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Splinter.Core;
@@ -11,7 +12,7 @@ namespace Splinter.SourceControl.Files;
 public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOriginalFilePublisher? originalPublisher = null, IPlasticRevisionClient? revisionClient = null,
     IPlasticOriginalGuard? originalGuard = null, IProjectSourceAccess? projectAccess = null,
     ApplicationProjectPolicies? applicationPolicies = null) : ISourceWorkspaceProvider,
-    ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider
+    ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
@@ -113,6 +114,25 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         if (baseline.Identity != w.BaseRevision) throw Error("The captured basis differs from the durable task.");
         var result = Manifest(w, Scan(w.Path, w.ManagedPaths, ct, mount: w.Path));
         if (result.Identity != w.ResultRevision) throw new WorkspaceException("UncollectedChanges", "The source changed after checkpoint; retain the journal.");
+        return Task.FromResult(Preserve(w, control, baseline, result, ct));
+    }
+    public bool SupportsCheckpointAndPreserve(WorkspaceRecord w) =>
+        w.SourceKind == "none" && w.StorageMode == "project-snapshot" || w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot";
+
+    public Task<SnapshotSourceCheckpoint> CheckpointAndPreserveAsync(WorkspaceRecord w, string control,
+        string message, CancellationToken ct = default)
+    {
+        Owner(w, control); RequireMount(w); RequireBasis(w, control);
+        var baseline = ReadManifest(w, FilePath(control, "baseline.json"));
+        var result = Manifest(w, Scan(w.Path, w.ManagedPaths, ct, mount: w.Path));
+        // The coordinator owns the pre/post seal interval and publishes the
+        // revision only after it proves that no acknowledged write overlapped.
+        string reference = Preserve(w, control, baseline, result, ct);
+        return Task.FromResult(new SnapshotSourceCheckpoint(new(result.Identity, result.Identity, false, []), reference));
+    }
+    private string Preserve(WorkspaceRecord w, string control, FileSourceManifest baseline,
+        FileSourceManifest result, CancellationToken ct)
+    {
         SaveFixed(FilePath(control, "collection.json"), new FileCollectionIntent(w.Id, w.RequestDigest!, baseline.Identity, result.Identity));
         if (w.StorageMode == "plastic-snapshot") PreserveRecordedPayloads(w, control, baseline, ct);
         else PreservePayloads(control, baseline, ImmutableRoot(w), ct);
@@ -120,10 +140,10 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         // Verify that every payload exists before publishing an independent result.
         VerifyPayloads(control, baseline.Entries.Concat(result.Entries), ct);
         SaveFixed(FilePath(control, "result.json"), result);
-        VerifyIndependentResult(w, control);
+        VerifyIndependentResult(w, control, result.Identity, null);
         var payloads = baseline.Entries.Concat(result.Entries).Where(e => e.Kind == "file").DistinctBy(e => e.Hash).ToArray();
         w.ResultStorage = new(baseline.Entries.Sum(e => e.Length), result.Entries.Sum(e => e.Length), payloads.Sum(e => e.Length), payloads.Length);
-        return Task.FromResult(ResultReference(w));
+        return ResultReference(w);
     }
     public static string ResultReference(WorkspaceRecord w) => "files:" + w.Id + ":result";
     public Task VerifyResultAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
@@ -138,12 +158,15 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     // Verify only owned result records and payloads. No original, mount or
     // source-basis read is required here.
     public static void VerifyIndependentResult(WorkspaceRecord w, string control, Func<string, Stream>? open = null)
+        => VerifyIndependentResult(w, control, w.ResultRevision, open);
+
+    private static void VerifyIndependentResult(WorkspaceRecord w, string control, string? revision, Func<string, Stream>? open)
     {
         Owner(w, control, open);
         var baseline = ReadManifest(w, FilePath(control, "baseline.json"), open);
         var result = ReadManifest(w, FilePath(control, "result.json"), open);
         var intent = Read<FileCollectionIntent>(FilePath(control, "collection.json"), open);
-        if (baseline.Identity != w.BaseRevision || result.Identity != w.ResultRevision ||
+        if (baseline.Identity != w.BaseRevision || result.Identity != revision ||
             intent != new FileCollectionIntent(w.Id, w.RequestDigest!, baseline.Identity, result.Identity))
             throw Error("The preserved basis/result collection differs from the durable task.");
         VerifyPayloads(control, baseline.Entries.Concat(result.Entries), default, open);
@@ -266,13 +289,13 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     }
     private static void PreservePayloads(string control, FileSourceManifest manifest, string root, CancellationToken ct, string? mount = null)
     {
-        foreach (var entry in UniquePayloads(manifest.Entries))
+        ForEachPayload(UniquePayloads(manifest.Entries), ct, entry =>
         {
             ct.ThrowIfCancellationRequested();
             string objectPath = FilePath(control, "objects/" + entry.Hash);
             WorkspaceStore.EnsurePlainPath(objectPath);
             if (Directory.Exists(objectPath)) throw Error("The content object path has an unexpected type.");
-            if (File.Exists(objectPath)) { VerifyObject(objectPath, entry, ct); continue; }
+            if (File.Exists(objectPath)) { VerifyObject(objectPath, entry, ct); return; }
             Directory.CreateDirectory(Path.GetDirectoryName(objectPath)!);
             string pending = objectPath + ".pending";
             WorkspaceStore.EnsurePlainPath(pending);
@@ -283,7 +306,17 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
                 input.CopyTo(output, 65536); output.Flush(true);
             }
             VerifyObject(pending, entry, ct); File.Move(pending, objectPath);
+        });
+    }
+    internal static void ForEachPayload(IEnumerable<FileSourceEntry> entries, CancellationToken ct, Action<FileSourceEntry> action)
+    {
+        try
+        {
+            Parallel.ForEach(entries, new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = ct }, action);
         }
+        // Join all active copies/flushes before publishing failure or allowing
+        // retry/reclamation. Preserve the product error code, not a TPL wrapper.
+        catch (AggregateException ex) { ExceptionDispatchInfo.Capture(ex.Flatten().InnerExceptions[0]).Throw(); throw; }
     }
     private static void VerifyObject(string path, FileSourceEntry entry, CancellationToken ct, Func<string, Stream>? open = null)
     {
@@ -311,7 +344,13 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         return objects.Values;
     }
     private static void VerifyPayloads(string control, IEnumerable<FileSourceEntry> entries, CancellationToken ct, Func<string, Stream>? open = null)
-    { foreach (var entry in UniquePayloads(entries)) VerifyObject(FilePath(control, "objects/" + entry.Hash), entry, ct, open); }
+    {
+        var payloads = UniquePayloads(entries);
+        // Injected readers can have sequential lifetime/observation contracts.
+        if (open is not null)
+            foreach (var entry in payloads) VerifyObject(FilePath(control, "objects/" + entry.Hash), entry, ct, open);
+        else ForEachPayload(payloads, ct, entry => VerifyObject(FilePath(control, "objects/" + entry.Hash), entry, ct));
+    }
     private static Stream Open(string path)
     { WorkspaceStore.EnsurePlainPath(path); return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 65536); }
     private static Stream Open(string path, string? mount)

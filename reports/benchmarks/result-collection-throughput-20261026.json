@@ -1,0 +1,304 @@
+{
+  "verification": "RT-01-04",
+  "date": "2026-10-26",
+  "baselineCommit": "9b68a82cd89912e404d8acd6dcf7e48ce513a353",
+  "adopted": [
+    "One source manifest for file checkpoint/preservation inside the existing complete pre/post-seal interval.",
+    "At most eight local payload preservation/proof workers, drained on failure/cancellation; per-object durable flush and fresh invocation proofs remain."
+  ],
+  "method": {
+    "id": "RT-03",
+    "baseCommit": "9b68a82cd89912e404d8acd6dcf7e48ce513a353",
+    "source": "C:\\Users\\olive\\AppData\\Local\\Temp\\splinter-result-throughput-20261026\\source",
+    "home": "C:\\Users\\olive\\AppData\\Local\\Temp\\splinter-result-throughput-20261026\\home",
+    "order": [
+      "before",
+      "after",
+      "after",
+      "before"
+    ],
+    "files": 2112,
+    "bytes": 2281701376,
+    "workload": "64 x 32MiB + 2048 x 64KiB unique raw files; overwrite eight bytes, add 64KiB file",
+    "scope": "Actual product project-snapshot / source none / application none; checkpoint and separate release. No Unity, Library, Plastic server or power-loss qualification.",
+    "acceptance": "At least 20% and 10 seconds mean checkpoint reduction, identical input/result proofs and correct reclamation; otherwise do not claim a large gain.",
+    "concurrency": "One workspace/measurement at a time; no concurrent build/tests. Eight payload workers maximum.",
+    "resources": "Approximately 13GiB disposable fixture and independently preserved results; one common managed project basis.",
+    "limits": [
+      "Two observations per variant, ABBA, one local NTFS drive; OS cache not cleared",
+      "Setup, input proofs and common project prepare/restore are separately recorded",
+      "No published runtime schema or journal format change"
+    ]
+  },
+  "measurements": [
+    {
+      "index": 1,
+      "variant": "before",
+      "workspaceId": "24d1fcb123bd1a6597841aa9",
+      "requestDigest": "7e7c93fa30723d763b924d65",
+      "ensureSeconds": 65.28548660001252,
+      "editSeconds": 0.03653909999411553,
+      "checkpointSeconds": 87.991123099986,
+      "releaseSeconds": 39.715038299968,
+      "observedOverlayReadBytesAtCheckpoint": 12155879424,
+      "workspacePhasesSeconds": 193.02818709996063,
+      "closure": {
+        "completed": true,
+        "originalBytesAndTimesExact": true,
+        "resultRevision": "sha256:f3ebf9fc7a599587083b534fc4bf9ed0502da381068f76d9fecd64d7be17986e",
+        "basisRevision": "sha256:d7dea40f1824594558057285fc58df333911ace8058fae49fa71478530c7cc62",
+        "resultStorage": {
+          "basisLogicalBytes": 2281701376,
+          "resultLogicalBytes": 2281766912,
+          "uniquePayloadBytes": 2315321344,
+          "payloadObjects": 2114
+        },
+        "independentPayloadHashesVerifiedAfterRelease": true,
+        "taskPathAndDeltaAbsent": true,
+        "providerAndOwnedProcessesExited": true
+      },
+      "rawEvidence": {
+        "artifacts/result-throughput-20261026/01-before/checkpoint.json": "41ffc4bb1105a85bd07341d31a1eccf793c8046641070c5f133342c7adee58a1",
+        "artifacts/result-throughput-20261026/01-before/closure.json": "95539b4ed4015ef09349f6e7f2ccc399c918de482e8ae23fd5841740ec595a28",
+        "artifacts/result-throughput-20261026/01-before/edit.json": "2103b1de714e7461801876127e80496ac84247afb1f221028d4c533ab5401dc1",
+        "artifacts/result-throughput-20261026/01-before/ensure.json": "7fca9fd9441f0a625f2f87603cf50e26ae1a40c5509bc1b37833bc78f149553b",
+        "artifacts/result-throughput-20261026/01-before/identity.json": "30c7d2e0d126c3550e946a2caa7983a7e79650b554a8fb3808db9410fb1165dd",
+        "artifacts/result-throughput-20261026/01-before/release.json": "50b78cb48fbf9918800531f1b0a5ea90b670c8ebafa33d2ad63245bfcd03d285"
+      }
+    },
+    {
+      "index": 2,
+      "variant": "after",
+      "workspaceId": "a1c451e6ad41ffb9123c87d2",
+      "requestDigest": "1b989ebe68715a36af11688f",
+      "ensureSeconds": 65.46364470000844,
+      "editSeconds": 0.037011299980804324,
+      "checkpointSeconds": 47.08161829999881,
+      "releaseSeconds": 35.00425840000389,
+      "observedOverlayReadBytesAtCheckpoint": 7307001856,
+      "workspacePhasesSeconds": 147.58653269999195,
+      "closure": {
+        "completed": true,
+        "originalBytesAndTimesExact": true,
+        "resultRevision": "sha256:f3ebf9fc7a599587083b534fc4bf9ed0502da381068f76d9fecd64d7be17986e",
+        "basisRevision": "sha256:d7dea40f1824594558057285fc58df333911ace8058fae49fa71478530c7cc62",
+        "resultStorage": {
+          "basisLogicalBytes": 2281701376,
+          "resultLogicalBytes": 2281766912,
+          "uniquePayloadBytes": 2315321344,
+          "payloadObjects": 2114
+        },
+        "independentPayloadHashesVerifiedAfterRelease": true,
+        "taskPathAndDeltaAbsent": true,
+        "providerAndOwnedProcessesExited": true
+      },
+      "rawEvidence": {
+        "artifacts/result-throughput-20261026/02-after/checkpoint.json": "112f6c234f9d32409834cc731d25eb5eb0884bc8cdbabe847a8d4766498c1616",
+        "artifacts/result-throughput-20261026/02-after/closure.json": "95539b4ed4015ef09349f6e7f2ccc399c918de482e8ae23fd5841740ec595a28",
+        "artifacts/result-throughput-20261026/02-after/edit.json": "31abf9ff785132e3e9e618898bfc0d51a34da1f1fecde0cae60e66f97c90dd48",
+        "artifacts/result-throughput-20261026/02-after/ensure.json": "44d993ba71b3d5fac59f81954fb3282464697b5f5774d40b909af34d53722a06",
+        "artifacts/result-throughput-20261026/02-after/identity.json": "1c39e44a419e915105a817e16097476ed9d6b118b32f26e50c30c1aa3ba497a4",
+        "artifacts/result-throughput-20261026/02-after/release.json": "249e41bf180360bbd9a0d16216bd3fedcb6bdfec6a54185af61a42c658a12d28"
+      }
+    },
+    {
+      "index": 3,
+      "variant": "after",
+      "workspaceId": "3d97efefd4a36b8a97921a17",
+      "requestDigest": "cd6a72f7af9c565935a0777b",
+      "ensureSeconds": 65.73431660002097,
+      "editSeconds": 0.037440699990838766,
+      "checkpointSeconds": 70.80695490003563,
+      "releaseSeconds": 35.64723020000383,
+      "observedOverlayReadBytesAtCheckpoint": 7307001856,
+      "workspacePhasesSeconds": 172.22594240005128,
+      "closure": {
+        "completed": true,
+        "originalBytesAndTimesExact": true,
+        "resultRevision": "sha256:f3ebf9fc7a599587083b534fc4bf9ed0502da381068f76d9fecd64d7be17986e",
+        "basisRevision": "sha256:d7dea40f1824594558057285fc58df333911ace8058fae49fa71478530c7cc62",
+        "resultStorage": {
+          "basisLogicalBytes": 2281701376,
+          "resultLogicalBytes": 2281766912,
+          "uniquePayloadBytes": 2315321344,
+          "payloadObjects": 2114
+        },
+        "independentPayloadHashesVerifiedAfterRelease": true,
+        "taskPathAndDeltaAbsent": true,
+        "providerAndOwnedProcessesExited": true
+      },
+      "rawEvidence": {
+        "artifacts/result-throughput-20261026/03-after/checkpoint.json": "f89567fd51c27e228d9734544db883c0042aa3123bcc5ac114aff75a5de200aa",
+        "artifacts/result-throughput-20261026/03-after/closure.json": "95539b4ed4015ef09349f6e7f2ccc399c918de482e8ae23fd5841740ec595a28",
+        "artifacts/result-throughput-20261026/03-after/edit.json": "4c953d60fe13eb62ac236515d10aea5aea43b4abd8b32db166ba54088a7f9fb4",
+        "artifacts/result-throughput-20261026/03-after/ensure.json": "29f5a2690dfd27e1b8ac38c05401048c751fe8f0dcb94f99e5f014b6f77e1fa3",
+        "artifacts/result-throughput-20261026/03-after/identity.json": "57d7e56d071d86243a596277ab4499a2e6be9a5e4b96413d2447be70e1159955",
+        "artifacts/result-throughput-20261026/03-after/release.json": "4935901956621b3d184f60d7337a31323289cb736e849934f7ec995246dc188a"
+      }
+    },
+    {
+      "index": 4,
+      "variant": "before",
+      "workspaceId": "98ff1edbc0ffe2abfa0ec5ec",
+      "requestDigest": "886b45f6b447a28b4bdf7f4d",
+      "ensureSeconds": 64.81553960003657,
+      "editSeconds": 0.037386199983302504,
+      "checkpointSeconds": 108.86710119998315,
+      "releaseSeconds": 39.86185300000943,
+      "observedOverlayReadBytesAtCheckpoint": 12155879424,
+      "workspacePhasesSeconds": 213.58188000001246,
+      "closure": {
+        "completed": true,
+        "originalBytesAndTimesExact": true,
+        "resultRevision": "sha256:f3ebf9fc7a599587083b534fc4bf9ed0502da381068f76d9fecd64d7be17986e",
+        "basisRevision": "sha256:d7dea40f1824594558057285fc58df333911ace8058fae49fa71478530c7cc62",
+        "resultStorage": {
+          "basisLogicalBytes": 2281701376,
+          "resultLogicalBytes": 2281766912,
+          "uniquePayloadBytes": 2315321344,
+          "payloadObjects": 2114
+        },
+        "independentPayloadHashesVerifiedAfterRelease": true,
+        "taskPathAndDeltaAbsent": true,
+        "providerAndOwnedProcessesExited": true
+      },
+      "rawEvidence": {
+        "artifacts/result-throughput-20261026/04-before/checkpoint.json": "9c6e1a691965b5cb6eebeb8d4cc71a8dcb77ae76f6d6bcf4e6cb3695c7b3d790",
+        "artifacts/result-throughput-20261026/04-before/closure.json": "95539b4ed4015ef09349f6e7f2ccc399c918de482e8ae23fd5841740ec595a28",
+        "artifacts/result-throughput-20261026/04-before/edit.json": "1ab8a06f83d93a0d9b05ca659a79bda778382265c71c1f3b161ff96a8ac3504b",
+        "artifacts/result-throughput-20261026/04-before/ensure.json": "809230c6d75f66d69fc735a111b6d54c808e32d3d3c78009a57838e6d8b6bd16",
+        "artifacts/result-throughput-20261026/04-before/identity.json": "e72737101a94a5b852416ecbf064249e3e0cc351fdc2e43147369d7caafe3f42",
+        "artifacts/result-throughput-20261026/04-before/release.json": "cfc116c48aa11f5cbef22eea2889c8f5b86ad6894bdd956fb3ed372f01a1ad0e"
+      }
+    }
+  ],
+  "summary": {
+    "ensure": {
+      "beforeMeanSeconds": 65.05051310002455,
+      "afterMeanSeconds": 65.59898065001471,
+      "savedSeconds": -0.5484675499901641,
+      "reductionPercent": -0.8431410051244579
+    },
+    "edit": {
+      "beforeMeanSeconds": 0.03696264998870902,
+      "afterMeanSeconds": 0.037225999985821545,
+      "savedSeconds": -0.0002633499971125275,
+      "reductionPercent": -0.7124759647724744
+    },
+    "checkpoint": {
+      "beforeMeanSeconds": 98.42911214998458,
+      "afterMeanSeconds": 58.94428660001722,
+      "savedSeconds": 39.484825549967354,
+      "reductionPercent": 40.11498700689392
+    },
+    "release": {
+      "beforeMeanSeconds": 39.78844564998872,
+      "afterMeanSeconds": 35.32574430000386,
+      "savedSeconds": 4.4627013499848545,
+      "reductionPercent": 11.216073603986388
+    },
+    "workspacePhases": {
+      "beforeMeanSeconds": 203.30503354998655,
+      "afterMeanSeconds": 159.90623755002161,
+      "savedSeconds": 43.39879599996493,
+      "reductionPercent": 21.346641173689623
+    }
+  },
+  "commonBasis": {
+    "prepareSeconds": 9.03053109999746,
+    "restoreSeconds": 12.017532400030177,
+    "note": "Prepared once before ABBA, restored once afterward; not a before/after comparison and excluded from per-workspace phase sums."
+  },
+  "input": {
+    "manifestPath": "artifacts/result-throughput-20261026/input.json",
+    "sha256": "5989a0f4ee7f5bf46a481009cda0dee7ddb443684687c4ea1973f4d744ff113a",
+    "bytes": 2281701376,
+    "files": 2112,
+    "mtimeNs": 1700000000000000000
+  },
+  "runtimeAssemblies": {
+    "before": {
+      "splinter.dll": "1cb942d40b261c35cc6ec7a6127c7c1cfc37b85c752500e9a3c4151117b0451d",
+      "Splinter.Platform.Windows.dll": "43f2d4b50aa17955ed49c6c93af33e4f247204dbe1ced1c68f4c1d252dfbf7a5",
+      "Splinter.Runtime.dll": "ea8933639480dafa0d65285aebe9a442ca27537b66fd52c64e8f0fa716dec633",
+      "Splinter.SourceControl.Files.dll": "5452a07059bce7c8d3a67332c2e0d69b68158db4c91b09ffc503c19deed9573d"
+    },
+    "after": {
+      "splinter.dll": "a16ff41cf09717bdcfd7d5f9134292de187896209ad6908853034b51a3166c90",
+      "Splinter.Platform.Windows.dll": "aeaf04f72d6a18aae3bab07599b2e8d8366b24762d824e68a4182112839dd447",
+      "Splinter.Runtime.dll": "ea8933639480dafa0d65285aebe9a442ca27537b66fd52c64e8f0fa716dec633",
+      "Splinter.SourceControl.Files.dll": "79f80a5a152b67dc8d1b97283310d33065ffccadfc7458f7ae93fded56cb7361"
+    }
+  },
+  "sourceHashes": {
+    "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs": "26134c15e3f4bd37f10305fc26a6c5ab2a849760a36f137cbec2129706dafbe5",
+    "src/Splinter.SourceControl.Files/FileOriginalApply.cs": "05aa6e98ddac855556bf49167a59461d897c318785fc68e2a14e0ab803860b2f",
+    "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs": "f00ed9fc4582898efd4f8a72419eb19ceb84a771bbe0437e32dcd864a48fd4a4"
+  },
+  "closure": {
+    "completed": true,
+    "tasksReleased": 4,
+    "projectRestored": true,
+    "originalExact": true,
+    "allResultIdentitiesEqual": true
+  },
+  "limits": [
+    "Actual product editorless None/NTFS/WinFsp fixture, not a full Unity lifecycle or live Plastic-server measurement.",
+    "Two runs per variant, one machine; OS cache not cleared. Per-run timing variability is retained.",
+    "Combined source-scan and payload-parallelism change; their separate causal contributions were not isolated.",
+    "Input/result proofs, setup, common basis prepare/restore and human/agent waiting are outside the per-workspace phase sums.",
+    "No new original apply, discard performance, Play/Test/build, peak RAM/allocation, power-loss or device-failure qualification."
+  ],
+  "evidenceDirectory": "artifacts/result-throughput-20261026",
+  "measurementScriptSha256": "d8975b98102a6de10618eb86b616a78df68a4f6e6f6309c1eea58f92346eb541",
+  "logicalReadObservation": "Checkpoint response readBytes is a cumulative overlay observation including earlier operations/readahead, not physical device traffic or an isolated phase counter.",
+  "validation": {
+    "command": "pwsh -NoProfile -File scripts/build.ps1",
+    "gate": {
+      "startedUtc": "2026-10-26T11:12:18.9027170Z",
+      "seconds": 538.9059718,
+      "finishedUtc": "2026-10-26T11:21:17.8086888Z",
+      "exitCode": 0
+    },
+    "counters": {
+      "total": "1631",
+      "executed": "1603",
+      "passed": "1603",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "28",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "focusedPassed": 68,
+    "trxPath": "artifacts/result-throughput-20261026/Splinter.Tests_net10.0_x64.trx",
+    "trxSha256": "056e78f0721fa49bb1abce912eb080860b3731bb3ae45adb6d181ae8053b60d1",
+    "documents": {
+      "indexedFiles": 36,
+      "verifiedLineHints": 115,
+      "newDocumentLinks": 12,
+      "currentRuntimeMatchesMeasuredCandidate": true
+    },
+    "gateLogSha256": "1e7621960e53ae85bcae1e1934e36b3e571e2ed6994a2adc344c0b40085db941",
+    "flowDocuments": {
+      "indexedFiles": 37,
+      "verifiedLineHints": 119,
+      "localMarkdownLinks": 512,
+      "stageIds": 19,
+      "diagramsPerLanguage": 6,
+      "bilingualDiagramTopologyMatches": true,
+      "measurementMeansMatchDataset": true,
+      "currentSourceAndRuntimeMatchMeasuredCandidate": true,
+      "existingGateEvidenceHashesAndCountersMatch": true,
+      "scope": "Documentation refresh only; existing product build/test gate and timing evidence verified, not rerun."
+    }
+  }
+}

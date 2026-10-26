@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "documentation-index",
   "notARuntimeSchema": true,
-  "sourceCommit": "d00451a0c594a45c0e1bbf7d6d147e968bff6ca3",
+  "sourceCommit": "9b68a82cd89912e404d8acd6dcf7e48ce513a353",
   "branch": "development",
   "inspectedDate": "2026-10-26",
   "canonicalDocument": "docs/lifecycle-optimization-map.md",
@@ -286,10 +286,85 @@
         "ko": "docs/ko/lifecycle-optimization-map.md#c20"
       },
       "preconditions": "Task lock, stopped owned clients, stable journal, allowed source state.",
-      "work": "Pre-seal; Git commit/ref or full baseline/result file payload preservation; verification; post-seal.",
+      "work": "Pre-seal; Git commit/ref or one file-source scan plus full baseline/result preservation; up to eight local payload/proof workers, serial Plastic revision acquisition; verification; post-seal.",
       "completion": "IndependentOfSnapshot result and collected record; does not assert compile success.",
       "costs": "Source scan/hash, full payload preservation, result verification, full seals",
-      "recovery": "Stable seal mismatch refuses; prior result retained; ordinary Editor start blocked after collection."
+      "recovery": "Drain admitted object workers before failure/cancellation returns. Seal mismatch preserves the prior task revision/result and all fixed intent/journal/object evidence. result.json alone is not collection completion; resume the same identity.",
+      "fileResultFlow": {
+        "appliesTo": [
+          "none/project-snapshot",
+          "plastic/plastic-snapshot"
+        ],
+        "taskLockHeldThroughout": true,
+        "phaseOrder": [
+          {
+            "step": "pre-seal",
+            "owner": "Runtime",
+            "work": "Require stopped clients; compute complete journal seal."
+          },
+          {
+            "step": "guards-and-source-manifest",
+            "owner": "source provider",
+            "work": "Verify owner/mount/basis and Plastic isolation; read baseline manifest; scan mounted source once."
+          },
+          {
+            "step": "collection-intent",
+            "owner": "source provider",
+            "work": "Fix task/request digest/baseline/result identities in collection.json."
+          },
+          {
+            "step": "baseline-payloads",
+            "owner": "source provider",
+            "work": "Preserve unique full baseline objects; None local work uses up to 8 workers; recorded Plastic acquisition is serial."
+          },
+          {
+            "step": "result-payloads",
+            "owner": "source provider",
+            "work": "Preserve unique full current-result objects with up to 8 local workers, after baseline workers drain."
+          },
+          {
+            "step": "pre-publication-proof",
+            "owner": "source provider",
+            "work": "Verify all distinct baseline/result objects with up to 8 workers."
+          },
+          {
+            "step": "manifest-and-independent-proof",
+            "owner": "source provider",
+            "work": "Save result.json, then reverify independent records and every required object against candidate revision; injected verification readers stay sequential."
+          },
+          {
+            "step": "return-candidate",
+            "owner": "source provider",
+            "work": "Return source revision/fingerprint/reference without advancing task ResultRevision or Snapshot.Result."
+          },
+          {
+            "step": "post-seal",
+            "owner": "Runtime",
+            "work": "Require clean result and nonempty reference, compute complete post-seal, require equality with pre-seal."
+          },
+          {
+            "step": "accept-and-persist",
+            "owner": "Runtime",
+            "work": "Set ResultRevision and Snapshot.Result, then persist collected."
+          }
+        ],
+        "newObjectOrder": [
+          "copy to owned pending file",
+          "durable flush",
+          "hash verification",
+          "move to final hash path"
+        ],
+        "existingObjectWork": "Reverify existing object; content-hash deduplication does not skip proof.",
+        "overlap": "Only independent objects within an eligible phase overlap; phases join in order. Source scan and Plastic revision acquisition stay serial.",
+        "publicationBoundary": "Provider result.json may exist before post-seal; only Runtime seal equality permits accepting the task revision/result.",
+        "laterInvocations": "Fresh independent-result verification remains for release/apply.",
+        "verification": [
+          "RT-01",
+          "RT-02",
+          "RT-03",
+          "RT-04"
+        ]
+      }
     },
     {
       "id": "A10",
@@ -628,9 +703,64 @@
     "heartbeatIntervalSeconds": 0.5,
     "heartbeatFreshnessSeconds": 15,
     "restoreCompletionCursorFileBatch": 128,
-    "boundedCheckpointExtraDiskHeadroomBytes": 2147483648
+    "boundedCheckpointExtraDiskHeadroomBytes": 2147483648,
+    "fileResultWorkersMaximum": 8
   },
   "evidence": [
+    {
+      "id": "RT-01-04",
+      "path": "docs/verification/result-collection-throughput.md",
+      "qualification": "Combined file checkpoint and bounded local payload work; matched editorless NTFS/WinFsp None input, not Unity or live Plastic performance.",
+      "dataset": "reports/benchmarks/result-collection-throughput-20261026.json",
+      "observedCommandMeansSeconds": {
+        "ensure": {
+          "stageIds": [
+            "P20",
+            "P30",
+            "P40",
+            "P50"
+          ],
+          "before": 65.05051310002455,
+          "after": 65.59898065001471
+        },
+        "edit": {
+          "stageIds": [
+            "E20"
+          ],
+          "before": 0.03696264998870902,
+          "after": 0.037225999985821545
+        },
+        "checkpoint": {
+          "stageIds": [
+            "C20"
+          ],
+          "before": 98.42911214998458,
+          "after": 58.94428660001722
+        },
+        "release": {
+          "stageIds": [
+            "R10"
+          ],
+          "before": 39.78844564998872,
+          "after": 35.32574430000386
+        },
+        "workspacePhases": {
+          "stageIds": [
+            "P20",
+            "P30",
+            "P40",
+            "P50",
+            "E20",
+            "C20",
+            "R10"
+          ],
+          "before": 203.30503354998655,
+          "after": 159.90623755002161
+        }
+      },
+      "measurementBoundary": "Editorless None; command timings include overhead, not isolated inner-stage timers. Same bytes/mtime and edits, ABBA, two runs per variant; caches not cleared. Common prepare/restore each ran once outside workspace sums; no Editor, apply or discard timing. Combined changes do not isolate per-change causality.",
+      "remainingMeasuredCosts": "Creation admission/baseline scans; full independent-result materialization/proofs; separate release source/seal/object revalidation. No new candidate saving is established."
+    },
     {
       "id": "WP-01-05",
       "path": "docs/verification/write-path-throughput.md",
@@ -1404,30 +1534,73 @@
       "files": [
         {
           "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
-          "sha256": "495951eda14d8458194967e91658e364488ebb52a0dd0fc25c35e6979fd0da00",
+          "sha256": "26134c15e3f4bd37f10305fc26a6c5ab2a849760a36f137cbec2129706dafbe5",
           "symbols": [
             {
               "name": "InspectAsync",
               "lineHints": [
-                90
+                91
               ]
             },
             {
               "name": "CheckpointAsync",
               "lineHints": [
-                103
+                104
               ]
             },
             {
               "name": "PreserveAsync",
               "lineHints": [
-                109
+                110
               ]
             },
             {
               "name": "VerifyResultAsync",
               "lineHints": [
-                129
+                149
+              ]
+            },
+            {
+              "name": "SupportsCheckpointAndPreserve",
+              "lineHints": [
+                119
+              ]
+            },
+            {
+              "name": "CheckpointAndPreserveAsync",
+              "lineHints": [
+                122
+              ]
+            },
+            {
+              "name": "VerifyIndependentResult",
+              "lineHints": [
+                160,
+                163
+              ]
+            },
+            {
+              "name": "ForEachPayload",
+              "lineHints": [
+                311
+              ]
+            },
+            {
+              "name": "Preserve",
+              "lineHints": [
+                133
+              ]
+            },
+            {
+              "name": "PreservePayloads",
+              "lineHints": [
+                290
+              ]
+            },
+            {
+              "name": "VerifyPayloads",
+              "lineHints": [
+                346
               ]
             }
           ]
@@ -1452,18 +1625,42 @@
         },
         {
           "path": "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs",
-          "sha256": "3cd2f693c92879a6339ce25b4867abebc7d0b1bc9be98668043d18bbc09ece56",
+          "sha256": "f00ed9fc4582898efd4f8a72419eb19ceb84a771bbe0437e32dcd864a48fd4a4",
           "symbols": [
             {
               "name": "PlanOriginalAsync",
               "lineHints": [
-                152
+                155
               ]
             },
             {
               "name": "ApplyOriginalAsync",
               "lineHints": [
-                153
+                156
+              ]
+            },
+            {
+              "name": "SupportsCheckpointAndPreserve",
+              "lineHints": [
+                140
+              ]
+            },
+            {
+              "name": "CheckpointAndPreserveAsync",
+              "lineHints": [
+                141
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileRecordedBasis.cs",
+          "sha256": "59b225ff2f811a31ef69b57aa4bc5867e5de36f6632cb235a289b500cc00e1a9",
+          "symbols": [
+            {
+              "name": "PreserveRecordedPayloads",
+              "lineHints": [
+                43
               ]
             }
           ]
@@ -1623,5 +1820,10 @@
       ]
     }
   ],
-  "maintenance": "Update both languages and this index after lifecycle/ownership/durability/default/result/reclamation changes; refresh source hashes and line hints from the reviewed implementation commit."
+  "maintenance": "Update both languages and this index after lifecycle/ownership/durability/default/result/reclamation changes; retain the exact base commit and source hashes, and refresh line hints from reviewed source contents.",
+  "sourceRevisionKind": "base-commit-plus-indexed-RT-01-02-source-changes",
+  "sourceChanges": [
+    "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+    "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs"
+  ]
 }
