@@ -8,7 +8,7 @@ Splinter is a local workspace and storage tool for AI agents working on Unity pr
 
 **Current status:** a research alpha for Windows and NTFS, with bounded validation on small Git, Unity Version Control / Plastic SCM, and VCS-free projects. The source and recorded evidence are available for others to inspect, reproduce, and extend. See the [validation guide](docs/verification/README.md) for tested inputs and remaining limits.
 
-**Current time tradeoff:** in [BC-01](docs/verification/unity-bounded-comparison.md), two one-line Unity changes took **537.6s with Splinter and 82.1s with one shared Editor: 455.5s extra**. Most of that difference was preparation and completion. This small measurement does not establish a general slowdown multiplier or long-task crossover. Independent Editor sessions also reduce coordination around another task's source changes and validation; the productivity value of avoiding those interruptions has not been timed.
+**Current time tradeoff:** [RR-01](docs/verification/unity-readme-recheck.md) completed two one-line Unity changes in **428.6s with Splinter and 102.0s with one shared Editor: 326.6s extra**. Splinter is 109.0s below the historical README observation, with input/run limitations documented below. Independent sessions reduce coordination around another task's changes, but that productivity benefit has not been timed.
 
 ## Why Splinter
 
@@ -30,52 +30,35 @@ The intended workflow is simple: use a workspace when a task needs independent e
 
 ### Current comparison: parallel coding with one shared Editor
 
-**BC-01, 2026-10-23, bounded-journal default at `c4fa506`:** both methods start with identical source and Library bytes in a **2.80 GB project with 1,602 tracked files and a 3.14 GB Library**, using Unity **6000.3.22f1** on Windows/NTFS. Both prepare the same two one-line changes concurrently. Splinter validates them in separate Editors; the shared workflow applies and validates A, restores A while applying B in one refresh, then restores and recompiles the original.
+**RR-01, 2026-10-26–27, current code `2dff94d`:** the same two one-line Unity changes completed in **428.6s with Splinter and 102.0s with a shared Editor**, including normal shutdown and owned cleanup. Both start with identical source and whole Library bytes, modification times and attributes: **1,602 source files / 2.80 GB**, **42,418 Library files / 3.14 GB**, Unity **6000.3.22f1**, Windows/NTFS.
 
-| Current A/B workflow | One shared Editor | Splinter: two Editors | Additional time with Splinter |
+| Observation | Splinter (s) | Shared Editor (s) | Extra Splinter time (s) |
 | --- | ---: | ---: | ---: |
-| Preparation until all required Editors are ready | 39.7s | 345.8s | **+306.1s** |
-| Both changes through compilation and asset checks | 26.4s | 32.3s | **+5.9s** |
-| Finalization, original restoration and remaining dispatch | 16.0s | 159.5s | **+143.5s** |
-| **Complete accounted workflow** | **82.1s** | **537.6s** | **+455.5s** |
+| BC-01 historical record | 537.6 | 82.1 | 455.5 |
+| RR-01 current normal run | 428.6 | 102.0 | 326.6 |
 
-Preparation includes workspace creation, Library basis preparation where needed, initial compiled readiness and the shared workflow's editorless candidate preservation. Finalization includes normal shutdown, result preservation where needed, source-result merge, owned-resource reclamation and original source/Library restoration as applicable. Overlapping A/B intervals count once. AI reasoning, chat startup and read-only input/final checks are excluded. This is operation time, not elapsed conversation time.
+Splinter's current observation is **109.0s (20.3%) shorter** than the old README record. This is a historical difference, not an isolated causal percentage: the historical Library differs, shared-Editor time also changed, and execution order/OS caches were not randomized or cleared. The short workflow still takes **326.6s longer** with Splinter.
 
-**All stages use elapsed intervals with overlap counted once.** Individual task durations, execution order and common costs are:
+| Current Splinter stage | Elapsed seconds |
+| --- | ---: |
+| Library basis preparation | 37.7 |
+| Parallel A/B workspace creation | 64.5 |
+| Initial compiled Editor readiness | 164.6 |
+| Parallel edits through compilation | 47.2 |
+| Checkpoint/release including normal shutdown | 90.2 |
+| Combine source results | 0.3 |
+| Restore original Library | 22.5 |
+| Complete accounted workflow | 428.6 |
 
-| Splinter stage | A duration | B duration | Accounted elapsed interval | Execution |
-| --- | ---: | ---: | ---: | --- |
-| Library basis preparation | — | — | 61.9s | Common, once |
-| Workspace creation | 96.7s | 94.9s | 96.7s | Parallel |
-| Editor launch request → initial compiled readiness | 187.2s | 187.2s | 187.2s | Parallel |
-| Source edit → compilation confirmed | 29.3s | 29.3s | 29.3s | Parallel compilation |
-| Asset checks and intervening dispatch | Not individually timed | Not individually timed | 3.0s | Sequential A → B |
-| Checkpoint/release, including normal shutdown and owned-resource reclamation | 99.1s | 100.3s | 100.4s | Parallel |
-| Combine source results | — | — | 0.3s | Common, once |
-| Restore original Library | — | — | 58.8s | Common, after both releases |
-| **Complete accounted workflow** | — | — | **537.6s** | Includes remaining dispatch |
+A/B overlap is counted once. Preparation totals **266.8s**, compilation plus assets **48.8s**, and finalization/remaining dispatch **113.0s**. The table's edit row excludes **1.6s** of asset checks/dispatch; totals include it. Normal Editor exit was observed after **50.5s**, already inside the **90.2s** completion interval. AI reasoning, input/final hash checks and the separately recorded diagnostic recoveries are excluded.
 
-Preparation is **61.9 + 96.7 + 187.2 = 345.8s**. The controller waits for both workspaces before launching either Editor. Readiness is the observed compiled baseline with no compilation/import in progress; each Editor's 187.2s starts at its own launch request. Compilation overlaps, while the asset checks run sequentially, giving **29.3 + 3.0 = 32.3s** of validation. A/B normal exit was observed about **62.2s after completion began**, including command dispatch; this is already inside the 100.4s checkpoint/release interval and must not be added again. Post-exit preservation/reclamation was not independently timed. Common merge and Library restoration occur afterward, bringing finalization and remaining dispatch to **159.5s**.
+The new shared workflow totals **59.6s preparation**, **26.0s validation**, and **16.4s finalization/dispatch**. It includes **35.0s** for parallel code-worktree creation, **2.0s** for overlapping candidate edits/preservation, **22.6s** initial readiness, **11.1s** original-source recompilation, **2.8s** normal shutdown, and result merge/worktree removal. The historical code-worktree creation was 13.4s; the cause of its increase was not isolated.
 
-The shared workflow uses the same accounting rule:
+The old `c4fa506` binary was also rerun on this exact current input. Library preparation, workspace creation and Library restoration together fell **199.8 → 124.6s (75.1s saved)**. Editor readiness and compilation did not improve in that pair. Both old Editors exceeded the two-minute stop deadline, then exited normally; the same tasks were preserved/released. Its **689.2s wall time includes recovery gaps**, and its **584.9s reconstructed stage sum is not a normal uninterrupted workflow**. No matched whole-workflow speedup percentage is claimed.
 
-| Shared-Editor stage | A duration | B duration | Accounted elapsed interval | Execution |
-| --- | ---: | ---: | ---: | --- |
-| Code-worktree creation | 13.4s | 13.4s | 13.4s | Parallel |
-| Candidate edit/preservation | 1.0s | 0.7s | 1.1s | Overlapping; interval union |
-| Initial Editor readiness | — | — | 25.3s | One Editor |
-| Compilation and asset validation | 13.7s | 12.7s | 26.4s | Sequential A → B |
-| Restore original source and compile | — | — | 10.8s | Common, once |
-| Normal Editor shutdown | — | — | 2.9s | One Editor |
-| Combine source results | — | — | 0.3s | Common, once |
-| Code-worktree reclamation | Not individually timed | Not individually timed | 2.0s | Sequential A → B |
-| **Complete accounted workflow** | — | — | **82.1s** | Includes remaining dispatch |
+All three methods preserved the same combined Git tree and passed isolated compilation/asset checks. The combined tree was not recompiled or applied to original HEAD. Original source/metadata and existing refs/worktrees were preserved; Splinter restored its starting Library, while the final shared Editor regenerated its normal cache. Initial loaded MVIDs were recorded and differed; this is not an identical-loaded-assembly experiment. One observation per method; no Play/tests/player build, peak RAM/storage or general crossover qualification.
 
-B's **13.7s queue wait** overlaps A's validation and is already in the shared 26.4s interval. For staggered starts, use actual start/end boundaries rather than just the larger individual duration; overlapping durations are not added. Values are rounded independently, and subtotals or shutdown milestones are not additional stages. [BC-01](docs/verification/unity-bounded-comparison.md#work-and-finalization-accounting) records the exact values and unmeasured subdivisions.
-
-The **455.5s difference consists of 449.6s outside the edit/asset-validation interval and 5.9s within it**. The former is the observed extra cost of this preparation/completion cycle, not a delay charged on every edit. The latter is the difference for this pair of short validations, not a measured fixed per-task delay or a general slowdown multiplier. A ratio of total times cannot establish how cost grows with a longer workload.
-
-Both methods compiled the isolated changes, checked the selected assets, preserved the same conflict-free combined source tree, restored the original source and reclaimed their owned Editors/workspaces. The combined result was not recompiled. One Splinter-then-shared pair was measured after a diagnostic, without clearing OS caches or randomizing order. The earlier render-check/preference-popup diagnostic and its recovery are excluded from normal timing and retained separately. See [BC-01](docs/verification/unity-bounded-comparison.md) and the [exact dataset](reports/benchmarks/unity-bounded-comparison-20261023.json).
+[RR-01 details, diagnostic recoveries and remaining bottlenecks](docs/verification/unity-readme-recheck.md) · [Exact dataset](reports/benchmarks/unity-readme-recheck-20261026.json) · [Historical BC-01](docs/verification/unity-bounded-comparison.md)
 
 ### Editor workload and break-even
 

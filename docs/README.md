@@ -3,6 +3,8 @@
 
 [한국어](ko/README.md)
 
+[README Unity time recheck](verification/unity-readme-recheck.md) owns RR-01: current `2dff94d` 428.6s versus shared 102.0s; same-input preparation/restoration saves 75.1s, with historical Library differences, old-candidate shutdown recovery and changed-Library diagnostics kept separate.
+
 [Project overview](../README.md) · [Korean overview](../README.ko.md) · [Third-party notices](../THIRD_PARTY_NOTICES.md)
 
 English is the default documentation language. Korean counterparts are available under `docs/ko/`, with a language link on every page. Recorded evidence and historical HTML reports retain their original data and language.

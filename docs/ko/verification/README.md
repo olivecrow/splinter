@@ -2,6 +2,8 @@
 
 [English](../../verification/README.md)
 
+[README Unity 시간 재측정](unity-readme-recheck.md)이 RR-01을 소유한다. 현재 428.6초 / 공유 102.0초, 전체 입력 일치·동일 입력 단계 절감·구버전 복구 시간·진단 보존을 기록한다. 일반 인과 개선율 없이 README 관측을 갱신한다.
+
 [쓰기 경로 처리량](write-path-throughput.md)이 WP-01–05를 소유한다. 변경 없는 SJR2 명시적 flush 재사용·payload 읽기 없는 상태 크기 계산·탈락한 raw 양끝 탐색 후보·동일 입력 구성 요소 비교·회귀 근거를 다룬다. 실제 변경의 내구성과 전체 checkpoint 증명을 유지하며 새 Unity·전원 장애 자격은 없다.
 
 [Raw 쓰기와 묶음 flush](raw-write-batching.md)가 RW-01–05를 소유한다. 압축 writer 폐기·현재 형식 압축 읽기 보존·순서 보장 영속 SJR2 묶음·동시 WinFsp 요청 수집·회귀 시험·한정 구성 요소/native 근거를 다룬다. 이전 압축·개별 물리 flush 요구를 대체하되 아래 과거 수치는 보존한다. 새 Unity 수명주기나 전원 장애 자격은 아니다.

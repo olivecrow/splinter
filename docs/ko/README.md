@@ -2,6 +2,8 @@
 
 [English](../README.md)
 
+[README Unity 시간 재측정](verification/unity-readme-recheck.md)이 RR-01을 소유한다. 현재 `2dff94d` 428.6초 / 공유 102.0초, 동일 입력의 준비·복원 75.1초 절감과 과거 Library 차이·구버전 종료 복구·변경 Library 진단을 구분한다.
+
 [영문 소개](../../README.md) · [한국어 소개](../../README.ko.md) · [서드파티 고지](../../THIRD_PARTY_NOTICES.md)
 
 기능·아키텍처·계획·검증 문서의 기본 언어는 영어입니다. 이 폴더는 한국어 버전이며 각 문서의 언어 링크로 전환할 수 있습니다. 원시 검증 자료와 과거 HTML 보고서는 기록된 내용과 언어를 보존합니다.

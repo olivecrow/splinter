@@ -24,6 +24,8 @@
 
 ## 현재 기능의 소유 문서
 
+- README Unity 재측정은 `docs/verification/unity-readme-recheck.md`의 RR-01이 소유한다. 현재 `2dff94d`는 428.6초 / 공유 102.0초로 과거 BC-01 537.6/82.1초와 구분한다. 동일 전체 입력의 준비·생성·복원은 199.8→124.6초지만 구버전 정상 종료 타임아웃·같은 작업 복구로 정상 전체 인과 개선율은 미확정이다. 승인한 준비 중 참조 복구 기록·basis pin과 외부 PID 5바이트 삭제의 360.0초 Library 복원 진단은 보존하며, 현재 변경 Library 경로·장기 손익분기·Play/Test/build 자격으로 확대하지 않는다.
+
 - 준비·관측 후속은 `docs/plans/preparation-throughput.md`·`docs/verification/preparation-throughput.md`의 PR-01–04가 소유한다. 기존 잠금으로 동시 게시가 배제된 제어 파일과 authorization 전 project release receipt의 정상 부재 대기를 줄인다. 일반 게시 유예·공유 오류·소유/미해결 launch 보호는 유지한다. None 전체 파일 scan은 최대 8 worker와 실패/취소 drain을 사용하고, Plastic mount scan은 단일 revision reader의 반복 proof 퇴출을 막기 위해 직렬을 유지하며, 최초 editorless 응답에만 완전한 변경 세대·목록/metadata·identity를 재검증한 1회성 증명을 쓴다. 이후 명령·provider 재시작·Editor 시작에는 재사용하지 않는다. PR-03의 실제 NTFS/WinFsp None 비용을 Unity 전체·실제 Plastic 서버·원본 반영/폐기·전원 장애 자격으로 확대하거나 자동 반복하지 않는다.
 
 - 파일 결과 수집 최적화는 `docs/plans/result-collection-throughput.md`·`docs/verification/result-collection-throughput.md`의 RT-01–04가 소유한다. None/recorded Plastic은 기존 전후 seal 안에서 checkpoint/보존의 소스 scan을 한 번으로 합치며 로컬 payload 보존·독립 object 검증은 최대 8 worker와 실패/취소 drain을 사용한다. Plastic revision 획득은 직렬이고 파일별 영속 flush·전체 독립 결과·이후 호출의 재검증·소유 회수는 유지한다. RT-03의 실제 NTFS/WinFsp None 입력 비용을 Unity 전체·실제 Plastic 서버·원본 반영·전원 장애 자격으로 확대하거나 자동 반복하지 않는다.
