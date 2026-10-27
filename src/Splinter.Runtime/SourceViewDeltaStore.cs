@@ -6,7 +6,7 @@ namespace Splinter.Runtime;
 // An offline-selected source generation and a separately owned persistent cache.
 // The two journals are exclusive writers. A selection change requires disposal
 // of the entire mounted view; live handle rebinding is deliberately unsupported.
-public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore, IWorkspaceWriteBatch
+public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore, IWorkspaceWriteBatch, IJournalWriteAccounting
 {
     private readonly object gate = new();
     private readonly CandidateSnapshotTree candidate;
@@ -148,6 +148,12 @@ public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore, IWorkspaceWrite
                 first = end;
             }
         }
+    }
+    JournalWriteAccounting IJournalWriteAccounting.ReadWriteAccounting()
+    {
+        lock (gate)
+            return ((IJournalWriteAccounting)source).ReadWriteAccounting() +
+                ((IJournalWriteAccounting)cache).ReadWriteAccounting();
     }
     public void SetLength(Guid id, long length) { lock (gate) ForId(id).SetLength(id, length); }
     public void SetMetadata(Guid id, uint attributes, long creationTime, long accessTime, long writeTime)

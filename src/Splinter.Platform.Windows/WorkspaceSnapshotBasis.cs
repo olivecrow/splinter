@@ -44,6 +44,7 @@ public static class WorkspaceSnapshotBasis
     }
     public sealed class DisposableSnapshotTree(ISnapshotTree tree) : ISnapshotTree, ISnapshotContentSummaryProvider, IDisposable
     {
+        internal GitReadObservation? ObserveGitReads() => (tree as GitObjectSnapshotTree)?.ObserveReads();
         public SnapshotReference Snapshot => tree.Snapshot;
         public SnapshotGraft? Graft => tree.Graft;
         public bool SupportsConcurrentReads => tree.SupportsConcurrentReads;

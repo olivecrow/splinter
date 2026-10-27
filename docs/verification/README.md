@@ -3,6 +3,8 @@
 
 [한국어](../ko/verification/README.md)
 
+[Lifecycle bottleneck follow-up](lifecycle-bottlenecks.md) owns BO-01–05: exact-equality and sparse Library restoration, same-input NTFS component costs, optional write/Git observations and bounded startup evidence capture. Full proof and durable ACK remain; no new actual Unity lifecycle qualification.
+
 [README Unity time recheck](unity-readme-recheck.md) owns RR-01: 428.6s current / 102.0s shared; full matched input, same-input stage savings, recovered old-candidate timing and retained diagnostics. It updates the README observation without a universal causal percentage.
 
 [Write-path throughput](write-path-throughput.md) owns WP-01–05: proven-clean explicit SJR2 flush reuse, payload-free state sizing, rejected raw edge-search candidate, fixed-input component comparison and regression evidence. Actual mutation durability and full checkpoint proofs remain; no new Unity or power-loss qualification.

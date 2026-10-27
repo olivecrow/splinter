@@ -2,6 +2,8 @@
 
 [English](../foundation.md)
 
+[수명주기 병목 후속](plans/lifecycle-bottlenecks.md)은 최종 전체 일치·metadata 변경·기존 leaf 삭제의 Library 디렉터리 복원과 선택적 쓰기/Git 관측·읽기 전용 시작 캡처를 설명한다. 미지원 내용/구조 변경은 일반 파일별 복원을 유지한다. [BO 검증](verification/lifecycle-bottlenecks.md)은 구성 요소 증거와 실제 Unity 수명주기 자격을 구분한다.
+
 기준본·변경분·seal·intent와 종료 명령의 차이는 [용어집](glossary.md)을 참고한다.
 
 MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 때 선택하는 선택적 외부 도구다. 없어도 Splinter의 저장 격리·기준본·Library/미변경 파일 참조·범위 변경·독립 결과·안전한 원본 반영과 소유 자원 수명 기능은 성립한다. 특정 도구 이름·버전·내부 API는 제품 전제나 gate가 아니다. 도구 선택·연결·refresh·컴파일·Play/Test/build·캡처와 결과 판단은 에이전트가 맡는다. 외부 도구 설치·다운그레이드·수정·별도 수정본 생성/운영은 Splinter 범위에서 제외한다. [외부 도구 경계](unity-mcp-response-recovery.md)와 [결합 제거 검증](verification/external-tool-boundaries.md)을 따른다.

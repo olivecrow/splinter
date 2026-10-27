@@ -2,13 +2,14 @@ using System.Buffers;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using Splinter.Core;
+using Splinter.Runtime;
 using FileInfo = Fsp.Interop.FileInfo;
 
 namespace Splinter.Platform.Windows;
 
 public sealed partial class WinFspOverlayFileSystem
 {
-    private sealed class PendingWrite(Guid id, IntPtr buffer, ulong offset, uint length, bool append, bool constrained)
+    internal sealed class PendingWrite(Guid id, IntPtr buffer, ulong offset, uint length, bool append, bool constrained)
     {
         public readonly Guid Id = id;
         public readonly IntPtr Buffer = buffer;
@@ -19,21 +20,31 @@ public sealed partial class WinFspOverlayFileSystem
         public string Path = "";
         public FileInfo Info;
         public long Ticket;
+        public long BatchId, EnteredTicks, EnqueuedTicks, DequeuedTicks;
         public bool Completed;
         public ExceptionDispatchInfo? Failure;
     }
     private readonly object writeQueueGate = new();
     private readonly Queue<PendingWrite> waitingWrites = new();
     private bool writeBatchRunning;
-    private long issuedWriteTicket, completedWriteTicket;
+    private long issuedWriteTicket, completedWriteTicket, nextWriteBatchId;
     internal int PendingWriteCount { get { lock (writeQueueGate) return waitingWrites.Count; } }
 
     private void SubmitWrite(PendingWrite request)
     {
         // Native input remains owned by its blocked callback until completion.
         // No worker, timeout ACK, sleep window or unbounded payload copy.
-        lock (writeQueueGate) { request.Ticket = ++issuedWriteTicket; waitingWrites.Enqueue(request); }
         ExceptionDispatchInfo? interruption = null;
+        lock (writeQueueGate)
+        {
+            request.Ticket = ++issuedWriteTicket; request.EnqueuedTicks = WriteClock();
+            waitingWrites.Enqueue(request);
+            while (true)
+            {
+                try { writeTelemetry?.Enqueued(request.Length, waitingWrites.Count); break; }
+                catch (ThreadInterruptedException error) { interruption ??= ExceptionDispatchInfo.Capture(error); }
+            }
+        }
         while (true)
         {
             try { SubmitQueuedWrite(request); break; }
@@ -63,15 +74,22 @@ public sealed partial class WinFspOverlayFileSystem
             }
             PendingWrite[] batch = [];
             ExceptionDispatchInfo? failure = null;
+            long gateStarted = WriteClock(), batchStarted = 0, batchId = 0;
             try
             {
                 lock (mutationGate)
                 {
+                    batchStarted = WriteClock();
                     lock (writeQueueGate)
                     {
+                        batchId = ++nextWriteBatchId;
                         int count = Math.Min(waitingWrites.Count, IWorkspaceWriteBatch.MaximumWrites);
                         batch = new PendingWrite[count];
-                        for (int i = 0; i < count; i++) batch[i] = waitingWrites.Dequeue();
+                        for (int i = 0; i < count; i++)
+                        {
+                            batch[i] = waitingWrites.Dequeue();
+                            batch[i].BatchId = batchId; batch[i].DequeuedTicks = WriteClock();
+                        }
                     }
                     ExecuteWriteBatch(batch);
                 }
@@ -81,10 +99,18 @@ public sealed partial class WinFspOverlayFileSystem
             {
                 lock (writeQueueGate)
                 {
-                    foreach (var item in batch) { item.Failure = failure; item.Completed = true; }
-                    if (batch.Length != 0) completedWriteTicket = batch[^1].Ticket;
-                    writeBatchRunning = false;
-                    Monitor.PulseAll(writeQueueGate);
+                    try
+                    {
+                        if (batch.Length != 0)
+                            writeTelemetry?.Batch(batchId, batch, batchStarted - gateStarted, batchStarted, WriteClock(), failure is not null);
+                    }
+                    finally
+                    {
+                        foreach (var item in batch) { item.Failure = failure; item.Completed = true; }
+                        if (batch.Length != 0) completedWriteTicket = batch[^1].Ticket;
+                        writeBatchRunning = false;
+                        Monitor.PulseAll(writeQueueGate);
+                    }
                 }
             }
         }
@@ -92,11 +118,13 @@ public sealed partial class WinFspOverlayFileSystem
 
     private void DrainAcceptedWrites()
     {
+        long started = WriteClock();
         lock (writeQueueGate)
         {
             long through = issuedWriteTicket;
             while (completedWriteTicket < through) Monitor.Wait(writeQueueGate);
         }
+        writeTelemetry?.Drain(WriteClock() - started);
     }
 
     private void ExecuteWriteBatch(PendingWrite[] batch)
@@ -110,15 +138,26 @@ public sealed partial class WinFspOverlayFileSystem
             foreach (var buffer in buffers) ArrayPool<byte>.Shared.Return(buffer);
             buffers.Clear(); writes.Clear(); bytes = 0;
         }
-        void Commit()
+        void Commit(string reason)
         {
             if (writes.Count == 0) return;
+            bool usesBatch = store is IWorkspaceWriteBatch, succeeded = false;
+            var accounting = writeTelemetry is null ? null : store as IJournalWriteAccounting;
+            var before = accounting?.ReadWriteAccounting();
+            long started = WriteClock();
             try
             {
                 if (store is IWorkspaceWriteBatch writer) writer.WriteBatch(writes);
                 else foreach (var write in writes) store.Write(write.Id, write.Offset, write.Data.Span);
+                succeeded = true;
             }
-            finally { ReleaseBuffers(); }
+            finally
+            {
+                long ended = WriteClock();
+                writeTelemetry?.Store(batch[0].BatchId, writes.Count, bytes, reason, usesBatch, started, ended, !succeeded,
+                    before is { } value ? accounting!.ReadWriteAccounting() - value : null);
+                ReleaseBuffers();
+            }
         }
         try
         {
@@ -133,7 +172,8 @@ public sealed partial class WinFspOverlayFileSystem
                 while (request.Written < length)
                 {
                     int count = (int)Math.Min(length - request.Written, (uint)store.Identity.MaxTransferBytes);
-                    if (writes.Count == IWorkspaceWriteBatch.MaximumWrites || bytes + count > IWorkspaceWriteBatch.MaximumBytes) Commit();
+                    if (writes.Count == IWorkspaceWriteBatch.MaximumWrites) Commit("chunk-limit");
+                    else if (bytes + count > IWorkspaceWriteBatch.MaximumBytes) Commit("byte-limit");
                     byte[] data = ArrayPool<byte>.Shared.Rent(count);
                     buffers.Add(data);
                     Marshal.Copy(IntPtr.Add(request.Buffer, checked((int)request.Written)), data, 0, count);
@@ -143,7 +183,7 @@ public sealed partial class WinFspOverlayFileSystem
                     lengths[request.Id] = Math.Max(size, checked(at + count));
                 }
             }
-            Commit();
+            Commit("batch-end");
             foreach (var request in batch)
             {
                 request.Info = Info(request.Id);

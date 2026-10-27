@@ -1,5 +1,7 @@
 # 문서 지도
 
+[수명주기 병목 후속](plans/lifecycle-bottlenecks.md)과 [BO-01–05 검증](verification/lifecycle-bottlenecks.md)은 sparse Library 디렉터리 복원·선택적 쓰기/Git 계측·제한된 Unity 시작 캡처를 소유한다. 복원 구성 요소 증거와 전체 Unity 시간은 구분한다.
+
 [English](../README.md)
 
 [README Unity 시간 재측정](verification/unity-readme-recheck.md)이 RR-01을 소유한다. 현재 `2dff94d` 428.6초 / 공유 102.0초, 동일 입력의 준비·복원 75.1초 절감과 과거 Library 차이·구버전 종료 복구·변경 Library 진단을 구분한다.

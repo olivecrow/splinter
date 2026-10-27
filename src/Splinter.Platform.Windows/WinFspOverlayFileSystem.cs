@@ -27,10 +27,14 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     public int RetainedFileContexts => Volatile.Read(ref contexts);
     public WinFspOverlayFileSystem(IWorkspaceDeltaStore store, Action<Exception>? report = null,
         IOverlayMutationObserver? mutationObserver = null)
+        : this(store, report, mutationObserver, null) { }
+    internal WinFspOverlayFileSystem(IWorkspaceDeltaStore store, Action<Exception>? report,
+        IOverlayMutationObserver? mutationObserver, WriteTelemetry? writeTelemetry)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         WindowsSnapshotPolicy.Require(store.Identity.Snapshot);
         this.store = store; this.report = report; this.mutationObserver = mutationObserver;
+        this.writeTelemetry = writeTelemetry;
         string sid = WindowsIdentity.GetCurrent().User!.Value;
         var descriptor = new RawSecurityDescriptor($"O:{sid}G:{sid}D:P(A;;FA;;;SY)(A;;FA;;;{sid})");
         security = new byte[descriptor.BinaryLength]; descriptor.GetBinaryForm(security, 0);
@@ -92,7 +96,7 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
         byte[] securityDescriptor, ulong allocationSize, out object fileNode, out object fileDesc,
         out FileInfo fileInfo, out string normalizedName)
     {
-        lock (mutationGate)
+        using (EnterMutation("create"))
         {
             SnapshotInputChecks.RejectUnsupportedAttributes(fileAttributes, fileName);
             if (store.Stat(fileName) is not null)
@@ -108,7 +112,7 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     public override int Open(string fileName, uint createOptions, uint grantedAccess,
         out object fileNode, out object fileDesc, out FileInfo fileInfo, out string normalizedName)
     {
-        lock (mutationGate)
+        using (EnterMutation("open"))
         {
             fileNode = null!; fileDesc = null!; fileInfo = default; normalizedName = null!;
             var entry = store.Stat(fileName); if (entry is null) return STATUS_OBJECT_NAME_NOT_FOUND;
@@ -121,7 +125,7 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     public override int Overwrite(object fileNode, object fileDesc, uint fileAttributes,
         bool replaceFileAttributes, ulong allocationSize, out FileInfo fileInfo)
     {
-        lock (mutationGate)
+        using (EnterMutation("overwrite"))
         {
             var id = (Guid)fileNode; var old = store.Get(id);
             uint attributes = replaceFileAttributes ? fileAttributes : old.Attributes | fileAttributes;
@@ -136,7 +140,7 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     {
         // A non-delete cleanup changes only the handle counter. The retained
         // context still belongs to Close, which serializes unlink reclamation.
-        try { if ((flags & CleanupDelete) != 0) { lock (mutationGate) store.Delete((Guid)fileNode); } }
+        try { if ((flags & CleanupDelete) != 0) { using (EnterMutation("cleanup-delete")) store.Delete((Guid)fileNode); } }
         finally { if (Interlocked.Exchange(ref ((HandleContext)fileDesc).Cleaned, 1) == 0) Interlocked.Decrement(ref handles); }
     }
     public override void Close(object fileNode, object fileDesc)
@@ -144,7 +148,7 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
         if (Interlocked.Exchange(ref ((HandleContext)fileDesc).Cleaned, 1) == 0) Interlocked.Decrement(ref handles);
         try
         {
-            lock (mutationGate)
+            using (EnterMutation("close"))
             {
                 Guid id = (Guid)fileNode;
                 if (retainedContexts[id] > 1) retainedContexts[id]--;
@@ -172,10 +176,17 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     public override int Write(object fileNode, object fileDesc, IntPtr buffer, ulong offset, uint length,
         bool writeToEndOfFile, bool constrainedIo, out uint bytesTransferred, out FileInfo fileInfo)
     {
-        var request = new PendingWrite((Guid)fileNode, buffer, offset, length, writeToEndOfFile, constrainedIo);
-        SubmitWrite(request);
-        bytesTransferred = request.Written; fileInfo = request.Info;
-        return STATUS_SUCCESS;
+        long entered = WriteClock();
+        var request = new PendingWrite((Guid)fileNode, buffer, offset, length, writeToEndOfFile, constrainedIo)
+        { EnteredTicks = entered };
+        bool succeeded = false;
+        try
+        {
+            SubmitWrite(request);
+            bytesTransferred = request.Written; fileInfo = request.Info;
+            succeeded = true; return STATUS_SUCCESS;
+        }
+        finally { writeTelemetry?.Returned(request, WriteClock(), !succeeded); }
     }
     public override int Flush(object fileNode, object fileDesc, out FileInfo fileInfo)
     {
@@ -191,7 +202,7 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     public override int SetBasicInfo(object fileNode, object fileDesc, uint attributes, ulong creation,
         ulong access, ulong write, ulong change, out FileInfo fileInfo)
     {
-        lock (mutationGate)
+        using (EnterMutation("set-basic-info"))
         {
             Guid id = (Guid)fileNode; var old = store.Get(id);
             uint updated = attributes == uint.MaxValue ? old.Attributes : attributes;
@@ -203,7 +214,7 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     }
     public override int SetFileSize(object fileNode, object fileDesc, ulong newSize, bool setAllocationSize, out FileInfo fileInfo)
     {
-        lock (mutationGate)
+        using (EnterMutation("set-file-size"))
         {
             Guid id = (Guid)fileNode;
             string path = mutationObserver is not null ? store.Get(id).Path : "";
@@ -221,7 +232,7 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     }
     public override int Rename(object fileNode, object fileDesc, string fileName, string newFileName, bool replaceIfExists)
     {
-        lock (mutationGate)
+        using (EnterMutation("rename"))
         {
             string operation = replaceIfExists ? "replace" : "rename";
             string path = mutationObserver is not null ? store.Get((Guid)fileNode).Path : "";

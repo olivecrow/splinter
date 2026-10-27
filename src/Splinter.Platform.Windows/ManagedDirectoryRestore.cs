@@ -25,9 +25,21 @@ internal static class ManagedDirectoryRestore
         string root = state.Basis.ReceiptDirectory, planPath = Path.Combine(root, "restore-plan.json"), cursorPath = Path.Combine(root, "restore-cursor.json");
         var manifest = new OwnedDirectorySnapshotProvider(root, state.Basis.OwnerId).Read(state.Basis.Snapshot);
         var manifestItems = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.OrdinalIgnoreCase);
-        if (ManagedUnchangedDirectoryRestore.HasPlan(root))
+        bool generalSideRecords = File.Exists(Path.Combine(root, "latest-restore-delta-reclaim.json")) ||
+            BoundedJournalReclamation.HasIntent(Path.Combine(root, "bounded-restore-delta-reclaim.bin")) ||
+            Directory.EnumerateFileSystemEntries(root, "restore-file-*.json").Any();
+        bool generalEvidence = File.Exists(planPath) || File.Exists(cursorPath) || generalSideRecords;
+        bool unchangedPlan = ManagedUnchangedDirectoryRestore.HasPlan(root), sparsePlan = ManagedSparseDirectoryRestore.HasPlan(root);
+        if (unchangedPlan && sparsePlan) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting directory restore modes.");
+        if (generalSideRecords && !File.Exists(planPath)) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve general restore receipts without their plan.");
+        if (sparsePlan)
         {
-            if (File.Exists(planPath) || File.Exists(cursorPath)) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting restore modes.");
+            if (generalEvidence) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting restore modes.");
+            await ManagedSparseDirectoryRestore.ResumeAsync(state, request, manifest, ct, boundary); return;
+        }
+        if (unchangedPlan)
+        {
+            if (generalEvidence) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting restore modes.");
             await ManagedUnchangedDirectoryRestore.ResumeAsync(state, request, manifest, ct, boundary); return;
         }
         // These optional records are read under the serialized restore lease;
@@ -65,6 +77,11 @@ internal static class ManagedDirectoryRestore
                     // This path takes ownership of closing both readers before
                     // the directory rename; their outer disposals are idempotent.
                     await ManagedUnchangedDirectoryRestore.CreateAsync(state, request, manifest, seal, basis, journal, ct, boundary);
+                    return;
+                }
+                if (savedCursor is null && ManagedSparseDirectoryRestore.Eligible(state, request, manifest, entries))
+                {
+                    await ManagedSparseDirectoryRestore.CreateAsync(state, request, manifest, seal, entries, basis, journal, ct, boundary);
                     return;
                 }
                 var files = new List<RestoreFile>(); byte[] buffer = new byte[1024 * 1024];

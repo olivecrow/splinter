@@ -119,10 +119,12 @@ public sealed class ManagedDirectoryRestoreOptimizationTests
             }
             else if (!unchangedDirectory)
             {
-                // Keep file cursor tests on the general path with a directory
-                // timestamp mutation; every file's payload stays unchanged.
+                // Adding an empty directory keeps file-cursor tests on the
+                // general route even when metadata-only root moves are enabled.
+                // Every original file's payload and path stay unchanged.
                 var entry = journal.Stat("")!;
                 journal.SetMetadata(entry.Id, entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime + 1);
+                journal.Create("general-route", true, 16);
             }
         }
         private byte[] Bytes(int i) => Enumerable.Range(0, payloadBytes).Select(j => (byte)(i + j)).ToArray();

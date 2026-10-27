@@ -88,9 +88,10 @@ public static partial class GitOverlayRegistration
     public static Task<object> AttachAsync(OverlayGitReceipt receipt, CancellationToken ct, bool allowSourceChanges = false) =>
         AttachAsync(receipt, ct, allowSourceChanges, null);
     internal static async Task<object> AttachAsync(OverlayGitReceipt receipt, CancellationToken ct, bool allowSourceChanges,
-        Action<string>? beforeWarmRead)
+        Action<string>? beforeWarmRead, GitPreparationObservation? observation = null)
     {
-        await VerifyAsync(receipt, ct);
+        Task Measure(string stage, Func<Task> operation) => observation is null ? operation() : observation.Measure(stage, operation);
+        await Measure("verify-registration", () => VerifyAsync(receipt, ct));
         string pointerPath = System.IO.Path.Combine(receipt.Path, ".git");
         if (File.Exists(pointerPath) && await File.ReadAllTextAsync(pointerPath, ct) != receipt.Pointer)
             throw new WorkspaceException("GitOverlayPointerMismatch", "The mount has another Git identity.");
@@ -98,7 +99,7 @@ public static partial class GitOverlayRegistration
         bool firstIndex = !File.Exists(System.IO.Path.Combine(receipt.GitDirectory, "index"));
         if (firstIndex)
         {
-            await Git(receipt.Path, ["read-tree", receipt.Revision], ct);
+            await Measure("read-tree", () => Git(receipt.Path, ["read-tree", receipt.Revision], ct));
         }
         // read-tree may have finished before an interrupted refresh. An index
         // existing alone is not evidence that its stat cache was populated.
@@ -109,13 +110,20 @@ public static partial class GitOverlayRegistration
         // One look-ahead reader overlaps that proof with Git's normal index
         // scan. Both operations must finish, including on failure; an existing
         // index still always refreshes but never needs speculative work.
-        Task warm = firstIndex && !allowSourceChanges ? WarmInitialLargeFiles(receipt, ct, beforeWarmRead) : Task.CompletedTask;
-        await Task.WhenAll(warm, GitWorkspaceProvider.RefreshOverlayIndex(receipt.Path, allowSourceChanges, ct));
+        Task warm = firstIndex && !allowSourceChanges
+            ? Measure("warm-initial-large-files", () => WarmInitialLargeFiles(receipt, ct, beforeWarmRead, observation)) : Task.CompletedTask;
+        await Task.WhenAll(warm, Measure("refresh-index", () => GitWorkspaceProvider.RefreshOverlayIndex(receipt.Path, allowSourceChanges, ct)));
         if (File.Exists(indexLock)) throw new WorkspaceException("GitCommandFailed", "A concurrent Git index writer remains; preserve its lock.");
-        return new { receipt, head = await Git(receipt.Path, ["rev-parse", "HEAD"], ct),
-            status = await Git(receipt.Path, ["status", "--porcelain"], ct), initialPayloadCopiedBytes = 0 };
+        string head = "", status = "";
+        await Measure("final-head-status", async () =>
+        {
+            head = await Git(receipt.Path, ["rev-parse", "HEAD"], ct);
+            status = await Git(receipt.Path, ["status", "--porcelain"], ct);
+        });
+        return new { receipt, head, status, initialPayloadCopiedBytes = 0 };
     }
-    private static async Task WarmInitialLargeFiles(OverlayGitReceipt receipt, CancellationToken ct, Action<string>? beforeRead)
+    private static async Task WarmInitialLargeFiles(OverlayGitReceipt receipt, CancellationToken ct, Action<string>? beforeRead,
+        GitPreparationObservation? observation)
     {
         string listing = await Git(receipt.Path, ["ls-tree", "-r", "-l", "-z", receipt.Revision], ct);
         await Task.Run(() =>
@@ -139,6 +147,7 @@ public static partial class GitOverlayRegistration
                 using var file = new FileStream(Path.Combine(receipt.Path, relative.Replace('/', Path.DirectorySeparatorChar)),
                     FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1);
                 if (file.ReadByte() < 0) throw new EndOfStreamException();
+                observation?.WarmedFile();
             }
         }, ct);
     }

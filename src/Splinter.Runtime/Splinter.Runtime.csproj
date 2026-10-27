@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <InternalsVisibleTo Include="Splinter.Tests" />
+    <InternalsVisibleTo Include="Splinter.Platform.Windows" />
     <ProjectReference Include="../Splinter.Core/Splinter.Core.csproj" />
   </ItemGroup>
 </Project>

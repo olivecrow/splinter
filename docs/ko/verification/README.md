@@ -2,6 +2,8 @@
 
 [English](../../verification/README.md)
 
+[수명주기 병목 후속](lifecycle-bottlenecks.md)이 BO-01–05를 소유한다. 최종 일치·sparse Library 복원, 같은 입력의 NTFS 구성 요소 비용, 선택적 쓰기/Git 관측과 제한된 시작 자료 캡처를 다룬다. 전체 증명·영속 ACK를 유지하며 새 실제 Unity 전체 자격은 아니다.
+
 [README Unity 시간 재측정](unity-readme-recheck.md)이 RR-01을 소유한다. 현재 428.6초 / 공유 102.0초, 전체 입력 일치·동일 입력 단계 절감·구버전 복구 시간·진단 보존을 기록한다. 일반 인과 개선율 없이 README 관측을 갱신한다.
 
 [쓰기 경로 처리량](write-path-throughput.md)이 WP-01–05를 소유한다. 변경 없는 SJR2 명시적 flush 재사용·payload 읽기 없는 상태 크기 계산·탈락한 raw 양끝 탐색 후보·동일 입력 구성 요소 비교·회귀 근거를 다룬다. 실제 변경의 내구성과 전체 checkpoint 증명을 유지하며 새 Unity·전원 장애 자격은 없다.

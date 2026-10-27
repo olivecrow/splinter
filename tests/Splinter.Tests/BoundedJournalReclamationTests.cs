@@ -184,6 +184,15 @@ public sealed class BoundedJournalReclamationTests
     public async Task GeneralRestoreRejectsAReceiptFromTheOtherJournalMode(bool bounded)
     {
         using var f = new RestoreFixture(2, true, rename: true, bounded: bounded);
+        // Establish a genuine general-plan retry before introducing another
+        // mode's receipt. Orphan receipts are rejected earlier by routing.
+        bool interrupted = false;
+        await Assert.ThrowsAsync<IOException>(() => f.Restore(stage =>
+        {
+            if (stage != "restore.after-verified") return;
+            interrupted = true; throw new IOException("stop before general reclamation");
+        }));
+        Assert.True(interrupted);
         string receipt = Path.Combine(f.Root, bounded ? "latest-restore-delta-reclaim.json" : "bounded-restore-delta-reclaim.bin");
         File.WriteAllText(receipt, "unrelated receipt must be preserved");
         Assert.Equal("UnownedDeltaFiles", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Restore())).Code);

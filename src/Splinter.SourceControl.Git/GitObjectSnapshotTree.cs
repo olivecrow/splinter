@@ -12,7 +12,7 @@ namespace Splinter.SourceControl.Git;
 // is staged until a full blob proof or its verified chunk proofs match. Only
 // bounded blob proofs, two reader windows and a bounded verified-chunk RAM LRU
 // are retained, never disk payload.
-public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSummaryProvider, IDisposable
+public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSummaryProvider, IDisposable
 {
     public SnapshotReference Snapshot { get; }
     // The gate protects leases/proof ownership, not decoding. Each of the two
@@ -31,7 +31,10 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
     private const int MaxProofEntries = 4096, MaxReaderSessions = 2;
     private const int MaxPayloadBytes = 256 * 1024 * 1024, MaxPayloadEntries = 4096;
     private const int MaxProofReadAheadBytes = 128 * 1024 * 1024;
-    private sealed record CachedChunk(string ObjectId, long BlobLength, long Offset, byte[] Bytes);
+    private sealed record CachedChunk(string ObjectId, long BlobLength, long Offset, byte[] Bytes)
+    {
+        internal bool UnusedReadAhead;
+    }
     private readonly Dictionary<(string ObjectId, long Offset), LinkedListNode<CachedChunk>> payloads = new();
     private readonly Dictionary<string, HashSet<long>> payloadOffsets = new(StringComparer.Ordinal);
     private readonly LinkedList<CachedChunk> payloadLru = new();
@@ -98,7 +101,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
     internal GitObjectSnapshotTree(SnapshotReference snapshot, string tree, string revision, string reference, Func<SnapshotObservation> health,
         int proofByteLimit = MaxProofBytes, int proofEntryLimit = MaxProofEntries,
         IReadOnlyDictionary<string, GitSourceMetadataFile>? sourceMetadata = null, int payloadByteLimit = MaxPayloadBytes,
-        int proofReadAheadBytes = MaxProofReadAheadBytes)
+        int proofReadAheadBytes = MaxProofReadAheadBytes, bool diagnostics = false)
     {
         if (proofByteLimit is < 1 or > MaxProofBytes || proofEntryLimit is < 1 or > MaxProofEntries)
             throw new ArgumentOutOfRangeException(nameof(proofByteLimit));
@@ -107,6 +110,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
         this.proofByteLimit = proofByteLimit; this.proofEntryLimit = proofEntryLimit;
         this.payloadByteLimit = payloadByteLimit;
         this.proofReadAheadBytes = Math.Min(proofReadAheadBytes, payloadByteLimit / MaxReaderSessions);
+        readDiagnostics = diagnostics || Environment.GetEnvironmentVariable("SPLINTER_GIT_PREPARATION_DIAGNOSTICS") == "1";
         Snapshot = snapshot; this.health = health;
         policy = WorkspacePathPolicy.For(snapshot);
         entries = new(policy.Comparer); blobs = new(policy.Comparer); children = new(policy.Comparer);
@@ -255,11 +259,16 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
         long length = entries[path].Length;
         int count = offset >= length ? 0 : (int)Math.Min(destination.Length, length - offset);
         if (count == 0) return 0;
+        if (readDiagnostics)
+        { Interlocked.Increment(ref readRequests); Interlocked.Add(ref requestedReadBytes, count); }
         ReaderLease? lease = null;
         byte[]? staged = null;
+        long processingStarted = 0;
+        bool succeeded = false;
         try
         {
             lease = AcquireReader(objectId, length);
+            if (readDiagnostics) processingStarted = Stopwatch.GetTimestamp();
             staged = ArrayPool<byte>.Shared.Rent(count);
             ReadObserver?.Invoke(objectId, "leased");
             var session = lease.Session;
@@ -277,6 +286,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
                     var chunk = session.NextChunk();
                     int n = (int)Math.Min(ChunkBytes, length - position);
                     output.ReadExactly(chunk.Bytes.AsSpan(0, n)); Interlocked.Add(ref decodedBlobBytes, n);
+                    if (readDiagnostics) Interlocked.Add(ref fullProofDecodedBytes, n);
                     hash.AppendData(chunk.Bytes.AsSpan(0, n));
                     rawHash.AppendData(chunk.Bytes.AsSpan(0, n));
                     if (!hasCr) hasCr = chunk.Bytes.AsSpan(0, n).Contains((byte)'\r');
@@ -295,7 +305,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
                         // index reads. Pending chunks share the global RAM/LRU
                         // budget and remain inaccessible until the proof and
                         // health checks publish under the exclusive blob lease.
-                        RememberChunk(objectId, length, chunk);
+                        RememberChunk(objectId, length, chunk, unusedReadAhead: end <= begin);
                     }
                     position += n;
                 }
@@ -324,7 +334,11 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
                     lease.Published = true; FullBlobProofs++;
                 }
                 staged.AsSpan(0, count).CopyTo(destination);
+                if (readDiagnostics)
+                    for (long at = offset / ChunkBytes * ChunkBytes; at < offset + count; at += ChunkBytes)
+                        if (payloads.TryGetValue((objectId, at), out var used)) used.Value.UnusedReadAhead = false;
             }
+            succeeded = true;
             return count;
         }
         catch (Exception ex)
@@ -338,6 +352,13 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
         }
         finally
         {
+            if (readDiagnostics && !succeeded) Interlocked.Increment(ref failedReadRequests);
+            if (readDiagnostics && lease is not null)
+            {
+                long ticks = Stopwatch.GetTimestamp() - processingStarted;
+                if (lease.CreateProof) Interlocked.Add(ref fullProofProcessingTicks, ticks);
+                else Interlocked.Add(ref provedReadProcessingTicks, ticks);
+            }
             // Return staging before admitting a replacement lease, keeping
             // requested-range buffers bounded even if completion is preempted.
             try { if (staged is not null) ArrayPool<byte>.Shared.Return(staged); }
@@ -390,8 +411,10 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
     private void WaitForReader()
     {
         waitingReads++;
+        if (readDiagnostics) readerWaitCount++;
+        long started = readDiagnostics ? Stopwatch.GetTimestamp() : 0;
         try { Monitor.Wait(readGate); }
-        finally { waitingReads--; }
+        finally { waitingReads--; if (readDiagnostics) readerWaitTicks += Stopwatch.GetTimestamp() - started; }
     }
     private void CompleteReader(ReaderLease? lease)
     {
@@ -494,6 +517,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
             chunk = session.NextChunk();
             int n = (int)Math.Min(ChunkBytes, length - session.Position);
             output.ReadExactly(chunk.Bytes.AsSpan(0, n)); Interlocked.Add(ref decodedBlobBytes, n);
+            if (readDiagnostics) Interlocked.Add(ref provedReadDecodedBytes, n);
             SHA256.HashData(chunk.Bytes.AsSpan(0, n), digest);
             if (!digest.SequenceEqual(proof.AsSpan((int)(session.Position / ChunkBytes) * 32, 32))) throw Failure("GitBasisObjectInvalid", "The requested chunk does not match the fully verified fixed blob; no bytes are published.");
             chunk.Offset = session.Position; chunk.Length = n; session.Position += n;
@@ -529,7 +553,7 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
             return true;
         }
     }
-    private void RememberChunk(string objectId, long length, PayloadChunk chunk)
+    private void RememberChunk(string objectId, long length, PayloadChunk chunk, bool unusedReadAhead = false)
     {
         if (chunk.Length > payloadByteLimit) return;
         lock (readGate)
@@ -540,9 +564,9 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
             // Evict before allocation; in-flight first-proof chunks share this
             // same bound. At most 4,096 entries also bounds tiny-file metadata.
             while (payloadBytes + chunk.Length > payloadByteLimit || payloads.Count >= MaxPayloadEntries)
-                RemovePayloadNode(payloadLru.First!);
+                RemovePayloadNode(payloadLru.First!, capacityEviction: true);
             byte[] bytes = chunk.Bytes.AsSpan(0, chunk.Length).ToArray();
-            payloads.Add(key, payloadLru.AddLast(new CachedChunk(objectId, length, chunk.Offset, bytes)));
+            payloads.Add(key, payloadLru.AddLast(new CachedChunk(objectId, length, chunk.Offset, bytes) { UnusedReadAhead = unusedReadAhead }));
             if (!payloadOffsets.TryGetValue(objectId, out var offsets)) payloadOffsets.Add(objectId, offsets = []);
             offsets.Add(chunk.Offset);
             payloadBytes += bytes.Length;
@@ -554,8 +578,13 @@ public sealed class GitObjectSnapshotTree : ISnapshotTree, ISnapshotContentSumma
         if (!payloadOffsets.Remove(objectId, out var offsets)) return;
         foreach (long offset in offsets) RemovePayloadNode(payloads[(objectId, offset)]);
     }
-    private void RemovePayloadNode(LinkedListNode<CachedChunk> node)
+    private void RemovePayloadNode(LinkedListNode<CachedChunk> node, bool capacityEviction = false)
     {
+        if (readDiagnostics && capacityEviction)
+        {
+            capacityEvictedBytes += node.Value.Bytes.Length;
+            if (node.Value.UnusedReadAhead) unusedReadAheadEvictedBytes += node.Value.Bytes.Length;
+        }
         payloads.Remove((node.Value.ObjectId, node.Value.Offset));
         if (payloadOffsets.TryGetValue(node.Value.ObjectId, out var offsets))
         {

@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "kind": "documentation-index",
   "notARuntimeSchema": true,
-  "sourceCommit": "448f029a31a7c6f29d14d868c5e5f9e11aff5b19",
+  "sourceCommit": "daa3a1646e44395690f00a282d5b44770ca89066",
   "branch": "development",
-  "inspectedDate": "2026-10-26",
+  "inspectedDate": "2026-10-27",
   "canonicalDocument": "docs/lifecycle-optimization-map.md",
   "koreanDocument": "docs/ko/lifecycle-optimization-map.md",
   "pathBase": "repository-root",
@@ -127,14 +127,15 @@
       "sourceRefs": [
         "K02",
         "K06",
-        "K19"
+        "K19",
+        "K27"
       ],
       "documents": {
         "en": "docs/lifecycle-optimization-map.md#p50",
         "ko": "docs/ko/lifecycle-optimization-map.md#p50"
       },
       "preconditions": "Live fixed mount and owned source registration.",
-      "work": "Refresh Git index with eligible joined read-ahead or scan file manifests; prove clean base. None full hashes use up to eight workers; mounted Plastic source scans remain serial; one-use initial inspection proof revalidates metadata/membership and complete generation barriers for the same editorless response. Mounted Plastic scans remain serial to preserve its single-revision proof/stream locality.",
+      "work": "Refresh Git index with eligible joined read-ahead or scan file manifests; prove clean base. None full hashes use up to eight workers; mounted Plastic source scans remain serial; one-use initial inspection proof revalidates metadata/membership and complete generation barriers for the same editorless response. Mounted Plastic scans remain serial to preserve its single-revision proof/stream locality. Opt-in Git diagnostics record reader/cache/proof counters and bounded overlapping attach-attempt intervals with running/succeeded/failed/cancelled outcomes; they do not replace content proofs or change reader/cache budgets.",
       "completion": "Attached=true, ready, snapshot-ensured.",
       "costs": "Index/stat/hash, first blob proofs, manifest traversal",
       "recovery": "Drain refresh/read-ahead failures; existing index lock respected."
@@ -149,17 +150,18 @@
         "K01",
         "K08",
         "K09",
-        "K20"
+        "K20",
+        "K28"
       ],
       "documents": {
         "en": "docs/lifecycle-optimization-map.md#e10",
         "ko": "docs/ko/lifecycle-optimization-map.md#e10"
       },
       "preconditions": "Live mounted task; no collected result; exact owned process identity.",
-      "work": "Resolve Unity, owned bridge/one-time cache handling, launch receipt, heartbeat observation.",
+      "work": "Resolve Unity, owned bridge/one-time cache handling, launch receipt, heartbeat observation. Separate read-only development before-start/live capture verifies exact identities and retains bounded selected Bee artifacts/logs/provider observations; it does not launch/stop Unity or inject a profiler.",
       "completion": "Launch intent/receipt; heartbeat readiness is observational.",
       "costs": "Unity imports, assembly work, reload, launch and polling",
-      "recovery": "Uncertain launch preserves intent; no duplicate automatic launch."
+      "recovery": "Uncertain launch preserves intent; no duplicate automatic launch. Capture failures retain partial evidence without a successful capture marker; before/live intervals are caller-dispatched, not an automatic startup stopwatch or compile proof."
     },
     {
       "id": "E20",
@@ -212,14 +214,15 @@
         "K10",
         "K11",
         "K12",
-        "K13"
+        "K13",
+        "K26"
       ],
       "documents": {
         "en": "docs/lifecycle-optimization-map.md#w10",
         "ko": "docs/ko/lifecycle-optimization-map.md#w10"
       },
       "preconditions": "Ordered live callbacks, bounded native buffers, mutation/store gates.",
-      "work": "Queue writes; compare private range; serialize metadata/raw payload/checksum; append; flush before ACK.",
+      "work": "Queue writes; compare private range; serialize metadata/raw payload/checksum; append; flush before ACK. Opt-in bounded telemetry distinguishes requested/effective/staged/changed bytes, callback effect completion versus return, queue high-water, gate waits, batch/chunk/split reasons and Runtime store-interval deltas without ingress I/O or retained payload.",
       "completion": "At most 64 ranges/16MiB per submitted batch; B10 may add barriers and SJL4 retains per-write barriers. Explicit SJR2 flush reuses only the same unchanged proven durable handle.",
       "costs": "Queue/gate wait, comparison, preparation, append, physical flush, metadata commits",
       "recovery": "Uncertain writes poison; unacknowledged prefix can replay; no batch rollback or early ACK."
@@ -479,17 +482,18 @@
       "sourceRefs": [
         "K04",
         "K22",
-        "K23"
+        "K23",
+        "K25"
       ],
       "documents": {
         "en": "docs/lifecycle-optimization-map.md#f10",
         "ko": "docs/ko/lifecycle-optimization-map.md#f10"
       },
       "preconditions": "All dependents/readers gone; exact original Editor saved/stopped; exclusive reader protection.",
-      "work": "Stop original view; unchanged-Library rename or general file/range plan; verify; reclaim owned common data.",
+      "work": "Stop original view. Exact final manifest equality permits the Library root-rename route even for a positive seal; pinned plan bytes/hash and sealed journal replay reprove equality on retries. Library-only metadata patches/deleted original leaves with fixed directories, surviving paths/lengths and no ranges/new files use a separate sparse plan: pin plan bytes/hash and sealed effects; root rename; fully prove/pin survivors and deleted leaves; stage exact deleted handles; verify membership/apply metadata; publish verified then staging-reclaim receipts; delete exact staged handles; use existing sealed journal inventory. Unsupported mutations and started general plans retain the general file/range route.",
       "completion": "Ordinary original current contents proven restored; receipts/results retained.",
-      "costs": "Full proof, moves, changed ranges/metadata, cursor/creation receipt writes",
-      "recovery": "Resume same plan/cursor; peers keep basis managed; task release alone is insufficient."
+      "costs": "Initial and post-rename full content/identity/membership proofs and final metadata remain. Sparse restore removes per-survivor moves/file receipts/cursor writes; deleted leaves still require staging and exact reclamation.",
+      "recovery": "Resume the same general/unchanged/sparse plan without migration; refuse orphan/conflicting records, foreign identities/content/seals. Missing staged leaves require the exact plan-bound reclamation receipt. Peers keep basis managed; task release alone is insufficient."
     }
   ],
   "transitions": [
@@ -707,9 +711,24 @@
     "fileResultWorkersMaximum": 8,
     "fileScanWorkersMaximum": 8,
     "controlFilePublicationGraceSeconds": 1,
-    "plasticMountedScanWorkers": 1
+    "plasticMountedScanWorkers": 1,
+    "writeTelemetryCallbackSamples": 32,
+    "writeTelemetryBatchSamples": 16,
+    "writeTelemetryStoreSamples": 16,
+    "writeTelemetryPathCharacters": 256,
+    "gitPreparationIntervals": 16,
+    "startupCaptureDefaultFiles": 2048,
+    "startupCaptureDefaultFileBytes": 33554432,
+    "startupCaptureDefaultTotalBytes": 134217728,
+    "startupCaptureDefaultEnumeratedEntries": 16384
   },
   "evidence": [
+    {
+      "id": "BO-01-05",
+      "path": "docs/verification/lifecycle-bottlenecks.md",
+      "plan": "docs/plans/lifecycle-bottlenecks.md",
+      "qualification": "Sparse Library restore and bounded opt-in write/Git diagnostics plus read-only Unity startup evidence. Ordinary-NTFS restore fixtures, diagnostic OFF/ON cost and historical RR-01 Unity observations are separate; no new whole-Unity/apply/discard timing is inferred."
+    },
     {
       "id": "PR-01-04",
       "path": "docs/verification/preparation-throughput.md",
@@ -1023,7 +1042,7 @@
             {
               "name": "CaptureCancellable",
               "lineHints": [
-                108,
+                107,
                 108
               ]
             },
@@ -1120,7 +1139,7 @@
       "files": [
         {
           "path": "src/Splinter.SourceControl.Git/GitSnapshotWorkspaces.cs",
-          "sha256": "1018dbd38e3b8242290868419e08ab029599b30b7da4f46ba1b8d33901589873",
+          "sha256": "22139cc04e36f5d2c6d611009e67100638b5472701c4ba9e2f4fd9259d85283d",
           "symbols": [
             {
               "name": "PreflightAsync",
@@ -1137,20 +1156,20 @@
             {
               "name": "CheckpointAndPreserveAsync",
               "lineHints": [
-                83
+                108
               ]
             },
             {
               "name": "VerifyResultAsync",
               "lineHints": [
-                115
+                140
               ]
             }
           ]
         },
         {
           "path": "src/Splinter.SourceControl.Git/GitOverlayRegistration.cs",
-          "sha256": "24fda41eac238559e7c5fda4995014100f07eedf6bb5cbd5b109ed039d60d988",
+          "sha256": "0139786627bd6ca3d160409060f12086a28b26bd06e1e9b5cc307cda737f5de5",
           "symbols": [
             {
               "name": "PrepareAsync",
@@ -1168,20 +1187,20 @@
             {
               "name": "WarmInitialLargeFiles",
               "lineHints": [
-                118
+                125
               ]
             }
           ]
         },
         {
           "path": "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs",
-          "sha256": "24915235391443c642b3f1313fbbe55b5fe41bc7c7ad997dc3a8ccb7b8b5d424",
+          "sha256": "ceda29f2332739b3e82db4670067e51dc90da105683b149cf2fd2ee79538af48",
           "symbols": [
             {
               "name": "Read",
               "lineHints": [
-                250,
-                250
+                93,
+                254
               ]
             }
           ]
@@ -1248,7 +1267,7 @@
         },
         {
           "path": "src/Splinter.Platform.Windows/WinFspOverlayServer.cs",
-          "sha256": "2bdb62bec649da0ddc0d162c8a4a166a672b519cfbc081e87da6c3c533b01f37",
+          "sha256": "203b9bf384cef853f06cff345a71ec1d86ca64e3608997710d01ec52d731db0a",
           "symbols": [
             {
               "name": "RunAsync",
@@ -1394,38 +1413,38 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/WinFspOverlayFileSystem.cs",
-          "sha256": "b83fe5f779feda5959408e4fc1451d31bcf4dd6ec40f92fbe42d053ad44a4742",
+          "sha256": "5f86e37e7f394ba181ba6f7433e0f9a913c3e88bab57244f3ed3676e7cb515c5",
           "symbols": [
             {
               "name": "Read",
               "lineHints": [
-                156,
-                156,
-                156
+                26,
+                27,
+                160
               ]
             },
             {
               "name": "Write",
               "lineHints": [
-                172
+                176
               ]
             },
             {
               "name": "Flush",
               "lineHints": [
-                180
+                191
               ]
             },
             {
               "name": "Cleanup",
               "lineHints": [
-                135
+                139
               ]
             },
             {
               "name": "Close",
               "lineHints": [
-                142
+                146
               ]
             }
           ]
@@ -1437,24 +1456,24 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/WinFspWriteBatch.cs",
-          "sha256": "37f2ca3476ac0024db07b62832daa200d2938864f928bc08ad82dd7687e2c47d",
+          "sha256": "551bea6c58169973f59e782f841a8a319b6451f3ba1781859f551320872edb6f",
           "symbols": [
             {
               "name": "SubmitWrite",
               "lineHints": [
-                31
+                33
               ]
             },
             {
               "name": "ExecuteWriteBatch",
               "lineHints": [
-                102
+                130
               ]
             },
             {
               "name": "DrainAcceptedWrites",
               "lineHints": [
-                93
+                119
               ]
             }
           ]
@@ -1790,7 +1809,6 @@
             {
               "name": "Generation",
               "lineHints": [
-                30,
                 30
               ]
             }
@@ -1861,7 +1879,7 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs",
-          "sha256": "1f3919211e4c4da27da5b7d657469887dd90e8a1566043157fba82929f15a693",
+          "sha256": "b942f9c63d5b680ffe0e0382d1d3581b51c11444fc925d1dbb3da961b6aba420",
           "symbols": [
             {
               "name": "ExecuteAsync",
@@ -1878,7 +1896,7 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs",
-          "sha256": "31784da9431b8cf00ea24324280c67301ed0d9f5ad48669782c51f05482eedb3",
+          "sha256": "48be63b57bd68dbc5baa8f16d19a0d59ee5d582fb36c1306ab5116fc5ebb0985",
           "symbols": [
             {
               "name": "Eligible",
@@ -1889,13 +1907,13 @@
             {
               "name": "CreateAsync",
               "lineHints": [
-                44
+                45
               ]
             },
             {
               "name": "ResumeAsync",
               "lineHints": [
-                67
+                68
               ]
             }
           ]
@@ -1913,7 +1931,7 @@
               "name": "Key",
               "lineHints": [
                 29,
-                29
+                43
               ]
             },
             {
@@ -1949,18 +1967,291 @@
           ]
         }
       ]
+    },
+    {
+      "id": "K25",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/ManagedSparseDirectoryRestore.cs",
+          "sha256": "29d13c4ca5ae2c199231b0dcbed3899d43466f19428dce0fa9c51f3de43990fc",
+          "symbols": [
+            {
+              "name": "Eligible",
+              "lineHints": [
+                37
+              ]
+            },
+            {
+              "name": "CreateAsync",
+              "lineHints": [
+                56
+              ]
+            },
+            {
+              "name": "ResumeAsync",
+              "lineHints": [
+                85
+              ]
+            },
+            {
+              "name": "OpenJournalEffects",
+              "lineHints": [
+                240
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs",
+          "sha256": "837b87c8b5bbadb41323c73fc29428d55c87cce665ca3b7354d18f0d66fb74c0",
+          "symbols": [
+            {
+              "name": "Move",
+              "lineHints": [
+                71,
+                73
+              ]
+            },
+            {
+              "name": "Delete",
+              "lineHints": [
+                98
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/ManagedRestoreJournalProof.cs",
+          "sha256": "043ced215f3fa9fbce93f40a78d337e2ce597a7eeba2fe93aaa027fc534c8dbf",
+          "symbols": [
+            {
+              "name": "Open",
+              "lineHints": [
+                11
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K26",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/WinFspWriteTelemetry.cs",
+          "sha256": "41b2f27b14b7c980adca49a5f93b81efc113e375226cda32866707c337a9280a",
+          "symbols": [
+            {
+              "name": "WriteTelemetry",
+              "lineHints": [
+                37,
+                144,
+                155
+              ]
+            },
+            {
+              "name": "ObserveWriteAdmission",
+              "lineHints": [
+                145
+              ]
+            },
+            {
+              "name": "Observe",
+              "lineHints": [
+                121,
+                145
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalWriteAccounting.cs",
+          "sha256": "eed6109aa4f4c13d0fbaa5bf6e56259a41af6ae6f81b961008d0e985df2f8de6",
+          "symbols": [
+            {
+              "name": "ReadWriteAccounting",
+              "lineHints": [
+                23
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Runtime/SourceViewDeltaStore.cs",
+          "sha256": "90c018322ab1ae394445afb47f9a95dfbc55526b639399c4a59ac7dc7136955e",
+          "symbols": [
+            {
+              "name": "ReadWriteAccounting",
+              "lineHints": [
+                152
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K27",
+      "files": [
+        {
+          "path": "src/Splinter.SourceControl.Git/GitReadObservation.cs",
+          "sha256": "d498b277d6721ab8df29975f1ef749014f2a2e2e608f990441e00a3656cc4987",
+          "symbols": [
+            {
+              "name": "ObserveReads",
+              "lineHints": [
+                22
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.SourceControl.Git/GitPreparationObservation.cs",
+          "sha256": "6d4becea0de3125b0b9d3b7f276acecd9571cbf5b0da6bc9e4ff451df113b7bc",
+          "symbols": [
+            {
+              "name": "Run",
+              "lineHints": [
+                27
+              ]
+            },
+            {
+              "name": "Measure",
+              "lineHints": [
+                63,
+                79
+              ]
+            },
+            {
+              "name": "Observe",
+              "lineHints": [
+                80
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs",
+          "sha256": "55b91659956ab5f6fe5144ca110400d627c4a61f96398bed3e5b92397692d928",
+          "symbols": [
+            {
+              "name": "ObserveGitReads",
+              "lineHints": [
+                47
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K28",
+      "files": [
+        {
+          "path": "scripts/capture-unity-startup.ps1",
+          "sha256": "098dba35afb105f964e7c46cb59c099a31ea8dc3065e74c27d439d75fc48e54c",
+          "symbols": [
+            {
+              "name": "Capabilities",
+              "lineHints": [
+                11
+              ]
+            }
+          ]
+        },
+        {
+          "path": "scripts/internal/UnityStartupCapture.cs",
+          "sha256": "de87ac5305874d4e950d57fc4f5a4fec269e7cddf32dd60211b88a6e7aab34c5",
+          "symbols": [
+            {
+              "name": "Run",
+              "lineHints": [
+                40
+              ]
+            },
+            {
+              "name": "Execute",
+              "lineHints": [
+                47
+              ]
+            },
+            {
+              "name": "Verify",
+              "lineHints": [
+                142
+              ]
+            },
+            {
+              "name": "Analyze",
+              "lineHints": [
+                269
+              ]
+            },
+            {
+              "name": "CompareCapture",
+              "lineHints": [
+                208
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "maintenance": "Update both languages and this index after lifecycle/ownership/durability/default/result/reclamation changes; retain the exact base commit and source hashes, and refresh line hints from reviewed source contents.",
-  "sourceRevisionKind": "base-commit-plus-indexed-PR-01-02-source-changes",
+  "sourceRevisionKind": "base-commit-plus-indexed-BO-source-changes",
   "sourceChanges": [
-    "src/Splinter.Cli/WorkspaceCommands.cs",
-    "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
-    "src/Splinter.SourceControl.Files/FileInspectionProof.cs",
-    "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs",
-    "src/Splinter.Platform.Windows/WinFspOverlayClient.cs",
-    "src/Splinter.Platform.Windows/ProjectDirectorySnapshotProvider.cs",
-    "src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs",
-    "src/Splinter.Platform.Windows/WindowsProcessWorkspaceProvider.cs"
-  ]
+    "scripts/capture-unity-startup.ps1",
+    "scripts/internal/UnityStartupCapture.cs",
+    "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs",
+    "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs",
+    "src/Splinter.Platform.Windows/ManagedRestoreJournalProof.cs",
+    "src/Splinter.Platform.Windows/ManagedSparseDirectoryRestore.cs",
+    "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs",
+    "src/Splinter.Platform.Windows/WinFspOverlayFileSystem.cs",
+    "src/Splinter.Platform.Windows/WinFspOverlayServer.cs",
+    "src/Splinter.Platform.Windows/WinFspWriteBatch.cs",
+    "src/Splinter.Platform.Windows/WinFspWriteTelemetry.cs",
+    "src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs",
+    "src/Splinter.Runtime/JournalWriteAccounting.cs",
+    "src/Splinter.Runtime/SourceViewDeltaStore.cs",
+    "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs",
+    "src/Splinter.SourceControl.Git/GitOverlayRegistration.cs",
+    "src/Splinter.SourceControl.Git/GitPreparationObservation.cs",
+    "src/Splinter.SourceControl.Git/GitReadObservation.cs",
+    "src/Splinter.SourceControl.Git/GitSnapshotWorkspaces.cs"
+  ],
+  "diagnostics": {
+    "write": {
+      "enableAtProviderLaunch": "SPLINTER_WRITE_DIAGNOSTICS=1",
+      "observation": "control/overlay/state.json:writeAdmission",
+      "default": "null",
+      "sourceRefs": [
+        "K26"
+      ],
+      "limits": "Fixed recent rings with overwritten counts; no ingress I/O or payload retention.",
+      "interpretation": "Provider-local cumulative monotonic ticks/frequency. Runtime deltas cover store intervals and can include administrative flushes; callback effect completion and return are distinct."
+    },
+    "git": {
+      "enableAtLaunch": "SPLINTER_GIT_PREPARATION_DIAGNOSTICS=1",
+      "observation": "control/overlay/state.json:gitReads",
+      "default": "null observations; no new attach artifact",
+      "sourceRefs": [
+        "K27"
+      ],
+      "interpretation": "Publish a unique running attempt before effects; initial publication failure prevents that diagnostic attach. Best-effort completion records succeeded/failed/cancelled; completion publication failure leaves running. Match task/attempt/outcome. Overlapping intervals/concurrent totals are not additive elapsed time; proof, reader, byte/entry and drain limits are unchanged.",
+      "attemptArtifact": "control/git-preparation.json"
+    },
+    "unityStartup": {
+      "entry": "scripts/capture-unity-startup.ps1",
+      "stages": [
+        "before-start",
+        "live"
+      ],
+      "sourceRefs": [
+        "K28"
+      ],
+      "interpretation": "Read-only exact-owned capture to new evidence paths; bounded per-file observations, not atomic Library state, compile proof, automatic startup stopwatch or new Unity qualification. Capture overhead is separate."
+    }
+  }
 }

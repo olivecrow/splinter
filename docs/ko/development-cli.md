@@ -18,8 +18,23 @@ pwsh ./scripts/splinter-dev.ps1 schema view.execute
 | `view --input` (`view.execute`) | [불변 소스·공통 Library](view-workflow.md)의 명시적 수명 관리. 자체 refresh/검증 수집·합격 판정·worker 결과 보존의 중복 경로는 없음 |
 | `snapshot-spike --input` | [독립 overlay 실험](snapshot-overlay.md)과 후보 게시. 제품 작업공간 명령과 구별 |
 | `preparation-probe --input` | [준비 중단 개발 시험](ntfs-workspaces.md#개발용-준비-중단-시험)의 한정 gate |
+| `scripts/capture-unity-startup.ps1 -Capabilities` | 이미 소유한 Unity 작업공간의 읽기 전용·크기 제한 before-start/live 진단 캡처. [BO 범위](plans/lifecycle-bottlenecks.md). 제품 CLI 명령이 아닌 별도 스크립트 |
 
 기존 replay/write·저널/kernel/제품 쓰기 복구 도구와 시험은 해당 문서에서 실행 조건을 확인한다. 제품 capabilities는 이 개발 목록을 광고하지 않으며 별도 개발 진입점만 알린다.
+
+## 제한된 Unity 시작 증거
+
+Editor 없는 ensure 뒤 첫 start 전에 `before-start`를 캡처한다. 에이전트가 readiness를 별도로 검증한 뒤 release/discard 전에 `live`를 캡처한다. 반환된 `data.controlPath`와 부모가 존재하는 새 출력 폴더를 사용한다.
+
+```powershell
+pwsh ./scripts/capture-unity-startup.ps1 -Capabilities
+pwsh ./scripts/capture-unity-startup.ps1 -Stage before-start -ControlPath <control> -OutputPath <새-before-output> -InputManifest <고정-input-manifest>
+pwsh ./scripts/capture-unity-startup.ps1 -Stage live -ControlPath <control> -OutputPath <새-live-output> -BeforeCapture <before-output>
+```
+
+현재 task/mount/provider/Editor 소유권을 검사하고 선택한 Bee graph/input/response/trace와 로그를 복사한다. token을 제외한 provider 관측의 `writeAdmission`/`gitReads`와 선택적인 `git-preparation.json`도 보존한다. 기본 한도는 파일 2,048개·파일당 32MiB·총 128MiB, 열거 항목 최대 16,384개다. 한도·변경 파일·소유권·reparse 실패는 부분 증거와 `failure.json`을 남기고 성공 `capture.json`을 쓰지 않는다. 과거 출력을 덮어쓰거나 원본/작업공간/control과 겹치지 않는다.
+
+before/live 연계는 호출자가 실행한 두 캡처 사이 구간이며 **자동으로 측정한 Editor 시작 구간이 아니다.** 파일별 관측이지 원자적인 전체 Library snapshot이나 컴파일 증명이 아니며 live 로그는 제한된 앞부분일 수 있다. 캡처 오버헤드는 정상 시간과 분리한다. profiler 인자를 주입하지 않고 Editor·외부 패키지·서버·callback·소스를 시작/종료/수정하지 않는다. 실행한 fixture와 실제 Unity 원인 분석의 남은 범위는 [BO 검증](verification/lifecycle-bottlenecks.md)을 따른다.
 
 유지하는 [제한 범위 로그 실험](plans/structural-throughput-prototypes.md)의 `tools/Splinter.BoundedLogProbe`는 읽기 전용 `capabilities` 명령을 제공한다. 명시적으로 선택한 새 fixture/output에서 제한된 과거 범위와 세대 checkpoint를 측정한다. 개발 도구이며 작업공간 저장 모드나 전체 Unity 속도 검증은 아니다.
 

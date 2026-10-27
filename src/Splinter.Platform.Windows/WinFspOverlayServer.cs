@@ -113,7 +113,8 @@ public static class WinFspOverlayServer
                 if (count <= 100)
                     lock (Json) File.AppendAllText(Path.Combine(request.ControlPath, "io-errors.jsonl"),
                         JsonSerializer.Serialize(new { at = DateTimeOffset.UtcNow, type = ex.GetType().Name, code = (ex as WorkspaceException)?.Code, ex.Message }, Json) + "\n");
-            });
+            }, null, Environment.GetEnvironmentVariable("SPLINTER_WRITE_DIAGNOSTICS") == "1"
+                ? new WinFspOverlayFileSystem.WriteTelemetry() : null);
             using (var host = new FileSystemHost(fileSystem))
             {
                 using var wakeup = new OverlayRequestWakeup(request.ControlPath);
@@ -144,6 +145,8 @@ public static class WinFspOverlayServer
                                 workingSetBytes = self.WorkingSet64, privateBytes = self.PrivateMemorySize64,
                                 ioFailures = Volatile.Read(ref failures), lastFailureCode = Volatile.Read(ref lastFailureCode), storage,
                                 sourceView = (store as SourceViewDeltaStore)?.ObservePartitions(),
+                                writeAdmission = fileSystem.ObserveWriteAdmission(),
+                                gitReads = snapshot.ObserveGitReads(),
                                 preparation = new { storeReadyTicks, stopwatchFrequency = Stopwatch.Frequency }
                             });
                             nextObservation = Stopwatch.GetTimestamp() + Stopwatch.Frequency;

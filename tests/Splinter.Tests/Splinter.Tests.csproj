@@ -12,6 +12,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="../../scripts/internal/UnityStartupCapture.cs" Link="Development/UnityStartupCapture.cs" />
+    <Content Include="../../scripts/capture-unity-startup.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../scripts/internal/UnityStartupCapture.cs" Link="Scripts/internal/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../scripts/test-product-write-recovery.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../scripts/test-kernel-recovery.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../scripts/test-journal-recovery.ps1" Link="Scripts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

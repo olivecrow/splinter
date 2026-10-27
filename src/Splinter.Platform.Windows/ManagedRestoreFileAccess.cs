@@ -93,6 +93,15 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         SetBasic(file.SafeFileHandle, new() { Creation = created, Access = accessed, Write = written, Attributes = attributes });
     internal static void Metadata(SafeFileHandle handle, SnapshotEntry entry) =>
         SetBasic(handle, new() { Creation = entry.CreationTime, Access = entry.LastAccessTime, Write = entry.LastWriteTime, Attributes = entry.Attributes });
+    // The caller has fixed this exact identity in a durable reclamation plan.
+    // Dispose completes deletion; never close and delete by a replaceable name.
+    internal static void Delete(FileStream file)
+    {
+        SetBasic(file.SafeFileHandle, new() { Attributes = 128 });
+        nint buffer = Marshal.AllocHGlobal(4);
+        try { Marshal.WriteInt32(buffer, 1); Check(SetFileInformationByHandle(file.SafeFileHandle, 4, buffer, 4)); }
+        finally { Marshal.FreeHGlobal(buffer); }
+    }
     internal static SafeFileHandle DirectoryHandle(string path, bool moving = false, WindowsDirectoryTreeProof? proof = null, bool metadataWrite = true)
     {
         if (proof is null) WorkspaceStore.EnsurePlainPath(path); else proof.RequireParent(path);

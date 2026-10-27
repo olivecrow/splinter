@@ -111,7 +111,8 @@ public sealed class WriteBatchTests
         using var observer = new GateObserver("commit.before-flush");
         using var store = new JournalDeltaStore(root.Path, Identity(tree), tree, observer, boundedLogBytes: 16 * 1048576);
         Guid id = store.Create("a", false, 32).Id;
-        var fs = new WinFspOverlayFileSystem(store); long before = store.Observe().Metrics!.FlushCount;
+        var fs = new WinFspOverlayFileSystem(store, null, null, new WinFspOverlayFileSystem.WriteTelemetry());
+        long before = store.Observe().Metrics!.FlushCount;
         observer.Armed = true;
         Thread? follower = null;
         Task Write(int value) => Run(() =>
@@ -146,6 +147,21 @@ public sealed class WriteBatchTests
         }
         finally { observer.Proceed.Set(); await first; await Task.WhenAll(others); if (flush is not null) await flush; }
         Assert.Equal(before + 2, store.Observe().Metrics!.FlushCount);
+        var admission = Assert.IsType<WinFspWriteAdmissionObservation>(fs.ObserveWriteAdmission());
+        Assert.Equal(9, admission.AcceptedCallbacks); Assert.Equal(9, admission.CompletedCallbacks);
+        Assert.Equal(9, admission.ReturnedCallbacks); Assert.Equal(interruptFollower ? 1 : 0, admission.FailedReturns);
+        Assert.Equal(2, admission.BatchCount); Assert.Equal(2, admission.RuntimeStoreIntervals.FlushCalls);
+        Assert.Equal(9, admission.RuntimeStoreIntervals.ChangedPayloadBytes);
+        Assert.True(admission.MaxQueuedCallbacks >= 8);
+        Assert.Equal(9, admission.MaxOutstandingCallbacks);
+        Assert.Equal(9, admission.RecentCallbacks.Length);
+        Assert.All(admission.RecentCallbacks, item =>
+        {
+            Assert.True(item.EnteredTicks <= item.EnqueuedTicks && item.EnqueuedTicks <= item.DequeuedTicks && item.DequeuedTicks <= item.CompletedTicks);
+            Assert.True(item.CompletedTicks <= item.ReturnedTicks);
+            Assert.False(item.Failed);
+        });
+        if (explicitFlush) { Assert.Equal(1, admission.DrainCalls); Assert.True(admission.DrainWaitTicks > 0); }
         byte[] bytes = new byte[9]; Assert.Equal(9, store.Read(id, 0, bytes)); Assert.Equal(0, bytes[0]);
         Assert.Equal(Enumerable.Range(0, 9).Select(i => (byte)i), bytes.Order());
     }

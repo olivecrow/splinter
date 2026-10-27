@@ -44,7 +44,7 @@ public sealed class GitReaderConcurrencyTests
     [InlineData(0)][InlineData(1048576)]
     public async Task BlobAliasesWaitForTheSameProofAndReaderLease(int payloadBytes)
     {
-        using var f = await Fixture.Create(); using var tree = f.Open(payloadBytes: payloadBytes, readAhead: payloadBytes / 2);
+        using var f = await Fixture.Create(); using var tree = f.Open(payloadBytes: payloadBytes, readAhead: payloadBytes / 2, diagnostics: true);
         using var entered = new ManualResetEventSlim(); using var resume = new ManualResetEventSlim();
         int headers = 0;
         tree.ReadObserver = (_, stage) =>
@@ -66,6 +66,9 @@ public sealed class GitReaderConcurrencyTests
         finally { resume.Set(); await a; if (alias is not null) await alias; }
         Assert.Equal(1, tree.FullBlobProofs);
         Assert.Equal(1, tree.PeakReaderProcesses);
+        var observed = Assert.IsType<GitReadObservation>(tree.ObserveReads());
+        Assert.True(observed.ReaderWaitCount >= 1); Assert.True(observed.ReaderWaitTicks > 0);
+        Assert.Equal(2, observed.Requests); Assert.Equal(0, observed.WaitingReaders);
     }
 
     [Fact]
@@ -343,9 +346,9 @@ public sealed class GitReaderConcurrencyTests
         internal Dictionary<string, string> Blobs { get; } = new();
         internal Dictionary<string, byte[]> Data { get; } = new();
         internal Exception? ObservationFailure;
-        internal GitObjectSnapshotTree Open(int bytes = 4194304, int entries = 4096, int payloadBytes = 0, int readAhead = 0) =>
+        internal GitObjectSnapshotTree Open(int bytes = 4194304, int entries = 4096, int payloadBytes = 0, int readAhead = 0, bool diagnostics = false) =>
             new(snapshot, tree, "", "", () => ObservationFailure is { } failure ? throw failure : new(snapshot.Id, true, null, 0, null), bytes, entries,
-                payloadByteLimit: payloadBytes, proofReadAheadBytes: readAhead);
+                payloadByteLimit: payloadBytes, proofReadAheadBytes: readAhead, diagnostics: diagnostics);
         internal static async Task<Fixture> Create(bool packed = false)
         {
             var f = new Fixture(); Directory.CreateDirectory(f.Source);

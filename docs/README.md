@@ -16,6 +16,8 @@ Find current implementation in feature documents below and subsequent responsibi
 <a id="현재-계약과-사용법"></a>
 ## Current contracts and usage
 
+The [lifecycle bottleneck follow-up](plans/lifecycle-bottlenecks.md), with [BO-01–05 verification](verification/lifecycle-bottlenecks.md), adds sparse Library directory restoration and opt-in write/Git diagnostics plus bounded Unity startup capture. Restore component evidence remains separate from whole Unity timing.
+
 The C20 follow-up is [file result collection throughput](plans/result-collection-throughput.md), with [RT-01–04 verification](verification/result-collection-throughput.md): one sealed source scan and bounded local payload work, with native timing separate from Unity/Plastic qualification.
 
 The preparation follow-up is [preparation and observation throughput](plans/preparation-throughput.md), with [PR-01–04 verification](verification/preparation-throughput.md): publication-aware absence waits, bounded file scans and single-use initial inspection proofs, measured on an editorless NTFS/WinFsp input.

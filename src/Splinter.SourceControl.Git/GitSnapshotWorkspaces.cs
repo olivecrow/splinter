@@ -57,11 +57,36 @@ public sealed partial class GitWorkspaceProvider
     }
     public async Task AttachAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
-        var receipt = await Receipt(w, control, ct);
-        initialContentAdmissions.TryRemove(w.Id, out _);
-        await GitOverlayRegistration.AttachAsync(receipt, ct);
-        await BeginInitialContentInspectionAsync(w, ct);
+        var observation = Environment.GetEnvironmentVariable("SPLINTER_GIT_PREPARATION_DIAGNOSTICS") == "1"
+            ? new GitPreparationObservation() : null;
+        await RunPreparationAttemptAsync(w, control, observation, Attach);
+
+        async Task Attach()
+        {
+            var receipt = observation is null ? await Receipt(w, control, ct)
+                : await observation.Measure("load-receipt", () => Receipt(w, control, ct));
+            initialContentAdmissions.TryRemove(w.Id, out _);
+            await GitOverlayRegistration.AttachAsync(receipt, ct, false, null, observation);
+            if (observation is null) await BeginInitialContentInspectionAsync(w, ct);
+            else await observation.Measure("initial-content-admission", () => BeginInitialContentInspectionAsync(w, ct));
+        }
     }
+
+    internal static Task RunPreparationAttemptAsync(WorkspaceRecord w, string control,
+        GitPreparationObservation? observation, Func<Task> operation)
+        => observation is null ? operation() : observation.Run(operation, async snapshot =>
+        {
+            string path = Path.Combine(control, "git-preparation.json"), temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            PlainPath(path); PlainPath(temporary);
+            // Diagnostic publication is outside measured stages and is not a
+            // durable proof, recovery input or capture timestamp. Cancellation
+            // of attach must not suppress its final cancelled observation.
+            await using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                await System.Text.Json.JsonSerializer.SerializeAsync(stream, new
+                { workspaceId = w.Id, workspacePath = w.Path, requestDigest = w.RequestDigest,
+                    baseRevision = w.BaseRevision, preparation = snapshot }, Json, CancellationToken.None);
+            File.Move(temporary, path, true);
+        });
 
     public async Task<string> PreserveAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {

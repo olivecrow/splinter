@@ -28,7 +28,7 @@ public sealed class GitPayloadCacheTests
     [Fact]
     public async Task ProofReadAheadIsBoundedForLargeBlobsAndSurvivesSessionReassignment()
     {
-        using var f = await Fixture.Create(); using var tree = f.Open(8 * Chunk, readAhead: 4 * Chunk);
+        using var f = await Fixture.Create(); using var tree = f.Open(8 * Chunk, readAhead: 4 * Chunk, diagnostics: true);
         foreach (string name in new[] { "a.bin", "b.bin", "c.bin" }) Read(f, tree, name, 0, 16);
         Assert.Equal(8 * Chunk, tree.PeakChunkPayloadBytes);
         long decoded = tree.DecodedBlobBytes;
@@ -38,12 +38,21 @@ public sealed class GitPayloadCacheTests
         Assert.True(tree.DecodedBlobBytes > decoded); Assert.Equal(3, tree.FullBlobProofs);
         Read(f, tree, "c.bin", 8 * Chunk, Chunk); // Beyond the speculative window.
         Assert.InRange(tree.PeakChunkPayloadBytes, 1, 8 * Chunk);
+        var observed = Assert.IsType<GitReadObservation>(tree.ObserveReads());
+        Assert.Equal(6, observed.Requests); Assert.Equal(48 + 3 * Chunk, observed.RequestedBytes);
+        Assert.Equal(0, observed.FailedRequests);
+        Assert.Equal(tree.DecodedBlobBytes, observed.FullProofDecodedBytes + observed.ProvedReadDecodedBytes);
+        Assert.True(observed.ProvedReadDecodedBytes > 0);
+        Assert.True(observed.UnusedReadAheadEvictedBytes > 0);
+        Assert.InRange(observed.UnusedReadAheadEvictedBytes, 1, observed.CapacityEvictedBytes);
+        Assert.True(observed.FullProofProcessingTicks > 0); Assert.True(observed.ProvedReadProcessingTicks > 0);
+        Assert.Equal(0, observed.ActiveReaders); Assert.Equal(0, observed.WaitingReaders);
     }
 
     [Fact]
     public async Task FailedFullProofNeverPublishesReadAheadAndDrainsItsCache()
     {
-        using var f = await Fixture.Create(); using var tree = f.Open(64 * Chunk, readAhead: 32 * Chunk);
+        using var f = await Fixture.Create(); using var tree = f.Open(64 * Chunk, readAhead: 32 * Chunk, diagnostics: true);
         await f.Corrupt("a.bin", f.Data["a.bin"].Length - 1);
         byte[] destination = Enumerable.Repeat((byte)217, 16).ToArray();
         Assert.Equal("GitBasisObjectInvalid", Assert.Throws<WorkspaceException>(() => tree.Read("a.bin", 0, destination)).Code);
@@ -51,6 +60,21 @@ public sealed class GitPayloadCacheTests
         Assert.Equal(f.Data["a.bin"].Length, tree.PeakChunkPayloadBytes);
         Assert.Equal(0, tree.CachedPayloadBytes); Assert.Equal(0, tree.CachedProofCount);
         Assert.Equal(0, tree.ActiveReaderProcesses);
+        var observed = Assert.IsType<GitReadObservation>(tree.ObserveReads());
+        Assert.Equal(1, observed.Requests); Assert.Equal(1, observed.FailedRequests);
+        Assert.Equal(0, observed.FullBlobProofs); Assert.Equal(0, observed.PayloadBytes);
+    }
+
+    [Fact]
+    public async Task ConsumedReadAheadIsNotCountedAsUnusedOnCapacityEviction()
+    {
+        using var f = await Fixture.Create(); using var tree = f.Open(8 * Chunk, readAhead: 4 * Chunk, diagnostics: true);
+        Read(f, tree, "a.bin", 0, 4 * Chunk);
+        Read(f, tree, "b.bin", 0, 4 * Chunk);
+        Read(f, tree, "c.bin", 0, 4 * Chunk);
+        var observed = Assert.IsType<GitReadObservation>(tree.ObserveReads());
+        Assert.True(observed.CapacityEvictedBytes > 0);
+        Assert.Equal(0, observed.UnusedReadAheadEvictedBytes);
     }
 
     [Fact]
@@ -247,9 +271,9 @@ public sealed class GitPayloadCacheTests
         private string tree = "";
         internal readonly Dictionary<string, byte[]> Data = new();
         internal bool Available = true;
-        internal GitObjectSnapshotTree Open(int payloadBytes = 16 * 1024 * 1024, int proofEntries = 4096, int readAhead = 0) =>
+        internal GitObjectSnapshotTree Open(int payloadBytes = 16 * 1024 * 1024, int proofEntries = 4096, int readAhead = 0, bool diagnostics = false) =>
             new(snapshot, tree, "", "", () => new(snapshot.Id, Available, Available ? null : "GitBasisUnavailable", 0, null),
-                proofEntryLimit: proofEntries, payloadByteLimit: payloadBytes, proofReadAheadBytes: readAhead);
+                proofEntryLimit: proofEntries, payloadByteLimit: payloadBytes, proofReadAheadBytes: readAhead, diagnostics: diagnostics);
         internal static async Task<Fixture> Create(bool packed = false, int length = 16 * Chunk + 113)
         {
             var f = new Fixture(); Directory.CreateDirectory(f.Source);

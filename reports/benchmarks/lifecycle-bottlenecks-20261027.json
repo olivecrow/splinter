@@ -1,0 +1,452 @@
+{
+  "schemaVersion": 1,
+  "verificationIds": [
+    "BO-01",
+    "BO-02",
+    "BO-03",
+    "BO-04",
+    "BO-05"
+  ],
+  "baseCommit": "daa3a1646e44395690f00a282d5b44770ca89066",
+  "environment": {
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "architecture": "X64",
+    "logicalProcessors": 12,
+    "fileSystem": "NTFS",
+    "testRuntime": ".NET 10.0.14",
+    "localDate": "2026-10-27",
+    "timezone": "Asia/Seoul",
+    "execution": "Same local host, ordinary NTFS temporary fixtures, normal-user test process"
+  },
+  "scope": "Single ordinary NTFS Library restore component, identical logical input, complete restore call including verification/reclamation; not actual Unity or whole lifecycle.",
+  "order": [
+    "before-1",
+    "after-1",
+    "after-2",
+    "before-2"
+  ],
+  "warmup": "No extra timed warmup; OS caches not cleared; costs run serially without concurrent build/tests.",
+  "timerExcludes": [
+    "fixture construction/capture/journal setup",
+    "independent harness postconditions",
+    "test runner startup and fixture disposal"
+  ],
+  "input": {
+    "files": 10000,
+    "bytesPerFile": 1024,
+    "logicalBytes": 10240000,
+    "deletedLeaves": 1,
+    "equality": "All manifest paths/types/lengths/hashes/attributes/creation/access/write timestamps match; physical NTFS IDs and temp roots intentionally differ.",
+    "commonInputHash": "2e80e8f7ae67173513aa0f67c07cf858f4a2a2a7111a0bbcfa6ab7da314f3686",
+    "benchmarkHarnessSha256": "323c93b36ff95de00e56213ab32cef59d51028be4edcdc0b2ba9c7947af8a4ed"
+  },
+  "restore": {
+    "runs": [
+      {
+        "variant": "before",
+        "label": "before-1",
+        "rawPath": "artifacts/lifecycle-feasibility-implementation-20261027/restore-before-1.json",
+        "rawSha256": "7aa2a27ca0db89a94c304de564a86e5cdbac3a0ff737ab08111ff649834c47ba",
+        "measuredAt": "2026-10-26T16:50:49.6719564+00:00",
+        "scope": "Single leaf deletion, 10000 fixed ordinary NTFS files; full restore including proof/metadata/reclaim, no Unity.",
+        "count": 10000,
+        "bytesPerFile": 1024,
+        "logicalBytes": 10240000,
+        "inputHash": "2e80e8f7ae67173513aa0f67c07cf858f4a2a2a7111a0bbcfa6ab7da314f3686",
+        "seconds": 44.772525,
+        "allocatedBytes": 324588936,
+        "rootMoves": 0,
+        "survivingFileMoves": 9999,
+        "deletedLeafStageMoves": 0,
+        "runtimeHash": "95348cb344c4ca8fd2c2e8832ff77b3384d8882ae4cb21de3d43dd582175fb62",
+        "windowsHash": "e70b8cf0b19abaf260ef569ad505be8e095abe270d694f73348ca485f9cdd103",
+        "verified": true
+      },
+      {
+        "variant": "after",
+        "label": "after-1",
+        "rawPath": "artifacts/lifecycle-feasibility-implementation-20261027/restore-after-1.json",
+        "rawSha256": "8f6f653378c89db79a9e973184d81a6749f8a06fff7701a041d3bd725c1ee50a",
+        "measuredAt": "2026-10-26T16:51:07.9007208+00:00",
+        "scope": "Single leaf deletion, 10000 fixed ordinary NTFS files; full restore including proof/metadata/reclaim, no Unity.",
+        "count": 10000,
+        "bytesPerFile": 1024,
+        "logicalBytes": 10240000,
+        "inputHash": "2e80e8f7ae67173513aa0f67c07cf858f4a2a2a7111a0bbcfa6ab7da314f3686",
+        "seconds": 2.5579855,
+        "allocatedBytes": 183722896,
+        "rootMoves": 1,
+        "survivingFileMoves": 0,
+        "deletedLeafStageMoves": 1,
+        "runtimeHash": "5de12e820b4b95a78a0ce2f4544c79ae5dcbdc330a85537887c2624e1584a79b",
+        "windowsHash": "7019b0026a38cac14e671a94d3cdb6ea2006051654c8053a72dc152a56b16384",
+        "verified": true
+      },
+      {
+        "variant": "after",
+        "label": "after-2",
+        "rawPath": "artifacts/lifecycle-feasibility-implementation-20261027/restore-after-2.json",
+        "rawSha256": "dbd6e7b7f7f6e5eb6606e83825e56db28b2f65b2d034acd01621c693de975d4f",
+        "measuredAt": "2026-10-26T16:51:27.0835419+00:00",
+        "scope": "Single leaf deletion, 10000 fixed ordinary NTFS files; full restore including proof/metadata/reclaim, no Unity.",
+        "count": 10000,
+        "bytesPerFile": 1024,
+        "logicalBytes": 10240000,
+        "inputHash": "2e80e8f7ae67173513aa0f67c07cf858f4a2a2a7111a0bbcfa6ab7da314f3686",
+        "seconds": 2.3535333,
+        "allocatedBytes": 182312800,
+        "rootMoves": 1,
+        "survivingFileMoves": 0,
+        "deletedLeafStageMoves": 1,
+        "runtimeHash": "5de12e820b4b95a78a0ce2f4544c79ae5dcbdc330a85537887c2624e1584a79b",
+        "windowsHash": "7019b0026a38cac14e671a94d3cdb6ea2006051654c8053a72dc152a56b16384",
+        "verified": true
+      },
+      {
+        "variant": "before",
+        "label": "before-2",
+        "rawPath": "artifacts/lifecycle-feasibility-implementation-20261027/restore-before-2.json",
+        "rawSha256": "f455451ffae24b3f85820464325230c3e96ecc9e4fdd1b2e1875c919b0847dcc",
+        "measuredAt": "2026-10-26T16:52:27.2497385+00:00",
+        "scope": "Single leaf deletion, 10000 fixed ordinary NTFS files; full restore including proof/metadata/reclaim, no Unity.",
+        "count": 10000,
+        "bytesPerFile": 1024,
+        "logicalBytes": 10240000,
+        "inputHash": "2e80e8f7ae67173513aa0f67c07cf858f4a2a2a7111a0bbcfa6ab7da314f3686",
+        "seconds": 44.8685145,
+        "allocatedBytes": 324613936,
+        "rootMoves": 0,
+        "survivingFileMoves": 9999,
+        "deletedLeafStageMoves": 0,
+        "runtimeHash": "95348cb344c4ca8fd2c2e8832ff77b3384d8882ae4cb21de3d43dd582175fb62",
+        "windowsHash": "e70b8cf0b19abaf260ef569ad505be8e095abe270d694f73348ca485f9cdd103",
+        "verified": true
+      }
+    ],
+    "beforeMeanSeconds": 44.82051975,
+    "afterMeanSeconds": 2.4557594,
+    "savedMeanSeconds": 42.364760350000005,
+    "reductionPercent": 94.52090378760055,
+    "beforeMeanAllocatedBytes": 324601436,
+    "afterMeanAllocatedBytes": 183017848
+  },
+  "writeTelemetry": {
+    "rawPath": "artifacts/lifecycle-feasibility-implementation-20261027/write-telemetry-cost.json",
+    "rawSha256": "ff740c516e4e3cbc6c432a97fb206883c0083b388be2a2258704a645e90bc1bb",
+    "scope": "Sequential/concurrent callbacks plus real durable journal; cumulative process allocations, no mount, Unity or full-workflow claim",
+    "rows": [
+      {
+        "enabled": false,
+        "concurrency": 1,
+        "seconds": 1.1475625,
+        "allocated": 1471632,
+        "difference": {
+          "FlushCalls": 512,
+          "FlushTicks": 11099338,
+          "DurableCommits": 512,
+          "ChangedPayloadBytes": 57344
+        },
+        "observationJsonBytes": 0
+      },
+      {
+        "enabled": true,
+        "concurrency": 1,
+        "seconds": 1.0914124,
+        "allocated": 1511256,
+        "difference": {
+          "FlushCalls": 512,
+          "FlushTicks": 10757078,
+          "DurableCommits": 512,
+          "ChangedPayloadBytes": 57344
+        },
+        "observationJsonBytes": 20820
+      },
+      {
+        "enabled": true,
+        "concurrency": 1,
+        "seconds": 1.0779464,
+        "allocated": 1471912,
+        "difference": {
+          "FlushCalls": 512,
+          "FlushTicks": 10653343,
+          "DurableCommits": 512,
+          "ChangedPayloadBytes": 57344
+        },
+        "observationJsonBytes": 20820
+      },
+      {
+        "enabled": false,
+        "concurrency": 1,
+        "seconds": 1.0821791,
+        "allocated": 1250704,
+        "difference": {
+          "FlushCalls": 512,
+          "FlushTicks": 10708818,
+          "DurableCommits": 512,
+          "ChangedPayloadBytes": 57344
+        },
+        "observationJsonBytes": 0
+      },
+      {
+        "enabled": false,
+        "concurrency": 8,
+        "seconds": 0.2601038,
+        "allocated": 1181496,
+        "difference": {
+          "FlushCalls": 123,
+          "FlushTicks": 2454990,
+          "DurableCommits": 512,
+          "ChangedPayloadBytes": 57344
+        },
+        "observationJsonBytes": 0
+      },
+      {
+        "enabled": true,
+        "concurrency": 8,
+        "seconds": 0.2525375,
+        "allocated": 1330904,
+        "difference": {
+          "FlushCalls": 120,
+          "FlushTicks": 2385648,
+          "DurableCommits": 512,
+          "ChangedPayloadBytes": 57344
+        },
+        "observationJsonBytes": 20821
+      },
+      {
+        "enabled": true,
+        "concurrency": 8,
+        "seconds": 0.2515816,
+        "allocated": 1329800,
+        "difference": {
+          "FlushCalls": 120,
+          "FlushTicks": 2379184,
+          "DurableCommits": 512,
+          "ChangedPayloadBytes": 57344
+        },
+        "observationJsonBytes": 20822
+      },
+      {
+        "enabled": false,
+        "concurrency": 8,
+        "seconds": 0.2595549,
+        "allocated": 1178104,
+        "difference": {
+          "FlushCalls": 123,
+          "FlushTicks": 2453530,
+          "DurableCommits": 512,
+          "ChangedPayloadBytes": 57344
+        },
+        "observationJsonBytes": 0
+      }
+    ],
+    "summaries": [
+      {
+        "concurrency": 1,
+        "offMeanSeconds": 1.1148708,
+        "onMeanSeconds": 1.0846794000000002,
+        "offMeanAllocatedBytes": 1361168,
+        "onMeanAllocatedBytes": 1491584
+      },
+      {
+        "concurrency": 8,
+        "offMeanSeconds": 0.25982934999999996,
+        "onMeanSeconds": 0.25205955,
+        "offMeanAllocatedBytes": 1179800,
+        "onMeanAllocatedBytes": 1330352
+      }
+    ],
+    "interpretation": "OFF/ON comparison measures diagnostic overhead in existing batch code, not a new batching speedup; OS scheduling/flush variance remain."
+  },
+  "sourceFiles": [
+    {
+      "path": "scripts/capture-unity-startup.ps1",
+      "candidateSha256": "098dba35afb105f964e7c46cb59c099a31ea8dc3065e74c27d439d75fc48e54c",
+      "baselineSha256": null
+    },
+    {
+      "path": "scripts/internal/UnityStartupCapture.cs",
+      "candidateSha256": "de87ac5305874d4e950d57fc4f5a4fec269e7cddf32dd60211b88a6e7aab34c5",
+      "baselineSha256": null
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs",
+      "candidateSha256": "b942f9c63d5b680ffe0e0382d1d3581b51c11444fc925d1dbb3da961b6aba420",
+      "baselineSha256": "1f3919211e4c4da27da5b7d657469887dd90e8a1566043157fba82929f15a693"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs",
+      "candidateSha256": "837b87c8b5bbadb41323c73fc29428d55c87cce665ca3b7354d18f0d66fb74c0",
+      "baselineSha256": "edc92cb468730862db286ac7aec8d36504adaf371a233fbc7f80910c44a3eba4"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedRestoreJournalProof.cs",
+      "candidateSha256": "043ced215f3fa9fbce93f40a78d337e2ce597a7eeba2fe93aaa027fc534c8dbf",
+      "baselineSha256": null
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedSparseDirectoryRestore.cs",
+      "candidateSha256": "29d13c4ca5ae2c199231b0dcbed3899d43466f19428dce0fa9c51f3de43990fc",
+      "baselineSha256": null
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs",
+      "candidateSha256": "48be63b57bd68dbc5baa8f16d19a0d59ee5d582fb36c1306ab5116fc5ebb0985",
+      "baselineSha256": "31784da9431b8cf00ea24324280c67301ed0d9f5ad48669782c51f05482eedb3"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WinFspOverlayFileSystem.cs",
+      "candidateSha256": "5f86e37e7f394ba181ba6f7433e0f9a913c3e88bab57244f3ed3676e7cb515c5",
+      "baselineSha256": "b83fe5f779feda5959408e4fc1451d31bcf4dd6ec40f92fbe42d053ad44a4742"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WinFspOverlayServer.cs",
+      "candidateSha256": "203b9bf384cef853f06cff345a71ec1d86ca64e3608997710d01ec52d731db0a",
+      "baselineSha256": "2bdb62bec649da0ddc0d162c8a4a166a672b519cfbc081e87da6c3c533b01f37"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WinFspWriteBatch.cs",
+      "candidateSha256": "551bea6c58169973f59e782f841a8a319b6451f3ba1781859f551320872edb6f",
+      "baselineSha256": "37f2ca3476ac0024db07b62832daa200d2938864f928bc08ad82dd7687e2c47d"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WinFspWriteTelemetry.cs",
+      "candidateSha256": "41b2f27b14b7c980adca49a5f93b81efc113e375226cda32866707c337a9280a",
+      "baselineSha256": null
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs",
+      "candidateSha256": "55b91659956ab5f6fe5144ca110400d627c4a61f96398bed3e5b92397692d928",
+      "baselineSha256": "ed7a86fe9a57502bffddf6452a1e18d4bc1434e13fea2932bef0cac25fbe481b"
+    },
+    {
+      "path": "src/Splinter.Runtime/JournalWriteAccounting.cs",
+      "candidateSha256": "eed6109aa4f4c13d0fbaa5bf6e56259a41af6ae6f81b961008d0e985df2f8de6",
+      "baselineSha256": null
+    },
+    {
+      "path": "src/Splinter.Runtime/SourceViewDeltaStore.cs",
+      "candidateSha256": "90c018322ab1ae394445afb47f9a95dfbc55526b639399c4a59ac7dc7136955e",
+      "baselineSha256": "bc01945bd9f6ccd9be0653958518fe30be72c262c47bca60536069a88d44ce7d"
+    },
+    {
+      "path": "src/Splinter.Runtime/Splinter.Runtime.csproj",
+      "candidateSha256": "0eea904a3df853b6fc577d78610efc60e539888e6b7781a45a0d9ae01c80e695",
+      "baselineSha256": "fc298ecf37c3a953976be90230f31c0fecb8440002e8c68fb34907d269cd9e05"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs",
+      "candidateSha256": "ceda29f2332739b3e82db4670067e51dc90da105683b149cf2fd2ee79538af48",
+      "baselineSha256": "226ce77213607f1ac67cfc7d8fcad0c1dd8278df2b06d16fc30d2b45ab988838"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitOverlayRegistration.cs",
+      "candidateSha256": "0139786627bd6ca3d160409060f12086a28b26bd06e1e9b5cc307cda737f5de5",
+      "baselineSha256": "24fda41eac238559e7c5fda4995014100f07eedf6bb5cbd5b109ed039d60d988"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitPreparationObservation.cs",
+      "candidateSha256": "6d4becea0de3125b0b9d3b7f276acecd9571cbf5b0da6bc9e4ff451df113b7bc",
+      "baselineSha256": null
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitReadObservation.cs",
+      "candidateSha256": "d498b277d6721ab8df29975f1ef749014f2a2e2e608f990441e00a3656cc4987",
+      "baselineSha256": null
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitSnapshotWorkspaces.cs",
+      "candidateSha256": "22139cc04e36f5d2c6d611009e67100638b5472701c4ba9e2f4fd9259d85283d",
+      "baselineSha256": "1018dbd38e3b8242290868419e08ab029599b30b7da4f46ba1b8d33901589873"
+    },
+    {
+      "path": "tests/Splinter.Tests/BoundedJournalReclamationTests.cs",
+      "candidateSha256": "1c6cdf0dc29507a365182cecd0ad914ae32f2247061a7a47f41a3db0cb607905",
+      "baselineSha256": "adc04fd20b967cc12cd00bfa1694c0a6fb6e80aef30b58b16322a32a7733f7d0"
+    },
+    {
+      "path": "tests/Splinter.Tests/GitInitialReadAheadTests.cs",
+      "candidateSha256": "d6e0a4148cd3f012b340169953a2e80901fe1167adcc1c07d812950ae20de2ca",
+      "baselineSha256": "1311e64f264fb1fbb78931d3da7719be7cab22023c86dacba6a1d93d3ec6f64d"
+    },
+    {
+      "path": "tests/Splinter.Tests/GitPayloadCacheTests.cs",
+      "candidateSha256": "4f0fe851e24815ab6f7224e1f2de4b22bf4a513c6a3d5ea92f1a4403664bd41d",
+      "baselineSha256": "857eea056b28682220891fb92c5d9a260af3c49ee16f6f4dbb1a17152b4f5d3d"
+    },
+    {
+      "path": "tests/Splinter.Tests/GitPreparationObservationTests.cs",
+      "candidateSha256": "1a97b290e65a396ac8fd0932a354889ce95e9a66fcd8c3e41e83815b1bfb4ac5",
+      "baselineSha256": null
+    },
+    {
+      "path": "tests/Splinter.Tests/GitReaderConcurrencyTests.cs",
+      "candidateSha256": "d3f1ab82a2c664450f6e527ba96b5a7edeacb8c18d79ed0b44d0302e1c96abf9",
+      "baselineSha256": "b77f8fa17842a1bec60dae5822821a380b52ad164990cbe0ff2826e26a3e3098"
+    },
+    {
+      "path": "tests/Splinter.Tests/ManagedDirectoryRestoreOptimizationTests.cs",
+      "candidateSha256": "a69678be93602185f16c303382cfe0fbde6ac3eb9758ee6566f5449f3d622dae",
+      "baselineSha256": "9689a0160e50cb2257a0d654d3f667a899a1e64486477ecf9d7fabf28d63611d"
+    },
+    {
+      "path": "tests/Splinter.Tests/SparseDirectoryRestoreCostTests.cs",
+      "candidateSha256": "323c93b36ff95de00e56213ab32cef59d51028be4edcdc0b2ba9c7947af8a4ed",
+      "baselineSha256": "323c93b36ff95de00e56213ab32cef59d51028be4edcdc0b2ba9c7947af8a4ed"
+    },
+    {
+      "path": "tests/Splinter.Tests/SparseDirectoryRestoreTests.cs",
+      "candidateSha256": "0d64bbfa1102a290f0a0d5813329f42a30825b842ade8f0efa3d844f3603d1f0",
+      "baselineSha256": null
+    },
+    {
+      "path": "tests/Splinter.Tests/Splinter.Tests.csproj",
+      "candidateSha256": "3d2158fd285f1e55e50a770c28d1ef9e4eb2cae50641ef8e66d108882c34cd75",
+      "baselineSha256": "f5c404749b9764bb92d476627000db70b9bf133733fb4252ab66c6264060a6e2"
+    },
+    {
+      "path": "tests/Splinter.Tests/UnityStartupCaptureTests.cs",
+      "candidateSha256": "a3f67bb054c9c449bf25818f3e732bae39be18866e75df4b001749274fa14123",
+      "baselineSha256": null
+    },
+    {
+      "path": "tests/Splinter.Tests/WinFspWriteTelemetryTests.cs",
+      "candidateSha256": "d591940aa595df564b8e6b61bf84f341f9c3b1895809a8f41f3030bcc324b001",
+      "baselineSha256": null
+    },
+    {
+      "path": "tests/Splinter.Tests/WriteBatchTests.cs",
+      "candidateSha256": "ffc0a7c5d435f4d23088b38b7d710f23209a09ede74220db8a25d5ba942ec07d",
+      "baselineSha256": "a9f8abb429db1a2990a4a053428f80e71c3a4ea58391ba2f06cbb949be6dc824"
+    }
+  ],
+  "notRun": [
+    "actual Unity lifecycle",
+    "mounted-provider end-to-end",
+    "original apply",
+    "task discard lifecycle",
+    "Play/Test/build",
+    "OS power loss",
+    "peak process RAM"
+  ],
+  "limits": [
+    "Two runs per variant only",
+    "Conditional sparse-eligible Library fixture, not general content/topology restoration",
+    "No percentage transfer to RR-01 whole-workflow time",
+    "Full initial and post-move proofs plus metadata application remain"
+  ],
+  "validation": {
+    "command": "pwsh ./scripts/build.ps1",
+    "total": 1754,
+    "passed": 1724,
+    "failed": 0,
+    "conditionalSkipped": 30,
+    "testDurationSeconds": 548.601,
+    "trxPath": "artifacts/lifecycle-feasibility-implementation-20261027/final-full-build.trx",
+    "trxSha256": "c212dd1cd51ceee940b81bbb6db22f588b6b8aa8f6b2ff12a3dd121e14fdee01",
+    "candidateAssemblyHashesMatch": true,
+    "focusedChangedBoundaryTests": 146,
+    "utf8FilesChecked": 381,
+    "indexedSourceHashesChecked": 50
+  }
+}

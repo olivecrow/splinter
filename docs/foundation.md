@@ -5,6 +5,8 @@
 
 See the [glossary](glossary.md) for bases, deltas, seals, intents, and distinctions between completion commands.
 
+The [lifecycle bottleneck follow-up](plans/lifecycle-bottlenecks.md) describes current Library directory restoration for exact final equality, metadata updates and deleted original leaves, plus opt-in write/Git observations and read-only startup capture. Unsupported content/topology changes retain the general file restoration route. [BO verification](verification/lifecycle-bottlenecks.md) separates component evidence from actual Unity lifecycle qualification.
+
 MCP and Unity CLI are optional external tools selected as needed by agents from user-installed tools. Splinter storage isolation, bases, Library/unchanged-file references, range changes, independent results, safe original application, and owned-resource lifetime work without them. Specific tool names, versions, or internal APIs are not product prerequisites or gates. Agents handle selection, connection, refresh, compilation, Play/Test/build, capture, and result evaluation. Installing, downgrading, modifying, or creating/operating separate modified external tools is outside Splinter's scope. Follow [external-tool boundaries](unity-mcp-response-recovery.md) and [decoupling verification](verification/external-tool-boundaries.md).
 
 The product path is **NTFS workspace creation/resumption → agent work through external tools → checkpoint → optional integrate → explicit release/discard**. Splinter manages workspaces, owned Editors, range storage, independent results, and safe reclamation. Compilation, tests, and game acceptance belong to agents and external tools such as MCP/Unity CLI.

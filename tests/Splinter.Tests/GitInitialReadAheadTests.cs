@@ -12,8 +12,9 @@ public sealed class GitInitialReadAheadTests
         using var f = await Fixture.Create(dirty);
         using var release = new ManualResetEventSlim();
         var entered = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var observation = new GitPreparationObservation();
         Task<object> attach = GitOverlayRegistration.AttachAsync(f.Receipt, TestContext.Current.CancellationToken, false,
-            path => { entered.SetResult(path); Assert.True(release.Wait(TimeSpan.FromSeconds(20))); });
+            path => { entered.SetResult(path); Assert.True(release.Wait(TimeSpan.FromSeconds(20))); }, observation);
         try
         {
             Assert.Equal("nested space/large ü.bin", await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
@@ -22,6 +23,13 @@ public sealed class GitInitialReadAheadTests
         finally { release.Set(); }
         if (dirty) Assert.Equal("GitCommandFailed", (await Assert.ThrowsAsync<WorkspaceException>(() => attach)).Code);
         else { await attach; Assert.Equal("", await TestDirectory.Git(f.Mount, "status", "--porcelain")); }
+        var measured = observation.Observe();
+        var warm = Assert.Single(measured.Intervals, p => p.Stage == "warm-initial-large-files");
+        var refresh = Assert.Single(measured.Intervals, p => p.Stage == "refresh-index");
+        Assert.True(warm.Succeeded); Assert.Equal(!dirty, refresh.Succeeded);
+        Assert.Equal(1, measured.WarmFiles); Assert.Equal(0, measured.DroppedIntervals);
+        long observed = System.Diagnostics.Stopwatch.GetTimestamp();
+        Assert.All(measured.Intervals, p => Assert.InRange(p.End, p.Start, observed));
         Assert.False(File.Exists(Path.Combine(f.Receipt.GitDirectory, "index.lock")));
         Assert.Equal(f.Original, await File.ReadAllBytesAsync(f.SourceFile, TestContext.Current.CancellationToken));
         Assert.Equal(dirty ? (byte)42 : f.Original[0], (await File.ReadAllBytesAsync(f.MountFile, TestContext.Current.CancellationToken))[0]);

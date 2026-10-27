@@ -2,7 +2,7 @@
 
 [English](../lifecycle-optimization-map.md) · [기계 판독 색인](../lifecycle-optimization-map.json) · [문서 지도](README.md)
 
-**코드 기준:** 기준 커밋 `448f029a31a7c6f29d14d868c5e5f9e11aff5b19`와 JSON 색인의 소스 hash로 식별한 PR-01/02 준비 변경, `development`, 2026-10-26 확인. 현재 코드의 구조를 설명하며 프로젝트 작업 실행 승인이 아니다. 새 한정 실측은 [PR 검증](verification/preparation-throughput.md)이 소유하며 이전 결과 수집 비교는 [RT 검증](verification/result-collection-throughput.md)에 보존한다. 작업공간 하나의 준비부터 반영/폐기·회수까지 다룬다. 다른 작업은 공유·잠금·의존성이 영향을 주는 곳에만 등장한다. symbol을 탐색 기준으로 삼고 JSON 행 번호는 색인에 기록된 소스 내용의 위치 힌트로 사용한다.
+**코드 기준:** 기준 커밋 `daa3a1646e44395690f00a282d5b44770ca89066`와 JSON 색인의 소스 hash로 식별한 BO 수명주기 변경, `development`, 2026-10-27 확인. 현재 코드의 구조를 설명하며 프로젝트 작업 실행 승인이 아니다. sparse Library 복원과 제한 진단은 [BO 계획](plans/lifecycle-bottlenecks.md)·[BO 검증](verification/lifecycle-bottlenecks.md)이 소유하고, 이전 비교는 [PR 검증](verification/preparation-throughput.md)·[RT 검증](verification/result-collection-throughput.md)에 보존한다. 작업공간 하나의 준비부터 반영/폐기·회수까지 다룬다. 다른 작업은 공유·잠금·의존성이 영향을 주는 곳에만 등장한다. symbol을 탐색 기준으로 삼고 JSON 행 번호는 색인에 기록된 소스 내용의 위치 힌트로 사용한다.
 
 **AI 읽기 순서:** §§1–3에서 identity·경로를 파악하고, §4에서 단계별 동작, §§5–7에서 직렬화·비용·복구, §8에서 실제 코드를 확인한다. 계약 수정 전에는 연결된 기능 소유 문서를 읽는다. 명령 사용 절차 원본은 [Splinter 스킬](../../skills/splinter/SKILL.md)이다.
 
@@ -158,12 +158,16 @@ None/recorded Plastic [K19]의 전체 소스 scan은 제한된 목록을 먼저 
 
 주 비용은 Git index/stat/hash 순회·최초 전체 객체 decode·소스 manifest scan·metadata 연산이다. 현재 Git reader는 두 decoder 임대, 4MiB/4,096-blob proof, 256MiB/4,096-chunk RAM payload LRU, 최대 128MiB 최초 proof 선행 window를 쓴다. 각각 tree별 제한이며 process 전체 RAM 제한이 아니다. 디스크 hydration은 없다. [WC](verification/workspace-creation-throughput.md) 참조.
 
+BO-04 진단 [K27]은 실행 프로세스에 `SPLINTER_GIT_PREPARATION_DIAGNOSTICS=1`이 있어야 활성화된다. provider의 `gitReads`는 decode/proof bytes·시간, reader 대기, cache miss, 용량 퇴출과 사용 전 read-ahead 퇴출을 기록한다. 진단 attach는 효과 전에 새 attempt ID와 `running`을 `control/git-preparation.json`에 게시하고, 끝나면 `succeeded`/`failed`/`cancelled`와 verification/read-tree/warm/refresh/final-head-status/admission의 겹치는 제한 구간을 최선 노력으로 게시한다. 최초 marker 게시 실패 시 해당 진단 시도를 시작하지 않으며 최종 게시 실패는 완료를 주장하지 않고 `running`을 남긴다. 기본 동작에는 새 파일이 없고 상세 관측은 null이다. 관측은 내용 증명이 아니므로 attempt/task identity와 outcome을 대조한 뒤 해석한다. reader/cache 한도·전체 증명·실패 drain은 유지한다. 추가 reader/window 예산을 고르기 전에 미사용 퇴출과 대기를 계측하며 겹친 counter를 attach 경과 시간에 합산하지 않는다.
+
 <a id="e10"></a>
 ### E10 — 소유 Editor 시작
 
 `StartCoreAsync` → `UnityWorkspaceProvider.StartAsync` → process supervisor [K01, K08, K09]. live mount와 미수집 결과 상태를 확인하고 관측된 소유 running Editor만 재사용한다. `ProjectVersion.txt`에서 설치 Unity를 선택한다. 명시적 Library 참조의 최초 시작에서만 적격 직속 `Library/Bee/*.dag`를 무효화하고 1회 receipt·나머지 cache는 보존한다. 제품 소유 process-address만 reset한다. 소유 bridge/asmdef를 검증·재사용하거나 기록하고 launch intent/token·PID/start/process-group receipt를 만든다.
 
 Unity가 import·assembly 작업·domain reload·scene/Editor 시작을 수행한다. bridge heartbeat 주기는 0.5초, provider freshness는 15초다. `ready`는 보고된 phase를 요구하지만 오류 없는 컴파일이나 검증 성공 증명은 아니다. 에이전트가 필요한 loaded code/compile 결과를 별도로 확인한다. launch 반환·process 생존·첫 heartbeat·컴파일 완료는 다른 계측 경계다.
+
+BO-05는 별도의 읽기 전용 [시작 근거 수집 스크립트](development-cli.md) [K28]를 제공한다. 에이전트는 editorless ensure 뒤 `before-start`, 준비 완료를 독립 검증한 뒤 회수 전에 `live`를 수집할 수 있다. 정확한 task/mount/provider/Editor identity를 확인하고 선택한 Bee 산출물·로그·민감한 필드를 제거한 provider 관측을 새 근거 디렉터리에 제한 복사한다. 기본 한도는 2,048개 파일, 파일당 32MiB, 총 128MiB이며 초과·파일 변경·소유권 실패 시 성공 marker 없이 부분 근거를 보존한다. 파일별 수집은 원자적 Library snapshot·컴파일 증명·새 Unity 성능 자격이 아니다. before/live 구간은 호출자가 정한 구간이며 자동 시작 stopwatch가 아니므로 수집 비용을 별도 기록한다. 스크립트는 Unity 시작/종료나 profiler 인수 주입을 하지 않는다.
 
 <a id="e20"></a>
 ### E20 — 코드·Editor 작업 반복
@@ -220,6 +224,8 @@ callback [K11], queue [K12], store [K10], 순서 보장 batch [K13]. 한 batch �
 frame에는 제한된 직렬화 mutation metadata·raw payload·checksum이 있다. 단일 mutation은 flush 후 메모리 apply/반환한다. batch는 외부 접근이 막힌 gate 아래 순서대로 apply하고 flush 뒤 ACK한다. 실패하면 ACK되지 않은 prefix가 남을 수 있어 불확실한 상태를 poison하고 replay를 요구한다. batch는 rollback transaction이 아니다. create/rename/resize/metadata/delete는 여전히 별도 직렬 연산이며 이 FIFO는 모든 mutation이 아닌 범위 Write callback을 모은다.
 
 `Flush()`가 매번 현재 상태 전체를 직렬화하는 것은 아니다. SJR2는 local 검사 뒤 **같은 열린 저널의 변경 없는 길이와 성공한 영속 flush**를 재사용할 수 있다. 신규/재연결/교체 handle은 자체 barrier가 필요하다. SJL4 capsule commit/게시·명시적 flush는 별도 경계를 유지한다. [RW/WP](raw-write-batching.md), [bounded 저널](bounded-journal.md) 참조.
+
+BO-03 `writeAdmission` [K26]은 provider 시작 시 `SPLINTER_WRITE_DIAGNOSTICS=1`이 없으면 꺼져 있다. 활성화해도 ingress I/O나 payload 보관 없이 고정 ring에 callback 32개·batch 16개·store call 16개만 보관하며 덮어쓴 표본 수와 경로 256자 한도를 기록한다. 원래 요청/effective/staged/변경 payload bytes, queue/outstanding 최대치, mutation gate 대기, FIFO batch/chunk/분할 이유, drain, 효과 완료와 callback 반환/실패를 구분한다. monotonic ticks/frequency로 구간을 저비용 Runtime flush/commit 차분과 연결한다. store-call 구간에는 동시 관리 flush가 포함될 수 있고 제한된 최근 표본으로 모든 과거 callback을 복원할 수는 없다. 순서·영속성·poison·drain·native buffer 수명은 그대로이며 진단이 background writer를 만들거나 순차 caller를 묶을 수 있게 하지는 않는다.
 
 <a id="b10"></a>
 ### B10 — 내부 bounded 저널 checkpoint
@@ -338,10 +344,13 @@ flowchart TD
 <a id="f10"></a>
 ### F10 — 공유 원본 기준본을 별도로 복원
 
-`library restore` / `project restore` [K04, K22, K23]. 모든 dependent/reader가 끝나고 정확한 원본 Editor를 저장·종료한 뒤 명시적으로 수행한다. 원본 managed provider를 종료하고 mount/provider 부재를 증명한다. exclusive reader 보호를 잡아 `restoring`과 고정 seal/plan/cursor를 사용한다.
+`library restore` / `project restore` [K04, K22, K23, K25]. 모든 dependent/reader가 끝나고 정확한 원본 Editor를 저장·종료한 뒤 명시적으로 수행한다. 원본 managed provider를 종료하고 mount/provider 부재를 증명한다. exclusive reader 보호를 잡아 `restoring`과 고정 seal/plan/cursor를 사용한다.
 
-- **변경 없는 적격 Library**: sequence 0, 정확한 manifest 일치, SJL4/bounded SJR2, 시작된 파일 plan 없음. no-replace 디렉터리 rename → 전체 NTFS identity/content/membership 재증명 → metadata 복원 → receipt 검증·정확한 저널 회수. 전체 project 복원의 fast path는 아니다.
+- **최종 상태가 정확히 같은 Library**: SJL4/bounded SJR2, 시작된 파일 plan 없음. 전체 최종 metadata·경로·retained 내용이 고정 manifest와 같고 private range가 없을 때만 양수 durable sequence도 허용한다. 재시도를 포함해 같은 고정 핸들의 plan bytes/hash와 sealed journal replay를 이 일치 조건에 결속한다. no-replace 디렉터리 rename → 전체 NTFS identity/content/membership 재증명 → metadata 복원 → receipt 검증·정확한 sealed 저널 회수. stopped journal reader를 최종 proof/metadata 동안 유지하고 reclamation inventory로 인계한다. 전체 project 복원의 fast path는 아니다.
+- **일부 Library 변경(BO-01)**: 디렉터리 집합과 surviving 파일 경로/길이가 같고 private range·새 파일 없이 metadata 변경·기존 leaf 삭제만 허용한다. 전체 identity·metadata patch·정렬된 삭제 목록·정확한 journal seal을 별도 plan에 고정한다. root를 한 번 rename한 뒤 survivor 전체와 남은 삭제 leaf를 reopen·증명한다. 삭제 leaf를 exact handle로 receipt root의 지정 staging 이름으로 옮기고 최종 membership 확인·metadata 적용·plan에 결속된 verified 및 reclaim receipt 게시 뒤에만 staged 데이터를 삭제한다. 같은 핸들의 plan bytes/hash와 최종 효과를 sealed journal replay에 대조하고 survivor·plan·journal 보호를 staging 삭제까지 유지한다. staging 재개 시 reclaim receipt가 있을 때만 leaf 부재를 허용한다. 저널은 기존 exact inventory로 회수한다.
 - **그 외**: 일반 v2 파일별 plan. retained 파일 이동·private range/truncation/hole/metadata 반영·새 파일 durable creation receipt·최종 content/identity 검증을 수행한다. **128개 파일**마다 및 마지막에 completion cursor를 영속 게시한다. range data flush와 최초/최종/새 파일 receipt는 유지한다. 재개 시 마지막 durable cursor 이후 효과를 다시 검증한다.
+
+기존 unchanged/general/sparse plan은 해당 경로를 유지한다. 충돌/고아 record·foreign 파일·교체 identity·변경 내용/seal은 회수하지 않고 거부한다. sparse 경로는 survivor별 move와 file/cursor receipt를 줄이며 최초/rename 뒤 전체 증명과 최종 metadata 작업은 유지한다. 취소/실패 시 같은 plan과 남은 staging 데이터를 보존해 정확히 재개한다. [BO 검증](verification/lifecycle-bottlenecks.md)은 일반 NTFS fixture 근거와 실제 Unity 수명주기 시간을 구분한다.
 
 허용된 원본 편집과 명시적 소스 반영을 포함한 **원본 view의 현재 내용**을 복원한다. 작업 Library를 원본에 합치는 것이 아니다. 최종 검증 뒤 이동 공통 payload/원본 저널/provider 자원을 회수하되 state·manifest·plan·receipt·독립 결과는 보존한다. `status`만으로 live mount를 증명하지 않는다. peer가 필요하면 관리형 상태를 유지하고 F10 미완료를 명시한다.
 
@@ -379,7 +388,7 @@ flowchart TD
 | C20 | 안정된 pre-seal → 결과 보존 → post-seal/record | 소스 scan·Git hash/commit·파일 전체 payload 보존·결과 검증 |
 | A10/A20/A30 | plan 별도; execute 요청 → integrated 완료 | target/선택·stage bytes·merge·파일별 flush/receipt·충돌/재시도 |
 | R10/D10 | release/discard 요청 → 정확한 자원 부재·완료 receipt | seal 읽기·unmount·등록 제거·inventory 삭제·task ref 제거; pending은 끝 아님 |
-| F10 | 명시적 restore → 일반 원본 검증 + 공통 자원 회수 | 디렉터리 fast/general 경로·원본 변경·이동/range bytes·검증·cursor commit |
+| F10 | 명시적 restore → 일반 원본 검증 + 공통 자원 회수 | 최종 동일 디렉터리/sparse metadata·삭제/일반 파일 경로, survivor·staging 이동, 전체 proof bytes·metadata·cursor/receipt commit |
 
 run별 원시 시작/종료 시각과 hash를 보존하고 정상 처리와 진단/복구를 분리한다. 같은 소스 bytes만으로 같은 Unity 입력이 되지 않는다. Library 내용/mtime·loaded assembly·Unity/package·Editor 시작 이력도 다를 수 있다. 양쪽 후보를 같은 입력에서 새로 측정하고 과거 구성 요소 절감률을 더해 전체 비율을 예측하지 않는다. 겹친 구간은 한 번 세며 중첩 단계 counter는 단순 합산하지 않는다.
 
@@ -405,6 +414,8 @@ PR-03은 새로운 동일 **2.125 GiB / 2,112파일** 입력의 ABBA 순서로 �
 이 입력에서 남은 실측 비용은 **P20–P50 생성 65.599초**, **checkpoint 58.944초**, **별도 R10 release 35.326초**다. 후속 계측은 생성의 admission/baseline scan, 전체 결과 구체화/증명, release의 소스/seal/object 재검증 비용을 나누어야 한다. 이 수치는 조사 위치를 알려주며 증명 생략을 승인하거나 미구현 후보의 절감량을 입증하지 않는다.
 
 폐기/무이득 후보는 유지하지 않는다: [DF](verification/durable-flush-throughput.md) RAM checkpoint·I/O 대안, [LT](verification/lifecycle-throughput.md) flush/read 겹침, native Bee, VSS, ReFS. 조기 ACK·필수 flush 생략은 다른 내구성 정책이지 동등 최적화가 아니다. 이 지도는 backend·worker pool·명령·정책 switch를 추가하지 않는다.
+
+BO-01–05는 F10 sparse 복원 구현과 W10/P50 진단 구간 분리, E10 근거 수집을 연결한다. 진단 OFF/ON 비용·일반 NTFS 복원 비교·과거 RR-01 Unity 관측은 별도 근거다. 이전 표로 BO의 전체 Unity 절감이나 새 반영/폐기 시간을 추정하지 않으며 현재 자격은 [BO 계획](plans/lifecycle-bottlenecks.md)·[검증](verification/lifecycle-bottlenecks.md)을 따른다.
 
 ## 7. 완료·실패 해석
 
@@ -455,5 +466,9 @@ JSON은 같은 단계 ID·edge·source symbol·코드 기준 행 힌트를 기�
 | K22 | [ManagedDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs): v2 파일 plan/range/128-file cursor/최종 검증 |
 | K23 | [ManagedUnchangedDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs): 변경 없는 적격 Library rename/proof/회수 |
 | K24 | [WorkspaceStore](../../src/Splinter.Runtime/WorkspaceStore.cs), [ProductState](../../src/Splinter.Workflows.Windows/ViewLifecycleState.cs): identity/경로/잠금/영속 record 게시 |
+| K25 | [ManagedSparseDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedSparseDirectoryRestore.cs): `Eligible`, `CreateAsync`, `ResumeAsync`, `OpenJournalEffects`, staged leaf 회수; [ManagedRestoreJournalProof](../../src/Splinter.Platform.Windows/ManagedRestoreJournalProof.cs): 고정 manifest metadata replay; [ManagedRestoreFileAccess](../../src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs): exact handle 이동/삭제 |
+| K26 | [WinFspWriteTelemetry](../../src/Splinter.Platform.Windows/WinFspWriteTelemetry.cs): `WriteTelemetry`, `ObserveWriteAdmission`, 제한 구간 관측; [JournalWriteAccounting](../../src/Splinter.Runtime/JournalWriteAccounting.cs), [SourceViewDeltaStore](../../src/Splinter.Runtime/SourceViewDeltaStore.cs): 저비용 Runtime 구간 counter |
+| K27 | [GitReadObservation](../../src/Splinter.SourceControl.Git/GitReadObservation.cs): `ObserveReads`; [GitPreparationObservation](../../src/Splinter.SourceControl.Git/GitPreparationObservation.cs): `Run`, `Measure`, `Observe`; [WorkspaceSnapshotBasis](../../src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs): `ObserveGitReads` |
+| K28 | [capture-unity-startup.ps1](../../scripts/capture-unity-startup.ps1), [UnityStartupCapture](../../scripts/internal/UnityStartupCapture.cs): 제한 개발 근거, 소유권 확인, before/live 연결, 로그 순서 분석 |
 
 유지보수: 단계 순서·책임·내구성·모드/기본값·결과 구체화·회수 의존성이 바뀌면 영문·한국어·JSON을 함께 갱신한다. 과거 시간은 검증 ID에 결속하고 이 스냅샷을 현재 구현으로 사용하기 전에 변경된 코드를 확인한다.

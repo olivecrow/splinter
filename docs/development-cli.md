@@ -19,8 +19,23 @@ pwsh ./scripts/splinter-dev.ps1 schema view.execute
 | `view --input` (`view.execute`) | Explicit lifetime management for [immutable source and a shared Library](view-workflow.md). No duplicate path for internal refresh/validation collection, acceptance decisions, or preservation of worker results. |
 | `snapshot-spike --input` | [Independent overlay experiment](snapshot-overlay.md) and candidate publication, separate from product workspace commands. |
 | `preparation-probe --input` | Bounded gate for [development preparation-interruption tests](ntfs-workspaces.md#development-preparation-interruption-tests). |
+| `scripts/capture-unity-startup.ps1 -Capabilities` | Read-only, bounded before-start/live attribution capture for an already owned Unity workspace; [BO scope](plans/lifecycle-bottlenecks.md). Separate script, not a product CLI command. |
 
 Consult the corresponding documents for execution conditions of the existing replay/write tools and journal/kernel/product-write recovery tests. Product capabilities do not advertise this development catalog; they identify only the separate development entry point.
+
+## Bounded Unity startup evidence
+
+After editorless ensure and before first start, capture `before-start`. After the agent independently verifies readiness, capture `live` before release/discard. Use the returned `data.controlPath` and new output directories with existing parents:
+
+```powershell
+pwsh ./scripts/capture-unity-startup.ps1 -Capabilities
+pwsh ./scripts/capture-unity-startup.ps1 -Stage before-start -ControlPath <control> -OutputPath <new-before-output> -InputManifest <fixed-input-manifest>
+pwsh ./scripts/capture-unity-startup.ps1 -Stage live -ControlPath <control> -OutputPath <new-live-output> -BeforeCapture <before-output>
+```
+
+The script checks current task/mount/provider/Editor ownership, copies selected Bee graph/input/response/trace files and logs, and retains sanitized provider counters including `writeAdmission`/`gitReads` plus optional `git-preparation.json`. Default bounds are 2,048 files, 32 MiB per file and 128 MiB total, with at most 16,384 enumerated entries. Limit, changed-file, ownership or reparse failures retain partial evidence with `failure.json` and no successful `capture.json`. Outputs never overwrite prior evidence or overlap source/workspace/control.
+
+Before/live correlation is the caller-dispatched interval between captures, **not an automatically measured Editor startup interval**. Observations are per-file, not an atomic Library snapshot or compilation proof; bounded live logs may be prefixes. Capture overhead must be separate from normal timing. No profiler arguments are injected and no Editor, external package, server, callback or source is started/stopped/modified. See [BO verification](verification/lifecycle-bottlenecks.md) for executed fixtures and remaining actual-Unity attribution.
 
 The retained [bounded range-log experiment](plans/structural-throughput-prototypes.md), `tools/Splinter.BoundedLogProbe`, exposes a read-only `capabilities` command. It measures bounded obsolete range history and generation checkpoints on a new explicitly selected fixture/output. It is a development tool, not a workspace storage mode or proof of complete Unity workflow speed.
 
