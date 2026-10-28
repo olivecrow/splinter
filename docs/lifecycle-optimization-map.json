@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "documentation-index",
   "notARuntimeSchema": true,
-  "sourceCommit": "daa3a1646e44395690f00a282d5b44770ca89066",
+  "sourceCommit": "bea4acdb95f3ea2a914587c7f5e5293b57940e7d",
   "branch": "development",
   "inspectedDate": "2026-10-27",
   "canonicalDocument": "docs/lifecycle-optimization-map.md",
@@ -870,6 +870,18 @@
       "id": "DF-01-05",
       "path": "docs/verification/durable-flush-throughput.md",
       "qualification": "Historical fixed candidate/input; not remeasured by this documentation change."
+    },
+    {
+      "id": "BD-01",
+      "path": "docs/verification/unity-lifecycle-bottleneck-diagnosis.md",
+      "qualification": "One fixed GUI workspace: 391.3053613s diagnostic continuous lifecycle through normal stop/discard/exact Library restore, including 29.7178606s explicit capture/server observation. No candidate before/after, original apply or shared-Editor comparison. Cache-only reader bypass rejected because total observed decoder wait was 0.000837s; current product unchanged."
+    },
+    {
+      "id": "GR-01-03",
+      "path": "docs/verification/git-payload-retention.md",
+      "report": "reports/benchmarks/git-payload-retention-20261027.json",
+      "qualification": "Same-input editorless native ABBA ensure: 50.66058925000834 -> 48.54978540001321 seconds (2.11080385s / 4.16656%). 1.5GiB/32768-entry candidate rejected; existing 256MiB/4096-entry product retained. Full input/owned discard/ordinary Library restoration proved. No GUI or whole-lifecycle gain.",
+      "adopted": false
     }
   ],
   "sourceRefs": [
@@ -1194,7 +1206,7 @@
         },
         {
           "path": "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs",
-          "sha256": "ceda29f2332739b3e82db4670067e51dc90da105683b149cf2fd2ee79538af48",
+          "sha256": "b53a34692824aa502b37a9858a609bd7b047c0046d1aef6065de621bd47cc96a",
           "symbols": [
             {
               "name": "Read",
@@ -2199,28 +2211,8 @@
     }
   ],
   "maintenance": "Update both languages and this index after lifecycle/ownership/durability/default/result/reclamation changes; retain the exact base commit and source hashes, and refresh line hints from reviewed source contents.",
-  "sourceRevisionKind": "base-commit-plus-indexed-BO-source-changes",
-  "sourceChanges": [
-    "scripts/capture-unity-startup.ps1",
-    "scripts/internal/UnityStartupCapture.cs",
-    "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs",
-    "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs",
-    "src/Splinter.Platform.Windows/ManagedRestoreJournalProof.cs",
-    "src/Splinter.Platform.Windows/ManagedSparseDirectoryRestore.cs",
-    "src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs",
-    "src/Splinter.Platform.Windows/WinFspOverlayFileSystem.cs",
-    "src/Splinter.Platform.Windows/WinFspOverlayServer.cs",
-    "src/Splinter.Platform.Windows/WinFspWriteBatch.cs",
-    "src/Splinter.Platform.Windows/WinFspWriteTelemetry.cs",
-    "src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs",
-    "src/Splinter.Runtime/JournalWriteAccounting.cs",
-    "src/Splinter.Runtime/SourceViewDeltaStore.cs",
-    "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs",
-    "src/Splinter.SourceControl.Git/GitOverlayRegistration.cs",
-    "src/Splinter.SourceControl.Git/GitPreparationObservation.cs",
-    "src/Splinter.SourceControl.Git/GitReadObservation.cs",
-    "src/Splinter.SourceControl.Git/GitSnapshotWorkspaces.cs"
-  ],
+  "sourceRevisionKind": "committed-source",
+  "sourceChanges": [],
   "diagnostics": {
     "write": {
       "enableAtProviderLaunch": "SPLINTER_WRITE_DIAGNOSTICS=1",

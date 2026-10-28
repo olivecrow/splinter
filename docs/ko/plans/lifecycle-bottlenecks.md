@@ -36,4 +36,6 @@
 
 ## 종료 기준
 
+후속 [BD-01 실제 Unity 진단](../verification/unity-lifecycle-bottleneck-diagnosis.md)은 고정 GUI 작업공간 하나의 폐기·정확한 Library 복원까지 측정했다. 전체 decoder 대기는 0.000837초뿐이어서 시험한 캐시 전용 reader 우회 후보를 제외했으며 후보의 속도 개선을 주장하지 않는다. 큰 비용의 후속은 순차 영속 쓰기·소스 캐시의 생산/소비 간 보존·시작 reload다. Close/Open 대기 합계는 원인 분석 단서이며 더할 수 있는 절감 시간이 아니다. 최종 context의 unlink/rename 회수·health 검사 때문에 잠금만 제거할 수 없다. 캐시 예산 확대·비동기 close 큐·내구성 완화·새 Unity backend는 채택하지 않았다. 원본 반영·후보 GUI 전후 비교·세부 초기화 원인 분리는 미자격이다. 별도 [GR 용량 실험](../verification/git-payload-retention.md)은 Editor 없는 생성 절감이 작아 큰 cache 후보를 제외했다.
+
 중단·외부 데이터·metadata·identity의 의미 있는 시험, 필수 build, 제한된 계측 시험과 같은 조건의 일반 NTFS 복원 증거를 확인한다. 구성 요소 절감을 새 Unity 전체 절감으로 표현하지 않는다. 후속 Unity 실행은 source/전체 Library/초기 assembly 상태와 동일한 연속 시작·종료 스톱워치를 고정하고 정상 종료·소유 복구/정리를 포함해야 한다. 적용과 폐기는 종료 기준이 다르며 복원 시간만으로 승계하지 않는다.

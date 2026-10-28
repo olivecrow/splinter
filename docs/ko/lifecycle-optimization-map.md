@@ -2,7 +2,7 @@
 
 [English](../lifecycle-optimization-map.md) · [기계 판독 색인](../lifecycle-optimization-map.json) · [문서 지도](README.md)
 
-**코드 기준:** 기준 커밋 `daa3a1646e44395690f00a282d5b44770ca89066`와 JSON 색인의 소스 hash로 식별한 BO 수명주기 변경, `development`, 2026-10-27 확인. 현재 코드의 구조를 설명하며 프로젝트 작업 실행 승인이 아니다. sparse Library 복원과 제한 진단은 [BO 계획](plans/lifecycle-bottlenecks.md)·[BO 검증](verification/lifecycle-bottlenecks.md)이 소유하고, 이전 비교는 [PR 검증](verification/preparation-throughput.md)·[RT 검증](verification/result-collection-throughput.md)에 보존한다. 작업공간 하나의 준비부터 반영/폐기·회수까지 다룬다. 다른 작업은 공유·잠금·의존성이 영향을 주는 곳에만 등장한다. symbol을 탐색 기준으로 삼고 JSON 행 번호는 색인에 기록된 소스 내용의 위치 힌트로 사용한다.
+**코드 기준:** 커밋 `bea4acdb95f3ea2a914587c7f5e5293b57940e7d`와 JSON 색인의 소스 hash, `development`, 2026-10-27 확인. 현재 코드의 구조를 설명하며 프로젝트 작업 실행 승인이 아니다. sparse Library 복원과 제한 진단은 [BO 계획](plans/lifecycle-bottlenecks.md)·[BO 검증](verification/lifecycle-bottlenecks.md)이 소유하고, 이전 비교는 [PR 검증](verification/preparation-throughput.md)·[RT 검증](verification/result-collection-throughput.md)에 보존한다. 작업공간 하나의 준비부터 반영/폐기·회수까지 다룬다. 다른 작업은 공유·잠금·의존성이 영향을 주는 곳에만 등장한다. symbol을 탐색 기준으로 삼고 JSON 행 번호는 색인에 기록된 소스 내용의 위치 힌트로 사용한다.
 
 **AI 읽기 순서:** §§1–3에서 identity·경로를 파악하고, §4에서 단계별 동작, §§5–7에서 직렬화·비용·복구, §8에서 실제 코드를 확인한다. 계약 수정 전에는 연결된 기능 소유 문서를 읽는다. 명령 사용 절차 원본은 [Splinter 스킬](../../skills/splinter/SKILL.md)이다.
 
@@ -472,3 +472,7 @@ JSON은 같은 단계 ID·edge·source symbol·코드 기준 행 힌트를 기�
 | K28 | [capture-unity-startup.ps1](../../scripts/capture-unity-startup.ps1), [UnityStartupCapture](../../scripts/internal/UnityStartupCapture.cs): 제한 개발 근거, 소유권 확인, before/live 연결, 로그 순서 분석 |
 
 유지보수: 단계 순서·책임·내구성·모드/기본값·결과 구체화·회수 의존성이 바뀌면 영문·한국어·JSON을 함께 갱신한다. 과거 시간은 검증 ID에 결속하고 이 스냅샷을 현재 구현으로 사용하기 전에 변경된 코드를 확인한다.
+
+[BD-01](verification/unity-lifecycle-bottleneck-diagnosis.md)은 이 커밋의 실제 GUI 진단 하나를 추가한다. 정상 종료·폐기·정확한 Library 복원까지 391.3초이며 명시적 캡처/서버 관측 29.7초를 포함한다. 전후 비교가 아니다. 전체 decoder 대기가 0.000837초여서 캐시 우회 후보를 제거했다. W10 순차 영속 쓰기·E10 초기화·P50 payload 보존/재해석은 별도 후보이며 겹치는 누적 시간을 절감량으로 더하지 않는다. 원본 반영과 새 최적화 GUI 비교는 미자격이다.
+
+[GR-01–03](verification/git-payload-retention.md)은 Git payload cache 1.5GiB/32,768-entry 후보를 시험했다. 동일 입력의 실제 생성 평균은 **50.661 → 48.550초(2.111초 / 4.2%)**였다. 큰 절감 기준에 미달해 후보를 제거하고 **256MiB/4,096개를 유지**한다. Editor 없는 생성 근거이며 Unity 전체 수명주기 개선은 아니다. [고정 범위](plans/git-payload-retention.md) 참조.

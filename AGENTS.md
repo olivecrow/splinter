@@ -24,6 +24,10 @@
 
 ## 현재 기능의 소유 문서
 
+- Git payload 보존 실험은 `docs/plans/git-payload-retention.md`·`docs/verification/git-payload-retention.md`의 GR-01–03이 소유한다. 1.5GiB/32,768-entry 후보의 실제 생성 전후후전 평균은 50.661→48.550초(2.111초/4.2%)였으며 큰 절감 기준에 미달해 제품/시험에서 제거했다. 기존 256MiB/4,096-entry·2 decoder·128MiB 창을 유지한다. 원시 후보·입력·회수와 메모리 증가 근거는 보존하며 선택적 설정·전체 Unity 이득으로 읽거나 자동 재실행하지 않는다.
+
+- 실제 Unity 병목 진단은 `docs/verification/unity-lifecycle-bottleneck-diagnosis.md`의 BD-01이 소유한다. `bea4acd`의 고정 GUI 작업공간 하나에서 정상 종료·폐기·동일 내용/mtime/속성의 Library 복원까지 391.3초를 관측했으며 명시적 캡처/외부 서버 관측 29.7초를 포함한다. 전후 속도 개선·원본 반영·공유 Editor 비교가 아니다. decoder 대기 0.000837초로 큰 절감 근거가 없는 캐시 우회 후보는 원시 patch/시험만 보존하고 제품에서 제거했다. 순차 영속 쓰기·초기 reload·Git payload 재해석과 Close/Open 보호를 별도 후속으로 구분한다. 사용자 승인한 외부 MCP 서버/두 handshake 값의 일시 분리 뒤 원본 소스·설정·서버 health 복구를 확인했으며 제품의 외부 도구 관리 기능으로 읽지 않는다. 새 비교·profiler·내구성 완화·퇴역 backend를 자동 실행하지 않는다.
+
 - 수명주기 병목 후속은 `docs/plans/lifecycle-bottlenecks.md`·`docs/verification/lifecycle-bottlenecks.md`의 BO-01–05가 소유한다. 최종 manifest가 완전히 같으면 양수 seal도 디렉터리 복원을 허용하며, metadata 변경·기존 leaf 삭제는 별도 sparse 계획으로 root 한 번 이동·삭제 leaf staging·전체 identity/hash/구성원 검증·계획 결합 영수증 뒤 정확한 회수를 수행한다. 계획 고정 핸들·sealed journal replay 대조와 회수 전 reader 보호를 유지한다. 내용/구조 변경·기존 일반 계획은 파일별 복원이다. 기본 OFF인 `SPLINTER_WRITE_DIAGNOSTICS=1`·`SPLINTER_GIT_PREPARATION_DIAGNOSTICS=1`과 개발용 `scripts/capture-unity-startup.ps1 -Capabilities`는 제한된 쓰기/준비 관측·현재 Bee/로그 보존을 제공한다. 기존 provider에는 시작 당시 설정이 유지된다. 개별 durable ACK·proof·회수는 유지하며 같은 일반 NTFS 복원 fixture 비용을 실제 Unity 전체 시간으로 확대하지 않는다. 새 Unity 실행·profiler 주입·외부 도구 변경은 포함하지 않는다.
 
 - README Unity 재측정은 `docs/verification/unity-readme-recheck.md`의 RR-01이 소유한다. 현재 `2dff94d`는 428.6초 / 공유 102.0초로 과거 BC-01 537.6/82.1초와 구분한다. 동일 전체 입력의 준비·생성·복원은 199.8→124.6초지만 구버전 정상 종료 타임아웃·같은 작업 복구로 정상 전체 인과 개선율은 미확정이다. 승인한 준비 중 참조 복구 기록·basis pin과 외부 PID 5바이트 삭제의 360.0초 Library 복원 진단은 보존하며, 현재 변경 Library 경로·장기 손익분기·Play/Test/build 자격으로 확대하지 않는다.

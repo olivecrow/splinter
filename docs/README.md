@@ -18,6 +18,11 @@ Find current implementation in feature documents below and subsequent responsibi
 
 The [lifecycle bottleneck follow-up](plans/lifecycle-bottlenecks.md), with [BO-01–05 verification](verification/lifecycle-bottlenecks.md), adds sparse Library directory restoration and opt-in write/Git diagnostics plus bounded Unity startup capture. Restore component evidence remains separate from whole Unity timing.
 
+[Actual Unity bottleneck diagnosis](verification/unity-lifecycle-bottleneck-diagnosis.md) owns BD-01: one GUI workspace through normal stop, discard and exact Library restoration, 391.3s including diagnostic capture. It rejects the cache-wait bypass on negligible observed wait and separates durable writes, startup reload and Git payload re-decoding. This is not a before/after performance comparison or original-apply qualification.
+
+[GR-01–03](verification/git-payload-retention.md) tested a 1.5GiB/32,768-entry Git payload cache. Same-input native creation averaged **50.661 → 48.550s (2.111s / 4.2%)**. The small time saving did not meet the large-gain criterion, so the candidate was removed and **256MiB/4,096 entries remain**. This is editorless creation evidence, not a whole Unity lifecycle improvement. See the [fixed scope](plans/git-payload-retention.md).
+
+
 The C20 follow-up is [file result collection throughput](plans/result-collection-throughput.md), with [RT-01–04 verification](verification/result-collection-throughput.md): one sealed source scan and bounded local payload work, with native timing separate from Unity/Plastic qualification.
 
 The preparation follow-up is [preparation and observation throughput](plans/preparation-throughput.md), with [PR-01–04 verification](verification/preparation-throughput.md): publication-aware absence waits, bounded file scans and single-use initial inspection proofs, measured on an editorless NTFS/WinFsp input.

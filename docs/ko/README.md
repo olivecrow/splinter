@@ -2,6 +2,11 @@
 
 [수명주기 병목 후속](plans/lifecycle-bottlenecks.md)과 [BO-01–05 검증](verification/lifecycle-bottlenecks.md)은 sparse Library 디렉터리 복원·선택적 쓰기/Git 계측·제한된 Unity 시작 캡처를 소유한다. 복원 구성 요소 증거와 전체 Unity 시간은 구분한다.
 
+[실제 Unity 병목 진단](verification/unity-lifecycle-bottleneck-diagnosis.md)이 BD-01을 소유한다. GUI 작업공간 하나의 정상 종료·폐기·정확한 Library 복원까지 진단 캡처를 포함해 391.3초를 관측했다. 실제 대기가 미미한 캐시 대기 우회 후보는 제외하고 영속 쓰기·시작 reload·Git payload 재해석 비용을 구분한다. 전후 성능 비교나 원본 반영 자격은 아니다.
+
+[GR-01–03](verification/git-payload-retention.md)은 Git payload cache 1.5GiB/32,768-entry 후보를 시험했다. 동일 입력의 실제 생성 평균은 **50.661 → 48.550초(2.111초 / 4.2%)**였다. 큰 절감 기준에 미달해 후보를 제거하고 **256MiB/4,096개를 유지**한다. Editor 없는 생성 근거이며 Unity 전체 수명주기 개선은 아니다. [고정 범위](plans/git-payload-retention.md) 참조.
+
+
 [English](../README.md)
 
 [README Unity 시간 재측정](verification/unity-readme-recheck.md)이 RR-01을 소유한다. 현재 `2dff94d` 428.6초 / 공유 102.0초, 동일 입력의 준비·복원 75.1초 절감과 과거 Library 차이·구버전 종료 복구·변경 Library 진단을 구분한다.

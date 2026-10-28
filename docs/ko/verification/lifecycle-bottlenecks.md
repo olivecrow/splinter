@@ -12,7 +12,7 @@
 | BO-02 | 고정한 기존 제품과 후보가 같은 10,000 × 1KiB 일반 NTFS 파일에서 read-only leaf 하나를 삭제한다. 직렬 전/후/후/전이며 제품 검증·회수를 포함한 전체 restore 호출을 측정한다. fixture 생성과 시험의 독립 확인은 타이머 밖이다. |
 | BO-03 | 선택적·제한된 callback/batch/store-call 관측. 순차·동시 OFF/ON/ON/OFF 비용 fixture는 실제 영속 저널 쓰기와 내용 확인을 유지한다. native WinFsp mount·Unity 실행 자격은 아니다. |
 | BO-04 | Git read/proof/cache/wait counter, 제어한 attach 구간 중첩, 실패/drain·시도 identity 시험. 기존 reader/cache 상한을 유지한다. |
-| BO-05 | identity·제한·reparse/변경 거부·before/live 연계를 포함한 일반 파일 native 캡처 시험 21개 통과. PowerShell capabilities·helper 로드 통과. 실제 Unity 시작 캡처는 **NotRun**이다. |
+| BO-05 | identity·제한·reparse/변경 거부·before/live 연계를 포함한 일반 파일 native 캡처 시험 21개 통과. PowerShell capabilities·helper 로드 통과. 이 구성 요소 군의 실제 Unity 시작 캡처는 **NotRun**이었으며 후속 단일 입력 실행은 [BD-01](unity-lifecycle-bottleneck-diagnosis.md)이 소유한다. |
 
 ## 구성 요소 실측
 
@@ -51,4 +51,4 @@ BO-02의 복원 시간은 **42.364760초 / 94.5%** 줄었다. 기존 실행은 �
 
 상세 쓰기·Git 계측은 기본 OFF다. 진단을 켜는 것은 원인 구분용이며 새 고속 모드가 아니다. callback/effective/changed bytes를 구별하고 누적 대기·동시 처리 ticks를 전체 스톱워치로 읽지 않는다. 캡처는 제한된 기존 자료와 정확한 프로세스 identity를 보존하며 Unity profiler를 켜거나 호출자 구간을 Editor 시작 시간으로 주장하지 않는다.
 
-새 실제 Unity 수명주기·원본 반영·폐기·Play/Test/build·외부 도구 지원·OS 전원 장애·peak RAM 자격은 실행하지 않았다. 남은 큰 Editor 시작·쓰기/flush 비용은 별도로 고정한 실제 작업에서 새 관측을 확보해야 한다. 구성 요소 절감 비율을 과거 전체 시간 차이에 그대로 적용하지 않는다.
+이 구성 요소 군에서는 새 실제 Unity 수명주기·원본 반영·폐기·Play/Test/build·외부 도구 지원·OS 전원 장애·peak RAM 자격을 실행하지 않았다. 후속 [BD-01 진단](unity-lifecycle-bottleneck-diagnosis.md)은 커밋 `bea4acd`의 실제 GUI 작업공간 하나에서 정상 종료·폐기·정확한 Library 복원을 확인했다. 391.3초는 진단 캡처를 포함하며 BO 전후 비교가 아니다. 미미한 decoder 대기를 근거로 시험한 캐시 우회 후보를 제외했고 순차 영속 쓰기·reload·payload 재해석을 별도 비용으로 남긴다. 구성 요소 절감 비율을 과거 전체 시간 차이에 그대로 적용하지 않는다.
