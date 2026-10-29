@@ -2,7 +2,7 @@
 
 [English](../lifecycle-optimization-map.md) · [기계 판독 색인](../lifecycle-optimization-map.json) · [문서 지도](README.md)
 
-**코드 기준:** 커밋 `bea4acdb95f3ea2a914587c7f5e5293b57940e7d`와 JSON 색인의 소스 hash, `development`, 2026-10-27 확인. 현재 코드의 구조를 설명하며 프로젝트 작업 실행 승인이 아니다. sparse Library 복원과 제한 진단은 [BO 계획](plans/lifecycle-bottlenecks.md)·[BO 검증](verification/lifecycle-bottlenecks.md)이 소유하고, 이전 비교는 [PR 검증](verification/preparation-throughput.md)·[RT 검증](verification/result-collection-throughput.md)에 보존한다. 작업공간 하나의 준비부터 반영/폐기·회수까지 다룬다. 다른 작업은 공유·잠금·의존성이 영향을 주는 곳에만 등장한다. symbol을 탐색 기준으로 삼고 JSON 행 번호는 색인에 기록된 소스 내용의 위치 힌트로 사용한다.
+**코드 기준:** 기준 커밋 `24956f4975a8c9ae57a21f4c52a656b9f8b51ea3` 위의 미커밋 MX05·MX08A 소스, `development`, 2026-10-29 확인. 변경/추가 제품 소스 14개의 경로·raw SHA와 현재 symbol/행은 JSON에 있다. MX05 채택·일반 NTFS/전체 gate 근거는 보존한다. MX08A는 최종 채택했고 MX08B·MX09는 실측 기준 미달로 제거했다. MX09 후보의 55-case 국소 증거와 실제 Git/Unity 최종화 ABBA는 역사적 검증에 보존한다. 최종 전체 gate와 MX10 Unity 반영/폐기 비교는 완료했으나 큰 전체 시간 개선·개별 인과 효과는 미입증이다. 기존 BO·PR·RT·BD 근거는 기록된 후보에만 적용한다.
 
 **AI 읽기 순서:** §§1–3에서 identity·경로를 파악하고, §4에서 단계별 동작, §§5–7에서 직렬화·비용·복구, §8에서 실제 코드를 확인한다. 계약 수정 전에는 연결된 기능 소유 문서를 읽는다. 명령 사용 절차 원본은 [Splinter 스킬](../../skills/splinter/SKILL.md)이다.
 
@@ -221,7 +221,7 @@ callback [K11], queue [K12], store [K10], 순서 보장 batch [K13]. 한 batch �
 
 완전히 private인 덮어쓰기는 현재 범위를 대조한다. 동일 bytes면 새 payload 없이 metadata/timestamp 변경만 기록한다. 일부만 다르면 양끝 절약량이 합계 **4KiB** 이상일 때 단일 연속 envelope를 저장한다. base/hole/확장은 일반 요청 payload를 사용한다. 폐기한 양방향 끝 탐색 후보는 없다.
 
-frame에는 제한된 직렬화 mutation metadata·raw payload·checksum이 있다. 단일 mutation은 flush 후 메모리 apply/반환한다. batch는 외부 접근이 막힌 gate 아래 순서대로 apply하고 flush 뒤 ACK한다. 실패하면 ACK되지 않은 prefix가 남을 수 있어 불확실한 상태를 poison하고 replay를 요구한다. batch는 rollback transaction이 아니다. create/rename/resize/metadata/delete는 여전히 별도 직렬 연산이며 이 FIFO는 모든 mutation이 아닌 범위 Write callback을 모은다.
+frame에는 제한된 직렬화 mutation metadata·raw payload·checksum이 있다. 단일 mutation은 flush 후 메모리 apply/반환한다. batch는 외부 접근이 막힌 gate 아래 순서대로 apply하고 flush 뒤 ACK한다. 실패하면 ACK되지 않은 prefix가 남을 수 있어 불확실한 상태를 poison하고 replay를 요구한다. batch는 rollback transaction이 아니다. create/rename/resize/metadata/delete는 여전히 별도 직렬 연산이며 이 FIFO는 모든 mutation이 아닌 범위 Write callback을 모은다. 채택한 MX08A는 단일 Overwrite의 resize/metadata를 `SetLengthAndMetadata`로 결합하지만 혼합 callback batch 후보 MX08B는 제거했다.
 
 `Flush()`가 매번 현재 상태 전체를 직렬화하는 것은 아니다. SJR2는 local 검사 뒤 **같은 열린 저널의 변경 없는 길이와 성공한 영속 flush**를 재사용할 수 있다. 신규/재연결/교체 handle은 자체 barrier가 필요하다. SJL4 capsule commit/게시·명시적 flush는 별도 경계를 유지한다. [RW/WP](raw-write-batching.md), [bounded 저널](bounded-journal.md) 참조.
 
@@ -344,13 +344,17 @@ flowchart TD
 <a id="f10"></a>
 ### F10 — 공유 원본 기준본을 별도로 복원
 
-`library restore` / `project restore` [K04, K22, K23, K25]. 모든 dependent/reader가 끝나고 정확한 원본 Editor를 저장·종료한 뒤 명시적으로 수행한다. 원본 managed provider를 종료하고 mount/provider 부재를 증명한다. exclusive reader 보호를 잡아 `restoring`과 고정 seal/plan/cursor를 사용한다.
+`library restore` / `project restore` [K04, K22, K23, K25, K29, K30, K31]. 모든 dependent/reader가 끝나고 정확한 원본 Editor를 저장·종료한 뒤 명시적으로 수행한다. 원본 managed provider를 종료하고 mount/provider 부재를 증명한다. exclusive reader 보호를 잡아 `restoring`과 고정 seal/plan/cursor를 사용한다.
 
 - **최종 상태가 정확히 같은 Library**: SJL4/bounded SJR2, 시작된 파일 plan 없음. 전체 최종 metadata·경로·retained 내용이 고정 manifest와 같고 private range가 없을 때만 양수 durable sequence도 허용한다. 재시도를 포함해 같은 고정 핸들의 plan bytes/hash와 sealed journal replay를 이 일치 조건에 결속한다. no-replace 디렉터리 rename → 전체 NTFS identity/content/membership 재증명 → metadata 복원 → receipt 검증·정확한 sealed 저널 회수. stopped journal reader를 최종 proof/metadata 동안 유지하고 reclamation inventory로 인계한다. 전체 project 복원의 fast path는 아니다.
 - **일부 Library 변경(BO-01)**: 디렉터리 집합과 surviving 파일 경로/길이가 같고 private range·새 파일 없이 metadata 변경·기존 leaf 삭제만 허용한다. 전체 identity·metadata patch·정렬된 삭제 목록·정확한 journal seal을 별도 plan에 고정한다. root를 한 번 rename한 뒤 survivor 전체와 남은 삭제 leaf를 reopen·증명한다. 삭제 leaf를 exact handle로 receipt root의 지정 staging 이름으로 옮기고 최종 membership 확인·metadata 적용·plan에 결속된 verified 및 reclaim receipt 게시 뒤에만 staged 데이터를 삭제한다. 같은 핸들의 plan bytes/hash와 최종 효과를 sealed journal replay에 대조하고 survivor·plan·journal 보호를 staging 삭제까지 유지한다. staging 재개 시 reclaim receipt가 있을 때만 leaf 부재를 허용한다. 저널은 기존 exact inventory로 회수한다.
+- **같은 디렉터리 구조의 변경 Library (MX05 root-delta v1)**: root를 한 번 옮기고 stable 파일은 그대로 둔다. source-backed 파일 경로/spelling을 유지하며 private range·truncate/확장/zero hole·새 leaf·삭제 leaf를 처리한다. 고정 plan/intent/seal, 파일별 write/complete·신규 identity receipt, 전체 증명·metadata와 plan-bound staged reclaim을 유지한다.
+- **구조가 바뀐 Library (MX05 topology v1)**: parent mapping으로 설명되지 않는 최소 unit을 고정한다. 깊은 split child stage → 얕은 final/new-directory 설치 → 파일 이동 → private range/새 leaf → 최종 proof/metadata → 승인된 staged 삭제 순서다. Root 효과 전 cursor 0, topology 효과별 cursor와 새 directory identity receipt를 영속 게시한다. 재개는 k/k+1의 실제 inventory를 증명한다.
 - **그 외**: 일반 v2 파일별 plan. retained 파일 이동·private range/truncation/hole/metadata 반영·새 파일 durable creation receipt·최종 content/identity 검증을 수행한다. **128개 파일**마다 및 마지막에 completion cursor를 영속 게시한다. range data flush와 최초/최종/새 파일 receipt는 유지한다. 재개 시 마지막 durable cursor 이후 효과를 다시 검증한다.
 
-기존 unchanged/general/sparse plan은 해당 경로를 유지한다. 충돌/고아 record·foreign 파일·교체 identity·변경 내용/seal은 회수하지 않고 거부한다. sparse 경로는 survivor별 move와 file/cursor receipt를 줄이며 최초/rename 뒤 전체 증명과 최종 metadata 작업은 유지한다. 취소/실패 시 같은 plan과 남은 staging 데이터를 보존해 정확히 재개한다. [BO 검증](verification/lifecycle-bottlenecks.md)은 일반 NTFS fixture 근거와 실제 Unity 수명주기 시간을 구분한다.
+기존 unchanged/general/sparse/root-delta/topology plan은 원래 경로로 재개하며 orphan/conflict·foreign/교체 항목·변경 내용/seal은 보존·거부한다. 신규 선택 순서는 unchanged → sparse → root-delta → 적격·선호 topology → general이다. 새 두 경로는 원본 Unity Library의 SJL4/bounded SJR2만 지원하며 whole-project·append SJR2는 general이다. Topology 선호는 `T < F && O + N <= ceil(F / ManagedDirectoryRestore.CursorBatchSize)`이고 공유 상수는 `128`이다. F는 생존 source 파일, T는 root 포함 보존 이동, O는 topology 연산, N은 새 directory receipt다. 새 파일은 F를 늘리지 않으며 기존 intent에는 이 비용 조건을 재적용하지 않는다. 구조적 비용 screen일 뿐 시간 보장이 아니다.
+
+Inventory projection은 실제 type/path/ID/hash 증명이 아니다. 원본·receipt forest map을 따로 고정하고 최대 8 worker가 fullhash를 수행하며 오류/취소도 join 뒤 dispose한다. 원본 root는 caller가 소유하고 deleted directory DELETE 권한과 최종 TreePins/현재 membership/metadata/staged reclaim 보호를 유지한다. Exact-parent no-replace 새 파일/디렉터리 생성·topology 자식 stage/install과 현재 타입/identity/path 검사는 빈 부모의 attrs-only reparse 전환을 containment하며 보편적인 전환 차단을 주장하지 않는다. 새 파일의 identity receipt 전 중단은 보존·거부한다. canonical plain `.GUID.tmp`는 무시·보존하지만 authority로 입양하거나 삭제하지 않는다. [BO 검증](verification/lifecycle-bottlenecks.md)은 과거 sparse 근거를 소유하고 [MX05 검증](verification/remaining-lifecycle-optimization.md)은 현재 후보별 결과를 소유한다. 최종 일반 NTFS 성능/자원 판단과 전체 gate 뒤 A 및 guard 적용 B2를 채택했으며 실제 Unity 전체 자격은 추가하지 않는다.
 
 허용된 원본 편집과 명시적 소스 반영을 포함한 **원본 view의 현재 내용**을 복원한다. 작업 Library를 원본에 합치는 것이 아니다. 최종 검증 뒤 이동 공통 payload/원본 저널/provider 자원을 회수하되 state·manifest·plan·receipt·독립 결과는 보존한다. `status`만으로 live mount를 증명하지 않는다. peer가 필요하면 관리형 상태를 유지하고 F10 미완료를 명시한다.
 
@@ -365,7 +369,7 @@ flowchart TD
 | 저널 mutation gate | metadata/range 순서·checksum·append·checkpoint·flush | 저널별 frame 준비/append는 현재 병렬화하지 않음 |
 | 읽기 수명 | 지원하는 불변 읽기 겹침, private/상태 수집 gate, close drain | 폐기한 flush/read overlap 후보는 활성화하지 않음 |
 | Git reader | 두 decoder 임대·제한 proof/payload cache | 다른 객체 decode는 겹칠 수 있으나 최초 전체 증명 유지 |
-| 관리형 파일 | capture/admission/변경 없는 복원 최대 8 worker, 실패 join/drain | 이미 병렬화됨; 추가 concurrency는 device 경합·전체 RAM 계측 필요 |
+| 관리형 파일 | capture/admission/변경 없는 복원 및 topology forest proof 최대 8 worker, 고정 map·실패 join/drain | 이미 병렬화됨; 추가 concurrency는 device 경합·전체 RAM 계측 필요 |
 | 파일 소스 / 독립 결과 | None 전체 소스 hash·로컬 payload/증명은 단계별 최대 8 worker와 반환 전 drain, Plastic mount 소스 scan 직렬, C20 scan 1회, 최초 editorless 증명 1회성, Plastic revision 획득 직렬 | 기준/결과 전체 내용과 이후 호출의 새 증명 비용은 남음 |
 | 영속 상태 | workspace/intent/receipt 원자 게시·영속 경계; 저널 checksum/flush | heartbeat/liveness는 영속 소스 결과 commit이 아님 |
 | 종료 | Unity import/compile/자식 대기, retained handle이면 unmount 불가 | Editor exit·child exit·handle drain·unmount·회수를 분리 |
@@ -388,7 +392,7 @@ flowchart TD
 | C20 | 안정된 pre-seal → 결과 보존 → post-seal/record | 소스 scan·Git hash/commit·파일 전체 payload 보존·결과 검증 |
 | A10/A20/A30 | plan 별도; execute 요청 → integrated 완료 | target/선택·stage bytes·merge·파일별 flush/receipt·충돌/재시도 |
 | R10/D10 | release/discard 요청 → 정확한 자원 부재·완료 receipt | seal 읽기·unmount·등록 제거·inventory 삭제·task ref 제거; pending은 끝 아님 |
-| F10 | 명시적 restore → 일반 원본 검증 + 공통 자원 회수 | 최종 동일 디렉터리/sparse metadata·삭제/일반 파일 경로, survivor·staging 이동, 전체 proof bytes·metadata·cursor/receipt commit |
+| F10 | 명시적 restore → 일반 원본 검증 + 공통 자원 회수 | unchanged/sparse/root-delta/topology/general 경로, root/unit/leaf 이동, topology별 cursor·새 directory receipt와 general 128-file batch 구분, 전체 proof bytes·range flush·metadata·정확한 reclaim |
 
 run별 원시 시작/종료 시각과 hash를 보존하고 정상 처리와 진단/복구를 분리한다. 같은 소스 bytes만으로 같은 Unity 입력이 되지 않는다. Library 내용/mtime·loaded assembly·Unity/package·Editor 시작 이력도 다를 수 있다. 양쪽 후보를 같은 입력에서 새로 측정하고 과거 구성 요소 절감률을 더해 전체 비율을 예측하지 않는다. 겹친 구간은 한 번 세며 중첩 단계 counter는 단순 합산하지 않는다.
 
@@ -416,6 +420,8 @@ PR-03은 새로운 동일 **2.125 GiB / 2,112파일** 입력의 ABBA 순서로 �
 폐기/무이득 후보는 유지하지 않는다: [DF](verification/durable-flush-throughput.md) RAM checkpoint·I/O 대안, [LT](verification/lifecycle-throughput.md) flush/read 겹침, native Bee, VSS, ReFS. 조기 ACK·필수 flush 생략은 다른 내구성 정책이지 동등 최적화가 아니다. 이 지도는 backend·worker pool·명령·정책 switch를 추가하지 않는다.
 
 BO-01–05는 F10 sparse 복원 구현과 W10/P50 진단 구간 분리, E10 근거 수집을 연결한다. 진단 OFF/ON 비용·일반 NTFS 복원 비교·과거 RR-01 Unity 관측은 별도 근거다. 이전 표로 BO의 전체 Unity 절감이나 새 반영/폐기 시간을 추정하지 않으며 현재 자격은 [BO 계획](plans/lifecycle-bottlenecks.md)·[검증](verification/lifecycle-bottlenecks.md)을 따른다.
+
+MX10 최종 비교는 반영 **338.51645460→326.31757210초**, 폐기 **281.90245510→286.53377360초**다. 단일 전체 stopwatch이며 각 경로 전후 **1회**라 큰 전체 이점·인과 효과를 확정하지 않는다. 모두 원본 Library sequence **0**의 `unchanged-root`여서 MX05 A/B2 변경 복원을 선택하지 않았다. 현재 큰 구간은 준비 약 **40초**, ensure **49–52초**, 초기 ready **98–101초**, 최종 반영 **90.57529460초**/폐기 **44.63291410초**, 복원 **22–24초**다. 최종 gate **1,966 통과 / 0 실패 / 34 조건부 skip**과 MX08A 채택 근거·제한은 [MX10](verification/remaining-lifecycle-optimization.md#mx-10-final-closeout)이 소유하며 새 시험을 승인하지 않는다.
 
 ## 7. 완료·실패 해석
 
@@ -458,21 +464,26 @@ JSON은 같은 단계 ID·edge·source symbol·코드 기준 행 힌트를 기�
 | K14 | [JournalDeltaBounded](../../src/Splinter.Runtime/JournalDeltaBounded.cs): 용량/checkpoint/generation 복구 |
 | K15 | [JournalStateFrames](../../src/Splinter.Runtime/JournalStateFrames.cs): raw 크기 계산/출력/replay |
 | K16 | [WorkspaceOriginalApply](../../src/Splinter.Runtime/WorkspaceOriginalApply.cs): plan/apply 진입 guard |
-| K17 | [WindowsOriginalFilePublisher](../../src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs): NTFS 조건부 게시·receipt |
+| K17 | [WindowsOriginalFilePublisher](../../src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs): NTFS 조건부 게시·receipt, `MoveOwnedEntry`, `CreateOwnedFile`, `CreateOwnedDirectory` |
 | K18 | [GitWorkspaceProvider](../../src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs): 소스 checkpoint·target/dirty guard·merge |
 | K19 | [FileWorkspaceProvider](../../src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs), [FileRecordedBasis](../../src/Splinter.SourceControl.Files/FileRecordedBasis.cs), [FileOriginalApply](../../src/Splinter.SourceControl.Files/FileOriginalApply.cs), [PlasticWorkspaceProvider](../../src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs): manifest/전체 결과 payload/원본 plan·intent; [FileInspectionProof](../../src/Splinter.SourceControl.Files/FileInspectionProof.cs): 세대에 결속된 1회성 응답 증명 |
 | K20 | [WorkspaceBridge](../../unity/Splinter.Editor/Editor/WorkspaceBridge.cs): heartbeat/busy/dirty scene/Play/정상 exit |
 | K21 | [WindowsWorkspaceDiscardProvider](../../src/Splinter.Workflows.Windows/WindowsWorkspaceDiscardProvider.cs): 정확한 소유 delta/기준/소스 폐기 |
-| K22 | [ManagedDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs): v2 파일 plan/range/128-file cursor/최종 검증 |
+| K22 | [ManagedDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs): `ExecuteAsync`, 공유 `CursorBatchSize=128`, 신규 route 선택·기존 intent 재개·일반 v2 file/range/cursor/final proof |
 | K23 | [ManagedUnchangedDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedUnchangedDirectoryRestore.cs): 변경 없는 적격 Library rename/proof/회수 |
 | K24 | [WorkspaceStore](../../src/Splinter.Runtime/WorkspaceStore.cs), [ProductState](../../src/Splinter.Workflows.Windows/ViewLifecycleState.cs): identity/경로/잠금/영속 record 게시 |
-| K25 | [ManagedSparseDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedSparseDirectoryRestore.cs): `Eligible`, `CreateAsync`, `ResumeAsync`, `OpenJournalEffects`, staged leaf 회수; [ManagedRestoreJournalProof](../../src/Splinter.Platform.Windows/ManagedRestoreJournalProof.cs): 고정 manifest metadata replay; [ManagedRestoreFileAccess](../../src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs): exact handle 이동/삭제 |
+| K25 | [ManagedSparseDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedSparseDirectoryRestore.cs): `Eligible`, `CreateAsync`, `ResumeAsync`, `OpenJournalEffects`, staged leaf 회수; [ManagedRestoreJournalProof](../../src/Splinter.Platform.Windows/ManagedRestoreJournalProof.cs): 고정 manifest metadata replay; [ManagedRestoreFileAccess](../../src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs): exact handle 이동/삭제, `MoveRelative`, `CreateFile`, `CreateDirectory`, `PinDirectoryAgainstDataWrites` |
 | K26 | [WinFspWriteTelemetry](../../src/Splinter.Platform.Windows/WinFspWriteTelemetry.cs): `WriteTelemetry`, `ObserveWriteAdmission`, 제한 구간 관측; [JournalWriteAccounting](../../src/Splinter.Runtime/JournalWriteAccounting.cs), [SourceViewDeltaStore](../../src/Splinter.Runtime/SourceViewDeltaStore.cs): 저비용 Runtime 구간 counter |
 | K27 | [GitReadObservation](../../src/Splinter.SourceControl.Git/GitReadObservation.cs): `ObserveReads`; [GitPreparationObservation](../../src/Splinter.SourceControl.Git/GitPreparationObservation.cs): `Run`, `Measure`, `Observe`; [WorkspaceSnapshotBasis](../../src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs): `ObserveGitReads` |
 | K28 | [capture-unity-startup.ps1](../../scripts/capture-unity-startup.ps1), [UnityStartupCapture](../../scripts/internal/UnityStartupCapture.cs): 제한 개발 근거, 소유권 확인, before/live 연결, 로그 순서 분석 |
+| K29 | [ManagedRootDeltaDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedRootDeltaDirectoryRestore.cs): `Eligible`, `CreateAsync`, `ResumeAsync` — 고정 구조 root-delta v1 |
+| K30 | [ManagedTopologyDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedTopologyDirectoryRestore.cs): `Eligible`, `PreferFresh`, `CreateAsync`, `ResumeAsync`; [ManagedRestoreTopology](../../src/Splinter.Platform.Windows/ManagedRestoreTopology.cs): `Build`, `Inventory`, `ForestPins` |
+| K31 | [ManagedRestoreControlFiles](../../src/Splinter.Platform.Windows/ManagedRestoreControlFiles.cs): `IsPublicationTemporary`; [WindowsDirectoryTreeProof](../../src/Splinter.Platform.Windows/WindowsDirectoryTreeProof.cs): `PinDirectory`; [WindowsOwnedDirectoryLease](../../src/Splinter.Platform.Windows/WindowsOwnedDirectoryLease.cs): `TransferToRestore` |
 
 유지보수: 단계 순서·책임·내구성·모드/기본값·결과 구체화·회수 의존성이 바뀌면 영문·한국어·JSON을 함께 갱신한다. 과거 시간은 검증 ID에 결속하고 이 스냅샷을 현재 구현으로 사용하기 전에 변경된 코드를 확인한다.
 
 [BD-01](verification/unity-lifecycle-bottleneck-diagnosis.md)은 이 커밋의 실제 GUI 진단 하나를 추가한다. 정상 종료·폐기·정확한 Library 복원까지 391.3초이며 명시적 캡처/서버 관측 29.7초를 포함한다. 전후 비교가 아니다. 전체 decoder 대기가 0.000837초여서 캐시 우회 후보를 제거했다. W10 순차 영속 쓰기·E10 초기화·P50 payload 보존/재해석은 별도 후보이며 겹치는 누적 시간을 절감량으로 더하지 않는다. 원본 반영과 새 최적화 GUI 비교는 미자격이다.
 
 [GR-01–03](verification/git-payload-retention.md)은 Git payload cache 1.5GiB/32,768-entry 후보를 시험했다. 동일 입력의 실제 생성 평균은 **50.661 → 48.550초(2.111초 / 4.2%)**였다. 큰 절감 기준에 미달해 후보를 제거하고 **256MiB/4,096개를 유지**한다. Editor 없는 생성 근거이며 Unity 전체 수명주기 개선은 아니다. [고정 범위](plans/git-payload-retention.md) 참조.
+
+MX05는 A와 게시 수 제한 guard를 적용한 B2를 채택했다. F10 일반 NTFS 복원은 고정 구조 46.05306965→14.73430160초(31.31876805초 / 68.00582087%), bulk 45.36571795→14.74108300초(30.62463495초 / 67.50611769%)였고 leaf는 general 경로에서 5.02044795→5.00588275초로 사실상 같았다. 전체 gate는 1,941개 통과·실패 0개·skip 33개다. 전체 시험 process의 관측 OS peak working set 평균 증가는 26,806,272 / 40,529,920 bytes이며 setup/assert와 표본 한계를 포함해 이 입력에서 합당하다고 판단했다. 과거 A/B1의 서로 다른 후보 실측·guard 산술·구성 요소 절감을 현재 전체 Unity 개선으로 승계하지 않는다. [MX 프로그램](plans/remaining-lifecycle-optimization.md)·[후보별 검증](verification/remaining-lifecycle-optimization.md)·[추적 보고서](../../reports/benchmarks/remaining-lifecycle-optimization-20261028.json)를 함께 읽는다.

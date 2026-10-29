@@ -1,5 +1,9 @@
 # 문서 지도
 
+마감한 [남은 수명주기 최적화](plans/remaining-lifecycle-optimization.md)는 MX-01–10으로 기존 미시도/부분 진행 후보 전체, 근거 있는 채택/폐기, 최종 동일 입력 Unity 반영/폐기 비교를 추적한다. 과거 대기 상태는 근거로 보존하며 최종 MX10 마감 절이 현재 상태를 소유한다. MX-05는 동일 입력 일반 NTFS 복원과 전체 gate 검증 뒤 root-delta A·게시 수 제한 guard의 topology B2를 채택해 마감했다. MX10은 변경 Library 복원 경로를 사용하지 않아 MX05의 실제 전체 절감은 미입증이다. MX-06은 독립 모델 window 측정의 6.85647005초 절감이 절대 10초 기준에 미달하고 앞선 큰 공통 flush 차이가 재현되지 않아 미채택으로 마감했다. 제품 checkpoint 코드는 같다. MX-07A와 MX-07B는 실측 후 폐기·제거하여 MX-07을 마감했다. MX-08A는 국소 영속 저널 비용·최종 전체/실제 정확성 근거로 채택했으며 MX-08B는 폐기·제거 완료, MX-09는 실제 Git/Unity 최종화 ABBA가 사전 큰 절감 기준에 미달하여 폐기·제거로 마감했다. MX-10 실제 반영·폐기 비교와 최종 전체 검증도 마감했다. MX-07A는 고정된 Editor 없는 None 입력에서 8.45773340초 / 15.47910650%를 절감했지만 절대 10초 기준에 미달해 제거했고 기준 소스/시험 323개 hash가 모두 일치한다. 그 MX07A 결과는 Unity나 실제 Plastic 성능 자격을 추가하지 않는다.
+
+최종 전체 gate는 **1,966 통과 / 0 실패 / 34 조건부 skip**이다. 같은 입력의 단일 전체 stopwatch는 반영 **338.51645460→326.31757210초**, 폐기 **281.90245510→286.53377360초**를 기록했다. 각 경로 전후 1회이며 큰 전체 개선·개별 인과 효과는 입증하지 못했다. 자세한 구간·복구·제한은 [MX10 마감](verification/remaining-lifecycle-optimization.md#mx-10-final-closeout)을 따른다.
+
 [수명주기 병목 후속](plans/lifecycle-bottlenecks.md)과 [BO-01–05 검증](verification/lifecycle-bottlenecks.md)은 sparse Library 디렉터리 복원·선택적 쓰기/Git 계측·제한된 Unity 시작 캡처를 소유한다. 복원 구성 요소 증거와 전체 Unity 시간은 구분한다.
 
 [실제 Unity 병목 진단](verification/unity-lifecycle-bottleneck-diagnosis.md)이 BD-01을 소유한다. GUI 작업공간 하나의 정상 종료·폐기·정확한 Library 복원까지 진단 캡처를 포함해 391.3초를 관측했다. 실제 대기가 미미한 캐시 대기 우회 후보는 제외하고 영속 쓰기·시작 reload·Git payload 재해석 비용을 구분한다. 전후 성능 비교나 원본 반영 자격은 아니다.

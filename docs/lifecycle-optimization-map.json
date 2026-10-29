@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "kind": "documentation-index",
   "notARuntimeSchema": true,
-  "sourceCommit": "bea4acdb95f3ea2a914587c7f5e5293b57940e7d",
+  "sourceCommit": "24956f4975a8c9ae57a21f4c52a656b9f8b51ea3",
   "branch": "development",
-  "inspectedDate": "2026-10-27",
+  "inspectedDate": "2026-10-29",
   "canonicalDocument": "docs/lifecycle-optimization-map.md",
   "koreanDocument": "docs/ko/lifecycle-optimization-map.md",
   "pathBase": "repository-root",
@@ -222,7 +222,7 @@
         "ko": "docs/ko/lifecycle-optimization-map.md#w10"
       },
       "preconditions": "Ordered live callbacks, bounded native buffers, mutation/store gates.",
-      "work": "Queue writes; compare private range; serialize metadata/raw payload/checksum; append; flush before ACK. Opt-in bounded telemetry distinguishes requested/effective/staged/changed bytes, callback effect completion versus return, queue high-water, gate waits, batch/chunk/split reasons and Runtime store-interval deltas without ingress I/O or retained payload.",
+      "work": "Queue writes; compare private range; serialize metadata/raw payload/checksum; append; flush before ACK. Opt-in bounded telemetry distinguishes requested/effective/staged/changed bytes, callback effect completion versus return, queue high-water, gate waits, batch/chunk/split reasons and Runtime store-interval deltas without ingress I/O or retained payload. Adopted MX08A combines one Overwrite resize and metadata through SetLengthAndMetadata: one final SJR2 entry on resize, zero/one metadata commit at unchanged length; SJL4 retains existing separate durable capsules. No mixed mutation queue, new worker or format.",
       "completion": "At most 64 ranges/16MiB per submitted batch; B10 may add barriers and SJL4 retains per-write barriers. Explicit SJR2 flush reuses only the same unchanged proven durable handle.",
       "costs": "Queue/gate wait, comparison, preparation, append, physical flush, metadata commits",
       "recovery": "Uncertain writes poison; unacknowledged prefix can replay; no batch rollback or early ACK."
@@ -483,17 +483,20 @@
         "K04",
         "K22",
         "K23",
-        "K25"
+        "K25",
+        "K29",
+        "K30",
+        "K31"
       ],
       "documents": {
         "en": "docs/lifecycle-optimization-map.md#f10",
         "ko": "docs/ko/lifecycle-optimization-map.md#f10"
       },
       "preconditions": "All dependents/readers gone; exact original Editor saved/stopped; exclusive reader protection.",
-      "work": "Stop original view. Exact final manifest equality permits the Library root-rename route even for a positive seal; pinned plan bytes/hash and sealed journal replay reprove equality on retries. Library-only metadata patches/deleted original leaves with fixed directories, surviving paths/lengths and no ranges/new files use a separate sparse plan: pin plan bytes/hash and sealed effects; root rename; fully prove/pin survivors and deleted leaves; stage exact deleted handles; verify membership/apply metadata; publish verified then staging-reclaim receipts; delete exact staged handles; use existing sealed journal inventory. Unsupported mutations and started general plans retain the general file/range route.",
+      "work": "Resume an existing current plan before fresh policy; otherwise select unchanged, sparse, fixed-topology root-delta v1, eligible/preferred topology v1, then general v2. New routes are original Unity Library SJL4/bounded SJR2 only. Root-delta transfers once and applies same-path ranges/truncate/extend/new/deleted leaves. Topology fixes minimal units, stages deeper split children, installs shallow final/new directories, moves leaves, applies private ranges, then fully proves final content/identity/membership and metadata before authorized exact staged/journal reclaim. Root plan/intent/cursor zero precede root effects; each topology operation gets a durable cursor and new directories get identity receipts. Fresh preference T<F && O+N<=ceil(F/CursorBatchSize) uses the shared general 128-file constant; it never alters existing-intent recovery.",
       "completion": "Ordinary original current contents proven restored; receipts/results retained.",
-      "costs": "Initial and post-rename full content/identity/membership proofs and final metadata remain. Sparse restore removes per-survivor moves/file receipts/cursor writes; deleted leaves still require staging and exact reclamation.",
-      "recovery": "Resume the same general/unchanged/sparse plan without migration; refuse orphan/conflicting records, foreign identities/content/seals. Missing staged leaves require the exact plan-bound reclamation receipt. Peers keep basis managed; task release alone is insufficient."
+      "costs": "Complete proofs, range-data flushes, new-file/directory ownership receipts, final metadata and exact reclaim remain. Root-delta/topology avoid per-survivor moves when carried by a root/subtree. Topology effect cursors are individually durable, unlike the general 128-file completion batching. Forest original/receipt directory maps freeze before at most eight full-hash workers and join on failure/cancel. Guard counts are structural floors, not elapsed guarantees; final component timing/resource disposition adopted A and guarded B2 after a successful full gate; whole-Unity timing is unqualified.",
+      "recovery": "Resume the same general v2, unchanged v2, sparse v1, root-delta v1 or topology v1 protocol without migration. Topology reconciles k/k+1 using actual native path/type/ID proof; inventory projection alone is not authority. Retain full final TreePins and staged membership protection. Preserve/refuse foreign/replaced/changed/unreceipted nodes. Exact-parent no-replace new-file/directory creation and topology child staging/install and type/path/ID rechecks contain empty-parent attrs-only reparse conversion, not universal prevention. Canonical plain control .GUID.tmp remnants are ignored/preserved, never adopted/deleted. Missing deleted stages require exact reclaim authorization; caller keeps borrowed original root, all workers join before disposal, peers keep basis managed."
     }
   ],
   "transitions": [
@@ -720,7 +723,20 @@
     "startupCaptureDefaultFiles": 2048,
     "startupCaptureDefaultFileBytes": 33554432,
     "startupCaptureDefaultTotalBytes": 134217728,
-    "startupCaptureDefaultEnumeratedEntries": 16384
+    "startupCaptureDefaultEnumeratedEntries": 16384,
+    "restoreCompletionCursorFileBatchScope": "general per-file restore; shared ManagedDirectoryRestore.CursorBatchSize; not topology cursor batching",
+    "topologyFreshPreference": {
+      "scope": "fresh original Unity Library route only; existing intent recovery unchanged",
+      "survivingSourceFiles": "F",
+      "preservingMoves": "T=1+2*live non-root units+deleted non-root units",
+      "topologyOperations": "O",
+      "newDirectoryReceipts": "N",
+      "formula": "T<F && O+N<=ceil(F/ManagedDirectoryRestore.CursorBatchSize)",
+      "structuralFloorNotElapsedGuarantee": true
+    },
+    "topologyForestHashWorkersMaximum": 8,
+    "topologyForestHashScratchBytesPerWorker": 65536,
+    "topologyWorkerBuffersDoNotBoundTotalMemory": true
   },
   "evidence": [
     {
@@ -882,6 +898,109 @@
       "report": "reports/benchmarks/git-payload-retention-20261027.json",
       "qualification": "Same-input editorless native ABBA ensure: 50.66058925000834 -> 48.54978540001321 seconds (2.11080385s / 4.16656%). 1.5GiB/32768-entry candidate rejected; existing 256MiB/4096-entry product retained. Full input/owned discard/ordinary Library restoration proved. No GUI or whole-lifecycle gain.",
       "adopted": false
+    },
+    {
+      "id": "MX-05",
+      "path": "docs/verification/remaining-lifecycle-optimization.md",
+      "plan": "docs/plans/remaining-lifecycle-optimization.md",
+      "report": "reports/benchmarks/remaining-lifecycle-optimization-20261028.json",
+      "qualification": "A and publication-count-guarded B2 adopted after fixed/bulk/leaf matched ordinary-NTFS ABBA: fixed 46.05306965->14.73430160s; bulk 45.36571795->14.74108300s; general-routed leaf 5.02044795->5.00588275s effectively unchanged. All 12 exact result/normal-reclaim checks passed. Full gate 1941 passed, 0 failed, 33 skipped. Observed whole-test-process mean OS peak working-set increases 26806272/40529920 bytes judged acceptable for these inputs; setup/assert and 250ms sample limits remain. Historical A/B1 and failed runs remain separate. No whole Unity apply/discard or power-loss qualification.",
+      "adopted": true,
+      "measuredCandidates": [
+        "final A root-delta",
+        "B2 with publication-count fresh guard"
+      ],
+      "finalSummarySha256": "8ded705fd5f1325815b394f2526393d41d140030983b1ecc495debf86c716519"
+    },
+    {
+      "id": "MX-09",
+      "path": "docs/verification/remaining-lifecycle-optimization.md#mx-09-final-disposition",
+      "plan": "docs/plans/remaining-lifecycle-optimization.md#mx-09-final-disposition",
+      "qualification": "Actual matched Git/Unity finalization ABBA: 69.76183845→70.28309595s, signed saving -0.52125750s / -0.74719576%; below 10s AND 15%. Candidate removed; 55-case local correctness and interrupted/build history retained as candidate evidence. No None/Plastic or MX10 whole-workflow qualification. MX05 retained; MX08A provisional; current full gate and MX10 pending.",
+      "completed": true,
+      "implementationAndLocalCorrectnessCompleted": true,
+      "localEvidence": {
+        "manifest": "artifacts/remaining-optimization-20261028/mx09-local-final/manifest.json",
+        "manifestSha256": "b03df13197a7bdd7e284509fa81806f042c5731e5f02c4176abf1f935d0c4260",
+        "sourceTestFiles": 9,
+        "runtimeFiles": 129,
+        "trx": "artifacts/remaining-optimization-20261028/mx09-focused4.trx",
+        "trxSha256": "e25b17cc7db33561af63c95b524619ff6e557608288c66460f2789d18411fe50"
+      },
+      "adopted": false,
+      "disposition": "rejected-removed",
+      "performanceEvidence": {
+        "path": "artifacts/remaining-optimization-20261028/mx09-performance-analysis.json",
+        "sha256": "10f7a13a995b61680b353d9e4bea58cdb9fbef26c2c4cb610b70b905dbb3b84b",
+        "primaryMeans": {
+          "before": 69.76183844998013,
+          "after": 70.28309594996972,
+          "secondsSaved": -0.5212574999895878,
+          "percentSaved": -0.747195761423825
+        },
+        "materialScreenPassed": false
+      },
+      "removalEvidence": {
+        "path": "artifacts/remaining-optimization-20261028/mx09-removal.json",
+        "sha256": "96621f7841db9792cbf69e8dc3e8a5222a333afc84edb295108b5c539f656e06",
+        "verified": true,
+        "retainedMx08AExact": true
+      }
+    },
+    {
+      "id": "MX-08A",
+      "path": "docs/verification/remaining-lifecycle-optimization.md#mx-10-final-closeout",
+      "completed": true,
+      "adopted": true,
+      "qualification": "Adopted for observed local durable-save reduction 87.90405840→43.59400240s (44.31005600s), 24576→16384 durable mutations, 30 local cases, 1966 final passes and correctness of four actual trials. Amplified 8192-save local input/variation and no whole-Unity causal saving remain; no new format/queue/worker.",
+      "candidateManifestSha256": "9421a4ab6f40403572c96b281fae646896073c4054c14dcb7ee9c296a207f578"
+    },
+    {
+      "id": "MX-10",
+      "path": "docs/verification/remaining-lifecycle-optimization.md#mx-10-final-closeout",
+      "plan": "docs/plans/remaining-lifecycle-optimization.md#mx-10-final-closeout",
+      "completed": true,
+      "qualification": "Four actual Git/Unity trials, one before/final pair per endpoint. Apply shorter by 12.19888250s/3.60363059%; discard longer by 4.63131850s/1.64287980%. No large whole-time or individual causal benefit. Original Editor not run; every Library restore unchanged-root/sequence0, so MX05 changed-Library paths unselected.",
+      "endpoints": [
+        {
+          "endpoint": "apply",
+          "beforeLabel": "01-apply-before",
+          "finalLabel": "02-apply-final",
+          "beforeSeconds": 338.51645459991414,
+          "finalSeconds": 326.3175720999716,
+          "secondsSaved": 12.19888249994254,
+          "percentSaved": 3.60363058698584,
+          "observationsPerVariant": 1,
+          "interpretation": "Positive means shorter final observation; a single matched pair is not a causal estimate."
+        },
+        {
+          "endpoint": "discard",
+          "beforeLabel": "03-discard-before",
+          "finalLabel": "04-discard-final",
+          "beforeSeconds": 281.90245509997476,
+          "finalSeconds": 286.5337736000074,
+          "secondsSaved": -4.63131850003264,
+          "percentSaved": -1.6428798033667975,
+          "observationsPerVariant": 1,
+          "interpretation": "Positive means shorter final observation; a single matched pair is not a causal estimate."
+        }
+      ],
+      "analysisSha256": "42cc1a5d85e2f9a534417f2576da9652c8e8370d4dc8694b9b5f3703492c0293",
+      "gateSha256": "1ac7e98bd11807b9163bca3480bf0e2c0992dc9ae675a9a2222d7f65789c7761",
+      "runtimeManifestSha256": "5866b47485b9ff3cbdb1d32f7f55326e860bef404f661fbd3fcca911ec87906d",
+      "serverRestorationSha256": "7a617e0c6223207c1256caaf1b60745af057b1649616b4bed3a4f2757b442134",
+      "finalGate": {
+        "total": 2000,
+        "passed": 1966,
+        "failed": 0,
+        "conditionalSkipped": 34,
+        "testLogSeconds": 586.195,
+        "earlierCostExperimentsRerun": false
+      },
+      "sourceFileCount": 313,
+      "runtimeFileCount": 45,
+      "runtimeMatchesFrozenMX08A": true,
+      "externalServerAndSettingsRestored": true
     }
   ],
   "sourceRefs": [
@@ -1049,7 +1168,7 @@
         },
         {
           "path": "src/Splinter.Platform.Windows/OwnedDirectorySnapshot.cs",
-          "sha256": "7e063750c513e62f668344dadc4abe3844dc1e7202e138bd3d028914cacd9628",
+          "sha256": "5259209192b4a75242fddbb07de37df0abc7549d17f93de361a32c791ffaa53e",
           "symbols": [
             {
               "name": "CaptureCancellable",
@@ -1062,6 +1181,12 @@
               "name": "VerifyContents",
               "lineHints": [
                 86
+              ]
+            },
+            {
+              "name": "TransferRootToRestore",
+              "lineHints": [
+                201
               ]
             }
           ]
@@ -1372,7 +1497,7 @@
       "files": [
         {
           "path": "src/Splinter.Runtime/JournalDeltaStore.cs",
-          "sha256": "bd165de82134e6acb87a101437ef5fd477eee1521aaba49c38099e430bc33582",
+          "sha256": "0ab09679f83b378879c68c5b972fab7934f29b3594089a6df26e866df00aa2e4",
           "symbols": [
             {
               "name": "Read",
@@ -1395,13 +1520,19 @@
             {
               "name": "Commit",
               "lineHints": [
-                712
+                735
               ]
             },
             {
               "name": "Flush",
               "lineHints": [
-                501
+                524
+              ]
+            },
+            {
+              "name": "SetLengthAndMetadata",
+              "lineHints": [
+                464
               ]
             }
           ]
@@ -1425,38 +1556,44 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/WinFspOverlayFileSystem.cs",
-          "sha256": "5f86e37e7f394ba181ba6f7433e0f9a913c3e88bab57244f3ed3676e7cb515c5",
+          "sha256": "135c8f4ffc4cba14e06e13c134d9e01e8c50b6ae6a527fe12c5d3485633be665",
           "symbols": [
             {
               "name": "Read",
               "lineHints": [
                 26,
                 27,
-                160
+                159
               ]
             },
             {
               "name": "Write",
               "lineHints": [
-                176
+                175
               ]
             },
             {
               "name": "Flush",
               "lineHints": [
-                191
+                190
               ]
             },
             {
               "name": "Cleanup",
               "lineHints": [
-                139
+                138
               ]
             },
             {
               "name": "Close",
               "lineHints": [
-                146
+                145
+              ]
+            },
+            {
+              "name": "Overwrite",
+              "lineHints": [
+                125
               ]
             }
           ]
@@ -1619,12 +1756,30 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs",
-          "sha256": "43aca9efd333dad6cc557f62fd9521e4375dd96b73cdc26605a79ae010584a8b",
+          "sha256": "0ec685a84ff861eca3dd51fc5fd4a834a563ad90830e9f3430f06b4b9e7d72fe",
           "symbols": [
             {
               "name": "Publish",
               "lineHints": [
                 35
+              ]
+            },
+            {
+              "name": "MoveOwnedEntry",
+              "lineHints": [
+                415
+              ]
+            },
+            {
+              "name": "CreateOwnedFile",
+              "lineHints": [
+                442
+              ]
+            },
+            {
+              "name": "CreateOwnedDirectory",
+              "lineHints": [
+                441
               ]
             }
           ]
@@ -1891,12 +2046,18 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs",
-          "sha256": "b942f9c63d5b680ffe0e0382d1d3581b51c11444fc925d1dbb3da961b6aba420",
+          "sha256": "a6beea1523eb9cc3e7cb255c5e2693074b880a284684d52dab2ef46baf16964c",
           "symbols": [
             {
               "name": "ExecuteAsync",
               "lineHints": [
                 23
+              ]
+            },
+            {
+              "name": "CursorBatchSize",
+              "lineHints": [
+                19
               ]
             }
           ]
@@ -2015,19 +2176,43 @@
         },
         {
           "path": "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs",
-          "sha256": "837b87c8b5bbadb41323c73fc29428d55c87cce665ca3b7354d18f0d66fb74c0",
+          "sha256": "3fadfcf2c5471c0638ab80cc08e0bf6cc4e1a6cd958691c4eed3544076b31bbd",
           "symbols": [
             {
               "name": "Move",
               "lineHints": [
-                71,
-                73
+                77,
+                79
               ]
             },
             {
               "name": "Delete",
               "lineHints": [
-                98
+                143
+              ]
+            },
+            {
+              "name": "MoveRelative",
+              "lineHints": [
+                101
+              ]
+            },
+            {
+              "name": "CreateFile",
+              "lineHints": [
+                153
+              ]
+            },
+            {
+              "name": "CreateDirectory",
+              "lineHints": [
+                175
+              ]
+            },
+            {
+              "name": "PinDirectoryAgainstDataWrites",
+              "lineHints": [
+                121
               ]
             }
           ]
@@ -2090,12 +2275,18 @@
         },
         {
           "path": "src/Splinter.Runtime/SourceViewDeltaStore.cs",
-          "sha256": "90c018322ab1ae394445afb47f9a95dfbc55526b639399c4a59ac7dc7136955e",
+          "sha256": "25013c4109f28d6f17f6fb8c587f12590de8f37965b8015d6219658b701dea40",
           "symbols": [
             {
               "name": "ReadWriteAccounting",
               "lineHints": [
                 152
+              ]
+            },
+            {
+              "name": "SetLengthAndMetadata",
+              "lineHints": [
+                161
               ]
             }
           ]
@@ -2208,11 +2399,212 @@
           ]
         }
       ]
+    },
+    {
+      "id": "K29",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/ManagedRootDeltaDirectoryRestore.cs",
+          "sha256": "5026eaee0674fabfcafbab7e6dce093a61a2dfb31773f681f4f30717559909d6",
+          "symbols": [
+            {
+              "name": "Eligible",
+              "lineHints": [
+                46
+              ]
+            },
+            {
+              "name": "CreateAsync",
+              "lineHints": [
+                88
+              ]
+            },
+            {
+              "name": "ResumeAsync",
+              "lineHints": [
+                124
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K30",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/ManagedTopologyDirectoryRestore.cs",
+          "sha256": "60f75751aa34ea2de3ddd684997412ca28ecbb27d1feee3eb419ce2b793d1a3a",
+          "symbols": [
+            {
+              "name": "Eligible",
+              "lineHints": [
+                40
+              ]
+            },
+            {
+              "name": "PreferFresh",
+              "lineHints": [
+                52
+              ]
+            },
+            {
+              "name": "CreateAsync",
+              "lineHints": [
+                61
+              ]
+            },
+            {
+              "name": "ResumeAsync",
+              "lineHints": [
+                89
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/ManagedRestoreTopology.cs",
+          "sha256": "0de0a3958be652e7e223fac4d52bec2ffb8572bb64fe345b849f5afcb0a5f9fb",
+          "symbols": [
+            {
+              "name": "Build",
+              "lineHints": [
+                25
+              ]
+            },
+            {
+              "name": "Inventory",
+              "lineHints": [
+                89
+              ]
+            },
+            {
+              "name": "ForestPins",
+              "lineHints": [
+                132,
+                139
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K31",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/ManagedRestoreControlFiles.cs",
+          "sha256": "97c330c7dadf8683c6197892ebf3d0da1338a9851068ca556fab9f82ea484627",
+          "symbols": [
+            {
+              "name": "IsPublicationTemporary",
+              "lineHints": [
+                9
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/WindowsDirectoryTreeProof.cs",
+          "sha256": "173c59df24f4d4fb9ad4a9375ba342043e23bb935bb8986097d211d75aa0730b",
+          "symbols": [
+            {
+              "name": "PinDirectory",
+              "lineHints": [
+                34
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/WindowsOwnedDirectoryLease.cs",
+          "sha256": "9011e34e1ff39903dd39d5be36c1b1ee3f2e9228e6c65685b894abc252b64e8b",
+          "symbols": [
+            {
+              "name": "TransferToRestore",
+              "lineHints": [
+                54
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "maintenance": "Update both languages and this index after lifecycle/ownership/durability/default/result/reclamation changes; retain the exact base commit and source hashes, and refresh line hints from reviewed source contents.",
-  "sourceRevisionKind": "committed-source",
-  "sourceChanges": [],
+  "sourceRevisionKind": "uncommitted-working-tree",
+  "sourceChanges": [
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs",
+      "change": "modified",
+      "sha256": "a6beea1523eb9cc3e7cb255c5e2693074b880a284684d52dab2ef46baf16964c"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs",
+      "change": "modified",
+      "sha256": "3fadfcf2c5471c0638ab80cc08e0bf6cc4e1a6cd958691c4eed3544076b31bbd"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/OwnedDirectorySnapshot.cs",
+      "change": "modified",
+      "sha256": "5259209192b4a75242fddbb07de37df0abc7549d17f93de361a32c791ffaa53e"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WindowsDirectoryTreeProof.cs",
+      "change": "modified",
+      "sha256": "173c59df24f4d4fb9ad4a9375ba342043e23bb935bb8986097d211d75aa0730b"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs",
+      "change": "modified",
+      "sha256": "0ec685a84ff861eca3dd51fc5fd4a834a563ad90830e9f3430f06b4b9e7d72fe"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WindowsOwnedDirectoryLease.cs",
+      "change": "modified",
+      "sha256": "9011e34e1ff39903dd39d5be36c1b1ee3f2e9228e6c65685b894abc252b64e8b"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedRestoreControlFiles.cs",
+      "change": "added-untracked",
+      "sha256": "97c330c7dadf8683c6197892ebf3d0da1338a9851068ca556fab9f82ea484627"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedRestoreTopology.cs",
+      "change": "added-untracked",
+      "sha256": "0de0a3958be652e7e223fac4d52bec2ffb8572bb64fe345b849f5afcb0a5f9fb"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedRootDeltaDirectoryRestore.cs",
+      "change": "added-untracked",
+      "sha256": "5026eaee0674fabfcafbab7e6dce093a61a2dfb31773f681f4f30717559909d6"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedTopologyDirectoryRestore.cs",
+      "change": "added-untracked",
+      "sha256": "60f75751aa34ea2de3ddd684997412ca28ecbb27d1feee3eb419ce2b793d1a3a"
+    },
+    {
+      "path": "src/Splinter.Core/SnapshotOverlay.cs",
+      "change": "modified",
+      "sha256": "a4d84319586962d3c2b36520a9f077878299520354e3db15f6f644f61c03ba8e"
+    },
+    {
+      "path": "src/Splinter.Runtime/JournalDeltaStore.cs",
+      "change": "modified",
+      "sha256": "0ab09679f83b378879c68c5b972fab7934f29b3594089a6df26e866df00aa2e4"
+    },
+    {
+      "path": "src/Splinter.Runtime/SourceViewDeltaStore.cs",
+      "change": "modified",
+      "sha256": "25013c4109f28d6f17f6fb8c587f12590de8f37965b8015d6219658b701dea40"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WinFspOverlayFileSystem.cs",
+      "change": "modified",
+      "sha256": "135c8f4ffc4cba14e06e13c134d9e01e8c50b6ae6a527fe12c5d3485633be665"
+    }
+  ],
   "diagnostics": {
     "write": {
       "enableAtProviderLaunch": "SPLINTER_WRITE_DIAGNOSTICS=1",
@@ -2245,5 +2637,76 @@
       ],
       "interpretation": "Read-only exact-owned capture to new evidence paths; bounded per-file observations, not atomic Library state, compile proof, automatic startup stopwatch or new Unity qualification. Capture overhead is separate."
     }
+  },
+  "qualificationStatus": "MX01-10-complete; MX05A-B2-and-MX08A-adopted; other-candidates-not-adopted; final-full-gate-and-actual-apply-discard-complete; no-large-whole-time-gain-established",
+  "sourceSnapshotHistory": [
+    {
+      "inspectedDate": "2026-10-28",
+      "sourceCommit": "24956f4975a8c9ae57a21f4c52a656b9f8b51ea3",
+      "qualificationStatus": "MX05-adopted-ordinary-NTFS-component-qualified-no-whole-Unity-qualification",
+      "indexSha256": "606dc3f05ab29d7fcfed2a1694d16bf2de06dea2feeea3a5b81eac7f894bbe86",
+      "sourceChangesCount": 10,
+      "preservedEvidenceIds": [
+        "BO-01-05",
+        "PR-01-04",
+        "RT-01-04",
+        "WP-01-05",
+        "RW-01-05",
+        "WC-01-05",
+        "LT-01-04",
+        "LU-01",
+        "SD-01",
+        "DF-01-05",
+        "BD-01",
+        "GR-01-03",
+        "MX-05"
+      ]
+    },
+    {
+      "inspectedDate": "2026-10-29",
+      "sourceCommit": "24956f4975a8c9ae57a21f4c52a656b9f8b51ea3",
+      "qualificationStatus": "MX05-adopted-component-qualified; MX08A-provisional; MX08B-removed; MX09-implementation-and-local-correctness-complete-performance-adoption-whole-qualification-pending; MX10-last",
+      "indexSha256": "7ee976fbac461e2de3953a1cdf04fb946635ca56c2c65af646dde1fd09f2545e",
+      "sourceChangesCount": 20,
+      "candidateManifest": "artifacts/remaining-optimization-20261028/mx09-local-final/manifest.json",
+      "candidateManifestSha256": "b03df13197a7bdd7e284509fa81806f042c5731e5f02c4176abf1f935d0c4260",
+      "reason": "MX09 rejected and removed; previous current source snapshot preserved in closeout backup"
+    },
+    {
+      "inspectedDate": "2026-10-29",
+      "sourceCommit": "24956f4975a8c9ae57a21f4c52a656b9f8b51ea3",
+      "qualificationStatus": "MX05-adopted-component-qualified; MX08A-provisional; MX08B-removed; MX09-measured-rejected-removed; MX10-and-current-combination-full-gate-pending",
+      "indexSha256": "422d4992394016c4eb55c695f33b919275231dfb4178e9c8f1626817521bb0a2",
+      "sourceChangesCount": 14,
+      "reason": "Status before final gate/MX10 closeout; source hashes unchanged."
+    }
+  ],
+  "historicalEvidenceStatusScope": "Earlier evidence qualifications preserve status at their recorded point; finalQualification and MX-10 evidence own final program status.",
+  "finalQualification": {
+    "programCompleted": true,
+    "adopted": [
+      "MX05A",
+      "MX05B2-publication-count-guard",
+      "MX08A"
+    ],
+    "notAdopted": [
+      "MX02",
+      "MX03A",
+      "MX03B",
+      "MX04",
+      "MX06",
+      "MX07A",
+      "MX07B",
+      "MX08B",
+      "MX09"
+    ],
+    "diagnosticOnly": [
+      "MX01"
+    ],
+    "wholeLargePerformanceGainEstablished": false,
+    "individualCausalGainEstablished": false,
+    "sourceSnapshotStillUncommitted": true,
+    "wholeComparison": "MX-10",
+    "externalServerAndSettingsRestored": true
   }
 }
