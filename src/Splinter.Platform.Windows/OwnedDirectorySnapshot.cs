@@ -198,7 +198,7 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
         if (JournalDeltaStore.Normalize(path) != path) throw new WorkspaceException("GeneratedBasisCorrupt", "Invalid manifest path.");
         string result = Path.Combine(Snapshot.RootPath, path.Replace('/', Path.DirectorySeparatorChar)); WorkspaceStore.EnsurePlainPath(result); return result;
     }
-    internal SafeFileHandle TransferRootToRestore(Action? rootUnpinned = null)
+    internal SafeFileHandle TransferRootToRestore(Action? rootUnpinned = null, bool allowChildMutations = false)
     {
         lock (gate)
         {
@@ -210,7 +210,7 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
                 while (activeReads != 0) Monitor.Wait(gate);
                 ObjectDisposedException.ThrowIf(closing || disposed, this);
                 if (readFailure is not null) throw new WorkspaceException("SnapshotReadFailed", "A generated-basis read failed before restoration.");
-                return directoryLease.TransferToRestore(rootUnpinned);
+                return directoryLease.TransferToRestore(rootUnpinned, allowChildMutations);
             }
             catch (Exception ex) { readFailure ??= ex; throw; }
             finally { handingOff = false; Monitor.PulseAll(gate); }

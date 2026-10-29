@@ -129,11 +129,17 @@ public sealed class UnchangedDirectoryRestoreTests
     [Theory]
     [InlineData(false, true)]
     [InlineData(true, false)]
-    public async Task OtherJournalsAndAnyMutationKeepGeneralRestore(bool optimized, bool unchanged)
+    public async Task AppendJournalAndSmallFreshTopologyKeepTheGeneralRestore(bool optimized, bool unchanged)
     {
         using var f = new Fixture(2, optimized, unchangedDirectory: unchanged);
-        int moves = 0; await f.Restore(stage => { if (stage == "file.after-move") moves++; });
-        Assert.Equal(2, moves); Assert.False(File.Exists(Path.Combine(f.Root, "restore-directory-plan.json"))); f.AssertRestored();
+        int moves = 0, rootMoves = 0;
+        await f.Restore(stage => { if (stage == "file.after-move") moves++; if (stage == "topology.after-root-move") rootMoves++; });
+        // The changed input has F=2/G=1. One new directory needs both a
+        // topology cursor and an identity receipt, exceeding that budget.
+        Assert.Equal(2, moves); Assert.Equal(0, rootMoves);
+        Assert.False(File.Exists(Path.Combine(f.Root, "restore-topology-plan.json")));
+        Assert.True(File.Exists(Path.Combine(f.Root, "restore-plan.json")));
+        Assert.False(File.Exists(Path.Combine(f.Root, "restore-directory-plan.json"))); f.AssertRestored();
     }
 
     [Fact]

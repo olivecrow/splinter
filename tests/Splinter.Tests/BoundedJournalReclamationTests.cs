@@ -140,9 +140,9 @@ public sealed class BoundedJournalReclamationTests
     }
 
     [Fact]
-    public async Task ChangedBoundedLibraryUsesGeneralRestoreAndExactReclamation()
+    public async Task ExistingChangedBoundedLibraryPlanKeepsGeneralRestoreAndExactReclamation()
     {
-        using var f = new RestoreFixture(3, true, rename: true, bounded: true);
+        using var f = new RestoreFixture(3, true, rename: true, bounded: true, existingGeneralPlan: true);
         int files = 0; await f.Restore(at => { if (at == "file.after-move") files++; });
         Assert.Equal(3, files); f.AssertRestored();
         Assert.False(File.Exists(Path.Combine(f.Root, "restore-directory-plan.json")));
@@ -183,7 +183,7 @@ public sealed class BoundedJournalReclamationTests
     [InlineData(true)]
     public async Task GeneralRestoreRejectsAReceiptFromTheOtherJournalMode(bool bounded)
     {
-        using var f = new RestoreFixture(2, true, rename: true, bounded: bounded);
+        using var f = new RestoreFixture(2, true, rename: true, bounded: bounded, existingGeneralPlan: true);
         // Establish a genuine general-plan retry before introducing another
         // mode's receipt. Orphan receipts are rejected earlier by routing.
         bool interrupted = false;

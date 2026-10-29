@@ -409,6 +409,65 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
         public void Dispose() { foreach (var h in handles.Values) h.Dispose(); handles.Clear(); }
     }
 
+    // Resolve the destination leaf from an already verified ordinary parent,
+    // without traversing its mutable absolute name again. The caller retains
+    // both identities and checks parent type/path before and after publication.
+    internal static void MoveOwnedEntry(SafeFileHandle source, SafeFileHandle parent, string leaf)
+    {
+        if (string.IsNullOrEmpty(leaf) || leaf is "." or ".." || leaf.IndexOfAny(['/', '\\', ':']) >= 0)
+            throw new WorkspaceException("GeneratedRestoreConflict", "Invalid topology destination leaf.");
+        byte[] name = Encoding.Unicode.GetBytes(leaf);
+        int rootOffset = IntPtr.Size == 8 ? 8 : 4, lengthOffset = rootOffset + IntPtr.Size, nameOffset = lengthOffset + 4;
+        int size = nameOffset + name.Length + 8;
+        IntPtr buffer = Marshal.AllocHGlobal(size); bool parentRef = false;
+        try
+        {
+            parent.DangerousAddRef(ref parentRef);
+            Marshal.WriteInt32(buffer, 0, 0); // ReplaceIfExists = false.
+            Marshal.WriteIntPtr(buffer, rootOffset, parent.DangerousGetHandle());
+            Marshal.WriteInt32(buffer, lengthOffset, name.Length);
+            Marshal.Copy(name, 0, buffer + nameOffset, name.Length);
+            Marshal.WriteInt64(buffer, nameOffset + name.Length, 0);
+            // FILE_RENAME_INFORMATION: exact RootDirectory + one leaf name.
+            // https://learn.microsoft.com/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_rename_information
+            int status = NtSetInformationFile(source, out _, buffer, (uint)size, 10);
+            if (status < 0) throw new WorkspaceException("GeneratedRestoreConflict", "Cannot publish the topology entry into its pinned parent.", new { nativeError = RtlNtStatusToDosError(status) });
+        }
+        finally { if (parentRef) parent.DangerousRelease(); Marshal.FreeHGlobal(buffer); }
+    }
+
+    // The restoration caller owns and validates the ordinary parent handle.
+    // The returned handle is the newly created identity, not a path reopen.
+    internal static SafeFileHandle CreateOwnedDirectory(SafeFileHandle parent, string leaf) => CreateOwnedEntry(parent, leaf, directory: true);
+    internal static SafeFileHandle CreateOwnedFile(SafeFileHandle parent, string leaf) => CreateOwnedEntry(parent, leaf, directory: false);
+    private static SafeFileHandle CreateOwnedEntry(SafeFileHandle parent, string leaf, bool directory)
+    {
+        if (string.IsNullOrEmpty(leaf) || leaf is "." or ".." || leaf.IndexOfAny(['/', '\\', ':']) >= 0)
+            throw new WorkspaceException("GeneratedRestoreConflict", "Invalid owned-entry leaf.");
+        bool parentRef = false;
+        IntPtr text = Marshal.StringToHGlobalUni(leaf), unicode = IntPtr.Zero;
+        try
+        {
+            parent.DangerousAddRef(ref parentRef);
+            var name = new UnicodeString { Length = checked((ushort)(leaf.Length * 2)), MaximumLength = checked((ushort)(leaf.Length * 2)), Buffer = text };
+            unicode = Marshal.AllocHGlobal(Marshal.SizeOf<UnicodeString>()); Marshal.StructureToPtr(name, unicode, false);
+            var attributes = new ObjectAttributes { Length = Marshal.SizeOf<ObjectAttributes>(), RootDirectory = parent.DangerousGetHandle(), ObjectName = unicode, Attributes = 0x40 };
+            // Directories: LIST_DIRECTORY | READ/WRITE_ATTRIBUTES | DELETE |
+            // SYNCHRONIZE, SHARE_READ. Files: GENERIC_READ | GENERIC_WRITE |
+            // SYNCHRONIZE, no sharing. Both exclusively FILE_CREATE with
+            // SYNCHRONOUS_NONALERT | OPEN_REPARSE and an exact type constraint.
+            int status = NtCreateFile(out var handle, directory ? 0x00110181u : 0xC0100000u, ref attributes, out var io, IntPtr.Zero,
+                directory ? 16u : 128u, directory ? 1u : 0u, 2, directory ? 0x00200021u : 0x00200060u, IntPtr.Zero, 0);
+            if (status < 0 || io.Information != (IntPtr)2)
+            {
+                handle?.Dispose();
+                throw new WorkspaceException("GeneratedRestoreConflict", "Cannot exclusively create the owned entry.", new { nativeError = RtlNtStatusToDosError(status) });
+            }
+            return handle;
+        }
+        finally { if (parentRef) parent.DangerousRelease(); if (unicode != IntPtr.Zero) Marshal.FreeHGlobal(unicode); Marshal.FreeHGlobal(text); }
+    }
+
     [StructLayout(LayoutKind.Sequential)] private struct NativeTime { public uint Low, High; }
     [StructLayout(LayoutKind.Sequential)] private struct Info { public uint Attributes; public NativeTime Creation, Access, Write; public uint Volume, SizeHigh, SizeLow, Links, IndexHigh, IndexLow; }
     [StructLayout(LayoutKind.Sequential)] private struct BasicInfo { public long Creation, Access, Write, Change; public uint Attributes; }

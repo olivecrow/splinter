@@ -23,10 +23,13 @@ public sealed class ManagedDirectoryRestoreTests
         using var fixture = new Fixture(); bool interrupted = false;
         if (optimized)
         {
-            using var tree = new OwnedDirectorySnapshotTree(new OwnedDirectorySnapshotProvider(fixture.State.Basis.ReceiptDirectory,
-                fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot), fixture.State.Basis.Snapshot);
+            var manifest = new OwnedDirectorySnapshotProvider(fixture.State.Basis.ReceiptDirectory,
+                fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot);
+            using var tree = new OwnedDirectorySnapshotTree(manifest, fixture.State.Basis.Snapshot);
             JournalDeltaStore.CompactDirectory(fixture.Request.DeltaPath, fixture.Request.Identity, tree, revertBaseRanges: true);
             JournalDeltaStore.CompleteCompaction(fixture.Request.DeltaPath, fixture.Request.Identity);
+            using var stopped = JournalDeltaStore.OpenReadOnly(fixture.Request.DeltaPath, fixture.Request.Identity, tree);
+            ManagedDirectoryRestoreOptimizationTests.SeedGeneralPlan(fixture.State, fixture.Request, manifest, stopped);
         }
         if (interruption is not null)
         {

@@ -16,7 +16,7 @@ internal static class ManagedDirectoryRestore
     private sealed record RestoreCursor(string PlanHash, int CompletedFiles, bool FilesVerified = false);
     private sealed record FileReceipt(int Version, string PlanHash, Guid EntryId, string Identity);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    private const int CursorBatchSize = 128;
+    internal const int CursorBatchSize = 128;
     private static bool Unchanged(DeltaRestoreEntry delta, OwnedDirectoryItem? original) =>
         delta.Entry.BasePath is not null && delta.Ranges.Length == 0 && original?.Hash is not null &&
         delta.Entry.BaseLength == delta.Entry.Length && delta.Entry.Length == original.Entry.Length;
@@ -29,9 +29,21 @@ internal static class ManagedDirectoryRestore
             BoundedJournalReclamation.HasIntent(Path.Combine(root, "bounded-restore-delta-reclaim.bin")) ||
             Directory.EnumerateFileSystemEntries(root, "restore-file-*.json").Any();
         bool generalEvidence = File.Exists(planPath) || File.Exists(cursorPath) || generalSideRecords;
-        bool unchangedPlan = ManagedUnchangedDirectoryRestore.HasPlan(root), sparsePlan = ManagedSparseDirectoryRestore.HasPlan(root);
-        if (unchangedPlan && sparsePlan) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting directory restore modes.");
+        bool unchangedPlan = ManagedUnchangedDirectoryRestore.HasPlan(root), sparsePlan = ManagedSparseDirectoryRestore.HasPlan(root),
+            rootDeltaPlan = ManagedRootDeltaDirectoryRestore.HasPlan(root), topologyPlan = ManagedTopologyDirectoryRestore.HasPlan(root);
+        if ((unchangedPlan ? 1 : 0) + (sparsePlan ? 1 : 0) + (rootDeltaPlan ? 1 : 0) + (topologyPlan ? 1 : 0) > 1)
+            throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting directory restore modes.");
         if (generalSideRecords && !File.Exists(planPath)) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve general restore receipts without their plan.");
+        if (topologyPlan)
+        {
+            if (generalEvidence) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting restore modes.");
+            await ManagedTopologyDirectoryRestore.ResumeAsync(state, request, manifest, ct, boundary); return;
+        }
+        if (rootDeltaPlan)
+        {
+            if (generalEvidence) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting restore modes.");
+            await ManagedRootDeltaDirectoryRestore.ResumeAsync(state, request, manifest, ct, boundary); return;
+        }
         if (sparsePlan)
         {
             if (generalEvidence) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting restore modes.");
@@ -82,6 +94,17 @@ internal static class ManagedDirectoryRestore
                 if (savedCursor is null && ManagedSparseDirectoryRestore.Eligible(state, request, manifest, entries))
                 {
                     await ManagedSparseDirectoryRestore.CreateAsync(state, request, manifest, seal, entries, basis, journal, ct, boundary);
+                    return;
+                }
+                if (savedCursor is null && ManagedRootDeltaDirectoryRestore.Eligible(state, request, manifest, entries))
+                {
+                    await ManagedRootDeltaDirectoryRestore.CreateAsync(state, request, manifest, seal, entries, basis, journal, ct, boundary);
+                    return;
+                }
+                if (savedCursor is null && ManagedTopologyDirectoryRestore.Eligible(state, request, manifest, entries) &&
+                    ManagedTopologyDirectoryRestore.PreferFresh(manifest, entries))
+                {
+                    await ManagedTopologyDirectoryRestore.CreateAsync(state, request, manifest, seal, entries, basis, journal, ct, boundary);
                     return;
                 }
                 var files = new List<RestoreFile>(); byte[] buffer = new byte[1024 * 1024];

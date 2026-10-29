@@ -31,11 +31,11 @@ internal sealed class WindowsDirectoryTreeProof : IDisposable
         return relative.Length == 0 ? root : Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar));
     }
 
-    internal SafeFileHandle PinDirectory(string relative)
+    internal SafeFileHandle PinDirectory(string relative, bool moving = false)
     {
         string path = Resolve(relative);
         if (directories.TryGetValue(path, out var existing)) return existing;
-        var handle = ManagedRestoreFileAccess.DirectoryHandle(path, proof: this, metadataWrite: metadataWrite);
+        var handle = ManagedRestoreFileAccess.DirectoryHandle(path, moving: moving, proof: this, metadataWrite: metadataWrite);
         try { directories.Add(path, handle); return handle; }
         catch { handle.Dispose(); throw; }
     }

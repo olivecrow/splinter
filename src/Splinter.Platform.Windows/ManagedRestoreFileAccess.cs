@@ -13,7 +13,8 @@ namespace Splinter.Platform.Windows;
 internal sealed class ManagedRestoreFileAccess : IDisposable
 {
     private readonly List<SafeFileHandle> parents = [];
-    internal ManagedRestoreFileAccess(params string[] files)
+    internal ManagedRestoreFileAccess(params string[] files) : this(null, null, files) { }
+    internal ManagedRestoreFileAccess(SafeFileHandle? fixedRoot, string? fixedRootPath, params string[] files)
     {
         var directories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string file in files)
@@ -22,6 +23,11 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         {
             foreach (string path in directories.OrderBy(p => p.Length))
             {
+                if (fixedRoot is not null && WorkspaceStore.SamePath(path, fixedRootPath!))
+                {
+                    _ = SnapshotInputChecks.FileIdentity(fixedRoot, directory: true);
+                    WindowsOwnedDirectoryLease.RequirePath(fixedRoot, path); continue;
+                }
                 // Ancestors are already pinned, root first. Open this component
                 // without following reparses and validate its handle attributes.
                 // Include FILE_LIST_DIRECTORY so Windows enforces sharing;
@@ -89,6 +95,45 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         }
         finally { Marshal.FreeHGlobal(buffer); }
     }
+    // Topology can temporarily empty a mutable destination directory. Resolve
+    // only the leaf against its exact handle so a concurrent reparse cannot
+    // redirect an absolute target through a different directory tree.
+    internal static void MoveRelative(SafeFileHandle source, string target, SafeFileHandle? fixedParent = null, Action? beforeRename = null)
+    {
+        WorkspaceStore.EnsurePlainPath(target);
+        string parentPath = Path.GetDirectoryName(Path.GetFullPath(target))!;
+        using var opened = fixedParent is null ? DirectoryHandle(parentPath, metadataWrite: false, allowChildMutations: true) : null;
+        var parent = fixedParent ?? opened!;
+        string identity = SnapshotInputChecks.FileIdentity(parent, directory: true);
+        WindowsOwnedDirectoryLease.RequirePath(parent, parentPath);
+        beforeRename?.Invoke();
+        WindowsOriginalFilePublisher.MoveOwnedEntry(source, parent, Path.GetFileName(target));
+        if (SnapshotInputChecks.FileIdentity(parent, directory: true) != identity)
+            throw new WorkspaceException("GeneratedRestoreConflict", "The topology publication parent changed.");
+        WindowsOwnedDirectoryLease.RequirePath(parent, parentPath);
+        WindowsOwnedDirectoryLease.RequirePath(source, target);
+    }
+    // The owner excludes share-delete while this companion denies data-write
+    // and GENERIC_WRITE opens. Attribute-only access is not share-controlled:
+    // reparse changes still require parent-relative effects and current type/
+    // path checks to contain or refuse them. Sharing DELETE here admits the
+    // already-held moving owner, whose own no-share-delete fence remains live.
+    internal static SafeFileHandle PinDirectoryAgainstDataWrites(string path, SafeFileHandle owner)
+    {
+        string identity = SnapshotInputChecks.FileIdentity(owner, directory: true);
+        WindowsOwnedDirectoryLease.RequirePath(owner, path);
+        var handle = OpenHandle(path, 0x81, directory: true, share: 5);
+        try
+        {
+            if (SnapshotInputChecks.FileIdentity(handle, directory: true) != identity ||
+                SnapshotInputChecks.FileIdentity(owner, directory: true) != identity)
+                throw new WorkspaceException("GeneratedRestoreConflict", "The topology root changed while fixing its final lifetime.");
+            WindowsOwnedDirectoryLease.RequirePath(handle, path);
+            WindowsOwnedDirectoryLease.RequirePath(owner, path);
+            return handle;
+        }
+        catch { handle.Dispose(); throw; }
+    }
     internal static void Metadata(FileStream file, uint attributes, long created, long accessed, long written) =>
         SetBasic(file.SafeFileHandle, new() { Creation = created, Access = accessed, Write = written, Attributes = attributes });
     internal static void Metadata(SafeFileHandle handle, SnapshotEntry entry) =>
@@ -102,10 +147,66 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         try { Marshal.WriteInt32(buffer, 1); Check(SetFileInformationByHandle(file.SafeFileHandle, 4, buffer, 4)); }
         finally { Marshal.FreeHGlobal(buffer); }
     }
-    internal static SafeFileHandle DirectoryHandle(string path, bool moving = false, WindowsDirectoryTreeProof? proof = null, bool metadataWrite = true)
+    // Keep new-file creation rooted in the verified parent even if that empty
+    // directory acquires a reparse after the check. Failure closes the returned
+    // handle only: an entry without a durable identity receipt stays preserved.
+    internal static FileStream CreateFile(string path, SafeFileHandle? fixedParent = null, Action? beforeCreate = null)
+    {
+        WorkspaceStore.EnsurePlainPath(path);
+        string parentPath = Path.GetDirectoryName(Path.GetFullPath(path))!;
+        using var opened = fixedParent is null ? DirectoryHandle(parentPath, metadataWrite: false) : null;
+        var parent = fixedParent ?? opened!;
+        string parentIdentity = SnapshotInputChecks.FileIdentity(parent, directory: true);
+        WindowsOwnedDirectoryLease.RequirePath(parent, parentPath);
+        beforeCreate?.Invoke();
+        var handle = WindowsOriginalFilePublisher.CreateOwnedFile(parent, Path.GetFileName(path));
+        try
+        {
+            if (SnapshotInputChecks.FileIdentity(parent, directory: true) != parentIdentity)
+                throw new WorkspaceException("GeneratedRestoreConflict", "The new-file parent changed.");
+            WindowsOwnedDirectoryLease.RequirePath(parent, parentPath);
+            _ = SnapshotInputChecks.FileIdentity(handle); WindowsOwnedDirectoryLease.RequirePath(handle, path);
+            return new FileStream(handle, FileAccess.ReadWrite);
+        }
+        catch { handle.Dispose(); throw; }
+    }
+    // NtCreateFile returns the handle of the directory it exclusively created.
+    // CreateDirectory followed by Open would leave an unowned replacement gap.
+    internal static SafeFileHandle CreateDirectory(string path, SafeFileHandle? fixedParent = null, Action? beforeCreate = null)
+    {
+        WorkspaceStore.EnsurePlainPath(path);
+        string parentPath = Path.GetDirectoryName(Path.GetFullPath(path))!;
+        using var opened = fixedParent is null ? DirectoryHandle(parentPath, metadataWrite: false) : null;
+        var parent = fixedParent ?? opened!;
+        string parentIdentity = SnapshotInputChecks.FileIdentity(parent, directory: true); WindowsOwnedDirectoryLease.RequirePath(parent, parentPath);
+        beforeCreate?.Invoke();
+        var handle = WindowsOriginalFilePublisher.CreateOwnedDirectory(parent, Path.GetFileName(path));
+        try
+        {
+            if (SnapshotInputChecks.FileIdentity(parent, directory: true) != parentIdentity)
+                throw new WorkspaceException("GeneratedRestoreConflict", "The new-directory parent changed.");
+            WindowsOwnedDirectoryLease.RequirePath(parent, parentPath);
+            _ = SnapshotInputChecks.FileIdentity(handle, directory: true); WindowsOwnedDirectoryLease.RequirePath(handle, path); return handle;
+        }
+        catch { handle.Dispose(); throw; }
+    }
+    // Caller pins and proves the exact remaining empty directory membership.
+    // Native disposition also refuses a nonempty directory; no recursive unlink.
+    internal static void DeleteDirectory(SafeFileHandle directory)
+    {
+        _ = SnapshotInputChecks.FileIdentity(directory, directory: true);
+        SetBasic(directory, new() { Attributes = 16 });
+        nint buffer = Marshal.AllocHGlobal(4);
+        try { Marshal.WriteInt32(buffer, 1); Check(SetFileInformationByHandle(directory, 4, buffer, 4)); }
+        finally { Marshal.FreeHGlobal(buffer); }
+    }
+    internal static SafeFileHandle DirectoryHandle(string path, bool moving = false, WindowsDirectoryTreeProof? proof = null, bool metadataWrite = true, bool allowChildMutations = false)
     {
         if (proof is null) WorkspaceStore.EnsurePlainPath(path); else proof.RequireParent(path);
-        var handle = OpenHandle(path, 0x81 | (metadataWrite ? 0x100u : 0u) | (moving ? 0x10000u : 0u), directory: true);
+        // Topology restoration installs children through this pinned root.
+        // Sharing WRITE permits that native parent admission; DELETE remains
+        // excluded, so another handle cannot rename or replace the root.
+        var handle = OpenHandle(path, 0x81 | (metadataWrite ? 0x100u : 0u) | (moving ? 0x10000u : 0u), directory: true, mutable: allowChildMutations);
         try { _ = SnapshotInputChecks.FileIdentity(handle, directory: true); WindowsOwnedDirectoryLease.RequirePath(handle, path); return handle; }
         catch { handle.Dispose(); throw; }
     }
@@ -115,9 +216,9 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         try { Marshal.StructureToPtr(info, buffer, false); Check(SetFileInformationByHandle(handle, 0, buffer, (uint)Marshal.SizeOf<BasicInfo>())); }
         finally { Marshal.FreeHGlobal(buffer); }
     }
-    private static SafeFileHandle OpenHandle(string path, uint access, bool directory = false, bool mutable = false, bool restoreErrors = true)
+    private static SafeFileHandle OpenHandle(string path, uint access, bool directory = false, bool mutable = false, bool restoreErrors = true, uint? share = null)
     {
-        var handle = CreateFileW(path, access, mutable ? 3u : 1u, 0, 3, 0x00200000u | (directory ? 0x02000000u : 0u), 0);
+        var handle = CreateFileW(path, access, share ?? (mutable ? 3u : 1u), 0, 3, 0x00200000u | (directory ? 0x02000000u : 0u), 0);
         if (!handle.IsInvalid) return handle;
         int error = Marshal.GetLastWin32Error(); handle.Dispose();
         if (restoreErrors) throw Native(error);

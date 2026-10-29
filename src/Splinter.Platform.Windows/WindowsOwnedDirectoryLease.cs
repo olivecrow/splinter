@@ -51,13 +51,13 @@ internal sealed class WindowsOwnedDirectoryLease : IDisposable
     // Restore already owns an independent ancestor lease. Keep ours and all
     // file fences while changing only the root handle's access. The empty-root
     // gap is guarded by the previous volume/file ID, never a path-only check.
-    internal SafeFileHandle TransferToRestore(Action? rootUnpinned)
+    internal SafeFileHandle TransferToRestore(Action? rootUnpinned, bool allowChildMutations = false)
     {
         EnsureAvailable();
         if (transferred) throw new WorkspaceException("GeneratedRestoreConflict", "The generated root was already handed to restoration.");
         root!.Dispose();
         rootUnpinned?.Invoke();
-        var moving = ManagedRestoreFileAccess.DirectoryHandle(path, moving: true);
+        var moving = ManagedRestoreFileAccess.DirectoryHandle(path, moving: true, allowChildMutations: allowChildMutations);
         try
         {
             if (Identity(moving) != identity)

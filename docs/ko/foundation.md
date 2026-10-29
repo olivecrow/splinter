@@ -26,7 +26,9 @@ Plastic 내용 reader는 Files에 내장된 고정 client adapter를 일반 사�
 
 [VCS 없는 프로젝트 기준본](plain-project-basis.md)은 Windows `ManagedDirectoryBasis(projectBasis:true)`의 원본 prepare/restore와 `ProjectDirectorySnapshotProvider`의 task-owned reference를 사용한다. 공통 `IProjectSourceAccess`는 원본 읽기/게시 동안 정확한 기준·mount·필요한 Editor 종료 lease를 보유한다. Files는 기존 독립 결과/3자 반영을 재사용하고 Windows publisher는 검증된 원본 view만 제한적으로 허용한다. task 회수는 peer 공통 payload를 삭제하지 않으며 마지막 restore가 기준 수명을 소유한다. Core에 Win32/Unity API를 추가하지 않는다.
 
-Library/프로젝트의 공통 restore는 v2 계획·기존 파일 identity·신규 생성 영수증과 Windows 핸들 보호를 사용한다. Runtime의 저널 자식 색인은 생성/이동/삭제/재생에서 갱신하며 디렉터리 조회의 전체 경로 검색을 피한다. Git의 `GitProgressReadStream`은 정확한 소유 reader의 blocking read만 30초로 제한하며 진행 중인 전체 object 검증을 중단하지 않는다. 오류의 응답/복구 분류는 Core `WorkspaceFailurePolicy`가 공통으로 소유한다. 각 계약·자동/실제 자격은 기능별 문서를 따른다.
+Library/프로젝트의 공통 restore는 기존 파일 identity·신규 생성 영수증과 Windows 핸들 보호를 사용한다. 일반 파일별 계획은 v2, 변경 없는 디렉터리 계획은 v2, sparse·root-delta·topology 계획은 각각 v1이다. 새 root-delta/topology 경로는 SJL4 또는 bounded SJR2인 원본 Unity Library에만 한정하며 전체 프로젝트·append SJR2는 일반 경로를 유지한다. 기존 계획을 먼저 재개하고, 새 요청은 unchanged → sparse → root-delta → 적격이면서 선호 조건을 만족하는 topology → general 순서다. Topology의 신규 선택만 보존 이동 수와 제어 게시 수를 일반 경로의 공통 128-file cursor 예산과 비교하며 기존 intent 복구에는 비용 조건을 다시 부과하지 않는다. Runtime의 저널 자식 색인은 생성/이동/삭제/재생에서 갱신하며 디렉터리 조회의 전체 경로 검색을 피한다. Git의 `GitProgressReadStream`은 정확한 소유 reader의 blocking read만 30초로 제한하며 진행 중인 전체 object 검증을 중단하지 않는다. 오류의 응답/복구 분류는 Core `WorkspaceFailurePolicy`가 공통으로 소유한다. 각 계약·자동/실제 자격은 기능별 문서를 따른다.
+
+MX05의 root 이동·private 범위 반영은 전체 identity/내용/구성원 증명과 최종 metadata·소유 회수를 유지한다. Topology의 별도 원본/receipt forest map을 고정한 뒤 최대 8개 hash worker를 실행하고 실패·취소도 join한 뒤 핸들을 닫는다. Exact-parent native 새 파일/디렉터리 생성과 topology 자식 stage/install과 현재 타입/경로 검사는 속성 쓰기만의 reparse 전환에 대한 containment를 제공하며 모든 reparse 전환을 막는다는 주장은 하지 않는다. 새 파일의 identity 영수증 전 중단은 보존·거부하고, canonical stem의 plain `.GUID.tmp`는 무시·보존할 뿐 권한으로 채택하거나 삭제하지 않는다. [Library 계약](git-library-reference.md)·[MX05 검증](verification/remaining-lifecycle-optimization.md)이 상세 경계와 후보별 근거를 소유하며 최종 A와 guard 적용 B2는 일반 NTFS 구성 요소 비교·전체 gate 뒤 채택했다. 실제 Unity 전체 비교는 별도 후속이다.
 
 | 프로젝트 | 현재 책임 | 참조 |
 | --- | --- | --- |

@@ -306,7 +306,7 @@ public sealed class SparseDirectoryRestoreTests
     [InlineData("create")]
     [InlineData("rename")]
     [InlineData("remove-directory")]
-    public async Task UnsupportedMutationsKeepGeneralPlan(string change)
+    public async Task ContentAndTopologyChangesSelectTheirOwnRootRestorePlans(string change)
     {
         using var f = new Fixture("metadata", true);
         f.Mutate(j =>
@@ -316,8 +316,53 @@ public sealed class SparseDirectoryRestoreTests
             else if (change == "rename") j.Rename(j.Stat("dir/f0002")!.Id, "renamed", false);
             else { for (int i = 0; i < 4; i++) j.Delete(j.Stat($"dir/f{i:D4}")!.Id); j.Delete(j.Stat("dir")!.Id); }
         });
-        await f.Restore(); Assert.True(File.Exists(Path.Combine(f.Root, "restore-plan.json")));
+        var manifest = new OwnedDirectorySnapshotProvider(f.Root, f.State.Basis.OwnerId).Read(f.State.Basis.Snapshot);
+        DeltaRestoreEntry[] expected;
+        var bytes = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        var identities = new Dictionary<string, string>(StringComparer.Ordinal);
+        using (var tree = new OwnedDirectorySnapshotTree(manifest, f.State.Basis.Snapshot))
+        using (var journal = JournalDeltaStore.OpenReadOnly(f.Request.DeltaPath, f.Request.Identity, tree))
+        {
+            expected = journal.DescribeRestore();
+            var topology = ManagedRestoreTopology.Build(manifest, expected);
+            long survivingFiles = expected.LongCount(delta => !delta.Entry.Directory && delta.Entry.BasePath is not null);
+            long transportMoves = 1;
+            for (int unit = 1; unit < topology.Units.Length; unit++) transportMoves += topology.Units[unit].FinalPath is null ? 1 : 2;
+            Assert.Equal(change == "remove-directory" ? 0L : 4L, survivingFiles);
+            Assert.Equal(change is "rename" or "remove-directory" ? 2 : 1, topology.Units.Length);
+            Assert.Equal(change == "remove-directory" ? 2L : change == "rename" ? 3L : 1L, transportMoves);
+            Assert.Equal(change is "range" or "create", ManagedTopologyDirectoryRestore.PreferFresh(manifest, expected));
+            foreach (var delta in expected.Where(delta => !delta.Entry.Directory))
+            {
+                var entry = delta.Entry; byte[] payload = new byte[checked((int)entry.Length)];
+                Assert.Equal(payload.Length, journal.Read(entry.Id, 0, payload)); bytes.Add(entry.Path, payload);
+                if (entry.BasePath is not { } source) continue;
+                using var pin = ManagedRestoreFileAccess.ReadHandle(Path.Combine(f.State.Basis.Snapshot.RootPath, source));
+                identities.Add(entry.Path, SnapshotInputChecks.FileIdentity(pin));
+            }
+        }
+        await f.Restore();
+        bool rootDelta = change is "range" or "create";
+        // Removing all leaves has no surviving-file budget. Renaming one of
+        // four survivors also exceeds G=1 with two topology cursor writes.
+        // Both stay general; a sufficiently large carried subtree still fits.
+        Assert.Equal(rootDelta, File.Exists(Path.Combine(f.Root, "restore-root-delta-plan.json")));
+        Assert.False(File.Exists(Path.Combine(f.Root, "restore-topology-plan.json")));
+        Assert.Equal(!rootDelta, File.Exists(Path.Combine(f.Root, "restore-plan.json")));
         Assert.False(File.Exists(Path.Combine(f.Root, "restore-sparse-directory-plan.json")));
+        foreach (var delta in expected)
+        {
+            var entry = delta.Entry; string path = f.Target(entry.Path);
+            Assert.Equal(entry.Attributes, (uint)File.GetAttributes(path));
+            Assert.Equal(entry.CreationTime, File.GetCreationTimeUtc(path).ToFileTimeUtc());
+            Assert.Equal(entry.LastWriteTime, File.GetLastWriteTimeUtc(path).ToFileTimeUtc());
+            if (entry.Directory) continue;
+            Assert.Equal(bytes[entry.Path], File.ReadAllBytes(path));
+            if (!identities.TryGetValue(entry.Path, out string? identity)) continue;
+            using var pin = ManagedRestoreFileAccess.ReadHandle(path); Assert.Equal(identity, SnapshotInputChecks.FileIdentity(pin));
+        }
+        Assert.Equal(expected.Length - 1, Directory.EnumerateFileSystemEntries(f.State.OriginalPath, "*", SearchOption.AllDirectories).Count());
+        Assert.False(Directory.Exists(f.State.Basis.Snapshot.RootPath)); Assert.False(Directory.Exists(f.Request.DeltaPath));
     }
 
     [Fact]
