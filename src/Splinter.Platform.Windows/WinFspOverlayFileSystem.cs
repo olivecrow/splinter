@@ -130,8 +130,7 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
             var id = (Guid)fileNode; var old = store.Get(id);
             uint attributes = replaceFileAttributes ? fileAttributes : old.Attributes | fileAttributes;
             SnapshotInputChecks.RejectUnsupportedAttributes(attributes, old.Path);
-            store.SetLength(id, 0);
-            store.SetMetadata(id, attributes,
+            store.SetLengthAndMetadata(id, 0, attributes,
                 old.CreationTime, old.LastAccessTime, DateTime.UtcNow.ToFileTimeUtc());
             fileInfo = Info(id); return STATUS_SUCCESS;
         }

@@ -158,6 +158,8 @@ public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore, IWorkspaceWrite
     public void SetLength(Guid id, long length) { lock (gate) ForId(id).SetLength(id, length); }
     public void SetMetadata(Guid id, uint attributes, long creationTime, long accessTime, long writeTime)
     { lock (gate) ForId(id).SetMetadata(id, attributes, creationTime, accessTime, writeTime); }
+    public void SetLengthAndMetadata(Guid id, long length, uint attributes, long creationTime, long accessTime, long writeTime)
+    { lock (gate) ForId(id).SetLengthAndMetadata(id, length, attributes, creationTime, accessTime, writeTime); }
     public void SetUnixMode(Guid id, uint? mode) { lock (gate) ForId(id).SetUnixMode(id, mode); }
     public void Rename(Guid id, string destination, bool replace)
     {

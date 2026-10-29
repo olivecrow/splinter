@@ -461,6 +461,29 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         }
     }
 
+    public void SetLengthAndMetadata(Guid id, long length, uint attributes, long creationTime, long accessTime, long writeTime)
+    {
+        using (EnterGate(mutation: true))
+        {
+            Check(); var old = RequiredFile(id).Entry;
+            if (length < 0) throw new ArgumentOutOfRangeException(nameof(length));
+            // SJL4 keeps its existing resize and metadata capsule publications,
+            // each durable before continuing. Only SJR2 combines the effects.
+            if (latest is not null)
+            {
+                SetLength(id, length);
+                SetMetadata(id, attributes, creationTime, accessTime, writeTime);
+                return;
+            }
+            var entry = old with { Length = length, BaseLength = Math.Min(old.BaseLength, length),
+                Attributes = attributes, CreationTime = creationTime, LastAccessTime = accessTime, LastWriteTime = writeTime };
+            if (entry == old) return;
+            // Existing resize replay installs the full entry and clips private
+            // extents. Later extension cannot revive original or private tails.
+            Commit(new(sequence + 1, length == old.Length ? "metadata" : "resize", entry), []);
+        }
+    }
+
     public void SetUnixMode(Guid id, uint? mode)
     {
         WorkspaceUnixPermissions.RequireValid(mode);

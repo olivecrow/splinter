@@ -90,6 +90,9 @@ public interface IWorkspaceDeltaStore : IDisposable
     void Write(Guid id, long offset, ReadOnlySpan<byte> data);
     void SetLength(Guid id, long length);
     void SetMetadata(Guid id, uint attributes, long creationTime, long accessTime, long writeTime);
+    // One file callback's final length and metadata. Preserve truncation and
+    // acknowledged durability; a provider may retain separate durable effects.
+    void SetLengthAndMetadata(Guid id, long length, uint attributes, long creationTime, long accessTime, long writeTime);
     void SetUnixMode(Guid id, uint? mode) => throw new WorkspaceException("UnixPermissionsUnsupported", "This delta provider cannot change Unix permissions.");
     void Rename(Guid id, string destination, bool replace);
     void Delete(Guid id);
