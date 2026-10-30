@@ -15,7 +15,7 @@ pwsh ./scripts/splinter.ps1 schema workspace.ensure
 pwsh ./scripts/splinter.ps1 workspace ensure --project <original> --key <stable-key> --source plastic --application unity --storage plastic-snapshot --base <changeset@repository@server> --home <same-volume-short-home> --library-basis <prepared-id>
 ```
 
-home은 모든 VCS 관리/Plastic 등록을 상속하거나 겹치지 않는다. VSS service/grant는 이 기록된 기준 경로의 전제가 아니다. 설치된 WinFsp·PowerShell 7과 일반 사용자 `cm`의 저장소 읽기 접근이 필요하다. 내용 reader는 `%ProgramFiles%/PlasticSCM5/client`의 검증된 `11.0.16.9915` 라이브러리를 사용하며 다른 버전은 `PlasticBasisUnsupported`로 보존·거부한다. 원본 `.plastic` 등 관리 root를 worker에서 제외하고 쓰기·rename도 차단한다. worker는 등록하지 않는 파일 작업공간이며 Plastic update/check-in/merge·인증/서버 설정을 제공하지 않는다. 전체/선택 로컬 반영은 [별도 계획/intent 계약](plastic-original-apply.md)을 따른다.
+home은 모든 VCS 관리/Plastic 등록을 상속하거나 겹치지 않는다. VSS service/grant는 이 기록된 기준 경로의 전제가 아니다. 설치된 WinFsp·PowerShell 7과 일반 사용자 `cm`의 저장소 읽기 접근이 필요하다. 내용 reader는 `%ProgramFiles%/PlasticSCM5/client`의 검증된 `11.0.16.10484` 라이브러리를 사용하며 다른 버전은 `PlasticBasisUnsupported`로 보존·거부한다. 원본 `.plastic` 등 관리 root를 worker에서 제외하고 쓰기·rename도 차단한다. worker는 등록하지 않는 파일 작업공간이며 Plastic update/check-in/merge·인증/서버 설정을 제공하지 않는다. 전체/선택 로컬 반영은 [별도 계획/intent 계약](plastic-original-apply.md)을 따른다.
 
 기록된 tree의 모든 깊이에서 VCS 관리 entry를 거부한다. 실행 중 도구가 없는 nested `.git`/`.plastic` 경로를 조회하는 것은 ordinary not-found이며, 이 조회를 허용해 관리 entry의 기록이나 worker의 최상위 관리 root 쓰기를 허용하지 않는다.
 
@@ -35,8 +35,8 @@ Git 경로와 같은 [원본 Library 수명주기](git-library-reference.md)를 
 
 독립 결과는 기존 파일 manifest와 `files/objects`에 저장한다. 생성/일반 읽기에는 payload를 저장하지 않으며 명시적 checkpoint의 결과 수집에서 기준과 결과의 실제 payload를 보존한다. 결과는 서버·원본·Library basis가 없어도 검증할 수 있다. 이 결과 보존 비용은 작업 delta와 구분한다.
 
-checkpoint와 보존은 기존 전체 전후 seal 안에서 소스 scan 한 번을 공유한다. 로컬 payload/증명은 최대 8 worker를 쓰며 recorded revision 획득은 직렬로 유지한다. 실패·취소 시 진행 중 작업을 모두 drain하고 새 object는 여전히 게시 전에 각각 영속 flush한다. [RT-01–04](verification/result-collection-throughput.md)는 합성 Plastic 계약 시험을 포함하지만 실제 시간 측정은 None 입력이므로 Plastic 서버 성능 근거는 아니다.
+지속 작업의 `checkpoint --request-key`는 [공통 불변 결과 엔진](repeated-original-apply.md)을 사용한다. 짧은 mutation 경계에서 소스를 고정하고 경계 밖에서 scan/payload를 보존하며 최종 종료는 전체 seal을 유지한다. 동시 읽기를 지원하는 tree의 로컬 payload/증명은 최대 8 worker를 쓰고 recorded revision 획득은 직렬로 유지한다. 실패·취소 시 진행 중 작업을 모두 drain하고 새 object는 여전히 게시 전에 각각 영속 flush한다. [RT-01–04](verification/result-collection-throughput.md)는 과거 수집 처리량 자격이며 실제 시간 측정은 None 입력이므로 Plastic 서버 성능 근거는 아니다.
 
 release/discard는 seal·정상 stop/unmount·소유 provider/handle/process/delta 부재를 확인한다. 소스 기준의 로컬 release intent를 완료한 뒤만 해당 작업의 Library dependent를 제거한다. 기준 회수 뒤 dependent 제거에 실패해도 같은 요청으로 이어간다. 마지막 peer 회수 후 `library restore`로 원본 최종 범위만 반영하고 일반 NTFS Library를 복원한다. 다른 작업·기존 VSS pending·원본 등록과 독립 결과는 보존한다.
 
-현재 reader의 자동·고정 binary/BOM 읽기 자격은 [보안 경계 검증](verification/security-boundaries.md)을 따른다. 과거 [PPB 검증](verification/plastic-project-basis.md)과 [PPB 계획](plans/plastic-project-basis.md)의 실제 Unity A/B는 당시 API reader의 근거이며 새 reader의 Unity·대형 segmented 입력 통과로 승계하지 않는다.
+[보안 경계 검증](verification/security-boundaries.md)은 private reader 자격을 기록하며 [RI-07](verification/repeated-original-apply.md)은 현재 client의 segmented/BOM 읽기와 실제 Unity 원본/A/B 순서를 소유한다. 과거 [PPB 검증](verification/plastic-project-basis.md)과 [PPB 계획](plans/plastic-project-basis.md)은 당시 API reader의 근거로 유지하고 다른 후보의 자격으로 승계하지 않는다.

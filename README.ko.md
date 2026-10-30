@@ -1,5 +1,7 @@
 # Splinter
 
+같은 경로·ID·기준본·Library를 유지하며 불변 결과를 수집하고 원본에 반복 조건부 게시하는 v3 경로를 연결했다. [현재 계약](docs/ko/repeated-original-apply.md)과 [한정 완료한 RI-01–08 자격](docs/ko/verification/repeated-original-apply.md)을 구분한다. Git 원본 파일 반영은 HEAD/index/branch를 보존하며 실행 중 Editor 저장·import 유예·안전한 refresh/재로드는 에이전트가 맡는다.
+
 **변경하지 않은 데이터를 공유하는 AI 병렬 개발용 독립 작업공간.**
 
 [English](README.md)

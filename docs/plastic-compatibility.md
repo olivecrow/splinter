@@ -1,6 +1,8 @@
 <a id="plastic-사용-환경의-작업공간"></a>
 # Workspaces in Plastic environments
 
+Current task state is **v3**; managed basis remains v2. [Repeated original application](repeated-original-apply.md) owns live capture, immutable result versions, per-path publication history and exact external cooperation for a running original. [RI qualification](verification/repeated-original-apply.md) is separate from historical stopped-Editor evidence; older tasks are preserved/refused without migration.
+
 [한국어](ko/plastic-compatibility.md)
 
 Historical VSS C:/T: A/B, reclamation and tool qualification remain in [PC](verification/plastic-compatibility.md) and [VR-01](verification/vss-and-mcp-remediation.md). After [VSS retirement](plans/vss-retirement.md), that route is no longer executable.
@@ -12,7 +14,7 @@ Current `plastic-snapshot` references recorded changesets/revisions under the [p
 <a id="선택과-입력"></a>
 ## Selection and inputs
 
-Specify `--source plastic` in the initial request. Current state v2 fixes project/key/id/home, source/application, basis, and digest. For `plastic`, default application is `unity`, an explicit recorded changeset is required, and only NTFS tasks are supported. `--application none` serves the common lifecycle for Editor-free inputs. There is no fallback to another source.
+Specify `--source plastic` in the initial request. Current task state v3 fixes project/key/id/home, source/application, basis, and digest. For `plastic`, default application is `unity`, an explicit recorded changeset is required, and only NTFS tasks are supported. `--application none` serves the common lifecycle for Editor-free inputs. There is no fallback to another source.
 
 ```powershell
 pwsh ./scripts/splinter.ps1 doctor --project <Plastic original> --source plastic --application unity

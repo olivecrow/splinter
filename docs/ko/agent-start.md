@@ -1,5 +1,7 @@
 # 한정 버전 AI 시작 안내
 
+현재 task 상태는 v3다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 불변 수집·명시적 결과 선택·경로별 반영 이력·외부 도구의 실행 중 Editor 협력을 소유하며 [RI 자격](verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분한다. 관리형 basis 상태는 v2를 유지하며 이전 task는 이관 없이 보존·거부한다.
+
 [English](../agent-start.md)
 
 제품 진입점은 저장소 checkout의 `scripts/splinter.ps1`과 [스킬 원본](../../skills/splinter/SKILL.md)이다. view·probe는 [별도 개발 CLI](development-cli.md)의 경로다. 용어는 [용어집](glossary.md)을 참고한다. 독립 실행이 필요한 지속 작업에만 workspace를 사용하며 현재 경로에서 안전하게 작업할 수 있으면 direct로 작업한다.
@@ -13,7 +15,7 @@
 | 저장 경로 | 전제와 사용법 | 실행 근거와 제한 |
 | --- | --- | --- |
 | `git-snapshot`, source git | [Git 기준본](git-project-basis.md)의 고정 commit을 사용하고 ignored/private 소스는 제외한다. WinFsp가 필요하며 VSS service/grant는 불필요하다. | [reader/Editor 없는 Git](verification/git-project-basis.md), [cold Unity A/B](verification/git-unity-validation.md), [원본 Library/warm Unity](verification/git-library-reference.md)를 구분한다. 실제 Unity 기록은 지정한 후보·입력의 한정 자격이며 대형·ARM·OS 전체 지원을 뜻하지 않는다. |
-| `plastic-snapshot`, source plastic | [Plastic 기준본](plastic-project-basis.md)의 고정 changeset/revision과 일반 사용자 cm 접근·WinFsp를 사용한다. VSS service/grant는 불필요하다. | [기준본 검증](verification/plastic-project-basis.md)과 [전체/선택 원본 반영](plastic-original-apply.md)을 확인한다. 원본 반영은 정상 원본 Editor 종료와 별도 고정 계획/intent를 요구하며 서버 이력은 변경하지 않는다. |
+| `plastic-snapshot`, source plastic | [Plastic 기준본](plastic-project-basis.md)의 고정 changeset/revision과 일반 사용자 cm 접근·WinFsp를 사용한다. VSS service/grant는 불필요하다. | [기준본 검증](verification/plastic-project-basis.md)과 [전체/선택 원본 반영](plastic-original-apply.md)을 확인한다. 원본 반영은 고정 결과/계획/intent와 종료형 reservation 또는 정확한 실행 중 원본 협력을 요구하며 서버 이력은 변경하지 않는다. |
 | `project-snapshot`, source none | [프로젝트 기준본](plain-project-basis.md)의 명시적으로 승인한 원본 관리형 mount를 사용한다. WinFsp가 필요하며 VSS service/grant는 불필요하다. | [NP 검증](verification/plain-project-basis.md)의 파일·작은 Unity 자격을 확인한다. Library만의 전환 승인으로 전체 원본 mount를 허용하지 않는다. |
 
 Git/Plastic의 원본 Library 재사용은 [별도 Library 전환](git-library-reference.md)의 승인·정상 원본 Editor 종료·반환 basis id를 요구하며 `--library-basis`에 고정한다. `project-snapshot`은 `project prepare --application none|unity`로 source/Library를 같은 NTFS 볼륨에서 복사 없이 이동하고 원본 경로에 writable view를 제공한다. 반환 basis id를 `workspace ensure --source none --storage project-snapshot --project-basis <id>`에 같은 application/home과 함께 고정한다. task 회수 뒤 모든 dependent/reader가 끝나면 명시적 `project restore`로 일반 NTFS 원본을 복원한다.
@@ -75,11 +77,12 @@ MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 �
 | 명시적 의도 | 사용할 경로 |
 | --- | --- |
 | 나중에 계속 작업 | 같은 workspace 유지. 필요한 경우 `unity stop --id <id> --home <home>`으로 Editor만 정상 종료 |
-| 결과 보존 뒤 자원 회수 | 필요한 외부 검증 → 범위 저널 작업은 `workspace checkpoint --id <id> --message <설명> --release --home <home>`. 보존과 회수를 함께 명시적으로 승인하며 원본 통합은 필수가 아님. 별도 checkpoint와 release도 유지 |
-| 원본 반영 뒤 자원 회수 | checkpoint → 요청한 깨끗한 현재 원본 branch에 `workspace integrate --id <id> --target <branch> --home <home>` → 명시적 release. 원본 Editor의 통합 후 검증은 별도이며 push/배포 승인이 아님 |
+| 결과 보존 뒤 자원 회수 | 필요한 외부 검증 → 범위 저널 작업은 `workspace checkpoint --id <id> --request-key <capture-key> --message <설명> --release --home <home>`. 보존과 회수를 함께 명시적으로 승인하며 원본 통합은 필수가 아님. 별도 checkpoint와 release도 유지 |
+| 원본 반영 뒤 같은 task 지속 | 외부 저장 → 안정된 요청 키의 checkpoint → `workspace integrate --target original --result <id>` 계획/intent/digest·정확한 실행 중 원본 협력 → 안전한 refresh/재로드·로드 상태 검증 → 편집 지속 |
+| 최종 원본 반영·회수 | 외부 저장 → 해당 task만 정상 종료 → 같은 수집/게시 엔진 → 명시적 release. 원본/peer는 유지한다. 명시적 Git branch merge는 별도 clean-target 기능이며 push/배포 승인이 아니다 |
 | 실패/미커밋 작업 폐기 | `workspace discard --id <id> --intent-key <고정 intent> --expected-request-digest <저장 digest> --home <home>`. 성공 검증/checkpoint 불필요; 정확한 대상과 기존 폐기 승인을 사용 |
 
-checkpoint는 최종 수집 경계다. 반복 편집/재개는 그 전에 수행한다. Editor가 없거나 컴파일에 실패한 작업도 같은 `workspace checkpoint`로 독립 보존할 수 있다. checkpoint는 소스/저널의 안정성을 확인하며 컴파일 성공을 부여하지 않는다. 선택적 Library/view 저장소 경로는 [개발용 CLI](development-cli.md)로 분리한다. 후보/cache 의존성은 따로 정리하며 연쇄 삭제하지 않는다. 대화/Editor 종료·timeout·임대 만료·디스크 압박은 통합/회수/폐기 의도가 아니다.
+checkpoint는 실행 중에도 불변 결과 버전을 수집하며 같은 task/Editor에서 편집·재개를 계속한다. 같은 요청 키는 최초 결과를 반환하고 새 내용은 새 키로 수집한다. Editor가 없거나 컴파일에 실패한 작업도 같은 `workspace checkpoint`로 독립 보존할 수 있다. checkpoint는 소스/저널의 안정성을 확인하며 컴파일 성공을 부여하지 않는다. 선택적 Library/view 저장소 경로는 [개발용 CLI](development-cli.md)로 분리한다. 후보/cache 의존성은 따로 정리하며 연쇄 삭제하지 않는다. 대화/Editor 종료·timeout·임대 만료·디스크 압박은 통합/회수/폐기 의도가 아니다.
 
 ## 실패와 완료 판독
 

@@ -1,5 +1,7 @@
 # 검증 안내와 보존 근거
 
+현재 task 상태는 **v3**, 관리형 basis는 v2다. [반복 원본 반영](../repeated-original-apply.md)이 실행 중 수집·불변 결과 버전·경로별 반영 이력·실행 중 원본의 정확한 외부 협력을 소유한다. [RI 자격](repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분하며 이전 task는 이관 없이 보존·거부한다. RI-01–08은 Git/None/Plastic 각각 작은 고정 실제 Unity 원본/A/B 한 묶음·최종 현재 소스 회귀·명시한 미검증 한계로 한정 완료했다.
+
 [English](../../verification/README.md)
 
 [수명주기 병목 후속](lifecycle-bottlenecks.md)이 BO-01–05를 소유한다. 최종 일치·sparse Library 복원, 같은 입력의 NTFS 구성 요소 비용, 선택적 쓰기/Git 관측과 제한된 시작 자료 캡처를 다룬다. 전체 증명·영속 ACK를 유지하며 새 실제 Unity 전체 자격은 아니다.

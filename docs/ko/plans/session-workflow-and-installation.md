@@ -1,5 +1,7 @@
 # 대화별 작업공간 사용과 설치 계획
 
+[RI 범위](repeated-original-apply.md)와 [현재 계약](../repeated-original-apply.md)이 실행 중 반복 수집·게시를 추가한다. 중간 결과는 task를 종료하지 않으며 최종 처리는 해당 task만 정상 종료한 뒤 같은 엔진을 사용한다. 원본·peer Editor는 유지하며 RI 실제 자격은 별도로 진행 중이다.
+
 [English](../../plans/session-workflow-and-installation.md)
 
 > 현재 경로는 `git-snapshot`·`plastic-snapshot`·`project-snapshot`이다. [VSS 폐기 결정](vss-retirement.md)이 과거 VSS 서비스·설치·회수 후속 지침을 대체한다. 아래 기존 ID·수치·입력별 자격은 당시 기록으로 보존하며 VSS 실행을 재개하지 않는다.

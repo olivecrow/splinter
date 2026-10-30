@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "kind": "documentation-index",
   "notARuntimeSchema": true,
-  "sourceCommit": "24956f4975a8c9ae57a21f4c52a656b9f8b51ea3",
+  "sourceCommit": "b51f18fb6d4515a149975bbe6b3bf334804e1217",
   "branch": "development",
-  "inspectedDate": "2026-10-29",
+  "inspectedDate": "2026-10-30",
   "canonicalDocument": "docs/lifecycle-optimization-map.md",
   "koreanDocument": "docs/ko/lifecycle-optimization-map.md",
   "pathBase": "repository-root",
@@ -253,7 +253,7 @@
       "id": "C10",
       "name": "Stop Editor and drain",
       "owner": "product + Unity",
-      "frequency": "before collection/release/discard, or explicit stop",
+      "frequency": "final closure/discard or explicit stop; skipped by intermediate capture",
       "entry": "StopAsync / WaitForNormalExit",
       "sourceRefs": [
         "K01",
@@ -273,138 +273,104 @@
     },
     {
       "id": "C20",
-      "name": "Preserve independent source result",
+      "name": "Capture immutable independent source generation",
       "owner": "product/source provider",
-      "frequency": "explicit final checkpoint",
-      "entry": "workspace checkpoint",
+      "frequency": "every explicit stable capture request",
+      "entry": "workspace checkpoint --request-key",
       "sourceRefs": [
-        "K01",
-        "K02",
-        "K06",
-        "K18",
-        "K19"
+        "K32",
+        "K33",
+        "K34"
       ],
       "documents": {
         "en": "docs/lifecycle-optimization-map.md#c20",
         "ko": "docs/ko/lifecycle-optimization-map.md#c20"
       },
-      "preconditions": "Task lock, stopped owned clients, stable journal, allowed source state.",
-      "work": "Pre-seal; Git commit/ref or one file-source scan plus full baseline/result preservation; up to eight local payload/proof workers, serial Plastic revision acquisition; verification; post-seal. None full file scan hashes are bounded to eight workers; mounted Plastic source scans remain serial and drained before later payload work. Mounted Plastic scans remain serial to preserve its single-revision proof/stream locality.",
-      "completion": "IndependentOfSnapshot result and collected record; does not assert compile success.",
-      "costs": "Source scan/hash, full payload preservation, result verification, full seals",
-      "recovery": "Drain admitted object workers before failure/cancellation returns. Seal mismatch preserves the prior task revision/result and all fixed intent/journal/object evidence. result.json alone is not collection completion; resume the same identity.",
+      "preconditions": "Exact task/request; recover pending capture/publication; Editor may remain live.",
+      "work": "Drain admitted writes; mutation gate flush/freeze metadata/ranges and durable pins; outside gate preserve/hash independent generation; publish versioned result then unpin.",
+      "completion": "Immutable generation ID/sequence/key/content identity; same task continues; no compile-success claim.",
+      "costs": "Mutation wait/pause; source metadata/hash; independent distinct full payloads; final closure full seals.",
+      "recovery": "Same key returns first frozen result; restore pins before writer replay/reclamation; retained generations and receipts survive release.",
       "fileResultFlow": {
         "appliesTo": [
+          "git/git-snapshot",
           "none/project-snapshot",
           "plastic/plastic-snapshot"
         ],
         "taskLockHeldThroughout": true,
+        "mutationGateHeldForPayloadWork": false,
         "phaseOrder": [
           {
-            "step": "pre-seal",
+            "step": "request",
             "owner": "Runtime",
-            "work": "Require stopped clients; compute complete journal seal."
+            "work": "Persist capture intent before effects."
           },
           {
-            "step": "guards-and-source-manifest",
+            "step": "freeze",
+            "owner": "provider",
+            "work": "Drain accepted writes; flush; fix namespace/ranges; durable capture intent then backing aliases."
+          },
+          {
+            "step": "payloads",
             "owner": "source provider",
-            "work": "Verify owner/mount/basis and Plastic isolation; read baseline manifest; scan mounted source once."
+            "work": "Read frozen tree/basis; Git independent refs or deduplicated file objects; eligible local workers<=8, Plastic revision acquisition serial."
           },
           {
-            "step": "collection-intent",
+            "step": "independent-proof",
             "owner": "source provider",
-            "work": "Fix task/request digest/baseline/result identities in collection.json."
+            "work": "Verify generation manifest/ref and all required payloads."
           },
           {
-            "step": "baseline-payloads",
-            "owner": "source provider",
-            "work": "Preserve unique full baseline objects; None local work uses up to 8 workers; recorded Plastic acquisition is serial."
-          },
-          {
-            "step": "result-payloads",
-            "owner": "source provider",
-            "work": "Preserve unique full current-result objects with up to 8 local workers, after baseline workers drain."
-          },
-          {
-            "step": "pre-publication-proof",
-            "owner": "source provider",
-            "work": "Verify all distinct baseline/result objects with up to 8 workers."
-          },
-          {
-            "step": "manifest-and-independent-proof",
-            "owner": "source provider",
-            "work": "Save result.json, then reverify independent records and every required object against candidate revision; injected verification readers stay sequential."
-          },
-          {
-            "step": "return-candidate",
-            "owner": "source provider",
-            "work": "Return source revision/fingerprint/reference without advancing task ResultRevision or Snapshot.Result."
-          },
-          {
-            "step": "post-seal",
+            "step": "generation-publication",
             "owner": "Runtime",
-            "work": "Require clean result and nonempty reference, compute complete post-seal, require equality with pre-seal."
+            "work": "Append immutable result, clear capture intent, ready; then publish materialized marker and remove exact aliases."
           },
           {
-            "step": "accept-and-persist",
+            "step": "final-only",
             "owner": "Runtime",
-            "work": "Set ResultRevision and Snapshot.Result, then persist collected."
+            "work": "Owned stop/remove bridge; whole pre-seal and post-seal around same capture; require stable unmount seal."
           }
-        ],
-        "newObjectOrder": [
-          "copy to owned pending file",
-          "durable flush",
-          "hash verification",
-          "move to final hash path"
-        ],
-        "existingObjectWork": "Reverify existing object; content-hash deduplication does not skip proof.",
-        "overlap": "Only independent objects within an eligible phase overlap; phases join in order. Source scan and Plastic revision acquisition stay serial.",
-        "publicationBoundary": "Provider result.json may exist before post-seal; only Runtime seal equality permits accepting the task revision/result.",
-        "laterInvocations": "Fresh independent-result verification remains for release/apply.",
-        "verification": [
-          "RT-01",
-          "RT-02",
-          "RT-03",
-          "RT-04"
         ]
       }
     },
     {
       "id": "A10",
-      "name": "Apply Git result",
+      "name": "Explicit clean-target Git branch merge",
       "owner": "product/Git + agent original coordination",
       "frequency": "explicit integration after checkpoint",
       "entry": "workspace integrate --target <branch>",
       "sourceRefs": [
-        "K01",
-        "K18"
+        "K18",
+        "K34"
       ],
       "documents": {
         "en": "docs/lifecycle-optimization-map.md#a10",
         "ko": "docs/ko/lifecycle-optimization-map.md#a10"
       },
       "preconditions": "Exact clean independent task result; clean original already on requested branch; project lock.",
-      "work": "Already-ancestor check or local guarded merge; verify clean original.",
+      "work": "Verify frozen Git generation then existing guarded branch merge; keep worker Editor and later edits.",
       "completion": "Integrated result state; Git command provides its own persistence semantics.",
       "costs": "Git object/tree work and original changed-file writes",
       "recovery": "Abort only own matching merge; no automatic original Editor operation or push."
     },
     {
       "id": "A20",
-      "name": "Plan original file application",
+      "name": "Plan Git/None/Plastic original files",
       "owner": "product/files + application policy",
       "frequency": "explicit reviewed plan after checkpoint",
-      "entry": "workspace integrate --target original --plan",
+      "entry": "workspace integrate --target original --result <id> --plan",
       "sourceRefs": [
         "K16",
-        "K19"
+        "K19",
+        "K34",
+        "K35"
       ],
       "documents": {
         "en": "docs/lifecycle-optimization-map.md#a20",
         "ko": "docs/ko/lifecycle-optimization-map.md#a20"
       },
-      "preconditions": "Exact independently preserved result; target/basis/Plastic and stopped-original guards.",
-      "work": "Compare baseline/result/current original; select paths/companions; detect conflicts; digest.",
+      "preconditions": "Latest independent result for new request; exact source/mount and live-original permit if running.",
+      "work": "Compare per-path last applied state/fixed result/current original, selection and meta closure; bind source administration, previous receipt and cooperation.",
       "completion": "Concrete fixed plan/digest; planning does not publish source files.",
       "costs": "Current target scan/hash, plan and identity/lock observations",
       "recovery": "Changed target needs a valid reviewed plan; no conflict override."
@@ -426,7 +392,7 @@
       },
       "preconditions": "Same plan, selection, identity; whole write-set and conditional NTFS checks.",
       "work": "Persist intent; hash/write/flush owned stages; retire/publish per file; record progress and cleanup.",
-      "completion": "Completed matching intent; recoverable per-file effects, not all-files atomicity.",
+      "completion": "Completed immutable apply receipt and per-path history; ready for continued work or explicit reclamation.",
       "costs": "Payload reads/hashes/writes, stage flushes, per-step durable receipts",
       "recovery": "Resume same intent/digest/selection; incomplete apply blocks collection/release/discard."
     },
@@ -447,7 +413,7 @@
         "ko": "docs/ko/lifecycle-optimization-map.md#r10"
       },
       "preconditions": "Independent result, no uncollected changes/dependent views, stopped owned app.",
-      "work": "Verify result; unmount/seal; unregister; reclaim delta; release task basis/ref/dependency; observe absence.",
+      "work": "Verify all retained generations; normal owned stop; same-engine final capture between full seals; exact unmount/registration/delta/basis reclamation; keep result/receipt history.",
       "completion": "released only after exact absence/zero resources; result and evidence survive.",
       "costs": "Seals/source checks, unmount/handle drain, inventory deletion, basis/ref removal",
       "recovery": "reclaim-pending is incomplete; same task/home/result; no peer cleanup."
@@ -548,12 +514,12 @@
     {
       "source": "E20",
       "target": "E10",
-      "condition": "restart stopped Editor before result"
+      "condition": "restart stopped Editor in the same continuing task, including after captures"
     },
     {
       "source": "E20",
       "target": "C10",
-      "condition": "explicit preserve/apply"
+      "condition": "explicit final preservation/application and owned stop"
     },
     {
       "source": "C10",
@@ -563,12 +529,12 @@
     {
       "source": "C20",
       "target": "A10",
-      "condition": "Git apply requested"
+      "condition": "explicit clean-target Git branch merge"
     },
     {
       "source": "C20",
       "target": "A20",
-      "condition": "None/Plastic apply requested"
+      "condition": "Git/None/Plastic original file publication"
     },
     {
       "source": "A20",
@@ -604,6 +570,21 @@
       "source": "D10",
       "target": "F10",
       "condition": "managed basis exists, all dependents finished, restore requested"
+    },
+    {
+      "source": "E20",
+      "target": "C20",
+      "condition": "external save and explicit intermediate capture; no Editor stop"
+    },
+    {
+      "source": "C20",
+      "target": "E20",
+      "condition": "preserve and continue same task"
+    },
+    {
+      "source": "A30",
+      "target": "E20",
+      "condition": "intermediate publication; external safe refresh/reload and loaded-state checks"
     }
   ],
   "nestedStages": [
@@ -680,6 +661,29 @@
       "E10",
       "E20",
       "D10",
+      "F10"
+    ],
+    "repeatOriginal": [
+      "E20",
+      "C20",
+      "A20",
+      "A30",
+      "E20"
+    ],
+    "applyGitFiles": [
+      "S00",
+      "P10",
+      "P20",
+      "P30",
+      "P40",
+      "P50",
+      "E10",
+      "E20",
+      "C10",
+      "C20",
+      "A20",
+      "A30",
+      "R10",
       "F10"
     ]
   },
@@ -1009,12 +1013,16 @@
       "files": [
         {
           "path": "src/Splinter.Cli/WorkspaceCommands.cs",
-          "sha256": "2bb5dd5e34178259619cb8652404b417e2103bd77950354e10933d78684c8227",
+          "sha256": "8827d4543e52c049d134b5731d2dc362a3e3bca1d535bddfb809366424ca90be",
           "symbols": [
             {
               "name": "Add",
               "lineHints": [
-                17
+                17,
+                21,
+                24,
+                25,
+                46
               ]
             }
           ]
@@ -1026,7 +1034,11 @@
             {
               "name": "Add",
               "lineHints": [
-                12
+                12,
+                15,
+                16,
+                19,
+                28
               ]
             }
           ]
@@ -1038,37 +1050,46 @@
       "files": [
         {
           "path": "src/Splinter.Runtime/WorkspaceCoordinator.cs",
-          "sha256": "83170b73e419518ac83d01789f24f21c2dab98eb4946d5257bb9ea47c9b27eb2",
+          "sha256": "a447ef88c91356fcc18e87a7d3a57df91426e902db8ad798b84c0214a71c7827",
           "symbols": [
             {
               "name": "EnsureAsync",
               "lineHints": [
-                21
+                23
               ]
             },
             {
               "name": "StartCoreAsync",
               "lineHints": [
-                132
+                83,
+                101,
+                126,
+                134
               ]
             },
             {
               "name": "CheckpointAsync",
               "lineHints": [
-                156,
-                162
+                158,
+                159,
+                162,
+                164,
+                220
               ]
             },
             {
               "name": "IntegrateAsync",
               "lineHints": [
-                234
+                236,
+                269
               ]
             },
             {
               "name": "ReleaseAsync",
               "lineHints": [
-                279
+                161,
+                290,
+                319
               ]
             }
           ]
@@ -1080,7 +1101,7 @@
       "files": [
         {
           "path": "src/Splinter.Runtime/SnapshotWorkspaces.cs",
-          "sha256": "877f6fa64a9d22cfb899ad0e5003da8bfa0096abb4877a1e81ced2e172b9bcbe",
+          "sha256": "282a9c96b73b42e71e2eb95a3f20a09b9395a5a4397823355d18cf27c5cfc072",
           "symbols": [
             {
               "name": "EnsureSnapshotAsync",
@@ -1091,13 +1112,15 @@
             {
               "name": "ConnectSnapshotAsync",
               "lineHints": [
-                84
+                58,
+                84,
+                407
               ]
             },
             {
               "name": "CheckpointSnapshotResultAsync",
               "lineHints": [
-                277
+                279
               ]
             },
             {
@@ -1109,7 +1132,8 @@
             {
               "name": "ReuseSnapshotResultAsync",
               "lineHints": [
-                250
+                154,
+                252
               ]
             }
           ]
@@ -1121,7 +1145,7 @@
       "files": [
         {
           "path": "src/Splinter.Runtime/WorkspaceDiscard.cs",
-          "sha256": "f1b00558de5d712e260493d56a9c200fdbc4e3103b7a637e548ed675a095561e",
+          "sha256": "2aa558167335416b366da2b734159d49fe242ba650486ac3c47d326814293f81",
           "symbols": [
             {
               "name": "DiscardAsync",
@@ -1138,30 +1162,30 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs",
-          "sha256": "aeb287433a5c28bf3b7ff76032c6500239b91beb33f2548374cdc3cf5e326c39",
+          "sha256": "7936db735e674e8d1d4a4eb027ad8394556071a7e58da28f0a35771502fcdfae",
           "symbols": [
             {
               "name": "PrepareAsync",
               "lineHints": [
-                135
+                137
               ]
             },
             {
               "name": "AttachAsync",
               "lineHints": [
-                254
+                256
               ]
             },
             {
               "name": "DetachAsync",
               "lineHints": [
-                275
+                277
               ]
             },
             {
               "name": "RestoreAsync",
               "lineHints": [
-                293
+                295
               ]
             }
           ]
@@ -1180,6 +1204,7 @@
             {
               "name": "VerifyContents",
               "lineHints": [
+                82,
                 86
               ]
             },
@@ -1198,12 +1223,15 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/NtfsSnapshotWorkspaceBackend.cs",
-          "sha256": "f25cab8aa140a83fa1fa9004fe855afb034a982c29444ff536d44d52769043af",
+          "sha256": "b564870c91430f2274196de2b9bcada8ff969025cf6e290cd92a06a92cc3f226",
           "symbols": [
             {
               "name": "CaptureAsync",
               "lineHints": [
-                32
+                32,
+                45,
+                55,
+                58
               ]
             },
             {
@@ -1221,7 +1249,9 @@
             {
               "name": "SealAsync",
               "lineHints": [
-                139
+                139,
+                198,
+                265
               ]
             },
             {
@@ -1258,7 +1288,9 @@
             {
               "name": "ObserveAsync",
               "lineHints": [
-                56
+                56,
+                70,
+                73
               ]
             },
             {
@@ -1276,7 +1308,7 @@
       "files": [
         {
           "path": "src/Splinter.SourceControl.Git/GitSnapshotWorkspaces.cs",
-          "sha256": "22139cc04e36f5d2c6d611009e67100638b5472701c4ba9e2f4fd9259d85283d",
+          "sha256": "1e7fc0836ef2a5878d11446c3f56e30299612d8709bcffa6e29d48a6fe4145c3",
           "symbols": [
             {
               "name": "PreflightAsync",
@@ -1287,7 +1319,8 @@
             {
               "name": "AttachAsync",
               "lineHints": [
-                58
+                58,
+                69
               ]
             },
             {
@@ -1299,14 +1332,15 @@
             {
               "name": "VerifyResultAsync",
               "lineHints": [
-                140
+                140,
+                163
               ]
             }
           ]
         },
         {
           "path": "src/Splinter.SourceControl.Git/GitOverlayRegistration.cs",
-          "sha256": "0139786627bd6ca3d160409060f12086a28b26bd06e1e9b5cc307cda737f5de5",
+          "sha256": "9a218869a883e748ad9b7760326eb6f7fe8f9300a423bdad181c91e37378c0ba",
           "symbols": [
             {
               "name": "PrepareAsync",
@@ -1318,12 +1352,14 @@
               "name": "AttachAsync",
               "lineHints": [
                 88,
+                89,
                 90
               ]
             },
             {
               "name": "WarmInitialLargeFiles",
               "lineHints": [
+                114,
                 125
               ]
             }
@@ -1336,8 +1372,11 @@
             {
               "name": "Read",
               "lineHints": [
-                93,
-                254
+                20,
+                29,
+                31,
+                33,
+                36
               ]
             }
           ]
@@ -1354,7 +1393,8 @@
             {
               "name": "MountAsync",
               "lineHints": [
-                9
+                9,
+                23
               ]
             },
             {
@@ -1378,6 +1418,8 @@
             {
               "name": "AwaitMountedAsync",
               "lineHints": [
+                142,
+                178,
                 182
               ]
             },
@@ -1390,21 +1432,26 @@
             {
               "name": "ReadControlAsync",
               "lineHints": [
-                86
+                83,
+                86,
+                132
               ]
             },
             {
               "name": "ObserveAsync",
               "lineHints": [
+                53,
+                59,
+                67,
                 81,
-                98
+                84
               ]
             }
           ]
         },
         {
           "path": "src/Splinter.Platform.Windows/WinFspOverlayServer.cs",
-          "sha256": "203b9bf384cef853f06cff345a71ec1d86ca64e3608997710d01ec52d731db0a",
+          "sha256": "c4b7f601d82d2b026bad3e178fe1a45725cf6b6460b6ee82f256c148d39f7bb0",
           "symbols": [
             {
               "name": "RunAsync",
@@ -1426,19 +1473,23 @@
             {
               "name": "StartAsync",
               "lineHints": [
-                17
+                17,
+                45
               ]
             },
             {
               "name": "PrepareInfrastructureAsync",
               "lineHints": [
+                36,
                 50
               ]
             },
             {
               "name": "ObserveAsync",
               "lineHints": [
-                140
+                140,
+                148,
+                201
               ]
             },
             {
@@ -1450,6 +1501,7 @@
             {
               "name": "WaitForNormalExitAsync",
               "lineHints": [
+                170,
                 178
               ]
             },
@@ -1479,7 +1531,8 @@
             {
               "name": "ObserveAsync",
               "lineHints": [
-                33
+                33,
+                66
               ]
             },
             {
@@ -1497,42 +1550,59 @@
       "files": [
         {
           "path": "src/Splinter.Runtime/JournalDeltaStore.cs",
-          "sha256": "0ab09679f83b378879c68c5b972fab7934f29b3594089a6df26e866df00aa2e4",
+          "sha256": "23cb4dd78dee383ff2f6e9628e6e95c9064d280e2028f2fb02f5af09de7756f1",
           "symbols": [
             {
               "name": "Read",
               "lineHints": [
-                246
+                13,
+                40,
+                41,
+                42,
+                60
               ]
             },
             {
               "name": "Write",
               "lineHints": [
-                347
+                169,
+                179,
+                180,
+                182,
+                189
               ]
             },
             {
               "name": "FindPrivateChanges",
               "lineHints": [
-                366
+                360,
+                369
               ]
             },
             {
               "name": "Commit",
               "lineHints": [
-                735
+                244,
+                364,
+                365,
+                453,
+                463
               ]
             },
             {
               "name": "Flush",
               "lineHints": [
-                524
+                70,
+                71,
+                89,
+                94,
+                97
               ]
             },
             {
               "name": "SetLengthAndMetadata",
               "lineHints": [
-                464
+                467
               ]
             }
           ]
@@ -1544,7 +1614,11 @@
             {
               "name": "Seal",
               "lineHints": [
-                12
+                12,
+                48,
+                49,
+                55,
+                56
               ]
             }
           ]
@@ -1563,30 +1637,42 @@
               "lineHints": [
                 26,
                 27,
-                159
+                65,
+                159,
+                167
               ]
             },
             {
               "name": "Write",
               "lineHints": [
-                175
+                32,
+                76,
+                175,
+                178,
+                179
               ]
             },
             {
               "name": "Flush",
               "lineHints": [
-                190
+                51,
+                190,
+                195
               ]
             },
             {
               "name": "Cleanup",
               "lineHints": [
-                138
+                50,
+                51,
+                138,
+                142
               ]
             },
             {
               "name": "Close",
               "lineHints": [
+                141,
                 145
               ]
             },
@@ -1616,6 +1702,7 @@
             {
               "name": "ExecuteWriteBatch",
               "lineHints": [
+                94,
                 130
               ]
             },
@@ -1639,12 +1726,17 @@
             {
               "name": "WriteBatch",
               "lineHints": [
-                11
+                6,
+                9,
+                11,
+                16,
+                17
               ]
             },
             {
               "name": "FlushPendingWrites",
               "lineHints": [
+                30,
                 50
               ]
             }
@@ -1686,12 +1778,14 @@
             {
               "name": "CheckpointBounded",
               "lineHints": [
+                316,
                 319
               ]
             },
             {
               "name": "RecoverBoundedCheckpoint",
               "lineHints": [
+                123,
                 387
               ]
             }
@@ -1727,24 +1821,34 @@
       "files": [
         {
           "path": "src/Splinter.Runtime/WorkspaceOriginalApply.cs",
-          "sha256": "4ec51f7cd7004e5c894b7976424d1b1db09fc0d496cf215eb06673a84b2b4c94",
+          "sha256": "bf914d21b8fbddf990ebbd5b4d30914834d495be1bd8232a70a4505556897873",
           "symbols": [
             {
               "name": "RequireOriginalResult",
               "lineHints": [
-                7
+                7,
+                32,
+                41,
+                61,
+                90
               ]
             },
             {
               "name": "PlanOriginalAsync",
               "lineHints": [
-                22
+                28,
+                34,
+                36,
+                43
               ]
             },
             {
               "name": "ApplyOriginalAsync",
               "lineHints": [
-                31
+                45,
+                65,
+                86,
+                94
               ]
             }
           ]
@@ -1756,30 +1860,34 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs",
-          "sha256": "0ec685a84ff861eca3dd51fc5fd4a834a563ad90830e9f3430f06b4b9e7d72fe",
+          "sha256": "f0f132483edf515e64406334414446c5cbe01bb8b1d650c6ab1f35a6c19c3a43",
           "symbols": [
             {
               "name": "Publish",
               "lineHints": [
-                35
+                13,
+                19,
+                21,
+                36,
+                371
               ]
             },
             {
               "name": "MoveOwnedEntry",
               "lineHints": [
-                415
+                418
               ]
             },
             {
               "name": "CreateOwnedFile",
               "lineHints": [
-                442
+                445
               ]
             },
             {
               "name": "CreateOwnedDirectory",
               "lineHints": [
-                441
+                444
               ]
             }
           ]
@@ -1791,11 +1899,12 @@
       "files": [
         {
           "path": "src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs",
-          "sha256": "93b4503f4155cfbc8114c9e0e967877d4dd56f9d26dfd921dc62c2ef18fbce02",
+          "sha256": "1db9a456c36dc8f693fa5a7906ba0c8f0aece63d86b750880242c803e4327105",
           "symbols": [
             {
               "name": "CheckpointSourceAsync",
               "lineHints": [
+                50,
                 52
               ]
             },
@@ -1814,140 +1923,164 @@
       "files": [
         {
           "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
-          "sha256": "0a8ee652a290a8abd6e134dc4cc4a07c7a0a85cf1e51dfb07366e4b87c193cf1",
+          "sha256": "83371086f3efae293f839d01b4da9b4eb0c1c240b4723fc672ff371a44c884be",
           "symbols": [
             {
               "name": "InspectAsync",
               "lineHints": [
-                91
+                92
               ]
             },
             {
               "name": "CheckpointAsync",
               "lineHints": [
-                108
+                110
               ]
             },
             {
               "name": "PreserveAsync",
               "lineHints": [
-                114
+                116,
+                128
               ]
             },
             {
               "name": "VerifyResultAsync",
               "lineHints": [
-                153
+                155,
+                190
               ]
             },
             {
               "name": "SupportsCheckpointAndPreserve",
               "lineHints": [
-                123
+                125
               ]
             },
             {
               "name": "CheckpointAndPreserveAsync",
               "lineHints": [
-                126
+                128
               ]
             },
             {
               "name": "VerifyIndependentResult",
               "lineHints": [
-                164,
-                167
+                149,
+                162,
+                167,
+                168,
+                170
               ]
             },
             {
               "name": "ForEachPayload",
               "lineHints": [
-                333
+                324,
+                343,
+                384
               ]
             },
             {
               "name": "Preserve",
               "lineHints": [
-                137
+                47,
+                116,
+                123,
+                125,
+                128
               ]
             },
             {
               "name": "PreservePayloads",
               "lineHints": [
-                312
+                144,
+                145,
+                322
               ]
             },
             {
               "name": "VerifyPayloads",
               "lineHints": [
-                368
+                147,
+                184,
+                378
               ]
             },
             {
               "name": "Scan",
               "lineHints": [
-                253
+                45,
+                79,
+                98,
+                114,
+                121
               ]
             },
             {
               "name": "ScanWorkspace",
               "lineHints": [
-                251
+                98,
+                114,
+                121,
+                133,
+                259
               ]
             }
           ]
         },
         {
           "path": "src/Splinter.SourceControl.Files/FileOriginalApply.cs",
-          "sha256": "05aa6e98ddac855556bf49167a59461d897c318785fc68e2a14e0ab803860b2f",
+          "sha256": "4f1ae2d73a53026966a1342603cf7ff27c025b94262019ac815a298157b7b088",
           "symbols": [
             {
               "name": "PlanOriginalAsync",
               "lineHints": [
-                30
+                32
               ]
             },
             {
               "name": "ApplyOriginalAsync",
               "lineHints": [
-                140
+                156
               ]
             }
           ]
         },
         {
           "path": "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs",
-          "sha256": "bb2f38ff2f29597335adb418e5ce447b64c90112ee623148837bdb9deabe35a5",
+          "sha256": "dbbaa5231d901b9299b595e930a1f41f0093de0c4c96c08d85c4553c0771687a",
           "symbols": [
             {
               "name": "PlanOriginalAsync",
               "lineHints": [
-                166
+                171
               ]
             },
             {
               "name": "ApplyOriginalAsync",
               "lineHints": [
-                167
+                172
               ]
             },
             {
               "name": "SupportsCheckpointAndPreserve",
               "lineHints": [
-                151
+                156
               ]
             },
             {
               "name": "CheckpointAndPreserveAsync",
               "lineHints": [
-                152
+                157,
+                158
               ]
             }
           ]
         },
         {
           "path": "src/Splinter.SourceControl.Files/FileRecordedBasis.cs",
-          "sha256": "59b225ff2f811a31ef69b57aa4bc5867e5de36f6632cb235a289b500cc00e1a9",
+          "sha256": "42ebf36445a8a44ffaef628da87e3c9ec4c274fa8bddd741e839dd4a8b2857af",
           "symbols": [
             {
               "name": "PreserveRecordedPayloads",
@@ -1976,7 +2109,11 @@
             {
               "name": "Generation",
               "lineHints": [
-                30
+                15,
+                18,
+                30,
+                42,
+                57
               ]
             }
           ]
@@ -1993,19 +2130,28 @@
             {
               "name": "Tick",
               "lineHints": [
-                32
+                15,
+                17,
+                28,
+                32,
+                34
               ]
             },
             {
               "name": "UnsavedReason",
               "lineHints": [
+                42,
                 56
               ]
             },
             {
               "name": "Heartbeat",
               "lineHints": [
-                63
+                29,
+                44,
+                47,
+                63,
+                67
               ]
             }
           ]
@@ -2057,7 +2203,8 @@
             {
               "name": "CursorBatchSize",
               "lineHints": [
-                19
+                19,
+                169
               ]
             }
           ]
@@ -2074,7 +2221,8 @@
             {
               "name": "Eligible",
               "lineHints": [
-                29
+                29,
+                168
               ]
             },
             {
@@ -2098,13 +2246,16 @@
       "files": [
         {
           "path": "src/Splinter.Runtime/WorkspaceStore.cs",
-          "sha256": "9826debf3d9360ce3fd538f8d78ba2f98bbe1ed3a20165ff685869041ca8abef",
+          "sha256": "81b6655a80386f2922e768d6b3a5e9b1dd0847e65a7d8f719eb2f96cdaadd60e",
           "symbols": [
             {
               "name": "Key",
               "lineHints": [
                 29,
-                43
+                43,
+                144,
+                145,
+                155
               ]
             },
             {
@@ -2116,7 +2267,9 @@
             {
               "name": "Save",
               "lineHints": [
-                163
+                208,
+                211,
+                231
               ]
             }
           ]
@@ -2151,7 +2304,9 @@
             {
               "name": "Eligible",
               "lineHints": [
-                37
+                37,
+                61,
+                248
               ]
             },
             {
@@ -2169,6 +2324,7 @@
             {
               "name": "OpenJournalEffects",
               "lineHints": [
+                128,
                 240
               ]
             }
@@ -2182,13 +2338,17 @@
               "name": "Move",
               "lineHints": [
                 77,
-                79
+                78,
+                79,
+                101,
+                110
               ]
             },
             {
               "name": "Delete",
               "lineHints": [
-                143
+                143,
+                195
               ]
             },
             {
@@ -2200,12 +2360,16 @@
             {
               "name": "CreateFile",
               "lineHints": [
-                153
+                153,
+                173,
+                221,
+                242
               ]
             },
             {
               "name": "CreateDirectory",
               "lineHints": [
+                174,
                 175
               ]
             },
@@ -2224,7 +2388,8 @@
             {
               "name": "Open",
               "lineHints": [
-                11
+                11,
+                12
               ]
             }
           ]
@@ -2255,6 +2420,7 @@
             {
               "name": "Observe",
               "lineHints": [
+                15,
                 121,
                 145
               ]
@@ -2268,6 +2434,7 @@
             {
               "name": "ReadWriteAccounting",
               "lineHints": [
+                18,
                 23
               ]
             }
@@ -2280,13 +2447,16 @@
             {
               "name": "ReadWriteAccounting",
               "lineHints": [
-                152
+                152,
+                155,
+                156
               ]
             },
             {
               "name": "SetLengthAndMetadata",
               "lineHints": [
-                161
+                161,
+                162
               ]
             }
           ]
@@ -2328,6 +2498,8 @@
             {
               "name": "Observe",
               "lineHints": [
+                32,
+                45,
                 80
               ]
             }
@@ -2357,42 +2529,50 @@
             {
               "name": "Capabilities",
               "lineHints": [
-                11
+                11,
+                14
               ]
             }
           ]
         },
         {
           "path": "scripts/internal/UnityStartupCapture.cs",
-          "sha256": "de87ac5305874d4e950d57fc4f5a4fec269e7cddf32dd60211b88a6e7aab34c5",
+          "sha256": "0fcd8f0abfbb5d9e6a7bfaa68dead5ae38aa2e15ee56be5ffe34bc00ceda219c",
           "symbols": [
             {
               "name": "Run",
               "lineHints": [
+                8,
                 40
               ]
             },
             {
               "name": "Execute",
               "lineHints": [
+                44,
                 47
               ]
             },
             {
               "name": "Verify",
               "lineHints": [
+                53,
+                54,
+                78,
                 142
               ]
             },
             {
               "name": "Analyze",
               "lineHints": [
+                83,
                 269
               ]
             },
             {
               "name": "CompareCapture",
               "lineHints": [
+                85,
                 208
               ]
             }
@@ -2410,7 +2590,11 @@
             {
               "name": "Eligible",
               "lineHints": [
-                46
+                46,
+                47,
+                52,
+                94,
+                407
               ]
             },
             {
@@ -2439,7 +2623,8 @@
             {
               "name": "Eligible",
               "lineHints": [
-                40
+                40,
+                67
               ]
             },
             {
@@ -2475,6 +2660,7 @@
             {
               "name": "Inventory",
               "lineHints": [
+                80,
                 89
               ]
             },
@@ -2529,80 +2715,493 @@
           ]
         }
       ]
+    },
+    {
+      "id": "K32",
+      "files": [
+        {
+          "path": "src/Splinter.Core/WorkspaceGenerations.cs",
+          "sha256": "285b90340d5b689f57345762d639219152529f3121b8f742f4c47c756b330dee",
+          "symbols": [
+            {
+              "name": "WorkspaceResultGeneration",
+              "lineHints": [
+                15,
+                38,
+                40,
+                44
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceGenerations.cs",
+          "sha256": "b84d41e09fe12a64908c975a2fef35b51a019ad6f2de0691431d036e4779f4c0",
+          "symbols": [
+            {
+              "name": "CaptureGenerationCoreAsync",
+              "lineHints": [
+                18,
+                24,
+                32,
+                44,
+                49
+              ]
+            },
+            {
+              "name": "SealGenerationForReleaseAsync",
+              "lineHints": [
+                87
+              ]
+            },
+            {
+              "name": "VerifyRetainedGenerationsAsync",
+              "lineHints": [
+                99
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalSourceCapture.cs",
+          "sha256": "80731614748cc733ca9997eb6298e9e3d822e5e104888097b8c84cda70b1899e",
+          "symbols": [
+            {
+              "name": "CaptureSource",
+              "lineHints": [
+                32
+              ]
+            },
+            {
+              "name": "RecoverPins",
+              "lineHints": [
+                276
+              ]
+            },
+            {
+              "name": "Complete",
+              "lineHints": [
+                284,
+                293
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K33",
+      "files": [
+        {
+          "path": "src/Splinter.Platform.Windows/NtfsSourceGenerations.cs",
+          "sha256": "93f4f7a66e2350a31b5dd3e717d6844bf8dc0736c66226fd9b4a85fc605f6d33",
+          "symbols": [
+            {
+              "name": "CaptureSourceAsync",
+              "lineHints": [
+                15
+              ]
+            },
+            {
+              "name": "OpenSourceCaptureAsync",
+              "lineHints": [
+                52
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/WinFspSourceCapture.cs",
+          "sha256": "b6d1a0c3c34c1686edef1769080ab9940b97dbd9e1fa9bfdde7b71876e0b4d40",
+          "symbols": [
+            {
+              "name": "CaptureSource",
+              "lineHints": [
+                11,
+                21
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/WindowsJournalFilePins.cs",
+          "sha256": "ae45bd04d3ba10ba15fd4cbfc0ed5e10b14ca5906c244154d5509c67aa9772b8",
+          "symbols": [
+            {
+              "name": "Pin",
+              "lineHints": [
+                13,
+                27,
+                79
+              ]
+            },
+            {
+              "name": "DetachBeforeTruncate",
+              "lineHints": [
+                40
+              ]
+            },
+            {
+              "name": "RecoverCopies",
+              "lineHints": [
+                81
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K34",
+      "files": [
+        {
+          "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+          "sha256": "b9380f5027780523100900601f2d533c003901e2282abaa146117a30ff9eced4",
+          "symbols": [
+            {
+              "name": "PreserveGenerationAsync",
+              "lineHints": [
+                25
+              ]
+            },
+            {
+              "name": "VerifyGenerationAsync",
+              "lineHints": [
+                39,
+                64,
+                71
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.SourceControl.Git/GitGenerationIntegration.cs",
+          "sha256": "143dc7b2c140c8deb904ed93112da19799fa5f3ca874d6c6dedc24faca3e44f5",
+          "symbols": [
+            {
+              "name": "IntegrateGenerationAsync",
+              "lineHints": [
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.SourceControl.Git/GitOriginalPublicationGuard.cs",
+          "sha256": "44095d07fdeacb4ad8b34206000ecfa4ad997e885625ec93fe2705708af8b390",
+          "symbols": [
+            {
+              "name": "GitOriginalPublicationGuard",
+              "lineHints": [
+                11,
+                15
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.SourceControl.Git/GitResultPayload.cs",
+          "sha256": "2ec723fa1d82032b564c804f493dab3085e31b1001814d4f02a6e79d9b1cb0db",
+          "symbols": [
+            {
+              "name": "OpenPayload",
+              "lineHints": [
+                8
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K35",
+      "files": [
+        {
+          "path": "src/Splinter.Application.Unity/UnityProjectPolicy.cs",
+          "sha256": "65b67ba22535674afde9770e18badb2ff73078b93cb14139c24e1587cad80a8b",
+          "symbols": [
+            {
+              "name": "AcquireOriginal",
+              "lineHints": [
+                22,
+                42,
+                44
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/WindowsOriginalEditorIdentityVerifier.cs",
+          "sha256": "4746a675f33ad7e03ba6118950c600ebbd5d6ecc877b36caeeee88bc7b111758",
+          "symbols": [
+            {
+              "name": "Acquire",
+              "lineHints": [
+                10
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "maintenance": "Update both languages and this index after lifecycle/ownership/durability/default/result/reclamation changes; retain the exact base commit and source hashes, and refresh line hints from reviewed source contents.",
-  "sourceRevisionKind": "uncommitted-working-tree",
+  "sourceRevisionKind": "committed-source",
   "sourceChanges": [
     {
-      "path": "src/Splinter.Platform.Windows/ManagedDirectoryRestore.cs",
-      "change": "modified",
-      "sha256": "a6beea1523eb9cc3e7cb255c5e2693074b880a284684d52dab2ef46baf16964c"
+      "path": "scripts/internal/UnityStartupCapture.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "0fcd8f0abfbb5d9e6a7bfaa68dead5ae38aa2e15ee56be5ffe34bc00ceda219c"
     },
     {
-      "path": "src/Splinter.Platform.Windows/ManagedRestoreFileAccess.cs",
-      "change": "modified",
-      "sha256": "3fadfcf2c5471c0638ab80cc08e0bf6cc4e1a6cd958691c4eed3544076b31bbd"
+      "path": "scripts/measure-workspace-storage.ps1",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "5c8c29e3a7ac3b8b0218656cc8c019f90b0e9a7ad808b891d8112ababb448e9a"
     },
     {
-      "path": "src/Splinter.Platform.Windows/OwnedDirectorySnapshot.cs",
-      "change": "modified",
-      "sha256": "5259209192b4a75242fddbb07de37df0abc7549d17f93de361a32c791ffaa53e"
+      "path": "src/Splinter.Application.Unity/UnityProjectPolicy.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "65b67ba22535674afde9770e18badb2ff73078b93cb14139c24e1587cad80a8b"
     },
     {
-      "path": "src/Splinter.Platform.Windows/WindowsDirectoryTreeProof.cs",
-      "change": "modified",
-      "sha256": "173c59df24f4d4fb9ad4a9375ba342043e23bb935bb8986097d211d75aa0730b"
+      "path": "src/Splinter.Cli/WorkspaceCommands.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "8827d4543e52c049d134b5731d2dc362a3e3bca1d535bddfb809366424ca90be"
+    },
+    {
+      "path": "src/Splinter.Cli/packages.lock.json",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "f45e81b8caa285b1170c3adf7afb0777658914160b157c7cbec8a7a2e7efdc3a"
+    },
+    {
+      "path": "src/Splinter.Core/ApplicationProjectPolicy.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "e171709c8528c3b86933c23869bc752a20439aec502491d889eefbcda479553b"
+    },
+    {
+      "path": "src/Splinter.Core/OriginalApply.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "df2f960f7d67e589f8a5af07a16a0aaa5b3c1643a024145202783e41edf0f6f3"
+    },
+    {
+      "path": "src/Splinter.Core/SnapshotWorkspaces.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "ed72296ee0c5e7fc2eae81ff4441e54779302f8a922fdeba5e4f0299a72d92ec"
+    },
+    {
+      "path": "src/Splinter.Core/WorkspaceFailurePolicy.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "fbbd04b088374db4c25e891368178559d24dc713dd8834c2d9315eb178509ed0"
+    },
+    {
+      "path": "src/Splinter.Core/WorkspaceGenerations.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "285b90340d5b689f57345762d639219152529f3121b8f742f4c47c756b330dee"
+    },
+    {
+      "path": "src/Splinter.Core/Workspaces.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "daf9e02c4024a040c3e8bfe90d241f60b192630fad87306aea0e426908783990"
+    },
+    {
+      "path": "src/Splinter.Host/FoundationGateway.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "c0c0d654922d1098467348c15aed70fc0802b06c4487d283cafc6bbbe145f28a"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "7936db735e674e8d1d4a4eb027ad8394556071a7e58da28f0a35771502fcdfae"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/NtfsSnapshotWorkspaceBackend.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "b564870c91430f2274196de2b9bcada8ff969025cf6e290cd92a06a92cc3f226"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/NtfsSourceGenerations.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "93f4f7a66e2350a31b5dd3e717d6844bf8dc0736c66226fd9b4a85fc605f6d33"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/OverlayRequestWakeup.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "af9949ce59a03060cdd4cce380361ff7c77eedf307f9a964c110340984fd3ea8"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WinFspOverlayServer.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "c4b7f601d82d2b026bad3e178fe1a45725cf6b6460b6ee82f256c148d39f7bb0"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WinFspSourceCapture.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "b6d1a0c3c34c1686edef1769080ab9940b97dbd9e1fa9bfdde7b71876e0b4d40"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WindowsJournalFilePins.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "ae45bd04d3ba10ba15fd4cbfc0ed5e10b14ca5906c244154d5509c67aa9772b8"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WindowsOriginalEditorIdentityVerifier.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "4746a675f33ad7e03ba6118950c600ebbd5d6ecc877b36caeeee88bc7b111758"
     },
     {
       "path": "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs",
-      "change": "modified",
-      "sha256": "0ec685a84ff861eca3dd51fc5fd4a834a563ad90830e9f3430f06b4b9e7d72fe"
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "f0f132483edf515e64406334414446c5cbe01bb8b1d650c6ab1f35a6c19c3a43"
     },
     {
-      "path": "src/Splinter.Platform.Windows/WindowsOwnedDirectoryLease.cs",
-      "change": "modified",
-      "sha256": "9011e34e1ff39903dd39d5be36c1b1ee3f2e9228e6c65685b894abc252b64e8b"
+      "path": "src/Splinter.Platform.Windows/packages.lock.json",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "27f7354cdf8ed645ef0a566f8266199838f418435d2bb03ad8d654ee21973d07"
     },
     {
-      "path": "src/Splinter.Platform.Windows/ManagedRestoreControlFiles.cs",
-      "change": "added-untracked",
-      "sha256": "97c330c7dadf8683c6197892ebf3d0da1338a9851068ca556fab9f82ea484627"
-    },
-    {
-      "path": "src/Splinter.Platform.Windows/ManagedRestoreTopology.cs",
-      "change": "added-untracked",
-      "sha256": "0de0a3958be652e7e223fac4d52bec2ffb8572bb64fe345b849f5afcb0a5f9fb"
-    },
-    {
-      "path": "src/Splinter.Platform.Windows/ManagedRootDeltaDirectoryRestore.cs",
-      "change": "added-untracked",
-      "sha256": "5026eaee0674fabfcafbab7e6dce093a61a2dfb31773f681f4f30717559909d6"
-    },
-    {
-      "path": "src/Splinter.Platform.Windows/ManagedTopologyDirectoryRestore.cs",
-      "change": "added-untracked",
-      "sha256": "60f75751aa34ea2de3ddd684997412ca28ecbb27d1feee3eb419ce2b793d1a3a"
-    },
-    {
-      "path": "src/Splinter.Core/SnapshotOverlay.cs",
-      "change": "modified",
-      "sha256": "a4d84319586962d3c2b36520a9f077878299520354e3db15f6f644f61c03ba8e"
+      "path": "src/Splinter.Runtime/JournalDeltaLatest.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "999bad840670d0e86b5a51c70f3978e0611628da742bcdbd3913d1bad07eb3c9"
     },
     {
       "path": "src/Splinter.Runtime/JournalDeltaStore.cs",
-      "change": "modified",
-      "sha256": "0ab09679f83b378879c68c5b972fab7934f29b3594089a6df26e866df00aa2e4"
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "23cb4dd78dee383ff2f6e9628e6e95c9064d280e2028f2fb02f5af09de7756f1"
     },
     {
-      "path": "src/Splinter.Runtime/SourceViewDeltaStore.cs",
-      "change": "modified",
-      "sha256": "25013c4109f28d6f17f6fb8c587f12590de8f37965b8015d6219658b701dea40"
+      "path": "src/Splinter.Runtime/JournalSourceCapture.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "80731614748cc733ca9997eb6298e9e3d822e5e104888097b8c84cda70b1899e"
     },
     {
-      "path": "src/Splinter.Platform.Windows/WinFspOverlayFileSystem.cs",
-      "change": "modified",
-      "sha256": "135c8f4ffc4cba14e06e13c134d9e01e8c50b6ae6a527fe12c5d3485633be665"
+      "path": "src/Splinter.Runtime/LatestJournalStorage.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "6d484d727da28c7bc41655ba275821fda599a367c788a5a2b54d4beb25608e3d"
+    },
+    {
+      "path": "src/Splinter.Runtime/SnapshotWorkspaces.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "282a9c96b73b42e71e2eb95a3f20a09b9395a5a4397823355d18cf27c5cfc072"
+    },
+    {
+      "path": "src/Splinter.Runtime/WorkspaceActions.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "e5a4dbb252e76320e6370f258655ad70de7fc223c12a6be424d0082b9148136a"
+    },
+    {
+      "path": "src/Splinter.Runtime/WorkspaceCoordinator.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "a447ef88c91356fcc18e87a7d3a57df91426e902db8ad798b84c0214a71c7827"
+    },
+    {
+      "path": "src/Splinter.Runtime/WorkspaceDiscard.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "2aa558167335416b366da2b734159d49fe242ba650486ac3c47d326814293f81"
+    },
+    {
+      "path": "src/Splinter.Runtime/WorkspaceGenerations.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "b84d41e09fe12a64908c975a2fef35b51a019ad6f2de0691431d036e4779f4c0"
+    },
+    {
+      "path": "src/Splinter.Runtime/WorkspaceOriginalApply.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "bf914d21b8fbddf990ebbd5b4d30914834d495be1bd8232a70a4505556897873"
+    },
+    {
+      "path": "src/Splinter.Runtime/WorkspaceStore.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "81b6655a80386f2922e768d6b3a5e9b1dd0847e65a7d8f719eb2f96cdaadd60e"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/FileOriginalApply.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "4f1ae2d73a53026966a1342603cf7ff27c025b94262019ac815a298157b7b088"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "b9380f5027780523100900601f2d533c003901e2282abaa146117a30ff9eced4"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "83371086f3efae293f839d01b4da9b4eb0c1c240b4723fc672ff371a44c884be"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/PlasticOriginalGuard.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "6e19e3bbd337af35e3fe57bb8d6c03e88a1a6dbdb3b270021f95afe7402b3395"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/PlasticRevisionBridge.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "580b28a3fa753b90a0a3f1e98b472f005cd68ccef254c85d266721907f182354"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/PlasticRevisionStreamSession.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "b0db6eafd78332e58be9d43d0e57204791a529ab8637b75cb53263ef77616b70"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "dbbaa5231d901b9299b595e930a1f41f0093de0c4c96c08d85c4553c0771687a"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/SourceWorkspaceRouter.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "8b8b85cacab618f39f594a177058e35a8c6b397b622bb42bc439239dbbbad032"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/Splinter.SourceControl.Files.csproj",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "a678d3dc9dcbcd0b2162f3e8d6112b74b7e10d03d93b17eb447f0f45aa79b8cb"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/packages.lock.json",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "20955438d3b04d2fc0f3d86bbeb9e26d6801a855277799680f2d0cfeb6bde2bd"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitGenerationIntegration.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "143dc7b2c140c8deb904ed93112da19799fa5f3ca874d6c6dedc24faca3e44f5"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitOriginalPublicationGuard.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "44095d07fdeacb4ad8b34206000ecfa4ad997e885625ec93fe2705708af8b390"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitOverlayRegistration.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "9a218869a883e748ad9b7760326eb6f7fe8f9300a423bdad181c91e37378c0ba"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitResultPayload.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "2ec723fa1d82032b564c804f493dab3085e31b1001814d4f02a6e79d9b1cb0db"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitSnapshotWorkspaces.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "1e7fc0836ef2a5878d11446c3f56e30299612d8709bcffa6e29d48a6fe4145c3"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitSourceResult.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "1dc4e88dbb4e3e0e46654bc184952549aa4f33e14b6af47e1db558bf5bcc3afb"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "1db9a456c36dc8f693fa5a7906ba0c8f0aece63d86b750880242c803e4327105"
+    },
+    {
+      "path": "src/Splinter.Workflows.Windows/packages.lock.json",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "e89edba4584e991420ab164d013a064c79db095947f9c0c3944fe12b24da3d2d"
     }
   ],
   "diagnostics": {
@@ -2638,7 +3237,7 @@
       "interpretation": "Read-only exact-owned capture to new evidence paths; bounded per-file observations, not atomic Library state, compile proof, automatic startup stopwatch or new Unity qualification. Capture overhead is separate."
     }
   },
-  "qualificationStatus": "MX01-10-complete; MX05A-B2-and-MX08A-adopted; other-candidates-not-adopted; final-full-gate-and-actual-apply-discard-complete; no-large-whole-time-gain-established",
+  "qualificationStatus": "RI-01-08 scoped-complete; three fixed native Unity inputs, explicit untested limits and recorded full gate; post-gate metadata check recorded separately",
   "sourceSnapshotHistory": [
     {
       "inspectedDate": "2026-10-28",
@@ -2679,6 +3278,13 @@
       "indexSha256": "422d4992394016c4eb55c695f33b919275231dfb4178e9c8f1626817521bb0a2",
       "sourceChangesCount": 14,
       "reason": "Status before final gate/MX10 closeout; source hashes unchanged."
+    },
+    {
+      "inspectedDate": "2026-10-29",
+      "sourceCommit": "24956f4975a8c9ae57a21f4c52a656b9f8b51ea3",
+      "qualificationStatus": "MX01-10-complete; MX05A-B2-and-MX08A-adopted; other-candidates-not-adopted; final-full-gate-and-actual-apply-discard-complete; no-large-whole-time-gain-established",
+      "indexSha256": "158afd9110001c2dedbfc154e15c7b0f38175904b2f84b145af7143d998ebb20",
+      "reason": "Prior MX closeout snapshot before continuing-task RI lifecycle."
     }
   ],
   "historicalEvidenceStatusScope": "Earlier evidence qualifications preserve status at their recorded point; finalQualification and MX-10 evidence own final program status.",
@@ -2707,6 +3313,22 @@
     "individualCausalGainEstablished": false,
     "sourceSnapshotStillUncommitted": true,
     "wholeComparison": "MX-10",
-    "externalServerAndSettingsRestored": true
-  }
+    "externalServerAndSettingsRestored": true,
+    "scope": "Historical remaining-lifecycle-optimization MX program only; not RI completion."
+  },
+  "repeatedOriginalApply": {
+    "plan": "docs/plans/repeated-original-apply.md",
+    "contract": "docs/repeated-original-apply.md",
+    "verification": "docs/verification/repeated-original-apply.md",
+    "taskRecordVersion": 3,
+    "managedBasisVersion": 2,
+    "oldTaskMigration": false,
+    "status": "scoped-complete-with-recorded-limits",
+    "sourceCommits": [
+      "f5f7b9b5d8c1fb1a00c0aa8be4726b27a8941759",
+      "b51f18fb6d4515a149975bbe6b3bf334804e1217"
+    ]
+  },
+  "sourceBaseCommit": "aff285f0da769eeaba0300d448f027ceeaa4a5bb",
+  "sourceHashBasis": "raw LF repository blobs at sourceCommit"
 }

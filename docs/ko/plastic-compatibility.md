@@ -1,5 +1,7 @@
 # Plastic 사용 환경의 작업공간
 
+현재 task 상태는 **v3**, 관리형 basis는 v2다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 수집·불변 결과 버전·경로별 반영 이력·실행 중 원본의 정확한 외부 협력을 소유한다. [RI 자격](verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분하며 이전 task는 이관 없이 보존·거부한다.
+
 [English](../plastic-compatibility.md)
 
 과거 VSS C:/T: A/B·회수·도구 자격은 [PC 기록](verification/plastic-compatibility.md)과 [VR-01](verification/vss-and-mcp-remediation.md)에 보존한다. 현재 [VSS 폐기](plans/vss-retirement.md) 뒤 이 경로는 실행하지 않는다.
@@ -10,7 +12,7 @@ Splinter가 병렬 작업공간을 제공한다. Unity VCS/Plastic SCM 연동은
 
 ## 선택과 입력
 
-`--source plastic`을 최초 요청에 명시한다. 현재 상태 v2에 project/key/id/home·source/application·basis·digest를 고정한다. `plastic`의 기본 application은 `unity`, 명시적 기록 changeset이 필요하며 NTFS task만 지원한다. `--application none`은 Editor 없는 입력의 공통 수명주기에 사용한다. 다른 source로 fallback하지 않는다.
+`--source plastic`을 최초 요청에 명시한다. 현재 task 상태 v3에 project/key/id/home·source/application·basis·digest를 고정한다. `plastic`의 기본 application은 `unity`, 명시적 기록 changeset이 필요하며 NTFS task만 지원한다. `--application none`은 Editor 없는 입력의 공통 수명주기에 사용한다. 다른 source로 fallback하지 않는다.
 
 ```powershell
 pwsh ./scripts/splinter.ps1 doctor --project <Plastic 원본> --source plastic --application unity

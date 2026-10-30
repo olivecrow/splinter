@@ -1,5 +1,7 @@
 # 현재 기반
 
+현재 task 상태는 v3다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 불변 수집·명시적 결과 선택·경로별 반영 이력·외부 도구의 실행 중 Editor 협력을 소유하며 [RI 자격](verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분한다. 관리형 basis 상태는 v2를 유지하며 이전 task는 이관 없이 보존·거부한다.
+
 [English](../foundation.md)
 
 [수명주기 병목 후속](plans/lifecycle-bottlenecks.md)은 최종 전체 일치·metadata 변경·기존 leaf 삭제의 Library 디렉터리 복원과 선택적 쓰기/Git 관측·읽기 전용 시작 캡처를 설명한다. 미지원 내용/구조 변경은 일반 파일별 복원을 유지한다. [BO 검증](verification/lifecycle-bottlenecks.md)은 구성 요소 증거와 실제 Unity 수명주기 자격을 구분한다.
@@ -18,11 +20,13 @@ Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트�
 
 ## 구조와 의존성
 
+[결과 구현 소유 경계](repeated-original-apply.md#구현-소유-경계)가 Core 결과/허가·Runtime 수집/이력/최종 종료·Windows backing alias/native Editor identity·Files 결과·Git 결과/관리 guard를 연결한다. 현재 지속 task 경로가 최종 전용 checkpoint 의미를 대체하며 과거 수집/성능 기록은 당시 후보에 결속한다.
+
 JSON object/array 내부의 중복 속성명 순회는 Runtime의 `JsonPropertyValidation`이 공통으로 소유한다. 이름은 Ordinal로 비교하며 크기·깊이·버전·역직렬화 옵션과 오류 코드는 각 입력/상태 경계에서 유지한다. 개발용 view 응답은 `start`의 Accepted 판단에만 임시 JSON 검사를 사용하며 다른 action의 결과는 최종 응답 출력에서 직렬화한다.
 
 [OS와 앱 확장 경계](extensibility-boundaries.md)는 snapshot identity에 고정한 경로 정책·선택적 Unix 권한 metadata와 앱별 프로젝트 정책을 소유한다. Unity의 원본 잠금/동반 파일/Library descriptor는 Unity 어댑터에 있고 Files·Windows는 명시적으로 주입한 정책을 사용한다. 관리형 basis 상태·준비 intent는 앱/디렉터리 identity를 명시한 v2만 지원한다. 다른 OS·앱의 실제 어댑터는 없으며 자동 적합성과 실제 지원은 [검증](verification/extensibility-boundaries.md)에서 구분한다.
 
-Plastic 내용 reader는 Files에 내장된 고정 client adapter를 일반 사용자 PowerShell 자식에서 실행하고 private stdio frame만 읽는다. 공개 API listener나 새로운 CLI 명령은 제공하지 않는다. Windows `cm 11.0.16.9915`·PowerShell 7 전제와 helper의 bounded segment는 [현재 계약](plastic-project-basis.md), 자동/한정 native 읽기는 [보안 경계 검증](verification/security-boundaries.md)을 따른다. 작업공간의 저장 격리는 악성 Git hook·Unity 코드·인증된 MCP 코드 실행에 대한 OS 보안 sandbox가 아니다.
+Plastic 내용 reader는 Files에 내장된 고정 client adapter를 일반 사용자 PowerShell 자식에서 실행하고 private stdio frame만 읽는다. 공개 API listener나 새로운 CLI 명령은 제공하지 않는다. Windows `cm 11.0.16.10484`·PowerShell 7 전제와 helper의 bounded segment는 [현재 계약](plastic-project-basis.md), 자동/한정 native 읽기는 [보안 경계 검증](verification/security-boundaries.md)을 따른다. 작업공간의 저장 격리는 악성 Git hook·Unity 코드·인증된 MCP 코드 실행에 대한 OS 보안 sandbox가 아니다.
 
 [VCS 없는 프로젝트 기준본](plain-project-basis.md)은 Windows `ManagedDirectoryBasis(projectBasis:true)`의 원본 prepare/restore와 `ProjectDirectorySnapshotProvider`의 task-owned reference를 사용한다. 공통 `IProjectSourceAccess`는 원본 읽기/게시 동안 정확한 기준·mount·필요한 Editor 종료 lease를 보유한다. Files는 기존 독립 결과/3자 반영을 재사용하고 Windows publisher는 검증된 원본 view만 제한적으로 허용한다. task 회수는 peer 공통 payload를 삭제하지 않으며 마지막 restore가 기준 수명을 소유한다. Core에 Win32/Unity API를 추가하지 않는다.
 

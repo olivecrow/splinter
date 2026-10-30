@@ -1,5 +1,7 @@
 # 병렬 Unity 작업공간과 Editor 수명
 
+현재 task 상태는 v3다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 불변 수집·명시적 결과 선택·경로별 반영 이력·외부 도구의 실행 중 Editor 협력을 소유하며 [RI 자격](verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분한다. 관리형 basis 상태는 v2를 유지하며 이전 task는 이관 없이 보존·거부한다.
+
 [English](../alpha-workspaces.md)
 
 같은 workspace를 다시 시작할 때 동일한 소유 bridge resource·marker는 소유권/내용/경로 전체 검증 뒤 재사용하여 에셋 시각을 유지한다. Editor 전용 `Splinter.Workspace.Editor` assembly는 자동 참조를 끈다. Marker version 2는 C#·assembly definition hash를 묶으며, 내용이 달라진 검증된 소유 resource만 갱신하고 이전 marker·unknown/변경 파일은 보존·거부한다. token과 시작 제어 기록은 새로 만든다. 작은 실제 Unity assembly/수명 검증은 [준비 프로파일 후속 최적화](verification/startup-profile-optimization.md)를 따른다. 이 후보의 전체 A/B 준비 시간은 NotRun이다.
@@ -32,14 +34,15 @@ MCP·Unity CLI는 필요할 때 에이전트가 선택하는 외부 도구다. S
 ## 결과와 명시적 종료
 
 ```text
-splinter workspace checkpoint --id <id> --message <보존할 결과 설명> --home <home>
-splinter workspace integrate --id <id> --target development --home <home>
+splinter workspace checkpoint --id <id> --request-key <수집-key> --message <보존할 결과 설명> --home <home>
+splinter workspace integrate --id <id> --target original --result <결과-id> --plan --home <home>
+# 검토한 intent/digest와 필요한 정확한 실행 중 원본 허가로 반영한 뒤 편집을 계속한다.
 splinter workspace release --id <id> --home <home>
 ```
 
-checkpoint는 컴파일 성공 없는 작업도 보존한다. 소유 Editor를 정상 종료하고 자식 자원 0을 확인한 뒤 소유 bridge를 제거한다. Git 수집의 전후 내용 일치와 독립 result ref, 수집·unmount의 저널 seal을 확인한다. 작업 내용의 합격 여부는 에이전트가 판단하며 checkpoint 자체로 컴파일·테스트 성공을 주장하지 않는다. 결과 수집 뒤에는 같은 작업의 새 편집을 시작하지 않는다.
+checkpoint는 소유 Editor와 후속 편집을 유지하면서 불변 소스 결과 버전을 보존한다. 안정된 요청 키는 최초 결과만 반환한다. payload 보존은 짧은 영속 소스 경계 밖에서 수행하며 컴파일·테스트 성공을 주장하지 않는다. 최종 처리는 외부 저장·해당 task만 정상 종료한 뒤 같은 수집/게시 엔진을 사용하고 명시적으로 회수한다. 최종 수집의 전체 전후 저널 seal은 유지한다.
 
-integrate는 정확한 수집 revision과 현재 소스의 일치, 깨끗한 요청 대상 branch, 저장소 잠금을 확인하고 Git merge를 수행한다. 이 명령이 시작한 충돌 merge만 중단하며 결과는 보존한다. 통합 전략·충돌 해결·원본 Editor의 통합 후 검증은 에이전트의 책임이다. 보존만 원하면 integrate 없이 release할 수 있다.
+세 입력은 `--target original --result <id>`로 경로별 반영 이력에 대한 검토된 조건부 파일 게시를 사용한다. 실행 중 원본에는 정확한 외부 도구 저장/import 유예 협력이 필요하며 에이전트가 안전한 refresh/재로드와 실제 로드 값을 확인한다. Git HEAD/index/branch는 유지한다. 명시적 branch 대상 merge는 별도 clean-target·저장소 잠금 보호를 유지한다. 충돌은 변경을 보존하며 보존만 원하면 integrate 없이 release한다.
 
 release는 독립 결과를 남긴 뒤 소유 Editor/provider/mount/Git/delta·마지막 소유 snapshot을 회수한다. `reclaim-pending`은 명시적인 같은 작업 재시도가 필요한 물리 회수 대기다. 작업을 버리려면 [명시적 discard](workspace-discard.md)를 사용한다. 대화/Editor 종료·timeout은 반영이나 폐기 승인이 아니다.
 

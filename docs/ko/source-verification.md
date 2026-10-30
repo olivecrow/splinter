@@ -6,9 +6,9 @@
 
 제품 Windows mount는 Cleanup 뒤에도 kernel 파일 cache를 유지한다. 소스 요청과 명시적 flush마다 root 핸들의 native volume 이름·root identity를 현재 WinFsp host와 대조하고 정확한 소유 volume을 먼저 flush한다. 종료는 새 open을 차단하고 flush·연결된 cache 무효화·실제 마지막 context 종료를 확인한 뒤 unmount한다. 사용 중인 mapped context나 장벽 실패는 실행 중 provider를 보존하며 강제 unmount나 성공 영수증을 허용하지 않는다. 직접 사용하는 진단 host는 이전 purge 정책을 유지한다. kernel cache 메모리는 OS가 관리하며 제한된 decoded payload cache와 별개다.
 
-현재 유한 경로 cache와 통합 종료의 자격은 [LF-01–05](verification/lifecycle-finalization-optimization.md)를 따른다. 관측한 mount와 신뢰할 수 있는 저널 세대 경계 안에서 검사 하나가 plain 상위 디렉터리 최대 4,096개 / 경로 1,048,576자를 재사용한다. leaf/native 조상과 외부 Git 상태는 새로 확인한다. `checkpoint --release`는 같은 호출의 성공한 checkpoint seal만 release의 시작 seal로 재사용하며 새 소스 검사와 이후 seal을 유지한다.
+현재 유한 경로 cache와 통합 종료의 자격은 [LF-01–05](verification/lifecycle-finalization-optimization.md)를 따른다. 관측한 mount와 신뢰할 수 있는 저널 세대 경계 안에서 검사 하나가 plain 상위 디렉터리 최대 4,096개 / 경로 1,048,576자를 재사용한다. leaf/native 조상과 외부 Git 상태는 새로 확인한다. 이전 종료형 수집의 결합 최적화는 LF 근거로 보존하며 v3 최종 종료는 아래 결과 엔진과 전체 seal을 사용한다.
 
-현재 `--source none`의 일반 폴더 경로와 v2 상태는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
+현재 `--source none`의 일반 폴더 경로와 v3 task 상태는 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. 아래 Git 경로와 과거 native 자격을 일반 폴더 지원으로 승계하지 않는다.
 
 제품 `git-snapshot`의 Git 어댑터는 파일 단위 raw SHA-256과 Git 내용 hash를 같은 snapshot·provider 세대·소스 변경 이력에 묶어 재사용한다. 파일 크기·수정 시간·Git stat cache만으로 내용이 같다고 판단하지 않는다. 전체 fingerprint의 경로 정렬과 `source-fingerprint-v1` 값은 유지한다. 진단 backend는 기존 전체 raw 읽기 경로다.
 
@@ -42,15 +42,15 @@ Git 어댑터는 다음 순서로 검사한다.
 
 Editor 없는 범위 저널 ensure에서 새로 attach할 때는 선택적 `ISourceInspectionProofProvider` 계약으로 첫 Git 검사 결과를 그 연산의 응답까지 유지할 수 있다. 한 번만 사용하는 증명은 등록·workspace/project/snapshot identity·관리 경로 정책·HEAD·전체 index·구성원·유효 해석과 provider epoch/sequence/전체 변경 이력을 재검증한 뒤 검사한 소스를 반환한다. 증거가 바뀌거나 unknown이면 거부한다. 증명은 같은 연산의 메모리에만 유지하며 직렬화·계측값에서 재구성·명령/재시작 간 전달을 하지 않는다. 감사·불완전한 구성원·미지원 adapter·이미 attach한 요청은 일반 검사 경로를 유지한다. `--editor`는 이 응답 증명을 버리고 위에서 설명한 새로운 검사를 수행한다. 자격은 [SA-04](verification/startup-additional-optimization.md)가 소유하며 새로운 실제 Unity 시간 측정은 **NotRun**이다.
 
-범위 저널의 첫 checkpoint는 앱 종료 전에 자원 준비 상태를 관측하고, checkpoint adapter와 seal을 갖춘 독립 결과 수집으로 소스를 검증한다. 최종 응답은 자원만 관측하여 `sourceVerification=not-checked`이고 `source`를 생략하며, 검증한 결과 revision/fingerprint/seal은 `workspace.snapshot.result`에 남는다. 수집 뒤 현재 소스를 다시 검사했다고 주장하지 않으면서 추가 소스 검사 두 번을 줄인다. 기존 revision이 있는 checkpoint 재요청은 현재 소스를 계속 검사한다. 새 현재 소스 관측이 필요하면 `workspace status --verify-source`를 요청한다.
+현재 task v3의 `checkpoint --request-key`는 Editor를 유지하며 ACK한 metadata/범위·영속 backing alias를 고정한다. 독립 payload 읽기/hash/증명은 mutation 경계 밖에서 고정 tree를 읽는다. 응답의 `resultGeneration`과 같은 키 재시도는 최초 결과를 검증·반환하며 이후 worker 편집을 검사/재수집하지 않는다. 새 현재 소스 관측은 `workspace status --verify-source`다. Git은 독립 결과 ref/객체와 공통 파일 manifest를 남기고 None/Plastic은 task의 버전들 사이에서 내용 기반 객체를 재사용한다.
 
-Git adapter는 공통 `ISnapshotCheckpointSourceProvider` 연산을 구현하여 Runtime이 checkpoint와 독립 보존 전체를 변경 없는 저널 seal 구간으로 감싼다. 일반 수정은 입력과 commit 내용의 전체 소스 검사 두 번을 사용한다. 연산 안에서만 유지하는 증명이 staging 전후와 결과 ref 게시 후 identity/policy·전체 소스 변경 이력·HEAD·index·파일 목록·해석 설정을 확인한다. commit tree는 준비한 staged tree와 같아야 하며 관리 경로의 index 진입도 거부한다. 증명을 저장하거나 계측값에서 복구하지 않는다. 삭제/이름 변경이나 삭제한 `.gitattributes` 등 누락된 tracked 파일은 staging이 목록과 속성 fallback을 정상적으로 바꾸므로 중간 전체 검사를 유지한다. source router는 선택한 adapter의 `SupportsCheckpointAndPreserve` capability와 연산을 전달하며 미지원 source를 Git으로 재해석하지 않는다. 이 capability가 없는 adapter는 기존 수집 경로를 유지한다. 실패/응답 유실은 commit·저널·이전 성공 manifest를 보존하고 같은 task에서 재검증한다.
+[반복 원본 반영](repeated-original-apply.md)이 결과/capture digest·미완료 요청 복구·경로별 반영 상태·명시적 `--target original --result`를 소유한다. 원본 파일 게시는 worker의 후속 편집을 유지하며 고정 결과를 읽고 명시적 branch merge는 별도다. 최종 stop/bridge 제거는 전체 seal 사이에서 같은 결과 엔진을 사용한다. `workspace.snapshot.result`는 최종 종료용이며 모든 결과 버전은 독립 보존한다. 이전 live scan 두 번/staging-seal 시간은 당시 후보의 과거 근거로 유지한다.
 
 ignored 파일 검사는 Git pathspec에서 literal 관리 root를 먼저 제외하여 하위 파일 열거를 줄인다. wildcard 정책은 경로별 분류를 유지하며 관리 대상 밖의 ignored 형제 파일은 계속 보존을 차단한다. ignored 사용자 파일을 독립 소스 결과에 포함하는 변경은 아니다.
 
 실행 중 볼륨 조회는 재연결 시 재구성하는 배타 writer의 바이트 장부를 사용한다. 주기적/flush 활동 보고는 `journalBytesBasis=writer-accounting`, 명시적 `Observe`의 실제 파일 순회는 `current-files`로 구분한다. 실패하여 재연결이 필요한 writer는 활동 storage를 unknown으로 두고 `DeltaReconnectRequired`와 살아 있는 프로세스/핸들 관측을 유지하며 강제 unmount하지 않는다. 용량 요청은 사용할 수 없는 장부를 거부한다. 활동 장부와 heartbeat 경과 시간은 내용/seal 증명이 아니다.
 
-release는 infrastructure 제거 후 저장한 저널 seal과 정확히 일치하고, 새 소스 검사가 clean이며 결과 revision/fingerprint와 같고, 두 번째 seal도 바뀌지 않은 경우에만 기존 `stable-journal-v1` 독립 결과를 재사용한다. 독립 ref/object 검사와 unmount 후 seal 검사는 계속 수행한다. 생성 데이터나 infrastructure가 바뀌면 전체 수집 경로를 사용하며, 소스 불일치·결과 손상·동시 쓰기는 작업을 보존한다. [수명주기 최적화 자격](verification/checkpoint-release-optimization.md)을 따른다.
+release는 모든 보존 결과를 검증하고 해당 task만 정상 종료하며 전체 전후 저널 seal 사이에서 최종 결과를 보존하고 unmount 후 seal도 요구한다. seal 변경은 같은 task/결과를 보존해 정확한 요청으로 복구한다. 과거 [checkpoint/release 최적화](verification/checkpoint-release-optimization.md)를 새 실행 중 수집의 자격으로 승계하지 않는다.
 
 `Library`, `Temp`, 소유 Unity bridge 등 관리 경로의 쓰기는 소스 세대를 올리지 않는다. 루트 디렉터리의 날짜·속성 변경도 소스 내용 변경이 아니다. 루트의 rename/delete/resize/payload 쓰기는 기존 저장 계약에서 거부한다. 변경 경로 인덱스는 최대 250,000개이며 한도 초과는 acknowledged append 전에 차단한다.
 
@@ -90,7 +90,7 @@ python ./scripts/measure-overlay-journal.py <stopped-delta.journal> --output <ne
 
 기본 source/application은 `git`/`unity`다. `-SourceKind none`은 Git을 호출하지 않고 Git common root를 추가하지 않는다. `-ApplicationKind none`은 Unity Library 기준선 root를 추가하지 않는다. 일반 폴더의 `files/objects`는 `independent-file-result-payload`로 따로 분류하며 control root의 부분이므로 다시 합산하지 않는다.
 
-`-WorkspaceIds`는 같은 project의 현재 v2 record가 있는 정확한 task ID만 선택한다. 생략하면 records 전체가 shared-home 관측이며 작업별 비용이 아니다. runner/cache·Git common도 공유 root로 남긴다. `-SkipOriginalLibrary`는 별도 원본 기준선을 다시 읽지 않을 때 사용한다. 중복/겹치는 root와 mount/reparse root는 거부하며 내부 reparse·hardlink·읽기 실패는 완전한 할당 합계 대신 unknown과 관측 subtotal로 남긴다. `productFileAllocationBytes`는 원본/evidence를 제외한 선택 root의 파일 할당 합계이며 기존 공유 기준선을 빼기 전의 절대 관측이다. 전체 workspace/VSS 귀속량이 아니다. 신규 출력만 게시하고 기존 파일은 보존한다.
+`-WorkspaceIds`는 같은 project의 현재 v3 task record가 있는 정확한 task ID만 선택한다. 생략하면 records 전체가 shared-home 관측이며 작업별 비용이 아니다. runner/cache·Git common도 공유 root로 남긴다. `-SkipOriginalLibrary`는 별도 원본 기준선을 다시 읽지 않을 때 사용한다. 중복/겹치는 root와 mount/reparse root는 거부하며 내부 reparse·hardlink·읽기 실패는 완전한 할당 합계 대신 unknown과 관측 subtotal로 남긴다. `productFileAllocationBytes`는 원본/evidence를 제외한 선택 root의 파일 할당 합계이며 기존 공유 기준선을 빼기 전의 절대 관측이다. 전체 workspace/VSS 귀속량이 아니다. 신규 출력만 게시하고 기존 파일은 보존한다.
 
 할당 계측은 현재 저널·정리 후보·이전 세대를 별도 category로 나눈다. 선택적 `-EvidencePath <run-directory>`는 검증 자료를 `verification-evidence` root(`scope=measurement-overhead`)로 따로 관측한다. 이를 제품 작업공간 공간에 합산하지 않고 여러 작업이 공유하는 자료는 한 번만 센다. 표본 파일 자신이 기록되기 전의 관측이므로 마지막 표본 파일까지 포함한 절대 상한은 아니다.
 

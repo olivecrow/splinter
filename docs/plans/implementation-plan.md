@@ -1,6 +1,8 @@
 <a id="splinter-첫-실사용-버전-계획"></a>
 # Splinter first practical-use version plan
 
+Current task state is **v3**; managed basis remains v2. [Repeated original application](../repeated-original-apply.md) owns live capture, immutable result versions, per-path publication history and exact external cooperation for a running original. [RI qualification](../verification/repeated-original-apply.md) is separate from historical stopped-Editor evidence; older tasks are preserved/refused without migration.
+
 [한국어](../ko/plans/implementation-plan.md)
 
 > Current modes are `git-snapshot`, `plastic-snapshot`, and `project-snapshot`. The [VSS retirement decision](vss-retirement.md) supersedes earlier VSS service/installation/reclamation follow-ups. Existing IDs, figures and input-specific qualification below remain historical records and do not authorize resuming VSS execution.
@@ -76,7 +78,7 @@ First actual qualification is one small `source=none`/`application=none` Windows
 <a id="마감한-선행-개발-단위-vcs-없는-기본-수명주기"></a>
 ## Closed preceding development unit: VCS-free basic lifecycle
 
-Additional user requirements on 2026-10-02 changed preceding Unity CLI handoff priority. Fixed scope: **complete plain-folder creation/same-task resumption/independent editing-Editors/result preservation/reclamation/discard without Git, retaining Splinter isolation/efficiency/original-peer protection when Git is used**. Common contracts/file-source providers/CLI-Windows integration and approved service update/actual A-B closed with limited qualification. Current state v2 and `--source git|none`/`--application unity|none` contracts follow [feature documentation](../vcs-independent-workspaces.md); candidate-specific automated regressions/actual execution/same-request resumption after fixes/limits follow [verification](../verification/vcs-independent-workspaces.md). [VCS matrix](validation-matrix.md#vcs-free-basic-lifecycle) owns execution status/gates.
+Additional user requirements on 2026-10-02 changed preceding Unity CLI handoff priority. Fixed scope: **complete plain-folder creation/same-task resumption/independent editing-Editors/result preservation/reclamation/discard without Git, retaining Splinter isolation/efficiency/original-peer protection when Git is used**. Common contracts/file-source providers/CLI-Windows integration and approved service update/actual A-B closed with limited qualification. Current task state v3 and `--source git|none`/`--application unity|none` contracts follow [feature documentation](../vcs-independent-workspaces.md); candidate-specific automated regressions/actual execution/same-request resumption after fixes/limits follow [verification](../verification/vcs-independent-workspaces.md). [VCS matrix](validation-matrix.md#vcs-free-basic-lifecycle) owns execution status/gates.
 
 <a id="현재-의존성과-목표-책임"></a>
 ### Current dependencies and target responsibilities

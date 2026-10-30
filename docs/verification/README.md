@@ -1,6 +1,8 @@
 <a id="검증-안내와-보존-근거"></a>
 # Verification guide and preserved evidence
 
+Current task state is **v3**; managed basis remains v2. [Repeated original application](../repeated-original-apply.md) owns live capture, immutable result versions, per-path publication history and exact external cooperation for a running original. [RI qualification](repeated-original-apply.md) is separate from historical stopped-Editor evidence; older tasks are preserved/refused without migration. RI-01–08 are scoped-complete for one fixed small actual Unity original/A/B set per Git/None/Plastic input, with final current-source regression and explicit untested limits.
+
 [한국어](../ko/verification/README.md)
 
 [Lifecycle bottleneck follow-up](lifecycle-bottlenecks.md) owns BO-01–05: exact-equality and sparse Library restoration, same-input NTFS component costs, optional write/Git observations and bounded startup evidence capture. Full proof and durable ACK remain; no new actual Unity lifecycle qualification.

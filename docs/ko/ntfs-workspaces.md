@@ -1,5 +1,7 @@
 # NTFS 프로젝트 작업공간
 
+현재 task 상태는 **v3**, 관리형 basis는 v2다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 수집·불변 결과 버전·경로별 반영 이력·실행 중 원본의 정확한 외부 협력을 소유한다. [RI 자격](verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분하며 이전 task는 이관 없이 보존·거부한다.
+
 [English](../ntfs-workspaces.md)
 
 현재 제품은 `git-snapshot`, `plastic-snapshot`, `project-snapshot` 기준본과 WinFsp 범위 저널을 조합한다. [Git](git-project-basis.md), [Plastic](plastic-project-basis.md), [VCS 없는 프로젝트](plain-project-basis.md)의 입력·준비 조건을 각각 따른다. `ntfs-snapshot`·VSS·전용 서비스는 [폐기](plans/vss-retirement.md)했으며 구형 상태를 보존·거부한다. 아래 공통 저널·경로·결과·복구 보호는 유지한다.
@@ -36,13 +38,13 @@ splinter unity start --id <id> --home <상태 경로>
 ```text
 splinter workspace status --id <id> --home <상태 경로>
 splinter workspace compact --id <id> --home <상태 경로>
-splinter workspace checkpoint --id <id> --message <결과 설명> --home <상태 경로>
+splinter workspace checkpoint --id <id> --request-key <capture-key> --message <결과 설명> --home <상태 경로>
 splinter workspace release --id <id> --home <상태 경로>
 ```
 
 Editor의 refresh·컴파일·Play/테스트 등은 반환 workspace 경로를 선택한 외부 MCP·Unity CLI에서 수행한다. 제품 bridge는 liveness·진행 상태와 정상 종료만 처리하고 프로젝트 함수를 실행하거나 합격을 판정하지 않는다. checkpoint는 컴파일 성공 없는 소스도 안정된 독립 결과로 보존한다. 실제 게임/코드 검증 증거는 선택한 도구에서 확인한다.
 
-`workspace compact`는 **최종 결과 수집 전**의 연결된 NTFS 작업공간 하나에서 명시적으로 실행한다. 소유 Editor와 자식 프로세스가 종료되고 mount의 열린 핸들이 0이며 snapshot 가용성과 소유권이 확인돼야 한다. 같은 workspace의 다른 수명주기 명령은 `compact-*` 단계 동안 거부한다. provider를 멈춘 뒤 unmount 전후 저널 seal을 대조하고, 원래 snapshot·작업 ID·Git 등록을 그대로 사용해 새 저널 세대를 검증·발행·재연결한다. 정리 뒤 source 내용과 seal을 다시 확인하며 프로젝트 검증은 에이전트가 필요에 맞게 수행한다. 이미 완료한 세대의 같은 명령 재시도는 seal이 같을 때 읽기 전용 결과를 반환하며, 이후 새 쓰기가 있으면 다시 명시적으로 압축할 수 있다. `checkpoint`를 중간 압축용으로 사용하지 않는다.
+`workspace compact`는 **최초 소스 결과 수집 전**의 연결된 NTFS 작업공간 하나에서 명시적으로 실행한다. 소유 Editor와 자식 프로세스가 종료되고 mount의 열린 핸들이 0이며 snapshot 가용성과 소유권이 확인돼야 한다. 같은 workspace의 다른 수명주기 명령은 `compact-*` 단계 동안 거부한다. provider를 멈춘 뒤 unmount 전후 저널 seal을 대조하고, 원래 snapshot·작업 ID·Git 등록을 그대로 사용해 새 저널 세대를 검증·발행·재연결한다. 정리 뒤 source 내용과 seal을 다시 확인하며 프로젝트 검증은 에이전트가 필요에 맞게 수행한다. 이미 완료한 세대의 같은 명령 재시도는 seal이 같을 때 읽기 전용 결과를 반환하며, 이후 새 쓰기가 있으면 다시 명시적으로 압축할 수 있다. `checkpoint`를 중간 압축용으로 사용하지 않는다.
 
 `--optimize-journal true`와 `--revert-base-ranges true`는 [현재본 저널 ON](latest-only-journal.md)을 선택하며 이후 writer/reconnect도 완료한 현재 private payload·metadata만 유지한다. 명시적 정리에서만 고정 기준과 같은 private 범위를 제거한다. 새 일반 Windows provider 기본 [bounded](bounded-journal.md)·기존 작업과 옵션 생략 시 저장된 선택 유지·원래/기대 구조 hash·metadata/identity 보존과 v3 compaction intent는 [기준본 복귀 계약](journal-base-reversion.md)을 따른다. OFF의 기준 읽기 0과 작은 frame fallback을 ON으로 승계하지 않는다.
 
@@ -58,15 +60,13 @@ whiteout·rename·truncate·`.meta`와 변경 경로를 재생 대조하며 파�
 
 일반 status는 소유 앱/provider를 관측하고 프로젝트 내용을 읽지 않는다. `--verify-source`의 `sourceVerification=verified` 응답에는 현재 `source`가 있으며 `not-checked`에는 이를 생략한다. source fingerprint는 저장 내용 검사이고 컴파일/테스트 성공이 아니다. checkpoint/integrate는 현재 소스와 독립 결과를 다시 확인한다.
 
-checkpoint는 앱과 자식의 종료를 확인한 뒤 검증한 소스만 커밋하고 `refs/splinter/snapshot-results/<id>`와 `workspace.snapshot.result`를 남긴다. manifest에는 snapshot ID, revision, fingerprint, 결과 ref, 저널 sequence/길이/SHA-256과 `collectionProtocol=stable-journal-v1`이 있다. 소스 검사와 결과 ref 보존 전후의 seal이 같을 때만 manifest를 발행한다. 결과 객체가 Git 저장소 안에 있는지 검증한다. 결과 커밋과 기록은 회수 뒤에도 남는다. 새로운 편집에는 새 key를 사용한다.
+checkpoint는 실행 중 Editor를 유지하며 안정된 요청 키로 소스 metadata/범위·영속 backing pin을 고정한다. payload 읽기·hash·독립 Git/파일 결과 보존은 mutation gate 밖에서 수행한다. 같은 task에서 이후 편집·Editor 재시작을 허용한다. 불변 ID·버전별 영수증/ref를 사용하며 단일 task 결과를 덮어쓰지 않는다. 최종 stop/bridge 제거·전체 전후 seal·unmount 증명은 같은 결과 엔진을 사용한다. 경로별 반영 상태·HEAD/index를 유지하는 Git 원본 파일 게시·실행 중 원본 허가·정확한 재시도는 [반복 원본 반영](repeated-original-apply.md)을 따른다. 과거 checkpoint/소스 검사 시간은 당시 정지형 엔진 후보의 근거다.
 
-범위 저널의 첫 checkpoint 응답은 `sourceVerification=not-checked`로 자원 관측을 반환하며, seal을 갖춘 결과 manifest에 검증한 revision/fingerprint가 있다. 변경 없는 release는 정확한 seal과 새 clean 소스 검사 한 번을 조건으로 독립 결과를 검증·재사용한다. 바뀐 저널은 전체 수집을 유지한다. 이 [소스 검증 규칙](source-verification.md)은 독립 결과·unmount 후 seal·소유권 검사를 유지하며, [한정 최적화 근거](verification/checkpoint-release-optimization.md)를 새 Unity 입력의 자격으로 확대하지 않는다.
-
-Git checkpoint와 독립 보존은 typed 소스 트랜잭션 하나를 공유한다. 일반 편집은 전체 소스 검사 두 번과 해당 연산의 staging/pinning 증명을 사용하며 누락된 추적 경로가 있으면 staged 전체 검사를 유지한다. 전체 트랜잭션의 전후 저널 seal을 유지한다. 실행 중 volume/heartbeat 계측은 배타적 writer의 저널 바이트 계수(`journalBytesBasis=writer-accounting`), 명시적 관측과 최종 stopped 상태는 실제 파일 검사(`current-files`)를 사용한다. poisoned writer는 저장량을 unknown으로 반환하고 살아 있는 소유권/open handle을 유지하며 reconnect를 요구한다. 파일 알림은 source/flush/stop 처리를 깨우고 heartbeat polling은 1초 주기를 유지한다. 알림 자체는 요청 승인이 아니다.
+실행 중 volume/heartbeat는 배타적 writer 계수(`journalBytesBasis=writer-accounting`), 명시적/최종 관측은 현재 파일을 검사한다. poisoned writer는 저장량 unknown과 살아 있는 소유권/핸들을 보존하고 reconnect를 요구한다. 파일 알림은 source/flush/stop 요청을 깨울 뿐 승인하지 않는다.
 
 SJL4 재생/inventory는 checksum·identity·소유권 검사를 생략하지 않고 backup 세대와 payload 경로를 인덱스로 찾는다. 새 SJL4 회수는 소유 요청과 stopped 바이트/sequence 관측을 검사한 뒤 바깥 intent에 저장된 예상 seal을 고정한다. 기존 내부 reclaimer가 검증된 inventory 생성과 파일 삭제 전에 전체 seal을 비교한다. 바깥 intent만으로는 삭제할 수 없다. OFF/현재 저널 부재 경로는 바깥 전체 seal을 유지하고, 중단 복구도 동일 intent/inventory/fence 검사를 유지한다. 형식과 개별 durable flush/ACK 의미는 바뀌지 않는다.
 
-원본 반영이 필요할 때만 `workspace integrate --id <id> --target development --home <상태 경로>`를 호출한다. 원본은 요청한 브랜치의 clean 상태여야 한다. 충돌 시 이 명령이 시작한 merge만 중단하고 결과를 보존한다. **독립 결과를 보존한 NTFS 작업은 원본 통합 없이 회수할 수 있다.** 실제 NTFS fixture에서 원본 README에 미커밋 변경을 넣고 통합을 요청하면 `GitDirtyWorktree`로 거부하며 원본 HEAD·인덱스·변경 내용과 결과 ref를 보존하는 것을 확인했다. 실패한 검증이나 미커밋 변경은 자동 삭제하지 않는다. 원본 통합·Editor 조작의 공통 절차는 [알파 작업공간](alpha-workspaces.md)을 따른다.
+원본 파일은 검토된 계획/intent/digest와 필요한 실행 중 원본 허가로 `workspace integrate --target original --result <id>`를 사용한다. `--target development` 같은 명시적 branch merge는 별도 기능이다. 원본은 요청한 브랜치의 clean 상태여야 한다. 충돌 시 이 명령이 시작한 merge만 중단하고 결과를 보존한다. **독립 결과를 보존한 NTFS 작업은 원본 통합 없이 회수할 수 있다.** 실제 NTFS fixture에서 원본 README에 미커밋 변경을 넣고 통합을 요청하면 `GitDirtyWorktree`로 거부하며 원본 HEAD·인덱스·변경 내용과 결과 ref를 보존하는 것을 확인했다. 실패한 검증이나 미커밋 변경은 자동 삭제하지 않는다. 원본 통합·Editor 조작의 공통 절차는 [알파 작업공간](alpha-workspaces.md)을 따른다.
 
 ## 지속 상태와 재개
 
@@ -150,7 +150,7 @@ Windows에서 FACILITY_WIN32 HRESULT를 확인한 경우만 `nativeErrorDomain=w
 
 snapshot이 소실된 뒤에는 `stable-journal-v1`로 수집한 독립 결과가 있고 Git ref/객체와 **저널 전체 seal이 동일한 경우에만** 회수할 수 있다. 사용할 수 없는 원본 트리를 다시 읽거나 수정하지 않고 unmount 후 seal을 비교한다. 독립 결과가 없거나 수집 뒤 쓰기가 있으면 결과와 저널을 보존하고 실패한다. 열린 핸들이 남은 unmount는 `OverlayStopPending`이며 핸들을 닫은 뒤 같은 release를 재시도한다.
 
-결과 manifest의 `collectionProtocol`은 필수이며 `stable-journal-v1`만 허용한다. 누락·지원하지 않는 값은 `StateCorrupt`로 거부하고 manifest·저널·snapshot을 보존한다. 현재 checkpoint가 Git commit 뒤 수집 전에 중단되어 아직 결과 manifest가 없는 경우에는 같은 작업의 checkpoint를 재시도할 수 있다. 이미 게시된 잘못된 manifest를 자동 재수집하거나 필드를 수동 수정하는 이관은 제공하지 않는다. 소스 검사는 [변경 기반 검증](source-verification.md)을 사용하고 초기·감사·provider 재연결 시 전체 읽기를 수행한다. 저널 전체 seal과 Git 객체 생성의 읽기는 수집 경계에 남으며 `source-inspections.jsonl`·`storage-reads.jsonl`에 계측한다.
+최종 종료의 `workspace.snapshot.result`는 `collectionProtocol=stable-journal-v1`을 요구하며 누락/미지원 값은 보존·거부한다. 중간 수집은 대신 불변 ID·source sequence·capture digest를 포함한 `results`를 게시하고 이후 편집을 허용한다. 수집 응답 유실은 고정 요청 키로만 복구하며 손상된 게시 기록을 조용히 재수집·이관하지 않는다. 전체 소스 검사·고정 tree/object 증명·최종 전후/unmount seal을 구분하며 [현재 결과 소유 경계](repeated-original-apply.md)를 따른다.
 
 `workspace.snapshot.observation`은 snapshot/mount/provider/delta·소유권·핸들·working set/private bytes·host 여유·저널 잔여량을 관측한다. 누락 값은 unknown이며 0이 아니다. provider의 누적 저널 수치는 실제 NTFS 할당·전체 peak·회수 후 잔여 공간이 아니다. 공간 보고는 경로별 실제 allocation과 독립 결과·공유 기준본 비용을 구분한다.
 

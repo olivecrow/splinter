@@ -1,5 +1,7 @@
 # Splinter 첫 실사용 버전 계획
 
+현재 task 상태는 **v3**, 관리형 basis는 v2다. [반복 원본 반영](../repeated-original-apply.md)이 실행 중 수집·불변 결과 버전·경로별 반영 이력·실행 중 원본의 정확한 외부 협력을 소유한다. [RI 자격](../verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분하며 이전 task는 이관 없이 보존·거부한다.
+
 [English](../../plans/implementation-plan.md)
 
 > 현재 경로는 `git-snapshot`·`plastic-snapshot`·`project-snapshot`이다. [VSS 폐기 결정](vss-retirement.md)이 과거 VSS 서비스·설치·회수 후속 지침을 대체한다. 아래 기존 ID·수치·입력별 자격은 당시 기록으로 보존하며 VSS 실행을 재개하지 않는다.
@@ -70,7 +72,7 @@ MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 �
 
 ## 마감한 선행 개발 단위: VCS 없는 기본 수명주기
 
-2026-10-02에 추가한 사용자 요구로 앞선 Unity CLI 인계 단위의 우선순위를 조정했다. **일반 폴더의 생성·같은 작업 재개·독립 편집/Editor·결과 보존·회수·폐기를 Git 없이 완성하고, Git을 사용할 때도 Splinter의 격리·효율·원본/peer 보호를 유지하는 것**이 이번 확정 범위다. 공통 계약·파일 소스 공급자·CLI/Windows 연결과 승인된 서비스 업데이트·실제 A/B를 실행해 한정 범위로 마감했다. 현재 상태 v2와 `--source git|none`·`--application unity|none`의 계약은 [기능 문서](../vcs-independent-workspaces.md), 후보별 자동 회귀·실제 실행·수정 후 동일 요청 재개와 제한은 [검증 기록](../verification/vcs-independent-workspaces.md)을 따른다. 실행 상태와 관문은 [VCS 추적표](validation-matrix.md#vcs-없는-기본-수명주기)가 소유한다.
+2026-10-02에 추가한 사용자 요구로 앞선 Unity CLI 인계 단위의 우선순위를 조정했다. **일반 폴더의 생성·같은 작업 재개·독립 편집/Editor·결과 보존·회수·폐기를 Git 없이 완성하고, Git을 사용할 때도 Splinter의 격리·효율·원본/peer 보호를 유지하는 것**이 이번 확정 범위다. 공통 계약·파일 소스 공급자·CLI/Windows 연결과 승인된 서비스 업데이트·실제 A/B를 실행해 한정 범위로 마감했다. 현재 task 상태 v3와 `--source git|none`·`--application unity|none`의 계약은 [기능 문서](../vcs-independent-workspaces.md), 후보별 자동 회귀·실제 실행·수정 후 동일 요청 재개와 제한은 [검증 기록](../verification/vcs-independent-workspaces.md)을 따른다. 실행 상태와 관문은 [VCS 추적표](validation-matrix.md#vcs-없는-기본-수명주기)가 소유한다.
 
 ### 현재 의존성과 목표 책임
 

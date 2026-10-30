@@ -2,7 +2,7 @@
 
 [한국어](ko/lifecycle-optimization-map.md) · [Machine-readable index](lifecycle-optimization-map.json) · [Documentation map](README.md)
 
-**Code snapshot:** uncommitted MX05 and MX08A source over base commit `24956f4975a8c9ae57a21f4c52a656b9f8b51ea3`, `development`, inspected 2026-10-29. The JSON lists 14 changed/new product source paths, raw SHA-256 and current symbol/line hints. MX05 adoption and its ordinary-NTFS/full-gate evidence remain. MX08A is adopted; MX08B and MX09 were removed after their measured screens failed. MX09 historical verification retains its 55-case local result and actual Git/Unity finalization ABBA. The final full gate and MX10 Unity apply/discard comparison are complete, without a large whole-time improvement or an individual causal estimate. Existing BO/PR/RT/BD evidence applies only to its recorded candidates.
+**Code snapshot:** committed repeated-original-application source `b51f18fb6d4515a149975bbe6b3bf334804e1217` over base `aff285f0da769eeaba0300d448f027ceeaa4a5bb`, `development`, inspected 2026-10-30. The JSON records current source hashes/symbol hints. [RI](verification/repeated-original-apply.md) owns current live-capture and repeated-publication qualification. Earlier MX05/MX08A adoption, completed MX10 and BO/PR/RT/BD performance records remain historical evidence for their exact candidates, without qualifying this new lifecycle.
 
 **AI reading order:** §§1–3 establish identities and paths; §4 explains each stage; §§5–7 expose serialization, costs and recovery; §8 maps code. Read the owning feature documents before changing a contract. The executable usage procedure remains [the Splinter skill](../skills/splinter/SKILL.md).
 
@@ -31,21 +31,24 @@ flowchart TD
   E10 --> E20["E20 Agent edits / refreshes / compiles / validates"]
   E20 -->|Continue same task| E20
   E20 --> Finish{"Explicit completion intent"}
-  Finish -->|Preserve or apply| C10["C10 Stop owned Editor / drain children"]
-  C10 --> C20["C20 Independent source checkpoint between seals"]
+  Finish -->|Final preservation or apply| C10["C10 Stop owned Editor / drain children"]
+  C10 --> C20["C20 Frozen independent result generation"]
+  E20 -->|Save; intermediate capture| C20
   C20 --> Apply{"Apply requested?"}
   Apply -->|Git branch| A10["A10 Guarded original Git merge"]
-  Apply -->|None or Plastic original| A20["A20 Plan and review fixed original changes"]
+  Apply -->|Git, None or Plastic original files| A20["A20 Plan and review fixed original changes"]
   A20 --> A30["A30 Conditional file publication / receipts"]
   Apply -->|Preserve only| R10["R10 Release owned workspace resources"]
   A10 --> R10
-  A30 --> R10
+  A30 -->|Final reclamation requested| R10
+  A30 -->|Intermediate; external refresh/reload| E20
+  C20 -->|Preserve and continue| E20
   Finish -->|Discard| D10["D10 Exact discard intent / stop / seal / reclaim"]
   R10 --> F10["F10 Explicit shared-basis restore after all dependents leave"]
   D10 --> F10
 ```
 
-`P50 → E20` is also valid for editorless work. Stop/restart can occur inside the E20 loop before collection. `checkpoint --release` joins C10/C20/R10 under one task operation when no intervening apply is needed. Apply-before-release uses separate checkpoint → integrate → release. F10 is skipped if no managed shared basis was prepared; it can remain deferred while peers continue.
+`P50 → E20` is also valid for editorless work. Stop/restart and repeated C20 captures can occur within the E20 loop. Intermediate C20 skips C10 and full shutdown seals; final closure retains them. `checkpoint --release` joins C10/C20/R10 under one task operation when no intervening apply is needed. Apply-before-release uses separate checkpoint → integrate → release. F10 is skipped if no managed shared basis was prepared; it can remain deferred while peers continue.
 
 ## 3. Data and ownership
 
@@ -243,74 +246,60 @@ This is synchronous journal work under the store operation. It can cause a singl
 <a id="c10"></a>
 ### C10 — stop owned Editor and drain resources
 
-Called by checkpoint/release/discard as applicable; explicit `unity stop` is also available [K08, K09, K20]. Publish token/request-bound normal-stop request. The bridge waits while compiling/importing; refuses Play or dirty scenes; calls normal `EditorApplication.Exit(0)` only when allowed. It does not save user changes automatically or manage external tools.
+Called by final checkpoint/release/discard as applicable; explicit `unity stop` is also available [K08, K09, K20]. Publish token/request-bound normal-stop request. The bridge waits while compiling/importing; refuses Play or dirty scenes; calls normal `EditorApplication.Exit(0)` only when allowed. It does not save user changes automatically or manage external tools.
 
-The caller waits up to **2 minutes**, checks every **250ms**, and then requires the exact process group/children to exit. Timeout/refusal preserves state; it is not force-kill/deletion authority. Final source collection requires ownership-verified **0 active processes, Working Set and Private Bytes**. An absent Editor PID alone is insufficient. Checkpoint removes only verified owned bridge infrastructure after stop, before the stable seal interval.
+The caller waits up to **2 minutes**, checks every **250ms**, and then requires the exact process group/children to exit. Timeout/refusal preserves state; it is not force-kill/deletion authority. Final source collection requires ownership-verified **0 active processes, Working Set and Private Bytes**. An absent Editor PID alone is insufficient. Final closure removes only verified owned bridge infrastructure after stop, before the stable seal interval.
 
 <a id="c20"></a>
-### C20 — independent source checkpoint
+### C20 — immutable source generations while work continues
 
-`workspace checkpoint` [K01, K02]. Under the same task lock, publish `collecting`/checkpoint intent, run C10, remove owned bridge, then preserve source between complete before/after journal seals.
+`workspace checkpoint --request-key <key>` [K32–K34] fixes one result per key/message under the task lock without stopping its Editor. The worker keeps its path/ID/basis/Library and may edit or restart afterward. An old key verifies/returns its first result; pending capture/publication must be recovered before new requests.
 
-- **Git:** `CheckpointAndPreserveAsync` [K06] combines checkpoint source scan/commit with the independent result ref `refs/splinter/snapshot-results/<id>`, validates task/result refs and reachable objects. Managed generated paths are excluded; unclassified ignored files refuse collection.
-- **None/Plastic:** `CheckpointAndPreserveAsync` [K19] scans the result once within the seal interval, replacing separate checkpoint/inspection/preservation scans. Preserve distinct hash-addressed **full file payloads** needed by baseline/result, verify them, publish the result manifest. Local payload preservation and independent-object proofs use at most **8 workers**, draining all work on failure/cancellation; recorded Plastic revision acquisition stays serial. Every new object still flushes durably and all publication/recovery proofs remain. This can copy substantial unchanged source data during explicit final preservation; it is not initial hydration or a changed-range write fallback. Library/VCS/owned infrastructure are excluded by policy. See [RT-01–04](verification/result-collection-throughput.md).
-
-The following expands the **None/recorded Plastic** branch of C20. The task lock covers this entire interval; each arrow between worker phases waits for that phase to drain.
+The callback drains admitted writes and enters the mutation gate. It flushes accepted data, fixes source namespace/metadata/range references and backing identities, durably publishes capture intent, then creates internal NTFS aliases. No basis scan, payload hash, whole-project copy or full-payload RAM load occurs in this boundary. Recovery restores protection before writer replay/reclamation. Bounded journal replacement and SJL4 retained-prefix truncation preserve aliases; receipt-bound private-prefix copying is separate from source copy-up.
 
 ```mermaid
 flowchart TD
-  Pre["Runtime: complete pre-seal after C10"] --> Guard["Provider: owner / mount / basis; Plastic isolation guard"]
-  Guard --> Scan["Read baseline manifest; scan current source ONCE"]
-  Scan --> Intent["Fix collection.json: task / digest / baseline / result"]
-  Intent --> Route{"Baseline payload source"}
-  Route -->|None| Local["Local immutable baseline: up to 8 object workers"]
-  Route -->|Plastic| Recorded["Recorded revision acquisition: serial"]
-  Local --> Result["Current result payloads: up to 8 object workers"]
-  Recorded --> Result
-  Result --> Proof["Verify distinct baseline + result objects: up to 8 workers"]
-  Proof --> Manifest["Save result.json; verify independent records + all objects again"]
-  Manifest --> Return["Return candidate revision / reference; previous task revision retained"]
-  Return --> Post["Runtime: require clean result; complete post-seal"]
-  Post --> Equal{"Pre-seal equals post-seal?"}
-  Equal -->|Yes| Commit["Set ResultRevision + Snapshot.Result; persist collected"]
-  Equal -->|No| Retain["Refuse; retain journal / objects / intent / prior task revision"]
-  Local -.->|Failure or cancellation| Drain["Drain active workers before returning original error"]
-  Result -.->|Failure or cancellation| Drain
-  Proof -.->|Failure or cancellation| Drain
-  Drain --> Retain
+  Intent["Runtime: persist exact capture request"] --> Freeze["Callback/mutation gate: flush; metadata/ranges; durable protection"]
+  Freeze --> Continue["Release mutation gate; later writes continue"]
+  Continue --> Scan["Scan immutable captured tree and fixed basis"]
+  Scan --> Route{"Independent payload store"}
+  Route -->|Git| Git["Independent Git ref/objects; stream result blobs"]
+  Route -->|None / recorded Plastic| Files["Deduplicated full file objects across generations"]
+  Git --> Proof["Verify independent generation/objects"]
+  Files --> Proof
+  Proof --> Commit["Persist generation ID/sequence/key/content identity; ready"]
+  Commit --> Unpin["Publish materialized receipt; remove exact backing aliases"]
+  Files -.->|Failure / cancellation| Drain["Drain workers; retain exact intent/protection"]
+  Unpin --> Next["Continue E20 or publish fixed result"]
 ```
 
-Within a preservation worker, an existing object is verified; a new object is copied to its owned `.pending` file, durably flushed, hashed, then moved to its final hash path. Deduplication is by content hash, but full baseline/result payloads remain necessary. Baseline preservation, result preservation, pre-publication proof and independent-result proof are sequential phases; only work **within** eligible phases overlaps. Source manifest scanning and recorded revision acquisition do not gain eight-way parallelism. Injected verification readers keep their sequential lifetime contract.
+Eligible local payload/proof work uses at most eight workers; recorded Plastic revision acquisition remains serial. File results preserve full distinct basis/result payloads with content reuse across all generations. Git retains independent refs/objects without a duplicate whole-source file store. Source scanning, independent proofs and durable publication remain real costs outside the mutation gate. Failed/lost responses resume the fixed capture, never recapture later worker edits.
 
-`result.json` can exist before the post-seal succeeds. Its presence alone is not a collected task or permission to release. A mismatch leaves the previous `ResultRevision` and `Snapshot.Result` unchanged and retains evidence; resume only the same task and fixed collection identity. Later release/apply invocations reprove the independent result. The one-scan optimization removes redundant mounted-source scans, not object hashing, journal seals or durability barriers.
-
-Require stable seals, exact revision/fingerprint and `IndependentOfSnapshot` with current collection protocol. Store the result and `collected` phase. Subsequent normal Editor start is blocked after collection; a new task is the ordinary path for more work. Compiler success is not asserted. Preserve-only plus cleanup can use `checkpoint --release`; apply requires C20 → A10 or A20/A30 → R10.
+Final R10 closure normally stops only the owned task Editor, removes its bridge, computes a complete pre-seal, uses this same capture engine (including shutdown writes), and requires a matching post-seal before unmount. Every older result is verified before reclamation; all generations and apply receipts survive it. `checkpoint --release` returns its requested generation on retry and preserves the final closure generation as well. Compiler success is never asserted. [RI](verification/repeated-original-apply.md) owns this path; historical RT one-scan timings belong to the earlier stopped-collection implementation.
 
 <a id="a10"></a>
-### A10 — apply Git result to the original branch
+### A10 — explicit Git branch merge
 
-`WorkspaceCoordinator.IntegrateAsync` → `GitWorkspaceProvider.IntegrateAsync` [K01, K18]. Verify exact clean current worker result/independent seal, stop owned worker Editor, hold project lock. Original must be clean and **already on the requested branch**. If result is already an ancestor, return its current revision; otherwise run local `merge --no-ff --no-edit`, then verify clean result.
-
-On failure, abort only the merge started by this operation if its MERGE_HEAD and unchanged original HEAD still match. Preserve user/peer changes. Git does not use the None/Plastic reviewed file-plan API. This method does not itself perform original-Editor shutdown, refresh, compile or validation; coordinating any original Editor is an agent responsibility. No push is implied. Merge/checkout effects can write whole changed files to ordinary original storage.
+A branch target is separate from `--target original` file publication. `IntegrateGenerationAsync` verifies the selected independent Git result and passes its revision to the existing clean-target merge engine [K18, K34]. The current worker may have later edits; its Editor is retained. The original must already be on the requested clean branch. Repository locks, owned-merge abort checks and result preservation remain. No push is implied; original Editor/tool coordination remains external.
 
 <a id="a20"></a>
-### A20 — plan None/Plastic original application
+### A20 — plan Git/None/Plastic original file application
 
-`workspace integrate --target original --plan` [K16, K19]. Require exact live task and independently preserved current result. Under task/project guards, compare **baseline/result/current original**, select full or exact paths, include necessary parent and Unity `.meta` companions, reject management/generated paths and conflicts. Return a digest covering target, fixed inputs and selection. Review the concrete plan before execution; a dry plan does not publish source files.
+`workspace integrate --target original --result <id> --plan` [K16, K19, K34–K35] selects the latest independent generation for a new request. Compare **per-path last applied state / fixed result / current original**, initially using the immutable basis. Exact selection advances only selected paths, including deletion markers and Unity `.meta` closure. Worker edits after capture do not invalidate the frozen result. Bind target identity, previous receipt digest, result, source administration, selection and live-original cooperation into the plan digest.
 
-Managed project application acquires exact original mount/basis and stopped-original policy protection. Plastic also fixes client/registration/repository/loaded changeset/selector and checks affected remote locks, retaining administration handles and original Editor lock. Current loaded changeset must match the requested recorded base. A server lock query is not a distributed reservation. See [plain original apply](plain-folder-original-apply.md), [Plastic original apply](plastic-original-apply.md).
+Managed projects retain exact mount/basis protection. Git holds read-only administration identity/lock guards without moving HEAD/index/branch. Plastic retains client/registration/repository/loaded revision/selector/root and affected-lock guards, without server mutation. A running Unity original requires the exact external save/import-deferral permit, actual executable/PID/start/project validation and continued lockfile protection. Agent-owned dirty checks, refresh/reload and loaded-state/compile checks follow publication. Review the plan; conflicts preserve/refuse. See [repeated application](repeated-original-apply.md).
 
 <a id="a30"></a>
 ### A30 — publish the fixed file plan
 
-Supply the same `intent-key`, `expected-plan-digest`, selection and task/home. Revalidate plan before first intent, persist intent/progress, then `WindowsOriginalFilePublisher.Publish` [K17]: verify the whole write set and NTFS identity/parent handles; create owned sibling stages and receipts; read/hash independent payload, write/flush stage; conditionally retire old entry and publish new one; persist per-step progress; verify and reclaim owned retired/stage files.
+Supply the same result, `intent-key`, `expected-plan-digest`, selection, live-cooperation identity and task/home. Revalidate plan before first intent, persist intent/progress, then `WindowsOriginalFilePublisher.Publish` [K17]: verify the whole write set and NTFS identity/parent handles; create owned sibling stages and receipts; read/hash independent payload, write/flush stage; conditionally retire old entry and publish new one; persist per-step progress; verify and reclaim owned retired/stage files.
 
 This is recoverable per-file publication, **not an all-files atomic transaction**. Partial effects remain under the same durable intent. Unknown/replaced staging files are preserved. An incomplete intent blocks release/discard/new collection. Repeating a completed matching request does not republish. Library, VCS history/registration/locks and unselected source changes are not applied. Agent/tool validation of the resulting original is separate.
 
 <a id="r10"></a>
 ### R10 — preserve and release workspace resources
 
-`ReleaseSnapshotWorkspaceAsync` [K02] keeps an independent result. If needed, collect untouched clean source; refuse uncollected changes. `checkpoint --release` can reuse only this invocation's post-collection seal under the same task lock, still performing fresh source/following/unmount checks. Persisted results/retries do not inherit this in-memory proof.
+`ReleaseSnapshotWorkspaceAsync` [K02, K32] verifies every retained result, normally stops only its task, and seals a final generation using C20. It checks full before/after and unmount seals and preserves all result generations/receipts. Persisted results/retries do not inherit an earlier in-memory proof.
 
 Ordered persisted steps: **release-unmount → release-registration → release-delta → release-snapshot → released**.
 
@@ -389,7 +378,7 @@ Use these stage IDs in future evidence. **Do not run a fresh Unity experiment me
 | W10 | callback admission → gate acquisition → comparison/preparation → append → flush → ACK | Operation kind, payload/frame bytes, batch distribution, flush count/time, waiters; metadata callbacks separately |
 | B10 | checkpoint trigger → stable published/replayed generation → triggering write ACK | Live prefix/suffix bytes/frames, estimate, seal/state proofs, candidate output/replays, temporary overlap |
 | C10 | stop request → Editor exit → child/resource zero | Busy/Play/dirty-scene refusal, shutdown code shape, helper processes, retained file/image handles |
-| C20 | stable pre-seal → result preservation → post-seal/record | Source scans, Git hashing/commit, file full-payload preservation, result verification |
+| C20 | request → mutation wait/freeze → independent payload/proof → generation record/unpin | Callback drain, mutation pause, source scan/hash, retained full payloads; final closure also full seals |
 | A10/A20/A30 | plan separately; execute request → complete integrated record | Target state/selection, staged bytes, Git merge, per-file publication flushes/receipts, conflict/retry |
 | R10/D10 | release/discard request → exact absent resources and completed receipt | Seal reads, unmount, source unregister, inventory deletion, task ref removal; pending is not end |
 | F10 | explicit restore → ordinary original verified + common resources reclaimed | Unchanged/sparse/root-delta/topology/general route; root/unit/leaf moves; per-topology cursors/new-directory receipts versus general 128-file batches; full proof bytes, range flushes, metadata and exact reclaim |
@@ -479,6 +468,10 @@ The JSON index records the same stable stage IDs, edges, source symbols and code
 | K29 | [ManagedRootDeltaDirectoryRestore](../src/Splinter.Platform.Windows/ManagedRootDeltaDirectoryRestore.cs): `Eligible`, `CreateAsync`, `ResumeAsync` — fixed-topology root-delta v1 |
 | K30 | [ManagedTopologyDirectoryRestore](../src/Splinter.Platform.Windows/ManagedTopologyDirectoryRestore.cs): `Eligible`, `PreferFresh`, `CreateAsync`, `ResumeAsync`; [ManagedRestoreTopology](../src/Splinter.Platform.Windows/ManagedRestoreTopology.cs): `Build`, `Inventory`, `ForestPins` |
 | K31 | [ManagedRestoreControlFiles](../src/Splinter.Platform.Windows/ManagedRestoreControlFiles.cs): `IsPublicationTemporary`; [WindowsDirectoryTreeProof](../src/Splinter.Platform.Windows/WindowsDirectoryTreeProof.cs): `PinDirectory`; [WindowsOwnedDirectoryLease](../src/Splinter.Platform.Windows/WindowsOwnedDirectoryLease.cs): `TransferToRestore` |
+| K32 | [WorkspaceGenerations](../src/Splinter.Core/WorkspaceGenerations.cs): `WorkspaceResultGeneration`; [WorkspaceGenerations](../src/Splinter.Runtime/WorkspaceGenerations.cs): `CaptureGenerationCoreAsync`; [JournalSourceCapture](../src/Splinter.Runtime/JournalSourceCapture.cs): `CaptureSource` |
+| K33 | [NtfsSourceGenerations](../src/Splinter.Platform.Windows/NtfsSourceGenerations.cs): `CaptureSourceAsync`; [WinFspSourceCapture](../src/Splinter.Platform.Windows/WinFspSourceCapture.cs): `CaptureSource`; [WindowsJournalFilePins](../src/Splinter.Platform.Windows/WindowsJournalFilePins.cs): `RecoverCopies` |
+| K34 | [FileSourceGenerations](../src/Splinter.SourceControl.Files/FileSourceGenerations.cs): `PreserveGenerationAsync`; [GitGenerationIntegration](../src/Splinter.SourceControl.Git/GitGenerationIntegration.cs): `IntegrateGenerationAsync`; [GitOriginalPublicationGuard](../src/Splinter.SourceControl.Git/GitOriginalPublicationGuard.cs): `GitOriginalPublicationGuard` |
+| K35 | [UnityProjectPolicy](../src/Splinter.Application.Unity/UnityProjectPolicy.cs): `AcquireOriginal`; [WindowsOriginalEditorIdentityVerifier](../src/Splinter.Platform.Windows/WindowsOriginalEditorIdentityVerifier.cs): `Acquire` |
 
 Maintenance: update this map and its Korean/JSON counterparts when stage order, owner, durability, mode/default, result materialization or reclamation dependency changes. Keep historical timing rows tied to their verification IDs; inspect the new code before treating this snapshot as current.
 
@@ -487,3 +480,5 @@ Maintenance: update this map and its Korean/JSON counterparts when stage order, 
 [GR-01–03](verification/git-payload-retention.md) tested a 1.5GiB/32,768-entry Git payload cache. Same-input native creation averaged **50.661 → 48.550s (2.111s / 4.2%)**. The small time saving did not meet the large-gain criterion, so the candidate was removed and **256MiB/4,096 entries remain**. This is editorless creation evidence, not a whole Unity lifecycle improvement. See the [fixed scope](plans/git-payload-retention.md).
 
 MX05 adopted A and publication-count-guarded B2. F10 ordinary-NTFS restoration measured fixed 46.05306965→14.73430160s (31.31876805s / 68.00582087%) and bulk 45.36571795→14.74108300s (30.62463495s / 67.50611769%); leaf stays on general restoration and is effectively unchanged at 5.02044795→5.00588275s. The full gate passed 1,941, failed 0 and skipped 33. Whole-test-process observed mean OS peak working-set increases of 26,806,272 / 40,529,920 bytes were judged acceptable for these inputs, with setup/assert and sampling limits. Historical A/B1 candidates, guard arithmetic and component savings are not promoted to current whole-Unity improvement. Read the [MX program](plans/remaining-lifecycle-optimization.md), [candidate verification](verification/remaining-lifecycle-optimization.md) and [tracked report](../reports/benchmarks/remaining-lifecycle-optimization-20261028.json) together.
+
+RI-01–08 scoped qualification now includes the current Windows cm 11.0.16.10484 private reader, raw/BOM and segmented binary reads, and all three fixed Unity original/A/B sequences. Source hashes in the index identify this candidate; earlier performance measurements are not transferred to it.

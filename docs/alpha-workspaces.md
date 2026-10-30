@@ -1,6 +1,8 @@
 <a id="병렬-unity-작업공간과-editor-수명"></a>
 # Parallel Unity workspaces and Editor lifetime
 
+Current task state is v3. [Repeated original application](repeated-original-apply.md) owns live immutable captures, explicit result selection, per-path applied history and external-tool live-Editor cooperation; [RI qualification](verification/repeated-original-apply.md) remains separate from earlier stopped-Editor evidence. Managed basis state remains v2; old task state is preserved/refused without migration.
+
 [한국어](ko/alpha-workspaces.md)
 
 On a same-workspace restart, identical owned bridge resources and their marker are reused after full ownership/content/path validation, preserving asset timestamps. The Editor-only `Splinter.Workspace.Editor` assembly has automatic references disabled. Marker version 2 binds the C# and assembly-definition hashes; changed verified owned resources are updated, while previous markers and unknown/changed files are preserved and refused. Tokens and launch control remain fresh. See [startup profile follow-up](verification/startup-profile-optimization.md) for the tiny actual Unity assembly/lifetime check; full A/B startup time for this candidate is NotRun.
@@ -36,14 +38,15 @@ Verify request acceptance, connection, compilation completion, and test results 
 ## Results and explicit completion
 
 ```text
-splinter workspace checkpoint --id <id> --message <result description to preserve> --home <home>
-splinter workspace integrate --id <id> --target development --home <home>
+splinter workspace checkpoint --id <id> --request-key <capture-key> --message <result description to preserve> --home <home>
+splinter workspace integrate --id <id> --target original --result <result-id> --plan --home <home>
+# Apply with the reviewed intent/digest and any exact live-original permit, then continue editing.
 splinter workspace release --id <id> --home <home>
 ```
 
-Checkpoint also preserves work without compile success. It normally shuts down the owned Editor, checks zero child resources, then removes the owned bridge. It checks content equivalence before/after Git collection, the independent result ref, and journal seals for collection/unmount. The agent decides work acceptance; checkpoint itself does not claim compile/test success. Do not begin new edits in the same task after result collection.
+Checkpoint preserves immutable source generations while the owned Editor and later editing continue. Each stable request key returns its first result. Payload preservation runs outside the short durable source boundary. It does not claim compile/test success. Final processing saves externally, normally stops only this task, and uses the same capture/publication engine before explicit reclamation; final collection remains between full journal seals.
 
-Integrate checks the exact collected revision against current source, a clean requested target branch, and repository locks, then performs Git merge. It aborts only a conflicting merge started by this command and preserves results. Integration strategy, conflict resolution, and post-integration validation in the original Editor are the agent's responsibility. To preserve only, release without integrating.
+All three sources use `--target original --result <id>` for reviewed conditional file publication against per-path applied history. A running original requires exact external-tool save/import-deferral cooperation; the agent safely refreshes/reloads and checks loaded values afterward. Git HEAD/index/branch remain unchanged. Explicit branch-target merge separately retains clean-target and repository-lock guards. Conflicts preserve changes. To preserve only, release without integrating.
 
 Release retains the independent result, then reclaims the owned Editor/provider/mount/Git/delta and last owned snapshot. `reclaim-pending` means physical reclamation is waiting for an explicit retry of the same task. To abandon work, use [explicit discard](workspace-discard.md). Conversation/Editor termination and timeouts do not authorize application or discard.
 

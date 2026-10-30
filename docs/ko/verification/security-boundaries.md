@@ -19,3 +19,7 @@ SB-02는 제거된 외부 패치 기능의 과거 인증 후보 기록이다. �
 요청·상태·workspace v2는 기존 계약을 유지하며 capabilities의 Plastic reader 설명을 응답 schema에 함께 추가한다. 의존성/lockfile 변경은 없으며 bridge는 vendor 라이브러리의 안정된 공개 SDK로 주장하지 않는 고정 버전 내부 adapter다. helper는 4MiB decoded scratch와 최대 64KiB frame을 유지하며 vendor packet/native allocation·외부 cache/통신·전체 RAM peak는 별도 미계측이다.
 
 보안 수정의 현재 코드와 설치·실행 중인 환경은 구분한다. 서비스 수정의 실행 환경 반영은 새 서비스 패키지의 명시적 Update와 별도 자격을 따른다. 과거 외부 MCP 후보 연결은 현재 제품 설치 요구가 아니다. v1 후보·원래 manifest/lock·공유 서버와 다른 Editor를 자동 교체하지 않는다. 과거 PPB/MR의 실제 Unity 자격은 당시 reader/후보의 근거로 보존하며 새 후보의 Passed로 승계하지 않는다.
+
+## 현재 reader 재검증, 2026-10-30
+
+위 과거 SB-01 행과 수치는 당시 후보의 기록으로 유지한다. 현재 reader는 설치된 Windows cm **11.0.16.10484**만 지원하고 다른 버전은 거부하며 공개 API·payload cache로 fallback하지 않는다. 새 실제 Unity 자격은 [RI-07](repeated-original-apply.md)이 소유한다. 사용자 승인한 별도 최소 저장소의 고정 changeset 1에서 **4,259,841 B** segmented binary·**48 B** UTF-16 BOM 파일·**2,354 B** manifest의 길이/MD5와 원본 SHA-256이 일치했다. 이 실행에서 vendor decompressor가 `None=0`에 0을 반환하는 문제를 발견해 raw packet은 압축 해제를 우회하고 `ZLib=2`는 크기를 제한하며 다른 형식은 거부한다. Raw/BOM/전체 segment와 손상·미지원 형식 회귀 시험을 추가했다. 원시 proof와 수정 전 실패는 `artifacts/repeated-original-apply-20261030/unity-plastic/`에 보존한다. vendor 라이브러리나 외부 패키지는 변경하지 않았다.

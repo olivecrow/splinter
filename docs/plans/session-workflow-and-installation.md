@@ -1,6 +1,8 @@
 <a id="대화별-작업공간-사용과-설치-계획"></a>
 # Per-conversation workspace usage and installation plan
 
+The continuing-task [RI scope](repeated-original-apply.md) and [current contract](../repeated-original-apply.md) extend this workflow with repeated live capture/publication. An intermediate result does not finalize the task. Final processing uses the same capture engine after normal shutdown of only that task; original and peers remain running. RI native qualification is tracked independently and is in progress.
+
 [한국어](../ko/plans/session-workflow-and-installation.md)
 
 > Current modes are `git-snapshot`, `plastic-snapshot`, and `project-snapshot`. The [VSS retirement decision](vss-retirement.md) supersedes earlier VSS service/installation/reclamation follow-ups. Existing IDs, figures and input-specific qualification below remain historical records and do not authorize resuming VSS execution.

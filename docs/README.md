@@ -1,6 +1,8 @@
 <a id="문서-지도"></a>
 # Documentation map
 
+Current task state is v3. [Repeated original application](repeated-original-apply.md) owns live immutable captures, explicit result selection, per-path applied history and external-tool live-Editor cooperation; [RI qualification](verification/repeated-original-apply.md) remains separate from earlier stopped-Editor evidence. Managed basis state remains v2; old task state is preserved/refused without migration. RI-01–08 are scoped-complete for one fixed small actual Unity original/A/B set per Git/None/Plastic input, with final current-source regression and explicit untested limits.
+
 [한국어](ko/README.md)
 
 [README Unity time recheck](verification/unity-readme-recheck.md) owns RR-01: current `2dff94d` 428.6s versus shared 102.0s; same-input preparation/restoration saves 75.1s, with historical Library differences, old-candidate shutdown recovery and changed-Library diagnostics kept separate.

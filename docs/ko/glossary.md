@@ -35,7 +35,7 @@ CLI 응답과 기능 문서를 읽을 때 필요한 용어를 설명한다. 각 
 | delta / 변경분 | 작업에서 변경한 바이트 범위와 파일 길이·이름·삭제 등의 정보. 변경 파일 전체 복사본과 같은 뜻이 아니다. | [NTFS 작업공간](ntfs-workspaces.md) |
 | private / 작업 전용 | 원본·다른 작업과 공유하지 않는 변경 범위나 생성 데이터. 암호화나 악성 코드 실행 격리를 뜻하지 않는다. | [현재 기반](foundation.md) |
 | journal / 저널 | 변경 연산과 필요한 payload를 순서대로 저장한 기록. 다시 읽어 작업의 파일 상태를 복원한다. | [압축 저널](journal-payload-compression.md) |
-| SJR2 / overlay v2 / candidate v3 | 현재 저널·overlay·후보의 형식 이름과 버전. workspace 상태 v2와는 별도 계약이며 이전 형식을 자동 이관하지 않는다. | [압축 저널](journal-payload-compression.md) |
+| SJR2 / overlay v2 / candidate v3 | 현재 저널·overlay·후보의 형식 이름과 버전. task 상태 v3 / 관리형 basis v2와는 별도 계약이며 이전 형식을 자동 이관하지 않는다. | [압축 저널](journal-payload-compression.md) |
 | payload / extent / fragment / block | payload는 저장한 실제 바이트, extent는 파일의 적용 범위, fragment는 그 범위가 참조하는 부분, block은 압축·복원 단위다. 유효 범위가 작아도 참조 block 전체가 공간을 차지할 수 있다. | [저널 계측](source-verification.md#계측의-의미), [codec](workspace-payload-codec.md) |
 | whiteout / 삭제 표시 | 기준에 있는 경로를 특정 작업에서 보이지 않게 하는 기록. 해당 원본 파일을 삭제하지 않는다. | [overlay 실험](snapshot-overlay.md) |
 | graft / 기준 연결 | 소스 기준의 특정 경로에 별도 생성 디렉터리 기준을 연결하는 것. 예를 들어 Git 기준에 명시적으로 준비한 Library 기준을 연결한다. | [Library 참조](git-library-reference.md) |

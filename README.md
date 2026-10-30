@@ -1,5 +1,7 @@
 # Splinter
 
+Continuing workspaces can capture immutable results and conditionally publish them repeatedly with the same path, ID, basis and Library. See [the v3 contract](docs/repeated-original-apply.md) and [scoped RI-01–08 qualification](docs/verification/repeated-original-apply.md); Git original files preserve HEAD/index/branch. Agents own live-Editor saving, import deferral and safe refresh/reload.
+
 **Isolated workspaces that share unchanged data for parallel AI development.**
 
 [한국어](README.ko.md)
