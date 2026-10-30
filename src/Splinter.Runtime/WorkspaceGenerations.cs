@@ -69,7 +69,10 @@ public sealed partial class WorkspaceCoordinator
         await PreparationPointAsync("source-capture-fixed", w, ct);
         WorkspaceResultGeneration result;
         using (var tree = await backend.OpenSourceCaptureAsync(w, control, intent.Id, ct))
+        {
             result = await provider.PreserveGenerationAsync(w, control, intent, captured, tree, ct);
+            tree.VerifyReadBoundary();
+        }
         await PreparationPointAsync("source-result-preserved", w, ct);
         w.Results.Add(result); w.ResultRevision = result.Revision; w.CaptureIntent = null;
         RequireSnapshot(w).Result = null;

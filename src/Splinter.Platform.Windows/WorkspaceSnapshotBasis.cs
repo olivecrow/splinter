@@ -42,6 +42,15 @@ public static class WorkspaceSnapshotBasis
             _ => throw new WorkspaceException("SnapshotProviderUnsupported", "Retain the unsupported immutable basis.")
         });
     }
+    public static DisposableSnapshotTree OpenCaptureTree(SnapshotReference snapshot, SnapshotReadAccess access,
+        string directory, string owner, IDisposable readLease)
+    {
+        WindowsSnapshotPolicy.Require(snapshot);
+        return snapshot.Provider == GitObjectSnapshotProvider.ProviderName
+            ? new(new GitObjectSnapshotProvider(directory, owner).OpenReadScope(snapshot, access,
+                readLease as FileStream ?? throw new WorkspaceException("GitBasisReadScopeInvalid", "Require the exact Git reader lease.")))
+            : OpenTree(snapshot, access, directory, owner);
+    }
     public sealed class DisposableSnapshotTree(ISnapshotTree tree) : ISnapshotTree, ISnapshotContentSummaryProvider, IDisposable
     {
         internal GitReadObservation? ObserveGitReads() => (tree as GitObjectSnapshotTree)?.ObserveReads();
@@ -49,6 +58,7 @@ public static class WorkspaceSnapshotBasis
         public SnapshotGraft? Graft => tree.Graft;
         public bool SupportsConcurrentReads => tree.SupportsConcurrentReads;
         public void EnsureAvailable() => tree.EnsureAvailable();
+        public void VerifyReadBoundary() => tree.VerifyReadBoundary();
         public SnapshotEntry? Stat(string path) => tree.Stat(path);
         public IReadOnlyList<SnapshotEntry> List(string path) => tree.List(path);
         public int Read(string path, long offset, Span<byte> destination) => tree.Read(path, offset, destination);

@@ -71,6 +71,7 @@ public static partial class GitSourceResult
         string revision = (await Run(project, ["commit-tree", root, "-p", baseRevision],
             stream => stream.WriteAsync(message, ct).AsTask(), ct, deterministicCommit: true)).Trim();
         string reference = "refs/splinter/validation-results/" + operationId;
+        tree.VerifyReadBoundary();
         string existing = await Run(project, ["for-each-ref", "--format=%(objectname)", reference], null, ct);
         if (existing.Trim().Length != 0 && existing.Trim() != revision)
             throw new WorkspaceException("ViewResultChanged", "Keep the existing independent result; its identity differs.");

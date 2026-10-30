@@ -145,6 +145,7 @@ public sealed class SourceCaptureTree : ISourceCaptureTree
         catch { foreach (var file in opened) file.Dispose(); throw; }
     }
     public void EnsureAvailable() => basis.EnsureAvailable();
+    public void VerifyReadBoundary() => basis.VerifyReadBoundary();
     internal static bool Managed(string path, string[] managed) => managed.Any(m => m.StartsWith('*')
         ? path.EndsWith(m[1..], StringComparison.OrdinalIgnoreCase)
         : path.Equals(m, StringComparison.OrdinalIgnoreCase) || path.StartsWith(m + "/", StringComparison.OrdinalIgnoreCase));

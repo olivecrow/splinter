@@ -7,7 +7,7 @@ namespace Splinter.SourceControl.Git;
 
 // A project commit is already immutable. Only identity/ownership metadata and a
 // reachability ref are published here; no checkout, payload cache or VSS exists.
-public sealed class GitObjectSnapshotProvider(string receiptDirectory, string ownerId, string? revision = null,
+public sealed partial class GitObjectSnapshotProvider(string receiptDirectory, string ownerId, string? revision = null,
     GeneratedDirectoryReference? sourceMetadata = null) : ISourceSnapshotProvider
 {
     public const string ProviderName = "git-objects";

@@ -57,7 +57,8 @@ public sealed partial class NtfsSnapshotWorkspaceBackend
         IDisposable? treeOwner = null;
         try
         {
-            var tree = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess, request.SnapshotReceiptDirectory, request.SnapshotOwnerId);
+            var tree = WorkspaceSnapshotBasis.OpenCaptureTree(request.Identity.Snapshot, request.ReadAccess,
+                request.SnapshotReceiptDirectory, request.SnapshotOwnerId, lease);
             treeOwner = tree;
             return new OwnedSourceCapture(new SourceCaptureTree(CapturePath(control, id), tree, new WindowsJournalFilePins()), tree, lease);
         }
@@ -77,9 +78,14 @@ public sealed partial class NtfsSnapshotWorkspaceBackend
         public SnapshotReference Snapshot => captured.Snapshot;
         public bool SupportsConcurrentReads => captured.SupportsConcurrentReads;
         public void EnsureAvailable() => captured.EnsureAvailable();
+        public void VerifyReadBoundary() => captured.VerifyReadBoundary();
         public SnapshotEntry? Stat(string path) => captured.Stat(path);
         public IReadOnlyList<SnapshotEntry> List(string path) => captured.List(path);
         public int Read(string path, long offset, Span<byte> destination) => captured.Read(path, offset, destination);
-        public void Dispose() { captured.Dispose(); tree.Dispose(); lease.Dispose(); }
+        public void Dispose()
+        {
+            try { captured.Dispose(); }
+            finally { try { tree.Dispose(); } finally { lease.Dispose(); } }
+        }
     }
 }

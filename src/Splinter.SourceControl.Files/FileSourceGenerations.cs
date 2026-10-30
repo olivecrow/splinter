@@ -50,6 +50,7 @@ public sealed partial class FileWorkspaceProvider
             VerifyPayloads(control, baseline.Entries.Concat(result.Entries), ct);
         }
         if (preparationObserver is not null) await preparationObserver.ReachedAsync("source-payloads-preserved", w, ct);
+        tree.VerifyReadBoundary();
         SaveFixed(GenerationPath(control, intent.Id, "result.json"), result);
         string? gitReference = null, gitFingerprint = null;
         if (w.SourceKind == "git")
@@ -61,6 +62,7 @@ public sealed partial class FileWorkspaceProvider
         var generation = new WorkspaceResultGeneration(intent.Id, intent.Sequence, intent.RequestKey, intent.Message,
             result.Identity, result.Identity, "files:" + w.Id + ":" + intent.Id, capture.Digest,
             capture.Sequence, DateTimeOffset.UtcNow, gitReference, gitFingerprint);
+        tree.VerifyReadBoundary();
         SaveFixed(receipt, generation); await VerifyGenerationAsync(w, control, generation, ct);
         var retainedEntries = baseline.Entries.Concat(result.Entries).Concat(w.Results
             .Where(g => g.Id != intent.Id).SelectMany(g => ReadManifest(w, GenerationPath(control, g.Id, "result.json")).Entries));

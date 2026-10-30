@@ -49,6 +49,9 @@ public interface ISnapshotTree
     // synchronized by its provider. Owners still drain reads before disposal.
     bool SupportsConcurrentReads => false;
     void EnsureAvailable();
+    // A scoped reader may reuse a fenced availability proof while reading,
+    // but must revalidate external state before publishing independent data.
+    void VerifyReadBoundary() => EnsureAvailable();
     SnapshotEntry? Stat(string relativePath);
     IReadOnlyList<SnapshotEntry> List(string relativeDirectory);
     int Read(string relativePath, long offset, Span<byte> destination);

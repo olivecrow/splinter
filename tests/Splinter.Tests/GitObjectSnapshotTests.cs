@@ -7,7 +7,7 @@ using Splinter.SourceControl.Git;
 
 namespace Splinter.Tests;
 
-public sealed class GitObjectSnapshotTests
+public sealed partial class GitObjectSnapshotTests
 {
     [Fact]
     public async Task ExecutableGitModeSurvivesJournalRenameCandidateAndIndependentGitResult()
