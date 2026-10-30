@@ -40,7 +40,7 @@ public sealed class FoundationGateway(
             qualification = "docs/verification/extensibility-boundaries.md; macOS/Linux and other application adapters absent" },
         workspaceRecordVersion = WorkspaceRecord.CurrentVersion,
         repeatedOriginalApply = new { results = "immutable-request-key-generations; retained-task-and-Editor",
-            capture = "durable-source-backing-pins; payload-preservation-outside-mutation-boundary; scoped-Git-reader-with-full-publication-revalidation",
+            capture = "durable-source-backing-pins; payload-preservation-outside-mutation-boundary; scoped-Git-reader-with-full-publication-revalidation; one-fresh-capture-for-checkpoint-release",
             original = "explicit-result-plan-intent-digest; per-path-applied-baseline; Git-HEAD-index-unchanged",
             liveOriginal = "exact-external-tool-save/import-deferral-receipt; agent-owned-refresh/reload; no-internal-tool-runner",
             qualification = "docs/verification/repeated-original-apply.md; scoped RI-01-08 qualification; see recorded input and tooling limits" },

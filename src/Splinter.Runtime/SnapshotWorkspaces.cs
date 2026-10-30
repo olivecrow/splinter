@@ -150,7 +150,10 @@ public sealed partial class WorkspaceCoordinator
                     // Infrastructure removal legitimately appends to the journal.
                     // Complete it before the stable source-collection interval.
                     if (checkpointResult is null) await applications.RemoveInfrastructureAsync(w, control, ct);
-                    if (sources is IWorkspaceGenerationSource && snapshots is ISourceGenerationBackend) await SealGenerationForReleaseAsync(w, ct);
+                    if (sources is IWorkspaceGenerationSource && snapshots is ISourceGenerationBackend)
+                    {
+                        if (checkpointResult is null) await SealGenerationForReleaseAsync(w, ct);
+                    }
                     else if (!await ReuseSnapshotResultAsync(w, ct, checkpointResult?.Seal))
                         await CollectSnapshotResultAsync(w, ct);
                 }

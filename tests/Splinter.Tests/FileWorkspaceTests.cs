@@ -187,12 +187,12 @@ public sealed partial class FileWorkspaceTests
             if (sourceKind == "plastic")
             { Directory.CreateDirectory(Path.Combine(Project, ".plastic")); File.WriteAllText(Path.Combine(Project, ".plastic", "plastic.workspace"), Plastic.Guid); }
         }
-        public WorkspaceCoordinator New()
+        public WorkspaceCoordinator New(IWorkspacePreparationObserver? observer = null)
         {
-            var files = new FileWorkspaceProvider(Store, publisher, projectAccess: new ProjectAccess());
+            var files = new FileWorkspaceProvider(Store, publisher, projectAccess: new ProjectAccess(), preparationObserver: observer);
             var sources = new SourceWorkspaceRouter(Git, files, new PlasticWorkspaceProvider(Store, Plastic, Revisions));
             return new(Store, sources, new SelectedApplicationProvider(new NoApplication()),
-                snapshots: Backend, discardProvider: new Discard(sources, Backend));
+                snapshots: Backend, discardProvider: new Discard(sources, Backend), preparationObserver: observer);
         }
         public Task<WorkspaceView> Ensure(string key, CancellationToken ct) => New().EnsureAsync(Project, key, sourceKind == "plastic" ? "1@repo@server" : "snapshot", sourceKind == "plastic" ? "plastic-snapshot" : "project-snapshot", false, ct, sourceKind: sourceKind, applicationKind: "none", generatedDirectoryId: sourceKind == "none" ? new string('a', 24) : null);
         public void Dispose() => directory.Dispose();
@@ -251,6 +251,8 @@ public sealed partial class FileWorkspaceTests
     {
         public FixtureRevisions Revisions = null!;
         public int Captures; public string? Fail; public bool ChangeSeal;
+        public int SealCalls;
+        public Action<WorkspaceRecord, int>? OnSeal;
         public HashSet<string> Mounted = [], Removed = [], Released = [];
         private readonly Dictionary<string, SnapshotReference> receipts = [];
         private long sequence;
@@ -309,7 +311,7 @@ public sealed partial class FileWorkspaceTests
                 SnapshotStorage: w.Snapshot?.Reference is { } r ? new SnapshotObservation(r.Id, !Released.Contains(w.Id), null, null, null) { ReadAccess = new(r.Id, r.RootPath, "fake-verified") } : null,
                 DeltaPresent: !Removed.Contains(w.Id)));
         public Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
-        { if (ChangeSeal) sequence++; return Task.FromResult(new SnapshotDeltaSeal(sequence, 10, "fake-seal-" + sequence)); }
+        { OnSeal?.Invoke(w, ++SealCalls); if (ChangeSeal) sequence++; return Task.FromResult(new SnapshotDeltaSeal(sequence, 10, "fake-seal-" + sequence)); }
         public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { if (Directory.Exists(w.Path)) Directory.Delete(w.Path, true); Mounted.Remove(w.Id); Lost("unmount"); return Task.CompletedTask; }
         public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { Removed.Add(w.Id); Lost("remove"); return Task.CompletedTask; }

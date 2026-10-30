@@ -66,12 +66,69 @@ public sealed partial class FileWorkspaceTests
         File.WriteAllText(Path.Combine(w.Path, "data.txt"), "final source");
         var first = await f.New().CheckpointAndReleaseAsync(w.Id, "final result", "final-key", ct);
         Assert.Equal("released", first.Workspace.Phase); Assert.Equal("final-key", first.ResultGeneration!.RequestKey);
+        Assert.Single(first.Workspace.Results);
+        Assert.Equal(first.ResultGeneration.ResultReference, first.Workspace.Snapshot!.Result!.ResultReference);
         var retry = await f.New().CheckpointAndReleaseAsync(w.Id, "final result", "final-key", ct);
         Assert.Equal(first.ResultGeneration, retry.ResultGeneration); Assert.Equal(first.Workspace.Results.Count, retry.Workspace.Results.Count);
         Assert.Equal("WorkspaceReleased", (await Assert.ThrowsAsync<WorkspaceException>(() =>
             f.New().CheckpointAndReleaseAsync(w.Id, "another", "new-key", ct))).Code);
         Assert.Equal("SourceCaptureRequestConflict", (await Assert.ThrowsAsync<WorkspaceException>(() =>
             f.New().CheckpointAndReleaseAsync(w.Id, "another", "final-key", ct))).Code);
+    }
+    [Theory]
+    [InlineData("source-capture-fixed")]
+    [InlineData("source-generation-published")]
+    public async Task CombinedGenerationRetryCannotSealAnEarlierFrozenResultAsTheCurrentSource(string boundary)
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var w = (await f.Ensure("combined-generation-loss", ct)).Workspace;
+        File.WriteAllText(Path.Combine(w.Path, "data.txt"), "first fixed bytes");
+        bool lost = false;
+        var observer = new GenerationBoundary((point, _) =>
+        {
+            if (point == boundary && !lost) { lost = true; throw new WorkspaceException("ReplyLost", point); }
+        });
+        Assert.Equal("ReplyLost", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            f.New(observer).CheckpointAndReleaseAsync(w.Id, "final", "final", ct))).Code);
+        File.WriteAllText(Path.Combine(w.Path, "data.txt"), "later source must survive");
+        var result = await f.New().CheckpointAndReleaseAsync(w.Id, "final", "final", ct);
+        Assert.Equal("released", result.Workspace.Phase);
+        Assert.Equal(2, result.Workspace.Results.Count);
+        Assert.Equal("final", result.ResultGeneration!.RequestKey);
+        Assert.NotEqual(result.ResultGeneration.Revision, result.Workspace.Results.Last().Revision);
+        Assert.Equal(result.Workspace.Results.Last().Revision, result.Workspace.Snapshot!.Result!.Revision);
+    }
+    [Fact]
+    public async Task CombinedGenerationRequiresUnchangedFullSealsBeforeReclamation()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var w = (await f.Ensure("combined-generation-seal", ct)).Workspace;
+        f.Backend.ChangeSeal = true;
+        Assert.Equal("DeltaChangedAfterCollection", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            f.New().CheckpointAndReleaseAsync(w.Id, "final", "final", ct))).Code);
+        Assert.Empty(f.Backend.Removed); Assert.Empty(f.Backend.Released);
+        Assert.True(Directory.Exists(w.Path)); Assert.Single(f.Store.Get(w.Id).Results);
+        File.WriteAllText(Path.Combine(w.Path, "data.txt"), "after failed full seal");
+        f.Backend.ChangeSeal = false;
+        var resumed = await f.New().CheckpointAndReleaseAsync(w.Id, "final", "final", ct);
+        Assert.Equal("released", resumed.Workspace.Phase); Assert.Equal(2, resumed.Workspace.Results.Count);
+        Assert.NotEqual(resumed.ResultGeneration!.Revision, resumed.Workspace.Snapshot!.Result!.Revision);
+    }
+    [Fact]
+    public async Task CombinedGenerationStillRejectsChangesObservedAfterUnmount()
+    {
+        using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        var w = (await f.Ensure("combined-generation-post-unmount", ct)).Workspace;
+        f.Backend.OnSeal = (_, count) => { if (count == 3) f.Backend.ChangeSeal = true; };
+        Assert.Equal("DeltaChangedAfterCollection", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            f.New().CheckpointAndReleaseAsync(w.Id, "final", "final", ct))).Code);
+        Assert.Empty(f.Backend.Removed); Assert.Empty(f.Backend.Released);
+        var retained = f.Store.Get(w.Id); Assert.Single(retained.Results); Assert.NotNull(retained.Snapshot!.Result);
+    }
+    private sealed class GenerationBoundary(Action<string, WorkspaceRecord> action) : IWorkspacePreparationObserver
+    {
+        public Task ReachedAsync(string boundary, WorkspaceRecord workspace, CancellationToken ct = default)
+        { action(boundary, workspace); return Task.CompletedTask; }
     }
     [Fact]
     public async Task ReclamationVerifiesOlderRetainedPayloadsAsWellAsTheLatestResult()

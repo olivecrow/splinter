@@ -29,7 +29,16 @@ public sealed partial class WorkspaceCoordinator
         {
             await applications.StopAsync(w, store.ControlPath(id), ct); await RequireStopped(w, ct);
             await applications.RemoveInfrastructureAsync(w, store.ControlPath(id), ct);
+            // A retry may return a capture fixed by a prior invocation. Only a
+            // newly admitted request in this operation can share these seals.
+            bool fresh = previous is null && w.CaptureIntent is null;
+            var before = fresh ? await Snapshots.SealAsync(w, store.ControlPath(id), ct) : null;
             var generation = await CaptureGenerationCoreAsync(w, message, requestKey, ct);
+            if (before is not null)
+            {
+                await CompleteGenerationSealAsync(w, generation, before, ct);
+                return (await ReleaseSnapshotWorkspaceAsync(w, ct, RequireSnapshot(w).Result!)) with { ResultGeneration = generation };
+            }
             return (await ReleaseSnapshotWorkspaceAsync(w, ct)) with { ResultGeneration = generation };
         }
         catch (Exception ex) { RecordFailure(w, ex); throw; }
@@ -93,10 +102,17 @@ public sealed partial class WorkspaceCoordinator
         string control = store.ControlPath(w.Id);
         var before = await Snapshots.SealAsync(w, control, ct);
         var generation = await CaptureGenerationCoreAsync(w, "Final source preservation", "release:" + before.JournalHash, ct);
+        await CompleteGenerationSealAsync(w, generation, before, ct);
+    }
+    private async Task CompleteGenerationSealAsync(WorkspaceRecord w, WorkspaceResultGeneration generation,
+        SnapshotDeltaSeal before, CancellationToken ct)
+    {
+        string control = store.ControlPath(w.Id);
         var after = await Snapshots.SealAsync(w, control, ct);
         if (before != after) throw new WorkspaceException("DeltaChangedAfterCollection", "Writes overlapped final closure; retain every generation and the live journal.", new { before, after, generation.Id, generation.SourceSequence });
         RequireSnapshot(w).Result = new(RequireSnapshot(w).Reference!.Id, generation.Revision, generation.Fingerprint,
             generation.ResultReference, after, true, SnapshotResult.StableJournalProtocol);
+        w.Phase = "collected";
         store.Save(w, "final-generation-sealed");
     }
     private async Task VerifyRetainedGenerationsAsync(WorkspaceRecord w, CancellationToken ct)
