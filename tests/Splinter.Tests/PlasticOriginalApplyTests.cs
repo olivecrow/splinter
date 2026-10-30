@@ -243,7 +243,7 @@ public sealed class PlasticOriginalApplyTests
         private readonly long timestamp = DateTime.UtcNow.ToFileTimeUtc();
         public Dictionary<string, byte[]> Payloads { get; } = new() { ["Assets/item.txt"] = Encoding.UTF8.GetBytes("basis"), ["Assets/item.txt.meta"] = Encoding.UTF8.GetBytes("guid"),
             ["Packages/manifest.json"] = Encoding.UTF8.GetBytes("{}"), ["ProjectSettings/ProjectVersion.txt"] = Encoding.UTF8.GetBytes("version") };
-        public Task<string> VersionAsync(CancellationToken ct = default) => Task.FromResult("11.0.16.9915");
+        public Task<string> VersionAsync(CancellationToken ct = default) => Task.FromResult("11.0.16.10484");
         public Task<PlasticWorkspaceIdentity> InspectAsync(string path, CancellationToken ct = default) => Task.FromResult(new PlasticWorkspaceIdentity(Project, Guid, "regular", "static"));
         public Task<PlasticWorkspaceLocation[]> ListAsync(CancellationToken ct = default) => Task.FromResult(new[] { new PlasticWorkspaceLocation(Project, Guid) });
         public Task<PlasticOriginalState> OriginalStateAsync(string project, string repository, CancellationToken ct = default) => Unknown ? throw new WorkspaceException("PlasticObservationUnavailable", "injected") : Task.FromResult(new PlasticOriginalState("repo", "server", Changeset, "Branch:/main", Locks));

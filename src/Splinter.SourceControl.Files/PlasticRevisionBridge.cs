@@ -25,7 +25,7 @@ namespace Splinter.SourceControl.Files
                 var context = new ClientContext(client);
                 var api = context.LoadFromAssemblyPath(client);
                 var core = context.LoadFromAssemblyPath(Path.Combine(directory, "plasticclientcore.dll"));
-                if (api.GetName().Version != new Version(11, 0, 16, 9915) || core.GetName().Version != api.GetName().Version)
+                if (api.GetName().Version != new Version(11, 0, 16, 10484) || core.GetName().Version != api.GetName().Version)
                 { output.Write(-2); output.Flush(); return; }
                 string setup = Console.ReadLine() ?? throw new EndOfStreamException();
                 if (setup.Length > 4096) throw new InvalidDataException();
@@ -60,9 +60,8 @@ namespace Splinter.SourceControl.Files
                             if ((long)Field(data, "objId") != revision || (ulong)Field(data, "segment") != segment || stored.Length > SegmentBytes + 65536)
                                 throw new InvalidDataException();
                             short format = (short)Field(data, "compression");
-                            int length = stored.Length == 0 ? 0 : (int)Call(compression, null, "Uncompress",
-                                new object?[] { Enum.ToObject(compressionType, format), stored, stored.Length, decoded });
-                            if (length < 0 || length > decoded.Length) throw new InvalidDataException();
+                            int length = DecodeSegment(format, stored, decoded, () => (int)Call(compression, null, "Uncompress",
+                                new object?[] { Enum.ToObject(compressionType, format), stored, stored.Length, decoded }));
                             for (int offset = 0; offset < length; offset += 65536)
                             {
                                 int count = Math.Min(65536, length - offset);
@@ -77,6 +76,24 @@ namespace Splinter.SourceControl.Files
                 }
             }
             catch { output.Write(-1); output.Flush(); }
+        }
+        internal static int DecodeSegment(short format, byte[] stored, byte[] decoded, Func<int> uncompress)
+        {
+            // Qualified client formats: None=0, ZLib=2. Uncompress returns zero
+            // for None, so raw packets (including BOMs) must bypass it.
+            if (decoded.Length != SegmentBytes || stored.Length > SegmentBytes + 65536)
+                throw new InvalidDataException();
+            if (format == 0)
+            {
+                if (stored.Length > decoded.Length) throw new InvalidDataException();
+                Buffer.BlockCopy(stored, 0, decoded, 0, stored.Length);
+                return stored.Length;
+            }
+            if (format != 2) throw new InvalidDataException();
+            int length = stored.Length == 0 ? 0 : uncompress();
+            if (length < 0 || length > decoded.Length || (stored.Length != 0 && length == 0))
+                throw new InvalidDataException();
+            return length;
         }
         private static object Call(Type type, object? target, string name, object?[] arguments) =>
             type.GetMethods(Members).Single(m => m.Name == name && m.GetParameters().Length == arguments.Length).Invoke(target, arguments)!;

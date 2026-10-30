@@ -49,7 +49,7 @@ public sealed class FoundationGateway(
             qualification = "docs/verification/vcs-independent-workspaces.md and docs/verification/plain-folder-original-apply.md; actual product apply A/B is separate from ordinary-user NTFS file/fake tests" },
         plasticCompatibility = new { mode = "regular/static-original; unregistered-isolated-file-workers", administration = "excluded-and-write-denied; no-client-registration-or-check-in",
             recordedBasis = "plastic-snapshot; fixed-changeset-raw-revisions; no-VSS-or-checkout-or-payload-disk-cache; first-full-hash-and-one-revision-chunk-proof; backward/interleaved-reopen-may-retransmit",
-            reader = "private-stdio-owned-pwsh-child; qualified-Windows-cm-11.0.16.9915-libraries; no-HTTP-listener; fixed-version-refusal; docs/verification/security-boundaries.md",
+            reader = "private-stdio-owned-pwsh-child; qualified-Windows-cm-11.0.16.10484-libraries; no-HTTP-listener; fixed-version-refusal; docs/verification/security-boundaries.md",
             library = "explicit-original-managed-Library-basis-and-private-ranges; same-lifecycle-as-Git",
             originalApply = "plastic-snapshot; explicit-result-plan-intent-and-selection; per-path-history; editorless-or-exact-live-Editor-permit; windows-ntfs; no-server-mutation", qualification = "docs/verification/plastic-compatibility.md and docs/verification/repeated-original-apply.md; native qualification separate from fake lifecycle" },
         projectValidation = "agent-and-external-tools; checkpoint-does-not-claim-compile-or-test-success",

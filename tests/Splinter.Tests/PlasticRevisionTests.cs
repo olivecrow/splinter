@@ -11,6 +11,32 @@ namespace Splinter.Tests;
 
 public sealed class PlasticRevisionTests
 {
+    [Fact]
+    public void RawVendorSegmentsPreserveBinaryAndUtf16BomWithoutCallingDecompressor()
+    {
+        byte[] target = new byte[4 * 1024 * 1024];
+        foreach (byte[] raw in new[] { Array.Empty<byte>(), new byte[] { 0xff, 0xfe, 0x52, 0, 0, 0, 0xff, 0 } })
+        {
+            Assert.Equal(raw.Length, PlasticRevisionBridge.DecodeSegment(0, raw, target, () => throw new Exception("Raw data must bypass decompression")));
+            Assert.Equal(raw, target[..raw.Length]);
+        }
+        byte[] full = new byte[target.Length]; RandomNumberGenerator.Fill(full);
+        Assert.Equal(full.Length, PlasticRevisionBridge.DecodeSegment(0, full, target, () => throw new Exception()));
+        Assert.Equal(full, target);
+    }
+    [Fact]
+    public void VendorSegmentDecoderBoundsRawAndCompressedOutputAndRejectsUnqualifiedFormats()
+    {
+        byte[] target = new byte[4 * 1024 * 1024]; int calls = 0;
+        Assert.Equal(3, PlasticRevisionBridge.DecodeSegment(2, [1], target, () => { calls++; target[0] = 7; return 3; }));
+        Assert.Equal(1, calls); Assert.Equal(7, target[0]);
+        foreach (int length in new[] { -1, 0, target.Length + 1 })
+            Assert.Throws<InvalidDataException>(() => PlasticRevisionBridge.DecodeSegment(2, [1], target, () => length));
+        foreach (short format in new short[] { -1, 1, 3, 4, 5, 256, 512, 1024, 2048, short.MaxValue })
+            Assert.Throws<InvalidDataException>(() => PlasticRevisionBridge.DecodeSegment(format, [], target, () => throw new Exception()));
+        Assert.Throws<InvalidDataException>(() => PlasticRevisionBridge.DecodeSegment(0, new byte[target.Length + 1], target, () => 0));
+        Assert.Throws<InvalidDataException>(() => PlasticRevisionBridge.DecodeSegment(2, new byte[target.Length + 65537], target, () => 1));
+    }
     [Theory]
     [InlineData("br:/main@repo@server")]
     [InlineData("1@repo;output@server")]
@@ -215,7 +241,7 @@ public sealed class PlasticRevisionTests
     }
     private sealed class LocalIdentity(string project) : IPlasticWorkspaceClient
     {
-        public Task<string> VersionAsync(CancellationToken ct = default) => Task.FromResult("11.0.16.9915");
+        public Task<string> VersionAsync(CancellationToken ct = default) => Task.FromResult("11.0.16.10484");
         public Task<PlasticWorkspaceIdentity> InspectAsync(string path, CancellationToken ct = default) => Task.FromResult(new PlasticWorkspaceIdentity(project, "11111111-1111-1111-1111-111111111111", "regular", "static"));
         public Task<PlasticWorkspaceLocation[]> ListAsync(CancellationToken ct = default) => Task.FromResult(new[] { new PlasticWorkspaceLocation(project, "11111111-1111-1111-1111-111111111111") });
     }

@@ -86,7 +86,7 @@ internal sealed class PlasticRevisionStreamSession : IPlasticRevisionReader, IDi
                     pipe.ReadExactlyAsync(header, deadline.Token).AsTask().GetAwaiter().GetResult();
                     remaining = BinaryPrimitives.ReadInt32LittleEndian(header);
                     if (remaining == 0) { complete = true; return 0; }
-                    if (remaining == -2) throw Failure("PlasticBasisUnsupported", "The private reader requires the qualified Windows cm 11.0.16.9915 installation; preserve the task.");
+                    if (remaining == -2) throw Failure("PlasticBasisUnsupported", "The private reader requires the qualified Windows cm 11.0.16.10484 installation; preserve the task.");
                     if (remaining is < 0 or > 65536) throw Failure("PlasticBasisUnavailable", "The private revision reader failed or returned an invalid frame.");
                 }
                 int read = pipe.ReadAsync(buffer.AsMemory(offset, Math.Min(count, remaining)), deadline.Token).AsTask().GetAwaiter().GetResult();

@@ -329,7 +329,7 @@ public sealed partial class FileWorkspaceTests
         public string Guid = System.Guid.NewGuid().ToString("D"), Type = "regular", Dynamic = "static";
         public string? RootOverride, AdditionalRoot; public bool Unavailable;
         private void Check() { if (Unavailable) throw new WorkspaceException("PlasticObservationUnavailable", "unknown inventory"); }
-        public Task<string> VersionAsync(CancellationToken ct = default) { Check(); return Task.FromResult("11.0.16.9915"); }
+        public Task<string> VersionAsync(CancellationToken ct = default) { Check(); return Task.FromResult("11.0.16.10484"); }
         public Task<PlasticWorkspaceIdentity> InspectAsync(string path, CancellationToken ct = default)
         { Check(); return Task.FromResult(new PlasticWorkspaceIdentity(RootOverride ?? project, Guid, Type, Dynamic)); }
         public Task<PlasticWorkspaceLocation[]> ListAsync(CancellationToken ct = default)
