@@ -1,5 +1,7 @@
 # 문서 지도
 
+[Git 결과 수집·회수 진단](verification/git-result-collection-diagnosis.md)이 GCD-01을 소유한다. 기존 RI 입력 재현에서 계속 작업 reader의 반복 기준본 검사에 비용을 귀속했고 실제 로그에서 A 회수의 84.2%가 최종 재수집에 속함을 확인했다. 제품 최적화나 구버전 대비 속도 비교는 수행하지 않았다.
+
 현재 task 상태는 v3다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 불변 수집·명시적 결과 선택·경로별 반영 이력·외부 도구의 실행 중 Editor 협력을 소유하며 [RI 자격](verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분한다. 관리형 basis 상태는 v2를 유지하며 이전 task는 이관 없이 보존·거부한다. RI-01–08은 Git/None/Plastic 각각 작은 고정 실제 Unity 원본/A/B 한 묶음·최종 현재 소스 회귀·명시한 미검증 한계로 한정 완료했다.
 
 마감한 [남은 수명주기 최적화](plans/remaining-lifecycle-optimization.md)는 MX-01–10으로 기존 미시도/부분 진행 후보 전체, 근거 있는 채택/폐기, 최종 동일 입력 Unity 반영/폐기 비교를 추적한다. 과거 대기 상태는 근거로 보존하며 최종 MX10 마감 절이 현재 상태를 소유한다. MX-05는 동일 입력 일반 NTFS 복원과 전체 gate 검증 뒤 root-delta A·게시 수 제한 guard의 topology B2를 채택해 마감했다. MX10은 변경 Library 복원 경로를 사용하지 않아 MX05의 실제 전체 절감은 미입증이다. MX-06은 독립 모델 window 측정의 6.85647005초 절감이 절대 10초 기준에 미달하고 앞선 큰 공통 flush 차이가 재현되지 않아 미채택으로 마감했다. 제품 checkpoint 코드는 같다. MX-07A와 MX-07B는 실측 후 폐기·제거하여 MX-07을 마감했다. MX-08A는 국소 영속 저널 비용·최종 전체/실제 정확성 근거로 채택했으며 MX-08B는 폐기·제거 완료, MX-09는 실제 Git/Unity 최종화 ABBA가 사전 큰 절감 기준에 미달하여 폐기·제거로 마감했다. MX-10 실제 반영·폐기 비교와 최종 전체 검증도 마감했다. MX-07A는 고정된 Editor 없는 None 입력에서 8.45773340초 / 15.47910650%를 절감했지만 절대 10초 기준에 미달해 제거했고 기준 소스/시험 323개 hash가 모두 일치한다. 그 MX07A 결과는 Unity나 실제 Plastic 성능 자격을 추가하지 않는다.

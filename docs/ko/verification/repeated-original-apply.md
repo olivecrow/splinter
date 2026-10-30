@@ -2,6 +2,8 @@
 
 [English](../../verification/repeated-original-apply.md)
 
+[GCD-01](git-result-collection-diagnosis.md)은 보존된 Git 입력의 계속 작업 수집·회수 비용을 별도로 진단한다. 기준본 가용성 프로세스 반복과 최종 재수집을 확인했으며 RI 자격 변경이나 구버전 대비 속도 비교를 주장하지 않는다.
+
 [승인 범위](../plans/repeated-original-apply.md), 기준 `aff285f0da769eeaba0300d448f027ceeaa4a5bb` 위 development 작업 트리, 2026-10-30. **아래 한계를 유지하며 RI-01–08을 한정 완료했다. 세 입력의 고정 실제 Unity 순서와 최종 자격 전체 gate가 통과했다.** 과거 Unity 통과나 선택 시험 skip으로 필수 RI 행을 대체하지 않는다.
 
 [구조화 근거·원시 파일 hash](../../../reports/benchmarks/repeated-original-apply-20261030.json)에 정확한 결과·process identity·시간·할당 범위를 기록한다. 원시 로컬 근거는 `artifacts/repeated-original-apply-20261030/`, 시험 보고서는 `artifacts/ri-tests/`다.

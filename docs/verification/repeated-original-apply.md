@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/repeated-original-apply.md)
 
+[GCD-01](git-result-collection-diagnosis.md) separately diagnoses the retained Git input's continuing-task collection/reclamation cost. It identifies repeated basis-availability processes and final recapture without changing RI qualification or claiming an old/new speed comparison.
+
 [Approved scope](../plans/repeated-original-apply.md), base `aff285f0da769eeaba0300d448f027ceeaa4a5bb`, development working tree, 2026-10-30. **RI-01–08 are scoped-complete with the limitations below. All three fixed actual Unity inputs and the final qualification full gate passed.** Earlier Unity passes and optional skips do not substitute for required RI rows.
 
 [Structured evidence and raw-file hashes](../../reports/benchmarks/repeated-original-apply-20261030.json) record exact results, process identities, timings and allocation scopes. Raw local evidence is under `artifacts/repeated-original-apply-20261030/`; test reports are under `artifacts/ri-tests/`.

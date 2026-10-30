@@ -1,0 +1,702 @@
+{
+  "unit": "GCD-01",
+  "date": "2026-10-30",
+  "status": "bounded diagnosis complete; no product optimization",
+  "sourceCommit": "f91e470ab88953f600c2c1e15c52f8341e330164",
+  "question": "Why Git continuing-task capture and final reclamation are slow",
+  "scope": {
+    "input": "retained RI-05 Git source and result 2; no new Unity task or Editor",
+    "basisFiles": 27,
+    "basisBytes": 75034,
+    "resultFiles": 33,
+    "resultDirectories": 3,
+    "resultBytes": 87259,
+    "diagnosticCopies": "isolated small Git object stores and reconstructed source-only range capsules; no Library copy",
+    "observers": "unmodified Release product assemblies; timed exact default availability callback; reflection invokes existing ScanTree",
+    "excluded": [
+      "live WinFsp capture",
+      "full CLI timing replay",
+      "Editor restart/save/import/compile",
+      "new A/B tasks",
+      "optimization before/after",
+      "large inputs",
+      "OS crash",
+      "peak RAM or storage reduction"
+    ]
+  },
+  "historicalRiCommandTimings": [
+    {
+      "seconds": 76.9753653,
+      "name": "round-1-capture"
+    },
+    {
+      "seconds": 43.1134203,
+      "name": "round-2-capture"
+    },
+    {
+      "name": "round-3-capture",
+      "seconds": 49.4079317
+    },
+    {
+      "name": "release-a",
+      "seconds": 53.6322253
+    }
+  ],
+  "historicalIntentToResultPublication": [
+    {
+      "from": "source-capture-intent",
+      "to": "source-generation-published",
+      "startUtc": "2026-10-29T19:19:00.1848376+00:00",
+      "endUtc": "2026-10-29T19:20:15.803607+00:00",
+      "seconds": 75.61877
+    },
+    {
+      "from": "source-capture-intent",
+      "to": "source-generation-published",
+      "startUtc": "2026-10-29T19:25:05.0452425+00:00",
+      "endUtc": "2026-10-29T19:25:46.9420146+00:00",
+      "seconds": 41.896772
+    },
+    {
+      "from": "source-capture-intent",
+      "to": "source-generation-published",
+      "startUtc": "2026-10-29T19:36:08.0185242+00:00",
+      "endUtc": "2026-10-29T19:36:56.3020134+00:00",
+      "seconds": 48.283489
+    },
+    {
+      "from": "source-capture-intent",
+      "to": "source-generation-published",
+      "startUtc": "2026-10-29T19:41:07.5523257+00:00",
+      "endUtc": "2026-10-29T19:41:52.7236912+00:00",
+      "seconds": 45.171366
+    }
+  ],
+  "historicalRelease": {
+    "totalSeconds": 53.6322253,
+    "closureCaptureSeconds": 45.171366,
+    "closureCaptureSharePercent": 84.22429937845595,
+    "stages": [
+      {
+        "from": "release-unmount",
+        "to": "release-registration",
+        "seconds": 1.297357
+      },
+      {
+        "from": "release-registration",
+        "to": "release-delta",
+        "seconds": 1.97338
+      },
+      {
+        "from": "release-delta",
+        "to": "release-snapshot",
+        "seconds": 1.735849
+      },
+      {
+        "from": "release-snapshot",
+        "to": "released",
+        "seconds": 0.632933
+      },
+      {
+        "from": "release-unmount",
+        "to": "released",
+        "seconds": 5.639519
+      }
+    ],
+    "finalPublishedSourceEqualsClosure": true
+  },
+  "replays": [
+    {
+      "diagnostic": "RI retained Git source replay; no Editor, mount or historical command rerun",
+      "sourceCommit": "f91e470",
+      "runtime": "10.0.14",
+      "capturedResult": "4b3fd99f41dd68e75b0fbea3",
+      "exactContentMatches": true,
+      "exactGitCommitFingerprintMatches": true,
+      "stages": [
+        {
+          "phase": "open-basis",
+          "seconds": 0.552881,
+          "health": {
+            "calls": 1,
+            "seconds": 0.181972,
+            "gitCommands": 2,
+            "callers": {
+              ".ctor": 1
+            }
+          }
+        },
+        {
+          "phase": "first-generation-basis-scan",
+          "seconds": 13.6593914,
+          "health": {
+            "calls": 85,
+            "seconds": 13.4734527,
+            "gitCommands": 170,
+            "callers": {
+              "List": 4,
+              "Read": 54,
+              "AcquireReader": 27
+            }
+          },
+          "files": 27,
+          "bytes": 75034,
+          "reads": {
+            "timestamp": 47651920374,
+            "stopwatchFrequency": 10000000,
+            "observedAt": "2026-10-30T08:16:46.8596701+00:00",
+            "requests": 27,
+            "requestedBytes": 75034,
+            "failedRequests": 0,
+            "fullProofDecodedBytes": 75034,
+            "provedReadDecodedBytes": 0,
+            "fullProofProcessingTicks": 44422842,
+            "provedReadProcessingTicks": 0,
+            "readerWaitCount": 0,
+            "readerWaitTicks": 0,
+            "payloadCacheHits": 0,
+            "payloadCacheMisses": 0,
+            "capacityEvictedBytes": 0,
+            "unusedReadAheadEvictedBytes": 0,
+            "fullBlobProofs": 27,
+            "readerProcessStarts": 2,
+            "activeReaders": 0,
+            "waitingReaders": 0,
+            "payloadBytes": 75034,
+            "peakPayloadBytes": 75034,
+            "payloadEntries": 27,
+            "readerLimit": 2,
+            "payloadByteLimit": 268435456,
+            "payloadEntryLimit": 4096,
+            "proofReadAheadBytes": 134217728
+          }
+        },
+        {
+          "phase": "generation-result-scan",
+          "seconds": 19.3809255,
+          "health": {
+            "calls": 122,
+            "seconds": 19.3587562,
+            "gitCommands": 244,
+            "callers": {
+              "other": 37,
+              "List": 4,
+              "Read": 54,
+              "AcquireReader": 27
+            }
+          },
+          "files": 33,
+          "bytes": 87259,
+          "readsBefore": {
+            "timestamp": 47651922545,
+            "stopwatchFrequency": 10000000,
+            "observedAt": "2026-10-30T08:16:46.8598866+00:00",
+            "requests": 27,
+            "requestedBytes": 75034,
+            "failedRequests": 0,
+            "fullProofDecodedBytes": 75034,
+            "provedReadDecodedBytes": 0,
+            "fullProofProcessingTicks": 44422842,
+            "provedReadProcessingTicks": 0,
+            "readerWaitCount": 0,
+            "readerWaitTicks": 0,
+            "payloadCacheHits": 0,
+            "payloadCacheMisses": 0,
+            "capacityEvictedBytes": 0,
+            "unusedReadAheadEvictedBytes": 0,
+            "fullBlobProofs": 27,
+            "readerProcessStarts": 2,
+            "activeReaders": 0,
+            "waitingReaders": 0,
+            "payloadBytes": 75034,
+            "peakPayloadBytes": 75034,
+            "payloadEntries": 27,
+            "readerLimit": 2,
+            "payloadByteLimit": 268435456,
+            "payloadEntryLimit": 4096,
+            "proofReadAheadBytes": 134217728
+          },
+          "readsAfter": {
+            "timestamp": 47845733865,
+            "stopwatchFrequency": 10000000,
+            "observedAt": "2026-10-30T08:17:06.2444893+00:00",
+            "requests": 54,
+            "requestedBytes": 150068,
+            "failedRequests": 0,
+            "fullProofDecodedBytes": 75034,
+            "provedReadDecodedBytes": 0,
+            "fullProofProcessingTicks": 44422842,
+            "provedReadProcessingTicks": 42691328,
+            "readerWaitCount": 0,
+            "readerWaitTicks": 0,
+            "payloadCacheHits": 27,
+            "payloadCacheMisses": 0,
+            "capacityEvictedBytes": 0,
+            "unusedReadAheadEvictedBytes": 0,
+            "fullBlobProofs": 27,
+            "readerProcessStarts": 2,
+            "activeReaders": 0,
+            "waitingReaders": 0,
+            "payloadBytes": 75034,
+            "peakPayloadBytes": 75034,
+            "payloadEntries": 27,
+            "readerLimit": 2,
+            "payloadByteLimit": 268435456,
+            "payloadEntryLimit": 4096,
+            "proofReadAheadBytes": 134217728
+          },
+          "healthSharePercent": 99.88561278975041,
+          "readDelta": {
+            "requests": 27,
+            "requestedBytes": 75034,
+            "fullProofDecodedBytes": 0,
+            "provedReadDecodedBytes": 0,
+            "readerWaitCount": 0,
+            "readerWaitTicks": 0,
+            "payloadCacheHits": 27,
+            "payloadCacheMisses": 0,
+            "capacityEvictedBytes": 0,
+            "unusedReadAheadEvictedBytes": 0,
+            "readerProcessStarts": 0
+          }
+        },
+        {
+          "phase": "git-result-build-and-first-verification",
+          "seconds": 3.0102039,
+          "health": {
+            "calls": 14,
+            "seconds": 2.1945581,
+            "gitCommands": 28,
+            "callers": {
+              "other": 10,
+              "List": 4
+            }
+          },
+          "reads": {
+            "timestamp": 47875956508,
+            "stopwatchFrequency": 10000000,
+            "observedAt": "2026-10-30T08:17:09.2672948+00:00",
+            "requests": 54,
+            "requestedBytes": 150068,
+            "failedRequests": 0,
+            "fullProofDecodedBytes": 75034,
+            "provedReadDecodedBytes": 0,
+            "fullProofProcessingTicks": 44422842,
+            "provedReadProcessingTicks": 42691328,
+            "readerWaitCount": 0,
+            "readerWaitTicks": 0,
+            "payloadCacheHits": 27,
+            "payloadCacheMisses": 0,
+            "capacityEvictedBytes": 0,
+            "unusedReadAheadEvictedBytes": 0,
+            "fullBlobProofs": 27,
+            "readerProcessStarts": 2,
+            "activeReaders": 0,
+            "waitingReaders": 0,
+            "payloadBytes": 75034,
+            "peakPayloadBytes": 75034,
+            "payloadEntries": 27,
+            "readerLimit": 2,
+            "payloadByteLimit": 268435456,
+            "payloadEntryLimit": 4096,
+            "proofReadAheadBytes": 134217728
+          }
+        },
+        {
+          "phase": "second-generation-verification",
+          "seconds": 0.1510314
+        },
+        {
+          "phase": "three-retained-git-generation-verifications",
+          "seconds": 0.4615372
+        }
+      ],
+      "commandSamples": [
+        {
+          "command": "for-each-ref",
+          "seconds": 0.077393,
+          "characters": 88
+        },
+        {
+          "command": "rev-parse",
+          "seconds": 0.0784567,
+          "characters": 41
+        },
+        {
+          "command": "cat-file",
+          "seconds": 0.0783641,
+          "characters": 252
+        },
+        {
+          "command": "rev-list",
+          "seconds": 0.0797195,
+          "characters": 3085
+        }
+      ],
+      "assemblyHashes": [
+        {
+          "name": "Splinter.SourceControl.Files",
+          "hash": "e85343b2f643911782a12ec0953f089347419cfb840fe91cd4edd6f1ea020b60"
+        },
+        {
+          "name": "Splinter.SourceControl.Git",
+          "hash": "c289376aa8ed489e0132556fed001cdd6cdeefc8796e84f178935d0c0eec6398"
+        },
+        {
+          "name": "Splinter.Runtime",
+          "hash": "ba3d1cf5d0985b6a1ffff41e13f16dae028aee6659a02d113ea2f1213cc4a662"
+        },
+        {
+          "name": "Splinter.Platform.Windows",
+          "hash": "e25223b286423e1b97bed9bead53d1d95511e60fc0305650b0fc7886de2a9473"
+        }
+      ]
+    },
+    {
+      "diagnostic": "RI retained Git source replay; no Editor, mount or historical command rerun",
+      "sourceCommit": "f91e470",
+      "runtime": "10.0.14",
+      "capturedResult": "4b3fd99f41dd68e75b0fbea3",
+      "exactContentMatches": true,
+      "exactGitCommitFingerprintMatches": true,
+      "stages": [
+        {
+          "phase": "open-basis",
+          "seconds": 0.5653719,
+          "health": {
+            "calls": 1,
+            "seconds": 0.1834799,
+            "gitCommands": 2,
+            "callers": {
+              ".ctor": 1
+            }
+          }
+        },
+        {
+          "phase": "generation-result-scan",
+          "seconds": 19.872489,
+          "health": {
+            "calls": 122,
+            "seconds": 19.6823836,
+            "gitCommands": 244,
+            "callers": {
+              "other": 37,
+              "List": 4,
+              "Read": 54,
+              "AcquireReader": 27
+            }
+          },
+          "files": 33,
+          "bytes": 87259,
+          "readsBefore": {
+            "timestamp": 50194569695,
+            "stopwatchFrequency": 10000000,
+            "observedAt": "2026-10-30T08:21:01.1799509+00:00",
+            "requests": 0,
+            "requestedBytes": 0,
+            "failedRequests": 0,
+            "fullProofDecodedBytes": 0,
+            "provedReadDecodedBytes": 0,
+            "fullProofProcessingTicks": 0,
+            "provedReadProcessingTicks": 0,
+            "readerWaitCount": 0,
+            "readerWaitTicks": 0,
+            "payloadCacheHits": 0,
+            "payloadCacheMisses": 0,
+            "capacityEvictedBytes": 0,
+            "unusedReadAheadEvictedBytes": 0,
+            "fullBlobProofs": 0,
+            "readerProcessStarts": 0,
+            "activeReaders": 0,
+            "waitingReaders": 0,
+            "payloadBytes": 0,
+            "peakPayloadBytes": 0,
+            "payloadEntries": 0,
+            "readerLimit": 2,
+            "payloadByteLimit": 268435456,
+            "payloadEntryLimit": 4096,
+            "proofReadAheadBytes": 134217728
+          },
+          "readsAfter": {
+            "timestamp": 50393304473,
+            "stopwatchFrequency": 10000000,
+            "observedAt": "2026-10-30T08:21:21.0578916+00:00",
+            "requests": 27,
+            "requestedBytes": 75034,
+            "failedRequests": 0,
+            "fullProofDecodedBytes": 75034,
+            "provedReadDecodedBytes": 0,
+            "fullProofProcessingTicks": 45158051,
+            "provedReadProcessingTicks": 0,
+            "readerWaitCount": 0,
+            "readerWaitTicks": 0,
+            "payloadCacheHits": 0,
+            "payloadCacheMisses": 0,
+            "capacityEvictedBytes": 0,
+            "unusedReadAheadEvictedBytes": 0,
+            "fullBlobProofs": 27,
+            "readerProcessStarts": 2,
+            "activeReaders": 0,
+            "waitingReaders": 0,
+            "payloadBytes": 75034,
+            "peakPayloadBytes": 75034,
+            "payloadEntries": 27,
+            "readerLimit": 2,
+            "payloadByteLimit": 268435456,
+            "payloadEntryLimit": 4096,
+            "proofReadAheadBytes": 134217728
+          },
+          "healthSharePercent": 99.0433739829973,
+          "readDelta": {
+            "requests": 27,
+            "requestedBytes": 75034,
+            "fullProofDecodedBytes": 75034,
+            "provedReadDecodedBytes": 0,
+            "readerWaitCount": 0,
+            "readerWaitTicks": 0,
+            "payloadCacheHits": 0,
+            "payloadCacheMisses": 0,
+            "capacityEvictedBytes": 0,
+            "unusedReadAheadEvictedBytes": 0,
+            "readerProcessStarts": 2
+          }
+        },
+        {
+          "phase": "git-result-build-and-first-verification",
+          "seconds": 3.0045683,
+          "health": {
+            "calls": 14,
+            "seconds": 2.203139,
+            "gitCommands": 28,
+            "callers": {
+              "other": 10,
+              "List": 4
+            }
+          },
+          "reads": {
+            "timestamp": 50423472337,
+            "stopwatchFrequency": 10000000,
+            "observedAt": "2026-10-30T08:21:24.0753559+00:00",
+            "requests": 27,
+            "requestedBytes": 75034,
+            "failedRequests": 0,
+            "fullProofDecodedBytes": 75034,
+            "provedReadDecodedBytes": 0,
+            "fullProofProcessingTicks": 45158051,
+            "provedReadProcessingTicks": 0,
+            "readerWaitCount": 0,
+            "readerWaitTicks": 0,
+            "payloadCacheHits": 0,
+            "payloadCacheMisses": 0,
+            "capacityEvictedBytes": 0,
+            "unusedReadAheadEvictedBytes": 0,
+            "fullBlobProofs": 27,
+            "readerProcessStarts": 2,
+            "activeReaders": 0,
+            "waitingReaders": 0,
+            "payloadBytes": 75034,
+            "peakPayloadBytes": 75034,
+            "payloadEntries": 27,
+            "readerLimit": 2,
+            "payloadByteLimit": 268435456,
+            "payloadEntryLimit": 4096,
+            "proofReadAheadBytes": 134217728
+          }
+        },
+        {
+          "phase": "second-generation-verification",
+          "seconds": 0.156297
+        },
+        {
+          "phase": "three-retained-git-generation-verifications",
+          "seconds": 0.4696788
+        }
+      ],
+      "commandSamples": [
+        {
+          "command": "for-each-ref",
+          "seconds": 0.0776979,
+          "characters": 88
+        },
+        {
+          "command": "rev-parse",
+          "seconds": 0.0768004,
+          "characters": 41
+        },
+        {
+          "command": "cat-file",
+          "seconds": 0.0747354,
+          "characters": 252
+        },
+        {
+          "command": "rev-list",
+          "seconds": 0.0742682,
+          "characters": 3085
+        }
+      ],
+      "assemblyHashes": [
+        {
+          "name": "Splinter.SourceControl.Files",
+          "hash": "e85343b2f643911782a12ec0953f089347419cfb840fe91cd4edd6f1ea020b60"
+        },
+        {
+          "name": "Splinter.SourceControl.Git",
+          "hash": "c289376aa8ed489e0132556fed001cdd6cdeefc8796e84f178935d0c0eec6398"
+        },
+        {
+          "name": "Splinter.Runtime",
+          "hash": "ba3d1cf5d0985b6a1ffff41e13f16dae028aee6659a02d113ea2f1213cc4a662"
+        },
+        {
+          "name": "Splinter.Platform.Windows",
+          "hash": "e25223b286423e1b97bed9bead53d1d95511e60fc0305650b0fc7886de2a9473"
+        }
+      ]
+    }
+  ],
+  "callMechanism": {
+    "resultScan": {
+      "capturedListOrReadChecks": 37,
+      "basisListChecks": 4,
+      "basisReadEntryChecks": 27,
+      "basisReaderAdmissionChecks": 27,
+      "basisBeforePublishChecks": 27,
+      "totalChecks": 122,
+      "commandsPerCheck": 2,
+      "totalGitCommands": 244
+    },
+    "eachCheck": [
+      "for-each-ref (exact owned basis ref)",
+      "rev-parse --verify (fixed commit tree)"
+    ],
+    "basisScan": {
+      "checks": 85,
+      "gitCommands": 170
+    },
+    "sourceTreeBuilder": {
+      "availabilityChecks": 14,
+      "gitCommandsFromAvailability": 28,
+      "builderCommandsOnThisExistingRefPath": 15,
+      "details": "1 ls-tree, 6 hash-object, 4 mktree, 1 commit-tree, 1 for-each-ref, 1 cat-file, 1 rev-list; no update-ref because result already exists"
+    }
+  },
+  "findings": [
+    "OpenSourceCaptureAsync opens a fresh basis without the health callback maintained by the live provider. The default callback executes two Git commands for every EnsureAvailable.",
+    "Full frozen source hashing traverses all files, including unchanged cached basis payloads. Read admission and publication each repeat availability checks.",
+    "First generation adds a separate basis scan. Git result construction walks the tree again and starts per-file/per-directory commands.",
+    "Final release always captures a release-key generation even when the final published source identity matches; actual A logs place 84.2 percent of release inside this recapture.",
+    "The 3-result Git graph verification sample is small relative to recapture. Decoder waits, cache eviction and repeated payload decoding are absent in the measured scan samples."
+  ],
+  "limits": [
+    "Cold and warm refer to the product reader/proof cache, not OS caches. Samples are ordered, once each, and not an optimized-candidate comparison.",
+    "Capsule backing bytes were reconstructed from retained result blobs after historical pin reclamation; content hashes and exact Git commit fingerprint match. Historical journal layout and physical I/O are not replayed.",
+    "Private paths, receipt owner and source timestamp metadata differ. Timers and stack classification add overhead. Per-check Git command counts follow the successfully executed provider path; no process-wide OS trace was collected.",
+    "The original 43.1-second CLI operation is not fully phase-profiled. Diagnostic scan timings cannot be substituted for historical wall times or used as promised savings.",
+    "The individual Git command latency includes process launch, loader, Git work, scheduling and security scanning. Their separate shares and any antivirus cause are unknown.",
+    "Historical LP/CO and BD/GR measurements describe different code paths and inputs. No old/new performance regression percentage is established."
+  ],
+  "nextOptimizationBoundaries": [
+    "Scope/refine basis availability proof reuse under the exact reader lease and fixed object identity, with mutation/corruption/loss tests; do not simply cache available=true.",
+    "Reuse proven unchanged manifest/content identities while preserving metadata, rename/delete/revert and frozen-generation correctness.",
+    "Reuse a final sealed generation only after proving source equivalence and unchanged full pre/post seals including shutdown writes and infrastructure removal.",
+    "Preserve all retained result validation, conditional original publication, independent payload proof and ownership/reclamation fences."
+  ],
+  "preservation": {
+    "originalHeadIndexRefsAndSourceBytesUnchanged": true,
+    "sourceFileCount": 38,
+    "originalHead": "2d701823dc6fee4b9a47d5d9a734e1b4a93b749b",
+    "originalIndexHash": "c61f5548ce2b70e81eb48a4c2d2801bbc0326140cdd169c57d982e2e77920c6e",
+    "originalRefsHash": "ab9e69c0cb9f4ab8c69a71ff5b6874f75451c833b5c798a05d697bf59a4c6154",
+    "newEditorsMountsOrProviders": 0,
+    "diagnosticBasisRefsReleased": 3,
+    "capturePinsAbsent": true,
+    "retainedArtifacts": "small diagnostic Git object stores, reconstructed capsule metadata and raw logs retained; no live resources"
+  },
+  "baseEvidence": {
+    "path": "reports/benchmarks/repeated-original-apply-20261030.json",
+    "sha256": "f0ec41eb1c86db5d869e881eee94daf94bb816ac71abb4f8fd094163d51b117e"
+  },
+  "diagnosticSetup": "First setup attempt failed the frozen-namespace backing-path guard before measured scans; corrected layout, retained its evidence and released its private basis. Final helper includes cleanup/cold modes added after warm sample; product assembly hashes match both samples.",
+  "sourceHashes": [
+    {
+      "path": "src/Splinter.Platform.Windows/NtfsSourceGenerations.cs",
+      "sha256": "93f4f7a66e2350a31b5dd3e717d6844bf8dc0736c66226fd9b4a85fc605f6d33"
+    },
+    {
+      "path": "src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs",
+      "sha256": "55b91659956ab5f6fe5144ca110400d627c4a61f96398bed3e5b92397692d928"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitObjectSnapshotProvider.cs",
+      "sha256": "868e01b2a907fe0f133d37e451bae24bf22e5df78154c7b09dab9cb1dcb79892"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitObjectSnapshotTree.cs",
+      "sha256": "b53a34692824aa502b37a9858a609bd7b047c0046d1aef6065de621bd47cc96a"
+    },
+    {
+      "path": "src/Splinter.Runtime/JournalSourceCapture.cs",
+      "sha256": "80731614748cc733ca9997eb6298e9e3d822e5e104888097b8c84cda70b1899e"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+      "sha256": "b9380f5027780523100900601f2d533c003901e2282abaa146117a30ff9eced4"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Git/GitSourceResult.cs",
+      "sha256": "1dc4e88dbb4e3e0e46654bc184952549aa4f33e14b6af47e1db558bf5bcc3afb"
+    },
+    {
+      "path": "src/Splinter.Runtime/WorkspaceGenerations.cs",
+      "sha256": "b84d41e09fe12a64908c975a2fef35b51a019ad6f2de0691431d036e4779f4c0"
+    },
+    {
+      "path": "src/Splinter.Runtime/SnapshotWorkspaces.cs",
+      "sha256": "282a9c96b73b42e71e2eb95a3f20a09b9395a5a4397823355d18cf27c5cfc072"
+    }
+  ],
+  "rawEvidenceHashes": [
+    {
+      "path": "artifacts/ri-git-diagnosis-20261030/after.json",
+      "sha256": "c1a4211586fd4fade31782c0b617946920f23c190565c05f808a24959cf902e0"
+    },
+    {
+      "path": "artifacts/ri-git-diagnosis-20261030/before.json",
+      "sha256": "c1a4211586fd4fade31782c0b617946920f23c190565c05f808a24959cf902e0"
+    },
+    {
+      "path": "artifacts/ri-git-diagnosis-20261030/diagnostic-cleanup.json",
+      "sha256": "2af18b1a4877ee6ef40319536e1df7c28d5f33df5dbf4d465121b6632bd79563"
+    },
+    {
+      "path": "artifacts/ri-git-diagnosis-20261030/historical-release-events.json",
+      "sha256": "e0ad2ec22fed66c981e3e5b53aaee8753314f7388ee70db29733cfba50a6e3ed"
+    },
+    {
+      "path": "artifacts/ri-git-diagnosis-20261030/replay-cold.json",
+      "sha256": "63f4ddaa4b2099b1efc826097069a2c4d90b9188b5a3d3afc77b213f152ef78d"
+    },
+    {
+      "path": "artifacts/ri-git-diagnosis-20261030/replay.json",
+      "sha256": "09a8ac2025bdf42e44e56d6325b24b39db6cb091b2707442190cbfea1d39c837"
+    }
+  ],
+  "diagnosticSourceHashes": [
+    {
+      "path": ".local/ri-git-diagnosis-20261030/Probe.csproj",
+      "sha256": "43ea0e34694e8ec0a8a32b300ab1667fe1c5505278e06723efe51c984fc5cd46"
+    },
+    {
+      "path": ".local/ri-git-diagnosis-20261030/Program.cs",
+      "sha256": "cde02afea2452cd997afbe8e0453f37c6f15a1cf5c682966944faa9e20facaa2"
+    },
+    {
+      "path": ".local/ri-git-diagnosis-20261030/report.py",
+      "sha256": "f732ea531976c37195784f610e131759ddfd39bad242c0d4a33d19e0b5058b79"
+    },
+    {
+      "path": ".local/ri-git-diagnosis-20261030/snapshot.py",
+      "sha256": "cbabfb4b0db20e717b22c691f01a014b9b4e430d7465d1fd9949902747bda6a7"
+    }
+  ]
+}
