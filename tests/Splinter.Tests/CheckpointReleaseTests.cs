@@ -30,11 +30,11 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         Assert.Equal("released", (await coordinator.CheckpointAndReleaseAsync(id, "same request", ct)).Workspace.Phase);
         Assert.Equal(seals, f.Backend.SealCalls); Assert.Equal(1, source.Transactions);
         using var output = new StringWriter();
-        Assert.Equal(0, await Program.RunAsync(["workspace", "checkpoint", "--id", id, "--message", "same request",
-            "--release", "--home", f.Home], output, ct));
+        Assert.NotEqual(0, await Program.RunAsync(["workspace", "checkpoint", "--id", id, "--message", "same request",
+            "--request-key", "new-key-after-release", "--release", "--home", f.Home], output, ct));
         using var envelope = JsonDocument.Parse(output.ToString());
         Assert.Equal("workspace.checkpoint", envelope.RootElement.GetProperty("command").GetString());
-        Assert.Equal("released", envelope.RootElement.GetProperty("data").GetProperty("workspace").GetProperty("phase").GetString());
+        Assert.Equal("WorkspaceReleased", envelope.RootElement.GetProperty("error").GetProperty("code").GetString());
         Assert.True(new ContractCatalog().Validate("urn:splinter:v1:response", envelope.RootElement).IsValid);
     }
 
@@ -174,7 +174,7 @@ public sealed class CheckpointReleaseContractTests
         Assert.Contains("[--release]", command.CliUsage);
         foreach (bool release in new[] { false, true })
             Assert.True(catalog.Validate(command.InputSchema,
-                JsonSerializer.SerializeToElement(new { id = new string('a', 24), message = "result", release })).IsValid);
+                JsonSerializer.SerializeToElement(new { id = new string('a', 24), message = "result", requestKey = "result-1", release })).IsValid);
         Assert.False(catalog.Validate(command.InputSchema,
             JsonSerializer.SerializeToElement(new { id = new string('a', 24), message = "result", release = "true" })).IsValid);
         using var output = new StringWriter();

@@ -100,11 +100,15 @@ public static class WinFspOverlayServer
                 processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks
             });
             long replayStarted = Stopwatch.GetTimestamp();
+            var sourcePins = new WindowsJournalFilePins();
+            string sourceCaptures = Path.Combine(Path.GetDirectoryName(request.ControlPath)!, "captures");
+            SourceCaptureTree.RecoverPins(sourceCaptures, sourcePins);
+            WindowsJournalFilePins.RecoverCopies(Path.GetDirectoryName(request.ControlPath)!);
             using IWorkspaceDeltaStore store = request.SourceView is { } selectedView
                 ? new SourceViewDeltaStore(deltaPath, request.Identity, snapshot, selectedView, cacheBasis: cacheSnapshot)
                 : new JournalDeltaStore(deltaPath, request.Identity, basisTree, directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path),
                     initialContentGeneration: intent.InitialContentGeneration,
-                    boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes);
+                    boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes, sourceFilePins: sourcePins);
             long storeReadyTicks = Stopwatch.GetTimestamp() - replayStarted;
             var fileSystem = new WinFspOverlayFileSystem(store, ex =>
             {
@@ -119,7 +123,7 @@ public static class WinFspOverlayServer
             {
                 using var wakeup = new OverlayRequestWakeup(request.ControlPath);
                 long nextObservation = 0;
-                string? lastFlushRequest = null, lastSourceRequest = null;
+                string? lastFlushRequest = null, lastSourceRequest = null, lastCaptureRequest = null;
                 int status = host.MountEx(mountPath, 8, null, false, 0);
                 if (status < 0) throw new WorkspaceException("OverlayMountFailed", $"WinFsp mount returned 0x{status:x8}.");
                 while (true)
@@ -167,6 +171,24 @@ public static class WinFspOverlayServer
                             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "flush-result.json"),
                                 new { request.Token, flush.RequestId, observedAt = DateTimeOffset.UtcNow, storage = store.ObserveActivity() });
                             lastFlushRequest = flush.RequestId;
+                        }
+                        var captureRequest = await WindowsProcessWorkspaceProvider.ReadAsync<CaptureSourceRequest>(Path.Combine(request.ControlPath, "capture-source.json"), waitForPublication: false);
+                        if (captureRequest?.Token == request.Token && captureRequest.RequestId != lastCaptureRequest)
+                        {
+                            JournalSourceCapture? capture = null; string? captureError = null;
+                            try
+                            {
+                                if (captureRequest.Id.Length != 24 || captureRequest.Id.Any(c => !char.IsAsciiHexDigit(c)) || store is not JournalDeltaStore live)
+                                    throw new WorkspaceException("SourceCaptureRequestInvalid", "Require an owned task and an exact generation ID.");
+                                capture = fileSystem.CaptureSource(Path.Combine(sourceCaptures, captureRequest.Id), captureRequest.Id, captureRequest.ManagedPaths);
+                                string costPath = Path.Combine(sourceCaptures, captureRequest.Id, "capture-cost.json");
+                                if (!File.Exists(costPath)) SourceCaptureTree.Publish(costPath, new { store = live.LastSourceCaptureTiming, callbacks = fileSystem.LastSourceCaptureCallbacks });
+                            }
+                            catch (Exception ex) { captureError = (ex as WorkspaceException)?.Code ?? ex.GetType().Name; }
+                            await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "capture-source-result.json"),
+                                new { request.Token, captureRequest.RequestId, captureRequest.Id, captureError, capture?.Digest, capture?.Sequence,
+                                    processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks });
+                            lastCaptureRequest = captureRequest.RequestId;
                         }
                         var sourceQuery = await WindowsProcessWorkspaceProvider.ReadAsync<SourceChangeRequest>(Path.Combine(request.ControlPath, "source-query.json"), waitForPublication: false);
                         if (sourceQuery?.Token == request.Token && sourceQuery.RequestId != lastSourceRequest)
@@ -234,4 +256,5 @@ public static class WinFspOverlayServer
     }
     private sealed record StopRequest(string Token);
     private sealed record FlushRequest(string Token, string RequestId);
+    private sealed record CaptureSourceRequest(string Token, string RequestId, string Id, string[] ManagedPaths);
 }

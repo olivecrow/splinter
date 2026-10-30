@@ -127,6 +127,7 @@ public sealed partial class WorkspaceCoordinator
             // Publication holds this worker lock through its durable workflow intent.
             // Any candidate or retained source generation keeps the original basis alive.
             await RequireNoViewDependenciesAsync(w, ct);
+            await VerifyRetainedGenerationsAsync(w, ct);
             if (!state.Step.StartsWith("release-", StringComparison.Ordinal))
             {
                 if (!state.Attached) throw new WorkspaceException("SnapshotPreparationIncomplete", "Preserve incomplete preparation and resume ensure before release.");
@@ -149,7 +150,8 @@ public sealed partial class WorkspaceCoordinator
                     // Infrastructure removal legitimately appends to the journal.
                     // Complete it before the stable source-collection interval.
                     if (checkpointResult is null) await applications.RemoveInfrastructureAsync(w, control, ct);
-                    if (!await ReuseSnapshotResultAsync(w, ct, checkpointResult?.Seal))
+                    if (sources is IWorkspaceGenerationSource && snapshots is ISourceGenerationBackend) await SealGenerationForReleaseAsync(w, ct);
+                    else if (!await ReuseSnapshotResultAsync(w, ct, checkpointResult?.Seal))
                         await CollectSnapshotResultAsync(w, ct);
                 }
                 w.Phase = "releasing";
@@ -331,6 +333,7 @@ public sealed partial class WorkspaceCoordinator
             throw new WorkspaceException("InvalidCompactionBudget", "The estimated journal overlap budget must be positive.");
         using var gate = await store.LockAsync(id, ct);
         var w = store.Get(id);
+        if (w.CaptureIntent is not null) throw new WorkspaceException("SourceCapturePending", "Complete the exact frozen capture before compacting its backing files.");
         RequireNotDiscarding(w);
         w.OriginalApply?.RequireReclaimable(w);
         if (!WorkspaceStorage.HasRangeJournal(w.StorageMode))

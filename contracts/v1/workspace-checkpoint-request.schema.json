@@ -15,11 +15,17 @@
     "release": {
       "type": "boolean",
       "default": false,
-      "description": "Immediately release the range-journal workspace after preserving its independent result. Retries resume the same release; no automatic integration."
+      "description": "The agent saves externally; Splinter normally stops only the owned Editor, uses the same immutable-generation engine, then reclaims explicitly; never integrate automatically."
+    },
+    "requestKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
     }
   },
   "required": [
     "id",
-    "message"
+    "message",
+    "requestKey"
   ]
 }

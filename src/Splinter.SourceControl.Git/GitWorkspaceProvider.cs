@@ -123,14 +123,18 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
         if (source.HasChanges) throw Error("GitDirtyWorktree", "Workspace has uncollected changes.");
         if (string.IsNullOrEmpty(workspace.ResultRevision) || source.Revision != workspace.ResultRevision)
             throw Error("GitResultMismatch", "Workspace HEAD must match the collected result.");
+        return await MergeRevisionAsync(workspace, source.Revision, targetReference, ct);
+    }
+    private async Task<IntegrationResult> MergeRevisionAsync(WorkspaceRecord workspace, string revision, string targetReference, CancellationToken ct)
+    {
         await EnsureClean(workspace.ProjectPath, ct);
         string branch = await Required(workspace.ProjectPath, ["branch", "--show-current"], ct);
         if (branch != targetReference) throw Error("GitIntegrationTargetMismatch", "Original checkout must already be on the requested integration branch.");
         string target = await Required(workspace.ProjectPath, ["rev-parse", "HEAD"], ct);
-        if (await IsAncestor(workspace.ProjectPath, source.Revision, target, ct)) return new(target, true);
+        if (await IsAncestor(workspace.ProjectPath, revision, target, ct)) return new(target, true);
         try
         {
-            var merge = await Run(workspace.ProjectPath, ["-c", "commit.gpgsign=false", "merge", "--no-ff", "--no-edit", source.Revision], ct);
+            var merge = await Run(workspace.ProjectPath, ["-c", "commit.gpgsign=false", "merge", "--no-ff", "--no-edit", revision], ct);
             if (merge.ExitCode != 0) throw Error("IntegrationConflict", merge.Error.Trim());
         }
         catch
@@ -138,7 +142,7 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
             // Only abort the merge we started, and only while its original HEAD is unchanged.
             var mergeHead = await Run(workspace.ProjectPath, ["rev-parse", "--verify", "MERGE_HEAD"], CancellationToken.None);
             var head = await Run(workspace.ProjectPath, ["rev-parse", "HEAD"], CancellationToken.None);
-            if (mergeHead.Output.Trim() == source.Revision && head.Output.Trim() == target)
+            if (mergeHead.Output.Trim() == revision && head.Output.Trim() == target)
                 await Required(workspace.ProjectPath, ["merge", "--abort"], CancellationToken.None);
             throw;
         }

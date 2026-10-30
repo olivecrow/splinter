@@ -60,7 +60,7 @@ if ($WorkspaceIds) {
         $workspaceFile = Join-Path $taskRoot 'workspace.json'
         if (-not (Test-Path -LiteralPath $workspaceFile)) { throw 'Selected workspace record is missing; do not count it as zero.' }
         $saved = Get-Content -LiteralPath $workspaceFile -Raw | ConvertFrom-Json
-        if ($saved.version -ne 2 -or $saved.id -cne $workspaceId -or $saved.projectPath -ne $sourceRoot) { throw 'Selected workspace identity/project differs.' }
+        if ($saved.version -ne 3 -or $saved.id -cne $workspaceId -or $saved.projectPath -ne $sourceRoot) { throw 'Selected current task version/identity/project differs; preserve older tasks.' }
         $roots.Add(@{name=('workspace-' + $workspaceId);path=$taskRoot;scope='selected-workspace';baselineExcluded=$false})
     }
 } else { $roots.Add(@{name='control-and-delta';path=(Join-Path $stateRoot 'records');scope='shared-home';baselineExcluded=$false}) }

@@ -139,6 +139,13 @@ public sealed partial class GitWorkspaceProvider
     }
     public async Task VerifyResultAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
+        if (w.Results.LastOrDefault() is { } generation)
+        {
+            if (generation.GitReference is null || await GitSourceResult.VerifyAsync(w.ProjectPath, generation.GitReference, ct) != generation.GitFingerprint ||
+                w.Snapshot?.Result?.Revision != generation.Revision)
+                throw Error("GitOverlayResultMismatch", "The current independent generation or final closure differs.");
+            return;
+        }
         var result = w.Snapshot?.Result;
         if (result is null || !result.IndependentOfSnapshot || result.SnapshotId != w.Snapshot!.Reference?.Id ||
             result.Revision != w.ResultRevision || result.ResultReference != ResultReference(w))
@@ -154,7 +161,11 @@ public sealed partial class GitWorkspaceProvider
     public async Task UnregisterAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
         await VerifyResultAsync(w, control, ct);
-        await GitOverlayRegistration.ReleaseAsync(await Receipt(w, control, ct, verify: false), w.ResultRevision!, ct);
+        var receipt = await Receipt(w, control, ct, verify: false);
+        if (w.Results.LastOrDefault() is { } generation)
+            await GitOverlayRegistration.ReleaseGenerationAsync(receipt, w.BaseRevision!, generation.GitReference!,
+                await Required(w.ProjectPath, ["rev-parse", generation.GitReference!], ct), ct);
+        else await GitOverlayRegistration.ReleaseAsync(receipt, w.ResultRevision!, ct);
     }
     private static string ReceiptPath(string control) => Path.Combine(control, "git-overlay.json");
     private static string ResultReference(WorkspaceRecord w) => "refs/splinter/snapshot-results/" + w.Id;

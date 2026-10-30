@@ -394,7 +394,7 @@ public sealed class ContractAndCliTests
         {
             workspace = new { version = WorkspaceRecord.CurrentVersion, sourceKind = "git", applicationKind = "unity", id = "aaaaaaaaaaaaaaaaaaaaaaaa", requestKey = "task", projectPath = "C:/project", path = "C:/work",
                 sourceReference = "task", baseReference = "development", phase = "creating", createdAt = DateTimeOffset.UtcNow,
-                updatedAt = DateTimeOffset.UtcNow, storageMode = "git-snapshot", requestDigest = "aaaaaaaaaaaaaaaaaaaaaaaa",
+                updatedAt = DateTimeOffset.UtcNow, storageMode = "git-snapshot", requestDigest = "aaaaaaaaaaaaaaaaaaaaaaaa", results = Array.Empty<object>(), originalApplies = Array.Empty<object>(),
                 snapshot = new SnapshotWorkspaceState { Observation = new(available, false, false, false, null, null, null,
                     FailureCode: "OverlayStartUncertain", SnapshotStorage: new SnapshotObservation("snapshot", available, null, null, null)
                     { ReadAccess = available == true ? new("snapshot", "verified-read-root", "verification-id") : null }) } },
@@ -634,7 +634,7 @@ public sealed class ContractAndCliTests
             {"schemaVersion":"1.0","requestId":"00000000000000000000000000000000",
              "command":"workspace.compact","status":"Succeeded","terminal":true,
              "retryDisposition":"not-needed","nextActions":[],
-             "data":{"workspace":{"version":2,"sourceKind":"git","applicationKind":"unity","id":"000000000000000000000000","requestKey":"test",
+             "data":{"workspace":{"version":3,"sourceKind":"git","applicationKind":"unity","id":"000000000000000000000000","requestKey":"test","results":[],"originalApplies":[],
                  "projectPath":"P:","path":"W:","sourceReference":"development",
                  "baseReference":"development","phase":"ready","createdAt":"2026-09-26T00:00:00Z",
                  "updatedAt":"2026-09-26T00:00:00Z","storageMode":"git-snapshot","requestDigest":"test",

@@ -196,7 +196,8 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         var response = ApiResponse.Success("workspace.status", new
         {
             workspace = new { pending.Version, pending.SourceKind, pending.ApplicationKind, pending.Id, pending.RequestKey, pending.ProjectPath, pending.Path, pending.SourceReference,
-                pending.BaseReference, pending.Phase, pending.CreatedAt, pending.UpdatedAt, pending.StorageMode, pending.RequestDigest, pending.Snapshot, pending.Discard },
+                pending.BaseReference, pending.Phase, pending.CreatedAt, pending.UpdatedAt, pending.StorageMode, pending.RequestDigest, pending.Snapshot, pending.Discard,
+                pending.Results, pending.OriginalApplies },
             controlPath = store.ControlPath(w.Id), nextCommand = "workspace.discard", isolation = "private", recovery = new WorkspaceView(pending, null, null, "control", "workspace.discard").Recovery
         });
         Assert.True(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(response, ApiJson.Options)).IsValid);

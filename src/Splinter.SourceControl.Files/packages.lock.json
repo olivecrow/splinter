@@ -10,6 +10,12 @@
         "dependencies": {
           "Splinter.Core": "[0.1.0-dev, )"
         }
+      },
+      "splinter.sourcecontrol.git": {
+        "type": "Project",
+        "dependencies": {
+          "Splinter.Core": "[0.1.0-dev, )"
+        }
       }
     }
   }

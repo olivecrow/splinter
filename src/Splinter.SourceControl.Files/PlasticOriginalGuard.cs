@@ -10,7 +10,7 @@ public interface IPlasticOriginalStateClient
 {
     Task<PlasticOriginalState> OriginalStateAsync(string project, string repository, CancellationToken ct = default);
 }
-public interface IPlasticOriginalLease : IDisposable { string Identity { get; } }
+public interface IPlasticOriginalLease : IOriginalSourceLease { }
 public interface IPlasticOriginalGuard
 {
     IPlasticOriginalLease Acquire(WorkspaceRecord workspace, string[] paths, CancellationToken ct, bool publishing = false);
@@ -34,7 +34,7 @@ public sealed class PlasticOriginalGuard(WorkspaceStore store, IPlasticWorkspace
                 lease.Streams.Add(new(path, FileMode.Open, FileAccess.Read, FileShare.Read));
             }
             lease.Application = (applicationPolicies ?? ApplicationProjectPolicies.None).Get(w.ApplicationKind)
-                .AcquireOriginal(w.ProjectPath, publishing);
+                .AcquireOriginal(w, publishing);
             var identity = client.InspectAsync(w.ProjectPath, ct).GetAwaiter().GetResult();
             PlasticWorkspaceProvider.RequireIdentity(identity, w.ProjectPath);
             if (identity.Guid != admission.WorkspaceGuid || client.VersionAsync(ct).GetAwaiter().GetResult() != admission.ClientVersion ||

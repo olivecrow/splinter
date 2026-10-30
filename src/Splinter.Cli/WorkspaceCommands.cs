@@ -28,13 +28,14 @@ internal static class WorkspaceCommands
             selectRecovery([new("workspace.list", new { home = Home(parse) })]);
             var store = new WorkspaceStore(Home(parse));
             var git = new GitWorkspaceProvider(new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver);
-            var projects = new ManagedDirectoryBasis(store, UnityProjectPolicy.Policies, projectBasis: true);
-            var generated = new ManagedDirectoryBasis(store, UnityProjectPolicy.Policies);
+            var policies = new ApplicationProjectPolicies(NoApplicationProjectPolicy.Instance, new UnityProjectPolicy(new WindowsOriginalEditorIdentityVerifier()));
+            var projects = new ManagedDirectoryBasis(store, policies, projectBasis: true);
+            var generated = new ManagedDirectoryBasis(store, policies);
             var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver, generated, projects);
-            var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store, new WindowsOriginalFilePublisher(managedRoot: projects.AcquireOriginal), projectAccess: projects,
-                    applicationPolicies: UnityProjectPolicy.Policies, sourceChanges: auditSource ? null : new WindowsSourceChanges(store.ControlPath)),
+            var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store, new WindowsOriginalFilePublisher(managedRoot: projects.AcquireOriginal, allowGitAdministration: true), projectAccess: projects,
+                    applicationPolicies: policies, sourceChanges: auditSource ? null : new WindowsSourceChanges(store.ControlPath), preparationObserver: preparationObserver),
                 new PlasticWorkspaceProvider(store, new PlasticWorkspaceClient(), originalPublisher: new WindowsOriginalFilePublisher(allowPlasticAdministration: true),
-                    applicationPolicies: UnityProjectPolicy.Policies, sourceChanges: auditSource ? null : new WindowsSourceChanges(store.ControlPath)));
+                    applicationPolicies: policies, sourceChanges: auditSource ? null : new WindowsSourceChanges(store.ControlPath)));
             return new(store, sources,
                 new SelectedApplicationProvider(new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners")))),
                 snapshots, preparationObserver, new WindowsWorkspaceDiscardProvider(sources, snapshots, generated, projects));
@@ -122,29 +123,47 @@ internal static class WorkspaceCommands
         var integrateId = new Option<string>("--id") { Required = true };
         var integrateTarget = new Option<string>("--target"); var planOnly = new Option<bool>("--plan");
         var applyIntent = new Option<string>("--intent-key"); var planDigest = new Option<string>("--expected-plan-digest");
+        var integrateResult = new Option<string>("--result") { Description = "Exact immutable source result generation." };
+        var liveOriginal = new Option<string>("--live-original") { Description = "Path to the fresh external-tool live-original cooperation receipt." };
         var applyPaths = new Option<string[]>("--path") { Description = "Select relative source paths; repeat for multiple selections. Omit for all changes.", AllowMultipleArgumentsPerToken = false };
         integrate.Options.Add(integrateId); integrate.Options.Add(integrateTarget); integrate.Options.Add(planOnly);
         integrate.Options.Add(applyIntent); integrate.Options.Add(planDigest); workspace.Subcommands.Add(integrate);
         integrate.Options.Add(applyPaths);
+        integrate.Options.Add(integrateResult); integrate.Options.Add(liveOriginal);
         integrate.SetAction(async parse =>
         {
             const string command = "workspace.integrate"; select(command);
             string id = parse.GetValue(integrateId)!; string? target = parse.GetValue(integrateTarget);
             bool plan = parse.GetValue(planOnly); string? intent = parse.GetValue(applyIntent), digest = parse.GetValue(planDigest);
             string[]? paths = parse.GetValue(applyPaths); if (paths is { Length: 0 }) paths = null;
-            if (!Validate(command, new { id, target, plan, intentKey = intent, expectedPlanDigest = digest, paths })) return;
+            string? resultId = parse.GetValue(integrateResult), permitPath = parse.GetValue(liveOriginal);
+            if (!Validate(command, new { id, target, plan, intentKey = intent, expectedPlanDigest = digest, paths, result = resultId, liveOriginal = permitPath })) return;
             var record = new WorkspaceStore(Home(parse)).Get(id); var runtime = Runtime(parse);
             WorkspaceView view;
-            if (record.SourceKind is "none" or "plastic")
+            if (target == "original")
             {
-                if (target != "original" || !plan && (intent is null || digest is null))
+                if (resultId is null || !plan && (intent is null || digest is null))
                     throw new WorkspaceException("OriginalApplyRequestInvalid", "Use --target original --plan, then the explicit intent key and exact returned plan digest.");
-                view = plan ? await runtime.PlanOriginalAsync(id, ct, paths) : await runtime.ApplyOriginalAsync(id, intent!, digest!, ct, paths);
+                LiveOriginalEditorPermit? permit = null;
+                if (permitPath is not null)
+                {
+                    WorkspaceStore.EnsurePlainPath(permitPath);
+                    using var input = new FileStream(permitPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    if (input.Length > 65536) throw new WorkspaceException("LiveOriginalPermitInvalid", "The external cooperation receipt exceeds its bound.");
+                    using var document = JsonDocument.Parse(input);
+                    if (!contracts.Validate("urn:splinter:v1:live-original-editor-permit", document.RootElement).IsValid)
+                        throw new WorkspaceException("LiveOriginalPermitInvalid", "The external cooperation receipt does not match the current schema.");
+                    permit = document.RootElement.Deserialize<LiveOriginalEditorPermit>(ApiJson.Options) ?? throw new WorkspaceException("LiveOriginalPermitInvalid", "Missing external cooperation receipt.");
+                }
+                view = plan ? await runtime.PlanOriginalAsync(id, resultId, permit, ct, paths)
+                    : await runtime.ApplyOriginalAsync(id, resultId, intent!, digest!, permit, ct, paths);
             }
             else
             {
-                if (plan || intent is not null || digest is not null || paths is not null)
+                if (plan || intent is not null || digest is not null || paths is not null || permitPath is not null)
                     throw new WorkspaceException("OriginalApplyRequestInvalid", "Original-apply options belong to the selected plain-folder source only.");
+                if (resultId is not null && record.Results.LastOrDefault()?.Id != resultId)
+                    throw new WorkspaceException("ResultNotReady", "Select the latest immutable result for a new branch integration.");
                 view = await runtime.IntegrateAsync(id, target ?? "development", ct);
             }
             respond(Result(command, view, false, Home(parse)));
@@ -174,6 +193,7 @@ internal static class WorkspaceCommands
             command.Options.Add(idOption);
             Option<string>? extra = null;
             Option<bool>? verifySource = null, auditSource = null, releaseAfterCheckpoint = null;
+            Option<string>? checkpointKey = null;
             if (commandId == "workspace.status")
             {
                 verifySource = new Option<bool>("--verify-source") { Description = "Read source contents to verify the current fingerprint; ordinary polls only inspect process and provider state." };
@@ -183,6 +203,8 @@ internal static class WorkspaceCommands
             }
             if (commandId == "workspace.checkpoint")
             {
+                checkpointKey = new Option<string>("--request-key") { Required = true, Description = "Stable idempotent result-generation request key." };
+                command.Options.Add(checkpointKey);
                 releaseAfterCheckpoint = new Option<bool>("--release")
                 { Description = "Preserve the source and immediately reclaim this range-journal workspace under one task lock. Retain the independent result; never integrate it automatically." };
                 command.Options.Add(releaseAfterCheckpoint);
@@ -202,6 +224,7 @@ internal static class WorkspaceCommands
                 if (verifySource is not null) parameters["verifySource"] = parse.GetValue(verifySource);
                 if (auditSource is not null) parameters["auditSource"] = parse.GetValue(auditSource);
                 if (releaseAfterCheckpoint is not null) parameters["release"] = parse.GetValue(releaseAfterCheckpoint);
+                if (checkpointKey is not null) parameters["requestKey"] = parse.GetValue(checkpointKey);
                 if (!Validate(commandId, parameters)) return;
                 bool audit = auditSource is not null && parse.GetValue(auditSource);
                 WorkspaceView view;
@@ -210,7 +233,8 @@ internal static class WorkspaceCommands
                     view = verifySource is not null
                         ? await Runtime(parse, audit).StatusAsync(id, ct, audit || parse.GetValue(verifySource))
                         : releaseAfterCheckpoint is not null && parse.GetValue(releaseAfterCheckpoint)
-                        ? await Runtime(parse).CheckpointAndReleaseAsync(id, value!, ct)
+                        ? await Runtime(parse).CheckpointAndReleaseAsync(id, value!, parse.GetValue(checkpointKey!)!, ct)
+                        : checkpointKey is not null ? await Runtime(parse).CheckpointAsync(id, value!, parse.GetValue(checkpointKey)!, ct)
                         : await action(Runtime(parse), id, value);
                 }
                 catch (WorkspaceException ex) when (ex.Code == "SourceCacheRevalidationRequired")
@@ -251,9 +275,9 @@ internal static class WorkspaceCommands
             application = view.Application is null ? null : new
             {
                 view.Application.Running, view.Application.Ready, view.Application.Phase,
-                processId = view.Application.Lease?.ProcessId, view.Application.Resources
+                processId = view.Application.Lease?.ProcessId, startTimeUtcTicks = view.Application.Lease?.StartTimeUtcTicks, view.Application.Resources
             },
-            view.ControlPath, nextCommand, view.Recovery, view.SourceVerification, view.OriginalApplyPlan,
+            view.ControlPath, nextCommand, view.Recovery, view.SourceVerification, view.OriginalApplyPlan, view.ResultGeneration, view.OriginalApplyReceipt,
             isolation = "private-project-and-library; shared user preferences and external services are not sandboxed"
         };
         var response = ApiResponse.Success(command, data);
@@ -270,6 +294,10 @@ internal static class WorkspaceCommands
         record.Version, record.Id, record.RequestKey, record.ProjectPath, record.Path, record.SourceKind, record.ApplicationKind, record.SourceReference, record.BaseReference,
         record.BaseRevision, record.Phase, record.CreatedAt, record.UpdatedAt, record.StorageMode, record.Purpose, record.ReleasedResources,
         record.RequestDigest, record.Snapshot, record.Discard, record.ResultStorage, record.OriginalApply,
+        record.Results, record.CaptureIntent, record.OriginalApplies,
+        originalAppliedPaths = record.OriginalApplies.SelectMany(a => a.Plan.Changes.Select(c => new
+            { c.Path, resultId = a.Plan.ResultId!, a.IntentKey, deleted = c.After is null, version = c.After }))
+            .GroupBy(c => c.Path, StringComparer.OrdinalIgnoreCase).Select(g => g.Last()).OrderBy(c => c.Path, StringComparer.Ordinal).ToArray(),
         processId = record.Application?.ProcessId,
         record.ResultRevision, record.IntegratedRevision, record.LastError
     };

@@ -19,7 +19,7 @@ public interface IPlasticWorkspaceClient
 public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorkspaceClient client, IPlasticRevisionClient? revisionClient = null,
     IOriginalFilePublisher? originalPublisher = null, IPlasticOriginalGuard? originalGuard = null,
     ApplicationProjectPolicies? applicationPolicies = null, ISourceChangeProvider? sourceChanges = null) :
-    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISourceInspectionProofProvider
+    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISourceInspectionProofProvider, IWorkspaceGenerationSource
 {
     private readonly FileWorkspaceProvider files = new(store, originalPublisher, revisionClient, originalGuard ??
         (client is IPlasticOriginalStateClient state ? new PlasticOriginalGuard(store, client, state, revisionClient ?? new PlasticRevisionClient(), applicationPolicies) : null),
@@ -148,6 +148,11 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
     }
     public async Task<string> CheckpointAsync(WorkspaceRecord w, string m, CancellationToken ct = default)
     { await VerifyIsolationAsync(w, ct); return await files.CheckpointAsync(w, m, ct); }
+    public async Task<WorkspaceResultGeneration> PreserveGenerationAsync(WorkspaceRecord w, string c,
+        WorkspaceCaptureIntent intent, SourceCaptureIdentity capture, ISourceCaptureTree tree, CancellationToken ct = default)
+    { await VerifyIsolationAsync(w, ct); return await files.PreserveGenerationAsync(w, c, intent, capture, tree, ct); }
+    public Task VerifyGenerationAsync(WorkspaceRecord w, string c, WorkspaceResultGeneration generation, CancellationToken ct = default) =>
+        files.VerifyGenerationAsync(w, c, generation, ct);
     public bool SupportsCheckpointAndPreserve(WorkspaceRecord w) => files.SupportsCheckpointAndPreserve(w);
     public async Task<SnapshotSourceCheckpoint> CheckpointAndPreserveAsync(WorkspaceRecord w, string c, string m, CancellationToken ct = default)
     { await VerifyIsolationAsync(w, ct); return await files.CheckpointAndPreserveAsync(w, c, m, ct); }

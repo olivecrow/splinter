@@ -5,7 +5,7 @@ using Splinter.Core;
 namespace Splinter.Application.Unity;
 
 // Project structure and the original Editor reservation belong to this adapter.
-public sealed class UnityProjectPolicy : IApplicationProjectPolicy
+public sealed class UnityProjectPolicy(IOriginalEditorIdentityVerifier? liveEditors = null) : IApplicationProjectPolicy
 {
     public static UnityProjectPolicy Instance { get; } = new();
     public static ApplicationProjectPolicies Policies { get; } = new(NoApplicationProjectPolicy.Instance, Instance);
@@ -38,6 +38,23 @@ public sealed class UnityProjectPolicy : IApplicationProjectPolicy
                 4096, FileOptions.DeleteOnClose), createdTemp ? temp : null);
         }
         catch { RemoveEmpty(createdTemp ? temp : null); throw; }
+    }
+    public IDisposable? AcquireOriginal(WorkspaceRecord workspace, bool reservePublication = false, string? verifiedManagedRoot = null)
+    {
+        if (workspace.LiveOriginal is not { } permit) return AcquireOriginal(workspace.ProjectPath, reservePublication, verifiedManagedRoot);
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        if (permit.Version != 1 || !SamePath(permit.ProjectPath, workspace.ProjectPath) || permit.ProcessId <= 0 ||
+            permit.StartTimeUtcTicks <= 0 || !permit.ImportsDeferred || string.IsNullOrWhiteSpace(permit.CooperationKey) ||
+            permit.CooperationKey.Length > 128 || workspace.Results.LastOrDefault()?.Id != permit.ResultId ||
+            permit.SavedAt > permit.ObservedAt || permit.ObservedAt > now.AddSeconds(5) || permit.ExpiresAt <= now || permit.ExpiresAt > permit.ObservedAt.AddMinutes(5))
+            throw new WorkspaceException("LiveOriginalPermitInvalid", "Require a fresh saved/import-deferred external-tool receipt for this exact original and result.");
+        for (string? path = Path.GetFullPath(workspace.ProjectPath); path is not null; path = Path.GetDirectoryName(path))
+            if ((verifiedManagedRoot is null || !SamePath(path, verifiedManagedRoot)) && Path.Exists(path) &&
+                (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+                throw new WorkspaceException("UnsafePath", "Only the exact identity-verified original mount may be a reparse point.");
+        if (liveEditors is null || !File.Exists(Path.Combine(workspace.ProjectPath, "Temp", "UnityLockfile")))
+            throw new WorkspaceException("LiveOriginalUnsupported", "Compose exact native original-Editor identity verification and retain its project lockfile.");
+        return liveEditors.Acquire(permit.ProjectPath, permit.ProcessId, permit.StartTimeUtcTicks);
     }
     private static void RemoveEmpty(string? temp)
     {

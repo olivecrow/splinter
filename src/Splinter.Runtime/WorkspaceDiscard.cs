@@ -10,6 +10,7 @@ public sealed partial class WorkspaceCoordinator
             throw new WorkspaceException("InvalidRequestKey", "Use a stable discard intent key between 1 and 128 characters.");
         using var gate = await store.LockAsync(request.Id, ct);
         var w = store.Get(request.Id);
+        if (w.CaptureIntent is not null) throw new WorkspaceException("SourceCapturePending", "Complete the exact frozen capture before discarding this workspace.");
         w.OriginalApply?.RequireReclaimable(w);
         if (w.RequestDigest is null || request.ExpectedRequestDigest != w.RequestDigest)
             throw new WorkspaceException("DiscardRequestConflict", "Confirm the workspace request digest before discarding this task.");
@@ -24,6 +25,7 @@ public sealed partial class WorkspaceCoordinator
         try
         {
             await RequireNoDiscardDependenciesAsync(w, ct);
+            await VerifyRetainedGenerationsAsync(w, ct);
             if (w.Discard is null)
             {
                 if (!state.Attached || state.Reference is null || w.BaseRevision is null ||

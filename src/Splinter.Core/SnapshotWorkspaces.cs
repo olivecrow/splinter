@@ -62,6 +62,7 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
         string? retainedFailure = workspace.LastError?.Split(':', 2)[0];
         if (WorkspaceFailurePolicy.RequiresPreservation(retainedFailure))
             return new("preserve", retainedFailure!, "workspace.status");
+        if (workspace.CaptureIntent is not null) return new("resume-capture", "SourceCapturePending", "workspace.checkpoint");
         if (state.Step.StartsWith("compact-", StringComparison.Ordinal))
             return new("resume-compaction", "WorkspaceCompacting", "workspace.compact");
         if ((state.Step.StartsWith("release-", StringComparison.Ordinal) || observation?.SnapshotAvailable == false) &&

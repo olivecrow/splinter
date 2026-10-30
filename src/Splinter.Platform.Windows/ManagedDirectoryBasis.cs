@@ -69,7 +69,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
         var state = GetAsync(workspace.GeneratedDirectoryId, ct).GetAwaiter().GetResult();
         if (state.ApplicationKind != workspace.ApplicationKind || !WorkspaceStore.SamePath(state.Basis.ProjectPath, workspace.ProjectPath) || workspace.GeneratedDirectory is { } prior && prior != state.Basis)
             throw new WorkspaceException("ProjectBasisMismatch", "Preserve the fixed original project reference.");
-        return AcquireOriginal(state, publishing);
+        return AcquireOriginal(state, publishing, workspace);
     }
     public IDisposable? AcquireOriginal(string project)
     {
@@ -81,7 +81,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
         if (states.Length != 1) throw new WorkspaceException("ProjectBasisMismatch", "Preserve ambiguous original project ownership.");
         return AcquireOriginal(states[0], false);
     }
-    private IDisposable AcquireOriginal(ManagedDirectoryState state, bool publishing)
+    private IDisposable AcquireOriginal(ManagedDirectoryState state, bool publishing, WorkspaceRecord? workspace = null)
     {
         if (state.Phase != "ready") throw new WorkspaceException("ProjectBasisNotReady", "Resume the exact original preparation before accessing its view.");
         var lease = new OwnedDirectorySnapshotProvider(state.Basis.ReceiptDirectory, state.Basis.OwnerId).AcquireReadLease();
@@ -94,7 +94,9 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
                 observed.GetProperty("phase").GetString() != "mounted" || !Directory.Exists(state.OriginalPath))
                 throw new WorkspaceException("ProjectOriginalMountRequired", "Reconnect the exact original managed view; no mutable-source fallback is available.");
             mount = ManagedMountIdentity.Acquire(state.OriginalPath, state.Basis.Id);
-            if (publishing) editor = RequireStopped(policies.Get(state.ApplicationKind), state.Basis.ProjectPath, state.OriginalPath);
+            if (publishing) editor = workspace?.LiveOriginal is not null
+                ? policies.Get(state.ApplicationKind).AcquireOriginal(workspace, true, state.OriginalPath)
+                : RequireStopped(policies.Get(state.ApplicationKind), state.Basis.ProjectPath, state.OriginalPath);
             return new OriginalLease(lease, editor, mount);
         }
         catch { mount?.Dispose(); editor?.Dispose(); lease.Dispose(); throw; }

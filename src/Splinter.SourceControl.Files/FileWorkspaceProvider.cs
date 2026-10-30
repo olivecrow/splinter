@@ -11,8 +11,9 @@ namespace Splinter.SourceControl.Files;
 // stores payloads. This adapter never creates a checkout or invokes a VCS.
 public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOriginalFilePublisher? originalPublisher = null, IPlasticRevisionClient? revisionClient = null,
     IPlasticOriginalGuard? originalGuard = null, IProjectSourceAccess? projectAccess = null,
-    ApplicationProjectPolicies? applicationPolicies = null, ISourceChangeProvider? sourceChanges = null) : ISourceWorkspaceProvider,
-    ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISourceInspectionProofProvider
+    ApplicationProjectPolicies? applicationPolicies = null, ISourceChangeProvider? sourceChanges = null,
+    IWorkspacePreparationObserver? preparationObserver = null) : ISourceWorkspaceProvider,
+    ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISourceInspectionProofProvider, IWorkspaceGenerationSource
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
@@ -22,7 +23,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     private static WorkspaceException Error(string message) => new("FileSourceStateInvalid", message);
     private static void Require(WorkspaceRecord w)
     {
-        if (w.SourceKind is not ("none" or "plastic") || !(w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot") && !(w.SourceKind == "none" && w.StorageMode == "project-snapshot" && w.GeneratedDirectoryId is not null) || w.Purpose != "task")
+        if (w.SourceKind is not ("none" or "plastic" or "git") || !(w.SourceKind == "git" && w.StorageMode == "git-snapshot" && w.Results.Count > 0) && !(w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot") && !(w.SourceKind == "none" && w.StorageMode == "project-snapshot" && w.GeneratedDirectoryId is not null) || w.Purpose != "task")
             throw Error("Only the explicitly selected plain-folder NTFS task is supported.");
     }
     public Task<string> PreflightAsync(WorkspaceRecord w, CancellationToken ct = default)
@@ -90,6 +91,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     }
     public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)
     {
+        if (w.Results.Count > 0) return InspectLiveGenerationAsync(w, ct);
         Owner(w, Control(w));
         RequireBasis(w, Control(w));
         RequireMount(w);
@@ -152,6 +154,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     public static string ResultReference(WorkspaceRecord w) => "files:" + w.Id + ":result";
     public Task VerifyResultAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
+        if (w.Results.Count > 0) return VerifyGenerationAsync(w, control, w.Results.Last(), ct);
         var result = w.Snapshot?.Result;
         if (result is not { IndependentOfSnapshot: true } || result.ResultReference != ResultReference(w) ||
             result.SnapshotId != w.Snapshot!.Reference?.Id || result.Revision != w.ResultRevision || result.Fingerprint != w.ResultRevision)
@@ -167,6 +170,11 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     private static void VerifyIndependentResult(WorkspaceRecord w, string control, string? revision, Func<string, Stream>? open)
     {
         Owner(w, control, open);
+        if (w.Results.LastOrDefault() is { } generation)
+        {
+            if (generation.Revision != revision) throw Error("Select the exact retained result generation.");
+            VerifyGenerationCoreAsync(w, control, generation, default, open).GetAwaiter().GetResult(); return;
+        }
         var baseline = ReadManifest(w, FilePath(control, "baseline.json"), open);
         var result = ReadManifest(w, FilePath(control, "result.json"), open);
         var intent = Read<FileCollectionIntent>(FilePath(control, "collection.json"), open);
@@ -251,7 +259,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     private static FileSourceEntry[] ScanWorkspace(WorkspaceRecord w, CancellationToken ct) =>
         Scan(w.Path, w.ManagedPaths, ct, mount: w.Path, hashWorkers: w.SourceKind == "plastic" ? 1 : 8);
     private static FileSourceEntry[] Scan(string root, string[] managed, CancellationToken ct, bool metadataOnly = false, string? mount = null, bool omitPlasticRoot = false,
-        int hashWorkers = 8)
+        int hashWorkers = 8, bool omitGitRoot = false)
     {
         var entries = new List<FileSourceEntry>();
         long pathBytes = 0;
@@ -263,11 +271,13 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
             {
                 ct.ThrowIfCancellationRequested();
                 string relative = Path.GetRelativePath(root, path).Replace('\\', '/');
+                if (omitGitRoot && relative.Equals(".git", StringComparison.OrdinalIgnoreCase))
+                { Plain(path, mount); continue; }
                 if (omitPlasticRoot && relative.Equals(".plastic", StringComparison.OrdinalIgnoreCase))
-                { WorkspaceStore.EnsurePlainPath(path); if (!Directory.Exists(path)) throw Error("Plastic administration must be a directory."); continue; }
+                { Plain(path, mount); if (!Directory.Exists(path)) throw Error("Plastic administration must be a directory."); continue; }
                 if (!ValidPath(relative)) throw new WorkspaceException("VcsMetadataUnsupported", "VCS administration and unsupported paths cannot be ordinary file input.");
-                Plain(path, mount);
                 if (Managed(relative, managed)) continue;
+                Plain(path, mount);
                 FileAttributes attributes = File.GetAttributes(path);
                 if ((attributes & (FileAttributes.ReparsePoint | FileAttributes.Encrypted | FileAttributes.Compressed | FileAttributes.SparseFile)) != 0)
                     throw new WorkspaceException("SnapshotFileUnsupported", "The plain-folder source supports ordinary files and directories only.");

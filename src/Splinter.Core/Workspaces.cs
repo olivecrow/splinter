@@ -4,7 +4,7 @@ namespace Splinter.Core;
 // versioned state, not proof that an external side effect has completed.
 public sealed class WorkspaceRecord
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
     [System.Text.Json.Serialization.JsonRequired]
     public int Version { get; set; } = CurrentVersion;
     [System.Text.Json.Serialization.JsonRequired]
@@ -34,6 +34,13 @@ public sealed class WorkspaceRecord
     public WorkspaceDiscardState? Discard { get; set; }
     public SourceResultStorage? ResultStorage { get; set; }
     public OriginalApplyState? OriginalApply { get; set; }
+    [System.Text.Json.Serialization.JsonRequired]
+    public List<WorkspaceResultGeneration> Results { get; set; } = [];
+    public WorkspaceCaptureIntent? CaptureIntent { get; set; }
+    [System.Text.Json.Serialization.JsonRequired]
+    public List<OriginalApplyState> OriginalApplies { get; set; } = [];
+    [System.Text.Json.Serialization.JsonIgnore]
+    public LiveOriginalEditorPermit? LiveOriginal { get; set; }
     public string? GeneratedDirectoryId { get; set; }
     public GeneratedDirectoryReference? GeneratedDirectory { get; set; }
     // Unknown state values must not silently bypass the current contract.
@@ -42,7 +49,8 @@ public sealed class WorkspaceRecord
 }
 
 // Logical payload bytes of explicit result preservation, separate from the
-// workspace journal and physical allocation/basis accounting.
+// workspace journal and physical allocation/basis accounting. For continuing
+// tasks UniquePayloadBytes/PayloadObjects cover all retained generations.
 public sealed record SourceResultStorage(long BasisLogicalBytes, long ResultLogicalBytes, long UniquePayloadBytes, int PayloadObjects);
 
 public sealed record SourceWorkspace(string Path, string Reference, string BaseRevision);

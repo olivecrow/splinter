@@ -211,19 +211,32 @@ public static partial class GitOverlayRegistration
         return new { revision, resultRef, independentOfSnapshot = true, beforeStatus = status };
     }
     public static async Task<object> ReleaseAsync(OverlayGitReceipt r, string expectedRevision, CancellationToken ct)
+        => await ReleaseCoreAsync(r, expectedRevision, "refs/splinter/snapshot-results/" + r.OwnerId, expectedRevision, false, ct);
+    public static async Task<object> ReleaseGenerationAsync(OverlayGitReceipt r, string expectedSourceRevision,
+        string resultReference, string resultRevision, CancellationToken ct)
+        => await ReleaseCoreAsync(r, expectedSourceRevision, resultReference, resultRevision, true, ct);
+    private static async Task<object> ReleaseCoreAsync(OverlayGitReceipt r, string expectedSourceRevision,
+        string resultReference, string resultRevision, bool removeSourceBranch, CancellationToken ct)
     {
         if (Directory.Exists(r.Path) || File.Exists(r.Path)) throw new WorkspaceException("OverlayStillMounted", "Unmount and prove the path absent before removing registration.");
-        string saved = await Git(r.Project, ["rev-parse", "refs/splinter/snapshot-results/" + r.OwnerId], ct);
-        if (saved != expectedRevision) throw new WorkspaceException("GitOverlayResultMismatch", "Preserved result ref does not match.");
+        string saved = await Git(r.Project, ["rev-parse", resultReference], ct);
+        if (saved != resultRevision) throw new WorkspaceException("GitOverlayResultMismatch", "Preserved result ref does not match.");
         if (Directory.Exists(r.GitDirectory))
         {
             await VerifyAsync(r, ct);
-            if (await Git(r.Project, ["rev-parse", "refs/heads/" + r.Branch], ct) != saved)
+            if (await Git(r.Project, ["rev-parse", "refs/heads/" + r.Branch], ct) != expectedSourceRevision)
                 throw new WorkspaceException("GitOverlayResultChanged", "The task branch changed after preservation.");
             if (File.Exists(Path.Combine(r.GitDirectory, "locked"))) await Git(r.Project, ["worktree", "unlock", r.Path], ct);
             await Git(r.Project, ["worktree", "remove", "--force", r.Path], ct);
         }
         if (Directory.Exists(r.GitDirectory)) throw new WorkspaceException("GitOverlayReleaseIncomplete", "Registration remains.");
+        if (removeSourceBranch)
+        {
+            string reference = "refs/heads/" + r.Branch;
+            string listing = await Git(r.Project, ["for-each-ref", "--format=%(refname) %(objectname)", reference], ct);
+            if (listing.Split('\n').Any(line => line.StartsWith(reference + " ", StringComparison.Ordinal)))
+                await Git(r.Project, ["update-ref", "-d", reference, expectedSourceRevision], ct);
+        }
         return new { registrationRemoved = true, resultRevision = saved, resultBranch = r.Branch };
     }
     private static async Task Save(string path, object value, CancellationToken ct)

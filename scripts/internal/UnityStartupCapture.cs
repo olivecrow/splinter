@@ -143,7 +143,7 @@ namespace Splinter.Development.UnityStartup
         {
             using JsonDocument record = Read(Path.Combine(control, "workspace.json"));
             JsonElement w = record.RootElement;
-            if (w.GetProperty("version").GetInt32() != 2 || Text(w, "applicationKind") != "unity" ||
+            if (w.GetProperty("version").GetInt32() != 3 || Text(w, "applicationKind") != "unity" ||
                 !new[] { "git-snapshot", "plastic-snapshot", "project-snapshot" }.Contains(Text(w, "storageMode")) ||
                 new[] { "released", "discarded", "reclaim-pending", "discard-reclaim-pending" }.Contains(Text(w, "phase")))
                 throw new IOException("CaptureWorkspaceNotActive");

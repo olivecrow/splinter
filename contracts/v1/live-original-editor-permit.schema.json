@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:live-original-editor-permit",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "projectPath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "processId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "startTimeUtcTicks": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "resultId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24}$"
+    },
+    "cooperationKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "savedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "importsDeferred": {
+      "const": true
+    }
+  },
+  "required": [
+    "version",
+    "projectPath",
+    "processId",
+    "startTimeUtcTicks",
+    "resultId",
+    "cooperationKey",
+    "savedAt",
+    "observedAt",
+    "expiresAt",
+    "importsDeferred"
+  ]
+}

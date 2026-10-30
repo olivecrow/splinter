@@ -101,7 +101,7 @@ public sealed partial class JournalDeltaStore
         // footer. Keep the writer/object guards, but not a read-only-sharing
         // root handle that would block our own exact recovery write.
         journal.Dispose();
-        latest = new(path, Identity, readOnly, latestDirectoryGuard);
+        latest = new(path, Identity, readOnly, latestDirectoryGuard, filePins: sourceFilePins);
         latest.FlushObserver = ticks => { Interlocked.Increment(ref flushCount); Interlocked.Add(ref flushTicks, ticks); };
         foreach (string unsafePath in latest.Current.ProjectionUnsafe)
         {

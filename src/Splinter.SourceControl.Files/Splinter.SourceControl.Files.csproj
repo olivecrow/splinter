@@ -4,5 +4,6 @@
     <InternalsVisibleTo Include="Splinter.Tests" />
     <ProjectReference Include="../Splinter.Core/Splinter.Core.csproj" />
     <ProjectReference Include="../Splinter.Runtime/Splinter.Runtime.csproj" />
+    <ProjectReference Include="../Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj" />
   </ItemGroup>
 </Project>

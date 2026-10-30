@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 
 namespace Splinter.Core;
 
+public interface IOriginalSourceLease : IDisposable { string Identity { get; } }
+
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record OriginalFileVersion([property: JsonRequired] string Kind, [property: JsonRequired] long Length,
     [property: JsonRequired] string? Hash, [property: JsonRequired] int Attributes, [property: JsonRequired] long ModifiedUtcTicks)
@@ -27,6 +29,9 @@ public sealed record OriginalApplyPlan([property: JsonRequired] int Version, [pr
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? SourceIdentity { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string[]? SelectedPaths { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? ResultId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? PreviousApplyDigest { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? LiveOriginalIdentity { get; init; }
     public string ComputeDigest()
     {
         var content = new Dictionary<string, object?> { [nameof(Version)] = Version, [nameof(OwnerId)] = OwnerId,
@@ -34,6 +39,9 @@ public sealed record OriginalApplyPlan([property: JsonRequired] int Version, [pr
             [nameof(ProjectPath)] = ProjectPath, [nameof(ProjectIdentity)] = ProjectIdentity, [nameof(Changes)] = Changes, [nameof(Conflicts)] = Conflicts };
         if (SourceIdentity is not null) content.Add(nameof(SourceIdentity), SourceIdentity);
         if (SelectedPaths is not null) content.Add(nameof(SelectedPaths), SelectedPaths);
+        if (ResultId is not null) content.Add(nameof(ResultId), ResultId);
+        if (PreviousApplyDigest is not null) content.Add(nameof(PreviousApplyDigest), PreviousApplyDigest);
+        if (LiveOriginalIdentity is not null) content.Add(nameof(LiveOriginalIdentity), LiveOriginalIdentity);
         return "sha256:" + Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(content)));
     }
 }
@@ -55,12 +63,13 @@ public sealed class OriginalApplyState
     {
         bool plain = w.SourceKind == "none" && w.StorageMode == "project-snapshot";
         bool plastic = w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot" && w.ApplicationKind is "none" or "unity";
-        if (Plan is null || Plan.Version != 1 || w.Purpose != "task" || !plain && !plastic ||
-            plastic && (Plan.SourceIdentity is not { Length: 71 } || !Plan.SourceIdentity.StartsWith("sha256:", StringComparison.Ordinal) ||
+        bool git = w.SourceKind == "git" && w.StorageMode == "git-snapshot" && w.Results.Count > 0;
+        if (Plan is null || Plan.Version != (Plan.ResultId is null ? 1 : 2) || w.Purpose != "task" || !plain && !plastic && !git ||
+            (plastic || git) && (Plan.SourceIdentity is not { Length: 71 } || !Plan.SourceIdentity.StartsWith("sha256:", StringComparison.Ordinal) ||
                 Plan.SourceIdentity[7..].Any(c => c is not (>= '0' and <= '9' or >= 'a' and <= 'f'))) ||
             plain && Plan.SourceIdentity is not null || Plan.SelectedPaths is { } selected && !ValidSelection(selected) ||
             Plan.OwnerId != w.Id || Plan.RequestDigest != w.RequestDigest || Plan.Basis != w.BaseRevision ||
-            Plan.Result != w.ResultRevision || Plan.ProjectPath != w.ProjectPath ||
+            (Plan.ResultId is null ? Plan.Result != w.ResultRevision : !w.Results.Any(r => r.Id == Plan.ResultId && r.Revision == Plan.Result)) || Plan.ProjectPath != w.ProjectPath ||
             string.IsNullOrWhiteSpace(IntentKey) || IntentKey.Length > 128 || Plan.Changes is null ||
             Plan.Conflicts is null || Plan.Conflicts.Length != 0 || Plan.Changes.Length > 32768 ||
             string.IsNullOrWhiteSpace(Plan.ProjectIdentity) || Plan.Changes.Any(c => !Valid(c)) ||

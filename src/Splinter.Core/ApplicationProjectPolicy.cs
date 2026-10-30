@@ -4,6 +4,10 @@ namespace Splinter.Core;
 // generated content belong to the application adapter, not a VCS or mount.
 public sealed record GeneratedDirectoryDescriptor(string Kind, string RelativePath);
 public sealed record ApplicationSelection(string[] Paths, string[] Companions);
+public interface IOriginalEditorIdentityVerifier
+{
+    IDisposable Acquire(string project, int processId, long startTimeUtcTicks);
+}
 public interface IApplicationProjectPolicy
 {
     string ApplicationKind { get; }
@@ -12,6 +16,12 @@ public interface IApplicationProjectPolicy
     // verifiedManagedRoot may only be passed while the caller holds the exact
     // owned mount identity lease; it is not permission for arbitrary reparse paths.
     IDisposable? AcquireOriginal(string project, bool reservePublication = false, string? verifiedManagedRoot = null);
+    IDisposable? AcquireOriginal(WorkspaceRecord workspace, bool reservePublication = false, string? verifiedManagedRoot = null)
+    {
+        if (workspace.LiveOriginal is not null)
+            throw new WorkspaceException("LiveOriginalUnsupported", "The application has no externally coordinated original-publication policy.");
+        return AcquireOriginal(workspace.ProjectPath, reservePublication, verifiedManagedRoot);
+    }
     ApplicationSelection CloseSelection(IEnumerable<string> paths, Func<string, bool> existedBefore,
         Func<string, bool> existsAfter);
 }

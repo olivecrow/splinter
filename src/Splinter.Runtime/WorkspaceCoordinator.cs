@@ -10,6 +10,8 @@ public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Sourc
     public SnapshotRecoveryDecision? Recovery => WorkspaceStorage.HasRangeJournal(Workspace.StorageMode) ? SnapshotRecoveryDecision.For(Workspace) : null;
     public string SourceVerification => Source is null ? "not-checked" : "verified";
     public OriginalApplyPlan? OriginalApplyPlan { get; init; }
+    public WorkspaceResultGeneration? ResultGeneration { get; init; }
+    public OriginalApplyState? OriginalApplyReceipt { get; init; }
 }
 
 public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceProvider sources, IApplicationWorkspaceProvider applications,
@@ -138,7 +140,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             if (!RequireSnapshot(record).Attached) throw new WorkspaceException("SnapshotNotReady", "Resume workspace ensure before starting Unity.");
             await ConnectSnapshotAsync(record, ct);
         }
-        if (record.ResultRevision is not null)
+        if (record.ResultRevision is not null && record.Results.Count == 0)
             throw new WorkspaceException("ResultAlreadyCollected", "This workspace has a collected result. Use a new task key for further work.");
         var observed = await applications.ObserveAsync(record, store.ControlPath(record.Id), ct);
         if (observed.Running)
@@ -238,6 +240,15 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         if (record.SourceKind is "none" or "plastic")
             throw new WorkspaceException("SourceIntegrationUnsupported", "Plain-folder apply requires its separate plan, explicit intent and reviewed digest; a branch target alone cannot authorize it.");
         RequireLive(record);
+        if (record.Results.LastOrDefault() is { } generation)
+        {
+            await ((IWorkspaceGenerationSource)sources).VerifyGenerationAsync(record, store.ControlPath(id), generation, ct);
+            using var projectGate = await store.LockAsync(WorkspaceStore.ProjectKey(record.ProjectPath), ct);
+            var result = await ((IWorkspaceGenerationBranchSource)sources).IntegrateGenerationAsync(record, generation, target, ct);
+            record.IntegratedRevision = result.Revision; record.Phase = "ready"; record.LastError = null;
+            store.Save(record, "generation-branch-integrated");
+            return await ViewAsync(record, ct, verifySource: false);
+        }
         var current = await ViewAsync(record, ct);
         RequireSource(current);
         if (record.ResultRevision is null || current.Source!.HasChanges || current.Source.Revision != record.ResultRevision)
@@ -280,6 +291,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     {
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
+        if (record.CaptureIntent is not null) throw new WorkspaceException("SourceCapturePending", "Complete the exact frozen capture before releasing this workspace.");
         RequireNotDiscarding(record);
         record.OriginalApply?.RequireReclaimable(record);
         if (record.Phase == "released") return new(record, null, null, store.ControlPath(id), "workspace.list");
@@ -346,7 +358,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         if (app.Lease is not null && app.Lease != record.Application) { record.Application = app.Lease; changed = true; }
         if (record.Phase == "editor-starting" && app.Ready) { record.Phase = "active"; changed = true; }
         if (changed) store.Save(record, "observed");
-        string next = record.Purpose == "baseline" && !app.Running ? "baseline.seal" :
+        string next = record.Results.Count > 0 ? "workspace.status" : record.Purpose == "baseline" && !app.Running ? "baseline.seal" :
             record.IntegratedRevision is not null ? "workspace.release" : record.ResultRevision is not null ? record.SourceKind is "none" or "plastic" ? "workspace.release" : "workspace.integrate" :
             app.Running && !app.Ready ? "workspace.status" : "workspace.checkpoint";
         return new(record, source, app, store.ControlPath(record.Id), next);
@@ -367,6 +379,8 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         RequireNotDiscarding(record);
         if (!allowOriginalApply) record.OriginalApply?.RequireReclaimable(record);
         if (record.Phase == "released") throw new WorkspaceException("WorkspaceReleased", "This task is released. Use a new request key.");
+        if (record.Snapshot?.Step.StartsWith("release-", StringComparison.Ordinal) == true)
+            throw new WorkspaceException("WorkspaceReleasing", "Resume the exact release before requesting another operation.");
         if (record.BaseRevision is null) throw new WorkspaceException("WorkspaceNotReady", "Resume workspace ensure with the original request key.");
         if (record.Snapshot?.Step.StartsWith("compact-", StringComparison.Ordinal) == true)
             throw new WorkspaceException("WorkspaceCompacting", "Resume the same workspace compact request before other operations.");

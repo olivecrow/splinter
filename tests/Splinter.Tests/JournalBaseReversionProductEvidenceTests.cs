@@ -97,11 +97,11 @@ public sealed class JournalBaseReversionProductEvidenceTests
         var overlap=writes.Select(x=>JsonSerializer.SerializeToElement(x)).Count(x=>x.GetProperty("startedTicks").GetInt64()<compactEnd&&x.GetProperty("finishedTicks").GetInt64()>compactStart);
         Assert.True(overlap>0,"No peer write overlapped actual product compaction.");
         await Command("compact-b-off","workspace","compact","--id",b.Id,"--revert-base-ranges","false");
-        await Command("checkpoint-a","workspace","checkpoint","--id",a.Id,"--message","base reversion native A result");
+        await Command("checkpoint-a","workspace","checkpoint","--id",a.Id,"--request-key","final-a","--message","base reversion native A result");
         await Command("release-a","workspace","release","--id",a.Id);
         Assert.Equal(expected[input.Files[0]],File.ReadAllBytes(Path.Combine(b.Path,input.Files[0])));
         await Command("after-a-peer","workspace","status","--id",b.Id);
-        await Command("checkpoint-b","workspace","checkpoint","--id",b.Id,"--message","base reversion native B result");
+        await Command("checkpoint-b","workspace","checkpoint","--id",b.Id,"--request-key","final-b","--message","base reversion native B result");
         await Command("release-b","workspace","release","--id",b.Id);
         var endA=store.Get(a.Id);var endB=store.Get(b.Id);
         Assert.Equal("released",endA.Phase);Assert.Equal("released",endB.Phase);Assert.False(Directory.Exists(a.Path));Assert.False(Directory.Exists(b.Path));

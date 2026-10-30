@@ -72,6 +72,16 @@ public sealed partial class WorkspaceStore
         try
         {
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var document = JsonDocument.Parse(stream);
+            if (document.RootElement.ValueKind != JsonValueKind.Object) throw new WorkspaceException("StateCorrupt", "Preserve a malformed workspace record.");
+            if (!JsonPropertyValidation.HasUniqueProperties(document.RootElement))
+                throw new WorkspaceException("StateCorrupt", "Preserve duplicated workspace identity or history properties.");
+            if (document.RootElement.TryGetProperty("storageMode", out var oldMode) && oldMode.ValueKind == JsonValueKind.String && oldMode.GetString() == "ntfs-snapshot")
+                throw new WorkspaceException("StorageModeRetired", "Preserve retired ntfs-snapshot/VSS state; no migration or reclamation is performed.");
+            if (document.RootElement.TryGetProperty("version", out var version) && version.ValueKind == JsonValueKind.Number && version.TryGetInt32(out int recordedVersion) &&
+                recordedVersion != WorkspaceRecord.CurrentVersion)
+                throw new WorkspaceException("StateVersionUnsupported", "Preserve this prior-version task and use its matching binary; no migration or reclamation is performed.");
+            stream.Position = 0;
             record = JsonSerializer.Deserialize<WorkspaceRecord>(stream, Json)
                 ?? throw new WorkspaceException("StateCorrupt", "Workspace record is empty; preserve the directory for recovery.");
         }
@@ -94,6 +104,11 @@ public sealed partial class WorkspaceStore
         { throw new WorkspaceException("StateReadUnavailable", "Workspace state cannot be read. Restore access before retrying the same key."); }
         if (record.StorageMode == "ntfs-snapshot")
             throw new WorkspaceException("StorageModeRetired", "ntfs-snapshot/VSS state is preserved and unsupported. Do not migrate, resume or reclaim its resources with this version.");
+        if (record.Version != WorkspaceRecord.CurrentVersion)
+            throw new WorkspaceException("StateVersionUnsupported", "Preserve this prior-version workspace and use its matching binary; no migration or reclamation is performed.");
+        if (record.Results is null || record.OriginalApplies is null || record.ManagedPaths is null ||
+            record.Results.Any(r => r is null) || record.OriginalApplies.Any(a => a is null))
+            throw new WorkspaceException("StateCorrupt", "Preserve missing result/publication histories.");
         if (record.Version != WorkspaceRecord.CurrentVersion || record.Purpose != "task" ||
             record.UnrecognizedState?.Count > 0 || record.SourceKind is not ("git" or "none" or "plastic") ||
             record.StorageMode is not ("git-snapshot" or "plastic-snapshot" or "project-snapshot" or "git-checkout") ||
@@ -119,10 +134,40 @@ public sealed partial class WorkspaceStore
             record.Snapshot?.Step.StartsWith("discard", StringComparison.Ordinal) == true)
             throw new WorkspaceException("DiscardIntentMismatch", "Preserve discard state: its durable intent is missing.");
         record.OriginalApply?.RequireMatch(record);
-        if (record.SourceKind is "none" or "plastic" &&
+        if (record.Results.Count == 0 && record.SourceKind is "none" or "plastic" &&
             (record.Phase is "integrating" or "integrated" && record.OriginalApply is null ||
              record.IntegratedRevision is not null && (record.OriginalApply?.Completed != true || record.IntegratedRevision != record.ResultRevision)))
             throw new WorkspaceException("OriginalApplyStateInvalid", "Preserve the original-apply record: its fixed intent or completion receipt is missing.");
+        for (int generationIndex = 0; generationIndex < record.Results.Count; generationIndex++)
+        {
+            var generation = record.Results[generationIndex];
+            if (generation.Sequence != generationIndex + 1 || generation.Id != Key(record.Id + "\nresult\n" + generation.RequestKey) ||
+                string.IsNullOrWhiteSpace(generation.RequestKey) || generation.RequestKey.Length > 128 || string.IsNullOrWhiteSpace(generation.Message) ||
+                generation.CaptureDigest is not { Length: 64 } || generation.CaptureDigest.Any(c => !char.IsAsciiHexDigitLower(c)) ||
+                generation.SourceSequence < 0 || string.IsNullOrWhiteSpace(generation.Revision) || generation.Fingerprint != generation.Revision ||
+                generation.ResultReference != "files:" + record.Id + ":" + generation.Id ||
+                record.SourceKind == "git" && (generation.GitReference is null || generation.GitFingerprint is null) ||
+                record.SourceKind != "git" && (generation.GitReference is not null || generation.GitFingerprint is not null))
+                throw new WorkspaceException("StateCorrupt", "Preserve the mismatched result-generation history.");
+        }
+        if (record.Results.Select(r => r.Id).Distinct(StringComparer.Ordinal).Count() != record.Results.Count ||
+            record.Results.Count > 0 && record.ResultRevision != record.Results.Last().Revision || record.CaptureIntent is { } capture &&
+            (capture.Sequence != record.Results.Count + 1L || capture.Id != Key(record.Id + "\nresult\n" + capture.RequestKey) ||
+                string.IsNullOrWhiteSpace(capture.RequestKey) || capture.RequestKey.Length > 128 || string.IsNullOrWhiteSpace(capture.Message)))
+            throw new WorkspaceException("StateCorrupt", "Preserve the mismatched latest or pending source generation.");
+        string? priorApply = null;
+        foreach (var apply in record.OriginalApplies)
+        {
+            apply.RequireMatch(record);
+            if (!apply.Completed || apply.Plan.ResultId is null || apply.Plan.PreviousApplyDigest != priorApply)
+                throw new WorkspaceException("OriginalApplyStateInvalid", "Preserve an incomplete or reordered original-publication history.");
+            priorApply = apply.Plan.Digest;
+        }
+        if (record.OriginalApplies.Select(a => a.IntentKey).Distinct(StringComparer.Ordinal).Count() != record.OriginalApplies.Count)
+            throw new WorkspaceException("OriginalApplyStateInvalid", "Original publication intent keys must remain unique.");
+        if (record.OriginalApply is { Completed: true, Plan.ResultId: not null } currentApply &&
+            !record.OriginalApplies.Any(a => a.IntentKey == currentApply.IntentKey && a.Plan.Digest == currentApply.Plan.Digest))
+            throw new WorkspaceException("OriginalApplyStateInvalid", "Preserve a completed publication whose history receipt is missing.");
         if (record.Snapshot?.Result is { } result && result.CollectionProtocol != SnapshotResult.StableJournalProtocol)
             throw new WorkspaceException("StateCorrupt", "The result collection protocol is invalid. Preserve the record and its resources.");
         if (WorkspaceStorage.HasRangeJournal(record.StorageMode) && (record.Snapshot is null ||

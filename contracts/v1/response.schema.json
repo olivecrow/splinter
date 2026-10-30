@@ -494,13 +494,23 @@
         "anyOf": [
           {
             "properties": {
-              "command": { "const": "workspace.release" },
+              "command": {
+                "const": "workspace.release"
+              },
               "data": {
-                "required": ["workspace"],
+                "required": [
+                  "workspace"
+                ],
                 "properties": {
                   "workspace": {
-                    "required": ["phase"],
-                    "properties": { "phase": { "const": "reclaim-pending" } }
+                    "required": [
+                      "phase"
+                    ],
+                    "properties": {
+                      "phase": {
+                        "const": "reclaim-pending"
+                      }
+                    }
                   }
                 }
               }
@@ -508,13 +518,23 @@
           },
           {
             "properties": {
-              "command": { "const": "workspace.discard" },
+              "command": {
+                "const": "workspace.discard"
+              },
               "data": {
-                "required": ["workspace"],
+                "required": [
+                  "workspace"
+                ],
                 "properties": {
                   "workspace": {
-                    "required": ["phase"],
-                    "properties": { "phase": { "const": "discard-reclaim-pending" } }
+                    "required": [
+                      "phase"
+                    ],
+                    "properties": {
+                      "phase": {
+                        "const": "discard-reclaim-pending"
+                      }
+                    }
                   }
                 }
               }
@@ -605,11 +625,24 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "durableSequence": { "type": "integer", "minimum": 0 },
-        "journalBytes": { "type": "integer", "minimum": 0 },
-        "journalHash": { "type": "string", "minLength": 1 }
+        "durableSequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "journalBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "journalHash": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["durableSequence", "journalBytes", "journalHash"]
+      "required": [
+        "durableSequence",
+        "journalBytes",
+        "journalHash"
+      ]
     },
     "descriptor": {
       "type": "object",
@@ -655,44 +688,40 @@
         },
         "sideEffects": {
           "enum": [
+            "none",
+            "owned-editor-and-worktree-removal",
+            "owned-editor-start",
+            "owned-editor-stop",
+            "owned-experimental-mount-git-and-editor",
+            "owned-generation-pins-independent-results; optional-owned-editor-stop-and-reclamation",
+            "owned-immutable-candidate-view-editor-and-result",
+            "owned-journal-generation-replacement",
+            "owned-ntfs-preparation-and-new-boundary-signal",
             "owned-original-library-lifecycle",
             "owned-original-project-lifecycle",
             "owned-task-discard",
-            "none",
-            "read-only-local-process",
             "owned-worktree-and-optional-editor",
-            "owned-ntfs-preparation-and-new-boundary-signal",
+            "plan:read-only; original:conditional-per-path-publication-without-Git-HEAD-index-mutation; branch:explicit-clean-target-Git-merge; Plastic:no-server-mutation",
+            "read-only-local-process",
             "read-only-local-state",
-            "reconcile-owned-state",
-            "owned-source-commit; release:true also reclaims owned workspace resources",
-            "original-target-merge",
-            "plan:read-only; Git:original-target-merge; files:conditional-per-path-publication; Plastic:no-server-mutation",
-            "owned-editor-and-worktree-removal",
-            "owned-editor-start",
-            "owned-editor-compile",
-            "owned-editor-stop",
-            "owned-experimental-mount-git-and-editor",
-            "owned-journal-generation-replacement",
-            "owned-immutable-candidate-view-editor-and-result"
+            "reconcile-owned-state"
           ]
         },
         "retry": {
           "enum": [
-            "same-id-home-key-and-plan; preserve-unknown-side-effects",
-            "same-discard-intent",
-            "safe-read",
-            "same-project-and-task-key",
-            "new-evidence-path; resume-with-original-workspace.ensure",
-            "same-workspace-and-source; release:true resumes the same owned release",
-            "same-workspace-and-target",
-            "Git:same-workspace-and-target; files:exact-intent-and-plan-digest-and-selection",
             "idempotent-release",
-            "same-workspace",
-            "same-pending-request",
             "idempotent-stop",
+            "new-evidence-path; resume-with-original-workspace.ensure",
+            "safe-read",
+            "same-discard-intent",
+            "same-id-home-key-and-plan; preserve-unknown-side-effects",
             "same-persisted-overlay-and-git-receipts; candidate-export requires stable publication requestKey and same frozen-source intent; inspect-uncertain-intents",
+            "same-project-and-task-key",
+            "same-request-key-and-owner; preserve-unknown-resources",
+            "same-result-intent-digest-selection-and-live-original-identity; completed requests never republish",
+            "same-workspace",
             "same-workspace-compaction-intent",
-            "same-request-key-and-owner; preserve-unknown-resources"
+            "same-workspace-request-key-and-message; never recapture a later source for an existing request"
           ]
         }
       }
@@ -807,29 +836,121 @@
         "workspaceStatus": {
           "const": "process-provider-poll; source-only-on-verify-source"
         },
-        "sourceModes": {"type":"array","items":{"enum":["git","plastic",
-        "none","plastic"]}},
-        "applicationModes": {"type":"array","items":{"enum":["unity","none"]}},
-        "extensionContracts": {
-          "type": "object", "additionalProperties": false,
-          "required": ["pathPolicy", "permissions", "application", "managedBasisVersion", "generatedDirectories", "qualification"],
-          "properties": {
-            "pathPolicy": {"type":"string"}, "permissions": {"type":"string"}, "application": {"type":"string"},
-            "managedBasisVersion": {"const":2}, "generatedDirectories": {"const":"one-top-level-subtree"}, "qualification": {"type":"string"}
+        "sourceModes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "git",
+              "plastic",
+              "none",
+              "plastic"
+            ]
           }
         },
-        "workspaceRecordVersion": {"const":2},
-        "plainFolder": {
-          "type":"object","additionalProperties":false,
-          "required":["basis","result","inspection","originalApply","qualification"],
+        "applicationModes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "unity",
+              "none"
+            ]
+          }
+        },
+        "extensionContracts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "pathPolicy",
+            "permissions",
+            "application",
+            "managedBasisVersion",
+            "generatedDirectories",
+            "qualification"
+          ],
           "properties": {
-            "basis":{"type":"string"}, "result":{"type":"string"}, "inspection":{"type":"string"},
-            "originalApply":{"const":"explicit-plan-and-intent; editorless-windows-ntfs"}, "qualification":{"type":"string"}
+            "pathPolicy": {
+              "type": "string"
+            },
+            "permissions": {
+              "type": "string"
+            },
+            "application": {
+              "type": "string"
+            },
+            "managedBasisVersion": {
+              "const": 2
+            },
+            "generatedDirectories": {
+              "const": "one-top-level-subtree"
+            },
+            "qualification": {
+              "type": "string"
+            }
+          }
+        },
+        "workspaceRecordVersion": {
+          "const": 3
+        },
+        "plainFolder": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "basis",
+            "result",
+            "inspection",
+            "originalApply",
+            "qualification"
+          ],
+          "properties": {
+            "basis": {
+              "type": "string"
+            },
+            "result": {
+              "type": "string"
+            },
+            "inspection": {
+              "type": "string"
+            },
+            "originalApply": {
+              "const": "explicit-result-plan-intent; per-path-history; editorless-or-exact-live-Editor-permit; windows-ntfs"
+            },
+            "qualification": {
+              "type": "string"
+            }
           }
         },
         "plasticCompatibility": {
-          "type":"object", "additionalProperties":false, "required":["mode","administration","originalApply","qualification"],
-          "properties": {"mode":{"type":"string"},"administration":{"type":"string"},"originalApply":{"const":"plastic-snapshot; explicit-plan-intent-and-selection; stopped-original-windows-ntfs; no-server-mutation"},"qualification":{"type":"string"},"recordedBasis":{"type":"string"},"reader":{"type":"string"},"library":{"type":"string"}}
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "administration",
+            "originalApply",
+            "qualification"
+          ],
+          "properties": {
+            "mode": {
+              "type": "string"
+            },
+            "administration": {
+              "type": "string"
+            },
+            "originalApply": {
+              "const": "plastic-snapshot; explicit-result-plan-intent-and-selection; per-path-history; editorless-or-exact-live-Editor-permit; windows-ntfs; no-server-mutation"
+            },
+            "qualification": {
+              "type": "string"
+            },
+            "recordedBasis": {
+              "type": "string"
+            },
+            "reader": {
+              "type": "string"
+            },
+            "library": {
+              "type": "string"
+            }
+          }
         },
         "plainProjectBasis": {
           "type": "object",
@@ -934,111 +1055,325 @@
           }
         },
         "sourceViewExperiment": {
-          "type": "object", "additionalProperties": false,
-          "required": ["stage", "integratedWorkspaceMode", "candidate", "publication", "switching", "result", "measurements"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage",
+            "integratedWorkspaceMode",
+            "candidate",
+            "publication",
+            "switching",
+            "result",
+            "measurements"
+          ],
           "properties": {
-            "stage": {"const":"development-spike"},
-            "integratedWorkspaceMode": {"const":false},
-            "candidate": {"type":"string"}, "publication": {"type":"string"}, "switching": {"type":"string"},
-            "result": {"type":"string"}, "measurements": {"type":"string"}
+            "stage": {
+              "const": "development-spike"
+            },
+            "integratedWorkspaceMode": {
+              "const": false
+            },
+            "candidate": {
+              "type": "string"
+            },
+            "publication": {
+              "type": "string"
+            },
+            "switching": {
+              "type": "string"
+            },
+            "result": {
+              "type": "string"
+            },
+            "measurements": {
+              "type": "string"
+            }
           }
         },
         "viewWorkflowContract": {
-          "type": "object", "additionalProperties": false,
-          "required": ["stage", "integratedWorkspaceMode", "cliAvailable", "runtime", "operations", "schemas", "boundaries"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage",
+            "integratedWorkspaceMode",
+            "cliAvailable",
+            "runtime",
+            "operations",
+            "schemas",
+            "boundaries"
+          ],
           "properties": {
-            "stage": {"const":"development-storage-view"},
-            "integratedWorkspaceMode": {"const":true}, "cliAvailable": {"const":true},
-            "runtime": {"type":"string", "minLength":1},
-            "operations": {"const":[
-              "publish",
-              "select",
-              "resume",
-              "preserve",
-              "release",
-              "close-view"
-            ]},
-            "schemas": {"const":["urn:splinter:v1:view-workflow-request", "urn:splinter:v1:view-workflow-response", "urn:splinter:v1:view-workflow-state", "urn:splinter:v1:view-lifecycle-request"]},
-            "boundaries": {"type":"string", "minLength":1}
+            "stage": {
+              "const": "development-storage-view"
+            },
+            "integratedWorkspaceMode": {
+              "const": true
+            },
+            "cliAvailable": {
+              "const": true
+            },
+            "runtime": {
+              "type": "string",
+              "minLength": 1
+            },
+            "operations": {
+              "const": [
+                "publish",
+                "select",
+                "resume",
+                "preserve",
+                "release",
+                "close-view"
+              ]
+            },
+            "schemas": {
+              "const": [
+                "urn:splinter:v1:view-workflow-request",
+                "urn:splinter:v1:view-workflow-response",
+                "urn:splinter:v1:view-workflow-state",
+                "urn:splinter:v1:view-lifecycle-request"
+              ]
+            },
+            "boundaries": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "developmentPreparationProbe": {
-          "type": "object", "additionalProperties": false,
-          "required": ["entrypoint", "inputs", "writes", "measurements"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entrypoint",
+            "inputs",
+            "writes",
+            "measurements"
+          ],
           "properties": {
-            "entrypoint": {"type":"string", "minLength":1},
-            "inputs": {"type":"string", "minLength":1},
-            "writes": {"type":"string", "minLength":1},
-            "measurements": {"type":"string", "minLength":1}
+            "entrypoint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "inputs": {
+              "type": "string",
+              "minLength": 1
+            },
+            "writes": {
+              "type": "string",
+              "minLength": 1
+            },
+            "measurements": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "developmentProductWriteRecoveryProbe": {
-          "type":"object", "additionalProperties":false, "required":["entrypoint","inputs","writes","measurements"],
-          "properties":{
-            "entrypoint":{"type":"string","minLength":1},"inputs":{"type":"string","minLength":1},
-            "writes":{"type":"string","minLength":1},"measurements":{"type":"string","minLength":1}
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entrypoint",
+            "inputs",
+            "writes",
+            "measurements"
+          ],
+          "properties": {
+            "entrypoint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "inputs": {
+              "type": "string",
+              "minLength": 1
+            },
+            "writes": {
+              "type": "string",
+              "minLength": 1
+            },
+            "measurements": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "developmentKernelRecoveryProbe": {
-          "type": "object", "additionalProperties": false,
-          "required": ["entrypoint", "inputs", "writes", "measurements"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entrypoint",
+            "inputs",
+            "writes",
+            "measurements"
+          ],
           "properties": {
-            "entrypoint": {"type":"string", "minLength":1}, "inputs": {"type":"string", "minLength":1},
-            "writes": {"type":"string", "minLength":1}, "measurements": {"type":"string", "minLength":1}
+            "entrypoint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "inputs": {
+              "type": "string",
+              "minLength": 1
+            },
+            "writes": {
+              "type": "string",
+              "minLength": 1
+            },
+            "measurements": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "developmentJournalRecoveryProbe": {
-          "type": "object", "additionalProperties": false,
-          "required": ["entrypoint", "inputs", "writes", "measurements"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entrypoint",
+            "inputs",
+            "writes",
+            "measurements"
+          ],
           "properties": {
-            "entrypoint": {"type":"string", "minLength":1},
-            "inputs": {"type":"string", "minLength":1},
-            "writes": {"type":"string", "minLength":1},
-            "measurements": {"type":"string", "minLength":1}
+            "entrypoint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "inputs": {
+              "type": "string",
+              "minLength": 1
+            },
+            "writes": {
+              "type": "string",
+              "minLength": 1
+            },
+            "measurements": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "developmentReplayProbe": {
-          "type": "object", "additionalProperties": false,
-          "required": ["entrypoint", "inputs", "writes", "measurements"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entrypoint",
+            "inputs",
+            "writes",
+            "measurements"
+          ],
           "properties": {
-            "entrypoint": {"type":"string", "minLength":1},
-            "inputs": {"type":"string", "minLength":1},
-            "writes": {"type":"string", "minLength":1},
-            "measurements": {"type":"string", "minLength":1}
+            "entrypoint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "inputs": {
+              "type": "string",
+              "minLength": 1
+            },
+            "writes": {
+              "type": "string",
+              "minLength": 1
+            },
+            "measurements": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "developmentWriteProbe": {
-          "type": "object", "additionalProperties": false,
-          "required": ["entrypoint", "inputs", "writes", "measurements"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entrypoint",
+            "inputs",
+            "writes",
+            "measurements"
+          ],
           "properties": {
-            "entrypoint": {"type":"string", "minLength":1},
-            "inputs": {"type":"string", "minLength":1},
-            "writes": {"type":"string", "minLength":1},
-            "measurements": {"type":"string", "minLength":1}
+            "entrypoint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "inputs": {
+              "type": "string",
+              "minLength": 1
+            },
+            "writes": {
+              "type": "string",
+              "minLength": 1
+            },
+            "measurements": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "developmentStructuralThroughputProbes": {
-          "type": "object", "additionalProperties": false,
-          "required": ["stage", "boundedLog", "scope", "boundaries"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage",
+            "boundedLog",
+            "scope",
+            "boundaries"
+          ],
           "properties": {
-            "stage": {"const": "isolated-prototypes-not-product-backends"},
-            "boundedLog": {"type": "string", "minLength": 1},
-            "scope": {"const": "docs/plans/structural-throughput-prototypes.md"},
-            "boundaries": {"type": "string", "minLength": 1}
+            "stage": {
+              "const": "isolated-prototypes-not-product-backends"
+            },
+            "boundedLog": {
+              "type": "string",
+              "minLength": 1
+            },
+            "scope": {
+              "const": "docs/plans/structural-throughput-prototypes.md"
+            },
+            "boundaries": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "developmentPayloadReader": {
-          "type": "object", "additionalProperties": false,
-          "required": ["stage", "contract", "codec", "maxDecodedBytes", "blockOverheadBytes", "scope", "specification", "qualification"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage",
+            "contract",
+            "codec",
+            "maxDecodedBytes",
+            "blockOverheadBytes",
+            "scope",
+            "specification",
+            "qualification"
+          ],
           "properties": {
-            "stage": {"const": "workspace-internal-alpha"},
-            "contract": {"const": "IWorkspacePayloadReader"},
-            "codec": {"const": "splinter-range-brotli-v1"},
-            "maxDecodedBytes": {"const": 1048576},
-            "blockOverheadBytes": {"const": 48},
-            "scope": {"type": "string", "minLength": 1},
-            "specification": {"const": "docs/journal-payload-compression.md"},
-            "qualification": {"type": "string", "minLength": 1}
+            "stage": {
+              "const": "workspace-internal-alpha"
+            },
+            "contract": {
+              "const": "IWorkspacePayloadReader"
+            },
+            "codec": {
+              "const": "splinter-range-brotli-v1"
+            },
+            "maxDecodedBytes": {
+              "const": 1048576
+            },
+            "blockOverheadBytes": {
+              "const": 48
+            },
+            "scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "specification": {
+              "const": "docs/journal-payload-compression.md"
+            },
+            "qualification": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "snapshotOverlay": {
@@ -1141,6 +1476,39 @@
         },
         "developmentEntrypoint": {
           "const": "pwsh scripts/splinter-dev.ps1"
+        },
+        "repeatedOriginalApply": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "results": {
+              "type": "string",
+              "minLength": 1
+            },
+            "capture": {
+              "type": "string",
+              "minLength": 1
+            },
+            "original": {
+              "type": "string",
+              "minLength": 1
+            },
+            "liveOriginal": {
+              "type": "string",
+              "minLength": 1
+            },
+            "qualification": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "results",
+            "capture",
+            "original",
+            "liveOriginal",
+            "qualification"
+          ]
         }
       }
     },
@@ -1176,13 +1544,50 @@
       ],
       "properties": {
         "compatibility": {
-          "type":["object","null"],"additionalProperties":false,
-          "required":["kind","path","identity","mode","clientVersion"],
-          "properties":{"kind":{"const":"plastic"},"path":{"type":"string"},"identity":{"type":"string"},"mode":{"type":"string"},"clientVersion":{"type":"string"}}
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "path",
+            "identity",
+            "mode",
+            "clientVersion"
+          ],
+          "properties": {
+            "kind": {
+              "const": "plastic"
+            },
+            "path": {
+              "type": "string"
+            },
+            "identity": {
+              "type": "string"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "clientVersion": {
+              "type": "string"
+            }
+          }
         },
-        "source": {"enum":["git","plastic",
-        "none","plastic"]},
-        "applicationKind": {"enum":["unity","none"]},
+        "source": {
+          "enum": [
+            "git",
+            "plastic",
+            "none",
+            "plastic"
+          ]
+        },
+        "applicationKind": {
+          "enum": [
+            "unity",
+            "none"
+          ]
+        },
         "path": {
           "type": "string",
           "minLength": 1
@@ -1219,7 +1624,9 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "version", "sourceKind", "applicationKind",
+        "version",
+        "sourceKind",
+        "applicationKind",
         "id",
         "requestKey",
         "projectPath",
@@ -1229,27 +1636,66 @@
         "phase",
         "createdAt",
         "updatedAt",
-        "storageMode"
+        "storageMode",
+        "results",
+        "originalApplies"
       ],
       "properties": {
-        "version": {"const":2},
-        "sourceKind": {"enum":["git","plastic",
-        "none","plastic"]},
-        "applicationKind": {"enum":["unity","none"]},
+        "version": {
+          "const": 3
+        },
+        "sourceKind": {
+          "enum": [
+            "git",
+            "plastic",
+            "none",
+            "plastic"
+          ]
+        },
+        "applicationKind": {
+          "enum": [
+            "unity",
+            "none"
+          ]
+        },
         "resultStorage": {
-          "type":"object","additionalProperties":false,
-          "required":["basisLogicalBytes","resultLogicalBytes","uniquePayloadBytes","payloadObjects"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "basisLogicalBytes",
+            "resultLogicalBytes",
+            "uniquePayloadBytes",
+            "payloadObjects"
+          ],
           "properties": {
-            "basisLogicalBytes":{"type":"integer","minimum":0}, "resultLogicalBytes":{"type":"integer","minimum":0},
-            "uniquePayloadBytes":{"type":"integer","minimum":0}, "payloadObjects":{"type":"integer","minimum":0}
+            "basisLogicalBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "resultLogicalBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "uniquePayloadBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "payloadObjects": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         },
         "id": {
           "type": "string",
           "pattern": "^[a-f0-9]{24}$"
         },
-        "discard": {"$ref": "urn:splinter:v1:workspace-discard-state"},
-        "originalApply": {"$ref": "urn:splinter:v1:original-apply-state"},
+        "discard": {
+          "$ref": "urn:splinter:v1:workspace-discard-state"
+        },
+        "originalApply": {
+          "$ref": "urn:splinter:v1:original-apply-state"
+        },
         "requestKey": {
           "type": "string",
           "minLength": 1
@@ -1331,6 +1777,88 @@
         },
         "generatedDirectory": {
           "$ref": "urn:splinter:v1:generated-directory-reference"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:splinter:v1:workspace-result-generation"
+          }
+        },
+        "captureIntent": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{24}$"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "requestKey": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "id",
+            "sequence",
+            "requestKey",
+            "message"
+          ]
+        },
+        "originalApplies": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:splinter:v1:original-apply-state"
+          }
+        },
+        "originalAppliedPaths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "resultId": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{24}$"
+              },
+              "intentKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "deleted": {
+                "type": "boolean"
+              },
+              "version": {
+                "anyOf": [
+                  {
+                    "$ref": "urn:splinter:v1:original-apply-plan#/$defs/fileVersion"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "path",
+              "resultId",
+              "intentKey",
+              "deleted"
+            ]
+          }
         }
       },
       "allOf": [
@@ -1338,7 +1866,11 @@
           "if": {
             "properties": {
               "storageMode": {
-                "enum": ["git-snapshot", "plastic-snapshot", "project-snapshot"]
+                "enum": [
+                  "git-snapshot",
+                  "plastic-snapshot",
+                  "project-snapshot"
+                ]
               }
             },
             "required": [
@@ -1390,7 +1922,9 @@
         "isolation"
       ],
       "properties": {
-        "originalApplyPlan": {"$ref": "urn:splinter:v1:original-apply-plan"},
+        "originalApplyPlan": {
+          "$ref": "urn:splinter:v1:original-apply-plan"
+        },
         "sourceVerification": {
           "enum": [
             "not-checked",
@@ -1429,7 +1963,8 @@
                 "deferred-discard-reclamation",
                 "discarded",
                 "deferred-reclamation",
-                "released"
+                "released",
+                "resume-capture"
               ]
             },
             "reasonCode": {
@@ -1516,8 +2051,18 @@
             },
             "resources": {
               "$ref": "#/$defs/processResources"
+            },
+            "startTimeUtcTicks": {
+              "type": "integer",
+              "minimum": 1
             }
           }
+        },
+        "resultGeneration": {
+          "$ref": "urn:splinter:v1:workspace-result-generation"
+        },
+        "originalApplyReceipt": {
+          "$ref": "urn:splinter:v1:original-apply-state"
         }
       }
     },
@@ -1556,13 +2101,39 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "journalBytesBasis": { "enum": ["current-files", "writer-accounting"] },
-        "journalStorageMode": { "enum": ["append", "latest", "bounded"] },
-        "boundedLogBytesLimit": { "type": "integer", "minimum": 4096, "maximum": 16777216 },
-        "boundedLogFrameLimit": { "const": 4096 },
-        "boundedLogAppendedBytes": { "type": "integer", "minimum": 0 },
-        "boundedLogAppendedFrames": { "type": "integer", "minimum": 0, "maximum": 4096 },
-        "journalOptimizationEnabled": { "type": "boolean" },
+        "journalBytesBasis": {
+          "enum": [
+            "current-files",
+            "writer-accounting"
+          ]
+        },
+        "journalStorageMode": {
+          "enum": [
+            "append",
+            "latest",
+            "bounded"
+          ]
+        },
+        "boundedLogBytesLimit": {
+          "type": "integer",
+          "minimum": 4096,
+          "maximum": 16777216
+        },
+        "boundedLogFrameLimit": {
+          "const": 4096
+        },
+        "boundedLogAppendedBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "boundedLogAppendedFrames": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "journalOptimizationEnabled": {
+          "type": "boolean"
+        },
         "id": {
           "type": "string",
           "minLength": 1
@@ -1657,7 +2228,12 @@
               "type": "string",
               "minLength": 1
             },
-            "pathPolicy": {"enum": [null, "posix-case-sensitive-v1"]},
+            "pathPolicy": {
+              "enum": [
+                null,
+                "posix-case-sensitive-v1"
+              ]
+            },
             "persistent": {
               "type": "boolean"
             },
@@ -1720,7 +2296,12 @@
                   "type": "string",
                   "minLength": 1
                 },
-                "pathPolicy": {"enum": [null, "posix-case-sensitive-v1"]},
+                "pathPolicy": {
+                  "enum": [
+                    null,
+                    "posix-case-sensitive-v1"
+                  ]
+                },
                 "persistent": {
                   "type": "boolean"
                 },
@@ -2055,45 +2636,112 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "attemptId": { "type": "string", "minLength": 1 },
-            "before": { "$ref": "#/$defs/compactionSeal" },
-            "after": { "$ref": "#/$defs/compactionSeal" },
-            "startedAt": { "type": "string", "format": "date-time" },
-            "beforeAllocatedBytes": { "type": "integer", "minimum": 0 },
-            "afterAllocatedBytes": { "type": "integer", "minimum": 0 },
-            "peakTemporaryAllocatedBytes": { "type": "integer", "minimum": 0 },
-            "journalOptimizationEnabled": { "type": "boolean" },
-            "revertBaseRanges": { "type": "boolean" },
-            "baseComparedBytes": { "type": "integer", "minimum": 0 },
-            "revertedPayloadBytes": { "type": "integer", "minimum": 0 },
+            "attemptId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "before": {
+              "$ref": "#/$defs/compactionSeal"
+            },
+            "after": {
+              "$ref": "#/$defs/compactionSeal"
+            },
+            "startedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "beforeAllocatedBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "afterAllocatedBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "peakTemporaryAllocatedBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "journalOptimizationEnabled": {
+              "type": "boolean"
+            },
+            "revertBaseRanges": {
+              "type": "boolean"
+            },
+            "baseComparedBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "revertedPayloadBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
             "cost": {
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "stopwatchFrequency": { "type": "integer", "minimum": 1 },
-                "totalTicks": { "type": "integer", "minimum": 0 },
+                "stopwatchFrequency": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "totalTicks": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "stages": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
-                      "stage": { "type": "string", "minLength": 1 },
-                      "elapsedTicks": { "type": "integer", "minimum": 0 },
-                      "readBytes": { "type": "integer", "minimum": 0 },
-                      "writtenBytes": { "type": "integer", "minimum": 0 },
-                      "flushCount": { "type": "integer", "minimum": 0 }
+                      "stage": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "elapsedTicks": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "readBytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "writtenBytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "flushCount": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
                     },
-                    "required": ["stage", "elapsedTicks", "readBytes", "writtenBytes", "flushCount"]
+                    "required": [
+                      "stage",
+                      "elapsedTicks",
+                      "readBytes",
+                      "writtenBytes",
+                      "flushCount"
+                    ]
                   }
                 }
               },
-              "required": ["stopwatchFrequency", "totalTicks", "stages"]
+              "required": [
+                "stopwatchFrequency",
+                "totalTicks",
+                "stages"
+              ]
             }
           },
-          "required": ["attemptId", "before", "after", "startedAt"]
+          "required": [
+            "attemptId",
+            "before",
+            "after",
+            "startedAt"
+          ]
         },
-        "pendingCompactionRevertBaseRanges": { "type": "boolean" },
+        "pendingCompactionRevertBaseRanges": {
+          "type": "boolean"
+        },
         "pendingCompactionMaxEstimatedJournalOverlapBytes": {
           "type": "integer",
           "minimum": 1
@@ -2164,80 +2812,268 @@
           "type": "integer",
           "minimum": 0
         },
-        "replayFrames": {"type":"integer", "minimum":0},
-        "replayReadCalls": {"type":"integer", "minimum":0},
-        "replayReadTicks": {"type":"integer", "minimum":0},
-        "replayValidationTicks": {"type":"integer", "minimum":0},
-        "replayIndexTicks": {"type":"integer", "minimum":0},
-        "replayBufferBytes": {"type":"integer", "minimum":0},
+        "replayFrames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "replayReadCalls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "replayReadTicks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "replayValidationTicks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "replayIndexTicks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "replayBufferBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
         "replayIndexOperations": {
-          "type": "array", "maxItems": 17,
+          "type": "array",
+          "maxItems": 17,
           "items": {
-            "type": "object", "additionalProperties": false,
-            "required": ["operation", "frames", "applyTicks"],
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation",
+              "frames",
+              "applyTicks"
+            ],
             "properties": {
-              "operation": {"enum":["create","metadata","resize","write","write-compacted","rename","delete","skip-write","skip-range","state-bounded","state-node","state-write","state-hidden","state-change","state-complete","state-projection-unsafe","forget-unlinked"]},
-              "frames": {"type":"integer", "minimum":1},
-              "applyTicks": {"type":"integer", "minimum":0}
+              "operation": {
+                "enum": [
+                  "create",
+                  "metadata",
+                  "resize",
+                  "write",
+                  "write-compacted",
+                  "rename",
+                  "delete",
+                  "skip-write",
+                  "skip-range",
+                  "state-bounded",
+                  "state-node",
+                  "state-write",
+                  "state-hidden",
+                  "state-change",
+                  "state-complete",
+                  "state-projection-unsafe",
+                  "forget-unlinked"
+                ]
+              },
+              "frames": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "applyTicks": {
+                "type": "integer",
+                "minimum": 0
+              }
             }
           }
         },
         "replayWriteRangeIndex": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["replaceCalls", "priorExtents", "maxPriorExtents", "visitedExtents",
-            "copiedExtents", "locateAndReplaceTicks", "sortTicks", "priorExtentBuckets"],
+          "required": [
+            "replaceCalls",
+            "priorExtents",
+            "maxPriorExtents",
+            "visitedExtents",
+            "copiedExtents",
+            "locateAndReplaceTicks",
+            "sortTicks",
+            "priorExtentBuckets"
+          ],
           "properties": {
-            "replaceCalls": {"type":"integer", "minimum":0},
-            "priorExtents": {"type":"integer", "minimum":0},
-            "maxPriorExtents": {"type":"integer", "minimum":0},
-            "visitedExtents": {"type":"integer", "minimum":0},
-            "copiedExtents": {"type":"integer", "minimum":0},
-            "locateAndReplaceTicks": {"type":"integer", "minimum":0},
-            "sortTicks": {"type":"integer", "minimum":0},
+            "replaceCalls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "priorExtents": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxPriorExtents": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "visitedExtents": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "copiedExtents": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "locateAndReplaceTicks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sortTicks": {
+              "type": "integer",
+              "minimum": 0
+            },
             "priorExtentBuckets": {
-              "type":"array", "minItems":6, "maxItems":6,
-              "items":{"type":"integer", "minimum":0}
+              "type": "array",
+              "minItems": 6,
+              "maxItems": 6,
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              }
             }
           }
         },
         "readRangeIndex": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["readCalls", "searchProbes", "visitedExtents"],
+          "required": [
+            "readCalls",
+            "searchProbes",
+            "visitedExtents"
+          ],
           "properties": {
-            "readCalls": { "type": "integer", "minimum": 0 },
-            "searchProbes": { "type": "integer", "minimum": 0 },
-            "visitedExtents": { "type": "integer", "minimum": 0 }
+            "readCalls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "searchProbes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "visitedExtents": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         },
         "liveJournalWrites": {
-          "type": "object", "additionalProperties": false,
-          "required": ["mutationGateCalls", "mutationGateWaitTicks", "operations"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mutationGateCalls",
+            "mutationGateWaitTicks",
+            "operations"
+          ],
           "properties": {
-            "mutationGateCalls": {"type":"integer", "minimum":0},
-            "mutationGateWaitTicks": {"type":"integer", "minimum":0},
+            "mutationGateCalls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mutationGateWaitTicks": {
+              "type": "integer",
+              "minimum": 0
+            },
             "operations": {
-              "type":"array", "maxItems":7,
+              "type": "array",
+              "maxItems": 7,
               "items": {
-                "type":"object", "additionalProperties":false,
-                "required":["operation","attempts","durableCommits","failedCalls","payloadBytes","journalBytes","prepareTicks","appendTicks","flushTicks","applyTicks","totalTicks","flushCalls","maxWaitingMutations","waitingMutationsAtFlushStart","waitingMutationsAtFlushEnd"],
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "operation",
+                  "attempts",
+                  "durableCommits",
+                  "failedCalls",
+                  "payloadBytes",
+                  "journalBytes",
+                  "prepareTicks",
+                  "appendTicks",
+                  "flushTicks",
+                  "applyTicks",
+                  "totalTicks",
+                  "flushCalls",
+                  "maxWaitingMutations",
+                  "waitingMutationsAtFlushStart",
+                  "waitingMutationsAtFlushEnd"
+                ],
                 "properties": {
-                  "operation": {"enum":["create","write","resize","metadata","rename","delete","forget-unlinked"]},
-                  "attempts": {"type":"integer", "minimum":0},
-                  "durableCommits": {"type":"integer", "minimum":0},
-                  "failedCalls": {"type":"integer", "minimum":0},
-                  "payloadBytes": {"type":"integer", "minimum":0},
-                  "journalBytes": {"type":"integer", "minimum":0},
-                  "prepareTicks": {"type":"integer", "minimum":0},
-                  "appendTicks": {"type":"integer", "minimum":0},
-                  "flushTicks": {"type":"integer", "minimum":0},
-                  "applyTicks": {"type":"integer", "minimum":0},
-                  "totalTicks": {"type":"integer", "minimum":0},
-                  "flushCalls": {"type":"integer", "minimum":0},
-                  "maxWaitingMutations": {"type":"integer", "minimum":0},
-                  "waitingMutationsAtFlushStart": {"type":"array", "minItems":5, "maxItems":5, "items":{"type":"integer","minimum":0}},
-                  "waitingMutationsAtFlushEnd": {"type":"array", "minItems":5, "maxItems":5, "items":{"type":"integer","minimum":0}}
+                  "operation": {
+                    "enum": [
+                      "create",
+                      "write",
+                      "resize",
+                      "metadata",
+                      "rename",
+                      "delete",
+                      "forget-unlinked"
+                    ]
+                  },
+                  "attempts": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "durableCommits": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "failedCalls": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "payloadBytes": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "journalBytes": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "prepareTicks": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "appendTicks": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "flushTicks": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "applyTicks": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "totalTicks": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "flushCalls": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "maxWaitingMutations": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "waitingMutationsAtFlushStart": {
+                    "type": "array",
+                    "minItems": 5,
+                    "maxItems": 5,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "waitingMutationsAtFlushEnd": {
+                    "type": "array",
+                    "minItems": 5,
+                    "maxItems": 5,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
                 }
               }
             }

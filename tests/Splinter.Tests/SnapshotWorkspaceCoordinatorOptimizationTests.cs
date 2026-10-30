@@ -126,7 +126,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         workspace.Phase = "releasing"; workspace.Snapshot!.Step = step;
         var store = new WorkspaceStore(f.Home); store.Save(workspace, "interrupted-release-fixture");
         f.Source.InspectCalls = 0;
-        Assert.Equal("WorkspaceNotReady", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CheckpointAsync(workspace.Id, "result", ct))).Code);
+        Assert.Equal("WorkspaceReleasing", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CheckpointAsync(workspace.Id, "result", ct))).Code);
         var retained = store.Get(workspace.Id);
         Assert.Null(retained.ResultRevision); Assert.Null(retained.Snapshot!.Result);
         Assert.Equal(step, retained.Snapshot.Step); Assert.Equal("releasing", retained.Phase);

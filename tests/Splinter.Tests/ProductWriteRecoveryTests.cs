@@ -166,12 +166,11 @@ public sealed class ProductWriteRecoveryTests
             using (var writer = OpenWrite(Path.Combine(mount, Beta))) { writer.Write(Block(0x7e)); writer.Flush(true); }
             Assert.Equal(Expected(r, pending, true), KernelModel(r));
             WriteBytesNew(Path.Combine(dir, "journal-before-preserve.bin"), SharedBytes(journal));
-            var preserved = await Cli(cli, root, ["workspace", "checkpoint", "--id", id, "--message", "Preserve recovered client writes", "--home", home], Path.Combine(dir, "preserve"), ct);
-            var savedResult = preserved.GetProperty("data").GetProperty("workspace").GetProperty("snapshot").GetProperty("result");
-            string revision = savedResult.GetProperty("revision").GetString()!;
-            string reference = savedResult.GetProperty("resultReference").GetString()!;
-            Assert.True(savedResult.GetProperty("independentOfSnapshot").GetBoolean()); Assert.Equal("stable-journal-v1", savedResult.GetProperty("collectionProtocol").GetString());
-            Assert.Equal(revision, await GitText(project, ["rev-parse", reference], ct));
+            var preserved = await Cli(cli, root, ["workspace", "checkpoint", "--id", id, "--request-key", "recovered-client-writes", "--message", "Preserve recovered client writes", "--home", home], Path.Combine(dir, "preserve"), ct);
+            var savedResult = preserved.GetProperty("data").GetProperty("resultGeneration");
+            string reference = savedResult.GetProperty("gitReference").GetString()!;
+            string revision = await GitText(project, ["rev-parse", reference], ct);
+            Assert.Equal("recovered-client-writes", savedResult.GetProperty("requestKey").GetString());
             foreach (var item in Files(r, pending, true)) Assert.Equal(Hash(item.Value), Hash(await GitBytes(project, ["show", revision + ":" + item.Key], ct)));
             var treePaths = (await GitText(project, ["ls-tree", "-r", "--name-only", revision], ct)).Split('\n', StringSplitOptions.RemoveEmptyEntries);
             foreach (string selected in new[] { Alpha, Beta, Gamma }) Assert.Equal(Files(r, pending, true).ContainsKey(selected), treePaths.Contains(selected));

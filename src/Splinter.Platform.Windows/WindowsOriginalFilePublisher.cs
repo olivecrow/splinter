@@ -14,21 +14,22 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
 {
     private readonly Action<string, int>? boundary;
     private readonly bool allowPlasticAdministration;
+    private readonly bool allowGitAdministration;
     private readonly Func<string, IDisposable?>? managedRoot;
-    public WindowsOriginalFilePublisher(bool allowPlasticAdministration = false, Func<string, IDisposable?>? managedRoot = null)
-    { this.allowPlasticAdministration = allowPlasticAdministration; this.managedRoot = managedRoot; }
+    public WindowsOriginalFilePublisher(bool allowPlasticAdministration = false, Func<string, IDisposable?>? managedRoot = null, bool allowGitAdministration = false)
+    { this.allowPlasticAdministration = allowPlasticAdministration; this.managedRoot = managedRoot; this.allowGitAdministration = allowGitAdministration; }
     internal WindowsOriginalFilePublisher(Action<string, int> boundary, bool allowPlasticAdministration = false)
     { this.boundary = boundary; this.allowPlasticAdministration = allowPlasticAdministration; }
     public string RootIdentity(string project)
     {
         using var lease = managedRoot?.Invoke(project);
-        using var guard = new Guard(project, [], allowPlasticAdministration, lease is not null);
+        using var guard = new Guard(project, [], allowPlasticAdministration, lease is not null, allowGitAdministration);
         return Id(guard.Root);
     }
     public OriginalFileObservation? Observe(string project, string relativePath, CancellationToken ct = default)
     {
         using var lease = managedRoot?.Invoke(project);
-        using var guard = new Guard(project, [], allowPlasticAdministration, lease is not null);
+        using var guard = new Guard(project, [], allowPlasticAdministration, lease is not null, allowGitAdministration);
         return guard.Observe(relativePath, ct);
     }
 
@@ -36,8 +37,10 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
     {
         var plan = state.Plan;
         if (allowPlasticAdministration && plan.SourceIdentity is null) throw Conflict("An explicit Plastic source guard is required.");
+        if (allowGitAdministration && Path.Exists(Path.Combine(plan.ProjectPath, ".git")) && plan.SourceIdentity is null)
+            throw Conflict("An explicit Git source guard is required.");
         using var lease = managedRoot?.Invoke(plan.ProjectPath);
-        using var guard = new Guard(plan.ProjectPath, plan.Changes.Where(c => c.Before?.Kind == "directory" && c.After is null).Select(c => c.Path).ToArray(), allowPlasticAdministration, lease is not null);
+        using var guard = new Guard(plan.ProjectPath, plan.Changes.Where(c => c.Before?.Kind == "directory" && c.After is null).Select(c => c.Path).ToArray(), allowPlasticAdministration, lease is not null, allowGitAdministration);
         if (Id(guard.Root) != plan.ProjectIdentity) throw Conflict("The physical original root changed.");
         string intent = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(state.IntentKey)))[..24];
         string Prefix(int i) => $".splinter-apply-{plan.OwnerId}-{intent}-{i}";
@@ -171,7 +174,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
         private readonly string project;
         private readonly bool managed;
         public SafeFileHandle Root { get; }
-        public Guard(string project, string[] deleteDirectories, bool allowPlasticAdministration, bool managed = false)
+        public Guard(string project, string[] deleteDirectories, bool allowPlasticAdministration, bool managed = false, bool allowGitAdministration = false)
         {
             if (!OperatingSystem.IsWindows()) throw new WorkspaceException("OriginalApplyUnsupported", "Conditional publication requires Windows NTFS.");
             this.project = Path.GetFullPath(project);
@@ -189,7 +192,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
                 if (fs.ToString() != (managed ? "SplinterSO" : "NTFS")) throw new WorkspaceException("OriginalApplyUnsupported", "The fixed original filesystem differs from its verified access contract.");
                 for (string? p = this.project; p is not null; p = Path.GetDirectoryName(p))
                     foreach (string vcs in new[] { ".git", ".plastic", ".hg", ".svn" })
-                        if (Present(Path.Combine(p, vcs)) && !(allowPlasticAdministration && vcs == ".plastic" && p == this.project))
+                        if (Present(Path.Combine(p, vcs)) && !(p == this.project && (allowPlasticAdministration && vcs == ".plastic" || allowGitAdministration && vcs == ".git")))
                             throw new WorkspaceException("VcsMetadataUnsupported", "VCS administration requires its explicit compatibility boundary.");
             }
             catch { Dispose(); throw; }

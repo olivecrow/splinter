@@ -11,8 +11,8 @@ using Splinter.SourceControl.Files;
 
 namespace Splinter.Platform.Windows;
 
-public sealed class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspacePreparationObserver? preparationObserver = null,
-    IGeneratedDirectoryDependencies? generatedDirectories = null, IGeneratedDirectoryDependencies? projectDirectories = null) : ISnapshotWorkspaceBackend
+public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspacePreparationObserver? preparationObserver = null,
+    IGeneratedDirectoryDependencies? generatedDirectories = null, IGeneratedDirectoryDependencies? projectDirectories = null) : ISnapshotWorkspaceBackend, ISourceGenerationBackend
 {
     private IGeneratedDirectoryDependencies Dependencies(WorkspaceRecord w) =>
         (w.StorageMode == "project-snapshot" ? projectDirectories : generatedDirectories) ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Compose the exact basis dependency manager.");

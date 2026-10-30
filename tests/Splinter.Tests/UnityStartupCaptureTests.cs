@@ -73,11 +73,13 @@ public sealed class UnityStartupCaptureTests
     [InlineData("provider")]
     [InlineData("mount")]
     [InlineData("missing")]
+    [InlineData("prior-version")]
     public void ReleasedMissingOrUnownedWorkspaceIsNotAValidCapture(string failure)
     {
         if (!OperatingSystem.IsWindows()) return;
         using var f = new Fixture();
         if (failure == "released") f.WriteWorkspace("released");
+        if (failure == "prior-version") f.WriteWorkspace(version: 2);
         if (failure == "missing") Directory.Delete(f.Root, true);
         Assert.Throws<IOException>(() => f.Run(_ => failure != "provider", _ => failure != "mount"));
         Assert.False(Directory.Exists(f.Output));
@@ -241,9 +243,9 @@ public sealed class UnityStartupCaptureTests
             PutJson(Path.Combine(overlay, "provider-launch-receipt.json"), new { token = "provider-secret", processId = 11, startTimeUtcTicks = 111L });
             Options = new StartupCapture.Options { Stage = "before-start", ControlPath = Control, OutputPath = Output };
         }
-        internal void WriteWorkspace(string phase = "ready") => PutJson(Path.Combine(Control, "workspace.json"), new
+        internal void WriteWorkspace(string phase = "ready", int version = Splinter.Core.WorkspaceRecord.CurrentVersion) => PutJson(Path.Combine(Control, "workspace.json"), new
         {
-            version = 2, applicationKind = "unity", storageMode = "git-snapshot", phase, id = Id, path = Root,
+            version, applicationKind = "unity", storageMode = "git-snapshot", phase, id = Id, path = Root,
             projectPath = Path.Combine(Directory.Path, "original"), requestDigest = "digest", baseRevision = "revision", generatedDirectoryId = "library",
             snapshot = new { attached = true, reference = new { id = "basis" }, mount = new { id = Id, path = Root, providerProcessId = 11, providerStartTimeUtcTicks = 111L } }
         });

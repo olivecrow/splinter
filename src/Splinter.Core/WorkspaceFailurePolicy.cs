@@ -9,6 +9,8 @@ public static class WorkspaceFailurePolicy
         "GitBasisRefChanged" or "GitBasisReceiptInvalid" or "GitBasisObjectInvalid" or
         "SourceCacheVersionUnsupported" or "GitAttributeOutputInvalid" or
         "FileSourceStateInvalid" or "FileResultIncomplete" or
+        "StateVersionUnsupported" or "SourceCaptureInvalid" or "SourceCaptureBackingInvalid" or "SourceCaptureIdentityMismatch" or
+        "SourceCaptureIncomplete" or "SourceCaptureRequestConflict" or "SourceCapturePending" or "LiveOriginalIdentityMismatch" or
         "OriginalApplyStateInvalid" or "OriginalApplyPending" or "OriginalApplyRequestConflict" or "OriginalApplyConflict" or
         "OriginalApplyNativeFailure" or "OriginalApplyPlanChanged" or "OriginalApplyResultFixed" or "OriginalApplyResourcesPresent" or
         "DiscardIntentMismatch" or "DiscardDeltaChanged" or "DiscardSourceChanged" or "DiscardRequestConflict" or "DeltaChangedAfterCollection" or "SnapshotResultInvalid" or "StateCorrupt" or
@@ -23,7 +25,7 @@ public static class WorkspaceFailurePolicy
 
     public static string RetryDisposition(string code) => RequiresPreservation(code) ? "requires-user-action" : code switch
     {
-        "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "SourceObservationUncertain" or "SourceChanged" or "ViewResourcesBusy" or "CandidatePublicationBusy" => "safe-to-retry",
+        "SourceCaptureUncertain" or "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "SourceObservationUncertain" or "SourceChanged" or "ViewResourcesBusy" or "CandidatePublicationBusy" => "safe-to-retry",
         "WorkspaceDiscardUnavailable" or "WorkspaceDiscarding" or "DiscardOwnershipUnknown" or
         "GitBasisUnavailable" or "ProcessOwnershipUnknown" or "SnapshotHeadroomRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or
         "OverlayStartUncertain" or "SnapshotStateMissing" or "SnapshotCheckpointMismatch" or "SnapshotPreparationIncomplete" or "SnapshotOperationIncomplete" or

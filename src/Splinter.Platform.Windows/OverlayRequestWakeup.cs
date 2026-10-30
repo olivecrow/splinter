@@ -30,7 +30,7 @@ internal sealed class OverlayRequestWakeup : IDisposable
 
     private void Changed(object sender, FileSystemEventArgs change)
     {
-        if (change.Name is "stop.json" or "flush.json" or "source-query.json") Signal();
+        if (change.Name is "stop.json" or "flush.json" or "source-query.json" or "capture-source.json") Signal();
     }
     private void Signal()
     {

@@ -84,23 +84,23 @@
     },
     {
       "id": "workspace.checkpoint",
-      "description": "Stop the owned application and preserve an independent source result; optionally release the range-journal workspace without integrating. No compile claim.",
-      "cliUsage": "splinter workspace checkpoint --id <id> --message <message> [--release] [--home <state-root>]",
+      "description": "Capture one immutable independent source generation while retaining the task and running Editor; optionally stop and reclaim for final preservation.",
+      "cliUsage": "splinter workspace checkpoint --id <id> --request-key <key> --message <message> [--release] [--home <home>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-checkpoint-request",
       "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "owned-source-commit; release:true also reclaims owned workspace resources",
-      "retry": "same-workspace-and-source; release:true resumes the same owned release"
+      "sideEffects": "owned-generation-pins-independent-results; optional-owned-editor-stop-and-reclamation",
+      "retry": "same-workspace-request-key-and-message; never recapture a later source for an existing request"
     },
     {
       "id": "workspace.integrate",
-      "description": "Integrate an exact Git result into its clean branch, or plan/apply full or selected plain-folder/recorded-Plastic changes to their fixed original on Windows NTFS.",
-      "cliUsage": "splinter workspace integrate --id <id> [--target <Git-branch|original>] [--plan | --intent-key <key> --expected-plan-digest <digest>] [--path <relative-path> ...] [--home <state-root>]",
+      "description": "Conditionally publish an exact source generation to the original without moving Git HEAD/index; explicit clean-target Git branch merge remains separate.",
+      "cliUsage": "splinter workspace integrate --id <id> --target original --result <id> [--plan | --intent-key <key> --expected-plan-digest <digest>] [--path <path>] [--live-original <receipt.json>] [--home <home>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-integrate-request",
       "outputSchema": "urn:splinter:v1:response",
-      "sideEffects": "plan:read-only; Git:original-target-merge; files:conditional-per-path-publication; Plastic:no-server-mutation",
-      "retry": "Git:same-workspace-and-target; files:exact-intent-and-plan-digest-and-selection"
+      "sideEffects": "plan:read-only; original:conditional-per-path-publication-without-Git-HEAD-index-mutation; branch:explicit-clean-target-Git-merge; Plastic:no-server-mutation",
+      "retry": "same-result-intent-digest-selection-and-live-original-identity; completed requests never republish"
     },
     {
       "id": "workspace.release",

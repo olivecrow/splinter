@@ -158,8 +158,8 @@ public sealed partial class FileWorkspaceTests
         var d = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(original)!;
         d.Remove("sourceKind"); File.WriteAllText(path, JsonSerializer.Serialize(d));
         Assert.Equal("StateCorrupt", Assert.Throws<WorkspaceException>(() => f.Store.Get(w.Id)).Code);
-        File.WriteAllText(path, original.Replace("\"version\": 2", "\"version\": 1", StringComparison.Ordinal));
-        Assert.Equal("StateCorrupt", Assert.Throws<WorkspaceException>(() => f.Store.Get(w.Id)).Code);
+        File.WriteAllText(path, original.Replace("\"version\": 3", "\"version\": 2", StringComparison.Ordinal));
+        Assert.Equal("StateVersionUnsupported", Assert.Throws<WorkspaceException>(() => f.Store.Get(w.Id)).Code);
         Assert.True(Directory.Exists(w.Path)); Assert.Empty(f.Backend.Released);
     }
 
@@ -247,7 +247,7 @@ public sealed partial class FileWorkspaceTests
         public async Task DiscardDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct) { await files.VerifyDiscardedAsync(w, c, ct); backend.Removed.Add(w.Id); }
         public Task<SnapshotReclamation> DiscardSnapshotAsync(WorkspaceRecord w, string c, CancellationToken ct) => backend.ReleaseSnapshotAsync(w, c, ct);
     }
-    private sealed class Backend : ISnapshotWorkspaceBackend
+    private sealed partial class Backend : ISnapshotWorkspaceBackend
     {
         public FixtureRevisions Revisions = null!;
         public int Captures; public string? Fail; public bool ChangeSeal;
@@ -259,10 +259,18 @@ public sealed partial class FileWorkspaceTests
         {
             if (!receipts.TryGetValue(w.Id, out var r))
             {
-                string root = Path.Combine(c, "fake-immutable"); Copy(w.ProjectPath, root);
+                string root = Path.Combine(c, "fake-immutable");
+                if (w.SourceKind != "plastic") Copy(w.ProjectPath, root);
                 receipts[w.Id] = r = w.SourceKind == "plastic"
                     ? await new PlasticRevisionSnapshotProvider(Path.Combine(c, "snapshot"), w.Id, w.BaseReference, client: Revisions).CaptureAsync(new(w.ProjectPath, w.Id, Path.Combine(c, "snapshot")), ct)
                     : new(w.Id, "fake", w.ProjectPath, root, DateTimeOffset.UtcNow, true, true, "fake"); Captures++;
+                if (w.SourceKind == "plastic")
+                {
+                    var recorded = new PlasticRevisionSnapshotProvider(Path.Combine(c, "snapshot"), w.Id, client: Revisions);
+                    using var lease = recorded.AcquireReadLease();
+                    using var tree = recorded.OpenTree(r, await recorded.ResolveReadAccessAsync(r, ct));
+                    Materialize(tree, "", root);
+                }
             }
             if (w.SourceKind == "none") w.GeneratedDirectory = new(w.GeneratedDirectoryId!, w.ProjectPath, "", r, c, w.GeneratedDirectoryId!, new string('a', 64));
             Lost("capture"); return r;

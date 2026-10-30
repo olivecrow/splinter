@@ -105,13 +105,15 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     public OverlayIdentity Identity { get; }
 
     public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, bool optimizeJournal = true,
-        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null, bool initialContentGeneration = false, long? boundedLogBytes = null)
+        Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null, bool initialContentGeneration = false, long? boundedLogBytes = null,
+        IJournalFilePins? sourceFilePins = null)
         : this(directory, identity, snapshot, "delta.journal", false, null, optimizeJournal, directoryGuardFactory,
-            initialContentGeneration: initialContentGeneration, boundedLogBytes: boundedLogBytes) { }
+            initialContentGeneration: initialContentGeneration, boundedLogBytes: boundedLogBytes, sourceFilePins: sourceFilePins) { }
 
     public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot,
-        IJournalMutationObserver mutationObserver, bool optimizeJournal = true, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null, long? boundedLogBytes = null)
-        : this(directory, identity, snapshot, "delta.journal", false, mutationObserver, optimizeJournal, directoryGuardFactory, boundedLogBytes: boundedLogBytes) { }
+        IJournalMutationObserver mutationObserver, bool optimizeJournal = true, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null, long? boundedLogBytes = null,
+        IJournalFilePins? sourceFilePins = null)
+        : this(directory, identity, snapshot, "delta.journal", false, mutationObserver, optimizeJournal, directoryGuardFactory, boundedLogBytes: boundedLogBytes, sourceFilePins: sourceFilePins) { }
 
     private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName, bool readOnly = false)
         : this(directory, identity, snapshot, journalName, readOnly, null) { }
@@ -124,11 +126,12 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         bool readOnly, IJournalMutationObserver? mutationObserver, bool optimizeJournal = false,
         Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null,
         long decodedPayloadCacheBytes = JournalDecodedPayloadCache.DefaultBudgetBytes, bool initialContentGeneration = false, long? boundedLogBytes = null,
-        bool skipBoundedPreparation = false)
+        bool skipBoundedPreparation = false, IJournalFilePins? sourceFilePins = null)
     {
         decodedPayloadCache = new(decodedPayloadCacheBytes);
         this.mutationObserver = mutationObserver;
         this.directoryGuardFactory = directoryGuardFactory;
+        this.sourceFilePins = sourceFilePins;
         pathPolicy = WorkspacePathPolicy.For(identity.Snapshot);
         paths = new(pathPolicy.Comparer); children = new(pathPolicy.Comparer);
         hidden = new(pathPolicy.Comparer); pathChanges = new(pathPolicy.Comparer);

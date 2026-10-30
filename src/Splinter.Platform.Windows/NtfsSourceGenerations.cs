@@ -1,0 +1,85 @@
+using System.Text.Json;
+using Splinter.Core;
+using Splinter.Runtime;
+
+namespace Splinter.Platform.Windows;
+
+public sealed partial class NtfsSnapshotWorkspaceBackend
+{
+    private static string CapturePath(string control, string id)
+    {
+        if (id.Length != 24 || id.Any(c => !char.IsAsciiHexDigit(c)))
+            throw new WorkspaceException("SourceCaptureRequestInvalid", "Require a fixed owned generation ID.");
+        string path = Path.Combine(control, "captures", id); WorkspaceStore.EnsurePlainPath(path); return path;
+    }
+    public async Task<SourceCaptureIdentity> CaptureSourceAsync(WorkspaceRecord w, string control, string id, CancellationToken ct = default)
+    {
+        string destination = CapturePath(control, id);
+        if (!File.Exists(Path.Combine(destination, "capture.json")))
+        {
+            var request = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Reconnect this task's provider before capturing source.");
+            var observed = await ObserveAsync(w, control, ct);
+            if (observed is not { ProviderAlive: true, Mounted: true, OwnershipVerified: true })
+                throw new WorkspaceException("OverlayNotReady", "Live source capture requires the exact owned provider.");
+            string requestId = Guid.NewGuid().ToString("N");
+            await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "capture-source.json"),
+                new { request.Token, requestId, id, w.ManagedPaths }, ct);
+            bool completed = false;
+            for (int attempt = 0; attempt < 1200; attempt++)
+            {
+                ct.ThrowIfCancellationRequested();
+                var receipt = await WindowsProcessWorkspaceProvider.ReadAsync<JsonElement>(Path.Combine(request.ControlPath, "capture-source-result.json"), ct, waitForPublication: false);
+                if (receipt.ValueKind == JsonValueKind.Object && receipt.GetProperty("token").GetString() == request.Token && receipt.GetProperty("requestId").GetString() == requestId)
+                {
+                    if (receipt.GetProperty("captureError").GetString() is { } error)
+                        throw new WorkspaceException(error, "Capture did not complete; preserve its exact request and backing pins.");
+                    completed = true; break;
+                }
+                await Task.Delay(100, ct);
+            }
+            if (!completed) throw new WorkspaceException("SourceCaptureUncertain", "Observe this exact generation before retrying; no new source generation is authorized.");
+        }
+        var captured = SourceCaptureTree.ReadCapture(destination);
+        ValidateCapture(w, captured, id);
+        return new(id, captured.Sequence, captured.Digest);
+    }
+    private static void ValidateCapture(WorkspaceRecord w, JournalSourceCapture captured, string id)
+    {
+        if (captured.Id != id || !SourceCaptureTree.SameIdentity(captured.Identity, Identity(w)) || !captured.ManagedPaths.SequenceEqual(w.ManagedPaths) ||
+            w.Results.SingleOrDefault(r => r.Id == id) is { } result && (result.CaptureDigest != captured.Digest || result.SourceSequence != captured.Sequence))
+            throw new WorkspaceException("SourceCaptureIdentityMismatch", "The generation belongs to another workspace request.");
+    }
+    public async Task<ISourceCaptureTree> OpenSourceCaptureAsync(WorkspaceRecord w, string control, string id, CancellationToken ct = default)
+    {
+        ValidateCapture(w, SourceCaptureTree.ReadCapture(CapturePath(control, id)), id);
+        var request = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Preserve the captured source without its exact basis request.");
+        var lease = WorkspaceSnapshotBasis.AcquireReadLease(request.Identity.Snapshot, request.SnapshotReceiptDirectory!, request.SnapshotOwnerId!);
+        IDisposable? treeOwner = null;
+        try
+        {
+            var tree = WorkspaceSnapshotBasis.OpenTree(request.Identity.Snapshot, request.ReadAccess, request.SnapshotReceiptDirectory, request.SnapshotOwnerId);
+            treeOwner = tree;
+            return new OwnedSourceCapture(new SourceCaptureTree(CapturePath(control, id), tree, new WindowsJournalFilePins()), tree, lease);
+        }
+        catch { treeOwner?.Dispose(); lease.Dispose(); throw; }
+    }
+    public Task CompleteSourceCaptureAsync(WorkspaceRecord w, string control, string id, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        ValidateCapture(w, SourceCaptureTree.ReadCapture(CapturePath(control, id)), id);
+        SourceCaptureTree.Complete(CapturePath(control, id), new WindowsJournalFilePins());
+        return Task.CompletedTask;
+    }
+    private sealed class OwnedSourceCapture(SourceCaptureTree captured, IDisposable tree, IDisposable lease) : ISourceCaptureTree
+    {
+        public ISnapshotTree Basis => captured.Basis;
+        public string[] ChangedPaths => captured.ChangedPaths;
+        public SnapshotReference Snapshot => captured.Snapshot;
+        public bool SupportsConcurrentReads => captured.SupportsConcurrentReads;
+        public void EnsureAvailable() => captured.EnsureAvailable();
+        public SnapshotEntry? Stat(string path) => captured.Stat(path);
+        public IReadOnlyList<SnapshotEntry> List(string path) => captured.List(path);
+        public int Read(string path, long offset, Span<byte> destination) => captured.Read(path, offset, destination);
+        public void Dispose() { captured.Dispose(); tree.Dispose(); lease.Dispose(); }
+    }
+}

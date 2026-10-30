@@ -25,14 +25,15 @@ public static class WorkspaceActions
         if (command == "workspace.ensure") return Ensure(w, home) with { RequiresUserAction = requiresUser };
         object arguments = command switch
         {
-            "workspace.integrate" when w.SourceKind is "none" or "plastic" => OriginalApply(w, view.OriginalApplyPlan, home),
+            "workspace.integrate" when w.SourceKind is "none" or "plastic" || view.OriginalApplyPlan is not null || w.OriginalApply is { Completed: false } => OriginalApply(w, view.OriginalApplyPlan, home),
+            "workspace.checkpoint" when w.CaptureIntent is { } capture => new { id = w.Id, capture.RequestKey, capture.Message, home },
             "workspace.discard" when w.Discard is { } discard => new { id = w.Id, discard.Intent.IntentKey, expectedRequestDigest = discard.Intent.RequestDigest, home },
             "workspace.list" => new { home },
             _ => new { id = w.Id, home }
         };
         return new(command, arguments, requiresUser);
     }
-    private static object OriginalApply(WorkspaceRecord w, OriginalApplyPlan? plan, string home) => w.OriginalApply is { } apply
-        ? new { id = w.Id, target = "original", apply.IntentKey, expectedPlanDigest = apply.Plan.Digest, paths = apply.Plan.SelectedPaths, home }
-        : (object)new { id = w.Id, target = "original", plan = true, paths = plan?.SelectedPaths, home };
+    private static object OriginalApply(WorkspaceRecord w, OriginalApplyPlan? plan, string home) => w.OriginalApply is { Completed: false } apply
+        ? new { id = w.Id, target = "original", result = apply.Plan.ResultId, apply.IntentKey, expectedPlanDigest = apply.Plan.Digest, paths = apply.Plan.SelectedPaths, home }
+        : (object)new { id = w.Id, target = "original", result = plan?.ResultId ?? w.Results.LastOrDefault()?.Id, plan = true, paths = plan?.SelectedPaths, home };
 }

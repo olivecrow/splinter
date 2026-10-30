@@ -35,6 +35,7 @@ internal sealed class LatestJournalStorage
     private readonly byte[] ownerBytes;
     private readonly long limit;
     private readonly IJournalDirectoryGuard? directoryGuard;
+    private readonly IJournalFilePins? filePins;
     private readonly Dictionary<string, Location> objects = new(StringComparer.Ordinal);
     private readonly Dictionary<string, HashSet<string>> objectsByPath = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Frame> frames = new(StringComparer.Ordinal);
@@ -108,14 +109,15 @@ internal sealed class LatestJournalStorage
     private static FileStream Open(string path) => new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
     internal static bool IsLatest(string path) { using var f = Open(path); Span<byte> b = stackalloc byte[4]; return f.Read(b) == 4 && b[..3].SequenceEqual("SJL"u8); }
     internal LatestJournalStorage(string path, OverlayIdentity identity, bool readOnly, IJournalDirectoryGuard? directoryGuard = null,
-        int bufferedBlockAddressLimit = MaxBufferedBlockAddresses)
-        : this(path, identity, readOnly, null, directoryGuard, bufferedBlockAddressLimit) { }
+        int bufferedBlockAddressLimit = MaxBufferedBlockAddresses, IJournalFilePins? filePins = null)
+        : this(path, identity, readOnly, null, directoryGuard, bufferedBlockAddressLimit, filePins) { }
     private LatestJournalStorage(string path, OverlayIdentity identity, bool readOnly, SealHash? sealing, IJournalDirectoryGuard? directoryGuard,
-        int bufferedBlockAddressLimit)
+        int bufferedBlockAddressLimit, IJournalFilePins? filePins = null)
     {
         if (bufferedBlockAddressLimit is < 0 or > MaxBufferedBlockAddresses) throw new ArgumentOutOfRangeException(nameof(bufferedBlockAddressLimit));
         this.sealing = sealing;
         this.directoryGuard = directoryGuard;
+        this.filePins = filePins;
         rootPath = path; owner = Hash(JsonSerializer.SerializeToUtf8Bytes(identity)); ownerBytes = Convert.FromHexString(owner); limit = identity.MaxJournalBytes;
         using var root = Open(path);
         Current = ReadRoot(root); if (Current.IdentityHash != owner) throw Corrupt("The journal has another identity.");
@@ -568,6 +570,10 @@ internal sealed class LatestJournalStorage
             if (File.Exists(p))
             {
                 long reclaimed = 0;
+                // Preserve a linked frozen generation before shortening this
+                // capsule. Deleting a name needs no copy: its capture link
+                // continues to own the old NTFS file independently.
+                if (r.KeepBytes > 0) filePins?.DetachBeforeTruncate(p, r.KeepBytes);
                 // Revalidate the current physical target after publication.
                 // Keep the same deny-write/delete handle through truncation;
                 // deletion closes it immediately before the existing path delete.

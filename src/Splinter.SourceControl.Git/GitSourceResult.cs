@@ -7,7 +7,7 @@ namespace Splinter.SourceControl.Git;
 
 // Builds independent objects directly from the frozen logical source. No checkout,
 // mutable index, hydration directory, filters or worker branch is used.
-public static class GitSourceResult
+public static partial class GitSourceResult
 {
     public static async Task<(string Reference, string Hash)> PreserveAsync(string project, string baseRevision,
         string operationId, ISnapshotTree tree, string[] changedPaths, string[] managedPaths, CancellationToken ct)

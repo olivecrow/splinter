@@ -2,10 +2,26 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "sourceIdentity": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
-    "selectedPaths": { "type": "array", "minItems": 1, "maxItems": 512, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 1024 } },
+    "sourceIdentity": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "selectedPaths": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      }
+    },
     "version": {
-      "const": 1
+      "enum": [
+        1,
+        2
+      ]
     },
     "ownerId": {
       "type": "string",
@@ -46,6 +62,18 @@
       }
     },
     "digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "resultId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24}$"
+    },
+    "previousApplyDigest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "liveOriginalIdentity": {
       "type": "string",
       "pattern": "^sha256:[a-f0-9]{64}$"
     }
@@ -220,5 +248,24 @@
         }
       ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "version": {
+            "const": 2
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "then": {
+        "required": [
+          "resultId"
+        ]
+      }
+    }
+  ]
 }
