@@ -5,6 +5,8 @@ Current task state is v3. [Repeated original application](repeated-original-appl
 
 [한국어](ko/README.md)
 
+[Git collection optimization](plans/git-collection-optimization.md) and [GCO-01–04 qualification](verification/git-collection-optimization.md) own scoped Git readers with full publication revalidation and one fresh capture in combined finalization. The small Editor-free before/after comparison and full gate are separate from historical Unity timings.
+
 [Git result collection diagnosis](verification/git-result-collection-diagnosis.md) owns GCD-01: retained RI input replay attributes the continuing-task reader's repeated basis checks, while actual logs place 84.2% of A release in final recapture. No product optimization or old/new speed comparison was performed.
 
 [README Unity time recheck](verification/unity-readme-recheck.md) owns RR-01: current `2dff94d` 428.6s versus shared 102.0s; same-input preparation/restoration saves 75.1s, with historical Library differences, old-candidate shutdown recovery and changed-Library diagnostics kept separate.

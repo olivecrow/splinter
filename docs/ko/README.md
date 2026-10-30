@@ -1,5 +1,7 @@
 # 문서 지도
 
+[Git 수집 최적화](plans/git-collection-optimization.md)·[GCO-01–04 검증](verification/git-collection-optimization.md)이 게시 경계 전체 재검증을 유지하는 Git 범위 reader·새 결합 최종화의 수집 한 번 공유를 소유한다. 작은 Editor 없는 전후 비교·전체 gate를 과거 Unity 시간과 구분한다.
+
 [Git 결과 수집·회수 진단](verification/git-result-collection-diagnosis.md)이 GCD-01을 소유한다. 기존 RI 입력 재현에서 계속 작업 reader의 반복 기준본 검사에 비용을 귀속했고 실제 로그에서 A 회수의 84.2%가 최종 재수집에 속함을 확인했다. 제품 최적화나 구버전 대비 속도 비교는 수행하지 않았다.
 
 현재 task 상태는 v3다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 불변 수집·명시적 결과 선택·경로별 반영 이력·외부 도구의 실행 중 Editor 협력을 소유하며 [RI 자격](verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분한다. 관리형 basis 상태는 v2를 유지하며 이전 task는 이관 없이 보존·거부한다. RI-01–08은 Git/None/Plastic 각각 작은 고정 실제 Unity 원본/A/B 한 묶음·최종 현재 소스 회귀·명시한 미검증 한계로 한정 완료했다.

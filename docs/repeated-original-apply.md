@@ -2,6 +2,8 @@
 
 [한국어](ko/repeated-original-apply.md)
 
+For a fresh `checkpoint --release` request, normal stop and infrastructure removal precede full pre/post seals around one capture. That same operation's sealed generation proceeds into release without a second capture; the post-unmount seal remains mandatory. An already fixed/published request retry cannot reuse a new invocation's seals for its older result. It returns the fixed requested result and separately collects current source for closure. Standalone release also collects current source. See [GCO scope](plans/git-collection-optimization.md).
+
 This document owns continuing-task result generations and file publication to an original project. [Scope](plans/repeated-original-apply.md) and [RI-01–08 qualification](verification/repeated-original-apply.md) distinguish implementation, automated checks and actual Unity inputs. The fixed small Git, ordinary-folder and Plastic Unity original/A/B sequences and final full gate passed; RI-01–08 are scoped-complete with explicit input/tool/OS and cost limits.
 
 ## Lifetimes and identities

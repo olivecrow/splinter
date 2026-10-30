@@ -2,6 +2,8 @@
 
 [English](../../verification/repeated-original-apply.md)
 
+후속 [GCO-01–04](git-collection-optimization.md)는 현재 소스/전체 gate·작은 Editor 없는 입력에서 Git 범위 reader와 새 결합 수집 한 번을 검증한다. 이 native 근거가 아래 RI Unity 자격을 재실행하거나 확대하지 않는다.
+
 [GCD-01](git-result-collection-diagnosis.md)은 보존된 Git 입력의 계속 작업 수집·회수 비용을 별도로 진단한다. 기준본 가용성 프로세스 반복과 최종 재수집을 확인했으며 RI 자격 변경이나 구버전 대비 속도 비교를 주장하지 않는다.
 
 [승인 범위](../plans/repeated-original-apply.md), 기준 `aff285f0da769eeaba0300d448f027ceeaa4a5bb` 위 development 작업 트리, 2026-10-30. **아래 한계를 유지하며 RI-01–08을 한정 완료했다. 세 입력의 고정 실제 Unity 순서와 최종 자격 전체 gate가 통과했다.** 과거 Unity 통과나 선택 시험 skip으로 필수 RI 행을 대체하지 않는다.

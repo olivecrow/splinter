@@ -4,6 +4,8 @@
 
 [English](../foundation.md)
 
+[GCO-01–04](verification/git-collection-optimization.md)가 현재 Git 수집 최적화의 한정 자격을 소유한다. 정확한 lease 아래 로컬 ref/receipt 검사·게시 시 전체 재검증을 하는 범위 reader와 전체 seal·재시도 의미를 유지하는 새 결합 checkpoint/release의 수집 한 번 공유다. wire schema·영속 버전을 유지한다.
+
 [수명주기 병목 후속](plans/lifecycle-bottlenecks.md)은 최종 전체 일치·metadata 변경·기존 leaf 삭제의 Library 디렉터리 복원과 선택적 쓰기/Git 관측·읽기 전용 시작 캡처를 설명한다. 미지원 내용/구조 변경은 일반 파일별 복원을 유지한다. [BO 검증](verification/lifecycle-bottlenecks.md)은 구성 요소 증거와 실제 Unity 수명주기 자격을 구분한다.
 
 기준본·변경분·seal·intent와 종료 명령의 차이는 [용어집](glossary.md)을 참고한다.

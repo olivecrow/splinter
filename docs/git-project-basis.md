@@ -3,6 +3,8 @@
 
 [한국어](ko/git-project-basis.md)
 
+Continuing-task collection uses a scoped reader under the exact basis reader lease. For a loose owned basis ref, it fences only that ref and its receipt, checks current ref/receipt content locally during reads, and performs full Git revalidation at independent publication boundaries. Packed-only basis refs keep full per-read observations; packed payload objects remain supported. The scope neither locks HEAD/index/branches nor changes state versions. Blob/tree content proofs and reader draining remain. See [the bounded optimization scope](plans/git-collection-optimization.md).
+
 `--storage git-snapshot --source git` uses the tree/blobs of a recorded project commit as its basis. The original stays at its existing NTFS location and can be edited or advanced to another branch state while work proceeds. Creation, reads, resumption, compaction, and reclamation invoke neither VSS nor the storage-privilege service. Legacy `ntfs-snapshot` is retired and preserved/rejected without automatic conversion.
 
 ```powershell

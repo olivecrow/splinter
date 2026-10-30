@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/repeated-original-apply.md)
 
+Subsequent [GCO-01–04](git-collection-optimization.md) qualifies the scoped Git reader and single fresh combined capture on the current source/full gate and a small Editor-free input. Its native evidence does not rerun or expand the RI Unity qualification below.
+
 [GCD-01](git-result-collection-diagnosis.md) separately diagnoses the retained Git input's continuing-task collection/reclamation cost. It identifies repeated basis-availability processes and final recapture without changing RI qualification or claiming an old/new speed comparison.
 
 [Approved scope](../plans/repeated-original-apply.md), base `aff285f0da769eeaba0300d448f027ceeaa4a5bb`, development working tree, 2026-10-30. **RI-01–08 are scoped-complete with the limitations below. All three fixed actual Unity inputs and the final qualification full gate passed.** Earlier Unity passes and optional skips do not substitute for required RI rows.

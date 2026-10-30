@@ -5,6 +5,8 @@ Current task state is v3. [Repeated original application](repeated-original-appl
 
 [한국어](ko/foundation.md)
 
+[GCO-01–04](verification/git-collection-optimization.md) qualifies the current bounded Git collection optimization: exact-lease scoped readers with local ref/receipt checks and full publication revalidation; one same-operation fresh capture for combined checkpoint/release, retaining full seals and retry semantics. Wire schemas and persisted versions remain unchanged.
+
 See the [glossary](glossary.md) for bases, deltas, seals, intents, and distinctions between completion commands.
 
 The [lifecycle bottleneck follow-up](plans/lifecycle-bottlenecks.md) describes current Library directory restoration for exact final equality, metadata updates and deleted original leaves, plus opt-in write/Git observations and read-only startup capture. Unsupported content/topology changes retain the general file restoration route. [BO verification](verification/lifecycle-bottlenecks.md) separates component evidence from actual Unity lifecycle qualification.

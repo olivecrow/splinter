@@ -2,6 +2,8 @@
 
 [English](../repeated-original-apply.md)
 
+새 `checkpoint --release` 요청은 정상 종료·infrastructure 제거 뒤 한 번의 수집을 전체 전후 seal로 감싼다. 같은 호출이 seal한 generation으로 두 번째 수집 없이 회수하며 unmount 뒤 seal은 필수다. 이미 고정/게시된 요청의 재시도는 새 호출의 seal로 과거 결과를 재사용하지 않는다. 요청의 고정 결과를 반환하고 마감용 현재 소스를 별도로 수집한다. 독립 release도 현재 소스를 수집한다. [GCO 범위](plans/git-collection-optimization.md)를 따른다.
+
 이 문서가 작업을 계속하는 결과 버전과 원본 파일 게시 계약을 소유한다. [범위](plans/repeated-original-apply.md)와 [RI-01–08 검증](verification/repeated-original-apply.md)은 구현·자동 시험·실제 Unity 입력을 구분한다. 작은 고정 Git·일반 폴더·Plastic Unity 원본/A/B 순서와 최종 전체 gate가 통과했으며 RI-01–08은 입력/도구/OS·비용 한계를 유지해 한정 완료했다.
 
 ## 수명과 identity

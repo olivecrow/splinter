@@ -2,7 +2,7 @@
 
 [English](../lifecycle-optimization-map.md) · [기계 판독 색인](../lifecycle-optimization-map.json) · [문서 지도](README.md)
 
-**코드 기준:** 기준 `aff285f0da769eeaba0300d448f027ceeaa4a5bb` 이후 커밋 `b51f18fb6d4515a149975bbe6b3bf334804e1217`의 반복 원본 반영 소스, `development`, 2026-10-30 확인. JSON이 현재 소스 hash/symbol을 기록한다. 현재 실행 중 수집·반복 게시의 자격은 [RI](verification/repeated-original-apply.md)가 소유한다. 기존 MX05/MX08A 채택·완료한 MX10 및 BO/PR/RT/BD 성능은 정확한 과거 후보의 근거이며 새 수명주기의 자격으로 승계하지 않는다.
+**코드 기준:** `f91e470` 위 커밋 `0432721a1ce1f7042994d5f75146a5e8004a1c5b`의 GCO 소스, `development`, 2026-10-30 확인. JSON이 현재 소스 hash/symbol을 고정한다. 현재 수집/최종화의 한정 자격은 [GCO](verification/git-collection-optimization.md)가 소유한다. [RI](verification/repeated-original-apply.md)와 과거 MX/BO/PR/RT/BD 시간은 후보/입력별 당시 근거로 유지한다.
 
 **AI 읽기 순서:** §§1–3에서 identity·경로를 파악하고, §4에서 단계별 동작, §§5–7에서 직렬화·비용·복구, §8에서 실제 코드를 확인한다. 계약 수정 전에는 연결된 기능 소유 문서를 읽는다. 명령 사용 절차 원본은 [Splinter 스킬](../../skills/splinter/SKILL.md)이다.
 
@@ -262,7 +262,8 @@ flowchart TD
   Intent["Runtime: 정확한 수집 요청 영속화"] --> Freeze["callback/mutation gate: flush; metadata/범위; 영속 보호"]
   Freeze --> Continue["mutation gate 해제; 후속 쓰기 지속"]
   Continue --> Scan["고정된 captured tree와 basis scan"]
-  Scan --> Route{"독립 payload 저장소"}
+  Scan --> Boundary["게시 경계에서 범위 외부 상태 전체 재검증"]
+  Boundary --> Route{"독립 payload 저장소"}
   Route -->|Git| Git["독립 Git ref/객체; 결과 blob stream"]
   Route -->|None / recorded Plastic| Files["결과 버전 간 내용 기반 전체 파일 객체 재사용"]
   Git --> Proof["독립 결과 버전/객체 검증"]
@@ -273,9 +274,11 @@ flowchart TD
   Unpin --> Next["E20 지속 또는 고정 결과 게시"]
 ```
 
+Git 수집은 정확한 reader lease 아래 자신의 loose ref·receipt만 fence한다. 읽는 동안 로컬 검사하고 `VerifyReadBoundary`로 영속 게시 전 Git을 전체 재검증한다. packed-only basis ref는 기존 읽기마다 전체 observation을 유지한다. HEAD·index·branch·공유 packed-ref fence를 획득하지 않는다 [K33].
+
 적격 local payload/proof는 최대 8 worker이며 recorded Plastic revision 획득은 직렬이다. 파일 결과는 모든 버전의 내용 재사용과 함께 서로 다른 basis/result 전체 payload를 보존한다. Git은 독립 ref/객체를 유지하며 전체 소스의 중복 파일 저장소를 만들지 않는다. scan·독립 증명·영속 게시는 mutation gate 밖의 실제 비용이다. 실패/응답 유실은 고정 수집을 재개하며 나중 편집을 다시 수집하지 않는다.
 
-최종 R10은 해당 task Editor만 정상 종료하고 bridge 제거·전체 pre-seal 뒤 같은 수집 엔진으로 종료 중 마지막 쓰기까지 포함하고 전체 post-seal 일치를 요구한다. 회수 전에 과거 결과도 모두 검증하며 모든 결과 버전·반영 영수증을 남긴다. `checkpoint --release` 재시도는 요청한 결과를 반환하고 최종 종료 결과도 보존한다. 컴파일 성공을 주장하지 않는다. 이 경로는 [RI](verification/repeated-original-apply.md)가 소유하며 RT 한 번 scan 시간은 과거 정지형 수집 구현의 근거다.
+최종 R10은 해당 task Editor만 정상 종료하고 bridge 제거·전체 pre-seal 뒤 같은 수집 엔진으로 종료 중 마지막 쓰기까지 포함하고 전체 post-seal 일치를 요구한다. 회수 전에 과거 결과도 모두 검증하며 모든 결과 버전·반영 영수증을 남긴다. 새 `checkpoint --release`는 한 호출의 수집 한 번과 전체 seal을 회수에 공유한다. 이전에 고정된 수집의 재시도는 그 요청 결과를 반환하고 마감용 현재 소스를 별도 수집한다. 독립 release도 현재 소스를 수집하며 이전 호출의 seal을 빌려 쓰지 않는다. 컴파일 성공을 주장하지 않는다. 이 경로는 [RI](verification/repeated-original-apply.md)가 소유하며 RT 한 번 scan 시간은 과거 정지형 수집 구현의 근거다.
 
 <a id="a10"></a>
 ### A10 — 명시적 Git 브랜치 merge
@@ -469,7 +472,7 @@ JSON은 같은 단계 ID·edge·source symbol·코드 기준 행 힌트를 기�
 | K30 | [ManagedTopologyDirectoryRestore](../../src/Splinter.Platform.Windows/ManagedTopologyDirectoryRestore.cs): `Eligible`, `PreferFresh`, `CreateAsync`, `ResumeAsync`; [ManagedRestoreTopology](../../src/Splinter.Platform.Windows/ManagedRestoreTopology.cs): `Build`, `Inventory`, `ForestPins` |
 | K31 | [ManagedRestoreControlFiles](../../src/Splinter.Platform.Windows/ManagedRestoreControlFiles.cs): `IsPublicationTemporary`; [WindowsDirectoryTreeProof](../../src/Splinter.Platform.Windows/WindowsDirectoryTreeProof.cs): `PinDirectory`; [WindowsOwnedDirectoryLease](../../src/Splinter.Platform.Windows/WindowsOwnedDirectoryLease.cs): `TransferToRestore` |
 | K32 | [WorkspaceGenerations](../../src/Splinter.Core/WorkspaceGenerations.cs): `WorkspaceResultGeneration`; [WorkspaceGenerations](../../src/Splinter.Runtime/WorkspaceGenerations.cs): `CaptureGenerationCoreAsync`; [JournalSourceCapture](../../src/Splinter.Runtime/JournalSourceCapture.cs): `CaptureSource` |
-| K33 | [NtfsSourceGenerations](../../src/Splinter.Platform.Windows/NtfsSourceGenerations.cs): `CaptureSourceAsync`; [WinFspSourceCapture](../../src/Splinter.Platform.Windows/WinFspSourceCapture.cs): `CaptureSource`; [WindowsJournalFilePins](../../src/Splinter.Platform.Windows/WindowsJournalFilePins.cs): `RecoverCopies` |
+| K33 | [NtfsSourceGenerations](../../src/Splinter.Platform.Windows/NtfsSourceGenerations.cs): `CaptureSourceAsync`; [WinFspSourceCapture](../../src/Splinter.Platform.Windows/WinFspSourceCapture.cs): `CaptureSource`; [WindowsJournalFilePins](../../src/Splinter.Platform.Windows/WindowsJournalFilePins.cs): `RecoverCopies`  [GitSnapshotReadScope](../../src/Splinter.SourceControl.Git/GitSnapshotReadScope.cs): `OpenReadScope`, `VerifyReadBoundary`; [WorkspaceSnapshotBasis](../../src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs): `OpenCaptureTree` |
 | K34 | [FileSourceGenerations](../../src/Splinter.SourceControl.Files/FileSourceGenerations.cs): `PreserveGenerationAsync`; [GitGenerationIntegration](../../src/Splinter.SourceControl.Git/GitGenerationIntegration.cs): `IntegrateGenerationAsync`; [GitOriginalPublicationGuard](../../src/Splinter.SourceControl.Git/GitOriginalPublicationGuard.cs): `GitOriginalPublicationGuard` |
 | K35 | [UnityProjectPolicy](../../src/Splinter.Application.Unity/UnityProjectPolicy.cs): `AcquireOriginal`; [WindowsOriginalEditorIdentityVerifier](../../src/Splinter.Platform.Windows/WindowsOriginalEditorIdentityVerifier.cs): `Acquire` |
 

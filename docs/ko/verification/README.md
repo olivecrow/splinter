@@ -1,5 +1,7 @@
 # 검증 안내와 보존 근거
 
+[Git 수집 최적화](git-collection-optimization.md)가 GCO-01–04를 소유한다. lease/fence 소스 읽기·게시 경계 전체 검사·새 결합 수집 한 번·작은 실제 Git 비용/보존 근거·현재 전체 gate를 확인했다. 새 실제 Unity·다른 입력 native 자격은 아니다.
+
 [Git 결과 수집·회수 진단](git-result-collection-diagnosis.md)이 GCD-01을 소유한다. 기존 RI 결과와 내용이 같은 소스 재현으로 가용성 확인 subprocess 반복과 과거 회수의 재수집 구간을 확인했다. 제품 코드 변경·새 Unity 자격·전후 성능 자격은 없다.
 
 현재 task 상태는 **v3**, 관리형 basis는 v2다. [반복 원본 반영](../repeated-original-apply.md)이 실행 중 수집·불변 결과 버전·경로별 반영 이력·실행 중 원본의 정확한 외부 협력을 소유한다. [RI 자격](repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분하며 이전 task는 이관 없이 보존·거부한다. RI-01–08은 Git/None/Plastic 각각 작은 고정 실제 Unity 원본/A/B 한 묶음·최종 현재 소스 회귀·명시한 미검증 한계로 한정 완료했다.

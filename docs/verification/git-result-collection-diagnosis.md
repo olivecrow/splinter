@@ -2,6 +2,8 @@
 
 [한국어](../ko/verification/git-result-collection-diagnosis.md)
 
+The subsequent [GCO-01–04 implementation and bounded comparison](git-collection-optimization.md) replace the diagnosed reader path. The measurements below remain the original pre-optimization record.
+
 **GCD-01, 2026-10-30:** the continuing-task Git reader repeatedly launches Git to check basis availability while walking and reading a frozen result. Final release performs that collection again before reclaiming files. This diagnosis identifies the current small-input mechanism; it implements no optimization and establishes no old/new speedup or regression percentage.
 
 [Structured measurements](../../reports/benchmarks/git-result-collection-diagnosis-20261030.json) pin source `f91e470`, product assembly hashes, exact inputs, phase counters, historical event intervals and preservation evidence. The existing [RI-05](repeated-original-apply.md) run remains the source of actual Unity command timings. Earlier [LP/CO profiling](checkpoint-release-profiling.md) covered repeated source inspections in a different collection path; [BD/GR](unity-lifecycle-bottleneck-diagnosis.md) covered preparation and payload retention. Those findings do not substitute for this continuing-task diagnosis.

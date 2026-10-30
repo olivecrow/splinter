@@ -5,6 +5,8 @@ Current task state is **v3**; managed basis remains v2. [Repeated original appli
 
 [한국어](../ko/verification/README.md)
 
+[Git collection optimization](git-collection-optimization.md) owns GCO-01–04: leased/fenced source reading, full publication checks, one fresh combined capture, small native Git cost/preservation evidence and the current full gate. It adds no live Unity or other-input native qualification.
+
 [Git result collection diagnosis](git-result-collection-diagnosis.md) owns GCD-01: exact-content retained RI source replay identifies repeated availability subprocesses and historical release recapture. It changes no product code and adds no Unity or before/after performance qualification.
 
 [Lifecycle bottleneck follow-up](lifecycle-bottlenecks.md) owns BO-01–05: exact-equality and sparse Library restoration, same-input NTFS component costs, optional write/Git observations and bounded startup evidence capture. Full proof and durable ACK remain; no new actual Unity lifecycle qualification.

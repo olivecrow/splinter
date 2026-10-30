@@ -2,6 +2,8 @@
 
 [English](../../verification/git-result-collection-diagnosis.md)
 
+후속 [GCO-01–04 구현·한정 비교](git-collection-optimization.md)가 아래에서 진단한 reader 경로를 바꿨다. 아래 수치는 최적화 전 원래 기록을 유지한다.
+
 **GCD-01, 2026-10-30:** 같은 작업을 계속하는 Git 수집 reader가 고정 결과를 조회·읽을 때 기준본 가용성을 확인하는 Git 프로세스를 반복 실행한다. 최종 회수도 파일을 지우기 전에 이 수집을 다시 수행한다. 현재 작은 입력의 원인을 확인한 진단이며, 최적화 구현이나 구버전 대비 개선·회귀 비율을 입증하지 않는다.
 
 [구조화된 측정](../../../reports/benchmarks/git-result-collection-diagnosis-20261030.json)에 소스 `f91e470`, 제품 assembly hash, 정확한 입력, 단계별 계수, 기존 이벤트 구간과 보존 근거를 고정했다. 실제 Unity 명령 시간은 기존 [RI-05](repeated-original-apply.md)가 소유한다. 과거 [LP/CO](checkpoint-release-profiling.md)는 다른 수집 경로의 반복 source inspection을, [BD/GR](unity-lifecycle-bottleneck-diagnosis.md)은 준비·payload 보존을 분석했다. 그 근거로 이번 계속 작업 수집의 진단을 대신하지 않는다.

@@ -2,6 +2,8 @@
 
 [English](../git-project-basis.md)
 
+계속 작업의 수집은 정확한 기준본 reader lease 아래 범위 reader를 사용한다. 소유 basis ref가 loose이면 해당 ref·receipt만 fence하고 읽는 동안 현재 ref/receipt 내용을 로컬 검사하며 독립 게시 경계에서 Git을 전체 재검증한다. packed-only basis ref는 기존 읽기마다 전체 observation을 유지하며 packed payload 객체도 지원한다. HEAD·index·branch 잠금이나 상태 버전 변경은 없고 blob/tree 내용 proof·reader drain을 유지한다. [한정 최적화 범위](plans/git-collection-optimization.md)를 따른다.
+
 `--storage git-snapshot --source git`은 기록된 프로젝트 commit의 tree/blob을 기준본으로 사용한다. 원본은 기존 NTFS 위치에 남고 작업 중 수정하거나 branch를 진행할 수 있다. 생성·읽기·재개·정리·회수에 VSS나 저장소 권한 서비스를 호출하지 않는다. 구형 `ntfs-snapshot` VSS 경로는 폐기했으며 자동 변환 없이 보존·거부한다.
 
 ```powershell

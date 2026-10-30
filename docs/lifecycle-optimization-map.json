@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "documentation-index",
   "notARuntimeSchema": true,
-  "sourceCommit": "b51f18fb6d4515a149975bbe6b3bf334804e1217",
+  "sourceCommit": "0432721a1ce1f7042994d5f75146a5e8004a1c5b",
   "branch": "development",
   "inspectedDate": "2026-10-30",
   "canonicalDocument": "docs/lifecycle-optimization-map.md",
@@ -287,7 +287,7 @@
         "ko": "docs/ko/lifecycle-optimization-map.md#c20"
       },
       "preconditions": "Exact task/request; recover pending capture/publication; Editor may remain live.",
-      "work": "Drain admitted writes; mutation gate flush/freeze metadata/ranges and durable pins; outside gate preserve/hash independent generation; publish versioned result then unpin.",
+      "work": "Drain admitted writes; mutation gate flush/freeze metadata/ranges and durable pins; outside gate use exact-lease Git read scopes with local ref/receipt checks and full publication revalidation; preserve/hash generation; publish result then unpin.",
       "completion": "Immutable generation ID/sequence/key/content identity; same task continues; no compile-success claim.",
       "costs": "Mutation wait/pause; source metadata/hash; independent distinct full payloads; final closure full seals.",
       "recovery": "Same key returns first frozen result; restore pins before writer replay/reclamation; retained generations and receipts survive release.",
@@ -318,7 +318,7 @@
           {
             "step": "independent-proof",
             "owner": "source provider",
-            "work": "Verify generation manifest/ref and all required payloads."
+            "work": "Full read-boundary revalidation before source manifest, Git ref and generation publication; retain blob/tree and independent generation/payload proofs."
           },
           {
             "step": "generation-publication",
@@ -328,7 +328,7 @@
           {
             "step": "final-only",
             "owner": "Runtime",
-            "work": "Owned stop/remove bridge; whole pre-seal and post-seal around same capture; require stable unmount seal."
+            "work": "Normal owned stop/remove bridge; full pre/post seals; fresh checkpoint --release shares one same-operation capture; prior fixed-request recovery or standalone release recollects current source; require stable unmount seal."
           }
         ]
       }
@@ -413,7 +413,7 @@
         "ko": "docs/ko/lifecycle-optimization-map.md#r10"
       },
       "preconditions": "Independent result, no uncollected changes/dependent views, stopped owned app.",
-      "work": "Verify all retained generations; normal owned stop; same-engine final capture between full seals; exact unmount/registration/delta/basis reclamation; keep result/receipt history.",
+      "work": "Verify all retained generations; normal owned stop; final collection between full seals, or same-operation fresh checkpoint result; prior-invocation results cannot borrow new seals; exact owned reclamation and post-unmount seal.",
       "completion": "released only after exact absence/zero resources; result and evidence survive.",
       "costs": "Seals/source checks, unmount/handle drain, inventory deletion, basis/ref removal",
       "recovery": "reclaim-pending is incomplete; same task/home/result; no peer cleanup."
@@ -1101,7 +1101,7 @@
       "files": [
         {
           "path": "src/Splinter.Runtime/SnapshotWorkspaces.cs",
-          "sha256": "282a9c96b73b42e71e2eb95a3f20a09b9395a5a4397823355d18cf27c5cfc072",
+          "sha256": "700cd6f0be5083717b25e002d292396bf297ed2dc7f8d7e3a8d0918d62337c9c",
           "symbols": [
             {
               "name": "EnsureSnapshotAsync",
@@ -1114,13 +1114,13 @@
               "lineHints": [
                 58,
                 84,
-                407
+                410
               ]
             },
             {
               "name": "CheckpointSnapshotResultAsync",
               "lineHints": [
-                279
+                282
               ]
             },
             {
@@ -1132,8 +1132,8 @@
             {
               "name": "ReuseSnapshotResultAsync",
               "lineHints": [
-                154,
-                252
+                157,
+                255
               ]
             }
           ]
@@ -2507,12 +2507,12 @@
         },
         {
           "path": "src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs",
-          "sha256": "55b91659956ab5f6fe5144ca110400d627c4a61f96398bed3e5b92397692d928",
+          "sha256": "79c70d3b2983161dee6e9b1d151c9c3b84b2e16b630993b8687ccfda5d20f3aa",
           "symbols": [
             {
               "name": "ObserveGitReads",
               "lineHints": [
-                47
+                56
               ]
             }
           ]
@@ -2736,35 +2736,43 @@
         },
         {
           "path": "src/Splinter.Runtime/WorkspaceGenerations.cs",
-          "sha256": "b84d41e09fe12a64908c975a2fef35b51a019ad6f2de0691431d036e4779f4c0",
+          "sha256": "1da9f7bd0fcf3509f1d2481e6e5454f9476abe2195e484c6633f2134a9e19f01",
           "symbols": [
             {
               "name": "CaptureGenerationCoreAsync",
               "lineHints": [
                 18,
                 24,
-                32,
-                44,
-                49
+                36,
+                53,
+                58
               ]
             },
             {
               "name": "SealGenerationForReleaseAsync",
               "lineHints": [
-                87
+                99
               ]
             },
             {
               "name": "VerifyRetainedGenerationsAsync",
               "lineHints": [
-                99
+                118
+              ]
+            },
+            {
+              "name": "CompleteGenerationSealAsync",
+              "lineHints": [
+                39,
+                105,
+                107
               ]
             }
           ]
         },
         {
           "path": "src/Splinter.Runtime/JournalSourceCapture.cs",
-          "sha256": "80731614748cc733ca9997eb6298e9e3d822e5e104888097b8c84cda70b1899e",
+          "sha256": "8e770676a8459d7240ee63a76330804ab6e507d0cdb1c9b822a6ef6350635dc2",
           "symbols": [
             {
               "name": "CaptureSource",
@@ -2775,14 +2783,26 @@
             {
               "name": "RecoverPins",
               "lineHints": [
-                276
+                277
               ]
             },
             {
               "name": "Complete",
               "lineHints": [
-                284,
-                293
+                285,
+                294
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Core/SnapshotOverlay.cs",
+          "sha256": "ee3f37f345ba3119d3e2961ebed7b7910afe432aa46a8f71811125abd0b4393f",
+          "symbols": [
+            {
+              "name": "VerifyReadBoundary",
+              "lineHints": [
+                54
               ]
             }
           ]
@@ -2794,7 +2814,7 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/NtfsSourceGenerations.cs",
-          "sha256": "93f4f7a66e2350a31b5dd3e717d6844bf8dc0736c66226fd9b4a85fc605f6d33",
+          "sha256": "56a4b9083a7b8f1c8efd0c82d8c0506417b5a96033db4aa6a756a64309b731c9",
           "symbols": [
             {
               "name": "CaptureSourceAsync",
@@ -2848,6 +2868,62 @@
               ]
             }
           ]
+        },
+        {
+          "path": "src/Splinter.SourceControl.Git/GitSnapshotReadScope.cs",
+          "sha256": "b2589e555a0e23e2d8fe156c71462a5b182311ad01c919e6e819f348b640a85f",
+          "symbols": [
+            {
+              "name": "OpenReadScope",
+              "lineHints": [
+                11
+              ]
+            },
+            {
+              "name": "GitSnapshotReadScope",
+              "lineHints": [
+                11,
+                63,
+                86,
+                91
+              ]
+            },
+            {
+              "name": "VerifyReadBoundary",
+              "lineHints": [
+                96
+              ]
+            },
+            {
+              "name": "ReadReference",
+              "lineHints": [
+                24,
+                48,
+                77
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs",
+          "sha256": "79c70d3b2983161dee6e9b1d151c9c3b84b2e16b630993b8687ccfda5d20f3aa",
+          "symbols": [
+            {
+              "name": "OpenCaptureTree",
+              "lineHints": [
+                45
+              ]
+            },
+            {
+              "name": "AcquireReadLease",
+              "lineHints": [
+                26,
+                28,
+                29,
+                30
+              ]
+            }
+          ]
         }
       ]
     },
@@ -2856,7 +2932,7 @@
       "files": [
         {
           "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
-          "sha256": "b9380f5027780523100900601f2d533c003901e2282abaa146117a30ff9eced4",
+          "sha256": "f5a7c93a9bd4d1d31099f3a406a293d422e5ea2807905e4ca29cec76a60c2e03",
           "symbols": [
             {
               "name": "PreserveGenerationAsync",
@@ -2868,8 +2944,8 @@
               "name": "VerifyGenerationAsync",
               "lineHints": [
                 39,
-                64,
-                71
+                66,
+                73
               ]
             }
           ]
@@ -2949,259 +3025,79 @@
   "sourceRevisionKind": "committed-source",
   "sourceChanges": [
     {
-      "path": "scripts/internal/UnityStartupCapture.cs",
+      "path": "src/Splinter.Core/SnapshotOverlay.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "0fcd8f0abfbb5d9e6a7bfaa68dead5ae38aa2e15ee56be5ffe34bc00ceda219c"
-    },
-    {
-      "path": "scripts/measure-workspace-storage.ps1",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "5c8c29e3a7ac3b8b0218656cc8c019f90b0e9a7ad808b891d8112ababb448e9a"
-    },
-    {
-      "path": "src/Splinter.Application.Unity/UnityProjectPolicy.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "65b67ba22535674afde9770e18badb2ff73078b93cb14139c24e1587cad80a8b"
-    },
-    {
-      "path": "src/Splinter.Cli/WorkspaceCommands.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "8827d4543e52c049d134b5731d2dc362a3e3bca1d535bddfb809366424ca90be"
-    },
-    {
-      "path": "src/Splinter.Cli/packages.lock.json",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "f45e81b8caa285b1170c3adf7afb0777658914160b157c7cbec8a7a2e7efdc3a"
-    },
-    {
-      "path": "src/Splinter.Core/ApplicationProjectPolicy.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "e171709c8528c3b86933c23869bc752a20439aec502491d889eefbcda479553b"
-    },
-    {
-      "path": "src/Splinter.Core/OriginalApply.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "df2f960f7d67e589f8a5af07a16a0aaa5b3c1643a024145202783e41edf0f6f3"
-    },
-    {
-      "path": "src/Splinter.Core/SnapshotWorkspaces.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "ed72296ee0c5e7fc2eae81ff4441e54779302f8a922fdeba5e4f0299a72d92ec"
-    },
-    {
-      "path": "src/Splinter.Core/WorkspaceFailurePolicy.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "fbbd04b088374db4c25e891368178559d24dc713dd8834c2d9315eb178509ed0"
-    },
-    {
-      "path": "src/Splinter.Core/WorkspaceGenerations.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "285b90340d5b689f57345762d639219152529f3121b8f742f4c47c756b330dee"
-    },
-    {
-      "path": "src/Splinter.Core/Workspaces.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "daf9e02c4024a040c3e8bfe90d241f60b192630fad87306aea0e426908783990"
+      "sha256": "ee3f37f345ba3119d3e2961ebed7b7910afe432aa46a8f71811125abd0b4393f"
     },
     {
       "path": "src/Splinter.Host/FoundationGateway.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "c0c0d654922d1098467348c15aed70fc0802b06c4487d283cafc6bbbe145f28a"
-    },
-    {
-      "path": "src/Splinter.Platform.Windows/ManagedDirectoryBasis.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "7936db735e674e8d1d4a4eb027ad8394556071a7e58da28f0a35771502fcdfae"
-    },
-    {
-      "path": "src/Splinter.Platform.Windows/NtfsSnapshotWorkspaceBackend.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "b564870c91430f2274196de2b9bcada8ff969025cf6e290cd92a06a92cc3f226"
+      "sha256": "cb61841d5241e08b3fe073c06de1014ef84fe9fb6c6d4d8a54ae2c5a2c79c0ec"
     },
     {
       "path": "src/Splinter.Platform.Windows/NtfsSourceGenerations.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "93f4f7a66e2350a31b5dd3e717d6844bf8dc0736c66226fd9b4a85fc605f6d33"
+      "sha256": "56a4b9083a7b8f1c8efd0c82d8c0506417b5a96033db4aa6a756a64309b731c9"
     },
     {
-      "path": "src/Splinter.Platform.Windows/OverlayRequestWakeup.cs",
+      "path": "src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "af9949ce59a03060cdd4cce380361ff7c77eedf307f9a964c110340984fd3ea8"
-    },
-    {
-      "path": "src/Splinter.Platform.Windows/WinFspOverlayServer.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "c4b7f601d82d2b026bad3e178fe1a45725cf6b6460b6ee82f256c148d39f7bb0"
-    },
-    {
-      "path": "src/Splinter.Platform.Windows/WinFspSourceCapture.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "b6d1a0c3c34c1686edef1769080ab9940b97dbd9e1fa9bfdde7b71876e0b4d40"
-    },
-    {
-      "path": "src/Splinter.Platform.Windows/WindowsJournalFilePins.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "ae45bd04d3ba10ba15fd4cbfc0ed5e10b14ca5906c244154d5509c67aa9772b8"
-    },
-    {
-      "path": "src/Splinter.Platform.Windows/WindowsOriginalEditorIdentityVerifier.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "4746a675f33ad7e03ba6118950c600ebbd5d6ecc877b36caeeee88bc7b111758"
-    },
-    {
-      "path": "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "f0f132483edf515e64406334414446c5cbe01bb8b1d650c6ab1f35a6c19c3a43"
-    },
-    {
-      "path": "src/Splinter.Platform.Windows/packages.lock.json",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "27f7354cdf8ed645ef0a566f8266199838f418435d2bb03ad8d654ee21973d07"
-    },
-    {
-      "path": "src/Splinter.Runtime/JournalDeltaLatest.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "999bad840670d0e86b5a51c70f3978e0611628da742bcdbd3913d1bad07eb3c9"
-    },
-    {
-      "path": "src/Splinter.Runtime/JournalDeltaStore.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "23cb4dd78dee383ff2f6e9628e6e95c9064d280e2028f2fb02f5af09de7756f1"
+      "sha256": "79c70d3b2983161dee6e9b1d151c9c3b84b2e16b630993b8687ccfda5d20f3aa"
     },
     {
       "path": "src/Splinter.Runtime/JournalSourceCapture.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "80731614748cc733ca9997eb6298e9e3d822e5e104888097b8c84cda70b1899e"
-    },
-    {
-      "path": "src/Splinter.Runtime/LatestJournalStorage.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "6d484d727da28c7bc41655ba275821fda599a367c788a5a2b54d4beb25608e3d"
+      "sha256": "8e770676a8459d7240ee63a76330804ab6e507d0cdb1c9b822a6ef6350635dc2"
     },
     {
       "path": "src/Splinter.Runtime/SnapshotWorkspaces.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "282a9c96b73b42e71e2eb95a3f20a09b9395a5a4397823355d18cf27c5cfc072"
-    },
-    {
-      "path": "src/Splinter.Runtime/WorkspaceActions.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "e5a4dbb252e76320e6370f258655ad70de7fc223c12a6be424d0082b9148136a"
-    },
-    {
-      "path": "src/Splinter.Runtime/WorkspaceCoordinator.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "a447ef88c91356fcc18e87a7d3a57df91426e902db8ad798b84c0214a71c7827"
-    },
-    {
-      "path": "src/Splinter.Runtime/WorkspaceDiscard.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "2aa558167335416b366da2b734159d49fe242ba650486ac3c47d326814293f81"
+      "sha256": "700cd6f0be5083717b25e002d292396bf297ed2dc7f8d7e3a8d0918d62337c9c"
     },
     {
       "path": "src/Splinter.Runtime/WorkspaceGenerations.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "b84d41e09fe12a64908c975a2fef35b51a019ad6f2de0691431d036e4779f4c0"
-    },
-    {
-      "path": "src/Splinter.Runtime/WorkspaceOriginalApply.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "bf914d21b8fbddf990ebbd5b4d30914834d495be1bd8232a70a4505556897873"
-    },
-    {
-      "path": "src/Splinter.Runtime/WorkspaceStore.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "81b6655a80386f2922e768d6b3a5e9b1dd0847e65a7d8f719eb2f96cdaadd60e"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Files/FileOriginalApply.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "4f1ae2d73a53026966a1342603cf7ff27c025b94262019ac815a298157b7b088"
+      "sha256": "1da9f7bd0fcf3509f1d2481e6e5454f9476abe2195e484c6633f2134a9e19f01"
     },
     {
       "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "b9380f5027780523100900601f2d533c003901e2282abaa146117a30ff9eced4"
+      "sha256": "f5a7c93a9bd4d1d31099f3a406a293d422e5ea2807905e4ca29cec76a60c2e03"
     },
     {
-      "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+      "path": "src/Splinter.SourceControl.Git/GitObjectSnapshotProvider.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "83371086f3efae293f839d01b4da9b4eb0c1c240b4723fc672ff371a44c884be"
+      "sha256": "97c27f4bdd8ae2301904588eefa020f28bfe4098fe4ecdfbe0824896347dbab9"
     },
     {
-      "path": "src/Splinter.SourceControl.Files/PlasticOriginalGuard.cs",
+      "path": "src/Splinter.SourceControl.Git/GitSnapshotReadScope.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "6e19e3bbd337af35e3fe57bb8d6c03e88a1a6dbdb3b270021f95afe7402b3395"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Files/PlasticRevisionBridge.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "580b28a3fa753b90a0a3f1e98b472f005cd68ccef254c85d266721907f182354"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Files/PlasticRevisionStreamSession.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "b0db6eafd78332e58be9d43d0e57204791a529ab8637b75cb53263ef77616b70"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "dbbaa5231d901b9299b595e930a1f41f0093de0c4c96c08d85c4553c0771687a"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Files/SourceWorkspaceRouter.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "8b8b85cacab618f39f594a177058e35a8c6b397b622bb42bc439239dbbbad032"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Files/Splinter.SourceControl.Files.csproj",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "a678d3dc9dcbcd0b2162f3e8d6112b74b7e10d03d93b17eb447f0f45aa79b8cb"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Files/packages.lock.json",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "20955438d3b04d2fc0f3d86bbeb9e26d6801a855277799680f2d0cfeb6bde2bd"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Git/GitGenerationIntegration.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "143dc7b2c140c8deb904ed93112da19799fa5f3ca874d6c6dedc24faca3e44f5"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Git/GitOriginalPublicationGuard.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "44095d07fdeacb4ad8b34206000ecfa4ad997e885625ec93fe2705708af8b390"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Git/GitOverlayRegistration.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "9a218869a883e748ad9b7760326eb6f7fe8f9300a423bdad181c91e37378c0ba"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Git/GitResultPayload.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "2ec723fa1d82032b564c804f493dab3085e31b1001814d4f02a6e79d9b1cb0db"
-    },
-    {
-      "path": "src/Splinter.SourceControl.Git/GitSnapshotWorkspaces.cs",
-      "change": "committed-since-sourceBaseCommit",
-      "sha256": "1e7fc0836ef2a5878d11446c3f56e30299612d8709bcffa6e29d48a6fe4145c3"
+      "sha256": "b2589e555a0e23e2d8fe156c71462a5b182311ad01c919e6e819f348b640a85f"
     },
     {
       "path": "src/Splinter.SourceControl.Git/GitSourceResult.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "1dc4e88dbb4e3e0e46654bc184952549aa4f33e14b6af47e1db558bf5bcc3afb"
+      "sha256": "b47fe1171b28b1f1eb166b1be5a1b5a5e83039ae7f09660c8b86a2a26792bd0b"
     },
     {
-      "path": "src/Splinter.SourceControl.Git/GitWorkspaceProvider.cs",
+      "path": "tests/Splinter.Tests/FileWorkspaceTests.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "1db9a456c36dc8f693fa5a7906ba0c8f0aece63d86b750880242c803e4327105"
+      "sha256": "27f3a3c2ba16af280f2b32c0d47f35a7f2cb398a7218cf457497ed5f3dfb2e80"
     },
     {
-      "path": "src/Splinter.Workflows.Windows/packages.lock.json",
+      "path": "tests/Splinter.Tests/GitObjectSnapshotTests.cs",
       "change": "committed-since-sourceBaseCommit",
-      "sha256": "e89edba4584e991420ab164d013a064c79db095947f9c0c3944fe12b24da3d2d"
+      "sha256": "d342707359a4270cba938673f3dfff910c014b346b72608b620ecd560fc2abf3"
+    },
+    {
+      "path": "tests/Splinter.Tests/GitSnapshotReadScopeTests.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "3a79dac5c60ee5ecfe9e98d235904129f7c7aa0941b06f42f0e1d95beb2d43f3"
+    },
+    {
+      "path": "tests/Splinter.Tests/RepeatedOriginalApplyTests.cs",
+      "change": "committed-since-sourceBaseCommit",
+      "sha256": "7eb2f07268669311145361905dbc3e80117be8a297ec491de0980fc5b59a8318"
     }
   ],
   "diagnostics": {
@@ -3237,7 +3133,7 @@
       "interpretation": "Read-only exact-owned capture to new evidence paths; bounded per-file observations, not atomic Library state, compile proof, automatic startup stopwatch or new Unity qualification. Capture overhead is separate."
     }
   },
-  "qualificationStatus": "RI-01-08 scoped-complete; three fixed native Unity inputs, explicit untested limits and recorded full gate; post-gate metadata check recorded separately",
+  "qualificationStatus": "GCO-01-04 scoped-complete: focused and fixed small editorless Git native checks; full gate 2065 total, 2029 passed, 0 failed, 36 conditional skips. RI and historical performance remain input/candidate-specific.",
   "sourceSnapshotHistory": [
     {
       "inspectedDate": "2026-10-28",
@@ -3329,6 +3225,6 @@
       "b51f18fb6d4515a149975bbe6b3bf334804e1217"
     ]
   },
-  "sourceBaseCommit": "aff285f0da769eeaba0300d448f027ceeaa4a5bb",
+  "sourceBaseCommit": "f91e470ab88953f600c2c1e15c52f8341e330164",
   "sourceHashBasis": "raw LF repository blobs at sourceCommit"
 }

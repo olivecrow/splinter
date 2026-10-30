@@ -2,7 +2,7 @@
 
 [한국어](ko/lifecycle-optimization-map.md) · [Machine-readable index](lifecycle-optimization-map.json) · [Documentation map](README.md)
 
-**Code snapshot:** committed repeated-original-application source `b51f18fb6d4515a149975bbe6b3bf334804e1217` over base `aff285f0da769eeaba0300d448f027ceeaa4a5bb`, `development`, inspected 2026-10-30. The JSON records current source hashes/symbol hints. [RI](verification/repeated-original-apply.md) owns current live-capture and repeated-publication qualification. Earlier MX05/MX08A adoption, completed MX10 and BO/PR/RT/BD performance records remain historical evidence for their exact candidates, without qualifying this new lifecycle.
+**Code snapshot:** committed GCO source `0432721a1ce1f7042994d5f75146a5e8004a1c5b` over base `f91e470`, `development`, inspected 2026-10-30. The JSON pins current source hashes/symbol hints. [GCO](verification/git-collection-optimization.md) owns current scoped collection/finalization qualification; [RI](verification/repeated-original-apply.md) and earlier MX/BO/PR/RT/BD timings remain historical candidate/input-specific evidence.
 
 **AI reading order:** §§1–3 establish identities and paths; §4 explains each stage; §§5–7 expose serialization, costs and recovery; §8 maps code. Read the owning feature documents before changing a contract. The executable usage procedure remains [the Splinter skill](../skills/splinter/SKILL.md).
 
@@ -262,7 +262,8 @@ flowchart TD
   Intent["Runtime: persist exact capture request"] --> Freeze["Callback/mutation gate: flush; metadata/ranges; durable protection"]
   Freeze --> Continue["Release mutation gate; later writes continue"]
   Continue --> Scan["Scan immutable captured tree and fixed basis"]
-  Scan --> Route{"Independent payload store"}
+  Scan --> Boundary["Full scoped-state revalidation at publication boundaries"]
+  Boundary --> Route{"Independent payload store"}
   Route -->|Git| Git["Independent Git ref/objects; stream result blobs"]
   Route -->|None / recorded Plastic| Files["Deduplicated full file objects across generations"]
   Git --> Proof["Verify independent generation/objects"]
@@ -273,9 +274,11 @@ flowchart TD
   Unpin --> Next["Continue E20 or publish fixed result"]
 ```
 
+Git capture uses the exact reader lease and fences only its loose owned ref/receipt. Local checks run during reads; `VerifyReadBoundary` fully revalidates Git before durable publications. Packed-only basis refs retain full per-read observation. No HEAD/index/branch or shared packed-ref fence is acquired [K33].
+
 Eligible local payload/proof work uses at most eight workers; recorded Plastic revision acquisition remains serial. File results preserve full distinct basis/result payloads with content reuse across all generations. Git retains independent refs/objects without a duplicate whole-source file store. Source scanning, independent proofs and durable publication remain real costs outside the mutation gate. Failed/lost responses resume the fixed capture, never recapture later worker edits.
 
-Final R10 closure normally stops only the owned task Editor, removes its bridge, computes a complete pre-seal, uses this same capture engine (including shutdown writes), and requires a matching post-seal before unmount. Every older result is verified before reclamation; all generations and apply receipts survive it. `checkpoint --release` returns its requested generation on retry and preserves the final closure generation as well. Compiler success is never asserted. [RI](verification/repeated-original-apply.md) owns this path; historical RT one-scan timings belong to the earlier stopped-collection implementation.
+Final R10 closure normally stops only the owned task Editor, removes its bridge, computes a complete pre-seal, uses this same capture engine (including shutdown writes), and requires a matching post-seal before unmount. Every older result is verified before reclamation; all generations and apply receipts survive it. A fresh `checkpoint --release` shares its one same-operation capture and full seals with release. A retry of an earlier fixed capture returns that requested generation and separately collects current source for closure; standalone release also collects current source. Earlier invocation seals are never borrowed. Compiler success is never asserted. [RI](verification/repeated-original-apply.md) owns this path; historical RT one-scan timings belong to the earlier stopped-collection implementation.
 
 <a id="a10"></a>
 ### A10 — explicit Git branch merge
@@ -469,7 +472,7 @@ The JSON index records the same stable stage IDs, edges, source symbols and code
 | K30 | [ManagedTopologyDirectoryRestore](../src/Splinter.Platform.Windows/ManagedTopologyDirectoryRestore.cs): `Eligible`, `PreferFresh`, `CreateAsync`, `ResumeAsync`; [ManagedRestoreTopology](../src/Splinter.Platform.Windows/ManagedRestoreTopology.cs): `Build`, `Inventory`, `ForestPins` |
 | K31 | [ManagedRestoreControlFiles](../src/Splinter.Platform.Windows/ManagedRestoreControlFiles.cs): `IsPublicationTemporary`; [WindowsDirectoryTreeProof](../src/Splinter.Platform.Windows/WindowsDirectoryTreeProof.cs): `PinDirectory`; [WindowsOwnedDirectoryLease](../src/Splinter.Platform.Windows/WindowsOwnedDirectoryLease.cs): `TransferToRestore` |
 | K32 | [WorkspaceGenerations](../src/Splinter.Core/WorkspaceGenerations.cs): `WorkspaceResultGeneration`; [WorkspaceGenerations](../src/Splinter.Runtime/WorkspaceGenerations.cs): `CaptureGenerationCoreAsync`; [JournalSourceCapture](../src/Splinter.Runtime/JournalSourceCapture.cs): `CaptureSource` |
-| K33 | [NtfsSourceGenerations](../src/Splinter.Platform.Windows/NtfsSourceGenerations.cs): `CaptureSourceAsync`; [WinFspSourceCapture](../src/Splinter.Platform.Windows/WinFspSourceCapture.cs): `CaptureSource`; [WindowsJournalFilePins](../src/Splinter.Platform.Windows/WindowsJournalFilePins.cs): `RecoverCopies` |
+| K33 | [NtfsSourceGenerations](../src/Splinter.Platform.Windows/NtfsSourceGenerations.cs): `CaptureSourceAsync`; [WinFspSourceCapture](../src/Splinter.Platform.Windows/WinFspSourceCapture.cs): `CaptureSource`; [WindowsJournalFilePins](../src/Splinter.Platform.Windows/WindowsJournalFilePins.cs): `RecoverCopies`  [GitSnapshotReadScope](../src/Splinter.SourceControl.Git/GitSnapshotReadScope.cs): `OpenReadScope`, `VerifyReadBoundary`; [WorkspaceSnapshotBasis](../src/Splinter.Platform.Windows/WorkspaceSnapshotBasis.cs): `OpenCaptureTree` |
 | K34 | [FileSourceGenerations](../src/Splinter.SourceControl.Files/FileSourceGenerations.cs): `PreserveGenerationAsync`; [GitGenerationIntegration](../src/Splinter.SourceControl.Git/GitGenerationIntegration.cs): `IntegrateGenerationAsync`; [GitOriginalPublicationGuard](../src/Splinter.SourceControl.Git/GitOriginalPublicationGuard.cs): `GitOriginalPublicationGuard` |
 | K35 | [UnityProjectPolicy](../src/Splinter.Application.Unity/UnityProjectPolicy.cs): `AcquireOriginal`; [WindowsOriginalEditorIdentityVerifier](../src/Splinter.Platform.Windows/WindowsOriginalEditorIdentityVerifier.cs): `Acquire` |
 
