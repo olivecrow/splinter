@@ -66,7 +66,7 @@ public sealed partial class SharedMetadataPool
                             var catalog = catalogElement.Deserialize<SnapshotCatalogDescriptor>(Json) ?? throw Invalid("A retained source catalog root is empty.");
                             var payload = payloadElement.Deserialize<MetadataTreeRoot>(Json) ?? throw Invalid("A retained source payload index is empty.");
                             var paths = header.RootElement.GetProperty("payloadPaths").Deserialize<MetadataTreeRoot>(Json) ?? throw Invalid("A retained source path index is empty.");
-                            if (header.RootElement.GetProperty("version").GetInt32() != 3 || header.RootElement.GetProperty("ownerId").GetString() != id ||
+                            if (header.RootElement.GetProperty("version").GetInt32() != 4 || header.RootElement.GetProperty("ownerId").GetString() != id ||
                                 header.RootElement.GetProperty("requestDigest").GetString() != document.RootElement.GetProperty("requestDigest").GetString() ||
                                 catalog.Children.StoreId != storeId || payload.StoreId != storeId || paths.StoreId != storeId ||
                                 header.RootElement.GetProperty("identity").GetString() != "sha256:" + catalog.Children.ContentHash)

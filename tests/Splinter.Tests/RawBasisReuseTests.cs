@@ -94,8 +94,10 @@ public sealed class RawBasisReuseTests
         var result = await provider.PreserveGenerationAsync(w, control, w.CaptureIntent, identity, first, ct);
         w.Results.Add(result); w.ResultRevision = result.Revision;
         var baseline = FileWorkspaceProvider.Read<FileSourceManifest>(Path.Combine(control, "files", "generation-basis.json"));
-        Assert.NotNull(baseline.ContentFiles);
-        var basisContents = new ResultFileContentStore(home, control, w, pins, raw, baseline.ContentFiles);
+        Assert.Null(baseline.ContentFiles);
+        var retainedResult = FileWorkspaceProvider.Read<FileSourceManifest>(Path.Combine(control, "files", "generations", result.Id, "result.json"));
+        Assert.NotNull(retainedResult.RetainedPayloads); Assert.NotNull(retainedResult.ContentFiles);
+        var basisContents = new ResultFileContentStore(home, control, w, pins, raw, retainedResult.ContentFiles);
         Assert.True(basisContents.UsesRawBasis(hash, bytes.Length));
         Assert.True(raw.Contains(w, control, hash, bytes.Length, ct));
         Assert.Equal(nativeIdentity, pins.Identify(Assert.Single(Directory.GetFiles(Path.Combine(home, "range-store", "backings")))));

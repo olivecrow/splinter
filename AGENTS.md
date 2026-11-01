@@ -1,5 +1,9 @@
 # Splinter 작업 지침
 
+- 2026-11-02 참조 저장소 중심 수집은 처리량 후속 ST-56–60이 소유한다. `FileReferenceResults`와 파일 manifest v4는 변경 전후·범위 기준 의존성·이전 보존 payload를 결합하고 무관한 기준 파일의 보관을 없앤다. v3 manifest는 보존·거부하고 기존 바이너리로 마무리한다. task/basis/overlay·SPM2·공개 명령 필드는 유지한다. 결과 descriptor 최대 64개 게시·release 시 별칭 정리·고정 읽기의 기준 gap·목록 metadata 재사용을 연결한다. 전체 catalog/독립 payload 검증·개별 쓰기 ACK는 유지하며 작은 None 검증을 대형/전체 gate로 승계하지 않는다.
+
+- 2026-11-02 수집 참조/게시 최적화는 처리량 후속 ST-53–55와 `reports/benchmarks/capture-maintenance-20261102.json`이 소유한다. `PagedMetadataStore.VerifyCompactFlatTree`는 writer/회수를 배제한 reader fence 아래 전체 flat root·native 소유권·물리 범위의 정확한 연속 피복을 검증한 경우에만 adoption의 불필요한 복사를 생략한다. 미완료 collection·relocation·미참조/미소유/unknown 항목은 기존 같은 요청 회수 또는 보존/거부를 따른다. `MetadataMembership`는 전체 참조를 먼저 검증한 뒤 공통 scratch 예산의 메모리 집합 또는 기존 디스크 정렬 트리를 사용한다. 소스 응답은 첫 100ms만 20ms 간격으로 관측하고 최초/완료/장기 대기의 전체 provider 증명을 유지한다. 형식·내구성 ACK·원본/peer 보호는 유지하며 작은 None 비교를 대형/전체 gate 자격으로 승계하지 않는다.
+
 - 2026-11-02 다중 항목 B+ 페이지 재검토는 처리량 후속 ST-52와 `reports/benchmarks/metadata-multipage-review-20261102.json`이 소유한다. 현재 범용 저장 형식 교체는 미채택이며 SPM2를 유지한다. 작은 실제 treap 기록량과 단순 정규 byte-greedy packing 비용 모델은 bulk 절감과 희소 삽입/수정 증폭을 함께 보였으며 전체 시간 비교나 모든 B+ 설계의 반증은 아니다. 결정적 국소 경계·항목 소유 child·hash/count·회수/복구를 입증하기 전 제품/대형 검증을 자동 재개하지 않는다.
 
 - 2026-11-01–02 metadata 작업 완료 뒤 수집/반영 후속은 처리량 후속 문서 ST-49–51과 `reports/benchmarks/scalable-storage-capture-apply-20261101.json`이 소유한다. Core 선택 port `IOriginalFileObservationProvider`/`IOriginalFileObservationScope`는 한 계획 안에서 정확한 root/managed lease를 유지하고 시작/끝 가용성·VCS 경계를 검증한다. 매 target의 내용은 다시 읽고 핸들을 즉시 해제하며 실제 게시의 전체 잠금/재검증은 유지한다. Private 범위는 descriptor에 직접 전달하고 기준본 동일/기존 descriptor도 끝까지 drain하여 검증·보존·adoption을 유지한다. 양쪽 SPM2의 새 None 31파일 입력만 비교하며 초기 후보와 최종 후보 ABBA를 섞지 않는다. 대형 시간·실제 Git/Plastic/Unity·전체 gate·과거 수십 분/시간 문제 해결은 미입증이다.

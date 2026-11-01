@@ -1,5 +1,7 @@
 # Scalable source, result and metadata storage
 
+[ST-56–60](verification/scalable-storage-throughput-followup.md) aligns collection with reference workspaces: file manifest v4 retains changed before/after dependencies and prior retained content, compares existing directory roots without rebuilding flat work indices, publishes up to 64 result descriptors together, and moves alias pruning from capture to retained-result maintenance at release. Frozen reads fetch only uncovered basis gaps; frozen listings reuse verified child metadata. Full capture/publication checks and durable acknowledgements remain. Earlier file manifest v3 is preserved/refused; task/basis/overlay, SPM2 and command fields are unchanged. Small None evidence does not qualify large/Unity/Plastic inputs.
+
 [한국어](ko/scalable-storage.md) · [Plan](plans/scalable-storage.md) · [SCAL-01–08 verification](verification/scalable-storage.md)
 
 **Candidate implementation; mandatory qualification remains in progress.** Current candidate formats are task v4, managed basis v3, product overlay v3 and metadata-store format 2 (`SPM2`). Earlier state, including `SPM1` stores from the preceding task-v4 candidate, is preserved and refused; finish it with its matching binary. Historical RI/MX/GCO evidence belongs to its recorded candidate/input. The verification owner decides completion after every mandatory gate and the final build.

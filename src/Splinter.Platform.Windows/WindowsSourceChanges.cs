@@ -44,6 +44,7 @@ public sealed class WindowsSourceChanges(Func<string, string> controlPath) : ISo
         string id = Guid.NewGuid().ToString("N");
         await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(control, "source-query.json"),
             new SourceChangeRequest(request.Token, id, workspace.ManagedPaths, expected, paths), ct);
+        var providerProbeClock = System.Diagnostics.Stopwatch.StartNew();
         for (long attempt = 0; ; attempt++)
         {
             ct.ThrowIfCancellationRequested();
@@ -76,8 +77,15 @@ public sealed class WindowsSourceChanges(Func<string, string> controlPath) : ISo
                 }
                 catch { view.Dispose(); throw; }
             }
-            if (attempt % 10 == 0) await RequireProvider();
-            await Task.Delay(100, ct);
+            // The initial full proof immediately precedes request publication;
+            // repeating it on the first empty response adds no admission. Keep
+            // periodic liveness and the full response-boundary proof.
+            if (providerProbeClock.Elapsed >= TimeSpan.FromSeconds(1))
+            { await RequireProvider(); providerProbeClock.Restart(); }
+            // Short responses should not pay a mandatory 100ms round trip.
+            // Poll densely only for that initial window; long waits retain
+            // the existing rate and independent one-second provider proofs.
+            await Task.Delay(attempt < 5 ? 20 : 100, ct);
         }
 
         async Task RequireProvider()

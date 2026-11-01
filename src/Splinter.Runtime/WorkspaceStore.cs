@@ -149,7 +149,10 @@ public sealed partial class WorkspaceStore
             if (generation.Sequence != generationIndex + 1 || generation.Id != Key(record.Id + "\nresult\n" + generation.RequestKey) ||
                 string.IsNullOrWhiteSpace(generation.RequestKey) || generation.RequestKey.Length > 128 || string.IsNullOrWhiteSpace(generation.Message) ||
                 generation.CaptureDigest is not { Length: 64 } || generation.CaptureDigest.Any(c => !char.IsAsciiHexDigitLower(c)) ||
-                generation.SourceSequence < 0 || string.IsNullOrWhiteSpace(generation.Revision) || generation.Fingerprint != generation.Revision ||
+                generation.SourceSequence < 0 || string.IsNullOrWhiteSpace(generation.Revision) ||
+                generation.Fingerprint != generation.Revision &&
+                    (generation.Fingerprint.Length != 71 || !generation.Fingerprint.StartsWith("sha256:", StringComparison.Ordinal) ||
+                     generation.Fingerprint.AsSpan(7).ContainsAnyExcept("0123456789abcdef")) ||
                 generation.ResultReference != "files:" + record.Id + ":" + generation.Id ||
                 record.SourceKind == "git" && (generation.GitReference is null) != (generation.GitFingerprint is null) ||
                 record.SourceKind != "git" && (generation.GitReference is not null || generation.GitFingerprint is not null))

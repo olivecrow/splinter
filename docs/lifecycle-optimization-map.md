@@ -1,5 +1,7 @@
 # Splinter lifecycle map for optimization agents
 
+[ST-56–60](verification/scalable-storage-throughput-followup.md) aligns collection with reference workspaces: file manifest v4 retains changed before/after dependencies and prior retained content, compares existing directory roots without rebuilding flat work indices, publishes up to 64 result descriptors together, and moves alias pruning from capture to retained-result maintenance at release. Frozen reads fetch only uncovered basis gaps; frozen listings reuse verified child metadata. Full capture/publication checks and durable acknowledgements remain. Earlier file manifest v3 is preserved/refused; task/basis/overlay, SPM2 and command fields are unchanged. Small None evidence does not qualify large/Unity/Plastic inputs.
+
 [한국어](ko/lifecycle-optimization-map.md) · [Machine-readable index](lifecycle-optimization-map.json) · [Documentation map](README.md)
 
 **Code snapshot:** SCAL working-tree candidate on base `b68eaaa9e7e78930ff7b4b0b368f137bc3e528c6`, `development`, inspected 2026-11-01. The JSON pins actual file hashes and current symbol hints. The base commit does not contain these uncommitted changes. Source hashes describe implementation; retained execution manifests identify the tested binaries separately.
@@ -17,6 +19,8 @@ ST-36–40 extends W10 to name/namespace and Create batching, A20 to dense-histo
 ST-41–43 observes P40 initial connection under client.lock and removes absent-request/reclaim-intent waits inside the workspace operation lock. Unresolved launch handling, ordinary publication grace, final capture/full seals and exact R10 reclamation order remain. Existing optional result diagnostics gains R10 subphase timing. Small same-input None ABBA results and test-run overruns belong to the throughput follow-up, not large-input/full-gate qualification.
 
 ST-49–51 follows the completed SPM2 record changes. A20 keeps one exact root/managed lease through a plan, rereads and releases targets, then rechecks availability/administration. A30 still reacquires every target and publishes with the existing durable guards. C20 streams private ranges directly into descriptors; skipped/retained descriptors still drain validation and adoption. No stage order, result or reclamation dependency changes. The separate small None ABBA report does not qualify large input or resolve the historical hours-long executions.
+
+ST-53–55 changes C20 internals: certify exact complete flat-tree coverage before avoiding redundant adoption repacking; fully validate a bounded memory/disk required-reference set before alias cleanup. Initial, response-boundary and periodic provider proofs remain while the first 100ms response polling is finer. R10 uses the same retained-result cleanup. No durable ACK, publication, identity, reader or recovery boundary is relaxed. The capture-maintenance report owns the small None timing evidence.
 
 ## 1. Rules that determine the graph
 

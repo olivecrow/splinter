@@ -14,7 +14,7 @@ public sealed partial class FileWorkspaceProvider
         if (pageSize is < 1 or > 1024) throw new WorkspaceException("CursorInvalid", "Choose a processing page size between 1 and 1024.");
         string path = GenerationPath(control, resultId, "result.json");
         var manifest = Read<FileSourceManifest>(path);
-        if (manifest.Version != 3 || manifest.Catalog is null || manifest.Identity != "sha256:" + manifest.Catalog.Children.ContentHash)
+        if (manifest.Version != 4 || manifest.Catalog is null || manifest.Identity != "sha256:" + manifest.Catalog.Children.ContentHash)
             throw Error("The immutable source result header is invalid.");
         string directory = FilePath(control, "metadata");
         using var catalog = new PagedSnapshotCatalog(directory, manifest.Catalog);

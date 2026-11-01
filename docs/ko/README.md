@@ -1,6 +1,6 @@
 # 문서 지도
 
-[처리량 리뷰 후속](verification/scalable-storage-throughput-followup.md)은 배치/자원 정책·정확한 게시 차등·작은 디렉터리 metadata·비교/목록용 바이너리 scratch·metadata 저장소 형식 2(`SPM2`)를 포함한 ST-01–52을 추적한다. 다중 항목 페이지는 보류다. 작은 native 검사·제한한 시간/gate 시도는 보존한 대형 입력 행렬을 자격화하거나 재개하지 않는다. 이어진 수집/반영 후속은 계획 안의 원본 root 관측 공유와 private 범위 직접 전달을 연결하며 별도의 작은 SPM2 시간 근거로 한정한다.
+[처리량 리뷰 후속](verification/scalable-storage-throughput-followup.md)은 배치/자원 정책·정확한 게시 차등·작은 디렉터리 metadata·비교/목록용 바이너리 scratch·metadata 저장소 형식 2(`SPM2`)를 포함한 ST-01–60을 추적한다. 다중 항목 페이지는 보류다. 작은 native 검사·제한한 시간/gate 시도는 보존한 대형 입력 행렬을 자격화하거나 재개하지 않는다. 이어진 수집/반영 후속은 계획 안의 원본 root 관측 공유와 private 범위 직접 전달을 연결하며 별도의 작은 SPM2 시간 근거로 한정한다.
 
 [대규모 저장의 느린 구간](verification/scalable-storage-throughput-diagnosis.md)은 기존 10만 항목 실행 비용·확인된 수정·미측정 원인을 기록한다. 2026-11-01 사용자가 검증을 축소해 대형 입력은 상태를 보존하고 종료했으며 17GiB/10만 전체 수명주기/ABBA/최신 전체 gate는 미완료다. 이 실행을 일반 속도·사용성 자격으로 승계하지 않는다.
 

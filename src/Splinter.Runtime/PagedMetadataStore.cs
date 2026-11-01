@@ -572,7 +572,7 @@ public sealed partial class PagedMetadataStore : IDisposable
             reference.Count < 1 || reference.ContentHash is not { Length: 64 } || reference.ContentHash.Any(c => c is not (>= '0' and <= '9' or >= 'a' and <= 'f')))
             throw Invalid("A metadata page reference has invalid bounds.");
     }
-    private static void ValidateEntry(string key, int valueBytes)
+    internal static void ValidateEntry(string key, int valueBytes)
     {
         if (string.IsNullOrEmpty(key) || key.Contains('\0') || (long)Utf8.GetByteCount(key) + valueBytes + 9 + ReferencesPerNode * (1 + ReferenceBytes) + PageHeaderBytes > MaximumPageBytes)
             throw Invalid("A metadata entry must fit one logical page; split large values into referenced pages.");

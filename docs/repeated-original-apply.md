@@ -6,6 +6,8 @@ For a fresh `checkpoint --release` request, normal stop and infrastructure remov
 
 This document owns continuing-task result generations and file publication to an original project. [Scope](plans/repeated-original-apply.md) and [RI-01–08 qualification](verification/repeated-original-apply.md) distinguish implementation, automated checks and actual Unity inputs. The fixed small Git, ordinary-folder and Plastic Unity original/A/B sequences and final full gate passed; RI-01–08 are scoped-complete with explicit input/tool/OS and cost limits.
 
+File source manifests now use **v4**. Native None/Plastic reference captures keep the complete comparison catalog, but retain payloads only for changed before/after files, their range-basis dependencies and previously retained content. Unrelated unchanged basis files are not archived. These results support explicit application, reversal and restart; they are not standalone exports of every project file. The generation fingerprint binds the retention set and range-descriptor root. Git keeps its protected basis route. v3 manifests are preserved/refused and must be finished using the matching binary; task v4/basis v3/overlay v3 and public command fields are unchanged.
+
 ## Lifetimes and identities
 
 Current [scalable-storage candidate](scalable-storage.md) records are **task v4, managed basis v3, product overlay v3**; SCAL qualification remains in progress. RI-01–08 below qualify their historical task-v3/basis-v2 candidate. Preserve/refuse older records and finish them with the matching binary; no migration, reclamation, new basis or task is implied by a CLI update. Use an explicitly selected new-format home for new tasks while preserving older homes; never move, rewrite or sweep old state automatically.

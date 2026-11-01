@@ -94,12 +94,13 @@ public sealed partial class JournalDeltaStore
             if (entry.Deleted || !policy.Comparer.Equals(entry.Path, path)) throw PagedInvalid();
             return (entry, node.Child ?? index.Empty);
         }
+        private bool Excluded(string path) => SourceCaptureTree.Managed(path, capture.ManagedPaths) ||
+            capture.Identity.ExcludedTopLevel?.Contains(path.Split('/')[0], policy.Comparer) == true ||
+            capture.Identity.DeniedTopLevel?.Contains(path.Split('/')[0], policy.Comparer) == true ||
+            capture.Identity.IncludedTopLevel is { } included && path.Length != 0 && !included.Contains(path.Split('/')[0], policy.Comparer);
         private (SnapshotEntry? Entry, string? Base) Resolve(string path)
         {
-            path = policy.Normalize(path);
-            if (SourceCaptureTree.Managed(path, capture.ManagedPaths) || capture.Identity.ExcludedTopLevel?.Contains(path.Split('/')[0], policy.Comparer) == true ||
-                capture.Identity.DeniedTopLevel?.Contains(path.Split('/')[0], policy.Comparer) == true ||
-                capture.Identity.IncludedTopLevel is { } included && path.Length != 0 && !included.Contains(path.Split('/')[0], policy.Comparer)) return (null, null);
+            path = policy.Normalize(path); if (Excluded(path)) return (null, null);
             var node = Node(path);
             if (node is { } found) return (Convert(found.Entry), found.Entry.BasePath);
             if (index.Open(roots.Hidden).Find(Key(path)) is not null) return (null, null);
@@ -119,18 +120,22 @@ public sealed partial class JournalDeltaStore
             {
                 if (resolved.Base is { } original)
                     foreach (var child in Basis.EnumerateChildren(original))
-                    { string name = Name(child.Path); yield return new(policy.IdentityPath(name), Encoding.UTF8.GetBytes(name)); }
-                foreach (var child in namesIndex.Children(path))
-                {
-                    string name = Name(child.Key); yield return new(policy.IdentityPath(name), Encoding.UTF8.GetBytes(name));
-                }
+                    {
+                        string name = Name(child.Path);
+                        if (child.Path != Join(original, name)) throw PagedInvalid();
+                        yield return new(name, EncodeListedMetadata(child));
+                    }
+                foreach (var child in namesIndex.Children(path)) yield return new(Name(child.Key), EncodeListedMetadata(null));
             }
             string? previous = null;
-            foreach (var name in MetadataExternalSort.Order(Names(), scratch, default))
+            foreach (var item in MetadataExternalSort.Order(Names(), scratch, default, keyComparer: policy.Comparer))
             {
-                if (name.Key == previous) continue; previous = name.Key;
-                var entry = Resolve(Join(path, Encoding.UTF8.GetString(name.Value.Span))).Entry;
-                if (entry is not null) yield return entry;
+                string key = policy.IdentityPath(item.Key); if (key == previous) continue; previous = key;
+                string child = Join(path, item.Key); if (Excluded(child)) continue;
+                if (Node(child) is { } node) { yield return Convert(node.Entry); continue; }
+                if (index.Open(roots.Hidden).Find(Key(child)) is not null || resolved.Base is null) continue;
+                var entry = DecodeListedMetadata(child, item.Value.Span) ?? throw PagedInvalid();
+                Basis.EnsureAvailable(); yield return entry;
             }
         }
         public IEnumerable<string>? EnumerateChangedPaths()
@@ -187,11 +192,13 @@ public sealed partial class JournalDeltaStore
             int length = (int)Math.Min(destination.Length, Math.Max(0, entry.Length - offset)); var output = destination[..length]; output.Clear();
             var found = Node(path);
             if (found is null) return resolved.Base is null ? length : Basis.Read(resolved.Base, offset, output);
-            var node = found.Value.Entry; long baseEnd = Math.Min(node.BaseLength, checked(offset + length));
-            if (node.BasePath is { } original && offset < baseEnd)
+            var node = found.Value.Entry; long cursor = offset, readEnd = checked(offset + length);
+            void ReadBasis(long from, long to, Span<byte> target)
             {
-                int done = 0, count = checked((int)(baseEnd - offset));
-                while (done < count) { int n = Basis.Read(original, offset + done, output.Slice(done, count - done)); if (n <= 0) throw PagedInvalid(); done += n; }
+                to = Math.Min(to, node.BaseLength);
+                if (node.BasePath is not { } original || to <= from) return;
+                int done = 0, count = checked((int)(to - from)), start = checked((int)(from - offset));
+                while (done < count) { int n = Basis.Read(original, from + done, target.Slice(start + done, count - done)); if (n <= 0) throw PagedInvalid(); done += n; }
             }
             var extents = index.Open(found.Value.Extents); string key = offset.ToString("x16", System.Globalization.CultureInfo.InvariantCulture);
             var floor = extents.Floor(key);
@@ -201,6 +208,7 @@ public sealed partial class JournalDeltaStore
             {
                 var extent = DecodeExtent(item.Value.ToArray()); if (extent.Start >= offset + length) break;
                 long from = Math.Max(offset, extent.Start), to = Math.Min(offset + length, checked(extent.Start + extent.Length)); if (to <= from) continue;
+                ReadBasis(cursor, from, output); cursor = to;
                 extent.Payload.RequireValid(capture.Identity.MaxTransferBytes);
                 int skip = checked(extent.BlockOffset + (int)(from - extent.Start)), count = checked((int)(to - from));
                 extent.Payload.RequireFragment(skip, count); var target = output.Slice(checked((int)(from - offset)), count);
@@ -220,6 +228,7 @@ public sealed partial class JournalDeltaStore
                 if (!extent.Payload.Encoded) ReadExactly(input, checked(extent.JournalOffset + skip), target);
                 else { byte[] data = new byte[extent.Payload.StoredBytes]; ReadExactly(input, extent.JournalOffset, data); if (codec.Read(data, skip, target) != count) throw PagedInvalid(); }
             }
+            ReadBasis(cursor, readEnd, output);
             return length;
         }
         private static void ReadExactly(FileStream input, long offset, Span<byte> output)

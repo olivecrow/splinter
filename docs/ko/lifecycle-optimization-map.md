@@ -1,5 +1,7 @@
 # 최적화 에이전트를 위한 Splinter 수명주기 지도
 
+[ST-56–60](verification/scalable-storage-throughput-followup.md)은 참조 작업공간에 맞게 수집을 바꾼다. 파일 manifest v4는 변경 전후 의존성과 기존 보존 내용만 보관하며, 평탄한 작업 인덱스를 다시 만들지 않고 기존 디렉터리 root를 비교한다. 결과 descriptor는 최대 64개씩 게시하고 수집 중 별칭 정리는 release의 보존 결과 유지관리로 옮긴다. 고정 결과 읽기는 덮이지 않은 기준 범위만 읽고 목록은 검증한 하위 metadata를 재사용한다. 전체 수집/게시 검사와 영속 ACK는 유지한다. 이전 파일 manifest v3는 보존·거부하며 task/basis/overlay·SPM2·명령 필드는 유지한다. 작은 None 근거를 대형/Unity/Plastic 자격으로 승계하지 않는다.
+
 [English](../lifecycle-optimization-map.md) · [기계 판독 색인](../lifecycle-optimization-map.json) · [문서 지도](README.md)
 
 **코드 기준:** `b68eaaa9e7e78930ff7b4b0b368f137bc3e528c6` 위 SCAL working-tree 후보, `development`, 2026-11-01 확인. JSON은 실제 파일 hash와 현재 symbol 위치를 고정한다. 기준 커밋에 미커밋 변경이 포함된 것은 아니다. 소스 hash는 구현을 설명하며 실제 실행 바이너리는 별도의 보존 manifest가 식별한다.
@@ -17,6 +19,8 @@ ST-36–40은 W10의 이름/namespace·Create 배치, A20의 조밀한 이력/�
 ST-41–43은 P40의 최초 연결을 client.lock 아래에서 관측하고, workspace 작업 잠금 내부의 연결 요청 및 R10 회수 intent 부재 대기를 제거한다. 불명확한 시작·일반 관측의 게시 유예·최종 수집/전체 seal·정확한 회수 순서는 유지한다. 기존 선택적 결과 diagnostics에 R10 하위 구간 시간을 추가한다. 작은 None 동일 입력 ABBA와 검증 실행 초과 기록은 처리량 후속 문서가 소유하며 큰 입력/전체 gate 근거가 아니다.
 
 ST-49–51은 완료된 SPM2 레코드 변경 뒤의 후속이다. A20은 한 계획 동안 정확한 root/managed lease를 유지하고 target을 다시 읽고 해제한 뒤 가용성/관리 경계를 재검증한다. A30은 여전히 모든 target을 재확보하고 기존 영속 보호 아래 게시한다. C20은 private 범위를 descriptor에 직접 전달하며 생략/기존 descriptor도 검증·adoption을 끝까지 drain한다. 단계 순서·결과·회수 의존성은 바꾸지 않는다. 별도의 작은 None ABBA는 대형 입력이나 과거 몇 시간 실행의 해결 자격이 아니다.
+
+ST-53–55는 C20 내부에서 정확한 전체 flat-tree 피복을 증명한 뒤 adoption 재복사를 피하고, 별칭 정리 전 제한된 메모리/디스크 필수 참조 집합을 완전히 검증한다. 첫 100ms 응답 재조회만 세분화하며 최초/완료/주기적 provider 증명은 유지한다. R10도 같은 보존 결과 정리를 사용한다. 영속 ACK·게시·identity·reader·복구 경계는 완화하지 않는다. 작은 None 시간 근거는 capture-maintenance 보고서가 소유한다.
 
 ## 1. 흐름을 결정하는 규칙
 

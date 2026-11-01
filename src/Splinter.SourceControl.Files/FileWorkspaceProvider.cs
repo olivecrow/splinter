@@ -248,7 +248,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         var shared = previous is null ? pool.Previous() : null;
         var catalog = PagedSnapshotCatalog.Build(directory, root, Records(), previousCatalog: previous?.Catalog ?? shared?.Catalog, filePins: contentPins);
         var manifest = new FileSourceManifest(w.Id, w.RequestDigest!, w.Snapshot!.Reference!.Id, "sha256:" + catalog.Children.ContentHash, [])
-            { Version = 3, Catalog = catalog, Directory = directory };
+            { Version = 4, Catalog = catalog, Directory = directory };
         using var pages = new PagedMetadataStore(directory, true, filePins: contentPins);
         var payloadNames = new PagedPathInterner(pages, previous?.PayloadPaths ?? shared?.PayloadPaths);
         payloadNames.Import(manifest.EnumerateEntries().Select(entry => entry.Path));
@@ -270,7 +270,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     private static FileSourceManifest ReadManifest(WorkspaceRecord w, string path, Func<string, Stream>? open = null)
     {
         var m = Read<FileSourceManifest>(path, open);
-        if (m.Version != 3 || m.OwnerId != w.Id || m.RequestDigest != w.RequestDigest || m.SnapshotId != w.Snapshot!.Reference?.Id ||
+        if (m.Version != 4 || m.OwnerId != w.Id || m.RequestDigest != w.RequestDigest || m.SnapshotId != w.Snapshot!.Reference?.Id ||
             m.Catalog is null || m.PayloadIndex is null || m.PayloadPaths is null || m.Entries.Length != 0 || m.Identity != "sha256:" + m.Catalog.Children.ContentHash)
             throw Error("The immutable source manifest is corrupt or belongs to another task.");
         string? directory = Path.GetDirectoryName(path);
@@ -549,7 +549,9 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
                 if (prior.Version != manifest.Version || prior.OwnerId != manifest.OwnerId || prior.RequestDigest != manifest.RequestDigest ||
                     prior.SnapshotId != manifest.SnapshotId || prior.Identity != manifest.Identity || prior.Catalog is null || manifest.Catalog is null ||
                     prior.Catalog.Count != manifest.Catalog.Count || prior.Catalog.CaseSensitive != manifest.Catalog.CaseSensitive ||
-                    prior.Catalog.Children.ContentHash != manifest.Catalog.Children.ContentHash)
+                    prior.Catalog.Children.ContentHash != manifest.Catalog.Children.ContentHash ||
+                    prior.RetainedPayloads?.ContentHash != manifest.RetainedPayloads?.ContentHash ||
+                    prior.ContentFiles?.ContentHash != manifest.ContentFiles?.ContentHash)
                     throw Error("Preserve the different published source catalog.");
                 using var catalog = new PagedSnapshotCatalog(manifest.Directory!, prior.Catalog); catalog.Verify(); return;
             }
@@ -602,15 +604,32 @@ public sealed record FileSourceEntry([property: JsonRequired] string Path, [prop
 public sealed record FileSourceManifest([property: JsonRequired] string OwnerId, [property: JsonRequired] string RequestDigest,
     [property: JsonRequired] string SnapshotId, [property: JsonRequired] string Identity, FileSourceEntry[] Entries) : IDisposable
 {
-    [JsonRequired] public int Version { get; init; } = 3;
+    [JsonRequired] public int Version { get; init; } = 4;
     [JsonRequired] public MetadataTreeRoot? ContentFiles { get; set; }
+    [JsonRequired] public MetadataTreeRoot? RetainedPayloads { get; set; }
     [JsonRequired] public SnapshotCatalogDescriptor? Catalog { get; init; }
     [JsonRequired] public MetadataTreeRoot? PayloadIndex { get; init; }
     [JsonRequired] public MetadataTreeRoot? PayloadPaths { get; init; }
     [JsonIgnore] public FileSourceEntry[] Entries { get; init; } = Entries ?? [];
     [JsonIgnore] public string? Directory { get; set; }
     [JsonIgnore] internal FileStream? AnchorLease { get; init; }
-    public void Dispose() => AnchorLease?.Dispose();
+    [JsonIgnore] internal FileStream? RetentionLease { get; set; }
+    public void Dispose() { try { AnchorLease?.Dispose(); } finally { RetentionLease?.Dispose(); } }
+    internal IEnumerable<FileSourceEntry> EnumerateRetainedPayloads(CancellationToken ct = default)
+    {
+        if (RetainedPayloads is null)
+        { foreach (var entry in EnumeratePayloads(ct)) yield return entry; yield break; }
+        using var pages = new PagedMetadataStore(Directory!);
+        foreach (var item in pages.Open(RetainedPayloads).Enumerate())
+        {
+            ct.ThrowIfCancellationRequested();
+            if (item.Key.Length != 64 || item.Key.Any(c => !char.IsAsciiHexDigit(c) || char.IsUpper(c)) || item.Value.Length != 8 || item.Child is not null)
+                throw new WorkspaceException("FileSourceStateInvalid", "Invalid retained payload identity.");
+            long length = System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(item.Value.Span);
+            if (length < 0) throw new WorkspaceException("FileSourceStateInvalid", "Invalid retained payload length.");
+            yield return new(item.Key, "file", length, item.Key, DateTime.FromFileTimeUtc(0).Ticks, 32);
+        }
+    }
     public IEnumerable<FileSourceEntry> EnumerateEntries()
     {
         if (Catalog is null || Directory is null) throw new WorkspaceException("FileSourceStateInvalid", "Bind the source catalog before enumerating.");

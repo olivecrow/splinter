@@ -45,11 +45,44 @@ public sealed class ResultFileContentStore
     public MetadataTreeRoot Preserve(string hash, long length, string? basisHash, long basisObjectLength, long basisVisibleLength,
         IEnumerable<ImmutableFilePrivateRange> ranges, CancellationToken ct = default, bool useExternalBasis = false, bool useRawBasis = false)
     {
+        using var batch = BeginPreservation();
+        var result = batch.Preserve(hash, length, basisHash, basisObjectLength, basisVisibleLength, ranges, ct, useExternalBasis, useRawBasis);
+        batch.Complete(); return result;
+    }
+    public PreservationBatch BeginPreservation() => new(this);
+    // A failed group leaves its last published prefix intact. Dispose never
+    // publishes pending roots. Call Complete before acknowledging the capture.
+    public sealed class PreservationBatch : IDisposable
+    {
+        private readonly ResultFileContentStore owner;
+        private readonly PagedMetadataStore pages;
+        private Catalog catalog;
+        private int pending;
+        private bool closed;
+        internal PreservationBatch(ResultFileContentStore owner)
+        {
+            this.owner = owner; pages = new(owner.directory, true, filePins: owner.pins);
+            try { catalog = owner.Load(pages); } catch { pages.Dispose(); throw; }
+        }
+        public MetadataTreeRoot Preserve(string hash, long length, string? basisHash, long basisObjectLength, long basisVisibleLength,
+            IEnumerable<ImmutableFilePrivateRange> ranges, CancellationToken ct = default, bool useExternalBasis = false, bool useRawBasis = false)
+        {
+            ObjectDisposedException.ThrowIf(closed, this);
+            var root = owner.PreserveCore(pages, catalog, hash, length, basisHash, basisObjectLength, basisVisibleLength, ranges, ct, useExternalBasis, useRawBasis);
+            if (root != catalog.Files) { catalog = catalog with { Files = root }; if (++pending == 64) Flush(); }
+            return root;
+        }
+        private void Flush() { if (pending == 0) return; pages.Flush(); owner.Publish(catalog); pending = 0; }
+        public void Complete() { ObjectDisposedException.ThrowIf(closed, this); Flush(); }
+        public void Dispose() { if (closed) return; closed = true; pages.Dispose(); }
+    }
+    private MetadataTreeRoot PreserveCore(PagedMetadataStore pages, Catalog catalog, string hash, long length, string? basisHash,
+        long basisObjectLength, long basisVisibleLength, IEnumerable<ImmutableFilePrivateRange> ranges, CancellationToken ct, bool useExternalBasis, bool useRawBasis)
+    {
         ValidateHash(hash); if (basisHash is not null) ValidateHash(basisHash);
         if (length < 0 || basisObjectLength < 0 || basisVisibleLength < 0 || basisVisibleLength > basisObjectLength || basisVisibleLength > length ||
             basisHash is null && (basisObjectLength != 0 || basisVisibleLength != 0 || useRawBasis) ||
             useRawBasis && (useExternalBasis || basisObjectLength is < 1 or > int.MaxValue)) throw Invalid("Invalid immutable basis visibility.");
-        using var pages = new PagedMetadataStore(directory, true, filePins: pins); var catalog = Load(pages);
         var prior = pages.Open(catalog.Files).FindEntry(hash);
         if (prior is not null)
         {
@@ -70,7 +103,7 @@ public sealed class ResultFileContentStore
         var rangeRoot = pages.Build(Entries(), ct);
         var descriptor = new ImmutableFileContentDescriptor(length, basisHash, basisObjectLength, basisVisibleLength, rangeRoot, useExternalBasis, useRawBasis);
         using (var composed = OpenDescriptor(descriptor, pages, ct)) VerifyFile(composed, hash, length, ct);
-        var files = pages.Set(catalog.Files, hash, Encode(descriptor), rangeRoot); pages.Flush(); Publish(catalog with { Files = files }); return files;
+        return pages.Set(catalog.Files, hash, Encode(descriptor), rangeRoot);
     }
     public bool Contains(string hash, long length)
     {

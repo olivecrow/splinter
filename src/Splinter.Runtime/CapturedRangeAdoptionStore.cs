@@ -16,19 +16,24 @@ public static class CapturedRangeAdoptionStore
         IEnumerable<CapturedRangeAdoptionEntry> entries, IJournalFilePins pins, CancellationToken ct = default)
     {
         string artifact = Artifact(control, capture.Id), directory = Path.Combine(Path.GetDirectoryName(artifact)!, "preserved-ranges");
+        var diagnostics = ResultGenerationDiagnostics.Open(control, capture.Id);
         SourceRangeAdoption value;
         if (File.Exists(artifact)) value = Read(control, capture);
         else
         {
             using var pages = new PagedMetadataStore(directory, true, filePins: pins);
-            var root = pages.Build(MetadataSort.Order(entries.Select(Encode), directory, ct), ct); pages.Flush();
+            MetadataTreeRoot root;
+            using (diagnostics?.Measure("adoption.build-flush"))
+            { root = pages.Build(MetadataSort.Order(entries.Select(Encode), directory, ct), ct); pages.Flush(); }
             value = new(2, capture, directory, root, root.Count, Identity(capture, root));
             string temporary = artifact + "." + Guid.NewGuid().ToString("N") + ".tmp"; WorkspaceStore.EnsurePlainPath(temporary);
             using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             { JsonSerializer.Serialize(output, value, Json); output.Flush(true); }
             AtomicFilePublication.Publish(temporary, artifact);
         }
-        _ = MetadataMaintenance.Collect(value.Directory, [value.Root], "adoption-" + capture.Id, pins, ct);
+        using (diagnostics?.Measure("adoption.maintenance"))
+            if (!PagedMetadataStore.VerifyCompactFlatTree(value.Directory, value.Root, pins, ct))
+                _ = MetadataMaintenance.Collect(value.Directory, [value.Root], "adoption-" + capture.Id, pins, ct);
         return value;
     }
     public static SourceRangeAdoption Read(string control, SourceCaptureIdentity expected)

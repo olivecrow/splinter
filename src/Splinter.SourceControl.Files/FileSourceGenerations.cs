@@ -38,30 +38,34 @@ public sealed partial class FileWorkspaceProvider
             if (prior.Id != intent.Id || prior.RequestKey != intent.RequestKey || prior.Message != intent.Message || prior.CaptureDigest != capture.Digest || prior.Sequence != intent.Sequence)
                 throw Error("The result differs from its fixed capture request.");
             using (diagnostics?.Measure("files.verify-receipt-retry")) await VerifyGenerationAsync(w, control, prior, ct);
-            using var retainedBaseline = ReadManifest(w, FilePath(control, "generation-basis.json"));
-            using var retainedResult = ReadManifest(w, GenerationPath(control, intent.Id, "result.json"));
-            using (diagnostics?.Measure("files.prune-receipt-retry")) PrunePayloadAliases(w, control, retainedBaseline, retainedResult, ct);
             return prior;
         }
         string basisPath = FilePath(control, "generation-basis.json");
         bool fixedBasis = File.Exists(basisPath);
+        bool referenceResult = w.SourceKind != "git" && contentPins is not null && tree is ISourceCaptureRanges;
         FileSourceManifest baseline;
         using (diagnostics?.Measure("files.basis-scan")) baseline = fixedBasis ? ReadManifest(w, basisPath) : Manifest(w, ScanTree(w, tree.Basis, ct));
         using var baselineLifetime = baseline;
         if (w.SourceKind != "git" && baseline.Identity != w.BaseRevision) throw Error("The generation basis differs from the admitted immutable source.");
-        // A published basis header fixes its payload dependencies. Subsequent
-        // captures verify them twice below; they never replace a raw-backed
-        // immutable basis with a second whole-file copy.
+        // The comparison basis remains fixed. Native reference results retain
+        // their own before/after dependencies after selecting changed paths;
+        // full-payload providers keep their existing preservation contract.
         using (diagnostics?.Measure("files.basis-preserve"))
-            if (w.SourceKind != "git" && !fixedBasis) baseline.ContentFiles = PreserveBasisPayloads(w, control, baseline, tree.Basis, ct);
+            if (w.SourceKind != "git" && !fixedBasis && !referenceResult) baseline.ContentFiles = PreserveBasisPayloads(w, control, baseline, tree.Basis, ct);
         GitRetainedResultBasisScope? retainedGitBasis;
         using (diagnostics?.Measure("files.retained-git-scope")) retainedGitBasis = w.SourceKind == "git" && contentPins is not null
             ? await GitRetainedResultBasis.PreserveAsync(w, control, ct) : null;
         using var retainedGitLifetime = retainedGitBasis;
-        using (diagnostics?.Measure("files.basis-header-publish")) SaveFixed(basisPath, baseline);
         FileSourceManifest result;
         using (diagnostics?.Measure("files.result-scan")) result = CaptureManifest();
         using var resultLifetime = result;
+        if (referenceResult)
+        {
+            using (diagnostics?.Measure("files.retention-select")) BindRetainedPayloads(w, baseline, result, (ISourceCaptureRanges)tree, ct);
+            using (diagnostics?.Measure("files.basis-preserve-selected"))
+                _ = PreserveBasisPayloads(w, control, baseline, tree.Basis, ct, RequiredBasisPayloads(baseline, result, ct));
+        }
+        using (diagnostics?.Measure("files.basis-header-publish")) SaveFixed(basisPath, baseline);
         FileSourceManifest CaptureManifest()
         {
             var observed = Manifest(w, ScanTree(w, tree, ct, baseline)); string fixedPath = GenerationPath(control, intent.Id, "result.json");
@@ -87,7 +91,7 @@ public sealed partial class FileWorkspaceProvider
         using (diagnostics?.Measure("files.independent-verify-1"))
         if (independentReader is not null)
         {
-            VerifyPayloads(control, baseline.EnumeratePayloads(ct).Concat(result.EnumeratePayloads(ct)), ct, independentReader.Reader, contentPins is not null);
+            VerifyPayloads(control, VerificationPayloads(baseline, result, ct), ct, independentReader.Reader, contentPins is not null);
             independentReader.VerifyBoundary();
         }
         if (preparationObserver is not null) await preparationObserver.ReachedAsync("source-payloads-preserved", w, ct);
@@ -102,7 +106,7 @@ public sealed partial class FileWorkspaceProvider
             gitReference = preserved.Reference; gitFingerprint = preserved.Hash;
         }
         var generation = new WorkspaceResultGeneration(intent.Id, intent.Sequence, intent.RequestKey, intent.Message,
-            result.Identity, result.Identity, "files:" + w.Id + ":" + intent.Id, capture.Digest,
+            result.Identity, GenerationFingerprint(result), "files:" + w.Id + ":" + intent.Id, capture.Digest,
             capture.Sequence, DateTimeOffset.UtcNow, gitReference, gitFingerprint);
         using (diagnostics?.Measure("files.capture-boundary-2")) tree.VerifyReadBoundary();
         using (diagnostics?.Measure("files.receipt-publish"))
@@ -118,12 +122,12 @@ public sealed partial class FileWorkspaceProvider
         }
         IEnumerable<FileSourceManifest> Retained()
         {
-            yield return baseline; yield return result;
+            if (result.RetainedPayloads is null) yield return baseline; yield return result;
             foreach (var prior in w.Results.Where(g => g.Id != intent.Id))
             { using var manifest = ReadManifest(w, GenerationPath(control, prior.Id, "result.json")); yield return manifest; }
         }
         using (diagnostics?.Measure("files.storage-accounting")) w.ResultStorage = Storage(w, baseline, result, Retained(), control);
-        using (diagnostics?.Measure("files.prune")) PrunePayloadAliases(w, control, baseline, result, ct);
+        // Retained-result maintenance at release owns pruning, outside the capture response.
         return generation;
     }
     public async Task VerifyGenerationAsync(WorkspaceRecord w, string control, WorkspaceResultGeneration generation, CancellationToken ct = default)
@@ -140,15 +144,17 @@ public sealed partial class FileWorkspaceProvider
         using var result = ReadManifest(w, GenerationPath(control, generation.Id, "result.json"), open);
         using var baseline = ReadManifest(w, FilePath(control, "generation-basis.json"), open);
         if (w.SourceKind != "git" && baseline.Identity != w.BaseRevision) throw Error("The retained generation basis differs from admission.");
-        if (receipt != generation || result.Identity != generation.Revision || generation.Fingerprint != result.Identity ||
+        if (receipt != generation || result.Identity != generation.Revision || generation.Fingerprint != GenerationFingerprint(result) ||
             generation.ResultReference != "files:" + w.Id + ":" + generation.Id || generation.Sequence < 1 ||
             string.IsNullOrWhiteSpace(generation.RequestKey) || generation.CaptureDigest.Length != 64)
             throw Error("The independent generation differs from its receipt.");
-        if (w.SourceKind != "git" || generation.GitReference is null) VerifyPayloads(control, baseline.EnumeratePayloads(ct).Concat(result.EnumeratePayloads(ct)), ct, open, concurrentOpen);
+        if (w.SourceKind != "git" || generation.GitReference is null) VerifyPayloads(control, VerificationPayloads(baseline, result, ct), ct, open, concurrentOpen);
         if (w.SourceKind == "git" && generation.GitReference is not null &&
             await GitSourceResult.VerifyAsync(w.ProjectPath, generation.GitReference, ct) != generation.GitFingerprint)
             throw Error("The independent Git generation changed or disappeared.");
     }
+    private static IEnumerable<FileSourceEntry> VerificationPayloads(FileSourceManifest baseline, FileSourceManifest result, CancellationToken ct) =>
+        result.RetainedPayloads is null ? baseline.EnumeratePayloads(ct).Concat(result.EnumeratePayloads(ct)) : result.EnumerateRetainedPayloads(ct);
     private static IEnumerable<FileSourceEntry> ScanTree(WorkspaceRecord w, ISnapshotTree tree, CancellationToken ct, FileSourceManifest? baseline = null)
     {
         using var basisReader = baseline?.OpenReader();
@@ -201,7 +207,7 @@ public sealed partial class FileWorkspaceProvider
         }
         finally { foreach (var items in pending) items.Dispose(); }
     }
-    private void PreserveTreePayloads(WorkspaceRecord w, string control, FileSourceManifest manifest, ISnapshotTree tree, CancellationToken ct)
+    private void PreserveTreePayloads(WorkspaceRecord w, string control, FileSourceManifest manifest, ISnapshotTree tree, CancellationToken ct, IEnumerable<FileSourceEntry>? selected = null)
     {
         void Preserve(FileSourceEntry entry)
         {
@@ -238,15 +244,15 @@ public sealed partial class FileWorkspaceProvider
             }
             VerifyObject(pending, entry, ct); File.Move(pending, target);
         }
-        var payloads = manifest.EnumeratePayloads(ct);
+        var payloads = selected ?? manifest.EnumeratePayloads(ct);
         if (tree.SupportsConcurrentReads) ForEachPayload(payloads, ct, Preserve);
         else foreach (var entry in payloads) Preserve(entry);
     }
-    private MetadataTreeRoot? PreserveBasisPayloads(WorkspaceRecord w, string control, FileSourceManifest manifest, ISnapshotTree tree, CancellationToken ct)
+    private MetadataTreeRoot? PreserveBasisPayloads(WorkspaceRecord w, string control, FileSourceManifest manifest, ISnapshotTree tree, CancellationToken ct, IEnumerable<FileSourceEntry>? selected = null)
     {
-        if (contentPins is null) { PreserveTreePayloads(w, control, manifest, tree, ct); return null; }
+        if (contentPins is null) { PreserveTreePayloads(w, control, manifest, tree, ct, selected); return null; }
         using var raw = new OwnedRangeContentStore(store.Root, contentPins);
-        if (!raw.HasPublishedCatalog) { PreserveTreePayloads(w, control, manifest, tree, ct); return null; }
+        if (!raw.HasPublishedCatalog) { PreserveTreePayloads(w, control, manifest, tree, ct, selected); return null; }
         var whole = new OwnedContentStore(store.Root, contentPins);
         var files = new ResultFileContentStore(store.Root, control, w, contentPins, raw); object descriptorGate = new(); bool usedRaw = false;
         void Preserve(FileSourceEntry entry)
@@ -277,7 +283,7 @@ public sealed partial class FileWorkspaceProvider
             whole.Preserve(w, control, entry.Hash!, entry.Length, output =>
             { using var input = new SnapshotPayloadStream(tree, entry.Path, entry.Length); PreserveStream(input, output, entry.Length, ct); }, ct);
         }
-        var payloads = manifest.EnumeratePayloads(ct);
+        var payloads = selected ?? manifest.EnumeratePayloads(ct);
         if (tree.SupportsConcurrentReads) ForEachPayload(payloads, ct, Preserve);
         else foreach (var entry in payloads) Preserve(entry);
         return usedRaw ? files.CurrentRoot : null;
@@ -306,6 +312,7 @@ public sealed partial class FileWorkspaceProvider
         var basisContents = baseline.ContentFiles is null ? null : new ResultFileContentStore(store.Root, control, w, contentPins!, raw, baseline.ContentFiles);
         using var adoptionRows = new MetadataSpool(Path.Combine(control, "captures", expected.Id));
         using var baselinePages = new PagedMetadataStore(baseline.Directory!); var baselinePayloads = baselinePages.Open(baseline.PayloadIndex!);
+        using var descriptors = files.BeginPreservation();
         using (diagnostics?.Measure("files.range-descriptors"))
         foreach (var entry in result.EnumerateEntries().Where(entry => entry.Kind == "file"))
         {
@@ -313,7 +320,7 @@ public sealed partial class FileWorkspaceProvider
             var layout = ranges.GetFileRanges(entry.Path) ?? throw Error("A frozen file has no immutable range layout.");
             var basis = layout.BasisPath is null ? null : basisCatalog.Find(layout.BasisPath);
             bool needsDescriptor = baselinePayloads.Find(entry.Hash!) is null;
-            bool rawBasis = needsDescriptor && basis is not null && basisContents?.UsesRawBasis(basis.Hash!, basis.Length) == true;
+            bool rawBasis = needsDescriptor && basis is not null && (basisContents ?? files).UsesRawBasis(basis.Hash!, basis.Length);
             if (layout.BasisPath is not null && (basis is null || basis.Kind != "file" || layout.BasisVisibleLength > basis.Length))
                 throw Error("A frozen file references another or missing immutable basis version.");
             IEnumerable<ImmutableFilePrivateRange> Private()
@@ -370,7 +377,7 @@ public sealed partial class FileWorkspaceProvider
             if (!privateItems.MoveNext())
             {
                 if (needsDescriptor)
-                    _ = files.Preserve(entry.Hash!, entry.Length, basis?.Hash, basis?.Length ?? 0, layout.BasisVisibleLength, [], ct, w.SourceKind == "git", rawBasis);
+                    _ = descriptors.Preserve(entry.Hash!, entry.Length, basis?.Hash, basis?.Length ?? 0, layout.BasisVisibleLength, [], ct, w.SourceKind == "git", rawBasis);
                 continue;
             }
             if (!needsDescriptor)
@@ -389,12 +396,13 @@ public sealed partial class FileWorkspaceProvider
                 // rereading a separate temporary list for every source file.
                 do { yield return privateItems.Current; } while (privateItems.MoveNext());
             }
-            _ = files.Preserve(entry.Hash!, entry.Length, basis?.Hash, basis?.Length ?? 0, layout.BasisVisibleLength, Preserved(), ct, w.SourceKind == "git", rawBasis);
+            _ = descriptors.Preserve(entry.Hash!, entry.Length, basis?.Hash, basis?.Length ?? 0, layout.BasisVisibleLength, Preserved(), ct, w.SourceKind == "git", rawBasis);
             // An already retained full-file identity verifies its descriptor
             // without consuming Preserved. Its current capture still owns all
             // private-range validation and adoption, including the last row.
             while (privateItems.MoveNext()) { }
         }
+        descriptors.Complete();
         using (diagnostics?.Measure("files.adoption-publish"))
             _ = CapturedRangeAdoptionStore.Publish(control, expected, adoptionRows.Read().Select(CapturedRangeAdoptionStore.Decode), contentPins!, ct);
         if (w.SourceKind == "git") ((ISourceCaptureTree)tree).Basis.VerifyReadBoundary();
@@ -402,7 +410,7 @@ public sealed partial class FileWorkspaceProvider
     }
     private IEnumerable<ImmutableContentReference> ContentReferences(WorkspaceRecord w, string control, FileSourceManifest manifest, CancellationToken ct = default)
     {
-        var files = manifest.EnumeratePayloads(ct).Select(entry => new ImmutableContentReference(entry.Hash!, entry.Length, false));
+        var files = manifest.EnumerateRetainedPayloads(ct).Select(entry => new ImmutableContentReference(entry.Hash!, entry.Length, false));
         if (manifest.ContentFiles is null)
         {
             foreach (var item in files)
@@ -418,6 +426,7 @@ public sealed partial class FileWorkspaceProvider
     private void PrunePayloadAliases(WorkspaceRecord w, string control, FileSourceManifest baseline, FileSourceManifest current, CancellationToken ct)
     {
         if (contentPins is null) return;
+        var diagnostics = ResultGenerationDiagnostics.Open(control, w.CaptureIntent?.Id ?? w.Results.LastOrDefault()?.Id ?? "");
         SourceChangeView? live = null;
         if (Directory.Exists(Path.Combine(control, "delta")))
         {
@@ -426,11 +435,9 @@ public sealed partial class FileWorkspaceProvider
             // conservatively overmark later overwritten ranges, never omit a
             // newly adopted source-only slice such as a reversion to the basis.
             if (sourceChanges is null) return;
-            live = sourceChanges.ObserveChangesAsync(w, ct).GetAwaiter().GetResult();
+            using (diagnostics?.Measure("prune.observe-live")) live = sourceChanges.ObserveChangesAsync(w, ct).GetAwaiter().GetResult();
         }
         using var liveLifetime = live;
-        using var scratch = new TemporaryMetadataDirectory(FilePath(control, "gc-work"));
-        using var pages = new PagedMetadataStore(scratch.Path, true);
         IEnumerable<MetadataEntry> Hashes()
         {
             if (live is not null)
@@ -452,7 +459,7 @@ public sealed partial class FileWorkspaceProvider
             }
             IEnumerable<FileSourceManifest> Manifests()
             {
-                yield return baseline; yield return current;
+                if (current.RetainedPayloads is null) yield return baseline; yield return current;
                 foreach (var generation in w.Results)
                 {
                     using var retained = ReadManifest(w, GenerationPath(control, generation.Id, "result.json"));
@@ -466,20 +473,13 @@ public sealed partial class FileWorkspaceProvider
                 yield return new((item.RawRange ? "r" : "w") + item.Hash, length);
             }
         }
-        IEnumerable<MetadataEntry> Unique()
-        {
-            MetadataEntry? previous = null;
-            foreach (var entry in MetadataSort.Order(Hashes(), scratch.Path, ct))
-            {
-                if (previous?.Key == entry.Key)
-                { if (!previous.Value.Span.SequenceEqual(entry.Value.Span)) throw Error("One immutable object has different required lengths."); continue; }
-                previous = entry; yield return entry;
-            }
-        }
-        var required = pages.Open(pages.Build(Unique(), ct));
-        new OwnedContentStore(store.Root, contentPins).PruneUnreferenced(w, control, hash => required.Find("w" + hash) is not null, ct);
+        MetadataMembership required;
+        using (diagnostics?.Measure("prune.required-index")) required = new(Hashes(), FilePath(control, "gc-work"), ct);
+        using var requiredLifetime = required;
+        using (diagnostics?.Measure("prune.whole-aliases"))
+            new OwnedContentStore(store.Root, contentPins).PruneUnreferenced(w, control, hash => required.Contains("w" + hash), ct);
         using var raw = new OwnedRangeContentStore(store.Root, contentPins);
-        raw.PruneUnreferenced(w, control, hash => required.Find("r" + hash) is not null, ct);
+        using (diagnostics?.Measure("prune.raw-aliases")) raw.PruneUnreferenced(w, control, hash => required.Contains("r" + hash), ct);
     }
     private sealed class SnapshotPayloadStream(ISnapshotTree tree, string path, long length) : Stream
     {

@@ -1,5 +1,9 @@
 # 현재 기반
 
+[ST-56–60](verification/scalable-storage-throughput-followup.md)은 참조 작업공간에 맞게 수집을 바꾼다. 파일 manifest v4는 변경 전후 의존성과 기존 보존 내용만 보관하며, 평탄한 작업 인덱스를 다시 만들지 않고 기존 디렉터리 root를 비교한다. 결과 descriptor는 최대 64개씩 게시하고 수집 중 별칭 정리는 release의 보존 결과 유지관리로 옮긴다. 고정 결과 읽기는 덮이지 않은 기준 범위만 읽고 목록은 검증한 하위 metadata를 재사용한다. 전체 수집/게시 검사와 영속 ACK는 유지한다. 이전 파일 manifest v3는 보존·거부하며 task/basis/overlay·SPM2·명령 필드는 유지한다. 작은 None 근거를 대형/Unity/Plastic 자격으로 승계하지 않는다.
+
+[ST-53–55](verification/scalable-storage-throughput-followup.md)는 flat tree의 전체 논리/native/물리 피복을 검증한 경우 adoption의 중복 압축만 생략한다. 미확인/중단 작업은 기존 회수와 같은 요청 복구를 유지한다. Runtime `MetadataMembership`는 모든 참조를 먼저 drain해 공통 예산의 메모리 집합 또는 기존 디스크 트리를 만든 뒤 별칭을 회수한다. 소스 관측은 최초/완료/주기적 provider 전체 증명을 유지하고 첫 100ms만 짧게 재조회한다. 형식과 영속 ACK는 유지한다.
+
 [ST-49–51](verification/scalable-storage-throughput-followup.md)은 Core 선택 port `IOriginalFileObservationProvider`/`IOriginalFileObservationScope`를 연결한다. 한 계획 안에서 정확한 root/managed lease를 유지하고 각 target을 다시 읽은 뒤 핸들을 해제하며 계획 게시 전 가용성/관리 경계를 재검증한다. 조건부 게시는 여전히 전체 대상 잠금을 확보한다. 결과 private 범위는 파일별 임시 목록 없이 descriptor로 전달하고 기존/기준본 identity도 검증과 adoption을 끝까지 drain한다. Task/basis/overlay·SPM2·CLI schema는 유지하며 시간 자격은 같은 작은 Editor 없는 None 입력에 한정한다.
 
 [ST-44–48](verification/scalable-storage-throughput-followup.md#st-4448-metadata-레코드-중복-검토)은 metadata 저장소 형식 2(`SPM2`)·디렉터리 시각 생략·정확한 게시 version 차등을 도입한다. 파일 비교와 저널 목록 spool은 checksum 바이너리 값을 사용하며 경로/이름은 정렬 key에 한 번만 둔다. 저장소/replay/회수/Plastic header 증명은 같은 현재 magic을 요구하고 이전 `SPM1`은 보존·거부한다. treap node·논리 hash·reader/내구성/소유 보호·CLI schema는 유지하며 다중 항목 페이지는 보류다.

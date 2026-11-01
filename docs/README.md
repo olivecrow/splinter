@@ -1,7 +1,7 @@
 <a id="문서-지도"></a>
 # Documentation map
 
-[Throughput review follow-up](verification/scalable-storage-throughput-followup.md) tracks ST-01–52, including batching/resources, exact publication deltas, compact directory metadata, binary comparison/listing scratch and metadata-store format 2 (`SPM2`). Multi-entry pages remain deferred. Tiny native checks and bounded timing/gate attempts do not qualify or resume the retained large-input matrix. The later capture/apply follow-up adds operation-local original root observation and directly streamed private ranges, with separate small SPM2 timing evidence.
+[Throughput review follow-up](verification/scalable-storage-throughput-followup.md) tracks ST-01–60, including batching/resources, exact publication deltas, compact directory metadata, binary comparison/listing scratch and metadata-store format 2 (`SPM2`). Multi-entry pages remain deferred. Tiny native checks and bounded timing/gate attempts do not qualify or resume the retained large-input matrix. The later capture/apply follow-up adds operation-local original root observation and directly streamed private ranges, with separate small SPM2 timing evidence.
 
 [Scalable-storage slow phases](verification/scalable-storage-throughput-diagnosis.md) record the existing 100k run costs, confirmed fixes and unmeasured causes. The user reduced verification on 2026-11-01; large fixtures are stopped with retained state, while 17GiB/full 100k/ABBA/latest whole-gate qualification remains incomplete. These runs are not a general speed or usability qualification.
 

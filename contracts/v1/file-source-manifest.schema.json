@@ -12,11 +12,12 @@
     "catalog",
     "payloadIndex",
     "payloadPaths",
-    "contentFiles"
+    "contentFiles",
+    "retainedPayloads"
   ],
   "properties": {
     "version": {
-      "const": 3
+      "const": 4
     },
     "ownerId": {
       "type": "string",
@@ -44,6 +45,17 @@
       "$ref": "urn:splinter:v1:metadata-tree-root"
     },
     "contentFiles": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "urn:splinter:v1:metadata-tree-root"
+        }
+      ]
+    },
+    "retainedPayloads": {
+      "description": "Null for full-payload manifests; otherwise the receipt-bound hash/length set retained for reference results, including prior retained content and changed before/after dependencies.",
       "anyOf": [
         {
           "type": "null"

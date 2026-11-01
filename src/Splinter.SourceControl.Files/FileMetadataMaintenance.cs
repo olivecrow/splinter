@@ -171,7 +171,7 @@ public sealed partial class FileWorkspaceProvider
                     if (!JsonPropertyValidation.HasUniqueProperties(document.RootElement)) throw Error("Preserve duplicated result metadata root properties.");
                     if (!document.RootElement.TryGetProperty("contentFiles", out _) || !document.RootElement.TryGetProperty("catalog", out _)) continue;
                     var manifest = document.RootElement.Deserialize<FileSourceManifest>(Json) ?? throw Error("A retained result header is empty.");
-                    if (manifest.Version != 3 || manifest.OwnerId != w.Id || manifest.RequestDigest != w.RequestDigest ||
+                    if (manifest.Version != 4 || manifest.OwnerId != w.Id || manifest.RequestDigest != w.RequestDigest ||
                         manifest.SnapshotId != w.Snapshot?.Reference?.Id || manifest.Catalog is null || manifest.Identity != "sha256:" + manifest.Catalog.Children.ContentHash)
                         throw Error("Preserve a foreign or malformed retained result header.");
                     if (manifest.ContentFiles is { } content)

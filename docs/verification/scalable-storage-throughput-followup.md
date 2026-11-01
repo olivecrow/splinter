@@ -286,3 +286,82 @@ The next design prerequisite is a deterministic, locally maintainable boundary r
 Adoption would require small comparisons of **bulk bytes, sparse and batched insert/update/delete bytes, cold/warm physical reads, durable-flush count and elapsed time**, including owner/catalog/reclamation costs. The six-generation ST-51 remainder includes inventories, native proof and durable adoption publication; this data-page model does not establish how much of that time packing removes.
 
 The isolated helper built in **4.465s** (expected 10s/stop 20s); the actual data-page probe completed in **0.850s** (3s/6s), and the model in **0.022s** (1s/2s). Review/prototype budgets were 10 minutes each, stopping at twice each; no stop boundary was crossed. Product source hashes (513 files) and final product DLLs still match the preceding candidate. No provider, large fixture, full gate or product format change was started. The [review report](../../reports/benchmarks/metadata-multipage-review-20261102.json) preserves the actual records, model assumptions, source hashes and limitations; disposable artifacts are under `artifacts/multipage-review-20261102/` and `.local/multipage-review-20261102/`.
+
+## ST-53–55: capture reference cleanup and durable adoption metadata
+
+Starting source is `1b33995`, with SPM2/task v4/basis v3/overlay v3 unchanged. The user authorized further capture optimization with the same small input and safe stopping at twice the fixed estimates. Both comparison sides include identical optional diagnostics. Earlier reports and retained large fixtures are unchanged.
+
+| ID | Repair and retained boundary |
+| --- | --- |
+| ST-53 | `CapturedRangeAdoptionStore.Publish` previously collected even a newly bulk-built immutable flat tree. New `PagedMetadataStore.VerifyCompactFlatTree` takes a read fence excluding writers/GC, fully verifies the ordered root and every page hash/count, verifies native container ownership, then sorts physical references and requires exact contiguous coverage of every container payload byte. Only then may it return without copying pages or writing collection intents/relocation/receipts. The original pages and adoption artifact were already flushed before this check. This is a fresh full proof, not a cached availability decision. Existing readers can coexist; writers remain excluded. |
+| ST-53 fallback | Child trees, collection/relocation/receipt state, unknown controls, unreachable/torn tails or incomplete native ownership admission take ordinary collection or preserve/refuse behavior. An existing collection resumes the same request. Reachable corruption is rejected. Unowned header remnants remain unowned and preserved. No pending intent, unknown entry, durability ACK or native/content proof is bypassed. |
+| ST-54 | `MetadataMembership` fully drains live, pending-adoption, basis/current and retained-generation references before alias deletion. An exact key/value dictionary uses the shared scratch budget, bounded by the sort-run budget. Contradictory lengths fail before reclamation. Budget pressure uses the existing sorted metadata tree; dictionary capacity is released before its memory charge. No whole-input allocation or input quota is added. The bound live-source reader remains alive through pruning; manifest/adoption readers remain alive while their references are consumed. |
+| ST-55 | `WindowsSourceChanges` no longer repeats its just-completed full provider proof at the first empty response. Initial and response-boundary proofs, unique token/request/PID/start/snapshot validation and bound change-reader protection remain. During waiting, full proof remains on a one-second clock. Response polling is 20ms only in the first 100ms, then 100ms as before; this lowers short-response latency without a faster unbounded polling loop. |
+
+The baseline subphase probe attributed six generations to adoption build/flush **0.031s**, immediate adoption collection **1.413s**, live reference observation **2.335s**, required-reference index **0.524s**, whole-alias pruning **0.064s** and raw pruning **0.012s**. The reference-index timer also includes enumerating source/pending/history references; the dictionary does not remove those proofs. `ResultGenerationDiagnostics` remains opt-in and non-authoritative.
+
+Final-source checks: **25 passed, zero failures/skips**. Twelve new checks took **1.925s** (expected 8s/stop 16s): memory/disk/partial-spill/shared-budget denial, complete drain, contradictory values, cancellation, empty/nonempty coverage, reader coexistence/writer exclusion, orphan pages/unknown controls, reachable damage/truncation/native ownership, unowned header preservation and same-request recovery after root sealing or relocation publication. Thirteen existing capture/adoption/reversion/later-edit/reader tests took **7.182s** (12s/24s). Final test/product build **8.47s**, zero warnings/errors (15s/30s); earlier builds were 9.12/11.25/7.16s, all within their original limits. No full `build.ps1` gate was run.
+
+The unchanged editorless None input has **31 files / one directory / 992 bytes / 16 payload variants**. Eight fresh workflows have identical seeds (including fixed times/attributes) and final paths/lengths/content; later edit times and generated identities differ. Each performs 27 commands, four explicit captures, four plans/publications, final A/B captures during release and original restoration. Entry-point phase totals exclude driver/sampling/dispatch overhead and are not additive to whole time.
+
+| Final ABBA block `a3/c1/c2/a4`, seconds | Before mean | Final mean |
+| --- | ---: | ---: |
+| Preparation | 8.011 | 7.399 |
+| Capture | 15.602 | 15.086 |
+| Apply, including plans | 15.342 | 18.047 |
+| Reclamation/restoration | 16.790 | 18.722 |
+| Whole workflow | 72.590 | 76.116 |
+
+**Whole-workflow improvement is not established: its final mean is 3.526s/4.9% slower.** Before runs were 72.541/72.639s; final runs were 69.642/82.590s. Capture's observed mean falls only 0.515s/3.3%. The intermediate `a1/b1/b2/a2` block was 80.423→70.630s, with ranges 72.096–88.750s / 70.548–70.711s. It predates the final polling/capacity/header refinements and is not pooled with the final block or used to replace its less favorable result. OS caches were not cleared; each final candidate has only two samples.
+
+| Nested diagnostics, mean sum across six generations per workflow | Before seconds | Final seconds | Observed reduction |
+| --- | ---: | ---: | ---: |
+| Adoption maintenance: collection versus complete compact proof | 1.405 | 0.160 | 88.6% |
+| Live-source reference observation | 2.366 | 1.519 | 35.8% |
+| Required-reference enumeration/index | 0.544 | 0.491 | 9.7% |
+| Entire alias cleanup, including the preceding two rows | 3.024 | 1.980 | 34.5% |
+| Entire result preservation, including nested work | 12.671 | 11.207 | 11.6% |
+
+The component effect repeats in both final runs: adoption maintenance 0.112/0.208s versus controls 1.388/1.422s; alias cleanup 1.884/2.076s versus 3.020/3.029s. Nested costs cannot be added together. Fresh tree construction/flush remains and is small (0.031→0.066s); full reference enumeration and durable publication are not eliminated.
+
+The slower final run `c2` spent **6.363s** in source publication and **4.676s** in final metadata maintenance, versus **1.858/1.749s** in `c1`. Together those intervals account for about 7.43s of the 12.95s whole-run gap. The intermediate baseline `a2` also slowed in those unchanged paths (4.124/4.502s), with additional basis-preservation delay. This locates variability but does **not** prove its underlying cause or rule out a candidate contribution; no disk/antivirus diagnosis is asserted. Capture backend completion (final mean **3.187s**) and freeze (**2.781s**) also remain. No extra trial was run to select a better whole-time result.
+
+Before execution, active work was estimated at **40 minutes**, investigation/implementation/small verification/recording **8/15/12/5 minutes**, each stopped at twice its estimate. Work began at 16:02:45 UTC. Each workflow retained **90s expected / 180s stop**, start/bulk/selected/final stages **20/15/20/35s**, and prepare/ensure/capture/plan/apply/release/restore/schema-status commands **3/5/5/2/5/8/3/1s**, stopping at twice each or an earlier enclosing deadline. All **216 commands / 32 stages / eight workflows** completed within those fixed limits; the maximum command ratio was baseline `a2` release A, **12.510s / 8s = 1.564×**. No limit increase, forced writer termination or additional Stop was needed. All eight A/B pairs were released and originals restored as ordinary directories; the exact PID/start audit found all **24 recorded providers absent**.
+
+The [capture-maintenance report](../../reports/benchmarks/capture-maintenance-20261102.json) binds the final **516-file** source manifest, frozen binaries, baseline diagnostic patch, both blocks, tests, budgets and retained fixture paths. Raw evidence is under `artifacts/capture-maintenance-20261102/`. No large input, retained 100k/17GiB fixture, actual Git/Plastic/Unity lifecycle, OS-crash matrix, maximum RSS/hardware saturation or full gate was run. ST-44 and SCAL-03/07/08 remain incomplete; the historical tens-of-minutes/hours behavior is not proven resolved.
+
+## ST-56–60: reference-workspace collection
+
+The product's purpose is parallel reference workspaces and explicit original application. Result records support restart/reversal, rather than a full-project archive. This follow-up starts from `1b33995` plus the preserved ST-53–55 working changes; the previous report is unchanged.
+
+| ID | Implementation and boundary |
+| --- | --- |
+| ST-56 | New file manifest **v4** keeps the full comparison catalog but retains only changed before/after payloads, range-basis dependencies and previous retained content. Direct directory-root comparison skips identical subtrees and avoids two flat work-index builds. The generation fingerprint binds the retention and descriptor logical roots. Native None/Plastic uses this path; Git keeps its protected basis, and providers without native range capture retain full-payload behavior. Earlier v3 manifests are preserved/refused, with no migration. Task v4/basis v3/overlay v3/SPM2 and public command fields remain unchanged. Changed files can still require initial basis payload copies. |
+| ST-57 | Result descriptors share one writable page session and durable publication per at most 64 changed descriptors. `Complete` precedes the capture acknowledgement; disposal after failure leaves the last published prefix authoritative. File data, descriptor content hashes and native ownership proofs are retained. |
+| ST-58 | Capture and fixed-result retry no longer prune aliases. Existing retained-result maintenance at release performs exact live/pending/history marking and reclamation. This deliberately retains extra aliases until that boundary; the 4MiB metadata-maintenance trigger and pending-request protection remain. |
+| ST-59 | Frozen source reads fetch basis bytes only for uncovered gaps, then overlay private slices. Entirely private reads perform zero basis-byte reads. |
+| ST-60 | Frozen directory listings preserve verified metadata through sorting, apply overlay precedence and hidden/excluded/path-policy rules, and avoid repeating basis `Stat` for unchanged children. |
+
+The file manifest schema, maintenance readers, generation-history validation, bilingual contracts and lifecycle map were updated. `WorkspaceStore` validates a separate SHA-256 fingerprint's shape; the source provider verifies its exact catalog/retention/descriptor binding against the fixed receipt before accepting or using a result. No integrity check or durable write acknowledgement was removed.
+
+### Minimal verification and observed cost
+
+**20 distinct focused cases passed**, covering unrelated payload omission, basis loss and reversion, schema/v3 refusal and retention tampering, failed descriptor groups, raw peer reuse, private-range draining, live reference reclamation, frozen rename/reconnect, and three publication-interruption boundaries. Earlier failures included two expectations about the moved raw descriptor root and one test that attempted capture reclamation before disposing its reader; the corrected affected cases passed. A zero-match filter invocation is not counted. An additional <=65-byte test verifies the published 64-entry prefix survives a failure with entry 65 pending and the remaining entry can be retried. Product code was unchanged after the completed native comparison. The final build passed; `build.ps1` and the full gate were not run.
+
+The first native candidate exposed a real integration omission: history loading still required fingerprint equal to revision. Capture returned `StateCorrupt` after **2.971s**; the normal Stop client hit the same check after one provider had stopped. No writer was killed or record edited. The corrected history reader allowed the other two authenticated Stops (**0.317/0.232s**) and the same `capture-1` request returned its fixed result in **1.624s**. Diagnostic fixture `b1` remains preserved/stopped and is excluded from completed timing comparisons.
+
+Same 32-entry editorless None input, one completed baseline `a1` and one completed final candidate `b2`:
+
+| CLI phase totals | Before seconds | After seconds |
+| --- | ---: | ---: |
+| Preparation | 7.341 | 7.522 |
+| Capture | 16.498 | 12.769 |
+| Plan/application | 17.502 | 16.688 |
+| Release/restoration | 26.307 | 14.934 |
+| Whole workflow, including harness costs | 85.083 | 69.445 |
+
+Capture decreased **22.6%** and whole workflow **18.4% in this pair only**. Nested result preservation was **13.286→8.257s** across six generations; descriptor work **1.050→0.777s**; result scan **2.448→1.967s**; the first/second independent verifications **1.050/1.042→0.534/0.607s**. Capture pruning's **2.114s** is absent; retained-result maintenance at release was **0.203→0.109s**. New retention selection cost **0.695s**. Release metadata maintenance varied **5.928→2.118s**, so the whole/release difference is not attributed entirely to this patch. These nested intervals must not be added together. Equal seed metadata/content and final contents were checked; both completed A/B pairs were released and their originals restored. All **nine recorded provider lifetimes**, including the failed diagnostic fixture, were absent in the final audit.
+
+The predeclared total estimate was **48min**, with design/implementation/minimal verification/recording **8/25/10/5min**; actual work was below the total estimate. Each trial kept **90s expected / 180s stop**, stages **20/15/20/35s**, and the previous per-command **3/5/5/2/5/8/3/1s** budgets, all stopping at twice the estimate or an earlier enclosing deadline. Focused test groups used **8/16s** and builds **15/30s**. No measured execution crossed its limit; the native candidate stopped on a functional failure, not a timeout. No limit was increased, state rewritten, or provider forcibly terminated.
+
+[Raw report](../../reports/benchmarks/reference-capture-20261102.json) binds current sources, frozen binaries, per-command times, diagnostics, failure/recovery, and provider audit; evidence is under `artifacts/reference-capture-20261102/`. Remaining work: full catalog scanning, repeated independent payload verification, broad selected-apply comparison, global object/reference scans and packing under shared locks, plus write comparison/flush costs. A scope-bound proof or dependency-aware traversal is needed before removing those checks; they were not bypassed. No large/100k/17GiB, actual Unity/Git/Plastic lifecycle, full gate, OS-crash, peak-RAM or hardware-saturation qualification is added.

@@ -298,7 +298,8 @@
         "K40",
         "K41",
         "K44",
-        "K45"
+        "K45",
+        "K47"
       ],
       "documents": {
         "en": "docs/lifecycle-optimization-map.md#c20",
@@ -431,7 +432,8 @@
         "K19",
         "K38",
         "K40",
-        "K44"
+        "K44",
+        "K47"
       ],
       "documents": {
         "en": "docs/lifecycle-optimization-map.md#r10",
@@ -2834,7 +2836,7 @@
       "files": [
         {
           "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
-          "sha256": "c901e9cd639b67a31117ba9ba384600b1b08f0d01e3b0f0269fed63279a980a2",
+          "sha256": "1e8677339c251e5b7fb4eaf1502454db343f15089ce876cab71dd4521aa1a6d6",
           "symbols": [
             {
               "name": "PreserveGenerationAsync",
@@ -2952,28 +2954,24 @@
             {
               "name": "PagedMetadataStore",
               "lineHints": [
-                11,
-                37,
-                43,
-                46,
-                583,
-                711
+                48,
+                51
               ]
             },
             {
               "name": "Build",
               "lineHints": [
-                168
+                173
               ]
             },
             {
               "name": "ReadPage",
               "lineHints": [
-                637
+                642
               ]
             }
           ],
-          "sha256": "d129e0a0aa7a633562b10c40c59f34c3ae0efbbf3a0d7253f24f64a64e05a6a6"
+          "sha256": "f547923c3e3fd053f67430dbc8b5d13643166493dce0ed4a8698f56cf2ee2e5b"
         },
         {
           "path": "src/Splinter.Runtime/DirectoryMetadataTree.cs",
@@ -3451,7 +3449,7 @@
               ]
             }
           ],
-          "sha256": "04e8e374c3e88d5018d11722531f6a4ce2c49f7c9b4a7a0aec1de140554a40c1"
+          "sha256": "505eb929ed8294a2b15189f800687ff2c06f7b00685b2730e8f43c7d8e15d2a3"
         },
         {
           "path": "src/Splinter.Core/SourceChanges.cs",
@@ -3586,7 +3584,7 @@
               ]
             }
           ],
-          "sha256": "0e24ea45485dd31c0b937f5389f97e372305d5ca2549d07ba4b99a4f2caf6396"
+          "sha256": "00412553e24bfcda82a614481cf3e4694ba4717a0bce73349cf64e34d3894ae4"
         },
         {
           "symbols": [
@@ -4203,6 +4201,60 @@
               "name": "IOriginalFileObservationScope",
               "lineHints": [
                 193
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K47",
+      "files": [
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataCompactProof.cs",
+          "sha256": "85aab04079e7bd722389fb09fca5fe3cec04b6a292f2269c2089317f3202a2a1",
+          "symbols": [
+            {
+              "name": "VerifyCompactFlatTree",
+              "lineHints": [
+                12
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataMembership.cs",
+          "sha256": "862045ca726bdefce057a8a1fb97eb2dea5bfb6bfb2478ad753ffb6eb51b9d43",
+          "symbols": [
+            {
+              "name": "MetadataMembership",
+              "lineHints": [
+                16,
+                18
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Runtime/CapturedRangeAdoptionStore.cs",
+          "sha256": "00412553e24bfcda82a614481cf3e4694ba4717a0bce73349cf64e34d3894ae4",
+          "symbols": [
+            {
+              "name": "Publish",
+              "lineHints": [
+                15
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/Splinter.Platform.Windows/WindowsSourceChanges.cs",
+          "sha256": "505eb929ed8294a2b15189f800687ff2c06f7b00685b2730e8f43c7d8e15d2a3",
+          "symbols": [
+            {
+              "name": "ObserveChangesAsync",
+              "lineHints": [
+                13
               ]
             }
           ]
@@ -5121,6 +5173,110 @@
           ]
         }
       ]
+    },
+    {
+      "inspectedDate": "2026-11-02",
+      "indexSha256": "d1c43f8fe6135d4ce4c2d31f7c7ef1f510960133e0424162dbe6ff5d6c74fa2c",
+      "reason": "Targeted ST-53-55 C20/R10 refresh; other entries retain their recorded snapshot.",
+      "sourceRefs": [
+        {
+          "id": "K34",
+          "files": [
+            {
+              "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+              "sha256": "c901e9cd639b67a31117ba9ba384600b1b08f0d01e3b0f0269fed63279a980a2",
+              "symbols": [
+                {
+                  "name": "PreserveGenerationAsync",
+                  "lineHints": [
+                    25
+                  ]
+                },
+                {
+                  "name": "VerifyGenerationAsync",
+                  "lineHints": [
+                    129
+                  ]
+                },
+                {
+                  "name": "PreserveRangePayloads",
+                  "lineHints": [
+                    293
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "K36",
+          "files": [
+            {
+              "path": "src/Splinter.Runtime/PagedMetadataStore.cs",
+              "symbols": [
+                {
+                  "name": "PagedMetadataStore",
+                  "lineHints": [
+                    11,
+                    37,
+                    43,
+                    46,
+                    583,
+                    711
+                  ]
+                },
+                {
+                  "name": "Build",
+                  "lineHints": [
+                    168
+                  ]
+                },
+                {
+                  "name": "ReadPage",
+                  "lineHints": [
+                    637
+                  ]
+                }
+              ],
+              "sha256": "d129e0a0aa7a633562b10c40c59f34c3ae0efbbf3a0d7253f24f64a64e05a6a6"
+            }
+          ]
+        },
+        {
+          "id": "K39",
+          "files": [
+            {
+              "path": "src/Splinter.Platform.Windows/WindowsSourceChanges.cs",
+              "symbols": [
+                {
+                  "name": "ObserveChangesAsync",
+                  "lineHints": [
+                    13
+                  ]
+                }
+              ],
+              "sha256": "04e8e374c3e88d5018d11722531f6a4ce2c49f7c9b4a7a0aec1de140554a40c1"
+            }
+          ]
+        },
+        {
+          "id": "K40",
+          "files": [
+            {
+              "path": "src/Splinter.Runtime/CapturedRangeAdoptionStore.cs",
+              "symbols": [
+                {
+                  "name": "Publish",
+                  "lineHints": [
+                    15
+                  ]
+                }
+              ],
+              "sha256": "0e24ea45485dd31c0b937f5389f97e372305d5ca2549d07ba4b99a4f2caf6396"
+            }
+          ]
+        }
+      ]
     }
   ],
   "historicalEvidenceStatusScope": "Earlier evidence qualifications preserve status at their recorded point; finalQualification and MX-10 evidence own final program status.",
@@ -5188,7 +5344,8 @@
     "K43",
     "K44",
     "K45",
-    "K46"
+    "K46",
+    "K47"
   ],
   "scalableStorage": {
     "contract": "docs/scalable-storage.md",
@@ -5340,5 +5497,96 @@
       }
     ],
     "qualification": "Same small editorless None input, separate intermediate/final ABBA blocks. Full target locks, hashes, reader/native fences, durable ACK and same-request recovery retained. No large timing, actual Git/Plastic/Unity or full gate qualification."
+  },
+  "scalableStorageCaptureMaintenanceFollowup": {
+    "ids": "ST-53–55",
+    "document": "docs/verification/scalable-storage-throughput-followup.md",
+    "report": "reports/benchmarks/capture-maintenance-20261102.json",
+    "baseCommit": "1b33995",
+    "stages": [
+      "C20",
+      "R10"
+    ],
+    "changedSourceFiles": [
+      {
+        "path": "src/Splinter.Runtime/PagedMetadataCompactProof.cs",
+        "sha256": "85aab04079e7bd722389fb09fca5fe3cec04b6a292f2269c2089317f3202a2a1"
+      },
+      {
+        "path": "src/Splinter.Runtime/MetadataMembership.cs",
+        "sha256": "862045ca726bdefce057a8a1fb97eb2dea5bfb6bfb2478ad753ffb6eb51b9d43"
+      },
+      {
+        "path": "src/Splinter.Runtime/PagedMetadataStore.cs",
+        "sha256": "f547923c3e3fd053f67430dbc8b5d13643166493dce0ed4a8698f56cf2ee2e5b"
+      },
+      {
+        "path": "src/Splinter.Runtime/CapturedRangeAdoptionStore.cs",
+        "sha256": "00412553e24bfcda82a614481cf3e4694ba4717a0bce73349cf64e34d3894ae4"
+      },
+      {
+        "path": "src/Splinter.Platform.Windows/WindowsSourceChanges.cs",
+        "sha256": "505eb929ed8294a2b15189f800687ff2c06f7b00685b2730e8f43c7d8e15d2a3"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+        "sha256": "1e8677339c251e5b7fb4eaf1502454db343f15089ce876cab71dd4521aa1a6d6"
+      }
+    ],
+    "qualification": "Small editorless None ABBA and focused native/fallback/recovery checks only. Same SPM2, all logical/native/physical/reader proofs and durable root/ACK ordering retained. No large/Unity/Git/Plastic/full-gate qualification."
+  },
+  "referenceCaptureFollowup": {
+    "ids": "ST-56–60",
+    "report": "reports/benchmarks/reference-capture-20261102.json",
+    "stages": [
+      "C20",
+      "R10",
+      "W10"
+    ],
+    "formats": "File source manifest v4; task v4/basis v3/overlay v3/SPM2 unchanged",
+    "changedSourceFiles": [
+      {
+        "path": "src/Splinter.SourceControl.Files/FileReferenceResults.cs",
+        "sha256": "dec5cf2a1aed569eda3bf570cb9d76f06d656848e594f2db01729daf5ba5da29"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+        "sha256": "524bbe99b15ce7b33678d7920bfcc0415052fa288ed2b221d2c1599ca0109a41"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+        "sha256": "7e8f06394175af6f9a6cc59e16179ae9eb99704b2cce456c5a89e25f33839f73"
+      },
+      {
+        "path": "src/Splinter.Runtime/ResultFileContentStore.cs",
+        "sha256": "725437a3d1d2623a7e2eb944cd6fbe5615ff5e9b2fa0951ec3c3e9eab933a6a6"
+      },
+      {
+        "path": "src/Splinter.Runtime/JournalPagedCapture.cs",
+        "sha256": "f6f688a7ed271caf72f6b6b25f5ff75f36b0feb1a199df188175f79af2451ca5"
+      },
+      {
+        "path": "src/Splinter.Runtime/WorkspaceStore.cs",
+        "sha256": "bcf6c5947a56828cad94f14f3d4b7353fe4b2cf3cbb9fc156cf9701661c9944c"
+      },
+      {
+        "path": "src/Splinter.Runtime/SharedMetadataPoolMaintenance.cs",
+        "sha256": "42fbbef6d5285480ffae7c940843a71b1662aa332b6e9ef2fb279bf604622005"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileMetadataMaintenance.cs",
+        "sha256": "c1e52f7c38d58ec10ed3b596facf3ac430e37a621bc1e78ce768066ae7681fed"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FilePagedQueries.cs",
+        "sha256": "7a5d2768784d1c12b96915bfaeaff7dc8efc5c5f701b6f92f15c4a38f77fb2c2"
+      },
+      {
+        "path": "contracts/v1/file-source-manifest.schema.json",
+        "sha256": "e3297d9ee2f66aebc44e435800df6da16f21e26e605b44645ba3f3190c05dee4"
+      }
+    ],
+    "work": "Retain changed before/after and range-basis dependencies plus prior retained content; directory-root comparison; descriptor groups of 64; alias pruning at release; frozen gap reads and metadata-preserving listings. Exact receipt-bound fingerprint verified by source provider.",
+    "qualification": "20 focused cases; one before/after completed tiny None workflow; one failed diagnostic candidate recovered with exact request and normal Stop. No large/Git/Plastic/Unity/full-gate qualification."
   }
 }

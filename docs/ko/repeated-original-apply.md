@@ -6,6 +6,8 @@
 
 이 문서가 작업을 계속하는 결과 버전과 원본 파일 게시 계약을 소유한다. [범위](plans/repeated-original-apply.md)와 [RI-01–08 검증](verification/repeated-original-apply.md)은 구현·자동 시험·실제 Unity 입력을 구분한다. 작은 고정 Git·일반 폴더·Plastic Unity 원본/A/B 순서와 최종 전체 gate가 통과했으며 RI-01–08은 입력/도구/OS·비용 한계를 유지해 한정 완료했다.
 
+파일 소스 manifest는 **v4**를 사용한다. Native None/Plastic 참조 수집은 전체 비교 catalog를 유지하지만, payload는 변경 전후 파일·범위가 참조하는 기준 파일·이전에 보존한 내용만 남긴다. 관련 없는 미변경 기준 파일은 별도 보관하지 않는다. 결과는 명시적 반영·되돌리기·재개를 위한 것이며 모든 프로젝트 파일의 독립 내보내기는 아니다. Generation fingerprint는 보관 집합과 범위 descriptor root를 결합한다. Git은 보호한 기준본 경로를 유지한다. v3 manifest는 보존·거부하고 일치하는 바이너리로 마무리한다. Task v4/basis v3/overlay v3와 공개 명령 필드는 유지한다.
+
 ## 수명과 identity
 
 현재 [대규모 저장 후보](scalable-storage.md)는 **task v4·관리형 basis v3·제품 overlay v3**를 기록하며 SCAL 자격 검증은 진행 중이다. 아래 RI-01–08은 당시 task v3/basis v2 후보를 검증한 근거다. 이전 기록은 보존·거부하고 일치하는 바이너리로 마무리하며 CLI 갱신으로 자동 이관·회수·새 기준본·새 task를 만들지 않는다. 새 작업에는 명시한 새 형식 home을 사용하고 이전 home을 유지하며 이전 상태를 이동·수정·자동 sweep하지 않는다.
