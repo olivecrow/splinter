@@ -2,6 +2,8 @@
 
 [한국어](../ko/plans/scalable-storage.md) · [Implementation](../scalable-storage.md) · [Verification](../verification/scalable-storage.md)
 
+Fresh small None timing and lock-protected normal-absence fixes under ST-41–43 belong to the [throughput follow-up](../verification/scalable-storage-throughput-followup.md). SCAL-03/07/08, large inputs and the whole gate remain incomplete.
+
 Status: **in progress**, authorized by the user's implementation request. SCAL-01–08 own this program; earlier closed performance programs are not reopened. Baseline: development `b68eaaa9e7e78930ff7b4b0b368f137bc3e528c6`.
 
 The user reduced verification on 2026-11-01. Large synthetic runs were stopped safely with retained state; remaining 100k/17GiB/ABBA/full-gate obligations are open, not passed. [The slowdown record](../verification/scalable-storage-throughput-diagnosis.md) separates observed phase times, confirmed fixes and unmeasured causes. Do not restart those large runs automatically. Implementation activation and focused qualification do not establish the full completion criteria below.

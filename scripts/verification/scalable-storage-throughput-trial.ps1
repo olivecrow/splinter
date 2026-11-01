@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory)][string]$FixtureRoot,
     [Parameter(Mandatory)][string]$CliAssembly,
     [Parameter(Mandatory)][string]$ProbeAssembly,
-    [int]$Entries = 128
+    [ValidateRange(16,128)][int]$Entries = 128,
+    [string]$BudgetFile
 )
 $ErrorActionPreference = 'Stop'
 $FixtureRoot = [IO.Path]::GetFullPath($FixtureRoot)
@@ -13,6 +14,18 @@ $harness = Join-Path $PSScriptRoot 'scalable-storage-editorless.ps1'
 $watch = [Diagnostics.Stopwatch]::new()
 $success = $false
 $stageTimes = [Collections.Generic.List[object]]::new()
+$budgets = if ($BudgetFile) { Get-Content -LiteralPath $BudgetFile -Raw | ConvertFrom-Json } else { $null }
+if ($budgets) {
+    $values = @($budgets.trialExpectedSeconds, $budgets.defaultCommandExpectedSeconds)
+    $values += @('start','bulk','selected','final') | ForEach-Object { $budgets.stageExpectedSeconds.$_ }
+    $values += @($budgets.commandExpectedSeconds.PSObject.Properties | ForEach-Object { $_.Value })
+    foreach ($value in $values) { if (-not [double]::IsFinite([double]$value) -or [double]$value -le 0) { throw 'Supply finite positive trial, stage and command estimates before seeding.' } }
+}
+$trialLimit = if ($budgets) { 2 * $budgets.trialExpectedSeconds } else { 140 }
+$previousBudget = $env:SPLINTER_VERIFY_BUDGET_PATH
+$previousDeadline = $env:SPLINTER_VERIFY_DEADLINE_UTC
+$previousStageDeadline = $env:SPLINTER_VERIFY_STAGE_DEADLINE_UTC
+if ($budgets) { $env:SPLINTER_VERIFY_BUDGET_PATH = [IO.Path]::GetFullPath($BudgetFile) }
 function Read-State([string]$Path) {
     $stream=[IO.FileStream]::new($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
     try { $reader=[IO.StreamReader]::new($stream); try { return ($reader.ReadToEnd() | ConvertFrom-Json) } finally { $reader.Dispose() } } finally { $stream.Dispose() }
@@ -20,18 +33,28 @@ function Read-State([string]$Path) {
 try {
     & pwsh -NoProfile -File $harness -Stage seed -Source $Source -FixtureRoot $FixtureRoot -CliAssembly $CliAssembly -Entries $Entries
     if ($LASTEXITCODE -ne 0) { throw 'Owned fixture seeding failed.' }
+    $seed = @(Get-ChildItem -LiteralPath (Join-Path $FixtureRoot 'p') -File -Recurse | Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' } | Sort-Object FullName | ForEach-Object {
+        @{ path=[IO.Path]::GetRelativePath((Join-Path $FixtureRoot 'p'),$_.FullName).Replace('\','/'); bytes=$_.Length; modifiedUtcTicks=$_.LastWriteTimeUtc.Ticks; attributes=[int]$_.Attributes; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }
+    })
+    ConvertTo-Json -InputObject $seed -Depth 5 | Set-Content -LiteralPath (Join-Path $FixtureRoot 'evidence/seed-manifest.json') -Encoding utf8
     $watch.Start()
-    $env:SPLINTER_VERIFY_DEADLINE_UTC = [DateTimeOffset]::UtcNow.AddSeconds(140).ToString('O')
+    $env:SPLINTER_VERIFY_DEADLINE_UTC = [DateTimeOffset]::UtcNow.AddSeconds($trialLimit).ToString('O')
     foreach ($stage in @('start','bulk','selected','final')) {
-        if ($watch.Elapsed.TotalSeconds -ge 140) { throw 'Trial budget exhausted; stop before starting another stage.' }
+        if ($watch.Elapsed.TotalSeconds -ge $trialLimit) { throw 'Trial budget exhausted; stop before starting another stage.' }
+        if ($budgets) { $env:SPLINTER_VERIFY_STAGE_DEADLINE_UTC = [DateTimeOffset]::UtcNow.AddSeconds(2 * $budgets.stageExpectedSeconds.$stage).ToString('O') }
         $stageClock = [Diagnostics.Stopwatch]::StartNew()
         & pwsh -NoProfile -File $harness -Stage $stage -Source $Source -FixtureRoot $FixtureRoot -CliAssembly $CliAssembly -ProbeAssembly $ProbeAssembly -Entries $Entries *> (Join-Path $FixtureRoot ('evidence/trial-' + $stage + '.log'))
         $stageTimes.Add(@{ stage=$stage; seconds=$stageClock.Elapsed.TotalSeconds; exitCode=$LASTEXITCODE })
         if ($LASTEXITCODE -ne 0) { throw "Trial stage $stage failed; preserve exact requests and stop owned providers." }
+        if ($watch.Elapsed.TotalSeconds -ge $trialLimit -or ($budgets -and $stageClock.Elapsed.TotalSeconds -ge 2 * $budgets.stageExpectedSeconds.$stage)) {
+            throw 'The fixed deadline elapsed before the stage returned; preserve state and start no later stage.'
+        }
     }
     $success = $true
 } finally {
-    Remove-Item Env:SPLINTER_VERIFY_DEADLINE_UTC -ErrorAction SilentlyContinue
+    $env:SPLINTER_VERIFY_DEADLINE_UTC = $previousDeadline
+    $env:SPLINTER_VERIFY_STAGE_DEADLINE_UTC = $previousStageDeadline
+    $env:SPLINTER_VERIFY_BUDGET_PATH = $previousBudget
     $watch.Stop()
     $ownerFile = Join-Path $FixtureRoot 'fixture-owner.json'
     if (Test-Path -LiteralPath $ownerFile) {
@@ -60,7 +83,7 @@ try {
             }
         }
         @{ source=$Source; entries=$Entries; fixture=$FixtureRoot; cliAssembly=$CliAssembly; completed=$success;
-            seconds=$watch.Elapsed.TotalSeconds; stages=$stageTimes.ToArray(); stops=$stops.ToArray(); observedAt=[DateTimeOffset]::UtcNow.ToString('O') } |
+            seconds=$watch.Elapsed.TotalSeconds; trialLimitSeconds=$trialLimit; budgetFile=$BudgetFile; stages=$stageTimes.ToArray(); stops=$stops.ToArray(); observedAt=[DateTimeOffset]::UtcNow.ToString('O') } |
             ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $FixtureRoot 'evidence/throughput-trial.json') -Encoding utf8
     }
 }

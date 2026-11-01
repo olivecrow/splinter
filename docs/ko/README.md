@@ -1,6 +1,6 @@
 # 문서 지도
 
-[처리량 리뷰 후속](verification/scalable-storage-throughput-followup.md)은 `PagedMetadataBatch`·`StorageResources`·`BoundedParallel`·고정 작업의 내용 증명·정렬 catalog 병합·병렬 staging을 포함한 ST-01–40·작은 native 검사·제한한 시간/gate 시도를 추적한다. 보존한 대형 입력 행렬을 자격화하거나 재개하지 않는다.
+[처리량 리뷰 후속](verification/scalable-storage-throughput-followup.md)은 `PagedMetadataBatch`·`StorageResources`·`BoundedParallel`·고정 작업의 내용 증명·정렬 catalog 병합·병렬 staging을 포함한 ST-01–43·작은 native 검사·제한한 시간/gate 시도를 추적한다. 보존한 대형 입력 행렬을 자격화하거나 재개하지 않는다.
 
 [대규모 저장의 느린 구간](verification/scalable-storage-throughput-diagnosis.md)은 기존 10만 항목 실행 비용·확인된 수정·미측정 원인을 기록한다. 2026-11-01 사용자가 검증을 축소해 대형 입력은 상태를 보존하고 종료했으며 17GiB/10만 전체 수명주기/ABBA/최신 전체 gate는 미완료다. 이 실행을 일반 속도·사용성 자격으로 승계하지 않는다.
 

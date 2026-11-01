@@ -1,5 +1,7 @@
 # 현재 기반
 
+[ST-41–43](verification/scalable-storage-throughput-followup.md)은 최초 연결의 `client.lock` 관측과 workspace 잠금 내부의 요청/회수 intent 읽기에서 불필요한 정상 부재 대기를 제거한다. 일반 게시 유예·원본/peer 보호·영속 ACK·전체 증명은 유지한다. 기존 `SPLINTER_RESULT_GENERATION_DIAGNOSTICS=1`은 회수 하위 단계도 기록하며, 실제 시간 근거는 새 작은 None 입력의 제한 비교다.
+
 [ST-36–40](verification/scalable-storage-throughput-followup.md#st-3640-남은-직렬-처리와-순회-비용)은 Windows `OriginalPublicationCommitQueue`·Runtime `OriginalApplyPages.SaveSteps`·`PagedMetadataReachability`를 추가한다. 진행 호출자는 묶음의 페이지/제어 영속화를 기다리고 Create 핸들은 metadata 배치가 영속화된 뒤에만 보존한다. 이름/namespace 배치와 계획 병합으로 COW/조회 반복을 줄이고 정확한 방문/relocation 캐시는 공통 scratch와 디스크 fallback을 사용한다. 형식·CLI capabilities·native/복구 보호는 유지하며 자격은 작은 64개 검사이지 대형 수명주기 시간이 아니다.
 
 [ST-29–35](verification/scalable-storage-throughput-followup.md#st-2935-자원과-동시성-후속)는 Runtime `StorageResources`·`BoundedParallel`을 추가한다. 수요 기반 프로세스별 최대 4GiB 작업 목표·제한된 hash 중첩 실행·삽입/변경 색인 배치·목록 metadata 재사용·정렬 파일 비교·디스크 여유에 따른 병렬 staging을 연결한다. 메모리를 미리 확보하지 않으며 실제 RSS와 여러 provider 합산을 4GiB로 강제 제한하지 않는다. 현재 형식·capabilities·내구성/소유 보호는 유지한다.

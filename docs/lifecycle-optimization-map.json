@@ -5072,8 +5072,18 @@
     "document": "docs/verification/scalable-storage-throughput-followup.md",
     "report": "reports/benchmarks/scalable-storage-remaining-20261101.json",
     "finalSourceManifest": "artifacts/scalable-storage-remaining-20261101/final-source.json",
-    "stages": ["W10", "A20", "A30", "B10", "R10", "F10"],
-    "helpers": ["src/Splinter.Platform.Windows/OriginalPublicationCommitQueue.cs", "src/Splinter.Runtime/PagedMetadataReachability.cs"],
+    "stages": [
+      "W10",
+      "A20",
+      "A30",
+      "B10",
+      "R10",
+      "F10"
+    ],
+    "helpers": [
+      "src/Splinter.Platform.Windows/OriginalPublicationCommitQueue.cs",
+      "src/Splinter.Runtime/PagedMetadataReachability.cs"
+    ],
     "qualification": "64 unique small checks; grouped ACKs wait for page/control durability; exact reachability/relocation caches retain disk fallback. Native ownership, immutable roots and same-request recovery remain. Large timing, peak memory and full gate unqualified."
   },
   "scalableStorageResourceFollowup": {
@@ -5081,8 +5091,15 @@
     "document": "docs/verification/scalable-storage-throughput-followup.md",
     "report": "reports/benchmarks/scalable-storage-resource-20261101.json",
     "finalSourceManifest": "artifacts/scalable-storage-resource-20261101/final-source.json",
-    "stages": ["W10", "C20", "A20"],
-    "helpers": ["src/Splinter.Runtime/StorageResources.cs", "src/Splinter.Runtime/BoundedParallel.cs"],
+    "stages": [
+      "W10",
+      "C20",
+      "A20"
+    ],
+    "helpers": [
+      "src/Splinter.Runtime/StorageResources.cs",
+      "src/Splinter.Runtime/BoundedParallel.cs"
+    ],
     "qualification": "Small correctness and operation/byte/concurrency checks only. Demand-driven process-local target up to 4GiB is not an RSS or multi-provider cap. Native ownership, durable publication and wire contracts remain; large elapsed time, peak memory and whole gate are unqualified."
   },
   "scalableStorageStructuralFollowup": {
@@ -5090,8 +5107,40 @@
     "document": "docs/verification/scalable-storage-throughput-followup.md",
     "report": "reports/benchmarks/scalable-storage-structural-20261101.json",
     "finalSourceManifest": "artifacts/scalable-storage-structural-20261101/final-source.json",
-    "stages": ["W10", "C20", "A20"],
+    "stages": [
+      "W10",
+      "C20",
+      "A20"
+    ],
     "helper": "src/Splinter.Runtime/PagedMetadataBatch.cs",
     "qualification": "45 small focused checks; metadata operation/byte reductions only. Stage order, persisted/wire versions and capabilities unchanged; large end-to-end timing and whole gate unqualified."
+  },
+  "scalableStorageTimingFollowup": {
+    "ids": "ST-41–43",
+    "document": "docs/verification/scalable-storage-throughput-followup.md",
+    "report": "reports/benchmarks/scalable-storage-timing-20261101.json",
+    "finalSourceManifest": "artifacts/scalable-storage-timing-20261101/final-source.json",
+    "baseCommit": "5dce6e035fd1ca5eb6ed6eba14e642635d08ec98",
+    "stages": [
+      "P20",
+      "P40",
+      "C20",
+      "R10"
+    ],
+    "changedSourceFiles": [
+      {
+        "path": "src/Splinter.Platform.Windows/NtfsSnapshotWorkspaceBackend.cs",
+        "sha256": "0fa7312251e52e8e69a5369b38813e4e3d128c8991a820c5e682305b2382988a"
+      },
+      {
+        "path": "src/Splinter.Platform.Windows/WinFspOverlayClient.cs",
+        "sha256": "876692d855ee6fa3de4ba7ea7b8be4f051dfc3e689e1b1b9d2ddcf658eb4dffe"
+      },
+      {
+        "path": "src/Splinter.Runtime/SnapshotWorkspaces.cs",
+        "sha256": "47e055f4ded1f1bf827ec4d78741f2c468a0adfe919dc1d3ad27fc26c62ad770"
+      }
+    ],
+    "qualification": "Two small editorless None ABBA blocks. Locked absence checks retain ordinary publication grace, unresolved launch and complete seal/inventory proof. 43 unique guards; two test-batch deadline misses preserved in the report. Large timing and full gate remain unqualified."
   }
 }

@@ -20,10 +20,23 @@ internal static class ScalabilityTimedCommand
         { string file = Path.Combine(directory, name.Name + ".dll"); return File.Exists(file) ? context.LoadFromAssemblyPath(file) : null; };
         var cli = AssemblyLoadContext.Default.LoadFromAssemblyPath(assembly);
         var run = cli.GetType("Splinter.Cli.Program", true)!.GetMethod("RunAsync", BindingFlags.Public | BindingFlags.Static)!;
-        const int deadlineSeconds = 30;
+        double? expectedSeconds = null;
+        string? budgetPath = Environment.GetEnvironmentVariable("SPLINTER_VERIFY_BUDGET_PATH");
+        if (!string.IsNullOrEmpty(budgetPath))
+        {
+            using var budgets = JsonDocument.Parse(File.ReadAllText(budgetPath));
+            string command = Path.GetFileName(args[1]).Replace(".inside-metrics.json", "", StringComparison.Ordinal);
+            var commands = budgets.RootElement.GetProperty("commandExpectedSeconds");
+            expectedSeconds = commands.TryGetProperty(command, out var value) ? value.GetDouble()
+                : budgets.RootElement.GetProperty("defaultCommandExpectedSeconds").GetDouble();
+            if (!double.IsFinite(expectedSeconds.Value) || expectedSeconds <= 0) throw new ArgumentException("Invalid command estimate.");
+        }
+        double deadlineSeconds = expectedSeconds is { } expected ? expected * 2 : 30;
         double remaining = deadlineSeconds;
         if (DateTimeOffset.TryParse(Environment.GetEnvironmentVariable("SPLINTER_VERIFY_DEADLINE_UTC"), out var trialDeadline))
             remaining = Math.Max(0.001, Math.Min(remaining, (trialDeadline - DateTimeOffset.UtcNow).TotalSeconds));
+        if (DateTimeOffset.TryParse(Environment.GetEnvironmentVariable("SPLINTER_VERIFY_STAGE_DEADLINE_UTC"), out var stageDeadline))
+            remaining = Math.Max(0.001, Math.Min(remaining, (stageDeadline - DateTimeOffset.UtcNow).TotalSeconds));
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(remaining));
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += cancel;
@@ -32,9 +45,11 @@ internal static class ScalabilityTimedCommand
         finally
         {
             Console.CancelKeyPress -= cancel;
+            double elapsedSeconds = Stopwatch.GetElapsedTime(start).TotalSeconds;
             using var output = new FileStream(args[1], FileMode.CreateNew, FileAccess.Write, FileShare.Read);
             JsonSerializer.Serialize(output, new { version = 1, cliAssembly = assembly, command = args[2..], exitCode,
-                secondsInsideEntryPoint = Stopwatch.GetElapsedTime(start).TotalSeconds, deadlineSeconds,
+                secondsInsideEntryPoint = elapsedSeconds, expectedSeconds, deadlineSeconds, effectiveDeadlineSeconds = remaining,
+                deadlineExceeded = elapsedSeconds >= remaining,
                 cancellationRequested = cancellation.IsCancellationRequested, observedAt = DateTimeOffset.UtcNow });
             output.Flush(true);
         }

@@ -10,6 +10,9 @@ The later authorization for aggressive optimization and demand-driven memory aro
 
 The request to proceed with the remaining candidates is implemented in **ST-36–40** below, with small local checks only.
 
+The subsequent request for same-small-input elapsed time and bottleneck repair is covered by **ST-41–43**. The first ABBA compares `3f7d5b1`/`5dce6e0`; the second compares `5dce6e0`/this repair. They are separate comparison blocks.
+
+
 ## Changes
 
 | ID | Change and retained boundary |
@@ -151,3 +154,45 @@ Timing plan: 55 minutes total (review 8, implement 33, validation/documentation 
 The one-key-per-node persisted representation and required whole original/inventory observation remain. This change removes repeated index work and depth-wise passes; it does not claim to eliminate every full scan, to saturate CPU/disk, or to resolve the historical hour-long workflows. Extremely large graphs or concurrent scratch demand can still use the slower disk fallback. The process-local 4GiB working target, versions, wire schemas and CLI capabilities remain unchanged.
 
 Evidence: [remaining-candidate report](../../reports/benchmarks/scalable-storage-remaining-20261101.json) and final source hashes/CTRF under `artifacts/scalable-storage-remaining-20261101/`. No large elapsed-time, peak-RSS, OS-crash, native Plastic/Unity or whole-gate qualification is added.
+
+## ST-41–43: actual small-input timing and fixed absence waits
+
+ST-41 compares `3f7d5b1` (before ST-36–40) with `5dce6e0`; ST-42 fixes remaining waits and compares `5dce6e0` with the new candidate; ST-43 owns deadlines and focused verification. [Timing report](../../reports/benchmarks/scalable-storage-timing-20261101.json) retains exact source/binary hashes, individual commands, inputs and diagnostic measurements. These are **two separate ABBA blocks**, not one cumulative causal percentage.
+
+Each fresh native None input has **31 files × 32 bytes = 992 bytes, one directory**, with identical paths, bytes, attributes and fixed seed mtimes. Each workflow prepares the shared basis and A/B, performs four explicit captures and four original publications (including selection/remainder), releases A while B continues, releases B and restores ordinary NTFS. All nine runs, including one diagnostic intermediate, have matching basis revisions and final paths/lengths/bytes; final mtimes/generated identities are not asserted identical. The harness checks original-only edits, independent retained results and peer continuity. All A/B records ended `released`, bases `restored`, and post-restore owned process inventories empty; no extra cleanup Stop was needed.
+
+Times below are means of two runs per candidate, in seconds. Preparation sums project prepare and A/B ensure; capture sums four explicit checkpoints; apply sums four plans and publications; reclamation sums A/B release and project restore. **Release includes its own final capture.** Rows measure CLI entry-point time. Whole workflow additionally includes all 27 dispatches, process startup, schema/status, edits and harness overhead, excluding seeding; the four rows do not sum to the whole.
+
+| ST-41: previous optimization | Before `3f7d5b1` | After `5dce6e0` | Saved |
+| --- | ---: | ---: | ---: |
+| Preparation | 15.17 | 14.90 | 1.8% |
+| Capture | 17.51 | 17.09 | 2.4% |
+| Apply | 18.63 | 17.64 | 5.3% |
+| Reclamation | 22.92 | 20.62 | 10.0% |
+| Whole workflow | **92.55** | **88.11** | **4.8%** |
+
+Order `a1/b1/b2/a2`; whole ranges 91.86–93.24s and 88.06–88.16s. This adds small native elapsed-time evidence for ST-36–40, not large-input qualification.
+
+| ST-42: this follow-up | Before `5dce6e0` | After fixes | Saved |
+| --- | ---: | ---: | ---: |
+| Preparation | 14.64 | 9.45 | 35.4% |
+| Capture | 16.66 | 17.16 | −3.0% |
+| Apply | 17.62 | 18.39 | −4.4% |
+| Reclamation | 19.68 | 17.92 | 8.9% |
+| Whole workflow | **86.83** | **81.31** | **6.4%** |
+
+Order `b3/d1/d2/b4`; whole ranges **86.30–87.37s** and **78.44–84.17s**. Capture/apply did not improve in this block. Two samples and storage/cache/scheduling variation do not establish statistical significance; the better `d2` is not substituted for the mean. Control means also differ between blocks. Intermediate `c1` (83.274s) is excluded from both comparisons.
+
+The fixed waits were unrelated to copying payload:
+
+- Initial connection observation paid roughly two seconds for absent launch/state publication. `ObserveForConnectionAsync` acquires Start's exclusive `client.lock` before proving absence. A busy lock uses ordinary observation; unresolved intent retains state grace and uncertain ownership; child-published recovery remains. Focused ordinary/locked absence: **2.011477→0.004310s**.
+- Initial `VerifyConnectionAsync` waited one second for its own not-yet-published request. Only this read skips absence grace under the coordinator's existing workspace operation lock. General reads, sharing retries and identity checks remain.
+- First stopped-journal reclaim waited one second for its not-yet-published `delta-reclaim.json`. The same operation-lock proof removes only absence grace. Complete stopped-provider/seal/native-inventory proof and same-intent recovery remain before deletion.
+
+Optional `SPLINTER_RESULT_GENERATION_DIAGNOSTICS=1` now attributes release phases without changing their order or making logs recovery inputs. In final `d2`, A's final generation still costs **4.957s** and final metadata maintenance **1.198s**. Inside the generation: freeze 0.696s, result scan 0.477s, range preservation 0.620s, two independent checks together 0.299s, pruning 0.795s and backend completion 0.685s. Nested measurements are not additive to parents. Remaining cost spans native capture and metadata/range processing; no additional proof-elision is adopted. Capture/apply and large inventories still need optimization. The historical tens-of-minutes/hours behavior is **not proven resolved**.
+
+The fixed plan was 55 minutes for this work, a 90s expected/180s stop lifecycle, and start/bulk/selected/final stage expectations 20/15/20/35s, stopped at twice each. Command expectations: prepare 3s, ensure 5s, capture 5s, plan 2s, publication 5s, release 8s, restore 3s, schema/status 1s. The helper cancels cooperatively at the earliest command/stage/trial deadline; the driver also rejects late successful responses and starts no later operation. Exact-owner normal provider Stop remains cleanup. The trial's 16–128-entry restriction is a verification-tool limit, not a product quota. An intentional read-only timeout ended after **2.108s**, with no provider/home created and no next command. All nine lifecycle runs stayed within the original limits.
+
+There were **two test-batch execution-policy misses**: a 20s-estimated/40s-stop batch ran **67.997s**, and a 5s-estimated/10s-stop pilot ran **13.074s**. Timely cancellation was missed; both ended normally. These are recorded procedure failures, not enlarged estimates. Adding launch records did not improve the pilot and was reverted. Attribution instead found repeated real Git setup/basis proof/journal preparation (0.802/1.715/2.409s in one case); first reclaim/retry took 0.665/0.478s. The fixture now uses an exact leased Git read scope with full final `VerifyReadBoundary`; independent cases use bounded parallelism and 10s individual timeouts. Two pilot cases took 6.378s; final ten cases passed in **20.407s** against a 20s estimate/40s stop. This fixture/parallelism change is not product speedup evidence.
+
+Validation union: **43 unique focused checks passed, zero failures/skips**: publication grace, busy/unresolved launcher, snapshot/mount observation and ten stopped-journal protection scenarios. Final product solution build **18.92s**, focused test build 10.78s, helper build 2.93s, all zero warnings/errors. Frozen final product binaries match current product output. No large fixture, actual Git/Plastic/Unity lifecycle, OS-failure matrix, peak RSS/hardware saturation or `build.ps1` full test gate was run. Task v4/basis v3/overlay v3 and CLI contracts remain; SCAL-03/07/08 remain incomplete. Raw records are retained in `artifacts/scalable-storage-timing-20261101/` and the report's exact temporary fixture roots.

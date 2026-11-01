@@ -64,10 +64,15 @@ function Provider-Gauges {
         }
     }
 }
-function Invoke-Cli([string]$Name, [string[]]$Arguments, [switch]$AllowFailure) {
-    if ($env:SPLINTER_VERIFY_DEADLINE_UTC -and [DateTimeOffset]::UtcNow -ge [DateTimeOffset]::Parse($env:SPLINTER_VERIFY_DEADLINE_UTC)) {
-        throw 'The bounded trial deadline passed; preserve state and start no further command.'
+function Assert-TrialDeadline {
+    foreach ($deadline in @($env:SPLINTER_VERIFY_DEADLINE_UTC, $env:SPLINTER_VERIFY_STAGE_DEADLINE_UTC)) {
+        if ($deadline -and [DateTimeOffset]::UtcNow -ge [DateTimeOffset]::Parse($deadline)) {
+            throw 'A fixed trial/stage deadline passed; preserve completed writes and start no later operation.'
+        }
     }
+}
+function Invoke-Cli([string]$Name, [string[]]$Arguments, [switch]$AllowFailure) {
+    Assert-TrialDeadline
     $stdout = Join-Path $evidence ($Name + '.json')
     $stderr = Join-Path $evidence ($Name + '.stderr.txt')
     if ([IO.File]::Exists($stdout)) { throw "Preserve existing operation evidence: $stdout; recover its exact request manually." }
@@ -119,6 +124,10 @@ function Invoke-Cli([string]$Name, [string[]]$Arguments, [switch]$AllowFailure) 
     } finally { $outFile.Dispose(); $errFile.Dispose(); $process.Dispose() }
     $response = [IO.File]::ReadAllText($stdout) | ConvertFrom-Json -Depth 100
     Write-Json (Join-Path $evidence ($Name+'.provider-cache-gauges.json')) @(Provider-Gauges)
+    if ($ProbeAssembly) {
+        $timing = Get-Content -LiteralPath (Join-Path $evidence ($Name + '.inside-metrics.json')) -Raw | ConvertFrom-Json
+        if ($timing.cancellationRequested -or $timing.deadlineExceeded) { throw "$Name reached its fixed deadline; preserve state and start no later stage." }
+    }
     if (-not $AllowFailure -and $response.status -ne 'Succeeded') { throw "$Name failed: $($response.error.code); retain all identity/evidence and recover the same request." }
     return $response
 }
@@ -300,6 +309,7 @@ if ($Stage -eq 'bulk') {
         if ([ScalabilityBulkWrites]::Run($a.path,$fileCount,$script:directoryCount,$roundTime) -ne $fileCount) { throw 'The functional bulk write did not drain every file.' }
     } else {
         for ($i=0; $i -lt $fileCount; $i++) {
+            Assert-TrialDeadline
             $path = Join-Path $a.path (Relative $i)
             [IO.File]::WriteAllBytes($path, (Payload (($i + 1) % 16)))
             [IO.File]::SetLastWriteTimeUtc($path, $roundTime)
@@ -383,6 +393,7 @@ public static class ScalLargeFile {
 }
 if ($Stage -eq 'selected') {
     Enter-Stage 'selected'
+    Assert-TrialDeadline
     $a = Workspace 'a'; Assert-Peer
     [IO.File]::WriteAllBytes((Join-Path $a.path (Relative 0)), (Payload 7))
     [IO.File]::WriteAllBytes((Join-Path $a.path (Relative 1)), (Payload 6))
@@ -426,6 +437,7 @@ if ($Stage -eq 'queries') {
 }
 if ($Stage -eq 'final') {
     Enter-Stage 'final'
+    Assert-TrialDeadline
     $a = Workspace 'a'; $b = Workspace 'b'; Assert-Peer
     [IO.File]::WriteAllBytes((Join-Path $a.path (Relative 0)), (Payload 0))
     $result = Capture 'capture-3' $a

@@ -9,6 +9,52 @@ namespace Splinter.Tests;
 [Collection("Windows control-file timing")]
 public sealed class OverlayControlReadTests
 {
+    [Fact(Timeout = 10000)]
+    public async Task InitialConnectionProvesAbsenceWithoutOrdinaryPublicationGrace()
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows publication grace.");
+        using var d = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
+        var request = Request(d.Path);
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var initial = await WinFspOverlayClient.ObserveForConnectionAsync(request, ct);
+        double initialSeconds = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalSeconds;
+        started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var ordinary = await WinFspOverlayClient.ObserveAsync(request, ct);
+        double ordinarySeconds = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalSeconds;
+        Assert.Equal("not-started", initial.GetProperty("phase").GetString());
+        Assert.Equal(initial.GetRawText(), ordinary.GetRawText());
+        Assert.InRange(initialSeconds, 0, 0.8); Assert.InRange(ordinarySeconds, 1.8, 5);
+        Assert.False(Directory.Exists(request.DeltaPath));
+        Assert.False(File.Exists(Path.Combine(d.Path, "provider-launch-intent.json")));
+        TestContext.Current.TestOutputHelper!.WriteLine($"Initial connection observation: ordinary={ordinarySeconds:F6}s; locked={initialSeconds:F6}s");
+    }
+
+    [Fact(Timeout = 10000)]
+    public async Task InitialConnectionCannotClaimAbsenceWhileAnotherLauncherOwnsTheLock()
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows publication grace.");
+        using var d = new TestDirectory();
+        using var held = new FileStream(Path.Combine(d.Path, "client.lock"), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        stop.CancelAfter(100);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => WinFspOverlayClient.ObserveForConnectionAsync(Request(d.Path), stop.Token));
+        Assert.False(File.Exists(Path.Combine(d.Path, "provider-launch-intent.json")));
+    }
+
+    [Fact(Timeout = 10000)]
+    public async Task InitialConnectionPreservesAnUnresolvedLaunchIntent()
+    {
+        using var d = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
+        var request = Request(d.Path); string path = Path.Combine(d.Path, "provider-launch-intent.json");
+        await WindowsProcessWorkspaceProvider.WriteAsync(path, new { request.Token, request.Identity.Id, generation = "unresolved" }, ct);
+        byte[] before = await File.ReadAllBytesAsync(path, ct);
+        var observed = await WinFspOverlayClient.ObserveForConnectionAsync(request, ct);
+        Assert.Equal("launch-uncertain", observed.GetProperty("phase").GetString());
+        Assert.False(observed.GetProperty("ownershipVerified").GetBoolean());
+        Assert.Equal(before, await File.ReadAllBytesAsync(path, ct));
+        Assert.False(Directory.Exists(request.DeltaPath));
+    }
+
     [Fact]
     public async Task FirstStartUnderClientLockDoesNotWaitForNonexistentLaunchRecords()
     {

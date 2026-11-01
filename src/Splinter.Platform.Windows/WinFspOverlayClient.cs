@@ -89,10 +89,28 @@ public static class WinFspOverlayClient
         return await ObserveWithSnapshotProofAsync(request, records, () => ReadControlAsync(request, false, ct),
             () => ObserveSnapshotAsync(request, ct), WindowsProcessGroup.IdentityAlive, Directory.Exists);
     }
+    // Initial connection has not launched a provider yet. Prove that absence
+    // under the same exclusion as Start; a busy launcher retains normal reads.
+    internal static async Task<JsonElement> ObserveForConnectionAsync(OverlayServeRequest request, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        WindowsProcessWorkspaceProvider.CheckPath(request.ControlPath);
+        WindowsProcessWorkspaceProvider.CheckPath(Path.Combine(request.ControlPath, "client.lock"));
+        FileStream operation;
+        try { operation = new(Path.Combine(request.ControlPath, "client.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
+        catch (IOException error) when ((error.HResult & 0xffff) is 32 or 33)
+        { return await ObserveAsync(request, ct); }
+        using (operation)
+        {
+            var records = await ReadControlAsync(request, true, ct);
+            return await ObserveWithSnapshotProofAsync(request, records, () => ReadControlAsync(request, true, ct),
+                () => ObserveSnapshotAsync(request, ct), WindowsProcessGroup.IdentityAlive, Directory.Exists);
+        }
+    }
     private static async Task<(JsonElement State, ProviderLaunch? Launch, ProviderIntent? Intent)> ReadControlAsync(
         OverlayServeRequest request, bool launchPublicationLocked, CancellationToken ct)
     {
-        // Only Start's exclusive client.lock excludes launch-record publishers.
+        // The exclusive client.lock excludes launch-record publishers.
         // Ordinary observers retain each publication grace period, overlapped.
         var launch = WindowsProcessWorkspaceProvider.ReadAsync<ProviderLaunch>(Path.Combine(request.ControlPath, "provider-launch-receipt.json"), ct, !launchPublicationLocked);
         var intent = WindowsProcessWorkspaceProvider.ReadAsync<ProviderIntent>(Path.Combine(request.ControlPath, "provider-launch-intent.json"), ct, !launchPublicationLocked);

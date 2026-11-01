@@ -1,6 +1,8 @@
 <a id="현재-기반"></a>
 # Current foundation
 
+[ST-41–43](verification/scalable-storage-throughput-followup.md) removes normal-absence waits from initial connection observation under `client.lock` and request/reclaim-intent reads under the workspace operation lock. Ordinary publication grace, original/peer protection, durable ACKs and complete proofs remain. Existing `SPLINTER_RESULT_GENERATION_DIAGNOSTICS=1` also attributes release subphases; elapsed-time evidence is limited to fresh small None fixtures.
+
 [ST-36–40](verification/scalable-storage-throughput-followup.md#st-3640-remaining-serialization-and-traversal-costs) adds Windows `OriginalPublicationCommitQueue`, Runtime `OriginalApplyPages.SaveSteps` and `PagedMetadataReachability`. Progress callers wait for grouped page/control durability; Create handles are retained only after durable metadata batching. Bounded namespace/component batches and planning merges reduce repeated COW/lookups; exact reachable/relocation caches share scratch with disk fallback. Formats, CLI capabilities and native/recovery boundaries remain unchanged; qualification is 64 small tests, not large lifecycle timing.
 
 [ST-29–35](verification/scalable-storage-throughput-followup.md#st-2935-resource-and-concurrency-follow-up) adds Runtime `StorageResources` and `BoundedParallel`: demand-driven memory up to a 4GiB process-local working target, bounded overlapped hashing, insert/change-index batching, listing metadata reuse, sorted file comparison and concurrent staging with disk headroom. No memory is reserved in advance; actual RSS and multiple providers are not capped at 4GiB. Current formats, capabilities and durability/ownership boundaries are unchanged.

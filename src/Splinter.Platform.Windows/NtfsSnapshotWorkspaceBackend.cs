@@ -62,7 +62,9 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
 
     public async Task VerifyConnectionAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
-        var request = await Request(w, control, ct);
+        // The coordinator's workspace operation lock excludes another request
+        // publisher here. A first connection has no request to wait for.
+        var request = await Request(w, control, ct, waitForPublication: false);
         var provider = Provider(w, control);
         var snapshot = w.Snapshot!.Reference!;
         if (request is not null)
@@ -109,7 +111,9 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         var request = await Request(w, control, ct);
         if (request is null) return Finish(new(available, false, false, true, 0, 0, 0,
             FailureCode: snapshotObservation?.FailureCode ?? (available == true ? null : "SnapshotNotCaptured")));
-        var observed = await WinFspOverlayClient.ObserveAsync(request, ct);
+        var observed = w.Phase == "creating" && w.Snapshot?.Mount is null
+            ? await WinFspOverlayClient.ObserveForConnectionAsync(request, ct)
+            : await WinFspOverlayClient.ObserveAsync(request, ct);
         bool alive = observed.GetProperty("processAlive").GetBoolean();
         bool mounted = Directory.Exists(w.Path);
         if (!observed.TryGetProperty("state", out var state))
@@ -248,7 +252,9 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         bool currentBounded = File.Exists(currentJournal) && CurrentJournalReclamation.IsManagedJournal(currentJournal);
         if (latestIntent && (boundedIntent || currentBounded) || boundedIntent && currentLatest)
             throw new WorkspaceException("UnownedDeltaFiles", "Conflicting journal modes or reclamation inventories are preserved.");
-        var intent = await WindowsProcessWorkspaceProvider.ReadAsync<SnapshotResult>(intentPath, ct);
+        // Only this workspace operation publishes the reclamation intent; the
+        // operation lock remains held through complete seal/inventory proof.
+        var intent = await WindowsProcessWorkspaceProvider.ReadAsync<SnapshotResult>(intentPath, ct, waitForPublication: false);
         if (intent is null)
         {
             WindowsProcessWorkspaceProvider.CheckPath(currentJournal);
@@ -318,10 +324,10 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
             await Dependencies(w).DetachAsync(generated, w, ct);
         return reclaimed;
     }
-    private static async Task<OverlayServeRequest?> Request(WorkspaceRecord w, string control, CancellationToken ct)
+    private static async Task<OverlayServeRequest?> Request(WorkspaceRecord w, string control, CancellationToken ct, bool waitForPublication = true)
     {
         string path = RequestPath(control);
-        var request = await WindowsProcessWorkspaceProvider.ReadAsync<OverlayServeRequest>(path, ct);
+        var request = await WindowsProcessWorkspaceProvider.ReadAsync<OverlayServeRequest>(path, ct, waitForPublication);
         if (request is not null && (JsonSerializer.Serialize(request.Identity) != JsonSerializer.Serialize(Identity(w)) ||
             request.DeltaPath != DeltaPath(control) || request.MountPath != w.Path || request.ControlPath != OverlayControl(control)))
             throw new WorkspaceException("OverlayIdentityMismatch", "Persisted provider request differs from the workspace.");

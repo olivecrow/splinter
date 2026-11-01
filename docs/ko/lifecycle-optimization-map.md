@@ -14,6 +14,8 @@ ST-29–35는 W10/C20/A20 내부에 `StorageResources`·`BoundedParallel`을 연
 
 ST-36–40은 W10의 이름/namespace·Create 배치, A20의 조밀한 이력/보존 부모 병합, A30의 영속 진행 ACK 묶음을 연결한다. B10/R10/F10의 metadata graph 복사는 제한된 정확한 방문/relocation 캐시와 디스크 fallback을 사용한다. Create는 같은 mutation gate 안에서 영속 완료 뒤 핸들을 보존하고 A30 호출자는 그룹의 페이지/제어 저장 성공 전 다음 단계로 가지 않는다. 전체 native/소유 증명과 단계 게시 순서를 유지한다. 새 helper와 작은 64개 검사는 남은 후보 보고서가 소유하며 대형 시간/RSS/전체 gate는 미자격이다.
 
+ST-41–43은 P40의 최초 연결을 client.lock 아래에서 관측하고, workspace 작업 잠금 내부의 연결 요청 및 R10 회수 intent 부재 대기를 제거한다. 불명확한 시작·일반 관측의 게시 유예·최종 수집/전체 seal·정확한 회수 순서는 유지한다. 기존 선택적 결과 diagnostics에 R10 하위 구간 시간을 추가한다. 작은 None 동일 입력 ABBA와 검증 실행 초과 기록은 처리량 후속 문서가 소유하며 큰 입력/전체 gate 근거가 아니다.
+
 ## 1. 흐름을 결정하는 규칙
 
 - 반환 `data.workspace.path`와 project/key/id/home/base/request identity를 사용한다. 편집·수집·반복 반영 동안 같은 작업을 유지한다.

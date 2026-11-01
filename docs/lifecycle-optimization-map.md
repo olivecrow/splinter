@@ -14,6 +14,8 @@ ST-29–35 adds `StorageResources` and `BoundedParallel` within W10/C20/A20. Bou
 
 ST-36–40 extends W10 to name/namespace and Create batching, A20 to dense-history/retained-parent merges, and A30 to grouped durable progress acknowledgements. B10/R10/F10 metadata graph copies can use bounded exact visited/relocation caches with disk fallback. Create retains handles after durable completion under the same mutation gate; A30 callers cannot cross a phase before the group page/control persist succeeds. Whole native/ownership proofs and stage publication order remain. The new helpers and 64 small checks are recorded in the remaining-candidate report; large timing/RSS/full-gate qualification stays open.
 
+ST-41–43 observes P40 initial connection under client.lock and removes absent-request/reclaim-intent waits inside the workspace operation lock. Unresolved launch handling, ordinary publication grace, final capture/full seals and exact R10 reclamation order remain. Existing optional result diagnostics gains R10 subphase timing. Small same-input None ABBA results and test-run overruns belong to the throughput follow-up, not large-input/full-gate qualification.
+
 ## 1. Rules that determine the graph
 
 - Use the returned `data.workspace.path` and retain project/key/id/home/base/request identity. Reuse the same task across editing, capture and repeated application.

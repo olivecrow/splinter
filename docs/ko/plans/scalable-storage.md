@@ -2,6 +2,8 @@
 
 [English](../../plans/scalable-storage.md) · [구현](../scalable-storage.md) · [검증](../verification/scalable-storage.md)
 
+ST-41–43의 새 작은 None 시간 비교와 잠금으로 배제한 정상 부재 대기 수정은 [처리량 후속](../verification/scalable-storage-throughput-followup.md)이 소유한다. SCAL-03/07/08·대형 입력·전체 gate는 미완료다.
+
 상태: 사용자의 구현 요청에 따른 **진행 중** 프로그램이다. SCAL-01–08이 소유하며 이전에 마감한 성능 프로그램을 자동 재개하지 않는다. 기준 소스는 development `b68eaaa9e7e78930ff7b4b0b368f137bc3e528c6`이다.
 
 2026-11-01 사용자가 검증을 축소했다. 대형 검증 입력은 상태를 보존하고 안전하게 중단했으며 남은 10만/17GiB/ABBA/전체 gate 의무는 통과가 아닌 미완료다. [지연 기록](../verification/scalable-storage-throughput-diagnosis.md)은 관측한 단계 시간·확인된 수정·미측정 원인을 구분한다. 이 대형 실행을 자동 재개하지 않는다. 구현 활성화와 focused 자격이 아래 전체 완료 조건의 충족을 뜻하지 않는다.

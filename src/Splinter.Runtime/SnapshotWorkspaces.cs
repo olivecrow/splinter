@@ -125,16 +125,19 @@ public sealed partial class WorkspaceCoordinator
         if (state.Step.StartsWith("compact-", StringComparison.Ordinal))
             throw new WorkspaceException("WorkspaceCompacting", "Resume workspace compact before release.");
         string control = store.ControlPath(w.Id);
+        var diagnostics = w.Results.LastOrDefault() is { } retainedGeneration
+            ? ResultGenerationDiagnostics.Open(control, retainedGeneration.Id) : null;
         try
         {
             // Publication holds this worker lock through its durable workflow intent.
             // Any candidate or retained source generation keeps the original basis alive.
             await RequireNoViewDependenciesAsync(w, ct);
-            await VerifyRetainedGenerationsAsync(w, ct);
+            using (diagnostics?.Measure("release.verify-retained")) await VerifyRetainedGenerationsAsync(w, ct);
             if (!state.Step.StartsWith("release-", StringComparison.Ordinal))
             {
                 if (!state.Attached) throw new WorkspaceException("SnapshotPreparationIncomplete", "Preserve incomplete preparation and resume ensure before release.");
-                if (checkpointResult is null) await applications.StopAsync(w, control, ct);
+                using (diagnostics?.Measure("release.stop-application"))
+                    if (checkpointResult is null) await applications.StopAsync(w, control, ct);
                 await RequireStopped(w, ct);
                 state.Observation = await Snapshots.ObserveAsync(w, control, ct);
                 RequireSnapshotObservation(w, state.Observation);
@@ -155,7 +158,8 @@ public sealed partial class WorkspaceCoordinator
                     if (checkpointResult is null) await applications.RemoveInfrastructureAsync(w, control, ct);
                     if (sources is IWorkspaceGenerationSource && snapshots is ISourceGenerationBackend)
                     {
-                        if (checkpointResult is null) await SealGenerationForReleaseAsync(w, ct);
+                        using (diagnostics?.Measure("release.final-generation"))
+                            if (checkpointResult is null) await SealGenerationForReleaseAsync(w, ct);
                     }
                     else if (!await ReuseSnapshotResultAsync(w, ct, checkpointResult?.Seal))
                         await CollectSnapshotResultAsync(w, ct);
@@ -165,10 +169,10 @@ public sealed partial class WorkspaceCoordinator
             }
             RequireStableCollection(state);
             await RequireStopped(w, ct);
-            await SnapshotSources.VerifyResultAsync(w, control, ct);
+            using (diagnostics?.Measure("release.verify-result")) await SnapshotSources.VerifyResultAsync(w, control, ct);
             if (state.Step == "release-unmount")
             {
-                await Snapshots.UnmountAsync(w, control, ct);
+                using (diagnostics?.Measure("release.unmount")) await Snapshots.UnmountAsync(w, control, ct);
                 var seal = await Snapshots.SealAsync(w, control, ct);
                 if (seal != state.Result!.Seal)
                     throw new WorkspaceException("DeltaChangedAfterCollection", "Writes followed the collected result. Preserve the journal and reconcile before deletion.");
@@ -189,15 +193,16 @@ public sealed partial class WorkspaceCoordinator
             }
             if (state.Step == "release-delta")
             {
-                await Snapshots.RemoveDeltaAsync(w, control, ct);
+                using (diagnostics?.Measure("release.remove-delta")) await Snapshots.RemoveDeltaAsync(w, control, ct);
                 SnapshotStep(w, "release-snapshot");
             }
             // Result aliases remain independent of the reclaimed journal. Only
             // now can their last retained byte ranges be packed without an
             // active journal or capture reader depending on the old backing.
             if (sources is IRetainedResultMaintenance retained)
-                await retained.MaintainRetainedResultsAsync(w, control, ct);
-            await MaintainMetadataCoreAsync(w, "release:" + (w.Results.LastOrDefault()?.Id ?? w.ResultRevision ?? w.Id), ct, force: true);
+                using (diagnostics?.Measure("release.maintain-results")) await retained.MaintainRetainedResultsAsync(w, control, ct);
+            using (diagnostics?.Measure("release.maintain-metadata"))
+                await MaintainMetadataCoreAsync(w, "release:" + (w.Results.LastOrDefault()?.Id ?? w.ResultRevision ?? w.Id), ct, force: true);
             using (await store.LockAsync(WorkspaceStore.Key("snapshot:" + state.Reference!.Id), ct))
             {
                 // Managed project tasks release their own reference; the
@@ -208,7 +213,8 @@ public sealed partial class WorkspaceCoordinator
                     other.Snapshot?.Reference?.Id == state.Reference.Id))
                     throw new WorkspaceException("SnapshotInUse", "Another workspace still depends on this immutable snapshot.");
                 await RequireNoViewDependenciesAsync(w, ct);
-                var reclamation = await Snapshots.ReleaseSnapshotAsync(w, control, ct);
+                SnapshotReclamation reclamation;
+                using (diagnostics?.Measure("release.snapshot")) reclamation = await Snapshots.ReleaseSnapshotAsync(w, control, ct);
                 reclamation.RequireMatch(state.Reference);
                 state.Observation = await Snapshots.ObserveAsync(w, control, ct);
                 if (reclamation.Disposition == "deferred")
