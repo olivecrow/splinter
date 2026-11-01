@@ -16,7 +16,7 @@
   ],
   "properties": {
     "version": {
-      "const": 2
+      "const": 3
     },
     "applicationKind": {
       "type": "string",

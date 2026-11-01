@@ -143,7 +143,7 @@ namespace Splinter.Development.UnityStartup
         {
             using JsonDocument record = Read(Path.Combine(control, "workspace.json"));
             JsonElement w = record.RootElement;
-            if (w.GetProperty("version").GetInt32() != 3 || Text(w, "applicationKind") != "unity" ||
+            if (w.GetProperty("version").GetInt32() != 4 || Text(w, "applicationKind") != "unity" ||
                 !new[] { "git-snapshot", "plastic-snapshot", "project-snapshot" }.Contains(Text(w, "storageMode")) ||
                 new[] { "released", "discarded", "reclaim-pending", "discard-reclaim-pending" }.Contains(Text(w, "phase")))
                 throw new IOException("CaptureWorkspaceNotActive");
@@ -160,7 +160,7 @@ namespace Splinter.Development.UnityStartup
             using JsonDocument state = Read(Path.Combine(overlay, "state.json"));
             using JsonDocument launch = Read(Path.Combine(overlay, "provider-launch-receipt.json"));
             JsonElement q = request.RootElement, s = state.RootElement, p = launch.RootElement;
-            if (q.GetProperty("identity").GetProperty("version").GetInt32() != 2 || s.GetProperty("version").GetInt32() != 1 ||
+            if (q.GetProperty("identity").GetProperty("version").GetInt32() != 3 || s.GetProperty("version").GetInt32() != 1 ||
                 Text(q.GetProperty("identity"), "id") != id ||
                 Text(q.GetProperty("identity").GetProperty("snapshot"), "id") != snapshotId ||
                 !Same(Text(q, "mountPath"), root) || !Same(Text(q, "controlPath"), overlay) ||

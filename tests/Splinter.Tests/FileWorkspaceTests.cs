@@ -158,7 +158,7 @@ public sealed partial class FileWorkspaceTests
         var d = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(original)!;
         d.Remove("sourceKind"); File.WriteAllText(path, JsonSerializer.Serialize(d));
         Assert.Equal("StateCorrupt", Assert.Throws<WorkspaceException>(() => f.Store.Get(w.Id)).Code);
-        File.WriteAllText(path, original.Replace("\"version\": 3", "\"version\": 2", StringComparison.Ordinal));
+        File.WriteAllText(path, original.Replace("\"version\": 4", "\"version\": 3", StringComparison.Ordinal));
         Assert.Equal("StateVersionUnsupported", Assert.Throws<WorkspaceException>(() => f.Store.Get(w.Id)).Code);
         Assert.True(Directory.Exists(w.Path)); Assert.Empty(f.Backend.Released);
     }

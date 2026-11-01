@@ -9,6 +9,7 @@ public static class WorkspaceFailurePolicy
         "GitBasisRefChanged" or "GitBasisReceiptInvalid" or "GitBasisObjectInvalid" or
         "SourceCacheVersionUnsupported" or "GitAttributeOutputInvalid" or
         "FileSourceStateInvalid" or "FileResultIncomplete" or
+        "MetadataStoreInvalid" or "MetadataMaintenanceInvalid" or "WorkspaceMaintenancePending" or "MetadataCollectionPending" or
         "StateVersionUnsupported" or "SourceCaptureInvalid" or "SourceCaptureBackingInvalid" or "SourceCaptureIdentityMismatch" or
         "SourceCaptureIncomplete" or "SourceCaptureRequestConflict" or "SourceCapturePending" or "LiveOriginalIdentityMismatch" or
         "OriginalApplyStateInvalid" or "OriginalApplyPending" or "OriginalApplyRequestConflict" or "OriginalApplyConflict" or

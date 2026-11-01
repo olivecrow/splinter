@@ -9,21 +9,35 @@ public sealed partial class GitWorkspaceProvider
         // Match ordinary InspectAsync admission before making any proof.
         await EnsureRegistered(workspace, ct);
         SourceProof? proof = null;
+        try
+        {
         var state = await InspectSourceAsync(workspace, ct, value => proof = value);
-        return new(state, proof is { CompleteMembership: true } && !auditSource
-            ? new InspectionProof(this, workspace.Id, state, proof) : null);
+        if (proof is { CompleteMembership: true } && !auditSource)
+        {
+            var result = new ProvedSourceInspection(state, new InspectionProof(this, workspace.Id, state, proof));
+            proof = null; return result;
+        }
+        return new(state, null);
+        }
+        finally { proof?.Dispose(); }
     }
 
     private sealed class InspectionProof(GitWorkspaceProvider provider, string id, SourceState source, SourceProof proof) : ISourceInspectionProof
     {
         private int consumed;
+        private int disposed;
+        public void Dispose() { if (Interlocked.Exchange(ref disposed, 1) == 0) proof.Dispose(); }
         public async Task<SourceState> RevalidateAsync(WorkspaceRecord workspace, CancellationToken ct = default)
         {
+            try
+            {
             ct.ThrowIfCancellationRequested();
-            if (Interlocked.Exchange(ref consumed, 1) != 0 || workspace.Id != id)
+            if (Volatile.Read(ref disposed) != 0 || Interlocked.Exchange(ref consumed, 1) != 0 || workspace.Id != id)
                 throw Error("SourceChanged", "Source inspection proof is single-use and belongs to one workspace operation.");
             await provider.VerifyStagedSourceAsync(workspace, proof, ct, staging: false);
             return source;
+            }
+            finally { Dispose(); }
         }
     }
 }

@@ -83,18 +83,67 @@ public sealed partial class FileWorkspaceTests
         Assert.Equal("PlasticCompatibilityInvalid", (await Assert.ThrowsAsync<WorkspaceException>(() => proof.RevalidateAsync(w, ct))).Code);
     }
 
+    [Theory]
+    [InlineData("consume")]
+    [InlineData("discard")]
+    [InlineData("isolation-failure")]
+    public async Task PlasticProofReleasesItsOwnedReaderOnConsumptionDiscardAndIsolationFailure(string completion)
+    {
+        using var f = new Fixture(sourceKind: "plastic"); var ct = TestContext.Current.CancellationToken;
+        var w = (await f.Ensure("plastic-reader-lifetime", ct)).Workspace;
+        var tracker = new FileChanges { AttachLeases = true };
+        var provider = new PlasticWorkspaceProvider(f.Store, f.Plastic, f.Revisions, sourceChanges: tracker);
+        using var inspection = await provider.InspectWithProofAsync(w, ct);
+        Assert.NotNull(inspection.Proof); Assert.Equal(1, tracker.ActiveLeases);
+        if (completion == "consume") Assert.Equal(inspection.Source, await inspection.Proof.RevalidateAsync(w, ct));
+        else if (completion == "discard") inspection.Dispose();
+        else
+        {
+            f.Plastic.AdditionalRoot = w.Path;
+            Assert.Equal("PlasticCompatibilityInvalid", (await Assert.ThrowsAsync<WorkspaceException>(() => inspection.Proof.RevalidateAsync(w, ct))).Code);
+        }
+        Assert.Equal(0, tracker.ActiveLeases);
+        Assert.Equal("SourceChanged", (await Assert.ThrowsAsync<WorkspaceException>(() => inspection.Proof.RevalidateAsync(w, ct))).Code);
+        inspection.Dispose(); Assert.Equal(0, tracker.ActiveLeases); GC.KeepAlive(tracker);
+    }
+
     private sealed class FileChanges : ISourceChangeProvider
     {
         public int Calls, ChangeAt;
         public long Sequence;
         public string Epoch = "first";
-        public bool Invalid;
+        public bool Invalid, AttachLeases;
+        public int ActiveLeases;
+        private readonly List<SourceChangeView> retainedViews = [];
         public Task<SourceChangeView> ObserveChangesAsync(WorkspaceRecord w, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested(); if (++Calls == ChangeAt) Sequence++;
-            return Task.FromResult(new SourceChangeView(w.Id, w.Snapshot!.Reference!.Id, Epoch,
-                Invalid ? 1 : Sequence, Sequence == 0 ? [] : [new("data.txt", Sequence)]));
+            var view = new SourceChangeView(w.Id, w.Snapshot!.Reference!.Id, Epoch,
+                Invalid ? 1 : Sequence, Sequence == 0 ? [] : [new("data.txt", Sequence)]);
+            if (AttachLeases)
+            {
+                using var original = view;
+                using (var lease = new CountedLease(this, original.Changes))
+                    view = original with { ReaderLease = lease };
+                retainedViews.Add(view);
+            }
+            return Task.FromResult(view);
         }
         public string CachePath(WorkspaceRecord w) => throw new InvalidOperationException("No persisted proof cache.");
+
+        private sealed class CountedLease : ISourceChangeReaderLease
+        {
+            private readonly FileChanges owner;
+            private readonly SourcePathChange[] rows;
+            private int disposed;
+            public CountedLease(FileChanges owner, SourcePathChange[] rows)
+            { this.owner = owner; this.rows = rows; Interlocked.Increment(ref owner.ActiveLeases); }
+            public ISourceChangeReaderLease Retain()
+            { ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed) != 0, this); return new CountedLease(owner, rows); }
+            public IEnumerable<SourcePathChange> Read(SourceChangeView view)
+            { ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed) != 0, this); return rows; }
+            public void Dispose()
+            { if (Interlocked.Exchange(ref disposed, 1) == 0) Interlocked.Decrement(ref owner.ActiveLeases); }
+        }
     }
 }

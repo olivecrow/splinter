@@ -21,8 +21,58 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     private readonly Dictionary<Guid, int> retainedContexts = [];
     private int handles;
     private int contexts;
-    private sealed class HandleContext { public int Cleaned; }
+    private sealed class HandleContext
+    {
+        public int Cleaned;
+        internal readonly object DirectoryGate = new();
+        internal DirectoryScan? DirectoryReader;
+        internal void DisposeReaders()
+        {
+            lock (DirectoryGate)
+            {
+                var reader = DirectoryReader; DirectoryReader = null;
+                reader?.Dispose();
+            }
+        }
+    }
     private sealed record DirectoryListingItem(string Name, DeltaEntry Entry);
+    private sealed class DirectoryScan(IEnumerator<DirectoryListingItem> reader, IDisposable? membership,
+        string? pattern, string? marker) : IDisposable
+    {
+        internal readonly string? Pattern = pattern;
+        internal string? PreviousName = marker;
+        internal DirectoryListingItem? Current;
+        internal bool Completed;
+        private int disposed;
+        internal bool Advance(out DirectoryListingItem? item)
+        {
+            item = null;
+            if (Completed) return false;
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed) != 0, this);
+            if (!reader.MoveNext()) { Completed = true; Dispose(); return false; }
+            PreviousName = Current?.Name ?? PreviousName;
+            item = Current = reader.Current; return true;
+        }
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref disposed, 1) != 0) return;
+            try { reader.Dispose(); } finally { membership?.Dispose(); }
+        }
+    }
+    // FileSystemBase creates a fresh Context for every native output packet.
+    // Its final callback can expose an entry which AddDirInfo cannot fit. The
+    // next packet's marker acknowledges the preceding entry, so replay that
+    // one lookahead before advancing the handle-owned, fixed-root cursor.
+    private sealed class DirectoryPacket(DirectoryScan scan, bool replay)
+    {
+        internal readonly DirectoryScan Scan = scan;
+        private bool first = true;
+        internal bool Read(out DirectoryListingItem? item)
+        {
+            if (first) { first = false; if (replay) { item = Scan.Current; return true; } }
+            return Scan.Advance(out item);
+        }
+    }
     public int OpenHandles => Volatile.Read(ref handles);
     public int RetainedFileContexts => Volatile.Read(ref contexts);
     public WinFspOverlayFileSystem(IWorkspaceDeltaStore store, Action<Exception>? report = null,
@@ -78,6 +128,13 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     };
     public override int GetVolumeInfo(out VolumeInfo volumeInfo)
     {
+        if (store.Identity.Version >= 3)
+        {
+            string backing = store.BackingPath ?? throw new WorkspaceException("OverlayBackingUnavailable", "Observe the actual journal backing volume before reporting space.");
+            var drive = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(backing))!);
+            volumeInfo = new() { TotalSize = checked((ulong)drive.TotalSize), FreeSize = checked((ulong)drive.AvailableFreeSpace) };
+            volumeInfo.SetVolumeLabel("Splinter snapshot overlay"); return STATUS_SUCCESS;
+        }
         long journalBytes = store.GetJournalBytes();
         volumeInfo = new() { TotalSize = (ulong)store.Identity.MaxJournalBytes,
             FreeSize = (ulong)Math.Max(0, store.Identity.MaxJournalBytes - journalBytes) };
@@ -137,10 +194,14 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     }
     public override void Cleanup(object fileNode, object fileDesc, string fileName, uint flags)
     {
-        // A non-delete cleanup changes only the handle counter. The retained
-        // context still belongs to Close, which serializes unlink reclamation.
+        // Directory readers end with Cleanup; the file identity remains held
+        // until Close serializes unlink reclamation.
         try { if ((flags & CleanupDelete) != 0) { using (EnterMutation("cleanup-delete")) store.Delete((Guid)fileNode); } }
-        finally { if (Interlocked.Exchange(ref ((HandleContext)fileDesc).Cleaned, 1) == 0) Interlocked.Decrement(ref handles); }
+        finally
+        {
+            try { ((HandleContext)fileDesc).DisposeReaders(); }
+            finally { if (Interlocked.Exchange(ref ((HandleContext)fileDesc).Cleaned, 1) == 0) Interlocked.Decrement(ref handles); }
+        }
     }
     public override void Close(object fileNode, object fileDesc)
     {
@@ -149,9 +210,13 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
         {
             using (EnterMutation("close"))
             {
-                Guid id = (Guid)fileNode;
-                if (retainedContexts[id] > 1) retainedContexts[id]--;
-                else { retainedContexts.Remove(id); store.ReleaseUnlinkedFile(id); }
+                try { ((HandleContext)fileDesc).DisposeReaders(); }
+                finally
+                {
+                    Guid id = (Guid)fileNode;
+                    if (retainedContexts[id] > 1) retainedContexts[id]--;
+                    else { retainedContexts.Remove(id); store.ReleaseUnlinkedFile(id); }
+                }
             }
         }
         finally { Interlocked.Decrement(ref contexts); }
@@ -201,33 +266,35 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     public override int SetBasicInfo(object fileNode, object fileDesc, uint attributes, ulong creation,
         ulong access, ulong write, ulong change, out FileInfo fileInfo)
     {
-        using (EnterMutation("set-basic-info"))
+        fileInfo = SubmitMetadata("set-basic-info", () =>
         {
             Guid id = (Guid)fileNode; var old = store.Get(id);
             uint updated = attributes == uint.MaxValue ? old.Attributes : attributes;
             SnapshotInputChecks.RejectUnsupportedAttributes(updated, old.Path);
             store.SetMetadata(id, updated,
                 creation == 0 ? old.CreationTime : (long)creation, access == 0 ? old.LastAccessTime : (long)access,
-                write == 0 ? old.LastWriteTime : (long)write); fileInfo = Info(id); return STATUS_SUCCESS;
-        }
+                write == 0 ? old.LastWriteTime : (long)write); return Info(id);
+        });
+        return STATUS_SUCCESS;
     }
     public override int SetFileSize(object fileNode, object fileDesc, ulong newSize, bool setAllocationSize, out FileInfo fileInfo)
     {
-        using (EnterMutation("set-file-size"))
+        fileInfo = SubmitMetadata("set-file-size", () =>
         {
             Guid id = (Guid)fileNode;
             string path = mutationObserver is not null ? store.Get(id).Path : "";
             if (mutationObserver is not null) Visit("callback.before-effect", "truncate", path, checked((long)newSize), 0);
             if (!setAllocationSize || newSize < (ulong)store.Get(id).Length) store.SetLength(id, checked((long)newSize));
-            fileInfo = Info(id);
-            if (mutationObserver is not null) Visit("callback.after-effect", "truncate", path, checked((long)newSize), checked((long)fileInfo.FileSize));
-            return STATUS_SUCCESS;
-        }
+            var info = Info(id);
+            if (mutationObserver is not null) Visit("callback.after-effect", "truncate", path, checked((long)newSize), checked((long)info.FileSize));
+            return info;
+        });
+        return STATUS_SUCCESS;
     }
     public override int CanDelete(object fileNode, object fileDesc, string fileName)
     {
         var entry = store.Get((Guid)fileNode);
-        return entry.Directory && store.List(entry.Path).Count != 0 ? STATUS_DIRECTORY_NOT_EMPTY : STATUS_SUCCESS;
+        return entry.Directory && store.EnumerateChildren(entry.Path).Any() ? STATUS_DIRECTORY_NOT_EMPTY : STATUS_SUCCESS;
     }
     public override int Rename(object fileNode, object fileDesc, string fileName, string newFileName, bool replaceIfExists)
     {
@@ -246,25 +313,84 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     }
     private void Visit(string boundary, string operation, string path, long requested, long completed)
     { mutationObserver?.Observe(new(boundary, operation, path, requested, completed)); }
+    public override int ReadDirectory(object fileNode, object fileDesc, string pattern, string marker,
+        IntPtr buffer, uint length, out uint bytesTransferred)
+    {
+        if (fileDesc is not HandleContext handle)
+            return base.ReadDirectory(fileNode, fileDesc, pattern, marker, buffer, length, out bytesTransferred);
+        // Entry-level locking permits two packet loops on the same handle to
+        // interleave. Keep the entire native packet and its lookahead atomic.
+        lock (handle.DirectoryGate)
+        {
+            try { return base.ReadDirectory(fileNode, fileDesc, pattern, marker, buffer, length, out bytesTransferred); }
+            catch { handle.DisposeReaders(); throw; }
+        }
+    }
     public override bool ReadDirectoryEntry(object fileNode, object fileDesc, string pattern, string marker,
         ref object context, out string fileName, out FileInfo fileInfo)
     {
-        if (context is not IEnumerator<DirectoryListingItem> iterator)
+        if (fileDesc is HandleContext handle)
         {
-            var entry = store.Get((Guid)fileNode);
-            var listing = new List<DirectoryListingItem>();
-            if (entry.Path.Length != 0)
-            {
-                string parentPath = Parent(entry.Path);
-                listing.Add(new(".", entry));
-                listing.Add(new("..", store.Stat(parentPath)!));
-            }
-            listing.AddRange(store.List(entry.Path).Select(child => new DirectoryListingItem(Name(child.Path), child)));
-            iterator = listing.Where(item => marker is null || StringComparer.OrdinalIgnoreCase.Compare(item.Name, marker) > 0)
-                .GetEnumerator();
-            context = iterator;
+            lock (handle.DirectoryGate)
+                return ReadDirectoryEntryCore(fileNode, handle, pattern, marker, ref context, out fileName, out fileInfo);
         }
-        if (iterator.MoveNext()) { fileName = iterator.Current.Name; fileInfo = Info(iterator.Current.Entry); return true; }
+        return ReadDirectoryEntryCore(fileNode, null, pattern, marker, ref context, out fileName, out fileInfo);
+    }
+    private bool ReadDirectoryEntryCore(object fileNode, HandleContext? handle, string pattern, string marker,
+        ref object context, out string fileName, out FileInfo fileInfo)
+    {
+        DirectoryPacket? packet = context as DirectoryPacket;
+        if (packet is null)
+        {
+            var prior = handle?.DirectoryReader;
+            // A continuation can omit the search expression. Only an explicit
+            // changed expression (or a restart marker) starts another scan.
+            bool samePattern = prior is not null && (pattern is null || StringComparer.Ordinal.Equals(prior.Pattern, pattern));
+            bool replay = samePattern && !prior!.Completed && prior.Current is not null && marker is not null &&
+                StringComparer.OrdinalIgnoreCase.Equals(marker, prior.PreviousName);
+            bool end = samePattern && prior!.Completed && marker is not null &&
+                StringComparer.OrdinalIgnoreCase.Equals(marker, prior.Current?.Name ?? prior.PreviousName);
+            if (replay || end) packet = new(prior!, replay);
+            else
+            {
+            handle?.DisposeReaders();
+            var entry = store.Get((Guid)fileNode);
+            // Bind the provider's immutable membership before retaining this
+            // callback context; consume it without copying a whole directory.
+            var children = store.EnumerateChildren(entry.Path);
+            DeltaEntry? parent;
+            try { parent = entry.Path.Length == 0 ? null : store.Stat(Parent(entry.Path)); }
+            catch { (children as IDisposable)?.Dispose(); throw; }
+            IEnumerable<DirectoryListingItem> Listing()
+            {
+                if (entry.Path.Length != 0)
+                {
+                    yield return new(".", entry);
+                    yield return new("..", parent!);
+                }
+                foreach (var child in children) yield return new(Name(child.Path), child);
+            }
+            bool AfterMarker(DirectoryListingItem item)
+            {
+                if (marker is null) return true;
+                // Dot entries precede every child, including legal names
+                // such as !asset and $data which sort before a period.
+                if (entry.Path.Length != 0 && (marker is "." or ".."))
+                    return item.Name != "." && (marker == "." || item.Name != "..");
+                return StringComparer.OrdinalIgnoreCase.Compare(item.Name, marker) > 0;
+            }
+            var iterator = Listing().Where(AfterMarker).GetEnumerator();
+            var scan = new DirectoryScan(iterator, children as IDisposable, pattern, marker);
+            if (handle is not null) handle.DirectoryReader = scan;
+            packet = new(scan, false);
+            }
+            context = packet;
+        }
+        try
+        {
+            if (packet.Read(out var item)) { fileName = item!.Name; fileInfo = Info(item.Entry); return true; }
+        }
+        catch { packet.Scan.Dispose(); if (handle?.DirectoryReader == packet.Scan) handle.DirectoryReader = null; throw; }
         fileName = null!; fileInfo = default; return false;
     }
     public override int GetDirInfoByName(object fileNode, object fileDesc, string fileName, out string normalizedName, out FileInfo fileInfo)

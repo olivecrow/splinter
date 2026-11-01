@@ -44,19 +44,23 @@ public static class WinFspOverlayClient
             WindowsProcessWorkspaceProvider.CheckPath(cache.ReceiptDirectory);
         }
     }
-    public static async Task<SnapshotObservation> ObserveSnapshotAsync(OverlayServeRequest request, CancellationToken ct = default)
+    public static async Task<SnapshotObservation> ObserveSnapshotAsync(OverlayServeRequest request, CancellationToken ct = default,
+        ISnapshotTree? openedSnapshot = null, ISnapshotTree? openedCache = null, ISnapshotTree? openedGenerated = null)
     {
+        ct.ThrowIfCancellationRequested();
         ValidateCacheSnapshot(request);
         if (request.ReadAccess is null || request.SnapshotReceiptDirectory is null || request.SnapshotOwnerId is null)
             return new(request.Identity.Snapshot.Id, null, "SnapshotVerificationRequired", null, null);
         request.ReadAccess.RequireMatch(request.Identity.Snapshot);
-        var proof = await WorkspaceSnapshotBasis.Provider(request.Identity.Snapshot, request.SnapshotReceiptDirectory, request.SnapshotOwnerId).ObserveAsync(request.Identity.Snapshot, ct);
+        var proof = SnapshotAvailabilityScopes.Observe(openedSnapshot, request.Identity.Snapshot, request.ReadAccess) ??
+            await WorkspaceSnapshotBasis.Provider(request.Identity.Snapshot, request.SnapshotReceiptDirectory, request.SnapshotOwnerId).ObserveAsync(request.Identity.Snapshot, ct);
         if (proof.Available == true && proof.ReadAccess != request.ReadAccess)
             return new(request.Identity.Snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
         if (proof.Available == true && request.CacheSnapshot is { } cache)
         {
             var basis = request.SourceView!.CacheIdentity!.Snapshot;
-            var cached = await WorkspaceSnapshotBasis.Provider(basis, cache.ReceiptDirectory, cache.OwnerId).ObserveAsync(basis, ct);
+            var cached = SnapshotAvailabilityScopes.Observe(openedCache, basis, cache.ReadAccess) ??
+                await WorkspaceSnapshotBasis.Provider(basis, cache.ReceiptDirectory, cache.OwnerId).ObserveAsync(basis, ct);
             if (cached.Available != true)
                 return new(request.Identity.Snapshot.Id, cached.Available, cached.FailureCode ?? "ViewCacheSnapshotUnavailable", null, null);
             if (cached.ReadAccess != cache.ReadAccess)
@@ -64,7 +68,8 @@ public static class WinFspOverlayClient
         }
         if (proof.Available == true && request.Identity.Graft is { } graft)
         {
-            var generated = await WorkspaceSnapshotBasis.Provider(graft.Basis.Snapshot, graft.Basis.ReceiptDirectory, graft.Basis.OwnerId).ObserveAsync(graft.Basis.Snapshot, ct);
+            var generated = SnapshotAvailabilityScopes.Observe(openedGenerated, graft.Basis.Snapshot, request.GeneratedSnapshot!.ReadAccess) ??
+                await WorkspaceSnapshotBasis.Provider(graft.Basis.Snapshot, graft.Basis.ReceiptDirectory, graft.Basis.OwnerId).ObserveAsync(graft.Basis.Snapshot, ct);
             if (generated.Available != true || generated.ReadAccess != request.GeneratedSnapshot!.ReadAccess)
                 return new(request.Identity.Snapshot.Id, generated.Available, generated.FailureCode ?? "GeneratedBasisMismatch", null, null);
         }
@@ -81,7 +86,8 @@ public static class WinFspOverlayClient
     public static async Task<JsonElement> ObserveAsync(OverlayServeRequest request, CancellationToken ct = default)
     {
         var records = await ReadControlAsync(request, false, ct);
-        return await ObserveAsync(request, records.State, records.Launch, records.Intent, ct);
+        return await ObserveWithSnapshotProofAsync(request, records, () => ReadControlAsync(request, false, ct),
+            () => ObserveSnapshotAsync(request, ct), WindowsProcessGroup.IdentityAlive, Directory.Exists);
     }
     private static async Task<(JsonElement State, ProviderLaunch? Launch, ProviderIntent? Intent)> ReadControlAsync(
         OverlayServeRequest request, bool launchPublicationLocked, CancellationToken ct)
@@ -95,12 +101,38 @@ public static class WinFspOverlayClient
             !launchPublicationLocked || launch.Result is not null || intent.Result is not null);
         return (state, launch.Result, intent.Result);
     }
-    private static async Task<JsonElement> ObserveAsync(OverlayServeRequest request, JsonElement state,
-        ProviderLaunch? launch, ProviderIntent? intent, CancellationToken ct)
+    internal static async Task<JsonElement> ObserveWithSnapshotProofAsync(OverlayServeRequest request,
+        (JsonElement State, ProviderLaunch? Launch, ProviderIntent? Intent) initial,
+        Func<Task<(JsonElement State, ProviderLaunch? Launch, ProviderIntent? Intent)>> refresh,
+        Func<Task<SnapshotObservation>> proveSnapshot, Func<int, long, bool> identityAlive, Func<string, bool> mountExists)
     {
+        var preliminary = ObserveUnprovenControl(request, initial.State, initial.Launch, initial.Intent, identityAlive, out _);
+        if (preliminary is { } pending) return pending;
+        // A complete fixed-manifest proof can exceed the heartbeat interval on
+        // large inputs. Keep that proof, then acquire current control evidence;
+        // never age the earlier heartbeat while walking the snapshot catalog.
+        var snapshot = await proveSnapshot();
+        var current = await refresh();
+        var unresolved = ObserveUnprovenControl(request, current.State, current.Launch, current.Intent, identityAlive, out bool alive);
+        if (current.State.ValueKind == JsonValueKind.Undefined || current.Launch != initial.Launch || current.Intent != initial.Intent ||
+            current.State.GetProperty("processId").GetInt32() != initial.State.GetProperty("processId").GetInt32() ||
+            !current.State.TryGetProperty("processStartTimeUtcTicks", out var currentTicks) ||
+            !initial.State.TryGetProperty("processStartTimeUtcTicks", out var initialTicks) || currentTicks.GetInt64() != initialTicks.GetInt64())
+            throw new WorkspaceException("OverlayStartUncertain", "Provider identity changed during snapshot verification; preserve the exact launch and request.");
+        if (unresolved is { } uncertain) return uncertain;
+        var state = current.State;
+        string? phase = state.GetProperty("phase").GetString();
+        return JsonSerializer.SerializeToElement(new { phase = alive && snapshot.Available != true ? "snapshot-" + snapshot.Availability : phase, processAlive = alive, ownershipVerified = true,
+            snapshotAvailable = snapshot.Available, snapshotAvailability = snapshot.Availability, failureCode = snapshot.FailureCode,
+            mountPresent = mountExists(request.MountPath), state }, Json);
+    }
+    private static JsonElement? ObserveUnprovenControl(OverlayServeRequest request, JsonElement state,
+        ProviderLaunch? launch, ProviderIntent? intent, Func<int, long, bool> identityAlive, out bool alive)
+    {
+        alive = false;
         if (launch is not null && launch.Token != request.Token || intent is not null && (intent.Token != request.Token || intent.Id != request.Identity.Id))
             throw new WorkspaceException("OverlayOwnerMismatch", "Provider launch records belong to another overlay.");
-        bool launchAlive = launch is not null && WindowsProcessGroup.IdentityAlive(launch.ProcessId, launch.StartTimeUtcTicks);
+        bool launchAlive = launch is not null && identityAlive(launch.ProcessId, launch.StartTimeUtcTicks);
         bool knownLaunch = intent is null && launch is null || launch is not null && intent?.Generation == launch.Generation;
         if (state.ValueKind == JsonValueKind.Undefined)
         {
@@ -110,18 +142,14 @@ public static class WinFspOverlayClient
         if (state.GetProperty("token").GetString() != request.Token || state.GetProperty("id").GetString() != request.Identity.Id ||
             state.GetProperty("snapshotId").GetString() != request.Identity.Snapshot.Id)
             throw new WorkspaceException("OverlayOwnerMismatch", "State does not belong to this immutable request.");
-        bool alive = state.TryGetProperty("processStartTimeUtcTicks", out var ticks) &&
-            WindowsProcessGroup.IdentityAlive(state.GetProperty("processId").GetInt32(), ticks.GetInt64());
+        alive = state.TryGetProperty("processStartTimeUtcTicks", out var ticks) &&
+            identityAlive(state.GetProperty("processId").GetInt32(), ticks.GetInt64());
         if (!knownLaunch)
             return JsonSerializer.SerializeToElement(new { phase = "launch-uncertain", processAlive = alive || launchAlive, ownershipVerified = false }, Json);
         if (launchAlive && (state.GetProperty("processId").GetInt32() != launch!.ProcessId ||
             ticks.ValueKind == JsonValueKind.Undefined || ticks.GetInt64() != launch.StartTimeUtcTicks))
             return JsonSerializer.SerializeToElement(new { phase = "starting", processAlive = true, ownershipVerified = true }, Json);
-        var snapshot = await ObserveSnapshotAsync(request, ct);
-        string? phase = state.GetProperty("phase").GetString();
-        return JsonSerializer.SerializeToElement(new { phase = alive && snapshot.Available != true ? "snapshot-" + snapshot.Availability : phase, processAlive = alive, ownershipVerified = true,
-            snapshotAvailable = snapshot.Available, snapshotAvailability = snapshot.Availability, failureCode = snapshot.FailureCode,
-            mountPresent = Directory.Exists(request.MountPath), state }, Json);
+        return null;
     }
     public static async Task<JsonElement> StartAsync(string requestPath, string runnerCache, CancellationToken ct = default,
         Func<string, Task>? preparationPoint = null)
@@ -130,7 +158,8 @@ public static class WinFspOverlayClient
         WindowsProcessWorkspaceProvider.CheckPath(request.ControlPath); Directory.CreateDirectory(request.ControlPath);
         using var operation = new FileStream(Path.Combine(request.ControlPath, "client.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         var records = await ReadControlAsync(request, true, ct);
-        var before = await ObserveAsync(request, records.State, records.Launch, records.Intent, ct);
+        var before = await ObserveWithSnapshotProofAsync(request, records, () => ReadControlAsync(request, true, ct),
+            () => ObserveSnapshotAsync(request, ct), WindowsProcessGroup.IdentityAlive, Directory.Exists);
         string intentPath = Path.Combine(request.ControlPath, "provider-launch-intent.json");
         string receiptPath = Path.Combine(request.ControlPath, "provider-launch-receipt.json");
         var priorLaunch = records.Launch;

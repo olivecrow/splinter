@@ -171,7 +171,7 @@ public sealed class ImmutableCandidateTests
         Assert.Equal("B", Read(next, "Assets/code.cs"));
         Assert.Equal("warm-cache", Read(next, "Library/reusable"));
         Write(next, "Assets/output.cs", "generation-b");
-        var changes = next.ObserveChanges([]);
+        using var changes = next.ObserveChanges([]);
         Assert.Equal(b.Snapshot.Id, changes.SnapshotId);
         Assert.Contains(changes.Changes, change => change.Path == "Assets/output.cs");
     }

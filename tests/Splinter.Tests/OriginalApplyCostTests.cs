@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.Win32.SafeHandles;
 using Splinter.Core;
+using Splinter.Runtime;
 using Splinter.Platform.Windows;
 
 namespace Splinter.Tests;
@@ -29,7 +30,7 @@ public sealed partial class FileWorkspaceTests
         Fill(Path.Combine(w.Path, "data.txt"), mebibytes, 2);
         await f.New().CheckpointAsync(w.Id, "bounded publication", ct);
         var plan = (await f.New().PlanOriginalAsync(w.Id, ct)).OriginalApplyPlan!;
-        var state = new OriginalApplyState { Plan = plan, IntentKey = "cost", Steps = plan.Changes.Select(_ => new OriginalApplyStep()).ToArray() };
+        var state = OriginalApplyPages.Initialize(plan, "cost", f.Store.ControlPath(w.Id));
         long before = GC.GetAllocatedBytesForCurrentThread();
         publisher.Publish(state, version => File.OpenRead(Path.Combine(f.Store.ControlPath(w.Id), "files", "objects", version.Hash!)), () => { }, ct);
         long managed = GC.GetAllocatedBytesForCurrentThread() - before;

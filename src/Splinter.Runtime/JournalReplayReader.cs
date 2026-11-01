@@ -10,10 +10,10 @@ public sealed partial class JournalDeltaStore
 
     // A bounded, transient journal read buffer. Snapshot payload is never read.
     // Every complete frame is still checksummed and decoded before indexing.
-    private sealed class ReplayReader(JournalDeltaStore owner, long length) : IDisposable
+    private sealed class ReplayReader(JournalDeltaStore owner, long length, long start = 0) : IDisposable
     {
         private readonly byte[] buffer = ArrayPool<byte>.Shared.Rent(ReplayReadBufferBytes);
-        private long offset;
+        private long offset = start;
         private int available, position;
 
         public void ReadExactly(Span<byte> output)

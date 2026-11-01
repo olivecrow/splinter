@@ -1,6 +1,6 @@
 # Splinter
 
-Continuing workspaces can capture immutable results and conditionally publish them repeatedly with the same path, ID, basis and Library. See [the v3 contract](docs/repeated-original-apply.md) and [scoped RI-01–08 qualification](docs/verification/repeated-original-apply.md); Git original files preserve HEAD/index/branch. Agents own live-Editor saving, import deferral and safe refresh/reload.
+Continuing workspaces can capture immutable results and conditionally publish them repeatedly with the same path, ID, basis and Library. See [the repeated-application contract](docs/repeated-original-apply.md) and [scoped RI-01–08 qualification](docs/verification/repeated-original-apply.md); Git original files preserve HEAD/index/branch. Agents own live-Editor saving, import deferral and safe refresh/reload.
 
 **Isolated workspaces that share unchanged data for parallel AI development.**
 
@@ -10,7 +10,11 @@ Splinter is a local workspace and storage tool for AI agents working on Unity pr
 
 **Current status:** a research alpha for Windows and NTFS, with bounded validation on small Git, Unity Version Control / Plastic SCM, and VCS-free projects. The source and recorded evidence are available for others to inspect, reproduce, and extend. See the [validation guide](docs/verification/README.md) for tested inputs and remaining limits.
 
-**Current time tradeoff:** [RR-01](docs/verification/unity-readme-recheck.md) completed two one-line Unity changes in **428.6s with Splinter and 102.0s with one shared Editor: 326.6s extra**. Splinter is 109.0s below the historical README observation, with input/run limitations documented below. Independent sessions reduce coordination around another task's changes, but that productivity benefit has not been timed.
+The current [scalable-storage candidate](docs/scalable-storage.md) writes task v4/basis v3/overlay v3, replacing aggregate metadata/journal quotas with disk pages and streamed processing. SCAL-01–08 qualification is still in progress; no earlier small-input timing or support result is inherited by this candidate.
+
+The user curtailed large verification on 2026-11-01. [Recorded slow phases](docs/verification/scalable-storage-throughput-diagnosis.md) include multi-hour 100k tiny-file operations. Large-project usability, the remaining full lifecycles and matched performance preservation are unqualified; retained fixture state is documented separately.
+
+**Historical Unity time tradeoff:** [RR-01](docs/verification/unity-readme-recheck.md), on `2dff94d`, completed two one-line Unity changes in **428.6s with Splinter and 102.0s with one shared Editor: 326.6s extra**. That Splinter observation is 109.0s below the earlier README observation, with input/run limitations documented below. It is not a timing of the SCAL candidate. Independent sessions reduce coordination around another task's changes, but that productivity benefit has not been timed.
 
 ## Why Splinter
 
@@ -30,18 +34,18 @@ The intended workflow is simple: use a workspace when a task needs independent e
 
 ## Measured storage and time
 
-### Current comparison: parallel coding with one shared Editor
+### Historical comparison: parallel coding with one shared Editor
 
-**RR-01, 2026-10-26–27, current code `2dff94d`:** the same two one-line Unity changes completed in **428.6s with Splinter and 102.0s with a shared Editor**, including normal shutdown and owned cleanup. Both start with identical source and whole Library bytes, modification times and attributes: **1,602 source files / 2.80 GB**, **42,418 Library files / 3.14 GB**, Unity **6000.3.22f1**, Windows/NTFS.
+**RR-01, 2026-10-26–27, recorded code `2dff94d`:** the same two one-line Unity changes completed in **428.6s with Splinter and 102.0s with a shared Editor**, including normal shutdown and owned cleanup. Both start with identical source and whole Library bytes, modification times and attributes: **1,602 source files / 2.80 GB**, **42,418 Library files / 3.14 GB**, Unity **6000.3.22f1**, Windows/NTFS.
 
 | Observation | Splinter (s) | Shared Editor (s) | Extra Splinter time (s) |
 | --- | ---: | ---: | ---: |
 | BC-01 historical record | 537.6 | 82.1 | 455.5 |
-| RR-01 current normal run | 428.6 | 102.0 | 326.6 |
+| RR-01 recorded normal run | 428.6 | 102.0 | 326.6 |
 
-Splinter's current observation is **109.0s (20.3%) shorter** than the old README record. This is a historical difference, not an isolated causal percentage: the historical Library differs, shared-Editor time also changed, and execution order/OS caches were not randomized or cleared. The short workflow still takes **326.6s longer** with Splinter.
+Splinter's RR-01 observation is **109.0s (20.3%) shorter** than the earlier README record. This is a historical difference, not an isolated causal percentage: the historical Library differs, shared-Editor time also changed, and execution order/OS caches were not randomized or cleared. That short workflow took **326.6s longer** with Splinter.
 
-| Current Splinter stage | Elapsed seconds |
+| RR-01 Splinter stage | Elapsed seconds |
 | --- | ---: |
 | Library basis preparation | 37.7 |
 | Parallel A/B workspace creation | 64.5 |

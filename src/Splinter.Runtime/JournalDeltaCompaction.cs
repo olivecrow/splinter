@@ -64,6 +64,7 @@ public sealed partial class JournalDeltaStore
         Action<string>? boundary = null, long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null,
         Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
     {
+        if (identity.Version == 3) return CompactSegmentedDirectory(directory, identity, snapshot, boundary, maxEstimatedJournalOverlapBytes, revertBaseRanges, directoryGuardFactory);
         if (maxEstimatedJournalOverlapBytes is <= 0)
             throw new WorkspaceException("InvalidCompactionBudget", "The estimated journal overlap budget must be positive.");
         long totalStarted = Stopwatch.GetTimestamp();
@@ -200,6 +201,7 @@ public sealed partial class JournalDeltaStore
 
     public static void CompleteCompaction(string directory, OverlayIdentity identity, Action<string>? boundary = null)
     {
+        if (identity.Version == 3) { CompleteSegmentedCompaction(directory, identity, boundary); return; }
         string current = Path.Combine(directory, "delta.journal"), backup = Path.Combine(directory, BackupName);
         string intentPath = Path.Combine(directory, IntentName);
         var intent = ReadIntent(intentPath) ?? throw new WorkspaceException("CompactionIntentMissing", "The compaction intent is missing.");
@@ -290,6 +292,7 @@ public sealed partial class JournalDeltaStore
 
     private SnapshotDeltaSeal SealCurrent()
     {
+        if (segments is not null) return SegmentedSeal();
         return SealJournal(journal.Name, sequence, directoryGuardFactory);
     }
 
@@ -307,7 +310,7 @@ public sealed partial class JournalDeltaStore
         Add(sequence);
         var retainedByNode = retained?.GroupBy(r => r.NodeId).ToDictionary(g => g.Key,
             g => g.OrderBy(r => r.Logical).Select(r => new Extent(r.Logical, r.Length, r.Physical, r.Payload, r.BlockOffset)).ToArray());
-        foreach (string path in paths.Keys.Order(pathPolicy.Comparer))
+        foreach (string path in pagedIndex is null ? paths.Keys.Order(pathPolicy.Comparer) : (IEnumerable<string>)paths.Keys)
         {
             if (projectedFiles?.Contains(path) == true) continue;
             var node = nodes[paths[path]];
@@ -319,9 +322,9 @@ public sealed partial class JournalDeltaStore
                 VisitExtent(extent, (_, bytes, _) => digest.AppendData(bytes));
             }
         }
-        foreach (string path in hidden.Order(pathPolicy.Comparer))
+        foreach (string path in pagedIndex is null ? hidden.Order(pathPolicy.Comparer) : (IEnumerable<string>)hidden)
             if (projectedFiles?.Contains(path) != true) Add(path);
-        foreach (var change in pathChanges.OrderBy(x => x.Key, pathPolicy.Comparer)) Add(change);
+        foreach (var change in pagedIndex is null ? pathChanges.OrderBy(x => x.Key, pathPolicy.Comparer) : (IEnumerable<KeyValuePair<string, long>>)pathChanges) Add(change);
         return Convert.ToHexStringLower(digest.GetHashAndReset());
     }
 

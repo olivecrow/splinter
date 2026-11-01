@@ -14,7 +14,7 @@ public sealed partial class GitWorkspaceProvider
         string revision = await ResolveRevisionAsync(w.ProjectPath, w.BaseReference, ct);
         if (w.StorageMode != "git-snapshot" && await Required(w.ProjectPath, ["rev-parse", "HEAD"], ct) != revision)
             throw Error("SnapshotCheckpointMismatch", "The requested base must equal the source checkout HEAD.");
-        if (SplitZero(await Required(w.ProjectPath, ["ls-files", "-v", "-z"], ct)).Any(entry => !entry.StartsWith("H ", StringComparison.Ordinal)))
+        if (GitRecords(w.ProjectPath, ["ls-files", "-v", "-z"], ct).Any(entry => !entry.StartsWith("H ", StringComparison.Ordinal)))
             throw Error("SnapshotSourceUnsupported", "Skip-worktree, assume-unchanged and unresolved index entries cannot prove a clean captured source.");
         await CheckSnapshotGitFiles(w.ProjectPath, ct);
         if (w.StorageMode == "git-snapshot")
@@ -31,13 +31,14 @@ public sealed partial class GitWorkspaceProvider
 
     private static async Task CheckSnapshotGitFiles(string path, CancellationToken ct)
     {
-        foreach (string entry in SplitZero(await Required(path, ["ls-files", "--stage", "-z"], ct)))
+        foreach (string entry in GitRecords(path, ["ls-files", "--stage", "-z"], ct))
             if (!entry.StartsWith("100644 ", StringComparison.Ordinal) && !entry.StartsWith("100755 ", StringComparison.Ordinal))
                 throw Error("SnapshotSourceUnsupported", "Submodules, symbolic links and unresolved index entries are not supported.");
-        string[] paths = SplitZero(await Required(path, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], ct)).Distinct(StringComparer.Ordinal).ToArray();
+        using var paths = new PagedStrings(GitRecords(path, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], ct), ct);
         foreach (bool cached in new[] { false, true })
         {
-            await AttributeOutputAsync(path, paths, cached, all: false, output =>
+            foreach (string[] batch in paths.Paths().Chunk(256))
+            await AttributeOutputAsync(path, batch, cached, all: false, output =>
             {
                 string[] values = SplitZero(output);
                 for (int i = 2; i < values.Length; i += 3)
@@ -65,8 +66,14 @@ public sealed partial class GitWorkspaceProvider
         {
             var receipt = observation is null ? await Receipt(w, control, ct)
                 : await observation.Measure("load-receipt", () => Receipt(w, control, ct));
+            string expectedHead = w.Results.Count > 0 ? w.BaseRevision! : w.ResultRevision ?? w.BaseRevision!;
+            if (await Required(w.ProjectPath, ["rev-parse", "refs/heads/" + w.SourceReference], ct) != expectedHead)
+                throw Error("GitOverlayResultChanged", "The owned task branch changed; preserve its index, branch and recovered source.");
             initialContentAdmissions.TryRemove(w.Id, out _);
-            await GitOverlayRegistration.AttachAsync(receipt, ct, false, null, observation);
+            // The coordinator has already verified this owned mount and replayed
+            // its original journal. Reattachment preserves private edits; the
+            // first admission keeps its clean check and immutable warmup.
+            await GitOverlayRegistration.AttachAsync(receipt, ct, w.Snapshot?.Attached == true, null, observation);
             if (observation is null) await BeginInitialContentInspectionAsync(w, ct);
             else await observation.Measure("initial-content-admission", () => BeginInitialContentInspectionAsync(w, ct));
         }
@@ -126,7 +133,7 @@ public sealed partial class GitWorkspaceProvider
         return new(source, reference);
     }
 
-    private static async Task<string[]> IgnoredSourceFiles(WorkspaceRecord w, CancellationToken ct)
+    private static Task<IEnumerable<string>> IgnoredSourceFiles(WorkspaceRecord w, CancellationToken ct)
     {
         // Wildcard policies retain the existing per-path classification. Literal
         // managed roots can be pruned before Git traverses generated subtrees.
@@ -134,16 +141,17 @@ public sealed partial class GitWorkspaceProvider
         var exclusions = w.ManagedPaths.Where(root => !root.Contains('*') && !root.Contains('\\') &&
             !Path.IsPathRooted(root) && root.TrimEnd('/').Split('/').All(part => part is not ("" or "." or "..")))
             .Select(root => magic + root.TrimEnd('/')).ToArray();
-        return SplitZero(await Required(w.Path,
+        return Task.FromResult(GitRecords(w.Path,
             ["ls-files", "--others", "--ignored", "--exclude-standard", "-z", "--", ".", .. exclusions], ct));
     }
     public async Task VerifyResultAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
         if (w.Results.LastOrDefault() is { } generation)
         {
-            if (generation.GitReference is null || await GitSourceResult.VerifyAsync(w.ProjectPath, generation.GitReference, ct) != generation.GitFingerprint ||
-                w.Snapshot?.Result?.Revision != generation.Revision)
+            if (w.Snapshot?.Result?.Revision != generation.Revision || generation.GitReference is not null &&
+                await GitSourceResult.VerifyAsync(w.ProjectPath, generation.GitReference, ct) != generation.GitFingerprint)
                 throw Error("GitOverlayResultMismatch", "The current independent generation or final closure differs.");
+            if (generation.GitReference is null) { using var basis = GitRetainedResultBasis.Open(w, control); basis.VerifyReadBoundary(); }
             return;
         }
         var result = w.Snapshot?.Result;
@@ -163,8 +171,11 @@ public sealed partial class GitWorkspaceProvider
         await VerifyResultAsync(w, control, ct);
         var receipt = await Receipt(w, control, ct, verify: false);
         if (w.Results.LastOrDefault() is { } generation)
-            await GitOverlayRegistration.ReleaseGenerationAsync(receipt, w.BaseRevision!, generation.GitReference!,
-                await Required(w.ProjectPath, ["rev-parse", generation.GitReference!], ct), ct);
+        {
+            string reference = generation.GitReference ?? GitRetainedResultBasis.Reference(w);
+            await GitOverlayRegistration.ReleaseGenerationAsync(receipt, w.BaseRevision!, reference,
+                await Required(w.ProjectPath, ["rev-parse", reference], ct), ct);
+        }
         else await GitOverlayRegistration.ReleaseAsync(receipt, w.ResultRevision!, ct);
     }
     private static string ReceiptPath(string control) => Path.Combine(control, "git-overlay.json");

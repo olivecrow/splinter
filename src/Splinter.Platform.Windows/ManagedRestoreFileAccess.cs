@@ -172,7 +172,7 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
     }
     // NtCreateFile returns the handle of the directory it exclusively created.
     // CreateDirectory followed by Open would leave an unowned replacement gap.
-    internal static SafeFileHandle CreateDirectory(string path, SafeFileHandle? fixedParent = null, Action? beforeCreate = null)
+    internal static SafeFileHandle CreateDirectory(string path, SafeFileHandle? fixedParent = null, Action? beforeCreate = null, bool allowChildMutations = false)
     {
         WorkspaceStore.EnsurePlainPath(path);
         string parentPath = Path.GetDirectoryName(Path.GetFullPath(path))!;
@@ -180,7 +180,7 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
         var parent = fixedParent ?? opened!;
         string parentIdentity = SnapshotInputChecks.FileIdentity(parent, directory: true); WindowsOwnedDirectoryLease.RequirePath(parent, parentPath);
         beforeCreate?.Invoke();
-        var handle = WindowsOriginalFilePublisher.CreateOwnedDirectory(parent, Path.GetFileName(path));
+        var handle = WindowsOriginalFilePublisher.CreateOwnedDirectory(parent, Path.GetFileName(path), allowChildMutations);
         try
         {
             if (SnapshotInputChecks.FileIdentity(parent, directory: true) != parentIdentity)
@@ -218,7 +218,7 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
     }
     private static SafeFileHandle OpenHandle(string path, uint access, bool directory = false, bool mutable = false, bool restoreErrors = true, uint? share = null)
     {
-        var handle = CreateFileW(path, access, share ?? (mutable ? 3u : 1u), 0, 3, 0x00200000u | (directory ? 0x02000000u : 0u), 0);
+        var handle = CreateFileW(NativePath(path), access, share ?? (mutable ? 3u : 1u), 0, 3, 0x00200000u | (directory ? 0x02000000u : 0u), 0);
         if (!handle.IsInvalid) return handle;
         int error = Marshal.GetLastWin32Error(); handle.Dispose();
         if (restoreErrors) throw Native(error);
@@ -234,6 +234,12 @@ internal sealed class ManagedRestoreFileAccess : IDisposable
             _ => new IOException(message, unchecked((int)(0x80070000u | (uint)error)))
         };
         throw failure;
+    }
+    private static string NativePath(string path)
+    {
+        string absolute = Path.GetFullPath(path);
+        if (absolute.StartsWith(@"\\?\", StringComparison.Ordinal)) return absolute;
+        return absolute.StartsWith(@"\\", StringComparison.Ordinal) ? @"\\?\UNC\" + absolute[2..] : @"\\?\" + absolute;
     }
     private static void Check(bool success) { if (!success) throw Native(Marshal.GetLastWin32Error()); }
     private static WorkspaceException Native(int error) => new("GeneratedRestoreConflict", "Cannot pin or mutate the owned restore file: " + new Win32Exception(error).Message, new { nativeError = error });

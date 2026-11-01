@@ -314,7 +314,7 @@ public sealed class ContractAndCliTests
     {
         var basis = new SnapshotOverlayTests.FakeSnapshotTree().Snapshot with { Provider = "git-objects", Consistency = "recorded-project-commit-raw-blobs" };
         var request = JsonSerializer.SerializeToNode(new Splinter.Platform.Windows.OverlayServeRequest(
-            new(2, "workspace", basis, 1048576, 1048576), "delta", "mount", "control", new string('a', 64),
+            new(3, "workspace", basis, 1048576, 1048576), "delta", "mount", "control", new string('a', 64),
             new(basis.Id, basis.RootPath, "verified"), "receipt", "owner"), ApiJson.Options)!;
         if (variant == "no-owner") request.AsObject().Remove("snapshotOwnerId");
         if (variant == "no-directory") request.AsObject().Remove("snapshotReceiptDirectory");
@@ -394,7 +394,7 @@ public sealed class ContractAndCliTests
         {
             workspace = new { version = WorkspaceRecord.CurrentVersion, sourceKind = "git", applicationKind = "unity", id = "aaaaaaaaaaaaaaaaaaaaaaaa", requestKey = "task", projectPath = "C:/project", path = "C:/work",
                 sourceReference = "task", baseReference = "development", phase = "creating", createdAt = DateTimeOffset.UtcNow,
-                updatedAt = DateTimeOffset.UtcNow, storageMode = "git-snapshot", requestDigest = "aaaaaaaaaaaaaaaaaaaaaaaa", results = Array.Empty<object>(), originalApplies = Array.Empty<object>(),
+                updatedAt = DateTimeOffset.UtcNow, storageMode = "git-snapshot", requestDigest = "aaaaaaaaaaaaaaaaaaaaaaaa", resultCount = 0, originalApplyCount = 0, resultHistory = new WorkspaceHistoryReference(1, 0, null), originalApplyHistory = new WorkspaceHistoryReference(1, 0, null),
                 snapshot = new SnapshotWorkspaceState { Observation = new(available, false, false, false, null, null, null,
                     FailureCode: "OverlayStartUncertain", SnapshotStorage: new SnapshotObservation("snapshot", available, null, null, null)
                     { ReadAccess = available == true ? new("snapshot", "verified-read-root", "verification-id") : null }) } },
@@ -539,9 +539,9 @@ public sealed class ContractAndCliTests
     [InlineData("git-snapshot", 4095, false)]
     [InlineData("git-snapshot", 1099511627777, false)]
     [InlineData("git-checkout", 4096, false)]
-    public void JournalBudgetBelongsOnlyToSnapshotRequests(string storage, long maxJournalBytes, bool valid)
+    public void JournalBudgetIsRefusedByTheCurrentRequest(string storage, long maxJournalBytes, bool _)
     {
-        Assert.Equal(valid, contracts.Validate("urn:splinter:v1:workspace-development-ensure-request",
+        Assert.False(contracts.Validate("urn:splinter:v1:workspace-development-ensure-request",
             JsonSerializer.SerializeToElement(new { project = "C:/project", key = "task", storage, maxJournalBytes })).IsValid);
     }
 
@@ -634,11 +634,11 @@ public sealed class ContractAndCliTests
             {"schemaVersion":"1.0","requestId":"00000000000000000000000000000000",
              "command":"workspace.compact","status":"Succeeded","terminal":true,
              "retryDisposition":"not-needed","nextActions":[],
-             "data":{"workspace":{"version":3,"sourceKind":"git","applicationKind":"unity","id":"000000000000000000000000","requestKey":"test","results":[],"originalApplies":[],
+             "data":{"workspace":{"version":4,"sourceKind":"git","applicationKind":"unity","id":"000000000000000000000000","requestKey":"test","resultCount":0,"originalApplyCount":0,"resultHistory":{"version":1,"count":0,"root":null},"originalApplyHistory":{"version":1,"count":0,"root":null},
                  "projectPath":"P:","path":"W:","sourceReference":"development",
                  "baseReference":"development","phase":"ready","createdAt":"2026-09-26T00:00:00Z",
                  "updatedAt":"2026-09-26T00:00:00Z","storageMode":"git-snapshot","requestDigest":"test",
-                 "snapshot":{"maxJournalBytes":4096,"attached":false,"step":"ready",
+                 "snapshot":{"attached":false,"step":"ready",
                      "compaction":{"attemptId":"test","startedAt":"2026-09-26T00:00:00Z",
                          "before":{"durableSequence":1,"journalBytes":4096,"journalHash":"before"},
                          "after":{"durableSequence":1,"journalBytes":2048,"journalHash":"after"},

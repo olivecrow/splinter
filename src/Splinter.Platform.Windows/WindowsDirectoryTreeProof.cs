@@ -12,7 +12,7 @@ internal sealed class WindowsDirectoryTreeProof : IDisposable
     private readonly string root;
     private readonly SafeFileHandle rootHandle;
     private readonly bool metadataWrite;
-    private readonly Dictionary<string, SafeFileHandle> directories = new(StringComparer.OrdinalIgnoreCase);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SafeFileHandle> directories = new(StringComparer.OrdinalIgnoreCase);
     private bool disposed;
 
     internal WindowsDirectoryTreeProof(string root, SafeFileHandle rootHandle, bool metadataWrite = true)
@@ -20,7 +20,7 @@ internal sealed class WindowsDirectoryTreeProof : IDisposable
         this.root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)); this.rootHandle = rootHandle; this.metadataWrite = metadataWrite;
         _ = SnapshotInputChecks.FileIdentity(rootHandle, directory: true);
         WindowsOwnedDirectoryLease.RequirePath(rootHandle, this.root);
-        directories.Add(this.root, rootHandle);
+        if (!directories.TryAdd(this.root, rootHandle)) throw new InvalidOperationException();
     }
 
     internal string Resolve(string relative)
@@ -36,7 +36,7 @@ internal sealed class WindowsDirectoryTreeProof : IDisposable
         string path = Resolve(relative);
         if (directories.TryGetValue(path, out var existing)) return existing;
         var handle = ManagedRestoreFileAccess.DirectoryHandle(path, moving: moving, proof: this, metadataWrite: metadataWrite);
-        try { directories.Add(path, handle); return handle; }
+        try { if (directories.TryAdd(path, handle)) return handle; handle.Dispose(); return directories[path]; }
         catch { handle.Dispose(); throw; }
     }
 
@@ -55,7 +55,7 @@ internal sealed class WindowsDirectoryTreeProof : IDisposable
     {
         if (disposed) return;
         disposed = true;
-        foreach (var handle in directories.Values.Reverse()) if (!ReferenceEquals(handle, rootHandle)) handle.Dispose();
+        foreach (var handle in directories.Values) if (!ReferenceEquals(handle, rootHandle)) handle.Dispose();
         directories.Clear();
     }
 }

@@ -36,7 +36,16 @@ public sealed class WindowsWorkspaceDiscardProvider(ISourceDiscardProvider sourc
         if (File.Exists(identityPath))
         {
             WorkspaceStore.EnsurePlainPath(identityPath);
-            var identity = ProductState.Read<OverlayIdentity>(identityPath, journal: true);
+            OverlayIdentity? identity;
+            try
+            {
+                using var input = new FileStream(identityPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                if (input.Length > 8L * 6 * 32767 + 65536) throw new JsonException("The fixed identity paths exceed filesystem-derived control bounds.");
+                using var document = JsonDocument.Parse(input);
+                if (!JsonPropertyValidation.HasUniqueProperties(document.RootElement)) throw new JsonException("Duplicate identity property.");
+                identity = document.RootElement.Deserialize<OverlayIdentity>(new JsonSerializerOptions(ProductState.Json) { PropertyNamingPolicy = null });
+            }
+            catch (JsonException) { throw new WorkspaceException("ViewReceiptInvalid", "Preserve the damaged delta identity."); }
             var expected = NtfsSnapshotWorkspaceBackend.Identity(w);
             if (JsonSerializer.Serialize(identity) != JsonSerializer.Serialize(expected))
                 throw new WorkspaceException("OverlayIdentityMismatch", "The delta identity changed; preserve its files.");

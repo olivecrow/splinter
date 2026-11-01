@@ -151,7 +151,7 @@ public sealed class ManagedDirectoryRestoreOptimizationTests
             for (int i = 0; i < count; i++) File.WriteAllBytes(Path.Combine(basis, "dir", $"f{i:D4}"), Bytes(i));
             if ((rename || unchangedDirectory) && count > 0) File.SetAttributes(Path.Combine(basis, "dir", "f0000"), FileAttributes.ReadOnly);
             var snapshot = new SnapshotReference("012345678901234567890123", OwnedDirectorySnapshotTree.ProviderName, basis, basis, DateTimeOffset.UnixEpoch, true, true, "stopped-original-owned-directory");
-            var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, snapshot.Id); var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+            var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, snapshot.Id, Path.Combine(root, OwnedDirectoryManifest.MetadataDirectoryName)); var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
             File.WriteAllText(Path.Combine(root, "manifest.json"), JsonSerializer.Serialize(manifest, json));
             string hash = ManagedDirectoryBasis.HashFile(Path.Combine(root, "manifest.json"));
             File.WriteAllText(Path.Combine(root, "proof.json"), JsonSerializer.Serialize(new OwnedDirectoryProof(1, snapshot, snapshot.Id, hash, manifest.Items.Sum(i => i.Entry.Length)), json));

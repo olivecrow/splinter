@@ -73,25 +73,32 @@ public sealed class UnityProjectPolicy(IOriginalEditorIdentityVerifier? liveEdit
     }
     public ApplicationSelection CloseSelection(IEnumerable<string> paths, Func<string, bool> existedBefore, Func<string, bool> existsAfter)
     {
-        var included = paths.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (string path in included.ToArray())
-            for (string? parent = Parent(path); parent is not null; parent = Parent(parent))
-                if (parent.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)) included.Add(parent);
-        var companions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string path in included.ToArray())
+        IEnumerable<string> Expanded()
         {
-            if (!path.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)) continue;
-            string asset = path.EndsWith(".meta", StringComparison.OrdinalIgnoreCase) ? path[..^5] : path;
-            if (existsAfter(asset) != existsAfter(asset + ".meta"))
-                throw new WorkspaceException("OriginalApplyMetadataMissing", "Preserve an incomplete result asset/metadata pair: " + asset);
-            foreach (string pair in new[] { asset, asset + ".meta" })
+            foreach (string path in paths)
             {
-                if (!existedBefore(pair) && !existsAfter(pair))
-                    throw new WorkspaceException("OriginalApplyMetadataMissing", "Preserve the missing Unity asset/metadata companion: " + pair);
-                included.Add(pair); companions.Add(pair);
+                yield return path;
+                for (string? parent = Parent(path); parent is not null; parent = Parent(parent))
+                    if (parent.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)) yield return parent;
             }
         }
-        return new(included.Order(StringComparer.Ordinal).ToArray(), companions.Order(StringComparer.Ordinal).ToArray());
+        IEnumerable<string> Companions()
+        {
+            foreach (string path in Expanded())
+            {
+                if (!path.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)) continue;
+                string asset = path.EndsWith(".meta", StringComparison.OrdinalIgnoreCase) ? path[..^5] : path;
+                if (existsAfter(asset) != existsAfter(asset + ".meta"))
+                    throw new WorkspaceException("OriginalApplyMetadataMissing", "Preserve an incomplete result asset/metadata pair: " + asset);
+                foreach (string pair in new[] { asset, asset + ".meta" })
+                {
+                    if (!existedBefore(pair) && !existsAfter(pair))
+                        throw new WorkspaceException("OriginalApplyMetadataMissing", "Preserve the missing Unity asset/metadata companion: " + pair);
+                    yield return pair;
+                }
+            }
+        }
+        return new(Expanded().Concat(Companions()), Companions());
     }
     private static string? Parent(string path) => path.LastIndexOf('/') is var slash && slash >= 0 ? path[..slash] : null;
 }

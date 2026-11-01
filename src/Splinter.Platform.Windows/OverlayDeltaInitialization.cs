@@ -24,11 +24,12 @@ internal static class OverlayDeltaInitialization
         if (request.Identity.Graft is { } admitted)
             _ = new GraftedSnapshotTree(source, generated!, admitted);
         var tree = new InitializationRoot(request.Identity, source, generated);
+        using var capturedContent = CapturedResultReaders.Open(request.Identity, request.DeltaPath);
         using var delta = observer is null
             ? new JournalDeltaStore(request.DeltaPath, request.Identity, tree,
-                boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes)
+                boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes, sourceFilePins: new WindowsJournalFilePins(), capturedContentReader: capturedContent)
             : new JournalDeltaStore(request.DeltaPath, request.Identity, tree, observer,
-                boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes);
+                boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes, sourceFilePins: new WindowsJournalFilePins(), capturedContentReader: capturedContent);
     }
 
     private sealed class InitializationRoot(OverlayIdentity identity, RootProof source, RootProof? generated) : ISnapshotTree
@@ -71,15 +72,15 @@ internal static class OverlayDeltaInitialization
                     if (observation.Available != true || observation.ReadAccess != access)
                         throw new WorkspaceException("SnapshotIdentityMismatch", "Initialization requires the exact owned manifest/read proof.");
                     var manifest = provider.Read(snapshot);
-                    if (manifest.Version != 1 || !snapshot.Persistent || !snapshot.Differential ||
-                        snapshot.Consistency != "stopped-original-owned-directory" || manifest.Items.Length > JournalDeltaStore.MaxIndexedNodes ||
+                    if (manifest.Version != 2 || !snapshot.Persistent || !snapshot.Differential ||
+                        snapshot.Consistency != "stopped-original-owned-directory" ||
                         manifest.Items.Count(item => item.Entry.Path.Length == 0) != 1)
                         throw new WorkspaceException("GeneratedBasisCorrupt", "Initialization requires a supported manifest with one root.");
                     result.Root = manifest.Items.Single(item => item.Entry.Path.Length == 0).Entry;
                     if (!result.Root.Directory || result.Root.Length != 0 || (result.Root.Attributes & 16) == 0)
                         throw new WorkspaceException("GeneratedBasisCorrupt", "The fixed manifest root must be a directory.");
                     SnapshotInputChecks.RejectUnsupportedAttributes(result.Root.Attributes);
-                    var items = manifest.Items.ToDictionary(item => item.Entry.Path, StringComparer.OrdinalIgnoreCase);
+                    var items = manifest.OpenIndex(StringComparer.OrdinalIgnoreCase); result.resources.Add(items);
                     result.stat = path => items.GetValueOrDefault(JournalDeltaStore.Normalize(path))?.Entry;
                     var pin = new WindowsOwnedDirectoryLease(snapshot.RootPath);
                     result.resources.Add(pin);

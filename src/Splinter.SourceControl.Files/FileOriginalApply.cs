@@ -1,4 +1,5 @@
 using Splinter.Core;
+using Splinter.Runtime;
 using Splinter.SourceControl.Git;
 
 namespace Splinter.SourceControl.Files;
@@ -14,19 +15,29 @@ public sealed partial class FileWorkspaceProvider
             throw new WorkspaceException("SourceIntegrationUnsupported", "Conditional original-apply requires the publisher and the qualified editorless application mode.");
         return originalPublisher;
     }
-    private static OriginalFileVersion VersionOf(FileSourceEntry e) => new(e.Kind, e.Length, e.Hash, e.Attributes, e.LastWriteUtcTicks);
-    private static string[]? Selection(WorkspaceRecord w, string[]? paths)
+    private static OriginalFileVersion VersionOf(FileSourceEntry e) => new(e.Kind, e.Length, e.Hash, e.Attributes, e.LastWriteUtcTicks, e.UnixMode);
+    private SelectionScope? Selection(WorkspaceRecord w, string[]? paths)
     {
         if (paths is null) return null;
-        var selected = paths.Order(StringComparer.Ordinal).ToArray();
-        if (!OriginalApplyState.ValidSelection(selected) || selected.Any(p => !ValidPath(p) || w.ManagedPaths.Any(m =>
-            Managed(p, [m]))))
+        if (paths.Length == 0 || paths.Any(p => !OriginalApplyState.ValidSelectionPath(p) || !ValidPath(p) || Managed(p, w.ManagedPaths)))
             throw new WorkspaceException("OriginalApplyRequestInvalid", "Select explicit distinct relative source paths, excluding managed and VCS data.");
-        return selected;
+        var work = new FileApplyIndex(FilePath(Control(w), "selection-work"));
+        try { return new(work, work.BuildPaths(paths)); }
+        catch (WorkspaceException error) when (error.Code is "MetadataStoreInvalid" or "PathIndexInvalid")
+        { work.Dispose(); throw new WorkspaceException("OriginalApplyRequestInvalid", "Select distinct supported relative paths; preserve failed selection artifacts."); }
+        catch { work.Dispose(); throw; }
     }
-    private static void RequireSelection(OriginalApplyPlan plan, string[]? paths)
+    private sealed class SelectionScope(FileApplyIndex work, MetadataTreeRoot root) : IDisposable
     {
-        if (!(plan.SelectedPaths ?? []).SequenceEqual(paths ?? [], StringComparer.Ordinal))
+        public long Count => root.Count;
+        public IEnumerable<string> Paths => work.Paths(root);
+        public bool Contains(string path) => work.Contains(root, path);
+        public bool ContainsExact(string path) => work.ContainsExactPath(root, path);
+        public void Dispose() => work.Dispose();
+    }
+    private static void RequireSelection(OriginalApplyPlan plan, SelectionScope? paths)
+    {
+        if (paths is not null && (plan.SelectionCount != paths.Count || plan.EnumerateSelection().Any(path => !paths.ContainsExact(path))))
             throw new WorkspaceException("OriginalApplyRequestConflict", "Resume the same fixed full or selected original-apply scope.");
     }
     public Task<OriginalApplyPlan> PlanOriginalAsync(WorkspaceRecord w, CancellationToken ct = default, string[]? paths = null)
@@ -37,120 +48,138 @@ public sealed partial class FileWorkspaceProvider
         using var projectLease = w.StorageMode == "project-snapshot" && !projectLeaseHeld ? projectAccess!.Acquire(w, true, ct) : null;
         VerifyOriginalGeneration(w, ct);
         using var applicationLease = w.SourceKind == "git" ? (applicationPolicies ?? ApplicationProjectPolicies.None).Get(w.ApplicationKind).AcquireOriginal(w) : null;
-        var selected = Selection(w, paths);
+        using var selected = Selection(w, paths);
         if (w.OriginalApply is { } existing && (w.Results.Count == 0 || !existing.Completed))
         { existing.RequireMatch(w); RequireSelection(existing.Plan, selected); return Task.FromResult(existing.Plan); }
         // Admission checks are still explicit; unrelated original content is
         // not required to equal the snapshot or a repository-wide clean tree.
-        if (w.SourceKind == "none") PreflightAsync(w, ct).GetAwaiter().GetResult();
-        var baseline = ReadManifest(w, FilePath(Control(w), w.Results.Count == 0 ? "baseline.json" : "generation-basis.json"));
-        var result = w.Results.Count == 0 ? ReadManifest(w, FilePath(Control(w), "result.json")) : GenerationManifest(w);
-        var before = baseline.Entries.ToDictionary(e => e.Path, StringComparer.OrdinalIgnoreCase);
-        foreach (var applied in w.OriginalApplies)
+        if (w.SourceKind == "none") PreflightOriginalRoot(w);
+        using var baseline = ReadManifest(w, FilePath(Control(w), w.Results.Count == 0 ? "baseline.json" : "generation-basis.json"));
+        using var result = w.Results.Count == 0 ? ReadManifest(w, FilePath(Control(w), "result.json")) : GenerationManifest(w);
+        using var work = new FileApplyIndex(FilePath(Control(w), "plan-work"));
+        var before = work.Build(baseline.EnumerateEntries(), ct);
+        foreach (var applied in EnumerateAppliedPaths(Control(w), w.AppliedPaths, w.AppliedPathNames))
+            before = applied.Version is null ? work.Remove(before, applied.Path) : work.Set(before,
+                new(applied.Path, applied.Version.Kind, applied.Version.Length, applied.Version.Hash, applied.Version.ModifiedUtcTicks, applied.Version.Attributes, applied.Version.UnixMode));
+        var after = work.Build(result.EnumerateEntries(), ct);
+        var found = work.Empty;
+        IEnumerable<string> DirectChanges()
         {
-            applied.RequireMatch(w);
-            if (!applied.Completed) throw new WorkspaceException("OriginalApplyPending", "Preserve an incomplete publication history.");
-            foreach (var change in applied.Plan.Changes)
-                if (change.After is { } afterVersion)
-                    before[change.Path] = new(change.Path, afterVersion.Kind, afterVersion.Length, afterVersion.Hash, afterVersion.ModifiedUtcTicks, afterVersion.Attributes);
-                else before.Remove(change.Path);
+        foreach (var (b, a) in work.Compare(before, after))
+        {
+            ct.ThrowIfCancellationRequested(); var entry = a ?? b!;
+            bool matches = selected is null;
+            if (selected is not null)
+                for (string? ancestor = entry.Path; ancestor is not null; ancestor = Parent(ancestor))
+                    if (selected.Contains(ancestor)) { found = work.AddPath(found, ancestor); matches = true; }
+            if (matches && (b is null || a is null || !VersionOf(b).SameContent(VersionOf(a)) || b.Attributes != a.Attributes || b.UnixMode != a.UnixMode || b.Path != a.Path))
+                yield return a?.Path ?? b!.Path;
         }
-        var after = result.Entries.ToDictionary(e => e.Path, StringComparer.OrdinalIgnoreCase);
-        var included = IncludedChanges(before, after, selected);
-        // Structural parents are shared; source companions are supplied by
-        // the exact application policy and pinned in the reviewed write set.
-        foreach (string path in included.ToArray())
-        {
+        }
+        var included = work.BuildImportedPaths(DirectChanges(), ct);
+        if (selected is not null && found.Count != selected.Count)
+            throw new WorkspaceException("OriginalApplyRequestInvalid", "A selected source path is absent from both basis and result.");
+        var direct = included;
+        foreach (string path in work.Paths(direct))
             for (string? parent = Parent(path); parent is not null; parent = Parent(parent))
-                if (!before.ContainsKey(parent) && after.ContainsKey(parent)) included.Add(parent);
-        }
+                if (!work.Contains(before, parent) && work.Find(after, parent) is { } structural) included = work.AddPath(included, structural.Path);
         var closure = (applicationPolicies ?? ApplicationProjectPolicies.None).Get(w.ApplicationKind)
-            .CloseSelection(included, before.ContainsKey, after.ContainsKey);
-        if (closure.Paths.Any(p => !ValidPath(p) || Managed(p, w.ManagedPaths)) ||
-            closure.Companions.Any(p => !closure.Paths.Contains(p, StringComparer.OrdinalIgnoreCase)) ||
-            included.Any(p => !closure.Paths.Contains(p, StringComparer.OrdinalIgnoreCase)))
-            throw new WorkspaceException("ApplicationSelectionInvalid", "The application policy must retain the requested source paths and exclude managed data.");
-        included = closure.Paths.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var companions = closure.Companions.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        using var sourceLease = AcquireOriginalSource(w, included.Order(StringComparer.Ordinal).ToArray(), ct);
+            .CloseSelection(work.Paths(included), path => work.Contains(before, path), path => work.Contains(after, path));
+        IEnumerable<string> CheckedClosure()
+        {
+            foreach (var path in closure.Paths)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (!ValidPath(path) || Managed(path, w.ManagedPaths)) throw new WorkspaceException("ApplicationSelectionInvalid", "Application selection includes managed data.");
+                yield return path;
+            }
+        }
+        var closed = work.BuildPaths(CheckedClosure(), ct, coalesce: true);
+        IEnumerable<string> CheckedCompanions()
+        {
+            foreach (var path in closure.Companions)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (!work.Contains(closed, path)) throw new WorkspaceException("ApplicationSelectionInvalid", "A companion is absent from the fixed source selection.");
+                yield return path;
+            }
+        }
+        var companions = work.BuildPaths(CheckedCompanions(), ct, coalesce: true);
+        if (work.Paths(included).Any(path => !work.Contains(closed, path))) throw new WorkspaceException("ApplicationSelectionInvalid", "The application selection dropped a source path.");
+        included = closed;
+        using var sourceLease = AcquireOriginalSource(w, work.Paths(included), ct);
         var originalEntries = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true, mount: w.StorageMode == "project-snapshot" ? w.ProjectPath : null,
             omitPlasticRoot: w.SourceKind == "plastic", omitGitRoot: w.SourceKind == "git");
-        var originalNames = originalEntries.ToDictionary(e => e.Path, StringComparer.OrdinalIgnoreCase);
-        var retainedParents = RetainedParents(originalEntries, before, after, included);
-        var changes = new List<OriginalApplyChange>(); var conflicts = new List<string>();
+        IEnumerable<FileSourceEntry> CheckedOriginalEntries()
+        {
+            foreach (var entry in originalEntries)
+            {
+                if (w.SourceKind == "none") RequireNoApplyResources(entry);
+                yield return entry;
+            }
+        }
+        var originalNames = work.Build(CheckedOriginalEntries(), ct); var retainedParents = work.Empty;
+        foreach (var entry in work.Entries(originalNames))
+            if (work.Contains(after, entry.Path) || !work.Contains(before, entry.Path) || !work.Contains(included, entry.Path))
+                for (string? parent = Parent(entry.Path); parent is not null; parent = Parent(parent))
+                    if (work.Contains(retainedParents, parent)) break; else retainedParents = work.AddPath(retainedParents, parent);
+        var conflicts = work.Empty;
+        void Conflict(string message) => conflicts = work.AddText(conflicts, message);
         string rootIdentity = publisher.RootIdentity(w.ProjectPath);
-        foreach (string path in included.Order(StringComparer.Ordinal))
+        IEnumerable<OriginalApplyChange> Changes()
+        {
+        foreach (string path in work.Paths(included))
         {
             ct.ThrowIfCancellationRequested();
-            before.TryGetValue(path, out var b); after.TryGetValue(path, out var a);
+            var b = work.Find(before, path); var a = work.Find(after, path);
             if (b is not null && a is not null && b.Path != a.Path)
-            { conflicts.Add(path + ": case-only rename is unsupported"); continue; }
+            { Conflict(path + ": case-only rename is unsupported"); continue; }
             var bv = b is null ? null : VersionOf(b); var av = a is null ? null : VersionOf(a);
+            // NTFS indexing policy belongs to the target path. Atomic saves
+            // can drop this bit in a workspace; it is not a source permission
+            // change. Preserve every other source metadata comparison below.
+            const int indexing = (int)FileAttributes.NotContentIndexed;
+            if (bv is not null && av is not null)
+                av = av with { Attributes = (av.Attributes & ~indexing) | (bv.Attributes & indexing) };
+            if (b is not null && a is not null && b.UnixMode != a.UnixMode || b is null && a?.UnixMode is not (null or 0x1A4))
+            { Conflict(path + ": original file publication does not apply Git/Unix mode changes"); continue; }
             if (bv?.SameContent(av) == true)
             {
-                if (bv.RelevantAttributes != av!.RelevantAttributes) conflicts.Add(path + ": metadata-only change is unsupported");
-                if (!companions.Contains(path)) continue;
+                if (bv.RelevantAttributes != av!.RelevantAttributes) Conflict(path + ": metadata-only change is unsupported");
+                if (!work.Contains(companions, path)) continue;
             }
             if (bv is not null && av is not null && bv.Kind != av.Kind ||
                 bv is not null && av is not null && bv.RelevantAttributes != av.RelevantAttributes ||
                 (av?.Attributes & 1) == 1 || (bv?.Attributes & 1) == 1 || path.Split('/').Any(p => p.StartsWith(".splinter-apply-", StringComparison.OrdinalIgnoreCase)))
-            { conflicts.Add(path + ": unsupported type or metadata change"); continue; }
+            { Conflict(path + ": unsupported type or metadata change"); continue; }
             var observed = publisher.Observe(w.ProjectPath, path, ct);
-            // Recorded revisions synthesize archive/directory attributes and
-            // do not encode NTFS indexing policy. Preserve that original bit
-            // in both conditional versions; all other metadata guards remain.
-            if (w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot" && observed is not null)
+            // Bind both versions to the observed target policy, including an
+            // explicit clear. Expected identity/attributes remain exact in the
+            // fixed digest and conditional publisher guard.
+            if (observed is not null)
             {
-                int indexed = observed.Version.Attributes & (int)FileAttributes.NotContentIndexed;
-                if (bv is not null) bv = bv with { Attributes = bv.Attributes | indexed };
-                if (av is not null) av = av with { Attributes = av.Attributes | indexed };
+                int indexed = observed.Version.Attributes & indexing;
+                if (bv is not null) bv = bv with { Attributes = (bv.Attributes & ~indexing) | indexed };
+                if (av is not null) av = av with { Attributes = (av.Attributes & ~indexing) | indexed };
             }
-            if (originalNames.TryGetValue(path, out var named) && named.Path != path)
-                conflicts.Add(path + ": original path casing changed");
+            if (work.Find(originalNames, path) is { } named && named.Path != path)
+                Conflict(path + ": original path casing changed");
             bool sameBasis = bv is null ? observed is null : bv.SameContent(observed?.Version) && bv.RelevantAttributes == observed!.Version.RelevantAttributes;
             bool sameResult = av is null ? observed is null : av.SameContent(observed?.Version) && av.RelevantAttributes == observed!.Version.RelevantAttributes;
-            if (!sameBasis && !sameResult) conflicts.Add(path + ": original and result diverged");
-            if (bv?.Kind == "directory" && av is null && retainedParents.Contains(path))
-                conflicts.Add(path + ": directory contains retained or foreign children");
-            changes.Add(new(path, bv, av, observed, sameResult));
+            if (!sameBasis && !sameResult) Conflict(path + ": original and result diverged");
+            if (bv?.Kind == "directory" && av is null && work.Contains(retainedParents, path))
+                Conflict(path + ": directory contains retained or foreign children");
+            yield return new(path, bv, av, observed, sameResult);
         }
-        var ordered = changes.OrderBy(c => c.After?.Kind == "directory" ? 0 : c.Before?.Kind == "directory" ? 2 : 1)
-            .ThenBy(c => c.Before?.Kind == "directory" && c.After is null ? -c.Path.Count(x => x == '/') : c.Path.Count(x => x == '/'))
-            .ThenBy(c => c.Path, StringComparer.Ordinal).ToArray();
-        var plan = new OriginalApplyPlan(w.Results.Count == 0 ? 1 : 2, w.Id, w.RequestDigest!, w.BaseRevision!, w.ResultRevision!, w.ProjectPath,
-            rootIdentity, ordered, conflicts.Distinct().ToArray(), "") { SourceIdentity = sourceLease?.Identity, SelectedPaths = selected,
+        }
+        var template = new OriginalApplyPlan(3, w.Id, w.RequestDigest!, w.BaseRevision!, w.ResultRevision!, w.ProjectPath,
+            rootIdentity, [], [], "") { SourceIdentity = sourceLease?.Identity,
                 ResultId = w.Results.LastOrDefault()?.Id, PreviousApplyDigest = w.OriginalApplies.LastOrDefault()?.Plan.Digest,
                 LiveOriginalIdentity = w.LiveOriginal?.Identity };
-        return Task.FromResult(plan with { Digest = plan.ComputeDigest() });
-    }
-    private static HashSet<string> IncludedChanges(Dictionary<string, FileSourceEntry> before,
-        Dictionary<string, FileSourceEntry> after, string[]? selected)
-    {
-        var selection = selected?.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var included = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string path in before.Keys.Union(after.Keys, StringComparer.OrdinalIgnoreCase))
-        {
-            bool matches = selection is null;
-            if (selection is not null)
-                for (string? ancestor = path; ancestor is not null; ancestor = Parent(ancestor))
-                    if (selection.Contains(ancestor)) { found.Add(ancestor); matches = true; }
-            if (matches && (!before.TryGetValue(path, out var b) || !after.TryGetValue(path, out var a) ||
-                !VersionOf(b).SameContent(VersionOf(a)) || b.Attributes != a.Attributes || b.Path != a.Path)) included.Add(path);
-        }
-        if (selection is not null && found.Count != selection.Count)
-            throw new WorkspaceException("OriginalApplyRequestInvalid", "A selected source path is absent from both basis and result.");
-        return included;
-    }
-    private static HashSet<string> RetainedParents(IEnumerable<FileSourceEntry> original,
-        Dictionary<string, FileSourceEntry> before, Dictionary<string, FileSourceEntry> after, HashSet<string> included)
-    {
-        var parents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in original)
-            if (after.ContainsKey(entry.Path) || !before.ContainsKey(entry.Path) || !included.Contains(entry.Path))
-                for (string? parent = Parent(entry.Path); parent is not null; parent = Parent(parent))
-                    if (!parents.Add(parent)) break; // Its ancestors were already indexed.
-        return parents;
+        var plan = OriginalApplyPages.Create(template, OriginalApplyPages.OrderChanges(Changes(), Control(w), ct), Control(w), ct, contentPins, selected?.Paths);
+        plan = OriginalApplyPages.WithConflicts(plan, work.Texts(conflicts), Control(w), contentPins);
+        OriginalApplyPages.SavePlan(plan, Control(w));
+        return Task.FromResult(plan);
     }
     private static string? Parent(string path) => path.LastIndexOf('/') is var slash && slash >= 0 ? path[..slash] : null;
     public async Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord w, string intentKey, string expectedPlanDigest, CancellationToken ct = default, string[]? paths = null)
@@ -159,10 +188,10 @@ public sealed partial class FileWorkspaceProvider
         using var projectLease = w.StorageMode == "project-snapshot" ? projectAccess!.Acquire(w, true, ct) : null;
         VerifyOriginalGeneration(w, ct);
         using var applicationLease = w.SourceKind == "git" ? (applicationPolicies ?? ApplicationProjectPolicies.None).Get(w.ApplicationKind).AcquireOriginal(w, true) : null;
-        var selected = Selection(w, paths);
+        using var selected = Selection(w, paths);
         if (string.IsNullOrWhiteSpace(intentKey) || intentKey.Length > 128)
             throw new WorkspaceException("OriginalApplyRequestInvalid", "Supply the same explicit intent key and exact reviewed plan digest.");
-        var historic = w.OriginalApplies.SingleOrDefault(a => a.IntentKey == intentKey);
+        var historic = w.OriginalApplies.Find(intentKey, a => a.IntentKey);
         if (historic is not null)
         {
             historic.RequireMatch(w); RequireSelection(historic.Plan, selected);
@@ -179,33 +208,34 @@ public sealed partial class FileWorkspaceProvider
         }
         else
         {
-            var plan = await PlanOriginalCore(w, ct, selected, true);
+            var plan = await PlanOriginalCore(w, ct, paths, true);
             if (plan.Digest != expectedPlanDigest) throw new WorkspaceException("OriginalApplyPlanChanged", "The original changed after planning; review the latest plan before any write.");
-            if (plan.Conflicts.Length != 0) throw new WorkspaceException("OriginalApplyConflict", "The original has conflicts; no original writes were performed.", plan);
+            if (plan.ConflictCount != 0) throw new WorkspaceException("OriginalApplyConflict", "The original has conflicts; no original writes were performed.", plan);
             // Re-acquire below before saving intent: no original or durable
             // publication state is written if source/locks changed.
-            using var admission = AcquireOriginalSource(w, plan.Changes.Select(c => c.Path).ToArray(), ct, true);
+            using var admission = AcquireOriginalSource(w, plan.EnumerateChanges().Select(c => c.Path), ct, true);
             if (admission?.Identity != plan.SourceIdentity) throw new WorkspaceException("OriginalApplyPlanChanged", "The original VCS identity changed after planning.");
-            w.OriginalApply = new() { Plan = plan, IntentKey = intentKey, Steps = plan.Changes.Select(_ => new OriginalApplyStep()).ToArray() };
+            w.OriginalApply = OriginalApplyPages.Initialize(plan, intentKey, Control(w), contentPins);
             w.Phase = "integrating";
             store.Save(w, "original-apply-intent");
         }
         if (w.OriginalApply!.Plan.LiveOriginalIdentity != w.LiveOriginal?.Identity)
             throw new WorkspaceException("LiveOriginalPermitMismatch", "Resume publication with the same externally coordinated Editor identity.");
-        using var sourceLease = AcquireOriginalSource(w, w.OriginalApply.Plan.Changes.Select(c => c.Path).ToArray(), ct, true);
+        using var sourceLease = AcquireOriginalSource(w, w.OriginalApply.Plan.EnumerateChanges().Select(c => c.Path), ct, true);
         if (sourceLease?.Identity != w.OriginalApply.Plan.SourceIdentity) throw new WorkspaceException("OriginalApplyPlanChanged", "Preserve the fixed intent; original VCS identity changed.");
+        using var payloadManifest = w.Results.Count > 0 ? GenerationManifest(w) : ReadManifest(w, FilePath(Control(w), "result.json"));
+        using var payloadReader = w.SourceKind == "git" && w.Results.Last().GitReference is not null ? null : ContentReader(w, Control(w), payloadManifest.ContentFiles);
         publisher.Publish(w.OriginalApply, version =>
         {
-            if (w.SourceKind == "git")
+            if (w.SourceKind == "git" && w.Results.Last().GitReference is not null)
             {
-                var entry = GenerationManifest(w).Entries.FirstOrDefault(e => e.Kind == "file" && e.Hash == version.Hash && e.Length == version.Length)
-                    ?? throw Error("The original payload is absent from its immutable Git result.");
+                var entry = payloadManifest!.FindPayload(version.Hash!, version.Length);
                 return GitSourceResult.OpenPayload(w.ProjectPath, w.Results.Last().GitReference!, entry.Path);
             }
             string path = FilePath(Control(w), "objects/" + version.Hash);
             // The opened payload is independently hashed by the publisher before
             // publication; do not hydrate the workspace or consult the source basis.
-            return Open(path);
+            return (payloadReader?.Reader ?? Open)(path);
         }, () =>
         {
             if (w.LiveOriginal is not null)
@@ -216,10 +246,11 @@ public sealed partial class FileWorkspaceProvider
             // Completion and the applied baseline advance in the SAME durable
             // record as the final publication receipt; no crash window permits
             // a newer capture to forget a just-published path.
-            if (w.Results.Count > 0 && w.OriginalApply.Completed && !w.OriginalApplies.Any(a => a.IntentKey == w.OriginalApply.IntentKey))
-                w.OriginalApplies.Add(w.OriginalApply);
+            if (w.Results.Count > 0 && w.OriginalApply.Completed && w.OriginalApplies.Find(w.OriginalApply.IntentKey, a => a.IntentKey) is null)
+            { SaveAppliedPaths(w); w.OriginalApplies.Add(w.OriginalApply); }
             store.Save(w, "original-apply-progress");
         }, ct);
+        payloadReader?.VerifyBoundary();
         w.OriginalApply.RequireMatch(w);
         if (!w.OriginalApply.Completed) throw new WorkspaceException("OriginalApplyPending", "Publication did not complete; preserve its intent and payloads.");
         CompleteApplyHistory(w);
@@ -228,14 +259,14 @@ public sealed partial class FileWorkspaceProvider
     private void VerifyOriginalGeneration(WorkspaceRecord w, CancellationToken ct)
     {
         Owner(w, Control(w));
-        if (w.Results.Count == 0) VerifyIndependentResult(w, Control(w));
+        if (w.Results.Count == 0) { using var reader = ContentReader(w, Control(w)); VerifyIndependentResult(w, Control(w), w.ResultRevision, reader.Reader); }
         else VerifyGenerationAsync(w, Control(w), w.Results.Last(), ct).GetAwaiter().GetResult();
     }
-    private IOriginalSourceLease? AcquireOriginalSource(WorkspaceRecord w, string[] paths, CancellationToken ct, bool publishing = false) =>
+    private IOriginalSourceLease? AcquireOriginalSource(WorkspaceRecord w, IEnumerable<string> paths, CancellationToken ct, bool publishing = false) =>
         w.SourceKind switch { "plastic" => originalGuard!.Acquire(w, paths, ct, publishing), "git" => new GitOriginalPublicationGuard(w.ProjectPath, ct), _ => null };
     private void CompleteApplyHistory(WorkspaceRecord w)
     {
-        if (w.Results.Count == 0 || w.OriginalApply is not { Completed: true } current || w.OriginalApplies.Any(a => a.IntentKey == current.IntentKey)) return;
-        w.OriginalApplies.Add(current); store.Save(w, "original-generation-completed");
+        if (w.Results.Count == 0 || w.OriginalApply is not { Completed: true } current || w.OriginalApplies.Find(current.IntentKey, a => a.IntentKey) is not null) return;
+        SaveAppliedPaths(w); w.OriginalApplies.Add(current); store.Save(w, "original-generation-completed");
     }
 }

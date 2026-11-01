@@ -197,7 +197,9 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         {
             workspace = new { pending.Version, pending.SourceKind, pending.ApplicationKind, pending.Id, pending.RequestKey, pending.ProjectPath, pending.Path, pending.SourceReference,
                 pending.BaseReference, pending.Phase, pending.CreatedAt, pending.UpdatedAt, pending.StorageMode, pending.RequestDigest, pending.Snapshot, pending.Discard,
-                pending.Results, pending.OriginalApplies },
+                resultCount = pending.Results.Count, pending.ResultHistory,
+                originalApplyCount = pending.OriginalApplies.Count, pending.OriginalApplyHistory,
+                pending.AppliedPaths, pending.AppliedPathNames },
             controlPath = store.ControlPath(w.Id), nextCommand = "workspace.discard", isolation = "private", recovery = new WorkspaceView(pending, null, null, "control", "workspace.discard").Recovery
         });
         Assert.True(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(response, ApiJson.Options)).IsValid);

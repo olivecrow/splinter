@@ -37,7 +37,7 @@ public sealed partial class JournalDeltaStore
         int metadata = BinaryPrimitives.ReadInt32LittleEndian(header[4..]);
         var payload = new WorkspaceJournalPayload(BinaryPrimitives.ReadInt32LittleEndian(header[8..]),
             BinaryPrimitives.ReadInt32LittleEndian(header[12..]));
-        if (metadata is < 1 or > MaxMetadataBytes)
+        if (metadata < 1 || metadata > MutationMetadataBytes)
             throw new WorkspaceException("DeltaCorrupt", "Invalid journal metadata bound.");
         payload.RequireValid(Identity.MaxTransferBytes);
         return (metadata, payload);
@@ -66,8 +66,20 @@ public sealed partial class JournalDeltaStore
         catch { ClearPayloadCache(); throw; }
         finally { if (encoded is not null) ArrayPool<byte>.Shared.Return(encoded); }
     }
-    private void ReadExtent(Extent extent, int relative, Span<byte> output) =>
-        ReadPayload(extent.JournalOffset, extent.Payload, extent.BlockOffset + relative, output);
+    private void ReadExtent(Extent extent, int relative, Span<byte> output)
+    {
+        if (extent.Segment == -1 && extent.ContentHash is null) { ReadPayload(extent.JournalOffset, extent.Payload, extent.BlockOffset + relative, output); return; }
+        int offset = checked(extent.BlockOffset + relative); extent.Payload.RequireFragment(offset, output.Length);
+        if (!extent.Payload.Encoded) { ReadExtentBytes(extent, extent.JournalOffset + offset, output); return; }
+        byte[] data = ArrayPool<byte>.Shared.Rent(extent.Payload.StoredBytes);
+        try
+        {
+            ReadExtentBytes(extent, extent.JournalOffset, data.AsSpan(0, extent.Payload.StoredBytes));
+            lock (payloadCacheGate)
+                if (decodedPayloadCache.Read(payloadCodec, data.AsSpan(0, extent.Payload.StoredBytes), offset, output) != output.Length) throw PagedInvalid();
+        }
+        finally { ArrayPool<byte>.Shared.Return(data); }
+    }
 
     private byte[] ReadEncoded(long physical, WorkspaceJournalPayload payload)
     {
@@ -98,7 +110,7 @@ public sealed partial class JournalDeltaStore
     private void VisitExtent(Extent extent, BrotliWorkspacePayloadReader.DecodedChunkVisitor visit,
         ReadOnlySpan<byte> context = default)
     {
-        if (extent.Payload.Encoded)
+        if (extent.Payload.Encoded && extent.Segment == -1 && extent.ContentHash is null)
         {
             VisitPayload(extent.JournalOffset, extent.Payload, (at, chunk, input) =>
             {

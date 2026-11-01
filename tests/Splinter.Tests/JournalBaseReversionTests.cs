@@ -56,7 +56,7 @@ public sealed class JournalBaseReversionTests
         var tree = new TracedTree(basis);
         var identity = new OverlayIdentity(2, "ordered-return", tree.Snapshot, 16777216, 1048576);
         var expected = new Dictionary<string, DeltaEntry>(); var bytes = new Dictionary<string, byte[]>();
-        SourceChangeView changes;
+        SourceChangeTestHeader changes;
         using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             for (int pass = 0; pass < 3; pass++)
@@ -75,7 +75,7 @@ public sealed class JournalBaseReversionTests
                 expected[current] = store.Get(id); bytes[current] = (byte[])basis.Files[path].Clone();
                 for (int at = 12288; at < 16384; at++) bytes[current][at] ^= 0x55;
             }
-            changes = store.ObserveChanges([]);
+            using (var observedChangeHeader = store.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader);
         }
         tree.Reads.Clear();
         var receipt = JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: true);
@@ -83,8 +83,10 @@ public sealed class JournalBaseReversionTests
         Assert.Equal(new[] { ("a", 0L), ("a", 12288L), ("b", 0L), ("b", 12288L), ("c", 0L), ("c", 12288L) }, tree.Reads);
         using (var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
-            Assert.Equal(changes.Sequence, replay.ObserveChanges([]).Sequence);
-            Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);
+            using var observedChanges1 = replay.ObserveChanges([]);
+            Assert.Equal(changes.Sequence, observedChanges1.Sequence);
+            using var observedChanges2 = replay.ObserveChanges([]);
+            Assert.Equal(changes.Changes, observedChanges2.Changes);
             foreach (var (path, entry) in expected)
             {
                 Assert.Equal(entry, replay.Stat(path)); byte[] actual = new byte[16384];
@@ -102,14 +104,14 @@ public sealed class JournalBaseReversionTests
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         tree.Files["file"] = RandomNumberGenerator.GetBytes(16384);
         var identity = new OverlayIdentity(2, "base-return", tree.Snapshot, 16 * 1024 * 1024, 1048576);
-        DeltaEntry expected; SourceChangeView changes;
+        DeltaEntry expected; SourceChangeTestHeader changes;
         using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Stat("file")!.Id;
             for (int i = 0; i < 8; i++)
             { store.Write(id, 0, new byte[16384]); store.Write(id, 0, tree.Files["file"]); }
             store.Rename(id, "renamed", false); store.SetMetadata(id, 33, 100, 200, 300);
-            expected = store.Get(id); changes = store.ObserveChanges([]);
+            expected = store.Get(id); using (var observedChangeHeader = store.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader);
         }
         var receipt = JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: enabled);
         Assert.Equal(enabled, receipt.RevertBaseRanges);
@@ -118,8 +120,10 @@ public sealed class JournalBaseReversionTests
         {
             Assert.Equal(expected, replay.Stat("renamed")); Assert.Null(replay.Stat("file"));
             byte[] actual = new byte[16384]; replay.Read(expected.Id, 0, actual); Assert.Equal(tree.Files["file"], actual);
-            Assert.Equal(changes.Sequence, replay.ObserveChanges([]).Sequence);
-            Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);
+            using var observedChanges3 = replay.ObserveChanges([]);
+            Assert.Equal(changes.Sequence, observedChanges3.Sequence);
+            using var observedChanges4 = replay.ObserveChanges([]);
+            Assert.Equal(changes.Changes, observedChanges4.Changes);
             Assert.Equal(enabled ? 0 : 16384, replay.ObservePrivateUsage().LivePrivateBytes);
         }
         JournalDeltaStore.CompleteCompaction(root.Path, identity);
@@ -132,7 +136,7 @@ public sealed class JournalBaseReversionTests
         byte[] basis = RandomNumberGenerator.GetBytes(16384); tree.Files["file"] = basis; tree.Files["replace"] = basis;
         var identity = new OverlayIdentity(2, "mixed-return", tree.Snapshot, 16 * 1024 * 1024, 1048576);
         byte[] expected = (byte[])basis.Clone(); Array.Fill(expected, (byte)42, 4096, 4096);
-        DeltaEntry entry, replacement; SourceChangeView changes;
+        DeltaEntry entry, replacement; SourceChangeTestHeader changes;
         using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Stat("file")!.Id; store.Write(id, 0, new byte[16384]); store.Write(id, 0, expected);
@@ -140,7 +144,7 @@ public sealed class JournalBaseReversionTests
             store.Write(id, 12288, basis.AsSpan(12288)); basis.AsSpan(12288).CopyTo(expected.AsSpan(12288));
             store.Delete(store.Stat("replace")!.Id); replacement = store.Create("replace", false, 32);
             store.Write(replacement.Id, 0, basis); entry = store.Get(id); replacement = store.Get(replacement.Id);
-            changes = store.ObserveChanges([]);
+            using (var observedChangeHeader = store.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader);
         }
         var receipt = JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: true);
         Assert.True(receipt.RevertedPayloadBytes > 0);
@@ -149,7 +153,8 @@ public sealed class JournalBaseReversionTests
             Assert.Equal(entry, replay.Stat("file")); Assert.Equal(replacement, replay.Stat("replace"));
             byte[] actual = new byte[16384]; replay.Read(entry.Id, 0, actual); Assert.Equal(expected, actual);
             replay.Read(replacement.Id, 0, actual); Assert.Equal(basis, actual);
-            Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);
+            using var observedChanges5 = replay.ObserveChanges([]);
+            Assert.Equal(changes.Changes, observedChanges5.Changes);
         }
         JournalDeltaStore.CompleteCompaction(root.Path, identity);
     }

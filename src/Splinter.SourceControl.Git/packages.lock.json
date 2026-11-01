@@ -4,6 +4,12 @@
     "net10.0": {
       "splinter.core": {
         "type": "Project"
+      },
+      "splinter.runtime": {
+        "type": "Project",
+        "dependencies": {
+          "Splinter.Core": "[0.1.0-dev, )"
+        }
       }
     }
   }

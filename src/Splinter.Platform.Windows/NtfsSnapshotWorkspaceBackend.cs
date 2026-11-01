@@ -24,7 +24,7 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         WorkspaceSnapshotBasis.Provider(w.Snapshot!.Reference!, Path.Combine(control, "snapshot"), w.Id);
     private WinFspOverlayMountProvider MountProvider(string control, WorkspaceRecord? workspace = null) => new(RequestPath(control), runnerCache,
         workspace is null || preparationObserver is null ? null : boundary => preparationObserver.ReachedAsync(boundary, workspace, CancellationToken.None));
-    public static OverlayIdentity Identity(WorkspaceRecord w) => new(2, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024,
+    public static OverlayIdentity Identity(WorkspaceRecord w) => new(3, w.Id, w.Snapshot!.Reference!, SnapshotWorkspaceState.DefaultJournalBytes, 1024 * 1024,
         w.SourceKind is "none" or "plastic" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : [".git"],
         DeniedTopLevel: w.SourceKind == "plastic" || w.StorageMode == "project-snapshot" ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : null,
         Graft: w.StorageMode != "project-snapshot" && w.GeneratedDirectory is { } generated ? new(generated.RelativePath, generated) : null);
@@ -154,7 +154,7 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         if (storage is null) throw new WorkspaceException("DeltaChangedAfterCollection", "The journal flush receipt is missing.");
         var timer = Stopwatch.StartNew();
         var seal = JournalDeltaStore.SealJournal(journal, storage.DurableSequence, path => new WindowsJournalDirectoryGuard(path));
-        if (seal.JournalBytes != storage.JournalBytes) throw new WorkspaceException("DeltaChangedAfterCollection", "Journal bytes and flush receipt differ; preserve it.");
+        if (seal.JournalBytes != (storage.SealJournalBytes ?? storage.JournalBytes)) throw new WorkspaceException("DeltaChangedAfterCollection", "Accepted source bytes and flush receipt differ; preserve it.");
         await RecordRead(control, w, "seal", seal.JournalBytes, timer.Elapsed.TotalMilliseconds, ct);
         return seal;
     }
@@ -226,7 +226,7 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
     private static long? JournalAllocation(string path)
     {
         long bytes = 0;
-        foreach (string file in JournalDeltaStore.JournalStorageFiles(path))
+        foreach (string file in JournalDeltaStore.EnumerateJournalStorageFiles(path))
         {
             if (Allocation(file) is not { } allocation) return null;
             bytes = checked(bytes + allocation);
@@ -243,20 +243,20 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         string currentJournal = Path.Combine(delta, "delta.journal"), latestReceipt = Path.Combine(control, "latest-delta-reclaim.json"),
             boundedReceipt = Path.Combine(control, "bounded-delta-reclaim.bin");
         WindowsProcessWorkspaceProvider.CheckPath(delta);
-        bool latestIntent = File.Exists(latestReceipt), boundedIntent = BoundedJournalReclamation.HasIntent(boundedReceipt);
+        bool latestIntent = File.Exists(latestReceipt), boundedIntent = CurrentJournalReclamation.HasIntent(boundedReceipt);
         bool currentLatest = File.Exists(currentJournal) && LatestJournalReclamation.IsLatest(currentJournal);
-        bool currentBounded = File.Exists(currentJournal) && JournalDeltaStore.IsBoundedJournal(currentJournal);
+        bool currentBounded = File.Exists(currentJournal) && CurrentJournalReclamation.IsManagedJournal(currentJournal);
         if (latestIntent && (boundedIntent || currentBounded) || boundedIntent && currentLatest)
             throw new WorkspaceException("UnownedDeltaFiles", "Conflicting journal modes or reclamation inventories are preserved.");
         var intent = await WindowsProcessWorkspaceProvider.ReadAsync<SnapshotResult>(intentPath, ct);
         if (intent is null)
         {
             WindowsProcessWorkspaceProvider.CheckPath(currentJournal);
-            if (File.Exists(currentJournal) && (LatestJournalReclamation.IsLatest(currentJournal) || JournalDeltaStore.IsBoundedJournal(currentJournal)))
+            if (File.Exists(currentJournal) && (LatestJournalReclamation.IsLatest(currentJournal) || CurrentJournalReclamation.IsManagedJournal(currentJournal)))
             {
                 _ = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Preserve the delta without a request.");
                 if (observed.Storage is null || observed.Storage.DurableSequence != result.Seal.DurableSequence ||
-                    observed.Storage.JournalBytes != result.Seal.JournalBytes)
+                    (observed.Storage.SealJournalBytes ?? observed.Storage.JournalBytes) != result.Seal.JournalBytes)
                     throw new WorkspaceException("DeltaChangedAfterCollection", "Journal bytes or sequence differ from the stopped writer receipt.");
                 // The intent fixes the expected result, not deletion authority.
                 // ReclaimDirectory verifies the full seal and durable inventory
@@ -269,10 +269,10 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         else if (intent != result) throw new WorkspaceException("OverlayResultRequired", "Reclamation intent differs from the retained result.");
         if (File.Exists(delta)) throw new WorkspaceException("UnownedDeltaFiles", "A file replaced the owned delta directory; preserve it.");
         if (!Directory.Exists(delta)) return;
-        if (BoundedJournalReclamation.HasIntent(boundedReceipt) || File.Exists(currentJournal) && JournalDeltaStore.IsBoundedJournal(currentJournal))
+        if (CurrentJournalReclamation.HasIntent(boundedReceipt) || File.Exists(currentJournal) && CurrentJournalReclamation.IsManagedJournal(currentJournal))
         {
-            BoundedJournalReclamation.ReclaimDirectory(delta, result.Seal, ["identity.json"], boundedReceipt,
-                directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path, BoundedJournalReclamation.GuardName));
+            CurrentJournalReclamation.ReclaimDirectory(delta, result.Seal, ["identity.json"], boundedReceipt,
+                directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path, CurrentJournalReclamation.GuardName), filePins: new WindowsJournalFilePins());
             return;
         }
         if (File.Exists(latestReceipt) || File.Exists(currentJournal) && LatestJournalReclamation.IsLatest(currentJournal))
@@ -329,8 +329,8 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
     }
     private static void CheckSpace(string path)
     {
-        if (new DriveInfo(Path.GetPathRoot(Path.GetFullPath(path))!).AvailableFreeSpace < 2L * 1024 * 1024 * 1024)
-            throw new WorkspaceException("SnapshotHeadroomRequired", "Retain at least 2 GiB of free host space before creating or reconnecting a workspace.");
+        if (new DriveInfo(Path.GetPathRoot(Path.GetFullPath(path))!).AvailableFreeSpace == 0)
+            throw new WorkspaceException("SnapshotSpaceRequired", "The backing volume has no space for durable control data. Preserve the same request and retry after freeing space.");
     }
     private static SnapshotWorkspaceObservation WithSpace(SnapshotWorkspaceObservation observed, WorkspaceRecord w, string control)
     {
@@ -339,10 +339,10 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         {
             HostFreeBytes = free,
             DeltaPresent = Directory.Exists(DeltaPath(control)) || File.Exists(DeltaPath(control)),
-            JournalRemainingBytes = observed.Storage is { } storage ? Math.Max(0, w.Snapshot!.MaxJournalBytes - storage.JournalBytes) : null,
+            JournalRemainingBytes = null,
             SnapshotStorage = observed.SnapshotStorage ?? (w.Snapshot?.Reference is { } snapshot ? new(snapshot.Id, observed.SnapshotAvailable,
                 observed.SnapshotAvailable switch { true => null, false => "SnapshotMissing", null => "SnapshotObservationUnknown" }, null, null) : null),
-            FailureCode = observed.FailureCode ?? (free < 2L * 1024 * 1024 * 1024 ? "SnapshotHeadroomRequired" : null)
+            FailureCode = observed.FailureCode ?? (free == 0 ? "SnapshotSpaceRequired" : null)
         };
     }
     // Diagnostic measurements live outside the delta and are never collection

@@ -54,7 +54,7 @@ public sealed class PlainProjectBasisTests
         {
             var catalog = new ContractCatalog(development);
             bool Valid(object value) => catalog.Validate(catalog.Find("workspace.ensure")!.InputSchema, JsonSerializer.SerializeToElement(value)).IsValid;
-            Assert.True(Valid(new { project = "source", key = "task", storage = "project-snapshot", source = "none", application = "unity", projectBasis = new string('a', 24), maxJournalBytes = 4096 }));
+            Assert.True(Valid(new { project = "source", key = "task", storage = "project-snapshot", source = "none", application = "unity", projectBasis = new string('a', 24) }));
             Assert.False(Valid(new { project = "source", key = "task", storage = "project-snapshot", source = "none" }));
             Assert.False(Valid(new { project = "source", key = "task", storage = "project-snapshot", source = "git", projectBasis = new string('a', 24) }));
             Assert.False(Valid(new { project = "source", key = "task", storage = "git-snapshot", projectBasis = new string('a', 24) }));

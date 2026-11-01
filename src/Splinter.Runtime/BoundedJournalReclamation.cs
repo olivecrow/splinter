@@ -15,7 +15,7 @@ public static class BoundedJournalReclamation
     public static bool HasIntent(string receipt) => File.Exists(receipt) || File.Exists(receipt + ".pending");
 
     public static void ReclaimDirectory(string directory, SnapshotDeltaSeal seal, string[] metadataNames, string receipt,
-        Action<string>? boundary = null, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
+        Action<string>? boundary = null, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null, IJournalFilePins? filePins = null)
     {
         directory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory)); receipt = Path.GetFullPath(receipt);
         if (metadataNames.Length != 1 || metadataNames[0] != "identity.json")
@@ -33,6 +33,18 @@ public static class BoundedJournalReclamation
         {
             if (plan is null || pending) throw Conflict("An absent directory has no published reclamation inventory.");
             return;
+        }
+
+        string identityPath = Path.Combine(directory, "identity.json");
+        if (File.Exists(identityPath))
+        {
+            try
+            {
+                using var identityInput = File.OpenRead(identityPath);
+                var identity = System.Text.Json.JsonSerializer.Deserialize<OverlayIdentity>(identityInput);
+                if (identity is { Version: 3 }) JournalDeltaStore.ReclaimPagedIndices(directory, identity, filePins);
+            }
+            catch (System.Text.Json.JsonException) { throw Conflict("The bounded identity is corrupt."); }
         }
 
         var fences = new Dictionary<string, FileStream>(StringComparer.Ordinal);

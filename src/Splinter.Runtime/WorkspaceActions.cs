@@ -9,7 +9,6 @@ public static class WorkspaceActions
     {
         project = w.ProjectPath, key = w.RequestKey, baseReference = w.BaseReference,
         source = w.SourceKind, application = w.ApplicationKind, storage = w.StorageMode,
-        maxJournalBytes = w.Snapshot?.MaxJournalBytes,
         libraryBasis = w.StorageMode == "project-snapshot" ? null : w.GeneratedDirectoryId,
         projectBasis = w.StorageMode == "project-snapshot" ? w.GeneratedDirectoryId : null,
         editor = editor ? true : (bool?)null, home
@@ -18,6 +17,10 @@ public static class WorkspaceActions
     public static WorkspaceRecoveryAction Next(WorkspaceView view, string home, bool accepted = false)
     {
         var w = view.Workspace;
+        if (view.MetadataMaintenance is { } maintenance)
+            return new("workspace.maintain", new { id = w.Id, requestKey = maintenance.RequestKey, scope = maintenance.Scope, home });
+        if (view.OriginalApplyPlan is { SelectionRoot: not null } selection && w.OriginalApply is not { Completed: false })
+            return new("workspace.read", new { id = w.Id, collection = "selection", planId = selection.Digest, home });
         string command = accepted ? "workspace.status" : view.Command;
         if (!accepted && view.Recovery is { Disposition: not "ready" } recovery) command = recovery.NextCommand;
         if (view.OriginalApplyPlan is not null || w.OriginalApply is { Completed: false }) command = "workspace.integrate";
@@ -34,6 +37,6 @@ public static class WorkspaceActions
         return new(command, arguments, requiresUser);
     }
     private static object OriginalApply(WorkspaceRecord w, OriginalApplyPlan? plan, string home) => w.OriginalApply is { Completed: false } apply
-        ? new { id = w.Id, target = "original", result = apply.Plan.ResultId, apply.IntentKey, expectedPlanDigest = apply.Plan.Digest, paths = apply.Plan.SelectedPaths, home }
+        ? new { id = w.Id, target = "original", result = apply.Plan.ResultId, apply.IntentKey, expectedPlanDigest = apply.Plan.Digest, home }
         : (object)new { id = w.Id, target = "original", result = plan?.ResultId ?? w.Results.LastOrDefault()?.Id, plan = true, paths = plan?.SelectedPaths, home };
 }

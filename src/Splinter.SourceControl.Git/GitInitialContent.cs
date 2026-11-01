@@ -18,10 +18,15 @@ public sealed partial class GitWorkspaceProvider
         initialContentAdmissions.TryRemove(workspace.Id, out _);
         if (auditSource || workspace.StorageMode != "git-snapshot" || workspace.Snapshot is not { Attached: false, Reference: { } snapshot } ||
             sourceChanges is not ISourceContentSummaryProvider) return;
-        var before = await sourceChanges.ObserveChangesAsync(workspace, ct);
+        using var before = await sourceChanges.ObserveChangesAsync(workspace, ct);
         RequireView(workspace, before);
+        // This admission compares a validated logical generation stamp only.
+        // Payload/membership access always uses a fresh, fully checked view;
+        // an unused cache entry must not keep an index reader alive.
+        var stamp = new SourceChangeView(before.WorkspaceId, before.SnapshotId, before.Epoch, before.Sequence, [.. before.Changes])
+        { Index = before.Index is null ? null : before.Index with { ManagedPaths = [.. before.Index.ManagedPaths] } };
         initialContentAdmissions[workspace.Id] = new(snapshot, workspace.Snapshot.Mount, workspace.Path, workspace.BaseRevision,
-            [.. workspace.ManagedPaths], before with { Changes = [.. before.Changes] });
+            [.. workspace.ManagedPaths], stamp);
     }
 
     private async Task<Dictionary<string, (SnapshotContentSummary Summary, string ObjectId)>> InitialContentAsync(
@@ -41,7 +46,8 @@ public sealed partial class GitWorkspaceProvider
         foreach (string[] batch in files.Chunk(4096))
         {
             var proof = await provider.ObserveInitialContentAsync(workspace, current, batch, ct);
-            if (proof is null) continue; // Unproved/reconnected sources retain full reads.
+            using var ownedGeneration = ReferenceEquals(proof?.Generation, current) ? null : proof?.Generation;
+            if (proof is null) break; // This invocation's provider has no proof; retain full reads.
             if (proof.Snapshot != admission.Snapshot || !SameGeneration(proof.Generation, current) ||
                 proof.Files is null || proof.Files.Length > batch.Length)
                 throw Error("SourceObservationInvalid", "Initial content evidence has another snapshot or source generation.");
@@ -80,5 +86,6 @@ public sealed partial class GitWorkspaceProvider
     private static bool SameGeneration(SourceChangeView? left, SourceChangeView? right) =>
         left is not null && right is not null && left.Changes is not null && right.Changes is not null &&
         left.WorkspaceId == right.WorkspaceId && left.SnapshotId == right.SnapshotId && left.Epoch == right.Epoch &&
-        left.Sequence == right.Sequence && left.Changes.SequenceEqual(right.Changes);
+        left.Sequence == right.Sequence && left.ContentIdentity == right.ContentIdentity &&
+        (left.Index is not null || left.Changes.SequenceEqual(right.Changes));
 }

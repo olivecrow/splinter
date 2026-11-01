@@ -14,16 +14,26 @@ public interface IPlasticWorkspaceClient
     Task<string> VersionAsync(CancellationToken ct = default);
     Task<PlasticWorkspaceIdentity> InspectAsync(string path, CancellationToken ct = default);
     Task<PlasticWorkspaceLocation[]> ListAsync(CancellationToken ct = default);
+    async IAsyncEnumerable<PlasticWorkspaceLocation> EnumerateAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    { foreach (var location in await ListAsync(ct)) { ct.ThrowIfCancellationRequested(); yield return location; } }
 }
 
 public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorkspaceClient client, IPlasticRevisionClient? revisionClient = null,
     IOriginalFilePublisher? originalPublisher = null, IPlasticOriginalGuard? originalGuard = null,
-    ApplicationProjectPolicies? applicationPolicies = null, ISourceChangeProvider? sourceChanges = null) :
-    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISourceInspectionProofProvider, IWorkspaceGenerationSource
+    ApplicationProjectPolicies? applicationPolicies = null, ISourceChangeProvider? sourceChanges = null, IJournalFilePins? contentPins = null) :
+    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISourceInspectionProofProvider, IWorkspaceGenerationSource, IRetainedResultMaintenance, IWorkspaceMetadataMaintenance
 {
+    public bool SupportsMetadataMaintenance => files.SupportsMetadataMaintenance;
     private readonly FileWorkspaceProvider files = new(store, originalPublisher, revisionClient, originalGuard ??
         (client is IPlasticOriginalStateClient state ? new PlasticOriginalGuard(store, client, state, revisionClient ?? new PlasticRevisionClient(), applicationPolicies) : null),
-        applicationPolicies: applicationPolicies, sourceChanges: sourceChanges);
+        applicationPolicies: applicationPolicies, sourceChanges: sourceChanges, contentPins: contentPins);
+    public Task MaintainRetainedResultsAsync(WorkspaceRecord w, string control, CancellationToken ct = default) => files.MaintainRetainedResultsAsync(w, control, ct);
+    public Task<WorkspaceMaintenanceResult> MaintainMetadataAsync(WorkspaceRecord w, string control, string requestKey, string scope = "all", CancellationToken ct = default)
+        => files.MaintainMetadataAsync(w, control, requestKey, scope, ct);
+    public WorkspaceMaintenanceResult? ObserveMetadataMaintenance(WorkspaceRecord w, string control) => files.ObserveMetadataMaintenance(w, control);
+    public Task<WorkspaceMaintenanceResult?> MaintainMetadataIfNeededAsync(WorkspaceRecord w, string control, string requestKey, CancellationToken ct = default)
+        => files.MaintainMetadataIfNeededAsync(w, control, requestKey, ct);
+    public void RequireMetadataMaintenanceComplete(WorkspaceRecord w, string control) => files.RequireMetadataMaintenanceComplete(w, control);
     private string Control(WorkspaceRecord w) => store.ControlPath(w.Id);
     private static string Evidence(string control, string name) => Path.Combine(control, "plastic", name);
     private static WorkspaceException Invalid(string message) => new("PlasticCompatibilityInvalid", message);
@@ -55,9 +65,9 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
     {
         // Global/local Plastic registration is never inherited by a worker.
         // Overlapping registrations are rejected, not removed or repaired.
-        var registrations = await client.ListAsync(ct);
-        if (registrations.Any(r => Contains(r.Path, store.Root) || Contains(store.Root, r.Path)))
-            throw Invalid("The Splinter home must not overlap any Plastic workspace registration.");
+        await foreach (var registration in client.EnumerateAsync(ct))
+            if (Contains(registration.Path, store.Root) || Contains(store.Root, registration.Path))
+                throw Invalid("The Splinter home must not overlap any Plastic workspace registration.");
         for (string? path = store.Root; path is not null; path = Path.GetDirectoryName(path))
             foreach (string name in FileWorkspaceProvider.VcsMetadata)
                 if (File.Exists(Path.Combine(path, name)) || Directory.Exists(Path.Combine(path, name)))
@@ -81,10 +91,10 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
                     if (!(name == ".plastic" && WorkspaceStore.SamePath(path, w.ProjectPath)) &&
                         (Directory.Exists(Path.Combine(path, name)) || File.Exists(Path.Combine(path, name))))
                         throw Invalid("The original must not inherit another VCS administration.");
-            var manifest = await (revisionClient ?? new PlasticRevisionClient()).ListAsync(w.BaseReference, ct);
+            using var manifest = await (revisionClient ?? new PlasticRevisionClient()).ListAsync(w.BaseReference, ct);
             await (revisionClient ?? new PlasticRevisionClient()).VerifyProjectAsync(w.ProjectPath, manifest, ct);
-            if (w.ApplicationKind == "unity" && (!manifest.Entries.Any(e => e.Path.StartsWith("Assets/", StringComparison.Ordinal)) ||
-                !manifest.Entries.Any(e => e.Path == "Packages/manifest.json") || !manifest.Entries.Any(e => e.Path == "ProjectSettings/ProjectVersion.txt")))
+            if (w.ApplicationKind == "unity" && (!manifest.EnumerateEntries().Any(e => e.Path.StartsWith("Assets/", StringComparison.Ordinal)) ||
+                !manifest.EnumerateEntries().Any(e => e.Path == "Packages/manifest.json") || !manifest.EnumerateEntries().Any(e => e.Path == "ProjectSettings/ProjectVersion.txt")))
                 throw new WorkspaceException("PlasticBasisSourceIncomplete", "Choose a recorded Unity source including Assets, Packages and ProjectSettings.");
         }
         FileWorkspaceProvider.SaveFixed(Evidence(Control(w), "admission.json"), new PlasticSourceAdmission(w.Id, w.RequestDigest!,
@@ -138,13 +148,23 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
     public async Task<ProvedSourceInspection> InspectWithProofAsync(WorkspaceRecord w, CancellationToken ct = default)
     {
         await VerifyIsolationAsync(w, ct);
-        var inspection = await files.InspectWithProofAsync(w, ct);
-        return inspection with { Proof = inspection.Proof is { } proof ? new IsolationProof(this, proof) : null };
+        using var inspection = await files.InspectWithProofAsync(w, ct);
+        var proof = inspection.DetachProof();
+        return new(inspection.Source, proof is null ? null : new IsolationProof(this, proof));
     }
     private sealed class IsolationProof(PlasticWorkspaceProvider provider, ISourceInspectionProof proof) : ISourceInspectionProof
     {
+        private int disposed;
+        public void Dispose() { if (Interlocked.Exchange(ref disposed, 1) == 0) proof.Dispose(); }
         public async Task<SourceState> RevalidateAsync(WorkspaceRecord w, CancellationToken ct = default)
-        { await provider.VerifyIsolationAsync(w, ct); return await proof.RevalidateAsync(w, ct); }
+        {
+            try
+            {
+                if (Volatile.Read(ref disposed) != 0) throw new WorkspaceException("SourceChanged", "The operation-local source proof has been disposed.");
+                await provider.VerifyIsolationAsync(w, ct); return await proof.RevalidateAsync(w, ct);
+            }
+            finally { Dispose(); }
+        }
     }
     public async Task<string> CheckpointAsync(WorkspaceRecord w, string m, CancellationToken ct = default)
     { await VerifyIsolationAsync(w, ct); return await files.CheckpointAsync(w, m, ct); }

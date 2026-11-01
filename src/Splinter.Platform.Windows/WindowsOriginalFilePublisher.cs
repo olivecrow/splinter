@@ -1,11 +1,17 @@
 using System.ComponentModel;
+using System.Collections.Concurrent;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 using Splinter.Core;
+using Splinter.Runtime;
 
 namespace Splinter.Platform.Windows;
+
+public sealed record OriginalPublicationMetrics(long AdmittedTargets, int PeakAdmissionWorkers, int PeakPublicationWorkers,
+    int RemainingWorkers, int PeakNativeHandles, long MaximumSinglePayloadBytes, long PeakReservedPayloadBytes);
 
 // The project lock serializes Splinter clients. These handles also exclude
 // external writes/renames to existing affected files and parent identities.
@@ -16,6 +22,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
     private readonly bool allowPlasticAdministration;
     private readonly bool allowGitAdministration;
     private readonly Func<string, IDisposable?>? managedRoot;
+    public OriginalPublicationMetrics? LastPublicationMetrics { get; private set; }
     public WindowsOriginalFilePublisher(bool allowPlasticAdministration = false, Func<string, IDisposable?>? managedRoot = null, bool allowGitAdministration = false)
     { this.allowPlasticAdministration = allowPlasticAdministration; this.managedRoot = managedRoot; this.allowGitAdministration = allowGitAdministration; }
     internal WindowsOriginalFilePublisher(Action<string, int> boundary, bool allowPlasticAdministration = false)
@@ -23,37 +30,81 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
     public string RootIdentity(string project)
     {
         using var lease = managedRoot?.Invoke(project);
-        using var guard = new Guard(project, [], allowPlasticAdministration, lease is not null, allowGitAdministration);
+        using var guard = new Guard(project, _ => false, allowPlasticAdministration, lease is not null, allowGitAdministration);
         return Id(guard.Root);
     }
     public OriginalFileObservation? Observe(string project, string relativePath, CancellationToken ct = default)
     {
         using var lease = managedRoot?.Invoke(project);
-        using var guard = new Guard(project, [], allowPlasticAdministration, lease is not null, allowGitAdministration);
+        using var guard = new Guard(project, _ => false, allowPlasticAdministration, lease is not null, allowGitAdministration);
         return guard.Observe(relativePath, ct);
     }
 
     public void Publish(OriginalApplyState state, Func<OriginalFileVersion, Stream> openPayload, Action persist, CancellationToken ct = default)
     {
+        var metrics = new PublicationMetrics();
+        try { PublishCore(state, openPayload, persist, metrics, ct); }
+        finally { LastPublicationMetrics = metrics.Snapshot(); }
+    }
+    private void PublishCore(OriginalApplyState state, Func<OriginalFileVersion, Stream> openPayload, Action persist,
+        PublicationMetrics metrics, CancellationToken ct)
+    {
         var plan = state.Plan;
+        using var pages = OriginalApplyPages.BeginPublication(state);
         if (allowPlasticAdministration && plan.SourceIdentity is null) throw Conflict("An explicit Plastic source guard is required.");
         if (allowGitAdministration && Path.Exists(Path.Combine(plan.ProjectPath, ".git")) && plan.SourceIdentity is null)
             throw Conflict("An explicit Git source guard is required.");
         using var lease = managedRoot?.Invoke(plan.ProjectPath);
-        using var guard = new Guard(plan.ProjectPath, plan.Changes.Where(c => c.Before?.Kind == "directory" && c.After is null).Select(c => c.Path).ToArray(), allowPlasticAdministration, lease is not null, allowGitAdministration);
+        using var guard = new Guard(plan.ProjectPath, path => plan.FindChange(path) is { Before.Kind: "directory", After: null }, allowPlasticAdministration, lease is not null, allowGitAdministration);
+        metrics.Guard = guard;
         if (Id(guard.Root) != plan.ProjectIdentity) throw Conflict("The physical original root changed.");
         string intent = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(state.IntentKey)))[..24];
-        string Prefix(int i) => $".splinter-apply-{plan.OwnerId}-{intent}-{i}";
+        string Prefix(long i, string? nonce) => $".splinter-apply-{plan.OwnerId}-{intent}-{i}" + (nonce is null ? "" : "-" + nonce);
+
+        object progressGate = new();
+        void Commit(long index, OriginalApplyStep step)
+        {
+            lock (progressGate)
+            {
+                state.SaveStep(index, new() { Phase = step.Phase, StagedIdentity = step.StagedIdentity, StagedBytes = step.StagedBytes, StageNonce = step.StageNonce });
+                persist();
+            }
+        }
 
         // Open/check the entire write set before creating a stage or mutating
         // the original. The leases stay held until this call returns.
-        for (int i = 0; i < plan.Changes.Length; i++)
+        IEnumerable<(long Index, OriginalApplyChange Change)> AdmissionTargets()
         {
-            ct.ThrowIfCancellationRequested();
-            var change = plan.Changes[i]; var step = state.Steps[i];
+            long index = 0;
+            foreach (var change in plan.EnumerateChanges()) yield return (index++, change);
+        }
+        try
+        {
+            Parallel.ForEach(Partitioner.Create(AdmissionTargets(), EnumerablePartitionerOptions.NoBuffering),
+                new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = ct }, item =>
+            {
+                using var activeAdmission = metrics.Enter(admission: true);
+                long i = item.Index; var change = item.Change;
+            var step = state.StepAt(i);
             var current = guard.Observe(change.Path, ct, mutation: true);
-            var staged = guard.Observe(Sibling(change.Path, Prefix(i) + ".new"), ct, mutation: true);
-            var retired = guard.Observe(Sibling(change.Path, Prefix(i) + ".old"), ct, mutation: true);
+            string stageName = Sibling(change.Path, Prefix(i, step.StageNonce) + ".new");
+            if (step.Phase == "staging" && step.StagedIdentity is null && step.StageNonce is not null && guard.NameExists(stageName))
+            {
+                if (!Same(current, change.Expected) || guard.NameExists(Sibling(change.Path, Prefix(i, step.StageNonce) + ".old")))
+                    throw Conflict("Preserve the fixed original identity and an unexpected retired name before retrying: " + change.Path);
+                // The prior attempt was durably admitted but did not durably
+                // acquire a native identity. Keep it untouched and report it;
+                // a new nonce remains inside this same plan and intent.
+                lock (progressGate)
+                {
+                    state.PreservedScratchRoot = (state.PageProgress ?? throw Conflict("The preserved scratch ledger is unavailable."))
+                        .PreserveScratch(stageName, null, "native-stage-identity-not-recorded");
+                    step.StageNonce = Guid.NewGuid().ToString("N"); Commit(i, step);
+                }
+                stageName = Sibling(change.Path, Prefix(i, step.StageNonce) + ".new");
+            }
+            var staged = guard.Observe(stageName, ct, mutation: true);
+            var retired = guard.Observe(Sibling(change.Path, Prefix(i, step.StageNonce) + ".old"), ct, mutation: true);
             if (staged is not null && (step.StagedIdentity is null || staged.Identity != step.StagedIdentity))
                 throw Conflict("Preserve an unowned or replaced publication stage: " + change.Path);
             if (retired is not null && retired.Identity != change.Expected?.Identity)
@@ -75,78 +126,200 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
             else if (!Same(current, change.Expected)) throw Conflict("The original changed after planning: " + change.Path);
             if (step.Phase == "pending" && (staged is not null || retired is not null))
                 throw Conflict("A publication name already exists: " + change.Path);
+                Interlocked.Increment(ref metrics.AdmittedTargets);
+                boundary?.Invoke("target-locked", (int)Math.Min(i, int.MaxValue));
+            });
         }
+        catch (AggregateException error)
+        { ExceptionDispatchInfo.Capture(error.Flatten().InnerExceptions[0]).Throw(); throw; }
         boundary?.Invoke("preflight", -1);
-        for (int i = 0; i < plan.Changes.Length; i++)
+        void Reached(string name, long index) => boundary?.Invoke(name, (int)Math.Min(index, int.MaxValue));
+        long reservationLimit = plan.EnumerateChanges().Where(c => c.After?.Kind == "file").Select(c => c.After!.Length).DefaultIfEmpty().Max();
+        using var reservations = new StagingReservations(reservationLimit);
+        metrics.Reservations = reservations; metrics.MaximumPayload = reservationLimit;
+        long minimumControlBytes = OperationDiskSpace.ControlBytes(state);
+        using var workers = CancellationTokenSource.CreateLinkedTokenSource(ct); var workToken = workers.Token;
+        void PublishOne(long i)
         {
-            ct.ThrowIfCancellationRequested();
-            var c = plan.Changes[i]; var s = state.Steps[i];
-            string stagePath = Sibling(c.Path, Prefix(i) + ".new"), backupPath = Sibling(c.Path, Prefix(i) + ".old");
-            if (s.Phase == "done") continue;
-            if (c.AlreadyMatches) { s.Phase = "done"; persist(); continue; }
-            var original = guard.Observe(c.Path, ct, mutation: true);
+            using var activeWorker = metrics.Enter(admission: false);
+            workToken.ThrowIfCancellationRequested();
+            var c = plan.ChangeAt(i); var prior = state.StepAt(i);
+            var s = new OriginalApplyStep { Phase = prior.Phase, StagedIdentity = prior.StagedIdentity, StagedBytes = prior.StagedBytes, StageNonce = prior.StageNonce };
+            string stagePath = Sibling(c.Path, Prefix(i, s.StageNonce) + ".new"), backupPath = Sibling(c.Path, Prefix(i, s.StageNonce) + ".old");
+            if (s.Phase == "done") return;
+            if (c.AlreadyMatches) { s.Phase = "done"; Commit(i, s); return; }
+            var original = guard.Observe(c.Path, workToken, mutation: true);
             if (c.After is null)
             {
                 if (original is not null)
                 {
                     if (!Same(original, c.Expected)) throw Conflict("The deletion target changed: " + c.Path);
-                    s.Phase = "retired"; persist();
+                    s.Phase = "retired"; Commit(i, s);
                     guard.Delete(c.Path, c.Expected!.Identity);
-                    boundary?.Invoke("deleted", i);
+                    Reached("deleted", i);
                 }
-                s.Phase = "done"; persist(); continue;
+                s.Phase = "done"; Commit(i, s); return;
             }
             // A rename may have completed before its receipt was saved.
             if (original?.Identity == s.StagedIdentity && Matches(original, c.After))
-            { s.Phase = "published"; persist(); }
+            { s.Phase = "published"; Commit(i, s); }
             if (s.Phase != "published")
             {
-                var stage = guard.Observe(stagePath, ct, mutation: true);
+                var stage = guard.Observe(stagePath, workToken, mutation: true);
                 if (stage is null)
                 {
                     if (s.StagedIdentity is not null) throw Conflict("The owned stage is missing: " + c.Path);
-                    s.Phase = "staging"; persist();
+                    s.StageNonce ??= Guid.NewGuid().ToString("N");
+                    stagePath = Sibling(c.Path, Prefix(i, s.StageNonce) + ".new"); backupPath = Sibling(c.Path, Prefix(i, s.StageNonce) + ".old");
+                    s.Phase = "staging"; Commit(i, s);
+                    Reached("stage-attempt-owned", i);
                     var handle = guard.Create(stagePath, c.After.Kind == "directory");
-                    boundary?.Invoke("stage-created-before-receipt", i);
-                    s.StagedIdentity = Id(handle); persist();
-                    boundary?.Invoke("stage-created", i);
+                    Reached("stage-created-before-receipt", i);
+                    s.StagedIdentity = Id(handle); Commit(i, s);
+                    Reached("stage-created", i);
                 }
                 if (s.Phase == "staging")
                 {
-                    guard.Fill(stagePath, s.StagedIdentity!, c.After, openPayload, ct);
+                    guard.Fill(stagePath, s.StagedIdentity!, c.After, openPayload, minimumControlBytes, workToken);
                     if (original is not null) guard.CopySecurity(c.Path, stagePath);
                     guard.SetMetadata(stagePath, c.After, original is null ? null : c.Path);
-                    s.StagedBytes = c.After.Length; s.Phase = "staged"; persist();
-                    boundary?.Invoke("staged", i);
+                    s.StagedBytes = c.After.Length; s.Phase = "staged"; Commit(i, s);
+                    Reached("staged", i);
                 }
-                stage = guard.Observe(stagePath, ct, mutation: true);
+                stage = guard.Observe(stagePath, workToken, mutation: true);
                 if (stage?.Identity != s.StagedIdentity || !Matches(stage, c.After)) throw Conflict("The owned payload stage changed: " + c.Path);
                 if (original is not null)
                 {
-                    original = guard.Observe(c.Path, ct, mutation: true);
+                    original = guard.Observe(c.Path, workToken, mutation: true);
                     if (!Same(original, c.Expected)) throw Conflict("The original changed before retirement: " + c.Path);
-                    boundary?.Invoke("original-checked", i);
+                    Reached("original-checked", i);
                     guard.Rename(c.Path, backupPath, c.Expected!.Identity);
-                    boundary?.Invoke("retired-before-receipt", i);
-                    s.Phase = "retired"; persist();
-                    boundary?.Invoke("retired", i);
+                    Reached("retired-before-receipt", i);
+                    s.Phase = "retired"; Commit(i, s);
+                    Reached("retired", i);
                 }
                 guard.Rename(stagePath, c.Path, s.StagedIdentity!);
-                boundary?.Invoke("published-before-receipt", i);
-                s.Phase = "published"; persist();
-                boundary?.Invoke("published", i);
+                Reached("published-before-receipt", i);
+                s.Phase = "published"; Commit(i, s);
+                Reached("published", i);
             }
-            var backup = guard.Observe(backupPath, ct, mutation: true);
+            var backup = guard.Observe(backupPath, workToken, mutation: true);
             if (backup is not null)
             {
                 if (!Same(backup, c.Expected)) throw Conflict("The retired original changed before cleanup: " + c.Path);
                 guard.Delete(backupPath, backup.Identity);
-                boundary?.Invoke("retired-removed", i);
+                Reached("retired-removed", i);
             }
-            s.Phase = "done"; persist();
+            s.Phase = "done"; Commit(i, s);
+        }
+        // Directory topology remains ordered. Independent leaves run only
+        // after all target/ancestor handles passed admission and stay pinned.
+        // A bounded batch avoids retaining one task per target. Companion
+        // metadata waits for the source task in the same batch; earlier batches
+        // have already drained before the next one starts.
+        var batch = new List<(string Path, Task Task)>(8);
+        void Drain()
+        {
+            try { Task.WhenAll(batch.Select(item => item.Task)).GetAwaiter().GetResult(); }
+            catch (Exception ex) { ExceptionDispatchInfo.Capture(ex).Throw(); }
+            finally { batch.Clear(); }
+        }
+        try
+        {
+            // Retained stages occupy disk even while no worker owns them.
+            // Finish those first, before admitting any fresh temporary payload.
+            IEnumerable<KeyValuePair<long, OriginalApplyStep>> RecoverySteps()
+            {
+                if (state.PageProgress is not null)
+                { foreach (var pair in state.PageProgress.Enumerate()) yield return pair; }
+                else for (int i = 0; i < state.Steps.Length; i++) yield return new(i, state.Steps[i]);
+            }
+            foreach (var pair in RecoverySteps())
+            {
+                long current = pair.Key; var step = pair.Value;
+                if (step.Phase == "done" || step.StagedIdentity is null) continue;
+                var change = plan.ChangeAt(current);
+                using var reservation = reservations.Acquire(change.After?.Length ?? 0, workToken);
+                PublishOne(current);
+            }
+            long index = 0;
+            foreach (var change in plan.EnumerateChanges())
+            {
+                long current = index++;
+                if (state.StepAt(current).Phase == "done") continue;
+                if (change.After?.Kind == "directory" || change.Before?.Kind == "directory")
+                { Drain(); PublishOne(current); continue; }
+                Task? dependency = change.Path.EndsWith(".meta", StringComparison.OrdinalIgnoreCase)
+                    ? batch.LastOrDefault(item => item.Path.Equals(change.Path[..^5], StringComparison.OrdinalIgnoreCase)).Task : null;
+                batch.Add((change.Path, Task.Run(async () =>
+                {
+                    try
+                    {
+                        if (dependency is not null) await dependency.ConfigureAwait(false);
+                        using var reservation = reservations.Acquire(change.After?.Length ?? 0, workToken);
+                        try { PublishOne(current); }
+                        catch { workers.Cancel(); throw; }
+                    }
+                    catch { workers.Cancel(); throw; }
+                }, CancellationToken.None)));
+                if (batch.Count == 8) Drain();
+            }
+            Drain();
+        }
+        catch
+        {
+            workers.Cancel();
+            // Existing tasks can own staged bytes and native handles. Always
+            // join them before releasing guards or reporting the failure.
+            try { Drain(); } catch { }
+            throw;
         }
         state.Completed = true; persist();
         boundary?.Invoke("completed", -1);
+    }
+
+    private sealed class StagingReservations(long limit) : IDisposable
+    {
+        private readonly object gate = new();
+        private long reserved;
+        public long Peak { get; private set; }
+        public IDisposable Acquire(long bytes, CancellationToken ct)
+        {
+            lock (gate)
+            {
+                while (bytes > limit - reserved) { ct.ThrowIfCancellationRequested(); Monitor.Wait(gate, 25); }
+                ct.ThrowIfCancellationRequested(); reserved += bytes; Peak = Math.Max(Peak, reserved); return new Reservation(this, bytes);
+            }
+        }
+        private void Release(long bytes) { lock (gate) { reserved -= bytes; Monitor.PulseAll(gate); } }
+        public void Dispose() { }
+        private sealed class Reservation(StagingReservations owner, long bytes) : IDisposable
+        {
+            private bool released;
+            public void Dispose() { if (!released) { released = true; owner.Release(bytes); } }
+        }
+    }
+
+    private sealed class PublicationMetrics
+    {
+        public Guard? Guard;
+        public StagingReservations? Reservations;
+        public long AdmittedTargets, MaximumPayload;
+        private int admission, publishing, peakAdmission, peakPublishing;
+        public IDisposable Enter(bool admission)
+        {
+            int active = admission ? Interlocked.Increment(ref this.admission) : Interlocked.Increment(ref publishing);
+            ref int peak = ref (admission ? ref peakAdmission : ref peakPublishing);
+            int previous;
+            do { previous = Volatile.Read(ref peak); if (previous >= active) break; } while (Interlocked.CompareExchange(ref peak, active, previous) != previous);
+            return new Active(this, admission);
+        }
+        public OriginalPublicationMetrics Snapshot() => new(Interlocked.Read(ref AdmittedTargets), peakAdmission, peakPublishing,
+            admission + publishing, Guard?.PeakHandleCount ?? 0, MaximumPayload, Reservations?.Peak ?? 0);
+        private sealed class Active(PublicationMetrics owner, bool admission) : IDisposable
+        {
+            public void Dispose() { if (admission) Interlocked.Decrement(ref owner.admission); else Interlocked.Decrement(ref owner.publishing); }
+        }
     }
 
     private static string Sibling(string relative, string leaf) => relative.Contains('/') ? relative[..(relative.LastIndexOf('/') + 1)] + leaf : leaf;
@@ -169,17 +342,25 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
 
     private sealed class Guard : IDisposable
     {
-        private readonly Dictionary<string, SafeFileHandle> handles = new(StringComparer.OrdinalIgnoreCase);
-        private readonly HashSet<string> deleteDirectories;
+        private readonly ConcurrentDictionary<string, SafeFileHandle> handles = new(StringComparer.OrdinalIgnoreCase);
+        private readonly object handleGate = new();
+        private int peakHandles, activeHandles;
+        public int PeakHandleCount => Volatile.Read(ref peakHandles);
+        private void ObserveHandleCount()
+        {
+            int count = Interlocked.Increment(ref activeHandles), prior;
+            do { prior = Volatile.Read(ref peakHandles); if (prior >= count) break; } while (Interlocked.CompareExchange(ref peakHandles, count, prior) != prior);
+        }
+        private readonly Func<string, bool> deleteDirectory;
         private readonly string project;
         private readonly bool managed;
         public SafeFileHandle Root { get; }
-        public Guard(string project, string[] deleteDirectories, bool allowPlasticAdministration, bool managed = false, bool allowGitAdministration = false)
+        public Guard(string project, Func<string, bool> deleteDirectory, bool allowPlasticAdministration, bool managed = false, bool allowGitAdministration = false)
         {
             if (!OperatingSystem.IsWindows()) throw new WorkspaceException("OriginalApplyUnsupported", "Conditional publication requires Windows NTFS.");
             this.project = Path.GetFullPath(project);
             this.managed = managed;
-            this.deleteDirectories = deleteDirectories.Select(Full).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            this.deleteDirectory = deleteDirectory;
             try
             {
                 // Pin each existing ancestor, including the volume root.
@@ -201,7 +382,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
         {
             if (string.IsNullOrEmpty(relative) || relative.Split('/').Any(p => p.Length == 0 || p is "." or ".." ||
                 new[] { ".git", ".plastic", ".hg", ".svn" }.Contains(p, StringComparer.OrdinalIgnoreCase) ||
-                p.EndsWith(' ') || p.EndsWith('.') || p.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || p.Length > 180 ||
+                p.EndsWith(' ') || p.EndsWith('.') || p.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || p.Length > 255 ||
                 p.Split('.')[0].ToUpperInvariant() is "CON" or "PRN" or "AUX" or "NUL" or "COM1" or "COM2" or "COM3" or "COM4" or "COM5" or "COM6" or "COM7" or "COM8" or "COM9" or "LPT1" or "LPT2" or "LPT3" or "LPT4" or "LPT5" or "LPT6" or "LPT7" or "LPT8" or "LPT9"))
                 throw new WorkspaceException("OriginalApplyUnsupported", "Preserve unsupported publication path names.");
             string path = Path.GetFullPath(Path.Combine(project, relative.Replace('/', Path.DirectorySeparatorChar)));
@@ -215,6 +396,8 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
         }
         private SafeFileHandle? Open(string path, bool mutation, bool stage = false)
         {
+            lock (handleGate)
+            {
             if (handles.TryGetValue(path, out var existing)) return existing;
             // Desired delete access makes an existing writer's share mask part
             // of admission. No sharing for writes/deletes is granted in return.
@@ -233,13 +416,14 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
                 if ((info.Attributes & UnsupportedAttributes) != 0 || (info.Attributes & 16) == 0 && info.Links != 1)
                     throw new WorkspaceException("OriginalApplyUnsupported", "Reparse, compressed, encrypted, sparse or multiply linked original data must be preserved.");
                 if (mutation && (info.Attributes & 1) != 0) throw new WorkspaceException("OriginalApplyUnsupported", "Read-only original entries require separate metadata handling.");
-                handles.Add(path, handle); return handle;
+                if (!handles.TryAdd(path, handle)) throw Conflict("A pinned original handle was duplicated."); ObserveHandleCount(); return handle;
             }
             catch { handle.Dispose(); throw; }
+            }
         }
         private SafeFileHandle PinDirectory(string path)
         {
-            var h = Open(path, deleteDirectories.Contains(path)) ?? throw Conflict("An original ancestor is missing.");
+            var h = Open(path, path.StartsWith(project + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) && deleteDirectory(Path.GetRelativePath(project, path).Replace('\\', '/'))) ?? throw Conflict("An original ancestor is missing.");
             if ((Information(h).Attributes & 16) == 0) throw Conflict("An original ancestor is no longer a directory.");
             return h;
         }
@@ -254,6 +438,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
             }
             return true;
         }
+        public bool NameExists(string relative) => Present(Full(relative));
         public OriginalFileObservation? Observe(string relative, CancellationToken ct, bool mutation = false)
         {
             string path = Full(relative);
@@ -287,11 +472,11 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
                     0x20u | 0x00200000u | (directory ? 1u : 0x40u), IntPtr.Zero, 0);
                 if (status < 0)
                 { h?.Dispose(); throw new WorkspaceException("OriginalApplyNativeFailure", "Create owned publication stage failed.", new { nativeError = RtlNtStatusToDosError(status) }); }
-                handles.Add(path, h); return h;
+                if (!handles.TryAdd(path, h)) { h.Dispose(); throw Conflict("An owned publication stage was duplicated."); } ObserveHandleCount(); return h;
             }
             finally { if (unicode != IntPtr.Zero) Marshal.FreeHGlobal(unicode); Marshal.FreeHGlobal(text); }
         }
-        public void Fill(string relative, string identity, OriginalFileVersion version, Func<OriginalFileVersion, Stream> payload, CancellationToken ct)
+        public void Fill(string relative, string identity, OriginalFileVersion version, Func<OriginalFileVersion, Stream> payload, long minimumControlBytes, CancellationToken ct)
         {
             string path = Full(relative); var h = Open(path, true, stage: true) ?? throw Conflict("The owned stage disappeared.");
             if (Id(h) != identity) throw Conflict("The stage identity changed.");
@@ -299,6 +484,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
             using var input = payload(version); byte[] bytes = new byte[65536], existing = new byte[65536];
             long length = Length(Information(h)), offset = 0;
             if (length > version.Length) throw Conflict("The incomplete stage has foreign trailing content.");
+            _ = OperationDiskSpace.Require("publish-original-file", path, version.Length, WindowsJournalFilePins.AllocatedBytes(h), minimumControlBytes);
             // The final length is already known. Reserve that allocation once
             // instead of letting incremental EOF growth over-allocate the stage.
             IntPtr allocation = Marshal.AllocHGlobal(8);
@@ -369,7 +555,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
                 Marshal.WriteInt64(buffer, nameOffset + name.Length, 0);
                 int status = NtSetInformationFile(h, out _, buffer, (uint)size, 10);
                 if (status < 0) throw new WorkspaceException("OriginalApplyNativeFailure", "Publish without replacing an occupant failed.", new { nativeError = RtlNtStatusToDosError(status) });
-                handles.Remove(source); handles.Add(target, h);
+                if (!handles.TryRemove(source, out _) || !handles.TryAdd(target, h)) throw Conflict("The pinned rename inventory changed.");
             }
             finally { Marshal.FreeHGlobal(buffer); }
         }
@@ -380,7 +566,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
             IntPtr buffer = Marshal.AllocHGlobal(4);
             try { Marshal.WriteInt32(buffer, 1); Check(SetFileInformationByHandle(h, 4, buffer, 4), "Delete only the exact owned or planned entry"); }
             finally { Marshal.FreeHGlobal(buffer); }
-            handles.Remove(path); h.Dispose();
+            if (!handles.TryRemove(path, out _)) throw Conflict("The pinned deletion inventory changed."); Interlocked.Decrement(ref activeHandles); h.Dispose();
             try
             {
                 if (Present(path)) throw new WorkspaceException("OriginalApplyPending", "The exact deleted entry still has a live name or reader; preserve its receipt.");
@@ -409,7 +595,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
             }
             finally { _ = FindClose(find); }
         }
-        public void Dispose() { foreach (var h in handles.Values) h.Dispose(); handles.Clear(); }
+        public void Dispose() { foreach (var pair in handles) pair.Value.Dispose(); handles.Clear(); }
     }
 
     // Resolve the destination leaf from an already verified ordinary parent,
@@ -441,9 +627,10 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
 
     // The restoration caller owns and validates the ordinary parent handle.
     // The returned handle is the newly created identity, not a path reopen.
-    internal static SafeFileHandle CreateOwnedDirectory(SafeFileHandle parent, string leaf) => CreateOwnedEntry(parent, leaf, directory: true);
+    internal static SafeFileHandle CreateOwnedDirectory(SafeFileHandle parent, string leaf, bool allowChildMutations = false) =>
+        CreateOwnedEntry(parent, leaf, directory: true, allowChildMutations: allowChildMutations);
     internal static SafeFileHandle CreateOwnedFile(SafeFileHandle parent, string leaf) => CreateOwnedEntry(parent, leaf, directory: false);
-    private static SafeFileHandle CreateOwnedEntry(SafeFileHandle parent, string leaf, bool directory)
+    private static SafeFileHandle CreateOwnedEntry(SafeFileHandle parent, string leaf, bool directory, bool allowChildMutations = false)
     {
         if (string.IsNullOrEmpty(leaf) || leaf is "." or ".." || leaf.IndexOfAny(['/', '\\', ':']) >= 0)
             throw new WorkspaceException("GeneratedRestoreConflict", "Invalid owned-entry leaf.");
@@ -459,8 +646,14 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
             // SYNCHRONIZE, SHARE_READ. Files: GENERIC_READ | GENERIC_WRITE |
             // SYNCHRONIZE, no sharing. Both exclusively FILE_CREATE with
             // SYNCHRONOUS_NONALERT | OPEN_REPARSE and an exact type constraint.
-            int status = NtCreateFile(out var handle, directory ? 0x00110181u : 0xC0100000u, ref attributes, out var io, IntPtr.Zero,
-                directory ? 16u : 128u, directory ? 1u : 0u, 2, directory ? 0x00200021u : 0x00200060u, IntPtr.Zero, 0);
+            // A scratch namespace keeps only a read/list/synchronize fence:
+            // permit child metadata operations while denying deletion of this
+            // exact created directory. Restore's moving/writable owner stays
+            // unchanged and continues to share only reads.
+            uint access = directory ? allowChildMutations ? 0x00100081u : 0x00110181u : 0xC0100000u;
+            uint share = directory ? allowChildMutations ? 3u : 1u : 0u;
+            int status = NtCreateFile(out var handle, access, ref attributes, out var io, IntPtr.Zero,
+                directory ? 16u : 128u, share, 2, directory ? 0x00200021u : 0x00200060u, IntPtr.Zero, 0);
             if (status < 0 || io.Information != (IntPtr)2)
             {
                 handle?.Dispose();

@@ -53,7 +53,8 @@ public sealed class PlasticRevisionTests
         <LsItem><CurrentPath>/image.png</CurrentPath><RepId>42</RepId><RevId>2</RevId><Type>bin</Type><Size>1</Size><Hash>1B2M2Y8AsgTpgAmY7PhCfg==</Hash><Date>2026-10-04T00:00:00Z</Date></LsItem>
         </LsItems></LsResults>
         """;
-        var file = Assert.Single(PlasticRevisionClient.Parse("1@repo@server", xml).Entries);
+        using var parsed = PlasticRevisionClient.Parse("1@repo@server", xml);
+        var file = Assert.Single(parsed.EnumerateEntries());
         Assert.False(file.Directory); Assert.Equal("image.png", file.Path); Assert.Equal("2", file.Revision);
         Assert.Equal("PlasticBasisInvalid", Assert.Throws<WorkspaceException>(() => PlasticRevisionClient.Parse("1@repo@server", xml.Replace("<Type>bin</Type>", "<Type>symlink</Type>"))).Code);
     }
@@ -153,7 +154,7 @@ public sealed class PlasticRevisionTests
         var catalog = new ContractCatalog();
         using var receipt = JsonDocument.Parse(File.ReadAllText(Path.Combine(f.Receipt, "plastic-basis.json")));
         Assert.True(catalog.Validate("urn:splinter:v1:plastic-project-basis-receipt", receipt.RootElement).IsValid);
-        var request = new OverlayServeRequest(new(2, new string('a', 24), basis, 1024 * 1024, 65536),
+        var request = new OverlayServeRequest(new(3, new string('a', 24), basis, 1024 * 1024, 65536),
             Path.Combine(f.Root, "delta"), Path.Combine(f.Root, "mount"), Path.Combine(f.Root, "control"), new string('b', 64),
             new(basis.Id, basis.RootPath, provider.Required(basis).ManifestDigest), f.Receipt, "owner");
         Assert.True(catalog.Validate("urn:splinter:v1:overlay-serve-request", JsonSerializer.SerializeToElement(request, new JsonSerializerOptions(JsonSerializerDefaults.Web))).IsValid);

@@ -3,10 +3,35 @@ using Splinter.Core;
 
 namespace Splinter.Runtime;
 
-public sealed partial class JournalDeltaStore : IWorkspaceWriteBatch
+public sealed partial class JournalDeltaStore : IWorkspaceWriteBatch, IWorkspaceMetadataBatch
 {
+    public void ApplyMetadataBatch(IReadOnlyList<Action> mutations)
+    {
+        ArgumentNullException.ThrowIfNull(mutations);
+        if (mutations.Count > IWorkspaceWriteBatch.MaximumWrites || mutations.Any(value => value is null))
+            throw new ArgumentException("The metadata callback group exceeds its bounded request budget.", nameof(mutations));
+        CommitStorageBatch(() => { foreach (var mutation in mutations) mutation(); });
+    }
     private sealed record PendingCommit(Mutation Mutation, long Start, long Bytes, int PayloadBytes, LiveCommitCounters Cost);
     private List<PendingCommit>? pendingWriteBatch;
+
+    // Internal reference/progress changes use the same durable frames and
+    // flush/drain protocol as admitted writes. The gate excludes observers
+    // until the entire bounded group is durable; failures poison live state.
+    private void CommitStorageBatch(Action append)
+    {
+        using (EnterGate(mutation: true))
+        {
+            Check();
+            if (pendingWriteBatch is not null) throw new InvalidOperationException("Nested journal batches are unsupported.");
+            long initialSequence = sequence;
+            pendingWriteBatch = [];
+            (nodes as PagedNodeMap)?.BeginBatch();
+            try { append(); FlushPendingWrites(); }
+            catch { if (pendingWriteBatch.Count != 0 || sequence != initialSequence) Poison(); throw; }
+            finally { (nodes as PagedNodeMap)?.EndBatch(); pendingWriteBatch = null; }
+        }
+    }
 
     public void WriteBatch(IReadOnlyList<WorkspaceRangeWrite> writes)
     {
@@ -24,6 +49,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceWriteBatch
                 return;
             }
             pendingWriteBatch = [];
+            (nodes as PagedNodeMap)?.BeginBatch();
             try
             {
                 foreach (var write in writes) Write(write.Id, write.Offset, write.Data.Span);
@@ -36,7 +62,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceWriteBatch
                 if (pendingWriteBatch.Count != 0) Poison();
                 throw;
             }
-            finally { pendingWriteBatch = null; }
+            finally { (nodes as PagedNodeMap)?.EndBatch(); pendingWriteBatch = null; }
         }
     }
 
@@ -49,6 +75,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceWriteBatch
 
     private void FlushPendingWrites()
     {
+        (nodes as PagedNodeMap)?.Flush();
         if (pendingWriteBatch is not { Count: > 0 } pending) return;
         var last = pending[^1];
         long before = flushTicks, began = Stopwatch.GetTimestamp();

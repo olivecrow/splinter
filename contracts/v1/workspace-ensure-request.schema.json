@@ -28,11 +28,6 @@
     "editor": {
       "type": "boolean"
     },
-    "maxJournalBytes": {
-      "type": "integer",
-      "minimum": 4096,
-      "maximum": 1099511627776
-    },
     "source": {
       "enum": [
         "git",

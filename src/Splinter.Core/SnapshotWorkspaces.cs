@@ -4,7 +4,10 @@ namespace Splinter.Core;
 // decisions; adapters own filesystem/VCS side effects and their receipts.
 public sealed class SnapshotWorkspaceState
 {
-    public const long DefaultJournalBytes = 16L * 1024 * 1024 * 1024;
+    // Legacy constructor callers retain this value; current task/overlay
+    // control formats contain no journal quota. Physical storage governs I/O.
+    public const long DefaultJournalBytes = long.MaxValue;
+    [System.Text.Json.Serialization.JsonIgnore]
     public long MaxJournalBytes { get; set; } = DefaultJournalBytes;
     public SnapshotReference? Reference { get; set; }
     public OverlayMount? Mount { get; set; }

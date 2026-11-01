@@ -37,7 +37,7 @@ public static class WorkspaceSnapshotBasis
         return new(snapshot.Provider switch
         {
             GitObjectSnapshotProvider.ProviderName => new GitObjectSnapshotProvider(directory, owner).OpenTree(snapshot, access, health),
-            PlasticRevisionSnapshotProvider.ProviderName => new PlasticRevisionSnapshotProvider(directory, owner).OpenTree(snapshot, access),
+            PlasticRevisionSnapshotProvider.ProviderName => new PlasticRevisionSnapshotProvider(directory, owner).OpenTree(snapshot, access, new WindowsJournalFilePins()),
             OwnedDirectorySnapshotTree.ProviderName => new OwnedDirectorySnapshotTree((ProjectDirectorySnapshotProvider.Present(directory) ? new ProjectDirectorySnapshotProvider(directory, owner).Shared(snapshot) : new OwnedDirectorySnapshotProvider(directory, owner)).Read(snapshot), snapshot),
             _ => throw new WorkspaceException("SnapshotProviderUnsupported", "Retain the unsupported immutable basis.")
         });
@@ -51,7 +51,7 @@ public static class WorkspaceSnapshotBasis
                 readLease as FileStream ?? throw new WorkspaceException("GitBasisReadScopeInvalid", "Require the exact Git reader lease.")))
             : OpenTree(snapshot, access, directory, owner);
     }
-    public sealed class DisposableSnapshotTree(ISnapshotTree tree) : ISnapshotTree, ISnapshotContentSummaryProvider, IDisposable
+    public sealed class DisposableSnapshotTree(ISnapshotTree tree) : ISnapshotTree, ISnapshotContentSummaryProvider, ISnapshotAvailabilityScope, IDisposable
     {
         internal GitReadObservation? ObserveGitReads() => (tree as GitObjectSnapshotTree)?.ObserveReads();
         public SnapshotReference Snapshot => tree.Snapshot;
@@ -59,8 +59,13 @@ public static class WorkspaceSnapshotBasis
         public bool SupportsConcurrentReads => tree.SupportsConcurrentReads;
         public void EnsureAvailable() => tree.EnsureAvailable();
         public void VerifyReadBoundary() => tree.VerifyReadBoundary();
+        public SnapshotObservation? ObserveAvailability(SnapshotReadAccess expectedAccess) =>
+            (tree as ISnapshotAvailabilityScope)?.ObserveAvailability(expectedAccess);
+        public long MetadataFenceCount => (tree as ISnapshotAvailabilityScope)?.MetadataFenceCount ?? 0;
+        public long MetadataFenceBytes => (tree as ISnapshotAvailabilityScope)?.MetadataFenceBytes ?? 0;
         public SnapshotEntry? Stat(string path) => tree.Stat(path);
         public IReadOnlyList<SnapshotEntry> List(string path) => tree.List(path);
+        public IEnumerable<SnapshotEntry> EnumerateChildren(string path) => tree.EnumerateChildren(path);
         public int Read(string path, long offset, Span<byte> destination) => tree.Read(path, offset, destination);
         public SnapshotContentSummary? GetVerifiedContentSummary(string path) =>
             tree is ISnapshotContentSummaryProvider provider ? provider.GetVerifiedContentSummary(path) : null;

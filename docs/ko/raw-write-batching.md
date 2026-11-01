@@ -14,6 +14,8 @@
 
 ## Windows 요청 수집
 
+SCAL 처리량 후속은 최대 64개의 동기 metadata 변경을 받는 앱/OS 중립 `IWorkspaceMetadataBatch` 계약도 제공한다. WinFsp는 mutation gate 앞에서 동시 크기/시간 callback을 모으고 소유 저널의 공유 영속 flush 뒤 ACK한다. 명시적 flush/capture는 접수된 metadata와 쓰기 ticket을 모두 drain한다. 실패한 묶음은 불확정 prefix를 보존하고 replay를 요구하며 SJL4는 개별 capsule 경계를 유지한다. [ST-10 검증](verification/scalable-storage-throughput-followup.md)을 참조한다.
+
 WinFsp 어댑터는 mutation gate **앞에서** 동시 쓰기 callback을 모은다. 한 호출자가 FIFO의 다음 묶음을 동기적으로 처리하며 그동안 기다린 호출들은 다음 flush를 공유할 수 있다. 백그라운드 writer·수집을 위한 sleep·조기 성공 응답은 없다. native 입력 버퍼는 callback 반환까지 살아 있다. Staging payload는 commit당 64개 chunk / 논리 16MiB로 제한한다. ArrayPool 반올림/보유와 caller/native 버퍼는 별도 비용이며 전체 RAM 상한이 아니다. 큰 callback은 나눠 처리하고 모든 조각이 완료된 뒤 성공한다. append 위치와 constrained 길이는 같은 묶음의 선행 쓰기를 반영한다. 다른 변경은 같은 gate를 통해 직렬화한다.
 
 명시적 flush는 어댑터가 이미 접수한 쓰기 ticket을 먼저 drain한다. Close·seal·회수의 내구성/소유 경계는 유지한다. 중단된 대기 스레드도 접수한 쓰기가 drain될 때까지 native 버퍼 소유권을 유지한다. 성공을 이미 반환한 callback의 미완료 쓰기는 없다. 이전 완료 뒤에만 다음 요청을 보내는 순차 호출자는 요청 사이를 묶을 기회를 주지 않는다. 하나의 callback에 포함된 여러 chunk는 flush를 공유할 수 있다. flush 스레드를 단순히 늘리는 설계가 아니다.

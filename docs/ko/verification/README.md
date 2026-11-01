@@ -4,7 +4,7 @@
 
 [Git 결과 수집·회수 진단](git-result-collection-diagnosis.md)이 GCD-01을 소유한다. 기존 RI 결과와 내용이 같은 소스 재현으로 가용성 확인 subprocess 반복과 과거 회수의 재수집 구간을 확인했다. 제품 코드 변경·새 Unity 자격·전후 성능 자격은 없다.
 
-현재 task 상태는 **v3**, 관리형 basis는 v2다. [반복 원본 반영](../repeated-original-apply.md)이 실행 중 수집·불변 결과 버전·경로별 반영 이력·실행 중 원본의 정확한 외부 협력을 소유한다. [RI 자격](repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분하며 이전 task는 이관 없이 보존·거부한다. RI-01–08은 Git/None/Plastic 각각 작은 고정 실제 Unity 원본/A/B 한 묶음·최종 현재 소스 회귀·명시한 미검증 한계로 한정 완료했다.
+현재 SCAL 후보는 **task v4 / 관리형 basis v3 / overlay v3**를 기록한다. [SCAL 검증](scalable-storage.md)은 사용자의2026-11-01 검증 축소 뒤 미완료이며 [느린 구간 진단](scalable-storage-throughput-diagnosis.md)이 실제 지연과 보존 종료를 기록한다. 이전 [RI 자격](repeated-original-apply.md)은 당시 task v3/basis v2 후보의 근거이며 새 SCAL 자격이 아니다. [반복 원본 반영](../repeated-original-apply.md)이 실행 중 수집·불변 결과·경로별 이력·정확한 외부 협력을 소유한다. 이전 상태는 이관 없이 보존·거부한다.
 
 [English](../../verification/README.md)
 

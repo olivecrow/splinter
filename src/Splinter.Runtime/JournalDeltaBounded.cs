@@ -27,28 +27,28 @@ public sealed partial class JournalDeltaStore
     // Checkpoint identity must depend only on replayable nodes, not which files
     // happened to be observed in this provider process. The live cache remains
     // intact so existing open IDs continue to work across a checkpoint.
-    private readonly HashSet<Guid> boundedDurableNodes = [];
+    private ISet<Guid> boundedDurableNodes = new HashSet<Guid>();
     private FileStream? boundedWriterLock;
     private CompactionIntent? boundedModeTransition;
     private IJournalDirectoryGuard? boundedTransitionDirectoryGuard;
     private long boundedPrefixBytes, boundedCheckpointCount, boundedCheckpointWrittenBytes, boundedCheckpointTicks;
     private int boundedFrames;
-    public string JournalStorageMode => boundedSettings is not null ? "bounded" : latest is not null ? "latest" : "append";
+    public string JournalStorageMode => segments is not null ? "segmented" : boundedSettings is not null ? "bounded" : latest is not null ? "latest" : "append";
     public long BoundedCheckpointCount => boundedCheckpointCount;
     // Private state-prefix bytes only; intent/control bytes are excluded. All
     // checkpoint candidate and intent durable flushes remain in FlushCount.
     public long BoundedCheckpointWrittenBytes => boundedCheckpointWrittenBytes;
     public long BoundedCheckpointTicks => boundedCheckpointTicks;
-    public long? BoundedLogByteLimit => boundedSettings?.ByteLimit;
-    public long BoundedLogBytes => boundedSettings is null ? 0 : expectedJournalBytes - boundedPrefixBytes;
-    public int BoundedLogFrames => boundedFrames;
+    public long? BoundedLogByteLimit => segments is not null ? segmentAppendLimit : boundedSettings?.ByteLimit;
+    public long BoundedLogBytes => segments is not null ? expectedJournalBytes - JournalSegmentStorage.HeaderBytes : boundedSettings is null ? 0 : expectedJournalBytes - boundedPrefixBytes;
+    public int BoundedLogFrames => segments is not null ? segmentFrames : boundedFrames;
 
     private static string BoundedIdentityHash(OverlayIdentity identity) =>
         Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(identity)));
     private static void RequireBoundedSettings(BoundedLogSettings settings, OverlayIdentity identity)
     {
         if (settings.Version != 1 || settings.IdentityHash != BoundedIdentityHash(identity) ||
-            settings.ByteLimit < 4096 || settings.ByteLimit > DefaultBoundedLogBytes || settings.ByteLimit > identity.MaxJournalBytes ||
+            settings.ByteLimit < 4096 || settings.ByteLimit > DefaultBoundedLogBytes || identity.Version == 2 && settings.ByteLimit > identity.MaxJournalBytes ||
             settings.FrameLimit != DefaultBoundedLogFrames || !Guid.TryParseExact(settings.Generation, "N", out _))
             throw LatestJournalStorage.Corrupt("The bounded journal mode, owner or resource limit differs.");
     }
@@ -99,7 +99,7 @@ public sealed partial class JournalDeltaStore
         if (readOnly && initializing) throw LatestJournalStorage.Corrupt("Preserve an unfinished bounded initialization.");
         if (selected || initializing)
         {
-            InitializeBounded(directory, selected ? Math.Min(requested!.Value, Identity.MaxJournalBytes) : null);
+            InitializeBounded(directory, selected ? Identity.Version == 3 ? requested!.Value : Math.Min(requested!.Value, Identity.MaxJournalBytes) : null);
         }
         bool marked = File.Exists(guard), pending = File.Exists(Path.Combine(directory, BoundedIntentName)) || File.Exists(Path.Combine(directory, BoundedIntentName) + ".pending");
         bool bounded = IsBoundedJournal(path);
@@ -216,7 +216,7 @@ public sealed partial class JournalDeltaStore
         Visit("bounded.initialize.identity", "initialize", 0, 0, 0, 0);
         using var seed = new MemoryStream();
         long length = WriteStateFrames([], seed, null, intent.Settings);
-        if (length > Identity.MaxJournalBytes) throw new WorkspaceException("DeltaFull", "The bounded seed exceeds the journal budget.");
+        if (Identity.Version == 2 && length > Identity.MaxJournalBytes) throw new WorkspaceException("DeltaFull", "The bounded seed exceeds the journal budget.");
         PublishSeed(journalPath, seed.ToArray());
         Visit("bounded.initialize.published", "initialize", 0, 0, 0, 0);
         File.Delete(intentPath);
@@ -294,14 +294,14 @@ public sealed partial class JournalDeltaStore
         // Include every recorded identity, including deleted-but-open private
         // state. Purely observed base nodes have no journal representation and
         // are recovered lazily from their immutable BasePath after a restart.
-        foreach (var node in BoundedNodes().OrderBy(n => n.Entry.Id))
+        foreach (var node in pagedIndex is null ? BoundedNodes().OrderBy(n => n.Entry.Id) : BoundedNodes())
         {
             Add(node.Entry);
             foreach (var extent in node.Extents)
             { Add(new { extent.Start, extent.Length }); VisitExtent(extent, (_, bytes, _) => hash.AppendData(bytes)); }
         }
-        foreach (string value in hidden.Order(pathPolicy.Comparer)) Add(value);
-        foreach (var pair in pathChanges.OrderBy(p => p.Key, pathPolicy.Comparer)) Add(pair);
+        foreach (string value in pagedIndex is null ? hidden.Order(pathPolicy.Comparer) : (IEnumerable<string>)hidden) Add(value);
+        foreach (var pair in pagedIndex is null ? pathChanges.OrderBy(p => p.Key, pathPolicy.Comparer) : (IEnumerable<KeyValuePair<string, long>>)pathChanges) Add(pair);
         foreach (string value in projectionUnsafe.Order(pathPolicy.Comparer)) Add(value);
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
@@ -310,9 +310,15 @@ public sealed partial class JournalDeltaStore
     {
         if (boundedSettings is null) return;
         if (frameBytes > boundedSettings.ByteLimit)
-            throw new WorkspaceException("DeltaFull", "One mutation exceeds this journal's persisted bounded append limit.");
+        {
+            if (Identity.Version == 2) throw new WorkspaceException("DeltaFull", "One mutation exceeds this journal's persisted bounded append limit.");
+            // The append window is a processing unit. One filesystem callback
+            // may occupy its own window without imposing an input-size quota.
+            if (boundedFrames != 0) CheckpointBounded(0);
+            return;
+        }
         if (journal.Length - boundedPrefixBytes <= boundedSettings.ByteLimit - frameBytes &&
-            boundedFrames < boundedSettings.FrameLimit && journal.Length <= Identity.MaxJournalBytes - frameBytes) return;
+            boundedFrames < boundedSettings.FrameLimit && (Identity.Version == 3 || journal.Length <= Identity.MaxJournalBytes - frameBytes)) return;
         CheckpointBounded(frameBytes);
     }
 
@@ -325,12 +331,12 @@ public sealed partial class JournalDeltaStore
         string intentPath = Path.Combine(directory, BoundedIntentName);
         RequireBoundedIdle(current);
         var next = boundedSettings! with { Generation = Guid.NewGuid().ToString("N") };
-        var live = BoundedLiveRanges();
+        var live = pagedIndex is null ? BoundedLiveRanges() : null;
         long estimated = WriteStateFrames(live, null, null, next);
-        if (estimated > Identity.MaxJournalBytes - nextFrameBytes)
+        if (Identity.Version == 2 && estimated > Identity.MaxJournalBytes - nextFrameBytes)
             throw new WorkspaceException("DeltaFull", "The current private state and next mutation exceed the journal budget.");
-        if (new DriveInfo(Path.GetPathRoot(Path.GetFullPath(current))!).AvailableFreeSpace < checked(estimated + 2L * 1024 * 1024 * 1024))
-            throw new WorkspaceException("CompactionHeadroomRequired", "A bounded checkpoint requires space for its private-state generation and 2 GiB headroom.");
+        if (new DriveInfo(Path.GetPathRoot(Path.GetFullPath(current))!).AvailableFreeSpace < estimated)
+            throw new WorkspaceException("CompactionHeadroomRequired", "A bounded checkpoint requires space for its private-state generation.");
         var before = BoundedFileSeal(current, sequence);
         var intent = new BoundedCheckpointIntent(1, Identity, next.Generation, before, BoundedStateHash(), next);
         try
@@ -422,7 +428,7 @@ public sealed partial class JournalDeltaStore
                 if (intent.After is null)
                 {
                     using var compare = new BoundedCandidatePrefixVerifier(candidate);
-                    proof.WriteStateFrames(proof.BoundedLiveRanges(), compare, null, intent.Next);
+                    proof.WriteStateFrames(proof.pagedIndex is null ? proof.BoundedLiveRanges() : null, compare, null, intent.Next);
                     compare.Complete();
                 }
                 File.Delete(candidate);
@@ -446,7 +452,7 @@ public sealed partial class JournalDeltaStore
         if (File.Exists(intentPath)) File.Delete(intentPath);
     }
 
-    private sealed class BoundedCandidatePrefixVerifier(string path) : Stream
+    internal sealed class BoundedCandidatePrefixVerifier(string path) : Stream
     {
         private readonly FileStream input = new(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         private readonly byte[] scratch = new byte[65536];

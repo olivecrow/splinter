@@ -9,11 +9,14 @@
     "requestDigest",
     "snapshotId",
     "identity",
-    "entries"
+    "catalog",
+    "payloadIndex",
+    "payloadPaths",
+    "contentFiles"
   ],
   "properties": {
     "version": {
-      "const": 1
+      "const": 3
     },
     "ownerId": {
       "type": "string",
@@ -31,81 +34,24 @@
       "type": "string",
       "pattern": "^sha256:[a-f0-9]{64}$"
     },
-    "entries": {
-      "type": "array",
-      "maxItems": 32768,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "path",
-          "kind",
-          "length",
-          "hash",
-          "lastWriteUtcTicks",
-          "attributes"
-        ],
-        "properties": {
-          "path": {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "^(?!/)(?!.*(?:^|/)(?:\\.\\.?)(?:/|$))[^\\\\:]+$"
-          },
-          "kind": {
-            "enum": [
-              "file",
-              "directory"
-            ]
-          },
-          "length": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "hash": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "pattern": "^[a-f0-9]{64}$"
-          },
-          "lastWriteUtcTicks": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "attributes": {
-            "type": "integer",
-            "minimum": 0
-          }
+    "catalog": {
+      "$ref": "urn:splinter:v1:snapshot-catalog"
+    },
+    "payloadIndex": {
+      "$ref": "urn:splinter:v1:metadata-tree-root"
+    },
+    "payloadPaths": {
+      "$ref": "urn:splinter:v1:metadata-tree-root"
+    },
+    "contentFiles": {
+      "anyOf": [
+        {
+          "type": "null"
         },
-        "allOf": [
-          {
-            "if": {
-              "properties": {
-                "kind": {
-                  "const": "directory"
-                }
-              }
-            },
-            "then": {
-              "properties": {
-                "length": {
-                  "const": 0
-                },
-                "hash": {
-                  "type": "null"
-                }
-              }
-            },
-            "else": {
-              "properties": {
-                "hash": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        ]
-      }
+        {
+          "$ref": "urn:splinter:v1:metadata-tree-root"
+        }
+      ]
     }
   }
 }

@@ -9,13 +9,27 @@ namespace Splinter.SourceControl.Files;
 
 // A tree-owned, private stdio child. No listening socket, command API or
 // revision payload file is created. Only one revision stream owns the child.
-internal sealed class PlasticRevisionStreamSession : IPlasticRevisionReader, IDisposable
+internal sealed class PlasticRevisionStreamSession : IPlasticRevisionBatchReader, IDisposable
 {
     private readonly SemaphoreSlim streamLease = new(1, 1);
     private Process? process;
     private Task? errors;
     private string? fixedTree;
     private bool disposed;
+    private HashSet<string> prepared = new(StringComparer.Ordinal);
+    private IReadOnlyList<PlasticRevisionReadRequest>? pendingBatch;
+    public bool HasPreparedRevision(string revision) => prepared.Contains(revision);
+    public void PrepareRevisions(string treeSpec, IReadOnlyList<PlasticRevisionReadRequest> revisions)
+    {
+        RequireTreeSpec(treeSpec);
+        if (fixedTree is not null && fixedTree != treeSpec) throw Failure("PlasticBasisRequestInvalid", "A read session retains its exact fixed tree.");
+        if (revisions.Count is < 1 or > 64) throw Failure("PlasticBasisRequestInvalid", "A revision batch is a bounded processing unit.");
+        long bytes = 0; var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var item in revisions)
+            if (!Numeric(item.Revision) || item.Length < 0 || (bytes = checked(bytes + item.Length)) > 4 * 1024 * 1024 || !names.Add(item.Revision))
+                throw Failure("PlasticBasisRequestInvalid", "The exact bounded revision batch is invalid.");
+        pendingBatch = revisions.ToArray(); prepared = names;
+    }
 
     private void Start(string treeSpec)
     {
@@ -28,14 +42,17 @@ internal sealed class PlasticRevisionStreamSession : IPlasticRevisionReader, IDi
         if (!OperatingSystem.IsWindows()) throw Failure("PlasticBasisUnsupported", "The recorded revision bridge requires Windows and the qualified cm client.");
         using var resource = typeof(PlasticRevisionClient).Assembly.GetManifestResourceStream("Splinter.PlasticRevisionBridge.cs")!;
         using var reader = new StreamReader(resource);
-        string command = "$ErrorActionPreference='Stop'; $types=Add-Type -PassThru -TypeDefinition @'\n" + reader.ReadToEnd() +
-            "\n'@; $bridge=$types | Where-Object FullName -eq 'Splinter.SourceControl.Files.PlasticRevisionBridge'; $bridge.GetMethod('Run').Invoke($null,@())";
+        string source = reader.ReadToEnd();
+        // Source travels over the private pipe. EncodedCommand would exceed
+        // Windows' command-line limit as the qualified adapter grows.
+        const string command = "$ErrorActionPreference='Stop'; $source=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([Console]::ReadLine())); $types=Add-Type -PassThru -TypeDefinition $source; $bridge=$types | Where-Object FullName -eq 'Splinter.SourceControl.Files.PlasticRevisionBridge'; $bridge.GetMethod('Run').Invoke($null,@())";
         var info = new ProcessStartInfo("pwsh") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true,
             RedirectStandardOutput = true, RedirectStandardError = true, StandardInputEncoding = new UTF8Encoding(false) };
         foreach (string arg in new[] { "-NoProfile", "-NonInteractive", "-EncodedCommand", Convert.ToBase64String(Encoding.Unicode.GetBytes(command)) }) info.ArgumentList.Add(arg);
         try { process = Process.Start(info) ?? throw Failure("PlasticBasisUnavailable", "The private revision reader did not start."); }
         catch (System.ComponentModel.Win32Exception) { throw Failure("PlasticBasisUnavailable", "PowerShell 7 is required for the private revision reader."); }
         errors = Drain(process.StandardError); fixedTree = treeSpec;
+        process.StandardInput.WriteLine(Convert.ToBase64String(Encoding.UTF8.GetBytes(source)));
         process.StandardInput.WriteLine(JsonSerializer.Serialize(new { repository = treeSpec[(treeSpec.IndexOf('@') + 1)..] }));
         process.StandardInput.Flush();
     }
@@ -50,7 +67,18 @@ internal sealed class PlasticRevisionStreamSession : IPlasticRevisionReader, IDi
         try
         {
             ObjectDisposedException.ThrowIf(disposed, this); Start(treeSpec);
-            process!.StandardInput.WriteLine(revision); process.StandardInput.Flush();
+            if (pendingBatch is { } batch)
+            {
+                if (!prepared.Contains(revision)) throw Failure("PlasticBasisRequestInvalid", "The first batch read must belong to its fixed scope.");
+                process!.StandardInput.WriteLine(JsonSerializer.Serialize(new { requested = revision, batch }, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+                pendingBatch = null;
+            }
+            else
+            {
+                if (!prepared.Contains(revision)) prepared.Clear();
+                process!.StandardInput.WriteLine(revision);
+            }
+            process.StandardInput.Flush();
             return new RevisionStream(process.StandardOutput.BaseStream, complete => { if (!complete) Stop(); streamLease.Release(); });
         }
         catch { streamLease.Release(); Stop(); throw; }
@@ -65,13 +93,13 @@ internal sealed class PlasticRevisionStreamSession : IPlasticRevisionReader, IDi
             if (!process.HasExited && !process.WaitForExit(1000)) { process.Kill(entireProcessTree: true); process.WaitForExit(); }
             try { errors?.GetAwaiter().GetResult(); } catch (IOException) { }
         }
-        finally { process.Dispose(); process = null; }
+        finally { process.Dispose(); process = null; prepared.Clear(); pendingBatch = null; }
     }
     public void Dispose() { if (disposed) return; disposed = true; Stop(); }
 
     internal sealed class RevisionStream(Stream pipe, Action<bool> onClose) : Stream
     {
-        private readonly CancellationTokenSource deadline = new(TimeSpan.FromSeconds(120));
+        private readonly CancellationTokenSource deadline = new();
         private readonly byte[] header = new byte[4];
         private int remaining;
         private bool complete, closed;
@@ -83,13 +111,17 @@ internal sealed class PlasticRevisionStreamSession : IPlasticRevisionReader, IDi
             {
                 if (remaining == 0)
                 {
-                    pipe.ReadExactlyAsync(header, deadline.Token).AsTask().GetAwaiter().GetResult();
+                    deadline.CancelAfter(TimeSpan.FromSeconds(120));
+                    try { pipe.ReadExactlyAsync(header, deadline.Token).AsTask().GetAwaiter().GetResult(); }
+                    finally { deadline.CancelAfter(Timeout.InfiniteTimeSpan); }
                     remaining = BinaryPrimitives.ReadInt32LittleEndian(header);
                     if (remaining == 0) { complete = true; return 0; }
                     if (remaining == -2) throw Failure("PlasticBasisUnsupported", "The private reader requires the qualified Windows cm 11.0.16.10484 installation; preserve the task.");
                     if (remaining is < 0 or > 65536) throw Failure("PlasticBasisUnavailable", "The private revision reader failed or returned an invalid frame.");
                 }
-                int read = pipe.ReadAsync(buffer.AsMemory(offset, Math.Min(count, remaining)), deadline.Token).AsTask().GetAwaiter().GetResult();
+                deadline.CancelAfter(TimeSpan.FromSeconds(120)); int read;
+                try { read = pipe.ReadAsync(buffer.AsMemory(offset, Math.Min(count, remaining)), deadline.Token).AsTask().GetAwaiter().GetResult(); }
+                finally { deadline.CancelAfter(Timeout.InfiniteTimeSpan); }
                 if (read == 0) throw new EndOfStreamException();
                 remaining -= read; return read;
             }

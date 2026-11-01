@@ -54,17 +54,53 @@ public interface ISnapshotTree
     void VerifyReadBoundary() => EnsureAvailable();
     SnapshotEntry? Stat(string relativePath);
     IReadOnlyList<SnapshotEntry> List(string relativeDirectory);
+    // A paged provider binds an immutable directory root at this call. The
+    // iterator must not change membership as callbacks consume later pages.
+    IEnumerable<SnapshotEntry> EnumerateChildren(string relativeDirectory) => List(relativeDirectory);
     int Read(string relativePath, long offset, Span<byte> destination);
 }
 
+// Optional, explicitly held immutable-metadata observation. Returning null
+// keeps the ordinary provider's fresh observation. A successful scope owns
+// exact write/delete fences plus the snapshot reader/reclamation lease until
+// disposal; VerifyReadBoundary still performs the full publication proof.
+// Native binding costs are separate from the bounded metadata page cache.
+public interface ISnapshotAvailabilityScope
+{
+    SnapshotObservation? ObserveAvailability(SnapshotReadAccess expectedAccess);
+    long MetadataFenceCount { get; }
+    long MetadataFenceBytes { get; }
+}
+
+public static class SnapshotAvailabilityScopes
+{
+    public static SnapshotObservation? Observe(ISnapshotTree? tree, SnapshotReference expected, SnapshotReadAccess access)
+    {
+        if (tree is not ISnapshotAvailabilityScope scope) return null;
+        access.RequireMatch(expected);
+        if (tree.Snapshot != expected) throw new WorkspaceException("SnapshotIdentityMismatch", "The held observation belongs to another immutable snapshot.");
+        var observation = scope.ObserveAvailability(access);
+        if (observation is not null && (observation.Id != expected.Id || observation.Available == true && observation.ReadAccess != access))
+            throw new WorkspaceException("SnapshotIdentityMismatch", "The held observation cannot replace its fixed read identity.");
+        return observation;
+    }
+}
+
+[System.Text.Json.Serialization.JsonConverter(typeof(OverlayIdentityJsonConverter))]
 public sealed record OverlayIdentity(int Version, string Id, SnapshotReference Snapshot,
-    long MaxJournalBytes, int MaxTransferBytes, string[]? ExcludedTopLevel = null,
+    [property: JsonIgnore] long MaxJournalBytes = long.MaxValue, int MaxTransferBytes = 1048576, string[]? ExcludedTopLevel = null,
     string[]? IncludedTopLevel = null, string[]? DeniedTopLevel = null, SnapshotGraft? Graft = null);
 public sealed record OverlayStorageObservation(string Id, string SnapshotId, long InitialPayloadCopiedBytes,
     long JournalBytes, long PayloadBytes, long MetadataBytes, long ReadBytes,
-    long ReadCacheBytes, int MaxTransferBytes, int IndexedNodes, long DurableSequence)
+    long ReadCacheBytes, int MaxTransferBytes, long IndexedNodes, long DurableSequence)
 {
     public OverlayIoMetrics? Metrics { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? MetadataCacheBytes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? PeakMetadataCacheBytes { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? SealJournalBytes { get; init; }
     public bool JournalOptimizationEnabled { get; init; }
     public string JournalBytesBasis { get; init; } = "current-files";
     public string JournalStorageMode { get; init; } = "append";
@@ -85,9 +121,11 @@ public sealed record DeltaEntry(Guid Id, string Path, bool Directory, long Lengt
 public interface IWorkspaceDeltaStore : IDisposable
 {
     OverlayIdentity Identity { get; }
+    string? BackingPath => null;
     DeltaEntry? Stat(string path);
     DeltaEntry Get(Guid id);
     IReadOnlyList<DeltaEntry> List(string directory);
+    IEnumerable<DeltaEntry> EnumerateChildren(string directory) => List(directory);
     DeltaEntry Create(string path, bool directory, uint attributes);
     int Read(Guid id, long offset, Span<byte> destination);
     void Write(Guid id, long offset, ReadOnlySpan<byte> data);

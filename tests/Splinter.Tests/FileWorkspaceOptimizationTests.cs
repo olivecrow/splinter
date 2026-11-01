@@ -59,10 +59,10 @@ public sealed partial class FileWorkspaceTests
         File.WriteAllText(Path.Combine(f.Project, "dir1", "foreign"), "retain");
         var selected = (await f.New().PlanOriginalAsync(w.Id, ct, ["dir1", "dir1/file"])).OriginalApplyPlan!;
         Assert.Equal(new[] { "dir1", "dir1/file" }, selected.SelectedPaths);
-        Assert.Equal(new[] { "dir1/file", "dir1" }, selected.Changes.Select(c => c.Path).ToArray());
+        Assert.Equal(new[] { "dir1/file", "dir1" }, selected.EnumerateChanges().Select(c => c.Path).ToArray());
         Assert.Single(selected.Conflicts); Assert.StartsWith("dir1:", selected.Conflicts[0]);
         var sibling = (await f.New().PlanOriginalAsync(w.Id, ct, ["dir10"])).OriginalApplyPlan!;
-        Assert.Empty(sibling.Conflicts); Assert.All(sibling.Changes, c => Assert.StartsWith("dir10", c.Path));
+        Assert.Empty(sibling.Conflicts); Assert.All(sibling.EnumerateChanges(), c => Assert.StartsWith("dir10", c.Path));
         Assert.Equal("OriginalApplyRequestInvalid", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().PlanOriginalAsync(w.Id, ct, ["missing"]))).Code);
     }
 }

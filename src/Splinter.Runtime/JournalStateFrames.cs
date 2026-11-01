@@ -10,13 +10,13 @@ public sealed partial class JournalDeltaStore
     // A sealed current-state prefix preserves identities and path sequences
     // when exporting to a standalone SJR2 candidate or explicitly selecting OFF.
     // It is initialization, never an acknowledged mutation history.
-    private long WriteStateFrames(List<LiveRange> live, Stream? output, IReadOnlySet<string>? projectedFiles, BoundedLogSettings? bounded = null)
+    private long WriteStateFrames(List<LiveRange>? live, Stream? output, IReadOnlySet<string>? projectedFiles, BoundedLogSettings? bounded = null, bool revertBaseRanges = false)
     {
         long bytes = 0;
         void Frame(Mutation mutation, ReadOnlySpan<byte> data, int? estimatedPayloadBytes = null)
         {
             byte[] metadata = JsonSerializer.SerializeToUtf8Bytes(mutation);
-            if (metadata.Length > MaxMetadataBytes) throw new WorkspaceException("OverlayMetadataLimit", "Current-state metadata exceeds its frame bound.");
+            if (metadata.Length > MutationMetadataBytes) throw new WorkspaceException("OverlayMetadataLimit", "One current-state record exceeds the filesystem-derived path size.");
             ReadOnlySpan<byte> stored = data;
             int payloadLength = estimatedPayloadBytes ?? data.Length;
             var descriptor = new WorkspaceJournalPayload(payloadLength, payloadLength);
@@ -30,12 +30,13 @@ public sealed partial class JournalDeltaStore
         }
         var root = nodes[paths[""]].Entry;
         if (bounded is not null) Frame(new(0, "state-bounded", root, Bounded: bounded), []);
-        var ranges = live.GroupBy(r => r.NodeId).ToDictionary(g => g.Key, g => g.OrderBy(r => r.Logical).ToArray());
-        foreach (var node in (bounded is null ? nodes.Values : BoundedNodes()).OrderBy(n => n.Entry.Path, pathPolicy.Comparer).ThenBy(n => n.Entry.Id))
+        var ranges = live?.GroupBy(r => r.NodeId).ToDictionary(g => g.Key, g => g.OrderBy(r => r.Logical).ToArray());
+        var currentNodes = bounded is null ? nodes.Values : BoundedNodes();
+        foreach (var node in pagedIndex is null ? currentNodes.OrderBy(n => n.Entry.Path, pathPolicy.Comparer).ThenBy(n => n.Entry.Id) : currentNodes)
         {
             if (projectedFiles?.Contains(node.Entry.Path) == true) continue;
             Frame(new(0, "state-node", node.Entry), []);
-            foreach (var range in ranges.GetValueOrDefault(node.Entry.Id) ?? [])
+            foreach (var range in ranges is null ? PagedCompactionRanges(node, revertBaseRanges) : ranges.GetValueOrDefault(node.Entry.Id) ?? [])
             {
                 // New state payloads are raw, even when the source extent was
                 // encoded. Sizing needs lengths only; output still reads and
@@ -47,9 +48,9 @@ public sealed partial class JournalDeltaStore
                 Frame(new(0, "state-write", node.Entry, range.Logical), data);
             }
         }
-        foreach (string path in hidden.Order(pathPolicy.Comparer))
+        foreach (string path in pagedIndex is null ? hidden.Order(pathPolicy.Comparer) : (IEnumerable<string>)hidden)
             if (projectedFiles?.Contains(path) != true) Frame(new(0, "state-hidden", root with { Path = path }), []);
-        foreach (var change in pathChanges.OrderBy(p => p.Key, pathPolicy.Comparer))
+        foreach (var change in pagedIndex is null ? pathChanges.OrderBy(p => p.Key, pathPolicy.Comparer) : (IEnumerable<KeyValuePair<string, long>>)pathChanges)
             Frame(new(change.Value, "state-change", root with { Path = change.Key }), []);
         foreach (string path in projectionUnsafe.Order(pathPolicy.Comparer))
             Frame(new(0, "state-projection-unsafe", root with { Path = path }), []);
@@ -89,16 +90,16 @@ public sealed partial class JournalDeltaStore
                 if (!nodes.TryGetValue(mutation.Entry.Id, out var written) || written.Entry != mutation.Entry ||
                     written.Extents.Count != 0 && written.Extents[^1].Start + written.Extents[^1].Length > mutation.Offset)
                     throw LatestJournalStorage.Corrupt("Current-state ranges lack their matching node or overlap.");
-                if (++extentCount > MaxIndexedExtents) throw LatestJournalStorage.Corrupt("The current-state range index is full.");
+                if (++extentCount > MaxIndexedExtents && pagedIndex is null) throw LatestJournalStorage.Corrupt("The legacy current-state range index is full.");
                 written.Extents.Add(new(mutation.Offset, payload.DecodedBytes, physical, payload));
                 payloadBytes += payload.StoredBytes; logicalPayloadBytes += payload.DecodedBytes;
                 break;
             case "state-hidden":
-                if (!hidden.Add(mutation.Entry.Path) || hidden.Count > MaxHiddenPaths)
+                if (!hidden.Add(mutation.Entry.Path) || pagedIndex is null && hidden.Count > MaxHiddenPaths)
                     throw LatestJournalStorage.Corrupt("The current-state whiteout index is invalid.");
                 break;
             case "state-change":
-                if (mutation.Sequence < 1 || !pathChanges.TryAdd(mutation.Entry.Path, mutation.Sequence) || pathChanges.Count > MaxHiddenPaths)
+                if (mutation.Sequence < 1 || !pathChanges.TryAdd(mutation.Entry.Path, mutation.Sequence) || pagedIndex is null && pathChanges.Count > MaxHiddenPaths)
                     throw LatestJournalStorage.Corrupt("The current-state sequence index is invalid.");
                 break;
             case "state-complete":

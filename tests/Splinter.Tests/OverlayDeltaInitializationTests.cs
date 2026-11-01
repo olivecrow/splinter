@@ -11,6 +11,47 @@ public sealed class OverlayDeltaInitializationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void CurrentInitializationPersistsNativeHeadAndContainerOwnersBeforeFreshProviderReopen(bool graft)
+    {
+        using var f = new Fixture(graft);
+        var request = f.Request with { Identity = f.Request.Identity with { Version = 3 } };
+        var pins = new WindowsJournalFilePins(); JournalSegmentState state;
+        using (f.DenyPayloadAccess())
+        {
+            // The short-lived initializer must publish native ownership while
+            // source and Library payload opens remain denied. A fresh provider
+            // must not repair ownership omitted by that first process.
+            OverlayDeltaInitialization.Create(request);
+            using (var input = File.OpenRead(Path.Combine(request.DeltaPath, "segment-state.json")))
+                state = JsonSerializer.Deserialize<JournalSegmentState>(input, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+            Assert.NotNull(state); Assert.NotNull(state.Head.NativeIdentity);
+            Assert.Equal(pins.Identify(Path.Combine(request.DeltaPath, "delta.journal")), state.Head.NativeIdentity);
+            Assert.Equal(JournalSegmentStorage.HeaderBytes, new FileInfo(Path.Combine(request.DeltaPath, "delta.journal")).Length);
+            Assert.Equal(0, state.Roots.Sequence); Assert.Equal(0, state.Roots.PayloadBytes); Assert.Equal(0, state.SealedPayloadBytes);
+            string storeId = PagedMetadataStore.ReadIdentity(state.Roots.Directory);
+            string[] containers = System.IO.Directory.GetFiles(state.Roots.Directory, "pages-*.bin"); Assert.NotEmpty(containers);
+            foreach (string container in containers)
+            {
+                Assert.True(File.Exists(container + ".owner"));
+                PagedMetadataStore.ValidateCreatedContainer(container, storeId, pins);
+            }
+        }
+        using var provider = new ProviderScope(request);
+        using var journal = new JournalDeltaStore(request.DeltaPath, request.Identity, provider.Tree, sourceFilePins: new WindowsJournalFilePins());
+        byte[] observed = new byte[f.Bytes.Length]; var source = journal.Stat("data")!;
+        Assert.Equal(observed.Length, journal.Read(source.Id, 0, observed)); Assert.Equal(f.Bytes, observed);
+        if (graft)
+        {
+            var library = journal.Stat("Library/data")!; Assert.NotEqual(source.Id, library.Id);
+            Assert.Equal(observed.Length, journal.Read(library.Id, 0, observed)); Assert.Equal(f.Bytes, observed);
+        }
+        var observation = journal.Observe(); Assert.Equal("segmented", observation.JournalStorageMode);
+        Assert.Equal(0, observation.InitialPayloadCopiedBytes); Assert.Equal(0, observation.PayloadBytes); Assert.Equal(0, observation.DurableSequence);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void FreshDeltaNeedsNoSourceOrLibraryPayloadOpen(bool graft)
     {
         using var f = new Fixture(graft);
@@ -247,7 +288,7 @@ public sealed class OverlayDeltaInitializationTests
             else if (trackedLibraryDirectory is false) File.WriteAllBytes(Path.Combine(basis, "Library"), [42]);
             var snapshot = new SnapshotReference(name, OwnedDirectorySnapshotTree.ProviderName, basis, basis,
                 DateTimeOffset.UnixEpoch, true, true, "stopped-original-owned-directory");
-            var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, name);
+            var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, name, Path.Combine(receipt, OwnedDirectoryManifest.MetadataDirectoryName));
             string path = Path.Combine(receipt, "manifest.json");
             File.WriteAllText(path, JsonSerializer.Serialize(manifest, Json));
             string hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));

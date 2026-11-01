@@ -1,4 +1,5 @@
 using Splinter.Core;
+using Splinter.Runtime;
 using Splinter.Platform.Windows;
 using Splinter.Protocol;
 using Splinter.Cli;
@@ -18,7 +19,7 @@ public sealed partial class FileWorkspaceTests
         await f.New().CheckpointAsync(w.Id, "unchanged", ct);
         string record = Path.Combine(f.Store.ControlPath(w.Id), "workspace.json"); var saved = File.ReadAllBytes(record);
         var view = await f.New().PlanOriginalAsync(w.Id, ct); var plan = view.OriginalApplyPlan!;
-        Assert.Empty(plan.Changes); Assert.Equal(saved, File.ReadAllBytes(record));
+        Assert.Empty(plan.EnumerateChanges()); Assert.Equal(saved, File.ReadAllBytes(record));
         var catalog = new ContractCatalog();
         var output = JsonSerializer.SerializeToElement(WorkspaceCommands.Result("workspace.integrate", view, false, f.Store.Root), ApiJson.Options);
         Assert.True(catalog.Validate("urn:splinter:v1:response", output).IsValid);
@@ -36,7 +37,7 @@ public sealed partial class FileWorkspaceTests
         File.WriteAllText(Path.Combine(w.Path, "data.txt"), "same result"); await f.New().CheckpointAsync(w.Id, "result", ct);
         File.WriteAllText(Path.Combine(f.Project, "data.txt"), "same result");
         var original = publisher.Observe(f.Project, "data.txt", ct)!;
-        var view = await f.New().PlanOriginalAsync(w.Id, ct); Assert.True(Assert.Single(view.OriginalApplyPlan!.Changes).AlreadyMatches);
+        var view = await f.New().PlanOriginalAsync(w.Id, ct); Assert.True(Assert.Single(view.OriginalApplyPlan!.EnumerateChanges()).AlreadyMatches);
         await f.New().ApplyOriginalAsync(w.Id, "apply", view.OriginalApplyPlan.Digest, ct);
         Assert.Equal(original.Identity, publisher.Observe(f.Project, "data.txt", ct)!.Identity);
         File.WriteAllText(Path.Combine(w.Path, "data.txt"), "later edit");
@@ -46,17 +47,22 @@ public sealed partial class FileWorkspaceTests
     }
 
     [Fact]
-    public async Task UnknownStageIdentityIsPreservedRatherThanAdopted()
+    public async Task UnknownStageIdentityIsPreservedAndSameIntentUsesANewAdmittedAttempt()
     {
-        RequireWindowsApply(); var publisher = new WindowsOriginalFilePublisher((at, _) => { if (at == "stage-created-before-receipt") throw new WorkspaceException("ReplyLost", "Unknown stage creation receipt."); });
+        RequireWindowsApply(); bool stopped = false;
+        var publisher = new WindowsOriginalFilePublisher((at, _) => { if (at == "stage-created-before-receipt" && !stopped) { stopped = true; throw new WorkspaceException("ReplyLost", "Unknown stage creation receipt."); } });
         using var f = new Fixture(publisher); var ct = TestContext.Current.CancellationToken;
         var w = (await f.Ensure("unknown", ct)).Workspace;
         File.WriteAllText(Path.Combine(w.Path, "data.txt"), "result"); await f.New().CheckpointAsync(w.Id, "result", ct);
         var plan = (await f.New().PlanOriginalAsync(w.Id, ct)).OriginalApplyPlan!;
         Assert.Equal("ReplyLost", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ApplyOriginalAsync(w.Id, "apply", plan.Digest, ct))).Code);
-        Assert.Equal("OriginalApplyConflict", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ApplyOriginalAsync(w.Id, "apply", plan.Digest, ct))).Code);
-        Assert.Null(Assert.Single(f.Store.Get(w.Id).OriginalApply!.Steps).StagedIdentity);
-        Assert.Single(Directory.GetFiles(f.Project, ".splinter-apply-*.new")); Assert.Equal("basis", File.ReadAllText(Path.Combine(f.Project, "data.txt")));
+        string unknown = Assert.Single(Directory.GetFiles(f.Project, ".splinter-apply-*.new")); string identity = new WindowsJournalFilePins().Identify(unknown);
+        Assert.Null(f.Store.Get(w.Id).OriginalApply!.StepAt(0).StagedIdentity);
+        Assert.True((await f.New().ApplyOriginalAsync(w.Id, "apply", plan.Digest, ct)).Workspace.OriginalApply!.Completed);
+        Assert.Equal(identity, new WindowsJournalFilePins().Identify(unknown));
+        Assert.Equal("result", File.ReadAllText(Path.Combine(f.Project, "data.txt")));
+        var preserved = Assert.Single(OriginalApplyPages.EnumeratePreservedScratch(f.Store.ControlPath(w.Id), f.Store.Get(w.Id).OriginalApply!));
+        Assert.Equal(Path.GetRelativePath(f.Project, unknown).Replace('\\', '/'), preserved.Path);
     }
 
     [Theory]
@@ -212,8 +218,21 @@ public sealed partial class FileWorkspaceTests
         string record = Path.Combine(f.Store.ControlPath(w.Id), "workspace.json"); var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(record))!;
         var apply = json["originalApply"]!;
         if (damage == "future-field") apply["future"] = 1;
-        if (damage == "missing-step-phase") apply["steps"]![0]!.AsObject().Remove("phase");
-        if (damage == "invalid-path") apply["plan"]!["changes"]![0]!["path"] = "../outside";
+        if (damage == "missing-step-phase")
+        {
+            var root = apply["stepsRoot"]!.Deserialize<MetadataTreeRoot>(new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+            using var pages = new PagedMetadataStore(Path.Combine(f.Store.ControlPath(w.Id), "original-pages"), true);
+            var invalid = pages.Set(root, "0000000000000000", new byte[] { 1, 255 }); pages.Flush();
+            apply["stepsRoot"] = JsonSerializer.SerializeToNode(invalid, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        }
+        if (damage == "invalid-path")
+        {
+            using var pages = new PagedMetadataStore(Path.Combine(f.Store.ControlPath(w.Id), "original-pages"), true);
+            byte[] value = pages.Open(plan.ChangesRoot!).Find("0000000000000000")!; value.AsSpan(1, 32).Clear();
+            var root = pages.Set(plan.ChangesRoot!, "0000000000000000", value); pages.Flush();
+            var invalid = plan with { ChangesRoot = root, Digest = "" }; invalid = invalid with { Digest = invalid.ComputeDigest() };
+            apply["plan"] = JsonSerializer.SerializeToNode(invalid, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        }
         if (damage == "missing-intent") json.AsObject().Remove("originalApply");
         File.WriteAllText(record, json.ToJsonString()); var corrupt = File.ReadAllBytes(record);
         Assert.Throws<WorkspaceException>(() => f.Store.Get(w.Id));
@@ -249,11 +268,12 @@ public sealed partial class FileWorkspaceTests
         public void Publish(OriginalApplyState state, Func<OriginalFileVersion, Stream> payload, Action persist, CancellationToken ct = default)
         {
             Publications++;
-            for (int i = 0; i < state.Steps.Length; i++)
+            for (long i = 0; i < state.Plan.ChangeCount; i++)
             {
-                var step = state.Steps[i]; step.Phase = "done";
-                if (!state.Plan.Changes[i].AlreadyMatches && state.Plan.Changes[i].After is { } result)
+                var step = state.StepAt(i); step.Phase = "done";
+                if (!state.Plan.ChangeAt(i).AlreadyMatches && state.Plan.ChangeAt(i).After is { } result)
                 { step.StagedIdentity = "fake-publication"; step.StagedBytes = result.Length; }
+                state.SaveStep(i, step);
             }
             state.Completed = true; persist();
         }

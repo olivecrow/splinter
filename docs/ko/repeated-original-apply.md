@@ -8,7 +8,7 @@
 
 ## 수명과 identity
 
-현재 task record는 **v3**다. 관리형 project/Library 기준본 상태는 v2를 유지한다. 이전 작업은 보존·거부하며 일치하는 이전 바이너리로 마무리한다. CLI 갱신은 자동 이관·회수·새 기준본·새 작업을 의미하지 않는다. 이전 record가 남은 home에는 새 버전을 섞지 않고 새 v3 task용 home을 별도로 명시한다. 이전 record를 이동·수정·자동 sweep하지 않는다.
+현재 [대규모 저장 후보](scalable-storage.md)는 **task v4·관리형 basis v3·제품 overlay v3**를 기록하며 SCAL 자격 검증은 진행 중이다. 아래 RI-01–08은 당시 task v3/basis v2 후보를 검증한 근거다. 이전 기록은 보존·거부하고 일치하는 바이너리로 마무리하며 CLI 갱신으로 자동 이관·회수·새 기준본·새 task를 만들지 않는다. 새 작업에는 명시한 새 형식 home을 사용하고 이전 home을 유지하며 이전 상태를 이동·수정·자동 sweep하지 않는다.
 
 작업공간은 반복 수집·반영 중 경로·ID·요청 digest·고정 기준본·private 저널·Library를 유지한다. 결과는 별도의 불변 ID·순번·요청 키·메시지·소스 순번·수집 digest·내용 identity·독립 참조를 가진다. 수집은 Editor를 종료하거나 이후 편집·재시작을 금지하지 않는다.
 
@@ -21,7 +21,7 @@ pwsh -File <product-root>/scripts/splinter.ps1 workspace checkpoint --id <task> 
 
 provider는 접수된 쓰기를 drain하고 callback/mutation 경계에서 ACK한 데이터를 영속화한 뒤 namespace·metadata·범위 참조·backing 파일 identity를 영속 기록한다. 내부 NTFS backing alias가 범위를 보호한다. payload 읽기·해시·독립 보존은 이 경계 밖에서 수행하며 이후 편집은 다음 결과에 속한다. bounded 교체·capsule prefix 단축은 alias를 보호하고 필요한 private prefix만 소유 영수증에 결합해 복사한다. 원본 파일 copy-up·전체 clone·hydration은 제공하지 않는다. 재시작은 writer replay·회수보다 먼저 수집 보호를 읽는다.
 
-파일 입력은 결과 버전 사이에서 내용 주소 payload를 재사용한다. Git은 독립 result ref/object를 보존하고 공통 게시기로 blob을 stream한다. 성공한 결과와 반영 영수증은 작업 회수 뒤에도 남는다. 보존 payload의 논리 수치와 실제 NTFS 할당·최대 RAM은 구분한다.
+현재 파일/범위 결과는 입력·세대 사이에서 같은 home의 불변 내용을 공유한다. Git은 보호한 불변 기준과 파일/범위 결과 manifest를 보존하고 명시적 branch 반영에 필요할 때 commit/tree/ref 결과를 구체화한다. 원본 파일은 HEAD/index/branch를 바꾸지 않는 공통 조건부 게시기를 사용한다. 성공한 결과와 반영 영수증은 작업 회수 뒤에도 남는다. 보존 payload의 논리 수치와 실제 NTFS 할당·최대 RAM은 구분한다.
 
 ## 고정 결과 반영
 

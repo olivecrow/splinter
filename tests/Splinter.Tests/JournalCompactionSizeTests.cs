@@ -30,7 +30,7 @@ public sealed class JournalCompactionSizeTests
             Assert.True(first.After.JournalBytes < first.Before.JournalBytes);
             JournalDeltaStore.CompleteCompaction(directory, identity);
         }
-        SourceChangeView changes; DeltaEntry entry; long before, estimate;
+        SourceChangeTestHeader changes; DeltaEntry entry; long before, estimate;
         using (var store = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Stat("file")!.Id;
@@ -39,7 +39,7 @@ public sealed class JournalCompactionSizeTests
                 expected[offset] = 3; expected[offset + 6144] = 4;
                 store.Write(id, offset, [3]); store.Write(id, offset + 6144, [4]);
             }
-            entry = store.Stat("file")!; changes = store.ObserveChanges([]);
+            entry = store.Stat("file")!; using (var observedChangeHeader = store.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader);
             before = store.Observe().JournalBytes; estimate = store.EstimateCompactionJournalOverlapBytes();
         }
         var receipt = JournalDeltaStore.CompactDirectory(directory, identity, tree,
@@ -49,8 +49,10 @@ public sealed class JournalCompactionSizeTests
         using (var replay = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
         {
             Assert.Equal(entry, replay.Stat("file"));
-            Assert.Equal(changes.Sequence, replay.ObserveChanges([]).Sequence);
-            Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);
+            using var observedChanges1 = replay.ObserveChanges([]);
+            Assert.Equal(changes.Sequence, observedChanges1.Sequence);
+            using var observedChanges2 = replay.ObserveChanges([]);
+            Assert.Equal(changes.Changes, observedChanges2.Changes);
             byte[] actual = new byte[expected.Length];
             Assert.Equal(actual.Length, replay.Read(entry.Id, 0, actual)); Assert.Equal(expected, actual);
         }
@@ -66,19 +68,21 @@ public sealed class JournalCompactionSizeTests
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = new OverlayIdentity(2, "tiny", tree.Snapshot, 1024 * 1024, 4096);
-        string directory = Path.Combine(root.Path, "delta"); SourceChangeView changes;
+        string directory = Path.Combine(root.Path, "delta"); SourceChangeTestHeader changes;
         using (var store = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
         {
             Guid a = store.Create("a", false, 32).Id, b = store.Create("b", false, 32).Id;
             for (int i = 0; i < 20; i++) { store.Write(a, 0, [(byte)i]); store.Write(b, 0, [(byte)(i + 1)]); }
-            changes = store.ObserveChanges([]);
+            using (var observedChangeHeader = store.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader);
         }
         var receipt = JournalDeltaStore.CompactDirectory(directory, identity, tree);
         Assert.True(receipt.After.JournalBytes <= receipt.Before.JournalBytes);
         using (var replay = new JournalDeltaStore(directory, identity, tree, optimizeJournal: false))
         {
-            Assert.Equal(changes.Sequence, replay.ObserveChanges([]).Sequence);
-            Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);
+            using var observedChanges3 = replay.ObserveChanges([]);
+            Assert.Equal(changes.Sequence, observedChanges3.Sequence);
+            using var observedChanges4 = replay.ObserveChanges([]);
+            Assert.Equal(changes.Changes, observedChanges4.Changes);
             byte[] value = new byte[1]; replay.Read(replay.Stat("a")!.Id, 0, value); Assert.Equal(19, value[0]);
             replay.Read(replay.Stat("b")!.Id, 0, value); Assert.Equal(20, value[0]);
         }

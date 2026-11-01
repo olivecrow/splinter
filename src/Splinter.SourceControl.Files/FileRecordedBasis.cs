@@ -18,34 +18,52 @@ public sealed partial class FileWorkspaceProvider
     private FileSourceManifest RecordedManifest(WorkspaceRecord w, string control, CancellationToken ct)
     {
         var owned = RecordedTree(w, control); using var lease = owned.Lease; using var tree = owned.Tree;
-        var entries = new List<FileSourceEntry>(); var pending = new Stack<string>(); pending.Push(""); byte[] scratch = new byte[65536];
-        while (pending.TryPop(out var directory))
-            foreach (var entry in tree.List(directory))
+        byte[] scratch = new byte[65536];
+        IEnumerable<FileSourceEntry> Entries()
+        {
+            var pending = new Stack<IEnumerator<SnapshotEntry>>(); pending.Push(tree.EnumerateChildren("").GetEnumerator());
+            try
             {
-                ct.ThrowIfCancellationRequested(); if (Managed(entry.Path, w.ManagedPaths)) continue;
-                string? hash = null;
-                if (entry.Directory) pending.Push(entry.Path);
-                else
+                while (pending.TryPeek(out var level))
                 {
-                    using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                    for (long position = 0; position < entry.Length;)
+                    if (!level.MoveNext()) { level.Dispose(); pending.Pop(); continue; }
+                    var entry = level.Current;
+                    ct.ThrowIfCancellationRequested(); if (Managed(entry.Path, w.ManagedPaths)) continue;
+                    string? hash = null;
+                    if (entry.Directory) pending.Push(tree.EnumerateChildren(entry.Path).GetEnumerator());
+                    else
                     {
-                        int n = tree.Read(entry.Path, position, scratch.AsSpan(0, (int)Math.Min(scratch.Length, entry.Length - position)));
-                        if (n == 0) throw Error("The fixed recorded payload ended early."); sha.AppendData(scratch.AsSpan(0, n)); position += n;
+                        using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                        for (long position = 0; position < entry.Length;)
+                        {
+                            int n = tree.Read(entry.Path, position, scratch.AsSpan(0, (int)Math.Min(scratch.Length, entry.Length - position)));
+                            if (n == 0) throw Error("The fixed recorded payload ended early."); sha.AppendData(scratch.AsSpan(0, n)); position += n;
+                        }
+                        hash = Convert.ToHexStringLower(sha.GetHashAndReset());
                     }
-                    hash = Convert.ToHexStringLower(sha.GetHashAndReset());
+                    yield return new(entry.Path, entry.Directory ? "directory" : "file", entry.Length, hash,
+                        DateTime.FromFileTimeUtc(entry.LastWriteTime).Ticks, (int)entry.Attributes);
                 }
-                entries.Add(new(entry.Path, entry.Directory ? "directory" : "file", entry.Length, hash,
-                    DateTime.FromFileTimeUtc(entry.LastWriteTime).Ticks, (int)entry.Attributes));
             }
-        return Manifest(w, entries.OrderBy(e => e.Path, StringComparer.Ordinal).ToArray());
+            finally { foreach (var level in pending) level.Dispose(); }
+        }
+        return Manifest(w, Entries());
     }
     private void PreserveRecordedPayloads(WorkspaceRecord w, string control, FileSourceManifest manifest, CancellationToken ct)
     {
         var owned = RecordedTree(w, control); using var lease = owned.Lease; using var tree = owned.Tree; byte[] scratch = new byte[65536];
-        foreach (var entry in UniquePayloads(manifest.Entries))
+        foreach (var entry in manifest.EnumeratePayloads(ct))
         {
-            ct.ThrowIfCancellationRequested(); string objectPath = FilePath(control, "objects/" + entry.Hash);
+            ct.ThrowIfCancellationRequested();
+            if (contentPins is not null)
+            {
+                new OwnedContentStore(store.Root, contentPins).Preserve(w, control, entry.Hash!, entry.Length, output =>
+                {
+                    using var input = new SnapshotPayloadStream(tree, entry.Path, entry.Length); PreserveStream(input, output, entry.Length, ct);
+                }, ct);
+                continue;
+            }
+            string objectPath = FilePath(control, "objects/" + entry.Hash);
             WorkspaceStore.EnsurePlainPath(objectPath);
             if (Directory.Exists(objectPath)) throw Error("The content object has an unexpected type.");
             if (File.Exists(objectPath)) { VerifyObject(objectPath, entry, ct); continue; }

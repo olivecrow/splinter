@@ -22,6 +22,7 @@ public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore, IWorkspaceWrite
     private sealed record TransferIntent(int Version, string SourceDirectory, OverlayIdentity SourceIdentity,
         Guid Id, string From, string Destination, string Staging, bool FromCache, bool Replace, string Hash);
     public OverlayIdentity Identity { get; }
+    public string BackingPath => sourceDirectory;
     public ImmutableCandidate Candidate => candidate.Candidate;
 
     public static JournalDeltaStore OpenCacheReadOnly(string directory, OverlayIdentity identity) =>
@@ -105,9 +106,22 @@ public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore, IWorkspaceWrite
     private void CheckTransfer()
     { if (transferIncomplete) throw new WorkspaceException("ViewTransferRecoveryRequired", "Reconnect this exact source generation to finish the preserved private-file transfer."); }
     private JournalDeltaStore ForPath(string path) { CheckTransfer(); return Cached(path) ? cache : source; }
-    private JournalDeltaStore ForId(Guid id) { CheckTransfer(); return handles.TryGetValue(id, out var store) ? store : throw new FileNotFoundException("Unknown view handle."); }
+    private JournalDeltaStore ForId(Guid id)
+    {
+        CheckTransfer();
+        if (Identity.Version == 3)
+        {
+            var a = source.FindPrivateIdentity(id); var b = cache.FindPrivateIdentity(id);
+            if (a is null) return b is null ? throw new FileNotFoundException("Unknown view handle.") : cache;
+            if (b is null) return source;
+            if (a.Deleted != b.Deleted) return a.Deleted ? cache : source;
+            throw new WorkspaceException("ViewHandleCollision", "Two partitions retain an ambiguous file identity.");
+        }
+        return handles.TryGetValue(id, out var store) ? store : throw new FileNotFoundException("Unknown view handle.");
+    }
     private DeltaEntry Remember(DeltaEntry entry, JournalDeltaStore owner)
     {
+        if (Identity.Version == 3) return entry;
         if (handles.TryGetValue(entry.Id, out var known) && known != owner)
             throw new WorkspaceException("ViewHandleCollision", "The two partitions produced the same file identity.");
         handles[entry.Id] = owner; return entry;
@@ -126,6 +140,31 @@ public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore, IWorkspaceWrite
                     .OrderBy(e => e.Path, policy.Comparer).ToArray();
             var owner = ForPath(directory);
             return owner.List(directory).Select(e => Remember(e, owner)).ToArray();
+        }
+    }
+    public IEnumerable<DeltaEntry> EnumerateChildren(string directory)
+    {
+        lock (gate)
+        {
+            CheckTransfer();
+            if (Identity.Version != 3) return List(directory);
+            if (policy.Normalize(directory).Length != 0)
+            { var owner = ForPath(directory); return owner.EnumerateChildren(directory); }
+            // Both providers bind their immutable directory roots at this call.
+            var sourceEntries = source.EnumerateChildren(""); var cacheEntries = cache.EnumerateChildren("");
+            IEnumerable<DeltaEntry> Merge()
+            {
+                using var first = sourceEntries.Where(e => !Cached(e.Path)).GetEnumerator();
+                using var second = cacheEntries.Where(e => Cached(e.Path)).GetEnumerator();
+                bool a = first.MoveNext(), b = second.MoveNext();
+                while (a || b)
+                {
+                    if (!b || a && policy.Comparer.Compare(first.Current.Path, second.Current.Path) < 0)
+                    { yield return first.Current; a = first.MoveNext(); }
+                    else { yield return second.Current; b = second.MoveNext(); }
+                }
+            }
+            return Merge();
         }
     }
     public DeltaEntry Create(string path, bool directory, uint attributes)
@@ -189,7 +228,7 @@ public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore, IWorkspaceWrite
                 AtomicFilePublication.Publish(transferPath + ".new", transferPath);
                 transferBoundary?.Invoke("intent");
                 CompleteTransfer(intent);
-                handles[id] = target;
+                if (Identity.Version != 3) handles[id] = target;
                 return;
             }
             owner.Rename(id, destination, replace);
@@ -198,8 +237,11 @@ public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore, IWorkspaceWrite
     public void Delete(Guid id) { lock (gate) ForId(id).Delete(id); }
     public void ReleaseUnlinkedFile(Guid id) { lock (gate) ForId(id).ReleaseUnlinkedFile(id); }
     public void Flush() { lock (gate) { source.Flush(); cache.Flush(); } }
-    public SourceChangeView ObserveChanges(string[] managedPaths) => source.ObserveChanges(managedPaths) with
-        { WorkspaceId = Identity.Id, SnapshotId = Identity.Snapshot.Id };
+    public SourceChangeView ObserveChanges(string[] managedPaths)
+    {
+        using var observed = source.ObserveChanges(managedPaths);
+        return observed with { WorkspaceId = Identity.Id, SnapshotId = Identity.Snapshot.Id };
+    }
     public object ObservePartitions()
     { lock (gate) return new { candidate = Candidate.Id, candidateSeal = Candidate.Seal, transferPending = transferIncomplete,
         transferCount, transferredPrivateBytes, lastTransferFrom, lastTransferTo,
@@ -217,7 +259,9 @@ public sealed class SourceViewDeltaStore : IWorkspaceDeltaStore, IWorkspaceWrite
             return new(Identity.Id, Identity.Snapshot.Id, 0, a.JournalBytes + b.JournalBytes,
                 a.PayloadBytes + b.PayloadBytes, a.MetadataBytes + b.MetadataBytes, a.ReadBytes + b.ReadBytes,
                 0, Identity.MaxTransferBytes, a.IndexedNodes + b.IndexedNodes, a.DurableSequence + b.DurableSequence)
-                { JournalBytesBasis = inspectFiles ? "current-files" : "writer-accounting" };
+                { JournalBytesBasis = inspectFiles ? "current-files" : "writer-accounting",
+                    MetadataCacheBytes = PagedMetadataStore.CachedMetadataBytes,
+                    PeakMetadataCacheBytes = PagedMetadataStore.PeakCachedMetadataBytes };
         }
     }
     public void Dispose() { lock (gate) { source.Dispose(); cache.Dispose(); candidate.Dispose(); } }

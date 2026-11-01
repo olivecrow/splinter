@@ -38,14 +38,16 @@ internal sealed partial class WindowsViewProvider
         try
         {
             candidate = new(path, basis);
-            var changes = candidate.ObserveChanges(Managed).Changes.Select(c => c.Path);
+            using var candidateChanges = candidate.ObserveChanges(Managed);
+            var changes = candidateChanges.Changes.Select(c => c.Path);
             if (generation is not null)
             {
                 Require(generation.Selection.Intent.Candidate.CandidateSeal == candidate.Candidate.Seal &&
                     generation.Request.Identity.Snapshot == basis.Snapshot, "ViewReceiptMismatch", "Generation candidate changed.");
                 source = JournalDeltaStore.OpenReadOnly(generation.Request.DeltaPath,
                     generation.Request.Identity with { Snapshot = candidate.Snapshot }, candidate);
-                changes = changes.Concat(source.ObserveChanges(Managed).Changes.Select(c => c.Path));
+                using var sourceChanges = source.ObserveChanges(Managed);
+                changes = changes.Concat(sourceChanges.Changes.Select(c => c.Path));
             }
             return new(new(basis), candidate, source, changes.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), worker.BaseRevision);
         }

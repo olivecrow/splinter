@@ -58,10 +58,11 @@ public sealed class BoundedJournalTests
         {
             Assert.Equal("bounded", resumed.JournalStorageMode); Assert.Equal(sequence, resumed.Observe().DurableSequence);
             Assert.Equal(expectedEntry, resumed.Get(file)); Verify(resumed);
-            var changes = resumed.ObserveChanges([]);
+            using var changes = resumed.ObserveChanges([]);
             resumed.ReleaseUnlinkedFile(oldTarget); resumed.ReleaseUnlinkedFile(removed);
             Assert.Equal(sequence, resumed.Observe().DurableSequence);
-            Assert.Equal(changes.Changes, resumed.ObserveChanges([]).Changes);
+            using var observedChanges1 = resumed.ObserveChanges([]);
+            Assert.Equal(changes.Changes, observedChanges1.Changes);
             Assert.Throws<FileNotFoundException>(() => resumed.Get(oldTarget));
             Assert.Throws<FileNotFoundException>(() => resumed.Get(removed));
             resumed.ReleaseUnlinkedFile(oldTarget);

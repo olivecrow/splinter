@@ -1,7 +1,7 @@
 <a id="plastic-결과를-원본에-반영하기"></a>
 # Applying Plastic results to the original
 
-Current task state is v3. [Repeated original application](repeated-original-apply.md) owns live immutable captures, explicit result selection, per-path applied history and external-tool live-Editor cooperation; [RI qualification](verification/repeated-original-apply.md) remains separate from earlier stopped-Editor evidence. Managed basis state remains v2; old task state is preserved/refused without migration.
+The [scalable-storage candidate](scalable-storage.md) uses task v4 and managed basis v3. [Repeated original application](repeated-original-apply.md) owns live immutable captures, explicit result selection, per-path applied history and external-tool live-Editor cooperation. Historical [RI qualification](verification/repeated-original-apply.md) used task v3/basis v2; the candidate has separate [SCAL qualification](verification/scalable-storage.md). Earlier state is preserved/refused without migration.
 
 [한국어](ko/plastic-original-apply.md)
 
@@ -13,7 +13,7 @@ pwsh scripts/splinter.ps1 workspace integrate --id <id> --target original --resu
 pwsh scripts/splinter.ps1 workspace integrate --id <id> --target original --result <result-id> --intent-key <key> --expected-plan-digest <digest> --path Assets/Selected.txt --home <home>
 ```
 
-`--path` is a repeatable exact relative file/directory path. Omission selects all changes. Plan required new parents and Unity Assets file/folder `.meta` companions together; unchanged companions are also checked to protect original GUIDs. Managed paths, VCS metadata, patterns, duplicate selections, and missing selections are rejected. Review the plan's `selectedPaths`, `sourceIdentity`, changes/conflicts, and digest. Path order is normalized.
+`--path` is a repeatable exact relative file/directory path. Omission selects all changes. Plan required new parents and Unity Assets file/folder `.meta` companions together; unchanged companions are also checked to protect original GUIDs. Managed paths, VCS metadata, patterns, duplicate selections, and missing selections are rejected. Review `sourceIdentity`, `changeCount`, `conflictCount` and `digest`, then page the `plan`, `selection` and `conflicts` collections with `workspace read --id <id> --plan-id <digest> --collection <collection> --page-size 128 --home <home>`. Continue with each returned root-bound cursor. Current paged plans keep inline lists empty; those empty lists do not prove that the plan has no changes or conflicts. Path order is normalized.
 
 Plan path/deletion-guard lookup uses the ancestor set from [common original application](plain-folder-original-apply.md). CLI `nextActions` also retains `target=original` and selected `paths`; resuming incomplete application includes the exact intent/digest. Do not omit resume arguments from a selected plan and change it into full-scope application.
 

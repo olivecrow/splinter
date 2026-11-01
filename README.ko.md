@@ -1,6 +1,6 @@
 # Splinter
 
-같은 경로·ID·기준본·Library를 유지하며 불변 결과를 수집하고 원본에 반복 조건부 게시하는 v3 경로를 연결했다. [현재 계약](docs/ko/repeated-original-apply.md)과 [한정 완료한 RI-01–08 자격](docs/ko/verification/repeated-original-apply.md)을 구분한다. Git 원본 파일 반영은 HEAD/index/branch를 보존하며 실행 중 Editor 저장·import 유예·안전한 refresh/재로드는 에이전트가 맡는다.
+같은 경로·ID·기준본·Library를 유지하며 불변 결과를 수집하고 원본에 반복 조건부 게시하는 경로를 연결했다. [현재 계약](docs/ko/repeated-original-apply.md)과 [한정 완료한 RI-01–08 자격](docs/ko/verification/repeated-original-apply.md)을 구분한다. Git 원본 파일 반영은 HEAD/index/branch를 보존하며 실행 중 Editor 저장·import 유예·안전한 refresh/재로드는 에이전트가 맡는다.
 
 **변경하지 않은 데이터를 공유하는 AI 병렬 개발용 독립 작업공간.**
 
@@ -10,7 +10,11 @@ Splinter는 AI 에이전트가 Unity 프로젝트나 일반 프로젝트 폴더�
 
 **현재 상태:** Windows와 NTFS를 대상으로 하는 연구용 알파입니다. 작은 Git·Unity Version Control / Plastic SCM·VCS 없는 프로젝트에서 범위를 정해 검증했습니다. 다른 사람들이 검토·재현하고 발전시킬 수 있도록 소스와 측정 근거를 제공합니다. 실제 입력과 지원 한계는 [검증 안내](docs/ko/verification/README.md)를 참고하세요.
 
-**현재 시간 비용:** [RR-01](docs/ko/verification/unity-readme-recheck.md)의 Unity 한 줄 변경 두 개는 **Splinter 428.6초, 공유 Editor 하나 102.0초로 326.6초가 더 걸렸습니다.** Splinter는 과거 README 관측보다 109.0초 짧아졌으며 입력·실행 한계는 아래에 구분했습니다. 독립 세션이 다른 작업의 변경·검증에 맞춰 조정하는 부담을 줄이는 생산성 가치는 아직 계측하지 않았습니다.
+현재 [대규모 저장 후보](docs/ko/scalable-storage.md)는 task v4/basis v3/overlay v3로 기록하며 metadata/저널 총량 상한을 디스크 페이지·순차 처리로 대체합니다. SCAL-01–08 필수 자격 검증은 진행 중이고 과거 작은 입력의 시간·지원 자격을 새 후보에 승계하지 않습니다.
+
+2026-11-01 사용자 지시로 대형 검증을 축소했습니다. [느린 구간 기록](docs/ko/verification/scalable-storage-throughput-diagnosis.md)에 10만 작은 파일 작업의 수 시간 실행을 남겼습니다. 대형 프로젝트 사용성·남은 전체 수명주기·동일 입력 성능 유지는 아직 미자격이며 보존한 검증 상태를 별도로 기록했습니다.
+
+**과거 Unity 시간 비용:** `2dff94d`의 [RR-01](docs/ko/verification/unity-readme-recheck.md)에서 Unity 한 줄 변경 두 개는 **Splinter 428.6초, 공유 Editor 하나 102.0초로 326.6초가 더 걸렸습니다.** 이 Splinter 관측은 앞선 README 관측보다 109.0초 짧았으며 입력·실행 한계는 아래에 구분했습니다. SCAL 후보의 시간 측정은 아닙니다. 독립 세션이 다른 작업의 변경·검증에 맞춰 조정하는 부담을 줄이는 생산성 가치는 아직 계측하지 않았습니다.
 
 새 변경 payload는 압축하지 않는다. 동시 쓰기는 성공 응답 전에 영속 flush를 공유할 수 있으며 기존 압축 데이터는 계속 읽는다. [현재 쓰기 정책과 한정 검증](docs/ko/raw-write-batching.md)을 따른다.
 
@@ -30,18 +34,18 @@ Splinter는 작업이 재사용할 데이터와 변경할 데이터를 분리합
 
 ## 실제 측정한 저장 공간과 시간
 
-### 현재 비교: 병렬 코드 작성과 공유 Editor 하나
+### 과거 비교: 병렬 코드 작성과 공유 Editor 하나
 
-**RR-01, 2026-10-26–27, 현재 코드 `2dff94d`:** 같은 Unity 한 줄 변경 두 개를 정상 종료·소유 회수까지 완료하는 데 **Splinter 428.6초, 공유 Editor 102.0초**가 걸렸습니다. 양쪽은 소스와 전체 Library의 바이트·수정 시각·속성이 같은 상태에서 시작했습니다. **소스 1,602개 / 2.80 GB**, **Library 42,418개 / 3.14 GB**, Unity **6000.3.22f1**, Windows/NTFS입니다.
+**RR-01, 2026-10-26–27, 기록한 코드 `2dff94d`:** 같은 Unity 한 줄 변경 두 개를 정상 종료·소유 회수까지 완료하는 데 **Splinter 428.6초, 공유 Editor 102.0초**가 걸렸습니다. 양쪽은 소스와 전체 Library의 바이트·수정 시각·속성이 같은 상태에서 시작했습니다. **소스 1,602개 / 2.80 GB**, **Library 42,418개 / 3.14 GB**, Unity **6000.3.22f1**, Windows/NTFS입니다.
 
 | 관측 | Splinter (초) | 공유 Editor (초) | Splinter 추가 시간 (초) |
 | --- | ---: | ---: | ---: |
 | BC-01 과거 기록 | 537.6 | 82.1 | 455.5 |
-| RR-01 현재 정상 실행 | 428.6 | 102.0 | 326.6 |
+| RR-01 기록한 정상 실행 | 428.6 | 102.0 | 326.6 |
 
-현재 Splinter 관측값은 과거 README 기록보다 **109.0초(20.3%) 짧습니다.** 다만 과거 Library가 다르고 공유 Editor 시간도 변했으며 실행 순서·OS 캐시를 통제하지 않았으므로, 이 차이 전체를 코드 개선의 인과 효과로 확정하지 않습니다. 이 짧은 작업은 여전히 Splinter가 **326.6초 더 걸렸습니다.**
+Splinter의 RR-01 관측값은 앞선 README 기록보다 **109.0초(20.3%) 짧았습니다.** 다만 과거 Library가 다르고 공유 Editor 시간도 변했으며 실행 순서·OS 캐시를 통제하지 않았으므로, 이 차이 전체를 코드 개선의 인과 효과로 확정하지 않습니다. 해당 짧은 작업은 Splinter가 **326.6초 더 걸렸습니다.**
 
-| 현재 Splinter 단계 | 경과 초 |
+| RR-01 Splinter 단계 | 경과 초 |
 | --- | ---: |
 | Library 기준본 준비 | 37.7 |
 | A/B 작업공간 병렬 생성 | 64.5 |

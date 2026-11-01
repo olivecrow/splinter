@@ -23,6 +23,7 @@ public sealed class GraftedSnapshotTree : ISnapshotTree, ISnapshotContentSummary
         EnsureAvailable();
     }
     public void EnsureAvailable() { source.EnsureAvailable(); generated.EnsureAvailable(); }
+    public void VerifyReadBoundary() { source.VerifyReadBoundary(); generated.VerifyReadBoundary(); }
     private string? Lower(string path) => path.Equals(root, policy.Comparison) ? "" :
         path.StartsWith(root + "/", policy.Comparison) ? path[(root.Length + 1)..] : null;
     private SnapshotEntry Lift(SnapshotEntry e) => e with { Path = e.Path.Length == 0 ? root : root + "/" + e.Path };
@@ -37,6 +38,13 @@ public sealed class GraftedSnapshotTree : ISnapshotTree, ISnapshotContentSummary
         if (Lower(path) is { } lower) return generated.List(lower).Select(Lift).ToArray();
         var entries = source.List(path);
         return path.Length == 0 ? [.. entries, Lift(generated.Stat("") ?? throw new WorkspaceException("SnapshotMissing", "Generated root is missing."))] : entries;
+    }
+    public IEnumerable<SnapshotEntry> EnumerateChildren(string path)
+    {
+        path = policy.Normalize(path); EnsureAvailable();
+        if (Lower(path) is { } lower) return generated.EnumerateChildren(lower).Select(Lift);
+        var entries = source.EnumerateChildren(path);
+        return path.Length == 0 ? entries.Append(Lift(generated.Stat("") ?? throw new WorkspaceException("SnapshotMissing", "Generated root is missing."))) : entries;
     }
     public int Read(string path, long offset, Span<byte> destination)
     {

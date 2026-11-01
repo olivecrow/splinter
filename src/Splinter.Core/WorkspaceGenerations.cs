@@ -26,6 +26,7 @@ public interface ISourceCaptureTree : ISnapshotTree, IDisposable
 {
     ISnapshotTree Basis { get; }
     string[]? ChangedPaths => null;
+    IEnumerable<string>? EnumerateChangedPaths() => ChangedPaths;
 }
 public interface ISourceGenerationBackend
 {

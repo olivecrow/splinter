@@ -618,6 +618,128 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "workspace.read"
+          },
+          "status": {
+            "enum": [
+              "Succeeded",
+              "Accepted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "collection",
+              "page"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{24}$"
+              },
+              "collection": {
+                "enum": [
+                  "results",
+                  "applies",
+                  "plan",
+                  "files",
+                  "applied-paths",
+                  "conflicts",
+                  "preserved-scratch",
+                  "maintenance-residuals",
+                  "selection",
+                  "deferred-reclamation"
+                ]
+              },
+              "page": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "root",
+                  "count",
+                  "entries"
+                ],
+                "properties": {
+                  "root": {
+                    "type": "string"
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "entries": {
+                    "type": "array",
+                    "maxItems": 1024,
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "nextCursor": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "countKind": {
+                    "enum": [
+                      "indexed-candidates"
+                    ],
+                    "description": "Count covers candidate index rows; iterate every cursor page to inspect filtered deferred entries, including empty pages."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "Succeeded"
+          },
+          "command": {
+            "const": "workspace.maintain"
+          }
+        },
+        "required": [
+          "command",
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "properties": {
+              "maintenance": {
+                "$ref": "urn:splinter:v1:workspace-maintenance-result"
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{24}$"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "id",
+              "maintenance"
+            ]
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -704,7 +826,8 @@
             "plan:read-only; original:conditional-per-path-publication-without-Git-HEAD-index-mutation; branch:explicit-clean-target-Git-merge; Plastic:no-server-mutation",
             "read-only-local-process",
             "read-only-local-state",
-            "reconcile-owned-state"
+            "reconcile-owned-state",
+            "owned-metadata-reclamation"
           ]
         },
         "retry": {
@@ -721,7 +844,9 @@
             "same-result-intent-digest-selection-and-live-original-identity; completed requests never republish",
             "same-workspace",
             "same-workspace-compaction-intent",
-            "same-workspace-request-key-and-message; never recapture a later source for an existing request"
+            "same-workspace-request-key-and-message; never recapture a later source for an existing request",
+            "same-root-and-cursor; reject stale cursors rather than mix generations",
+            "same-id-home-request-key-and-scope; resume-pending-before-new-mutations; completed-retry-receipt-only"
           ]
         }
       }
@@ -831,7 +956,7 @@
           "const": true
         },
         "stateBackend": {
-          "const": "atomic-json-with-operation-locks"
+          "const": "small-atomic-json-controls-and-immutable-binary-page-indices-with-operation-locks"
         },
         "workspaceStatus": {
           "const": "process-provider-poll; source-only-on-verify-source"
@@ -878,7 +1003,7 @@
               "type": "string"
             },
             "managedBasisVersion": {
-              "const": 2
+              "const": 3
             },
             "generatedDirectories": {
               "const": "one-top-level-subtree"
@@ -889,7 +1014,7 @@
           }
         },
         "workspaceRecordVersion": {
-          "const": 3
+          "const": 4
         },
         "plainFolder": {
           "type": "object",
@@ -1411,10 +1536,16 @@
               "const": "verified-location-separate-from-immutable-delta-identity"
             },
             "deltaStore": {
-              "const": "bounded-checksummed-range-journal-v2; raw-writes; current-encoded-reads; new-provider-default-bounded-SJR2-16MiB-or-4096-frame-suffix-with-bounded-group-flush-and-durable-ACK; retained-explicit-SJL4-or-append; proven-clean-explicit-SJR2-flush-reuse; payload-free-state-sizing; atomic-current-state-checkpoint-and-same-request-recovery"
+              "const": "segmented-checksummed-raw-range-journal-v3; SJS1-control-and-SJR2-segments; 16MiB-or-4096-frame-processing-rollover-not-total-quota; paged-live-index-and-fixed-capture-roots; durable-ACK; same-request-recovery; no-legacy-product-state-migration"
             },
             "resultCollection": {
               "const": "stable-journal-v1"
+            },
+            "resultCollectionEvidence": {
+              "const": "accepted-source-frame-chain-bytes-and-sequence; logical-seal-stable-across-same-sequence-adoption-forget-and-index-segment-GC; separate-native-backing-hash-page-and-inventory-proof"
+            },
+            "metadataStore": {
+              "const": "task-v4-basis-v3-overlay-v3-candidate; 64KiB-pages; process-wide-lazy-32MiB-accounted-cache; directory-path-and-history-indices; immutable-shared-content-ranges; native-pins-scale-with-targets; SCAL-01-08-qualification-in-progress"
             },
             "requestSchema": {
               "const": "urn:splinter:v1:overlay-serve-request"
@@ -1637,12 +1768,14 @@
         "createdAt",
         "updatedAt",
         "storageMode",
-        "results",
-        "originalApplies"
+        "resultCount",
+        "originalApplyCount",
+        "resultHistory",
+        "originalApplyHistory"
       ],
       "properties": {
         "version": {
-          "const": 3
+          "const": 4
         },
         "sourceKind": {
           "enum": [
@@ -1778,12 +1911,6 @@
         "generatedDirectory": {
           "$ref": "urn:splinter:v1:generated-directory-reference"
         },
-        "results": {
-          "type": "array",
-          "items": {
-            "$ref": "urn:splinter:v1:workspace-result-generation"
-          }
-        },
         "captureIntent": {
           "type": "object",
           "additionalProperties": false,
@@ -1813,52 +1940,28 @@
             "message"
           ]
         },
-        "originalApplies": {
-          "type": "array",
-          "items": {
-            "$ref": "urn:splinter:v1:original-apply-state"
-          }
+        "resultCount": {
+          "type": "integer",
+          "minimum": 0
         },
-        "originalAppliedPaths": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "path": {
-                "type": "string",
-                "minLength": 1
-              },
-              "resultId": {
-                "type": "string",
-                "pattern": "^[a-f0-9]{24}$"
-              },
-              "intentKey": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
-              },
-              "deleted": {
-                "type": "boolean"
-              },
-              "version": {
-                "anyOf": [
-                  {
-                    "$ref": "urn:splinter:v1:original-apply-plan#/$defs/fileVersion"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            },
-            "required": [
-              "path",
-              "resultId",
-              "intentKey",
-              "deleted"
-            ]
-          }
+        "originalApplyCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resultHistory": {
+          "$ref": "urn:splinter:v1:workspace-history-reference"
+        },
+        "originalApplyHistory": {
+          "$ref": "urn:splinter:v1:workspace-history-reference"
+        },
+        "latestResult": {
+          "$ref": "urn:splinter:v1:workspace-result-generation"
+        },
+        "appliedPaths": {
+          "$ref": "urn:splinter:v1:metadata-tree-root"
+        },
+        "appliedPathNames": {
+          "$ref": "urn:splinter:v1:metadata-tree-root"
         }
       },
       "allOf": [
@@ -2063,6 +2166,9 @@
         },
         "originalApplyReceipt": {
           "$ref": "urn:splinter:v1:original-apply-state"
+        },
+        "metadataMaintenance": {
+          "$ref": "urn:splinter:v1:workspace-maintenance-result"
         }
       }
     },
@@ -2111,7 +2217,8 @@
           "enum": [
             "append",
             "latest",
-            "bounded"
+            "bounded",
+            "segmented"
           ]
         },
         "boundedLogBytesLimit": {
@@ -2158,6 +2265,16 @@
           "type": "integer",
           "minimum": 0
         },
+        "metadataCacheBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 33554432
+        },
+        "peakMetadataCacheBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 33554432
+        },
         "readBytes": {
           "type": "integer",
           "minimum": 0
@@ -2180,6 +2297,11 @@
         },
         "metrics": {
           "$ref": "#/$defs/overlayIoMetrics"
+        },
+        "sealJournalBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Accepted mutation bytes used by the stable logical seal; physical storage remains journalBytes."
         }
       },
       "required": [
@@ -2200,10 +2322,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "maxJournalBytes": {
-          "type": "integer",
-          "minimum": 0
-        },
         "reference": {
           "type": "object",
           "additionalProperties": false,
@@ -2748,7 +2866,6 @@
         }
       },
       "required": [
-        "maxJournalBytes",
         "attached",
         "step"
       ],

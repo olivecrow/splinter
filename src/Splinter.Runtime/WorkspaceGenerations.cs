@@ -9,7 +9,7 @@ public sealed partial class WorkspaceCoordinator
         using var gate = await store.LockAsync(id, ct);
         var w = store.Get(id); RequireNotDiscarding(w); w.OriginalApply?.RequireReclaimable(w);
         RequireCaptureRequest(message, requestKey);
-        var previous = w.Results.SingleOrDefault(r => r.RequestKey == requestKey);
+        var previous = w.Results.Find(requestKey, r => r.RequestKey);
         if (previous is not null && previous.Message != message)
             throw new WorkspaceException("SourceCaptureRequestConflict", "A capture request key already fixes another message.");
         if (w.Phase == "released")
@@ -18,6 +18,7 @@ public sealed partial class WorkspaceCoordinator
             await CaptureGenerationCoreAsync(w, message, requestKey, ct);
             return (await ViewAsync(w, ct, verifySource: false)) with { ResultGeneration = previous };
         }
+        RequireMetadataMaintenanceComplete(w);
         if (w.Snapshot?.Step.StartsWith("release-", StringComparison.Ordinal) == true)
         {
             if (previous is null) throw new WorkspaceException("SourceCaptureRequestConflict", "Resume the capture request which started final reclamation.");
@@ -47,11 +48,12 @@ public sealed partial class WorkspaceCoordinator
     {
         using var gate = await store.LockAsync(id, ct);
         var w = store.Get(id);
-        if (!w.Results.Any(r => r.RequestKey == requestKey)) RequireLive(w);
+        if (w.Results.Find(requestKey, r => r.RequestKey) is null) RequireLive(w);
         try
         {
             var generation = await CaptureGenerationCoreAsync(w, message, requestKey, ct);
-            return (await ViewAsync(w, ct, verifySource: false)) with { ResultGeneration = generation };
+            using (ResultGenerationDiagnostics.Open(store.ControlPath(id), generation.Id)?.Measure("runtime.view"))
+                return (await ViewAsync(w, ct, verifySource: false)) with { ResultGeneration = generation };
         }
         catch (Exception ex) { RecordFailure(w, ex); throw; }
     }
@@ -61,34 +63,41 @@ public sealed partial class WorkspaceCoordinator
             throw new WorkspaceException("SourceCaptureUnsupported", "This composition has no immutable continuing-task capture engine.");
         RequireCaptureRequest(message, requestKey);
         string control = store.ControlPath(w.Id);
-        var previous = w.Results.SingleOrDefault(r => r.RequestKey == requestKey);
+        var previous = w.Results.Find(requestKey, r => r.RequestKey);
         if (previous is not null)
         {
             if (previous.Message != message) throw new WorkspaceException("SourceCaptureRequestConflict", "A capture request key already fixes another message.");
-            await provider.VerifyGenerationAsync(w, control, previous, ct);
-            await backend.CompleteSourceCaptureAsync(w, control, previous.Id, ct);
+            var retryDiagnostics = ResultGenerationDiagnostics.Open(control, previous.Id);
+            using (retryDiagnostics?.Measure("runtime.verify-retained-retry")) await provider.VerifyGenerationAsync(w, control, previous, ct);
+            using (retryDiagnostics?.Measure("runtime.backend-complete-retry")) await backend.CompleteSourceCaptureAsync(w, control, previous.Id, ct);
             return previous;
         }
+        RequireMetadataMaintenanceComplete(w);
         var intent = new WorkspaceCaptureIntent(WorkspaceStore.Key(w.Id + "\nresult\n" + requestKey), w.Results.Count + 1L, requestKey, message);
+        var diagnostics = ResultGenerationDiagnostics.Open(control, intent.Id);
         if (w.CaptureIntent is not null && w.CaptureIntent != intent)
             throw new WorkspaceException("SourceCapturePending", "Resume the exact pending capture before choosing another generation.");
         w.CaptureIntent = intent; w.Phase = "capturing"; w.LastError = null;
         store.Save(w, "source-capture-intent");
-        var captured = await backend.CaptureSourceAsync(w, control, intent.Id, ct);
+        SourceCaptureIdentity captured;
+        using (diagnostics?.Measure("runtime.capture-freeze")) captured = await backend.CaptureSourceAsync(w, control, intent.Id, ct);
         await PreparationPointAsync("source-capture-fixed", w, ct);
         WorkspaceResultGeneration result;
-        using (var tree = await backend.OpenSourceCaptureAsync(w, control, intent.Id, ct))
+        ISourceCaptureTree opened;
+        using (diagnostics?.Measure("runtime.capture-open")) opened = await backend.OpenSourceCaptureAsync(w, control, intent.Id, ct);
+        using (var tree = opened)
         {
-            result = await provider.PreserveGenerationAsync(w, control, intent, captured, tree, ct);
-            tree.VerifyReadBoundary();
+            using (diagnostics?.Measure("runtime.preserve-total")) result = await provider.PreserveGenerationAsync(w, control, intent, captured, tree, ct);
+            using (diagnostics?.Measure("runtime.capture-final-boundary")) tree.VerifyReadBoundary();
         }
         await PreparationPointAsync("source-result-preserved", w, ct);
         w.Results.Add(result); w.ResultRevision = result.Revision; w.CaptureIntent = null;
         RequireSnapshot(w).Result = null;
         w.Phase = "ready"; w.LastError = null;
-        store.Save(w, "source-generation-published");
+        using (diagnostics?.Measure("runtime.state-publish")) store.Save(w, "source-generation-published");
         await PreparationPointAsync("source-generation-published", w, ct);
-        await backend.CompleteSourceCaptureAsync(w, control, intent.Id, ct);
+        using (diagnostics?.Measure("runtime.backend-complete")) await backend.CompleteSourceCaptureAsync(w, control, intent.Id, ct);
+        using (diagnostics?.Measure("runtime.metadata-maintain")) await MaintainMetadataCoreAsync(w, "capture:" + result.Id, ct);
         return result;
     }
     private static void RequireCaptureRequest(string message, string requestKey)

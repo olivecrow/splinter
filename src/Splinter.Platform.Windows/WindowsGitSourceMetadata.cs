@@ -8,6 +8,7 @@ using System.Text;
 using Microsoft.Win32.SafeHandles;
 using Splinter.Core;
 using Splinter.SourceControl.Git;
+using Splinter.Runtime;
 
 namespace Splinter.Platform.Windows;
 
@@ -23,16 +24,18 @@ internal static class WindowsGitSourceMetadata
         if (basis.ProjectPath != project || basis.RelativePath != "Library" || basis.SourceMetadataHash is not null)
             throw new WorkspaceException("GitSourceMetadataInvalid", "Capture requires the original Library tuple before its metadata digest.");
         long started = Stopwatch.GetTimestamp();
-        var catalog = await GitSourceMetadata.CaptureTreeAsync(project, ct);
+        using var catalog = await GitSourceMetadata.CaptureTreeAsync(project, ct);
         if (catalog is null) return null;
-        var entries = new List<GitSourceMetadataFile>();
-        long examinedBytes = 0;
+        long examinedBytes = 0, examinedFiles = 0;
         byte[] buffer = ArrayPool<byte>.Shared.Rent(65536);
         using var parents = new DirectoryPins(project);
-        try
+        IEnumerable<DirectoryMetadataRecord> Entries()
         {
-            foreach (var blob in catalog.Files)
+            foreach (var record in catalog.Records())
             {
+                if (record.Entry.Directory) { yield return record with { Children = null }; continue; }
+                var blob = new GitSourceMetadataBlob(record.Entry.Path, record.SourceReference!, record.Entry.Length);
+                examinedFiles = checked(examinedFiles + 1);
                 ct.ThrowIfCancellationRequested();
                 string path = Path.Combine(project, blob.Path.Replace('/', Path.DirectorySeparatorChar));
                 if (!parents.TryPin(Path.GetDirectoryName(path)!)) continue;
@@ -66,13 +69,17 @@ internal static class WindowsGitSourceMetadata
                 if (!SameFile(before, after) || RandomAccess.GetLength(handle) != blob.Length)
                     throw new WorkspaceException("GitSourceMetadataInvalid", "A fenced source file changed during content proof.");
                 if (Convert.ToHexStringLower(hash.GetHashAndReset()) != blob.ObjectId) continue;
-                entries.Add(new(blob.Path, blob.ObjectId, blob.Length, Time(before.CreationLow, before.CreationHigh),
-                    Time(before.AccessLow, before.AccessHigh), Time(before.WriteLow, before.WriteHigh)));
+                yield return new(new(blob.Path, false, blob.Length, (uint)FileAttributes.Archive, Time(before.CreationLow, before.CreationHigh),
+                    Time(before.AccessLow, before.AccessHigh), Time(before.WriteLow, before.WriteHigh)), null, SourceReference: blob.ObjectId);
             }
         }
+        string metadataDirectory = Path.Combine(basis.ReceiptDirectory, GitSourceMetadata.DirectoryName);
+        SnapshotCatalogDescriptor root;
+        try { root = PagedSnapshotCatalog.Build(metadataDirectory, new("", true, 0, 16, 0, 0, 0), Entries(), ct: ct); }
         finally { ArrayPool<byte>.Shared.Return(buffer); }
-        var result = new GitSourceMetadataManifest(1, basis, catalog.Revision, catalog.Tree, [.. entries], examinedBytes,
-            catalog.Files.Length, Stopwatch.GetTimestamp() - started, Stopwatch.Frequency, "");
+        var result = new GitSourceMetadataManifest(2, basis, catalog.Revision, catalog.Tree, root, examinedBytes,
+            examinedFiles, Stopwatch.GetTimestamp() - started, Stopwatch.Frequency, "")
+        { CatalogDirectory = metadataDirectory, Files = GitSourceMetadata.EnumerateFiles(metadataDirectory, root) };
         result = result with { ContentHash = GitSourceMetadata.ComputeContentHash(result) };
         GitSourceMetadata.Validate(result, basis);
         return result;

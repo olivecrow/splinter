@@ -1,7 +1,7 @@
 <a id="검증-안내와-보존-근거"></a>
 # Verification guide and preserved evidence
 
-Current task state is **v3**; managed basis remains v2. [Repeated original application](../repeated-original-apply.md) owns live capture, immutable result versions, per-path publication history and exact external cooperation for a running original. [RI qualification](repeated-original-apply.md) is separate from historical stopped-Editor evidence; older tasks are preserved/refused without migration. RI-01–08 are scoped-complete for one fixed small actual Unity original/A/B set per Git/None/Plastic input, with final current-source regression and explicit untested limits.
+The current SCAL candidate writes **task v4 / managed basis v3 / overlay v3**. [SCAL verification](scalable-storage.md) remains incomplete after the user's 2026-11-01 verification reduction. [Slow-phase diagnosis](scalable-storage-throughput-diagnosis.md) records the long actual phases and preserved closeout. Earlier [RI qualification](repeated-original-apply.md) belongs to its task-v3/basis-v2 candidate and is not new SCAL evidence. [Repeated original application](../repeated-original-apply.md) owns live capture, immutable result versions, per-path history and exact external cooperation. Older state is preserved/refused without migration.
 
 [한국어](../ko/verification/README.md)
 

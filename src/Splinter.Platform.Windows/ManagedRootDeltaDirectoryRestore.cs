@@ -51,7 +51,7 @@ internal static class ManagedRootDeltaDirectoryRestore
 
     private static bool EligibleEntries(OwnedDirectoryManifest manifest, DeltaRestoreEntry[] entries)
     {
-        var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+        using var items = manifest.OpenIndex(StringComparer.Ordinal);
         var originalPaths = manifest.Items.Select(i => i.Entry.Path).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var ids = new HashSet<Guid>();
@@ -147,7 +147,7 @@ internal static class ManagedRootDeltaDirectoryRestore
             var intent = ReadReceipt(IntentPath(receiptRoot), planHash, receiptPins);
             var verified = ReadReceipt(VerifiedPath(receiptRoot), planHash, receiptPins);
             var reclaim = ReadReceipt(StagingReclaimPath(receiptRoot), planHash, receiptPins);
-            bool journalPending = BoundedJournalReclamation.HasIntent(JournalReclaimPath(receiptRoot));
+            bool journalPending = CurrentJournalReclamation.HasIntent(JournalReclaimPath(receiptRoot));
             if (intent is null && !move || reclaim is not null && verified is null || journalPending && reclaim is null) throw Conflict();
             using var identity = journalPending ? null : PinIdentity(request, plan.IdentityHash);
             using var journal = journalPending ? null : OpenJournalEffects(state, request, manifest, plan);
@@ -161,7 +161,7 @@ internal static class ManagedRootDeltaDirectoryRestore
                     {
                         // A crash between plan and binding is recoverable only
                         // while every immutable original byte still exists.
-                        using var replay = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, new PinnedPlanningTree(manifest));
+                        using var replay = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, new PinnedPlanningTree(manifest), ownsSnapshotTree: true, sourceFilePins: new WindowsJournalFilePins());
                         var rebuilt = BuildFiles(state.Basis.Snapshot.RootPath, manifest, replay.DescribeRestore(), replay, ct);
                         if (replay.Seal() != plan.Seal || !FilesEqual(rebuilt, plan.Files)) throw Conflict();
                         await WindowsProcessWorkspaceProvider.WriteAsync(IntentPath(receiptRoot), new Receipt(1, planHash), ct);
@@ -174,7 +174,7 @@ internal static class ManagedRootDeltaDirectoryRestore
                 boundary?.Invoke("root-delta.after-move");
             }
             RequireAbsent(state.Basis.Snapshot.RootPath);
-            var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+            using var items = manifest.OpenIndex(StringComparer.Ordinal);
             var mutable = plan.Files.Where(f => !FixedContent(f.Delta, items.GetValueOrDefault(f.Delta.Entry.Path))).ToArray();
             var newFiles = mutable.Where(f => f.BasisIdentity is null).ToDictionary(f => f.Delta.Entry.Path, StringComparer.Ordinal);
             var created = new Dictionary<Guid, FileReceipt>();
@@ -223,7 +223,7 @@ internal static class ManagedRootDeltaDirectoryRestore
             var stableItems = plan.Directories.Select(d => new OwnedDirectoryItem(ToSnapshot(d.Entry), null))
                 .Concat(plan.Files.Where(f => FixedContent(f.Delta, items.GetValueOrDefault(f.Delta.Entry.Path)))
                     .Select(f => new OwnedDirectoryItem(ToSnapshot(f.Delta.Entry), f.FinalHash))).ToArray();
-            var stableManifest = manifest with { Items = stableItems };
+            var stableManifest = manifest with { Catalog = null, CatalogDirectory = null, ScratchOwner = null, Items = stableItems };
             var extras = new HashSet<string>(deletedAtOriginal, StringComparer.Ordinal);
             foreach (var file in mutable)
                 if (Exists(PathOf(state.OriginalPath, file.Delta.Entry.Path))) extras.Add(file.Delta.Entry.Path);
@@ -322,7 +322,7 @@ internal static class ManagedRootDeltaDirectoryRestore
                 .Concat(plan.Files.Select(f => new OwnedDirectoryItem(ToSnapshot(f.Delta.Entry), f.FinalHash))).ToArray();
             var finalIdentities = new Dictionary<string, string>(plan.Identities, StringComparer.Ordinal);
             foreach (var file in newFiles.Values) finalIdentities[file.Delta.Entry.Path] = created[file.Delta.Entry.Id].Identity;
-            using var finalPins = new TreePins(state.OriginalPath, manifest with { Items = finalItems }, root, finalIdentities, verifyContent: true, ct);
+            using var finalPins = new TreePins(state.OriginalPath, manifest with { Catalog = null, CatalogDirectory = null, ScratchOwner = null, Items = finalItems }, root, finalIdentities, verifyContent: true, ct);
             if (!journalPending) RequireSeal(request, plan.Seal);
             finalPins.ApplyMetadata();
             if (verified is null)
@@ -353,8 +353,8 @@ internal static class ManagedRootDeltaDirectoryRestore
                 boundary?.Invoke("root-delta.journal." + stage);
             }
             if (plan.JournalMode == "bounded")
-                BoundedJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], JournalReclaimPath(receiptRoot),
-                    ReclaimBoundary, path => new WindowsJournalDirectoryGuard(path, BoundedJournalReclamation.GuardName));
+                CurrentJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], JournalReclaimPath(receiptRoot),
+                    ReclaimBoundary, path => new WindowsJournalDirectoryGuard(path, CurrentJournalReclamation.GuardName), filePins: new WindowsJournalFilePins());
             else
                 LatestJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], JournalReclaimPath(receiptRoot),
                     ReclaimBoundary, path => new WindowsJournalDirectoryGuard(path));
@@ -370,7 +370,7 @@ internal static class ManagedRootDeltaDirectoryRestore
     internal static RestoreFile[] BuildFiles(string basisRoot, OwnedDirectoryManifest manifest, DeltaRestoreEntry[] entries,
         JournalDeltaStore journal, CancellationToken ct)
     {
-        var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+        using var items = manifest.OpenIndex(StringComparer.Ordinal);
         var files = new List<RestoreFile>(); byte[] buffer = new byte[1024 * 1024];
         foreach (var delta in entries.Where(e => !e.Entry.Directory).OrderBy(e => e.Entry.Path, StringComparer.Ordinal))
         {
@@ -401,14 +401,14 @@ internal static class ManagedRootDeltaDirectoryRestore
         if (plan.Version != 1 || !Supported(state) || plan.Basis != state.Basis || plan.OriginalPath != state.OriginalPath ||
             plan.DeltaPath != request.DeltaPath || plan.IdentityHash != IdentityHash(request.Identity) || plan.Seal is null ||
             plan.Seal.DurableSequence < 0 || plan.JournalMode is not ("latest" or "bounded") || plan.Identities is null ||
-            plan.Identities.Count != manifest.Items.Length || plan.Directories is null || plan.Files is null || plan.Deleted is null ||
+            plan.Identities.Count != manifest.ItemCount || plan.Directories is null || plan.Files is null || plan.Deleted is null ||
             manifest.Items.Any(i => !plan.Identities.TryGetValue(i.Entry.Path, out string? id) || string.IsNullOrEmpty(id)) ||
             plan.Files.Any(f => f is null || !IsHash(f.FinalHash) || !IsHash(f.RetainedHash)) ||
             !EligibleEntries(manifest, plan.Directories.Concat(plan.Files.Select(f => f.Delta)).ToArray())) throw Conflict();
         if (plan.Directories.Any(d => !d.Entry.Directory) || plan.Files.Any(f => f.Delta.Entry.Directory) ||
             !plan.Directories.Select(d => d.Entry.Path).SequenceEqual(plan.Directories.Select(d => d.Entry.Path).Order(StringComparer.Ordinal)) ||
             !plan.Files.Select(f => f.Delta.Entry.Path).SequenceEqual(plan.Files.Select(f => f.Delta.Entry.Path).Order(StringComparer.Ordinal))) throw Conflict();
-        var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+        using var items = manifest.OpenIndex(StringComparer.Ordinal);
         foreach (var file in plan.Files)
         {
             var entry = file.Delta.Entry;
@@ -436,7 +436,7 @@ internal static class ManagedRootDeltaDirectoryRestore
         catch { journal.Dispose(); throw; }
     }
 
-    internal static void ValidateMutable(FileStream pin, RestoreFile file, Dictionary<string, OwnedDirectoryItem> items, bool started, bool complete)
+    internal static void ValidateMutable(FileStream pin, RestoreFile file, OwnedDirectoryItemIndex items, bool started, bool complete)
     {
         var entry = file.Delta.Entry;
         if (complete)
@@ -474,7 +474,7 @@ internal static class ManagedRootDeltaDirectoryRestore
     }
     private static HashSet<string> AllowedArtifacts(string root, Plan plan, OwnedDirectoryManifest manifest)
     {
-        var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+        using var items = manifest.OpenIndex(StringComparer.Ordinal);
         var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         { PlanPath(root), IntentPath(root), VerifiedPath(root), StagingReclaimPath(root), JournalReclaimPath(root) };
         if (plan.JournalMode == "bounded") allowed.Add(JournalReclaimPath(root) + ".pending");
@@ -536,21 +536,20 @@ internal static class ManagedRootDeltaDirectoryRestore
     // Used only for the pre-effect plan/binding publication gap, inside a
     // complete original TreePins proof. Opening another basis root lease would
     // conflict with the caller's already acquired DELETE-capable root handle.
-    internal sealed class PinnedPlanningTree : ISnapshotTree
+    internal sealed class PinnedPlanningTree : ISnapshotTree, IDisposable
     {
-        private readonly Dictionary<string, SnapshotEntry> entries;
-        private readonly Dictionary<string, SnapshotEntry[]> children;
+        private readonly OwnedDirectoryItemIndex entries;
         public SnapshotReference Snapshot { get; }
         internal PinnedPlanningTree(OwnedDirectoryManifest manifest)
         {
             Snapshot = manifest.Snapshot;
-            entries = manifest.Items.ToDictionary(i => i.Entry.Path, i => i.Entry, StringComparer.OrdinalIgnoreCase);
-            children = manifest.Items.Where(i => i.Entry.Path.Length != 0).GroupBy(i => Parent(i.Entry.Path), StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.Select(i => i.Entry).ToArray(), StringComparer.OrdinalIgnoreCase);
+            entries = manifest.OpenIndex(StringComparer.OrdinalIgnoreCase);
         }
         public void EnsureAvailable() { }
-        public SnapshotEntry? Stat(string path) => entries.GetValueOrDefault(JournalDeltaStore.Normalize(path));
-        public IReadOnlyList<SnapshotEntry> List(string path) => children.GetValueOrDefault(JournalDeltaStore.Normalize(path)) ?? [];
+        public SnapshotEntry? Stat(string path) => entries.GetValueOrDefault(JournalDeltaStore.Normalize(path))?.Entry;
+        public IReadOnlyList<SnapshotEntry> List(string path) => EnumerateChildren(path).ToArray();
+        public IEnumerable<SnapshotEntry> EnumerateChildren(string path) => entries.EnumerateChildren(JournalDeltaStore.Normalize(path)).Select(item => item.Entry);
+        public void Dispose() => entries.Dispose();
         public int Read(string path, long offset, Span<byte> destination)
         {
             using var pin = ManagedRestoreFileAccess.Read(PathOf(Snapshot.RootPath, path));

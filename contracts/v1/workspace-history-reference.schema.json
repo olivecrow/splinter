@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "root": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "urn:splinter:v1:metadata-tree-root"
+        }
+      ]
+    }
+  },
+  "required": [
+    "version",
+    "count",
+    "root"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:workspace-history-reference"
+}

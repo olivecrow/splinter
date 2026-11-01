@@ -6,9 +6,11 @@ using Splinter.SourceControl.Git;
 
 namespace Splinter.Platform.Windows;
 
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
 public sealed class ManagedDirectoryState
 {
-    public int Version { get; set; } = 2;
+    [System.Text.Json.Serialization.JsonRequired]
+    public int Version { get; set; } = 3;
     public string ApplicationKind { get; set; } = "";
     public string DirectoryKind { get; set; } = "";
     public required string Key { get; set; }
@@ -117,7 +119,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
     {
         var state = await WindowsProcessWorkspaceProvider.ReadAsync<ManagedDirectoryState>(StatePath(id), ct)
             ?? throw new WorkspaceException("GeneratedBasisMissing", "Retain the missing generated-directory identity.");
-        if (state.Version != 2 || string.IsNullOrWhiteSpace(state.ApplicationKind))
+        if (state.Version != 3 || string.IsNullOrWhiteSpace(state.ApplicationKind))
             throw new WorkspaceException("GeneratedBasisMismatch", "Preserve an unsupported generated-directory state without migration.");
         var descriptor = Descriptor(policies.Get(state.ApplicationKind));
         var basis = state.Basis;
@@ -168,11 +170,11 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
             if (!Directory.Exists(original) || Directory.Exists(basisPath))
                 throw new WorkspaceException("GeneratedBasisPreparationConflict", "An intact original without a renamed basis is required.");
             string intentPath = Path.Combine(root, "prepare-intent.json");
-            var intent = new PreparationIntent(2, id, project, key, original, basisPath, applicationKind, descriptor.Kind, compatibilityKey);
+            var intent = new PreparationIntent(3, id, project, key, original, basisPath, applicationKind, descriptor.Kind, compatibilityKey);
             if (Directory.Exists(root))
             {
                 var prior = await WindowsProcessWorkspaceProvider.ReadAsync<PreparationIntent>(intentPath, ct);
-                if (prior != intent || Directory.EnumerateFileSystemEntries(root).Any(p => Path.GetFileName(p) is not ("prepare-intent.json" or "manifest.json" or "proof.json" or "readers.lock" or "dependents" or GitSourceMetadata.FileName)) ||
+                if (prior != intent || Directory.EnumerateFileSystemEntries(root).Any(p => Path.GetFileName(p) is not ("prepare-intent.json" or "manifest.json" or "proof.json" or "readers.lock" or "dependents" or OwnedDirectoryManifest.MetadataDirectoryName or GitSourceMetadata.FileName or GitSourceMetadata.DirectoryName)) ||
                     Directory.Exists(Path.Combine(root, "dependents")) && Directory.EnumerateFileSystemEntries(Path.Combine(root, "dependents")).Any())
                     throw new WorkspaceException("GeneratedBasisPreparationConflict", "Retain an unowned or uncertain preparation root.");
                 foreach (string entry in Directory.EnumerateFileSystemEntries(root)) WorkspaceStore.EnsurePlainPath(entry);
@@ -189,7 +191,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
                 var saved = await WindowsProcessWorkspaceProvider.ReadAsync<OwnedDirectoryManifest>(Path.Combine(root, "manifest.json"), ct)
                     ?? throw new WorkspaceException("GeneratedBasisPreparationConflict", "Preserve source metadata without its Library manifest.");
                 var fixedSnapshot = saved.Snapshot;
-                if (saved.Version != 1 || saved.OwnerId != id || fixedSnapshot is null || fixedSnapshot.Id != id || fixedSnapshot.Provider != OwnedDirectorySnapshotTree.ProviderName ||
+                if (saved.Version != 2 || saved.OwnerId != id || fixedSnapshot is null || fixedSnapshot.Id != id || fixedSnapshot.Provider != OwnedDirectorySnapshotTree.ProviderName ||
                     fixedSnapshot.SourcePath != basisPath || fixedSnapshot.RootPath != basisPath || !fixedSnapshot.Persistent || !fixedSnapshot.Differential ||
                     fixedSnapshot.Consistency != "stopped-original-owned-directory" || fixedSnapshot.PathPolicy is not null)
                     throw new WorkspaceException("GeneratedBasisPreparationConflict", "Preserve a foreign captured Library/source pair.");
@@ -206,7 +208,8 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
                 Directory.CreateDirectory(root);
                 if (!File.Exists(intentPath)) await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, intent, ct);
                 var snapshot = new SnapshotReference(id, OwnedDirectorySnapshotTree.ProviderName, basisPath, basisPath, DateTimeOffset.UtcNow, true, true, "stopped-original-owned-directory");
-                var manifest = OwnedDirectorySnapshotTree.CaptureCancellable(snapshot with { RootPath = original }, id, ct) with { Snapshot = snapshot };
+                var manifest = OwnedDirectorySnapshotTree.CaptureCancellable(snapshot with { RootPath = original }, id, ct,
+                    Path.Combine(root, OwnedDirectoryManifest.MetadataDirectoryName)) with { Snapshot = snapshot };
                 await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(root, "manifest.json"), manifest, ct);
                 string manifestHash = HashFile(Path.Combine(root, "manifest.json"));
                 await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(root, "proof.json"), new OwnedDirectoryProof(1, snapshot, id, manifestHash, manifest.Items.Sum(i => i.Entry.Length)), ct);
@@ -242,7 +245,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
         if (request is null)
         {
             var access = await new OwnedDirectorySnapshotProvider(root, id).ResolveReadAccessAsync(state.Basis.Snapshot, ct);
-            request = new(new(2, id, state.Basis.Snapshot, SnapshotWorkspaceState.DefaultJournalBytes, 1024 * 1024,
+            request = new(new(3, id, state.Basis.Snapshot, SnapshotWorkspaceState.DefaultJournalBytes, 1024 * 1024,
                 ExcludedTopLevel: projectBasis ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : null,
                 DeniedTopLevel: projectBasis ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : null), Path.Combine(root, "delta"), original,
                 Path.Combine(root, "overlay"), Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32)), access, root, id);
@@ -364,7 +367,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
     private static void ValidateRequest(ManagedDirectoryState state, OverlayServeRequest request)
     {
         bool project = state.Basis.RelativePath == "";
-        var expected = new OverlayIdentity(2, state.Basis.Id, state.Basis.Snapshot, SnapshotWorkspaceState.DefaultJournalBytes, 1024 * 1024,
+        var expected = new OverlayIdentity(3, state.Basis.Id, state.Basis.Snapshot, SnapshotWorkspaceState.DefaultJournalBytes, 1024 * 1024,
             ExcludedTopLevel: project ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : null,
             DeniedTopLevel: project ? Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata : null);
         if (request.Identity.Id != state.Basis.Id || request.Identity.Snapshot != state.Basis.Snapshot ||

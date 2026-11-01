@@ -115,7 +115,7 @@ public sealed class JournalLatestOnlyEvidenceTests
                     using var empty = new JournalDeltaStore(directory, identity, reader.Tree, optimizeJournal: enabled);
                     Assert.Equal(enabled, empty.JournalOptimizationEnabled);
                 }
-                var entries = new Dictionary<string, DeltaEntry>(); SourceChangeView changes; object? writeMetrics = null;
+                var entries = new Dictionary<string, DeltaEntry>(); SourceChangeTestHeader changes; object? writeMetrics = null;
                 Stages? stages = Environment.GetEnvironmentVariable("SPLINTER_LATEST_ONLY_PROFILE") is null ? null : new();
                 var samples = new List<object>(); var latencies = new List<long>(); long writeTicks = 0, writeAllocated = 0;
                 using (var reader = new Reader(provider, snapshot))
@@ -145,7 +145,7 @@ public sealed class JournalLatestOnlyEvidenceTests
                     writeMetrics = store.Observe().Metrics;
                     foreach (var file in files)
                     { store.SetMetadata(entries[file.Path].Id, 32, 101, 202, 303); entries[file.Path] = store.Get(entries[file.Path].Id); }
-                    changes = store.ObserveChanges([]);
+                    using (var observedChangeHeader = store.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader);
                 }
                 long replayBegan = Stopwatch.GetTimestamp(); SnapshotDeltaSeal seal;
                 using (var reader = new Reader(provider, snapshot))
@@ -154,7 +154,8 @@ public sealed class JournalLatestOnlyEvidenceTests
                 using (var reader = new Reader(provider, snapshot))
                 using (var replay = new JournalDeltaStore(directory, identity, reader.Tree))
                 {
-                    Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);
+                    using var observedChanges1 = replay.ObserveChanges([]);
+                    Assert.Equal(changes.Changes, observedChanges1.Changes);
                     byte[] scratch = new byte[65536];
                     foreach (var file in files)
                     {

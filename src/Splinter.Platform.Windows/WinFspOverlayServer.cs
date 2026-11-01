@@ -102,13 +102,16 @@ public static class WinFspOverlayServer
             long replayStarted = Stopwatch.GetTimestamp();
             var sourcePins = new WindowsJournalFilePins();
             string sourceCaptures = Path.Combine(Path.GetDirectoryName(request.ControlPath)!, "captures");
-            SourceCaptureTree.RecoverPins(sourceCaptures, sourcePins);
+            if (request.Identity.Version < 3) SourceCaptureTree.RecoverPins(sourceCaptures, sourcePins);
             WindowsJournalFilePins.RecoverCopies(Path.GetDirectoryName(request.ControlPath)!);
+            using var capturedContent = CapturedResultReaders.Open(request.Identity, deltaPath);
             using IWorkspaceDeltaStore store = request.SourceView is { } selectedView
                 ? new SourceViewDeltaStore(deltaPath, request.Identity, snapshot, selectedView, cacheBasis: cacheSnapshot)
                 : new JournalDeltaStore(deltaPath, request.Identity, basisTree, directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path),
                     initialContentGeneration: intent.InitialContentGeneration,
-                    boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes, sourceFilePins: sourcePins);
+                    boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes, sourceFilePins: sourcePins, capturedContentReader: capturedContent);
+            if (store is JournalDeltaStore recovered)
+            { recovered.RecoverSourceCaptures(sourceCaptures); recovered.MaintainLiveStorage(); }
             long storeReadyTicks = Stopwatch.GetTimestamp() - replayStarted;
             var fileSystem = new WinFspOverlayFileSystem(store, ex =>
             {
@@ -122,10 +125,36 @@ public static class WinFspOverlayServer
             using (var host = new FileSystemHost(fileSystem))
             {
                 using var wakeup = new OverlayRequestWakeup(request.ControlPath);
-                long nextObservation = 0;
-                string? lastFlushRequest = null, lastSourceRequest = null, lastCaptureRequest = null;
+                using var maintenanceCancellation = new CancellationTokenSource();
+                Task? maintenance = null; int pendingSegmentCollection = 0; Exception? maintenanceFailure = null;
+                void ScheduleMaintenance(bool collectSegments = false)
+                {
+                    if (maintenanceCancellation.IsCancellationRequested) return;
+                    if (store is not JournalDeltaStore maintained || Volatile.Read(ref maintenanceFailure) is not null) return;
+                    if (collectSegments) Interlocked.Exchange(ref pendingSegmentCollection, 1);
+                    if (maintenance is { IsCompleted: false }) return;
+                    maintenance = Task.Run(() =>
+                    {
+                        try
+                        {
+                            do { maintained.MaintainLiveStorage(ct: maintenanceCancellation.Token,
+                                collectSegments: Interlocked.Exchange(ref pendingSegmentCollection, 0) != 0); }
+                            while (Volatile.Read(ref pendingSegmentCollection) != 0);
+                        }
+                        catch (OperationCanceledException) when (maintenanceCancellation.IsCancellationRequested) { }
+                        catch (Exception error)
+                        {
+                            Volatile.Write(ref maintenanceFailure, error); Interlocked.Increment(ref failures);
+                            Volatile.Write(ref lastFailureCode, (error as WorkspaceException)?.Code ?? error.GetType().Name);
+                        }
+                    });
+                }
+                long nextObservation = 0, nextStorageMaintenance = Stopwatch.GetTimestamp() + 30 * Stopwatch.Frequency;
+                string? lastFlushRequest = null, lastSourceRequest = null, lastCaptureRequest = null, lastCompletionRequest = null;
                 int status = host.MountEx(mountPath, 8, null, false, 0);
                 if (status < 0) throw new WorkspaceException("OverlayMountFailed", $"WinFsp mount returned 0x{status:x8}.");
+                try
+                {
                 while (true)
                 {
                     try
@@ -133,7 +162,8 @@ public static class WinFspOverlayServer
                         if (Stopwatch.GetTimestamp() >= nextObservation)
                         {
                             self.Refresh();
-                            var snapshotObservation = await WinFspOverlayClient.ObserveSnapshotAsync(request);
+                            var snapshotObservation = await WinFspOverlayClient.ObserveSnapshotAsync(request,
+                                openedSnapshot: snapshot, openedCache: cacheSnapshot, openedGenerated: generatedTree);
                             Volatile.Write(ref health, snapshotObservation);
                             var storage = store.ObserveActivity();
                             if (storage is null) Volatile.Write(ref lastFailureCode, "DeltaReconnectRequired");
@@ -158,11 +188,30 @@ public static class WinFspOverlayServer
                         var stop = await WindowsProcessWorkspaceProvider.ReadAsync<StopRequest>(Path.Combine(request.ControlPath, "stop.json"), waitForPublication: false);
                         if (stop?.Token == request.Token)
                         {
-                            if (fileSystem.OpenHandles == 0) { store.Flush(); break; }
+                            if (fileSystem.OpenHandles == 0)
+                            {
+                                maintenanceCancellation.Cancel();
+                                if (maintenance is not null) await maintenance;
+                                try { store.Flush(); }
+                                catch (WorkspaceException failed) when (failed.Code == "DeltaReconnectRequired")
+                                {
+                                    // There are no client handles to abandon.
+                                    // Preserve the failed generation and stop
+                                    // for exact replay; no sealed result or
+                                    // successful flush is claimed here.
+                                    Volatile.Write(ref lastFailureCode, failed.Code);
+                                }
+                                break;
+                            }
                             // A normal stop is deferred while clients own handles.
                             // Throwing here would dispose the host and forcibly unmount it.
                             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "stop-blocked.json"),
                                 new { request.Token, error = "OverlayHandlesRemain", openHandles = fileSystem.OpenHandles, observedAt = DateTimeOffset.UtcNow });
+                        }
+                        if (Stopwatch.GetTimestamp() >= nextStorageMaintenance)
+                        {
+                            ScheduleMaintenance();
+                            nextStorageMaintenance = Stopwatch.GetTimestamp() + 30 * Stopwatch.Frequency;
                         }
                         var flush = await WindowsProcessWorkspaceProvider.ReadAsync<FlushRequest>(Path.Combine(request.ControlPath, "flush.json"), waitForPublication: false);
                         if (flush?.Token == request.Token && flush.RequestId != lastFlushRequest)
@@ -190,6 +239,26 @@ public static class WinFspOverlayServer
                                     processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks });
                             lastCaptureRequest = captureRequest.RequestId;
                         }
+                        var completion = await WindowsProcessWorkspaceProvider.ReadAsync<CompleteSourceRequest>(Path.Combine(request.ControlPath, "complete-source.json"), waitForPublication: false);
+                        if (completion?.Token == request.Token && completion.RequestId != lastCompletionRequest)
+                        {
+                            string? completionError = null;
+                            try
+                            {
+                                if (completion.Id.Length != 24 || completion.Id.Any(c => !char.IsAsciiHexDigit(c)))
+                                    throw new WorkspaceException("SourceCaptureRequestInvalid", "Require the fixed generation identity.");
+                                string control = Path.GetDirectoryName(request.ControlPath)!;
+                                await RunStopAwareAsync(request.ControlPath, request.Token, ct => fileSystem.AdoptCapturedRanges(control, completion.Id, ct));
+                                SourceCaptureTree.Complete(Path.Combine(sourceCaptures, completion.Id), sourcePins);
+                                if (store is JournalDeltaStore completedRequest) completedRequest.CompleteSourceCaptureRequest(completion.Id);
+                                ScheduleMaintenance(collectSegments: true);
+                            }
+                            catch (Exception ex) { completionError = (ex as WorkspaceException)?.Code ?? ex.GetType().Name; }
+                            await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "complete-source-result.json"),
+                                new { request.Token, completion.RequestId, completion.Id, completionError,
+                                    processId = self.Id, processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks });
+                            lastCompletionRequest = completion.RequestId;
+                        }
                         var sourceQuery = await WindowsProcessWorkspaceProvider.ReadAsync<SourceChangeRequest>(Path.Combine(request.ControlPath, "source-query.json"), waitForPublication: false);
                         if (sourceQuery?.Token == request.Token && sourceQuery.RequestId != lastSourceRequest)
                         {
@@ -206,9 +275,19 @@ public static class WinFspOverlayServer
                                     : ((JournalDeltaStore)store).ObserveChanges(sourceQuery.ManagedPaths));
                             }
                             catch (Exception ex) { sourceError = (ex as WorkspaceException)?.Code ?? ex.GetType().Name; }
-                            await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "source-response.json"),
-                                new SourceChangeResponse(request.Token, sourceQuery.RequestId, self.Id,
-                                    self.StartTime.ToUniversalTime().Ticks, view, sourceError, initialContent));
+                            try
+                            {
+                                await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "source-response.json"),
+                                    new SourceChangeResponse(request.Token, sourceQuery.RequestId, self.Id,
+                                        self.StartTime.ToUniversalTime().Ticks, view, sourceError, initialContent));
+                            }
+                            finally
+                            {
+                                // The durable response/query root protects the
+                                // handoff until the client binds its own reader.
+                                view?.Dispose();
+                                if (!ReferenceEquals(initialContent?.Generation, view)) initialContent?.Generation.Dispose();
+                            }
                             lastSourceRequest = sourceQuery.RequestId;
                         }
                     }
@@ -225,6 +304,12 @@ public static class WinFspOverlayServer
                     double remaining = Math.Max(0, nextObservation - Stopwatch.GetTimestamp()) / (double)Stopwatch.Frequency;
                     await wakeup.WaitAsync(TimeSpan.FromSeconds(remaining));
                 }
+                }
+                finally
+                {
+                    maintenanceCancellation.Cancel();
+                    if (maintenance is not null) await maintenance;
+                }
             }
             await WindowsProcessWorkspaceProvider.WriteAsync(statePath, new
             {
@@ -233,7 +318,7 @@ public static class WinFspOverlayServer
                 processStartTimeUtcTicks = self.StartTime.ToUniversalTime().Ticks, openHandles = fileSystem.OpenHandles,
                 retainedFileContexts = fileSystem.RetainedFileContexts,
                 // The external owner must verify process exit and memory zero.
-                storage = store.Observe(), ioFailures = Volatile.Read(ref failures)
+                storage = store.ObserveActivity(), ioFailures = Volatile.Read(ref failures), lastFailureCode = Volatile.Read(ref lastFailureCode)
             });
             return 0;
         }
@@ -254,7 +339,31 @@ public static class WinFspOverlayServer
             return 1;
         }
     }
+    internal static async Task RunStopAwareAsync(string control, string token, Action<CancellationToken> action)
+    {
+        using var operation = new CancellationTokenSource();
+        using var finished = new CancellationTokenSource();
+        async Task ObserveStop()
+        {
+            try
+            {
+                while (true)
+                {
+                    var stop = await WindowsProcessWorkspaceProvider.ReadAsync<StopRequest>(Path.Combine(control, "stop.json"),
+                        finished.Token, waitForPublication: false);
+                    if (stop?.Token == token) { operation.Cancel(); return; }
+                    await Task.Delay(100, finished.Token);
+                }
+            }
+            catch (OperationCanceledException) when (finished.IsCancellationRequested) { }
+            catch { operation.Cancel(); throw; }
+        }
+        Task observer = ObserveStop();
+        try { await Task.Run(() => action(operation.Token)); }
+        finally { finished.Cancel(); await observer; }
+    }
     private sealed record StopRequest(string Token);
     private sealed record FlushRequest(string Token, string RequestId);
     private sealed record CaptureSourceRequest(string Token, string RequestId, string Id, string[] ManagedPaths);
+    private sealed record CompleteSourceRequest(string Token, string RequestId, string Id);
 }

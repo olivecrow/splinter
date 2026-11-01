@@ -11,6 +11,10 @@ public sealed record GeneratedDirectoryReference(string Id, string ProjectPath, 
 public sealed record SnapshotGraft(string RelativePath, GeneratedDirectoryReference Basis);
 public sealed record DeltaRestoreRange(long Offset, int Length);
 public sealed record DeltaRestoreEntry(DeltaEntry Entry, DeltaRestoreRange[] Ranges);
+// One frozen file's metadata and a repeatable range cursor. Payload stays in
+// the sealed journal; even a single highly fragmented file need not allocate
+// its complete private-range list.
+public sealed record DeltaRestoreCursorEntry(DeltaEntry Entry, IEnumerable<DeltaRestoreRange> Ranges);
 
 public interface IGeneratedDirectoryDependencies
 {

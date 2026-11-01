@@ -62,7 +62,7 @@ public sealed class GeneratedDirectoryTests
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");
         using var directory = new TestDirectory(); File.WriteAllBytes(Path.Combine(directory.Path, "file"), [1, 2]);
         var snapshot = new SnapshotReference("owned", OwnedDirectorySnapshotTree.ProviderName, directory.Path, directory.Path, DateTimeOffset.UnixEpoch, true, true, "stopped-original-owned-directory");
-        var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, "owner");
+        using var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, "owner");
         using (var tree = new OwnedDirectorySnapshotTree(manifest, snapshot))
         {
             Assert.Throws<IOException>(() => File.WriteAllBytes(Path.Combine(directory.Path, "file"), [9, 9]));

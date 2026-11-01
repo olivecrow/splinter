@@ -9,18 +9,31 @@ using Splinter.Core;
 
 namespace Splinter.Runtime;
 
-// An experimental range overlay. Each acknowledged transaction is checksummed
-// and flushed. Reads only use the snapshot and existing journal extents.
-// The journal is bounded; exhaustion preserves existing results, never copy-ups.
+// A range overlay with checksummed, durably acknowledged transactions. Current
+// journals roll append units and immutable metadata roots without a total byte
+// quota. Reads use the immutable basis and existing private ranges.
 public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
 {
     private sealed record Extent(long Start, int Length, long JournalOffset,
-        WorkspaceJournalPayload Payload, int BlockOffset = 0);
+        WorkspaceJournalPayload Payload, int BlockOffset = 0, long Segment = -1,
+        string? ContentHash = null, bool RawContent = true, string? OriginBlock = null, int OriginOffset = 0);
     private sealed record CompactionFragment(long Offset, int Length);
     private sealed class Node(DeltaEntry entry)
     {
-        public DeltaEntry Entry = entry;
-        public List<Extent> Extents = [];
+        private DeltaEntry entryValue = entry;
+        private ExtentList extents = new();
+        private Action? changed;
+        private PagedMetadataStore? store;
+        public DeltaEntry Entry { get => entryValue; set { entryValue = value; changed?.Invoke(); } }
+        public ExtentList Extents
+        {
+            get => extents;
+            set { extents = value; if (store is not null) extents.Attach(store, () => changed!()); changed?.Invoke(); }
+        }
+        public void Attach(PagedMetadataStore target, MetadataTreeRoot root, Action callback)
+        { store = target; changed = callback; extents.Attach(target, root, callback); }
+        public void Attach(PagedMetadataStore target, ExtentList prior, Action callback)
+        { store = target; changed = callback; extents = prior; extents.Attach(target, callback); }
     }
     private sealed record Mutation(long Sequence, string Operation, DeltaEntry Entry,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long Offset = 0,
@@ -28,8 +41,19 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Replace = false,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CompactionFragment[]? Fragments = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? FromSequence = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] BoundedLogSettings? Bounded = null);
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] BoundedLogSettings? Bounded = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CapturedRangeAdoptionEntry? Adoption = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] FrozenCaptureControl? FrozenCapture = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CaptureId = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SegmentPackingJob? Packing = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] RangeRelocation? Relocation = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? PreservedPacking = null);
     private const int MaxMetadataBytes = 65536;
+    // A single operation can contain three filesystem paths. JSON's maximum
+    // escaping expands one UTF-16 code unit to six bytes. This is a bound on
+    // one decoded operation derived from the path contract, never on the
+    // number or aggregate size of paths accepted by a workspace.
+    private int MutationMetadataBytes => Identity.Version == 3 ? checked(3 * 6 * 32000 + MaxMetadataBytes) : MaxMetadataBytes;
     public const int MaxIndexedNodes = 250000;
     public const int MaxIndexedExtents = 1000000;
     public const int MaxHiddenPaths = 250000;
@@ -42,20 +66,22 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private int activeReads;
     private readonly object payloadCacheGate = new();
     private readonly ISnapshotTree snapshot;
+    private readonly ICapturedContentReader? capturedContentReader;
+    private bool ownsSnapshotTree;
     private readonly WorkspacePathPolicy pathPolicy;
-    private FileStream journal;
+    private FileStream journal = null!;
     private readonly IJournalMutationObserver? mutationObserver;
     private readonly JournalDecodedPayloadCache decodedPayloadCache;
     internal JournalDecodedPayloadCache DecodedPayloadCache => decodedPayloadCache;
     private readonly Func<string, IJournalDirectoryGuard>? directoryGuardFactory;
     private IJournalDirectoryGuard? latestDirectoryGuard;
-    private readonly Dictionary<Guid, Node> nodes = [];
-    private readonly Dictionary<string, Guid> paths;
-    private readonly Dictionary<string, HashSet<Guid>> children;
-    private readonly HashSet<string> hidden;
+    private IDictionary<Guid, Node> nodes = null!;
+    private IDictionary<string, Guid> paths = null!;
+    private Dictionary<string, HashSet<Guid>>? legacyChildren;
+    private ISet<string> hidden = null!;
     private long sequence, payloadBytes, logicalPayloadBytes, readBytes;
     private readonly string epoch = Guid.NewGuid().ToString("N");
-    private readonly Dictionary<string, long> pathChanges;
+    private IDictionary<string, long> pathChanges = null!;
     private long lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount, appendedBytes;
     private long replayBytes, replayTicks, journalReadBytes, baseReadBytes;
     private long rangeReadCalls, rangeReadSearchProbes, rangeReadVisitedExtents;
@@ -99,21 +125,22 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         }
         finally { flushCount++; flushTicks += Stopwatch.GetTimestamp() - started; }
     }
-    private int extentCount;
+    private long extentCount;
     private bool poisoned, disposed, closing;
     private readonly bool readOnly;
     public OverlayIdentity Identity { get; }
+    public string? BackingPath => Path.GetDirectoryName(journal.Name);
 
     public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, bool optimizeJournal = true,
         Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null, bool initialContentGeneration = false, long? boundedLogBytes = null,
-        IJournalFilePins? sourceFilePins = null)
+        IJournalFilePins? sourceFilePins = null, ICapturedContentReader? capturedContentReader = null)
         : this(directory, identity, snapshot, "delta.journal", false, null, optimizeJournal, directoryGuardFactory,
-            initialContentGeneration: initialContentGeneration, boundedLogBytes: boundedLogBytes, sourceFilePins: sourceFilePins) { }
+            initialContentGeneration: initialContentGeneration, boundedLogBytes: boundedLogBytes, sourceFilePins: sourceFilePins, capturedContentReader: capturedContentReader) { }
 
     public JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot,
         IJournalMutationObserver mutationObserver, bool optimizeJournal = true, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null, long? boundedLogBytes = null,
-        IJournalFilePins? sourceFilePins = null)
-        : this(directory, identity, snapshot, "delta.journal", false, mutationObserver, optimizeJournal, directoryGuardFactory, boundedLogBytes: boundedLogBytes, sourceFilePins: sourceFilePins) { }
+        IJournalFilePins? sourceFilePins = null, ICapturedContentReader? capturedContentReader = null)
+        : this(directory, identity, snapshot, "delta.journal", false, mutationObserver, optimizeJournal, directoryGuardFactory, boundedLogBytes: boundedLogBytes, sourceFilePins: sourceFilePins, capturedContentReader: capturedContentReader) { }
 
     private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName, bool readOnly = false)
         : this(directory, identity, snapshot, journalName, readOnly, null) { }
@@ -126,18 +153,17 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         bool readOnly, IJournalMutationObserver? mutationObserver, bool optimizeJournal = false,
         Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null,
         long decodedPayloadCacheBytes = JournalDecodedPayloadCache.DefaultBudgetBytes, bool initialContentGeneration = false, long? boundedLogBytes = null,
-        bool skipBoundedPreparation = false, IJournalFilePins? sourceFilePins = null)
+        bool skipBoundedPreparation = false, IJournalFilePins? sourceFilePins = null, ICapturedContentReader? capturedContentReader = null)
     {
         decodedPayloadCache = new(decodedPayloadCacheBytes);
         this.mutationObserver = mutationObserver;
         this.directoryGuardFactory = directoryGuardFactory;
         this.sourceFilePins = sourceFilePins;
+        this.capturedContentReader = capturedContentReader;
         pathPolicy = WorkspacePathPolicy.For(identity.Snapshot);
-        paths = new(pathPolicy.Comparer); children = new(pathPolicy.Comparer);
-        hidden = new(pathPolicy.Comparer); pathChanges = new(pathPolicy.Comparer);
-        if (identity.Version != 2)
-            throw new WorkspaceException("OverlayFormatUnsupported", "Only overlay v2 is supported; preserve old identities and journals without migration.");
-        if (identity.MaxJournalBytes < 4096 || identity.MaxTransferBytes is < 4096 or > 1048576)
+        if (identity.Version is not (2 or 3))
+            throw new WorkspaceException("OverlayFormatUnsupported", "Preserve unsupported identities and journals without migration.");
+        if (identity.Version == 2 && identity.MaxJournalBytes < 4096 || identity.MaxTransferBytes is < 4096 or > 1048576)
             throw new ArgumentException("Invalid overlay version or bounded storage limits.");
         if (identity.DeniedTopLevel is { } denied && (denied.Length > 32 ||
             denied.Any(p => string.IsNullOrEmpty(p) || NormalizePath(p) != p || p.Contains('/')) ||
@@ -151,6 +177,11 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         this.readOnly = readOnly;
         this.initialContentGeneration = initialContentGeneration && !readOnly;
         Identity = identity;
+        if (identity.Version == 3 && boundedLogBytes is { } processingBytes)
+        {
+            if (processingBytes is < 4096 or > DefaultBoundedLogBytes) throw new ArgumentException("The append processing window must be between 4096 and 16777216 bytes.");
+            segmentAppendLimit = processingBytes;
+        }
         if (!readOnly) Directory.CreateDirectory(directory);
         string identityPath = System.IO.Path.Combine(directory, "identity.json");
         if (File.Exists(identityPath))
@@ -158,13 +189,20 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             OverlayIdentity? saved;
             try { saved = JsonSerializer.Deserialize<OverlayIdentity>(File.ReadAllText(identityPath)); }
             catch (JsonException) { throw new WorkspaceException("DeltaCorrupt", "Delta identity JSON is corrupt; preserve the identity and journal."); }
-            if (saved?.Version != 2)
+            if (saved?.Version != identity.Version)
                 throw new WorkspaceException("OverlayFormatUnsupported", "Preserve an unsupported saved overlay before opening or creating its journal.");
             if (JsonSerializer.Serialize(saved) != JsonSerializer.Serialize(identity))
                 throw new WorkspaceException("OverlayIdentityMismatch", "Delta identity and limits cannot change on reconnect.");
         }
         string journalPath = System.IO.Path.Combine(directory, journalName);
+        if (identity.Version == 3 && journalName == "delta.journal")
+        {
+            OpenSegmented(directory, identityPath, journalPath);
+            return;
+        }
+        InitializePagedIndex(directory, false);
         AddBaseNode(snapshot.Stat("") ?? throw new WorkspaceException("SnapshotMissing", "Snapshot root is unavailable."), "");
+        if (identity.Version == 3 && boundedLogBytes is null && !File.Exists(journalPath) && !File.Exists(identityPath)) boundedLogBytes = DefaultBoundedLogBytes;
         try { if (!skipBoundedPreparation) PrepareBoundedOpen(directory, journalName, boundedLogBytes); }
         catch { boundedWriterLock?.Dispose(); latestDirectoryGuard?.Dispose(); boundedTransitionDirectoryGuard?.Dispose(); throw; }
         if (!readOnly && (File.Exists(InitializationPath(directory)) || File.Exists(InitializationPath(directory) + ".pending") ||
@@ -190,6 +228,12 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 JsonSerializer.Serialize(identityFile, identity); identityFile.Flush(true);
             }
             long replayStarted = Stopwatch.GetTimestamp();
+            if (identity.Version == 3)
+            {
+                var rootEntry = nodes[paths[""]].Entry;
+                InitializePagedIndex(directory, true);
+                nodes.Add(rootEntry.Id, new Node(rootEntry)); IndexPath("", rootEntry.Id);
+            }
             replaying = true;
             if (LatestJournalStorage.IsLatest(journal.Name)) OpenLatest(); else Replay();
             replaying = false;
@@ -203,7 +247,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         {
             ClearPayloadCache();
             try { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); boundedWriterLock?.Dispose(); }
-            finally { latestDirectoryGuard?.Dispose(); boundedTransitionDirectoryGuard?.Dispose(); }
+            finally { latestDirectoryGuard?.Dispose(); boundedTransitionDirectoryGuard?.Dispose(); pagedIndex?.Dispose(); }
             throw;
         }
     }
@@ -224,9 +268,11 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 foreach (var item in snapshot.List(lower)) _ = Lookup(Join(parent.Entry.Path, Name(item.Path)), item);
                 snapshot.EnsureAvailable();
             }
-            return children.TryGetValue(parent.Entry.Path, out var entries)
-                ? entries.Select(id => nodes[id].Entry).OrderBy(e => e.Path, pathPolicy.Comparer).ToArray()
-                : [];
+            if (legacyChildren is not null)
+                return legacyChildren.TryGetValue(parent.Entry.Path, out var children)
+                    ? children.Select(id => nodes[id].Entry).OrderBy(e => e.Path, pathPolicy.Comparer).ToArray() : [];
+            return paths.Where(p => p.Key.Length != 0 && Parent(p.Key).Equals(parent.Entry.Path, pathPolicy.Comparison))
+                .Select(p => nodes[p.Value].Entry).OrderBy(e => e.Path, pathPolicy.Comparer).ToArray();
         }
     }
 
@@ -265,11 +311,11 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 rangeReadCalls++;
                 if (count == 0) return 0;
                 long cursor = offset, end = offset + count;
-                var (low, probes) = FindExtent(node.Extents, offset);
+                var (_, probes) = pagedIndex is null ? FindExtent(node.Extents, offset) : (0, 0);
                 rangeReadSearchProbes += probes;
-                for (int i = low; i < node.Extents.Count; i++)
+                foreach (var extent in node.Extents.From(offset))
                 {
-                    var extent = node.Extents[i]; rangeReadVisitedExtents++;
+                    rangeReadVisitedExtents++;
                     if (extent.Start >= end) break;
                     long from = Math.Max(offset, extent.Start), to = Math.Min(end, extent.Start + extent.Length);
                     if (from >= to) continue;
@@ -279,7 +325,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     // is protected. Hash/decode can then run outside the mutation
                     // gate even if a writer retires or truncates the old capsule.
                     // Bound rented scratch as well as fragment metadata per read.
-                    if (extent.Payload.Encoded && (captured?.Count ?? 0) < 64 &&
+                    if (extent.Segment == -1 && extent.Payload.Encoded && (captured?.Count ?? 0) < 64 &&
                         extent.Payload.StoredBytes <= 4 * 1024 * 1024 - capturedBytes)
                     {
                         byte[]? encoded = ReadEncoded(extent.JournalOffset, extent.Payload);
@@ -372,23 +418,24 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         long end = offset + data.Length;
         if (end > node.Entry.Length) return;
         var extents = node.Extents;
-        int first = FindExtent(extents, offset).Index;
         // Establish complete private coverage before reading any bytes. Holes,
         // base ranges and extensions always keep the ordinary write path.
         long cursor = offset;
-        for (int i = first; cursor < end; i++)
+        foreach (var extent in extents.From(offset))
         {
-            if (i == extents.Count || extents[i].Start > cursor) return;
-            cursor = Math.Min(end, extents[i].Start + extents[i].Length);
+            if (extent.Start > cursor) return;
+            cursor = Math.Min(end, extent.Start + extent.Length); if (cursor == end) break;
         }
+        if (cursor != end) return;
         byte[]? buffer = null;
         try
         {
             int firstDifference = data.Length, lastDifference = -1;
             cursor = offset;
-            for (int i = first; cursor < end; i++)
+            foreach (var extent in extents.From(offset))
             {
-                var extent = extents[i]; long until = Math.Min(end, extent.Start + extent.Length);
+                if (cursor >= end) break;
+                long until = Math.Min(end, extent.Start + extent.Length);
                 if (extent.Payload.Encoded)
                 {
                     long from = cursor;
@@ -506,7 +553,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 throw new IOException("Invalid rename.");
             RequireParent(destination);
             var existing = Lookup(destination);
-            if (existing is not null && existing != node && (!replace || existing.Entry.Directory || node.Entry.Directory))
+            if (existing is not null && existing.Entry.Id != node.Entry.Id && (!replace || existing.Entry.Directory || node.Entry.Directory))
                 throw new IOException("Rename destination exists.");
             Commit(new(sequence + 1, "rename", node.Entry, Destination: destination, Replace: replace), []);
         }
@@ -518,7 +565,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         {
             Check(); Node node = Required(id);
             if (node.Entry.Deleted) return;
-            if (node.Entry.Path.Length == 0 || (node.Entry.Directory && List(node.Entry.Path).Count != 0))
+            if (node.Entry.Path.Length == 0 || (node.Entry.Directory && EnumerateChildren(node.Entry.Path).Any()))
                 throw new IOException("Directory is not empty or is the root.");
             Commit(new(sequence + 1, "delete", node.Entry with { Deleted = true }), []);
         }
@@ -547,7 +594,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     {
         ObjectDisposedException.ThrowIf(disposed || closing, this);
         if (poisoned) throw new WorkspaceException("DeltaReconnectRequired", "Replay the failed writer before observing its accounting.");
-        return latest?.CommittedBytes ?? expectedJournalBytes;
+        return segments is not null ? checked(segments.State.SealedBytes + expectedJournalBytes + dataSegmentBytes) : latest?.CommittedBytes ?? expectedJournalBytes;
     }
     public OverlayStorageObservation? ObserveActivity() => ObserveStorage(inspectFiles: false);
     public OverlayStorageObservation Observe() => ObserveStorage(inspectFiles: true)!;
@@ -558,17 +605,23 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             ObjectDisposedException.ThrowIf(disposed || closing, this);
             if (!inspectFiles && poisoned) return null;
             long bytes = inspectFiles ? CurrentJournalBytes : AccountedJournalBytes();
-            long stored = latest?.Current.PayloadBytes ?? payloadBytes;
+            long stored = segments is not null ? checked(segments.PayloadBytes + dataPayloadBytes) : latest?.Current.PayloadBytes ?? payloadBytes;
             return new(Identity.Id, Identity.Snapshot.Id, 0, bytes, stored,
-                bytes - stored, readBytes, 0, Identity.MaxTransferBytes, nodes.Count, latest?.Current.Sequence ?? sequence)
+                bytes - stored, readBytes, 0, Identity.MaxTransferBytes, NodeRoot?.Count ?? nodes.Count, latest?.Current.Sequence ?? sequence)
             {
+                MetadataCacheBytes = PagedMetadataStore.CachedMetadataBytes,
+                SealJournalBytes = segments is null ? null : sourceMutationBytes,
+                PeakMetadataCacheBytes = PagedMetadataStore.PeakCachedMetadataBytes,
                 JournalOptimizationEnabled = latest is not null,
                 JournalStorageMode = JournalStorageMode,
                 BoundedLogBytesLimit = boundedSettings?.ByteLimit,
                 BoundedLogFrameLimit = boundedSettings?.FrameLimit,
                 BoundedLogAppendedBytes = boundedSettings is null ? null : expectedJournalBytes - boundedPrefixBytes,
                 BoundedLogAppendedFrames = boundedSettings is null ? null : boundedFrames,
-                JournalBytesBasis = inspectFiles ? "current-files" : "writer-accounting",
+                // A reader-deferred segment inventory can temporarily retain
+                // conservative counters until its entire native unlink set is
+                // complete. Native allocation is measured separately.
+                JournalBytesBasis = inspectFiles && segments is null ? "current-files" : "writer-accounting",
                 Metrics = new(epoch, lockAcquisitions, lockWaitTicks, flushCount, flushTicks, commitCount,
                     appendedBytes, replayBytes, replayTicks, journalReadBytes, Interlocked.Read(ref baseReadBytes), Stopwatch.Frequency,
                     replayFrames, replayReadCalls, replayReadTicks, replayValidationTicks, replayIndexTicks, ReplayReadBufferBytes,
@@ -584,6 +637,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     }
     public SourceChangeView ObserveChanges(string[] managedPaths)
     {
+        if (Identity.Version == 3 && pagedIndex is not null) return ObservePagedChanges(managedPaths);
         using (EnterGate())
         {
             Check();
@@ -608,10 +662,24 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             try
             {
                 while (activeReads != 0) Monitor.Wait(gate);
-                try { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); boundedWriterLock?.Dispose(); }
-                finally { latestDirectoryGuard?.Dispose(); boundedTransitionDirectoryGuard?.Dispose(); }
+                try { segmentRead?.Dispose(); segments?.Dispose(); journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); boundedWriterLock?.Dispose(); }
+                finally
+                {
+                    latestDirectoryGuard?.Dispose(); boundedTransitionDirectoryGuard?.Dispose();
+                    if (readOnlyReplay is { } replay)
+                    {
+                        if (ownsSnapshotTree && snapshot is IDisposable retainedBasis) { replay.OwnUntilReleased(retainedBasis); ownsSnapshotTree = false; }
+                        replay.Dispose();
+                    }
+                    else pagedIndex?.Dispose();
+                    if (!pagedIndexCaptured && pagedIndexDirectory is not null) ReclaimPagedIndex(pagedIndexDirectory, Identity, sourceFilePins);
+                }
             }
-            finally { ClearPayloadCache(); disposed = true; closing = false; Monitor.PulseAll(gate); }
+            finally
+            {
+                ClearPayloadCache(); disposed = true; closing = false; Monitor.PulseAll(gate);
+                if (ownsSnapshotTree && snapshot is IDisposable owner) owner.Dispose();
+            }
         }
     }
 
@@ -657,7 +725,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     }
     private void RequireNodeCapacity()
     {
-        if (nodes.Count >= MaxIndexedNodes) throw new WorkspaceException("OverlayMetadataLimit", "The bounded metadata index is full; preserve the delta.");
+        if (pagedIndex is null && nodes.Count >= MaxIndexedNodes) throw new WorkspaceException("OverlayMetadataLimit", "The legacy metadata index is full; preserve the delta.");
     }
     private Node? Lookup(string path, SnapshotEntry? listedEntry = null)
     {
@@ -684,7 +752,9 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         var id = new Guid(digest.AsSpan(0, 16));
         var node = new Node(new(id, path, entry.Directory, entry.Length, entry.Attributes,
             entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime, entry.Path, entry.Length, UnixMode: entry.UnixMode));
-        nodes.Add(id, node); IndexPath(path, id); return node;
+        nodes.Add(id, node); IndexPath(path, id);
+        if (repackWatching) repackAdmissions = pagedIndex!.Set(repackAdmissions!, id.ToString("N"), []);
+        return node;
     }
     private void IndexPath(string path, Guid id)
     {
@@ -696,18 +766,38 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         paths.Add(path, id);
         if (path.Length == 0) return;
         string parent = Parent(path);
-        if (!children.TryGetValue(parent, out var entries)) children.Add(parent, entries = []);
-        entries.Add(id);
+        if (legacyChildren is not null)
+        {
+            if (!legacyChildren.TryGetValue(parent, out var entries)) legacyChildren.Add(parent, entries = []);
+            entries.Add(id);
+        }
     }
     private void RemovePath(string path)
     {
         if (!paths.Remove(path, out var id) || path.Length == 0) return;
-        string parent = Parent(path);
-        var entries = children[parent]; entries.Remove(id);
-        if (entries.Count == 0) children.Remove(parent);
+        if (legacyChildren is not null)
+        {
+            string parent = Parent(path); var entries = legacyChildren[parent]; entries.Remove(id);
+            if (entries.Count == 0) legacyChildren.Remove(parent);
+        }
     }
-    private List<Node> IndexedSubtree(Node root)
+    private IEnumerable<Node> IndexedSubtree(Node root)
     {
+        if (paths is PagedPathNamespace pagedPaths)
+        {
+            var fixedPaths = pagedPaths.Root; string pagedPrefix = root.Entry.Path + "/";
+            IEnumerable<Node> Cursor()
+            {
+                yield return root;
+                if (!root.Entry.Directory) yield break;
+                foreach (var item in pagedPaths.Walk(fixedPaths))
+                {
+                    if (!item.Key.StartsWith(pagedPrefix, pathPolicy.Comparison)) continue;
+                    yield return nodes[item.Value];
+                }
+            }
+            return Cursor();
+        }
         var result = new List<Node> { root };
         if (!root.Entry.Directory) return result;
         // Replay may index a modified descendant without its unmodified parents.
@@ -755,11 +845,15 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 RequireMutationCapacity(mutation);
                 descriptor = new WorkspaceJournalPayload(storedPayload.Length, payload.Length);
                 metadata = JsonSerializer.SerializeToUtf8Bytes(mutation);
-                if (metadata.Length > MaxMetadataBytes) throw new WorkspaceException("OverlayMetadataLimit", "Mutation metadata exceeds the transaction limit.");
+                if (metadata.Length > MutationMetadataBytes) throw new WorkspaceException("OverlayMetadataLimit", "One mutation exceeds the filesystem-derived path record size.");
                 required = FrameHeaderBytes + (long)metadata.Length + storedPayload.Length + FrameChecksumBytes;
+                if (pendingWriteBatch is { Count: > 0 } batch &&
+                    (batch.Count >= IWorkspaceWriteBatch.MaximumWrites ||
+                     batch.Sum(item => item.Bytes) > IWorkspaceWriteBatch.MaximumBytes - required)) FlushPendingWrites();
                 EnsureBoundedAppendCapacity(required);
+                EnsureSegmentAppendCapacity(required);
                 start = journal.Length;
-                if (start > Identity.MaxJournalBytes - required)
+                if (Identity.Version == 2 && start > Identity.MaxJournalBytes - required)
                     throw new WorkspaceException("DeltaFull", "The delta journal budget is exhausted. Existing data remains intact; no automatic deletion or full-copy fallback.");
                 WriteHeader(header, metadata.Length, descriptor);
                 using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -789,6 +883,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     if (!payload.IsEmpty)
                         Visit("commit.after-payload", mutation.Operation, mutation.Sequence, start, required, payload.Length);
                     journal.Write(checksum);
+                    segments?.RecordAppend(header, metadata, storedPayload, checksum);
                     Visit("commit.after-checksum", mutation.Operation, mutation.Sequence, start, required, payload.Length);
                 }
                 finally { cost.AppendTicks += Stopwatch.GetTimestamp() - stage; }
@@ -812,6 +907,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             catch { Poison(); throw; }
             expectedJournalBytes = journal.Length;
             if (boundedSettings is not null) boundedFrames++;
+            if (segments is not null) segmentFrames++;
             if (pendingWriteBatch is null)
             {
                 commitCount++; appendedBytes += required;
@@ -820,8 +916,9 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             else pendingWriteBatch.Add(new(mutation, start, required, payload.Length, cost));
             stage = Stopwatch.GetTimestamp();
             try { Apply(mutation, start + FrameHeaderBytes + metadata.Length, descriptor); }
-            catch { if (pendingWriteBatch is not null) Poison(); throw; }
+            catch { Poison(); throw; }
             finally { cost.ApplyTicks += Stopwatch.GetTimestamp() - stage; }
+            RecordAcceptedMutation(mutation, checksum, required);
             if (pendingWriteBatch is null) Visit("commit.after-apply", mutation.Operation, mutation.Sequence, start, required, payload.Length);
         }
         catch { cost.FailedCalls++; throw; }
@@ -834,12 +931,12 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         catch { Poison(); throw; }
     }
     private void Poison() { poisoned = true; ClearPayloadCache(); }
-    private void Replay()
+    private void Replay(long? start = null, long? limit = null)
     {
-        long cursor = 0;
-        long length = journal.Length;
+        long cursor = start ?? (segments is null && !segmentShadow ? 0 : JournalSegmentStorage.HeaderBytes);
+        long length = limit ?? journal.Length;
         bool stateOpen = false, stateComplete = false;
-        using var reader = new ReplayReader(this, length);
+        using var reader = new ReplayReader(this, length, cursor);
         using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         byte[] header = new byte[FrameHeaderBytes], expectedHash = new byte[FrameChecksumBytes];
         while (cursor < length)
@@ -872,7 +969,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                         if (!stateOpen || stateComplete || mutation.Operation is not ("state-change" or "state-complete") && mutation.Sequence != 0)
                             throw new WorkspaceException("DeltaCorrupt", "Current-state initialization is misplaced or incomplete.");
                     }
-                    else if (stateOpen && !stateComplete || (mutation.Operation == "forget-unlinked" ? boundedSettings is null || mutation.Sequence != sequence :
+                    else if (stateOpen && !stateComplete || (IsAdministrative(mutation.Operation) ? boundedSettings is null && segments is null && !segmentShadow || mutation.Sequence != sequence :
                         mutation.Operation == "skip-range" ? mutation.FromSequence != sequence + 1 : mutation.Sequence != sequence + 1))
                         throw new WorkspaceException("DeltaCorrupt", "Journal sequence mismatch.");
                 }
@@ -887,7 +984,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     ApplyState(mutation, cursor + FrameHeaderBytes + metadataLength, descriptor);
                     if (mutation.Operation == "state-complete") { stateComplete = true; boundedPrefixBytes = cursor + frameLength; }
                 }
-                else { Apply(mutation, cursor + FrameHeaderBytes + metadataLength, descriptor); if (boundedSettings is not null) boundedFrames++; }
+                else { Apply(mutation, cursor + FrameHeaderBytes + metadataLength, descriptor); if (boundedSettings is not null) boundedFrames++; if (segments is not null) segmentFrames++; }
             }
             finally
             {
@@ -898,6 +995,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 replayIndexOperations[mutation.Operation] = (prior.Frames + 1, prior.ApplyTicks + elapsed);
             }
             replayFrames++; cursor += frameLength;
+            if (segments is not null) replayedActivePayloadBytes = checked(replayedActivePayloadBytes + descriptor.StoredBytes);
+            RecordAcceptedMutation(mutation, expectedHash, frameLength);
         }
         // Only an incomplete trailing transaction is unacknowledged. Corrupt
         // complete transactions above fail closed and remain byte-for-byte intact.
@@ -906,17 +1005,23 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             throw LatestJournalStorage.Corrupt("The bounded journal suffix exceeds its persisted byte or frame limit.");
         if (cursor != length)
         {
-            if (readOnly) throw new WorkspaceException("CandidateIncomplete", "Preserve an incomplete immutable journal without truncation.");
+            if (readOnly || segmentShadow) throw new WorkspaceException("CandidateIncomplete", "Preserve an incomplete immutable journal without truncation.");
             journal.SetLength(cursor); DurableFlush();
         }
     }
     private Mutation DecodeMutation(byte[] metadata, int payloadLength)
     {
         Mutation? mutation;
-        try { mutation = JsonSerializer.Deserialize<Mutation>(metadata); }
+        try { mutation = Identity.Version == 3 ? ReadCurrentMutation(metadata) : JsonSerializer.Deserialize<Mutation>(metadata); }
         catch (JsonException) { throw new WorkspaceException("DeltaCorrupt", "Journal metadata JSON is corrupt; preserve the complete frame."); }
         static WorkspaceException Invalid() => new("DeltaCorrupt", "Journal mutation metadata is invalid; preserve the complete frame.");
         if (mutation is not null && (mutation.Operation == "state-bounded" ? mutation.Bounded is null : mutation.Bounded is not null)) throw Invalid();
+        if (mutation is not null && (mutation.Operation == "adopt-range" ? mutation.Adoption is null : mutation.Adoption is not null)) throw Invalid();
+        if (mutation is not null && (mutation.Operation == "capture-freeze" ? mutation.FrozenCapture is null : mutation.FrozenCapture is not null)) throw Invalid();
+        if (mutation is not null && (mutation.Operation == "capture-complete" ? mutation.CaptureId is null : mutation.CaptureId is not null)) throw Invalid();
+        if (mutation is not null && (mutation.Operation == "packing-state" ? mutation.Packing is null : mutation.Packing is not null)) throw Invalid();
+        if (mutation is not null && (mutation.Operation == "relocate-range" ? mutation.Relocation is null : mutation.Relocation is not null)) throw Invalid();
+        if (mutation is not null && (mutation.Operation == "packing-preserve" ? mutation.PreservedPacking is null : mutation.PreservedPacking is not null)) throw Invalid();
         if (mutation?.Entry is not { } entry || entry.Id == Guid.Empty || entry.Path is null ||
             entry.Length < 0 || entry.BaseLength < 0 || entry.BaseLength > entry.Length ||
             entry.BasePath is null && entry.BaseLength != 0 || entry.Directory && entry.Length != 0 || entry.UnixMode is > 0xFFF)
@@ -954,18 +1059,39 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         }
         else if (mutation.FromSequence is not null || mutation.Fragments is not null || payloadLength != 0 ||
             mutation.Operation is not ("create" or "resize" or "metadata" or "delete" or "rename" or "skip-write" or
-                "state-node" or "state-hidden" or "state-change" or "state-complete" or "state-projection-unsafe" or "state-bounded" or "forget-unlinked"))
+                "state-node" or "state-hidden" or "state-change" or "state-complete" or "state-projection-unsafe" or "state-bounded" or "forget-unlinked" or "adopt-range" or "capture-freeze" or "capture-complete" or "packing-state" or "packing-complete" or "packing-preserve" or "relocate-range"))
             throw Invalid();
         return mutation;
     }
+    private static readonly JsonSerializerOptions CurrentMutationJson = new()
+    { RespectRequiredConstructorParameters = true, RespectNullableAnnotations = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
+    private static Mutation ReadCurrentMutation(byte[] metadata)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(metadata);
+            if (!JsonPropertyValidation.HasUniqueProperties(document.RootElement)) throw PagedInvalid();
+            return document.RootElement.Deserialize<Mutation>(CurrentMutationJson) ?? throw PagedInvalid();
+        }
+        catch (JsonException) { throw PagedInvalid(); }
+    }
     private void Apply(Mutation mutation, long payloadOffset, WorkspaceJournalPayload payload)
     {
+        if (mutation.Operation is "packing-state" or "packing-complete" or "packing-preserve" or "relocate-range") { ApplyPackingMutation(mutation); return; }
+        if (mutation.Operation is "capture-freeze" or "capture-complete") { ApplyCaptureControl(mutation); return; }
+        if (mutation.Operation == "adopt-range")
+        {
+            if (segments is null && !segmentShadow || mutation.Sequence != sequence || mutation.Adoption is not { } adoption ||
+                adoption.FileId != mutation.Entry.Id || !nodes.TryGetValue(adoption.FileId, out var adopted) || adopted.Entry != mutation.Entry) throw PagedInvalid();
+            _ = CapturedRangeAdoptionStore.Encode(adoption);
+            ApplyAdoptedRange(adopted, adoption); return;
+        }
         if (mutation.Operation == "forget-unlinked")
         {
-            if (boundedSettings is null || mutation.Sequence != sequence || !nodes.TryGetValue(mutation.Entry.Id, out var forgotten) ||
+            if (boundedSettings is null && segments is null && !segmentShadow || mutation.Sequence != sequence || !nodes.TryGetValue(mutation.Entry.Id, out var forgotten) ||
                 !forgotten.Entry.Deleted || forgotten.Entry != mutation.Entry)
                 throw LatestJournalStorage.Corrupt("A bounded unlinked retirement differs from its live identity.");
-            extentCount -= forgotten.Extents.Count; nodes.Remove(mutation.Entry.Id); boundedDurableNodes.Remove(mutation.Entry.Id); return;
+            extentCount -= forgotten.Extents.LongCount; nodes.Remove(mutation.Entry.Id); boundedDurableNodes.Remove(mutation.Entry.Id); return;
         }
         RequireMutationCapacity(mutation);
         RecordProjectionMutation(mutation);
@@ -975,7 +1101,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             sequence = mutation.Sequence;
             return;
         }
-        if (boundedSettings is not null) boundedDurableNodes.Add(mutation.Entry.Id);
+        if (boundedSettings is not null || segments is not null || segmentShadow) boundedDurableNodes.Add(mutation.Entry.Id);
         if (!nodes.TryGetValue(mutation.Entry.Id, out var node))
         {
             RequireNodeCapacity(); node = new Node(mutation.Entry); nodes.Add(mutation.Entry.Id, node);
@@ -984,32 +1110,31 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         switch (mutation.Operation)
         {
             case "write": case "write-compacted":
-                extentCount -= node.Extents.Count;
-                if (mutation.Operation == "write") ReplaceRange(node, new(mutation.Offset, payload.DecodedBytes, payloadOffset, payload), true);
+                extentCount -= node.Extents.LongCount;
+                if (mutation.Operation == "write") ReplaceRange(node, new(mutation.Offset, payload.DecodedBytes, payloadOffset, payload, Segment: replaySegment ?? segments?.ActiveId ?? -1), true);
                 else
                 {
                     int cursor = 0;
                     foreach (var fragment in mutation.Fragments!)
                     {
-                        ReplaceRange(node, new(fragment.Offset, fragment.Length, payloadOffset, payload, cursor), false);
+                        ReplaceRange(node, new(fragment.Offset, fragment.Length, payloadOffset, payload, cursor, replaySegment ?? segments?.ActiveId ?? -1), false);
                         cursor += fragment.Length;
                     }
                 }
-                extentCount += node.Extents.Count;
+                extentCount += node.Extents.LongCount;
                 if (!node.Entry.Deleted) IndexPath(node.Entry.Path, node.Entry.Id);
                 break;
             case "resize":
-                extentCount -= node.Extents.Count;
-                node.Extents = node.Extents.Where(e => e.Start < node.Entry.Length)
-                    .Select(e => e with { Length = (int)Math.Min(e.Length, node.Entry.Length - e.Start) }).ToList();
-                extentCount += node.Extents.Count;
+                extentCount -= node.Extents.LongCount;
+                node.Extents.Truncate(node.Entry.Length);
+                extentCount += node.Extents.LongCount;
                 if (!node.Entry.Deleted) IndexPath(node.Entry.Path, node.Entry.Id);
                 break;
             case "create":
                 // A private-file partition transfer can recreate a deleted ID.
                 // Its old ranges belong to the removed incarnation, including
                 // when the incoming file is empty and SetLength(0) is a no-op.
-                extentCount -= node.Extents.Count;
+                extentCount -= node.Extents.LongCount;
                 node.Extents.Clear();
                 goto case "metadata";
             case "metadata":
@@ -1032,7 +1157,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 if (node.Entry.Directory)
                 {
                     string childPrefix = old + "/";
-                    foreach (string path in hidden.Where(p => p.StartsWith(childPrefix, pathPolicy.Comparison)).ToArray())
+                    foreach (string path in pagedIndex is null ? hidden.Where(p => p.StartsWith(childPrefix, pathPolicy.Comparison)).ToArray() : hidden.Where(p => p.StartsWith(childPrefix, pathPolicy.Comparison)))
                     { RemoveHidden(path); AddHidden(destination + path[old.Length..]); }
                 }
                 AddHidden(old); break;
@@ -1047,6 +1172,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         RequireAllowed(mutation.Entry.Path);
         if (mutation.Entry.BasePath is { } basis) RequireAllowed(basis);
         if (mutation.Destination is { } target) RequireAllowed(target);
+        if (pagedIndex is not null) return;
         int newPaths = (pathChanges.ContainsKey(mutation.Entry.Path) ? 0 : 1) +
             (mutation.Destination is { } destination && !pathChanges.ContainsKey(destination) ? 1 : 0);
         if (pathChanges.Count > MaxHiddenPaths - newPaths)
@@ -1060,6 +1186,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     }
     private void ReplaceRange(Node node, Extent replacement, bool measureWriteFrame)
     {
+        if (node.Extents.ReplacePaged(replacement)) return;
         int priorCount = node.Extents.Count;
         long started = replaying && measureWriteFrame ? Stopwatch.GetTimestamp() : 0;
         long end = replacement.Start + replacement.Length;
@@ -1103,7 +1230,8 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             long lastEnd = lastExtent.Start + lastExtent.Length;
             if (lastEnd > end)
                 right = lastExtent with { Start = end, Length = (int)(lastEnd - end),
-                    BlockOffset = lastExtent.BlockOffset + (int)(end - lastExtent.Start) };
+                    BlockOffset = lastExtent.BlockOffset + (int)(end - lastExtent.Start),
+                    OriginOffset = lastExtent.OriginBlock is null ? 0 : checked(lastExtent.OriginOffset + (int)(end - lastExtent.Start)) };
         }
         var pieces = new Extent[1 + (left is null ? 0 : 1) + (right is null ? 0 : 1)];
         int index = 0;

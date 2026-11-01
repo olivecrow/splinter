@@ -26,16 +26,16 @@ internal static class WorkspaceCommands
         WorkspaceCoordinator Runtime(ParseResult parse, bool auditSource = false)
         {
             selectRecovery([new("workspace.list", new { home = Home(parse) })]);
-            var store = new WorkspaceStore(Home(parse));
+            var store = new WorkspaceStore(Home(parse), new WindowsJournalFilePins());
             var git = new GitWorkspaceProvider(new WindowsSourceChanges(store.ControlPath), auditSource, preparationObserver);
             var policies = new ApplicationProjectPolicies(NoApplicationProjectPolicy.Instance, new UnityProjectPolicy(new WindowsOriginalEditorIdentityVerifier()));
             var projects = new ManagedDirectoryBasis(store, policies, projectBasis: true);
             var generated = new ManagedDirectoryBasis(store, policies);
             var snapshots = new NtfsSnapshotWorkspaceBackend(Path.Combine(store.Root, "runners"), preparationObserver, generated, projects);
             var sources = new SourceWorkspaceRouter(git, new FileWorkspaceProvider(store, new WindowsOriginalFilePublisher(managedRoot: projects.AcquireOriginal, allowGitAdministration: true), projectAccess: projects,
-                    applicationPolicies: policies, sourceChanges: auditSource ? null : new WindowsSourceChanges(store.ControlPath), preparationObserver: preparationObserver),
+                    applicationPolicies: policies, sourceChanges: auditSource ? null : new WindowsSourceChanges(store.ControlPath), preparationObserver: preparationObserver, contentPins: new WindowsJournalFilePins()),
                 new PlasticWorkspaceProvider(store, new PlasticWorkspaceClient(), originalPublisher: new WindowsOriginalFilePublisher(allowPlasticAdministration: true),
-                    applicationPolicies: policies, sourceChanges: auditSource ? null : new WindowsSourceChanges(store.ControlPath)));
+                    applicationPolicies: policies, sourceChanges: auditSource ? null : new WindowsSourceChanges(store.ControlPath), contentPins: new WindowsJournalFilePins()));
             return new(store, sources,
                 new SelectedApplicationProvider(new UnityWorkspaceProvider(new WindowsProcessWorkspaceProvider(Path.Combine(store.Root, "runners")))),
                 snapshots, preparationObserver, new WindowsWorkspaceDiscardProvider(sources, snapshots, generated, projects));
@@ -45,6 +45,8 @@ internal static class WorkspaceCommands
         var unity = new Command("unity", "Start and stop only the selected workspace's private Unity Editor.");
         root.Subcommands.Add(workspace);
         root.Subcommands.Add(unity);
+        WorkspaceReadCommands.Add(workspace, contracts, Home, select, respond, ct);
+        WorkspaceMaintenanceCommands.Add(workspace, contracts, parse => Runtime(parse), Home, select, respond, ct);
         foreach (var group in new[] { workspace, unity })
             group.SetAction(_ => { select("cli"); respond(ApiResponse.Failure("cli", "InvalidArguments",
                 "Select a subcommand; use capabilities to discover its contract.", nextActions: [new("capabilities", new { })])); });
@@ -55,10 +57,9 @@ internal static class WorkspaceCommands
         var source = new Option<string>("--source") { Description = "git (default), none or plastic. Selection is durable; failures never fall back." };
         var application = new Option<string>("--application") { Description = "unity (default) or none for an ordinary folder without an Editor." };
         var storage = new Option<string>("--storage") { Required = true, Description = "git-snapshot/plastic-snapshot read recorded project versions; project-snapshot reads a prepared project basis. All store private ranges. git-checkout is an explicit development diagnostic path." };
-        var journalBudget = new Option<long?>("--max-journal-bytes") { Description = "Immutable NTFS delta budget; defaults to 16 GiB. A changed limit requires a new task key." };
         var editor = new Option<bool>("--editor") { Description = "Also start the private Editor when this task needs it." };
         var generatedBasis = new Option<string>("--library-basis") { Description = "Exact prepared original Library basis id; fixed for this task." };
-        ensure.Options.Add(project); ensure.Options.Add(key); ensure.Options.Add(basis); ensure.Options.Add(storage); ensure.Options.Add(editor); ensure.Options.Add(journalBudget);
+        ensure.Options.Add(project); ensure.Options.Add(key); ensure.Options.Add(basis); ensure.Options.Add(storage); ensure.Options.Add(editor);
         ensure.Options.Add(source); ensure.Options.Add(application);
         var projectBasis = new Option<string>("--project-basis") { Description = "Exact prepared managed project basis id; requires source none and project-snapshot." };
         ensure.Options.Add(generatedBasis); ensure.Options.Add(projectBasis);
@@ -72,10 +73,10 @@ internal static class WorkspaceCommands
             string sourceKind = parse.GetValue(source) ?? "git";
             string applicationKind = parse.GetValue(application) ?? (sourceKind == "none" ? "none" : "unity");
             string baseReference = parse.GetValue(basis) ?? (sourceKind is "none" or "plastic" ? "snapshot" : "development");
-            var input = new { project = parse.GetValue(project), key = parse.GetValue(key), baseReference, source = sourceKind, application = applicationKind, storage = parse.GetValue(storage), editor = parse.GetValue(editor), maxJournalBytes = parse.GetValue(journalBudget), libraryBasis = parse.GetValue(generatedBasis), projectBasis = parse.GetValue(projectBasis) };
+            var input = new { project = parse.GetValue(project), key = parse.GetValue(key), baseReference, source = sourceKind, application = applicationKind, storage = parse.GetValue(storage), editor = parse.GetValue(editor), libraryBasis = parse.GetValue(generatedBasis), projectBasis = parse.GetValue(projectBasis) };
             if (!Validate(command, input)) return;
             var view = await Runtime(parse).EnsureAsync(input.project!, input.key!, baseReference, input.storage!, input.editor, ct,
-                maxJournalBytes: input.maxJournalBytes ?? SnapshotWorkspaceState.DefaultJournalBytes, sourceKind: sourceKind, applicationKind: applicationKind, generatedDirectoryId: input.projectBasis ?? input.libraryBasis);
+                sourceKind: sourceKind, applicationKind: applicationKind, generatedDirectoryId: input.projectBasis ?? input.libraryBasis);
             respond(Result(command, view, input.editor && view.Application is { Running: true, Ready: false }, Home(parse)));
         });
         var list = new Command("list", contracts.Find("workspace.list")!.Description);
@@ -270,14 +271,14 @@ internal static class WorkspaceCommands
             source = view.Source is null ? null : new
             {
                 view.Source.Revision, view.Source.Fingerprint, view.Source.HasChanges,
-                changedPaths = view.Source.ChangedPaths.Take(100).ToArray(), changedPathCount = view.Source.ChangedPaths.Length, inspection = view.Source.Inspection
+                changedPaths = view.Source.ChangedPaths.Take(100).ToArray(), changedPathCount = view.Source.ChangedPathCount, inspection = view.Source.Inspection
             },
             application = view.Application is null ? null : new
             {
                 view.Application.Running, view.Application.Ready, view.Application.Phase,
                 processId = view.Application.Lease?.ProcessId, startTimeUtcTicks = view.Application.Lease?.StartTimeUtcTicks, view.Application.Resources
             },
-            view.ControlPath, nextCommand, view.Recovery, view.SourceVerification, view.OriginalApplyPlan, view.ResultGeneration, view.OriginalApplyReceipt,
+            view.ControlPath, nextCommand, view.Recovery, view.SourceVerification, view.OriginalApplyPlan, view.ResultGeneration, view.OriginalApplyReceipt, view.MetadataMaintenance,
             isolation = "private-project-and-library; shared user preferences and external services are not sandboxed"
         };
         var response = ApiResponse.Success(command, data);
@@ -294,10 +295,8 @@ internal static class WorkspaceCommands
         record.Version, record.Id, record.RequestKey, record.ProjectPath, record.Path, record.SourceKind, record.ApplicationKind, record.SourceReference, record.BaseReference,
         record.BaseRevision, record.Phase, record.CreatedAt, record.UpdatedAt, record.StorageMode, record.Purpose, record.ReleasedResources,
         record.RequestDigest, record.Snapshot, record.Discard, record.ResultStorage, record.OriginalApply,
-        record.Results, record.CaptureIntent, record.OriginalApplies,
-        originalAppliedPaths = record.OriginalApplies.SelectMany(a => a.Plan.Changes.Select(c => new
-            { c.Path, resultId = a.Plan.ResultId!, a.IntentKey, deleted = c.After is null, version = c.After }))
-            .GroupBy(c => c.Path, StringComparer.OrdinalIgnoreCase).Select(g => g.Last()).OrderBy(c => c.Path, StringComparer.Ordinal).ToArray(),
+        resultCount = record.Results.Count, latestResult = record.Results.LastOrDefault(), record.ResultHistory, record.CaptureIntent,
+        originalApplyCount = record.OriginalApplies.Count, record.OriginalApplyHistory, record.AppliedPaths, record.AppliedPathNames,
         processId = record.Application?.ProcessId,
         record.ResultRevision, record.IntegratedRevision, record.LastError
     };

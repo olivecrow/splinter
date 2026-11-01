@@ -177,7 +177,7 @@ public sealed class ManagedDirectoryRestoreTests
             if (overwrittenBasis) File.WriteAllBytes(Path.Combine(basisPath, "overwrite"), [1]);
             if (readOnlyBasis) File.SetAttributes(Path.Combine(basisPath, "dir", "large"), File.GetAttributes(Path.Combine(basisPath, "dir", "large")) | FileAttributes.ReadOnly);
             var snapshot = new SnapshotReference("012345678901234567890123", OwnedDirectorySnapshotTree.ProviderName, basisPath, basisPath, DateTimeOffset.UnixEpoch, true, true, "stopped-original-owned-directory");
-            var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, snapshot.Id); var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+            var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, snapshot.Id, Path.Combine(root, OwnedDirectoryManifest.MetadataDirectoryName)); var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
             File.WriteAllText(Path.Combine(root, "manifest.json"), JsonSerializer.Serialize(manifest, options)); string hash = ManagedDirectoryBasis.HashFile(Path.Combine(root, "manifest.json"));
             File.WriteAllText(Path.Combine(root, "proof.json"), JsonSerializer.Serialize(new OwnedDirectoryProof(1, snapshot, snapshot.Id, hash, manifest.Items.Sum(i => i.Entry.Length)), options));
             State = new() { ApplicationKind = "unity", DirectoryKind = "Library", Key = "fixture", OriginalPath = Path.Combine(directory.Path, "original", "Library"), CompatibilityKey = "fixture", Phase = "restoring",

@@ -12,7 +12,6 @@
     },
     "steps": {
       "type": "array",
-      "maxItems": 32768,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -37,6 +36,10 @@
           "stagedBytes": {
             "type": "integer",
             "minimum": 0
+          },
+          "stageNonce": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$"
           }
         },
         "required": [
@@ -47,6 +50,15 @@
     },
     "completed": {
       "type": "boolean"
+    },
+    "stepsRoot": {
+      "$ref": "urn:splinter:v1:metadata-tree-root"
+    },
+    "preservedScratchRoot": {
+      "$ref": "urn:splinter:v1:metadata-tree-root"
+    },
+    "scratchNamesRoot": {
+      "$ref": "urn:splinter:v1:metadata-tree-root"
     }
   },
   "required": [

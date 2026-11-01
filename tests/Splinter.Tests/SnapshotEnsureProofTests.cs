@@ -22,6 +22,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
             Assert.Equal("SourceChanged", (await Assert.ThrowsAsync<WorkspaceException>(Ensure)).Code);
             Assert.Single(new WorkspaceStore(f.Home).List(f.Project));
             Assert.False(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased);
+            Assert.Equal(1, source.ProofsDisposed);
         }
         else
         {
@@ -31,6 +32,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
             var again = await Ensure();
             Assert.Equal(first.Workspace.Id, again.Workspace.Id);
             Assert.Equal(2, source.InspectCalls); Assert.Equal(1, source.Revalidations);
+            Assert.Equal(1, source.ProofsDisposed);
         }
     }
 
@@ -54,12 +56,35 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         var result = await coordinator.EnsureAsync(f.Project, "task", "base", "git-snapshot", true, ct);
         Assert.Equal(1, f.App.Starts); Assert.Equal(2, source.InspectCalls);
         Assert.Equal(0, source.Revalidations); Assert.True(result.Source!.HasChanges);
+        Assert.Equal(1, source.ProofsDisposed);
+    }
+
+    [Theory]
+    [InlineData("ready.before-record")]
+    [InlineData("ready.after-record")]
+    [InlineData("response.before-publish")]
+    public async Task EnsureClosesItsTransferredProofWhenALaterBoundaryFails(string boundary)
+    {
+        using var f = new Fixture(); var source = new ProvedSource(); var ct = TestContext.Current.CancellationToken;
+        var coordinator = new WorkspaceCoordinator(new(f.Home), source, f.App, f.Backend, new ThrowingProofObserver(boundary));
+        Assert.Equal("ProofBoundaryFailure", (await Assert.ThrowsAsync<WorkspaceException>(() => coordinator.EnsureAsync(f.Project, "task", "base", "git-snapshot", false, ct))).Code);
+        Assert.Equal(1, source.ProofsDisposed); Assert.False(f.Backend.DeltaRemoved); Assert.False(f.Backend.SnapshotReleased);
+    }
+
+    [Fact]
+    public async Task EnsureClosesAnUnusedProofWhenItsInitialSourceDoesNotMatch()
+    {
+        using var f = new Fixture(); var source = new ProvedSource { Dirty = true }; var ct = TestContext.Current.CancellationToken;
+        var coordinator = new WorkspaceCoordinator(new(f.Home), source, f.App, f.Backend);
+        Assert.Equal("SnapshotCheckpointMismatch", (await Assert.ThrowsAsync<WorkspaceException>(() => coordinator.EnsureAsync(f.Project, "task", "base", "git-snapshot", false, ct))).Code);
+        Assert.Equal(1, source.ProofsDisposed); Assert.Equal(0, source.Revalidations);
     }
 
     private sealed class ProvedSource : Source, ISourceInspectionProofProvider
     {
         public bool Changed;
         public int Revalidations;
+        public int ProofsDisposed;
         public async Task<ProvedSourceInspection> InspectWithProofAsync(WorkspaceRecord w, CancellationToken ct = default)
         {
             var source = await InspectAsync(w, ct);
@@ -67,6 +92,8 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         }
         private sealed class Proof(ProvedSource provider, SourceState source) : ISourceInspectionProof
         {
+            private int disposed;
+            public void Dispose() { if (Interlocked.Exchange(ref disposed, 1) == 0) provider.ProofsDisposed++; }
             public Task<SourceState> RevalidateAsync(WorkspaceRecord w, CancellationToken ct = default)
             {
                 provider.Revalidations++;
@@ -79,5 +106,10 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     {
         public Task ReachedAsync(string boundary, WorkspaceRecord w, CancellationToken ct)
         { if (boundary == "ready.after-record") action(); return Task.CompletedTask; }
+    }
+    private sealed class ThrowingProofObserver(string expected) : IWorkspacePreparationObserver
+    {
+        public Task ReachedAsync(string boundary, WorkspaceRecord w, CancellationToken ct)
+        { if (boundary == expected) throw new WorkspaceException("ProofBoundaryFailure", boundary); return Task.CompletedTask; }
     }
 }

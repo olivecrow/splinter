@@ -13,16 +13,21 @@ public sealed class InitialContentContractTests
     {
         using var directory = new TestDirectory(); var snapshot = new SummaryTree();
         using var store = Open(directory.Path, snapshot, initial: true);
-        var generation = store.ObserveChanges(["Library"]);
+        using var generation = store.ObserveChanges(["Library"]);
         var initial = store.ObserveInitialContent(["Library"], generation, ["file", "dir/nested", "Library/cache", "unproved"]);
+        using var initialGeneration = initial!.Generation;
         Assert.Equal(new[] { "file", "dir/nested" }, initial!.Files.Select(file => file.Path));
         Assert.Equal(0, snapshot.PayloadReads);
         store.Write(store.Stat("file")!.Id, 0, [9]);
         Assert.Equal("SourceChanged", Assert.Throws<WorkspaceException>(() =>
             store.ObserveInitialContent(["Library"], generation, ["file"])).Code);
-        generation = store.ObserveChanges(["Library"]);
-        Assert.Empty(store.ObserveInitialContent(["Library"], generation, ["file"])!.Files);
-        Assert.Single(store.ObserveInitialContent(["Library"], generation, ["dir/nested"])!.Files);
+        using var changed = store.ObserveChanges(["Library"]);
+        var changedFile = store.ObserveInitialContent(["Library"], changed, ["file"])!;
+        using var changedFileGeneration = changedFile.Generation;
+        Assert.Empty(changedFile.Files);
+        var unchangedFile = store.ObserveInitialContent(["Library"], changed, ["dir/nested"])!;
+        using var unchangedGeneration = unchangedFile.Generation;
+        Assert.Single(unchangedFile.Files);
     }
 
     [Fact]
@@ -30,11 +35,19 @@ public sealed class InitialContentContractTests
     {
         using var directory = new TestDirectory(); var snapshot = new SummaryTree();
         using (var initial = Open(directory.Path, snapshot, initial: true))
-            Assert.Single(initial.ObserveInitialContent([], initial.ObserveChanges([]), ["file"])!.Files);
+        {
+            using var observed = initial.ObserveChanges([]);
+            var summary = initial.ObserveInitialContent([], observed, ["file"])!;
+            using var summaryGeneration = summary.Generation;
+            Assert.Single(summary.Files);
+        }
         using (var reconnect = Open(directory.Path, snapshot, initial: false))
-            Assert.Null(reconnect.ObserveInitialContent([], reconnect.ObserveChanges([]), ["file"]));
+        {
+            using var observed = reconnect.ObserveChanges([]);
+            Assert.Null(reconnect.ObserveInitialContent([], observed, ["file"]));
+        }
         using var fresh = Open(Path.Combine(directory.Path, "fresh"), snapshot, initial: true);
-        var generation = fresh.ObserveChanges([]);
+        using var generation = fresh.ObserveChanges([]);
         snapshot.BadSummary = true;
         Assert.Equal("SourceObservationInvalid", Assert.Throws<WorkspaceException>(() => fresh.ObserveInitialContent([], generation, ["file"])).Code);
         snapshot.Available = false;
@@ -46,7 +59,7 @@ public sealed class InitialContentContractTests
     {
         using var directory = new TestDirectory(); var snapshot = new SummaryTree();
         using var store = Open(directory.Path, snapshot, initial: true);
-        var generation = store.ObserveChanges([]);
+        using var generation = store.ObserveChanges([]);
         snapshot.OnSummary = () => store.Write(store.Stat("dir/nested")!.Id, 0, [5]);
         Assert.Equal("SourceChanged", Assert.Throws<WorkspaceException>(() => store.ObserveInitialContent([], generation, ["file"])).Code);
     }

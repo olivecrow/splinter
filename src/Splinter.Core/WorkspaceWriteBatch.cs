@@ -11,3 +11,11 @@ public interface IWorkspaceWriteBatch
     const int MaximumBytes = 16 * 1024 * 1024;
     void WriteBatch(IReadOnlyList<WorkspaceRangeWrite> writes);
 }
+
+// Platform callbacks supply one synchronous metadata mutation each. The
+// caller retains their state until return; no success precedes the shared
+// durable barrier. Failure can leave an unacknowledged replayable prefix.
+public interface IWorkspaceMetadataBatch
+{
+    void ApplyMetadataBatch(IReadOnlyList<Action> mutations);
+}

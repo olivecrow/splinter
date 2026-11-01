@@ -115,7 +115,10 @@ internal sealed class WindowsOwnedDirectoryLease : IDisposable
         string actual = buffer.ToString();
         actual = actual.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase) ? @"\\" + actual[8..] :
             actual.StartsWith(@"\\?\", StringComparison.Ordinal) ? actual[4..] : actual;
-        if (!string.Equals(Path.TrimEndingDirectorySeparator(actual), Path.TrimEndingDirectorySeparator(Path.GetFullPath(expected)), StringComparison.OrdinalIgnoreCase))
+        string normalizedExpected = Path.GetFullPath(expected);
+        normalizedExpected = normalizedExpected.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase) ? @"\\" + normalizedExpected[8..] :
+            normalizedExpected.StartsWith(@"\\?\", StringComparison.Ordinal) ? normalizedExpected[4..] : normalizedExpected;
+        if (!string.Equals(Path.TrimEndingDirectorySeparator(actual), Path.TrimEndingDirectorySeparator(normalizedExpected), StringComparison.OrdinalIgnoreCase))
             throw new WorkspaceException("UnsafePath", "A pinned handle resolved outside its ordinary directory ancestry.");
     }
     [StructLayout(LayoutKind.Sequential)]

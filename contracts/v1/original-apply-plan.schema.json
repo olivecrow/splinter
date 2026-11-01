@@ -8,19 +8,19 @@
     },
     "selectedPaths": {
       "type": "array",
-      "minItems": 1,
-      "maxItems": 512,
+      "minItems": 0,
       "uniqueItems": true,
       "items": {
         "type": "string",
         "minLength": 1,
-        "maxLength": 1024
+        "maxLength": 32767
       }
     },
     "version": {
       "enum": [
         1,
-        2
+        2,
+        3
       ]
     },
     "ownerId": {
@@ -49,7 +49,6 @@
     },
     "changes": {
       "type": "array",
-      "maxItems": 32768,
       "items": {
         "$ref": "#/$defs/change"
       }
@@ -76,6 +75,33 @@
     "liveOriginalIdentity": {
       "type": "string",
       "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "changesRoot": {
+      "$ref": "urn:splinter:v1:metadata-tree-root"
+    },
+    "pathsRoot": {
+      "$ref": "urn:splinter:v1:metadata-tree-root"
+    },
+    "pathNamesRoot": {
+      "$ref": "urn:splinter:v1:metadata-tree-root"
+    },
+    "conflictsRoot": {
+      "$ref": "urn:splinter:v1:metadata-tree-root"
+    },
+    "changeCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "conflictCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "selectionRoot": {
+      "$ref": "urn:splinter:v1:metadata-tree-root"
+    },
+    "selectionCount": {
+      "type": "integer",
+      "minimum": 0
     }
   },
   "required": [
@@ -121,6 +147,11 @@
         "modifiedUtcTicks": {
           "type": "integer",
           "minimum": 504911232000000000
+        },
+        "unixMode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4095
         }
       },
       "required": [

@@ -98,7 +98,7 @@ public sealed class JournalBaseReversionManyFileEvidenceTests
             {
                 ct.ThrowIfCancellationRequested();
                 string directory = Path.Combine(input.Output, $"{profile.Name}-{repeat}-{enabled}");
-                var entries = new Dictionary<string, DeltaEntry>(); SourceChangeView changes;
+                var entries = new Dictionary<string, DeltaEntry>(); SourceChangeTestHeader changes;
                 var latencies = new List<long>(); long began, allocated, writeTicks, writeAllocated;
                 using (var reader = new Reader(provider, snapshot))
                 using (var store = new JournalDeltaStore(directory, identity, reader.Tree, optimizeJournal: false))
@@ -125,7 +125,7 @@ public sealed class JournalBaseReversionManyFileEvidenceTests
                     }
                     foreach (var file in files)
                     { store.SetMetadata(entries[file.Path].Id, 32, 101, 202, 303); entries[file.Path] = store.Get(entries[file.Path].Id); }
-                    changes = store.ObserveChanges([]);
+                    using (var observedChangeHeader = store.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader);
                     writeTicks = Stopwatch.GetTimestamp() - began; writeAllocated = GC.GetTotalAllocatedBytes(true) - allocated;
                 }
                 string journal = Path.Combine(directory, "delta.journal");
@@ -148,8 +148,10 @@ public sealed class JournalBaseReversionManyFileEvidenceTests
                 using (var reader = new Reader(provider, snapshot))
                 using (var replay = new JournalDeltaStore(directory, identity, reader.Tree, optimizeJournal: false))
                 {
-                    Assert.Equal(changes.Sequence, replay.ObserveChanges([]).Sequence);
-                    Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);
+                    using var observedChanges1 = replay.ObserveChanges([]);
+                    Assert.Equal(changes.Sequence, observedChanges1.Sequence);
+                    using var observedChanges2 = replay.ObserveChanges([]);
+                    Assert.Equal(changes.Changes, observedChanges2.Changes);
                     byte[] scratch = new byte[65536];
                     foreach (var file in files)
                     {

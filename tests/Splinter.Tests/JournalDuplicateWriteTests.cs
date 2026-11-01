@@ -25,7 +25,8 @@ public sealed class JournalDuplicateWriteTests
             Assert.Equal(before.DurableSequence + 1, after.DurableSequence);
             Assert.Equal(before.Metrics!.FlushCount + 1, after.Metrics!.FlushCount);
             Assert.Equal(0, after.Metrics.BaseReadBytes); Assert.Equal(0, tree.ReadBytes);
-            Assert.Equal(0, store.ObserveChanges(["Library"]).Sequence);
+            using var observedChanges1 = store.ObserveChanges(["Library"]);
+            Assert.Equal(0, observedChanges1.Sequence);
             current = store.Get(id);
         }
         using var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false);
@@ -64,7 +65,7 @@ public sealed class JournalDuplicateWriteTests
         var identity = new OverlayIdentity(2, "duplicate", tree.Snapshot, 4 * 1024 * 1024, 65536);
         byte[] expected = Enumerable.Repeat((byte)1, 65536).ToArray();
         Array.Fill(expected, (byte)2, 16384, 16384);
-        DeltaEntry current; SourceChangeView changes; long payload;
+        DeltaEntry current; SourceChangeTestHeader changes; long payload;
         using (var store = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Create("file", false, 32).Id;
@@ -80,12 +81,13 @@ public sealed class JournalDuplicateWriteTests
             Assert.Equal(0, observed.ReadBytes); Assert.Equal(0, observed.Metrics.BaseReadBytes);
             Assert.Equal(0, observed.Metrics.ReadRangeIndex!.ReadCalls);
             current = store.Stat("file")!; Assert.True(current.LastWriteTime > 1);
-            changes = store.ObserveChanges([]); Assert.Equal(observed.DurableSequence, changes.Sequence);
+            using (var observedChangeHeader = store.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader); Assert.Equal(observed.DurableSequence, changes.Sequence);
         }
         using (var replay = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             Assert.Equal(current, replay.Stat("file"));
-            Assert.Equal(changes.Changes, replay.ObserveChanges([]).Changes);
+            using var observedChanges2 = replay.ObserveChanges([]);
+            Assert.Equal(changes.Changes, observedChanges2.Changes);
             byte[] actual = new byte[expected.Length]; Assert.Equal(actual.Length, replay.Read(current.Id, 0, actual));
             Assert.Equal(expected, actual);
             replay.Write(current.Id, 4096, expected.AsSpan(4096, 32768));

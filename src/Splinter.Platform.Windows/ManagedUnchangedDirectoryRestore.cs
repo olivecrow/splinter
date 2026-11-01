@@ -20,7 +20,7 @@ internal static class ManagedUnchangedDirectoryRestore
     internal static bool HasPlan(string root)
     {
         bool exists = File.Exists(PlanPath(root));
-        if (!exists && (File.Exists(VerifiedPath(root)) || BoundedJournalReclamation.HasIntent(ReclaimPath(root)))) throw Conflict();
+        if (!exists && (File.Exists(VerifiedPath(root)) || CurrentJournalReclamation.HasIntent(ReclaimPath(root)))) throw Conflict();
         return exists;
     }
     private static WorkspaceException Conflict() => new("GeneratedRestoreConflict", "Preserve an inconsistent unchanged-directory restoration.");
@@ -34,8 +34,8 @@ internal static class ManagedUnchangedDirectoryRestore
         // still equals the fixed manifest. The exact nonzero seal is retained.
         if (state.ApplicationKind != "unity" || state.DirectoryKind != "Library" || state.Basis.RelativePath != "Library" ||
             JournalMode(request) is null ||
-            entries.Length != manifest.Items.Length) return false;
-        var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+            entries.Length != manifest.ItemCount) return false;
+        using var items = manifest.OpenIndex(StringComparer.Ordinal);
         return entries.All(d => items.TryGetValue(d.Entry.Path, out var item) && d.Ranges.Length == 0 && !d.Entry.Deleted &&
             d.Entry.BasePath == item.Entry.Path && d.Entry.BaseLength == item.Entry.Length &&
             new SnapshotEntry(d.Entry.Path, d.Entry.Directory, d.Entry.Length, d.Entry.Attributes,
@@ -78,7 +78,7 @@ internal static class ManagedUnchangedDirectoryRestore
         using var root = ManagedRestoreFileAccess.DirectoryHandle(path, moving: move);
         if (move)
         {
-            if (File.Exists(VerifiedPath(state.Basis.ReceiptDirectory)) || BoundedJournalReclamation.HasIntent(ReclaimPath(state.Basis.ReceiptDirectory))) throw Conflict();
+            if (File.Exists(VerifiedPath(state.Basis.ReceiptDirectory)) || CurrentJournalReclamation.HasIntent(ReclaimPath(state.Basis.ReceiptDirectory))) throw Conflict();
             if (JournalMode(request) != plan.JournalMode) throw Conflict();
             RequireSeal(request, plan.Seal);
             // Retry cannot inherit the initial reader's proof or open handles.
@@ -99,7 +99,7 @@ internal static class ManagedUnchangedDirectoryRestore
         ValidatePlan(state, request, manifest, plan);
         var verified = await WindowsProcessWorkspaceProvider.ReadAsync<Verified>(VerifiedPath(receiptRoot), ct, waitForPublication: false);
         if (verified is not null && (verified.Version != 1 || verified.PlanHash != planHash)) throw Conflict();
-        bool reclaimPending = BoundedJournalReclamation.HasIntent(ReclaimPath(receiptRoot));
+        bool reclaimPending = CurrentJournalReclamation.HasIntent(ReclaimPath(receiptRoot));
         if (reclaimPending && verified is null || move && (verified is not null || reclaimPending)) throw Conflict();
         using var identityFence = reclaimPending ? null : PinIdentity(request, plan.IdentityHash);
         if (!reclaimPending && JournalMode(request) != plan.JournalMode) throw Conflict();
@@ -140,8 +140,8 @@ internal static class ManagedUnchangedDirectoryRestore
             boundary?.Invoke("directory.reclaim." + stage);
         }
         if (plan.JournalMode == "bounded")
-            BoundedJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], ReclaimPath(receiptRoot),
-                ReclaimBoundary, path => new WindowsJournalDirectoryGuard(path, BoundedJournalReclamation.GuardName));
+            CurrentJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], ReclaimPath(receiptRoot),
+                ReclaimBoundary, path => new WindowsJournalDirectoryGuard(path, CurrentJournalReclamation.GuardName), filePins: new WindowsJournalFilePins());
         else
             LatestJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], ReclaimPath(receiptRoot),
                 ReclaimBoundary, path => new WindowsJournalDirectoryGuard(path));
@@ -153,7 +153,7 @@ internal static class ManagedUnchangedDirectoryRestore
         if (plan.Version != 2 || state.ApplicationKind != "unity" || state.DirectoryKind != "Library" || state.Basis.RelativePath != "Library" ||
             plan.JournalMode is not ("latest" or "bounded") || plan.Basis != state.Basis || plan.OriginalPath != state.OriginalPath || plan.DeltaPath != request.DeltaPath ||
             plan.IdentityHash != IdentityHash(request.Identity) || plan.Seal is null || plan.Seal.DurableSequence < 0 || plan.Identities is null ||
-            plan.Identities.Count != manifest.Items.Length ||
+            plan.Identities.Count != manifest.ItemCount ||
             manifest.Items.Any(i => !plan.Identities.TryGetValue(i.Entry.Path, out string? identity) || string.IsNullOrEmpty(identity))) throw Conflict();
     }
 
@@ -174,7 +174,7 @@ internal static class ManagedUnchangedDirectoryRestore
     internal static string? JournalMode(OverlayServeRequest request)
     {
         string path = Path.Combine(request.DeltaPath, "delta.journal");
-        return LatestJournalReclamation.IsLatest(path) ? "latest" : JournalDeltaStore.IsBoundedJournal(path) ? "bounded" : null;
+        return LatestJournalReclamation.IsLatest(path) ? "latest" : CurrentJournalReclamation.IsManagedJournal(path) ? "bounded" : null;
     }
 
     internal static void RequireSeal(OverlayServeRequest request, SnapshotDeltaSeal seal)
@@ -184,7 +184,7 @@ internal static class ManagedUnchangedDirectoryRestore
     }
     internal static void ValidateManifest(ManagedDirectoryState state, OwnedDirectoryManifest manifest)
     {
-        if (manifest.Version != 1 || manifest.Snapshot != state.Basis.Snapshot || manifest.OwnerId != state.Basis.OwnerId ||
+        if (manifest.Version != 2 || manifest.Snapshot != state.Basis.Snapshot || manifest.OwnerId != state.Basis.OwnerId ||
             ManagedDirectoryBasis.HashFile(Path.Combine(state.Basis.ReceiptDirectory, "manifest.json")) != state.Basis.ManifestHash) throw Conflict();
     }
     internal static FileStream PinIdentity(OverlayServeRequest request, string expected)
@@ -269,7 +269,7 @@ internal static class ManagedUnchangedDirectoryRestore
                     if (!Identities.ContainsKey(relative) && extraFiles?.Contains(relative) != true) throw Conflict();
                     seen++;
                 }
-            if (seen != manifest.Items.Length + (extraFiles?.Count ?? 0)) throw Conflict();
+            if (seen != manifest.ItemCount + (extraFiles?.Count ?? 0)) throw Conflict();
         }
         internal void ApplyMetadata()
         {

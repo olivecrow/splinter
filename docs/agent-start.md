@@ -1,7 +1,7 @@
 <a id="한정-버전-ai-시작-안내"></a>
-# AI start guide for the bounded release
+# AI start guide for the current candidate
 
-Current task state is v3. [Repeated original application](repeated-original-apply.md) owns live immutable captures, explicit result selection, per-path applied history and external-tool live-Editor cooperation; [RI qualification](verification/repeated-original-apply.md) remains separate from earlier stopped-Editor evidence. Managed basis state remains v2; old task state is preserved/refused without migration.
+The scalable-storage candidate uses task v4, managed basis v3 and product overlay v3. [Scalable storage](scalable-storage.md) owns the current representation and pending SCAL-01–08 qualification. [Repeated original application](repeated-original-apply.md) retains immutable captures, explicit results, per-path history and external live-Editor cooperation. Historical [RI](verification/repeated-original-apply.md), MX and GCO evidence remains tied to its recorded task-v3/basis-v2 candidate. Preserve/refuse earlier state and use its matching binary; no automatic migration or reclamation.
 
 [한국어](ko/agent-start.md)
 
@@ -33,7 +33,7 @@ The prerequisites and creation example below concern `source=git`, `application=
 | Original | Clean Git repository root on existing NTFS, with an internal `.git` directory and original HEAD matching requested base. Immediately before capture, Unity changes must be saved and import/compile/Play inactive. |
 | Input | Dirty/staged/untracked, submodule/symlink, LFS/filter/working-tree-encoding are rejected. ADS/hardlink/reparse/EFS/compressed/sparse input and individual ACL semantics are unsupported. See [NTFS input boundaries](ntfs-workspaces.md#inputs-and-privilege-boundaries). |
 | System | Existing WinFsp. No VSS service, grant or elevated execution. |
-| Home/space | One short NTFS home outside the original for tasks on the same project. Creation/reconnect require 2 GiB free on the state volume. |
+| Home/space | One short NTFS home outside the original for tasks on the same project. Space checks use the actual backing volume and the current publication/recovery requirement; no fixed journal budget or 2 GiB reserve is a total-input gate. |
 | Editor | Current bounded execution covers a small Unity `6000.3.22f1` fixture, existing warm Library, and independent Editors. It does not extend to other inputs/versions, large-input costs, ARM A/B, or OS-failure guarantees. |
 
 Ordinary CLI/Git/Unity run as standard users. General product installation, global PATH, automatic skill discovery/conversation binding are not provided. After [VSS retirement](plans/vss-retirement.md), legacy state is preserved/rejected; service reinstallation is not a recovery action.
@@ -64,7 +64,7 @@ $reply
 
 Read response `status`, `terminal`, `error`, `retryDisposition`, and `nextActions`. `Accepted` means in progress; a failed request is not a usable workspace. After checking ensure Succeeded and actual preparation, use `data.workspace.path` as the edit/Git/tool working directory and absolute file target. Do not substitute the original path. If tool permissions prohibit it, preserve the access failure and task.
 
-Preserve `$cli/$project/$workspaceHome/$base/$key`, ID, returned root/control, `requestDigest`, `baseRevision`, snapshot, and explicit budget options in conversation/handoff. Resume with **the same ensure inputs**, checking identical ID/root/digest/basis/snapshot. There is no per-conversation exclusive lock for arbitrary file edits, so use only one writer per task path.
+Preserve `$cli/$project/$workspaceHome/$base/$key`, ID, returned root/control, `requestDigest`, `baseRevision`, snapshot, explicit compaction options, capture/result identities and maintenance request/scope in conversation/handoff. Resume with **the same ensure inputs**, checking identical ID/root/digest/basis/snapshot. There is no per-conversation exclusive lock for arbitrary file edits, so use only one writer per task path.
 
 For independent Git tasks, the agent can overlap two `workspace ensure` calls with different stable keys and the same fixed project/home/base/Library basis. Prepare that Library once before dispatch; use one writer per returned task path. Check each response independently and wait for both to succeed before treating the pair as ready. A failed or lost response preserves that task: inspect its supplied next action and resume the same identity; a timeout alone never authorizes a duplicate write. One failure does not authorize releasing the peer. This is agent orchestration of existing commands, not a product queue or automatic mode. The [bounded parallel preparation verification](verification/time-memory-optimization.md) uses small Editor-free A/B; it does not measure full Unity readiness.
 
@@ -88,6 +88,10 @@ When an Editor using external tools exits, the agent checks remaining target con
 | Discard failed/uncommitted work | `workspace discard --id <id> --intent-key <fixed intent> --expected-request-digest <saved digest> --home <home>`. Successful validation/checkpoint is unnecessary; use the exact target and existing discard authorization. |
 
 Checkpoint collects immutable generations while editing/resumption continues in the same task and Editor; use a stable request key for each result. Work without an Editor or with failed compilation can also be independently preserved through the same `workspace checkpoint`. It verifies source/journal stability without awarding compile success. Optional Library/view storage paths belong to the [development CLI](development-cli.md). Handle candidate/cache dependencies separately, without cascading deletion. Conversation/Editor termination, timeout, lease expiry, and disk pressure do not imply integration/reclamation/discard intent.
+
+## Paged results and metadata recovery
+
+Read `schema workspace.read` and `schema workspace.maintain`. `status` returns summary/counts; use root-bound pages for histories, files, applied paths, plans, selection and conflicts. Explicit maintenance is `workspace maintain --id <id> --request-key <key> --scope workspace|shared|content|ranges|all --home <home>`. Retain its exact key/scope and `data.maintenance.stages`; space/I/O failure must resume that request before another mutation. Editor stop remains available. Completed historical requests return their receipt. Protected unknown residue has a count/root and `workspace read --collection maintenance-residuals --request-key <key> --store-scope <store>`; never delete it to bypass recovery. See [scalable storage](scalable-storage.md) for cache/worker/handle costs and current qualification.
 
 <a id="실패와-완료-판독"></a>
 ## Reading failures and completion

@@ -22,7 +22,6 @@
     },
     "changes": {
       "type": "array",
-      "maxItems": 250000,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -41,6 +40,59 @@
           "sequence"
         ]
       }
+    },
+    "index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "directory",
+        "changes",
+        "names",
+        "managedPaths",
+        "count",
+        "caseSensitive",
+        "contentHash"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "directory": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changes": {
+          "$ref": "urn:splinter:v1:metadata-tree-root"
+        },
+        "names": {
+          "$ref": "urn:splinter:v1:metadata-tree-root"
+        },
+        "contentNodes": {
+          "$ref": "urn:splinter:v1:metadata-tree-root"
+        },
+        "managedPaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "caseSensitive": {
+          "type": "boolean"
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "contentCaptures": {
+          "$ref": "urn:splinter:v1:metadata-tree-root"
+        }
+      }
     }
   },
   "required": [
@@ -49,5 +101,30 @@
     "epoch",
     "sequence",
     "changes"
+  ],
+  "oneOf": [
+    {
+      "required": [
+        "index"
+      ],
+      "properties": {
+        "changes": {
+          "maxItems": 0
+        }
+      }
+    },
+    {
+      "not": {
+        "required": [
+          "index"
+        ]
+      },
+      "properties": {
+        "changes": {
+          "maxItems": 250000
+        }
+      },
+      "$comment": "Inline lists belong to the explicit overlay-v2 development domain; product task-v4/overlay-v3 always uses the paged index."
+    }
   ]
 }

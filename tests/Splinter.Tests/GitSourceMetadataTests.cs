@@ -216,7 +216,7 @@ public sealed class GitSourceMetadataTests
             {
                 "library" => map with { Basis = map.Basis with { ManifestHash = new string('c', 64) } },
                 "format" => map with { Version = 0 },
-                _ => map with { Files = [.. map.Files, map.Files[0]], ExaminedFiles = map.ExaminedFiles + 1 }
+                _ => map with { Files = [.. map.Files, map.Files.First()], ExaminedFiles = map.ExaminedFiles + 1 }
             };
             basis = f.Save(changed);
         }
@@ -287,7 +287,7 @@ public sealed class GitSourceMetadataTests
         string root = Path.Combine(store.Root, "library-bases", id); Directory.CreateDirectory(root);
         File.WriteAllText(Path.Combine(root, "prepare-intent.json"), JsonSerializer.Serialize(new
         {
-            version = 2, id, projectPath = f.Source, key, originalPath = library, basisPath = Path.Combine(root, "base"),
+            version = 3, id, projectPath = f.Source, key, originalPath = library, basisPath = Path.Combine(root, "base"),
             applicationKind = "unity", directoryKind = "Library", compatibilityKey = "fixed"
         }, Json));
         string readerLock = Path.Combine(root, "readers.lock"); File.WriteAllBytes(readerLock, []);
@@ -309,7 +309,7 @@ public sealed class GitSourceMetadataTests
             else if (scenario == "timestamp-corruption")
             {
                 var json = JsonNode.Parse(File.ReadAllText(mapPath))!;
-                var entry = json["files"]!.AsArray().First(e => e!["path"]!.GetValue<string>() == "data.bin")!;
+                var entry = json["catalog"]!["root"]!;
                 entry["lastWriteTime"] = entry["lastWriteTime"]!.GetValue<long>() + 1;
                 File.WriteAllText(mapPath, json.ToJsonString());
             }

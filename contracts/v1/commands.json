@@ -45,7 +45,7 @@
     {
       "id": "workspace.ensure",
       "description": "Create or resume an isolated range workspace from a recorded Git/Plastic version or prepared project basis.",
-      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <git-snapshot|plastic-snapshot|project-snapshot> [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--max-journal-bytes <bytes>] [--library-basis <id>] [--project-basis <id>]",
+      "cliUsage": "splinter workspace ensure --project <path> --key <task-key> --storage <git-snapshot|plastic-snapshot|project-snapshot> [--source git|none|plastic] [--application unity|none] [--base <reference>] [--editor] [--home <state-root>] [--library-basis <id>] [--project-basis <id>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-ensure-request",
       "outputSchema": "urn:splinter:v1:response",
@@ -223,6 +223,26 @@
       "outputSchema": "urn:splinter:v1:response",
       "sideEffects": "owned-original-project-lifecycle",
       "retry": "same-id-home-key-and-plan; preserve-unknown-side-effects"
+    },
+    {
+      "id": "workspace.read",
+      "description": "Read one bounded page of immutable results, publication history, fixed plans or file state using a root-bound cursor.",
+      "cliUsage": "splinter workspace read --id <id> --collection <results|applies|plan|files|applied-paths|conflicts|preserved-scratch|maintenance-residuals|selection|deferred-reclamation> [--result <id>] [--plan-id <digest>] [--request-key <key> --store-scope <scope>] [--cursor <cursor>] [--page-size <1..1024>] [--home <path>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:workspace-read-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "none",
+      "retry": "same-root-and-cursor; reject stale cursors rather than mix generations"
+    },
+    {
+      "inputSchema": "urn:splinter:v1:workspace-maintain-request",
+      "cliUsage": "splinter workspace maintain --id <id> --request-key <key> [--scope workspace|shared|content|ranges|all] [--home <path>]",
+      "outputSchema": "urn:splinter:v1:response",
+      "description": "Reclaim unreferenced owned metadata with fixed roots, native file identities and same-request recovery; preserves independent results and unknown scratch.",
+      "inputTransport": "options",
+      "id": "workspace.maintain",
+      "retry": "same-id-home-request-key-and-scope; resume-pending-before-new-mutations; completed-retry-receipt-only",
+      "sideEffects": "owned-metadata-reclamation"
     }
   ]
 }

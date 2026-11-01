@@ -126,9 +126,9 @@ public sealed partial class JournalDeltaStore
             if (!retained.Contains(page.Reference.Id)) RetireLatestPage(page.Reference, removes);
         state.Pages.Clear(); state.Pages.AddRange(pages); next = pageNext;
         return LatestJournalStorage.Encode(new LatestPagedNode(node.Entry, pages.Select(p => p.Reference).ToArray(),
-            tail.ToArray(), LatestBlocks(tail, latestBlockHashes), node.Entry.Deleted ? 0 : pathChanges.GetValueOrDefault(node.Entry.Path)), "SJN3");
+            tail.ToArray(), LatestBlocks(tail, latestBlockHashes), node.Entry.Deleted ? 0 : pathChanges.TryGetValue(node.Entry.Path, out long change) ? change : 0), "SJN3");
     }
-    private static bool PageMatches(Extent[] page, List<Extent> extents, int start)
+    private static bool PageMatches(Extent[] page, IReadOnlyList<Extent> extents, int start)
     {
         if (start > extents.Count - page.Length) return false;
         for (int i = 0; i < page.Length; i++) if (page[i] != extents[start + i]) return false;

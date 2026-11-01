@@ -5,7 +5,15 @@ using Splinter.Runtime;
 
 namespace Splinter.SourceControl.Files;
 
-public sealed record PlasticOriginalState(string Repository, string Server, string Changeset, string Selector, string[] LockedPaths);
+public sealed record PlasticOriginalState(string Repository, string Server, string Changeset, string Selector, string[] LockedPaths) : IDisposable
+{
+    internal PlasticLockIndex? LockIndex { get; init; }
+    public bool HasRootLock => LockIndex?.HasRootLock ?? LockedPaths.Any(path => path.Length == 0);
+    public bool Affects(string path) => LockIndex?.Affects(path) ?? LockedPaths.Any(locked => path.Equals(locked, StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith(locked + "/", StringComparison.OrdinalIgnoreCase) || locked.StartsWith(path + "/", StringComparison.OrdinalIgnoreCase));
+    public IEnumerable<string> EnumerateLockedPaths() => LockIndex?.Paths() ?? LockedPaths;
+    public void Dispose() => LockIndex?.Dispose();
+}
 public interface IPlasticOriginalStateClient
 {
     Task<PlasticOriginalState> OriginalStateAsync(string project, string repository, CancellationToken ct = default);
@@ -13,7 +21,7 @@ public interface IPlasticOriginalStateClient
 public interface IPlasticOriginalLease : IOriginalSourceLease { }
 public interface IPlasticOriginalGuard
 {
-    IPlasticOriginalLease Acquire(WorkspaceRecord workspace, string[] paths, CancellationToken ct, bool publishing = false);
+    IPlasticOriginalLease Acquire(WorkspaceRecord workspace, IEnumerable<string> paths, CancellationToken ct, bool publishing = false);
 }
 
 // Normal-user observational VCS boundary. No server mutation or privileged
@@ -22,7 +30,7 @@ public sealed class PlasticOriginalGuard(WorkspaceStore store, IPlasticWorkspace
     IPlasticOriginalStateClient stateClient, IPlasticRevisionClient revisions,
     ApplicationProjectPolicies? applicationPolicies = null) : IPlasticOriginalGuard
 {
-    public IPlasticOriginalLease Acquire(WorkspaceRecord w, string[] paths, CancellationToken ct, bool publishing = false)
+    public IPlasticOriginalLease Acquire(WorkspaceRecord w, IEnumerable<string> paths, CancellationToken ct, bool publishing = false)
     {
         var lease = new Lease();
         try
@@ -40,16 +48,21 @@ public sealed class PlasticOriginalGuard(WorkspaceStore store, IPlasticWorkspace
             if (identity.Guid != admission.WorkspaceGuid || client.VersionAsync(ct).GetAwaiter().GetResult() != admission.ClientVersion ||
                 PlasticWorkspaceProvider.AdministrationHash(w.ProjectPath) != admission.AdministrationHash)
                 throw new WorkspaceException("PlasticOriginalIdentityChanged", "Preserve the changed original registration or client identity.");
-            var manifest = revisions.ListAsync(w.BaseReference, ct).GetAwaiter().GetResult();
+            using var manifest = revisions.ListAsync(w.BaseReference, ct).GetAwaiter().GetResult();
             revisions.VerifyProjectAsync(w.ProjectPath, manifest, ct).GetAwaiter().GetResult();
-            var state = stateClient.OriginalStateAsync(w.ProjectPath, manifest.Repository, ct).GetAwaiter().GetResult();
+            using var state = stateClient.OriginalStateAsync(w.ProjectPath, manifest.Repository, ct).GetAwaiter().GetResult();
             int first = w.BaseReference.IndexOf('@'), second = w.BaseReference.IndexOf('@', first + 1);
             if (second < 0 || state.Changeset != w.BaseReference[..first] || state.Repository != w.BaseReference[(first + 1)..second] ||
                 state.Server != w.BaseReference[(second + 1)..] || string.IsNullOrWhiteSpace(state.Selector))
                 throw new WorkspaceException("PlasticOriginalIdentityChanged", "The original repository, loaded changeset or selector differs from the fixed source.");
-            if (state.LockedPaths.Any(l => l.Length == 0 || paths.Any(p => p.Equals(l, StringComparison.OrdinalIgnoreCase) ||
-                p.StartsWith(l + "/", StringComparison.OrdinalIgnoreCase) || l.StartsWith(p + "/", StringComparison.OrdinalIgnoreCase))))
+            if (state.HasRootLock)
                 throw new WorkspaceException("PlasticOriginalLocked", "Preserve affected locked or retained server paths; Splinter does not change Plastic locks.");
+            foreach (string path in paths)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (state.Affects(path))
+                    throw new WorkspaceException("PlasticOriginalLocked", "Preserve affected locked or retained server paths; Splinter does not change Plastic locks.");
+            }
             using var selector = new FileStream(Path.Combine(w.ProjectPath, ".plastic", "plastic.selector"), FileMode.Open, FileAccess.Read, FileShare.Read);
             if (selector.Length is < 1 or > 65536) throw new WorkspaceException("PlasticOriginalIdentityChanged", "Preserve unknown selector metadata.");
             lease.Identity = "sha256:" + Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new

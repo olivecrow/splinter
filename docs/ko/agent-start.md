@@ -1,6 +1,6 @@
 # 한정 버전 AI 시작 안내
 
-현재 task 상태는 v3다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 불변 수집·명시적 결과 선택·경로별 반영 이력·외부 도구의 실행 중 Editor 협력을 소유하며 [RI 자격](verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분한다. 관리형 basis 상태는 v2를 유지하며 이전 task는 이관 없이 보존·거부한다.
+대규모 저장 후보는 task v4·관리형 basis v3·제품 overlay v3를 사용한다. 현재 표현과 진행 중인 SCAL-01–08 자격은 [대규모 저장](scalable-storage.md)이 소유한다. [반복 원본 반영](repeated-original-apply.md)의 불변 수집·명시적 결과·경로별 이력·외부 도구의 실행 중 Editor 협력은 유지한다. 과거 [RI](verification/repeated-original-apply.md)·MX·GCO 근거는 당시 task v3/basis v2 후보에 결속한다. 이전 상태는 보존·거부하고 일치하는 바이너리를 사용하며 자동 이관·회수하지 않는다.
 
 [English](../agent-start.md)
 
@@ -30,7 +30,7 @@ Git/Plastic의 원본 Library 재사용은 [별도 Library 전환](git-library-r
 | 원본 | 기존 NTFS의 clean Git repository root, `.git` 디렉터리가 내부에 있고 원본 HEAD와 요청 base가 같음. 캡처 직전 Unity의 변경은 저장돼 있고 import/compile/Play 중이 아니어야 함 |
 | 입력 | dirty/staged/untracked·submodule/symlink·LFS/filter/working-tree-encoding은 거부. ADS/hardlink/reparse/EFS/압축/희소 입력과 개별 ACL 의미는 지원하지 않음. 상세 검사 경계는 [NTFS 계약](ntfs-workspaces.md#입력과-권한-경계) |
 | 시스템 | 기존 WinFsp. VSS 서비스·grant·관리자 실행은 필요하지 않음 |
-| home/공간 | 같은 프로젝트의 작업은 원본 밖의 같은 짧은 NTFS home 사용. 생성/재연결의 상태 볼륨 여유 2 GiB 필요. |
+| home/공간 | 같은 프로젝트의 작업은 원본 밖의 같은 짧은 NTFS home 사용. 실제 backing 볼륨과 해당 게시/복구 필요량으로 공간을 검사하며 고정 저널 예산·2 GiB 여유량을 입력 총량 gate로 쓰지 않는다. |
 | Editor | 현재 한정 실행은 Unity `6000.3.22f1`의 작은 fixture·기존 warm Library·독립 Editor 경로. 다른 입력/버전·대형 비용·ARM A/B·OS 장애 보장으로 확대하지 않음 |
 
 일반 CLI·Git·Unity는 일반 사용자 권한이다. 일반 제품 설치·전역 PATH·스킬 자동 발견/대화 binding은 제공하지 않는다. [VSS 폐기](plans/vss-retirement.md) 뒤 구형 상태는 보존·거부하며 서비스 재설치를 요구하지 않는다.
@@ -60,7 +60,7 @@ $reply
 
 응답의 `status`·`terminal`·`error`·`retryDisposition`·`nextActions`를 읽는다. `Accepted`는 진행 중이고 실패는 usable workspace가 아니다. ensure의 Succeeded와 실제 준비 상태를 확인한 뒤 `data.workspace.path`를 편집/Git/도구의 working directory와 절대 파일 대상으로 사용한다. 원본 경로로 대체하지 않는다. 도구 권한이 그 경로를 허용하지 않으면 접근 실패와 작업을 보존한다.
 
-대화/인계에는 `$cli/$project/$workspaceHome/$base/$key`, ID·반환 root/control·`requestDigest`·`baseRevision`·snapshot과 명시한 budget 옵션을 남긴다. 재개는 **같은 ensure 입력**으로 하고 ID/root/digest/기준/snapshot이 같은지 확인한다. 임의 파일 편집의 대화별 배타 잠금은 없으므로 한 작업 경로에는 한 작성자만 둔다.
+대화/인계에는 `$cli/$project/$workspaceHome/$base/$key`, ID·반환 root/control·`requestDigest`·`baseRevision`·snapshot·명시한 compaction 옵션·수집/결과 identity·유지보수 요청/범위를 남긴다. 재개는 **같은 ensure 입력**으로 하고 ID/root/digest/기준/snapshot이 같은지 확인한다. 임의 파일 편집의 대화별 배타 잠금은 없으므로 한 작업 경로에는 한 작성자만 둔다.
 
 독립 Git 작업은 에이전트가 서로 다른 고정 key와 동일한 project/home/base/Library 기준으로 `workspace ensure` 두 개를 겹쳐 실행할 수 있다. Library는 먼저 한 번 준비하고 반환 작업 경로마다 작성자를 한 명만 둔다. 각 응답을 따로 확인하고 둘 다 성공해야 A/B 전체가 준비된 것으로 판단한다. 실패·응답 유실 시 해당 작업을 보존하고 반환 next action을 확인한 뒤 같은 identity로 재개하며, 타임아웃만으로 쓰기를 중복 실행하지 않는다. 한쪽 실패는 peer 회수의 승인이 아니다. 기존 명령을 조율하는 에이전트 절차이며 제품 큐나 자동 모드가 아니다. [한정 병렬 준비 검증](verification/time-memory-optimization.md)은 작은 Editor 없는 A/B이며 전체 Unity 준비 시간은 측정하지 않는다.
 
@@ -83,6 +83,10 @@ MCP·Unity CLI는 사용자가 설치한 도구 중 에이전트가 필요할 �
 | 실패/미커밋 작업 폐기 | `workspace discard --id <id> --intent-key <고정 intent> --expected-request-digest <저장 digest> --home <home>`. 성공 검증/checkpoint 불필요; 정확한 대상과 기존 폐기 승인을 사용 |
 
 checkpoint는 실행 중에도 불변 결과 버전을 수집하며 같은 task/Editor에서 편집·재개를 계속한다. 같은 요청 키는 최초 결과를 반환하고 새 내용은 새 키로 수집한다. Editor가 없거나 컴파일에 실패한 작업도 같은 `workspace checkpoint`로 독립 보존할 수 있다. checkpoint는 소스/저널의 안정성을 확인하며 컴파일 성공을 부여하지 않는다. 선택적 Library/view 저장소 경로는 [개발용 CLI](development-cli.md)로 분리한다. 후보/cache 의존성은 따로 정리하며 연쇄 삭제하지 않는다. 대화/Editor 종료·timeout·임대 만료·디스크 압박은 통합/회수/폐기 의도가 아니다.
+
+## 페이지 조회와 metadata 복구
+
+`schema workspace.read`·`schema workspace.maintain`을 읽는다. status는 요약/개수를 반환하며 이력·파일·반영 경로·계획·선택·충돌은 root-bound 페이지로 조회한다. 명시적 유지보수는 `workspace maintain --id <id> --request-key <key> --scope workspace|shared|content|ranges|all --home <home>`이다. 키/범위·`data.maintenance.stages`를 보존하고 공간/I/O 실패에는 새 변경 전에 같은 요청을 복구한다. Editor stop은 허용한다. 완료한 과거 요청은 영수증만 반환한다. 보호 잔여는 개수/root와 `workspace read --collection maintenance-residuals --request-key <key> --store-scope <store>`로 확인하며 복구 우회를 위해 삭제하지 않는다. 캐시/worker/핸들 비용과 현재 자격은 [대규모 저장](scalable-storage.md)을 따른다.
 
 ## 실패와 완료 판독
 

@@ -145,8 +145,7 @@ public sealed class WorkspaceCoordinatorTests
         using var d = new TestDirectory();
         var sources = new FakeSources(); var apps = new FakeApplications();
         string project = Project(d);
-        string expectedDigest = WorkspaceStore.Key(project + "\ntask\nmain\ngit-checkout\n\ntask\n" +
-            SnapshotWorkspaceState.DefaultJournalBytes + "\ngit\nunity");
+        string expectedDigest = WorkspaceStore.Key("task-v4\n" + project + "\ntask\nmain\ngit-checkout\ngit\nunity");
         var first = await New(d, sources, apps).EnsureAsync(project, "task", "main", "git-checkout", false, ct);
         var second = await New(d, sources, apps).EnsureAsync(project, "task", "main", "git-checkout", false, ct);
         Assert.Equal(first.Workspace.Id, second.Workspace.Id);

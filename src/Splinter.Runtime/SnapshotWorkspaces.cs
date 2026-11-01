@@ -20,8 +20,9 @@ public sealed partial class WorkspaceCoordinator
     private async Task<ISourceInspectionProof?> EnsureSnapshotAsync(WorkspaceRecord w, CancellationToken ct)
     {
         ISourceInspectionProof? responseProof = null;
+        try
+        {
         var state = RequireSnapshot(w);
-        if (state.MaxJournalBytes is < 4096 or > 1099511627776) throw new WorkspaceException("InvalidJournalBudget", "Journal budget must be between 4096 bytes and 1 TiB.");
         if (state.Step.StartsWith("release-", StringComparison.Ordinal))
             throw new WorkspaceException("WorkspaceReleasing", "Resume workspace release; do not remount a collected workspace.");
         if (state.Step.StartsWith("compact-", StringComparison.Ordinal))
@@ -63,13 +64,13 @@ public sealed partial class WorkspaceCoordinator
             await SnapshotSources.AttachAsync(w, control, ct);
             w.BaseRevision = await SnapshotSources.EstablishBaselineAsync(w, control, ct);
             await PreparationPointAsync("attach.after-effect", w, ct);
-            var inspection = sources is ISourceInspectionProofProvider provider
+            using var inspection = sources is ISourceInspectionProofProvider provider
                 ? await provider.InspectWithProofAsync(w, ct)
                 : new ProvedSourceInspection(await sources.InspectAsync(w, ct), null);
             var source = inspection.Source;
             if (source.Revision != w.BaseRevision || source.HasChanges)
                 throw new WorkspaceException("SnapshotCheckpointMismatch", "Captured files do not match the clean source checkpoint. Preserve the snapshot and delta.");
-            responseProof = inspection.Proof;
+            responseProof = inspection.DetachProof();
             state.Attached = true;
             w.Phase = "ready";
             await PreparationPointAsync("ready.before-record", w, ct);
@@ -79,6 +80,8 @@ public sealed partial class WorkspaceCoordinator
         w.LastError = null;
         store.Save(w, "snapshot-ensured");
         return responseProof;
+        }
+        catch { responseProof?.Dispose(); throw; }
     }
 
     private async Task ConnectSnapshotAsync(WorkspaceRecord w, CancellationToken ct)
@@ -189,6 +192,12 @@ public sealed partial class WorkspaceCoordinator
                 await Snapshots.RemoveDeltaAsync(w, control, ct);
                 SnapshotStep(w, "release-snapshot");
             }
+            // Result aliases remain independent of the reclaimed journal. Only
+            // now can their last retained byte ranges be packed without an
+            // active journal or capture reader depending on the old backing.
+            if (sources is IRetainedResultMaintenance retained)
+                await retained.MaintainRetainedResultsAsync(w, control, ct);
+            await MaintainMetadataCoreAsync(w, "release:" + (w.Results.LastOrDefault()?.Id ?? w.ResultRevision ?? w.Id), ct, force: true);
             using (await store.LockAsync(WorkspaceStore.Key("snapshot:" + state.Reference!.Id), ct))
             {
                 // Managed project tasks release their own reference; the
@@ -336,6 +345,7 @@ public sealed partial class WorkspaceCoordinator
             throw new WorkspaceException("InvalidCompactionBudget", "The estimated journal overlap budget must be positive.");
         using var gate = await store.LockAsync(id, ct);
         var w = store.Get(id);
+        RequireMetadataMaintenanceComplete(w);
         if (w.CaptureIntent is not null) throw new WorkspaceException("SourceCapturePending", "Complete the exact frozen capture before compacting its backing files.");
         RequireNotDiscarding(w);
         w.OriginalApply?.RequireReclaimable(w);

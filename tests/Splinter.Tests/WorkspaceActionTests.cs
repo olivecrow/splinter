@@ -31,8 +31,8 @@ public sealed class WorkspaceActionTests
         Assert.Equal("workspace.integrate", action.Command);
         var args = Arguments(action.Arguments); Assert.Equal("original", args["target"]!.GetValue<string>());
         Assert.Equal(resultId, args["result"]!.GetValue<string>());
-        Assert.Equal(selected, args.ContainsKey("paths"));
-        if (selected) Assert.Equal(paths, args["paths"]!.Deserialize<string[]>());
+        Assert.Equal(selected && !pending, args.ContainsKey("paths"));
+        if (selected && !pending) Assert.Equal(paths, args["paths"]!.Deserialize<string[]>());
         if (pending)
         { Assert.Equal("same-intent", args["intentKey"]!.GetValue<string>()); Assert.Equal(plan.Digest, args["expectedPlanDigest"]!.GetValue<string>()); }
         else Assert.True(args["plan"]!.GetValue<bool>());

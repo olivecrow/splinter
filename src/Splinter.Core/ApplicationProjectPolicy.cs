@@ -3,7 +3,10 @@ namespace Splinter.Core;
 // Application-specific source companions, original-process reservations and
 // generated content belong to the application adapter, not a VCS or mount.
 public sealed record GeneratedDirectoryDescriptor(string Kind, string RelativePath);
-public sealed record ApplicationSelection(string[] Paths, string[] Companions);
+// Selection closure is a replayable stream. The caller performs canonical
+// sorting and duplicate removal in its bounded disk index, not in an app-wide
+// in-memory set. Adapters may emit a companion more than once.
+public sealed record ApplicationSelection(IEnumerable<string> Paths, IEnumerable<string> Companions);
 public interface IOriginalEditorIdentityVerifier
 {
     IDisposable Acquire(string project, int processId, long startTimeUtcTicks);
@@ -50,5 +53,5 @@ public sealed class NoApplicationProjectPolicy : IApplicationProjectPolicy
     public string CompatibilityKey(string project) => "plain-project-v1";
     public IDisposable? AcquireOriginal(string project, bool reservePublication = false, string? verifiedManagedRoot = null) => null;
     public ApplicationSelection CloseSelection(IEnumerable<string> paths, Func<string, bool> existedBefore,
-        Func<string, bool> existsAfter) => new(paths.ToArray(), []);
+        Func<string, bool> existsAfter) => new(paths, []);
 }

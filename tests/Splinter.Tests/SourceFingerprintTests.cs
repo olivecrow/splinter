@@ -211,8 +211,9 @@ public sealed partial class SourceFingerprintTests
             observations++; OnObserve?.Invoke(observations);
             var included = changes.Where(p => !SourcePathPolicy.Managed(p.Key, workspace.ManagedPaths))
                 .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => new SourcePathChange(p.Key, p.Value)).ToArray();
-            return Task.FromResult(new SourceChangeView(workspace.Id, workspace.Snapshot!.Reference!.Id, Epoch,
-                included.Length == 0 ? 0 : included.Max(c => c.Sequence), included));
+            var view = Paged ? PagedView(workspace, included) : new SourceChangeView(workspace.Id, workspace.Snapshot!.Reference!.Id, Epoch,
+                included.Length == 0 ? 0 : included.Max(c => c.Sequence), included);
+            return Task.FromResult(ObservedView?.Invoke(view) ?? view);
         }
     }
 

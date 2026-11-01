@@ -20,7 +20,7 @@ public sealed class StoppedJournalReclamationTests
     [InlineData("wrong-seal")]
     [InlineData("foreign-file")]
     [InlineData("wrong-intent")]
-    public async Task FreshAndResumedLatestReclamationRetainAuthorityAndContentGuards(string scenario)
+    public async Task FreshAndResumedCurrentReclamationRetainAuthorityAndContentGuards(string scenario)
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows stopped-provider observation.");
         using var root = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
@@ -41,7 +41,7 @@ public sealed class StoppedJournalReclamationTests
             Snapshot = new() { Reference = snapshot, MaxJournalBytes = 4 * 1048576 } };
         string delta = Path.Combine(control, "delta"); OverlayStorageObservation storage; SnapshotDeltaSeal seal;
         using (var tree = provider.OpenTree(snapshot, access))
-        using (var writer = new JournalDeltaStore(delta, NtfsSnapshotWorkspaceBackend.Identity(w), tree))
+        using (var writer = new JournalDeltaStore(delta, NtfsSnapshotWorkspaceBackend.Identity(w), tree, sourceFilePins: new WindowsJournalFilePins()))
         {
             writer.Write(writer.Stat("file")!.Id, 0, [5]);
             seal = writer.Seal(); storage = writer.Observe();
@@ -58,7 +58,8 @@ public sealed class StoppedJournalReclamationTests
             id = w.Id, request.Token, snapshotId = snapshot.Id, phase = "unmounted", processId = process.Id,
             processStartTimeUtcTicks = process.StartTime.ToUniversalTime().Ticks - 1, openHandles = 0, observedAt = DateTimeOffset.UtcNow,
             storage = scenario == "missing-storage" ? null : storage with
-            { JournalBytes = storage.JournalBytes + (scenario == "wrong-bytes" ? 1 : 0), DurableSequence = storage.DurableSequence + (scenario == "wrong-sequence" ? 1 : 0) }
+            { SealJournalBytes = scenario == "wrong-bytes" ? (storage.SealJournalBytes ?? storage.JournalBytes) + 1 : storage.SealJournalBytes,
+                DurableSequence = storage.DurableSequence + (scenario == "wrong-sequence" ? 1 : 0) }
         }, ct);
         if (scenario == "missing-request") File.Delete(requestPath);
         if (scenario == "wrong-seal") w.Snapshot.Result = w.Snapshot.Result with { Seal = seal with { JournalHash = new string('0', 64) } };
@@ -67,8 +68,8 @@ public sealed class StoppedJournalReclamationTests
             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(control, "delta-reclaim.json"),
                 scenario == "wrong-intent" ? w.Snapshot.Result with { Fingerprint = "other" } : w.Snapshot.Result, ct);
         if (scenario == "partial-deletion")
-            Assert.Throws<IOException>(() => LatestJournalReclamation.ReclaimDirectory(delta, seal, ["identity.json"],
-                Path.Combine(control, "latest-delta-reclaim.json"), at => { if (at == "object-removed") throw new IOException("Lost deletion reply."); }));
+            Assert.Throws<IOException>(() => CurrentJournalReclamation.ReclaimDirectory(delta, seal, ["identity.json"],
+                Path.Combine(control, "bounded-delta-reclaim.bin"), at => { if (at == "journal-removed") throw new IOException("Lost deletion reply."); }, filePins: new WindowsJournalFilePins()));
         var backend = new NtfsSnapshotWorkspaceBackend(Path.Combine(root.Path, "unused-runner"));
         string[] retained = Directory.GetFiles(delta, "*", SearchOption.AllDirectories);
         if (scenario is "fresh" or "retained-intent" or "partial-deletion")
@@ -83,7 +84,7 @@ public sealed class StoppedJournalReclamationTests
             Assert.Equal(scenario switch
             {
                 "missing-request" => "OverlayRequestMissing", "wrong-seal" => "ViewSourceChanged",
-                "foreign-file" => "ViewReleaseUncertain", "wrong-intent" => "OverlayResultRequired",
+                "foreign-file" => "ViewReceiptMismatch", "wrong-intent" => "OverlayResultRequired",
                 _ => "DeltaChangedAfterCollection"
             }, error.Code);
             Assert.All(retained, path => Assert.True(File.Exists(path)));

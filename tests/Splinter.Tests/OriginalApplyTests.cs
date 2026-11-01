@@ -21,7 +21,7 @@ public sealed partial class FileWorkspaceTests
         await f.New().CheckpointAsync(a.Id, "result", ct);
         File.WriteAllText(Path.Combine(f.Project, "foreign.txt"), "keep");
         var plan = (await f.New().PlanOriginalAsync(a.Id, ct)).OriginalApplyPlan!;
-        Assert.Empty(plan.Conflicts); Assert.Equal(5, plan.Changes.Length);
+        Assert.Empty(plan.Conflicts); Assert.Equal(5, plan.ChangeCount);
         var applied = await f.New().ApplyOriginalAsync(a.Id, "explicit-a", plan.Digest, ct);
         Assert.True(applied.Workspace.OriginalApply!.Completed); Assert.Equal("integrated", applied.Workspace.Phase);
         Assert.Equal("result-a", File.ReadAllText(Path.Combine(f.Project, "data.txt")));

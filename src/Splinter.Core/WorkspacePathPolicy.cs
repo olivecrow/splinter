@@ -23,7 +23,7 @@ public sealed class WorkspacePathPolicy
     public string Normalize(string path)
     {
         path = (CaseSensitive ? path : path.Replace('\\', '/')).Trim('/');
-        if (path.Length > 32000 || path.Contains('\0') || !CaseSensitive && path.Contains(':') ||
+        if (path.Length > 32767 || path.Contains('\0') || !CaseSensitive && path.Contains(':') ||
             path.Length != 0 && path.Split('/').Any(p => p is "." or ".." or "" ||
                 !CaseSensitive && (p.EndsWith('.') || p.EndsWith(' '))))
             throw new ArgumentException("Only relative ordinary file paths are supported by this tree's path policy.");

@@ -58,10 +58,19 @@
     "preparation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["storeReadyTicks", "stopwatchFrequency"],
+      "required": [
+        "storeReadyTicks",
+        "stopwatchFrequency"
+      ],
       "properties": {
-        "storeReadyTicks": {"type":"integer", "minimum":0},
-        "stopwatchFrequency": {"type":"integer", "minimum":1}
+        "storeReadyTicks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stopwatchFrequency": {
+          "type": "integer",
+          "minimum": 1
+        }
       }
     },
     "openHandles": {
@@ -77,7 +86,10 @@
       "minimum": 0
     },
     "storage": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "required": [
         "initialPayloadCopiedBytes",
         "journalBytes",
@@ -88,13 +100,50 @@
         "durableSequence"
       ],
       "properties": {
-        "journalOptimizationEnabled": { "type": "boolean" },
-        "journalBytesBasis": { "enum": ["current-files", "writer-accounting"] },
-        "journalStorageMode": { "enum": ["append", "latest", "bounded"] },
-        "boundedLogBytesLimit": { "type": "integer", "minimum": 4096, "maximum": 16777216 },
-        "boundedLogFrameLimit": { "const": 4096 },
-        "boundedLogAppendedBytes": { "type": "integer", "minimum": 0 },
-        "boundedLogAppendedFrames": { "type": "integer", "minimum": 0, "maximum": 4096 },
+        "journalOptimizationEnabled": {
+          "type": "boolean"
+        },
+        "metadataCacheBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 33554432
+        },
+        "peakMetadataCacheBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 33554432
+        },
+        "journalBytesBasis": {
+          "enum": [
+            "current-files",
+            "writer-accounting"
+          ]
+        },
+        "journalStorageMode": {
+          "enum": [
+            "append",
+            "latest",
+            "bounded",
+            "segmented"
+          ]
+        },
+        "boundedLogBytesLimit": {
+          "type": "integer",
+          "minimum": 4096,
+          "maximum": 16777216
+        },
+        "boundedLogFrameLimit": {
+          "const": 4096
+        },
+        "boundedLogAppendedBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "boundedLogAppendedFrames": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
         "initialPayloadCopiedBytes": {
           "const": 0
         },
@@ -161,80 +210,268 @@
               "type": "integer",
               "minimum": 0
             },
-            "replayFrames": {"type":"integer", "minimum":0},
-            "replayReadCalls": {"type":"integer", "minimum":0},
-            "replayReadTicks": {"type":"integer", "minimum":0},
-            "replayValidationTicks": {"type":"integer", "minimum":0},
-            "replayIndexTicks": {"type":"integer", "minimum":0},
-            "replayBufferBytes": {"type":"integer", "minimum":0},
+            "replayFrames": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "replayReadCalls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "replayReadTicks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "replayValidationTicks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "replayIndexTicks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "replayBufferBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
             "replayIndexOperations": {
-              "type": "array", "maxItems": 17,
+              "type": "array",
+              "maxItems": 17,
               "items": {
-                "type": "object", "additionalProperties": false,
-                "required": ["operation", "frames", "applyTicks"],
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "operation",
+                  "frames",
+                  "applyTicks"
+                ],
                 "properties": {
-                  "operation": {"enum":["create","metadata","resize","write","write-compacted","rename","delete","skip-write","skip-range","state-bounded","state-node","state-write","state-hidden","state-change","state-complete","state-projection-unsafe","forget-unlinked"]},
-                  "frames": {"type":"integer", "minimum":1},
-                  "applyTicks": {"type":"integer", "minimum":0}
+                  "operation": {
+                    "enum": [
+                      "create",
+                      "metadata",
+                      "resize",
+                      "write",
+                      "write-compacted",
+                      "rename",
+                      "delete",
+                      "skip-write",
+                      "skip-range",
+                      "state-bounded",
+                      "state-node",
+                      "state-write",
+                      "state-hidden",
+                      "state-change",
+                      "state-complete",
+                      "state-projection-unsafe",
+                      "forget-unlinked"
+                    ]
+                  },
+                  "frames": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "applyTicks": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
                 }
               }
             },
             "replayWriteRangeIndex": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["replaceCalls", "priorExtents", "maxPriorExtents", "visitedExtents",
-                "copiedExtents", "locateAndReplaceTicks", "sortTicks", "priorExtentBuckets"],
+              "required": [
+                "replaceCalls",
+                "priorExtents",
+                "maxPriorExtents",
+                "visitedExtents",
+                "copiedExtents",
+                "locateAndReplaceTicks",
+                "sortTicks",
+                "priorExtentBuckets"
+              ],
               "properties": {
-                "replaceCalls": {"type":"integer", "minimum":0},
-                "priorExtents": {"type":"integer", "minimum":0},
-                "maxPriorExtents": {"type":"integer", "minimum":0},
-                "visitedExtents": {"type":"integer", "minimum":0},
-                "copiedExtents": {"type":"integer", "minimum":0},
-                "locateAndReplaceTicks": {"type":"integer", "minimum":0},
-                "sortTicks": {"type":"integer", "minimum":0},
+                "replaceCalls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "priorExtents": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "maxPriorExtents": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "visitedExtents": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "copiedExtents": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "locateAndReplaceTicks": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "sortTicks": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "priorExtentBuckets": {
-                  "type":"array", "minItems":6, "maxItems":6,
-                  "items":{"type":"integer", "minimum":0}
+                  "type": "array",
+                  "minItems": 6,
+                  "maxItems": 6,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
                 }
               }
             },
             "readRangeIndex": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["readCalls", "searchProbes", "visitedExtents"],
+              "required": [
+                "readCalls",
+                "searchProbes",
+                "visitedExtents"
+              ],
               "properties": {
-                "readCalls": { "type": "integer", "minimum": 0 },
-                "searchProbes": { "type": "integer", "minimum": 0 },
-                "visitedExtents": { "type": "integer", "minimum": 0 }
+                "readCalls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "searchProbes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "visitedExtents": {
+                  "type": "integer",
+                  "minimum": 0
+                }
               }
             },
             "liveJournalWrites": {
-              "type": "object", "additionalProperties": false,
-              "required": ["mutationGateCalls", "mutationGateWaitTicks", "operations"],
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mutationGateCalls",
+                "mutationGateWaitTicks",
+                "operations"
+              ],
               "properties": {
-                "mutationGateCalls": {"type":"integer", "minimum":0},
-                "mutationGateWaitTicks": {"type":"integer", "minimum":0},
+                "mutationGateCalls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "mutationGateWaitTicks": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "operations": {
-                  "type":"array", "maxItems":7,
+                  "type": "array",
+                  "maxItems": 7,
                   "items": {
-                    "type":"object", "additionalProperties":false,
-                    "required":["operation","attempts","durableCommits","failedCalls","payloadBytes","journalBytes","prepareTicks","appendTicks","flushTicks","applyTicks","totalTicks","flushCalls","maxWaitingMutations","waitingMutationsAtFlushStart","waitingMutationsAtFlushEnd"],
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "operation",
+                      "attempts",
+                      "durableCommits",
+                      "failedCalls",
+                      "payloadBytes",
+                      "journalBytes",
+                      "prepareTicks",
+                      "appendTicks",
+                      "flushTicks",
+                      "applyTicks",
+                      "totalTicks",
+                      "flushCalls",
+                      "maxWaitingMutations",
+                      "waitingMutationsAtFlushStart",
+                      "waitingMutationsAtFlushEnd"
+                    ],
                     "properties": {
-                      "operation": {"enum":["create","write","resize","metadata","rename","delete","forget-unlinked"]},
-                      "attempts": {"type":"integer", "minimum":0},
-                      "durableCommits": {"type":"integer", "minimum":0},
-                      "failedCalls": {"type":"integer", "minimum":0},
-                      "payloadBytes": {"type":"integer", "minimum":0},
-                      "journalBytes": {"type":"integer", "minimum":0},
-                      "prepareTicks": {"type":"integer", "minimum":0},
-                      "appendTicks": {"type":"integer", "minimum":0},
-                      "flushTicks": {"type":"integer", "minimum":0},
-                      "applyTicks": {"type":"integer", "minimum":0},
-                      "totalTicks": {"type":"integer", "minimum":0},
-                      "flushCalls": {"type":"integer", "minimum":0},
-                      "maxWaitingMutations": {"type":"integer", "minimum":0},
-                      "waitingMutationsAtFlushStart": {"type":"array", "minItems":5, "maxItems":5, "items":{"type":"integer","minimum":0}},
-                      "waitingMutationsAtFlushEnd": {"type":"array", "minItems":5, "maxItems":5, "items":{"type":"integer","minimum":0}}
+                      "operation": {
+                        "enum": [
+                          "create",
+                          "write",
+                          "resize",
+                          "metadata",
+                          "rename",
+                          "delete",
+                          "forget-unlinked"
+                        ]
+                      },
+                      "attempts": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "durableCommits": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "failedCalls": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "payloadBytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "journalBytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "prepareTicks": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "appendTicks": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "flushTicks": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "applyTicks": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "totalTicks": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "flushCalls": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "maxWaitingMutations": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "waitingMutationsAtFlushStart": {
+                        "type": "array",
+                        "minItems": 5,
+                        "maxItems": 5,
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "waitingMutationsAtFlushEnd": {
+                        "type": "array",
+                        "minItems": 5,
+                        "maxItems": 5,
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
                     }
                   }
                 }
@@ -277,6 +514,11 @@
             "liveJournalWrites",
             "readRangeIndex"
           ]
+        },
+        "sealJournalBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Accepted mutation bytes used by the stable logical seal; physical storage remains journalBytes."
         }
       }
     }

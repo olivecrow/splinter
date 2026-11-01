@@ -21,21 +21,16 @@
         "version",
         "id",
         "snapshot",
-        "maxJournalBytes",
         "maxTransferBytes"
       ],
       "properties": {
         "version": {
-          "const": 2
+          "const": 3
         },
         "id": {
           "type": "string",
           "minLength": 1,
           "maxLength": 128
-        },
-        "maxJournalBytes": {
-          "type": "integer",
-          "minimum": 4096
         },
         "maxTransferBytes": {
           "type": "integer",
@@ -103,7 +98,12 @@
               "type": "string",
               "format": "date-time"
             },
-            "pathPolicy": {"enum": [null, "posix-case-sensitive-v1"]},
+            "pathPolicy": {
+              "enum": [
+                null,
+                "posix-case-sensitive-v1"
+              ]
+            },
             "persistent": {
               "const": true
             },
@@ -294,13 +294,12 @@
                 "version",
                 "id",
                 "snapshot",
-                "maxJournalBytes",
                 "maxTransferBytes",
                 "excludedTopLevel"
               ],
               "properties": {
                 "version": {
-                  "const": 2
+                  "const": 3
                 },
                 "id": {
                   "type": "string",
@@ -308,10 +307,6 @@
                 },
                 "snapshot": {
                   "$ref": "urn:splinter:v1:view-workflow-contract#/$defs/snapshot"
-                },
-                "maxJournalBytes": {
-                  "type": "integer",
-                  "minimum": 4096
                 },
                 "maxTransferBytes": {
                   "type": "integer",

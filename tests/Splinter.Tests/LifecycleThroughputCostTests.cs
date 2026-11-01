@@ -27,6 +27,7 @@ public sealed class LifecycleThroughputCostTests
             byte[] read = new byte[bytes]; Assert.Equal(bytes, tree.Read("dir/f0000", 0, read));
             Assert.Equal(Enumerable.Range(0, bytes).Select(i => (byte)i), read);
         });
+        using var capturedMetadata = manifest;
         long started = Stopwatch.GetTimestamp(), allocation = GC.GetTotalAllocatedBytes();
         await f.Restore();
         samples.Add(new { stage = "unchanged-restore", seconds = Stopwatch.GetElapsedTime(started).TotalSeconds,

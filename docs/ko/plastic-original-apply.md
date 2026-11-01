@@ -1,6 +1,6 @@
 # Plastic 결과를 원본에 반영하기
 
-현재 task 상태는 v3다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 불변 수집·명시적 결과 선택·경로별 반영 이력·외부 도구의 실행 중 Editor 협력을 소유하며 [RI 자격](verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분한다. 관리형 basis 상태는 v2를 유지하며 이전 task는 이관 없이 보존·거부한다.
+[대규모 저장 후보](scalable-storage.md)는 task v4·관리형 basis v3를 사용한다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 불변 수집·명시적 결과 선택·경로별 반영 이력·외부 도구의 실행 중 Editor 협력을 소유한다. 과거 [RI 자격](verification/repeated-original-apply.md)은 task v3·basis v2를 사용했으며 후보는 별도 [SCAL 검증](verification/scalable-storage.md)을 따른다. 이전 상태는 이관 없이 보존·거부한다.
 
 [English](../plastic-original-apply.md)
 
@@ -12,7 +12,7 @@ pwsh scripts/splinter.ps1 workspace integrate --id <id> --target original --resu
 pwsh scripts/splinter.ps1 workspace integrate --id <id> --target original --result <result-id> --intent-key <key> --expected-plan-digest <digest> --path Assets/Selected.txt --home <home>
 ```
 
-`--path`는 반복할 수 있는 정확한 상대 파일/디렉터리 경로다. 생략하면 전체 변경이다. 필요한 새 부모와 Unity Assets의 파일·폴더 `.meta`를 함께 계획하며 변하지 않은 companion도 원본 GUID 보호를 위해 확인한다. managed 경로·VCS 관리 정보·패턴·중복·누락 선택은 거부한다. 계획의 `selectedPaths`, `sourceIdentity`, 변경/충돌과 digest를 검토한다. 경로 순서는 정규화한다.
+`--path`는 반복할 수 있는 정확한 상대 파일/디렉터리 경로다. 생략하면 전체 변경이다. 필요한 새 부모와 Unity Assets의 파일·폴더 `.meta`를 함께 계획하며 변하지 않은 companion도 원본 GUID 보호를 위해 확인한다. managed 경로·VCS 관리 정보·패턴·중복·누락 선택은 거부한다. `sourceIdentity`·`changeCount`·`conflictCount`·`digest`를 검토하고 `workspace read --id <id> --plan-id <digest> --collection <collection> --page-size 128 --home <home>`으로 `plan`·`selection`·`conflicts`를 페이지 조회한다. 반환한 root 결합 cursor로 이어 읽는다. 현재 페이지 계획의 인라인 목록은 비어 있으므로 이 빈 목록을 변경이나 충돌이 없다는 근거로 쓰지 않는다. 경로 순서는 정규화한다.
 
 계획의 경로/삭제 guard 검색은 [공통 원본 반영](plain-folder-original-apply.md)의 조상 집합을 사용한다. CLI `nextActions`에도 `target=original`·선택 `paths`를 유지하고 미완료 반영의 재개에는 정확한 intent/digest를 포함한다. 선택 계획에서 재개 인자를 생략해 전체 범위로 바꾸지 않는다.
 

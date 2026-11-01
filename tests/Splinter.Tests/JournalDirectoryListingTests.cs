@@ -101,7 +101,7 @@ public sealed class JournalDirectoryListingTests
         for (int i = 0; i < 128; i++) System.IO.File.WriteAllBytes(Path.Combine(root, $"f{i:D3}"), [(byte)i, 91, 92]);
         var snapshot = new SnapshotReference("listed-native", OwnedDirectorySnapshotTree.ProviderName, root, root,
             DateTimeOffset.UtcNow, true, true, "stopped-original-owned-directory");
-        var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, "owner");
+        using var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, "owner");
         using var basis = new OwnedDirectorySnapshotTree(manifest, snapshot);
         var tree = new CountedTree(basis);
         using var store = Open(Path.Combine(directory.Path, "delta"), tree, true);

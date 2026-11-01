@@ -21,7 +21,7 @@ public sealed partial class JournalDeltaStore
     private readonly Dictionary<int, HashSet<string>> latestHiddenBuckets = [];
     private readonly Dictionary<int, Dictionary<string, long>> latestChangeBuckets = [];
     private readonly HashSet<int> latestDirtyBuckets = [];
-    private long CurrentJournalBytes => latest?.Bytes ?? journal.Length;
+    private long CurrentJournalBytes => segments is not null ? checked(segments.JournalBytes + dataSegmentBytes) : latest?.Bytes ?? journal.Length;
     public bool JournalOptimizationEnabled => latest is not null;
     public void ReleaseUnlinkedFile(Guid id)
     {
@@ -30,9 +30,9 @@ public sealed partial class JournalDeltaStore
             // A linked/unknown identity has no storage to reclaim. Keep local
             // writer health checks, without querying an unused immutable basis.
             CheckLocal();
-            if (latest is null && boundedSettings is null || !nodes.TryGetValue(id, out var node) || !node.Entry.Deleted) return;
+            if (latest is null && boundedSettings is null && segments is null || !nodes.TryGetValue(id, out var node) || !node.Entry.Deleted) return;
             snapshot.EnsureAvailable();
-            if (boundedSettings is not null && !boundedDurableNodes.Contains(id))
+            if ((boundedSettings is not null || segments is not null) && !boundedDurableNodes.Contains(id))
             {
                 // A replaced immutable file may have been opened only for
                 // reading. Its cached identity was never recorded, so emitting
@@ -42,7 +42,7 @@ public sealed partial class JournalDeltaStore
             }
             // Storage reclamation has no new source mutation or path sequence.
             // Keep the whiteout and last path change, but retire the closed ID.
-            if (boundedSettings is not null) Commit(new(sequence, "forget-unlinked", node.Entry), []);
+            if (boundedSettings is not null || segments is not null) Commit(new(sequence, "forget-unlinked", node.Entry), []);
             else CommitLatest(new(sequence, "forget-unlinked", node.Entry), []);
         }
     }
@@ -454,7 +454,7 @@ public sealed partial class JournalDeltaStore
             }
             var tail = extents.Skip(paged).ToArray();
             var record = new LatestPagedNode(node.Entry, [.. pages], tail, LatestBlocks(tail, hashes),
-                node.Entry.Deleted ? 0 : pathChanges.GetValueOrDefault(node.Entry.Path));
+                node.Entry.Deleted ? 0 : pathChanges.TryGetValue(node.Entry.Path, out long change) ? change : 0);
             FileObject(LatestNodeName(node.Entry.Id), LatestJournalStorage.Encode(record, "SJN3"));
         }
         var hiddenBuckets = hidden.GroupBy(LatestBucketId).ToDictionary(g => g.Key, g => g.Order(pathPolicy.Comparer).ToArray());
@@ -484,6 +484,7 @@ public sealed partial class JournalDeltaStore
     }
     public static SnapshotDeltaSeal SealJournal(string path, long durableSequence, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null)
     {
+        if (IsSegmentedJournal(path)) return SealSegmentedJournal(path, durableSequence);
         bool bounded = IsBoundedJournal(path);
         if (bounded) RequireBoundedIdle(path);
         else if (Path.GetFileName(path) == "delta.journal" && File.Exists(Path.Combine(Path.GetDirectoryName(path)!, BoundedGuardName)))
@@ -507,6 +508,7 @@ public sealed partial class JournalDeltaStore
     }
     public static IReadOnlyList<string> JournalStorageFiles(string path)
     {
+        if (IsSegmentedJournal(path)) return EnumerateJournalStorageFiles(path).ToArray();
         if (!IsBoundedJournal(path))
         {
             if (Path.GetFileName(path) == "delta.journal" && File.Exists(Path.Combine(Path.GetDirectoryName(path)!, BoundedGuardName)))
@@ -519,5 +521,20 @@ public sealed partial class JournalDeltaStore
         RequireBoundedIdle(path);
         return Path.GetFileName(path) == "delta.journal"
             ? [path, Path.Combine(Path.GetDirectoryName(path)!, BoundedGuardName)] : [path];
+    }
+    public static IEnumerable<string> EnumerateJournalStorageFiles(string path)
+    {
+        if (!IsSegmentedJournal(path)) { foreach (string file in JournalStorageFiles(path)) yield return file; yield break; }
+        string directory = Path.GetDirectoryName(path)!;
+        foreach (string file in Directory.EnumerateFiles(directory))
+        {
+            WorkspaceStore.EnsurePlainPath(file); string name = Path.GetFileName(file);
+            if (name is "identity.json" or "delta.journal" or "delta.journal.bounded.lock" or "segment-state.json" or "live-repack.json" or "segment-reclaim.json" ||
+                (name.StartsWith("segment-", StringComparison.Ordinal) || name.StartsWith("packed-", StringComparison.Ordinal)) && name.EndsWith(".sjr", StringComparison.Ordinal)) yield return file;
+            else throw new WorkspaceException("DeltaCorrupt", "Preserve an unknown or pending segmented journal file.");
+        }
+        using var identityInput = File.OpenRead(Path.Combine(directory, "identity.json"));
+        var identity = JsonSerializer.Deserialize<OverlayIdentity>(identityInput) ?? throw new WorkspaceException("DeltaCorrupt", "Missing overlay identity.");
+        foreach (string file in EnumeratePagedIndexFiles(directory, identity)) yield return file;
     }
 }

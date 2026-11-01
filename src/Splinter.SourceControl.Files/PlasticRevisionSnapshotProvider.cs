@@ -13,6 +13,8 @@ public sealed class PlasticRevisionSnapshotProvider(string directory, string own
     private readonly IPlasticRevisionClient revisions = client ?? new PlasticRevisionClient();
     private string ReceiptPath => Path.Combine(directory, "plastic-basis.json");
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
+    private long manifestValidations;
+    internal long ManifestValidationCount => Interlocked.Read(ref manifestValidations);
     public async Task<SnapshotReference> CaptureAsync(SnapshotCapture request, CancellationToken ct = default)
     {
         if (request.OwnerId != owner || !WorkspaceStore.SamePath(request.ReceiptDirectory, directory) || string.IsNullOrEmpty(treeSpec))
@@ -21,17 +23,18 @@ public sealed class PlasticRevisionSnapshotProvider(string directory, string own
         using var operation = Fence("operation.lock", true); var receipt = Read();
         if (receipt is null)
         {
-            var manifest = await revisions.ListAsync(treeSpec, ct); ValidateManifest(manifest);
+            var manifest = await revisions.ListAsync(treeSpec, Path.Combine(directory, "catalog"), ct); ValidateManifest(manifest);
             if (manifest.TreeSpec != treeSpec) throw Failure("PlasticBasisIdentityMismatch", "The reader must return the exact requested tree.");
             string digest = Digest(manifest);
             var snapshot = new SnapshotReference("plastic-" + owner + "-" + digest, ProviderName, Path.GetFullPath(request.SourcePath),
                 Path.GetFullPath(directory), DateTimeOffset.UtcNow, true, true, Consistency);
-            receipt = new(1, owner, snapshot, manifest, digest, false); Save(receipt);
+            receipt = new(2, owner, snapshot, manifest, digest, false); Save(receipt);
         }
         Require(receipt, receipt.Snapshot);
         if (receipt.Released || receipt.Manifest.TreeSpec != treeSpec || !WorkspaceStore.SamePath(receipt.Snapshot.SourcePath, request.SourcePath))
             throw Failure("SnapshotIdentityMismatch", "Never replace this task's recorded basis.");
-        var live = await revisions.ListAsync(treeSpec, ct); ValidateManifest(live);
+        using var liveDirectory = new TemporaryMetadataDirectory();
+        using var live = await revisions.ListAsync(treeSpec, liveDirectory.Path, ct); ValidateManifest(live);
         if (Digest(live) != receipt.ManifestDigest) throw Failure("PlasticBasisInvalid", "The fixed tree listing changed; preserve the receipt.");
         return receipt.Snapshot;
     }
@@ -71,19 +74,30 @@ public sealed class PlasticRevisionSnapshotProvider(string directory, string own
         }
         public void Dispose() { manifest.Dispose(); readers.Dispose(); }
     }
-    public PlasticRevisionSnapshotTree OpenTree(SnapshotReference snapshot, SnapshotReadAccess access)
+    public PlasticRevisionSnapshotTree OpenTree(SnapshotReference snapshot, SnapshotReadAccess access, IJournalFilePins? filePins = null)
     {
         var lease = AcquireReadLease();
+        PlasticManifestObservationScope? scope = null;
         try
         {
-            var receipt = Required(snapshot); access.RequireMatch(snapshot);
+            var receipt = Read() ?? throw Failure("PlasticBasisInvalid", "The fixed basis receipt is absent.");
+            RequireHeader(receipt, snapshot); access.RequireMatch(snapshot);
             if (receipt.Released || !WorkspaceStore.SamePath(access.RootPath, snapshot.RootPath) || access.VerificationId != receipt.ManifestDigest)
                 throw Failure("SnapshotIdentityMismatch", "Use the exact manifest proof and owned basis.");
+            if (filePins is not null && OperatingSystem.IsWindows()) scope = new(directory, snapshot, access, receipt.Manifest, filePins);
+            // Every native binding exists before this complete admission walk.
+            Require(receipt, snapshot); scope?.Check();
             // The opened manifest cannot change while this tree owns its handle.
             // Do not deserialize/hash/rebuild it for every Library metadata callback.
-            return new(snapshot, receipt.Manifest, revisions, () => WorkspaceStore.EnsurePlainPath(directory), lease);
+            var held = scope;
+            return new(snapshot, receipt.Manifest, revisions, () => WorkspaceStore.EnsurePlainPath(directory), lease, held, () =>
+            {
+                held?.Check(); var current = Required(snapshot);
+                if (current.Released || current.ManifestDigest != receipt.ManifestDigest) throw Failure("SnapshotIdentityMismatch", "The fixed read boundary changed.");
+                held?.Check();
+            });
         }
-        catch { lease.Dispose(); throw; }
+        catch { scope?.Dispose(); lease.Dispose(); throw; }
     }
     public Task<SnapshotReclamation> ReleaseAsync(SnapshotReference snapshot, CancellationToken ct = default, string? previousAttemptId = null)
     {
@@ -106,27 +120,47 @@ public sealed class PlasticRevisionSnapshotProvider(string directory, string own
     { var receipt = Read() ?? throw Failure("PlasticBasisInvalid", "The fixed basis receipt is absent."); Require(receipt, snapshot); return receipt; }
     private void Require(PlasticBasisReceipt r, SnapshotReference snapshot)
     {
-        WorkspaceStore.EnsurePlainPath(directory);
-        ValidateManifest(r.Manifest);
-        if (r.Version != 1 || r.OwnerId != owner || r.Snapshot != snapshot || snapshot.Provider != ProviderName || snapshot.Consistency != Consistency ||
+        RequireHeader(r, snapshot); Interlocked.Increment(ref manifestValidations); ValidateManifest(r.Manifest);
+    }
+    private void RequireHeader(PlasticBasisReceipt r, SnapshotReference snapshot)
+    {
+        WorkspaceStore.EnsurePlainPath(directory); ValidateManifestHeader(r.Manifest);
+        if (r.Version != 2 || r.OwnerId != owner || r.Snapshot != snapshot || snapshot.Provider != ProviderName || snapshot.Consistency != Consistency ||
             !snapshot.Persistent || !snapshot.Differential || !WorkspaceStore.SamePath(snapshot.RootPath, directory) || r.ManifestDigest != Digest(r.Manifest) ||
             snapshot.Id != "plastic-" + owner + "-" + r.ManifestDigest)
             throw Failure("SnapshotIdentityMismatch", "Retain the exact recorded manifest, owner and snapshot.");
     }
     private static void ValidateManifest(PlasticRevisionManifest manifest)
     {
+        ValidateManifestHeader(manifest);
+        using var catalog = manifest.OpenCatalog(); catalog.Verify();
+        foreach (var entry in manifest.EnumerateEntries()) _ = PlasticRevisionManifest.ToRecord(entry);
+    }
+    private static void ValidateManifestHeader(PlasticRevisionManifest manifest)
+    {
         if (manifest is null) throw Failure("PlasticBasisInvalid", "Retain absent recorded manifest metadata.");
         RequireTreeSpec(manifest.TreeSpec);
         if (!Numeric(manifest.RepositoryId) || !Numeric(manifest.RootRevision) || !Guid.TryParseExact(manifest.RootGuid, "D", out _) ||
-            manifest.Entries is null || manifest.Entries.Length > 32768 || string.IsNullOrEmpty(manifest.Repository) || manifest.Repository.Length > 2048 || !manifest.Repository.StartsWith("rep:") || manifest.Repository.Any(char.IsControl)) throw Failure("PlasticBasisInvalid", "Unsupported manifest identity.");
-        using var tree = new PlasticRevisionSnapshotTree(new("check", ProviderName, ".", ".", DateTimeOffset.UtcNow, true, true, Consistency), manifest, new PlasticRevisionClient());
+            manifest.Version != 2 || manifest.Catalog is null || manifest.CatalogDirectory is null || string.IsNullOrEmpty(manifest.Repository) || manifest.Repository.Length > 2048 || !manifest.Repository.StartsWith("rep:") || manifest.Repository.Any(char.IsControl)) throw Failure("PlasticBasisInvalid", "Unsupported manifest identity.");
     }
-    internal static string Digest(PlasticRevisionManifest manifest) => Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(manifest, Json)));
+    internal static string Digest(PlasticRevisionManifest manifest)
+    {
+        if (manifest.Catalog is null) throw Failure("PlasticBasisInvalid", "The digest requires an immutable recorded catalog.");
+        return Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            manifest.Version, manifest.TreeSpec, manifest.RepositoryId, manifest.RootRevision, manifest.RootGuid, manifest.Repository,
+            manifest.Catalog.Root, manifest.Catalog.Count, manifest.Catalog.CaseSensitive, entriesHash = manifest.Catalog.Children.ContentHash
+        }, Json)));
+    }
     private PlasticBasisReceipt? Read()
     {
         WorkspaceStore.EnsurePlainPath(ReceiptPath);
         if (!File.Exists(ReceiptPath)) return null;
-        try { return FileWorkspaceProvider.Read<PlasticBasisReceipt>(ReceiptPath); }
+        try
+        {
+            var receipt = FileWorkspaceProvider.Read<PlasticBasisReceipt>(ReceiptPath);
+            return receipt with { Manifest = receipt.Manifest with { CatalogDirectory = Path.Combine(directory, "catalog") } };
+        }
         catch (WorkspaceException) { throw Failure("PlasticBasisInvalid", "Retain corrupt or unreadable basis metadata."); }
     }
     private void Save(PlasticBasisReceipt receipt)

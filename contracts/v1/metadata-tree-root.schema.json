@@ -1,0 +1,61 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "storeId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24}$"
+    },
+    "page": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "container": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 40,
+              "maximum": 65536
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "contentHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "container",
+            "offset",
+            "bytes",
+            "count",
+            "contentHash"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "version",
+    "storeId",
+    "page"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:metadata-tree-root"
+}

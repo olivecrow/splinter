@@ -14,7 +14,7 @@ public sealed partial class JournalDeltaStore
             Check();
             if (requestedPaths.Length > 4096 || requestedPaths.Distinct(StringComparer.Ordinal).Count() != requestedPaths.Length)
                 throw new WorkspaceException("SourceObservationInvalid", "Content evidence requests must contain at most 4096 unique paths.");
-            var before = ObserveChanges(managedPaths);
+            using var before = ObserveChanges(managedPaths);
             RequireGeneration(before);
             if (!initialContentGeneration || snapshot is not ISnapshotContentSummaryProvider provider) return null;
             var summaries = new List<SnapshotContentSummary>();
@@ -23,7 +23,7 @@ public sealed partial class JournalDeltaStore
                 string path = NormalizePath(requested);
                 if (path != requested || path.Length == 0)
                     throw new WorkspaceException("SourceObservationInvalid", "Content evidence requires exact normalized file paths.");
-                if (pathPolicy.Managed(path, managedPaths) || before.Changes.Any(change =>
+                if (pathPolicy.Managed(path, managedPaths) || before.EnumerateChanges().Any(change =>
                     path.Equals(change.Path, pathPolicy.Comparison) || pathPolicy.IsChild(path, change.Path))) continue;
                 var node = Lookup(path);
                 if (node is null || node.Entry.Directory || node.Entry.BasePath != path ||
@@ -36,14 +36,15 @@ public sealed partial class JournalDeltaStore
                 summaries.Add(summary);
             }
             Check();
-            RequireGeneration(ObserveChanges(managedPaths));
-            return new(Identity.Snapshot, before, summaries.ToArray());
+            using var after = ObserveChanges(managedPaths);
+            RequireGeneration(after);
+            return new(Identity.Snapshot, before with { }, summaries.ToArray());
 
             void RequireGeneration(SourceChangeView current)
             {
                 if (current.WorkspaceId != expected.WorkspaceId || current.SnapshotId != expected.SnapshotId ||
                     current.Epoch != expected.Epoch || current.Sequence != expected.Sequence ||
-                    !current.Changes.SequenceEqual(expected.Changes))
+                    (current.Index is null || expected.Index is null ? !current.Changes.SequenceEqual(expected.Changes) : current.ContentIdentity != expected.ContentIdentity))
                     throw new WorkspaceException("SourceChanged", "The initial source generation changed; preserve and inspect the current source.");
             }
         }

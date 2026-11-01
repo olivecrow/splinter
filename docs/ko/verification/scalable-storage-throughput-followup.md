@@ -1,0 +1,94 @@
+# 대규모 저장 처리량 후속
+
+[English](../../verification/scalable-storage-throughput-followup.md) · [기존 진단](scalable-storage-throughput-diagnosis.md)
+
+상태: ST-01–23 구현·작은 정확성 검증·시간을 제한한 실제 성능 시도 완료. 후속 사용자는 모든 리뷰 수정·항목별 작은 검증·시간을 제한한 마지막 성능 시도를 승인했다. 필수 전체 시험 gate는 취소했으며 **통과가 아니다**. 보존한 100k fixture를 재개하지 않으며 SCAL-03/07/08은 미자격이다.
+
+이후 확인된 구조적 원인을 수정하라는 요청은 **아래 ST-24–28**이 소유하며, 작은 국지 검증으로 한정한다. 앞선 시간 비교 행렬이나 전체 gate를 재개하지 않는다.
+
+## 변경
+
+| ID | 변경과 유지한 경계 |
+| --- | --- |
+| ST-01 | Adoption 최대 64개 frame이 영속 batch를 공유한다. 고정/canonical 비교·live range 일치·최종 root/seal을 유지한다. |
+| ST-02 | Packing relocation 63개와 해당 progress frame을 묶고 같은 intent로 부분 수행을 복구한다. |
+| ST-03 | 고정 capture의 변경 없는 basis hash 또는 검증된 content summary를 재사용한다. 변경 바이트·backing proof·전체 boundary 검증은 유지한다. |
+| ST-04 | Spool cursor가 64KiB 읽기 버퍼를 사용한다. |
+| ST-05 | Spool은 64KiB 뒤 spill하고 영속 flush는 파일을 강제한다. Cursor마다 길이를 고정한다. |
+| ST-06 | None 계획의 원본 namespace 관측에 apply 자원 검사를 합쳐 중복 scan을 없애며 root/VCS 승인은 유지한다. |
+| ST-07 | 일회성 editorless proof는 정렬된 canonical metadata digest를 비교하며 전체 열거·generation 검사를 유지한다. |
+| ST-08 | Git attribute batch는 경로 4,096개·UTF-8 256KiB 모두로 제한한다. Interpretation 검증은 유지한다. |
+| ST-09 | Optional initial-summary 불가는 해당 inspection의 후속 요청을 멈춘다. 유효한 빈 응답은 불가가 아니다. |
+| ST-10 | 동시 resize/metadata callback이 제한된 영속 batch를 공유한다. Flush 뒤 성공, 불확정 writer 차단, capture/flush의 두 queue drain을 유지한다. |
+| ST-11 | Raw 보존은 native backing별로 묶어 8-handle cache 퇴출에 따른 전체 proof 반복을 줄인다. |
+| ST-12 | 정확한 adoption 작업 안에서 canonical reader를 재사용하고 종료 시 해제한다. 독립 작업은 proof를 승계하지 않는다. |
+| ST-13 | 기존 payload index로 전체 파일의 반복 payload 정렬을 대체하며 catalog 전체 포함·index membership을 검사한다. |
+| ST-14 | 원본 계획의 before/after를 정렬 병합하고 직접 선택 집합을 일괄 생성한다. |
+| ST-15 | 각 record·누락·membership·index·interpretation 일치 뒤에만 변경 없는 Git catalog를 유지한다. |
+| ST-16 | Adoption의 proof chunk·영속 batch 사이에서 취소를 확인하고 고정 요청·영속 prefix를 보존한다. |
+| ST-17 | 인증된 Stop은 maintenance/adoption을 취소하고 drain한 뒤 종료한다. 다른 token은 취소 권한이 없다. |
+| ST-18 | Git 경로는 정렬 spool 하나를 반복·부분 cursor로 읽어 반복 정렬과 부분 정렬 잔여를 없앤다. |
+| ST-19 | Raw 객체/참조 최대 64개가 게시를 공유한다. Batch의 native source fence와 link/결과 root 이전의 backing pin intent를 유지한다. |
+| ST-20 | Payload hash는 제한된 1MiB 읽기 전후 취소를 확인하고 token을 합성 reader까지 전달한다. |
+| ST-21 | 앱 closure/companion을 일괄 생성하며 동일 항목은 합치고 다른 철자 충돌은 거부한다. |
+| ST-22 | 공유 catalog 잠금 안에서 canonical native fence를 확보하고 바이트는 밖에서 검증한다. 쓰기/삭제 차단·전체 소유/내용 proof는 유지한다. |
+| ST-23 | 제한된 hash 읽기로 Git 가용성/경로 호출을 줄이며 검사 자체나 전체 read boundary는 생략하지 않는다. EOF의 불필요한 tree 읽기도 없앤다. |
+
+Task/basis/overlay·wire 버전은 바꾸지 않았다. 새 helper는 `PayloadHash`·`FileRawRangePreparation`·`WinFspMetadataBatch`와 Core의 `IWorkspaceMetadataBatch` 경계다. Core에 OS 전용 API를 넣지 않았다. 제한된 worker마다 1MiB hash 버퍼와 raw batch당 최대 64개 source handle은 작업 단위의 제한이며 입력 총량 상한이나 전체 process 메모리 수치가 아니다.
+
+## 증거와 중단 기록
+
+기준 소스는 `artifacts/scalable-storage-throughput-20261101/before-source/`이고 `before-source.json`에 소스/설정 hash 616개를 기록했다. 같은 소스의 빌드를 위해 Unity 소스와 NuGet 설정을 별도로 복사했다. 기존 사용자 변경·결과·intent·중단 fixture는 보존한다.
+
+집중 native 검증: 최초 21개, 후속 9개 통과. 저장/소유/Stop/정렬 **32개는 5.532초**, metadata/adoption/raw basis/content **48개는 16.494초**, 반복 원본 반영·응답 유실 복구·정확한 Git reader fence·paged inspection **17개는 55.445초**에 통과했다. 느렸던 2MiB Git generation 사례는 ST-20/23 뒤 **18.556초에 통과**했다. 마지막 telemetry 수정은 **1.166초에 11개 통과·선택적 비용시험 skip 1개**다. 검증 묶음은 중복되므로 합계를 고유 전체 시험 수로 읽지 않는다. 이전 중단 시도와 과거 전체 suite의 464초는 대응 개선율 측정이 아니다.
+
+실행 문제도 보존했다. 초기 native 시험은 sandbox 기능 제한이 있었고 한 필터 조합은 시험 0개를 선택했다. 시험 두 곳은 실제 원자적 제어 파일 writer와 native 읽기 공유 검사로 고쳤다. 겹친 빌드/시험은 DLL 잠금에 걸려 이후 순차 실행했다. 지연 Git 시험은 중단하고 정확한 process 부재를 확인한 뒤 빌드했다. 제품 timeout 확대나 무결성 검사 생략으로 통과시키지 않았다.
+
+첫 실제 pilot은 새 **128항목 Git**이었다. A 준비 **27.335초**, B는 고정한 명령별 **30초**에 도달해 `Cancelled`를 반환했다. 정확한 provider 둘에 정상 Stop을 한 번씩 보내 process/mount 부재를 확인했다. `C:/Users/olive/AppData/Local/Temp/sctp-g-b1`을 보존하며 후속 단계는 실행하지 않았다. 이후 전후 입력을 모두 **32항목**으로 줄이고 명령 한도를 유지했다.
+
+## 실제 시간 비교
+
+새 원본/A/B fixture는 파일 31개·디렉터리 1개, 파일당 32바이트(논리 합계 992바이트)이며 각 쌍의 고정 basis가 일치한다. 두 후보에 같은 취소 wrapper를 사용했다. 비교별 전후 각 1회이며 ABBA·cold cache·대형 입력 증거가 아니다.
+
+| 범위 | 이전 | 이후 | 관측 절감 |
+| --- | ---: | ---: | ---: |
+| Git 공통 start/bulk/selected 단계, final 미실행 | 179.249초 | 168.960초 | 10.289초 / 5.740% |
+| None 전체 수명주기, 최종 제품 소스 | 108.520초 | 87.694초 | 20.825초 / 19.190% |
+
+None은 반복 수집·전체/선택 원본 반영·rename/delete/create·원본만의 편집 보존·A 회수 뒤 B 지속·두 작업 회수·관리 원본의 일반 NTFS 복원까지 포함한다. 앞선 이후 후보는 **104.964초**로 같은 기준보다 **3.555초 / 3.276%**만 짧았다. 마지막 변경은 선택적 telemetry 복구이며 추가 절감의 원인이라고 입증하지 않았다. 실행 순서/cache/환경 편차는 미확정이다. Git 시간은 마지막 실패 경로 poison guard·telemetry 수정 전 후보라 최종 바이너리나 전체 수명주기의 자격이 아니다. 32항목 bulk harness는 writer 1개로 실행했으며 실제 8-worker 처리량은 측정하지 않았다.
+
+Git trial driver는 처음에 **140초** 예산을 단계 진입 전에만 확인했다. 진행 중 단계가 179.249초/168.960초까지 drain된 뒤 final을 실행하지 않고 정확한 provider를 정상 종료했다. 이 예산 초과를 harness 결함으로 기록한다. 이후 None은 절대 deadline을 각 CLI 호출까지 전달한다. 첫 None 기준 시도 하나는 A release 성공 뒤 관측 reader에서 실패했다. 남은 B/관리 원본 provider를 정상 Stop 한 번씩으로 종료하고 자료/intent를 보존했다. 관측 reader는 제한된 I/O 재시도와 원자적 교체를 허용하는 공유 모드로 수정했다. 실패 시도는 완료 비교에서 제외했다.
+
+## 최종 gate와 남은 범위
+
+`pwsh ./scripts/build.ps1`의 locked restore·전체 Release 빌드는 경고/오류 0개로 끝났다. 시험 단계는 취소했으며 마지막 진행 집계는 **1,911 통과 / 1 실패 / 27 skip**으로 완료 결과가 아니다. 에이전트 문맥 압축 중 정한 **180초** 중단 시점을 놓쳤고 로그 구간은 **423.599초**(10:13:20.747–10:20:24.347 UTC)다. 실행을 재개한 즉시 Ctrl+C를 보냈고 명령 종료·관련 빌드/시험 프로세스 부재를 읽기 전용으로 확인했다. 강제 kill이나 원본/결과/intent 삭제는 없었다. 놓친 제한은 검증 실행 관리의 실패이며 정상 예상 시간이나 전체 gate 통과로 읽지 않는다.
+
+관측된 실패 1건은 선택적 mutation telemetry 회귀였다. 새 metadata queue가 `set-basic-info`/`set-file-size` 집계를 빠뜨렸다. Callback마다 대기와 공유 영속 batch 구간을 실패 시에도 기록하도록 고쳤고 영속 완료 경계는 유지했다. 전체 solution 재빌드는 경고/오류 0개로 **24.254초**에 끝났고 위 **11 통과/1 skip** 집중 재검증으로 수정 사항을 확인했다. 전체 suite는 재시작하지 않았다. 마지막 None 시간은 이 재빌드 후보를 사용했다.
+
+과거 전체 suite는 **34분 26초**, 복원 한 사례는 **19분 13초**였고 백만 항목 시험도 포함했다. 비정상 비용을 정상 개발 예상으로 삼지 않는다. 최종 검증에도 짧은 명시적 중단 경계를 유지하며 중단한 gate는 전체 통과가 아니다.
+
+[기계 판독 보고서](../../../reports/benchmarks/scalable-storage-throughput-followup-20261101.json)는 모든 시도·실패·명령 시간·Stop 영수증·집중 검증·gate 상태를 보존한다. 기준 소스/설정 **616/616**개 hash가 일치했고 최종 소스 manifest는 **626**개다. 의존성·형식·CLI schema는 추가하지 않았다. SCAL-03/07/08·17GiB/100k·실제 Plastic/Unity·OS 장애·전체 suite 자격은 미완료이며 큰 전체 속도 개선을 입증하지 않았다.
+
+`scripts/verification/ScalabilityTimedCommand.cs`는 선택한 CLI의 기존 취소 가능 진입점을 호출한다. `scalable-storage-throughput-trial.ps1`는 기존 실제 editorless 수명주기 harness를 사용하고 실패 시 소유 provider만 정상 종료하며 모든 요청/자료를 보존한다. 쓰기 process를 강제 종료하지 않는다. 실제 Plastic·Unity·100k·17GiB 성능 자격은 별도다.
+
+## ST-24–28: 구조적 후속, 2026-11-01
+
+`01a188aa-d3aa-7221-b3cf-acb7796a7579` 대화와의 진단에서 보존한 None 입력은 파일 99,990개·payload 3,199,680바이트·내용 16종임을 확인했다. 과거 쓰기/수집/계획의 49–66분 구간은 대용량 복사 벤치마크가 아니다. FIX-01 이전 캐시 퇴출/회수 사고는 이미 과거 수정이며, 이번에는 현재 소스에 남은 반복 처리를 수정했다.
+
+| ID | 구현과 유지한 경계 |
+| --- | --- |
+| ST-24 | 전체 객체 참조 묶음은 catalog 진입을 공유한다. `ExistingReferenceScope`는 고정 capture의 workspace 작업 안에서 canonical/alias native fence 쌍을 최대 64개 유지하며 성공한 소유권/내용 증명만 재사용한다. 다음 작업에서는 다시 검증한다. `FileRawRangePreparation`이 이 scope를 사용하며 채택 reader도 기존 작업 동안에만 최대 64개를 유지하고 해제한다. 유실/외부/손상 참조·길이 불일치·진행 중 복구 검사는 유지한다. |
+| ST-25 | 이미 준비된 raw 범위 묶음은 catalog reader 하나와 서로 다른 hash별 native 증명 하나를 최대 64개 공유한다. source 증명·정확한 구성원/요청 검사는 유지하며 재시도가 ready catalog를 다시 쓰지 않는다. |
+| ST-26 | Runtime의 새 `PagedMetadataBatch.cs`는 기존 키들의 탐색 경로를 합쳐 변경된 공통 상위 페이지를 한 번만 쓴다. 저널 묶음은 영속 완료 전에 같은 node의 반복 갱신을 합치며 조회는 미반영 값을 읽고 실패 시 writer를 차단한다. 명시적인 root 반환은 지연된 페이지를 flush한 뒤 수행한다. 최대 64항목·메모리 내 하강 128단계로 제한하고 삽입/더 깊은 경로는 기존 disk-spine 구현을 사용한다. 영속 root·페이지 형식·과거 reader·재생은 유지한다. |
+| ST-27 | `PagedPathInterner.Import`는 정렬한 구성요소와 기존 트리를 병합하고 충돌을 확인하며 새 이름이 없으면 재구축을 생략한다. 원본 계획/선택의 반복 import가 이전의 node별 `Build(previousRoot)` 탐색을 반복하지 않는다. |
+| ST-28 | Git의 이전 파일 catalog를 한 번 외부 정렬하여 현재 정렬 파일 목록과 병합한다. 파일별 catalog 탐색과 별도의 누락 개수 순회를 제거한다. catalog 구성원 검증과 cache record 검증도 같은 순회에서 수행한다. 전체 index/구성원/해석 검사·전후 source generation·native 경로 검사·게시 증명은 유지한다. |
+
+작은 비용 검사: **256 node / 64갱신: 페이지 쓰기 573 → 164회**로 71.4% 줄었다. 제품 저널의 동일한 **32파일 / 64변경: 추가 metadata 223,302 → 138,332바이트**로 38.1% 줄었다. 이는 호출/바이트 수이며 경과 시간 개선율이 아니다. 고정 capture scope는 **16종 내용의 576참조를 native 내용 증명 16회**로 처리했고 새 scope/작업에서는 다시 검증했다. 64행/16범위 ready raw 묶음의 유지 증명은 16회다. 64경로를 세 번 동일하게 import해도 최초 구축 1회를 유지했고 새 경로가 들어오면 다시 구축했다.
+
+최종 변경부 검사: **41통과·0실패·0skip, 7.453초**. 선택한 Git 증분/원본 게시/채택 취소 검사: **4통과, 36.427초**. Git 입력은 작은 파일 520개와 1MiB 파일이며 나머지 새 검사는 metadata 4–256행·내용 16종 또는 저널 파일 32개다. 찢어진 페이지 tail·미응답 배치 실패 후 writer 차단·같은 요청 복구·손상/외부 native 소유권·과거 root·native 핸들 해제·다음 작업의 재검증을 확인했다. 이 45개는 저장소 전체 gate가 아니다.
+
+실행 예산: 전체 40분(읽기 5·구현 25·국지 검증/문서 10), 예상의 2배 중단 기준, 개별 검사는 30–60초로 제한했다. 최초 빌드는 새 timeout 테스트의 취소 토큰 검사 누락만으로 44.12초 뒤 실패했고 보완 후 focused 빌드는 9.48초에 통과했다. 이후 solution 빌드들은 통과했으며 최종 검사 직전 빌드는 28.89초·경고/오류 0개다. 이번 후속에서 장시간 실행을 취소할 단계는 발생하지 않았다. 과거 전체 suite/대형 입력 실패 기록은 위에 유지하며, 사용자의 작은 검증 지시에 따라 `build.ps1`의 전체 suite 단계는 재실행하지 않았다.
+
+마지막 형식 정리 후 solution 재빌드는 **9.27초**, 경고/오류 0개로 통과했으며 집중 검사 이후 동작 변경은 없었다.
+
+근거: [구조적 후속 보고서](../../../reports/benchmarks/scalable-storage-structural-20261101.json)와 `artifacts/scalable-storage-structural-20261101/`에 선택한 시작 소스·초기 working tree 상태·최종 소스 hash·CTRF를 보존했다. task v4·basis v3·overlay v3·wire 계약과 프로세스 공통 metadata 캐시 32MiB는 유지한다. node당 키 하나인 형식과 개별 최초 진입은 여전히 있으며 조밀한 페이지 형식으로 전면 교체했다고 주장하지 않는다. 100k/17GiB fixture·실제 Plastic/Unity 수명주기·전체 gate·대형 전체 시간 비교는 실행하지 않았다. 따라서 과거 수십 분~수 시간 현상을 해소했는지는 **아직 입증하지 않았다**.

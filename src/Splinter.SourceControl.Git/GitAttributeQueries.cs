@@ -6,6 +6,23 @@ public sealed partial class GitWorkspaceProvider
 {
     private const int AttributeInputBytes = 256 * 1024;
 
+    // Bound both path metadata and encoded stdin, independently of project
+    // size. Match the summary protocol's per-request limit, not 256 processes
+    // worth of tiny input. Each verification pass still starts fresh children.
+    internal static IEnumerable<string[]> AttributeBatches(IEnumerable<string> paths)
+    {
+        var batch = new List<string>(); int bytes = 0;
+        foreach (string path in paths)
+        {
+            if (path.Contains('\0')) throw Error("GitUnsafePath", "A source path contains the attribute-query delimiter.");
+            int size = Encoding.UTF8.GetByteCount(path) + 1;
+            if (batch.Count != 0 && (batch.Count == 4096 || size > AttributeInputBytes - bytes))
+            { yield return batch.ToArray(); batch.Clear(); bytes = 0; }
+            batch.Add(path); bytes = checked(bytes + size);
+        }
+        if (batch.Count != 0) yield return batch.ToArray();
+    }
+
     // NUL stdin avoids argument-length limits and preserves literal filenames.
     // Keep output incremental so a repository-wide query does not accumulate
     // every attribute result in another whole-tree string.

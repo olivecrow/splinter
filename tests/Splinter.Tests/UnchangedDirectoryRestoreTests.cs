@@ -175,7 +175,7 @@ public sealed class UnchangedDirectoryRestoreTests
         using var f = new Fixture(2, true, unchangedDirectory: true);
         await Assert.ThrowsAsync<IOException>(() => f.Restore(stage => { if (stage == "directory.after-plan") throw new IOException("stop"); }));
         string path = Path.Combine(f.Root, "manifest.json"); var json = JsonNode.Parse(File.ReadAllText(path))!;
-        json["items"]![0]!["entry"]!["lastWriteTime"] = 123L; File.WriteAllText(path, json.ToJsonString());
+        json["catalog"]!["root"]!["lastWriteTime"] = 123L; File.WriteAllText(path, json.ToJsonString());
         string proofPath = Path.Combine(f.Root, "proof.json"); var proof = JsonNode.Parse(File.ReadAllText(proofPath))!;
         proof["manifestHash"] = ManagedDirectoryBasis.HashFile(path); File.WriteAllText(proofPath, proof.ToJsonString());
         await Assert.ThrowsAsync<WorkspaceException>(() => f.Restore());

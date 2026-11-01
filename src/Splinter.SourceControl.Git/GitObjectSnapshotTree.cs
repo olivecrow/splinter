@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Splinter.Core;
+using Splinter.Runtime;
 using static Splinter.SourceControl.Git.GitObjectSnapshotProvider;
 
 namespace Splinter.SourceControl.Git;
@@ -20,9 +21,8 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
     public bool SupportsConcurrentReads => true;
     private readonly Func<SnapshotObservation> health;
     private readonly WorkspacePathPolicy policy;
-    private readonly Dictionary<string, SnapshotEntry> entries;
-    private readonly Dictionary<string, string> blobs;
-    private readonly Dictionary<string, List<SnapshotEntry>> children;
+    private readonly PagedSnapshotCatalog catalog;
+    private readonly TemporaryMetadataDirectory catalogDirectory;
     private readonly object readGate = new();
     private volatile bool disposed, closing;
     private bool resetting;
@@ -47,7 +47,7 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
     internal long PayloadCacheHits { get; private set; }
     internal long PayloadCacheMisses { get; private set; }
     // The final 32 bytes retain the raw SHA256, within the same proof budget.
-    private sealed record BlobProof(string ObjectId, long Length, byte[] Chunks, bool ContainsCarriageReturn, bool ContainsNul);
+    private sealed record BlobProof(string ObjectId, long Length, GitChunkProof Chunks, bool ContainsCarriageReturn, bool ContainsNul);
     private readonly Dictionary<string, LinkedListNode<BlobProof>> proofs = new(StringComparer.Ordinal);
     private readonly LinkedList<BlobProof> proofLru = new();
     private int proofBytes;
@@ -75,10 +75,10 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
         internal bool Busy;
         internal PayloadChunk NextChunk() => Chunks[Newest = (Newest + 1) % Chunks.Length];
     }
-    private sealed class ReaderLease(ReaderSession session, byte[] proof, bool createProof)
+    private sealed class ReaderLease(ReaderSession session, GitChunkProof proof, bool createProof)
     {
         internal ReaderSession Session { get; } = session;
-        internal byte[] Proof { get; } = proof;
+        internal GitChunkProof Proof { get; } = proof;
         internal bool CreateProof { get; } = createProof;
         internal bool Published;
     }
@@ -100,7 +100,7 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
 
     internal GitObjectSnapshotTree(SnapshotReference snapshot, string tree, string revision, string reference, Func<SnapshotObservation> health,
         int proofByteLimit = MaxProofBytes, int proofEntryLimit = MaxProofEntries,
-        IReadOnlyDictionary<string, GitSourceMetadataFile>? sourceMetadata = null, int payloadByteLimit = MaxPayloadBytes,
+        GitSourceMetadataManifest? sourceMetadata = null, int payloadByteLimit = MaxPayloadBytes,
         int proofReadAheadBytes = MaxProofReadAheadBytes, bool diagnostics = false)
     {
         if (proofByteLimit is < 1 or > MaxProofBytes || proofEntryLimit is < 1 or > MaxProofEntries)
@@ -113,52 +113,78 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
         readDiagnostics = diagnostics || Environment.GetEnvironmentVariable("SPLINTER_GIT_PREPARATION_DIAGNOSTICS") == "1";
         Snapshot = snapshot; this.health = health;
         policy = WorkspacePathPolicy.For(snapshot);
-        entries = new(policy.Comparer); blobs = new(policy.Comparer); children = new(policy.Comparer);
-        var metadata = sourceMetadata is null ? null : GitSourceMetadata.ValidateFiles(sourceMetadata.Values);
+        using var metadata = sourceMetadata?.OpenCatalog();
         EnsureAvailable();
         long timestamp = snapshot.CapturedAt.UtcDateTime.ToFileTimeUtc();
-        Add(new("", true, 0, (uint)FileAttributes.Directory, timestamp, timestamp, timestamp));
         VerifyObject(snapshot.RootPath, tree, "tree");
-        string listing = Command(snapshot.RootPath, ["ls-tree", "-r", "-t", "-l", "-z", tree], CancellationToken.None,
-            failureCode: "GitBasisObjectInvalid").GetAwaiter().GetResult();
-        var subtrees = new HashSet<string>(StringComparer.Ordinal);
-        foreach (string line in listing.Split('\0', StringSplitOptions.RemoveEmptyEntries))
+        catalogDirectory = new();
+        try
         {
-            int tab = line.IndexOf('\t');
-            if (tab < 0) throw Failure("GitBasisUnsupported", "Invalid project tree entry.");
-            string[] fields = line[..tab].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            string path = line[(tab + 1)..];
-            if (fields.Length == 4 && fields[0] == "040000" && fields[1] == "tree" && fields[3] == "-")
-            {
-                RequireObjectId(fields[2]); ValidateRecordedPath(path); subtrees.Add(fields[2]);
-                EnsureParents(path, timestamp);
-                Add(new(path, true, 0, (uint)FileAttributes.Directory, timestamp, timestamp, timestamp));
-                continue;
-            }
-            if (fields.Length != 4 || fields[0] is not ("100644" or "100755") || fields[1] != "blob" ||
-                !long.TryParse(fields[3], NumberStyles.None, CultureInfo.InvariantCulture, out long length) || length < 0)
-                throw Failure("GitBasisUnsupported", "Only regular committed files are supported; no symlink/submodule fallback.");
-            RequireObjectId(fields[2]); ValidateRecordedPath(path);
-            EnsureParents(path, timestamp);
-            long creation = timestamp, access = timestamp, write = timestamp;
-            if (metadata is not null && metadata.TryGetValue(path, out var original) &&
-                original.Path == path && original.ObjectId == fields[2] && original.Length == length)
-            { creation = original.CreationTime; access = original.LastAccessTime; write = original.LastWriteTime; }
-            Add(new(path, false, length, (uint)FileAttributes.Archive, creation, access, write,
-                fields[0] == "100755" ? 0x1EDu : 0x1A4u));
-            blobs.Add(path, fields[2]);
+            var descriptor = PagedSnapshotCatalog.Build(catalogDirectory.Path,
+                new("", true, 0, (uint)FileAttributes.Directory, timestamp, timestamp, timestamp), Records(), policy.CaseSensitive);
+            catalog = new(catalogDirectory.Path, descriptor);
+            try { VerifySubtrees(snapshot.RootPath, catalog.Walk().Where(e => e.Entry.Directory && e.SourceReference is not null).Select(e => e.SourceReference!)); }
+            catch { catalog.Dispose(); throw; }
         }
-        VerifySubtrees(snapshot.RootPath, subtrees);
+        catch
+        {
+            // A failed build may retain damaged scratch runs for diagnosis.
+            // They never become a project/result root or a source fallback.
+            try { catalogDirectory.Dispose(); } catch (IOException) { }
+            throw;
+        }
+        IEnumerable<DirectoryMetadataRecord> Records()
+        {
+            foreach (string line in EnumerateListing(snapshot.RootPath, tree))
+            {
+                int tab = line.IndexOf('\t');
+                if (tab < 0) throw Failure("GitBasisUnsupported", "Invalid project tree entry.");
+                string[] fields = line[..tab].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                string path = line[(tab + 1)..];
+                if (fields.Length == 4 && fields[0] == "040000" && fields[1] == "tree" && fields[3] == "-")
+                {
+                    RequireObjectId(fields[2]); ValidateRecordedPath(path);
+                    yield return new(new(path, true, 0, (uint)FileAttributes.Directory, timestamp, timestamp, timestamp), null, SourceReference: fields[2]);
+                    continue;
+                }
+                if (fields.Length != 4 || fields[0] is not ("100644" or "100755") || fields[1] != "blob" ||
+                    !long.TryParse(fields[3], NumberStyles.None, CultureInfo.InvariantCulture, out long length) || length < 0)
+                    throw Failure("GitBasisUnsupported", "Only regular committed files are supported; no symlink/submodule fallback.");
+                RequireObjectId(fields[2]); ValidateRecordedPath(path);
+                long creation = timestamp, access = timestamp, write = timestamp;
+                var original = metadata?.Find(path);
+                if (original is not null && original.Entry.Path == path && original.SourceReference == fields[2] && original.Entry.Length == length)
+                { creation = original.Entry.CreationTime; access = original.Entry.LastAccessTime; write = original.Entry.LastWriteTime; }
+                yield return new(new(path, false, length, (uint)FileAttributes.Archive, creation, access, write,
+                    fields[0] == "100755" ? 0x1EDu : 0x1A4u), null, SourceReference: fields[2]);
+            }
+        }
         // metadata listing uses the fixed tree, never the branch or mutable index.
         _ = revision; _ = reference;
     }
-    private void EnsureParents(string path, long timestamp)
+    internal static IEnumerable<string> EnumerateListing(string common, string tree)
     {
-        string parent = Parent(path); var parents = new Stack<string>();
-        while (!entries.ContainsKey(parent)) { parents.Push(parent); parent = Parent(parent); }
-        if (!entries[parent].Directory || entries[parent].Path != parent)
-            throw Failure("GitBasisUnsupported", "A file or case alias shadows a directory.");
-        while (parents.TryPop(out string? directory)) Add(new(directory, true, 0, (uint)FileAttributes.Directory, timestamp, timestamp, timestamp));
+        using var process = Process.Start(StartInfo(common, ["ls-tree", "-r", "-t", "-l", "-z", tree])) ?? throw Failure("GitBasisUnavailable", "Git did not start.");
+        var error = process.StandardError.ReadToEndAsync(); process.StandardInput.Close();
+        using var output = ProgressOutput(process);
+        using var reader = new StreamReader(output, new UTF8Encoding(false, true), false, 65536, leaveOpen: true);
+        var record = new StringBuilder(); char[] buffer = new char[4096];
+        try
+        {
+            for (int n; (n = reader.Read(buffer)) != 0;)
+                for (int i = 0; i < n; i++)
+                    if (buffer[i] == '\0') { if (record.Length == 0) throw Failure("GitBasisUnsupported", "An empty tree record is invalid."); yield return record.ToString(); record.Clear(); }
+                    else
+                    {
+                        if (record.Length >= 32767 + 1024) throw Failure("GitBasisUnsupported", "A Git tree record exceeds the supported filesystem path and protocol header bounds.");
+                        record.Append(buffer[i]);
+                    }
+            if (record.Length != 0) throw Failure("GitBasisObjectInvalid", "The fixed tree listing is incomplete.");
+            if (!process.WaitForExit(1000)) { process.Kill(entireProcessTree: true); process.WaitForExit(); }
+            _ = error.GetAwaiter().GetResult();
+            if (process.ExitCode != 0) throw Failure("GitBasisObjectInvalid", "The fixed tree listing failed.");
+        }
+        finally { if (!process.HasExited) { process.Kill(entireProcessTree: true); process.WaitForExit(); } }
     }
     internal static void VerifyObject(string common, string objectId, string type)
     {
@@ -190,9 +216,8 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
         if (observed.Id != Snapshot.Id || observed.Available != true)
             throw Failure(observed.FailureCode ?? "SnapshotObservationUnknown", "Preserve this task's immutable object basis.");
     }
-    private static void VerifySubtrees(string common, IReadOnlyCollection<string> objects)
+    private static void VerifySubtrees(string common, IEnumerable<string> objects)
     {
-        if (objects.Count == 0) return;
         using var process = Process.Start(StartInfo(common, ["cat-file", "--batch"])) ?? throw Failure("GitBasisUnavailable", "Git did not start.");
         var error = process.StandardError.ReadToEndAsync();
         using var output = ProgressOutput(process);
@@ -229,14 +254,13 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
         }
     }
     public SnapshotEntry? Stat(string relativePath)
-    { EnsureAvailable(); return entries.GetValueOrDefault(Normalize(relativePath)); }
+    { EnsureAvailable(); return catalog.Find(Normalize(relativePath))?.Entry; }
     public IReadOnlyList<SnapshotEntry> List(string relativeDirectory)
     {
-        EnsureAvailable(); string path = Normalize(relativeDirectory);
-        if (!entries.TryGetValue(path, out var entry)) throw new DirectoryNotFoundException(path);
-        if (!entry.Directory) throw new IOException("Not a directory.");
-        return children[path].ToArray();
+        return EnumerateChildren(relativeDirectory).ToArray();
     }
+    public IEnumerable<SnapshotEntry> EnumerateChildren(string relativeDirectory)
+    { EnsureAvailable(); return catalog.EnumerateChildren(Normalize(relativeDirectory)).Select(e => e.Entry); }
     public SnapshotContentSummary? GetVerifiedContentSummary(string relativePath)
     {
         lock (readGate)
@@ -244,10 +268,11 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
             EnsureAvailable();
             if (resetting) throw Failure("GitBasisObjectInvalid", "The owned reader generation is being invalidated.");
             string path = Normalize(relativePath);
-            if (!blobs.TryGetValue(path, out string? objectId) || !proofs.TryGetValue(objectId, out var proof)) return null;
-            if (proof.Value.Length != entries[path].Length)
+            var item = catalog.Find(path);
+            if (item is null || item.Entry.Directory || item.SourceReference is not { } objectId || !proofs.TryGetValue(objectId, out var proof)) return null;
+            if (proof.Value.Length != item.Entry.Length)
                 throw Failure("GitBasisObjectInvalid", "The fixed blob proof length changed.");
-            return new(path, proof.Value.Length, Convert.ToHexStringLower(proof.Value.Chunks.AsSpan(^32)),
+            return new(path, proof.Value.Length, Convert.ToHexStringLower(proof.Value.Chunks.ReadRawHash()),
                 proof.Value.ContainsCarriageReturn, proof.Value.ContainsNul);
         }
     }
@@ -255,8 +280,9 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
     {
         EnsureAvailable(); string path = Normalize(relativePath);
         if (offset < 0 || destination.Length > 1024 * 1024) throw new ArgumentOutOfRangeException(nameof(offset));
-        if (!blobs.TryGetValue(path, out string? objectId)) throw new FileNotFoundException(path);
-        long length = entries[path].Length;
+        var item = catalog.Find(path);
+        if (item is null || item.Entry.Directory || item.SourceReference is not { } objectId) throw new FileNotFoundException(path);
+        long length = item.Entry.Length;
         int count = offset >= length ? 0 : (int)Math.Min(destination.Length, length - offset);
         if (count == 0) return 0;
         if (readDiagnostics)
@@ -281,6 +307,7 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
                 hash.AppendData(Encoding.ASCII.GetBytes("blob " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
                 long readAheadStart = offset / ChunkBytes * ChunkBytes;
                 long readAheadEnd = readAheadStart + this.proofReadAheadBytes;
+                Span<byte> chunkDigest = stackalloc byte[32];
                 for (long position = 0; position < length;)
                 {
                     var chunk = session.NextChunk();
@@ -291,7 +318,7 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
                     rawHash.AppendData(chunk.Bytes.AsSpan(0, n));
                     if (!hasCr) hasCr = chunk.Bytes.AsSpan(0, n).Contains((byte)'\r');
                     if (!hasNul) hasNul = chunk.Bytes.AsSpan(0, n).Contains((byte)0);
-                    SHA256.HashData(chunk.Bytes.AsSpan(0, n), lease.Proof.AsSpan((int)(position / ChunkBytes) * 32, 32));
+                    SHA256.HashData(chunk.Bytes.AsSpan(0, n), chunkDigest); lease.Proof.Write(position / ChunkBytes * 32, chunkDigest);
                     long begin = Math.Max(position, offset), end = Math.Min(position + n, offset + count);
                     chunk.Offset = position; chunk.Length = n;
                     if (end > begin)
@@ -311,7 +338,8 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
                 }
                 if (output.ReadByte() != '\n' || Convert.ToHexStringLower(hash.GetHashAndReset()) != objectId)
                     throw Failure("GitBasisObjectInvalid", "The recorded blob hash failed; no requested bytes are published.");
-                rawHash.GetHashAndReset(lease.Proof.AsSpan(^32));
+                Span<byte> rawDigest = stackalloc byte[32]; rawHash.GetHashAndReset(rawDigest);
+                lease.Proof.WriteRawHash(rawDigest); lease.Proof.Flush();
                 session.Streaming = false; session.Position = length;
             }
             else
@@ -384,10 +412,10 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
                     return new(session, cached.Value.Chunks, false);
                 }
                 long proofLength = ((length - 1) / ChunkBytes + 1) * 32 + 32;
-                if (proofLength > proofByteLimit) throw Failure("GitBasisUnsupported", "A recorded blob exceeds the bounded chunk-proof limit.");
+                int proofCharge = proofLength <= proofByteLimit ? (int)proofLength : Math.Min(256, proofByteLimit);
                 // Active leases pin their proofs. Both reservations count before
                 // allocation; waiting callers allocate neither proofs nor readers.
-                if (proofBytes + proofLength > proofByteLimit || proofs.Count + pendingProofs >= proofEntryLimit)
+                if (proofBytes + proofCharge > proofByteLimit || proofs.Count + pendingProofs >= proofEntryLimit)
                 {
                     var oldest = proofLru.First;
                     while (oldest is not null && sessions.TryGetValue(oldest.Value.ObjectId, out var owner) && owner.Value.Busy)
@@ -395,13 +423,13 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
                     if (oldest is null) { WaitForReader(); continue; }
                     RemoveSession(oldest.Value.ObjectId);
                     RemovePayload(oldest.Value.ObjectId);
-                    proofBytes -= oldest.Value.Chunks.Length;
+                    proofBytes -= oldest.Value.Chunks.Charge; oldest.Value.Chunks.Dispose();
                     proofs.Remove(oldest.Value.ObjectId); proofLru.Remove(oldest);
                     continue;
                 }
                 var selected = GetSession(objectId);
-                byte[] proof = new byte[(int)proofLength];
-                proofBytes += proof.Length; pendingProofs++;
+                var proof = new GitChunkProof(proofLength, proofByteLimit);
+                proofBytes += proof.Charge; pendingProofs++;
                 PeakProofBytes = Math.Max(PeakProofBytes, proofBytes);
                 selected.Busy = true; activeReads++;
                 return new(selected, proof, true);
@@ -428,8 +456,10 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
                     pendingProofs--;
                     if (!lease.Published)
                     {
-                        proofBytes -= lease.Proof.Length;
-                        RemovePayload(lease.Session.ObjectId);
+                        proofBytes -= lease.Proof.Charge;
+                        try { lease.Proof.Dispose(); }
+                        catch (IOException) { resetting = true; }
+                        finally { RemovePayload(lease.Session.ObjectId); }
                     }
                 }
             }
@@ -503,7 +533,7 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
         ReadObserver?.Invoke(session.ObjectId, "header");
         return output;
     }
-    private PayloadChunk LoadProvedChunk(ReaderSession session, long length, byte[] proof, long at)
+    private PayloadChunk LoadProvedChunk(ReaderSession session, long length, GitChunkProof proof, long at)
     {
         foreach (var retained in session.Chunks)
             if (at >= retained.Offset && at < retained.Offset + retained.Length) return retained;
@@ -519,7 +549,7 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
             output.ReadExactly(chunk.Bytes.AsSpan(0, n)); Interlocked.Add(ref decodedBlobBytes, n);
             if (readDiagnostics) Interlocked.Add(ref provedReadDecodedBytes, n);
             SHA256.HashData(chunk.Bytes.AsSpan(0, n), digest);
-            if (!digest.SequenceEqual(proof.AsSpan((int)(session.Position / ChunkBytes) * 32, 32))) throw Failure("GitBasisObjectInvalid", "The requested chunk does not match the fully verified fixed blob; no bytes are published.");
+            if (!proof.Matches(session.Position / ChunkBytes * 32, digest)) throw Failure("GitBasisObjectInvalid", "The requested chunk does not match the fully verified fixed blob; no bytes are published.");
             chunk.Offset = session.Position; chunk.Length = n; session.Position += n;
         } while (at >= session.Position);
         if (session.Position == length)
@@ -530,7 +560,7 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
         RememberChunk(session.ObjectId, length, chunk);
         return chunk;
     }
-    private bool TryLoadCachedChunk(ReaderSession session, long length, byte[] proof, long at, out PayloadChunk? result)
+    private bool TryLoadCachedChunk(ReaderSession session, long length, GitChunkProof proof, long at, out PayloadChunk? result)
     {
         if (payloadByteLimit == 0) { result = null; return false; }
         lock (readGate)
@@ -542,7 +572,7 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
             Span<byte> digest = stackalloc byte[32];
             SHA256.HashData(cached.Bytes, digest);
             if (cached.BlobLength != length || cached.Bytes.Length != Math.Min(ChunkBytes, length - offset) ||
-                !digest.SequenceEqual(proof.AsSpan((int)(offset / ChunkBytes) * 32, 32)))
+                !proof.Matches(offset / ChunkBytes * 32, digest))
                 throw Failure("GitBasisObjectInvalid", "The retained chunk does not match the fixed blob proof; no bytes are published.");
             payloadLru.Remove(node); payloadLru.AddLast(node);
             // Copy into the leased window before unlocking. Concurrent LRU
@@ -605,6 +635,9 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
         }
         finally
         {
+            foreach (var proof in proofs.Values)
+                try { proof.Value.Chunks.Dispose(); }
+                catch (Exception ex) when (ex is IOException or InvalidOperationException) { failure ??= ex; }
             sessions.Clear(); sessionLru.Clear(); proofs.Clear(); proofLru.Clear(); proofBytes = 0;
             payloads.Clear(); payloadOffsets.Clear(); payloadLru.Clear(); payloadBytes = 0;
         }
@@ -644,13 +677,6 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
         int expectedCount = Encoding.ASCII.GetBytes(expected, expectedBytes);
         if (!header[..read].SequenceEqual(expectedBytes[..expectedCount]))
             throw Failure("GitBasisObjectInvalid", "The fixed blob is missing or its header changed.");
-    }
-    private void Add(SnapshotEntry entry)
-    {
-        if (entries.Count >= 1000000 || !entries.TryAdd(entry.Path, entry))
-            throw Failure("GitBasisUnsupported", "Project paths collide or exceed the metadata limit.");
-        if (entry.Directory) children.Add(entry.Path, []);
-        if (entry.Path.Length != 0) children[Parent(entry.Path)].Add(entry);
     }
     private static string Parent(string path) => path.Contains('/') ? path[..path.LastIndexOf('/')] : "";
     private string Normalize(string path)
@@ -714,7 +740,11 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
             closing = true; Monitor.PulseAll(readGate);
             while (activeReads != 0) Monitor.Wait(readGate);
             try { ResetProof(); }
-            finally { disposed = true; Monitor.PulseAll(readGate); }
+            finally
+            {
+                try { catalog.Dispose(); catalogDirectory.Dispose(); }
+                finally { disposed = true; Monitor.PulseAll(readGate); }
+            }
         }
     }
 }

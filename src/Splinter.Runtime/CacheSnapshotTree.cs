@@ -28,6 +28,7 @@ public sealed class CacheSnapshotTree : ISnapshotTree
 
     private bool Includes(string path) => path.Length == 0 || roots.Contains(path.Split('/')[0]);
     public void EnsureAvailable() => basis.EnsureAvailable();
+    public void VerifyReadBoundary() => basis.VerifyReadBoundary();
     public SnapshotEntry? Stat(string path)
     {
         path = policy.Normalize(path); EnsureAvailable();
@@ -38,6 +39,12 @@ public sealed class CacheSnapshotTree : ISnapshotTree
         path = policy.Normalize(path); EnsureAvailable();
         if (!Includes(path)) throw new DirectoryNotFoundException(path);
         return basis.List(path).Where(e => Includes(policy.Normalize(e.Path))).ToArray();
+    }
+    public IEnumerable<SnapshotEntry> EnumerateChildren(string path)
+    {
+        path = policy.Normalize(path); EnsureAvailable();
+        if (!Includes(path)) throw new DirectoryNotFoundException(path);
+        return basis.EnumerateChildren(path).Where(entry => Includes(policy.Normalize(entry.Path)));
     }
     public int Read(string path, long offset, Span<byte> destination)
     {

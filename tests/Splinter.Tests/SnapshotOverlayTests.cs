@@ -16,18 +16,21 @@ public sealed partial class SnapshotOverlayTests
     {
         using var d = new TestDirectory(); var tree = new FakeSnapshotTree();
         tree.Files["dir/code.cs"] = [1, 2]; tree.Files["Library/cache"] = [3];
-        SourceChangeView beforeReplay;
+        SourceChangeTestHeader beforeReplay;
         using (var store = New(d, tree))
         {
-            Assert.Equal(0, store.ObserveChanges(["Library"]).Sequence);
+            using var observedChanges1 = store.ObserveChanges(["Library"]);
+            Assert.Equal(0, observedChanges1.Sequence);
             var root = store.Stat("")!;
             store.SetMetadata(root.Id, root.Attributes, root.CreationTime, root.LastAccessTime, root.LastWriteTime + 1);
-            Assert.Equal(0, store.ObserveChanges(["Library"]).Sequence);
+            using var observedChanges2 = store.ObserveChanges(["Library"]);
+            Assert.Equal(0, observedChanges2.Sequence);
             store.Write(store.Stat("Library/cache")!.Id, 0, new byte[] { 4 });
-            Assert.Equal(0, store.ObserveChanges(["Library"]).Sequence);
+            using var observedChanges3 = store.ObserveChanges(["Library"]);
+            Assert.Equal(0, observedChanges3.Sequence);
             store.Write(store.Stat("dir/code.cs")!.Id, 0, new byte[] { 5 });
             store.Rename(store.Stat("dir")!.Id, "moved", false);
-            beforeReplay = store.ObserveChanges(["Library"]);
+            using (var observedChangeHeader = store.ObserveChanges(["Library"])) beforeReplay = SourceChangeTestHeaders.Detach(observedChangeHeader);
             Assert.Equal(4, beforeReplay.Sequence);
             Assert.Contains(beforeReplay.Changes, p => p.Path == "dir");
             Assert.Contains(beforeReplay.Changes, p => p.Path == "moved");
@@ -37,7 +40,7 @@ public sealed partial class SnapshotOverlayTests
             Assert.Equal(0, metrics.BaseReadBytes); Assert.Equal(0, metrics.ReplayBytes);
         }
         using var resumed = New(d, tree);
-        var current = resumed.ObserveChanges(["Library"]);
+        using var current = resumed.ObserveChanges(["Library"]);
         Assert.NotEqual(beforeReplay.Epoch, current.Epoch);
         Assert.Equal(beforeReplay.Sequence, current.Sequence); Assert.Equal(beforeReplay.Changes, current.Changes);
         Assert.True(resumed.Observe().Metrics!.ReplayBytes > 0);
@@ -250,7 +253,7 @@ public sealed partial class SnapshotOverlayTests
         tree.Files["large"] = new byte[16 * 1024 * 1024]; tree.Files["large.meta"] = [1, 2, 3];
         var identity = new OverlayIdentity(2, "test", tree.Snapshot, 100 * 1024 * 1024, 1024 * 1024);
         string delta = Path.Combine(d.Path, "delta");
-        SourceChangeView changes;
+        SourceChangeTestHeader changes;
         using (var store = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
             Guid id = store.Stat("large")!.Id;
@@ -266,7 +269,7 @@ public sealed partial class SnapshotOverlayTests
             store.SetLength(id, 4 * 1024 * 1024);
             store.SetLength(id, 16 * 1024 * 1024);
             store.Write(store.Stat("large.meta")!.Id, 0, [7]);
-            changes = store.ObserveChanges([]);
+            using (var observedChangeHeader = store.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader);
         }
         long beforeAllocated = AllocatedBytes(Path.Combine(delta, "delta.journal"));
         var receipt = JournalDeltaStore.CompactDirectory(delta, identity, tree);
@@ -276,8 +279,10 @@ public sealed partial class SnapshotOverlayTests
         Assert.True(receipt.After.JournalBytes < receipt.Before.JournalBytes / 4);
         using (var resumed = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
         {
-            Assert.Equal(changes.Sequence, resumed.ObserveChanges([]).Sequence);
-            Assert.Equal(changes.Changes, resumed.ObserveChanges([]).Changes);
+            using var observedChanges4 = resumed.ObserveChanges([]);
+            Assert.Equal(changes.Sequence, observedChanges4.Sequence);
+            using var observedChanges5 = resumed.ObserveChanges([]);
+            Assert.Equal(changes.Changes, observedChanges5.Changes);
             byte[] start = new byte[1], tail = new byte[1];
             Guid id = resumed.Stat("large")!.Id;
             for (int part = 0; part < 4; part++)

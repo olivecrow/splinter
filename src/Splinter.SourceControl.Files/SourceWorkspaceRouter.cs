@@ -5,8 +5,17 @@ namespace Splinter.SourceControl.Files;
 // Selection is durable. An adapter failure is propagated, never reinterpreted
 // as a request for another source mode.
 public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWorkspaceProvider files, ISourceWorkspaceProvider? plastic = null) :
-    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISnapshotCheckpointSourceProvider, ISourceInspectionProofProvider, IWorkspaceGenerationSource, IWorkspaceGenerationBranchSource
+    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISnapshotCheckpointSourceProvider, ISourceInspectionProofProvider, IWorkspaceGenerationSource, IWorkspaceGenerationBranchSource, IRetainedResultMaintenance, IWorkspaceMetadataMaintenance
 {
+    public bool SupportsMetadataMaintenance => files.SupportsMetadataMaintenance;
+    public Task<WorkspaceMaintenanceResult> MaintainMetadataAsync(WorkspaceRecord w, string control, string requestKey, string scope = "all", CancellationToken ct = default)
+        => files.MaintainMetadataAsync(w, control, requestKey, scope, ct);
+    public WorkspaceMaintenanceResult? ObserveMetadataMaintenance(WorkspaceRecord w, string control) => files.ObserveMetadataMaintenance(w, control);
+    public Task<WorkspaceMaintenanceResult?> MaintainMetadataIfNeededAsync(WorkspaceRecord w, string control, string requestKey, CancellationToken ct = default)
+        => files.MaintainMetadataIfNeededAsync(w, control, requestKey, ct);
+    public void RequireMetadataMaintenanceComplete(WorkspaceRecord w, string control) => files.RequireMetadataMaintenanceComplete(w, control);
+    public Task MaintainRetainedResultsAsync(WorkspaceRecord w, string control, CancellationToken ct = default) =>
+        w.SourceKind == "plastic" && plastic is IRetainedResultMaintenance maintenance ? maintenance.MaintainRetainedResultsAsync(w, control, ct) : files.MaintainRetainedResultsAsync(w, control, ct);
     private ISourceWorkspaceProvider For(WorkspaceRecord w) => w.SourceKind switch
     { "git" => git, "none" => files, "plastic" when plastic is not null => plastic, _ => throw new WorkspaceException("SourceSelectionUnsupported", "Unknown or unavailable durable source kind.") };
     private ISnapshotSourceWorkspaceProvider Snapshot(WorkspaceRecord w) => (ISnapshotSourceWorkspaceProvider)For(w);
@@ -19,9 +28,12 @@ public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWork
             : files.PreserveGenerationAsync(w, control, intent, capture, tree, ct);
     public Task VerifyGenerationAsync(WorkspaceRecord w, string control, WorkspaceResultGeneration generation, CancellationToken ct = default) =>
         files.VerifyGenerationAsync(w, control, generation, ct);
-    public Task<IntegrationResult> IntegrateGenerationAsync(WorkspaceRecord w, WorkspaceResultGeneration generation, string target, CancellationToken ct = default) =>
-        git is IWorkspaceGenerationBranchSource provider && w.SourceKind == "git" ? provider.IntegrateGenerationAsync(w, generation, target, ct)
-            : throw new WorkspaceException("SourceIntegrationUnsupported", "The selected source has no explicit Git branch integration.");
+    public async Task<IntegrationResult> IntegrateGenerationAsync(WorkspaceRecord w, WorkspaceResultGeneration generation, string target, CancellationToken ct = default)
+    {
+        if (git is not IWorkspaceGenerationBranchSource provider || w.SourceKind != "git")
+            throw new WorkspaceException("SourceIntegrationUnsupported", "The selected source has no explicit Git branch integration.");
+        return await provider.IntegrateGenerationAsync(w, await files.MaterializeGitGenerationAsync(w, generation, ct), target, ct);
+    }
     public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => git.ResolveRevisionAsync(p, r, ct);
     public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => For(w).CreateAsync(w, ct);
     public Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default) =>
@@ -49,7 +61,11 @@ public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWork
     public Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Snapshot(w).PreserveAsync(w, c, ct);
     public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default) =>
         w.Results.Count > 0 ? files.VerifyGenerationAsync(w, c, w.Results.Last(), ct) : Snapshot(w).VerifyResultAsync(w, c, ct);
-    public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Snapshot(w).UnregisterAsync(w, c, ct);
+    public async Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+    {
+        if (w.SourceKind == "git" && w.Results.Count > 0) await files.VerifyGenerationAsync(w, c, w.Results.Last(), ct);
+        await Snapshot(w).UnregisterAsync(w, c, ct);
+    }
     public Task<string> ObserveDiscardRevisionAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Discard(w).ObserveDiscardRevisionAsync(w, c, ct);
     public Task DiscardSourceAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Discard(w).DiscardSourceAsync(w, c, ct);
     public Task VerifyDiscardedAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Discard(w).VerifyDiscardedAsync(w, c, ct);

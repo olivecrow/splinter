@@ -28,10 +28,10 @@ public sealed class JournalMetadataStorageTests
             AppendLiteral(output, 4, "metadata", entry, [], explicitDefaults);
             AppendLiteral(output, 5, "rename", entry, [], explicitDefaults, destination: "target", replace: true);
         }
-        byte[] original = File.ReadAllBytes(journal); SourceChangeView changes;
+        byte[] original = File.ReadAllBytes(journal); SourceChangeTestHeader changes;
         using (var reader = JournalDeltaStore.OpenReadOnly(root.Path, identity, tree))
         {
-            changes = reader.ObserveChanges([]);
+            using (var observedChangeHeader = reader.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader);
             AssertState(reader, entry with { Path = "target" });
         }
         Assert.Equal(original, File.ReadAllBytes(journal)); // Opening never rewrites saved current frames.
@@ -47,7 +47,8 @@ public sealed class JournalMetadataStorageTests
         using (var reader = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false))
         {
             AssertState(reader, entry with { Path = "target" });
-            Assert.Equal(changes.Changes, reader.ObserveChanges([]).Changes);
+            using var observedChanges1 = reader.ObserveChanges([]);
+            Assert.Equal(changes.Changes, observedChanges1.Changes);
         }
         AssertReducedFrames(journal);
         JournalDeltaStore.CompleteCompaction(root.Path, identity);

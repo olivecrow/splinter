@@ -96,6 +96,7 @@ public sealed class GitSnapshotReadScope : ISnapshotTree, ISnapshotContentSummar
     public void VerifyReadBoundary() => verify();
     public SnapshotEntry? Stat(string path) => tree.Stat(path);
     public IReadOnlyList<SnapshotEntry> List(string path) => tree.List(path);
+    public IEnumerable<SnapshotEntry> EnumerateChildren(string path) => tree.EnumerateChildren(path);
     public int Read(string path, long offset, Span<byte> destination) => tree.Read(path, offset, destination);
     public SnapshotContentSummary? GetVerifiedContentSummary(string path) => tree.GetVerifiedContentSummary(path);
     public GitReadObservation? ObserveReads() => tree.ObserveReads();

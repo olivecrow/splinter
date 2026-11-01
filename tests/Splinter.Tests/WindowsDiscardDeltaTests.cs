@@ -17,6 +17,7 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
     [InlineData("complete", "bounded")][InlineData("journal-removed", "bounded")][InlineData("directory-removed", "bounded")]
     [InlineData("unknown-file", "bounded")][InlineData("changed-journal", "bounded")][InlineData("unknown-resources", "bounded")]
     [InlineData("intent-flushed", "bounded")][InlineData("guard-removed", "bounded")]
+    [InlineData("prior-overlay", "append")]
     public async Task WindowsDiscardDeletesOnlySealedOwnedDeltaAndResumesPartialRemoval(string variant, string mode)
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
@@ -24,14 +25,18 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         string control = store.ControlPath(w.Id), delta = Path.Combine(control, "delta");
         await f.Backend.UnmountAsync(w, control, ct);
         Directory.CreateDirectory(delta);
-        var identity = new OverlayIdentity(2, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024, [".git"]);
-        var tree = new SnapshotOverlayTests.FakeSnapshotTree { Snapshot = w.Snapshot.Reference! };
+        bool priorOverlay = variant == "prior-overlay";
+        var identity = priorOverlay ? new OverlayIdentity(2, w.Id, w.Snapshot!.Reference!, w.Snapshot.MaxJournalBytes, 1024 * 1024, [".git"])
+            : NtfsSnapshotWorkspaceBackend.Identity(w);
+        var tree = new SnapshotOverlayTests.FakeSnapshotTree { Snapshot = w.Snapshot!.Reference! };
         SnapshotDeltaSeal seal;
         bool optimized = mode == "latest";
-        using (var journal = new JournalDeltaStore(delta, identity, tree, optimizeJournal: optimized, boundedLogBytes: mode == "bounded" ? 8192 : null))
+        using (var journal = new JournalDeltaStore(delta, identity, tree, optimizeJournal: optimized, boundedLogBytes: mode == "bounded" ? 8192 : null,
+            sourceFilePins: priorOverlay ? null : new WindowsJournalFilePins()))
         {
             var file = journal.Create("file.txt", false, 32); journal.Write(file.Id, 0, "failed-task"u8);
-            Assert.Equal(optimized, journal.JournalOptimizationEnabled); seal = journal.Seal();
+            Assert.False(journal.JournalOptimizationEnabled);
+            Assert.Equal(priorOverlay ? "append" : "segmented", journal.JournalStorageMode); seal = journal.Seal();
         }
         w.Phase = "discarding"; w.Snapshot!.Step = "discard-delta";
         w.Discard = new() { Step = "delta", Seal = seal, Intent = new(1, w.Id, "discard", w.RequestDigest!, w.ProjectPath,
@@ -52,7 +57,12 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         if (variant == "changed-journal") await File.WriteAllBytesAsync(Path.Combine(delta, "delta.journal"), [4, 3, 2, 1], ct);
         if (variant == "unknown-resources") f.Backend.UnknownResources = true;
         var adapter = new WindowsWorkspaceDiscardProvider(new GitWorkspaceProvider(), f.Backend);
-        string reclamationReceipt = Path.Combine(control, "discard-delta-reclaim.json") + (mode == "append" ? "" : "." + mode);
+        if (priorOverlay)
+        {
+            Assert.Equal("OverlayIdentityMismatch", (await Assert.ThrowsAsync<WorkspaceException>(() => adapter.DiscardDeltaAsync(w, control, ct))).Code);
+            Assert.True(File.Exists(Path.Combine(delta, "delta.journal"))); Assert.True(File.Exists(Path.Combine(delta, "identity.json"))); return;
+        }
+        string reclamationReceipt = Path.Combine(control, "discard-delta-reclaim.json") + ".bounded.segmented";
         if (variant is "unknown-file" or "changed-journal" or "unknown-resources")
         {
             await Assert.ThrowsAsync<WorkspaceException>(() => adapter.DiscardDeltaAsync(w, control, ct));

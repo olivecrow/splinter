@@ -235,7 +235,7 @@ public sealed class UnityStartupCaptureTests
             Put(Path.Combine(Root, "Library", "Bee", "artifacts", "assembly.dll"), "unselected");
             WriteWorkspace();
             string overlay = Path.Combine(Control, "overlay");
-            PutJson(Path.Combine(overlay, "request.json"), new { identity = new { version = 2, id = Id, snapshot = new { id = "basis" } }, mountPath = Root, controlPath = overlay, token = "provider-secret" });
+            PutJson(Path.Combine(overlay, "request.json"), new { identity = new { version = 3, id = Id, snapshot = new { id = "basis" } }, mountPath = Root, controlPath = overlay, token = "provider-secret" });
             PutJson(Path.Combine(overlay, "state.json"), new { version = 1, id = Id, snapshotId = "basis", phase = "mounted", mountPath = Root,
                 token = "provider-secret", processId = 11, processStartTimeUtcTicks = 111L, observedAt = DateTimeOffset.UtcNow,
                 storage = new { metrics = new { epoch = "provider-generation", flushCount = 3, stopwatchFrequency = 10000000 } },

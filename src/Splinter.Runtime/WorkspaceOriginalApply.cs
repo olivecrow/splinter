@@ -29,6 +29,7 @@ public sealed partial class WorkspaceCoordinator
     {
         using var gate = await store.LockAsync(id, ct);
         var w = store.Get(id);
+        RequireMetadataMaintenanceComplete(w);
         var view = await RequireOriginalResult(w, ct);
         using var projectGate = await store.LockAsync(WorkspaceStore.ProjectKey(w.ProjectPath), ct);
         return view with { OriginalApplyPlan = await ((IOriginalApplyProvider)sources).PlanOriginalAsync(w, ct, paths) };
@@ -37,7 +38,7 @@ public sealed partial class WorkspaceCoordinator
         CancellationToken ct = default, string[]? paths = null)
     {
         using var gate = await store.LockAsync(id, ct);
-        var w = store.Get(id); RequireLatestGeneration(w, resultId); RequirePermitResult(resultId, liveOriginal); w.LiveOriginal = liveOriginal;
+        var w = store.Get(id); RequireMetadataMaintenanceComplete(w); RequireLatestGeneration(w, resultId); RequirePermitResult(resultId, liveOriginal); w.LiveOriginal = liveOriginal;
         var view = await RequireOriginalResult(w, ct);
         using var projectGate = await store.LockAsync(WorkspaceStore.ProjectKey(w.ProjectPath), ct);
         return view with { OriginalApplyPlan = await ((IOriginalApplyProvider)sources).PlanOriginalAsync(w, ct, paths) };
@@ -47,15 +48,16 @@ public sealed partial class WorkspaceCoordinator
     {
         using var gate = await store.LockAsync(id, ct);
         var w = store.Get(id);
-        if (w.OriginalApplies.SingleOrDefault(a => a.IntentKey == intentKey) is { } completed)
+        if (w.OriginalApplies.Find(intentKey, a => a.IntentKey) is { } completed)
         {
             completed.RequireMatch(w);
             if (completed.Plan.ResultId != resultId || completed.Plan.Digest != expectedPlanDigest ||
-                !(completed.Plan.SelectedPaths ?? []).SequenceEqual((paths ?? []).Order(StringComparer.Ordinal)))
+                !OriginalApplyPages.MatchesSelection(completed.Plan, store.ControlPath(id), paths))
                 throw new WorkspaceException("OriginalApplyRequestConflict", "A completed intent fixes its result, scope and plan digest.");
             await ((IWorkspaceGenerationSource)sources).VerifyGenerationAsync(w, store.ControlPath(id), w.Results.Single(r => r.Id == resultId), ct);
             return (await ViewAsync(w, ct, verifySource: false)) with { OriginalApplyReceipt = completed };
         }
+        RequireMetadataMaintenanceComplete(w);
         RequireLive(w, allowOriginalApply: true);
         RequireLatestGeneration(w, resultId); RequirePermitResult(resultId, liveOriginal); w.LiveOriginal = liveOriginal;
         await RequireOriginalResult(w, ct);
@@ -65,6 +67,7 @@ public sealed partial class WorkspaceCoordinator
             var result = await ((IOriginalApplyProvider)sources).ApplyOriginalAsync(w, intentKey, expectedPlanDigest, ct, paths);
             w.IntegratedRevision = result.Revision; w.Phase = "ready"; w.LastError = null;
             store.Save(w, "original-apply-completed");
+            await MaintainMetadataCoreAsync(w, "apply:" + WorkspaceStore.Key(expectedPlanDigest), ct);
             return (await ViewAsync(w, ct, verifySource: false)) with { OriginalApplyReceipt = w.OriginalApply };
         }
         catch (Exception ex) { RecordFailure(w, ex); throw; }
@@ -87,6 +90,7 @@ public sealed partial class WorkspaceCoordinator
     {
         using var gate = await store.LockAsync(id, ct);
         var w = store.Get(id);
+        RequireMetadataMaintenanceComplete(w);
         await RequireOriginalResult(w, ct);
         using var projectGate = await store.LockAsync(WorkspaceStore.ProjectKey(w.ProjectPath), ct);
         try
@@ -96,6 +100,7 @@ public sealed partial class WorkspaceCoordinator
             w.Phase = "integrated";
             w.LastError = null;
             store.Save(w, "original-apply-completed");
+            await MaintainMetadataCoreAsync(w, "apply:" + WorkspaceStore.Key(expectedPlanDigest), ct);
             return await ViewAsync(w, ct);
         }
         catch (Exception ex) { RecordFailure(w, ex); throw; }

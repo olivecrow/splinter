@@ -160,6 +160,6 @@ public sealed class RootTopologyRestoreSelectionTests
         var entries = source.Where(item => item.Final is not null).Select(item => new DeltaRestoreEntry(
             new DeltaEntry(Guid.NewGuid(), item.Final!, item.Directory, item.Directory ? 0 : 1,
                 item.Directory ? 16u : 32u, 1, 1, 1, item.Path, item.Directory ? 0 : 1), [])).ToArray();
-        return (new OwnedDirectoryManifest(1, snapshot, "planner", items), entries);
+        return (new OwnedDirectoryManifest(2, snapshot, "planner", items), entries);
     }
 }

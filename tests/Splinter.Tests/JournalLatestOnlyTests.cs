@@ -19,7 +19,7 @@ public sealed class JournalLatestOnlyTests
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree); Enable(root.Path, identity, tree);
         byte[][] current = Enumerable.Range(0, 16).Select(_ => RandomNumberGenerator.GetBytes(16384)).ToArray();
-        SourceChangeView changes; SnapshotDeltaSeal seal;
+        SourceChangeTestHeader changes; SnapshotDeltaSeal seal;
         using (var writer = new JournalDeltaStore(root.Path, identity, tree))
         {
             Assert.True(writer.Observe().JournalOptimizationEnabled);
@@ -38,13 +38,14 @@ public sealed class JournalLatestOnlyTests
                 Assert.Equal(Math.Min(16, cycle * 16 + i + 1) * 16384, writer.Observe().PayloadBytes);
                 Assert.DoesNotContain(Directory.EnumerateFiles(root.Path, "*", SearchOption.AllDirectories), p => p.EndsWith(".pending", StringComparison.Ordinal));
             }
-            changes = writer.ObserveChanges([]); seal = writer.Seal();
+            using (var observedChangeHeader = writer.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader); seal = writer.Seal();
             Assert.Equal(16 * 16384, writer.Observe().PayloadBytes);
             Assert.Equal(seal.JournalBytes, writer.Observe().JournalBytes);
         }
         using var resumed = new JournalDeltaStore(root.Path, identity, tree, optimizeJournal: false);
         Assert.True(resumed.JournalOptimizationEnabled); Assert.Equal(seal, resumed.Seal());
-        Assert.Equal(changes.Changes, resumed.ObserveChanges([]).Changes);
+        using var observedChanges1 = resumed.ObserveChanges([]);
+        Assert.Equal(changes.Changes, observedChanges1.Changes);
         for (int i = 0; i < current.Length; i++)
         { byte[] actual = new byte[16384]; resumed.Read(resumed.Stat($"file-{i}")!.Id, 0, actual); Assert.Equal(current[i], actual); }
         Assert.Equal(0, tree.ReadBytes);
@@ -113,7 +114,7 @@ public sealed class JournalLatestOnlyTests
         using var root = new TestDirectory(); using var candidate = new TestDirectory();
         var tree = new SnapshotOverlayTests.FakeSnapshotTree(); tree.Files["base"] = new byte[8192];
         var identity = Identity(tree); Enable(root.Path, identity, tree);
-        DeltaEntry expected; SourceChangeView changes;
+        DeltaEntry expected; SourceChangeTestHeader changes;
         using (var writer = new JournalDeltaStore(root.Path, identity, tree))
         {
             writer.Create("dir", true, 16); Guid id = writer.Create("dir/file", false, 32).Id;
@@ -122,18 +123,22 @@ public sealed class JournalLatestOnlyTests
             long flushes = writer.Observe().Metrics!.FlushCount;
             writer.SetMetadata(id, 33, 11, 22, 33);
             Assert.Equal(flushes + 1, writer.Observe().Metrics!.FlushCount);
-            expected = writer.Get(id); changes = writer.ObserveChanges([]);
+            expected = writer.Get(id); using (var observedChangeHeader = writer.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader);
         }
         string destination = Path.Combine(candidate.Path, "export");
         var published = JournalDeltaStore.ExportCandidate(root.Path, identity, tree, destination, "latest-export", []);
         using (var export = JournalDeltaStore.OpenReadOnly(destination, identity, tree))
-        { Assert.Equal(expected, export.Stat("moved/file")); Assert.Equal(changes.Changes, export.ObserveChanges([]).Changes); Assert.Equal(published.Seal, export.Seal()); }
+        {
+            using var observedChanges2 = export.ObserveChanges([]);
+            Assert.Equal(expected, export.Stat("moved/file")); Assert.Equal(changes.Changes, observedChanges2.Changes); Assert.Equal(published.Seal, export.Seal());
+        }
         var off = JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: false);
         Assert.False(off.JournalOptimizationEnabled); JournalDeltaStore.CompleteCompaction(root.Path, identity);
         using (var writer = new JournalDeltaStore(root.Path, identity, tree))
         {
             Assert.False(writer.JournalOptimizationEnabled); Assert.Null(writer.Stat("base")); Assert.Null(writer.Stat("dir"));
-            Assert.Equal(expected, writer.Stat("moved/file")); Assert.Equal(changes.Changes, writer.ObserveChanges([]).Changes);
+            using var observedChanges3 = writer.ObserveChanges([]);
+            Assert.Equal(expected, writer.Stat("moved/file")); Assert.Equal(changes.Changes, observedChanges3.Changes);
             writer.Write(expected.Id, 1, [9]);
         }
         var on = JournalDeltaStore.CompactDirectory(root.Path, identity, tree, revertBaseRanges: true);
@@ -277,21 +282,23 @@ public sealed class JournalLatestOnlyTests
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree); Enable(root.Path, identity, tree);
-        SourceChangeView changes; SnapshotDeltaSeal seal;
+        SourceChangeTestHeader changes; SnapshotDeltaSeal seal;
         using (var writer = new JournalDeltaStore(root.Path, identity, tree))
         {
             Guid id = writer.Create("file", false, 32).Id; byte[] data = RandomNumberGenerator.GetBytes(8192);
             writer.Write(id, 0, data); writer.Delete(id);
             byte[] actual = new byte[data.Length]; writer.Read(id, 0, actual); Assert.Equal(data, actual);
-            changes = writer.ObserveChanges([]); long sequence = writer.Observe().DurableSequence;
+            using (var observedChangeHeader = writer.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader); long sequence = writer.Observe().DurableSequence;
             writer.ReleaseUnlinkedFile(id);
             Assert.Equal(0, writer.Observe().PayloadBytes); Assert.Equal(sequence, writer.Observe().DurableSequence);
-            Assert.Equal(changes.Changes, writer.ObserveChanges([]).Changes); Assert.Null(writer.Stat("file"));
+            using var observedChanges4 = writer.ObserveChanges([]);
+            Assert.Equal(changes.Changes, observedChanges4.Changes); Assert.Null(writer.Stat("file"));
             Assert.Throws<FileNotFoundException>(() => writer.Get(id)); writer.ReleaseUnlinkedFile(id);
             seal = writer.Seal();
         }
         using var resumed = new JournalDeltaStore(root.Path, identity, tree);
-        Assert.Equal(seal, resumed.Seal()); Assert.Equal(changes.Changes, resumed.ObserveChanges([]).Changes); Assert.Null(resumed.Stat("file"));
+        using var observedChanges5 = resumed.ObserveChanges([]);
+        Assert.Equal(seal, resumed.Seal()); Assert.Equal(changes.Changes, observedChanges5.Changes); Assert.Null(resumed.Stat("file"));
     }
     [Theory]
     [InlineData("latest.before-root-publication")]
@@ -300,16 +307,17 @@ public sealed class JournalLatestOnlyTests
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree); Enable(root.Path, identity, tree); var observer = new Failure();
-        SourceChangeView changes;
+        SourceChangeTestHeader changes;
         using (var writer = new JournalDeltaStore(root.Path, identity, tree, observer))
         {
             Guid id = writer.Create("file", false, 32).Id; writer.Write(id, 0, [1, 2]); writer.Delete(id);
-            changes = writer.ObserveChanges([]); observer.Boundary = boundary;
+            using (var observedChangeHeader = writer.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader); observer.Boundary = boundary;
             Assert.Throws<IOException>(() => writer.ReleaseUnlinkedFile(id));
         }
         using var resumed = new JournalDeltaStore(root.Path, identity, tree);
         Assert.Equal(0, resumed.Observe().PayloadBytes); Assert.Equal(3, resumed.Observe().DurableSequence);
-        Assert.Equal(changes.Changes, resumed.ObserveChanges([]).Changes); Assert.Null(resumed.Stat("file"));
+        using var observedChanges6 = resumed.ObserveChanges([]);
+        Assert.Equal(changes.Changes, observedChanges6.Changes); Assert.Null(resumed.Stat("file"));
     }
     [Theory]
     [InlineData('1')]

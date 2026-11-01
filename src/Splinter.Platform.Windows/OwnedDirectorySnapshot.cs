@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Buffers;
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Win32.SafeHandles;
 using Splinter.Core;
 using Splinter.Runtime;
@@ -9,7 +10,6 @@ using Splinter.Runtime;
 namespace Splinter.Platform.Windows;
 
 public sealed record OwnedDirectoryItem(SnapshotEntry Entry, string? Hash);
-public sealed record OwnedDirectoryManifest(int Version, SnapshotReference Snapshot, string OwnerId, OwnedDirectoryItem[] Items);
 public sealed record OwnedDirectoryProof(int Version, SnapshotReference Snapshot, string OwnerId, string ManifestHash, long LogicalBytes);
 
 // The original has been renamed into an owned directory, and every existing
@@ -22,9 +22,8 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
     public SnapshotReference Snapshot { get; }
     // Pinned read-only handles and immutable indexes have no shared position.
     public bool SupportsConcurrentReads => true;
-    private readonly Dictionary<string, OwnedDirectoryItem> items;
+    private readonly OwnedDirectoryItemIndex items;
     private readonly Dictionary<string, SafeFileHandle> files = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, SnapshotEntry[]> children;
     private readonly object gate = new();
     private readonly Action? readAdmitted;
     private WindowsOwnedDirectoryLease? directoryLease;
@@ -39,51 +38,47 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
         int hashWorkers = 2, CancellationToken ct = default, Action<string>? beforeHash = null)
     {
         if (hashWorkers is < 1 or > 8) throw new ArgumentOutOfRangeException(nameof(hashWorkers));
-        if (manifest.Version != 1 || manifest.Snapshot != snapshot || snapshot.Provider != ProviderName || !snapshot.Persistent || !snapshot.Differential ||
+        if (manifest.Version != 2 || manifest.Snapshot != snapshot || snapshot.Provider != ProviderName || !snapshot.Persistent || !snapshot.Differential ||
             snapshot.Consistency != "stopped-original-owned-directory")
             throw new WorkspaceException("GeneratedBasisMismatch", "Preserve an unsupported or changed generated basis.");
         Manifest = manifest; Snapshot = snapshot; this.readAdmitted = readAdmitted;
-        items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.OrdinalIgnoreCase);
-        children = manifest.Items.Where(i => i.Entry.Path.Length != 0).GroupBy(i => Parent(i.Entry.Path), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.Select(i => i.Entry).ToArray(), StringComparer.OrdinalIgnoreCase);
-        if (items.Count > JournalDeltaStore.MaxIndexedNodes || !items.ContainsKey("")) throw new WorkspaceException("GeneratedBasisCorrupt", "Invalid generated metadata bounds/root.");
+        items = manifest.OpenIndex(StringComparer.OrdinalIgnoreCase);
         try
         {
+            items.Verify(ct);
+            if (!items.ContainsKey("")) throw new WorkspaceException("GeneratedBasisCorrupt", "Invalid generated metadata root.");
             if (OperatingSystem.IsWindows())
             {
                 directoryLease = new(snapshot.RootPath);
                 directoryProof = new(snapshot.RootPath, directoryLease.RootHandle, metadataWrite: false);
-                foreach (var item in manifest.Items.Where(i => i.Entry.Directory).OrderBy(i => i.Entry.Path.Length))
+                foreach (var item in items.Values.Where(i => i.Entry.Directory))
                 { ct.ThrowIfCancellationRequested(); directoryProof.PinDirectory(item.Entry.Path); }
             }
-            var fileItems = manifest.Items.Where(i => !i.Entry.Directory).ToArray();
-            var opened = new SafeFileHandle?[fileItems.Length];
-            try
-            {
-                ParallelFiles(Enumerable.Range(0, fileItems.Length), index =>
+            ParallelFiles(items.Values.Where(i => !i.Entry.Directory), item =>
                 {
-                    var item = fileItems[index]; string path = Resolve(item.Entry.Path);
+                    string path = Resolve(item.Entry.Path);
                     if (directoryProof is null && (File.GetAttributes(path) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != 0)
                         throw new WorkspaceException("GeneratedBasisChanged", "Generated basis type or path changed.");
                     var handle = directoryProof?.ReadHandle(item.Entry.Path) ?? File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileOptions.RandomAccess);
-                    opened[index] = handle;
-                    if (RandomAccess.GetLength(handle) != item.Entry.Length)
-                        throw new WorkspaceException("GeneratedBasisChanged", "Generated content differs from its frozen manifest.");
+                    try
+                    {
+                        if (RandomAccess.GetLength(handle) != item.Entry.Length)
+                            throw new WorkspaceException("GeneratedBasisChanged", "Generated content differs from its frozen manifest.");
+                        lock (gate) files.Add(item.Entry.Path, handle);
+                    }
+                    catch { handle.Dispose(); throw; }
                 }, hashWorkers, ct);
                 // Every file is fenced before hashing starts. Workers only read
                 // the already-pinned directory map; ownership publishes once.
-                for (int i = 0; i < fileItems.Length; i++) files.Add(fileItems[i].Entry.Path, opened[i]!);
-            }
-            catch { foreach (var handle in opened) handle?.Dispose(); throw; }
             if (directoryProof is null)
-                foreach (var item in manifest.Items.Where(i => i.Entry.Directory))
+                foreach (var item in items.Values.Where(i => i.Entry.Directory))
                     if ((File.GetAttributes(Resolve(item.Entry.Path)) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != FileAttributes.Directory)
                         throw new WorkspaceException("GeneratedBasisChanged", "Generated basis type or path changed.");
-            if (verifyContent) VerifyContents(manifest.Items, hashWorkers, ct, beforeHash);
+            if (verifyContent) VerifyContents(items.Values, hashWorkers, ct, beforeHash);
         }
         catch { Dispose(); throw; }
     }
-    private void VerifyContents(OwnedDirectoryItem[] entries, int workers, CancellationToken ct, Action<string>? beforeHash)
+    private void VerifyContents(IEnumerable<OwnedDirectoryItem> entries, int workers, CancellationToken ct, Action<string>? beforeHash)
     {
         void Verify(OwnedDirectoryItem item)
         {
@@ -104,14 +99,16 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
         // failure therefore closes handles only after all admitted hashes end.
         catch (AggregateException ex) { ExceptionDispatchInfo.Capture(ex.Flatten().InnerExceptions[0]).Throw(); throw; }
     }
-    public static OwnedDirectoryManifest Capture(SnapshotReference snapshot, string owner) => CaptureCancellable(snapshot, owner, default);
-    internal static OwnedDirectoryManifest CaptureCancellable(SnapshotReference snapshot, string owner, CancellationToken ct)
+    public static OwnedDirectoryManifest Capture(SnapshotReference snapshot, string owner, string? metadataDirectory = null) =>
+        CaptureCancellable(snapshot, owner, default, metadataDirectory);
+    internal static OwnedDirectoryManifest CaptureCancellable(SnapshotReference snapshot, string owner, CancellationToken ct, string? metadataDirectory = null)
     {
         WorkspaceStore.EnsurePlainPath(snapshot.RootPath);
         using var lease = OperatingSystem.IsWindows() ? new WindowsOwnedDirectoryLease(snapshot.RootPath) : null;
         using var proof = lease is null ? null : new WindowsDirectoryTreeProof(snapshot.RootPath, lease.RootHandle, metadataWrite: false);
-        var items = new List<OwnedDirectoryItem>();
-        void Walk(string relative)
+        TemporaryMetadataDirectory? scratchOwner = metadataDirectory is null ? new() : null;
+        metadataDirectory ??= scratchOwner!.Path;
+        SnapshotEntry Describe(string relative)
         {
             ct.ThrowIfCancellationRequested();
             string path = Path.Combine(snapshot.RootPath, relative.Replace('/', Path.DirectorySeparatorChar));
@@ -122,23 +119,54 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
             FileSystemInfo info = directory ? new DirectoryInfo(path) : new FileInfo(path);
             var entry = new SnapshotEntry(relative, directory, directory ? 0 : ((FileInfo)info).Length, (uint)attrs,
                 info.CreationTimeUtc.ToFileTimeUtc(), info.LastAccessTimeUtc.ToFileTimeUtc(), info.LastWriteTimeUtc.ToFileTimeUtc());
-            if (items.Count >= JournalDeltaStore.MaxIndexedNodes) throw new WorkspaceException("OverlayMetadataLimit", "Generated basis exceeds the metadata limit.");
-            items.Add(new(entry, null));
-            if (directory) foreach (string child in Directory.EnumerateFileSystemEntries(path).Order(StringComparer.OrdinalIgnoreCase))
-                Walk(relative.Length == 0 ? Path.GetFileName(child) : relative + "/" + Path.GetFileName(child));
+            return entry;
         }
-        Walk("");
-        var captured = items.ToArray();
-        ParallelFiles(Enumerable.Range(0, captured.Length).Where(i => !captured[i].Entry.Directory), index =>
+        var root = Describe("");
+        IEnumerable<SnapshotEntry> Walk()
         {
-            var item = captured[index]; string path = Path.Combine(snapshot.RootPath, item.Entry.Path.Replace('/', Path.DirectorySeparatorChar));
+            var pending = new Stack<IEnumerator<string>>(); pending.Push(Directory.EnumerateFileSystemEntries(snapshot.RootPath).GetEnumerator());
+            try
+            {
+                while (pending.TryPeek(out var level))
+                {
+                    if (!level.MoveNext()) { level.Dispose(); pending.Pop(); continue; }
+                    string path = level.Current, relative = Path.GetRelativePath(snapshot.RootPath, path).Replace('\\', '/');
+                    var entry = Describe(relative); yield return entry;
+                    if (entry.Directory) pending.Push(Directory.EnumerateFileSystemEntries(path).GetEnumerator());
+                }
+            }
+            finally { foreach (var level in pending) level.Dispose(); }
+        }
+        OwnedDirectoryItem HashEntry(SnapshotEntry entry)
+        {
+            if (entry.Directory) return new(entry, null);
+            string path = Path.Combine(snapshot.RootPath, entry.Path.Replace('/', Path.DirectorySeparatorChar));
             if (proof is null) WorkspaceStore.EnsurePlainPath(path);
-            using var handle = proof?.ReadHandle(item.Entry.Path) ?? File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (RandomAccess.GetLength(handle) != item.Entry.Length)
-                throw new WorkspaceException("GeneratedBasisChanged", "Generated content changed during capture.");
-            captured[index] = item with { Hash = Hash(handle, ct) };
-        }, DefaultWorkers, ct);
-        return new(1, snapshot, owner, captured);
+            using var handle = proof?.ReadHandle(entry.Path) ?? File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (RandomAccess.GetLength(handle) != entry.Length) throw new WorkspaceException("GeneratedBasisChanged", "Generated content changed during capture.");
+            return new(entry, Hash(handle, ct));
+        }
+        var catalog = PagedSnapshotCatalog.Build(metadataDirectory, root,
+            BoundedHash(Walk(), HashEntry, ct).Select(item => new DirectoryMetadataRecord(item.Entry, item.Hash)), ct: ct);
+        return new(2, snapshot, owner, OwnedDirectoryManifest.EnumerateItems(metadataDirectory, catalog))
+        { Catalog = catalog, CatalogDirectory = metadataDirectory, ScratchOwner = scratchOwner };
+    }
+    private static IEnumerable<OwnedDirectoryItem> BoundedHash(IEnumerable<SnapshotEntry> source, Func<SnapshotEntry, OwnedDirectoryItem> hash, CancellationToken ct)
+    {
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using var results = new System.Collections.Concurrent.BlockingCollection<OwnedDirectoryItem>(32);
+        Exception? failure = null;
+        var worker = Task.Run(() =>
+        {
+            try { Parallel.ForEach(System.Collections.Concurrent.Partitioner.Create(source, System.Collections.Concurrent.EnumerablePartitionerOptions.NoBuffering),
+                new ParallelOptions { MaxDegreeOfParallelism = DefaultWorkers, CancellationToken = cancel.Token },
+                entry => results.Add(hash(entry), cancel.Token)); }
+            catch (Exception ex) { failure = ex is AggregateException aggregate ? aggregate.Flatten().InnerExceptions[0] : ex; }
+            finally { results.CompleteAdding(); }
+        }, CancellationToken.None);
+        try { foreach (var result in results.GetConsumingEnumerable(ct)) yield return result; }
+        finally { cancel.Cancel(); worker.GetAwaiter().GetResult(); }
+        if (failure is not null) ExceptionDispatchInfo.Capture(failure).Throw();
     }
     public static string Hash(SafeFileHandle handle, CancellationToken ct = default)
     {
@@ -168,8 +196,12 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
         {
             Check(); path = JournalDeltaStore.Normalize(path);
             if (items.GetValueOrDefault(path)?.Entry is not { Directory: true }) throw new DirectoryNotFoundException(path);
-            return children.GetValueOrDefault(path) ?? [];
+            return items.EnumerateChildren(path).Select(i => i.Entry).ToArray();
         }
+    }
+    public IEnumerable<SnapshotEntry> EnumerateChildren(string path)
+    {
+        lock (gate) { Check(); return items.EnumerateChildren(JournalDeltaStore.Normalize(path)).Select(item => item.Entry); }
     }
     public int Read(string path, long offset, Span<byte> destination)
     {
@@ -225,7 +257,7 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
             while (activeReads != 0 || handingOff) Monitor.Wait(gate);
             if (disposed) return;
             foreach (var file in files.Values) file.Dispose();
-            files.Clear(); directoryProof?.Dispose(); directoryLease?.Dispose(); disposed = true;
+            files.Clear(); directoryProof?.Dispose(); directoryLease?.Dispose(); items.Dispose(); disposed = true;
             Monitor.PulseAll(gate);
         }
     }
@@ -240,6 +272,7 @@ public sealed class OwnedDirectorySnapshotProvider(string directory, string owne
         WorkspaceStore.EnsurePlainPath(directory);
         var manifest = JsonSerializer.Deserialize<OwnedDirectoryManifest>(File.ReadAllText(Path.Combine(directory, "manifest.json")), Json)
             ?? throw new WorkspaceException("GeneratedBasisCorrupt", "Missing generated manifest.");
+        manifest = manifest.Bind(directory);
         if (manifest.Snapshot != snapshot || manifest.OwnerId != owner) throw new WorkspaceException("GeneratedBasisMismatch", "Generated owner/reference mismatch.");
         if (ManagedDirectoryBasis.HashFile(Path.Combine(directory, "manifest.json")) != Proof(snapshot).ManifestHash)
             throw new WorkspaceException("GeneratedBasisChanged", "Retain a changed generated manifest.");

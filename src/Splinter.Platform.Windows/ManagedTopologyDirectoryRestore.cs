@@ -110,7 +110,7 @@ internal static class ManagedTopologyDirectoryRestore
             var intent = ReadReceipt(Named(rr, "intent.json"), planHash, pins);
             var verified = ReadReceipt(Named(rr, "verified.json"), planHash, pins);
             var reclaim = ReadReceipt(Named(rr, "staging-reclaim.json"), planHash, pins);
-            bool journalPending = BoundedJournalReclamation.HasIntent(Named(rr, "journal-reclaim.bin"));
+            bool journalPending = CurrentJournalReclamation.HasIntent(Named(rr, "journal-reclaim.bin"));
             if (intent is null && !move || reclaim is not null && verified is null || journalPending && reclaim is null) throw Conflict();
             using var identity = journalPending ? null : PinIdentity(request, plan.IdentityHash);
             using var journal = journalPending ? null : OpenJournal(request, manifest, plan);
@@ -125,7 +125,7 @@ internal static class ManagedTopologyDirectoryRestore
                 var receipt = ReadFileReceipt(FilePath(rr, "directory", directory.Entry.Id), planHash, directory.Entry.Id, pins);
                 if (receipt is not null) newDirectories.Add(directory.Entry.Id, receipt.Identity);
             }
-            var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+            using var items = manifest.OpenIndex(StringComparer.Ordinal);
             var mutable = plan.Files.Where(f => !FixedContent(f.Delta, f.Delta.Entry.BasePath is { } b ? items[b] : null)).ToArray();
             foreach (var file in mutable)
             {
@@ -148,7 +148,7 @@ internal static class ManagedTopologyDirectoryRestore
                 {
                     if (intent is null)
                     {
-                        using var replay = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, new PinnedPlanningTree(manifest));
+                        using var replay = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, new PinnedPlanningTree(manifest), ownsSnapshotTree: true, sourceFilePins: new WindowsJournalFilePins());
                         if (replay.Seal() != plan.Seal || !FilesEqual(BuildFiles(state.Basis.Snapshot.RootPath, manifest, replay.DescribeRestore(), replay, ct), plan.Files)) throw Conflict();
                         await WindowsProcessWorkspaceProvider.WriteAsync(Named(rr, "intent.json"), new Receipt(1, planHash), ct);
                         _ = ReadReceipt(Named(rr, "intent.json"), planHash, pins) ?? throw Conflict();
@@ -233,7 +233,7 @@ internal static class ManagedTopologyDirectoryRestore
                 boundary?.Invoke("topology.file.after-complete");
             }
             forest.RequireMembership();
-            var finalManifest = manifest with { Items = plan.Directories.Select(d => new OwnedDirectoryItem(ToSnapshot(d.Entry), null))
+            var finalManifest = manifest with { Catalog = null, CatalogDirectory = null, ScratchOwner = null, Items = plan.Directories.Select(d => new OwnedDirectoryItem(ToSnapshot(d.Entry), null))
                 .Concat(plan.Files.Select(f => new OwnedDirectoryItem(ToSnapshot(f.Delta.Entry), f.FinalHash))).ToArray() };
             var finalIds = Entries(plan).ToDictionary(d => d.Entry.Path, d => d.Entry.BasePath is { } b ? plan.Identities[b] :
                 d.Entry.Directory ? newDirectories[d.Entry.Id] : created[d.Entry.Id], StringComparer.Ordinal);
@@ -256,8 +256,8 @@ internal static class ManagedTopologyDirectoryRestore
             journal?.Dispose();
             void ReclaimBoundary(string stage) { if (stage == "intent") identity?.Dispose(); boundary?.Invoke("topology.journal." + stage); }
             if (plan.JournalMode == "bounded")
-                BoundedJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], Named(rr, "journal-reclaim.bin"), ReclaimBoundary,
-                    path => new WindowsJournalDirectoryGuard(path, BoundedJournalReclamation.GuardName));
+                CurrentJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], Named(rr, "journal-reclaim.bin"), ReclaimBoundary,
+                    path => new WindowsJournalDirectoryGuard(path, CurrentJournalReclamation.GuardName), filePins: new WindowsJournalFilePins());
             else LatestJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], Named(rr, "journal-reclaim.bin"), ReclaimBoundary,
                 path => new WindowsJournalDirectoryGuard(path));
             boundary?.Invoke("topology.after-reclaim");
@@ -370,13 +370,13 @@ internal static class ManagedTopologyDirectoryRestore
     {
         if (plan.Version != 1 || !Supported(state) || plan.Basis != state.Basis || plan.OriginalPath != state.OriginalPath || plan.DeltaPath != request.DeltaPath ||
             plan.IdentityHash != IdentityHash(request.Identity) || plan.Seal is null || plan.Seal.DurableSequence < 0 || plan.JournalMode is not ("latest" or "bounded") ||
-            plan.Identities is null || plan.Identities.Count != manifest.Items.Length || plan.Directories is null || plan.Files is null || plan.Topology is null ||
+            plan.Identities is null || plan.Identities.Count != manifest.ItemCount || plan.Directories is null || plan.Files is null || plan.Topology is null ||
             plan.Topology.Units is null || plan.Topology.Operations is null || plan.Topology.Units.Any(u => u is null) || plan.Topology.Operations.Any(o => o is null) ||
             manifest.Items.Any(i => !plan.Identities.TryGetValue(i.Entry.Path, out string? id) || string.IsNullOrEmpty(id)) ||
             plan.Directories.Any(d => d?.Entry is null || !d.Entry.Directory) || plan.Files.Any(f => f?.Delta?.Entry is null || f.Delta.Entry.Directory || !IsHash(f.FinalHash) || !IsHash(f.RetainedHash))) throw Conflict();
         if (!ManagedRestoreTopology.Equal(ManagedRestoreTopology.Build(manifest, Entries(plan)), plan.Topology)) throw Conflict();
         if (!plan.Files.Select(f => f.Delta.Entry.Path).SequenceEqual(plan.Files.Select(f => f.Delta.Entry.Path).Order(StringComparer.Ordinal))) throw Conflict();
-        var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+        using var items = manifest.OpenIndex(StringComparer.Ordinal);
         foreach (var file in plan.Files)
         {
             var entry = file.Delta.Entry;
@@ -419,7 +419,7 @@ internal static class ManagedTopologyDirectoryRestore
         if (plan.JournalMode == "bounded") allowed.Add(Named(root, "journal-reclaim.bin.pending"));
         for (int i = 1; i < plan.Topology.Units.Length; i++) allowed.Add(Stage(root, i));
         foreach (var d in plan.Directories.Where(d => d.Entry.BasePath is null)) allowed.Add(FilePath(root, "directory", d.Entry.Id));
-        var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+        using var items = manifest.OpenIndex(StringComparer.Ordinal);
         foreach (var f in plan.Files.Where(f => !FixedContent(f.Delta, f.Delta.Entry.BasePath is { } b ? items[b] : null)))
         {
             if (f.BasisIdentity is null) allowed.Add(FilePath(root, "file", f.Delta.Entry.Id));

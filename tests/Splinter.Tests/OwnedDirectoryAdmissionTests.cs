@@ -36,7 +36,7 @@ public sealed class OwnedDirectoryAdmissionTests
         using var f = new Fixture(8, 4096);
         string? junction = null;
         if (change == "content") File.WriteAllBytes(f.File(7), Enumerable.Repeat((byte)91, 4096).ToArray());
-        else if (change == "missing-parent") f.Manifest = f.Manifest with { Items = f.Manifest.Items.Where(i => i.Entry.Path != "a/b").ToArray() };
+        else if (change == "missing-parent") f.Manifest = f.Manifest with { Catalog = null, Items = f.Manifest.Items.Where(i => i.Entry.Path != "a/b").ToArray() };
         else
         {
             junction = Path.Combine(f.Root, "empty"); OwnedDirectoryLifetimeTests.SetJunction(junction, f.Outside);
@@ -148,6 +148,6 @@ public sealed class OwnedDirectoryAdmissionTests
             }
             finally { foreach (var handle in handles) handle.Dispose(); }
         }
-        public void Dispose() => temporary.Dispose();
+        public void Dispose() { Manifest.Dispose(); temporary.Dispose(); }
     }
 }

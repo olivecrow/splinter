@@ -149,7 +149,8 @@ public sealed class SnapshotReadParallelismTests
         string path = Path.Combine(root, "base"); File.WriteAllBytes(path, expected);
         var snapshot = new SnapshotReference("native", OwnedDirectorySnapshotTree.ProviderName, root, root,
             DateTimeOffset.UtcNow, true, true, "stopped-original-owned-directory");
-        using var generated = new OwnedDirectorySnapshotTree(OwnedDirectorySnapshotTree.Capture(snapshot, "owner"), snapshot);
+        using var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, "owner");
+        using var generated = new OwnedDirectorySnapshotTree(manifest, snapshot);
         var graft = Graft(source, generated);
         using var store = Open(Path.Combine(directory.Path, "delta"), graft, true);
         var sourceId = store.Stat("base")!.Id;

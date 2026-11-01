@@ -84,14 +84,14 @@ public sealed class LiveSourceCaptureTests
         Assert.True(File.Exists(Path.Combine(copies, "unknown.copy")));
     }
     [Theory]
-    [InlineData(false)] [InlineData(true)]
-    public async Task CaptureWaitsForWholeAcceptedBatchAndFrozenBytesSurviveConcurrentLaterBatches(bool latest)
+    [InlineData(false, 2)] [InlineData(true, 2)] [InlineData(false, 3)]
+    public async Task CaptureWaitsForWholeAcceptedBatchAndFrozenBytesSurviveConcurrentLaterBatches(bool latest, int version)
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("NTFS internal backing pins.");
         using var root = new TestDirectory(); var basis = new SnapshotOverlayTests.FakeSnapshotTree();
         using var entered = new ManualResetEventSlim(); using var proceed = new ManualResetEventSlim();
         var observer = new BatchCaptureGate(entered, proceed);
-        var identity = new OverlayIdentity(2, "capture", basis.Snapshot, 10485760, 65536);
+        var identity = new OverlayIdentity(version, "capture", basis.Snapshot, 10485760, 65536);
         using var writer = new JournalDeltaStore(Path.Combine(root.Path, "delta"), identity, basis, observer,
             optimizeJournal: latest, boundedLogBytes: latest ? null : 16384, sourceFilePins: new WindowsJournalFilePins());
         var a = writer.Create("a", false, 32); var b = writer.Create("b", false, 32); observer.Armed = true;
@@ -133,16 +133,17 @@ public sealed class LiveSourceCaptureTests
     [InlineData("append")]
     [InlineData("bounded")]
     [InlineData("latest")]
+    [InlineData("segmented")]
     public void FrozenRangesSurviveLaterOverwriteTruncateRenameDeleteAndReconnect(string mode)
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("NTFS internal backing pins.");
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         tree.Files["Assets/base.txt"] = "immutable"u8.ToArray();
-        var identity = new OverlayIdentity(2, "capture", tree.Snapshot, 64L * 1024 * 1024, 1048576, [".git"]);
+        var identity = new OverlayIdentity(mode == "segmented" ? 3 : 2, "capture", tree.Snapshot, 64L * 1024 * 1024, 1048576, [".git"]);
         string delta = Path.Combine(root.Path, "delta"), capture = Path.Combine(root.Path, "captures", new string('a', 24));
         var pins = new WindowsJournalFilePins(); Guid id;
         using (var writer = new JournalDeltaStore(delta, identity, tree, optimizeJournal: mode == "latest",
-            boundedLogBytes: mode == "bounded" ? 16384 : null, sourceFilePins: pins))
+            boundedLogBytes: mode is "bounded" or "segmented" ? 16384 : null, sourceFilePins: pins))
         {
             if (writer.Stat("Assets") is null) writer.Create("Assets", true, 16);
             id = writer.Create("Assets/private.txt", false, 32).Id;
@@ -154,6 +155,7 @@ public sealed class LiveSourceCaptureTests
             Assert.Equal(baseReads, tree.ReadBytes);
             Assert.DoesNotContain(frozen.Nodes, n => n.Entry.Path.StartsWith("Library", StringComparison.Ordinal));
             for (int i = 0; i < 30; i++) writer.Write(id, 0, Enumerable.Repeat((byte)i, 1024).ToArray());
+            if (mode == "segmented") Assert.True(writer.BoundedCheckpointCount > 0);
             writer.SetLength(id, 2); writer.Rename(id, "Assets/renamed.txt", false);
             writer.Delete(id); writer.ReleaseUnlinkedFile(id);
             using var immutable = new SourceCaptureTree(capture, tree, new WindowsJournalFilePins());
@@ -174,13 +176,14 @@ public sealed class LiveSourceCaptureTests
         SourceCaptureTree.RecoverPins(Path.GetDirectoryName(capture)!, pins);
     }
 
-    [Fact]
-    public void FrozenPartialRangesAndDirectoryRenameRetainBasisMapping()
+    [Theory]
+    [InlineData(2)] [InlineData(3)]
+    public void FrozenPartialRangesAndDirectoryRenameRetainBasisMapping(int version)
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("NTFS internal backing pins.");
         using var root = new TestDirectory(); var basis = new SnapshotOverlayTests.FakeSnapshotTree();
         basis.Files["Assets/old/file"] = "0123456789"u8.ToArray();
-        var identity = new OverlayIdentity(2, "capture", basis.Snapshot, 10485760, 65536);
+        var identity = new OverlayIdentity(version, "capture", basis.Snapshot, 10485760, 65536);
         using var writer = new JournalDeltaStore(Path.Combine(root.Path, "delta"), identity, basis,
             sourceFilePins: new WindowsJournalFilePins());
         var old = writer.Stat("Assets/old")!;

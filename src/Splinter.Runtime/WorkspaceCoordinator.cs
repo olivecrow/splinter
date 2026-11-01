@@ -12,6 +12,7 @@ public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Sourc
     public OriginalApplyPlan? OriginalApplyPlan { get; init; }
     public WorkspaceResultGeneration? ResultGeneration { get; init; }
     public OriginalApplyState? OriginalApplyReceipt { get; init; }
+    public WorkspaceMaintenanceResult? MetadataMaintenance { get; init; }
 }
 
 public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWorkspaceProvider sources, IApplicationWorkspaceProvider applications,
@@ -22,7 +23,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
 
     public async Task<WorkspaceView> EnsureAsync(string project, string requestKey, string baseReference, string storageMode,
         bool editor, CancellationToken ct = default,
-        long maxJournalBytes = SnapshotWorkspaceState.DefaultJournalBytes, string sourceKind = "git", string applicationKind = "unity", string? generatedDirectoryId = null)
+        string sourceKind = "git", string applicationKind = "unity", string? generatedDirectoryId = null)
     {
         if (storageMode == "ntfs-snapshot")
             throw new WorkspaceException("StorageModeRetired", "ntfs-snapshot/VSS is retired. Preserve existing state and independent results; no migration or reclamation is performed.");
@@ -59,33 +60,33 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 SourceReference = "splinter/" + id, BaseReference = baseReference, ManagedPaths = applicationKind == "none" ? [] : applications.ManagedPaths,
                 StorageMode = storageMode, Purpose = "task",
                 SourceKind = sourceKind, ApplicationKind = applicationKind, GeneratedDirectoryId = generatedDirectoryId,
-                Snapshot = WorkspaceStorage.HasRangeJournal(storageMode) ? new() { MaxJournalBytes = maxJournalBytes } : null,
-                // Preserve the existing empty request slot so current snapshot identities remain unchanged.
-                RequestDigest = WorkspaceStore.Key(project + "\n" + requestKey + "\n" + baseReference + "\n" + storageMode + "\n\n" + "task" + "\n" + maxJournalBytes + "\n" + sourceKind + "\n" + applicationKind + (generatedDirectoryId is null ? "" : "\n" + generatedDirectoryId))
+                Snapshot = WorkspaceStorage.HasRangeJournal(storageMode) ? new() : null,
+                RequestDigest = WorkspaceStore.Key("task-v4\n" + project + "\n" + requestKey + "\n" + baseReference + "\n" + storageMode + "\n" + sourceKind + "\n" + applicationKind + (generatedDirectoryId is null ? "" : "\n" + generatedDirectoryId))
             };
+            RequireMetadataMaintenanceComplete(record);
             await PreparationPointAsync("request.before-record", record, ct);
             store.Save(record, "create-intent");
             await PreparationPointAsync("request.after-record", record, ct);
         }
-        else if (record.GeneratedDirectoryId != generatedDirectoryId || record.SourceKind != sourceKind || record.ApplicationKind != applicationKind || record.BaseReference != baseReference || record.StorageMode != storageMode || record.Purpose != "task" ||
-            WorkspaceStorage.HasRangeJournal(storageMode) && record.Snapshot?.MaxJournalBytes != maxJournalBytes)
+        else if (record.GeneratedDirectoryId != generatedDirectoryId || record.SourceKind != sourceKind || record.ApplicationKind != applicationKind || record.BaseReference != baseReference || record.StorageMode != storageMode || record.Purpose != "task")
             throw new WorkspaceException("RequestKeyConflict", "This key already belongs to another request. Reuse its original parameters or choose a new task key.");
         if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(id), "workspace.list");
+        RequireMetadataMaintenanceComplete(record);
         RequireNotDiscarding(record);
         record.OriginalApply?.RequireReclaimable(record);
         try
         {
             if (WorkspaceStorage.HasRangeJournal(storageMode))
             {
-                var responseProof = await EnsureSnapshotAsync(record, ct);
+                using var responseProof = await EnsureSnapshotAsync(record, ct);
                 if (editor)
                 {
+                    responseProof?.Dispose();
                     await StartCoreAsync(record, ct);
                     // An Editor may legitimately create source .meta files.
                     // Keep the existing fresh (possibly dirty) response here.
-                    responseProof = null;
                 }
-                var view = await ViewAsync(record, ct, inspectionProof: responseProof);
+                var view = await ViewAsync(record, ct, inspectionProof: editor ? null : responseProof);
                 await PreparationPointAsync("response.before-publish", record, ct);
                 return view;
             }
@@ -121,6 +122,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     {
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
+        RequireMetadataMaintenanceComplete(record);
         RequireLive(record);
         // Starting an Editor observes liveness, not project correctness.
         try { await StartCoreAsync(record, ct); return await ViewAsync(record, ct, verifySource: false); }
@@ -173,11 +175,13 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
             if (!rangeJournal)
                 throw new WorkspaceException("UnsupportedStorageMode", "Checkpoint with release requires a range-journal workspace.");
             if (record.Phase == "released") return new(record, null, null, store.ControlPath(id), "workspace.list");
+            RequireMetadataMaintenanceComplete(record);
             // A resumed release uses its durable result and existing recovery
             // guards. A prior invocation never supplies an in-memory seal proof.
             if (RequireSnapshot(record).Step.StartsWith("release-", StringComparison.Ordinal))
                 return await ReleaseSnapshotWorkspaceAsync(record, ct);
         }
+        if (!release) RequireMetadataMaintenanceComplete(record);
         RequireLive(record);
         // A first checkpoint is verified by the source adapter after application
         // shutdown. Only an existing result needs source inspection here to
@@ -237,6 +241,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     {
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
+        RequireMetadataMaintenanceComplete(record);
         if (record.SourceKind is "none" or "plastic")
             throw new WorkspaceException("SourceIntegrationUnsupported", "Plain-folder apply requires its separate plan, explicit intent and reviewed digest; a branch target alone cannot authorize it.");
         RequireLive(record);
@@ -295,6 +300,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         RequireNotDiscarding(record);
         record.OriginalApply?.RequireReclaimable(record);
         if (record.Phase == "released") return new(record, null, null, store.ControlPath(id), "workspace.list");
+        RequireMetadataMaintenanceComplete(record);
         if (WorkspaceStorage.HasRangeJournal(record.StorageMode)) return await ReleaseSnapshotWorkspaceAsync(record, ct);
         // Git can unregister a worktree before failing to delete every file.
         // Let the source adapter validate and resume that partial removal.
@@ -330,12 +336,14 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     private async Task<WorkspaceView> ViewAsync(WorkspaceRecord record, CancellationToken ct, bool verifySource = true,
         ISourceInspectionProof? inspectionProof = null)
     {
-        if (record.Phase is "released" or "discarded") return new(record, null, null, store.ControlPath(record.Id), "workspace.list");
+        var maintenance = ObserveMetadataMaintenance(record);
+        WorkspaceView Project(SourceState? source, ApplicationState? application, string command) =>
+            new(record, source, application, store.ControlPath(record.Id), command) { MetadataMaintenance = maintenance };
+        if (record.Phase is "released" or "discarded") return Project(null, null, "workspace.list");
         if (record.Discard is not null)
         {
             record.Snapshot!.Observation = await Snapshots.ObserveAsync(record, store.ControlPath(record.Id), ct);
-            return new(record, null, await applications.ObserveAsync(record, store.ControlPath(record.Id), ct),
-                store.ControlPath(record.Id), "workspace discard");
+            return Project(null, await applications.ObserveAsync(record, store.ControlPath(record.Id), ct), "workspace discard");
         }
         if (WorkspaceStorage.HasRangeJournal(record.StorageMode))
         {
@@ -345,11 +353,11 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 state.Step.StartsWith("release-", StringComparison.Ordinal) || state.Step.StartsWith("compact-", StringComparison.Ordinal))
             {
                 var unavailableApp = await applications.ObserveAsync(record, store.ControlPath(record.Id), ct);
-                return new(record, null, unavailableApp, store.ControlPath(record.Id), state.Step.StartsWith("release-", StringComparison.Ordinal)
+                return Project(null, unavailableApp, state.Step.StartsWith("release-", StringComparison.Ordinal)
                     ? "workspace.release" : state.Step.StartsWith("compact-", StringComparison.Ordinal) ? "workspace.compact" : "workspace.ensure");
             }
         }
-        if (record.BaseRevision is null) return new(record, null, null, store.ControlPath(record.Id), "workspace.ensure");
+        if (record.BaseRevision is null) return Project(null, null, "workspace.ensure");
         var app = await applications.ObserveAsync(record, store.ControlPath(record.Id), ct);
         // Ordinary polls observe resources without reading project assets.
         var source = verifySource ? inspectionProof is null
@@ -361,7 +369,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
         string next = record.Results.Count > 0 ? "workspace.status" : record.Purpose == "baseline" && !app.Running ? "baseline.seal" :
             record.IntegratedRevision is not null ? "workspace.release" : record.ResultRevision is not null ? record.SourceKind is "none" or "plastic" ? "workspace.release" : "workspace.integrate" :
             app.Running && !app.Ready ? "workspace.status" : "workspace.checkpoint";
-        return new(record, source, app, store.ControlPath(record.Id), next);
+        return Project(source, app, next);
     }
 
     private void RecordFailure(WorkspaceRecord record, Exception ex)

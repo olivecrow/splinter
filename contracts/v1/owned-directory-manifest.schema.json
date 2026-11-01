@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:owned-directory-manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "snapshot", "ownerId", "catalog"],
+  "properties": {
+    "version": { "const": 2 },
+    "snapshot": { "$ref": "urn:splinter:v1:generated-directory-reference#/properties/snapshot" },
+    "ownerId": { "type": "string", "minLength": 1 },
+    "catalog": { "$ref": "urn:splinter:v1:snapshot-catalog" }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:snapshot-catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "root": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "directory": {
+          "type": "boolean"
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attributes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "creationTime": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastAccessTime": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastWriteTime": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unixMode": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "path",
+        "directory",
+        "length",
+        "attributes",
+        "creationTime",
+        "lastAccessTime",
+        "lastWriteTime"
+      ]
+    },
+    "children": {
+      "$ref": "urn:splinter:v1:metadata-tree-root"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "caseSensitive": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "version",
+    "root",
+    "children",
+    "count",
+    "caseSensitive"
+  ]
+}

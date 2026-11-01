@@ -1,4 +1,5 @@
 using Splinter.Core;
+using Splinter.Runtime;
 using System.Text.Json.Serialization;
 
 namespace Splinter.Platform.Windows;
@@ -14,11 +15,24 @@ public sealed class WindowsSourceChanges(Func<string, string> controlPath) : ISo
 
     public async Task<SourceContentSummaryView?> ObserveInitialContentAsync(WorkspaceRecord workspace,
         SourceChangeView expected, string[] paths, CancellationToken ct = default)
-        => (await ObserveAsync(workspace, expected, paths, ct)).InitialContent;
+    {
+        var response = await ObserveAsync(workspace, expected, paths, ct);
+        using var owner = response.View;
+        if (response.InitialContent is not { } summary) return null;
+        var generation = summary.Generation;
+        // A summary carries a comparison stamp, not a hidden native reader.
+        return summary with { Generation = new(generation.WorkspaceId, generation.SnapshotId, generation.Epoch,
+            generation.Sequence, generation.Changes) { Index = generation.Index } };
+    }
 
     private async Task<SourceChangeResponse> ObserveAsync(WorkspaceRecord workspace,
         SourceChangeView? expected, string[]? paths, CancellationToken ct)
     {
+        // A shared request filename has one in-flight reader. Keep the response
+        // bound before another caller can replace its request or response.
+        string workspaceControl = controlPath(workspace.Id);
+        var operationStore = new WorkspaceStore(Path.GetDirectoryName(Path.GetDirectoryName(workspaceControl)!)!);
+        using var queryLease = await operationStore.LockAsync(WorkspaceStore.Key("source-query:" + workspace.Id), ct);
         var mount = workspace.Snapshot?.Mount ?? throw new WorkspaceException("OverlayLeaseMissing", "Reconnect the owned provider before inspecting source.");
         string control = Path.Combine(controlPath(workspace.Id), "overlay");
         var request = await WinFspOverlayClient.ReadRequestAsync(Path.Combine(control, "request.json"), ct);
@@ -30,8 +44,9 @@ public sealed class WindowsSourceChanges(Func<string, string> controlPath) : ISo
         string id = Guid.NewGuid().ToString("N");
         await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(control, "source-query.json"),
             new SourceChangeRequest(request.Token, id, workspace.ManagedPaths, expected, paths), ct);
-        for (int attempt = 0; attempt < 150; attempt++)
+        for (long attempt = 0; ; attempt++)
         {
+            ct.ThrowIfCancellationRequested();
             var response = await WindowsProcessWorkspaceProvider.ReadAsync<SourceChangeResponse>(Path.Combine(control, "source-response.json"), ct);
             if (response?.Token == request.Token && response.RequestId == id)
             {
@@ -40,20 +55,30 @@ public sealed class WindowsSourceChanges(Func<string, string> controlPath) : ISo
                     throw new WorkspaceException("OverlayLeaseStale", "Source response belongs to another provider generation.");
                 if (response.Error is { } error) throw new WorkspaceException(error, "Source change observation failed; preserve the workspace.");
                 var view = response.View ?? throw new WorkspaceException("SourceObservationInvalid", "The provider returned no source generation.");
+                try
+                {
                 if (view.WorkspaceId != workspace.Id || view.SnapshotId != mount.Snapshot.Id)
                     throw new WorkspaceException("SnapshotIdentityMismatch", "The source generation belongs to another snapshot.");
+                if (request.Identity.Version == 3)
+                {
+                    if (view.Index is null || !view.Index.ManagedPaths.SequenceEqual(workspace.ManagedPaths))
+                        throw new WorkspaceException("SourceObservationInvalid", "Current source responses require the exact managed-path scope and paged roots.");
+                    view = JournalDeltaStore.BindChangeView(view, request.DeltaPath, request.Identity);
+                }
                 if (response.InitialContent is { } content && (expected is null || content.Generation is null ||
                     content.Generation.Changes is null || view.Changes is null || content.Files is null ||
                     content.Snapshot != workspace.Snapshot.Reference ||
                     content.Generation.WorkspaceId != view.WorkspaceId || content.Generation.SnapshotId != view.SnapshotId ||
                     content.Generation.Epoch != view.Epoch || content.Generation.Sequence != view.Sequence ||
-                    !content.Generation.Changes.SequenceEqual(view.Changes)))
+                    (content.Generation.Index is null || view.Index is null ? !content.Generation.Changes.SequenceEqual(view.Changes) : content.Generation.ContentIdentity != view.ContentIdentity)))
                     throw new WorkspaceException("SourceObservationInvalid", "Initial content evidence is not bound to this provider response.");
-                return response;
+                return response with { View = view, InitialContent = response.InitialContent is { } summary ? summary with { Generation = view } : null };
+                }
+                catch { view.Dispose(); throw; }
             }
+            if (attempt % 10 == 0) await RequireProvider();
             await Task.Delay(100, ct);
         }
-        throw new WorkspaceException("SourceObservationUncertain", "No fresh source response; preserve and retry the same workspace.");
 
         async Task RequireProvider()
         {

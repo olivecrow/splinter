@@ -20,8 +20,8 @@ public sealed class PlasticOriginalApplyTests
         await f.Prepare(ct); f.Write("Assets/item.txt", "changed"); await f.Collect(ct);
         var plan = await f.Source.PlanOriginalAsync(f.W, ct, ["Assets/item.txt"]);
         Assert.Empty(plan.Conflicts);
-        Assert.Contains(plan.Changes, c => c.Path == "Packages/manifest.json" && c.AlreadyMatches);
-        Assert.DoesNotContain(plan.Changes, c => c.Path == "Assets/item.txt.meta");
+        Assert.Contains(plan.EnumerateChanges(), c => c.Path == "Packages/manifest.json" && c.AlreadyMatches);
+        Assert.DoesNotContain(plan.EnumerateChanges(), c => c.Path == "Assets/item.txt.meta");
         Assert.Equal(1, policy.Acquired); Assert.Equal(1, policy.Released);
         policy.Refuse = true;
         Assert.Equal("FakeOriginalBusy", (await Assert.ThrowsAsync<WorkspaceException>(() =>
@@ -70,8 +70,8 @@ public sealed class PlasticOriginalApplyTests
         string[] paths = ["Assets/new/selected.txt", "Assets/item.txt"];
         byte[] stateBefore = File.ReadAllBytes(Path.Combine(f.Project, ".plastic", "plastic.wktree"));
         var plan = await f.Source.PlanOriginalAsync(f.W, ct, paths);
-        Assert.Empty(plan.Conflicts); Assert.Contains(plan.Changes, c => c.Path == "Assets/item.txt.meta" && c.AlreadyMatches);
-        Assert.Contains(plan.Changes, c => c.Path == "Assets/new.meta"); Assert.DoesNotContain(plan.Changes, c => c.Path.Contains("withheld"));
+        Assert.Empty(plan.Conflicts); Assert.Contains(plan.EnumerateChanges(), c => c.Path == "Assets/item.txt.meta" && c.AlreadyMatches);
+        Assert.Contains(plan.EnumerateChanges(), c => c.Path == "Assets/new.meta"); Assert.DoesNotContain(plan.EnumerateChanges(), c => c.Path.Contains("withheld"));
         Assert.Null(f.W.OriginalApply); Assert.False(Directory.Exists(Path.Combine(f.Project, "Assets", "new")));
         await f.Source.ApplyOriginalAsync(f.W, "apply", plan.Digest, ct, paths);
         f.W.OriginalApply!.RequireMatch(f.W); Assert.True(f.W.OriginalApply.Completed);
@@ -82,7 +82,7 @@ public sealed class PlasticOriginalApplyTests
         Assert.Equal(stateBefore, File.ReadAllBytes(Path.Combine(f.Project, ".plastic", "plastic.wktree")));
         Assert.Empty(Directory.GetFileSystemEntries(f.Project, ".splinter-apply-*", SearchOption.AllDirectories));
         Assert.True((await f.Source.ApplyOriginalAsync(f.W, "apply", plan.Digest, ct, paths)).AlreadyIntegrated);
-        Assert.Equal("OriginalApplyRequestConflict", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Source.ApplyOriginalAsync(f.W, "apply", plan.Digest, ct))).Code);
+        Assert.True((await f.Source.ApplyOriginalAsync(f.W, "apply", plan.Digest, ct)).AlreadyIntegrated);
     }
     [Fact]
     public async Task MetadataConflictAndHeldOriginalEditorRefuseBeforeIntent()
@@ -98,17 +98,24 @@ public sealed class PlasticOriginalApplyTests
         using var editor = new FileStream(Path.Combine(f.Project, "Temp", "UnityLockfile"), FileMode.Create, FileAccess.ReadWrite, FileShare.None);
         Assert.Equal("PlasticOriginalUnavailable", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Source.PlanOriginalAsync(f.W, ct))).Code);
     }
-    [Fact]
-    public async Task RecordedBasisPreservesOriginalNtfsIndexingPolicyWithoutWeakeningOtherMetadata()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RecordedBasisPreservesOriginalNtfsIndexingPolicyWithoutWeakeningOtherMetadata(bool indexed)
     {
         using var f = new Fixture(); var ct = TestContext.Current.CancellationToken;
         foreach (string path in new[] { "Assets/item.txt", "Assets/item.txt.meta" })
-        { string file = Path.Combine(f.Project, path.Replace('/', Path.DirectorySeparatorChar)); File.SetAttributes(file, File.GetAttributes(file) | FileAttributes.NotContentIndexed); }
+        { string file = Path.Combine(f.Project, path.Replace('/', Path.DirectorySeparatorChar)); File.SetAttributes(file, indexed ? File.GetAttributes(file) | FileAttributes.NotContentIndexed : File.GetAttributes(file) & ~FileAttributes.NotContentIndexed); }
         await f.Prepare(ct); f.Write("Assets/item.txt", "changed"); await f.Collect(ct);
         var plan = await f.Source.PlanOriginalAsync(f.W, ct, ["Assets/item.txt"]);
+        foreach (var change in plan.EnumerateChanges().Where(value => value.Path is "Assets/item.txt" or "Assets/item.txt.meta"))
+        { Assert.Equal(indexed, (change.Before!.Attributes & (int)FileAttributes.NotContentIndexed) != 0); Assert.Equal(indexed, (change.After!.Attributes & (int)FileAttributes.NotContentIndexed) != 0); }
         Assert.Empty(plan.Conflicts); await f.Source.ApplyOriginalAsync(f.W, "apply", plan.Digest, ct, ["Assets/item.txt"]);
-        Assert.True((File.GetAttributes(Path.Combine(f.Project, "Assets", "item.txt")) & FileAttributes.NotContentIndexed) != 0);
-        Assert.True((File.GetAttributes(Path.Combine(f.Project, "Assets", "item.txt.meta")) & FileAttributes.NotContentIndexed) != 0);
+        Assert.Equal(indexed, (File.GetAttributes(Path.Combine(f.Project, "Assets", "item.txt")) & FileAttributes.NotContentIndexed) != 0);
+        Assert.Equal(indexed, (File.GetAttributes(Path.Combine(f.Project, "Assets", "item.txt.meta")) & FileAttributes.NotContentIndexed) != 0);
+        File.WriteAllText(Path.Combine(f.Project, "Assets", "item.txt"), "later original");
+        Assert.True((await f.Source.ApplyOriginalAsync(f.W, "apply", plan.Digest, ct)).AlreadyIntegrated);
+        Assert.Equal("later original", File.ReadAllText(Path.Combine(f.Project, "Assets", "item.txt")));
     }
     [Theory]
     [InlineData("lock", "PlasticOriginalLocked")]
@@ -145,8 +152,8 @@ public sealed class PlasticOriginalApplyTests
         Assert.Equal("ReplyLost", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Source.ApplyOriginalAsync(f.W, "same", plan.Digest, ct, ["Assets/item.txt"]))).Code);
         Assert.True(pinned); Assert.False(f.W.OriginalApply!.Completed);
         Assert.Equal("OriginalApplyPending", Assert.Throws<WorkspaceException>(() => f.W.OriginalApply.RequireReclaimable(f.W)).Code);
-        Assert.Equal("OriginalApplyRequestConflict", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Source.ApplyOriginalAsync(f.W, "same", plan.Digest, ct))).Code);
-        await f.Source.ApplyOriginalAsync(f.W, "same", plan.Digest, ct, ["Assets/item.txt"]);
+        Assert.Equal("OriginalApplyRequestConflict", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Source.ApplyOriginalAsync(f.W, "same", plan.Digest, ct, ["Assets/another.txt"]))).Code);
+        await f.Source.ApplyOriginalAsync(f.W, "same", plan.Digest, ct);
         f.W.OriginalApply.RequireReclaimable(f.W); Assert.True(f.W.OriginalApply.Completed);
         Assert.Equal("changed", File.ReadAllText(Path.Combine(f.Project, "Assets", "item.txt")));
     }

@@ -8,8 +8,8 @@ namespace Splinter.Tests;
 
 public sealed class SourceCaptureProcessTests
 {
-    private sealed record Request(string Root, string Boundary, string Nonce);
-    private static OverlayIdentity Identity(ISnapshotTree basis) => new(2, "source-capture-process", basis.Snapshot, 10485760, 65536);
+    private sealed record Request(string Root, string Boundary, string Nonce, int Version = 2);
+    private static OverlayIdentity Identity(ISnapshotTree basis, int version) => new(version, "source-capture-process", basis.Snapshot, 10485760, 65536);
     private sealed class Gate(Request request) : IJournalMutationObserver
     {
         public void Observe(JournalMutationBoundary boundary)
@@ -29,7 +29,7 @@ public sealed class SourceCaptureProcessTests
         if (input is null) Assert.Skip("Subprocess-only source capture entrypoint.");
         var request = JsonSerializer.Deserialize<Request>(File.ReadAllText(input))!;
         var basis = new SnapshotOverlayTests.FakeSnapshotTree();
-        using var writer = new JournalDeltaStore(Path.Combine(request.Root, "delta"), Identity(basis), basis,
+        using var writer = new JournalDeltaStore(Path.Combine(request.Root, "delta"), Identity(basis, request.Version), basis,
             new Gate(request), sourceFilePins: new WindowsJournalFilePins());
         var file = writer.Create("source", false, 32); writer.Write(file.Id, 0, "frozen"u8);
         writer.CaptureSource(Path.Combine(request.Root, "captures", new string('a', 24)), new string('a', 24), []);
@@ -38,11 +38,18 @@ public sealed class SourceCaptureProcessTests
     [Theory]
     [InlineData("capture.intent-published")]
     [InlineData("capture.backings-pinned")]
-    public async Task ForcedProviderExitRecoversFrozenRangesBeforeLaterWrites(string boundary)
+    public Task ForcedProviderExitRecoversFrozenRangesBeforeLaterWrites(string boundary) => ForcedProviderExit(2, boundary);
+
+    [Theory]
+    [InlineData("capture.freeze-accepted")]
+    [InlineData("capture.intent-published")]
+    public Task ForcedCurrentProviderExitRecoversFrozenRootsAndNativePinsBeforeLaterWrites(string boundary) => ForcedProviderExit(3, boundary);
+
+    private static async Task ForcedProviderExit(int version, string boundary)
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("NTFS source backing aliases.");
         using var root = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
-        var request = new Request(root.Path, boundary, Guid.NewGuid().ToString("N"));
+        var request = new Request(root.Path, boundary, Guid.NewGuid().ToString("N"), version);
         string input = Path.Combine(root.Path, "request.json"); File.WriteAllText(input, JsonSerializer.Serialize(request));
         var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (string arg in new[] { typeof(SourceCaptureProcessTests).Assembly.Location, "-method", "Splinter.Tests.SourceCaptureProcessTests.Child" }) start.ArgumentList.Add(arg);
@@ -58,14 +65,56 @@ public sealed class SourceCaptureProcessTests
             Assert.Equal(request.Nonce, observed.GetProperty("Nonce").GetString()); Assert.Equal(child.Id, observed.GetProperty("Pid").GetInt32());
             Assert.Equal(ticks, observed.GetProperty("Start").GetInt64()); Assert.Equal(ticks, child.StartTime.ToUniversalTime().Ticks);
             child.Kill(); await child.WaitForExitAsync(ct);
+            // A signaled Windows process can still have a journal handle in
+            // teardown. Observe sharing release before the single recovery
+            // attempt, as in JournalInterruptionTests. Never retry replay,
+            // corruption, access denial or missing input as an open delay.
+            string journal = Path.Combine(root.Path, "delta", "delta.journal");
+            long opening = Stopwatch.GetTimestamp();
+            while (true)
+            {
+                try { using var probe = new FileStream(journal, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete); break; }
+                catch (IOException error) when ((error.HResult & 0xffff) is 32 or 33 && Stopwatch.GetElapsedTime(opening) < TimeSpan.FromSeconds(5))
+                { await Task.Delay(20, ct); }
+            }
             var pins = new WindowsJournalFilePins(); string captures = Path.Combine(root.Path, "captures"), capture = Path.Combine(captures, new string('a', 24));
             SourceCaptureTree.RecoverPins(captures, pins);
             var basis = new SnapshotOverlayTests.FakeSnapshotTree();
-            using (var writer = new JournalDeltaStore(Path.Combine(root.Path, "delta"), Identity(basis), basis, sourceFilePins: pins))
+            using (var writer = new JournalDeltaStore(Path.Combine(root.Path, "delta"), Identity(basis, version), basis, sourceFilePins: pins))
             {
+                if (version == 3) writer.RecoverSourceCaptures(captures);
+                var fixedCapture = SourceCaptureTree.ReadCapture(capture);
+                if (version == 3)
+                {
+                    Assert.NotNull(fixedCapture.Paged?.Segments); Assert.Empty(fixedCapture.Nodes);
+                    string[] aliases = Directory.GetFiles(capture, "*.pin"); Assert.NotEmpty(aliases);
+                    foreach (string alias in aliases)
+                    {
+                        string source = Path.Combine(root.Path, "delta", Path.GetFileNameWithoutExtension(alias) + ".sjr");
+                        Assert.Equal(pins.Identify(source), pins.Identify(alias));
+                    }
+                    Assert.Equal(fixedCapture.ReaderIdentity, pins.Identify(Path.Combine(capture, fixedCapture.ReaderName!)));
+                    writer.MaintainLiveStorage(force: true, collectSegments: true, ct: ct);
+                }
                 writer.Write(writer.Stat("source")!.Id, 0, "later!"u8);
-                using var frozen = new SourceCaptureTree(capture, basis, new WindowsJournalFilePins()); byte[] bytes = new byte[6];
-                Assert.Equal(6, frozen.Read("source", 0, bytes)); Assert.Equal("frozen"u8.ToArray(), bytes);
+                Assert.Equal(fixedCapture.Digest, writer.CaptureSource(capture, fixedCapture.Id, []).Digest);
+                using (var frozen = new SourceCaptureTree(capture, basis, new WindowsJournalFilePins()))
+                {
+                    byte[] bytes = new byte[6]; Assert.Equal(6, frozen.Read("source", 0, bytes)); Assert.Equal("frozen"u8.ToArray(), bytes);
+                    if (version == 3)
+                    {
+                        Assert.ThrowsAny<IOException>(() => SourceCaptureTree.Complete(capture, pins));
+                        Assert.False(File.Exists(Path.Combine(capture, "materialized.json")));
+                    }
+                }
+                if (version == 3)
+                {
+                    string nextPath = Path.Combine(captures, new string('b', 24));
+                    var next = writer.CaptureSource(nextPath, new string('b', 24), []); Assert.True(next.Sequence > fixedCapture.Sequence);
+                    using (var later = new SourceCaptureTree(nextPath, basis, pins))
+                    { byte[] bytes = new byte[6]; Assert.Equal(6, later.Read("source", 0, bytes)); Assert.Equal("later!"u8.ToArray(), bytes); }
+                    SourceCaptureTree.Complete(nextPath, pins); writer.CompleteSourceCaptureRequest(next.Id);
+                }
             }
             SourceCaptureTree.Complete(capture, pins); Assert.Empty(Directory.EnumerateFiles(capture, "*.pin"));
         }

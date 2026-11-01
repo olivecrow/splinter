@@ -57,7 +57,7 @@ public sealed class JournalStartupOptimizationTests
         var identity = Identity(tree);
         var expected = new Dictionary<string, byte[]>(StringComparer.Ordinal);
         SnapshotDeltaSeal seal;
-        SourceChangeView changes;
+        SourceChangeTestHeader changes;
         Guid hot;
         using (var writer = new JournalDeltaStore(root.Path, identity, tree))
         {
@@ -118,14 +118,15 @@ public sealed class JournalStartupOptimizationTests
             Assert.Null(writer.Stat("cold-07"));
             Assert.Null(writer.Stat("cold-08"));
             AssertContents(writer, expected);
-            changes = writer.ObserveChanges([]);
+            using (var observedChangeHeader = writer.ObserveChanges([])) changes = SourceChangeTestHeaders.Detach(observedChangeHeader);
             seal = writer.Seal();
         }
 
         using (var resumed = new JournalDeltaStore(root.Path, identity, tree))
         {
             Assert.Equal(seal, resumed.Seal());
-            Assert.Equal(changes.Changes, resumed.ObserveChanges([]).Changes);
+            using var observedChanges1 = resumed.ObserveChanges([]);
+            Assert.Equal(changes.Changes, observedChanges1.Changes);
             AssertContents(resumed, expected);
             long flushes = resumed.Observe().Metrics!.FlushCount;
             byte[] tail = Bytes(1031, 61);

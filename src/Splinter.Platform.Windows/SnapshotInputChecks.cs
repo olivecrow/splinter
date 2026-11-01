@@ -8,27 +8,32 @@ namespace Splinter.Platform.Windows;
 // Metadata-only admission check. It never reads or copies file payloads.
 public static class SnapshotInputChecks
 {
-    public static int VerifyTree(string root, CancellationToken ct = default, bool rejectVcsMetadata = false, bool omitPlasticRoot = false)
+    public static long VerifyTree(string root, CancellationToken ct = default, bool rejectVcsMetadata = false, bool omitPlasticRoot = false)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
-        int count = 0;
-        var pending = new Stack<string>(); pending.Push(root);
-        while (pending.TryPop(out string? directory))
+        long count = 0; Verify(root);
+        var pending = new Stack<(string Directory, IEnumerator<string> Children)>();
+        pending.Push((root, Directory.EnumerateFileSystemEntries(root).GetEnumerator()));
+        try
         {
-            ct.ThrowIfCancellationRequested(); Verify(directory);
-            foreach (string path in Directory.EnumerateFileSystemEntries(directory))
+            while (pending.TryPeek(out var level))
             {
+                ct.ThrowIfCancellationRequested();
+                if (!level.Children.MoveNext()) { level.Children.Dispose(); pending.Pop(); continue; }
+                string directory = level.Directory, path = level.Children.Current;
                 ct.ThrowIfCancellationRequested();
                 if (omitPlasticRoot && directory == root && Path.GetFileName(path).Equals(".plastic", StringComparison.OrdinalIgnoreCase))
                 { Verify(path); if (!Directory.Exists(path)) throw new WorkspaceException("VcsMetadataUnsupported", "Plastic administration must be a directory."); continue; }
                 if (rejectVcsMetadata && Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase))
                     throw new WorkspaceException("VcsMetadataUnsupported", "The immutable plain-folder tree cannot contain VCS administration.");
                 if (!rejectVcsMetadata && directory == root && Path.GetFileName(path).Equals(".git", StringComparison.OrdinalIgnoreCase)) continue;
-                if (++count > 250000) throw new WorkspaceException("OverlayMetadataLimit", "Snapshot input exceeds the bounded metadata index.");
+                count = checked(count + 1);
                 Verify(path);
-                if ((File.GetAttributes(path) & FileAttributes.Directory) != 0) pending.Push(path);
+                if ((File.GetAttributes(path) & FileAttributes.Directory) != 0)
+                    pending.Push((path, Directory.EnumerateFileSystemEntries(path).GetEnumerator()));
             }
         }
+        finally { foreach (var level in pending) level.Children.Dispose(); }
         return count;
     }
 

@@ -50,8 +50,15 @@ public sealed partial class FileWorkspaceTests
     [Theory]
     [InlineData("source-capture-fixed")]
     [InlineData("source-payloads-preserved")]
+    [InlineData("source-result-manifest-published")]
+    [InlineData("source-generation-receipt-published")]
     [InlineData("source-result-preserved")]
     [InlineData("source-generation-published")]
+    [InlineData("original.stage-attempt-owned")]
+    [InlineData("original.stage-created-before-receipt")]
+    [InlineData("original.staged")]
+    [InlineData("original.retired-before-receipt")]
+    [InlineData("original.published-before-receipt")]
     [InlineData("original.published")]
     [InlineData("original.completed")]
     public async Task ForcedGenerationActorExitResumesFrozenResultAndAtomicAppliedHistory(string boundary)
@@ -85,10 +92,16 @@ public sealed partial class FileWorkspaceTests
             File.WriteAllText(Path.Combine(w.Path, "data.txt"), "later worker");
             result ??= (await f.New().CheckpointAsync(w.Id, "process result", "process-capture", ct)).ResultGeneration!;
             plan ??= (await f.New().PlanOriginalAsync(w.Id, result.Id, null, ct)).OriginalApplyPlan!;
+            Assert.Equal(4, f.Store.Get(w.Id).Version); Assert.Equal(3, plan.Version); Assert.NotNull(plan.ChangesRoot);
             var applied = await f.New().ApplyOriginalAsync(w.Id, result.Id, "process-apply", plan.Digest, null, ct);
             Assert.Equal("frozen", File.ReadAllText(Path.Combine(f.Project, "data.txt")));
             Assert.Equal("later worker", File.ReadAllText(Path.Combine(w.Path, "data.txt")));
             Assert.Single(applied.Workspace.Results); Assert.Single(applied.Workspace.OriginalApplies);
+            if (boundary == "original.stage-created-before-receipt")
+            {
+                var scratch = Assert.Single(OriginalApplyPages.EnumeratePreservedScratch(control, applied.Workspace.OriginalApply!));
+                Assert.True(File.Exists(Path.Combine(f.Project, scratch.Path.Replace('/', Path.DirectorySeparatorChar))));
+            }
             File.WriteAllText(Path.Combine(f.Project, "data.txt"), "later original");
             await f.New().ApplyOriginalAsync(w.Id, result.Id, "process-apply", plan.Digest, null, ct);
             Assert.Equal("later original", File.ReadAllText(Path.Combine(f.Project, "data.txt")));

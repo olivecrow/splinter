@@ -13,15 +13,25 @@ public sealed partial class WinFspOverlayFileSystem
         long started = Stopwatch.GetTimestamp();
         DrainAcceptedWrites();
         long drained = Stopwatch.GetTimestamp();
+        JournalSourceCapture capture;
         lock (mutationGate)
         {
             long entered = Stopwatch.GetTimestamp();
             try
             {
-                return store is JournalDeltaStore journal ? journal.CaptureSource(directory, id, managedPaths)
+                capture = store is JournalDeltaStore journal ? journal.CaptureSource(directory, id, managedPaths, deferBackingPins: journal.Identity.Version == 3)
                     : throw new WorkspaceException("SourceCaptureUnsupported", "Only the owned task journal can capture source.");
             }
             finally { LastSourceCaptureCallbacks = new(Stopwatch.Frequency, drained - started, entered - drained, Stopwatch.GetTimestamp() - entered); }
         }
+        if (capture.Identity.Version == 3 && !File.Exists(Path.Combine(directory, "materialized.json")))
+            SourceCaptureTree.EnsurePins(directory, capture, new WindowsJournalFilePins());
+        return capture;
+    }
+    internal void AdoptCapturedRanges(string control, string id, CancellationToken ct = default)
+    {
+        DrainAcceptedWrites();
+        if (store is not JournalDeltaStore journal) throw new WorkspaceException("SourceRangeAdoptionUnsupported", "Require the exact owned task journal.");
+        journal.AdoptCapturedRanges(control, id, ct);
     }
 }

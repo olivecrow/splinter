@@ -11,17 +11,31 @@ namespace Splinter.Runtime;
 public interface IJournalFilePins
 {
     string Identify(string path);
+    string IdentifyOpened(FileStream input) { string identity = Identify(input.Name); Verify(input, identity); return identity; }
     void Verify(FileStream input, string expectedIdentity);
+    void VerifyPath(FileStream input, string path, string expectedIdentity)
+    { Verify(input, expectedIdentity); if (!WorkspaceStore.SamePath(input.Name, path)) throw new WorkspaceException("ContentReclaimUnsupported", "Compose an opened native name proof after directory preservation."); }
     void Pin(string source, string destination, string expectedIdentity);
     bool DetachBeforeTruncate(string path, long length);
+    int? LinkCount(string path) => null;
+    long AllocatedBytes(FileStream input) => input.Length;
+    void Unpin(string path, string expectedIdentity) => throw new WorkspaceException("ContentReclaimUnsupported", "Compose exact native alias deletion before reclaiming immutable content.");
+    string IdentifyDirectory(string path) => throw new WorkspaceException("ContentReclaimUnsupported", "Compose native directory identity for opaque metadata preservation.");
+    IDisposable PinDirectory(string path, string expectedIdentity) => throw new WorkspaceException("ContentReclaimUnsupported", "Compose native directory preservation fences.");
+    IDisposable CreateDirectory(string path, out string identity) => throw new WorkspaceException("ContentReclaimUnsupported", "Compose exact native scratch-directory creation ownership.");
+    IDisposable MoveDirectory(string path, string destination, string expectedIdentity, Action? beforeRename = null) => throw new WorkspaceException("ContentReclaimUnsupported", "Compose handle-relative directory preservation.");
+    void UnpinDirectory(string path, string expectedIdentity) => throw new WorkspaceException("ContentReclaimUnsupported", "Compose exact empty-directory deletion.");
 }
 
-public sealed record CapturedBacking(string Source, string Name, string Identity, long MinimumLength);
+public sealed record CapturedBacking(string Source, string Name, string Identity, long MinimumLength, string? Hash = null);
 public sealed record CapturedExtent(long Start, int Length, int Backing, long Physical,
     WorkspaceJournalPayload Payload, int BlockOffset);
 public sealed record CapturedNode(DeltaEntry Entry, CapturedExtent[] Extents);
 public sealed record JournalSourceCapture(int Version, string Id, OverlayIdentity Identity, long Sequence,
-    string[] ManagedPaths, CapturedNode[] Nodes, string[] Hidden, CapturedBacking[] Backings, string[] ChangedPaths, string Digest);
+    string[] ManagedPaths, CapturedNode[] Nodes, string[] Hidden, CapturedBacking[] Backings, string[] ChangedPaths, string Digest,
+    PagedJournalCapture? Paged = null, string? ReaderName = null, string? ReaderIdentity = null);
+public sealed record PagedJournalCapture(string Directory, MetadataTreeRoot Nodes, MetadataTreeRoot Paths, MetadataTreeRoot Hidden, MetadataTreeRoot Changes, MetadataTreeRoot Names,
+    MetadataTreeRoot? Segments = null);
 public sealed record SourceCaptureTiming(long StopwatchFrequency, long GateWaitTicks, long MutationPauseTicks);
 
 public sealed partial class JournalDeltaStore
@@ -29,8 +43,10 @@ public sealed partial class JournalDeltaStore
     private IJournalFilePins? sourceFilePins;
     public SourceCaptureTiming? LastSourceCaptureTiming { get; private set; }
 
-    public JournalSourceCapture CaptureSource(string destination, string id, string[] managedPaths)
+    public JournalSourceCapture CaptureSource(string destination, string id, string[] managedPaths, bool deferBackingPins = false)
     {
+        if (segments is not null) return CaptureSegmentedSource(destination, id, managedPaths, deferBackingPins);
+        if (deferBackingPins) throw new WorkspaceException("SourceCaptureUnsupported", "Only a durable segmented root can defer backing admission.");
         long requestedAt = Stopwatch.GetTimestamp();
         using (EnterGate(mutation: true))
         {
@@ -45,16 +61,27 @@ public sealed partial class JournalDeltaStore
             if (File.Exists(manifest))
             {
                 durableIntent = true;
-                var existing = SourceCaptureTree.ReadCapture(destination);
+                var existing = SourceCaptureTree.ReadCapture(destination, verifyPagedRoots: false);
                 if (existing.Id != id || !SourceCaptureTree.SameIdentity(existing.Identity, Identity) || !existing.ManagedPaths.SequenceEqual(managedPaths))
                     throw new WorkspaceException("SourceCaptureRequestConflict", "Resume the exact frozen capture request.");
-                SourceCaptureTree.EnsurePins(destination, existing, sourceFilePins);
+                if (File.Exists(Path.Combine(destination, "materialized.json"))) SourceCaptureTree.RequireMaterialized(destination, existing);
+                else SourceCaptureTree.EnsurePins(destination, existing, sourceFilePins);
                 pinned = true;
                 return existing;
             }
             if (Directory.Exists(destination))
                 throw new WorkspaceException("SourceCaptureIncomplete", "Preserve the unfinished capture and resume its published intent.");
             FlushPendingWrites();
+            if (pagedIndex is not null && latest is null)
+            {
+                var pagedResult = CapturePagedSource(destination, id, managedPaths);
+                durableIntent = true;
+                Visit("capture.intent-published", "capture", sequence, 0, 0, 0);
+                SourceCaptureTree.EnsurePins(destination, pagedResult, sourceFilePins);
+                pinned = true;
+                Visit("capture.backings-pinned", "capture", sequence, 0, 0, 0);
+                return pagedResult;
+            }
             // No basis enumeration, payload read/hash, or independent-result
             // copy is performed under this mutation boundary.
             var backings = new List<CapturedBacking>();
@@ -104,28 +131,46 @@ public sealed partial class JournalDeltaStore
     }
 }
 
-public sealed class SourceCaptureTree : ISourceCaptureTree
+public sealed class SourceCaptureTree : ISourceCaptureTree, ISourceCaptureRanges
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow, RespectRequiredConstructorParameters = true, RespectNullableAnnotations = true };
     private readonly ISnapshotTree basis;
     public ISnapshotTree Basis => basis;
-    private readonly Dictionary<string, CapturedNode> nodes;
-    private readonly HashSet<string> hidden;
-    private readonly FileStream[] files;
-    private readonly WorkspacePathPolicy policy;
+    private readonly Dictionary<string, CapturedNode> nodes = null!;
+    private readonly HashSet<string> hidden = null!;
+    private readonly FileStream[] files = [];
+    private readonly WorkspacePathPolicy policy = null!;
+    private readonly ISourceCaptureTree? paged;
+    private readonly FileStream? readerLease;
     private readonly BrotliWorkspacePayloadReader codec = new();
     public JournalSourceCapture Capture { get; }
-    public string[] ChangedPaths => Capture.ChangedPaths;
+    public SourceCaptureIdentity CaptureIdentity => new(Capture.Id, Capture.Sequence, Capture.Digest);
+    public string[]? ChangedPaths => paged is null ? Capture.ChangedPaths : null;
+    public IEnumerable<string>? EnumerateChangedPaths() => paged?.EnumerateChangedPaths() ?? Capture.ChangedPaths;
     public SnapshotReference Snapshot => basis.Snapshot;
     public SnapshotGraft? Graft => basis.Graft;
     public bool SupportsConcurrentReads => basis.SupportsConcurrentReads;
 
-    public SourceCaptureTree(string directory, ISnapshotTree basis, IJournalFilePins pins)
+    public SourceCaptureTree(string directory, ISnapshotTree basis, IJournalFilePins pins, ICapturedContentReader? capturedContentReader = null)
     {
         Capture = ReadCapture(directory); this.basis = basis;
+        if (File.Exists(Path.Combine(directory, "materialized.json")))
+            throw new WorkspaceException("SourceCaptureMaterialized", "Read the independently retained result after source capture completion.");
         if (Capture.Identity.Snapshot != basis.Snapshot)
             throw new WorkspaceException("SourceCaptureIdentityMismatch", "Open the exact captured immutable basis.");
+        if (Capture.ReaderName is { } reader)
+        {
+            readerLease = new(Path.Combine(directory, reader), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            try
+            {
+                pins.Verify(readerLease, Capture.ReaderIdentity ?? throw Invalid("Missing capture reader identity.")); if (readerLease.Length != 0) throw Invalid("The capture reader marker changed.");
+                if (File.Exists(Path.Combine(directory, "materialized.json"))) throw new WorkspaceException("SourceCaptureMaterialized", "Read the independently retained result after source capture completion.");
+            }
+            catch { readerLease.Dispose(); throw; }
+        }
+        if (Capture.Paged is not null)
+        { try { paged = JournalDeltaStore.OpenPagedCapture(directory, basis, pins, Capture, capturedContentReader); return; } catch { readerLease?.Dispose(); throw; } }
         policy = WorkspacePathPolicy.For(basis.Snapshot);
         nodes = Capture.Nodes.Where(n => !n.Entry.Deleted).ToDictionary(n => n.Entry.Path, policy.Comparer);
         hidden = Capture.Hidden.ToHashSet(policy.Comparer);
@@ -142,7 +187,7 @@ public sealed class SourceCaptureTree : ISourceCaptureTree
             }
             files = opened.ToArray();
         }
-        catch { foreach (var file in opened) file.Dispose(); throw; }
+        catch { foreach (var file in opened) file.Dispose(); readerLease?.Dispose(); throw; }
     }
     public void EnsureAvailable() => basis.EnsureAvailable();
     public void VerifyReadBoundary() => basis.VerifyReadBoundary();
@@ -167,9 +212,10 @@ public sealed class SourceCaptureTree : ISourceCaptureTree
         var entry = basis.Stat(original);
         return (entry is null ? null : entry with { Path = path }, original);
     }
-    public SnapshotEntry? Stat(string path) { EnsureAvailable(); return Resolve(path).Entry; }
+    public SnapshotEntry? Stat(string path) { if (paged is not null) return paged.Stat(path); EnsureAvailable(); return Resolve(path).Entry; }
     public IReadOnlyList<SnapshotEntry> List(string path)
     {
+        if (paged is not null) return paged.List(path);
         EnsureAvailable(); var directory = Resolve(path);
         if (directory.Entry is not { Directory: true }) throw new DirectoryNotFoundException(path);
         string prefix = path.Length == 0 ? "" : path + "/";
@@ -182,6 +228,7 @@ public sealed class SourceCaptureTree : ISourceCaptureTree
     }
     public int Read(string path, long offset, Span<byte> destination)
     {
+        if (paged is not null) return paged.Read(path, offset, destination);
         EnsureAvailable(); var resolved = Resolve(path);
         var entry = resolved.Entry ?? throw new FileNotFoundException(path);
         if (offset < 0 || entry.Directory) throw new ArgumentOutOfRangeException(nameof(offset));
@@ -221,17 +268,51 @@ public sealed class SourceCaptureTree : ISourceCaptureTree
         while (!output.IsEmpty)
         { int n = RandomAccess.Read(input.SafeFileHandle, output, offset); if (n <= 0) throw Invalid("A captured private range ended early."); offset += n; output = output[n..]; }
     }
-    public void Dispose() { foreach (var file in files) file.Dispose(); }
+    public IEnumerable<SnapshotEntry> EnumerateChildren(string path) => paged?.EnumerateChildren(path) ?? List(path);
+    public CapturedFileRangeLayout? GetFileRanges(string relativePath)
+    {
+        if (paged is ISourceCaptureRanges ranges) return ranges.GetFileRanges(relativePath);
+        EnsureAvailable(); string path = policy.Normalize(relativePath); var resolved = Resolve(path);
+        if (resolved.Entry is not { Directory: false } entry) return null;
+        if (!nodes.TryGetValue(path, out var node)) return new(resolved.Base, entry.Length, Array.Empty<CapturedPrivateSourceRange>());
+        IEnumerable<CapturedPrivateSourceRange> Private()
+        {
+            foreach (var extent in node.Extents)
+            {
+                var backing = Capture.Backings[extent.Backing];
+                string identity = RangeIdentity(backing.Identity, extent.Physical, extent.BlockOffset, extent.Length, extent.Payload);
+                // Legacy append files can be reopened for writing. Their byte
+                // slices are read through the capture tree instead of granting
+                // a sealed-backing adoption capability.
+                yield return new(extent.Start, extent.Length, identity, BlockIdentity: BlockIdentity(backing.Identity, extent.Physical, extent.Payload), BlockOffset: extent.BlockOffset);
+            }
+        }
+        return new(node.Entry.BasePath, Math.Min(node.Entry.BaseLength, node.Entry.Length), Private(), node.Entry.Id);
+    }
+    internal static string RangeIdentity(string backingIdentity, long physical, int offset, int length, WorkspaceJournalPayload payload) =>
+        "sha256:" + Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { backingIdentity, physical, offset, length, payload }, Json)));
+    internal static string BlockIdentity(string backingIdentity, long physical, WorkspaceJournalPayload payload) =>
+        Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { backingIdentity, physical, payload }, Json)));
+    internal static string ContentBlockIdentity(string hash, bool raw, int length) =>
+        Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { hash, raw, length }, Json)));
+    public void Dispose() { try { paged?.Dispose(); foreach (var file in files) file.Dispose(); } finally { readerLease?.Dispose(); } }
     internal static string Digest(JournalSourceCapture capture) => Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(capture with { Digest = "" }, Json)));
     public static bool SameIdentity(OverlayIdentity a, OverlayIdentity b) => JsonSerializer.Serialize(a, Json) == JsonSerializer.Serialize(b, Json);
-    public static JournalSourceCapture ReadCapture(string directory)
+    public static JournalSourceCapture ReadCapture(string directory, bool verifyPagedRoots = true)
     {
         string path = Path.Combine(directory, "capture.json"); WorkspaceStore.EnsurePlainPath(path);
         using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        if (input.Length > 256L * 1024 * 1024) throw Invalid("The capture manifest exceeds its bound.");
+        if (input.Length > 256L * 1024 * 1024) throw Invalid("The capture control record exceeds its bound.");
         JournalSourceCapture c;
         try { c = JsonSerializer.Deserialize<JournalSourceCapture>(input, Json) ?? throw Invalid("Missing capture manifest."); }
         catch (JsonException) { throw Invalid("Malformed source capture; preserve its pins."); }
+        if (c.Version == 2)
+        {
+            bool materialized = File.Exists(Path.Combine(directory, "materialized.json"));
+            JournalDeltaStore.ValidatePagedCapture(directory, c, verifyPagedRoots && !materialized);
+            if (materialized) ValidateMaterialized(directory, c);
+            return c;
+        }
         if (c.Version != 1 || c.Identity is null || string.IsNullOrWhiteSpace(c.Id) || c.Sequence < 0 ||
             c.Nodes.Length > MaxNodes || c.Hidden.Length > MaxNodes || c.ChangedPaths.Length > MaxNodes || c.Digest != Digest(c) ||
             c.Backings.Where((b, i) => b is null || b.Name != i.ToString("x8") + ".pin" || b.MinimumLength < 0 || !Path.IsPathFullyQualified(b.Source) || string.IsNullOrWhiteSpace(b.Identity)).Any() ||
@@ -271,8 +352,22 @@ public sealed class SourceCaptureTree : ISourceCaptureTree
     private const int MaxNodes = 250000;
     internal static void EnsurePins(string directory, JournalSourceCapture capture, IJournalFilePins pins)
     {
-        foreach (var backing in capture.Backings)
+        foreach (var backing in EnumerateBackings(capture))
             pins.Pin(backing.Source, Path.Combine(directory, backing.Name), backing.Identity);
+    }
+    internal static IEnumerable<CapturedBacking> EnumerateBackings(JournalSourceCapture capture)
+    {
+        if (capture.Paged?.Segments is not { } segments)
+        { foreach (var backing in capture.Backings) yield return backing; yield break; }
+        using var index = new PagedMetadataStore(capture.Paged.Directory);
+        string delta = Path.GetDirectoryName(capture.Paged.Directory)!;
+        foreach (var item in index.Open(segments).Enumerate())
+        {
+            var segment = JournalDeltaStore.ReadCapturedSegment(item.Value.Span);
+            if (item.Key != segment.Id.ToString("x16") || segment.NativeIdentity is null) throw Invalid("The frozen segment ownership differs.");
+            string name = Path.GetFileNameWithoutExtension(JournalSegmentStorage.FileName(segment.Id));
+            yield return new(Path.Combine(delta, name + ".sjr"), name + ".pin", segment.NativeIdentity, segment.Length, segment.Hash);
+        }
     }
     public static void RecoverPins(string captures, IJournalFilePins pins)
     {
@@ -294,14 +389,25 @@ public sealed class SourceCaptureTree : ISourceCaptureTree
     public static void Complete(string directory, IJournalFilePins pins)
     {
         var capture = ReadCapture(directory); string marker = Path.Combine(directory, "materialized.json");
+        using var readerFence = capture.ReaderName is { } name
+            ? new FileStream(Path.Combine(directory, name), FileMode.Open, FileAccess.ReadWrite, FileShare.None) : null;
+        if (readerFence is not null)
+        { pins.Verify(readerFence, capture.ReaderIdentity ?? throw Invalid("Missing capture reader identity.")); if (readerFence.Length != 0) throw Invalid("The capture reader marker changed."); }
         if (!File.Exists(marker)) Publish(marker, new { capture.Id, capture.Digest });
         ValidateMaterialized(directory, capture);
-        foreach (var backing in capture.Backings)
+        // Completed captures whose index has been reclaimed have no remaining
+        // aliases. Their small materialization receipt remains authoritative.
+        if (capture.Paged?.Segments is not null && !Directory.Exists(capture.Paged.Directory))
+        {
+            if (Directory.EnumerateFiles(directory, "*.pin").Any()) throw Invalid("Retain aliases whose ownership catalog is unavailable.");
+            return;
+        }
+        foreach (var backing in EnumerateBackings(capture))
         {
             string path = Path.Combine(directory, backing.Name); WorkspaceStore.EnsurePlainPath(path);
             if (!File.Exists(path)) continue;
             if (pins.Identify(path) != backing.Identity) throw Invalid("Preserve a replaced capture alias.");
-            File.Delete(path);
+            pins.Unpin(path, backing.Identity);
         }
     }
     private sealed record Materialized(string Id, string Digest);
@@ -317,14 +423,26 @@ public sealed class SourceCaptureTree : ISourceCaptureTree
         }
         catch (JsonException) { throw Invalid("Preserve a damaged materialization receipt and backing pins."); }
     }
+    internal static void RequireMaterialized(string directory, JournalSourceCapture capture) => ValidateMaterialized(directory, capture);
     internal static void Publish<T>(string path, T value)
     {
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(value, Json);
         string pending = path + ".pending";
         if (File.Exists(pending))
-        { if (!File.ReadAllBytes(pending).AsSpan().SequenceEqual(bytes)) throw Invalid("Preserve the different interrupted capture intent."); }
+        {
+            byte[] prefix = File.ReadAllBytes(pending);
+            if (prefix.Length > bytes.Length || !prefix.AsSpan().SequenceEqual(bytes.AsSpan(0, prefix.Length))) throw Invalid("Preserve the different interrupted capture intent.");
+            using var output = new FileStream(pending, FileMode.Open, FileAccess.Write, FileShare.Read); output.Position = prefix.Length;
+            output.Write(bytes.AsSpan(prefix.Length)); output.Flush(true);
+        }
         else { using var output = new FileStream(pending, FileMode.CreateNew, FileAccess.Write, FileShare.Read); output.Write(bytes); output.Flush(true); }
         File.Move(pending, path);
+    }
+    internal static void SerializeControl(Stream output, JournalSourceCapture value) => JsonSerializer.Serialize(output, value, Json);
+    internal static JournalSourceCapture DeserializeControl(Stream input)
+    {
+        try { return JsonSerializer.Deserialize<JournalSourceCapture>(input, Json) ?? throw Invalid("Missing frozen capture control."); }
+        catch (JsonException) { throw Invalid("Damaged frozen capture control."); }
     }
     private static WorkspaceException Invalid(string message) => new("SourceCaptureInvalid", message);
 }

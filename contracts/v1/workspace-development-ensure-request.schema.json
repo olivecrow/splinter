@@ -29,11 +29,6 @@
     "editor": {
       "type": "boolean"
     },
-    "maxJournalBytes": {
-      "type": "integer",
-      "minimum": 4096,
-      "maximum": 1099511627776
-    },
     "source": {
       "enum": [
         "git",
@@ -71,24 +66,6 @@
     "storage"
   ],
   "allOf": [
-    {
-      "if": {
-        "required": [
-          "maxJournalBytes"
-        ]
-      },
-      "then": {
-        "properties": {
-          "storage": {
-            "enum": [
-              "git-snapshot",
-              "plastic-snapshot",
-              "project-snapshot"
-            ]
-          }
-        }
-      }
-    },
     {
       "if": {
         "properties": {

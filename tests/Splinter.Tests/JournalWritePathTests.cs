@@ -50,10 +50,10 @@ public sealed class JournalWritePathTests
         var settings = typeof(JournalDeltaStore).GetField("boundedSettings", flags)!.GetValue(store);
         var write = typeof(JournalDeltaStore).GetMethod("WriteStateFrames", flags)!;
         long reads = store.Observe().Metrics!.JournalReadBytes;
-        long size = (long)write.Invoke(store, [live, null, null, settings])!;
+        long size = (long)write.Invoke(store, [live, null, null, settings, false])!;
         Assert.Equal(reads, store.Observe().Metrics!.JournalReadBytes);
         using var output = new MemoryStream();
-        long written = (long)write.Invoke(store, [live, output, null, settings])!;
+        long written = (long)write.Invoke(store, [live, output, null, settings, false])!;
         Assert.Equal(size, written); Assert.Equal(size, output.Length);
         Assert.True(store.Observe().Metrics!.JournalReadBytes > reads);
         Assert.Equal(0, tree.ReadBytes);

@@ -15,16 +15,17 @@ internal static class JournalReclamation
     internal static void Reclaim(string directory, SnapshotDeltaSeal seal, string[] metadataNames, string receiptPath, Action<string>? boundary = null)
     {
         string current = Path.Combine(directory, "delta.journal"), latestReceipt = receiptPath + ".latest", boundedReceipt = receiptPath + ".bounded";
-        bool latestIntent = LatestJournalReclamation.HasIntent(latestReceipt), boundedIntent = BoundedJournalReclamation.HasIntent(boundedReceipt);
+        bool latestIntent = LatestJournalReclamation.HasIntent(latestReceipt), boundedIntent = CurrentJournalReclamation.HasIntent(boundedReceipt);
         bool latest = File.Exists(current) && LatestJournalReclamation.IsLatest(current);
-        bool bounded = File.Exists(current) && JournalDeltaStore.IsBoundedJournal(current);
+        bool bounded = File.Exists(current) && CurrentJournalReclamation.IsManagedJournal(current);
         Require(!(latestIntent && (boundedIntent || bounded) || boundedIntent && latest ||
             File.Exists(receiptPath) && (latestIntent || boundedIntent || latest || bounded)),
             "ViewReceiptMismatch", "Conflicting journal reclamation modes must be preserved.");
         if (boundedIntent || bounded)
         {
-            BoundedJournalReclamation.ReclaimDirectory(directory, seal, metadataNames, boundedReceipt, boundary,
-                OperatingSystem.IsWindows() ? path => new WindowsJournalDirectoryGuard(path, BoundedJournalReclamation.GuardName) : null);
+            CurrentJournalReclamation.ReclaimDirectory(directory, seal, metadataNames, boundedReceipt, boundary,
+                OperatingSystem.IsWindows() ? path => new WindowsJournalDirectoryGuard(path, CurrentJournalReclamation.GuardName) : null,
+                OperatingSystem.IsWindows() ? new WindowsJournalFilePins() : null);
             return;
         }
         if (latestIntent || latest)

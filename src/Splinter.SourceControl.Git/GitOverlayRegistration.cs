@@ -54,7 +54,7 @@ public static partial class GitOverlayRegistration
         if (Directory.Exists(path) || File.Exists(path) || !Path.IsPathFullyQualified(path) || Same(project, path))
             throw new WorkspaceException("GitOverlayPathExists", "Register at a new absolute path separate from the source.");
         if (!Same(await Git(project, ["rev-parse", "--show-toplevel"], ct), project)) throw new WorkspaceException("GitProjectRootMismatch", "Use the repository root.");
-        if (!capturedSource && (await Git(project, ["status", "--porcelain"], ct)).Length != 0) throw new WorkspaceException("GitSourceDirty", "Prepare a recorded source checkpoint first.");
+        if (!capturedSource && GitWorkspaceProvider.ObserveStatus(project, ct, preview: false).Entries != 0) throw new WorkspaceException("GitSourceDirty", "Prepare a recorded source checkpoint first.");
         Directory.CreateDirectory(Path.GetDirectoryName(receiptPath)!);
         await Save(receiptPath + ".intent", new { project, path, branch, revision, ownerId }, ct);
         await Git(project, ["worktree", "add", "--no-checkout", "-b", branch, path, revision], ct);
@@ -114,21 +114,20 @@ public static partial class GitOverlayRegistration
             ? Measure("warm-initial-large-files", () => WarmInitialLargeFiles(receipt, ct, beforeWarmRead, observation)) : Task.CompletedTask;
         await Task.WhenAll(warm, Measure("refresh-index", () => GitWorkspaceProvider.RefreshOverlayIndex(receipt.Path, allowSourceChanges, ct)));
         if (File.Exists(indexLock)) throw new WorkspaceException("GitCommandFailed", "A concurrent Git index writer remains; preserve its lock.");
-        string head = "", status = "";
+        string head = ""; GitStatusSummary status = new("", 0, false);
         await Measure("final-head-status", async () =>
         {
             head = await Git(receipt.Path, ["rev-parse", "HEAD"], ct);
-            status = await Git(receipt.Path, ["status", "--porcelain"], ct);
+            status = GitWorkspaceProvider.ObserveStatus(receipt.Path, ct);
         });
-        return new { receipt, head, status, initialPayloadCopiedBytes = 0 };
+        return new { receipt, head, status = status.Preview, statusEntryCount = status.Entries, statusTruncated = status.Truncated, initialPayloadCopiedBytes = 0 };
     }
-    private static async Task WarmInitialLargeFiles(OverlayGitReceipt receipt, CancellationToken ct, Action<string>? beforeRead,
+    private static Task WarmInitialLargeFiles(OverlayGitReceipt receipt, CancellationToken ct, Action<string>? beforeRead,
         GitPreparationObservation? observation)
     {
-        string listing = await Git(receipt.Path, ["ls-tree", "-r", "-l", "-z", receipt.Revision], ct);
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
-            foreach (string line in listing.Split('\0', StringSplitOptions.RemoveEmptyEntries))
+            foreach (string line in GitWorkspaceProvider.GitRecords(receipt.Path, ["ls-tree", "-r", "-l", "-z", receipt.Revision], ct))
             {
                 ct.ThrowIfCancellationRequested();
                 int tab = line.IndexOf('\t');
@@ -168,6 +167,9 @@ public static partial class GitOverlayRegistration
     public static async Task<CandidateSourceProjection> QualifyCandidateSourceAsync(
         OverlayGitReceipt receipt, OverlayIdentity identity, CancellationToken ct)
     {
+        // Offline view/candidate publication remains its explicit diagnostic
+        // overlay-v2 domain. Product task-v4/overlay-v3 collection uses the
+        // independent generation engine and never enters this qualification.
         if (identity.Version != 2 || receipt.OwnerId != identity.Id ||
             !Same(receipt.Project, identity.Snapshot.SourcePath) ||
             identity.ExcludedTopLevel?.Contains(".git", StringComparer.OrdinalIgnoreCase) != true)
@@ -201,14 +203,17 @@ public static partial class GitOverlayRegistration
     {
         await VerifyAsync(r, ct);
         await Git(r.Path, ["add", "-A", "--", ".", ":(exclude)Assets/__Splinter__", ":(exclude)Assets/__Splinter__.meta"], ct);
-        string status = await Git(r.Path, ["status", "--porcelain", "--untracked-files=all"], ct);
-        if ((await Git(r.Path, ["diff", "--cached", "--name-only"], ct)).Length != 0)
+        var status = GitWorkspaceProvider.ObserveStatus(r.Path, ct);
+        bool stagedChanges = false;
+        foreach (string _ in GitWorkspaceProvider.GitRecords(r.Path, ["diff", "--cached", "--name-only", "-z"], ct)) stagedChanges = true;
+        if (stagedChanges)
             await Git(r.Path, ["-c", "commit.gpgsign=false", "commit", "-m", "Preserve owned snapshot overlay experiment result"], ct);
         string revision = await Git(r.Path, ["rev-parse", "HEAD"], ct);
         string resultRef = "refs/splinter/snapshot-results/" + r.OwnerId;
         await Git(r.Project, ["update-ref", resultRef, revision], ct);
         await Git(r.Project, ["cat-file", "-e", revision + "^{tree}"], ct);
-        return new { revision, resultRef, independentOfSnapshot = true, beforeStatus = status };
+        return new { revision, resultRef, independentOfSnapshot = true, beforeStatus = status.Preview,
+            beforeStatusEntryCount = status.Entries, beforeStatusTruncated = status.Truncated };
     }
     public static async Task<object> ReleaseAsync(OverlayGitReceipt r, string expectedRevision, CancellationToken ct)
         => await ReleaseCoreAsync(r, expectedRevision, "refs/splinter/snapshot-results/" + r.OwnerId, expectedRevision, false, ct);

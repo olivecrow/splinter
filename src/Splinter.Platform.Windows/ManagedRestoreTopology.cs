@@ -24,7 +24,7 @@ internal static class ManagedRestoreTopology
 
     internal static Model Build(OwnedDirectoryManifest manifest, DeltaRestoreEntry[] entries)
     {
-        var originals = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+        using var originals = manifest.OpenIndex(StringComparer.Ordinal);
         var final = new Dictionary<string, DeltaEntry>(StringComparer.Ordinal);
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var ids = new HashSet<Guid>();

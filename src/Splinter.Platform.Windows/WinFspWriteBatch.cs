@@ -124,6 +124,7 @@ public sealed partial class WinFspOverlayFileSystem
             long through = issuedWriteTicket;
             while (completedWriteTicket < through) Monitor.Wait(writeQueueGate);
         }
+        DrainAcceptedMetadata();
         writeTelemetry?.Drain(WriteClock() - started);
     }
 

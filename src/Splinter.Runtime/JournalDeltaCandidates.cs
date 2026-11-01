@@ -6,8 +6,19 @@ namespace Splinter.Runtime;
 
 public sealed partial class JournalDeltaStore
 {
-    public static JournalDeltaStore OpenReadOnly(string directory, OverlayIdentity identity, ISnapshotTree basis) =>
-        new(directory, identity, basis, "delta.journal", true);
+    internal string? ReadOnlyReplayScratchDirectory => readOnlyReplay?.ScratchDirectory;
+    /// <summary>
+    /// Replays the stopped journal without changing source journal/index bytes.
+    /// Current-format replay metadata is derived in an independently owned,
+    /// scoped scratch index; admitted metadata cursors retain that scope.
+    /// Offline derived change observations cannot be rebound as live IPC roots.
+    /// </summary>
+    public static JournalDeltaStore OpenReadOnly(string directory, OverlayIdentity identity, ISnapshotTree basis, bool ownsSnapshotTree = false, ICapturedContentReader? capturedContentReader = null,
+        IJournalFilePins? sourceFilePins = null)
+    {
+        try { return new(directory, identity, basis, "delta.journal", true, null, sourceFilePins: sourceFilePins, capturedContentReader: capturedContentReader) { ownsSnapshotTree = ownsSnapshotTree }; }
+        catch { if (ownsSnapshotTree && basis is IDisposable owner) owner.Dispose(); throw; }
+    }
 
     public SnapshotDeltaSeal Seal() { using (EnterGate()) { Check(); return SealCurrent(); } }
     // The source is opened read-only, denying an active writer. Only live private
@@ -83,11 +94,13 @@ public sealed class CandidateSnapshotTree : ISnapshotTree, IDisposable
             Provider = "sealed-range-candidate" };
     }
     public void EnsureAvailable() => basis.EnsureAvailable();
+    public void VerifyReadBoundary() => basis.VerifyReadBoundary();
     public SourceChangeView ObserveChanges(string[] managedPaths) => store.ObserveChanges(managedPaths);
     private static SnapshotEntry Convert(DeltaEntry entry) => new(entry.Path, entry.Directory, entry.Length,
         entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime, entry.UnixMode);
     public SnapshotEntry? Stat(string path) => store.Stat(path) is { } entry ? Convert(entry) : null;
     public IReadOnlyList<SnapshotEntry> List(string path) => store.List(path).Select(Convert).ToArray();
+    public IEnumerable<SnapshotEntry> EnumerateChildren(string path) => store.EnumerateChildren(path).Select(Convert);
     public int Read(string path, long offset, Span<byte> destination) =>
         store.Read((store.Stat(path) ?? throw new FileNotFoundException(path)).Id, offset, destination);
     public void Dispose() => store.Dispose();

@@ -27,7 +27,7 @@
       "maxItems": 4096,
       "items": {
         "minLength": 1,
-        "maxLength": 32000,
+        "maxLength": 32767,
         "type": "string"
       },
       "type": "array"

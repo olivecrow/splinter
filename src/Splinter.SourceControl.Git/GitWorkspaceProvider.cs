@@ -54,7 +54,9 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
     {
         if (WorkspaceStorage.HasRangeJournal(workspace.StorageMode) && sourceChanges is null) await CheckSnapshotGitFiles(workspace.Path, ct);
         await EnsureRegistered(workspace, ct);
-        SourceProof? proof = null;
+        SourceProof? proof = null, unchangedProof = null, committedProof = null;
+        try
+        {
         SourceState before = await InspectSourceAsync(workspace, ct, value => proof = value);
         if (proof is not null) RequireUnmanagedIndex(proof.Index, workspace.ManagedPaths);
         if (!before.HasChanges)
@@ -62,7 +64,6 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
             if (preserve is null) return before;
             await preserve(before.Revision);
             await EnsureRegistered(workspace, ct);
-            SourceProof? unchangedProof = null;
             var unchanged = await InspectSourceAsync(workspace, ct, value => unchangedProof = value);
             if (unchangedProof is not null) RequireUnmanagedIndex(unchangedProof.Index, workspace.ManagedPaths);
             if (unchanged.HasChanges || unchanged.Revision != before.Revision || unchanged.Fingerprint != before.Fingerprint)
@@ -98,7 +99,6 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
         if (await Required(workspace.Path, ["rev-parse", "HEAD^{tree}"], ct) != stagedTree)
             throw Error("SourceChanged", "The committed tree differs from the staged checkpoint; retain the commit and source.");
         await EnsureRegistered(workspace, ct);
-        SourceProof? committedProof = null;
         SourceState committed = await InspectSourceAsync(workspace, ct, value => committedProof = value);
         if (committedProof is not null) RequireUnmanagedIndex(committedProof.Index, workspace.ManagedPaths);
         if (committed.HasChanges || committed.Fingerprint != before.Fingerprint || committed.Revision != revision)
@@ -115,6 +115,8 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
             }
         }
         return committed;
+        }
+        finally { proof?.Dispose(); unchangedProof?.Dispose(); committedProof?.Dispose(); }
     }
 
     public async Task<IntegrationResult> IntegrateAsync(WorkspaceRecord workspace, string targetReference, CancellationToken ct = default)
@@ -134,7 +136,7 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
         if (await IsAncestor(workspace.ProjectPath, revision, target, ct)) return new(target, true);
         try
         {
-            var merge = await Run(workspace.ProjectPath, ["-c", "commit.gpgsign=false", "merge", "--no-ff", "--no-edit", revision], ct);
+            var merge = await Run(workspace.ProjectPath, ["-c", "commit.gpgsign=false", "merge", "--no-ff", "--no-edit", "--no-stat", revision], ct, boundedOutput: true);
             if (merge.ExitCode != 0) throw Error("IntegrationConflict", merge.Error.Trim());
         }
         catch
@@ -234,7 +236,7 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
     }
     private static async Task EnsureClean(string path, CancellationToken ct)
     {
-        if ((await ChangedPaths(path, ct)).Length != 0)
+        if (ObserveStatus(path, ct, preview: false).Entries != 0)
             throw Error("GitDirtyWorktree", "Saved and staged input must be clean; existing changes are preserved: " + path);
         foreach (string marker in new[] { "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD" })
             if ((await Run(path, ["rev-parse", "--verify", marker], ct)).ExitCode == 0)
@@ -300,13 +302,13 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
     }
     internal static async Task RefreshOverlayIndex(string cwd, bool allowSourceChanges, CancellationToken ct)
     {
-        var result = await Run(cwd, ["update-index", "--refresh"], ct);
+        var result = await Run(cwd, ["update-index", "--refresh"], ct, boundedOutput: true);
         // Exit 1 with no diagnostic means tracked files need update. A sealed
         // source candidate intentionally differs from its baseline index.
         if (result.ExitCode != 0 && !(allowSourceChanges && result.ExitCode == 1 && result.Error.Length == 0))
             throw Error("GitCommandFailed", result.Error.Trim());
     }
-    private static async Task<CommandResult> Run(string cwd, string[] args, CancellationToken ct, string? input = null)
+    private static async Task<CommandResult> Run(string cwd, string[] args, CancellationToken ct, string? input = null, bool boundedOutput = false)
     {
         var start = new ProcessStartInfo("git") { WorkingDirectory = cwd, UseShellExecute = false,
             RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true,
@@ -325,34 +327,15 @@ public sealed partial class GitWorkspaceProvider(ISourceChangeProvider? sourceCh
         catch (Win32Exception ex) { throw Error("GitUnavailable", ex.Message); }
         using (process)
         {
-            Task<string> stdout = process.StandardOutput.ReadToEndAsync(); Task<string> stderr = process.StandardError.ReadToEndAsync();
-            // Workspace operations can hash multi-GiB assets through an overlay
-            // or create Git objects. Keep a bounded deadline without treating
-            // ordinary large-project work as a hung metadata query.
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromMinutes(10));
-            try
-            {
-                Task send = input is null ? Task.CompletedTask : SendInput();
-                await Task.WhenAll(process.WaitForExitAsync(timeout.Token), send);
-            }
-            catch (OperationCanceledException)
-            {
-                if (!process.HasExited) process.Kill(entireProcessTree: true);
-                await process.WaitForExitAsync(CancellationToken.None);
-                if (ct.IsCancellationRequested) throw;
-                throw Error("GitCommandTimeout", "Git exceeded the 10-minute workspace operation limit; inspect the persisted operation and remaining locks before retrying.");
-            }
-            catch
-            {
-                if (!process.HasExited) process.Kill(entireProcessTree: true);
-                await process.WaitForExitAsync(CancellationToken.None);
-                throw;
-            }
+            Task<string> stdout = boundedOutput ? ReadBoundedOutput(process.StandardOutput) : process.StandardOutput.ReadToEndAsync();
+            Task<string> stderr = ReadBoundedOutput(process.StandardError);
+            using var lifetime = new GitCommandLifetime(args, ct);
+            await lifetime.WaitAsync(process, input is null ? null : SendInput, stdout, stderr);
             return new(process.ExitCode, await stdout, await stderr);
 
-            async Task SendInput()
+            async Task SendInput(CancellationToken token)
             {
-                await process.StandardInput.WriteAsync(input.AsMemory(), timeout.Token);
+                await process.StandardInput.WriteAsync(input.AsMemory(), token);
                 process.StandardInput.Close();
             }
         }

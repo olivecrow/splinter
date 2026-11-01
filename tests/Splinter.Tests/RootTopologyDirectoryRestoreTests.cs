@@ -711,7 +711,7 @@ internal sealed class RootTopologyRestoreFixture : IDisposable
         { Directory.SetCreationTimeUtc(path, FixedTime); Directory.SetLastAccessTimeUtc(path, FixedTime); Directory.SetLastWriteTimeUtc(path, FixedTime); }
         var snapshot = new SnapshotReference("012345678901234567890123", OwnedDirectorySnapshotTree.ProviderName, basis, basis,
             DateTimeOffset.UnixEpoch, true, true, "stopped-original-owned-directory");
-        Manifest = OwnedDirectorySnapshotTree.Capture(snapshot, snapshot.Id);
+        Manifest = OwnedDirectorySnapshotTree.Capture(snapshot, snapshot.Id, Path.Combine(root, OwnedDirectoryManifest.MetadataDirectoryName));
         var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         File.WriteAllText(Path.Combine(root, "manifest.json"), JsonSerializer.Serialize(Manifest, json));
         string hash = ManagedDirectoryBasis.HashFile(Path.Combine(root, "manifest.json"));

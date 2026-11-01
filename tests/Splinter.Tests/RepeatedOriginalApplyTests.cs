@@ -42,16 +42,29 @@ public sealed partial class FileWorkspaceTests
         string path = Path.Combine(f.Store.ControlPath(w.Id), "workspace.json"); var node = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
         switch (damage)
         {
-            case "old-version": node["version"] = 2; node.Remove("results"); node.Remove("originalApplies"); break;
-            case "missing-results": node.Remove("results"); break;
-            case "null-results": node["results"] = null; break;
-            case "null-generation": node["results"]![0] = null; break;
-            case "wrong-result-owner": node["results"]![0]!["id"] = new string('f', 24); break;
-            case "unknown-result-field": node["results"]![0]!["legacy"] = true; break;
-            case "missing-apply-history": node.Remove("originalApplies"); break;
+            case "old-version": node["version"] = 3; node.Remove("resultHistory"); node.Remove("originalApplyHistory"); break;
+            case "missing-results": node.Remove("resultHistory"); break;
+            case "null-results": node["resultHistory"] = null; break;
+            case "null-generation":
+            case "wrong-result-owner":
+            case "unknown-result-field":
+            {
+                var reference = node["resultHistory"]!.Deserialize<WorkspaceHistoryReference>(new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+                using var pages = new PagedMetadataStore(Path.Combine(f.Store.ControlPath(w.Id), "history-pages"), true);
+                var entry = pages.Open(reference.Root!).FindEntry("n0000000000000000")!;
+                byte[] bytes = pages.Open(entry.Child!).Find("0000000000000000")!;
+                var value = JsonNode.Parse(bytes)!.AsObject();
+                if (damage == "wrong-result-owner") value["id"] = new string('f', 24);
+                if (damage == "unknown-result-field") value["legacy"] = true;
+                var chunk = pages.Set(entry.Child!, "0000000000000000", System.Text.Encoding.UTF8.GetBytes(damage == "null-generation" ? "null" : value.ToJsonString()));
+                var root = pages.Set(reference.Root!, entry.Key, ReadOnlySpan<byte>.Empty, chunk); pages.Flush();
+                node["resultHistory"] = JsonSerializer.SerializeToNode(reference with { Root = root }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                break;
+            }
+            case "missing-apply-history": node.Remove("originalApplyHistory"); break;
         }
         string changed = node.ToJsonString();
-        if (damage == "duplicate-history-property") changed = changed[..^1] + ",\"results\":[]}";
+        if (damage == "duplicate-history-property") changed = changed[..^1] + ",\"resultHistory\":{}}";
         File.WriteAllText(path, changed);
         Assert.Equal(damage == "old-version" ? "StateVersionUnsupported" : "StateCorrupt",
             (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().ReleaseAsync(w.Id, ct))).Code);
@@ -196,7 +209,7 @@ public sealed partial class FileWorkspaceTests
         var first = (await f.New().CheckpointAsync(a.Id, "first result", "capture-1", ct)).Workspace.Results.Single();
         File.WriteAllText(Path.Combine(a.Path, "data.txt"), "not collected yet");
         var plan = (await f.New().PlanOriginalAsync(a.Id, first.Id, null, ct)).OriginalApplyPlan!;
-        Assert.Equal(2, plan.Version); Assert.Empty(plan.Conflicts);
+        Assert.Equal(3, plan.Version); Assert.Empty(plan.Conflicts);
         await f.New().ApplyOriginalAsync(a.Id, first.Id, "publish-1", plan.Digest, null, ct);
         Assert.Equal("first", File.ReadAllText(Path.Combine(f.Project, "data.txt")));
         Assert.Equal("not collected yet", File.ReadAllText(Path.Combine(a.Path, "data.txt")));

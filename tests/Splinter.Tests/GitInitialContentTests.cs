@@ -131,11 +131,13 @@ public sealed partial class SourceFingerprintTests
 
     private sealed partial class Tracker : ISourceContentSummaryProvider
     {
+        public int InitialCalls;
         public Dictionary<string, SnapshotContentSummary>? InitialSummaries;
         public Func<SourceContentSummaryView, SourceContentSummaryView>? TransformInitial;
         public Task<SourceContentSummaryView?> ObserveInitialContentAsync(WorkspaceRecord workspace,
             SourceChangeView expected, string[] paths, CancellationToken ct = default)
         {
+            InitialCalls++;
             if (InitialSummaries is null) return Task.FromResult<SourceContentSummaryView?>(null);
             var view = new SourceContentSummaryView(workspace.Snapshot!.Reference!, expected,
                 paths.Where(path => InitialSummaries.ContainsKey(path) &&

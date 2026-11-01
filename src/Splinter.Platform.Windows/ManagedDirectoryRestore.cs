@@ -24,13 +24,28 @@ internal static class ManagedDirectoryRestore
     {
         string root = state.Basis.ReceiptDirectory, planPath = Path.Combine(root, "restore-plan.json"), cursorPath = Path.Combine(root, "restore-cursor.json");
         var manifest = new OwnedDirectorySnapshotProvider(root, state.Basis.OwnerId).Read(state.Basis.Snapshot);
-        var manifestItems = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.OrdinalIgnoreCase);
+        ResumeStoppedSourceMaintenance(request, manifest, ct, boundary);
+        using var manifestItems = manifest.OpenIndex(StringComparer.OrdinalIgnoreCase);
         bool generalSideRecords = File.Exists(Path.Combine(root, "latest-restore-delta-reclaim.json")) ||
-            BoundedJournalReclamation.HasIntent(Path.Combine(root, "bounded-restore-delta-reclaim.bin")) ||
+            CurrentJournalReclamation.HasIntent(Path.Combine(root, "bounded-restore-delta-reclaim.bin")) ||
             Directory.EnumerateFileSystemEntries(root, "restore-file-*.json").Any();
         bool generalEvidence = File.Exists(planPath) || File.Exists(cursorPath) || generalSideRecords;
         bool unchangedPlan = ManagedUnchangedDirectoryRestore.HasPlan(root), sparsePlan = ManagedSparseDirectoryRestore.HasPlan(root),
             rootDeltaPlan = ManagedRootDeltaDirectoryRestore.HasPlan(root), topologyPlan = ManagedTopologyDirectoryRestore.HasPlan(root);
+        bool pagedPlan = ManagedPagedDirectoryRestore.HasPlan(root);
+        if (pagedPlan && (generalEvidence || unchangedPlan || sparsePlan || rootDeltaPlan || topologyPlan))
+            throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting paged and legacy restore artifacts.");
+        bool fresh = !generalEvidence && !unchangedPlan && !sparsePlan && !rootDeltaPlan && !topologyPlan;
+        // The immutable input can be tiny while the private final namespace is
+        // large. Count its fixed paged index before any DescribeRestore array.
+        bool large = manifest.ItemCount > 1024;
+        if (request.Identity.Version == 3 && fresh && !pagedPlan && !large)
+        {
+            using var current = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, new MetadataOnlyRestoreTree(manifest), sourceFilePins: new WindowsJournalFilePins());
+            large = current.RestoreIndexExceeds(1024 - manifest.ItemCount);
+        }
+        if (request.Identity.Version == 3 && (pagedPlan || large && fresh))
+        { await ManagedPagedDirectoryRestore.ExecuteAsync(state, request, manifest, ct, boundary); return; }
         if ((unchangedPlan ? 1 : 0) + (sparsePlan ? 1 : 0) + (rootDeltaPlan ? 1 : 0) + (topologyPlan ? 1 : 0) > 1)
             throw new WorkspaceException("GeneratedRestoreConflict", "Preserve conflicting directory restore modes.");
         if (generalSideRecords && !File.Exists(planPath)) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve general restore receipts without their plan.");
@@ -80,7 +95,7 @@ internal static class ManagedDirectoryRestore
         {
             if (Directory.Exists(state.OriginalPath)) throw new WorkspaceException("GeneratedRestoreConflict", "Preserve a directory that appeared at the original path.");
             using var basis = new OwnedDirectorySnapshotTree(manifest, state.Basis.Snapshot);
-            journal = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, basis);
+            journal = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, basis, sourceFilePins: new WindowsJournalFilePins());
             try
             {
                 var seal = journal.Seal(); var entries = journal.DescribeRestore();
@@ -144,7 +159,7 @@ internal static class ManagedDirectoryRestore
             }
             catch { journal.Dispose(); throw; }
         }
-        else journal = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, new MetadataOnlyRestoreTree(manifest));
+        else journal = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, new MetadataOnlyRestoreTree(manifest), sourceFilePins: new WindowsJournalFilePins());
         using (journal)
         {
             // Planning has closed the basis reader; restoration now uses only
@@ -267,9 +282,27 @@ internal static class ManagedDirectoryRestore
         }
         Cleanup(state, request, manifest, plan.Seal, boundary);
     }
+    private static void ResumeStoppedSourceMaintenance(OverlayServeRequest request, OwnedDirectoryManifest manifest,
+        CancellationToken ct, Action<string>? boundary)
+    {
+        string journalPath = Path.Combine(request.DeltaPath, "delta.journal");
+        if (request.Identity.Version != 3 || !File.Exists(journalPath) || !JournalDeltaStore.IsSegmentedJournal(journalPath)) return;
+        bool pending = JournalDeltaStore.HasPendingSourcePacking(journalPath) || File.Exists(Path.Combine(request.DeltaPath, "segment-reclaim.json")) ||
+            File.Exists(Path.Combine(request.DeltaPath, "live-repack.json"));
+        if (!pending) return;
+        // The outer restore owner has already proved its provider stopped.
+        // Maintenance reads private payload only, so a resumed restore may use
+        // fixed manifest metadata after some basis files have already moved.
+        using var source = new JournalDeltaStore(request.DeltaPath, request.Identity, new MetadataOnlyRestoreTree(manifest),
+            directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path), sourceFilePins: new WindowsJournalFilePins());
+        var before = source.Seal(); source.MaintainLiveStorage(ct: ct, collectSegments: true, boundary: boundary);
+        if (source.Seal() != before) throw new WorkspaceException("RestoreSealMismatch", "Maintenance changed the accepted source generation.");
+        if (JournalDeltaStore.HasPendingSourcePacking(journalPath) || File.Exists(Path.Combine(request.DeltaPath, "segment-reclaim.json")))
+            throw new WorkspaceException("SourceMaintenancePending", "Close the exact old source reader and resume this same restoration and packing request.");
+    }
     private static void Cleanup(ManagedDirectoryState state, OverlayServeRequest request, OwnedDirectoryManifest manifest, SnapshotDeltaSeal seal, Action<string>? boundary)
     {
-        var manifestItems = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.OrdinalIgnoreCase);
+        using var manifestItems = manifest.OpenIndex(StringComparer.OrdinalIgnoreCase);
         // The final ordinary NTFS tree is independent. Only untouched deleted
         // basis entries and this exact journal may now be reclaimed.
         if (Directory.Exists(state.Basis.Snapshot.RootPath))
@@ -294,15 +327,15 @@ internal static class ManagedDirectoryRestore
         if (!Directory.Exists(request.DeltaPath)) return;
         string journalPath = Path.Combine(request.DeltaPath, "delta.journal"), reclaim = Path.Combine(state.Basis.ReceiptDirectory, "latest-restore-delta-reclaim.json"),
             boundedReclaim = Path.Combine(state.Basis.ReceiptDirectory, "bounded-restore-delta-reclaim.bin");
-        bool latestIntent = File.Exists(reclaim), boundedIntent = BoundedJournalReclamation.HasIntent(boundedReclaim);
+        bool latestIntent = File.Exists(reclaim), boundedIntent = CurrentJournalReclamation.HasIntent(boundedReclaim);
         bool currentLatest = File.Exists(journalPath) && LatestJournalReclamation.IsLatest(journalPath);
-        bool currentBounded = File.Exists(journalPath) && JournalDeltaStore.IsBoundedJournal(journalPath);
+        bool currentBounded = File.Exists(journalPath) && CurrentJournalReclamation.IsManagedJournal(journalPath);
         if (latestIntent && (boundedIntent || currentBounded) || boundedIntent && currentLatest)
             throw new WorkspaceException("UnownedDeltaFiles", "Conflicting original-delta modes or reclamation inventories are preserved.");
-        if (BoundedJournalReclamation.HasIntent(boundedReclaim) || File.Exists(journalPath) && JournalDeltaStore.IsBoundedJournal(journalPath))
+        if (CurrentJournalReclamation.HasIntent(boundedReclaim) || File.Exists(journalPath) && CurrentJournalReclamation.IsManagedJournal(journalPath))
         {
-            BoundedJournalReclamation.ReclaimDirectory(request.DeltaPath, seal, ["identity.json"], boundedReclaim,
-                directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path, BoundedJournalReclamation.GuardName));
+            CurrentJournalReclamation.ReclaimDirectory(request.DeltaPath, seal, ["identity.json"], boundedReclaim,
+                directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path, CurrentJournalReclamation.GuardName), filePins: new WindowsJournalFilePins());
             boundary?.Invoke("restore.after-delta-reclaim"); return;
         }
         if (File.Exists(reclaim) || File.Exists(journalPath) && LatestJournalReclamation.IsLatest(journalPath))

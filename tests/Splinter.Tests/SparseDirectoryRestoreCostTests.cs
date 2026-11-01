@@ -35,7 +35,7 @@ public sealed class SparseDirectoryRestoreCostTests
         { Directory.SetCreationTimeUtc(path, fixedTime); Directory.SetLastAccessTimeUtc(path, fixedTime); Directory.SetLastWriteTimeUtc(path, fixedTime); }
         var snapshot = new SnapshotReference("012345678901234567890123", OwnedDirectorySnapshotTree.ProviderName, basis, basis,
             DateTimeOffset.UnixEpoch, true, true, "stopped-original-owned-directory");
-        var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, snapshot.Id);
+        var manifest = OwnedDirectorySnapshotTree.Capture(snapshot, snapshot.Id, Path.Combine(receipt, OwnedDirectoryManifest.MetadataDirectoryName));
         File.WriteAllText(Path.Combine(receipt, "manifest.json"), JsonSerializer.Serialize(manifest, json));
         string manifestHash = ManagedDirectoryBasis.HashFile(Path.Combine(receipt, "manifest.json"));
         File.WriteAllText(Path.Combine(receipt, "proof.json"), JsonSerializer.Serialize(new OwnedDirectoryProof(1, snapshot, snapshot.Id,

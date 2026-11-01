@@ -267,7 +267,7 @@ public sealed class OwnedDirectoryLifetimeTests(ITestOutputHelper output)
             manifest = OwnedDirectorySnapshotTree.Capture(snapshot, "owner");
         }
         internal OwnedDirectorySnapshotTree Open(Action? readAdmitted = null) => new(manifest, snapshot, true, readAdmitted);
-        public void Dispose() => directory.Dispose();
+        public void Dispose() { manifest.Dispose(); directory.Dispose(); }
     }
 
     private static void Wait(ManualResetEventSlim signal) => Assert.True(signal.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));

@@ -1,10 +1,14 @@
 # 현재 기반
 
-현재 task 상태는 v3다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 불변 수집·명시적 결과 선택·경로별 반영 이력·외부 도구의 실행 중 Editor 협력을 소유하며 [RI 자격](verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분한다. 관리형 basis 상태는 v2를 유지하며 이전 task는 이관 없이 보존·거부한다.
+[ST-01–23](verification/scalable-storage-throughput-followup.md)은 Core `IWorkspaceMetadataBatch` port·Windows metadata callback 수집·Runtime 취소 가능한 `PayloadHash`·Files `FileRawRangePreparation`을 추가한다. 내부 처리 경계이며 현재 영속/wire 버전과 전체 내구성/소유 proof를 유지한다. 시간과 자격 범위는 명시적으로 한정한다.
+
+[ST-24–28](verification/scalable-storage-throughput-followup.md#st-2428-구조적-후속-2026-11-01)은 Runtime `PagedMetadataBatch`·고정 작업 안의 제한된 native 내용 증명 재사용·동일 path import 재사용·Git의 정렬 이전 catalog 병합을 추가한다. 저널 ACK/root 내구성과 현재 형식은 유지하며 작은 국지 검사와 metadata 비용 감소만 확인했다.
+
+대규모 저장 후보는 task v4·관리형 basis v3·제품 overlay v3를 사용한다. 현재 표현과 진행 중인 SCAL-01–08 자격은 [대규모 저장](scalable-storage.md)이 소유한다. [반복 원본 반영](repeated-original-apply.md)의 불변 수집·명시적 결과·경로별 이력·외부 도구의 실행 중 Editor 협력은 유지한다. 과거 [RI](verification/repeated-original-apply.md)·MX·GCO 근거는 당시 task v3/basis v2 후보에 결속한다. 이전 상태는 보존·거부하고 일치하는 바이너리를 사용하며 자동 이관·회수하지 않는다.
 
 [English](../foundation.md)
 
-[GCO-01–04](verification/git-collection-optimization.md)가 현재 Git 수집 최적화의 한정 자격을 소유한다. 정확한 lease 아래 로컬 ref/receipt 검사·게시 시 전체 재검증을 하는 범위 reader와 전체 seal·재시도 의미를 유지하는 새 결합 checkpoint/release의 수집 한 번 공유다. wire schema·영속 버전을 유지한다.
+[GCO-01–04](verification/git-collection-optimization.md)가 현재 Git 수집 최적화의 한정 자격을 소유한다. 정확한 lease 아래 로컬 ref/receipt 검사·게시 시 전체 재검증을 하는 범위 reader와 전체 seal·재시도 의미를 유지하는 새 결합 checkpoint/release의 수집 한 번 공유다. 해당 GCO 후보는 wire schema·영속 버전을 유지했으며 별도 SCAL 후보가 현재 형식을 변경한다.
 
 [수명주기 병목 후속](plans/lifecycle-bottlenecks.md)은 최종 전체 일치·metadata 변경·기존 leaf 삭제의 Library 디렉터리 복원과 선택적 쓰기/Git 관측·읽기 전용 시작 캡처를 설명한다. 미지원 내용/구조 변경은 일반 파일별 복원을 유지한다. [BO 검증](verification/lifecycle-bottlenecks.md)은 구성 요소 증거와 실제 Unity 수명주기 자격을 구분한다.
 
@@ -18,7 +22,23 @@ Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트�
 
 제품 시작점은 [AI 안내](agent-start.md)와 `scripts/splinter.ps1`이다. 진단·공통 Library view·spike/probe는 [개발 CLI](development-cli.md)로 분리했다. 기존 verification은 해당 후보/입력의 근거이며 변경된 계약의 native 자격을 자동 부여하지 않는다.
 
-병렬 격리와 범위 저장은 Splinter의 공통 저장소 계층이 제공한다. 소스 공급자는 선택한 VCS 관리 정보와 Splinter 작업의 기준·결과·회수 사이의 안전 경계를 담당한다. 제품 CLI는 Git·VCS 없는 일반 폴더·Plastic 사용 환경를 명시적으로 선택한다. 소스/application 종류와 opaque 기준/결과 identity를 v2 작업 상태에 고정하고, 일반 폴더는 불변 파일 manifest·작업별 독립 payload를 사용한다. 실패 시 다른 소스로 fallback하지 않는다. 현재 제약과 실제 자격은 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. Git 원격 등록은 불필요하며 Plastic 사용 환경의 관리 정보/등록 격리와 독립 파일 결과는 [현재 계약](plastic-compatibility.md)을 따르며 [실제 자격](verification/plastic-compatibility.md)을 별도로 확인한다. 일반 폴더의 editorless [원본 apply](plain-folder-original-apply.md)는 계획/intent·조건부 Windows 게시를 제공하며 실제 제품 자격은 작은 Editor 없는 NTFS A/B 한 묶음에 한정한다.
+병렬 격리와 범위 저장은 Splinter의 공통 저장소 계층이 제공한다. 소스 공급자는 선택한 VCS 관리 정보와 Splinter 작업의 기준·결과·회수 사이의 안전 경계를 담당한다. 제품 CLI는 Git·VCS 없는 일반 폴더·Plastic 사용 환경를 명시적으로 선택한다. 소스/application 종류와 opaque 기준/결과 identity를 task v4 후보 상태에 고정하고, 일반 폴더는 불변 파일 manifest·작업별 독립 payload를 사용한다. 실패 시 다른 소스로 fallback하지 않는다. 현재 제약과 실제 자격은 [VCS 없는 작업공간](vcs-independent-workspaces.md)을 따른다. Git 원격 등록은 불필요하며 Plastic 사용 환경의 관리 정보/등록 격리와 독립 파일 결과는 [현재 계약](plastic-compatibility.md)을 따르며 [실제 자격](verification/plastic-compatibility.md)을 별도로 확인한다. 일반 폴더의 editorless [원본 apply](plain-folder-original-apply.md)는 계획/intent·조건부 Windows 게시를 제공하며 실제 제품 자격은 작은 Editor 없는 NTFS A/B 한 묶음에 한정한다.
+
+## 대규모 저장 후보의 구현 소유
+
+새 바이너리/페이지 표현과 자격은 [SCAL](scalable-storage.md)이 소유한다. `PagedMetadataStore`·`PagedSnapshotCatalog`·`PagedPathInterner`·디스크 정렬/cursor가 이름/경로/범위 인덱스를 제공한다. segment 저널은 root/보호를 고정한 뒤 경계 밖에서 결과를 보존한다. 같은 순번의 물리 채택/회수에도 논리 accepted-source seal을 유지하며 native identity/hash/page/inventory 증명을 계속 요구한다.
+
+Core의 선택적 `ISnapshotAvailabilityScope`는 이미 열린 불변 reader에 정확히 결합한 관측을 제공한다. Windows Plastic은 native 디렉터리 identity·쓰기/삭제를 차단한 manifest/catalog 파일 핸들을 고정한 뒤 전체 접수 증명을 수행한다. Heartbeat는 물리 결합을 확인하며 일반 관측·`VerifyReadBoundary`의 전체 manifest 증명은 유지한다. 자격을 가진 scope가 없는 Git/None reader의 기존 검사는 유지한다. Native 결합 비용은 32MiB 캐시와 별도다. 진행 중 live-index 복사는 독립 segment 정리보다 먼저 복구하고 이전 순서에서 이미 확정된 변경은 증명한 빈 header만 shadow에서 대조한다. Git 데이터 record 명령은 취소/drain·record 검사를 유지하며 정상적인 무출력 전체 tree 처리를 허용하고 object protocol의 blocking-read 보호는 유지한다. R19 focused 검증은 187행 중 186개 통과이며 actor 목록 1행은 필수 부모가 실행했다. 최종 SCAL 전체 gate는 남아 있다.
+
+Offline overlay v3 재생은 읽기 전용 소스 인덱스를 보존하고 같은 논리 identity·별도 주소 범위의 독립 소유 scratch에서 새 COW 페이지를 해석한다. 소스에 재생 metadata를 append하거나 graph 전체를 복사하지 않는다. Windows는 native pin·정확한 부모에 대한 scratch 디렉터리 원자 생성·extended 경로 native 열기를 제공한다. 접수된 restore cursor는 마지막 reader가 닫힐 때까지 소스·소유 기준본·journal backing·scratch를 보존하며 생성 간격·충돌은 deferred-reclamation 범위 `read-only-replay`에서 조회할 수 있다. Offline v3 `ObserveChanges`는 `SourceObservationUnavailable`로 거부하고 다시 결합할 root는 정확한 소유 live provider에서 얻으며 개발용 overlay v2와 구분한다. R14 focused 실행은 34개 중 33개, R17 결합 focused 실행은 107개 중 106개 통과이며 각각 subprocess 전용 actor 목록 skip 1개였다. 별도 Git 실험 정리는 그 뒤 기존 restore plan/cursor를 재개해 일반 Library·과거 결과 6개를 검증하고 불확실한 전체 인덱스를 소유권 채택·정리 없이 그대로 보존했다. 최종 SCAL gate는 미완료다. 정확한 자격·잔여 할당 범위는 [대규모 저장](scalable-storage.md)을 따른다.
+
+`OwnedContentStore`·`OwnedRangeContentStore`·`ResultFileContentStore`·수집 채택 인덱스가 불변 전체/chunk/slice 내용을 공유한다. 수정 가능한 원본으로 대체하지 않는다. Git commit/tree/ref 구체화는 명시적 branch 반영으로 미루며 일반 원본 파일 게시는 HEAD/index/branch를 유지한다. Windows의 페이지 Library 준비/복원은 아래 작은 입력의 최적화 복원 경로와 구분한다.
+
+조합 파일 descriptor codec v3는 정확한 소유 raw 기준과 보호된 외부 Git 기준을 구분한다. 최초 non-Git generation-basis 게시에서는 파일 전체가 일치하는 raw chunk를 공유할 수 있고 새 private chunk는 전체가 일치하는 기존 whole 객체를 공유할 수 있다. 전체 hash·길이·소유권 증명과 참조 보존을 요구한다. 기존 고정 header를 이관/재지정하거나 부분 일치로 대체하지 않으며 두 pool의 이전 복사본은 남을 수 있다. 경계와 미완료 자격은 [대규모 저장](scalable-storage.md)이 소유한다.
+
+`IWorkspaceMetadataMaintenance`·Runtime `MetadataMaintenance`/`PagedMetadataCollection`·Files `FileMetadataMaintenance`·CLI `WorkspaceMaintenanceCommands`가 workspace/shared/content/range 일곱 범위의 같은 요청 graph 회수를 담당한다. 활성 anchor·보존 세대/검토/진행 root·reader를 삭제 전에 보호한다. 같은 키 복구·native 생성 영수증·보호 잔여 페이지·완료한 과거 요청의 영수증 반환이 계약이다. `workspace read`·`workspace maintain`으로 노출하며 DB/daemon을 추가하지 않는다. metadata 캐시는 프로세스 공통32MiB를 계상하고 전체 대상/입력 native fence·payload/전체 private memory 비용은 별도다. 필수 SCAL gate는 진행 중이다.
+
+Metadata container reader는 캐시된 페이지 hit의 최근 접근 갱신까지 포함한 명시적 16-handle LRU를 사용한다. Scope/container를 직접 찾는 캐시 무효화의 새 partition/list 색인도 기존 32MiB 예산에 계상하며 쓰기를 배제하는 핸들만 페이지 캐시를 허용한다. Live 인덱스 회수는 접수한 cursor가 게시를 막으면 비싼 shadow 준비·재생 전에 유예하고 정확한 미완료 intent·최종 root/reader 보호를 유지한다. 유예나 강제 호출이 회수 완료를 뜻하지 않는다. 이 보호는 R17 focused 실행에서 검증했으며 보존 중인 100,000항목 provider 업그레이드·측정은 남아 있고 실측 속도 개선을 주장하지 않는다.
 
 ## 구조와 의존성
 
@@ -26,7 +46,7 @@ Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트�
 
 JSON object/array 내부의 중복 속성명 순회는 Runtime의 `JsonPropertyValidation`이 공통으로 소유한다. 이름은 Ordinal로 비교하며 크기·깊이·버전·역직렬화 옵션과 오류 코드는 각 입력/상태 경계에서 유지한다. 개발용 view 응답은 `start`의 Accepted 판단에만 임시 JSON 검사를 사용하며 다른 action의 결과는 최종 응답 출력에서 직렬화한다.
 
-[OS와 앱 확장 경계](extensibility-boundaries.md)는 snapshot identity에 고정한 경로 정책·선택적 Unix 권한 metadata와 앱별 프로젝트 정책을 소유한다. Unity의 원본 잠금/동반 파일/Library descriptor는 Unity 어댑터에 있고 Files·Windows는 명시적으로 주입한 정책을 사용한다. 관리형 basis 상태·준비 intent는 앱/디렉터리 identity를 명시한 v2만 지원한다. 다른 OS·앱의 실제 어댑터는 없으며 자동 적합성과 실제 지원은 [검증](verification/extensibility-boundaries.md)에서 구분한다.
+[OS와 앱 확장 경계](extensibility-boundaries.md)는 snapshot identity에 고정한 경로 정책·선택적 Unix 권한 metadata와 앱별 프로젝트 정책을 소유한다. Unity의 원본 잠금/동반 파일/Library descriptor는 Unity 어댑터에 있고 Files·Windows는 명시적으로 주입한 정책을 사용한다. 현재 관리형 basis 상태·준비 intent는 앱/디렉터리 identity·페이지 inventory를 가진 v3이며 이전 basis 상태는 보존·거부한다. 다른 OS·앱의 실제 어댑터는 없으며 자동 적합성과 실제 지원은 [검증](verification/extensibility-boundaries.md)에서 구분한다.
 
 Plastic 내용 reader는 Files에 내장된 고정 client adapter를 일반 사용자 PowerShell 자식에서 실행하고 private stdio frame만 읽는다. 공개 API listener나 새로운 CLI 명령은 제공하지 않는다. Windows `cm 11.0.16.10484`·PowerShell 7 전제와 helper의 bounded segment는 [현재 계약](plastic-project-basis.md), 자동/한정 native 읽기는 [보안 경계 검증](verification/security-boundaries.md)을 따른다. 작업공간의 저장 격리는 악성 Git hook·Unity 코드·인증된 MCP 코드 실행에 대한 OS 보안 sandbox가 아니다.
 
@@ -43,7 +63,7 @@ MX05의 root 이동·private 범위 반영은 전체 identity/내용/구성원 �
 | `Splinter.Host` | 읽기 전용 발견/진단 | Core, Protocol |
 | `Splinter.Runtime` | 작업공간 수명·atomic JSON 상태/잠금·범위 저널과 후보/cache 수명 | Core |
 | `Splinter.SourceControl.Files` | 일반 폴더/Plastic 파일 기준·독립 payload·Plastic 읽기 전용 호환 경계·고정 소스 라우팅·폐기 영수증 | Core, Runtime |
-| `Splinter.SourceControl.Git` | fixed commit/tree/blob reader·소유 기준 ref/fence·linked worktree/index·현재 소스 hash·독립 결과·guard가 있는 merge/회수 | Core |
+| `Splinter.SourceControl.Git` | fixed commit/tree/blob reader·소유 기준 ref/fence·순차 페이지 소스 해석·보존 파일/범위 결과·필요 시 명시적 branch 구체화 | Core, Runtime |
 | `Splinter.Application.Unity` | 정확한 버전/프로젝트의 Editor 실행·준비 관측·정상 종료·소유 bridge | Core |
 | `Splinter.Platform.Windows` | Git/Plastic/project 불변 reader 조합·WinFsp·변경 범위 저널·Job Object | Core, Runtime, Files, Git, WinFsp.Net; Win32 |
 | `Splinter.Workflows.Windows` | 개발용 불변 source view·공통 Library cache·독립 결과와 회수 의존성 | Runtime와 Git/Unity/Windows |
@@ -66,7 +86,7 @@ Runtime의 파일 잠금은 workspace ID별 명령을 직렬화하며 프로젝�
 
 workspace 상태와 Windows 제어 IPC는 같은 디렉터리에 flush한 임시 파일을 `File.Replace` 또는 최초 덮어쓰기 없는 move로 게시한다. reader의 delete sharing, 한정 공유 오류 재시도, unknown/손상/소유권 오류 보존은 [NTFS 계약](ntfs-workspaces.md)을 따른다. 상태 쓰기 실패 단계/HResult·게시 완료 여부는 [진단 계약](verification/state-write-diagnostics.md)에 있다.
 
-[Raw 쓰기 계약](raw-write-batching.md)은 제품 압축 writer를 모두 폐기하고 기존 현재 형식 payload의 검증 reader를 유지한다. Overlay v2·SJR2·SJL4·candidate v3는 유지한다. `IWorkspaceWriteBatch`는 크기가 제한된 순서 보장 SJR2 쓰기에 flush를 공유하고 영속 완료 뒤 성공한다. WinFsp는 mutation gate 전에 대기 쓰기를 모은다. 단일 쓰기와 SJL4 capsule 게시 경계는 유지한다. Checksum·checkpoint 증명·source/result/unmount seal·최초 전체 복제/읽기 hydration/전체 파일 copy-up 금지·원본/peer 보호를 유지한다. 현재 변경은 [RW 검증](verification/raw-write-batching.md)이 소유하며 JP/ME/LJ는 이전 한정 근거다.
+[Raw 쓰기 계약](raw-write-batching.md)은 제품 압축 writer를 모두 폐기하고 기존 현재 형식 payload의 검증 reader를 유지한다. 해당 RW 후보는 overlay v2/SJR2/SJL4·개발 candidate v3를 유지했다. 현재 SCAL 제품 overlay v3는 SJS1 segment raw frame·페이지 metadata를 사용하며 이전 형식과 구분한다. `IWorkspaceWriteBatch`는 크기가 제한된 순서 보장 SJR2 쓰기에 flush를 공유하고 영속 완료 뒤 성공한다. WinFsp는 mutation gate 전에 대기 쓰기를 모은다. 단일 쓰기와 SJL4 capsule 게시 경계는 유지한다. Checksum·checkpoint 증명·source/result/unmount seal·최초 전체 복제/읽기 hydration/전체 파일 copy-up 금지·원본/peer 보호를 유지한다. 현재 변경은 [RW 검증](verification/raw-write-batching.md)이 소유하며 JP/ME/LJ는 이전 한정 근거다.
 
 [WP 검증](verification/write-path-throughput.md)은 이미 영속화한 같은 핸들의 변경 없음이 증명된 명시적 SJR2 flush 재사용과 payload 읽기 없는 raw 상태 크기 계산을 소유한다. 실제 변경·접수된 쓰기 drain·신규/교체 핸들·전체 checkpoint 증명·SJL4 게시 경계는 유지한다. 덮어쓰기 양끝 탐색 후보는 전체 시간 기준을 충족하지 못해 제거했다.
 

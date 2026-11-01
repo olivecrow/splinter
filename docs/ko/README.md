@@ -1,10 +1,16 @@
 # 문서 지도
 
+[처리량 리뷰 후속](verification/scalable-storage-throughput-followup.md)은 `PagedMetadataBatch`·고정 작업의 내용 증명·정렬 catalog 병합을 포함한 ST-01–28·작은 native 검사·제한한 시간/gate 시도를 추적한다. 보존한 대형 입력 행렬을 자격화하거나 재개하지 않는다.
+
+[대규모 저장의 느린 구간](verification/scalable-storage-throughput-diagnosis.md)은 기존 10만 항목 실행 비용·확인된 수정·미측정 원인을 기록한다. 2026-11-01 사용자가 검증을 축소해 대형 입력은 상태를 보존하고 종료했으며 17GiB/10만 전체 수명주기/ABBA/최신 전체 gate는 미완료다. 이 실행을 일반 속도·사용성 자격으로 승계하지 않는다.
+
+[대규모 저장](scalable-storage.md)·[구현 계획](plans/scalable-storage.md)·[SCAL-01–08 검증](verification/scalable-storage.md)이 현재 task v4/basis v3/overlay v3 후보를 소유한다. 바이너리 디렉터리/페이지·순차 provider/저널·불변 공통 내용/범위·전체 잠금 게시·같은 요청 metadata 유지보수를 연결하며 필수 자격 검증은 진행 중이다. 기록하지 않은 대형·성능 자격은 주장하지 않는다.
+
 [Git 수집 최적화](plans/git-collection-optimization.md)·[GCO-01–04 검증](verification/git-collection-optimization.md)이 게시 경계 전체 재검증을 유지하는 Git 범위 reader·새 결합 최종화의 수집 한 번 공유를 소유한다. 작은 Editor 없는 전후 비교·전체 gate를 과거 Unity 시간과 구분한다.
 
 [Git 결과 수집·회수 진단](verification/git-result-collection-diagnosis.md)이 GCD-01을 소유한다. 기존 RI 입력 재현에서 계속 작업 reader의 반복 기준본 검사에 비용을 귀속했고 실제 로그에서 A 회수의 84.2%가 최종 재수집에 속함을 확인했다. 제품 최적화나 구버전 대비 속도 비교는 수행하지 않았다.
 
-현재 task 상태는 v3다. [반복 원본 반영](repeated-original-apply.md)이 실행 중 불변 수집·명시적 결과 선택·경로별 반영 이력·외부 도구의 실행 중 Editor 협력을 소유하며 [RI 자격](verification/repeated-original-apply.md)은 과거 종료형 Editor 근거와 구분한다. 관리형 basis 상태는 v2를 유지하며 이전 task는 이관 없이 보존·거부한다. RI-01–08은 Git/None/Plastic 각각 작은 고정 실제 Unity 원본/A/B 한 묶음·최종 현재 소스 회귀·명시한 미검증 한계로 한정 완료했다.
+대규모 저장 후보는 task v4·관리형 basis v3·제품 overlay v3를 사용한다. 현재 표현과 진행 중인 SCAL-01–08 자격은 [대규모 저장](scalable-storage.md)이 소유한다. [반복 원본 반영](repeated-original-apply.md)의 불변 수집·명시적 결과·경로별 이력·외부 도구의 실행 중 Editor 협력은 유지한다. 과거 [RI](verification/repeated-original-apply.md)·MX·GCO 근거는 당시 task v3/basis v2 후보에 결속한다. 이전 상태는 보존·거부하고 일치하는 바이너리를 사용하며 자동 이관·회수하지 않는다. RI-01–08은 Git/None/Plastic 각각 작은 고정 실제 Unity 원본/A/B 한 묶음·당시 최종 소스 회귀·명시한 미검증 한계로 한정 완료했다.
 
 마감한 [남은 수명주기 최적화](plans/remaining-lifecycle-optimization.md)는 MX-01–10으로 기존 미시도/부분 진행 후보 전체, 근거 있는 채택/폐기, 최종 동일 입력 Unity 반영/폐기 비교를 추적한다. 과거 대기 상태는 근거로 보존하며 최종 MX10 마감 절이 현재 상태를 소유한다. MX-05는 동일 입력 일반 NTFS 복원과 전체 gate 검증 뒤 root-delta A·게시 수 제한 guard의 topology B2를 채택해 마감했다. MX10은 변경 Library 복원 경로를 사용하지 않아 MX05의 실제 전체 절감은 미입증이다. MX-06은 독립 모델 window 측정의 6.85647005초 절감이 절대 10초 기준에 미달하고 앞선 큰 공통 flush 차이가 재현되지 않아 미채택으로 마감했다. 제품 checkpoint 코드는 같다. MX-07A와 MX-07B는 실측 후 폐기·제거하여 MX-07을 마감했다. MX-08A는 국소 영속 저널 비용·최종 전체/실제 정확성 근거로 채택했으며 MX-08B는 폐기·제거 완료, MX-09는 실제 Git/Unity 최종화 ABBA가 사전 큰 절감 기준에 미달하여 폐기·제거로 마감했다. MX-10 실제 반영·폐기 비교와 최종 전체 검증도 마감했다. MX-07A는 고정된 Editor 없는 None 입력에서 8.45773340초 / 15.47910650%를 절감했지만 절대 10초 기준에 미달해 제거했고 기준 소스/시험 323개 hash가 모두 일치한다. 그 MX07A 결과는 Unity나 실제 Plastic 성능 자격을 추가하지 않는다.
 
@@ -59,6 +65,7 @@ C20 후속은 [파일 결과 수집 처리량](plans/result-collection-throughpu
 | [시간·RAM 최적화](verification/time-memory-optimization.md) | Library 검증 범위 고정, 제한된 Git/저널 RAM cache, 독립 ensure 병렬 실행, 보호 회귀와 작은 입력 비용. 전체 Unity 시간은 후보별 [UF-01](verification/unity-final-lifecycle.md)·후속 [UT-01](verification/unity-time-memory.md)과 구분한다. |
 | [용어집](glossary.md) | 작업/기준/저장·식별자·보존/반영/회수·응답과 검증 상태의 쉬운 설명과 소유 문서 |
 | [현재 기반](foundation.md) | 모듈·의존성·명령·빌드와 시험 |
+| [대규모 저장](scalable-storage.md)·[계획](plans/scalable-storage.md)·[SCAL 검증](verification/scalable-storage.md) | task4/basis3/overlay3 후보: 디렉터리/페이지·불변 내용/범위·segment accepted-source seal·root-bound `workspace read`·같은 키 `workspace maintain`·보호 잔여·현재 자격 |
 | [OS와 앱 확장 경계](extensibility-boundaries.md), [검증](verification/extensibility-boundaries.md) | 불변 경로 정책·Unix 권한 metadata·앱별 원본/동반 파일/생성 디렉터리 정책, 실제 다른 OS·앱 미구현과 합성 시험의 구분 |
 | [보안 경계 검증](verification/security-boundaries.md) | Plastic private reader·서비스 상속 ACL·보호된 회수 잠금·짧은 IPC 수신의 자동/한정 읽기와 미실행 배포 경계, 과거 외부 MCP 인증 기록 |
 | [코드 최적화 회귀](verification/code-quality-optimization.md) | 구조화한 다음 행동·파일 rename/복원 검색·고유 객체 검사·원본 계획 조상 집합·압축 블록 순회의 자동 검증과 실측 한계 |
@@ -66,7 +73,7 @@ C20 후속은 [파일 결과 수집 처리량](plans/result-collection-throughpu
 | [개발용 CLI](development-cli.md) | 기본 CLI에서 분리한 diagnostic checkout·저장소 view·spike/probe의 진입점 |
 | [저장 view 계약 검증](verification/storage-view-contract.md) | 현재 후보·소스 세대·Library cache·독립 결과 계약과 schema/미지원 필드·같은 요청 복구·소유 회수의 자동 회귀 |
 | [폐기한 ReFS 기준본 경로](plans/refs-retirement.md) | 대형 프로젝트의 최초 전체 기준본 준비 부담으로 폐기한 기능과 과거 근거의 경계 |
-| [한정 버전 AI 시작 안내](agent-start.md) | 기본 CLI의 저장 경로별 전제·진입·정확한 경로/같은 작업 재개·명시적 종료·실패의 다음 행동 |
+| [현재 후보 AI 시작 안내](agent-start.md) | 기본 CLI의 저장 경로별 전제·진입·정확한 경로/같은 작업 재개·명시적 종료·실패의 다음 행동 |
 | [최소 AI 사용 스킬](../../skills/splinter/SKILL.md) | 저장소 지침 원본·직접/독립 작업 판단·CLI 발견·반환 경로·같은 작업 재개·명시적 종료/실패 처리. 설치/자동 binding은 없음 |
 | [VCS 없는 작업공간](vcs-independent-workspaces.md) | 명시적 소스/application 선택·파일 기준/결과·현재 형식·회수와 실제 검증의 구분 |
 | [VCS 없는 프로젝트 기준본](plain-project-basis.md), [범위](plans/plain-project-basis.md), [검증](verification/plain-project-basis.md) | 승인한 whole-project 관리형 원본·VSS 없는 None source/Library 공통 기준·원본/A/B private 범위·전체/선택 게시·task 참조 회수와 마지막 일반 NTFS 복원. 파일/실제 Unity·비용/미자격을 구분 |

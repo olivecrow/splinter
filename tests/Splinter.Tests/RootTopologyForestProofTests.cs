@@ -132,6 +132,7 @@ public sealed class RootTopologyForestProofTests
         public void Dispose()
         {
             RootHandle.Dispose();
+            original.Dispose(); staged.Dispose();
             if (cleanup) temporary.Dispose();
             else TestContext.Current.TestOutputHelper?.WriteLine("Preserved forest-proof fixture: " + temporary.Path);
         }

@@ -18,7 +18,8 @@ public sealed partial class GitWorkspaceProvider
     private const int SourceManifestVersion = 3;
     private const long MaxManifestBytes = 64 * 1024 * 1024;
     private sealed record SourceProof(SourceChangeView View, string Revision, string[] Files, string Interpretation,
-        string Index, string Path, string ProjectPath, SnapshotReference Snapshot, string[] ManagedPaths, bool CompleteMembership);
+        string Index, string Path, string ProjectPath, SnapshotReference Snapshot, string[] ManagedPaths, bool CompleteMembership) : IDisposable
+    { public PagedSourceProof? Paged { get; init; } public void Dispose() => View.Dispose(); }
 
     private async Task<SourceState> InspectSourceAsync(WorkspaceRecord workspace, CancellationToken ct,
         Action<SourceProof>? capture = null)
@@ -26,7 +27,8 @@ public sealed partial class GitWorkspaceProvider
         var clock = Stopwatch.StartNew();
         initialContentAdmissions.TryRemove(workspace.Id, out var initialAdmission);
         var tracker = WorkspaceStorage.HasRangeJournal(workspace.StorageMode) ? sourceChanges : null;
-        var before = tracker is null ? null : await tracker.ObserveChangesAsync(workspace, ct);
+        using var before = tracker is null ? null : await tracker.ObserveChangesAsync(workspace, ct);
+        if (before?.Index is not null) return await InspectPagedSourceAsync(workspace, before, initialAdmission, ct, capture);
         if (before is not null) RequireView(workspace, before);
         string revision = await Required(workspace.Path, ["rev-parse", "HEAD"], ct);
         string[] changes = (await InspectionChanges(workspace, before is not null, ct)).Where(p => !Managed(p, workspace.ManagedPaths)).ToArray();
@@ -163,7 +165,7 @@ public sealed partial class GitWorkspaceProvider
                 indexState != await Required(workspace.Path, ["ls-files", "--stage", "-z"], ct) ||
                 interpretation != await Interpretation(workspace, finalFiles, ct))
                 throw Error("SourceChanged", "Source membership or revision changed during verification; retry the current source.");
-            var after = await tracker!.ObserveChangesAsync(workspace, ct);
+            using var after = await tracker!.ObserveChangesAsync(workspace, ct);
             RequireView(workspace, after);
             if (before.Epoch != after.Epoch || before.Sequence != after.Sequence || !before.Changes.SequenceEqual(after.Changes))
                 throw Error("SourceChanged", "Source changed during verification; preserve edits and validate the new generation.");
@@ -206,6 +208,7 @@ public sealed partial class GitWorkspaceProvider
     private async Task VerifyStagedSourceAsync(WorkspaceRecord workspace, SourceProof proof, CancellationToken ct,
         bool staging = true)
     {
+        if (proof.Paged is not null) { await VerifyPagedSourceAsync(workspace, proof, staging, ct); return; }
         await EnsureRegistered(workspace, ct);
         RequireView(workspace, proof.View);
         if (workspace.Path != proof.Path || workspace.ProjectPath != proof.ProjectPath || workspace.Snapshot!.Reference != proof.Snapshot ||
@@ -224,7 +227,7 @@ public sealed partial class GitWorkspaceProvider
             revision != await Required(workspace.Path, ["rev-parse", "HEAD"], ct) ||
             !files.SequenceEqual(finalFiles, StringComparer.Ordinal) || interpretation != finalInterpretation)
             throw Error("SourceChanged", "Source membership, interpretation or Git metadata changed while staging; retain the source.");
-        var current = await sourceChanges!.ObserveChangesAsync(workspace, ct);
+        using var current = await sourceChanges!.ObserveChangesAsync(workspace, ct);
         RequireView(workspace, current);
         if (current.Epoch != proof.View.Epoch || current.Sequence != proof.View.Sequence ||
             !current.Changes.SequenceEqual(proof.View.Changes))
@@ -371,6 +374,24 @@ public sealed partial class GitWorkspaceProvider
 
     private static void RequireView(WorkspaceRecord workspace, SourceChangeView view)
     {
+        if (view.Index is not null)
+        {
+            if (view.WorkspaceId != workspace.Id || view.SnapshotId != workspace.Snapshot?.Reference?.Id ||
+                string.IsNullOrWhiteSpace(view.Epoch) || view.Sequence < 0 || view.Changes is null || view.Changes.Length != 0 ||
+                view.Index.Version != 1 || view.Index.Count < 0 || !IsInterpretationHash(view.Index.ContentHash) ||
+                view.Index.ManagedPaths is null || !view.Index.ManagedPaths.SequenceEqual(workspace.ManagedPaths))
+                throw Error("SourceObservationInvalid", "Source change history belongs to another workspace or scope.");
+            long count = 0, sequence = 0;
+            foreach (var change in view.EnumerateChanges())
+            {
+                if (change is null || string.IsNullOrEmpty(change.Path) || change.Path.Contains('\\') || change.Path.StartsWith('/') ||
+                    change.Path.Split('/').Any(part => part is ".." or "." or "") || change.Sequence <= 0 || change.Sequence > view.Sequence)
+                    throw Error("SourceObservationInvalid", "A paged source change record is invalid.");
+                count = checked(count + 1); sequence = Math.Max(sequence, change.Sequence);
+            }
+            if (count != view.ChangesCount || sequence != view.Sequence) throw Error("SourceObservationInvalid", "Source change membership differs from its root.");
+            return;
+        }
         if (view.WorkspaceId != workspace.Id || view.SnapshotId != workspace.Snapshot?.Reference?.Id ||
             string.IsNullOrWhiteSpace(view.Epoch) || view.Sequence < 0 || view.Changes is null ||
             view.Changes.Any(c => c is null || string.IsNullOrEmpty(c.Path) || c.Path.Contains('\\') ||

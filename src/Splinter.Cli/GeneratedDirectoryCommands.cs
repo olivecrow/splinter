@@ -36,7 +36,7 @@ internal static class GeneratedDirectoryCommands
                 {
                     respond(ApiResponse.Failure(command, "InvalidArguments", "Use the command's exact current schema.")); return;
                 }
-                var manager = new ManagedDirectoryBasis(new WorkspaceStore(home(parse)), UnityProjectPolicy.Policies, projectBasis);
+                var manager = new ManagedDirectoryBasis(new WorkspaceStore(home(parse), new WindowsJournalFilePins()), UnityProjectPolicy.Policies, projectBasis);
                 ManagedDirectoryState state;
                 if (action == "prepare")
                 {

@@ -8,13 +8,15 @@ namespace Splinter.Tests;
 public sealed partial class GitProofReuseTests
 {
     [Fact]
-    public async Task InsufficientProofBudgetRejectsBeforePayloadDecoding()
+    public async Task ProofCacheBudgetSpillsHashMetadataWithoutRejectingTheBlob()
     {
         using var f = await Fixture.Create(); using var tree = f.Open(511);
         byte[] bytes = Enumerable.Repeat((byte)217, 16).ToArray();
-        Assert.Equal("GitBasisUnsupported", Assert.Throws<WorkspaceException>(() => tree.Read("a.bin", 0, bytes)).Code);
-        Assert.All(bytes, b => Assert.Equal((byte)217, b));
-        Assert.Equal(0, tree.DecodedBlobBytes); Assert.Equal(0, tree.CachedProofBytes);
+        Assert.Equal(bytes.Length, tree.Read("a.bin", 0, bytes)); Assert.Equal(f.A[..bytes.Length], bytes);
+        Assert.Equal(f.A.Length, tree.DecodedBlobBytes); Assert.InRange(tree.CachedProofBytes, 1, 511);
+        tree.Read("a.bin", 70000, bytes); Assert.Equal(f.A[70000..70016], bytes);
+        Assert.Equal(1, tree.FullBlobProofs);
+        Assert.Equal(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(f.A)), tree.GetVerifiedContentSummary("a.bin")!.Sha256);
     }
     [Theory]
     [InlineData(false)]

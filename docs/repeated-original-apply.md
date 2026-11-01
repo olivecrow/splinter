@@ -8,7 +8,7 @@ This document owns continuing-task result generations and file publication to an
 
 ## Lifetimes and identities
 
-Current task records are **v3**. Managed project/Library basis records remain v2. Older task records are preserved and refused; finish them with their matching old binary. No migration, reclamation, new basis or new task is implied by upgrading the CLI. If a home still contains older records, choose a separate explicit v3 home for new tasks; do not move, rewrite or automatically sweep the older records.
+Current [scalable-storage candidate](scalable-storage.md) records are **task v4, managed basis v3, product overlay v3**; SCAL qualification remains in progress. RI-01–08 below qualify their historical task-v3/basis-v2 candidate. Preserve/refuse older records and finish them with the matching binary; no migration, reclamation, new basis or task is implied by a CLI update. Use an explicitly selected new-format home for new tasks while preserving older homes; never move, rewrite or sweep old state automatically.
 
 A task keeps its path, ID, request digest, immutable source basis, private journal and Library through repeated captures and publications. A result has its own immutable ID, sequence, request key, message, source sequence, capture digest, content identity and independent reference. Capturing a result does not stop its Editor or prohibit later edits/restarts.
 
@@ -21,7 +21,7 @@ Use the returned `data.resultGeneration.id`. Reusing the same capture key/messag
 
 The provider drains accepted writes, takes the callback/mutation boundary, flushes acknowledged data, and durably records namespace/metadata/range references and backing-file identities. Internal NTFS backing aliases protect those ranges. Payload reads, hashing and independent preservation happen after this boundary. Later writes belong to a later result. Bounded replacement and retained-capsule truncation respect aliases; only a private retained prefix may need a receipt-bound copy. Source project files are never copied up or hydrated into a clone. Recovery reads capture protection before writer replay/reclamation.
 
-File sources reuse content-addressed payload objects across generations. Git keeps independent result refs/objects and streams result blobs to the common file publisher. Every completed generation and publication receipt survives task reclamation. Logical retained-payload accounting is separate from actual NTFS allocation and peak RAM.
+Current file/range results share immutable content within the home across sources and generations. Git retains a protected immutable basis plus file/range result manifests; explicit branch integration materializes commit/tree/ref results when needed. Original-file publication uses the common conditional publisher without changing HEAD/index/branch. Every completed generation and publication receipt survives task reclamation. Logical retained-payload accounting is separate from actual NTFS allocation and peak RAM.
 
 ## Publish a fixed result
 

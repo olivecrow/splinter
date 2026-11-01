@@ -29,7 +29,7 @@ internal static class ManagedSparseDirectoryRestore
     {
         bool exists = File.Exists(PlanPath(root));
         if (!exists && (File.Exists(VerifiedPath(root)) || File.Exists(StagingReclaimPath(root)) ||
-            BoundedJournalReclamation.HasIntent(JournalReclaimPath(root)) ||
+            CurrentJournalReclamation.HasIntent(JournalReclaimPath(root)) ||
             Directory.EnumerateFileSystemEntries(root, StagePrefix + "*").Any())) throw Conflict();
         return exists;
     }
@@ -39,7 +39,7 @@ internal static class ManagedSparseDirectoryRestore
     {
         if (state.ApplicationKind != "unity" || state.DirectoryKind != "Library" || state.Basis.RelativePath != "Library" ||
             JournalMode(request) is null) return false;
-        var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+        using var items = manifest.OpenIndex(StringComparer.Ordinal);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var delta in entries)
         {
@@ -60,7 +60,7 @@ internal static class ManagedSparseDirectoryRestore
         ValidateManifest(state, manifest); RequireAbsent(state.OriginalPath);
         if (!Eligible(state, request, manifest, entries) || HasPlan(state.Basis.ReceiptDirectory)) throw Conflict();
         Directory.CreateDirectory(Path.GetDirectoryName(state.OriginalPath)!);
-        var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+        using var items = manifest.OpenIndex(StringComparer.Ordinal);
         var final = entries.Select(d => new SnapshotEntry(d.Entry.Path, d.Entry.Directory, d.Entry.Length, d.Entry.Attributes,
             d.Entry.CreationTime, d.Entry.LastAccessTime, d.Entry.LastWriteTime, d.Entry.UnixMode)).ToArray();
         var paths = final.Select(e => e.Path).ToHashSet(StringComparer.Ordinal);
@@ -95,7 +95,7 @@ internal static class ManagedSparseDirectoryRestore
         if (move)
         {
             if (File.Exists(VerifiedPath(state.Basis.ReceiptDirectory)) || File.Exists(StagingReclaimPath(state.Basis.ReceiptDirectory)) ||
-                BoundedJournalReclamation.HasIntent(JournalReclaimPath(state.Basis.ReceiptDirectory))) throw Conflict();
+                CurrentJournalReclamation.HasIntent(JournalReclaimPath(state.Basis.ReceiptDirectory))) throw Conflict();
             RequireStaging(state.Basis.ReceiptDirectory, plan, allowExisting: false);
             if (JournalMode(request) != plan.JournalMode) throw Conflict();
             RequireSeal(request, plan.Seal);
@@ -117,7 +117,7 @@ internal static class ManagedSparseDirectoryRestore
         ValidatePlan(state, request, manifest, plan);
         var verified = await ReadReceiptAsync(VerifiedPath(receiptRoot), planHash, ct);
         var reclaim = await ReadReceiptAsync(StagingReclaimPath(receiptRoot), planHash, ct);
-        bool journalPending = BoundedJournalReclamation.HasIntent(JournalReclaimPath(receiptRoot));
+        bool journalPending = CurrentJournalReclamation.HasIntent(JournalReclaimPath(receiptRoot));
         if (reclaim is not null && verified is null || journalPending && reclaim is null) throw Conflict();
         using var identity = journalPending ? null : PinIdentity(request, plan.IdentityHash);
         if (!journalPending)
@@ -136,10 +136,10 @@ internal static class ManagedSparseDirectoryRestore
             boundary?.Invoke("sparse.after-move");
         }
         RequireAbsent(state.Basis.Snapshot.RootPath); RequireStaging(receiptRoot, plan, allowExisting: true);
-        var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+        using var items = manifest.OpenIndex(StringComparer.Ordinal);
         var deleted = plan.Deleted.ToHashSet(StringComparer.Ordinal);
         var metadata = plan.Metadata.ToDictionary(e => e.Path, StringComparer.Ordinal);
-        var finalManifest = manifest with { Items = manifest.Items.Where(i => !deleted.Contains(i.Entry.Path))
+        var finalManifest = manifest with { Catalog = null, CatalogDirectory = null, ScratchOwner = null, Items = manifest.Items.Where(i => !deleted.Contains(i.Entry.Path))
             .Select(i => metadata.TryGetValue(i.Entry.Path, out var entry) ? i with { Entry = entry } : i).ToArray() };
         var atOriginal = new HashSet<string>(StringComparer.Ordinal);
         var existingStages = new bool[plan.Deleted.Length];
@@ -204,8 +204,8 @@ internal static class ManagedSparseDirectoryRestore
                 boundary?.Invoke("sparse.journal." + stage);
             }
             if (plan.JournalMode == "bounded")
-                BoundedJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], JournalReclaimPath(receiptRoot),
-                    ReclaimBoundary, path => new WindowsJournalDirectoryGuard(path, BoundedJournalReclamation.GuardName));
+                CurrentJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], JournalReclaimPath(receiptRoot),
+                    ReclaimBoundary, path => new WindowsJournalDirectoryGuard(path, CurrentJournalReclamation.GuardName), filePins: new WindowsJournalFilePins());
             else
                 LatestJournalReclamation.ReclaimDirectory(request.DeltaPath, plan.Seal, ["identity.json"], JournalReclaimPath(receiptRoot),
                     ReclaimBoundary, path => new WindowsJournalDirectoryGuard(path));
@@ -219,9 +219,9 @@ internal static class ManagedSparseDirectoryRestore
         if (plan.Version != 1 || state.ApplicationKind != "unity" || state.DirectoryKind != "Library" || state.Basis.RelativePath != "Library" ||
             plan.Basis != state.Basis || plan.OriginalPath != state.OriginalPath || plan.DeltaPath != request.DeltaPath ||
             plan.IdentityHash != IdentityHash(request.Identity) || plan.Seal is null || plan.Seal.DurableSequence < 0 || plan.JournalMode is not ("latest" or "bounded") ||
-            plan.Identities is null || plan.Identities.Count != manifest.Items.Length || plan.Metadata is null || plan.Deleted is null ||
+            plan.Identities is null || plan.Identities.Count != manifest.ItemCount || plan.Metadata is null || plan.Deleted is null ||
             manifest.Items.Any(i => !plan.Identities.TryGetValue(i.Entry.Path, out var identity) || string.IsNullOrEmpty(identity))) throw Conflict();
-        var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+        using var items = manifest.OpenIndex(StringComparer.Ordinal);
         var deleted = new HashSet<string>(StringComparer.Ordinal);
         foreach (string path in plan.Deleted)
             if (!deleted.Add(path) || !items.TryGetValue(path, out var item) || item.Entry.Directory) throw Conflict();
@@ -246,7 +246,7 @@ internal static class ManagedSparseDirectoryRestore
         {
             var entries = journal.DescribeRestore();
             if (journal.Seal() != plan.Seal || !Eligible(state, request, manifest, entries)) throw Conflict();
-            var items = manifest.Items.ToDictionary(i => i.Entry.Path, StringComparer.Ordinal);
+            using var items = manifest.OpenIndex(StringComparer.Ordinal);
             var final = entries.Select(d => new SnapshotEntry(d.Entry.Path, d.Entry.Directory, d.Entry.Length, d.Entry.Attributes,
                 d.Entry.CreationTime, d.Entry.LastAccessTime, d.Entry.LastWriteTime, d.Entry.UnixMode)).ToArray();
             var paths = final.Select(e => e.Path).ToHashSet(StringComparer.Ordinal);

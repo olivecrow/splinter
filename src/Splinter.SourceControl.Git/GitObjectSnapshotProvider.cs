@@ -98,7 +98,7 @@ public sealed partial class GitObjectSnapshotProvider(string receiptDirectory, s
         Require(receipt, snapshot); access.RequireMatch(snapshot);
         if (!receipt.Pinned || receipt.Released || access.RootPath != snapshot.RootPath || access.VerificationId != receipt.Tree)
             throw Failure("SnapshotIdentityMismatch", "Retain the owned basis and its exact tree proof.");
-        var metadata = receipt.SourceMetadata is { } basis ? GitSourceMetadata.ValidateFiles(GitSourceMetadata.Read(basis, snapshot.SourcePath).Files) : null;
+        var metadata = receipt.SourceMetadata is { } basis ? GitSourceMetadata.Read(basis, snapshot.SourcePath) : null;
         return new(snapshot, receipt.Tree, receipt.Revision, receipt.Reference,
             health ?? (() => ObserveAsync(snapshot).GetAwaiter().GetResult()), sourceMetadata: metadata);
     }
@@ -134,7 +134,7 @@ public sealed partial class GitObjectSnapshotProvider(string receiptDirectory, s
 
     private async Task<string?> FindRef(Receipt receipt, CancellationToken ct)
     {
-        string output = await Command(receipt.Snapshot.RootPath, ["for-each-ref", "--format=%(refname) %(objectname) %(symref)", receipt.Reference], ct);
+        string output = await Command(receipt.Snapshot.RootPath, ["for-each-ref", "--count=1", "--format=%(refname) %(objectname) %(symref)", receipt.Reference], ct);
         var entries = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(s => s.TrimEnd('\r').Split(' ', 3))
             .Where(p => p[0] == receipt.Reference).ToArray();
         if (entries.Length == 0) return null;

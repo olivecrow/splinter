@@ -4,7 +4,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Text.Json;
 using Splinter.Core;
+using Splinter.Runtime;
 
 namespace Splinter.SourceControl.Files;
 
@@ -28,17 +32,29 @@ public sealed class PlasticWorkspaceClient : IPlasticWorkspaceClient, ISourceCom
     }
     public async Task<PlasticWorkspaceLocation[]> ListAsync(CancellationToken ct = default)
     {
-        string output = await RunAsync(["workspace", "list", "--format={path}{tab}{wkid}"], ct);
+        // Compatibility convenience for callers explicitly requesting an
+        // array. Product registration guards use EnumerateAsync below.
         var result = new List<PlasticWorkspaceLocation>();
-        foreach (string line in output.Split('\n').Where(l => l.TrimEnd('\r').Length != 0))
-        {
-            string[] fields = line.TrimEnd('\r').Split('\t');
-            if (fields.Length != 2 || !Path.IsPathFullyQualified(fields[0]) || !Guid.TryParseExact(fields[1], "D", out _)) throw Unavailable();
-            result.Add(new(fields[0], fields[1]));
-            if (result.Count > 4096) throw Unavailable();
-        }
-        if (result.Select(r => Path.GetFullPath(r.Path)).Distinct(StringComparer.OrdinalIgnoreCase).Count() != result.Count) throw Unavailable();
+        await foreach (var location in EnumerateAsync(ct)) result.Add(location);
         return result.ToArray();
+    }
+    public async IAsyncEnumerable<PlasticWorkspaceLocation> EnumerateAsync([EnumeratorCancellation] CancellationToken ct = default)
+    {
+        using var scratch = new TemporaryMetadataDirectory(); using var input = new MetadataSpool(scratch.Path);
+        await foreach (string line in RunLinesAsync(["workspace", "list", "--format={path}{tab}{wkid}"], ct))
+        {
+            string[] fields = line.Split('\t');
+            if (fields.Length != 2 || !Path.IsPathFullyQualified(fields[0]) || !Guid.TryParseExact(fields[1], "D", out _)) throw Unavailable();
+            var location = new PlasticWorkspaceLocation(Path.GetFullPath(fields[0]), fields[1]);
+            string key = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(location.Path.ToUpperInvariant())));
+            input.Append(new(key, JsonSerializer.SerializeToUtf8Bytes(location)));
+        }
+        string? prior = null;
+        foreach (var row in MetadataExternalSort.Order(input.Read(), scratch.Path, ct))
+        {
+            if (row.Key == prior) throw Unavailable(); prior = row.Key;
+            yield return JsonSerializer.Deserialize<PlasticWorkspaceLocation>(row.Value.Span) ?? throw Unavailable();
+        }
     }
     async Task<SourceCompatibility> ISourceCompatibilityInspector.InspectAsync(string path, CancellationToken ct)
     {
@@ -49,8 +65,11 @@ public sealed class PlasticWorkspaceClient : IPlasticWorkspaceClient, ISourceCom
     {
         if (!repository.StartsWith("rep:", StringComparison.Ordinal)) throw Unavailable();
         string status = await RunAsync(["status", Path.GetFullPath(project), "--xml", "--encoding=utf-8", "--header", "--nochanges"], ct);
-        string locks = await RunAsync(["lock", "list", "--repository=" + repository[4..], "--anystatus", "--machinereadable", "--smartlocks", "--fieldseparator=|"], ct);
-        return ParseOriginalState(status, locks);
+        var state = ParseOriginalState(status, "");
+        using var scratch = new TemporaryMetadataDirectory(); using var input = new MetadataSpool(scratch.Path); long count = 0;
+        await foreach (string line in RunLinesAsync(["lock", "list", "--repository=" + repository[4..], "--anystatus", "--machinereadable", "--smartlocks", "--fieldseparator=|"], ct))
+            input.Append(new((count++).ToString("x16"), Encoding.UTF8.GetBytes(ParseLockRow(line))));
+        return state with { LockIndex = new PlasticLockIndex(input.Read().Select(row => Encoding.UTF8.GetString(row.Value.Span)), ct) };
     }
     public static PlasticOriginalState ParseOriginalState(string status, string locks)
     {
@@ -66,17 +85,67 @@ public sealed class PlasticWorkspaceClient : IPlasticWorkspaceClient, ISourceCom
             var paths = new List<string>();
             foreach (string line in locks.Split('\n').Where(l => l.TrimEnd('\r').Length != 0))
             {
-                string[] fields = line.TrimEnd('\r').Split('|');
-                if (fields.Length != 12 || fields[8] is not ("Locked" or "Retained") || !Guid.TryParse(fields[2], out _) || !fields[11].StartsWith('/')) throw new FormatException();
-                string path = fields[11][1..].TrimEnd('/');
-                if (path.Length == 0) paths.Add("");
-                else if (FileWorkspaceProvider.ValidPath(path)) paths.Add(path);
-                else throw new FormatException();
-                if (paths.Count > 4096) throw new FormatException();
+                paths.Add(ParseLockRow(line.TrimEnd('\r')));
             }
             return new(repository, server, changeset, selector, paths.Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal).ToArray());
         }
         catch (Exception ex) when (ex is XmlException or FormatException or InvalidOperationException or ArgumentException) { throw Unavailable(); }
+    }
+    internal static string ParseLockRow(string line)
+    {
+        string[] fields = line.Split('|');
+        if (fields.Length != 12 || fields[8] is not ("Locked" or "Retained") || !Guid.TryParse(fields[2], out _) || !fields[11].StartsWith('/')) throw Unavailable();
+        string path = fields[11][1..].TrimEnd('/');
+        if (path.Length != 0 && !FileWorkspaceProvider.ValidPath(path)) throw Unavailable();
+        return path;
+    }
+    private static async IAsyncEnumerable<string> RunLinesAsync(string[] arguments, [EnumeratorCancellation] CancellationToken ct)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using var process = new Process { StartInfo = new("cm") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true } };
+        foreach (string argument in arguments) process.StartInfo.ArgumentList.Add(argument);
+        try { if (!process.Start()) throw Unavailable(); }
+        catch (Win32Exception) { throw Unavailable(); }
+        Task<bool> error = DrainErrorAsync(process.StandardError); var line = new StringBuilder(); char[] buffer = new char[4096];
+        try
+        {
+            while (true)
+            {
+                deadline.CancelAfter(TimeSpan.FromSeconds(30)); int read;
+                try { read = await process.StandardOutput.ReadAsync(buffer.AsMemory(), deadline.Token); }
+                catch (Exception ex) when (ex is IOException or OperationCanceledException)
+                { ct.ThrowIfCancellationRequested(); throw Unavailable(); }
+                finally { deadline.CancelAfter(Timeout.InfiniteTimeSpan); }
+                if (read == 0) break;
+                for (int index = 0; index < read; index++)
+                {
+                    char value = buffer[index];
+                    if (value == '\n')
+                    { string text = line.ToString().TrimEnd('\r'); line.Clear(); if (text.Length != 0) yield return text; }
+                    else { if (line.Length == 65536) throw Unavailable(); line.Append(value); }
+                }
+            }
+            if (line.Length != 0) yield return line.ToString().TrimEnd('\r');
+            deadline.CancelAfter(TimeSpan.FromSeconds(30));
+            try { await process.WaitForExitAsync(deadline.Token); }
+            catch (OperationCanceledException) { ct.ThrowIfCancellationRequested(); throw Unavailable(); }
+            finally { deadline.CancelAfter(Timeout.InfiniteTimeSpan); }
+            if (process.ExitCode != 0 || await error) throw Unavailable();
+        }
+        finally
+        {
+            try
+            { if (!process.HasExited) { process.Kill(entireProcessTree: true); await process.WaitForExitAsync(CancellationToken.None); } }
+            catch (InvalidOperationException) { }
+            try { _ = await error; } catch (IOException) { }
+        }
+    }
+    private static async Task<bool> DrainErrorAsync(StreamReader input)
+    {
+        char[] buffer = new char[4096]; bool any = false;
+        for (int read; (read = await input.ReadAsync(buffer)) != 0;)
+            for (int index = 0; index < read; index++) any |= !char.IsWhiteSpace(buffer[index]);
+        return any;
     }
     private static async Task<string> RunAsync(string[] arguments, CancellationToken ct)
     {
