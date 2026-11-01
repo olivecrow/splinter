@@ -16,7 +16,7 @@ public sealed record OriginalPublicationMetrics(long AdmittedTargets, int PeakAd
 // The project lock serializes Splinter clients. These handles also exclude
 // external writes/renames to existing affected files and parent identities.
 // Publication never replaces an occupant of a name, including after recovery.
-public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
+public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher, IOriginalFileObservationProvider
 {
     private readonly Action<string, int>? boundary;
     private readonly bool allowPlasticAdministration;
@@ -38,6 +38,45 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
         using var lease = managedRoot?.Invoke(project);
         using var guard = new Guard(project, _ => false, allowPlasticAdministration, lease is not null, allowGitAdministration);
         return guard.Observe(relativePath, ct);
+    }
+
+    public IOriginalFileObservationScope OpenObservation(string project, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var lease = managedRoot?.Invoke(project);
+        Guard? guard = null;
+        try
+        {
+            guard = new Guard(project, _ => false, allowPlasticAdministration, lease is not null, allowGitAdministration);
+            return new ObservationScope(this, project, lease, guard);
+        }
+        catch { guard?.Dispose(); lease?.Dispose(); throw; }
+    }
+    private sealed class ObservationScope(WindowsOriginalFilePublisher owner, string project, IDisposable? lease, Guard guard) : IOriginalFileObservationScope
+    {
+        private bool disposed;
+        public string ProjectIdentity { get; } = Id(guard.Root);
+        public OriginalFileObservation? Observe(string relativePath, CancellationToken ct = default)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this); ct.ThrowIfCancellationRequested();
+            try { return guard.Observe(relativePath, ct); }
+            finally { guard.ReleaseObservationTargets(); }
+        }
+        public void VerifyBoundary(CancellationToken ct = default)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this); ct.ThrowIfCancellationRequested();
+            // Recheck managed-provider availability and VCS administration at
+            // the boundary; held root handles exclude replacement throughout.
+            using var current = owner.managedRoot?.Invoke(project);
+            if ((current is null) != (lease is null) || Id(guard.Root) != ProjectIdentity)
+                throw Conflict("The original observation root changed.");
+            guard.VerifyAdministration(owner.allowPlasticAdministration, owner.allowGitAdministration);
+        }
+        public void Dispose()
+        {
+            if (disposed) return; disposed = true;
+            try { guard.Dispose(); } finally { lease?.Dispose(); }
+        }
     }
 
     public void Publish(OriginalApplyState state, Func<OriginalFileVersion, Stream> openPayload, Action persist, CancellationToken ct = default)
@@ -363,12 +402,23 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
                 var fs = new StringBuilder(32);
                 Check(GetVolumeInformationByHandleW(Root, null, 0, out _, out _, out _, fs, fs.Capacity), "Inspect original filesystem");
                 if (fs.ToString() != (managed ? "SplinterSO" : "NTFS")) throw new WorkspaceException("OriginalApplyUnsupported", "The fixed original filesystem differs from its verified access contract.");
-                for (string? p = this.project; p is not null; p = Path.GetDirectoryName(p))
-                    foreach (string vcs in new[] { ".git", ".plastic", ".hg", ".svn" })
-                        if (Present(Path.Combine(p, vcs)) && !(p == this.project && (allowPlasticAdministration && vcs == ".plastic" || allowGitAdministration && vcs == ".git")))
-                            throw new WorkspaceException("VcsMetadataUnsupported", "VCS administration requires its explicit compatibility boundary.");
+                VerifyAdministration(allowPlasticAdministration, allowGitAdministration);
             }
             catch { Dispose(); throw; }
+        }
+        public void VerifyAdministration(bool allowPlasticAdministration, bool allowGitAdministration)
+        {
+            for (string? p = project; p is not null; p = Path.GetDirectoryName(p))
+                foreach (string vcs in new[] { ".git", ".plastic", ".hg", ".svn" })
+                    if (Present(Path.Combine(p, vcs)) && !(p == project && (allowPlasticAdministration && vcs == ".plastic" || allowGitAdministration && vcs == ".git")))
+                        throw new WorkspaceException("VcsMetadataUnsupported", "VCS administration requires its explicit compatibility boundary.");
+        }
+        public void ReleaseObservationTargets()
+        {
+            // Only the single-threaded planning scope calls this. Keep the
+            // root/ancestors, not an input-sized cache of file/directory pins.
+            foreach (var path in handles.Keys.Where(path => path.StartsWith(project + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
+                if (handles.TryRemove(path, out var handle)) { Interlocked.Decrement(ref activeHandles); handle.Dispose(); }
         }
         private string Full(string relative)
         {

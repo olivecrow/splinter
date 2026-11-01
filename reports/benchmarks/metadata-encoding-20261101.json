@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-01",
+  "baseline": "72601d6d4c9fee80c48dc15452b5caf7e345d84f",
+  "branch": "development",
+  "scope": "Five metadata duplication review comments, small local correctness and byte-cost evidence",
+  "formats": {
+    "metadataStore": 2,
+    "magic": "SPM2",
+    "task": 4,
+    "basis": 3,
+    "overlay": 3,
+    "metadataRoot": 1,
+    "page": "SPN1",
+    "directoryRecord": 2,
+    "publicationChangeInline": 4,
+    "publicationChangeInterned": 5,
+    "previousStorePolicy": "Preserve/refuse SPM1, including previous task-v4 state; finish with matching binary. No migration/fallback/reclamation."
+  },
+  "items": [
+    {
+      "id": "ST-44",
+      "implemented": false,
+      "decision": "Multi-entry pages deferred; deterministic treap, sparse COW, rank/select, graph copy/collection and old readers need a joint redesign",
+      "smallInput": {
+        "keys": 64,
+        "valueBytesEach": 16,
+        "pagesWritten": 64,
+        "pageBytesExcludingContainerHeader": 8259,
+        "keyValueBytes": 1280,
+        "pageFixedBytes": 49,
+        "nonNullReferenceBytes": 61,
+        "nullReferencesAlreadyOmitted": true
+      }
+    },
+    {
+      "id": "ST-45",
+      "implemented": true,
+      "change": "Exact per-field publication version references/deltas",
+      "beforeBytes": 215,
+      "afterBytes": 155,
+      "unit": "One inline binary change with Unicode path, changed After and attributes-only Expected difference"
+    },
+    {
+      "id": "ST-46",
+      "implemented": true,
+      "change": "Binary temporary comparison/history records, path only in spool key",
+      "valueBeforeBytes": 12150,
+      "valueAfterBytes": 57,
+      "checksummedRecordBeforeBytes": 23624,
+      "checksummedRecordAfterBytes": 11531,
+      "input": "90 Unicode path components, file digest and Unix mode"
+    },
+    {
+      "id": "ST-47",
+      "implemented": true,
+      "change": "Packed directory flags and omission of zero creation/access times",
+      "savingBothZeroBytes": 20,
+      "savingOneZeroBytes": 12,
+      "savingNeitherZeroBytes": 4
+    },
+    {
+      "id": "ST-48",
+      "implemented": true,
+      "change": "Binary listing values; original name only in comparator-sorted key",
+      "beforeValueBytes": 159,
+      "afterValueBytes": 41,
+      "metadata": "All three timestamps and Unix mode retained"
+    }
+  ],
+  "validation": {
+    "uniquePassed": 113,
+    "unresolvedFailures": 0,
+    "skips": 0,
+    "records": [
+      {
+        "file": "artifacts/metadata-encoding-20261101/encoding-final.json",
+        "tests": 13,
+        "passed": 13,
+        "failed": 0,
+        "skipped": 0,
+        "milliseconds": 1721
+      },
+      {
+        "file": "artifacts/metadata-encoding-20261101/roots-readers.json",
+        "tests": 40,
+        "passed": 37,
+        "failed": 3,
+        "skipped": 0,
+        "milliseconds": 2936
+      },
+      {
+        "file": "artifacts/metadata-encoding-20261101/collection.json",
+        "tests": 28,
+        "passed": 28,
+        "failed": 0,
+        "skipped": 0,
+        "milliseconds": 10110
+      },
+      {
+        "file": "artifacts/metadata-encoding-20261101/native-publication.json",
+        "tests": 14,
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0,
+        "milliseconds": 32256
+      },
+      {
+        "file": "artifacts/metadata-encoding-20261101/native-reader-scopes.json",
+        "tests": 21,
+        "passed": 21,
+        "failed": 0,
+        "skipped": 0,
+        "milliseconds": 10070
+      }
+    ],
+    "sourceManifest": "artifacts/metadata-encoding-20261101/source-manifest.json",
+    "initialSandboxRun": "encoding-first.json: 12 total, 8 rename-denied errors; workspace-temp rerun passed 12",
+    "environmentalReruns": "roots-readers.json: 37 pass, one VCS-ancestor guard and two sandbox hardlink errors; all three pass in native-publication.json",
+    "emptyFilterAttempt": "native-scopes.json selected 0; corrected, not counted",
+    "builds": {
+      "firstParallelFailureSeconds": 3.91,
+      "testOnlyCompilerErrorRunSeconds": 37.03,
+      "testOnlyCompilerErrors": 4,
+      "focusedPassSeconds": [
+        8.76,
+        8.51
+      ],
+      "solutionPassSeconds": 18.68,
+      "warnings": 0,
+      "errors": 0,
+      "log": "artifacts/metadata-encoding-20261101/solution-build.log"
+    },
+    "docsLinks": {
+      "checked": 656,
+      "broken": 0,
+      "record": "artifacts/metadata-encoding-20261101/docs-links.json",
+      "diffWhitespaceCheckPassed": true
+    }
+  },
+  "limits": {
+    "initialReadCoordinationExpectedMinutes": 3,
+    "perItemImplementationExpectedMinutes": [
+      5,
+      15
+    ],
+    "testBatchExpectedSeconds": 30,
+    "testBatchStopSeconds": 60,
+    "buildExpectedSeconds": 30,
+    "buildStopSeconds": 60,
+    "deadlineBreaches": 0,
+    "forcedProviderStops": 0
+  },
+  "qualification": {
+    "byteCostOnly": true,
+    "endToEndSpeedupMeasured": false,
+    "largeFixtureResumed": false,
+    "fullBuildPs1GateRun": false,
+    "actualGitPlasticUnityLifecycleRun": false,
+    "osCrashQualified": false,
+    "peakRssMeasured": false,
+    "remaining": [
+      "ST-44 multi-entry page representation",
+      "SCAL-03/07/08",
+      "full build.ps1 test gate"
+    ]
+  },
+  "binaries": [
+    {
+      "path": "src/Splinter.Runtime/bin/Release/net10.0/Splinter.Runtime.dll",
+      "sha256": "9bd2b99eb748782891fc65302657718c8deac6367dfc691362ccc5c4aafd482e"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/bin/Release/net10.0/Splinter.SourceControl.Files.dll",
+      "sha256": "fad269006d4c55c20cf677d3fb1ac167fc8e4b887040f6ca26d0e3f2fe239188"
+    },
+    {
+      "path": "tests/Splinter.Tests/bin/Release/net10.0/Splinter.Tests.dll",
+      "sha256": "9aa1b6f4b9d0c1b98e2137dd293161d7a587fd53c83e8086429ae74d03f0fb37"
+    }
+  ]
+}

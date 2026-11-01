@@ -380,24 +380,24 @@ public static class OriginalApplyPages
         }
     }
     private static string Key(long index) => index.ToString("x16", System.Globalization.CultureInfo.InvariantCulture);
-    private static byte[] EncodeChange(OriginalApplyChange change, PagedPathInterner? paths = null)
+    internal static byte[] EncodeChange(OriginalApplyChange change, PagedPathInterner? paths = null)
     {
         using var memory = new MemoryStream(); using var writer = new BinaryWriter(memory, Utf8, true);
-        writer.Write(paths is null ? (byte)1 : (byte)3);
+        writer.Write(paths is null ? (byte)4 : (byte)5);
         if (paths is null) WriteString(writer, change.Path); else writer.Write(Convert.FromHexString(PagedPathInterner.Reference(change.Path)));
-        WriteVersion(writer, change.Before); WriteVersion(writer, change.After);
+        WriteVersion(writer, change.Before); WriteDelta(writer, change.After, change.Before);
         writer.Write(change.Expected is not null);
-        if (change.Expected is { } expected) { WriteString(writer, expected.Identity); WriteVersion(writer, expected.Version); }
+        if (change.Expected is { } expected) { WriteString(writer, expected.Identity); WriteDelta(writer, expected.Version, change.Before, change.After); }
         writer.Write(change.AlreadyMatches); return memory.ToArray();
     }
-    private static OriginalApplyChange DecodeChange(ReadOnlySpan<byte> bytes, PagedPathInterner? paths = null)
+    internal static OriginalApplyChange DecodeChange(ReadOnlySpan<byte> bytes, PagedPathInterner? paths = null)
     {
         try
         {
             using var memory = new MemoryStream(bytes.ToArray(), false); using var reader = new BinaryReader(memory, Utf8);
-            if (reader.ReadByte() != (paths is null ? 1 : 3)) throw Invalid("Unsupported publication entry format.");
-            string path = paths is null ? ReadString(reader) : paths.Resolve(ReadHash(reader)); var before = ReadVersion(reader); var after = ReadVersion(reader);
-            OriginalFileObservation? observed = ReadBool(reader) ? new(ReadString(reader), ReadVersion(reader) ?? throw Invalid("An observed version is missing.")) : null;
+            if (reader.ReadByte() != (paths is null ? 4 : 5)) throw Invalid("Unsupported publication entry format.");
+            string path = paths is null ? ReadString(reader) : paths.Resolve(ReadHash(reader)); var before = ReadVersion(reader); var after = ReadDelta(reader, before);
+            OriginalFileObservation? observed = ReadBool(reader) ? new(ReadString(reader), ReadDelta(reader, before, after) ?? throw Invalid("An observed version is missing.")) : null;
             bool already = ReadBool(reader); if (memory.Position != memory.Length) throw Invalid("Trailing publication entry bytes.");
             return new(path, before, after, observed, already);
         }
@@ -433,6 +433,47 @@ public static class OriginalApplyPages
     }
     private static string ReadHash(BinaryReader reader)
     { byte[] bytes = reader.ReadBytes(32); if (bytes.Length != 32) throw Invalid("Truncated path identity."); return Convert.ToHexStringLower(bytes); }
+    // References are to complete versions within this record, never SameContent:
+    // attributes, timestamps and nullable Unix mode remain conflict inputs.
+    private static void WriteDelta(BinaryWriter writer, OriginalFileVersion? value, OriginalFileVersion? before, OriginalFileVersion? after = null)
+    {
+        if (value is null) { writer.Write((byte)0); return; }
+        (byte Mask, int Bytes) Difference(OriginalFileVersion? basis)
+        {
+            if (basis is null || basis.Kind != value.Kind) return (0, int.MaxValue);
+            byte mask = (byte)((basis.Length == value.Length ? 0 : 1) | (basis.Hash == value.Hash ? 0 : 2) |
+                (basis.Attributes == value.Attributes ? 0 : 4) | (basis.ModifiedUtcTicks == value.ModifiedUtcTicks ? 0 : 8) |
+                (basis.UnixMode == value.UnixMode ? 0 : 16));
+            return (mask, 2 + ((mask & 1) != 0 ? 8 : 0) + ((mask & 2) != 0 ? 32 : 0) +
+                ((mask & 4) != 0 ? 4 : 0) + ((mask & 8) != 0 ? 8 : 0) + ((mask & 16) != 0 ? value.UnixMode is null ? 1 : 5 : 0));
+        }
+        var first = Difference(before); var second = Difference(after); bool useAfter = second.Bytes < first.Bytes;
+        var delta = useAfter ? second : first;
+        int fullBytes = 23 + (value.Kind == "file" ? 32 : 0) + (value.UnixMode is null ? 0 : 4);
+        if (delta.Bytes >= fullBytes) { writer.Write((byte)1); WriteVersion(writer, value); return; }
+        writer.Write(useAfter ? (byte)3 : (byte)2); writer.Write(delta.Mask);
+        if ((delta.Mask & 1) != 0) writer.Write(value.Length);
+        if ((delta.Mask & 2) != 0) writer.Write(Convert.FromHexString(value.Hash!));
+        if ((delta.Mask & 4) != 0) writer.Write(value.Attributes);
+        if ((delta.Mask & 8) != 0) writer.Write(value.ModifiedUtcTicks);
+        if ((delta.Mask & 16) != 0) { writer.Write(value.UnixMode is not null); if (value.UnixMode is { } mode) writer.Write(mode); }
+    }
+    private static OriginalFileVersion? ReadDelta(BinaryReader reader, OriginalFileVersion? before, OriginalFileVersion? after = null)
+    {
+        byte tag = reader.ReadByte(); if (tag == 0) return null;
+        if (tag == 1) return ReadVersion(reader) ?? throw Invalid("A full publication version is missing.");
+        var basis = tag switch { 2 => before, 3 => after, _ => throw Invalid("Invalid publication version reference.") };
+        if (basis is null) throw Invalid("A publication version references a missing version.");
+        byte mask = reader.ReadByte();
+        if (mask > 31 || (mask & 2) != 0 && basis.Kind != "file") throw Invalid("Invalid publication version fields.");
+        long length = (mask & 1) != 0 ? reader.ReadInt64() : basis.Length;
+        string? hash = (mask & 2) != 0 ? ReadHash(reader) : basis.Hash;
+        int attributes = (mask & 4) != 0 ? reader.ReadInt32() : basis.Attributes;
+        long ticks = (mask & 8) != 0 ? reader.ReadInt64() : basis.ModifiedUtcTicks;
+        uint? mode = (mask & 16) != 0 ? ReadBool(reader) ? reader.ReadUInt32() : null : basis.UnixMode;
+        if (mode is > 0xFFF) throw Invalid("Invalid publication permission metadata.");
+        return new(basis.Kind, length, hash, attributes, ticks, mode);
+    }
     private static void WriteVersion(BinaryWriter writer, OriginalFileVersion? version)
     {
         writer.Write(version is null ? (byte)0 : version.Kind == "directory" ? (byte)1 : (byte)2);

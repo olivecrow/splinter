@@ -16,6 +16,8 @@ ST-36–40은 W10의 이름/namespace·Create 배치, A20의 조밀한 이력/�
 
 ST-41–43은 P40의 최초 연결을 client.lock 아래에서 관측하고, workspace 작업 잠금 내부의 연결 요청 및 R10 회수 intent 부재 대기를 제거한다. 불명확한 시작·일반 관측의 게시 유예·최종 수집/전체 seal·정확한 회수 순서는 유지한다. 기존 선택적 결과 diagnostics에 R10 하위 구간 시간을 추가한다. 작은 None 동일 입력 ABBA와 검증 실행 초과 기록은 처리량 후속 문서가 소유하며 큰 입력/전체 gate 근거가 아니다.
 
+ST-49–51은 완료된 SPM2 레코드 변경 뒤의 후속이다. A20은 한 계획 동안 정확한 root/managed lease를 유지하고 target을 다시 읽고 해제한 뒤 가용성/관리 경계를 재검증한다. A30은 여전히 모든 target을 재확보하고 기존 영속 보호 아래 게시한다. C20은 private 범위를 descriptor에 직접 전달하며 생략/기존 descriptor도 검증·adoption을 끝까지 drain한다. 단계 순서·결과·회수 의존성은 바꾸지 않는다. 별도의 작은 None ABBA는 대형 입력이나 과거 몇 시간 실행의 해결 자격이 아니다.
+
 ## 1. 흐름을 결정하는 규칙
 
 - 반환 `data.workspace.path`와 project/key/id/home/base/request identity를 사용한다. 편집·수집·반복 반영 동안 같은 작업을 유지한다.

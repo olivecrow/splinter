@@ -10,6 +10,10 @@ namespace Splinter.Runtime;
 // Small logical pages share append-only containers; no file per directory.
 public sealed partial class PagedMetadataStore : IDisposable
 {
+    // One current record-codec family. Old stores must be finished with their
+    // matching binary; never append new value codecs to an older store.
+    public const int FormatVersion = 2;
+    public static ReadOnlySpan<byte> FormatMagic => "SPM2"u8;
     public const int MaximumPageBytes = 65536;
     public const long ContainerTargetBytes = 64L * 1024 * 1024;
     public static long CachedMetadataBytes => PageCache.ChargedBytes;
@@ -63,9 +67,9 @@ public sealed partial class PagedMetadataStore : IDisposable
             }
             else if (!maintenance) readerLease = new(Path.Combine(this.directory, "writer.lock"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             byte[] header = ReadExactFile(identity, ContainerHeaderBytes);
-            if (!header.AsSpan(0, 4).SequenceEqual("SPM1"u8) ||
+            if (!header.AsSpan(0, 4).SequenceEqual(FormatMagic) ||
                 !SHA256.HashData(header.AsSpan(0, 16)).AsSpan().SequenceEqual(header.AsSpan(16)))
-                throw Invalid("The metadata store identity is corrupt.");
+                throw Invalid("Preserve an unsupported or corrupt metadata store; use its matching binary.");
             StoreId = Convert.ToHexStringLower(header.AsSpan(4, 12));
             if (initialStoreId is not null && StoreId != initialStoreId) throw Invalid("Preserve a metadata identity foreign to its fixed initialization.");
             locations = OpenLocations();
@@ -514,7 +518,7 @@ public sealed partial class PagedMetadataStore : IDisposable
     {
         if (input.Length < ContainerHeaderBytes) throw Invalid("A metadata container header is truncated.");
         Span<byte> header = stackalloc byte[ContainerHeaderBytes]; input.Position = 0; input.ReadExactly(header);
-        if (!header[..4].SequenceEqual("SPM1"u8) || StoreId != Convert.ToHexStringLower(header.Slice(4, 12)) ||
+        if (!header[..4].SequenceEqual(FormatMagic) || StoreId != Convert.ToHexStringLower(header.Slice(4, 12)) ||
             !SHA256.HashData(header[..16]).AsSpan().SequenceEqual(header[16..]))
             throw Invalid("A metadata container belongs to another store or is corrupt.");
     }
@@ -525,7 +529,7 @@ public sealed partial class PagedMetadataStore : IDisposable
         using (var created = new FileStream(pending, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read))
         {
             if (created.Length > ContainerHeaderBytes) throw Invalid("Preserve an oversized metadata initialization.");
-            byte[] value = new byte[ContainerHeaderBytes]; "SPM1"u8.CopyTo(value);
+            byte[] value = new byte[ContainerHeaderBytes]; FormatMagic.CopyTo(value);
             if (initialStoreId is null) RandomNumberGenerator.Fill(value.AsSpan(4, 12));
             else
             {
@@ -534,7 +538,7 @@ public sealed partial class PagedMetadataStore : IDisposable
                 Convert.FromHexString(initialStoreId).CopyTo(value, 4);
             }
             int retained = checked((int)created.Length); byte[] prior = new byte[retained]; created.ReadExactly(prior);
-            if (!prior.AsSpan(0, Math.Min(4, retained)).SequenceEqual("SPM1"u8[..Math.Min(4, retained)]))
+            if (!prior.AsSpan(0, Math.Min(4, retained)).SequenceEqual(FormatMagic[..Math.Min(4, retained)]))
                 throw Invalid("Preserve an invalid metadata initialization prefix.");
             if (initialStoreId is not null && retained > 4 && !prior.AsSpan(4, Math.Min(12, retained - 4)).SequenceEqual(value.AsSpan(4, Math.Min(12, retained - 4))))
                 throw Invalid("Preserve an initialization prefix belonging to another fixed store.");

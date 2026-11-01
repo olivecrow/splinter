@@ -12,6 +12,10 @@
 
 이후 동일 소규모 입력의 실제 시간 비교·느린 구간 수정 요청은 **ST-41–43**이 소유한다. 첫 ABBA는 `3f7d5b1`/`5dce6e0`, 둘째 ABBA는 `5dce6e0`/이번 수정 후보이며 두 블록을 하나의 교차 비교로 섞지 않는다.
 
+metadata 중복 리뷰 다섯 항목은 **ST-44–48**이 소유한다. 작은 레코드 변경 네 가지를 구현했고 다중 항목 페이지 재설계는 명시적으로 보류했다. metadata 저장소 codec 계열을 `SPM2`로 변경하며 대형 검증을 재개하지 않는다.
+
+
+metadata 대화 완료 후 요청한 수집/반영 조사·수정은 아래 **ST-49–51**이 소유한다. 비교 양쪽 모두 SPM2이며 앞선 SPM1 시간과 합치지 않는다.
 
 ## 변경
 
@@ -196,3 +200,89 @@ ST-41은 ST-36–40 전 `3f7d5b1`과 후 `5dce6e0`를 비교한다. ST-42는 남
 **검사 묶음 두 번에서 실행 지침을 지키지 못했다.** 예상 20초/중단 40초 묶음이 **67.997초**, 예상 5초/중단 10초 pilot이 **13.074초** 걸렸으며 제때 취소하지 못하고 정상 완료됐다. 허용 시간을 확대한 것으로 취급하지 않고 운영 오류로 보존한다. Launch 기록 부재가 원인이라는 가설은 pilot 개선이 없어 변경을 되돌렸다. 실제 계측은 반복된 실제 Git 준비/기준 증명/저널 준비가 한 사례에서 0.802/1.715/2.409초이고 첫 회수/재시도는 0.665/0.478초였다. Fixture를 정확한 lease 기반 Git 읽기 scope와 마지막 전체 `VerifyReadBoundary`로 바꾸고, 독립 사례를 제한 병렬·개별 10초 timeout으로 실행했다. 2개 pilot은 6.378초, 마지막 10개는 예상 20초/중단 40초 아래 **20.407초**에 통과했다. Fixture/병렬화 비교는 제품 개선율이 아니다.
 
 검증 합집합은 **고유 43개 통과, 실패/skip 0개**다. 게시 유예·점유/미해결 launcher·snapshot/mount 관측·중지 저널 보호 10개를 포함한다. 최종 제품 solution 빌드 **18.92초**, 집중 시험 빌드 10.78초, helper 빌드 2.93초이며 경고/오류는 모두 0개다. 고정한 최종 제품 바이너리는 현재 제품 출력과 일치한다. 대형 fixture·실제 Git/Plastic/Unity 수명주기·OS 장애·최대 RSS/하드웨어 포화·`build.ps1` 전체 시험 gate는 실행하지 않았다. task v4/basis v3/overlay v3·CLI 계약을 유지하며 SCAL-03/07/08은 미완료다. 원시 기록은 `artifacts/scalable-storage-timing-20261101/`와 보고서의 정확한 임시 fixture 경로에 보존했다.
+
+## ST-44–48: metadata 레코드 중복 검토
+
+시작 소스는 변경 없는 `development`의 `72601d6d4c9fee80c48dc15452b5caf7e345d84f`다. 사용자는 지정한 리뷰 다섯 항목·불필요한 중복 제거·JSON보다 효율적인 형식 검토와 항목별 작은 검증을 승인했다. 시작 시 표시된 다른 저장소 대화는 유휴 상태였으며 기존 변경이나 보존 fixture를 덮어쓰지 않았다. CLI 조회 JSON은 이미 바이너리인 대량 영속 자료와 구분한다.
+
+| ID | 결과와 유지한 경계 |
+| --- | --- |
+| ST-44 | **보류·미구현:** 다중 항목 정렬 트리 페이지. 현재 결정적 불변 treap는 키 하나당 node다. Null link는 이미 flag로 생략하며 61바이트 참조 세 개를 무조건 저장하지 않는다. 64개 키/16바이트 값 bulk build는 1,280바이트 key/value에 64페이지·8,259바이트를 쓰며 48바이트 container header는 제외했다. 페이지마다 checksum header 40바이트·길이/flag 9바이트와 null이 아닌 참조당 61바이트를 기록한다. 묶은 leaf/internal 페이지는 페이지 수/깊이를 줄일 수 있지만 결정적 논리 identity·희소 COW split/merge·rank/select·디스크 spine·graph relocation·회수/중단 proof·과거 cursor를 함께 재설계해야 한다. 논리 treap를 유지한 물리 packing도 인증한 subpage 주소/relocation이 필요하다. 어느 설계도 이번 작은 레코드 변경으로 자격화하지 않았고 깊이/페이지 수 감소를 주장하지 않는다. |
+| ST-45 | 게시 변경은 Before 전체를 보존하고 After/Expected는 같은 kind의 완전한 Before/After 중 더 작은 참조에 대해 필드 차이를 기록하되 전체 값보다 작을 때만 선택한다. 길이·전체 SHA-256·속성·mtime ticks·nullable Unix mode를 독립 복원한다. Expected native identity·AlreadyMatches도 별도다. 같은 내용이 같은 metadata를 뜻하지 않는다. 미지원 tag/mask·없는 참조·잘린 필드·후행 바이트는 거부한다. inline/internal 변경 tag는 4/5다. |
+| ST-46 | `FileApplyIndex.Build`/`ApplyVersions`는 원래 경로를 key에 한 번만 기록하고 type/길이/ticks/속성/hash/Unix mode의 바이너리 값과 별도 삭제 tag를 사용한다. 기존 spool envelope가 길이·SHA-256을 검증하고 codec이 flag·정확한 크기·경로/type/metadata·nullable 필드를 검사한다. 조밀 병합/희소 갱신·interning·경로 대소문자·영속 index 인코딩은 유지한다. 이 임시 레코드의 JSON 재파싱은 제거했다. |
+| ST-47 | 디렉터리 record v2는 flag를 묶고 0인 생성/접근 시각을 생략하며 0이 아닌 모든 값·mtime·속성·Unix mode·내용/child 참조·source reference·경로 정책을 유지한다. 선택 시각을 명시적 0으로 기록하면 비정규 형식으로 거부한다. 정확한 새 값 바이트로 논리 root가 달라지며 물리 배치는 여전히 논리 identity에서 제외한다. |
+| ST-48 | 목록 scratch는 원래 대소문자의 이름을 정렬 key 한 곳에 두고 바이너리 고정 metadata·overlay 전용 tag를 기록한다. 불변 경로 정책 comparer를 메모리 정렬·모든 spill run·모든 merge 단계에 적용한다. 중복 전체 경로를 버리기 전에 기준본 목록의 정확한 부모/경로를 확인하고 기준본 metadata를 반환하기 전에 snapshot 가용성을 다시 검사한다. 고정 node/name/hidden root·overlay 우선순위·원래 대소문자·숨김/제외·metadata 재사용을 유지한다. |
+
+**현재 형식 하나:** metadata identity/container 계열은 형식 2인 `SPM2`다. 저장소 열기·identity 읽기·회수/중단 audit·읽기 전용 파생 replay·Plastic native admission이 같은 magic을 쓴다. 직전 task-v4 후보의 `SPM1`도 append/회수 전에 보존·거부하므로 일치하는 바이너리로 마무리한다. 이전 디렉터리/변경 tag도 거부한다. 이관·변환·fallback·이전 저장소 정리는 제공하지 않는다. Task v4/basis v3/overlay v3·metadata root schema v1·treap page 배치·`SPN1` 논리 hash 알고리즘은 유지한다. 정확한 root/digest는 새 값 바이트를 결합하고 native hash·전체 inventory·소유권·reader fence·같은 요청 복구·영속 root/ACK 순서는 계속 필수다. 제어/CLI JSON은 유지한다.
+
+작은 바이트 비용 근거이며 **실제 전체 시간이나 대형 성능 개선율이 아니다**.
+
+| 고정 입력 / 측정 단위 | 이전 | 이후 |
+| --- | ---: | ---: |
+| Unicode 경로·After 내용 변경·Expected 속성만 다른 게시 변경 1개의 inline 바이너리 값 | 215 B | 155 B |
+| 생성/접근 시각 모두 0인 디렉터리 값 | 기존 값 크기 | 20 B 감소(시각 16 B + flag 통합 4 B) |
+| 선택 시각 둘 다 0이 아닌 디렉터리 값 | 기존 값 크기 | 4 B 감소 |
+| Unicode 90-component 경로·파일 hash·mode의 비교 값 | JSON 12,150 B | 경로는 key에만 둔 binary 57 B |
+| 같은 비교의 key 포함 checksum spool 전체 레코드 | 23,624 B | 11,531 B |
+| 시각 세 개와 Unix mode를 보유한 고정 목록 값 1개 | JSON 159 B | 이름은 key에만 둔 binary 41 B |
+
+게시의 이전 크기는 이전 바이너리 encoder의 정확한 시험 전용 복사본, 비교/목록은 이전 JSON 레코드 형태를 사용했다. 같은 고정 레코드 비교이며 독립적인 후보 전체 실행이 아니다. 참조 없는 전체 게시 version은 selector 1바이트가 추가되며 차등은 이 전체 표현보다 작을 때만 사용한다. 키 하나당 node/header 비용은 여전히 크다.
+
+검증은 **고유 113개 통과**, 미해결 실패/skip 0개다. 새 codec/비용 묶음은 **13개·1.721초**이며 Before/After/Expected 216개 조합·대표 레코드의 잘린 모든 prefix·이전 tag/magic·없는 참조·선택 시각/mode·Unicode 대소문자를 유지한 강제 다단계 spill/merge를 포함한다. 기존 root/reader는 **37개·2.936초** 통과하고 환경 실패 3개는 이후 native 묶음에서 통과했다. 회수/손상/같은 요청 중단은 **28개·10.111초**, native reader/Plastic admission은 **21개·10.070초**, native 게시/충돌/재시도/이력은 재실행 3개를 포함해 **14개·32.257초**다. 합집합에서 ID를 한 번만 센다. 실제 Plastic client/server·Git/Unity 수명주기·OS crash·대형 전체 시간/RSS는 미자격이다.
+
+최초 새 묶음은 sandbox 기본 임시 폴더의 rename 거부로 8개 오류가 났다. 저장소 소유 scratch에서는 당시 12개 모두 통과했다. root 묶음은 저장소 조상의 VCS guard 1건·sandbox hardlink 거부 2건에 걸려 제품 보호를 바꾸지 않고 새 일반 임시 fixture의 native 실행에서 통과했다. 잘못 결합한 class/method filter는 0개를 선택하여 수정했으며 증거에 포함하지 않는다. 실패/성공 원시 CTRF는 모두 보존했다. 최초 병렬 빌드는 3.91초에 진단 없이 실패했고 직렬 빌드 37.03초에서 시험 코드의 nullability/취소 analyzer 오류 4개를 확인·수정했다. 이후 집중 빌드는 8.76/8.51초 통과했고 최종 Release solution 빌드는 **18.68초**, 경고/오류 0개다.
+
+최초 시간 범위는 읽기/조율 약 3분·항목당 구현 5–15분·검증 묶음 예상 최대 30초와 각 예상의 두 배 중단이었다. 위험한 페이지 재설계를 시도하기 전에 범위를 좁혔다. 빌드는 앞선 작은 빌드 기록을 근거로 예상 30초/중단 60초를 사용했다. 실행한 묶음/빌드는 모두 중단 경계 안에서 끝났고 쓰기 중 provider의 강제 종료는 없었다. 보존 100k/17GiB fixture·Editor·실제 수명주기는 재개하지 않았다. 사용자 작은 검증 지시에 따라 `build.ps1` 전체 gate는 의도적으로 미실행이며 SCAL-03/07/08은 미완료다. 근거는 [레코드/형식 보고서](../../../reports/benchmarks/metadata-encoding-20261101.json)와 `artifacts/metadata-encoding-20261101/`의 소스 hash·CTRF다.
+
+## ST-49–51: metadata 최적화 이후 수집·반영
+
+대화 `01a19778-a47d-72f1-8c1f-0008fc633412`의 완료를 확인한 뒤 구현했다. 그 대화의 미커밋 ST-44–48 변경은 기준 patch에 따로 보존했다. 비교 양쪽은 `72601d6` 위 같은 SPM2 변경과 같은 선택적 diagnostics를 사용한다. 이번 후속은 task/basis/overlay·metadata codec·CLI/wire schema·게시 내구성 계약을 바꾸지 않는다.
+
+| ID | 원인·수정·유지한 보호 |
+| --- | --- |
+| ST-49 | 계획이 target마다 `WindowsOriginalFilePublisher.Observe`를 호출하면서 `ManagedDirectoryBasis.AcquireOriginal`의 provider snapshot 가용성 증명·root/조상 핸들·VCS 검사를 반복했다. 전체 기준본 작업이 선택 파일 수만큼 곱해지는 구조였다. Core 선택 port `IOriginalFileObservationProvider`/`IOriginalFileObservationScope`가 한 계획 동안 정확한 root/조상/관리형 reader를 유지하고 target마다 다시 읽은 뒤 해제하며 `SavePlan` 전에 가용성/관리 경계를 재검증한다. 명령 간 관측 재사용이나 입력 크기만큼의 핸들 캐시는 없다. 선택 port가 없는 publisher는 기존 관측을 유지하고 실제 게시는 여전히 전체 대상을 독립 잠금·재검증한다. 16파일 native 시험에서 resolver 호출 **17→2**와 후속 편집·root 교체 차단·취소·새 VCS 관리를 확인했다. 확장 비용의 코드 근거이며 대형 절감 실측이 아니다. |
+| ST-50 | `PreserveRangePayloads`는 파일마다 private 범위 spool을 썼다가 다시 읽었고 기준본과 같은 payload는 descriptor 목록을 소비하지도 않았다. 이제 descriptor builder에 직접 전달하고, 기존 descriptor 또는 기준본 동일 payload여도 나머지 행을 끝까지 drain한다. 기준본 동일 payload의 불필요한 raw-basis 조회도 생략한다. 모든 구간/chunk 검사·보존·adoption 행·독립 결과 증명·영속 root/ACK를 유지한다. 새/기존/기준본 동일 payload 각각 정상 및 잘못된 마지막 범위를 검사했고, 거부 시 이전 결과를 유지하고 새 adoption/결과 영수증을 게시하지 않았다. 메모리는 스트리밍을 유지한다. |
+| ST-51 | 기존 선택적 diagnostics에 raw 준비·descriptor 처리·adoption 게시·원본 관측·계획·게시를 분리했다. 로그는 복구 입력이나 성공 영수증이 아니다. 새 작은 ABBA 두 블록의 중간/최종 후보를 구분하고 합산하지 않는다. |
+
+기존과 같은 **31파일 / 디렉터리 1개 / 992바이트 / payload 16종**이며 seed 내용·속성·고정 mtime이 일치한다. 8회 최종 경로/길이/내용도 일치하고 후속 편집 시각·생성 ID는 실행마다 다르다. 매 실행은 27명령·명시적 수집 4회·계획/게시 4회·release 중 마지막 A/B 수집·원본 복원이며 Editor는 없다. 아래 구간은 CLI 진입점 내부 합계이고 전체 시간에는 dispatch·PowerShell·sampling이 포함되므로 행을 더해 전체로 해석하지 않는다.
+
+| 최종 블록 `a3/c1/c2/a4`, 초 | 수정 전 평균 | 최종 평균 |
+| --- | ---: | ---: |
+| 준비 | 8.95 | 8.53 |
+| 수집 | 18.46 | 16.47 |
+| 계획 포함 반영 | 18.61 | 16.42 |
+| 회수/복원 | 21.90 | 18.32 |
+| 전체 | 86.32 | 77.47 |
+
+전체 범위는 이전 **76.98–95.66초**, 이후 **75.48–79.46초**다. 관측 평균은 8.85초/10.3% 줄었지만 대조군 변동이 바꾸지 않은 adoption 게시/회수에도 나타나므로 **전체 인과 개선율로 확정하지 않는다**. 중간 `a1/b1/b2/a2`는 평균 83.52→80.15초, 범위 78.50–88.53초 / 78.69–81.60초이며 새로 합성한 descriptor는 당시 spool을 사용했다. 앞선 SPM1 실행과 비교하거나 가장 빠른 실행만 고르지 않는다.
+
+더 반복적으로 확인된 구간은 target 관측 76회다. 최종 평균 **1.737→0.340초(80.4% 감소)**이며 중간 블록도 1.656→0.357초다. 반영 내부 재계획을 포함한 계획 8회의 합계는 최종 블록에서 **5.808→4.045초**다. 결과 6회의 descriptor 처리는 **1.007→0.951초**로, 작은 입력에서 **의미 있는 수집 속도 개선은 입증하지 못했다**. 최종 후보의 결과 6회 합산 평균에는 별칭 정리 **3.194초**, backend 완료 **3.020초**, freeze **2.890초**, adoption 게시 **1.708초**가 남았다. 현재/진행 중/과거 참조 inventory·영속 metadata·native reader 경계의 비용이며 제거하지 않았다. 중첩 계측은 부모와 합산하지 않는다.
+
+최종 소스 집중 검증은 **28개 통과·실패/skip 0개**다. 원본 관측/게시·portable fallback·충돌·같은 intent 복구 15개는 **9.503초**(예상 12초/중단 24초), 수집/되돌림/기존 descriptor·취소/후속 편집/reader 보호 13개는 **8.617초**(예상 15초/중단 30초)였다. 앞선 streaming 10개 묶음은 예상 10초/중단 20초에서 18.274초였다. 최초 시험 빌드는 새 시험의 취소 analyzer xUnit1051 하나로 실패(35.36초)했고 수정 빌드 7.45초에 통과했다. 최종 증분 시험/제품 빌드 **10.780초**, 경고/오류 0개, 예상 15초/중단 30초다. 고정한 최종 바이너리는 현재 출력과 일치한다.
+
+의존 작업 완료 뒤 실제 작업 예상은 45분이고 구현은 14:42:05 UTC에 시작했다. 매 수명주기 **예상 90초/중단 180초**, start/bulk/selected/final 단계 **20/15/20/35초**, prepare/ensure/capture/plan/apply/release/restore/schema-status 명령 예상 **3/5/5/2/5/8/3/1초**를 유지하며 각 두 배 또는 더 이른 상위 deadline에서 중단하도록 했다. **216명령·32단계·8실행** 모두 고정 중단 경계 안에 완료했고 최대 명령 비율은 A release **14.471초 / 8초 = 1.809배**다. 한도 확대·쓰기 강제 종료·추가 Stop은 없었다. 정확한 PID/시작 identity로 기록된 **provider 24개가 모두 부재**하고 8쌍 A/B 회수 및 원본의 일반 디렉터리 복원을 확인했다.
+
+[보고서](../../../reports/benchmarks/scalable-storage-capture-apply-20261101.json)에 소스/바이너리 hash·두 비교 블록·명령/진단/시험·정확한 보존 fixture 경로를 결합했다. 원시 자료는 `artifacts/scalable-storage-capture-apply-20261101/`에 보존했다. OS 캐시는 비우지 않았다. 대형 입력·실제 Git/Plastic/Unity 수명주기·OS crash·최대 RSS/하드웨어 포화·`build.ps1` 전체 gate는 실행하지 않았다. ST-44 다중 항목 페이지와 SCAL-03/07/08은 미완료이며 과거 수십 분/몇 시간 문제의 해결은 **미입증**이다.
+
+## ST-52: 다중 항목 페이지 채택 검토
+
+2026-11-02 KST 사용자는 보류한 불변 B+트리 계획이 시간 최적화에 유리한지 검토하고 타당하면 구현하도록 요청했다. **판단은 현재 계획으로 범용 제품 metadata 트리를 교체하지 않는 것이다.** 다중 항목 페이지의 bulk metadata 절감 여지는 확인했지만 정규 경계를 국소 갱신하는 규칙은 여전히 미정이다. 모든 묶음 트리를 거부하거나 빨라질 수 없다고 판단한 것은 아니다. ST-44는 보류를 유지하며 SPM2와 현재 구현은 바꾸지 않았다.
+
+코드상 `WriteNode`는 이미 작은 페이지를 공통 container에 연속 기록하고 `Build`는 결정적 treap node를 한 번씩 쓴다. `Flush`는 root 게시의 내구성 경계다. 키마다 페이지가 있어도 **키마다 물리 파일이나 영속 flush가 생기는 것은 아니다**. 작은 probe의 256키 bulk는 256페이지와 명시적 page-store 영속 호출 1회였다. 소유권/catalog/provider의 flush는 probe 바깥이며 이 설계로 제거되지 않는다. `ReadNodeCore`의 cache miss는 아직 header/body를 따로 읽으므로 물리 읽기 감소 가능성은 있지만 페이지 수 감소를 읽기/시간 감소와 같다고 볼 수는 없다.
+
+폐기 가능한 probe는 현재 DLL로 **64/256키 × 16/256바이트 값**의 bulk/동일 재구축·값 하나 수정·최소 키 삽입/삭제·과거 root·bulk/수정 논리 identity·재개방 목록/Rank/EntryAt을 확인했다. 별도 **비용 모델**은 B+ 저장소 구현이 아니라 계획의 미정 경계 규칙을 가장 단순한 정규 byte-greedy packing으로 채웠다. 최대 512/4,096/16,384바이트, checksum header 40바이트, kind/count, 길이 결합 leaf 값과 child key/주소/count/hash 레코드를 사용한다. 정방향/역방향/섞인 전체 입력의 root는 같다. 이 fixture에는 항목 소유 child가 없다.
+
+| 256키·16바이트 값, data-page 기록 바이트 | 현재 treap 실제 기록 | 정규 4KiB packing 모델 |
+| --- | ---: | ---: |
+| Bulk | 34,243 | 8,844 |
+| 같은 길이 값 하나 수정 | 1,694 | 4,332 |
+| 최소 키 하나 삽입 | 1,974 | 8,877 |
+| 최소 키 하나 삭제 | 1,633 | 8,811 |
+
+모델의 bulk 기록은 **74.2% 감소**하지만 값 수정은 **2.56배**, 삽입은 **4.50배**다. 값이 256바이트이면 같은 4KiB 모델의 최소 키 삽입은 **4,854→72,429바이트(14.92배)**다. 처음부터 채우는 방식에서는 뒤쪽 leaf 경계까지 밀린다. 최대 512바이트로 줄여도 이 경계 규칙은 해결되지 않아 16바이트 값 삽입이 **1,974→11,217바이트**다. 이는 단순 규칙의 반례이며 **모든 B+ 설계의 결과가 아니고, 사용자가 제시한 계획이 이 규칙을 이미 선택했다는 뜻도 아니다**.
+
+다음 설계의 선행 조건은 결정적이면서 국소 갱신 가능한 경계 규칙이다. 삽입/삭제·값 길이 변경 때 뒤쪽 전체를 보통 다시 묶지 않아야 한다. 키 기반 경계나 정규 radix 분할은 검토 가능한 후보이며 채택한 설계가 아니다. 논리 hash는 순서 있는 모든 key/value/항목 소유 child hash·count를 유지해야 한다. 일반 B+의 분할 모양에 따른 root는 기존 삽입 순서 독립 계약을 만족하지 못한다. `CopyRootsToCore`·도달성·회수·중단 audit는 branch child와 모든 항목 소유 child를 함께 순회하고 과거 root/reader fence·재배치 주소와 논리 identity를 검증해야 한다. Hash 약화·작은 수정마다 전체 재해시·복구 증명 생략으로 우회하지 않는다.
+
+채택 전 작은 입력으로 **bulk 바이트·희소/묶음 삽입/수정/삭제 바이트·cold/warm 물리 읽기·영속 flush 수·경과 시간**을 소유권/catalog/회수까지 포함해 비교해야 한다. ST-51의 결과 6회 잔여에는 inventory·native proof·영속 adoption 게시가 포함되며 이번 data-page 모델은 그중 실제 시간이 얼마나 줄어드는지 입증하지 않는다.
+
+분리 helper 빌드 **4.465초**(예상 10초/중단 20초), 실제 data-page probe **0.850초**(3초/6초), 모델 **0.022초**(1초/2초)였다. 검토/원형 예상은 각 10분·중단은 각 두 배이며 한도 초과는 없다. 제품 소스 513개와 최종 제품 DLL hash는 앞선 후보와 일치한다. Provider·대형 fixture·전체 gate·제품 저장 형식 변경은 시작하지 않았다. [검토 보고서](../../../reports/benchmarks/metadata-multipage-review-20261102.json)에 실제 기록·모델 가정·소스 hash·한계를 보존하고 원형은 `artifacts/multipage-review-20261102/`와 `.local/multipage-review-20261102/`에 둔다.

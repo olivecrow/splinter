@@ -44,9 +44,11 @@ public sealed partial class FileWorkspaceProvider
         => PlanOriginalCore(w, ct, paths, false);
     private Task<OriginalApplyPlan> PlanOriginalCore(WorkspaceRecord w, CancellationToken ct, string[]? paths, bool projectLeaseHeld)
     {
+        var diagnostics = w.Results.LastOrDefault() is { } generation ? ResultGenerationDiagnostics.Open(Control(w), generation.Id) : null;
+        using var totalTiming = diagnostics?.Measure("plan.total");
         var publisher = OriginalPublisher(w);
         using var projectLease = w.StorageMode == "project-snapshot" && !projectLeaseHeld ? projectAccess!.Acquire(w, true, ct) : null;
-        VerifyOriginalGeneration(w, ct);
+        using (diagnostics?.Measure("plan.verify-generation")) VerifyOriginalGeneration(w, ct);
         using var applicationLease = w.SourceKind == "git" ? (applicationPolicies ?? ApplicationProjectPolicies.None).Get(w.ApplicationKind).AcquireOriginal(w) : null;
         using var selected = Selection(w, paths);
         if (w.OriginalApply is { } existing && (w.Results.Count == 0 || !existing.Completed))
@@ -120,7 +122,11 @@ public sealed partial class FileWorkspaceProvider
         var retainedParents = work.RetainedParents(originalNames, before, after, included, ct);
         var conflicts = work.Empty;
         void Conflict(string message) => conflicts = work.AddText(conflicts, message);
-        string rootIdentity = publisher.RootIdentity(w.ProjectPath);
+        IOriginalFileObservationScope? observation;
+        using (diagnostics?.Measure("plan.root-identity"))
+            observation = (publisher as IOriginalFileObservationProvider)?.OpenObservation(w.ProjectPath, ct);
+        using var observationLifetime = observation;
+        string rootIdentity = observation?.ProjectIdentity ?? publisher.RootIdentity(w.ProjectPath);
         IEnumerable<OriginalApplyChange> Changes()
         {
         foreach (string path in work.Paths(included))
@@ -147,7 +153,9 @@ public sealed partial class FileWorkspaceProvider
                 bv is not null && av is not null && bv.RelevantAttributes != av.RelevantAttributes ||
                 (av?.Attributes & 1) == 1 || (bv?.Attributes & 1) == 1 || path.Split('/').Any(p => p.StartsWith(".splinter-apply-", StringComparison.OrdinalIgnoreCase)))
             { Conflict(path + ": unsupported type or metadata change"); continue; }
-            var observed = publisher.Observe(w.ProjectPath, path, ct);
+            OriginalFileObservation? observed;
+            using (diagnostics?.Measure("plan.observe-target")) observed = observation is null
+                ? publisher.Observe(w.ProjectPath, path, ct) : observation.Observe(path, ct);
             // Bind both versions to the observed target policy, including an
             // explicit clear. Expected identity/attributes remain exact in the
             // fixed digest and conditional publisher guard.
@@ -173,15 +181,18 @@ public sealed partial class FileWorkspaceProvider
                 LiveOriginalIdentity = w.LiveOriginal?.Identity };
         var plan = OriginalApplyPages.Create(template, OriginalApplyPages.OrderChanges(Changes(), Control(w), ct), Control(w), ct, contentPins, selected?.Paths);
         plan = OriginalApplyPages.WithConflicts(plan, work.Texts(conflicts), Control(w), contentPins);
+        using (diagnostics?.Measure("plan.observation-boundary")) observation?.VerifyBoundary(ct);
         OriginalApplyPages.SavePlan(plan, Control(w));
         return Task.FromResult(plan);
     }
     private static string? Parent(string path) => path.LastIndexOf('/') is var slash && slash >= 0 ? path[..slash] : null;
     public async Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord w, string intentKey, string expectedPlanDigest, CancellationToken ct = default, string[]? paths = null)
     {
+        var diagnostics = w.Results.LastOrDefault() is { } generation ? ResultGenerationDiagnostics.Open(Control(w), generation.Id) : null;
+        using var totalTiming = diagnostics?.Measure("apply.total");
         var publisher = OriginalPublisher(w);
         using var projectLease = w.StorageMode == "project-snapshot" ? projectAccess!.Acquire(w, true, ct) : null;
-        VerifyOriginalGeneration(w, ct);
+        using (diagnostics?.Measure("apply.verify-generation")) VerifyOriginalGeneration(w, ct);
         using var applicationLease = w.SourceKind == "git" ? (applicationPolicies ?? ApplicationProjectPolicies.None).Get(w.ApplicationKind).AcquireOriginal(w, true) : null;
         using var selected = Selection(w, paths);
         if (string.IsNullOrWhiteSpace(intentKey) || intentKey.Length > 128)
@@ -220,6 +231,7 @@ public sealed partial class FileWorkspaceProvider
         if (sourceLease?.Identity != w.OriginalApply.Plan.SourceIdentity) throw new WorkspaceException("OriginalApplyPlanChanged", "Preserve the fixed intent; original VCS identity changed.");
         using var payloadManifest = w.Results.Count > 0 ? GenerationManifest(w) : ReadManifest(w, FilePath(Control(w), "result.json"));
         using var payloadReader = w.SourceKind == "git" && w.Results.Last().GitReference is not null ? null : ContentReader(w, Control(w), payloadManifest.ContentFiles);
+        using (diagnostics?.Measure("apply.publish"))
         publisher.Publish(w.OriginalApply, version =>
         {
             if (w.SourceKind == "git" && w.Results.Last().GitReference is not null)

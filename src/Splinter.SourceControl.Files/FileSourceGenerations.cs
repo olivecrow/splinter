@@ -294,21 +294,26 @@ public sealed partial class FileWorkspaceProvider
         ISourceCaptureRanges ranges, ISnapshotTree tree, FileSourceManifest baseline, FileSourceManifest result, CancellationToken ct)
     {
         if (ranges.CaptureIdentity != expected) throw Error("Immutable range export differs from the fixed capture.");
+        var diagnostics = ResultGenerationDiagnostics.Open(control, expected.Id);
         using var raw = new OwnedRangeContentStore(store.Root, contentPins!);
         var whole = new OwnedContentStore(store.Root, contentPins!);
-        using var preparedRaw = PrepareRawRanges(w, control, expected, ranges, tree, result, raw, whole, ct);
+        PreparedRawRanges preparedRaw;
+        using (diagnostics?.Measure("files.raw-preparation")) preparedRaw = PrepareRawRanges(w, control, expected, ranges, tree, result, raw, whole, ct);
+        using var preparedLifetime = preparedRaw;
         using var basisCatalog = baseline.OpenReader();
         Stream OpenBasis(string hash, long? length) { var entry = basisCatalog.FindPayload(hash, length); return new SnapshotPayloadStream(((ISourceCaptureTree)tree).Basis, entry.Path, entry.Length); }
         var files = new ResultFileContentStore(store.Root, control, w, contentPins!, raw, externalBasis: w.SourceKind != "git" ? null : OpenBasis);
         var basisContents = baseline.ContentFiles is null ? null : new ResultFileContentStore(store.Root, control, w, contentPins!, raw, baseline.ContentFiles);
         using var adoptionRows = new MetadataSpool(Path.Combine(control, "captures", expected.Id));
         using var baselinePages = new PagedMetadataStore(baseline.Directory!); var baselinePayloads = baselinePages.Open(baseline.PayloadIndex!);
+        using (diagnostics?.Measure("files.range-descriptors"))
         foreach (var entry in result.EnumerateEntries().Where(entry => entry.Kind == "file"))
         {
             ct.ThrowIfCancellationRequested();
             var layout = ranges.GetFileRanges(entry.Path) ?? throw Error("A frozen file has no immutable range layout.");
             var basis = layout.BasisPath is null ? null : basisCatalog.Find(layout.BasisPath);
-            bool rawBasis = basis is not null && basisContents?.UsesRawBasis(basis.Hash!, basis.Length) == true;
+            bool needsDescriptor = baselinePayloads.Find(entry.Hash!) is null;
+            bool rawBasis = needsDescriptor && basis is not null && basisContents?.UsesRawBasis(basis.Hash!, basis.Length) == true;
             if (layout.BasisPath is not null && (basis is null || basis.Kind != "file" || layout.BasisVisibleLength > basis.Length))
                 throw Error("A frozen file references another or missing immutable basis version.");
             IEnumerable<ImmutableFilePrivateRange> Private()
@@ -364,32 +369,34 @@ public sealed partial class FileWorkspaceProvider
             using var privateItems = Private().GetEnumerator();
             if (!privateItems.MoveNext())
             {
-                if (baselinePayloads.Find(entry.Hash!) is null)
+                if (needsDescriptor)
                     _ = files.Preserve(entry.Hash!, entry.Length, basis?.Hash, basis?.Length ?? 0, layout.BasisVisibleLength, [], ct, w.SourceKind == "git", rawBasis);
                 continue;
             }
-            using var privateRows = new MetadataSpool(Path.Combine(control, "captures", expected.Id));
-            do
+            if (!needsDescriptor)
             {
-                var range = privateItems.Current;
-                byte[] encoded = new byte[45]; System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(encoded, range.Length);
-                encoded[4] = range.RawRange ? (byte)1 : (byte)0; Convert.FromHexString(range.Hash).CopyTo(encoded, 5);
-                System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(encoded.AsSpan(37), range.ChunkOffset);
-                System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(encoded.AsSpan(41), range.ContentLength);
-                privateRows.Append(new(range.Offset.ToString("x16", System.Globalization.CultureInfo.InvariantCulture), encoded));
+                // The immutable basis already supplies the complete payload.
+                // Still drain every private range to validate/preserve chunks
+                // and publish adoption rows for later writes/reversions. No
+                // descriptor consumes a second temporary range list here.
+                while (privateItems.MoveNext()) { }
+                continue;
             }
-            while (privateItems.MoveNext());
             IEnumerable<ImmutableFilePrivateRange> Preserved()
             {
-                foreach (var item in privateRows.Read())
-                    yield return new(long.Parse(item.Key, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture),
-                        System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(item.Value.Span), Convert.ToHexStringLower(item.Value.Span.Slice(5, 32)), item.Value.Span[4] == 1,
-                        System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(item.Value.Span[37..]), System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(item.Value.Span[41..]));
+                // Preserve builds its range tree in one pass. Streaming keeps
+                // the complete validation/adoption work without writing and
+                // rereading a separate temporary list for every source file.
+                do { yield return privateItems.Current; } while (privateItems.MoveNext());
             }
-            if (baselinePayloads.Find(entry.Hash!) is null)
-                _ = files.Preserve(entry.Hash!, entry.Length, basis?.Hash, basis?.Length ?? 0, layout.BasisVisibleLength, Preserved(), ct, w.SourceKind == "git", rawBasis);
+            _ = files.Preserve(entry.Hash!, entry.Length, basis?.Hash, basis?.Length ?? 0, layout.BasisVisibleLength, Preserved(), ct, w.SourceKind == "git", rawBasis);
+            // An already retained full-file identity verifies its descriptor
+            // without consuming Preserved. Its current capture still owns all
+            // private-range validation and adoption, including the last row.
+            while (privateItems.MoveNext()) { }
         }
-        _ = CapturedRangeAdoptionStore.Publish(control, expected, adoptionRows.Read().Select(CapturedRangeAdoptionStore.Decode), contentPins!, ct);
+        using (diagnostics?.Measure("files.adoption-publish"))
+            _ = CapturedRangeAdoptionStore.Publish(control, expected, adoptionRows.Read().Select(CapturedRangeAdoptionStore.Decode), contentPins!, ct);
         if (w.SourceKind == "git") ((ISourceCaptureTree)tree).Basis.VerifyReadBoundary();
         return files.CurrentRoot;
     }

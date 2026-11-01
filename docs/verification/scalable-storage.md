@@ -6,6 +6,8 @@ Status: **InProgress**. The candidate connects task v4, managed basis v3 and pro
 
 ## Gate ledger
 
+The current metadata-store family is `SPM2` (ST-44–48); prior `SPM1` stores remain preserved/refused even when their outer task/basis/overlay versions match. Compact record byte checks and focused native recovery tests are recorded in the [throughput follow-up](scalable-storage-throughput-followup.md#st-4448-metadata-record-duplication-review). They do not repeat or inherit the retained large-input/full-gate qualification below.
+
 On 2026-11-01 the user reduced the remaining verification and requested a record of slow phases. The large-input runs are now stopped with their tasks, bases, results and pending state preserved. Seven owned providers exited through one authenticated normal Stop each. Only the read-only None plan and early Plastic B ensure were interrupted; no 100k original publication began. The actual Git fixed-capture CLI interruption recovered the same result and later edit successfully. This is a limited closeout, **not SCAL-01–08 completion**. See [slow-phase diagnosis](scalable-storage-throughput-diagnosis.md). Actual 17GiB, all three complete 100k lifecycles, healthy ABBA and the latest full build gate were omitted under that instruction, rather than passed or replaced by historical evidence.
 
 “Passed” below is limited to the recorded automated/local-file scope. Actual provider/Unity lifecycles and costs have separate gates. The [integrated evidence report](../../reports/benchmarks/scalable-storage-integrated-20261101.json) maps test classes and execution windows. Overlapping windows are never summed into a combined pass count.

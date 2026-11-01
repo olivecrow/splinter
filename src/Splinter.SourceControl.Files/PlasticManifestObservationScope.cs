@@ -63,7 +63,7 @@ internal sealed class PlasticManifestObservationScope : IDisposable
                     if (relative == "identity.bin" || relative.StartsWith("pages-", StringComparison.Ordinal) && relative.EndsWith(".bin", StringComparison.Ordinal))
                     {
                         input.ReadExactly(header); input.Position = 0;
-                        if (!header[..4].SequenceEqual("SPM1"u8) || Convert.ToHexStringLower(header.Slice(4, 12)) != recorded.Catalog.Children.StoreId ||
+                        if (!header[..4].SequenceEqual(PagedMetadataStore.FormatMagic) || Convert.ToHexStringLower(header.Slice(4, 12)) != recorded.Catalog.Children.StoreId ||
                             !SHA256.HashData(header[..16]).AsSpan().SequenceEqual(header[16..])) throw Invalid("Preserve a foreign catalog container.");
                     }
                     files = new(relative, input, pins.IdentifyOpened(input), input.Length, files);

@@ -26,7 +26,7 @@ Git/None/Plastic의 준비·편집·수집·원본 반영·회수 전반에서 �
 4. 전체 잠금 아래 제한 병렬 게시·cursor CLI/schema·실제 backing 용량 표시. 대체 경로가 준비된 뒤 `--max-journal-bytes`와 연결 상한 제거.
 5. native/Unity 자격·작은 동일 입력 비용 비교·양 언어 문서·최종 전체 gate.
 
-후보 코드는 task v4·관리형 basis v3·제품 overlay identity v3를 기록한다. 이전 task/basis/overlay는 보존·거부하고 일치하는 바이너리를 사용하며 이관·fallback·회수를 추가하지 않는다. 후보 코드의 활성화가 SCAL 완료는 아니며 실제 수명주기·장애·비용·문서·최종 gate 근거를 모두 확보해야 한다. 명시적 개발 view/candidate는 각기 기록한 별도 형식을 유지한다.
+후보 코드는 task v4·관리형 basis v3·제품 overlay identity v3·metadata 저장소 형식 2(`SPM2`)를 기록한다. 직전 task-v4 후보의 `SPM1`을 포함한 이전 저장소는 보존·거부하고 일치하는 바이너리를 사용하며 이관·fallback·회수를 추가하지 않는다. ST-44–48은 디렉터리/게시 레코드 축소와 임시 바이너리 레코드를 소유하며 다중 항목 페이지는 보류다. 후보 코드의 활성화가 SCAL 완료는 아니며 실제 수명주기·장애·비용·문서·최종 gate 근거를 모두 확보해야 한다. 명시적 개발 view/candidate는 각기 기록한 별도 형식을 유지한다.
 
 ## 후보 연결과 남은 자격
 

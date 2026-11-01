@@ -305,7 +305,7 @@
         "ko": "docs/ko/lifecycle-optimization-map.md#c20"
       },
       "preconditions": "Exact task/request; recover pending capture/publication; Editor may remain live.",
-      "work": "Persist request; drain/flush/fix roots and accepted pending-capture control; outside-gate pins/scan/proof; immutable shared composed result/header/history; conditional adoption and exclusive reader completion; scheduled metadata maintenance. ST-01/11/12/19/20/22/23: bounded adoption/raw publication, backing grouping, exact reader reuse, cancellation-aware 1MiB hashing, canonical native fences under lock followed by byte proof outside. Authenticated Stop cancels accepted maintenance and drains it.",
+      "work": "Persist request; drain/flush/fix roots and accepted pending-capture control; outside-gate pins/scan/proof; immutable shared composed result/header/history; conditional adoption and exclusive reader completion; scheduled metadata maintenance. ST-01/11/12/19/20/22/23: bounded adoption/raw publication, backing grouping, exact reader reuse, cancellation-aware 1MiB hashing, canonical native fences under lock followed by byte proof outside. Authenticated Stop cancels accepted maintenance and drains it. ST-50: stream private ranges into descriptors; even skipped/retained full-file identities drain every validation/adoption row.",
       "completion": "Immutable generation ID/sequence/key/content identity; same task continues; no compile-success claim.",
       "costs": "Mutation wait/pause, source scan/hash, unique required content and full proof; separate physical allocation/cache/native resources.",
       "recovery": "Same key returns first frozen result; restore pins before writer replay/reclamation; retained generations and receipts survive release.",
@@ -383,14 +383,15 @@
         "K34",
         "K35",
         "K41",
-        "K44"
+        "K44",
+        "K46"
       ],
       "documents": {
         "en": "docs/lifecycle-optimization-map.md#a20",
         "ko": "docs/ko/lifecycle-optimization-map.md#a20"
       },
       "preconditions": "Latest independent result for new request; exact source/mount and live-original permit if running.",
-      "work": "Paged last-applied/result/current comparison and selected companions; fixed plan ID/digest with bounded preview and root-bound full queries; exact live-original cooperation and VCS guards. ST-06/14/21: combine namespace/resource observation, sorted plan merge and bulk selection/companion indices.",
+      "work": "Paged last-applied/result/current comparison and selected companions; fixed plan ID/digest with bounded preview and root-bound full queries; exact live-original cooperation and VCS guards. ST-06/14/21: combine namespace/resource observation, sorted plan merge and bulk selection/companion indices. ST-49: one operation-local root/managed lease, per-target reread/release and full final availability/administration boundary; unscoped fallback remains.",
       "completion": "Concrete fixed plan/digest; planning does not publish source files.",
       "costs": "Current target scan/hash, plan and identity/lock observations",
       "recovery": "Changed target needs a valid reviewed plan; no conflict override."
@@ -1811,30 +1812,36 @@
       "files": [
         {
           "path": "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs",
-          "sha256": "0df501df675855ee8a15decd169f97a2112865eab6f6f783d018ecc3bfdacd28",
+          "sha256": "c72e4a1211a83cb5c644f9bc3d26088e9615eacba4411c030a2c437e2c7d188e",
           "symbols": [
             {
               "name": "Publish",
               "lineHints": [
-                43
+                82
               ]
             },
             {
               "name": "MoveOwnedEntry",
               "lineHints": [
-                604
+                646
               ]
             },
             {
               "name": "CreateOwnedFile",
               "lineHints": [
-                632
+                674
               ]
             },
             {
               "name": "CreateOwnedDirectory",
               "lineHints": [
-                630
+                672
+              ]
+            },
+            {
+              "name": "OpenObservation",
+              "lineHints": [
+                43
               ]
             }
           ]
@@ -1954,7 +1961,7 @@
         },
         {
           "path": "src/Splinter.SourceControl.Files/FileOriginalApply.cs",
-          "sha256": "e0435c6cb27fef0aba7c5e9b516ec8fbdd16650b45c6772e3a590eece7415bdd",
+          "sha256": "8cca7d3d22b804598e2c10d1fe20f7a5609f45f6d2ba02a825f85a5a7dd5c9b3",
           "symbols": [
             {
               "name": "PlanOriginalAsync",
@@ -1965,7 +1972,13 @@
             {
               "name": "ApplyOriginalAsync",
               "lineHints": [
-                185
+                189
+              ]
+            },
+            {
+              "name": "PlanOriginalCore",
+              "lineHints": [
+                45
               ]
             }
           ]
@@ -2821,7 +2834,7 @@
       "files": [
         {
           "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
-          "sha256": "89fc87d5c08d915a00a841cfb86489bb225dd7ecf589923a7ad566ccd11aad00",
+          "sha256": "c901e9cd639b67a31117ba9ba384600b1b08f0d01e3b0f0269fed63279a980a2",
           "symbols": [
             {
               "name": "PreserveGenerationAsync",
@@ -2833,6 +2846,12 @@
               "name": "VerifyGenerationAsync",
               "lineHints": [
                 129
+              ]
+            },
+            {
+              "name": "PreserveRangePayloads",
+              "lineHints": [
+                293
               ]
             }
           ]
@@ -3642,11 +3661,11 @@
             {
               "name": "ApplyOriginalAsync",
               "lineHints": [
-                185
+                189
               ]
             }
           ],
-          "sha256": "e0435c6cb27fef0aba7c5e9b516ec8fbdd16650b45c6772e3a590eece7415bdd"
+          "sha256": "8cca7d3d22b804598e2c10d1fe20f7a5609f45f6d2ba02a825f85a5a7dd5c9b3"
         },
         {
           "path": "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs",
@@ -3654,11 +3673,11 @@
             {
               "name": "Publish",
               "lineHints": [
-                43
+                82
               ]
             }
           ],
-          "sha256": "0df501df675855ee8a15decd169f97a2112865eab6f6f783d018ecc3bfdacd28"
+          "sha256": "c72e4a1211a83cb5c644f9bc3d26088e9615eacba4411c030a2c437e2c7d188e"
         }
       ]
     },
@@ -4164,6 +4183,29 @@
             }
           ],
           "sha256": "078b2bdb39f8ac83bd831357e3e1e7e281f3ad7da0c05f3b13a88c421095b980"
+        }
+      ]
+    },
+    {
+      "id": "K46",
+      "files": [
+        {
+          "path": "src/Splinter.Core/OriginalApply.cs",
+          "sha256": "34529f4ca3053a94ae194e0950322dc29231f86510141b6747a419357143ff41",
+          "symbols": [
+            {
+              "name": "IOriginalFileObservationProvider",
+              "lineHints": [
+                189
+              ]
+            },
+            {
+              "name": "IOriginalFileObservationScope",
+              "lineHints": [
+                193
+              ]
+            }
+          ]
         }
       ]
     }
@@ -4956,6 +4998,129 @@
       "indexSha256": "e2f2812b7bc3168235704f6ee07da61604dc6cfd50a99e67ea641779258b637d",
       "sourceChangesCount": 15,
       "reason": "Historical GCO map before the SCAL working-tree source refresh; recorded timing/qualification scope is preserved."
+    },
+    {
+      "inspectedDate": "2026-11-01",
+      "indexSha256": "cbdad8eab35a32b47a4793233c3cc7279bee868c726de930a462d07c9123c32d",
+      "reason": "Before ST-49-51 targeted C20/A20/A30 reference refresh; other entries retain their own recorded snapshot.",
+      "sourceRefs": [
+        {
+          "id": "K17",
+          "files": [
+            {
+              "path": "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs",
+              "sha256": "0df501df675855ee8a15decd169f97a2112865eab6f6f783d018ecc3bfdacd28",
+              "symbols": [
+                {
+                  "name": "Publish",
+                  "lineHints": [
+                    43
+                  ]
+                },
+                {
+                  "name": "MoveOwnedEntry",
+                  "lineHints": [
+                    604
+                  ]
+                },
+                {
+                  "name": "CreateOwnedFile",
+                  "lineHints": [
+                    632
+                  ]
+                },
+                {
+                  "name": "CreateOwnedDirectory",
+                  "lineHints": [
+                    630
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "K19",
+          "files": [
+            {
+              "path": "src/Splinter.SourceControl.Files/FileOriginalApply.cs",
+              "sha256": "e0435c6cb27fef0aba7c5e9b516ec8fbdd16650b45c6772e3a590eece7415bdd",
+              "symbols": [
+                {
+                  "name": "PlanOriginalAsync",
+                  "lineHints": [
+                    43
+                  ]
+                },
+                {
+                  "name": "ApplyOriginalAsync",
+                  "lineHints": [
+                    185
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "K34",
+          "files": [
+            {
+              "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+              "sha256": "89fc87d5c08d915a00a841cfb86489bb225dd7ecf589923a7ad566ccd11aad00",
+              "symbols": [
+                {
+                  "name": "PreserveGenerationAsync",
+                  "lineHints": [
+                    25
+                  ]
+                },
+                {
+                  "name": "VerifyGenerationAsync",
+                  "lineHints": [
+                    129
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "K41",
+          "files": [
+            {
+              "path": "src/Splinter.SourceControl.Files/FileOriginalApply.cs",
+              "symbols": [
+                {
+                  "name": "PlanOriginalAsync",
+                  "lineHints": [
+                    43
+                  ]
+                },
+                {
+                  "name": "ApplyOriginalAsync",
+                  "lineHints": [
+                    185
+                  ]
+                }
+              ],
+              "sha256": "e0435c6cb27fef0aba7c5e9b516ec8fbdd16650b45c6772e3a590eece7415bdd"
+            },
+            {
+              "path": "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs",
+              "symbols": [
+                {
+                  "name": "Publish",
+                  "lineHints": [
+                    43
+                  ]
+                }
+              ],
+              "sha256": "0df501df675855ee8a15decd169f97a2112865eab6f6f783d018ecc3bfdacd28"
+            }
+          ]
+        }
+      ]
     }
   ],
   "historicalEvidenceStatusScope": "Earlier evidence qualifications preserve status at their recorded point; finalQualification and MX-10 evidence own final program status.",
@@ -5022,7 +5187,8 @@
     "K42",
     "K43",
     "K44",
-    "K45"
+    "K45",
+    "K46"
   ],
   "scalableStorage": {
     "contract": "docs/scalable-storage.md",
@@ -5142,5 +5308,37 @@
       }
     ],
     "qualification": "Two small editorless None ABBA blocks. Locked absence checks retain ordinary publication grace, unresolved launch and complete seal/inventory proof. 43 unique guards; two test-batch deadline misses preserved in the report. Large timing and full gate remain unqualified."
+  },
+  "scalableStorageCaptureApplyFollowup": {
+    "ids": "ST-49–51",
+    "document": "docs/verification/scalable-storage-throughput-followup.md",
+    "report": "reports/benchmarks/scalable-storage-capture-apply-20261101.json",
+    "finalSourceManifest": "artifacts/scalable-storage-capture-apply-20261101/final-source.json",
+    "baseCommit": "72601d6d4c9fee80c48dc15452b5caf7e345d84f",
+    "metadataDependency": "ST-44–48 completed working-tree SPM2 changes",
+    "stages": [
+      "C20",
+      "A20",
+      "A30"
+    ],
+    "changedSourceFiles": [
+      {
+        "path": "src/Splinter.Core/OriginalApply.cs",
+        "sha256": "34529f4ca3053a94ae194e0950322dc29231f86510141b6747a419357143ff41"
+      },
+      {
+        "path": "src/Splinter.Platform.Windows/WindowsOriginalFilePublisher.cs",
+        "sha256": "c72e4a1211a83cb5c644f9bc3d26088e9615eacba4411c030a2c437e2c7d188e"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileOriginalApply.cs",
+        "sha256": "8cca7d3d22b804598e2c10d1fe20f7a5609f45f6d2ba02a825f85a5a7dd5c9b3"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+        "sha256": "c901e9cd639b67a31117ba9ba384600b1b08f0d01e3b0f0269fed63279a980a2"
+      }
+    ],
+    "qualification": "Same small editorless None input, separate intermediate/final ABBA blocks. Full target locks, hashes, reader/native fences, durable ACK and same-request recovery retained. No large timing, actual Git/Plastic/Unity or full gate qualification."
   }
 }

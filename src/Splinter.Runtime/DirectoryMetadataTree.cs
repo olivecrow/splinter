@@ -74,20 +74,19 @@ public sealed class DirectoryMetadataTree(PagedMetadataStore store, bool caseSen
         }
         byte[] name = Utf8.GetBytes(entry.Path);
         byte[]? reference = record.SourceReference is null ? null : Utf8.GetBytes(record.SourceReference);
-        byte[] bytes = new byte[checked(46 + name.Length + (entry.UnixMode is null ? 0 : 4) + (digest is null ? 0 : 32) +
+        byte flags = (byte)((entry.Directory ? 1 : 0) | (entry.CreationTime == 0 ? 0 : 2) | (entry.LastAccessTime == 0 ? 0 : 4) |
+            (entry.UnixMode is null ? 0 : 8) | (digest is null ? 0 : 16) | (caseSensitive ? 32 : 0) | (reference is null ? 0 : 64));
+        byte[] bytes = new byte[checked(26 + name.Length + (entry.CreationTime == 0 ? 0 : 8) + (entry.LastAccessTime == 0 ? 0 : 8) +
+            (entry.UnixMode is null ? 0 : 4) + (digest is null ? 0 : 32) +
             (reference is null ? 0 : 4 + reference.Length))];
-        bytes[0] = 1; bytes[1] = entry.Directory ? (byte)1 : (byte)0;
+        bytes[0] = 2; bytes[1] = flags;
         BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(2), entry.Length);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(10), entry.Attributes);
-        BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(14), entry.CreationTime);
-        BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(22), entry.LastAccessTime);
-        BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(30), entry.LastWriteTime);
-        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(38), name.Length);
-        bytes[42] = entry.UnixMode is null ? (byte)0 : (byte)1;
-        bytes[43] = digest is null ? (byte)0 : (byte)1;
-        bytes[44] = caseSensitive ? (byte)1 : (byte)0; // Path policy participates in content identity.
-        bytes[45] = reference is null ? (byte)0 : (byte)1;
-        name.CopyTo(bytes, 46); int position = 46 + name.Length;
+        BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(14), entry.LastWriteTime);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(22), name.Length);
+        name.CopyTo(bytes, 26); int position = 26 + name.Length;
+        if (entry.CreationTime != 0) { BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(position), entry.CreationTime); position += 8; }
+        if (entry.LastAccessTime != 0) { BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(position), entry.LastAccessTime); position += 8; }
         if (entry.UnixMode is { } mode) { BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(position), mode); position += 4; }
         if (digest is not null) { digest.CopyTo(bytes, position); position += digest.Length; }
         if (reference is not null)
@@ -98,33 +97,39 @@ public sealed class DirectoryMetadataTree(PagedMetadataStore store, bool caseSen
     internal DirectoryMetadataRecord Decode(MetadataEntry record, bool component = true)
     {
         var bytes = record.Value.Span;
-        if (bytes.Length < 46 || bytes[0] != 1 || bytes[1] > 1 || bytes[42] > 1 || bytes[43] > 1 ||
-            bytes[44] != (caseSensitive ? 1 : 0) || bytes[45] > 1)
+        if (bytes.Length < 26 || bytes[0] != 2 || (bytes[1] & 128) != 0 ||
+            ((bytes[1] & 32) != 0) != caseSensitive)
             throw Invalid("A directory record has an invalid format.");
-        int length = BinaryPrimitives.ReadInt32LittleEndian(bytes[38..]);
-        long prefix = 46L + length + (bytes[42] == 1 ? 4 : 0) + (bytes[43] == 1 ? 32 : 0);
-        if (length < 1 || prefix > bytes.Length || bytes[45] == 0 && prefix != bytes.Length || bytes[45] == 1 && prefix + 4 > bytes.Length)
+        byte flags = bytes[1]; bool hasReference = (flags & 64) != 0;
+        int length = BinaryPrimitives.ReadInt32LittleEndian(bytes[22..]);
+        long prefix = 26L + length + ((flags & 2) != 0 ? 8 : 0) + ((flags & 4) != 0 ? 8 : 0) +
+            ((flags & 8) != 0 ? 4 : 0) + ((flags & 16) != 0 ? 32 : 0);
+        if (length < 1 || prefix > bytes.Length || !hasReference && prefix != bytes.Length || hasReference && prefix + 4 > bytes.Length)
             throw Invalid("A directory record has invalid field lengths.");
         string name;
-        try { name = Utf8.GetString(bytes.Slice(46, length)); }
+        try { name = Utf8.GetString(bytes.Slice(26, length)); }
         catch (System.Text.DecoderFallbackException) { throw Invalid("A directory name has invalid UTF-8."); }
         if (component) RequireName(name);
         if (component && record.Key != Key(name)) throw Invalid("A directory name differs from its index key.");
-        int position = 46 + length; uint? mode = bytes[42] == 1 ? BinaryPrimitives.ReadUInt32LittleEndian(bytes[position..]) : null;
+        int position = 26 + length;
+        long creation = (flags & 2) != 0 ? BinaryPrimitives.ReadInt64LittleEndian(bytes[position..]) : 0;
+        if ((flags & 2) != 0) { if (creation == 0) throw Invalid("A default directory time must be omitted."); position += 8; }
+        long access = (flags & 4) != 0 ? BinaryPrimitives.ReadInt64LittleEndian(bytes[position..]) : 0;
+        if ((flags & 4) != 0) { if (access == 0) throw Invalid("A default directory time must be omitted."); position += 8; }
+        uint? mode = (flags & 8) != 0 ? BinaryPrimitives.ReadUInt32LittleEndian(bytes[position..]) : null;
         if (mode is not null) position += 4;
-        string? hash = bytes[43] == 1 ? Convert.ToHexStringLower(bytes.Slice(position, 32)) : null;
+        string? hash = (flags & 16) != 0 ? Convert.ToHexStringLower(bytes.Slice(position, 32)) : null;
         if (hash is not null) position += 32;
         string? reference = null;
-        if (bytes[45] == 1)
+        if (hasReference)
         {
             int referenceBytes = BinaryPrimitives.ReadInt32LittleEndian(bytes[position..]); position += 4;
             if (referenceBytes < 0 || (long)position + referenceBytes != bytes.Length) throw Invalid("A directory source reference is truncated.");
             try { reference = Utf8.GetString(bytes.Slice(position, referenceBytes)); }
             catch (System.Text.DecoderFallbackException) { throw Invalid("A directory source reference has invalid UTF-8."); }
         }
-        var entry = new SnapshotEntry(name, bytes[1] == 1, BinaryPrimitives.ReadInt64LittleEndian(bytes[2..]),
-            BinaryPrimitives.ReadUInt32LittleEndian(bytes[10..]), BinaryPrimitives.ReadInt64LittleEndian(bytes[14..]),
-            BinaryPrimitives.ReadInt64LittleEndian(bytes[22..]), BinaryPrimitives.ReadInt64LittleEndian(bytes[30..]), mode);
+        var entry = new SnapshotEntry(name, (flags & 1) != 0, BinaryPrimitives.ReadInt64LittleEndian(bytes[2..]),
+            BinaryPrimitives.ReadUInt32LittleEndian(bytes[10..]), creation, access, BinaryPrimitives.ReadInt64LittleEndian(bytes[14..]), mode);
         WorkspaceUnixPermissions.RequireValid(entry.UnixMode);
         if (entry.Length < 0 || !ValidTime(entry.CreationTime) || !ValidTime(entry.LastAccessTime) || !ValidTime(entry.LastWriteTime) ||
             ((entry.Attributes & 16) != 0) != entry.Directory || entry.Directory && (entry.Length != 0 || hash is not null) ||

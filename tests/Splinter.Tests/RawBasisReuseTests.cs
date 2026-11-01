@@ -8,6 +8,54 @@ namespace Splinter.Tests;
 
 public sealed class RawBasisReuseTests
 {
+    [Theory(Timeout = 10000)]
+    [InlineData(false, false, false)] [InlineData(false, false, true)]
+    [InlineData(true, false, false)] [InlineData(true, false, true)]
+    [InlineData(true, true, false)] [InlineData(true, true, true)]
+    public async Task PreservationDrainsAllPrivateRangesForNewRetainedAndBasisIdentities(bool changed, bool retained, bool invalidTail)
+    {
+        RequireWindows(); using var files = new TestDirectory(); var ct = TestContext.Current.CancellationToken; var pins = new WindowsJournalFilePins();
+        string home = Path.Combine(files.Path, "home"), project = Path.Combine(files.Path, "original"); Directory.CreateDirectory(project);
+        byte[] bytes = "abcdefgh"u8.ToArray(); var basis = new SnapshotOverlayTests.FakeSnapshotTree(); basis.Files["data"] = bytes;
+        var w = Workspace(home, project, 'a'); w.Snapshot = new() { Reference = basis.Snapshot };
+        using (var metadata = new TemporaryMetadataDirectory())
+        {
+            var catalog = PagedSnapshotCatalog.Build(metadata.Path, new("", true, 0, 16, 0, 0, 0),
+                [new(new("data", false, bytes.Length, 32, 0, 0, 1), Hash(bytes))], ct: ct);
+            w.BaseRevision = "sha256:" + catalog.Children.ContentHash;
+        }
+        string control = Control(home, w); byte[] contents = changed ? "ZZYYefgh"u8.ToArray() : bytes;
+        var provider = new FileWorkspaceProvider(new WorkspaceStore(home, pins), contentPins: pins);
+        WorkspaceResultGeneration? prior = null;
+        if (retained)
+        {
+            var firstIdentity = new SourceCaptureIdentity(w.CaptureIntent!.Id, 1, new string('b', 64));
+            using var first = new Capture(basis, contents, firstIdentity, 0,
+                [new(0, 2, new string('b', 64), BlockIdentity: new string('b', 64)),
+                 new(2, 2, new string('c', 64), BlockIdentity: new string('c', 64))]);
+            prior = await provider.PreserveGenerationAsync(w, control, w.CaptureIntent, firstIdentity, first, ct);
+            w.Results.Add(prior); w.ResultRevision = prior.Revision;
+            w.CaptureIntent = new(new string('c', 24), 2, "second", "second");
+        }
+        var identity = new SourceCaptureIdentity(w.CaptureIntent!.Id, w.CaptureIntent.Sequence, new string('b', 64));
+        using var captured = new Capture(basis, contents, identity, 0,
+            [new(0, 2, new string('b', 64), BlockIdentity: new string('b', 64)),
+             new(invalidTail ? 7 : 2, 2, new string('c', 64), BlockIdentity: new string('c', 64))]);
+        if (invalidTail)
+        {
+            await Assert.ThrowsAsync<WorkspaceException>(() => provider.PreserveGenerationAsync(w, control, w.CaptureIntent, identity, captured, ct));
+            Assert.False(File.Exists(CapturedRangeAdoptionStore.Artifact(control, identity.Id)));
+            Assert.False(File.Exists(Path.Combine(control, "files", "generations", identity.Id, "generation.json")));
+            if (prior is not null) await provider.VerifyGenerationAsync(w, control, prior, ct);
+            return;
+        }
+        var result = await provider.PreserveGenerationAsync(w, control, w.CaptureIntent, identity, captured, ct);
+        Assert.Equal(!changed, w.BaseRevision == result.Revision);
+        var adoption = CapturedRangeAdoptionStore.Read(control, identity);
+        Assert.Equal(new long[] { 0, 2 }, CapturedRangeAdoptionStore.Enumerate(adoption).Select(row => row.Offset));
+        captured.Available = false; basis.Available = false;
+        await provider.VerifyGenerationAsync(w, control, result, ct);
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -119,7 +167,8 @@ public sealed class RawBasisReuseTests
         Directory.CreateDirectory(Control(home, w)); return w;
     }
     private static void RequireWindows() { if (!OperatingSystem.IsWindows()) Assert.Skip("Exact native immutable backing references."); }
-    private sealed class Capture(SnapshotOverlayTests.FakeSnapshotTree basis, byte[] bytes, SourceCaptureIdentity identity, int offset) : ISourceCaptureTree, ISourceCaptureRanges
+    private sealed class Capture(SnapshotOverlayTests.FakeSnapshotTree basis, byte[] bytes, SourceCaptureIdentity identity, int offset,
+        IEnumerable<CapturedPrivateSourceRange>? privateRanges = null) : ISourceCaptureTree, ISourceCaptureRanges
     {
         public bool Available { get; set; } = true;
         public SnapshotReference Snapshot => basis.Snapshot;
@@ -130,7 +179,8 @@ public sealed class RawBasisReuseTests
         public IReadOnlyList<SnapshotEntry> List(string path) { EnsureAvailable(); return basis.List(path); }
         public int Read(string path, long at, Span<byte> output)
         { EnsureAvailable(); int count = (int)Math.Min(output.Length, bytes.Length - at); bytes.AsSpan((int)at, count).CopyTo(output); return count; }
-        public CapturedFileRangeLayout? GetFileRanges(string path) => new(path, bytes.Length, [new(offset, 2, new string('b', 64), BlockIdentity: new string('b', 64))], Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        public CapturedFileRangeLayout? GetFileRanges(string path) => new(path, bytes.Length,
+            privateRanges ?? [new(offset, 2, new string('b', 64), BlockIdentity: new string('b', 64))], Guid.Parse("11111111-1111-1111-1111-111111111111"));
         public void Dispose() { }
     }
 }

@@ -26,7 +26,7 @@ All original publication targets are checked/pinned before mutation. The resourc
 4. Full-lock bounded parallel publication, cursor CLI/schema and actual backing-capacity reporting. Remove `--max-journal-bytes` and connected quotas only after their replacement paths are ready.
 5. Native/Unity qualification, matched small-input cost comparison, bilingual docs and the final full gate.
 
-The candidate now writes task v4, managed basis v3 and product overlay identity v3. Preserve/refuse older tasks/bases/overlays and use their matching binaries; no migration, fallback or reclamation is added. Activation in candidate code is not SCAL completion: actual lifecycle, fault, cost, documentation and final-gate evidence remain mandatory. Explicit development views/candidates retain their separate recorded formats.
+The candidate now writes task v4, managed basis v3, product overlay identity v3 and metadata-store format 2 (`SPM2`). Preserve/refuse older stores, including the preceding task-v4 candidate's `SPM1`, and use their matching binaries; no migration, fallback or reclamation is added. ST-44–48 owns compact directory/publication records and binary temporary records; multi-entry pages remain deferred. Activation in candidate code is not SCAL completion: actual lifecycle, fault, cost, documentation and final-gate evidence remain mandatory. Explicit development views/candidates retain their separate recorded formats.
 
 ## Candidate connection and remaining qualification
 

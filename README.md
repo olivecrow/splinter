@@ -10,7 +10,7 @@ Splinter is a local workspace and storage tool for AI agents working on Unity pr
 
 **Current status:** a research alpha for Windows and NTFS, with bounded validation on small Git, Unity Version Control / Plastic SCM, and VCS-free projects. The source and recorded evidence are available for others to inspect, reproduce, and extend. See the [validation guide](docs/verification/README.md) for tested inputs and remaining limits.
 
-The current [scalable-storage candidate](docs/scalable-storage.md) writes task v4/basis v3/overlay v3, replacing aggregate metadata/journal quotas with disk pages and streamed processing. SCAL-01–08 qualification is still in progress; no earlier small-input timing or support result is inherited by this candidate.
+The current [scalable-storage candidate](docs/scalable-storage.md) writes task v4/basis v3/overlay v3 with metadata-store format 2 (`SPM2`), replacing aggregate metadata/journal quotas with disk pages and streamed processing. Earlier `SPM1` stores are preserved and refused; finish them with their matching binary. SCAL-01–08 qualification is still in progress; no earlier small-input timing or support result is inherited by this candidate.
 
 The user curtailed large verification on 2026-11-01. [Recorded slow phases](docs/verification/scalable-storage-throughput-diagnosis.md) include multi-hour 100k tiny-file operations. Large-project usability, the remaining full lifecycles and matched performance preservation are unqualified; retained fixture state is documented separately.
 

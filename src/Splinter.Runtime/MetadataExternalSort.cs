@@ -14,11 +14,13 @@ public static class MetadataExternalSort
     private const int MaximumRecordBytes = 8 * 32767 * 4 + 65536;
     private const int FanIn = 32;
     private static readonly UTF8Encoding Utf8 = new(false, true);
-    public static IEnumerable<MetadataEntry> Order(IEnumerable<MetadataEntry> input, string workingDirectory, CancellationToken ct, IJournalFilePins? filePins = null)
-        => Order(input, workingDirectory, ct, filePins, StorageResources.SortRunBytes, StorageResources.Scratch);
+    public static IEnumerable<MetadataEntry> Order(IEnumerable<MetadataEntry> input, string workingDirectory, CancellationToken ct,
+        IJournalFilePins? filePins = null, IComparer<string>? keyComparer = null)
+        => Order(input, workingDirectory, ct, filePins, StorageResources.SortRunBytes, StorageResources.Scratch, keyComparer);
     internal static IEnumerable<MetadataEntry> Order(IEnumerable<MetadataEntry> input, string workingDirectory, CancellationToken ct,
-        IJournalFilePins? filePins, int runBudget, ScratchBudget budget)
+        IJournalFilePins? filePins, int runBudget, ScratchBudget budget, IComparer<string>? keyComparer = null)
     {
+        keyComparer ??= StringComparer.Ordinal;
         using var allocation = budget.Open();
         string directory = Path.Combine(workingDirectory, "sort-" + Guid.NewGuid().ToString("N"));
         WorkspaceStore.EnsurePlainPath(directory);
@@ -40,7 +42,7 @@ public static class MetadataExternalSort
                 if (entries.Count > 0 && (bytes > (fallback ? 65536 : runBudget) - charge ||
                     !fallback && !allocation.TryResize(bytes + (long)charge)))
                 {
-                    CreateDirectory(); WriteSorted(RunPath(directory, 0, runs++), entries, filePins, ct);
+                    CreateDirectory(); WriteSorted(RunPath(directory, 0, runs++), entries, filePins, ct, keyComparer);
                     entries.Clear(); bytes = 0; _ = allocation.TryResize(0); fallback = false;
                 }
                 // An upstream cursor may hold the whole shared scratch budget.
@@ -52,11 +54,11 @@ public static class MetadataExternalSort
             }
             if (runs == 0)
             {
-                ct.ThrowIfCancellationRequested(); entries.Sort((a, b) => StringComparer.Ordinal.Compare(a.Key, b.Key));
+                ct.ThrowIfCancellationRequested(); entries.Sort((a, b) => keyComparer.Compare(a.Key, b.Key));
                 foreach (var entry in entries) { ct.ThrowIfCancellationRequested(); yield return entry; }
                 completed = true; yield break;
             }
-            if (entries.Count > 0) WriteSorted(RunPath(directory, 0, runs++), entries, filePins, ct);
+            if (entries.Count > 0) WriteSorted(RunPath(directory, 0, runs++), entries, filePins, ct, keyComparer);
             entries.Clear(); entries.TrimExcess(); _ = allocation.TryResize(0); int phase = 0;
             while (runs > FanIn)
             {
@@ -64,9 +66,9 @@ public static class MetadataExternalSort
                 foreach (string path in Directory.EnumerateFiles(directory, "run-" + phase.ToString("x8") + "-*.bin"))
                 {
                     group.Add(path); if (group.Count != FanIn) continue;
-                    MergeTo(RunPath(directory, phase + 1, next++), group, ct, filePins); group.Clear();
+                    MergeTo(RunPath(directory, phase + 1, next++), group, ct, filePins, keyComparer); group.Clear();
                 }
-                if (group.Count > 0) MergeTo(RunPath(directory, phase + 1, next++), group, ct, filePins);
+                if (group.Count > 0) MergeTo(RunPath(directory, phase + 1, next++), group, ct, filePins, keyComparer);
                 phase++; runs = next;
             }
             var final = new List<string>(FanIn);
@@ -75,7 +77,7 @@ public static class MetadataExternalSort
                 if (final.Count == FanIn) throw Invalid("The owned sort run inventory changed.");
                 final.Add(path);
             }
-            foreach (var entry in Merge(final, ct)) yield return entry;
+            foreach (var entry in Merge(final, ct, keyComparer)) yield return entry;
             completed = true;
         }
         finally
@@ -95,9 +97,9 @@ public static class MetadataExternalSort
         }
     }
     private static string RunPath(string directory, int phase, long run) => Path.Combine(directory, "run-" + phase.ToString("x8") + "-" + run.ToString("x16") + ".bin");
-    private static void WriteSorted(string path, List<MetadataEntry> entries, IJournalFilePins? filePins, CancellationToken ct)
+    private static void WriteSorted(string path, List<MetadataEntry> entries, IJournalFilePins? filePins, CancellationToken ct, IComparer<string> keyComparer)
     {
-        ct.ThrowIfCancellationRequested(); entries.Sort((a, b) => StringComparer.Ordinal.Compare(a.Key, b.Key));
+        ct.ThrowIfCancellationRequested(); entries.Sort((a, b) => keyComparer.Compare(a.Key, b.Key));
         using var stream = NewRun(path, filePins);
         foreach (var entry in entries) { ct.ThrowIfCancellationRequested(); Write(stream, entry); }
     }
@@ -107,17 +109,17 @@ public static class MetadataExternalSort
         try { stream.Write("SMS1"u8); return stream; }
         catch { stream.Dispose(); throw; }
     }
-    private static void MergeTo(string path, IReadOnlyList<string> sources, CancellationToken ct, IJournalFilePins? filePins)
+    private static void MergeTo(string path, IReadOnlyList<string> sources, CancellationToken ct, IJournalFilePins? filePins, IComparer<string> keyComparer)
     {
-        using (var stream = NewRun(path, filePins)) foreach (var entry in Merge(sources, ct)) Write(stream, entry);
+        using (var stream = NewRun(path, filePins)) foreach (var entry in Merge(sources, ct, keyComparer)) Write(stream, entry);
         foreach (string source in sources) MetadataScratchOwnership.Remove(source, filePins);
     }
-    private static IEnumerable<MetadataEntry> Merge(IReadOnlyList<string> paths, CancellationToken ct)
+    private static IEnumerable<MetadataEntry> Merge(IReadOnlyList<string> paths, CancellationToken ct, IComparer<string> keyComparer)
     {
         var streams = new List<FileStream>(FanIn);
         var queue = new PriorityQueue<(MetadataEntry Entry, int Run), (string Key, int Run)>(
             Comparer<(string Key, int Run)>.Create((a, b) =>
-            { int order = StringComparer.Ordinal.Compare(a.Key, b.Key); return order != 0 ? order : a.Run.CompareTo(b.Run); }));
+            { int order = keyComparer.Compare(a.Key, b.Key); return order != 0 ? order : a.Run.CompareTo(b.Run); }));
         try
         {
             byte[] header = new byte[4];

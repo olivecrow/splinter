@@ -23,14 +23,13 @@ internal sealed class FileApplyIndex : IDisposable
     {
         using var input = new MetadataSpool(directory);
         foreach (var entry in entries)
-        { ct.ThrowIfCancellationRequested(); input.Append(new(entry.Path, System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(entry))); }
+        { ct.ThrowIfCancellationRequested(); input.Append(new(entry.Path, EncodeTemporary(entry))); }
         names.Import(input.Read().Select(entry => entry.Key), ct);
         IEnumerable<MetadataEntry> Encoded()
         {
             foreach (var entry in input.Read())
             {
-                var item = System.Text.Json.JsonSerializer.Deserialize<FileSourceEntry>(entry.Value.Span) ?? throw Invalid();
-                if (item.Path != entry.Key) throw Invalid();
+                ct.ThrowIfCancellationRequested(); var item = DecodeTemporary(entry) ?? throw Invalid();
                 yield return new(Key(item.Path), Encode(item, names, alreadyImported: true));
             }
         }
@@ -41,10 +40,20 @@ internal sealed class FileApplyIndex : IDisposable
     {
         using var input = new MetadataSpool(directory); long count = 0;
         foreach (var item in applied)
-        { ct.ThrowIfCancellationRequested(); input.Append(new(item.Path, System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(item))); count++; }
+        {
+            ct.ThrowIfCancellationRequested();
+            if (!FileWorkspaceProvider.ValidPath(item.Path)) throw Invalid();
+            input.Append(new(item.Path, item.Version is null ? new byte[] { 0 } : EncodeTemporary(Entry(item)))); count++;
+        }
         if (count == 0) return basis;
-        IEnumerable<AppliedFilePath> Items() => input.Read().Select(entry =>
-            System.Text.Json.JsonSerializer.Deserialize<AppliedFilePath>(entry.Value.Span) ?? throw Invalid());
+        IEnumerable<AppliedFilePath> Items()
+        {
+            foreach (var row in input.Read())
+            {
+                ct.ThrowIfCancellationRequested(); var entry = DecodeTemporary(row);
+                yield return new(row.Key, entry is null ? null : new(entry.Kind, entry.Length, entry.Hash, entry.Attributes, entry.LastWriteUtcTicks, entry.UnixMode));
+            }
+        }
         FileSourceEntry Entry(AppliedFilePath item) => new(item.Path, item.Version!.Kind, item.Version.Length,
             item.Version.Hash, item.Version.ModifiedUtcTicks, item.Version.Attributes, item.Version.UnixMode);
         // A sparse update should not rebuild an otherwise large basis.
@@ -195,6 +204,41 @@ internal sealed class FileApplyIndex : IDisposable
     internal MetadataTreeRoot Empty => pages.Empty;
     public void Dispose() { pages.Dispose(); scratch.Dispose(); }
     private static string Key(string path) => PagedPathInterner.LookupIdentity(path);
+    // Operation-owned scratch only: the spool key is the sole path copy, with
+    // its existing length/checksum envelope. Durable index encoding is separate.
+    internal static byte[] EncodeTemporary(FileSourceEntry entry)
+    {
+        RequireTemporary(entry);
+        byte[] bytes = new byte[21 + (entry.Hash is null ? 0 : 32) + (entry.UnixMode is null ? 0 : 4)];
+        bytes[0] = (byte)((entry.Kind == "file" ? 1 : 2) | (entry.Hash is null ? 0 : 4) | (entry.UnixMode is null ? 0 : 8));
+        BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(1), entry.Length);
+        BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(9), entry.LastWriteUtcTicks);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(17), entry.Attributes);
+        if (entry.Hash is not null) Convert.FromHexString(entry.Hash).CopyTo(bytes, 21);
+        if (entry.UnixMode is { } mode) BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(bytes.Length - 4), mode);
+        return bytes;
+    }
+    internal static FileSourceEntry? DecodeTemporary(MetadataEntry record)
+    {
+        if (record.Child is not null || !FileWorkspaceProvider.ValidPath(record.Key)) throw Invalid();
+        var bytes = record.Value.Span;
+        if (bytes.Length == 1 && bytes[0] == 0) return null;
+        if (bytes.Length < 21 || bytes[0] > 15 || (bytes[0] & 3) is not (1 or 2) ||
+            bytes.Length != 21 + ((bytes[0] & 4) != 0 ? 32 : 0) + ((bytes[0] & 8) != 0 ? 4 : 0)) throw Invalid();
+        var entry = new FileSourceEntry(record.Key, (bytes[0] & 3) == 1 ? "file" : "directory", BinaryPrimitives.ReadInt64LittleEndian(bytes[1..]),
+            (bytes[0] & 4) != 0 ? Convert.ToHexStringLower(bytes.Slice(21, 32)) : null,
+            BinaryPrimitives.ReadInt64LittleEndian(bytes[9..]), BinaryPrimitives.ReadInt32LittleEndian(bytes[17..]),
+            (bytes[0] & 8) != 0 ? BinaryPrimitives.ReadUInt32LittleEndian(bytes[^4..]) : null);
+        RequireTemporary(entry); return entry;
+    }
+    private static void RequireTemporary(FileSourceEntry entry)
+    {
+        if (!FileWorkspaceProvider.ValidPath(entry.Path) || entry.Kind is not ("file" or "directory") || entry.Length < 0 ||
+            entry.LastWriteUtcTicks < 0 || entry.LastWriteUtcTicks > DateTime.MaxValue.Ticks || entry.UnixMode is > 0xFFF ||
+            entry.Kind == "directory" && (entry.Length != 0 || entry.Hash is not null) ||
+            ((entry.Attributes & 16) != 0) != (entry.Kind == "directory") ||
+            entry.Hash is not null && (entry.Hash.Length != 64 || entry.Hash.Any(c => c is not (>= '0' and <= '9' or >= 'a' and <= 'f')))) throw Invalid();
+    }
     internal static byte[] Encode(FileSourceEntry entry, PagedPathInterner names, bool alreadyImported = false)
     {
         byte[] name = Convert.FromHexString(alreadyImported ? PagedPathInterner.Reference(entry.Path) : names.Intern(entry.Path)); byte[] bytes = new byte[checked(53 + (entry.Hash is null ? 0 : 32) + (entry.UnixMode is null ? 0 : 4))];

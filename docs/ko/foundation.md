@@ -1,5 +1,9 @@
 # 현재 기반
 
+[ST-49–51](verification/scalable-storage-throughput-followup.md)은 Core 선택 port `IOriginalFileObservationProvider`/`IOriginalFileObservationScope`를 연결한다. 한 계획 안에서 정확한 root/managed lease를 유지하고 각 target을 다시 읽은 뒤 핸들을 해제하며 계획 게시 전 가용성/관리 경계를 재검증한다. 조건부 게시는 여전히 전체 대상 잠금을 확보한다. 결과 private 범위는 파일별 임시 목록 없이 descriptor로 전달하고 기존/기준본 identity도 검증과 adoption을 끝까지 drain한다. Task/basis/overlay·SPM2·CLI schema는 유지하며 시간 자격은 같은 작은 Editor 없는 None 입력에 한정한다.
+
+[ST-44–48](verification/scalable-storage-throughput-followup.md#st-4448-metadata-레코드-중복-검토)은 metadata 저장소 형식 2(`SPM2`)·디렉터리 시각 생략·정확한 게시 version 차등을 도입한다. 파일 비교와 저널 목록 spool은 checksum 바이너리 값을 사용하며 경로/이름은 정렬 key에 한 번만 둔다. 저장소/replay/회수/Plastic header 증명은 같은 현재 magic을 요구하고 이전 `SPM1`은 보존·거부한다. treap node·논리 hash·reader/내구성/소유 보호·CLI schema는 유지하며 다중 항목 페이지는 보류다.
+
 [ST-41–43](verification/scalable-storage-throughput-followup.md)은 최초 연결의 `client.lock` 관측과 workspace 잠금 내부의 요청/회수 intent 읽기에서 불필요한 정상 부재 대기를 제거한다. 일반 게시 유예·원본/peer 보호·영속 ACK·전체 증명은 유지한다. 기존 `SPLINTER_RESULT_GENERATION_DIAGNOSTICS=1`은 회수 하위 단계도 기록하며, 실제 시간 근거는 새 작은 None 입력의 제한 비교다.
 
 [ST-36–40](verification/scalable-storage-throughput-followup.md#st-3640-남은-직렬-처리와-순회-비용)은 Windows `OriginalPublicationCommitQueue`·Runtime `OriginalApplyPages.SaveSteps`·`PagedMetadataReachability`를 추가한다. 진행 호출자는 묶음의 페이지/제어 영속화를 기다리고 Create 핸들은 metadata 배치가 영속화된 뒤에만 보존한다. 이름/namespace 배치와 계획 병합으로 COW/조회 반복을 줄이고 정확한 방문/relocation 캐시는 공통 scratch와 디스크 fallback을 사용한다. 형식·CLI capabilities·native/복구 보호는 유지하며 자격은 작은 64개 검사이지 대형 수명주기 시간이 아니다.

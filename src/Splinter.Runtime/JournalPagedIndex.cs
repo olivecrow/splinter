@@ -1,7 +1,6 @@
 using System.Buffers.Binary;
 using System.Collections;
 using System.Text;
-using System.Text.Json;
 using Splinter.Core;
 
 namespace Splinter.Runtime;
@@ -24,7 +23,6 @@ public sealed partial class JournalDeltaStore
     { (nodes as PagedNodeMap)?.Flush(); (paths as PagedPathNamespace)?.Flush(); (pathChanges as PagedMap<string, long>)?.Flush(); pathComponents?.Flush(); }
     private void EndIndexBatch()
     { (nodes as PagedNodeMap)?.EndBatch(); (paths as PagedPathNamespace)?.EndBatch(); (pathChanges as PagedMap<string, long>)?.EndBatch(); pathComponents?.EndBatch(); }
-    private sealed record ListedChild(string Name, SnapshotEntry? Entry);
 
     public IEnumerable<DeltaEntry> EnumerateChildren(string directory)
     {
@@ -49,20 +47,21 @@ public sealed partial class JournalDeltaStore
                 foreach (var entry in snapshot.EnumerateChildren(lower))
                 {
                     string child = Name(entry.Path);
-                    yield return new(pathPolicy.IdentityPath(child), JsonSerializer.SerializeToUtf8Bytes(new ListedChild(child, entry)));
+                    if (entry.Path != Join(lower, child)) throw new WorkspaceException("SnapshotMissing", "An immutable directory child differs from its fixed listing.");
+                    yield return new(child, EncodeListedMetadata(entry));
                 }
             foreach (var child in namesIndex.Children(path, fixedPaths))
             {
                 string component = Name(child.Key);
-                yield return new(pathPolicy.IdentityPath(component), JsonSerializer.SerializeToUtf8Bytes(new ListedChild(component, null)));
+                yield return new(component, EncodeListedMetadata(null));
             }
         }
         string? previous = null;
-        foreach (var item in MetadataExternalSort.Order(Names(), Path.GetTempPath(), default, sourceFilePins))
+        foreach (var item in MetadataExternalSort.Order(Names(), Path.GetTempPath(), default, sourceFilePins, pathPolicy.Comparer))
         {
-            if (previous == item.Key) continue; previous = item.Key;
-            var listed = JsonSerializer.Deserialize<ListedChild>(item.Value.Span) ?? throw PagedInvalid();
-            string child = Join(path, listed.Name);
+            string key = pathPolicy.IdentityPath(item.Key);
+            if (previous == key) continue; previous = key;
+            string child = Join(path, item.Key);
             if (Denied(child) || Identity.ExcludedTopLevel?.Contains(child.Split('/')[0], pathPolicy.Comparer) == true ||
                 Identity.IncludedTopLevel is { } included && !included.Contains(child.Split('/')[0], pathPolicy.Comparer)) continue;
             if (namesIndex.TryGetValueAt(child, fixedPaths, out Guid childId))
@@ -71,13 +70,52 @@ public sealed partial class JournalDeltaStore
                 yield return DecodeEntry(node.Value.ToArray(), components, fixedNames); continue;
             }
             if (index.Open(fixedHidden).Find(PathComponents.Key(child, pathPolicy)) is not null || lower is null) continue;
-            string original = Join(lower, Name(child)); var entry = listed.Entry;
+            string original = Join(lower, item.Key); var entry = DecodeListedMetadata(original, item.Value.Span);
             snapshot.EnsureAvailable();
             if (entry?.Path != original) throw new WorkspaceException("SnapshotMissing", "An immutable directory child differs from its fixed listing.");
             var digest = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(Identity.Snapshot.Id + "/" + pathPolicy.IdentityPath(entry.Path)));
             yield return new(new Guid(digest.AsSpan(0, 16)), child, entry.Directory, entry.Length, entry.Attributes,
                 entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime, original, entry.Length, UnixMode: entry.UnixMode);
         }
+    }
+
+    // The sort key owns the original component spelling once. The snapshot
+    // parent is fixed by the cursor; no second name or full path is serialized.
+    internal static byte[] EncodeListedMetadata(SnapshotEntry? entry)
+    {
+        if (entry is null) return [0];
+        RequireListedMetadata(entry);
+        byte flags = (byte)(1 | (entry.Directory ? 2 : 0) | (entry.CreationTime == 0 ? 0 : 4) |
+            (entry.LastAccessTime == 0 ? 0 : 8) | (entry.UnixMode is null ? 0 : 16));
+        byte[] bytes = new byte[21 + (entry.CreationTime == 0 ? 0 : 8) + (entry.LastAccessTime == 0 ? 0 : 8) + (entry.UnixMode is null ? 0 : 4)];
+        bytes[0] = flags; BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(1), entry.Length);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(9), entry.Attributes);
+        BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(13), entry.LastWriteTime); int offset = 21;
+        if (entry.CreationTime != 0) { BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(offset), entry.CreationTime); offset += 8; }
+        if (entry.LastAccessTime != 0) { BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(offset), entry.LastAccessTime); offset += 8; }
+        if (entry.UnixMode is { } mode) BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset), mode);
+        return bytes;
+    }
+    internal static SnapshotEntry? DecodeListedMetadata(string path, ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length == 1 && bytes[0] == 0) return null;
+        if (bytes.Length < 21 || bytes[0] > 31 || (bytes[0] & 1) == 0 || bytes.Length !=
+            21 + ((bytes[0] & 4) != 0 ? 8 : 0) + ((bytes[0] & 8) != 0 ? 8 : 0) + ((bytes[0] & 16) != 0 ? 4 : 0)) throw PagedInvalid();
+        int offset = 21;
+        long creation = (bytes[0] & 4) != 0 ? BinaryPrimitives.ReadInt64LittleEndian(bytes[offset..]) : 0;
+        if ((bytes[0] & 4) != 0) { if (creation == 0) throw PagedInvalid(); offset += 8; }
+        long access = (bytes[0] & 8) != 0 ? BinaryPrimitives.ReadInt64LittleEndian(bytes[offset..]) : 0;
+        if ((bytes[0] & 8) != 0) { if (access == 0) throw PagedInvalid(); offset += 8; }
+        uint? mode = (bytes[0] & 16) != 0 ? BinaryPrimitives.ReadUInt32LittleEndian(bytes[offset..]) : null;
+        var entry = new SnapshotEntry(path, (bytes[0] & 2) != 0, BinaryPrimitives.ReadInt64LittleEndian(bytes[1..]),
+            BinaryPrimitives.ReadUInt32LittleEndian(bytes[9..]), creation, access, BinaryPrimitives.ReadInt64LittleEndian(bytes[13..]), mode);
+        RequireListedMetadata(entry); return entry;
+    }
+    private static void RequireListedMetadata(SnapshotEntry entry)
+    {
+        if (entry.Length < 0 || entry.Directory && entry.Length != 0 || ((entry.Attributes & 16) != 0) != entry.Directory ||
+            entry.CreationTime is < 0 or > 2650467743999999999L || entry.LastAccessTime is < 0 or > 2650467743999999999L ||
+            entry.LastWriteTime is < 0 or > 2650467743999999999L || entry.UnixMode is > 0xFFF) throw PagedInvalid();
     }
 
     private void InitializePagedIndex(string directory, bool usePages, JournalIndexRoots? checkpoint = null, PagedMetadataStore? supplied = null)

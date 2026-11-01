@@ -183,6 +183,20 @@ public interface IOriginalFilePublisher
         Action persist, CancellationToken ct = default);
 }
 
+// Optional operation-local observation. Keep the exact root/native lease,
+// reread every target, release target handles between observations, and verify
+// the root boundary before publishing the plan. Never reuse across commands.
+public interface IOriginalFileObservationProvider
+{
+    IOriginalFileObservationScope OpenObservation(string project, CancellationToken ct = default);
+}
+public interface IOriginalFileObservationScope : IDisposable
+{
+    string ProjectIdentity { get; }
+    OriginalFileObservation? Observe(string relativePath, CancellationToken ct = default);
+    void VerifyBoundary(CancellationToken ct = default);
+}
+
 public interface IOriginalApplyPlanReader
 {
     IEnumerable<OriginalApplyChange> Enumerate();

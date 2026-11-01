@@ -26,6 +26,8 @@ pwsh ./scripts/splinter.ps1 workspace integrate --id <id> --target original --re
 
 Core의 `IOriginalApplyProvider`·`IOriginalFilePublisher`는 대상/계획/intent와 게시 port를 정의한다. Runtime은 소유 workspace 잠금, 정확한 결과/seal, 원본별 Splinter 잠금과 회수 guard를 제공한다. Files는 경로별 반영 이력(최초에는 불변 기준)·독립 결과·현재 원본을 비교한다. `WindowsOriginalFilePublisher`가 NTFS의 실제 물리 identity·부모 핸들·내용 읽기와 게시를 담당한다. Host는 계속 읽기 전용이다.
 
+계획은 Core 선택 port `IOriginalFileObservationProvider`/`IOriginalFileObservationScope`를 사용할 수 있다. Windows scope는 한 계획 동안 정확한 root·조상·관리형 reader lease를 유지하고, target마다 다시 읽고 핸들을 해제한 뒤 계획 저장 전에 관리형 가용성과 VCS 관리를 재검증한다. 명령 간 관측을 보관하거나 계획을 원본의 원자적 snapshot으로 만들지 않는다. 선택 port가 없는 provider는 기존 파일별 관측을 사용한다. 게시는 기존 잠금 아래 전체 대상을 독립적으로 재확보·검증한다. 작은 검증과 시간 한계는 [ST-49–51](verification/scalable-storage-throughput-followup.md)이 소유한다.
+
 게시 전 변경 집합 전체의 기존 파일과 조상을 핸들로 고정하고 내용·유형·identity를 검사한다. 영향을 받는 기존 파일의 외부 쓰기/삭제와 조상 교체를 제외하며, 무관한 경로 쓰기는 허용한다. 새 이름의 점유자는 항상 덮어쓰기 없이 거부한다. 원본에 미해결 `.splinter-apply-` 게시 파일이 있으면 새로운 task의 캡처를 거부해 해당 파일을 새 기준으로 가져가지 않는다. 이미 생성한 peer의 고정 기준/편집은 계속 유지한다. 기존 파일은 같은 디렉터리의 정확한 `.old` 이름으로 옮겨 보존하고, 검증된 `.new`를 원래 이름으로 게시한 뒤 기존 파일을 회수한다. 이 두 이름 변경 사이에 원래 경로가 잠시 없을 수 있다. 중단하면 기존 내용과 새 payload를 해당 이름에 보존하며, 외부에서 원래 이름에 만든 파일을 자동 제거하지 않는다. 경로 집합 전체의 원자성은 제공하지 않는다.
 
 기존 파일의 owner/group/DACL·DACL 보호와 creation time, 결과의 지원 속성/수정 시각을 게시 파일에 적용한다. 감사 SACL·보안 label·EFS 등 특수 보안 메타데이터의 보존과 동시 권한 변경은 현재 검증 범위가 아니다. 보안 메타데이터를 관리하는 입력에는 이 파일 시험을 일반 지원으로 승계하지 않는다. 접근/공유 오류를 elevation이나 속성 우회로 해결하지 않는다.

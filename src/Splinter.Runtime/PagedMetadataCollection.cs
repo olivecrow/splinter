@@ -600,7 +600,7 @@ public sealed partial class PagedMetadataStore
     private static string ReadStoreIdentity(string directory)
     {
         byte[] header = ReadExactFile(Path.Combine(directory, "identity.bin"), ContainerHeaderBytes);
-        if (!header.AsSpan(0, 4).SequenceEqual("SPM1"u8) || !SHA256.HashData(header.AsSpan(0, 16)).AsSpan().SequenceEqual(header.AsSpan(16)))
+        if (!header.AsSpan(0, 4).SequenceEqual(FormatMagic) || !SHA256.HashData(header.AsSpan(0, 16)).AsSpan().SequenceEqual(header.AsSpan(16)))
             throw Invalid("Preserve a corrupt metadata store identity.");
         return Convert.ToHexStringLower(header.AsSpan(4, 12));
     }

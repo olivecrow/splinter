@@ -68,7 +68,7 @@ internal sealed class JournalReadOnlyReplayScope : IDisposable
             string identityIdentity, writerIdentity;
             using (var output = NewControl(identityPath, pins, out identityIdentity))
             {
-                byte[] header = new byte[48]; "SPM1"u8.CopyTo(header);
+                byte[] header = new byte[48]; PagedMetadataStore.FormatMagic.CopyTo(header);
                 Convert.FromHexString(source.StoreId).CopyTo(header, 4); SHA256.HashData(header.AsSpan(0, 16), header.AsSpan(16));
                 output.Write(header); output.Flush(true);
             }

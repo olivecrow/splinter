@@ -6,6 +6,8 @@
 
 ## Gate 원장
 
+현재 metadata 저장소 계열은 `SPM2`(ST-44–48)이며 외부 task/basis/overlay 버전이 같아도 이전 `SPM1` 저장소는 보존·거부한다. 레코드 바이트 검사와 작은 native 복구 검증은 [처리량 후속](scalable-storage-throughput-followup.md#st-4448-metadata-레코드-중복-검토)이 소유한다. 아래 보존 대형 입력/전체 gate 자격을 재실행하거나 승계하지 않는다.
+
 2026-11-01 사용자가 남은 검증 축소와 느린 구간 기록을 지시했다. 대형 입력은 작업·기준본·결과·미완료 상태를 보존하고 제한 종료했다. 소유 provider 7개는 각각 인증된 정상 Stop 한 번으로 종료했다. 읽기 전용 None 계획과 Plastic B 초기 준비만 중단했고 10만 항목 원본 게시는 시작하지 않았다. 실제 Git 고정 수집 CLI 중단은 같은 결과와 후속 편집을 보존해 복구했다. 이는 **SCAL-01–08 전체 완료가 아닌 제한 마감**이다. [느린 구간 진단](scalable-storage-throughput-diagnosis.md)을 따른다. 실제 17GiB·세 입력의 10만 항목 전체 수명주기·정상 ABBA·최신 전체 build gate는 해당 지시로 생략했으며 통과나 과거 근거로 대체하지 않는다.
 
 아래 “Passed”는 기록한 자동/로컬 파일 시험 범위에 한정한다. 실제 공급자/Unity 수명주기·비용은 별도 gate다. [통합 기계 판독 근거](../../../reports/benchmarks/scalable-storage-integrated-20261101.json)는 시험과 실행을 연결한다. 중복되는 실행의 통과 수를 합산하지 않는다.

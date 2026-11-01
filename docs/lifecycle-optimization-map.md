@@ -16,6 +16,8 @@ ST-36–40 extends W10 to name/namespace and Create batching, A20 to dense-histo
 
 ST-41–43 observes P40 initial connection under client.lock and removes absent-request/reclaim-intent waits inside the workspace operation lock. Unresolved launch handling, ordinary publication grace, final capture/full seals and exact R10 reclamation order remain. Existing optional result diagnostics gains R10 subphase timing. Small same-input None ABBA results and test-run overruns belong to the throughput follow-up, not large-input/full-gate qualification.
 
+ST-49–51 follows the completed SPM2 record changes. A20 keeps one exact root/managed lease through a plan, rereads and releases targets, then rechecks availability/administration. A30 still reacquires every target and publishes with the existing durable guards. C20 streams private ranges directly into descriptors; skipped/retained descriptors still drain validation and adoption. No stage order, result or reclamation dependency changes. The separate small None ABBA report does not qualify large input or resolve the historical hours-long executions.
+
 ## 1. Rules that determine the graph
 
 - Use the returned `data.workspace.path` and retain project/key/id/home/base/request identity. Reuse the same task across editing, capture and repeated application.

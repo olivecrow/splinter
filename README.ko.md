@@ -10,7 +10,7 @@ Splinter는 AI 에이전트가 Unity 프로젝트나 일반 프로젝트 폴더�
 
 **현재 상태:** Windows와 NTFS를 대상으로 하는 연구용 알파입니다. 작은 Git·Unity Version Control / Plastic SCM·VCS 없는 프로젝트에서 범위를 정해 검증했습니다. 다른 사람들이 검토·재현하고 발전시킬 수 있도록 소스와 측정 근거를 제공합니다. 실제 입력과 지원 한계는 [검증 안내](docs/ko/verification/README.md)를 참고하세요.
 
-현재 [대규모 저장 후보](docs/ko/scalable-storage.md)는 task v4/basis v3/overlay v3로 기록하며 metadata/저널 총량 상한을 디스크 페이지·순차 처리로 대체합니다. SCAL-01–08 필수 자격 검증은 진행 중이고 과거 작은 입력의 시간·지원 자격을 새 후보에 승계하지 않습니다.
+현재 [대규모 저장 후보](docs/ko/scalable-storage.md)는 task v4/basis v3/overlay v3와 metadata 저장소 형식 2(`SPM2`)로 기록하며 metadata/저널 총량 상한을 디스크 페이지·순차 처리로 대체합니다. 이전 `SPM1` 저장소는 보존·거부하므로 일치하는 바이너리로 마무리합니다. SCAL-01–08 필수 자격 검증은 진행 중이고 과거 작은 입력의 시간·지원 자격을 새 후보에 승계하지 않습니다.
 
 2026-11-01 사용자 지시로 대형 검증을 축소했습니다. [느린 구간 기록](docs/ko/verification/scalable-storage-throughput-diagnosis.md)에 10만 작은 파일 작업의 수 시간 실행을 남겼습니다. 대형 프로젝트 사용성·남은 전체 수명주기·동일 입력 성능 유지는 아직 미자격이며 보존한 검증 상태를 별도로 기록했습니다.
 

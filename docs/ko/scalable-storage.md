@@ -6,7 +6,11 @@
 
 [ST-36–40 후속](verification/scalable-storage-throughput-followup.md#st-3640-남은-직렬-처리와-순회-비용)은 저널 배치를 component 이름·계층 namespace 삽입·WinFsp Create까지 확대한다. 최대 64개 변경이 조상 갱신을 공유하며 깊은 경로는 기존 반복 경로를 유지한다. Root 공개 전 pending 페이지를 flush하고 성공한 Create 핸들은 영속 완료 뒤 mutation gate 안에서 보존한다. 원본 진행 기록은 최대 64개 대기 항목을 페이지 flush·제어 저장 각 한 번으로 묶되 둘 다 성공하기 전에 ACK하지 않으며 실패하면 대기/후속 접수를 차단한다. 조밀한 반영 이력과 보존 부모 집합은 정렬 병합하고 희소 이력은 개별 갱신을 유지하며 원본 전체 scan은 남는다. Metadata graph 방문/relocation은 공통 scratch와 sort-run 상한 아래 항목당 512/256바이트를 계상한 정확한 작업 범위 캐시를 사용한다. 부족하면 최초 디스크 frontier/map fallback을 유지한다. 전체 page/root/native 증명·같은 요청 복구·소유 확인 후 삭제를 유지하며 명령·capability·영속/wire 버전은 바꾸지 않는다.
 
-**후보 구현이며 필수 자격 검증은 진행 중이다.** 현재 후보 형식은 task v4·관리형 basis v3·제품 overlay v3다. 이전 상태는 보존·거부하며 일치하는 바이너리로 마무리한다. 과거 RI/MX/GCO 근거는 당시 후보·입력의 자격이다. 필수 gate와 최종 build 뒤 검증 소유 문서에서 완료를 판단한다.
+**후보 구현이며 필수 자격 검증은 진행 중이다.** 현재 후보 형식은 task v4·관리형 basis v3·제품 overlay v3·metadata 저장소 형식 2(`SPM2`)다. 직전 task-v4 후보의 `SPM1` 저장소를 포함한 이전 상태는 보존·거부하며 일치하는 바이너리로 마무리한다. 과거 RI/MX/GCO 근거는 당시 후보·입력의 자격이다. 필수 gate와 최종 build 뒤 검증 소유 문서에서 완료를 판단한다.
+
+[ST-44–48](verification/scalable-storage-throughput-followup.md#st-4448-metadata-레코드-중복-검토)은 조밀한 페이지를 검토하고 작은 값 codec을 구현한다. 디렉터리 record v2는 flag를 묶고 0인 생성/접근 시각을 생략하며 유효한 시각·Unix mode·source reference·경로 정책을 모두 보존한다. 게시 변경 tag 4/5는 Before 전체와 Before/After에 대한 필드 차이를 저장하며 속성·nullable Unix mode도 정확히 복원한다. native identity는 별도다. 저장소 identity/container reader·회수/중단 audit·읽기 전용 replay·Plastic admission 모두 `SPM2`를 요구한다. treap node/page 배치·`SPN1` 논리 hash 알고리즘·root schema v1은 유지하고 변경한 값 바이트는 새로운 정확한 논리 root/digest를 만든다. 혼합 형식 append·이관·이전 저장소 회수는 없다. 작은 제어/CLI JSON과 task/basis/overlay schema는 유지한다.
+
+파일 비교/반영 이력 spool은 checksum으로 검증하는 바이너리 metadata를 사용하며 경로는 spool key 한 곳에만 둔다. 디렉터리 목록 정렬 key는 원래 대소문자를 유지하고 모든 run/merge에서 불변 경로 정책의 comparer를 사용한다. 값에는 고정 metadata만 저장하여 이름/전체 경로를 중복하지 않는다. 가용성·overlay 우선순위·숨김/제외 경로·고정 root 검사를 유지한다. 여러 항목을 한 페이지에 넣는 변경은 보류했으며 현재도 키 하나당 node다. 트리 깊이나 대형 전체 시간 개선을 주장하지 않는다.
 
 2026-11-01 사용자가 남은 검증을 축소했다. 대형 검증은 상태를 보존하고 종료했으며 실제17GiB·10만 전체 게시/회수·정상 ABBA·최신 전체 build gate는 미자격이다. [느린 구간 기록](verification/scalable-storage-throughput-diagnosis.md)에 작은 파일 입력의 수 시간 실행을 남겼으며 현재 대형 프로젝트 사용성과 작은 입력 성능 유지는 입증하지 않았다.
 

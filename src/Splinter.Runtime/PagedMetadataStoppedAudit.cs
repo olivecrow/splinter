@@ -37,7 +37,7 @@ public sealed partial class PagedMetadataStore
         using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1, FileOptions.RandomAccess);
         if (input.Length <= ContainerHeaderBytes || File.Exists(path + ".owner")) throw Invalid("Preserve an unsupported unowned metadata container.");
         Span<byte> prefix = stackalloc byte[ContainerHeaderBytes]; input.ReadExactly(prefix);
-        if (!prefix[..4].SequenceEqual("SPM1"u8) || Convert.ToHexStringLower(prefix.Slice(4, 12)) != storeId ||
+        if (!prefix[..4].SequenceEqual(FormatMagic) || Convert.ToHexStringLower(prefix.Slice(4, 12)) != storeId ||
             !SHA256.HashData(prefix[..16]).AsSpan().SequenceEqual(prefix[16..])) throw Invalid("Preserve a foreign unowned metadata container.");
         long cursor = ContainerHeaderBytes; long number = ParseContainer(path);
         Span<byte> header = stackalloc byte[PageHeaderBytes];
