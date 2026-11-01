@@ -61,15 +61,8 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
         string intent = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(state.IntentKey)))[..24];
         string Prefix(long i, string? nonce) => $".splinter-apply-{plan.OwnerId}-{intent}-{i}" + (nonce is null ? "" : "-" + nonce);
 
-        object progressGate = new();
-        void Commit(long index, OriginalApplyStep step)
-        {
-            lock (progressGate)
-            {
-                state.SaveStep(index, new() { Phase = step.Phase, StagedIdentity = step.StagedIdentity, StagedBytes = step.StagedBytes, StageNonce = step.StageNonce });
-                persist();
-            }
-        }
+        var commits = new OriginalPublicationCommitQueue(state, persist, count => boundary?.Invoke("progress-batch-durable", count));
+        void Commit(long index, OriginalApplyStep step) => commits.Commit(index, step);
 
         // Open/check the entire write set before creating a stage or mutating
         // the original. The leases stay held until this call returns.
@@ -95,12 +88,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
                 // The prior attempt was durably admitted but did not durably
                 // acquire a native identity. Keep it untouched and report it;
                 // a new nonce remains inside this same plan and intent.
-                lock (progressGate)
-                {
-                    state.PreservedScratchRoot = (state.PageProgress ?? throw Conflict("The preserved scratch ledger is unavailable."))
-                        .PreserveScratch(stageName, null, "native-stage-identity-not-recorded");
-                    step.StageNonce = Guid.NewGuid().ToString("N"); Commit(i, step);
-                }
+                step.StageNonce = Guid.NewGuid().ToString("N"); commits.Commit(i, step, stageName);
                 stageName = Sibling(change.Path, Prefix(i, step.StageNonce) + ".new");
             }
             var staged = guard.Observe(stageName, ct, mutation: true);

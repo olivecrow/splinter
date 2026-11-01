@@ -1,6 +1,8 @@
 <a id="현재-기반"></a>
 # Current foundation
 
+[ST-36–40](verification/scalable-storage-throughput-followup.md#st-3640-remaining-serialization-and-traversal-costs) adds Windows `OriginalPublicationCommitQueue`, Runtime `OriginalApplyPages.SaveSteps` and `PagedMetadataReachability`. Progress callers wait for grouped page/control durability; Create handles are retained only after durable metadata batching. Bounded namespace/component batches and planning merges reduce repeated COW/lookups; exact reachable/relocation caches share scratch with disk fallback. Formats, CLI capabilities and native/recovery boundaries remain unchanged; qualification is 64 small tests, not large lifecycle timing.
+
 [ST-29–35](verification/scalable-storage-throughput-followup.md#st-2935-resource-and-concurrency-follow-up) adds Runtime `StorageResources` and `BoundedParallel`: demand-driven memory up to a 4GiB process-local working target, bounded overlapped hashing, insert/change-index batching, listing metadata reuse, sorted file comparison and concurrent staging with disk headroom. No memory is reserved in advance; actual RSS and multiple providers are not capped at 4GiB. Current formats, capabilities and durability/ownership boundaries are unchanged.
 
 [ST-01–23](verification/scalable-storage-throughput-followup.md) adds the Core `IWorkspaceMetadataBatch` port, Windows metadata callback admission, Runtime cancellable `PayloadHash` and Files `FileRawRangePreparation`. These internal processing boundaries retain current persisted/wire versions and full durability/ownership proofs; timing and qualification remain explicitly scoped.

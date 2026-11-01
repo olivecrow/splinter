@@ -198,6 +198,14 @@ public static class OriginalApplyPages
         if (state.Plan.PageReader is not PlanReader reader || state.PageProgress is not Progress progress) return NoScope.Instance;
         return new PublicationScope(reader, progress);
     }
+    public static void SaveSteps(OriginalApplyState state, IReadOnlyList<KeyValuePair<long, OriginalApplyStep>> steps)
+    {
+        if (steps.Count > 64 || steps.Select(item => item.Key).Distinct().Count() != steps.Count ||
+            steps.Any(item => item.Key < 0 || item.Key >= state.Plan.ChangeCount))
+            throw Invalid("A publication progress batch must contain at most 64 distinct fixed-plan entries.");
+        if (state.PageProgress is Progress progress) state.StepsRoot = progress.SaveBatch(steps);
+        else foreach (var step in steps) state.SaveStep(step.Key, step.Value);
+    }
     private sealed class PublicationScope : IDisposable
     {
         private readonly PlanReader reader; private readonly Progress progress; private readonly PagedMetadataStore pages;
@@ -307,6 +315,13 @@ public static class OriginalApplyPages
             using var owned = Shared is null ? new PagedMetadataStore(directory, true, filePins: filePins) : null;
             var store = Shared ?? owned!;
             var root = store.Set(state.StepsRoot!, Key(index), EncodeStep(step)); store.Flush(); return root;
+        }
+        internal MetadataTreeRoot SaveBatch(IReadOnlyList<KeyValuePair<long, OriginalApplyStep>> steps)
+        {
+            using var owned = Shared is null ? new PagedMetadataStore(directory, true, filePins: filePins) : null;
+            var store = Shared ?? owned!;
+            var root = store.SetBatch(state.StepsRoot!, steps.Select(item => new MetadataEntry(Key(item.Key), EncodeStep(item.Value))).ToArray());
+            store.Flush(); return root;
         }
         public MetadataTreeRoot PreserveScratch(string path, string? observedIdentity, string reason)
         {

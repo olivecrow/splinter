@@ -4,6 +4,8 @@
 
 [English](../scalable-storage.md) · [계획](plans/scalable-storage.md) · [SCAL-01–08 검증](verification/scalable-storage.md)
 
+[ST-36–40 후속](verification/scalable-storage-throughput-followup.md#st-3640-남은-직렬-처리와-순회-비용)은 저널 배치를 component 이름·계층 namespace 삽입·WinFsp Create까지 확대한다. 최대 64개 변경이 조상 갱신을 공유하며 깊은 경로는 기존 반복 경로를 유지한다. Root 공개 전 pending 페이지를 flush하고 성공한 Create 핸들은 영속 완료 뒤 mutation gate 안에서 보존한다. 원본 진행 기록은 최대 64개 대기 항목을 페이지 flush·제어 저장 각 한 번으로 묶되 둘 다 성공하기 전에 ACK하지 않으며 실패하면 대기/후속 접수를 차단한다. 조밀한 반영 이력과 보존 부모 집합은 정렬 병합하고 희소 이력은 개별 갱신을 유지하며 원본 전체 scan은 남는다. Metadata graph 방문/relocation은 공통 scratch와 sort-run 상한 아래 항목당 512/256바이트를 계상한 정확한 작업 범위 캐시를 사용한다. 부족하면 최초 디스크 frontier/map fallback을 유지한다. 전체 page/root/native 증명·같은 요청 복구·소유 확인 후 삭제를 유지하며 명령·capability·영속/wire 버전은 바꾸지 않는다.
+
 **후보 구현이며 필수 자격 검증은 진행 중이다.** 현재 후보 형식은 task v4·관리형 basis v3·제품 overlay v3다. 이전 상태는 보존·거부하며 일치하는 바이너리로 마무리한다. 과거 RI/MX/GCO 근거는 당시 후보·입력의 자격이다. 필수 gate와 최종 build 뒤 검증 소유 문서에서 완료를 판단한다.
 
 2026-11-01 사용자가 남은 검증을 축소했다. 대형 검증은 상태를 보존하고 종료했으며 실제17GiB·10만 전체 게시/회수·정상 ABBA·최신 전체 build gate는 미자격이다. [느린 구간 기록](verification/scalable-storage-throughput-diagnosis.md)에 작은 파일 입력의 수 시간 실행을 남겼으며 현재 대형 프로젝트 사용성과 작은 입력 성능 유지는 입증하지 않았다.
@@ -60,7 +62,7 @@ Git 원본 파일 게시는 HEAD/index/branch를 유지한다. 일반 수집은 
 
 ## 원본 게시와 유지보수
 
-변경 전 전체 대상과 필요한 조상을 검사·고정한다. 자원 정책이 선택한 8–32개 worker가 독립 파일을 준비/게시하며 topology/동반 파일 순서·단일 영속 진행 확정·실패/취소 drain을 유지한다. 기존 복구를 위해 최대 payload 1개는 staging할 수 있다. 추가 병렬 staging은 worker 수·작업 메모리 목표의 1/4·관측한 디스크 여유의 1/4로 제한하며 파일별 여유 공간 검사를 유지한다. 이는 디스크 허용량이며 사전 할당이나 RAM 사용량이 아니다. 전체 선택은 인덱스로 보존하며 미리보기는 최대 100항목/4,096 UTF-16문자로 긴 경로에서 비어 있을 수 있다. 같은 intent/digest 재시도는 경로를 생략해 고정 선택을 복구할 수 있고 새 intent의 경로 생략은 전체 범위다.
+변경 전 전체 대상과 필요한 조상을 검사·고정한다. 자원 정책이 선택한 8–32개 worker가 독립 파일을 준비/게시하며 topology/동반 파일 순서·직렬화한 영속 진행 배치·실패/취소 drain을 유지한다. 기존 복구를 위해 최대 payload 1개는 staging할 수 있다. 추가 병렬 staging은 worker 수·작업 메모리 목표의 1/4·관측한 디스크 여유의 1/4로 제한하며 파일별 여유 공간 검사를 유지한다. 이는 디스크 허용량이며 사전 할당이나 RAM 사용량이 아니다. 전체 선택은 인덱스로 보존하며 미리보기는 최대 100항목/4,096 UTF-16문자로 긴 경로에서 비어 있을 수 있다. 같은 intent/digest 재시도는 경로를 생략해 고정 선택을 복구할 수 있고 새 intent의 경로 생략은 전체 범위다.
 
 `NotContentIndexed`는 원본 경로의 로컬 색인 정책이다. 앱의 원자 저장으로 이 비트가 빠져도 Git·None·Plastic 게시에서 관측한 대상 비트를 보존한다. 검토 digest와 조건부 게시는 여전히 관측한 대상의 정확한 metadata·identity에 결합한다. Hidden/System/ReadOnly·지원하지 않는 저장 속성·내용 보호는 유지한다.
 

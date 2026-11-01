@@ -8,6 +8,8 @@
 
 이후 공격적 최적화와 수요에 따른 약 4GB 메모리 사용 승인은 **ST-29–35**가 소유한다. 이전 캐시/worker 정책을 대체하며 무결성 요구나 대형 검증 중단을 해제하지 않는다.
 
+남은 후보를 진행하라는 후속 요청은 아래 **ST-36–40**으로 구현했으며 검증은 작은 국지 검사로 한정한다.
+
 ## 변경
 
 | ID | 변경과 유지한 경계 |
@@ -120,3 +122,32 @@ Git trial driver는 처음에 **140초** 예산을 단계 진입 전에만 확�
 추가 검토에서 큰 후보 세 가지가 남았다. `WindowsOriginalFilePublisher.Commit`은 각 영속 진행 기록을 직렬 확정하므로 flush를 없애는 대신 장애/같은 요청 복구 경계를 정의한 묶음 확정이 필요하다. `JournalPathComponents`와 단일 키 `PagedMetadataStore.Set`은 여전히 키별 경로를 생성하고 영속 형식도 node당 키 하나여서 더 넓은 배치 또는 별도 자격 검증을 거친 조밀한 표현이 후보이다. 원본 계획과 `PagedMetadataCollection`은 보호된 inventory 전체를 순회하며 증분 생략은 전체 소스 세대·native 소유 증명이 선행되어야 한다. 실제 live-index repack 임계값은 `max(64MiB, 활성 개수 × 2048)`이며, 4MiB 후처리 maintenance 판단과 다르다. Worker만 늘려서는 이런 직렬/전체 순회 비용이 사라지지 않으며 과거 수십 분~수 시간 현상의 해소는 아직 입증하지 않았다.
 
 근거: [자원 후속 보고서](../../../reports/benchmarks/scalable-storage-resource-20261101.json), `artifacts/scalable-storage-resource-20261101/`의 소스 manifest·CTRF. SCAL-03/07/08·실제 4GiB 압박·시스템 전체 CPU/디스크 최대 활용·대형 경과 시간 개선·전체 gate 자격은 부여하지 않는다.
+
+## ST-36–40: 남은 직렬 처리와 순회 비용
+
+시작 소스는 깨끗한 `development`의 `3f7d5b1`이다. 사용자가 남은 후보의 구현과 소규모 검증을 승인했다. 보존한 fixture·provider·Editor는 재시작하지 않았다.
+
+| ID | 구현한 변경과 유지한 보호 |
+| --- | --- |
+| ST-36 | Windows `OriginalPublicationCommitQueue`가 대기 중인 진행 기록을 최대 64개로 묶는다. Runtime `OriginalApplyPages.SaveSteps`가 결합한 COW root의 페이지를 한 번 flush하고 제어 기록을 한 번 저장한 뒤 묶음을 ACK한다. 각 호출자는 기존 영속 경계에서 계속 기다리며 timer나 배경 writer는 없다. 저장 실패는 queue를 오염 상태로 고정하고 대기 호출 전체를 실패시키며 이후 진행 기록을 받지 않는다. 불명확한 stage 보존과 대체 nonce도 같은 직렬 그룹으로 확정한다. 원본/peer 잠금·파일별 단계 순서·같은 intent 복구·worker drain을 유지한다. |
+| ST-37 | 저널 배치에 component 이름과 계층 namespace 색인을 포함한다. 현재 작업은 pending 이름을 조회하며 최대 64개 변경의 공통 조상 경로를 결합한다. 구분자가 128개 이상인 경로는 기존 반복 경로로 처리한다. Root 공개는 pending 페이지 flush를 선행하고 과거 cursor를 유지한다. WinFsp Create도 metadata queue를 사용하고 충돌은 해당 호출자에게 반환한다. 성공한 핸들은 묶음이 영속화된 뒤 mutation gate 안에서 보존하며 실패 그룹은 미확정 핸들을 보존하지 않는다. |
+| ST-38 | Runtime `PagedMetadataReachability`는 공통 scratch 예산에 들어오면 정확한 작업 범위의 방문 집합을 유지해 깊이마다 누적 방문 파일을 재작성하지 않는다. 페이지당 512바이트, 현재 sort-run 예산 이하(이 호스트 128MiB)를 계상한다. 할당 실패 시 최초 frontier를 보존하고 기존 디스크 알고리즘으로 전환한다. 복사 relocation도 주소→검증한 복사 참조를 항목당 256바이트·같은 예산 아래 캐시하되 디스크 map과 fallback은 유지한다. 전체 도달 페이지/native/root 검사·복사 flush·location 게시·소유 identity 확인 후 삭제를 유지한다. |
+| ST-39 | 원본 계획에서 조밀한 과거 반영 이력은 경로별 COW 대신 정렬 병합과 기준 목록 일괄 생성을 사용한다. 이력 수가 `max(64, 기준 항목 수 / 16)`보다 적으면 기존 희소 갱신을 유지한다. 삭제·대소문자 표기를 보존하고 경로 이름을 import/검증하며 과거 root는 불변이다. |
+| ST-40 | 원본 namespace 전체 관측은 유지한다. 보존할 부모 집합은 행마다 전후/선택 tree를 세 번 조회하고 부모를 반복 삽입하는 대신 원본 목록과 정렬 cursor들을 함께 전진시켜 계산한다. 최종 부모 집합은 정확한 중복 확인 뒤 일괄 생성한다. 외부 자식·제외한 선택·디렉터리 삭제 충돌 검사는 유지한다. |
+
+작은 작업량 근거이며, 현재 후보의 직렬/디스크 경로와 배치/메모리 경로를 비교한 것이지 바이너리 전후 시간 비교는 아니다.
+
+- 진행 경계 9개의 제어 저장은 **2회**이며 저장 완료 전 호출자를 진행시키지 않는다. 두 번째 저장 실패를 주입하면 해당 그룹 전체를 ACK하지 않는다. Native Create callback 9개도 **영속 저널 flush 2회**를 공유하고 ACK 전 핸들은 없으며 마지막 context까지 해제한다.
+- 공유 metadata graph 128행에서 시험 예산 1MiB일 때 **깊이별 디스크 병합 16→0회**, **relocation map 디스크 조회 699→0회**이고 검증된 메모리 hit 134회가 대신한다. 예산 0/1KiB는 디스크 fallback을 선택하며 같은 논리 root·공유 자식·빈/중복 root를 유지한다.
+- 기준 파일 128개와 반영 이력 97개에서 **metadata 페이지 쓰기 704→97회**다. 이력 5개는 **35→35회**로 희소 갱신의 전체 재구축을 피한다. 이 색인 쓰기 비교는 양쪽의 경로 이름을 동일하게 미리 import한 뒤 계측했다.
+- 마지막 32파일 생성·중첩 rename/delete·재생 검사는 **metadata 599,773→389,568바이트**다. 앞선 작은 실행은 562,848→385,812와 553,972→390,894였다. 매번 새 node GUID를 생성해 tree 모양/바이트 수가 달라지므로 같은 논리 동작의 비교이며 같은 task identity나 일반 경과 시간 개선율은 아니다.
+
+최종 검증은 **고유 64개 통과, 실패/skip 0개**다. 새 12개는 **2.334초**, 회수 손상/중단/reader 20개는 **4.045초**, 원본 게시 보호 5개는 **14.452초**, 공간 오류/보존 stage 복구 5개는 **9.171초**, 저널/metadata/cleanup/고정 cursor 20개는 **2.485초**, 불명확한 stage/과거 진행 root 2개는 **2.397초**에 통과했다. 입력은 동시 callback 9개·새 파일 32개·회수 32–256행·계획 기준 파일 128개·깊이 3/129의 경로 하나다. 기존 작은 Unicode/capture/replay 검사는 구성 요소 근거다. Fake/앱 정책 검사를 실제 Plastic 서버나 Unity 수명주기 자격으로 승계하지 않는다.
+
+첫 공간 오류 검사는 복구에 진입하기 전, staging을 12KiB 파일 하나로 제한하던 이전 assertion에서 4개 실패했다. ST-33은 이미 여러 stage를 허용한다. 현재 정책 허용량·전체 계획 payload·최대 파일 metric을 함께 검사하도록 고쳤고, 보존 stage 검사는 기존 stage 1–2개를 허용하되 새 staging 전에 완료하는 보호를 유지했다. 위 5개 전체 재실행은 통과했다. 실패 원문은 보고서에 보존했으며 제품 보호를 낮춰 검사를 통과시키지 않았다.
+
+시간 계획은 전체 55분(검토 8·구현 33·검증/문서 14), 준비/수집/회수 검사 약 5초·반영 약 10초·빌드 약 30초와 각 예상의 2배 중단 기준이다. 최초 solution 빌드는 60초 중단 전 **53.38초**, 집중 빌드는 7.86초/8.72초, 마지막 solution 빌드는 **8.89초**이며 모두 경고/오류 0개다. 취소나 강제 종료가 필요한 단계는 없었다. `build.ps1` 전체 시험 단계와 대형 행렬은 실행하지 않았다.
+
+키 하나당 node인 영속 표현과 필수 원본/inventory 전체 관측은 남는다. 반복 색인 작업과 깊이별 순회를 줄였으며 모든 전체 scan을 제거하거나 CPU/디스크를 최대 활용하거나 과거 수십 분~수 시간 현상을 해소했다고 주장하지 않는다. 매우 큰 graph나 동시 scratch 수요에서는 더 느린 디스크 fallback을 사용할 수 있다. 프로세스별 4GiB 작업 목표·버전·wire schema·CLI capabilities는 유지한다.
+
+근거: [남은 후보 보고서](../../../reports/benchmarks/scalable-storage-remaining-20261101.json), `artifacts/scalable-storage-remaining-20261101/`의 최종 소스 hash·CTRF. 대형 경과 시간·최대 RSS·OS 장애·실제 Plastic/Unity·전체 gate 자격은 추가하지 않는다.

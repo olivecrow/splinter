@@ -19,11 +19,11 @@ public sealed partial class JournalDeltaStore
     private MetadataTreeRoot? HiddenRoot => (hidden as PagedSet<string>)?.Root;
     private MetadataTreeRoot? ChangeRoot => (pathChanges as PagedMap<string, long>)?.Root;
     private void BeginIndexBatch()
-    { (nodes as PagedNodeMap)?.BeginBatch(); (pathChanges as PagedMap<string, long>)?.BeginBatch(); }
+    { pathComponents?.BeginBatch(); (nodes as PagedNodeMap)?.BeginBatch(); (paths as PagedPathNamespace)?.BeginBatch(); (pathChanges as PagedMap<string, long>)?.BeginBatch(); }
     private void FlushIndexBatch()
-    { (nodes as PagedNodeMap)?.Flush(); (pathChanges as PagedMap<string, long>)?.Flush(); }
+    { (nodes as PagedNodeMap)?.Flush(); (paths as PagedPathNamespace)?.Flush(); (pathChanges as PagedMap<string, long>)?.Flush(); pathComponents?.Flush(); }
     private void EndIndexBatch()
-    { (nodes as PagedNodeMap)?.EndBatch(); (pathChanges as PagedMap<string, long>)?.EndBatch(); }
+    { (nodes as PagedNodeMap)?.EndBatch(); (paths as PagedPathNamespace)?.EndBatch(); (pathChanges as PagedMap<string, long>)?.EndBatch(); pathComponents?.EndBatch(); }
     private sealed record ListedChild(string Name, SnapshotEntry? Entry);
 
     public IEnumerable<DeltaEntry> EnumerateChildren(string directory)

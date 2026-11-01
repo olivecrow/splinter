@@ -5067,6 +5067,15 @@
     "finalSourceManifest": "artifacts/scalable-storage-throughput-20261101/final-source.json",
     "qualification": "Small bounded follow-up only; SCAL-03/07/08 and final whole gate remain unqualified."
   },
+  "scalableStorageRemainingFollowup": {
+    "ids": "ST-36–40",
+    "document": "docs/verification/scalable-storage-throughput-followup.md",
+    "report": "reports/benchmarks/scalable-storage-remaining-20261101.json",
+    "finalSourceManifest": "artifacts/scalable-storage-remaining-20261101/final-source.json",
+    "stages": ["W10", "A20", "A30", "B10", "R10", "F10"],
+    "helpers": ["src/Splinter.Platform.Windows/OriginalPublicationCommitQueue.cs", "src/Splinter.Runtime/PagedMetadataReachability.cs"],
+    "qualification": "64 unique small checks; grouped ACKs wait for page/control durability; exact reachability/relocation caches retain disk fallback. Native ownership, immutable roots and same-request recovery remain. Large timing, peak memory and full gate unqualified."
+  },
   "scalableStorageResourceFollowup": {
     "ids": "ST-29–35",
     "document": "docs/verification/scalable-storage-throughput-followup.md",

@@ -8,14 +8,18 @@ public sealed partial class PagedMetadataStore
 {
     // The caller freezes/pins this root set before leaving its short write
     // boundary. Reachability, duplicate removal and relocation then use disk
-    // cursors. Neither the reachable-page set nor relocation map lives in RAM.
+    // cursors, with a demand-driven bounded memory acceleration when available.
     // Returned roots preserve logical identity while using destination offsets.
     public IEnumerable<MetadataTreeRoot> CopyRootsTo(PagedMetadataStore destination, IEnumerable<MetadataTreeRoot> roots,
         string workingDirectory, CancellationToken ct = default)
         => CopyRootsToCore(destination, roots, workingDirectory, ct, false, null);
 
+    internal IEnumerable<MetadataTreeRoot> CopyRootsToBounded(PagedMetadataStore destination, IEnumerable<MetadataTreeRoot> roots,
+        string workingDirectory, CancellationToken ct, int memoryLimit)
+        => CopyRootsToCore(destination, roots, workingDirectory, ct, false, null, memoryLimit);
+
     private IEnumerable<MetadataTreeRoot> CopyRootsToCore(PagedMetadataStore destination, IEnumerable<MetadataTreeRoot> roots,
-        string workingDirectory, CancellationToken ct, bool sameIdentity, Action<MetadataPageReference, MetadataPageReference>? copied)
+        string workingDirectory, CancellationToken ct, bool sameIdentity, Action<MetadataPageReference, MetadataPageReference>? copied, int? memoryLimit = null)
     {
         if (ReferenceEquals(this, destination) || StoreId == destination.StoreId && !sameIdentity) throw Invalid("Repacking requires a separately owned metadata store.");
         string scope = Path.Combine(Path.GetFullPath(workingDirectory), "repack-" + Guid.NewGuid().ToString("N"));
@@ -35,10 +39,15 @@ public sealed partial class PagedMetadataStore
                     if (root.Page is null) continue;
                     var canonical = ResolveReference(root.Page); WriteReference(rootOutput, canonical); WriteReference(first, canonical);
                 }
+            int budget = memoryLimit ?? StorageResources.SortRunBytes;
+            if (budget < 0) throw new ArgumentOutOfRangeException(nameof(memoryLimit));
+            string? memoryVisited = TryMemoryReachability(frontier, scope, budget, ct);
+            if (memoryVisited is not null) { MetadataScratchOwnership.Remove(visited, filePins); visited = memoryVisited; }
             long phase = 0;
-            while (new FileInfo(frontier).Length != 0)
+            while (memoryVisited is null && new FileInfo(frontier).Length != 0)
             {
                 ct.ThrowIfCancellationRequested(); phase = checked(phase + 1);
+                boundary?.Invoke("metadata.repack.reachability-disk-pass");
                 string nextVisited = Path.Combine(scope, "visited-" + phase.ToString("x16") + ".bin"), nextFrontier = Path.Combine(scope, "frontier-" + phase.ToString("x16") + ".bin");
                 using (var output = NewSpool(nextVisited))
                 using (var children = NewSpool(nextFrontier))
@@ -68,13 +77,22 @@ public sealed partial class PagedMetadataStore
                 MetadataScratchOwnership.Remove(visited, filePins); MetadataScratchOwnership.Remove(frontier, filePins); visited = nextVisited; frontier = nextFrontier;
             }
             using var map = NewSpool(mapping, unbuffered: true); long rows = 0;
+            using var mappingMemory = StorageResources.Scratch.Open();
+            var mappingCache = new Dictionary<(long Container, long Offset), MetadataPageReference>();
             MetadataPageReference? Relocate(MetadataPageReference? source)
             {
                 if (source is null) return null;
-                source = ResolveReference(source); long low = 0, high = rows; byte[] entry = new byte[76];
+                source = ResolveReference(source);
+                if (mappingCache.TryGetValue((source.Container, source.Offset), out var cached))
+                {
+                    if (cached.ContentHash != source.ContentHash || cached.Count != source.Count) throw Invalid("A cached relocation changed logical metadata identity.");
+                    boundary?.Invoke("metadata.repack.mapping-memory-hit"); return cached;
+                }
+                long low = 0, high = rows; byte[] entry = new byte[76];
                 while (low < high)
                 {
                     long middle = low + (high - low) / 2; ReadMapping(map, checked(middle * 76), entry);
+                    boundary?.Invoke("metadata.repack.mapping-disk-read");
                     long container = BinaryPrimitives.ReadInt64LittleEndian(entry), offset = BinaryPrimitives.ReadInt64LittleEndian(entry.AsSpan(8));
                     int order = container != source.Container ? container.CompareTo(source.Container) : offset.CompareTo(source.Offset);
                     if (order < 0) low = middle + 1;
@@ -97,6 +115,8 @@ public sealed partial class PagedMetadataStore
                 if (next.Count != reference.Count || next.ContentHash != reference.ContentHash) throw Invalid("Repacked pages changed their logical identity.");
                 byte[] entry = new byte[76]; BinaryPrimitives.WriteInt64LittleEndian(entry, reference.Container); BinaryPrimitives.WriteInt64LittleEndian(entry.AsSpan(8), reference.Offset);
                 EncodeReference(next).CopyTo(entry, 16); RandomAccess.Write(map.SafeFileHandle, entry, checked(rows * 76)); rows = checked(rows + 1);
+                long charge = (mappingCache.Count + 1L) * 256;
+                if (charge <= budget && mappingMemory.TryResize(charge)) mappingCache.Add((reference.Container, reference.Offset), next);
                 copied?.Invoke(reference, next);
             }
             destination.Flush();

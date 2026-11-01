@@ -153,18 +153,20 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
         byte[] securityDescriptor, ulong allocationSize, out object fileNode, out object fileDesc,
         out FileInfo fileInfo, out string normalizedName)
     {
-        using (EnterMutation("create"))
+        fileNode = fileDesc = null!; fileInfo = default; normalizedName = null!;
+        SnapshotInputChecks.RejectUnsupportedAttributes(fileAttributes, fileName);
+        DeltaEntry? created = null; HandleContext? context = null;
+        fileInfo = SubmitMetadata("create", () =>
         {
-            SnapshotInputChecks.RejectUnsupportedAttributes(fileAttributes, fileName);
-            if (store.Stat(fileName) is not null)
-            {
-                fileNode = fileDesc = null!; fileInfo = default; normalizedName = null!;
-                return STATUS_OBJECT_NAME_COLLISION;
-            }
-            var entry = store.Create(fileName, (createOptions & 1) != 0, fileAttributes);
-            fileNode = entry.Id; fileDesc = Retain(entry.Id); fileInfo = Info(entry);
-            normalizedName = "\\" + entry.Path.Replace('/', '\\'); Interlocked.Increment(ref handles); Interlocked.Increment(ref contexts); return STATUS_SUCCESS;
-        }
+            if (store.Stat(fileName) is not null) return default;
+            created = store.Create(fileName, (createOptions & 1) != 0, fileAttributes); return Info(created);
+        }, () =>
+        {
+            if (created is null) return;
+            context = Retain(created.Id); Interlocked.Increment(ref handles); Interlocked.Increment(ref contexts);
+        });
+        if (created is null) return STATUS_OBJECT_NAME_COLLISION;
+        fileNode = created.Id; fileDesc = context!; normalizedName = "\\" + created.Path.Replace('/', '\\'); return STATUS_SUCCESS;
     }
     public override int Open(string fileName, uint createOptions, uint grantedAccess,
         out object fileNode, out object fileDesc, out FileInfo fileInfo, out string normalizedName)

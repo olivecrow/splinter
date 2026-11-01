@@ -13,10 +13,10 @@ internal sealed class FileApplyIndex : IDisposable
     private readonly TemporaryMetadataDirectory scratch;
     private readonly PagedPathInterner names;
     internal MetadataTreeRoot Root { get; private set; }
-    internal FileApplyIndex(string directory)
+    internal FileApplyIndex(string directory, Action<string>? boundary = null)
     {
         scratch = new(directory); this.directory = scratch.Path;
-        try { pages = new(this.directory, true); names = new(pages); Root = pages.Empty; }
+        try { pages = new(this.directory, true, boundary); names = new(pages); Root = pages.Empty; }
         catch { scratch.Dispose(); throw; }
     }
     internal MetadataTreeRoot Build(IEnumerable<FileSourceEntry> entries, CancellationToken ct)
@@ -37,6 +37,67 @@ internal sealed class FileApplyIndex : IDisposable
         return pages.Build(MetadataSort.Order(Encoded(), pagesDirectory, ct), ct);
     }
     private string pagesDirectory => directory;
+    internal MetadataTreeRoot ApplyVersions(MetadataTreeRoot basis, IEnumerable<AppliedFilePath> applied, CancellationToken ct)
+    {
+        using var input = new MetadataSpool(directory); long count = 0;
+        foreach (var item in applied)
+        { ct.ThrowIfCancellationRequested(); input.Append(new(item.Path, System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(item))); count++; }
+        if (count == 0) return basis;
+        IEnumerable<AppliedFilePath> Items() => input.Read().Select(entry =>
+            System.Text.Json.JsonSerializer.Deserialize<AppliedFilePath>(entry.Value.Span) ?? throw Invalid());
+        FileSourceEntry Entry(AppliedFilePath item) => new(item.Path, item.Version!.Kind, item.Version.Length,
+            item.Version.Hash, item.Version.ModifiedUtcTicks, item.Version.Attributes, item.Version.UnixMode);
+        // A sparse update should not rebuild an otherwise large basis.
+        if (count < Math.Max(64, basis.Count / 16))
+        {
+            foreach (var item in Items()) { ct.ThrowIfCancellationRequested(); basis = item.Version is null ? Remove(basis, item.Path) : Set(basis, Entry(item)); }
+            return basis;
+        }
+        names.Import(input.Read().Select(entry => entry.Key), ct);
+        var changes = MetadataSort.Order(Items().Select(item => new MetadataEntry(Key(item.Path),
+            item.Version is null ? ReadOnlyMemory<byte>.Empty : Encode(Entry(item), names, alreadyImported: true))), directory, ct);
+        IEnumerable<MetadataEntry> Merge()
+        {
+            using var left = pages.Open(basis).Enumerate().GetEnumerator(); using var right = changes.GetEnumerator();
+            bool a = left.MoveNext(), b = right.MoveNext(); string? previous = null;
+            while (a || b)
+            {
+                ct.ThrowIfCancellationRequested();
+                int order = !a ? 1 : !b ? -1 : StringComparer.Ordinal.Compare(left.Current.Key, right.Current.Key);
+                if (order < 0) { yield return left.Current; a = left.MoveNext(); continue; }
+                if (right.Current.Key == previous) throw Invalid(); previous = right.Current.Key;
+                if (right.Current.Value.Length != 0) yield return right.Current;
+                if (order == 0) a = left.MoveNext(); b = right.MoveNext();
+            }
+        }
+        return pages.Build(Merge(), ct);
+    }
+    internal MetadataTreeRoot RetainedParents(MetadataTreeRoot original, MetadataTreeRoot before, MetadataTreeRoot after,
+        MetadataTreeRoot included, CancellationToken ct)
+    {
+        IEnumerable<string> Parents()
+        {
+            using var b = pages.Open(before).Enumerate().GetEnumerator(); using var a = pages.Open(after).Enumerate().GetEnumerator();
+            using var selected = pages.Open(included).Enumerate().GetEnumerator();
+            bool hasB = b.MoveNext(), hasA = a.MoveNext(), hasSelected = selected.MoveNext();
+            bool Has(IEnumerator<MetadataEntry> cursor, ref bool more, string key)
+            {
+                while (more && StringComparer.Ordinal.Compare(cursor.Current.Key, key) < 0)
+                { ct.ThrowIfCancellationRequested(); more = cursor.MoveNext(); }
+                return more && cursor.Current.Key == key;
+            }
+            foreach (var row in pages.Open(original).Enumerate())
+            {
+                ct.ThrowIfCancellationRequested();
+                if (Has(a, ref hasA, row.Key) || !Has(b, ref hasB, row.Key) || !Has(selected, ref hasSelected, row.Key))
+                {
+                    string path = Decode(row.Value.Span, names).Path;
+                    for (int slash; (slash = path.LastIndexOf('/')) >= 0;) { path = path[..slash]; yield return path; }
+                }
+            }
+        }
+        return BuildImportedPaths(Parents(), ct, coalesce: true);
+    }
     internal MetadataTreeRoot BuildPaths(IEnumerable<string> paths, CancellationToken ct = default, bool coalesce = false)
     {
         using var input = new MetadataSpool(directory); long index = 0;
@@ -91,9 +152,21 @@ internal sealed class FileApplyIndex : IDisposable
     }
     // Paths originate in this index's decoded before/after records, whose
     // components have already been imported and validated.
-    internal MetadataTreeRoot BuildImportedPaths(IEnumerable<string> paths, CancellationToken ct) =>
-        pages.Build(MetadataSort.Order(paths.Select(path => new MetadataEntry(Key(path),
-            Convert.FromHexString(PagedPathInterner.Reference(path)))), directory, ct), ct);
+    internal MetadataTreeRoot BuildImportedPaths(IEnumerable<string> paths, CancellationToken ct, bool coalesce = false)
+    {
+        IEnumerable<MetadataEntry> Ordered()
+        {
+            MetadataEntry? previous = null;
+            foreach (var entry in MetadataSort.Order(paths.Select(path => new MetadataEntry(Key(path),
+                Convert.FromHexString(PagedPathInterner.Reference(path)))), directory, ct))
+            {
+                if (coalesce && previous?.Key == entry.Key)
+                { if (!previous.Value.Span.SequenceEqual(entry.Value.Span)) throw Invalid(); continue; }
+                previous = entry; yield return entry;
+            }
+        }
+        return pages.Build(Ordered(), ct);
+    }
     internal IEnumerable<string> Paths(MetadataTreeRoot root)
     { foreach (var entry in pages.Open(root).Enumerate()) { if (entry.Value.Length != 32) throw Invalid(); yield return names.Resolve(Convert.ToHexStringLower(entry.Value.Span)); } }
     internal MetadataTreeRoot AddText(MetadataTreeRoot root, string text)

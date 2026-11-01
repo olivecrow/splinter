@@ -1,5 +1,7 @@
 # Splinter 작업 지침
 
+- 2026-11-01 남은 직렬/순회 비용 수정은 처리량 후속 문서 ST-36–40과 `reports/benchmarks/scalable-storage-remaining-20261101.json`이 소유한다. `OriginalPublicationCommitQueue`·`OriginalApplyPages.SaveSteps`는 최대 64개 진행 기록을 페이지 flush·제어 저장 뒤 ACK하며 실패 시 대기 전체를 차단한다. Create callback·이름/계층 namespace 배치, 조밀한 반영 이력 병합·부모 집합 동시 순회, `PagedMetadataReachability`의 공통 scratch 예산 내 방문/relocation 캐시를 연결했다. 부족하면 기존 디스크 경로이며 root/native proof·과거 cursor·동반 파일·같은 요청·소유권·취소/drain 보호는 유지한다. 고유 64개 작은 검증은 대형 전체 시간·전체 gate·실제 Plastic/Unity 자격이 아니다. 키 하나당 node 형식·필수 전체 inventory 관측·4GiB 프로세스별 목표·wire/CLI capabilities는 유지하며 보존 대형 fixture를 자동 재개하지 않는다.
+
 - 2026-11-01 추가 최적화는 처리량 후속 문서의 ST-29–35와 `reports/benchmarks/scalable-storage-resource-20261101.json`이 소유한다. `StorageResources`·`BoundedParallel`은 사전 할당 없는 프로세스별 최대 4GiB 작업 목표(가용량 1/8, 최소 128MiB), 최대 2.5GiB metadata 캐시·512MiB 공통 정렬/spool scratch·최대 32 worker를 사용한다. OS RSS나 여러 provider 합산 4GiB 강제 상한은 아니다. 삽입/변경 경로 배치·목록 metadata 재사용·정렬 변경 비교·실제 병렬 staging을 연결했다. Plastic revision은 직렬을 유지하고 전체 잠금·영속 ACK·같은 요청 복구·취소/drain은 유지한다. 작은 검사와 작업량 감소를 대형 전체 성능으로 승계하지 않으며 기존 100k fixture를 자동 재개하지 않는다.
 
 - 2026-11-01 구조적 원인 수정 후속은 같은 처리량 후속 문서의 ST-24–28과 `reports/benchmarks/scalable-storage-structural-20261101.json`이 소유한다. `PagedMetadataBatch`의 기존 키 경로 결합·고정 작업 내 whole 참조 fence/채택 reader 재사용·raw catalog 묶음·동일 path import 재구축 생략·Git catalog 병합을 연결했다. 45개 작은 검증과 호출/metadata 바이트 감소는 대형 전체 시간·100k/17GiB·전체 gate 통과가 아니다. node당 키 형식과 최초 개별 진입은 유지하며 보존 fixture를 자동 재개하지 않는다.

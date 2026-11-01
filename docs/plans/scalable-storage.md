@@ -6,6 +6,8 @@ Status: **in progress**, authorized by the user's implementation request. SCAL-0
 
 The user reduced verification on 2026-11-01. Large synthetic runs were stopped safely with retained state; remaining 100k/17GiB/ABBA/full-gate obligations are open, not passed. [The slowdown record](../verification/scalable-storage-throughput-diagnosis.md) separates observed phase times, confirmed fixes and unmeasured causes. Do not restart those large runs automatically. Implementation activation and focused qualification do not establish the full completion criteria below.
 
+The remaining serialization/traversal candidates are implemented as [ST-36–40](../verification/scalable-storage-throughput-followup.md#st-3640-remaining-serialization-and-traversal-costs): grouped durable progress, initial namespace/Create batches, bounded exact graph caches and planning merges. Small 64-test qualification does not close the large/full gates or replace the one-key-per-node format.
+
 ## Accepted contract
 
 Remove project-wide entry/path/manifest/journal quotas throughout Git/None/Plastic preparation, editing, capture, original publication and reclamation. Keep bounded processing pages, lazy caches and concurrency; real filesystem capacity and metadata restrictions still apply. Preserve immutable independent generations, same-request recovery, original/peer isolation and all-target native publication locks. Never substitute a mutable original path for required preserved content.

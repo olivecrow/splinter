@@ -12,6 +12,8 @@ ST-24–28 further coalesces W10's existing node search paths with `PagedMetadat
 
 ST-29–35 adds `StorageResources` and `BoundedParallel` within W10/C20/A20. Bounded insert/change-index batches, larger demand-driven sort/cache budgets and listing metadata reuse reduce repeated work; hashing overlaps enumeration/consumption and independent original staging can overlap under disk headroom. Fixed Plastic revision reads remain serial. Full-target locks, durable progress, cancellation/drain and stage publication order are unchanged. See the resource report for small correctness/cost checks; actual CPU/disk saturation, large-input elapsed time and process memory are unqualified.
 
+ST-36–40 extends W10 to name/namespace and Create batching, A20 to dense-history/retained-parent merges, and A30 to grouped durable progress acknowledgements. B10/R10/F10 metadata graph copies can use bounded exact visited/relocation caches with disk fallback. Create retains handles after durable completion under the same mutation gate; A30 callers cannot cross a phase before the group page/control persist succeeds. Whole native/ownership proofs and stage publication order remain. The new helpers and 64 small checks are recorded in the remaining-candidate report; large timing/RSS/full-gate qualification stays open.
+
 ## 1. Rules that determine the graph
 
 - Use the returned `data.workspace.path` and retain project/key/id/home/base/request identity. Reuse the same task across editing, capture and repeated application.

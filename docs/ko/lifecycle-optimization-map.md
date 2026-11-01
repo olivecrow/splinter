@@ -12,6 +12,8 @@ ST-24–28은 `PagedMetadataBatch`로 W10의 기존 node 탐색 경로를 결합
 
 ST-29–35는 W10/C20/A20 내부에 `StorageResources`·`BoundedParallel`을 연결한다. 제한된 삽입/변경 색인 배치·수요 기반 정렬/캐시 예산 확대·목록 metadata 재사용으로 반복 작업을 줄이며, hash를 열거/소비와 겹치고 독립 원본 staging을 디스크 여유 아래 병렬 처리한다. 고정 Plastic revision 읽기는 직렬이다. 전체 대상 잠금·영속 진행 기록·취소/drain·단계 게시 순서는 유지한다. 자원 보고서의 작은 정확성/비용 검사는 실제 CPU/디스크 최대 활용·대형 경과 시간·프로세스 메모리 자격이 아니다.
 
+ST-36–40은 W10의 이름/namespace·Create 배치, A20의 조밀한 이력/보존 부모 병합, A30의 영속 진행 ACK 묶음을 연결한다. B10/R10/F10의 metadata graph 복사는 제한된 정확한 방문/relocation 캐시와 디스크 fallback을 사용한다. Create는 같은 mutation gate 안에서 영속 완료 뒤 핸들을 보존하고 A30 호출자는 그룹의 페이지/제어 저장 성공 전 다음 단계로 가지 않는다. 전체 native/소유 증명과 단계 게시 순서를 유지한다. 새 helper와 작은 64개 검사는 남은 후보 보고서가 소유하며 대형 시간/RSS/전체 gate는 미자격이다.
+
 ## 1. 흐름을 결정하는 규칙
 
 - 반환 `data.workspace.path`와 project/key/id/home/base/request identity를 사용한다. 편집·수집·반복 반영 동안 같은 작업을 유지한다.

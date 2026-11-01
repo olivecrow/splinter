@@ -58,9 +58,7 @@ public sealed partial class FileWorkspaceProvider
         using var result = w.Results.Count == 0 ? ReadManifest(w, FilePath(Control(w), "result.json")) : GenerationManifest(w);
         using var work = new FileApplyIndex(FilePath(Control(w), "plan-work"));
         var before = work.Build(baseline.EnumerateEntries(), ct);
-        foreach (var applied in EnumerateAppliedPaths(Control(w), w.AppliedPaths, w.AppliedPathNames))
-            before = applied.Version is null ? work.Remove(before, applied.Path) : work.Set(before,
-                new(applied.Path, applied.Version.Kind, applied.Version.Length, applied.Version.Hash, applied.Version.ModifiedUtcTicks, applied.Version.Attributes, applied.Version.UnixMode));
+        before = work.ApplyVersions(before, EnumerateAppliedPaths(Control(w), w.AppliedPaths, w.AppliedPathNames), ct);
         var after = work.Build(result.EnumerateEntries(), ct);
         var found = work.Empty;
         IEnumerable<string> DirectChanges()
@@ -118,11 +116,8 @@ public sealed partial class FileWorkspaceProvider
                 yield return entry;
             }
         }
-        var originalNames = work.Build(CheckedOriginalEntries(), ct); var retainedParents = work.Empty;
-        foreach (var entry in work.Entries(originalNames))
-            if (work.Contains(after, entry.Path) || !work.Contains(before, entry.Path) || !work.Contains(included, entry.Path))
-                for (string? parent = Parent(entry.Path); parent is not null; parent = Parent(parent))
-                    if (work.Contains(retainedParents, parent)) break; else retainedParents = work.AddPath(retainedParents, parent);
+        var originalNames = work.Build(CheckedOriginalEntries(), ct);
+        var retainedParents = work.RetainedParents(originalNames, before, after, included, ct);
         var conflicts = work.Empty;
         void Conflict(string message) => conflicts = work.AddText(conflicts, message);
         string rootIdentity = publisher.RootIdentity(w.ProjectPath);

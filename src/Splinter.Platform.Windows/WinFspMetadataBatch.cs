@@ -6,11 +6,12 @@ namespace Splinter.Platform.Windows;
 
 public sealed partial class WinFspOverlayFileSystem
 {
-    private sealed class PendingMetadata(string operation, long started, Func<FileInfo> apply)
+    private sealed class PendingMetadata(string operation, long started, Func<FileInfo> apply, Action? committed)
     {
         public readonly string Operation = operation;
         public readonly long Started = started;
         public readonly Func<FileInfo> Apply = apply;
+        public readonly Action? Committed = committed;
         public FileInfo Info;
         public bool Completed;
         public long Ticket;
@@ -22,9 +23,9 @@ public sealed partial class WinFspOverlayFileSystem
     private long issuedMetadataTicket, completedMetadataTicket;
     internal int PendingMetadataCount { get { lock (metadataQueueGate) return waitingMetadata.Count; } }
 
-    private FileInfo SubmitMetadata(string operation, Func<FileInfo> apply)
+    private FileInfo SubmitMetadata(string operation, Func<FileInfo> apply, Action? committed = null)
     {
-        var request = new PendingMetadata(operation, WriteClock(), apply);
+        var request = new PendingMetadata(operation, WriteClock(), apply, committed);
         lock (metadataQueueGate) { request.Ticket = ++issuedMetadataTicket; waitingMetadata.Enqueue(request); }
         ExceptionDispatchInfo? interruption = null;
         while (true)
@@ -62,6 +63,11 @@ public sealed partial class WinFspOverlayFileSystem
                         var callbacks = batch.Select(item => (Action)(() => item.Info = item.Apply())).ToArray();
                         if (store is IWorkspaceMetadataBatch writer) writer.ApplyMetadataBatch(callbacks);
                         else foreach (var callback in callbacks) callback();
+                        // Retain a successful Create's handle before releasing
+                        // mutationGate, but never retain an unacknowledged file.
+                        foreach (var item in batch)
+                            try { item.Committed?.Invoke(); }
+                            catch (Exception error) { item.Failure = ExceptionDispatchInfo.Capture(error); }
                     }
                     finally { ended = WriteClock(); }
                 }
@@ -74,7 +80,7 @@ public sealed partial class WinFspOverlayFileSystem
                     writeTelemetry?.Mutation(item.Operation, acquired - item.Started, ended - acquired);
                 lock (metadataQueueGate)
                 {
-                    foreach (var item in batch) { item.Failure = failure; item.Completed = true; }
+                    foreach (var item in batch) { item.Failure ??= failure; item.Completed = true; }
                     if (batch.Length != 0) completedMetadataTicket = batch[^1].Ticket;
                     metadataBatchRunning = false; Monitor.PulseAll(metadataQueueGate);
                 }

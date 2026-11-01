@@ -90,9 +90,13 @@ public sealed partial class FileWorkspaceTests
         var result = (await f.New().CheckpointAsync(w.Id, "fixed", "space-result", ct)).ResultGeneration!;
         var plan = (await f.New().PlanOriginalAsync(w.Id, result.Id, null, ct)).OriginalApplyPlan!;
         Assert.Equal(3, plan.Version); Assert.Equal(13, plan.ChangeCount);
+        long stagingLimit = StorageResources.PublicationStagingBytes(12 * 1024,
+            new DriveInfo(Path.GetPathRoot(f.Project)!).AvailableFreeSpace);
+        long totalPayload = plan.EnumerateChanges().Sum(change => change.After?.Length ?? 0);
         Assert.Equal(unchecked((int)0x80070070), (await Assert.ThrowsAsync<IOException>(() => f.New().ApplyOriginalAsync(w.Id, result.Id, "space-apply", plan.Digest, null, ct))).HResult);
         Assert.Equal(0, active); Assert.Equal(0, publisher.LastPublicationMetrics!.RemainingWorkers);
-        Assert.InRange(publisher.LastPublicationMetrics.PeakReservedPayloadBytes, 0, 12 * 1024);
+        Assert.Equal(12 * 1024, publisher.LastPublicationMetrics.MaximumSinglePayloadBytes);
+        Assert.InRange(publisher.LastPublicationMetrics.PeakReservedPayloadBytes, 0, Math.Min(totalPayload, stagingLimit));
         Assert.Equal("OriginalApplyPending", (await Assert.ThrowsAsync<WorkspaceException>(() => f.New().CheckpointAsync(w.Id, "later", "later", ct))).Code);
         var resumed = await f.New().ApplyOriginalAsync(w.Id, result.Id, "space-apply", plan.Digest, null, ct);
         Assert.True(resumed.OriginalApplyReceipt!.Completed); Assert.Single(resumed.Workspace.Results); Assert.Single(resumed.Workspace.OriginalApplies);
@@ -120,7 +124,8 @@ public sealed partial class FileWorkspaceTests
         var result = (await f.New().CheckpointAsync(w.Id, "fixed", "retained-result", ct)).ResultGeneration!;
         var plan = (await f.New().PlanOriginalAsync(w.Id, result.Id, null, ct)).OriginalApplyPlan!;
         await Assert.ThrowsAsync<IOException>(() => f.New().ApplyOriginalAsync(w.Id, result.Id, "retained-apply", plan.Digest, null, ct));
-        Assert.Single(Directory.GetFiles(f.Project, ".splinter-apply-*.new")); Assert.Equal(0, publisher.LastPublicationMetrics!.RemainingWorkers);
+        Assert.InRange(Directory.GetFiles(f.Project, ".splinter-apply-*.new").Length, 1, 2);
+        Assert.Equal(0, publisher.LastPublicationMetrics!.RemainingWorkers);
         recovering = true;
         await f.New().ApplyOriginalAsync(w.Id, result.Id, "retained-apply", plan.Digest, null, ct);
         Assert.True(retainedPublished); Assert.InRange(publisher.LastPublicationMetrics!.PeakReservedPayloadBytes, 0, 65536);
