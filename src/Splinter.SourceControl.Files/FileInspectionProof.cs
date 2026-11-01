@@ -17,7 +17,7 @@ public sealed partial class FileWorkspaceProvider
         string identity = InspectionIdentity(w);
         using var before = await Generation(w, ct);
         using var current = Manifest(w, ScanWorkspace(w, ct));
-        var state = Inspect(w, current);
+        var state = Inspect(w, current, ct);
         var metadata = InspectionMetadata(current.EnumerateEntries(), FilePath(Control(w), "inspection-proof"), ct);
         using var after = await Generation(w, ct);
         RequireSameGeneration(before, after);

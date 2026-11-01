@@ -6,21 +6,34 @@ namespace Splinter.Runtime;
 // the whole spool. Publishing a durable immutable root remains the caller's job.
 public sealed class MetadataSpool : IDisposable
 {
-    internal const int MemoryBudget = 64 * 1024;
+    internal static int MemoryBudget => StorageResources.SpoolBytes;
     private readonly string directory;
+    private readonly int memoryLimit;
+    private readonly ScratchBudget.Lease allocation;
     private readonly MemoryStream memory = new();
     private FileStream? output;
     private bool disposed;
-    public MetadataSpool(string directory)
+    public MetadataSpool(string directory) : this(directory, MemoryBudget, StorageResources.Scratch) { }
+    internal MetadataSpool(string directory, int memoryLimit, ScratchBudget budget)
     {
-        this.directory = directory;
+        this.directory = directory; this.memoryLimit = memoryLimit; allocation = budget.Open();
     }
     public void Append(MetadataEntry entry)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         // Includes the record checksum/header and the largest child reference.
         long charge = 128L + System.Text.Encoding.UTF8.GetByteCount(entry.Key) + entry.Value.Length;
-        if (output is null && charge > MemoryBudget - memory.Length) Spill();
+        if (output is null)
+        {
+            long required = memory.Length + charge;
+            if (required > memoryLimit) Spill();
+            else if (required > memory.Capacity)
+            {
+                int capacity = (int)Math.Min(memoryLimit, Math.Max(required, Math.Max(65536L, memory.Capacity * 2L)));
+                if (!allocation.TryResize(capacity)) Spill();
+                else memory.Capacity = capacity;
+            }
+        }
         MetadataExternalSort.Write((Stream?)output ?? memory, entry);
     }
     private void Spill()
@@ -31,6 +44,7 @@ public sealed class MetadataSpool : IDisposable
             FileOptions.SequentialScan | FileOptions.DeleteOnClose);
         output.Write(memory.GetBuffer().AsSpan(0, checked((int)memory.Length)));
         memory.SetLength(0); memory.Capacity = 0;
+        _ = allocation.TryResize(0);
     }
     public void FlushDurable()
     {
@@ -47,7 +61,7 @@ public sealed class MetadataSpool : IDisposable
             : new BufferedStream(new Cursor(output.SafeFileHandle, output.Length), 65536);
         for (MetadataEntry? entry; (entry = MetadataExternalSort.Read(reader)) is not null;) yield return entry;
     }
-    public void Dispose() { disposed = true; output?.Dispose(); memory.Dispose(); }
+    public void Dispose() { disposed = true; try { output?.Dispose(); memory.Dispose(); } finally { allocation.Dispose(); } }
     private sealed class Cursor(Microsoft.Win32.SafeHandles.SafeFileHandle handle, long length) : Stream
     {
         private long position;

@@ -41,7 +41,7 @@ public sealed class PagedMetadataGraphCopyTests
         var result = source.CopyRootsTo(target, [tree], root.Path, ct).Single();
         Assert.Equal(tree.ContentHash, result.ContentHash); Assert.Equal(count, result.Count);
         Assert.Equal(BitConverter.GetBytes(count - 1), target.Open(result).Find((count - 1).ToString("d8")));
-        Assert.Equal(count, target.Open(result).Enumerate().LongCount()); Assert.True(PagedMetadataStore.CachedMetadataBytes <= 32L * 1048576);
+        Assert.Equal(count, target.Open(result).Enumerate().LongCount()); Assert.True(PagedMetadataStore.CachedMetadataBytes <= StorageResources.MetadataCacheBytes);
     }
     private static long Bytes(string directory) => Directory.EnumerateFiles(directory, "pages-*.bin").Sum(p => new FileInfo(p).Length);
 }

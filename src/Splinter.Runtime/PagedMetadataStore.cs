@@ -14,6 +14,7 @@ public sealed partial class PagedMetadataStore : IDisposable
     public const long ContainerTargetBytes = 64L * 1024 * 1024;
     public static long CachedMetadataBytes => PageCache.ChargedBytes;
     public static long PeakCachedMetadataBytes => PageCache.PeakChargedBytes;
+    public static int MaximumContainerReaders => StorageResources.MetadataReaders;
     private const int ContainerHeaderBytes = 48, PageHeaderBytes = 40, ReferenceBytes = 60, ReferencesPerNode = 3;
     private static readonly UTF8Encoding Utf8 = new(false, true);
     private readonly string directory;
@@ -330,7 +331,7 @@ public sealed partial class PagedMetadataStore : IDisposable
                     // later open must not bypass this check through the cache.
                     try { CheckContainer(input); if (filePins is not null) VerifyContainerOwner(input, reference.Container); }
                     catch { input.Dispose(); throw; }
-                    if (readers.Count >= 16)
+                    if (readers.Count >= MaximumContainerReaders)
                     {
                         long victim = readerRecent.Last!.Value; readerRecent.RemoveLast();
                         var retired = readers[victim]; readers.Remove(victim);
@@ -773,7 +774,7 @@ public sealed partial class PagedMetadataStore : IDisposable
     // store instance retains an exclusive writer or read-only container fence.
     private static class PageCache
     {
-        private const long Budget = 32L * 1024 * 1024;
+        private static long Budget => StorageResources.MetadataCacheBytes;
         private sealed record Item(string Key, object Value, int Charge, Group Group)
         { internal LinkedListNode<Item>? GroupNode; }
         private sealed class Scope(string name)

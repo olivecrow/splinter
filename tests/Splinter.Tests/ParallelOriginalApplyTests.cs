@@ -1,5 +1,6 @@
 using Splinter.Core;
 using Splinter.Platform.Windows;
+using Splinter.Runtime;
 
 namespace Splinter.Tests;
 
@@ -9,7 +10,7 @@ public sealed partial class FileWorkspaceTests
     public async Task WholeWriteSetIsPinnedBeforeBoundedParallelPublicationAndStagingReservation()
     {
         RequireWindowsApply(); OriginalApplyPlan? plan = null; int admitted = 0, active = 0, peak = 0; long staged = 0, peakStaged = 0;
-        using var admission = new CountdownEvent(8);
+        using var admission = new CountdownEvent(8); using var twoStages = new CountdownEvent(2); int stages = 0;
         var publisher = new WindowsOriginalFilePublisher((point, index) =>
         {
             if (point == "target-locked")
@@ -25,6 +26,7 @@ public sealed partial class FileWorkspaceTests
                 long now = Interlocked.Add(ref staged, plan!.ChangeAt(index).After!.Length);
                 long prior;
                 do { prior = Interlocked.Read(ref peakStaged); if (prior >= now) break; } while (Interlocked.CompareExchange(ref peakStaged, now, prior) != prior);
+                if (Interlocked.Increment(ref stages) <= 2) { twoStages.Signal(); Assert.True(twoStages.Wait(TimeSpan.FromSeconds(5))); }
             }
             if (point == "staged") Interlocked.Add(ref staged, -plan!.ChangeAt(index).After!.Length);
         });
@@ -35,11 +37,11 @@ public sealed partial class FileWorkspaceTests
         plan = (await f.New().PlanOriginalAsync(w.Id, result.Id, null, ct)).OriginalApplyPlan!;
         Assert.Equal(8, plan.ChangeCount); Assert.Equal(3, plan.Version); Assert.Equal(4, w.Version); Assert.NotNull(plan.ChangesRoot);
         await f.New().ApplyOriginalAsync(w.Id, result.Id, "parallel", plan.Digest, null, ct);
-        Assert.InRange(peak, 2, 8); Assert.InRange(peakStaged, 1, 4); Assert.Equal(0, staged);
+        Assert.InRange(peak, 2, 8); Assert.InRange(peakStaged, 8, 32); Assert.Equal(0, staged);
         var metrics = publisher.LastPublicationMetrics!;
         Assert.Equal(8, metrics.AdmittedTargets); Assert.Equal(0, metrics.RemainingWorkers);
         Assert.InRange(metrics.PeakPublicationWorkers, 1, 8); Assert.True(metrics.PeakNativeHandles >= 8);
-        Assert.Equal(4, metrics.MaximumSinglePayloadBytes); Assert.InRange(metrics.PeakReservedPayloadBytes, 1, 4);
+        Assert.Equal(4, metrics.MaximumSinglePayloadBytes); Assert.InRange(metrics.PeakReservedPayloadBytes, 8, 4 * StorageResources.IoWorkers);
         for (int i = 0; i < 8; i++) Assert.Equal("same", File.ReadAllText(Path.Combine(f.Project, "created-" + i + ".txt")));
     }
     [Fact]

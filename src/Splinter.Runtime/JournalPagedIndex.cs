@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Collections;
 using System.Text;
+using System.Text.Json;
 using Splinter.Core;
 
 namespace Splinter.Runtime;
@@ -17,6 +18,13 @@ public sealed partial class JournalDeltaStore
     private MetadataTreeRoot? PathRoot => (paths as PagedPathNamespace)?.Root;
     private MetadataTreeRoot? HiddenRoot => (hidden as PagedSet<string>)?.Root;
     private MetadataTreeRoot? ChangeRoot => (pathChanges as PagedMap<string, long>)?.Root;
+    private void BeginIndexBatch()
+    { (nodes as PagedNodeMap)?.BeginBatch(); (pathChanges as PagedMap<string, long>)?.BeginBatch(); }
+    private void FlushIndexBatch()
+    { (nodes as PagedNodeMap)?.Flush(); (pathChanges as PagedMap<string, long>)?.Flush(); }
+    private void EndIndexBatch()
+    { (nodes as PagedNodeMap)?.EndBatch(); (pathChanges as PagedMap<string, long>)?.EndBatch(); }
+    private sealed record ListedChild(string Name, SnapshotEntry? Entry);
 
     public IEnumerable<DeltaEntry> EnumerateChildren(string directory)
     {
@@ -39,18 +47,22 @@ public sealed partial class JournalDeltaStore
         {
             if (lower is not null)
                 foreach (var entry in snapshot.EnumerateChildren(lower))
-                { string child = Name(entry.Path); yield return new(pathPolicy.IdentityPath(child), Encoding.UTF8.GetBytes(child)); }
+                {
+                    string child = Name(entry.Path);
+                    yield return new(pathPolicy.IdentityPath(child), JsonSerializer.SerializeToUtf8Bytes(new ListedChild(child, entry)));
+                }
             foreach (var child in namesIndex.Children(path, fixedPaths))
             {
                 string component = Name(child.Key);
-                yield return new(pathPolicy.IdentityPath(component), Encoding.UTF8.GetBytes(component));
+                yield return new(pathPolicy.IdentityPath(component), JsonSerializer.SerializeToUtf8Bytes(new ListedChild(component, null)));
             }
         }
         string? previous = null;
         foreach (var item in MetadataExternalSort.Order(Names(), Path.GetTempPath(), default, sourceFilePins))
         {
             if (previous == item.Key) continue; previous = item.Key;
-            string child = Join(path, Encoding.UTF8.GetString(item.Value.Span));
+            var listed = JsonSerializer.Deserialize<ListedChild>(item.Value.Span) ?? throw PagedInvalid();
+            string child = Join(path, listed.Name);
             if (Denied(child) || Identity.ExcludedTopLevel?.Contains(child.Split('/')[0], pathPolicy.Comparer) == true ||
                 Identity.IncludedTopLevel is { } included && !included.Contains(child.Split('/')[0], pathPolicy.Comparer)) continue;
             if (namesIndex.TryGetValueAt(child, fixedPaths, out Guid childId))
@@ -59,8 +71,9 @@ public sealed partial class JournalDeltaStore
                 yield return DecodeEntry(node.Value.ToArray(), components, fixedNames); continue;
             }
             if (index.Open(fixedHidden).Find(PathComponents.Key(child, pathPolicy)) is not null || lower is null) continue;
-            string original = Join(lower, Name(child)); var entry = snapshot.Stat(original);
-            if (entry is null) throw new WorkspaceException("SnapshotMissing", "An immutable directory child disappeared.");
+            string original = Join(lower, Name(child)); var entry = listed.Entry;
+            snapshot.EnsureAvailable();
+            if (entry?.Path != original) throw new WorkspaceException("SnapshotMissing", "An immutable directory child differs from its fixed listing.");
             var digest = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(Identity.Snapshot.Id + "/" + pathPolicy.IdentityPath(entry.Path)));
             yield return new(new Guid(digest.AsSpan(0, 16)), child, entry.Directory, entry.Length, entry.Attributes,
                 entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime, original, entry.Length, UnixMode: entry.UnixMode);
@@ -112,7 +125,21 @@ public sealed partial class JournalDeltaStore
     private sealed class PagedMap<TKey, TValue>(PagedMetadataStore store, Func<TKey, string> key,
         Func<string, TKey> decodeKey, Func<TValue, byte[]> encode, Func<byte[], TValue> decode, PathComponents? components = null) : IDictionary<TKey, TValue> where TKey : notnull
     {
-        public MetadataTreeRoot Root = store.Empty;
+        private MetadataTreeRoot root = store.Empty;
+        private readonly Dictionary<string, byte[]> pending = new(StringComparer.Ordinal);
+        private bool batching;
+        public MetadataTreeRoot Root
+        {
+            get { if (pending.Count != 0) { Flush(); store.Flush(); } return root; }
+            set { Flush(); root = value; }
+        }
+        public void BeginBatch() { if (batching) throw new InvalidOperationException("Nested index batches are unsupported."); batching = true; }
+        public void EndBatch() { pending.Clear(); batching = false; }
+        public void Flush()
+        {
+            if (pending.Count == 0) return;
+            root = store.SetBatch(root, pending.Select(pair => new MetadataEntry(pair.Key, pair.Value)).ToArray()); pending.Clear();
+        }
         public int Count => (int)Math.Min(int.MaxValue, Root.Count);
         public long LongCount => Root.Count;
         public bool IsReadOnly => false;
@@ -121,15 +148,21 @@ public sealed partial class JournalDeltaStore
         public TValue this[TKey k]
         {
             get => TryGetValue(k, out var value) ? value : throw new KeyNotFoundException();
-            set => Root = store.Set(Root, key(k), Pack(k, value));
+            set
+            {
+                string name = key(k); byte[] packed = Pack(k, value);
+                if (!batching) { root = store.Set(root, name, packed); return; }
+                if (pending.Count == 64 && !pending.ContainsKey(name)) Flush();
+                pending[name] = packed;
+            }
         }
         public bool TryGetValue(TKey k, out TValue value)
         {
-            var entry = store.Open(Root).Find(key(k));
+            string name = key(k); var entry = pending.TryGetValue(name, out var changed) ? changed : store.Open(root).Find(name);
             if (entry is null) { value = default!; return false; }
             value = Unpack(entry).Value; return true;
         }
-        public bool ContainsKey(TKey k) => store.Open(Root).Find(key(k)) is not null;
+        public bool ContainsKey(TKey k) { string name = key(k); return pending.ContainsKey(name) || store.Open(root).Find(name) is not null; }
         public void Add(TKey k, TValue value) { if (ContainsKey(k)) throw new ArgumentException("Duplicate index key."); this[k] = value; }
         public bool Remove(TKey k) { if (!ContainsKey(k)) return false; Root = store.Remove(Root, key(k)); return true; }
         public bool Remove(TKey k, out TValue value) { if (!TryGetValue(k, out value!)) return false; Root = store.Remove(Root, key(k)); return true; }

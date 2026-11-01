@@ -18,7 +18,7 @@ public sealed class PagedMetadataCacheEvictionTests
         long reads = readerB.LocationBlockReads; Assert.True(reads > 0);
         readerA.Dispose();
         for (int index = 0; index < 20; index++) Assert.Equal(new byte[] { 7 }, readerB.Open(second.Root).Find("key"));
-        Assert.Equal(reads, readerB.LocationBlockReads); Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, 32L * 1024 * 1024);
+        Assert.Equal(reads, readerB.LocationBlockReads); Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, StorageResources.MetadataCacheBytes);
 
         (string Directory, MetadataTreeRoot Root) Relocated(string name)
         {
@@ -31,35 +31,35 @@ public sealed class PagedMetadataCacheEvictionTests
     }
 
     [Fact]
-    public void HotSeventeenthAndEighteenthNativeContainersStayResidentAndEvictionVisitsOnlyItsPartition()
+    public void HotContainersStayResidentAtTheResourceBudgetAndEvictionVisitsOnlyItsPartition()
     {
         RequireWindows(); using var files = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
         var native = new WindowsJournalFilePins(); string directory = Path.Combine(files.Path, "metadata");
-        var roots = OwnedContainers(directory, native, 20);
+        int capacity = PagedMetadataStore.MaximumContainerReaders; var roots = OwnedContainers(directory, native, capacity + 4);
         string unrelatedDirectory = Path.Combine(files.Path, "unrelated"); MetadataTreeRoot unrelatedRoot;
         using (var writer = new PagedMetadataStore(unrelatedDirectory, true, filePins: native))
         { unrelatedRoot = writer.Build(Enumerable.Range(0, 4096).Select(i => new MetadataEntry(i.ToString("d8"), new byte[128])), ct); writer.Flush(); }
         using var unrelated = new PagedMetadataStore(unrelatedDirectory, filePins: native); unrelated.Open(unrelatedRoot).Verify(ct);
         var counted = new CountingPins(native); using var reader = new PagedMetadataStore(directory, filePins: counted);
-        for (int index = 0; index < 16; index++) Assert.Equal(new byte[] { (byte)index }, reader.Open(roots[index]).Find("key"));
-        Assert.Equal(16, counted.Verifications); long before = reader.CacheInvalidationVisits;
-        Assert.Equal(new byte[] { 16 }, reader.Open(roots[16]).Find("key"));
+        for (int index = 0; index < capacity; index++) Assert.Equal(new byte[] { (byte)index }, reader.Open(roots[index]).Find("key"));
+        Assert.Equal(capacity, counted.Verifications); long before = reader.CacheInvalidationVisits;
+        Assert.Equal(new byte[] { (byte)capacity }, reader.Open(roots[capacity]).Find("key"));
         Assert.InRange(reader.CacheInvalidationVisits - before, 0, 1);
-        Assert.Equal(new byte[] { 17 }, reader.Open(roots[17]).Find("key"));
-        Assert.Equal(18, counted.Verifications);
+        Assert.Equal(new byte[] { (byte)(capacity + 1) }, reader.Open(roots[capacity + 1]).Find("key"));
+        Assert.Equal(capacity + 2, counted.Verifications);
         for (int index = 0; index < 100; index++)
         {
-            Assert.Equal(new byte[] { 16 }, reader.Open(roots[16]).Find("key"));
-            Assert.Equal(new byte[] { 17 }, reader.Open(roots[17]).Find("key"));
+            Assert.Equal(new byte[] { (byte)capacity }, reader.Open(roots[capacity]).Find("key"));
+            Assert.Equal(new byte[] { (byte)(capacity + 1) }, reader.Open(roots[capacity + 1]).Find("key"));
         }
-        Assert.Equal(18, counted.Verifications);
-        string hot = Path.Combine(directory, $"pages-{roots[17].Page!.Container:x16}.bin");
+        Assert.Equal(capacity + 2, counted.Verifications);
+        string hot = Path.Combine(directory, $"pages-{roots[capacity + 1].Page!.Container:x16}.bin");
         Assert.Throws<IOException>(() => { using var denied = new FileStream(hot, FileMode.Open, FileAccess.ReadWrite, FileShare.Read); });
         string cold = Path.Combine(directory, $"pages-{roots[0].Page!.Container:x16}.bin"), retained = cold + ".retained";
         File.Move(cold, retained); File.Copy(retained, cold);
         Assert.Equal("SourceCaptureBackingInvalid", Assert.Throws<WorkspaceException>(() => reader.Open(roots[0]).Find("key")).Code);
         Assert.True(File.Exists(cold)); Assert.NotEqual(native.Identify(retained), native.Identify(cold));
-        Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, 32L * 1024 * 1024);
+        Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, StorageResources.MetadataCacheBytes);
         Assert.Equal(4096, unrelated.Open(unrelatedRoot).Enumerate().LongCount());
         reader.Dispose();
         using var released = new FileStream(hot, FileMode.Open, FileAccess.ReadWrite, FileShare.None);

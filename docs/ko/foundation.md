@@ -1,5 +1,7 @@
 # 현재 기반
 
+[ST-29–35](verification/scalable-storage-throughput-followup.md#st-2935-자원과-동시성-후속)는 Runtime `StorageResources`·`BoundedParallel`을 추가한다. 수요 기반 프로세스별 최대 4GiB 작업 목표·제한된 hash 중첩 실행·삽입/변경 색인 배치·목록 metadata 재사용·정렬 파일 비교·디스크 여유에 따른 병렬 staging을 연결한다. 메모리를 미리 확보하지 않으며 실제 RSS와 여러 provider 합산을 4GiB로 강제 제한하지 않는다. 현재 형식·capabilities·내구성/소유 보호는 유지한다.
+
 [ST-01–23](verification/scalable-storage-throughput-followup.md)은 Core `IWorkspaceMetadataBatch` port·Windows metadata callback 수집·Runtime 취소 가능한 `PayloadHash`·Files `FileRawRangePreparation`을 추가한다. 내부 처리 경계이며 현재 영속/wire 버전과 전체 내구성/소유 proof를 유지한다. 시간과 자격 범위는 명시적으로 한정한다.
 
 [ST-24–28](verification/scalable-storage-throughput-followup.md#st-2428-구조적-후속-2026-11-01)은 Runtime `PagedMetadataBatch`·고정 작업 안의 제한된 native 내용 증명 재사용·동일 path import 재사용·Git의 정렬 이전 catalog 병합을 추가한다. 저널 ACK/root 내구성과 현재 형식은 유지하며 작은 국지 검사와 metadata 비용 감소만 확인했다.
@@ -28,7 +30,7 @@ Splinter의 제품 경로는 **NTFS 작업공간 생성/재개 → 에이전트�
 
 새 바이너리/페이지 표현과 자격은 [SCAL](scalable-storage.md)이 소유한다. `PagedMetadataStore`·`PagedSnapshotCatalog`·`PagedPathInterner`·디스크 정렬/cursor가 이름/경로/범위 인덱스를 제공한다. segment 저널은 root/보호를 고정한 뒤 경계 밖에서 결과를 보존한다. 같은 순번의 물리 채택/회수에도 논리 accepted-source seal을 유지하며 native identity/hash/page/inventory 증명을 계속 요구한다.
 
-Core의 선택적 `ISnapshotAvailabilityScope`는 이미 열린 불변 reader에 정확히 결합한 관측을 제공한다. Windows Plastic은 native 디렉터리 identity·쓰기/삭제를 차단한 manifest/catalog 파일 핸들을 고정한 뒤 전체 접수 증명을 수행한다. Heartbeat는 물리 결합을 확인하며 일반 관측·`VerifyReadBoundary`의 전체 manifest 증명은 유지한다. 자격을 가진 scope가 없는 Git/None reader의 기존 검사는 유지한다. Native 결합 비용은 32MiB 캐시와 별도다. 진행 중 live-index 복사는 독립 segment 정리보다 먼저 복구하고 이전 순서에서 이미 확정된 변경은 증명한 빈 header만 shadow에서 대조한다. Git 데이터 record 명령은 취소/drain·record 검사를 유지하며 정상적인 무출력 전체 tree 처리를 허용하고 object protocol의 blocking-read 보호는 유지한다. R19 focused 검증은 187행 중 186개 통과이며 actor 목록 1행은 필수 부모가 실행했다. 최종 SCAL 전체 gate는 남아 있다.
+Core의 선택적 `ISnapshotAvailabilityScope`는 이미 열린 불변 reader에 정확히 결합한 관측을 제공한다. Windows Plastic은 native 디렉터리 identity·쓰기/삭제를 차단한 manifest/catalog 파일 핸들을 고정한 뒤 전체 접수 증명을 수행한다. Heartbeat는 물리 결합을 확인하며 일반 관측·`VerifyReadBoundary`의 전체 manifest 증명은 유지한다. 자격을 가진 scope가 없는 Git/None reader의 기존 검사는 유지한다. Native 결합 비용은 자원 정책 캐시(과거 R19 후보는 32MiB)와 별도다. 진행 중 live-index 복사는 독립 segment 정리보다 먼저 복구하고 이전 순서에서 이미 확정된 변경은 증명한 빈 header만 shadow에서 대조한다. Git 데이터 record 명령은 취소/drain·record 검사를 유지하며 정상적인 무출력 전체 tree 처리를 허용하고 object protocol의 blocking-read 보호는 유지한다. R19 focused 검증은 187행 중 186개 통과이며 actor 목록 1행은 필수 부모가 실행했다. 최종 SCAL 전체 gate는 남아 있다.
 
 Offline overlay v3 재생은 읽기 전용 소스 인덱스를 보존하고 같은 논리 identity·별도 주소 범위의 독립 소유 scratch에서 새 COW 페이지를 해석한다. 소스에 재생 metadata를 append하거나 graph 전체를 복사하지 않는다. Windows는 native pin·정확한 부모에 대한 scratch 디렉터리 원자 생성·extended 경로 native 열기를 제공한다. 접수된 restore cursor는 마지막 reader가 닫힐 때까지 소스·소유 기준본·journal backing·scratch를 보존하며 생성 간격·충돌은 deferred-reclamation 범위 `read-only-replay`에서 조회할 수 있다. Offline v3 `ObserveChanges`는 `SourceObservationUnavailable`로 거부하고 다시 결합할 root는 정확한 소유 live provider에서 얻으며 개발용 overlay v2와 구분한다. R14 focused 실행은 34개 중 33개, R17 결합 focused 실행은 107개 중 106개 통과이며 각각 subprocess 전용 actor 목록 skip 1개였다. 별도 Git 실험 정리는 그 뒤 기존 restore plan/cursor를 재개해 일반 Library·과거 결과 6개를 검증하고 불확실한 전체 인덱스를 소유권 채택·정리 없이 그대로 보존했다. 최종 SCAL gate는 미완료다. 정확한 자격·잔여 할당 범위는 [대규모 저장](scalable-storage.md)을 따른다.
 
@@ -36,9 +38,9 @@ Offline overlay v3 재생은 읽기 전용 소스 인덱스를 보존하고 같�
 
 조합 파일 descriptor codec v3는 정확한 소유 raw 기준과 보호된 외부 Git 기준을 구분한다. 최초 non-Git generation-basis 게시에서는 파일 전체가 일치하는 raw chunk를 공유할 수 있고 새 private chunk는 전체가 일치하는 기존 whole 객체를 공유할 수 있다. 전체 hash·길이·소유권 증명과 참조 보존을 요구한다. 기존 고정 header를 이관/재지정하거나 부분 일치로 대체하지 않으며 두 pool의 이전 복사본은 남을 수 있다. 경계와 미완료 자격은 [대규모 저장](scalable-storage.md)이 소유한다.
 
-`IWorkspaceMetadataMaintenance`·Runtime `MetadataMaintenance`/`PagedMetadataCollection`·Files `FileMetadataMaintenance`·CLI `WorkspaceMaintenanceCommands`가 workspace/shared/content/range 일곱 범위의 같은 요청 graph 회수를 담당한다. 활성 anchor·보존 세대/검토/진행 root·reader를 삭제 전에 보호한다. 같은 키 복구·native 생성 영수증·보호 잔여 페이지·완료한 과거 요청의 영수증 반환이 계약이다. `workspace read`·`workspace maintain`으로 노출하며 DB/daemon을 추가하지 않는다. metadata 캐시는 프로세스 공통32MiB를 계상하고 전체 대상/입력 native fence·payload/전체 private memory 비용은 별도다. 필수 SCAL gate는 진행 중이다.
+`IWorkspaceMetadataMaintenance`·Runtime `MetadataMaintenance`/`PagedMetadataCollection`·Files `FileMetadataMaintenance`·CLI `WorkspaceMaintenanceCommands`가 workspace/shared/content/range 일곱 범위의 같은 요청 graph 회수를 담당한다. 활성 anchor·보존 세대/검토/진행 root·reader를 삭제 전에 보호한다. 같은 키 복구·native 생성 영수증·보호 잔여 페이지·완료한 과거 요청의 영수증 반환이 계약이다. `workspace read`·`workspace maintain`으로 노출하며 DB/daemon을 추가하지 않는다. metadata 캐시는 `StorageResources`에 따라 프로세스 공통 최대 2.5GiB를 계상하고 전체 대상/입력 native fence·payload/전체 private memory 비용은 별도다. 필수 SCAL gate는 진행 중이다.
 
-Metadata container reader는 캐시된 페이지 hit의 최근 접근 갱신까지 포함한 명시적 16-handle LRU를 사용한다. Scope/container를 직접 찾는 캐시 무효화의 새 partition/list 색인도 기존 32MiB 예산에 계상하며 쓰기를 배제하는 핸들만 페이지 캐시를 허용한다. Live 인덱스 회수는 접수한 cursor가 게시를 막으면 비싼 shadow 준비·재생 전에 유예하고 정확한 미완료 intent·최종 root/reader 보호를 유지한다. 유예나 강제 호출이 회수 완료를 뜻하지 않는다. 이 보호는 R17 focused 실행에서 검증했으며 보존 중인 100,000항목 provider 업그레이드·측정은 남아 있고 실측 속도 개선을 주장하지 않는다.
+Metadata container reader는 캐시된 페이지 hit의 최근 접근 갱신까지 포함한 자원 정책에 따른 명시적 16–64-handle LRU를 사용한다. Scope/container를 직접 찾는 캐시 무효화의 새 partition/list 색인도 자원 정책의 캐시 예산에 계상하며 쓰기를 배제하는 핸들만 페이지 캐시를 허용한다. Live 인덱스 회수는 접수한 cursor가 게시를 막으면 비싼 shadow 준비·재생 전에 유예하고 정확한 미완료 intent·최종 root/reader 보호를 유지한다. 유예나 강제 호출이 회수 완료를 뜻하지 않는다. 이 보호는 R17 focused 실행에서 검증했으며 보존 중인 100,000항목 provider 업그레이드·측정은 남아 있고 실측 속도 개선을 주장하지 않는다.
 
 ## 구조와 의존성
 

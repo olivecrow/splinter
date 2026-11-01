@@ -107,16 +107,16 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         RequireBasis(w, Control(w));
         RequireMount(w);
         var entries = ScanWorkspace(w, ct);
-        return Task.FromResult(Inspect(w, entries));
+        return Task.FromResult(Inspect(w, entries, ct));
     }
-    private SourceState Inspect(WorkspaceRecord w, IEnumerable<FileSourceEntry> entries)
-    { using var current = Manifest(w, entries); return Inspect(w, current); }
-    private SourceState Inspect(WorkspaceRecord w, FileSourceManifest current)
+    private SourceState Inspect(WorkspaceRecord w, IEnumerable<FileSourceEntry> entries, CancellationToken ct)
+    { using var current = Manifest(w, entries); return Inspect(w, current, ct); }
+    private SourceState Inspect(WorkspaceRecord w, FileSourceManifest current, CancellationToken ct)
     {
         string revision = w.ResultRevision ?? w.BaseRevision!;
         bool changed = current.Identity != revision;
         var basis = ReadManifest(w, FilePath(Control(w), File.Exists(FilePath(Control(w), "result.json")) ? "result.json" : "baseline.json"));
-        var changedPaths = changed ? Changed(basis.EnumerateEntries(), current.EnumerateEntries(), Control(w)) : (Preview: Array.Empty<string>(), Count: 0L);
+        var changedPaths = changed ? Changed(basis.EnumerateEntries(), current.EnumerateEntries(), Control(w), ct) : (Preview: Array.Empty<string>(), Count: 0L);
         return new SourceState(revision, current.Identity, changed, changedPaths.Preview) { ChangedPathCount = changedPaths.Count };
     }
     public Task<string> CheckpointAsync(WorkspaceRecord w, string message, CancellationToken ct = default)
@@ -301,64 +301,63 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     // Plastic's fixed reader keeps a single revision proof/stream. Interleaving
     // files would repeatedly evict it and decode the same revision in full.
     private static IEnumerable<FileSourceEntry> ScanWorkspace(WorkspaceRecord w, CancellationToken ct) =>
-        Scan(w.Path, w.ManagedPaths, ct, mount: w.Path, hashWorkers: w.SourceKind == "plastic" ? 1 : 8);
+        Scan(w.Path, w.ManagedPaths, ct, mount: w.Path, hashWorkers: w.SourceKind == "plastic" ? 1 : StorageResources.HashWorkers);
     private static IEnumerable<FileSourceEntry> Scan(string root, string[] managed, CancellationToken ct, bool metadataOnly = false, string? mount = null, bool omitPlasticRoot = false,
-        int hashWorkers = 8, bool omitGitRoot = false)
+        int hashWorkers = 0, bool omitGitRoot = false)
     {
-        // Only one directory enumerator per depth and one bounded hash batch
-        // are live. Immutable sorting/publication happens in the page builder.
-        var pending = new Stack<IEnumerator<string>>();
-        Plain(root, mount); pending.Push(Directory.EnumerateFileSystemEntries(root).GetEnumerator());
-        var batch = new List<FileSourceEntry>(Math.Max(1, hashWorkers));
-        IEnumerable<FileSourceEntry> HashBatch()
+        // Final immutable catalogs own sorting, so independent hashes can finish
+        // out of order without a slow file holding a whole batch at a barrier.
+        if (metadataOnly) return Metadata();
+        return BoundedParallel.Select(Metadata(), HashEntry, hashWorkers == 0 ? StorageResources.HashWorkers : hashWorkers, ct);
+        FileSourceEntry HashEntry(FileSourceEntry entry, CancellationToken token)
         {
-            var data = batch.ToArray(); batch.Clear();
-            if (!metadataOnly)
-                try
-                {
-                    Parallel.For(0, data.Length, new ParallelOptions { MaxDegreeOfParallelism = hashWorkers, CancellationToken = ct }, i =>
-                    {
-                        var entry = data[i]; if (entry.Kind != "file") return;
-                        string path = Path.Combine(root, entry.Path.Replace('/', Path.DirectorySeparatorChar));
-                        using var stream = Open(path, mount); string hash = Convert.ToHexStringLower(SHA256.HashData(stream));
-                        if (stream.Length != entry.Length || File.GetLastWriteTimeUtc(path).Ticks != entry.LastWriteUtcTicks || (int)File.GetAttributes(path) != entry.Attributes)
-                            throw Error("File changed while inspecting its contents.");
-                        data[i] = entry with { Hash = hash };
-                    });
-                }
-                catch (AggregateException ex) { ExceptionDispatchInfo.Capture(ex.Flatten().InnerExceptions[0]).Throw(); throw; }
-            return data;
+            if (entry.Kind != "file") return entry;
+            string path = Path.Combine(root, entry.Path.Replace('/', Path.DirectorySeparatorChar));
+            using var stream = Open(path, mount); string hash = PayloadHash.Sha256(stream, token);
+            if (stream.Length != entry.Length || File.GetLastWriteTimeUtc(path).Ticks != entry.LastWriteUtcTicks || (int)File.GetAttributes(path) != entry.Attributes)
+                throw Error("File changed while inspecting its contents.");
+            return entry with { Hash = hash };
         }
-        try
+        IEnumerable<FileSourceEntry> Metadata()
         {
-            while (pending.TryPeek(out var enumerator))
+            var pending = new Stack<IEnumerator<string>>();
+            Plain(root, mount); pending.Push(Directory.EnumerateFileSystemEntries(root).GetEnumerator());
+            try
             {
-                ct.ThrowIfCancellationRequested();
-                if (!enumerator.MoveNext()) { enumerator.Dispose(); pending.Pop(); continue; }
-                string path = enumerator.Current, relative = Path.GetRelativePath(root, path).Replace('\\', '/');
-                if (omitGitRoot && relative.Equals(".git", StringComparison.OrdinalIgnoreCase)) { Plain(path, mount); continue; }
-                if (omitPlasticRoot && relative.Equals(".plastic", StringComparison.OrdinalIgnoreCase))
-                { Plain(path, mount); if (!Directory.Exists(path)) throw Error("Plastic administration must be a directory."); continue; }
-                if (!ValidPath(relative)) throw new WorkspaceException("VcsMetadataUnsupported", "VCS administration and unsupported paths cannot be ordinary file input.");
-                if (Managed(relative, managed)) continue; Plain(path, mount);
-                FileAttributes attributes = File.GetAttributes(path);
-                if ((attributes & (FileAttributes.ReparsePoint | FileAttributes.Encrypted | FileAttributes.Compressed | FileAttributes.SparseFile)) != 0)
-                    throw new WorkspaceException("SnapshotFileUnsupported", "The plain-folder source supports ordinary files and directories only.");
-                bool dir = (attributes & FileAttributes.Directory) != 0;
-                batch.Add(new(relative, dir ? "directory" : "file", dir ? 0 : new FileInfo(path).Length, null, File.GetLastWriteTimeUtc(path).Ticks, (int)attributes));
-                if (batch.Count == Math.Max(1, hashWorkers)) foreach (var entry in HashBatch()) yield return entry;
-                if (dir) pending.Push(Directory.EnumerateFileSystemEntries(path).GetEnumerator());
+                while (pending.TryPeek(out var enumerator))
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!enumerator.MoveNext()) { enumerator.Dispose(); pending.Pop(); continue; }
+                    string path = enumerator.Current, relative = Path.GetRelativePath(root, path).Replace('\\', '/');
+                    if (omitGitRoot && relative.Equals(".git", StringComparison.OrdinalIgnoreCase)) { Plain(path, mount); continue; }
+                    if (omitPlasticRoot && relative.Equals(".plastic", StringComparison.OrdinalIgnoreCase))
+                    { Plain(path, mount); if (!Directory.Exists(path)) throw Error("Plastic administration must be a directory."); continue; }
+                    if (!ValidPath(relative)) throw new WorkspaceException("VcsMetadataUnsupported", "VCS administration and unsupported paths cannot be ordinary file input.");
+                    if (Managed(relative, managed)) continue; Plain(path, mount);
+                    FileAttributes attributes = File.GetAttributes(path);
+                    if ((attributes & (FileAttributes.ReparsePoint | FileAttributes.Encrypted | FileAttributes.Compressed | FileAttributes.SparseFile)) != 0)
+                        throw new WorkspaceException("SnapshotFileUnsupported", "The plain-folder source supports ordinary files and directories only.");
+                    bool dir = (attributes & FileAttributes.Directory) != 0;
+                    yield return new(relative, dir ? "directory" : "file", dir ? 0 : new FileInfo(path).Length, null, File.GetLastWriteTimeUtc(path).Ticks, (int)attributes);
+                    if (dir) pending.Push(Directory.EnumerateFileSystemEntries(path).GetEnumerator());
+                }
             }
-            if (batch.Count != 0) foreach (var entry in HashBatch()) yield return entry;
+            finally { foreach (var enumerator in pending) enumerator.Dispose(); }
         }
-        finally { foreach (var enumerator in pending) enumerator.Dispose(); }
     }
-    private static (string[] Preview, long Count) Changed(IEnumerable<FileSourceEntry> basis, IEnumerable<FileSourceEntry> current, string control)
+    internal static (string[] Preview, long Count) Changed(IEnumerable<FileSourceEntry> basis, IEnumerable<FileSourceEntry> current, string control, CancellationToken ct)
     {
         using var work = new FileApplyIndex(FilePath(control, "inspection-work"));
-        var before = work.Build(basis, default); var after = work.Build(current, default); var changed = work.Empty;
-        foreach (var entry in work.Entries(before).Concat(work.Entries(after)))
-            if (work.Find(before, entry.Path) != work.Find(after, entry.Path)) changed = work.AddPath(changed, entry.Path);
+        var before = work.Build(basis, ct); var after = work.Build(current, ct);
+        IEnumerable<string> Differences()
+        {
+            foreach (var pair in work.Compare(before, after))
+            {
+                ct.ThrowIfCancellationRequested();
+                if (pair.Before != pair.After) yield return (pair.After ?? pair.Before)!.Path;
+            }
+        }
+        var changed = work.BuildImportedPaths(Differences(), ct);
         return (work.Paths(changed).Take(100).ToArray(), changed.Count);
     }
     private void PreservePayloads(WorkspaceRecord w, string control, FileSourceManifest manifest, string root, CancellationToken ct, string? mount = null)
@@ -411,7 +410,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     {
         try
         {
-            Parallel.ForEach(entries, new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = ct }, action);
+            Parallel.ForEach(entries, new ParallelOptions { MaxDegreeOfParallelism = StorageResources.IoWorkers, CancellationToken = ct }, action);
         }
         // Join all active copies/flushes before publishing failure or allowing
         // retry/reclamation. Preserve the product error code, not a TPL wrapper.

@@ -26,10 +26,10 @@ public sealed partial class JournalDeltaStore : IWorkspaceWriteBatch, IWorkspace
             if (pendingWriteBatch is not null) throw new InvalidOperationException("Nested journal batches are unsupported.");
             long initialSequence = sequence;
             pendingWriteBatch = [];
-            (nodes as PagedNodeMap)?.BeginBatch();
+            BeginIndexBatch();
             try { append(); FlushPendingWrites(); }
             catch { if (pendingWriteBatch.Count != 0 || sequence != initialSequence) Poison(); throw; }
-            finally { (nodes as PagedNodeMap)?.EndBatch(); pendingWriteBatch = null; }
+            finally { EndIndexBatch(); pendingWriteBatch = null; }
         }
     }
 
@@ -49,7 +49,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceWriteBatch, IWorkspace
                 return;
             }
             pendingWriteBatch = [];
-            (nodes as PagedNodeMap)?.BeginBatch();
+            BeginIndexBatch();
             try
             {
                 foreach (var write in writes) Write(write.Id, write.Offset, write.Data.Span);
@@ -62,7 +62,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceWriteBatch, IWorkspace
                 if (pendingWriteBatch.Count != 0) Poison();
                 throw;
             }
-            finally { (nodes as PagedNodeMap)?.EndBatch(); pendingWriteBatch = null; }
+            finally { EndIndexBatch(); pendingWriteBatch = null; }
         }
     }
 
@@ -75,7 +75,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceWriteBatch, IWorkspace
 
     private void FlushPendingWrites()
     {
-        (nodes as PagedNodeMap)?.Flush();
+        FlushIndexBatch();
         if (pendingWriteBatch is not { Count: > 0 } pending) return;
         var last = pending[^1];
         long before = flushTicks, began = Stopwatch.GetTimestamp();

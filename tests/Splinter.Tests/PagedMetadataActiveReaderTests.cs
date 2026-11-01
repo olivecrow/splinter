@@ -42,12 +42,12 @@ public sealed class PagedMetadataActiveReaderTests
     }
 
     [Fact]
-    public void TheExistingSixteenHandleBoundEvictsAndDisposalReleasesAllRemainingFences()
+    public void TheResourceSizedHandleBoundEvictsAndDisposalReleasesAllRemainingFences()
     {
         RequireWindows(); using var files = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
         string directory = Path.Combine(files.Path, "metadata"); var roots = new List<MetadataTreeRoot>();
         using (var writer = new PagedMetadataStore(directory, true))
-        { for (int i = 0; i < 17; i++) roots.Add(writer.Build([new("key", new byte[] { (byte)i })], ct)); writer.Flush(); }
+        { for (int i = 0; i <= PagedMetadataStore.MaximumContainerReaders; i++) roots.Add(writer.Build([new("key", new byte[] { (byte)i })], ct)); writer.Flush(); }
         string first = Path.Combine(directory, "pages-0000000000000000.bin"); byte[] source = File.ReadAllBytes(first);
         int header = checked((int)roots[0].Page!.Offset);
         // Small valid leaf containers exercise physical handle eviction without
@@ -65,7 +65,7 @@ public sealed class PagedMetadataActiveReaderTests
             for (int i = 0; i < roots.Count; i++) writers.Add(new(Path.Combine(directory, $"pages-{i:x16}.bin"), FileMode.Open, FileAccess.ReadWrite, FileShare.Read | FileShare.Delete));
             using var reader = new PagedMetadataStore(directory);
             for (int i = 0; i < roots.Count; i++) Assert.Equal(new byte[] { (byte)i }, reader.Open(roots[i]).Find("key"));
-            File.Move(first, first + ".moved"); // The seventeenth open evicted the first.
+            File.Move(first, first + ".moved"); // Exceeding the handle budget evicted the first.
             string retained = Path.Combine(directory, "pages-0000000000000001.bin");
             Assert.Throws<IOException>(() => File.Move(retained, retained + ".moved"));
             reader.Dispose();

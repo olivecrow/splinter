@@ -1,7 +1,7 @@
 <a id="문서-지도"></a>
 # Documentation map
 
-[Throughput review follow-up](verification/scalable-storage-throughput-followup.md) tracks ST-01–28, including `PagedMetadataBatch`, fixed-operation content proofs and sorted catalog merges, tiny native checks and bounded timing/gate attempts. It does not qualify or resume the retained large-input matrix.
+[Throughput review follow-up](verification/scalable-storage-throughput-followup.md) tracks ST-01–35, including `PagedMetadataBatch`, `StorageResources`, `BoundedParallel`, fixed-operation content proofs, sorted catalog merges and concurrent staging, tiny native checks and bounded timing/gate attempts. It does not qualify or resume the retained large-input matrix.
 
 [Scalable-storage slow phases](verification/scalable-storage-throughput-diagnosis.md) record the existing 100k run costs, confirmed fixes and unmeasured causes. The user reduced verification on 2026-11-01; large fixtures are stopped with retained state, while 17GiB/full 100k/ABBA/latest whole-gate qualification remains incomplete. These runs are not a general speed or usability qualification.
 

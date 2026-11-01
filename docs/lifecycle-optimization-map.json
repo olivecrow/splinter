@@ -5067,6 +5067,15 @@
     "finalSourceManifest": "artifacts/scalable-storage-throughput-20261101/final-source.json",
     "qualification": "Small bounded follow-up only; SCAL-03/07/08 and final whole gate remain unqualified."
   },
+  "scalableStorageResourceFollowup": {
+    "ids": "ST-29–35",
+    "document": "docs/verification/scalable-storage-throughput-followup.md",
+    "report": "reports/benchmarks/scalable-storage-resource-20261101.json",
+    "finalSourceManifest": "artifacts/scalable-storage-resource-20261101/final-source.json",
+    "stages": ["W10", "C20", "A20"],
+    "helpers": ["src/Splinter.Runtime/StorageResources.cs", "src/Splinter.Runtime/BoundedParallel.cs"],
+    "qualification": "Small correctness and operation/byte/concurrency checks only. Demand-driven process-local target up to 4GiB is not an RSS or multi-provider cap. Native ownership, durable publication and wire contracts remain; large elapsed time, peak memory and whole gate are unqualified."
+  },
   "scalableStorageStructuralFollowup": {
     "ids": "ST-24–28",
     "document": "docs/verification/scalable-storage-throughput-followup.md",

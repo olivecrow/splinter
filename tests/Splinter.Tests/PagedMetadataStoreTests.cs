@@ -81,7 +81,7 @@ public sealed class PagedMetadataStoreTests
             Assert.Equal(enumerated.ToString("D8"), entry.Key); enumerated++;
         }
         Assert.Equal(count, enumerated);
-        Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, 32L * 1024 * 1024);
+        Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, StorageResources.MetadataCacheBytes);
         Assert.DoesNotContain(Directory.EnumerateFiles(directory), p => p.EndsWith(".pending", StringComparison.Ordinal));
     }
 

@@ -6,6 +6,8 @@
 
 이후 확인된 구조적 원인을 수정하라는 요청은 **아래 ST-24–28**이 소유하며, 작은 국지 검증으로 한정한다. 앞선 시간 비교 행렬이나 전체 gate를 재개하지 않는다.
 
+이후 공격적 최적화와 수요에 따른 약 4GB 메모리 사용 승인은 **ST-29–35**가 소유한다. 이전 캐시/worker 정책을 대체하며 무결성 요구나 대형 검증 중단을 해제하지 않는다.
+
 ## 변경
 
 | ID | 변경과 유지한 경계 |
@@ -92,3 +94,29 @@ Git trial driver는 처음에 **140초** 예산을 단계 진입 전에만 확�
 마지막 형식 정리 후 solution 재빌드는 **9.27초**, 경고/오류 0개로 통과했으며 집중 검사 이후 동작 변경은 없었다.
 
 근거: [구조적 후속 보고서](../../../reports/benchmarks/scalable-storage-structural-20261101.json)와 `artifacts/scalable-storage-structural-20261101/`에 선택한 시작 소스·초기 working tree 상태·최종 소스 hash·CTRF를 보존했다. task v4·basis v3·overlay v3·wire 계약과 프로세스 공통 metadata 캐시 32MiB는 유지한다. node당 키 하나인 형식과 개별 최초 진입은 여전히 있으며 조밀한 페이지 형식으로 전면 교체했다고 주장하지 않는다. 100k/17GiB fixture·실제 Plastic/Unity 수명주기·전체 gate·대형 전체 시간 비교는 실행하지 않았다. 따라서 과거 수십 분~수 시간 현상을 해소했는지는 **아직 입증하지 않았다**.
+
+## ST-29–35: 자원과 동시성 후속
+
+이전 미커밋 SCAL 기반과 ST-01–28은 의존 관계에 따라 함께 `1c748c9`로 커밋했다. 이 절은 그 뒤 추가 구현을 기록한다. 앞 절의 32MiB/8-worker 수치는 각 이전 후보의 정책이다.
+
+| ID | 구현한 변경과 유지한 보호 |
+| --- | --- |
+| ST-29 | 새 Runtime `StorageResources`는 가용 메모리의 1/8을 128MiB–4GiB로 제한한 프로세스별 작업 목표를 사용한다(가용량 미상: 512MiB). 5/8은 metadata 캐시, 1/8은 공통 scratch다. 관측한 호스트는 논리 CPU 12개·가용량 68,628,553,728바이트이며 목표 4GiB·캐시 2.5GiB·scratch 512MiB·저장소별 reader 핸들 48개를 선택했다. 사전 확보하지 않으며 native 캐시 허용·identity·checksum·reader fence는 유지한다. |
+| ST-30 | Sort run 최대 128MiB·spool 최대 64MiB가 공통 scratch를 계상하고 merge fan-in은 8→32로 늘린다. 할당 부족 시 기다리지 않고 spill한다. 중첩 sort는 공통 scratch 밖에 64KiB fallback run(또는 더 큰 유효 record 1개)을 유지해 tiny record마다 파일을 만드는 증폭을 피한다. Durable spool flush는 실제 파일 저장을 강제한다. |
+| ST-31 | 제한된 임시 treap이 삽입과 갱신을 함께 처리하고 최종 생존한 dirty node만 한 번 쓴다. 저널 배치에 변경 경로 색인도 포함한다. 최대 64행·탐색 128단계로 제한하고 더 깊으면 배치 쓰기 전에 기존 disk-spine 경로로 전환한다. 과거 root·pending 값 조회·불확정 writer 차단·영속 root/ACK 게시를 유지한다. |
+| ST-32 | 새 `BoundedParallel`이 제한된 완료 queue로 열거·hash·소비를 겹쳐 실행한다. 느린 파일 하나가 전체 묶음의 완료를 지연시키지 않는다. Hash worker는 CPU 수(1–32), 독립 I/O는 CPU 수의 두 배(8–32)이며 이 호스트는 12/24개다. Plastic 고정 revision reader는 직렬이다. 오류·조기 Dispose는 접수 작업을 취소·join하고 원래 실패 원인을 유지한다. |
+| ST-33 | 기존 최대 단일 파일만큼의 staging 예약은 worker가 여럿이어도 같은 크기의 파일들을 직렬화했다. 추가 병렬 staging은 worker 수·작업 목표의 1/4·관측 디스크 여유의 1/4로 제한하며 기존 복구용 최대 payload 1개는 허용한다. 전체 대상 native 잠금·파일별 여유 검사·단일 영속 진행 확정·topology/동반 파일 순서·실패 drain은 유지한다. |
+| ST-34 | 디렉터리 열거가 이미 받은 불변 metadata를 보존해 자식마다 다시 `Stat`하지 않는다. 정확한 경로·가용성·overlay 우선순위·제외/hidden 경로·과거 root 의미는 유지한다. |
+| ST-35 | 일반 파일의 변경 경로 검사는 전후 목록 연결·행마다 두 번의 tree 조회·개별 COW 삽입을 정렬 catalog 병합과 변경 집합 일괄 생성으로 바꾼다. 대소문자 표기·추가/삭제/metadata 변경·취소 검사를 유지한다. |
+
+메모리 수치는 정책 예산이며 **실제 RSS나 여러 provider 합산 4GiB 보장이 아니다**. Merge 버퍼·fallback run·보존 cursor·payload/decoder 버퍼·native 핸들·GC에는 별도 여유가 필요하다. 실제 대형 프로젝트 최대 메모리와 하드웨어 활용률은 측정하지 않았다. task v4·basis v3·overlay v3·CLI schema·capabilities는 유지하며 새 공개 명령이나 의존성은 없다.
+
+작은 비용 근거: 새 키 64개의 페이지 쓰기는 **342→64회**, 같은 제품 **32파일/64회 변경의 추가 metadata는 직렬 223,302→배치 57,988바이트**(74.0% 감소)다. 앞선 ST-26 배치의 138,332바이트보다 이 입력에서 58.1% 더 적다. 6,000행/값 1KiB 정렬을 run 예산 4MiB와 32MiB로 비교하면 **마지막 행 직전 run 파일이 2→0개**이고 결과는 같다. 32파일 목록의 추가 `Stat` 호출은 **0회**다. Native 게시 검사는 전체 대상 고정 뒤 stage 두 개 이상이 실제로 겹쳐 준비되도록 요구한다. 작업량·바이트·동시성 근거이며 경과 시간 개선율이 아니다.
+
+검증: 최종 자원/구조/배치/spool **30개가 1.283초**, 선택한 Git 검사/원본 게시 **5개가 45.924초**, 파일 검사 증명/fake Plastic **14개가 8.220초**에 통과했다. 같은 후속의 앞선 native cache/reader/content/range **31개는 6.423초**, 게시/채택 **4개는 7.850초**에 통과했다. 이 실행들의 합집합은 **고유 81개, 실패/skip 0개**이며 겹치는 실행을 고유 검사 수에 더하지 않는다. Release solution 빌드는 **10.52초, 경고/오류 0개**로 통과했다. Git 입력은 작은 파일 520개와 1MiB 파일이며 보존한 100k fixture가 아니다.
+
+시간 계획은 전체 55분(커밋 5·검토 10·구현 30·국지 검증/문서 10), 단계별 예상 2배와 개별 검사 30–60초 중단 기준이다. 새 검사는 취소 token을 사용하는 10–15초 timeout을 둔다. 초기 빌드에서 scratch 예산 소유 field 누락(18.11초)과 inspection token 전달 parameter 누락(6.21초)을 발견해 최종 검사 전에 수정했다. 확대한 정렬의 메모리 반환/디스크 기록 경로에 record별 취소 확인도 추가했다. 기존 spool 검사는 작은 64KiB 예산을 명시해 spill/cursor 보호를 검증하며 대형 입력 검사의 예산 assertion만 정책에 맞췄고 그 입력은 실행하지 않았다. 쓰기 중인 작업/provider를 중단할 필요는 없었다. 사용자의 작은 검증 지시에 따라 `build.ps1` 전체 시험 gate를 재개하지 않았으며 대형 fixture·실제 Plastic/Unity 수명주기·새 provider를 실행하지 않았다.
+
+추가 검토에서 큰 후보 세 가지가 남았다. `WindowsOriginalFilePublisher.Commit`은 각 영속 진행 기록을 직렬 확정하므로 flush를 없애는 대신 장애/같은 요청 복구 경계를 정의한 묶음 확정이 필요하다. `JournalPathComponents`와 단일 키 `PagedMetadataStore.Set`은 여전히 키별 경로를 생성하고 영속 형식도 node당 키 하나여서 더 넓은 배치 또는 별도 자격 검증을 거친 조밀한 표현이 후보이다. 원본 계획과 `PagedMetadataCollection`은 보호된 inventory 전체를 순회하며 증분 생략은 전체 소스 세대·native 소유 증명이 선행되어야 한다. 실제 live-index repack 임계값은 `max(64MiB, 활성 개수 × 2048)`이며, 4MiB 후처리 maintenance 판단과 다르다. Worker만 늘려서는 이런 직렬/전체 순회 비용이 사라지지 않으며 과거 수십 분~수 시간 현상의 해소는 아직 입증하지 않았다.
+
+근거: [자원 후속 보고서](../../../reports/benchmarks/scalable-storage-resource-20261101.json), `artifacts/scalable-storage-resource-20261101/`의 소스 manifest·CTRF. SCAL-03/07/08·실제 4GiB 압박·시스템 전체 CPU/디스크 최대 활용·대형 경과 시간 개선·전체 gate 자격은 부여하지 않는다.

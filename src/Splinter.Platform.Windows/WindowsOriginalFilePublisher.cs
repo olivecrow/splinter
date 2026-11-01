@@ -81,7 +81,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
         try
         {
             Parallel.ForEach(Partitioner.Create(AdmissionTargets(), EnumerablePartitionerOptions.NoBuffering),
-                new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = ct }, item =>
+                new ParallelOptions { MaxDegreeOfParallelism = StorageResources.IoWorkers, CancellationToken = ct }, item =>
             {
                 using var activeAdmission = metrics.Enter(admission: true);
                 long i = item.Index; var change = item.Change;
@@ -134,9 +134,13 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
         { ExceptionDispatchInfo.Capture(error.Flatten().InnerExceptions[0]).Throw(); throw; }
         boundary?.Invoke("preflight", -1);
         void Reached(string name, long index) => boundary?.Invoke(name, (int)Math.Min(index, int.MaxValue));
-        long reservationLimit = plan.EnumerateChanges().Where(c => c.After?.Kind == "file").Select(c => c.After!.Length).DefaultIfEmpty().Max();
+        long largestPayload = plan.EnumerateChanges().Where(c => c.After?.Kind == "file").Select(c => c.After!.Length).DefaultIfEmpty().Max();
+        long freeBytes = 0;
+        try { freeBytes = new DriveInfo(Path.GetPathRoot(plan.ProjectPath)!).AvailableFreeSpace; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException) { }
+        long reservationLimit = StorageResources.PublicationStagingBytes(largestPayload, freeBytes);
         using var reservations = new StagingReservations(reservationLimit);
-        metrics.Reservations = reservations; metrics.MaximumPayload = reservationLimit;
+        metrics.Reservations = reservations; metrics.MaximumPayload = largestPayload;
         long minimumControlBytes = OperationDiskSpace.ControlBytes(state);
         using var workers = CancellationTokenSource.CreateLinkedTokenSource(ct); var workToken = workers.Token;
         void PublishOne(long i)
@@ -217,7 +221,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
         // A bounded batch avoids retaining one task per target. Companion
         // metadata waits for the source task in the same batch; earlier batches
         // have already drained before the next one starts.
-        var batch = new List<(string Path, Task Task)>(8);
+        var batch = new List<(string Path, Task Task)>(StorageResources.IoWorkers);
         void Drain()
         {
             try { Task.WhenAll(batch.Select(item => item.Task)).GetAwaiter().GetResult(); }
@@ -262,7 +266,7 @@ public sealed class WindowsOriginalFilePublisher : IOriginalFilePublisher
                     }
                     catch { workers.Cancel(); throw; }
                 }, CancellationToken.None)));
-                if (batch.Count == 8) Drain();
+                if (batch.Count == StorageResources.IoWorkers) Drain();
             }
             Drain();
         }

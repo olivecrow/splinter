@@ -4,10 +4,9 @@ namespace Splinter.Runtime;
 
 public sealed partial class PagedMetadataStore
 {
-    // Existing keys keep their deterministic tree shape. Visit the union of
-    // their search paths and write each changed ancestor once, instead of
-    // rebuilding the root path after every row. Inserts use the disk-spine
-    // path; neither a large input nor hostile priorities grow a memory tree.
+    // A bounded transient overlay handles both insertions and updates. Rotations
+    // only change private references; write each surviving dirty node once after
+    // the whole batch succeeds. Old roots and the on-disk treap format are intact.
     internal MetadataTreeRoot SetBatch(MetadataTreeRoot root, IReadOnlyList<MetadataEntry> entries)
     {
         if (entries.Count > 64) throw new ArgumentOutOfRangeException(nameof(entries));
@@ -15,38 +14,73 @@ public sealed partial class PagedMetadataStore
         {
             CheckWriter(); CheckRoot(root);
             var ordered = entries.OrderBy(entry => entry.Key, StringComparer.Ordinal).ToArray();
-            bool inserts = false;
             for (int index = 0; index < ordered.Length; index++)
             {
                 var entry = ordered[index]; ValidateEntry(entry.Key, entry.Value.Length);
                 if (index > 0 && ordered[index - 1].Key == entry.Key) throw Invalid("A metadata batch must have unique keys.");
                 if (entry.Child is { } child) { CheckRoot(child); if (child.Page is not null) _ = ReadNode(child.Page); }
-                inserts |= Open(root).FindEntry(entry.Key) is null;
             }
-            if (inserts) return Sequential(root, 0, ordered.Length);
-            return new(1, StoreId, Update(root.Page, 0, ordered.Length, 0));
-
-            MetadataTreeRoot Sequential(MetadataTreeRoot prior, int start, int end)
+            var edited = Wrap(root.Page);
+            try
             {
-                for (int index = start; index < end; index++)
-                { var entry = ordered[index]; prior = Set(prior, entry.Key, entry.Value.Span, entry.Child); }
+                foreach (var entry in ordered) edited = Update(edited, entry, 0, out _);
+            }
+            catch (BatchDepthLimit)
+            {
+                // No page has been written yet. Preserve bounded memory even
+                // for deliberately pathological priorities using the disk spine.
+                return Sequential(root);
+            }
+            return new(1, StoreId, Persist(edited));
+
+            MetadataTreeRoot Sequential(MetadataTreeRoot prior)
+            {
+                foreach (var entry in ordered) prior = Set(prior, entry.Key, entry.Value.Span, entry.Child);
                 return prior;
             }
-            MetadataPageReference? Update(MetadataPageReference? page, int start, int end, int depth)
+            Node Load(EditedNode item)
             {
-                if (start == end) return page;
-                if (depth == 128) return Sequential(new(1, StoreId, page), start, end).Page;
-                if (page is null) throw Invalid("An existing metadata batch key disappeared.");
-                var node = ReadNode(page); int split = start;
-                while (split < end && StringComparer.Ordinal.Compare(ordered[split].Key, node.Key) < 0) split++;
-                bool replaced = split < end && ordered[split].Key == node.Key;
-                var left = Update(node.Left, start, split, depth + 1);
-                var right = Update(node.Right, replaced ? split + 1 : split, end, depth + 1);
-                var value = replaced ? ordered[split].Value : node.Value;
-                var data = replaced ? ordered[split].Child?.Page : node.Data;
-                if (left == node.Left && right == node.Right && data == node.Data && value.Span.SequenceEqual(node.Value)) return page;
-                return WriteNode(node with { Left = left, Right = right, Value = value.ToArray(), Data = data });
+                if (item.Record is not null) return item.Record;
+                var node = item.Record = ReadNode(item.Original!);
+                item.Left = Wrap(node.Left); item.Right = Wrap(node.Right); return node;
+            }
+            EditedNode Update(EditedNode? item, MetadataEntry entry, int depth, out bool changed)
+            {
+                if (depth == 128) throw new BatchDepthLimit();
+                if (item is null)
+                { changed = true; return new(null) { Record = new(entry.Key, entry.Value.ToArray(), null, null, entry.Child?.Page), Dirty = true }; }
+                var node = Load(item); int order = StringComparer.Ordinal.Compare(entry.Key, node.Key);
+                if (order == 0)
+                {
+                    changed = !entry.Value.Span.SequenceEqual(node.Value) || node.Data != entry.Child?.Page;
+                    if (changed) { item.Record = node with { Value = entry.Value.ToArray(), Data = entry.Child?.Page }; item.Dirty = true; }
+                    return item;
+                }
+                var child = Update(order < 0 ? item.Left : item.Right, entry, depth + 1, out changed);
+                if (!changed) return item;
+                item.Dirty = true;
+                if (order < 0) item.Left = child; else item.Right = child;
+                if (Priority(Load(child).Key, node.Key) >= 0) return item;
+                child.Dirty = true;
+                if (order < 0) { item.Left = child.Right; child.Right = item; }
+                else { item.Right = child.Left; child.Left = item; }
+                return child;
+            }
+            MetadataPageReference? Persist(EditedNode? item)
+            {
+                if (item is null) return null;
+                if (!item.Dirty) return item.Original;
+                return WriteNode(Load(item) with { Left = Persist(item.Left), Right = Persist(item.Right) });
             }
         }
     }
+    private static EditedNode? Wrap(MetadataPageReference? page) => page is null ? null : new(page);
+    private sealed class EditedNode(MetadataPageReference? original)
+    {
+        internal readonly MetadataPageReference? Original = original;
+        internal Node? Record;
+        internal EditedNode? Left, Right;
+        internal bool Dirty;
+    }
+    private sealed class BatchDepthLimit : Exception;
 }

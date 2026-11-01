@@ -103,7 +103,7 @@ public sealed class FormerJournalTotalBoundaryTests
         }
         using var final = new JournalDeltaStore(delta, identity, basis, sourceFilePins: pins); byte[] lastByte = new byte[1];
         Assert.Equal(1, final.Read(last, lastOffset, lastByte)); Assert.Equal((byte)'y', lastByte[0]); Assert.Null(final.Stat("after-boundary"));
-        Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, 32L * 1024 * 1024);
+        Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, StorageResources.MetadataCacheBytes);
     }
     private static FieldInfo Field(string name) => typeof(JournalDeltaStore).GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)!;
     private static void Root(object value, MetadataTreeRoot root)

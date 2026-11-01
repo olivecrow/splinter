@@ -11,10 +11,10 @@ public sealed partial class FileWorkspaceProvider
     {
         Owner(w, Control(w)); RequireMount(w);
         using var current = Manifest(w, Scan(w.Path, w.ManagedPaths, ct, mount: w.Path,
-            hashWorkers: w.SourceKind == "plastic" ? 1 : 8, omitGitRoot: w.SourceKind == "git"));
+            hashWorkers: w.SourceKind == "plastic" ? 1 : StorageResources.HashWorkers, omitGitRoot: w.SourceKind == "git"));
         using var result = GenerationManifest(w);
         bool changed = current.Identity != result.Identity;
-        var differences = changed ? Changed(result.EnumerateEntries(), current.EnumerateEntries(), Control(w)) : (Preview: Array.Empty<string>(), Count: 0L);
+        var differences = changed ? Changed(result.EnumerateEntries(), current.EnumerateEntries(), Control(w), ct) : (Preview: Array.Empty<string>(), Count: 0L);
         return Task.FromResult(new SourceState(result.Identity, current.Identity, changed, differences.Preview) { ChangedPathCount = differences.Count });
     }
     private static string GenerationPath(string control, string id, string name)

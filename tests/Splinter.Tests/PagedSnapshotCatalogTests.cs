@@ -61,7 +61,7 @@ public sealed class PagedSnapshotCatalogTests
         {
             Assert.Equal(count + 1, catalog.Walk().LongCount());
             Assert.Equal("99999", catalog.Find("f-0099999")!.SourceReference);
-            Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, 32 * 1024 * 1024);
+            Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, StorageResources.MetadataCacheBytes);
         }
         using var reopened = new PagedSnapshotCatalog(scratch.Path, root);
         Assert.Equal(count, reopened.EnumerateChildren("").LongCount());

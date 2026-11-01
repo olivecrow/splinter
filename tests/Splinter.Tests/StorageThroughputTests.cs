@@ -73,7 +73,7 @@ public sealed class StorageThroughputTests
     [Fact]
     public void SmallSpoolAvoidsFilesAndSpilledCursorsKeepTheirOwnSnapshot()
     {
-        using var root = new TestDirectory(); using var spool = new MetadataSpool(root.Path);
+        using var root = new TestDirectory(); using var spool = new MetadataSpool(root.Path, 65536, new ScratchBudget(65536));
         spool.Append(new("first", "one"u8.ToArray()));
         Assert.Empty(Directory.EnumerateFiles(root.Path));
         using var small = spool.Read().GetEnumerator(); Assert.True(small.MoveNext());

@@ -40,7 +40,7 @@ public sealed class ScalableCatalogMatrixTests
         Assert.Equal(first, repeated); Assert.Equal(before, Bytes());
         using var reopened = new PagedSnapshotCatalog(scratch.Path, repeated);
         Assert.Equal(count + 1L, reopened.Walk().LongCount());
-        Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0L, 32L * 1024 * 1024);
+        Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0L, StorageResources.MetadataCacheBytes);
         TestContext.Current.TestOutputHelper!.WriteLine($"SCAL-02 shape={shape} entries={count} seconds={watch.Elapsed.TotalSeconds:F6} metadataBytes={before} cacheBytes={PagedMetadataStore.CachedMetadataBytes}");
         long Bytes() => Directory.EnumerateFiles(scratch.Path, "pages-*.bin").Sum(path => new FileInfo(path).Length);
     }

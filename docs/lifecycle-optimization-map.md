@@ -10,6 +10,8 @@ The [ST-01–23 follow-up](verification/scalable-storage-throughput-followup.md)
 
 ST-24–28 further coalesces W10's existing node search paths with `PagedMetadataBatch`, shares bounded fixed-operation C20 content proofs and Git catalog merge cursors, and skips unchanged A20 path-import rebuilds. Root publication flushes deferred pages; stage order and proof dependencies are unchanged. The separate structural report records 45 small checks and metadata cost counts, without large elapsed-time qualification.
 
+ST-29–35 adds `StorageResources` and `BoundedParallel` within W10/C20/A20. Bounded insert/change-index batches, larger demand-driven sort/cache budgets and listing metadata reuse reduce repeated work; hashing overlaps enumeration/consumption and independent original staging can overlap under disk headroom. Fixed Plastic revision reads remain serial. Full-target locks, durable progress, cancellation/drain and stage publication order are unchanged. See the resource report for small correctness/cost checks; actual CPU/disk saturation, large-input elapsed time and process memory are unqualified.
+
 ## 1. Rules that determine the graph
 
 - Use the returned `data.workspace.path` and retain project/key/id/home/base/request identity. Reuse the same task across editing, capture and repeated application.

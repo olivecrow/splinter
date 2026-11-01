@@ -12,10 +12,14 @@ public static class MetadataExternalSort
     // A transient sort record can contain a complete filesystem path in both
     // key and value; persistent logical pages still contain component names.
     private const int MaximumRecordBytes = 8 * 32767 * 4 + 65536;
-    private const int RunBudget = 4 * 1024 * 1024, FanIn = 8;
+    private const int FanIn = 32;
     private static readonly UTF8Encoding Utf8 = new(false, true);
     public static IEnumerable<MetadataEntry> Order(IEnumerable<MetadataEntry> input, string workingDirectory, CancellationToken ct, IJournalFilePins? filePins = null)
+        => Order(input, workingDirectory, ct, filePins, StorageResources.SortRunBytes, StorageResources.Scratch);
+    internal static IEnumerable<MetadataEntry> Order(IEnumerable<MetadataEntry> input, string workingDirectory, CancellationToken ct,
+        IJournalFilePins? filePins, int runBudget, ScratchBudget budget)
     {
+        using var allocation = budget.Open();
         string directory = Path.Combine(workingDirectory, "sort-" + Guid.NewGuid().ToString("N"));
         WorkspaceStore.EnsurePlainPath(directory);
         bool completed = false, created = false;
@@ -28,23 +32,32 @@ public static class MetadataExternalSort
         }
         try
         {
-            var entries = new List<MetadataEntry>(); int bytes = 0; long runs = 0;
+            var entries = new List<MetadataEntry>(); int bytes = 0; long runs = 0; bool fallback = false;
             foreach (var entry in input)
             {
                 ct.ThrowIfCancellationRequested(); int charge = checked(Utf8.GetByteCount(entry.Key) * 2 + entry.Value.Length + 512);
                 if (charge > MaximumRecordBytes) throw Invalid("Split oversized metadata records before sorting.");
-                if (entries.Count > 0 && bytes > RunBudget - charge)
-                { CreateDirectory(); WriteSorted(RunPath(directory, 0, runs++), entries, filePins); entries.Clear(); bytes = 0; }
+                if (entries.Count > 0 && (bytes > (fallback ? 65536 : runBudget) - charge ||
+                    !fallback && !allocation.TryResize(bytes + (long)charge)))
+                {
+                    CreateDirectory(); WriteSorted(RunPath(directory, 0, runs++), entries, filePins, ct);
+                    entries.Clear(); bytes = 0; _ = allocation.TryResize(0); fallback = false;
+                }
+                // An upstream cursor may hold the whole shared scratch budget.
+                // Never wait for it or create one disk file per tiny record.
+                // A 64KiB run (or one larger legal record) is bounded fallback
+                // workspace, like merge buffers, outside the pooled scratch.
+                if (!fallback && !allocation.TryResize(bytes + (long)charge)) fallback = true;
                 entries.Add(entry with { Value = entry.Value.ToArray() }); bytes += charge;
             }
             if (runs == 0)
             {
-                entries.Sort((a, b) => StringComparer.Ordinal.Compare(a.Key, b.Key));
-                foreach (var entry in entries) yield return entry;
+                ct.ThrowIfCancellationRequested(); entries.Sort((a, b) => StringComparer.Ordinal.Compare(a.Key, b.Key));
+                foreach (var entry in entries) { ct.ThrowIfCancellationRequested(); yield return entry; }
                 completed = true; yield break;
             }
-            if (entries.Count > 0) WriteSorted(RunPath(directory, 0, runs++), entries, filePins);
-            entries.Clear(); int phase = 0;
+            if (entries.Count > 0) WriteSorted(RunPath(directory, 0, runs++), entries, filePins, ct);
+            entries.Clear(); entries.TrimExcess(); _ = allocation.TryResize(0); int phase = 0;
             while (runs > FanIn)
             {
                 long next = 0; var group = new List<string>(FanIn);
@@ -82,11 +95,11 @@ public static class MetadataExternalSort
         }
     }
     private static string RunPath(string directory, int phase, long run) => Path.Combine(directory, "run-" + phase.ToString("x8") + "-" + run.ToString("x16") + ".bin");
-    private static void WriteSorted(string path, List<MetadataEntry> entries, IJournalFilePins? filePins)
+    private static void WriteSorted(string path, List<MetadataEntry> entries, IJournalFilePins? filePins, CancellationToken ct)
     {
-        entries.Sort((a, b) => StringComparer.Ordinal.Compare(a.Key, b.Key));
+        ct.ThrowIfCancellationRequested(); entries.Sort((a, b) => StringComparer.Ordinal.Compare(a.Key, b.Key));
         using var stream = NewRun(path, filePins);
-        foreach (var entry in entries) Write(stream, entry);
+        foreach (var entry in entries) { ct.ThrowIfCancellationRequested(); Write(stream, entry); }
     }
     private static FileStream NewRun(string path, IJournalFilePins? filePins)
     {

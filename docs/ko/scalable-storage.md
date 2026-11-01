@@ -20,9 +20,11 @@
 
 Git 데이터 record 명령은 변경 없는 전체 tree 확인이 끝날 때까지 출력이 없을 수 있다. 이 명령은 blob protocol의 30초 출력 읽기 제한 없이 순차 읽으며, 사용자 취소는 정확한 소유 명령을 종료·drain하고 종료 코드·잘림·개별 record 크기를 검사한다. 고정 object reader의 기존 30초 blocking-read 보호는 유지한다. R19 결합 focused 실행은 187행 중 186개 통과이며 skip 1개는 통과한 필수 부모가 실행한 subprocess actor 진입점이다. 실제 대형 입력의 후속과 최종 전체 gate는 별도다.
 
-프로세스 공통 metadata 캐시는 지연 할당하며 재배치 블록까지 최대 32MiB를 계상한다. payload 캐시·worker 버퍼·native 핸들/관리형 핸들 결합 자료·전체 private bytes는 별도다. 입력 전체 tree fence와 원본 전체 대상 잠금은 고정한 대상 수에 비례하는 자원을 유지할 수 있으며 검증에서 따로 기록한다.
+2026-11-01 사용자가 승인한 자원 정책은 이전 32MiB 캐시 상한을 대체한다. `StorageResources`는 가용 메모리의 1/8을 128MiB–4GiB로 제한해 프로세스별 작업 목표를 정한다(가용량 미상은 512MiB). 사전 확보 없이 수요에 따라 metadata 캐시에 목표의 5/8, 공통 정렬/spool scratch에 1/8을 계상한다. 목표 4GiB에서는 각각 2.5GiB·512MiB이며 개별 sort run/spool은 최대 128MiB/64MiB이고 개별·공통 예산 부족 시 디스크로 넘긴다. Merge 버퍼와 64KiB fallback sort run(또는 더 큰 유효 record 1개)은 공통 scratch 밖의 제한된 작업 메모리로, 중첩 cursor의 대기 교착과 record마다 spill 파일을 만드는 증폭을 피한다. 사전 예약·OS working-set·여러 프로세스 합산 상한은 아니다. Payload 버퍼·GC·native 결합 자료에는 별도 여유가 필요하다. 입력 전체 tree fence와 원본 전체 대상 잠금은 고정한 대상 수에 비례할 수 있으며 실제 대형 입력의 private memory는 미자격이다.
 
-각 metadata 저장소는 container reader 핸들을 명시적 접근 순서로 최대 16개 유지한다. 핸들 사용·캐시된 페이지 hit도 해당 핸들의 최근 접근을 갱신하며 가장 오래 사용하지 않은 핸들을 축출한다. append writer와 공유하는 핸들은 페이지 캐시 없이 재사용하며 매번 현재 container prefix·길이·페이지 checksum·논리 hash·개수·이전 참조를 검사한다. 쓰기를 배제하는 핸들만 페이지 캐시를 허용한다. 캐시 무효화는 프로세스의 무관한 캐시 전체 대신 선택한 scope/container partition만 직접 방문하고 partition/list 색인 비용도 32MiB 계상에 포함한다. Eviction·Dispose가 정확한 핸들을 해제한다. 결합한 source-change view와 inspection proof는 해제 가능한 reader 참조를 소유한다. Record 복사는 독립 참조를 유지하고 cursor는 접수한 reader를 유지하며 완료·실패 시 같은 프로세스의 회수 전에 닫는다.
+각 metadata 저장소는 자원 정책에 따라 container reader 핸들을 16–64개(4GiB 목표에서는 48개) 명시적 접근 순서로 유지한다. 핸들 사용·캐시된 페이지 hit도 해당 핸들의 최근 접근을 갱신하며 가장 오래 사용하지 않은 핸들을 축출한다. append writer와 공유하는 핸들은 페이지 캐시 없이 재사용하며 매번 현재 container prefix·길이·페이지 checksum·논리 hash·개수·이전 참조를 검사한다. 쓰기를 배제하는 핸들만 페이지 캐시를 허용한다. 캐시 무효화는 프로세스의 무관한 캐시 전체 대신 선택한 scope/container partition만 직접 방문하고 partition/list 색인 비용도 캐시 계상에 포함한다. Eviction·Dispose가 정확한 핸들을 해제한다. 결합한 source-change view와 inspection proof는 해제 가능한 reader 참조를 소유한다. Record 복사는 독립 참조를 유지하고 cursor는 접수한 reader를 유지하며 완료·실패 시 같은 프로세스의 회수 전에 닫는다.
+
+`BoundedParallel`은 일반 파일 열거·취소 가능한 hash·정렬 catalog 소비를 겹쳐 실행해 hash 묶음 전체의 완료를 기다리지 않는다. Hash worker는 논리 CPU 수에 따라 1–32개, 독립 payload I/O는 CPU 수의 두 배를 8–32개로 제한한다. 고정 Plastic revision stream은 직렬을 유지한다. 조기 Dispose와 실패는 접수한 작업을 취소하고 모두 join한다. 디렉터리 목록은 반환된 불변 metadata를 재사용하되 가용성·overlay 검사를 유지한다. 저널 묶음은 node와 변경 경로 색인의 삽입/갱신 경로를 영속 ACK 전에 결합하며 일반 파일 변경 검사는 정렬 catalog 병합과 변경 집합 일괄 생성을 사용한다. 영속 형식과 전체 게시 증명은 유지한다.
 
 오프라인 저널 재생은 원래 인덱스에 쓰지 않는다. 파생 페이지는 같은 논리 저장소 identity와 겹치지 않는 container 범위를 가진 별도 scratch 저장소에 기록한다. 소스 페이지를 제자리에서 검증해 읽으며, 파생 저장소를 만들 때 소스 catalog나 파일 payload를 복사하지 않는다. 파생 페이지 쓰기 전에 native 디렉터리·제어 파일 identity와 영속 소유 기록을 확정한다. 접수한 cursor lease는 마지막 reader가 끝날 때까지 파생 저장소·소스 reader·소유 기준본을 유지한다. 복구는 활성 reader를 배제하며 검증한 소유 scratch만 회수하고, 미확인 생성 간격은 delta 밖에 보존한다.
 
@@ -58,7 +60,7 @@ Git 원본 파일 게시는 HEAD/index/branch를 유지한다. 일반 수집은 
 
 ## 원본 게시와 유지보수
 
-변경 전 전체 대상과 필요한 조상을 검사·고정한다. 최대 8개 worker가 독립 파일을 준비/게시하며 topology/동반 파일 순서·단일 영속 진행 확정·실패/취소 drain을 유지한다. 동시 임시 payload 예약량은 계획의 최대 단일 파일 준비량을 넘지 않는다. 전체 선택은 인덱스로 보존하며 미리보기는 최대 100항목/4,096 UTF-16문자로 긴 경로에서 비어 있을 수 있다. 같은 intent/digest 재시도는 경로를 생략해 고정 선택을 복구할 수 있고 새 intent의 경로 생략은 전체 범위다.
+변경 전 전체 대상과 필요한 조상을 검사·고정한다. 자원 정책이 선택한 8–32개 worker가 독립 파일을 준비/게시하며 topology/동반 파일 순서·단일 영속 진행 확정·실패/취소 drain을 유지한다. 기존 복구를 위해 최대 payload 1개는 staging할 수 있다. 추가 병렬 staging은 worker 수·작업 메모리 목표의 1/4·관측한 디스크 여유의 1/4로 제한하며 파일별 여유 공간 검사를 유지한다. 이는 디스크 허용량이며 사전 할당이나 RAM 사용량이 아니다. 전체 선택은 인덱스로 보존하며 미리보기는 최대 100항목/4,096 UTF-16문자로 긴 경로에서 비어 있을 수 있다. 같은 intent/digest 재시도는 경로를 생략해 고정 선택을 복구할 수 있고 새 intent의 경로 생략은 전체 범위다.
 
 `NotContentIndexed`는 원본 경로의 로컬 색인 정책이다. 앱의 원자 저장으로 이 비트가 빠져도 Git·None·Plastic 게시에서 관측한 대상 비트를 보존한다. 검토 digest와 조건부 게시는 여전히 관측한 대상의 정확한 metadata·identity에 결합한다. Hidden/System/ReadOnly·지원하지 않는 저장 속성·내용 보호는 유지한다.
 

@@ -10,6 +10,8 @@
 
 ST-24–28은 `PagedMetadataBatch`로 W10의 기존 node 탐색 경로를 결합하고, 고정 작업 안의 제한된 C20 내용 증명과 Git catalog 병합 cursor를 공유하며, 동일한 A20 path import 재구축을 생략한다. Root 게시 전에 지연된 페이지를 flush하며 단계 순서와 증명 의존성은 유지한다. 별도 구조적 보고서의 작은 검사 45개와 metadata 비용 수치는 대형 경과 시간 자격이 아니다.
 
+ST-29–35는 W10/C20/A20 내부에 `StorageResources`·`BoundedParallel`을 연결한다. 제한된 삽입/변경 색인 배치·수요 기반 정렬/캐시 예산 확대·목록 metadata 재사용으로 반복 작업을 줄이며, hash를 열거/소비와 겹치고 독립 원본 staging을 디스크 여유 아래 병렬 처리한다. 고정 Plastic revision 읽기는 직렬이다. 전체 대상 잠금·영속 진행 기록·취소/drain·단계 게시 순서는 유지한다. 자원 보고서의 작은 정확성/비용 검사는 실제 CPU/디스크 최대 활용·대형 경과 시간·프로세스 메모리 자격이 아니다.
+
 ## 1. 흐름을 결정하는 규칙
 
 - 반환 `data.workspace.path`와 project/key/id/home/base/request identity를 사용한다. 편집·수집·반복 반영 동안 같은 작업을 유지한다.
