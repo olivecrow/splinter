@@ -251,8 +251,12 @@ public sealed partial class JournalDeltaStore
     private void ReplayShadow(FileStream input, long segment, long start, long end)
     {
         journal = input; replaySegment = segment; replaying = true;
-        try { Replay(start, end); }
-        finally { replaying = false; replaySegment = null; journal = null!; }
+        // Only the private shadow is updated here. Bound deferred index edits
+        // exactly as live batches do; no accepted root or ACK is published by
+        // replay. The existing full root comparison and flush precede rotation.
+        BeginIndexBatch();
+        try { Replay(start, end); FlushIndexBatch(); }
+        finally { EndIndexBatch(); replaying = false; replaySegment = null; journal = null!; }
     }
     private static LiveRepack ReadLiveRepack(string path)
     {

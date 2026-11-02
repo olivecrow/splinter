@@ -267,6 +267,14 @@ public sealed partial class JournalDeltaStore
     {
         private MetadataTreeRoot root = store.Empty;
         private readonly Dictionary<Guid, MetadataEntry> pending = new();
+        // Current writer only: decoded nodes are mutable through Save below.
+        // Frozen-root cursors continue decoding their own exact records. Bound
+        // both entries and estimated path/object charge, independent of input.
+        private const int MaximumCachedNodes = 512, MaximumCacheBytes = 1024 * 1024;
+        private readonly Dictionary<Guid, LinkedListNode<(Node Value, int Charge)>> cache = new();
+        private readonly LinkedList<(Node Value, int Charge)> recency = new();
+        private int cacheBytes;
+        private long? cacheEpoch;
         private bool batching;
         public MetadataTreeRoot Root
         {
@@ -278,10 +286,20 @@ public sealed partial class JournalDeltaStore
                 if (pending.Count != 0) { Flush(); store.Flush(); }
                 return root;
             }
-            set { Flush(); root = value; }
+            set { Flush(); root = value; ClearCache(); }
         }
         public void BeginBatch() { if (batching) throw new InvalidOperationException("Nested node batches are unsupported."); batching = true; }
-        public void EndBatch() { pending.Clear(); batching = false; }
+        public void EndBatch()
+        {
+            // A failed callback may have admitted only unchanged basis nodes,
+            // with no journal mutation to poison the writer. Discarded pending
+            // entries must not survive as authoritative decoded cache values.
+            if (pending.Count != 0) ClearCache();
+            pending.Clear(); batching = false;
+        }
+        private void ClearCache() { cache.Clear(); recency.Clear(); cacheBytes = 0; cacheEpoch = null; }
+        private void CheckCacheEpoch(long? epoch)
+        { if (cacheEpoch != epoch) { ClearCache(); cacheEpoch = epoch; } }
         public void Flush()
         {
             if (pending.Count == 0) return;
@@ -297,10 +315,29 @@ public sealed partial class JournalDeltaStore
         }
         private void Save(Node node)
         {
+            long? proof = store.DecodedNodeCacheEpoch;
             var entry = new MetadataEntry(node.Entry.Id.ToString("N"), EncodeEntry(node.Entry, components), node.Extents.Root);
-            if (!batching) { root = store.Set(root, entry.Key, entry.Value.Span, entry.Child); return; }
-            if (pending.Count == 64 && !pending.ContainsKey(node.Entry.Id)) Flush();
-            pending[node.Entry.Id] = entry;
+            if (!batching) root = store.Set(root, entry.Key, entry.Value.Span, entry.Child);
+            else
+            {
+                if (pending.Count == 64 && !pending.ContainsKey(node.Entry.Id)) Flush();
+                pending[node.Entry.Id] = entry;
+            }
+            if (proof is { } epoch && store.DecodedNodeCacheEpoch == epoch) Remember(node, epoch);
+            else ClearCache();
+        }
+        private void Remember(Node node, long epoch)
+        {
+            CheckCacheEpoch(epoch);
+            if (cache.Remove(node.Entry.Id, out var old)) { recency.Remove(old); cacheBytes -= old.Value.Charge; }
+            int charge = checked(768 + 2 * node.Entry.Path.Length + 2 * (node.Entry.BasePath?.Length ?? 0));
+            if (charge > MaximumCacheBytes) return;
+            while (cache.Count >= MaximumCachedNodes || cacheBytes > MaximumCacheBytes - charge)
+            {
+                var oldest = recency.First!;
+                cache.Remove(oldest.Value.Value.Entry.Id); cacheBytes -= oldest.Value.Charge; recency.RemoveFirst();
+            }
+            cache[node.Entry.Id] = recency.AddLast((node, charge)); cacheBytes += charge;
         }
         public Node this[Guid id]
         {
@@ -309,10 +346,16 @@ public sealed partial class JournalDeltaStore
         }
         public bool TryGetValue(Guid id, out Node node)
         {
+            long? proof = store.DecodedNodeCacheEpoch; CheckCacheEpoch(proof);
+            if (cache.TryGetValue(id, out var cached))
+            { recency.Remove(cached); recency.AddLast(cached); node = cached.Value.Value; return true; }
             var item = pending.TryGetValue(id, out var changed) ? changed : store.Open(root).FindEntry(id.ToString("N"));
-            if (item is null) { node = null!; return false; } node = Decode(item); return true;
+            if (item is null) { node = null!; return false; } node = Decode(item);
+            if (proof is { } epoch && store.DecodedNodeCacheEpoch == epoch) Remember(node, epoch);
+            return true;
         }
-        public bool ContainsKey(Guid id) => pending.ContainsKey(id) || store.Open(root).Find(id.ToString("N")) is not null;
+        public bool ContainsKey(Guid id)
+        { CheckCacheEpoch(store.DecodedNodeCacheEpoch); return cache.ContainsKey(id) || pending.ContainsKey(id) || store.Open(root).Find(id.ToString("N")) is not null; }
         public void Add(Guid id, Node node) { if (ContainsKey(id) || id != node.Entry.Id) throw new ArgumentException("Duplicate journal node."); this[id] = node; }
         public bool Remove(Guid id) { if (!ContainsKey(id)) return false; Root = store.Remove(Root, id.ToString("N")); return true; }
         public void Clear() => Root = store.Empty;
@@ -446,13 +489,17 @@ public sealed partial class JournalDeltaStore
         public void Truncate(long length)
         {
             if (store is null) { memory = memory!.Where(e => e.Start < length).Select(e => e with { Length = (int)Math.Min(e.Length, length - e.Start) }).ToList(); return; }
+            bool modified = false;
             foreach (var extent in From(length))
             {
-                if (extent.Start >= length) root = store.Remove(root!, Key(extent.Start));
+                if (extent.Start >= length) { root = store.Remove(root!, Key(extent.Start)); modified = true; }
                 else if (extent.Start + extent.Length > length)
+                {
                     root = store.Set(root!, Key(extent.Start), EncodeExtent(extent with { Length = checked((int)(length - extent.Start)) }));
+                    modified = true;
+                }
             }
-            changed!();
+            if (modified) changed!();
         }
         public void RemoveRange(int at, int count) { for (int i = 0; i < count; i++) RemoveAt(at); }
         public void InsertRange(int at, IEnumerable<Extent> items) { foreach (var item in items) Insert(at++, item); }

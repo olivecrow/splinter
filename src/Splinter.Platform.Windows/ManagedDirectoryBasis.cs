@@ -50,18 +50,14 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
         WorkspaceStore.EnsurePlainPath(projectBasis ? Path.GetDirectoryName(path)! : path);
         return path;
     }
-    private static void RequireNoVcs(string project)
+    private static void RequireNoVcs(string project, CancellationToken ct)
     {
         for (string? path = project; path is not null; path = Path.GetDirectoryName(path))
+        {
+            ct.ThrowIfCancellationRequested();
             foreach (string name in Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata)
                 if (File.Exists(Path.Combine(path, name)) || Directory.Exists(Path.Combine(path, name)))
                     throw new WorkspaceException("VcsMetadataUnsupported", "Managed project preparation requires a VCS-free source and ancestors.");
-        foreach (string path in Directory.EnumerateFileSystemEntries(project, "*", SearchOption.AllDirectories))
-        {
-            WorkspaceStore.EnsurePlainPath(path);
-            if (Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase) ||
-                Path.GetFileName(path).StartsWith(".splinter-apply-", StringComparison.OrdinalIgnoreCase))
-                throw new WorkspaceException("VcsMetadataUnsupported", "Preserve administration or incomplete publication data outside the managed project basis.");
         }
     }
     public IDisposable Acquire(WorkspaceRecord workspace, bool publishing, CancellationToken ct = default)
@@ -165,7 +161,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
         else
         {
             using var editorGuard = RequireStopped(policy, project);
-            if (projectBasis) RequireNoVcs(project);
+            if (projectBasis) RequireNoVcs(project, ct);
             WorkspaceStore.EnsurePlainPath(original); WorkspaceStore.EnsurePlainPath(root);
             if (!Directory.Exists(original) || Directory.Exists(basisPath))
                 throw new WorkspaceException("GeneratedBasisPreparationConflict", "An intact original without a renamed basis is required.");
@@ -204,7 +200,11 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
             }
             else
             {
-                SnapshotInputChecks.VerifyTree(original, ct, false, false);
+                // One full admission walk owns both file-policy and namespace
+                // checks. Ordinary native directory pins replace repeated
+                // rootward path walks while retaining current leaf admission.
+                if (projectBasis) SnapshotInputChecks.VerifyManagedProjectTree(original, ct);
+                else SnapshotInputChecks.VerifyTree(original, ct, false, false);
                 Directory.CreateDirectory(root);
                 if (!File.Exists(intentPath)) await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, intent, ct);
                 var snapshot = new SnapshotReference(id, OwnedDirectorySnapshotTree.ProviderName, basisPath, basisPath, DateTimeOffset.UtcNow, true, true, "stopped-original-owned-directory");

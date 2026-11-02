@@ -1,0 +1,1152 @@
+{
+  "id": "RECHECK-04",
+  "date": "2026-11-03",
+  "startedDate": "2026-11-02",
+  "candidate": "Final ST-79–82, same frozen runtime throughout; no product-code changes during this measurement.",
+  "request": "Resume retained 100k input; stop at historical half-time using cancellation/admission block, drain and authenticated normal provider Stop; diagnose costs. Explicit user limits override shorter estimate-based limits.",
+  "outcome": {
+    "completed": true,
+    "failure": null,
+    "observedAt": "2026-11-03T00:30:06.7612271+09:00"
+  },
+  "input": {
+    "fixture": "C:/Users/olive/AppData/Local/Temp/sscal3n-20261102-remeasure",
+    "entries": 100000,
+    "directories": 10,
+    "files": 99990,
+    "bytesPerFile": 32,
+    "variants": 16,
+    "writeWorkers": 8,
+    "identities": {
+      "aPath": "C:\\Users\\olive\\AppData\\Local\\Temp\\sscal3n-20261102-remeasure\\h\\workspaces\\21d5b629c1f07ce9042dd2ee",
+      "a": "21d5b629c1f07ce9042dd2ee",
+      "b": "03e3b4cd9bc29da39605118b",
+      "bPath": "C:\\Users\\olive\\AppData\\Local\\Temp\\sscal3n-20261102-remeasure\\h\\workspaces\\03e3b4cd9bc29da39605118b",
+      "previousWriteFiles": 98178,
+      "aKey": "scal-a",
+      "basis": "a1702646add993f92b08fb4e",
+      "aDigest": "e505ea6676fe69d4bf741c72",
+      "bDigest": "8fc1fec6a3b21a9814ef4c8a",
+      "baseRevision": "sha256:f87c3cd5ac13b355caeb125cfa8bde4b8aca7067b9e04215d5d24fe6f99b0eea",
+      "fullNewPassFiles": 99990
+    },
+    "scope": "Same retained basis/A/B after RECHECK-03. NEW full pass over all 99990 A files, not only the remaining 1812. Existing private ranges/history, cached indices, startup packing and OS load differ from historical/fresh runs. No fresh basis/A/B preparation comparison or controlled causal speedup."
+  },
+  "policy": {
+    "workers": "Same Parallel.For maximum degree 8 as the historical functional driver",
+    "stop": "Explicit historical-half budgets supersede estimate-times-two/tens-of-minutes rules for this user-requested run. Cancel/block new work at threshold, drain accepted work, normal authenticated Stop, retain all state.",
+    "estimatedSeconds": {
+      "capture": 1200,
+      "writes": 1200,
+      "preparation": 300,
+      "plan": 1200
+    },
+    "scope": "Same retained A/B/basis and request identities after ST-79-82. Start owned providers, run a NEW full 99990-file write pass using the historical bytes/time pattern, then capture-1 and readonly original plan only. This is not a fresh fixture or just the remaining 1812 files; prior histories/cache/recovery differ. No original publication, release/discard/restore, 17GiB/Git/Plastic/Unity/full gate.",
+    "startedAt": "2026-11-02T23:42:51.2925968+09:00",
+    "halfSeconds": {
+      "capture": 1934.68682575,
+      "writes": 1472.0838445,
+      "preparation": 1009.3601973,
+      "plan": 1972.54659625
+    },
+    "entries": 100000,
+    "historicalSeconds": {
+      "capture": 3869.3736515,
+      "readonlyPlanInterruptedLowerBound": 3945.0931925,
+      "writes": 2944.167689,
+      "preparationA": 2018.7203946
+    },
+    "fixture": "C:/Users/olive/AppData/Local/Temp/sscal3n-20261102-remeasure",
+    "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\write-bottlenecks-20261102\\runtime-final",
+    "files": 99990
+  },
+  "frozenCandidate": {
+    "sourceManifest": "artifacts/write-bottlenecks-20261102/source-manifest.json",
+    "sourceFiles": 328,
+    "sourceMismatches": [],
+    "binaryManifest": "artifacts/write-bottlenecks-20261102/binary-manifest.json",
+    "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\write-bottlenecks-20261102\\runtime-final",
+    "binaryFiles": 32,
+    "binaryMismatches": []
+  },
+  "measurements": {
+    "reconnect": {
+      "metrics": {
+        "combinedSeconds": 304.9382314,
+        "continuationReconnectSeconds": 266.2405488,
+        "previousSeconds": 38.6976785,
+        "limitSeconds": 1009.3601973
+      },
+      "scope": "Combined first original/A/B restart and later original/A product ensure recovery, not new preparation."
+    },
+    "writes": {
+      "historicalSeconds": 2944.167689,
+      "halfSeconds": 1472.0838445,
+      "metrics": {
+        "seconds": 1254.7332609,
+        "completed": 99990,
+        "deadlineReached": false,
+        "limitSeconds": 1472.0838445,
+        "workers": 8,
+        "bytesWritten": 3199680,
+        "drained": true
+      },
+      "fractionOfHistorical": 0.42617588175698506,
+      "withinHalf": true
+    },
+    "capture": {
+      "historicalSeconds": 3869.3736515,
+      "halfSeconds": 1934.68682575,
+      "initialFailure": {
+        "seconds": 0.5130345,
+        "error": {
+          "code": "SourceCaptureUncertain",
+          "message": "Preserve this exact request until its owned provider is reconnected."
+        },
+        "retryDisposition": "safe-to-retry"
+      },
+      "continuationCommand": {
+        "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\write-bottlenecks-20261102\\runtime-final\\splinter.dll",
+        "command": [
+          "workspace",
+          "checkpoint",
+          "--id",
+          "21d5b629c1f07ce9042dd2ee",
+          "--request-key",
+          "capture-1",
+          "--message",
+          "capture-1",
+          "--home",
+          "C:\\Users\\olive\\AppData\\Local\\Temp\\sscal3n-20261102-remeasure\\h"
+        ],
+        "secondsInsideEntryPoint": 440.5851863,
+        "limitSeconds": 1667.93049345,
+        "cancellationRequested": false,
+        "exitCode": 0,
+        "observedAt": "2026-11-03T00:22:16.6873225+09:00"
+      },
+      "conservativeCombined": {
+        "previousAttemptSeconds": 0.5130345,
+        "includesReconnectAndEnsure": true,
+        "limitSeconds": 1934.68682575,
+        "combinedSeconds": 707.536166,
+        "continuationSeconds": 707.0231315
+      },
+      "fractionOfHistorical": 0.18285547732659954,
+      "withinHalf": true,
+      "result": {
+        "id": "13b3a5724ada7f8306edf2b0",
+        "sequence": 1,
+        "requestKey": "capture-1",
+        "message": "capture-1",
+        "revision": "sha256:38f543cf02e5c8c7cfa90be7e1af8e39cf51e5537663cbb4cb3dda1064ec3033",
+        "fingerprint": "sha256:6e76757597b15b895291c86c41072611645a4451e1e23aa9bdc7e3b0106aa71b",
+        "resultReference": "files:21d5b629c1f07ce9042dd2ee:13b3a5724ada7f8306edf2b0",
+        "captureDigest": "2acaf50ba2efeaebb47fb2a034a45093d345f791a282fef4d71a055921acde04",
+        "sourceSequence": 594504,
+        "createdAt": "2026-11-03T00:20:29.061598+09:00"
+      },
+      "freezeCost": {
+        "store": {
+          "stopwatchFrequency": 10000000,
+          "gateWaitTicks": 8,
+          "mutationPauseTicks": 576558
+        },
+        "callbacks": {
+          "stopwatchFrequency": 10000000,
+          "acceptedWriteDrainTicks": 2069,
+          "mutationGateWaitTicks": 1,
+          "mutationPauseTicks": 598964
+        }
+      },
+      "observedWallSpan": {
+        "firstLaunch": "2026-11-02T15:04:26.2271448+00:00",
+        "completed": "2026-11-02T15:22:16.6873225+00:00",
+        "seconds": 1070.4601777,
+        "includesStoppedDiagnosisAndNormalStops": true,
+        "withinHalf": true,
+        "scope": "Timestamp span from first capture launch to successful completion, including stopped diagnosis and reconnection; separate from active command accounting."
+      }
+    },
+    "readonlyOriginalPlan": {
+      "historicalInterruptedLowerBoundSeconds": 3945.0931925,
+      "halfSeconds": 1972.54659625,
+      "metrics": {
+        "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\write-bottlenecks-20261102\\runtime-final\\splinter.dll",
+        "command": [
+          "workspace",
+          "integrate",
+          "--id",
+          "21d5b629c1f07ce9042dd2ee",
+          "--target",
+          "original",
+          "--result",
+          "13b3a5724ada7f8306edf2b0",
+          "--plan",
+          "--home",
+          "C:\\Users\\olive\\AppData\\Local\\Temp\\sscal3n-20261102-remeasure\\h"
+        ],
+        "secondsInsideEntryPoint": 464.9044448,
+        "limitSeconds": 1972.54659625,
+        "cancellationRequested": false,
+        "exitCode": 0,
+        "observedAt": "2026-11-03T00:30:01.8215143+09:00"
+      },
+      "status": "Succeeded",
+      "error": null,
+      "plan": {
+        "version": 3,
+        "ownerId": "21d5b629c1f07ce9042dd2ee",
+        "requestDigest": "e505ea6676fe69d4bf741c72",
+        "basis": "sha256:f87c3cd5ac13b355caeb125cfa8bde4b8aca7067b9e04215d5d24fe6f99b0eea",
+        "result": "sha256:38f543cf02e5c8c7cfa90be7e1af8e39cf51e5537663cbb4cb3dda1064ec3033",
+        "projectPath": "C:\\Users\\olive\\AppData\\Local\\Temp\\sscal3n-20261102-remeasure\\p",
+        "projectIdentity": "B314EE3D:552EFF0DA2D519CA",
+        "changes": [],
+        "conflicts": [],
+        "digest": "sha256:c417a0b91af205f6528e66a1df5649c328af7a08ec86b16b5ae566ef38871680",
+        "resultId": "13b3a5724ada7f8306edf2b0",
+        "changesRoot": {
+          "version": 1,
+          "storeId": "c95b25162f62045cf021f5c8",
+          "page": {
+            "container": 0,
+            "offset": 50996607,
+            "bytes": 349,
+            "count": 99990,
+            "contentHash": "881adae5f6441c754cb31cacfb52c92823ed6c666aaab42d75b100d3cc22e3de"
+          }
+        },
+        "pathsRoot": {
+          "version": 1,
+          "storeId": "c95b25162f62045cf021f5c8",
+          "page": {
+            "container": 1,
+            "offset": 2086074,
+            "bytes": 243,
+            "count": 99990,
+            "contentHash": "7a07e20b332b6afc5ec19bd2e2471a8c944eb32e80f3563ceb9579423d3b82f3"
+          }
+        },
+        "pathNamesRoot": {
+          "version": 1,
+          "storeId": "c95b25162f62045cf021f5c8",
+          "page": {
+            "container": 0,
+            "offset": 22199614,
+            "bytes": 283,
+            "count": 100000,
+            "contentHash": "7321012036c21d402ee16cead32ff0f9d8bab448dbea6298580d9f6fedcb7447"
+          }
+        },
+        "conflictsRoot": {
+          "version": 1,
+          "storeId": "c95b25162f62045cf021f5c8",
+          "page": null
+        },
+        "selectionCount": 0,
+        "conflictCount": 0,
+        "changeCount": 99990
+      },
+      "withinHalf": true,
+      "originalPublication": false,
+      "comparisonLimit": "Historical command was interrupted; no old completed-plan duration or matched causal speedup is available."
+    }
+  },
+  "costs": {
+    "beforeWrites": {
+      "epoch": "7c0f20b164714db1b39fe69e115db555",
+      "lockAcquisitions": 170,
+      "lockWaitTicks": 837,
+      "flushCount": 145,
+      "flushTicks": 3099690,
+      "commitCount": 8564,
+      "journalAppendedBytes": 5461434,
+      "replayBytes": 436751,
+      "replayTicks": 13723839,
+      "journalReadBytes": 436751,
+      "baseReadBytes": 0,
+      "stopwatchFrequency": 10000000,
+      "replayFrames": 1118,
+      "replayReadCalls": 7,
+      "replayReadTicks": 1059,
+      "replayValidationTicks": 474529,
+      "replayIndexTicks": 13184507,
+      "replayBufferBytes": 65536,
+      "replayIndexOperations": [
+        {
+          "operation": "metadata",
+          "frames": 375,
+          "applyTicks": 2690544
+        },
+        {
+          "operation": "resize",
+          "frames": 371,
+          "applyTicks": 6367016
+        },
+        {
+          "operation": "write",
+          "frames": 372,
+          "applyTicks": 4126947
+        }
+      ],
+      "replayWriteRangeIndex": {
+        "replaceCalls": 0,
+        "priorExtents": 0,
+        "maxPriorExtents": 0,
+        "visitedExtents": 0,
+        "copiedExtents": 0,
+        "locateAndReplaceTicks": 0,
+        "sortTicks": 0,
+        "priorExtentBuckets": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "liveJournalWrites": {
+        "mutationGateCalls": 148,
+        "mutationGateWaitTicks": 765,
+        "operations": [
+          {
+            "operation": "packing-complete",
+            "attempts": 1,
+            "durableCommits": 1,
+            "failedCalls": 0,
+            "payloadBytes": 0,
+            "journalBytes": 356,
+            "prepareTicks": 259,
+            "appendTicks": 48,
+            "flushTicks": 23483,
+            "applyTicks": 107,
+            "totalTicks": 23928,
+            "flushCalls": 1,
+            "maxWaitingMutations": 0,
+            "waitingMutationsAtFlushStart": [
+              1,
+              0,
+              0,
+              0,
+              0
+            ],
+            "waitingMutationsAtFlushEnd": [
+              1,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "operation": "packing-state",
+            "attempts": 142,
+            "durableCommits": 142,
+            "failedCalls": 0,
+            "payloadBytes": 0,
+            "journalBytes": 376317,
+            "prepareTicks": 105480,
+            "appendTicks": 14459,
+            "flushTicks": 3033161,
+            "applyTicks": 243818,
+            "totalTicks": 3415648,
+            "flushCalls": 142,
+            "maxWaitingMutations": 0,
+            "waitingMutationsAtFlushStart": [
+              142,
+              0,
+              0,
+              0,
+              0
+            ],
+            "waitingMutationsAtFlushEnd": [
+              142,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "operation": "relocate-range",
+            "attempts": 8421,
+            "durableCommits": 8421,
+            "failedCalls": 0,
+            "payloadBytes": 0,
+            "journalBytes": 5084761,
+            "prepareTicks": 1833184,
+            "appendTicks": 650970,
+            "flushTicks": 43046,
+            "applyTicks": 18451978,
+            "totalTicks": 21096965,
+            "flushCalls": 2,
+            "maxWaitingMutations": 0,
+            "waitingMutationsAtFlushStart": [
+              2,
+              0,
+              0,
+              0,
+              0
+            ],
+            "waitingMutationsAtFlushEnd": [
+              2,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "readRangeIndex": {
+        "readCalls": 0,
+        "searchProbes": 0,
+        "visitedExtents": 0
+      }
+    },
+    "afterInitialCaptureAndStop": {
+      "epoch": "7c0f20b164714db1b39fe69e115db555",
+      "lockAcquisitions": 4039959,
+      "lockWaitTicks": 17604439968,
+      "flushCount": 220861,
+      "flushTicks": 6241970708,
+      "commitCount": 652610,
+      "journalAppendedBytes": 342149418,
+      "replayBytes": 436751,
+      "replayTicks": 13723839,
+      "journalReadBytes": 3636431,
+      "baseReadBytes": 0,
+      "stopwatchFrequency": 10000000,
+      "replayFrames": 1118,
+      "replayReadCalls": 7,
+      "replayReadTicks": 1059,
+      "replayValidationTicks": 474529,
+      "replayIndexTicks": 13184507,
+      "replayBufferBytes": 65536,
+      "replayIndexOperations": [
+        {
+          "operation": "metadata",
+          "frames": 375,
+          "applyTicks": 2690544
+        },
+        {
+          "operation": "resize",
+          "frames": 371,
+          "applyTicks": 6367016
+        },
+        {
+          "operation": "write",
+          "frames": 372,
+          "applyTicks": 4126947
+        }
+      ],
+      "replayWriteRangeIndex": {
+        "replaceCalls": 0,
+        "priorExtents": 0,
+        "maxPriorExtents": 0,
+        "visitedExtents": 0,
+        "copiedExtents": 0,
+        "locateAndReplaceTicks": 0,
+        "sortTicks": 0,
+        "priorExtentBuckets": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "liveJournalWrites": {
+        "mutationGateCalls": 1138869,
+        "mutationGateWaitTicks": 3371315032,
+        "operations": [
+          {
+            "operation": "capture-freeze",
+            "attempts": 1,
+            "durableCommits": 1,
+            "failedCalls": 0,
+            "payloadBytes": 0,
+            "journalBytes": 852,
+            "prepareTicks": 3509,
+            "appendTicks": 48,
+            "flushTicks": 19819,
+            "applyTicks": 33396,
+            "totalTicks": 56802,
+            "flushCalls": 1,
+            "maxWaitingMutations": 0,
+            "waitingMutationsAtFlushStart": [
+              1,
+              0,
+              0,
+              0,
+              0
+            ],
+            "waitingMutationsAtFlushEnd": [
+              1,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "operation": "metadata",
+            "attempts": 99990,
+            "durableCommits": 99990,
+            "failedCalls": 0,
+            "payloadBytes": 0,
+            "journalBytes": 38196180,
+            "prepareTicks": 25959096,
+            "appendTicks": 7985757,
+            "flushTicks": 2062852214,
+            "applyTicks": 238384378,
+            "totalTicks": 2338884981,
+            "flushCalls": 72460,
+            "maxWaitingMutations": 1,
+            "waitingMutationsAtFlushStart": [
+              70480,
+              1980,
+              0,
+              0,
+              0
+            ],
+            "waitingMutationsAtFlushEnd": [
+              63113,
+              9347,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "operation": "packing-complete",
+            "attempts": 7,
+            "durableCommits": 7,
+            "failedCalls": 0,
+            "payloadBytes": 0,
+            "journalBytes": 2492,
+            "prepareTicks": 1144,
+            "appendTicks": 324,
+            "flushTicks": 144289,
+            "applyTicks": 703,
+            "totalTicks": 146647,
+            "flushCalls": 7,
+            "maxWaitingMutations": 1,
+            "waitingMutationsAtFlushStart": [
+              2,
+              5,
+              0,
+              0,
+              0
+            ],
+            "waitingMutationsAtFlushEnd": [
+              1,
+              6,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "operation": "packing-state",
+            "attempts": 5568,
+            "durableCommits": 5568,
+            "failedCalls": 0,
+            "payloadBytes": 0,
+            "journalBytes": 14814541,
+            "prepareTicks": 2019342,
+            "appendTicks": 502859,
+            "flushTicks": 123469942,
+            "applyTicks": 10372354,
+            "totalTicks": 136769003,
+            "flushCalls": 5568,
+            "maxWaitingMutations": 1,
+            "waitingMutationsAtFlushStart": [
+              236,
+              5332,
+              0,
+              0,
+              0
+            ],
+            "waitingMutationsAtFlushEnd": [
+              226,
+              5342,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "operation": "relocate-range",
+            "attempts": 347064,
+            "durableCommits": 347064,
+            "failedCalls": 0,
+            "payloadBytes": 0,
+            "journalBytes": 210143253,
+            "prepareTicks": 74136619,
+            "appendTicks": 27263085,
+            "flushTicks": 1834006,
+            "applyTicks": 834375087,
+            "totalTicks": 942563366,
+            "flushCalls": 85,
+            "maxWaitingMutations": 1,
+            "waitingMutationsAtFlushStart": [
+              2,
+              83,
+              0,
+              0,
+              0
+            ],
+            "waitingMutationsAtFlushEnd": [
+              2,
+              83,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "operation": "resize",
+            "attempts": 99990,
+            "durableCommits": 99990,
+            "failedCalls": 0,
+            "payloadBytes": 0,
+            "journalBytes": 37896210,
+            "prepareTicks": 30255583,
+            "appendTicks": 5789705,
+            "flushTicks": 1701639264,
+            "applyTicks": 402127821,
+            "totalTicks": 2143689446,
+            "flushCalls": 59750,
+            "maxWaitingMutations": 1,
+            "waitingMutationsAtFlushStart": [
+              58234,
+              1516,
+              0,
+              0,
+              0
+            ],
+            "waitingMutationsAtFlushEnd": [
+              51116,
+              8634,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "operation": "write",
+            "attempts": 99990,
+            "durableCommits": 99990,
+            "failedCalls": 0,
+            "payloadBytes": 3199680,
+            "journalBytes": 41095890,
+            "prepareTicks": 23424603,
+            "appendTicks": 7336534,
+            "flushTicks": 2352011174,
+            "applyTicks": 339237746,
+            "totalTicks": 2725401866,
+            "flushCalls": 82990,
+            "maxWaitingMutations": 1,
+            "waitingMutationsAtFlushStart": [
+              81207,
+              1783,
+              0,
+              0,
+              0
+            ],
+            "waitingMutationsAtFlushEnd": [
+              72034,
+              10956,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "readRangeIndex": {
+        "readCalls": 199980,
+        "searchProbes": 0,
+        "visitedExtents": 99990
+      }
+    },
+    "deltas": {
+      "commits": 644046,
+      "flushes": 220716,
+      "flushSeconds": 623.8871018,
+      "journalAppendedBytes": 336687984,
+      "scope": "Same provider epoch, observed before writes to after initial capture/final normal Stop; includes concurrent maintenance and tiny freeze/Stop overhead, not exclusive write-only timers or allocated disk bytes."
+    },
+    "findings": [
+      "Durability remains material: 220716 additional flushes / 623.8871018 cumulative flush seconds in the observed interval. Stack shows FlushPendingWrites/CommitStorageBatch/ApplyMutationBatch and paged node writes; costs overlap wall time.",
+      "Metadata/index/packing amplification remains: 299970 user commits and 338643 additional range relocations in the interval; small payload does not imply small metadata work. Investigate packing live/reclaimed ratio and index path reuse without disabling GC or weakening ACK/native proofs.",
+      "Capture stack 1 shows BindRetainedPayloads -> baseline.Find -> new PagedSnapshotCatalog -> PagedMetadataStore.ReadNodeCore -> EnsurePlainPath. FileSourceManifest.Find opens a new reader each call; an existing bounded OpenReader scope is a concrete reuse candidate. One stack does not establish exclusive time or call counts.",
+      "Capture stack 2 observes idle/awaiting CLI threads only; it does not attribute asynchronous provider work. Final counters separately retain adoption operation costs.",
+      "Readonly plan stack 1 shows Scan.Metadata -> CheckedOriginalEntries -> FileApplyIndex.Build. Full current-original namespace validation remains; repeated metadata transitions/index construction are candidates for local attribution, not permission to skip checks."
+    ]
+  },
+  "recovery": {
+    "cause": "The experiment helper restarted owned providers directly but left the workspace record holding its old PID/start lease. Capture freeze succeeded; heartbeat refused the stale lease with SourceCaptureUncertain. This is a harness reconnection defect, not a half-time failure or capture-throughput timeout.",
+    "action": "Normally restart original; exact same workspace ensure durably refreshes A lease; retry capture-1 with same immutable ID/source sequence/digest. No manual record/identity edits; no repeated full writes.",
+    "script": "artifacts/throughput-resume-st79-20261102/continue-capture.ps1"
+  },
+  "diagnostics": {
+    "stacks": [
+      {
+        "file": "artifacts/throughput-resume-st79-20261102/write-stack-1.txt",
+        "observation": {
+          "exitCode": 0,
+          "observedAt": "2026-11-02T23:53:52.297052+09:00",
+          "bytes": 8083,
+          "pid": 37272,
+          "seconds": 0.621962
+        }
+      },
+      {
+        "file": "artifacts/throughput-resume-st79-20261102/capture-stack-1.txt",
+        "observation": {
+          "pid": 19236,
+          "bytes": 11400,
+          "seconds": 0.5727876,
+          "observedAt": "2026-11-03T00:17:55.6770019+09:00",
+          "exitCode": 0,
+          "startTicks": 639292292959851515
+        }
+      },
+      {
+        "file": "artifacts/throughput-resume-st79-20261102/capture-stack-2.txt",
+        "observation": {
+          "startTicks": 639292292959851515,
+          "observedAt": "2026-11-03T00:21:15.1100735+09:00",
+          "bytes": 3176,
+          "seconds": 0.5999639,
+          "exitCode": 0,
+          "pid": 19236
+        }
+      },
+      {
+        "file": "artifacts/throughput-resume-st79-20261102/plan-stack-1.txt",
+        "observation": {
+          "observedAt": "2026-11-03T00:23:56.4378618+09:00",
+          "exitCode": 0,
+          "startTicks": 639292297367846110,
+          "seconds": 0.5537817,
+          "pid": 22208,
+          "bytes": 19692
+        }
+      }
+    ],
+    "measurementImpact": "Read-only stack attaches and observational reads occur inside measured intervals; no correction is subtracted. No competing build/tests run during timing.",
+    "rawEvidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\sscal3n-20261102-remeasure\\evidence\\resume-st79-20261102",
+    "localArtifacts": "artifacts/throughput-resume-st79-20261102/"
+  },
+  "closeout": {
+    "audit": [
+      {
+        "owner": "21d5b629c1f07ce9042dd2ee",
+        "pid": 26048,
+        "startTicks": 639292290371382473,
+        "processAlive": false,
+        "phase": "unmounted",
+        "mountExists": false,
+        "observedAt": "2026-11-03T00:30:02.2351824+09:00",
+        "storage": {
+          "id": "21d5b629c1f07ce9042dd2ee",
+          "snapshotId": "a1702646add993f92b08fb4e",
+          "initialPayloadCopiedBytes": 0,
+          "journalBytes": 3203061,
+          "payloadBytes": 3199584,
+          "metadataBytes": 3477,
+          "readBytes": 6399360,
+          "readCacheBytes": 0,
+          "maxTransferBytes": 1048576,
+          "indexedNodes": 100001,
+          "durableSequence": 594504,
+          "metrics": {
+            "epoch": "45b09a8986984721808db5f64f7b4abc",
+            "lockAcquisitions": 4046935,
+            "lockWaitTicks": 467185573,
+            "flushCount": 3185,
+            "flushTicks": 85491843,
+            "commitCount": 201575,
+            "journalAppendedBytes": 136455388,
+            "replayBytes": 852,
+            "replayTicks": 418309,
+            "journalReadBytes": 6400212,
+            "baseReadBytes": 0,
+            "stopwatchFrequency": 10000000,
+            "replayFrames": 1,
+            "replayReadCalls": 1,
+            "replayReadTicks": 103,
+            "replayValidationTicks": 118019,
+            "replayIndexTicks": 264832,
+            "replayBufferBytes": 65536,
+            "replayIndexOperations": [
+              {
+                "operation": "capture-freeze",
+                "frames": 1,
+                "applyTicks": 264832
+              }
+            ],
+            "replayWriteRangeIndex": {
+              "replaceCalls": 0,
+              "priorExtents": 0,
+              "maxPriorExtents": 0,
+              "visitedExtents": 0,
+              "copiedExtents": 0,
+              "locateAndReplaceTicks": 0,
+              "sortTicks": 0,
+              "priorExtentBuckets": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "liveJournalWrites": {
+              "mutationGateCalls": 846106,
+              "mutationGateWaitTicks": 120456719,
+              "operations": [
+                {
+                  "operation": "adopt-range",
+                  "attempts": 99990,
+                  "durableCommits": 99990,
+                  "failedCalls": 0,
+                  "payloadBytes": 0,
+                  "journalBytes": 71592840,
+                  "prepareTicks": 18619645,
+                  "appendTicks": 8812344,
+                  "flushTicks": 32622067,
+                  "applyTicks": 79251166,
+                  "totalTicks": 140922839,
+                  "flushCalls": 1563,
+                  "maxWaitingMutations": 0,
+                  "waitingMutationsAtFlushStart": [
+                    1563,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "waitingMutationsAtFlushEnd": [
+                    1563,
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "operation": "capture-complete",
+                  "attempts": 1,
+                  "durableCommits": 1,
+                  "failedCalls": 0,
+                  "payloadBytes": 0,
+                  "journalBytes": 395,
+                  "prepareTicks": 185,
+                  "appendTicks": 63,
+                  "flushTicks": 45517,
+                  "applyTicks": 186,
+                  "totalTicks": 45976,
+                  "flushCalls": 1,
+                  "maxWaitingMutations": 0,
+                  "waitingMutationsAtFlushStart": [
+                    1,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "waitingMutationsAtFlushEnd": [
+                    1,
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "operation": "packing-complete",
+                  "attempts": 1,
+                  "durableCommits": 1,
+                  "failedCalls": 0,
+                  "payloadBytes": 0,
+                  "journalBytes": 356,
+                  "prepareTicks": 441,
+                  "appendTicks": 95,
+                  "flushTicks": 25760,
+                  "applyTicks": 140,
+                  "totalTicks": 26468,
+                  "flushCalls": 1,
+                  "maxWaitingMutations": 0,
+                  "waitingMutationsAtFlushStart": [
+                    1,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "waitingMutationsAtFlushEnd": [
+                    1,
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "operation": "packing-state",
+                  "attempts": 1596,
+                  "durableCommits": 1596,
+                  "failedCalls": 0,
+                  "payloadBytes": 0,
+                  "journalBytes": 4248743,
+                  "prepareTicks": 608775,
+                  "appendTicks": 160870,
+                  "flushTicks": 51831236,
+                  "applyTicks": 2349106,
+                  "totalTicks": 55066267,
+                  "flushCalls": 1596,
+                  "maxWaitingMutations": 0,
+                  "waitingMutationsAtFlushStart": [
+                    1596,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "waitingMutationsAtFlushEnd": [
+                    1596,
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "operation": "relocate-range",
+                  "attempts": 99987,
+                  "durableCommits": 99987,
+                  "failedCalls": 0,
+                  "payloadBytes": 0,
+                  "journalBytes": 60613054,
+                  "prepareTicks": 33380639,
+                  "appendTicks": 8645088,
+                  "flushTicks": 967263,
+                  "applyTicks": 220336116,
+                  "totalTicks": 264833095,
+                  "flushCalls": 24,
+                  "maxWaitingMutations": 0,
+                  "waitingMutationsAtFlushStart": [
+                    24,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "waitingMutationsAtFlushEnd": [
+                    24,
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            },
+            "readRangeIndex": {
+              "readCalls": 499950,
+              "searchProbes": 0,
+              "visitedExtents": 199980
+            }
+          },
+          "metadataCacheBytes": 10440,
+          "peakMetadataCacheBytes": 2684354560,
+          "sealJournalBytes": 232141791,
+          "journalOptimizationEnabled": false,
+          "journalBytesBasis": "writer-accounting",
+          "journalStorageMode": "segmented"
+        },
+        "ioFailures": 0,
+        "lastFailureCode": null
+      },
+      {
+        "owner": "03e3b4cd9bc29da39605118b",
+        "pid": 6724,
+        "startTicks": 639292274047701317,
+        "processAlive": false,
+        "phase": "unmounted",
+        "mountExists": false,
+        "observedAt": "2026-11-03T00:04:30.2006217+09:00",
+        "storage": {
+          "id": "03e3b4cd9bc29da39605118b",
+          "snapshotId": "a1702646add993f92b08fb4e",
+          "initialPayloadCopiedBytes": 0,
+          "journalBytes": 184,
+          "payloadBytes": 0,
+          "metadataBytes": 184,
+          "readBytes": 128,
+          "readCacheBytes": 0,
+          "maxTransferBytes": 1048576,
+          "indexedNodes": 100001,
+          "durableSequence": 0,
+          "metrics": {
+            "epoch": "b0c432bbd21848c484a3e6abbc9e902a",
+            "lockAcquisitions": 1354,
+            "lockWaitTicks": 7388,
+            "flushCount": 0,
+            "flushTicks": 0,
+            "commitCount": 0,
+            "journalAppendedBytes": 0,
+            "replayBytes": 0,
+            "replayTicks": 11762,
+            "journalReadBytes": 0,
+            "baseReadBytes": 128,
+            "stopwatchFrequency": 10000000,
+            "replayFrames": 0,
+            "replayReadCalls": 0,
+            "replayReadTicks": 0,
+            "replayValidationTicks": 0,
+            "replayIndexTicks": 0,
+            "replayBufferBytes": 65536,
+            "replayIndexOperations": [],
+            "replayWriteRangeIndex": {
+              "replaceCalls": 0,
+              "priorExtents": 0,
+              "maxPriorExtents": 0,
+              "visitedExtents": 0,
+              "copiedExtents": 0,
+              "locateAndReplaceTicks": 0,
+              "sortTicks": 0,
+              "priorExtentBuckets": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "liveJournalWrites": {
+              "mutationGateCalls": 6,
+              "mutationGateWaitTicks": 135,
+              "operations": []
+            },
+            "readRangeIndex": {
+              "readCalls": 6,
+              "searchProbes": 0,
+              "visitedExtents": 0
+            }
+          },
+          "metadataCacheBytes": 431210537,
+          "peakMetadataCacheBytes": 431210537,
+          "sealJournalBytes": 0,
+          "journalOptimizationEnabled": false,
+          "journalBytesBasis": "writer-accounting",
+          "journalStorageMode": "segmented"
+        },
+        "ioFailures": 0,
+        "lastFailureCode": null
+      },
+      {
+        "owner": "a1702646add993f92b08fb4e",
+        "pid": 35508,
+        "startTicks": 639292290301281806,
+        "processAlive": false,
+        "phase": "unmounted",
+        "mountExists": false,
+        "observedAt": "2026-11-03T00:30:05.6151265+09:00",
+        "storage": {
+          "id": "a1702646add993f92b08fb4e",
+          "snapshotId": "a1702646add993f92b08fb4e",
+          "initialPayloadCopiedBytes": 0,
+          "journalBytes": 936,
+          "payloadBytes": 32,
+          "metadataBytes": 904,
+          "readBytes": 6399360,
+          "readCacheBytes": 0,
+          "maxTransferBytes": 1048576,
+          "indexedNodes": 100002,
+          "durableSequence": 2,
+          "metrics": {
+            "epoch": "e24cea9a313b4d55b1287c2bebc8713e",
+            "lockAcquisitions": 6900722,
+            "lockWaitTicks": 6999376,
+            "flushCount": 0,
+            "flushTicks": 0,
+            "commitCount": 0,
+            "journalAppendedBytes": 0,
+            "replayBytes": 752,
+            "replayTicks": 326611,
+            "journalReadBytes": 752,
+            "baseReadBytes": 6399360,
+            "stopwatchFrequency": 10000000,
+            "replayFrames": 2,
+            "replayReadCalls": 1,
+            "replayReadTicks": 96,
+            "replayValidationTicks": 114699,
+            "replayIndexTicks": 181403,
+            "replayBufferBytes": 65536,
+            "replayIndexOperations": [
+              {
+                "operation": "create",
+                "frames": 1,
+                "applyTicks": 152297
+              },
+              {
+                "operation": "write",
+                "frames": 1,
+                "applyTicks": 29106
+              }
+            ],
+            "replayWriteRangeIndex": {
+              "replaceCalls": 0,
+              "priorExtents": 0,
+              "maxPriorExtents": 0,
+              "visitedExtents": 0,
+              "copiedExtents": 0,
+              "locateAndReplaceTicks": 0,
+              "sortTicks": 0,
+              "priorExtentBuckets": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "liveJournalWrites": {
+              "mutationGateCalls": 1699862,
+              "mutationGateWaitTicks": 1466163,
+              "operations": []
+            },
+            "readRangeIndex": {
+              "readCalls": 299970,
+              "searchProbes": 0,
+              "visitedExtents": 0
+            }
+          },
+          "metadataCacheBytes": 845318335,
+          "peakMetadataCacheBytes": 845318335,
+          "sealJournalBytes": 752,
+          "journalOptimizationEnabled": false,
+          "journalBytesBasis": "writer-accounting",
+          "journalStorageMode": "segmented"
+        },
+        "ioFailures": 0,
+        "lastFailureCode": null
+      }
+    ],
+    "allOwnedStopped": true,
+    "preserved": "Task/basis/private journal/immutable result/keys/digests/intents/evidence retained. Managed original stopped, not restored. No force kill, release, discard, restore or original publication.",
+    "finalTaskAudit": "artifacts/throughput-resume-st79-20261102/final-audit.json"
+  },
+  "qualification": "One retained None tiny-file continuation only. No fresh old/new ABBA, large unique assets/17GiB, full original apply/release lifecycle, Git/Plastic/Unity, full gate, peak-RSS or OS-crash qualification."
+}

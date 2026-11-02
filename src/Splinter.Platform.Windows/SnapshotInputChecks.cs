@@ -9,6 +9,17 @@ namespace Splinter.Platform.Windows;
 public static class SnapshotInputChecks
 {
     public static long VerifyTree(string root, CancellationToken ct = default, bool rejectVcsMetadata = false, bool omitPlasticRoot = false)
+        => VerifyTreeCore(root, ct, rejectVcsMetadata, omitPlasticRoot, null);
+
+    internal static long VerifyManagedProjectTree(string root, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        using var lease = new WindowsOwnedDirectoryLease(root);
+        using var proof = new WindowsDirectoryTreeProof(root, lease.RootHandle, metadataWrite: false);
+        return VerifyTreeCore(root, ct, true, false, proof);
+    }
+
+    private static long VerifyTreeCore(string root, CancellationToken ct, bool rejectVcsMetadata, bool omitPlasticRoot, WindowsDirectoryTreeProof? proof)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         long count = 0; Verify(root);
@@ -22,15 +33,21 @@ public static class SnapshotInputChecks
                 if (!level.Children.MoveNext()) { level.Children.Dispose(); pending.Pop(); continue; }
                 string directory = level.Directory, path = level.Children.Current;
                 ct.ThrowIfCancellationRequested();
+                proof?.RequireParent(path);
                 if (omitPlasticRoot && directory == root && Path.GetFileName(path).Equals(".plastic", StringComparison.OrdinalIgnoreCase))
                 { Verify(path); if (!Directory.Exists(path)) throw new WorkspaceException("VcsMetadataUnsupported", "Plastic administration must be a directory."); continue; }
                 if (rejectVcsMetadata && Splinter.SourceControl.Files.FileWorkspaceProvider.VcsMetadata.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase))
                     throw new WorkspaceException("VcsMetadataUnsupported", "The immutable plain-folder tree cannot contain VCS administration.");
+                if (proof is not null && Path.GetFileName(path).StartsWith(".splinter-apply-", StringComparison.OrdinalIgnoreCase))
+                    throw new WorkspaceException("VcsMetadataUnsupported", "Preserve incomplete original publication data outside the managed project basis.");
                 if (!rejectVcsMetadata && directory == root && Path.GetFileName(path).Equals(".git", StringComparison.OrdinalIgnoreCase)) continue;
                 count = checked(count + 1);
                 Verify(path);
                 if ((File.GetAttributes(path) & FileAttributes.Directory) != 0)
+                {
+                    proof?.PinDirectory(Path.GetRelativePath(root, path).Replace('\\', '/'));
                     pending.Push((path, Directory.EnumerateFileSystemEntries(path).GetEnumerator()));
+                }
             }
         }
         finally { foreach (var level in pending) level.Children.Dispose(); }

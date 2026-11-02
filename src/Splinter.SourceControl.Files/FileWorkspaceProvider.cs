@@ -293,12 +293,18 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         if (WorkspaceMountAccess.ObservedRoot(w) is null) throw new WorkspaceException("WorkspaceNotReady", "Observe the exact owned mount before source access.");
         Plain(w.Path, w.Path);
     }
-    private static void Plain(string path, string? mount = null)
+    private static void Plain(string path, string? mount = null, FileAttributes? leafAttributes = null)
     {
         for (string? current = Path.GetFullPath(path); current is not null; current = Path.GetDirectoryName(current))
-            if ((Directory.Exists(current) || File.Exists(current)) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0 &&
-                (mount is null || !WorkspaceStore.SamePath(current, mount)))
+        {
+            FileAttributes attributes;
+            try { attributes = leafAttributes ?? File.GetAttributes(current); }
+            catch (FileNotFoundException) { leafAttributes = null; continue; }
+            catch (DirectoryNotFoundException) { leafAttributes = null; continue; }
+            leafAttributes = null;
+            if ((attributes & FileAttributes.ReparsePoint) != 0 && (mount is null || !WorkspaceStore.SamePath(current, mount)))
                 throw new WorkspaceException("UnsafePath", "Only the exact observed mount root may be a reparse point.");
+        }
     }
     // Plastic's fixed reader keeps a single revision proof/stream. Interleaving
     // files would repeatedly evict it and decode the same revision in full.
@@ -316,32 +322,42 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
             if (entry.Kind != "file") return entry;
             string path = Path.Combine(root, entry.Path.Replace('/', Path.DirectorySeparatorChar));
             using var stream = Open(path, mount); string hash = PayloadHash.Sha256(stream, token);
-            if (stream.Length != entry.Length || File.GetLastWriteTimeUtc(path).Ticks != entry.LastWriteUtcTicks || (int)File.GetAttributes(path) != entry.Attributes)
+            var current = new FileInfo(path);
+            FileAttributes currentAttributes = current.Attributes;
+            if (stream.Length != entry.Length || !current.Exists || current.Length != entry.Length ||
+                current.LastWriteTimeUtc.Ticks != entry.LastWriteUtcTicks || (int)currentAttributes != entry.Attributes)
                 throw Error("File changed while inspecting its contents.");
             return entry with { Hash = hash };
         }
         IEnumerable<FileSourceEntry> Metadata()
         {
-            var pending = new Stack<IEnumerator<string>>();
-            Plain(root, mount); pending.Push(Directory.EnumerateFileSystemEntries(root).GetEnumerator());
+            var pending = new Stack<IEnumerator<FileSystemInfo>>();
+            Plain(root, mount); pending.Push(new DirectoryInfo(root).EnumerateFileSystemInfos().GetEnumerator());
             try
             {
                 while (pending.TryPeek(out var enumerator))
                 {
                     ct.ThrowIfCancellationRequested();
                     if (!enumerator.MoveNext()) { enumerator.Dispose(); pending.Pop(); continue; }
-                    string path = enumerator.Current, relative = Path.GetRelativePath(root, path).Replace('\\', '/');
+                    FileSystemInfo info = enumerator.Current;
+                    string path = info.FullName, relative = Path.GetRelativePath(root, path).Replace('\\', '/');
                     if (omitGitRoot && relative.Equals(".git", StringComparison.OrdinalIgnoreCase)) { Plain(path, mount); continue; }
                     if (omitPlasticRoot && relative.Equals(".plastic", StringComparison.OrdinalIgnoreCase))
                     { Plain(path, mount); if (!Directory.Exists(path)) throw Error("Plastic administration must be a directory."); continue; }
                     if (!ValidPath(relative)) throw new WorkspaceException("VcsMetadataUnsupported", "VCS administration and unsupported paths cannot be ordinary file input.");
-                    if (Managed(relative, managed)) continue; Plain(path, mount);
-                    FileAttributes attributes = File.GetAttributes(path);
+                    if (Managed(relative, managed)) continue;
+                    // Enumeration metadata can already be stale. Refresh the
+                    // current leaf once, then use that one observation for its
+                    // type/length/time and the first component of the path walk.
+                    info.Refresh();
+                    FileAttributes attributes = info.Attributes;
+                    if (!info.Exists) throw new FileNotFoundException("Source entry disappeared during inspection.", path);
+                    Plain(path, mount, attributes);
                     if ((attributes & (FileAttributes.ReparsePoint | FileAttributes.Encrypted | FileAttributes.Compressed | FileAttributes.SparseFile)) != 0)
                         throw new WorkspaceException("SnapshotFileUnsupported", "The plain-folder source supports ordinary files and directories only.");
                     bool dir = (attributes & FileAttributes.Directory) != 0;
-                    yield return new(relative, dir ? "directory" : "file", dir ? 0 : new FileInfo(path).Length, null, File.GetLastWriteTimeUtc(path).Ticks, (int)attributes);
-                    if (dir) pending.Push(Directory.EnumerateFileSystemEntries(path).GetEnumerator());
+                    yield return new(relative, dir ? "directory" : "file", dir ? 0 : ((FileInfo)info).Length, null, info.LastWriteTimeUtc.Ticks, (int)attributes);
+                    if (dir) pending.Push(new DirectoryInfo(path).EnumerateFileSystemInfos().GetEnumerator());
                 }
             }
             finally { foreach (var enumerator in pending) enumerator.Dispose(); }

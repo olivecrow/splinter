@@ -23,15 +23,18 @@ public sealed partial class WinFspOverlayFileSystem
         public long BatchId, EnteredTicks, EnqueuedTicks, DequeuedTicks;
         public bool Completed;
         public ExceptionDispatchInfo? Failure;
+        public List<DeferredWriteStore>? DeferredStores;
     }
+    internal sealed record DeferredWriteStore(long BatchId, int Chunks, int Bytes, string Reason, bool UsesBatch, long Started);
     private readonly object writeQueueGate = new();
     private readonly Queue<PendingWrite> waitingWrites = new();
     private bool writeBatchRunning;
     private long issuedWriteTicket, completedWriteTicket, nextWriteBatchId;
-    internal int PendingWriteCount { get { lock (writeQueueGate) return waitingWrites.Count; } }
+    internal int PendingWriteCount { get { int count; lock (writeQueueGate) count = waitingWrites.Count; return count + PendingMixedWriteCount; } }
 
     private void SubmitWrite(PendingWrite request)
     {
+        if (store is IWorkspaceMutationBatch) { SubmitMixedWrite(request); return; }
         // Native input remains owned by its blocked callback until completion.
         // No worker, timeout ACK, sleep window or unbounded payload copy.
         ExceptionDispatchInfo? interruption = null;
@@ -128,7 +131,7 @@ public sealed partial class WinFspOverlayFileSystem
         writeTelemetry?.Drain(WriteClock() - started);
     }
 
-    private void ExecuteWriteBatch(PendingWrite[] batch)
+    private void ExecuteWriteBatch(PendingWrite[] batch, bool shared = false)
     {
         var writes = new List<WorkspaceRangeWrite>();
         var buffers = new List<byte[]>();
@@ -148,14 +151,17 @@ public sealed partial class WinFspOverlayFileSystem
             long started = WriteClock();
             try
             {
-                if (store is IWorkspaceWriteBatch writer) writer.WriteBatch(writes);
+                if (shared) foreach (var write in writes) store.Write(write.Id, write.Offset, write.Data.Span);
+                else if (store is IWorkspaceWriteBatch writer) writer.WriteBatch(writes);
                 else foreach (var write in writes) store.Write(write.Id, write.Offset, write.Data.Span);
                 succeeded = true;
             }
             finally
             {
                 long ended = WriteClock();
-                writeTelemetry?.Store(batch[0].BatchId, writes.Count, bytes, reason, usesBatch, started, ended, !succeeded,
+                if (shared && writeTelemetry is not null)
+                    (batch[0].DeferredStores ??= []).Add(new(batch[0].BatchId, writes.Count, bytes, reason, usesBatch, started));
+                else writeTelemetry?.Store(batch[0].BatchId, writes.Count, bytes, reason, usesBatch, started, ended, !succeeded,
                     before is { } value ? accounting!.ReadWriteAccounting() - value : null);
                 ReleaseBuffers();
             }
@@ -185,12 +191,13 @@ public sealed partial class WinFspOverlayFileSystem
                 }
             }
             Commit("batch-end");
-            foreach (var request in batch)
-            {
-                request.Info = Info(request.Id);
-                Visit("callback.after-effect", "write", request.Path, request.EffectiveLength, request.Written);
-            }
+            if (!shared) foreach (var request in batch) CompleteWriteEffect(request);
         }
         finally { ReleaseBuffers(); }
+    }
+    private void CompleteWriteEffect(PendingWrite request)
+    {
+        request.Info = Info(request.Id);
+        Visit("callback.after-effect", "write", request.Path, request.EffectiveLength, request.Written);
     }
 }

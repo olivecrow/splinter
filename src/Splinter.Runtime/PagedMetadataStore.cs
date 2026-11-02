@@ -42,6 +42,14 @@ public sealed partial class PagedMetadataStore : IDisposable
     private long container;
     private bool disposed;
     private long readProofEpoch;
+    private bool hasWriteSharedReads;
+    // Decoded live-index values may only outlive lookups while every source
+    // container retains its no-write/no-delete fence. Derived/write-shared
+    // readers must keep using the ordinary verified page lookup path.
+    internal long? DecodedNodeCacheEpoch
+    {
+        get { lock (gate) return disposed || !writable || readThrough is not null || hasWriteSharedReads ? null : readProofEpoch; }
+    }
     private LocationMap? locations;
     private PagedMetadataStore? readThrough;
     private long readThroughLastContainer;
@@ -299,7 +307,7 @@ public sealed partial class PagedMetadataStore : IDisposable
         if (output!.Length > ContainerTargetBytes - bytes)
         {
             CacheInvalidationVisits += PageCache.Remove(cacheScope + "/" + container + "/");
-            FlushOutput(); output.Dispose(); output = null; container = checked(container + 1); OpenOutput();
+            FlushOutput(); output.Dispose(); output = null; readProofEpoch++; container = checked(container + 1); OpenOutput();
         }
         long offset = output!.Length; output.Position = offset;
         Span<byte> header = stackalloc byte[PageHeaderBytes]; "SPN1"u8.CopyTo(header);
@@ -366,7 +374,7 @@ public sealed partial class PagedMetadataStore : IDisposable
         }
         // Write sharing also permits damage to the container prefix. Retain
         // the exact handle, not a cached integrity decision about its bytes.
-        if (!cacheable) { readProofEpoch++; CheckContainer(input); }
+        if (!cacheable) { hasWriteSharedReads = true; readProofEpoch++; CheckContainer(input); }
         if (reference.Offset > RandomAccess.GetLength(input.SafeFileHandle) - reference.Bytes) throw Invalid("An immutable metadata page is truncated.");
         Span<byte> header = stackalloc byte[PageHeaderBytes]; ReadAt(input, header, reference.Offset);
         if (!header[..4].SequenceEqual("SPN1"u8) || BinaryPrimitives.ReadInt32LittleEndian(header[4..]) != reference.Bytes - PageHeaderBytes)

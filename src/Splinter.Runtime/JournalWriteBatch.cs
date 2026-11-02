@@ -3,9 +3,12 @@ using Splinter.Core;
 
 namespace Splinter.Runtime;
 
-public sealed partial class JournalDeltaStore : IWorkspaceWriteBatch, IWorkspaceMetadataBatch
+public sealed partial class JournalDeltaStore : IWorkspaceWriteBatch, IWorkspaceMetadataBatch, IWorkspaceMutationBatch
 {
     public void ApplyMetadataBatch(IReadOnlyList<Action> mutations)
+        => ApplyMutationBatch(mutations);
+
+    public void ApplyMutationBatch(IReadOnlyList<Action> mutations)
     {
         ArgumentNullException.ThrowIfNull(mutations);
         if (mutations.Count > IWorkspaceWriteBatch.MaximumWrites || mutations.Any(value => value is null))

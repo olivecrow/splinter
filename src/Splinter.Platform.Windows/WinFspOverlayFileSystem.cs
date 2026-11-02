@@ -171,28 +171,34 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     public override int Open(string fileName, uint createOptions, uint grantedAccess,
         out object fileNode, out object fileDesc, out FileInfo fileInfo, out string normalizedName)
     {
-        using (EnterMutation("open"))
+        fileNode = fileDesc = null!; fileInfo = default; normalizedName = null!;
+        DeltaEntry? entry = null; HandleContext? context = null;
+        fileInfo = SubmitMetadata("open", () =>
         {
-            fileNode = null!; fileDesc = null!; fileInfo = default; normalizedName = null!;
-            var entry = store.Stat(fileName); if (entry is null) return STATUS_OBJECT_NAME_NOT_FOUND;
-            fileNode = entry.Id; fileDesc = Retain(entry.Id); fileInfo = Info(entry);
-            normalizedName = "\\" + entry.Path.Replace('/', '\\'); Interlocked.Increment(ref handles); Interlocked.Increment(ref contexts); return STATUS_SUCCESS;
-        }
+            entry = store.Stat(fileName); return entry is null ? default : Info(entry);
+        }, () =>
+        {
+            if (entry is null) return;
+            context = Retain(entry.Id); Interlocked.Increment(ref handles); Interlocked.Increment(ref contexts);
+        });
+        if (entry is null) return STATUS_OBJECT_NAME_NOT_FOUND;
+        fileNode = entry.Id; fileDesc = context!; normalizedName = "\\" + entry.Path.Replace('/', '\\'); return STATUS_SUCCESS;
     }
     private HandleContext Retain(Guid id)
     { retainedContexts[id] = retainedContexts.GetValueOrDefault(id) + 1; return new(); }
     public override int Overwrite(object fileNode, object fileDesc, uint fileAttributes,
         bool replaceFileAttributes, ulong allocationSize, out FileInfo fileInfo)
     {
-        using (EnterMutation("overwrite"))
+        fileInfo = SubmitMetadata("overwrite", () =>
         {
             var id = (Guid)fileNode; var old = store.Get(id);
             uint attributes = replaceFileAttributes ? fileAttributes : old.Attributes | fileAttributes;
             SnapshotInputChecks.RejectUnsupportedAttributes(attributes, old.Path);
             store.SetLengthAndMetadata(id, 0, attributes,
                 old.CreationTime, old.LastAccessTime, DateTime.UtcNow.ToFileTimeUtc());
-            fileInfo = Info(id); return STATUS_SUCCESS;
-        }
+            return Info(id);
+        });
+        return STATUS_SUCCESS;
     }
     public override void Cleanup(object fileNode, object fileDesc, string fileName, uint flags)
     {

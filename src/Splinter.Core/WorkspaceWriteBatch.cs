@@ -19,3 +19,12 @@ public interface IWorkspaceMetadataBatch
 {
     void ApplyMetadataBatch(IReadOnlyList<Action> mutations);
 }
+
+// Optional single-store composition of synchronous range and metadata effects.
+// The caller bounds callbacks/chunks and staged bytes by IWorkspaceWriteBatch's
+// limits and retains every input until return. One durable barrier precedes all
+// successful returns; failure can leave a replayable, unacknowledged prefix.
+public interface IWorkspaceMutationBatch
+{
+    void ApplyMutationBatch(IReadOnlyList<Action> mutations);
+}

@@ -1,0 +1,1201 @@
+{
+  "date": "2026-11-02",
+  "ids": [
+    "ST-75",
+    "ST-76",
+    "ST-77",
+    "ST-78"
+  ],
+  "baseCommit": "62c29eda4099fda7c6760297422355450d559d1d",
+  "startingWorktree": "Existing uncommitted bilingual RECHECK diagnosis and machine report preserved; no pre-existing product modifications.",
+  "outcome": "PreparationBottlenecksReduced;FinalGuarded100kFreshTaskReadyWithinHistoricalHalfTime",
+  "changes": {
+    "ST-75": "One full managed None NTFS admission also rejects nested VCS and incomplete-publication names; current native ordinary directory pins replace the separate rootward-per-file pass. Leaf/type/ADS/hardlink checks and cancellation remain.",
+    "ST-76": "Refresh each enumerated FileSystemInfo before use, combine current metadata reads and leaf path check, one current query per ancestor; hash every file and recheck fresh metadata/stream length. Access errors remain errors.",
+    "ST-77": "Decoded current-node cache bounded by 512 entries and estimated 1MiB per live journal store. Root/discarded-pending/native-fence epoch changes invalidate. Writer-container closure and reader eviction advance epoch; derived/read-only/write-shared paths do not reuse decoded values. Frozen cursors and source/poison/durable boundaries remain.",
+    "ST-78": "Separate candidate ABBA blocks, exact retained A continuation, first B and final fresh C, source/binary manifests, 54 focused checks and normal Stops. No format/CLI schema change, original publication or forced kill."
+  },
+  "sourceManifest": "artifacts/preparation-bottlenecks-20261102/source-manifest.json",
+  "binaryManifest": "artifacts/preparation-bottlenecks-20261102/binary-manifest.json",
+  "smallInput": {
+    "entries": 1000,
+    "files": 999,
+    "directories": 1,
+    "fileBytes": 32,
+    "variants": 16,
+    "metadataUtc": "2020-02-03T04:05:06Z",
+    "kind": "Native fresh None project and first A, no Editor"
+  },
+  "smallFinalABBA": {
+    "order": [
+      "a4",
+      "d1",
+      "d2",
+      "a5"
+    ],
+    "trials": [
+      {
+        "entries": 1000,
+        "scope": "Fresh native None preparation only; no Editor or original publication. Fixed 60s diagnostic cap per 1k command; not the 100k retry limit.",
+        "label": "a4",
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a4",
+        "failure": null,
+        "files": 999,
+        "times": [
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\scalable-storage-recheck-20261102\\runtime\\splinter.dll",
+            "command": [
+              "workspace",
+              "ensure",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a4\\p",
+              "--key",
+              "scal-a",
+              "--source",
+              "none",
+              "--application",
+              "none",
+              "--storage",
+              "project-snapshot",
+              "--project-basis",
+              "58bea82e967e2df6ff229dd1",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a4\\h"
+            ],
+            "secondsInsideEntryPoint": 19.2176656,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:59:38.7965931+09:00"
+          },
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\scalable-storage-recheck-20261102\\runtime\\splinter.dll",
+            "command": [
+              "project",
+              "prepare",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a4\\p",
+              "--key",
+              "scal-project",
+              "--application",
+              "none",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a4\\h"
+            ],
+            "secondsInsideEntryPoint": 2.9721916,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:59:19.4442128+09:00"
+          }
+        ]
+      },
+      {
+        "failure": null,
+        "files": 999,
+        "entries": 1000,
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d1",
+        "times": [
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-guarded\\splinter.dll",
+            "command": [
+              "workspace",
+              "ensure",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d1\\p",
+              "--key",
+              "scal-a",
+              "--source",
+              "none",
+              "--application",
+              "none",
+              "--storage",
+              "project-snapshot",
+              "--project-basis",
+              "5f82c799497f04508b063e51",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d1\\h"
+            ],
+            "secondsInsideEntryPoint": 9.2745894,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:59:54.1256672+09:00"
+          },
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-guarded\\splinter.dll",
+            "command": [
+              "project",
+              "prepare",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d1\\p",
+              "--key",
+              "scal-project",
+              "--application",
+              "none",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d1\\h"
+            ],
+            "secondsInsideEntryPoint": 2.6991279,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:59:44.7304896+09:00"
+          }
+        ],
+        "label": "d1",
+        "scope": "Fresh native None preparation only; no Editor or original publication. Fixed 60s diagnostic cap per 1k command; not the 100k retry limit."
+      },
+      {
+        "label": "d2",
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d2",
+        "times": [
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-guarded\\splinter.dll",
+            "command": [
+              "workspace",
+              "ensure",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d2\\p",
+              "--key",
+              "scal-a",
+              "--source",
+              "none",
+              "--application",
+              "none",
+              "--storage",
+              "project-snapshot",
+              "--project-basis",
+              "dba6f4586de852a10d40d86b",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d2\\h"
+            ],
+            "secondsInsideEntryPoint": 8.9952289,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T20:00:09.0503178+09:00"
+          },
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-guarded\\splinter.dll",
+            "command": [
+              "project",
+              "prepare",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d2\\p",
+              "--key",
+              "scal-project",
+              "--application",
+              "none",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d2\\h"
+            ],
+            "secondsInsideEntryPoint": 2.6427516,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:59:59.9294038+09:00"
+          }
+        ],
+        "failure": null,
+        "files": 999,
+        "entries": 1000,
+        "scope": "Fresh native None preparation only; no Editor or original publication. Fixed 60s diagnostic cap per 1k command; not the 100k retry limit."
+      },
+      {
+        "label": "a5",
+        "times": [
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\scalable-storage-recheck-20261102\\runtime\\splinter.dll",
+            "command": [
+              "workspace",
+              "ensure",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a5\\p",
+              "--key",
+              "scal-a",
+              "--source",
+              "none",
+              "--application",
+              "none",
+              "--storage",
+              "project-snapshot",
+              "--project-basis",
+              "816eb5751f7b70ed8e7b6fe4",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a5\\h"
+            ],
+            "secondsInsideEntryPoint": 19.8043325,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T20:00:35.032811+09:00"
+          },
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\scalable-storage-recheck-20261102\\runtime\\splinter.dll",
+            "command": [
+              "project",
+              "prepare",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a5\\p",
+              "--key",
+              "scal-project",
+              "--application",
+              "none",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a5\\h"
+            ],
+            "secondsInsideEntryPoint": 2.9619923,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T20:00:15.1080624+09:00"
+          }
+        ],
+        "entries": 1000,
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a5",
+        "failure": null,
+        "scope": "Fresh native None preparation only; no Editor or original publication. Fixed 60s diagnostic cap per 1k command; not the 100k retry limit.",
+        "files": 999
+      }
+    ],
+    "observations": [
+      {
+        "label": "a4",
+        "basisSeconds": 2.9721916,
+        "aSeconds": 19.2176656
+      },
+      {
+        "label": "d1",
+        "basisSeconds": 2.6991279,
+        "aSeconds": 9.2745894
+      },
+      {
+        "label": "d2",
+        "basisSeconds": 2.6427516,
+        "aSeconds": 8.9952289
+      },
+      {
+        "label": "a5",
+        "basisSeconds": 2.9619923,
+        "aSeconds": 19.8043325
+      }
+    ],
+    "basisSeconds": {
+      "beforeMean": 2.96709195,
+      "afterMean": 2.67093975,
+      "reductionPercent": 9.981227578740858
+    },
+    "aSeconds": {
+      "beforeMean": 19.510999050000002,
+      "afterMean": 9.13490915,
+      "reductionPercent": 53.1807206458759
+    }
+  },
+  "smallIntermediateABBA": {
+    "order": [
+      "a2",
+      "c1",
+      "c2",
+      "a3"
+    ],
+    "trials": [
+      {
+        "failure": null,
+        "files": 999,
+        "scope": "Fresh native None preparation only; no Editor or original publication. Fixed 60s diagnostic cap per 1k command; not the 100k retry limit.",
+        "label": "a2",
+        "times": [
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\scalable-storage-recheck-20261102\\runtime\\splinter.dll",
+            "command": [
+              "workspace",
+              "ensure",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a2\\p",
+              "--key",
+              "scal-a",
+              "--source",
+              "none",
+              "--application",
+              "none",
+              "--storage",
+              "project-snapshot",
+              "--project-basis",
+              "510899c45d52aa4030718ae2",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a2\\h"
+            ],
+            "secondsInsideEntryPoint": 20.3116917,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:39:50.254404+09:00"
+          },
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\scalable-storage-recheck-20261102\\runtime\\splinter.dll",
+            "command": [
+              "project",
+              "prepare",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a2\\p",
+              "--key",
+              "scal-project",
+              "--application",
+              "none",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a2\\h"
+            ],
+            "secondsInsideEntryPoint": 3.0085216,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:39:29.8079343+09:00"
+          }
+        ],
+        "entries": 1000,
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a2"
+      },
+      {
+        "files": 999,
+        "entries": 1000,
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c1",
+        "label": "c1",
+        "times": [
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-final\\splinter.dll",
+            "command": [
+              "workspace",
+              "ensure",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c1\\p",
+              "--key",
+              "scal-a",
+              "--source",
+              "none",
+              "--application",
+              "none",
+              "--storage",
+              "project-snapshot",
+              "--project-basis",
+              "d4a0faefcf1253cdb4e0b577",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c1\\h"
+            ],
+            "secondsInsideEntryPoint": 9.3874969,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:40:05.7184792+09:00"
+          },
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-final\\splinter.dll",
+            "command": [
+              "project",
+              "prepare",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c1\\p",
+              "--key",
+              "scal-project",
+              "--application",
+              "none",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c1\\h"
+            ],
+            "secondsInsideEntryPoint": 2.5127473,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:39:56.2088246+09:00"
+          }
+        ],
+        "scope": "Fresh native None preparation only; no Editor or original publication. Fixed 60s diagnostic cap per 1k command; not the 100k retry limit.",
+        "failure": null
+      },
+      {
+        "scope": "Fresh native None preparation only; no Editor or original publication. Fixed 60s diagnostic cap per 1k command; not the 100k retry limit.",
+        "label": "c2",
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c2",
+        "times": [
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-final\\splinter.dll",
+            "command": [
+              "workspace",
+              "ensure",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c2\\p",
+              "--key",
+              "scal-a",
+              "--source",
+              "none",
+              "--application",
+              "none",
+              "--storage",
+              "project-snapshot",
+              "--project-basis",
+              "408b11ef34f2b740981aee6e",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c2\\h"
+            ],
+            "secondsInsideEntryPoint": 9.8597946,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:40:21.8409294+09:00"
+          },
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-final\\splinter.dll",
+            "command": [
+              "project",
+              "prepare",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c2\\p",
+              "--key",
+              "scal-project",
+              "--application",
+              "none",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c2\\h"
+            ],
+            "secondsInsideEntryPoint": 2.6122467,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:40:11.7806024+09:00"
+          }
+        ],
+        "entries": 1000,
+        "failure": null,
+        "files": 999
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a3",
+        "files": 999,
+        "entries": 1000,
+        "failure": null,
+        "label": "a3",
+        "scope": "Fresh native None preparation only; no Editor or original publication. Fixed 60s diagnostic cap per 1k command; not the 100k retry limit.",
+        "times": [
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\scalable-storage-recheck-20261102\\runtime\\splinter.dll",
+            "command": [
+              "workspace",
+              "ensure",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a3\\p",
+              "--key",
+              "scal-a",
+              "--source",
+              "none",
+              "--application",
+              "none",
+              "--storage",
+              "project-snapshot",
+              "--project-basis",
+              "667fab1df43b69e1483e75ba",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a3\\h"
+            ],
+            "secondsInsideEntryPoint": 19.2823223,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:40:47.2548633+09:00"
+          },
+          {
+            "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\scalable-storage-recheck-20261102\\runtime\\splinter.dll",
+            "command": [
+              "project",
+              "prepare",
+              "--project",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a3\\p",
+              "--key",
+              "scal-project",
+              "--application",
+              "none",
+              "--home",
+              "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a3\\h"
+            ],
+            "secondsInsideEntryPoint": 2.8484994,
+            "limitSeconds": 60,
+            "cancellationRequested": false,
+            "exitCode": 0,
+            "observedAt": "2026-11-02T19:40:27.8495823+09:00"
+          }
+        ]
+      }
+    ],
+    "observations": [
+      {
+        "label": "a2",
+        "basisSeconds": 3.0085216,
+        "aSeconds": 20.3116917
+      },
+      {
+        "label": "c1",
+        "basisSeconds": 2.5127473,
+        "aSeconds": 9.3874969
+      },
+      {
+        "label": "c2",
+        "basisSeconds": 2.6122467,
+        "aSeconds": 9.8597946
+      },
+      {
+        "label": "a3",
+        "basisSeconds": 2.8484994,
+        "aSeconds": 19.2823223
+      }
+    ],
+    "basisSeconds": {
+      "beforeMean": 2.9285105,
+      "afterMean": 2.562497,
+      "reductionPercent": 12.498281976451842
+    },
+    "aSeconds": {
+      "beforeMean": 19.797007,
+      "afterMean": 9.623645750000001,
+      "reductionPercent": 51.388380324359126
+    }
+  },
+  "smallInitialPair": [
+    {
+      "files": 999,
+      "label": "a1",
+      "scope": "Fresh native None preparation only; no Editor or original publication. Fixed 60s diagnostic cap per 1k command; not the 100k retry limit.",
+      "entries": 1000,
+      "failure": null,
+      "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a1",
+      "times": [
+        {
+          "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\scalable-storage-recheck-20261102\\runtime\\splinter.dll",
+          "command": [
+            "workspace",
+            "ensure",
+            "--project",
+            "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a1\\p",
+            "--key",
+            "scal-a",
+            "--source",
+            "none",
+            "--application",
+            "none",
+            "--storage",
+            "project-snapshot",
+            "--project-basis",
+            "0f7c9750a9d4d8f5a6ffbc3b",
+            "--home",
+            "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a1\\h"
+          ],
+          "secondsInsideEntryPoint": 19.5937738,
+          "limitSeconds": 60,
+          "cancellationRequested": false,
+          "exitCode": 0,
+          "observedAt": "2026-11-02T19:32:51.5396523+09:00"
+        },
+        {
+          "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\scalable-storage-recheck-20261102\\runtime\\splinter.dll",
+          "command": [
+            "project",
+            "prepare",
+            "--project",
+            "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a1\\p",
+            "--key",
+            "scal-project",
+            "--application",
+            "none",
+            "--home",
+            "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a1\\h"
+          ],
+          "secondsInsideEntryPoint": 2.9988025,
+          "limitSeconds": 60,
+          "cancellationRequested": false,
+          "exitCode": 0,
+          "observedAt": "2026-11-02T19:32:31.8169965+09:00"
+        }
+      ]
+    },
+    {
+      "label": "b1",
+      "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-b1",
+      "files": 999,
+      "failure": null,
+      "scope": "Fresh native None preparation only; no Editor or original publication. Fixed 60s diagnostic cap per 1k command; not the 100k retry limit.",
+      "times": [
+        {
+          "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime\\splinter.dll",
+          "command": [
+            "workspace",
+            "ensure",
+            "--project",
+            "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-b1\\p",
+            "--key",
+            "scal-a",
+            "--source",
+            "none",
+            "--application",
+            "none",
+            "--storage",
+            "project-snapshot",
+            "--project-basis",
+            "4eaf824997d85910309fbc83",
+            "--home",
+            "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-b1\\h"
+          ],
+          "secondsInsideEntryPoint": 10.5995837,
+          "limitSeconds": 60,
+          "cancellationRequested": false,
+          "exitCode": 0,
+          "observedAt": "2026-11-02T19:34:55.9164837+09:00"
+        },
+        {
+          "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime\\splinter.dll",
+          "command": [
+            "project",
+            "prepare",
+            "--project",
+            "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-b1\\p",
+            "--key",
+            "scal-project",
+            "--application",
+            "none",
+            "--home",
+            "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-b1\\h"
+          ],
+          "secondsInsideEntryPoint": 3.241405,
+          "limitSeconds": 60,
+          "cancellationRequested": false,
+          "exitCode": 0,
+          "observedAt": "2026-11-02T19:34:45.070908+09:00"
+        }
+      ],
+      "entries": 1000
+    }
+  ],
+  "smallTimingLimits": "Candidate blocks are not pooled. Native IDs/fixture paths, OS caches and background load differ. Timers cover CLI entry points, not seeding/dispatch/normal Stop; 60s diagnostic cap not reached. No general percentage or per-function exclusivity inferred.",
+  "focused": {
+    "uniquePassed": 54,
+    "failed": 0,
+    "skipped": 0,
+    "runs": [
+      {
+        "file": "guards-epoch.xml",
+        "total": 38,
+        "seconds": 3.128
+      },
+      {
+        "file": "file-proof-epoch.xml",
+        "total": 11,
+        "seconds": 5.044
+      },
+      {
+        "file": "capture-regression.xml",
+        "total": 5,
+        "seconds": 0.455
+      }
+    ],
+    "notFullGate": true
+  },
+  "largeInput": {
+    "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sscal2n-20261102-recheck",
+    "entries": 100000,
+    "files": 99990,
+    "directories": 10,
+    "logicalBytes": 3199680,
+    "variants": 16,
+    "basis": "9373cc048772da946046ebd1"
+  },
+  "largeHistorical": {
+    "basisCompletedSeconds": 189.7678915,
+    "aLastRecoveredSuccessfulCallSeconds": 2018.7203946,
+    "bSuccessfulCallSeconds": 2446.2287019,
+    "context": "Historical recovered/mixed-candidate/counterpart-active evidence; not controlled causal baseline or fresh uninterrupted A."
+  },
+  "largeIntermediate": {
+    "candidate": "runtime-final, before fence-epoch hardening; not final-candidate qualification",
+    "summary": {
+      "scope": "Same retained A continuation, then first fresh B on existing 100k basis; historical half-time only; no writes/capture/apply or release/discard/restore.",
+      "observedAt": "2026-11-02T10:56:47.8532332+00:00",
+      "failure": null,
+      "completed": true
+    },
+    "aResumedIncludingRestart": {
+      "scope": "New fixed candidate only. Same interrupted A reuses completed preflight/baseline from the prior candidate; not fresh full preparation or a causal whole-preparation speedup.",
+      "halfHistoricalSeconds": 1009.3601973,
+      "secondsIncludingRestart": 347.9400472
+    },
+    "bFirstFullPreparation": {
+      "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-final\\splinter.dll",
+      "command": [
+        "workspace",
+        "ensure",
+        "--project",
+        "C:\\Users\\olive\\AppData\\Local\\Temp\\sscal2n-20261102-recheck\\p",
+        "--key",
+        "scal-b",
+        "--source",
+        "none",
+        "--application",
+        "none",
+        "--storage",
+        "project-snapshot",
+        "--project-basis",
+        "9373cc048772da946046ebd1",
+        "--home",
+        "C:\\Users\\olive\\AppData\\Local\\Temp\\sscal2n-20261102-recheck\\h"
+      ],
+      "secondsInsideEntryPoint": 521.0000608,
+      "limitSeconds": 1223.11435095,
+      "cancellationRequested": false,
+      "exitCode": 0,
+      "observedAt": "2026-11-02T10:56:41.3944924+00:00"
+    },
+    "bHalfHistoricalSeconds": 1223.11435095,
+    "scope": "A reuses completed original preflight and baseline. B is first full preparation on retained basis. Earlier fixture/cache history and small test/build activity remain; do not attribute all elapsed differences to the patch."
+  },
+  "largeFinalGuarded": {
+    "candidate": "runtime-guarded",
+    "summary": {
+      "observedAt": "2026-11-02T11:10:26.4919799+00:00",
+      "failure": null,
+      "completed": true,
+      "scope": "Final guarded candidate first fresh C on retained 100k basis; historical B half-time only; no writes/capture/apply or release/discard/restore."
+    },
+    "firstC": {
+      "cliAssembly": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-guarded\\splinter.dll",
+      "command": [
+        "workspace",
+        "ensure",
+        "--project",
+        "C:\\Users\\olive\\AppData\\Local\\Temp\\sscal2n-20261102-recheck\\p",
+        "--key",
+        "scal-c",
+        "--source",
+        "none",
+        "--application",
+        "none",
+        "--storage",
+        "project-snapshot",
+        "--project-basis",
+        "9373cc048772da946046ebd1",
+        "--home",
+        "C:\\Users\\olive\\AppData\\Local\\Temp\\sscal2n-20261102-recheck\\h"
+      ],
+      "secondsInsideEntryPoint": 516.4493024,
+      "limitSeconds": 1214.8485552500001,
+      "cancellationRequested": false,
+      "exitCode": 0,
+      "observedAt": "2026-11-02T11:10:22.9401316+00:00"
+    },
+    "includingOriginalRestart": {
+      "scope": "Final guarded candidate, first fresh C on retained 100k basis; full task preflight/baseline/inspection. Original preparation and A/B history remain separate, not a clean-cache or fresh-basis comparison.",
+      "halfHistoricalBSeconds": 1223.11435095,
+      "secondsIncludingRestart": 524.9130966
+    },
+    "verified": {
+      "a": "fdc0ca2d1c0e48d1e057ebb8",
+      "b": "94a3f4c082bcfdebf9d5acb4",
+      "key": "scal-c",
+      "requestDigest": "4592bb82594eaffbac1e1a2a",
+      "c": "afdd57d034cacd3c4e37b800",
+      "baseRevision": "sha256:f87c3cd5ac13b355caeb125cfa8bde4b8aca7067b9e04215d5d24fe6f99b0eea",
+      "firstFileMatches": true,
+      "originalPublication": false
+    },
+    "scope": "First task scal-c on the retained 100k basis; full task preflight/baseline/live inspection and final response proof, with existing original and prior A/B/cache history. Not fresh basis setup, ABBA, OS-cold input or general performance qualification."
+  },
+  "normalStops": {
+    "small": [
+      {
+        "label": "a1",
+        "receipt": {
+          "owner": "0f7c9750a9d4d8f5a6ffbc3b",
+          "pid": 36228,
+          "startTicks": 639292123512220926,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 36228,
+          "currentStartTicks": 639292123512220926,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:32:52.294345+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a1\\evidence\\stop-0f7c9750a9d4d8f5a6ffbc3b.json"
+      },
+      {
+        "label": "a1",
+        "receipt": {
+          "owner": "1ea5dd50ab7e17720e0e7428",
+          "pid": 42148,
+          "startTicks": 639292123576657252,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 42148,
+          "currentStartTicks": 639292123576657252,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:32:51.9263254+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a1\\evidence\\stop-1ea5dd50ab7e17720e0e7428.json"
+      },
+      {
+        "label": "b1",
+        "receipt": {
+          "owner": "4eaf824997d85910309fbc83",
+          "pid": 36356,
+          "startTicks": 639292124843038393,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 36356,
+          "currentStartTicks": 639292124843038393,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:34:56.8409847+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-b1\\evidence\\stop-4eaf824997d85910309fbc83.json"
+      },
+      {
+        "label": "b1",
+        "receipt": {
+          "owner": "d984c0eecbbb66023ad9eff8",
+          "pid": 42904,
+          "startTicks": 639292124887245265,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 42904,
+          "currentStartTicks": 639292124887245265,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:34:56.3814708+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-b1\\evidence\\stop-d984c0eecbbb66023ad9eff8.json"
+      },
+      {
+        "label": "a2",
+        "receipt": {
+          "owner": "510899c45d52aa4030718ae2",
+          "pid": 6120,
+          "startTicks": 639292127691993112,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 6120,
+          "currentStartTicks": 639292127691993112,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:39:51.0664388+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a2\\evidence\\stop-510899c45d52aa4030718ae2.json"
+      },
+      {
+        "label": "a2",
+        "receipt": {
+          "owner": "740cd0cc432aac41c541e050",
+          "pid": 44984,
+          "startTicks": 639292127758631642,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 44984,
+          "currentStartTicks": 639292127758631642,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:39:50.6626659+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a2\\evidence\\stop-740cd0cc432aac41c541e050.json"
+      },
+      {
+        "label": "c1",
+        "receipt": {
+          "owner": "d4a0faefcf1253cdb4e0b577",
+          "pid": 17648,
+          "startTicks": 639292127957246246,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 17648,
+          "currentStartTicks": 639292127957246246,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:40:06.5748869+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c1\\evidence\\stop-d4a0faefcf1253cdb4e0b577.json"
+      },
+      {
+        "label": "c1",
+        "receipt": {
+          "owner": "d588bf14ef84f1059b0eb2b8",
+          "pid": 20508,
+          "startTicks": 639292127993152834,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 20508,
+          "currentStartTicks": 639292127993152834,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:40:06.1886126+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c1\\evidence\\stop-d588bf14ef84f1059b0eb2b8.json"
+      },
+      {
+        "label": "c2",
+        "receipt": {
+          "owner": "408b11ef34f2b740981aee6e",
+          "pid": 38932,
+          "startTicks": 639292128111748366,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 38932,
+          "currentStartTicks": 639292128111748366,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:40:22.6046141+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c2\\evidence\\stop-408b11ef34f2b740981aee6e.json"
+      },
+      {
+        "label": "c2",
+        "receipt": {
+          "owner": "98ff52b64072958ca2c54d18",
+          "pid": 52604,
+          "startTicks": 639292128152243579,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 52604,
+          "currentStartTicks": 639292128152243579,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:40:22.2352727+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-c2\\evidence\\stop-98ff52b64072958ca2c54d18.json"
+      },
+      {
+        "label": "a3",
+        "receipt": {
+          "owner": "01cad94006f77b947f3d40de",
+          "pid": 46508,
+          "startTicks": 639292128335710253,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 46508,
+          "currentStartTicks": 639292128335710253,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:40:47.6299492+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a3\\evidence\\stop-01cad94006f77b947f3d40de.json"
+      },
+      {
+        "label": "a3",
+        "receipt": {
+          "owner": "667fab1df43b69e1483e75ba",
+          "pid": 48868,
+          "startTicks": 639292128273414343,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 48868,
+          "currentStartTicks": 639292128273414343,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:40:48.0049843+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a3\\evidence\\stop-667fab1df43b69e1483e75ba.json"
+      },
+      {
+        "label": "a4",
+        "receipt": {
+          "owner": "58bea82e967e2df6ff229dd1",
+          "pid": 39072,
+          "startTicks": 639292139588384577,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 39072,
+          "currentStartTicks": 639292139588384577,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:59:39.6501442+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a4\\evidence\\stop-58bea82e967e2df6ff229dd1.json"
+      },
+      {
+        "label": "a4",
+        "receipt": {
+          "owner": "ded5aaa64cac256093735a48",
+          "pid": 20344,
+          "startTicks": 639292139651914878,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 20344,
+          "currentStartTicks": 639292139651914878,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:59:39.1834729+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a4\\evidence\\stop-ded5aaa64cac256093735a48.json"
+      },
+      {
+        "label": "d1",
+        "receipt": {
+          "owner": "3e878fb4fbb6897b2114bcdc",
+          "pid": 42316,
+          "startTicks": 639292139878286851,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 42316,
+          "currentStartTicks": 639292139878286851,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:59:54.5720622+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d1\\evidence\\stop-3e878fb4fbb6897b2114bcdc.json"
+      },
+      {
+        "label": "d1",
+        "receipt": {
+          "owner": "5f82c799497f04508b063e51",
+          "pid": 37704,
+          "startTicks": 639292139840279394,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 37704,
+          "currentStartTicks": 639292139840279394,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T10:59:54.939091+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d1\\evidence\\stop-5f82c799497f04508b063e51.json"
+      },
+      {
+        "label": "d2",
+        "receipt": {
+          "owner": "da2a29d57e15d5fd8836abb0",
+          "pid": 47048,
+          "startTicks": 639292140030192870,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 47048,
+          "currentStartTicks": 639292140030192870,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T11:00:09.4284334+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d2\\evidence\\stop-da2a29d57e15d5fd8836abb0.json"
+      },
+      {
+        "label": "d2",
+        "receipt": {
+          "owner": "dba6f4586de852a10d40d86b",
+          "pid": 49376,
+          "startTicks": 639292139992705763,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 49376,
+          "currentStartTicks": 639292139992705763,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T11:00:09.8058719+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-d2\\evidence\\stop-dba6f4586de852a10d40d86b.json"
+      },
+      {
+        "label": "a5",
+        "receipt": {
+          "owner": "816eb5751f7b70ed8e7b6fe4",
+          "pid": 44836,
+          "startTicks": 639292140144980140,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 44836,
+          "currentStartTicks": 639292140144980140,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T11:00:35.778793+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a5\\evidence\\stop-816eb5751f7b70ed8e7b6fe4.json"
+      },
+      {
+        "label": "a5",
+        "receipt": {
+          "owner": "d8be5fc6c9406d9e4c758b8a",
+          "pid": 2528,
+          "startTicks": 639292140210686148,
+          "processAlive": false,
+          "mountExists": false,
+          "currentPid": 2528,
+          "currentStartTicks": 639292140210686148,
+          "transition": "stop-through-owned-protocol",
+          "observedAt": "2026-11-02T11:00:35.403239+00:00"
+        },
+        "evidence": "C:\\Users\\olive\\AppData\\Local\\Temp\\ssprep2-a5\\evidence\\stop-d8be5fc6c9406d9e4c758b8a.json"
+      }
+    ],
+    "finalCAndOriginal": [
+      {
+        "owner": "9373cc048772da946046ebd1",
+        "pid": 47620,
+        "startTicks": 639292140983658544,
+        "processAlive": false,
+        "mountExists": false,
+        "currentPid": 47620,
+        "currentStartTicks": 639292140983658544,
+        "transition": "stop-through-owned-protocol",
+        "observedAt": "2026-11-02T11:10:26.4704105+00:00"
+      },
+      {
+        "owner": "afdd57d034cacd3c4e37b800",
+        "pid": 22544,
+        "startTicks": 639292141987066203,
+        "processAlive": false,
+        "mountExists": false,
+        "currentPid": 22544,
+        "currentStartTicks": 639292141987066203,
+        "transition": "stop-through-owned-protocol",
+        "observedAt": "2026-11-02T11:10:25.3614774+00:00"
+      }
+    ],
+    "audit": {
+      "providers": [
+        {
+          "pid": 26172,
+          "phase": "unmounted",
+          "indexedNodes": 100001,
+          "pageBytes": 1609894124.0,
+          "owner": "94a3f4c082bcfdebf9d5acb4",
+          "mountExists": false,
+          "userCommits": 0,
+          "baseReadBytes": 6399424
+        },
+        {
+          "pid": 22544,
+          "phase": "unmounted",
+          "indexedNodes": 100001,
+          "pageBytes": 1674894227.0,
+          "owner": "afdd57d034cacd3c4e37b800",
+          "mountExists": false,
+          "userCommits": 0,
+          "baseReadBytes": 6399424
+        },
+        {
+          "pid": 47904,
+          "phase": "unmounted",
+          "indexedNodes": 100001,
+          "pageBytes": 1674896134.0,
+          "owner": "fdc0ca2d1c0e48d1e057ebb8",
+          "mountExists": false,
+          "userCommits": 0,
+          "baseReadBytes": 6399424
+        },
+        {
+          "pid": 47620,
+          "phase": "unmounted",
+          "indexedNodes": 100001,
+          "pageBytes": 65002441.0,
+          "owner": "9373cc048772da946046ebd1",
+          "mountExists": false,
+          "userCommits": 0,
+          "baseReadBytes": 0
+        }
+      ],
+      "matchingDotnetProcesses": [],
+      "observedAt": "2026-11-02T11:13:06.4891669+00:00",
+      "originalMountExists": false
+    }
+  },
+  "preservation": "A/B/C ready records, basis, private journals, exact keys/digests, previous results/old fixtures and evidence retained. Providers and mounts absent. No source writes, result capture/apply, release, discard, project restore or state edits.",
+  "budgetPolicy": {
+    "workExpectedMinutes": 45,
+    "historicalAHalfSeconds": 1009.3601973,
+    "historicalBAndCHalfSeconds": 1223.11435095,
+    "userOverride": "Historical half-time only for these requested large trials; no doubled new estimate or progress projection used to stop early.",
+    "smallCommandLimitSeconds": 60
+  },
+  "incidents": [
+    "Test-only cancellation-analyzer/nullability build failures corrected before final passing runs.",
+    "Earlier cache candidates and binaries retained separately. Extra fence-epoch hardening was reviewed and tested before the final guarded block/C run.",
+    "A post-return stack probe raced completed B and reported no process; this is not a product failure or stack attribution."
+  ],
+  "remaining": [
+    "Full original/basis/workspace traversals and first node admission still exist.",
+    "Native directory/file handles are outside metadata cache gauges; no RSS or allocation reduction established.",
+    "Whole workflow write/capture/plan/apply, full gate, 17GiB, actual Git/Plastic/Unity and OS failures remain unqualified."
+  ],
+  "validation": "Frozen final product matches current build; all timing, fingerprint/readiness, preservation and normal Stop assertions passed."
+}

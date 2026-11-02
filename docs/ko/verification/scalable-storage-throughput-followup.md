@@ -546,3 +546,63 @@ Guard는 `ImmutableReadProofs`의 기존 **최대 4개** metadata reader 중 하
 사전 예상/중단: 전체 **29/58분**, 검토 **6/12분**, 구현 **15/30분**, 비교/검증 **5/10분**, 기록 **3/6분**. 개별 빌드 **15/30초**, 시험 **8/16초**, 준비/최종 검증 **2/4초**, 수집 1회 **2/4초**, 6회 합계 **6/12초**다. 가장 긴 수집 **1.104481초**이며 단계/실행 명령이 중단 기준에 도달하지 않았다. 취소/경계 검사로 상태를 보존하고 후속 작업을 중단하도록 유지했다. 강제 종료·타임아웃 확대는 없었다.
 
 변경 가능한 namespace 가지, 고정 범위 밖의 최초 진입, 영속 owner/control 영수증, identity 초기화와 data-before-root 게시 비용은 남는다. 서로 다른 내구성 경계를 묶으려면 새 복구 증명이 필요하므로 유지했다. 형식 변경·전체 `build.ps1`·대형 fixture·실제 Git/Plastic/Unity·OS 중단·시스템 경합 자격은 추가하지 않았다. [근거](../../../reports/benchmarks/capture-batching-20261102.json)에 소스/바이너리 hash가 있고 원시 fixture/script는 `artifacts/capture-batching-20261102/`에 보존한다.
+
+## ST-75–78: 준비 경로와 node 조회 비용
+
+사용자가 [RECHECK-01/02](scalable-storage-throughput-diagnosis.md)에서 확인한 실제 준비 경로의 병목 수정을 요청했다. 앞선 예상 기반 120초 중단은 과거 절반 시간 기준으로 명시 정정됐다. 시작 소스는 `62c29ed`이며 미커밋 진단/보고서 갱신을 보존했다. Task/basis/overlay·SPM2·manifest·root/hash·명령 형식은 바꾸지 않았다.
+
+| ID | 변경과 유지한 경계 |
+| --- | --- |
+| ST-75 | 관리형 None 준비는 상위 VCS 검사를 유지하고, 중첩 VCS·`.splinter-apply-` 거부를 `SnapshotInputChecks` admission에 결합한다. 원본 이동 전에 ordinary native root/상위/하위 디렉터리를 고정하여 별도의 파일별 rootward 순회를 대체한다. ADS/hardlink/reparse/type 검사와 상위/결합 순회의 취소 확인을 유지한다. |
+| ST-76 | 파일 소스 순회는 열거 metadata를 사용하기 전에 새로 관측한다. 현재 leaf 한 번의 관측으로 속성/길이/mtime과 첫 경로 검사를 결합하며 상위 구성요소는 여전히 각각 현재 속성을 조회한다. `Plain`의 사전 Exists 조회를 없앴다. 내용 hash는 파일을 열어 다시 읽고 새 metadata 관측·stream 길이를 비교한다. Metadata만으로 hash를 재사용하지 않는다. |
+| ST-77 | `PagedNodeMap`은 활성 node 복원을 512개·추정 계상 1MiB로 제한해 재사용한다. Save가 항목/계상을 갱신하며 root 변경·게시하지 않고 버린 admission은 무효화한다. 고정 root 열거는 자신의 record를 해석하고 가용성/poison 검사는 읽기 전에 유지한다. 단일 writable·non-derived 저장소의 native reader-fence 세대가 같을 때만 허용하며, 퇴출/append writer rollover는 무효화하고 write-shared 읽기는 해당 store 수명 동안 재사용을 끈다. |
+| ST-78 | 후보별 block·소스/바이너리 hash·새 작은 실제 입력·정확한 보존 요청 재개·집중 보존 시험·인증된 정상 Stop을 구분한다. 타임아웃 확대·원본 게시·상태 편집·이관·release/discard/restore·전체 gate는 없다. |
+
+최종 집중 검증은 **고유 54개 통과, 실패/skip 0개**다. 준비/cache/admission·저널 동시 읽기·batch/metadata reader **38개 3.128초**, 파일 source proof **11개 5.044초**, 기존 수집/flush pin **5개 0.455초**다. 캐시 퇴출·rename/write/replay·고정 cursor·poison/중단한 읽기 admission·동시 기준 읽기 세대·예약 이름·ADS/hardlink·취소·native 핸들 퇴출·derived/write-shared 손상 검출·기존 응답 proof 소비/변경 검출을 확인했다. 최초 시험 빌드는 취소 analyzer·nullability 오류가 있었으며 수정한 Release 빌드는 경고/오류 0개로 통과했다. OS 장애·전체 시험 자격은 아니다.
+
+새 실제 None 준비 입력은 **1,000항목·32바이트 파일 999개·디렉터리 1개·내용 16종**이며 seed 생성식/시각/속성은 같다. 최종 순서는 **A4 / D1 / D2 / A5**로 각 trial은 정확한 소유 provider를 정상 Stop하고 데이터를 보존한다. A 준비는 **19.217666 / 9.274589 / 8.995229 / 19.804333초**였다. 전/최종 평균은 **19.510999→9.134909초(53.180721% 감소)**, 기준본 준비는 **2.967092→2.670940초(9.981228% 감소)**다. Editor는 없고 schema/입력 생성/정상 Stop은 CLI 진입점 시간 밖이다. 작은 진단 명령의 취소 상한은 60초로 고정했으며 도달한 명령은 없다. OS cache/배경 부하·생성 native identity가 달라 작은 동일 형태 입력 block의 관측이며 일반 처리량 자격이 아니다.
+
+앞선 두 후보도 별도로 보존한다. A1/B1의 A는 **19.593774→10.599584초**였으나 기준본 **2.998803→3.241405초**는 개선하지 못했다. Native epoch 보강 전 A2/C1/C2/A3 block은 A 평균 **19.797007→9.623646초**, 기준본 **2.928511→2.562497초**였다. Block을 합치거나 빠른 표본을 대신 고르지 않는다.
+
+보존한 100k fixture도 명시적으로 재개했다. Epoch 보강 전 후보에서 같은 A는 원본 재연결 포함 **347.940047초**에 `ready`가 됐지만 이미 끝난 사전검사/baseline을 재사용했으므로 **새 A 전체 준비나 제품 변경만의 전후 비교가 아니다.** 같은 basis의 첫 B 전체 준비는 **521.000061초**로 과거 복구 명령 **2,446.228702초**의 절반(**1,223.114351초**)보다 짧았다. A/B의 basis revision·첫 파일 내용 일치 뒤 provider 3개 모두 정상 Stop했다. 작은 검증/빌드의 동시 활동과 앞선 fixture/cache 이력이 있어 한정 기능/시간 관측이며 해당 patch만의 개선율이 아니다.
+
+**최종 epoch 보호 후보**는 같은 보존 100k basis의 첫 작업 C(`scal-c`, `afdd57d034cacd3c4e37b800`)를 **516.449302초**, 원본 재연결 포함 **524.913097초**에 완료했다. 둘 다 과거 B의 절반 기준 **1,223.114351초**보다 짧다. 전체 작업 사전검사/baseline/내용 검사·응답 proof를 실행했고 C의 basis revision·내용은 A/B와 일치했다. 사용 이력이 있는 basis/원본의 새 task이며 새 기준본 준비나 과거 복구 B와 통제한 인과 비교가 아니다. 최종 C는 앞선 A/B 바이너리 결과와 구분한다. C·원본 인증 Stop 영수증은 **20:10:25 / 20:10:26 +09:00**에 반환했고, 최종 감사는 A/B/C/원본 mount·일치하는 CLI/provider 부재와 사용자 commit 0개를 확인했다. 데이터/key/digest는 모두 보존했으며 release/discard/restore는 없다.
+
+전체 원본/기준본/작업공간 순회와 최초 node 진입은 남는다. C의 보존 index 페이지 파일 길이는 append/COW 이력을 포함해 **1,674,894,227바이트**이며 node 복원 캐시는 조회 비용을 줄일 뿐 이 진입 쓰기 증폭·물리 할당/RSS를 해결한 것은 아니다. 100k 전체 쓰기/수집/계획/반영·17GiB·실제 Git/Plastic/Unity·전체 gate·OS 장애·peak RSS 자격은 추가하지 않는다. [기계 보고서](../../../reports/benchmarks/preparation-bottlenecks-20261102.json)는 최종 소스/바이너리 hash·후보별 block·정확한 보존 경로·54개 통과·Stop 감사를 연결한다. 실패/중간 trial을 포함한 원시 자료는 `artifacts/preparation-bottlenecks-20261102/`에 보존한다.
+
+이후 명시적으로 요청한 [새 100k 재측정(RECHECK-03)](scalable-storage-throughput-diagnosis.md#recheck-03)은 새 기준본/A/B 준비 **43.443820 / 611.553764 / 530.251476초**가 모두 과거 절반 중단선을 통과한 것을 기록한다. 일괄 쓰기는 **1,472.0838445초**에 중단하고 drain 뒤 **1,472.2870604초**에 반환했으며 **98,178 / 99,990파일**을 완료했다. 수집/계획은 NotRun이며 provider 3개 모두 정상 Stop하고 상태를 보존했다. 파일별 flush/index/회수 비용 분석·새 fixture의 한계는 앞선 ST-78 측정과 분리하며 대형 수명주기를 마감하지 않는다.
+
+<a id="st-7982"></a>
+
+## ST-79–82: 혼합 callback 영속화와 제한된 shadow 재생
+
+사용자가 RECHECK-03 병목 수정과 국소 검증 우선을 요청했다. 기존 준비 수정·보존 100k 상태는 유지한다. Task/basis/overlay·SPM2·journal·CLI/wire 형식은 그대로이며 Core 선택 port를 추가했을 뿐 새 공개 CLI capability는 없다.
+
+| ID | 최종 변경 |
+| --- | --- |
+| ST-79 | `IWorkspaceMutationBatch`가 같은 소유 journal의 동기 범위/metadata 효과를 결합한다. WinFsp는 write·크기/시간·Overwrite·Open을 mutation gate 앞의 같은 FIFO에 넣는다. 최대 callback/chunk 단위 64개·요청 staging 16MiB가 ACK를 공유한다. 큰 callback은 단독으로 기존 chunk 경계를 사용하고 미지원/복합 store는 fallback을 유지한다. 여러 핸들이 열려 있을 때 변경 leader만 100µs monotonic 기한까지 yield하여 다음 변경을 모으며 mutation/journal gate를 잡거나 OS timer sleep을 하지 않는다. 협력적 스케줄링이며 실시간 지연 보장은 아니다. |
+| ST-80 | `ExtentList.Truncate`는 private extent root가 그대로이면 추가 node 저장을 생략한다. Entry/base-length/시각 commit과 잘린 tail의 0 채움은 유지한다. Overwrite도 기존 metadata/index batch를 사용한다. |
+| ST-81 | Private shadow tail 재생에 기존 제한 node/name/namespace/change-index batch를 적용한다. 전체 catchup/root 비교·native/소유 증명·영속 rotation 뒤에만 게시하며 private 재생은 승인 ACK를 게시하지 않는다. |
+| ST-82 | 접수한 입력을 dequeue하기 전에 제한 배열을 할당하고 다음 leader보다 먼저 write 완료 watermark를 게시한다. 중단된 호출자도 drain까지 native 버퍼를 소유한다. 계측은 외부 공유 flush 뒤에 완료하며 비용을 한 번만 계상하고 실패를 유지한다. 작은 literal/runtime·실패·cleanup·전송·packing 복구·reader/cache 검증으로 한정한다. |
+
+최종 Release 빌드는 **16.72초·경고/오류 0개**다. **고유 106개 통과·실패 0개·선택 비용 측정 3개 skip**이며 callback/ACK/resize/cleanup/전송은 **65통과+3skip·4.151초**, 작은 packing 복구 선택은 **13개·14.751초**, cache/native fence/동시 읽기는 **28개·2.792초**다. 새 검증은 실제 열린 핸들·혼합 범위/metadata의 ACK 전 실패·Open 보유·truncate/확장·shadow rename/delete·중단 뒤 같은 요청 복구를 포함한다. 기존 interruption·명시 drain·큰 callback 검증도 통과했다. 전체 gate·OS 장애 자격은 아니다.
+
+작은 실제 native 입력은 fake 고정 기준본·사전 진입한 index·32바이트 파일/16종·같은 쓰기/mtime 작업·준비된 전용 worker 8개다. 매 view를 정상 unmount하고 모든 파일과 영속 seal을 replay에서 확인했다. 준비·진입·dispatch·unmount·replay 검사는 쓰기 시간 밖이다.
+
+**최종 1,000파일 교대 protocol**은 두 새 프로세스가 64파일 단위(마지막 40) 사이에 대기하며 AB/BA를 번갈아 실행한다. 측정 writer는 한 번에 하나다. 실제 쓰기 구간 합계는 **7.566090→6.026501초(20.348538% 감소)**, flush는 **2,829→2,114회(25.273948% 감소)**이며 양쪽 1,000파일 완료와 application 동시 작업 8개를 확인했다. 중단 없는 CLI/전체 수명주기 시간이나 과거 100k 개선율은 아니다.
+
+최종 일반 1,000파일 ABBA도 보존한다. **8.007170 / 9.445883 / 15.730611 / 14.067202초**, 전/후 평균 **11.037186→12.588247초(14.053047% 악화)**이며 flush 수는 줄었다. 동기 주입 편집을 포함한 최종 512파일 shadow 전체 블록도 **12.459031→15.706208초(26.062840% 악화)**였다. 따라서 일관된 전체 블록 시간 개선은 **미입증**이다. 같은 shadow 블록에서 직접 중첩한 편집 callback의 별도 측정 시간을 제외한 회수 평균은 **1.558859→1.041613초(33.181115% 감소)**였다. 새 shadow index 페이지 파일 길이는 양쪽 반복 모두 **15,346,896→1,673,443바이트(89.095886% 감소)**다. 보존 파일 길이이며 누적 쓰기나 물리 할당은 아니다.
+
+중간 근거는 분리한다. 최초 256파일 A/B/C 후보는 native flush 수의 큰 감소 없이 작은 시간 차이만 보였고, 계측 블록의 겉보기 60.4% 개선은 느린 첫 기준 표본의 영향이 커 대표값으로 쓰지 않았다. 1ms timer 후보는 flush를 줄여도 **14.351234%** 느려져 기각했다. 보존한 100µs 후보는 256파일에서 **18.119117%**, 첫 1,000파일 블록은 기준 **19.616421 vs 7.907237초**의 편차와 함께 **53.337436%**, 반복 블록은 **18.826729%** 감소했다. 최종 소스/교대 protocol과 합치거나 불리한 관측을 버리지 않는다.
+
+첫 빌드는 새 시험의 `Rename` 인수 누락으로 **81.275736초** 뒤 실패하여 선언한 **40초** 중단선을 놓쳤다. Probe 재빌드도 **20초** 한도를 넘어 **23.31초**였으며 관측 전에 완료해 종료한 프로세스는 없다. 둘 다 절차 실패로 보존하고 이후 통과로 지우지 않는다. 이후 명령은 build-server 재사용을 끄고 필요 시 시험 참조 재빌드를 제외했다. Sandbox의 원자 rename 거부·중간 계측 record 접근성 오류·flush 전 계측 실패 5개도 최종 검증 전에 바로잡았다. 제품 처리량 개선으로 계상하지 않는다.
+
+**새 probe fixture 56개**에 잔여 view가 없고 최종 감사에 일치하는 probe 프로세스도 없다. 보존 100k/basis/task/journal/요청 identity는 재개·편집·release·discard·restore하지 않았다. 수집/원본 반영·17GiB·Git/Plastic/Unity·전체 gate·peak RSS·일반 단독 writer 지연 자격을 추가하지 않는다. [기계 보고서](../../../reports/benchmarks/write-bottlenecks-20261102.json)는 최종 소스/바이너리 hash·모든 후보 블록·교대 단계·106개 통과·실패/중단선 누락·종료 감사를 연결한다. 원시 근거는 `artifacts/write-bottlenecks-20261102/`에 보존한다.
+
+## 이후 명시적으로 요청한 100k 재개(RECHECK-04)
+
+앞선 ST-79–82 국소 검증에서는 보존 fixture를 재개하지 않았다. 이후 사용자가 [2026-11-02–03 재개](scalable-storage-throughput-diagnosis.md#recheck-04)를 명시적으로 요청했다. 같은 최종 후보의 **소스/config hash 328개·바이너리 hash 32개가 일치**한다. **99,990파일 전체**에 새 쓰기 한 회를 실행하여 쓰기 **1,254.7332609초**, **최초 실패/재연결 비용까지 보수적으로 포함한 수집 707.5361660초**(성공한 수집 명령 **440.5851863초**), 읽기 전용 원본 계획 **464.9044448초**에 완료했다. 각각 과거 절반 중단선 안이며 과거 계획 시간은 중단 하한이다.
+
+기존 private 범위/이력/준비를 재사용하여 새 ABBA나 패치 인과 개선율은 아니다. 최초 `SourceCaptureUncertain`은 실험 직접 재시작이 작업 기록의 이전 PID/시작 lease를 유지해서 발생했으며, 정확한 같은 ensure·불변 요청으로 복구했다. 쓰기 반복이나 수동 상태 편집은 없다. 합산 재연결 **304.9382314초**는 새 기준본/A 준비 시간이 아니다. 잦은 영속 flush·범위 재배치/index 증폭·보존 선택에서 파일마다 `baseline.Find`가 catalog를 다시 여는 비용·현재 원본 metadata 순회/index 구성이 남은 후보다. 정확한 counter·stack·자격·identity는 [RECHECK-04](scalable-storage-throughput-diagnosis.md#recheck-04)와 [기계 보고서](../../../reports/benchmarks/throughput-resume-st79-20261103.json)가 소유한다.
+
+계획은 **변경 99,990개·충돌 0개**이며 이후 원본 반영은 실행하지 않았다. 인증된 정상 Stop 뒤 Provider/view 3개가 모두 없고 불변 결과 1개를 보존하며 미완료 capture/원본 반영 intent는 없다. 관리형 원본은 중단 상태이지 복원한 것이 아니다. Release/discard/restore·전체 수명주기/gate·고유 대형 asset/17GiB·Git/Plastic/Unity·OS 장애 자격을 추가하지 않는다.

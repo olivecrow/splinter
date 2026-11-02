@@ -1,3 +1,5 @@
+[ST-79–82](verification/scalable-storage-throughput-followup.md#st-7982)는 Core 선택 `IWorkspaceMutationBatch`·제한된 혼합 native callback 진입·변경 없는 extent 저장 생략·private shadow 재생 batch를 연결한다. 영속 ACK·root/native/소유 증명·형식은 유지한다. 국소 106개 통과/선택 skip 3개이며 1k 교대 쓰기 구간은 개선했으나 일반 전체 블록 시간은 변동/악화했다. 보존 100k·전체 수명주기 자격은 추가하지 않는다.
+
 # 대규모 소스·결과·metadata 저장
 
 [ST-65–68](verification/scalable-storage-throughput-followup.md)는 요청 범위의 native catalog/하위 트리 증명·바이트 총량 결합, retained root 증분 갱신, 실제 과거 참조 포함 증명 뒤 중복 집계 생략, 게시 전후 독립 재검증하는 구성/의존성 증명을 추가한다. 형식·GC·ACK는 유지하며 작은 시험 26개는 대형·전체 수명주기 성능 자격이 아니다.
@@ -21,6 +23,10 @@
 후보는 프로젝트 전체 파일/디렉터리 수·경로 합계·평면 결과/계획 JSON·고정 저널 예산을 디스크 인덱스·순차 처리로 대체한다. 제품의 `--max-journal-bytes` 옵션은 없다. 파일시스템 경로/파일/용량 제약·미지원 metadata·checksum/identity 검사·실제 I/O 오류는 유지한다. 필요한 고유 데이터와 불변 이력은 증가할 수 있으며 상한 제거가 일정한 디스크 사용량·처리 시간을 뜻하지는 않는다.
 
 ## 표현과 처리 단위
+
+현재 소스 순회는 열거한 leaf를 매번 한 번 새로 관측하여 종류·길이·시각·leaf 경로 검사를 결합한다. 상위 경로는 여전히 구성요소마다 현재 속성을 한 번씩 검사하며, 내용 hash 뒤에도 새 metadata 관측을 검사한다. 관리형 None 준비는 원본 이동 전에 ordinary native root/상위/디렉터리 핀 아래 중첩 VCS·미완료 게시 이름 검사를 전체 NTFS admission 순회에 결합한다.
+
+활성 paged journal writer는 복원한 node를 최대 512개·object/path 추정 계상 1MiB로 유지한다. Metadata page cache와 별도이며 어느 쪽도 RSS 상한이 아니다. Root 교체·게시하지 않고 버린 admission·native container fence 세대 변경 시 무효화하고, reader 퇴출·append writer 닫힘도 세대를 바꾼다. 읽기 전용·derived·write-shared reader는 기존 검증 조회를 사용한다. 고정 cursor는 자신의 정확한 record를 유지하며 원본 가용성·poison·page/native 검사·내구 ACK 경계는 유지한다. 원본/기준본/작업공간 전체 순회는 남으며, [준비 검증](verification/scalable-storage-throughput-followup.md#st-7578-준비-경로와-node-조회-비용)은 작은 비교·재개·첫 작업의 대형 관측을 구분한다.
 
 디렉터리 항목에는 이름·종류·필수 metadata·내용/하위 참조를 기록한다. 논리 바이너리 페이지는 최대 64KiB이며 목표 64MiB append 컨테이너에 묶는다. 전체 프로젝트 상한이 아니라 처리 단위다. 논리 hash는 물리 주소·재배치를 제외한다. 디스크 정렬·경로 interning·cursor로 전체 catalog를 메모리에 합치지 않는다. Git/Plastic 목록은 순차 읽으며 Git 대형 blob의 chunk 검증 hash metadata는 전용 디스크에 저장할 수 있다.
 

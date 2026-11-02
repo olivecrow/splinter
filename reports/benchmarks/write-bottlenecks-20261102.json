@@ -1,0 +1,1369 @@
+{
+  "date": "2026-11-02",
+  "ids": [
+    "ST-79",
+    "ST-80",
+    "ST-81",
+    "ST-82"
+  ],
+  "objective": "Fix RECHECK-03 durable-flush/index/maintenance bottlenecks, verify locally before bounded expansion.",
+  "startingState": "Existing preparation fixes, bilingual documents and reports preserved. No retained 100k fixture resumed; no commit/push.",
+  "changes": {
+    "ST-79": "Optional portable IWorkspaceMutationBatch; one bounded FIFO for mixed journal range/metadata callbacks, including Overwrite and Open. Caller retains native input; handles and success follow durability. 64 callback/chunk units and 16MiB staging; oversized single callbacks retain existing split barriers, unsupported stores retain fallback. Only mutating leaders with multiple open handles yield until a 100us monotonic deadline, without holding mutation/journal gates or timer sleep. FIFO completion watermarks and post-flush diagnostic accounting remain ordered.",
+    "ST-80": "ExtentList.Truncate saves its node only when a private extent root changes; entry/base-length/timestamp commits and zero-fill semantics remain.",
+    "ST-81": "Shadow-tail Replay uses existing bounded node/name/namespace/change-index batches. Full catchup/root/native/ownership proofs and durable rotation remain; no accepted ACK is published by private shadow replay.",
+    "ST-82": "Local literal/runtime contracts, native buffer/ACK/failure/drain/cleanup/large-transfer tests, small packing recovery and cache/read guards; all intermediate/unfavorable measurements retained."
+  },
+  "sourceManifest": "artifacts/write-bottlenecks-20261102/source-manifest.json",
+  "binaryManifest": "artifacts/write-bottlenecks-20261102/binary-manifest.json",
+  "finalBuild": {
+    "seconds": 16.72,
+    "warnings": 0,
+    "errors": 0,
+    "log": "artifacts/write-bottlenecks-20261102/build-final.log"
+  },
+  "validation": {
+    "uniquePassed": 106,
+    "failed": 0,
+    "skipped": 3,
+    "groups": [
+      {
+        "xml": "artifacts/write-bottlenecks-20261102/final-callbacks-checked.xml",
+        "passed": 65,
+        "skipped": 3,
+        "seconds": 4.151
+      },
+      {
+        "xml": "artifacts/write-bottlenecks-20261102/final-packing.xml",
+        "passed": 13,
+        "skipped": 0,
+        "seconds": 14.751
+      },
+      {
+        "xml": "artifacts/write-bottlenecks-20261102/final-guards.xml",
+        "passed": 28,
+        "skipped": 0,
+        "seconds": 2.792
+      }
+    ],
+    "scope": "Focused small fixtures only; three skipped cases are opt-in cost measurements, not product support failures."
+  },
+  "finalNativeStandalone": {
+    "label": "native1000-final",
+    "mode": "native",
+    "files": 1000,
+    "beforeMean": 11.037185749999999,
+    "afterMean": 12.5882466,
+    "observedReductionPercent": -14.053046538607017,
+    "rows": [
+      {
+        "trial": "a1",
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-final-a1",
+        "seconds": 8.00717,
+        "flushes": 2872,
+        "commits": 3000,
+        "pageFileLengthDelta": 24148916,
+        "maxActive": 8,
+        "workerMode": "dedicated",
+        "tailEditSeconds": 0,
+        "secondsExcludingInjectedTail": 8.00717,
+        "newIndexPageFileBytes": 0
+      },
+      {
+        "trial": "b1",
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-final-b1",
+        "seconds": 9.4458826,
+        "flushes": 2170,
+        "commits": 3000,
+        "pageFileLengthDelta": 22379304,
+        "maxActive": 8,
+        "workerMode": "dedicated",
+        "tailEditSeconds": 0,
+        "secondsExcludingInjectedTail": 9.4458826,
+        "newIndexPageFileBytes": 0
+      },
+      {
+        "trial": "b2",
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-final-b2",
+        "seconds": 15.7306106,
+        "flushes": 2166,
+        "commits": 3000,
+        "pageFileLengthDelta": 22387845,
+        "maxActive": 8,
+        "workerMode": "dedicated",
+        "tailEditSeconds": 0,
+        "secondsExcludingInjectedTail": 15.7306106,
+        "newIndexPageFileBytes": 0
+      },
+      {
+        "trial": "a2",
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-final-a2",
+        "seconds": 14.0672015,
+        "flushes": 2874,
+        "commits": 3000,
+        "pageFileLengthDelta": 24163136,
+        "maxActive": 8,
+        "workerMode": "dedicated",
+        "tailEditSeconds": 0,
+        "secondsExcludingInjectedTail": 14.0672015,
+        "newIndexPageFileBytes": 0
+      }
+    ],
+    "raw": "artifacts/write-bottlenecks-20261102/native1000-final.json"
+  },
+  "finalShadow": {
+    "label": "shadow512-final",
+    "mode": "shadow",
+    "files": 512,
+    "beforeMean": 12.4590308,
+    "afterMean": 15.70620805,
+    "observedReductionPercent": -26.06283989602145,
+    "rows": [
+      {
+        "trial": "a1",
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-final-a1",
+        "seconds": 19.764712,
+        "flushes": 1536,
+        "commits": 1536,
+        "pageFileLengthDelta": 4146676,
+        "maxActive": 0,
+        "workerMode": "parallel-for",
+        "tailEditSeconds": 18.0049959,
+        "secondsExcludingInjectedTail": 1.7597160999999986,
+        "newIndexPageFileBytes": 15346896
+      },
+      {
+        "trial": "b1",
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-final-b1",
+        "seconds": 17.85789,
+        "flushes": 1536,
+        "commits": 1536,
+        "pageFileLengthDelta": -9526777,
+        "maxActive": 0,
+        "workerMode": "parallel-for",
+        "tailEditSeconds": 16.8204477,
+        "secondsExcludingInjectedTail": 1.0374423000000021,
+        "newIndexPageFileBytes": 1673443
+      },
+      {
+        "trial": "b2",
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-final-b2",
+        "seconds": 13.5545261,
+        "flushes": 1536,
+        "commits": 1536,
+        "pageFileLengthDelta": -9526777,
+        "maxActive": 0,
+        "workerMode": "parallel-for",
+        "tailEditSeconds": 12.5087434,
+        "secondsExcludingInjectedTail": 1.0457827000000002,
+        "newIndexPageFileBytes": 1673443
+      },
+      {
+        "trial": "a2",
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-final-a2",
+        "seconds": 5.1533496,
+        "flushes": 1536,
+        "commits": 1536,
+        "pageFileLengthDelta": 4146676,
+        "maxActive": 0,
+        "workerMode": "parallel-for",
+        "tailEditSeconds": 3.7953468,
+        "secondsExcludingInjectedTail": 1.3580028000000004,
+        "newIndexPageFileBytes": 15346896
+      }
+    ],
+    "raw": "artifacts/write-bottlenecks-20261102/shadow512-final.json",
+    "excludingInjectedTail": {
+      "beforeMean": 1.5588594499999995,
+      "afterMean": 1.0416125000000012,
+      "observedReductionPercent": 33.181115205735736
+    },
+    "newIndexPageFileBytes": {
+      "before": 15346896,
+      "after": 1673443,
+      "reductionPercent": 89.09588623002332,
+      "scope": "Retained newly built shadow index page-file lengths after proof/publication; not cumulative writes or physical allocation."
+    }
+  },
+  "finalNativePaired": {
+    "protocol": {
+      "root": "C:/Users/olive/AppData/Local/Temp/sswrite4-paired-final",
+      "failure": null,
+      "beforeSeconds": 7.566089900000001,
+      "scope": "Two fresh, idle-between-steps native processes; same 1000 files admitted before timing. 64-file steps alternate AB/BA, both use eight dedicated ready workers. Dispatch/idle/verification excluded; sum of actual write intervals. No concurrent measured writers, 100k or general latency claim.",
+      "rows": [
+        {
+          "role": "before",
+          "from": 0,
+          "seconds": 0.5455363,
+          "step": 0
+        },
+        {
+          "role": "after",
+          "from": 0,
+          "seconds": 0.4508159,
+          "step": 0
+        },
+        {
+          "role": "after",
+          "from": 64,
+          "seconds": 0.4125373,
+          "step": 1
+        },
+        {
+          "role": "before",
+          "from": 64,
+          "seconds": 0.4748885,
+          "step": 1
+        },
+        {
+          "role": "before",
+          "from": 128,
+          "seconds": 0.478632,
+          "step": 2
+        },
+        {
+          "role": "after",
+          "from": 128,
+          "seconds": 0.3883022,
+          "step": 2
+        },
+        {
+          "role": "after",
+          "from": 192,
+          "seconds": 0.3966401,
+          "step": 3
+        },
+        {
+          "role": "before",
+          "from": 192,
+          "seconds": 0.5058468,
+          "step": 3
+        },
+        {
+          "role": "before",
+          "from": 256,
+          "seconds": 0.5016825,
+          "step": 4
+        },
+        {
+          "role": "after",
+          "from": 256,
+          "seconds": 0.3898538,
+          "step": 4
+        },
+        {
+          "role": "after",
+          "from": 320,
+          "seconds": 0.377467,
+          "step": 5
+        },
+        {
+          "role": "before",
+          "from": 320,
+          "seconds": 0.4655711,
+          "step": 5
+        },
+        {
+          "role": "before",
+          "from": 384,
+          "seconds": 0.4827369,
+          "step": 6
+        },
+        {
+          "role": "after",
+          "from": 384,
+          "seconds": 0.390207,
+          "step": 6
+        },
+        {
+          "role": "after",
+          "from": 448,
+          "seconds": 0.3585401,
+          "step": 7
+        },
+        {
+          "role": "before",
+          "from": 448,
+          "seconds": 0.4701289,
+          "step": 7
+        },
+        {
+          "role": "before",
+          "from": 512,
+          "seconds": 0.4653293,
+          "step": 8
+        },
+        {
+          "role": "after",
+          "from": 512,
+          "seconds": 0.3822061,
+          "step": 8
+        },
+        {
+          "role": "after",
+          "from": 576,
+          "seconds": 0.3586452,
+          "step": 9
+        },
+        {
+          "role": "before",
+          "from": 576,
+          "seconds": 0.4757638,
+          "step": 9
+        },
+        {
+          "role": "before",
+          "from": 640,
+          "seconds": 0.4692897,
+          "step": 10
+        },
+        {
+          "role": "after",
+          "from": 640,
+          "seconds": 0.3574197,
+          "step": 10
+        },
+        {
+          "role": "after",
+          "from": 704,
+          "seconds": 0.413839,
+          "step": 11
+        },
+        {
+          "role": "before",
+          "from": 704,
+          "seconds": 0.4896864,
+          "step": 11
+        },
+        {
+          "role": "before",
+          "from": 768,
+          "seconds": 0.4715444,
+          "step": 12
+        },
+        {
+          "role": "after",
+          "from": 768,
+          "seconds": 0.368703,
+          "step": 12
+        },
+        {
+          "role": "after",
+          "from": 832,
+          "seconds": 0.3777646,
+          "step": 13
+        },
+        {
+          "role": "before",
+          "from": 832,
+          "seconds": 0.4750993,
+          "step": 13
+        },
+        {
+          "role": "before",
+          "from": 896,
+          "seconds": 0.481537,
+          "step": 14
+        },
+        {
+          "role": "after",
+          "from": 896,
+          "seconds": 0.3642602,
+          "step": 14
+        },
+        {
+          "role": "after",
+          "from": 960,
+          "seconds": 0.2393,
+          "step": 15
+        },
+        {
+          "role": "before",
+          "from": 960,
+          "seconds": 0.312817,
+          "step": 15
+        }
+      ],
+      "afterSeconds": 6.026501200000001,
+      "observedReductionPercent": 20.348538285277307
+    },
+    "proof": {
+      "before": {
+        "seconds": 7.566089900000001,
+        "flushes": 2829,
+        "completed": 1000,
+        "maxActive": 8,
+        "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-guarded\\Splinter.Runtime.dll",
+        "platform": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\preparation-bottlenecks-20261102\\runtime-guarded\\Splinter.Platform.Windows.dll",
+        "replayExact": true
+      },
+      "after": {
+        "seconds": 6.026501200000001,
+        "flushes": 2114,
+        "completed": 1000,
+        "maxActive": 8,
+        "runtime": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\write-bottlenecks-20261102\\runtime-final\\Splinter.Runtime.dll",
+        "platform": "C:\\Users\\olive\\Desktop\\Development\\splinter\\artifacts\\write-bottlenecks-20261102\\runtime-final\\Splinter.Platform.Windows.dll",
+        "replayExact": true
+      }
+    },
+    "flushReductionPercent": 25.27394839165783,
+    "scope": "Same 1000 fresh 32-byte files, 16 variants, eight dedicated ready workers in each idle-between-steps process. Sixteen 64-file (last 40) chunks alternate AB/BA; only one candidate writes at a time. Timed sums exclude dispatch, admission/mount/unmount, idle waits and replay proof. Not an uninterrupted whole workflow or a historical 100k speedup."
+  },
+  "candidateBlocks": [
+    {
+      "label": "native256-a",
+      "mode": "native",
+      "files": 256,
+      "beforeMean": 2.40558995,
+      "afterMean": 2.22136705,
+      "observedReductionPercent": 7.65811729467859,
+      "rows": [
+        {
+          "trial": "a1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-a-a1",
+          "seconds": 2.5551816,
+          "flushes": 707,
+          "commits": 768,
+          "pageFileLengthDelta": 4815851
+        },
+        {
+          "trial": "b1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-a-b1",
+          "seconds": 2.2797453,
+          "flushes": 701,
+          "commits": 768,
+          "pageFileLengthDelta": 4680556
+        },
+        {
+          "trial": "b2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-a-b2",
+          "seconds": 2.1629888,
+          "flushes": 719,
+          "commits": 768,
+          "pageFileLengthDelta": 4710219
+        },
+        {
+          "trial": "a2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-a-a2",
+          "seconds": 2.2559983,
+          "flushes": 722,
+          "commits": 768,
+          "pageFileLengthDelta": 4823688
+        }
+      ],
+      "raw": "artifacts/write-bottlenecks-20261102/native256-a.json"
+    },
+    {
+      "label": "shadow128-a",
+      "mode": "shadow",
+      "files": 128,
+      "beforeMean": 1.51481015,
+      "afterMean": 1.41345855,
+      "observedReductionPercent": 6.690713024335082,
+      "rows": [
+        {
+          "trial": "a1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow128-a-a1",
+          "seconds": 1.5209443,
+          "flushes": 384,
+          "commits": 384,
+          "pageFileLengthDelta": 652930
+        },
+        {
+          "trial": "b1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow128-a-b1",
+          "seconds": 1.4314423,
+          "flushes": 384,
+          "commits": 384,
+          "pageFileLengthDelta": -1837915
+        },
+        {
+          "trial": "b2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow128-a-b2",
+          "seconds": 1.3954748,
+          "flushes": 384,
+          "commits": 384,
+          "pageFileLengthDelta": -1837915
+        },
+        {
+          "trial": "a2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow128-a-a2",
+          "seconds": 1.508676,
+          "flushes": 384,
+          "commits": 384,
+          "pageFileLengthDelta": 652930
+        }
+      ],
+      "raw": "artifacts/write-bottlenecks-20261102/shadow128-a.json"
+    },
+    {
+      "label": "native256-b",
+      "mode": "native",
+      "files": 256,
+      "beforeMean": 2.2958655,
+      "afterMean": 2.1882758,
+      "observedReductionPercent": 4.686237063974352,
+      "rows": [
+        {
+          "trial": "a1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-b-a1",
+          "seconds": 2.3999559,
+          "flushes": 715,
+          "commits": 768,
+          "pageFileLengthDelta": 4810937
+        },
+        {
+          "trial": "b1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-b-b1",
+          "seconds": 2.1523286,
+          "flushes": 718,
+          "commits": 768,
+          "pageFileLengthDelta": 4707390
+        },
+        {
+          "trial": "b2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-b-b2",
+          "seconds": 2.224223,
+          "flushes": 717,
+          "commits": 768,
+          "pageFileLengthDelta": 4700214
+        },
+        {
+          "trial": "a2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-b-a2",
+          "seconds": 2.1917751,
+          "flushes": 731,
+          "commits": 768,
+          "pageFileLengthDelta": 4841683
+        }
+      ],
+      "raw": "artifacts/write-bottlenecks-20261102/native256-b.json"
+    },
+    {
+      "label": "native256-c",
+      "mode": "native",
+      "files": 256,
+      "beforeMean": 2.1782059,
+      "afterMean": 2.1411322000000004,
+      "observedReductionPercent": 1.7020291791515096,
+      "rows": [
+        {
+          "trial": "a1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-c-a1",
+          "seconds": 2.1881448,
+          "flushes": 727,
+          "commits": 768,
+          "pageFileLengthDelta": 4843861
+        },
+        {
+          "trial": "b1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-c-b1",
+          "seconds": 2.0874141,
+          "flushes": 709,
+          "commits": 768,
+          "pageFileLengthDelta": 4702589
+        },
+        {
+          "trial": "b2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-c-b2",
+          "seconds": 2.1948503,
+          "flushes": 713,
+          "commits": 768,
+          "pageFileLengthDelta": 4715381
+        },
+        {
+          "trial": "a2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-c-a2",
+          "seconds": 2.168267,
+          "flushes": 732,
+          "commits": 768,
+          "pageFileLengthDelta": 4837749
+        }
+      ],
+      "raw": "artifacts/write-bottlenecks-20261102/native256-c.json"
+    },
+    {
+      "label": "native256-traced-c",
+      "mode": "native",
+      "files": 256,
+      "beforeMean": 5.37784525,
+      "afterMean": 2.1297658,
+      "observedReductionPercent": 60.39741381550539,
+      "rows": [
+        {
+          "trial": "a1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-traced-c-a1",
+          "seconds": 8.5789703,
+          "flushes": 729,
+          "commits": 768,
+          "pageFileLengthDelta": 4831389,
+          "maxActive": 8,
+          "workerMode": "parallel-for"
+        },
+        {
+          "trial": "b1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-traced-c-b1",
+          "seconds": 2.1312889,
+          "flushes": 701,
+          "commits": 768,
+          "pageFileLengthDelta": 4672757,
+          "maxActive": 8,
+          "workerMode": "parallel-for"
+        },
+        {
+          "trial": "b2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-traced-c-b2",
+          "seconds": 2.1282427,
+          "flushes": 704,
+          "commits": 768,
+          "pageFileLengthDelta": 4690151,
+          "maxActive": 8,
+          "workerMode": "parallel-for"
+        },
+        {
+          "trial": "a2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-traced-c-a2",
+          "seconds": 2.1767202,
+          "flushes": 727,
+          "commits": 768,
+          "pageFileLengthDelta": 4854200,
+          "maxActive": 8,
+          "workerMode": "parallel-for"
+        }
+      ],
+      "raw": "artifacts/write-bottlenecks-20261102/native256-traced-c.json"
+    },
+    {
+      "label": "native256-fixed-c",
+      "mode": "native",
+      "files": 256,
+      "beforeMean": 2.09604155,
+      "afterMean": 2.07182945,
+      "observedReductionPercent": 1.155134543969305,
+      "rows": [
+        {
+          "trial": "a1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-c-a1",
+          "seconds": 2.0985916,
+          "flushes": 716,
+          "commits": 768,
+          "pageFileLengthDelta": 4777306,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        },
+        {
+          "trial": "b1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-c-b1",
+          "seconds": 2.0729715,
+          "flushes": 697,
+          "commits": 768,
+          "pageFileLengthDelta": 4646566,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        },
+        {
+          "trial": "b2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-c-b2",
+          "seconds": 2.0706874,
+          "flushes": 695,
+          "commits": 768,
+          "pageFileLengthDelta": 4667843,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        },
+        {
+          "trial": "a2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-c-a2",
+          "seconds": 2.0934915,
+          "flushes": 729,
+          "commits": 768,
+          "pageFileLengthDelta": 4794453,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        }
+      ],
+      "raw": "artifacts/write-bottlenecks-20261102/native256-fixed-c.json"
+    },
+    {
+      "label": "native256-fixed-d",
+      "mode": "native",
+      "files": 256,
+      "beforeMean": 4.1950076,
+      "afterMean": 4.79704295,
+      "observedReductionPercent": -14.35123383328316,
+      "rows": [
+        {
+          "trial": "a1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-d-a1",
+          "seconds": 3.0375239,
+          "flushes": 715,
+          "commits": 768,
+          "pageFileLengthDelta": 4756925,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        },
+        {
+          "trial": "b1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-d-b1",
+          "seconds": 5.0328344,
+          "flushes": 428,
+          "commits": 768,
+          "pageFileLengthDelta": 4176873,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        },
+        {
+          "trial": "b2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-d-b2",
+          "seconds": 4.5612515,
+          "flushes": 439,
+          "commits": 768,
+          "pageFileLengthDelta": 4215565,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        },
+        {
+          "trial": "a2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-d-a2",
+          "seconds": 5.3524913,
+          "flushes": 729,
+          "commits": 768,
+          "pageFileLengthDelta": 4790521,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        }
+      ],
+      "raw": "artifacts/write-bottlenecks-20261102/native256-fixed-d.json"
+    },
+    {
+      "label": "native256-fixed-e",
+      "mode": "native",
+      "files": 256,
+      "beforeMean": 2.1835037,
+      "afterMean": 1.7878721,
+      "observedReductionPercent": 18.119117453293075,
+      "rows": [
+        {
+          "trial": "a1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-e-a1",
+          "seconds": 2.1250392,
+          "flushes": 719,
+          "commits": 768,
+          "pageFileLengthDelta": 4794420,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        },
+        {
+          "trial": "b1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-e-b1",
+          "seconds": 1.8012514,
+          "flushes": 547,
+          "commits": 768,
+          "pageFileLengthDelta": 4386778,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        },
+        {
+          "trial": "b2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-e-b2",
+          "seconds": 1.7744928,
+          "flushes": 547,
+          "commits": 768,
+          "pageFileLengthDelta": 4391519,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        },
+        {
+          "trial": "a2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-e-a2",
+          "seconds": 2.2419682,
+          "flushes": 724,
+          "commits": 768,
+          "pageFileLengthDelta": 4779501,
+          "maxActive": 8,
+          "workerMode": "dedicated"
+        }
+      ],
+      "raw": "artifacts/write-bottlenecks-20261102/native256-fixed-e.json"
+    },
+    {
+      "label": "native1000-fixed-e",
+      "mode": "native",
+      "files": 1000,
+      "beforeMean": 13.76182895,
+      "afterMean": 6.421622299999999,
+      "observedReductionPercent": 53.33743557392494,
+      "rows": [
+        {
+          "trial": "a1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-a1",
+          "seconds": 19.6164208,
+          "flushes": 2863,
+          "commits": 3000,
+          "pageFileLengthDelta": 24098183,
+          "maxActive": 8,
+          "workerMode": "dedicated",
+          "tailEditSeconds": 0,
+          "secondsExcludingInjectedTail": 19.6164208,
+          "newIndexPageFileBytes": 0
+        },
+        {
+          "trial": "b1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-b1",
+          "seconds": 6.4437985,
+          "flushes": 2164,
+          "commits": 3000,
+          "pageFileLengthDelta": 22427078,
+          "maxActive": 8,
+          "workerMode": "dedicated",
+          "tailEditSeconds": 0,
+          "secondsExcludingInjectedTail": 6.4437985,
+          "newIndexPageFileBytes": 0
+        },
+        {
+          "trial": "b2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-b2",
+          "seconds": 6.3994461,
+          "flushes": 2200,
+          "commits": 3000,
+          "pageFileLengthDelta": 22474407,
+          "maxActive": 8,
+          "workerMode": "dedicated",
+          "tailEditSeconds": 0,
+          "secondsExcludingInjectedTail": 6.3994461,
+          "newIndexPageFileBytes": 0
+        },
+        {
+          "trial": "a2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-a2",
+          "seconds": 7.9072371,
+          "flushes": 2852,
+          "commits": 3000,
+          "pageFileLengthDelta": 24078299,
+          "maxActive": 8,
+          "workerMode": "dedicated",
+          "tailEditSeconds": 0,
+          "secondsExcludingInjectedTail": 7.9072371,
+          "newIndexPageFileBytes": 0
+        }
+      ],
+      "raw": "artifacts/write-bottlenecks-20261102/native1000-fixed-e.json"
+    },
+    {
+      "label": "native1000-fixed-e-repeat",
+      "mode": "native",
+      "files": 1000,
+      "beforeMean": 7.93854475,
+      "afterMean": 6.44397645,
+      "observedReductionPercent": 18.826728916530953,
+      "rows": [
+        {
+          "trial": "a1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-repeat-a1",
+          "seconds": 8.1623322,
+          "flushes": 2857,
+          "commits": 3000,
+          "pageFileLengthDelta": 24109139,
+          "maxActive": 8,
+          "workerMode": "dedicated",
+          "tailEditSeconds": 0,
+          "secondsExcludingInjectedTail": 8.1623322,
+          "newIndexPageFileBytes": 0
+        },
+        {
+          "trial": "b1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-repeat-b1",
+          "seconds": 6.3691157,
+          "flushes": 2176,
+          "commits": 3000,
+          "pageFileLengthDelta": 22382665,
+          "maxActive": 8,
+          "workerMode": "dedicated",
+          "tailEditSeconds": 0,
+          "secondsExcludingInjectedTail": 6.3691157,
+          "newIndexPageFileBytes": 0
+        },
+        {
+          "trial": "b2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-repeat-b2",
+          "seconds": 6.5188372,
+          "flushes": 2174,
+          "commits": 3000,
+          "pageFileLengthDelta": 22436908,
+          "maxActive": 8,
+          "workerMode": "dedicated",
+          "tailEditSeconds": 0,
+          "secondsExcludingInjectedTail": 6.5188372,
+          "newIndexPageFileBytes": 0
+        },
+        {
+          "trial": "a2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-repeat-a2",
+          "seconds": 7.7147573,
+          "flushes": 2866,
+          "commits": 3000,
+          "pageFileLengthDelta": 24137913,
+          "maxActive": 8,
+          "workerMode": "dedicated",
+          "tailEditSeconds": 0,
+          "secondsExcludingInjectedTail": 7.7147573,
+          "newIndexPageFileBytes": 0
+        }
+      ],
+      "raw": "artifacts/write-bottlenecks-20261102/native1000-fixed-e-repeat.json"
+    },
+    {
+      "label": "shadow512-e",
+      "mode": "shadow",
+      "files": 512,
+      "beforeMean": 5.249148099999999,
+      "afterMean": 4.69043035,
+      "observedReductionPercent": 10.643970018677884,
+      "rows": [
+        {
+          "trial": "a1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-e-a1",
+          "seconds": 5.2356507,
+          "flushes": 1536,
+          "commits": 1536,
+          "pageFileLengthDelta": 4146676,
+          "maxActive": 0,
+          "workerMode": "parallel-for",
+          "tailEditSeconds": 3.7778544,
+          "secondsExcludingInjectedTail": 1.4577963,
+          "newIndexPageFileBytes": 15346896
+        },
+        {
+          "trial": "b1",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-e-b1",
+          "seconds": 4.9108632,
+          "flushes": 1536,
+          "commits": 1536,
+          "pageFileLengthDelta": -9526777,
+          "maxActive": 0,
+          "workerMode": "parallel-for",
+          "tailEditSeconds": 4.0291919,
+          "secondsExcludingInjectedTail": 0.8816712999999998,
+          "newIndexPageFileBytes": 1673443
+        },
+        {
+          "trial": "b2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-e-b2",
+          "seconds": 4.4699975,
+          "flushes": 1536,
+          "commits": 1536,
+          "pageFileLengthDelta": -9526777,
+          "maxActive": 0,
+          "workerMode": "parallel-for",
+          "tailEditSeconds": 3.7965526,
+          "secondsExcludingInjectedTail": 0.6734448999999998,
+          "newIndexPageFileBytes": 1673443
+        },
+        {
+          "trial": "a2",
+          "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-e-a2",
+          "seconds": 5.2626455,
+          "flushes": 1536,
+          "commits": 1536,
+          "pageFileLengthDelta": 4146676,
+          "maxActive": 0,
+          "workerMode": "parallel-for",
+          "tailEditSeconds": 3.8229037,
+          "secondsExcludingInjectedTail": 1.4397417999999997,
+          "newIndexPageFileBytes": 15346896
+        }
+      ],
+      "raw": "artifacts/write-bottlenecks-20261102/shadow512-e.json"
+    }
+  ],
+  "decisions": [
+    "1ms timer coalescing was rejected: it reduced flushes but its native ABBA time regressed 14.351234%.",
+    "100us yield is retained with shared mixed admission; final paired intervals improve 20.348538% and flush count falls 2829 to 2114. This is bounded local evidence.",
+    "Final uninterrupted 1000-file ABBA regressed 14.053047%, and the full shadow block including injected edits regressed 26.062840%; do not hide or pool them with favorable blocks. Host/device latency was unstable; no consistent whole-block or broad speedup is claimed.",
+    "Final shadow-only elapsed excludes the directly timed synchronous injected edits; its improvement and page-file-length reduction are distinct from full-block elapsed."
+  ],
+  "preservedFailures": [
+    {
+      "kind": "BuildAndStopPolicyMiss",
+      "seconds": 81.2757363,
+      "limit": 40,
+      "error": "Missing Rename replace argument in new test; corrected. Initial dependency build exceeded its stated stop line.",
+      "evidence": "artifacts/write-bottlenecks-20261102/build.json"
+    },
+    {
+      "kind": "ProbeBuildStopPolicyMiss",
+      "seconds": 23.31,
+      "limit": 20,
+      "evidence": "artifacts/write-bottlenecks-20261102/probe-build-2.log",
+      "note": "Completed before process inspection; no process was killed. Later build commands disable build-server reuse and test-only rebuilds avoid project dependencies."
+    },
+    {
+      "kind": "SandboxAccess",
+      "cases": 5,
+      "error": "Atomic file rename denied by sandbox; identical new cases passed with ordinary native Windows file access.",
+      "evidence": "artifacts/write-bottlenecks-20261102/local.xml"
+    },
+    {
+      "kind": "IntermediateTelemetryRegression",
+      "cases": 5,
+      "error": "Shared writes were measured before outer flush; deferred samples now charge the outer durability interval once and preserve failure accounting.",
+      "evidence": "artifacts/write-bottlenecks-20261102/mixed-existing.xml"
+    },
+    {
+      "kind": "IntermediateCompile",
+      "error": "New diagnostic record accessibility mismatch; corrected before passing checks.",
+      "evidence": "artifacts/write-bottlenecks-20261102/build-mixed-2.log"
+    }
+  ],
+  "closeout": {
+    "observedAt": "2026-11-02T14:16:54.8536985+00:00",
+    "fixtures": [
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-final-a1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-final-a2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-final-b1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-final-b2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-a1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-a2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-b1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-b2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-repeat-a1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-repeat-a2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-repeat-b1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native1000-fixed-e-repeat-b2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-a-a1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-a-a2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-a-b1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-a-b2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-b-a1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-b-a2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-b-b1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-b-b2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-c-a1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-c-a2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-c-b1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-c-b2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-c-a1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-c-a2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-c-b1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-c-b2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-d-a1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-d-a2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-d-b1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-d-b2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-e-a1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-e-a2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-e-b1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-fixed-e-b2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-traced-c-a1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-traced-c-a2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-traced-c-b1",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-native256-traced-c-b2",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-newsmoke",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow128-a-a1",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow128-a-a2",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow128-a-b1",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow128-a-b2",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-e-a1",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-e-a2",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-e-b1",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-e-b2",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-final-a1",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-final-a2",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-final-b1",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-shadow512-final-b2",
+        "replayExists": true,
+        "mode": "shadow",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-smoke",
+        "replayExists": true,
+        "mode": "native",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-paired-final\\before",
+        "replayExists": true,
+        "mode": "native-paired",
+        "mountExists": false
+      },
+      {
+        "fixture": "C:\\Users\\olive\\AppData\\Local\\Temp\\sswrite4-paired-final\\after",
+        "replayExists": true,
+        "mode": "native-paired",
+        "mountExists": false
+      }
+    ],
+    "matchingProbeProcesses": []
+  },
+  "limits": [
+    "No retained 100k retry, result capture/original apply, 17GiB, Git/Plastic/Unity, whole gate, OS-crash or peak-RSS/allocated-storage qualification.",
+    "Persisted task/basis/overlay/SPM2/journal and CLI/wire formats unchanged. Additive Core port is optional; composite/unsupported stores keep existing per-store behavior.",
+    "The gather deadline is cooperative, not a real-time scheduling guarantee. A writer with other read handles may spend the bounded gather interval; no universal single-writer/Unity latency claim.",
+    "Native probes use a fake immutable basis and pre-admitted indices; basis preparation and full CLI response proof are excluded. Source/native/result protection remains enforced by the product; fake-basis timing does not qualify real providers.",
+    "All new probe views normally unmounted and exact content/seal replay passed. Original/peer/retained data and request identities were not edited, released, discarded or restored."
+  ]
+}

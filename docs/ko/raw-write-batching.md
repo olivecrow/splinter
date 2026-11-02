@@ -14,6 +14,8 @@
 
 ## Windows 요청 수집
 
+선택 `IWorkspaceMutationBatch`는 같은 소유 journal의 범위/metadata callback을 함께 처리한다. WinFsp는 지원 store의 Open/Overwrite를 포함해 공통 FIFO를 사용하고, 공유 경계당 최대 callback/chunk 단위 64개·요청 staging 16MiB를 유지한다. 여러 핸들이 열려 있으면 변경 leader만 mutation/journal gate 진입 전에 100µs monotonic 기한까지 yield한다. Timer sleep이나 내구성 전 성공 반환은 없다. 큰 callback은 기존 분할 경계를, 미지원/복합 store는 개별 store fallback을 유지한다. 실패 prefix·버퍼 lease·순서 있는 drain·flush 뒤 계측은 보호한다. 국소 자격과 불리한 시간 블록은 [ST-79–82](verification/scalable-storage-throughput-followup.md#st-7982)를 참조한다.
+
 SCAL 처리량 후속은 최대 64개의 동기 metadata 변경을 받는 앱/OS 중립 `IWorkspaceMetadataBatch` 계약도 제공한다. WinFsp는 mutation gate 앞에서 동시 크기/시간 callback을 모으고 소유 저널의 공유 영속 flush 뒤 ACK한다. 명시적 flush/capture는 접수된 metadata와 쓰기 ticket을 모두 drain한다. 실패한 묶음은 불확정 prefix를 보존하고 replay를 요구하며 SJL4는 개별 capsule 경계를 유지한다. [ST-10 검증](verification/scalable-storage-throughput-followup.md)을 참조한다.
 
 WinFsp 어댑터는 mutation gate **앞에서** 동시 쓰기 callback을 모은다. 한 호출자가 FIFO의 다음 묶음을 동기적으로 처리하며 그동안 기다린 호출들은 다음 flush를 공유할 수 있다. 백그라운드 writer·수집을 위한 sleep·조기 성공 응답은 없다. native 입력 버퍼는 callback 반환까지 살아 있다. Staging payload는 commit당 64개 chunk / 논리 16MiB로 제한한다. ArrayPool 반올림/보유와 caller/native 버퍼는 별도 비용이며 전체 RAM 상한이 아니다. 큰 callback은 나눠 처리하고 모든 조각이 완료된 뒤 성공한다. append 위치와 constrained 길이는 같은 묶음의 선행 쓰기를 반영한다. 다른 변경은 같은 gate를 통해 직렬화한다.
