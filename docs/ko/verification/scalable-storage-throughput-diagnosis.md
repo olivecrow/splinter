@@ -2,6 +2,8 @@
 
 RECHECK-03 병목의 사용자 요청 국소 수정·제한/변동 시간 검증은 [ST-79–82](scalable-storage-throughput-followup.md#st-7982)가 소유한다. 이후 명시적으로 요청한 보존 100k 재개는 아래 [RECHECK-04](#recheck-04)가 소유한다.
 
+커밋 이후 파일 쓰기 분석은 [WRITE-COST-01](#write-cost-01)이 소유하며 영속 barrier 지연·공유 index 저장 계측의 빈 구간·packing 증폭을 구분한다.
+
 후속 사용자가 승인한 구현과 제한 검증은 [처리량 후속](scalable-storage-throughput-followup.md)에서 추적한다. 아래 기존 관측은 당시 증거로 유지한다.
 
 사용자가 요청한 준비 병목 수정과 최종 epoch 보호 후보의 검증은 [ST-75–78](scalable-storage-throughput-followup.md#st-7578-준비-경로와-node-조회-비용)이 소유한다. 아래 과거 실패/복구 시간과 새 측정은 구분한다.
@@ -41,6 +43,33 @@ RECHECK-03 병목의 사용자 요청 국소 수정·제한/변동 시간 검증
 최종 계획 digest는 **`sha256:c417a0b91af205f6528e66a1df5649c328af7a08ec86b16b5ae566ef38871680`**다. 이후 **원본 반영은 실행하지 않았다**. A·원본은 11월 3일 **00:30:02–06 +09:00**에 인증된 정상 Stop을 했고 B는 이미 정상 중단 상태였다. 정확한 fixture 프로세스 감사와 view 3개 검사에서 일치하는 CLI/Provider·mount가 없다. A/B는 `ready`, A는 결과 1개를 보존하며 양쪽에 미완료 capture/원본 반영 intent가 없다. Task/기준본/private journal/결과/요청 근거를 보존했으며 관리형 원본은 **중단 상태이지 일반 NTFS로 복원한 것이 아니다**. 강제 종료·release·discard·restore는 없었다.
 
 보존한 작은 파일 None 입력 한 회의 재개이며 새 ABBA·고유 대형 asset/17GiB·원본 전체 반영/release·Git/Plastic/Unity·전체 gate·peak RSS·OS 장애 자격은 아니다. [기계 보고서](../../../reports/benchmarks/throughput-resume-st79-20261103.json)는 identity·한도·hash·단계 시간·실패/복구·counter·종료 근거를 연결한다. 원시 근거는 `C:/Users/olive/AppData/Local/Temp/sscal3n-20261102-remeasure/evidence/resume-st79-20261102`와 `artifacts/throughput-resume-st79-20261102/`에 있다.
+
+<a id="write-cost-01"></a>
+
+## 2026-11-03 커밋 이후 파일 쓰기 비용 분석(WRITE-COST-01)
+
+사용자가 완료한 작업을 먼저 커밋하고 파일 쓰기를 분석하도록 요청했다. **`c6e0b17`**은 ST-75–82·집중 시험·RECHECK-04를 포함한다. 이번 분석은 같은 epoch의 기존 counter, **저장 관측 14개·인접 구간 13개**, Provider stack 1개와 현재 코드를 사용했다. **100k/Provider/CLI 재시작·payload 접근·새 벤치마크·제품 수정 없이** 분석했다. [기계 보고서](../../../reports/benchmarks/write-cost-diagnosis-20261103.json)는 입력/표본 hash·전체 구간 계산·operation 차이의 합계 대조·미확정 범위를 보존한다.
+
+주요 관측 병목은 여전히 영속 journal barrier이며, 그다음은 아직 분리하지 못한 index 저장이다. Packing은 작업량 증폭이 크지만 직접 계측한 barrier 시간 비중은 작다. 관측 간격에는 동시 회수와 작은 최초 capture/Stop 비용이 있어 배타적인 순수 쓰기 전용 시간은 아니다.
+
+| 비용 묶음 | 영속 commit | 귀속 flush | flush 초 | journal append 바이트 |
+| --- | ---: | ---: | ---: | ---: |
+| 사용자 resize/write/metadata | 299,970 | 215,200 | 611.6502652 | 117,188,280 |
+| Packing 진행/재배치/완료 | 344,075 | 5,515 | 12.2348547 | 219,498,852 |
+| 최초 수집 freeze | 1 | 1 | 0.0019819 | 852 |
+| 전체 차이 | 644,046 | 220,716 | 623.8871018 | 336,687,984 |
+
+**Barrier 지연과 결합 정도.** 누적 flush는 쓰기 경과 1,254.7332609초의 **49.72%**, 평균 flush는 **2.826651ms**다. 사용자 flush 한 번당 사용자 commit은 **1.393913개**다. 공유 barrier를 마지막 operation에 귀속한 집계 지표이며 native callback batch 크기는 아니다. 64개 단위 한도는 동기 callback 64개의 동시 접수를 보장하지 않으며 Journal `waitingMutations`는 앞단 WinFsp FIFO를 포함하지 않는다. 최대 1이라는 수치로 실제 application worker가 하나였다고 판단할 수 **없다**. 이번 100k 실행에는 native 접수 histogram을 켜지 않았다.
+
+저장 관측의 **23:56:54.8445189–23:57:56.8111595 +09:00** 구간은 **61.9666406초**이며 **flush 4,543회·54.4972177초**다. 회당 **11.995866ms**, 구간의 **87.95%**를 차지했다. 사용자 처리량은 **103.700958 commit/s**로, 가장 빠른 저장 구간의 **346.785536 commit/s**보다 낮았다. 빠른 구간 평균 flush는 **2.064368ms**다. 두 구간 모두 기록된 재배치·packing 완료 증가는 없었다. 영속 barrier 정체는 확인하지만 저장 장치·OS·다른 프로세스·동시 index 활동 중 무엇이 지연을 만들었는지는 귀속하지 못했다. 여러 thread의 대기 합계를 경과 시간에 더하지 않는다.
+
+**Index 저장 계측의 빈 구간.** `Commit`은 mutation별 `Apply`를 재지만, `FlushPendingWrites`는 마지막 barrier timer를 시작하기 **전에** `FlushIndexBatch`를 호출한다. 보류한 node/path/name 변경은 `SetBatch → WriteNode`로 저장하므로 공유 저장 비용이 개별 `ApplyTicks`와 마지막 barrier 구간 밖에 있다. 사용자 operation의 Apply 합계 **97.9749945초**는 전체 index 비용이 아니다. Provider stack은 이 경로의 `SetBatch/Persist/WriteNode`와 대기 중인 Close/GetFileInfo·다른 callback을 직접 보인다. `CompleteMetadata`는 index 처리와 영속화 동안 mutation gate를 유지한다. Gate/queue 대기는 뒤따르는 현상이며 미분리 나머지 시간을 모두 index 시간으로 부를 수는 없다. `WriteNode`는 용량 확인과 append 위치 지정 전 output 길이도 각각 조회하지만 그 syscall의 배타적 비용은 미계측이다.
+
+**Packing 증폭과 counter 귀속.** Packing은 journal append의 **65.193551%**, 직접 flush 시간의 **1.961069%**다. **재배치 338,643회·진행 기록 5,426회·완료 기록 6회**를 추가한다. 보통 한 묶음은 최대 **재배치 63개·진행 기록 1개**이므로 공유 flush가 `packing-state`에 귀속된다. 재배치 항목만의 **flush 83회**가 packing 전체 barrier 수는 아니며 전체는 **5,515회**다. Journal append는 변경 payload 3,199,680바이트의 **105.225518배**이며 metadata page 쓰기는 별도이고 물리 할당/대역폭 수치는 아니다. 작업별 실제 순수 회수 바이트와 복사/index 비용은 기록하지 않았다.
+
+`BuildPackingPlan`은 `descriptor.Length - liveUnion >= 4096 && liveUnion > 0`이면 후보를 채택하며 live/dead 비율이나 재배치 행 비용 조건은 없다. 최초 journal→raw packing은 frame overhead 제거에 유익할 수 있다. 반면 packed→packed 반복은 작은 dead 영역을 회수하려고 거의 모든 live 행을 다시 옮길 수 있다. **산술 예시일 뿐인 경우:** packed payload 3,199,680바이트 중 dead 4,096바이트(32바이트 파일 128개)라면 **live 3,195,584바이트·파일 범위 99,862개**가 남으며 dead 1바이트당 약 **780.17바이트**를 복사할 수 있다. Header를 보수적으로 제외한 예시이며 RECHECK-04의 실제 작업이나 실측 낭비량은 아니다.
+
+다음 국소 분석은 먼저 FIFO/묶음 접수량·mutation gate 점유·`FlushIndexBatch` 시간/page 바이트를 나눠 재고, 과거 `Parallel.For` driver와 준비된 전용 worker를 구분해야 한다. 그다음 반복 node/path 저장을 줄일 지점을 확인하고, 마지막으로 순수 회수량 대비 이동 바이트/행을 잰 뒤 packed object의 비용 기반 접수/재실행 간격을 시험한다. Callback별 영속 ACK·입력/handle lease·poison/drain·현재 native/root/cursor 증명·미완료 같은 요청 복구·검증된 dead 회수·최종 강제 정리는 유지한다. Timeout 확대·ACK 제거·근거 없는 cache/worker 확대·GC 비활성화·SPM2 전체 교체는 이번 분석으로 정당화하지 않는다. 새 수정이나 개선율을 주장하지 않는다.
 
 <a id="recheck-03"></a>
 

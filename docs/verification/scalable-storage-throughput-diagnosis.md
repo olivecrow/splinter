@@ -2,6 +2,8 @@
 
 The user-requested local fixes for RECHECK-03 and their bounded/variable timing evidence are [ST-79–82](scalable-storage-throughput-followup.md#st-7982). The later explicitly requested retained 100k continuation is [RECHECK-04](#recheck-04) below.
 
+Post-commit file-write attribution is [WRITE-COST-01](#write-cost-01): durable-barrier latency, a shared index-persistence timing gap and packing amplification remain distinct costs.
+
 The subsequent user-authorized implementation and bounded verification are tracked in the [throughput follow-up](scalable-storage-throughput-followup.md). The original observations below remain historical evidence.
 
 The user-requested preparation fixes and final guarded-candidate checks are [ST-75–78](scalable-storage-throughput-followup.md#st-7578-preparation-path-and-node-lookup-costs). Keep the earlier failed/recovered timings below separate from those new measurements.
@@ -41,6 +43,33 @@ Remaining measured costs and efficiency candidates:
 The final plan digest is **`sha256:c417a0b91af205f6528e66a1df5649c328af7a08ec86b16b5ae566ef38871680`**. **No original publication** followed it. A and original received authenticated normal Stop at **00:30:02–06 +09:00** on November 3; B remained normally stopped. The exact fixture process scan and all three view checks found no matching CLI/provider or mount. A/B remain `ready`, A retains one result, and neither has a pending capture/original-apply intent. Task/basis/private journal/result/request evidence remains; the managed original is **stopped, not restored**. No force kill, release, discard or restore occurred.
 
 This is one retained None tiny-file continuation, not fresh ABBA, unique large assets/17GiB, full original apply/release, Git/Plastic/Unity, full gate, peak-RSS or OS-crash qualification. [Machine report](../../reports/benchmarks/throughput-resume-st79-20261103.json) binds identities, budgets, hashes, phase metrics, failure/recovery, counters and closeout; raw evidence is under `C:/Users/olive/AppData/Local/Temp/sscal3n-20261102-remeasure/evidence/resume-st79-20261102` and `artifacts/throughput-resume-st79-20261102/`.
+
+<a id="write-cost-01"></a>
+
+## 2026-11-03 write-cost attribution after the commit (WRITE-COST-01)
+
+The user requested committing the completed work before analyzing file writes. Commit **`c6e0b17`** contains ST-75–82, their focused tests and RECHECK-04. This analysis uses its existing same-epoch counters, **14 saved observations / 13 adjacent intervals**, one provider stack and current code. **No 100k/provider/CLI restart, payload access, new benchmark or product change** was needed. [Machine report](../../reports/benchmarks/write-cost-diagnosis-20261103.json) retains input/sample hashes, all interval calculations, reconciled operation deltas and uncertainty.
+
+The primary measured limit remains durable journal barriers, followed by insufficiently attributed index persistence; packing is substantial work amplification but a small share of directly timed barriers. The interval includes concurrent maintenance plus tiny initial capture/Stop overhead, so it is not a pure exclusive write timer.
+
+| Cost group | Durable commits | Charged flushes | Flush seconds | Journal-appended bytes |
+| --- | ---: | ---: | ---: | ---: |
+| User resize/write/metadata | 299,970 | 215,200 | 611.6502652 | 117,188,280 |
+| Packing progress/relocation/completion | 344,075 | 5,515 | 12.2348547 | 219,498,852 |
+| Initial capture freeze | 1 | 1 | 0.0019819 | 852 |
+| Total delta | 644,046 | 220,716 | 623.8871018 | 336,687,984 |
+
+**Barrier latency and occupancy.** Cumulative flush time is **49.72%** of the 1,254.7332609s write wall; mean flush duration is **2.826651ms**. User commits per user-charged flush are only **1.393913**. This is an aggregate proxy, not the native callback batch size: shared barriers are charged to their final operation. The 64-unit limit does not promise 64 concurrent synchronous callbacks, and Journal `waitingMutations` excludes the upstream WinFsp FIFO. Its observed maximum of one does **not** establish that only one application worker ran. Native admission histograms were not enabled in this 100k run.
+
+The saved **23:56:54.8445189–23:57:56.8111595 +09:00** window lasted **61.9666406s**, with **4,543 flushes / 54.4972177 flush seconds**: **11.995866ms** per flush and **87.95%** of that window. User throughput fell to **103.700958 commits/s**, versus **346.785536 commits/s** in the fastest saved window, whose average flush was **2.064368ms**. Neither interval added recorded relocations or packing completions. This locates a durable-barrier stall; it does not identify whether the underlying delay came from storage, OS, another process or concurrent index activity. Wait totals across threads must not be added to wall time.
+
+**Index-persistence timing gap.** `Commit` times `Apply` per mutation, but `FlushPendingWrites` calls `FlushIndexBatch` **before** starting its final barrier timer. Deferred node/path/name changes persist via `SetBatch → WriteNode`; those shared persistence costs fall outside the individual `ApplyTicks` and that final barrier interval. The user-operation Apply total **97.9749945s** therefore does not measure the entire index cost. The provider stack directly places `SetBatch/Persist/WriteNode` in this path, with Close/GetFileInfo and other callbacks waiting. `CompleteMetadata` holds its mutation gate through index work and durability. Its gate/queue waits are downstream symptoms; the unpartitioned remainder cannot simply be labeled index time. `WriteNode` also queries the output length before capacity checking and append positioning; its exclusive syscall cost is unmeasured.
+
+**Packing amplification and counter attribution.** Packing accounts for **65.193551%** of journal-appended bytes but **1.961069%** of directly timed flush seconds. It adds **338,643 relocations**, **5,426 progress records** and **six completion records**. Most groups contain up to **63 relocations plus one progress record**, so the shared flush is usually charged to `packing-state`. The relocation-only **83 flushes** are not the packing barrier count; the full packing group has **5,515**. Journal append traffic is **105.225518 times** the 3,199,680 changed payload bytes, excluding metadata page writes and without claiming physical allocation/bandwidth. Actual per-job net reclaimed bytes and copy/index cost remain unrecorded.
+
+`BuildPackingPlan` admits a source when `descriptor.Length - liveUnion >= 4096 && liveUnion > 0`; it has no live/dead fraction or relocation-row cost screen. First journal-to-raw packing can legitimately remove frame overhead. Repeated packed-to-packed copying can instead move almost all live rows for a small dead region. **Arithmetic illustration only:** a 3,199,680-byte packed payload with 4,096 dead bytes (128 of these 32-byte files) can leave **3,195,584 live bytes / 99,862 file ranges** to move, roughly **780.17 live-copy bytes per dead byte**, ignoring header bytes conservatively. This is not an observed job or measured waste in RECHECK-04.
+
+The next efficient local investigation should first measure FIFO/group occupancy, mutation-gate residence and `FlushIndexBatch` time/page bytes separately, including the historical `Parallel.For` driver versus dedicated ready workers. Then target repeated node/path persistence. Finally measure net reclaim versus moved bytes/rows before testing cost-aware packed-object admission/hysteresis. Keep per-callback durable ACK, input/handle leases, poison/drain, fresh native/root/cursor proofs, pending-request recovery, proven-dead collection and final forced cleanup. Increasing timeouts, removing ACKs, enlarging the cache/worker count without evidence, disabling GC or replacing all SPM2 pages is not supported by this diagnosis. No new fix or improvement percentage is claimed.
 
 <a id="recheck-03"></a>
 
