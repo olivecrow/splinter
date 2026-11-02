@@ -1,0 +1,210 @@
+{
+  "date": "2026-11-02",
+  "ids": [
+    "ST-65",
+    "ST-66",
+    "ST-67",
+    "ST-68"
+  ],
+  "baseCommit": "8709f902dd14d188f82f1e8cd170e96a2514a9bb",
+  "startingWorkingChanges": "Uncommitted ST-61–64 and bilingual architecture reviews preserved",
+  "mainChat": {
+    "id": "01a19644-3877-7a20-a47c-65d095af8880",
+    "status": "idle; unchanged before/after"
+  },
+  "sources": [
+    {
+      "path": "src/Splinter.Runtime/ImmutableReadProofs.cs",
+      "sha256": "b47370b1263c9dec826b9fbdb4e2d74963da808671b2d6ceba4517536ff18267"
+    },
+    {
+      "path": "src/Splinter.Runtime/ResultFileVerification.cs",
+      "sha256": "52a18e531d9426deecce823b625e90848cc2fe2ff290b784fbdda93e82a8b288"
+    },
+    {
+      "path": "src/Splinter.Runtime/OwnedContentStore.cs",
+      "sha256": "28a03fd4fc397343b95e16e2873ce6ddc4fe0d7753e35c72cde965373b2913a6"
+    },
+    {
+      "path": "src/Splinter.Runtime/OwnedRangeContentStore.cs",
+      "sha256": "692519d2a89cecfd51e83fc163c062232462f4e7b869fd3cc445122052c4db49"
+    },
+    {
+      "path": "src/Splinter.Runtime/ResultFileContentStore.cs",
+      "sha256": "bcd85ee9a0864a6694f83cb4eeab43d3bf66287d91eb0b51e2105e3a3369002f"
+    },
+    {
+      "path": "src/Splinter.Runtime/PagedMetadataStore.cs",
+      "sha256": "a0f922d2a9dafce6736dfa308b82dbac37391d13e00cfcd0756db7343abf08fe"
+    },
+    {
+      "path": "src/Splinter.Runtime/PagedCatalogReadScope.cs",
+      "sha256": "e5f4e53f75f320831b8bb8f45de869d375bb915704fceda85a1e3fea027426aa"
+    },
+    {
+      "path": "src/Splinter.Runtime/PagedMetadataDifference.cs",
+      "sha256": "542881caeb7e443eef077208d2f1246fc6ac738e077ad63c701e7e250824e470"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/FileReferenceResults.cs",
+      "sha256": "2365851ecee55beef04d4ffa2f42267d77e088ecbe47384628e3723852c661ae"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+      "sha256": "e081ec78dbed708133d70bad54f03385ed17c7731ae0d37351a911a28c5aa15b"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+      "sha256": "5650a8571119fe37a5d2a4d9ab025ee91f6ab7b43a6e2600631fc4b61702eaff"
+    },
+    {
+      "path": "tests/Splinter.Tests/ReferenceProofTests.cs",
+      "sha256": "90dbbe778c66f03f129f1ab0063d6d1389a0585b810fd079ab25569b3be3282c"
+    }
+  ],
+  "binaries": [
+    {
+      "name": "Splinter.Runtime",
+      "sha256": "3ec158ef5fa4d4fbe383cd6dc07d07cceac98b3fae946458d30a8cb025345412",
+      "builtMatchesTested": true
+    },
+    {
+      "name": "Splinter.SourceControl.Files",
+      "sha256": "109dc95f8186e7688f0c6ab0dde77811c1e69f79683da9fafcc81224863137d1",
+      "builtMatchesTested": true
+    }
+  ],
+  "testReports": [
+    {
+      "path": "artifacts/reference-proof-20261102/proof-focused.json",
+      "summary": {
+        "tests": 10,
+        "passed": 8,
+        "failed": 2,
+        "pending": 0,
+        "skipped": 0,
+        "other": 0,
+        "suites": 1,
+        "start": 1793591927918,
+        "stop": 1793591931147,
+        "duration": 3229
+      },
+      "sha256": "ab941e13fd670fe5385f16999f4ea827f3d8b71f6d1c53b647973264fd8f4837"
+    },
+    {
+      "path": "artifacts/reference-proof-20261102/final-focused.json",
+      "summary": {
+        "tests": 23,
+        "passed": 23,
+        "failed": 0,
+        "pending": 0,
+        "skipped": 0,
+        "other": 0,
+        "suites": 1,
+        "start": 1793592114389,
+        "stop": 1793592124474,
+        "duration": 10085
+      },
+      "sha256": "b55e01f00e606b316b799f9632e68459f1b21fec4b7c6a1f4d12a1d9963c81e1"
+    },
+    {
+      "path": "artifacts/reference-proof-20261102/recovery-focused.json",
+      "summary": {
+        "tests": 3,
+        "passed": 0,
+        "failed": 3,
+        "pending": 0,
+        "skipped": 0,
+        "other": 0,
+        "suites": 1,
+        "start": 1793592147569,
+        "stop": 1793592147933,
+        "duration": 364
+      },
+      "sha256": "c6a114500460e75dc272c0fe82e635b28974c48c8c8a4c1150136286bc588359"
+    },
+    {
+      "path": "artifacts/reference-proof-20261102/recovery-final.json",
+      "summary": {
+        "tests": 3,
+        "passed": 3,
+        "failed": 0,
+        "pending": 0,
+        "skipped": 0,
+        "other": 0,
+        "suites": 1,
+        "start": 1793592166221,
+        "stop": 1793592170378,
+        "duration": 4157
+      },
+      "sha256": "f500766a84bd8bf0dad4591a4c67d424029a5d804780292805e26ec863abd676"
+    }
+  ],
+  "finalValidation": {
+    "distinctTests": 26,
+    "passed": 26,
+    "failed": 0,
+    "skipped": 0,
+    "groupsRunnerSeconds": [
+      10.087,
+      4.158
+    ]
+  },
+  "restrictedBuilds": {
+    "RuntimeSeconds": 5.5,
+    "FilesSeconds": 3.87,
+    "TestsSeconds": 7.54,
+    "warnings": 0,
+    "errors": 0,
+    "buildProjectReferences": false
+  },
+  "operationAssertions": {
+    "repeatedCatalogAdditionalNodeVisits": 0,
+    "sparseChangedCatalogNodeVisits": "1–30 of 31",
+    "twoComposedFileVerifications": {
+      "fullFileHashes": 1,
+      "dependencyHashes": 2,
+      "compositionReuses": 1
+    },
+    "nativeBackingProofLimit": 64,
+    "rangeProofLimit": 4096,
+    "compositionProofLimit": 1024,
+    "catalogSubtreeProofLimit": 4096,
+    "comparedSubtreeProofLimit": 4096
+  },
+  "failureNotes": [
+    "Initial Runtime compile: nullable flow from TryGetValue out target; corrected before tests.",
+    "Initial 10 tests: 2 fixture failures, unflushed metadata and incorrect separate-hardlink unlink expectation. Actual ownership revalidation assertion passes.",
+    "Initial three recovery tests: inherited-VCS guard rejects repository-local temp root before capture. Default system temp rerun passes; no guard weakened."
+  ],
+  "expectedStopBudgets": {
+    "investigationMinutes": [
+      8,
+      16
+    ],
+    "implementationMinutes": [
+      20,
+      40
+    ],
+    "selectedValidationMinutes": [
+      3,
+      6
+    ],
+    "buildSeconds": [
+      15,
+      30
+    ],
+    "testSeconds": [
+      8,
+      16
+    ]
+  },
+  "limits": [
+    "No end-to-end before/after timing or large throughput claim",
+    "No full build.ps1 or full gate",
+    "No 100k/17GiB, actual Unity/Git/Plastic lifecycle, provider start or retained fixture resume",
+    "No persisted schema/CLI/ACK/GC policy change",
+    "Initial inventory/index construction and first full hashes remain; historical headers/differences and proof fallbacks still cost work",
+    "Extra three publication-boundary recovery cases use existing non-native-content fixture"
+  ]
+}

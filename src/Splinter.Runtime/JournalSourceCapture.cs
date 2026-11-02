@@ -10,6 +10,7 @@ namespace Splinter.Runtime;
 // replacement and process restart; a remembered path/open handle is insufficient.
 public interface IJournalFilePins
 {
+    IRequestPathGuard? PinMetadataPaths(string directory) => null;
     string Identify(string path);
     string IdentifyOpened(FileStream input) { string identity = Identify(input.Name); Verify(input, identity); return identity; }
     void Verify(FileStream input, string expectedIdentity);

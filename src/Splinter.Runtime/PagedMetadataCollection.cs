@@ -474,7 +474,7 @@ public sealed partial class PagedMetadataStore
     }
     private void VerifyContainerOwner(FileStream stream, long number)
     {
-        var owner = ReadCollection<ContainerOwner>(stream.Name + ".owner");
+        var owner = ReadCollection<ContainerOwner>(stream.Name + ".owner", pathGuard);
         if (owner.Version != 1 || owner.StoreId != StoreId || owner.Container != number) throw Invalid("Preserve a metadata container without its exact owner.");
         filePins!.Verify(stream, owner.Identity);
     }
@@ -604,9 +604,9 @@ public sealed partial class PagedMetadataStore
             throw Invalid("Preserve a corrupt metadata store identity.");
         return Convert.ToHexStringLower(header.AsSpan(4, 12));
     }
-    private static T ReadCollection<T>(string path)
+    private static T ReadCollection<T>(string path, IRequestPathGuard? pathGuard = null)
     {
-        WorkspaceStore.EnsurePlainPath(path);
+        if (pathGuard?.TryEnsurePlainPath(path) != true) WorkspaceStore.EnsurePlainPath(path);
         try
         {
             using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);

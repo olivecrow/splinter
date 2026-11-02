@@ -15,7 +15,7 @@ public sealed record ImmutableContentReference(string Hash, long Length, bool Ra
 
 // A full-file identity is verified over a composed stream. Only fixed basis
 // content, zero holes and private chunks are retained; no full new version copy.
-public sealed class ResultFileContentStore
+public sealed partial class ResultFileContentStore
 {
     private readonly string home, control, directory;
     private readonly WorkspaceRecord workspace;
@@ -170,17 +170,22 @@ public sealed class ResultFileContentStore
         }
     }
     private Stream OpenDescriptor(ImmutableFileContentDescriptor descriptor, PagedMetadataStore pages, CancellationToken ct) => new Composite(this, descriptor, pages, false, ct);
-    private Stream OpenChunk(ImmutableFilePrivateRange range, CancellationToken ct) => range.RawRange
-        ? raw.Open(workspace, control, range.Hash, range.ContentLength, ct) : whole.Open(workspace, control, range.Hash, range.ContentLength, ct);
+    private Stream OpenChunk(ImmutableFilePrivateRange range, CancellationToken ct, ImmutableReadProofs? proofs = null) =>
+        OpenReference(new(range.Hash, range.ContentLength, range.RawRange), proofs, ct);
+    private Stream OpenReference(ImmutableContentReference reference, ImmutableReadProofs? proofs, CancellationToken ct) => reference.RawRange
+        ? proofs is null ? raw.Open(workspace, control, reference.Hash, checked((int)reference.Length), ct)
+            : raw.OpenVerified(workspace, control, reference.Hash, checked((int)reference.Length), proofs, ct)
+        : proofs is null ? whole.Open(workspace, control, reference.Hash, reference.Length, ct)
+            : whole.OpenVerified(workspace, control, reference.Hash, reference.Length, proofs, ct);
     private static void VerifyFile(Stream input, string hash, long length, CancellationToken ct)
     {
         byte[] bytes = new byte[65536]; long read = 0; using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         for (int count; (count = input.Read(bytes)) > 0;) { ct.ThrowIfCancellationRequested(); digest.AppendData(bytes.AsSpan(0, count)); read = checked(read + count); }
         if (read != length || Convert.ToHexStringLower(digest.GetHashAndReset()) != hash) throw Invalid("The composed file differs from its frozen full-file identity.");
     }
-    private Catalog Load(PagedMetadataStore pages)
+    private Catalog Load(PagedMetadataStore pages, ImmutableReadProofs? proofs = null)
     {
-        string path = Path.Combine(directory, "catalog.json"); WorkspaceStore.EnsurePlainPath(path);
+        string path = Path.Combine(directory, "catalog.json"); ImmutableReadProofs.EnsurePlainPath(path, proofs);
         if (!File.Exists(path))
         {
             if (Directory.EnumerateFiles(directory, "pages-*.bin").Any(file => new FileInfo(file).Length != 48))
@@ -241,7 +246,8 @@ public sealed class ResultFileContentStore
         if (chunkOffset < 0 || chunkLength < length || chunkOffset > chunkLength - length) throw Invalid("Invalid private-content slice.");
         return new(offset, length, Convert.ToHexStringLower(bytes.Slice(14, 32)), bytes[1] == 1, chunkOffset, chunkLength);
     }
-    private sealed class Composite(ResultFileContentStore owner, ImmutableFileContentDescriptor descriptor, PagedMetadataStore pages, bool ownsPages, CancellationToken ct) : Stream
+    private sealed class Composite(ResultFileContentStore owner, ImmutableFileContentDescriptor descriptor, PagedMetadataStore pages, bool ownsPages, CancellationToken ct,
+        ImmutableReadProofs? proofs = null) : Stream
     {
         private long position;
         private Stream? basis;
@@ -255,8 +261,7 @@ public sealed class ResultFileContentStore
             {
                 if (descriptor.BasisHash is null || from >= descriptor.BasisVisibleLength || to <= from) return;
                 basis ??= descriptor.ExternalBasis ? (owner.externalBasis ?? throw Invalid("The protected external basis reader is missing."))(descriptor.BasisHash, descriptor.BasisObjectLength)
-                    : descriptor.BasisRawRange ? owner.raw.Open(owner.workspace, owner.control, descriptor.BasisHash, checked((int)descriptor.BasisObjectLength), ct)
-                    : owner.whole.Open(owner.workspace, owner.control, descriptor.BasisHash, descriptor.BasisObjectLength, ct);
+                    : owner.OpenReference(new(descriptor.BasisHash, descriptor.BasisObjectLength, descriptor.BasisRawRange), proofs, ct);
                 basis.Position = from; int take = (int)(Math.Min(to, descriptor.BasisVisibleLength) - from);
                 ReadExactly(basis, target.Slice((int)(from - position), take));
             }
@@ -270,7 +275,7 @@ public sealed class ResultFileContentStore
                 long from = Math.Max(position, range.Offset), to = Math.Min(end, range.Offset + range.Length); if (to <= from) continue;
                 ReadBasis(cursor, from, output);
                 if (activeRange != range)
-                { privateChunk?.Dispose(); privateChunk = owner.OpenChunk(range, ct); activeRange = range; }
+                { privateChunk?.Dispose(); privateChunk = owner.OpenChunk(range, ct, proofs); activeRange = range; }
                 privateChunk!.Position = from - range.Offset + range.ChunkOffset;
                 ReadExactly(privateChunk, output.Slice((int)(from - position), (int)(to - from)));
                 cursor = to;

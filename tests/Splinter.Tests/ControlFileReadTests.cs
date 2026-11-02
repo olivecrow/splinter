@@ -162,6 +162,7 @@ public sealed class ControlFileReadTests
         {
             var error = await Assert.ThrowsAsync<WorkspaceException>(() => WindowsProcessWorkspaceProvider.ReadAsync<Receipt>(Path.Combine(link, "state.json"), ct));
             Assert.Equal("UnsafePath", error.Code);
+            Assert.Equal("UnsafePath", Assert.Throws<WorkspaceException>(() => new Splinter.Runtime.PagedMetadataStore(link)).Code);
             Assert.Equal(Receipt.For(1), await WindowsProcessWorkspaceProvider.ReadAsync<Receipt>(Path.Combine(target, "state.json"), ct));
         }
         finally { Directory.Delete(link); }

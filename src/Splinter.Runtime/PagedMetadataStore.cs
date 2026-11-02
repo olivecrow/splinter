@@ -25,6 +25,9 @@ public sealed partial class PagedMetadataStore : IDisposable
     private readonly bool writable;
     private readonly Action<string>? boundary;
     private readonly IJournalFilePins? filePins;
+    private readonly IRequestPathGuard? pathGuard;
+    private bool needsDurableFlush;
+    internal long DurableFlushes { get; private set; }
     private readonly object gate = new();
     private readonly FileStream? writerLease;
     private readonly FileStream? readerLease;
@@ -38,6 +41,7 @@ public sealed partial class PagedMetadataStore : IDisposable
     private readonly string cacheScope = Guid.NewGuid().ToString("N");
     private long container;
     private bool disposed;
+    private long readProofEpoch;
     private LocationMap? locations;
     private PagedMetadataStore? readThrough;
     private long readThroughLastContainer;
@@ -47,15 +51,20 @@ public sealed partial class PagedMetadataStore : IDisposable
 
     public PagedMetadataStore(string directory, bool writable = false, Action<string>? boundary = null, IJournalFilePins? filePins = null, string? initialStoreId = null)
         : this(directory, writable, boundary, filePins, maintenance: false, containerStart: null, initialStoreId) { }
+    internal PagedMetadataStore(string directory, IJournalFilePins filePins, IRequestPathGuard? pathGuard)
+        : this(directory, false, null, filePins, false, null, null, pathGuard) { }
 
     private PagedMetadataStore(string directory, bool writable, Action<string>? boundary, IJournalFilePins? filePins,
-        bool maintenance, long? containerStart, string? initialStoreId = null)
+        bool maintenance, long? containerStart, string? initialStoreId = null, IRequestPathGuard? pathGuard = null)
     {
         this.directory = Path.GetFullPath(directory); this.writable = writable; this.boundary = boundary; this.filePins = filePins;
-        WorkspaceStore.EnsurePlainPath(this.directory);
-        if (writable) Directory.CreateDirectory(this.directory);
+        this.pathGuard = pathGuard;
+        if (writable) { WorkspaceStore.EnsurePlainPath(this.directory); Directory.CreateDirectory(this.directory); }
         string identity = Path.Combine(this.directory, "identity.bin");
-        WorkspaceStore.EnsurePlainPath(identity);
+        // For a reader this one walk also checks the store directory and all
+        // ancestors, before opening either the lease or identity. Writers must
+        // additionally check before creating the directory above.
+        EnsureStorePath(identity);
         try
         {
             if (writable)
@@ -257,8 +266,15 @@ public sealed partial class PagedMetadataStore : IDisposable
     // Data must be durable BEFORE a workspace/capture/result root points at it.
     public void Flush()
     {
-        lock (gate) { CheckWriter(); output!.Flush(true); boundary?.Invoke("metadata.pages-durable"); }
+        lock (gate) { CheckWriter(); FlushOutput(); boundary?.Invoke("metadata.pages-durable"); }
     }
+    private void FlushOutput()
+    {
+        if (!needsDurableFlush) return;
+        output!.Flush(true); needsDurableFlush = false; DurableFlushes++;
+    }
+    private void EnsureStorePath(string path)
+    { if (pathGuard?.TryEnsurePlainPath(path) != true) WorkspaceStore.EnsurePlainPath(path); }
 
     public void Dispose()
     {
@@ -283,12 +299,12 @@ public sealed partial class PagedMetadataStore : IDisposable
         if (output!.Length > ContainerTargetBytes - bytes)
         {
             CacheInvalidationVisits += PageCache.Remove(cacheScope + "/" + container + "/");
-            output.Flush(true); output.Dispose(); output = null; container = checked(container + 1); OpenOutput();
+            FlushOutput(); output.Dispose(); output = null; container = checked(container + 1); OpenOutput();
         }
         long offset = output!.Length; output.Position = offset;
         Span<byte> header = stackalloc byte[PageHeaderBytes]; "SPN1"u8.CopyTo(header);
         BinaryPrimitives.WriteInt32LittleEndian(header[4..], body.Length);
-        SHA256.HashData(body, header[8..]); output.Write(header); boundary?.Invoke("metadata.page-header-written"); output.Write(body);
+        SHA256.HashData(body, header[8..]); needsDurableFlush = true; output.Write(header); boundary?.Invoke("metadata.page-header-written"); output.Write(body);
         var reference = new MetadataPageReference(container, offset, bytes,
             checked(1 + (node.Left?.Count ?? 0) + (node.Right?.Count ?? 0)), Convert.ToHexStringLower(hash));
         PageCache.Add(CacheKey(reference), node, bytes); return reference;
@@ -321,7 +337,7 @@ public sealed partial class PagedMetadataStore : IDisposable
             {
                 if (!readers.TryGetValue(reference.Container, out var reader))
                 {
-                    string path = ContainerPath(reference.Container); WorkspaceStore.EnsurePlainPath(path);
+                    string path = ContainerPath(reference.Container); EnsureStorePath(path);
                     try { input = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1, FileOptions.RandomAccess); }
                     catch (IOException ex) when ((ex.HResult & 0xffff) == 32)
                     {
@@ -339,6 +355,7 @@ public sealed partial class PagedMetadataStore : IDisposable
                     {
                         long victim = readerRecent.Last!.Value; readerRecent.RemoveLast();
                         var retired = readers[victim]; readers.Remove(victim);
+                        readProofEpoch++;
                         CacheInvalidationVisits += PageCache.Remove(cacheScope + "/" + victim + "/"); retired.Dispose();
                     }
                     reader = new(input, cacheable, readerRecent.AddFirst(reference.Container)); readers.Add(reference.Container, reader);
@@ -349,7 +366,7 @@ public sealed partial class PagedMetadataStore : IDisposable
         }
         // Write sharing also permits damage to the container prefix. Retain
         // the exact handle, not a cached integrity decision about its bytes.
-        if (!cacheable) CheckContainer(input);
+        if (!cacheable) { readProofEpoch++; CheckContainer(input); }
         if (reference.Offset > RandomAccess.GetLength(input.SafeFileHandle) - reference.Bytes) throw Invalid("An immutable metadata page is truncated.");
         Span<byte> header = stackalloc byte[PageHeaderBytes]; ReadAt(input, header, reference.Offset);
         if (!header[..4].SequenceEqual("SPN1"u8) || BinaryPrimitives.ReadInt32LittleEndian(header[4..]) != reference.Bytes - PageHeaderBytes)
@@ -470,6 +487,9 @@ public sealed partial class PagedMetadataStore : IDisposable
 
     private void OpenOutput()
     {
+        // A newly opened writer cannot inherit a previous process's durable
+        // watermark. Its first root ACK still forces a flush, even if unchanged.
+        needsDurableFlush = true;
         while (true)
         {
             string path = ContainerPath(container); WorkspaceStore.EnsurePlainPath(path);
@@ -509,7 +529,10 @@ public sealed partial class PagedMetadataStore : IDisposable
             byte[] header = ReadExactFile(Path.Combine(directory, "identity.bin"), ContainerHeaderBytes);
             byte[] prior = new byte[checked((int)output.Length)]; output.Position = 0; output.ReadExactly(prior);
             if (!prior.AsSpan().SequenceEqual(header.AsSpan(0, prior.Length))) throw Invalid("Preserve a changed metadata container initialization.");
-            output.Write(header, prior.Length, header.Length - prior.Length); output.Flush(true);
+            // The owner receipt is already durable. Keep the header visible to
+            // readers, then force it together with pages before any root ACK.
+            // A pre-ACK interruption can repair this exact identity prefix.
+            output.Write(header, prior.Length, header.Length - prior.Length); output.Flush();
         }
         else CheckContainer(output);
         output.Position = output.Length;

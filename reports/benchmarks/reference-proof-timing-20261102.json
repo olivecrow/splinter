@@ -1,0 +1,2118 @@
+{
+  "schemaVersion": 1,
+  "id": "ST-69",
+  "dateLocal": "2026-11-02",
+  "timezone": "Asia/Seoul",
+  "scope": "Small in-process frozen source collection using real JournalDeltaStore/native content pins/FileWorkspaceProvider; synthetic immutable basis; no WinFsp mount/provider process or Editor",
+  "baseline": "8709f90 + ST-61–64; six changed Runtime/Files source hashes exactly match prior recorded evidence",
+  "candidate": "Same sources + ST-65–68; current source hashes match reference-proof-20261102.json",
+  "input": {
+    "files": 31,
+    "bytes": 992,
+    "metadata": "Fixed time/attributes; touched file write time explicitly fixed to 100+round",
+    "digest": "96107a24b3289e941c12bf9fed69eb28e80da1a158136dc801063d270a9421c0",
+    "generations": 6,
+    "mutation": "Two bytes at offset 2 of data000 replaced once per generation",
+    "separateFreshFixturePerRun": true,
+    "historyContentsMatch": true,
+    "fingerprintsMatch": true,
+    "storageMatches": true
+  },
+  "timing": {
+    "counterInstrumentation": false,
+    "diagnosticLogging": false,
+    "blocks": [
+      {
+        "block": 1,
+        "order": [
+          "a1",
+          "b1",
+          "b2",
+          "a2"
+        ],
+        "beforeMeanSeconds": 6.2791416,
+        "afterMeanSeconds": 6.78047385,
+        "reductionSeconds": -0.5013322499999999,
+        "reductionPercent": -7.984088939800306
+      },
+      {
+        "block": 2,
+        "order": [
+          "a3",
+          "b3",
+          "b4",
+          "a4"
+        ],
+        "beforeMeanSeconds": 3.50288005,
+        "afterMeanSeconds": 3.44660325,
+        "reductionSeconds": 0.056276800000000016,
+        "reductionPercent": 1.6065865572530813
+      }
+    ],
+    "runs": [
+      {
+        "name": "a1",
+        "report": "artifacts/reference-proof-timing-20261102/time-a1.json",
+        "captureSeconds": 7.1789348,
+        "preparationSeconds": 0.5049222,
+        "verificationSeconds": 0.4097838,
+        "rounds": [
+          {
+            "round": 1,
+            "seconds": 2.0832152,
+            "freezeSeconds": 0.181245,
+            "preserveSeconds": 1.8593818,
+            "finalizeSeconds": 0.0425852,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 34,
+              "payloadObjects": 2
+            }
+          },
+          {
+            "round": 2,
+            "seconds": 0.9739961,
+            "freezeSeconds": 0.173649,
+            "preserveSeconds": 0.753435,
+            "finalizeSeconds": 0.0469105,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 36,
+              "payloadObjects": 3
+            }
+          },
+          {
+            "round": 3,
+            "seconds": 1.0762786,
+            "freezeSeconds": 0.1764814,
+            "preserveSeconds": 0.8453526,
+            "finalizeSeconds": 0.0544424,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 38,
+              "payloadObjects": 4
+            }
+          },
+          {
+            "round": 4,
+            "seconds": 1.024899,
+            "freezeSeconds": 0.1808171,
+            "preserveSeconds": 0.7916488,
+            "finalizeSeconds": 0.0524297,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 40,
+              "payloadObjects": 5
+            }
+          },
+          {
+            "round": 5,
+            "seconds": 0.9544212,
+            "freezeSeconds": 0.1525179,
+            "preserveSeconds": 0.7536722,
+            "finalizeSeconds": 0.0482279,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 42,
+              "payloadObjects": 6
+            }
+          },
+          {
+            "round": 6,
+            "seconds": 1.0661247,
+            "freezeSeconds": 0.1719931,
+            "preserveSeconds": 0.8318712,
+            "finalizeSeconds": 0.0622572,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 44,
+              "payloadObjects": 7
+            }
+          }
+        ]
+      },
+      {
+        "name": "b1",
+        "report": "artifacts/reference-proof-timing-20261102/time-b1.json",
+        "captureSeconds": 6.7414279,
+        "preparationSeconds": 0.50163,
+        "verificationSeconds": 0.4153091,
+        "rounds": [
+          {
+            "round": 1,
+            "seconds": 1.8840617,
+            "freezeSeconds": 0.1694745,
+            "preserveSeconds": 1.6759286,
+            "finalizeSeconds": 0.0386548,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 34,
+              "payloadObjects": 2
+            }
+          },
+          {
+            "round": 2,
+            "seconds": 0.914228,
+            "freezeSeconds": 0.1393292,
+            "preserveSeconds": 0.7317662,
+            "finalizeSeconds": 0.0431302,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 36,
+              "payloadObjects": 3
+            }
+          },
+          {
+            "round": 3,
+            "seconds": 1.0051651,
+            "freezeSeconds": 0.1593399,
+            "preserveSeconds": 0.7878282,
+            "finalizeSeconds": 0.0579952,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 38,
+              "payloadObjects": 4
+            }
+          },
+          {
+            "round": 4,
+            "seconds": 0.9757025,
+            "freezeSeconds": 0.1487999,
+            "preserveSeconds": 0.7738455,
+            "finalizeSeconds": 0.0530544,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 40,
+              "payloadObjects": 5
+            }
+          },
+          {
+            "round": 5,
+            "seconds": 0.9312772,
+            "freezeSeconds": 0.1658223,
+            "preserveSeconds": 0.7179789,
+            "finalizeSeconds": 0.0474735,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 42,
+              "payloadObjects": 6
+            }
+          },
+          {
+            "round": 6,
+            "seconds": 1.0309934,
+            "freezeSeconds": 0.1605894,
+            "preserveSeconds": 0.8078093,
+            "finalizeSeconds": 0.0625927,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 44,
+              "payloadObjects": 7
+            }
+          }
+        ]
+      },
+      {
+        "name": "b2",
+        "report": "artifacts/reference-proof-timing-20261102/time-b2.json",
+        "captureSeconds": 6.8195198,
+        "preparationSeconds": 0.494616,
+        "verificationSeconds": 0.4221824,
+        "rounds": [
+          {
+            "round": 1,
+            "seconds": 1.9018111,
+            "freezeSeconds": 0.1805766,
+            "preserveSeconds": 1.6724457,
+            "finalizeSeconds": 0.0487854,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 34,
+              "payloadObjects": 2
+            }
+          },
+          {
+            "round": 2,
+            "seconds": 0.9396742,
+            "freezeSeconds": 0.1608311,
+            "preserveSeconds": 0.735953,
+            "finalizeSeconds": 0.0428881,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 36,
+              "payloadObjects": 3
+            }
+          },
+          {
+            "round": 3,
+            "seconds": 1.0111323,
+            "freezeSeconds": 0.1590427,
+            "preserveSeconds": 0.801999,
+            "finalizeSeconds": 0.0500889,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 38,
+              "payloadObjects": 4
+            }
+          },
+          {
+            "round": 4,
+            "seconds": 1.0193283,
+            "freezeSeconds": 0.1632895,
+            "preserveSeconds": 0.805327,
+            "finalizeSeconds": 0.0507094,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 40,
+              "payloadObjects": 5
+            }
+          },
+          {
+            "round": 5,
+            "seconds": 0.9578245,
+            "freezeSeconds": 0.1706232,
+            "preserveSeconds": 0.7398515,
+            "finalizeSeconds": 0.0473475,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 42,
+              "payloadObjects": 6
+            }
+          },
+          {
+            "round": 6,
+            "seconds": 0.9897494,
+            "freezeSeconds": 0.1565125,
+            "preserveSeconds": 0.7779797,
+            "finalizeSeconds": 0.0552551,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 44,
+              "payloadObjects": 7
+            }
+          }
+        ]
+      },
+      {
+        "name": "a2",
+        "report": "artifacts/reference-proof-timing-20261102/time-a2.json",
+        "captureSeconds": 5.3793484,
+        "preparationSeconds": 0.4018632,
+        "verificationSeconds": 0.3312364,
+        "rounds": [
+          {
+            "round": 1,
+            "seconds": 1.429842,
+            "freezeSeconds": 0.1205327,
+            "preserveSeconds": 1.2769042,
+            "finalizeSeconds": 0.0324017,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 34,
+              "payloadObjects": 2
+            }
+          },
+          {
+            "round": 2,
+            "seconds": 0.7011948,
+            "freezeSeconds": 0.0965938,
+            "preserveSeconds": 0.5738462,
+            "finalizeSeconds": 0.0307534,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 36,
+              "payloadObjects": 3
+            }
+          },
+          {
+            "round": 3,
+            "seconds": 0.741574,
+            "freezeSeconds": 0.1043906,
+            "preserveSeconds": 0.5828751,
+            "finalizeSeconds": 0.0543064,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 38,
+              "payloadObjects": 4
+            }
+          },
+          {
+            "round": 4,
+            "seconds": 0.8137754,
+            "freezeSeconds": 0.1050539,
+            "preserveSeconds": 0.670096,
+            "finalizeSeconds": 0.0386229,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 40,
+              "payloadObjects": 5
+            }
+          },
+          {
+            "round": 5,
+            "seconds": 0.8592555,
+            "freezeSeconds": 0.1340963,
+            "preserveSeconds": 0.6845769,
+            "finalizeSeconds": 0.04058,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 42,
+              "payloadObjects": 6
+            }
+          },
+          {
+            "round": 6,
+            "seconds": 0.8337067,
+            "freezeSeconds": 0.1330602,
+            "preserveSeconds": 0.6569279,
+            "finalizeSeconds": 0.043716,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 44,
+              "payloadObjects": 7
+            }
+          }
+        ]
+      },
+      {
+        "name": "a3",
+        "report": "artifacts/reference-proof-timing-20261102/time-a3.json",
+        "captureSeconds": 3.5238749,
+        "preparationSeconds": 0.2481374,
+        "verificationSeconds": 0.3895392,
+        "rounds": [
+          {
+            "round": 1,
+            "seconds": 0.8518728,
+            "freezeSeconds": 0.0802147,
+            "preserveSeconds": 0.7508675,
+            "finalizeSeconds": 0.0207867,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 34,
+              "payloadObjects": 2
+            }
+          },
+          {
+            "round": 2,
+            "seconds": 0.4727193,
+            "freezeSeconds": 0.0591634,
+            "preserveSeconds": 0.3915904,
+            "finalizeSeconds": 0.0219636,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 36,
+              "payloadObjects": 3
+            }
+          },
+          {
+            "round": 3,
+            "seconds": 0.4821214,
+            "freezeSeconds": 0.0655404,
+            "preserveSeconds": 0.3945715,
+            "finalizeSeconds": 0.0220064,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 38,
+              "payloadObjects": 4
+            }
+          },
+          {
+            "round": 4,
+            "seconds": 0.4945228,
+            "freezeSeconds": 0.0619208,
+            "preserveSeconds": 0.4079346,
+            "finalizeSeconds": 0.0246654,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 40,
+              "payloadObjects": 5
+            }
+          },
+          {
+            "round": 5,
+            "seconds": 0.5794169,
+            "freezeSeconds": 0.0639653,
+            "preserveSeconds": 0.484704,
+            "finalizeSeconds": 0.030745,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 42,
+              "payloadObjects": 6
+            }
+          },
+          {
+            "round": 6,
+            "seconds": 0.6432217,
+            "freezeSeconds": 0.0721441,
+            "preserveSeconds": 0.5341881,
+            "finalizeSeconds": 0.0368865,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 44,
+              "payloadObjects": 7
+            }
+          }
+        ]
+      },
+      {
+        "name": "b3",
+        "report": "artifacts/reference-proof-timing-20261102/time-b3.json",
+        "captureSeconds": 3.4032572,
+        "preparationSeconds": 0.2483476,
+        "verificationSeconds": 0.3774735,
+        "rounds": [
+          {
+            "round": 1,
+            "seconds": 0.862747,
+            "freezeSeconds": 0.0849541,
+            "preserveSeconds": 0.7569392,
+            "finalizeSeconds": 0.0208508,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 34,
+              "payloadObjects": 2
+            }
+          },
+          {
+            "round": 2,
+            "seconds": 0.4802081,
+            "freezeSeconds": 0.0609867,
+            "preserveSeconds": 0.3944405,
+            "finalizeSeconds": 0.0247787,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 36,
+              "payloadObjects": 3
+            }
+          },
+          {
+            "round": 3,
+            "seconds": 0.4973814,
+            "freezeSeconds": 0.06626,
+            "preserveSeconds": 0.4077897,
+            "finalizeSeconds": 0.0233288,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 38,
+              "payloadObjects": 4
+            }
+          },
+          {
+            "round": 4,
+            "seconds": 0.4977109,
+            "freezeSeconds": 0.0634533,
+            "preserveSeconds": 0.410056,
+            "finalizeSeconds": 0.0241992,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 40,
+              "payloadObjects": 5
+            }
+          },
+          {
+            "round": 5,
+            "seconds": 0.4975056,
+            "freezeSeconds": 0.0664044,
+            "preserveSeconds": 0.3986073,
+            "finalizeSeconds": 0.0324918,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 42,
+              "payloadObjects": 6
+            }
+          },
+          {
+            "round": 6,
+            "seconds": 0.5677042,
+            "freezeSeconds": 0.0738741,
+            "preserveSeconds": 0.4605776,
+            "finalizeSeconds": 0.0332507,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 44,
+              "payloadObjects": 7
+            }
+          }
+        ]
+      },
+      {
+        "name": "b4",
+        "report": "artifacts/reference-proof-timing-20261102/time-b4.json",
+        "captureSeconds": 3.4899493,
+        "preparationSeconds": 0.2475866,
+        "verificationSeconds": 0.3950956,
+        "rounds": [
+          {
+            "round": 1,
+            "seconds": 0.8796904,
+            "freezeSeconds": 0.0792796,
+            "preserveSeconds": 0.779103,
+            "finalizeSeconds": 0.0213045,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 34,
+              "payloadObjects": 2
+            }
+          },
+          {
+            "round": 2,
+            "seconds": 0.4865691,
+            "freezeSeconds": 0.0614741,
+            "preserveSeconds": 0.3951375,
+            "finalizeSeconds": 0.0299557,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 36,
+              "payloadObjects": 3
+            }
+          },
+          {
+            "round": 3,
+            "seconds": 0.4842159,
+            "freezeSeconds": 0.0635861,
+            "preserveSeconds": 0.3977516,
+            "finalizeSeconds": 0.0228768,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 38,
+              "payloadObjects": 4
+            }
+          },
+          {
+            "round": 4,
+            "seconds": 0.5106118,
+            "freezeSeconds": 0.0649681,
+            "preserveSeconds": 0.4208609,
+            "finalizeSeconds": 0.0247811,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 40,
+              "payloadObjects": 5
+            }
+          },
+          {
+            "round": 5,
+            "seconds": 0.5388973,
+            "freezeSeconds": 0.0664689,
+            "preserveSeconds": 0.4396203,
+            "finalizeSeconds": 0.0328065,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 42,
+              "payloadObjects": 6
+            }
+          },
+          {
+            "round": 6,
+            "seconds": 0.5899648,
+            "freezeSeconds": 0.0743184,
+            "preserveSeconds": 0.4786171,
+            "finalizeSeconds": 0.0370272,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 44,
+              "payloadObjects": 7
+            }
+          }
+        ]
+      },
+      {
+        "name": "a4",
+        "report": "artifacts/reference-proof-timing-20261102/time-a4.json",
+        "captureSeconds": 3.4818852000000002,
+        "preparationSeconds": 0.2500502,
+        "verificationSeconds": 0.3978468,
+        "rounds": [
+          {
+            "round": 1,
+            "seconds": 0.8466156,
+            "freezeSeconds": 0.0770443,
+            "preserveSeconds": 0.7477354,
+            "finalizeSeconds": 0.0218321,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 34,
+              "payloadObjects": 2
+            }
+          },
+          {
+            "round": 2,
+            "seconds": 0.4677217,
+            "freezeSeconds": 0.0601337,
+            "preserveSeconds": 0.3833764,
+            "finalizeSeconds": 0.0242098,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 36,
+              "payloadObjects": 3
+            }
+          },
+          {
+            "round": 3,
+            "seconds": 0.4824934,
+            "freezeSeconds": 0.0661164,
+            "preserveSeconds": 0.386936,
+            "finalizeSeconds": 0.0294391,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 38,
+              "payloadObjects": 4
+            }
+          },
+          {
+            "round": 4,
+            "seconds": 0.4967654,
+            "freezeSeconds": 0.0616687,
+            "preserveSeconds": 0.410926,
+            "finalizeSeconds": 0.0241693,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 40,
+              "payloadObjects": 5
+            }
+          },
+          {
+            "round": 5,
+            "seconds": 0.5541324,
+            "freezeSeconds": 0.0656898,
+            "preserveSeconds": 0.4587685,
+            "finalizeSeconds": 0.0296721,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 42,
+              "payloadObjects": 6
+            }
+          },
+          {
+            "round": 6,
+            "seconds": 0.6341567,
+            "freezeSeconds": 0.0801215,
+            "preserveSeconds": 0.5111704,
+            "finalizeSeconds": 0.0428622,
+            "counts": null,
+            "storage": {
+              "basisLogicalBytes": 992,
+              "resultLogicalBytes": 992,
+              "uniquePayloadBytes": 44,
+              "payloadObjects": 7
+            }
+          }
+        ]
+      }
+    ],
+    "definition": "Freeze + independent preservation/publication + capture-finalization, six captures summed; editing/setup and final independent checks excluded",
+    "secondBlockReason": "One additional fixed ABBA block after large monotonic variation in the first; no further repetitions",
+    "verdict": "No consistent elapsed-time improvement demonstrated. First block regresses 7.98%; second improves 1.61%, only 56ms across six captures. Do not pool blocks into a speedup."
+  },
+  "counts": {
+    "totals": {
+      "before": {
+        "accounting.referenceRows": 133,
+        "catalog.entries": 2635,
+        "hash.composed.bytes": 192,
+        "hash.composed.calls": 6,
+        "hash.private.bytes": 12,
+        "hash.private.calls": 6,
+        "hash.range.bytes": 108,
+        "hash.range.calls": 54,
+        "hash.scan.bytes": 1184,
+        "hash.scan.calls": 37,
+        "hash.stream.bytes": 14234,
+        "hash.stream.calls": 127,
+        "metadata.enumeratedRows": 3667,
+        "metadata.pageDecodes": 17696,
+        "retention.inputRows": 38,
+        "hash.total.calls": 230,
+        "hash.total.bytes": 15730
+      },
+      "after": {
+        "accounting.referenceRows": 48,
+        "catalog.entries": 1696,
+        "catalog.reusedSubtrees": 75,
+        "hash.composed.bytes": 864,
+        "hash.composed.calls": 27,
+        "hash.fenced.bytes": 234,
+        "hash.fenced.calls": 27,
+        "hash.private.bytes": 12,
+        "hash.private.calls": 6,
+        "hash.range.bytes": 24,
+        "hash.range.calls": 12,
+        "hash.scan.bytes": 1184,
+        "hash.scan.calls": 37,
+        "hash.stream.bytes": 10773,
+        "hash.stream.calls": 19,
+        "metadata.enumeratedRows": 2389,
+        "metadata.pageDecodes": 16670,
+        "proof.byteReuses": 69,
+        "proof.compositionReuses": 21,
+        "retention.inputRows": 18,
+        "hash.total.calls": 128,
+        "hash.total.bytes": 13091
+      }
+    },
+    "comparison": [
+      {
+        "metric": "catalog.entries",
+        "before": 2635,
+        "after": 1696,
+        "reductionPercent": 35.63567362428843
+      },
+      {
+        "metric": "retention.inputRows",
+        "before": 38,
+        "after": 18,
+        "reductionPercent": 52.63157894736842
+      },
+      {
+        "metric": "accounting.referenceRows",
+        "before": 133,
+        "after": 48,
+        "reductionPercent": 63.90977443609023
+      },
+      {
+        "metric": "metadata.enumeratedRows",
+        "before": 3667,
+        "after": 2389,
+        "reductionPercent": 34.85137714753204
+      },
+      {
+        "metric": "metadata.pageDecodes",
+        "before": 17696,
+        "after": 16670,
+        "reductionPercent": 5.797920433996383
+      },
+      {
+        "metric": "hash.total.calls",
+        "before": 230,
+        "after": 128,
+        "reductionPercent": 44.34782608695652
+      },
+      {
+        "metric": "hash.total.bytes",
+        "before": 15730,
+        "after": 13091,
+        "reductionPercent": 16.776859504132233
+      }
+    ],
+    "definition": {
+      "catalog.entries": "Non-root catalog entries yielded by ordinary Walk plus nodes actually visited by CatalogReadScope; cached subtrees excluded",
+      "metadata.enumeratedRows": "Rows yielded by paged metadata tree cursors across capture; separate from catalog entries and not additive",
+      "metadata.pageDecodes": "ReadNodeCore decoding after logical cache miss; not OS read syscall count",
+      "hash.total": "SHA passes/bytes at PayloadHash, composed VerifyFile, raw HashRange, immutable native proof miss, source ScanTree and private-range preparation. Excludes metadata/control/address hashes and separate journal-segment seal hashing; not all process SHA256 calls",
+      "accounting.referenceRows": "Physical reference rows contributed by current/historical manifests before exact deduplication",
+      "retention.inputRows": "Calls encoding retained dependencies, including duplicates before membership checking"
+    },
+    "singleInstrumentedRunEach": true,
+    "independentOfTimingSamples": true,
+    "diagnosticStageSeconds": {
+      "before": {
+        "files.basis-scan": 0.13082709999999997,
+        "files.basis-preserve": 0.005055199999999999,
+        "files.retained-git-scope": 0.004606,
+        "files.result-scan": 0.4922229,
+        "files.retention-select": 0.20571060000000002,
+        "files.basis-preserve-selected": 0.27117749999999996,
+        "files.basis-header-publish": 0.0319893,
+        "files.raw-preparation": 0.5589983000000001,
+        "files.range-descriptors": 0.2217912,
+        "adoption.build-flush": 0.0381681,
+        "adoption.maintenance": 0.1331372,
+        "files.adoption-publish": 0.39510159999999994,
+        "files.range-preserve": 1.4125746000000001,
+        "files.independent-open": 0.008370899999999999,
+        "files.independent-verify-1": 0.2527557,
+        "files.capture-boundary-1": 0.0041995,
+        "files.result-header-publish": 0.038121,
+        "files.capture-boundary-2": 0.0043659,
+        "files.receipt-publish": 0.035740999999999995,
+        "files.independent-verify-2": 0.2855357,
+        "files.storage-accounting": 0.22364699999999998
+      },
+      "after": {
+        "files.basis-scan": 0.12831389999999998,
+        "files.basis-preserve": 0.004254299999999999,
+        "files.retained-git-scope": 0.0040887,
+        "files.result-scan": 0.4196504999999999,
+        "files.retention-select": 0.1718236,
+        "files.basis-preserve-selected": 0.24128560000000002,
+        "files.basis-header-publish": 0.0305395,
+        "files.raw-preparation": 0.5253403000000001,
+        "files.range-descriptors": 0.197772,
+        "adoption.build-flush": 0.0345814,
+        "adoption.maintenance": 0.1282429,
+        "files.adoption-publish": 0.3715948,
+        "files.range-preserve": 1.3152469,
+        "files.independent-open": 0.0088934,
+        "files.independent-verify-1": 0.2249021,
+        "files.capture-boundary-1": 0.0041059,
+        "files.result-header-publish": 0.0417584,
+        "files.capture-boundary-2": 0.0048701,
+        "files.receipt-publish": 0.037197100000000004,
+        "files.independent-verify-2": 0.25005140000000003,
+        "files.storage-accounting": 0.0919445
+      }
+    },
+    "stageTimingWarning": "Nested diagnostic intervals overlap; not additive and not an extra matched timing claim"
+  },
+  "interpretation": "Targeted work falls, but only 2,639 instrumented hash bytes are saved and actual metadata decodes fall 5.8%. First-block timing drift cause is unisolated; this input does not show useful whole-capture acceleration. Remaining scan/preservation/native publication costs are still present; no causal flush/CPU attribution was measured.",
+  "budgets": {
+    "overallExpectedMinutes": 18,
+    "overallStopMinutes": 36,
+    "preparationMinutes": [
+      5,
+      10
+    ],
+    "instrumentationMinutes": [
+      8,
+      16
+    ],
+    "comparisonMinutes": [
+      2,
+      4
+    ],
+    "recordingMinutes": [
+      3,
+      6
+    ],
+    "buildSeconds": [
+      15,
+      30
+    ],
+    "fixturePreparationSeconds": [
+      2,
+      4
+    ],
+    "oneCaptureSeconds": [
+      2,
+      4
+    ],
+    "sixCapturesSeconds": [
+      6,
+      12
+    ],
+    "finalChecksSeconds": [
+      2,
+      4
+    ],
+    "maxObservedCaptureSeconds": 2.0832152,
+    "stopBoundaryReached": false,
+    "cancellation": "Token deadlines and boundary checks block subsequent phases; preserve failed fixture and intents; no forced termination"
+  },
+  "binaryHashes": [
+    {
+      "variant": "before",
+      "assembly": "Splinter.Runtime",
+      "timingSha256": "e8de296f4f75e17807ff37c32b6f96ebe9d41035cd6aa576b19e1b0662e980db",
+      "counterSha256": "dc0c0c8c5a6146c74ddfd7056c2e7c207dbd2903caf5c4f108d7898289f414b4"
+    },
+    {
+      "variant": "before",
+      "assembly": "Splinter.SourceControl.Files",
+      "timingSha256": "f738b075b7f3d957a7a72d354e271c7d4fdf6aefcf454807bb6f01b4db67a250",
+      "counterSha256": "1c3bdb3cecb9e7fda65090f1056e2b98f71345142e126aaed5ef44c4863fe4fc"
+    },
+    {
+      "variant": "after",
+      "assembly": "Splinter.Runtime",
+      "timingSha256": "ea2d3c59d1899aa20990ca8001d5d5a98588be43431b032d2b3345aeae3d11bc",
+      "counterSha256": "9af377b671be5c9a29562dbc1fa42fcb9ef83021724ca585a9734c7699e6e98c"
+    },
+    {
+      "variant": "after",
+      "assembly": "Splinter.SourceControl.Files",
+      "timingSha256": "e0ad8e6be9fd49241fb3dcbf6e6792e8640ee4fffca6ded5801d44b25f27ed4f",
+      "counterSha256": "08d7897336f7fbb045e095f9c87958dbe4687bccbbab11a7cfd5159406ace608"
+    }
+  ],
+  "sourceEvidence": {
+    "beforeSourceVerification": [
+      {
+        "path": "src/Splinter.Runtime/JournalPagedCapture.cs",
+        "sha256": "00e654852a758e567fdd67736369cb3dcd18ba32ac8a7808230ea47fce5b8cd1"
+      },
+      {
+        "path": "src/Splinter.Runtime/MetadataMembership.cs",
+        "sha256": "be5b66e967716c1bc54d7f9a1ac8f83ffedb75d5a2e16e76d19c29aaf0aa9844"
+      },
+      {
+        "path": "src/Splinter.Runtime/OwnedRangeContentStore.cs",
+        "sha256": "335397458221eb552ed0215e2ec2a84417f018d913d95901a71b5550b4b03502"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+        "sha256": "2925fcebeb835f21a90afff7328f0b2ecdca150db3bb3869319b5c64e8c4c08e"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+        "sha256": "a59c0a929062d25f28b7aea69ab9e0d8fbf96e732d46d7efbeab8bf704de07ce"
+      },
+      {
+        "path": "src/Splinter.Runtime/CaptureBackingReaders.cs",
+        "sha256": "aae8e9f674f814fe306e8a261d0dba8a10b2e1298c9cdae150dc28afa97463fa"
+      }
+    ],
+    "candidates": {
+      "before": [
+        {
+          "path": "src/Splinter.Runtime/AtomicFilePublication.cs",
+          "normalizedSha256": "879941e3673d14247e2ebaa19a1798981e9b235ce9d9bc798917f481bf169ed5"
+        },
+        {
+          "path": "src/Splinter.Runtime/BoundedJournalReclamation.cs",
+          "normalizedSha256": "c2e6f66e9269326d0d8104d9319e1be901cf97e34a6b3fcdb6add7fab1a005cd"
+        },
+        {
+          "path": "src/Splinter.Runtime/BoundedParallel.cs",
+          "normalizedSha256": "fbdb34634748a943af52484634ed68169cbc6a99a14f6cc9168964095f1dc9ad"
+        },
+        {
+          "path": "src/Splinter.Runtime/BrotliWorkspacePayloadReader.cs",
+          "normalizedSha256": "f62a2f99920cd9d2d291fa6c127f74a2efc2b54255b72596e766bc105b67f1ef"
+        },
+        {
+          "path": "src/Splinter.Runtime/CacheSnapshotTree.cs",
+          "normalizedSha256": "37e43f3fa4d66d4a54b83a8bc1f96820cbc16305bce4b98980db496b1bb2f6d4"
+        },
+        {
+          "path": "src/Splinter.Runtime/CandidatePrefixWriter.cs",
+          "normalizedSha256": "e4694264d705b6034461fccea4542a775c43cf3a4c16132264bb46ba2fd2b838"
+        },
+        {
+          "path": "src/Splinter.Runtime/CaptureBackingReaders.cs",
+          "normalizedSha256": "aae8e9f674f814fe306e8a261d0dba8a10b2e1298c9cdae150dc28afa97463fa"
+        },
+        {
+          "path": "src/Splinter.Runtime/CapturedRangeAdoptionStore.cs",
+          "normalizedSha256": "00412553e24bfcda82a614481cf3e4694ba4717a0bce73349cf64e34d3894ae4"
+        },
+        {
+          "path": "src/Splinter.Runtime/CurrentJournalReclamation.cs",
+          "normalizedSha256": "63fb2ff16b3ea9ee092d6ca037f19b00efc1e70663d92735e316b80d86fa6c98"
+        },
+        {
+          "path": "src/Splinter.Runtime/DirectoryMetadataTree.cs",
+          "normalizedSha256": "58289e432e564a6928efcd79bcf010a2969d5d8d9f0c61509aeb9591c0679c30"
+        },
+        {
+          "path": "src/Splinter.Runtime/GraftedSnapshotTree.cs",
+          "normalizedSha256": "ebe762ced878e2117ac777a6efc54bb7c361acd4c915fe8957bcc6556c7aa50f"
+        },
+        {
+          "path": "src/Splinter.Runtime/IJournalDirectoryGuard.cs",
+          "normalizedSha256": "2924d15598f91760323c6442d9b2b9ce1115569346fde6e5edc5afbf1cb79ec1"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalCandidateProjection.cs",
+          "normalizedSha256": "14bdc9fda87fdc3a43468b10f7e86315da03a5cfa1b3303b9d6189346f7e8a78"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalCandidatePublication.cs",
+          "normalizedSha256": "65e1b879ec68bc8fdf8775ba37ea665075ea526323f58e28eb703defaab1aa0f"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalChangeReader.cs",
+          "normalizedSha256": "9dad30e0b7e0c92263a0cb3c640e9543a3dc2f6ba32538a2b8880c5e41573b3b"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalControlIntegrity.cs",
+          "normalizedSha256": "586e7c4eec0e6b773a6ef8088925983b6cd51f86186c7d6e619a2285ac081bcf"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDecodedPayloadCache.cs",
+          "normalizedSha256": "79c0a59975c1fc832899b3339bd35ba64db5781bef04b7f34d248175d0c95816"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaBounded.cs",
+          "normalizedSha256": "45e3143ab6897890abd2a13967ee6d1df17014ed2edc36a3bff49d07d5f9ac34"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaCandidates.cs",
+          "normalizedSha256": "16d3dc99855148ad10e0ca2e3d498024e2ca1cd7341ea85756ed33d2c62d5ee5"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaCompaction.cs",
+          "normalizedSha256": "d1e1fc978c16ca414c4a686257c60f23b3ef243b510631ecd971bd87912f99b3"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaInitialization.cs",
+          "normalizedSha256": "0b1eec5217f549745fd294271fcef49259ebce26131d7f82182a6242d9d81b28"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaLatest.cs",
+          "normalizedSha256": "8652dad6a3357094f14729ddc69bb7efb726fe08d66fd8a2f8fcdbbb3311d8c2"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaMetadataPages.cs",
+          "normalizedSha256": "cbb93a9ea3ba7984116135deca4db6e91da1d389d4702882d1bc8c33f529890a"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaRestore.cs",
+          "normalizedSha256": "f91221c8bf01158c42e307054950cf60dd420e30f994ab3cc360c9d2892dc4b2"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaSegments.cs",
+          "normalizedSha256": "1446023e0e31023cc068cbfc484398d48ab5147c427cce2387abb603f15ebfa6"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaStore.cs",
+          "normalizedSha256": "35380f61f1ead2c0cff3eba70244ca058d29c32168e2e0864247e0f17de21b6f"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalFrozenCaptureControls.cs",
+          "normalizedSha256": "ed6a03b5691966a5714fea0c465842df0586eb005b1b155c82fd0a4d12bea40c"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalIndexResiduals.cs",
+          "normalizedSha256": "04779aa403333b1d192cb9c17d24c8b6895741877dbf34f0ebb4ecc40de74c7c"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalInitialContent.cs",
+          "normalizedSha256": "d5f1978a34e5c5599a03eff35e51efacd828cbd3a1bc5322eb32144613b3c9cd"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalLiveIndexCollection.cs",
+          "normalizedSha256": "3e6109b3e89d5912905ddece5ee613750025b5abf953c195899b3cd82ac764dc"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPagedCapture.cs",
+          "normalizedSha256": "a69866f4cbed7f54a0e9caf21a417016c6b88c41dc2e628b522a6553ba77d846"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPagedCompaction.cs",
+          "normalizedSha256": "c9221739c0386bca65efc69d696be8b8fa69e764a7f9020e11cf919364626ea9"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPagedIndex.cs",
+          "normalizedSha256": "ec6d53eebdbb05fd4caf1e149cd6e1bc5614a4f8c11a0c2e70ed23eaf1fee436"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPagedIndexReclamation.cs",
+          "normalizedSha256": "59a16d63f3f7c9d41f6c0bcf3abc2094be03e252e9fe98db2c8577e62ed0384a"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPartialSegmentPacking.cs",
+          "normalizedSha256": "9c7be89c07c7e15c40cb09b452a25d3f6ea16ddb6f92ad3620e1fcc10b1631c2"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPathComponents.cs",
+          "normalizedSha256": "c1fb5883dbfe624847fc87370cdd1dab20ea281622aebbe0b8151b079a5b940f"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPayloadFrames.cs",
+          "normalizedSha256": "4cf72104dd3a0c28a339bb283da0692e82c7d2cf32db5bd42864eff29c631041"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPrivateFiles.cs",
+          "normalizedSha256": "55f1c94f5571bd44935ed56de9b788e602864d7bf91e9abeee2334144479981d"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalRangeAdoption.cs",
+          "normalizedSha256": "d51cf3d6036be6efe9c8010010360ccb896d95f79739a7ba0b6dd8e7249e18c8"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalReadOnlyReplayScope.cs",
+          "normalizedSha256": "cd5e50281deb2ce574e293e914bc5251a2bf023d84705bde11c32f3a387dcb30"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalReplayReader.cs",
+          "normalizedSha256": "d3cf5157ac2904765b4565af6e7b4c966c33f48a4d0cb50ce59f80b4028e8a47"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalSegmentCollection.cs",
+          "normalizedSha256": "ad1bf88d9704fa3b8d857a14b9ff1b23085c5d1293780040e1394d7a543fdadd"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalSegmentCompaction.cs",
+          "normalizedSha256": "0f86b7bf36eef940713db87ffe56e72c893dfbf7dfb4a45c3dc7114607433379"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalSegmentStorage.cs",
+          "normalizedSha256": "50f81456b4045480e77941dd3998bbf44d4931070380fa6c741b9da5310274a7"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalSourceCapture.cs",
+          "normalizedSha256": "e520a6ee1582ae1ed1e93346f47677f17a66d9c4fd68ede5dfd8201cf3285764"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalStateFrames.cs",
+          "normalizedSha256": "d07a5dbb90122b6debbb5c49227c14c310c2002f1b1c8e52830dce7bbb414402"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalStoppedIndexPreservation.cs",
+          "normalizedSha256": "ba775fad68e6dab34c19f04c5c7172c11fb6475769150e97ab984e1d59b46044"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalStoppedJsonRoots.cs",
+          "normalizedSha256": "fd3bb4024b7404105f8eac953a0820d7acf58f708bc2ebaa5e4f252b01fbde16"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalWriteAccounting.cs",
+          "normalizedSha256": "eed6109aa4f4c13d0fbaa5bf6e56259a41af6ae6f81b961008d0e985df2f8de6"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalWriteBatch.cs",
+          "normalizedSha256": "4d9e77caeefb998d29d72632aa637fd5b338cbf85edd694ac19bd7f0f27250d3"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalWriteMetrics.cs",
+          "normalizedSha256": "920f1fc112beb4f5962832cbac0adfca6715d72bbaa070ea339b4ff2aa682a32"
+        },
+        {
+          "path": "src/Splinter.Runtime/JsonPropertyValidation.cs",
+          "normalizedSha256": "51c972718c0108cc6e2193ac3a4e88a692f62a2b4b2c9d89708f0e991d73ed80"
+        },
+        {
+          "path": "src/Splinter.Runtime/LatestJournalReclamation.cs",
+          "normalizedSha256": "fcb3fb138a99c94ae13fc356b07fd545e6e67ab4a4607411f2e481847b9bfb92"
+        },
+        {
+          "path": "src/Splinter.Runtime/LatestJournalStorage.cs",
+          "normalizedSha256": "6d484d727da28c7bc41655ba275821fda599a367c788a5a2b54d4beb25608e3d"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataExternalSort.cs",
+          "normalizedSha256": "024dfc56c24d3f260b8b545bf38457af0e1e6957808d552ee3543d02b03347a8"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataMaintenance.cs",
+          "normalizedSha256": "0dbe90c3780a87ce7fbf0e572b3c7dd9cf17d55ae181dca6c2dac8fa85a5c962"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataMembership.cs",
+          "normalizedSha256": "be5b66e967716c1bc54d7f9a1ac8f83ffedb75d5a2e16e76d19c29aaf0aa9844"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataScratchOwnership.cs",
+          "normalizedSha256": "ac2f39d77b84a5f2013ab1952a29109ff8ed5097311f49e7cbfcdd8315b274a0"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataSort.cs",
+          "normalizedSha256": "65a07c8e4985758921bdac1c9b02888198216dc580a02083a06269d4bfeeeb53"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataSpool.cs",
+          "normalizedSha256": "7671f922166b2db7456164f216e5cacfc75ea2895ba685d15af55246640db43f"
+        },
+        {
+          "path": "src/Splinter.Runtime/OperationDiskSpace.cs",
+          "normalizedSha256": "588ed29982bc9862ff03743b4458680a2605e66370ef36869802b9635506dc7e"
+        },
+        {
+          "path": "src/Splinter.Runtime/OriginalApplyPages.cs",
+          "normalizedSha256": "2683b6f55caf4333b7abf2e93cf9c258fce024c022d62671dc8cab334b4c4e13"
+        },
+        {
+          "path": "src/Splinter.Runtime/OwnedCapturedContentReader.cs",
+          "normalizedSha256": "39b6fdbe49969a30b9d732fdb50748ce34e471a69e5ec3af6d9a9d99105ecf55"
+        },
+        {
+          "path": "src/Splinter.Runtime/OwnedContentStore.cs",
+          "normalizedSha256": "778867a166d3e1c167f2c50e8f41e97b2a5eb80b1396661538af2227485d075c"
+        },
+        {
+          "path": "src/Splinter.Runtime/OwnedMetadataMaintenance.cs",
+          "normalizedSha256": "9cedd323cee3bc9211915705c7c33e3ab019b37e7f87d10ba68197aa3e0ee283"
+        },
+        {
+          "path": "src/Splinter.Runtime/OwnedRangeContentStore.cs",
+          "normalizedSha256": "fc0f0ab8073c9c57ac7f3e45fbeea437c7c67a4e19c26a156e637f9023b1e686"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedExtentMap.cs",
+          "normalizedSha256": "050c8d0452997e738a24feef20d6405094088a87b7afc2437311c23fe11600e1"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataBatch.cs",
+          "normalizedSha256": "546ec487670abb7c29849cb1dd7a58ea98eb9be4532700457667f6347dfd7530"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataCollection.cs",
+          "normalizedSha256": "5411519c58e89edcf098eabfc2d667e5b5555548fb433acc45577aa21cc8ffd6"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataCompactProof.cs",
+          "normalizedSha256": "85aab04079e7bd722389fb09fca5fe3cec04b6a292f2269c2089317f3202a2a1"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataDerivedStore.cs",
+          "normalizedSha256": "8da6026f3c35ff90ea99da47f0e14b36222c8f1759a3aa9b8d5e0a9893621d3f"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataGraphCopy.cs",
+          "normalizedSha256": "3b9a336093966f07e2c890c4217eab2535a600de95c6d5955a43986ae319b6a8"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataOwnership.cs",
+          "normalizedSha256": "a13be66fc307534439efd923f648cd7fde972068ba7787d6e6fa1162509eb3ef"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataReachability.cs",
+          "normalizedSha256": "40e692700b492625bf29ccebc920bec62677762f4200a463e1938e92cc33e9e1"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataStoppedAudit.cs",
+          "normalizedSha256": "e9146d02748fb097ce7222cfb50fa973a27b3c9054cd2ea9692db7a84bd24586"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataStore.cs",
+          "normalizedSha256": "f547923c3e3fd053f67430dbc8b5d13643166493dce0ed4a8698f56cf2ee2e5b"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedPathInterner.cs",
+          "normalizedSha256": "ee8391fdbf5de4e995c242d10abf0425a4f344028ddee9bcb9d11292ef96aae2"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedSnapshotCatalog.cs",
+          "normalizedSha256": "35eaae5c16e077d4bf45ab27718972f581ae58909efc648cf8465788f3be8c59"
+        },
+        {
+          "path": "src/Splinter.Runtime/PayloadHash.cs",
+          "normalizedSha256": "a8c5b926d857b446efa34db7198d5f8a4c5a4a36406b97465da44a89dbd1d5c0"
+        },
+        {
+          "path": "src/Splinter.Runtime/ResultFileContentStore.cs",
+          "normalizedSha256": "0158c8b131513fa393483d3d1ce35338a3cc5520dc45bbd09b08d61fefeb23cd"
+        },
+        {
+          "path": "src/Splinter.Runtime/ResultGenerationDiagnostics.cs",
+          "normalizedSha256": "2e1d04212abacc8ef7a94b6d521b2da3f112f607b3a6772dc0c409c25767866e"
+        },
+        {
+          "path": "src/Splinter.Runtime/SegmentedJournalReclamation.cs",
+          "normalizedSha256": "763f90c39707e00f126d7d2ba1e35ba66e90c8e3c52ee4ffeda8d4e0ec954233"
+        },
+        {
+          "path": "src/Splinter.Runtime/SharedMetadataPool.cs",
+          "normalizedSha256": "289af63bb1d545047346898729d45eae941d8170eade045b8d612f700bed546a"
+        },
+        {
+          "path": "src/Splinter.Runtime/SharedMetadataPoolMaintenance.cs",
+          "normalizedSha256": "dde69d5b9da536686128692646c5844f8c70b7d15c875f8e0f1b4e9bd672a8c1"
+        },
+        {
+          "path": "src/Splinter.Runtime/SnapshotWorkspaces.cs",
+          "normalizedSha256": "47e055f4ded1f1bf827ec4d78741f2c468a0adfe919dc1d3ad27fc26c62ad770"
+        },
+        {
+          "path": "src/Splinter.Runtime/SourceViewDeltaStore.cs",
+          "normalizedSha256": "25c08152758b39aa4814db1dfcece5a1b6d99fc298dc89a430498884d16f8469"
+        },
+        {
+          "path": "src/Splinter.Runtime/StorageResources.cs",
+          "normalizedSha256": "65bdbb6a749351ca15358bffa198ff839255e97880cfd4ad8b3e73e4e8b0d926"
+        },
+        {
+          "path": "src/Splinter.Runtime/TemporaryMetadataDirectory.cs",
+          "normalizedSha256": "9cf8d16d5b32f8585c2e973dcde9fa227dad3d89e7935c0bd8e6defa32d66509"
+        },
+        {
+          "path": "src/Splinter.Runtime/ViewWorkflowCoordinator.cs",
+          "normalizedSha256": "9fed31548989ef6fe30e3df45ee6f49bdfadc64c5b21abac268652d6aea39653"
+        },
+        {
+          "path": "src/Splinter.Runtime/ViewWorkflowRules.cs",
+          "normalizedSha256": "f6db1ace4e507ab65dc38f702d672ce84ef691ddd2108e4dba309de587507cb1"
+        },
+        {
+          "path": "src/Splinter.Runtime/ViewWorkflowStore.cs",
+          "normalizedSha256": "d5e34b3692bea8e90f991d3a3c2c1a80b8621d8b2c5fbbb4f285c096de5aa542"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceActions.cs",
+          "normalizedSha256": "f90ed30e72fa72ce7ed06aa993fcb6bb38e46eac90df031f314436d3bea4bd7c"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceCoordinator.cs",
+          "normalizedSha256": "7bde617db4c36ad591d8f3775cbb2142ca12d788cde50baa4b708c39e4c4874f"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceDiscard.cs",
+          "normalizedSha256": "3b13ec866f3aed46e413cf15a5a8415bb4922fc486e49257a40c9b0c01bdedde"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceGenerations.cs",
+          "normalizedSha256": "7bbebbb2b8afe063c8484a6cdb28bd30545beac013f3ed17d0dbedfafb610e89"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceHistoryStorage.cs",
+          "normalizedSha256": "169d90f66408db2ae717fe8c9678391c2829747ad9030d2b96ba03506a0494f3"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceMetadataMaintenance.cs",
+          "normalizedSha256": "bbfe4e3a033ba820fbc66be46b3fb14cd1abcfc097aa8f53ab6c5072976f3c61"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceOriginalApply.cs",
+          "normalizedSha256": "1cc6fda3d54948010493cb26237904fb74f9c9985eb82c728010faa52a66b2b4"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceStore.cs",
+          "normalizedSha256": "0609765fef4d7cd79692ed9f991e060e3f7ac4eb4e855185bf5b885979d33def"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileApplyIndex.cs",
+          "normalizedSha256": "8c9a7e32ce6c5ba4324f71d08ad84fbaa918bd3739644b4a9587eead893eb1d8"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileGitGenerationMaterialization.cs",
+          "normalizedSha256": "358a9251f844197ff876fc976a2b1626961f3fc9128da5773597b9fdbcdb9b9e"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileInspectionProof.cs",
+          "normalizedSha256": "09639c5ee7b17b114e1b24b816d915a42bb15a987c6f877a5412fafe86c282fb"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileMetadataMaintenance.cs",
+          "normalizedSha256": "eef4e369197af9ef0118a68471ad28eb821d234b397d06ff95bc1e11b400f023"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileOriginalApply.cs",
+          "normalizedSha256": "b8e999579cd0f3a795086cf54145cbda4b47c71092ba59431edf2c83395d4968"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FilePagedQueries.cs",
+          "normalizedSha256": "7b2396fd03ce1dddfbb0f0359b2afbf74e432d5d35190a4e2d60cffdd3072e9d"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileRawRangePreparation.cs",
+          "normalizedSha256": "02e01c81b5bdd094703d98a0f154581d82e9b604739b1216086113fa1476ae77"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileRecordedBasis.cs",
+          "normalizedSha256": "7d474df30ca738965afee94ce6ee1433334c161f3565772675a1dbbc3c7b04f2"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileReferenceResults.cs",
+          "normalizedSha256": "6f9a747eef4c673561f09450601d45ff5136b3a1028f8b0889c22f26de320f16"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+          "normalizedSha256": "36fb21b73494df9f5723bc29cba59796d2a7fc2bcd1d5bf19d69ebfe7dee6154"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+          "normalizedSha256": "17ce3cdf7ca30c05678db418b847243917aed17aa6d7ebd5a08aba91b984643a"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticLockIndex.cs",
+          "normalizedSha256": "f07bcd78cf06aa31302ee417d17bac3a8ef410343c3ab83728635e03c954c0da"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticManifestObservationScope.cs",
+          "normalizedSha256": "a81b1738459979e53c9c75aeb8b63673f3d1b5c847afa992b8b82c3042e32da6"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticOriginalGuard.cs",
+          "normalizedSha256": "54d5763b1dccce17c8c42f7d4825203df68cbb537a72f3d76fad8782f382a2b8"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionBridge.cs",
+          "normalizedSha256": "2afb20b7bfad6c619017c2ad259497a8525ffe6edf94bacd21fdbb7281cf7e90"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionClient.cs",
+          "normalizedSha256": "eb14d5a8b166e8a987c30c257fcae275112e5350202df8536a6eae295c7032d7"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionManifest.cs",
+          "normalizedSha256": "d2428b997c7ea34ee8eea2c28bc36db50e1f99cba8794bbbc988c3f1a2473b29"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionSnapshotProvider.cs",
+          "normalizedSha256": "8b2e935703b1655129945d80d33c68abeedd38f5700abe98e1421d12ffc98554"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionSnapshotTree.cs",
+          "normalizedSha256": "06fa5f8f3f5f3ba1f104d1ab6662993cb725775e46a2e418d409b3a93608f391"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionStreamSession.cs",
+          "normalizedSha256": "ab2fa0425792bf13567610f8c97c96e66be4c15ca86e37b7c391635cb354e3a4"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticWorkspaceClient.cs",
+          "normalizedSha256": "d7bc010cb5adac607098bc4e03587d919f0f8a7bbd797cd0e998328a7a8ca421"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs",
+          "normalizedSha256": "2f840083c93291723457379cfe5c507cbeb78fe2f5fa761159f58c645f28db5e"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/SourceWorkspaceRouter.cs",
+          "normalizedSha256": "634604a2d9d54f5022d9a7149f7bd417b56ed9db003fa140b1dd5c83ea02845f"
+        }
+      ],
+      "after": [
+        {
+          "path": "src/Splinter.Runtime/AtomicFilePublication.cs",
+          "normalizedSha256": "879941e3673d14247e2ebaa19a1798981e9b235ce9d9bc798917f481bf169ed5"
+        },
+        {
+          "path": "src/Splinter.Runtime/BoundedJournalReclamation.cs",
+          "normalizedSha256": "c2e6f66e9269326d0d8104d9319e1be901cf97e34a6b3fcdb6add7fab1a005cd"
+        },
+        {
+          "path": "src/Splinter.Runtime/BoundedParallel.cs",
+          "normalizedSha256": "fbdb34634748a943af52484634ed68169cbc6a99a14f6cc9168964095f1dc9ad"
+        },
+        {
+          "path": "src/Splinter.Runtime/BrotliWorkspacePayloadReader.cs",
+          "normalizedSha256": "f62a2f99920cd9d2d291fa6c127f74a2efc2b54255b72596e766bc105b67f1ef"
+        },
+        {
+          "path": "src/Splinter.Runtime/CacheSnapshotTree.cs",
+          "normalizedSha256": "37e43f3fa4d66d4a54b83a8bc1f96820cbc16305bce4b98980db496b1bb2f6d4"
+        },
+        {
+          "path": "src/Splinter.Runtime/CandidatePrefixWriter.cs",
+          "normalizedSha256": "e4694264d705b6034461fccea4542a775c43cf3a4c16132264bb46ba2fd2b838"
+        },
+        {
+          "path": "src/Splinter.Runtime/CaptureBackingReaders.cs",
+          "normalizedSha256": "aae8e9f674f814fe306e8a261d0dba8a10b2e1298c9cdae150dc28afa97463fa"
+        },
+        {
+          "path": "src/Splinter.Runtime/CapturedRangeAdoptionStore.cs",
+          "normalizedSha256": "00412553e24bfcda82a614481cf3e4694ba4717a0bce73349cf64e34d3894ae4"
+        },
+        {
+          "path": "src/Splinter.Runtime/CurrentJournalReclamation.cs",
+          "normalizedSha256": "63fb2ff16b3ea9ee092d6ca037f19b00efc1e70663d92735e316b80d86fa6c98"
+        },
+        {
+          "path": "src/Splinter.Runtime/DirectoryMetadataTree.cs",
+          "normalizedSha256": "58289e432e564a6928efcd79bcf010a2969d5d8d9f0c61509aeb9591c0679c30"
+        },
+        {
+          "path": "src/Splinter.Runtime/GraftedSnapshotTree.cs",
+          "normalizedSha256": "ebe762ced878e2117ac777a6efc54bb7c361acd4c915fe8957bcc6556c7aa50f"
+        },
+        {
+          "path": "src/Splinter.Runtime/IJournalDirectoryGuard.cs",
+          "normalizedSha256": "2924d15598f91760323c6442d9b2b9ce1115569346fde6e5edc5afbf1cb79ec1"
+        },
+        {
+          "path": "src/Splinter.Runtime/ImmutableReadProofs.cs",
+          "normalizedSha256": "b47370b1263c9dec826b9fbdb4e2d74963da808671b2d6ceba4517536ff18267"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalCandidateProjection.cs",
+          "normalizedSha256": "14bdc9fda87fdc3a43468b10f7e86315da03a5cfa1b3303b9d6189346f7e8a78"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalCandidatePublication.cs",
+          "normalizedSha256": "65e1b879ec68bc8fdf8775ba37ea665075ea526323f58e28eb703defaab1aa0f"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalChangeReader.cs",
+          "normalizedSha256": "9dad30e0b7e0c92263a0cb3c640e9543a3dc2f6ba32538a2b8880c5e41573b3b"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalControlIntegrity.cs",
+          "normalizedSha256": "586e7c4eec0e6b773a6ef8088925983b6cd51f86186c7d6e619a2285ac081bcf"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDecodedPayloadCache.cs",
+          "normalizedSha256": "79c0a59975c1fc832899b3339bd35ba64db5781bef04b7f34d248175d0c95816"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaBounded.cs",
+          "normalizedSha256": "45e3143ab6897890abd2a13967ee6d1df17014ed2edc36a3bff49d07d5f9ac34"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaCandidates.cs",
+          "normalizedSha256": "16d3dc99855148ad10e0ca2e3d498024e2ca1cd7341ea85756ed33d2c62d5ee5"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaCompaction.cs",
+          "normalizedSha256": "d1e1fc978c16ca414c4a686257c60f23b3ef243b510631ecd971bd87912f99b3"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaInitialization.cs",
+          "normalizedSha256": "0b1eec5217f549745fd294271fcef49259ebce26131d7f82182a6242d9d81b28"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaLatest.cs",
+          "normalizedSha256": "8652dad6a3357094f14729ddc69bb7efb726fe08d66fd8a2f8fcdbbb3311d8c2"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaMetadataPages.cs",
+          "normalizedSha256": "cbb93a9ea3ba7984116135deca4db6e91da1d389d4702882d1bc8c33f529890a"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaRestore.cs",
+          "normalizedSha256": "f91221c8bf01158c42e307054950cf60dd420e30f994ab3cc360c9d2892dc4b2"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaSegments.cs",
+          "normalizedSha256": "1446023e0e31023cc068cbfc484398d48ab5147c427cce2387abb603f15ebfa6"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalDeltaStore.cs",
+          "normalizedSha256": "35380f61f1ead2c0cff3eba70244ca058d29c32168e2e0864247e0f17de21b6f"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalFrozenCaptureControls.cs",
+          "normalizedSha256": "ed6a03b5691966a5714fea0c465842df0586eb005b1b155c82fd0a4d12bea40c"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalIndexResiduals.cs",
+          "normalizedSha256": "04779aa403333b1d192cb9c17d24c8b6895741877dbf34f0ebb4ecc40de74c7c"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalInitialContent.cs",
+          "normalizedSha256": "d5f1978a34e5c5599a03eff35e51efacd828cbd3a1bc5322eb32144613b3c9cd"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalLiveIndexCollection.cs",
+          "normalizedSha256": "3e6109b3e89d5912905ddece5ee613750025b5abf953c195899b3cd82ac764dc"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPagedCapture.cs",
+          "normalizedSha256": "a69866f4cbed7f54a0e9caf21a417016c6b88c41dc2e628b522a6553ba77d846"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPagedCompaction.cs",
+          "normalizedSha256": "c9221739c0386bca65efc69d696be8b8fa69e764a7f9020e11cf919364626ea9"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPagedIndex.cs",
+          "normalizedSha256": "ec6d53eebdbb05fd4caf1e149cd6e1bc5614a4f8c11a0c2e70ed23eaf1fee436"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPagedIndexReclamation.cs",
+          "normalizedSha256": "59a16d63f3f7c9d41f6c0bcf3abc2094be03e252e9fe98db2c8577e62ed0384a"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPartialSegmentPacking.cs",
+          "normalizedSha256": "9c7be89c07c7e15c40cb09b452a25d3f6ea16ddb6f92ad3620e1fcc10b1631c2"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPathComponents.cs",
+          "normalizedSha256": "c1fb5883dbfe624847fc87370cdd1dab20ea281622aebbe0b8151b079a5b940f"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPayloadFrames.cs",
+          "normalizedSha256": "4cf72104dd3a0c28a339bb283da0692e82c7d2cf32db5bd42864eff29c631041"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalPrivateFiles.cs",
+          "normalizedSha256": "55f1c94f5571bd44935ed56de9b788e602864d7bf91e9abeee2334144479981d"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalRangeAdoption.cs",
+          "normalizedSha256": "d51cf3d6036be6efe9c8010010360ccb896d95f79739a7ba0b6dd8e7249e18c8"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalReadOnlyReplayScope.cs",
+          "normalizedSha256": "cd5e50281deb2ce574e293e914bc5251a2bf023d84705bde11c32f3a387dcb30"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalReplayReader.cs",
+          "normalizedSha256": "d3cf5157ac2904765b4565af6e7b4c966c33f48a4d0cb50ce59f80b4028e8a47"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalSegmentCollection.cs",
+          "normalizedSha256": "ad1bf88d9704fa3b8d857a14b9ff1b23085c5d1293780040e1394d7a543fdadd"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalSegmentCompaction.cs",
+          "normalizedSha256": "0f86b7bf36eef940713db87ffe56e72c893dfbf7dfb4a45c3dc7114607433379"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalSegmentStorage.cs",
+          "normalizedSha256": "50f81456b4045480e77941dd3998bbf44d4931070380fa6c741b9da5310274a7"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalSourceCapture.cs",
+          "normalizedSha256": "e520a6ee1582ae1ed1e93346f47677f17a66d9c4fd68ede5dfd8201cf3285764"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalStateFrames.cs",
+          "normalizedSha256": "d07a5dbb90122b6debbb5c49227c14c310c2002f1b1c8e52830dce7bbb414402"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalStoppedIndexPreservation.cs",
+          "normalizedSha256": "ba775fad68e6dab34c19f04c5c7172c11fb6475769150e97ab984e1d59b46044"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalStoppedJsonRoots.cs",
+          "normalizedSha256": "fd3bb4024b7404105f8eac953a0820d7acf58f708bc2ebaa5e4f252b01fbde16"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalWriteAccounting.cs",
+          "normalizedSha256": "eed6109aa4f4c13d0fbaa5bf6e56259a41af6ae6f81b961008d0e985df2f8de6"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalWriteBatch.cs",
+          "normalizedSha256": "4d9e77caeefb998d29d72632aa637fd5b338cbf85edd694ac19bd7f0f27250d3"
+        },
+        {
+          "path": "src/Splinter.Runtime/JournalWriteMetrics.cs",
+          "normalizedSha256": "920f1fc112beb4f5962832cbac0adfca6715d72bbaa070ea339b4ff2aa682a32"
+        },
+        {
+          "path": "src/Splinter.Runtime/JsonPropertyValidation.cs",
+          "normalizedSha256": "51c972718c0108cc6e2193ac3a4e88a692f62a2b4b2c9d89708f0e991d73ed80"
+        },
+        {
+          "path": "src/Splinter.Runtime/LatestJournalReclamation.cs",
+          "normalizedSha256": "fcb3fb138a99c94ae13fc356b07fd545e6e67ab4a4607411f2e481847b9bfb92"
+        },
+        {
+          "path": "src/Splinter.Runtime/LatestJournalStorage.cs",
+          "normalizedSha256": "6d484d727da28c7bc41655ba275821fda599a367c788a5a2b54d4beb25608e3d"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataExternalSort.cs",
+          "normalizedSha256": "024dfc56c24d3f260b8b545bf38457af0e1e6957808d552ee3543d02b03347a8"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataMaintenance.cs",
+          "normalizedSha256": "0dbe90c3780a87ce7fbf0e572b3c7dd9cf17d55ae181dca6c2dac8fa85a5c962"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataMembership.cs",
+          "normalizedSha256": "be5b66e967716c1bc54d7f9a1ac8f83ffedb75d5a2e16e76d19c29aaf0aa9844"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataScratchOwnership.cs",
+          "normalizedSha256": "ac2f39d77b84a5f2013ab1952a29109ff8ed5097311f49e7cbfcdd8315b274a0"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataSort.cs",
+          "normalizedSha256": "65a07c8e4985758921bdac1c9b02888198216dc580a02083a06269d4bfeeeb53"
+        },
+        {
+          "path": "src/Splinter.Runtime/MetadataSpool.cs",
+          "normalizedSha256": "7671f922166b2db7456164f216e5cacfc75ea2895ba685d15af55246640db43f"
+        },
+        {
+          "path": "src/Splinter.Runtime/OperationDiskSpace.cs",
+          "normalizedSha256": "588ed29982bc9862ff03743b4458680a2605e66370ef36869802b9635506dc7e"
+        },
+        {
+          "path": "src/Splinter.Runtime/OriginalApplyPages.cs",
+          "normalizedSha256": "2683b6f55caf4333b7abf2e93cf9c258fce024c022d62671dc8cab334b4c4e13"
+        },
+        {
+          "path": "src/Splinter.Runtime/OwnedCapturedContentReader.cs",
+          "normalizedSha256": "39b6fdbe49969a30b9d732fdb50748ce34e471a69e5ec3af6d9a9d99105ecf55"
+        },
+        {
+          "path": "src/Splinter.Runtime/OwnedContentStore.cs",
+          "normalizedSha256": "bddab8f7ec4bc7edfbedfaec2d4e34d100ae3c9807a9f733f39b68248b27875f"
+        },
+        {
+          "path": "src/Splinter.Runtime/OwnedMetadataMaintenance.cs",
+          "normalizedSha256": "9cedd323cee3bc9211915705c7c33e3ab019b37e7f87d10ba68197aa3e0ee283"
+        },
+        {
+          "path": "src/Splinter.Runtime/OwnedRangeContentStore.cs",
+          "normalizedSha256": "b8a65a98687130ca73b90b219884b77674e15a58b10c95c54a1d6849a2952622"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedCatalogReadScope.cs",
+          "normalizedSha256": "e5f4e53f75f320831b8bb8f45de869d375bb915704fceda85a1e3fea027426aa"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedExtentMap.cs",
+          "normalizedSha256": "050c8d0452997e738a24feef20d6405094088a87b7afc2437311c23fe11600e1"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataBatch.cs",
+          "normalizedSha256": "546ec487670abb7c29849cb1dd7a58ea98eb9be4532700457667f6347dfd7530"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataCollection.cs",
+          "normalizedSha256": "5411519c58e89edcf098eabfc2d667e5b5555548fb433acc45577aa21cc8ffd6"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataCompactProof.cs",
+          "normalizedSha256": "85aab04079e7bd722389fb09fca5fe3cec04b6a292f2269c2089317f3202a2a1"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataDerivedStore.cs",
+          "normalizedSha256": "8da6026f3c35ff90ea99da47f0e14b36222c8f1759a3aa9b8d5e0a9893621d3f"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataDifference.cs",
+          "normalizedSha256": "542881caeb7e443eef077208d2f1246fc6ac738e077ad63c701e7e250824e470"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataGraphCopy.cs",
+          "normalizedSha256": "3b9a336093966f07e2c890c4217eab2535a600de95c6d5955a43986ae319b6a8"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataOwnership.cs",
+          "normalizedSha256": "a13be66fc307534439efd923f648cd7fde972068ba7787d6e6fa1162509eb3ef"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataReachability.cs",
+          "normalizedSha256": "40e692700b492625bf29ccebc920bec62677762f4200a463e1938e92cc33e9e1"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataStoppedAudit.cs",
+          "normalizedSha256": "e9146d02748fb097ce7222cfb50fa973a27b3c9054cd2ea9692db7a84bd24586"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedMetadataStore.cs",
+          "normalizedSha256": "a0f922d2a9dafce6736dfa308b82dbac37391d13e00cfcd0756db7343abf08fe"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedPathInterner.cs",
+          "normalizedSha256": "ee8391fdbf5de4e995c242d10abf0425a4f344028ddee9bcb9d11292ef96aae2"
+        },
+        {
+          "path": "src/Splinter.Runtime/PagedSnapshotCatalog.cs",
+          "normalizedSha256": "35eaae5c16e077d4bf45ab27718972f581ae58909efc648cf8465788f3be8c59"
+        },
+        {
+          "path": "src/Splinter.Runtime/PayloadHash.cs",
+          "normalizedSha256": "a8c5b926d857b446efa34db7198d5f8a4c5a4a36406b97465da44a89dbd1d5c0"
+        },
+        {
+          "path": "src/Splinter.Runtime/ResultFileContentStore.cs",
+          "normalizedSha256": "4656fe5caac12ae07f1491f419a2ab54b2a6dee6ad32864732a1d86b23084001"
+        },
+        {
+          "path": "src/Splinter.Runtime/ResultFileVerification.cs",
+          "normalizedSha256": "52a18e531d9426deecce823b625e90848cc2fe2ff290b784fbdda93e82a8b288"
+        },
+        {
+          "path": "src/Splinter.Runtime/ResultGenerationDiagnostics.cs",
+          "normalizedSha256": "2e1d04212abacc8ef7a94b6d521b2da3f112f607b3a6772dc0c409c25767866e"
+        },
+        {
+          "path": "src/Splinter.Runtime/SegmentedJournalReclamation.cs",
+          "normalizedSha256": "763f90c39707e00f126d7d2ba1e35ba66e90c8e3c52ee4ffeda8d4e0ec954233"
+        },
+        {
+          "path": "src/Splinter.Runtime/SharedMetadataPool.cs",
+          "normalizedSha256": "289af63bb1d545047346898729d45eae941d8170eade045b8d612f700bed546a"
+        },
+        {
+          "path": "src/Splinter.Runtime/SharedMetadataPoolMaintenance.cs",
+          "normalizedSha256": "dde69d5b9da536686128692646c5844f8c70b7d15c875f8e0f1b4e9bd672a8c1"
+        },
+        {
+          "path": "src/Splinter.Runtime/SnapshotWorkspaces.cs",
+          "normalizedSha256": "47e055f4ded1f1bf827ec4d78741f2c468a0adfe919dc1d3ad27fc26c62ad770"
+        },
+        {
+          "path": "src/Splinter.Runtime/SourceViewDeltaStore.cs",
+          "normalizedSha256": "25c08152758b39aa4814db1dfcece5a1b6d99fc298dc89a430498884d16f8469"
+        },
+        {
+          "path": "src/Splinter.Runtime/StorageResources.cs",
+          "normalizedSha256": "65bdbb6a749351ca15358bffa198ff839255e97880cfd4ad8b3e73e4e8b0d926"
+        },
+        {
+          "path": "src/Splinter.Runtime/TemporaryMetadataDirectory.cs",
+          "normalizedSha256": "9cf8d16d5b32f8585c2e973dcde9fa227dad3d89e7935c0bd8e6defa32d66509"
+        },
+        {
+          "path": "src/Splinter.Runtime/ViewWorkflowCoordinator.cs",
+          "normalizedSha256": "9fed31548989ef6fe30e3df45ee6f49bdfadc64c5b21abac268652d6aea39653"
+        },
+        {
+          "path": "src/Splinter.Runtime/ViewWorkflowRules.cs",
+          "normalizedSha256": "f6db1ace4e507ab65dc38f702d672ce84ef691ddd2108e4dba309de587507cb1"
+        },
+        {
+          "path": "src/Splinter.Runtime/ViewWorkflowStore.cs",
+          "normalizedSha256": "d5e34b3692bea8e90f991d3a3c2c1a80b8621d8b2c5fbbb4f285c096de5aa542"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceActions.cs",
+          "normalizedSha256": "f90ed30e72fa72ce7ed06aa993fcb6bb38e46eac90df031f314436d3bea4bd7c"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceCoordinator.cs",
+          "normalizedSha256": "7bde617db4c36ad591d8f3775cbb2142ca12d788cde50baa4b708c39e4c4874f"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceDiscard.cs",
+          "normalizedSha256": "3b13ec866f3aed46e413cf15a5a8415bb4922fc486e49257a40c9b0c01bdedde"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceGenerations.cs",
+          "normalizedSha256": "7bbebbb2b8afe063c8484a6cdb28bd30545beac013f3ed17d0dbedfafb610e89"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceHistoryStorage.cs",
+          "normalizedSha256": "169d90f66408db2ae717fe8c9678391c2829747ad9030d2b96ba03506a0494f3"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceMetadataMaintenance.cs",
+          "normalizedSha256": "bbfe4e3a033ba820fbc66be46b3fb14cd1abcfc097aa8f53ab6c5072976f3c61"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceOriginalApply.cs",
+          "normalizedSha256": "1cc6fda3d54948010493cb26237904fb74f9c9985eb82c728010faa52a66b2b4"
+        },
+        {
+          "path": "src/Splinter.Runtime/WorkspaceStore.cs",
+          "normalizedSha256": "0609765fef4d7cd79692ed9f991e060e3f7ac4eb4e855185bf5b885979d33def"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileApplyIndex.cs",
+          "normalizedSha256": "8c9a7e32ce6c5ba4324f71d08ad84fbaa918bd3739644b4a9587eead893eb1d8"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileGitGenerationMaterialization.cs",
+          "normalizedSha256": "358a9251f844197ff876fc976a2b1626961f3fc9128da5773597b9fdbcdb9b9e"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileInspectionProof.cs",
+          "normalizedSha256": "09639c5ee7b17b114e1b24b816d915a42bb15a987c6f877a5412fafe86c282fb"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileMetadataMaintenance.cs",
+          "normalizedSha256": "eef4e369197af9ef0118a68471ad28eb821d234b397d06ff95bc1e11b400f023"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileOriginalApply.cs",
+          "normalizedSha256": "b8e999579cd0f3a795086cf54145cbda4b47c71092ba59431edf2c83395d4968"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FilePagedQueries.cs",
+          "normalizedSha256": "7b2396fd03ce1dddfbb0f0359b2afbf74e432d5d35190a4e2d60cffdd3072e9d"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileRawRangePreparation.cs",
+          "normalizedSha256": "02e01c81b5bdd094703d98a0f154581d82e9b604739b1216086113fa1476ae77"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileRecordedBasis.cs",
+          "normalizedSha256": "7d474df30ca738965afee94ce6ee1433334c161f3565772675a1dbbc3c7b04f2"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileReferenceResults.cs",
+          "normalizedSha256": "c2adb403e5408f0804dfee400b96f791398ed07859ca7544cd6d8301c709a924"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+          "normalizedSha256": "adfc774f3e1d9b03083dc4b176d7c117730298d878a7064e110b70d98216b2c1"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+          "normalizedSha256": "2a09b09e7d76299eacfc7918ee72998b745e9dd69b47bb529d4e073189c2f075"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticLockIndex.cs",
+          "normalizedSha256": "f07bcd78cf06aa31302ee417d17bac3a8ef410343c3ab83728635e03c954c0da"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticManifestObservationScope.cs",
+          "normalizedSha256": "a81b1738459979e53c9c75aeb8b63673f3d1b5c847afa992b8b82c3042e32da6"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticOriginalGuard.cs",
+          "normalizedSha256": "54d5763b1dccce17c8c42f7d4825203df68cbb537a72f3d76fad8782f382a2b8"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionBridge.cs",
+          "normalizedSha256": "2afb20b7bfad6c619017c2ad259497a8525ffe6edf94bacd21fdbb7281cf7e90"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionClient.cs",
+          "normalizedSha256": "eb14d5a8b166e8a987c30c257fcae275112e5350202df8536a6eae295c7032d7"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionManifest.cs",
+          "normalizedSha256": "d2428b997c7ea34ee8eea2c28bc36db50e1f99cba8794bbbc988c3f1a2473b29"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionSnapshotProvider.cs",
+          "normalizedSha256": "8b2e935703b1655129945d80d33c68abeedd38f5700abe98e1421d12ffc98554"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionSnapshotTree.cs",
+          "normalizedSha256": "06fa5f8f3f5f3ba1f104d1ab6662993cb725775e46a2e418d409b3a93608f391"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticRevisionStreamSession.cs",
+          "normalizedSha256": "ab2fa0425792bf13567610f8c97c96e66be4c15ca86e37b7c391635cb354e3a4"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticWorkspaceClient.cs",
+          "normalizedSha256": "d7bc010cb5adac607098bc4e03587d919f0f8a7bbd797cd0e998328a7a8ca421"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/PlasticWorkspaceProvider.cs",
+          "normalizedSha256": "2f840083c93291723457379cfe5c507cbeb78fe2f5fa761159f58c645f28db5e"
+        },
+        {
+          "path": "src/Splinter.SourceControl.Files/SourceWorkspaceRouter.cs",
+          "normalizedSha256": "634604a2d9d54f5022d9a7149f7bd417b56ed9db003fa140b1dd5c83ea02845f"
+        }
+      ]
+    }
+  },
+  "artifacts": [
+    {
+      "path": "artifacts/reference-proof-timing-20261102/prepare.py",
+      "sha256": "99b5ccf9039d15b7bbf1e8fc198061a0573de61eebed7396ec89c298a7291af7"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/Program.cs",
+      "sha256": "e218da7572cf19e325cd2ce88599e150fed2f8f058826e1203630848ac49a7d4"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/instrument.py",
+      "sha256": "785da92197ad7604174aa551fb3f1ad03201acc04ac0caa89670777e88514442"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/source-manifest.json",
+      "sha256": "f16009f51d93d599d143debbf637a3ca0c4e58d1415ca75d027b0e1271b7e9c4"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/instrumentation-manifest.json",
+      "sha256": "3210f33f6d14d16257359fe1629bc89e195e3fcbbcf61a88e692a5bf033aa23e"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/time-a1.json",
+      "sha256": "9835ab66eb090a90ec6e8902f685479a89a8361017722b4cce2dfd58db386ce4"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/time-b1.json",
+      "sha256": "89053b874bcbd73ea5be955256bbd290207ef15995ce3acd092d903e2c209417"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/time-b2.json",
+      "sha256": "a4d2e15700c9bbb69c3340a09bf0f3893cb444917be6d48818a9633f65b245ab"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/time-a2.json",
+      "sha256": "13d56451dea4125f438d6d5213ccb3484af2b93126ab3fc3a48be76ab2345b13"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/time-a3.json",
+      "sha256": "29648d9b56c774eabc312f8e71df027df9047c0163b2bdf8bafffd6248d660da"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/time-b3.json",
+      "sha256": "6706bc2b4ea94178dc8d6e202e8acc973c968e8442662222955dc0ecc2d08f97"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/time-b4.json",
+      "sha256": "81b000f7f324d59c6634464921152af5098929053718aa3a826f9daba9c4e63f"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/time-a4.json",
+      "sha256": "01df921e07868c59539ceb3020fb290c23c401eaf8e763cd570853913c2f98a3"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/count-before.json",
+      "sha256": "9aaef588d86279c9a92a3ec3121d0290af6720f36ef36bc674d3dc8c7a29ceab"
+    },
+    {
+      "path": "artifacts/reference-proof-timing-20261102/count-after.json",
+      "sha256": "fb9081f55dc1ed07f2f26b09af8e40a213575b922f49035fadbdd4fb498e2863"
+    }
+  ],
+  "limits": [
+    "No product source or existing state modified by measurement",
+    "No large fixture/full gate/WinFsp/CLI/Unity/Git/Plastic lifecycle",
+    "No OS-cache flush, CPU-affinity control, background-load control or RAM/hardware-utilization measurement",
+    "Only two ABBA blocks and one counter run per variant; every run is a new process and fresh physical fixture",
+    "All result histories verified after the synthetic basis became unavailable; actual source-provider lifetime qualification is separate",
+    "No automatic deletion/reclamation of benchmark fixtures, no commit/push"
+  ]
+}

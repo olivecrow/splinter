@@ -1,4 +1,13 @@
+[ST-73–74](verification/scalable-storage-throughput-followup.md)는 요청 내 native 경로 증명·현재 leaf 검사/전체 순회 fallback과 metadata 헤더/페이지의 root ACK 전 영속 flush 결합을 연결한다. 변경 없는 flush 재사용은 열린 동일 writer 안에서만 허용하며 소유/control 경계는 유지한다. 최종 31파일·992바이트 ABBA 3.875355→3.677976초(5.09%), 변경부 20개 통과이며 대형/전체 gate 자격은 없다.
+
+[ST-70–72](verification/scalable-storage-throughput-followup.md)에서 작은 입력의 경로/metadata 진입·영속화 비용을 분리하고 요청 내 최대 4개 fenced metadata reader·호출자 소유 catalog reader와 읽기 전용 중복 상위 경로 검사 제거를 연결했다. 현재 소유 검사·ACK는 유지한다. 31파일·992바이트 ABBA 한 묶음은 3.354725→3.157597초(5.88%)이며 변경부 22개가 통과했다. 대형/전체 gate/provider 자격은 없다.
+
 # 문서 지도
+
+[ST-65–68](verification/scalable-storage-throughput-followup.md)는 요청 범위의 native catalog/하위 트리 증명·바이트 총량 결합, retained root 증분 갱신, 실제 과거 참조 포함 증명 뒤 중복 집계 생략, 게시 전후 독립 재검증하는 구성/의존성 증명을 추가한다. 형식·GC·ACK는 유지하며 작은 시험 26개는 대형·전체 수명주기 성능 자격이 아니다.
+
+[ST-61–64](verification/scalable-storage-throughput-followup.md)는 제한된 sealed capture backing reader·fence 아래 raw slice 증명 재사용·retained root 직접 검증·예산 내 참조 집계를 연결한다. 게시 검사·영속 ACK·과거 참조·같은 요청 유지관리를 유지하며 23개 작은 검사는 대형 처리량을 입증하지 않는다. 형식과 공개 CLI capabilities는 바꾸지 않았다.
+
 
 [처리량 리뷰 후속](verification/scalable-storage-throughput-followup.md)은 배치/자원 정책·정확한 게시 차등·작은 디렉터리 metadata·비교/목록용 바이너리 scratch·metadata 저장소 형식 2(`SPM2`)를 포함한 ST-01–60을 추적한다. 다중 항목 페이지는 보류다. 작은 native 검사·제한한 시간/gate 시도는 보존한 대형 입력 행렬을 자격화하거나 재개하지 않는다. 이어진 수집/반영 후속은 계획 안의 원본 root 관측 공유와 private 범위 직접 전달을 연결하며 별도의 작은 SPM2 시간 근거로 한정한다.
 

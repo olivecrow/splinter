@@ -59,6 +59,7 @@ public sealed partial class JournalDeltaStore
         private readonly PagedPathNamespace namesIndex;
         private readonly string scratch;
         private readonly BrotliWorkspacePayloadReader codec = new();
+        private readonly CaptureBackingReaders backingReaders;
         public ISnapshotTree Basis { get; }
         public SnapshotReference Snapshot => Basis.Snapshot;
         public SnapshotGraft? Graft => Basis.Graft;
@@ -71,6 +72,7 @@ public sealed partial class JournalDeltaStore
             this.capturedContentReader = capturedContentReader;
             roots = capture.Paged!; Basis = basis; policy = WorkspacePathPolicy.For(basis.Snapshot);
             index = new(roots.Directory); scratch = Path.Combine(Path.GetTempPath(), "splinter-metadata-sort");
+            backingReaders = new(directory, pins);
             components = new(index) { Root = roots.Names }; namesIndex = new(index, policy, _ => throw new NotSupportedException()) { Root = roots.Paths };
             try
             {
@@ -223,8 +225,8 @@ public sealed partial class JournalDeltaStore
                 var backing = Backing(extent);
                 if (extent.JournalOffset < 0 || extent.JournalOffset > backing.MinimumLength - extent.Payload.StoredBytes ||
                     extent.Start < 0 || extent.Start > node.Length - extent.Length) throw PagedInvalid();
-                using var segment = roots.Segments is null ? null : OpenBacking(backing);
-                var input = segment ?? payload!;
+                using var segment = roots.Segments is null ? null : backingReaders.Acquire(backing);
+                var input = segment?.Stream ?? payload!;
                 if (!extent.Payload.Encoded) ReadExactly(input, checked(extent.JournalOffset + skip), target);
                 else { byte[] data = new byte[extent.Payload.StoredBytes]; ReadExactly(input, extent.JournalOffset, data); if (codec.Read(data, skip, target) != count) throw PagedInvalid(); }
             }
@@ -243,14 +245,7 @@ public sealed partial class JournalDeltaStore
             string name = Path.GetFileNameWithoutExtension(JournalSegmentStorage.FileName(segment.Id));
             return new(Path.Combine(Path.GetDirectoryName(roots.Directory)!, name + ".sjr"), name + ".pin", segment.NativeIdentity, segment.Length, segment.Hash);
         }
-        private FileStream OpenBacking(CapturedBacking backing)
-        {
-            string path = Path.Combine(directory, backing.Name); WorkspaceStore.EnsurePlainPath(path);
-            var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 1, FileOptions.RandomAccess);
-            try { pins.Verify(input, backing.Identity); if (input.Length != backing.MinimumLength) throw PagedInvalid(); return input; }
-            catch { input.Dispose(); throw; }
-        }
-        public void Dispose() { payload?.Dispose(); index.Dispose(); }
+        public void Dispose() { backingReaders.Dispose(); payload?.Dispose(); index.Dispose(); }
     }
     private static (string Path, byte[] Value) UnpackPath(byte[] bytes, PathComponents components, MetadataTreeRoot fixedNames)
     {

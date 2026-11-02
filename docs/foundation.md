@@ -1,4 +1,13 @@
+[ST-73–74](verification/scalable-storage-throughput-followup.md) adds optional request-native path proofs with current leaf checks/full-walk fallback, and groups new metadata headers with pages before durable root ACK. Same-writer no-change flush reuse never crosses reopen. Ownership/control boundaries remain. Final 31-file/992-byte ABBA: 3.875355→3.677976s (5.09%); 20 focused cases. No large/full-gate qualification.
+
+[ST-70–72](verification/scalable-storage-throughput-followup.md#st-7072-capture-cost-attribution-and-metadata-reader-reuse) attributes the remaining small-input cost to path/metadata admission and durability, adds four fenced request-local metadata readers plus a caller-owned catalog reader, and removes one duplicate readonly ancestor walk. Fresh ownership checks and all ACKs remain. One 31-file/992-byte ABBA block measured 3.354725→3.157597s (5.88%); 22 focused tests passed. No large/full-gate/provider qualification.
+
 <a id="현재-기반"></a>
+
+[ST-65–68](verification/scalable-storage-throughput-followup.md) adds request-scoped native catalog/subtree proofs with fused byte totals, incremental retained-root updates, proven physical-history coverage for accounting, and independently revalidated composition/dependency proofs across publication. Formats, GC and ACKs remain; 26 focused cases do not qualify large or whole-lifecycle performance.
+
+[ST-61–64](verification/scalable-storage-throughput-followup.md) adds bounded sealed-capture backing readers, fenced raw-slice proof reuse, direct retained-root verification and budgeted reference accounting. Publication checks, durable ACKs, history references and same-request maintenance remain; 23 focused checks do not establish large-input throughput. No formats or public CLI capabilities changed.
+
 # Current foundation
 
 [ST-56–60](verification/scalable-storage-throughput-followup.md) aligns collection with reference workspaces: file manifest v4 retains changed before/after dependencies and prior retained content, compares existing directory roots without rebuilding flat work indices, publishes up to 64 result descriptors together, and moves alias pruning from capture to retained-result maintenance at release. Frozen reads fetch only uncovered basis gaps; frozen listings reuse verified child metadata. Full capture/publication checks and durable acknowledgements remain. Earlier file manifest v3 is preserved/refused; task/basis/overlay, SPM2 and command fields are unchanged. Small None evidence does not qualify large/Unity/Plastic inputs.

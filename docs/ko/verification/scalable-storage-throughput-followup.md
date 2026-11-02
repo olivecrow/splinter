@@ -365,3 +365,184 @@ ST-41은 ST-36–40 전 `3f7d5b1`과 후 `5dce6e0`를 비교한다. ST-42는 남
 사전 예상은 전체 **48분**, 설계/구현/최소 검증/기록 **8/25/10/5분**이며 실제 전체 작업은 전체 예상 이내였다. 각 trial은 **90초 예상/180초 중단**, 단계 **20/15/20/35초**, 기존 명령별 **3/5/5/2/5/8/3/1초** 예상을 유지하고 각각 2배 또는 더 이른 상위 deadline에 중단한다. 국소 검사 묶음은 **8/16초**, build는 **15/30초**였다. 측정 실행의 제한 초과는 없었으며 실제 후보는 timeout이 아닌 기능 실패로 중단했다. 제한 확대·상태 재작성·provider 강제 종료는 없었다.
 
 [원시 보고서](../../../reports/benchmarks/reference-capture-20261102.json)는 현재 소스·고정 바이너리·명령별 시간·하위 진단·실패/복구·provider 관측을 결합한다. 증거는 `artifacts/reference-capture-20261102/`다. 남은 작업은 전체 catalog scan·독립 payload 반복 검증·선택 반영의 넓은 비교·공통 잠금 안 전체 객체/참조 순회와 packing·쓰기 비교/flush 비용이다. 검사를 제거하려면 작업 범위에 묶인 증명이나 의존성을 반영한 순회가 필요하며 이번에 우회하지 않았다. 대형/100k/17GiB·실제 Unity/Git/Plastic 수명주기·전체 gate·OS 장애·최대 RAM·하드웨어 최대 활용 자격은 추가하지 않는다.
+
+## ST-61–64: 제한된 수집 reader와 참조 처리
+
+시작 HEAD는 `8709f902dd14d188f82f1e8cd170e96a2514a9bb`다. 메인 대화는 ST-56–60을 커밋하고 종료 상태였으므로 그 변경을 반복하지 않았다. 시작 시 미추적 파일은 별도 구조 검토 문서 두 개뿐이었다. 제품은 병렬 실행과 명시적 원본 반영을 위한 참조 작업공간이며 전체 프로젝트 보관소가 아니다.
+
+| ID | 구현과 보호 경계 |
+| --- | --- |
+| ST-61 | `CaptureBackingReaders`는 고정 paged reader마다 최대 8개 sealed segment 핸들을 재사용한다. 정확한 native identity/길이를 확인한 핸들이 퇴출/종료까지 쓰기·삭제를 차단한다. 실제 positional 읽기는 캐시 잠금 밖에서 병렬 수행하며 사용 중 핸들은 퇴출하지 않는다. 8개가 모두 사용 중이면 추가 읽기는 임시 핸들을 사용하므로 8은 보관 캐시 한도이지 전체 핸들 강제 상한이 아니다. 종료는 새 lease를 거부하고 진행 중 lease를 drain한다. 비segment append/bounded backing 동작은 유지한다. |
+| ST-62 | `OwnedRangeContentStore`의 기존 fenced backing proof 최대 8개마다 검증한 `(offset,length,hash)`를 최대 1,024개 기억한다. 정확한 쓰기/삭제 차단 핸들이 계속 열린 동안에만 같은 범위 해시를 재사용한다. 퇴출/Dispose 때 증명을 버리며 backing hit도 길이를 검사한다. 최초 검증·source identity·canonical object 검증·공용 catalog 잠금·pin intent 내구성과 ACK는 유지한다. 상위의 fence 없는 hash나 다시 연 핸들로 증명을 넘기지 않는다. |
+| ST-63 | 게시 전후 두 독립 payload 검증에서 인증된 hash-keyed `RetainedPayloads` 트리를 직접 순회한다. decoder가 각 row를 검증하고 트리가 hash별 길이를 하나만 제공하므로 재정렬/중복 제거가 불필요하다. 다른 payload 입력은 기존 중복 제거를 유지한다. 실제 payload 읽기/해시·영수증·게시 boundary 검사는 유지한다. |
+| ST-64 | 논리 저장량 계산은 `MetadataMembership`으로 모든 참조를 검증/중복 제거한 뒤 집계한다. 공통 scratch 예산과 기존 정렬 디스크 fallback을 유지하고 작은 입력은 sort/spool을 피한다. raw/whole 구분과 상충 길이 거부를 유지한다. 수집 취소를 accounting·전체 길이 순회·일반 payload 정렬까지 전달한다. 과거 참조와 basis/result 전체 길이 순회는 여전히 남는다. |
+
+### 최소 검증·실패·한계
+
+최종 선택 시험은 **23 통과·실패/skip 0, 9.293초**(예상 8초/중단 16초)다. 128KiB 고정 파일을 4KiB씩 두 번 읽을 때 backing 검증은 한 번이었고 후속 live 쓰기는 고정 내용을 바꾸지 않았다. 이는 연산 수 관측이며 시간 개선율이 아니다. 이전 코드는 segment read마다 다시 열고 검증하므로 같은 시험의 64회는 정적 계산이며 전후 실측은 아니다. 같은 raw slice 두 번 보존은 backing/slice proof 각각 한 번, 새 store reader에서는 다시 한 번 확인했다. 쓰기/삭제 차단·idle 퇴출/교체 거부·사용 중 overflow/close drain·메모리/디스크/부분 spill/예산 부족/취소·descriptor 실패 prefix·기준본 유실 후 결과·private drain·raw peer 재사용·기존 참조 복구도 확인했다.
+
+첫 병렬 build는 compiler 오류 설명 없이 3.92초에 실패했으며 원인은 미확정이다. verbose 직렬 재시도는 변경하지 않은 의존성까지 재컴파일하여 취소했고 제품 writer/provider는 실행하지 않았다. 정확한 취소 경과 시간을 보관하지 못했으므로 이 시도를 제한 내 성공으로 기록하지 않는다. 기존 의존 출력 재사용으로 줄인 Files build 0.85초와 test build 7.35초는 경고/오류 0으로 통과했다. 중간 test build는 timeout cancellation-token 참조 누락으로 6.16초에 실패했고 수정했다. Runtime은 중단된 의존 build에서 컴파일됐으며 Runtime/Files 출력과 최종 test 폴더 DLL의 SHA-256 일치를 확인했다. 전체 solution build 성공이 아니다.
+
+class와 method 필터를 함께 지정한 첫 호출은 0개 선택으로 통과 수에 포함하지 않는다. 초기 샌드박스 시험은 임시 파일 rename 거부/후속 scratch 정리로 8개 중 5개 실패했다. 임시 경로를 저장소 안으로 옮긴 뒤에는 native hardlink 생성 거부 2개가 남았다. 최종 선택 시험은 이 제한 밖에서 `artifacts/capture-read-followup-20261102/tmp` 아래 새 작은 입력만 사용했다. 기존 fixture·Editor·원본 프로젝트·provider 수명주기·대형 실행은 사용하지 않았다. 권한 실패를 제품 guard 변경으로 우회하지 않았다.
+
+사전 예상은 조사 8분/구현 15분/검증 3분/문서 4분, 각 2배에서 중단이었다. build 15/30초, 선택 시험 8/16초를 사용했다. 전체 `build.ps1`, 100k/17GiB, 실제 Git/Plastic/Unity 수명주기, 자원 활용률·peak memory·전체 시간 개선은 미검증이다. 원시 결과와 소스/바이너리 hash는 [수집 읽기 후속](../../../reports/benchmarks/capture-read-followup-20261102.json)에 있다.
+
+### 남은 후보와 쓰기 검토
+
+- 게시 전후 전체 파일 검증은 남는다. 현재 독립 reader는 파일별 native fence를 닫으므로 root hash만으로 그 사이 바이트 불변을 증명하지 못한다. 제한된 연산별 native proof나 동등한 불변 저장소 소유 계약이 먼저 필요하다. 입력 수만큼 핸들을 계속 붙잡는 우회는 채택하지 않았다.
+- 전체 catalog 순회·누적 보존·과거 accounting은 남는다. 최신 논리 payload 집합만으로 과거 descriptor의 물리 참조 closure를 증명할 수 없다. 영속 집계/참조 root는 crash-safe 갱신과 세대 삭제 의미가 필요하다. 이번 메모리 집합은 정렬을 줄이며 과거 row 열거 수는 줄이지 않는다.
+- 4MiB 조건부 metadata 유지관리와 backend live-repack/segment 복구는 남는다. 새 GC 지연은 응답을 줄여도 비용을 이동하고 공간을 더 보존하며, 진행 중 같은 요청 복구는 미룰 수 없다. 별도 background collector를 추가하지 않았다.
+- `JournalDeltaStore.cs`의 `ChangedSlice`/484행 부근 raw 덮어쓰기 비교와 850–916행 부근 commit batching, `WinFspWriteBatch.cs:86,176`은 private 비교와 기존 최대 64개/16MiB 영속 묶음을 유지한다. 순차 callback의 ACK를 다음 호출과 공유할 수는 없다. 기존 raw edge-search는 전체 쓰기 이득 없이 제거됐으므로(`raw-write-batching.md`) 재도입하지 않았다. 신규 쓰기는 이미 raw 저장이다. 개별 쓰기 ACK·충돌·재생 보호를 약화하지 않았다.
+- raw 임시 JSON/배열 재사용, 병렬 디렉터리 작업 분배, compact proof 순회 결합, live/result 공통 persistent root는 이번에 채택하지 않은 후보다. 공통 root는 부분 수정 후 full-file SHA-256과 참조 수명을 해결해야 변환/전체 읽기를 없앨 수 있다. 다중 항목 B+ 페이지는 보류한다. 이는 남은 설계/성능 질문이며 현재 비용이 불가피하다는 주장이 아니다.
+
+## ST-65–68: catalog 증명 공유·영속 보존 집합·독립 구성 증명
+
+시작 상태는 `8709f90`과 미커밋 ST-61–64 변경이다. 구현 전후 메인 대화가 해당 커밋에서 대기 상태인 것을 확인했다. 이전 변경을 버리지 않았고 새 workspace·Editor·제품 provider를 시작하지 않았다. 매 checkpoint마다 보관소를 재구축하는 대신 병렬 작업과 명시적 반영을 위한 불변 참조로 결과를 다룬다.
+
+| ID | 변경과 보호 경계 |
+| --- | --- |
+| ST-65 | `PagedMetadataStore.CatalogReadScope`는 전체 catalog 검증과 논리 바이트 총량을 한 구조 순회로 결합한다. 정확한 reader의 native container fence와 고정 identity/location-header fence 아래 최대 4,096개 하위 트리 요약을 재사용한다. 엄격한 키 순서·디렉터리 decode·child membership·논리/page checksum·catalog count를 유지한다. Container 퇴출 또는 쓰기 공유 읽기는 증명 epoch를 무효화하고 증명이 없으면 정상 순회한다. 전역 writer lock으로 peer 쓰기를 막지 않는다. 범위는 metadata 구성 후 시작하여 게시·집계 동안만 유지한다. |
+| ST-66 | `BindRetainedPayloads`는 이전 불변 retained root에서 시작하여 새 변경 전후·범위 기준 의존성의 경로만 복사한다. 기존 길이는 일치해야 한다. 누적 이력 전체를 열거·정렬하여 union을 다시 만들지 않는다. 결과의 전체 retained stream 독립 검증은 유지하며 별도 영속 집계나 복구 상태를 추가하지 않았다. |
+| ST-67 | 과거 집계는 최신 retained 집합이 과거 것을 포함하고, 과거 retained 파일 모두의 실제 descriptor가 같은지 먼저 증명한다. Whole→range 전환도 구분한다. 영속 트리 차이 비교는 공유 하위 트리를 실제 native graph 전체 검증 후에만 생략하며 최대 4,096개 작업 범위 비교 root 증명도 같은 fence epoch로 무효화한다. 다르거나 빠진 descriptor·비참조 manifest는 기존 과거 열거를 유지한다. 과거 header마다 소유자·catalog·기록된 generation fingerprint를 확인한다. 중복 집계 기여만 생략하며 GC·별칭 정리·보존/삭제 정책은 바꾸지 않는다. |
+| ST-68 | `ResultFileContentStore.VerificationScope`는 먼저 구성 파일 전체 SHA-256을 증명하고 같은 요청에서 최대 1,024개 정확한 hash/descriptor 쌍을 기억한다. 두 번째 검사는 descriptor/range tree를 독립 decode하고 선언된 기준/chunk 모두를 현재 native identity·길이·소유/reference·ready 상태 검사로 다시 연다. `ImmutableReadProofs`가 정확한 쓰기/삭제 배제 backing fence를 계속 소유한 경우만 의존성 해시를 재사용한다. 최대 64개 backing·4,096개 범위 증명이며 fence를 퇴출하고 낡은 증명을 남기지 않는다. 예산 밖은 기존 해시 검사다. 따라서 두 번째 검사에서 전체 파일을 재구성·재해시하지 않고 이미 증명한 구성 해시를 재사용할 수 있다. 외부 Git 기준 구성은 전체 파일 경로를 유지한다. 소유 저장소가 전체 해시를 검증한 whole 객체에는 외부 SHA 순회를 중복하지 않는다. |
+
+Manifest hash 일치만으로 payload를 증명하지 않는다. 독립 게시 영수증·요청/root 결합·수집 경계·게시 순서·영속 ACK·원본/peer 보호·같은 요청 재시도는 유지한다. 새 호출/재시도에는 새 메모리 증명을 사용한다. Canonical byte fence가 계속 있어도 별칭/reference가 남아 있다는 뜻은 아니므로 현재 소유권 검사는 다시 수행한다. 파일 manifest/task/basis/overlay/SPM2/wire/CLI 버전이나 명령을 변경하지 않았다.
+
+### 최소 검증과 관측한 작업량
+
+최종 변경부 시험은 **23/23 통과, 10.087초**, 실패/skip 0이다. 기존 게시 경계 복구 3개는 **3/3 통과, 4.158초**로, **서로 다른 선택 시험 총 26개**다. 전체 gate나 실제 provider/Unity/Git/Plastic 수명주기 자격은 아니다.
+
+새 검사는 31파일 catalog의 반복 증명/총량 재사용·한 leaf 변경 뒤 방문 감소·count 불일치·쓰기 배제·닫은 뒤 손상 거부, writable-container 증명 재사용 없는 fallback, 삽입/변경/삭제 트리 차이, 실제 descriptor/whole→range/retention 누락 집계 구분, whole/raw 구성 파일 증명, byte 증명을 보유해도 현재 소유 reference 제거 거부, 65번째 backing의 해시 fallback과 이후 변경된 바이트 거부를 포함한다. 기존 검사는 private iterator drain·peer raw basis 재사용·기준본 유실 뒤 반복 결과·descriptor prefix 실패/재시도를 유지한다. 추가 복구 3개는 기존 비-native-content fixture이며 native 참조 수집과 basis header 전 실패는 변경부 시험에서 별도로 확인했다.
+
+작은 whole/raw 구성 사례마다 두 번 검증하면서 **구성 파일 해시 1회·의존성 해시 총 2회·구성 증명 재사용 1회**를 기록했다. 동일 catalog 반복은 **추가 node 방문 0회**이며 한 leaf 변경은 최초 31개보다 적게 방문했다. 전체 시간 개선율이 아닌 작업량 계수/assertion이다.
+
+개발 중 실패도 보존한다. Runtime 최초 빌드는 dictionary lookup 뒤 nullable 흐름 오류로 실패한 뒤 정상 컴파일했다. 최초 10개 시험 중 2개는 fixture 오류였다(시험 metadata flush 누락, canonical이 고정되면 별도 소유 hardlink의 unlink도 반드시 실패한다는 잘못된 기대). 현재 검사는 소유권 제거 뒤 재검증이 거부되는 실제 불변조건을 확인한다. 이를 고치기 위해 제품 보호를 약화하지 않았다. 복구 3개는 처음 저장소 내부 임시 폴더를 사용하여 기존 상위 VCS 보호에 수집 전 거부됐다. 새 기본 시스템 임시 입력에서 재실행하여 통과했으며 실패 보고서도 보존한다.
+
+최종 제한 빌드는 기존 의존성 출력을 사용했다. Runtime **5.50초**, Files **3.87초**, tests **7.54초**, 경고/오류 0이다. Runtime/Files DLL과 시험에서 사용한 복사본 hash를 대조했다. 예상/중단 기준은 조사 **8/16분**, 구현 **20/40분**, 선택 검증 **3/6분**, 개별 빌드 **15/30초**, 시험 **8/16초**다. 실행 명령이 중단 경계에 도달하지 않았고 종료할 provider도 없었다. 전체 `build.ps1`·보존 대형 fixture·장시간 성능 실행은 하지 않았다. 원시 보고서와 소스·바이너리 hash는 [참조 증명 근거](../../../reports/benchmarks/reference-proof-20261102.json)에 있다.
+
+### 남은 비용과 자격 경계
+
+최초 소스 namespace 관측·catalog/index 구성·처음 보는 metadata 전체 검증·변경 파일의 최초 SHA-256·현재 소유권 검사·독립 보존에 필요한 모든 payload 의존성은 유지한다. 이력 header와 변경된 트리 경로의 비용도 남고, 실제 참조 구조가 다른 이력은 기존 union 경로를 사용한다. 캐시 부족·writer 공유 container·새 호출에서는 읽기가 반복될 수 있다. 이번 변경은 반복 순회/해시/union 작업을 줄이지만 입력/이력 무관 비용·물리 유지관리 제거·대형 지연/RAM을 입증하지 않는다. 공유 writer 경합·100k/17GiB·전체 gate·실제 Git/Plastic/Unity·OS 중단·전체 시간은 미자격이다. 중단된 대형 fixture는 재개하지 않았다.
+
+## ST-69: ST-65–68 변경 전후 동일 작은 입력 비교
+
+**작업 횟수는 줄었지만 일관된 수집 시간 개선은 입증하지 못했다.** 변경 전은 `8709f90`+ST-61–64, 변경 후는 여기에 ST-65–68을 적용한 상태다. 직전 근거에 기록된 변경 Runtime/Files 소스 6개의 SHA-256을 복원한 기준 소스와 정확히 대조했다. 측정으로 제품 소스를 바꾸지 않았으며 현재 소스는 ST-65–68 근거와 일치한다. 분리한 소스 복사본/바이너리만 빌드했고 checkout·커밋·제품 빌드 출력을 교체하지 않았다.
+
+각 실행은 새로운 **31파일·992바이트** 합성 불변 기준본, 고정 metadata, 같은 파일 offset 2의 2바이트를 여섯 번 연속 수정하는 입력을 사용했다. 실제 `JournalDeltaStore`·native content pin·`FileWorkspaceProvider`로 고정 수집·독립 보존/게시·수집 마무리를 수행했다. **인프로세스 수집 비교**이며 mount된 WinFsp/CLI/provider/Unity 수명주기는 아니다. 편집·최초 fixture 준비·최종 검증은 수집 시간에서 제외했다. 10회(시간 8회·계측 2회) 모두 입력 digest·6개 결과 내용/fingerprint·저장량이 일치했고, 기준본 가용성을 제거한 뒤에도 모든 보존 결과를 독립적으로 읽었다.
+
+### 시간: 비계측 바이너리, 분리한 ABBA 두 블록
+
+A는 변경 전, B는 변경 후이며 아래 표본 하나는 여섯 번 수집의 합계다. 계수와 선택적 generation 로그를 껐다. 각 실행은 새 process/물리 fixture이며 OS 캐시와 배경 부하는 통제하지 않았다.
+
+| 블록/순서 | A 첫째 | B 첫째 | B 둘째 | A 둘째 | 변경 전 평균 | 변경 후 평균 | 차이 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1: A1 B1 B2 A2 | 7.178935초 | 6.741428초 | 6.819520초 | 5.379348초 | 6.279142초 | 6.780474초 | **7.98% 더 오래 걸림** |
+| 2: A3 B3 B4 A4 | 3.523875초 | 3.403257초 | 3.489949초 | 3.481885초 | 3.502880초 | 3.446603초 | **1.61% 단축**, 0.056277초 |
+
+첫 블록에서 큰 순서 연관 변동을 확인한 뒤 마지막 추가 블록 하나를 먼저 정했고 이후 반복은 늘리지 않았다. 변동의 원인은 분리하지 못했다. 두 블록을 합쳐 일반 개선율로 만들거나 유리한 블록만 보고하지 않는다. 두 번째 절감도 **여섯 번 합계 약 56ms**다.
+
+### 횟수: 후보별 별도 계측 실행 각 한 번
+
+분리한 진단 복사본에만 동일 계측 지점을 추가했고, 해당 실행 시간은 위 표에서 제외했다. 범위는 동일한 수집 여섯 번이며 그 실행에서 누적된 모든 과거 결과를 포함한다.
+
+| 측정 작업 | 변경 전 | 변경 후 | 감소 |
+| --- | ---: | ---: | ---: |
+| 검사한 catalog 항목 | 2,635 | 1,696 | 35.64% |
+| 중복 제거 전 인코딩한 retention 입력 행 | 38 | 18 | 52.63% |
+| 집계에 들어간 현재/과거 실제 참조 행 | 133 | 48 | 63.91% |
+| Metadata cursor가 반환한 행 | 3,667 | 2,389 | 34.85% |
+| 캐시 miss 뒤 metadata page decode | 17,696 | 16,670 | 5.80% |
+| 계측한 내용 SHA 계산 | 230 | 128 | 44.35% |
+| 해당 SHA가 처리한 바이트 | 15,730 | 13,091 | 16.78% |
+
+Catalog 방문은 일반 catalog 순회와 전용 증명 순회가 실제 방문한 node를 세며 가상 root와 재사용한 하위 트리는 제외한다. Metadata cursor 행과 catalog 방문은 겹치므로 더하지 않는다. Page decode는 OS 읽기 syscall 횟수가 아니다. SHA 계수는 stream payload hash·구성 파일 검증·raw range·불변 증명 miss·source scan·private range 준비를 포함하고 metadata/control/address hash와 별도 journal segment seal hash는 제외한다. 명시한 지점의 실제 계수이며 process 전체 SHA 호출 수가 아니다. 변경 후 catalog 하위 트리 재사용 75회·고정 byte 증명 재사용 69회·구성 증명 재사용 21회를 기록했다. 개별 hash helper 분류가 구현 사이에서 이동했으므로 동일 범주의 합계를 비교하고 helper 하나만 따로 비교하지 않는다.
+
+줄어든 해시 처리량은 **2,639바이트**뿐이고 page decode 감소는 논리 순회 행 감소보다 작다. 진단 귀속에는 결과 scan·raw 준비·descriptor/adoption·영속 게시가 여전히 남는다. 필요 시 남은 비용을 살필 근거지만 flush·CPU·cache warmup·배경 활동이 시간 결과의 원인이라고 입증한 것은 아니다. 중첩 진단 시간은 보고서에 보존하며 더하거나 세 번째 시간 비교로 사용하지 않는다.
+
+### 시간 예산·근거·제한
+
+사전 전체 예상 **18분**, 중단 **36분**: 준비 **5/10분**, 계측 연결 **8/16분**, 비교 실행 **2/4분**, 기록 **3/6분**이다. 개별 빌드 **15/30초**, fixture 준비 **2/4초**, 각 수집 **2/4초**, 여섯 번 합계 **6/12초**, 최종 확인 **2/4초**를 사용했다. 가장 느린 수집은 **2.083215초**였고 10회 모두 각 실행 중단 경계 안에서 완료했다. 취소 token과 단계 경계 검사는 실패 시 후속 단계를 막고 상태를 보존하며 강제 종료·타임아웃 확대는 없었다. Native 실행은 새 시험 hardlink를 위한 sandbox escalation만 사용했다. Provider/Editor를 생성하지 않았고 기존 대형 fixture도 재개하지 않았다.
+
+작은 비교는 정상 완료했다. 보고서 생성기는 처음 Windows 기본 cp949 decode에 실패하여 명시적 UTF-8로 고쳤고 측정 파일은 바꾸지 않았다. 전체 gate·실제 Git/Plastic/Unity·최대 메모리/장치 계측·대형 성능 자격은 추가하지 않는다. 측정에 따른 제품 코드/형식 변경은 없다. Fixture·정확한 소스 manifest·비계측/진단 바이너리 hash·harness/계측 script·원시 결과는 `artifacts/reference-proof-timing-20261102/`에 보존한다. [기계 판독 근거](../../../reports/benchmarks/reference-proof-timing-20261102.json).
+
+
+## ST-70–72: 수집 비용 분리와 metadata reader 재사용
+
+ST-69에서 줄어든 작은 입력의 계측 해시량은 2,639바이트뿐이었다. 후속 분리 계측에서는 여섯 수집의 **전체 상위 경로 검사 3,186회가 누적 작업 1.993613초**, **영속 flush 256회가 0.793511초**, **계측 파일 열기 2,507회가 0.218703초**였다. Metadata reader 생성은 430회이며 경로/열기를 포함해 0.616842초였다. 페이지 읽기/디코드는 포함 시간 0.619969초, 별도 계측한 하위 작업 제외 0.304777초이며 node 인코딩/쓰기는 0.006729초였다. 작은 해시·논리 순회 감소만으로 시간이 크게 줄지 않은 원인을 반복 metadata 진입/경로 검사와 영속화 비용으로 좁혔다.
+
+이 수치는 귀속 계측이며 wall time의 가산 분할이 아니다. Metadata 포함 시간은 경로/열기와 겹치며 하위 작업 제외 시간도 스레드별 작업의 합이다. 파일 열기/flush 계측은 격리 Runtime/Files의 명시적 FileStream 호출과 지정 metadata 생성자를 대상으로 하며 Platform의 모든 native open이나 전체 process syscall 수가 아니다. 호출 위치 계측은 stack trace 비용이 추가되어 성능 표본으로 사용하지 않는다. 제품 소스와 최종 시간 바이너리에는 계측을 넣지 않았다.
+
+### 구현과 보호
+
+- **ST-70:** 변경 전 소스를 고정하고 상위 경로·metadata 생성/읽기/디코드/쓰기·파일 열기·영속 flush·atomic publication을 분리했다. 메인 대화는 작업 전후 idle/변경 없음이며 기존 ST-61–69 작업을 보존했다.
+- **ST-71:** `ImmutableMetadataReaders`가 요청 내 내용 검증 scope에서 metadata reader를 최대 4개 유지한다. Identity와 존재하는 location header의 쓰기/삭제 fence, 기존 reader lease, native container 검증을 유지하며 예산 밖은 기존 단기 reader를 사용한다. 매 content/range open에서 소유 잠금 아래 현재 catalog·object/reference phase·alias/native identity·범위 membership을 다시 읽는다. 불변 페이지 reader만 재사용하며 변경 가능한 소유 판정을 캐시하지 않는다. Peer가 추가한 root를 읽고 보유 store 교체/회수는 차단한다.
+- **ST-72:** 읽기 전용 `PagedMetadataStore`는 핸들을 열기 전에 `identity.bin`부터 모든 상위 경로를 한 번 검사하여 바로 앞의 중복 디렉터리 순회를 없앤다. Writer는 디렉터리 생성 전과 identity 접근 전 검사를 유지한다. `PagedSnapshotCatalog`에 호출자 소유 reader를 빌리는 경로를 추가해 파일 manifest catalog/payload index가 같은 reader/cache를 사용한다. 빌린 catalog를 dispose해도 소유 reader는 유지되며 foreign root는 거부한다.
+
+Reader만 재사용한 중간 후보는 열기 수를 줄였지만 시간 개선을 입증하지 못했다. 진단 합계는 기준 3.629636초 대비 3.851095초였으며 이 부정적 관측을 보존한다. 최종 후보는 중복 상위 경로 검사와 catalog/index reader까지 결합했다. 현재 경로/native 검사, metadata hash/count, 같은 요청 복구, 독립 결과, reader/writer fence, 개별 내구성 ACK와 형식은 유지하며 flush/atomic publication을 제거하지 않았다.
+
+### 같은 작은 입력의 최종 비교
+
+새 **31파일·992바이트**, 동일 파일 offset 2의 2바이트 변경 6회, 고정 metadata, 실제 인프로세스 JournalDeltaStore/native pins/FileWorkspaceProvider를 사용했다. 실제 WinFsp mount/CLI/provider/Editor 수명주기는 아니다. 준비·편집·최종 검증은 수집 시간에서 제외했다. 선택적 generation diagnostics도 끈 **비계측 ABBA 한 묶음**의 6회 수집 합계는 **A1 3.388032초, B1 3.157480초, B2 3.157714초, A2 3.321417초**다. 전후 평균 **3.354725→3.157597초**, **0.197128초(5.88%) 감소**다. OS cache/백그라운드 부하는 통제하지 않았으며 이 작은 입력의 제한된 개선을 대형/일반 성능으로 확대하지 않는다.
+
+| 별도 계측한 6회 수집 작업 | 변경 전 | 최종 |
+| --- | ---: | ---: |
+| 전체 상위 경로 검사 | 3,186회 / 1.993613초 | 2,492회 / 1.538372초 |
+| Metadata reader 생성, 하위 작업 포함 | 430회 / 0.616842초 | 280회 / 0.216830초 |
+| 계측 파일 열기 | 2,507회 / 0.218703초 | 2,087회 / 0.195904초 |
+| Metadata 페이지 읽기/디코드, 하위 작업 제외 | 16,673회 / 0.304777초 | 16,258회 / 0.295833초 |
+| 영속 flush | 256회 / 0.793511초 | 256회 / 0.785565초 |
+| Atomic publication | 67회 / 0.074369초 | 67회 / 0.073321초 |
+
+최종 진단 합계 3.405184초는 ABBA 시간과 섞지 않는다. 새 물리 identity로 일부 treap node 쓰기/디코드 수가 달라지므로 그 작은 차이를 논리 쓰기 제거로 주장하지 않는다. **8회 실행**(진단 4·시간 4)의 입력 digest·6개 결과 내용/fingerprint·저장량이 모두 같고, 합성 기준본을 unavailable로 바꾼 뒤 과거 결과 전체가 독립 검증됐다.
+
+### 최소 검증·시간 기준·남은 비용
+
+**선택 22개 통과, 실패/skip 0개**다. Reference-proof/raw-basis 21개 8.367초와 reparse-parent 1개 0.258초로 identity/회수 fence·peer 새 root·4-reader fallback·빌린 reader 수명/foreign root·현재 소유권 제거 거부·raw 의존성·보존 내용을 확인했다. 시험이 사용한 Runtime/Files DLL은 빌드 산출물 hash와 일치한다. 기존 의존성 산출물을 쓴 최종 제한 빌드는 Runtime 5.34초·Files 3.95초·시험 7.17초이며 경고/오류 0개다. 개발 중 시험의 cancellation token 및 namespace 누락 컴파일 오류를 수정했다. 클래스/메서드 교집합 필터의 최초 0개 선택은 통과로 세지 않았고 수정한 선택으로 위 시험을 실행했다.
+
+사전 예상/중단: 전체 **32/64분**, 상태/설계 **5/10분**, 진단 **5/10분**, 구현 **15/30분**, 변경부 검증 **4/8분**, 기록 **3/6분**; 빌드 **15/30초**, 시험 명령 **8/16초**, 준비 **2/4초**, 수집 1회 **2/4초**, 6회 합계 **6/12초**, 마지막 확인 **2/4초**다. 가장 긴 수집은 **0.968464초**이며 실행 중 중단 경계 도달은 없었다. 새 fixture/증거를 보존했고 강제 종료·타임아웃 확대·provider/Editor 작업·보존 대형 fixture 재개는 없었다.
+
+남은 실제 비용은 필수 현재 경로/native 검사, 처음 보는 metadata, 최초 catalog/index 관측과 영속 게시다. 추가 절감에는 별도로 입증된 수명/게시 경계가 필요하며 변경 가능한 소유권 캐시나 내구성 약화로 대체하지 않았다. 전체 `build.ps1`, 대형 입력, 실제 Git/Plastic/Unity, OS 중단·경합·메모리 자격은 실행하지 않았다. 원시 소스/probe/harness/결과는 `artifacts/capture-cost-20261102/`에 있고 [기계 판독 근거](../../../reports/benchmarks/capture-cost-20261102.json)가 변경 소스/시험 hash와 결과를 고정한다.
+
+
+## ST-73–74: 요청 범위 경로 증명과 metadata flush 결합
+
+정확한 ST-70–72 작업 소스에서 이어서 이전 작업을 보존했다. 진입 시 메인 대화는 idle/변경 없음이었다. 보호된 요청 수명 안에서만 증명을 공유하며 기억한 경로나 변경 가능한 소유 catalog를 증명으로 재사용하지 않는다.
+
+**ST-73 — 경로 검사.** 선택적 Runtime `IRequestPathGuard` / `IJournalFilePins.PinMetadataPaths`가 기존 Windows journal 디렉터리 guard를 metadata의 기존 `identity.bin` marker에 적용한다. Native 디렉터리 핸들로 모든 상위 경로의 rename을 막고, 삭제할 수 없는 marker로 전체 경로를 비어 있지 않게 유지하여 reparse 전환을 막는다. 대소문자를 구분하는 NTFS 하위에서도 정확한 경로 표기만 일치시킨다. 변경 가능한 leaf는 매번 검사한다. 이미 고정한 디렉터리 또는 고정한 부모의 직접 자식만 다루고 나머지는 전체 순회한다. Native proof를 얻지 못하면 null/기존 경로로 fallback하며, leaf의 reparse나 접근 오류는 계속 거부한다. 새 소유 marker는 만들지 않는다.
+
+Guard는 `ImmutableReadProofs`의 기존 **최대 4개** metadata reader 중 하나가 소유한다. 매 open의 content/range 소유 잠금·현재 catalog/object/reference phase·alias/native identity·범위 membership은 유지한다. Reader 종료 때 경로 증명을 해제하며 ambient/global 경로 캐시는 없다. 일반 호출과 선택 port가 없는 플랫폼은 전체 경로 검사를 유지한다. `PagedMetadataStore`의 기존 공개 생성자와 wire/CLI capabilities는 유지한다.
+
+**ST-74 — flush 결합.** 새 metadata container는 헤더 쓰기 전에 native owner를 먼저 영속 기록한다. 헤더는 일반 buffered flush로 reader에게 보이게 하고, **root 승인 전 필수 영속 flush**에서 헤더와 페이지를 함께 기록한다. 헤더는 별도로 영속화한 identity의 정확한 사본이며 중단된 소유 prefix를 재개할 수 있다. 성공한 영속 flush는 해당 열린 writer 안에서만 기록한다. 변경 없는 다음 `Flush()`는 이를 재사용하되 기존 `metadata.pages-durable` 승인 경계를 호출한다. 쓰기는 바이트를 내보내기 전에 dirty로 표시하며 flush 실패는 완료 위치를 진전시키지 않는다. 재개한 writer는 새 쓰기가 없어도 첫 flush를 강제한다. Container 전환 전 이전 dirty output을 flush한다. Native owner 영수증, identity prefix/checksum flush, 제어 게시 순서와 개별 작업 ACK는 미루거나 제거하지 않는다.
+
+### 같은 작은 입력 비교
+
+새 process/fixture마다 **31파일·992바이트**, 동일 파일의 2바이트 편집 6회, 고정 metadata를 사용했다. 실제 인프로세스 journal 수집/native pins/파일 결과 보존을 실행했으며 WinFsp mount/CLI/provider/Editor는 만들지 않았다. 준비·편집·마지막 검증은 수집 시간에서 제외하고 ABBA에서는 선택 진단/계측을 껐다.
+
+| 후보 / ABBA 표본(각 6회 수집 합계) | 변경 전 평균 | 변경 후 평균 | 감소 |
+| --- | ---: | ---: | ---: |
+| 최초 구현: A1 3.227898, B1 3.150454, B2 3.223370, A2 3.288069초 | 3.257984초 | 3.186912초 | 0.071072초 / 2.18% |
+| 최종 정확 표기/fallback 보수화: A3 3.995403, C1 3.676519, C2 3.679434, A4 3.755306초 | **3.875355초** | **3.677976초** | **0.197378초 / 5.09%** |
+
+두 번째 묶음은 최종 경로 보호 변경 때문에 실행했다. 후보/묶음을 구분하며 합산하거나 보호 보수화가 더 큰 개선율의 원인이라고 주장하지 않는다. 백그라운드/OS cache는 통제하지 않았다. 절대 이득은 작으며 일반/대형 프로젝트 성능 자격은 아니다.
+
+별도 진단의 6회 수집 작업량/비용:
+
+| 작업 | 변경 전 | 최종 |
+| --- | ---: | ---: |
+| 전체 상위 경로 순회 | 2,492회 / 1.595034초 | 2,129회 / 1.458398초 |
+| 영속 flush | 256회 / 0.788842초 | 240회 / 0.735610초 |
+| Atomic 게시 | 67회 | 67회 |
+| 추가 native 경로 고정 scope | 0회 | 18회 / 0.015803초 |
+| 고정 경로 검사 시도, 범위 밖 포함 | 0회 | 916회 / 0.021957초 |
+
+이 입력에서 줄어든 **flush 16회는 전부 metadata container 헤더의 별도 flush**다. 같은 writer의 변경 없는 반복 flush 재사용은 작은 시험으로 확인했으며 이 입력의 추가 감소량으로 주장하지 않는다. 전체 상위 순회 **363회(14.57%)**가 줄었고 mutable leaf 검사는 남는다. Native guard 자체도 핸들을 열며 비용을 계측했다. FileStream 열기 횟수는 전체 native syscall 수가 아니다. Metadata 포함 시간은 하위 경로/열기와 겹치며 스레드별 합을 wall time 분할로 더하지 않는다. 최종 진단 실행은 **3.550311초**, 기준은 **3.475808초**로 진단 wall time 자체는 개선을 입증하지 못했으며 ABBA에 넣지 않았다.
+
+**11회 실행**(진단 3·시간 8)의 입력 digest·6개 결과 내용/fingerprint·저장량이 모두 일치했다. 합성 기준본을 unavailable로 바꾼 후 보존한 과거 결과 전체가 독립 검증됐다. 중간/최종 원시 결과는 구분해 보존한다.
+
+### 보호 검증과 한계
+
+**고유 변경부 20개 통과, 실패/skip 0개**다. 최종 batching/reference-proof **14개 1.490초**와 관련 복구 **6개 0.639초**이며 최초 13개 결과도 보존한다. 상위 경로/marker rename·삭제 거부, mutable leaf junction 거부, 정확 표기 fallback, 소유 기록을 만들지 않는 proof 부재/미지원, 현재 소유권 제거 거부, 기존/native root, 소유 헤더 prefix 재개, 페이지 쓰기 중단과 최초 native 영수증 gap을 확인했다. 부분 헤더 시험은 중단 모델이며 실제 OS 전원 장애 자격이 아니다. 시험이 사용한 최종 Runtime/Files/Windows DLL은 빌드 hash와 일치한다. 제한 빌드는 기존 의존성을 사용했으며 최종 Windows/시험 빌드는 4.44/7.76초, 경고/오류 0개다.
+
+사전 예상/중단: 전체 **29/58분**, 검토 **6/12분**, 구현 **15/30분**, 비교/검증 **5/10분**, 기록 **3/6분**. 개별 빌드 **15/30초**, 시험 **8/16초**, 준비/최종 검증 **2/4초**, 수집 1회 **2/4초**, 6회 합계 **6/12초**다. 가장 긴 수집 **1.104481초**이며 단계/실행 명령이 중단 기준에 도달하지 않았다. 취소/경계 검사로 상태를 보존하고 후속 작업을 중단하도록 유지했다. 강제 종료·타임아웃 확대는 없었다.
+
+변경 가능한 namespace 가지, 고정 범위 밖의 최초 진입, 영속 owner/control 영수증, identity 초기화와 data-before-root 게시 비용은 남는다. 서로 다른 내구성 경계를 묶으려면 새 복구 증명이 필요하므로 유지했다. 형식 변경·전체 `build.ps1`·대형 fixture·실제 Git/Plastic/Unity·OS 중단·시스템 경합 자격은 추가하지 않았다. [근거](../../../reports/benchmarks/capture-batching-20261102.json)에 소스/바이너리 hash가 있고 원시 fixture/script는 `artifacts/capture-batching-20261102/`에 보존한다.

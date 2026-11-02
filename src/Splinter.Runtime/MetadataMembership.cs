@@ -49,6 +49,17 @@ public sealed class MetadataMembership : IDisposable
         catch { Dispose(); throw; }
     }
     public bool Contains(string key) { ObjectDisposedException.ThrowIf(disposed, this); return tree is null ? memory.ContainsKey(key) : tree.Find(key) is not null; }
+    // No ordering contract: membership and aggregation do not require a sort.
+    public IEnumerable<MetadataEntry> Enumerate(CancellationToken ct = default)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (tree is not null)
+        {
+            foreach (var entry in tree.Enumerate()) { ct.ThrowIfCancellationRequested(); yield return entry; }
+        }
+        else foreach (var entry in memory)
+        { ct.ThrowIfCancellationRequested(); yield return new(entry.Key, entry.Value); }
+    }
     private static void Validate(MetadataEntry entry)
     { PagedMetadataStore.ValidateEntry(entry.Key, entry.Value.Length); if (entry.Child is not null) throw new WorkspaceException("MetadataMembershipInvalid", "Transient membership cannot own another tree."); }
     private static void Same(ReadOnlySpan<byte> before, ReadOnlySpan<byte> after)

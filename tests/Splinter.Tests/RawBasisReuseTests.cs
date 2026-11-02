@@ -153,6 +153,27 @@ public sealed class RawBasisReuseTests
         { var old = new byte[26]; old[0] = 2; root = pages.Set(pages.Empty, hash, old); pages.Flush(); }
         Assert.Equal("ResultContentInvalid", Assert.Throws<WorkspaceException>(() => new ResultFileContentStore(home, Control(home, w), w, pins, raw, root).Open(hash, ct: ct)).Code);
     }
+    [Fact(Timeout = 10000)]
+    public void RepeatedRawSliceUsesOnlyTheExactStillFencedProof()
+    {
+        RequireWindows(); using var files = new TestDirectory(); var pins = new WindowsJournalFilePins(); var ct = TestContext.Current.CancellationToken;
+        string home = Path.Combine(files.Path, "home"); var w = Workspace(home, files.Path, 'a');
+        byte[] bytes = "shared raw"u8.ToArray(); string source = Segment(Control(home, w), w, bytes), hash = Hash(bytes);
+        var backing = new CapturedImmutableRangeBacking(source, pins.Identify(source), 128, 256, w.CaptureIntent!.Id, new string('b', 64), Hash(File.ReadAllBytes(source)));
+        using (var raw = new OwnedRangeContentStore(home, pins))
+        {
+            raw.Preserve(w, Control(home, w), hash, bytes.Length, backing, ct);
+            raw.Preserve(w, Control(home, w), hash, bytes.Length, backing, ct);
+            Assert.Equal(1, raw.RangeProofAdmissions); Assert.Equal(1, raw.BackingProofAdmissions);
+            Assert.ThrowsAny<IOException>(() => File.WriteAllBytes(source, new byte[256]));
+            Assert.Throws<WorkspaceException>(() => raw.Preserve(w, Control(home, w), hash, bytes.Length, backing with { Offset = 127 }, ct));
+            Assert.Throws<WorkspaceException>(() => raw.Preserve(w, Control(home, w), hash, bytes.Length, backing with { MinimumLength = 257 }, ct));
+        }
+        // A new reader must not inherit a proof after the native fence closes.
+        using var next = new OwnedRangeContentStore(home, pins);
+        next.Preserve(w, Control(home, w), hash, bytes.Length, backing, ct);
+        Assert.Equal(1, next.RangeProofAdmissions); Assert.Equal(1, next.BackingProofAdmissions);
+    }
     private static string Hash(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
     private static string Control(string home, WorkspaceRecord w) => Path.Combine(home, "records", w.Id);
     private static string Segment(string control, WorkspaceRecord w, byte[] bytes)

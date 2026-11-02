@@ -1,5 +1,7 @@
 # Repeated original application
 
+[ST-65–68](verification/scalable-storage-throughput-followup.md) adds request-scoped native catalog/subtree proofs with fused byte totals, incremental retained-root updates, proven physical-history coverage for accounting, and independently revalidated composition/dependency proofs across publication. Formats, GC and ACKs remain; 26 focused cases do not qualify large or whole-lifecycle performance.
+
 [한국어](ko/repeated-original-apply.md)
 
 For a fresh `checkpoint --release` request, normal stop and infrastructure removal precede full pre/post seals around one capture. That same operation's sealed generation proceeds into release without a second capture; the post-unmount seal remains mandatory. An already fixed/published request retry cannot reuse a new invocation's seals for its older result. It returns the fixed requested result and separately collects current source for closure. Standalone release also collects current source. See [GCO scope](plans/git-collection-optimization.md).

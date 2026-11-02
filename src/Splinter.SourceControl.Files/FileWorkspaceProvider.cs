@@ -267,7 +267,8 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         if (ReadManifest(w, FilePath(control, "baseline.json")).Identity != w.BaseRevision)
             throw Error("The fixed basis identity differs from the durable task.");
     }
-    private static FileSourceManifest ReadManifest(WorkspaceRecord w, string path, Func<string, Stream>? open = null)
+    private static FileSourceManifest ReadManifest(WorkspaceRecord w, string path, Func<string, Stream>? open = null,
+        PagedMetadataStore.CatalogReadScope? catalogs = null, CancellationToken ct = default)
     {
         var m = Read<FileSourceManifest>(path, open);
         if (m.Version != 4 || m.OwnerId != w.Id || m.RequestDigest != w.RequestDigest || m.SnapshotId != w.Snapshot!.Reference?.Id ||
@@ -277,7 +278,8 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         while (directory is not null && !Path.GetFileName(directory).Equals("files", StringComparison.Ordinal)) directory = Path.GetDirectoryName(directory);
         if (directory is null) throw Error("The source manifest path is outside its owned records.");
         m.Directory = FilePath(Path.GetDirectoryName(directory)!, "metadata");
-        using var catalog = new PagedSnapshotCatalog(m.Directory, m.Catalog); catalog.Verify();
+        if (catalogs is not null) catalogs.Verify(m.Catalog, ct);
+        else { using var catalog = new PagedSnapshotCatalog(m.Directory, m.Catalog); catalog.Verify(ct); }
         return m;
     }
     private static bool ValidHash(string? hash) => hash is { Length: 64 } && hash.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f');
@@ -428,12 +430,13 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { throw new WorkspaceException("FileResultIncomplete", "The independent payload cannot be read; preserve it: " + path); }
     }
-    private static IEnumerable<FileSourceEntry> UniquePayloads(IEnumerable<FileSourceEntry> entries, string control)
+    private static IEnumerable<FileSourceEntry> UniquePayloads(IEnumerable<FileSourceEntry> entries, string control, CancellationToken ct = default)
     {
         IEnumerable<MetadataEntry> Encoded()
         {
             foreach (var entry in entries)
             {
+                ct.ThrowIfCancellationRequested();
                 if (entry.Kind != "file") continue;
                 byte[] path = System.Text.Encoding.UTF8.GetBytes(entry.Path); byte[] data = new byte[checked(8 + path.Length)];
                 System.Buffers.Binary.BinaryPrimitives.WriteInt64LittleEndian(data, entry.Length); path.CopyTo(data, 8);
@@ -441,7 +444,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
             }
         }
         string? previous = null; long length = 0;
-        foreach (var entry in MetadataSort.Order(Encoded(), FilePath(control, "scratch")))
+        foreach (var entry in MetadataSort.Order(Encoded(), FilePath(control, "scratch"), ct))
         {
             long size = System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(entry.Value.Span);
             string hash = entry.Key[..64];
@@ -452,7 +455,8 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
             yield return new(path, "file", size, hash, DateTime.FromFileTimeUtc(0).Ticks, 32);
         }
     }
-    private SourceResultStorage Storage(WorkspaceRecord w, FileSourceManifest baseline, FileSourceManifest result, IEnumerable<FileSourceManifest> retained, string control, CancellationToken ct = default)
+    private SourceResultStorage Storage(WorkspaceRecord w, FileSourceManifest baseline, FileSourceManifest result, IEnumerable<FileSourceManifest> retained, string control, CancellationToken ct = default,
+        PagedMetadataStore.CatalogReadScope? catalogs = null)
     {
         IEnumerable<MetadataEntry> Objects()
         {
@@ -467,23 +471,39 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
                 yield return new((reference.RawRange ? "r" : "w") + reference.Hash, size);
             }
         }
-        string? previous = null; long bytes = 0, count = 0, priorSize = 0;
-        foreach (var item in MetadataSort.Order(Objects(), FilePath(control, "stats-work")))
+        // The complete reference stream is validated before exposing statistics.
+        // Small sets avoid sort/spill; large sets keep the shared-budget disk path.
+        using var required = new MetadataMembership(Objects(), FilePath(control, "stats-work"), ct);
+        long bytes = 0, count = 0;
+        foreach (var item in required.Enumerate(ct))
         {
             long size = System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(item.Value.Span);
-            if (previous == item.Key) { if (size != priorSize) throw Error("One required content identity has different lengths."); continue; }
-            previous = item.Key; priorSize = size; bytes = checked(bytes + size); count++;
+            bytes = checked(bytes + size); count++;
         }
-        return new(baseline.EnumerateEntries().Sum(e => e.Length), result.EnumerateEntries().Sum(e => e.Length), bytes, count);
+        long Total(FileSourceManifest manifest)
+        {
+            if (catalogs is not null) return catalogs.Verify(manifest.Catalog!, ct).Bytes;
+            long total = 0;
+            foreach (var entry in manifest.EnumerateEntries())
+            { ct.ThrowIfCancellationRequested(); total = checked(total + entry.Length); }
+            return total;
+        }
+        return new(Total(baseline), Total(result), bytes, count);
     }
-    private static void VerifyPayloads(string control, IEnumerable<FileSourceEntry> entries, CancellationToken ct, Func<string, Stream>? open = null, bool concurrentOpen = false)
+    private static void VerifyPayloads(string control, IEnumerable<FileSourceEntry> entries, CancellationToken ct, Func<string, Stream>? open = null, bool concurrentOpen = false,
+        bool uniqueRetainedRoot = false, ResultFileContentStore.VerificationScope? verification = null)
     {
-        var payloads = UniquePayloads(entries, control);
+        // RetainedPayloads is an authenticated hash-keyed tree with one length
+        // per hash. Its decoder validates every row; sorting it again adds no proof.
+        var payloads = uniqueRetainedRoot ? entries : UniquePayloads(entries, control, ct);
+        if (verification is not null)
+        { ForEachPayload(payloads, ct, entry => verification.Verify(entry.Hash!, entry.Length, ct)); return; }
         // Injected readers can have sequential lifetime/observation contracts.
         if (open is not null && !concurrentOpen)
             foreach (var entry in payloads) VerifyObject(FilePath(control, "objects/" + entry.Hash), entry, ct, open);
         else ForEachPayload(payloads, ct, entry => VerifyObject(FilePath(control, "objects/" + entry.Hash), entry, ct, open));
     }
+
     private ContentReadScope ContentReader(WorkspaceRecord w, string control, MetadataTreeRoot? contentFiles = null,
         GitRetainedResultBasisScope? retainedGitBasis = null, FileSourceManifest? retainedBasis = null, CancellationToken ct = default)
     {
@@ -510,19 +530,20 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
                 if (!ValidHash(hash)) throw Error("The independent content alias name is invalid.");
                 return content.Open(hash, ct: ct);
             }
-            return new(Reader, raw, ownedGitBasis, ownedBasis, gitBasis, basisCatalog);
+            return new(Reader, raw, ownedGitBasis, ownedBasis, gitBasis, basisCatalog, content.BeginVerification());
         }
         catch { raw.Dispose(); ownedGitBasis?.Dispose(); basisCatalog?.Dispose(); ownedBasis?.Dispose(); throw; }
     }
     private sealed class ContentReadScope(Func<string, Stream>? reader, OwnedRangeContentStore? raw,
         GitRetainedResultBasisScope? gitBasis, FileSourceManifest? basis, GitRetainedResultBasisScope? boundaryBasis = null,
-        FileSourceManifest.ReadScope? basisCatalog = null) : IDisposable
+        FileSourceManifest.ReadScope? basisCatalog = null, ResultFileContentStore.VerificationScope? verification = null) : IDisposable
     {
         public Func<string, Stream>? Reader => reader;
+        public ResultFileContentStore.VerificationScope? Verification => verification;
         public void VerifyBoundary() => (boundaryBasis ?? gitBasis)?.VerifyReadBoundary();
         public void Dispose()
         {
-            try { gitBasis?.Dispose(); }
+            try { verification?.Dispose(); gitBasis?.Dispose(); }
             finally { try { raw?.Dispose(); } finally { try { basisCatalog?.Dispose(); } finally { basis?.Dispose(); } } }
         }
     }
@@ -669,7 +690,7 @@ public sealed record FileSourceManifest([property: JsonRequired] string OwnerId,
             pages = new(manifest.Directory); PagedSnapshotCatalog? opened = null;
             try
             {
-                catalog = opened = new(manifest.Directory, manifest.Catalog);
+                catalog = opened = new(pages, manifest.Catalog);
                 payloads = pages.Open(manifest.PayloadIndex); names = new(pages, manifest.PayloadPaths);
             }
             catch { opened?.Dispose(); pages.Dispose(); throw; }

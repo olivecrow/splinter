@@ -285,23 +285,32 @@ public sealed partial class OwnedContentStore
     }
     public Stream Open(WorkspaceRecord w, string control, string hash, long length, CancellationToken ct = default)
         => OpenCore(w, control, hash, length, ct);
+    internal Stream OpenVerified(WorkspaceRecord w, string control, string hash, long length, ImmutableReadProofs proofs, CancellationToken ct)
+        => OpenCore(w, control, hash, length, ct, proofs);
     public Stream Open(WorkspaceRecord w, string control, string hash, CancellationToken ct = default)
         => OpenCore(w, control, hash, null, ct);
-    private Stream OpenCore(WorkspaceRecord w, string control, string hash, long? length, CancellationToken ct)
+    private Stream OpenCore(WorkspaceRecord w, string control, string hash, long? length, CancellationToken ct, ImmutableReadProofs? proofs = null)
     {
-        Require(w, control, hash, length ?? 0); ContentObject item; FileStream input;
-        using (var held = Lock(ct))
-        using (var pages = new PagedMetadataStore(Metadata))
+        Require(w, control, hash, length ?? 0, inspectPath: false); ImmutableReadProofs.EnsurePlainPath(control, proofs); ContentObject item; FileStream input;
+        using (var held = Lock(ct, proofs))
+        using (var reader = ImmutableReadProofs.OpenMetadata(Metadata, proofs))
         {
-            var catalog = Load(pages); item = DecodeObject(pages.Open(catalog.Objects).Find(hash) ?? throw Invalid("The immutable content owner is missing."), hash, length);
+            var pages = reader.Pages;
+            var catalog = Load(pages, proofs); item = DecodeObject(pages.Open(catalog.Objects).Find(hash) ?? throw Invalid("The immutable content owner is missing."), hash, length);
             var reference = DecodeReference(pages.Open(catalog.References).Find(ReferenceKey(hash, w.Id)) ?? throw Invalid("The immutable content reference is missing."), w, item.Identity!);
             if (item.Phase != "ready" || reference.Phase != "ready" || pins.Identify(Alias(control, hash)) != item.Identity)
                 throw Invalid("The independent content alias is missing, changed or incomplete.");
-            input = OpenCanonicalFence(Payload(hash), item, ct);
+            input = OpenCanonicalFence(Payload(hash), item, ct, proofs);
         }
         // The exact native handle denies writes/deletion before releasing the
         // shared catalog lock. Other payload readers can now admit concurrently.
-        try { boundary?.Invoke("content-reader-pinned"); VerifyCanonicalBytes(input, item, ct); return input; }
+        try
+        {
+            boundary?.Invoke("content-reader-pinned");
+            if (proofs is null) VerifyCanonicalBytes(input, item, ct);
+            else proofs.Verify(input, item.Identity!, 0, item.Length, item.Hash, ct);
+            return input;
+        }
         catch { input.Dispose(); throw; }
     }
     // Call only when the owner has durably removed every result/request root
@@ -444,9 +453,9 @@ public sealed partial class OwnedContentStore
         try { VerifyCanonicalBytes(input, item, ct); return input; }
         catch { input.Dispose(); throw; }
     }
-    private FileStream OpenCanonicalFence(string path, ContentObject item, CancellationToken ct)
+    private FileStream OpenCanonicalFence(string path, ContentObject item, CancellationToken ct, ImmutableReadProofs? proofs = null)
     {
-        WorkspaceStore.EnsurePlainPath(path); var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 65536);
+        ImmutableReadProofs.EnsurePlainPath(path, proofs); var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 65536);
         try
         {
             pins.Verify(input, item.Identity!); ct.ThrowIfCancellationRequested();
@@ -464,9 +473,9 @@ public sealed partial class OwnedContentStore
     }
     private void Verify(string path, ContentObject item, CancellationToken ct)
     { using var input = OpenCanonical(path, item, ct); }
-    private Catalog Load(PagedMetadataStore pages)
+    private Catalog Load(PagedMetadataStore pages, ImmutableReadProofs? proofs = null)
     {
-        string path = Path.Combine(directory, "catalog.json"); WorkspaceStore.EnsurePlainPath(path);
+        string path = Path.Combine(directory, "catalog.json"); ImmutableReadProofs.EnsurePlainPath(path, proofs);
         Catalog? current = File.Exists(path) ? ReadCatalog(path) : null;
         if (current is null)
         {
@@ -507,9 +516,9 @@ public sealed partial class OwnedContentStore
         }
         AtomicFilePublication.Publish(pending, path); boundary?.Invoke("content-catalog-published");
     }
-    private OperationLease Lock(CancellationToken ct)
+    private OperationLease Lock(CancellationToken ct, ImmutableReadProofs? proofs = null)
     {
-        WorkspaceStore.EnsurePlainPath(directory); Directory.CreateDirectory(directory); string path = Path.Combine(directory, "operation.lock"); WorkspaceStore.EnsurePlainPath(path);
+        ImmutableReadProofs.EnsurePlainPath(directory, proofs); Directory.CreateDirectory(directory); string path = Path.Combine(directory, "operation.lock"); ImmutableReadProofs.EnsurePlainPath(path, proofs);
         LocalGate local;
         lock (GateRegistryLock)
         {

@@ -9,10 +9,13 @@ namespace Splinter.Platform.Windows;
 // A writer's object directory is flat and immutable in identity. Directory
 // namespace pins permit child publication. The existing format marker is pinned
 // against deletion so the root and its ancestors cannot become empty reparses.
-internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard
+internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard, IRequestPathGuard
 {
     private readonly object gate = new();
     private readonly List<SafeFileHandle> handles = [];
+    // Exact spellings also remain safe below case-sensitive NTFS directories.
+    // A different spelling simply falls back to the ordinary full walk.
+    private readonly HashSet<string> pinnedDirectories = new(StringComparer.Ordinal);
     private SafeFileHandle? owner;
     private bool disposed;
     public string DirectoryPath { get; }
@@ -20,7 +23,7 @@ internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard
     internal WindowsJournalDirectoryGuard(string directory, string? existingOwnerName = null)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
-        if (existingOwnerName is not (null or "owner.lock" or BoundedJournalReclamation.GuardName))
+        if (existingOwnerName is not (null or "owner.lock" or "identity.bin" or BoundedJournalReclamation.GuardName))
             throw new ArgumentException("Require the existing format-owned marker.", nameof(existingOwnerName));
         DirectoryPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory));
         try
@@ -41,6 +44,7 @@ internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard
                         new { path, nativeError = error });
                 }
                 handles.Add(handle);
+                pinnedDirectories.Add(Path.TrimEndingDirectorySeparator(path));
                 if (!GetFileInformationByHandle(handle, out var info))
                     throw new WorkspaceException("JournalPathUnpinned", "Cannot inspect pinned journal ancestry: " + new Win32Exception(Marshal.GetLastWin32Error()).Message);
                 if ((info.Attributes & 0x400) != 0 || (info.Attributes & 0x10) == 0)
@@ -94,6 +98,27 @@ internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard
         }
     }
 
+    public bool TryEnsurePlainPath(string path)
+    {
+        lock (gate)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            string full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+            if (pinnedDirectories.Contains(full)) return true;
+            string? parent = Path.GetDirectoryName(full);
+            if (parent is null || !pinnedDirectories.Contains(Path.TrimEndingDirectorySeparator(parent))) return false;
+            // The pinned marker keeps this complete ancestor chain nonempty.
+            // Other children remain mutable and must be inspected each time.
+            FileAttributes attributes;
+            try { attributes = File.GetAttributes(full); }
+            catch (FileNotFoundException) { return true; }
+            catch (DirectoryNotFoundException) { return true; }
+            if ((attributes & FileAttributes.ReparsePoint) != 0)
+                throw new WorkspaceException("UnsafePath", "A request path became a reparse point: " + full);
+            return true;
+        }
+    }
+
     public void Dispose()
     {
         lock (gate)
@@ -103,6 +128,7 @@ internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard
             owner?.Dispose();
             for (int i = handles.Count - 1; i >= 0; i--) handles[i].Dispose();
             handles.Clear();
+            pinnedDirectories.Clear();
         }
     }
 

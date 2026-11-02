@@ -13,16 +13,28 @@ public sealed class PagedSnapshotCatalog : IDisposable
     private readonly PagedMetadataStore store;
     private readonly DirectoryMetadataTree tree;
     private readonly StringComparison comparison;
+    private readonly bool ownsStore;
     public SnapshotCatalogDescriptor Descriptor { get; }
 
     public PagedSnapshotCatalog(string directory, SnapshotCatalogDescriptor descriptor)
+        : this(new PagedMetadataStore(directory), descriptor, true) { }
+
+    // The caller owns this reader's lifetime. Catalog and payload-index lookups
+    // can share its bounded page cache and native container fences.
+    public PagedSnapshotCatalog(PagedMetadataStore store, SnapshotCatalogDescriptor descriptor)
+        : this(store, descriptor, false) { }
+
+    private PagedSnapshotCatalog(PagedMetadataStore store, SnapshotCatalogDescriptor descriptor, bool ownsStore)
     {
-        if (descriptor.Version != 1 || descriptor.Count < 1 || descriptor.Root.Path != "" || !descriptor.Root.Directory)
-            throw Invalid("The snapshot catalog descriptor is unsupported.");
-        store = new(directory); Descriptor = descriptor; tree = new(store, descriptor.CaseSensitive);
+        this.store = store; this.ownsStore = ownsStore; Descriptor = descriptor; tree = new(store, descriptor.CaseSensitive);
         comparison = descriptor.CaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-        try { _ = store.Open(descriptor.Children); }
-        catch { store.Dispose(); throw; }
+        try
+        {
+            if (descriptor.Version != 1 || descriptor.Count < 1 || descriptor.Root.Path != "" || !descriptor.Root.Directory)
+                throw Invalid("The snapshot catalog descriptor is unsupported.");
+            _ = store.Open(descriptor.Children);
+        }
+        catch { if (ownsStore) store.Dispose(); throw; }
     }
 
     public static SnapshotCatalogDescriptor Build(string directory, SnapshotEntry root, IEnumerable<DirectoryMetadataRecord> records,
@@ -166,7 +178,7 @@ public sealed class PagedSnapshotCatalog : IDisposable
         foreach (var item in Walk()) { ct.ThrowIfCancellationRequested(); count = checked(count + 1); _ = item; }
         if (count != Descriptor.Count) throw Invalid("The catalog membership differs from its descriptor.");
     }
-    public void Dispose() => store.Dispose();
+    public void Dispose() { if (ownsStore) store.Dispose(); }
     private static string Parent(string path) { int at = path.LastIndexOf('/'); return at < 0 ? "" : path[..at]; }
     private static string Name(string path) { int at = path.LastIndexOf('/'); return at < 0 ? path : path[(at + 1)..]; }
     // Separators sort before every component, so a directory's whole subtree

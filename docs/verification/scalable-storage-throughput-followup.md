@@ -365,3 +365,184 @@ Capture decreased **22.6%** and whole workflow **18.4% in this pair only**. Nest
 The predeclared total estimate was **48min**, with design/implementation/minimal verification/recording **8/25/10/5min**; actual work was below the total estimate. Each trial kept **90s expected / 180s stop**, stages **20/15/20/35s**, and the previous per-command **3/5/5/2/5/8/3/1s** budgets, all stopping at twice the estimate or an earlier enclosing deadline. Focused test groups used **8/16s** and builds **15/30s**. No measured execution crossed its limit; the native candidate stopped on a functional failure, not a timeout. No limit was increased, state rewritten, or provider forcibly terminated.
 
 [Raw report](../../reports/benchmarks/reference-capture-20261102.json) binds current sources, frozen binaries, per-command times, diagnostics, failure/recovery, and provider audit; evidence is under `artifacts/reference-capture-20261102/`. Remaining work: full catalog scanning, repeated independent payload verification, broad selected-apply comparison, global object/reference scans and packing under shared locks, plus write comparison/flush costs. A scope-bound proof or dependency-aware traversal is needed before removing those checks; they were not bypassed. No large/100k/17GiB, actual Unity/Git/Plastic lifecycle, full gate, OS-crash, peak-RAM or hardware-saturation qualification is added.
+
+## ST-61–64: bounded capture readers and reference work
+
+This follow-up starts at `8709f902dd14d188f82f1e8cd170e96a2514a9bb`. The main chat was idle after committing ST-56–60; its changes are not repeated. The two architecture review documents were the only initial untracked files. The product remains a reference workspace for parallel execution and explicit original publication, not a full-project archive.
+
+| ID | Implemented work and boundary |
+| --- | --- |
+| ST-61 | `CaptureBackingReaders` reuses at most eight sealed-segment handles per frozen paged reader. Each handle is admitted with exact native identity/length and denies writes/deletion until eviction/close. Concurrent reads use positional I/O outside the cache lock; leased handles cannot be evicted. When all eight are busy, additional reads use temporary handles, so eight is a retained-cache bound, not a hard total handle cap. Close rejects new leases and drains active ones. Append/bounded non-segment backing behavior is unchanged. |
+| ST-62 | `OwnedRangeContentStore` remembers up to 1,024 verified `(offset,length,hash)` slices per existing fenced backing proof (at most eight backing proofs). This avoids repeated range hashing only while that exact no-write/no-delete handle remains open. Eviction/disposal drops its slice proofs; length is checked on backing-proof hits. First admission, source identity, canonical object verification, shared catalog lock, durable pin intents and ACK remain. This does not transfer an unfenced upstream hash or reuse proofs across a reopened handle. |
+| ST-63 | Both independent payload-verification passes stream the authenticated, hash-keyed `RetainedPayloads` tree directly. Its decoder validates rows and its tree already provides one length per hash; sorting/deduplicating it again is redundant. Other payload sources retain the original deduplication path. All actual payload reads/hashes, receipt and publication-boundary checks remain. |
+| ST-64 | Logical storage accounting uses `MetadataMembership` to validate/deduplicate references before aggregation, with shared scratch budget and the existing sorted-disk fallback. Small inputs avoid sort/spool. Raw/whole identity separation and contradictory-length rejection remain. Capture cancellation now reaches accounting, total-length traversal and ordinary payload sorting. Historical reference enumeration and full basis/result length walks still exist. |
+
+### Minimal checks, failures and limitations
+
+Final selected suite: **23 passed, zero failures/skips, 9.293s** (expected 8s, stop 16s). A 128KiB capture read twice in 4KiB chunks admitted its backing once; later live writes left the frozen bytes unchanged. This is an observed operation count, not an elapsed-time speedup. Under the previous code each segment read opened/verified again (64 reads in this test, a static count, not a measured before-run). Reading the same raw slice twice recorded one backing and one slice proof; reopening the store established them anew. Other checks cover write/delete exclusion, idle eviction and replacement rejection, busy-reader overflow/close drain, memory/disk/partial-spill/budget denial and cancellation, failed descriptor prefixes, retained results after basis loss, changed/unchanged/private drain, raw peer reuse and existing-reference recovery.
+
+The first default parallel build failed in 3.92s with zero reported compiler errors; the underlying cause is unknown. A verbose serial retry rebuilt unchanged dependencies; it was cancelled, with no product writer/provider running. Exact cancellation elapsed time was not retained, so do not count this attempt as a measured within-deadline build. Scope was reduced to existing dependency outputs: the changed Files project built in 0.85s, and the test project in 7.35s, zero warnings/errors. An intervening test build failed in 6.16s on missing timeout cancellation-token references; those tests were corrected. Runtime was compiled by the interrupted dependency build; SHA-256 of Runtime and Files outputs exactly matched the copies used by the final tests. This is not a successful full solution build.
+
+A filter combining class and method criteria selected zero tests and is not counted. The initial sandbox run had 5/8 failures from denied temporary-file rename or dependent scratch cleanup; moving temporary storage into the repository reduced this to two denied native hardlink creations. The final selected suite ran outside that sandbox against only fresh temporary inputs under `artifacts/capture-read-followup-20261102/tmp`. No existing fixture, Editor, original project, provider lifecycle or large run was used. These permission failures were not repaired by changing product guards.
+
+Predeclared work estimates: investigation 8min, implementation 15min, verification 3min, documentation 4min; stop each at twice the estimate. Builds used 15/30s and selected tests 8/16s. Full `build.ps1`, 100k/17GiB, actual Git/Plastic/Unity lifecycles, hardware utilization, peak memory and end-to-end speedup remain unverified. Evidence and source/binary hashes: [capture read follow-up](../../reports/benchmarks/capture-read-followup-20261102.json).
+
+### Remaining candidates and writing review
+
+- Whole-file verification before/after publication still repeats. Current independent readers close individual native fences; a root hash alone cannot prove those bytes remained fixed across the gap. Keep these checks until a bounded operation-scoped native proof or equivalent immutable-store ownership contract is implemented. Holding input-sized native handle sets is not the chosen workaround.
+- Full catalog traversal, cumulative retention and historical accounting remain. Reusing only the newest logical payload set would not prove the physical reference closure of every older descriptor. Persistent aggregate/reference roots require crash-safe updates and generation deletion semantics. The new memory set reduces sorting, not the number of historical rows enumerated.
+- Conditional metadata maintenance at 4MiB and backend live-repack/segment recovery remain on capture paths. Deferring new GC could shorten response but moves work and retains space; pending same-request recovery cannot be postponed. No unsupported background collector was added.
+- `JournalDeltaStore.cs` raw overwrite comparison around `ChangedSlice`/line 484, commit batching around lines 850–916, and `WinFspWriteBatch.cs:86,176` retain private comparison and existing maximum 64-write/16MiB durable groups. Sequential callbacks cannot share a future ACK safely. The prior raw edge-search experiment was removed without whole-write benefit (`raw-write-batching.md`); it was not reintroduced. New writes already store raw bytes. No per-write ACK, conflict protection or replay integrity was weakened.
+- Raw scratch JSON/array pooling, parallel directory scheduling, compact-proof scan fusion and a common persistent result/live root are still candidates, not adopted by this patch. The common-root proposal must resolve full-file SHA-256 after partial edits and reference lifetime before it can eliminate conversion or whole reads. Packed B+ pages remain deferred. These are explicit remaining design/performance questions, not claims that current costs are inevitable.
+
+## ST-65–68: shared catalog proofs, persistent retention and independent composition proofs
+
+This work starts at `8709f90` plus the uncommitted ST-61–64 changes. The main chat was checked before and after implementation and remained idle at that commit. No previous edits were discarded, and no new workspace, Editor or product provider was started. The design treats results as immutable references for parallel work and explicit application, rather than rebuilding an archive on every checkpoint.
+
+| ID | Change and protection boundary |
+| --- | --- |
+| ST-65 | `PagedMetadataStore.CatalogReadScope` combines complete catalog validation and logical byte totals in one structural traversal. At most 4,096 subtree summaries are reusable under this exact reader's native container fences, plus fixed identity/location-header fences. Strict key order, directory decoding, child membership, logical/page checksums and catalog count remain. Container eviction or any write-sharing read invalidates the proof epoch; missing proofs traverse normally. Shared peer writers are not excluded by a global writer lock. The scope begins after metadata construction and spans publication/accounting only. |
+| ST-66 | `BindRetainedPayloads` starts from the previous immutable retained root and path-copies only new before/after/range-basis dependencies. Existing lengths must agree. It no longer enumerates and sorts the entire cumulative history to rebuild that union. The resulting complete retained stream is still independently validated; no persisted auxiliary aggregate or new recovery state was added. |
+| ST-67 | Historical accounting first proves that the current retained set covers the older one AND that every older retained file has the same physical descriptor (including whole-to-range transitions). Exact persistent-tree differences skip shared subtrees only after full native-backed graph validation, with at most 4,096 scope-bound compared-root proofs invalidated by the same fence epoch. Different/missing descriptors or non-reference manifests retain ordinary historical enumeration. Every historical header still gets owner, catalog and recorded generation fingerprint checks. Only duplicate accounting contributions are omitted; GC, alias pruning and retention/deletion policy are unchanged. |
+| ST-68 | `ResultFileContentStore.VerificationScope` proves the entire composed-file SHA-256 first, then remembers at most 1,024 exact hash/descriptor pairs in that request. A second check independently decodes the descriptor/range tree and reopens EVERY declared basis/chunk through current native identity, length, ownership/reference and ready-state checks. Each dependency is hashed again unless `ImmutableReadProofs` still owns its exact no-write/no-delete backing fence. This cache holds at most 64 backings/4,096 range proofs, never evicts a fence into a stale proof, and uses ordinary hashing beyond the budget. Consequently the second check can reuse the established composition hash without reconstructing and hashing the entire file again. External Git basis composition keeps its full-file path. Whole objects already verified by their owned store do not get an extra outer SHA pass. |
+
+Matching a manifest hash alone is never a payload proof. The independently published receipt, request/root binding, capture boundaries, publication order, durable ACK, original/peer protection and same-request retry remain. A new call/retry starts with fresh in-memory proofs. A retained canonical byte fence does **not** imply that an alias/reference still exists: those current ownership checks run again. No file-manifest/task/basis/overlay/SPM2/wire/CLI version or command changed.
+
+### Minimal validation and observed work
+
+The final changed-area suite passed **23/23** in **10.087s**, with zero failures/skips. The three existing publication-boundary recovery cases passed **3/3** in **4.158s**: **26 distinct selected cases total**. This is neither the whole gate nor a real provider/Unity/Git/Plastic lifecycle.
+
+New checks cover a 31-file catalog's repeated proof/total reuse, fewer visited nodes after one changed leaf, count mismatch, write exclusion and corruption rejection after close; writable-container fallback with no reused proof; insert/change/delete tree differences; physical descriptor/whole-to-range/missing-retention accounting distinctions; whole and raw composed-file proofs; removal of a current ownership reference despite retained byte proofs; and the 65th backing falling back to hashing and rejecting subsequently changed bytes. Existing checks retain private iterator drain, peer raw basis reuse, repeated results after basis loss and descriptor-prefix failure/retry. The three extra recovery tests use the existing non-native-content fixture; native reference capture and pre-basis failure are covered separately by the changed-area suite.
+
+For each small whole/raw composed-file case, two verifications recorded **one composed-file hash, two dependency hashes total, and one composition reuse**. Repeating the exact catalog recorded **zero additional node visits**; the single changed leaf required fewer than the original 31 visits. These are operation counts/assertions, not measured end-to-end speedups.
+
+Initial development failures remain recorded: Runtime first failed compilation on nullable flow after a dictionary lookup, then compiled cleanly; the first 10-test selection had two fixture failures (unflushed test metadata, and an incorrect expectation that unlinking a separate owned hardlink must fail while the canonical object is fenced). The test now checks the actual invariant: ownership removal is rejected on revalidation. No product protection was weakened to fix either fixture. The three recovery tests initially used repository-local temporary folders and were rejected by the existing inherited-VCS guard, before preservation began. Running those three on fresh default system-temp inputs passed; their failed report is preserved.
+
+Final restricted builds used existing dependency outputs: Runtime **5.50s**, Files **3.87s**, tests **7.54s**, zero warnings/errors. The Runtime/Files DLL hashes were compared with the copies used by the tests. Expected/stop budgets were investigation **8/16min**, implementation **20/40min**, selected validation **3/6min**; individual builds **15/30s** and tests **8/16s**. No executing command reached its stop boundary, and no provider needed stopping. No full `build.ps1`, large retained fixture or long performance run was started. Raw reports/source and binary hashes are in [reference proof evidence](../../reports/benchmarks/reference-proof-20261102.json).
+
+### Remaining cost and qualification boundary
+
+The initial source namespace observation, catalog/index construction, first complete validation of previously unseen metadata, first changed-file SHA-256, current ownership checks and all independently required payload dependencies remain. History headers and changed tree paths still cost work; divergent physical histories use the old union path. Cache exhaustion, writer-shared containers and fresh calls can repeat reads. This patch reduces repeated traversal/hash/union work; it does not establish cost independent of input/history, eliminate physical maintenance, or prove large-project latency/RAM. Shared-writer contention, a 100k/17GiB workload, full gate, actual Git/Plastic/Unity, OS interruption and end-to-end timings remain unqualified. The prior stopped large fixtures stay stopped.
+
+## ST-69: same-small-input comparison of ST-65–68
+
+The **work counts decreased, but a consistent capture-time improvement was not demonstrated**. Before is `8709f90` plus ST-61–64; after adds ST-65–68. All six changed Runtime/Files sources from the preceding evidence matched their recorded SHA-256 exactly during baseline reconstruction. Current product sources were unchanged by measurement and match ST-65–68 evidence. Only isolated source copies/binaries were built; no checkout, commit or product build output was replaced.
+
+Every run used a fresh **31-file / 992-byte** synthetic immutable basis, fixed metadata, and six successive two-byte edits at offset 2 of the same file. Actual `JournalDeltaStore`, native content pins and `FileWorkspaceProvider` performed frozen capture, independent preservation/publication and capture finalization. This is an in-process collection comparison, **not** a mounted WinFsp/CLI/provider/Unity lifecycle. Editing, initial fixture preparation and final verification are outside capture time. All ten runs (eight timing, two diagnostic) had equal input digest, six result contents/fingerprints and storage statistics, and all retained results remained independently readable after basis availability was removed.
+
+### Time: uninstrumented binaries, separate ABBA blocks
+
+A is before; B is after. Each sample below sums six captures. Counters and optional generation logging were disabled. Each run is a new process/fresh physical fixture; OS caches and background load were not controlled.
+
+| Block/order | A first | B first | B second | A second | Before mean | After mean | Change |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1: A1 B1 B2 A2 | 7.178935s | 6.741428s | 6.819520s | 5.379348s | 6.279142s | 6.780474s | **7.98% longer** |
+| 2: A3 B3 B4 A4 | 3.523875s | 3.403257s | 3.489949s | 3.481885s | 3.502880s | 3.446603s | **1.61% shorter**, 0.056277s |
+
+One final additional block was declared after the first block showed substantial order-associated variation; no further repeats were added. The drift's cause was not isolated. Do not combine the two blocks into a general improvement percentage or report only the favorable block. The second block's saving is only about **56ms across six captures**.
+
+### Counts: separate instrumented run per candidate
+
+Identical counter hooks were added only to isolated diagnostic copies; their elapsed times are excluded above. The scope is the same six captures, including all historical results accumulated in that run.
+
+| Measured work | Before | After | Reduction |
+| --- | ---: | ---: | ---: |
+| Catalog entries examined | 2,635 | 1,696 | 35.64% |
+| Retention input rows encoded, before deduplication | 38 | 18 | 52.63% |
+| Current/historical physical reference rows entering accounting | 133 | 48 | 63.91% |
+| Metadata cursor rows yielded | 3,667 | 2,389 | 34.85% |
+| Metadata page decodes after cache miss | 17,696 | 16,670 | 5.80% |
+| Instrumented content SHA passes | 230 | 128 | 44.35% |
+| Bytes processed by those SHA passes | 15,730 | 13,091 | 16.78% |
+
+Catalog visits count ordinary catalog walking plus actual nodes visited by the specialized proof traversal, excluding the virtual root and reused subtrees. Metadata cursor rows and catalog visits overlap and must not be added. Page decodes are not OS read syscalls. SHA counters cover stream payload hashes, composed-file verification, raw ranges, immutable-proof misses, source scans and private-range preparation; metadata/control/address hashes and separate journal-segment seal hashing are excluded. These are actual counts at the documented sites, not all SHA calls in the process. The after run recorded 75 catalog subtree reuses, 69 fenced byte-proof reuses and 21 composition reuses. Individual hash categories moved between implementations; compare the combined matched categories, not a single helper in isolation.
+
+The reduced hash volume is only **2,639 bytes**, and page decodes fall much less than logical traversal rows. Diagnostic attribution still includes result scanning, raw preparation, descriptor/adoption work and durable publication. This supports investigating remaining work if needed; it does not prove flush, CPU, cache warmup or background activity caused the timing result. Nested diagnostic intervals are retained in the report and are not additive or a third timing comparison.
+
+### Budgets, evidence and limits
+
+Predeclared overall estimate **18min**, stop **36min**: preparation **5/10min**, instrumentation **8/16min**, comparison execution **2/4min**, recording **3/6min**. Individual builds used **15/30s**; fixture preparation **2/4s**, each capture **2/4s**, six-capture sum **6/12s**, final checks **2/4s**. The slowest capture was **2.083215s**; all ten runs finished below each execution stop boundary. Cancellation tokens and boundary checks stop later phases and preserve state on failure; no forced termination or timeout extension occurred. Native runs required sandbox escalation for fresh test hardlinks only. No provider/Editor was created, and existing large fixtures were never resumed.
+
+The small comparison completed successfully. The report writer initially encountered Windows default cp949 decoding and was corrected to explicit UTF-8; measured files were unchanged. No full test gate, actual Git/Plastic/Unity, peak-memory/hardware measurement or large-project speed qualification is added. Measurement introduces no product code/format change. Fixtures, exact source manifests, uninstrumented/diagnostic binary hashes, harness/instrumentation scripts and raw results remain under `artifacts/reference-proof-timing-20261102/`. [Machine-readable evidence](../../reports/benchmarks/reference-proof-timing-20261102.json).
+
+
+## ST-70–72: capture cost attribution and metadata reader reuse
+
+ST-69 removed only 2,639 instrumented hash bytes in the tiny input. The next isolated measurement identifies much larger remaining work: **3,186 complete ancestor-path walks took 1.993613s of measured work**, **256 durable flushes took 0.793511s**, and **2,507 instrumented file opens took 0.218703s** across six captures. Metadata reader construction ran 430 times, taking 0.616842s inclusive of its path/open work. Page read/decode took 0.619969s inclusive, 0.304777s excluding separately timed children. Encoding/writing nodes took only 0.006729s. This explains why fewer logical visits and tiny hashes were insufficient: repeatedly admitting metadata readers and checking their paths remained substantial, alongside durability.
+
+These are attribution measurements, not an additive wall-time partition. Parent metadata timings overlap path/open timings; exclusive work is summed across threads. File-open/flush instrumentation covers explicit FileStream calls and targeted metadata constructors in isolated Runtime/Files copies, not all native Platform opens or every process syscall. The separate caller-attribution run takes stack traces and is not a performance sample. Instrumentation is absent from product sources and final timing binaries.
+
+### Implemented changes and protection
+
+- **ST-70:** frozen before sources and isolated cost probes split ancestor checks, metadata construction/read/decode/write, file opens, durable flushes and atomic publication. The main chat was idle/unchanged before and after this work; ST-61–69 changes were preserved.
+- **ST-71:** `ImmutableMetadataReaders` extends the request-local content verification scope with at most four metadata readers. Identity and existing location headers remain write/delete fenced; the ordinary reader lease and native container validation stay active. Overflow uses a short-lived ordinary reader. Every content/range open still locks its owner and rereads the current catalog, object/reference phase, alias/native identity and range membership. Only immutable page readers are reused. Peer appends remain visible; reclamation cannot replace the held store. No mutable ownership decision is cached.
+- **ST-72:** a readonly `PagedMetadataStore` checks `identity.bin` and its entire ancestor chain once before opening anything, removing the immediately preceding duplicate directory walk. Writers still check before directory creation and again before identity access. `PagedSnapshotCatalog` can borrow a caller-owned page reader; file-manifest catalog and payload-index queries now share one reader/cache. Disposing the borrowed catalog does not close the owner; foreign roots still fail.
+
+The reader-only intermediate candidate reduced opens but did **not** demonstrate a time improvement: its diagnostic sum was 3.851095s versus the baseline's 3.629636s. That negative observation is retained. The final candidate additionally removes duplicate ancestor walks and shares the catalog/index reader. Current path/native checks, metadata hash/count validation, same-request recovery, result independence, writer/reader fencing, individual durable ACKs and formats remain. No flush or atomic publication was removed.
+
+### Same tiny input, final candidate
+
+Fresh **31 files / 992 bytes**, six two-byte edits at offset 2 of one file, fixed metadata, actual in-process JournalDeltaStore/native pins/FileWorkspaceProvider. No mounted WinFsp/CLI/provider/Editor lifecycle. Preparation, edits and final verification are outside capture time. The single **uninstrumented ABBA** block, with optional generation diagnostics disabled, measured six-capture sums **A1 3.388032s, B1 3.157480s, B2 3.157714s, A2 3.321417s**. Before/after means are **3.354725→3.157597s**, saving **0.197128s (5.88%)**. This is a modest result for this small input; OS caches/background load were not controlled and no general/large-project speed claim follows.
+
+| Separately instrumented work, six captures | Before | Final |
+| --- | ---: | ---: |
+| Complete ancestor walks | 3,186 / 1.993613s | 2,492 / 1.538372s |
+| Metadata reader constructions, inclusive | 430 / 0.616842s | 280 / 0.216830s |
+| Instrumented file opens | 2,507 / 0.218703s | 2,087 / 0.195904s |
+| Metadata page read/decode, exclusive | 16,673 / 0.304777s | 16,258 / 0.295833s |
+| Durable flushes | 256 / 0.793511s | 256 / 0.785565s |
+| Atomic publication | 67 / 0.074369s | 67 / 0.073321s |
+
+The final diagnostic sum is 3.405184s; do not mix diagnostic times into ABBA. Fresh physical identities also affect a few treap-node writes/decodes; those small variations are not claimed as logical write removal. All **eight runs** (four diagnostic and four timing) have equal input digest, six result contents/fingerprints and storage statistics. Every historical result verifies after synthetic basis availability is removed.
+
+### Focused validation, budgets and remaining cost
+
+**22 selected tests passed, zero failed/skipped**: 21 reference-proof/raw-basis tests in 8.367s, plus the reparse-parent test in 0.258s. They cover identity/reclamation fences, peer new-root visibility, four-reader fallback, borrowed-reader lifetime/foreign roots, current ownership removal rejection, raw dependencies and retained content. Runtime/Files copies used by tests match the built DLL hashes. Final restricted builds used existing dependencies: Runtime 5.34s, Files 3.95s, tests 7.17s, zero warnings/errors. Development test-compilation errors (cancellation-token usage and missing type qualification) were corrected. A combined class/method filter selected zero cases and was not counted as a pass; the corrected selections above ran successfully.
+
+Predeclared estimates/stops: overall **32/64min**, state/design **5/10min**, diagnosis **5/10min**, implementation **15/30min**, focused verification **4/8min**, recording **3/6min**; builds **15/30s**, test commands **8/16s**, setup **2/4s**, each capture **2/4s**, six captures **6/12s**, final checks **2/4s**. Slowest capture **0.968464s**; no execution reached its stop boundary. All fresh fixtures and evidence are retained; no forced termination, timeout extension, provider/Editor operation or retained large-fixture resumption occurred.
+
+Remaining measured costs are still mandatory current path/native checks, first unseen metadata, initial catalog/index observation and durable publication. Further savings need a separately proven lifetime or publication boundary; this work does not cache mutable ownership or weaken durability to obtain them. Full `build.ps1`, large inputs, actual Git/Plastic/Unity, OS interruption, contention and memory qualification were not run. Raw sources/probes/harness/results are in `artifacts/capture-cost-20261102/`; [machine-readable evidence](../../reports/benchmarks/capture-cost-20261102.json) pins changed source/test hashes and reports.
+
+
+## ST-73–74: request-bound path proofs and metadata flush grouping
+
+This continues from the exact ST-70–72 working sources and preserves earlier work. The main chat was idle/unchanged at entry. The optimization admits only a protected request lifetime; it does not treat a remembered path or a mutable ownership catalog as a reusable proof.
+
+**ST-73 — path checks.** Optional Runtime `IRequestPathGuard` / `IJournalFilePins.PinMetadataPaths` uses the existing Windows journal directory-guard implementation with an existing metadata `identity.bin` marker. Native directory handles pin every ancestor against rename; the nondeletable marker keeps the chain nonempty and prevents reparse conversion. Exact path spellings are matched, including beneath case-sensitive NTFS directories. A currently mutable leaf is inspected on every call. Only the already pinned directory or a direct child of a pinned ancestor is covered; other paths take the ordinary full walk. Missing native proof returns null/falls back; an observed reparse or access error during a leaf check is still refused. No new ownership marker is created.
+
+The guard belongs to one of the existing **maximum four** metadata readers in `ImmutableReadProofs`. Content/range owner locks, current catalog/object/reference phase, alias/native identity and range membership are still checked on each open. Reader disposal releases the path proof, and there is no ambient/global path cache. Regular callers and platforms without the optional port keep full path checks. `PagedMetadataStore`'s existing public constructor and wire/CLI capabilities are unchanged.
+
+**ST-74 — flush grouping.** A new metadata container still durably records its native owner before writing header bytes. Its header is made visible using ordinary buffered flush, then header and pages share the required durable flush **before any root acknowledgement**. The header is an exact copy of the independently durable identity and an interrupted owned prefix can be resumed. A successful durable flush records only this open writer's watermark. Another `Flush()` with no changed bytes reuses it while still calling the existing `metadata.pages-durable` acknowledgement boundary; any write marks the stream dirty before bytes are emitted. Flush failure cannot advance the watermark. A reopened writer forces its first flush even if no new bytes were written. Container rotation flushes the old dirty output before switching. Native owner receipts, identity-prefix/checksum flushes, control publication ordering, and individual operation ACKs are not deferred or removed.
+
+### Same-small-input observations
+
+Each new process/fixture used **31 files / 992 bytes**, six two-byte edits of one file, and fixed metadata. Actual in-process journal capture/native pins/file result preservation ran; no mounted WinFsp/CLI/provider/Editor was created. Setup, edits and final verification are outside capture timing. Optional diagnostics and instrumentation were disabled for ABBA.
+
+| Candidate / ABBA samples (six captures each) | Before mean | After mean | Saving |
+| --- | ---: | ---: | ---: |
+| Initial implementation: A1 3.227898, B1 3.150454, B2 3.223370, A2 3.288069s | 3.257984s | 3.186912s | 0.071072s / 2.18% |
+| Final exact-spelling / fallback hardening: A3 3.995403, C1 3.676519, C2 3.679434, A4 3.755306s | **3.875355s** | **3.677976s** | **0.197378s / 5.09%** |
+
+The second block was required by the final path-safety change. Keep candidates/blocks separate; do not pool them or claim the hardening caused the larger percentage. Background/OS-cache effects were not controlled. Both savings are small; these observations do not qualify general or large-project performance.
+
+Separate diagnostic counts/costs across six captures:
+
+| Work | Before | Final |
+| --- | ---: | ---: |
+| Full ancestor walks | 2,492 / 1.595034s | 2,129 / 1.458398s |
+| Durable flushes | 256 / 0.788842s | 240 / 0.735610s |
+| Atomic publications | 67 | 67 |
+| Added native path-pin scopes | 0 | 18 / 0.015803s |
+| Guarded path attempts, including misses | 0 | 916 / 0.021957s |
+
+All **16 removed flushes** in this input are the standalone metadata-container header flushes. No-op same-writer flush reuse is demonstrated by the small test, not claimed as another measured reduction here. Full ancestor walks fall by **363 (14.57%)**; mutable leaf checks remain. Native guard setup itself opens handles and has a measured cost. The FileStream open counter is not a total native syscall count. Inclusive metadata times overlap child path/open times; per-thread sums are not an additive wall-time partition. Final diagnostic elapsed time was **3.550311s**, versus **3.475808s** before, so diagnostic wall time is not a demonstrated gain and is excluded from ABBA.
+
+All **11 runs** (three diagnostic, eight timing) have identical input digest, six result contents/fingerprints and storage statistics. Every retained historical result also verifies with synthetic basis availability removed. Raw intermediate/final results remain separate.
+
+### Protection checks and limits
+
+**20 unique focused cases passed, zero failures/skips:** final batching/reference-proof selection **14 in 1.490s**, plus unchanged related recovery selection **6 in 0.639s**. Initial 13-case results are also retained. Checks cover pinned ancestry/marker rename and deletion refusal, mutable leaf junction rejection, exact-spelling fallback, missing/unsupported proof without creating ownership, fresh ownership removal rejection, old/native roots, partial owned header repair, interrupted page writes and initial native-receipt gaps. Partial-header tests model interruption; they are not OS power-loss qualification. Final Runtime/Files/Windows DLL copies used by tests match the built hashes. Restricted builds used existing dependencies; final Windows/tests builds were 4.44/7.76s with zero warnings/errors.
+
+Predeclared estimate/stop: overall **29/58min**, review **6/12min**, implementation **15/30min**, comparison/verification **5/10min**, recording **3/6min**. Individual builds **15/30s**, tests **8/16s**, setup/final verification **2/4s**, each capture **2/4s**, six captures **6/12s**. The maximum capture was **1.104481s**; no phase/executing command reached its stop threshold. Cancellation/boundary checks preserve state and stop subsequent work. No forced termination or timeout extension occurred.
+
+Mutable namespace branches, first admission outside the guarded set, durable ownership/control receipts, identity initialization and data-before-root publication still cost work. Combining those separate durability boundaries would need a new recovery proof; they remain intact. No format change, full `build.ps1`, large fixture, actual Git/Plastic/Unity, OS interruption or concurrent-system qualification was added. [Evidence](../../reports/benchmarks/capture-batching-20261102.json), with exact source/binary hashes and raw fixtures/scripts under `artifacts/capture-batching-20261102/`.

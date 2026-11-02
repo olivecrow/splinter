@@ -1,4 +1,13 @@
+[ST-73–74](verification/scalable-storage-throughput-followup.md) adds optional request-native path proofs with current leaf checks/full-walk fallback, and groups new metadata headers with pages before durable root ACK. Same-writer no-change flush reuse never crosses reopen. Ownership/control boundaries remain. Final 31-file/992-byte ABBA: 3.875355→3.677976s (5.09%); 20 focused cases. No large/full-gate qualification.
+
+[ST-70–72](verification/scalable-storage-throughput-followup.md#st-7072-capture-cost-attribution-and-metadata-reader-reuse) attributes the remaining small-input cost to path/metadata admission and durability, adds four fenced request-local metadata readers plus a caller-owned catalog reader, and removes one duplicate readonly ancestor walk. Fresh ownership checks and all ACKs remain. One 31-file/992-byte ABBA block measured 3.354725→3.157597s (5.88%); 22 focused tests passed. No large/full-gate/provider qualification.
+
 <a id="문서-지도"></a>
+
+[ST-65–68](verification/scalable-storage-throughput-followup.md) adds request-scoped native catalog/subtree proofs with fused byte totals, incremental retained-root updates, proven physical-history coverage for accounting, and independently revalidated composition/dependency proofs across publication. Formats, GC and ACKs remain; 26 focused cases do not qualify large or whole-lifecycle performance.
+
+[ST-61–64](verification/scalable-storage-throughput-followup.md) adds bounded sealed-capture backing readers, fenced raw-slice proof reuse, direct retained-root verification and budgeted reference accounting. Publication checks, durable ACKs, history references and same-request maintenance remain; 23 focused checks do not establish large-input throughput. No formats or public CLI capabilities changed.
+
 # Documentation map
 
 [Throughput review follow-up](verification/scalable-storage-throughput-followup.md) tracks ST-01–60, including batching/resources, exact publication deltas, compact directory metadata, binary comparison/listing scratch and metadata-store format 2 (`SPM2`). Multi-entry pages remain deferred. Tiny native checks and bounded timing/gate attempts do not qualify or resume the retained large-input matrix. The later capture/apply follow-up adds operation-local original root observation and directly streamed private ranges, with separate small SPM2 timing evidence.

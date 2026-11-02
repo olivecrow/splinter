@@ -17,8 +17,6 @@ public sealed partial class FileWorkspaceProvider
             ? ReadManifest(w, GenerationPath(Control(w), last.Id, "result.json")) : null;
         IEnumerable<MetadataEntry> Required()
         {
-            if (previous?.RetainedPayloads is not null)
-                foreach (var entry in previous.EnumerateRetainedPayloads(ct)) yield return EncodeRetained(entry);
             foreach (var (left, right) in ChangedPayloadEntries(baseline, result, ct))
             {
                 ct.ThrowIfCancellationRequested();
@@ -35,17 +33,18 @@ public sealed partial class FileWorkspaceProvider
         }
         using var pool = new SharedMetadataPool(store.Root, "capture-retention", ct, contentPins);
         using var pages = new PagedMetadataStore(pool.Directory, true, filePins: contentPins);
-        IEnumerable<MetadataEntry> Unique()
+        // This is an append-only logical dependency set. Path-copy only new
+        // before/after dependencies; never sort/rebuild all historical hashes.
+        // The complete resulting set is still drained by independent verification.
+        var retained = previous?.RetainedPayloads ?? pages.Empty;
+        foreach (var entry in Required())
         {
-            MetadataEntry? prior = null;
-            foreach (var entry in MetadataSort.Order(Required(), FilePath(Control(w), "retention-work"), ct))
-            {
-                if (prior?.Key == entry.Key)
-                { if (!prior.Value.Span.SequenceEqual(entry.Value.Span)) throw Error("One retained payload has different lengths."); continue; }
-                prior = entry; yield return entry;
-            }
+            ct.ThrowIfCancellationRequested(); var prior = pages.Open(retained).Find(entry.Key);
+            if (prior is not null)
+            { if (!prior.AsSpan().SequenceEqual(entry.Value.Span)) throw Error("One retained payload has different lengths."); continue; }
+            retained = pages.Set(retained, entry.Key, entry.Value.Span);
         }
-        result.RetainedPayloads = pages.Build(Unique(), ct, previous?.RetainedPayloads); pages.Flush();
+        result.RetainedPayloads = retained; pages.Flush();
         result.RetentionLease = pool.Anchor(result.Catalog!, result.RetainedPayloads, result.PayloadPaths!);
     }
     // Compare directory roots directly: identical subtrees need no temporary
@@ -101,5 +100,31 @@ public sealed partial class FileWorkspaceProvider
         using var reader = baseline.OpenReader();
         foreach (var entry in result.EnumerateRetainedPayloads(ct))
             if (payloads.Find(entry.Hash!) is not null) yield return reader.FindPayload(entry.Hash!, entry.Length);
+    }
+
+    // A current logical payload union is insufficient by itself: an older
+    // full-file hash can use different physical whole/raw dependencies. Prove
+    // both retained membership and descriptor equivalence before omitting its
+    // contribution to logical storage accounting. Never used by GC/pruning.
+    internal static bool ReferencesCoveredBy(FileSourceManifest prior, FileSourceManifest current, string control, CancellationToken ct,
+        PagedMetadataStore? retainedPages = null, PagedMetadataStore? descriptorPages = null)
+    {
+        if (prior.RetainedPayloads is null || current.RetainedPayloads is null ||
+            !WorkspaceStore.SamePath(prior.Directory!, current.Directory!)) return false;
+        using var ownedMetadata = retainedPages is null ? new PagedMetadataStore(current.Directory!) : null;
+        var metadata = retainedPages ?? ownedMetadata!;
+        if (metadata.EntriesNotIdentical(prior.RetainedPayloads, current.RetainedPayloads, ct).Any()) return false;
+        if (prior.ContentFiles is null && current.ContentFiles is null) return true;
+        using var ownedContents = descriptorPages is null ? new PagedMetadataStore(FilePath(control, "result-ranges")) : null;
+        var contents = descriptorPages ?? ownedContents!;
+        var before = prior.ContentFiles ?? contents.Empty; var after = current.ContentFiles ?? contents.Empty;
+        var required = metadata.Open(prior.RetainedPayloads);
+        foreach (var entry in contents.EntriesNotIdentical(before, after, ct))
+            if (required.Find(entry.Key) is not null) return false;
+        // Also reject a formerly whole object now represented by a new range
+        // descriptor; equal full-file hashes do not imply equal physical sets.
+        foreach (var entry in contents.EntriesNotIdentical(after, before, ct))
+            if (required.Find(entry.Key) is not null) return false;
+        return true;
     }
 }

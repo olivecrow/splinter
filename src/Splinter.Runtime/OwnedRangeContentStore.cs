@@ -14,8 +14,13 @@ public sealed partial class OwnedRangeContentStore : IDisposable
     private readonly IJournalFilePins pins;
     private readonly Action<string>? boundary;
     private readonly object proofGate = new();
-    private readonly LinkedList<(string Key, FileStream Stream)> proofs = new();
+    private sealed record BackingProof(string Key, FileStream Stream)
+    {
+        internal readonly HashSet<(long Offset, int Length, string Hash)> Ranges = new();
+    }
+    private readonly LinkedList<BackingProof> proofs = new();
     internal long BackingProofAdmissions { get; private set; }
+    internal long RangeProofAdmissions { get; private set; }
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     { RespectRequiredConstructorParameters = true, RespectNullableAnnotations = true, UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow };
     private sealed record Catalog(int Version, string StoreId, long Sequence, MetadataTreeRoot Objects, MetadataTreeRoot References, MetadataTreeRoot Backings,
@@ -110,9 +115,15 @@ public sealed partial class OwnedRangeContentStore : IDisposable
         }
         void VerifySource(Preservation request)
         {
-            ct.ThrowIfCancellationRequested(); var input = Proof(request.Source, ct);
-            if (HashRange(input, request.Source.Offset, request.Length, ct) != request.Hash)
+            ct.ThrowIfCancellationRequested(); var proof = Proof(request.Source, ct);
+            var range = (request.Source.Offset, request.Length, request.Hash);
+            if (proof.Ranges.Contains(range)) return;
+            if (HashRange(proof.Stream, request.Source.Offset, request.Length, ct) != request.Hash)
                 throw Invalid("Captured raw bytes differ from their fixed content identity.");
+            RangeProofAdmissions++;
+            // The exact backing's no-write/no-delete handle remains held. This
+            // bounded memo dies on eviction/disposal, never crosses an open gap.
+            if (proof.Ranges.Count < 1024) proof.Ranges.Add(range);
         }
     }
     // The outer operation lock fixes this root throughout the proof. A ready
@@ -175,16 +186,19 @@ public sealed partial class OwnedRangeContentStore : IDisposable
     }
     public Stream Open(WorkspaceRecord w, string control, string hash, int length, CancellationToken ct = default)
         => OpenCore(w, control, hash, length, ct);
+    internal Stream OpenVerified(WorkspaceRecord w, string control, string hash, int length, ImmutableReadProofs proofs, CancellationToken ct)
+        => OpenCore(w, control, hash, length, ct, proofs);
     public Stream Open(WorkspaceRecord w, string control, string hash, CancellationToken ct = default)
         => OpenCore(w, control, hash, null, ct);
-    private Stream OpenCore(WorkspaceRecord w, string control, string hash, int? length, CancellationToken ct)
+    private Stream OpenCore(WorkspaceRecord w, string control, string hash, int? length, CancellationToken ct, ImmutableReadProofs? readProofs = null)
     {
-        RequireOwner(w, control); RequireHash(hash); using var held = Lock(ct); using var pages = new PagedMetadataStore(Metadata); var catalog = Load(pages);
+        RequireOwner(w, control); RequireHash(hash); using var held = Lock(ct, readProofs);
+        using var reader = ImmutableReadProofs.OpenMetadata(Metadata, readProofs); var pages = reader.Pages; var catalog = Load(pages, readProofs);
         var raw = pages.Open(catalog.Objects).Find(hash) ?? throw Invalid("The immutable range object is missing."); var range = DecodeRange(raw);
         if (length is not null && range.Length != length) throw Invalid("The immutable range length differs.");
         var reference = pages.Open(catalog.References).Find(Key(hash, w.Id));
         if (reference is null || Encoding.UTF8.GetString(reference) != w.RequestDigest) throw Invalid("The immutable range reference is missing or foreign.");
-        return OpenLocked(pages, catalog, hash, range, ct);
+        return OpenLocked(pages, catalog, hash, range, ct, readProofs);
     }
     public int LengthOf(WorkspaceRecord w, string control, string hash, CancellationToken ct = default)
     {
@@ -194,29 +208,36 @@ public sealed partial class OwnedRangeContentStore : IDisposable
         if (reference is null || Encoding.UTF8.GetString(reference) != w.RequestDigest) throw Invalid("The immutable range reference is missing or foreign.");
         return range.Length;
     }
-    private Stream OpenLocked(PagedMetadataStore pages, Catalog catalog, string hash, Range range, CancellationToken ct)
+    private Stream OpenLocked(PagedMetadataStore pages, Catalog catalog, string hash, Range range, CancellationToken ct, ImmutableReadProofs? readProofs = null)
     {
         var backingEntry = pages.Open(catalog.Backings).FindEntry(range.Backing) ?? throw Invalid("The range backing ownership is missing.");
         var backing = DecodeBacking(backingEntry.Value.ToArray());
         if (backingEntry.Child?.Count != backing.Objects || backingEntry.Child is null || pages.Open(backingEntry.Child).Find(hash) is null)
             throw Invalid("The backing membership is incomplete or inconsistent.");
         if (backing.Phase != "ready" || range.Offset > backing.Length - range.Length) throw Invalid("The immutable range is outside its owned backing.");
-        string path = BackingPath(range.Backing); WorkspaceStore.EnsurePlainPath(path);
+        string path = BackingPath(range.Backing); ImmutableReadProofs.EnsurePlainPath(path, readProofs);
         var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1, FileOptions.RandomAccess);
         try
         {
             pins.Verify(input, backing.Identity!);
-            if (input.Length != backing.Length || HashRange(input, range.Offset, range.Length, ct) != hash) throw Invalid("The independently retained range changed.");
+            if (input.Length != backing.Length) throw Invalid("The independently retained backing length changed.");
+            if (readProofs is null)
+            { if (HashRange(input, range.Offset, range.Length, ct) != hash) throw Invalid("The independently retained range changed."); }
+            else readProofs.Verify(input, backing.Identity!, range.Offset, range.Length, hash, ct);
             return new Slice(input, range.Offset, range.Length);
         }
         catch { input.Dispose(); throw; }
     }
-    private FileStream Proof(CapturedImmutableRangeBacking source, CancellationToken ct)
+    private BackingProof Proof(CapturedImmutableRangeBacking source, CancellationToken ct)
     {
         string key = source.FileIdentity + "/" + source.ExpectedBackingHash;
         var found = proofs.First;
         while (found is not null && found.Value.Key != key) found = found.Next;
-        if (found is not null) { proofs.Remove(found); proofs.AddLast(found); return found.Value.Stream; }
+        if (found is not null)
+        {
+            if (found.Value.Stream.Length != source.MinimumLength) throw Invalid("The sealed segment length changed.");
+            proofs.Remove(found); proofs.AddLast(found); return found.Value;
+        }
         WorkspaceStore.EnsurePlainPath(source.Path);
         var input = new FileStream(source.Path, FileMode.Open, FileAccess.Read, FileShare.Read, 65536);
         try
@@ -226,7 +247,7 @@ public sealed partial class OwnedRangeContentStore : IDisposable
                 throw Invalid("The sealed segment differs from the capture's durable checksum.");
             BackingProofAdmissions++;
             if (proofs.Count == 8) { proofs.First!.Value.Stream.Dispose(); proofs.RemoveFirst(); }
-            proofs.AddLast((key, input)); return input;
+            var proof = new BackingProof(key, input); proofs.AddLast(proof); return proof;
         }
         catch { input.Dispose(); throw; }
     }
@@ -435,9 +456,9 @@ public sealed partial class OwnedRangeContentStore : IDisposable
         while (done < length) { ct.ThrowIfCancellationRequested(); int count = RandomAccess.Read(file.SafeFileHandle, buffer.AsSpan(0, Math.Min(buffer.Length, length - done)), offset + done); if (count <= 0) throw Invalid("A retained range ended early."); hash.AppendData(buffer.AsSpan(0, count)); done += count; }
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
-    private Catalog Load(PagedMetadataStore pages)
+    private Catalog Load(PagedMetadataStore pages, ImmutableReadProofs? readProofs = null)
     {
-        string path = Path.Combine(directory, "catalog.json"); WorkspaceStore.EnsurePlainPath(path);
+        string path = Path.Combine(directory, "catalog.json"); ImmutableReadProofs.EnsurePlainPath(path, readProofs);
         if (!File.Exists(path))
         {
             if (Directory.EnumerateFiles(Metadata, "pages-*.bin").Any(file => new FileInfo(file).Length != 48)) throw Invalid("Preserve orphaned range metadata without its owner root.");
@@ -461,9 +482,9 @@ public sealed partial class OwnedRangeContentStore : IDisposable
         using (var output = new FileStream(pending, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { JsonSerializer.Serialize(output, catalog, Json); output.Flush(true); }
         AtomicFilePublication.Publish(pending, path);
     }
-    private FileStream Lock(CancellationToken ct)
+    private FileStream Lock(CancellationToken ct, ImmutableReadProofs? readProofs = null)
     {
-        WorkspaceStore.EnsurePlainPath(directory); Directory.CreateDirectory(directory); string path = Path.Combine(directory, "operation.lock"); WorkspaceStore.EnsurePlainPath(path);
+        ImmutableReadProofs.EnsurePlainPath(directory, readProofs); Directory.CreateDirectory(directory); string path = Path.Combine(directory, "operation.lock"); ImmutableReadProofs.EnsurePlainPath(path, readProofs);
         for (int attempt = 0; ; attempt++)
         {
             ct.ThrowIfCancellationRequested(); try { return new(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }

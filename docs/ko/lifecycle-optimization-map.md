@@ -1,4 +1,13 @@
+[ST-73–74](verification/scalable-storage-throughput-followup.md)는 요청 내 native 경로 증명·현재 leaf 검사/전체 순회 fallback과 metadata 헤더/페이지의 root ACK 전 영속 flush 결합을 연결한다. 변경 없는 flush 재사용은 열린 동일 writer 안에서만 허용하며 소유/control 경계는 유지한다. 최종 31파일·992바이트 ABBA 3.875355→3.677976초(5.09%), 변경부 20개 통과이며 대형/전체 gate 자격은 없다.
+
+[ST-70–72](verification/scalable-storage-throughput-followup.md)에서 작은 입력의 경로/metadata 진입·영속화 비용을 분리하고 요청 내 최대 4개 fenced metadata reader·호출자 소유 catalog reader와 읽기 전용 중복 상위 경로 검사 제거를 연결했다. 현재 소유 검사·ACK는 유지한다. 31파일·992바이트 ABBA 한 묶음은 3.354725→3.157597초(5.88%)이며 변경부 22개가 통과했다. 대형/전체 gate/provider 자격은 없다.
+
 # 최적화 에이전트를 위한 Splinter 수명주기 지도
+
+[ST-65–68](verification/scalable-storage-throughput-followup.md)는 요청 범위의 native catalog/하위 트리 증명·바이트 총량 결합, retained root 증분 갱신, 실제 과거 참조 포함 증명 뒤 중복 집계 생략, 게시 전후 독립 재검증하는 구성/의존성 증명을 추가한다. 형식·GC·ACK는 유지하며 작은 시험 26개는 대형·전체 수명주기 성능 자격이 아니다.
+
+[ST-61–64](verification/scalable-storage-throughput-followup.md)는 제한된 sealed capture backing reader·fence 아래 raw slice 증명 재사용·retained root 직접 검증·예산 내 참조 집계를 연결한다. 게시 검사·영속 ACK·과거 참조·같은 요청 유지관리를 유지하며 23개 작은 검사는 대형 처리량을 입증하지 않는다. 형식과 공개 CLI capabilities는 바꾸지 않았다.
+
 
 [ST-56–60](verification/scalable-storage-throughput-followup.md)은 참조 작업공간에 맞게 수집을 바꾼다. 파일 manifest v4는 변경 전후 의존성과 기존 보존 내용만 보관하며, 평탄한 작업 인덱스를 다시 만들지 않고 기존 디렉터리 root를 비교한다. 결과 descriptor는 최대 64개씩 게시하고 수집 중 별칭 정리는 release의 보존 결과 유지관리로 옮긴다. 고정 결과 읽기는 덮이지 않은 기준 범위만 읽고 목록은 검증한 하위 metadata를 재사용한다. 전체 수집/게시 검사와 영속 ACK는 유지한다. 이전 파일 manifest v3는 보존·거부하며 task/basis/overlay·SPM2·명령 필드는 유지한다. 작은 None 근거를 대형/Unity/Plastic 자격으로 승계하지 않는다.
 

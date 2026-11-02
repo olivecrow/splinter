@@ -37,6 +37,10 @@ public sealed class CaptureMaintenanceTests
             Assert.True(drained); Assert.Equal(limit < 100000 || capacity == 0, set.DiskBacked);
             for (int i = 0; i < 20; i++) Assert.True(set.Contains(i.ToString("d3")));
             Assert.False(set.Contains("absent"));
+            var aggregate = set.Enumerate(ct).ToArray();
+            Assert.Equal(20, aggregate.Length); Assert.Equal(190, aggregate.Sum(e => e.Value.Span[0]));
+            using var cancelledEnumeration = new CancellationTokenSource(); cancelledEnumeration.Cancel();
+            Assert.ThrowsAny<OperationCanceledException>(() => set.Enumerate(cancelledEnumeration.Token).ToArray());
         }
         Assert.Equal(0, budget.Used);
         Assert.Throws<WorkspaceException>(() => new MetadataMembership([new("a", new byte[] { 1 }), new("a", new byte[] { 2 })], files.Path, limit, budget, ct));

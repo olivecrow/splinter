@@ -1,5 +1,7 @@
 # 같은 작업공간에서 반복 원본 반영
 
+[ST-65–68](verification/scalable-storage-throughput-followup.md)는 요청 범위의 native catalog/하위 트리 증명·바이트 총량 결합, retained root 증분 갱신, 실제 과거 참조 포함 증명 뒤 중복 집계 생략, 게시 전후 독립 재검증하는 구성/의존성 증명을 추가한다. 형식·GC·ACK는 유지하며 작은 시험 26개는 대형·전체 수명주기 성능 자격이 아니다.
+
 [English](../repeated-original-apply.md)
 
 새 `checkpoint --release` 요청은 정상 종료·infrastructure 제거 뒤 한 번의 수집을 전체 전후 seal로 감싼다. 같은 호출이 seal한 generation으로 두 번째 수집 없이 회수하며 unmount 뒤 seal은 필수다. 이미 고정/게시된 요청의 재시도는 새 호출의 seal로 과거 결과를 재사용하지 않는다. 요청의 고정 결과를 반환하고 마감용 현재 소스를 별도로 수집한다. 독립 release도 현재 소스를 수집한다. [GCO 범위](plans/git-collection-optimization.md)를 따른다.

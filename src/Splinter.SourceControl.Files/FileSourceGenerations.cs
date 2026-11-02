@@ -88,10 +88,12 @@ public sealed partial class FileWorkspaceProvider
         using (diagnostics?.Measure("files.independent-open")) independentReader = w.SourceKind != "git" || contentPins is not null
             ? ContentReader(w, control, result.ContentFiles, retainedGitBasis, baseline, ct) : null;
         using var independentLifetime = independentReader;
+        using var catalogs = new PagedMetadataStore.CatalogReadScope(result.Directory!, contentPins);
         using (diagnostics?.Measure("files.independent-verify-1"))
         if (independentReader is not null)
         {
-            VerifyPayloads(control, VerificationPayloads(baseline, result, ct), ct, independentReader.Reader, contentPins is not null);
+            VerifyPayloads(control, VerificationPayloads(baseline, result, ct), ct, independentReader.Reader, contentPins is not null,
+                uniqueRetainedRoot: result.RetainedPayloads is not null, verification: independentReader.Verification);
             independentReader.VerifyBoundary();
         }
         if (preparationObserver is not null) await preparationObserver.ReachedAsync("source-payloads-preserved", w, ct);
@@ -117,16 +119,23 @@ public sealed partial class FileWorkspaceProvider
         if (preparationObserver is not null) await preparationObserver.ReachedAsync("source-generation-receipt-published", w, ct);
         using (diagnostics?.Measure("files.independent-verify-2"))
         {
-            await VerifyGenerationCoreAsync(w, control, generation, ct, independentReader?.Reader, contentPins is not null);
+            await VerifyGenerationCoreAsync(w, control, generation, ct, independentReader?.Reader, contentPins is not null, independentReader?.Verification, catalogs);
             independentReader?.VerifyBoundary();
         }
         IEnumerable<FileSourceManifest> Retained()
         {
             if (result.RetainedPayloads is null) yield return baseline; yield return result;
+            using var retainedPages = new PagedMetadataStore(result.Directory!, filePins: contentPins);
+            using var descriptorPages = result.ContentFiles is null ? null : new PagedMetadataStore(FilePath(control, "result-ranges"), filePins: contentPins);
             foreach (var prior in w.Results.Where(g => g.Id != intent.Id))
-            { using var manifest = ReadManifest(w, GenerationPath(control, prior.Id, "result.json")); yield return manifest; }
+            {
+                using var manifest = ReadManifest(w, GenerationPath(control, prior.Id, "result.json"), catalogs: catalogs, ct: ct);
+                if (manifest.Identity != prior.Revision || GenerationFingerprint(manifest) != prior.Fingerprint)
+                    throw Error("A historical accounting root differs from its generation receipt.");
+                if (!ReferencesCoveredBy(manifest, result, control, ct, retainedPages, descriptorPages)) yield return manifest;
+            }
         }
-        using (diagnostics?.Measure("files.storage-accounting")) w.ResultStorage = Storage(w, baseline, result, Retained(), control);
+        using (diagnostics?.Measure("files.storage-accounting")) w.ResultStorage = Storage(w, baseline, result, Retained(), control, ct, catalogs);
         // Retained-result maintenance at release owns pruning, outside the capture response.
         return generation;
     }
@@ -134,21 +143,23 @@ public sealed partial class FileWorkspaceProvider
     {
         using var manifest = ReadManifest(w, GenerationPath(control, generation.Id, "result.json"));
         using var reader = ContentReader(w, control, manifest.ContentFiles, ct: ct);
-        await VerifyGenerationCoreAsync(w, control, generation, ct, reader.Reader, contentPins is not null);
+        await VerifyGenerationCoreAsync(w, control, generation, ct, reader.Reader, contentPins is not null, reader.Verification);
         reader.VerifyBoundary();
     }
     private static async Task VerifyGenerationCoreAsync(WorkspaceRecord w, string control, WorkspaceResultGeneration generation,
-        CancellationToken ct, Func<string, Stream>? open = null, bool concurrentOpen = false)
+        CancellationToken ct, Func<string, Stream>? open = null, bool concurrentOpen = false, ResultFileContentStore.VerificationScope? verification = null,
+        PagedMetadataStore.CatalogReadScope? catalogs = null)
     {
         var receipt = Read<WorkspaceResultGeneration>(GenerationPath(control, generation.Id, "generation.json"), open);
-        using var result = ReadManifest(w, GenerationPath(control, generation.Id, "result.json"), open);
-        using var baseline = ReadManifest(w, FilePath(control, "generation-basis.json"), open);
+        using var result = ReadManifest(w, GenerationPath(control, generation.Id, "result.json"), open, catalogs, ct);
+        using var baseline = ReadManifest(w, FilePath(control, "generation-basis.json"), open, catalogs, ct);
         if (w.SourceKind != "git" && baseline.Identity != w.BaseRevision) throw Error("The retained generation basis differs from admission.");
         if (receipt != generation || result.Identity != generation.Revision || generation.Fingerprint != GenerationFingerprint(result) ||
             generation.ResultReference != "files:" + w.Id + ":" + generation.Id || generation.Sequence < 1 ||
             string.IsNullOrWhiteSpace(generation.RequestKey) || generation.CaptureDigest.Length != 64)
             throw Error("The independent generation differs from its receipt.");
-        if (w.SourceKind != "git" || generation.GitReference is null) VerifyPayloads(control, VerificationPayloads(baseline, result, ct), ct, open, concurrentOpen);
+        if (w.SourceKind != "git" || generation.GitReference is null) VerifyPayloads(control, VerificationPayloads(baseline, result, ct), ct, open, concurrentOpen,
+            uniqueRetainedRoot: result.RetainedPayloads is not null, verification: verification);
         if (w.SourceKind == "git" && generation.GitReference is not null &&
             await GitSourceResult.VerifyAsync(w.ProjectPath, generation.GitReference, ct) != generation.GitFingerprint)
             throw Error("The independent Git generation changed or disappeared.");

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "dateLocal": "2026-11-02",
+  "baseCommit": "8709f902dd14d188f82f1e8cd170e96a2514a9bb",
+  "ids": [
+    "ST-61",
+    "ST-62",
+    "ST-63",
+    "ST-64"
+  ],
+  "scope": "Small selected checks only; no native lifecycle or timing comparison",
+  "sources": [
+    {
+      "path": "src/Splinter.Runtime/JournalPagedCapture.cs",
+      "sha256": "00e654852a758e567fdd67736369cb3dcd18ba32ac8a7808230ea47fce5b8cd1"
+    },
+    {
+      "path": "src/Splinter.Runtime/MetadataMembership.cs",
+      "sha256": "be5b66e967716c1bc54d7f9a1ac8f83ffedb75d5a2e16e76d19c29aaf0aa9844"
+    },
+    {
+      "path": "src/Splinter.Runtime/OwnedRangeContentStore.cs",
+      "sha256": "335397458221eb552ed0215e2ec2a84417f018d913d95901a71b5550b4b03502"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+      "sha256": "2925fcebeb835f21a90afff7328f0b2ecdca150db3bb3869319b5c64e8c4c08e"
+    },
+    {
+      "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+      "sha256": "a59c0a929062d25f28b7aea69ab9e0d8fbf96e732d46d7efbeab8bf704de07ce"
+    },
+    {
+      "path": "tests/Splinter.Tests/CaptureMaintenanceTests.cs",
+      "sha256": "2292cc11e0cff8faa5cb1a9183a7113198522d54f522138ff9bad2d1213fd64e"
+    },
+    {
+      "path": "tests/Splinter.Tests/RawBasisReuseTests.cs",
+      "sha256": "442baef57a18b9ee0bd9d679cb90a8de18a2345f61527bbe2fcb41cf64a51aac"
+    },
+    {
+      "path": "src/Splinter.Runtime/CaptureBackingReaders.cs",
+      "sha256": "aae8e9f674f814fe306e8a261d0dba8a10b2e1298c9cdae150dc28afa97463fa"
+    },
+    {
+      "path": "tests/Splinter.Tests/CaptureReadOptimizationTests.cs",
+      "sha256": "692f747860fe2ef14c701eaeffaf39ddea309ae6c7775dfbd860ab54e824adf7"
+    }
+  ],
+  "verification": {
+    "path": "artifacts/capture-read-followup-20261102/final-focused.json",
+    "passed": 23,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 9.293,
+    "expectedSeconds": 8,
+    "stopSeconds": 16
+  },
+  "failures": [
+    "Initial parallel build exit 1 after 3.92s with zero reported compiler errors; cause unknown",
+    "Serial dependency rebuild cancelled; exact elapsed unavailable; not a successful full build",
+    "Test build 6.16s failed on timeout cancellation-token analyzer; fixed, final 7.35s passed",
+    "Initial filter selected zero; not counted",
+    "Sandbox temp rename/scratch failures, then repository-local hardlink denials; final focused tests ran outside sandbox in fresh repository-local temp"
+  ],
+  "limits": [
+    "No full build.ps1 gate",
+    "No large/100k/17GiB",
+    "No actual Unity/Git/Plastic lifecycle",
+    "No overall speedup or hardware saturation measurement"
+  ],
+  "operationCounts": {
+    "frozen128KiBReadTwice4KiBChunks": {
+      "reads": 64,
+      "observedBackingAdmissions": 1,
+      "previousExpectedAdmissionsStaticNotMeasured": 64
+    },
+    "sameRawSliceTwoPreservations": {
+      "observedRangeProofAdmissions": 1,
+      "observedBackingProofAdmissions": 1
+    }
+  }
+}

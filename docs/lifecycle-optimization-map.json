@@ -5588,5 +5588,250 @@
     ],
     "work": "Retain changed before/after and range-basis dependencies plus prior retained content; directory-root comparison; descriptor groups of 64; alias pruning at release; frozen gap reads and metadata-preserving listings. Exact receipt-bound fingerprint verified by source provider.",
     "qualification": "20 focused cases; one before/after completed tiny None workflow; one failed diagnostic candidate recovered with exact request and normal Stop. No large/Git/Plastic/Unity/full-gate qualification."
+  },
+  "captureReadFollowup": {
+    "ids": [
+      "ST-61",
+      "ST-62",
+      "ST-63",
+      "ST-64"
+    ],
+    "evidence": "reports/benchmarks/capture-read-followup-20261102.json",
+    "sources": [
+      {
+        "path": "src/Splinter.Runtime/JournalPagedCapture.cs",
+        "sha256": "00e654852a758e567fdd67736369cb3dcd18ba32ac8a7808230ea47fce5b8cd1"
+      },
+      {
+        "path": "src/Splinter.Runtime/MetadataMembership.cs",
+        "sha256": "be5b66e967716c1bc54d7f9a1ac8f83ffedb75d5a2e16e76d19c29aaf0aa9844"
+      },
+      {
+        "path": "src/Splinter.Runtime/OwnedRangeContentStore.cs",
+        "sha256": "335397458221eb552ed0215e2ec2a84417f018d913d95901a71b5550b4b03502"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+        "sha256": "2925fcebeb835f21a90afff7328f0b2ecdca150db3bb3869319b5c64e8c4c08e"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+        "sha256": "a59c0a929062d25f28b7aea69ab9e0d8fbf96e732d46d7efbeab8bf704de07ce"
+      },
+      {
+        "path": "tests/Splinter.Tests/CaptureMaintenanceTests.cs",
+        "sha256": "2292cc11e0cff8faa5cb1a9183a7113198522d54f522138ff9bad2d1213fd64e"
+      },
+      {
+        "path": "tests/Splinter.Tests/RawBasisReuseTests.cs",
+        "sha256": "442baef57a18b9ee0bd9d679cb90a8de18a2345f61527bbe2fcb41cf64a51aac"
+      },
+      {
+        "path": "src/Splinter.Runtime/CaptureBackingReaders.cs",
+        "sha256": "aae8e9f674f814fe306e8a261d0dba8a10b2e1298c9cdae150dc28afa97463fa"
+      },
+      {
+        "path": "tests/Splinter.Tests/CaptureReadOptimizationTests.cs",
+        "sha256": "692f747860fe2ef14c701eaeffaf39ddea309ae6c7775dfbd860ab54e824adf7"
+      }
+    ],
+    "work": "Eight retained sealed capture readers with active lease drain; bounded fenced raw-slice proofs; authenticated retained-root streaming; shared-budget reference accounting. Public CLI/schema unchanged.",
+    "qualification": "23 focused cases only; no large or end-to-end performance qualification."
+  },
+  "referenceProofFollowup": {
+    "ids": [
+      "ST-65",
+      "ST-66",
+      "ST-67",
+      "ST-68"
+    ],
+    "evidence": "reports/benchmarks/reference-proof-20261102.json",
+    "sources": [
+      {
+        "path": "src/Splinter.Runtime/ImmutableReadProofs.cs",
+        "sha256": "b47370b1263c9dec826b9fbdb4e2d74963da808671b2d6ceba4517536ff18267"
+      },
+      {
+        "path": "src/Splinter.Runtime/ResultFileVerification.cs",
+        "sha256": "52a18e531d9426deecce823b625e90848cc2fe2ff290b784fbdda93e82a8b288"
+      },
+      {
+        "path": "src/Splinter.Runtime/OwnedContentStore.cs",
+        "sha256": "28a03fd4fc397343b95e16e2873ce6ddc4fe0d7753e35c72cde965373b2913a6"
+      },
+      {
+        "path": "src/Splinter.Runtime/OwnedRangeContentStore.cs",
+        "sha256": "692519d2a89cecfd51e83fc163c062232462f4e7b869fd3cc445122052c4db49"
+      },
+      {
+        "path": "src/Splinter.Runtime/ResultFileContentStore.cs",
+        "sha256": "bcd85ee9a0864a6694f83cb4eeab43d3bf66287d91eb0b51e2105e3a3369002f"
+      },
+      {
+        "path": "src/Splinter.Runtime/PagedMetadataStore.cs",
+        "sha256": "a0f922d2a9dafce6736dfa308b82dbac37391d13e00cfcd0756db7343abf08fe"
+      },
+      {
+        "path": "src/Splinter.Runtime/PagedCatalogReadScope.cs",
+        "sha256": "e5f4e53f75f320831b8bb8f45de869d375bb915704fceda85a1e3fea027426aa"
+      },
+      {
+        "path": "src/Splinter.Runtime/PagedMetadataDifference.cs",
+        "sha256": "542881caeb7e443eef077208d2f1246fc6ac738e077ad63c701e7e250824e470"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileReferenceResults.cs",
+        "sha256": "2365851ecee55beef04d4ffa2f42267d77e088ecbe47384628e3723852c661ae"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileSourceGenerations.cs",
+        "sha256": "e081ec78dbed708133d70bad54f03385ed17c7731ae0d37351a911a28c5aa15b"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+        "sha256": "5650a8571119fe37a5d2a4d9ab025ee91f6ab7b43a6e2600631fc4b61702eaff"
+      },
+      {
+        "path": "tests/Splinter.Tests/ReferenceProofTests.cs",
+        "sha256": "90dbbe778c66f03f129f1ab0063d6d1389a0585b810fd079ab25569b3be3282c"
+      }
+    ],
+    "work": "Fenced catalog summaries and totals; persistent retained additions; exact physical-history coverage; independent composition and dependency proofs. No public schema change.",
+    "qualification": "26 selected small cases, no large or whole-lifecycle timing qualification."
+  },
+  "referenceProofTiming": {
+    "id": "ST-69",
+    "evidence": "reports/benchmarks/reference-proof-timing-20261102.json",
+    "input": "31 files/992 bytes; six fixed captures; two separate ABBA blocks; one diagnostic run per variant",
+    "verdict": "Targeted traversal/hash counts reduced; no consistent capture-time improvement (first block +7.98%, second -1.61%). No large qualification."
+  },
+  "captureCost": {
+    "ids": [
+      "ST-70",
+      "ST-71",
+      "ST-72"
+    ],
+    "evidence": "reports/benchmarks/capture-cost-20261102.json",
+    "sources": [
+      {
+        "path": "src/Splinter.Runtime/ImmutableMetadataReaders.cs",
+        "sha256": "4ea7146e8c27018980cb12d9f056c7f158684f0bf24ba75259a2f517f4d336c0"
+      },
+      {
+        "path": "src/Splinter.Runtime/ImmutableReadProofs.cs",
+        "sha256": "685c2fa89b0c4ec87b78538387416bb908294d642b2d4a5805c3f2c63545421f"
+      },
+      {
+        "path": "src/Splinter.Runtime/OwnedContentStore.cs",
+        "sha256": "8259b684513279e88828e083e17a7a3e5a5e3f640c80b00b46e1e6119ee316d4"
+      },
+      {
+        "path": "src/Splinter.Runtime/OwnedRangeContentStore.cs",
+        "sha256": "697db99f65c1bec633b498cafa179cb78aadbfbd957991324d13139329bc6664"
+      },
+      {
+        "path": "src/Splinter.Runtime/PagedMetadataStore.cs",
+        "sha256": "5f03b37fbd9907cbe76e4f2f0a95aaad1779d011ccd585f5c32f9c84fc95bad8"
+      },
+      {
+        "path": "src/Splinter.Runtime/PagedSnapshotCatalog.cs",
+        "sha256": "0c17e22c0bcc4799b890eba41fcd2bb416c22b88ec7cc1e9649f0e102d6cd6a3"
+      },
+      {
+        "path": "src/Splinter.Runtime/ResultFileVerification.cs",
+        "sha256": "27e030cbe02b402bf2db94b6b66883471f71834823f6f1292ea2afef928695b2"
+      },
+      {
+        "path": "src/Splinter.SourceControl.Files/FileWorkspaceProvider.cs",
+        "sha256": "314d1ab0b90ec06aed91b998b1ccedaec3c3a4a9bd51c714f7eb5cf158a6da2f"
+      },
+      {
+        "path": "tests/Splinter.Tests/ReferenceProofTests.cs",
+        "sha256": "1909428d919c66246cd31445e68a52d69b3529a93304ca04293fcd4f73ea956b"
+      },
+      {
+        "path": "tests/Splinter.Tests/ControlFileReadTests.cs",
+        "sha256": "66ec38a84eca603696271321391bf894dbedf702e50bf7c5f454418d59611519"
+      }
+    ],
+    "beforeMeanSeconds": 3.35472465,
+    "afterMeanSeconds": 3.15759655,
+    "qualification": "22 focused cases and one 31-file/992-byte ABBA block; no large/full-gate/actual provider qualification."
+  },
+  "captureBatching": {
+    "ids": [
+      "ST-73",
+      "ST-74"
+    ],
+    "evidence": "reports/benchmarks/capture-batching-20261102.json",
+    "sources": [
+      {
+        "path": "src/Splinter.Runtime/ImmutableMetadataReaders.cs",
+        "sha256": "9cf098b088e5492d81f1f74cd545b370f54a00235930e6296728efd70ee3d505"
+      },
+      {
+        "path": "src/Splinter.Runtime/IRequestPathGuard.cs",
+        "sha256": "3d64e94a9501066fdf823bf2286f3313530b659a369ad22c397ec58f4027213e"
+      },
+      {
+        "path": "src/Splinter.Runtime/JournalSourceCapture.cs",
+        "sha256": "fe7fa5c9c4cdd41e5b937702d7e17dc802db913f4f194498686b088e5251d027"
+      },
+      {
+        "path": "src/Splinter.Runtime/OwnedContentStore.cs",
+        "sha256": "fbd64af0cc574f9525ab6ec7d861f4292af745860f3d495fa5bd292ed4d7d444"
+      },
+      {
+        "path": "src/Splinter.Runtime/OwnedRangeContentStore.cs",
+        "sha256": "c1a52effc44de7669ca20ed320b4e5fa72d0ddd657d03cab3105226008d625b5"
+      },
+      {
+        "path": "src/Splinter.Runtime/PagedMetadataCollection.cs",
+        "sha256": "dcb37119a4c19b371afacbb237729c539e2d6dd883850bae16d263518e340a34"
+      },
+      {
+        "path": "src/Splinter.Runtime/PagedMetadataStore.cs",
+        "sha256": "741fe062e1419abba3ffd633ac2b0d1220312a6cee6bae260870d298ff713e66"
+      },
+      {
+        "path": "src/Splinter.Runtime/ResultFileContentStore.cs",
+        "sha256": "6590117d26b846706abc166d286f36ea215ca0e3aa1a79f2468920f1bcac60e4"
+      },
+      {
+        "path": "src/Splinter.Runtime/ResultFileVerification.cs",
+        "sha256": "8f6911ea2c77f0ac1b5b6a69880b7af16445b916a1ba799624a4f229150f3975"
+      },
+      {
+        "path": "src/Splinter.Platform.Windows/WindowsJournalDirectoryGuard.cs",
+        "sha256": "2b53a81c1f8a7ef0a65b0413663297bf8d651fb5d292e6865149b4fb1c766fb4"
+      },
+      {
+        "path": "src/Splinter.Platform.Windows/WindowsJournalFilePins.cs",
+        "sha256": "6e3a6eed8e4629f109d10e5407e907fa49dda71b8f1475f3799a1103a7f90fd9"
+      },
+      {
+        "path": "tests/Splinter.Tests/CaptureBatchingTests.cs",
+        "sha256": "9a242ba986a3824e84e56f8eebc88a621798bc0adbcad7e7cbc2db6d9151729f"
+      }
+    ],
+    "finalTiming": {
+      "order": [
+        "a3",
+        "c1",
+        "c2",
+        "a4"
+      ],
+      "samples": {
+        "a3": 3.9954027,
+        "c1": 3.6765188,
+        "c2": 3.6794336000000007,
+        "a4": 3.7553064999999997
+      },
+      "beforeMeanSeconds": 3.8753545999999996,
+      "afterMeanSeconds": 3.6779762000000007,
+      "savingSeconds": 0.19737839999999895,
+      "reductionPercent": 5.093170054683482
+    },
+    "qualification": "20 unique focused cases and one final 31-file/992-byte ABBA; intermediate block retained separately, no large/full gate."
   }
 }
