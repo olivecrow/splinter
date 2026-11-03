@@ -1,7 +1,4 @@
-<a id="splinter-용어집"></a>
 # Splinter glossary
-
-[한국어](ko/glossary.md)
 
 Terms needed to read CLI responses and feature documents. Each entry links to the document owning its exact usage conditions. Check command inputs through `schema <command>` before execution.
 
@@ -37,9 +34,9 @@ Terms needed to read CLI responses and feature documents. Each entry links to th
 | overlay | File tree showing a task's changes over an immutable basis. It shows task-specific contents without copying or directly editing the basis. | [NTFS workspaces](ntfs-workspaces.md) |
 | delta | Changed byte ranges and information such as file lengths, names, and deletions. It does not mean a whole copy of each changed file. | [NTFS workspaces](ntfs-workspaces.md) |
 | private | Changed ranges/generated data not shared with original/other tasks. This does not mean encryption or isolation from malicious code execution. | [Current foundation](foundation.md) |
-| journal | Ordered record of change operations and required payload, reread to restore task file state. | [Compressed journal](journal-payload-compression.md) |
-| SJR2 / overlay v2 / candidate v3 | Names/versions of current journal, overlay, and candidate formats. Separate from task state v3 / managed basis v2; earlier formats are not automatically migrated. | [Compressed journal](journal-payload-compression.md) |
-| payload / extent / fragment / block | Payload is actual stored bytes; extent is an applied file range; fragment is its referenced portion; block is a compression/decoding unit. A small valid range may still occupy the whole referenced block's storage. | [Journal instrumentation](source-verification.md#meaning-of-measurements), [codec](workspace-payload-codec.md) |
+| journal | Ordered record of change operations and required payload, reread to restore task file state. | Compressed journal |
+| SJR2 / overlay v2 / candidate v3 | Names/versions of current journal, overlay, and candidate formats. Separate from task state v3 / managed basis v2; earlier formats are not automatically migrated. | Compressed journal |
+| payload / extent / fragment / block | Payload is actual stored bytes; extent is an applied file range; fragment is its referenced portion; block is a compression/decoding unit. A small valid range may still occupy the whole referenced block's storage. | [Journal instrumentation](source-verification.md#meaning-of-measurements), codec |
 | whiteout | Record hiding a basis path in one task without deleting the original file. | [Overlay experiment](snapshot-overlay.md) |
 | graft | Attach a separate generated-directory basis at a source-basis path, such as an explicitly prepared Library basis on a Git basis. | [Library references](git-library-reference.md) |
 | hydration / read cache | Filling task disk with data read from a basis. Current product range storage does not use read disk hydration. | [Git basis](git-project-basis.md), [Plastic basis](plastic-project-basis.md) |
@@ -69,7 +66,7 @@ Terms needed to read CLI responses and feature documents. Each entry links to th
 | release | Reclaim that task's owned resources after preserving independent results. Original application is optional; this differs from result discard. | [Reclamation and observations](ntfs-workspaces.md#reclamation-and-observations) |
 | discard | Explicitly abandon that task's working data and reclaim owned resources without a successful checkpoint. It does not undo content already applied to the original. | [Explicit discard](workspace-discard.md) |
 | restore | Return current original contents from Library/project basis to ordinary NTFS after all dependents/readers end. It does not revert original edits to initial preparation time. | [Library references](git-library-reference.md), [project basis](plain-project-basis.md) |
-| compact | Explicitly clean superseded journal ranges after normal stop/unmount and seal/budget checks. It is neither task discard nor ordinary file deletion. | [Compressed journal](journal-payload-compression.md) |
+| compact | Explicitly clean superseded journal ranges after normal stop/unmount and seal/budget checks. It is neither task discard nor ordinary file deletion. | Compressed journal |
 | reclaim-pending / discard-reclaim-pending | Waiting for physical-resource reclamation on preservation/discard paths respectively. Not completed shutdown; explicitly retry the same task/request. | [AI start guide](agent-start.md#reading-failures-and-completion) |
 | lease / fence / dependency | Lease is access lifetime held during work; fence prevents concurrent read/write/reclamation conflicts; dependency is a relation to an object still using the basis. Expiry/timeouts authorize neither deletion of other tasks nor general ownership takeover. | [Development views](view-workflow.md), [discard](workspace-discard.md) |
 
@@ -83,9 +80,9 @@ For example, to finish A while preserving its result, use checkpoint → release
 | Accepted / Succeeded / Failed | Request accepted, command succeeded, and command failed respectively. Accepted is incomplete; Succeeded does not mean game-feature/test acceptance. Read `terminal`, `error`, `nextActions`, and actual readiness/resource observations together. | [AI start guide](agent-start.md) |
 | fake / synthetic test | Tests common contracts through controlled implementations/inputs instead of real OS/VCS/Editor. It is not actual WinFsp/VSS/Unity support evidence. | [Verification guide](verification/README.md) |
 | native / real-environment test | Uses actual OS APIs, filesystems, processes, etc. Native file tests alone do not qualify separate Unity execution or all OS failures. | [Verification guide](verification/README.md) |
-| Passed / PassedFixture | The specified test/fixture passed its defined conditions. Not a general support declaration for every input, current changed candidate, or other OS. | [Verification matrix](plans/validation-matrix.md) |
+| Passed / PassedFixture | The specified test/fixture passed its defined conditions. Not a general support declaration for every input, current changed candidate, or other OS. | Verification matrix |
 | scoped-complete-with-limitations | Predefined scope completed with documented limitations, unmeasured areas, or unexecuted scope remaining. | [Verification guide](verification/README.md) |
-| Partial / InProgress / NotRun / unknown | Partially checked, in progress, not executed, and unobservable/undecidable respectively. NotRun is not failure; unknown is neither 0 nor success. | [Verification matrix](plans/validation-matrix.md) |
-| M0 / NR·SF·SW / VC·WF·LB, etc. | Traceability IDs locating plan/verification scope. M0 is the first bounded real-use scope; others are units in their owning documents. They are not command names or counts of remaining implementation features. | [Implementation plan](plans/implementation-plan.md), [verification matrix](plans/validation-matrix.md) |
+| Partial / InProgress / NotRun / unknown | Partially checked, in progress, not executed, and unobservable/undecidable respectively. NotRun is not failure; unknown is neither 0 nor success. | Verification matrix |
+| M0 / NR·SF·SW / VC·WF·LB, etc. | Traceability IDs locating plan/verification scope. M0 is the first bounded real-use scope; others are units in their owning documents. They are not command names or counts of remaining implementation features. | [Implementation plan](plans/implementation-plan.md), verification matrix |
 
 Verification records apply only to specified candidates, inputs, and environments. Historical passes and boundaries not yet executed after current changes remain separately identified.

@@ -21,7 +21,7 @@ public sealed partial class JournalDeltaStore
     {
         Identity = identity; snapshot = basis; pathPolicy = WorkspacePathPolicy.For(identity.Snapshot);
         sourceFilePins = pins; capturedContentReader = content; concurrentBaseReads = basis.SupportsConcurrentReads;
-        decodedPayloadCache = new(JournalDecodedPayloadCache.DefaultBudgetBytes); segmentShadow = true;
+        segmentShadow = true;
         InitializePagedIndex(Path.GetDirectoryName(roots.Directory)!, true, roots);
     }
     private static MetadataTreeRoot[] RepackRoots(JournalIndexRoots value) =>

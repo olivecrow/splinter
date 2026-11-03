@@ -1,10 +1,8 @@
 # Structural throughput prototypes
 
-[한국어](../ko/plans/structural-throughput-prototypes.md)
+**Current disposition:** the Bee junction and subsequent internal-native candidate are retired and removed. Their historical implementation is preserved at `93a7395`; BN records the later performance rejection. `tools/Splinter.BoundedLogProbe` and the successful [bounded product journal](../bounded-journal.md) remain. The SX scope below describes the recorded experiment, not authorization to restore or rerun the removed Bee path.
 
-**Current disposition:** the Bee junction and subsequent internal-native candidate are retired and removed. Their historical implementation is preserved at `93a7395`; [BN](../verification/bee-internal-native.md) records the later performance rejection. `tools/Splinter.BoundedLogProbe` and the successful [bounded product journal](../bounded-journal.md) remain. The SX scope below describes the recorded experiment, not authorization to restore or rerun the removed Bee path.
-
-This user-authorized experiment follows [TP-06](../verification/unity-throughput-optimization.md). It compares two small, development-only implementations before any further complete Unity workflow. It does not select a new product backend or change the current journal format, workspace lifecycle, or default durability policy.
+This user-authorized experiment follows TP-06. It compares two small, development-only implementations before any further complete Unity workflow. It does not select a new product backend or change the current journal format, workspace lifecycle, or default durability policy.
 
 ## Fixed scope
 
@@ -29,4 +27,4 @@ Recovery tests use owned child-process interruption and independently observed s
 
 Any successful small result remains a component result. The previous shared-Editor whole workflow was 313.1508 seconds; only a later same-workload successful cold run including setup, integration, preservation and restoration could establish a complete speed advantage.
 
-Recorded outcome: the attempted native Csc backend could not atomically publish state through the graft (`ERROR_NOT_SAME_DEVICE`). The final matched SX Bee timing therefore covered graph generation only; its `--compile` diagnostic is no longer present. See the [verification record](../verification/structural-throughput-prototypes.md). The later single-volume architecture was tested in [BN](../verification/bee-internal-native.md), failed its time/storage gate and was also removed. Neither Bee implementation remains an optional development path.
+Recorded outcome: the attempted native Csc backend could not atomically publish state through the graft (`ERROR_NOT_SAME_DEVICE`). The final matched SX Bee timing therefore covered graph generation only; its `--compile` diagnostic is no longer present. See the verification record. The later single-volume architecture was tested in BN, failed its time/storage gate and was also removed. Neither Bee implementation remains an optional development path.

@@ -377,7 +377,7 @@ public sealed partial class JournalDeltaStore
                 }
                 payloadBytes = check.payloadBytes; logicalPayloadBytes = check.logicalPayloadBytes; extentCount = check.extentCount;
                 boundedSettings = next; boundedPrefixBytes = check.boundedPrefixBytes; boundedFrames = 0; hasStatePrefix = true;
-                expectedJournalBytes = journal.Length; ClearPayloadCache();
+                expectedJournalBytes = journal.Length;
             }
             Visit("bounded.checkpoint.reopened", "checkpoint", sequence, 0, 0, 0);
             if (BoundedFileSeal(previous, sequence) != before) throw LatestJournalStorage.Corrupt("The previous bounded generation changed.");

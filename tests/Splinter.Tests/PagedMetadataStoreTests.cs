@@ -57,11 +57,10 @@ public sealed class PagedMetadataStoreTests
         Assert.Null(reader.Open(first).Find("missing"));
     }
 
-    [Theory]
-    [InlineData(32769)]
-    [InlineData(262145)]
-    [InlineData(1048576)]
-    public void LargeSortedInputsAreBuiltAndLookedUpWithoutWholeInputMaterialization(int count)
+    public static IEnumerable<object[]> StreamedInputSizes => MetadataTestScale.Counts.Select(count => new object[] { count });
+
+    [Theory, MemberData(nameof(StreamedInputSizes))]
+    public void SortedInputsStreamAcrossPagesAndReconnectWithoutMaterialization(int count)
     {
         using var files = new TestDirectory(); string directory = Path.Combine(files.Path, "metadata");
         MetadataTreeRoot root;

@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Text.Json;
 using Splinter.Core;
 using Splinter.Platform.Windows;
 using Splinter.Runtime;
@@ -82,30 +79,7 @@ public sealed class OwnedDirectoryAdmissionTests
         File.WriteAllBytes(f.File(0), [2]); Directory.Move(f.Root, f.Root + "-closed");
     }
 
-    [Fact]
-    public void AdmissionCostForOneTwoAndFourHashWorkers()
-    {
-        string? output = Environment.GetEnvironmentVariable("SPLINTER_OWNED_DIRECTORY_ADMISSION_EVIDENCE");
-        Assert.SkipWhen(string.IsNullOrWhiteSpace(output), "Set SPLINTER_OWNED_DIRECTORY_ADMISSION_EVIDENCE to a new JSON path for bounded ordinary-user cost evidence.");
-        output = Path.GetFullPath(output!); Assert.False(File.Exists(output), "Preserve prior evidence by choosing a new output path.");
-        using var f = new Fixture(512, 131072);
-        var samples = new List<object>();
-        // Warm one admission, then rotate the order of all candidates. The
-        // reference reproduces the previous full-ancestor, serial-hash loop.
-        using (f.Open(1, TestContext.Current.CancellationToken)) { }
-        for (int round = 0; round < 3; round++)
-            foreach (int workers in new[] { 0, 1, 2, 4 }.Skip(round).Concat(new[] { 0, 1, 2, 4 }.Take(round)))
-            {
-                long allocation = GC.GetTotalAllocatedBytes(); long started = Stopwatch.GetTimestamp();
-                if (workers == 0) f.ReferenceAdmission(); else using (f.Open(workers, TestContext.Current.CancellationToken)) { }
-                samples.Add(new { round, workers, seconds = Stopwatch.GetElapsedTime(started).TotalSeconds, allocatedBytes = GC.GetTotalAllocatedBytes() - allocation });
-            }
-        using var target = new FileStream(output!, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-        JsonSerializer.Serialize(target, new { measuredAt = DateTimeOffset.UtcNow,
-            runtimeSha256 = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(typeof(OwnedDirectorySnapshotTree).Assembly.Location))),
-            fixtureFiles = 512, fileBytes = 131072, directoryCount = f.Manifest.Items.Count(i => i.Entry.Directory), hashScratchBytesPerWorker = 65536,
-            scope = "Small warm NTFS admission only; workers=0 is the previous serial full-ancestor loop. No Unity, mount or end-to-end timing qualification.", samples }, new JsonSerializerOptions { WriteIndented = true });
-    }
+
 
     private static void Wait(ManualResetEventSlim signal) => Assert.True(signal.Wait(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken));
     private sealed class Fixture : IDisposable
@@ -128,26 +102,7 @@ public sealed class OwnedDirectoryAdmissionTests
         internal string File(int index) => Path.Combine(Root, "a/b/c", $"f{index:0000}");
         internal OwnedDirectorySnapshotTree Open(int workers, CancellationToken ct = default, Action<string>? beforeHash = null)
             => new(Manifest, snapshot, true, null, workers, ct, beforeHash);
-        internal void ReferenceAdmission()
-        {
-            using var lease = new WindowsOwnedDirectoryLease(Root);
-            var handles = new List<Microsoft.Win32.SafeHandles.SafeFileHandle>();
-            try
-            {
-                foreach (var item in Manifest.Items)
-                {
-                    string path = Path.Combine(Root, item.Entry.Path.Replace('/', Path.DirectorySeparatorChar)); WorkspaceStore.EnsurePlainPath(path);
-                    var attributes = System.IO.File.GetAttributes(path);
-                    if (item.Entry.Directory != ((attributes & FileAttributes.Directory) != 0) || (attributes & FileAttributes.ReparsePoint) != 0)
-                        throw new WorkspaceException("GeneratedBasisChanged", "Reference admission rejected changed metadata.");
-                    if (item.Entry.Directory) continue;
-                    var handle = System.IO.File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileOptions.RandomAccess); handles.Add(handle);
-                    if (item.Entry.Length != RandomAccess.GetLength(handle) || item.Hash != OwnedDirectorySnapshotTree.Hash(handle, TestContext.Current.CancellationToken))
-                        throw new WorkspaceException("GeneratedBasisChanged", "Reference admission rejected changed bytes.");
-                }
-            }
-            finally { foreach (var handle in handles) handle.Dispose(); }
-        }
+
         public void Dispose() { Manifest.Dispose(); temporary.Dispose(); }
     }
 }

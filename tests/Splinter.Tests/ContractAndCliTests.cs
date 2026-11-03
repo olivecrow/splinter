@@ -7,12 +7,32 @@ using Splinter.Runtime;
 
 namespace Splinter.Tests;
 
-public sealed class ContractAndCliTests
+public sealed class ContractAndCliTests(ContractCatalogFixture catalogs) : IClassFixture<ContractCatalogFixture>
 {
+    [Fact]
+    public void ProcessWideMetadataCacheCountersUseTheCurrentResourceCeiling()
+    {
+        const long maximum = StorageResources.MaximumWorkingTargetBytes * 5 / 8;
+        JsonElement[] storageSchemas =
+        [
+            contracts.GetSchema("urn:splinter:v1:overlay-observation").GetProperty("properties").GetProperty("storage"),
+            contracts.GetSchema("urn:splinter:v1:response").GetProperty("$defs").GetProperty("overlayStorage")
+        ];
+        foreach (var storage in storageSchemas)
+        foreach (string name in new[] { "metadataCacheBytes", "peakMetadataCacheBytes" })
+        {
+            var validator = Json.Schema.JsonSchema.FromText(storage.GetProperty("properties").GetProperty(name).GetRawText());
+            foreach (long value in new[] { 0L, 32L * 1024 * 1024 + 1, maximum })
+                Assert.True(validator.Evaluate(JsonSerializer.SerializeToElement(value)).IsValid, $"{name} rejected {value}");
+            foreach (long value in new[] { -1L, maximum + 1 })
+                Assert.False(validator.Evaluate(JsonSerializer.SerializeToElement(value)).IsValid);
+        }
+    }
+
     [Fact]
     public async Task BaseReversionOptionIsDiscoverableAndBooleanOnly()
     {
-        var catalog = new ContractCatalog(); string schema = catalog.Find("workspace.compact")!.InputSchema;
+        var catalog = catalogs.Product; string schema = catalog.Find("workspace.compact")!.InputSchema;
         Assert.True(catalog.Validate(schema, JsonSerializer.SerializeToElement(new { id = new string('a',24), revertBaseRanges = true })).IsValid);
         Assert.False(catalog.Validate(schema, JsonSerializer.SerializeToElement(new { id = new string('a',24), revertBaseRanges = "true" })).IsValid);
         using var output = new StringWriter();
@@ -22,7 +42,7 @@ public sealed class ContractAndCliTests
     [Fact]
     public async Task PlainFolderDiscoveryAndDoctorHaveNoGitOrUnityPrerequisite()
     {
-        var catalog = new ContractCatalog();
+        var catalog = catalogs.Product;
         var input = JsonSerializer.SerializeToElement(new { project = "folder", key = "task", storage = "project-snapshot", source = "none", application = "none", baseReference = "snapshot", projectBasis = new string('a', 24) });
         Assert.True(catalog.Validate(catalog.Find("workspace.ensure")!.InputSchema, input).IsValid);
         Assert.False(catalog.Validate(catalog.Find("workspace.ensure")!.InputSchema,
@@ -38,7 +58,7 @@ public sealed class ContractAndCliTests
         falseSuccess["data"]!["readyForExecution"] = true;
         Assert.False(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(falseSuccess)).IsValid);
     }
-    private readonly ContractCatalog contracts = new(development: true);
+    private readonly ContractCatalog contracts = catalogs.Development;
 
     [Fact]
     public async Task ProductDiscoveryExcludesDevelopmentAndCompileControl()
@@ -46,7 +66,7 @@ public sealed class ContractAndCliTests
         using var output = new StringWriter();
         Assert.Equal(0, await Program.RunAsync(["capabilities"], output, TestContext.Current.CancellationToken));
         using var response = JsonDocument.Parse(output.ToString());
-        var catalog = new ContractCatalog();
+        var catalog = catalogs.Product;
         Assert.True(catalog.Validate("urn:splinter:v1:response", response.RootElement).IsValid, output.ToString());
         var data = response.RootElement.GetProperty("data");
         Assert.Equal(new[] { "git-snapshot", "plastic-snapshot", "project-snapshot" }, data.GetProperty("storageModes").EnumerateArray().Select(item => item.GetString()));
@@ -325,12 +345,12 @@ public sealed class ContractAndCliTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task PayloadCodecDiscoveryAdvertisesScopedJournalIntegrationOnlyInDevelopment(bool development)
+    public async Task StorageProbeDiscoveryIsLimitedToDevelopment(bool development)
     {
         using var output = new StringWriter();
         Assert.Equal(0, await Program.RunAsync(["capabilities"], output, TestContext.Current.CancellationToken, development: development));
         using var response = JsonDocument.Parse(output.ToString());
-        var catalog = new ContractCatalog(development);
+        var catalog = development ? catalogs.Development : catalogs.Product;
         Assert.True(catalog.Validate("urn:splinter:v1:response", response.RootElement).IsValid, output.ToString());
         var data = response.RootElement.GetProperty("data");
         if (development)
@@ -344,19 +364,11 @@ public sealed class ContractAndCliTests
             var retiredProbe = JsonNode.Parse(response.RootElement.GetRawText())!;
             retiredProbe["data"]!["developmentStructuralThroughputProbes"]!["bee"] = "retired-native-bee";
             Assert.False(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(retiredProbe)).IsValid);
-            var codec = data.GetProperty("developmentPayloadReader");
-            Assert.Equal("workspace-internal-alpha", codec.GetProperty("stage").GetString());
-            Assert.Equal("docs/journal-payload-compression.md", codec.GetProperty("specification").GetString());
-            Assert.Equal(new Splinter.Runtime.BrotliWorkspacePayloadReader().CodecId, codec.GetProperty("codec").GetString());
-            Assert.Equal(Splinter.Runtime.BrotliWorkspacePayloadReader.MaximumBlockBytes, codec.GetProperty("maxDecodedBytes").GetInt32());
-            Assert.Equal(Splinter.Runtime.BrotliWorkspacePayloadReader.BlockOverheadBytes, codec.GetProperty("blockOverheadBytes").GetInt32());
-            var unsupported = JsonNode.Parse(response.RootElement.GetRawText())!;
-            unsupported["data"]!["developmentPayloadReader"]!["stage"] = "standalone-unqualified";
-            Assert.False(catalog.Validate("urn:splinter:v1:response", JsonSerializer.SerializeToElement(unsupported)).IsValid);
+
         }
         else
         {
-            Assert.True(!data.TryGetProperty("developmentPayloadReader", out var hidden) || hidden.ValueKind == JsonValueKind.Null);
+            Assert.False(data.TryGetProperty("developmentPayloadReader", out _));
             Assert.True(!data.TryGetProperty("developmentStructuralThroughputProbes", out var probes) || probes.ValueKind == JsonValueKind.Null);
         }
         Assert.DoesNotContain(catalog.Commands, command => command.Id.Contains("codec", StringComparison.Ordinal));

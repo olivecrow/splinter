@@ -1,12 +1,8 @@
 # Repeated original application
 
-[ST-65–68](verification/scalable-storage-throughput-followup.md) adds request-scoped native catalog/subtree proofs with fused byte totals, incremental retained-root updates, proven physical-history coverage for accounting, and independently revalidated composition/dependency proofs across publication. Formats, GC and ACKs remain; 26 focused cases do not qualify large or whole-lifecycle performance.
+For a fresh `checkpoint --release` request, normal stop and infrastructure removal precede full pre/post seals around one capture. That same operation's sealed generation proceeds into release without a second capture; the post-unmount seal remains mandatory. An already fixed/published request retry cannot reuse a new invocation's seals for its older result. It returns the fixed requested result and separately collects current source for closure. Standalone release also collects current source. See GCO scope.
 
-[한국어](ko/repeated-original-apply.md)
-
-For a fresh `checkpoint --release` request, normal stop and infrastructure removal precede full pre/post seals around one capture. That same operation's sealed generation proceeds into release without a second capture; the post-unmount seal remains mandatory. An already fixed/published request retry cannot reuse a new invocation's seals for its older result. It returns the fixed requested result and separately collects current source for closure. Standalone release also collects current source. See [GCO scope](plans/git-collection-optimization.md).
-
-This document owns continuing-task result generations and file publication to an original project. [Scope](plans/repeated-original-apply.md) and [RI-01–08 qualification](verification/repeated-original-apply.md) distinguish implementation, automated checks and actual Unity inputs. The fixed small Git, ordinary-folder and Plastic Unity original/A/B sequences and final full gate passed; RI-01–08 are scoped-complete with explicit input/tool/OS and cost limits.
+This document owns continuing-task result generations and file publication to an original project. Scope and RI-01–08 qualification distinguish implementation, automated checks and actual Unity inputs. The fixed small Git, ordinary-folder and Plastic Unity original/A/B sequences and final full gate passed; RI-01–08 are scoped-complete with explicit input/tool/OS and cost limits.
 
 File source manifests now use **v4**. Native None/Plastic reference captures keep the complete comparison catalog, but retain payloads only for changed before/after files, their range-basis dependencies and previously retained content. Unrelated unchanged basis files are not archived. These results support explicit application, reversal and restart; they are not standalone exports of every project file. The generation fingerprint binds the retention set and range-descriptor root. Git keeps its protected basis route. v3 manifests are preserved/refused and must be finished using the matching binary; task v4/basis v3/overlay v3 and public command fields are unchanged.
 
@@ -71,4 +67,4 @@ Current limits remain: bounded ordinary-file manifests and supported metadata; W
 | Independent payloads and per-path publication | [File generations](../src/Splinter.SourceControl.Files/FileSourceGenerations.cs), [file publication](../src/Splinter.SourceControl.Files/FileOriginalApply.cs), [Git guard](../src/Splinter.SourceControl.Git/GitOriginalPublicationGuard.cs) |
 | External cooperation admission | [Unity policy](../src/Splinter.Application.Unity/UnityProjectPolicy.cs), [native Editor identity](../src/Splinter.Platform.Windows/WindowsOriginalEditorIdentityVerifier.cs) |
 
-The [lifecycle map](lifecycle-optimization-map.md) and [structured index](lifecycle-optimization-map.json) locate C20/A20/A30 and K32–K35; they retain earlier performance evidence separately.
+The lifecycle map and structured index locate C20/A20/A30 and K32–K35; they retain earlier performance evidence separately.

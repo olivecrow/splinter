@@ -589,24 +589,9 @@ public sealed partial class JournalDeltaStore
 
     private static long FrameBytes(CompactionFrame frame) => FrameHeaderBytes + (long)FrameChecksumBytes + frame.Metadata.Length + frame.Payload.StoredBytes;
 
-    private void VisitSlices(IReadOnlyList<PayloadSlice> slices, BrotliWorkspacePayloadReader.DecodedChunkVisitor visit)
+    private void VisitSlices(IReadOnlyList<PayloadSlice> slices, PayloadChunkVisitor visit)
     {
-        if (slices[0].Payload.Encoded)
-        {
-            int first = 0, outputOffset = 0;
-            VisitPayload(slices[0].Physical, slices[0].Payload, (at, bytes, _) =>
-            {
-                while (first < slices.Count)
-                {
-                    var slice = slices[first];
-                    int start = Math.Max(at, slice.BlockOffset), end = Math.Min(at + bytes.Length, slice.BlockOffset + slice.Length);
-                    if (end > start) visit(outputOffset + start - slice.BlockOffset, bytes.Slice(start - at, end - start), default);
-                    if (at + bytes.Length < slice.BlockOffset + slice.Length) break;
-                    outputOffset += slice.Length; first++;
-                }
-            });
-            return;
-        }
+
         byte[] buffer = ArrayPool<byte>.Shared.Rent(65536);
         try
         {
@@ -632,24 +617,8 @@ public sealed partial class JournalDeltaStore
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         output.Write(header); output.Write(frame.Metadata);
         hash.AppendData(header); hash.AppendData(frame.Metadata);
-        if (frame.Payload.Encoded)
-        {
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(65536);
-            try
-            {
-                // Retaining a complete frame preserves its exact encoded bytes.
-                long at = frame.Slices[0].Physical; int remaining = frame.Payload.StoredBytes;
-                while (remaining > 0)
-                {
-                    int count = Math.Min(buffer.Length, remaining);
-                    ReadExactly(at, buffer.AsSpan(0, count));
-                    output.Write(buffer.AsSpan(0, count)); hash.AppendData(buffer.AsSpan(0, count));
-                    at += count; remaining -= count;
-                }
-            }
-            finally { ArrayPool<byte>.Shared.Return(buffer); }
-        }
-        else if (frame.Slices.Length != 0)
+
+        if (frame.Slices.Length != 0)
             VisitSlices(frame.Slices, (_, bytes, _) => { output.Write(bytes); hash.AppendData(bytes); });
         output.Write(hash.GetHashAndReset());
     }

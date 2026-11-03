@@ -2,9 +2,7 @@
 
 Checksums and the journal SHA256 bind the accounting to the product's seal. This
 does not replace product replay/validation. Live payload is logical range usage,
-not path-level physical allocation. Encoded blocks are counted whole even when
-only a fragment remains live. Codec structure/checksums are checked, but this
-tool does not decode Brotli or replace product replay. No snapshot is read.
+not path-level physical allocation. Only raw payloads are admitted. No snapshot is read.
 """
 import base64
 import re
@@ -87,16 +85,9 @@ def framed_json(data, magic):
 
 
 def validate_payload(payload, decoded):
-    if not 0 < len(payload) <= decoded <= 1048576:
+    if not 0 < len(payload) == decoded <= 1048576:
         raise ValueError('Invalid current block lengths')
-    if len(payload) == decoded:
-        return False
-    if len(payload) < 48 or payload[:4] != b'SPB1' or payload[12:16] != b'\x01\0\0\0':
-        raise ValueError('Invalid encoded current block')
-    declared, stored = struct.unpack('<ii', payload[4:12])
-    if declared != decoded or stored + 48 != len(payload) or hashlib.sha256(payload[:-32]).digest() != payload[-32:]:
-        raise ValueError('Encoded current block checksum mismatch')
-    return True
+    return False
 
 
 def capsule(data, identity):
@@ -272,7 +263,7 @@ def analyze(path):
             if header[:4] != b'SJR2':
                 raise ValueError("Unsupported journal format; preserve without migration")
             metadata_length, payload_length, decoded_length = struct.unpack("<iii", header[4:])
-            if not 0 < metadata_length <= 65536 or not 0 <= payload_length <= decoded_length <= 1048576 or (payload_length == 0) != (decoded_length == 0):
+            if not 0 < metadata_length <= 65536 or not 0 <= payload_length == decoded_length <= 1048576 or (payload_length == 0) != (decoded_length == 0):
                 raise ValueError("Invalid frame lengths")
             metadata = stream.read(metadata_length)
             payload_offset = stream.tell()
@@ -284,15 +275,6 @@ def analyze(path):
             frame_hash.update(payload)
             if frame_hash.digest() != checksum:
                 raise ValueError("Journal checksum mismatch")
-            if payload_length < decoded_length:
-                if len(payload) < 48 or payload[:4] != b'SPB1' or payload[12] != 1 or payload[13:16] != b'\0\0\0':
-                    raise ValueError("Unsupported or corrupt payload block")
-                declared, stored = struct.unpack('<ii', payload[4:12])
-                if declared != decoded_length or not 0 < stored <= decoded_length - 64 or len(payload) != stored + 48:
-                    raise ValueError("Invalid payload block lengths")
-                if hashlib.sha256(payload[:-32]).digest() != payload[-32:]:
-                    raise ValueError("Payload block checksum mismatch")
-                compressed_frames += 1
             for part in (header, metadata, payload, checksum):
                 journal_hash.update(part)
             mutation = json.loads(metadata)

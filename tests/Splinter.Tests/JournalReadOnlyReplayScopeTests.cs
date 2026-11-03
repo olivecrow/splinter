@@ -145,9 +145,18 @@ public sealed class JournalReadOnlyReplayScopeTests
             Assert.Equal(signal.NativeIdentity, f.Pins.IdentifyDirectory(signal.Directory));
             using (var concurrent = f.Open()) Assert.True(Directory.Exists(signal.Directory));
             child.Kill(); await child.WaitForExitAsync(ct);
+            await Task.WhenAll(stdout, stderr);
+            await WaitForReleasedNativeLeases(signal.Directory, ct);
+            // Process exit is not the fixture's native-lease boundary. Prove
+            // that a remaining native reader still protects this exact owner.
+            using (var retainedReader = new FileStream(Path.Combine(signal.Directory, "reader.lock"), FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var deferred = f.Open()) Assert.True(Directory.Exists(signal.Directory));
+            await WaitForReleasedNativeLeases(signal.Directory, ct);
+            Assert.Equal(signal.NativeIdentity, f.Pins.IdentifyDirectory(signal.Directory));
             using (var resumed = f.Open())
             {
-                Assert.False(Directory.Exists(signal.Directory)); Assert.Equal("prior"u8.ToArray(), resumed.Store.Open(f.Prior).Find("retained"));
+                Assert.False(Directory.Exists(signal.Directory));
+                Assert.Equal("prior"u8.ToArray(), resumed.Store.Open(f.Prior).Find("retained"));
             }
             Assert.Empty(Directory.EnumerateDirectories(f.Replays)); f.AssertSource(before);
         }
@@ -155,6 +164,28 @@ public sealed class JournalReadOnlyReplayScopeTests
         {
             if (!child.HasExited && child.StartTime.ToUniversalTime().Ticks == ticks) { child.Kill(); await child.WaitForExitAsync(CancellationToken.None); }
             File.WriteAllText(Path.Combine(f.Root.Path, "stdout.log"), await stdout); File.WriteAllText(Path.Combine(f.Root.Path, "stderr.log"), await stderr);
+        }
+    }
+
+    private static async Task WaitForReleasedNativeLeases(string directory, CancellationToken ct)
+    {
+        long began = Stopwatch.GetTimestamp();
+        while (true)
+        {
+            var probes = new List<FileStream>();
+            try
+            {
+                foreach (string path in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+                    probes.Add(new(path, FileMode.Open, FileAccess.Read, FileShare.None));
+                return;
+            }
+            catch (IOException error) when ((error.HResult & 0xffff) is 32 or 33 && Stopwatch.GetElapsedTime(began).TotalSeconds < 1)
+            {
+                // Wait only for observed sharing/lock violations, never for a
+                // changed owner, missing file, corrupt inventory or permission.
+            }
+            finally { foreach (var probe in probes) probe.Dispose(); }
+            await Task.Delay(10, ct);
         }
     }
 
@@ -186,4 +217,5 @@ public sealed class JournalReadOnlyReplayScopeTests
         }
         public void Dispose() => Root.Dispose();
     }
+
 }

@@ -1,7 +1,4 @@
-<a id="개발용-로컬-kernel-복구-시험"></a>
 # Development local kernel-recovery tests
-
-[한국어](ko/kernel-recovery.md)
 
 `scripts/test-kernel-recovery.ps1` connects the product `JournalDeltaStore` and `WinFspOverlayFileSystem` to a real WinFsp `FileSystemHost`. The basis is a deterministic fake immutable tree with alpha 64KiB and beta 4KiB. This does not test real VSS providers/servers, workspace CLI, Git, or Unity. It uses the existing local WinFsp installation and does not change VIVOBOOK, installations, services, or volume settings.
 
@@ -29,4 +26,4 @@ While stopped after a write callback's effect, check whether a separate beta rea
 
 Requests, signals, and trial results follow `kernel-recovery-probe-{request,signal,result}.schema.json`. Control/ACK files are published by flushing a create-new temporary file in the same directory and moving without overwrite. After termination, only journal guard/open is re-observed for up to 5 seconds on sharing violations 32/33; access denial, absence, or corruption are not concealed. Still-mounted/unknown paths are not deleted. A new host removing the previous mount's exact empty ordinary directory is limited to the mount-creation contract.
 
-Initial payload copies and read cache must be 0. Distinguish `baseReadBytes` for normal basis reads, journal private writes, and raw evidence-copy costs. [NR recovery verification](verification/ntfs-recovery.md) owns candidates, actual execution, failures, and limitations. Do not extend this qualification to real VSS reconnect, ARM/VIVOBOOK, power/reboot, or physical-space failures.
+Initial payload copies and read cache must be 0. Distinguish `baseReadBytes` for normal basis reads, journal private writes, and raw evidence-copy costs. NR recovery verification owns candidates, actual execution, failures, and limitations. Do not extend this qualification to real VSS reconnect, ARM/VIVOBOOK, power/reboot, or physical-space failures.

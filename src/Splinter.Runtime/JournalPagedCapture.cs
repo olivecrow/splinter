@@ -58,7 +58,6 @@ public sealed partial class JournalDeltaStore
         private readonly PathComponents components;
         private readonly PagedPathNamespace namesIndex;
         private readonly string scratch;
-        private readonly BrotliWorkspacePayloadReader codec = new();
         private readonly CaptureBackingReaders backingReaders;
         public ISnapshotTree Basis { get; }
         public SnapshotReference Snapshot => Basis.Snapshot;
@@ -177,7 +176,7 @@ public sealed partial class JournalDeltaStore
                     // Only the segmented producer can grant the sealed-file
                     // capability. The transitional bounded-prefix writer uses
                     // streamed chunk preservation until that path is connected.
-                    if (!extent.Payload.Encoded && backing.Hash is not null)
+                    if (backing.Hash is not null)
                         raw = new(Path.Combine(directory, backing.Name), backing.Identity, checked(extent.JournalOffset + extent.BlockOffset), backing.MinimumLength,
                             capture.Id, capture.Digest, backing.Hash);
                     yield return new(extent.Start, extent.Length, identity, raw,
@@ -227,8 +226,7 @@ public sealed partial class JournalDeltaStore
                     extent.Start < 0 || extent.Start > node.Length - extent.Length) throw PagedInvalid();
                 using var segment = roots.Segments is null ? null : backingReaders.Acquire(backing);
                 var input = segment?.Stream ?? payload!;
-                if (!extent.Payload.Encoded) ReadExactly(input, checked(extent.JournalOffset + skip), target);
-                else { byte[] data = new byte[extent.Payload.StoredBytes]; ReadExactly(input, extent.JournalOffset, data); if (codec.Read(data, skip, target) != count) throw PagedInvalid(); }
+                ReadExactly(input, checked(extent.JournalOffset + skip), target);
             }
             ReadBasis(cursor, readEnd, output);
             return length;

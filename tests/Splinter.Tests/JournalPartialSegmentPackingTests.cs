@@ -213,32 +213,36 @@ public sealed class JournalPartialSegmentPackingTests
     }
 
     [Theory(Timeout = 10000)]
-    [InlineData(false, false)] [InlineData(true, false)]
-    [InlineData(false, true)] [InlineData(true, true)]
-    public void SparsePackedGarbageWaitsForForceAndPendingForceStillRecovers(bool interrupt, bool scratchPressure)
+    [InlineData(false)] [InlineData(true)]
+    public void SparsePackedGarbageWaitsForForceAndPendingForceStillRecovers(bool interrupt)
+    {
+        VerifySparsePackedGarbage(interrupt, scratchPressure: false, TestContext.Current.CancellationToken);
+    }
+
+    internal static void VerifySparsePackedGarbage(bool interrupt, bool scratchPressure, CancellationToken ct)
     {
         RequireWindows(); using var f = new Fixture("sparse-repack-" + interrupt);
         Guid id; string packed; SnapshotDeltaSeal seal;
         using (var writer = f.Open(processingBytes: null))
         {
             id = f.Partial(writer, "file", 192 * 1024, 128 * 1024, 0x58).Id;
-            writer.MaintainLiveStorage(force: true, ct: TestContext.Current.CancellationToken);
+            writer.MaintainLiveStorage(force: true, ct: ct);
             packed = Assert.Single(Directory.EnumerateFiles(f.Delta, "packed-*.sjr"));
             writer.SetLength(id, 124 * 1024); seal = writer.Seal();
             // Account the entire common budget without allocating it. The
             // sort and new row spool must use their existing disk fallbacks.
             using var pressure = scratchPressure ? StorageResources.Scratch.Open() : null;
             if (pressure is not null) Assert.True(pressure.TryResize(StorageResources.ScratchBytes));
-            writer.MaintainLiveStorage(collectSegments: true, ct: TestContext.Current.CancellationToken);
+            writer.MaintainLiveStorage(collectSegments: true, ct: ct);
             Assert.True(File.Exists(packed)); Assert.Equal(seal, writer.Seal());
             if (interrupt)
-                Assert.Throws<IOException>(() => writer.MaintainLiveStorage(force: true, ct: TestContext.Current.CancellationToken,
+                Assert.Throws<IOException>(() => writer.MaintainLiveStorage(force: true, ct: ct,
                     boundary: point => { if (point == "segment-pack.intent") throw new IOException("Lost forced packing response before planning."); }));
-            else writer.MaintainLiveStorage(force: true, ct: TestContext.Current.CancellationToken);
+            else writer.MaintainLiveStorage(force: true, ct: ct);
         }
         using var resumed = f.Open(processingBytes: null);
         // A recorded request is recovery, even when the resumed call is not force.
-        resumed.MaintainLiveStorage(collectSegments: true, ct: TestContext.Current.CancellationToken);
+        resumed.MaintainLiveStorage(collectSegments: true, ct: ct);
         Assert.False(File.Exists(packed)); Assert.Equal(seal, resumed.Seal());
         byte[] observed = new byte[124 * 1024]; Assert.Equal(observed.Length, resumed.Read(id, 0, observed));
         Assert.All(observed, value => Assert.Equal((byte)0x58, value));

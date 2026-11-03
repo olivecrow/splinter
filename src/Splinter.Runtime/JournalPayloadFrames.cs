@@ -7,21 +7,7 @@ namespace Splinter.Runtime;
 public sealed partial class JournalDeltaStore
 {
     public const int FrameHeaderBytes = 16, FrameChecksumBytes = 32;
-    private readonly BrotliWorkspacePayloadReader payloadCodec = new();
-    private sealed record CapturedPayloadRead(byte[] Encoded, WorkspaceJournalPayload Payload,
-        int BlockOffset, int OutputOffset, int Count);
-
-    private void ClearPayloadCache() { lock (payloadCacheGate) decodedPayloadCache.Clear(); }
-
-    private void ReadCapturedPayload(CapturedPayloadRead fragment, Span<byte> output)
-    {
-        lock (payloadCacheGate)
-        {
-            if (decodedPayloadCache.Read(payloadCodec, fragment.Encoded.AsSpan(0, fragment.Payload.StoredBytes),
-                fragment.BlockOffset, output) != output.Length)
-                throw new WorkspaceException("DeltaCorrupt", "The decoded journal fragment is incomplete.");
-        }
-    }
+    private delegate void PayloadChunkVisitor(int offset, ReadOnlySpan<byte> chunk, ReadOnlySpan<byte> context);
 
     private static void WriteHeader(Span<byte> header, int metadata, WorkspaceJournalPayload payload)
     {
@@ -43,82 +29,19 @@ public sealed partial class JournalDeltaStore
         return (metadata, payload);
     }
 
-    private void ValidateEncoded(ReadOnlySpan<byte> encoded, WorkspaceJournalPayload payload)
-    {
-        if (encoded.Length < BrotliWorkspacePayloadReader.BlockOverheadBytes ||
-            BinaryPrimitives.ReadInt32LittleEndian(encoded[4..]) != payload.DecodedBytes)
-            throw new WorkspaceException("DeltaCorrupt", "The block and frame decoded lengths differ.");
-        payloadCodec.Read(encoded, 0, Span<byte>.Empty);
-    }
     private void ReadPayload(long physical, WorkspaceJournalPayload payload, int offset, Span<byte> output)
     {
         payload.RequireFragment(offset, output.Length);
-        if (!payload.Encoded) { ReadExactly(physical + offset, output); return; }
-        byte[]? encoded = null;
-        try
-        {
-            encoded = ReadEncoded(physical, payload);
-            var bytes = encoded.AsSpan(0, payload.StoredBytes);
-            lock (payloadCacheGate)
-                if (decodedPayloadCache.Read(payloadCodec, bytes, offset, output) != output.Length)
-                    throw new WorkspaceException("DeltaCorrupt", "The decoded journal fragment is incomplete.");
-        }
-        catch { ClearPayloadCache(); throw; }
-        finally { if (encoded is not null) ArrayPool<byte>.Shared.Return(encoded); }
+        ReadExactly(physical + offset, output);
     }
     private void ReadExtent(Extent extent, int relative, Span<byte> output)
     {
-        if (extent.Segment == -1 && extent.ContentHash is null) { ReadPayload(extent.JournalOffset, extent.Payload, extent.BlockOffset + relative, output); return; }
-        int offset = checked(extent.BlockOffset + relative); extent.Payload.RequireFragment(offset, output.Length);
-        if (!extent.Payload.Encoded) { ReadExtentBytes(extent, extent.JournalOffset + offset, output); return; }
-        byte[] data = ArrayPool<byte>.Shared.Rent(extent.Payload.StoredBytes);
-        try
-        {
-            ReadExtentBytes(extent, extent.JournalOffset, data.AsSpan(0, extent.Payload.StoredBytes));
-            lock (payloadCacheGate)
-                if (decodedPayloadCache.Read(payloadCodec, data.AsSpan(0, extent.Payload.StoredBytes), offset, output) != output.Length) throw PagedInvalid();
-        }
-        finally { ArrayPool<byte>.Shared.Return(data); }
+        int offset = checked(extent.BlockOffset + relative);
+        extent.Payload.RequireFragment(offset, output.Length);
+        ReadExtentBytes(extent, extent.JournalOffset + offset, output);
     }
-
-    private byte[] ReadEncoded(long physical, WorkspaceJournalPayload payload)
+    private void VisitExtent(Extent extent, PayloadChunkVisitor visit, ReadOnlySpan<byte> context = default)
     {
-        byte[] encoded = ArrayPool<byte>.Shared.Rent(payload.StoredBytes);
-        try
-        {
-            var bytes = encoded.AsSpan(0, payload.StoredBytes); ReadExactly(physical, bytes);
-            if (bytes.Length < BrotliWorkspacePayloadReader.BlockOverheadBytes ||
-                BinaryPrimitives.ReadInt32LittleEndian(bytes[4..]) != payload.DecodedBytes)
-                throw new WorkspaceException("DeltaCorrupt", "The block and frame decoded lengths differ.");
-            return encoded;
-        }
-        catch { ArrayPool<byte>.Shared.Return(encoded); throw; }
-    }
-    private void VisitPayload(long physical, WorkspaceJournalPayload payload,
-        BrotliWorkspacePayloadReader.DecodedChunkVisitor visit, ReadOnlySpan<byte> context = default)
-    {
-        byte[]? encoded = null;
-        try
-        {
-            encoded = ReadEncoded(physical, payload);
-            lock (payloadCacheGate)
-                decodedPayloadCache.Visit(payloadCodec, encoded.AsSpan(0, payload.StoredBytes), visit, context);
-        }
-        catch { ClearPayloadCache(); throw; }
-        finally { if (encoded is not null) ArrayPool<byte>.Shared.Return(encoded); }
-    }
-    private void VisitExtent(Extent extent, BrotliWorkspacePayloadReader.DecodedChunkVisitor visit,
-        ReadOnlySpan<byte> context = default)
-    {
-        if (extent.Payload.Encoded && extent.Segment == -1 && extent.ContentHash is null)
-        {
-            VisitPayload(extent.JournalOffset, extent.Payload, (at, chunk, input) =>
-            {
-                int start = Math.Max(at, extent.BlockOffset), end = Math.Min(at + chunk.Length, extent.BlockOffset + extent.Length);
-                if (end > start) visit(start - extent.BlockOffset, chunk.Slice(start - at, end - start), input);
-            }, context);
-            return;
-        }
         byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Min(65536, extent.Length));
         try
         {

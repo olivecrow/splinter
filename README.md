@@ -1,7 +1,5 @@
 # Splinter
 
-Continuing workspaces can capture immutable results and conditionally publish them repeatedly with the same path, ID, basis and Library. See [the repeated-application contract](docs/repeated-original-apply.md) and [scoped RI-01–08 qualification](docs/verification/repeated-original-apply.md); Git original files preserve HEAD/index/branch. Agents own live-Editor saving, import deferral and safe refresh/reload.
-
 **Isolated workspaces that share unchanged data for parallel AI development.**
 
 [한국어](README.ko.md)
@@ -12,9 +10,7 @@ Splinter is a local workspace and storage tool for AI agents working on Unity pr
 
 The current [scalable-storage candidate](docs/scalable-storage.md) writes task v4/basis v3/overlay v3 with metadata-store format 2 (`SPM2`), replacing aggregate metadata/journal quotas with disk pages and streamed processing. Earlier `SPM1` stores are preserved and refused; finish them with their matching binary. SCAL-01–08 qualification is still in progress; no earlier small-input timing or support result is inherited by this candidate.
 
-The user curtailed large verification on 2026-11-01. [Recorded slow phases](docs/verification/scalable-storage-throughput-diagnosis.md) include multi-hour 100k tiny-file operations. Large-project usability, the remaining full lifecycles and matched performance preservation are unqualified; retained fixture state is documented separately.
-
-**Historical Unity time tradeoff:** [RR-01](docs/verification/unity-readme-recheck.md), on `2dff94d`, completed two one-line Unity changes in **428.6s with Splinter and 102.0s with one shared Editor: 326.6s extra**. That Splinter observation is 109.0s below the earlier README observation, with input/run limitations documented below. It is not a timing of the SCAL candidate. Independent sessions reduce coordination around another task's changes, but that productivity benefit has not been timed.
+The user curtailed large verification on 2026-11-01. Recorded slow phases include multi-hour 100k tiny-file operations. Large-project usability, the remaining full lifecycles and matched performance preservation are unqualified; retained fixture state is documented separately.
 
 ## Why Splinter
 
@@ -22,70 +18,13 @@ Parallel development becomes expensive when every task needs a complete project 
 
 Splinter separates the data a task can reuse from the data it changes. Its range journals avoid an initial full project copy, a disk cache of files merely read, and copying an entire base file just to modify part of it. An explicitly prepared Library basis can also share unchanged generated data while keeping each task's writes private.
 
-New changed payloads are stored uncompressed. Concurrent writes can share a durable flush before success; existing encoded data remains readable. See the [current write policy and bounded verification](docs/raw-write-batching.md).
+New changed payloads are stored uncompressed. Concurrent writes can share a durable flush before success; retired encoded payloads are preserved and rejected. See the [current write policy and bounded verification](docs/raw-write-batching.md).
 
 Separate Editors also let each task choose when to apply changes, compile and validate. For example, character, enemy-AI and UI work can use separate project/scene states: validating one feature need not replace the source under another task's active scene, Play session or debugging work. Source edits and compilation errors stay within the task's workspace until explicitly integrated.
 
 Writing code in a separate code-only worktree does not itself disturb a shared Editor. Coordination becomes necessary when that change is applied to the shared project for compilation or validation. Independent sessions reduce those handoffs and interruptions; they do not make a task immune to its own compilation/domain reload, nor eliminate contention for CPU, memory, disk or shared external tools. This is a structural workflow benefit, not a measured long-term productivity gain.
 
 The intended workflow is simple: use a workspace when a task needs independent execution, continue that same task across conversations, then explicitly preserve, integrate, or discard it. Each agent works in the path returned by Splinter and can use its existing file tools, Git tools, and application tooling there.
-
-<a id="measured-storage-and-time-tradeoff"></a>
-
-## Measured storage and time
-
-### Historical comparison: parallel coding with one shared Editor
-
-**RR-01, 2026-10-26–27, recorded code `2dff94d`:** the same two one-line Unity changes completed in **428.6s with Splinter and 102.0s with a shared Editor**, including normal shutdown and owned cleanup. Both start with identical source and whole Library bytes, modification times and attributes: **1,602 source files / 2.80 GB**, **42,418 Library files / 3.14 GB**, Unity **6000.3.22f1**, Windows/NTFS.
-
-| Observation | Splinter (s) | Shared Editor (s) | Extra Splinter time (s) |
-| --- | ---: | ---: | ---: |
-| BC-01 historical record | 537.6 | 82.1 | 455.5 |
-| RR-01 recorded normal run | 428.6 | 102.0 | 326.6 |
-
-Splinter's RR-01 observation is **109.0s (20.3%) shorter** than the earlier README record. This is a historical difference, not an isolated causal percentage: the historical Library differs, shared-Editor time also changed, and execution order/OS caches were not randomized or cleared. That short workflow took **326.6s longer** with Splinter.
-
-| RR-01 Splinter stage | Elapsed seconds |
-| --- | ---: |
-| Library basis preparation | 37.7 |
-| Parallel A/B workspace creation | 64.5 |
-| Initial compiled Editor readiness | 164.6 |
-| Parallel edits through compilation | 47.2 |
-| Checkpoint/release including normal shutdown | 90.2 |
-| Combine source results | 0.3 |
-| Restore original Library | 22.5 |
-| Complete accounted workflow | 428.6 |
-
-A/B overlap is counted once. Preparation totals **266.8s**, compilation plus assets **48.8s**, and finalization/remaining dispatch **113.0s**. The table's edit row excludes **1.6s** of asset checks/dispatch; totals include it. Normal Editor exit was observed after **50.5s**, already inside the **90.2s** completion interval. AI reasoning, input/final hash checks and the separately recorded diagnostic recoveries are excluded.
-
-The new shared workflow totals **59.6s preparation**, **26.0s validation**, and **16.4s finalization/dispatch**. It includes **35.0s** for parallel code-worktree creation, **2.0s** for overlapping candidate edits/preservation, **22.6s** initial readiness, **11.1s** original-source recompilation, **2.8s** normal shutdown, and result merge/worktree removal. The historical code-worktree creation was 13.4s; the cause of its increase was not isolated.
-
-The old `c4fa506` binary was also rerun on this exact current input. Library preparation, workspace creation and Library restoration together fell **199.8 → 124.6s (75.1s saved)**. Editor readiness and compilation did not improve in that pair. Both old Editors exceeded the two-minute stop deadline, then exited normally; the same tasks were preserved/released. Its **689.2s wall time includes recovery gaps**, and its **584.9s reconstructed stage sum is not a normal uninterrupted workflow**. No matched whole-workflow speedup percentage is claimed.
-
-All three methods preserved the same combined Git tree and passed isolated compilation/asset checks. The combined tree was not recompiled or applied to original HEAD. Original source/metadata and existing refs/worktrees were preserved; Splinter restored its starting Library, while the final shared Editor regenerated its normal cache. Initial loaded MVIDs were recorded and differed; this is not an identical-loaded-assembly experiment. One observation per method; no Play/tests/player build, peak RAM/storage or general crossover qualification.
-
-[RR-01 details, diagnostic recoveries and remaining bottlenecks](docs/verification/unity-readme-recheck.md) · [Exact dataset](reports/benchmarks/unity-readme-recheck-20261026.json) · [Historical BC-01](docs/verification/unity-bounded-comparison.md)
-
-### Editor workload and break-even
-
-Additional time is reported in seconds. Establishing whether it is fixed or proportional requires controlled observations at different workloads; a ratio from one short run cannot answer that question. The follow-up with identical starting source, whole Library and loaded assembly state was stopped when the synthetic workload produced abnormal shutdown times.
-
-[SD-01](docs/verification/unity-shutdown-diagnosis.md) found that, on ordinary NTFS without Splinter, 16,384 generated methods took **17.34s to exit when concentrated in one class and 1.60s when spread across 64 classes**. Each configuration was observed once. Code organization materially affects this synthetic input, so method count does not establish a general Editor-work scaling law. The earlier continuing-session experiment is retained in the verification records; its workload table and conditional seven-pair crossover are not current performance claims.
-
-```text
-Net time saved = sum(shared validation time - parallel validation time)
-                 - extra preparation/completion time
-```
-
-No general fixed added delay, proportional slowdown or long-task crossover has been established. Continue the same workspace to share its initial preparation and final cleanup cost across operations. Already-spent setup is not charged again for the next edit, but repeated refresh costs and remaining finalization still count.
-
-Unequal tasks overlap less: unchanged-speed tasks of 60 and 5 minutes can save at most 5 minutes. AI coding time, an idle open Editor and exclusive external-tool work are not automatically Editor overlap. Avoiding another task's source switch/compile interruptions remains a separate structural benefit; interruption recovery, long-session crossover and 3–4 Editor scaling are unmeasured.
-
-### Current storage measurement boundary
-
-Current bounded-default storage allocation/peak and a comparison with two independently initialized Codex worktrees have not been measured. No storage reduction percentage is claimed for the current default. Current candidate/input-specific evidence is listed in the [verification guide](docs/verification/README.md).
-
-Ordinary worktrees with separate project paths and Libraries also support independent Editors. Splinter's distinction is independent workspace state with shared unchanged storage and guarded result/resource lifetimes. No parallel Play Mode, test or build performance is established by these compile-and-asset checks.
 
 ## How it works
 
@@ -122,7 +61,7 @@ The source kind is explicit: `git`, `plastic`, or `none`. Choose a storage path 
 | [`plastic-snapshot`](docs/plastic-project-basis.md) | A fixed recorded Plastic changeset and file revisions | Read access through the qualified installed Plastic client; WinFsp. No new Plastic workspace registration or VSS service is required. |
 | [`project-snapshot`](docs/plain-project-basis.md) | A managed basis for a VCS-free project, including its generated data | Explicit `project prepare`, a move within the same NTFS volume, and a writable view at the original path. No VSS service is required. |
 
-Git and Plastic tasks can attach an explicitly prepared [Library basis](docs/git-library-reference.md). Git commit bases contain committed raw bytes and exclude ignored files; checkout filters, LFS, and unsupported special files require attention to the route's input restrictions. The recorded Plastic reader currently requires client version `11.0.16.9915`.
+Git and Plastic tasks can attach an explicitly prepared [Library basis](docs/git-library-reference.md). Git commit bases contain committed raw bytes and exclude ignored files; checkout filters, LFS, and unsupported special files require attention to the route's input restrictions. The recorded Plastic reader currently requires client version `11.0.16.10484`.
 
 ## Getting started
 
@@ -142,7 +81,7 @@ Splinter provides a CLI and agent guidance. Dedicated installation, automatic co
 
 ## Documentation
 
-Explore the [documentation map](docs/README.md) for detailed feature guides. English is the default; [Korean documentation](docs/ko/README.md) is available separately, with language links on each page.
+Explore the [documentation map](docs/README.md) for detailed feature guides. English is the default; Korean is provided only for the main README and technical architecture.
 
 | Document | Contents |
 | --- | --- |
@@ -162,7 +101,7 @@ Splinter's own code and documentation are available under the [MIT license](LICE
 Splinter builds on the work of these projects and their contributors:
 
 - **[WinFsp](https://github.com/winfsp/winfsp)** supplies the writable filesystem views and .NET binding. **WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos.** Its license is GPLv3 with a conditional exception for linking from free and open source software.
-- **[.NET](https://github.com/dotnet/runtime)** and **[System.CommandLine](https://github.com/dotnet/command-line-api)** provide the runtime and CLI infrastructure. Existing Brotli payloads are decoded through .NET's `System.IO.Compression` APIs; new writes are uncompressed.
+- **[.NET](https://github.com/dotnet/runtime)** and **[System.CommandLine](https://github.com/dotnet/command-line-api)** provide the runtime and CLI infrastructure. Changed payloads are stored uncompressed.
 - **[json-everything](https://github.com/json-everything/json-everything)** provides JsonSchema.Net, JsonPointer.Net, and Json.More.Net for schema validation and JSON handling. Its source is MIT-licensed; the pinned NuGet binaries also include an Open Source Maintenance Fee agreement.
 - **[Humanizer](https://github.com/Humanizr/Humanizer)** is an indirect runtime dependency of the JSON packages, under the MIT license.
 - **[xUnit.net](https://github.com/xunit/xunit)** and **[Microsoft.Testing.Platform](https://github.com/microsoft/testfx)** provide automated testing and TRX reports, under Apache 2.0 and MIT respectively.

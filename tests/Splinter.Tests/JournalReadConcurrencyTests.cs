@@ -8,7 +8,7 @@ public sealed class JournalReadConcurrencyTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task FragmentBudgetUsesImmediateCopiesForOverflowWithoutMixingGenerations(bool optimized)
+    public async Task PrivateCopiesDoNotMixGenerations(bool optimized)
     {
         using var directory = new TestDirectory(); using var tree = new BlockingTree { Length = 66 * 8192 };
         using var store = Open(directory.Path, tree, optimized);
@@ -20,15 +20,12 @@ public sealed class JournalReadConcurrencyTests
             store.Write(file.Id, i * 8192 + 1024, payload);
             payload.CopyTo(expected, i * 8192 + 1024);
         }
-        store.DecodedPayloadCache.Clear();
-        long decoded = store.DecodedPayloadCache.Decodes;
         byte[] output = new byte[tree.Length];
         var read = Run(() => store.Read(file.Id, 0, output));
         try
         {
             Assert.True(tree.Entered.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
             // New raw payloads require no decoding, including overflow copies.
-            Assert.Equal(0, store.DecodedPayloadCache.Decodes - decoded);
             await Run(() => { store.SetLength(file.Id, 0); store.Delete(file.Id); store.ReleaseUnlinkedFile(file.Id); })
                 .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         }
@@ -42,7 +39,7 @@ public sealed class JournalReadConcurrencyTests
     [InlineData(true, false)]
     [InlineData(false, true)]
     [InlineData(true, true)]
-    public async Task CapturedCompressedReadSurvivesRetirementAndRejectsPoison(bool optimized, bool poison)
+    public async Task CapturedRawReadSurvivesRetirementAndRejectsPoison(bool optimized, bool poison)
     {
         using var directory = new TestDirectory(); using var tree = new BlockingTree { Length = 8192 };
         var observer = new FailingMutation();
@@ -78,7 +75,6 @@ public sealed class JournalReadConcurrencyTests
         if (poison)
         {
             Assert.Equal("DeltaReconnectRequired", Assert.IsType<WorkspaceException>(error).Code);
-            Assert.Equal(0, store.DecodedPayloadCache.EntryCount);
         }
         else
         {

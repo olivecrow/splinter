@@ -11,7 +11,10 @@ public sealed class ScalableCatalogMatrixTests
         get
         {
             var data = new TheoryData<int, string>();
-            foreach (int count in new[] { 1024, 32769, 262145, 1048576 })
+            // Large capacity qualification is explicit; ordinary regression covers
+            // every shape, multi-page traversal and reconnect on small inputs.
+            int[] counts = MetadataTestScale.Counts;
+            foreach (int count in counts)
                 foreach (string shape in new[] { "flat", "hierarchy", "long-prefix" }) data.Add(count, shape);
             return data;
         }

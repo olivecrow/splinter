@@ -1,171 +1,40 @@
 # Splinter
 
-같은 경로·ID·기준본·Library를 유지하며 불변 결과를 수집하고 원본에 반복 조건부 게시하는 경로를 연결했다. [현재 계약](docs/ko/repeated-original-apply.md)과 [한정 완료한 RI-01–08 자격](docs/ko/verification/repeated-original-apply.md)을 구분한다. Git 원본 파일 반영은 HEAD/index/branch를 보존하며 실행 중 Editor 저장·import 유예·안전한 refresh/재로드는 에이전트가 맡는다.
+**변경하지 않은 데이터는 공유하고 작업별 변경은 격리하는 AI 병렬 개발 작업공간.**
 
-**변경하지 않은 데이터를 공유하는 AI 병렬 개발용 독립 작업공간.**
+[English](README.md) · [한국어 기술 설명서](docs/ko/foundation.md)
 
-[English](README.md)
+Splinter는 Windows/NTFS에서 Unity 프로젝트와 일반 폴더를 위한 로컬 작업공간 도구입니다. 각 작업은 고정 기준본과 자기 변경 범위를 결합한 writable WinFsp 경로를 사용합니다. 최초 전체 복제, 읽은 파일의 디스크 hydration, 파일 전체 copy-up 없이 여러 작업을 독립적으로 수행하며 원본도 계속 편집할 수 있습니다.
 
-Splinter는 AI 에이전트가 Unity 프로젝트나 일반 프로젝트 폴더에서 독립적으로 작업할 수 있도록 돕는 로컬 작업공간·저장 도구입니다. 각 작업에는 별도의 쓰기 가능한 프로젝트 경로를 제공합니다. 변경하지 않은 파일은 고정한 프로젝트 기준본에서 읽고, 편집한 내용은 작업별 비공개 바이트 범위로 저장합니다. 여러 작업을 동시에 진행하면서 원본도 계속 수정할 수 있고, 결과의 보존과 반영은 명시적으로 수행합니다.
+현재 연구용 alpha이며 대형 입력·전체 수명주기·속도/RAM·OS 장애 자격은 미완료입니다. 과거 작은 Git/None/Plastic/Unity 검증을 현재 후보의 일반 성능이나 지원 보장으로 확대하지 않습니다. 자세한 범위는 [영문 검증 안내](docs/verification/README.md)를 참조하세요.
 
-**현재 상태:** Windows와 NTFS를 대상으로 하는 연구용 알파입니다. 작은 Git·Unity Version Control / Plastic SCM·VCS 없는 프로젝트에서 범위를 정해 검증했습니다. 다른 사람들이 검토·재현하고 발전시킬 수 있도록 소스와 측정 근거를 제공합니다. 실제 입력과 지원 한계는 [검증 안내](docs/ko/verification/README.md)를 참고하세요.
+## 사용 흐름
 
-현재 [대규모 저장 후보](docs/ko/scalable-storage.md)는 task v4/basis v3/overlay v3와 metadata 저장소 형식 2(`SPM2`)로 기록하며 metadata/저널 총량 상한을 디스크 페이지·순차 처리로 대체합니다. 이전 `SPM1` 저장소는 보존·거부하므로 일치하는 바이너리로 마무리합니다. SCAL-01–08 필수 자격 검증은 진행 중이고 과거 작은 입력의 시간·지원 자격을 새 후보에 승계하지 않습니다.
+필요할 때 작업공간 생성 → 같은 작업 지속 → 불변 결과 수집 → 명시적 반영·보존·폐기.
 
-2026-11-01 사용자 지시로 대형 검증을 축소했습니다. [느린 구간 기록](docs/ko/verification/scalable-storage-throughput-diagnosis.md)에 10만 작은 파일 작업의 수 시간 실행을 남겼습니다. 대형 프로젝트 사용성·남은 전체 수명주기·동일 입력 성능 유지는 아직 미자격이며 보존한 검증 상태를 별도로 기록했습니다.
+반환된 프로젝트 경로에서 기존 파일·Git·Unity 도구를 사용합니다. 중간 checkpoint 뒤에도 같은 작업을 계속할 수 있으며, release는 독립 결과를 보존합니다. 원본 반영은 결과와 계획·intent·현재 대상 검증을 요구합니다. 대화 종료·시간 초과는 반영이나 삭제의 승인이 아닙니다.
 
-**과거 Unity 시간 비용:** `2dff94d`의 [RR-01](docs/ko/verification/unity-readme-recheck.md)에서 Unity 한 줄 변경 두 개는 **Splinter 428.6초, 공유 Editor 하나 102.0초로 326.6초가 더 걸렸습니다.** 이 Splinter 관측은 앞선 README 관측보다 109.0초 짧았으며 입력·실행 한계는 아래에 구분했습니다. SCAL 후보의 시간 측정은 아닙니다. 독립 세션이 다른 작업의 변경·검증에 맞춰 조정하는 부담을 줄이는 생산성 가치는 아직 계측하지 않았습니다.
+## 저장 경로
 
-새 변경 payload는 압축하지 않는다. 동시 쓰기는 성공 응답 전에 영속 flush를 공유할 수 있으며 기존 압축 데이터는 계속 읽는다. [현재 쓰기 정책과 한정 검증](docs/ko/raw-write-batching.md)을 따른다.
+| 경로 | 기준본 |
+| --- | --- |
+| `git-snapshot` | 고정 로컬 Git commit/tree/blob |
+| `plastic-snapshot` | 고정 Plastic changeset/revision |
+| `project-snapshot` | VCS 없는 프로젝트의 명시적 관리형 기준본 |
 
-## Splinter가 필요한 이유
-
-병렬 개발에서 작업마다 프로젝트 전체와 생성 데이터를 복제하고 독립 애플리케이션을 실행하면 비용이 커집니다. Unity에서는 소스만 분리해도 에셋과 `Library`, 여러 Editor의 부담이 남습니다.
-
-Splinter는 작업이 재사용할 데이터와 변경할 데이터를 분리합니다. 범위 저널을 사용하므로 최초 프로젝트 전체 복제, 읽은 파일을 디스크에 복제하는 캐시, 일부 수정 때문에 기준 파일 전체를 복사하는 처리를 피합니다. 명시적으로 준비한 Library 기준본을 연결하면 변경하지 않은 생성 데이터도 참조하고, 각 작업의 쓰기는 별도로 저장할 수 있습니다.
-
-별도 Editor를 사용하면 각 작업이 변경 적용·컴파일·검증 시점을 정할 수 있습니다. 예를 들어 캐릭터·적 AI·UI를 분리해 개발하면 각자의 프로젝트/장면 상태로 작업하면서, 한 기능을 검증하려고 다른 작업이 장면·Play·디버깅에 사용 중인 소스를 교체할 필요를 줄입니다. 소스 변경과 컴파일 오류도 명시적으로 통합하기 전까지 작업공간 안에 분리됩니다.
-
-별도 코드 워크트리에 코드를 작성하는 것만으로 공유 Editor가 방해받지는 않습니다. 그 변경을 공유 프로젝트에 적용해 컴파일·검증할 때 점유 조정이 필요합니다. 독립 세션은 이러한 전환과 중단을 줄이지만, 자기 작업의 컴파일/domain reload 영향이나 CPU·메모리·디스크·공유 외부 도구의 경합까지 없애지는 않습니다. 이는 구조적으로 제공하는 작업 독립성이며 장기 생산성 향상을 실측한 주장은 아닙니다.
-
-기본 사용 흐름은 간단합니다. 독립 실행이 필요할 때 작업공간을 만들고, 여러 대화에 걸쳐 같은 작업을 이어간 뒤, 명시적으로 보존·반영·폐기합니다. 에이전트는 Splinter가 반환한 경로에서 기존 파일 도구·Git 도구·애플리케이션 도구로 작업합니다.
-
-<a id="실제-측정한-저장-공간과-시간의-트레이드-오프"></a>
-
-## 실제 측정한 저장 공간과 시간
-
-### 과거 비교: 병렬 코드 작성과 공유 Editor 하나
-
-**RR-01, 2026-10-26–27, 기록한 코드 `2dff94d`:** 같은 Unity 한 줄 변경 두 개를 정상 종료·소유 회수까지 완료하는 데 **Splinter 428.6초, 공유 Editor 102.0초**가 걸렸습니다. 양쪽은 소스와 전체 Library의 바이트·수정 시각·속성이 같은 상태에서 시작했습니다. **소스 1,602개 / 2.80 GB**, **Library 42,418개 / 3.14 GB**, Unity **6000.3.22f1**, Windows/NTFS입니다.
-
-| 관측 | Splinter (초) | 공유 Editor (초) | Splinter 추가 시간 (초) |
-| --- | ---: | ---: | ---: |
-| BC-01 과거 기록 | 537.6 | 82.1 | 455.5 |
-| RR-01 기록한 정상 실행 | 428.6 | 102.0 | 326.6 |
-
-Splinter의 RR-01 관측값은 앞선 README 기록보다 **109.0초(20.3%) 짧았습니다.** 다만 과거 Library가 다르고 공유 Editor 시간도 변했으며 실행 순서·OS 캐시를 통제하지 않았으므로, 이 차이 전체를 코드 개선의 인과 효과로 확정하지 않습니다. 해당 짧은 작업은 Splinter가 **326.6초 더 걸렸습니다.**
-
-| RR-01 Splinter 단계 | 경과 초 |
-| --- | ---: |
-| Library 기준본 준비 | 37.7 |
-| A/B 작업공간 병렬 생성 | 64.5 |
-| 최초 컴파일된 Editor 준비 | 164.6 |
-| 병렬 변경·컴파일 | 47.2 |
-| 정상 종료 포함 checkpoint/release | 90.2 |
-| 소스 결과 병합 | 0.3 |
-| 원본 Library 복원 | 22.5 |
-| 전체 계측 작업 | 428.6 |
-
-A/B가 겹친 시간은 한 번만 셉니다. 준비 합계 **266.8초**, 컴파일·자산 검사 **48.8초**, 최종화·나머지 전달 **113.0초**입니다. 표의 컴파일 행에는 자산 검사·전달 **1.6초**가 빠져 있지만 전체 합계에는 포함합니다. Editor 정상 종료는 종료 시작 후 **50.5초**에 관측됐으며 이미 완료 구간 **90.2초**에 포함됩니다. AI 추론, 입력·최종 해시 검사, 별도로 기록한 진단 복구는 제외했습니다.
-
-새 공유 방식은 준비 **59.6초**, 검증 **26.0초**, 최종화·전달 **16.4초**입니다. 코드 워크트리 병렬 생성 **35.0초**, 겹친 후보 편집·보존 **2.0초**, 초기 준비 **22.6초**, 원본 코드 재컴파일 **11.1초**, 정상 종료 **2.8초**, 결과 병합·워크트리 회수를 포함합니다. 과거 코드 워크트리 생성은 13.4초였으며 증가 원인은 분리 계측하지 않았습니다.
-
-과거 실행 파일 `c4fa506`도 이번과 정확히 같은 입력으로 재실행했습니다. Library 준비·작업공간 생성·Library 복원 합계는 **199.8 → 124.6초로 75.1초 줄었습니다.** 해당 쌍에서 Editor 준비와 컴파일은 개선되지 않았습니다. 구버전 Editor 두 개는 2분 종료 제한을 넘긴 뒤 정상 종료했고, 같은 작업에서 보존·회수를 재개했습니다. **경과 689.2초에는 복구 대기가 포함**되며 **단계 합계 584.9초도 정상 연속 실행 시간이 아닙니다.** 따라서 동일 입력의 정상 전체 개선율은 주장하지 않습니다.
-
-세 방식 모두 같은 병합 Git tree를 보존하고 개별 변경의 컴파일·자산 검사를 통과했습니다. 병합 결과는 재컴파일하거나 원본 HEAD에 적용하지 않았습니다. 원본 소스·메타데이터와 기존 refs·워크트리를 보존했고, Splinter는 시작 Library를 복원했으며 마지막 공유 Editor는 정상적으로 캐시를 재생성했습니다. 초기 loaded MVID는 기록했으며 서로 달랐으므로 동일 loaded assembly 실험은 아닙니다. 방식별 한 번이며 Play/Test/Player 빌드·최대 RAM/저장 공간·일반 손익분기 자격은 없습니다.
-
-[RR-01 상세·진단 복구·남은 병목](docs/ko/verification/unity-readme-recheck.md) · [정확한 데이터](reports/benchmarks/unity-readme-recheck-20261026.json) · [과거 BC-01](docs/ko/verification/unity-bounded-comparison.md)
-
-### 에디터 작업량과 손익분기
-
-추가 시간은 초 단위로 표시합니다. 고정 비용인지 작업량에 비례하는 비용인지 판단하려면 작업량을 달리한 통제 측정이 필요하며, 짧은 작업 한 번의 시간 비율로는 답할 수 없습니다. 시작 소스·Library 전체·로드된 어셈블리 상태까지 동일하게 맞춘 후속 비교는 합성 입력에서 비정상적인 종료 시간이 발생해 중단했습니다.
-
-[SD-01](docs/ko/verification/unity-shutdown-diagnosis.md)에서는 Splinter가 없는 일반 NTFS에서도 생성 메서드 16,384개를 **한 클래스에 넣으면 종료에 17.34초, 64개 클래스로 나누면 1.60초**가 걸렸습니다. 구성별 관측은 1회입니다. 이 합성 입력은 코드 배치에 크게 영향을 받으므로 메서드 수로 일반적인 Editor 작업량 증가 법칙을 확정할 수 없습니다. 이전 세션 유지 실험은 검증 기록에 보존하며, 그 작업량 표와 조건부 7회 손익분기는 현재 성능 주장에 사용하지 않습니다.
-
-```text
-순 절약 시간 = 합계(공유 검증 시간 - 병렬 검증 시간)
-               - 추가 준비·종료 시간
-```
-
-일반적인 고정 추가 지연·비례 배수·긴 작업 손익분기는 아직 확정하지 못했습니다. 같은 작업공간을 계속 사용하면 최초 준비·최종 정리 비용을 여러 작업에 나눌 수 있습니다. 이미 지불한 준비 비용을 다음 수정에 다시 부과하지 않지만, 매 refresh의 비용과 남은 최종화는 포함합니다.
-
-작업 길이가 다르면 중첩은 짧아집니다. 속도가 같아도 60분·5분 작업은 최대 5분만 절약합니다. AI 코드 작성 시간·단순히 켜 둔 Editor·독점 외부 도구 작업은 자동으로 Editor 중첩 이득이 되지 않습니다. 다른 작업의 소스 교체·컴파일 방해를 줄이는 구조적 장점과 시간 절감은 구분하며, 중단 복구·장기 세션 손익분기·3–4 Editor 확장은 미측정입니다.
-
-### 현재 저장 공간 측정 범위
-
-현재 bounded 기본값의 저장 할당/peak와 Library를 독립 초기화한 Codex 워크트리 두 개와의 비교는 미측정입니다. 현재 기본 구성의 저장 절감률을 제시하지 않습니다. 후보/입력별 현재 근거는 [검증 안내](docs/ko/verification/README.md)를 참고하세요.
-
-일반 워크트리도 프로젝트 경로와 Library를 분리하면 독립 Editor를 사용할 수 있습니다. Splinter의 차이는 변경하지 않은 저장 데이터를 공유하면서 작업 상태를 분리하고 결과/자원 수명을 보호하는 데 있습니다. 이 컴파일·에셋 검사로 Play Mode·테스트·빌드 병렬 성능을 입증하지는 않습니다.
-
-## 동작 원리
-
-**기준본**은 작업을 시작할 때 고정한 데이터입니다. **비공개 저널**은 해당 작업이 바꾼 바이트 범위와 파일 메타데이터를 기록합니다. 두 데이터를 조합한 프로젝트 트리를 쓰기 가능한 WinFsp 파일시스템으로 제공합니다.
-
-```text
-고정한 프로젝트 기준본
-  + 작업 A의 비공개 변경분  ->  작업공간 A
-  + 작업 B의 비공개 변경분  ->  작업공간 B
-```
-
-A의 편집은 B의 파일이나 원본을 자동으로 변경하지 않습니다. checkpoint는 안정된 소스를 독립 결과로 보존하고, integrate는 선택한 소스 어댑터의 보호 조건에 따라 그 결과를 반영합니다. release는 결과를 유지하며 해당 작업이 소유한 자원을 회수합니다. discard는 별도의 명시적 폐기입니다.
-
-작업 중에도 원본을 사용할 수 있습니다. 선택적인 관리형 Library 또는 VCS 없는 프로젝트 기준본은 기존 데이터를 같은 NTFS 볼륨에서 복사 없이 이동하고, 원래 경로에 쓰기 가능한 view를 제공합니다. 최초 전환과 최종 복원에는 원본 Editor의 저장과 정상 종료가 필요합니다. 복원은 원본의 현재 내용을 일반 NTFS 디렉터리로 되돌립니다.
-
-## 주요 기능
-
-- **작업별 독립 공간.** 쓰기 가능한 경로·변경분·작업 상태·소유 애플리케이션 프로세스를 분리하고, 원본과 다른 작업을 보호합니다.
-- **변경량에 따른 저장.** 불변 데이터 참조, 제한된 크기의 raw 변경 payload, 저널 정리를 제공합니다. 새 작업은 [제한된 durable 저널](docs/ko/bounded-journal.md)을 사용하며, 명시적 정리로 기준본과 다시 같아진 범위도 제거할 수 있습니다.
-- **대화 이후에도 이어지는 작업.** 고정한 작업 식별자·원자적 JSON 상태·같은 요청의 복구를 통해 중단이나 응답 유실 뒤 작업을 이어갑니다.
-- **독립 결과와 보호 조건을 갖춘 반영.** 소스 checkpoint, Git 결과 통합, 지원하는 일반 폴더·기록된 Plastic 경로의 전체/선택 파일 반영을 제공합니다. 대상 변경이나 충돌은 거부하고 명시적으로 해결하도록 합니다.
-- **명시적 자원 소유권.** Unity Editor 시작/종료, provider·mount 추적, 의존성 보호, 자기 자원의 회수·폐기를 관리합니다.
-- **에이전트를 위한 인터페이스.** stdout의 단일 JSON 응답, capabilities·명령 schema·구조화된 오류와 저장소에 포함한 [에이전트 스킬](skills/splinter/SKILL.md)을 제공합니다.
-
-Splinter는 작업공간 저장과 자원 수명을 담당합니다. 편집·refresh·컴파일·Play Mode·테스트·빌드·결과 판정은 에이전트와 선택한 도구가 수행합니다. checkpoint는 소스의 안정성을 확인하며, 컴파일·테스트 결과는 외부 도구에서 확인합니다. MCP와 Unity CLI는 에이전트가 필요에 따라 선택하는 외부 연결입니다.
-
-## 저장 방식
-
-소스 종류는 `git`, `plastic`, `none`으로 명시합니다. 실제 프로젝트에 맞는 저장 방식을 선택하고 생성 전에 해당 경로의 전제를 확인하세요.
-
-| 저장 방식 | 프로젝트 기준본 | 준비 조건 |
-| --- | --- | --- |
-| [`git-snapshot`](docs/ko/git-project-basis.md) | 고정한 로컬 Git commit·tree·blob | 요청 commit과 일치하는 지원 가능한 clean 저장소, WinFsp. VSS 서비스는 필요하지 않습니다. |
-| [`plastic-snapshot`](docs/ko/plastic-project-basis.md) | 기록된 고정 Plastic changeset·파일 revision | 검증한 설치 버전의 Plastic client를 통한 읽기 접근, WinFsp. 새 Plastic 작업공간 등록이나 VSS 서비스는 필요하지 않습니다. |
-| [`project-snapshot`](docs/ko/plain-project-basis.md) | 생성 데이터를 포함한 VCS 없는 프로젝트의 관리형 기준본 | 명시적 `project prepare`, 같은 NTFS 볼륨 내 이동, 원본 경로의 쓰기 가능한 view. VSS 서비스는 필요하지 않습니다. |
-
-Git·Plastic 작업에는 명시적으로 준비한 [Library 기준본](docs/ko/git-library-reference.md)을 연결할 수 있습니다. Git commit 기준본은 커밋한 원시 바이트만 포함하고 ignored 파일은 제외합니다. checkout filter·LFS·특수 파일은 해당 경로의 입력 제한을 확인해야 합니다. 기록된 Plastic reader는 현재 client `11.0.16.9915`가 필요합니다.
+관리형 프로젝트/Library 준비는 같은 NTFS 볼륨에서 기존 데이터를 이동하고 원본 경로에 writable view를 제공합니다. 최초 전환과 최종 복원은 정확한 원본 Editor의 저장·정상 종료를 요구합니다. 현재 task/basis/overlay는 v4/v3/v3, metadata는 SPM2입니다. 새 payload는 raw이며 과거 압축 payload와 미지원 형식은 변환하지 않고 보존·거부합니다.
 
 ## 시작하기
 
-현재 Splinter는 소스 checkout에 포함된 PowerShell CLI로 사용합니다. 독립 작업공간을 만들고, 반환된 프로젝트 경로에서 기존 편집·Git·Unity 도구로 작업한 뒤, 결과를 명시적으로 보존·반영·폐기하는 흐름입니다. 같은 작업은 기존 작업공간에서 이어갈 수 있습니다.
+Windows/NTFS, PowerShell 7.2+, [global.json](global.json)의 .NET SDK와 WinFsp가 필요합니다. Git/Plastic/Unity는 해당 입력에만 필요합니다. 현재는 소스 체크아웃의 PowerShell CLI를 사용합니다.
 
-필요한 환경은 Windows/NTFS, PowerShell 7.2 이상, [global.json](global.json)에 명시한 .NET SDK, [WinFsp](https://github.com/winfsp/winfsp)입니다. Git·Plastic·Unity는 해당 프로젝트에서 사용할 때 필요합니다.
+- [시작 안내](docs/agent-start.md)와 [에이전트 skill](skills/splinter/SKILL.md)에서 setup·schema·같은 작업 인계를 확인하세요.
+- `pwsh ./scripts/build.ps1`은 locked restore·Release build·자동 회귀 검증 진입점입니다.
+- 제품 CLI는 `scripts/splinter.ps1`, 개발 진단은 `scripts/splinter-dev.ps1`입니다.
+- [문서 지도](docs/README.md), [기술 구조](docs/foundation.md), [라이선스](LICENSE), [외부 구성요소 고지](THIRD_PARTY_NOTICES.md)를 참조하세요.
 
-설정과 첫 작업공간 생성은 [시작 안내](docs/ko/agent-start.md)를, Unity 프로젝트의 Editor 사용은 [Unity 사용 안내](docs/ko/alpha-workspaces.md)를 참고하세요. AI 에이전트가 따를 상세 절차는 [에이전트 스킬](skills/splinter/SKILL.md)에 정리되어 있습니다.
+Splinter는 저장·프로세스·자원 소유권을 관리합니다. refresh·컴파일·Play/Test/build·도구 연결·게임 합격 판단은 에이전트와 외부 도구의 책임입니다. 전용 설치기·자동 대화 binding·스케줄러·공유 원본 Editor 조율·AI Runner/DAG·daemon/DB는 제공하지 않습니다. 작업공간 격리는 악성 코드용 OS 보안 sandbox가 아닙니다.
 
-## 지원 범위와 한계
+문서는 영어를 기본으로 하며 한국어는 이 README와 기술 설명서만 유지합니다. 과거 실험 보고서와 중복 검증 문서는 Git 이력에서 확인할 수 있습니다.
 
-현재 구현과 실제 검증은 작은 프로젝트의 Windows/NTFS 알파 사용을 대상으로 합니다. 대형 프로젝트·macOS/Linux 어댑터·포괄적인 ARM 지원·재부팅/전원 손실/일반 OS 장애 보장은 이 자격에 포함되지 않습니다. [검증 안내](docs/ko/verification/README.md)는 자동 계약 시험과 실제 파일시스템·Unity 실행을 구분합니다.
-
-변경하지 않은 데이터를 공유해 저장 구조의 중복을 줄입니다. 각 Unity Editor의 메모리와 import 비용은 여전히 존재하며, 현재 근거로 전체 시스템 RAM이나 디스크 순간 최대 사용량의 일반적인 절감을 주장하지 않습니다. 지원하지 않는 파일 유형과 메타데이터는 저장 경로별 문서에 명시합니다.
-
-Splinter는 CLI와 에이전트 지침을 제공합니다. 전용 설치·대화 자동 연결·작업 스케줄링·자동 모드 선택·원본 Editor 공유·AI 실행 플랫폼은 현재 구현 범위 밖입니다. 작업공간 격리는 저장과 자원 소유권을 보호하며, 신뢰할 수 없는 코드를 실행하는 OS 보안 sandbox는 아닙니다. 지원하지 않거나 손상된 상태는 보존하고 명시적으로 거부하며 자동 이관하지 않습니다.
-
-## 문서
-
-[한국어 문서 지도](docs/ko/README.md)에서 기능별 상세 문서를 찾아볼 수 있습니다. 기본 문서는 영어이며, [영문 문서 지도](docs/README.md)와 각 문서의 언어 링크로 전환할 수 있습니다.
-
-| 문서 | 내용 |
-| --- | --- |
-| [시작 안내](docs/ko/agent-start.md) | 설정, 첫 작업공간 생성, 작업 이어가기와 마무리 |
-| [Unity 사용 안내](docs/ko/alpha-workspaces.md) | 독립 Editor에서 Unity 프로젝트 작업 |
-| [용어집](docs/ko/glossary.md) | 기준본, 비공개 변경 범위, 결과 보존과 자원 회수 |
-| [구조와 동작](docs/ko/foundation.md) | Splinter를 구성하는 요소와 상호 작용 |
-| [검증 범위](docs/ko/verification/README.md) | 검증한 환경, 측정 근거와 지원 한계 |
-| [서드파티 고지](THIRD_PARTY_NOTICES.md) | 의존성 출처, 버전과 라이선스 조건 |
-
-## 라이선스
-
-Splinter 자체 코드와 문서는 [MIT 라이선스](LICENSE)로 공개합니다. 서드파티 구성요소에는 각각의 라이선스와 조건이 적용됩니다. [서드파티 고지](THIRD_PARTY_NOTICES.md)를 참고하세요.
-
-## 크레딧
-
-Splinter는 다음 프로젝트와 기여자들의 작업을 사용합니다.
-
-- **[WinFsp](https://github.com/winfsp/winfsp)**: 쓰기 가능한 파일시스템 view와 .NET binding. **WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos.** GPLv3와 자유·오픈소스 소프트웨어의 linking에 대한 조건부 예외를 적용합니다.
-- **[.NET](https://github.com/dotnet/runtime)**·**[System.CommandLine](https://github.com/dotnet/command-line-api)**: 런타임과 CLI 기반. 기존 Brotli payload는 .NET의 `System.IO.Compression` API로 읽으며 새 쓰기는 압축하지 않습니다.
-- **[json-everything](https://github.com/json-everything/json-everything)**: schema 검증과 JSON 처리를 위한 JsonSchema.Net·JsonPointer.Net·Json.More.Net. 소스는 MIT이며, 고정한 NuGet 바이너리에는 별도의 Open Source Maintenance Fee 약정이 포함되어 있습니다.
-- **[Humanizer](https://github.com/Humanizr/Humanizer)**: JSON 패키지가 간접 참조하는 MIT 런타임 의존성.
-- **[xUnit.net](https://github.com/xunit/xunit)**·**[Microsoft.Testing.Platform](https://github.com/microsoft/testfx)**: 자동 시험과 TRX 보고. 각각 Apache 2.0·MIT를 적용합니다.
-- **[Matplotlib](https://matplotlib.org/)**: 선택적인 문서용 스크립트로 기록된 비교 그래프를 렌더링합니다.
-
-설치된 Git·PowerShell·Unity·Plastic 도구에는 각 도구의 라이선스가 적용됩니다. 직접·간접 패키지의 정확한 버전, 원본 라이선스 링크, 표기 조건과 재배포 시 고려사항은 [서드파티 고지](THIRD_PARTY_NOTICES.md)에 정리했습니다.
+Splinter 코드와 문서는 MIT 라이선스를 따릅니다. WinFsp와 .NET을 포함한 외부 구성요소의 저작권·라이선스는 [고지 문서](THIRD_PARTY_NOTICES.md)를 참조하세요.

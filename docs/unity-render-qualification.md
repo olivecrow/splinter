@@ -1,9 +1,6 @@
-<a id="작은-unity의-미리보기-검사"></a>
 # Preview checks for a small Unity project
 
-[한국어](ko/unity-render-qualification.md)
-
-The sibling `splinter-unity/Assets/Editor/SplinterQualificationProbe.cs` and `SplinterQualificationRender.cs` are development fixtures that inspect the selected Qualification scene. They accept commands only in the test Editor explicitly identified by `-splinterControlPath`; they are not product workspace validation APIs. See the [FR record](verification/first-render-qualification.md) for actual execution scope and limitations.
+The sibling `splinter-unity/Assets/Editor/SplinterQualificationProbe.cs` and `SplinterQualificationRender.cs` are development fixtures that inspect the selected Qualification scene. They accept commands only in the test Editor explicitly identified by `-splinterControlPath`; they are not product workspace validation APIs. See the FR record for actual execution scope and limitations.
 
 <a id="요청과-성공-조건"></a>
 ## Requests and success conditions

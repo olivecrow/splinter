@@ -1,7 +1,4 @@
-<a id="선택적-외부-unity-도구와-에이전트의-책임"></a>
 # Optional external Unity tools and agent responsibilities
-
-[한국어](ko/unity-mcp-response-recovery.md)
 
 MCP and Unity CLI are optional external tools that agents select as needed from tools installed by the user. Splinter's storage isolation, bases, Library/unchanged-file references, range changes, independent results, safe application to the original, and owned-resource lifetime work without them. A specific tool name, version, or internal API is not a product prerequisite or gate. Agents handle tool selection, connection, refresh, compilation, Play/Test/build, capture, and result evaluation. Installing, downgrading, modifying, or creating/operating separate modified versions of external tools is outside Splinter's scope.
 
@@ -22,4 +19,4 @@ Report external-connection recovery separately from Splinter checkpoint/release/
 <a id="과거-패치의-근거"></a>
 ## Evidence from historical patches
 
-[VR/MR](verification/vss-and-mcp-remediation.md) and [SB-02](verification/security-boundaries.md) preserve evidence for the fixed Coplay patch, long code jobs, detailed reload results, and authentication candidate from 2026-10-05. Patch generation, checking, and execution features in `integrations/unity-mcp/` were removed from the provided scope. Those records are not current usage procedures, installation requirements, version gates, or support declarations. This cleanup does not change previously generated or installed external candidates, packages, servers, evidence, or independent results. [Current decoupling verification](verification/external-tool-boundaries.md) distinguishes automated bridge/file regressions from native boundaries that were not run.
+VR/MR and SB-02 preserve evidence for the fixed Coplay patch, long code jobs, detailed reload results, and authentication candidate from 2026-10-05. Patch generation, checking, and execution features in `integrations/unity-mcp/` were removed from the provided scope. Those records are not current usage procedures, installation requirements, version gates, or support declarations. This cleanup does not change previously generated or installed external candidates, packages, servers, evidence, or independent results. Current decoupling verification distinguishes automated bridge/file regressions from native boundaries that were not run.

@@ -2,7 +2,7 @@ using Splinter.Core;
 
 namespace Splinter.Tests;
 
-public sealed partial class SourceFingerprintTests
+public sealed class SourceChangeLeaseConsumerTests : SourceFingerprintFixtureBase
 {
     [Theory]
     [InlineData(false)]
@@ -70,10 +70,7 @@ public sealed partial class SourceFingerprintTests
         Assert.Equal(0, leases.Active); GC.KeepAlive(provider);
     }
 
-    private sealed partial class Tracker
-    {
-        public Func<SourceChangeView, SourceChangeView>? ObservedView;
-    }
+
 
     private sealed class ChangeLeaseProbe
     {

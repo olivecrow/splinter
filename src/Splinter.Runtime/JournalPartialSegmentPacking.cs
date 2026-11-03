@@ -318,7 +318,7 @@ public sealed partial class JournalDeltaStore
                 foreach (var item in source.Open(extents).Enumerate())
                 {
                     ct.ThrowIfCancellationRequested(); var extent = DecodeExtent(item.Value.ToArray());
-                    if (extent.ContentHash is not null || extent.Segment == -1 || extent.Payload.Encoded) continue;
+                    if (extent.ContentHash is not null || extent.Segment == -1) continue;
                     var descriptor = DecodeSegment(source.Open(job.Catalog).Find(PackKey(extent.Segment)) ?? throw PagedInvalid());
                     if (descriptor.NativeIdentity is null) throw PagedInvalid(); long physical = checked(extent.JournalOffset + extent.BlockOffset);
                     string token = extent.OriginBlock ?? SourceCaptureTree.BlockIdentity(descriptor.NativeIdentity, extent.JournalOffset, extent.Payload);

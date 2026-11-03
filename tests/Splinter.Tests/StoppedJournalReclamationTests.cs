@@ -7,7 +7,7 @@ using Splinter.SourceControl.Git;
 
 namespace Splinter.Tests;
 
-public sealed class StoppedJournalReclamationTests
+public sealed class StoppedJournalReclamationTests(StoppedJournalBasisFixture basis) : IClassFixture<StoppedJournalBasisFixture>
 {
     [Theory(Timeout = 10000)]
     [InlineData("fresh")]
@@ -27,19 +27,13 @@ public sealed class StoppedJournalReclamationTests
         void Mark(string phase)
         { TestContext.Current.TestOutputHelper!.WriteLine($"{phase}: {Stopwatch.GetElapsedTime(clock).TotalSeconds:F6}s"); clock = Stopwatch.GetTimestamp(); }
         using var root = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
-        string source = Path.Combine(root.Path, "source"), control = Path.Combine(root.Path, "control");
-        Directory.CreateDirectory(source); Directory.CreateDirectory(control);
-        await TestDirectory.Git(source, "init", "-b", "development");
-        await TestDirectory.Git(source, "config", "user.name", "Fixture");
-        await TestDirectory.Git(source, "config", "user.email", "fixture@example.invalid");
-        File.WriteAllText(Path.Combine(source, "file"), "base");
-        await TestDirectory.Git(source, "add", "."); await TestDirectory.Git(source, "commit", "-m", "basis");
-        string revision = await TestDirectory.Git(source, "rev-parse", "HEAD");
-        Mark("git-fixture");
-        var provider = new GitObjectSnapshotProvider(Path.Combine(control, "snapshot"), "task", revision);
-        var snapshot = await provider.CaptureAsync(new(source, "task", Path.Combine(control, "snapshot")), ct);
+        string source = basis.Source, control = Path.Combine(root.Path, "control"), revision = basis.Revision;
+        Directory.CreateDirectory(control);
+        using var attachment = basis.Attach(control);
+        var provider = new GitObjectSnapshotProvider(Path.Combine(control, "snapshot"), "task");
+        var snapshot = basis.Snapshot;
         var access = await provider.ResolveReadAccessAsync(snapshot, ct);
-        Mark("basis-capture-resolve");
+        Mark("basis-reconnect");
         var w = new WorkspaceRecord { Id = "task", RequestKey = "test", ProjectPath = source, Path = Path.Combine(root.Path, "absent-mount"),
             SourceKind = "git", ApplicationKind = "none", StorageMode = "git-snapshot", BaseRevision = revision, ResultRevision = revision,
             BaseReference = "development", SourceReference = "splinter/task",

@@ -49,24 +49,6 @@ public sealed class PagedSnapshotCatalogTests
         Assert.Equal(6, catalog.Walk().LongCount()); catalog.Verify(TestContext.Current.CancellationToken);
     }
 
-    [Fact]
-    public void LargeFlatCatalogBuildsEnumeratesAndReopensWithoutAnEntryCountLimit()
-    {
-        using var scratch = new TemporaryMetadataDirectory();
-        const int count = 100001;
-        var root = PagedSnapshotCatalog.Build(scratch.Path, Entry("", true),
-            Enumerable.Range(0, count).Reverse().Select(i => new DirectoryMetadataRecord(Entry("f-" + i.ToString("D7")), null,
-                SourceReference: i.ToString())), ct: TestContext.Current.CancellationToken);
-        using (var catalog = new PagedSnapshotCatalog(scratch.Path, root))
-        {
-            Assert.Equal(count + 1, catalog.Walk().LongCount());
-            Assert.Equal("99999", catalog.Find("f-0099999")!.SourceReference);
-            Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, StorageResources.MetadataCacheBytes);
-        }
-        using var reopened = new PagedSnapshotCatalog(scratch.Path, root);
-        Assert.Equal(count, reopened.EnumerateChildren("").LongCount());
-    }
-
     [Theory]
     [InlineData("missing/file", "other")]
     [InlineData("Alias/file", "alias")]

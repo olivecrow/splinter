@@ -6,7 +6,7 @@ using Splinter.Core;
 
 namespace Splinter.Tests;
 
-public sealed partial class SourceFingerprintTests
+public sealed class SourcePathInterpretationTests : SourceFingerprintFixtureBase
 {
     [Theory]
     [InlineData("git-snapshot")]

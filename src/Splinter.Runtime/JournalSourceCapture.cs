@@ -144,7 +144,6 @@ public sealed class SourceCaptureTree : ISourceCaptureTree, ISourceCaptureRanges
     private readonly WorkspacePathPolicy policy = null!;
     private readonly ISourceCaptureTree? paged;
     private readonly FileStream? readerLease;
-    private readonly BrotliWorkspacePayloadReader codec = new();
     public JournalSourceCapture Capture { get; }
     public SourceCaptureIdentity CaptureIdentity => new(Capture.Id, Capture.Sequence, Capture.Digest);
     public string[]? ChangedPaths => paged is null ? Capture.ChangedPaths : null;
@@ -255,12 +254,7 @@ public sealed class SourceCaptureTree : ISourceCaptureTree, ISourceCaptureRanges
             if (to <= from) continue;
             int length = (int)(to - from), blockOffset = checked(extent.BlockOffset + (int)(from - extent.Start));
             var target = output.Slice((int)(from - offset), length);
-            if (!extent.Payload.Encoded) ReadExactly(files[extent.Backing], extent.Physical + blockOffset, target);
-            else
-            {
-                byte[] encoded = new byte[extent.Payload.StoredBytes]; ReadExactly(files[extent.Backing], extent.Physical, encoded);
-                if (codec.Read(encoded, blockOffset, target) != length) throw Invalid("A captured encoded block is incomplete.");
-            }
+            ReadExactly(files[extent.Backing], extent.Physical + blockOffset, target);
         }
         return count;
     }
@@ -319,7 +313,7 @@ public sealed class SourceCaptureTree : ISourceCaptureTree, ISourceCaptureRanges
             c.Backings.Where((b, i) => b is null || b.Name != i.ToString("x8") + ".pin" || b.MinimumLength < 0 || !Path.IsPathFullyQualified(b.Source) || string.IsNullOrWhiteSpace(b.Identity)).Any() ||
             c.Nodes.Any(n => n is null || n.Entry is null || n.Extents is null || n.Extents.Any(e => e is null || e.Payload is null ||
                 e.Backing < 0 || e.Backing >= c.Backings.Length || e.Length <= 0 || e.Start < 0 || e.Physical < 0 ||
-                e.Payload.StoredBytes <= 0 || e.Payload.StoredBytes > e.Payload.DecodedBytes || e.Payload.DecodedBytes > 16777216 ||
+                e.Payload.StoredBytes <= 0 || e.Payload.StoredBytes != e.Payload.DecodedBytes || e.Payload.DecodedBytes > 16777216 ||
                 e.BlockOffset < 0 || e.BlockOffset > e.Payload.DecodedBytes - e.Length ||
                 e.Start > n.Entry.Length - e.Length || e.Physical > c.Backings[e.Backing].MinimumLength - e.Payload.StoredBytes)))
             throw Invalid("The frozen source identity/ranges differ from their manifest.");

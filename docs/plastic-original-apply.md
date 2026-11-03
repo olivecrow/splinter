@@ -1,9 +1,6 @@
-<a id="plastic-결과를-원본에-반영하기"></a>
 # Applying Plastic results to the original
 
-The [scalable-storage candidate](scalable-storage.md) uses task v4 and managed basis v3. [Repeated original application](repeated-original-apply.md) owns live immutable captures, explicit result selection, per-path applied history and external-tool live-Editor cooperation. Historical [RI qualification](verification/repeated-original-apply.md) used task v3/basis v2; the candidate has separate [SCAL qualification](verification/scalable-storage.md). Earlier state is preserved/refused without migration.
-
-[한국어](ko/plastic-original-apply.md)
+The [scalable-storage candidate](scalable-storage.md) uses task v4 and managed basis v3. [Repeated original application](repeated-original-apply.md) owns live immutable captures, explicit result selection, per-path applied history and external-tool live-Editor cooperation. Historical RI qualification used task v3/basis v2; the candidate has separate SCAL qualification. Earlier state is preserved/refused without migration.
 
 Conditionally publish the current independent result of `plastic-snapshot` to the exact regular/static original. `ntfs-snapshot` Plastic, partial/dynamic workspaces, and reimport of released results are unsupported. Server add/checkout/update/check-in and lock changes are the responsibility of AI and Plastic tools. Intermediate capture keeps task/original Editors running; use the explicit external cooperation receipt for the original. Final processing normally stops only the task before using the same capture engine.
 
@@ -27,4 +24,4 @@ The current path requires the original's loaded changeset to equal the requested
 
 Publication reuses [common original publication](plain-folder-original-apply.md) for content, NTFS identity, parent handles, stage/retired ownership checks, and individual durable progress receipts. Resume after interruption only with the same intent/digest/selection. An incomplete intent blocks release/discard/new collection. A duplicate completed request does not republish. Discard does not undo application to the original. Task results and reclamation are separate decisions.
 
-Library and management data are excluded from application. Final dependent reclamation/restore for `--library-basis` follows the [common Library lifecycle](git-library-reference.md) separately. See [verification](verification/plastic-original-apply.md) for actual qualification and the [plan](plans/plastic-original-apply.md) for scope and exit criteria.
+Library and management data are excluded from application. Final dependent reclamation/restore for `--library-basis` follows the [common Library lifecycle](git-library-reference.md) separately. See verification for actual qualification and the plan for scope and exit criteria.

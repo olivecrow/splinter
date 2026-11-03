@@ -94,7 +94,7 @@ public sealed class GitSourcePathInspectionTests
     }
 }
 
-public sealed partial class SourceFingerprintTests
+public sealed class SourcePathReuseTests : SourceFingerprintFixtureBase
 {
     [Theory]
     [InlineData(false)]

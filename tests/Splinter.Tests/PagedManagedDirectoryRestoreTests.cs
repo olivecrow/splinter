@@ -113,23 +113,26 @@ public sealed class PagedManagedDirectoryRestoreTests
     }
 
     [Fact]
-    public async Task SmallBasisWith32769PrivateFilesSelectsStreamingRestoreBeforeAnyArrayPlan()
+    public async Task SmallBasisWithPrivateFilesAbovePlanningBudgetSelectsStreamingRestore()
     {
         // Real NTFS files and the product stopped SJR2 journal/restore path.
         // This is not a mounted WinFsp/Unity or million-durable-ACK claim.
         using var fixture = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        int count = MetadataTestScale.Large ? 32769 : 1025;
         var manifest = new OwnedDirectorySnapshotProvider(fixture.State.Basis.ReceiptDirectory, fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot);
         Assert.True(manifest.ItemCount < 1024);
         using (var basis = new OwnedDirectorySnapshotTree(manifest, manifest.Snapshot))
         using (var source = new JournalDeltaStore(fixture.Request.DeltaPath, fixture.Request.Identity, basis, sourceFilePins: new WindowsJournalFilePins()))
         {
             source.Create("many", true, 16);
-            for (int index = 0; index < 32769; index++) { ct.ThrowIfCancellationRequested(); source.Create("many/" + index.ToString("d8"), false, 32); }
+            foreach (int[] chunk in Enumerable.Range(0, count).Chunk(IWorkspaceWriteBatch.MaximumWrites))
+                source.ApplyMetadataBatch(chunk.Select(index => (Action)(() =>
+                { ct.ThrowIfCancellationRequested(); source.Create("many/" + index.ToString("d8"), false, 32); })).ToArray());
         }
         await ManagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, ct);
         Assert.True(File.Exists(Path.Combine(fixture.State.Basis.ReceiptDirectory, "paged-restore-plan.json")));
         Assert.False(File.Exists(Path.Combine(fixture.State.Basis.ReceiptDirectory, "restore-plan.json")));
-        Assert.Equal(32769, Directory.EnumerateFiles(Path.Combine(fixture.State.OriginalPath, "many")).LongCount());
+        Assert.Equal(count, Directory.EnumerateFiles(Path.Combine(fixture.State.OriginalPath, "many")).LongCount());
         Assert.False(Directory.Exists(fixture.Request.DeltaPath));
     }
 

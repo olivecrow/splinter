@@ -1,18 +1,15 @@
-<a id="저널-정리의-선택적-기준본-복귀"></a>
 # Optional base reversion during journal compaction
-
-[한국어](ko/journal-base-reversion.md)
 
 ```powershell
 pwsh ./scripts/splinter.ps1 schema workspace.compact
 pwsh ./scripts/splinter.ps1 workspace compact --id <id> --home <home> --revert-base-ranges true
 ```
 
-The initial default for new tasks is **ON**. Existing tasks and compaction with the option omitted retain the stored choice; explicit `false` selects OFF. Current `true` selects the [latest-state journal ON](latest-only-journal.md), retaining only current private payload/metadata in subsequent writers and reconnects. `--optimize-journal` is the same option. Explicit compaction compares current private ranges with the immutable basis fixed at task start and removes private payload where bytes match. It does not compare against the currently mutable original. Individual flush/ACK for each save remains; basis comparison is not added to every save. Verification figures for the historical append-only implementation are limited to that candidate.
+The initial default for new tasks is **ON**. Existing tasks and compaction with the option omitted retain the stored choice; explicit `false` selects OFF. Current `true` selects the [latest-state journal ON](latest-only-journal.md), retaining only current private payload/metadata in subsequent writers and reconnects. Explicit compaction compares current private ranges with the immutable basis fixed at task start and removes private payload where bytes match. It does not compare against the currently mutable original. Individual flush/ACK for each save remains; basis comparison is not added to every save. Verification figures for the historical append-only implementation are limited to that candidate.
 
 Basis comparison occurs only within the current file incarnation's `BasePath` and `BaseLength`. Reads stay within 64KiB and the workspace transfer limit. A 4KiB unit, or a short final unit, is removed only if all its bytes match. If any byte differs, that unit remains; this is not an algorithm that produces a minimal representation of every matching byte. Partial reversion/mixed writes are supported. A tail extended after truncation and new or deleted/recreated files are not restored from old basis content. Private files without a basis remain.
 
-Even when file-write order is interleaved, comparison proceeds in logical-offset order within the same `BasePath`; remaining ranges are sorted back into original journal physical order before candidate creation. The Git reader retains only one blob proof and a 64KiB chunk. Remaining stdout after a partial read is terminated by closing the exact owned pipe; discarded content is neither drained nor cached. Full blob hashing, requested-chunk verification, and the 30-second no-progress limit remain. This change's [comparison scope](plans/journal-base-reversion-optimization.md) and before/after measurements are separate from existing real A/B qualification.
+Even when file-write order is interleaved, comparison proceeds in logical-offset order within the same `BasePath`; remaining ranges are sorted back into original journal physical order before candidate creation. The Git reader retains only one blob proof and a 64KiB chunk. Remaining stdout after a partial read is terminated by closing the exact owned pipe; discarded content is neither drained nor cached. Full blob hashing, requested-chunk verification, and the 30-second no-progress limit remain. This change's comparison scope and before/after measurements are separate from existing real A/B qualification.
 
 Matching content does not discard file ID, path/rename, length, attributes/UnixMode, timestamps, deletion/recreation, hidden state, or changed path/sequence. An SJL4 candidate directly records current nodes, remaining private ranges, and last path sequences, without obsolete write frames. No original-payload fallback reintroduces removed ranges. ON differs from OFF's smaller-frame selection and costs; some inputs may require more metadata, CPU, or managed allocations. Limits or fragment-metadata limits preserve the original and reject the operation.
 
@@ -27,4 +24,4 @@ Current `compaction-intent.json` supports **v3 only**, fixing original/expected 
 
 Response `snapshot.compaction` fields `revertBaseRanges`, `baseComparedBytes`, and `revertedPayloadBytes` respectively report the choice, compared bytes returned by the basis reader, and removed logical private bytes. Read `cost` stages `last-write-index`, `base-range-compare`, and `expected-state-hash` together with existing stages. Stage `readBytes` sums journal reads and returned basis bytes for that stage; it is not total Git internal blob decoding or OS physical I/O. Logical removal does not measure NTFS allocation or VSS savings. Old/new generations coexist during compaction, and metadata/checksums remain.
 
-Follow the [fixed comparison/numerical criteria](plans/journal-base-reversion.md) and [actual comparison, recovery, and default decision](verification/journal-base-reversion.md). A smaller final payload alone does not establish improved whole-task speed, total RAM, or Unity import costs.
+Follow the fixed comparison/numerical criteria and actual comparison, recovery, and default decision. A smaller final payload alone does not establish improved whole-task speed, total RAM, or Unity import costs.

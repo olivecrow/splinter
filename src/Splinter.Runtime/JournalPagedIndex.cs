@@ -525,7 +525,7 @@ public sealed partial class JournalDeltaStore
         BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(9), e.Length); BinaryPrimitives.WriteInt64LittleEndian(data.AsSpan(13), e.JournalOffset);
         BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(21), e.Payload.StoredBytes); BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(25), e.Payload.DecodedBytes);
         BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(29), e.BlockOffset); BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(33),
-            (e.Payload.Encoded ? 1 : 0) | (e.ContentHash is not null && !e.RawContent ? 2 : 0) | (e.ContentHash is null ? 0 : 4) | (e.OriginBlock is null ? 0 : 8));
+            (e.ContentHash is not null && !e.RawContent ? 2 : 0) | (e.ContentHash is null ? 0 : 4) | (e.OriginBlock is null ? 0 : 8));
         BinaryPrimitives.WriteInt64LittleEndian(data.AsSpan(37), e.Segment);
         int at = 45;
         if (e.ContentHash is not null) { Convert.FromHexString(e.ContentHash).CopyTo(data, at); at += 32; }
@@ -537,7 +537,7 @@ public sealed partial class JournalDeltaStore
         if (data.Length < 45 || data[0] != 3) throw PagedInvalid();
         int stored = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(21)), decoded = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(25));
         int flags = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(33));
-        if (flags is < 0 or > 15 || (flags & 2) != 0 && (flags & 4) == 0 ||
+        if (stored != decoded || (flags & 1) != 0 || flags is < 0 or > 15 || (flags & 2) != 0 && (flags & 4) == 0 ||
             data.Length != 45 + ((flags & 4) == 0 ? 0 : 32) + ((flags & 8) == 0 ? 0 : 36)) throw PagedInvalid();
         int origin = 45 + ((flags & 4) == 0 ? 0 : 32);
         if ((flags & 8) != 0 && BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(origin + 32)) < 0) throw PagedInvalid();

@@ -1,9 +1,6 @@
-<a id="vcs-없는-프로젝트-기준본"></a>
 # VCS-free project basis
 
-[한국어](ko/plain-project-basis.md)
-
-`project-snapshot` reads a VCS-free project and Library as one immutable basis, storing only original/per-task changed ranges in SJR2. It uses no VSS, Git init, initial checkout, read disk cache, or whole-file copy-up fallback. [Actual qualification](verification/plain-project-basis.md) is limited to current-candidate file tests and small Unity inputs.
+`project-snapshot` reads a VCS-free project and Library as one immutable basis, storing only original/per-task changed ranges in SJR2. It uses no VSS, Git init, initial checkout, read disk cache, or whole-file copy-up fallback. Actual qualification is limited to current-candidate file tests and small Unity inputs.
 
 This is the user-authorized managed-original access contract. After saving and normally shutting down the original Editor, **move the existing tree without copying on the same NTFS volume** and provide a writable WinFsp mount at the existing project path. The active original path's filesystem is `SplinterSO`; actual basis data remains on the same NTFS volume. Original source/Library writes also enter the original-only range journal. After all tasks are reclaimed, explicit `project restore` restores the original's current content/metadata to an ordinary NTFS folder. No kernel write-before-preservation layer retaining direct NTFS original access is provided.
 

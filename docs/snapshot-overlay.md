@@ -1,20 +1,17 @@
-<a id="ntfs-스냅샷과-범위-저장-실험"></a>
 # NTFS snapshot and range-storage experiment
 
-[한국어](ko/snapshot-overlay.md)
-
-> **Historical implementation record, not current operating instructions.** The [VSS retirement decision](plans/vss-retirement.md) removes the provider, service and dedicated scripts. Commands, privileges and qualification below describe the earlier candidate and must not be resumed. Common journal tests/current bases follow the [NTFS contract](ntfs-workspaces.md).
+> **Historical implementation record, not current operating instructions.** The VSS retirement decision removes the provider, service and dedicated scripts. Commands, privileges and qualification below describe the earlier candidate and must not be resumed. Common journal tests/current bases follow the [NTFS contract](ntfs-workspaces.md).
 
 Current commands use the [separate development CLI](development-cli.md). They provide storage-candidate/source-cache/seal/reclamation contracts; AI/external tools own project work and result evaluation.
 
-This is the **independent storage-experiment entry point** contract. The ordinary product backend using the same VSS/WinFsp/journal implementation is separately connected in [NTFS workspaces](ntfs-workspaces.md). [SO records](verification/snapshot-overlay.md) own SO-01–06 fixture evidence in one Windows/NTFS environment; [NI records](verification/ntfs-workspace-integration.md) separately own product NI status. No original move is required.
+This is the **independent storage-experiment entry point** contract. The ordinary product backend using the same VSS/WinFsp/journal implementation is separately connected in [NTFS workspaces](ntfs-workspaces.md). SO records own SO-01–06 fixture evidence in one Windows/NTFS environment; NI records separately own product NI status. No original move is required.
 
 <a id="구성과-저장-계약"></a>
 ## Composition and storage contract
 
-Immutable candidates and separate source/cache journals for `candidate-export`, registration-evidence-dependent `candidate-source-export`, and `overlay-serve-request.sourceView` follow the [fixed source-view contract](source-view.md). Publication input requires fixed `publication.requestKey`; interruptions reconcile only through same-request intent/original seal. This development experiment switches candidates at the same path after normal Editor/provider shutdown; it is not advertised as a product workspace mode. [VC records](verification/immutable-validation-view.md) separately own defined A/B/A execution and creation/resumption/switching costs.
+Immutable candidates and separate source/cache journals for `candidate-export`, registration-evidence-dependent `candidate-source-export`, and `overlay-serve-request.sourceView` follow the [fixed source-view contract](source-view.md). Publication input requires fixed `publication.requestKey`; interruptions reconcile only through same-request intent/original seal. This development experiment switches candidates at the same path after normal Editor/provider shutdown; it is not advertised as a product workspace mode. VC records separately own defined A/B/A execution and creation/resumption/switching costs.
 
-Shared VSS helper blocks release with `SnapshotReleaseIsolationRequired` and records `release-isolation.json` if other older/same-time/unknown-time snapshots exist on the same volume. Because [actual failure](verification/storage-foundation.md) lost other snapshots even when deleting only an exact ID, do not delete existing snapshots to bypass blockers. Current guards were verified with [isolated owned snapshots](verification/storage-recovery.md). General unowned-backup coexistence/concurrent external-deletion preservation remains incomplete. New source-change generations/journal I/O counters follow [common source verification and instrumentation](source-verification.md).
+Shared VSS helper blocks release with `SnapshotReleaseIsolationRequired` and records `release-isolation.json` if other older/same-time/unknown-time snapshots exist on the same volume. Because actual failure lost other snapshots even when deleting only an exact ID, do not delete existing snapshots to bypass blockers. Current guards were verified with isolated owned snapshots. General unowned-backup coexistence/concurrent external-deletion preservation remains incomplete. New source-change generations/journal I/O counters follow [common source verification and instrumentation](source-verification.md).
 
 | Component | Current responsibility |
 | --- | --- |

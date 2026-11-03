@@ -5,6 +5,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
     <ProjectReference Include="../../src/Splinter.Cli/Splinter.Cli.csproj" />

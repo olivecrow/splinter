@@ -16,3 +16,7 @@ Thumbs.db
 
 # The Unity fixture is an independent sibling repository.
 splinter-unity/
+
+# Disposable Python bytecode from development diagnostics.
+__pycache__/
+*.py[cod]

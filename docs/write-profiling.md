@@ -1,7 +1,4 @@
-<a id="live-journal-쓰기-계측"></a>
 # Live journal write instrumentation
-
-[한국어](ko/write-profiling.md)
 
 `tools/Splinter.WriteProbe` is a development tool for comparing fixed small synthetic write costs in Runtime. It does not create product workspaces, VSS, or Unity instances. Its scope follows the [JW plan](write-profiling.md).
 

@@ -99,7 +99,6 @@ internal static class WorkspaceCommands
         };
         var revertBaseRanges = new Option<bool?>("--revert-base-ranges")
         { Description = "Select current-state journal storage: reclaim superseded private payload after each durable write. Explicit compaction also removes base-equal ranges. New workspaces default ON; existing journals, reconnect and omitted selections retain the saved mode. Explicit false selects OFF." };
-        revertBaseRanges.Aliases.Add("--optimize-journal");
         compact.Options.Add(compactId); compact.Options.Add(maxEstimatedJournalOverlapBytes); compact.Options.Add(revertBaseRanges);
         workspace.Subcommands.Add(compact);
         compact.SetAction(async parse =>

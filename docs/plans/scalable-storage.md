@@ -1,14 +1,14 @@
 # Scalable source storage and repeated publication
 
-[한국어](../ko/plans/scalable-storage.md) · [Implementation](../scalable-storage.md) · [Verification](../verification/scalable-storage.md)
+한국어 · [Implementation](../scalable-storage.md) · Verification
 
-Fresh small None timing and lock-protected normal-absence fixes under ST-41–43 belong to the [throughput follow-up](../verification/scalable-storage-throughput-followup.md). SCAL-03/07/08, large inputs and the whole gate remain incomplete.
+Fresh small None timing and lock-protected normal-absence fixes under ST-41–43 belong to the throughput follow-up. SCAL-03/07/08, large inputs and the whole gate remain incomplete.
 
 Status: **in progress**, authorized by the user's implementation request. SCAL-01–08 own this program; earlier closed performance programs are not reopened. Baseline: development `b68eaaa9e7e78930ff7b4b0b368f137bc3e528c6`.
 
-The user reduced verification on 2026-11-01. Large synthetic runs were stopped safely with retained state; remaining 100k/17GiB/ABBA/full-gate obligations are open, not passed. [The slowdown record](../verification/scalable-storage-throughput-diagnosis.md) separates observed phase times, confirmed fixes and unmeasured causes. Do not restart those large runs automatically. Implementation activation and focused qualification do not establish the full completion criteria below.
+The user reduced verification on 2026-11-01. Large synthetic runs were stopped safely with retained state; remaining 100k/17GiB/ABBA/full-gate obligations are open, not passed. The slowdown record separates observed phase times, confirmed fixes and unmeasured causes. Do not restart those large runs automatically. Implementation activation and focused qualification do not establish the full completion criteria below.
 
-The remaining serialization/traversal candidates are implemented as [ST-36–40](../verification/scalable-storage-throughput-followup.md#st-3640-remaining-serialization-and-traversal-costs): grouped durable progress, initial namespace/Create batches, bounded exact graph caches and planning merges. Small 64-test qualification does not close the large/full gates or replace the one-key-per-node format.
+The remaining serialization/traversal candidates are implemented as ST-36–40: grouped durable progress, initial namespace/Create batches, bounded exact graph caches and planning merges. Small 64-test qualification does not close the large/full gates or replace the one-key-per-node format.
 
 ## Accepted contract
 
@@ -24,7 +24,7 @@ All original publication targets are checked/pinned before mutation. The resourc
 2. Paged Git/Plastic/input/Library metadata and live node/extent/hidden/change indices; frozen capture roots and durable reader protection.
 3. Result/request/apply history indices, content reuse, independent results and precise reference-based reclamation.
 4. Full-lock bounded parallel publication, cursor CLI/schema and actual backing-capacity reporting. Remove `--max-journal-bytes` and connected quotas only after their replacement paths are ready.
-5. Native/Unity qualification, matched small-input cost comparison, bilingual docs and the final full gate.
+5. Native/Unity qualification, matched small-input cost comparison, current documentation and the final full gate.
 
 The candidate now writes task v4, managed basis v3, product overlay identity v3 and metadata-store format 2 (`SPM2`). Preserve/refuse older stores, including the preceding task-v4 candidate's `SPM1`, and use their matching binaries; no migration, fallback or reclamation is added. ST-44–48 owns compact directory/publication records and binary temporary records; multi-entry pages remain deferred. Activation in candidate code is not SCAL completion: actual lifecycle, fault, cost, documentation and final-gate evidence remain mandatory. Explicit development views/candidates retain their separate recorded formats.
 

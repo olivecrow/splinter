@@ -1,15 +1,12 @@
-<a id="plastic-사용-환경의-작업공간"></a>
 # Workspaces in Plastic environments
 
-Current task state is **v3**; managed basis remains v2. [Repeated original application](repeated-original-apply.md) owns live capture, immutable result versions, per-path publication history and exact external cooperation for a running original. [RI qualification](verification/repeated-original-apply.md) is separate from historical stopped-Editor evidence; older tasks are preserved/refused without migration.
+Current task state is **v3**; managed basis remains v2. [Repeated original application](repeated-original-apply.md) owns live capture, immutable result versions, per-path publication history and exact external cooperation for a running original. RI qualification is separate from historical stopped-Editor evidence; older tasks are preserved/refused without migration.
 
-[한국어](ko/plastic-compatibility.md)
+Historical VSS C:/T: A/B, reclamation and tool qualification remain in PC and VR-01. After VSS retirement, that route is no longer executable.
 
-Historical VSS C:/T: A/B, reclamation and tool qualification remain in [PC](verification/plastic-compatibility.md) and [VR-01](verification/vss-and-mcp-remediation.md). After [VSS retirement](plans/vss-retirement.md), that route is no longer executable.
+Splinter provides parallel workspaces. Unity VCS/Plastic SCM integration is a compatibility boundary that isolates original metadata, registrations, and locks without additional checkout/copy costs. Verification records own current-candidate automated/actual qualification; the plan owns this scope.
 
-Splinter provides parallel workspaces. Unity VCS/Plastic SCM integration is a compatibility boundary that isolates original metadata, registrations, and locks without additional checkout/copy costs. [Verification records](verification/plastic-compatibility.md) own current-candidate automated/actual qualification; the [plan](plans/plastic-compatibility.md) owns this scope.
-
-Current `plastic-snapshot` references recorded changesets/revisions under the [project basis](plastic-project-basis.md) and [PPB verification](verification/plastic-project-basis.md). No VSS service or grant is required.
+Current `plastic-snapshot` references recorded changesets/revisions under the [project basis](plastic-project-basis.md) and PPB verification. No VSS service or grant is required.
 
 <a id="선택과-입력"></a>
 ## Selection and inputs
@@ -37,8 +34,8 @@ A/B are **file workspaces unregistered with Plastic**. They neither share/change
 
 Release/discard retain intent, seal, independent-result, original/peer and owned-resource guards from [common file results](vcs-independent-workspaces.md) and [discard](workspace-discard.md). Ordinary-user providers reclaim only owned basis references/read leases, without service/helper or elevation fallback.
 
-Historical `reclaim-pending`/`discard-reclaim-pending` from volume snapshot ordering and bounded T: reclamation belong to [PC verification](verification/plastic-compatibility.md). They do not qualify reclamation of recorded project bases.
+Historical `reclaim-pending`/`discard-reclaim-pending` from volume snapshot ordering and bounded T: reclamation belong to PC verification. They do not qualify reclamation of recorded project bases.
 
-Subsequent [Unity CLI handoff verification](verification/unity-cli-handoff.md) used new A/B on the same registered T: input. It checked exact-path commands for workers absent from listings, loaded code, B work after A's normal shutdown, both results, and reclamation. It did not fix CLI list discovery or automatically qualify MCP/other inputs/versions. Actual usage follows [exact target selection](alpha-workspaces.md#exact-target-selection-with-unity-cli).
+Subsequent Unity CLI handoff verification used new A/B on the same registered T: input. It checked exact-path commands for workers absent from listings, loaded code, B work after A's normal shutdown, both results, and reclamation. It did not fix CLI list discovery or automatically qualify MCP/other inputs/versions. Actual usage follows [exact target selection](alpha-workspaces.md#exact-target-selection-with-unity-cli).
 
 Original application for legacy `ntfs-snapshot` Plastic, Plastic check-in/update/merge, and new VCS registration are not provided. Full/selected local-file application from recorded `plastic-snapshot` follows a [separate protection boundary](plastic-original-apply.md). Editor refresh, compilation, Play/Test/build, and external-tool connection remain AI/existing-tool responsibilities; Splinter readiness/checkpoint do not claim their success.

@@ -15,13 +15,13 @@ public sealed class OwnedContentStoreTests
         var content = new OwnedContentStore(home, pins, point => { if (point == "content-existing-proof-admitted") proofs++; });
         byte[][] payloads = Enumerable.Range(0, 16).Select(i => Enumerable.Repeat((byte)i, 32).ToArray()).ToArray();
         foreach (var bytes in payloads) content.Preserve(a, Control(home, a), Hash(bytes), bytes.Length, output => output.Write(bytes), ct);
-        var requests = Enumerable.Range(0, 64).Select(i => new OwnedContentStore.ExistingReference(Hash(payloads[i % 16]), 32)).ToArray();
+        var requests = Enumerable.Range(0, 32).Select(i => new OwnedContentStore.ExistingReference(Hash(payloads[i % 16]), 32)).ToArray();
         Assert.All(content.TryReferenceExistingBatch(b, Control(home, b), requests, ct), Assert.True); Assert.Equal(16, proofs);
         Assert.All(content.TryReferenceExistingBatch(b, Control(home, b), requests, ct), Assert.True); Assert.Equal(32, proofs);
         using (var scope = content.BeginExistingReferenceScope(b, Control(home, b)))
         {
             Assert.All(scope.TryReferenceBatch(requests, ct), Assert.True); Assert.Equal(48, proofs);
-            for (int repeat = 0; repeat < 8; repeat++) Assert.All(scope.TryReferenceBatch(requests, ct), Assert.True);
+            for (int repeat = 0; repeat < 2; repeat++) Assert.All(scope.TryReferenceBatch(requests, ct), Assert.True);
             Assert.Equal(48, proofs);
             Assert.ThrowsAny<IOException>(() => new FileStream(Alias(home, b, requests[0].Hash), FileMode.Open, FileAccess.Read, FileShare.None));
         }

@@ -33,9 +33,8 @@ public sealed class JournalWritePathTests
         byte[] data = new byte[3]; replay.Read(id, 0, data); Assert.Equal(new byte[] { 1, 2, 3 }, data);
     }
 
-    [Theory]
-    [InlineData(false)] [InlineData(true)]
-    public void StateSizingReadsNoPayloadButOutputStillValidatesAndMatchesItsSize(bool encoded)
+    [Fact]
+    public void StateSizingReadsNoPayloadButOutputStillValidatesAndMatchesItsSize()
     {
         using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree(); var identity = Identity(tree);
         using (var writer = new JournalDeltaStore(root.Path, identity, tree, boundedLogBytes: 16 * 1048576))
@@ -43,7 +42,6 @@ public sealed class JournalWritePathTests
             Guid id = writer.Create("file-é", false, 32).Id;
             writer.Write(id, 0, new byte[65536]); writer.SetMetadata(id, 32, 1, 2, 3);
         }
-        if (encoded) EncodedPayloadFixture.CompressExistingJournal(root.Path);
         using var store = new JournalDeltaStore(root.Path, identity, tree);
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
         var live = typeof(JournalDeltaStore).GetMethod("BoundedLiveRanges", flags)!.Invoke(store, null);

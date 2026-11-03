@@ -31,14 +31,14 @@ public sealed class PagedMetadataGraphCopyTests
         Assert.Empty(Directory.EnumerateDirectories(root.Path, "repack-*"));
     }
     [Fact]
-    public void GraphCopyStreamsAMillionEntriesWithoutAnInMemoryRelocationDictionary()
+    public void GraphCopyStreamsWithDiskBackedReachabilityAndRelocation()
     {
         using var root = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
         using var source = new PagedMetadataStore(Path.Combine(root.Path, "source"), writable: true);
         using var target = new PagedMetadataStore(Path.Combine(root.Path, "target"), writable: true);
-        const int count = 1048576;
+        int count = MetadataTestScale.Large ? 1048576 : 1024;
         var tree = source.Build(Enumerable.Range(0, count).Select(i => new MetadataEntry(i.ToString("d8"), BitConverter.GetBytes(i))), ct); source.Flush();
-        var result = source.CopyRootsTo(target, [tree], root.Path, ct).Single();
+        var result = source.CopyRootsToBounded(target, [tree], root.Path, ct, memoryLimit: 0).Single();
         Assert.Equal(tree.ContentHash, result.ContentHash); Assert.Equal(count, result.Count);
         Assert.Equal(BitConverter.GetBytes(count - 1), target.Open(result).Find((count - 1).ToString("d8")));
         Assert.Equal(count, target.Open(result).Enumerate().LongCount()); Assert.True(PagedMetadataStore.CachedMetadataBytes <= StorageResources.MetadataCacheBytes);

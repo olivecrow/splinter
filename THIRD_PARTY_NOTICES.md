@@ -53,18 +53,9 @@ xUnit package metadata identifies the .NET Foundation as the copyright holder. I
 
 ## Runtime and external tools
 
-The recorded README charts were rendered with **Matplotlib 3.11.2** through
-[`scripts/plot-unity-workspace-comparison.py`](scripts/plot-unity-workspace-comparison.py).
-The installed Python package's `METADATA` includes the Matplotlib license agreement
-and **Copyright (c) 2012- Matplotlib Development Team; All Rights Reserved**.
-See the [Matplotlib project](https://matplotlib.org/). This is an optional chart
-authoring dependency; the local Python packages are excluded from the repository
-and the Splinter product binaries.
-
 | Project or tool | Use in Splinter | License source |
 | --- | --- | --- |
-| [.NET](https://github.com/dotnet/runtime) | Product runtime and standard APIs, including Brotli through `System.IO.Compression` | [Runtime MIT license](https://github.com/dotnet/runtime/blob/main/LICENSE.TXT) and [third party notices](https://github.com/dotnet/runtime/blob/main/THIRD-PARTY-NOTICES.TXT); use the notices for the actual runtime being redistributed |
-| [Brotli](https://github.com/google/brotli) | Compression implementation reached through .NET; no separate Brotli NuGet package is referenced | [Upstream MIT license](https://github.com/google/brotli/blob/master/LICENSE) and the applicable .NET runtime notices |
+| [.NET](https://github.com/dotnet/runtime) | Product runtime and standard APIs | [Runtime MIT license](https://github.com/dotnet/runtime/blob/main/LICENSE.TXT) and [third party notices](https://github.com/dotnet/runtime/blob/main/THIRD-PARTY-NOTICES.TXT); use the notices for the actual runtime being redistributed |
 | [PowerShell](https://github.com/PowerShell/PowerShell) | CLI wrappers and Windows preparation/validation scripts | [MIT license and upstream component notices](https://github.com/PowerShell/PowerShell/blob/master/LICENSE.txt); installed separately |
 | [Git](https://git-scm.com/) | Local commit/blob access, workspace registration, and Git result operations | [GPLv2](https://github.com/git/git/blob/master/COPYING); installed separately |
 | [Unity](https://unity.com/) and [Unity Version Control / Plastic SCM](https://unity.com/products/version-control) | Optional Editor and installed source-control tools; the recorded Plastic adapter loads the installed client's vendor assemblies | [Unity legal terms](https://unity.com/legal); proprietary installations and access are governed by the vendor's applicable terms |

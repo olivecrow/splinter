@@ -10,7 +10,7 @@ public sealed class JournalPayloadTests
 {
     [Theory]
     [InlineData(10, 10, 3, 7)]
-    [InlineData(70, 4096, 4095, 1)]
+    [InlineData(4096, 4096, 4095, 1)]
     [InlineData(0, 0, 0, 0)]
     public void CommonFrameDescriptorBoundsLogicalFragments(int stored, int decoded, int offset, int length)
     {
@@ -18,13 +18,12 @@ public sealed class JournalPayloadTests
         // byte address or bounds of a decoded fragment.
         var payload = new WorkspaceJournalPayload(stored, decoded);
         payload.RequireValid(4096); payload.RequireFragment(offset, length);
-        Assert.Equal(stored != decoded, payload.Encoded);
         payload.RequireFragment(decoded, 0);
         Assert.Throws<WorkspaceException>(() => payload.RequireFragment(offset, decoded + 1));
     }
 
     [Theory]
-    [InlineData(-1, 4)] [InlineData(5, 4)] [InlineData(0, 4)]
+    [InlineData(70, 4096)] [InlineData(-1, 4)] [InlineData(5, 4)] [InlineData(0, 4)]
     [InlineData(1, 4097)] [InlineData(0, -1)]
     public void CommonFrameRejectsInvalidPhysicalAndLogicalBounds(int stored, int decoded) =>
         Assert.Equal("DeltaCorrupt", Assert.Throws<WorkspaceException>(() =>
@@ -52,13 +51,13 @@ public sealed class JournalPayloadTests
     }
 
     [Theory]
-    [InlineData(111)] [InlineData(112)] [InlineData(113)] [InlineData(128)]
+    [InlineData(1)]
     [InlineData(4096)] [InlineData(65536)] [InlineData(1048576)]
-    public void NewWritesAlwaysStoreRawAcrossFormerCompressionThresholds(int size)
+    public void NewWritesStoreExactRawBytesAcrossTransferSizes(int size)
     {
         using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
         var identity = Identity(tree) with { MaxJournalBytes = 16 * 1024 * 1024, MaxTransferBytes = 1048576 };
-        foreach (int randomPrefix in new[] { 0, Math.Max(0, size - 160), size }.Distinct())
+        foreach (int randomPrefix in new[] { 0, size })
         {
             byte[] input = new byte[size]; new Random(1936).NextBytes(input.AsSpan(0, randomPrefix));
             string child = Path.Combine(directory.Path, randomPrefix.ToString());
@@ -111,35 +110,23 @@ public sealed class JournalPayloadTests
         replay.Read(replay.Stat("renamed")!.Id, 0, output); Assert.Equal(expected, output); Assert.Equal(0, tree.ReadBytes);
     }
 
-    [Theory]
-    [InlineData("checksum")] [InlineData("decoded-length")] [InlineData("stored-codec")]
-    [InlineData("format")]
-    public void CompleteEncodedCorruptionIsPreservedEvenWithAnOuterChecksum(string fault)
+    [Fact]
+    public void EncodedFrameIsRejectedWithoutRewritingItsBytes()
     {
-        using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree(); var identity = Identity(tree);
+        using var directory = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
+        var identity = Identity(tree);
         using (var store = new JournalDeltaStore(directory.Path, identity, tree, optimizeJournal: false))
-            store.Write(store.Create("file", false, 32).Id, 0, new byte[65536]);
-        EncodedPayloadFixture.CompressExistingJournal(directory.Path);
-        string journal = Path.Combine(directory.Path, "delta.journal"); byte[] bytes = File.ReadAllBytes(journal);
-        int cursor = 0;
-        int metadata = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(4));
-        int stored = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(8));
-        cursor += JournalDeltaStore.FrameHeaderBytes + metadata + stored + 32;
-        metadata = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(cursor + 4));
-        stored = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(cursor + 8));
-        int payload = cursor + JournalDeltaStore.FrameHeaderBytes + metadata;
-        switch (fault)
-        {
-            case "checksum": bytes[^1] ^= 1; break;
-            case "decoded-length": BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(cursor + 12), 65535); break;
-            case "stored-codec": bytes[payload + 16] ^= 1; break;
-            case "format": bytes[cursor] = (byte)'X'; break;
-        }
-        if (fault != "checksum") SHA256.HashData(bytes.AsSpan(cursor, bytes.Length - cursor - 32), bytes.AsSpan(bytes.Length - 32));
-        File.WriteAllBytes(journal, bytes);
-        var error = Assert.Throws<WorkspaceException>(() => new JournalDeltaStore(directory.Path, identity, tree, optimizeJournal: false));
-        Assert.Contains(error.Code, new[] { "DeltaCorrupt", "PayloadBlockCorrupt", "JournalFormatUnsupported" });
-        Assert.Equal(bytes, File.ReadAllBytes(journal));
+            store.Write(store.Create("file", false, 32).Id, 0, new byte[4096]);
+        string path = Path.Combine(directory.Path, "delta.journal");
+        byte[] bytes = File.ReadAllBytes(path);
+        int frame = 16 + BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(4)) + 32;
+        int metadata = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(frame + 4));
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(frame + 12), 8192);
+        SHA256.HashData(bytes.AsSpan(frame, 16 + metadata + 4096)).CopyTo(bytes, frame + 16 + metadata + 4096);
+        File.WriteAllBytes(path, bytes);
+        Assert.Equal("DeltaCorrupt", Assert.Throws<WorkspaceException>(() =>
+            new JournalDeltaStore(directory.Path, identity, tree, optimizeJournal: false)).Code);
+        Assert.Equal(bytes, File.ReadAllBytes(path));
     }
 
     [Fact]
@@ -165,30 +152,7 @@ public sealed class JournalPayloadTests
         Assert.Equal(saved, File.ReadAllText(identityPath)); Assert.False(File.Exists(Path.Combine(directory.Path, "delta.journal")));
     }
 
-    [Fact]
-    public void ExistingEncodedStateCanBeReadModifiedWithRawWritesAndExported()
-    {
-        using var root = new TestDirectory(); var tree = new SnapshotOverlayTests.FakeSnapshotTree();
-        string delta = Path.Combine(root.Path, "delta"); var identity = Identity(tree); Guid id;
-        byte[] expected = new byte[65536];
-        using (var writer = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
-        { id = writer.Create("file", false, 32).Id; writer.Write(id, 0, expected); }
-        EncodedPayloadFixture.CompressExistingJournal(delta);
-        using (var writer = new JournalDeltaStore(delta, identity, tree, optimizeJournal: false))
-        {
-            byte[] part = new byte[17]; writer.Read(id, 53, part); Assert.Equal(new byte[17], part);
-            writer.Read(id, 71, part); Assert.True(writer.DecodedPayloadCache.Hits > 0);
-            long before = writer.Observe().PayloadBytes;
-            writer.WriteBatch([new(id, 123, Enumerable.Repeat((byte)7, 4096).ToArray()), new(id, 60000, new byte[] { 9 })]);
-            Array.Fill(expected, (byte)7, 123, 4096); expected[60000] = 9;
-            Assert.Equal(before + 4097, writer.Observe().PayloadBytes);
-        }
-        string destination = Path.Combine(root.Path, "candidate");
-        JournalDeltaStore.ExportCandidate(delta, identity, tree, destination, "encoded-preservation", []);
-        using var candidate = new CandidateSnapshotTree(destination, tree);
-        byte[] actual = new byte[expected.Length]; candidate.Read("file", 0, actual); Assert.Equal(expected, actual);
-        Assert.Equal(0, tree.ReadBytes);
-    }
+
 
     private static OverlayIdentity Identity(ISnapshotTree tree) => new(2, "codec-journal", tree.Snapshot, 2 * 1024 * 1024, 65536);
     private sealed class Observer : IJournalMutationObserver

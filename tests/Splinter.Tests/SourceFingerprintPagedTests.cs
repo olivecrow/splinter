@@ -5,7 +5,7 @@ using Splinter.Runtime;
 
 namespace Splinter.Tests;
 
-public sealed partial class SourceFingerprintTests
+public sealed class PagedSourceFingerprintTests : SourceFingerprintFixtureBase
 {
     [Theory(Timeout = 60000)]
     [InlineData(false)] [InlineData(true)]
@@ -72,19 +72,5 @@ public sealed partial class SourceFingerprintTests
         Assert.Equal(before, File.ReadAllBytes(path));
     }
 
-    private sealed partial class Tracker
-    {
-        public bool Paged;
-        private SourceChangeView PagedView(WorkspaceRecord workspace, SourcePathChange[] included)
-        {
-            string hash = Convert.ToHexStringLower(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(included)));
-            const string store = "000000000000000000000000";
-            var root = new MetadataTreeRoot(1, store, included.Length == 0 ? null : new(0, 48, 256, included.Length, hash));
-            return new(workspace.Id, workspace.Snapshot!.Reference!.Id, Epoch, included.Length == 0 ? 0 : included.Max(change => change.Sequence), [])
-            {
-                Index = new(1, "fake-contract-only", root, new(1, store, null), [.. workspace.ManagedPaths], included.Length, ContentHash: hash),
-                ChangesReader = () => included
-            };
-        }
-    }
+
 }

@@ -205,8 +205,6 @@ public sealed partial class JournalDeltaStore
             {
                 var descriptor = block.First().Payload;
                 if (block.Any(e => e.Payload != descriptor)) throw LatestJournalStorage.Corrupt("A private block has inconsistent descriptors.");
-                // Validate the entire encoded stream before any bytes are served.
-                if (descriptor.Encoded) VisitPayload(block.Key, descriptor, (_, _, _) => { });
                 stored += descriptor.StoredBytes; decoded += descriptor.DecodedBytes;
             }
         }

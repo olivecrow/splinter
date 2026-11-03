@@ -99,40 +99,6 @@ class AccountingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "non-ASCII"):
             self.inspect(frame(1, "create", path="Assets/이름"))
 
-    def test_partly_live_encoded_block_is_counted_whole_once(self):
-        # A literal SPB1 structure/checksum oracle. Accounting intentionally
-        # does not claim Brotli content validity or decode the block.
-        prefix = b'SPB1' + struct.pack('<ii', 4096, 10) + b'\x01\0\0\0'
-        encoded = prefix + b'x' * 10
-        encoded += hashlib.sha256(encoded).digest()
-        data = b''.join([
-            frame(1, 'write', length=4096, data=encoded, decoded=4096),
-            frame(2, 'write', length=4096, data=b'abcd', Offset=16),
-            frame(3, 'resize', length=100),
-        ])
-        result = self.inspect(data)
-        self.assertEqual(result['livePrivateBytes'], 100)
-        self.assertEqual(result['liveStoredPayloadBytes'], len(encoded) + 4)
-        self.assertEqual(result['obsoletePayloadBytes'], 0)
-        self.assertEqual(result['decodedPayloadBytes'], 4100)
-        self.assertFalse(result['payloadContentsDecoded'])
-        deleted = self.inspect(data + frame(4, 'delete', length=100))
-        self.assertEqual(deleted['liveStoredPayloadBytes'], 0)
-        self.assertEqual(deleted['obsoletePayloadBytes'], len(encoded) + 4)
-
-    def test_encoded_compacted_fragments_share_one_fixed_block(self):
-        prefix = b'SPB1' + struct.pack('<ii', 1024, 10) + b'\x01\0\0\0'
-        encoded = prefix + b'x' * 10
-        encoded += hashlib.sha256(encoded).digest()
-        result = self.inspect(b''.join([
-            frame(1, 'write-compacted', length=2048, data=encoded, decoded=1024,
-                  Fragments=[dict(Offset=0, Length=512), dict(Offset=1024, Length=512)]),
-            frame(2, 'write', length=2048, data=b'abcdefgh', Offset=10),
-        ]))
-        self.assertEqual(result['livePrivateBytes'], 1024)
-        self.assertEqual(result['liveStoredPayloadBytes'], len(encoded) + 8)
-        self.assertEqual(result['obsoletePayloadBytes'], 0)
-
     def test_recreated_same_id_discards_prior_incarnation_ranges(self):
         result = self.inspect(b''.join([
             frame(1, 'write', length=4, data=b'old!'),

@@ -6,7 +6,7 @@ using Splinter.SourceControl.Git;
 
 namespace Splinter.Tests;
 
-public sealed partial class SourceFingerprintTests
+public sealed class SourceFingerprintTests : SourceFingerprintFixtureBase
 {
     [Theory]
     [InlineData("false")]
@@ -197,67 +197,7 @@ public sealed partial class SourceFingerprintTests
         Assert.False(contracts.Validate("urn:splinter:v1:source-change-response", JsonSerializer.SerializeToElement(response with { Error = "failed" }, json)).IsValid);
     }
 
-    private sealed partial class Tracker(string cache) : ISourceChangeProvider
-    {
-        public string Epoch = "first-provider";
-        public Action<int>? OnObserve;
-        private int observations;
-        private long sequence;
-        private readonly Dictionary<string, long> changes = new(StringComparer.OrdinalIgnoreCase);
-        public void Mark(string path) => changes[path] = ++sequence;
-        public string CachePath(WorkspaceRecord workspace) => cache;
-        public Task<SourceChangeView> ObserveChangesAsync(WorkspaceRecord workspace, CancellationToken ct = default)
-        {
-            observations++; OnObserve?.Invoke(observations);
-            var included = changes.Where(p => !SourcePathPolicy.Managed(p.Key, workspace.ManagedPaths))
-                .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => new SourcePathChange(p.Key, p.Value)).ToArray();
-            var view = Paged ? PagedView(workspace, included) : new SourceChangeView(workspace.Id, workspace.Snapshot!.Reference!.Id, Epoch,
-                included.Length == 0 ? 0 : included.Max(c => c.Sequence), included);
-            return Task.FromResult(ObservedView?.Invoke(view) ?? view);
-        }
-    }
 
-    private sealed class Fixture : IDisposable
-    {
-        public TestDirectory Directory = new();
-        public WorkspaceRecord Workspace = null!;
-        public Tracker Tracker = null!;
-        public string Path(string file) => System.IO.Path.Combine(Workspace.Path, file);
-        public GitWorkspaceProvider Provider(bool audit = false) => new(sourceChanges: Tracker, auditSource: audit);
-        public static async Task<Fixture> Create(int largeFileBytes = 8192)
-        {
-            var f = new Fixture(); string repo = System.IO.Path.Combine(f.Directory.Path, "repo");
-            System.IO.Directory.CreateDirectory(repo);
-            await TestDirectory.Git(repo, "init", "-b", "development");
-            await TestDirectory.Git(repo, "config", "user.name", "Fixture"); await TestDirectory.Git(repo, "config", "user.email", "fixture@example.invalid");
-            await TestDirectory.Git(repo, "config", "core.autocrlf", "false");
-            File.WriteAllText(System.IO.Path.Combine(repo, "code.cs"), "return 1;\n");
-            File.WriteAllText(System.IO.Path.Combine(repo, "code.cs.meta"), "guid: initial");
-            File.WriteAllText(System.IO.Path.Combine(repo, ".gitignore"), "Library/\n");
-            File.WriteAllBytes(System.IO.Path.Combine(repo, "large.bin"), new byte[largeFileBytes]);
-            await TestDirectory.Git(repo, "add", "."); await TestDirectory.Git(repo, "commit", "-m", "fixture");
-            f.Workspace = new() { Id = "fingerprint-fixture", RequestKey = "test", ProjectPath = repo,
-                Path = System.IO.Path.Combine(f.Directory.Path, "worker"), SourceReference = "splinter/test", BaseReference = "development", ManagedPaths = ["Library"] };
-            f.Workspace.BaseRevision = (await new GitWorkspaceProvider().CreateAsync(f.Workspace, TestContext.Current.CancellationToken)).BaseRevision;
-            f.Workspace.StorageMode = "git-snapshot";
-            f.Workspace.Snapshot = new() { Reference = new("fake-snapshot", "fake", repo, repo, DateTimeOffset.UtcNow, true, true, "fixture-only") };
-            f.Tracker = new(System.IO.Path.Combine(f.Directory.Path, "source.json"));
-            return f;
-        }
-        public async Task<string> Oracle()
-        {
-            string[] files = (await TestDirectory.Git(Workspace.Path, "ls-files", "--cached", "--others", "--exclude-standard", "-z"))
-                .Split('\0', StringSplitOptions.RemoveEmptyEntries);
-            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            foreach (string file in files.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
-            {
-                if (SourcePathPolicy.Managed(file, Workspace.ManagedPaths) || !File.Exists(Path(file))) continue;
-                byte[] name = Encoding.UTF8.GetBytes(file);
-                hash.AppendData(BitConverter.GetBytes(name.Length)); hash.AppendData(name); hash.AppendData([1]);
-                hash.AppendData(SHA256.HashData(File.ReadAllBytes(Path(file))));
-            }
-            return Convert.ToHexStringLower(hash.GetHashAndReset());
-        }
-        public void Dispose() => Directory.Dispose();
-    }
+
+
 }

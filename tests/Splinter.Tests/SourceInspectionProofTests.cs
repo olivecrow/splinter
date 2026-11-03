@@ -2,7 +2,7 @@ using Splinter.Core;
 
 namespace Splinter.Tests;
 
-public sealed partial class SourceFingerprintTests
+public sealed class SourceInspectionProofTests : SourceFingerprintFixtureBase
 {
     [Fact]
     public async Task OperationProofDoesNotReadSourcePayloadOrRepublishItsManifest()

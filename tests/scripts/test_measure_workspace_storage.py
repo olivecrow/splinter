@@ -24,7 +24,7 @@ class WorkspaceAllocationTests(unittest.TestCase):
         self.id = '0123456789abcdef01234567'
         self.record = self.home / 'records' / self.id
         self.record.mkdir(parents=True)
-        (self.record / 'workspace.json').write_text(json.dumps(dict(version=2, id=self.id, projectPath=str(self.project))), encoding='utf-8')
+        (self.record / 'workspace.json').write_text(json.dumps(dict(version=4, id=self.id, projectPath=str(self.project))), encoding='utf-8')
         (self.record / 'delta.journal').write_bytes(b'j' * 8192)
         (self.home / 'runners').mkdir()
         (self.home / 'runners/shared.dll').write_bytes(b'r' * 8192)
@@ -42,7 +42,7 @@ class WorkspaceAllocationTests(unittest.TestCase):
         result = self.run_measure(output, '-EvidencePath', evidence)
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(output.read_text(encoding='utf-8'))
-        self.assertEqual(report['version'], 2)
+        self.assertEqual(report['version'], 3)
         self.assertTrue(report['productFileAllocationComplete'])
         product = [row for row in report['roots'] if row['scope'] != 'measurement-overhead']
         self.assertEqual(report['productFileAllocationBytes'], sum(row['allocatedBytes'] for row in product))

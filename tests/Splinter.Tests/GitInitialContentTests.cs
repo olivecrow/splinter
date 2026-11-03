@@ -5,7 +5,7 @@ using Splinter.SourceControl.Git;
 
 namespace Splinter.Tests;
 
-public sealed partial class SourceFingerprintTests
+public sealed class GitInitialContentTests : SourceFingerprintFixtureBase
 {
     [Fact]
     public async Task InitialAdmissionReusesCompleteContentAfterRefreshAndAuditStillReadsFresh()
@@ -118,34 +118,9 @@ public sealed partial class SourceFingerprintTests
         Assert.False(initial.HasChanges);
     }
 
-    private static void SeedSummaries(Fixture f)
-    {
-        f.Tracker.InitialSummaries = Directory.GetFiles(f.Workspace.Path).Where(path => Path.GetFileName(path) != ".git")
-            .ToDictionary(path => Path.GetFileName(path)!, path =>
-            {
-                byte[] bytes = File.ReadAllBytes(path);
-                return new SnapshotContentSummary(Path.GetFileName(path), bytes.Length,
-                    Convert.ToHexStringLower(SHA256.HashData(bytes)), bytes.Contains((byte)'\r'), bytes.Contains((byte)0));
-            }, StringComparer.Ordinal)!;
-    }
 
-    private sealed partial class Tracker : ISourceContentSummaryProvider
-    {
-        public int InitialCalls;
-        public Dictionary<string, SnapshotContentSummary>? InitialSummaries;
-        public Func<SourceContentSummaryView, SourceContentSummaryView>? TransformInitial;
-        public Task<SourceContentSummaryView?> ObserveInitialContentAsync(WorkspaceRecord workspace,
-            SourceChangeView expected, string[] paths, CancellationToken ct = default)
-        {
-            InitialCalls++;
-            if (InitialSummaries is null) return Task.FromResult<SourceContentSummaryView?>(null);
-            var view = new SourceContentSummaryView(workspace.Snapshot!.Reference!, expected,
-                paths.Where(path => InitialSummaries.ContainsKey(path) &&
-                    !expected.Changes.Any(change => SourcePathPolicy.Affects(change.Path, path)))
-                    .Select(path => InitialSummaries[path]).ToArray());
-            return Task.FromResult<SourceContentSummaryView?>(TransformInitial?.Invoke(view) ?? view);
-        }
-    }
+
+
 }
 
 public sealed partial class GitProofReuseTests

@@ -1459,48 +1459,6 @@
             }
           }
         },
-        "developmentPayloadReader": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "stage",
-            "contract",
-            "codec",
-            "maxDecodedBytes",
-            "blockOverheadBytes",
-            "scope",
-            "specification",
-            "qualification"
-          ],
-          "properties": {
-            "stage": {
-              "const": "workspace-internal-alpha"
-            },
-            "contract": {
-              "const": "IWorkspacePayloadReader"
-            },
-            "codec": {
-              "const": "splinter-range-brotli-v1"
-            },
-            "maxDecodedBytes": {
-              "const": 1048576
-            },
-            "blockOverheadBytes": {
-              "const": 48
-            },
-            "scope": {
-              "type": "string",
-              "minLength": 1
-            },
-            "specification": {
-              "const": "docs/journal-payload-compression.md"
-            },
-            "qualification": {
-              "type": "string",
-              "minLength": 1
-            }
-          }
-        },
         "snapshotOverlay": {
           "type": "object",
           "additionalProperties": false,
@@ -1545,7 +1503,7 @@
               "const": "accepted-source-frame-chain-bytes-and-sequence; logical-seal-stable-across-same-sequence-adoption-forget-and-index-segment-GC; separate-native-backing-hash-page-and-inventory-proof"
             },
             "metadataStore": {
-              "const": "task-v4-basis-v3-overlay-v3-candidate; 64KiB-pages; process-wide-lazy-32MiB-accounted-cache; directory-path-and-history-indices; immutable-shared-content-ranges; native-pins-scale-with-targets; SCAL-01-08-qualification-in-progress"
+              "const": "task-v4-basis-v3-overlay-v3-candidate; 64KiB-pages; process-wide-demand-driven-cache-up-to-2.5GiB; directory-path-and-history-indices; immutable-shared-content-ranges; native-pins-scale-with-targets; SCAL-01-08-qualification-in-progress"
             },
             "requestSchema": {
               "const": "urn:splinter:v1:overlay-serve-request"
@@ -2268,12 +2226,12 @@
         "metadataCacheBytes": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 33554432
+          "maximum": 2684354560
         },
         "peakMetadataCacheBytes": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 33554432
+          "maximum": 2684354560
         },
         "readBytes": {
           "type": "integer",

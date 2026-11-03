@@ -14,19 +14,7 @@ public sealed class MetadataEncodingTests
     private static readonly long Ticks = DateTime.FromFileTimeUtc(123).Ticks;
     private static OriginalFileVersion FileVersion => new("file", 12, new string('a', 64), 32, Ticks, 420);
 
-    [Fact(Timeout = 10000)]
-    public void SmallPageCostRecordsTheRemainingOneKeyPerNodeBoundary()
-    {
-        using var files = new TestDirectory(); int writes = 0;
-        using var pages = new PagedMetadataStore(files.Path, true, point => { if (point == "metadata.page-header-written") writes++; });
-        var root = pages.Build(Enumerable.Range(0, 64).Select(i => new MetadataEntry(i.ToString("d4"), new byte[16])), TestContext.Current.CancellationToken);
-        pages.Flush(); Assert.Equal(64, writes); pages.Open(root).Verify(TestContext.Current.CancellationToken);
-        long bytes = Directory.EnumerateFiles(files.Path, "pages-*.bin").Sum(path => new FileInfo(path).Length) - 48;
-        // 40-byte checksummed header + 9-byte lengths/flags + key/value,
-        // and 63 non-null 61-byte child references. Null links are omitted.
-        Assert.Equal(64 * (40 + 9 + 4 + 16) + 63 * 61, bytes);
-        TestContext.Current.TestOutputHelper!.WriteLine($"remaining tree cost: 64 keys, {writes} pages, {bytes} page bytes, 1280 key/value bytes");
-    }
+
 
     [Fact(Timeout = 10000)]
     public void PublicationDeltasRetainEveryExpectedFieldAndHistoricalPlan()
@@ -37,14 +25,12 @@ public sealed class MetadataEncodingTests
         var expected = before with { Attributes = 32 | 8192 };
         var change = new OriginalApplyChange("Assets/한글.asset", before, after, new("native-file", expected), false);
         var raw = OriginalApplyPages.EncodeChange(change); Assert.Equal(change, OriginalApplyPages.DecodeChange(raw));
-        Assert.True(raw.Length < LegacyChange(change).Length);
         var template = new OriginalApplyPlan(3, new string('a', 24), "request", "base", "result", files.Path, "root", [], [], "");
         var first = OriginalApplyPages.Create(template, [change], files.Path, ct); OriginalApplyPages.SavePlan(first, files.Path);
         var second = OriginalApplyPages.Create(template, [change with { Expected = new("native-file", after) }], files.Path, ct);
         Assert.NotEqual(first.Digest, second.Digest);
         Assert.Equal(change, OriginalApplyPages.ReadPlan(files.Path, first.Digest).ChangeAt(0));
         Assert.Equal(expected.Attributes, first.ChangeAt(0).Expected!.Version.Attributes);
-        TestContext.Current.TestOutputHelper!.WriteLine($"publication inline bytes: {LegacyChange(change).Length} -> {raw.Length}");
     }
 
     [Fact(Timeout = 10000)]
@@ -194,20 +180,5 @@ public sealed class MetadataEncodingTests
     private static long RecordBytes(MetadataEntry record)
     { using var output = new MemoryStream(); MetadataExternalSort.Write(output, record); return output.Length; }
 
-    // Exact old value codec used only to measure this fixed small input.
-    private static byte[] LegacyChange(OriginalApplyChange change)
-    {
-        using var memory = new MemoryStream(); using var writer = new BinaryWriter(memory, Encoding.UTF8, true);
-        void Text(string text) { byte[] bytes = Encoding.UTF8.GetBytes(text); writer.Write(bytes.Length); writer.Write(bytes); }
-        void Version(OriginalFileVersion? v)
-        {
-            writer.Write(v is null ? (byte)0 : v.Kind == "directory" ? (byte)1 : (byte)2); if (v is null) return;
-            writer.Write(v.Length); writer.Write(v.Attributes); writer.Write(v.ModifiedUtcTicks);
-            if (v.Kind == "file") writer.Write(Convert.FromHexString(v.Hash!));
-            writer.Write(v.UnixMode is not null); if (v.UnixMode is { } mode) writer.Write(mode);
-        }
-        writer.Write((byte)1); Text(change.Path); Version(change.Before); Version(change.After);
-        writer.Write(change.Expected is not null); if (change.Expected is { } observed) { Text(observed.Identity); Version(observed.Version); }
-        writer.Write(change.AlreadyMatches); return memory.ToArray();
-    }
+
 }

@@ -64,15 +64,12 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private readonly object baseReadGate = new();
     private readonly bool concurrentBaseReads;
     private int activeReads;
-    private readonly object payloadCacheGate = new();
     private readonly ISnapshotTree snapshot;
     private readonly ICapturedContentReader? capturedContentReader;
     private bool ownsSnapshotTree;
     private readonly WorkspacePathPolicy pathPolicy;
     private FileStream journal = null!;
     private readonly IJournalMutationObserver? mutationObserver;
-    private readonly JournalDecodedPayloadCache decodedPayloadCache;
-    internal JournalDecodedPayloadCache DecodedPayloadCache => decodedPayloadCache;
     private readonly Func<string, IJournalDirectoryGuard>? directoryGuardFactory;
     private IJournalDirectoryGuard? latestDirectoryGuard;
     private IDictionary<Guid, Node> nodes = null!;
@@ -145,17 +142,12 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName, bool readOnly = false)
         : this(directory, identity, snapshot, journalName, readOnly, null) { }
 
-    internal JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, long decodedPayloadCacheBytes,
-        bool optimizeJournal = true)
-        : this(directory, identity, snapshot, "delta.journal", false, null, optimizeJournal, null, decodedPayloadCacheBytes) { }
-
     private JournalDeltaStore(string directory, OverlayIdentity identity, ISnapshotTree snapshot, string journalName,
         bool readOnly, IJournalMutationObserver? mutationObserver, bool optimizeJournal = false,
         Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null,
-        long decodedPayloadCacheBytes = JournalDecodedPayloadCache.DefaultBudgetBytes, bool initialContentGeneration = false, long? boundedLogBytes = null,
+        bool initialContentGeneration = false, long? boundedLogBytes = null,
         bool skipBoundedPreparation = false, IJournalFilePins? sourceFilePins = null, ICapturedContentReader? capturedContentReader = null)
     {
-        decodedPayloadCache = new(decodedPayloadCacheBytes);
         this.mutationObserver = mutationObserver;
         this.directoryGuardFactory = directoryGuardFactory;
         this.sourceFilePins = sourceFilePins;
@@ -245,7 +237,6 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         }
         catch
         {
-            ClearPayloadCache();
             try { journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); boundedWriterLock?.Dispose(); }
             finally { latestDirectoryGuard?.Dispose(); boundedTransitionDirectoryGuard?.Dispose(); pagedIndex?.Dispose(); }
             throw;
@@ -296,8 +287,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
     {
         DeltaEntry entry = null!;
         List<(long From, long To)>? baseRanges = null;
-        List<CapturedPayloadRead>? captured = null;
-        int capturedBytes = 0, count;
+        int count;
         bool active = false;
         try
         {
@@ -321,33 +311,12 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     if (from >= to) continue;
                     CaptureBaseRange(cursor, from);
                     int outputOffset = (int)(from - offset), length = (int)(to - from);
-                    // Copy current encoded bytes while their physical generation
-                    // is protected. Hash/decode can then run outside the mutation
-                    // gate even if a writer retires or truncates the old capsule.
-                    // Bound rented scratch as well as fragment metadata per read.
-                    if (extent.Segment == -1 && extent.Payload.Encoded && (captured?.Count ?? 0) < 64 &&
-                        extent.Payload.StoredBytes <= 4 * 1024 * 1024 - capturedBytes)
-                    {
-                        byte[]? encoded = ReadEncoded(extent.JournalOffset, extent.Payload);
-                        try
-                        {
-                            var fragment = new CapturedPayloadRead(encoded, extent.Payload,
-                                extent.BlockOffset + (int)(from - extent.Start), outputOffset, length);
-                            if (encoded.Length <= 4 * 1024 * 1024 - capturedBytes)
-                            {
-                                (captured ??= []).Add(fragment);
-                                capturedBytes += encoded.Length; encoded = null;
-                            }
-                            else ReadCapturedPayload(fragment, output.Slice(outputOffset, length));
-                        }
-                        finally { if (encoded is not null) ArrayPool<byte>.Shared.Return(encoded); }
-                    }
-                    else ReadExtent(extent, (int)(from - extent.Start), output.Slice(outputOffset, length));
+                    ReadExtent(extent, (int)(from - extent.Start), output.Slice(outputOffset, length));
                     cursor = to;
                 }
                 CaptureBaseRange(cursor, end);
-                if (baseRanges is null && captured is null) { readBytes += count; return count; }
-                // Captured bytes and immutable base coordinates describe one
+                if (baseRanges is null) { readBytes += count; return count; }
+                // Copied private bytes and immutable base coordinates describe one
                 // generation; no subsequent lookup uses mutable file metadata.
                 activeReads++; active = true;
             }
@@ -361,20 +330,14 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                         foreach (var range in baseRanges)
                             ReadBase(entry.BasePath!, range.From, range.To, destination[..count], offset);
             }
-            if (captured is not null)
-                foreach (var fragment in captured)
-                    ReadCapturedPayload(fragment, destination.Slice(fragment.OutputOffset, fragment.Count));
             using (EnterGate())
             {
                 Check(allowClosing: true);
                 readBytes += count; return count;
             }
         }
-        catch { ClearPayloadCache(); throw; }
         finally
         {
-            if (captured is not null)
-                foreach (var fragment in captured) ArrayPool<byte>.Shared.Return(fragment.Encoded);
             if (active)
             {
                 using (EnterGate())
@@ -436,21 +399,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             {
                 if (cursor >= end) break;
                 long until = Math.Min(end, extent.Start + extent.Length);
-                if (extent.Payload.Encoded)
-                {
-                    long from = cursor;
-                    VisitExtent(extent, (at, bytes, incoming) =>
-                    {
-                        long start = Math.Max(from, extent.Start + at), stop = Math.Min(until, extent.Start + at + bytes.Length);
-                        if (stop <= start) return;
-                        int index = (int)(start - offset), length = (int)(stop - start);
-                        var difference = Differences(bytes.Slice((int)(start - extent.Start - at), length), incoming.Slice(index, length));
-                        if (difference.Last < 0) return;
-                        firstDifference = Math.Min(firstDifference, index + difference.First);
-                        lastDifference = index + difference.Last;
-                    }, data);
-                    cursor = until; continue;
-                }
+
                 while (cursor < until)
                 {
                     buffer ??= ArrayPool<byte>.Shared.Rent(Math.Min(65536, data.Length));
@@ -677,7 +626,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             }
             finally
             {
-                ClearPayloadCache(); disposed = true; closing = false; Monitor.PulseAll(gate);
+                disposed = true; closing = false; Monitor.PulseAll(gate);
                 if (ownsSnapshotTree && snapshot is IDisposable owner) owner.Dispose();
             }
         }
@@ -930,7 +879,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         try { mutationObserver.Observe(new(boundary, operation, nextSequence, frameStart, frameBytes, bytes)); }
         catch { Poison(); throw; }
     }
-    private void Poison() { poisoned = true; ClearPayloadCache(); }
+    private void Poison() { poisoned = true; }
     private void Replay(long? start = null, long? limit = null)
     {
         long cursor = start ?? (segments is null && !segmentShadow ? 0 : JournalSegmentStorage.HeaderBytes);
@@ -959,7 +908,6 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                     digest.AppendData(header); digest.AppendData(metadata); digest.AppendData(data.AsSpan(0, dataLength));
                     if (!CryptographicOperations.FixedTimeEquals(digest.GetHashAndReset(), expectedHash))
                         throw new WorkspaceException("DeltaCorrupt", "Journal checksum mismatch; automatic discard is forbidden.");
-                    if (descriptor.Encoded) ValidateEncoded(data.AsSpan(0, dataLength), descriptor);
                     mutation = DecodeMutation(metadata, descriptor.DecodedBytes);
                     if (mutation.Operation.StartsWith("state-", StringComparison.Ordinal))
                     {

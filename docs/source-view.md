@@ -1,11 +1,8 @@
-<a id="불변-소스-후보와-고정-view"></a>
 # Immutable source candidates and fixed views
-
-[한국어](ko/source-view.md)
 
 Current commands use the [separate development CLI](development-cli.md). They manage storage candidates, source/cache, seals, and reclamation, without internal compile/validation requests.
 
-This is a development extension of `snapshot-spike`, not connected to product `workspace ensure` execution modes or task queues. Current scope is the storage/publication/view contracts below. [Verification records](verification/immutable-validation-view.md#per-gate-assessment) own VC-01–04 inputs/verdicts.
+This is a development extension of `snapshot-spike`, not connected to product `workspace ensure` execution modes or task queues. Current scope is the storage/publication/view contracts below. Verification records own VC-01–04 inputs/verdicts.
 
 The [source-view lifecycle](view-workflow.md) uses the same storage implementation, connected to Windows/Git/Unity lifetime adapters through development `view`. AI/external tools perform actual Unity editing/compilation/tests. Passing evidence for the development experiments below does not automatically qualify new product candidates.
 
@@ -72,7 +69,7 @@ Runtime opens worker journal read-only against exclusive writers, then compares 
 
 Verified-file history uses existing `skip-write/skip-range` in new candidates, preserving sequence/changed-path history without moving nodes/payload. Verify replayed state hashes for other source live ranges/renames/deletions and before/after worker seals. Introduce neither full original-tree enumeration/payload reads/read hydration nor new journal-flush policy. New views do not see worker Git pointers and must separately attach their own registration if needed.
 
-Current conformance is [VG tracking](plans/validation-matrix.md#sf-03-management-file-separation-conformance) using temporary actual Git registration/synthetic immutable trees. [WF tracking](plans/validation-matrix.md#sf-03-product-workflow-integration) owns product integration/actual execution status. Existing VC execution does not qualify this candidate format.
+Current conformance is VG tracking using temporary actual Git registration/synthetic immutable trees. WF tracking owns product integration/actual execution status. Existing VC execution does not qualify this candidate format.
 
 <a id="같은-요청의-게시-복구"></a>
 ### Same-request publication recovery
@@ -93,7 +90,7 @@ Each metadata file is written create-new in the same directory, flushed, and pub
 
 Runtime one-shot `ExportCandidate`/`ExportSourceCandidate` use the same publication implementation but continue rejecting existing destinations with `CandidateAlreadyExists`. Intended retries must explicitly use `PublishCandidate` or fixed-request CLI. Candidate directories created without intent are not publication-reconciliation targets and are not automatically adopted, independently of their read contract. Before final receipt, `CandidateSnapshotTree` rejects with `CandidateUnpublished`.
 
-Automated-conformance [VP tracking](plans/validation-matrix.md#sf-03-candidate-publication-recovery-conformance) verifies exception-injected boundaries, partial bytes, and new calls using synthetic immutable trees/actual temporary files. Distinguish this from [WF tracking](plans/validation-matrix.md#sf-03-product-workflow-integration) evidence for actual forced process termination, reboot, power/physical-space failures, VSS/WinFsp/Unity execution, product-resource fencing, and snapshot dependencies.
+Automated-conformance VP tracking verifies exception-injected boundaries, partial bytes, and new calls using synthetic immutable trees/actual temporary files. Distinguish this from WF tracking evidence for actual forced process termination, reboot, power/physical-space failures, VSS/WinFsp/Unity execution, product-resource fencing, and snapshot dependencies.
 
 <a id="후보를-사용하는-소스-view"></a>
 ### Source views using candidates
@@ -124,4 +121,4 @@ Candidate `creationTicks / stopwatchFrequency` covers journal preparation/verifi
 
 Distinguish per-directory logical lengths from `FILE_STANDARD_INFO.AllocationSize`; retain shared VSS as volume observations. Evidence/logs are separate costs; separate first import from repeated transitions. Small Editor-free delta preparation does not generalize to whole product `workspace ensure` or large-project preparation. Initial-source verification, long-journal replay, Unity-version/package/platform changes, general interrupted-lease recovery, and source-return merging need separate verification.
 
-[Source verification/instrumentation](source-verification.md) owns replay-read buffers/stage counters; [VR execution](verification/validation-view-readiness-and-replay.md) and [small-Unity comparison of existing/improved Runtime](verification/unity-replay-comparison.md) own actual support scope/timing. Mount reconnect of the same closed journal differs from Editor restart adding new records. Check initial ready, explicit compile, actual code/asset verification, and normal-stop retry costs together. Mount preparation/compile success/asset-load success do not guarantee first-render success. Check the first preview itself; the first-render initialization issue remains unresolved. Product default mode/general Unity support require separate verification.
+[Source verification/instrumentation](source-verification.md) owns replay-read buffers/stage counters; VR execution and small-Unity comparison of existing/improved Runtime own actual support scope/timing. Mount reconnect of the same closed journal differs from Editor restart adding new records. Check initial ready, explicit compile, actual code/asset verification, and normal-stop retry costs together. Mount preparation/compile success/asset-load success do not guarantee first-render success. Check the first preview itself; the first-render initialization issue remains unresolved. Product default mode/general Unity support require separate verification.

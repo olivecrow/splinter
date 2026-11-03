@@ -106,12 +106,12 @@
         "metadataCacheBytes": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 33554432
+          "maximum": 2684354560
         },
         "peakMetadataCacheBytes": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 33554432
+          "maximum": 2684354560
         },
         "journalBytesBasis": {
           "enum": [

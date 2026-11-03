@@ -2,7 +2,7 @@ using Splinter.Core;
 
 namespace Splinter.Tests;
 
-public sealed partial class SourceFingerprintTests
+public sealed class SourceCheckpointTransactionTests : SourceFingerprintFixtureBase
 {
     [Theory]
     [InlineData("rewrite")]

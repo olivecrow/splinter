@@ -1,7 +1,4 @@
-<a id="개발용-저널-중단-시험"></a>
 # Development journal-interruption tests
-
-[한국어](ko/journal-recovery.md)
 
 `scripts/test-journal-recovery.ps1` is a development test of a deterministic fake immutable tree using the product `JournalDeltaStore`. Its default is a read-only plan; only `-Execute` creates a new evidence directory and synthetic private journal. It does not overwrite existing directories or delete results. First prepare Release test binaries with `pwsh ./scripts/build.ps1`.
 
@@ -28,4 +25,4 @@ Every normal transaction still applies its index and returns after checksum appe
 
 `contracts/v1/journal-recovery-probe-{request,signal,result}.schema.json` owns request, gate, and trial-result formats. Gate/ACK files are published by flushing a new temporary file in the same directory and moving without overwrite. Existing trials are not appended to. After termination and before replay, record a raw journal copy, before/after hashes and lengths, sequence, namespace/length/content hashes, and invariance of a second replay. Initial payload copies, read cache, and base payload reads must all be 0. These values apply only to the fixture's synthetic private writes.
 
-[NR recovery verification](verification/ntfs-recovery.md) owns actual candidate hashes, pass/fail results, and limitations. Internal journal-boundary tests do not qualify actual mount callback responses, mmap flush, VSS, reboot, power loss, or physical-space failures.
+NR recovery verification owns actual candidate hashes, pass/fail results, and limitations. Internal journal-boundary tests do not qualify actual mount callback responses, mmap flush, VSS, reboot, power loss, or physical-space failures.

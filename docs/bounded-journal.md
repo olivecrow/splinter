@@ -1,10 +1,8 @@
 # Bounded durable journal
 
-[한국어](ko/bounded-journal.md)
-
 New ordinary Windows workspace providers use a bounded SJR2 journal. Each mutation appends a checksummed raw frame; a bounded batch can share one durable flush before any success response. See [raw-write batching](raw-write-batching.md). A current-state checkpoint replaces repeated per-mutation object publication and reclamation. Original files remain immutable inputs to a workspace; no initial payload copy, read hydration, or whole-file copy-up is introduced.
 
-[DF-01–05](verification/durable-flush-throughput.md) evaluated per-write I/O alternatives and a RAM preparation prototype. Neither established a qualifying large gain with equivalent durability, so the prototype was removed. The subsequent user-directed raw/group-flush change is owned by [RW](verification/raw-write-batching.md).
+DF-01–05 evaluated per-write I/O alternatives and a RAM preparation prototype. Neither established a qualifying large gain with equivalent durability, so the prototype was removed. The subsequent user-directed raw/group-flush change is owned by RW.
 
 ## Selection and limits
 
@@ -14,7 +12,7 @@ These are suffix limits, not total storage limits. A prefix contains current pri
 
 `journalStorageMode` reports `bounded`, `latest`, or `append`. Bounded observations additionally report `boundedLogBytesLimit`, `boundedLogFrameLimit`, `boundedLogAppendedBytes`, and `boundedLogAppendedFrames`. `journalOptimizationEnabled` continues to identify SJL4's latest-only behavior; `false` alone does not mean bounded storage is disabled. `journalBytesBasis` still distinguishes live writer accounting from actual file inspection.
 
-An omitted `workspace compact` mode preserves the stored mode. Explicit `--optimize-journal true` / `--revert-base-ranges true` selects [SJL4 latest-only storage](latest-only-journal.md); explicit `false` selects append storage. Mode transitions require the existing stopped/unmounted compaction and same-intent recovery. There is no automatic migration of existing tasks or new CLI mode selector.
+An omitted `workspace compact` mode preserves the stored mode. Explicit `--revert-base-ranges true` selects [SJL4 latest-only storage](latest-only-journal.md); explicit `false` selects append storage. Mode transitions require the existing stopped/unmounted compaction and same-intent recovery. There is no automatic migration of existing tasks or new CLI mode selector.
 
 ## Publication and recovery
 
@@ -28,16 +26,16 @@ The writer holds its lifetime guard across all generation changes. Under the jou
 
 Interrupted publication resumes only with the same identity and exact generation evidence. Corruption, changed owners, ambiguous generations and unknown files are preserved and rejected. An uncertain writer is poisoned until a new verified connection. Initialization has its own flushed intent; incomplete creation cannot silently become another format.
 
-Recorded open-unlinked file identities survive a checkpoint. Read-only base lookups are a disposable index: they remain usable by live handles but do not enter the durable state hash unless a mutation records that identity. Restart reconstructs untouched entries from the immutable basis. Their final close durably retires the retained state without inventing a source mutation. Reads retain the existing captured-state and in-flight-read drain rules. The decoded-payload RAM cache keeps its 64MiB / 4,096-entry bound and checks current encoded bytes on every hit; it is not RAM-only storage or a whole-process memory cap.
+Recorded open-unlinked file identities survive a checkpoint. Read-only base lookups are a disposable index: they remain usable by live handles but do not enter the durable state hash unless a mutation records that identity. Restart reconstructs untouched entries from the immutable basis. Their final close durably retires the retained state without inventing a source mutation. Reads retain the existing captured-state and in-flight-read drain rules.
 
 ## Results and qualification
 
 Internal state checkpoints are not `workspace checkpoint`: the latter still collects an independent source result and checks seals before/after collection and after unmount. Release requires the matching retained result, stopped owned processes/handles, exact file inventory and conditional reclamation. An unchanged original Library can use the same identity-checked directory restoration with a bounded journal's exact reclaim inventory. The unchanged-directory restoration plan is v2 and fixes `JournalMode` (`latest` or `bounded`); missing/older plans are preserved and rejected without migration. The existing per-file v2 restoration plan is separate.
 
-The [implementation/validation scope](plans/bounded-journal.md) and [verification record](verification/bounded-journal.md) distinguish automated recovery, small real product A/B, component timing and unrun scenarios. Earlier fixed-object log timings are [prototype evidence](verification/structural-throughput-prototypes.md), not product or Unity performance. Full Unity Editor/maze timing and OS power-loss qualification require separate evidence.
+The implementation/validation scope and verification record distinguish automated recovery, small real product A/B, component timing and unrun scenarios. Earlier fixed-object log timings are prototype evidence, not product or Unity performance. Full Unity Editor/maze timing and OS power-loss qualification require separate evidence.
 
-Current-candidate one-line Unity workflow timing is separately recorded in [BC-01](verification/unity-bounded-comparison.md): 537.6s Splinter / 82.1s shared Editor with verified closure. This does not qualify long-workload crossover, maze timing, storage/RAM peak or OS power loss.
+Current-candidate one-line Unity workflow timing is separately recorded in BC-01: 537.6s Splinter / 82.1s shared Editor with verified closure. This does not qualify long-workload crossover, maze timing, storage/RAM peak or OS power loss.
 
-[BS-01](verification/unity-bounded-scaling.md) varies actual generated C# compilation work across four levels in continuing sessions. The eight validation intervals save 142.0s, but the measured lifecycle adds 783.7s, including a 405.4s general Library restore after a stale PID deletion. Prior-state variation and the five-byte input exception remain explicit; neither a universal fixed delay nor a proportional multiplier is established.
+BS-01 varies actual generated C# compilation work across four levels in continuing sessions. The eight validation intervals save 142.0s, but the measured lifecycle adds 783.7s, including a 405.4s general Library restore after a stale PID deletion. Prior-state variation and the five-byte input exception remain explicit; neither a universal fixed delay nor a proportional multiplier is established.
 
-The subsequent controlled comparison was canceled to diagnose abnormal shutdown. [SD-01](verification/unity-shutdown-diagnosis.md) reproduces code-shape-dependent exit time without Splinter and records the current stop/reclamation boundary. BS-01 remains historical evidence; its table and conditional crossover are not current README performance claims. The exact managed caller and the last debugger diagnostic's closure remain unresolved.
+The subsequent controlled comparison was canceled to diagnose abnormal shutdown. SD-01 reproduces code-shape-dependent exit time without Splinter and records the current stop/reclamation boundary. BS-01 remains historical evidence; its table and conditional crossover are not current README performance claims. The exact managed caller and the last debugger diagnostic's closure remain unresolved.
