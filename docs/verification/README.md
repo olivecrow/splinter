@@ -12,6 +12,7 @@ Set estimates and stop boundaries before execution, following [AGENTS.md](../../
 
 ## Remaining qualification and retained state
 
+- [Current parallel workspace measurement](parallel-workspace-performance.md) compares the published tip with the current code on identical fresh native A/B inputs. The small current concurrent-completion pilot hit a shared metadata lease conflict; exact-request recovery passed. Matched serialized-completion measurements are 18.7% slower overall and do not qualify whole-Unity performance.
 - SCAL-01–08 qualification is incomplete. Full SCAL native lifecycle/fault qualification, 17GiB, comprehensive 100k original publication/reclamation, matched general performance, peak RSS and OS/power-loss behavior remain unqualified.
 - Small historical Git/None/Plastic and Unity runs were candidate/input-specific. They do not establish universal support, speedup, memory saving, parallel Play/Test/build performance or long-session break-even.
 - Large verification was curtailed after slow 100k phases. A separately authorized None recheck completed one 99,990-file write/capture/read-only-plan sequence; it did not publish original files, create a fresh causal ABBA comparison or complete the three-provider matrix.
