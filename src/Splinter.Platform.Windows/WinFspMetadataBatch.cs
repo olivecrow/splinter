@@ -26,8 +26,39 @@ public sealed partial class WinFspOverlayFileSystem
     private readonly Queue<PendingMetadata> waitingMetadata = new();
     private bool metadataBatchRunning;
     private long issuedMetadataTicket, completedMetadataTicket;
+    private long recentMutationServiceTicks = Stopwatch.Frequency / 1000;
     internal int PendingMetadataCount { get { lock (metadataQueueGate) return waitingMetadata.Count(item => item.Write is null); } }
     private int PendingMixedWriteCount { get { lock (metadataQueueGate) return waitingMetadata.Count(item => item.Write is not null); } }
+
+    private bool TryOpenIdle(string fileName, out DeltaEntry? entry, out HandleContext? context, out FileInfo info)
+    {
+        entry = null; context = null; info = default;
+        if (store is not IWorkspaceMutationBatch || !Monitor.TryEnter(mutationGate)) return false;
+        try
+        {
+            // Do not bypass even one accepted callback. Holding mutationGate
+            // reserves this idle admission before a later leader can execute.
+            lock (metadataQueueGate)
+                if (metadataBatchRunning || waitingMetadata.Count != 0) return false;
+            long started = WriteClock();
+            try
+            {
+                entry = store.Stat(fileName);
+                if (entry is not null)
+                {
+                    info = Info(entry); context = Retain(entry.Id);
+                    Interlocked.Increment(ref handles); Interlocked.Increment(ref contexts);
+                }
+                return true;
+            }
+            finally
+            {
+                long elapsed = WriteClock() - started;
+                writeTelemetry?.IdleOpen(elapsed); writeTelemetry?.Mutation("open", 0, elapsed);
+            }
+        }
+        finally { Monitor.Exit(mutationGate); }
+    }
 
     private FileInfo SubmitMetadata(string operation, Func<FileInfo> apply, Action? committed = null)
     {
@@ -70,21 +101,32 @@ public sealed partial class WinFspOverlayFileSystem
         }
         interruption?.Throw(); request.Failure?.Throw(); return request.Info;
     }
-    private void GatherConcurrentMutations()
+    private static bool Changes(PendingMetadata item) => item.Write is not null || item.Operation is "overwrite" or "set-basic-info" or "set-file-size";
+    private long GatherConcurrentMutations()
     {
-        if (store is not IWorkspaceMutationBatch || OpenHandles < 2) return;
-        static bool Changes(PendingMetadata item) => item.Write is not null || item.Operation is "overwrite" or "set-basic-info" or "set-file-size";
-        long until = Stopwatch.GetTimestamp() + Math.Max(1, Stopwatch.Frequency / 10000);
+        if (store is not IWorkspaceMutationBatch || OpenHandles < 2) return 0;
+        // Fast storage gets a short collection window; costly durable groups
+        // can amortize more of their barrier. Never sleep or hold the mutation
+        // gate while gathering, and never require an absent caller to arrive.
+        long started = Stopwatch.GetTimestamp();
+        long budget = Math.Clamp(Volatile.Read(ref recentMutationServiceTicks) / 8,
+            Math.Max(1, Stopwatch.Frequency / 50000), Math.Max(1, Stopwatch.Frequency / 4000));
+        long until = started + budget;
         while (OpenHandles > 1 && Stopwatch.GetTimestamp() < until)
         {
             lock (metadataQueueGate)
             {
-                if (!waitingMetadata.TryPeek(out var first) || !Changes(first) || waitingMetadata.Count(Changes) >= 2) return;
+                if (!waitingMetadata.TryPeek(out var first) || !Changes(first)) break;
+                int target = Math.Clamp(OpenHandles, 2, 8), changes = 0, inspected = 0;
+                foreach (var item in waitingMetadata)
+                {
+                    if (++inspected > IWorkspaceWriteBatch.MaximumWrites) break;
+                    if (Changes(item) && ++changes >= target) return Stopwatch.GetTimestamp() - started;
+                }
             }
-            // No timer sleep: synchronous callers retain their input. Yield
-            // at most 100us without holding either mutation or journal gates.
             Thread.Yield();
         }
+        return Stopwatch.GetTimestamp() - started;
     }
     private void CompleteMetadata(PendingMetadata request)
     {
@@ -99,10 +141,11 @@ public sealed partial class WinFspOverlayFileSystem
             PendingMetadata[] batch = []; ExceptionDispatchInfo? failure = null;
             PendingWrite[] writes = [];
             long acquired = 0, ended = 0;
+            long gathered = 0, serviceTicks = 0;
             IJournalWriteAccounting? accounting = null; JournalWriteAccounting? before = null;
             try
             {
-                GatherConcurrentMutations();
+                gathered = GatherConcurrentMutations();
                 lock (mutationGate)
                 {
                     lock (metadataQueueGate)
@@ -131,6 +174,7 @@ public sealed partial class WinFspOverlayFileSystem
                     acquired = WriteClock();
                     if (writeTelemetry is not null && batch.Any(item => item.Write is not null && item.Shared))
                     { accounting = store as IJournalWriteAccounting; before = accounting?.ReadWriteAccounting(); }
+                    long serviceStarted = Stopwatch.GetTimestamp();
                     try
                     {
                         var callbacks = batch.Select(item => (Action)(() => item.Info = item.Apply())).ToArray();
@@ -143,7 +187,15 @@ public sealed partial class WinFspOverlayFileSystem
                             try { item.Committed?.Invoke(); }
                             catch (Exception error) { item.Failure = ExceptionDispatchInfo.Capture(error); }
                     }
-                    finally { ended = WriteClock(); }
+                    finally
+                    {
+                        ended = WriteClock(); serviceTicks = Stopwatch.GetTimestamp() - serviceStarted;
+                        if (batch.Any(Changes))
+                        {
+                            long previous = Volatile.Read(ref recentMutationServiceTicks);
+                            Volatile.Write(ref recentMutationServiceTicks, previous / 2 + serviceTicks / 2);
+                        }
+                    }
                 }
             }
             catch (Exception error) { failure = ExceptionDispatchInfo.Capture(error); }
@@ -151,6 +203,9 @@ public sealed partial class WinFspOverlayFileSystem
             {
                 try
                 {
+                    if (batch.Length != 0)
+                        writeTelemetry?.MixedBatch(batch.Length, batch.Count(Changes), gathered,
+                            batch.Sum(item => acquired - item.Started), serviceTicks);
                     // Charge the outer durability interval once, after its
                     // ACK boundary, rather than charging each staged write's
                     // pre-flush interval or counting the shared flush N times.

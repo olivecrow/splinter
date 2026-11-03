@@ -42,7 +42,7 @@ public sealed partial class JournalDeltaStore
                     CollectDeadSegments(ct, boundary);
                     if (!File.Exists(Path.Combine(Path.GetDirectoryName(journal.Name)!, SegmentCollectionName)) &&
                         checked(segments.PayloadBytes + dataPayloadBytes) >= 4096)
-                        while (PackPartialSegments(ct, boundary)) ct.ThrowIfCancellationRequested();
+                        while (PackPartialSegments(ct, boundary, opportunistic: !force)) ct.ThrowIfCancellationRequested();
                 }
                 lastSegmentCollectionHead = segments.ActiveId;
             }

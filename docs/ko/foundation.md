@@ -1,3 +1,5 @@
+[ST-83–86](verification/scalable-storage-throughput-followup.md#st-8386)은 정확한 writer의 metadata append 추적·적응형 혼합 callback 결합/유휴 Open·후보 행만 구성하는 비용 기반 새 packed-object 회수를 연결한다. ACK/native/복구/형식은 유지한다. 국소 115개 통과/skip 2개, 1k 교대 구간 6.181599→4.666833초·flush 2,099→1,531이다. 새 100k/전체 gate 자격은 없으며 검증 선택의 26.835초 중단선 초과도 기록한다.
+
 [ST-79–82](verification/scalable-storage-throughput-followup.md#st-7982)는 Core 선택 `IWorkspaceMutationBatch`·제한된 혼합 native callback 진입·변경 없는 extent 저장 생략·private shadow 재생 batch를 연결한다. 영속 ACK·root/native/소유 증명·형식은 유지한다. 국소 106개 통과/선택 skip 3개이며 1k 교대 쓰기 구간은 개선했으나 일반 전체 블록 시간은 변동/악화했다. 보존 100k·전체 수명주기 자격은 추가하지 않는다.
 
 [ST-73–74](verification/scalable-storage-throughput-followup.md)는 요청 내 native 경로 증명·현재 leaf 검사/전체 순회 fallback과 metadata 헤더/페이지의 root ACK 전 영속 flush 결합을 연결한다. 변경 없는 flush 재사용은 열린 동일 writer 안에서만 허용하며 소유/control 경계는 유지한다. 최종 31파일·992바이트 ABBA 3.875355→3.677976초(5.09%), 변경부 20개 통과이며 대형/전체 gate 자격은 없다.

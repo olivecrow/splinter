@@ -606,3 +606,37 @@ Guard는 `ImmutableReadProofs`의 기존 **최대 4개** metadata reader 중 하
 기존 private 범위/이력/준비를 재사용하여 새 ABBA나 패치 인과 개선율은 아니다. 최초 `SourceCaptureUncertain`은 실험 직접 재시작이 작업 기록의 이전 PID/시작 lease를 유지해서 발생했으며, 정확한 같은 ensure·불변 요청으로 복구했다. 쓰기 반복이나 수동 상태 편집은 없다. 합산 재연결 **304.9382314초**는 새 기준본/A 준비 시간이 아니다. 잦은 영속 flush·범위 재배치/index 증폭·보존 선택에서 파일마다 `baseline.Find`가 catalog를 다시 여는 비용·현재 원본 metadata 순회/index 구성이 남은 후보다. 정확한 counter·stack·자격·identity는 [RECHECK-04](scalable-storage-throughput-diagnosis.md#recheck-04)와 [기계 보고서](../../../reports/benchmarks/throughput-resume-st79-20261103.json)가 소유한다.
 
 계획은 **변경 99,990개·충돌 0개**이며 이후 원본 반영은 실행하지 않았다. 인증된 정상 Stop 뒤 Provider/view 3개가 모두 없고 불변 결과 1개를 보존하며 미완료 capture/원본 반영 intent는 없다. 관리형 원본은 중단 상태이지 복원한 것이 아니다. Release/discard/restore·전체 수명주기/gate·고유 대형 asset/17GiB·Git/Plastic/Unity·OS 장애 자격을 추가하지 않는다.
+
+<a id="st-8386"></a>
+
+## 2026-11-03 ST-83–86: 쓰기 barrier·metadata append 버퍼·packing 작업량
+
+사용자가 [WRITE-COST-01](scalable-storage-throughput-diagnosis.md#write-cost-01)의 공격적 최적화를 요청했다. 시작점은 `a6430aa`이며 task v4/basis v3/overlay v3/SPM2·journal/control/CLI/wire 형식은 유지한다. 새 공개 capability·명령 필드는 없다. 이번 작업에서 보존한 100k task/기준본/Provider는 재개하거나 변경하지 않았다.
+
+| ID | 최종 구현 |
+| --- | --- |
+| ST-83 | 정확한 metadata writer 한 개가 append tail을 추적하여 page마다 파일 길이 조회/seek를 반복하지 않는다. 읽기가 이동시킨 위치는 복구하고 append/flush 실패 뒤 tail을 무효화·재조회한다. Native 쓰기/삭제 배제·재개/header 증명·영속 root ACK는 유지한다. 내부 `FlushIndexBatch` counter로 공유 저장 시간과 완전한 논리 node/page 바이트를 분리하며 영수증이나 물리 I/O counter가 아니다. |
+| ST-84 | 최근 처리 비용으로 명목상 **20–250µs** 협력적 yield와 가용 변경 **2–8개** 목표를 선택한다. Timer sleep이나 수집 중 mutation/journal gate 보유는 없다. **64개 단위·16MiB** 한도·callback별 영속성·poison/drain은 유지한다. 지원 store의 Open은 mutation gate에 대기 없이 진입하고 **대기 callback·실행 leader가 모두 없음**을 확인한 경우에만 직접 처리한다. 경쟁/대기 중인 Open은 FIFO와 영속화 뒤 handle 보관을 유지한다. 새 혼합/유휴 진단은 내부 필드다. |
+| ST-85 | **새 자동** packed→packed 후보만 기존 **4KiB** 조건과 함께 **dead 25% 이상**을 요구하여 live 복사를 dead 대비 **3:1** 이하로 제한한다. 최초 정상 journal packing·명시적 force·이미 진행 중인 요청은 전체 정리를 유지한다. 정렬 행은 공통 예산의 `MetadataSpool`/disk fallback을 사용하고 선택한 소스의 행만 영속 tree로 구성하며 같은 소스 묶음 안의 선택 증명을 재사용한다. 고정 root·조건부 재배치·native/hash fence·reader/unknown 보호는 유지한다. |
+| ST-86 | 변경부 ACK/실패/중단/버퍼/handle/root/재생 시험과 같은 요청 packing 복구를 검증한다. Scratch 예산 전체를 계상하되 실제 할당하지 않아 disk 정렬/spool fallback을 강제했다. 중간 비교와 절차 실패도 모두 보존한다. |
+
+최종 Release 빌드는 **28.88초·경고/오류 0개**다. 이후 시험만 재빌드하여 scratch pressure 경우를 추가했으며 제품 바이너리는 그대로다. **고유 115개 통과·실패 0개·선택 비용 skip 2개**: callback **49개 통과+skip 1개 / 5.331초**, packing reader/동시 편집/복구 **13개 / 11.253초**, metadata/read/write 보호 **48개+skip 1개 / 26.835초**, 최종 packing 접수/force/scratch **5개 / 9.941초**다. 대기 Open은 선행 영속 batch를 기다리고 실패/미승인 handle을 보관하지 않는다. Metadata header 부분 실패/재시도 뒤 과거 root를 보존하고 공유 index 변경을 정확히 재생했다. 미완료 force packing은 non-force 호출로도 같은 요청을 복구했다.
+
+**26.835초** 보호 시험 묶음은 선언한 **20초** 중단선을 놓쳤다. Class 전체 선택에 **32,769 / 262,145 / 1,048,576항목** metadata 경우(**0.912 / 4.826 / 18.492초**)가 잘못 포함됐다. Ctrl-C 요청 전에 이미 성공 종료하여 강제 종료나 실제 취소는 없었다. 선택/늦은 중단 절차 실패이며 통과로 지우지 않는다. Class 전체는 반복하지 않고 명시한 작은 append 실패 case를 통과한 뒤 native 측정을 재개했다. 우연히 실행한 component 경우를 100k 작업 흐름이나 전체 gate 자격으로 승계하지 않는다.
+
+| 최종 국소 비교 | 이전 | 이후 | 관측 차이 |
+| --- | ---: | ---: | ---: |
+| 고정 512-key metadata, 준비한 16 × 64 변경+영속 flush | 0.05358880초 | 0.03557495초 | **33.614953% 감소**; 같은 store/key/edit 논리 root와 재개 내용 |
+| 새 256파일 native ABBA, worker 8개 `Parallel.For` | 2.01280825초 | 1.53544880초 | **23.716092% 감소** |
+| 1,000파일 native AB/BA, 64파일 교대 구간 합계 | 6.18159940초 | 4.66683300초 | **24.504441% 감소**; flush **2,099→1,531회(27.060505% 감소)** |
+| 미리 packed한 512 × 256바이트 파일, 16파일씩 8회 truncate/회수 | 4.32486940초 | 2.69391125초 | **37.711154% 감소**; 별도 계측한 사용자 편집 시간 포함 |
+
+교대 native 프로세스는 단계 사이에 idle로 두고 실행 순서를 교대하며 양쪽에서 **application 작업 8개 동시 실행**·정상 unmount·전체 byte/seal 재생을 확인한다. 준비/admission·dispatch/idle·unmount·재생 검사는 쓰기 시간 밖이다. **연속 CLI/전체 작업 시간은 아니다**. Native/file identity와 host cache/부하는 통제하지 않았다. 후보에서 공유 index 저장 **0.4209377초**와 유휴 Open **2,208회**를 기록했지만 전체 metadata의 배타적 귀속이나 Open 하나의 분리된 인과 개선율은 아니다.
+
+Packing은 최초 준비 이후 target 게시 **8회→1회**, 새 raw payload target의 길이 합계 **901,120→98,304바이트(89.090909% 감소)**다. 양쪽 모두 마지막에 **live payload 98,304바이트**이며 별도 최종 강제 회수는 target을 더 게시하지 않고 모든 파일/seal을 재생했다. 새 target의 논리 길이 합계이지 물리 할당·전체 디스크 트래픽은 아니다. 이 component는 과거 작은 파일보다 파일별 private 바이트가 크므로 과거 입력의 시간이 아니다.
+
+중간 A(append/counter/초기 접수 정책)의 metadata **33.227095%**·native-256 **4.285628%** 감소 관측과 B(적응형 결합)의 native-256 **20.111691%**를 그대로 보존한다. C는 유휴 Open·후보 행만 구성하는 planner를 추가했다. 블록을 합치거나 독립 측정 블록 간 차이를 한 변경의 배타적 효과로 부르지 않는다.
+
+다른 보존 사건은 nullable output 컴파일 실패 **18.62초**, 새 timed test의 필수 취소 token 참조 누락 **28.56초**이며 검증 전에 수정했다. Class+method 필터로 0개 선택한 실행은 계상하지 않았다. Sandbox의 원자 rename 거부 5개는 이후 성공한 승인된 native 실행과 분리했다. Probe가 내부 `SetBatch`를 직접 호출한 컴파일 오류는 양쪽 고정 후보에 같은 reflection을 쓰도록 수정했다. 제품 처리량 개선으로 계상하지 않는다.
+
+최종 감사는 **잠재 view 경로 27개·실제 native view 15개**에서 **잔여 view·일치 probe 프로세스 0개**를 확인했다. 보존 100k Provider 3개는 이전 중단 관측 그대로이며 일치하는 살아 있는 PID/시작 identity·mount가 없다. 원본 게시·release/discard/restore·100k 재실행·전체 CLI/provider 수명주기·고유 대형 asset/17GiB·Git/Plastic/Unity·전체 gate·peak RSS·하드웨어 포화·OS 장애 자격은 없다. [기계 보고서](../../../reports/benchmarks/write-throughput-optimization-20261103.json)는 **소스/config hash 329개·바이너리 hash 32개**와 최종/중간 원시 블록·검증·종료 근거를 연결한다. 원시 근거는 `artifacts/write-throughput-20261103/`에 있다.

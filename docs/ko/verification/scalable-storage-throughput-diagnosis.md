@@ -4,6 +4,8 @@ RECHECK-03 병목의 사용자 요청 국소 수정·제한/변동 시간 검증
 
 커밋 이후 파일 쓰기 분석은 [WRITE-COST-01](#write-cost-01)이 소유하며 영속 barrier 지연·공유 index 저장 계측의 빈 구간·packing 증폭을 구분한다.
 
+요청한 공격적 국소 수정과 작은 입력 검증은 [ST-83–86](scalable-storage-throughput-followup.md#st-8386)에 기록했다. 1k 교대 쓰기 구간 24.504441% 감소·집중 115개 통과/skip 2개이며, 보존 100k는 이 변경으로 다시 실행하지 않았다.
+
 후속 사용자가 승인한 구현과 제한 검증은 [처리량 후속](scalable-storage-throughput-followup.md)에서 추적한다. 아래 기존 관측은 당시 증거로 유지한다.
 
 사용자가 요청한 준비 병목 수정과 최종 epoch 보호 후보의 검증은 [ST-75–78](scalable-storage-throughput-followup.md#st-7578-준비-경로와-node-조회-비용)이 소유한다. 아래 과거 실패/복구 시간과 새 측정은 구분한다.

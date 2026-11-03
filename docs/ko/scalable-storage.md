@@ -1,3 +1,7 @@
+[ST-83–86](verification/scalable-storage-throughput-followup.md#st-8386)은 정확한 writer의 metadata append 추적·적응형 혼합 callback 결합/유휴 Open·후보 행만 구성하는 비용 기반 새 packed-object 회수를 연결한다. ACK/native/복구/형식은 유지한다. 국소 115개 통과/skip 2개, 1k 교대 구간 6.181599→4.666833초·flush 2,099→1,531이다. 새 100k/전체 gate 자격은 없으며 검증 선택의 26.835초 중단선 초과도 기록한다.
+
+새 자동 packed→packed 회수는 기존 4KiB 간격에 더해 dead 25% 이상을 요구한다. 정상 journal→raw packing의 frame overhead 제거, 명시적 force와 진행 중 요청의 전체 정리는 유지한다. 공통 예산의 정렬 spool/disk fallback으로 후보를 고른 뒤 영속 행 tree를 구성한다. 유예는 live/unknown 자료 보존이며 회수 완료가 아니다. Metadata append-tail 재사용은 정확한 열린 writer 하나로 제한하고 append/flush 실패 뒤 무효화하며 native fence와 root 영속성은 유지한다.
+
 [ST-79–82](verification/scalable-storage-throughput-followup.md#st-7982)는 Core 선택 `IWorkspaceMutationBatch`·제한된 혼합 native callback 진입·변경 없는 extent 저장 생략·private shadow 재생 batch를 연결한다. 영속 ACK·root/native/소유 증명·형식은 유지한다. 국소 106개 통과/선택 skip 3개이며 1k 교대 쓰기 구간은 개선했으나 일반 전체 블록 시간은 변동/악화했다. 보존 100k·전체 수명주기 자격은 추가하지 않는다.
 
 # 대규모 소스·결과·metadata 저장

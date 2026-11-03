@@ -17,10 +17,24 @@ public sealed partial class JournalDeltaStore
     private MetadataTreeRoot? PathRoot => (paths as PagedPathNamespace)?.Root;
     private MetadataTreeRoot? HiddenRoot => (hidden as PagedSet<string>)?.Root;
     private MetadataTreeRoot? ChangeRoot => (pathChanges as PagedMap<string, long>)?.Root;
+    private long indexBatchCalls, indexBatchTicks, indexBatchNodes, indexBatchBytes;
+    internal (long Calls, long Ticks, long Nodes, long Bytes) ReadIndexBatchAccounting()
+    { lock (gate) return (indexBatchCalls, indexBatchTicks, indexBatchNodes, indexBatchBytes); }
     private void BeginIndexBatch()
     { pathComponents?.BeginBatch(); (nodes as PagedNodeMap)?.BeginBatch(); (paths as PagedPathNamespace)?.BeginBatch(); (pathChanges as PagedMap<string, long>)?.BeginBatch(); }
     private void FlushIndexBatch()
-    { (nodes as PagedNodeMap)?.Flush(); (paths as PagedPathNamespace)?.Flush(); (pathChanges as PagedMap<string, long>)?.Flush(); pathComponents?.Flush(); }
+    {
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var index = pagedIndex; long priorNodes = index?.AppendedNodes ?? 0, priorBytes = index?.AppendedPageBytes ?? 0;
+        try
+        { (nodes as PagedNodeMap)?.Flush(); (paths as PagedPathNamespace)?.Flush(); (pathChanges as PagedMap<string, long>)?.Flush(); pathComponents?.Flush(); }
+        finally
+        {
+            indexBatchCalls++; indexBatchTicks += System.Diagnostics.Stopwatch.GetTimestamp() - started;
+            indexBatchNodes += (index?.AppendedNodes ?? 0) - priorNodes;
+            indexBatchBytes += (index?.AppendedPageBytes ?? 0) - priorBytes;
+        }
+    }
     private void EndIndexBatch()
     { (nodes as PagedNodeMap)?.EndBatch(); (paths as PagedPathNamespace)?.EndBatch(); (pathChanges as PagedMap<string, long>)?.EndBatch(); pathComponents?.EndBatch(); }
 

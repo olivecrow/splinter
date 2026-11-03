@@ -12,6 +12,9 @@ internal sealed record WinFspWriteBatchSample(long Id, long FirstTicket, long La
 internal sealed record WinFspWriteStoreSample(long BatchId, int Chunks, int Bytes, string Reason,
     bool UsesBatch, long StartedTicks, long CompletedTicks, bool Failed, JournalWriteAccounting? Runtime);
 internal sealed record WinFspMutationTiming(string Operation, long Calls, long GateWaitTicks, long HeldTicks);
+internal sealed record WinFspMixedAdmission(long Groups, long Callbacks, long MutatingCallbacks,
+    long GatherTicks, long QueueWaitTicks, long ServiceTicks, long IdleOpens, long IdleOpenServiceTicks,
+    long[] CallbackBuckets, long StopwatchFrequency);
 internal sealed record WinFspWriteAdmissionObservation(int Version, long StopwatchFrequency, long ObservedTicks,
     long AcceptedCallbacks, long CompletedCallbacks, long ReturnedCallbacks, long FailedCallbacks, long FailedReturns, long RequestedBytes,
     long EffectiveBytes, long SuccessfulBytes, int MaxQueuedCallbacks, long MaxOutstandingCallbacks, long QueueResidenceTicks,
@@ -47,6 +50,21 @@ public sealed partial class WinFspOverlayFileSystem
         private long batchCount, batchGateWait, maxOutstanding, storeCalls, chunks, stagedBytes, chunkSplits, byteSplits, drainCalls, drainTicks, measuredCalls;
         private int maxQueued;
         private JournalWriteAccounting runtime;
+        private long mixedGroups, mixedCallbacks, mixedMutations, mixedGather, mixedQueue, mixedService;
+        private long idleOpens, idleOpenTicks;
+        private readonly long[] mixedBuckets = new long[7];
+        internal void MixedBatch(int callbacks, int changes, long gather, long queue, long service)
+        {
+            lock (gate)
+            {
+                mixedGroups++; mixedCallbacks += callbacks; mixedMutations += changes;
+                mixedGather += gather; mixedQueue += queue; mixedService += service;
+                mixedBuckets[callbacks switch { 0 => 0, 1 => 1, <= 3 => 2, <= 7 => 3, <= 15 => 4, < 64 => 5, _ => 6 }]++;
+            }
+        }
+        internal WinFspMixedAdmission ObserveMixed()
+        { lock (gate) return new(mixedGroups, mixedCallbacks, mixedMutations, mixedGather, mixedQueue, mixedService, idleOpens, idleOpenTicks, (long[])mixedBuckets.Clone(), Stopwatch.Frequency); }
+        internal void IdleOpen(long ticks) { lock (gate) { idleOpens++; idleOpenTicks += ticks; } }
 
         internal void Enqueued(uint length, int queued)
         { lock (gate) { accepted++; requestedBytes += length; maxQueued = Math.Max(maxQueued, queued); maxOutstanding = Math.Max(maxOutstanding, accepted - returned); } }
@@ -143,6 +161,8 @@ public sealed partial class WinFspOverlayFileSystem
 
     private readonly WriteTelemetry? writeTelemetry;
     internal WinFspWriteAdmissionObservation? ObserveWriteAdmission() => writeTelemetry?.Observe();
+    // Internal diagnostic only; no command/wire field or retained authority.
+    internal WinFspMixedAdmission? ObserveMixedAdmission() => writeTelemetry?.ObserveMixed();
     private long WriteClock() => writeTelemetry is null ? 0 : Stopwatch.GetTimestamp();
 
     private MutationLease EnterMutation(string operation)

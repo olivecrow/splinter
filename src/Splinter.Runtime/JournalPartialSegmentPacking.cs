@@ -180,10 +180,13 @@ public sealed partial class JournalDeltaStore
         }
         return pending;
     }
-    private bool PackPartialSegments(CancellationToken ct, Action<string>? boundary)
+    private bool PackPartialSegments(CancellationToken ct, Action<string>? boundary, bool opportunistic = false)
     {
         SegmentPackingJob? job;
         using (EnterGate()) { Check(); job = PendingPacking(); }
+        // An existing request always drains its original work. Cost admission
+        // applies only to a newly created opportunistic request, never recovery.
+        bool costAwarePackedSources = opportunistic && job is null;
         if (job is null)
         {
             using (EnterGate(mutation: true))
@@ -196,7 +199,7 @@ public sealed partial class JournalDeltaStore
             }
         }
         if (job.Phase == "cleanup") { FinishPacking(job); return false; }
-        if (job.Phase == "planning") job = BuildPackingPlan(job, ct);
+        if (job.Phase == "planning") job = BuildPackingPlan(job, ct, costAwarePackedSources);
         if (job.Rows.Count == 0) { FinishPacking(job); return false; }
         using var plan = new PagedMetadataStore(PackingIndex(job));
         if (job.Phase == "allocated")
@@ -293,7 +296,7 @@ public sealed partial class JournalDeltaStore
         try { sourceFilePins!.Verify(input, job.NativeIdentity ?? throw PagedInvalid()); if (input.Length != job.Bytes || Convert.ToHexStringLower(SHA256.HashData(input)) != job.Hash) throw PagedInvalid(); input.Position = 0; return input; }
         catch { input.Dispose(); throw; }
     }
-    private SegmentPackingJob BuildPackingPlan(SegmentPackingJob job, CancellationToken ct)
+    private SegmentPackingJob BuildPackingPlan(SegmentPackingJob job, CancellationToken ct, bool costAwarePackedSources)
     {
         WorkspaceStore.EnsurePlainPath(job.Directory); Directory.CreateDirectory(job.Directory); using var source = new PagedMetadataStore(job.IndexDirectory);
         string indexDirectory = PackingIndex(job);
@@ -324,21 +327,44 @@ public sealed partial class JournalDeltaStore
                 }
             }
         }
-        var all = work.Build(MetadataExternalSort.Order(Rows(), job.Directory, ct, sourceFilePins), ct);
+        // Keep the sorted rows in shared-budget binary scratch until source
+        // admission is known. Rejected mostly-live packed objects need no
+        // persistent row tree, while a spill still uses bounded disk cursors.
+        using var ordered = new MetadataSpool(job.Directory);
         var candidates = work.Empty; string? group = null; long union = 0, end = -1;
         void Select()
         {
             if (group is null) return; var descriptor = DecodeSegment(source.Open(job.Catalog).Find(group) ?? throw PagedInvalid());
-            if (descriptor.Length - union >= 4096 && union > 0)
+            long dead = descriptor.Length - union;
+            // Normal journals also discard frame overhead on their first
+            // packing. Already packed raw objects have no such benefit: keep
+            // opportunistic live copying to at most three bytes per dead byte.
+            // Explicit force and existing requests keep the complete cleanup.
+            bool worthwhile = !costAwarePackedSources || descriptor.Id >= 0 || dead >= descriptor.Length / 4 + (descriptor.Length % 4 == 0 ? 0 : 1);
+            if (dead >= 4096 && union > 0 && worthwhile)
                 candidates = work.Set(candidates, group, PackBytes(new PackingCandidate(descriptor, union)));
         }
-        foreach (var item in work.Open(all).Enumerate())
+        foreach (var item in MetadataExternalSort.Order(Rows(), job.Directory, ct, sourceFilePins))
         {
+            ct.ThrowIfCancellationRequested(); ordered.Append(item);
             var row = PackRead<RangeRelocation>(item.Value.Span); string key = PackKey(row.Source);
             if (key != group) { Select(); group = key; union = 0; end = -1; }
             long stop = checked(row.SourcePhysical + row.Length); union += Math.Max(0, stop - Math.Max(row.SourcePhysical, end)); end = Math.Max(end, stop);
         }
-        Select(); work.Flush();
+        Select();
+        IEnumerable<MetadataEntry> AdmittedRows()
+        {
+            string? admittedGroup = null; bool admitted = false;
+            foreach (var item in ordered.Read())
+            {
+                ct.ThrowIfCancellationRequested();
+                if (item.Key.Length < 17 || item.Key[16] != ':') throw PagedInvalid();
+                string key = item.Key[..16];
+                if (key != admittedGroup) { admittedGroup = key; admitted = work.Open(candidates).Find(key) is not null; }
+                if (admitted) yield return item;
+            }
+        }
+        var all = work.Build(AdmittedRows(), ct); work.Flush();
         job = SelectPackingUnit(job with { AllRows = all, Candidates = candidates }, work, ct); SavePacking(job); return job;
     }
     private SegmentPackingJob SelectPackingUnit(SegmentPackingJob job, PagedMetadataStore work, CancellationToken ct)
@@ -351,7 +377,7 @@ public sealed partial class JournalDeltaStore
             if (candidate.LiveBytes > JournalSegmentStorage.DefaultAppendBytes - total) break;
             selected = work.Set(selected, item.Key, EncodeSegment(candidate.Segment)); total += candidate.LiveBytes; first ??= item.Key; last = item.Key;
         }
-        long targetAt = 0, basePhysical = 0, baseTarget = 0, end = -1; string? group = null;
+        long targetAt = 0, basePhysical = 0, baseTarget = 0, end = -1; string? group = null, selectedGroup = null; bool groupSelected = false;
         IEnumerable<MetadataEntry> Mapped()
         {
             if (first is null) yield break;
@@ -359,7 +385,8 @@ public sealed partial class JournalDeltaStore
             {
                 ct.ThrowIfCancellationRequested(); var row = PackRead<RangeRelocation>(item.Value.Span); string key = PackKey(row.Source);
                 if (StringComparer.Ordinal.Compare(key, last) > 0) break;
-                if (work.Open(selected).Find(key) is null) continue;
+                if (key != selectedGroup) { selectedGroup = key; groupSelected = work.Open(selected).Find(key) is not null; }
+                if (!groupSelected) continue;
                 if (key != group) { group = key; end = -1; }
                 if (row.SourcePhysical > end) { basePhysical = row.SourcePhysical; baseTarget = targetAt; }
                 long stop = checked(row.SourcePhysical + row.Length); targetAt += Math.Max(0, stop - Math.Max(row.SourcePhysical, end)); end = Math.Max(end, stop);

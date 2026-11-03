@@ -173,7 +173,7 @@ public sealed partial class WinFspOverlayFileSystem : FileSystemBase
     {
         fileNode = fileDesc = null!; fileInfo = default; normalizedName = null!;
         DeltaEntry? entry = null; HandleContext? context = null;
-        fileInfo = SubmitMetadata("open", () =>
+        if (!TryOpenIdle(fileName, out entry, out context, out fileInfo)) fileInfo = SubmitMetadata("open", () =>
         {
             entry = store.Stat(fileName); return entry is null ? default : Info(entry);
         }, () =>

@@ -4,6 +4,8 @@ The user-requested local fixes for RECHECK-03 and their bounded/variable timing 
 
 Post-commit file-write attribution is [WRITE-COST-01](#write-cost-01): durable-barrier latency, a shared index-persistence timing gap and packing amplification remain distinct costs.
 
+The requested aggressive local fixes and small-input verification are now [ST-83–86](scalable-storage-throughput-followup.md#st-8386). Their 1k paired write intervals improve 24.504441%, with 115 focused passes/two skips; the retained 100k has not been rerun with these changes.
+
 The subsequent user-authorized implementation and bounded verification are tracked in the [throughput follow-up](scalable-storage-throughput-followup.md). The original observations below remain historical evidence.
 
 The user-requested preparation fixes and final guarded-candidate checks are [ST-75–78](scalable-storage-throughput-followup.md#st-7578-preparation-path-and-node-lookup-costs). Keep the earlier failed/recovered timings below separate from those new measurements.

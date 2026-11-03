@@ -14,7 +14,7 @@
 
 ## Windows 요청 수집
 
-선택 `IWorkspaceMutationBatch`는 같은 소유 journal의 범위/metadata callback을 함께 처리한다. WinFsp는 지원 store의 Open/Overwrite를 포함해 공통 FIFO를 사용하고, 공유 경계당 최대 callback/chunk 단위 64개·요청 staging 16MiB를 유지한다. 여러 핸들이 열려 있으면 변경 leader만 mutation/journal gate 진입 전에 100µs monotonic 기한까지 yield한다. Timer sleep이나 내구성 전 성공 반환은 없다. 큰 callback은 기존 분할 경계를, 미지원/복합 store는 개별 store fallback을 유지한다. 실패 prefix·버퍼 lease·순서 있는 drain·flush 뒤 계측은 보호한다. 국소 자격과 불리한 시간 블록은 [ST-79–82](verification/scalable-storage-throughput-followup.md#st-7982)를 참조한다.
+선택 `IWorkspaceMutationBatch`는 같은 소유 journal의 범위/metadata callback을 함께 처리하며 공유 경계당 최대 callback/chunk 단위 64개·요청 staging 16MiB를 유지한다. 여러 핸들이 열려 있으면 변경 leader가 최근 처리 비용에 따라 명목상 20–250µs의 협력적 yield와 가용 변경 2–8개 목표를 선택한 뒤 mutation/journal gate에 진입한다. 실시간 지연 보장은 아니며 timer sleep이나 영속화 전 성공 반환은 없다. 지원 store의 Open은 mutation gate에 대기 없이 진입하고 접수 대기 callback·실행 leader가 모두 없음을 확인한 경우에만 직접 처리한다. 그 외 Open/Overwrite는 공통 FIFO와 영속화 뒤 handle 보관을 유지한다. 큰 callback은 기존 분할 경계를, 미지원/복합 store는 개별 store fallback을 유지한다. 실패 prefix·버퍼 lease·순서 있는 drain·flush 뒤 계측은 보호한다. 현재 국소 근거는 [ST-83–86](verification/scalable-storage-throughput-followup.md#st-8386), 과거 변동/불리한 블록은 [ST-79–82](verification/scalable-storage-throughput-followup.md#st-7982)를 참조한다. 새 혼합 접수/공유 index counter는 내부 진단이며 공개 명령 필드나 영속 영수증이 아니다.
 
 SCAL 처리량 후속은 최대 64개의 동기 metadata 변경을 받는 앱/OS 중립 `IWorkspaceMetadataBatch` 계약도 제공한다. WinFsp는 mutation gate 앞에서 동시 크기/시간 callback을 모으고 소유 저널의 공유 영속 flush 뒤 ACK한다. 명시적 flush/capture는 접수된 metadata와 쓰기 ticket을 모두 drain한다. 실패한 묶음은 불확정 prefix를 보존하고 replay를 요구하며 SJL4는 개별 capsule 경계를 유지한다. [ST-10 검증](verification/scalable-storage-throughput-followup.md)을 참조한다.
 

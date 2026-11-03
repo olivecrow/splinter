@@ -28,10 +28,16 @@ public sealed partial class PagedMetadataStore : IDisposable
     private readonly IRequestPathGuard? pathGuard;
     private bool needsDurableFlush;
     internal long DurableFlushes { get; private set; }
+    internal long AppendedPageBytes { get; private set; }
+    internal long AppendedNodes { get; private set; }
     private readonly object gate = new();
     private readonly FileStream? writerLease;
     private readonly FileStream? readerLease;
     private FileStream? output;
+    // This exact writer denies foreign writes/deletes. Reads may move its
+    // position, but only successful appends advance the logical tail. Requery
+    // after a failed append/flush; never overwrite an unacknowledged prefix.
+    private long appendOffset = -1;
     private readonly Dictionary<long, ContainerReader> readers = [];
     private readonly LinkedList<long> readerRecent = [];
     internal long CacheInvalidationVisits { get; private set; }
@@ -279,7 +285,8 @@ public sealed partial class PagedMetadataStore : IDisposable
     private void FlushOutput()
     {
         if (!needsDurableFlush) return;
-        output!.Flush(true); needsDurableFlush = false; DurableFlushes++;
+        try { output!.Flush(true); needsDurableFlush = false; DurableFlushes++; }
+        catch { appendOffset = -1; throw; }
     }
     private void EnsureStorePath(string path)
     { if (pathGuard?.TryEnsurePlainPath(path) != true) WorkspaceStore.EnsurePlainPath(path); }
@@ -304,15 +311,25 @@ public sealed partial class PagedMetadataStore : IDisposable
         byte[] body = Encode(node); byte[] hash = logicalHash ?? LogicalHash(node);
         int bytes = checked(PageHeaderBytes + body.Length);
         if (bytes > MaximumPageBytes) throw Invalid("Split a metadata value into pages before storing it.");
-        if (output!.Length > ContainerTargetBytes - bytes)
+        long offset = appendOffset >= 0 ? appendOffset : output!.Length;
+        if (offset > ContainerTargetBytes - bytes)
         {
             CacheInvalidationVisits += PageCache.Remove(cacheScope + "/" + container + "/");
-            FlushOutput(); output.Dispose(); output = null; readProofEpoch++; container = checked(container + 1); OpenOutput();
+            FlushOutput(); output!.Dispose(); output = null; readProofEpoch++; container = checked(container + 1); OpenOutput();
+            offset = appendOffset;
         }
-        long offset = output!.Length; output.Position = offset;
+        // Seeking to the tail for every tiny page defeats FileStream's write
+        // buffer. Restore it only if a read actually moved the position.
+        if (output!.Position != offset) output.Position = offset;
         Span<byte> header = stackalloc byte[PageHeaderBytes]; "SPN1"u8.CopyTo(header);
         BinaryPrimitives.WriteInt32LittleEndian(header[4..], body.Length);
-        SHA256.HashData(body, header[8..]); needsDurableFlush = true; output.Write(header); boundary?.Invoke("metadata.page-header-written"); output.Write(body);
+        SHA256.HashData(body, header[8..]); needsDurableFlush = true;
+        try
+        {
+            output.Write(header); boundary?.Invoke("metadata.page-header-written"); output.Write(body);
+            appendOffset = checked(offset + bytes); AppendedNodes++; AppendedPageBytes += bytes;
+        }
+        catch { appendOffset = -1; throw; }
         var reference = new MetadataPageReference(container, offset, bytes,
             checked(1 + (node.Left?.Count ?? 0) + (node.Right?.Count ?? 0)), Convert.ToHexStringLower(hash));
         PageCache.Add(CacheKey(reference), node, bytes); return reference;
@@ -543,7 +560,7 @@ public sealed partial class PagedMetadataStore : IDisposable
             output.Write(header, prior.Length, header.Length - prior.Length); output.Flush();
         }
         else CheckContainer(output);
-        output.Position = output.Length;
+        output.Position = appendOffset = output.Length;
     }
     private void CheckContainer(FileStream input)
     {
