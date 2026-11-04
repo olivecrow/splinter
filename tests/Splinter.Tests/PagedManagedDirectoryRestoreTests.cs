@@ -316,6 +316,49 @@ public sealed class PagedManagedDirectoryRestoreTests
         Assert.True(observed); Assert.False(Directory.Exists(fixture.Request.DeltaPath));
     }
 
+    [Theory]
+    [InlineData("restore.after-proof")]
+    [InlineData("unchanged.file-metadata-applied")]
+    public async Task UnchangedPagedRestorePreservesAnAdditionAfterPhysicalProofWithoutAcknowledgingOrReclaiming(string point)
+    {
+        using var fixture = new Fixture(extraFiles: 17, rename: false, mutate: false, deep: true);
+        string unknown = Path.Combine(fixture.State.OriginalPath, "dir", "unowned"); bool injected = false;
+        var manifest = new OwnedDirectorySnapshotProvider(fixture.State.Basis.ReceiptDirectory, fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot);
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() => ManagedPagedDirectoryRestore.ExecuteAsync(
+            fixture.State, fixture.Request, manifest, TestContext.Current.CancellationToken, stage =>
+            {
+                if (stage != point) return;
+                File.WriteAllBytes(unknown, [37]); injected = true;
+            }));
+        Assert.True(injected); Assert.Equal("GeneratedRestoreConflict", error.Code);
+        Assert.Equal(new byte[] { 37 }, File.ReadAllBytes(unknown)); Assert.True(Directory.Exists(fixture.Request.DeltaPath));
+        using var cursor = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixture.State.Basis.ReceiptDirectory, "paged-restore-cursor.json")));
+        Assert.False(cursor.RootElement.GetProperty("filesVerified").GetBoolean());
+        Assert.False(File.Exists(Path.Combine(fixture.State.Basis.ReceiptDirectory, "paged-restore-reclaim.bin")));
+        foreach (string file in Directory.EnumerateFiles(fixture.State.OriginalPath, "*", SearchOption.AllDirectories))
+        { using var released = new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None); }
+    }
+
+    [Fact]
+    public async Task UnchangedPagedRestoreFencesEveryLeafThroughMetadataAndVerifiedPublication()
+    {
+        using var fixture = new Fixture(extraFiles: 17, rename: false, mutate: false, deep: true); int checks = 0;
+        var manifest = new OwnedDirectorySnapshotProvider(fixture.State.Basis.ReceiptDirectory, fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot);
+        await ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, TestContext.Current.CancellationToken, stage =>
+        {
+            if (stage is not ("restore.after-proof" or "unchanged.file-metadata-applied" or "restore.after-verified")) return;
+            foreach (string file in Directory.EnumerateFiles(fixture.State.OriginalPath, "*", SearchOption.AllDirectories))
+            {
+                Assert.Throws<IOException>(() => { using var writer = new FileStream(file, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete); });
+                Assert.Throws<IOException>(() => File.Delete(file));
+                Assert.Throws<IOException>(() => File.Move(file, file + ".foreign"));
+                checks++;
+            }
+            Assert.Throws<WorkspaceException>(() => { using var replacement = ManagedRestoreFileAccess.DirectoryHandle(fixture.State.OriginalPath, moving: true); });
+        });
+        Assert.Equal(3 * 20, checks); Assert.False(Directory.Exists(fixture.Request.DeltaPath));
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly TestDirectory directory = new();

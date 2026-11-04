@@ -204,6 +204,60 @@ public sealed class JournalRangeAdoptionTests
         byte[] result = new byte[11]; Assert.Equal(result.Length, reopened.Read(file, 0, result)); Assert.Equal("fiXYt-value"u8.ToArray(), result);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void LiveIndexCatchUpRetainsAdmissionsAndCompletedAdoptionAcrossInterruptedCopy(bool reopen, bool missingProof)
+    {
+        using var root = new TestDirectory(); var basis = new SnapshotOverlayTests.FakeSnapshotTree();
+        basis.Files["Assets/observed"] = "basis"u8.ToArray(); basis.Files["replaced"] = "old"u8.ToArray();
+        var pins = new WindowsJournalFilePins(); var content = new Content();
+        var identity = new OverlayIdentity(3, "adoption-copy-tail", basis.Snapshot, long.MaxValue, 65536);
+        string delta = Path.Combine(root.Path, "delta"), id = new('e', 24), capturePath = Path.Combine(root.Path, "captures", id);
+        using var writer = new JournalDeltaStore(delta, identity, basis, sourceFilePins: pins, capturedContentReader: content);
+        var file = writer.Create("source", false, 32); writer.Write(file.Id, 0, "kept"u8);
+        var displaced = writer.Stat("replaced")!; var incoming = writer.Create("incoming", false, 32); writer.Write(incoming.Id, 0, "next"u8);
+        var capture = writer.CaptureSource(capturePath, id, []); CapturedPrivateSourceRange range;
+        using (var frozen = new SourceCaptureTree(capturePath, basis, pins, content)) range = Assert.Single(frozen.GetFileRanges("source")!.PrivateRanges);
+        CapturedRangeAdoptionStore.Publish(root.Path, new(id, capture.Sequence, capture.Digest),
+            [new(file.Id, 0, 4, range.BlockIdentity!, range.BlockOffset, content.Add("kept"u8.ToArray()), 0, false, 4)], pins, TestContext.Current.CancellationToken);
+        Guid observed = default; bool changed = false; var seal = writer.Seal();
+        void Boundary(string point)
+        {
+            if (point != "metadata.repack-payload-durable" || changed) return;
+            changed = true; observed = writer.Stat("Assets/observed")!.Id;
+            writer.Rename(incoming.Id, "replaced", true); writer.ReleaseUnlinkedFile(displaced.Id);
+            writer.AdoptCapturedRanges(root.Path, id, TestContext.Current.CancellationToken);
+            seal = writer.Seal();
+            if (reopen) throw new IOException("interrupted after durable adoption and basis admission");
+        }
+        if (reopen) Assert.Throws<IOException>(() => writer.CollectLiveMetadata(true, TestContext.Current.CancellationToken, Boundary));
+        else writer.CollectLiveMetadata(true, TestContext.Current.CancellationToken, Boundary);
+        Assert.True(changed);
+        writer.Dispose();
+        using var resumed = new JournalDeltaStore(delta, identity, basis, sourceFilePins: pins, capturedContentReader: content);
+        if (missingProof)
+        {
+            string artifact = CapturedRangeAdoptionStore.Artifact(root.Path, id), held = Path.Combine(root.Path, "held-owned-proof");
+            string intent = Path.Combine(delta, "live-repack.json"); byte[] exactRequest = File.ReadAllBytes(intent);
+            File.Move(artifact, held);
+            Assert.Throws<WorkspaceException>(() => resumed.CollectLiveMetadata(true, TestContext.Current.CancellationToken));
+            Assert.Equal(exactRequest, File.ReadAllBytes(intent)); Assert.Equal(seal, resumed.Seal());
+            File.Move(held, artifact);
+        }
+        resumed.CollectLiveMetadata(true, TestContext.Current.CancellationToken);
+        Assert.Equal(seal, resumed.Seal()); Assert.Equal("Assets/observed", resumed.Get(observed).Path);
+        Assert.Equal(incoming.Id, resumed.Stat("replaced")!.Id);
+        Assert.Throws<FileNotFoundException>(() => resumed.Get(displaced.Id));
+        byte[] bytes = new byte[4]; Assert.Equal(4, resumed.Read(file.Id, 0, bytes)); Assert.Equal("kept"u8.ToArray(), bytes);
+        using (var frozen = new SourceCaptureTree(capturePath, basis, pins, content))
+        { Assert.Equal(4, frozen.Read("source", 0, bytes)); Assert.Equal("kept"u8.ToArray(), bytes); }
+        Assert.False(File.Exists(Path.Combine(delta, "live-repack.json")));
+        using var state = JsonDocument.Parse(File.ReadAllText(Path.Combine(delta, "segment-state.json")));
+        Assert.Equal(1, state.RootElement.GetProperty("roots").GetProperty("adoptions").GetProperty("page").GetProperty("count").GetInt64());
+    }
+
     [Fact]
     public void PendingLiveIndexCopyDoesNotRepeatPreparationWhileACursorPreventsPublication()
     {
