@@ -57,6 +57,13 @@ public sealed partial class PagedMetadataStore : IDisposable
     {
         get { lock (gate) return disposed || !writable || readThrough is not null || hasWriteSharedReads ? null : readProofEpoch; }
     }
+    // A derived read may be reused only while every container observed in
+    // its lookup retains its immutable native fence. Eviction and write-shared
+    // reads revoke it; callers must also bind their immutable logical root.
+    public long? ImmutableReadProofEpoch
+    {
+        get { lock (gate) return disposed || readThrough is not null || hasWriteSharedReads ? null : readProofEpoch; }
+    }
     private LocationMap? locations;
     private PagedMetadataStore? readThrough;
     private long readThroughLastContainer;

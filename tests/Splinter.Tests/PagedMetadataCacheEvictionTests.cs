@@ -43,10 +43,12 @@ public sealed class PagedMetadataCacheEvictionTests
         var counted = new CountingPins(native); using var reader = new PagedMetadataStore(directory, filePins: counted);
         for (int index = 0; index < capacity; index++) Assert.Equal(new byte[] { (byte)index }, reader.Open(roots[index]).Find("key"));
         Assert.Equal(capacity, counted.Verifications); long before = reader.CacheInvalidationVisits;
+        Assert.NotNull(reader.ImmutableReadProofEpoch); long proofEpoch = reader.ImmutableReadProofEpoch.Value;
         Assert.Equal(new byte[] { (byte)capacity }, reader.Open(roots[capacity]).Find("key"));
         Assert.InRange(reader.CacheInvalidationVisits - before, 0, 1);
         Assert.Equal(new byte[] { (byte)(capacity + 1) }, reader.Open(roots[capacity + 1]).Find("key"));
         Assert.Equal(capacity + 2, counted.Verifications);
+        Assert.True(reader.ImmutableReadProofEpoch is { } currentEpoch && currentEpoch > proofEpoch);
         for (int index = 0; index < 100; index++)
         {
             Assert.Equal(new byte[] { (byte)capacity }, reader.Open(roots[capacity]).Find("key"));
@@ -62,6 +64,7 @@ public sealed class PagedMetadataCacheEvictionTests
         Assert.InRange(PagedMetadataStore.CachedMetadataBytes, 0, StorageResources.MetadataCacheBytes);
         Assert.Equal(4096, unrelated.Open(unrelatedRoot).Enumerate().LongCount());
         reader.Dispose();
+        Assert.Null(reader.ImmutableReadProofEpoch);
         using var released = new FileStream(hot, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
     }
 

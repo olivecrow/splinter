@@ -11,13 +11,13 @@ namespace Splinter.Platform.Windows;
 // Large managed originals use a frozen directory catalog, GUID-addressed file
 // records and range roots. Progress is one small durable cursor. Original bytes
 // are moved and private ranges replayed; unchanged payload is never copied.
-internal static class ManagedPagedDirectoryRestore
+internal static partial class ManagedPagedDirectoryRestore
 {
     private const string PlanName = "paged-restore-plan.json", CursorName = "paged-restore-cursor.json", PrepareName = "paged-restore-prepare.json";
     private sealed record Preparation(int Version, GeneratedDirectoryReference Basis, SnapshotDeltaSeal Seal, string Directory);
     private sealed record Plan(int Version, GeneratedDirectoryReference Basis, SnapshotDeltaSeal Seal, string Directory,
         SnapshotCatalogDescriptor Catalog, MetadataTreeRoot Files, MetadataTreeRoot Names,
-        SnapshotCatalogDescriptor CleanupCatalog, string BasisRootIdentity, bool RootMove);
+        SnapshotCatalogDescriptor CleanupCatalog, string BasisRootIdentity, bool RootMove, bool Unchanged = false);
     private sealed record Cursor(string PlanHash, string? AfterPath, long Completed, bool FilesVerified = false);
     private sealed record FileRecord(DeltaEntry Entry, string FinalHash, string RetainedHash, string Identity, string? Staging, MetadataTreeRoot Ranges);
     internal static bool HasPlan(string root) => File.Exists(Path.Combine(root, PlanName)) || File.Exists(Path.Combine(root, PrepareName));
@@ -54,10 +54,33 @@ internal static class ManagedPagedDirectoryRestore
             Directory.CreateDirectory(prepare.Directory);
             using var records = new PagedMetadataStore(Path.Combine(prepare.Directory, "records"), writable: true);
             using var fileRecords = new MetadataSpool(prepare.Directory);
-            var names = new RestoreNames(records); MetadataTreeRoot files = records.Empty;
+            using var names = new RestoreNames(records, prepare.Directory); MetadataTreeRoot files = records.Empty;
             string basisRootIdentity;
             using (var pin = ManagedRestoreFileAccess.DirectoryHandle(state.Basis.Snapshot.RootPath, metadataWrite: false))
                 basisRootIdentity = SnapshotInputChecks.FileIdentity(pin, directory: true);
+            if (state.ApplicationKind == "unity" && state.DirectoryKind == "Library" && state.Basis.RelativePath == "Library" && seal.DurableSequence == 0 &&
+                SameNamespace(source, manifest, ct))
+            {
+                ManagedUnchangedDirectoryRestore.ValidateManifest(state, manifest);
+                // The full basis reader already holds and hashes every file.
+                // Record those exact held identities, without reopening leaves
+                // or manufacturing GUID/range/path-name records for no changes.
+                var fixedCatalog = PagedSnapshotCatalog.Build(Path.Combine(prepare.Directory, "cleanup"), originalItems[""].Entry,
+                    originalItems.Values.Where(item => item.Entry.Path.Length != 0).Select(item =>
+                        new DirectoryMetadataRecord(item.Entry, item.Hash, SourceReference: basis.RestoreIdentity(item.Entry.Path))), ct: ct);
+                plan = new(3, state.Basis, seal, prepare.Directory, fixedCatalog, records.Empty, records.Empty,
+                    fixedCatalog, basisRootIdentity, true, Unchanged: true);
+                using (var membership = new PagedSnapshotCatalog(Path.Combine(prepare.Directory, "cleanup"), fixedCatalog))
+                    if (KnownMembership(state.Basis.Snapshot.RootPath, membership, prepare.Directory, ct) != manifest.ItemCount) throw Conflict();
+                if (source.Seal() != seal) throw Conflict("The stopped journal changed during unchanged planning.");
+                records.Flush(); await WindowsProcessWorkspaceProvider.WriteAsync(planPath, plan, ct); boundary?.Invoke("restore.plan-published");
+                Directory.CreateDirectory(Path.GetDirectoryName(state.OriginalPath)!);
+                using var ancestry = new ManagedRestoreFileAccess(state.Basis.Snapshot.RootPath, state.OriginalPath);
+                using var moving = basis.TransferRootToRestore(() => boundary?.Invoke("directory.root-unpinned"));
+                basis.Dispose(); source.Dispose();
+                boundary?.Invoke("unchanged.after-readers-closed");
+                await FinishUnchanged(state, request, manifest, plan, moving, ct, boundary); return;
+            }
             IEnumerable<DirectoryMetadataRecord> CleanupEntries()
             {
                 foreach (var item in originalItems.Values)
@@ -140,6 +163,7 @@ internal static class ManagedPagedDirectoryRestore
             IEnumerable<DirectoryMetadataRecord> Remaining()
             { if (hasFirst) yield return enumerator.Current; while (enumerator.MoveNext()) yield return enumerator.Current; }
             var catalog = PagedSnapshotCatalog.Build(Path.Combine(prepare.Directory, "paths"), rootEntry, Remaining(), ct: ct);
+            names.Complete(ct);
             files = records.Build(MetadataExternalSort.Order(fileRecords.Read(), prepare.Directory, ct), ct);
             using (var finalCatalog = new PagedSnapshotCatalog(Path.Combine(prepare.Directory, "paths"), catalog))
                 foreach (var original in cleanupReader.Walk().Where(i => i.Entry.Directory))
@@ -150,6 +174,7 @@ internal static class ManagedPagedDirectoryRestore
             await WindowsProcessWorkspaceProvider.WriteAsync(planPath, plan, ct); boundary?.Invoke("restore.plan-published");
         }
         if (plan.Version != 3 || plan.Basis != state.Basis || !WorkspaceStore.SamePath(Path.GetDirectoryName(plan.Directory)!, root)) throw Conflict();
+        if (plan.Unchanged) { await FinishUnchanged(state, request, manifest, plan, null, ct, boundary); return; }
         string planHash = ManagedDirectoryBasis.HashFile(planPath);
         using var catalogReader = new PagedSnapshotCatalog(Path.Combine(plan.Directory, "paths"), plan.Catalog);
         using var fileStore = new PagedMetadataStore(Path.Combine(plan.Directory, "records")); var pathNames = new RestoreNames(fileStore) { Root = plan.Names };
@@ -157,7 +182,7 @@ internal static class ManagedPagedDirectoryRestore
         if (cursor.PlanHash != planHash || cursor.Completed < 0 || cursor.Completed > plan.Files.Count) throw Conflict();
         using var movedRoot = plan.RootMove ? MoveRootIfNeeded(state, plan, ct, boundary) : null;
         if (plan.RootMove) StageDeletedLeaves(state, plan, catalogReader, fileStore, pathNames, cursor.FilesVerified, movedRoot!, ct, boundary);
-        RejectForeign(state.OriginalPath, catalogReader);
+        RejectForeign(state.OriginalPath, catalogReader, plan.Directory, ct);
         if (!cursor.FilesVerified)
         {
             foreach (var directory in catalogReader.Walk().Where(i => i.Entry.Directory))
@@ -262,7 +287,7 @@ internal static class ManagedPagedDirectoryRestore
             }
             await FlushUnchanged();
             if (completed != plan.Files.Count) throw Conflict();
-            RejectForeign(state.OriginalPath, catalogReader);
+            RejectForeign(state.OriginalPath, catalogReader, plan.Directory, ct);
             foreach (var directory in PostOrderDirectories(catalogReader))
             {
                 if (movedRoot is not null && directory.Path.Length == 0) ManagedRestoreFileAccess.Metadata(movedRoot, directory);
@@ -366,6 +391,14 @@ internal static class ManagedPagedDirectoryRestore
                     var files = new List<FileStream>(); long seen = 1;
                     try
                     {
+                        var pending = new List<(FileStream File, string Hash)>(ManagedDirectoryRestore.CursorBatchSize);
+                        void VerifyPending()
+                        {
+                            OwnedDirectorySnapshotTree.ParallelFiles(pending, item =>
+                            { if (Hash(item.File) != item.Hash) throw Conflict("Basis content changed before the root move."); },
+                                OwnedDirectorySnapshotTree.DefaultWorkers, ct);
+                            pending.Clear();
+                        }
                         foreach (var item in catalog.Walk())
                         {
                             ct.ThrowIfCancellationRequested(); if (item.Entry.Path.Length == 0) continue;
@@ -378,14 +411,12 @@ internal static class ManagedPagedDirectoryRestore
                             {
                                 var pin = ManagedRestoreFileAccess.Read(PathOf(state.Basis.Snapshot.RootPath, item.Entry.Path), proof: proof); files.Add(pin);
                                 ManagedRestoreFileAccess.Require(pin, item.SourceReference ?? throw Conflict());
-                                if (Hash(pin) != item.ContentHash) throw Conflict("Basis content changed before the root move.");
+                                pending.Add((pin, item.ContentHash ?? throw Conflict()));
+                                if (pending.Count == ManagedDirectoryRestore.CursorBatchSize) VerifyPending();
                             }
                         }
-                        foreach (string path in Directory.EnumerateFileSystemEntries(state.Basis.Snapshot.RootPath, "*", SearchOption.AllDirectories))
-                        {
-                            WorkspaceStore.EnsurePlainPath(path); var item = catalog.Find(Path.GetRelativePath(state.Basis.Snapshot.RootPath, path).Replace('\\', '/'));
-                            if (item is null || item.Entry.Directory != Directory.Exists(path)) throw Conflict(); seen++;
-                        }
+                        VerifyPending();
+                        seen = KnownMembership(state.Basis.Snapshot.RootPath, catalog, plan.Directory, ct);
                         if (seen != catalog.Descriptor.Count) throw Conflict("Basis membership changed before the root move.");
                     }
                     finally { foreach (var pin in files) pin.Dispose(); }
@@ -477,15 +508,40 @@ internal static class ManagedPagedDirectoryRestore
         }
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
-    private static void RejectForeign(string root, PagedSnapshotCatalog catalog)
+    private static void RejectForeign(string root, PagedSnapshotCatalog catalog, string scratch, CancellationToken ct)
+        => _ = KnownMembership(root, catalog, scratch, ct);
+
+    private static long KnownMembership(string root, PagedSnapshotCatalog catalog, string scratch, CancellationToken ct)
     {
-        WorkspaceStore.EnsurePlainPath(root); if (!Directory.Exists(root)) return;
-        foreach (string path in Directory.EnumerateFileSystemEntries(root, "*", SearchOption.AllDirectories))
+        WorkspaceStore.EnsurePlainPath(root); if (!Directory.Exists(root)) return 0;
+        long seen = 1;
+        // Never descend into an unknown directory. Compare component streams
+        // once per known parent rather than looking up every full child path.
+        foreach (var directory in catalog.Walk().Where(item => item.Entry.Directory))
         {
-            WorkspaceStore.EnsurePlainPath(path); string relative = Path.GetRelativePath(root, path).Replace('\\', '/');
-            var expected = catalog.Find(relative);
-            if (expected is null || expected.Entry.Directory != Directory.Exists(path)) throw Conflict("An unowned item appeared in the restored original.");
+            ct.ThrowIfCancellationRequested(); string parent = PathOf(root, directory.Entry.Path);
+            if (!Directory.Exists(parent)) continue; // A new planned directory may not exist yet.
+            IEnumerable<MetadataEntry> Actual()
+            {
+                foreach (string path in Directory.EnumerateFileSystemEntries(parent))
+                {
+                    ct.ThrowIfCancellationRequested(); var attributes = File.GetAttributes(path);
+                    if ((attributes & FileAttributes.ReparsePoint) != 0) throw Conflict("An unowned reparse point appeared in the restored original.");
+                    string name = Path.GetFileName(path);
+                    yield return new(name.ToUpperInvariant(), (byte[])[(byte)((attributes & FileAttributes.Directory) != 0 ? 1 : 0), .. Encoding.UTF8.GetBytes(name)]);
+                }
+            }
+            using var expected = catalog.EnumerateChildren(directory.Entry.Path).GetEnumerator(); bool more = expected.MoveNext();
+            foreach (var actual in MetadataExternalSort.Order(Actual(), scratch, ct))
+            {
+                string Name() => Path.GetFileName(expected.Current.Entry.Path);
+                while (more && StringComparer.Ordinal.Compare(Name().ToUpperInvariant(), actual.Key) < 0) more = expected.MoveNext();
+                if (!more || Name().ToUpperInvariant() != actual.Key || Encoding.UTF8.GetString(actual.Value.Span[1..]) != Name() ||
+                    (actual.Value.Span[0] == 1) != expected.Current.Entry.Directory) throw Conflict("An unowned item appeared in the restored original.");
+                seen++; more = expected.MoveNext();
+            }
         }
+        return seen;
     }
     private static IEnumerable<SnapshotEntry> PostOrderDirectories(PagedSnapshotCatalog catalog)
     {
@@ -582,33 +638,72 @@ internal static class ManagedPagedDirectoryRestore
         }
         catch (Exception error) when (error is EndOfStreamException or ArgumentException or IOException) { throw Conflict(); }
     }
-    private sealed class RestoreNames(PagedMetadataStore store)
+    internal sealed class RestoreNames(PagedMetadataStore store, string? scratch = null) : IDisposable
     {
         public MetadataTreeRoot Root = store.Empty;
+        private readonly MetadataSpool? additions = scratch is null ? null : new(scratch);
+        private MetadataTreeRoot? cachedRoot;
+        private long? cachedEpoch;
+        private byte[]? cachedParent;
+        private string? cachedPath;
         public byte[] Intern(string path)
         {
             byte[] parent = new byte[32];
             foreach (string component in path.Split('/'))
             {
                 byte[] name = Encoding.UTF8.GetBytes(component), data = new byte[32 + name.Length]; parent.CopyTo(data, 0); name.CopyTo(data, 32);
-                parent = SHA256.HashData(data); string key = Convert.ToHexStringLower(parent); var existing = store.Open(Root).Find(key);
-                if (existing is null) Root = store.Set(Root, key, data); else if (!existing.AsSpan().SequenceEqual(data)) throw Conflict();
+                parent = SHA256.HashData(data); string key = Convert.ToHexStringLower(parent);
+                if (additions is not null) additions.Append(new(key, data));
+                else
+                {
+                    var existing = store.Open(Root).Find(key);
+                    if (existing is null) Root = store.Set(Root, key, data); else if (!existing.AsSpan().SequenceEqual(data)) throw Conflict();
+                }
             }
             return parent;
         }
+        internal void Complete(CancellationToken ct)
+        {
+            if (additions is null) return;
+            IEnumerable<MetadataEntry> Unique()
+            {
+                MetadataEntry? previous = null;
+                foreach (var item in MetadataExternalSort.Order(additions.Read(), scratch!, ct))
+                {
+                    if (previous?.Key == item.Key)
+                    { if (!previous.Value.Span.SequenceEqual(item.Value.Span)) throw Conflict(); continue; }
+                    previous = item; yield return item;
+                }
+            }
+            Root = store.Build(Unique(), ct);
+        }
         public string Resolve(byte[] id)
         {
+            long? before = store.ImmutableReadProofEpoch;
+            if (cachedRoot != Root || cachedEpoch != before || before is null) { cachedParent = null; cachedPath = null; }
             var components = new Stack<string>(); var visited = new HashSet<string>(StringComparer.Ordinal);
+            byte[]? parentOfLeaf = null; string? prefix = null;
             while (!id.AsSpan().SequenceEqual(new byte[32]))
             {
+                if (cachedParent is not null && id.AsSpan().SequenceEqual(cachedParent) && store.ImmutableReadProofEpoch == cachedEpoch)
+                { prefix = cachedPath; break; }
                 string key = Convert.ToHexStringLower(id); if (!visited.Add(key)) throw Conflict();
                 byte[] data = store.Open(Root).Find(key) ?? throw Conflict();
                 if (data.Length <= 32 || !SHA256.HashData(data).AsSpan().SequenceEqual(id)) throw Conflict();
                 string name = Encoding.UTF8.GetString(data, 32, data.Length - 32); if (name.Contains('/') || name.Contains('\0')) throw Conflict();
                 components.Push(name); id = data.AsSpan(0, 32).ToArray();
+                parentOfLeaf ??= id;
             }
-            return string.Join('/', components);
+            string result = prefix is null || prefix.Length == 0 ? string.Join('/', components)
+                : components.Count == 0 ? prefix : prefix + "/" + string.Join('/', components);
+            if (before is not null && before == store.ImmutableReadProofEpoch && parentOfLeaf is not null)
+            {
+                cachedParent = parentOfLeaf; cachedPath = result.Contains('/') ? result[..result.LastIndexOf('/')] : "";
+                cachedEpoch = before; cachedRoot = Root;
+            }
+            return result;
         }
+        public void Dispose() => additions?.Dispose();
     }
     private sealed class MetadataRestoreTree(OwnedDirectoryManifest manifest) : ISnapshotTree, IDisposable
     {

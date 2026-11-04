@@ -212,6 +212,8 @@ public sealed class PagedManagedDirectoryRestoreTests
             protectedParent = true;
         });
         Assert.True(protectedParent);
+        using (var plan = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixture.State.Basis.ReceiptDirectory, "paged-restore-plan.json"))))
+        { Assert.True(plan.RootElement.GetProperty("unchanged").GetBoolean()); Assert.Equal(JsonValueKind.Null, plan.RootElement.GetProperty("files").GetProperty("page").ValueKind); }
         TestContext.Current.TestOutputHelper!.WriteLine($"Restore-only seconds: {clock.Elapsed.TotalSeconds:F6}");
         using var restoredRoot = ManagedRestoreFileAccess.DirectoryHandle(fixture.State.OriginalPath, metadataWrite: false);
         Assert.Equal(rootIdentity, SnapshotInputChecks.FileIdentity(restoredRoot, directory: true));
@@ -223,6 +225,81 @@ public sealed class PagedManagedDirectoryRestoreTests
         }
         Assert.Equal(expected.Count, Directory.EnumerateFiles(fixture.State.OriginalPath, "*", SearchOption.AllDirectories).Count());
         Assert.False(Directory.Exists(basis)); Assert.False(Directory.Exists(fixture.Request.DeltaPath));
+    }
+
+    [Theory]
+    [InlineData("restore.plan-published")]
+    [InlineData("paged-root.before-move")]
+    [InlineData("paged-root.after-move")]
+    [InlineData("restore.after-proof")]
+    [InlineData("file.after-complete")]
+    [InlineData("restore.after-verified")]
+    [InlineData("restore.reclaim.intent")]
+    public async Task UnchangedPagedRestoreResumesExactOwnershipAcrossEveryPublicationBoundary(string point)
+    {
+        using var fixture = new Fixture(extraFiles: 17, rename: false, mutate: false, deep: true);
+        var ct = TestContext.Current.CancellationToken; var native = new WindowsJournalFilePins();
+        var manifest = new OwnedDirectorySnapshotProvider(fixture.State.Basis.ReceiptDirectory, fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot);
+        var before = Directory.EnumerateFiles(fixture.State.Basis.Snapshot.RootPath, "*", SearchOption.AllDirectories).ToDictionary(
+            path => Path.GetRelativePath(fixture.State.Basis.Snapshot.RootPath, path), path => (Id: native.Identify(path), Bytes: File.ReadAllBytes(path)));
+        bool injected = false;
+        await Assert.ThrowsAsync<IOException>(() => ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, ct, stage =>
+        { if (!injected && stage == point) { injected = true; throw new IOException("unchanged exact restart"); } }));
+        Assert.True(injected);
+        await ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, ct, null);
+        foreach (var pair in before)
+        {
+            string path = Path.Combine(fixture.State.OriginalPath, pair.Key);
+            Assert.Equal(pair.Value.Id, native.Identify(path)); Assert.Equal(pair.Value.Bytes, File.ReadAllBytes(path));
+        }
+        Assert.Equal(before.Count, Directory.EnumerateFiles(fixture.State.OriginalPath, "*", SearchOption.AllDirectories).Count());
+        Assert.False(Directory.Exists(fixture.Request.DeltaPath)); Assert.False(Directory.Exists(fixture.State.Basis.Snapshot.RootPath));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UnchangedPagedResumePreservesSameByteReplacementAndUnknownChildren(bool unknownChild)
+    {
+        using var fixture = new Fixture(extraFiles: 17, rename: false, mutate: false, deep: true);
+        var ct = TestContext.Current.CancellationToken;
+        var manifest = new OwnedDirectorySnapshotProvider(fixture.State.Basis.ReceiptDirectory, fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot);
+        await Assert.ThrowsAsync<IOException>(() => ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, ct,
+            stage => { if (stage == "restore.after-verified") throw new IOException("retain exact restored tree"); }));
+        string path = Path.Combine(fixture.State.OriginalPath, unknownChild ? "unknown" : "unchanged");
+        if (!unknownChild) File.Move(path, Path.Combine(fixture.State.Basis.ReceiptDirectory, "retained-original-leaf"));
+        File.WriteAllBytes(path, [5]);
+        Assert.Equal("GeneratedRestoreConflict", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, ct, null))).Code);
+        Assert.Equal(new byte[] { 5 }, File.ReadAllBytes(path)); Assert.True(Directory.Exists(fixture.Request.DeltaPath));
+    }
+
+    [Fact]
+    public async Task UnchangedPagedPlanningPreservesAnUnknownBasisChildBeforeAnyMove()
+    {
+        using var fixture = new Fixture(extraFiles: 17, rename: false, mutate: false);
+        string unknown = Path.Combine(fixture.State.Basis.Snapshot.RootPath, "unowned"); File.WriteAllBytes(unknown, [37]);
+        var manifest = new OwnedDirectorySnapshotProvider(fixture.State.Basis.ReceiptDirectory, fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot);
+        Assert.Equal("GeneratedRestoreConflict", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, TestContext.Current.CancellationToken, null))).Code);
+        Assert.Equal(new byte[] { 37 }, File.ReadAllBytes(unknown)); Assert.False(Directory.Exists(fixture.State.OriginalPath));
+        Assert.True(Directory.Exists(fixture.Request.DeltaPath));
+    }
+
+    [Fact]
+    public async Task UnchangedPagedReaderHandoffRetainsTheOriginalAncestorLease()
+    {
+        using var fixture = new Fixture(extraFiles: 17, rename: false, mutate: false);
+        string parent = Path.GetDirectoryName(fixture.State.OriginalPath)!; Directory.CreateDirectory(parent);
+        var manifest = new OwnedDirectorySnapshotProvider(fixture.State.Basis.ReceiptDirectory, fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot);
+        bool observed = false;
+        await ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, TestContext.Current.CancellationToken, stage =>
+        {
+            if (stage != "unchanged.after-readers-closed") return;
+            observed = true;
+            Assert.Throws<WorkspaceException>(() => { using var foreign = ManagedRestoreFileAccess.DirectoryHandle(parent, moving: true); });
+        });
+        Assert.True(observed); Assert.False(Directory.Exists(fixture.Request.DeltaPath));
     }
 
     private sealed class Fixture : IDisposable

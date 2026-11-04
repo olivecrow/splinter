@@ -248,6 +248,15 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
             finally { handingOff = false; Monitor.PulseAll(gate); }
         }
     }
+    internal string RestoreIdentity(string path)
+    {
+        lock (gate)
+        {
+            Check();
+            return files.TryGetValue(path, out var file) ? SnapshotInputChecks.FileIdentity(file)
+                : SnapshotInputChecks.FileIdentity(directoryProof!.PinDirectory(path), directory: true);
+        }
+    }
     public void Dispose()
     {
         lock (gate)
