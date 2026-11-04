@@ -53,6 +53,7 @@ internal static class ManagedPagedDirectoryRestore
                 !WorkspaceStore.SamePath(Path.GetDirectoryName(prepare.Directory)!, root) || !Path.GetFileName(prepare.Directory).StartsWith("restore-index-", StringComparison.Ordinal)) throw Conflict();
             Directory.CreateDirectory(prepare.Directory);
             using var records = new PagedMetadataStore(Path.Combine(prepare.Directory, "records"), writable: true);
+            using var fileRecords = new MetadataSpool(prepare.Directory);
             var names = new RestoreNames(records); MetadataTreeRoot files = records.Empty;
             string basisRootIdentity;
             using (var pin = ManagedRestoreFileAccess.DirectoryHandle(state.Basis.Snapshot.RootPath, metadataWrite: false))
@@ -128,7 +129,7 @@ internal static class ManagedPagedDirectoryRestore
                         }
                     }
                     var ranges = records.Build(Ranges(), ct); var item = new FileRecord(entry, finalHash, retainedHash, identity, staging, ranges);
-                    files = records.Set(files, entry.Id.ToString("N"), Encode(item, names), ranges);
+                    fileRecords.Append(new(entry.Id.ToString("N"), Encode(item, names), ranges));
                     yield return new(metadata, finalHash, SourceReference: entry.Id.ToString("N"));
                 }
             }
@@ -139,6 +140,7 @@ internal static class ManagedPagedDirectoryRestore
             IEnumerable<DirectoryMetadataRecord> Remaining()
             { if (hasFirst) yield return enumerator.Current; while (enumerator.MoveNext()) yield return enumerator.Current; }
             var catalog = PagedSnapshotCatalog.Build(Path.Combine(prepare.Directory, "paths"), rootEntry, Remaining(), ct: ct);
+            files = records.Build(MetadataExternalSort.Order(fileRecords.Read(), prepare.Directory, ct), ct);
             using (var finalCatalog = new PagedSnapshotCatalog(Path.Combine(prepare.Directory, "paths"), catalog))
                 foreach (var original in cleanupReader.Walk().Where(i => i.Entry.Directory))
                     if (finalCatalog.Find(original.Entry.Path)?.Entry.Directory != true) { rootMove = false; break; }
@@ -160,17 +162,48 @@ internal static class ManagedPagedDirectoryRestore
         {
             foreach (var directory in catalogReader.Walk().Where(i => i.Entry.Directory))
             { ct.ThrowIfCancellationRequested(); Directory.CreateDirectory(PathOf(state.OriginalPath, directory.Entry.Path)); }
+            using var fixedAncestry = movedRoot is null ? null : new ManagedRestoreFileAccess(state.OriginalPath);
+            using var fixedParents = movedRoot is null ? null : new RestoreDirectoryScope(state.OriginalPath, movedRoot, plan, catalogReader, ct);
             using var metadata = new MetadataRestoreTree(manifest);
             using var journal = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, metadata, sourceFilePins: new WindowsJournalFilePins());
             if (journal.Seal() != plan.Seal) throw new WorkspaceException("RestoreSealMismatch", "Retain the different restoration journal.");
             journal.PrepareRestoreReads(plan.Seal); byte[] buffer = new byte[1048576];
             long completed = 0;
+            var unchangedFiles = new List<FileRecord>(ManagedDirectoryRestore.CursorBatchSize);
+            async Task FlushUnchanged()
+            {
+                if (unchangedFiles.Count == 0) return;
+                long first = completed, durable = cursor.Completed;
+                VerifyUnchangedFiles(unchangedFiles, fixedParents!.Acquire(), first, durable, ct);
+                for (int i = 0; i < unchangedFiles.Count; i++)
+                {
+                    bool alreadyCompleted = first + i < durable; completed++;
+                    if (alreadyCompleted) continue;
+                    cursor = cursor with { AfterPath = null, Completed = completed };
+                    if (completed % ManagedDirectoryRestore.CursorBatchSize == 0 || completed == plan.Files.Count)
+                    { boundary?.Invoke("restore.before-cursor"); await WindowsProcessWorkspaceProvider.WriteAsync(cursorPath, cursor, ct); boundary?.Invoke("restore.after-cursor"); }
+                    boundary?.Invoke("file.after-complete");
+                }
+                unchangedFiles.Clear();
+            }
             foreach (var item in catalogReader.Walk())
             {
                 ct.ThrowIfCancellationRequested(); if (item.Entry.Directory) continue;
                 if (item.SourceReference is null) throw Conflict();
                 var encoded = fileStore.Open(plan.Files).FindEntry(item.SourceReference) ?? throw Conflict();
                 var file = Decode(encoded, item.Entry.Path, pathNames, fileStore); var entry = file.Entry;
+                if (fixedParents is not null && entry.BasePath == entry.Path && file.Ranges.Count == 0 &&
+                    entry.Length == entry.BaseLength && file.FinalHash == file.RetainedHash)
+                {
+                    // Every ordinary parent is pinned once for this pass. The
+                    // exact leaf still proves its native identity and all bytes;
+                    // no mutable path observation is cached across a restore.
+                    _ = fixedParents.Acquire(); unchangedFiles.Add(file);
+                    if (unchangedFiles.Count == ManagedDirectoryRestore.CursorBatchSize) await FlushUnchanged();
+                    continue;
+                }
+                await FlushUnchanged();
+                fixedParents?.Suspend();
                 string target = PathOf(state.OriginalPath, entry.Path);
                 string source = entry.BasePath is { } original ? PathOf(plan.RootMove ? state.OriginalPath : state.Basis.Snapshot.RootPath, original) : Path.Combine(plan.Directory, file.Staging ?? throw Conflict());
                 using var access = new ManagedRestoreFileAccess(movedRoot, state.OriginalPath, File.Exists(source) ? [source, target] : [target]);
@@ -227,6 +260,7 @@ internal static class ManagedPagedDirectoryRestore
                 { boundary?.Invoke("restore.before-cursor"); await WindowsProcessWorkspaceProvider.WriteAsync(cursorPath, cursor, ct); boundary?.Invoke("restore.after-cursor"); }
                 boundary?.Invoke("file.after-complete");
             }
+            await FlushUnchanged();
             if (completed != plan.Files.Count) throw Conflict();
             RejectForeign(state.OriginalPath, catalogReader);
             foreach (var directory in PostOrderDirectories(catalogReader))
@@ -256,6 +290,63 @@ internal static class ManagedPagedDirectoryRestore
         boundary?.Invoke("restore.after-delta-reclaim");
     }
 
+    private sealed class RestoreDirectoryScope(string path, SafeFileHandle movingRoot, Plan plan,
+        PagedSnapshotCatalog catalog, CancellationToken ct) : IDisposable
+    {
+        private SafeFileHandle? root;
+        private WindowsDirectoryTreeProof? parents;
+        internal WindowsDirectoryTreeProof Acquire()
+        {
+            if (parents is not null) return parents;
+            root = ManagedRestoreFileAccess.PinDirectoryAgainstDataWrites(path, movingRoot);
+            try { return parents = PinRestoreDirectories(path, root, plan, catalog, ct); }
+            catch { root.Dispose(); root = null; throw; }
+        }
+        internal void Suspend()
+        {
+            // Parent-relative moves need the original mutable-directory policy.
+            // Every admitted unchanged-file worker has joined before this handoff.
+            parents?.Dispose(); parents = null; root?.Dispose(); root = null;
+        }
+        public void Dispose() => Suspend();
+    }
+    private static void VerifyUnchangedFiles(IReadOnlyList<FileRecord> files, WindowsDirectoryTreeProof paths,
+        long first, long durable, CancellationToken ct)
+    {
+        var failures = new Exception?[files.Count];
+        Parallel.For(0, files.Count, new ParallelOptions { MaxDegreeOfParallelism = Math.Clamp(Environment.ProcessorCount, 1, 8) }, i =>
+        {
+            try
+            {
+                ct.ThrowIfCancellationRequested(); var file = files[i]; var entry = file.Entry;
+                using var stable = paths.Read(entry.Path); ManagedRestoreFileAccess.Require(stable, file.Identity);
+                if (Hash(stable) != file.FinalHash) throw Conflict("An unchanged moved file changed.");
+                if (first + i >= durable) ManagedRestoreFileAccess.Metadata(stable, entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime);
+            }
+            catch (Exception error) { failures[i] = error; }
+        });
+        // Join every admitted file, preserve path-order failure precedence,
+        // and publish no cursor advancement for a partially failed batch.
+        foreach (var error in failures) if (error is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
+    }
+    private static WindowsDirectoryTreeProof PinRestoreDirectories(string path, SafeFileHandle root, Plan plan,
+        PagedSnapshotCatalog final, CancellationToken ct)
+    {
+        var proof = new WindowsDirectoryTreeProof(path, root, metadataWrite: false);
+        try
+        {
+            using var original = new PagedSnapshotCatalog(Path.Combine(plan.Directory, "cleanup"), plan.CleanupCatalog);
+            foreach (var item in final.Walk().Where(i => i.Entry.Directory && i.Entry.Path.Length != 0))
+            {
+                ct.ThrowIfCancellationRequested(); var pin = proof.PinDirectory(item.Entry.Path);
+                if (original.Find(item.Entry.Path) is { Entry.Directory: true } prior &&
+                    SnapshotInputChecks.FileIdentity(pin, directory: true) != prior.SourceReference)
+                    throw Conflict("A retained restore directory was replaced.");
+            }
+            return proof;
+        }
+        catch { proof.Dispose(); throw; }
+    }
     private static SafeFileHandle MoveRootIfNeeded(ManagedDirectoryState state, Plan plan, CancellationToken ct, Action<string>? boundary)
     {
         bool move = Directory.Exists(state.Basis.Snapshot.RootPath), original = Directory.Exists(state.OriginalPath);

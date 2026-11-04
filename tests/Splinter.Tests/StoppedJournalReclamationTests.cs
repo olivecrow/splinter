@@ -20,6 +20,9 @@ public sealed class StoppedJournalReclamationTests(StoppedJournalBasisFixture ba
     [InlineData("wrong-seal")]
     [InlineData("foreign-file")]
     [InlineData("wrong-intent")]
+    [InlineData("pending-packing")]
+    [InlineData("pending-packing-wrong-seal")]
+    [InlineData("pending-packing-reader")]
     public async Task FreshAndResumedCurrentReclamationRetainAuthorityAndContentGuards(string scenario)
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows stopped-provider observation.");
@@ -44,6 +47,13 @@ public sealed class StoppedJournalReclamationTests(StoppedJournalBasisFixture ba
         using (var writer = new JournalDeltaStore(delta, NtfsSnapshotWorkspaceBackend.Identity(w), tree, sourceFilePins: new WindowsJournalFilePins()))
         {
             writer.Write(writer.Stat("file")!.Id, 0, [5]);
+            if (scenario.StartsWith("pending-packing", StringComparison.Ordinal))
+            {
+                var id = writer.Stat("file")!.Id;
+                writer.Write(id, 0, Enumerable.Repeat((byte)0x5a, 8192).ToArray()); writer.SetLength(id, 1);
+                Assert.Throws<IOException>(() => writer.MaintainLiveStorage(collectSegments: true, ct: ct,
+                    boundary: point => { if (point == "segment-pack.intent") throw new IOException("Stopped the exact accepted packing request."); }));
+            }
             seal = writer.Seal(); storage = writer.Observe();
             tree.VerifyReadBoundary();
         }
@@ -64,7 +74,7 @@ public sealed class StoppedJournalReclamationTests(StoppedJournalBasisFixture ba
                 DurableSequence = storage.DurableSequence + (scenario == "wrong-sequence" ? 1 : 0) }
         }, ct);
         if (scenario == "missing-request") File.Delete(requestPath);
-        if (scenario == "wrong-seal") w.Snapshot.Result = w.Snapshot.Result with { Seal = seal with { JournalHash = new string('0', 64) } };
+        if (scenario is "wrong-seal" or "pending-packing-wrong-seal") w.Snapshot.Result = w.Snapshot.Result with { Seal = seal with { JournalHash = new string('0', 64) } };
         if (scenario == "foreign-file") File.WriteAllText(Path.Combine(delta, "foreign.txt"), "retain");
         if (scenario is "retained-intent" or "partial-deletion" or "wrong-intent")
             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(control, "delta-reclaim.json"),
@@ -75,7 +85,19 @@ public sealed class StoppedJournalReclamationTests(StoppedJournalBasisFixture ba
         var backend = new NtfsSnapshotWorkspaceBackend(Path.Combine(root.Path, "unused-runner"));
         string[] retained = Directory.GetFiles(delta, "*", SearchOption.AllDirectories);
         Mark("control-fixture");
-        if (scenario is "fresh" or "retained-intent" or "partial-deletion")
+        if (scenario == "pending-packing-reader")
+        {
+            string path = Directory.EnumerateFiles(delta, "segment-*.sjr").MaxBy(path => new FileInfo(path).Length)!;
+            byte[] bytes = File.ReadAllBytes(path);
+            using (var reader = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                var pending = await Assert.ThrowsAsync<WorkspaceException>(() => backend.RemoveDeltaAsync(w, control, ct));
+                Assert.Equal("SourceMaintenancePending", pending.Code);
+                Assert.True(Directory.Exists(delta)); Assert.Equal(bytes, File.ReadAllBytes(path));
+                Assert.Equal(seal, w.Snapshot.Result.Seal);
+            }
+        }
+        if (scenario is "fresh" or "retained-intent" or "partial-deletion" or "pending-packing" or "pending-packing-reader")
         {
             await backend.RemoveDeltaAsync(w, control, ct);
             Mark("first-reclaim");
@@ -88,7 +110,7 @@ public sealed class StoppedJournalReclamationTests(StoppedJournalBasisFixture ba
             var error = await Assert.ThrowsAsync<WorkspaceException>(() => backend.RemoveDeltaAsync(w, control, ct));
             Assert.Equal(scenario switch
             {
-                "missing-request" => "OverlayRequestMissing", "wrong-seal" => "ViewSourceChanged",
+                "missing-request" => "OverlayRequestMissing", "wrong-seal" or "pending-packing-wrong-seal" => "ViewSourceChanged",
                 "foreign-file" => "ViewReceiptMismatch", "wrong-intent" => "OverlayResultRequired",
                 _ => "DeltaChangedAfterCollection"
             }, error.Code);

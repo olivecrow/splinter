@@ -1,6 +1,6 @@
 # Parallel Unity workspaces and Editor lifetime
 
-Current task state is v3. [Repeated original application](repeated-original-apply.md) owns live immutable captures, explicit result selection, per-path applied history and external-tool live-Editor cooperation; RI qualification remains separate from earlier stopped-Editor evidence. Managed basis state remains v2; old task state is preserved/refused without migration.
+Current task state is v4 and managed basis state is v3. [Repeated original application](repeated-original-apply.md) owns live immutable captures, explicit result selection, per-path applied history and external-tool live-Editor cooperation; historical RI qualification remains tied to its earlier candidate. Unsupported state is preserved/refused without migration.
 
 On a same-workspace restart, identical owned bridge resources and their marker are reused after full ownership/content/path validation, preserving asset timestamps. The Editor-only `Splinter.Workspace.Editor` assembly has automatic references disabled. Marker version 2 binds the C# and assembly-definition hashes; changed verified owned resources are updated, while previous markers and unknown/changed files are preserved and refused. Tokens and launch control remain fresh. See startup profile follow-up for the tiny actual Unity assembly/lifetime check; full A/B startup time for this candidate is NotRun.
 

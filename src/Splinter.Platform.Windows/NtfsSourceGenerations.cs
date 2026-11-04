@@ -118,6 +118,28 @@ public sealed partial class NtfsSnapshotWorkspaceBackend
         }
         SourceCaptureTree.Complete(CapturePath(control, id), new WindowsJournalFilePins());
     }
+    private static void ResumeStoppedJournalMaintenance(OverlayServeRequest request, SnapshotDeltaSeal expected, CancellationToken ct)
+    {
+        // The caller proved this exact provider/mount absent and the complete
+        // accepted seal before opening a writer. Resume its existing request;
+        // never drop a packing plan merely because the task is being released.
+        using var lease = WorkspaceSnapshotBasis.AcquireReadLease(request.Identity.Snapshot, request.SnapshotReceiptDirectory, request.SnapshotOwnerId);
+        using var tree = WorkspaceSnapshotBasis.OpenCaptureTree(request.Identity.Snapshot, request.ReadAccess,
+            request.SnapshotReceiptDirectory, request.SnapshotOwnerId, lease);
+        using var generatedLease = request.Identity.Graft is { } g
+            ? WorkspaceSnapshotBasis.AcquireReadLease(g.Basis.Snapshot, g.Basis.ReceiptDirectory, g.Basis.OwnerId) : null;
+        using var generatedTree = request.Identity.Graft is { } gt
+            ? WorkspaceSnapshotBasis.OpenTree(gt.Basis.Snapshot, request.GeneratedSnapshot!.ReadAccess, gt.Basis.ReceiptDirectory, gt.Basis.OwnerId) : null;
+        ISnapshotTree basis = request.Identity.Graft is { } graft ? new GraftedSnapshotTree(tree, generatedTree!, graft) : tree;
+        using var content = CapturedResultReaders.Open(request.Identity, request.DeltaPath);
+        using var journal = new JournalDeltaStore(request.DeltaPath, request.Identity, basis,
+            directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path), sourceFilePins: new WindowsJournalFilePins(), capturedContentReader: content);
+        if (journal.Seal() != expected)
+            throw new WorkspaceException("ViewSourceChanged", "The stopped journal changed before its exact maintenance request resumed.");
+        journal.MaintainLiveStorage(collectSegments: true, ct: ct);
+        if (journal.Seal() != expected)
+            throw new WorkspaceException("ViewSourceChanged", "Maintenance changed the accepted source generation; preserve its storage.");
+    }
     private static async Task RequireCaptureProvider(WorkspaceRecord workspace, OverlayServeRequest request, CancellationToken ct)
     {
         var observation = await WinFspOverlayClient.ObserveAsync(request, ct);

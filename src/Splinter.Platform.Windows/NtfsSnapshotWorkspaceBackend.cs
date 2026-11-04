@@ -291,6 +291,15 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         if (!Directory.Exists(delta)) return;
         if (CurrentJournalReclamation.HasIntent(boundedReceipt) || File.Exists(currentJournal) && CurrentJournalReclamation.IsManagedJournal(currentJournal))
         {
+            if (File.Exists(currentJournal) && JournalDeltaStore.IsSegmentedJournal(currentJournal) &&
+                (JournalDeltaStore.HasPendingSourcePacking(currentJournal) || File.Exists(Path.Combine(delta, "segment-reclaim.json")) ||
+                    File.Exists(Path.Combine(delta, "live-repack.json"))))
+            {
+                if (JournalDeltaStore.SealSegmentedJournal(currentJournal, result.Seal.DurableSequence) != result.Seal)
+                    throw new WorkspaceException("ViewSourceChanged", "The stopped journal differs from its sealed result; preserve its storage.");
+                var request = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Retain the stopped journal without its exact basis request.");
+                ResumeStoppedJournalMaintenance(request, result.Seal, ct);
+            }
             CurrentJournalReclamation.ReclaimDirectory(delta, result.Seal, ["identity.json"], boundedReceipt,
                 directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path, CurrentJournalReclamation.GuardName), filePins: new WindowsJournalFilePins());
             return;

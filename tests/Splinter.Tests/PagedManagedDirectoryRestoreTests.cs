@@ -191,20 +191,55 @@ public sealed class PagedManagedDirectoryRestoreTests
         Assert.Equal(bytes, File.ReadAllBytes(file)); Assert.True(Directory.Exists(fixture.Request.DeltaPath));
     }
 
+    [Fact(Timeout = 60000)]
+    public async Task UnchangedDeepPagedRootRetainsEveryNativeIdentityAndByte()
+    {
+        using var fixture = new Fixture(extraFiles: 1025, rename: false, mutate: false, deep: true);
+        var ct = TestContext.Current.CancellationToken; string basis = fixture.State.Basis.Snapshot.RootPath;
+        var expected = Directory.EnumerateFiles(basis, "*", SearchOption.AllDirectories).ToDictionary(
+            path => Path.GetRelativePath(basis, path), path =>
+            { using var file = ManagedRestoreFileAccess.Read(path); return (Identity: ManagedRestoreFileAccess.Identity(file), Bytes: File.ReadAllBytes(path)); });
+        string rootIdentity;
+        using (var root = ManagedRestoreFileAccess.DirectoryHandle(basis, metadataWrite: false))
+            rootIdentity = SnapshotInputChecks.FileIdentity(root, directory: true);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        bool protectedParent = false;
+        await ManagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, ct, stage =>
+        {
+            if (stage != "file.after-complete" || protectedParent) return;
+            string parent = Path.GetDirectoryName(fixture.State.OriginalPath)!;
+            Assert.ThrowsAny<IOException>(() => Directory.Move(parent, parent + "-unowned-move"));
+            protectedParent = true;
+        });
+        Assert.True(protectedParent);
+        TestContext.Current.TestOutputHelper!.WriteLine($"Restore-only seconds: {clock.Elapsed.TotalSeconds:F6}");
+        using var restoredRoot = ManagedRestoreFileAccess.DirectoryHandle(fixture.State.OriginalPath, metadataWrite: false);
+        Assert.Equal(rootIdentity, SnapshotInputChecks.FileIdentity(restoredRoot, directory: true));
+        foreach (var pair in expected)
+        {
+            ct.ThrowIfCancellationRequested(); string path = Path.Combine(fixture.State.OriginalPath, pair.Key);
+            using var file = ManagedRestoreFileAccess.Read(path);
+            Assert.Equal(pair.Value.Identity, ManagedRestoreFileAccess.Identity(file)); Assert.Equal(pair.Value.Bytes, File.ReadAllBytes(path));
+        }
+        Assert.Equal(expected.Count, Directory.EnumerateFiles(fixture.State.OriginalPath, "*", SearchOption.AllDirectories).Count());
+        Assert.False(Directory.Exists(basis)); Assert.False(Directory.Exists(fixture.Request.DeltaPath));
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly TestDirectory directory = new();
         public ManagedDirectoryState State { get; }
         public OverlayServeRequest Request { get; }
-        public Fixture(int extraFiles = 0, bool rename = true)
+        public Fixture(int extraFiles = 0, bool rename = true, bool mutate = true, bool deep = false)
         {
             string root = Path.Combine(directory.Path, "owned"), basisPath = Path.Combine(root, "base"); Directory.CreateDirectory(Path.Combine(basisPath, "dir"));
             File.WriteAllBytes(Path.Combine(basisPath, "dir", "value"), [1, 2, 3]); File.WriteAllBytes(Path.Combine(basisPath, "unchanged"), [5]);
             File.WriteAllBytes(Path.Combine(basisPath, "deleted"), [4]);
             if (extraFiles != 0)
             {
-                Directory.CreateDirectory(Path.Combine(basisPath, "bulk"));
-                for (int i = 0; i < extraFiles; i++) File.WriteAllBytes(Path.Combine(basisPath, "bulk", i.ToString("d6")), [(byte)i]);
+                string bulk = Path.Combine(basisPath, deep ? "bulk/packages/example/editor/resources/fixtures/nested/paths/content" : "bulk");
+                Directory.CreateDirectory(bulk);
+                for (int i = 0; i < extraFiles; i++) File.WriteAllBytes(Path.Combine(bulk, i.ToString("d6")), [(byte)i]);
             }
             var snapshot = new SnapshotReference("abcdef0123456789abcdef01", OwnedDirectorySnapshotTree.ProviderName, basisPath, basisPath,
                 DateTimeOffset.UnixEpoch, true, true, "stopped-original-owned-directory");
@@ -217,6 +252,7 @@ public sealed class PagedManagedDirectoryRestoreTests
             Request = new(new(3, snapshot.Id, snapshot, long.MaxValue, 65536), Path.Combine(root, "delta"), State.OriginalPath, Path.Combine(root, "overlay"),
                 "token", new(snapshot.Id, basisPath, hash), root, snapshot.Id);
             using var tree = new OwnedDirectorySnapshotTree(manifest, snapshot); using var writer = new JournalDeltaStore(Request.DeltaPath, Request.Identity, tree, sourceFilePins: new WindowsJournalFilePins());
+            if (!mutate) return;
             writer.Write(writer.Stat("dir/value")!.Id, 1, [7]); if (rename) writer.Rename(writer.Stat("dir")!.Id, "renamed", false); writer.Delete(writer.Stat("deleted")!.Id);
             var created = writer.Create("new", false, 32); writer.Write(created.Id, 0, [9]); writer.Write(created.Id, 2, [6]);
         }

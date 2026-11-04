@@ -1,5 +1,7 @@
 # Current parallel workspace performance
 
+The editorless measurements below describe the code committed as `11e7dc3`. Subsequent actual Unity validation exposed an accepted packing request left pending at stopped task reclamation and slow paged Library restoration. Those paths now have focused recovery/ownership coverage and a new complete regression gate; fresh actual Unity timing is still required. Earlier editorless ratios do not qualify the changed candidate or whole-Unity throughput.
+
 Measured on 2026-11-04 (Asia/Seoul; UTC run date 2026-11-03). Fresh editorless native CLI A/B workspaces take 53.6% less time with concurrent preservation/reclamation and 54.7% less with serial preservation/reclamation than the published version. Both means are below half the published time. The complete regression gate passed 2,565 cases with 36 conditional skips and zero failures. Actual Unity Editor and large-project throughput remain unqualified.
 
 ## Versions and published evidence
