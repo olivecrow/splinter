@@ -203,9 +203,14 @@ public sealed class PagedManagedDirectoryRestoreTests
         using (var root = ManagedRestoreFileAccess.DirectoryHandle(basis, metadataWrite: false))
             rootIdentity = SnapshotInputChecks.FileIdentity(root, directory: true);
         var clock = System.Diagnostics.Stopwatch.StartNew();
+        bool profiling = Environment.GetEnvironmentVariable("SPLINTER_PAGED_RESTORE_PROFILE") == "1";
+        using var process = System.Diagnostics.Process.GetCurrentProcess(); double initialCpu = profiling ? process.TotalProcessorTime.TotalSeconds : 0;
+        var profile = new List<object>();
         bool protectedParent = false;
         await ManagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, ct, stage =>
         {
+            if (profiling && (stage.StartsWith("unchanged.", StringComparison.Ordinal) || stage is "restore.basis-proved" or "restore.plan-published" or "paged-root.after-move" or "restore.after-verified"))
+                profile.Add(new { stage, wallSeconds = clock.Elapsed.TotalSeconds, cpuSeconds = process.TotalProcessorTime.TotalSeconds - initialCpu });
             if (stage != "file.after-complete" || protectedParent) return;
             string parent = Path.GetDirectoryName(fixture.State.OriginalPath)!;
             Assert.ThrowsAny<IOException>(() => Directory.Move(parent, parent + "-unowned-move"));
@@ -215,6 +220,7 @@ public sealed class PagedManagedDirectoryRestoreTests
         using (var plan = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixture.State.Basis.ReceiptDirectory, "paged-restore-plan.json"))))
         { Assert.True(plan.RootElement.GetProperty("unchanged").GetBoolean()); Assert.Equal(JsonValueKind.Null, plan.RootElement.GetProperty("files").GetProperty("page").ValueKind); }
         TestContext.Current.TestOutputHelper!.WriteLine($"Restore-only seconds: {clock.Elapsed.TotalSeconds:F6}");
+        if (profiling) TestContext.Current.TestOutputHelper.WriteLine(JsonSerializer.Serialize(profile));
         using var restoredRoot = ManagedRestoreFileAccess.DirectoryHandle(fixture.State.OriginalPath, metadataWrite: false);
         Assert.Equal(rootIdentity, SnapshotInputChecks.FileIdentity(restoredRoot, directory: true));
         foreach (var pair in expected)
@@ -235,6 +241,9 @@ public sealed class PagedManagedDirectoryRestoreTests
     [InlineData("file.after-complete")]
     [InlineData("restore.after-verified")]
     [InlineData("restore.reclaim.intent")]
+    [InlineData("unchanged.directories-pinned")]
+    [InlineData("unchanged.files-proved")]
+    [InlineData("unchanged.file-metadata-applied")]
     public async Task UnchangedPagedRestoreResumesExactOwnershipAcrossEveryPublicationBoundary(string point)
     {
         using var fixture = new Fixture(extraFiles: 17, rename: false, mutate: false, deep: true);
@@ -272,13 +281,18 @@ public sealed class PagedManagedDirectoryRestoreTests
         Assert.Equal("GeneratedRestoreConflict", (await Assert.ThrowsAsync<WorkspaceException>(() =>
             ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, ct, null))).Code);
         Assert.Equal(new byte[] { 5 }, File.ReadAllBytes(path)); Assert.True(Directory.Exists(fixture.Request.DeltaPath));
+        foreach (string leaf in Directory.EnumerateFiles(fixture.State.OriginalPath, "*", SearchOption.AllDirectories))
+        { using var released = new FileStream(leaf, FileMode.Open, FileAccess.ReadWrite, FileShare.None); }
     }
 
-    [Fact]
-    public async Task UnchangedPagedPlanningPreservesAnUnknownBasisChildBeforeAnyMove()
+    [Theory]
+    [InlineData("000-unowned")]
+    [InlineData("bulk/000-unowned")]
+    [InlineData("z-unowned")]
+    public async Task UnchangedPagedPlanningPreservesAnUnknownBasisChildBeforeAnyMove(string relative)
     {
         using var fixture = new Fixture(extraFiles: 17, rename: false, mutate: false);
-        string unknown = Path.Combine(fixture.State.Basis.Snapshot.RootPath, "unowned"); File.WriteAllBytes(unknown, [37]);
+        string unknown = Path.Combine(fixture.State.Basis.Snapshot.RootPath, relative); File.WriteAllBytes(unknown, [37]);
         var manifest = new OwnedDirectorySnapshotProvider(fixture.State.Basis.ReceiptDirectory, fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot);
         Assert.Equal("GeneratedRestoreConflict", (await Assert.ThrowsAsync<WorkspaceException>(() =>
             ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, TestContext.Current.CancellationToken, null))).Code);

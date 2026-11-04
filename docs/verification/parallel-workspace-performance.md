@@ -1,100 +1,105 @@
 # Actual Unity parallel workspace performance
 
-The unchanged paged Library restoration changes **do not meet the below-half-public-time target**. On the fixed real Unity input, mean accounted time is **446.00s current versus 439.76s public**, or **1.4% longer**. Restoration takes **42.14s versus 40.66s**. All four final product lifecycles pass the specified compile/scene/Play, result and original-restoration checks. Host activity and sample ordering limit causal conclusions.
+The current catalog/physical-proof candidate completes the matched short-path Unity A/B workflow in **315.26s versus 324.67s public mean**, a **2.9% reduction**. Library restoration is **24.67s versus 25.45s**, a **3.1% reduction**. **The below-half-public-time target is not met.** Two observations per version and uncontrolled host activity do not establish a general or causal throughput guarantee.
 
-## Candidate, input and method
+## Changes and small reproduction
 
-Measured on Windows on 2026-11-04 (Asia/Seoul). GitHub's default `development` tip was rechecked through the connector during this work and remained [c4fa5063964e7b8456de4ea7735c042fb9af8930](https://github.com/olivecrow/splinter/commit/c4fa5063964e7b8456de4ea7735c042fb9af8930). Its [verification index](https://github.com/olivecrow/splinter/blob/c4fa5063964e7b8456de4ea7735c042fb9af8930/docs/verification/README.md) records 1,691 Windows passes and 24 skips. Different test inventories do not establish a performance ratio.
+Current follows local commit 2c0c8bb. Persisted formats, full byte/native-identity/membership proof, ownership fences, metadata restoration, durable publication and same-request recovery are unchanged.
 
-Current is the unchanged paged restoration candidate following bbb3a85. All ten frozen Release runtime DLL hashes match both final current samples. The subsequent full regression rebuild matches all ten hashes; no product code changed after final measurement. Public uses its separately built matching-format binary. This compares the same workflow across different storage formats, rather than isolating one optimization commit.
+- Membership merges one complete checked catalog traversal with sorted native component cursors for its open ancestors. It no longer rereads every directory's children or resolves each parent from the catalog root. Unknown directories are never traversed; general restoration still permits missing planned paths, while unchanged restoration requires exact membership.
+- Catalog construction consumes that exact membership stream. After the root move, the same checked stream feeds native file verification, removing another standalone catalog pass.
+- Up to eight demand-driven workers overlap catalog production with native opens and complete hashes. There is no per-128-file hash barrier or unbounded metadata queue. Ordered chunks retain only the mandatory physical handles; all workers join before success, failure or cancellation can close them. Metadata and a separate final membership proof still precede verified publication/reclamation.
+- Every empty hidden-path index is validated, but needs no per-child ancestor digest. Nonempty trees retain their ordinary lookups/backing checks. A proposed private-child-root cache was removed because it could not establish the required reader-fence lifetime.
 
-The dedicated input uses Unity **6000.3.27f2**, URP **17.3.0**, **75 source files**, and **17,863 genuinely generated Library files totaling 1,568,757,165 bytes**. Its fixed local input commit is 7ee96cd995bcb77b345f0028cdcdd351a7a34417. Cold import and the user-approved template material upgrade precede the frozen input. No retained large fixture or existing game project was resumed.
+The fresh small reproduction uses 1,025 generated files plus three fixed files under deep paths, checking every byte/native file/root identity, ancestor-movement refusal and final reclamation. An isolated 2c0c8bb source build and current use identical test source. Order is baseline/current/current/baseline, with no concurrent benchmark or OS-cache reset.
 
-Each sample starts from the same complete source/Library SHA-256 and length maps, clean Git HEAD and ordinary Library, with a fresh case/home identity. Final comparison samples are fast-published-1, fast-published-2, final-current-6, final-current-7. Earlier current candidates were interleaved during development, but later safety changes required new current samples: **the final comparison is public/public/current/current, not causal ABBA**. No final candidate sample was omitted because of its duration.
+| Restore-only small sample | Previous 2c0c8bb | Current |
+| --- | ---: | ---: |
+| First | 2.901776s | 1.840096s |
+| Second | 1.839234s | 1.587919s |
+| Mean | **2.370505s** | **1.714008s** |
 
-Preparation runs once per pair. A/B creation, complete source reads, Editor startup, code work, scene work, Play and final preservation/reclamation run concurrently. Normal Editor stop requests run A then B in both versions because an earlier concurrent-stop trial encountered a user-global layout sharing dialog. This remains agent scheduling through existing commands.
+This is a **27.7% observed reduction** with substantial variation, not whole-lifecycle qualification. Whole-test-process CPU, including fixture setup, averages 8.16 versus 7.46 CPU-s; it is not restore-only CPU. Internal opt-in phase timing is available with SPLINTER_PAGED_RESTORE_PROFILE=1. The 40-case focused selection passes in 82.633s. Added cases cover three physical-proof/metadata interruptions and unknown native items before, within and after known subtrees; rejected resumed trees also prove all leaf fences were released.
 
-Both Editor PIDs/project paths match launch receipts. A compiles values (11,20), B (10,22), with changed assembly MVIDs. They save distinct scene markers/positions, run at least 15 runtime Update frames each, exit Play and recheck isolation. Expected source hashes are fixed before final stop. Product restoration and lifecycle dispatch gaps are included.
+An initial combined diagnostic build/reproduction exceeded its 60s stop by 0.86s, although both ended safely. Its overrun remains recorded. Subsequent build and execution scopes use separate estimates and stops; no product or individual test timeout was increased.
 
-Excluded work is fixture copying/schema discovery, initial out-of-band input proof, post-release independent-result proof, and final out-of-band original hash/Git proof. These checks still execute and must pass. The measured pipeline body is byte-identical to the preceding actual Unity driver: SHA-256 ec371b6624ac918684d1487bcf3a94ee83875156a707cad13ecba4b85cb1f2a1. Only excluded setup was re-estimated before this block. There is no OS-cache reset, concurrent regression or timing trace during measurement.
+## PackageCache failure and prevention
 
-The host has 12 logical processors and about 64GiB RAM. An unrelated existing Unity Editor remained running; its activity and other host activity were uncontrolled. A read-only snapshot during the first regression attempt, before the final current samples, showed 98% host CPU and that unrelated Editor consuming about 4.7 cores. This does not attribute a measured delay to that process. Two observations per version are not statistical or general throughput qualification.
+The earlier long-path experiment exposed a real qualification defect: the 5,120-byte Unity.Collections.LowLevel.ILSupport.dll existed and had the expected SHA-256, but its workspace path was 273 characters. The installed Unity 6000.3.27f2 Mono reader threw DirectoryNotFoundException on that path. The 239-character original-view path and extended-path spelling of the same long file both read the expected bytes. A fresh 5KiB reproduction repeats the failure and successful reads. Modern .NET file access alone did not qualify Unity's reader; [Windows path handling also depends on the selected API and application](https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation).
 
-## Measurements
+Fresh comparison inputs/state use dedicated short C:/sp roots. Before either Editor starts, all **14,621 PackageCache file paths** must remain below 260 characters (observed maximum **252**), and the installed Unity Mono runtime must read/hash all **53 package DLLs per side** against the frozen input. Post-start and final logs must have no PackageCache missing-file errors, opening-file-failed dialog or Force Quit. These checks are identical for public and current. No existing task identity/path was relocated and no package payload or global setting was repaired to mask the failure.
+
+One long-path attempt timed out in A Play verification at its existing 60s stop. B stopped normally; A's managed stop also reached the existing two-minute bound. UI inspection found a separate missing user-global Overlays/CanvasesSaveData.asset dialog. The user selected Force Quit. This is recorded as a forced A exit, not a normal stop or passing timing. Both complete source results and the complete ordinary original were subsequently preserved/verified. Computer Use was released immediately after each inspection.
+
+Two prelaunch short-path attempts were rejected by diagnostic stdout parsing: Mono UTF-8 output was decoded through the host's Korean codepage. Neither launched an Editor. Binary UTF-8 decoding was verified with the exact preflight function, all 53 hashes and the 252-character bound. Both attempts' source results and originals were fully preserved/restored. They remain excluded failures; their recovery does not turn them into timing samples.
+
+## Fixed input and matched method
+
+Measured on Windows on 2026-11-04 (Asia/Seoul). The public baseline remains the frozen c4fa5063964e7b8456de4ea7735c042fb9af8930 binary from the preceding investigation. This report does not assert a later live GitHub-tip check or publication of local commits.
+
+The dedicated input is unchanged: Unity **6000.3.27f2**, URP **17.3.0**, **75 source files**, and **17,863 genuinely generated Library files totaling 1,568,757,165 bytes**. Its local input commit is 7ee96cd995bcb77b345f0028cdcdd351a7a34417. Cold import and the approved template material upgrade precede that input.
+
+Final order is **public/current/current/public**, cases sp-p4, sp-c1, sp-c2, sp-p2. Each has a fresh source/home and complete pre-input SHA-256/length and clean Git proof. The strengthened short-path method is rerun for both versions; prior long-path measurements do not enter these means.
+
+Preparation runs once per pair. A/B creation, complete source reads, Editor readiness, code work, scene work, Play and final preservation/reclamation run concurrently. Normal stop requests run A then B in both versions because Unity shares user-global settings. Each launch PID/project path is matched to its receipt. A compiles values (11,20), B (10,22), with changed assembly MVIDs; each saves its distinct scene marker/position, runs at least 15 actual Update frames, exits Play and rechecks isolation.
+
+Accounted time includes product phases and dispatch gaps. Excluded, mandatory checks are fixture/schema/input proof, package Mono preflight, independent post-release result proof and final out-of-band original hash/Git proof. Both versions use the same modified driver and phase bounds. There is no concurrent regression or timing trace during measurement, no cache reset, and no intervention in any final measured Editor.
+
+The 12-logical-processor, approximately 64GiB host has unrelated Unity activity; it was not stopped or controlled. Fixtures take 110-121s, and normal stop still varies substantially. Fixed order and two observations do not remove these limits.
+
+## Actual Unity measurements
 
 | Accounted lifecycle | Public | Current |
 | --- | ---: | ---: |
-| First final sample | 398.64s | 512.58s |
-| Second final sample | 480.88s | 379.43s |
-| Arithmetic mean | **439.76s** | **446.00s** |
+| First | 343.40s | 316.82s |
+| Second | 305.95s | 313.70s |
+| Mean | **324.67s** | **315.26s** |
 
-The half-public-mean threshold is **219.88s**. Neither current sample meets it. Restoration alone misses its half-public threshold of **20.33s**: public samples are 43.93s / 37.39s, current 43.43s / 40.86s.
+The whole-workflow half target is **162.34s**; restoration's half target is **12.72s**. Neither target is met.
 
 | Phase, mean of two | Public | Current |
 | --- | ---: | ---: |
-| Library preparation | 53.70s | 47.23s |
-| Concurrent A/B creation/admission | 57.15s | 33.61s |
-| Concurrent complete source reads | 0.33s | 1.12s |
-| Two Editors ready | 91.46s | 126.65s |
-| Code refresh/compilation | 16.26s | 20.21s |
-| Scene save | 2.66s | 1.77s |
-| Play | 13.06s | 9.42s |
-| Final source observation/proof | 1.34s | 0.88s |
-| Sequential normal Editor stop requests | 102.98s | 132.41s |
-| Concurrent result preservation/reclamation | 60.16s | 30.56s |
-| Original Library restoration | 40.66s | 42.14s |
+| Library preparation | 36.17s | 24.95s |
+| Concurrent A/B creation | 41.55s | 20.70s |
+| Complete source reads | 0.37s | 0.37s |
+| Two Editors ready | 68.45s | 85.58s |
+| Refresh/compilation | 12.26s | 28.57s |
+| Scene save | 1.52s | 2.68s |
+| Play | 9.09s | 9.13s |
+| Final source proof | 0.79s | 0.84s |
+| Sequential normal stops | 93.11s | 89.64s |
+| Concurrent preservation/reclamation | 35.88s | 28.10s |
+| Library restoration | **25.45s** | **24.67s** |
 
-Creation saves 23.53s and preservation/reclamation saves 29.59s; restoration adds 1.48s. Editor readiness plus normal stop totals **259.05s** for current, exceeding the whole-workflow half target of 219.88s. A restoration-only gain cannot meet that target while the other observed costs remain.
+Preparation and creation save 32.07s together, but readiness and compilation add 33.43s. Current Editor readiness plus normal stop alone totals **175.22s**, exceeding the whole-workflow half target. Restoring Library alone cannot meet that target while the other observed costs remain.
 
-Final current samples' excluded complete original hash proofs take 7.96s / 7.11s, versus 6.58s public mean. An earlier candidate sample reached 24.50s alongside slower capture/restore. These observations establish variation, not its precise CPU, disk, antivirus or native-lock cause. They do not justify dropping a slower completed final sample.
+Post-hoc plan/cursor timestamps approximate wall intervals, not exclusive function profiling:
 
-## Restoration changes and remaining cost
-
-The preceding candidate routed unchanged originals above 1,024 manifest items into the general paged planner before unchanged-directory selection. It built GUID file records, name/range trees and durable per-file progress despite a zero-sequence journal and an intact root. Public already selected its unchanged-directory route. This unnecessary general planning explains a structural regression; the previous actual Unity block measured current restoration at 238.12s mean.
-
-The current paged plan has an unchanged variant selected only after complete streamed namespace, metadata, base-path, length and empty-range equality. It retains one bounded cleanup/native-identity catalog and no GUID file/name/range trees. Existing fully hashed reader handles supply planning identities. Restoration transfers the exact root, reopens and pins every native leaf, hashes all bytes, proves complete membership, reapplies all metadata and durably records verification before exact journal reclamation. Restart repeats physical proof; a verified cursor never authorizes skipping it. Native ancestor protection spans reader handoff. See [Library lifetimes](../git-library-reference.md).
-
-Independent leaf opens/hashes and metadata writes run in bounded batches with up to eight workers, joining before ownership can close. Held directory handles are reused for metadata. General paged planning bulk-builds names through bounded sort/spool, reuses one parent prefix only while the exact logical root and immutable native-read epoch remain valid, and merges sorted per-directory membership instead of repeatedly resolving each leaf from the root. Eviction, write-sharing, disposal and logical-root changes revoke derived prefix proof. There is no project-sized decoded metadata cache or unchanged-payload copy.
-
-On the same 1,025-file deep native reproduction, restore-only time fell from **6.743824s to 2.377591s**, with every byte, native file/root identity and ancestor-movement assertion retained. The final 35-case focused selection passed in 107.685s. A deliberately failing handoff test demonstrated an ancestor-protection gap before the explicit handoff lease was added; it passes afterward. The added parent-prefix direct-lookup reproduction also failed before its separator fix and passes afterward. This component improvement does not qualify the complete Unity workflow.
-
-The new actual restoration mean of 42.14s is descriptively 82.3% below the preceding block's 238.12s. Those blocks differ in host activity and ordering, so this is not an isolated causal estimate. Against public in this block, current is **3.6% slower**.
-
-Post-hoc plan/cursor timestamps give approximate wall intervals, not exclusive function profiling:
-
-| Restoration interval, mean | Public | Current |
+| Restore interval, mean | Public | Current |
 | --- | ---: | ---: |
-| Start through plan publication | 22.58s | 17.93s |
-| Plan through verified cursor | 14.85s | 23.81s |
-| Remaining completion | 3.22s | 0.40s |
+| Through plan publication | 13.63s | 10.59s |
+| Plan through verified cursor | 9.82s | 13.75s |
+| Remaining completion | 2.00s | 0.33s |
 
 | Own CLI CPU, mean | Public | Current |
 | --- | ---: | ---: |
-| Library preparation | 37.28 CPU-s | 55.23 CPU-s |
-| A/B creation sum | 16.66 CPU-s | 17.66 CPU-s |
-| A/B preservation/reclamation sum | 19.91 CPU-s | 41.16 CPU-s |
-| Library restoration | 41.30 CPU-s | 73.99 CPU-s |
+| Library preparation | 23.64 CPU-s | 31.09 CPU-s |
+| A/B creation sum | 11.60 CPU-s | 12.73 CPU-s |
+| Preservation/reclamation sum | 13.82 CPU-s | 32.30 CPU-s |
+| Library restoration | 26.47 CPU-s | 45.13 CPU-s |
 
-Current restoration averages about **1.76 own-CLI cores** despite its eight-worker limit. Ordered catalog production/traversal, metadata decoding, native opens and durable coordination remain costs around the parallel leaf work. Complete journal comparison occurs across distinct physical reader scopes; sharing a logical seal across those scopes would not preserve backing proof. Adding workers alone has not established a gain. CPU counters exclude child/provider processes and do not establish whole-host utilization, peak RSS, disk saturation or a particular wait owner. The complete pipeline is not proven optimal.
+Current restore averages **1.83 own-CLI cores**. Redundant passes/barriers were removed, but ordered metadata production, decoding/native calls and physical proof remain costs; the post-plan interval remains slower than public. More workers alone has not established a gain, and the full pipeline is not proven optimal. These counters exclude child/provider processes and do not establish whole-host utilization, peak RSS, disk saturation or a particular external wait owner.
 
-## Correctness, failures and limits
+## Verification and limits
 
-All final samples preserve separate A/B results, compare every expected source hash, prove absent task providers/mounts/deltas and zero owned counters, and restore all original source/Library hashes, clean original HEAD, one Git worktree and ordinary NTFS Library. Public results are independently read through Git archive bytes. Current results use the complete paged file catalog against expected hashes; product capture/reclamation performs physical backing proof. No result was applied to the original.
+All four final cases preserve separate A/B results, compare every expected source hash, prove absent owned providers/mounts/deltas and zero owned counters, and restore all original source/Library hashes, clean HEAD, one Git worktree and ordinary NTFS Library. Public independent results are read through Git archive bytes; current uses the complete paged result file catalog while product capture/reclamation proves physical backing. No result is applied to the original.
 
-An earlier development attempt (final-current-2) failed B capture with WorkspaceMaintenancePending / MetadataMaintenanceIO during atomic range-maintenance replacement. The exact external holder was not identified. The exact returned maintenance key was resumed in 0.62s, the same checkpoint completed in 4.99s, complete result proof passed, restoration completed in 37.85s and complete original proof passed in 7.20s. That failed attempt/recovery is excluded from normal timing means and remains retained. No blanket I/O retry, force-kill, timeout increase or state edit was introduced.
+All eight final Editor logs have zero C# compiler errors, normal cleanup and no PackageCache I/O or forced-quit errors. The independent Unity Search startup indexing exception remains in **five of eight logs** across versions. This is not clean-Console or Search qualification.
 
-Phase budgets were fixed before measurement: excluded fixture setup 90s estimate / 180s stop, capture/reclamation 180s / 360s, restoration 240s / 480s, sequential normal stops 120s / 240s. These estimates come from preceding observed aggregate costs. Product normal stop retains its separate two-minute bound. The earlier 90-second restoration limit was an external harness stop, not a product deadline; its overrun remains a failure in historical evidence. Larger harness budgets are not optimization gains.
+The mandatory complete `pwsh ./scripts/build.ps1` gate passes: locked restore, Release build with zero warnings/errors, **2,623 discovered = 2,587 passed + 36 conditional skips**, zero failures/errors/timeouts/aborts. Whole-command time is **632.26s** against a 780s estimate / 1,560s stop. The checked-in eight-class schedule and individual timeout/cancellation bounds are unchanged. All ten rebuilt runtime DLL hashes match both final current Unity samples. Large-catalog opt-in is disabled.
 
-All eight final Editor logs have zero C# compiler errors and normal cleanup. All eight contain Unity's internal Search database startup indexing exception. The code/scene/Play probes pass; this is not clean-Console or Search qualification. Post-measurement process inspection found no experiment-owned or gate test processes. No in-progress write was force-killed and no original/task/basis/result/request-key/digest/intent/protection state was edited or deleted to escape a timeout.
+Phase limits remain fixed: fixture90s/180s, prepare45s/90s, A/B creation45s/90s, Editor readiness90s/180s, compilation60s/120s, scene20s/40s, Play30s/60s, normal stops120s/240s, capture180s/360s, restore240s/480s. Package preflight is30s/60s and excluded but mandatory. Recovery has its separately recorded estimates/stops; it never changes an in-flight phase's deadline.
 
-## Regression and evidence
+Player builds, Unity Test Runner suites, general Plastic/None performance, large games, peak RSS/allocation, disk saturation and OS/power-loss behavior remain unqualified. Large-catalog opt-in is disabled and retained100k/17GiB fixtures are not resumed. See [validation scope](README.md) and [Library contracts](../git-library-reference.md).
 
-The mandatory complete `pwsh ./scripts/build.ps1` gate passes: locked restore, Release compilation with zero warnings/errors, **2,618 discovered = 2,582 passed + 36 conditional skips**, zero failures/errors/timeouts/aborts. Whole-command time is 671.32s against a 1,080s estimate / 2,160s stop. The checked-in eight-class schedule, complete inventory, individual cancellation/timeout bounds and large-catalog opt-out are unchanged. All ten rebuilt runtime DLL hashes match both final current Unity samples.
-
-The preceding complete attempt failed: two existing ten-second methods (sparse forced packing and sixteen-reference proof reuse) timed out, producing one additional cleanup failure. Its terminal summary records 2,619 results including that synthetic cleanup, and its TRX reporter also failed. The raw log remains evidence; an empty TRX is not a passing gate. Three isolated repetitions with unchanged inputs, proof counts and timeouts passed all nine cases in 23.59s total. Host contention was observed, but its precise contribution was not isolated. Neither test was deleted, serialized, resized or given a larger timeout. The failed 1,019.38s attempt remains failed; the subsequent gate supplies the completed result above.
-
-Player builds, Unity Test Runner suites, general Plastic/None native performance, large existing games, peak RSS/allocation, disk saturation and OS/power-loss behavior remain unqualified. Large-catalog opt-in was disabled and retained 100k/17GiB fixtures were not resumed. See [validation scope](README.md).
-
-Ignored evidence is under artifacts/unchanged-library-20261104/: summary.json, matched-plan.json, summarize.py, focused/full-gate logs and the four final case directories. Failed and superseded candidates remain diagnostic evidence, including final-current-2/recovery-proof.json; none contributes to final means. Complete-gate TRX is under artifacts/test-results/. Fixture homes/bases/results and matching binaries remain under .local/; generated-output status does not authorize deleting lifecycle state.
-
-To reproduce from the retained frozen input, use the measurement driver under artifacts/unchanged-library-20261104/measure-unity.py with `--runtime <absolute-splinter.dll>` and `--name <fresh-name>`, read that binary's schemas and retain returned identities. Re-estimate before a new block, use fresh case identities and stop safely at the declared boundary. This does not authorize integration, deletion or blind retry of uncertain writes.
+Ignored evidence is under artifacts/catalog-physical-20261104/: paired-small-summary.json, focused-summary.json, short-matched-plan.json, short-summary.json, mono-small-proof.json, final case schemas/responses/hashes/CPU, full-gate logs and commit/process proof. Rejected long/prelaunch cases retain recovery-proof.json and raw logs. Original/home/result/request/basis state remains retained in .local/ or the dedicated C:/sp case roots; ignored status does not authorize deletion. Earlier full A/B reports are available from Git history.

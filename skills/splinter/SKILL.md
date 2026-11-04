@@ -39,6 +39,8 @@ For Plastic recorded project content, explicitly select `--source plastic --stor
 
 Use an absolute CLI path, an existing build, and ordinary Windows privileges:
 
+For Windows Unity trials, choose short project/state roots before creating the task. Check the returned workspace path together with package-relative paths, and prove required package DLL reads using the selected Editor runtime before launch. A 273-character path that modern .NET can read was rejected by Unity 6000.3.27f2 Mono; package-cache I/O errors invalidate the trial even if compilation/Play otherwise succeeds. Preserve existing task identities instead of relocating their state. See [Unity path and validation limits](../../docs/alpha-workspaces.md).
+
 ```powershell
 pwsh -File <product-root>/scripts/splinter.ps1 capabilities
 pwsh -File <product-root>/scripts/splinter.ps1 schema workspace.ensure

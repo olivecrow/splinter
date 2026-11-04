@@ -42,6 +42,7 @@ internal static partial class ManagedPagedDirectoryRestore
         {
             if (Directory.Exists(state.OriginalPath) || File.Exists(state.OriginalPath)) throw Conflict("Preserve the original path that appeared before restoration planning.");
             using var basis = new OwnedDirectorySnapshotTree(manifest, state.Basis.Snapshot);
+            boundary?.Invoke("restore.basis-proved");
             using var source = JournalDeltaStore.OpenReadOnly(request.DeltaPath, request.Identity, basis, sourceFilePins: new WindowsJournalFilePins());
             var seal = source.Seal(); var prepare = await WindowsProcessWorkspaceProvider.ReadAsync<Preparation>(preparePath, ct, waitForPublication: false);
             if (prepare is null)
@@ -61,17 +62,21 @@ internal static partial class ManagedPagedDirectoryRestore
             if (state.ApplicationKind == "unity" && state.DirectoryKind == "Library" && state.Basis.RelativePath == "Library" && seal.DurableSequence == 0 &&
                 SameNamespace(source, manifest, ct))
             {
+                boundary?.Invoke("unchanged.namespace-proved");
                 ManagedUnchangedDirectoryRestore.ValidateManifest(state, manifest);
                 // The full basis reader already holds and hashes every file.
                 // Record those exact held identities, without reopening leaves
                 // or manufacturing GUID/range/path-name records for no changes.
+                var fixedItems = CheckedMembership(state.Basis.Snapshot.RootPath,
+                    originalItems.Values.Select(item => new DirectoryMetadataRecord(item.Entry, item.Hash)), prepare.Directory, ct, exact: true);
                 var fixedCatalog = PagedSnapshotCatalog.Build(Path.Combine(prepare.Directory, "cleanup"), originalItems[""].Entry,
-                    originalItems.Values.Where(item => item.Entry.Path.Length != 0).Select(item =>
-                        new DirectoryMetadataRecord(item.Entry, item.Hash, SourceReference: basis.RestoreIdentity(item.Entry.Path))), ct: ct);
+                    fixedItems.Where(item => item.Entry.Path.Length != 0).Select(item =>
+                        item with { SourceReference = basis.RestoreIdentity(item.Entry.Path) }), ct: ct);
+                boundary?.Invoke("unchanged.catalog-built");
                 plan = new(3, state.Basis, seal, prepare.Directory, fixedCatalog, records.Empty, records.Empty,
                     fixedCatalog, basisRootIdentity, true, Unchanged: true);
-                using (var membership = new PagedSnapshotCatalog(Path.Combine(prepare.Directory, "cleanup"), fixedCatalog))
-                    if (KnownMembership(state.Basis.Snapshot.RootPath, membership, prepare.Directory, ct) != manifest.ItemCount) throw Conflict();
+                if (fixedCatalog.Count != manifest.ItemCount) throw Conflict();
+                boundary?.Invoke("unchanged.plan-membership-proved");
                 if (source.Seal() != seal) throw Conflict("The stopped journal changed during unchanged planning.");
                 records.Flush(); await WindowsProcessWorkspaceProvider.WriteAsync(planPath, plan, ct); boundary?.Invoke("restore.plan-published");
                 Directory.CreateDirectory(Path.GetDirectoryName(state.OriginalPath)!);
@@ -512,17 +517,24 @@ internal static partial class ManagedPagedDirectoryRestore
         => _ = KnownMembership(root, catalog, scratch, ct);
 
     private static long KnownMembership(string root, PagedSnapshotCatalog catalog, string scratch, CancellationToken ct)
+        => CheckedMembership(root, catalog.Walk(), scratch, ct).LongCount();
+
+    private static IEnumerable<DirectoryMetadataRecord> CheckedMembership(string root, IEnumerable<DirectoryMetadataRecord> expectedItems,
+        string scratch, CancellationToken ct, bool exact = false)
     {
-        WorkspaceStore.EnsurePlainPath(root); if (!Directory.Exists(root)) return 0;
-        long seen = 1;
-        // Never descend into an unknown directory. Compare component streams
-        // once per known parent rather than looking up every full child path.
-        foreach (var directory in catalog.Walk().Where(item => item.Entry.Directory))
+        WorkspaceStore.EnsurePlainPath(root);
+        if (!Directory.Exists(root)) { if (exact) throw Conflict("The restore root is absent."); yield break; }
+        bool missing = false;
+        // Merge the complete checked catalog cursor with one sorted native
+        // component cursor per open ancestor. Do not reread each directory's
+        // children or resolve a parent from the root for every namespace pass.
+        var pending = new Stack<(string Path, IEnumerator<MetadataEntry> Items, MetadataEntry? Next)>();
+        void Push(string relative)
         {
-            ct.ThrowIfCancellationRequested(); string parent = PathOf(root, directory.Entry.Path);
-            if (!Directory.Exists(parent)) continue; // A new planned directory may not exist yet.
+            ct.ThrowIfCancellationRequested(); string parent = PathOf(root, relative);
             IEnumerable<MetadataEntry> Actual()
             {
+                if (!Directory.Exists(parent)) yield break; // A planned directory may not exist yet.
                 foreach (string path in Directory.EnumerateFileSystemEntries(parent))
                 {
                     ct.ThrowIfCancellationRequested(); var attributes = File.GetAttributes(path);
@@ -531,17 +543,48 @@ internal static partial class ManagedPagedDirectoryRestore
                     yield return new(name.ToUpperInvariant(), (byte[])[(byte)((attributes & FileAttributes.Directory) != 0 ? 1 : 0), .. Encoding.UTF8.GetBytes(name)]);
                 }
             }
-            using var expected = catalog.EnumerateChildren(directory.Entry.Path).GetEnumerator(); bool more = expected.MoveNext();
-            foreach (var actual in MetadataExternalSort.Order(Actual(), scratch, ct))
-            {
-                string Name() => Path.GetFileName(expected.Current.Entry.Path);
-                while (more && StringComparer.Ordinal.Compare(Name().ToUpperInvariant(), actual.Key) < 0) more = expected.MoveNext();
-                if (!more || Name().ToUpperInvariant() != actual.Key || Encoding.UTF8.GetString(actual.Value.Span[1..]) != Name() ||
-                    (actual.Value.Span[0] == 1) != expected.Current.Entry.Directory) throw Conflict("An unowned item appeared in the restored original.");
-                seen++; more = expected.MoveNext();
-            }
+            var items = MetadataExternalSort.Order(Actual(), scratch, ct).GetEnumerator();
+            try { pending.Push((relative, items, items.MoveNext() ? items.Current : null)); }
+            catch { items.Dispose(); throw; }
         }
-        return seen;
+        void Pop()
+        {
+            var directory = pending.Pop();
+            try { if (directory.Next is not null) throw Conflict("An unowned item appeared in the restored original."); }
+            finally { directory.Items.Dispose(); }
+        }
+        try
+        {
+            Push("");
+            using var source = expectedItems.GetEnumerator();
+            if (!source.MoveNext() || source.Current.Entry.Path.Length != 0 || !source.Current.Entry.Directory) throw Conflict();
+            yield return source.Current;
+            while (source.MoveNext())
+            {
+                var expected = source.Current;
+                ct.ThrowIfCancellationRequested(); string path = expected.Entry.Path;
+                int slash = path.LastIndexOf('/'); string parent = slash < 0 ? "" : path[..slash], name = path[(slash + 1)..];
+                while (pending.Peek().Path != parent) Pop();
+                var directory = pending.Peek();
+                bool matched = false;
+                if (directory.Next is { } actual)
+                {
+                    int order = StringComparer.Ordinal.Compare(actual.Key, name.ToUpperInvariant());
+                    if (order < 0 || order == 0 && (Encoding.UTF8.GetString(actual.Value.Span[1..]) != name ||
+                        (actual.Value.Span[0] == 1) != expected.Entry.Directory)) throw Conflict("An unowned item appeared in the restored original.");
+                    if (order == 0)
+                    {
+                        matched = true; var next = directory.Items.MoveNext() ? directory.Items.Current : null;
+                        pending.Pop(); pending.Push((directory.Path, directory.Items, next));
+                    }
+                }
+                if (expected.Entry.Directory) Push(path);
+                if (matched) yield return expected; else missing = true;
+            }
+            while (pending.Count != 0) Pop();
+            if (exact && missing) throw Conflict("The restore membership is incomplete.");
+        }
+        finally { foreach (var directory in pending) directory.Items.Dispose(); }
     }
     private static IEnumerable<SnapshotEntry> PostOrderDirectories(PagedSnapshotCatalog catalog)
     {

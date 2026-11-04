@@ -55,6 +55,10 @@ public sealed partial class JournalDeltaStore
         PagedPathNamespace namesIndex, PathComponents components)
     {
         string path = parent.Path; string? lower = parent.BasePath;
+        // An empty hidden tree still needs its ordinary root validation, but
+        // has no per-path pages or keys to look up. Do not hash every ancestor
+        // of every immutable child just to search that same validated absence.
+        var hidden = index.Open(fixedHidden);
         IEnumerable<MetadataEntry> Names()
         {
             if (lower is not null)
@@ -83,7 +87,7 @@ public sealed partial class JournalDeltaStore
                 var node = index.Open(fixedNodes).FindEntry(childId.ToString("N")) ?? throw PagedInvalid();
                 yield return DecodeEntry(node.Value.ToArray(), components, fixedNames); continue;
             }
-            if (index.Open(fixedHidden).Find(PathComponents.Key(child, pathPolicy)) is not null || lower is null) continue;
+            if (fixedHidden.Page is not null && hidden.Find(PathComponents.Key(child, pathPolicy)) is not null || lower is null) continue;
             string original = Join(lower, item.Key); var entry = DecodeListedMetadata(original, item.Value.Span);
             snapshot.EnsureAvailable();
             if (entry?.Path != original) throw new WorkspaceException("SnapshotMissing", "An immutable directory child differs from its fixed listing.");

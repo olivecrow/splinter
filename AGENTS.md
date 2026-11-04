@@ -6,6 +6,7 @@
 - Prioritize operational efficiency. Batch independent reads/checks; keep edits and dependent operations sequential. Use subagents only when requested.
 - Use `development` for ordinary development and integration; `main` is for releases. Preserve unrelated edits. Do not commit or push unless requested.
 - Use Computer Use only when needed and release it promptly when finished so the user can use the computer.
+- Use short Windows Unity project/state roots and check package paths with the chosen Editor's reader before launch. PackageCache I/O errors fail validation even when compilation or Play succeeds. Preserve existing task identities; choose an appropriate root before creating a fresh trial.
 - Use a Splinter workspace when parallel work is explicitly requested or another task occupies the project. Otherwise edit directly. Do not nest a Codex worktree in a Splinter workspace.
 
 ## Documentation and repository size
