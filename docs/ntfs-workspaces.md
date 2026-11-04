@@ -1,6 +1,8 @@
 # NTFS project workspaces
 
-Current task state is **v3**; managed basis remains v2. [Repeated original application](repeated-original-apply.md) owns live capture, immutable result versions, per-path publication history and exact external cooperation for a running original. RI qualification is separate from historical stopped-Editor evidence; older tasks are preserved/refused without migration.
+Current task state is **v4** and managed basis is **v3**. [Repeated original application](repeated-original-apply.md) owns live capture, immutable result versions, per-path publication history and exact external cooperation for a running original. RI qualification is separate from historical stopped-Editor evidence; older tasks are preserved/refused without migration.
+
+A workspace status observation uses the project snapshot observation already obtained inside its provider-control proof, then retains the existing heartbeat and PID/start/launch/intent refresh. This record is reused only within that call; another observation proves it afresh. Preliminary ownership states that skip the inner snapshot proof still obtain a fresh project observation. Project storage availability remains separate from Library/cache availability, and all payload/admission/publication proofs are unchanged.
 
 The current product combines `git-snapshot`, `plastic-snapshot`, or `project-snapshot` bases with WinFsp range journals. Follow the input/preparation contracts for [Git](git-project-basis.md), [Plastic](plastic-project-basis.md), and [VCS-free projects](plain-project-basis.md). `ntfs-snapshot`, VSS, and the dedicated service are retired; legacy state is preserved/rejected. Common journal, path, result and recovery guards below remain.
 

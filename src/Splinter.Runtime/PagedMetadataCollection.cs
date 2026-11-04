@@ -82,7 +82,7 @@ public sealed partial class PagedMetadataStore
         directory = Path.GetFullPath(directory); WorkspaceStore.EnsurePlainPath(directory);
         string active = Path.Combine(directory, "collection.json"), completedDirectory = Path.Combine(directory, "collections");
         string completed = Path.Combine(completedDirectory, WorkspaceStore.Key(requestKey) + ".json");
-        using var exclusive = new FileStream(Path.Combine(directory, "writer.lock"), FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        using var exclusive = AcquireMetadataLease(directory, FileAccess.ReadWrite, FileShare.None, ct);
         if (File.Exists(completed))
         {
             var receipt = ReadCollection<CollectionIntent>(completed);

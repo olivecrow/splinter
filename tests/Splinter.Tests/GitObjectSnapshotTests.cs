@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Splinter.Core;
 using Splinter.Runtime;
+using Splinter.Platform.Windows;
 using Splinter.SourceControl.Git;
 
 namespace Splinter.Tests;
@@ -57,6 +58,12 @@ public sealed partial class GitObjectSnapshotTests
         Assert.Equal(bytes.Length, tree.Read("file.bin", 12345, bytes));
         Assert.Equal(f.Data.AsSpan(12345, bytes.Length).ToArray(), bytes);
         Assert.Equal(f.Data.Length, tree.DecodedBlobBytes);
+        using (var owned = f.Provider.OpenReadScope(snapshot, lease))
+        {
+            byte[] direct = new byte[bytes.Length];
+            Assert.Equal(direct.Length, owned.Read("file.bin", 12345, direct)); Assert.Equal(bytes, direct);
+            owned.VerifyReadBoundary();
+        }
         Assert.Equal(0, tree.Read("file.bin", f.Data.Length, bytes));
         Assert.Equal(snapshot, await f.Capture());
         Assert.Equal(f.Revision, await TestDirectory.Git(f.Source, "rev-parse", "refs/splinter/git-bases/task"));
@@ -205,6 +212,9 @@ public sealed partial class GitObjectSnapshotTests
         if (symbolic) await TestDirectory.Git(f.Source, "symbolic-ref", "refs/splinter/git-bases/task", "refs/heads/development");
         else await TestDirectory.Git(f.Source, "update-ref", "refs/splinter/git-bases/task", later);
         Assert.Equal("GitBasisRefChanged", (await f.Provider.ObserveAsync(snapshot, ct)).FailureCode);
+        using (var lease = f.Provider.AcquireReadLease())
+            Assert.Equal("GitBasisRefChanged", Assert.Throws<WorkspaceException>(() =>
+            { using var owned = f.Provider.OpenReadScope(snapshot, lease); }).Code);
         Assert.Equal("GitBasisRefChanged", (await Assert.ThrowsAsync<WorkspaceException>(() => f.Provider.ReleaseAsync(snapshot, ct))).Code);
         Assert.Equal(later, await TestDirectory.Git(f.Source, "rev-parse", "refs/splinter/git-bases/task"));
     }
@@ -303,7 +313,8 @@ public sealed partial class GitObjectSnapshotTests
         public string Revision { get; set; } = "";
         public byte[] Data { get; }
         private Fixture(int dataBytes) => Data = Enumerable.Range(0, dataBytes).Select(i => (byte)(i * 31)).ToArray();
-        public GitObjectSnapshotProvider Provider => new(Receipt, "task", Revision);
+        public GitObjectSnapshotProvider Provider => new(Receipt, "task", Revision,
+            readPins: OperatingSystem.IsWindows() ? new WindowsJournalFilePins() : null);
         public Task<SnapshotReference> Capture() => Provider.CaptureAsync(new(Source, "task", Receipt), TestContext.Current.CancellationToken);
         public static async Task<Fixture> Create(int dataBytes = 1024 * 1024)
         {

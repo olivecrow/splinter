@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Diagnostics;
 using Splinter.Core;
 using Splinter.Runtime;
 
@@ -24,6 +25,7 @@ public sealed partial class NtfsSnapshotWorkspaceBackend
             string requestId = Guid.NewGuid().ToString("N");
             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "capture-source.json"),
                 new { request.Token, requestId, id, w.ManagedPaths }, ct);
+            var providerProbeClock = Stopwatch.StartNew();
             for (long attempt = 0; ; attempt++)
             {
                 ct.ThrowIfCancellationRequested();
@@ -34,8 +36,12 @@ public sealed partial class NtfsSnapshotWorkspaceBackend
                         throw new WorkspaceException(error, "Capture did not complete; preserve its exact request and backing pins.");
                     break;
                 }
-                if (attempt % 10 == 0) await RequireCaptureProvider(w, request, ct);
-                await Task.Delay(100, ct);
+                // The full owned-provider proof immediately preceded request
+                // publication. Keep periodic proofs without repeating it on
+                // the first empty response or forcing a 100ms short round trip.
+                if (providerProbeClock.Elapsed >= TimeSpan.FromSeconds(1))
+                { await RequireCaptureProvider(w, request, ct); providerProbeClock.Restart(); }
+                await Task.Delay(attempt < 5 ? 20 : 100, ct);
             }
         }
         var captured = SourceCaptureTree.ReadCapture(destination);
@@ -78,6 +84,7 @@ public sealed partial class NtfsSnapshotWorkspaceBackend
             {
                 string requestId = Guid.NewGuid().ToString("N");
                 await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "complete-source.json"), new { request.Token, requestId, id }, ct);
+                var providerProbeClock = Stopwatch.StartNew();
                 for (long attempt = 0; ; attempt++)
                 {
                     ct.ThrowIfCancellationRequested();
@@ -87,8 +94,9 @@ public sealed partial class NtfsSnapshotWorkspaceBackend
                         if (receipt.GetProperty("completionError").GetString() is { } error) throw new WorkspaceException(error, "Preserve and resume the exact source adoption request.");
                         return;
                     }
-                    if (attempt % 10 == 0) await RequireCaptureProvider(w, request, ct);
-                    await Task.Delay(100, ct);
+                    if (providerProbeClock.Elapsed >= TimeSpan.FromSeconds(1))
+                    { await RequireCaptureProvider(w, request, ct); providerProbeClock.Restart(); }
+                    await Task.Delay(attempt < 5 ? 20 : 100, ct);
                 }
             }
             if (observed is not { ProviderAlive: false, Mounted: false, OwnershipVerified: true })

@@ -10,13 +10,27 @@ public sealed partial class GitWorkspaceProvider
         if (!Directory.Exists(Path.Combine(w.ProjectPath, ".git")) ||
             !SamePath(await Required(w.ProjectPath, ["rev-parse", "--show-toplevel"], ct), w.ProjectPath))
             throw Error("SnapshotSourceUnsupported", "The first NTFS alpha accepts repository roots with a local .git directory.");
-        await EnsureClean(w.ProjectPath, ct);
-        string revision = await ResolveRevisionAsync(w.ProjectPath, w.BaseReference, ct);
+        // These are independent read-only queries (optional index writes are
+        // disabled by Run). Bound fan-out to four operations and join every
+        // child before returning a failure; later fixed-source proofs remain.
+        var clean = Task.Run(() => EnsureClean(w.ProjectPath, ct), ct);
+        var selected = Task.Run(() => ResolveRevisionAsync(w.ProjectPath, w.BaseReference, ct), ct);
+        var flags = Task.Run(() => GitRecords(w.ProjectPath, ["ls-files", "-v", "-z"], ct)
+            .Any(entry => !entry.StartsWith("H ", StringComparison.Ordinal)), ct);
+        var supported = Task.Run(() => CheckSnapshotGitFiles(w.ProjectPath, ct), ct);
+        try { await Task.WhenAll(clean, selected, flags, supported); }
+        catch
+        {
+            // Keep the previous preflight error precedence after all owned
+            // processes/pipes have drained, including cancellation/failure.
+            await clean; await selected;
+        }
+        string revision = await selected;
         if (w.StorageMode != "git-snapshot" && await Required(w.ProjectPath, ["rev-parse", "HEAD"], ct) != revision)
             throw Error("SnapshotCheckpointMismatch", "The requested base must equal the source checkout HEAD.");
-        if (GitRecords(w.ProjectPath, ["ls-files", "-v", "-z"], ct).Any(entry => !entry.StartsWith("H ", StringComparison.Ordinal)))
+        if (await flags)
             throw Error("SnapshotSourceUnsupported", "Skip-worktree, assume-unchanged and unresolved index entries cannot prove a clean captured source.");
-        await CheckSnapshotGitFiles(w.ProjectPath, ct);
+        await supported;
         if (w.StorageMode == "git-snapshot")
         {
             if (await Required(w.ProjectPath, ["rev-parse", "HEAD"], ct) != revision)
@@ -166,9 +180,22 @@ public sealed partial class GitWorkspaceProvider
             .Split('\n').Any(line => line.StartsWith('?')))
             throw Error("GitResultIncomplete", "The preserved result has missing objects; retain its delta and snapshot.");
     }
-    public async Task UnregisterAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
+    public async Task UnregisterAsync(WorkspaceRecord w, string control, CancellationToken ct = default,
+        Func<CancellationToken, Task>? verifyGeneration = null)
     {
-        await VerifyResultAsync(w, control, ct);
+        if (verifyGeneration is null) await VerifyResultAsync(w, control, ct);
+        else
+        {
+            var verifiedGeneration = w.Results.LastOrDefault();
+            if (verifiedGeneration is null || w.Snapshot?.Result?.Revision != verifiedGeneration.Revision)
+                throw Error("GitOverlayResultMismatch", "The current independent generation or final closure differs.");
+            // The router's full file-generation proof also opens/verifies the
+            // retained Git basis or hashes the Git result. Do not reconstruct
+            // and verify that same basis a second time inside the project lock.
+            await verifyGeneration(ct);
+            if (w.Results.LastOrDefault() != verifiedGeneration || w.Snapshot?.Result?.Revision != verifiedGeneration.Revision)
+                throw Error("GitOverlayResultMismatch", "The verified generation changed before registration removal.");
+        }
         var receipt = await Receipt(w, control, ct, verify: false);
         if (w.Results.LastOrDefault() is { } generation)
         {

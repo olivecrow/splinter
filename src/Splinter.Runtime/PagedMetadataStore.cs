@@ -26,6 +26,7 @@ public sealed partial class PagedMetadataStore : IDisposable
     private readonly Action<string>? boundary;
     private readonly IJournalFilePins? filePins;
     private readonly IRequestPathGuard? pathGuard;
+    private readonly IRequestPathGuard? ownedPaths;
     private bool needsDurableFlush;
     internal long DurableFlushes { get; private set; }
     internal long AppendedPageBytes { get; private set; }
@@ -88,7 +89,13 @@ public sealed partial class PagedMetadataStore : IDisposable
                 if (!maintenance) writerLease = new(lease, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
                 if (!File.Exists(identity)) InitializeIdentity(identity, initialStoreId);
             }
-            else if (!maintenance) readerLease = new(Path.Combine(this.directory, "writer.lock"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            else if (!maintenance) readerLease = AcquireReaderAdmission(this.directory);
+            // Pin the ancestry once for this reader. Leaves still receive
+            // their ordinary attribute/identity/hash checks at every lookup.
+            // Acquire admission first so a queued reader cannot fence a
+            // collector's identity before that collector has finished.
+            if (!writable && filePins is not null && pathGuard is null)
+                this.pathGuard = ownedPaths = filePins.PinMetadataPaths(this.directory);
             byte[] header = ReadExactFile(identity, ContainerHeaderBytes);
             if (!header.AsSpan(0, 4).SequenceEqual(FormatMagic) ||
                 !SHA256.HashData(header.AsSpan(0, 16)).AsSpan().SequenceEqual(header.AsSpan(16)))
@@ -112,7 +119,32 @@ public sealed partial class PagedMetadataStore : IDisposable
                 OpenOutput();
             }
         }
-        catch { output?.Dispose(); locations?.Dispose(); writerLease?.Dispose(); readerLease?.Dispose(); throw; }
+        catch
+        {
+            try { output?.Dispose(); locations?.Dispose(); ownedPaths?.Dispose(); }
+            finally { try { writerLease?.Dispose(); } finally { readerLease?.Dispose(); } }
+            throw;
+        }
+    }
+
+    // Collection excludes readers, but ordinary append writers do not. Wait
+    // only on the native lease before opening identity/location/page fences:
+    // holding those while waiting would prevent the collector from finishing.
+    internal static FileStream AcquireReaderAdmission(string directory) =>
+        AcquireMetadataLease(directory, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, CancellationToken.None);
+
+    private static FileStream AcquireMetadataLease(string directory, FileAccess access, FileShare sharing, CancellationToken ct)
+    {
+        string path = Path.Combine(directory, "writer.lock");
+        var began = System.Diagnostics.Stopwatch.GetTimestamp();
+        for (;;)
+        {
+            ct.ThrowIfCancellationRequested(); WorkspaceStore.EnsurePlainPath(path);
+            try { return new(path, FileMode.Open, access, sharing); }
+            catch (IOException error) when ((error.HResult & 0xffff) is 32 or 33 &&
+                System.Diagnostics.Stopwatch.GetElapsedTime(began) < TimeSpan.FromSeconds(5))
+            { if (ct.WaitHandle.WaitOne(10)) ct.ThrowIfCancellationRequested(); }
+        }
     }
 
     public IReadOnlyMetadataTree Open(MetadataTreeRoot root)
@@ -298,8 +330,15 @@ public sealed partial class PagedMetadataStore : IDisposable
             if (disposed) return; disposed = true;
             CacheInvalidationVisits += PageCache.Remove(cacheScope);
             readerRecent.Clear();
-            foreach (var reader in readers.Values) reader.Dispose();
-            output?.Dispose(); locations?.Dispose(); writerLease?.Dispose(); readerLease?.Dispose();
+            // Admission outlives every physical fence, including pathname
+            // guards. A collector may replace location controls immediately
+            // after this lease closes.
+            try
+            {
+                foreach (var reader in readers.Values) reader.Dispose();
+                output?.Dispose(); locations?.Dispose(); ownedPaths?.Dispose();
+            }
+            finally { try { writerLease?.Dispose(); } finally { readerLease?.Dispose(); } }
         }
     }
 

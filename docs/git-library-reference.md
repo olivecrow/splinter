@@ -7,7 +7,7 @@ The Git commit/tree/blob basis of `git-snapshot` can be read together with an im
 <a id="명시적-수명주기"></a>
 ## Explicit lifecycle
 
-Application-specific Library descriptors, original reservations, and compatibility keys are selected by explicitly injecting the Unity policy. Managed-basis state and preparation intent support only v2, fixing application/directory kind; v1 is preserved/rejected. Common extension contracts follow [extension boundaries](extensibility-boundaries.md).
+Application-specific Library descriptors, original reservations, and compatibility keys are selected by explicitly injecting the Unity policy. Managed-basis state and preparation intent support only v3, fixing application/directory kind; earlier versions are preserved/rejected. Common extension contracts follow [extension boundaries](extensibility-boundaries.md).
 
 The user-authorized exception is **converting only Library into a managed mount**. Project root and source remain at the existing NTFS location. Save and normally shut down the original Editor for initial attachment and final restoration. Splinter commands do not automatically stop or reopen it.
 
@@ -18,6 +18,8 @@ The user-authorized exception is **converting only Library into a managed mount*
 5. After normally shutting down the original Editor, run `library restore --id <id> --home <home>`. Task dependencies and all basis readers must be absent. Fix the final file-structure metadata plan and journal seal, then move existing files within the same volume and overwrite only private ranges. Reclaim the owned base and original delta after original Library is again an ordinary NTFS folder.
 
 Use the same key/id/home, compatibility key, manifest, and request. If original and base both exist during preparation, or restoration encounters unexpected files, changed retained regions, or a different seal, preserve and reject. Initial file hashes and fixed metadata are checked; readers block direct writes/deletion of existing basis files. Reads use only the manifest and open basis handles. Missing/damaged generated data does not fall back to the mutable original or an empty Library.
+
+Preparation and dependency changes hold the exact basis gate. Optional intent/request/dependency reads under that gate can establish absence immediately because another publisher is excluded. Actual native sharing conflicts retain the ordinary bounded read grace; complete receipt/request identity validation and same-request recovery remain required.
 
 For a fresh delta, the client initializes journal metadata from the exact fixed root and Library manifest/read proof, holding their metadata leases and root namespace handles. It neither opens Library payload files nor provides a payload reader; its initialization proof permits only root metadata. A created delta is therefore not content-verification or mount-readiness evidence. The provider still opens, fences and hashes every Library file before publishing the mount. Current identity, initialization intent, individual durable flushes and same-request interruption recovery remain unchanged; mismatched metadata or identity is preserved and rejected. The initial Library capture still records its content hashes, with no payload copy or cache. See lifecycle cost optimization for this boundary and its bounded validation.
 

@@ -85,26 +85,60 @@ public sealed class MetadataSpool : IDisposable
 
 public static class SnapshotCatalogInput
 {
+    // Comparison-only marker streams need the same path/component/page
+    // admission as a materialized catalog, without publishing unused pages.
+    public static void ValidatePathMarker(MetadataEntry entry, bool caseSensitive = false)
+    {
+        if (entry.Key.Length == 0)
+            throw new WorkspaceException("DirectoryMetadataInvalid", "A directory record has invalid field lengths.");
+        var policy = caseSensitive ? WorkspacePathPolicy.Posix : WorkspacePathPolicy.Windows;
+        bool ordinary;
+        try { ordinary = policy.Normalize(entry.Key) == entry.Key; }
+        catch (ArgumentException) { ordinary = false; }
+        string[] components = entry.Key.Split('/');
+        if (!ordinary)
+        {
+            // Materialized marker inputs admit synthesized parents first.
+            // Preserve that failure precedence only on malformed inputs; valid
+            // paths must not repeatedly split/normalize every growing prefix.
+            string prefix = "";
+            for (int i = 0; i < components.Length; i++)
+            {
+                prefix = i == 0 ? components[i] : prefix + "/" + components[i];
+                if (prefix.Length == 0)
+                    throw new WorkspaceException("DirectoryMetadataInvalid", "A directory record has invalid field lengths.");
+                if (policy.Normalize(prefix) != prefix)
+                    throw new WorkspaceException("SnapshotCatalogInvalid", "Catalog input requires unique ordinary paths and explicit directories.");
+            }
+        }
+        for (int i = 0; i < components.Length; i++)
+        {
+            var encoded = DirectoryMetadataTree.EncodeRecord(new(new(components[i], true, 0, 16, 0, 0, 0), null,
+                SourceReference: i == components.Length - 1 ? "v:" + Convert.ToBase64String(entry.Value.Span) : null), caseSensitive);
+            PagedMetadataStore.ValidateEntry(encoded.Key, encoded.Value.Length);
+        }
+    }
+
     public static IEnumerable<DirectoryMetadataRecord> WithPathMarkers(IEnumerable<MetadataEntry> entries, string workingDirectory,
         bool caseSensitive = false, CancellationToken ct = default)
     {
-        using var scratch = new TemporaryMetadataDirectory(); using var store = new PagedMetadataStore(scratch.Path, writable: true);
-        var codec = new DirectoryMetadataTree(store, caseSensitive);
+        MetadataEntry Encode(DirectoryMetadataRecord record) => DirectoryMetadataTree.EncodeRecord(record, caseSensitive, component: false);
+        DirectoryMetadataRecord Decode(MetadataEntry record) => DirectoryMetadataTree.DecodeRecord(record, caseSensitive, component: false);
         IEnumerable<MetadataEntry> Records()
         {
             foreach (var entry in entries)
             {
-                yield return codec.Encode(new(new(entry.Key, true, 0, 16, 0, 0, 0), null,
-                    SourceReference: "v:" + Convert.ToBase64String(entry.Value.Span)), component: false);
+                yield return Encode(new(new(entry.Key, true, 0, 16, 0, 0, 0), null,
+                    SourceReference: "v:" + Convert.ToBase64String(entry.Value.Span)));
                 string path = entry.Key;
                 for (int slash; (slash = path.LastIndexOf('/')) >= 0;)
-                { path = path[..slash]; yield return codec.Encode(new(new(path, true, 0, 16, 0, 0, 0), null), component: false); }
+                { path = path[..slash]; yield return Encode(new(new(path, true, 0, 16, 0, 0, 0), null)); }
             }
         }
         DirectoryMetadataRecord? pending = null; string? key = null;
         foreach (var encoded in MetadataExternalSort.Order(Records(), workingDirectory, ct))
         {
-            var record = codec.Decode(encoded, component: false) with { Children = null };
+            var record = Decode(encoded) with { Children = null };
             if (key == encoded.Key)
             {
                 if (pending!.Entry.Path != record.Entry.Path || pending.SourceReference is not null && record.SourceReference is not null && pending.SourceReference != record.SourceReference)
@@ -124,20 +158,19 @@ public static class SnapshotCatalogInput
     public static IEnumerable<DirectoryMetadataRecord> WithImplicitDirectories(IEnumerable<DirectoryMetadataRecord> files,
         string workingDirectory, bool caseSensitive = false, CancellationToken ct = default)
     {
-        using var scratch = new TemporaryMetadataDirectory();
-        using var store = new PagedMetadataStore(scratch.Path, writable: true);
-        var codec = new DirectoryMetadataTree(store, caseSensitive);
+        MetadataEntry Encode(DirectoryMetadataRecord record) => DirectoryMetadataTree.EncodeRecord(record, caseSensitive, component: false);
+        DirectoryMetadataRecord Decode(MetadataEntry record) => DirectoryMetadataTree.DecodeRecord(record, caseSensitive, component: false);
         IEnumerable<MetadataEntry> Records()
         {
             foreach (var file in files)
             {
                 if (file.Entry.Directory) throw new WorkspaceException("SnapshotCatalogInvalid", "This input infers directories from file records only.");
-                yield return codec.Encode(file, component: false);
+                yield return Encode(file);
                 string path = file.Entry.Path;
                 for (int slash; (slash = path.LastIndexOf('/')) >= 0;)
                 {
                     path = path[..slash];
-                    yield return codec.Encode(new(new(path, true, 0, 16, 0, 0, 0), null), component: false);
+                    yield return Encode(new(new(path, true, 0, 16, 0, 0, 0), null));
                 }
             }
         }
@@ -146,12 +179,12 @@ public static class SnapshotCatalogInput
         {
             if (previous?.Key == entry.Key)
             {
-                var current = codec.Decode(entry, component: false); var prior = codec.Decode(previous, component: false);
+                var current = Decode(entry); var prior = Decode(previous);
                 if (!current.Entry.Directory || !prior.Entry.Directory || !entry.Value.Span.SequenceEqual(previous.Value.Span))
                     throw new WorkspaceException("SnapshotCatalogInvalid", "Synthesized catalog paths collide.");
                 continue;
             }
-            previous = entry; yield return codec.Decode(entry, component: false) with { Children = null };
+            previous = entry; yield return Decode(entry) with { Children = null };
         }
     }
 }

@@ -115,7 +115,8 @@ public sealed class PreparationInterruptionTests
         public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();
         public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default,
+            Func<CancellationToken, Task>? verifyGeneration = null) => throw new NotSupportedException();
         public Task<string> CheckpointAsync(WorkspaceRecord w, string m, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<IntegrationResult> IntegrateAsync(WorkspaceRecord w, string t, CancellationToken ct = default) => throw new NotSupportedException();
         public Task ReleaseAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new NotSupportedException();

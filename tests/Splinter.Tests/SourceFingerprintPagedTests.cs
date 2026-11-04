@@ -7,6 +7,25 @@ namespace Splinter.Tests;
 
 public sealed class PagedSourceFingerprintTests : SourceFingerprintFixtureBase
 {
+    [Fact]
+    public async Task EmptyPagedSourceStillDetectsAnIndexOnlyAdditionWithoutSourceJournalChanges()
+    {
+        using var fixture = await Fixture.Create(8); fixture.Tracker.Paged = true;
+        var ct = TestContext.Current.CancellationToken; string project = fixture.Workspace.Path;
+        await TestDirectory.Git(project, "rm", "-rf", "--", ".");
+        await TestDirectory.Git(project, "commit", "--allow-empty", "-m", "empty source");
+        var provider = fixture.Provider(); var empty = await provider.InspectAsync(fixture.Workspace, ct);
+        Assert.False(empty.HasChanges); Assert.Equal(await fixture.Oracle(), empty.Fingerprint);
+        string payload = System.IO.Path.Combine(fixture.Directory.Path, "index-only-payload");
+        File.WriteAllText(payload, "retained index bytes");
+        string blob = await TestDirectory.Git(project, "hash-object", "-w", "--", payload);
+        await TestDirectory.Git(project, "update-index", "--add", "--cacheinfo", "100644," + blob + ",index-only");
+        var changed = await provider.InspectAsync(fixture.Workspace, ct);
+        Assert.True(changed.HasChanges); Assert.Contains("index-only", changed.ChangedPaths);
+        Assert.False(File.Exists(fixture.Path("index-only")));
+        Assert.Equal(blob, await TestDirectory.Git(project, "rev-parse", ":index-only"));
+    }
+
     [Theory(Timeout = 60000)]
     [InlineData(false)] [InlineData(true)]
     public async Task PagedInitialUnavailableStopsQueriesButEmptyBatchesDoNot(bool unavailable)

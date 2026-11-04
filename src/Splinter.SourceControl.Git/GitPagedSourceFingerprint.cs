@@ -24,12 +24,9 @@ public sealed partial class GitWorkspaceProvider
         InitialContentAdmission? admission, CancellationToken ct, Action<SourceProof>? capture)
     {
         var clock = Stopwatch.StartNew(); RequireView(w, before);
-        string revision = await Required(w.Path, ["rev-parse", "HEAD"], ct);
-        string index = IndexDigest(w, ct);
-        using var files = new PagedStrings(GitRecords(w.Path, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], ct)
-            .Where(path => !Managed(path, w.ManagedPaths)), ct);
-        using var staged = new PagedStrings(GitRecords(w.Path, ["diff", "--cached", "--name-only", "--no-renames", "-z", "HEAD", "--"], ct)
-            .Where(path => !Managed(path, w.ManagedPaths)), ct);
+        using var membershipBefore = await ObserveSourceMembership(w, ct);
+        string revision = membershipBefore.Revision, index = membershipBefore.Index;
+        var files = membershipBefore.Files; var staged = membershipBefore.Staged!;
         string policy = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("source-fingerprint-v1\0" + string.Join('\0', w.ManagedPaths))));
         string cachePath = sourceChanges!.CachePath(w), pages = cachePath + ".pages";
         PagedSourceManifest? prior = null; bool corrupt = false;
@@ -137,10 +134,8 @@ public sealed partial class GitWorkspaceProvider
         using var actual = new PagedStrings(hashes.Read().Select(entry =>
         { var file = DecodePagedHash(entry); return new MetadataEntry(file.Path, Encoding.ASCII.GetBytes(file.GitHash)); }), ct);
         using var changes = new PagedStrings(staged.Entries().Concat(Differences(head, actual)), ct);
-        using var finalFiles = new PagedStrings(GitRecords(w.Path, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], ct)
-            .Where(path => !Managed(path, w.ManagedPaths)), ct);
-        using var finalStaged = new PagedStrings(GitRecords(w.Path, ["diff", "--cached", "--name-only", "--no-renames", "-z", "HEAD", "--"], ct)
-            .Where(path => !Managed(path, w.ManagedPaths)), ct);
+        var finalPaths = await ObserveSourcePaths(w, ct);
+        using var finalFiles = finalPaths.Files; using var finalStaged = finalPaths.Staged;
         if (revision != await Required(w.Path, ["rev-parse", "HEAD"], ct) || files.Hash != finalFiles.Hash || staged.Hash != finalStaged.Hash ||
             index != IndexDigest(w, ct) || interpretationHash != await PagedInterpretation(w.Path, finalFiles.Paths(), config: null, ct))
             throw Error("SourceChanged", "Source membership, interpretation or Git metadata changed during verification.");
@@ -393,47 +388,75 @@ public sealed partial class GitWorkspaceProvider
 
     internal sealed class PagedStrings : IDisposable
     {
-        private readonly TemporaryMetadataDirectory directory = new();
-        private readonly PagedSnapshotCatalog catalog;
-        private readonly MetadataSpool ordered;
+        private readonly TemporaryMetadataDirectory? directory;
+        private PagedSnapshotCatalog? catalog;
+        private readonly MetadataSpool? ordered;
         private readonly long count;
         private readonly bool ignoreCase;
         private readonly CancellationToken cancellationToken;
+        private bool disposed;
         public long Count => count;
-        public string Hash => catalog.Descriptor.Children.ContentHash;
+        public string Hash { get; } = EmptyPathInterpretation;
         public PagedStrings(IEnumerable<string> paths, CancellationToken ct, bool ignoreCase = false)
             : this(paths.Select(path => new MetadataEntry(ignoreCase ? path.ToUpperInvariant() : path, ReadOnlyMemory<byte>.Empty)), ct) => this.ignoreCase = ignoreCase;
         public PagedStrings(IEnumerable<MetadataEntry> entries, CancellationToken ct)
         {
             cancellationToken = ct;
+            using var cursor = entries.GetEnumerator();
+            // Empty comparisons need no scratch directory, owner publication
+            // or page store. Consume/close the input command before returning;
+            // a later boundary still observes its own fresh complete input.
+            ct.ThrowIfCancellationRequested();
+            if (!cursor.MoveNext()) { ct.ThrowIfCancellationRequested(); return; }
+            directory = new();
             ordered = new(directory.Path);
             try
             {
-                long uniqueCount = 0;
-                IEnumerable<MetadataEntry> Unique()
+                long uniqueCount = 0; MetadataEntry? prior = null;
+                foreach (var entry in MetadataExternalSort.Order(Remaining(), directory.Path, ct))
                 {
-                    MetadataEntry? prior = null;
-                    foreach (var entry in MetadataExternalSort.Order(entries, directory.Path, ct))
-                    {
-                        if (prior?.Key == entry.Key)
-                        { if (!prior.Value.Span.SequenceEqual(entry.Value.Span)) throw Error("SourceObservationInvalid", "One path names multiple source identities."); continue; }
-                        prior = entry; uniqueCount = checked(uniqueCount + 1); ordered.Append(entry); yield return entry;
-                    }
+                    if (prior?.Key == entry.Key)
+                    { if (!prior.Value.Span.SequenceEqual(entry.Value.Span)) throw Error("SourceObservationInvalid", "One path names multiple source identities."); continue; }
+                    SnapshotCatalogInput.ValidatePathMarker(entry, caseSensitive: true);
+                    prior = entry; uniqueCount = checked(uniqueCount + 1); ordered.Append(entry);
                 }
-                var descriptor = PagedSnapshotCatalog.Build(directory.Path, new("", true, 0, 16, 0, 0, 0),
-                    SnapshotCatalogInput.WithPathMarkers(Unique(), directory.Path, caseSensitive: true, ct: ct), caseSensitive: true, ct: ct);
-                catalog = new(directory.Path, descriptor); count = uniqueCount;
+                // This hash is private to one inspection/proof; no persisted
+                // format changes. Frame checked, ordinal-sorted spool bytes,
+                // not a second hierarchy built only to compare two lists.
+                using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                Span<byte> framing = stackalloc byte[8];
+                foreach (var entry in ordered.Read())
+                {
+                    ct.ThrowIfCancellationRequested(); byte[] key = Encoding.UTF8.GetBytes(entry.Key);
+                    BinaryPrimitives.WriteInt32LittleEndian(framing, key.Length);
+                    BinaryPrimitives.WriteInt32LittleEndian(framing[4..], entry.Value.Length);
+                    digest.AppendData(framing); digest.AppendData(key); digest.AppendData(entry.Value.Span);
+                }
+                Hash = Convert.ToHexStringLower(digest.GetHashAndReset()); count = uniqueCount;
             }
             catch { ordered.Dispose(); try { directory.Dispose(); } catch (IOException) { } throw; }
+            IEnumerable<MetadataEntry> Remaining()
+            { do { yield return cursor.Current; } while (cursor.MoveNext()); }
         }
         public byte[]? Find(string path)
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (ordered is null) return null;
+            if (catalog is null)
+            {
+                var descriptor = PagedSnapshotCatalog.Build(directory!.Path, new("", true, 0, 16, 0, 0, 0),
+                    SnapshotCatalogInput.WithPathMarkers(Entries(), directory.Path, caseSensitive: true, ct: cancellationToken),
+                    caseSensitive: true, ct: cancellationToken);
+                catalog = new(directory.Path, descriptor);
+            }
             path = ignoreCase ? path.ToUpperInvariant() : path; var entry = catalog.Find(path);
             return entry is not null && entry.SourceReference?.StartsWith("v:", StringComparison.Ordinal) == true && entry.Entry.Path == path
                 ? Convert.FromBase64String(entry.SourceReference[2..]) : null;
         }
         public IEnumerable<MetadataEntry> Entries()
         {
+            ObjectDisposedException.ThrowIf(disposed, this); cancellationToken.ThrowIfCancellationRequested();
+            if (ordered is null) yield break;
             foreach (var entry in ordered.Read()) { cancellationToken.ThrowIfCancellationRequested(); yield return entry; }
         }
         public IEnumerable<string> Paths() => Entries().Select(entry => entry.Key);
@@ -442,6 +465,10 @@ public sealed partial class GitWorkspaceProvider
             while (true)
             { if (Find(path) is not null) return true; int slash = path.LastIndexOf('/'); if (slash < 0) return false; path = path[..slash]; }
         }
-        public void Dispose() { catalog.Dispose(); ordered.Dispose(); directory.Dispose(); }
+        public void Dispose()
+        {
+            if (disposed) return; disposed = true;
+            try { catalog?.Dispose(); } finally { try { ordered?.Dispose(); } finally { directory?.Dispose(); } }
+        }
     }
 }

@@ -133,7 +133,7 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
                     using var output = new FileStream(Path.Combine(temporary, names[i]), FileMode.CreateNew, FileAccess.Write, FileShare.None);
                     sources[i].CopyTo(output, 65536);
                 }
-                try { Directory.Move(temporary, target); }
+                try { PublishRunnerDirectory(temporary, target); }
                 catch (IOException) when (Directory.Exists(target))
                 {
                     // Only files just written in our exact temporary directory.
@@ -153,6 +153,24 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
         finally
         {
             foreach (var source in sources) source.Dispose();
+        }
+    }
+    internal static void PublishRunnerDirectory(string temporary, string target, CancellationToken ct = default)
+    {
+        long began = Stopwatch.GetTimestamp();
+        for (;;)
+        {
+            ct.ThrowIfCancellationRequested();
+            try { Directory.Move(temporary, target); return; }
+            // Windows reports ERROR_ACCESS_DENIED for a directory rename when
+            // a brief child reader omits delete sharing. Retry only this exact
+            // completed bundle; never recopy, alter permissions or replace an
+            // existing target. Normal complete-bundle hash validation follows.
+            catch (IOException error) when (OperatingSystem.IsWindows() &&
+                (error.HResult & 0xffff) is 5 or 32 or 33 &&
+                Stopwatch.GetElapsedTime(began) < TimeSpan.FromSeconds(1) &&
+                Directory.Exists(temporary) && !Directory.Exists(target))
+            { Thread.Sleep(10); }
         }
     }
     internal static async Task<T?> ReadAsync<T>(string path, CancellationToken ct = default, bool waitForPublication = true)

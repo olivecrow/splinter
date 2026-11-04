@@ -44,8 +44,12 @@ public static class WinFspOverlayClient
             WindowsProcessWorkspaceProvider.CheckPath(cache.ReceiptDirectory);
         }
     }
-    public static async Task<SnapshotObservation> ObserveSnapshotAsync(OverlayServeRequest request, CancellationToken ct = default,
-        ISnapshotTree? openedSnapshot = null, ISnapshotTree? openedCache = null, ISnapshotTree? openedGenerated = null)
+    public static Task<SnapshotObservation> ObserveSnapshotAsync(OverlayServeRequest request, CancellationToken ct = default,
+        ISnapshotTree? openedSnapshot = null, ISnapshotTree? openedCache = null, ISnapshotTree? openedGenerated = null) =>
+        ObserveSnapshotAsync(request, ct, openedSnapshot, openedCache, openedGenerated, null);
+    internal static async Task<SnapshotObservation> ObserveSnapshotAsync(OverlayServeRequest request, CancellationToken ct,
+        ISnapshotTree? openedSnapshot, ISnapshotTree? openedCache, ISnapshotTree? openedGenerated,
+        Action<SnapshotObservation>? projectObserved)
     {
         ct.ThrowIfCancellationRequested();
         ValidateCacheSnapshot(request);
@@ -54,6 +58,7 @@ public static class WinFspOverlayClient
         request.ReadAccess.RequireMatch(request.Identity.Snapshot);
         var proof = SnapshotAvailabilityScopes.Observe(openedSnapshot, request.Identity.Snapshot, request.ReadAccess) ??
             await WorkspaceSnapshotBasis.Provider(request.Identity.Snapshot, request.SnapshotReceiptDirectory, request.SnapshotOwnerId).ObserveAsync(request.Identity.Snapshot, ct);
+        projectObserved?.Invoke(proof);
         if (proof.Available == true && proof.ReadAccess != request.ReadAccess)
             return new(request.Identity.Snapshot.Id, null, "SnapshotIdentityMismatch", null, null);
         if (proof.Available == true && request.CacheSnapshot is { } cache)
@@ -83,15 +88,17 @@ public static class WinFspOverlayClient
         WindowsSnapshotPolicy.Require(request);
         return request;
     }
-    public static async Task<JsonElement> ObserveAsync(OverlayServeRequest request, CancellationToken ct = default)
+    public static Task<JsonElement> ObserveAsync(OverlayServeRequest request, CancellationToken ct = default) => ObserveAsync(request, ct, null);
+    internal static async Task<JsonElement> ObserveAsync(OverlayServeRequest request, CancellationToken ct, Action<SnapshotObservation>? projectObserved)
     {
         var records = await ReadControlAsync(request, false, ct);
         return await ObserveWithSnapshotProofAsync(request, records, () => ReadControlAsync(request, false, ct),
-            () => ObserveSnapshotAsync(request, ct), WindowsProcessGroup.IdentityAlive, Directory.Exists);
+            () => ObserveSnapshotAsync(request, ct, null, null, null, projectObserved), WindowsProcessGroup.IdentityAlive, Directory.Exists);
     }
     // Initial connection has not launched a provider yet. Prove that absence
     // under the same exclusion as Start; a busy launcher retains normal reads.
-    internal static async Task<JsonElement> ObserveForConnectionAsync(OverlayServeRequest request, CancellationToken ct = default)
+    internal static async Task<JsonElement> ObserveForConnectionAsync(OverlayServeRequest request, CancellationToken ct = default,
+        Action<SnapshotObservation>? projectObserved = null)
     {
         ct.ThrowIfCancellationRequested();
         WindowsProcessWorkspaceProvider.CheckPath(request.ControlPath);
@@ -99,12 +106,12 @@ public static class WinFspOverlayClient
         FileStream operation;
         try { operation = new(Path.Combine(request.ControlPath, "client.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
         catch (IOException error) when ((error.HResult & 0xffff) is 32 or 33)
-        { return await ObserveAsync(request, ct); }
+        { return await ObserveAsync(request, ct, projectObserved); }
         using (operation)
         {
             var records = await ReadControlAsync(request, true, ct);
             return await ObserveWithSnapshotProofAsync(request, records, () => ReadControlAsync(request, true, ct),
-                () => ObserveSnapshotAsync(request, ct), WindowsProcessGroup.IdentityAlive, Directory.Exists);
+                () => ObserveSnapshotAsync(request, ct, null, null, null, projectObserved), WindowsProcessGroup.IdentityAlive, Directory.Exists);
         }
     }
     private static async Task<(JsonElement State, ProviderLaunch? Launch, ProviderIntent? Intent)> ReadControlAsync(

@@ -49,6 +49,12 @@ public sealed class GitLazyGenerationTests
         Assert.Equal(index, File.ReadAllBytes(Path.Combine(project, ".git", "index"))); Assert.Equal(revision, await TestDirectory.Git(project, "rev-parse", "HEAD"));
         await TestDirectory.Git(project, "update-ref", "-d", GitRetainedResultBasis.Reference(w));
         await Assert.ThrowsAsync<WorkspaceException>(() => provider.VerifyGenerationAsync(w, store.ControlPath(id), result, ct));
+        w.Snapshot.Result = new(basis.Snapshot.Id, result.Revision, result.Fingerprint, result.ResultReference,
+            new(1, 0, new string('0', 64)), true, SnapshotResult.StableJournalProtocol);
+        var router = new SourceWorkspaceRouter(new GitWorkspaceProvider(), provider);
+        Assert.Equal("GitBasisRefChanged", (await Assert.ThrowsAsync<WorkspaceException>(() =>
+            router.UnregisterAsync(w, store.ControlPath(id), ct))).Code);
+        Assert.Equal(revision, await TestDirectory.Git(project, "rev-parse", "HEAD"));
     }
 
     private sealed class Capture(SnapshotOverlayTests.FakeSnapshotTree basis, byte[] current, SourceCaptureIdentity identity) : ISourceCaptureTree, ISourceCaptureRanges

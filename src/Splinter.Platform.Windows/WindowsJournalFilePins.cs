@@ -12,6 +12,11 @@ namespace Splinter.Platform.Windows;
 // unlink without duplicating their payload.
 public sealed class WindowsJournalFilePins : IJournalFilePins
 {
+    public IRequestPathGuard? PinReadPath(string path)
+    {
+        try { return new WindowsJournalDirectoryGuard(Path.GetDirectoryName(Path.GetFullPath(path))!, Path.GetFileName(path), immutableReadFile: true); }
+        catch (WorkspaceException error) when (error.Code == "JournalPathUnpinned") { return null; }
+    }
     public IRequestPathGuard? PinMetadataPaths(string directory)
     {
         try { return new WindowsJournalDirectoryGuard(directory, "identity.bin"); }

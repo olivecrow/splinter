@@ -47,7 +47,7 @@ public static class WorkspaceSnapshotBasis
     {
         WindowsSnapshotPolicy.Require(snapshot);
         return snapshot.Provider == GitObjectSnapshotProvider.ProviderName
-            ? new(new GitObjectSnapshotProvider(directory, owner).OpenReadScope(snapshot, access,
+            ? new(new GitObjectSnapshotProvider(directory, owner, readPins: new WindowsJournalFilePins()).OpenReadScope(snapshot, access,
                 readLease as FileStream ?? throw new WorkspaceException("GitBasisReadScopeInvalid", "Require the exact Git reader lease.")))
             : OpenTree(snapshot, access, directory, owner);
     }

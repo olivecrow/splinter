@@ -50,6 +50,7 @@ public sealed partial class ImmutableReadProofs
         internal MetadataReader(string directory, IJournalFilePins pins)
         {
             WorkspaceStore.EnsurePlainPath(directory);
+            using var admission = PagedMetadataStore.AcquireReaderAdmission(directory);
             identity = new FileStream(Path.Combine(directory, "identity.bin"), FileMode.Open, FileAccess.Read, FileShare.Read);
             try
             {
@@ -61,6 +62,9 @@ public sealed partial class ImmutableReadProofs
             catch { Paths?.Dispose(); locationHeader?.Dispose(); identity.Dispose(); throw; }
         }
         public void Dispose()
-        { try { Pages.Dispose(); } finally { Paths?.Dispose(); locationHeader?.Dispose(); identity.Dispose(); } }
+        {
+            try { try { Paths?.Dispose(); } finally { try { locationHeader?.Dispose(); } finally { identity.Dispose(); } } }
+            finally { Pages.Dispose(); }
+        }
     }
 }

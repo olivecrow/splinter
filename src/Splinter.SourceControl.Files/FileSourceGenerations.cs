@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Security.Cryptography;
 using Splinter.Core;
 using Splinter.Runtime;
@@ -54,7 +55,7 @@ public sealed partial class FileWorkspaceProvider
             if (w.SourceKind != "git" && !fixedBasis && !referenceResult) baseline.ContentFiles = PreserveBasisPayloads(w, control, baseline, tree.Basis, ct);
         GitRetainedResultBasisScope? retainedGitBasis;
         using (diagnostics?.Measure("files.retained-git-scope")) retainedGitBasis = w.SourceKind == "git" && contentPins is not null
-            ? await GitRetainedResultBasis.PreserveAsync(w, control, ct) : null;
+            ? await GitRetainedResultBasis.PreserveAsync(w, control, ct, contentPins) : null;
         using var retainedGitLifetime = retainedGitBasis;
         FileSourceManifest result;
         using (diagnostics?.Measure("files.result-scan")) result = CaptureManifest();
@@ -92,7 +93,7 @@ public sealed partial class FileWorkspaceProvider
         using (diagnostics?.Measure("files.independent-verify-1"))
         if (independentReader is not null)
         {
-            VerifyPayloads(control, VerificationPayloads(baseline, result, ct), ct, independentReader.Reader, contentPins is not null,
+            VerifyPayloads(control, VerificationPayloads(baseline, result, ct, contentPins), ct, independentReader.Reader, contentPins is not null,
                 uniqueRetainedRoot: result.RetainedPayloads is not null, verification: independentReader.Verification);
             independentReader.VerifyBoundary();
         }
@@ -119,7 +120,7 @@ public sealed partial class FileWorkspaceProvider
         if (preparationObserver is not null) await preparationObserver.ReachedAsync("source-generation-receipt-published", w, ct);
         using (diagnostics?.Measure("files.independent-verify-2"))
         {
-            await VerifyGenerationCoreAsync(w, control, generation, ct, independentReader?.Reader, contentPins is not null, independentReader?.Verification, catalogs);
+            await VerifyGenerationCoreAsync(w, control, generation, ct, independentReader?.Reader, contentPins is not null, independentReader?.Verification, catalogs, contentPins);
             independentReader?.VerifyBoundary();
         }
         IEnumerable<FileSourceManifest> Retained()
@@ -141,14 +142,18 @@ public sealed partial class FileWorkspaceProvider
     }
     public async Task VerifyGenerationAsync(WorkspaceRecord w, string control, WorkspaceResultGeneration generation, CancellationToken ct = default)
     {
-        using var manifest = ReadManifest(w, GenerationPath(control, generation.Id, "result.json"));
-        using var reader = ContentReader(w, control, manifest.ContentFiles, ct: ct);
-        await VerifyGenerationCoreAsync(w, control, generation, ct, reader.Reader, contentPins is not null, reader.Verification);
+        // Reuse proofs only inside this call, while their native page fences
+        // remain held. Each later publication/release boundary opens afresh.
+        using var catalogs = new PagedMetadataStore.CatalogReadScope(FilePath(control, "metadata"), contentPins);
+        using var manifest = ReadManifest(w, GenerationPath(control, generation.Id, "result.json"), catalogs: catalogs, ct: ct);
+        using var baseline = ReadManifest(w, FilePath(control, "generation-basis.json"), catalogs: catalogs, ct: ct);
+        using var reader = ContentReader(w, control, manifest.ContentFiles, retainedBasis: baseline, ct: ct);
+        await VerifyGenerationCoreAsync(w, control, generation, ct, reader.Reader, contentPins is not null, reader.Verification, catalogs, contentPins);
         reader.VerifyBoundary();
     }
     private static async Task VerifyGenerationCoreAsync(WorkspaceRecord w, string control, WorkspaceResultGeneration generation,
         CancellationToken ct, Func<string, Stream>? open = null, bool concurrentOpen = false, ResultFileContentStore.VerificationScope? verification = null,
-        PagedMetadataStore.CatalogReadScope? catalogs = null)
+        PagedMetadataStore.CatalogReadScope? catalogs = null, IJournalFilePins? pins = null)
     {
         var receipt = Read<WorkspaceResultGeneration>(GenerationPath(control, generation.Id, "generation.json"), open);
         using var result = ReadManifest(w, GenerationPath(control, generation.Id, "result.json"), open, catalogs, ct);
@@ -158,65 +163,87 @@ public sealed partial class FileWorkspaceProvider
             generation.ResultReference != "files:" + w.Id + ":" + generation.Id || generation.Sequence < 1 ||
             string.IsNullOrWhiteSpace(generation.RequestKey) || generation.CaptureDigest.Length != 64)
             throw Error("The independent generation differs from its receipt.");
-        if (w.SourceKind != "git" || generation.GitReference is null) VerifyPayloads(control, VerificationPayloads(baseline, result, ct), ct, open, concurrentOpen,
+        if (w.SourceKind != "git" || generation.GitReference is null) VerifyPayloads(control, VerificationPayloads(baseline, result, ct, pins), ct, open, concurrentOpen,
             uniqueRetainedRoot: result.RetainedPayloads is not null, verification: verification);
         if (w.SourceKind == "git" && generation.GitReference is not null &&
             await GitSourceResult.VerifyAsync(w.ProjectPath, generation.GitReference, ct) != generation.GitFingerprint)
             throw Error("The independent Git generation changed or disappeared.");
     }
-    private static IEnumerable<FileSourceEntry> VerificationPayloads(FileSourceManifest baseline, FileSourceManifest result, CancellationToken ct) =>
-        result.RetainedPayloads is null ? baseline.EnumeratePayloads(ct).Concat(result.EnumeratePayloads(ct)) : result.EnumerateRetainedPayloads(ct);
+    private static IEnumerable<FileSourceEntry> VerificationPayloads(FileSourceManifest baseline, FileSourceManifest result, CancellationToken ct, IJournalFilePins? pins = null) =>
+        result.RetainedPayloads is null ? baseline.EnumeratePayloads(ct, pins).Concat(result.EnumeratePayloads(ct, pins)) : result.EnumerateRetainedPayloads(ct, pins);
     private static IEnumerable<FileSourceEntry> ScanTree(WorkspaceRecord w, ISnapshotTree tree, CancellationToken ct, FileSourceManifest? baseline = null)
     {
         using var basisReader = baseline?.OpenReader();
-        var pending = new Stack<IEnumerator<SnapshotEntry>>(); pending.Push(tree.EnumerateChildren("").GetEnumerator());
-        byte[] buffer = new byte[65536];
-        try
+        int workers = tree.SupportsConcurrentReads ? StorageResources.HashWorkers : 1;
+        // Final catalogs own sorting. Reuse the bounded pipeline so one slow
+        // file cannot stall an entire batch, and enumeration/hashing/catalog
+        // construction overlap. Disposal joins all admitted immutable reads.
+        foreach (var entry in BoundedParallel.Select(Entries(), ConvertEntry, workers, ct)) yield return entry;
+
+        IEnumerable<SnapshotEntry> Entries()
         {
-        while (pending.TryPeek(out var items))
-        {
-            if (!items.MoveNext()) { items.Dispose(); pending.Pop(); continue; }
-            var entry = items.Current;
-            ct.ThrowIfCancellationRequested();
-            if (Managed(entry.Path, w.ManagedPaths) || VcsMetadata.Contains(entry.Path.Split('/')[0], StringComparer.OrdinalIgnoreCase)) continue;
-            if (!ValidPath(entry.Path) || (entry.Attributes & (0x400u | 0x800u | 0x4000u | 0x200u)) != 0)
-                throw new WorkspaceException("SnapshotFileUnsupported", "Generations require supported ordinary source entries.");
-            string? hash = null;
-            if (entry.Directory) pending.Push(tree.EnumerateChildren(entry.Path).GetEnumerator());
-            else
+            var pending = new Stack<IEnumerator<SnapshotEntry>>(); pending.Push(tree.EnumerateChildren("").GetEnumerator());
+            try
             {
-                // Only immutable, same-capture range evidence can reuse basis
-                // bytes. Metadata is still taken from this captured namespace;
-                // independent payload and full publication proofs remain below.
+                while (pending.TryPeek(out var items))
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!items.MoveNext()) { items.Dispose(); pending.Pop(); continue; }
+                    var entry = items.Current;
+                    if (Managed(entry.Path, w.ManagedPaths) || VcsMetadata.Contains(entry.Path.Split('/')[0], StringComparer.OrdinalIgnoreCase)) continue;
+                    if (!ValidPath(entry.Path) || (entry.Attributes & (0x400u | 0x800u | 0x4000u | 0x200u)) != 0)
+                        throw new WorkspaceException("SnapshotFileUnsupported", "Generations require supported ordinary source entries.");
+                    if (entry.Directory) pending.Push(tree.EnumerateChildren(entry.Path).GetEnumerator());
+                    yield return entry;
+                }
+            }
+            finally { foreach (var items in pending) items.Dispose(); }
+        }
+
+        string? ProvenHash(SnapshotEntry entry)
+        {
+            if (tree is not ISnapshotContentSummaryProvider summaries || summaries.GetVerifiedContentSummary(entry.Path) is not { } proof) return null;
+            if (proof.Path != entry.Path || proof.Length != entry.Length || !ValidHash(proof.Sha256))
+                throw Error("Immutable content evidence differs from the scanned entry.");
+            return proof.Sha256;
+        }
+        FileSourceEntry ConvertEntry(SnapshotEntry entry, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested(); string? hash = null;
+            if (!entry.Directory)
+            {
                 var layout = basisReader is not null && tree is ISourceCaptureRanges ranges ? ranges.GetFileRanges(entry.Path) : null;
                 var basis = layout?.BasisPath is { } basisPath ? basisReader!.Find(basisPath) : null;
                 if (basis is { Kind: "file", Hash: not null } && basis.Length == entry.Length &&
                     layout!.BasisVisibleLength == entry.Length && !layout.PrivateRanges.Any()) hash = basis.Hash;
-                else if (tree is ISnapshotContentSummaryProvider summaries && summaries.GetVerifiedContentSummary(entry.Path) is { } summary)
-                {
-                    if (summary.Path != entry.Path || summary.Length != entry.Length || !ValidHash(summary.Sha256))
-                        throw Error("Immutable content evidence differs from the scanned entry.");
-                    hash = summary.Sha256;
-                }
-                else
+                else if ((hash = ProvenHash(entry)) is null)
                 {
                     using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                    for (long position = 0; position < entry.Length;)
+                    byte[] buffer = ArrayPool<byte>.Shared.Rent(65536);
+                    try
                     {
-                        ct.ThrowIfCancellationRequested(); int n = tree.Read(entry.Path, position, buffer.AsSpan(0, (int)Math.Min(buffer.Length, entry.Length - position)));
-                        if (n <= 0) throw Error("A frozen payload ended early."); digest.AppendData(buffer.AsSpan(0, n)); position += n;
+                        for (long position = 0; position < entry.Length;)
+                        {
+                            token.ThrowIfCancellationRequested();
+                            int n = tree.Read(entry.Path, position, buffer.AsSpan(0, (int)Math.Min(65536, entry.Length - position)));
+                            if (n <= 0) throw Error("A frozen payload ended early.");
+                            // Git's first range read verifies the whole blob and
+                            // records its raw SHA-256. Reuse that same live proof
+                            // rather than rereading/rehashing the entire payload.
+                            if (position == 0 && (hash = ProvenHash(entry)) is not null) break;
+                            digest.AppendData(buffer.AsSpan(0, n)); position += n;
+                        }
                     }
-                    hash = Convert.ToHexStringLower(digest.GetHashAndReset());
+                    finally { ArrayPool<byte>.Shared.Return(buffer); }
+                    hash ??= Convert.ToHexStringLower(digest.GetHashAndReset());
                 }
             }
             uint? mode = entry.UnixMode;
             if (w.SourceKind == "git" && !entry.Directory && mode is null)
                 mode = (tree as ISourceCaptureTree)?.Basis.Stat(entry.Path)?.UnixMode ?? 0x1A4;
-            yield return new(entry.Path, entry.Directory ? "directory" : "file", entry.Length, hash,
+            return new(entry.Path, entry.Directory ? "directory" : "file", entry.Length, hash,
                 DateTime.FromFileTimeUtc(entry.LastWriteTime).Ticks, (int)entry.Attributes, mode);
         }
-        }
-        finally { foreach (var items in pending) items.Dispose(); }
     }
     private void PreserveTreePayloads(WorkspaceRecord w, string control, FileSourceManifest manifest, ISnapshotTree tree, CancellationToken ct, IEnumerable<FileSourceEntry>? selected = null)
     {

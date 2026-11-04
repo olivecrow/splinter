@@ -101,7 +101,7 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
     internal GitObjectSnapshotTree(SnapshotReference snapshot, string tree, string revision, string reference, Func<SnapshotObservation> health,
         int proofByteLimit = MaxProofBytes, int proofEntryLimit = MaxProofEntries,
         GitSourceMetadataManifest? sourceMetadata = null, int payloadByteLimit = MaxPayloadBytes,
-        int proofReadAheadBytes = MaxProofReadAheadBytes, bool diagnostics = false)
+        int proofReadAheadBytes = MaxProofReadAheadBytes, bool diagnostics = false, bool verifyCommit = false)
     {
         if (proofByteLimit is < 1 or > MaxProofBytes || proofEntryLimit is < 1 or > MaxProofEntries)
             throw new ArgumentOutOfRangeException(nameof(proofByteLimit));
@@ -116,14 +116,19 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
         using var metadata = sourceMetadata?.OpenCatalog();
         EnsureAvailable();
         long timestamp = snapshot.CapturedAt.UtcDateTime.ToFileTimeUtc();
-        VerifyObject(snapshot.RootPath, tree, "tree");
+        using var verifier = new ObjectVerifier(snapshot.RootPath);
+        verifier.Verify(verifyCommit ? [(revision, "commit"), (tree, "tree")] : [(tree, "tree")]);
         catalogDirectory = new();
         try
         {
             var descriptor = PagedSnapshotCatalog.Build(catalogDirectory.Path,
                 new("", true, 0, (uint)FileAttributes.Directory, timestamp, timestamp, timestamp), Records(), policy.CaseSensitive);
             catalog = new(catalogDirectory.Path, descriptor);
-            try { VerifySubtrees(snapshot.RootPath, catalog.Walk().Where(e => e.Entry.Directory && e.SourceReference is not null).Select(e => e.SourceReference!)); }
+            try
+            {
+                verifier.Verify(catalog.Walk().Where(e => e.Entry.Directory && e.SourceReference is not null).Select(e => (e.SourceReference!, "tree")));
+                verifier.Complete();
+            }
             catch { catalog.Dispose(); throw; }
         }
         catch
@@ -186,29 +191,8 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
         }
         finally { if (!process.HasExited) { process.Kill(entireProcessTree: true); process.WaitForExit(); } }
     }
-    internal static void VerifyObject(string common, string objectId, string type)
-    {
-        long length = long.Parse(Command(common, ["cat-file", "-s", objectId], CancellationToken.None,
-            failureCode: "GitBasisObjectInvalid").GetAwaiter().GetResult(), CultureInfo.InvariantCulture);
-        using var process = Process.Start(StartInfo(common, ["cat-file", type, objectId])) ?? throw Failure("GitBasisUnavailable", "Git did not start.");
-        var error = process.StandardError.ReadToEndAsync(); process.StandardInput.Close();
-        using var output = ProgressOutput(process);
-        using var hash = IncrementalHash.CreateHash(objectId.Length == 40 ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256);
-        hash.AppendData(Encoding.ASCII.GetBytes(type + " " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
-        byte[] scratch = ArrayPool<byte>.Shared.Rent(65536);
-        long read = 0;
-        try
-        {
-            int n;
-            while ((n = output.Read(scratch, 0, 65536)) != 0)
-            { read += n; if (read > length) break; hash.AppendData(scratch.AsSpan(0, n)); }
-            if (!process.WaitForExit(1000)) { process.Kill(); process.WaitForExit(); }
-            _ = error.GetAwaiter().GetResult();
-            if (process.ExitCode != 0 || read != length || Convert.ToHexStringLower(hash.GetHashAndReset()) != objectId)
-                throw Failure("GitBasisObjectInvalid", "The fixed commit/tree hash failed; preserve the object store and receipt.");
-        }
-        finally { if (!process.HasExited) { process.Kill(); process.WaitForExit(); } ArrayPool<byte>.Shared.Return(scratch); }
-    }
+    internal static void VerifyObject(string common, string objectId, string type) =>
+        VerifyObjects(common, [(objectId, type)]);
     public void EnsureAvailable()
     {
         ObjectDisposedException.ThrowIf(disposed || closing, this);
@@ -216,41 +200,83 @@ public sealed partial class GitObjectSnapshotTree : ISnapshotTree, ISnapshotCont
         if (observed.Id != Snapshot.Id || observed.Available != true)
             throw Failure(observed.FailureCode ?? "SnapshotObservationUnknown", "Preserve this task's immutable object basis.");
     }
-    private static void VerifySubtrees(string common, IEnumerable<string> objects)
+    // The batch header and bytes come from the same process/stream. This keeps
+    // full object hashing while avoiding a separate size-query process for
+    // every commit/tree and amortizes subtree verification process startup.
+    internal static void VerifyObjects(string common, IEnumerable<(string Id, string Type)> objects)
     {
-        using var process = Process.Start(StartInfo(common, ["cat-file", "--batch"])) ?? throw Failure("GitBasisUnavailable", "Git did not start.");
-        var error = process.StandardError.ReadToEndAsync();
-        using var output = ProgressOutput(process);
-        byte[] scratch = ArrayPool<byte>.Shared.Rent(ChunkBytes);
-        try
+        using var verifier = new ObjectVerifier(common); verifier.Verify(objects); verifier.Complete();
+    }
+    // Retain one drained batch stream across root proof, listing/catalog build
+    // and subtree proof. All raw hashes/framing and the final child exit still
+    // pass before this tree becomes visible; listing never precedes root proof.
+    private sealed class ObjectVerifier : IDisposable
+    {
+        private readonly Process process;
+        private readonly Task<string> error;
+        private readonly GitProgressReadStream output;
+        private readonly byte[] scratch;
+        private bool disposed;
+        internal ObjectVerifier(string common)
         {
-            foreach (string objectId in objects)
+            process = Process.Start(StartInfo(common, ["cat-file", "--batch"])) ?? throw Failure("GitBasisUnavailable", "Git did not start.");
+            try
             {
+                error = process.StandardError.ReadToEndAsync(); output = ProgressOutput(process);
+                scratch = ArrayPool<byte>.Shared.Rent(ChunkBytes);
+            }
+            catch
+            {
+                try { if (!process.HasExited) { process.Kill(entireProcessTree: true); process.WaitForExit(); } }
+                finally { output?.Dispose(); process.Dispose(); }
+                throw;
+            }
+        }
+        internal void Verify(IEnumerable<(string Id, string Type)> objects)
+        {
+            try
+            {
+            foreach (var (objectId, type) in objects)
+            {
+                RequireObjectId(objectId);
                 process.StandardInput.Write(objectId + "\n"); process.StandardInput.Flush();
                 string[] header = Header(output).Split(' ');
-                if (header.Length != 3 || header[0] != objectId || header[1] != "tree" ||
+                if (header.Length != 3 || header[0] != objectId || header[1] != type ||
                     !long.TryParse(header[2], NumberStyles.None, CultureInfo.InvariantCulture, out long length) || length < 0)
-                    throw Failure("GitBasisObjectInvalid", "The fixed subtree header is invalid.");
+                    throw Failure("GitBasisObjectInvalid", "The fixed object header is invalid.");
                 using var hash = IncrementalHash.CreateHash(objectId.Length == 40 ? HashAlgorithmName.SHA1 : HashAlgorithmName.SHA256);
-                hash.AppendData(Encoding.ASCII.GetBytes("tree " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
+                hash.AppendData(Encoding.ASCII.GetBytes(type + " " + length.ToString(CultureInfo.InvariantCulture) + "\0"));
                 for (long position = 0; position < length;)
                 {
                     int n = (int)Math.Min(ChunkBytes, length - position);
                     output.ReadExactly(scratch.AsSpan(0, n)); hash.AppendData(scratch.AsSpan(0, n)); position += n;
                 }
                 if (output.ReadByte() != '\n' || Convert.ToHexStringLower(hash.GetHashAndReset()) != objectId)
-                    throw Failure("GitBasisObjectInvalid", "The fixed subtree hash failed; preserve the object store and receipt.");
+                    throw Failure("GitBasisObjectInvalid", "The fixed object hash failed; preserve the object store and receipt.");
             }
-            process.StandardInput.Close();
-            if (!process.WaitForExit(1000)) { process.Kill(entireProcessTree: true); process.WaitForExit(); }
-            _ = error.GetAwaiter().GetResult();
-            if (process.ExitCode != 0) throw Failure("GitBasisObjectInvalid", "The fixed subtree reader failed.");
+            }
+            catch (IOException) { throw Failure("GitBasisObjectInvalid", "The fixed object stream is incomplete."); }
         }
-        catch (IOException) { throw Failure("GitBasisObjectInvalid", "The fixed subtree stream is incomplete."); }
-        finally
+        internal void Complete()
         {
-            if (!process.HasExited) { process.Kill(entireProcessTree: true); process.WaitForExit(); }
-            ArrayPool<byte>.Shared.Return(scratch);
+            try
+            {
+                process.StandardInput.Close();
+                if (!process.WaitForExit(1000)) { process.Kill(entireProcessTree: true); process.WaitForExit(); }
+                _ = error.GetAwaiter().GetResult();
+                if (process.ExitCode != 0) throw Failure("GitBasisObjectInvalid", "The fixed object reader failed.");
+            }
+            catch (IOException) { throw Failure("GitBasisObjectInvalid", "The fixed object stream is incomplete."); }
+        }
+        public void Dispose()
+        {
+            if (disposed) return; disposed = true;
+            try { if (!process.HasExited) { process.Kill(entireProcessTree: true); process.WaitForExit(); } }
+            finally
+            {
+                try { output.Dispose(); }
+                finally { try { process.Dispose(); } finally { ArrayPool<byte>.Shared.Return(scratch); } }
+            }
         }
     }
     public SnapshotEntry? Stat(string relativePath)

@@ -179,7 +179,8 @@ public sealed class PlasticWorkspaceProvider(WorkspaceStore store, IPlasticWorks
     public async Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
     { await VerifyIsolationAsync(w, ct); return await files.PreserveAsync(w, c, ct); }
     public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => files.VerifyResultAsync(w, c, ct);
-    public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => files.UnregisterAsync(w, c, ct);
+    public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default,
+        Func<CancellationToken, Task>? verifyGeneration = null) => files.UnregisterAsync(w, c, ct, verifyGeneration);
     public async Task<string> ObserveDiscardRevisionAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
     { await VerifyIsolationAsync(w, ct); return await files.ObserveDiscardRevisionAsync(w, c, ct); }
     public Task DiscardSourceAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => files.DiscardSourceAsync(w, c, ct);

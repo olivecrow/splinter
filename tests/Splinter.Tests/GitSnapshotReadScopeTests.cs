@@ -43,13 +43,17 @@ public sealed partial class GitObjectSnapshotTests
         {
             if (OperatingSystem.IsWindows())
             {
+                Assert.True(scope.NativePathsFixed);
                 Assert.Throws<IOException>(() => File.WriteAllText(reference, new string('0', 40)));
                 Assert.Throws<IOException>(() => File.Delete(reference));
                 Assert.Throws<IOException>(() => File.WriteAllText(receipt, "{}"));
+                Assert.Throws<IOException>(() => Directory.Move(f.Receipt, f.Receipt + ".moved"));
             }
             Assert.Equal(1024, scope.Read("file.bin", 0, new byte[1024]));
             scope.VerifyReadBoundary();
         }
+        lease.Dispose(); // The independently owned readers.lock also denies directory removal.
+        Directory.Move(f.Receipt, f.Receipt + ".moved"); Directory.Move(f.Receipt + ".moved", f.Receipt);
         using var refWriter = new FileStream(reference, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
         using var receiptWriter = new FileStream(receipt, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
         Assert.True(refWriter.CanWrite); Assert.True(receiptWriter.CanWrite);

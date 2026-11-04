@@ -9,6 +9,22 @@ namespace Splinter.Tests;
 public sealed class ControlFilePublicationTests
 {
     [Fact]
+    public async Task ExcludedPublisherAbsenceDoesNotHideAnActualSharingConflict()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Requires native file sharing semantics.");
+        using var files = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
+        string path = Path.Combine(files.Path, "request.json");
+        Assert.Null(await WindowsProcessWorkspaceProvider.ReadAsync<Receipt>(path, ct, waitForPublication: false));
+        var expected = new Receipt(1, "complete");
+        await WindowsProcessWorkspaceProvider.WriteAsync(path, expected, ct);
+        using var held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
+        var reading = WindowsProcessWorkspaceProvider.ReadAsync<Receipt>(path, ct, waitForPublication: false);
+        try { await Task.Delay(100, ct); Assert.False(reading.IsCompleted); }
+        finally { held.Dispose(); }
+        Assert.Equal(expected, await reading.WaitAsync(TimeSpan.FromSeconds(2), ct));
+    }
+
+    [Fact]
     public async Task BriefReaderWithoutDeleteSharingDoesNotFailLiveStatePublication()
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("Windows file sharing or native contract.");

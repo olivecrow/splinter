@@ -61,10 +61,16 @@ public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWork
     public Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Snapshot(w).PreserveAsync(w, c, ct);
     public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default) =>
         w.Results.Count > 0 ? files.VerifyGenerationAsync(w, c, w.Results.Last(), ct) : Snapshot(w).VerifyResultAsync(w, c, ct);
-    public async Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+    public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default,
+        Func<CancellationToken, Task>? verifyGeneration = null)
     {
-        if (w.SourceKind == "git" && w.Results.Count > 0) await files.VerifyGenerationAsync(w, c, w.Results.Last(), ct);
-        await Snapshot(w).UnregisterAsync(w, c, ct);
+        Func<CancellationToken, Task>? validator = verifyGeneration;
+        if (validator is null && w.SourceKind == "git" && w.Results.Count > 0)
+        {
+            var generation = w.Results.Last();
+            validator = token => files.VerifyGenerationAsync(w, c, generation, token);
+        }
+        return Snapshot(w).UnregisterAsync(w, c, ct, validator);
     }
     public Task<string> ObserveDiscardRevisionAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Discard(w).ObserveDiscardRevisionAsync(w, c, ct);
     public Task DiscardSourceAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Discard(w).DiscardSourceAsync(w, c, ct);

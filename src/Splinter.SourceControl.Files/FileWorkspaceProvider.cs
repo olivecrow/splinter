@@ -196,11 +196,13 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
             throw Error("The preserved basis/result collection differs from the durable task.");
         VerifyPayloads(control, baseline.EnumeratePayloads().Concat(result.EnumeratePayloads()), default, open);
     }
-    public Task UnregisterAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
+    public async Task UnregisterAsync(WorkspaceRecord w, string control, CancellationToken ct = default,
+        Func<CancellationToken, Task>? verifyGeneration = null)
     {
         Owner(w, control);
         if (Directory.Exists(w.Path) || File.Exists(w.Path)) throw Error("The mount must be absent before source release.");
-        return VerifyResultAsync(w, control, ct);
+        if (verifyGeneration is null) await VerifyResultAsync(w, control, ct);
+        else await verifyGeneration(ct);
     }
     public Task<string> ObserveDiscardRevisionAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
@@ -227,17 +229,26 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     }
     private FileSourceManifest Manifest(WorkspaceRecord w, IEnumerable<FileSourceEntry> entries)
     {
+        // Input can perform slow native reads and complete blob hashes. Finish
+        // it in bounded operation-owned scratch before taking the home-wide
+        // metadata writer lock; peers can scan/hash their own input concurrently.
+        using var input = new MetadataSpool(FilePath(Control(w), "scratch"));
+        foreach (var entry in entries)
+        {
+            if (!ValidPath(entry.Path) || entry.Kind is not ("file" or "directory") || entry.Length < 0 ||
+                entry.Kind == "file" && entry.Hash is not null && !ValidHash(entry.Hash) ||
+                entry.Kind == "directory" && (entry.Length != 0 || entry.Hash is not null))
+                throw Error("The source membership contains unsupported metadata.");
+            input.Append(new(entry.Path, FileApplyIndex.EncodeTemporary(entry)));
+        }
         using var pool = new SharedMetadataPool(store.Root, w.ProjectPath + "\n" + w.SourceKind + "\n" + w.ApplicationKind + "\n" + string.Join('\n', w.ManagedPaths), filePins: contentPins);
         string directory = FilePath(Control(w), "metadata");
         var root = new SnapshotEntry("", true, 0, 16, 0, 0, 0);
         IEnumerable<DirectoryMetadataRecord> Records()
         {
-            foreach (var entry in entries)
+            foreach (var row in input.Read())
             {
-                if (!ValidPath(entry.Path) || entry.Kind is not ("file" or "directory") || entry.Length < 0 ||
-                    entry.Kind == "file" && entry.Hash is not null && !ValidHash(entry.Hash) ||
-                    entry.Kind == "directory" && (entry.Length != 0 || entry.Hash is not null))
-                    throw Error("The source membership contains unsupported metadata.");
+                var entry = FileApplyIndex.DecodeTemporary(row) ?? throw Error("The source membership contains a deletion marker.");
                 yield return new(new(entry.Path, entry.Kind == "directory", entry.Length, (uint)entry.Attributes,
                     0, 0, new DateTime(entry.LastWriteUtcTicks, DateTimeKind.Utc).ToFileTimeUtc(), entry.UnixMode), entry.Hash);
             }
@@ -532,9 +543,9 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
         {
             if (w.SourceKind == "git")
             {
-                if (gitBasis is null) gitBasis = ownedGitBasis = GitRetainedResultBasis.Open(w, control);
+                if (gitBasis is null) gitBasis = ownedGitBasis = GitRetainedResultBasis.Open(w, control, contentPins);
                 if (basis is null) basis = ownedBasis = ReadManifest(w, FilePath(control, "generation-basis.json"));
-                basisCatalog = basis.OpenReader();
+                basisCatalog = basis.OpenReader(contentPins);
             }
             Stream Basis(string hash, long? length)
             { var entry = basisCatalog!.FindPayload(hash, length); return new SnapshotPayloadStream(gitBasis!, entry.Path, entry.Length); }
@@ -652,11 +663,11 @@ public sealed record FileSourceManifest([property: JsonRequired] string OwnerId,
     [JsonIgnore] internal FileStream? AnchorLease { get; init; }
     [JsonIgnore] internal FileStream? RetentionLease { get; set; }
     public void Dispose() { try { AnchorLease?.Dispose(); } finally { RetentionLease?.Dispose(); } }
-    internal IEnumerable<FileSourceEntry> EnumerateRetainedPayloads(CancellationToken ct = default)
+    internal IEnumerable<FileSourceEntry> EnumerateRetainedPayloads(CancellationToken ct = default, IJournalFilePins? pins = null)
     {
         if (RetainedPayloads is null)
-        { foreach (var entry in EnumeratePayloads(ct)) yield return entry; yield break; }
-        using var pages = new PagedMetadataStore(Directory!);
+        { foreach (var entry in EnumeratePayloads(ct, pins)) yield return entry; yield break; }
+        using var pages = new PagedMetadataStore(Directory!, filePins: pins);
         foreach (var item in pages.Open(RetainedPayloads).Enumerate())
         {
             ct.ThrowIfCancellationRequested();
@@ -683,10 +694,10 @@ public sealed record FileSourceManifest([property: JsonRequired] string OwnerId,
     {
         using var reader = OpenReader(); return reader.FindPayload(hash, length);
     }
-    internal ReadScope OpenReader() => new(this);
-    internal IEnumerable<FileSourceEntry> EnumeratePayloads(CancellationToken ct = default)
+    internal ReadScope OpenReader(IJournalFilePins? pins = null) => new(this, pins);
+    internal IEnumerable<FileSourceEntry> EnumeratePayloads(CancellationToken ct = default, IJournalFilePins? pins = null)
     {
-        using var reader = OpenReader();
+        using var reader = OpenReader(pins);
         foreach (var entry in reader.EnumeratePayloads(ct)) yield return entry;
     }
     // One operation may consult many immutable hashes. Keep its catalog and
@@ -699,11 +710,11 @@ public sealed record FileSourceManifest([property: JsonRequired] string OwnerId,
         private readonly PagedSnapshotCatalog catalog;
         private readonly IReadOnlyMetadataTree payloads;
         private readonly PagedPathInterner names;
-        internal ReadScope(FileSourceManifest manifest)
+        internal ReadScope(FileSourceManifest manifest, IJournalFilePins? pins)
         {
             if (manifest.PayloadIndex is null || manifest.PayloadPaths is null || manifest.Catalog is null || manifest.Directory is null)
                 throw new WorkspaceException("FileSourceStateInvalid", "The source payload index is missing.");
-            pages = new(manifest.Directory); PagedSnapshotCatalog? opened = null;
+            pages = new(manifest.Directory, filePins: pins); PagedSnapshotCatalog? opened = null;
             try
             {
                 catalog = opened = new(pages, manifest.Catalog);

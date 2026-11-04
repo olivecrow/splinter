@@ -169,7 +169,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
             var intent = new PreparationIntent(3, id, project, key, original, basisPath, applicationKind, descriptor.Kind, compatibilityKey);
             if (Directory.Exists(root))
             {
-                var prior = await WindowsProcessWorkspaceProvider.ReadAsync<PreparationIntent>(intentPath, ct);
+                var prior = await WindowsProcessWorkspaceProvider.ReadAsync<PreparationIntent>(intentPath, ct, waitForPublication: false);
                 if (prior != intent || Directory.EnumerateFileSystemEntries(root).Any(p => Path.GetFileName(p) is not ("prepare-intent.json" or "manifest.json" or "proof.json" or "readers.lock" or "dependents" or OwnedDirectoryManifest.MetadataDirectoryName or GitSourceMetadata.FileName or GitSourceMetadata.DirectoryName)) ||
                     Directory.Exists(Path.Combine(root, "dependents")) && Directory.EnumerateFileSystemEntries(Path.Combine(root, "dependents")).Any())
                     throw new WorkspaceException("GeneratedBasisPreparationConflict", "Retain an unowned or uncertain preparation root.");
@@ -241,7 +241,9 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
             // creating its delta. Keep that single verification boundary rather
             // than opening/hash-reading every basis file a second time here.
         }
-        var request = await WindowsProcessWorkspaceProvider.ReadAsync<OverlayServeRequest>(RequestPath(id), ct);
+        // The exact basis gate excludes another request publisher. Absence is
+        // stable here; native sharing conflicts still retain their read grace.
+        var request = await WindowsProcessWorkspaceProvider.ReadAsync<OverlayServeRequest>(RequestPath(id), ct, waitForPublication: false);
         if (request is null)
         {
             var access = await new OwnedDirectorySnapshotProvider(root, id).ResolveReadAccessAsync(state.Basis.Snapshot, ct);
@@ -290,7 +292,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
         if (!observed.GetProperty("ownershipVerified").GetBoolean() || observed.GetProperty("processAlive").GetBoolean())
             throw new WorkspaceException("GeneratedBasisInUse", "Observe the owned provider absent before detaching.");
         string path = Path.Combine(Root(basis.Id), "dependents", workspace.Id + ".json");
-        var receipt = await WindowsProcessWorkspaceProvider.ReadAsync<GeneratedDependency>(path, ct);
+        var receipt = await WindowsProcessWorkspaceProvider.ReadAsync<GeneratedDependency>(path, ct, waitForPublication: false);
         if (receipt is not null && receipt != new GeneratedDependency(workspace.Id, workspace.RequestDigest!, basis))
             throw new WorkspaceException("GeneratedBasisMismatch", "Retain another dependent receipt.");
         if (receipt is not null) File.Delete(path);

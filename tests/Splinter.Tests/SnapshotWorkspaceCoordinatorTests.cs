@@ -652,7 +652,9 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         public bool InvalidResult;
         public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { VerifyCalls++; if (InvalidResult) throw new WorkspaceException("ResultMissing", "Preserved result is unavailable."); return Task.CompletedTask; }
-        public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { FailOnce("unregister"); return Task.CompletedTask; }
+        public async Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default,
+            Func<CancellationToken, Task>? verifyGeneration = null)
+        { FailOnce("unregister"); if (verifyGeneration is not null) await verifyGeneration(ct); }
         public Task<string> ResolveRevisionAsync(string p, string r, CancellationToken ct = default) => Task.FromResult(r);
         public Task<SourceWorkspace> CreateAsync(WorkspaceRecord w, CancellationToken ct = default) => throw new InvalidOperationException("No clone/checkout fallback");
         public async Task<SourceState> InspectAsync(WorkspaceRecord w, CancellationToken ct = default)

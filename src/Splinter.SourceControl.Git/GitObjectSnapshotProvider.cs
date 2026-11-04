@@ -2,13 +2,14 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Splinter.Core;
+using Splinter.Runtime;
 
 namespace Splinter.SourceControl.Git;
 
 // A project commit is already immutable. Only identity/ownership metadata and a
 // reachability ref are published here; no checkout, payload cache or VSS exists.
 public sealed partial class GitObjectSnapshotProvider(string receiptDirectory, string ownerId, string? revision = null,
-    GeneratedDirectoryReference? sourceMetadata = null) : ISourceSnapshotProvider
+    GeneratedDirectoryReference? sourceMetadata = null, IJournalFilePins? readPins = null) : ISourceSnapshotProvider
 {
     public const string ProviderName = "git-objects";
     public const string Consistency = "recorded-project-commit-raw-blobs";
@@ -31,15 +32,20 @@ public sealed partial class GitObjectSnapshotProvider(string receiptDirectory, s
             string project = Path.GetFullPath(request.SourcePath);
             string common = await GitWorkspaceProvider.Required(project, ["rev-parse", "--path-format=absolute", "--git-common-dir"], ct);
             Plain(common);
-            string fixedCommit = await Command(common, ["rev-parse", "--verify", "--end-of-options", revision + "^{commit}"], ct);
-            RequireObjectId(fixedCommit);
+            // Resolve both fixed identities in one read-only process. Require
+            // exactly two complete IDs; raw commit/tree bytes are still fully
+            // verified below before publishing any ownership intent.
+            string[] resolved = (await Command(common, ["rev-parse", "--revs-only", "--end-of-options",
+                revision + "^{commit}", revision + "^{tree}"], ct)).Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.TrimEnd('\r')).ToArray();
+            if (resolved.Length != 2) throw Failure("GitBasisUnavailable", "Git did not resolve both fixed object identities.");
+            string fixedCommit = resolved[0], tree = resolved[1];
+            RequireObjectId(fixedCommit); RequireObjectId(tree);
             if (fixedCommit != revision) throw Failure("SnapshotIdentityMismatch", "Preflight must fix the exact commit ID.");
             if (File.Exists(Path.Combine(common, "objects", "info", "alternates")) || File.Exists(Path.Combine(common, "shallow")) ||
                 (await Command(common, ["config", "--get", "extensions.partialClone"], ct, allowMissing: true)).Length != 0)
                 throw Failure("GitBasisUnsupported", "Use a complete local object store without alternates, shallow history or lazy fetch.");
-            string tree = await Command(common, ["rev-parse", fixedCommit + "^{tree}"], ct);
-            GitObjectSnapshotTree.VerifyObject(common, fixedCommit, "commit");
-            GitObjectSnapshotTree.VerifyObject(common, tree, "tree");
+            GitObjectSnapshotTree.VerifyObjects(common, [(fixedCommit, "commit"), (tree, "tree")]);
             if (selectedMetadata is not null) _ = GitSourceMetadata.Read(selectedMetadata, project);
             var snapshot = new SnapshotReference("git-" + ownerId + "-" + fixedCommit + MetadataSuffix(selectedMetadata), ProviderName, project, common,
                 DateTimeOffset.UtcNow, true, true, Consistency);
@@ -70,10 +76,17 @@ public sealed partial class GitObjectSnapshotProvider(string receiptDirectory, s
             Require(receipt, snapshot);
             if (receipt.Released) return new(snapshot.Id, false, "SnapshotMissing", 0, null);
             if (!receipt.Pinned) return new(snapshot.Id, null, "SnapshotVerificationRequired", 0, null);
-            if (await FindRef(receipt, ct) != receipt.Revision)
+            // for-each-ref can return the commit's tree along with exact ref
+            // identity/type. One Git observation replaces two serial processes;
+            // full commit/tree byte verification still occurs when opening it.
+            string listing = await Command(snapshot.RootPath,
+                ["for-each-ref", "--count=1", "--format=%(refname) %(objectname) %(symref) %(objecttype) %(tree)", receipt.Reference], ct,
+                failureCode: "GitBasisObjectInvalid");
+            var entries = listing.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.TrimEnd('\r').Split(' ')).Where(fields => fields[0] == receipt.Reference).ToArray();
+            if (entries.Length != 1 || entries[0].Length != 5 || entries[0][1] != receipt.Revision || entries[0][2].Length != 0)
                 return new(snapshot.Id, null, "GitBasisRefChanged", 0, null);
-            if (await Command(snapshot.RootPath, ["rev-parse", "--verify", receipt.Revision + "^{tree}"], ct,
-                failureCode: "GitBasisObjectInvalid") != receipt.Tree)
+            if (entries[0][3] != "commit" || entries[0][4] != receipt.Tree)
                 return new(snapshot.Id, null, "SnapshotIdentityMismatch", 0, null);
             return new(snapshot.Id, true, null, 0, null)
                 { ReadAccess = new(snapshot.Id, snapshot.RootPath, receipt.Tree) };
@@ -92,7 +105,8 @@ public sealed partial class GitObjectSnapshotProvider(string receiptDirectory, s
 
     public FileStream AcquireReadLease() => Fence("readers.lock", false);
 
-    public GitObjectSnapshotTree OpenTree(SnapshotReference snapshot, SnapshotReadAccess access, Func<SnapshotObservation>? health = null)
+    public GitObjectSnapshotTree OpenTree(SnapshotReference snapshot, SnapshotReadAccess access, Func<SnapshotObservation>? health = null,
+        bool verifyCommit = false)
     {
         var receipt = ReadReceipt() ?? throw Failure("SnapshotIdentityMismatch", "The basis receipt is missing.");
         Require(receipt, snapshot); access.RequireMatch(snapshot);
@@ -100,7 +114,7 @@ public sealed partial class GitObjectSnapshotProvider(string receiptDirectory, s
             throw Failure("SnapshotIdentityMismatch", "Retain the owned basis and its exact tree proof.");
         var metadata = receipt.SourceMetadata is { } basis ? GitSourceMetadata.Read(basis, snapshot.SourcePath) : null;
         return new(snapshot, receipt.Tree, receipt.Revision, receipt.Reference,
-            health ?? (() => ObserveAsync(snapshot).GetAwaiter().GetResult()), sourceMetadata: metadata);
+            health ?? (() => ObserveAsync(snapshot).GetAwaiter().GetResult()), sourceMetadata: metadata, verifyCommit: verifyCommit);
     }
 
     public async Task<SnapshotReclamation> ReleaseAsync(SnapshotReference snapshot, CancellationToken ct = default, string? previousAttemptId = null)

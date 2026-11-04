@@ -238,7 +238,8 @@ public sealed partial class FileWorkspaceTests
         public Task AttachAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw Fail();
         public Task<string> PreserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw Fail();
         public Task VerifyResultAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw Fail();
-        public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw Fail();
+        public Task UnregisterAsync(WorkspaceRecord w, string c, CancellationToken ct = default,
+            Func<CancellationToken, Task>? verifyGeneration = null) => throw Fail();
     }
     private sealed class Discard(ISourceDiscardProvider files, Backend backend) : IWorkspaceDiscardProvider
     {

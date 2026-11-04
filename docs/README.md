@@ -31,6 +31,6 @@ English is the documentation language. Korean is provided only for the [main REA
 
 [Product requirements](../plan.html), [implementation scope](plans/implementation-plan.md), [agent workflow](plans/session-workflow-and-installation.md), [SCAL plan](plans/scalable-storage.md) and [validation guide](verification/README.md) distinguish implemented behavior from pending support/performance qualification.
 
-[Current parallel workspace performance](verification/parallel-workspace-performance.md) records the bounded published/current comparison and the unresolved shared-metadata completion conflict.
+[Current parallel workspace performance](verification/parallel-workspace-performance.md) records matched native A/B measurements, scoped verification, metadata lease coordination and remaining qualification limits.
 
 Historical benchmark reports, completed experiment plans and bilingual verification diaries have been removed from the current tree. Retrieve earlier revisions from Git when investigating those candidates. Retained local workspace/basis/result state is separate from disposable generated reports; never resume or delete it automatically.

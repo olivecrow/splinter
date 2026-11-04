@@ -1,10 +1,21 @@
 using System.Text;
 using Splinter.Core;
+using Splinter.Runtime;
 
 namespace Splinter.SourceControl.Git;
 
 public sealed partial class GitObjectSnapshotProvider
 {
+    // Owned retained readers derive expected access from their exact receipt.
+    // OpenReadScope still proves it under the ref/receipt fences and verifies
+    // every commit/tree byte. A separate pre-fence observation is redundant.
+    internal GitSnapshotReadScope OpenReadScope(SnapshotReference snapshot, FileStream readLease)
+    {
+        var expected = ReadReceipt() ?? throw Failure("GitBasisReceiptInvalid", "The basis receipt is missing.");
+        Require(expected, snapshot);
+        return OpenReadScope(snapshot, new(snapshot.Id, snapshot.RootPath, expected.Tree), readLease);
+    }
+
     // The caller owns this exact read lease until the returned tree is disposed.
     // Only this task's loose ref/receipt are fenced; no index, branch, pack file
     // or shared packed-refs lock is held. Packed-only refs use full observations.
@@ -16,6 +27,7 @@ public sealed partial class GitObjectSnapshotProvider
         Require(expected, snapshot); access.RequireMatch(snapshot);
         string refPath = Path.Combine(snapshot.RootPath, Reference.Replace('/', Path.DirectorySeparatorChar));
         var fences = new List<FileStream>();
+        var pathGuards = new List<IRequestPathGuard>();
         try
         {
             fences.Add(OpenFence(ReceiptPath));
@@ -24,6 +36,20 @@ public sealed partial class GitObjectSnapshotProvider
             byte[]? fixedRef = refFence is null ? null : ReadReference(refPath);
             if (fixedRef is not null && Encoding.ASCII.GetString(fixedRef).TrimEnd('\r', '\n') != expected.Revision)
                 throw Failure("GitBasisRefChanged", "Preserve the changed or symbolic owned basis ref.");
+            bool pinnedPaths = false;
+            if (readPins is not null && refFence is not null)
+            {
+                var receiptPaths = readPins.PinReadPath(ReceiptPath);
+                if (receiptPaths is not null) pathGuards.Add(receiptPaths);
+                var referencePaths = readPins.PinReadPath(refPath);
+                if (referencePaths is not null) pathGuards.Add(referencePaths);
+                if (receiptPaths is not null && referencePaths is not null)
+                {
+                    readPins.VerifyPath(fences[0], ReceiptPath, readPins.IdentifyOpened(fences[0]));
+                    readPins.VerifyPath(refFence, refPath, readPins.IdentifyOpened(refFence));
+                    pinnedPaths = true;
+                }
+            }
             var scopeGate = new object(); WorkspaceException? failure = null;
             SnapshotObservation FullObservation()
             {
@@ -42,11 +68,14 @@ public sealed partial class GitObjectSnapshotProvider
                     {
                         if (!readLease.CanRead || fences.Any(f => !f.CanRead))
                             throw Failure("GitBasisReadScopeInvalid", "The scoped reader or its fences have been closed.");
-                        var current = ReadReceipt();
-                        if (current != expected) throw Failure("GitBasisReceiptInvalid", "The scoped basis receipt changed or disappeared.");
-                        Require(current, snapshot);
-                        if (fixedRef is not null && !ReadReference(refPath).AsSpan().SequenceEqual(fixedRef))
-                            throw Failure("GitBasisRefChanged", "The owned basis ref changed or disappeared.");
+                        if (boundary || !pinnedPaths)
+                        {
+                            var current = ReadReceipt();
+                            if (current != expected) throw Failure("GitBasisReceiptInvalid", "The scoped basis receipt changed or disappeared.");
+                            Require(current, snapshot);
+                            if (fixedRef is not null && !ReadReference(refPath).AsSpan().SequenceEqual(fixedRef))
+                                throw Failure("GitBasisRefChanged", "The owned basis ref changed or disappeared.");
+                        }
                         return boundary || fixedRef is null ? FullObservation() : observation;
                     }
                     catch (WorkspaceException ex) { failure = ex; throw; }
@@ -58,16 +87,16 @@ public sealed partial class GitObjectSnapshotProvider
                 }
             }
             observation = Check(true);
-            GitObjectSnapshotTree.VerifyObject(snapshot.RootPath, expected.Revision, "commit");
-            var tree = OpenTree(snapshot, access, () => Check(false));
-            return new GitSnapshotReadScope(tree, () => Check(true), fences.ToArray());
+            var tree = OpenTree(snapshot, access, () => Check(false), verifyCommit: true);
+            return new GitSnapshotReadScope(tree, () => Check(true), [.. fences, .. pathGuards], pinnedPaths);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             foreach (var fence in fences) fence.Dispose();
+            foreach (var guard in pathGuards) guard.Dispose();
             throw Failure("GitBasisReadScopeInvalid", "Preserve the basis when its scoped ref or receipt cannot be fenced.");
         }
-        catch { foreach (var fence in fences) fence.Dispose(); throw; }
+        catch { foreach (var fence in fences) fence.Dispose(); foreach (var guard in pathGuards) guard.Dispose(); throw; }
     }
     private static FileStream OpenFence(string path)
     {
@@ -87,9 +116,10 @@ public sealed class GitSnapshotReadScope : ISnapshotTree, ISnapshotContentSummar
 {
     private readonly GitObjectSnapshotTree tree;
     private readonly Action verify;
-    private readonly FileStream[] fences;
-    internal GitSnapshotReadScope(GitObjectSnapshotTree tree, Action verify, FileStream[] fences)
-    { this.tree = tree; this.verify = verify; this.fences = fences; }
+    private readonly IDisposable[] fences;
+    internal bool NativePathsFixed { get; }
+    internal GitSnapshotReadScope(GitObjectSnapshotTree tree, Action verify, IDisposable[] fences, bool nativePathsFixed)
+    { this.tree = tree; this.verify = verify; this.fences = fences; NativePathsFixed = nativePathsFixed; }
     public SnapshotReference Snapshot => tree.Snapshot;
     public bool SupportsConcurrentReads => tree.SupportsConcurrentReads;
     public void EnsureAvailable() => tree.EnsureAvailable();

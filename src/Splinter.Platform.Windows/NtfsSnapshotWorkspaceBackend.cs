@@ -105,15 +105,29 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
     }
     public async Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {
-        var snapshotObservation = w.Snapshot?.Reference is { } snapshot ? await Provider(w, control).ObserveAsync(snapshot, ct) : null;
+        SnapshotObservation? snapshotObservation = null;
         SnapshotWorkspaceObservation Finish(SnapshotWorkspaceObservation observation) => WithSpace(observation with { SnapshotStorage = snapshotObservation }, w, control);
-        bool? available = snapshotObservation is null ? false : snapshotObservation.Available;
+        async Task ObserveProjectIfNeeded()
+        {
+            if (snapshotObservation is null && w.Snapshot?.Reference is { } snapshot)
+                snapshotObservation = await Provider(w, control).ObserveAsync(snapshot, ct);
+        }
         var request = await Request(w, control, ct);
-        if (request is null) return Finish(new(available, false, false, true, 0, 0, 0,
-            FailureCode: snapshotObservation?.FailureCode ?? (available == true ? null : "SnapshotNotCaptured")));
+        if (request is null)
+        {
+            await ObserveProjectIfNeeded();
+            bool? present = snapshotObservation is null ? false : snapshotObservation.Available;
+            return Finish(new(present, false, false, true, 0, 0, 0,
+                FailureCode: snapshotObservation?.FailureCode ?? (present == true ? null : "SnapshotNotCaptured")));
+        }
+        // The inner observation already proves this exact project inside its
+        // control-record boundary. Reuse that record only in this call; pending
+        // ownership states that skip the inner proof still observe it afresh.
         var observed = w.Phase == "creating" && w.Snapshot?.Mount is null
-            ? await WinFspOverlayClient.ObserveForConnectionAsync(request, ct)
-            : await WinFspOverlayClient.ObserveAsync(request, ct);
+            ? await WinFspOverlayClient.ObserveForConnectionAsync(request, ct, proof => snapshotObservation = proof)
+            : await WinFspOverlayClient.ObserveAsync(request, ct, proof => snapshotObservation = proof);
+        await ObserveProjectIfNeeded();
+        bool? available = snapshotObservation is null ? false : snapshotObservation.Available;
         bool alive = observed.GetProperty("processAlive").GetBoolean();
         bool mounted = Directory.Exists(w.Path);
         if (!observed.TryGetProperty("state", out var state))

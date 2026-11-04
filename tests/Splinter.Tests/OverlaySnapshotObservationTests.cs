@@ -6,6 +6,41 @@ namespace Splinter.Tests;
 
 public sealed class OverlaySnapshotObservationTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProjectStorageProofRemainsSeparateWhenTheGeneratedBasisIsMissing(bool generatedMissing)
+    {
+        var request = Request(); string hash = new('a', 64);
+        var library = new SnapshotReference("library", OwnedDirectorySnapshotTree.ProviderName, "library-source", "library-basis",
+            DateTimeOffset.UtcNow, true, true, "stopped-original-owned-directory");
+        var basis = new GeneratedDirectoryReference("library", "project", "Library", library, "library-receipt", "owner", hash);
+        var access = new SnapshotReadAccess(library.Id, library.RootPath, hash);
+        request = request with { Identity = request.Identity with { Graft = new("Library", basis) }, GeneratedSnapshot = new(access, basis.ReceiptDirectory, basis.OwnerId) };
+        var projectProof = new SnapshotObservation(request.Identity.Snapshot.Id, true, null, 12, null) { ReadAccess = request.ReadAccess };
+        var libraryProof = new SnapshotObservation(library.Id, !generatedMissing, generatedMissing ? "SnapshotMissing" : null, 34, null)
+            { ReadAccess = generatedMissing ? null : access };
+        var projectScope = new ObservedScope(request.Identity.Snapshot, projectProof); var libraryScope = new ObservedScope(library, libraryProof);
+        SnapshotObservation? supplied = null;
+        var combined = await WinFspOverlayClient.ObserveSnapshotAsync(request, TestContext.Current.CancellationToken,
+            projectScope, null, libraryScope, proof => supplied = proof);
+        Assert.Equal(projectProof, supplied); Assert.Equal(1, projectScope.Observations); Assert.Equal(1, libraryScope.Observations);
+        Assert.Equal(!generatedMissing, combined.Available);
+        if (generatedMissing) Assert.Equal("SnapshotMissing", combined.FailureCode);
+    }
+    private sealed class ObservedScope(SnapshotReference snapshot, SnapshotObservation observation) : ISnapshotTree, ISnapshotAvailabilityScope
+    {
+        public SnapshotReference Snapshot => snapshot;
+        public int Observations { get; private set; }
+        public long MetadataFenceCount => 1;
+        public long MetadataFenceBytes => 1;
+        public SnapshotObservation? ObserveAvailability(SnapshotReadAccess expectedAccess) { Observations++; return observation; }
+        public void EnsureAvailable() { }
+        public SnapshotEntry? Stat(string path) => null;
+        public IReadOnlyList<SnapshotEntry> List(string path) => [];
+        public int Read(string path, long offset, Span<byte> destination) => throw new NotSupportedException();
+    }
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static OverlayServeRequest Request()
     {

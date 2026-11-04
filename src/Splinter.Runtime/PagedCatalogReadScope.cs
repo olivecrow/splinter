@@ -30,6 +30,7 @@ public sealed partial class PagedMetadataStore
         public CatalogReadScope(string directory, IJournalFilePins? pins = null)
         {
             WorkspaceStore.EnsurePlainPath(directory);
+            using var admission = AcquireReaderAdmission(directory);
             identity = new(Path.Combine(directory, "identity.bin"), FileMode.Open, FileAccess.Read, FileShare.Read);
             try
             {
@@ -94,6 +95,10 @@ public sealed partial class PagedMetadataStore
             return completed;
         }
         public void Dispose()
-        { if (disposed) return; disposed = true; summaries.Clear(); try { pages.Dispose(); } finally { locationHeader?.Dispose(); identity.Dispose(); } }
+        {
+            if (disposed) return; disposed = true; summaries.Clear();
+            try { try { locationHeader?.Dispose(); } finally { identity.Dispose(); } }
+            finally { pages.Dispose(); }
+        }
     }
 }

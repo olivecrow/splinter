@@ -20,10 +20,11 @@ internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard, IRe
     private bool disposed;
     public string DirectoryPath { get; }
 
-    internal WindowsJournalDirectoryGuard(string directory, string? existingOwnerName = null)
+    internal WindowsJournalDirectoryGuard(string directory, string? existingOwnerName = null, bool immutableReadFile = false)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
-        if (existingOwnerName is not (null or "owner.lock" or "identity.bin" or BoundedJournalReclamation.GuardName))
+        if (immutableReadFile ? string.IsNullOrEmpty(existingOwnerName) || Path.GetFileName(existingOwnerName) != existingOwnerName || existingOwnerName is "." or ".."
+            : existingOwnerName is not (null or "owner.lock" or "identity.bin" or BoundedJournalReclamation.GuardName))
             throw new ArgumentException("Require the existing format-owned marker.", nameof(existingOwnerName));
         DirectoryPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory));
         try
@@ -62,7 +63,7 @@ internal sealed class WindowsJournalDirectoryGuard : IJournalDirectoryGuard, IRe
             }
             // Existing format-owned file; never create a marker or alter its
             // bytes. Share write with Runtime's owner lock but deny deletion.
-            owner = CreateFileW(Path.Combine(DirectoryPath, existingOwnerName), 0x80000000, 3, 0, 3, 0x00200000, 0);
+            owner = CreateFileW(Path.Combine(DirectoryPath, existingOwnerName), 0x80000000, immutableReadFile ? 1u : 3u, 0, 3, 0x00200000, 0);
             if (owner.IsInvalid || !GetFileInformationByHandle(owner, out var ownerInfo))
                 throw new WorkspaceException("JournalPathUnpinned", "Cannot pin the existing journal owner lock.");
             if ((ownerInfo.Attributes & (0x400 | 0x10)) != 0)

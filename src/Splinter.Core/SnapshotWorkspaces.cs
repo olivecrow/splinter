@@ -136,7 +136,11 @@ public interface ISnapshotSourceWorkspaceProvider
         Task.FromResult(workspace.BaseRevision!);
     Task<string> PreserveAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
     Task VerifyResultAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
-    Task UnregisterAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
+    // A supplied validator proves the exact fixed generation (including its
+    // independent bytes and source basis) at this boundary. Invoke it before
+    // any registration mutation instead of repeating a weaker adapter proof.
+    Task UnregisterAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default,
+        Func<CancellationToken, Task>? verifyGeneration = null);
 }
 
 // One operation owns source verification, checkpointing and independent

@@ -11,6 +11,10 @@ namespace Splinter.Runtime;
 public interface IJournalFilePins
 {
     IRequestPathGuard? PinMetadataPaths(string directory) => null;
+    // Return only while native handles fix this existing file and its complete
+    // ordinary ancestry against writes, replacement, rename and reparse. A
+    // platform without that proof returns null and keeps ordinary observations.
+    IRequestPathGuard? PinReadPath(string path) => null;
     string Identify(string path);
     string IdentifyOpened(FileStream input) { string identity = Identify(input.Name); Verify(input, identity); return identity; }
     void Verify(FileStream input, string expectedIdentity);

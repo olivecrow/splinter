@@ -56,10 +56,14 @@ public sealed class DirectoryMetadataTree(PagedMetadataStore store, bool caseSen
         finally { foreach (var item in pending) item.Items.Dispose(); }
     }
 
-    private string Key(string name) => caseSensitive ? name : name.ToUpperInvariant();
-    internal MetadataEntry Encode(DirectoryMetadataRecord record, bool component = true)
+    private string Key(string name) => Key(name, caseSensitive);
+    private static string Key(string name, bool caseSensitive) => caseSensitive ? name : name.ToUpperInvariant();
+    internal MetadataEntry Encode(DirectoryMetadataRecord record, bool component = true) => EncodeRecord(record, caseSensitive, component);
+    // Flat sort/spool codecs need no writable metadata store or durable root.
+    // The tree wrapper alone supplies an empty child rooted in its own store.
+    internal static MetadataEntry EncodeRecord(DirectoryMetadataRecord record, bool caseSensitive, bool component = true)
     {
-        var entry = record.Entry; if (component) RequireName(entry.Path);
+        var entry = record.Entry; if (component) RequireName(entry.Path, caseSensitive);
         WorkspaceUnixPermissions.RequireValid(entry.UnixMode);
         if (entry.Length < 0 || !ValidTime(entry.CreationTime) || !ValidTime(entry.LastAccessTime) || !ValidTime(entry.LastWriteTime) ||
             ((entry.Attributes & 16) != 0) != entry.Directory || entry.Directory && (entry.Length != 0 || record.ContentHash is not null) ||
@@ -91,10 +95,15 @@ public sealed class DirectoryMetadataTree(PagedMetadataStore store, bool caseSen
         if (digest is not null) { digest.CopyTo(bytes, position); position += digest.Length; }
         if (reference is not null)
         { BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(position), reference.Length); reference.CopyTo(bytes, position + 4); }
-        return new(Key(entry.Path), bytes, record.Children);
+        return new(Key(entry.Path, caseSensitive), bytes, record.Children);
     }
 
     internal DirectoryMetadataRecord Decode(MetadataEntry record, bool component = true)
+    {
+        var decoded = DecodeRecord(record, caseSensitive, component);
+        return decoded.Entry.Directory && decoded.Children is null ? decoded with { Children = store.Empty } : decoded;
+    }
+    internal static DirectoryMetadataRecord DecodeRecord(MetadataEntry record, bool caseSensitive, bool component = true)
     {
         var bytes = record.Value.Span;
         if (bytes.Length < 26 || bytes[0] != 2 || (bytes[1] & 128) != 0 ||
@@ -109,8 +118,8 @@ public sealed class DirectoryMetadataTree(PagedMetadataStore store, bool caseSen
         string name;
         try { name = Utf8.GetString(bytes.Slice(26, length)); }
         catch (System.Text.DecoderFallbackException) { throw Invalid("A directory name has invalid UTF-8."); }
-        if (component) RequireName(name);
-        if (component && record.Key != Key(name)) throw Invalid("A directory name differs from its index key.");
+        if (component) RequireName(name, caseSensitive);
+        if (component && record.Key != Key(name, caseSensitive)) throw Invalid("A directory name differs from its index key.");
         int position = 26 + length;
         long creation = (flags & 2) != 0 ? BinaryPrimitives.ReadInt64LittleEndian(bytes[position..]) : 0;
         if ((flags & 2) != 0) { if (creation == 0) throw Invalid("A default directory time must be omitted."); position += 8; }
@@ -135,9 +144,10 @@ public sealed class DirectoryMetadataTree(PagedMetadataStore store, bool caseSen
             ((entry.Attributes & 16) != 0) != entry.Directory || entry.Directory && (entry.Length != 0 || hash is not null) ||
             !entry.Directory && record.Child is not null)
             throw Invalid("A directory record has invalid metadata.");
-        return new(entry, hash, entry.Directory ? record.Child ?? store.Empty : null, reference);
+        return new(entry, hash, entry.Directory ? record.Child : null, reference);
     }
-    private void RequireName(string name)
+    private void RequireName(string name) => RequireName(name, caseSensitive);
+    private static void RequireName(string name, bool caseSensitive)
     {
         if (string.IsNullOrEmpty(name) || name is "." or ".." || name.IndexOfAny(caseSensitive ? InvalidPosixNameCharacters : InvalidNameCharacters) >= 0)
             throw Invalid("A directory record requires one ordinary path component.");
