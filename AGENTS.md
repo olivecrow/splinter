@@ -5,8 +5,9 @@
 - Read `README.md` and `docs/README.md` first, then only the owning feature documentation. `plan.html` owns product requirements; `docs/foundation.md` describes implementation; `docs/plans/` contains active work and agent procedures.
 - Prioritize operational efficiency. Batch independent reads/checks; keep edits and dependent operations sequential. Use subagents only when requested.
 - Use `development` for ordinary development and integration; `main` is for releases. Preserve unrelated edits. Do not commit or push unless requested.
-- Use Computer Use only when needed and release it promptly when finished so the user can use the computer.
+- Prefer Unity CLI readiness and popup diagnostics for Unity; distinguish missing Pipeline support or restricted process visibility from Editor absence. Use Computer Use only when needed and release it promptly when finished so the user can use the computer.
 - Use short Windows Unity project/state roots and check package paths with the chosen Editor's reader before launch. PackageCache I/O errors fail validation even when compilation or Play succeeds. Preserve existing task identities; choose an appropriate root before creating a fresh trial.
+- Preserve the installed Editor version and the user's existing terms, license and preference identity. Do not use `-useTestPrefs`, `-cleanTestPrefs`, profile/environment redirection or consent/license edits to work around shared settings errors. Reproduce serialization contention against a scratch file in batch mode first; a new startup modal fails the trial and requires normal cancellation, not activation or automatic acceptance.
 - Use a Splinter workspace when parallel work is explicitly requested or another task occupies the project. Otherwise edit directly. Do not nest a Codex worktree in a Splinter workspace.
 
 ## Documentation and repository size
