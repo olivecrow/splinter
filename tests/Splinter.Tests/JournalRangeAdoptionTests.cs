@@ -305,6 +305,36 @@ public sealed class JournalRangeAdoptionTests
         writer.MaintainLiveStorage(force: true, ct: TestContext.Current.CancellationToken); Assert.False(Directory.Exists(oldIndex));
         Assert.Equal(6, writer.Read(file.Id, 0, bytes)); Assert.Equal("latest"u8.ToArray(), bytes);
     }
+    [Fact]
+    public void LiveIndexCatchUpPublishesAfterRepeatedInterleavedWritesAndReopens()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The test requires native Windows backing identities.");
+        using var root = new TestDirectory(); var basis = new SnapshotOverlayTests.FakeSnapshotTree();
+        var pins = new WindowsJournalFilePins(); var ct = TestContext.Current.CancellationToken;
+        var identity = new OverlayIdentity(3, "live-index-replay-points", basis.Snapshot, long.MaxValue, 65536);
+        string delta = Path.Combine(root.Path, "delta");
+        int points = 0; Guid fileId; SnapshotDeltaSeal accepted;
+        using (var writer = new JournalDeltaStore(delta, identity, basis, sourceFilePins: pins))
+        {
+            fileId = writer.Create("source", false, 32).Id;
+            writer.Write(fileId, 0, [0]); accepted = writer.Seal();
+            writer.CollectLiveMetadata(force: true, ct: ct, boundary: stage =>
+            {
+                if (stage != "metadata.repack-replay-point" || ++points > 3) return;
+                writer.Write(fileId, 0, [(byte)points]); accepted = writer.Seal();
+            });
+            Assert.Equal(4, points);
+            Assert.False(File.Exists(Path.Combine(delta, "live-repack.json")));
+            Assert.Equal(accepted, writer.Seal());
+        }
+        using var reopened = new JournalDeltaStore(delta, identity, basis, sourceFilePins: pins);
+        Assert.Equal(accepted, reopened.Seal());
+        byte[] data = new byte[2];
+        Assert.Equal(1, reopened.Read(fileId, 0, data));
+        Assert.Equal(3, data[0]);
+        Assert.Equal(0, reopened.Read(fileId, 1, data));
+    }
+
     private sealed class Content : ICapturedContentReader
     {
         private readonly Dictionary<string, byte[]> bytes = new(StringComparer.Ordinal);

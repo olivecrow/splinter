@@ -140,7 +140,9 @@ public sealed partial class JournalDeltaStore
                 ct.ThrowIfCancellationRequested(); RepackPoint point;
                 using (EnterGate(mutation: true))
                 {
-                    Check(); FlushPendingWrites(); pagedIndex!.Flush();
+                    // This replay point stays in memory. The accepted journal
+                    // is durable and publication still flushes the shadow roots.
+                    Check(); FlushPendingWrites(); pagedIndex!.FlushForRead();
                     point = new(segments.ActiveId, journal.Length,
                         new FileStream(journal.Name, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1, FileOptions.RandomAccess),
                         NodeRoot!, pathComponents!.Root, ((PagedSet<Guid>)boundedDurableNodes).Root, repackAdmissions!, segmentRoot!,
@@ -148,6 +150,7 @@ public sealed partial class JournalDeltaStore
                 }
                 using (point.Input)
                 {
+                    boundary?.Invoke("metadata.repack-replay-point");
                     using var records = new PagedMetadataStore(plan.Frozen.Directory);
                     while (segment < point.Segment)
                     {

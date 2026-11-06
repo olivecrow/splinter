@@ -16,9 +16,14 @@ public sealed class PagedMetadataActiveReaderTests
         using var reader = new PagedMetadataStore(directory, filePins: observed);
         Assert.Equal("old"u8.ToArray(), reader.Open(fixedRoot).Find("first"));
         int verified = observed.Verifications; Assert.Equal(1, verified);
-        var current = writer.Set(fixedRoot, "second", "new"u8.ToArray()); writer.Flush();
+        var current = writer.Set(fixedRoot, "second", "new"u8.ToArray());
+        long flushes = writer.DurableFlushes;
+        writer.FlushForRead();
+        Assert.Equal(flushes, writer.DurableFlushes);
         Assert.Equal("old"u8.ToArray(), reader.Open(fixedRoot).Find("first")); Assert.Null(reader.Open(fixedRoot).Find("second"));
         Assert.Equal("new"u8.ToArray(), reader.Open(current).Find("second")); Assert.Equal(verified, observed.Verifications);
+        writer.Flush();
+        Assert.Equal(flushes + 1, writer.DurableFlushes);
     }
 
     [Theory]

@@ -321,10 +321,20 @@ public sealed partial class PagedMetadataStore : IDisposable
     {
         lock (gate) { CheckWriter(); FlushOutput(); boundary?.Invoke("metadata.pages-durable"); }
     }
-    private void FlushOutput()
+    // Allow a separate live reader to see buffered pages without advancing
+    // the durability watermark required to publish their roots.
+    internal void FlushForRead()
     {
-        if (!needsDurableFlush) return;
-        try { output!.Flush(true); needsDurableFlush = false; DurableFlushes++; }
+        lock (gate) { CheckWriter(); FlushOutput(flushToDisk: false); }
+    }
+    private void FlushOutput(bool flushToDisk = true)
+    {
+        if (flushToDisk && !needsDurableFlush) return;
+        try
+        {
+            output!.Flush(flushToDisk);
+            if (flushToDisk) { needsDurableFlush = false; DurableFlushes++; }
+        }
         catch { appendOffset = -1; throw; }
     }
     private void EnsureStorePath(string path)
@@ -402,7 +412,7 @@ public sealed partial class PagedMetadataStore : IDisposable
         {
             if (writable && reference.Container == container)
             {
-                output!.Flush(); input = output;
+                FlushOutput(flushToDisk: false); input = output!;
             }
             else
             {
