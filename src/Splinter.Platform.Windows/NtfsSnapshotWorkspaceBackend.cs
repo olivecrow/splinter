@@ -159,21 +159,38 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         var request = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "Preserve the delta without a request.");
         var observed = await WinFspOverlayClient.ObserveAsync(request, ct);
         OverlayStorageObservation? storage;
+        SnapshotDeltaSeal? verified = null;
+        double? elapsed = null;
         if (observed.GetProperty("processAlive").GetBoolean())
         {
-            if (w.Snapshot?.Mount is null) throw new WorkspaceException("OverlayLeaseMissing", "Reconnect the owned provider before sealing.");
-            await MountProvider(control).FlushAsync(w.Snapshot.Mount, ct);
-            var flushed = await WindowsProcessWorkspaceProvider.ReadAsync<JsonElement>(Path.Combine(request.ControlPath, "flush-result.json"), ct);
-            storage = flushed.GetProperty("storage").Deserialize<OverlayStorageObservation>(Json);
+            if (w.Snapshot?.Mount is not { } mount) throw new WorkspaceException("OverlayLeaseMissing", "Reconnect the owned provider before sealing.");
+            bool verifySeal = request.Identity.Version == 3 && request.SourceView is null;
+            var flushed = await MountProvider(control).FlushWithReceiptAsync(mount, verifySeal, ct);
+            storage = flushed.Storage;
+            if (verifySeal)
+            {
+                if (flushed.Seal is not { } receipt || flushed.SealElapsedMilliseconds is not { } milliseconds ||
+                    !double.IsFinite(milliseconds) || milliseconds < 0 ||
+                    storage is null || storage.Id != request.Identity.Id || storage.SnapshotId != request.Identity.Snapshot.Id)
+                    throw new WorkspaceException("OverlayFlushUncertain", "Preserve the journal without its exact live physical seal receipt.");
+                verified = receipt;
+                elapsed = milliseconds;
+            }
         }
         else storage = observed.GetProperty("state").GetProperty("storage").Deserialize<OverlayStorageObservation>(Json);
-        string journal = Path.Combine(request.DeltaPath, "delta.journal");
-        WindowsProcessWorkspaceProvider.CheckPath(journal);
         if (storage is null) throw new WorkspaceException("DeltaChangedAfterCollection", "The journal flush receipt is missing.");
-        var timer = Stopwatch.StartNew();
-        var seal = JournalDeltaStore.SealJournal(journal, storage.DurableSequence, path => new WindowsJournalDirectoryGuard(path));
-        if (seal.JournalBytes != (storage.SealJournalBytes ?? storage.JournalBytes)) throw new WorkspaceException("DeltaChangedAfterCollection", "Accepted source bytes and flush receipt differ; preserve it.");
-        await RecordRead(control, w, "seal", seal.JournalBytes, timer.Elapsed.TotalMilliseconds, ct);
+        if (verified is null)
+        {
+            string journal = Path.Combine(request.DeltaPath, "delta.journal");
+            WindowsProcessWorkspaceProvider.CheckPath(journal);
+            var timer = Stopwatch.StartNew();
+            verified = JournalDeltaStore.SealJournal(journal, storage.DurableSequence, path => new WindowsJournalDirectoryGuard(path));
+            elapsed = timer.Elapsed.TotalMilliseconds;
+        }
+        var seal = verified;
+        if (seal.DurableSequence != storage.DurableSequence || seal.JournalBytes != (storage.SealJournalBytes ?? storage.JournalBytes))
+            throw new WorkspaceException("DeltaChangedAfterCollection", "Accepted source sequence or bytes and flush receipt differ; preserve it.");
+        await RecordRead(control, w, "seal", seal.JournalBytes, elapsed!.Value, ct);
         return seal;
     }
     public async Task UnmountAsync(WorkspaceRecord w, string control, CancellationToken ct = default)

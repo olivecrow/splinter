@@ -186,7 +186,7 @@ public sealed partial class JournalDeltaStore
         using (EnterGate()) { Check(); job = PendingPacking(); }
         // An existing request always drains its original work. Cost admission
         // applies only to a newly created opportunistic request, never recovery.
-        bool costAwarePackedSources = opportunistic && job is null;
+        bool costAware = opportunistic && job is null;
         if (job is null)
         {
             using (EnterGate(mutation: true))
@@ -199,7 +199,7 @@ public sealed partial class JournalDeltaStore
             }
         }
         if (job.Phase == "cleanup") { FinishPacking(job); return false; }
-        if (job.Phase == "planning") job = BuildPackingPlan(job, ct, costAwarePackedSources);
+        if (job.Phase == "planning") job = BuildPackingPlan(job, ct, costAware);
         if (job.Rows.Count == 0) { FinishPacking(job); return false; }
         using var plan = new PagedMetadataStore(PackingIndex(job));
         if (job.Phase == "allocated")
@@ -296,7 +296,7 @@ public sealed partial class JournalDeltaStore
         try { sourceFilePins!.Verify(input, job.NativeIdentity ?? throw PagedInvalid()); if (input.Length != job.Bytes || Convert.ToHexStringLower(SHA256.HashData(input)) != job.Hash) throw PagedInvalid(); input.Position = 0; return input; }
         catch { input.Dispose(); throw; }
     }
-    private SegmentPackingJob BuildPackingPlan(SegmentPackingJob job, CancellationToken ct, bool costAwarePackedSources)
+    private SegmentPackingJob BuildPackingPlan(SegmentPackingJob job, CancellationToken ct, bool costAware)
     {
         WorkspaceStore.EnsurePlainPath(job.Directory); Directory.CreateDirectory(job.Directory); using var source = new PagedMetadataStore(job.IndexDirectory);
         string indexDirectory = PackingIndex(job);
@@ -310,61 +310,78 @@ public sealed partial class JournalDeltaStore
         }
         else ValidateIndexOwner(indexDirectory, Identity);
         using var work = new PagedMetadataStore(indexDirectory, true, filePins: sourceFilePins);
+        var catalog = source.Open(job.Catalog);
         IEnumerable<MetadataEntry> Rows()
         {
             foreach (var node in source.Open(job.FrozenNodes).Enumerate())
             {
-                if (node.Child is not { } extents || !Guid.TryParseExact(node.Key, "N", out var file)) continue;
+                if (node.Child is not { } extents || !Guid.TryParseExact(node.Key, "N", out _)) continue;
                 foreach (var item in source.Open(extents).Enumerate())
                 {
                     ct.ThrowIfCancellationRequested(); var extent = DecodeExtent(item.Value.ToArray());
                     if (extent.ContentHash is not null || extent.Segment == -1) continue;
-                    var descriptor = DecodeSegment(source.Open(job.Catalog).Find(PackKey(extent.Segment)) ?? throw PagedInvalid());
-                    if (descriptor.NativeIdentity is null) throw PagedInvalid(); long physical = checked(extent.JournalOffset + extent.BlockOffset);
-                    string token = extent.OriginBlock ?? SourceCaptureTree.BlockIdentity(descriptor.NativeIdentity, extent.JournalOffset, extent.Payload);
-                    var row = new RangeRelocation(file, extent.Start, extent.Length, token, ProofOffset(extent), extent.Segment, physical, job.Target, 0);
-                    yield return new(PackKey(extent.Segment) + ":" + physical.ToString("x16") + ":" + node.Key + ":" + extent.Start.ToString("x16"), PackBytes(row));
+                    long physical = checked(extent.JournalOffset + extent.BlockOffset);
+                    yield return new(PackKey(extent.Segment) + ":" + physical.ToString("x16") + ":" + node.Key + ":" + extent.Start.ToString("x16"), item.Value);
                 }
             }
         }
-        // Keep the sorted rows in shared-budget binary scratch until source
-        // admission is known. Rejected mostly-live packed objects need no
-        // persistent row tree, while a spill still uses bounded disk cursors.
+        // Group the existing binary extent values before constructing relocation
+        // rows. The bounded spool can spill, and rejected sources do not need
+        // per-range block identities or a durable relocation map.
         using var ordered = new MetadataSpool(job.Directory);
         var candidates = work.Empty; string? group = null; long union = 0, end = -1;
         void Select()
         {
-            if (group is null) return; var descriptor = DecodeSegment(source.Open(job.Catalog).Find(group) ?? throw PagedInvalid());
-            long dead = descriptor.Length - union;
-            // Normal journals also discard frame overhead on their first
-            // packing. Already packed raw objects have no such benefit: keep
-            // opportunistic live copying to at most three bytes per dead byte.
-            // Explicit force and existing requests keep the complete cleanup.
-            bool worthwhile = !costAwarePackedSources || descriptor.Id >= 0 || dead >= descriptor.Length / 4 + (descriptor.Length % 4 == 0 ? 0 : 1);
-            if (dead >= 4096 && union > 0 && worthwhile)
+            if (group is null) return;
+            var descriptor = DecodeSegment(catalog.Find(group) ?? throw PagedInvalid());
+            if (descriptor.NativeIdentity is null || PackKey(descriptor.Id) != group) throw PagedInvalid();
+            long reclaimable = descriptor.Length - union;
+            const long minimumSavings = 4096;
+            if (reclaimable < minimumSavings || union == 0) return;
+            // A normal segment with substantial dead payload can save space
+            // even at high live density. Rewriting mostly live ranges for
+            // frame overhead alone must meet the same payback as raw packing.
+            long quarter = descriptor.Length / 4 + (descriptor.Length % 4 == 0 ? 0 : 1);
+            bool deadPayload = descriptor.Id >= 0 && descriptor.PayloadBytes - union >= minimumSavings;
+            if (!costAware || deadPayload || reclaimable >= quarter)
                 candidates = work.Set(candidates, group, PackBytes(new PackingCandidate(descriptor, union)));
         }
         foreach (var item in MetadataExternalSort.Order(Rows(), job.Directory, ct, sourceFilePins))
         {
             ct.ThrowIfCancellationRequested(); ordered.Append(item);
-            var row = PackRead<RangeRelocation>(item.Value.Span); string key = PackKey(row.Source);
+            var extent = DecodeExtent(item.Value.ToArray()); string key = PackKey(extent.Segment);
             if (key != group) { Select(); group = key; union = 0; end = -1; }
-            long stop = checked(row.SourcePhysical + row.Length); union += Math.Max(0, stop - Math.Max(row.SourcePhysical, end)); end = Math.Max(end, stop);
+            long physical = checked(extent.JournalOffset + extent.BlockOffset), stop = checked(physical + extent.Length);
+            union += Math.Max(0, stop - Math.Max(physical, end)); end = Math.Max(end, stop);
         }
         Select();
         IEnumerable<MetadataEntry> AdmittedRows()
         {
-            string? admittedGroup = null; bool admitted = false;
+            var selected = work.Open(candidates);
+            string? admittedGroup = null;
+            JournalSegment? admitted = null;
             foreach (var item in ordered.Read())
             {
                 ct.ThrowIfCancellationRequested();
-                if (item.Key.Length < 17 || item.Key[16] != ':') throw PagedInvalid();
+                if (item.Key.Length != 83 || item.Key[16] != ':' || item.Key[33] != ':' || item.Key[66] != ':') throw PagedInvalid();
                 string key = item.Key[..16];
-                if (key != admittedGroup) { admittedGroup = key; admitted = work.Open(candidates).Find(key) is not null; }
-                if (admitted) yield return item;
+                if (key != admittedGroup)
+                {
+                    admittedGroup = key;
+                    var encoded = selected.Find(key);
+                    admitted = encoded is null ? null : PackRead<PackingCandidate>(encoded).Segment;
+                }
+                if (admitted is null) continue;
+                if (!Guid.TryParseExact(item.Key.AsSpan(34, 32), "N", out var file)) throw PagedInvalid();
+                var extent = DecodeExtent(item.Value.ToArray());
+                if (extent.Segment != admitted.Id) throw PagedInvalid();
+                long physical = checked(extent.JournalOffset + extent.BlockOffset);
+                string token = extent.OriginBlock ?? SourceCaptureTree.BlockIdentity(admitted.NativeIdentity ?? throw PagedInvalid(), extent.JournalOffset, extent.Payload);
+                var row = new RangeRelocation(file, extent.Start, extent.Length, token, ProofOffset(extent), extent.Segment, physical, job.Target, 0);
+                yield return item with { Value = PackBytes(row) };
             }
         }
-        var all = work.Build(AdmittedRows(), ct); work.Flush();
+        var all = candidates.Count == 0 ? work.Empty : work.Build(AdmittedRows(), ct); work.Flush();
         job = SelectPackingUnit(job with { AllRows = all, Candidates = candidates }, work, ct); SavePacking(job); return job;
     }
     private SegmentPackingJob SelectPackingUnit(SegmentPackingJob job, PagedMetadataStore work, CancellationToken ct)

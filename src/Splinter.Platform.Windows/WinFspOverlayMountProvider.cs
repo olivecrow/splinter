@@ -4,6 +4,13 @@ using Splinter.Core;
 
 namespace Splinter.Platform.Windows;
 
+internal sealed record OverlayFlushRequest(string Token, string RequestId, bool VerifySeal = false,
+    int? ProcessId = null, long? ProcessStartTimeUtcTicks = null);
+
+internal sealed record OverlayFlushReceipt(string Token, string RequestId, DateTimeOffset ObservedAt,
+    OverlayStorageObservation? Storage, int ProcessId, long ProcessStartTimeUtcTicks,
+    SnapshotDeltaSeal? Seal = null, double? SealElapsedMilliseconds = null, string? SealError = null, string? SealErrorMessage = null);
+
 public sealed class WinFspOverlayMountProvider(string requestPath, string runnerCache, Func<string, Task>? preparationPoint = null) : IOverlayMountProvider
 {
     public async Task<OverlayMount> MountAsync(OverlayIdentity identity, string deltaPath, string mountPath, CancellationToken cancellationToken = default)
@@ -22,18 +29,31 @@ public sealed class WinFspOverlayMountProvider(string requestPath, string runner
         var request = await Request(mount, cancellationToken);
         return await MountAsync(request.Identity, mount.DeltaPath, mount.Path, cancellationToken);
     }
-    public async Task FlushAsync(OverlayMount mount, CancellationToken cancellationToken = default)
+    public Task FlushAsync(OverlayMount mount, CancellationToken cancellationToken = default) =>
+        FlushWithReceiptAsync(mount, verifySeal: false, cancellationToken);
+
+    internal async Task<OverlayFlushReceipt> FlushWithReceiptAsync(OverlayMount mount, bool verifySeal, CancellationToken ct)
     {
-        var observed = await ObserveAsync(mount, cancellationToken);
+        var observed = await ObserveAsync(mount, ct);
         if (!observed.Mounted || !observed.OwnershipVerified) throw new WorkspaceException("OverlayNotReady", "Flush requires the current owned provider.");
-        var request = await Request(mount, cancellationToken);
+        var request = await Request(mount, ct);
         string id = Guid.NewGuid().ToString("N");
-        await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "flush.json"), new { request.Token, requestId = id }, cancellationToken);
+        var flush = new OverlayFlushRequest(request.Token, id, verifySeal,
+            verifySeal ? mount.ProviderProcessId : null, verifySeal ? mount.ProviderStartTimeUtcTicks : null);
+        await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "flush.json"), flush, ct);
         for (int i = 0; i < 100; i++)
         {
-            var receipt = await WindowsProcessWorkspaceProvider.ReadAsync<JsonElement>(Path.Combine(request.ControlPath, "flush-result.json"), cancellationToken);
-            if (receipt.ValueKind == JsonValueKind.Object && receipt.GetProperty("token").GetString() == request.Token && receipt.GetProperty("requestId").GetString() == id) return;
-            await Task.Delay(100, cancellationToken);
+            var receipt = await WindowsProcessWorkspaceProvider.ReadAsync<OverlayFlushReceipt>(Path.Combine(request.ControlPath, "flush-result.json"), ct);
+            if (receipt?.Token == request.Token && receipt.RequestId == id)
+            {
+                if (verifySeal && (receipt.ProcessId != mount.ProviderProcessId ||
+                    receipt.ProcessStartTimeUtcTicks != mount.ProviderStartTimeUtcTicks))
+                    throw new WorkspaceException("OverlayLeaseStale", "The seal receipt belongs to another provider lifetime.");
+                if (receipt.SealError is { } error)
+                    throw new WorkspaceException(error, receipt.SealErrorMessage ?? "Preserve the journal after its live physical seal failed.");
+                return receipt;
+            }
+            await Task.Delay(100, ct);
         }
         throw new WorkspaceException("OverlayFlushUncertain", "Preserve the journal and inspect the provider before retrying.");
     }

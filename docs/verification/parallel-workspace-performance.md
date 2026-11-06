@@ -57,3 +57,65 @@ Every accepted sample matched all 53 package DLLs per Editor with its Mono reade
 Product code and binaries were unchanged in this comparison. The preceding full runtime gate remains **2,629 discovered, 2,593 passed, 36 conditional skips, zero failures**, in 673.40s; it was not rerun for the measurement tooling. The earlier per-file handle evacuation was rejected at 4.20 times the root-move component time; that prototype is not used here. This limited input does not qualify cold or large projects, longer work sessions, general CPU/RAM or disk peaks, Unity builds, other VCS modes, uncoordinated Editors, or OS/power-loss recovery. The retained 100k/17GiB fixtures were not resumed.
 
 Local evidence is in `artifacts/unity-triad-20261105/`: `comparison.json`, `phase-breakdown.json`, `plan.json`, `final-resource-proof.json`, individual cases, and the exact same-request recoveries. This supersedes the earlier matched timing for the current comparison; older results with other inputs or transition policies remain separate evidence.
+
+## Optimization candidate disposition
+
+**Cost-aware segment packing is applied** following the explicit maintenance-only selection. The write-admission, extent-batching and separate control-file sharing candidates remain excluded. The completed Unity lifecycle timing above is the current comparison point.
+
+| Candidate | Observed result | Disposition |
+| --- | --- | --- |
+| Cost-aware normal-segment packing and deferred relocation planning | The earlier 512-range NTFS ABBA probe reduced mean maintenance, stopped reopen/byte verification and reclamation from 2.624s to 2.151s (18.0%). Initial writes through reclamation improved only 6.9%, from 6.015s to 5.599s. Relocations fell from 513 to 1; reopened digests and accepted seals matched. Slower final reclamation is included. That probe also contained the separate control-file sharing fix. | Applied without the control-file sharing change. Current rules are in the [storage guide](../scalable-storage.md). No new standalone or Unity throughput claim. |
+| Atomic control-reader delete sharing | Four new native regressions covering this fix and packing admission passed. In-place writes remained excluded. | Preserved with the excluded integration candidate; complete regression was not obtained. |
+| Extent mutation batching | Fewer metadata pages, but one matched write-apply sample increased from 4.86ms to 8.97ms. | Rejected; further candidate verification stopped after the synchronous write returned. |
+| Write admission changes | The repaired fixture measured only 2.61% serial and 1.54% parallel write-time improvement; full parallel process time increased 3.69%. | Excluded: below the 10% target and slower over the full parallel process. |
+
+The earlier combined candidate gate exceeded **673.40s** and was canceled without a final summary (last progress: 2,563 passed, 36 skipped, zero failures). It remains a time-budget failure, not evidence that a specific change caused the overrun. After maintenance-only reapplication, the incremental build passed in 29.42s with zero warnings/errors; a six-case local selection reached its 20s stop without a summary. Its runner exited, one scratch fixture was preserved and managed disposal remains unconfirmed. The post-integration complete gate is recorded separately below.
+
+An earlier 18-case recovery/capture/scratch selection also reached its 30s stop without a final summary. The extent candidate's test-project build completed in 102.93s, exceeding its 60s stop before the overrun was observed; its subsequent focused tests were not run. These incomplete checks are not passes. Original candidate evidence is under `artifacts/parallel-perf-optimization-20261105/`.
+
+## Corrected write verification
+
+The local probe advertised a 4KiB basis file but capped reads at 32 bytes. Its repaired reader uses the same payload length as `Stat` and returns zero at/beyond EOF. Before timing, three passive handles verify the full 12,288 bytes, suffix reads and EOF. The controller uses frozen baseline/candidate assemblies, with only the Windows adapter differing, and preserves earlier evidence. Serial input is 96 files; parallel input is 256 files with eight writers. Each write carries 4KiB.
+
+| Corrected ABBA condition | Baseline write mean | Candidate write mean | Write reduction | Baseline full process | Candidate full process |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Serial with three passive handles | 1.060064s | 1.032346s | 2.61% | 1.711741s | 1.628669s |
+| Eight concurrent writers | 1.452956s | 1.430512s | 1.54% | 2.349854s | 2.436506s |
+
+One preflight and eight comparison processes all closed normally, unmounted and reopened with zero callback errors. Checks cover acknowledged 4KiB payload bytes, timestamps and the accepted seal; final written-file length/EOF was not independently asserted. Candidate write admission stopped at the first baseline's write-time budget, with a separate 16s process bound. The full-process regression was observed after closure; the controller did not enforce the baseline's total process duration as an admission deadline. No further write candidate was promoted or measured after exclusion.
+
+Repaired probe/controller and measurements are under `artifacts/parallel-perf-recheck-20261105/admission/`. The independent task preserved its result and released all mounts/providers. Its first release encountered `WorkspaceMaintenancePending`; resuming the exact returned maintenance request completed in 2.65s, and the same checkpoint request finished release in 7.75s. No state was removed to bypass recovery.
+
+The maintenance-only post-integration gate, `pwsh ./scripts/build.ps1`, **passed in 631.17s**, within the existing 673.40s stop: **2,631 total, 2,595 passed, 36 conditional skips, zero failures**, with zero build warnings/errors. The final TRX confirms both new packing cases and all four selected force/recovery/scratch-pressure cases passed; this supplies complete coverage after the canceled local selection. No matching repository test/provider process remained. The gate used the default schedule, without large-catalog opt-in or new Unity lifecycle trials. Logs and the extracted six-case results are in `artifacts/parallel-perf-recheck-20261105/full-gate-summary.json` and `full-gate.log`.
+
+## Follow-up qualification
+
+The native mixed read/write probe confirmed reads overlapped the flush, but the candidate workload was 8.74% slower (1.150s to 1.251s). The controller closed admission at the 2.577s baseline full-process bound. All 512 admitted writes drained and the candidate exited normally in 2.820s with replay verified. The separate fixed-EOF probe reduced barrier time by 0.18% and full probe time by 1.78%. Both candidates were excluded.
+
+The maintenance-only Unity trial `t11-b1` completed Editor validation and both normal Editor exits. A preserved its result, then release failed when the live seal encountered a pending segment roll. B released successfully. A and Library providers stopped normally. The separate same-request recovery verified both final source results, the original Git state and all 20,435 Library files, restored Library to an ordinary NTFS directory, and verified owned-resource absence. The recovery preserved the Unity identity and observed changed serialized license bytes. The failed trial and recovery provide phase and correctness evidence only. The trial controller now uses the live handle count for an authenticated stop and skips image and job queries for exited processes. Exact stop receipts and a short exited-process probe cover those corrections.
+
+The live physical seal fix passed fourteen focused NTFS cases. The metadata collection case verified that the live seal waits on a published roll intent and returns the same accepted sequence, byte count and hash. The selection also verified interrupted-roll refusal and stopped replay. An 8 KiB Git/WinFsp smoke completed checkpoint and release in 12.924s and verified the provider receipt, retained bytes and EOF, and resource absence. The fix also completed the original `t11-b1` A checkpoint during same-request recovery. A separate isolated CLI workspace completed its first checkpoint and release in 30.815s after reconnecting to the updated provider. The live seal receipts matched, the provider, mount and delta were absent, and the retained result catalog matched all ten expected file hashes and lengths.
+
+The earlier full gate stopped at 631.17s with 39 cases outstanding. Its two scratch fixtures remain preserved. The subsequent complete `pwsh ./scripts/build.ps1` gate finished in **674.52s** with **2,602 passed, 36 conditional skips and zero failures** across all 2,638 expected cases. All seven seal cases passed. The build had zero warnings and errors, and the gate exited normally with no remaining owned processes or new test fixture directories. This gate covered the live seal fix before the sealed-reader change.
+
+Evidence is under `artifacts/parallel-total-20261105/` in `durability/`, `t11-b1/`, `t11-b1-recovery/`, `controller-readiness-after-t11-b1.json` and `reliability/`.
+
+The single-Editor diagnostic `t12-d1` completed in 322.515s, with a first-attempt checkpoint and release in 29.979s. The retained source result, original source and Library restoration, and Editor/provider absence were verified. Shutdown completed 10,304 singleton write callbacks with 21.247s in write flushes. Of 1,042 distinct callbacks retained in the bounded rings, 1,039 targeted the Burst cache manifest. The rings overwrite older samples, and the opt-in counters can affect timing. This diagnostic is ineligible for whole-lifecycle comparison. Evidence is under `artifacts/parallel-total-20261105/t12-d1/`.
+
+The isolated sealed-reader candidate retained up to four native read handles and passed all 28 focused cases. The hot-read ABBA probe reduced full-process time by 21.69% and native read bytes from 266.7 MB to 16.9 MB. The single-read probe reduced full-process time by 4.13% while timed reads took 0.845ms longer. The isolated workspace released with result `182d9c4dd99cc12f68ff8ca9` preserved. Probe evidence is under `artifacts/parallel-total-20261105/sealed-reader/`.
+
+## Matched Unity lifecycle
+
+Fresh control `t13-b1` and candidate `t13-c1` ran in that order in a clean window. The frozen control included the packing and live seal fixes. Only `Splinter.Runtime.dll` differed between the arms, and write diagnostics were disabled. The first candidate command stopped before fixture creation because the invocation manifest held the DLL provenance record. The corrected manifest used the frozen 45-file inventory, and the measured candidate used the completed control's core and pipeline times as its stop ceilings.
+
+| Elapsed scope | Historical | Fresh control | Candidate | Reduction vs fresh control | Reduction vs historical |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Core lifecycle | 528.55s | 450.02s | 389.87s | 13.36% | 26.24% |
+| Pipeline with package and independent result checks | 547.26s | 467.42s | 406.94s | 12.94% | 25.64% |
+| Controller including fixture and original audit | | 511.54s | 442.66s | 13.47% | |
+
+Both arms verified the same 75 source files and 20,435 Library files, and independently read back matching per-file result hashes and lengths for A and B. The two Editors passed compile, scene and Play isolation checks and exited normally in B→A order. Original source, Library and Git proof passed, and owned Editors, providers and mounts were absent. Both arms preserved the normal Unity 6000.3.27f2 identity and observed changed serialized license bytes.
+
+Startup fell from 139.10s to 126.72s, refresh from 47.00s to 30.30s, and sequential shutdown from 130.90s to 95.19s. Capture and release took 5.216s longer. Passive native provider read bytes around refresh fell from 11.83 GB to 0.42 GB while logical read bytes rose from 0.33 GB to 0.37 GB. Native counters include other provider I/O. Most of the shutdown difference was in B, and the samples cannot isolate a cause for that difference. The measured pair clears 10% on both clocks. It covers one control-first pair with the same warm Library input. The complete post-integration `pwsh ./scripts/build.ps1` gate passed in **666.76s** with **2,605 passed, 36 conditional skips and zero failures** across 2,641 tests. All three cache cases passed. The build reported zero warnings and errors. After a process-watcher access error, a separate native audit confirmed no owned processes or new test fixtures remained. The active CLI DLLs match their owner builds. The active Runtime SHA-256 differs from the timed binary, and the four integrated candidate source hashes match the timed build's source proof. Gate evidence is under `artifacts/parallel-total-20261105/sealed-reader/full-gate/cooperative-full-gate/`.
+
+Controller and run evidence are under `artifacts/parallel-total-20261105/` in `t13-lifecycle/`, `t13-b1/` and `t13-c1/`.

@@ -212,6 +212,66 @@ public sealed class JournalPartialSegmentPackingTests
         Assert.Equal(seal, writer.Seal()); Assert.True(PayloadAllocated(f) < 65536);
     }
 
+    [Fact(Timeout = 10000)]
+    public void OpportunisticPackingReclaimsDeadPayloadAndLeavesLowGainNormalBacking()
+    {
+        RequireWindows(); using var f = new Fixture("normal-pack-payback"); var ct = TestContext.Current.CancellationToken;
+        byte[] stableBytes = Enumerable.Repeat((byte)0x57, 4096).ToArray();
+        string stableBacking = Path.Combine(f.Delta, "segment-0000000000000000.sjr");
+        string stableIdentity;
+        Guid stable, partial;
+        SnapshotDeltaSeal seal;
+        using (var writer = f.Open(processingBytes: 64 * 1024))
+        {
+            stable = writer.Create("stable", false, 32).Id;
+            for (int block = 0; block < 64; block++) writer.Write(stable, (long)block * stableBytes.Length, stableBytes);
+            stableIdentity = f.Pins.Identify(stableBacking);
+
+            // Put genuinely dead payload in a different normal segment.
+            partial = f.Partial(writer, "partial", 128 * 1024, 16, 0x61).Id;
+            string deadBacking = Assert.Single(Directory.EnumerateFiles(f.Delta, "segment-*.sjr"), path => new FileInfo(path).Length > 128 * 1024);
+            seal = writer.Seal();
+            writer.MaintainLiveStorage(collectSegments: true, ct: ct);
+
+            Assert.Equal(stableIdentity, f.Pins.Identify(stableBacking));
+            Assert.False(File.Exists(deadBacking));
+            Assert.Equal(seal, writer.Seal());
+        }
+
+        using var resumed = f.Open(processingBytes: 64 * 1024);
+        Assert.Equal(seal, resumed.Seal());
+        byte[] observed = new byte[stableBytes.Length];
+        Assert.Equal(observed.Length, resumed.Read(stable, 32L * stableBytes.Length, observed));
+        Assert.Equal(stableBytes, observed);
+        Assert.Equal(16, resumed.Read(partial, 0, observed));
+        Assert.All(observed[..16], value => Assert.Equal((byte)0x61, value));
+
+        resumed.MaintainLiveStorage(force: true, ct: ct);
+        Assert.False(File.Exists(stableBacking));
+        Assert.Equal(seal, resumed.Seal());
+        Assert.Equal(observed.Length, resumed.Read(stable, 32L * stableBytes.Length, observed));
+        Assert.Equal(stableBytes, observed);
+    }
+
+    [Fact(Timeout = 10000)]
+    public void FrameHeavyNormalBackingCanPayForPackingWithoutDeadPayload()
+    {
+        RequireWindows(); using var f = new Fixture("frame-heavy-normal"); using var writer = f.Open(processingBytes: null);
+        byte[] payload = Enumerable.Repeat((byte)0x63, 32).ToArray();
+        var file = writer.Create("dense-frames", false, 32);
+        for (int block = 0; block < 128; block++) writer.Write(file.Id, (long)block * payload.Length, payload);
+        var seal = writer.Seal();
+
+        writer.MaintainLiveStorage(collectSegments: true, ct: TestContext.Current.CancellationToken);
+
+        string packed = Assert.Single(Directory.EnumerateFiles(f.Delta, "packed-*.sjr"));
+        Assert.Equal(4096, new FileInfo(packed).Length);
+        Assert.Equal(seal, writer.Seal());
+        byte[] observed = new byte[payload.Length];
+        Assert.Equal(observed.Length, writer.Read(file.Id, 127L * payload.Length, observed));
+        Assert.Equal(payload, observed);
+    }
+
     [Theory(Timeout = 10000)]
     [InlineData(false)] [InlineData(true)]
     public void SparsePackedGarbageWaitsForForceAndPendingForceStillRecovers(bool interrupt)

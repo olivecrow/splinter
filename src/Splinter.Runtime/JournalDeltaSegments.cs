@@ -24,6 +24,15 @@ public sealed partial class JournalDeltaStore
     private long segmentAppendLimit = DefaultBoundedLogBytes;
     private FileStream? segmentRead;
     private long segmentReadId = -1;
+    private const int RetainedSegmentReaderLimit = 4;
+    private List<VerifiedSegmentReader>? retainedSegmentReaders;
+
+    private sealed class VerifiedSegmentReader(JournalSegment descriptor, MetadataTreeRoot root, FileStream input)
+    {
+        internal readonly JournalSegment Descriptor = descriptor;
+        internal readonly FileStream Input = input;
+        internal MetadataTreeRoot Root = root;
+    }
 
     private void OpenSegmented(string directory, string identityPath, string journalPath)
     {
@@ -146,6 +155,10 @@ public sealed partial class JournalDeltaStore
                     if (Directory.Exists(destination) && Directory.EnumerateFileSystemEntries(destination).Any(path =>
                         !Path.GetFileName(path).StartsWith("readers-", StringComparison.Ordinal) || !path.EndsWith(".lock", StringComparison.Ordinal) || !File.Exists(path) || new FileInfo(path).Length != 0))
                         throw new WorkspaceException("SourceCaptureIncomplete", "Preserve the unfinished capture control.");
+                    // Capture completion removes native aliases of these
+                    // same files. Retain the original single-reader policy
+                    // until every frozen capture has completed.
+                    if (retainedSegmentReaders is { Count: > 0 }) CloseSegmentReaders();
                     FlushPendingWrites(); RollSegment();
                     Directory.CreateDirectory(destination); string readerName = "readers-" + Guid.NewGuid().ToString("N") + ".lock";
                     using (var created = new FileStream(Path.Combine(destination, readerName), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read)) created.Flush(true);
@@ -178,10 +191,57 @@ public sealed partial class JournalDeltaStore
     private FileStream SegmentInput(long id)
     {
         if (segments is null || id == segments.ActiveId) return journal;
+        if (!readOnly && mutationObserver is null && sourceFilePins is not null && latestDirectoryGuard is not null && captureRoot?.Count == 0)
+            return RetainedSegmentInput(id);
         if (segmentReadId != id)
         { segmentRead?.Dispose(); segmentRead = segments.OpenSealed(Segment(id)); segmentReadId = id; }
         return segmentRead!;
     }
+    // The owning journal gate serializes use and eviction. These handles
+    // deny writes and deletion until their verified bytes leave the cache.
+    private FileStream RetainedSegmentInput(long id)
+    {
+        // A completed capture may leave one legacy handle. Clear it before
+        // admitting the bounded native reader set again.
+        if (segmentRead is not null) CloseSegmentReaders();
+        var readers = retainedSegmentReaders ??= new(RetainedSegmentReaderLimit);
+        for (int i = readers.Count - 1; i >= 0; i--)
+        {
+            var reader = readers[i];
+            if (reader.Descriptor.Id != id) continue;
+            if (!ReferenceEquals(reader.Root, segmentRoot))
+            {
+                if (Segment(id) != reader.Descriptor) throw PagedInvalid();
+                reader.Root = segmentRoot!;
+            }
+            if (i != readers.Count - 1)
+            { readers.RemoveAt(i); readers.Add(reader); }
+            return reader.Input;
+        }
+
+        var descriptor = Segment(id);
+        if (readers.Count == RetainedSegmentReaderLimit)
+        {
+            var oldest = readers[0]; readers.RemoveAt(0); oldest.Input.Dispose();
+        }
+        var input = segments!.OpenSealed(descriptor);
+        try
+        {
+            sourceFilePins!.VerifyPath(input, segments.SegmentPath(id), descriptor.NativeIdentity ?? throw PagedInvalid());
+            readers.Add(new(descriptor, segmentRoot!, input));
+            return input;
+        }
+        catch { input.Dispose(); throw; }
+    }
+
+    private void CloseSegmentReaders()
+    {
+        segmentRead?.Dispose(); segmentRead = null; segmentReadId = -1;
+        if (retainedSegmentReaders is not { } readers) return;
+        foreach (var reader in readers) reader.Input.Dispose();
+        readers.Clear();
+    }
+
     private void ReadExtentBytes(Extent extent, long physical, Span<byte> output)
     {
         if (extent.ContentHash is { } hash)
@@ -215,17 +275,45 @@ public sealed partial class JournalDeltaStore
         using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         Span<byte> header = stackalloc byte[4]; return input.Read(header) == 4 && header.SequenceEqual("SJS1"u8);
     }
-    public static SnapshotDeltaSeal SealSegmentedJournal(string path, long sequence)
+    internal (SnapshotDeltaSeal Seal, OverlayStorageObservation Storage, double ElapsedMilliseconds) VerifyFlushedSegmentedSeal()
+    {
+        using (EnterGate())
+        {
+            if (segments is null || readOnly || sourceFilePins is null || segments.State.Head.NativeIdentity is not { } nativeIdentity)
+                throw new WorkspaceException("OverlaySealUnsupported", "A live physical seal requires the owned segmented writer and native pins.");
+            // A failed roll may already have closed the old head. Preserve
+            // its intent before attempting to flush or inspect that handle.
+            segments.RequireNoPendingRoll();
+            Flush();
+            long started = Stopwatch.GetTimestamp();
+            sourceFilePins.VerifyPath(journal, journal.Name, nativeIdentity);
+            var seal = SealSegmentedJournal(journal.Name, sequence, segments.State.Head, sourceFilePins, expectedJournalBytes);
+            if (seal != SegmentedSeal())
+                throw new WorkspaceException("DeltaChangedAfterCollection", "The live journal and its physical accepted seal differ; preserve it.");
+            double elapsed = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            var storage = ObserveActivity() ?? throw new WorkspaceException("DeltaReconnectRequired", "Preserve and replay the failed writer before sealing.");
+            return (seal, storage, elapsed);
+        }
+    }
+
+    public static SnapshotDeltaSeal SealSegmentedJournal(string path, long sequence) =>
+        SealSegmentedJournal(path, sequence, null, null, null);
+
+    private static SnapshotDeltaSeal SealSegmentedJournal(string path, long sequence,
+        JournalSegmentHead? expectedHead, IJournalFilePins? pins, long? expectedLength)
     {
         string directory = Path.GetDirectoryName(path)!;
         using var identityInput = File.OpenRead(Path.Combine(directory, "identity.json"));
         var identity = JsonSerializer.Deserialize<OverlayIdentity>(identityInput) ?? throw PagedInvalid();
         using var storage = new JournalSegmentStorage(directory, identity, readOnly: true);
+        if (expectedHead is not null && storage.State.Head != expectedHead) throw PagedInvalid();
         string accepted = storage.State.Roots.SourceMutationHash ?? PagedOwnerHash(identity);
         long bytes = storage.State.Roots.SourceMutationBytes, current = storage.State.Roots.Sequence;
         if (accepted.Length != 64 || accepted.Any(c => c is not (>= '0' and <= '9' or >= 'a' and <= 'f')) || bytes < 0) throw PagedInvalid();
         byte[] header = new byte[FrameHeaderBytes], buffer = new byte[65536], expected = new byte[FrameChecksumBytes], chainBytes = new byte[64];
         var file = storage.Active; file.Position = JournalSegmentStorage.HeaderBytes;
+        if (expectedLength is { } length && file.Length != length) throw PagedInvalid();
+        if (pins is not null) pins.VerifyPath(file, path, storage.State.Head.NativeIdentity ?? throw PagedInvalid());
         while (file.Position < file.Length)
         {
             if (file.Length - file.Position < FrameHeaderBytes) throw PagedInvalid(); file.ReadExactly(header);
@@ -253,6 +341,8 @@ public sealed partial class JournalDeltaStore
                 bytes = checked(bytes + FrameHeaderBytes + (long)metadataBytes + payload.StoredBytes + FrameChecksumBytes); current = mutation.Sequence;
             }
         }
+        if (expectedLength is { } fixedLength && file.Length != fixedLength) throw PagedInvalid();
+        if (pins is not null) pins.VerifyPath(file, path, storage.State.Head.NativeIdentity ?? throw PagedInvalid());
         if (current != sequence) throw new WorkspaceException("DeltaChangedAfterCollection", "Accepted journal source mutations differ from their fixed sequence.");
         return new(current, bytes, accepted);
     }

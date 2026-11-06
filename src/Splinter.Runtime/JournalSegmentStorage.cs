@@ -99,6 +99,10 @@ public sealed class JournalSegmentStorage : IDisposable
         }
         catch { active?.Dispose(); lease.Dispose(); throw; }
     }
+    internal void RequireNoPendingRoll()
+    {
+        if (File.Exists(Path.Combine(directory, IntentName))) throw Invalid("Recover the pending segmented roll first.");
+    }
     public void Rotate(Func<JournalSegment, JournalIndexRoots> freezeRoots, long retiredBytes = 0, long retiredCount = 0, long retiredPayloadBytes = 0)
     {
         ObjectDisposedException.ThrowIf(disposed, this);

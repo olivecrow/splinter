@@ -147,13 +147,15 @@ public sealed partial class JournalDeltaStore
                     PublishSegmentCollection(intentPath, plan);
                     captureSegmentRoot = remaining;
                     boundary?.Invoke("segments.reclaim-intent");
-                    segmentRead?.Dispose(); segmentRead = null; segmentReadId = -1;
                     break;
                 }
             }
         }
         using var records = new PagedMetadataStore(plan.Directory);
         RestoreCaptureSegmentRoot(plan);
+        // Close retained backing handles before either a fresh or resumed
+        // collection reaches its physical unlink boundary.
+        using (EnterGate()) CloseSegmentReaders();
         // Logical retirement prevents new captures from claiming old aliases.
         // Physical accounting is reduced only after every exact alias is gone.
         foreach (var item in records.Open(plan.Dead).Enumerate())

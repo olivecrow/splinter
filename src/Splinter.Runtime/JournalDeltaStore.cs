@@ -611,7 +611,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             try
             {
                 while (activeReads != 0) Monitor.Wait(gate);
-                try { segmentRead?.Dispose(); segments?.Dispose(); journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); boundedWriterLock?.Dispose(); }
+                try { CloseSegmentReaders(); segments?.Dispose(); journal.Dispose(); CloseLatestRead(); latestObjectsLock?.Dispose(); latestWriterLock?.Dispose(); boundedWriterLock?.Dispose(); }
                 finally
                 {
                     latestDirectoryGuard?.Dispose(); boundedTransitionDirectoryGuard?.Dispose();

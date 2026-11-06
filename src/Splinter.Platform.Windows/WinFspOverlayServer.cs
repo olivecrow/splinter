@@ -213,12 +213,11 @@ public static class WinFspOverlayServer
                             ScheduleMaintenance();
                             nextStorageMaintenance = Stopwatch.GetTimestamp() + 30 * Stopwatch.Frequency;
                         }
-                        var flush = await WindowsProcessWorkspaceProvider.ReadAsync<FlushRequest>(Path.Combine(request.ControlPath, "flush.json"), waitForPublication: false);
+                        var flush = await WindowsProcessWorkspaceProvider.ReadAsync<OverlayFlushRequest>(Path.Combine(request.ControlPath, "flush.json"), waitForPublication: false);
                         if (flush?.Token == request.Token && flush.RequestId != lastFlushRequest)
                         {
-                            store.Flush();
-                            await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "flush-result.json"),
-                                new { request.Token, flush.RequestId, observedAt = DateTimeOffset.UtcNow, storage = store.ObserveActivity() });
+                            var receipt = ProcessFlush(store, flush, self.Id, self.StartTime.ToUniversalTime().Ticks);
+                            await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "flush-result.json"), receipt);
                             lastFlushRequest = flush.RequestId;
                         }
                         var captureRequest = await WindowsProcessWorkspaceProvider.ReadAsync<CaptureSourceRequest>(Path.Combine(request.ControlPath, "capture-source.json"), waitForPublication: false);
@@ -362,8 +361,35 @@ public static class WinFspOverlayServer
         try { await Task.Run(() => action(operation.Token)); }
         finally { finished.Cancel(); await observer; }
     }
+    internal static OverlayFlushReceipt ProcessFlush(IWorkspaceDeltaStore store, OverlayFlushRequest flush, int processId, long startTicks)
+    {
+        if (!flush.VerifySeal)
+        {
+            store.Flush();
+            return new(flush.Token, flush.RequestId, DateTimeOffset.UtcNow, store.ObserveActivity(), processId, startTicks);
+        }
+        try
+        {
+            if (flush.ProcessId != processId || flush.ProcessStartTimeUtcTicks != startTicks)
+                throw new WorkspaceException("OverlayLeaseStale", "The seal request belongs to another provider lifetime.");
+            if (store is not JournalDeltaStore journal)
+                throw new WorkspaceException("OverlaySealUnsupported", "A live physical seal requires the owned segmented writer.");
+            var verified = journal.VerifyFlushedSegmentedSeal();
+            return new(flush.Token, flush.RequestId, DateTimeOffset.UtcNow, verified.Storage, processId, startTicks,
+                verified.Seal, verified.ElapsedMilliseconds);
+        }
+        catch (WorkspaceException error)
+        {
+            return new(flush.Token, flush.RequestId, DateTimeOffset.UtcNow, null, processId, startTicks,
+                SealError: error.Code, SealErrorMessage: error.Message);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or ObjectDisposedException)
+        {
+            return new(flush.Token, flush.RequestId, DateTimeOffset.UtcNow, null, processId, startTicks,
+                SealError: "OverlaySealFailed", SealErrorMessage: error.Message);
+        }
+    }
     private sealed record StopRequest(string Token);
-    private sealed record FlushRequest(string Token, string RequestId);
     private sealed record CaptureSourceRequest(string Token, string RequestId, string Id, string[] ManagedPaths);
     private sealed record CompleteSourceRequest(string Token, string RequestId, string Id);
 }
