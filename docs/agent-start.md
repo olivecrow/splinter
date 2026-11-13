@@ -1,10 +1,8 @@
-# AI start guide for the current candidate
+# Start a Splinter workspace
 
-The scalable-storage candidate uses task v4, managed basis v3 and product overlay v3. [Scalable storage](scalable-storage.md) owns the current representation and pending SCAL-01–08 qualification. [Repeated original application](repeated-original-apply.md) retains immutable captures, explicit results, per-path history and external live-Editor cooperation. Historical RI, MX and GCO evidence remains tied to its recorded task-v3/basis-v2 candidate. Preserve/refuse earlier state and use its matching binary; no automatic migration or reclamation.
+Use a workspace when a task needs independent execution. Work directly when the current project path is available and isolation is unnecessary. Use `scripts/splinter.ps1` from the source checkout for workspace operations. Follow the [agent skill](../skills/splinter/SKILL.md) for command discovery and handoff, and the [development CLI guide](development-cli.md) for diagnostics.
 
-Product entry points are the repository checkout's `scripts/splinter.ps1` and [skill source](../skills/splinter/SKILL.md). Views/probes belong to the [separate development CLI](development-cli.md). See the [glossary](glossary.md) for terminology. Use workspaces only for continuing work that needs independent execution; work directly when the current path is safe.
-
-For implementation/performance work, start with the lifecycle optimization map and structured stage/code index. They connect preparation, I/O, Editor work, application/discard and final shared-basis restoration without authorizing a new project experiment.
+For setup, reuse the existing CLI, project instructions, and common task home. Record the CLI path in the relevant project or user guidance and verify command and skill discovery separately. Preserve active task homes and their matching executables when changing setup.
 
 <a id="저장-경로별-시작점"></a>
 ## Starting points by storage path
@@ -13,9 +11,9 @@ Fix source/application/storage and basis in the initial request, then read that 
 
 | Storage path | Prerequisites and usage | Execution evidence and limitations |
 | --- | --- | --- |
-| `git-snapshot`, source git | Uses a fixed commit under the [Git basis](git-project-basis.md), excluding ignored/private source. Requires WinFsp, without VSS service/grant. | Distinguish reader/Editor-free Git, cold Unity A/B, and original Library/warm Unity. Actual Unity records qualify specified candidates/inputs only, without general large-input, ARM, or OS support. |
-| `plastic-snapshot`, source plastic | Uses fixed changeset/revision under the [Plastic basis](plastic-project-basis.md), standard-user cm access, and WinFsp. VSS service/grant is unnecessary. | Check basis verification and [full/selected original application](plastic-original-apply.md). Original application requires fixed result/plan/intent and either stopped reservation or exact live-original cooperation, without changing server history. |
-| `project-snapshot`, source none | Uses the explicitly authorized managed mount of the original under the [project basis](plain-project-basis.md). Requires WinFsp, without VSS service/grant. | Check file/small-Unity qualification in NP verification. Authorization to convert Library alone does not authorize a whole-original mount. |
+| `git-snapshot`, source git | Uses a fixed commit under the [Git basis](git-project-basis.md), excluding ignored/private source. Requires WinFsp. | Distinguish reader/Editor-free Git, cold Unity A/B, and original Library/warm Unity. Actual Unity records qualify specified candidates/inputs only, without general large-input, ARM, or OS support. |
+| `plastic-snapshot`, source plastic | Uses fixed changeset/revision under the [Plastic basis](plastic-project-basis.md), standard-user Plastic client access, and WinFsp. | Check basis verification and [full/selected original application](plastic-original-apply.md). Original application requires fixed result/plan/intent and either stopped reservation or exact live-original cooperation, without changing server history. |
+| `project-snapshot`, source none | Uses the explicitly authorized managed mount of the original under the [project basis](plain-project-basis.md). Requires WinFsp. | See [validation scope](verification/README.md) for the tested inputs. Authorization to convert Library alone does not authorize a whole-original mount. |
 
 Git/Plastic original Library reuse requires authorization, normal original-Editor shutdown, and a returned basis id from the [separate Library conversion](git-library-reference.md), fixed in `--library-basis`. `project-snapshot` uses `project prepare --application none|unity` to move source/Library without copying on the same NTFS volume and provide a writable view at the original path. Fix returned basis id in `workspace ensure --source none --storage project-snapshot --project-basis <id>` with the same application/home. After task reclamation and all dependents/readers end, explicitly use `project restore` to restore an ordinary NTFS original.
 
@@ -26,14 +24,14 @@ The prerequisites and creation example below concern `source=git`, `application=
 
 | Item | Conditions to check |
 | --- | --- |
-| Product | Existing development checkout's `scripts/splinter.ps1` and Release build. If absent, the agent prepares it with `pwsh ./scripts/build.ps1`. .NET SDK `10.0.112` compatible patch, Git, and PowerShell 7.2 or later. |
+| Product | Existing development checkout's `scripts/splinter.ps1` and Release build. If absent, the agent prepares it with `pwsh ./scripts/build.ps1`. the [.NET SDK pinned in global.json](../global.json), Git, and PowerShell 7.2 or later. |
 | Original | Clean Git repository root on existing NTFS, with an internal `.git` directory and original HEAD matching requested base. Immediately before capture, Unity changes must be saved and import/compile/Play inactive. |
 | Input | Dirty/staged/untracked, submodule/symlink, LFS/filter/working-tree-encoding are rejected. ADS/hardlink/reparse/EFS/compressed/sparse input and individual ACL semantics are unsupported. See [NTFS input boundaries](ntfs-workspaces.md#inputs-and-privilege-boundaries). |
-| System | Existing WinFsp. No VSS service, grant or elevated execution. |
+| System | Installed WinFsp. Use a standard user for workspace operations. |
 | Home/space | One short NTFS home outside the original for tasks on the same project. Space checks use the actual backing volume and the current publication/recovery requirement; no fixed journal budget or 2 GiB reserve is a total-input gate. |
-| Editor | Current bounded execution covers a small Unity `6000.3.22f1` fixture, existing warm Library, and independent Editors. It does not extend to other inputs/versions, large-input costs, ARM A/B, or OS-failure guarantees. |
+| Editor | Use the installed Editor matching the project. See [validation scope](verification/README.md) for the limits of the recorded Unity runs. |
 
-Ordinary CLI/Git/Unity run as standard users. General product installation, global PATH, automatic skill discovery/conversation binding are not provided. After VSS retirement, legacy state is preserved/rejected; service reinstallation is not a recovery action.
+Run the CLI, Git, and Unity as a standard user. The source checkout provides the CLI and agent instructions. Preserve unsupported state and use its matching binary for recovery.
 
 <a id="발견과-생성"></a>
 ## Discovery and creation

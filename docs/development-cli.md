@@ -34,11 +34,9 @@ The script checks current task/mount/provider/Editor ownership, copies selected 
 
 Before/live correlation is the caller-dispatched interval between captures, **not an automatically measured Editor startup interval**. Observations are per-file, not an atomic Library snapshot or compilation proof; bounded live logs may be prefixes. Capture overhead must be separate from normal timing. No profiler arguments are injected and no Editor, external package, server, callback or source is started/stopped/modified. See BO verification for executed fixtures and remaining actual-Unity attribution.
 
-The retained [bounded range-log experiment](plans/structural-throughput-prototypes.md), `tools/Splinter.BoundedLogProbe`, exposes a read-only `capabilities` command. It measures bounded obsolete range history and generation checkpoints on a new explicitly selected fixture/output. It is a development tool, not a workspace storage mode or proof of complete Unity workflow speed.
+## Bounded journal probe
 
-The native Bee experiment was retired after its complete small lifecycle and storage use were worse than bounded storage. `tools/Splinter.BeeProbe`, its earlier junction mode and `scripts/measure-bee-prototype.py` were removed. Commit `93a7395` preserves their historical implementation; no Bee probe command or optional native storage path remains in the current checkout.
-
-The same log measurement executable also accepts `measure --method bounded --cap-mib 16` to exercise the actual product `JournalDeltaStore`, and `product-selftest --root <new-path>` to terminate owned product-store children at selected durable publication boundaries. `wal` remains the earlier fixed-object prototype. Product-bounded timings include automatic state checkpoints and retain the final bounded suffix as ordinary operation does; they are separate from SX and belong to BL.
+`tools/Splinter.BoundedLogProbe` runs journal comparisons and selected interruption checks on fresh, explicitly selected fixtures. Its `capabilities` command lists the available methods and recovery checks. [Probe scope and usage](plans/structural-throughput-prototypes.md)
 
 Product release/discard also protects snapshots referenced by a view or an open cache. Only workspace, candidate, cache, and receipt formats in the current contract are read. Unsupported fields/formats and damaged or incomplete requests are preserved and explicitly rejected. Recovery of an interrupted request uses that request's intent and receipt.
 

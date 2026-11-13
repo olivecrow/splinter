@@ -1,30 +1,13 @@
-# Structural throughput prototypes
+# Bounded journal probe
 
-**Current disposition:** the Bee junction and subsequent internal-native candidate are retired and removed. Their historical implementation is preserved at `93a7395`; BN records the later performance rejection. `tools/Splinter.BoundedLogProbe` and the successful [bounded product journal](../bounded-journal.md) remain. The SX scope below describes the recorded experiment, not authorization to restore or rerun the removed Bee path.
+`tools/Splinter.BoundedLogProbe` is a development tool for comparing serial journal operations on a generated basis and checking recovery at selected publication boundaries. Discover its arguments with `capabilities`.
 
-This user-authorized experiment follows TP-06. It compares two small, development-only implementations before any further complete Unity workflow. It does not select a new product backend or change the current journal format, workspace lifecycle, or default durability policy.
+| Command | Scope |
+| --- | --- |
+| `measure --root <new-directory> --method bounded` | Exercise the product's bounded SJR2 journal with automatic checkpoints and a retained suffix |
+| `measure --root <new-directory> --method sjl4` | Exercise the current SJL4 latest-state journal |
+| `measure --root <new-directory> --method wal` | Compare a fixed-object log prototype with an explicit log capacity |
+| `selftest --root <new-directory>` | Check reconnect and selected process interruption boundaries for the SJL4 and prototype paths |
+| `product-selftest --root <new-directory>` | Check the product journal at selected durable publication boundaries with owned child processes |
 
-## Fixed scope
-
-| ID | Experiment | Acceptance evidence |
-| --- | --- | --- |
-| SX-01 | Expose only an owned `Library/Bee` directory through native NTFS; retain the real range overlay for source and other Library paths | Real mounted file operations, exact target identity/path protection, source and peer isolation, independent source export, normal owned closure, equal graph output where actual Bee replay is possible |
-| SX-02 | Bounded range log with a RAM current-range index and generation checkpoints | Flush before each successful write response; fixed log bound; complete current-range recovery and independent result; incomplete-tail, corruption, owner, and interrupted-publication checks |
-| SX-03 | Matched small timing and storage comparison | Same operations and input, serial runs without competing builds/tests; separate cold preparation, checkpoint/cleanup, final file allocation, sampled temporary file bytes and write amplification; do not call sampled bytes an NTFS allocation peak |
-| SX-04 | Decide whether larger validation is justified | Large component gains must retain the bounded safety gates; otherwise stop without a whole-project rerun or a Unity speed claim |
-
-The Bee fixture is new and isolated. A preserved three-assembly, zero-package Unity 6000.3.22f1 build input is used read-only to replay the actual build-graph generator. If the generated graph has no IL post-processing nodes, also run cold, unchanged and one-source-change Csc builds and inspect the compiled constant. This does not measure IL post-processing, Editor readiness, or Play. Historical evidence and the sibling Unity repository are not edited. Native Bee starts without an inherited payload cache; only the small explicit build-input recipe is supplied to both variants. No original project or whole Library is copied, moved, or converted.
-
-The native target and namespace are owned by the experiment. A mount-point prototype is not an OS security sandbox. Native file handles and mapped images require their own closure checks; zero overlay contexts alone is insufficient. An unknown handle or failed normal close preserves the output rather than forcing deletion.
-
-The log fixture uses fixed generated input, approximately 48MiB of live private data, 20,000 logical objects, and bounded 4–16KiB changes, reduced for safety tests. Compare the current SJL4 implementation with a log that retains obsolete ranges only up to its explicit cap. Checkpoints write current private ranges, never the immutable basis; temporary checkpoint duplication and its time are included. This experiment permits bounded obsolete history, unlike the product's latest-only-at-every-ACK contract. It does not permit RAM-only acknowledgements. Group commit is a separate, unimplemented follow-up unless explicitly measured.
-
-## Execution and limits
-
-Implementation and read-only workload inspection may proceed in parallel. Timing runs are serialized after correctness checks. New outputs must reject existing directories. Freeze source/runtime identity before measurement and retain raw results and failed attempts. Run the repository's required build once after integration; do not overlap it with timed probes.
-
-Recovery tests use owned child-process interruption and independently observed successful writes. They do not establish OS power-loss durability. Product source/result guards, original/peer protection, explicit cleanup, and external-tool boundaries remain unchanged. No Editor pool, external package modification, service update, ReFS backend, or original-project benchmark is included.
-
-Any successful small result remains a component result. The previous shared-Editor whole workflow was 313.1508 seconds; only a later same-workload successful cold run including setup, integration, preservation and restoration could establish a complete speed advantage.
-
-Recorded outcome: the attempted native Csc backend could not atomically publish state through the graft (`ERROR_NOT_SAME_DEVICE`). The final matched SX Bee timing therefore covered graph generation only; its `--compile` diagnostic is no longer present. See the verification record. The later single-volume architecture was tested in BN, failed its time/storage gate and was also removed. Neither Bee implementation remains an optional development path.
+For timing comparisons, use the same inputs and fixed tool builds, and run the arms serially without competing builds or tests. Include checkpoint overhead and distinguish sampled temporary file bytes from actual NTFS allocation. Each run requires a fresh output directory. The probe covers individual journal operations on generated data. Complete workspace and Unity lifecycles and OS-failure durability have separate qualification. [Bounded journal](../bounded-journal.md) · [Validation scope](../verification/README.md)

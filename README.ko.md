@@ -1,40 +1,60 @@
 # Splinter
 
-**변경하지 않은 데이터는 공유하고 작업별 변경은 격리하는 AI 병렬 개발 작업공간.**
+**Windows에서 병렬 개발을 위한 독립 작업공간.**
 
-[English](README.md) · [한국어 기술 설명서](docs/ko/foundation.md)
+[English](README.md)
 
-Splinter는 Windows/NTFS에서 Unity 프로젝트와 일반 폴더를 위한 로컬 작업공간 도구입니다. 각 작업은 고정 기준본과 자기 변경 범위를 결합한 writable WinFsp 경로를 사용합니다. 최초 전체 복제, 읽은 파일의 디스크 hydration, 파일 전체 copy-up 없이 여러 작업을 독립적으로 수행하며 원본도 계속 편집할 수 있습니다.
+Splinter는 작업마다 쓰기 가능한 프로젝트 경로를 제공합니다. 각 작업은 고정된 프로젝트 기준본을 공유하고 변경된 바이트 범위만 따로 저장합니다. 원본은 계속 편집할 수 있고, 대화가 바뀌어도 같은 작업공간에서 이어서 작업할 수 있습니다. Unity에서는 작업공간별로 Editor를 실행할 수 있습니다.
 
-현재 연구용 alpha이며 대형 입력·전체 수명주기·속도/RAM·OS 장애 자격은 미완료입니다. 과거 작은 Git/None/Plastic/Unity 검증을 현재 후보의 일반 성능이나 지원 보장으로 확대하지 않습니다. 자세한 범위는 [영문 검증 안내](docs/verification/README.md)를 참조하세요.
+## 동작 방식
 
-## 사용 흐름
+WinFsp 마운트는 공통 기준본과 작업별 변경을 하나의 프로젝트 트리로 보여 줍니다. 프로젝트 전체를 복제하거나 읽은 파일을 디스크에 따로 쌓지 않으며, 파일의 일부만 바꿀 때 파일 전체를 복사하지 않습니다. Unity 작업은 미리 준비한 `Library` 기준본에서 변경되지 않은 데이터도 공유할 수 있습니다.
 
-필요할 때 작업공간 생성 → 같은 작업 지속 → 불변 결과 수집 → 명시적 반영·보존·폐기.
+1. **작업 시작 또는 재개.** 고정된 작업 키를 사용하고 Splinter가 반환한 경로에서 편집합니다. Unity에서는 필요할 때 해당 작업공간의 Editor를 실행합니다.
+2. **체크포인트.** 특정 시점의 소스 결과를 보존하고 같은 작업공간에서 편집을 이어갑니다. 컴파일, Play Mode, 테스트, 빌드에는 기존 도구를 사용합니다.
+3. **작업 종료.** 검토한 결과를 원본에 반영하거나, 결과를 남긴 채 작업공간 자원을 회수하거나, 작업을 폐기합니다. 반영할 때는 현재 원본과 충돌하는 변경이 있는지 확인합니다.
 
-반환된 프로젝트 경로에서 기존 파일·Git·Unity 도구를 사용합니다. 중간 checkpoint 뒤에도 같은 작업을 계속할 수 있으며, release는 독립 결과를 보존합니다. 원본 반영은 결과와 계획·intent·현재 대상 검증을 요구합니다. 대화 종료·시간 초과는 반영이나 삭제의 승인이 아닙니다.
+## 프로젝트 소스
 
-## 저장 경로
+| 소스 | 저장 모드 | 기준본 |
+| --- | --- | --- |
+| [Git](docs/git-project-basis.md) | `git-snapshot` | 지원 조건을 충족하는 깨끗한 저장소의 고정 로컬 커밋 |
+| [Unity Version Control / Plastic SCM](docs/plastic-project-basis.md) | `plastic-snapshot` | 지원되는 설치 클라이언트로 읽는 기록된 변경 집합 |
+| [버전 관리가 없는 폴더](docs/plain-project-basis.md) | `project-snapshot` | 원본 NTFS 볼륨에서 준비한 관리형 기준본 |
 
-| 경로 | 기준본 |
-| --- | --- |
-| `git-snapshot` | 고정 로컬 Git commit/tree/blob |
-| `plastic-snapshot` | 고정 Plastic changeset/revision |
-| `project-snapshot` | VCS 없는 프로젝트의 명시적 관리형 기준본 |
+Git과 Plastic 작업에는 [별도로 준비한 Unity Library](docs/git-library-reference.md)를 연결할 수 있습니다. 관리형 프로젝트와 Library를 준비할 때는 같은 NTFS 볼륨 안에서 기존 데이터를 옮기고, 원래 경로에서 쓸 수 있는 뷰를 제공합니다. Unity 프로젝트를 준비하거나 최종 복원할 때는 원본 Editor에서 저장한 뒤 정상 종료해야 합니다.
 
-관리형 프로젝트/Library 준비는 같은 NTFS 볼륨에서 기존 데이터를 이동하고 원본 경로에 writable view를 제공합니다. 최초 전환과 최종 복원은 정확한 원본 Editor의 저장·정상 종료를 요구합니다. 현재 task/basis/overlay는 v4/v3/v3, metadata는 SPM2입니다. 새 payload는 raw이며 과거 압축 payload와 미지원 형식은 변환하지 않고 보존·거부합니다.
+## 빠른 시작
 
-## 시작하기
+Windows와 NTFS, WinFsp, PowerShell 7.2 이상, [global.json에 지정된 .NET SDK](global.json)가 필요합니다. Git, Plastic, Unity는 프로젝트에 따라 설치합니다.
 
-Windows/NTFS, PowerShell 7.2+, [global.json](global.json)의 .NET SDK와 WinFsp가 필요합니다. Git/Plastic/Unity는 해당 입력에만 필요합니다. 현재는 소스 체크아웃의 PowerShell CLI를 사용합니다.
+Splinter 소스 체크아웃에서 CLI를 빌드하고 작업공간 스키마를 확인합니다. 아래 예시는 깨끗한 Git 저장소의 Unity 프로젝트를 사용합니다. 작업공간 홈은 원본 프로젝트 바깥으로 지정합니다.
 
-- [시작 안내](docs/agent-start.md)와 [에이전트 skill](skills/splinter/SKILL.md)에서 setup·schema·같은 작업 인계를 확인하세요.
-- `pwsh ./scripts/build.ps1`은 locked restore·Release build·자동 회귀 검증 진입점입니다.
-- 제품 CLI는 `scripts/splinter.ps1`, 개발 진단은 `scripts/splinter-dev.ps1`입니다.
-- [문서 지도](docs/README.md), [기술 구조](docs/foundation.md), [라이선스](LICENSE), [외부 구성요소 고지](THIRD_PARTY_NOTICES.md)를 참조하세요.
+```powershell
+pwsh ./scripts/build.ps1
+pwsh ./scripts/splinter.ps1 capabilities
+pwsh ./scripts/splinter.ps1 schema workspace.ensure
 
-Splinter는 저장·프로세스·자원 소유권을 관리합니다. refresh·컴파일·Play/Test/build·도구 연결·게임 합격 판단은 에이전트와 외부 도구의 책임입니다. 전용 설치기·자동 대화 binding·스케줄러·공유 원본 Editor 조율·AI Runner/DAG·daemon/DB는 제공하지 않습니다. 작업공간 격리는 악성 코드용 OS 보안 sandbox가 아닙니다.
+$project = 'C:/projects/MyGame'
+$workspaceHome = 'C:/sp/mygame'
+$base = git -C $project rev-parse HEAD
 
-문서는 영어를 기본으로 하며 한국어는 이 README와 기술 설명서만 유지합니다. 과거 실험 보고서와 중복 검증 문서는 Git 이력에서 확인할 수 있습니다.
+pwsh ./scripts/splinter.ps1 workspace ensure --project $project --home $workspaceHome `
+    --key lighting-pass --source git --application unity --storage git-snapshot --base $base
+```
 
-Splinter 코드와 문서는 MIT 라이선스를 따릅니다. WinFsp와 .NET을 포함한 외부 구성요소의 저작권·라이선스는 [고지 문서](THIRD_PARTY_NOTICES.md)를 참조하세요.
+`workspace ensure`가 성공하면 `data.workspace.path`를 파일 편집과 도구 실행에 사용합니다. 작업을 재개할 때는 프로젝트, 홈, 키, 기준 리비전을 그대로 사용합니다. [시작 및 종료 안내](docs/agent-start.md), [Unity Editor 사용법](docs/alpha-workspaces.md), [에이전트 인계 절차](skills/splinter/SKILL.md)를 참고하세요.
+
+## 현재 상태
+
+Splinter는 Windows/NTFS용 연구 알파입니다. 검증은 특정 소규모 작업을 대상으로 했으며, 대형 프로젝트의 전체 작업 흐름, 일반적인 성능·메모리 개선, OS 장애 시 내구성은 검증 범위 밖입니다. Unity Editor마다 메모리와 임포트 비용이 따로 듭니다. 작업공간 격리는 프로젝트 저장소와 자원 소유권에 한정됩니다. [검증 범위](docs/verification/README.md)
+
+## 문서와 라이선스
+
+- [문서 목차](docs/README.md)에서 저장소, 원본 반영, 복구, 개발 도구를 찾아볼 수 있습니다.
+- [기술 구조](docs/ko/foundation.md)에서 구성요소, 데이터 형식, 소유권 경계를 설명합니다.
+- [제품 요구사항](plan.html)에서 사용 흐름과 프로젝트 범위를 정의합니다.
+
+Splinter의 코드와 문서는 [MIT 라이선스](LICENSE)를 따릅니다. 의존성 버전과 라이선스 조건은 [외부 구성요소 고지](THIRD_PARTY_NOTICES.md)에 정리되어 있습니다.
+
+WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos. [WinFsp 소스](https://github.com/winfsp/winfsp)
