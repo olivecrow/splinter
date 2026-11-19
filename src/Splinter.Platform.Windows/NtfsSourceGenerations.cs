@@ -71,7 +71,7 @@ public sealed partial class NtfsSnapshotWorkspaceBackend
         }
         catch { capturedContent?.Dispose(); treeOwner?.Dispose(); lease.Dispose(); throw; }
     }
-    public async Task CompleteSourceCaptureAsync(WorkspaceRecord w, string control, string id, CancellationToken ct = default)
+    public async Task CompleteSourceCaptureAsync(WorkspaceRecord w, string control, string id, bool prepareForRelease, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
         ValidateCapture(w, SourceCaptureTree.ReadCapture(CapturePath(control, id)), id);
@@ -83,7 +83,7 @@ public sealed partial class NtfsSnapshotWorkspaceBackend
             if (observed is { ProviderAlive: true, Mounted: true, OwnershipVerified: true })
             {
                 string requestId = Guid.NewGuid().ToString("N");
-                await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "complete-source.json"), new { request.Token, requestId, id }, ct);
+                await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "complete-source.json"), new { request.Token, requestId, id, prepareForRelease }, ct);
                 var providerProbeClock = Stopwatch.StartNew();
                 for (long attempt = 0; ; attempt++)
                 {
@@ -114,7 +114,7 @@ public sealed partial class NtfsSnapshotWorkspaceBackend
             journal.AdoptCapturedRanges(control, id, ct);
             SourceCaptureTree.Complete(CapturePath(control, id), new WindowsJournalFilePins());
             journal.CompleteSourceCaptureRequest(id);
-            journal.MaintainLiveStorage(collectSegments: true, ct: ct);
+            journal.MaintainLiveStorage(collectSegments: true, ct: ct, resumeOnly: prepareForRelease);
         }
         SourceCaptureTree.Complete(CapturePath(control, id), new WindowsJournalFilePins());
     }
@@ -136,7 +136,7 @@ public sealed partial class NtfsSnapshotWorkspaceBackend
             directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path), sourceFilePins: new WindowsJournalFilePins(), capturedContentReader: content);
         if (journal.Seal() != expected)
             throw new WorkspaceException("ViewSourceChanged", "The stopped journal changed before its exact maintenance request resumed.");
-        journal.MaintainLiveStorage(collectSegments: true, ct: ct);
+        journal.MaintainLiveStorage(ct: ct, resumeOnly: true);
         if (journal.Seal() != expected)
             throw new WorkspaceException("ViewSourceChanged", "Maintenance changed the accepted source generation; preserve its storage.");
     }

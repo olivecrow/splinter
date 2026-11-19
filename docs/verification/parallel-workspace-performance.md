@@ -1,6 +1,94 @@
 # Actual Unity parallel workspace timing
 
-On this small URP project, the current A/B run took **528.55s**, versus **441.09s** for the mean of two public A/B runs. That is **19.8% more time**, and misses the below-half target of 220.54s. The current result is one clean observation out of three attempts, not a repeat mean. The other two current attempts both passed Editor validation and then required recovery during workspace release.
+## November 19 original publication and workspace reclamation
+
+On the matched warm URP project, checkpoint through a recompiled live original fell from **42.80s to 36.19s (15.4%)**. The first normal shutdown request through both released workspaces fell from **86.15s to 68.66s (20.3%)**. The control used separate `unity stop` commands before final preservation. The selected sequence starts `workspace checkpoint --release` on the dependent Editor, confirms its process group has exited and the owner still responds, then starts the owner's final command. Each command uses its own stable request key.
+
+| Interval in wall seconds | Control | Selected |
+| --- | ---: | ---: |
+| First start to readiness, A / B | 59.19 / 66.29 | 59.14 / 64.79 |
+| Mid-work checkpoint | 13.97 | 10.71 |
+| Plan / read reviewed entries / apply to original | 5.02 / 0.69 / 8.88 | 3.78 / 0.70 / 6.59 |
+| Original Editor refresh through verified recompile | 14.02 | 14.09 |
+| Checkpoint request through recompiled original | **42.80** | **36.19** |
+| First shutdown request through both release receipts | **86.15** | **68.66** |
+| A's first start request through both releases, including Editor work | 435.47 | 399.96 |
+| Separate shared Library restoration | 171.36 | 138.97 |
+| Library preparation through restoration, including independent checks | **679.98** | **597.58** |
+
+The publisher's file-write stage took 0.331s and 0.314s. Within apply, the nested replan went from 2.195s to 1.397s, including generation verification from 0.992s to 0.226s. The direct final command also removes the separate stop response's source inspection. In the selected sequence B's group reached zero processes at 26.50s. The remaining 14.41s of B's work overlapped A's command. Physical delta removal took 1.19s / 0.86s for A / B on the control and 1.12s / 1.50s on the selected runtime.
+
+This was one control-first pair on Windows with Unity 6000.3.27f2, URP 17.3.0 and fresh copies of Git `e99b0462`. Each started with the same 75 source files and 20,435 warm Library files (1,599,268,684 bytes). Two task Editors compiled separate edits, saved separate scenes and overlapped in Play. A third Editor ran the original in batch mode. An external test hook saved its work, deferred imports, and then verified the published script's new values and assembly identity after refresh. All four task first starts produced the same 590-node, 9,056-edge Bee graph. B's internal `BuildProgram` took 5.891s and 5.852s.
+
+Both final 75-file results matched independent hashes and lengths. The original contained the selected A script, with its Git HEAD, branch and index intact. Both runs checked every restored Library path and length, hashed all 20,442 restored files and compared 133 hashes to the closed, mounted original. All three Editors and their owned providers exited. The measured pipeline saved 82.40s (12.1%); preparation alone varied by 13.55s and the original Editor's normal exit by 8.86s. Fixture construction and the final proof outside that pipeline brought total controller time to 736.76s and 631.12s. These measurements cover this warm Git workload with one selected script. The frozen binaries, timings and proofs are under `artifacts/pub-close-20261119/`, with the two accepted cases in `comparison.json`.
+
+### Small reproductions
+
+- On a 75-file Git/Unity original with the Editor closed, the initial implementation refused publication with `InputUnavailable` before recording an intent. The apply command already held `Temp/UnityLockfile` when its own replan tried to open it exclusively again. The control for the timing comparison contains just the reservation repair on top of the first-start binary. A native regression also exercises an externally held reservation, interruption, same-intent recovery and a later original edit.
+- Two fresh copies per implementation each exercised an edit and revert of one script. Median CLI plan time fell from 3.02s to 1.99s and apply time from 6.98s to 3.64s. With trial order reversed, edit and revert took 5.18s and 5.20s to apply on the control, and 3.69s and 3.60s on the selected implementation. The `.meta` companion, all 75 original files and the Git state were checked. The selected implementation reuses physically protected generation readers inside the request and looks up the selected file directly. [Original publication](../repeated-original-apply.md)
+- Eight interleaved small journal runs replayed a metadata copy while 128 pairs of writes appended and overwrote Burst data. Reusing the active physical reader and skipping an already traversed admission set reduced median operation time from 0.896s to 0.844s. Each run still committed and flushed all 256 writes, verified the closed contents and reclaimed the native backing. A separate real Unity task with 28 source files took 19.86s from normal stop request through release with separate commands and 15.51s with `workspace checkpoint --release`.
+- Running the original Editor also changed its Library directory layout. On a 769-file reproduction with a renamed directory and a private range, fresh paged restore took 3.87s and 3.89s before the restore change, then 3.32s and 3.09s after it. Interrupting at file 256 and finishing the same plan took 4.30s and 3.59s respectively. Each run verified all final native file identities and bytes. The focused paged restore and path tests passed 38/38. [Library restoration](../git-library-reference.md)
+
+An earlier full control reached both released results in 78.43s from the first stop request. Its separate shared Library restoration canceled at the 90s stop with 10,880 of 20,442 files recorded. The same frozen control resumed its exact plan in 112.29s. All restored paths and lengths and 133 pre-restore sample hashes matched. This interrupted trial is excluded from the matched timings.
+
+## November 19 Unity first start
+
+The 590-node Bee graph slowed to 14.77s on a small mounted replay under competing disk writes. In the final matched URP pair, the startup change reduced B's graph generation from **7.372s to 6.445s**. B reached Editor readiness 0.15s sooner. Its subsequent Bee build took 23.55s before and 24.63s after, with the same 162 items updated and 587 evaluated. All four real launches produced 590 nodes and 9,056 flattened edges.
+
+| Measured interval | Before | After |
+| --- | ---: | ---: |
+| A / B graph generation, Unity process log | 6.592s / 7.372s | 5.858s / 6.445s |
+| A / B first start to verified readiness | 65.47s / 73.32s | 63.60s / 73.17s |
+| Both first starts | 138.79s | 136.77s |
+| Normal stops, B then A | 86.84s | 86.35s |
+| Result capture and release of both workspaces | 17.12s | 18.42s |
+| First stop request through both released | 104.00s | 104.80s |
+| A's first start request through both released, including Editor work | 294.95s | 294.19s |
+| Original Library restoration | 22.08s | 22.29s |
+| Library preparation through restoration, including independent checks | **374.75s** | **373.36s** |
+
+This was one control-first pair on Unity 6000.3.27f2 and URP 17.3.0. The control matched all 45 CLI files of the November 18 candidate. Each arm started from a fresh copy of the same warm `e99b0462` input, with 75 source files and 20,435 Library files. Both Editors compiled distinct edits, saved distinct scenes and overlapped in Play. A remained responsive after B stopped. After release, all 75 result hashes and lengths matched independently for each task. The original Library bytes and Git state were restored and every owned Editor, provider and mount exited. Including creation of the test input and the final audits, the controller took 408.29s before and 420.83s after. Input creation alone took 28.13s and 42.00s. The 1.39s difference in the product pipeline is within the variation observed on this machine.
+
+### Isolating graph generation
+
+- A small three-package Unity project produced 160-node graphs in 0.332s for A and 0.334s for B in the internal `BuildProgram` trace. A stayed open during B's launch. In a separate diagnostic launch of the full URP input, the same trace took 28.74s in A and 6.44s in B. That diagnostic pair was excluded from lifecycle timing after a probe-file rename failed. Both Editors subsequently stopped normally, both results were checked and the original was restored.
+- Replaying B's captured 41-assembly, 21-package recipe generated the same 590-node dependency graph and action flags on native NTFS and both mounted runtimes. The frontend process took 0.633s on native NTFS. On the mount it averaged **6.318s before and 5.788s after** over two runs per arm. Each mounted run issued 2,618 process writes and recorded 2,628 provider flushes. The provider kept its durable acknowledgement on every serial write. The new queue spends time waiting for a batch only after callbacks overlap. Metadata relocation also avoids writing a second copy of entries held in its bounded cache. Its separate contribution to first start was not measured.
+- A six-writer trial hit its 40s stop and was excluded. After resuming the same workspace, the control frontend took **14.766s** with two paced 4 KiB writers on the same volume. The immediately adjacent runs with those writers off took 13.590s and 9.091s. Cumulative provider flush time was 4.60s in the earlier quiet runs and 12.78s in the two-writer run, with the same 2,628 flushes. Storage latency can reproduce the observed delay. The cause of that individual November 18 B launch remains unconfirmed. The workspace was released normally.
+
+Release build completed with zero warnings and errors. The focused write and metadata suites passed 34 cases with one conditional skip. Two executions of `pwsh ./scripts/build.ps1` failed under the default eight-class schedule. One packing test and, on the second run, the pending-packing-reader reclamation case reached their existing 10s limits. The second failure also caused shared-fixture and runner cleanup errors. The entire packing and reclamation classes passed separately (25/25 and 13/13). All 45 build output files matched the timed candidate. Local timings, traces, regression logs and restoration proofs are under `artifacts/unity-startup-20261119/`, with the matched timings in `comparison.json`.
+
+## November 18 matched Unity lifecycle
+
+On Unity 6000.3.27f2 and URP 17.3.0, the first shutdown request through release of both workspaces took **115.49s before and 76.55s after** the changes. The full pipeline from Library preparation through restoration took **370.56s before and 337.50s after**, including the independent checks. This was one control-first pair on the same machine and warm input.
+
+| Measured interval | Control | Candidate | Difference |
+| --- | ---: | ---: | ---: |
+| First starts for A and B | 132.29s | 139.44s | 7.15s longer |
+| Two source edits and refreshes | 24.95s | 25.86s | 0.91s longer |
+| Normal Editor stops, B then A | 92.40s | 61.67s | 30.73s shorter |
+| Concurrent result capture and workspace release | 23.09s | 14.86s | 8.23s shorter |
+| First stop request through both released | 115.49s | 76.55s | **38.94s shorter (33.72%)** |
+| Original Library restoration | 20.45s | 20.45s | Under 0.01s |
+| Core lifecycle | 355.07s | 322.65s | 32.42s shorter (9.13%) |
+| Pipeline including package and independent result checks | 370.56s | 337.50s | **33.06s shorter (8.92%)** |
+
+The control was built from `c371fd04`, including the earlier transient-flush optimization. Both arms had frozen 45-file runtime inventories. They used fresh copies of Git commit `e99b0462` with 75 source files and 20,435 Library files (1,599,268,684 bytes). In each arm, two Editors compiled distinct edits, saved independent scene states and overlapped in Play. A stayed responsive across B's normal exit. Both arms independently matched the 75 expected result hashes and lengths per task, restored the complete original Library and Git state, and verified that all owned Editors, providers and mounts had exited. The normal Unity identity matched across each run. Serialized license bytes changed in both. Elapsed times use the Windows performance counter. A passive observer bracketed each final release within 0.052s. The core excludes the package and independent result checks. The pipeline excludes fixture construction and the final original audit.
+
+B's normal stop fell from 58.82s to 29.60s. Around that stop, the provider recorded 23,531 versus 11,865 mutation-gate entries, 30.88s versus 0.013s of cumulative gate wait, and 35.40s versus 18.25s in write flushes. Those counters overlap and their sample windows include adjacent activity. A's delta removal took 10.51s before and 0.91s after. B's took 1.39s and 1.21s. Each arm enabled the same generation-stage timers and used passive provider counters with per-callback write tracing disabled.
+
+First-start Bee work was identical across all four URP launches, including one C# bridge compilation, 38 response-file writes and 37 IL post-processing actions per Editor. A's initial asset refresh fell from 50.67s to 47.37s, while B's rose from 56.54s to 67.68s. In B, graph generation with `ScriptCompilationBuildProgram` took 7.31s before and about 15s after. Both graphs had 590 nodes. Executing the Bee build took 23.73s and 23.49s and updated 162 items each time. Unity's enclosing script-compilation interval grew from 35.31s to 47.63s. The November 19 investigation above reproduces this timing range.
+
+### Small reproductions
+
+- With 128 interleaved Burst-style append/overwrite pairs, the NTFS ABBA mean fell from 1.582s to 1.024s. Gate entries fell from 515 to 387. All 256 write flushes and acknowledgements completed in each arm. Reopen verified the physical seal, contents and EOF.
+- A lookup and read loop over 38 deep Bee response-file paths took 24.85ms before and 23.42ms after. In a separate small Unity project, native NTFS and both mounted runtimes performed the same first-start actions and no Bee actions on unchanged restart. Mounted first-launch readiness was 15.46s before and 15.58s after. Restart took 10.36s and 10.17s. A final checkpoint starting with the Editor open stopped it and released the workspace in 14.77s. The small control independently verified its base sources and identified one generated PackageManagerSettings file without a pre-release hash. Both full URP arms independently verified every result file.
+- In the six-file final-capture reproduction, the original runtime started a new pack in both control runs. The candidate started none. Mean process time through reclamation and proof fell from 3.43s to 1.82s. With an already published pack, both runtimes resumed it, retained the seal and performed 12 native unlink calls. The stopped pending check read about 28.7 kB before and 15.5 kB after. Recovery of that same request then used about 517 kB and 1.0s in both arms. The final reclamation read about 0.53 MB per arm. Native unlink consumed about 0.017s and zero read bytes. These are per-process Windows I/O transfer counts on a small local journal.
+
+The complete `pwsh ./scripts/build.ps1` gate finished in 421.48s with 2,607 passing tests, 36 conditional skips and zero failures. The build reported zero warnings and errors. The 45-file CLI output matched the timed candidate byte for byte. The frozen manifests, small cases, per-stage outputs, independent result proofs and full gate are under `artifacts/unity-perf-20261118/`. The matched cases are `u18-b1` and `u18-c1`. The evidence covers this Git and warm Library workload.
+
+## Earlier Unity comparisons
+
+An earlier small URP A/B run took **528.55s**, versus **441.09s** for the mean of two public A/B runs. It was **19.8% slower** and missed the below-half target of 220.54s. One of three attempts completed cleanly. The other two passed Editor validation and then required recovery during workspace release.
 
 ## Matched input and accounting
 

@@ -162,12 +162,13 @@ public sealed class RemainingThroughputTests
     public void GraphRepackKeepsLogicalRootsWithMemoryExhaustionAndDiskFallback(int memoryLimit)
     {
         using var files = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
-        int passes = 0, memory = 0, diskReads = 0, cacheHits = 0;
+        int passes = 0, memory = 0, diskReads = 0, diskWrites = 0, cacheHits = 0;
         using var source = new PagedMetadataStore(Path.Combine(files.Path, "source"), true, point =>
         {
             if (point == "metadata.repack.reachability-disk-pass") passes++;
             if (point == "metadata.repack.reachability-memory") memory++;
             if (point == "metadata.repack.mapping-disk-read") diskReads++;
+            if (point == "metadata.repack.mapping-disk-write") diskWrites++;
             if (point == "metadata.repack.mapping-memory-hit") cacheHits++;
         });
         using var target = new PagedMetadataStore(Path.Combine(files.Path, "target"), true);
@@ -177,6 +178,7 @@ public sealed class RemainingThroughputTests
         Assert.Equal(new[] { first.ContentHash, last.ContentHash, first.ContentHash, source.Empty.ContentHash }, roots.Select(root => root.ContentHash));
         target.Open(roots[1]).Verify(ct);
         Assert.Equal(target.Open(roots[0]).FindEntry("first")!.Child, target.Open(roots[1]).FindEntry("last")!.Child);
+        Assert.Equal(Math.Max(0L, target.AppendedNodes - memoryLimit / 256), diskWrites);
         if (memoryLimit == 1048576) { Assert.Equal(1, memory); Assert.Equal(0, passes); Assert.Equal(0, diskReads); Assert.True(cacheHits > 100); }
         else { Assert.Equal(0, memory); Assert.True(passes > 1); Assert.True(diskReads > 100); }
         Assert.Empty(Directory.EnumerateDirectories(files.Path, "repack-*"));

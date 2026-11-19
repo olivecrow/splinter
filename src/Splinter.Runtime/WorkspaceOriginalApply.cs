@@ -12,7 +12,9 @@ public sealed partial class WorkspaceCoordinator
             throw new WorkspaceException("SourceIntegrationUnsupported", "Select a qualified original-apply source and independently preserved result.");
         if (w.Results.Count > 0)
         {
-            await ((IWorkspaceGenerationSource)sources).VerifyGenerationAsync(w, store.ControlPath(w.Id), w.Results.Last(), ct);
+            // The original publisher verifies the entire fixed generation after
+            // acquiring the project lock. Completed receipt replay performs its
+            // own independent verification before returning the receipt.
             return await ViewAsync(w, ct, verifySource: false);
         }
         var view = await ViewAsync(w, ct);

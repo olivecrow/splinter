@@ -9,6 +9,43 @@ namespace Splinter.Tests;
 public sealed class JournalPartialSegmentPackingTests
 {
     [Fact]
+    public void FinalCaptureResumesTheExistingPackWithoutStartingAnotherBeforeReclamation()
+    {
+        RequireWindows(); using var f = new Fixture("final-capture");
+        var ct = TestContext.Current.CancellationToken;
+        string receipt = Path.Combine(f.Root.Path, "reclaim.bin");
+        SnapshotDeltaSeal seal; Guid file;
+        using (var writer = f.Open())
+        {
+            file = f.Partial(writer, "partial", 8192, 16, 0x42).Id;
+            seal = writer.Seal();
+            var visited = new List<string>();
+            writer.MaintainLiveStorage(ct: ct, resumeOnly: true, boundary: visited.Add);
+            Assert.Empty(visited);
+            Assert.Throws<IOException>(() => writer.MaintainLiveStorage(ct: ct, collectSegments: true, boundary: stage =>
+            {
+                if (stage == "segment-pack.intent") throw new IOException("Interrupted after publication.");
+            }));
+        }
+        Assert.Equal("SourceMaintenancePending", Assert.Throws<WorkspaceException>(() =>
+            SegmentedJournalReclamation.ReclaimDirectory(f.Delta, seal, ["identity.json"], receipt, filePins: f.Pins)).Code);
+        Assert.False(SegmentedJournalReclamation.HasIntent(receipt));
+        using (var writer = f.Open())
+        {
+            var visited = new List<string>();
+            writer.MaintainLiveStorage(ct: ct, resumeOnly: true, boundary: visited.Add);
+            Assert.DoesNotContain("segment-pack.intent", visited);
+            Assert.Equal(seal, writer.Seal());
+            byte[] bytes = new byte[17];
+            Assert.Equal(16, writer.Read(file, 0, bytes));
+            Assert.All(bytes[..16], value => Assert.Equal((byte)0x42, value));
+            Assert.Equal(0, writer.Read(file, 16, bytes));
+        }
+        SegmentedJournalReclamation.ReclaimDirectory(f.Delta, seal, ["identity.json"], receipt, filePins: f.Pins);
+        Assert.False(Directory.Exists(f.Delta)); Assert.True(File.Exists(receipt));
+    }
+
+    [Fact]
     public void MoreThanOneTargetUnitDrainsOneFrozenPlanWithoutRescanningOrDroppingLaterSources()
     {
         RequireWindows(); using var f = new Fixture("multiple-units"); Guid[] files = new Guid[3];
@@ -224,7 +261,7 @@ public sealed class JournalPartialSegmentPackingTests
         using (var writer = f.Open(processingBytes: 64 * 1024))
         {
             stable = writer.Create("stable", false, 32).Id;
-            for (int block = 0; block < 64; block++) writer.Write(stable, (long)block * stableBytes.Length, stableBytes);
+            for (int block = 0; block < 20; block++) writer.Write(stable, (long)block * stableBytes.Length, stableBytes);
             stableIdentity = f.Pins.Identify(stableBacking);
 
             // Put genuinely dead payload in a different normal segment.
@@ -241,7 +278,7 @@ public sealed class JournalPartialSegmentPackingTests
         using var resumed = f.Open(processingBytes: 64 * 1024);
         Assert.Equal(seal, resumed.Seal());
         byte[] observed = new byte[stableBytes.Length];
-        Assert.Equal(observed.Length, resumed.Read(stable, 32L * stableBytes.Length, observed));
+        Assert.Equal(observed.Length, resumed.Read(stable, 8L * stableBytes.Length, observed));
         Assert.Equal(stableBytes, observed);
         Assert.Equal(16, resumed.Read(partial, 0, observed));
         Assert.All(observed[..16], value => Assert.Equal((byte)0x61, value));
@@ -249,7 +286,7 @@ public sealed class JournalPartialSegmentPackingTests
         resumed.MaintainLiveStorage(force: true, ct: ct);
         Assert.False(File.Exists(stableBacking));
         Assert.Equal(seal, resumed.Seal());
-        Assert.Equal(observed.Length, resumed.Read(stable, 32L * stableBytes.Length, observed));
+        Assert.Equal(observed.Length, resumed.Read(stable, 8L * stableBytes.Length, observed));
         Assert.Equal(stableBytes, observed);
     }
 

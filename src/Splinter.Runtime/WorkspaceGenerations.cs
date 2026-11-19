@@ -15,14 +15,14 @@ public sealed partial class WorkspaceCoordinator
         if (w.Phase == "released")
         {
             if (previous is null) throw new WorkspaceException("WorkspaceReleased", "A released task cannot accept a new capture request.");
-            await CaptureGenerationCoreAsync(w, message, requestKey, ct);
+            await CaptureGenerationCoreAsync(w, message, requestKey, ct, prepareForRelease: true);
             return (await ViewAsync(w, ct, verifySource: false)) with { ResultGeneration = previous };
         }
         RequireMetadataMaintenanceComplete(w);
         if (w.Snapshot?.Step.StartsWith("release-", StringComparison.Ordinal) == true)
         {
             if (previous is null) throw new WorkspaceException("SourceCaptureRequestConflict", "Resume the capture request which started final reclamation.");
-            await CaptureGenerationCoreAsync(w, message, requestKey, ct);
+            await CaptureGenerationCoreAsync(w, message, requestKey, ct, prepareForRelease: true);
             return (await ReleaseSnapshotWorkspaceAsync(w, ct)) with { ResultGeneration = previous };
         }
         RequireLive(w);
@@ -34,7 +34,7 @@ public sealed partial class WorkspaceCoordinator
             // newly admitted request in this operation can share these seals.
             bool fresh = previous is null && w.CaptureIntent is null;
             var before = fresh ? await Snapshots.SealAsync(w, store.ControlPath(id), ct) : null;
-            var generation = await CaptureGenerationCoreAsync(w, message, requestKey, ct);
+            var generation = await CaptureGenerationCoreAsync(w, message, requestKey, ct, prepareForRelease: true);
             if (before is not null)
             {
                 await CompleteGenerationSealAsync(w, generation, before, ct);
@@ -57,7 +57,7 @@ public sealed partial class WorkspaceCoordinator
         }
         catch (Exception ex) { RecordFailure(w, ex); throw; }
     }
-    private async Task<WorkspaceResultGeneration> CaptureGenerationCoreAsync(WorkspaceRecord w, string message, string requestKey, CancellationToken ct)
+    private async Task<WorkspaceResultGeneration> CaptureGenerationCoreAsync(WorkspaceRecord w, string message, string requestKey, CancellationToken ct, bool prepareForRelease = false)
     {
         if (snapshots is not ISourceGenerationBackend backend || sources is not IWorkspaceGenerationSource provider)
             throw new WorkspaceException("SourceCaptureUnsupported", "This composition has no immutable continuing-task capture engine.");
@@ -69,7 +69,7 @@ public sealed partial class WorkspaceCoordinator
             if (previous.Message != message) throw new WorkspaceException("SourceCaptureRequestConflict", "A capture request key already fixes another message.");
             var retryDiagnostics = ResultGenerationDiagnostics.Open(control, previous.Id);
             using (retryDiagnostics?.Measure("runtime.verify-retained-retry")) await provider.VerifyGenerationAsync(w, control, previous, ct);
-            using (retryDiagnostics?.Measure("runtime.backend-complete-retry")) await backend.CompleteSourceCaptureAsync(w, control, previous.Id, ct);
+            using (retryDiagnostics?.Measure("runtime.backend-complete-retry")) await backend.CompleteSourceCaptureAsync(w, control, previous.Id, prepareForRelease, ct);
             return previous;
         }
         RequireMetadataMaintenanceComplete(w);
@@ -96,7 +96,7 @@ public sealed partial class WorkspaceCoordinator
         w.Phase = "ready"; w.LastError = null;
         using (diagnostics?.Measure("runtime.state-publish")) store.Save(w, "source-generation-published");
         await PreparationPointAsync("source-generation-published", w, ct);
-        using (diagnostics?.Measure("runtime.backend-complete")) await backend.CompleteSourceCaptureAsync(w, control, intent.Id, ct);
+        using (diagnostics?.Measure("runtime.backend-complete")) await backend.CompleteSourceCaptureAsync(w, control, intent.Id, prepareForRelease, ct);
         using (diagnostics?.Measure("runtime.metadata-maintain")) await MaintainMetadataCoreAsync(w, "capture:" + result.Id, ct);
         return result;
     }
@@ -110,7 +110,7 @@ public sealed partial class WorkspaceCoordinator
         await RequireStopped(w, ct);
         string control = store.ControlPath(w.Id);
         var before = await Snapshots.SealAsync(w, control, ct);
-        var generation = await CaptureGenerationCoreAsync(w, "Final source preservation", "release:" + before.JournalHash, ct);
+        var generation = await CaptureGenerationCoreAsync(w, "Final source preservation", "release:" + before.JournalHash, ct, prepareForRelease: true);
         await CompleteGenerationSealAsync(w, generation, before, ct);
     }
     private async Task CompleteGenerationSealAsync(WorkspaceRecord w, WorkspaceResultGeneration generation,
@@ -133,7 +133,7 @@ public sealed partial class WorkspaceCoordinator
         foreach (var generation in w.Results)
         {
             await provider.VerifyGenerationAsync(w, control, generation, ct);
-            await backend.CompleteSourceCaptureAsync(w, control, generation.Id, ct);
+            await backend.CompleteSourceCaptureAsync(w, control, generation.Id, prepareForRelease: true, ct);
         }
     }
 }

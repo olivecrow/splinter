@@ -142,14 +142,52 @@ public sealed partial class FileWorkspaceProvider
     }
     public async Task VerifyGenerationAsync(WorkspaceRecord w, string control, WorkspaceResultGeneration generation, CancellationToken ct = default)
     {
-        // Reuse proofs only inside this call, while their native page fences
-        // remain held. Each later publication/release boundary opens afresh.
-        using var catalogs = new PagedMetadataStore.CatalogReadScope(FilePath(control, "metadata"), contentPins);
-        using var manifest = ReadManifest(w, GenerationPath(control, generation.Id, "result.json"), catalogs: catalogs, ct: ct);
-        using var baseline = ReadManifest(w, FilePath(control, "generation-basis.json"), catalogs: catalogs, ct: ct);
-        using var reader = ContentReader(w, control, manifest.ContentFiles, retainedBasis: baseline, ct: ct);
-        await VerifyGenerationCoreAsync(w, control, generation, ct, reader.Reader, contentPins is not null, reader.Verification, catalogs, contentPins);
-        reader.VerifyBoundary();
+        using var proof = new GenerationReadScope(this, w, control, generation, contentPins, ct);
+        await proof.VerifyAsync(ct);
+    }
+    // Every public operation opens its own physical readers. Catalog summaries
+    // and payload hashes can be reused only while their native fences survive.
+    private sealed class GenerationReadScope : IDisposable
+    {
+        private readonly WorkspaceRecord workspace;
+        private readonly WorkspaceResultGeneration generation;
+        private readonly string control;
+        private readonly IJournalFilePins? pins;
+        private readonly PagedMetadataStore.CatalogReadScope catalogs;
+        private readonly FileSourceManifest baseline;
+        public FileSourceManifest Manifest { get; }
+        public ContentReadScope Content { get; }
+
+        public GenerationReadScope(FileWorkspaceProvider owner, WorkspaceRecord workspace, string control,
+            WorkspaceResultGeneration generation, IJournalFilePins? pins, CancellationToken ct)
+        {
+            this.workspace = workspace;
+            this.control = control;
+            this.generation = generation;
+            this.pins = pins;
+            catalogs = new(FilePath(control, "metadata"), pins);
+            try
+            {
+                Manifest = ReadManifest(workspace, GenerationPath(control, generation.Id, "result.json"), catalogs: catalogs, ct: ct);
+                baseline = ReadManifest(workspace, FilePath(control, "generation-basis.json"), catalogs: catalogs, ct: ct);
+                if (workspace.SourceKind != "git" && baseline.Identity != workspace.BaseRevision)
+                    throw Error("The retained generation basis differs from admission.");
+                if (Manifest.Identity != generation.Revision || GenerationFingerprint(Manifest) != generation.Fingerprint)
+                    throw Error("The independent generation differs from its receipt.");
+                Content = owner.ContentReader(workspace, control, Manifest.ContentFiles, retainedBasis: baseline, ct: ct);
+            }
+            catch { Dispose(); throw; }
+        }
+        public async Task VerifyAsync(CancellationToken ct)
+        {
+            await VerifyGenerationCoreAsync(workspace, control, generation, ct, Content.Reader, pins is not null, Content.Verification, catalogs, pins);
+            Content.VerifyBoundary();
+        }
+        public void Dispose()
+        {
+            try { Content?.Dispose(); }
+            finally { try { baseline?.Dispose(); } finally { try { Manifest?.Dispose(); } finally { catalogs.Dispose(); } } }
+        }
     }
     private static async Task VerifyGenerationCoreAsync(WorkspaceRecord w, string control, WorkspaceResultGeneration generation,
         CancellationToken ct, Func<string, Stream>? open = null, bool concurrentOpen = false, ResultFileContentStore.VerificationScope? verification = null,

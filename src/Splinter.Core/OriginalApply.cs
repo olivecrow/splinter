@@ -171,6 +171,8 @@ public sealed class OriginalApplyState
 }
 public interface IOriginalApplyProvider
 {
+    // Each invocation independently verifies its selected generation under the
+    // caller's project lock, including an intent resumed after interruption.
     Task<OriginalApplyPlan> PlanOriginalAsync(WorkspaceRecord workspace, CancellationToken ct = default, string[]? paths = null);
     Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord workspace, string intentKey, string expectedPlanDigest, CancellationToken ct = default, string[]? paths = null);
 }

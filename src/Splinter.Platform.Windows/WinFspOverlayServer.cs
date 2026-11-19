@@ -249,8 +249,13 @@ public static class WinFspOverlayServer
                                 string control = Path.GetDirectoryName(request.ControlPath)!;
                                 await RunStopAwareAsync(request.ControlPath, request.Token, ct => fileSystem.AdoptCapturedRanges(control, completion.Id, ct));
                                 SourceCaptureTree.Complete(Path.Combine(sourceCaptures, completion.Id), sourcePins);
-                                if (store is JournalDeltaStore completedRequest) completedRequest.CompleteSourceCaptureRequest(completion.Id);
-                                ScheduleMaintenance(collectSegments: true);
+                                if (store is JournalDeltaStore completedRequest)
+                                {
+                                    completedRequest.CompleteSourceCaptureRequest(completion.Id);
+                                    if (completion.PrepareForRelease)
+                                        await RunStopAwareAsync(request.ControlPath, request.Token, ct => completedRequest.MaintainLiveStorage(ct: ct, resumeOnly: true));
+                                    else ScheduleMaintenance(collectSegments: true);
+                                }
                             }
                             catch (Exception ex) { completionError = (ex as WorkspaceException)?.Code ?? ex.GetType().Name; }
                             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "complete-source-result.json"),
@@ -391,5 +396,5 @@ public static class WinFspOverlayServer
     }
     private sealed record StopRequest(string Token);
     private sealed record CaptureSourceRequest(string Token, string RequestId, string Id, string[] ManagedPaths);
-    private sealed record CompleteSourceRequest(string Token, string RequestId, string Id);
+    private sealed record CompleteSourceRequest(string Token, string RequestId, string Id, bool PrepareForRelease);
 }

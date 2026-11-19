@@ -4,7 +4,11 @@ using Splinter.Runtime;
 namespace Splinter.SourceControl.Files;
 
 public sealed record FileResultPage(string Root, long Count, FileSourceEntry[] Entries, string? NextCursor);
-public sealed record AppliedFilePath(string Path, OriginalFileVersion? Version);
+public sealed record AppliedFilePath(string Path, OriginalFileVersion? Version)
+{
+    internal FileSourceEntry? ToEntry() => Version is null ? null : new(Path, Version.Kind, Version.Length,
+        Version.Hash, Version.ModifiedUtcTicks, Version.Attributes, Version.UnixMode);
+}
 public sealed record AppliedPathsPage(string Root, long Count, AppliedFilePath[] Entries, string? NextCursor);
 
 public sealed partial class FileWorkspaceProvider
@@ -80,6 +84,32 @@ public sealed partial class FileWorkspaceProvider
         if (bytes[0] == 0)
         { if (bytes.Length != 33) throw Error("The deletion path reference is invalid."); return new(names.Resolve(Convert.ToHexStringLower(bytes[1..])), null); }
         var entry = FileApplyIndex.Decode(bytes[1..], names); return new(entry.Path, VersionOf(entry));
+    }
+    private sealed class AppliedPathReader : IDisposable
+    {
+        private readonly PagedMetadataStore pages;
+        private readonly IReadOnlyMetadataTree paths;
+        private readonly PagedPathInterner names;
+        internal AppliedPathReader(string control, WorkspaceRecord w, CancellationToken ct)
+        {
+            pages = new(FilePath(control, "applied-pages"));
+            try
+            {
+                paths = pages.Open(w.AppliedPaths!);
+                names = new(pages, w.AppliedPathNames ?? throw Error("The applied path spelling root is missing."));
+                foreach (var row in paths.Enumerate())
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var entry = DecodeApplied(row.Value.Span, names);
+                    if (!ValidPath(entry.Path) || PagedPathInterner.LookupIdentity(entry.Path) != row.Key)
+                        throw Error("Applied path spelling differs from its index.");
+                }
+            }
+            catch { pages.Dispose(); throw; }
+        }
+        internal AppliedFilePath? Find(string path) => paths.Find(PagedPathInterner.LookupIdentity(path)) is { } data
+            ? DecodeApplied(data, names) : null;
+        public void Dispose() => pages.Dispose();
     }
     private void SaveAppliedPaths(WorkspaceRecord w)
     {

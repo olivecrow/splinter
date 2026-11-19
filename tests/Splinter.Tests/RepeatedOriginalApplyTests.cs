@@ -19,6 +19,7 @@ public sealed partial class FileWorkspaceTests
             ? File.ReadAllText(Path.Combine(f.Project, ".plastic", "plastic.workspace")) : "";
         File.WriteAllText(Path.Combine(w.Path, "data.txt"), "first source");
         var first = (await f.New().CheckpointAsync(w.Id, "first", "first", ct)).ResultGeneration!;
+        Assert.False(Assert.Single(f.Backend.CaptureCompletions));
         File.WriteAllText(Path.Combine(w.Path, "data.txt"), "next source");
         Assert.True((await f.New().StatusAsync(w.Id, ct, verifySource: true)).Source!.HasChanges);
         Assert.Equal(first, (await f.New().CheckpointAsync(w.Id, "first", "first", ct)).ResultGeneration);
@@ -82,6 +83,8 @@ public sealed partial class FileWorkspaceTests
         Assert.Single(first.Workspace.Results);
         Assert.Equal(first.ResultGeneration.ResultReference, first.Workspace.Snapshot!.Result!.ResultReference);
         var retry = await f.New().CheckpointAndReleaseAsync(w.Id, "final result", "final-key", ct);
+        Assert.NotEmpty(f.Backend.CaptureCompletions);
+        Assert.All(f.Backend.CaptureCompletions, final => Assert.True(final));
         Assert.Equal(first.ResultGeneration, retry.ResultGeneration); Assert.Equal(first.Workspace.Results.Count, retry.Workspace.Results.Count);
         Assert.Equal("WorkspaceReleased", (await Assert.ThrowsAsync<WorkspaceException>(() =>
             f.New().CheckpointAndReleaseAsync(w.Id, "another", "new-key", ct))).Code);
@@ -256,7 +259,12 @@ public sealed partial class FileWorkspaceTests
             return Task.FromResult(new SourceCaptureIdentity(id, 1, tree.Digest));
         }
         public Task<ISourceCaptureTree> OpenSourceCaptureAsync(WorkspaceRecord w, string control, string id, CancellationToken ct = default) => Task.FromResult<ISourceCaptureTree>(sourceGenerations[id]);
-        public Task CompleteSourceCaptureAsync(WorkspaceRecord w, string control, string id, CancellationToken ct = default) => Task.CompletedTask;
+        public readonly List<bool> CaptureCompletions = [];
+        public Task CompleteSourceCaptureAsync(WorkspaceRecord w, string control, string id, bool prepareForRelease, CancellationToken ct = default)
+        {
+            CaptureCompletions.Add(prepareForRelease);
+            return Task.CompletedTask;
+        }
     }
     // Test double only: production captures use durable backing aliases and
     // never materialize a tree into RAM or copy a whole source directory.

@@ -32,7 +32,7 @@ public interface ISourceGenerationBackend
 {
     Task<SourceCaptureIdentity> CaptureSourceAsync(WorkspaceRecord workspace, string control, string id, CancellationToken ct = default);
     Task<ISourceCaptureTree> OpenSourceCaptureAsync(WorkspaceRecord workspace, string control, string id, CancellationToken ct = default);
-    Task CompleteSourceCaptureAsync(WorkspaceRecord workspace, string control, string id, CancellationToken ct = default);
+    Task CompleteSourceCaptureAsync(WorkspaceRecord workspace, string control, string id, bool prepareForRelease, CancellationToken ct = default);
 }
 public interface IWorkspaceGenerationSource
 {

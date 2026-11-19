@@ -8,7 +8,9 @@ Run `pwsh ./scripts/build.ps1` for locked restore, Release build, and the defaul
 
 The default xUnit schedule runs eight concurrent classes with conservative scheduling. Tests that reserve the full process-wide scratch budget run exclusively. The default paged-store and catalog shapes use 32 and 1,024 entries. Set `SPLINTER_LARGE_CATALOG_TESTS=1` only for separately scoped capacity checks at 32,769, 262,145, and 1,048,576 entries.
 
-The recorded complete gate for sealed-reader integration ran in 666.76s and finished with 2,605 passes, 36 conditional skips, and zero failures. The later live metadata repack change has focused native and component evidence. The matched Unity run used one small warm URP project and verified independent Editor execution, compile, scene and Play isolation, both results, and Library restoration. The detailed record identifies the measured binaries and separates completed lifecycle runs, retries, and component checks. [Parallel workspace evidence](parallel-workspace-performance.md)
+The November 19 complete Windows gate passed in 398.43s. Of 2,645 discovered cases, 2,609 passed and 36 were conditionally skipped. All 45 CLI output files matched the candidate used for the publication, reclamation and changed-Library restoration measurements. The focused journal recovery run passed 45 cases and the focused paged restore run passed 38. The default gate includes the earlier journal recovery cases that reached their 10s limits during the first-start investigation.
+
+The November 19 matched live-publication run on the warm URP project took 42.80s before and 36.19s after from checkpoint to verified original recompile. First shutdown request through both workspace releases took 86.15s and 68.66s. Library preparation through restoration took 679.98s and 597.58s, including the live original and independent checks. The earlier startup-only comparison on the same input recorded B's 590-node Bee graph at 7.372s and 6.445s. A small replay reproduced 14.77s under competing disk writes. [Parallel workspace evidence](parallel-workspace-performance.md)
 
 ## Remaining qualification
 

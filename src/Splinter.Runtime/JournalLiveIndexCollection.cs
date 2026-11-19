@@ -15,6 +15,19 @@ public sealed partial class JournalDeltaStore
     private sealed record RepackPoint(long Segment, long Bytes, FileStream Input, MetadataTreeRoot Nodes,
         MetadataTreeRoot Names, MetadataTreeRoot Durable, MetadataTreeRoot Admissions, MetadataTreeRoot Segments,
         MetadataTreeRoot? AcceptedAdoptions, JournalIndexRoots Roots);
+    private sealed class ActiveReplayInput : IDisposable
+    {
+        private FileStream? writer, reader;
+        internal FileStream For(FileStream current)
+        {
+            if (ReferenceEquals(current, writer)) return reader!;
+            reader?.Dispose();
+            reader = new FileStream(current.Name, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1, FileOptions.RandomAccess);
+            writer = current;
+            return reader;
+        }
+        public void Dispose() => reader?.Dispose();
+    }
     private const string LiveRepackName = "live-repack.json";
 
     private JournalDeltaStore(OverlayIdentity identity, ISnapshotTree basis, JournalIndexRoots roots,
@@ -134,7 +147,12 @@ public sealed partial class JournalDeltaStore
             }
             shadow = new(Identity, snapshot, plan.Copied ?? throw PagedInvalid(), sourceFilePins, capturedContentReader);
             long segment = plan.FirstSegment, offset = JournalSegmentStorage.HeaderBytes;
-            string? admissionHash = null; var processedAdmissions = shadow.pagedIndex!.Empty;
+            string? replayedAdmissions = null, replayedSegments = null, enumeratedAdmissions = null;
+            var processedAdmissions = shadow.pagedIndex!.Empty;
+            // The reader stays on the same physical file while this writer is
+            // active. A roll or reopen gets another reader under the mutation gate.
+            using var activeInput = new ActiveReplayInput();
+            using (var records = new PagedMetadataStore(plan.Frozen.Directory))
             while (true)
             {
                 ct.ThrowIfCancellationRequested(); RepackPoint point;
@@ -142,16 +160,25 @@ public sealed partial class JournalDeltaStore
                 {
                     // This replay point stays in memory. The accepted journal
                     // is durable and publication still flushes the shadow roots.
-                    Check(); FlushPendingWrites(); pagedIndex!.FlushForRead();
-                    point = new(segments.ActiveId, journal.Length,
-                        new FileStream(journal.Name, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1, FileOptions.RandomAccess),
+                    Check(); FlushPendingWrites();
+                    if (segments.ActiveId == segment && journal.Length == offset && repackAdmissions!.ContentHash == replayedAdmissions)
+                    {
+                        if (activeIndexCursors != 0) return;
+                        if (segmentRoot!.ContentHash == replayedSegments)
+                        {
+                            PublishCaughtUpIndex(shadow, boundary);
+                            break;
+                        }
+                    }
+                    // When a writer passed the replay point, take the next point
+                    // under this same acquisition. Replay itself stays outside.
+                    pagedIndex!.FlushForRead();
+                    point = new(segments.ActiveId, journal.Length, activeInput.For(journal),
                         NodeRoot!, pathComponents!.Root, ((PagedSet<Guid>)boundedDurableNodes).Root, repackAdmissions!, segmentRoot!,
                         segments.State.Roots.Adoptions, FrozenJournalRoots());
                 }
-                using (point.Input)
                 {
                     boundary?.Invoke("metadata.repack-replay-point");
-                    using var records = new PagedMetadataStore(plan.Frozen.Directory);
                     while (segment < point.Segment)
                     {
                         var encoded = records.Open(point.Segments).Find(segment.ToString("x16")) ?? throw PagedInvalid(); var descriptor = DecodeSegment(encoded);
@@ -161,27 +188,32 @@ public sealed partial class JournalDeltaStore
                     }
                     if (offset < point.Bytes) shadow.ReplayShadow(point.Input, segment, offset, point.Bytes);
                     offset = point.Bytes;
-                    var originalNames = new PathComponents(records) { Root = point.Names };
                     // The watch set belongs to this process. A durable copy can
                     // outlive it while a later checkpoint retains additional
                     // read-only basis nodes. Seed those from the complete fixed
                     // node cursor once; journal-backed nodes still come only
                     // from replay, and the final full root comparison remains.
-                    var admissions = recoverAdmissions ? point.Nodes : point.Admissions;
-                    foreach (var admission in records.Open(admissions).Enumerate())
+                    if (recoverAdmissions || point.Admissions.ContentHash != enumeratedAdmissions)
                     {
-                        if (shadow.pagedIndex!.Open(processedAdmissions).Find(admission.Key) is not null) continue;
-                        processedAdmissions = shadow.pagedIndex.Set(processedAdmissions, admission.Key, []);
-                        if (records.Open(point.Durable).Find("g" + admission.Key) is not null) continue;
-                        var record = records.Open(point.Nodes).FindEntry(admission.Key); if (record is null) continue;
-                        var entry = DecodeEntry(record.Value.ToArray(), originalNames, point.Names);
-                        if (entry.Deleted || shadow.nodes.ContainsKey(entry.Id)) continue;
-                        shadow.nodes.Add(entry.Id, new Node(entry)); shadow.IndexPath(entry.Path, entry.Id);
+                        var originalNames = new PathComponents(records) { Root = point.Names };
+                        var admissions = recoverAdmissions ? point.Nodes : point.Admissions;
+                        foreach (var admission in records.Open(admissions).Enumerate())
+                        {
+                            if (shadow.pagedIndex!.Open(processedAdmissions).Find(admission.Key) is not null) continue;
+                            processedAdmissions = shadow.pagedIndex.Set(processedAdmissions, admission.Key, []);
+                            if (records.Open(point.Durable).Find("g" + admission.Key) is not null) continue;
+                            var record = records.Open(point.Nodes).FindEntry(admission.Key); if (record is null) continue;
+                            var entry = DecodeEntry(record.Value.ToArray(), originalNames, point.Names);
+                            if (entry.Deleted || shadow.nodes.ContainsKey(entry.Id)) continue;
+                            shadow.nodes.Add(entry.Id, new Node(entry)); shadow.IndexPath(entry.Path, entry.Id);
+                        }
+                        // Recovery walked the node root. Only an ordinary walk
+                        // establishes coverage of every key in this watch set.
+                        if (!recoverAdmissions) enumeratedAdmissions = point.Admissions.ContentHash;
                     }
                     recoverAdmissions = false;
                     ReconcileRetiredAdmissions(shadow, records, point, ct);
                     ReconcileCompletedAdoptions(shadow, records, point, ct);
-                    admissionHash = point.Admissions.ContentHash;
                     if (point.Segments.ContentHash != shadow.segmentRoot!.ContentHash)
                     {
                         // Earlier binaries could finish empty-segment GC
@@ -191,31 +223,8 @@ public sealed partial class JournalDeltaStore
                         if (!RepackContentMatches(point.Roots, shadow)) throw RepackMismatch();
                         ReconcileRetiredEmptySegments(shadow, records, point.Segments, ct);
                     }
-                }
-                using (EnterGate(mutation: true))
-                {
-                    Check(); FlushPendingWrites();
-                    if (segments.ActiveId != segment || journal.Length != offset || repackAdmissions!.ContentHash != admissionHash) continue;
-                    if (activeIndexCursors != 0) return;
-                    if (segmentRoot!.ContentHash != point.Segments.ContentHash) continue;
-                    if (!RepackContentMatches(FrozenJournalRoots(), shadow) || segmentRoot.ContentHash != shadow.segmentRoot!.ContentHash) throw RepackMismatch();
-                    boundary?.Invoke("metadata.repack-before-publication");
-                    var old = pagedIndex;
-                    segments.Rotate(sealedSegment =>
-                    {
-                        shadow.segmentRoot = shadow.pagedIndex!.Set(shadow.segmentRoot!, sealedSegment.Id.ToString("x16"), EncodeSegment(sealedSegment));
-                        shadow.pagedIndex.Flush(); return shadow.FrozenJournalRoots();
-                    });
-                    journal = segments.Active; expectedJournalBytes = journal.Length; segmentFrames = 0;
-                    pagedIndex = shadow.pagedIndex; pagedIndexDirectory = shadow.pagedIndexDirectory; nodes = shadow.nodes; paths = shadow.paths;
-                    hidden = shadow.hidden; pathChanges = shadow.pathChanges; pathComponents = shadow.pathComponents; boundedDurableNodes = shadow.boundedDurableNodes;
-                    segmentRoot = shadow.segmentRoot; adoptionRoot = shadow.adoptionRoot; captureRoot = shadow.captureRoot; packingRoot = shadow.packingRoot; sequence = shadow.sequence;
-                    nextDataSegment = shadow.nextDataSegment; dataSegmentBytes = shadow.dataSegmentBytes; dataPayloadBytes = shadow.dataPayloadBytes;
-                    payloadBytes = shadow.payloadBytes; logicalPayloadBytes = shadow.logicalPayloadBytes; extentCount = shadow.extentCount;
-                    sourceMutationHash = shadow.sourceMutationHash; sourceMutationBytes = shadow.sourceMutationBytes;
-                    shadow.pagedIndex = null; old!.Dispose(); repackWatching = false; repackAdmissions = null;
-                    durablyFlushedJournal = journal; durablyFlushedBytes = journal.Length;
-                    break;
+                    replayedAdmissions = point.Admissions.ContentHash;
+                    replayedSegments = point.Segments.ContentHash;
                 }
             }
             boundary?.Invoke("metadata.repack-published");
@@ -229,6 +238,27 @@ public sealed partial class JournalDeltaStore
             { repackBusy = false; if (alreadyPublished) { repackWatching = false; repackAdmissions = null; } }
         }
     }
+    private void PublishCaughtUpIndex(JournalDeltaStore shadow, Action<string>? boundary)
+    {
+        if (!RepackContentMatches(FrozenJournalRoots(), shadow) || segmentRoot!.ContentHash != shadow.segmentRoot!.ContentHash) throw RepackMismatch();
+        boundary?.Invoke("metadata.repack-before-publication");
+        var old = pagedIndex;
+        segments!.Rotate(sealedSegment =>
+        {
+            shadow.segmentRoot = shadow.pagedIndex!.Set(shadow.segmentRoot!, sealedSegment.Id.ToString("x16"), EncodeSegment(sealedSegment));
+            shadow.pagedIndex.Flush(); return shadow.FrozenJournalRoots();
+        });
+        journal = segments.Active; expectedJournalBytes = journal.Length; segmentFrames = 0;
+        pagedIndex = shadow.pagedIndex; pagedIndexDirectory = shadow.pagedIndexDirectory; nodes = shadow.nodes; paths = shadow.paths;
+        hidden = shadow.hidden; pathChanges = shadow.pathChanges; pathComponents = shadow.pathComponents; boundedDurableNodes = shadow.boundedDurableNodes;
+        segmentRoot = shadow.segmentRoot; adoptionRoot = shadow.adoptionRoot; captureRoot = shadow.captureRoot; packingRoot = shadow.packingRoot; sequence = shadow.sequence;
+        nextDataSegment = shadow.nextDataSegment; dataSegmentBytes = shadow.dataSegmentBytes; dataPayloadBytes = shadow.dataPayloadBytes;
+        payloadBytes = shadow.payloadBytes; logicalPayloadBytes = shadow.logicalPayloadBytes; extentCount = shadow.extentCount;
+        sourceMutationHash = shadow.sourceMutationHash; sourceMutationBytes = shadow.sourceMutationBytes;
+        shadow.pagedIndex = null; old!.Dispose(); repackWatching = false; repackAdmissions = null;
+        durablyFlushedJournal = journal; durablyFlushedBytes = journal.Length;
+    }
+
     private static WorkspaceException RepackMismatch() => new("JournalRepackMismatch", "The caught-up immutable index differs from the accepted source and current metadata roots; preserve both stores.");
     private static void ReconcileRetiredAdmissions(JournalDeltaStore shadow, PagedMetadataStore source, RepackPoint point, CancellationToken ct)
     {

@@ -52,11 +52,14 @@ public static class SegmentedJournalReclamation
             {
                 using var input = File.OpenRead(Path.Combine(directory, "identity.json"));
                 var identity = JsonSerializer.Deserialize<OverlayIdentity>(input) ?? throw Invalid();
-                if (identity.Version != 3 || !JournalDeltaStore.IsSegmentedJournal(Path.Combine(directory, "delta.journal")) ||
-                    JournalDeltaStore.SealSegmentedJournal(Path.Combine(directory, "delta.journal"), seal.DurableSequence) != seal)
+                string journal = Path.Combine(directory, "delta.journal");
+                if (identity.Version != 3 || !JournalDeltaStore.IsSegmentedJournal(journal))
                     throw new WorkspaceException("ViewSourceChanged", "The stopped journal differs from its sealed result; preserve its storage.");
-                if (JournalDeltaStore.HasPendingSourcePacking(Path.Combine(directory, "delta.journal")))
-                    throw new WorkspaceException("SourceMaintenancePending", "Resume the same owned packing request before reclaiming its source journal and external plan.");
+                var stopped = JournalDeltaStore.InspectStoppedJournal(journal, seal.DurableSequence);
+                if (stopped.Seal != seal)
+                    throw new WorkspaceException("ViewSourceChanged", "The stopped journal differs from its sealed result; preserve its storage.");
+                if (stopped.PackingPending || File.Exists(Path.Combine(directory, "segment-reclaim.json")) || File.Exists(Path.Combine(directory, "live-repack.json")))
+                    throw new WorkspaceException("SourceMaintenancePending", "Resume the same owned maintenance request before reclaiming its sealed journal.");
                 header = new(2, directory, identity, seal);
                 if (pending)
                 {

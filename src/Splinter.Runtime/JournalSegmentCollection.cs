@@ -12,7 +12,8 @@ public sealed partial class JournalDeltaStore
     private sealed record SegmentCollection(int Version, string Owner, string Directory, MetadataTreeRoot Dead,
         string OriginalCatalog, MetadataTreeRoot Remaining, long Bytes, long Count, long PayloadBytes,
         long DataBytes = 0, long DataPayload = 0, string Digest = "");
-    public void MaintainLiveStorage(bool force = false, CancellationToken ct = default, bool collectSegments = false, Action<string>? boundary = null)
+    public void MaintainLiveStorage(bool force = false, CancellationToken ct = default, bool collectSegments = false,
+        Action<string>? boundary = null, bool resumeOnly = false)
     {
         if (segments is null || sourceFilePins is null || readOnly) return;
         lock (storageMaintenanceGate)
@@ -29,7 +30,8 @@ public sealed partial class JournalDeltaStore
                 CollectLiveMetadata(force, ct, boundary);
                 if (File.Exists(liveRepack)) return;
             }
-            if (force || collectSegments || File.Exists(Path.Combine(Path.GetDirectoryName(journal.Name)!, SegmentCollectionName)) ||
+            string segmentIntent = Path.Combine(Path.GetDirectoryName(journal.Name)!, SegmentCollectionName);
+            if (resumeOnly || force || collectSegments || File.Exists(segmentIntent) ||
                 segments.ActiveId - lastSegmentCollectionHead >= 8)
             {
                 bool hasPacking; using (EnterGate()) hasPacking = PendingPacking() is not null;
@@ -37,15 +39,18 @@ public sealed partial class JournalDeltaStore
                 // before any old-source retirement can proceed.
                 if (hasPacking)
                 { while (PackPartialSegments(ct, boundary)) ct.ThrowIfCancellationRequested(); }
-                else
+                else if (!resumeOnly || File.Exists(segmentIntent))
                 {
                     CollectDeadSegments(ct, boundary);
-                    if (!File.Exists(Path.Combine(Path.GetDirectoryName(journal.Name)!, SegmentCollectionName)) &&
+                    if (!resumeOnly && !File.Exists(segmentIntent) &&
                         checked(segments.PayloadBytes + dataPayloadBytes) >= 4096)
                         while (PackPartialSegments(ct, boundary, opportunistic: !force)) ct.ThrowIfCancellationRequested();
                 }
-                lastSegmentCollectionHead = segments.ActiveId;
+                if (!resumeOnly) lastSegmentCollectionHead = segments.ActiveId;
             }
+            // A final capture still owns every published maintenance request.
+            // Starting a new compaction here would rebuild storage about to be reclaimed.
+            if (resumeOnly) return;
             bool pending;
             using (EnterGate()) pending = PendingPacking() is not null;
             if (!pending && !File.Exists(Path.Combine(Path.GetDirectoryName(journal.Name)!, SegmentCollectionName))) CollectLiveMetadata(force, ct, boundary);

@@ -95,6 +95,32 @@ public sealed class PagedManagedDirectoryRestoreTests
     }
 
     [Fact]
+    public async Task InterruptedUnchangedLeafMoveRequiresTheSameNativeFileBeforeCompleting()
+    {
+        using var fixture = new Fixture(); var ct = TestContext.Current.CancellationToken;
+        string control = fixture.State.Basis.ReceiptDirectory;
+        var manifest = new OwnedDirectorySnapshotProvider(control, fixture.State.Basis.OwnerId).Read(fixture.State.Basis.Snapshot);
+        string target = Path.Combine(fixture.State.OriginalPath, "unchanged");
+        string identity = new WindowsJournalFilePins().Identify(Path.Combine(fixture.State.Basis.Snapshot.RootPath, "unchanged"));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, ct, stage =>
+        {
+            if (stage != "file.after-move" || !File.Exists(target)) return;
+            Assert.Throws<IOException>(() => { using var writer = File.OpenWrite(target); });
+            throw new OperationCanceledException("Interrupted between the unchanged move and metadata.");
+        }));
+        string retained = Path.Combine(control, "interrupted-file");
+        File.Move(target, retained); File.WriteAllBytes(target, [5]);
+        var conflict = await Assert.ThrowsAsync<WorkspaceException>(() => ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, ct, null));
+        Assert.Equal("GeneratedRestoreConflict", conflict.Code);
+        Assert.True(Directory.Exists(fixture.Request.DeltaPath));
+        File.Move(target, Path.Combine(control, "foreign-file")); File.Move(retained, target);
+        await ManagedPagedDirectoryRestore.ExecuteAsync(fixture.State, fixture.Request, manifest, ct, null);
+        Assert.Equal(identity, new WindowsJournalFilePins().Identify(target));
+        Assert.Equal(new byte[] { 5 }, File.ReadAllBytes(target));
+        Assert.False(Directory.Exists(fixture.Request.DeltaPath));
+    }
+
+    [Fact]
     public async Task SmallFinalNamespaceWithManyPrivateRangesAlsoSelectsStreamingRestore()
     {
         using var fixture = new Fixture(); var ct = TestContext.Current.CancellationToken;

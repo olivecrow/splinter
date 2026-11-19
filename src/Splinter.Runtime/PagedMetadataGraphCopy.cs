@@ -113,10 +113,19 @@ public sealed partial class PagedMetadataStore
                 MetadataPageReference next;
                 lock (destination.gate) { destination.CheckWriter(); next = destination.WriteNode(relocated); }
                 if (next.Count != reference.Count || next.ContentHash != reference.ContentHash) throw Invalid("Repacked pages changed their logical identity.");
-                byte[] entry = new byte[76]; BinaryPrimitives.WriteInt64LittleEndian(entry, reference.Container); BinaryPrimitives.WriteInt64LittleEndian(entry.AsSpan(8), reference.Offset);
-                EncodeReference(next).CopyTo(entry, 16); RandomAccess.Write(map.SafeFileHandle, entry, checked(rows * 76)); rows = checked(rows + 1);
                 long charge = (mappingCache.Count + 1L) * 256;
                 if (charge <= budget && mappingMemory.TryResize(charge)) mappingCache.Add((reference.Container, reference.Offset), next);
+                else
+                {
+                    // Cached addresses stay charged until this copy ends. The
+                    // remaining rows keep their physical order for binary search.
+                    byte[] entry = new byte[76];
+                    BinaryPrimitives.WriteInt64LittleEndian(entry, reference.Container);
+                    BinaryPrimitives.WriteInt64LittleEndian(entry.AsSpan(8), reference.Offset);
+                    EncodeReference(next).CopyTo(entry, 16);
+                    RandomAccess.Write(map.SafeFileHandle, entry, checked(rows * 76)); rows = checked(rows + 1);
+                    boundary?.Invoke("metadata.repack.mapping-disk-write");
+                }
                 copied?.Invoke(reference, next);
             }
             destination.Flush();

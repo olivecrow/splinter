@@ -17,10 +17,12 @@ public sealed class WriteThroughputOptimizationTests
         store.Create("file", false, 32);
         var fs = new WinFspOverlayFileSystem(store, null, null, new WinFspOverlayFileSystem.WriteTelemetry());
         Assert.Equal(0, fs.Open("\\file", 0, 0, out var node, out var desc, out _, out _));
+        Assert.Equal(0, fs.Open("\\file", 0, 0, out var otherNode, out var otherDesc, out _, out _));
         try { Assert.Equal(0, fs.Overwrite(node, desc, 32, false, 0, out _)); }
-        finally { fs.Close(node, desc); }
+        finally { fs.Close(otherNode, otherDesc); fs.Close(node, desc); }
         var observed = Assert.IsType<WinFspMixedAdmission>(fs.ObserveMixedAdmission());
-        Assert.Equal(2, observed.Callbacks + observed.IdleOpens); Assert.Equal(1, observed.IdleOpens); Assert.Equal(1, observed.MutatingCallbacks);
+        Assert.Equal(3, observed.Callbacks + observed.IdleOpens); Assert.Equal(2, observed.IdleOpens); Assert.Equal(1, observed.MutatingCallbacks);
+        Assert.Equal(0, observed.GatherTicks);
         Assert.Equal(observed.Groups, observed.CallbackBuckets.Sum()); Assert.True(observed.ServiceTicks > 0);
         Assert.True(observed.QueueWaitTicks >= 0); Assert.Equal(0, fs.RetainedFileContexts);
     }

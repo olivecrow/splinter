@@ -91,18 +91,8 @@ internal static partial class ManagedPagedDirectoryRestore
                 foreach (var item in originalItems.Values)
                 {
                     ct.ThrowIfCancellationRequested(); if (item.Entry.Path.Length == 0) continue;
-                    string identity;
-                    if (item.Entry.Directory)
-                    {
-                        using var pin = ManagedRestoreFileAccess.DirectoryHandle(PathOf(state.Basis.Snapshot.RootPath, item.Entry.Path), metadataWrite: false);
-                        identity = SnapshotInputChecks.FileIdentity(pin, directory: true);
-                    }
-                    else
-                    {
-                        using var pin = ManagedRestoreFileAccess.Read(PathOf(state.Basis.Snapshot.RootPath, item.Entry.Path));
-                        identity = ManagedRestoreFileAccess.Identity(pin);
-                    }
-                    yield return new(item.Entry, item.Hash, SourceReference: identity);
+                    // The fully verified basis still pins this exact native entry.
+                    yield return new(item.Entry, item.Hash, SourceReference: basis.RestoreIdentity(item.Entry.Path));
                 }
             }
             var cleanupCatalog = PagedSnapshotCatalog.Build(Path.Combine(prepare.Directory, "cleanup"), originalItems[""].Entry, CleanupEntries(), ct: ct);
@@ -242,26 +232,34 @@ internal static partial class ManagedPagedDirectoryRestore
                     using var verified = ManagedRestoreFileAccess.Read(target); ManagedRestoreFileAccess.Require(verified, file.Identity);
                     if (Hash(verified) != file.FinalHash) throw Conflict("A completed restore file changed."); completed++; continue;
                 }
-                if (File.Exists(source) && !WorkspaceStore.SamePath(source, target))
-                {
-                    if (File.Exists(target)) throw Conflict("Both restore source and destination exist.");
-                    using var moved = ManagedRestoreFileAccess.Read(source, moving: true); ManagedRestoreFileAccess.Require(moved, file.Identity);
-                    string expected = entry.BasePath is { } basePath ? originalItems.GetValueOrDefault(basePath)?.Hash ?? throw Conflict() : EmptyHash;
-                    if (Hash(moved) != expected) throw Conflict("The exact restore source changed before moving.");
-                    if (movedRoot is null) ManagedRestoreFileAccess.Move(moved, target);
-                    else ManagedRestoreFileAccess.MoveRelative(moved.SafeFileHandle, target,
-                        WorkspaceStore.SamePath(Path.GetDirectoryName(target)!, state.OriginalPath) ? movedRoot : null);
-                    boundary?.Invoke("file.after-move");
-                }
+                bool move = File.Exists(source) && !WorkspaceStore.SamePath(source, target);
+                if (move && File.Exists(target)) throw Conflict("Both restore source and destination exist.");
                 if (entry.BasePath is not null && file.Ranges.Count == 0 && entry.Length == entry.BaseLength && file.FinalHash == file.RetainedHash)
                 {
-                    using var stable = ManagedRestoreFileAccess.Read(target); ManagedRestoreFileAccess.Require(stable, file.Identity);
+                    // Digest, move and metadata use the same no-write/no-delete handle.
+                    // A retry after a move opens the target and proves its bytes again.
+                    if (move && originalItems.GetValueOrDefault(entry.BasePath)?.Hash != file.FinalHash) throw Conflict();
+                    using var stable = ManagedRestoreFileAccess.Read(move ? source : target, moving: move);
+                    ManagedRestoreFileAccess.Require(stable, file.Identity);
                     if (Hash(stable) != file.FinalHash) throw Conflict("An unchanged moved file changed.");
+                    if (move)
+                    {
+                        MoveToTarget(stable, target);
+                        WorkspaceStore.EnsurePlainPath(target);
+                        WindowsOwnedDirectoryLease.RequirePath(stable.SafeFileHandle, target);
+                    }
                     ManagedRestoreFileAccess.Metadata(stable, entry.Attributes, entry.CreationTime, entry.LastAccessTime, entry.LastWriteTime);
                     completed++; cursor = cursor with { AfterPath = null, Completed = completed };
                     if (completed % ManagedDirectoryRestore.CursorBatchSize == 0 || completed == plan.Files.Count)
                     { boundary?.Invoke("restore.before-cursor"); await WindowsProcessWorkspaceProvider.WriteAsync(cursorPath, cursor, ct); boundary?.Invoke("restore.after-cursor"); }
                     boundary?.Invoke("file.after-complete"); continue;
+                }
+                if (move)
+                {
+                    using var moved = ManagedRestoreFileAccess.Read(source, moving: true); ManagedRestoreFileAccess.Require(moved, file.Identity);
+                    string expected = entry.BasePath is { } basePath ? originalItems.GetValueOrDefault(basePath)?.Hash ?? throw Conflict() : EmptyHash;
+                    if (Hash(moved) != expected) throw Conflict("The exact restore source changed before moving.");
+                    MoveToTarget(moved, target);
                 }
                 using (var output = ManagedRestoreFileAccess.Write(target, file.Identity, input =>
                 {
@@ -289,6 +287,13 @@ internal static partial class ManagedPagedDirectoryRestore
                 if (completed % ManagedDirectoryRestore.CursorBatchSize == 0 || completed == plan.Files.Count)
                 { boundary?.Invoke("restore.before-cursor"); await WindowsProcessWorkspaceProvider.WriteAsync(cursorPath, cursor, ct); boundary?.Invoke("restore.after-cursor"); }
                 boundary?.Invoke("file.after-complete");
+            }
+            void MoveToTarget(FileStream source, string target)
+            {
+                if (movedRoot is null) ManagedRestoreFileAccess.Move(source, target);
+                else ManagedRestoreFileAccess.MoveRelative(source.SafeFileHandle, target,
+                    WorkspaceStore.SamePath(Path.GetDirectoryName(target)!, state.OriginalPath) ? movedRoot : null);
+                boundary?.Invoke("file.after-move");
             }
             await FlushUnchanged();
             if (completed != plan.Files.Count) throw Conflict();

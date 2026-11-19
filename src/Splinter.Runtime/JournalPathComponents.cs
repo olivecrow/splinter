@@ -14,6 +14,7 @@ public sealed partial class JournalDeltaStore
         private MetadataTreeRoot root = store.Empty;
         private readonly Dictionary<string, byte[]> pending = new(StringComparer.Ordinal);
         private bool batching;
+        private (MetadataTreeRoot Root, long Epoch, string Path, byte[] Id)? lastInterned;
         public MetadataTreeRoot Root
         {
             get { if (pending.Count != 0) { Flush(); store.Flush(); } return root; }
@@ -33,6 +34,9 @@ public sealed partial class JournalDeltaStore
         {
             byte[] parent = Empty;
             if (path.Length == 0) return parent;
+            var epoch = store.DecodedNodeCacheEpoch;
+            if (pending.Count == 0 && lastInterned is { } last && last.Epoch == epoch &&
+                ReferenceEquals(last.Root, root) && last.Path == path) return last.Id;
             int at = 0;
             while (at < path.Length)
             {
@@ -48,6 +52,10 @@ public sealed partial class JournalDeltaStore
                 else if (!existing.AsSpan().SequenceEqual(data)) throw PagedInvalid();
                 parent = id; at = stop + 1;
             }
+            // Batch rollback can discard unflushed components. Only remember
+            // the spelling proved in this exact, physically fenced name root.
+            if (pending.Count == 0 && epoch is { } proof && store.DecodedNodeCacheEpoch == proof)
+                lastInterned = (root, proof, path, parent);
             return parent;
         }
         public string Resolve(ReadOnlySpan<byte> id, MetadataTreeRoot? fixedRoot = null)
@@ -87,6 +95,7 @@ public sealed partial class JournalDeltaStore
         private MetadataTreeRoot root = store.Empty;
         private readonly Dictionary<string, (string Path, Guid Id)> pending = new(policy.Comparer);
         private bool batching;
+        private (MetadataTreeRoot Root, long Epoch, string Path, Guid Id)? lastLookup;
         public MetadataTreeRoot Root
         {
             get { if (pending.Count != 0) { Flush(); store.Flush(); } return root; }
@@ -231,7 +240,14 @@ public sealed partial class JournalDeltaStore
         public bool TryGetValue(string path, out Guid id)
         {
             if (pending.TryGetValue(path, out var changed)) { id = changed.Id; return id != Guid.Empty; }
-            return TryGetValueAt(path, root, out id);
+            // Security, open and subsequent stat callbacks often ask for the
+            // same leaf. Fixed directory cursors still use their own roots.
+            var epoch = store.DecodedNodeCacheEpoch;
+            if (lastLookup is { } last && last.Epoch == epoch && ReferenceEquals(last.Root, root) && last.Path == path)
+            { id = last.Id; return true; }
+            if (!TryGetValueAt(path, root, out id)) return false;
+            if (epoch is { } proof && store.DecodedNodeCacheEpoch == proof) lastLookup = (root, proof, path, id);
+            return true;
         }
         public bool TryGetValueAt(string path, MetadataTreeRoot root, out Guid id)
         { var entry = Locate(path, root); id = entry is null ? Guid.Empty : Decode(entry).Id; return id != Guid.Empty; }

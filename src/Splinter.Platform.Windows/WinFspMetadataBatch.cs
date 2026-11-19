@@ -25,6 +25,7 @@ public sealed partial class WinFspOverlayFileSystem
     private readonly object metadataQueueGate = new();
     private readonly Queue<PendingMetadata> waitingMetadata = new();
     private bool metadataBatchRunning;
+    private bool queuedDuringService;
     private long issuedMetadataTicket, completedMetadataTicket;
     private long recentMutationServiceTicks = Stopwatch.Frequency / 1000;
     internal int PendingMetadataCount { get { lock (metadataQueueGate) return waitingMetadata.Count(item => item.Write is null); } }
@@ -132,10 +133,14 @@ public sealed partial class WinFspOverlayFileSystem
     {
         while (true)
         {
+            bool gather;
             lock (metadataQueueGate)
             {
                 if (request.Completed) return;
                 if (metadataBatchRunning) { Monitor.Wait(metadataQueueGate); continue; }
+                // Open readers are common during a serial Bee graph write. Only
+                // spend a collection window after callbacks actually overlap.
+                gather = queuedDuringService || waitingMetadata.Count > 1;
                 metadataBatchRunning = true;
             }
             PendingMetadata[] batch = []; ExceptionDispatchInfo? failure = null;
@@ -145,7 +150,7 @@ public sealed partial class WinFspOverlayFileSystem
             IJournalWriteAccounting? accounting = null; JournalWriteAccounting? before = null;
             try
             {
-                gathered = GatherConcurrentMutations();
+                if (gather) gathered = GatherConcurrentMutations();
                 lock (mutationGate)
                 {
                     lock (metadataQueueGate)
@@ -240,6 +245,7 @@ public sealed partial class WinFspOverlayFileSystem
                             }
                         foreach (var item in batch) { item.Failure ??= failure; item.Completed = true; }
                         if (batch.Length != 0) completedMetadataTicket = batch[^1].Ticket;
+                        queuedDuringService = waitingMetadata.Count != 0;
                         metadataBatchRunning = false; Monitor.PulseAll(metadataQueueGate);
                     }
                 }

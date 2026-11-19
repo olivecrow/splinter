@@ -139,6 +139,30 @@ internal sealed class FileApplyIndex : IDisposable
     internal FileSourceEntry? Find(MetadataTreeRoot root, string path)
     { var bytes = pages.Open(root).Find(Key(path)); return bytes is null ? null : Decode(bytes, names); }
     internal bool Contains(MetadataTreeRoot root, string path) => pages.Open(root).Find(Key(path)) is not null;
+    // Check the complete native inventory for ambiguous names. Only the small
+    // selected set needs its original spelling for the publication plan.
+    internal MetadataTreeRoot SelectedOriginalNames(IEnumerable<FileSourceEntry> entries, MetadataTreeRoot included, CancellationToken ct)
+    {
+        var wanted = pages.Open(included).Enumerate().Select(row => row.Key).ToHashSet(StringComparer.Ordinal);
+        var observed = Empty;
+        IEnumerable<MetadataEntry> Keys()
+        {
+            foreach (var entry in entries)
+            {
+                ct.ThrowIfCancellationRequested();
+                string key = Key(entry.Path);
+                if (wanted.Contains(key)) observed = AddPath(observed, entry.Path);
+                yield return new(key, ReadOnlyMemory<byte>.Empty);
+            }
+        }
+        string? previous = null;
+        foreach (var row in MetadataSort.Order(Keys(), directory, ct))
+        {
+            if (row.Key == previous) throw Invalid();
+            previous = row.Key;
+        }
+        return observed;
+    }
     internal void Set(string path, FileSourceEntry? entry = null)
     { Root = pages.Set(Root, Key(path), entry is null ? Convert.FromHexString(names.Intern(path)) : Encode(entry, names)); }
     internal MetadataTreeRoot Set(MetadataTreeRoot root, FileSourceEntry entry) => pages.Set(root, Key(entry.Path), Encode(entry, names));

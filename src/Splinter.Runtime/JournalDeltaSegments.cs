@@ -287,7 +287,7 @@ public sealed partial class JournalDeltaStore
             Flush();
             long started = Stopwatch.GetTimestamp();
             sourceFilePins.VerifyPath(journal, journal.Name, nativeIdentity);
-            var seal = SealSegmentedJournal(journal.Name, sequence, segments.State.Head, sourceFilePins, expectedJournalBytes);
+            var seal = InspectSegmentedJournal(journal.Name, sequence, segments.State.Head, sourceFilePins, expectedJournalBytes).Seal;
             if (seal != SegmentedSeal())
                 throw new WorkspaceException("DeltaChangedAfterCollection", "The live journal and its physical accepted seal differ; preserve it.");
             double elapsed = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -297,16 +297,25 @@ public sealed partial class JournalDeltaStore
     }
 
     public static SnapshotDeltaSeal SealSegmentedJournal(string path, long sequence) =>
-        SealSegmentedJournal(path, sequence, null, null, null);
+        InspectSegmentedJournal(path, sequence, null, null, null).Seal;
 
-    private static SnapshotDeltaSeal SealSegmentedJournal(string path, long sequence,
-        JournalSegmentHead? expectedHead, IJournalFilePins? pins, long? expectedLength)
+    internal static (SnapshotDeltaSeal Seal, bool PackingPending) InspectStoppedJournal(string path, long sequence) =>
+        InspectSegmentedJournal(path, sequence, null, null, null, inspectPacking: true);
+
+    private static (SnapshotDeltaSeal Seal, bool PackingPending) InspectSegmentedJournal(string path, long sequence,
+        JournalSegmentHead? expectedHead, IJournalFilePins? pins, long? expectedLength, bool inspectPacking = false)
     {
         string directory = Path.GetDirectoryName(path)!;
         using var identityInput = File.OpenRead(Path.Combine(directory, "identity.json"));
         var identity = JsonSerializer.Deserialize<OverlayIdentity>(identityInput) ?? throw PagedInvalid();
         using var storage = new JournalSegmentStorage(directory, identity, readOnly: true);
         if (expectedHead is not null && storage.State.Head != expectedHead) throw PagedInvalid();
+        bool packingPending = false;
+        if (inspectPacking && storage.State.Roots.Packing is { } packing)
+        {
+            using var index = new PagedMetadataStore(storage.State.Roots.Directory);
+            packingPending = index.Open(packing).Find("request") is not null;
+        }
         string accepted = storage.State.Roots.SourceMutationHash ?? PagedOwnerHash(identity);
         long bytes = storage.State.Roots.SourceMutationBytes, current = storage.State.Roots.Sequence;
         if (accepted.Length != 64 || accepted.Any(c => c is not (>= '0' and <= '9' or >= 'a' and <= 'f')) || bytes < 0) throw PagedInvalid();
@@ -340,11 +349,13 @@ public sealed partial class JournalDeltaStore
                 accepted = Convert.ToHexStringLower(SHA256.HashData(chainBytes));
                 bytes = checked(bytes + FrameHeaderBytes + (long)metadataBytes + payload.StoredBytes + FrameChecksumBytes); current = mutation.Sequence;
             }
+            else if (inspectPacking && mutation.Operation is "packing-state" or "packing-complete")
+                packingPending = mutation.Operation == "packing-state";
         }
         if (expectedLength is { } fixedLength && file.Length != fixedLength) throw PagedInvalid();
         if (pins is not null) pins.VerifyPath(file, path, storage.State.Head.NativeIdentity ?? throw PagedInvalid());
         if (current != sequence) throw new WorkspaceException("DeltaChangedAfterCollection", "Accepted journal source mutations differ from their fixed sequence.");
-        return new(current, bytes, accepted);
+        return (new(current, bytes, accepted), packingPending);
     }
     private static bool IsAdministrative(string operation) => operation is "adopt-range" or "forget-unlinked" or "capture-freeze" or "capture-complete" or
         "packing-state" or "packing-complete" or "packing-preserve" or "relocate-range";

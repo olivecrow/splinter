@@ -9,9 +9,10 @@ namespace Splinter.Tests;
 public sealed class GitOriginalIndexingPolicyTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task NativeGitPublicationPreservesTargetIndexingAndResumesTheSameFixedIntent(bool indexed)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task NativeGitPublicationPreservesTargetIndexingAndResumesTheSameFixedIntent(bool indexed, bool unity)
     {
         if (!OperatingSystem.IsWindows()) Assert.Skip("Native conditional Git original-file publication.");
         using var files = new TestDirectory(); var ct = TestContext.Current.CancellationToken;
@@ -27,14 +28,27 @@ public sealed class GitOriginalIndexingPolicyTests
         using var lease = snapshots.AcquireReadLease(); using var basis = snapshots.OpenReadScope(snapshot, await snapshots.ResolveReadAccessAsync(snapshot, ct), lease);
         var intent = new WorkspaceCaptureIntent(captureId, 1, "saved", "saved"); var identity = new SourceCaptureIdentity(captureId, 1, new string('c', 64));
         var w = new WorkspaceRecord { Id = id, RequestKey = "index-policy", RequestDigest = "index-policy-request", ProjectPath = project, Path = store.WorkPath(id),
-            SourceReference = "splinter/" + id, BaseReference = revision, BaseRevision = revision, SourceKind = "git", ApplicationKind = "none", StorageMode = "git-snapshot",
+            SourceReference = "splinter/" + id, BaseReference = revision, BaseRevision = revision, SourceKind = "git", ApplicationKind = unity ? "unity" : "none",
+            StorageMode = "git-snapshot", ManagedPaths = unity ? ["Temp", "Library"] : [],
             Snapshot = new() { Reference = snapshot }, CaptureIntent = intent };
         using var captured = new AtomicSavedCapture(basis, identity);
-        bool interrupted = false; var publisher = new PublishedReplyLoss(new WindowsOriginalFilePublisher(allowGitAdministration: true), () => interrupted = true);
-        var source = new FileWorkspaceProvider(store, publisher, contentPins: pins);
+        string editorLock = Path.Combine(project, "Temp", "UnityLockfile");
+        bool interrupted = false;
+        var publisher = new PublishedReplyLoss(new WindowsOriginalFilePublisher(allowGitAdministration: true), () =>
+        {
+            if (unity) Assert.Throws<IOException>(() => File.Open(editorLock, FileMode.Open, FileAccess.ReadWrite, FileShare.None).Dispose());
+            interrupted = true;
+        });
+        var source = new FileWorkspaceProvider(store, publisher, contentPins: pins, applicationPolicies: Application.Unity.UnityProjectPolicy.Policies);
         var result = await source.PreserveGenerationAsync(w, control, intent, identity, captured, ct);
         w.Results.Add(result); w.ResultRevision = result.Revision; w.CaptureIntent = null;
         File.SetAttributes(original, indexed ? File.GetAttributes(original) | FileAttributes.NotContentIndexed : File.GetAttributes(original) & ~FileAttributes.NotContentIndexed);
+        if (unity)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(editorLock)!);
+            using var running = new FileStream(editorLock, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 1, FileOptions.DeleteOnClose);
+            await Assert.ThrowsAsync<IOException>(() => source.PlanOriginalAsync(w, ct, ["data.txt"]));
+        }
         var plan = await source.PlanOriginalAsync(w, ct, ["data.txt"]); Assert.Empty(plan.Conflicts);
         var change = Assert.Single(plan.EnumerateChanges());
         Assert.Equal(indexed, (change.Before!.Attributes & (int)FileAttributes.NotContentIndexed) != 0);
