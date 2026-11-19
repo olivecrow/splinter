@@ -1,6 +1,6 @@
 # Development product Git-basis/CLI write-interruption tests
 
-`scripts/test-product-write-recovery.ps1` uses a clean Git source/home and WinFsp. It exercises an external client and the exact owned provider in `workspace ensure --storage git-snapshot`, using a fixed raw Git basis and same-request recovery. No service/grant is required; ordinary providers do not use development observers. CLI/Git/client run as a standard user. New native execution of this development path after changing it from VSS is NotRun.
+`scripts/test-product-write-recovery.ps1` uses a clean Git source/home and WinFsp. It exercises an external client and the exact owned provider in `workspace ensure --storage git-snapshot`, using a fixed raw Git basis and same-request recovery. No service/grant is required; ordinary providers do not use development observers. CLI/Git/client run as a standard user. Native execution of this Git recovery matrix remains unqualified.
 
 The default is a read-only plan and creates no source/home/evidence. `-Execute` permits only new evidence, preserves existing workspace/home records, and uses a new key for each case. Prepare Release binaries with `pwsh ./scripts/build.ps1`.
 
@@ -23,6 +23,6 @@ Request/signal/result use `product-write-recovery-probe-{request,signal,result}.
 
 After exact provider termination and mount absence, the same ensure must continue the same snapshot/delta/Git registration. Check current fixed Git-basis read verification and a new provider generation; a second ensure must retain that same new provider and journal. After actual kernel reads and a new 4KiB write to beta, explicitly preserve an independent Git result through `workspace checkpoint`, without awarding compile success. Verify ref/blob bytes and ordinary release's source seal, mount/Git registration/delta/last-snapshot reclamation, and zero processes/handles/memory. `reclaim-pending` is not completion.
 
-Compare original HEAD/index/tracked hashes and existing refs/worktrees, plus the exact task-owned Git basis ref and reader receipts. NR verification preserves historical VSS-input successes and failures; they do not qualify the current Git path. Unity, ARM, reboot/power/space failures remain unqualified. Fix the scope before any further native run.
+Compare original HEAD/index/tracked hashes and existing refs/worktrees, plus the exact task-owned Git basis ref and reader receipts. Record the tested inputs and boundaries separately from Unity, OS restart and storage-exhaustion coverage.
 
-The current result schema requires `fixedBasisVerified` and `ownedBasisRefReleased`. The Git tree proof stays identical across reconnect; the new provider generation and exact owned-ref absence are checked. VSS verification-token changes and global snapshot-list fields are removed from the current contract; historical results are not converted.
+The current result schema requires `fixedBasisVerified` and `ownedBasisRefReleased`. The Git tree proof stays identical across reconnect; the new provider generation and exact owned-ref absence are checked.

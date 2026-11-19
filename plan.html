@@ -45,7 +45,7 @@
 <p>Native scale and fault qualification remain open for SCAL-01–08. Large lifecycle costs, peak resource usage, and OS-failure behavior require separate evidence. Retained large fixtures require an explicitly scoped follow-up. <a href="docs/plans/scalable-storage.md">SCAL plan</a> · <a href="docs/verification/README.md">Validation scope</a></p>
 
 <h2 id="acceptance">4. Acceptance criteria</h2>
-<p>Two tasks can independently edit and validate work on the same Unity project. Each task resumes with the same identity and changes. Preserving or discarding one task leaves the original and peer intact. Guarded application preserves conflicting changes for explicit resolution. Report the time and resource costs for the measured conditions.</p>
+<p>Two tasks can independently edit and validate work on the same Unity project. Each task resumes with the same identity and changes. Preserving or discarding one task leaves the original and peer intact. Guarded application preserves conflicting changes for explicit resolution. Report the time and resource costs for the measured conditions. The <a href="docs/verification/parallel-workspace-performance.md">Unity maze benchmark</a> measures three independent Editors against queued access to one shared Editor.</p>
 
 <h2 id="verification">5. Verification policy</h2>
 <ul>

@@ -1,8 +1,7 @@
 # Offline replay instrumentation
 
-`tools/Splinter.ReplayProbe` is a development tool for comparing Runtime replay of synthetic journals. It does not create product workspaces, VSS/WinFsp mounts, or Unity Editors, or read existing originals. Availability and boundaries are also reported in `capabilities.developmentReplayProbe`. It does not replace evidence of real Unity timing or storage use.
+`tools/Splinter.ReplayProbe` is a development tool for comparing Runtime replay of synthetic journals. It does not create product workspaces, WinFsp mounts, or Unity Editors, or read existing originals. Availability and boundaries are also reported in `capabilities.developmentReplayProbe`. It does not replace evidence of real Unity timing or storage use.
 
-<a id="실행"></a>
 ## Running the tool
 
 First build with `pwsh ./scripts/build.ps1`. Specify a new input path.
@@ -18,11 +17,10 @@ dotnet run --project tools/Splinter.ReplayProbe --configuration Release --no-bui
 
 After replay, the tool checks every expected file's length/content hash, the path list and deleted paths, internal state hash, durable sequence and replay frames, and zero write commits/flushes/base payload reads. Finally, it rechecks that the original journal hash is unchanged. It is not intended for general damaged-journal recovery or diagnosis of arbitrary workspaces.
 
-<a id="해석"></a>
 ## Interpreting results
 
 `elapsedTicks / stopwatchFrequency` measures store creation time. Full input hashing, output-content verification, state-hash calculation, and process startup are separate. `storage.metrics` contains actual Runtime replay counters; see [source verification and instrumentation](source-verification.md) for their per-operation meaning.
 
 `allocatedManagedBytes` is cumulative managed allocation during creation, not simultaneous memory demand or disk space. `managedHeapBytes` estimates heap size immediately after replay and may include objects not yet collected by GC. `peakWorkingSetBytes` is the observed peak working set of the whole process up to that point. Receipt/hash preparation and Runtime initialization are also included in process memory. See [source verification and instrumentation](source-verification.md) for per-range costs and extent distribution in `replayWriteRangeIndex`.
 
-Reading the full hash immediately before each run warms the OS cache. The tool does not forcibly clear it. Record separate processes, run order, repeat count, and matching input/state hashes. Verify file allocation separately, for example with FILE_STANDARD_INFO. RI verification and WI verification own this tool's execution scope and binary comparisons; VR verification and the RU small-Unity comparison own real Unity observations. Restarting a real Editor may add journal records, so offline improvement for the same input cannot be used to estimate total resumption time or disk savings.
+Reading the full hash immediately before each run warms the OS cache. The tool does not forcibly clear it. Record separate processes, run order, repeat count, and matching input/state hashes. Verify file allocation separately, for example with FILE_STANDARD_INFO. Restarting a real Editor may add journal records, so offline improvement for the same input cannot be used to estimate total resumption time or disk savings.

@@ -7,7 +7,7 @@ pwsh ./scripts/test-journal-recovery.ps1 -OutputPath artifacts/ntfs-recovery/<ne
 pwsh ./scripts/test-journal-recovery.ps1 -OutputPath artifacts/ntfs-recovery/<new-run-id> -Execute
 ```
 
-Execution invokes the Release test `JournalInterruptionTests.EvidenceRun`. The test child creates/writes alpha 64KiB and beta 4KiB and flushes an independent content oracle for acknowledged sequence 4 to an external file. It attempts one additional write/rename/replace/truncate/create/delete and stops at the declared boundary. The parent compares request nonce, boundary, PID, and start time, forcibly terminates only that exact child, confirms termination, and reopens the journal with the same identity. It does not invoke ordinary workspace commands, VSS, WinFsp, Git, Unity, or service installation.
+Execution invokes the Release test `JournalInterruptionTests.EvidenceRun`. The test child creates/writes alpha 64KiB and beta 4KiB and flushes an independent content oracle for acknowledged sequence 4 to an external file. It attempts one additional write/rename/replace/truncate/create/delete and stops at the declared boundary. The parent compares request nonce, boundary, PID, and start time, forcibly terminates only that exact child, confirms termination, and reopens the journal with the same identity.
 
 | Boundary | Coverage |
 | --- | --- |
@@ -25,4 +25,4 @@ Every normal transaction still applies its index and returns after checksum appe
 
 `contracts/v1/journal-recovery-probe-{request,signal,result}.schema.json` owns request, gate, and trial-result formats. Gate/ACK files are published by flushing a new temporary file in the same directory and moving without overwrite. Existing trials are not appended to. After termination and before replay, record a raw journal copy, before/after hashes and lengths, sequence, namespace/length/content hashes, and invariance of a second replay. Initial payload copies, read cache, and base payload reads must all be 0. These values apply only to the fixture's synthetic private writes.
 
-NR recovery verification owns actual candidate hashes, pass/fail results, and limitations. Internal journal-boundary tests do not qualify actual mount callback responses, mmap flush, VSS, reboot, power loss, or physical-space failures.
+These component checks exercise journal interruption. For mounted callbacks and mmap flush see the [kernel recovery probe](kernel-recovery.md). [Validation limits](verification/README.md)

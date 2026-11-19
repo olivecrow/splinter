@@ -1,18 +1,18 @@
 # Repeated original application
 
-For a fresh `checkpoint --release` request, normal stop and infrastructure removal precede full pre/post seals around one capture. That same operation's sealed generation proceeds into release without a second capture; the post-unmount seal remains mandatory. An already fixed/published request retry cannot reuse a new invocation's seals for its older result. It returns the fixed requested result and separately collects current source for closure. Standalone release also collects current source. See GCO scope.
+For a fresh `checkpoint --release` request, normal stop and infrastructure removal precede full pre/post seals around one capture. That same operation's sealed generation proceeds into release without a second capture; the post-unmount seal remains mandatory. An already fixed/published request retry cannot reuse a new invocation's seals for its older result. It returns the fixed requested result and separately collects current source for closure. Standalone release also collects current source.
 
 Registration removal remains under the project lock. The source router supplies the exact generation's full independent verification to the Git adapter at that boundary: it includes receipt/catalog/payload and retained Git basis or Git-result fingerprint proof. The adapter checks the final closure/generation binding before and after that verification, then performs the ordinary ownership/ref/registration checks and mutations. It does not reconstruct the same retained basis again within that single boundary. Other lifecycle boundaries retain fresh complete verification; the lock wait and durability rules are unchanged.
 
 Before reclaiming a stopped task's segmented journal, the backend resumes any accepted packing, segment-collection or index-copy request under the exact provider/mount absence and result identity. It verifies the complete accepted seal before reopening the journal and again before and after maintenance. Project/Library leases, native backing proofs, independent result references and the final reclamation inventory remain required. An old payload reader defers deletion and retains that same request for a later retry; neither release nor discard authorizes dropping an unfinished plan.
 
-This document owns continuing-task result generations and file publication to an original project. Scope and RI-01–08 qualification distinguish implementation, automated checks and actual Unity inputs. The fixed small Git, ordinary-folder and Plastic Unity original/A/B sequences and final full gate passed; RI-01–08 are scoped-complete with explicit input/tool/OS and cost limits.
+Checkpoint fixes a result for a continuing task. Original publication applies a reviewed selection and records per-path history for later plans.
 
-File source manifests now use **v4**. Native None/Plastic reference captures keep the complete comparison catalog, but retain payloads only for changed before/after files, their range-basis dependencies and previously retained content. Unrelated unchanged basis files are not archived. These results support explicit application, reversal and restart; they are not standalone exports of every project file. The generation fingerprint binds the retention set and range-descriptor root. Git keeps its protected basis route. v3 manifests are preserved/refused and must be finished using the matching binary; task v4/basis v3/overlay v3 and public command fields are unchanged.
+File source manifests use **v4**. Native None/Plastic reference captures keep the complete comparison catalog, but retain payloads only for changed before/after files, their range-basis dependencies and previously retained content. Unrelated unchanged basis files are not archived. These results support explicit application, reversal and restart; they are not standalone exports of every project file. The generation fingerprint binds the retention set and range-descriptor root. Git keeps its protected basis route.
 
 ## Lifetimes and identities
 
-Current [scalable-storage candidate](scalable-storage.md) records are **task v4, managed basis v3, product overlay v3**; SCAL qualification remains in progress. RI-01–08 below qualify their historical task-v3/basis-v2 candidate. Preserve/refuse older records and finish them with the matching binary; no migration, reclamation, new basis or task is implied by a CLI update. Use an explicitly selected new-format home for new tasks while preserving older homes; never move, rewrite or sweep old state automatically.
+A task retains its [storage identity](scalable-storage.md) across capture, publication and release. Preserve unsupported records without migration or reclamation.
 
 A task keeps its path, ID, request digest, immutable source basis, private journal and Library through repeated captures and publications. A result has its own immutable ID, sequence, request key, message, source sequence, capture digest, content identity and independent reference. Capturing a result does not stop its Editor or prohibit later edits/restarts.
 
@@ -65,7 +65,7 @@ Auto-refresh deferral does not block explicit `Refresh`, scene watchers or exter
 
 Save the task, normally stop **only its owned Editor**, capture with a new explicit request key using the same generation engine, and publish that fixed result as above. This includes source writes made during normal shutdown. Keep original/peer Editors running. Then explicitly `workspace release --id <task> --home <home>` to preserve final source, seal and reclaim the owned resources. `checkpoint --release` combines normal stop, the same capture and preservation/reclamation; it does not publish to the original. Release alone does not authorize integration. Original shutdown and final project/Library restore are separate, explicitly authorized cleanup after all dependents are reclaimed.
 
-Current limits remain: bounded ordinary-file manifests and supported metadata; Windows/NTFS/WinFsp native qualification only for recorded RI inputs; no Play/Player build, large-input generalization, other Unity versions/OS, or power-loss qualification. Required RI rows and the final full build gate remain obligations until the verification document records them.
+Native workload and fault coverage are scoped to the tested inputs. [Validation limits](verification/README.md)
 
 ## Implementation ownership
 
@@ -76,5 +76,3 @@ Current limits remain: bounded ordinary-file manifests and supported metadata; W
 | Durable range capture and reclamation protection | [Journal capture](../src/Splinter.Runtime/JournalSourceCapture.cs), [NTFS bridge](../src/Splinter.Platform.Windows/NtfsSourceGenerations.cs), [backing aliases](../src/Splinter.Platform.Windows/WindowsJournalFilePins.cs) |
 | Independent payloads and per-path publication | [File generations](../src/Splinter.SourceControl.Files/FileSourceGenerations.cs), [file publication](../src/Splinter.SourceControl.Files/FileOriginalApply.cs), [Git guard](../src/Splinter.SourceControl.Git/GitOriginalPublicationGuard.cs) |
 | External cooperation admission | [Unity policy](../src/Splinter.Application.Unity/UnityProjectPolicy.cs), [native Editor identity](../src/Splinter.Platform.Windows/WindowsOriginalEditorIdentityVerifier.cs) |
-
-The lifecycle map and structured index locate C20/A20/A30 and K32–K35; they retain earlier performance evidence separately.

@@ -1,8 +1,8 @@
 # Explicit workspace discard
 
-The current ordinary-folder path for `--source none` and v2 state follows [VCS-free workspaces](vcs-independent-workspaces.md). Git paths and historical native qualification below do not qualify ordinary-folder support.
+Use explicit discard to abandon one fully prepared range-journal task and reclaim its owned resources. Inspect the target ID, path and request digest first.
 
-`workspace discard` explicitly abandons a fully prepared range-journal task. Git/Plastic/project bases retain owned-reference, reader and original/peer guards, using ordinary-user providers without service/grants. VSS A/B in historical discard verification remains an earlier record; current qualification follows each basis provider.
+Git, Plastic and managed project bases retain their reader and original/peer ownership guards. Independently retained results survive task discard.
 
 ```powershell
 pwsh ./scripts/splinter.ps1 workspace status --id <id> --home <home>
@@ -11,7 +11,6 @@ pwsh ./scripts/splinter.ps1 workspace discard --id <id> --intent-key <stable-dis
 
 Identify the target through status/list ID, project/path, and `requestDigest`. Retry interruption/delay with the same key/digest/id/home. `Succeeded`/`discarded` means exact owned resources are absent; `Accepted`/`discard-reclaim-pending` preserves a provider-deferred owned-reference reclamation after task payload removal. Existing preserving [release](ntfs-workspaces.md#reclamation-and-observations) continues to require independent results/seals.
 
-<a id="입력과-소유권"></a>
 ## Inputs and ownership
 
 `WorkspaceCoordinator.DiscardAsync` accepts `WorkspaceDiscardRequest(id, intentKey, expectedRequestDigest)`. `intentKey` is the fixed key for explicit discard; `expectedRequestDigest` is the target workspace's existing request digest. Compare both before storing intent inside the workspace lock. Scope is fully prepared NTFS task workers; incomplete preparation, bases, other storage, and ongoing release/compaction are rejected.
@@ -20,7 +19,6 @@ Intent fixes workspace ID, project/path, request digest, branch/base, current so
 
 Inputs follow `urn:splinter:v1:workspace-discard-request`; optional `workspace.discard` fields in durable state/responses follow `urn:splinter:v1:workspace-discard-state`. Missing/damaged data or different owner/stage/snapshot are preserved/rejected. Only the current version is supported; earlier intents are neither automatically migrated nor replaced by new intents.
 
-<a id="단계와-중단-재개"></a>
 ## Stages and interruption resumption
 
 ```text
@@ -36,15 +34,14 @@ Workspace, candidate, source-generation, or cache dependencies block before stop
 
 `discard-reclaim-pending` waits for snapshot reclamation after source/delta cleanup. Retain reclamation receipts/blockers and retry only the snapshot stage with the same intent. `discarded` is a completion receipt confirming absent exact snapshot/delta/mount/provider and zero owned resources. Unknown is neither 0 nor complete. Conversation/Editor termination, timeout, and disk pressure do not express discard intent.
 
-<a id="실제-provider와-권한-경계"></a>
 ## Actual providers and privilege boundaries
 
 `WindowsWorkspaceDiscardProvider` composes standard-user Git/delta handling. Git checks the created `splinter/<id>` branch and exact owner lock/registration receipt, publishes `git-discard.json` intent, then removes registration. Fixed-revision compare-and-delete with `--no-deref` removes only the task branch, preserving independent-result refs, shared objects, original, and peers. After a lost response, absent registration/branch completes only the same intent. Recreated/changed branches are preserved/rejected.
 
-Windows delta records exact directory, seal, and identity hash in owner intent and `discard-delta-reclaim.json`. A journal fence excluding writers verifies hash/length, then deletes only `delta.journal` and `identity.json`. Unexpected files or changed identity/journal are rejected; after partial deletion, process only remaining files under the same record. Forced cleanup of ongoing preparation/compaction is unsupported.
+The Windows deletion provider verifies the owned delta directory, seal, identity and inventory. Segmented journals use their recorded ranges, metadata and segment inventory. A writer fence and physical backing checks protect verification and reclamation. After interruption, the same intent reconciles the remaining entries. Unknown or changed files block deletion.
 
-For bounded SJR2, the dispatcher uses the existing exact bounded inventory at `discard-delta-reclaim.json.bounded`, including its durable pending publication and zero-byte `delta.journal.bounded.lock` writer fence. The Windows directory proof remains pinned during reclamation; retries after journal, metadata or guard deletion use that same inventory without recreating files. Mixed append/latest/bounded reclamation receipts are rejected. This repairs the bounded guard being misclassified as an unknown append artifact; LU-01 records the actual Unity discovery, same-task recovery and matched-comparison boundary.
+For bounded SJR2 the dispatcher records the bounded inventory, including an outstanding publication and writer fence. The Windows directory proof stays pinned through reclamation. Mixed-mode deletion receipts are rejected.
 
-Basis reclamation handles only the exact owned reference after dependent/readers finish. It first verifies discard intent/seal and owned-resource absence, without fabricating result preservation. Legacy VSS state is preserved/rejected under the retirement decision, without automatic deletion or migration.
+Basis reclamation verifies the discard intent, fixed seal, remaining dependents and owned-resource absence before dropping the exact reference.
 
-Product completion criteria follow M0. .NET calls without a separately composed provider are rejected with `WorkspaceDiscardUnavailable` before intent/stop.
+.NET calls without a separately composed provider are rejected with `WorkspaceDiscardUnavailable` before intent/stop.

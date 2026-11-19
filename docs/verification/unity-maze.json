@@ -1,0 +1,43 @@
+{
+  "editor": "6000.6.8f1",
+  "seedCommit": "9d09f35a92a1f9335b3e1a3838a2fbf13f503b0c",
+  "libraryFiles": 24246,
+  "libraryBytes": 1223505621,
+  "unit": "elapsed seconds from kickoff",
+  "runsPerWorkflow": 1,
+  "shared": {
+    "workflow": "Unity Agent Coordination",
+    "initialEditor": "open",
+    "seconds": {
+      "playable": 404.87491600000067,
+      "victory": 412.2460392000212,
+      "clean": 422.8873922000057
+    },
+    "routeSteps": 116,
+    "encounters": 5,
+    "won": true,
+    "beforeVisualRecheckSeconds": {
+      "playable": 245.80927480000537,
+      "victory": 254.68897380001727
+    }
+  },
+  "splinter": {
+    "workflow": "Splinter",
+    "initialEditor": "stopped",
+    "seconds": {
+      "playable": 385.257,
+      "victory": 400.377,
+      "clean": 419.04
+    },
+    "routeSteps": 121,
+    "encounters": 5,
+    "won": true,
+    "separateNativeCompileSeconds": 73.846,
+    "separateFixtureSetupSeconds": 54.39361560001271
+  },
+  "evidence": {
+    "shared": "maze-20261119/comparison.json#shared",
+    "splinter": "maze-20261119/optimized/mf21/maze/measurement.json",
+    "preflight": "maze-20261119/optimized/mf19/native-compile.json"
+  }
+}

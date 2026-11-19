@@ -60,7 +60,7 @@ xUnit package metadata identifies the .NET Foundation as the copyright holder. I
 | [Git](https://git-scm.com/) | Local commit/blob access, workspace registration, and Git result operations | [GPLv2](https://github.com/git/git/blob/master/COPYING); installed separately |
 | [Unity](https://unity.com/) and [Unity Version Control / Plastic SCM](https://unity.com/products/version-control) | Optional Editor and installed source-control tools; the recorded Plastic adapter loads the installed client's vendor assemblies | [Unity legal terms](https://unity.com/legal); proprietary installations and access are governed by the vendor's applicable terms |
 
-Windows VSS and other Windows APIs are supplied by the operating system. Optional MCP and Unity CLI tools are selected and installed by the user or agent; their licenses belong to those external installations. Splinter does not bundle their installers or the Unity/Plastic vendor binaries in this source checkout.
+Windows supplies the native operating system APIs. Optional MCP and Unity CLI tools are selected and installed by the user or agent; their licenses belong to those external installations. Splinter does not bundle their installers or the Unity/Plastic vendor binaries in this source checkout.
 
 ## Redistribution boundaries
 

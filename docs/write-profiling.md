@@ -1,8 +1,7 @@
 # Live journal write instrumentation
 
-`tools/Splinter.WriteProbe` is a development tool for comparing fixed small synthetic write costs in Runtime. It does not create product workspaces, VSS, or Unity instances. Its scope follows the [JW plan](write-profiling.md).
+`tools/Splinter.WriteProbe` compares fixed synthetic write costs in Runtime with a synthetic snapshot and fresh output directory.
 
-<a id="고정-입력과-사용법"></a>
 ## Fixed inputs and usage
 
 Build with the standard `pwsh ./scripts/build.ps1`, then specify an output directory that does not yet exist.
@@ -25,11 +24,10 @@ The timer includes the call loop and thread preparation/start after fixture-file
 
 Record hashes of the same probe DLL and baseline/instrumented Runtime/Core, and repeat in new output directories with changed run order. New journals can have different hashes because IDs/times differ. Judge content equivalence between implementations by `contentHash`, and input preservation within each run by its own `journalHash`. Measure file allocation separately through Windows instrumentation. Do not convert small synthetic differences into real Unity timing or physical-space savings.
 
-<a id="제품-관측의-해석"></a>
 ## Interpreting product observations
 
 The contract for `OverlayIoMetrics.liveJournalWrites` follows [source verification and instrumentation](source-verification.md). Only the fixed 7 live-commit operations, including final unlinked-context reclamation (`forget-unlinked`), are counted; replay is excluded. Per-operation stage times are costs after obtaining the gate, while gate waits are cumulative per-call values. Waiter times can overlap, so do not add them to Editor wall time.
 
-Counts of other mutation calls before/after flush are samples of calls waiting ahead of the Runtime gate. They exclude reads, waits inside WinFsp/OS, and peak concurrency between samples. Waiting calls may later finish without changes or with rejected input, so they do not guarantee a number of durable commits that can be grouped. Every current acknowledged commit completes its own durable flush before responding.
+Counts of other mutation calls before/after flush are samples of calls waiting ahead of the Runtime gate. They exclude reads, waits inside WinFsp/OS, and peak concurrency between samples. Waiting calls may later finish without changes or with rejected input, so they do not guarantee a number of durable commits that can be grouped. A durable source batch can share one flush among several mutations.
 
-Windows `WinFspOverlayFileSystem` applies a separate `mutationGate` around the entire mutation callback. Writes through this adapter are therefore serialized before entering Runtime. A zero Runtime wait sample does not mean there were no adapter/OS waits. Concurrency in `parallel-4x256`, which calls Runtime directly, differs from real Unity concurrency. Do not assume flush grouping can simply be added inside Runtime without reviewing this boundary, which protects composite checks of append position, constrained I/O, and file length.
+The WinFsp adapter queues supported callbacks before its mutation gate and drains ordered batches. Runtime wait counters exclude the adapter and OS queues. The direct Runtime concurrency in `parallel-4x256` therefore measures a different part of the write path. [Adapter admission and durability](raw-write-batching.md)

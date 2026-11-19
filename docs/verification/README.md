@@ -1,25 +1,15 @@
 # Validation scope
 
-Splinter's Windows/NTFS validation combines automated contract and recovery tests with native filesystem checks and small Unity runs. Each run qualifies the recorded revision, inputs, and operations. The current storage format and recovery rules are in the [storage guide](../scalable-storage.md).
+The [Unity maze benchmark](parallel-workspace-performance.md) compares three isolated Splinter Editors with three agents sharing a Unity Agent Coordination FIFO Editor. It covers one Windows machine, one Unity version and one warm project.
 
 ## Reproducible checks
 
-Run `pwsh ./scripts/build.ps1` for locked restore, Release build, and the default regression suite. `-NoRestore` reuses a locked restore. CI runs the Windows suite and compiles on Linux. Native runtime qualification is Windows-specific.
+Run `pwsh ./scripts/build.ps1` for locked dependency restore, Release build and the default Windows regression suite. The verified run took 469.80 s. Of 2,689 discovered cases, 2,653 passed and 36 were conditionally skipped. All 16 CLI Release DLLs matched the measured Splinter build. Coverage includes interrupted cross-partition moves, Library restoration, read-only source flushing and concurrent access to Unity compilation symbols. Twelve separate timing diagnostic checks passed with `python -m unittest discover -s tests -p test_unity_workflow_timing.py`.
 
-The default xUnit schedule runs eight concurrent classes with conservative scheduling. Tests that reserve the full process-wide scratch budget run exclusively. The default paged-store and catalog shapes use 32 and 1,024 entries. Set `SPLINTER_LARGE_CATALOG_TESTS=1` only for separately scoped capacity checks at 32,769, 262,145, and 1,048,576 entries.
-
-The November 19 complete Windows gate passed in 425.56s of monotonic wall time. Of 2,658 discovered cases, 2,622 passed and 36 were conditionally skipped. Coverage includes the seven workspace-import cases, the published read-collection help and five exit-receipt and recovery cases. Fifteen of the 16 Release CLI DLLs matched the paired Editor run byte for byte. The protocol DLL gained the `imports` help entry. Eight separate Python checks passed for the Unity timing diagnostic, including live-file replacement, domain reload and abnormal shutdown. [Windows Editor shutdown](parallel-workspace-performance.md#windows-editor-shutdown)
-
-The November 19 matched live-publication run on the warm URP project took 42.80s before and 36.19s after from checkpoint to verified original recompile. First shutdown request through both workspace releases took 86.15s and 68.66s. Library preparation through restoration took 679.98s and 597.58s, including the live original and independent checks. The earlier startup-only comparison on the same input recorded B's 590-node Bee graph at 7.372s and 6.445s. A small replay reproduced 14.77s under competing disk writes. [Parallel workspace evidence](parallel-workspace-performance.md)
-
-Two real Git/WinFsp workspaces exercised peer import with a selected file followed by a full update. The producer continued editing after its checkpoint, the consumer kept an unrelated file, and a divergent edit produced a conflict. Repeating the earlier completed import after producer release preserved the consumer's newer edit. Both final results were retained and the original Git worktree remained clean. The local receipts are in `artifacts/maze-20261119/optimized/mz19/peer-import/`. [Workspace import](../workspace-import.md)
+The default xUnit schedule runs eight classes concurrently, with exclusive collections for process-wide resources. Default paged-store and catalog fixtures use 32 and 1,024 entries. `SPLINTER_LARGE_CATALOG_TESTS=1` enables separate capacity checks at 32,769, 262,145 and 1,048,576 entries. CI builds on Linux. Native runtime validation uses Windows and NTFS.
 
 ## Remaining qualification
 
-- **Scale and lifecycle.** SCAL-01–08 remains incomplete. Full native and fault coverage, the 17 GiB workload, complete 100k original publication and reclamation across Git, Plastic, and plain folders, and general peak RSS and matched lifecycle costs remain unqualified. A bounded plain-folder recheck reached capture and a read-only plan. [SCAL plan](../plans/scalable-storage.md)
-- **Platform and performance.** The small Git, plain-folder, Plastic, and Unity results apply to their own inputs. General throughput, space and memory savings, parallel build and test performance, comprehensive ARM coverage, other operating systems, reboot, power-loss, and disk-failure durability remain unqualified. End-to-end setup and agent handoff scenarios have partial or unrun qualification.
-- **Retained large fixtures.** The three 100k providers stopped normally after slow phases. The managed original still needs restoration, and the original, basis, task, results, request state, and matching historical binaries remain protected. Resuming this work requires its own bounded execution scope.
+The full Git, Plastic and plain-folder 100,000-entry lifecycle, the 17 GiB workload, general peak memory and throughput, other platforms and OS/power-loss recovery remain unqualified. Retained large fixtures include a managed original awaiting restoration. Its project, bases, results, request state and matching binaries must remain available for separately authorized recovery. [Scale and fault checks](../plans/scalable-storage.md)
 
-## Recording evidence
-
-Estimate each phase from its actual scope and stop safely at twice the estimate. Record the revision, input, command, outcome, elapsed time, and any unexecuted scope. Record canceled runs and deadline overruns separately from completed gates. Keep reproducible diagnostics and current limitations here, with prior runs available in Git history. [Contributor instructions](../../AGENTS.md)
+Record the exact input, binaries, phase estimate, stop deadline, elapsed time and outcome for each qualification. Keep source and result ownership intact on interruption. [Contributor instructions](../../AGENTS.md)

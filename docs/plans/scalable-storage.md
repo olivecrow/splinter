@@ -1,38 +1,10 @@
-# Scalable source storage and repeated publication
+# Storage qualification plan
 
-한국어 · [Implementation](../scalable-storage.md) · Verification
+[Product storage](../scalable-storage.md) uses task v4, managed basis v3, segmented overlay v3 and SPM2 metadata pages of up to 64 KiB. Fixed capture and publication bind logical state to physical backing and independent result references. These gates qualify that implementation on the declared input.
 
-Fresh small None timing and lock-protected normal-absence fixes under ST-41–43 belong to the throughput follow-up. SCAL-03/07/08, large inputs and the whole gate remain incomplete.
+Record the exact builds, workload, source mode, input sizes, time estimates, deadlines and safe stop conditions before a run. Compare complete lifecycles including preparation, capture, original publication and reclamation. Measure logical bytes, physical allocation, peak and retained process memory, handles, and time by phase. Use a fixed work order and report any setup outside the timing window.
 
-Status: **in progress**, authorized by the user's implementation request. SCAL-01–08 own this program; earlier closed performance programs are not reopened. Baseline: development `b68eaaa9e7e78930ff7b4b0b368f137bc3e528c6`.
-
-The user reduced verification on 2026-11-01. Large synthetic runs were stopped safely with retained state; remaining 100k/17GiB/ABBA/full-gate obligations are open, not passed. The slowdown record separates observed phase times, confirmed fixes and unmeasured causes. Do not restart those large runs automatically. Implementation activation and focused qualification do not establish the full completion criteria below.
-
-The remaining serialization/traversal candidates are implemented as ST-36–40: grouped durable progress, initial namespace/Create batches, bounded exact graph caches and planning merges. Small 64-test qualification does not close the large/full gates or replace the one-key-per-node format.
-
-## Accepted contract
-
-Remove project-wide entry/path/manifest/journal quotas throughout Git/None/Plastic preparation, editing, capture, original publication and reclamation. Keep bounded processing pages, lazy caches and concurrency; real filesystem capacity and metadata restrictions still apply. Preserve immutable independent generations, same-request recovery, original/peer isolation and all-target native publication locks. Never substitute a mutable original path for required preserved content.
-
-Bulk metadata uses directory/component records, immutable binary pages no larger than 64KiB and shared append containers. Unchanged pages and content are reused. The 2026-11-01 resource authorization replaces the initial 32MiB cache with a demand-driven process-local target up to 4GiB: five eighths for metadata cache and one eighth for pooled sort/spool scratch. This is not preallocation, an OS RSS cap or an aggregate multi-process guarantee. Bounded sorting/indices retain disk fallback instead of project-sized unbounded arrays/dictionaries; the [implementation](../scalable-storage.md) owns the exact policy. Small request/receipt/CLI objects remain JSON. Do not add a DB, daemon or serialization dependency.
-
-All original publication targets are checked/pinned before mutation. The resource policy selects 8–32 workers for independent files, with topology/companion dependencies, serialized durable progress and failure/cancellation drain. Beyond one largest payload for recovery, parallel staging is limited by worker count, one quarter of the working target and one quarter of observed free disk space; per-file space checks remain. Native handle costs remain proportional to the pinned target set.
-
-## Delivery sequence
-
-1. Common contracts/fakes, immutable page store, directory metadata, interval indices, corruption and interruption tests.
-2. Paged Git/Plastic/input/Library metadata and live node/extent/hidden/change indices; frozen capture roots and durable reader protection.
-3. Result/request/apply history indices, content reuse, independent results and precise reference-based reclamation.
-4. Full-lock bounded parallel publication, cursor CLI/schema and actual backing-capacity reporting. Remove `--max-journal-bytes` and connected quotas only after their replacement paths are ready.
-5. Native/Unity qualification, matched small-input cost comparison, current documentation and the final full gate.
-
-The candidate now writes task v4, managed basis v3, product overlay identity v3 and metadata-store format 2 (`SPM2`). Preserve/refuse older stores, including the preceding task-v4 candidate's `SPM1`, and use their matching binaries; no migration, fallback or reclamation is added. ST-44–48 owns compact directory/publication records and binary temporary records; multi-entry pages remain deferred. Activation in candidate code is not SCAL completion: actual lifecycle, fault, cost, documentation and final-gate evidence remain mandatory. Explicit development views/candidates retain their separate recorded formats.
-
-## Candidate connection and remaining qualification
-
-Current code connects component/page provider catalogs, segmented live/capture indices, independent shared content/ranges, paged history/plans/selection and full-lock bounded workers. It also exposes root-bound `workspace read` and exact-key/scope `workspace maintain`; metadata collection uses authoritative roots/reader fences and native ownership receipts. Capture/apply maintenance scheduling is a processing decision, while final release forces collection. Explicit development overlay2/candidate3 diagnostics are separate from product overlay3.
-
-Finish current live-index/backing reclamation recovery, the prescribed native/Unity input set, cost/regression measurements, final source-map hashes and build/docs gates. Report each gate from new candidate evidence; no skip or earlier pass substitutes for a mandatory case. Unknown protected residue is explicit data, not an automatic deletion target. See the verification owner for current results and unresolved rows.
+The native 100,000-entry lifecycle, 17 GiB workload, repeated cost comparison and OS-failure boundaries need separate qualification. Preserve retained fixtures and their ownership state until a specifically scoped run. The default regression and small Unity maze measure different scopes. [Validation status](../verification/README.md)
 
 ## Required gates
 
